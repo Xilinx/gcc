@@ -199,30 +199,29 @@ save_clast_name_index (htab_t index_table, const char *name, int index)
 
 
 /* Returns the tree variable from the name NAME that was given in
-   Cloog representation.  All the loop induction variables are stored
-   in IVSTACK.  */
+   Cloog representation.  */
 
 static tree
-clast_name_to_gcc (const char *name, sese region,
-		   loop_iv_stack ivstack)
+clast_name_to_gcc (const char *name, sese region, VEC (tree, heap) *newivs,
+		   htab_t newivs_index)
 {
-  tree iv;
+  int index;
   VEC (name_tree, heap) *params = SESE_PARAMS (region);
   htab_t params_index = SESE_PARAMS_INDEX (region);
 
   if (params && params_index)
     {
-      int index = clast_name_to_index (name, params_index);
+      index = clast_name_to_index (name, params_index);
 
       if (index >= 0)
 	return VEC_index (name_tree, params, index)->t;
     }
 
-  iv = loop_iv_stack_get_iv_from_name (ivstack, name);
-  if (iv)
-    return iv;
+  gcc_assert (newivs && newivs_index);
+  index = clast_name_to_index (name, newivs_index);
+  gcc_assert (index >= 0);
 
-  gcc_unreachable ();
+  return newivs_to_depth_to_newiv (newivs, index);
 }
 
 /* Returns the maximal precision type for expressions E1 and E2.  */
@@ -236,36 +235,38 @@ max_precision_type (tree e1, tree e2)
 }
 
 static tree
-clast_to_gcc_expression (tree, struct clast_expr *, sese, loop_iv_stack);
+clast_to_gcc_expression (tree, struct clast_expr *, sese, VEC (tree, heap) *,
+			 htab_t);
 
 /* Converts a Cloog reduction expression R with reduction operation OP
-   to a GCC expression tree of type TYPE.  IVSTACK contains the stack
-   of induction variables.  */
+   to a GCC expression tree of type TYPE.  */
 
 static tree
 clast_to_gcc_expression_red (tree type, enum tree_code op,
 			     struct clast_reduction *r,
-			     sese region,
-			     loop_iv_stack ivstack)
+			     sese region, VEC (tree, heap) *newivs,
+			     htab_t newivs_index)
 {
   int i;
-  tree res = clast_to_gcc_expression (type, r->elts[0], region, ivstack);
+  tree res = clast_to_gcc_expression (type, r->elts[0], region, newivs,
+				      newivs_index);
 
   for (i = 1; i < r->n; i++)
     {
-      tree t = clast_to_gcc_expression (type, r->elts[i], region, ivstack);
+      tree t = clast_to_gcc_expression (type, r->elts[i], region, newivs,
+					newivs_index);
       res = fold_build2 (op, type, res, t);
     }
   return res;
 }
 
 /* Converts a Cloog AST expression E back to a GCC expression tree of
-   type TYPE.  IVSTACK contains the stack of induction variables.  */
+   type TYPE.  */
 
 static tree
 clast_to_gcc_expression (tree type, struct clast_expr *e,
-			 sese region,
-			 loop_iv_stack ivstack)
+			 sese region, VEC (tree, heap) *newivs,
+			 htab_t newivs_index)
 {
   switch (e->type)
     {
@@ -277,19 +278,22 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 	  {
 	    if (value_one_p (t->val))
 	      {
-		tree name = clast_name_to_gcc (t->var, region, ivstack);
+		tree name = clast_name_to_gcc (t->var, region, newivs,
+					       newivs_index);
 		return fold_convert (type, name);
 	      }
 
 	    else if (value_mone_p (t->val))
 	      {
-		tree name = clast_name_to_gcc (t->var, region, ivstack);
+		tree name = clast_name_to_gcc (t->var, region, newivs,
+					       newivs_index);
 		name = fold_convert (type, name);
 		return fold_build1 (NEGATE_EXPR, type, name);
 	      }
 	    else
 	      {
-		tree name = clast_name_to_gcc (t->var, region, ivstack);
+		tree name = clast_name_to_gcc (t->var, region, newivs,
+					       newivs_index);
 		tree cst = gmp_cst_to_tree (type, t->val);
 		name = fold_convert (type, name);
 		return fold_build2 (MULT_EXPR, type, cst, name);
@@ -306,13 +310,16 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
         switch (r->type)
           {
 	  case clast_red_sum:
-	    return clast_to_gcc_expression_red (type, PLUS_EXPR, r, region, ivstack);
+	    return clast_to_gcc_expression_red (type, PLUS_EXPR, r, region, newivs,
+						newivs_index);
 
 	  case clast_red_min:
-	    return clast_to_gcc_expression_red (type, MIN_EXPR, r, region, ivstack);
+	    return clast_to_gcc_expression_red (type, MIN_EXPR, r, region, newivs,
+						newivs_index);
 
 	  case clast_red_max:
-	    return clast_to_gcc_expression_red (type, MAX_EXPR, r, region, ivstack);
+	    return clast_to_gcc_expression_red (type, MAX_EXPR, r, region, newivs,
+						newivs_index);
 
 	  default:
 	    gcc_unreachable ();
@@ -324,7 +331,8 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
       {
 	struct clast_binary *b = (struct clast_binary *) e;
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
-	tree tl = clast_to_gcc_expression (type, lhs, region, ivstack);
+	tree tl = clast_to_gcc_expression (type, lhs, region, newivs,
+					   newivs_index);
 	tree tr = gmp_cst_to_tree (type, b->RHS);
 
 	switch (b->type)
@@ -357,8 +365,8 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 
 static tree
 gcc_type_for_clast_expr (struct clast_expr *e,
-			 sese region,
-			 loop_iv_stack ivstack)
+			 sese region, VEC (tree, heap) *newivs,
+			 htab_t newivs_index)
 {
   switch (e->type)
     {
@@ -367,7 +375,8 @@ gcc_type_for_clast_expr (struct clast_expr *e,
 	struct clast_term *t = (struct clast_term *) e;
 
 	if (t->var)
-	  return TREE_TYPE (clast_name_to_gcc (t->var, region, ivstack));
+	  return TREE_TYPE (clast_name_to_gcc (t->var, region, newivs,
+					       newivs_index));
 	else
 	  return NULL_TREE;
       }
@@ -377,13 +386,15 @@ gcc_type_for_clast_expr (struct clast_expr *e,
         struct clast_reduction *r = (struct clast_reduction *) e;
 
 	if (r->n == 1)
-	  return gcc_type_for_clast_expr (r->elts[0], region, ivstack);
+	  return gcc_type_for_clast_expr (r->elts[0], region, newivs,
+					  newivs_index);
 	else 
 	  {
 	    int i;
 	    for (i = 0; i < r->n; i++)
 	      {
-		tree type = gcc_type_for_clast_expr (r->elts[i], region, ivstack);
+		tree type = gcc_type_for_clast_expr (r->elts[i], region, newivs,
+						     newivs_index);
 		if (type)
 		  return type;
 	      }
@@ -395,7 +406,8 @@ gcc_type_for_clast_expr (struct clast_expr *e,
       {
 	struct clast_binary *b = (struct clast_binary *) e;
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
-	return gcc_type_for_clast_expr (lhs, region, ivstack);
+	return gcc_type_for_clast_expr (lhs, region, newivs,
+					newivs_index);
       }
 
     default:
@@ -409,48 +421,15 @@ gcc_type_for_clast_expr (struct clast_expr *e,
 
 static tree
 gcc_type_for_clast_eq (struct clast_equation *cleq,
-		       sese region,
-		       loop_iv_stack ivstack)
+		       sese region, VEC (tree, heap) *newivs,
+		       htab_t newivs_index)
 {
-  tree type = gcc_type_for_clast_expr (cleq->LHS, region, ivstack);
+  tree type = gcc_type_for_clast_expr (cleq->LHS, region, newivs,
+				       newivs_index);
   if (type)
     return type;
 
-  return gcc_type_for_clast_expr (cleq->RHS, region, ivstack);
-}
-
-/* Inserts constants derived from the USER_STMT argument list into the
-   STACK.  This is needed to map old ivs to constants when loops have
-   been eliminated.  */
-
-static void 
-loop_iv_stack_patch_for_consts (loop_iv_stack stack,
-				struct clast_user_stmt *user_stmt)
-{
-  struct clast_stmt *t;
-  int index = 0;
-  CloogStatement *cs = user_stmt->statement;
-  poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
-  sese region = SCOP_REGION (PBB_SCOP (pbb));
-
-  for (t = user_stmt->substitutions; t; t = t->next) 
-    {
-      struct clast_expr *expr = (struct clast_expr *) 
-	((struct clast_assignment *)t)->RHS;
-      struct clast_term *term = (struct clast_term *) expr;
-
-      /* FIXME: What should be done with expr_bin, expr_red?  */
-      if (expr->type == expr_term
-	  && !term->var)
-	{
-	  loop_p loop = gbb_loop_at_index (PBB_BLACK_BOX (pbb), region, index);
-	  tree oldiv = oldiv_for_loop (region, loop);
-	  tree type = oldiv ? TREE_TYPE (oldiv) : integer_type_node;
-	  tree value = gmp_cst_to_tree (type, term->val);
-	  loop_iv_stack_insert_constant (stack, index, value);
-	}
-      index = index + 1;
-    }
+  return gcc_type_for_clast_expr (cleq->RHS, region, newivs, newivs_index);
 }
 
 /* Translates a clast equation CLEQ to a tree.  */
@@ -458,12 +437,15 @@ loop_iv_stack_patch_for_consts (loop_iv_stack stack,
 static tree
 graphite_translate_clast_equation (sese region,
 				   struct clast_equation *cleq,
-				   loop_iv_stack ivstack)
+				   VEC (tree, heap) *newivs,
+				   htab_t newivs_index)
 {
   enum tree_code comp;
-  tree type = gcc_type_for_clast_eq (cleq, region, ivstack);
-  tree lhs = clast_to_gcc_expression (type, cleq->LHS, region, ivstack);
-  tree rhs = clast_to_gcc_expression (type, cleq->RHS, region, ivstack);
+  tree type = gcc_type_for_clast_eq (cleq, region, newivs, newivs_index);
+  tree lhs = clast_to_gcc_expression (type, cleq->LHS, region, newivs,
+				      newivs_index);
+  tree rhs = clast_to_gcc_expression (type, cleq->RHS, region, newivs,
+				      newivs_index);
 
   if (cleq->sign == 0)
     comp = EQ_EXPR;
@@ -481,14 +463,16 @@ graphite_translate_clast_equation (sese region,
 
 static tree
 graphite_create_guard_cond_expr (sese region, struct clast_guard *stmt, 
-				 loop_iv_stack ivstack)
+				 VEC (tree, heap) *newivs,
+				 htab_t newivs_index)
 {
   tree cond = NULL;
   int i;
 
   for (i = 0; i < stmt->n; i++)
     {
-      tree eq = graphite_translate_clast_equation (region, &stmt->eq[i], ivstack);
+      tree eq = graphite_translate_clast_equation (region, &stmt->eq[i], newivs,
+						   newivs_index);
 
       if (cond)
 	cond = fold_build2 (TRUTH_AND_EXPR, TREE_TYPE (eq), cond, eq);
@@ -504,9 +488,11 @@ graphite_create_guard_cond_expr (sese region, struct clast_guard *stmt,
 static edge 
 graphite_create_new_guard (sese region, edge entry_edge,
 			   struct clast_guard *stmt, 
-			   loop_iv_stack ivstack)
+			   VEC (tree, heap) *newivs,
+			   htab_t newivs_index)
 {
-  tree cond_expr = graphite_create_guard_cond_expr (region, stmt, ivstack);
+  tree cond_expr = graphite_create_guard_cond_expr (region, stmt, newivs,
+						    newivs_index);
   edge exit_edge = create_empty_if_region_on_edge (entry_edge, cond_expr);
   return exit_edge;
 }
@@ -576,13 +562,15 @@ gcc_type_for_iv_of_clast_loop (struct clast_for *stmt_for)
 
 static struct loop *
 graphite_create_new_loop (sese region, edge entry_edge,
-			  struct clast_for *stmt, loop_iv_stack ivstack,
-			  loop_p outer, VEC (tree, heap) *newivs,
+			  struct clast_for *stmt,
+			  loop_p outer, VEC (tree, heap) **newivs,
 			  htab_t newivs_index)
 {
   tree type = gcc_type_for_iv_of_clast_loop (stmt);
-  tree lb = clast_to_gcc_expression (type, stmt->LB, region, ivstack);
-  tree ub = clast_to_gcc_expression (type, stmt->UB, region, ivstack);
+  tree lb = clast_to_gcc_expression (type, stmt->LB, region, *newivs,
+				     newivs_index);
+  tree ub = clast_to_gcc_expression (type, stmt->UB, region, *newivs,
+				     newivs_index);
   tree stride = gmp_cst_to_tree (type, stmt->stride);
   tree ivvar = create_tmp_var (type, "graphite_IV");
   tree iv, iv_after_increment;
@@ -591,44 +579,46 @@ graphite_create_new_loop (sese region, edge entry_edge,
      outer ? outer : entry_edge->src->loop_father);
 
   add_referenced_var (ivvar);
-  loop_iv_stack_push_iv (ivstack, iv, stmt->iterator);
 
   save_clast_name_index (newivs_index, stmt->iterator,
-			 VEC_length (tree, newivs));
-  VEC_safe_push (tree, heap, newivs, iv);
+			 VEC_length (tree, *newivs));
+  VEC_safe_push (tree, heap, *newivs, iv);
   return loop;
 }
 
 /* Inserts in MAP a tuple (OLD_NAME, NEW_NAME) for the induction
-   variables of the loops around GBB in SESE.  NEW_NAME is obtained
-   from IVSTACK.  */
+   variables of the loops around GBB in SESE.  */
 
 static void
-build_iv_mapping (loop_iv_stack ivstack, htab_t map, poly_bb_p pbb,
-		  sese region)
+build_iv_mapping (htab_t map, sese region,
+		  VEC (tree, heap) *newivs, htab_t newivs_index,
+		  struct clast_user_stmt *user_stmt)
 {
-  int i;
-  name_tree iv;
-  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
   struct rename_map_elt tmp;
   PTR *slot;
+  struct clast_stmt *t;
+  int index = 0;
+  CloogStatement *cs = user_stmt->statement;
+  poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
 
-  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, iv); i++)
+  for (t = user_stmt->substitutions; t; t = t->next, index++)
     {
       tree old_name, new_name;
+      struct clast_expr *expr = (struct clast_expr *) 
+       ((struct clast_assignment *)t)->RHS;
+      tree type = gcc_type_for_clast_expr (expr, region, newivs,
+					   newivs_index);
 
-      if (!flow_bb_inside_loop_p (iv->loop, GBB_BB (gbb)))
-	continue;
-
-      old_name = iv->t;
+      old_name = pbb_to_depth_to_oldiv (pbb, index);
       tmp.old_name = old_name;
       slot = htab_find_slot (map, &tmp, INSERT);
 
       if (*slot)
 	free (*slot);
 
-      new_name = loop_iv_stack_get_iv 
-	(ivstack, gbb_loop_index (region, iv->loop));
+      new_name = clast_to_gcc_expression (type, expr, region, newivs,
+					  newivs_index);
+
       *slot = new_rename_map_elt (old_name, new_name);
     }
 }
@@ -659,22 +649,20 @@ copy_renames (void **slot, void *s)
 
    - NEXT_E is the edge where new generated code should be attached.
    - CONTEXT_LOOP is the loop in which the generated code will be placed
-   - IVSTACK contains the surrounding loops around the statement to be
-     translated.
    - RENAME_MAP contains a set of tuples of new names associated to
      the original variables names.
 */
 
 static edge
 translate_clast (sese region, struct loop *context_loop,
-		 struct clast_stmt *stmt, edge next_e, loop_iv_stack ivstack,
-		 htab_t rename_map, VEC (tree, heap) *newivs, htab_t newivs_index)
+		 struct clast_stmt *stmt, edge next_e,
+		 htab_t rename_map, VEC (tree, heap) **newivs, htab_t newivs_index)
 {
   if (!stmt)
     return next_e;
 
   if (CLAST_STMT_IS_A (stmt, stmt_root))
-    return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
+    return translate_clast (region, context_loop, stmt->next, next_e,
 			    rename_map, newivs, newivs_index);
 
   if (CLAST_STMT_IS_A (stmt, stmt_user))
@@ -687,15 +675,14 @@ translate_clast (sese region, struct loop *context_loop,
       if (GBB_BB (gbb) == ENTRY_BLOCK_PTR)
 	return next_e;
 
-      loop_iv_stack_patch_for_consts (ivstack, (struct clast_user_stmt *) stmt);
-      build_iv_mapping (ivstack, rename_map, pbb, region);
+      build_iv_mapping (rename_map, region, *newivs, newivs_index,
+			(struct clast_user_stmt *) stmt);
       next_e = copy_bb_and_scalar_dependences (GBB_BB (gbb), region,
 					       next_e, rename_map);
-      loop_iv_stack_remove_constants (ivstack);
       update_ssa (TODO_update_ssa);
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
+      return translate_clast (region, context_loop, stmt->next, next_e,
 			      rename_map, newivs, newivs_index);
     }
 
@@ -703,7 +690,7 @@ translate_clast (sese region, struct loop *context_loop,
     {
       struct loop *loop
 	= graphite_create_new_loop (region, next_e, (struct clast_for *) stmt,
-				    ivstack, context_loop, newivs, newivs_index);
+				    context_loop, newivs, newivs_index);
       edge last_e = single_exit (loop);
       edge to_body = single_succ_edge (loop->header);
       basic_block after = to_body->dest;
@@ -721,11 +708,10 @@ translate_clast (sese region, struct loop *context_loop,
 
       /* Translate the body of the loop.  */
       next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
-				single_succ_edge (loop->header), ivstack,
+				single_succ_edge (loop->header),
 				rename_map, newivs, newivs_index);
       redirect_edge_succ_nodup (next_e, after);
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
-      loop_iv_stack_pop (ivstack);
 
       /* Remove from rename_map all the tuples containing variables
 	 defined in loop's body.  */
@@ -733,7 +719,7 @@ translate_clast (sese region, struct loop *context_loop,
 
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (region, context_loop, stmt->next, last_e, ivstack,
+      return translate_clast (region, context_loop, stmt->next, last_e,
 			      rename_map, newivs, newivs_index);
     }
 
@@ -741,7 +727,7 @@ translate_clast (sese region, struct loop *context_loop,
     {
       edge last_e = graphite_create_new_guard (region, next_e,
 					       ((struct clast_guard *) stmt),
-					       ivstack);
+					       *newivs, newivs_index);
       edge true_e = get_true_edge_from_guard_bb (next_e->dest);
       edge false_e = get_false_edge_from_guard_bb (next_e->dest);
       edge exit_true_e = single_succ_edge (true_e->dest);
@@ -752,14 +738,14 @@ translate_clast (sese region, struct loop *context_loop,
       htab_traverse (rename_map, copy_renames, before_guard);
       next_e = translate_clast (region, context_loop, 
 				((struct clast_guard *) stmt)->then,
-				true_e, ivstack, rename_map, newivs, newivs_index);
+				true_e, rename_map, newivs, newivs_index);
       insert_guard_phis (last_e->src, exit_true_e, exit_false_e,
 			 before_guard, rename_map);
 
       recompute_all_dominators ();
       graphite_verify ();
 
-      return translate_clast (region, context_loop, stmt->next, last_e, ivstack,
+      return translate_clast (region, context_loop, stmt->next, last_e,
 			      rename_map, newivs, newivs_index);
     }
 
@@ -767,10 +753,10 @@ translate_clast (sese region, struct loop *context_loop,
     {
       next_e = translate_clast (region, context_loop,
 				((struct clast_block *) stmt)->body,
-				next_e, ivstack, rename_map, newivs, newivs_index);
+				next_e, rename_map, newivs, newivs_index);
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
+      return translate_clast (region, context_loop, stmt->next, next_e,
 			      rename_map, newivs, newivs_index);
     }
 
@@ -1277,8 +1263,6 @@ bool
 gloog (scop_p scop)
 {
   edge new_scop_exit_edge = NULL;
-  VEC (iv_stack_entry_p, heap) *ivstack = VEC_alloc (iv_stack_entry_p, heap,
-						     10);
   VEC (tree, heap) *newivs = VEC_alloc (tree, heap, 10);
   loop_p context_loop;
   sese region = SCOP_REGION (scop);
@@ -1308,7 +1292,7 @@ gloog (scop_p scop)
 
   new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
-					&ivstack, rename_map, newivs, newivs_index);
+					rename_map, &newivs, newivs_index);
   graphite_verify ();
   sese_adjust_liveout_phis (region, rename_map,
 			    if_region->region->exit->src,
@@ -1318,7 +1302,6 @@ gloog (scop_p scop)
   graphite_verify ();
 
   htab_delete (rename_map);
-  free_loop_iv_stack (&ivstack);
   htab_delete (newivs_index);
   VEC_free (tree, heap, newivs);
   cloog_clast_free (pc.stmt);

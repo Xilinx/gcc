@@ -256,44 +256,6 @@ new_rename_map_elt (tree old_name, tree new_name)
   return res;
 }
 
-/* Describes the type of an iv stack entry.  */
-typedef enum {
-  iv_stack_entry_unknown = 0,
-  iv_stack_entry_iv,
-  iv_stack_entry_const
-} iv_stack_entry_kind;
-
-/* Data contained in an iv stack entry.  */
-typedef union iv_stack_entry_data_union
-{
-  name_tree iv;
-  tree constant;
-} iv_stack_entry_data;
-
-/* Datatype for loop iv stack entry.  */
-typedef struct iv_stack_entry_struct
-{
-  iv_stack_entry_kind kind;
-  iv_stack_entry_data data;
-} iv_stack_entry;
-
-typedef iv_stack_entry *iv_stack_entry_p;
-
-DEF_VEC_P(iv_stack_entry_p);
-DEF_VEC_ALLOC_P(iv_stack_entry_p,heap);
-
-typedef VEC(iv_stack_entry_p, heap) **loop_iv_stack;
-
-extern void debug_oldivs (sese);
-extern void debug_loop_iv_stack (loop_iv_stack);
-extern void loop_iv_stack_insert_constant (loop_iv_stack, int, tree);
-extern tree loop_iv_stack_get_iv_from_name (loop_iv_stack, const char *);
-extern void loop_iv_stack_push_iv (loop_iv_stack, tree, const char *);
-extern tree loop_iv_stack_get_iv (loop_iv_stack, int);
-extern void loop_iv_stack_remove_constants (loop_iv_stack);
-extern void loop_iv_stack_pop (loop_iv_stack);
-extern void free_loop_iv_stack (loop_iv_stack);
-
 /* Structure containing the mapping between the CLooG's induction
    variable and the type of the old induction variable.  */
 typedef struct ivtype_map_elt
@@ -386,21 +348,11 @@ gbb_loop_at_index (gimple_bb_p gbb, sese region, int index)
   int depth = sese_loop_depth (region, loop);
 
   while (--depth > index)
-    {
-      loop = loop_outer (loop);
-    }
+    loop = loop_outer (loop);
 
   gcc_assert (sese_contains_loop (region, loop));
 
   return loop;
-}
-
-/* Returns the index of LOOP in the region, 0 based index.  */
-
-static inline int
-gbb_loop_index (sese region, loop_p loop)
-{
-  return sese_loop_depth (region, loop) - 1;
 }
 
 /* The number of common loops in REGION for GBB1 and GBB2.  */

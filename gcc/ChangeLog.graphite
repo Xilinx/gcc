@@ -1,5 +1,43 @@
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (clast_name_to_gcc): Pass newivs,
+	remove ivstack.  Remove call to loop_iv_stack_get_iv_from_name,
+	replaced by a call to newivs_to_depth_to_newiv.
+	(clast_to_gcc_expression): Pass newivs, remove ivstack.
+	(clast_to_gcc_expression_red): Same.
+	(gcc_type_for_clast_expr): Same.
+	(gcc_type_for_clast_eq): Same.
+	(graphite_translate_clast_equation): Same.
+	(graphite_create_guard_cond_expr): Same.
+	(graphite_create_new_guard): Same.
+	(graphite_create_new_loop): Same.
+	(build_iv_mapping): Same.
+	(translate_clast): Same.
+	(gloog): Same.
+	(loop_iv_stack_patch_for_consts): Removed.  *
+	sese.c (iv_stack_entry_is_constant): Removed.
+	(iv_stack_entry_is_iv): Removed.
+	(loop_iv_stack_push_iv): Removed.
+	(loop_iv_stack_insert_constant): Removed.
+	(loop_iv_stack_pop): Removed.
+	(loop_iv_stack_get_iv): Removed.
+	(loop_iv_stack_get_iv_from_name): Removed.
+	(debug_loop_iv_stack): Removed.
+	(free_loop_iv_stack): Removed.
+	(loop_iv_stack_remove_constants): Removed.  *
+	sese.h (iv_stack_entry_kind): Removed.
+	(iv_stack_entry_data_union): Removed.
+	(iv_stack_entry_struct): Removed.
+	(iv_stack_entry_p): Removed.
+	(debug_oldivs, debug_loop_iv_stack, loop_iv_stack_insert_constant,
+	loop_iv_stack_get_iv_from_name, loop_iv_stack_push_iv,
+	loop_iv_stack_get_iv, loop_iv_stack_remove_constants,
+	loop_iv_stack_pop, free_loop_iv_stack): Removed.
+	(gbb_loop_at_index): Fix indenting.
+	(gbb_loop_index): Removed.
+
+2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (clast_name_to_gcc): Do not use strcmp.
 	Call clast_name_to_index.
 
