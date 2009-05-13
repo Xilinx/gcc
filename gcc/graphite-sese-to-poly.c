@@ -544,6 +544,50 @@ scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr)
   ppl_delete_Coefficient (coef);
 }
 
+/* Saves in NV at index I a new name for variable P.  */
+
+static void
+save_var_name (char **nv, int i, tree p)
+{
+  const char *name = get_name (SSA_NAME_VAR (p));
+
+  if (name)
+    {
+      int len = strlen (name) + 16;
+      nv[i] = XNEWVEC (char, len);
+      snprintf (nv[i], len, "%s_%d", name, SSA_NAME_VERSION (p));
+    }
+  else
+    {
+      nv[i] = XNEWVEC (char, 16);
+      snprintf (nv[i], 2 + 16, "T_%d", SSA_NAME_VERSION (p));
+    }
+}
+
+/* Get the index for parameter NAME in REGION.  */
+
+static int
+parameter_index_in_region (tree name, sese region)
+{
+  int i;
+  tree p;
+
+  gcc_assert (TREE_CODE (name) == SSA_NAME);
+
+  for (i = 0; VEC_iterate (tree, SESE_PARAMS (region), i, p); i++)
+    if (p == name)
+      return i;
+
+  gcc_assert (SESE_ADD_PARAMS (region));
+
+  i = VEC_length (tree, SESE_PARAMS (region));
+  save_var_name (SESE_PARAMS_NAMES (region), i, name);
+  save_clast_name_index (SESE_PARAMS_INDEX (region),
+			 SESE_PARAMS_NAMES (region)[i], i);
+  VEC_safe_push (tree, heap, SESE_PARAMS (region), name);
+  return i;
+}
+
 /* In the context of sese S, scan the expression E and translate it to
    a linear expression C.  When parsing a symbolic multiplication, K
    represents the constant multiplier of an expression containing
@@ -648,6 +692,7 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
     case SSA_NAME:
       {
 	ppl_dimension_type p = parameter_index_in_region (e, s);
+
 	if (c)
 	  {
 	    ppl_dimension_type dim;

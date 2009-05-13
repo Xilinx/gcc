@@ -256,17 +256,19 @@ sese_build_liveouts (sese region, bitmap liveouts)
 sese
 new_sese (edge entry, edge exit)
 {
-  sese res = XNEW (struct sese);
+  sese region = XNEW (struct sese);
 
-  SESE_ENTRY (res) = entry;
-  SESE_EXIT (res) = exit;
-  SESE_LOOPS (res) = BITMAP_ALLOC (NULL);
-  SESE_LOOP_NEST (res) = VEC_alloc (loop_p, heap, 3);
-  SESE_ADD_PARAMS (res) = true;
-  SESE_PARAMS (res) = VEC_alloc (name_tree, heap, 3);
-  SESE_PARAMS_INDEX (res) = NULL;
+  SESE_ENTRY (region) = entry;
+  SESE_EXIT (region) = exit;
+  SESE_LOOPS (region) = BITMAP_ALLOC (NULL);
+  SESE_LOOP_NEST (region) = VEC_alloc (loop_p, heap, 3);
+  SESE_ADD_PARAMS (region) = true;
+  SESE_PARAMS (region) = VEC_alloc (tree, heap, 3);
+  SESE_PARAMS_INDEX (region) = htab_create (10, clast_name_index_elt_info,
+					    eq_clast_name_indexes, free);
+  SESE_PARAMS_NAMES (region) = XNEWVEC (char *, num_ssa_names);
 
-  return res;
+  return region;
 }
 
 /* Deletes REGION.  */
@@ -274,46 +276,18 @@ new_sese (edge entry, edge exit)
 void
 free_sese (sese region)
 {
-  int i;
-  name_tree p;
-
   if (SESE_LOOPS (region))
     SESE_LOOPS (region) = BITMAP_ALLOC (NULL);
 
-  for (i = 0; VEC_iterate (name_tree, SESE_PARAMS (region), i, p); i++)
-    free (p);
-
-  VEC_free (name_tree, heap, SESE_PARAMS (region));
-  VEC_free (loop_p, heap, SESE_LOOP_NEST(region));
+  VEC_free (tree, heap, SESE_PARAMS (region));
+  VEC_free (loop_p, heap, SESE_LOOP_NEST (region)); 
 
   if (SESE_PARAMS_INDEX (region))
     htab_delete (SESE_PARAMS_INDEX (region));
 
+  /* Do not free SESE_PARAMS_NAMES: CLooG does that.  */
+
   XDELETE (region);
-}
-
-/* Get the index for parameter VAR in SESE.  */
-
-int
-parameter_index_in_region (tree var, sese sese)
-{
-  int i;
-  name_tree p;
-  name_tree nvar;
-
-  gcc_assert (TREE_CODE (var) == SSA_NAME);
-
-  for (i = 0; VEC_iterate (name_tree, SESE_PARAMS (sese), i, p); i++)
-    if (p->t == var)
-      return i;
-
-  gcc_assert (SESE_ADD_PARAMS (sese));
-
-  nvar = XNEW (struct name_tree);
-  nvar->t = var;
-  nvar->name = NULL;
-  VEC_safe_push (name_tree, heap, SESE_PARAMS (sese), nvar);
-  return VEC_length (name_tree, SESE_PARAMS (sese)) - 1;
 }
 
 /* Add exit phis for USE on EXIT.  */
@@ -543,17 +517,16 @@ rename_variables_in_stmt (gimple stmt, htab_t map)
   update_stmt (stmt);
 }
 
-/* Returns true if SSA_NAME is a parameter of SESE.  */
+/* Returns true if NAME is a parameter of SESE.  */
 
 static bool
-is_parameter (sese region, tree ssa_name)
+is_parameter (sese region, tree name)
 {
   int i;
-  VEC (name_tree, heap) *params = SESE_PARAMS (region);
-  name_tree param;
+  tree p;
 
-  for (i = 0; VEC_iterate (name_tree, params, i, param); i++)
-    if (param->t == ssa_name)
+  for (i = 0; VEC_iterate (tree, SESE_PARAMS (region), i, p); i++)
+    if (p == name)
       return true;
 
   return false;

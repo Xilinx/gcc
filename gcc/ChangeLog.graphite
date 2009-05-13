@@ -1,5 +1,42 @@
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (struct clast_name_index): Removed.
+	(debug_clast_name_index): Removed.
+	(debug_clast_name_indexes_1): Removed.
+	(debug_clast_name_indexes): Removed.
+	(clast_name_index_elt_info): Removed.
+	(eq_clast_name_indexes): Removed.
+	(clast_name_to_index): Removed.
+	(new_clast_name_index): Removed.
+	(save_clast_name_index): Removed.
+	(save_var_name): Moved...
+	(init_sese_params_index): Removed.
+	(clast_name_to_gcc): Remove use of name_tree.
+	(initialize_cloog_names): Same.
+	(gloog): Do not call init_sese_params_index.
+	* graphite-sese-to-poly.c (save_var_name): ...here.
+	(parameter_index_in_region): New.
+	* sese.c (new_sese): Initialize SESE_PARAMS_NAMES.
+	(parameter_index_in_region): Removed.
+	(is_parameter): Remove use of name_tree.
+	* sese.h (struct name_tree): Removed.
+	(struct sese): Remove use of name_tree.  New field params_names.
+	(SESE_PARAMS_NAMES): New.
+	(SESE_PARAMS): Remove duplicate.
+	(parameter_index_in_region): Removed.
+	(sese_nb_params): Remove use of name_tree.
+	(struct clast_name_index): New.
+	(new_clast_name_index): New.
+	(clast_name_to_index): New.
+	(save_clast_name_index): New.
+	(debug_clast_name_index): New.
+	(debug_clast_name_indexes_1): New.
+	(debug_clast_name_indexes): New.
+	(clast_name_index_elt_info): New.
+	(eq_clast_name_indexes): New.
+
+2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (compute_cloog_iv_types_1): Call
 	pbb_to_depth_to_oldiv.  Remove call to oldiv_for_loop.
 	(graphite_loop_normal_form): Do not pass region.  Do not
