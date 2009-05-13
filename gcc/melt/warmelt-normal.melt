@@ -3931,6 +3931,51 @@
 (install_method class_src_defcmatcher normal_exp normexp_defcmatcher)
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; normalize a DEFUNMATCHER
+(defun normexp_defunmatcher (recv env ncx psloc)
+  (debug_msg recv "normexp_defunmatcher start recv")
+  (assert_msg "normexp_defunmatcher check recv" (is_a recv class_src_defunmatcher))
+  (assert_msg "normexp_defunmatcher check env" (is_a env class_environment))
+  (assert_msg "normexp_defunmatcher check ncx" (is_a ncx class_normcontext))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (sname (unsafe_get_field :sdef_name recv))
+	 (smatched (multiple_nth (get_field :sformal_args recv) 0))
+	 (sins (unsafe_get_field :sfumatdef_ins recv))
+	 (souts (unsafe_get_field :sfumatdef_outs recv))
+	 (smatchf (unsafe_get_field :sfumatdef_matchf recv))
+	 (sapplyf (unsafe_get_field :sfumatdef_applyf recv))
+	 (sdata (unsafe_get_field :sfumatdef_data recv))
+	 (resbinds (make_list discr_list))
+	 )
+    (assert_msg "check smatched" (is_a smatched class_formal_binding))
+    (assert_msg "check sins" (is_multiple sins))
+    (assert_msg "check souts" (is_multiple souts))
+    (multicall
+     (nmatchf nmabinds)
+     (normal_exp smatchf env ncx sloc)
+     (debug_msg nmatchf "normexp_defunmatcher nmatchf")
+     (list_append2list resbinds nmabinds)
+     (multicall
+      (napplf napbinds)
+      (normal_exp sapplyf env ncx sloc)
+      (debug_msg napplf "normexp_defunmatcher napplf")
+      (list_append2list resbinds napbinds)
+      (multicall
+       (ndata ndabinds)
+       (normal_exp sdata env ncx sloc)
+       (debug_msg ndata "normexp_defunmatcher ndata")
+       (debug_msg resbinds "normexp_defunmatcher resbinds")
+      )))
+    (compile_warning  "@$@unimplemented normexp_defunmatcher" ())
+    (assert_msg "@$@unimplemented normexp_defunmatcher" ())
+    ))
+(install_method class_src_defunmatcher normal_exp normexp_defunmatcher)
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFCLASS
 (defun normexp_defclass (recv env ncx psloc)

@@ -1,5 +1,11 @@
 
 2009-05-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	[start adding funmatchers]
+	* melt/warmelt-normal.melt: adding normexp_defunmatcher which is
+	still incomplete.
+	* testsuite/melt/tfunmatch-1.melt: new test case for funmatch-ing.
+
+2009-05-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilys_output_cfile_decl_impl): only print the date,
 	not the hour, in the comments of generated file.
 	* melt/warmelt-macro.melt: added class_src_funmatchexpr &
