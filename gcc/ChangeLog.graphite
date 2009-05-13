@@ -1,5 +1,21 @@
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (compute_cloog_iv_types_1): Call
+	pbb_to_depth_to_oldiv.  Remove call to oldiv_for_loop.
+	(graphite_loop_normal_form): Do not pass region.  Do not
+	initialize SESE_OLDIVS.
+	(build_graphite_loop_normal_form): Update call to
+	graphite_loop_normal_form.
+	* sese.c (debug_oldivs): Removed.
+	(new_sese): Do not initialize SESE_OLDIVS.
+	(free_sese): Do not free SESE_OLDIVS.
+	(oldiv_for_loop): Removed.
+	* sese.h (struct sese): Remove old_ivs.
+	(SESE_OLDIVS): Removed.
+	(oldiv_for_loop): Removed.
+
+2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (clast_name_to_gcc): Pass newivs,
 	remove ivstack.  Remove call to loop_iv_stack_get_iv_from_name,
 	replaced by a call to newivs_to_depth_to_newiv.

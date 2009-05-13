@@ -803,7 +803,6 @@ compute_cloog_iv_types_1 (poly_bb_p pbb, struct clast_user_stmt *user_stmt)
 {
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
   struct clast_stmt *t;
-  sese region = SCOP_REGION (PBB_SCOP (pbb));
   int index = 0;
 
   for (t = user_stmt->substitutions; t; t = t->next, index++)
@@ -822,8 +821,7 @@ compute_cloog_iv_types_1 (poly_bb_p pbb, struct clast_user_stmt *user_stmt)
 
       if (!*slot)
 	{
-	  loop_p loop = gbb_loop_at_index (PBB_BLACK_BOX (pbb), region, index);
-	  tree oldiv = oldiv_for_loop (region, loop);
+	  tree oldiv = pbb_to_depth_to_oldiv (pbb, index);
 	  tree type = oldiv ? TREE_TYPE (oldiv) : integer_type_node;
 	  *slot = new_ivtype_map_elt (tmp.cloog_iv, type);
 	}
@@ -1196,14 +1194,13 @@ debug_generated_program (scop_p scop)
    loop, only one increment of the IV, and only one exit condition.  */
 
 static void
-graphite_loop_normal_form (loop_p loop, sese region)
+graphite_loop_normal_form (loop_p loop)
 {
   struct tree_niter_desc niter;
   tree nit;
   gimple_seq stmts;
   edge exit = single_dom_exit (loop);
-  tree iv;
-  name_tree oldiv;
+
   bool known_niter = number_of_iterations_exit (loop, exit, &niter, false);
 
   /* At this point we should know the number of iterations,  */
@@ -1217,17 +1214,10 @@ graphite_loop_normal_form (loop_p loop, sese region)
   if (stmts)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
-  iv = canonicalize_loop_ivs (loop, NULL, &nit);
-  loop->aux = iv;
-
-  oldiv = XNEW (struct name_tree);
-  oldiv->t = iv;
-  oldiv->name = get_name (SSA_NAME_VAR (oldiv->t));
-  oldiv->loop = loop;
-  VEC_safe_push (name_tree, heap, SESE_OLDIVS (region), oldiv);
+  loop->aux = canonicalize_loop_ivs (loop, NULL, &nit);
 }
 
-/* Converts REGION to loop normal form: one IV per loop.  */
+/* Converts REGION to loop normal form: one induction variable per loop.  */
 
 static void
 build_graphite_loop_normal_form (sese region)
@@ -1236,7 +1226,7 @@ build_graphite_loop_normal_form (sese region)
   loop_p loop;
 
   for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
-    graphite_loop_normal_form (loop, region);
+    graphite_loop_normal_form (loop);
 }
 
 /* Initialize SESE_PARAMS_INDEX for REGION.  */
@@ -1246,10 +1236,9 @@ init_sese_params_index (sese region)
 {
   int i;
   name_tree p;
-  htab_t map;
+  htab_t map = htab_create (10, clast_name_index_elt_info,
+			    eq_clast_name_indexes, free);
 
-  map = htab_create (10, clast_name_index_elt_info, eq_clast_name_indexes,
-		     free);
   for (i = 0; VEC_iterate (name_tree, SESE_PARAMS (region), i, p); i++)
     save_clast_name_index (map, p->name, i);
 
@@ -1288,7 +1277,7 @@ gloog (scop_p scop)
   init_sese_params_index (region);
   rename_map = htab_create (10, rename_map_elt_info, eq_rename_map_elts, free);
   newivs_index = htab_create (10, clast_name_index_elt_info,
-			    eq_clast_name_indexes, free);
+			      eq_clast_name_indexes, free);
 
   new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
@@ -1308,6 +1297,5 @@ gloog (scop_p scop)
   cloog_program_free (pc.prog);
   return true;
 }
-
 
 #endif

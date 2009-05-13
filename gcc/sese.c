@@ -143,25 +143,6 @@ eq_ivtype_map_elts (const void *e1, const void *e2)
 
 
 
-/* Debug the list of old induction variables for this SCOP.  */
-
-void
-debug_oldivs (sese region)
-{
-  int i;
-  name_tree oldiv;
-
-  fprintf (stderr, "Old IVs:");
-
-  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, oldiv); i++)
-    {
-      fprintf (stderr, "(");
-      print_generic_expr (stderr, oldiv->t, 0);
-      fprintf (stderr, ", %s, %d)\n", oldiv->name, oldiv->loop->num);
-    }
-  fprintf (stderr, "\n");
-}
-
 /* Record LOOP as occuring in REGION.  */
 
 static void
@@ -283,7 +264,6 @@ new_sese (edge entry, edge exit)
   SESE_LOOP_NEST (res) = VEC_alloc (loop_p, heap, 3);
   SESE_ADD_PARAMS (res) = true;
   SESE_PARAMS (res) = VEC_alloc (name_tree, heap, 3);
-  SESE_OLDIVS (res) = VEC_alloc (name_tree, heap, 3);
   SESE_PARAMS_INDEX (res) = NULL;
 
   return res;
@@ -295,7 +275,7 @@ void
 free_sese (sese region)
 {
   int i;
-  name_tree p, iv;
+  name_tree p;
 
   if (SESE_LOOPS (region))
     SESE_LOOPS (region) = BITMAP_ALLOC (NULL);
@@ -305,11 +285,6 @@ free_sese (sese region)
 
   VEC_free (name_tree, heap, SESE_PARAMS (region));
   VEC_free (loop_p, heap, SESE_LOOP_NEST(region));
-
-  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, iv); i++)
-    free (iv);
-
-  VEC_free (name_tree, heap, SESE_OLDIVS (region));
 
   if (SESE_PARAMS_INDEX (region))
     htab_delete (SESE_PARAMS_INDEX (region));
@@ -547,25 +522,6 @@ sese_adjust_liveout_phis (sese region, htab_t rename_map, basic_block bb,
 	    SET_PHI_ARG_DEF (phi, i, new_name);
 	  }
     }
-}
-
-/* Return the old induction variable of the LOOP that is in normal
-   form in REGION.  */
-
-tree
-oldiv_for_loop (sese region, loop_p loop)
-{
-  int i;
-  name_tree iv;
-
-  if (!loop)
-    return NULL_TREE;
-
-  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, iv); i++)
-    if (iv->loop == loop)
-      return iv->t;
-
-  return NULL_TREE;
 }
 
 /* Rename the SSA_NAMEs used in STMT and that appear in MAP.  */

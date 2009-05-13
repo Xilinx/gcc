@@ -42,9 +42,6 @@ typedef struct sese
   /* Parameters used within the SCOP.  */
   VEC (name_tree, heap) *params;
 
-  /* A collection of old induction variables*/ 
-  VEC (name_tree, heap) *old_ivs;
-
   /* Used to quickly retrieve the index of a parameter in PARAMS.  */
   htab_t params_index;
 
@@ -68,7 +65,6 @@ typedef struct sese
 #define SESE_LOOP_NEST(S) (S->loop_nest)
 #define SESE_ADD_PARAMS(S) (S->add_params)
 #define SESE_PARAMS(S) (S->params)
-#define SESE_OLDIVS(S) (S->old_ivs)
 
 extern sese new_sese (edge, edge);
 extern void free_sese (sese);
@@ -76,7 +72,6 @@ extern void sese_insert_phis_for_liveouts (sese, basic_block, edge, edge);
 extern void sese_adjust_liveout_phis (sese, htab_t, basic_block, edge, edge);
 extern int parameter_index_in_region (tree, sese);
 extern void build_sese_loop_nests (sese);
-extern tree oldiv_for_loop (sese, loop_p);
 extern edge copy_bb_and_scalar_dependences (basic_block, sese, edge, htab_t);
 extern struct loop *outermost_loop_in_sese (sese, basic_block);
 extern void insert_loop_close_phis (htab_t, loop_p);
