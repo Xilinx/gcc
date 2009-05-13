@@ -1,5 +1,16 @@
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (clast_name_to_gcc): Pass region,
+	do not pass params.  Get params from SESE_PARAMS.
+	(clast_to_gcc_expression): Same.
+	(clast_to_gcc_expression_red): Same.
+	(gcc_type_for_clast_eq): Same.
+	(graphite_translate_clast_equation): Same.
+	(graphite_create_new_loop): Same.
+	* sese.c (rename_variables_in_stmt): Fix comment.
+
+2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (graphite_create_new_loop): Pass newivs_index.
 	Call save_clast_name_index.
 	(translate_clast): Pass newivs_index.

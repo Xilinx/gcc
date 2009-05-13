@@ -732,7 +732,7 @@ oldiv_for_loop (sese region, loop_p loop)
   return NULL_TREE;
 }
 
-/* Rename the SSA_NAMEs used in STMT and that appear in IVSTACK.  */
+/* Rename the SSA_NAMEs used in STMT and that appear in MAP.  */
 
 static void 
 rename_variables_in_stmt (gimple stmt, htab_t map)

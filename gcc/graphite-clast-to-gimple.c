@@ -199,8 +199,8 @@ save_clast_name_index (htab_t index_table, const char *name, int index)
 
 
 /* Returns the tree variable from the name NAME that was given in
-   Cloog representation.  All the parameters are stored in PARAMS, and
-   all the loop induction variables are stored in IVSTACK.
+   Cloog representation.  All the loop induction variables are stored
+   in IVSTACK.
 
    FIXME: This is a hack, and Cloog should be fixed to not work with
    variable names represented as "char *string", but with void
@@ -212,12 +212,13 @@ save_clast_name_index (htab_t index_table, const char *name, int index)
    ???  Too ugly to live.  */
 
 static tree
-clast_name_to_gcc (const char *name, VEC (name_tree, heap) *params, 
+clast_name_to_gcc (const char *name, sese region,
 		   loop_iv_stack ivstack)
 {
   int i;
   name_tree t;
   tree iv;
+  VEC (name_tree, heap) *params = SESE_PARAMS (region);
 
   if (params)
     for (i = 0; VEC_iterate (name_tree, params, i, t); i++)
@@ -242,38 +243,35 @@ max_precision_type (tree e1, tree e2)
 }
 
 static tree
-clast_to_gcc_expression (tree, struct clast_expr *, VEC (name_tree, heap) *,
-			 loop_iv_stack);
+clast_to_gcc_expression (tree, struct clast_expr *, sese, loop_iv_stack);
 
 /* Converts a Cloog reduction expression R with reduction operation OP
-   to a GCC expression tree of type TYPE.  PARAMS is a vector of
-   parameters of the region, and IVSTACK contains the stack of induction
-   variables.  */
+   to a GCC expression tree of type TYPE.  IVSTACK contains the stack
+   of induction variables.  */
 
 static tree
 clast_to_gcc_expression_red (tree type, enum tree_code op,
 			     struct clast_reduction *r,
-			     VEC (name_tree, heap) *params,
+			     sese region,
 			     loop_iv_stack ivstack)
 {
   int i;
-  tree res = clast_to_gcc_expression (type, r->elts[0], params, ivstack);
+  tree res = clast_to_gcc_expression (type, r->elts[0], region, ivstack);
 
   for (i = 1; i < r->n; i++)
     {
-      tree t = clast_to_gcc_expression (type, r->elts[i], params, ivstack);
+      tree t = clast_to_gcc_expression (type, r->elts[i], region, ivstack);
       res = fold_build2 (op, type, res, t);
     }
   return res;
 }
 
 /* Converts a Cloog AST expression E back to a GCC expression tree of
-   type TYPE.  PARAMS is a vector of parameters of the region, and
-   IVSTACK contains the stack of induction variables.  */
+   type TYPE.  IVSTACK contains the stack of induction variables.  */
 
 static tree
 clast_to_gcc_expression (tree type, struct clast_expr *e,
-			 VEC (name_tree, heap) *params,
+			 sese region,
 			 loop_iv_stack ivstack)
 {
   switch (e->type)
@@ -286,19 +284,19 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 	  {
 	    if (value_one_p (t->val))
 	      {
-		tree name = clast_name_to_gcc (t->var, params, ivstack);
+		tree name = clast_name_to_gcc (t->var, region, ivstack);
 		return fold_convert (type, name);
 	      }
 
 	    else if (value_mone_p (t->val))
 	      {
-		tree name = clast_name_to_gcc (t->var, params, ivstack);
+		tree name = clast_name_to_gcc (t->var, region, ivstack);
 		name = fold_convert (type, name);
 		return fold_build1 (NEGATE_EXPR, type, name);
 	      }
 	    else
 	      {
-		tree name = clast_name_to_gcc (t->var, params, ivstack);
+		tree name = clast_name_to_gcc (t->var, region, ivstack);
 		tree cst = gmp_cst_to_tree (type, t->val);
 		name = fold_convert (type, name);
 		return fold_build2 (MULT_EXPR, type, cst, name);
@@ -315,13 +313,13 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
         switch (r->type)
           {
 	  case clast_red_sum:
-	    return clast_to_gcc_expression_red (type, PLUS_EXPR, r, params, ivstack);
+	    return clast_to_gcc_expression_red (type, PLUS_EXPR, r, region, ivstack);
 
 	  case clast_red_min:
-	    return clast_to_gcc_expression_red (type, MIN_EXPR, r, params, ivstack);
+	    return clast_to_gcc_expression_red (type, MIN_EXPR, r, region, ivstack);
 
 	  case clast_red_max:
-	    return clast_to_gcc_expression_red (type, MAX_EXPR, r, params, ivstack);
+	    return clast_to_gcc_expression_red (type, MAX_EXPR, r, region, ivstack);
 
 	  default:
 	    gcc_unreachable ();
@@ -333,7 +331,7 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
       {
 	struct clast_binary *b = (struct clast_binary *) e;
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
-	tree tl = clast_to_gcc_expression (type, lhs, params, ivstack);
+	tree tl = clast_to_gcc_expression (type, lhs, region, ivstack);
 	tree tr = gmp_cst_to_tree (type, b->RHS);
 
 	switch (b->type)
@@ -366,7 +364,7 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 
 static tree
 gcc_type_for_clast_expr (struct clast_expr *e,
-			 VEC (name_tree, heap) *params,
+			 sese region,
 			 loop_iv_stack ivstack)
 {
   switch (e->type)
@@ -376,7 +374,7 @@ gcc_type_for_clast_expr (struct clast_expr *e,
 	struct clast_term *t = (struct clast_term *) e;
 
 	if (t->var)
-	  return TREE_TYPE (clast_name_to_gcc (t->var, params, ivstack));
+	  return TREE_TYPE (clast_name_to_gcc (t->var, region, ivstack));
 	else
 	  return NULL_TREE;
       }
@@ -386,13 +384,13 @@ gcc_type_for_clast_expr (struct clast_expr *e,
         struct clast_reduction *r = (struct clast_reduction *) e;
 
 	if (r->n == 1)
-	  return gcc_type_for_clast_expr (r->elts[0], params, ivstack);
+	  return gcc_type_for_clast_expr (r->elts[0], region, ivstack);
 	else 
 	  {
 	    int i;
 	    for (i = 0; i < r->n; i++)
 	      {
-		tree type = gcc_type_for_clast_expr (r->elts[i], params, ivstack);
+		tree type = gcc_type_for_clast_expr (r->elts[i], region, ivstack);
 		if (type)
 		  return type;
 	      }
@@ -404,7 +402,7 @@ gcc_type_for_clast_expr (struct clast_expr *e,
       {
 	struct clast_binary *b = (struct clast_binary *) e;
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
-	return gcc_type_for_clast_expr (lhs, params, ivstack);
+	return gcc_type_for_clast_expr (lhs, region, ivstack);
       }
 
     default:
@@ -418,14 +416,14 @@ gcc_type_for_clast_expr (struct clast_expr *e,
 
 static tree
 gcc_type_for_clast_eq (struct clast_equation *cleq,
-		       VEC (name_tree, heap) *params,
+		       sese region,
 		       loop_iv_stack ivstack)
 {
-  tree type = gcc_type_for_clast_expr (cleq->LHS, params, ivstack);
+  tree type = gcc_type_for_clast_expr (cleq->LHS, region, ivstack);
   if (type)
     return type;
 
-  return gcc_type_for_clast_expr (cleq->RHS, params, ivstack);
+  return gcc_type_for_clast_expr (cleq->RHS, region, ivstack);
 }
 
 /* Inserts constants derived from the USER_STMT argument list into the
@@ -470,11 +468,9 @@ graphite_translate_clast_equation (sese region,
 				   loop_iv_stack ivstack)
 {
   enum tree_code comp;
-  tree type = gcc_type_for_clast_eq (cleq, SESE_PARAMS (region), ivstack);
-  tree lhs = clast_to_gcc_expression (type, cleq->LHS, SESE_PARAMS (region),
-				      ivstack);
-  tree rhs = clast_to_gcc_expression (type, cleq->RHS, SESE_PARAMS (region),
-				      ivstack);
+  tree type = gcc_type_for_clast_eq (cleq, region, ivstack);
+  tree lhs = clast_to_gcc_expression (type, cleq->LHS, region, ivstack);
+  tree rhs = clast_to_gcc_expression (type, cleq->RHS, region, ivstack);
 
   if (cleq->sign == 0)
     comp = EQ_EXPR;
@@ -592,9 +588,8 @@ graphite_create_new_loop (sese region, edge entry_edge,
 			  htab_t newivs_index)
 {
   tree type = gcc_type_for_iv_of_clast_loop (stmt);
-  VEC (name_tree, heap) *params = SESE_PARAMS (region);
-  tree lb = clast_to_gcc_expression (type, stmt->LB, params, ivstack);
-  tree ub = clast_to_gcc_expression (type, stmt->UB, params, ivstack);
+  tree lb = clast_to_gcc_expression (type, stmt->LB, region, ivstack);
+  tree ub = clast_to_gcc_expression (type, stmt->UB, region, ivstack);
   tree stride = gmp_cst_to_tree (type, stmt->stride);
   tree ivvar = create_tmp_var (type, "graphite_IV");
   tree iv, iv_after_increment;
