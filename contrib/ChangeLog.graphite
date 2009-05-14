@@ -1,5 +1,10 @@
 2009-05-14  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* automatic_test/git_run.sh: Enable update of SRC_DIR to latest
+	svn commit.
+
+2009-05-14  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* automatic_test/git_run.sh: Enable usage of git-svn for the
 	branch we track.
 

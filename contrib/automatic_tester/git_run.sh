@@ -19,6 +19,9 @@ fi
 cd ${SRC_DIR}
 git remote update
 git svn fetch
+
+# Checkout the new git-svn branch
+git checkout git-svn
 if  test -z "`git tag -l --contains git-svn test_\*`"; then
 		run_command_for_branch git-svn
 fi
