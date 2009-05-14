@@ -1,5 +1,10 @@
 2009-05-14  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* automatic_test/git_run.sh: Enable usage of git-svn for the
+	branch we track.
+
+2009-05-14  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* automatic_tester.sh: Rename to automatic_tester/run_build.sh
 	* automatic_tester/git_run.sh: New.
 	* automatic_tester/graphite_env.sh: New.

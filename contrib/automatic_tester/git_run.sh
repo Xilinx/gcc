@@ -18,8 +18,9 @@ fi
 
 cd ${SRC_DIR}
 git remote update
-if  test -z "`git tag -l --contains gcc/remotes/graphite test_\*`"; then
-		run_command_for_branch gcc/remotes/graphite
+git svn fetch
+if  test -z "`git tag -l --contains git-svn test_\*`"; then
+		run_command_for_branch git-svn
 fi
 
 # Run the command on every yet untested branch head
