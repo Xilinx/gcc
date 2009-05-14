@@ -87,7 +87,6 @@ print_global_statistics (FILE* file)
     {
       gimple_stmt_iterator psi;
 
-      fprintf (stderr, "AAAA%ld ",bb->count);
       n_bbs++;
       n_p_bbs += bb->count;
 

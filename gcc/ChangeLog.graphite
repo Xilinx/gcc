@@ -1,3 +1,13 @@
+2009-05-14 Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (print_global_statistics): New.
+	(print_graphite_scop_statistic): New.
+	(print_graphite_statistics): New.
+	(graphite_initialize, graphite_transform_loops): Print statistics.
+	* graphite-scop-detection (build_scops): Print statistics.
+	(print_graphite_scop_statistics): New.
+	(print_graphite_statistics): New.
+
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-clast-to-gimple.c (struct clast_name_index): Removed.
