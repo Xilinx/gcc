@@ -132,7 +132,9 @@
 	   ;; first argument to applying function is the funmatcher.
 	   ;; next arguments are from the expression
 	   fmatch_data			;client data
-	   ))
+	   )
+  :predef CLASS_FUNMATCHER
+  )
 
 ;; class of located stuff
 (defclass class_located

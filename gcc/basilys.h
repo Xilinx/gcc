@@ -2868,6 +2868,8 @@ enum basilys_globalix_en
   BGLOB_CLASS_CITERATOR,
   /* the class of C matchers [in patterns] */
   BGLOB_CLASS_CMATCHER,
+  /* the class of  function-matchers [in patterns] */
+  BGLOB_CLASS_FUNMATCHER,
   /* the initial discriminant of mixedloc */
   BGLOB_DISCR_MIXEDLOC,
   /* the initial discriminant of tree-s */

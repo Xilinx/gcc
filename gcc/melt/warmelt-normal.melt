@@ -556,6 +556,7 @@
 (defprimitive global_CLASS_DISCR               () :value "(void*)BASILYSG(CLASS_DISCR)")
 (defprimitive global_CLASS_FIELD               () :value "(void*)BASILYSG(CLASS_FIELD)")
 (defprimitive global_CLASS_FORMAL_BINDING      () :value "(void*)BASILYSG(CLASS_FORMAL_BINDING)")
+(defprimitive global_CLASS_FUNMATCHER          () :value "(void*)BASILYSG(CLASS_FUNMATCHER)")
 (defprimitive global_CLASS_KEYWORD             () :value "(void*)BASILYSG(CLASS_KEYWORD)")
 (defprimitive global_CLASS_LOCATED             () :value "(void*)BASILYSG(CLASS_LOCATED)")
 (defprimitive global_CLASS_NAMED               () :value "(void*)BASILYSG(CLASS_NAMED)")
@@ -572,12 +573,12 @@
 (defprimitive global_CTYPE_GIMPLE              () :value "(void*)BASILYSG(CTYPE_GIMPLE)")
 (defprimitive global_CTYPE_GIMPLESEQ           () :value "(void*)BASILYSG(CTYPE_GIMPLESEQ)")
 (defprimitive global_CTYPE_LONG                () :value "(void*)BASILYSG(CTYPE_LONG)")
-(defprimitive global_CTYPE_TREE                () :value "(void*)BASILYSG(CTYPE_TREE)")
 (defprimitive global_CTYPE_PPL_COEFFICIENT     () :value "(void*)BASILYSG(CTYPE_PPL_COEFFICIENT)")
 (defprimitive global_CTYPE_PPL_CONSTRAINT      () :value "(void*)BASILYSG(CTYPE_PPL_CONSTRAINT)")
 (defprimitive global_CTYPE_PPL_CONSTRAINT_SYSTEM () :value "(void*)BASILYSG(CTYPE_PPL_CONSTRAINT_SYSTEM)")
 (defprimitive global_CTYPE_PPL_LINEAR_EXPRESSION () :value "(void*)BASILYSG(CTYPE_PPL_LINEAR_EXPRESSION)")
 (defprimitive global_CTYPE_PPL_POLYHEDRON      () :value "(void*)BASILYSG(CTYPE_PPL_POLYHEDRON)")
+(defprimitive global_CTYPE_TREE                () :value "(void*)BASILYSG(CTYPE_TREE)")
 (defprimitive global_CTYPE_VALUE               () :value "(void*)BASILYSG(CTYPE_VALUE)")
 (defprimitive global_CTYPE_VOID                () :value "(void*)BASILYSG(CTYPE_VOID)")
 (defprimitive global_DISCR_BOX                 () :value "(void*)BASILYSG(DISCR_BOX)")
@@ -616,11 +617,12 @@
   (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
   (mapobject_put predefmap (global_CLASS_CITERATOR)                'CLASS_CITERATOR)
   (mapobject_put predefmap (global_CLASS_CLASS)                    'CLASS_CLASS)
-  (mapobject_put predefmap (global_CLASS_CMATCHER)                'CLASS_CMATCHER)
+  (mapobject_put predefmap (global_CLASS_CMATCHER)                 'CLASS_CMATCHER)
   (mapobject_put predefmap (global_CLASS_CONTAINER)                'CLASS_CONTAINER)
   (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
   (mapobject_put predefmap (global_CLASS_FIELD)                    'CLASS_FIELD)
   (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
+  (mapobject_put predefmap (global_CLASS_FUNMATCHER)               'CLASS_FUNMATCHER)
   (mapobject_put predefmap (global_CLASS_KEYWORD)                  'CLASS_KEYWORD)
   (mapobject_put predefmap (global_CLASS_LOCATED)                  'CLASS_LOCATED)
   (mapobject_put predefmap (global_CLASS_NAMED)                    'CLASS_NAMED)
@@ -633,16 +635,16 @@
   (mapobject_put predefmap (global_CLASS_SYSTEM_DATA)              'CLASS_SYSTEM_DATA)
   (mapobject_put predefmap (global_CTYPE_BASICBLOCK)               'CTYPE_BASICBLOCK)
   (mapobject_put predefmap (global_CTYPE_CSTRING)                  'CTYPE_CSTRING)
+  (mapobject_put predefmap (global_CTYPE_EDGE)                     'CTYPE_EDGE)
   (mapobject_put predefmap (global_CTYPE_GIMPLE)                   'CTYPE_GIMPLE)
   (mapobject_put predefmap (global_CTYPE_GIMPLESEQ)                'CTYPE_GIMPLESEQ)
-  (mapobject_put predefmap (global_CTYPE_EDGE)                     'CTYPE_EDGE)
   (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
-  (mapobject_put predefmap (global_CTYPE_TREE)                     'CTYPE_TREE)
   (mapobject_put predefmap (global_CTYPE_PPL_COEFFICIENT)          'CTYPE_PPL_COEFFICIENT)
   (mapobject_put predefmap (global_CTYPE_PPL_CONSTRAINT)           'CTYPE_PPL_CONSTRAINT)
   (mapobject_put predefmap (global_CTYPE_PPL_CONSTRAINT_SYSTEM)    'CTYPE_PPL_CONSTRAINT_SYSTEM)
   (mapobject_put predefmap (global_CTYPE_PPL_LINEAR_EXPRESSION)    'CTYPE_PPL_LINEAR_EXPRESSION)
   (mapobject_put predefmap (global_CTYPE_PPL_POLYHEDRON)    'CTYPE_PPL_POLYHEDRON)
+  (mapobject_put predefmap (global_CTYPE_TREE)                     'CTYPE_TREE)
   (mapobject_put predefmap (global_CTYPE_VALUE)                    'CTYPE_VALUE)
   (mapobject_put predefmap (global_CTYPE_VOID)                     'CTYPE_VOID)
   (mapobject_put predefmap (global_DISCR_BOX)                      'DISCR_BOX)
@@ -3836,7 +3838,7 @@
 			    :nrep_loc sloc
 			    :ndata_name sname
 			    :ndata_discrx (normal_predef class_cmatcher ncx sloc "class_cmatcher") 
-			    :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+			    :ninst_hash (make_integerbox discr_integer (hashcode cmatcher))
 			    :ninst_slots slotup
 			    )) 
 	 )
@@ -3948,6 +3950,16 @@
 	 (sapplyf (unsafe_get_field :sfumatdef_applyf recv))
 	 (sdata (unsafe_get_field :sfumatdef_data recv))
 	 (resbinds (make_list discr_list))
+	 (funmatcher (instance class_funmatcher
+			       :named_name sname
+			       :amatch_in (compile_warning "should take the subseq" ())
+			       :amatch_matchbind (multiple_nth sins 0)
+			       :amatch_out souts
+			       ;; these are filled later
+			       :fmatch_matchf ()
+			       :fmatch_applyf ()
+			       :fmatch_data ()
+			       ))
 	 )
     (assert_msg "check smatched" (is_a smatched class_formal_binding))
     (assert_msg "check sins" (is_multiple sins))
@@ -3967,7 +3979,24 @@
        (normal_exp sdata env ncx sloc)
        (debug_msg ndata "normexp_defunmatcher ndata")
        (debug_msg resbinds "normexp_defunmatcher resbinds")
-      )))
+       (let (
+	     (namstrdata (instance class_nrep_datastring
+				   :nrep_loc sloc
+				   :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+				   :nstr_string (unsafe_get_field :named_name sname)))
+	     (slotup (make_multiple discr_multiple (object_length funmatcher)))
+	     (insdata (instance class_nrep_datainstance
+				:nrep_loc sloc
+				:ndata_name sname
+				:ndata_discrx (normal_predef class_cmatcher ncx sloc "class_funmatcher") 
+				:ninst_hash (make_integerbox discr_integer (nonzero_hash))
+				:ninst_slots slotup
+				)) 
+	     )
+	 (add_nctx_data ncx namstrdata)
+	 (add_nctx_data ncx insdata)
+	 )
+       )))
     (compile_warning  "@$@unimplemented normexp_defunmatcher" ())
     (assert_msg "@$@unimplemented normexp_defunmatcher" ())
     ))

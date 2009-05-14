@@ -1,4 +1,10 @@
 
+2009-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: added BGLOB_CLASS_FUNMATCHER
+	* melt/warmelt-first.melt: CLASS_FUNMATCHER is predefined.
+	* melt/warmelt-normal.melt: added predefined CLASS_FUNMATCHER and
+	more inside normexp_defunmatcher
+
 2009-05-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	[start adding funmatchers]
 	* melt/warmelt-normal.melt: adding normexp_defunmatcher which is
