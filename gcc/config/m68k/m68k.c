@@ -131,6 +131,7 @@ static void m68k_sched_dfa_pre_advance_cycle (void);
 static void m68k_sched_dfa_post_advance_cycle (void);
 static int m68k_sched_first_cycle_multipass_dfa_lookahead (void);
 
+static bool m68k_legitimate_address_p (enum machine_mode, rtx, bool);
 static bool m68k_handle_option (size_t, const char *, int);
 static rtx find_addr_reg (rtx);
 static const char *singlemove_string (rtx *);
@@ -152,11 +153,6 @@ static bool m68k_return_in_memory (const_tree, const_tree);
 
 /* Specify the identification number of the library being built */
 const char *m68k_library_id_string = "_current_shared_library_a5_offset_";
-
-/* Nonzero if the last compare/test insn had FP operands.  The
-   sCC expanders peek at this to determine what to do for the
-   68060, which has no fsCC instructions.  */
-int m68k_last_compare_had_fp_operands;
 
 /* Initialize the GCC target structure.  */
 
@@ -252,6 +248,9 @@ int m68k_last_compare_had_fp_operands;
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY m68k_return_in_memory
 #endif
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	m68k_legitimate_address_p
 
 static const struct attribute_spec m68k_attribute_table[] =
 {
@@ -1024,10 +1023,10 @@ m68k_expand_prologue (void)
 	  emit_move_insn (gen_rtx_REG (Pmode, D0_REG), limit);
 	  limit = gen_rtx_REG (Pmode, D0_REG);
 	}
-      emit_insn (gen_cmpsi (stack_pointer_rtx, limit));
-      emit_insn (gen_conditional_trap (gen_rtx_LTU (VOIDmode,
-						    cc0_rtx, const0_rtx),
-				       const1_rtx));
+      emit_insn (gen_ctrapsi4 (gen_rtx_LTU (VOIDmode,
+					    stack_pointer_rtx, limit),
+			       stack_pointer_rtx, limit,
+			       const1_rtx));
     }
 
   fsize_with_regs = current_frame.size;
@@ -1110,12 +1109,11 @@ m68k_expand_prologue (void)
   if (crtl->limit_stack)
     {
       if (REG_P (stack_limit_rtx))
-	{
-	  emit_insn (gen_cmpsi (stack_pointer_rtx, stack_limit_rtx));
-	  emit_insn (gen_conditional_trap (gen_rtx_LTU (VOIDmode,
-							cc0_rtx, const0_rtx),
-					   const1_rtx));
-	}
+        emit_insn (gen_ctrapsi4 (gen_rtx_LTU (VOIDmode, stack_pointer_rtx,
+					      stack_limit_rtx),
+			         stack_pointer_rtx, stack_limit_rtx,
+			         const1_rtx));
+
       else if (GET_CODE (stack_limit_rtx) != SYMBOL_REF)
 	warning (0, "stack limit expression is not supported");
     }
@@ -2417,6 +2415,11 @@ m68k_rtx_costs (rtx x, int code, int outer_code, int *total,
       else
 	*total = COSTS_N_INSNS (43);		/* div.l */
       return true;
+
+    case ZERO_EXTRACT:
+      if (outer_code == COMPARE)
+        *total = 0;
+      return false;
 
     default:
       return false;

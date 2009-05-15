@@ -9090,13 +9090,6 @@ ix86_cannot_force_const_mem (rtx x)
   return !legitimate_constant_p (x);
 }
 
-/* Determine if a given RTX is a valid constant address.  */
-
-bool
-constant_address_p (rtx x)
-{
-  return CONSTANT_P (x) && legitimate_address_p (Pmode, x, 1);
-}
 
 /* Nonzero if the constant value X is a legitimate general operand
    when generating PIC code.  It is given that flag_pic is on and
@@ -9273,9 +9266,9 @@ legitimate_pic_address_disp_p (rtx disp)
    convert common non-canonical forms to canonical form so that they will
    be recognized.  */
 
-int
-legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
-		      rtx addr, int strict)
+static bool
+ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
+		           rtx addr, bool strict)
 {
   struct ix86_address parts;
   rtx base, index, disp;
@@ -9498,6 +9491,14 @@ legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 
  report_error:
   return FALSE;
+}
+
+/* Determine if a given RTX is a valid constant address.  */
+
+bool
+constant_address_p (rtx x)
+{
+  return CONSTANT_P (x) && ix86_legitimate_address_p (Pmode, x, 1);
 }
 
 /* Return a unique alias set for the GOT.  */
@@ -10154,7 +10155,7 @@ ix86_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	    }
 	}
 
-      if (changed && legitimate_address_p (mode, x, FALSE))
+      if (changed && ix86_legitimate_address_p (mode, x, FALSE))
 	return x;
 
       if (GET_CODE (XEXP (x, 0)) == MULT)
@@ -10180,7 +10181,7 @@ ix86_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	  x = legitimize_pic_address (x, 0);
 	}
 
-      if (changed && legitimate_address_p (mode, x, FALSE))
+      if (changed && ix86_legitimate_address_p (mode, x, FALSE))
 	return x;
 
       if (REG_P (XEXP (x, 0)))
@@ -14947,14 +14948,11 @@ ix86_split_fp_branch (enum rtx_code code, rtx op1, rtx op2,
     emit_label (label);
 }
 
-int
+void
 ix86_expand_setcc (enum rtx_code code, rtx dest)
 {
   rtx ret, tmp, tmpreg, equiv;
   rtx second_test, bypass_test;
-
-  if (GET_MODE (ix86_compare_op0) == (TARGET_64BIT ? TImode : DImode))
-    return 0; /* FAIL */
 
   gcc_assert (GET_MODE (dest) == QImode);
 
@@ -14994,8 +14992,6 @@ ix86_expand_setcc (enum rtx_code code, rtx dest)
 				       ix86_compare_op0, ix86_compare_op1);
       set_unique_reg_note (get_last_insn (), REG_EQUAL, equiv);
     }
-
-  return 1; /* DONE */
 }
 
 /* Expand comparison setting or clearing carry flag.  Return true when
@@ -15143,6 +15139,8 @@ ix86_expand_int_movcc (rtx operands[])
   bool sign_bit_compare_p = false;;
 
   start_sequence ();
+  ix86_compare_op0 = XEXP (operands[1], 0);
+  ix86_compare_op1 = XEXP (operands[1], 1);
   compare_op = ix86_expand_compare (code, &second_test, &bypass_test);
   compare_seq = get_insns ();
   end_sequence ();
@@ -15860,6 +15858,8 @@ ix86_expand_fp_movcc (rtx operands[])
   enum rtx_code code = GET_CODE (operands[1]);
   rtx tmp, compare_op, second_test, bypass_test;
 
+  ix86_compare_op0 = XEXP (operands[1], 0);
+  ix86_compare_op1 = XEXP (operands[1], 1);
   if (TARGET_SSE_MATH && SSE_FLOAT_MODE_P (mode))
     {
       enum machine_mode cmode;
@@ -16387,6 +16387,8 @@ ix86_expand_int_addcc (rtx operands[])
   bool fpcmp = false;
   enum machine_mode mode = GET_MODE (operands[0]);
 
+  ix86_compare_op0 = XEXP (operands[1], 0);
+  ix86_compare_op1 = XEXP (operands[1], 1);
   if (operands[3] != const1_rtx
       && operands[3] != constm1_rtx)
     return 0;
@@ -28870,13 +28872,14 @@ void ix86_emit_i387_log1p (rtx op0, rtx op1)
 
   rtx tmp = gen_reg_rtx (XFmode);
   rtx tmp2 = gen_reg_rtx (XFmode);
+  rtx test;
 
   emit_insn (gen_absxf2 (tmp, op1));
-  emit_insn (gen_cmpxf (tmp,
+  test = gen_rtx_GE (VOIDmode, tmp,
     CONST_DOUBLE_FROM_REAL_VALUE (
        REAL_VALUE_ATOF ("0.29289321881345247561810596348408353", XFmode),
-       XFmode)));
-  emit_jump_insn (gen_bge (label1));
+       XFmode));
+  emit_jump_insn (gen_cbranchxf4 (test, XEXP (test, 0), XEXP (test, 1), label1));
 
   emit_move_insn (tmp2, standard_80387_constant_rtx (4)); /* fldln2 */
   emit_insn (gen_fyl2xp1xf3_i387 (op0, op1, tmp2));
@@ -30264,6 +30267,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_EXPAND_TO_RTL_HOOK
 #define TARGET_EXPAND_TO_RTL_HOOK ix86_maybe_switch_abi
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P ix86_legitimate_address_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

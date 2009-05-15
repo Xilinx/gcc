@@ -1893,7 +1893,7 @@ typedef enum
   EXEC_ENTRY, EXEC_PAUSE, EXEC_STOP, EXEC_CONTINUE, EXEC_INIT_ASSIGN,
   EXEC_IF, EXEC_ARITHMETIC_IF, EXEC_DO, EXEC_DO_WHILE, EXEC_SELECT,
   EXEC_FORALL, EXEC_WHERE, EXEC_CYCLE, EXEC_EXIT, EXEC_CALL_PPC,
-  EXEC_ALLOCATE, EXEC_DEALLOCATE,
+  EXEC_ALLOCATE, EXEC_DEALLOCATE, EXEC_END_PROCEDURE,
   EXEC_OPEN, EXEC_CLOSE, EXEC_WAIT,
   EXEC_READ, EXEC_WRITE, EXEC_IOLENGTH, EXEC_TRANSFER, EXEC_DT_END,
   EXEC_BACKSPACE, EXEC_ENDFILE, EXEC_INQUIRE, EXEC_REWIND, EXEC_FLUSH,
@@ -1913,9 +1913,9 @@ typedef struct gfc_code
   struct gfc_code *block, *next;
   locus loc;
 
-  gfc_st_label *here, *label, *label2, *label3;
+  gfc_st_label *here, *label1, *label2, *label3;
   gfc_symtree *symtree;
-  gfc_expr *expr, *expr2;
+  gfc_expr *expr1, *expr2;
   /* A name isn't sufficient to identify a subroutine, we need the actual
      symbol for the interface definition.
   const char *sub_name;  */

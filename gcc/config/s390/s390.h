@@ -740,29 +740,11 @@ CUMULATIVE_ARGS;
 #define MAX_REGS_PER_ADDRESS 2
 
 /* This definition replaces the formerly used 'm' constraint with a
-different constraint letter in order to avoid changing semantics of
-the 'm' constraint when accepting new address formats in
-legitimate_address_p.  The constraint letter defined here must not be
-used in insn definitions or inline assemblies.  */
+   different constraint letter in order to avoid changing semantics of
+   the 'm' constraint when accepting new address formats in
+   TARGET_LEGITIMATE_ADDRESS_P.  The constraint letter defined here
+   must not be used in insn definitions or inline assemblies.  */
 #define TARGET_MEM_CONSTRAINT 'e'
-
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression that is a
-   valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.  */
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)                         \
-{                                                                       \
-  if (legitimate_address_p (MODE, X, 1))                                \
-    goto ADDR;                                                          \
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)                         \
-{                                                                       \
-  if (legitimate_address_p (MODE, X, 0))                                \
-    goto ADDR;                                                          \
-}
-#endif
 
 /* Try a machine-dependent way of reloading an illegitimate address
    operand.  If we find one, push the reload and jump to WIN.  This
@@ -802,12 +784,6 @@ do {									\
 /* Canonicalize a comparison from one we don't have to one we do have.  */
 #define CANONICALIZE_COMPARISON(CODE, OP0, OP1) \
   s390_canonicalize_comparison (&(CODE), &(OP0), &(OP1))
-
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  Note that we can't use "rtx" here
-   since it hasn't been defined!  */
-extern struct rtx_def *s390_compare_op0, *s390_compare_op1;
-
 
 /* Relative costs of operations.  */
 

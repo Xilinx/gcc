@@ -223,11 +223,6 @@ struct processor_costs z10_cost =
 
 extern int reload_completed;
 
-/* Save information from a "cmpxx" operation until the branch or scc is
-   emitted.  A pair of a MODE_CC register and a const0_rtx if a compare
-   has been emitted already.  */
-rtx s390_compare_op0, s390_compare_op1;
-
 /* Structure used to hold the components of a S/390 memory
    address.  A legitimate address on S/390 is of the general
    form
@@ -3085,8 +3080,8 @@ s390_expand_plus_operand (rtx target, rtx src,
 /* Return true if ADDR is a valid memory address.
    STRICT specifies whether strict register checking applies.  */
 
-bool
-legitimate_address_p (enum machine_mode mode, rtx addr, int strict)
+static bool
+s390_legitimate_address_p (enum machine_mode mode, rtx addr, bool strict)
 {
   struct s390_address ad;
 
@@ -3744,7 +3739,7 @@ s390_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
     {
       x = legitimize_tls_address (x, 0);
 
-      if (legitimate_address_p (mode, x, FALSE))
+      if (s390_legitimate_address_p (mode, x, FALSE))
 	return x;
     }
   else if (GET_CODE (x) == PLUS
@@ -3761,7 +3756,7 @@ s390_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
                   || SYMBOLIC_CONST (XEXP (x, 1)))))
 	  x = legitimize_pic_address (x, 0);
 
-      if (legitimate_address_p (mode, x, FALSE))
+      if (s390_legitimate_address_p (mode, x, FALSE))
 	return x;
     }
 
@@ -7747,15 +7742,11 @@ s390_emit_prologue (void)
 	      rtx t = gen_rtx_AND (Pmode, stack_pointer_rtx,
 				   GEN_INT (stack_check_mask));
 	      if (TARGET_64BIT)
-		gen_cmpdi (t, const0_rtx);
+	        emit_insn (gen_ctrapdi4 (gen_rtx_EQ (VOIDmode, t, const0_rtx),
+				         t, const0_rtx, const0_rtx));
 	      else
-		gen_cmpsi (t, const0_rtx);
-
-	      emit_insn (gen_conditional_trap (gen_rtx_EQ (CCmode,
-							   gen_rtx_REG (CCmode,
-								     CC_REGNUM),
-							   const0_rtx),
-					       const0_rtx));
+	        emit_insn (gen_ctrapsi4 (gen_rtx_EQ (VOIDmode, t, const0_rtx),
+				         t, const0_rtx, const0_rtx));
 	    }
   	}
 
@@ -9992,6 +9983,9 @@ s390_reorg (void)
 
 #undef TARGET_LIBGCC_SHIFT_COUNT_MODE
 #define TARGET_LIBGCC_SHIFT_COUNT_MODE s390_libgcc_shift_count_mode
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P s390_legitimate_address_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

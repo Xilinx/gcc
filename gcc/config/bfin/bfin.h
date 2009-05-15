@@ -912,41 +912,8 @@ typedef struct {
      would ever accept. */
 #define MAX_REGS_PER_ADDRESS 1
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address. 
-
-   Blackfin addressing modes are as follows:
-
-      [preg]
-      [preg + imm16]
-
-      B [ Preg + uimm15 ]
-      W [ Preg + uimm16m2 ]
-      [ Preg + uimm17m4 ] 
-
-      [preg++]
-      [preg--]
-      [--sp]
-*/
-
 #define LEGITIMATE_MODE_FOR_AUTOINC_P(MODE) \
       (GET_MODE_SIZE (MODE) <= 4 || (MODE) == PDImode)
-
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, WIN)		\
-  do {							\
-    if (bfin_legitimate_address_p (MODE, X, 1))		\
-      goto WIN;						\
-  } while (0);
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, WIN)		\
-  do {							\
-    if (bfin_legitimate_address_p (MODE, X, 0))		\
-      goto WIN;						\
-  } while (0);
-#endif
 
 #define HAVE_POST_INCREMENT 1
 #define HAVE_POST_DECREMENT 1
@@ -1292,7 +1259,6 @@ do { 						\
 #define ASM_OUTPUT_REG_PUSH(FILE, REGNO) fprintf (FILE, "[SP--] = %s;\n", reg_names[REGNO])
 #define ASM_OUTPUT_REG_POP(FILE, REGNO)  fprintf (FILE, "%s = [SP++];\n", reg_names[REGNO])
 
-extern struct rtx_def *bfin_compare_op0, *bfin_compare_op1;
 extern struct rtx_def *bfin_cc_rtx, *bfin_rets_rtx;
 
 /* This works for GAS and some other assemblers.  */

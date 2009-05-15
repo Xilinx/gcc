@@ -1558,12 +1558,6 @@ function_arg_padding ((MODE), (TYPE))
   && (GET_MODE_ALIGNMENT (MODE) == 128		\
       || ((TYPE) && TYPE_ALIGN (TYPE) == 128)))	\
  ? 128 : PARM_BOUNDARY)
-
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  */
-
-extern GTY(()) rtx sparc_compare_op0;
-extern GTY(()) rtx sparc_compare_op1;
 
 
 /* Generate the special assembly code needed to tell the assembler whatever
@@ -1880,20 +1874,6 @@ do {									\
 
 #define RTX_OK_FOR_OLO10_P(X)						\
   (GET_CODE (X) == CONST_INT && INTVAL (X) >= -0x1000 && INTVAL (X) < 0xc00 - 8)
-
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)		\
-{							\
-  if (legitimate_address_p (MODE, X, 1))		\
-    goto ADDR;						\
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)		\
-{							\
-  if (legitimate_address_p (MODE, X, 0))		\
-    goto ADDR;						\
-}
-#endif
 
 /* Go to LABEL if ADDR (a legitimate address expression)
    has an effect that depends on the machine mode it is used for.

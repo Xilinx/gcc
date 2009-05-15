@@ -232,6 +232,7 @@ along with GCC; see the file COPYING3.  If not see
 #define FL_ISA_C     (1 << 16)
 #define FL_FIDOA     (1 << 17)
 #define FL_MMU 	     0   /* Used by multilib machinery.  */
+#define FL_UCLINUX   0   /* Used by multilib machinery.  */
 
 #define TARGET_68010		((m68k_cpu_flags & FL_ISA_68010) != 0)
 #define TARGET_68020		((m68k_cpu_flags & FL_ISA_68020) != 0)
@@ -757,14 +758,6 @@ __transfer_from_trampoline ()					\
 #define REG_OK_FOR_INDEX_P(X) \
   m68k_legitimate_index_reg_p (X, REG_STRICT_P)
 
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)				\
-  do									\
-    {									\
-      if (m68k_legitimate_address_p (MODE, X, REG_STRICT_P))		\
-        goto ADDR;							\
-    }									\
-  while (0)
-
 
 /* This address is OK as it stands.  */
 #define PIC_CASE_VECTOR_ADDRESS(index) index
@@ -1060,7 +1053,6 @@ enum m68k_function_kind
 
 /* Variables in m68k.c; see there for details.  */
 extern const char *m68k_library_id_string;
-extern int m68k_last_compare_had_fp_operands;
 extern enum target_device m68k_cpu;
 extern enum uarch_type m68k_tune;
 extern enum fpu_type m68k_fpu;

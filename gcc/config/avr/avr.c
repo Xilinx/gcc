@@ -71,6 +71,7 @@ const struct attribute_spec avr_attribute_table[];
 static bool avr_assemble_integer (rtx, unsigned int, int);
 static void avr_file_start (void);
 static void avr_file_end (void);
+static bool avr_legitimate_address_p (enum machine_mode, rtx, bool);
 static void avr_asm_function_end_prologue (FILE *);
 static void avr_asm_function_begin_epilogue (FILE *);
 static rtx avr_function_value (const_tree, const_tree, bool);
@@ -366,6 +367,9 @@ static const struct mcu_type_s avr_mcu_types[] = {
 #define TARGET_HARD_REGNO_SCRATCH_OK avr_hard_regno_scratch_ok
 #undef TARGET_CASE_VALUES_THRESHOLD
 #define TARGET_CASE_VALUES_THRESHOLD avr_case_values_threshold
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P avr_legitimate_address_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1099,8 +1103,8 @@ avr_asm_function_begin_epilogue (FILE *file)
 /* Return nonzero if X (an RTX) is a legitimate memory address on the target
    machine for a memory operand of mode MODE.  */
 
-int
-legitimate_address_p (enum machine_mode mode, rtx x, int strict)
+bool
+avr_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   enum reg_class r = NO_REGS;
   
@@ -2915,21 +2919,21 @@ compare_eq_p (rtx insn)
 /* Output test instruction for HImode.  */
 
 const char *
-out_tsthi (rtx insn, int *l)
+out_tsthi (rtx insn, rtx op, int *l)
 {
   if (compare_sign_p (insn))
     {
       if (l) *l = 1;
       return AS1 (tst,%B0);
     }
-  if (reg_unused_after (insn, SET_SRC (PATTERN (insn)))
+  if (reg_unused_after (insn, op)
       && compare_eq_p (insn))
     {
       /* Faster than sbiw if we can clobber the operand.  */
       if (l) *l = 1;
       return AS2 (or,%A0,%B0);
     }
-  if (test_hard_reg_class (ADDW_REGS, SET_SRC (PATTERN (insn))))
+  if (test_hard_reg_class (ADDW_REGS, op))
     {
       if (l) *l = 1;
       return AS2 (sbiw,%0,0);
@@ -2943,14 +2947,14 @@ out_tsthi (rtx insn, int *l)
 /* Output test instruction for SImode.  */
 
 const char *
-out_tstsi (rtx insn, int *l)
+out_tstsi (rtx insn, rtx op, int *l)
 {
   if (compare_sign_p (insn))
     {
       if (l) *l = 1;
       return AS1 (tst,%D0);
     }
-  if (test_hard_reg_class (ADDW_REGS, SET_SRC (PATTERN (insn))))
+  if (test_hard_reg_class (ADDW_REGS, op))
     {
       if (l) *l = 3;
       return (AS2 (sbiw,%A0,0) CR_TAB
@@ -4367,8 +4371,8 @@ adjust_insn_length (rtx insn, int len)
 	{
 	  switch (GET_MODE (op[1]))
 	    {
-	    case HImode: out_tsthi (insn,&len); break;
-	    case SImode: out_tstsi (insn,&len); break;
+	    case HImode: out_tsthi (insn, op[1], &len); break;
+	    case SImode: out_tstsi (insn, op[1], &len); break;
 	    default: break;
 	    }
 	}
@@ -5734,6 +5738,21 @@ avr_reorg (void)
 		  XEXP (pattern,1) = x;
 		  INSN_CODE (next) = -1;
 		}
+	      else if (true_regnum (XEXP (pattern, 0)) >= 0
+		       && XEXP (pattern, 1) == const0_rtx)
+	        {
+	          /* This is a tst insn, we can reverse it.  */
+	          rtx next = next_real_insn (insn);
+	          rtx pat = PATTERN (next);
+	          rtx src = SET_SRC (pat);
+	          rtx t = XEXP (src,0);
+    
+	          PUT_CODE (t, swap_condition (GET_CODE (t)));
+	          XEXP (pattern, 1) = XEXP (pattern, 0);
+	          XEXP (pattern, 0) = const0_rtx;
+	          INSN_CODE (next) = -1;
+	          INSN_CODE (insn) = -1;
+	        }
 	      else if (true_regnum (XEXP (pattern,0)) >= 0
 		       && GET_CODE (XEXP (pattern,1)) == CONST_INT)
 		{
@@ -5752,20 +5771,6 @@ avr_reorg (void)
 		      INSN_CODE (insn) = -1;
 		    }
 		}
-	    }
-	  else if (true_regnum (SET_SRC (pattern)) >= 0)
-	    {
-	      /* This is a tst insn */
-	      rtx next = next_real_insn (insn);
-	      rtx pat = PATTERN (next);
-	      rtx src = SET_SRC (pat);
-	      rtx t = XEXP (src,0);
-
-	      PUT_CODE (t, swap_condition (GET_CODE (t)));
-	      SET_SRC (pattern) = gen_rtx_COMPARE (GET_MODE (SET_SRC (pattern)), const0_rtx,
-					       SET_SRC (pattern));
-	      INSN_CODE (next) = -1;
-	      INSN_CODE (insn) = -1;
 	    }
 	}
     }

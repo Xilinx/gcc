@@ -1,4 +1,10 @@
 
+2009-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	merged with trunk rev147539
+	* melt/warmelt-normal.melt (normexp_defcmatcher): use obj_hash
+	instead of hashcode!
+	* Makefile.in: TEXI_GCCINT_FILES has both plugins.texi & melt.texi
+
 2009-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added BGLOB_CLASS_FUNMATCHER
 	* melt/warmelt-first.melt: CLASS_FUNMATCHER is predefined.

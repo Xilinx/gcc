@@ -67,10 +67,6 @@ struct GTY(()) machine_function
   int has_loopreg_clobber;
 };
 
-/* Test and compare insns in bfin.md store the information needed to
-   generate branch and scc insns here.  */
-rtx bfin_compare_op0, bfin_compare_op1;
-
 /* RTX for condition code flag register and RETS register */
 extern GTY(()) rtx bfin_cc_rtx;
 extern GTY(()) rtx bfin_rets_rtx;
@@ -2714,7 +2710,7 @@ rtx
 bfin_gen_compare (rtx cmp, enum machine_mode mode ATTRIBUTE_UNUSED)
 {
   enum rtx_code code1, code2;
-  rtx op0 = bfin_compare_op0, op1 = bfin_compare_op1;
+  rtx op0 = XEXP (cmp, 0), op1 = XEXP (cmp, 1);
   rtx tem = bfin_cc_rtx;
   enum rtx_code code = GET_CODE (cmp);
 
@@ -2742,7 +2738,7 @@ bfin_gen_compare (rtx cmp, enum machine_mode mode ATTRIBUTE_UNUSED)
 	code2 = EQ;
 	break;
       }
-      emit_insn (gen_rtx_SET (BImode, tem,
+      emit_insn (gen_rtx_SET (VOIDmode, tem,
 			      gen_rtx_fmt_ee (code1, BImode, op0, op1)));
     }
 
@@ -2899,8 +2895,26 @@ bfin_valid_reg_p (unsigned int regno, int strict, enum machine_mode mode,
     return REGNO_OK_FOR_BASE_NONSTRICT_P (regno, mode, outer_code, SCRATCH);
 }
 
-bool
-bfin_legitimate_address_p (enum machine_mode mode, rtx x, int strict)
+/* Recognize an RTL expression that is a valid memory address for an
+   instruction.  The MODE argument is the machine mode for the MEM expression
+   that wants to use this address. 
+
+   Blackfin addressing modes are as follows:
+
+      [preg]
+      [preg + imm16]
+
+      B [ Preg + uimm15 ]
+      W [ Preg + uimm16m2 ]
+      [ Preg + uimm17m4 ] 
+
+      [preg++]
+      [preg--]
+      [--sp]
+*/
+
+static bool
+bfin_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   switch (GET_CODE (x)) {
   case REG:
@@ -4219,17 +4233,17 @@ bfin_optimize_loop (loop_info loop)
     {
       /* If loop->iter_reg is a DREG or PREG, we can split it here
 	 without scratch register.  */
-      rtx insn;
+      rtx insn, test;
 
       emit_insn_before (gen_addsi3 (loop->iter_reg,
 				    loop->iter_reg,
 				    constm1_rtx),
 			loop->loop_end);
 
-      emit_insn_before (gen_cmpsi (loop->iter_reg, const0_rtx),
-			loop->loop_end);
-
-      insn = emit_jump_insn_before (gen_bne (loop->start_label),
+      test = gen_rtx_NE (VOIDmode, loop->iter_reg, const0_rtx);
+      insn = emit_jump_insn_before (gen_cbranchsi4 (test,
+						    loop->iter_reg, const0_rtx,
+						    loop->start_label),
 				    loop->loop_end);
 
       JUMP_LABEL (insn) = loop->start_label;
@@ -6321,5 +6335,8 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY bfin_return_in_memory
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	bfin_legitimate_address_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;

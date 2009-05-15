@@ -1,3 +1,102 @@
+2009-05-14  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-9.c: New testcase.
+
+2009-05-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39996
+	* gfortran.dg/func_decl_2.f90: Modified (replacing warnings by errors).
+	* gfortran.dg/duplicate_type_2.f90: Ditto.
+	* gfortran.dg/duplicate_type_3.f90: New.
+
+2009-05-14  Laurent GUERBY  <laurent@guerby.net>
+	
+        * ada/acats/tests/c3/c38202a.ada: Use Impdef.
+        * ada/acats/tests/c5/c59002c.ada: Likewise.
+	
+2009-05-13  Taras Glek  <tglek@mozilla.com>
+
+	* g++.dg/plugin/attribute_plugin-test-1.C Testcase input for custom attributes and decl smashing
+	* g++.dg/plugin/attribute_plugin.c Testcase plugin to test user attributes
+	* g++.dg/plugin/dumb_plugin.c Fixed typo
+	* g++.dg/plugin/plugin.exp Added attribute_plugin test 
+
+2009-05-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/39865
+	* gfortran.dg/pr39865.f90: New test.
+	* gfortran.dg/hollerith.f90: Don't expect errors for CHARACTER
+	arrays in FMT=.
+	* gfortran.dg/hollerith_f95.f90: Likewise.
+	* gfortran.dg/hollerith6.f90: New test.
+	* gfortran.dg/hollerith7.f90: New test.
+
+2009-05-14  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR cpp/36674
+	* gcc.dg/cpp/pr36674.i: New.
+
+2009-05-14  Ben Elliston  <bje@au.ibm.com>
+	 
+	PR middle-end/40035
+	* gcc.c-torture/compile/pr40035.c: New test.
+
+2009-05-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.target/i386/pr39543-2.c: Skip if ilp32 && pic.
+
+2009-05-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40110
+	* gfortran.dg/bind_c_usage_18.f90: Change dg-error into dg-warning.
+	* gfortran.dg/c_kind_tests_2.f03: Ditto.
+	* gfortran.dg/interop_params.f03: Ditto.
+
+2009-05-12  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/loop-36.c: Reduce amount of iterations to 2 so unrolling
+	still happens.
+	* gcc.dg/ipa/ipacost-1.c: Prevent inlining
+	* gcc.dg/ipa/ipacost-2.c: Likewise.
+	* gcc.dg/vect/slp-3.c: Loop is no longer unrolled.
+
+2009-05-12  David Billinghurst <billingd@gcc.gnu.org>
+
+	* gfortran.dg/default_format_1.f90: XFAIL on cygwin. 
+
+2009-05-12  David Billinghurst <billingd@gcc.gnu.org>
+
+	* lib/target-supports.exp (check_profiling_available): Return
+ 	false for -p on *-*-cygwin* targets.
+
+2009-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/38632
+	* g++.dg/tree-ssa/pr38632.C: New.
+
+2009-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/pr21829.c: Simplify matching since
+	we now optimize better.
+	* gcc.dg/Wunreachable-8.c: Bogus warnings now come
+	out at different places.
+	* gcc.dg/vect/vect-92.c: Increase loop iteration count to prevent
+	unroling.
+	* gcc.dg/vect/vect-76.c: Likewise.
+	* gcc.dg/vect/vect-70.c: Likewise.
+	* gcc.dg/vect/vect-66.c: Likewise.
+	* gcc.dg/vect/no-section-anchors-vect-66.c: Likewise.
+	* gcc.dg/vect/slp-3.c: One of loops gets now fully unrolled.
+
+2009-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/40080
+	* gcc.c-torture/compile/pr40080.c: New.
+
+2009-05-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	* gcc.c-torture/compile/pr40026.c: New testcase.
+
 2009-05-11  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/40089

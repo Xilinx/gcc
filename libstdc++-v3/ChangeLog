@@ -1,6 +1,54 @@
+2009-05-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40123
+	* random.tcc (independent_bits_engine<>::operator()()): Use
+	result_type(1), not 1UL.
+
+	* random.tcc (independent_bits_engine<>::operator()()): Use _M_b.max()
+	and _M_b.min(), instead of this->max() and this->min().
+
+	* random.h (_ShiftMin1): Remove, adjust everywhere.
+
+	* random.tcc: Minor cosmetic changes.
+
+2009-05-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc (cauchy_distribution<>::
+	operator()(_UniformRandomNumberGenerator&, const param_type&)): 
+	Avoid M_PI, a glibc extension.
+
+2009-05-13  Ben Elliston  <bje@au.ibm.com>
+
+	* include/Makefile.am (PCHFLAGS): Remove -Winvalid-pch.
+	* include/Makefile.in: Likewise.
+
+2009-05-13  Ben Elliston  <bje@au.ibm.com>
+
+	* src/compatibility.cc (_ZTIe, _ZTIPe, _ZTIPKe): Change type to
+	const void * const.
+
+2009-05-12  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+        * doc/xml/manual/status_cxx200x.xml: Note missing constexpr for
+	random number engines, complex, bitset, array, time utilities, and
+	char_traits.
+
+2009-05-12  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* libsupc++/exception: Include nested_exception.h in C++0x mode.
+	* libsupc++/nested_exception.h: New.
+	* libsupc++/Makefile.am: Add new header.
+	* libsupc++/Makefile.in: Regenerate.
+	* testsuite/18_support/nested_exception/rethrow_nested.cc: New.
+	* testsuite/18_support/nested_exception/throw_with_nested.cc: New.
+	* testsuite/18_support/nested_exception/cons.cc: New.
+	* testsuite/18_support/nested_exception/nested_ptr.cc: New.
+	* testsuite/18_support/nested_exception/rethrow_if_nested.cc: New.
+	* doc/xml/manual/status_cxx200x.xml: Adjust.
+
 2009-05-07  Paolo Carlini  <paolo.carlini@oracle.com>
 
-	* include/ext/throw_allocator.h: Remove redundante include.
+	* include/ext/throw_allocator.h: Remove redundant include.
 
 2009-05-07  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -26,10 +74,10 @@
 
 2009-05-06  Johannes Singler  <singler@ira.uka.de>
 
-        PR libstdc++/39546
-        * include/parallel/algo.h (find_switch):
-        Parametrize binder2nd with const T& instead of T.
-        * testsuite/25_algorithms/find/39546.cc: new test case
+	PR libstdc++/39546
+	* include/parallel/algo.h (find_switch):
+	Parametrize binder2nd with const T& instead of T.
+	* testsuite/25_algorithms/find/39546.cc: new test case
 
 2009-05-06  Paolo Carlini  <paolo.carlini@oracle.com>
 

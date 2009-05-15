@@ -3838,7 +3838,7 @@
 			    :nrep_loc sloc
 			    :ndata_name sname
 			    :ndata_discrx (normal_predef class_cmatcher ncx sloc "class_cmatcher") 
-			    :ninst_hash (make_integerbox discr_integer (hashcode cmatcher))
+			    :ninst_hash (make_integerbox discr_integer (obj_hash cmatcher))
 			    :ninst_slots slotup
 			    )) 
 	 )

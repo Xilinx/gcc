@@ -64,7 +64,8 @@ static void emit_move_after_reload (rtx, rtx, rtx);
 static rtx simplify_logical (enum machine_mode, int, rtx, rtx *);
 static void m68hc11_emit_logical (enum machine_mode, int, rtx *);
 static void m68hc11_reorg (void);
-static int go_if_legitimate_address_internal (rtx, enum machine_mode, int);
+static bool m68hc11_legitimate_address_p_1 (enum machine_mode, rtx, bool);
+static bool m68hc11_legitimate_address_p (enum machine_mode, rtx, bool);
 static rtx m68hc11_expand_compare (enum rtx_code, rtx, rtx);
 static int must_parenthesize (rtx);
 static int m68hc11_address_cost (rtx, bool);
@@ -141,10 +142,6 @@ int m68hc11_sp_correction;
 
 int m68hc11_addr_mode;
 int m68hc11_mov_addr_mode;
-
-/* Comparison operands saved by the "tstxx" and "cmpxx" expand patterns.  */
-rtx m68hc11_compare_op0;
-rtx m68hc11_compare_op1;
 
 
 const struct processor_costs *m68hc11_cost;
@@ -263,6 +260,9 @@ static const struct processor_costs m6812_cost = {
 
 #undef TARGET_STRIP_NAME_ENCODING
 #define TARGET_STRIP_NAME_ENCODING m68hc11_strip_name_encoding
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	m68hc11_legitimate_address_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -725,9 +725,9 @@ m68hc11_register_indirect_p (rtx operand, enum machine_mode mode)
   return m68hc11_valid_addressing_p (operand, mode, addr_mode);
 }
 
-static int
-go_if_legitimate_address_internal (rtx operand, enum machine_mode mode,
-                                   int strict)
+static bool
+m68hc11_legitimate_address_p_1  (enum machine_mode mode, rtx operand,
+                                 bool strict)
 {
   int addr_mode;
 
@@ -756,9 +756,9 @@ go_if_legitimate_address_internal (rtx operand, enum machine_mode mode,
   return 0;
 }
 
-int
-m68hc11_go_if_legitimate_address (rtx operand, enum machine_mode mode,
-                                  int strict)
+bool
+m68hc11_legitimate_address_p (enum machine_mode mode, rtx operand,
+                              bool strict)
 {
   int result;
 
@@ -769,7 +769,7 @@ m68hc11_go_if_legitimate_address (rtx operand, enum machine_mode mode,
       debug_rtx (operand);
     }
 
-  result = go_if_legitimate_address_internal (operand, mode, strict);
+  result = m68hc11_legitimate_address_p_1 (mode, operand, strict);
 
   if (debug_m6811)
     {
@@ -3877,7 +3877,11 @@ m68hc11_notice_update_cc (rtx exp, rtx insn ATTRIBUTE_UNUSED)
 	{
 	  cc_status.flags = 0;
 	  cc_status.value1 = XEXP (exp, 0);
-	  cc_status.value2 = XEXP (exp, 1);
+	  if (GET_CODE (XEXP (exp, 1)) == COMPARE
+	      && XEXP (XEXP (exp, 1), 1) == CONST0_RTX (GET_MODE (XEXP (XEXP (exp, 1), 0))))
+	    cc_status.value2 = XEXP (XEXP (exp, 1), 0);
+	  else
+	    cc_status.value2 = XEXP (exp, 1);
 	}
       else
 	{
@@ -5355,6 +5359,7 @@ m68hc11_rtx_costs_1 (rtx x, enum rtx_code code,
     case COMPARE:
     case ABS:
     case ZERO_EXTEND:
+    case ZERO_EXTRACT:
       total = extra_cost + rtx_cost (XEXP (x, 0), code, !optimize_size);
       if (mode == QImode)
 	{
@@ -5405,6 +5410,10 @@ m68hc11_rtx_costs (rtx x, int code, int outer_code, int *total,
 	*total = 0;
       return true;
     
+    case ZERO_EXTRACT:
+      if (outer_code != COMPARE)
+	return false;
+
     case ROTATE:
     case ROTATERT:
     case ASHIFT:
