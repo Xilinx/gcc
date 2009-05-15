@@ -1,5 +1,13 @@
 
 2009-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	[funmatcher-s still incomplete]
+	* testsuite/melt/tfunmatch-1.melt: more and better debug messages.
+	* melt/warmelt-macro.melt: still incomplete patternexpand_expr for
+	funmatchers
+	* melt/warmelt-normal.melt: more in normexp_defunmatcher.
+	* melt/warmelt-genobj.melt: unimplemented compilmatcher_funmatcher.
+
+2009-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_new_subseq_multiple): added declaration.
 	* basilys.c (basilysgc_new_subseq_multiple): added function.
 	* melt/warmelt-first.melt: added subseq_multiple primitive.

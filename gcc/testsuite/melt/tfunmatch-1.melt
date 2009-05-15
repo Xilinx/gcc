@@ -15,7 +15,7 @@
 ;; n is the input
 ;; result is non-nil when matching, and secondary result is the submatched
 (defun matchbiggereven (fmat :long m :long n)
-   (debug_msg fmat "matchbiggereven start")
+   (debug_msg fmat "matchbiggereven start fmat=")
    (messagenum_dbg "matchbiggereven m=" m)
    (messagenum_dbg "matchbiggereven n=" n)
    (if (== (%iraw m 2) 0)
@@ -25,7 +25,7 @@
 	     (debug_msg fmat "matchbiggereven success")
 	     (return fmat h)
 	     )))   
-   (debug_msg fmat "matchbiggereven fail")
+   (debug_msg fmat "matchbiggereven fail fmat=")
    (return)
 )
 
@@ -45,11 +45,12 @@
 	      
 
 (defun tfunmatch (o :long x)
-  (debug_msg o "start tfunmatch")
+  (debug_msg o "start tfunmatch o=")
+  (messagenum_dbg "start tfunmatch x=" x)
   (match x
 	 (?(isbiggereven 2 ?u)
-	   (debug_msg o "tfunmatch isbiggereven 2")
-	   (messagenum_dbg "tfunmatch isbiggereven u" u)
+	   (debug_msg o "tfunmatch isbiggereven matched 2 o=")
+	   (messagenum_dbg "tfunmatch isbiggereven matched u=" u)
 	   )
 	 (?_
 	  (debug_msg o "tfunmatch not isbiggereven 2")))

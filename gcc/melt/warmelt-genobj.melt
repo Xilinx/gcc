@@ -4575,6 +4575,22 @@
       )))
 (install_method class_cmatcher compile_matcher compilmatcher_cmatcher)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilmatcher_funmatcher (fmat mcx gcx)
+  (debug_msg fmat "compilmatcher_funmatcher cmat")
+  (debug_msg mcx "compilmatcher_funmatcher mcx")
+  (assert_msg "check fmat" (is_a fmat class_funmatcher))
+  (assert_msg "check mcx" (is_a mcx class_matchcompilcontext))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (let (
+	(fmins (unsafe_get_field :amatch_in fmat))
+	(fmbind (unsafe_get_field :amatch_matchbind fmat))
+	(fmouts (unsafe_get_field :amatch_out fmat))
+	)
+    (assert_msg "@$@unimplemented compilmatcher_funmatcher" ())
+    (compile_warning  "@$@unimplemented compilmatcher_funmatcher" ())
+    ))
+(install_method class_funmatcher compile_matcher compilmatcher_funmatcher)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; eof warmelt-genobj.melt

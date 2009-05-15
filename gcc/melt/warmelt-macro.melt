@@ -1015,6 +1015,33 @@
 	      (debug_msg pcomp "patternexpand_expr cmatcher return pcomp")
 	      (return pcomp)
 	      ))))
+       ;; funmatcher binding
+       ( (is_a opbind class_funmatcher_binding)
+	 (let ( (fmat (unsafe_get_field :fmbind_funmatcher opbind)) 
+		(defm (unsafe_get_field :fmbind_defunmatcher opbind))
+		)
+	   (debug_msg fmat "patternexpand_expr funmatcher fmat")
+	   (debug_msg defm "patternexpand_expr funmatcher defm")
+	   (debug_msg opbind "patternexpand_expr funmatcher opbind")
+	   (assert_msg "check fmat-cher" (is_a fmat class_funmatcher))
+	   (multicall
+	    (args pats)
+	    (patmacexpand_for_matcher (pair_tail curpair) fmat env sloc pctx)
+	    (debug_msg args "patternexpand_expr funmatcher args")
+	    (debug_msg pats "patternexpand_expr funmatcher pats")
+	    ;; maybe we should transmit to the pcomp something from
+	    ;; the defunmatcher, eg the name or expression of the
+	    ;; matching function
+	    (compile_warning "patternexpand_expr funmatcher perhaps we should have more of the defunmatcher..." ())
+	    (let ( (pcomp (instance class_srcpattern_funmatch
+				    :src_loc sloc
+				    :spac_operator fmat
+				    :spac_inargs args
+				    :spac_outargs pats
+				    )) )
+	      (debug_msg pcomp "patternexpand_expr funmatcher return pcomp")
+	      (return pcomp)
+	      ))))
        ;; imported values 
        ( (is_a opbind class_value_binding)
 	 (let ( (opval (unsafe_get_field :vbind_value opbind)) )
@@ -1035,6 +1062,11 @@
 		 (debug_msg pcomp "patternexpand_expr cmatcher value pcomp")
 		 (return pcomp)
 		 )))
+	    ( (is_a opval class_funmatcher) 
+	   (debug_msg opval "patternexpand_expr funmatcher value opval")
+	   (compile_warning "@$@unimplemented patternexpand_expr imported funmatcher" ())
+	   (assert_msg "@$@unimplemented patternexpand_expr imported funmatcher" ())
+	      )
 	    (:else
 	     (error_strv sloc "invalid pattern operator value" opnam)
 	     (return)))))
