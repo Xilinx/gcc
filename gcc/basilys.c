@@ -2515,6 +2515,48 @@ end:
 #undef object_discrv
 }
 
+/* make a subsequence of a given multiple OLDMUL_P from STARTIX to
+   ENDIX; if either index is negative, take it from last.  return null
+   if arguments are incorrect, or a fresh subsequence of same
+   discriminant as source otherwise */
+basilys_ptr_t
+basilysgc_new_subseq_multiple (basilys_ptr_t oldmul_p, int startix, int endix)
+{
+  int oldlen=0, newlen=0, i=0;
+  BASILYS_ENTERFRAME(3, NULL);
+#define oldmulv   curfram__.varptr[0]
+#define newmulv   curfram__.varptr[1]
+#define mult_oldmulv   ((struct basilysmultiple_st*)(oldmulv))
+#define mult_newmulv   ((struct basilysmultiple_st*)(newmulv))
+  oldmulv = oldmul_p;
+  newmulv = NULL;
+  if (basilys_magic_discr ((basilys_ptr_t) (oldmulv)) != OBMAG_MULTIPLE)
+    goto end;
+  oldlen = mult_oldmulv->nbval;
+  if (startix < 0)
+    startix += oldlen;
+  if (endix < 0)
+    endix += oldlen;
+  if (startix < 0 || startix >= oldlen)
+    goto end;
+  if (endix < 0 || endix >= oldlen || endix < startix)
+    goto end;
+  newlen = endix - startix;
+  newmulv =
+    basilysgc_allocate (sizeof (struct basilysmultiple_st),
+			sizeof (void *) * newlen);
+  mult_newmulv->discr = mult_oldmulv->discr;
+  mult_newmulv->nbval = newlen;
+  for (i=0; i<newlen; i++)
+    mult_newmulv->tabval[i] = mult_oldmulv->tabval[startix+i];
+ end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) newmulv;
+#undef oldmulv
+#undef newmulv
+#undef mult_oldmulv
+#undef mult_newmulv
+}
 
 void
 basilysgc_multiple_put_nth (basilys_ptr_t mul_p, int n, basilys_ptr_t val_p)
@@ -9103,7 +9145,6 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   {
     time_t now = 0;
     char nowtimstr[64];
-    char *nl = 0;
     time (&now);
     memset (nowtimstr, 0, sizeof (nowtimstr));
     /* we only write the date (not the hour); the comment is for

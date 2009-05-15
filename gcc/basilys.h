@@ -2020,6 +2020,13 @@ void basilysgc_pair_set_head(basilys_ptr_t pair, void* head);
 basilys_ptr_t basilysgc_new_multiple (basilysobject_ptr_t discr_p,
 				      unsigned len);
 
+/* make a subsequence of a given multiple OLDMUL_P from STARTIX to
+   ENDIX; if either index is negative, take it from last.  return null
+   if arguments are incorrect, or a fresh subsequence of same
+   discriminant as source otherwise */
+basilys_ptr_t basilysgc_new_subseq_multiple (basilys_ptr_t oldmul_p, 
+					     int startix, int endix);
+
 /* allocate a multiple of arity 1 */
 basilys_ptr_t basilysgc_new_mult1 (basilysobject_ptr_t discr_p,
 				   basilys_ptr_t v0_p);

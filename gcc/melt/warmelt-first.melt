@@ -858,6 +858,12 @@
 (defprimitive make_tuple7 (discr v1 v2 v3 v4 v5 v6 v7) :value
   "(basilysgc_new_mult7((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4  
   "),  (basilys_ptr_t)(" v5  "),  (basilys_ptr_t)(" v6  "),  (basilys_ptr_t)(" v7 ")))")
+
+;; primitive to build the subsequence of a multiple
+(defprimitive subseq_multiple (mul :long startix endix) :value
+ #{ basilysgc_new_subseq_multiple((basilys_ptr_t)($mul),
+				  (int)($startix), (int)($endix)) }#)
+
 ;; primitive to get the nth  in a multiple
 (defprimitive multiple_nth (mul :long n) :value
   "(basilys_multiple_nth((basilys_ptr_t)(" mul "), (" n ")))")
@@ -3973,6 +3979,7 @@
  stringconst2val
  subclass_of
  subclass_or_eq
+ subseq_multiple
  the_callcount
  the_framedepth
  the_null

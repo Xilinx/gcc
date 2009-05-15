@@ -1,5 +1,12 @@
 
 2009-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_new_subseq_multiple): added declaration.
+	* basilys.c (basilysgc_new_subseq_multiple): added function.
+	* melt/warmelt-first.melt: added subseq_multiple primitive.
+	* melt/warmelt-normal.melt (normexp_defcmatcher): completed but did
+	not test yet.
+
+2009-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	merged with trunk rev147539
 	* melt/warmelt-normal.melt (normexp_defcmatcher): use obj_hash
 	instead of hashcode!
