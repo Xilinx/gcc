@@ -1,3 +1,271 @@
+2009-05-16  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/37577
+	* intrinsics/dtime.c (dtime_sub):  Use array access macros
+	for accessing array descriptors.
+	* intrinsics/cshift0 (cshift0):  Likewise.
+	* intrinsics/etime.c:  Likewise.  Remove redundant calculation
+	of rdim.
+	* m4/cshift0.m4 (cshift0_'rtype_code`):  Use array access macros
+	for accessing array descriptors.
+	* m4/pack.m4 (pack_'rtype_code`):  Likewise.
+	* m4/spread.m4 (spread_'rtype_code`):  Likewise.
+	(spread_scalar_'rtype_code`):  Likewise.
+	* m4/transpose.m4 (transpose_'rtype_code`):  Likewise.
+	* m4/iforeach.m4 (name`'rtype_qual`_'atype_code):  Likewise.
+	* m4/eoshift1.m4 (eoshift1):  Likewise.  Remove size argument,
+	calculate within function.
+	(eoshift1_'atype_kind`):  Remove size argument from call
+	to eoshift1.
+	(eoshift1_'atype_kind`_char):  Likewise.
+	(eoshift1_'atype_kind`_char4):  Likewise.
+	* m4/eoshift3.m4 (eoshift3):  Remove size argument, calculate
+	within function. Use array access macros for accessing array
+	descriptors.
+	(eoshift3_'atype_kind`):  Remove size argument from call
+	to eoshift1.
+	(eoshift3_'atype_kind`_char):  Likewise.
+	(eoshift3_'atype_kind`_char4):  Likewise.
+	* m4/shape.m4 (shape_'rtype_kind`):  Use array access macros
+	for accessing array descriptors.
+	* m4/cshift1.m4 (cshift1): Remove size argument, calculate
+	within function. Use array access macros for accessing array
+	descriptors.
+	(cshift1_'atype_kind`):  Remove size argument from call to
+	cshift1.
+	(cshift1_'atype_kind`_char):  Remove size argument from call to
+	cshift1.
+	(cshift1_'atype_kind`_char4):  Remove size argument from call to
+	cshift1.
+	* m4/reshape.m4 (reshape_'rtype_ccode`):  Use array access macros
+	for accessing array descriptors.
+	* m4/ifunction.m4 (name`'rtype_qual`_'atype_code):  Likewise.
+	* generated/cshift0_c10.c: Regenerated.
+	* generated/cshift0_c16.c: Regenerated.
+	* generated/cshift0_c4.c: Regenerated.
+	* generated/cshift0_c8.c: Regenerated.
+	* generated/cshift0_i1.c: Regenerated.
+	* generated/cshift0_i16.c: Regenerated.
+	* generated/cshift0_i2.c: Regenerated.
+	* generated/cshift0_i4.c: Regenerated.
+	* generated/cshift0_i8.c: Regenerated.
+	* generated/cshift0_r10.c: Regenerated.
+	* generated/cshift0_r16.c: Regenerated.
+	* generated/cshift0_r4.c: Regenerated.
+	* generated/cshift0_r8.c: Regenerated.
+	* generated/cshift1_16.c: Regenerated.
+	* generated/cshift1_4.c: Regenerated.
+	* generated/cshift1_8.c: Regenerated.
+	* generated/eoshift1_16.c: Regenerated.
+	* generated/eoshift1_4.c: Regenerated.
+	* generated/eoshift1_8.c: Regenerated.
+	* generated/eoshift3_16.c: Regenerated.
+	* generated/eoshift3_4.c: Regenerated.
+	* generated/eoshift3_8.c: Regenerated.
+	* generated/maxloc0_16_i1.c: Regenerated.
+	* generated/maxloc0_16_i16.c: Regenerated.
+	* generated/maxloc0_16_i2.c: Regenerated.
+	* generated/maxloc0_16_i4.c: Regenerated.
+	* generated/maxloc0_16_i8.c: Regenerated.
+	* generated/maxloc0_16_r10.c: Regenerated.
+	* generated/maxloc0_16_r16.c: Regenerated.
+	* generated/maxloc0_16_r4.c: Regenerated.
+	* generated/maxloc0_16_r8.c: Regenerated.
+	* generated/maxloc0_4_i1.c: Regenerated.
+	* generated/maxloc0_4_i16.c: Regenerated.
+	* generated/maxloc0_4_i2.c: Regenerated.
+	* generated/maxloc0_4_i4.c: Regenerated.
+	* generated/maxloc0_4_i8.c: Regenerated.
+	* generated/maxloc0_4_r10.c: Regenerated.
+	* generated/maxloc0_4_r16.c: Regenerated.
+	* generated/maxloc0_4_r4.c: Regenerated.
+	* generated/maxloc0_4_r8.c: Regenerated.
+	* generated/maxloc0_8_i1.c: Regenerated.
+	* generated/maxloc0_8_i16.c: Regenerated.
+	* generated/maxloc0_8_i2.c: Regenerated.
+	* generated/maxloc0_8_i4.c: Regenerated.
+	* generated/maxloc0_8_i8.c: Regenerated.
+	* generated/maxloc0_8_r10.c: Regenerated.
+	* generated/maxloc0_8_r16.c: Regenerated.
+	* generated/maxloc0_8_r4.c: Regenerated.
+	* generated/maxloc0_8_r8.c: Regenerated.
+	* generated/maxloc1_16_i1.c: Regenerated.
+	* generated/maxloc1_16_i16.c: Regenerated.
+	* generated/maxloc1_16_i2.c: Regenerated.
+	* generated/maxloc1_16_i4.c: Regenerated.
+	* generated/maxloc1_16_i8.c: Regenerated.
+	* generated/maxloc1_16_r10.c: Regenerated.
+	* generated/maxloc1_16_r16.c: Regenerated.
+	* generated/maxloc1_16_r4.c: Regenerated.
+	* generated/maxloc1_16_r8.c: Regenerated.
+	* generated/maxloc1_4_i1.c: Regenerated.
+	* generated/maxloc1_4_i16.c: Regenerated.
+	* generated/maxloc1_4_i2.c: Regenerated.
+	* generated/maxloc1_4_i4.c: Regenerated.
+	* generated/maxloc1_4_i8.c: Regenerated.
+	* generated/maxloc1_4_r10.c: Regenerated.
+	* generated/maxloc1_4_r16.c: Regenerated.
+	* generated/maxloc1_4_r4.c: Regenerated.
+	* generated/maxloc1_4_r8.c: Regenerated.
+	* generated/maxloc1_8_i1.c: Regenerated.
+	* generated/maxloc1_8_i16.c: Regenerated.
+	* generated/maxloc1_8_i2.c: Regenerated.
+	* generated/maxloc1_8_i4.c: Regenerated.
+	* generated/maxloc1_8_i8.c: Regenerated.
+	* generated/maxloc1_8_r10.c: Regenerated.
+	* generated/maxloc1_8_r16.c: Regenerated.
+	* generated/maxloc1_8_r4.c: Regenerated.
+	* generated/maxloc1_8_r8.c: Regenerated.
+	* generated/maxval_i1.c: Regenerated.
+	* generated/maxval_i16.c: Regenerated.
+	* generated/maxval_i2.c: Regenerated.
+	* generated/maxval_i4.c: Regenerated.
+	* generated/maxval_i8.c: Regenerated.
+	* generated/maxval_r10.c: Regenerated.
+	* generated/maxval_r16.c: Regenerated.
+	* generated/maxval_r4.c: Regenerated.
+	* generated/maxval_r8.c: Regenerated.
+	* generated/minloc0_16_i1.c: Regenerated.
+	* generated/minloc0_16_i16.c: Regenerated.
+	* generated/minloc0_16_i2.c: Regenerated.
+	* generated/minloc0_16_i4.c: Regenerated.
+	* generated/minloc0_16_i8.c: Regenerated.
+	* generated/minloc0_16_r10.c: Regenerated.
+	* generated/minloc0_16_r16.c: Regenerated.
+	* generated/minloc0_16_r4.c: Regenerated.
+	* generated/minloc0_16_r8.c: Regenerated.
+	* generated/minloc0_4_i1.c: Regenerated.
+	* generated/minloc0_4_i16.c: Regenerated.
+	* generated/minloc0_4_i2.c: Regenerated.
+	* generated/minloc0_4_i4.c: Regenerated.
+	* generated/minloc0_4_i8.c: Regenerated.
+	* generated/minloc0_4_r10.c: Regenerated.
+	* generated/minloc0_4_r16.c: Regenerated.
+	* generated/minloc0_4_r4.c: Regenerated.
+	* generated/minloc0_4_r8.c: Regenerated.
+	* generated/minloc0_8_i1.c: Regenerated.
+	* generated/minloc0_8_i16.c: Regenerated.
+	* generated/minloc0_8_i2.c: Regenerated.
+	* generated/minloc0_8_i4.c: Regenerated.
+	* generated/minloc0_8_i8.c: Regenerated.
+	* generated/minloc0_8_r10.c: Regenerated.
+	* generated/minloc0_8_r16.c: Regenerated.
+	* generated/minloc0_8_r4.c: Regenerated.
+	* generated/minloc0_8_r8.c: Regenerated.
+	* generated/minloc1_16_i1.c: Regenerated.
+	* generated/minloc1_16_i16.c: Regenerated.
+	* generated/minloc1_16_i2.c: Regenerated.
+	* generated/minloc1_16_i4.c: Regenerated.
+	* generated/minloc1_16_i8.c: Regenerated.
+	* generated/minloc1_16_r10.c: Regenerated.
+	* generated/minloc1_16_r16.c: Regenerated.
+	* generated/minloc1_16_r4.c: Regenerated.
+	* generated/minloc1_16_r8.c: Regenerated.
+	* generated/minloc1_4_i1.c: Regenerated.
+	* generated/minloc1_4_i16.c: Regenerated.
+	* generated/minloc1_4_i2.c: Regenerated.
+	* generated/minloc1_4_i4.c: Regenerated.
+	* generated/minloc1_4_i8.c: Regenerated.
+	* generated/minloc1_4_r10.c: Regenerated.
+	* generated/minloc1_4_r16.c: Regenerated.
+	* generated/minloc1_4_r4.c: Regenerated.
+	* generated/minloc1_4_r8.c: Regenerated.
+	* generated/minloc1_8_i1.c: Regenerated.
+	* generated/minloc1_8_i16.c: Regenerated.
+	* generated/minloc1_8_i2.c: Regenerated.
+	* generated/minloc1_8_i4.c: Regenerated.
+	* generated/minloc1_8_i8.c: Regenerated.
+	* generated/minloc1_8_r10.c: Regenerated.
+	* generated/minloc1_8_r16.c: Regenerated.
+	* generated/minloc1_8_r4.c: Regenerated.
+	* generated/minloc1_8_r8.c: Regenerated.
+	* generated/minval_i1.c: Regenerated.
+	* generated/minval_i16.c: Regenerated.
+	* generated/minval_i2.c: Regenerated.
+	* generated/minval_i4.c: Regenerated.
+	* generated/minval_i8.c: Regenerated.
+	* generated/minval_r10.c: Regenerated.
+	* generated/minval_r16.c: Regenerated.
+	* generated/minval_r4.c: Regenerated.
+	* generated/minval_r8.c: Regenerated.
+	* generated/pack_c10.c: Regenerated.
+	* generated/pack_c16.c: Regenerated.
+	* generated/pack_c4.c: Regenerated.
+	* generated/pack_c8.c: Regenerated.
+	* generated/pack_i1.c: Regenerated.
+	* generated/pack_i16.c: Regenerated.
+	* generated/pack_i2.c: Regenerated.
+	* generated/pack_i4.c: Regenerated.
+	* generated/pack_i8.c: Regenerated.
+	* generated/pack_r10.c: Regenerated.
+	* generated/pack_r16.c: Regenerated.
+	* generated/pack_r4.c: Regenerated.
+	* generated/pack_r8.c: Regenerated.
+	* generated/product_c10.c: Regenerated.
+	* generated/product_c16.c: Regenerated.
+	* generated/product_c4.c: Regenerated.
+	* generated/product_c8.c: Regenerated.
+	* generated/product_i1.c: Regenerated.
+	* generated/product_i16.c: Regenerated.
+	* generated/product_i2.c: Regenerated.
+	* generated/product_i4.c: Regenerated.
+	* generated/product_i8.c: Regenerated.
+	* generated/product_r10.c: Regenerated.
+	* generated/product_r16.c: Regenerated.
+	* generated/product_r4.c: Regenerated.
+	* generated/product_r8.c: Regenerated.
+	* generated/reshape_c10.c: Regenerated.
+	* generated/reshape_c16.c: Regenerated.
+	* generated/reshape_c4.c: Regenerated.
+	* generated/reshape_c8.c: Regenerated.
+	* generated/reshape_i16.c: Regenerated.
+	* generated/reshape_i4.c: Regenerated.
+	* generated/reshape_i8.c: Regenerated.
+	* generated/reshape_r10.c: Regenerated.
+	* generated/reshape_r16.c: Regenerated.
+	* generated/reshape_r4.c: Regenerated.
+	* generated/reshape_r8.c: Regenerated.
+	* generated/shape_i16.c: Regenerated.
+	* generated/shape_i4.c: Regenerated.
+	* generated/shape_i8.c: Regenerated.
+	* generated/spread_c10.c: Regenerated.
+	* generated/spread_c16.c: Regenerated.
+	* generated/spread_c4.c: Regenerated.
+	* generated/spread_c8.c: Regenerated.
+	* generated/spread_i1.c: Regenerated.
+	* generated/spread_i16.c: Regenerated.
+	* generated/spread_i2.c: Regenerated.
+	* generated/spread_i4.c: Regenerated.
+	* generated/spread_i8.c: Regenerated.
+	* generated/spread_r10.c: Regenerated.
+	* generated/spread_r16.c: Regenerated.
+	* generated/spread_r4.c: Regenerated.
+	* generated/spread_r8.c: Regenerated.
+	* generated/sum_c10.c: Regenerated.
+	* generated/sum_c16.c: Regenerated.
+	* generated/sum_c4.c: Regenerated.
+	* generated/sum_c8.c: Regenerated.
+	* generated/sum_i1.c: Regenerated.
+	* generated/sum_i16.c: Regenerated.
+	* generated/sum_i2.c: Regenerated.
+	* generated/sum_i4.c: Regenerated.
+	* generated/sum_i8.c: Regenerated.
+	* generated/sum_r10.c: Regenerated.
+	* generated/sum_r16.c: Regenerated.
+	* generated/sum_r4.c: Regenerated.
+	* generated/sum_r8.c: Regenerated.
+	* generated/transpose_c10.c: Regenerated.
+	* generated/transpose_c16.c: Regenerated.
+	* generated/transpose_c4.c: Regenerated.
+	* generated/transpose_c8.c: Regenerated.
+	* generated/transpose_i16.c: Regenerated.
+	* generated/transpose_i4.c: Regenerated.
+	* generated/transpose_i8.c: Regenerated.
+	* generated/transpose_r10.c: Regenerated.
+	* generated/transpose_r16.c: Regenerated.
+	* generated/transpose_r4.c: Regenerated.
+	* generated/transpose_r8.c: Regenerated.
+
 2009-05-08  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/37577

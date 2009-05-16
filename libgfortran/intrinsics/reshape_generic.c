@@ -85,7 +85,6 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
 
   if (ret->data == NULL)
     {
-      rdim = GFC_DESCRIPTOR_EXTENT(shape,0);
       rs = 1;
       for (n = 0; n < rdim; n++)
 	{
