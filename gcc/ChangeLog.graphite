@@ -1,3 +1,8 @@
+2009-05-17  Li Feng  <nemokingdom@gmail.com>
+
+	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp:
+	Cover all the testcases (not only the filtered ones).
+
 2009-05-17  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (stmt_simple_for_scop_p): Remove
