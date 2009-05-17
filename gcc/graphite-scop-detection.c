@@ -295,6 +295,8 @@ stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
 {
   loop_p loop = bb->loop_father;
 
+  gcc_assert (scop_entry);
+
   /* GIMPLE_ASM and GIMPLE_CALL may embed arbitrary side effects.
      Calls have side-effects, except those to const or pure
      functions.  */
@@ -316,10 +318,8 @@ stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
 	ssa_op_iter op_iter;
         enum tree_code code = gimple_cond_code (stmt);
 
-        /* We can only handle this kind of conditional expressions.  
-           For inequalities like "if (i != 3 * k)" we need unions of
-           polyhedrons.  Expressions like  "if (a)" or "if (a == 15)" need
-           them for the else branch.  */
+	/* We can handle all binary comparisons. Inequalities are also supported
+	   as they can be represented with union of polyhedra.  */
         if (!(code == LT_EXPR
 	      || code == GT_EXPR
 	      || code == LE_EXPR
@@ -328,12 +328,11 @@ stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
 	      || code == NE_EXPR))
           return false;
 
-	if (!scop_entry)
-	  return false;
-
 	FOR_EACH_SSA_TREE_OPERAND (op, stmt, op_iter, SSA_OP_ALL_USES)
 	  if (!graphite_can_represent_expr (scop_entry, loop, outermost_loop,
-					    op))
+					    op)
+	      /* We can not handle REAL_TYPE. Failed for pr39260.  */
+	      || TREE_CODE (TREE_TYPE (op)) == REAL_TYPE)
 	    return false;
 
 	return true;
@@ -402,10 +401,8 @@ stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
 static gimple
 harmful_stmt_in_bb (basic_block scop_entry, loop_p outer_loop, basic_block bb)
 {
-  loop_p loop = bb->loop_father;
   gimple_stmt_iterator psi;
   gimple_stmt_iterator gsi;
-  gimple stmt;
 
   if (single_pred_p (bb))
     for (psi = gsi_start_phis (bb); !gsi_end_p (psi); gsi_next (&psi))
@@ -421,21 +418,6 @@ harmful_stmt_in_bb (basic_block scop_entry, loop_p outer_loop, basic_block bb)
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     if (!stmt_simple_for_scop_p (scop_entry, outer_loop, gsi_stmt (gsi), bb))
       return gsi_stmt (gsi);
-
-  stmt = last_stmt (bb);
-  if (stmt && gimple_code (stmt) == GIMPLE_COND)
-    {
-      tree lhs = gimple_cond_lhs (stmt);
-      tree rhs = gimple_cond_rhs (stmt);
-
-      if (TREE_CODE (TREE_TYPE (lhs)) == REAL_TYPE
-	  || TREE_CODE (TREE_TYPE (rhs)) == REAL_TYPE)
-	return stmt;
-
-      if (!graphite_can_represent_expr (scop_entry, loop, outer_loop, lhs)
-	  || !graphite_can_represent_expr (scop_entry, loop, outer_loop, rhs))
-	return stmt;
-    }
 
   return NULL;
 }

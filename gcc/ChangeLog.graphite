@@ -1,3 +1,10 @@
+2009-05-17  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-scop-detection.c (stmt_simple_for_scop_p): Remove
+	unnecessary check. Update comments. Move check for REAL_TYPE here.
+	(harmful_stmt_in_bb): Remove checks for conditions. This is already
+	done in (stmt_simple_for_scop_p).
+
 2009-05-14 Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (print_global_statistics): New.
