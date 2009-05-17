@@ -1,5 +1,5 @@
 /* A splay-tree datatype.  
-   Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2009 Free Software Foundation, Inc.
    Contributed by Mark Mitchell (mark@markmitchell.com).
 
 This file is part of GNU CC.
@@ -276,6 +276,21 @@ splay_tree_new_with_allocator (splay_tree_compare_fn compare_fn,
   sp->allocate_data = allocate_data;
 
   return sp;
+}
+
+splay_tree
+splay_tree_new_with_separate_allocators (splay_tree_compare_fn compare_fn,
+					 splay_tree_delete_key_fn delete_key_fn,
+					 splay_tree_delete_value_fn delete_value_fn,
+					 splay_tree_allocate_fn tree_allocate_fn,
+					 splay_tree_allocate_fn node_allocate_fn,
+					 splay_tree_deallocate_fn deallocate_fn,
+					 void * allocate_data)
+{
+  splay_tree sp = splay_tree_new_with_allocator (compare_fn, delete_key_fn,
+						 delete_value_fn,
+						 tree_allocate_fn,
+						 deallocate_fn, allocate_data);
 }
 
 /* Deallocate SP.  */

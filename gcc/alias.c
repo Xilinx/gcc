@@ -794,7 +794,9 @@ record_alias_subset (alias_set_type superset, alias_set_type subset)
       superset_entry = ggc_alloc_cleared_alias_set_entry ();
       superset_entry->alias_set = superset;
       superset_entry->children
-	= splay_tree_new_ggc (splay_tree_compare_ints);
+	= splay_tree_new_ggc (splay_tree_compare_ints,
+			      ggc_alloc_splay_tree_scalar_scalar_splay_tree_s,
+			      ggc_alloc_splay_tree_scalar_scalar_splay_tree_node_s);
       superset_entry->has_zero_child = 0;
       VEC_replace (alias_set_entry, alias_sets, superset, superset_entry);
     }

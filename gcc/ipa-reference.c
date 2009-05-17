@@ -1,5 +1,5 @@
 /* Callgraph based analysis of static variables.
-   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -578,7 +578,9 @@ ipa_init (void)
   memory_identifier_string = build_string(7, "memory");
 
   reference_vars_to_consider =
-    splay_tree_new_ggc (splay_tree_compare_ints);
+    splay_tree_new_ggc (splay_tree_compare_ints,
+			ggc_alloc_splay_tree_scalar_tree_node_splay_tree_s,
+			ggc_alloc_splay_tree_scalar_tree_node_splay_tree_node_s);
 
   bitmap_obstack_initialize (&local_info_obstack);
   bitmap_obstack_initialize (&global_info_obstack);

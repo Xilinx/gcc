@@ -1,5 +1,5 @@
 /* A splay-tree datatype.  
-   Copyright 1998, 1999, 2000, 2002, 2007 Free Software Foundation, Inc.
+   Copyright 1998, 1999, 2000, 2002, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Mark Mitchell (mark@markmitchell.com).
 
    This file is part of GCC.
@@ -129,6 +129,13 @@ extern splay_tree splay_tree_new_with_allocator (splay_tree_compare_fn,
 						 splay_tree_allocate_fn,
 						 splay_tree_deallocate_fn,
 						 void *);
+extern splay_tree splay_tree_new_with_separate_allocators (splay_tree_compare_fn,
+							   splay_tree_delete_key_fn,
+							   splay_tree_delete_value_fn,
+							   splay_tree_allocate_fn,
+							   splay_tree_allocate_fn,
+							   splay_tree_deallocate_fn,
+							   void *);
 extern void splay_tree_delete (splay_tree);
 extern splay_tree_node splay_tree_insert (splay_tree,
 					  splay_tree_key,

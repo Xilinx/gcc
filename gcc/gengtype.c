@@ -171,7 +171,7 @@ static void close_output_files (void);
 /* Report an error at POS, printing MSG.  */
 
 void
-error_at_line (struct fileloc *pos, const char *msg, ...)
+error_at_line (const struct fileloc *pos, const char *msg, ...)
 {
   va_list ap;
 
@@ -1826,9 +1826,9 @@ static void output_escaped_param (struct walk_type_data *d,
 				  const char *, const char *);
 static void output_mangled_typename (outf_p, const_type_p);
 static void walk_type (type_p t, struct walk_type_data *d);
-static void write_func_for_structure
-     (type_p orig_s, type_p s, type_p * param,
-      const struct write_types_data *wtd);
+static void write_func_for_structure (type_p orig_s, type_p s,
+				      type_p * param,
+				      const struct write_types_data *wtd);
 static void write_types_process_field
      (type_p f, const struct walk_type_data *d);
 static void write_types (type_p structures,
@@ -1837,7 +1837,7 @@ static void write_types (type_p structures,
 static void write_types_local_process_field
      (type_p f, const struct walk_type_data *d);
 static void write_local_func_for_structure
-     (type_p orig_s, type_p s, type_p * param);
+     (const_type_p orig_s, type_p s, type_p * param);
 static void write_local (type_p structures,
 			 type_p param_structs);
 static void write_enum_defn (type_p structures, type_p param_structs);
@@ -1864,7 +1864,7 @@ struct walk_type_data
   const char *prev_val[4];
   int indent;
   int counter;
-  struct fileloc *line;
+  const struct fileloc *line;
   lang_bitmap bitmap;
   type_p *param;
   int used_length;
@@ -2475,6 +2475,21 @@ output_type_enum (outf_p of, type_p s)
     oprintf (of, ", gt_types_enum_last");
 }
 
+static outf_p
+get_output_file_for_structure (const_type_p s, type_p *param)
+{
+  const char * fn = s->u.s.line.file;
+  int i;
+
+  /* This is a hack, and not the good kind either.  */
+  for (i = NUM_PARAM - 1; i >= 0; i--)
+    if (param && param[i] && param[i]->kind == TYPE_POINTER
+	&& UNION_OR_STRUCT_P (param[i]->u.p))
+      fn = param[i]->u.p->u.s.line.file;
+
+  return get_output_file_with_visibility (fn);
+}
+
 /* For S, a structure that's part of ORIG_S, and using parameters
    PARAM, write out a routine that:
    - Takes a parameter, a void * but actually of type *S
@@ -2487,8 +2502,6 @@ static void
 write_func_for_structure (type_p orig_s, type_p s, type_p *param,
 			  const struct write_types_data *wtd)
 {
-  const char *fn = s->u.s.line.file;
-  int i;
   const char *chain_next = NULL;
   const char *chain_prev = NULL;
   const char *chain_circular = NULL;
@@ -2496,14 +2509,8 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
   options_p opt;
   struct walk_type_data d;
 
-  /* This is a hack, and not the good kind either.  */
-  for (i = NUM_PARAM - 1; i >= 0; i--)
-    if (param && param[i] && param[i]->kind == TYPE_POINTER
-	&& UNION_OR_STRUCT_P (param[i]->u.p))
-      fn = param[i]->u.p->u.s.line.file;
-
   memset (&d, 0, sizeof (d));
-  d.of = get_output_file_with_visibility (fn);
+  d.of = get_output_file_for_structure (s, param);
 
   for (opt = s->u.s.opt; opt; opt = opt->next)
     if (strcmp (opt->name, "chain_next") == 0)
@@ -2799,20 +2806,12 @@ write_types_local_process_field (type_p f, const struct walk_type_data *d)
 */
 
 static void
-write_local_func_for_structure (type_p orig_s, type_p s, type_p *param)
+write_local_func_for_structure (const_type_p orig_s, type_p s, type_p *param)
 {
-  const char *fn = s->u.s.line.file;
-  int i;
   struct walk_type_data d;
 
-  /* This is a hack, and not the good kind either.  */
-  for (i = NUM_PARAM - 1; i >= 0; i--)
-    if (param && param[i] && param[i]->kind == TYPE_POINTER
-	&& UNION_OR_STRUCT_P (param[i]->u.p))
-      fn = param[i]->u.p->u.s.line.file;
-
   memset (&d, 0, sizeof (d));
-  d.of = get_output_file_with_visibility (fn);
+  d.of = get_output_file_for_structure (s, param);
 
   d.process_field = write_types_local_process_field;
   d.opt = s->u.s.opt;
@@ -3675,6 +3674,76 @@ write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
     }
 }
 
+/* Prints not-as-ugly version of a typename of t.  Trades uniquness guaranteee
+   for somewhat increased readability.  If name conflicts do happen, will have
+   to be adjusted to be more like output_mangled_typename..
+*/
+static void
+output_typename (outf_p of, const_type_p t)
+{
+  switch (t->kind)
+    {
+    case TYPE_STRING:
+      oprintf (of, "str");
+      break;
+    case TYPE_SCALAR:
+      oprintf (of, "scalar");
+      break;
+    case TYPE_POINTER:
+      output_typename (of, t->u.p);
+      break;
+    case TYPE_STRUCT:
+    case TYPE_UNION:
+    case TYPE_LANG_STRUCT:
+      oprintf (of, "%s", t->u.s.tag);
+      break;
+    case TYPE_PARAM_STRUCT:
+      {
+	int i;
+	for (i = 0; i < NUM_PARAM; i++)
+	  if (t->u.param_struct.param[i] != NULL) {
+	    output_typename (of, t->u.param_struct.param[i]);
+	    oprintf (of, "_");
+	  }
+	output_typename (of, t->u.param_struct.stru);
+	break;
+      }
+    default:
+      gcc_unreachable();
+    }
+}
+
+static void
+write_splay_tree_allocator_def (const_type_p s)
+{
+  outf_p of = get_output_file_for_structure(s, NULL);
+  oprintf (of, "void * ggc_alloc_splay_tree_");
+  output_typename (of, s);
+  oprintf (of, " (int sz, void * nl)\n");
+  oprintf (of, "{\n");
+  oprintf (of, "  return ggc_splay_alloc (");
+  oprintf (of, "gt_e_");
+  output_mangled_typename (of, s);
+  oprintf (of, ", sz, nl);\n");
+  oprintf (of, "}\n\n");
+}
+
+static void
+write_splay_tree_allocators (const_type_p param_structs)
+{
+  const_type_p s;
+
+  oprintf (header_file, "\n/* Splay tree callback allocators.  */\n");
+  for (s = param_structs; s; s = s->next)
+    if (s->gc_used == GC_POINTED_TO)
+      {
+	oprintf (header_file, "extern void * ggc_alloc_splay_tree_");
+	output_typename (header_file, s);
+	oprintf (header_file, " (int, void *);\n");
+	write_splay_tree_allocator_def (s);
+      }
+}
+
 
 int
 main (int argc, char **argv)
@@ -3726,6 +3795,7 @@ main (int argc, char **argv)
   write_types (structures, param_structs, &ggc_wtd);
   write_types (structures, param_structs, &pch_wtd);
   write_local (structures, param_structs);
+  write_splay_tree_allocators (param_structs);
   write_roots (variables);
   write_rtx_next ();
   close_output_files ();
