@@ -3164,7 +3164,8 @@ verify_types_in_gimple_reference (tree expr, bool require_lvalue)
       /* Verify if the reference array element types are compatible.  */
       if (TREE_CODE (expr) == ARRAY_REF
 	  && !useless_type_conversion_p (TREE_TYPE (expr),
-					 TREE_TYPE (TREE_TYPE (op))))
+					 TREE_TYPE (TREE_TYPE (op)))
+          && !L_IPO_COMP_MODE)
 	{
 	  error ("type mismatch in array reference");
 	  debug_generic_stmt (TREE_TYPE (expr));
