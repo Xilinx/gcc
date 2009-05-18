@@ -1,3 +1,8 @@
+2009-05-18  Revital Eres  <eres@il.ibm.com>
+
+	* gcc.target/spu/icache-1.c: Change dump file check.
+	* gcc.target/spu/icache-2.c: Likewise.
+
 2009-01-25  Revital Eres  <eres@il.ibm.com>
 
 	* gcc.target/spu/icache-3.c: New testcase.

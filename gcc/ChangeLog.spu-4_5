@@ -1,3 +1,31 @@
+2009-05-18  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+	    Revital Eres  <eres@il.ibm.com>
+
+	* varasm.c (text_part_section): Pass current_function_decl to
+	get_named_section.
+	(current_function_section): Likewise.
+	(assemble_start_function): Set in_part_section_p.
+	* bb-reorder.c (fix_up_fall_thru_edges): Check for any_condjump_p.
+	* config/spu/spu.c (spu_override_options): Change stub size.
+	(spu_expand_prologue): Add REG_BRANCH_INFO to mark prologue.
+	(spu_expand_epilogue): Add REG_BRANCH_INFO to mark epilogue.
+	(begin_critical_section): Change Recognition of prologue,
+	epilogue and icache sequence.
+	(is_ibranch_seq_end): Change check.
+	(end_critical_section): Change Recognition of prologue, epilogue
+	and icache sequence.
+	(record_jump_table): Use last_basic_block.
+	(spu_start_new_section): Re-set
+	estimate_number_of_external_branches_in_section.
+	(record_link_elements_liveness): Remove.
+	(record_branch_info): Add condition.
+	(final_prescan_insn): Change analysis for branch info. 
+	(spu_machine_dependent_reorg): Remove calls to
+	record_link_elements_liveness.
+	(spu_function_ok_for_sibcall): Remove TARGET_SOFTWARE_ICACHE check.
+	* config/spu/spu-elf.h: Define msoftware-icache linker options.	
+	* config/spu/spu.md: Change icache sequance.
+
 2009-01-25  Revital Eres  <eres@il.ibm.com>
 
 	* bb-reorder.c (create_sections): Fix comment.

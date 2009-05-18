@@ -1911,8 +1911,10 @@ fix_up_fall_thru_edges (void)
 	      old_jump = BB_END (cur_bb);
 
 	      /* Find the jump instruction, if there is one.  */
-
-	      if (cond_jump)
+              /* For exceptions there are two out-edges (the fall-through
+                 after the call, and the exception edge), but no
+                 conditional jump.  */
+	      if (cond_jump && any_condjump_p (old_jump))
 		{
 		  if (!(cond_jump->flags & EDGE_CROSSING))
 		    cond_jump_crosses = false;

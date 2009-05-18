@@ -465,7 +465,7 @@ spu_override_options (void)
       flag_partition_functions_into_sections = ICACHE_LINESIZE;
       flag_function_sections = 1;
       /* A stub is 8 words of information.  */
-      spu_stub_size = 32; 
+      spu_stub_size = 16; 
       fix_range ("75-79");
     }
 
@@ -2124,6 +2124,14 @@ spu_expand_prologue (void)
 	}
     }
 
+  if (TARGET_SOFTWARE_ICACHE)
+    {
+      insn = emit_insn (gen_blockage ());
+      add_reg_note (insn, REG_BRANCH_INFO,
+		    gen_rtx_SYMBOL_REF (VOIDmode,
+					ggc_strdup ("prologue_end")));
+    }
+
   emit_note (NOTE_INSN_DELETED);
 }
 
@@ -2155,6 +2163,15 @@ spu_expand_epilogue (bool sibcall_p)
       || total_size > 0
       || (current_function_is_leaf && TARGET_SOFTWARE_ICACHE))
     total_size += STACK_POINTER_OFFSET;
+
+  if (TARGET_SOFTWARE_ICACHE)
+    {
+      rtx insn = emit_insn (gen_blockage ());
+
+      add_reg_note (insn, REG_BRANCH_INFO,
+		    gen_rtx_SYMBOL_REF (VOIDmode,
+					ggc_strdup ("epilogue_start")));
+    }
 
   if (total_size > 0)
     {
@@ -2517,48 +2534,37 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
   if (!INSN_P (insn))
     return false;
 
-  if (GET_CODE (PATTERN (insn)) == PARALLEL)
-    return false;
-  
+  if (TARGET_SOFTWARE_ICACHE)
+    {
+      rtx note = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX); 
+      if (note)
+	{
+	  const char *info = XSTR (XEXP (note, 0), 0);
+
+	  if (strcmp (info, "epilogue_start") == 0)
+	    {
+	      *type = EPILOGUE;
+	      dump_critical_section_info (EPILOGUE, true, insn);
+	      return true;
+	    }
+	  if (strcmp (info, "ibranch_seq") == 0)
+	    {  
+	      *type = IBRANCH_SEQ;
+	      dump_critical_section_info (IBRANCH_SEQ, true, insn);
+	      return true;
+	    }
+	}
+    }
+
   set = single_set (insn);
  
   if (set != 0)
     {
       rtx src, dest;
-      
+
       src = SET_SRC (set);
       dest = SET_DEST (set);
-      
-      if (TARGET_SOFTWARE_ICACHE 
-	  && REG_P (dest) 
-	  && (REGNO (dest) == STACK_POINTER_REGNUM)
-	  && (GET_CODE (src)) == PLUS)
-	{
-	  rtx op1, op2;
-	  
-	  op1 = XEXP (src, 0);
-	  op2 = XEXP (src, 1);
-	  if (REG_P (op1)
-	      && (REGNO (op1) == STACK_POINTER_REGNUM)
-	      && (GET_CODE (op2) == CONST_INT)
-	      && (INTVAL (op2) > 0))
-	    {
-	      *type = EPILOGUE;
-              dump_critical_section_info (EPILOGUE, true, insn);
-	      return true;
-	    }
-	}
-      /* The interval from lqr $76, func_ptr to the
-	 branch indirect is a critical section. */
-      if (TARGET_SOFTWARE_ICACHE 
-	  && REG_P (dest) 
-	  && (REGNO (dest) == 76) 
-	  && (REG_P (src)))
-	{
-	  *type = IBRANCH_SEQ;
-          dump_critical_section_info (IBRANCH_SEQ, true, insn);
-	  return true;
-	}
+     
       /* We are looking for this type of instruction:
 
          (insn (set (reg)
@@ -2635,6 +2641,9 @@ is_ibranch_seq_end (rtx insn)
 	  if (GET_CODE (SET_DEST (set)) != PC)
 	    abort ();
 	  
+	  if (REG_P (src) && REGNO (src) == 75)
+	    return true;
+
 	  if (GET_CODE (src) == IF_THEN_ELSE)
 	    {
 	      rtx lab = 0;
@@ -2670,58 +2679,44 @@ is_ibranch_seq_end (rtx insn)
 static bool
 end_critical_section (rtx insn, enum critical_section_type *type)
 {
-  rtx body, set;
+  rtx body;
 
   if (!INSN_P (insn))
     return false;
 
-  body = PATTERN (insn);
-
-  if (TARGET_SOFTWARE_ICACHE 
-      && (JUMP_P (insn) || CALL_P (insn))
-      && is_ibranch_seq_end (insn))
+  if (TARGET_SOFTWARE_ICACHE)
     {
-      *type = IBRANCH_SEQ;
-      dump_critical_section_info (IBRANCH_SEQ, false, insn);
-      return true;
-    }
-  if (TARGET_SOFTWARE_ICACHE 
-      && JUMP_P (insn) 
-      && GET_CODE (PATTERN (insn)) == RETURN)
-    {
-      *type = EPILOGUE;
-      dump_critical_section_info (EPILOGUE, false, insn);
-      return true;
-    }
-
-  set = single_set (insn);
-  
-  if (TARGET_SOFTWARE_ICACHE && set)
-    {
-      rtx src = SET_SRC (set);
-      rtx dest = SET_DEST (set);
-
-      if (TARGET_SOFTWARE_ICACHE
-	  && REG_P (dest)
-	  && (REGNO (dest) == STACK_POINTER_REGNUM)
-	  && (GET_CODE (src)) == PLUS)
+      rtx note = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX); 
+      if (note)
 	{
-	  rtx op1, op2;
-	  
-	  op1 = XEXP (src, 0);
-	  op2 = XEXP (src, 1);
-	  if (REG_P (op1)
-	      && (REGNO (op1) == STACK_POINTER_REGNUM)
-	      && (GET_CODE (op2) == CONST_INT)
-	      && (INTVAL (op2) < 0))
+	  const char *info = XSTR (XEXP (note, 0), 0);
+
+	  if (strcmp (info, "prologue_end") == 0)
 	    {
 	      *type = PROLOGUE;
-              dump_critical_section_info (PROLOGUE, false, insn);
+	      dump_critical_section_info (PROLOGUE, false, insn);
 	      return true;
 	    }
 	}
+
+      if ((JUMP_P (insn) || CALL_P (insn)) && is_ibranch_seq_end (insn))
+	{
+	  *type = IBRANCH_SEQ;
+	  dump_critical_section_info (IBRANCH_SEQ, false, insn);
+	  return true;
+	}
+
+      if ((JUMP_P (insn) && GET_CODE (PATTERN (insn)) == RETURN)
+	  || (CALL_P (insn) && SIBLING_CALL_P (insn)))
+	{
+	  *type = EPILOGUE;
+	  dump_critical_section_info (EPILOGUE, false, insn);
+	  return true;
+	}
     }
-  
+
+  body = PATTERN (insn);
+
   /* We are looking for the following type of instruction:
 
      (insn (parallel [
@@ -2833,8 +2828,8 @@ record_jump_table (rtx ila_insn)
   bool found_jump_table = false;
   unsigned HOST_WIDE_INT size = 0;
   
-  bb_aux = (bool *)xmalloc (n_basic_blocks * sizeof (bool));
-  memset (bb_aux, false, n_basic_blocks * sizeof (bool));
+  bb_aux = (bool *)xmalloc (last_basic_block * sizeof (bool));
+  memset (bb_aux, false, last_basic_block * sizeof (bool));
 
   set = single_set (ila_insn);
   
@@ -2872,7 +2867,7 @@ record_jump_table (rtx ila_insn)
       
       /* Mark the bb's between the jump-table and the code that
          reads the table so they reside in the same section.  */
-      for (i = 0; i < n_basic_blocks; i++)
+      for (i = 0; i < last_basic_block; i++)
 	if (bb_aux[i] == true)
 	  BASIC_BLOCK (i)->il.rtl->skip = 1;
     }
@@ -2945,6 +2940,8 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
   /* Estimate the number of external branch limit in the current section.  */
   if (TARGET_SOFTWARE_ICACHE)
     {
+      if (last_section_size == 0)
+        estimate_number_of_external_branches_in_section = 0;
       if (bb->flags & BB_FIRST_AFTER_SECTION_SWITCH)
 	estimate_number_of_external_branches_in_section = 0;
       else if (!(single_succ_p (bb) && single_succ_edge (bb)->dest == bb))
@@ -3065,72 +3062,6 @@ spu_dont_create_jumptable (unsigned int ncases)
   return false;
 }
 
-/* All inter-block branches can cause cache misses, and therefore
-   evictions.  During eviction, a block is deallocated from the cache.
-   A stack back-trace is performed to locate the first return pointer to
-   the evicted block.  This back-trace process requires knowlege about
-   the current state of liveness of the first three link elements.
-   Therefor, all external branches must be labeled with a 3 bit link
-   liveness indicator.
-
-   liveness
-   indicator  meaning
-   ---------  -------------------------------------
-              1..       indicates the lr itself is live
-              .1.       indicates the value *(sp+16) is live
-              ..1       indicates the value *(*sp+16) is live
-
-   For example, on entry to a function the liveness indicator would be
-   "101" because the link register is live, but the link value in the
-   current stack frame is not while the the link value in the previous
-   stack frame is valid.  After, the link register is saved in a non-leaf
-   function, the indicator would be "011".  If the function then allocates
-   a new stack frame, the indicator would be "001".  If a leaf proceedure
-   creates a new stack frame, the indicator would transition from "101"
-   to "100".  
-   TODO:  If we always save lr and do not break the sequence between
-   stack-setup and tear-down parts we have the following two scenarios:
-   1. inter-functions calls (including sibling calls) -- 101 
-   2. intra-function jumps between stack-setup part and tear-down part --
-   001.
-   The linker can deduce the states (GCC does not have to pass the
-   lr information.  To create smaller critical sections GCC should
-   calculate the states and pass them to the linker.  */
-static void
-record_link_elements_liveness (void)
-{
-  rtx insn;
- 
-  gcc_assert (TARGET_SOFTWARE_ICACHE);
-  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
-    {
-      rtx set;
-      
-      if (!INSN_P (insn))
-	continue;
-
-      /* Fix lqa r75,__icache_ptr_handler$lr_live.  */
-      set = single_set (insn);
-      if (set 
-	  && REG_P (SET_DEST (set)) 
-	  && (REGNO (SET_DEST (set)) == 75)
-	  && MEM_P (SET_SRC (set)) 
-	  && GET_CODE (XEXP (XEXP (SET_SRC (set), 0), 0)) == SYMBOL_REF)
-	{
-         rtx symbol_ref;
-	 char *new_symbol;
-	 const char *str;
-	 
-         symbol_ref = XEXP (XEXP (SET_SRC (set), 0), 0);
-	 str = XSTR (symbol_ref, 0); 
-	 new_symbol = (char *) alloca (2 + 2 * HOST_BITS_PER_INT / 4 + 1);
-	 sprintf (new_symbol, str);
-	 strcat (new_symbol, "5");
-	 XSTR (symbol_ref, 0) = ggc_strdup (new_symbol); 
-	}
-    }
-}
-
 /* A structure to hold information for each branch instruction.
    For the software i-cache scheme we emit sequences of code that are
    later been construction by the linker into cache lines.  To help the
@@ -3208,6 +3139,9 @@ record_branch_info (void)
 		      src = SET_SRC (set);
 		      if (GET_CODE (SET_DEST (set)) != PC)
 			abort ();
+
+		      if (REG_P (src))
+			continue;
 		      
 		      if (GET_CODE (src) == IF_THEN_ELSE)
 			{
@@ -3425,15 +3359,23 @@ print_operand_punct_valid_p (int c)
 
 void
 final_prescan_insn (rtx insn,
-                   rtx *opvec ATTRIBUTE_UNUSED,
-                   int noperands ATTRIBUTE_UNUSED)
+		    rtx *opvec ATTRIBUTE_UNUSED,
+		    int noperands ATTRIBUTE_UNUSED)
 {
-  rtx branch_info = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX);
+  rtx branch_info;
 
-  if (branch_info == NULL_RTX)
-    global_branch_info = NULL;
-  else
-    global_branch_info = XSTR (XEXP (branch_info, 0), 0);
+  global_branch_info = NULL;
+
+  if (!TARGET_SOFTWARE_ICACHE || !INSN_P (insn))
+    return;
+
+  if (GET_CODE (insn) == JUMP_INSN
+      || GET_CODE (insn) == CALL_INSN)
+    {
+      branch_info = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX);
+      if (branch_info != NULL)
+	global_branch_info = XSTR (XEXP (branch_info, 0), 0);
+    }
 }
 
 
@@ -3853,7 +3795,6 @@ spu_machine_dependent_reorg (void)
       if (TARGET_SOFTWARE_ICACHE)
         {
           record_branch_info ();
-          record_link_elements_liveness ();
         }
 
       return;
@@ -4054,7 +3995,6 @@ spu_machine_dependent_reorg (void)
   if (TARGET_SOFTWARE_ICACHE)
     {
       record_branch_info ();
-      record_link_elements_liveness ();
     }
 
   free_bb_for_insn ();
@@ -6564,7 +6504,7 @@ spu_unwind_word_mode (void)
 static bool
 spu_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
 {
-  return decl && !TARGET_LARGE_MEM && !TARGET_SOFTWARE_ICACHE;
+  return decl && !TARGET_LARGE_MEM;
 }
 
 /* We need to correctly update the back chain pointer and the Available

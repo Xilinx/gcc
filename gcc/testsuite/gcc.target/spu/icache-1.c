@@ -51,6 +51,6 @@ main (void)
   return 0;
 }
 
-/* { dg-final { scan-rtl-dump-times "icache_bi_handler" 1 "fpart" } } */
+/* { dg-final { scan-rtl-dump-times "icache_ptr_handler" 1 "fpart" } } */
 /* { dg-final { cleanup-rtl-dump "fpart" } } */
 

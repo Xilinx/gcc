@@ -771,7 +771,8 @@ text_part_section (int section_id)
 
   section_name = ACONCAT ((prefix_str, section_id_str, NULL));
   last_part_text_section_name = ggc_strdup (section_name);
-  return get_named_section (NULL, last_part_text_section_name, 0);
+  return get_named_section (current_function_decl,
+			    last_part_text_section_name, 0);
 }
 
 
@@ -947,7 +948,8 @@ current_function_section (void)
 					   DECL_ALIGN (current_function_decl));
 #else
   if (in_part_section_p)
-    return get_named_section (NULL, last_part_text_section_name, 0);
+    return get_named_section (current_function_decl,
+			      last_part_text_section_name, 0);
   return (in_cold_section_p
 	  ? unlikely_text_section ()
 	  : hot_function_section (current_function_decl));
@@ -1869,6 +1871,7 @@ assemble_start_function (tree decl, const char *fnname)
     }
 
   in_cold_section_p = first_function_block_is_cold;
+  in_part_section_p = false;
 
   /* Switch to the correct text section for the start of the function.  */
 
