@@ -2084,6 +2084,11 @@ remove_useless_stmts (void)
       remove_useless_stmts_1 (&gsi, &data);
     }
   while (data.repeat);
+
+#ifdef ENABLE_TYPES_CHECKING
+  verify_types_in_gimple_seq (gimple_body (current_function_decl));
+#endif
+
   return 0;
 }
 
@@ -3130,11 +3135,12 @@ verify_types_in_gimple_min_lval (tree expr)
   return false;
 }
 
-/* Verify if EXPR is a valid GIMPLE reference expression.  Returns true
+/* Verify if EXPR is a valid GIMPLE reference expression.  If
+   REQUIRE_LVALUE is true verifies it is an lvalue.  Returns true
    if there is an error, otherwise false.  */
 
 static bool
-verify_types_in_gimple_reference (tree expr)
+verify_types_in_gimple_reference (tree expr, bool require_lvalue)
 {
   while (handled_component_p (expr))
     {
@@ -3206,7 +3212,8 @@ verify_types_in_gimple_reference (tree expr)
       expr = op;
     }
 
-  return verify_types_in_gimple_min_lval (expr);
+  return ((require_lvalue || !is_gimple_min_invariant (expr))
+	  && verify_types_in_gimple_min_lval (expr));
 }
 
 /* Returns true if there is one pointer type in TYPE_POINTER_TO (SRC_OBJ)
@@ -3273,7 +3280,8 @@ verify_gimple_call (gimple stmt)
 	 returning java.lang.Object.
 	 For now simply allow arbitrary pointer type conversions.  */
       && !(POINTER_TYPE_P (TREE_TYPE (gimple_call_lhs (stmt)))
-	   && POINTER_TYPE_P (TREE_TYPE (fntype))))
+	   && POINTER_TYPE_P (TREE_TYPE (fntype)))
+      && !L_IPO_COMP_MODE)
     {
       error ("invalid conversion in gimple call");
       debug_generic_stmt (TREE_TYPE (gimple_call_lhs (stmt)));
@@ -3553,7 +3561,8 @@ verify_gimple_assign_binary (gimple stmt)
       {
 	if (TREE_CODE (rhs1_type) != VECTOR_TYPE
 	    || !(INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
-		 || FIXED_POINT_TYPE_P (TREE_TYPE (rhs1_type)))
+		 || FIXED_POINT_TYPE_P (TREE_TYPE (rhs1_type))
+		 || SCALAR_FLOAT_TYPE_P (TREE_TYPE (rhs1_type)))
 	    || (!INTEGRAL_TYPE_P (rhs2_type)
 		&& (TREE_CODE (rhs2_type) != VECTOR_TYPE
 		    || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2_type))))
@@ -3563,6 +3572,16 @@ verify_gimple_assign_binary (gimple stmt)
 	    debug_generic_expr (lhs_type);
 	    debug_generic_expr (rhs1_type);
 	    debug_generic_expr (rhs2_type);
+	    return true;
+	  }
+	/* For shifting a vector of floating point components we
+	   only allow shifting by a constant multiple of the element size.  */
+	if (SCALAR_FLOAT_TYPE_P (TREE_TYPE (rhs1_type))
+	    && (TREE_CODE (rhs2) != INTEGER_CST
+		|| !div_if_zero_remainder (EXACT_DIV_EXPR, rhs2,
+					   TYPE_SIZE (TREE_TYPE (rhs1_type)))))
+	  {
+	    error ("non-element sized vector shift of floating point vector");
 	    return true;
 	  }
 
@@ -3733,7 +3752,9 @@ verify_gimple_assign_single (gimple stmt)
   tree rhs1_type = TREE_TYPE (rhs1);
   bool res = false;
 
-  if (!useless_type_conversion_p (lhs_type, rhs1_type))
+  if (!useless_type_conversion_p (lhs_type, rhs1_type)
+      /* Relax for LIPO. TODO add structural or name check.  */
+      && !L_IPO_COMP_MODE)
     {
       error ("non-trivial conversion at assignment");
       debug_generic_expr (lhs_type);
@@ -3742,7 +3763,7 @@ verify_gimple_assign_single (gimple stmt)
     }
 
   if (handled_component_p (lhs))
-    res |= verify_types_in_gimple_reference (lhs);
+    res |= verify_types_in_gimple_reference (lhs, true);
 
   /* Special codes we cannot handle via their class.  */
   switch (rhs_code)
@@ -3757,7 +3778,9 @@ verify_gimple_assign_single (gimple stmt)
 	  }
 
 	if (!one_pointer_to_useless_type_conversion_p (lhs_type,
-						       TREE_TYPE (op)))
+						       TREE_TYPE (op))
+            /* TODO add lipo specific check.  */
+            && !L_IPO_COMP_MODE)
 	  {
 	    error ("type mismatch in address expression");
 	    debug_generic_stmt (lhs_type);
@@ -3765,7 +3788,7 @@ verify_gimple_assign_single (gimple stmt)
 	    return true;
 	  }
 
-	return verify_types_in_gimple_reference (op);
+	return verify_types_in_gimple_reference (op, true);
       }
 
     /* tcc_reference  */
@@ -3788,7 +3811,7 @@ verify_gimple_assign_single (gimple stmt)
 	  debug_generic_stmt (rhs1);
 	  return true;
 	}
-      return res || verify_types_in_gimple_reference (rhs1);
+      return res || verify_types_in_gimple_reference (rhs1, false);
 
     /* tcc_constant  */
     case SSA_NAME:
@@ -3885,7 +3908,8 @@ verify_gimple_return (gimple stmt)
 	 decl is a reference type while the return type is an aggregate.  */
       && !(TREE_CODE (op) == RESULT_DECL
 	   && TREE_CODE (TREE_TYPE (op)) == REFERENCE_TYPE
-	   && useless_type_conversion_p (restype, TREE_TYPE (TREE_TYPE (op)))))
+	   && useless_type_conversion_p (restype, TREE_TYPE (TREE_TYPE (op))))
+      && !L_IPO_COMP_MODE)
     {
       error ("invalid conversion in return statement");
       debug_generic_stmt (restype);
@@ -4313,6 +4337,14 @@ verify_stmts (void)
 		  err |= true;
 		}
 	    }
+
+#ifdef ENABLE_TYPES_CHECKING
+	  if (verify_gimple_phi (phi))
+	    {
+	      debug_gimple_stmt (phi);
+	      err |= true;
+	    }
+#endif
 	}
 
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
@@ -4349,6 +4381,14 @@ verify_stmts (void)
 	    }
 
 	  err |= verify_stmt (&gsi);
+
+#ifdef ENABLE_TYPES_CHECKING
+	  if (verify_types_in_gimple_stmt (gsi_stmt (gsi)))
+	    {
+	      debug_gimple_stmt (stmt);
+	      err |= true;
+	    }
+#endif
 	  addr = walk_gimple_op (gsi_stmt (gsi), verify_node_sharing, &wi);
 	  if (addr)
 	    {
@@ -7046,7 +7086,7 @@ struct gimple_opt_pass pass_split_crit_edges =
   PROP_no_crit_edges,            /* properties_provided */
   0,                             /* properties_destroyed */
   0,                             /* todo_flags_start */
-  TODO_dump_func                 /* todo_flags_finish */
+  TODO_dump_func | TODO_verify_flow  /* todo_flags_finish */
  }
 };
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -691,9 +691,51 @@ package body Sem_Ch13 is
    --  Start of processing for Analyze_Attribute_Definition_Clause
 
    begin
+      --  Process Ignore_Rep_Clauses option
+
       if Ignore_Rep_Clauses then
-         Rewrite (N, Make_Null_Statement (Sloc (N)));
-         return;
+         case Id is
+
+            --  The following should be ignored. They do not affect legality
+            --  and may be target dependent. The basic idea of -gnatI is to
+            --  ignore any rep clauses that may be target dependent but do not
+            --  affect legality (except possibly to be rejected because they
+            --  are incompatible with the compilation target).
+
+            when Attribute_Address        |
+                 Attribute_Alignment      |
+                 Attribute_Bit_Order      |
+                 Attribute_Component_Size |
+                 Attribute_Machine_Radix  |
+                 Attribute_Object_Size    |
+                 Attribute_Size           |
+                 Attribute_Small          |
+                 Attribute_Stream_Size    |
+                 Attribute_Value_Size     =>
+
+               Rewrite (N, Make_Null_Statement (Sloc (N)));
+               return;
+
+            --  The following should not be ignored, because in the first place
+            --  they are reasonably portable, and should not cause problems in
+            --  compiling code from another target, and also they do affect
+            --  legality, e.g. failing to provide a stream attribute for a
+            --  type may make a program illegal.
+
+            when Attribute_External_Tag   |
+                 Attribute_Input          |
+                 Attribute_Output         |
+                 Attribute_Read           |
+                 Attribute_Storage_Pool   |
+                 Attribute_Storage_Size   |
+                 Attribute_Write          =>
+               null;
+
+            --  Other cases are errors, which will be caught below
+
+            when others =>
+               null;
+         end case;
       end if;
 
       Analyze (Nam);
@@ -2944,11 +2986,10 @@ package body Sem_Ch13 is
                Error_Msg_NE
                  ("invalid address clause for initialized object &!",
                   Nod, U_Ent);
-               Error_Msg_Name_1 := Chars (Entity (Nod));
-               Error_Msg_Name_2 := Chars (U_Ent);
-               Error_Msg_N
-                 ("\% must be defined before % (RM 13.1(22))!",
-                  Nod);
+               Error_Msg_Node_2 := U_Ent;
+               Error_Msg_NE
+                 ("\& must be defined before & (RM 13.1(22))!",
+                  Nod, Entity (Nod));
             end if;
 
          elsif Nkind (Nod) = N_Selected_Component then
@@ -3078,11 +3119,10 @@ package body Sem_Ch13 is
                      Error_Msg_NE
                        ("invalid address clause for initialized object &!",
                         Nod, U_Ent);
-                     Error_Msg_Name_1 := Chars (Ent);
-                     Error_Msg_Name_2 := Chars (U_Ent);
-                     Error_Msg_N
-                       ("\% must be defined before % (RM 13.1(22))!",
-                        Nod);
+                     Error_Msg_Node_2 := U_Ent;
+                     Error_Msg_NE
+                       ("\& must be defined before & (RM 13.1(22))!",
+                        Nod, Ent);
                   end if;
 
                elsif Nkind (Original_Node (Nod)) = N_Function_Call then
@@ -3094,10 +3134,9 @@ package body Sem_Ch13 is
                      Nod, U_Ent);
 
                   if Comes_From_Source (Ent) then
-                     Error_Msg_Name_1 := Chars (Ent);
-                     Error_Msg_N
-                       ("\reference to variable% not allowed"
-                          & " (RM 13.1(22))!", Nod);
+                     Error_Msg_NE
+                       ("\reference to variable& not allowed"
+                          & " (RM 13.1(22))!", Nod, Ent);
                   else
                      Error_Msg_N
                        ("non-static expression not allowed"

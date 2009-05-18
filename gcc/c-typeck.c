@@ -1634,21 +1634,6 @@ array_to_pointer_conversion (tree exp)
   if (TREE_CODE (exp) == INDIRECT_REF)
     return convert (ptrtype, TREE_OPERAND (exp, 0));
 
-  if (TREE_CODE (exp) == VAR_DECL)
-    {
-      /* We are making an ADDR_EXPR of ptrtype.  This is a valid
-	 ADDR_EXPR because it's the best way of representing what
-	 happens in C when we take the address of an array and place
-	 it in a pointer to the element type.  */
-      adr = build1 (ADDR_EXPR, ptrtype, exp);
-      if (!c_mark_addressable (exp))
-	return error_mark_node;
-      TREE_SIDE_EFFECTS (adr) = 0;   /* Default would be, same as EXP.  */
-      return adr;
-    }
-
-  /* This way is better for a COMPONENT_REF since it can
-     simplify the offset for a component.  */
   adr = build_unary_op (EXPR_LOCATION (exp), ADDR_EXPR, exp, 1);
   return convert (ptrtype, adr);
 }
@@ -1979,7 +1964,7 @@ build_component_ref (tree datum, tree component)
 	    TREE_THIS_VOLATILE (ref) = 1;
 
 	  if (TREE_DEPRECATED (subdatum))
-	    warn_deprecated_use (subdatum);
+	    warn_deprecated_use (subdatum, NULL_TREE);
 
 	  datum = ref;
 
@@ -2240,7 +2225,7 @@ build_external_ref (tree id, int fun, location_t loc, tree *type)
     return error_mark_node;
 
   if (TREE_DEPRECATED (ref))
-    warn_deprecated_use (ref);
+    warn_deprecated_use (ref, NULL_TREE);
 
   /* Recursive call does not count as usage.  */
   if (ref != current_function_decl) 
@@ -4581,21 +4566,15 @@ convert_for_assignment (tree type, tree rhs, tree origtype,
 	  && TREE_CODE (type) == ENUMERAL_TYPE
 	  && TYPE_MAIN_VARIANT (checktype) != TYPE_MAIN_VARIANT (type))
 	{
-	  /* FIXME: Until the gcc source code is converted, we only
-	     warn about assignment and parameter passing.  We will add
-	     the other cases when bootstrap succeeds with them.  */
-	  if (errtype == ic_argpass || errtype == ic_assign)
-	    {
-	      WARN_FOR_ASSIGNMENT (input_location, OPT_Wc___compat,
-				   G_("enum conversion when passing argument "
-				      "%d of %qE is invalid in C++"),
-				   G_("enum conversion in assignment is "
-				      "invalid in C++"),
-				   G_("enum conversion in initialization is "
-				      "invalid in C++"),
-				   G_("enum conversion in return is "
-				      "invalid in C++"));
-	    }
+	  WARN_FOR_ASSIGNMENT (input_location, OPT_Wc___compat,
+			       G_("enum conversion when passing argument "
+				  "%d of %qE is invalid in C++"),
+			       G_("enum conversion in assignment is "
+				  "invalid in C++"),
+			       G_("enum conversion in initialization is "
+				  "invalid in C++"),
+			       G_("enum conversion in return is "
+				  "invalid in C++"));
 	}
     }
 
@@ -5167,7 +5146,9 @@ static void
 push_member_name (tree decl)
 {
   const char *const string
-    = DECL_NAME (decl) ? IDENTIFIER_POINTER (DECL_NAME (decl)) : "<anonymous>";
+    = (DECL_NAME (decl)
+       ? identifier_to_locale (IDENTIFIER_POINTER (DECL_NAME (decl)))
+       : _("<anonymous>"));
   PUSH_SPELLING (SPELLING_MEMBER, string, u.s);
 }
 
@@ -5786,13 +5767,13 @@ start_init (tree decl, tree asmspec_tree ATTRIBUTE_UNUSED, int top_level)
 	       || TREE_CODE (TREE_TYPE (decl)) == RECORD_TYPE
 	       || TREE_CODE (TREE_TYPE (decl)) == UNION_TYPE
 	       || TREE_CODE (TREE_TYPE (decl)) == QUAL_UNION_TYPE));
-      locus = IDENTIFIER_POINTER (DECL_NAME (decl));
+      locus = identifier_to_locale (IDENTIFIER_POINTER (DECL_NAME (decl)));
     }
   else
     {
       require_constant_value = 0;
       require_constant_elements = 0;
-      locus = "(anonymous)";
+      locus = _("(anonymous)");
     }
 
   constructor_stack = 0;
@@ -7023,6 +7004,24 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
 	   && (require_constant_value || require_constant_elements))
     pedwarn_init (input_location, 0,
 		  "initializer element is not a constant expression");
+
+  /* Issue -Wc++-compat warnings about initializing a bitfield with
+     enum type.  */
+  if (warn_cxx_compat
+      && field != NULL_TREE
+      && TREE_CODE (field) == FIELD_DECL
+      && DECL_BIT_FIELD_TYPE (field) != NULL_TREE
+      && (TYPE_MAIN_VARIANT (DECL_BIT_FIELD_TYPE (field))
+	  != TYPE_MAIN_VARIANT (type))
+      && TREE_CODE (DECL_BIT_FIELD_TYPE (field)) == ENUMERAL_TYPE)
+    {
+      tree checktype = origtype != NULL_TREE ? origtype : TREE_TYPE (value);
+      if (checktype != error_mark_node
+	  && (TYPE_MAIN_VARIANT (checktype)
+	      != TYPE_MAIN_VARIANT (DECL_BIT_FIELD_TYPE (field))))
+	warning_init (OPT_Wc___compat,
+		      "enum conversion in initialization is invalid in C++");
+    }
 
   /* If this field is empty (and not at the end of structure),
      don't do anything other than checking the initializer.  */
@@ -8870,12 +8869,12 @@ build_binary_op (location_t location, enum tree_code code,
       /* Handle the pointer + int case.  */
       if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (location, PLUS_EXPR, op0, op1);
+	  ret = pointer_int_sum (PLUS_EXPR, op0, op1);
 	  goto return_build_binary_op;
 	}
       else if (code1 == POINTER_TYPE && code0 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (location, PLUS_EXPR, op1, op0);
+	  ret = pointer_int_sum (PLUS_EXPR, op1, op0);
 	  goto return_build_binary_op;
 	}
       else
@@ -8894,7 +8893,7 @@ build_binary_op (location_t location, enum tree_code code,
       /* Handle pointer minus int.  Just like pointer plus int.  */
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (location, MINUS_EXPR, op0, op1);
+	  ret = pointer_int_sum (MINUS_EXPR, op0, op1);
 	  goto return_build_binary_op;
 	}
       else
@@ -9247,13 +9246,98 @@ build_binary_op (location_t location, enum tree_code code,
       (code1 == INTEGER_TYPE || code1 == REAL_TYPE || code1 == COMPLEX_TYPE
        || code1 == FIXED_POINT_TYPE || code1 == VECTOR_TYPE))
     {
-      int none_complex = (code0 != COMPLEX_TYPE && code1 != COMPLEX_TYPE);
+      bool first_complex = (code0 == COMPLEX_TYPE);
+      bool second_complex = (code1 == COMPLEX_TYPE);
+      int none_complex = (!first_complex && !second_complex);
 
       if (shorten || common || short_compare)
 	{
 	  result_type = c_common_type (type0, type1);
 	  if (result_type == error_mark_node)
 	    return error_mark_node;
+	}
+
+      if (first_complex != second_complex
+	  && (code == PLUS_EXPR
+	      || code == MINUS_EXPR
+	      || code == MULT_EXPR
+	      || (code == TRUNC_DIV_EXPR && first_complex))
+	  && TREE_CODE (TREE_TYPE (result_type)) == REAL_TYPE
+	  && flag_signed_zeros)
+	{
+	  /* An operation on mixed real/complex operands must be
+	     handled specially, but the language-independent code can
+	     more easily optimize the plain complex arithmetic if
+	     -fno-signed-zeros.  */
+	  tree real_type = TREE_TYPE (result_type);
+	  tree real, imag;
+	  if (type0 != orig_type0 || type1 != orig_type1)
+	    {
+	      gcc_assert (may_need_excess_precision && common);
+	      real_result_type = c_common_type (orig_type0, orig_type1);
+	    }
+	  if (first_complex)
+	    {
+	      if (TREE_TYPE (op0) != result_type)
+		op0 = convert_and_check (result_type, op0);
+	      if (TREE_TYPE (op1) != real_type)
+		op1 = convert_and_check (real_type, op1);
+	    }
+	  else
+	    {
+	      if (TREE_TYPE (op0) != real_type)
+		op0 = convert_and_check (real_type, op0);
+	      if (TREE_TYPE (op1) != result_type)
+		op1 = convert_and_check (result_type, op1);
+	    }
+	  if (TREE_CODE (op0) == ERROR_MARK || TREE_CODE (op1) == ERROR_MARK)
+	    return error_mark_node;
+	  if (first_complex)
+	    {
+	      op0 = c_save_expr (op0);
+	      real = build_unary_op (EXPR_LOCATION (orig_op0), REALPART_EXPR,
+				     op0, 1);
+	      imag = build_unary_op (EXPR_LOCATION (orig_op0), IMAGPART_EXPR,
+				     op0, 1);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		case TRUNC_DIV_EXPR:
+		  imag = build2 (resultcode, real_type, imag, op1);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, real, op1);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  else
+	    {
+	      op1 = c_save_expr (op1);
+	      real = build_unary_op (EXPR_LOCATION (orig_op1), REALPART_EXPR,
+				     op1, 1);
+	      imag = build_unary_op (EXPR_LOCATION (orig_op1), IMAGPART_EXPR,
+				     op1, 1);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		  imag = build2 (resultcode, real_type, op0, imag);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  break;
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  imag = build1 (NEGATE_EXPR, real_type, imag);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  ret = build2 (COMPLEX_EXPR, result_type, real, imag);
+	  goto return_build_binary_op;
 	}
 
       /* For certain operations (which identify themselves by shorten != 0)

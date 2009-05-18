@@ -1959,6 +1959,10 @@ make_eh_edge (struct eh_region *region, void *data)
   stmt = (gimple) data;
   lab = get_eh_region_tree_label (region);
 
+  /* The code region is removed.  */
+  if (!lab)
+    return;
+
   src = gimple_bb (stmt);
   dst = label_to_block (lab);
 

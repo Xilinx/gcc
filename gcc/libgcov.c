@@ -30,6 +30,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "coretypes.h"
 #include "tm.h"
 
+#if 1
+#define THREAD_PREFIX __thread
+#else
+#define THREAD_PREFIX
+#endif
+
 #if defined(inhibit_libc)
 #define IN_LIBGCOV (-1)
 #else
@@ -85,17 +91,17 @@ static gcov_unsigned_t gcov_cur_module_id = 0;
 
 /* Pointer to the direct-call counters (per call-site counters).
    Initialized by the caller.  */
-__thread gcov_type *__gcov_direct_call_counters;
+THREAD_PREFIX gcov_type *__gcov_direct_call_counters;
 
 /* Direct call callee address.  */
-__thread void *__gcov_direct_call_callee;
+THREAD_PREFIX void *__gcov_direct_call_callee;
 
 /* Pointer to the indirect-call counters (per call-site counters).
    Initialized by the caller.  */
-__thread gcov_type *__gcov_indirect_call_topn_counters;
+THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters;
 
 /* Indirect call callee address.  */
-__thread void *__gcov_indirect_call_topn_callee;
+THREAD_PREFIX void *__gcov_indirect_call_topn_callee;
 
 /* A program checksum allows us to distinguish program data for an
    object file included in multiple programs.  */
@@ -1178,8 +1184,8 @@ __gcov_indirect_call_profiler (gcov_type* counter, gcov_type value,
 
 
 #ifdef L_gcov_indirect_call_topn_profiler
-extern __thread gcov_type *__gcov_indirect_call_topn_counters;
-extern __thread void *__gcov_indirect_call_topn_callee;
+extern THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters;
+extern THREAD_PREFIX void *__gcov_indirect_call_topn_callee;
 void
 __gcov_indirect_call_topn_profiler (void *cur_func,
                                     void *cur_module_gcov_info,
@@ -1205,8 +1211,8 @@ __gcov_indirect_call_topn_profiler (void *cur_func,
 #endif
 
 #ifdef L_gcov_direct_call_profiler
-extern __thread gcov_type *__gcov_direct_call_counters;
-extern __thread void *__gcov_direct_call_callee;
+extern THREAD_PREFIX gcov_type *__gcov_direct_call_counters;
+extern THREAD_PREFIX void *__gcov_direct_call_callee;
 /* Direct call profiler. */
 void
 __gcov_direct_call_profiler (void *cur_func,

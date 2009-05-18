@@ -220,7 +220,9 @@ package Targparm is
    type Virtual_Machine_Kind is (No_VM, JVM_Target, CLI_Target);
    VM_Target : Virtual_Machine_Kind := No_VM;
    --  Kind of virtual machine targetted
-   --  Needs comments, don't depend on names ???
+   --  No_VM: no virtual machine, default case of a standard processor
+   --  JVM_Target: Java Virtual Machine
+   --  CLI_Target: CLI/.NET Virtual Machine
 
    -------------------------------
    -- Backend Arithmetic Checks --
@@ -446,7 +448,7 @@ package Targparm is
    -- Control of Stack Checking --
    -------------------------------
 
-   --  GNAT provides two methods of implementing exceptions:
+   --  GNAT provides three methods of implementing exceptions:
 
    --    GCC Probing Mechanism
 

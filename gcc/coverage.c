@@ -72,7 +72,7 @@ struct cpp_def_list
 typedef struct counts_entry
 {
   /* We hash by  */
-  unsigned HOST_WIDE_INT ident;
+  unsigned HOST_WIDEST_INT ident;
   unsigned ctr;
 
   /* Store  */
@@ -522,8 +522,8 @@ get_coverage_counts (unsigned counter, unsigned expected,
 
   if (!entry)
     {
-      warning (0, "no coverage for function %qs found", IDENTIFIER_POINTER
-	       (DECL_ASSEMBLER_NAME (current_function_decl)));
+      warning (0, "no coverage for function %qE found",
+	       DECL_ASSEMBLER_NAME (current_function_decl));
       return NULL;
     }
 
@@ -532,14 +532,13 @@ get_coverage_counts (unsigned counter, unsigned expected,
       || entry->summary.num != expected)
     {
       static int warned = 0;
-      const char *id = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME
-			 (current_function_decl));
+      tree id = DECL_ASSEMBLER_NAME (current_function_decl);
 
       if (warn_coverage_mismatch)
 	warning (OPT_Wcoverage_mismatch, "coverage mismatch for function "
-		 "%qs while reading counter %qs", id, ctr_names[counter]);
+		 "%qE while reading counter %qs", id, ctr_names[counter]);
       else
-	error ("coverage mismatch for function %qs while reading counter %qs",
+	error ("coverage mismatch for function %qE while reading counter %qs",
 	       id, ctr_names[counter]);
 
       if (!inhibit_warnings)
@@ -854,7 +853,7 @@ coverage_function_present (unsigned fn_ident)
   struct function_list *item = functions_head;
   while (item && item->ident != fn_ident)
     item = item->next;
-  return item != 0;
+  return item != NULL;
 }
 
 /* Update function and program direct-call coverage counts.  */
@@ -1062,68 +1061,10 @@ build_ctr_info_value (unsigned int counter, tree type)
   return value;
 }
 
-#if 0
-static tree
-build_gcov_module_info_type (unsigned num_quote_paths,
-                             unsigned num_bracket_paths)
-{
-  tree field, fields = NULL_TREE;
-  tree string_type, index_type, path_array_type;
-
-  tree type = lang_hooks.types.make_type (RECORD_TYPE);
-
-  string_type = build_pointer_type (
-      build_qualified_type (char_type_node,
-                            TYPE_QUAL_CONST));
-  /* ident  */
-  field = build_decl (FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
-  fields = field;
-
-  /* is_primary  */
-  field = build_decl (FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
-  fields = field;
-
-  /* is_exported  */
-  field = build_decl (FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
-  fields = field;
-
-  /* Lang field  */
-  field = build_decl (FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
-  fields = field;
-
-  /* da filename */
-  field = build_decl (FIELD_DECL, NULL_TREE, string_type);
-  TREE_CHAIN (field) = fields;
-  fields = field;
-
-  /* Source name */
-  field = build_decl (FIELD_DECL, NULL_TREE, string_type);
-  TREE_CHAIN (field) = fields;
-  fields = field;
-
-  /* num_quote_paths  */
-  field = build_decl (FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
-  fields = field;
-
-  /* num_bracket_paths  */
-  field = build_decl (FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
-  fields = field;
-
-  index_type = build_index_type (
-      build_int_cst (NULL_TREE, num_quote_paths + num_bracket_paths));
-  path_array_type = build_array_type (string_type, index_type);
-
-  finish_builtin_struct (type, "__gcov_module_info", fields, NULL_TREE);
-
-  return type;
-}
-#endif
+/* Returns an array (tree) of include path strings. STRING_TYPE is
+   the path string type, INC_PATH_VALUE is the initial value of the
+   path array, PATHS gives raw path string values, and NUM is the
+   number of paths.  */
 
 static tree
 build_inc_path_array_value (tree string_type, tree inc_path_value,
@@ -1152,6 +1093,10 @@ build_inc_path_array_value (tree string_type, tree inc_path_value,
   return inc_path_value;
 }
 
+/* Returns an array (tree) of macro def strings. STRING_TYPE is
+   the string type, CPP_DEF_VALUE is the initial value of the
+   macro array, and HEAD gives the list of raw strings.  */
+
 static tree
 build_cpp_def_array_value (tree string_type, tree cpp_def_value,
 			   struct cpp_def_list *head)
@@ -1175,6 +1120,9 @@ build_cpp_def_array_value (tree string_type, tree cpp_def_value,
     }
   return cpp_def_value;
 }
+
+/* Returns the value of the module info associated with the
+   current source module being compiled.  */
 
 static tree
 build_gcov_module_info_value (void)
@@ -1292,9 +1240,9 @@ build_gcov_module_info_value (void)
 						num_bracket_paths +
 						num_cpp_defines));
   string_array_type = build_array_type (string_type, index_type);
-  string_array = build_inc_path_array_value (string_type, string_array, 
+  string_array = build_inc_path_array_value (string_type, string_array,
 					     quote_paths, num_quote_paths);
-  string_array = build_inc_path_array_value (string_type, string_array, 
+  string_array = build_inc_path_array_value (string_type, string_array,
 					     bracket_paths, num_bracket_paths);
   string_array = build_cpp_def_array_value (string_type, string_array,
 					    cpp_defines_head);
@@ -1580,10 +1528,12 @@ rebuild_counts_hash (void)
   counts_hash = new_counts_hash;
 }
 
-/* Used in forced LIPO mode  */
+/* Add the module information record for the module with id
+   MODULE_ID. IS_PRIMARY is true if the module is the primary module.
+   INDEX is the index of the new record in the module info array.  */
+
 void
-add_module_info (unsigned module_id, int is_primary, 
-                 int index)
+add_module_info (unsigned module_id, int is_primary, int index)
 {
   struct gcov_module_info *cur_info;
   module_infos = XRESIZEVEC (struct gcov_module_info *,
@@ -1599,6 +1549,10 @@ add_module_info (unsigned module_id, int is_primary,
   if (is_primary)
     primary_module_id = module_id;
 }
+
+/* Set the prepreprocessing context (include search paths, -D/-U).
+   PARSE_IN is the preprocessor reader, I is the index of the module,
+   and VERBOSE is the verbose flag.  */
 
 void
 set_parsing_context (struct cpp_reader *parse_in, int i, bool verbose)
@@ -1713,7 +1667,12 @@ coverage_finish (void)
     }
 }
 
-void coverage_note_define (const char *cpp_def, bool is_def)
+/* Copies the macro def or undef CPP_DEF and saves the copy
+   in a list. IS_DEF is a flag indicating if CPP_DEF represents
+   a -D or -U.  */
+
+void
+coverage_note_define (const char *cpp_def, bool is_def)
 {
   struct cpp_def_list *d = XNEW (struct cpp_def_list);
   d->cpp_def = XNEWVEC (char, strlen (cpp_def) + 2);

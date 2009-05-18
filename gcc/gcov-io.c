@@ -574,17 +574,6 @@ gcov_seek (gcov_position_t base)
   gcov_var.start = ftell (gcov_var.file) >> 2;
 }
 
-#if 0
-GCOV_LINKAGE void
-gcov_append (gcov_position_t tail_adjust)
-{
-  gcc_assert (gcov_var.offset == 0 && gcov_var.mode > 0);
-  fseek (gcov_var.file, -(long)(tail_adjust << 2), SEEK_END);
-  gcov_var.start = ftell (gcov_var.file) >> 2;
-  gcov_var.mode = -1;
-  gcov_var.offset = 0;
-}
-#endif
 #endif
 
 #if IN_GCOV > 0

@@ -608,11 +608,11 @@ struct GTY(()) function {
 #define GEN_FUNC_GLOBAL_ID(m,f) ((((HOST_WIDE_INT) (m)) << FUNC_ID_WIDTH) | (f))
 #endif
 
-#define FUNC_ID_WIDTH HOST_BITS_PER_WIDE_INT/2
+#define FUNC_ID_WIDTH HOST_BITS_PER_WIDEST_INT/2
 #define FUNC_ID_MASK ((1ll << FUNC_ID_WIDTH) - 1)
 #define EXTRACT_MODULE_ID_FROM_GLOBAL_ID(gid) (unsigned)(((gid) >> FUNC_ID_WIDTH) & FUNC_ID_MASK)
 #define EXTRACT_FUNC_ID_FROM_GLOBAL_ID(gid) (unsigned)((gid) & FUNC_ID_MASK)
-#define GEN_FUNC_GLOBAL_ID(m,f) ((((HOST_WIDE_INT) (m)) << FUNC_ID_WIDTH) | (f))
+#define GEN_FUNC_GLOBAL_ID(m,f) ((((HOST_WIDEST_INT) (m)) << FUNC_ID_WIDTH) | (f))
 #define FUNC_DECL_MODULE_ID(func) ((func)->module_id)
 #define FUNC_DECL_FUNC_ID(func)   ((func)->funcdef_no + 1)
 #define FUNC_DECL_GLOBAL_ID(func) \

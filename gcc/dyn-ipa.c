@@ -1,7 +1,5 @@
 /* Compile this one with gcc.  */
-/* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008. Free Software 
-   Foundation, Inc.
+/* Copyright (C) 2009. Free Software Foundation, Inc.
    Contributed by Xinliang David Li (davidxl@google.com) and
                   Raksit Ashok  (raksit@google.com)
 
@@ -9,27 +7,22 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "tconfig.h"
 #include "tsystem.h"
@@ -49,8 +42,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #endif
 #include "gcov-io.h"
 
-struct dyn_pointer_set_t;
-struct dyn_vect_t;
+struct dyn_pointer_set;
+struct dyn_vect;
 
 #define XNEWVEC(type,ne) (type *)malloc(sizeof(type) * (ne))
 #define XNEW(type) (type *)malloc(sizeof(type))
@@ -61,7 +54,7 @@ struct dyn_cgraph_node
 {
   struct dyn_cgraph_edge *callees;
   struct dyn_cgraph_edge *callers;
-  struct dyn_pointer_set_t *imported_modules;
+  struct dyn_pointer_set *imported_modules;
 
   gcov_type guid;
   gcov_unsigned_t visited;
@@ -78,7 +71,7 @@ struct dyn_cgraph_edge
 
 struct dyn_module_info
 {
-  struct dyn_pointer_set_t *imported_modules;
+  struct dyn_pointer_set *imported_modules;
 };
 
 struct dyn_cgraph
@@ -91,7 +84,7 @@ struct dyn_cgraph
   unsigned num_modules;
 };
 
-struct dyn_pointer_set_t
+struct dyn_pointer_set
 {
   size_t log_slots;
   size_t n_slots;		/* n_slots = 2^log_slots */
@@ -116,7 +109,7 @@ gcov_dump_cgraph_node_dot (struct dyn_cgraph_node *node,
                            unsigned m, unsigned f,
                            gcov_type cutoff_count);
 static void
-pointer_set_destroy (struct dyn_pointer_set_t *pset);
+pointer_set_destroy (struct dyn_pointer_set *pset);
 
 static struct dyn_cgraph the_dyn_call_graph;
 
@@ -490,10 +483,10 @@ hash1 (const void *p, unsigned long max, unsigned long logmax)
 
 /* Allocate an empty pointer set.  */
 
-static struct dyn_pointer_set_t *
+static struct dyn_pointer_set *
 pointer_set_create (void)
 {
-  struct dyn_pointer_set_t *result = XNEW (struct dyn_pointer_set_t);
+  struct dyn_pointer_set *result = XNEW (struct dyn_pointer_set);
 
   result->n_elements = 0;
   result->log_slots = 8;
@@ -507,7 +500,7 @@ pointer_set_create (void)
 /* Reclaim all memory associated with PSET.  */
 
 static void
-pointer_set_destroy (struct dyn_pointer_set_t *pset)
+pointer_set_destroy (struct dyn_pointer_set *pset)
 {
   XDELETEVEC (pset->slots);
   XDELETE (pset);
@@ -536,7 +529,7 @@ insert_aux (const void *p, const void **slots, size_t n_slots, size_t log_slots)
    if it was already there. P must be nonnull.  */
 
 static int
-pointer_set_insert (struct dyn_pointer_set_t *pset, const void *p)
+pointer_set_insert (struct dyn_pointer_set *pset, const void *p)
 {
   size_t n;
 
@@ -576,7 +569,7 @@ pointer_set_insert (struct dyn_pointer_set_t *pset, const void *p)
    parameter DATA.  If FN returns false, the iteration stops.  */
 
 static void
-pointer_set_traverse (const struct dyn_pointer_set_t *pset,
+pointer_set_traverse (const struct dyn_pointer_set *pset,
                       int (*fn) (const void *, void *), void *data)
 {
   size_t i;
@@ -590,8 +583,8 @@ pointer_set_traverse (const struct dyn_pointer_set_t *pset,
 static int
 gcov_propagate_imp_modules (const void *value, void *data)
 {
-  struct dyn_pointer_set_t *receiving_set
-      = (struct dyn_pointer_set_t *) data;
+  struct dyn_pointer_set *receiving_set
+      = (struct dyn_pointer_set *) data;
 
   pointer_set_insert (receiving_set, value);
   return 1;
@@ -725,7 +718,7 @@ gcov_compute_cutoff_count (void)
 
 /* Return the imported module set for NODE.  */
 
-static struct dyn_pointer_set_t *
+static struct dyn_pointer_set *
 gcov_get_imp_module_set (struct dyn_cgraph_node *node)
 {
   if (!node->imported_modules)
@@ -736,7 +729,7 @@ gcov_get_imp_module_set (struct dyn_cgraph_node *node)
 
 /* Return the imported module set for MODULE MI.  */
 
-static struct dyn_pointer_set_t *
+static struct dyn_pointer_set *
 gcov_get_module_imp_module_set (struct dyn_module_info *mi)
 {
   if (!mi->imported_modules)
@@ -863,7 +856,7 @@ gcov_process_cgraph_node (struct dyn_cgraph_node *node,
       if (callees->count >= cutoff_count)
         {
           unsigned callee_mod_id;
-          struct dyn_pointer_set_t *imp_modules
+          struct dyn_pointer_set *imp_modules
               = gcov_get_imp_module_set (node);
 
           callee_mod_id
@@ -925,7 +918,7 @@ gcov_compute_module_groups (gcov_type cutoff_count)
 	{
 	  struct dyn_cgraph_node *node;
           unsigned mod_id;
-          struct dyn_pointer_set_t *imp_modules;
+          struct dyn_pointer_set *imp_modules;
 
 	  fi_ptr = the_dyn_call_graph.functions[m_ix][f_ix];
 	  node = &the_dyn_call_graph.call_graph_nodes[m_ix][fi_ptr->ident];
@@ -970,7 +963,7 @@ gcov_compute_random_module_groups (unsigned max_group_size)
 
   for (m_ix = 0; m_ix < the_dyn_call_graph.num_modules; m_ix++)
     {
-      struct dyn_pointer_set_t *imp_modules =
+      struct dyn_pointer_set *imp_modules =
 	gcov_get_module_imp_module_set (&the_dyn_call_graph.sup_modules[m_ix]);
       int cur_group_size = random () % max_group_size;
       int i = 0;

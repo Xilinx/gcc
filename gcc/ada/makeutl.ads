@@ -40,6 +40,10 @@ package Makeutl is
    Project_Tree : constant Project_Tree_Ref := new Project_Tree_Data;
    --  The project tree
 
+   Subdirs_Option : constant String := "--subdirs=";
+   --  Switch used to indicate that the real directories (object, exec,
+   --  library, ...) are subdirectories of those in the project file.
+
    procedure Add
      (Option : String_Access;
       To     : in out String_List_Access;
@@ -130,12 +134,14 @@ package Makeutl is
      (Switch               : in out String_Access;
       Parent               : String;
       Including_L_Switch   : Boolean := True;
-      Including_Non_Switch : Boolean := True);
+      Including_Non_Switch : Boolean := True;
+      Including_RTS        : Boolean := False);
    --  Test if Switch is a relative search path switch.
    --  If it is, fail if Parent is the empty string, otherwise prepend the path
    --  with Parent. This subprogram is only called when using project files.
    --  For gnatbind switches, Including_L_Switch is False, because the
-   --  argument of the -L switch is not a path.
+   --  argument of the -L switch is not a path. If Including_RTS is True,
+   --  process also switches --RTS=.
 
    function Path_Or_File_Name (Path : Path_Name_Type) return String;
    --  Returns a file name if -df is used, otherwise return a path name

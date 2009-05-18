@@ -625,7 +625,7 @@ cp_save_built_in_decl_post_parsing (void)
     }
 }
 
-/* Restore builtins and their bindings to their post parsing values  */
+/* Restore builtins and their bindings to their post parsing values.  */
 
 void
 cp_restore_built_in_decl_post_parsing (void)

@@ -51,11 +51,12 @@ extern int logical_immediate_p (rtx op, enum machine_mode mode);
 extern int iohl_immediate_p (rtx op, enum machine_mode mode);
 extern int arith_immediate_p (rtx op, enum machine_mode mode,
 			      HOST_WIDE_INT low, HOST_WIDE_INT high);
+extern bool exp2_immediate_p (rtx op, enum machine_mode mode, int low,
+			      int high);
 extern int spu_constant_address_p (rtx x);
 extern int spu_legitimate_constant_p (rtx x);
 extern int spu_legitimate_address (enum machine_mode mode, rtx x,
 				   int reg_ok_strict);
-extern rtx spu_legitimize_address (rtx x, rtx oldx, enum machine_mode mode);
 extern int spu_initial_elimination_offset (int from, int to);
 extern rtx spu_function_value (const_tree type, const_tree func);
 extern rtx spu_function_arg (int cum, enum machine_mode mode, tree type,
@@ -75,6 +76,7 @@ extern rtx gen_cpat_const (rtx * ops);
 extern void constant_to_array (enum machine_mode mode, rtx x,
 			       unsigned char *arr);
 extern rtx array_to_constant (enum machine_mode mode, unsigned char *arr);
+extern rtx spu_gen_exp2 (enum machine_mode mode, rtx x);
 extern void spu_allocate_stack (rtx op0, rtx op1);
 extern void spu_restore_stack_nonlocal (rtx op0, rtx op1);
 extern void spu_restore_stack_block (rtx op0, rtx op1);

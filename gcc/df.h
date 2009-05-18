@@ -878,8 +878,8 @@ extern struct df *df;
 /* Functions defined in df-core.c.  */
 
 extern void df_add_problem (struct df_problem *);
-extern enum df_changeable_flags df_set_flags (int);
-extern enum df_changeable_flags df_clear_flags (int);
+extern int df_set_flags (int);
+extern int df_clear_flags (int);
 extern void df_set_blocks (bitmap);
 extern void df_remove_problem (struct dataflow *);
 extern void df_finish_pass (bool);
@@ -939,6 +939,8 @@ extern void df_grow_bb_info (struct dataflow *);
 extern void df_chain_dump (struct df_link *, FILE *);
 extern void df_print_bb_index (basic_block bb, FILE *file);
 extern void df_rd_add_problem (void);
+extern void df_rd_simulate_artificial_defs_at_top (basic_block, bitmap);
+extern void df_rd_simulate_one_insn (basic_block, rtx, bitmap);
 extern void df_lr_add_problem (void);
 extern void df_lr_verify_transfer_functions (void);
 extern void df_live_verify_transfer_functions (void);

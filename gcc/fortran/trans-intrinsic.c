@@ -92,9 +92,11 @@ gfc_intrinsic_map_t;
    except for atan2.  */
 #define DEFINE_MATH_BUILTIN(ID, NAME, ARGTYPE) \
   { GFC_ISYM_ ## ID, BUILT_IN_ ## ID ## F, BUILT_IN_ ## ID, \
-    BUILT_IN_ ## ID ## L, BUILT_IN_ ## ID ## L, 0, 0, 0, 0, true, \
-    false, true, NAME, NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE, \
-    NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE},
+    BUILT_IN_ ## ID ## L, BUILT_IN_ ## ID ## L, (enum built_in_function) 0, \
+    (enum built_in_function) 0, (enum built_in_function) 0, \
+    (enum built_in_function) 0, true, false, true, NAME, NULL_TREE, \
+    NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE, \
+    NULL_TREE},
 
 #define DEFINE_MATH_BUILTIN_C(ID, NAME, ARGTYPE) \
   { GFC_ISYM_ ## ID, BUILT_IN_ ## ID ## F, BUILT_IN_ ## ID, \
@@ -1700,7 +1702,8 @@ gfc_conv_intrinsic_funcall (gfc_se * se, gfc_expr * expr)
 	}
     }
 
-  gfc_conv_function_call (se, sym, expr->value.function.actual, append_args);
+  gfc_conv_procedure_call (se, sym, expr->value.function.actual, expr,
+			  append_args);
   gfc_free (sym);
 }
 
@@ -2875,7 +2878,8 @@ conv_generic_with_optional_char_arg (gfc_se* se, gfc_expr* expr,
 
   /* Build the call itself.  */
   sym = gfc_get_symbol_for_expr (expr);
-  gfc_conv_function_call (se, sym, expr->value.function.actual, append_args);
+  gfc_conv_procedure_call (se, sym, expr->value.function.actual, expr,
+			  append_args);
   gfc_free (sym);
 }
 

@@ -54,9 +54,6 @@ bool sel_sched_switch_set;
 /* True if we should exit after parsing options.  */
 bool exit_after_options;
 
-/* Print various extra warnings.  -W/-Wextra.  */
-bool extra_warnings;
-
 /* True to warn about any objects definitions whose size is larger
    than N bytes.  Also want about function definitions whose returned
    values are larger than N bytes, where N is `larger_than_size'.  */
@@ -373,7 +370,6 @@ unsigned num_in_fnames;
 static int common_handle_option (size_t scode, const char *arg, int value,
 				 unsigned int lang_mask);
 static void handle_param (const char *);
-static void set_Wextra (int);
 static unsigned int handle_option (const char **argv, unsigned int lang_mask);
 static char *write_langs (unsigned int lang_mask);
 static void complain_wrong_lang (const char *, const struct cl_option *,
@@ -859,6 +855,7 @@ decode_options (unsigned int argc, const char **argv)
 #endif
   flag_guess_branch_prob = opt1;
   flag_cprop_registers = opt1;
+  flag_forward_propagate = opt1;
   flag_if_conversion = opt1;
   flag_if_conversion2 = opt1;
   flag_ipa_pure_const = opt1;
@@ -884,7 +881,6 @@ decode_options (unsigned int argc, const char **argv)
   flag_thread_jumps = opt2;
   flag_crossjumping = opt2;
   flag_optimize_sibling_calls = opt2;
-  flag_forward_propagate = opt2;
   flag_cse_follow_jumps = opt2;
   flag_gcse = opt2;
   flag_expensive_optimizations = opt2;
@@ -971,6 +967,27 @@ decode_options (unsigned int argc, const char **argv)
 #endif
 
   handle_options (argc, argv, lang_mask);
+
+  /* Make DUMP_BASE_NAME relative to the AUX_BASE_NAME directory,
+     typically the directory to contain the object file.  */
+  if (aux_base_name && ! IS_ABSOLUTE_PATH (dump_base_name))
+    {
+      const char *aux_base;
+
+      base_of_path (aux_base_name, &aux_base);
+      if (aux_base_name != aux_base)
+	{
+	  int dir_len = aux_base - aux_base_name;
+	  char *new_dump_base_name =
+	    XNEWVEC (char, strlen(dump_base_name) + dir_len + 1);
+
+	  /* Copy directory component from AUX_BASE_NAME.  */
+	  memcpy (new_dump_base_name, aux_base_name, dir_len);
+	  /* Append existing DUMP_BASE_NAME.  */
+	  strcpy (new_dump_base_name + dir_len, dump_base_name);
+	  dump_base_name = new_dump_base_name;
+	}
+    }
 
   /* Handle related options for unit-at-a-time, toplevel-reorder, and
      section-anchors.  */
@@ -1579,17 +1596,8 @@ common_handle_option (size_t scode, const char *arg, int value,
       /* Currently handled in a prescan.  */
       break;
 
-    case OPT_W:
-      /* For backward compatibility, -W is the same as -Wextra.  */
-      set_Wextra (value);
-      break;
-
     case OPT_Werror_:
       enable_warning_as_error (arg, value, lang_mask);
-      break;
-
-    case OPT_Wextra:
-      set_Wextra (value);
       break;
 
     case OPT_Wlarger_than_:
@@ -2106,21 +2114,6 @@ handle_param (const char *carg)
     }
 
   free (arg);
-}
-
-/* Handle -W and -Wextra.  */
-static void
-set_Wextra (int setting)
-{
-  extra_warnings = setting;
-
-  /* We save the value of warn_uninitialized, since if they put
-     -Wuninitialized on the command line, we need to generate a
-     warning about not using it without also specifying -O.  */
-  if (setting == 0)
-    warn_uninitialized = 0;
-  else if (warn_uninitialized != 1)
-    warn_uninitialized = 2;
 }
 
 /* Used to set the level of strict aliasing warnings, 

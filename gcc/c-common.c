@@ -730,6 +730,7 @@ const struct c_common_resword c_common_reswords[] =
 {
   { "_Bool",		RID_BOOL,      D_CONLY },
   { "_Complex",		RID_COMPLEX,	0 },
+  { "_Imaginary",	RID_IMAGINARY, D_CONLY },
   { "_Decimal32",       RID_DFLOAT32,  D_CONLY | D_EXT },
   { "_Decimal64",       RID_DFLOAT64,  D_CONLY | D_EXT },
   { "_Decimal128",      RID_DFLOAT128, D_CONLY | D_EXT },
@@ -953,7 +954,7 @@ const struct attribute_spec c_common_attribute_table[] =
      to prevent its usage in source code.  */
   { "no vops",                0, 0, true,  false, false,
 			      handle_novops_attribute },
-  { "deprecated",             0, 0, false, false, false,
+  { "deprecated",             0, 1, false, false, false,
 			      handle_deprecated_attribute },
   { "vector_size",	      1, 1, false, true, false,
 			      handle_vector_size_attribute },
@@ -1761,6 +1762,10 @@ warn_logical_operator (location_t location, enum tree_code code,
 bool
 strict_aliasing_warning (tree otype, tree type, tree expr)
 {
+  /* Strip pointer conversion chains and get to the correct original type.  */
+  STRIP_NOPS (expr);
+  otype = TREE_TYPE (expr);
+
   if (!(flag_strict_aliasing
 	&& POINTER_TYPE_P (type)
 	&& POINTER_TYPE_P (otype)
@@ -3767,8 +3772,7 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
    of pointer PTROP and integer INTOP.  */
 
 tree
-pointer_int_sum (location_t location, enum tree_code resultcode,
-		 tree ptrop, tree intop)
+pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
 {
   tree size_exp, ret;
 
@@ -3777,19 +3781,19 @@ pointer_int_sum (location_t location, enum tree_code resultcode,
 
   if (TREE_CODE (TREE_TYPE (result_type)) == VOID_TYPE)
     {
-      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer of type %<void *%> used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == FUNCTION_TYPE)
     {
-      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer to a function used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == METHOD_TYPE)
     {
-      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer to member function used in arithmetic");
       size_exp = integer_one_node;
     }
@@ -3851,31 +3855,6 @@ pointer_int_sum (location_t location, enum tree_code resultcode,
   /* Create the sum or difference.  */
   if (resultcode == MINUS_EXPR)
     intop = fold_build1 (NEGATE_EXPR, sizetype, intop);
-
-  if (TREE_CODE (intop) == INTEGER_CST)
-    {
-      tree offset_node;
-      tree string_cst = string_constant (ptrop, &offset_node);
-
-      if (string_cst != 0 
-	  && !(offset_node && TREE_CODE (offset_node) != INTEGER_CST))
-	{
-	  HOST_WIDE_INT max = TREE_STRING_LENGTH (string_cst);
-	  HOST_WIDE_INT offset;
-	  if (offset_node == 0)
-	    offset = 0;
-	  else if (! host_integerp (offset_node, 0))
-	    offset = -1;
-	  else
-	    offset = tree_low_cst (offset_node, 0);
-
-	  offset = offset + tree_low_cst (intop, 0);
-	  if (offset < 0 || offset > max)
-	    warning_at (location, 0,
-			"offset %<%wd%> outside bounds of constant string",
-			tree_low_cst (intop, 0));
-	}
-    }
 
   ret = fold_build2 (POINTER_PLUS_EXPR, result_type, ptrop, intop);
 
@@ -6400,15 +6379,16 @@ handle_mode_attribute (tree *node, tree name, tree args,
 		       int ARG_UNUSED (flags), bool *no_add_attrs)
 {
   tree type = *node;
+  tree ident = TREE_VALUE (args);
 
   *no_add_attrs = true;
 
-  if (TREE_CODE (TREE_VALUE (args)) != IDENTIFIER_NODE)
+  if (TREE_CODE (ident) != IDENTIFIER_NODE)
     warning (OPT_Wattributes, "%qE attribute ignored", name);
   else
     {
       int j;
-      const char *p = IDENTIFIER_POINTER (TREE_VALUE (args));
+      const char *p = IDENTIFIER_POINTER (ident);
       int len = strlen (p);
       enum machine_mode mode = VOIDmode;
       tree typefm;
@@ -6448,7 +6428,7 @@ handle_mode_attribute (tree *node, tree name, tree args,
 
       if (mode == VOIDmode)
 	{
-	  error ("unknown machine mode %qs", p);
+	  error ("unknown machine mode %qE", ident);
 	  return NULL_TREE;
 	}
 
@@ -7199,12 +7179,20 @@ handle_novops_attribute (tree *node, tree ARG_UNUSED (name),
 
 static tree
 handle_deprecated_attribute (tree *node, tree name,
-			     tree ARG_UNUSED (args), int flags,
+			     tree args, int flags,
 			     bool *no_add_attrs)
 {
   tree type = NULL_TREE;
   int warn = 0;
   tree what = NULL_TREE;
+
+  if (!args)
+    *no_add_attrs = true;
+  else if (TREE_CODE (TREE_VALUE (args)) != STRING_CST)
+    {
+      error ("deprecated message is not a string");
+      *no_add_attrs = true;
+    }
 
   if (DECL_P (*node))
     {

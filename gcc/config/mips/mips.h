@@ -2081,12 +2081,20 @@ enum reg_class
 
 #define STACK_GROWS_DOWNWARD
 
-/* The offset of the first local variable from the beginning of the frame.
-   See mips_compute_frame_info for details about the frame layout.  */
+#define FRAME_GROWS_DOWNWARD flag_stack_protect
 
-#define STARTING_FRAME_OFFSET						\
-  (crtl->outgoing_args_size					\
-   + (TARGET_CALL_CLOBBERED_GP ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0))
+/* Size of the area allocated in the frame to save the GP.  */
+
+#define MIPS_GP_SAVE_AREA_SIZE \
+  (TARGET_CALL_CLOBBERED_GP ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0)
+
+/* The offset of the first local variable from the frame pointer.  See
+   mips_compute_frame_info for details about the frame layout.  */
+
+#define STARTING_FRAME_OFFSET				\
+  (FRAME_GROWS_DOWNWARD					\
+   ? 0							\
+   : crtl->outgoing_args_size + MIPS_GP_SAVE_AREA_SIZE)
 
 #define RETURN_ADDR_RTX mips_return_addr
 
@@ -2517,13 +2525,6 @@ typedef struct mips_args {
   (CONSTANT_P (X) && mips_legitimate_address_p (SImode, X, 0))
 
 #define LEGITIMATE_CONSTANT_P(X) (mips_const_insns (X) > 0)
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)			\
-  do {								\
-    if (mips_legitimize_address (&(X), MODE))			\
-      goto WIN;							\
-  } while (0)
-
 
 /* This handles the magic '..CURRENT_FUNCTION' symbol, which means
    'the start of the function that this code is output in'.  */

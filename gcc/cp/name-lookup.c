@@ -416,7 +416,6 @@ pop_binding (tree id, tree decl)
     }
 }
 
-
 /* BINDING records an existing declaration for a name in the current scope.
    But, DECL is another declaration for that same identifier in the
    same scope.  This is the `struct stat' hack whereby a non-typedef

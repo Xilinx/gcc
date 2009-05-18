@@ -409,9 +409,6 @@ extern const enum reg_class picochip_regno_reg_class[FIRST_PSEUDO_REGISTER];
    pointers are eliminated wherever possible, by replacing them with
    offsets from the stack pointer. */
 
-/* We want to get rid of the frame pointer.  */
-#define FRAME_POINTER_REQUIRED 0
-
 #define ELIMINABLE_REGS 						\
   {{ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},				\
    {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
@@ -506,10 +503,6 @@ extern const enum reg_class picochip_regno_reg_class[FIRST_PSEUDO_REGISTER];
   if (picochip_legitimate_address_p (MODE, X, 0)) goto LABEL;
 
 #endif /* !REG_OK_STRICT */
-
-/* extern struct rtx_def *picochip_legitimize_address */
-/* 	PARAMS ((struct rtx_def *, struct rtx_def *, int)); */
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN);
 
 /* Legitimize reload address tries machine dependent means of
    reloading addresses.  There seems to be a strange error in gcc,
@@ -736,6 +729,7 @@ enum picochip_builtins
   PICOCHIP_BUILTIN_HALT
 };
 
+#define NO_DOLLAR_IN_LABEL 1
 #define NO_DOT_IN_LABEL 1
 
 /* The assembler does support LEB128, despite the auto-configure test

@@ -84,7 +84,7 @@ extern void announce_function (tree);
 
 extern void error_for_asm (const_rtx, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
 extern void warning_for_asm (const_rtx, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
-extern void warn_deprecated_use (tree);
+extern void warn_deprecated_use (tree, tree);
 extern bool parse_optimize_options (tree, bool);
 
 #ifdef BUFSIZ
@@ -136,6 +136,7 @@ extern int flag_if_conversion;
 extern int flag_if_conversion2;
 extern int flag_keep_static_consts;
 extern int flag_peel_loops;
+extern int flag_rerun_cse_after_global_opts;
 extern int flag_rerun_cse_after_loop;
 extern int flag_thread_jumps;
 extern int flag_tracer;
@@ -148,7 +149,6 @@ extern int flag_ira_coalesce;
 extern int flag_ira_move_spills;
 extern int flag_ira_share_save_slots;
 extern int flag_ira_share_spill_slots;
-
 
 /* Things to do with target switches.  */
 extern void print_version (FILE *, const char *);

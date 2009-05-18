@@ -601,7 +601,7 @@ gimple_value_profile_transformations (void)
   if (changed)
     {
       counts_to_freqs ();
-      /* value profile transformations may change inline parameters
+      /* Value profile transformations may change inline parameters
          a lot (e.g., indirect call promotion introduces new direct calls).
          The update is also needed to avoid compiler ICE -- when MULTI target icall
          promotion happens, the caller's size may become negative when the promoted
@@ -1157,7 +1157,7 @@ static htab_t gid_map = NULL;
 typedef struct func_gid_entry
 {
   struct cgraph_node *node;
-  unsigned HOST_WIDE_INT gid;
+  unsigned HOST_WIDEST_INT gid;
 } func_gid_entry_t;
 
 static hashval_t 
@@ -1363,7 +1363,6 @@ gimple_ic (gimple stmt, gimple call, struct cgraph_node *direct_call,
   return stmt1;
 }
 
-
 /*
   For every checked indirect/virtual call determine if most common pid of
   function/class method has probability more than 50%. If yes modify code of
@@ -1424,6 +1423,10 @@ gimple_ic_transform_single_targ (gimple stmt, histogram_value histogram)
 
   return true;
 }
+
+/* Convert indirect function call STMT into guarded direct function
+   calls. Multiple indirect call targets are supported. HISTOGRAM
+   is the target distribution for the callsite.  */
 
 static bool
 gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
@@ -1552,12 +1555,8 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
   return true;
 }
 
-
-/*
-  For every checked indirect/virtual call determine if most common pid of
-  function/class method has probability more than 50%. If yes modify code of
-  this call to:
- */
+/* Perform indirect call (STMT) to guarded direct function call
+   transformation using value profile data.  */
 
 static bool
 gimple_ic_transform (gimple stmt)

@@ -248,10 +248,10 @@ struct s390_address
 
 /* Which cpu are we tuning for.  */
 enum processor_type s390_tune = PROCESSOR_max;
-enum processor_flags s390_tune_flags;
+int s390_tune_flags;
 /* Which instruction set architecture to use.  */
 enum processor_type s390_arch;
-enum processor_flags s390_arch_flags;
+int s390_arch_flags;
 
 HOST_WIDE_INT s390_warn_framesize = 0;
 HOST_WIDE_INT s390_stack_size = 0;
@@ -1471,13 +1471,13 @@ optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
 static bool
 s390_handle_arch_option (const char *arg,
 			 enum processor_type *type,
-			 enum processor_flags *flags)
+			 int *flags)
 {
   static struct pta
     {
       const char *const name;		/* processor name or nickname.  */
       const enum processor_type processor;
-      const enum processor_flags flags;
+      const int flags;			/* From enum processor_flags. */
     }
   const processor_alias_table[] =
     {
@@ -3734,9 +3734,9 @@ emit_symbolic_move (rtx *operands)
    When -fpic is used, special handling is needed for symbolic references.
    See comments by legitimize_pic_address for details.  */
 
-rtx
-legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
-		    enum machine_mode mode ATTRIBUTE_UNUSED)
+static rtx
+s390_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+			 enum machine_mode mode ATTRIBUTE_UNUSED)
 {
   rtx constant_term = const0_rtx;
 
@@ -9908,6 +9908,9 @@ s390_reorg (void)
 
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS s390_delegitimize_address
+
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS s390_legitimize_address
 
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY s390_return_in_memory

@@ -438,7 +438,7 @@ cgraph_default_inline_p (struct cgraph_node *n, cgraph_inline_failed_t *reason)
       return false;
     }
 
-  if (!DECL_STRUCT_FUNCTION (decl)->cfg)
+  if (!n->analyzed)
     {
       if (reason)
 	*reason = CIF_BODY_NOT_AVAILABLE;
@@ -969,6 +969,12 @@ cgraph_decide_inlining_of_small_functions (void)
       edge->aux = NULL;
       if (!edge->inline_failed)
 	continue;
+      
+      if (!dbg_cnt (inl))
+        {
+          edge->inline_failed = CIF_UNSPECIFIED;
+          continue;
+        }
 
       /* When not having profile info ready we don't weight by any way the
          position of call in procedure itself.  This means if call of
@@ -1717,7 +1723,12 @@ cgraph_early_inlining (void)
 
   if (sorrycount || errorcount)
     return 0;
-  if (cgraph_decide_inlining_incrementally (node, INLINE_SIZE, false, 0))
+  /* In LIPO mode, we may want to allow inter-module early inlining as
+     it is after the tree_profiling pass. However allowing inlining cross
+     module inlining can potentially change the result of some analysis results
+     such as pure-const analysis. This in turn can result in changes in caller
+     function's CFG (removal of EH edges), which leads to coverage mismatch.  */
+  if (cgraph_decide_inlining_incrementally (node, INLINE_SIZE, true, 0))
     {
       timevar_push (TV_INTEGRATION);
       todo = optimize_inline_calls (current_function_decl);
@@ -1915,12 +1926,18 @@ inline_transform (struct cgraph_node *node)
   return todo | execute_fixup_cfg ();
 }
 
+static bool
+gate_ipa_inlining (void)
+{
+  return true;
+}
+
 struct ipa_opt_pass pass_ipa_inline = 
 {
  {
   IPA_PASS,
   "inline",				/* name */
-  NULL,    				/* gate */
+  gate_ipa_inlining,			/* gate */
   cgraph_decide_inlining,		/* execute */
   NULL,					/* sub */
   NULL,					/* next */

@@ -1909,7 +1909,7 @@ build_class_member_access_expr (tree object, tree member,
       member_scope = DECL_CLASS_CONTEXT (member);
       mark_used (member);
       if (TREE_DEPRECATED (member))
-	warn_deprecated_use (member);
+	warn_deprecated_use (member, NULL_TREE);
     }
   else
     member_scope = BINFO_TYPE (BASELINK_ACCESS_BINFO (member));
@@ -2369,7 +2369,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
     }
 
   if (TREE_DEPRECATED (member))
-    warn_deprecated_use (member);
+    warn_deprecated_use (member, NULL_TREE);
 
   if (template_p)
     check_template_keyword (member);
@@ -4054,7 +4054,7 @@ cp_pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
      pointer_int_sum() anyway.  */
   complete_type (TREE_TYPE (res_type));
 
-  return pointer_int_sum (input_location, resultcode, ptrop,
+  return pointer_int_sum (resultcode, ptrop,
 			  fold_if_not_in_template (intop));
 }
 
@@ -5034,6 +5034,12 @@ cp_build_compound_expr (tree lhs, tree rhs, tsubst_flags_t complain)
       return rhs;
     }
 
+  if (type_unknown_p (rhs))
+    {
+      error ("no context to resolve type of %qE", rhs);
+      return error_mark_node;
+    }
+  
   return build2 (COMPOUND_EXPR, TREE_TYPE (rhs), lhs, rhs);
 }
 

@@ -1,5 +1,5 @@
 /* The lang_hooks data structure.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -227,20 +227,53 @@ struct lang_hooks_for_decls
 
 struct lang_hooks_for_lipo
 {
+  /* Add DECL to the list predefined builtins.  */
   void (*add_built_in_decl) (tree decl);
+
+  /* Save the tree (by making a copy) and binding values
+     for builtins before parsing start.  */
   void (*save_built_in_decl_pre_parsing) (void);
+
+  /* Restore builtins and their bindings to their values
+     before parsing. */
   void (*restore_built_in_decl_pre_parsing) (void);
+
+  /* Save the tree (by making a copy) and binding values for
+     builtins after parsing of a file.  */
   void (*save_built_in_decl_post_module_parsing) (void);
+
+  /* Restore builtins and their bindings to their post
+     parsing values.  */
   void (*restore_built_in_decl_post_module_parsing) (void);
+
+  /* Clear symbol binding for name ID. */
   void (*clear_global_name_bindings) (tree id);
+
+  /* Return 1 if DECL in SCOPE is scoped in global/namespace scope,
+     otherwise return 0. */
   int (*has_global_name) (tree decl, void *scope);
-  int (*get_lang_decl_size) (tree);
+
+  /* Return the actual size of the lang_decl struct for
+     decl T.  */
+  int (*get_lang_decl_size) (tree t);
+
+  /* Duplicate language specific type information from SRC
+   to DEST.  */
   void (*dup_lang_type) (tree src, tree dest);
+
+  /* Copy DEST into SRC.  */
   void (*copy_lang_type) (tree src, tree dest);
+
+  /* Process decls after parsing of a source module.  */
   void (*process_pending_decls) (unsigned);
+
+  /* Clear the list of deferred functions.  */
   void (*clear_deferred_fns) (void);
+
+  /* Return 1 if T is compiler generated.  */
   int (*is_compiler_generated_type) (tree t);
-  /* compare language specific types.  */
+
+  /* Compare language specific types T1 and T2.  */
   int (*cmp_lang_type) (tree t1, tree t2);
 };
 
@@ -353,7 +386,10 @@ struct lang_hooks
      information will be printed: 0: DECL_NAME, demangled as
      necessary.  1: and scope information.  2: and any other
      information that might be interesting, such as function parameter
-     types in C++.  */
+     types in C++.  The name is in the internal character set and
+     needs to be converted to the locale character set of diagnostics,
+     or to the execution character set for strings such as
+     __PRETTY_FUNCTION__.  */
   const char *(*decl_printable_name) (tree decl, int verbosity);
 
   /* Computes the dwarf-2/3 name for a tree.  VERBOSITY determines what

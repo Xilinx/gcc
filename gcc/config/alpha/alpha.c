@@ -275,10 +275,10 @@ override_options (void)
     { "ev6",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX },
     { "21264",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX },
     { "ev67",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX|MASK_CIX },
-    { "21264a",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX|MASK_CIX },
-    { 0, 0, 0 }
+    { "21264a",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX|MASK_CIX }
   };
 
+  int const ct_size = ARRAY_SIZE (cpu_table);
   int i;
 
   /* Unicos/Mk doesn't have shared libraries.  */
@@ -370,7 +370,7 @@ override_options (void)
 
   if (alpha_cpu_string)
     {
-      for (i = 0; cpu_table [i].name; i++)
+      for (i = 0; i < ct_size; i++)
 	if (! strcmp (alpha_cpu_string, cpu_table [i].name))
 	  {
 	    alpha_tune = alpha_cpu = cpu_table [i].processor;
@@ -378,19 +378,19 @@ override_options (void)
 	    target_flags |= cpu_table [i].flags;
 	    break;
 	  }
-      if (! cpu_table [i].name)
+      if (i == ct_size)
 	error ("bad value %qs for -mcpu switch", alpha_cpu_string);
     }
 
   if (alpha_tune_string)
     {
-      for (i = 0; cpu_table [i].name; i++)
+      for (i = 0; i < ct_size; i++)
 	if (! strcmp (alpha_tune_string, cpu_table [i].name))
 	  {
 	    alpha_tune = cpu_table [i].processor;
 	    break;
 	  }
-      if (! cpu_table [i].name)
+      if (i == ct_size)
 	error ("bad value %qs for -mcpu switch", alpha_tune_string);
     }
 
@@ -709,7 +709,7 @@ tls_symbolic_operand_type (rtx symbol)
   enum tls_model model;
 
   if (GET_CODE (symbol) != SYMBOL_REF)
-    return 0;
+    return TLS_MODEL_NONE;
   model = SYMBOL_REF_TLS_MODEL (symbol);
 
   /* Local-exec with a 64-bit size is the same code as initial-exec.  */
@@ -917,8 +917,8 @@ get_tls_get_addr (void)
 /* Try machine-dependent ways of modifying an illegitimate address
    to be legitimate.  If we find one, return the new, valid address.  */
 
-rtx
-alpha_legitimize_address (rtx x, rtx scratch, enum machine_mode mode)
+static rtx
+alpha_legitimize_address_1 (rtx x, rtx scratch, enum machine_mode mode)
 {
   HOST_WIDE_INT addend;
 
@@ -1110,6 +1110,18 @@ alpha_legitimize_address (rtx x, rtx scratch, enum machine_mode mode)
 
     return plus_constant (x, low);
   }
+}
+
+
+/* Try machine-dependent ways of modifying an illegitimate address
+   to be legitimate.  Return X or the new, valid address.  */
+
+static rtx
+alpha_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+			  enum machine_mode mode)
+{
+  rtx new_x = alpha_legitimize_address_1 (x, NULL_RTX, mode);
+  return new_x ? new_x : x;
 }
 
 /* Primarily this is required for TLS symbols, but given that our move
@@ -2137,7 +2149,7 @@ alpha_expand_mov (enum machine_mode mode, rtx *operands)
   /* Allow legitimize_address to perform some simplifications.  */
   if (mode == Pmode && symbolic_operand (operands[1], mode))
     {
-      tmp = alpha_legitimize_address (operands[1], operands[0], mode);
+      tmp = alpha_legitimize_address_1 (operands[1], operands[0], mode);
       if (tmp)
 	{
 	  if (tmp == operands[0])
@@ -10724,6 +10736,9 @@ alpha_init_libfuncs (void)
 
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS alpha_init_libfuncs
+
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS alpha_legitimize_address
 
 #if TARGET_ABI_UNICOSMK
 #undef TARGET_ASM_FILE_START

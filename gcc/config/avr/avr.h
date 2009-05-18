@@ -350,7 +350,7 @@ enum reg_class {
 
 #define STATIC_CHAIN_REGNUM 2
 
-#define FRAME_POINTER_REQUIRED frame_pointer_required_p()
+#define FRAME_POINTER_REQUIRED avr_frame_pointer_required_p()
 
 /* Offset from the frame pointer register value to the top of the stack.  */
 #define FRAME_POINTER_CFA_OFFSET(FNDECL) 0
@@ -360,15 +360,10 @@ enum reg_class {
 	{FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}		\
        ,{FRAME_POINTER_REGNUM+1,STACK_POINTER_REGNUM+1}}
 
-#define CAN_ELIMINATE(FROM, TO) (((FROM) == ARG_POINTER_REGNUM		   \
-				  && (TO) == FRAME_POINTER_REGNUM)	   \
-				 || (((FROM) == FRAME_POINTER_REGNUM	   \
-				      || (FROM) == FRAME_POINTER_REGNUM+1) \
-				     && ! FRAME_POINTER_REQUIRED	   \
-				     ))
+#define CAN_ELIMINATE(FROM, TO)	avr_can_eliminate (FROM, TO)
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
-     OFFSET = initial_elimination_offset (FROM, TO)
+  OFFSET = avr_initial_elimination_offset (FROM, TO)
 
 #define RETURN_ADDR_RTX(count, x) \
   gen_rtx_MEM (Pmode, memory_address (Pmode, plus_constant (tem, 1)))
@@ -439,13 +434,6 @@ extern int avr_reg_order[];
 #endif
 
 #define REG_OK_FOR_INDEX_P(X) 0
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)				\
-{									\
-  (X) = legitimize_address (X, OLDX, MODE);				\
-  if (memory_address_p (MODE, X))					\
-    goto WIN;								\
-}
 
 #define XEXP_(X,Y) (X)
 

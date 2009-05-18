@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,6 +35,7 @@ with Exp_Dist; use Exp_Dist;
 with Exp_Util; use Exp_Util;
 with Expander; use Expander;
 with Freeze;   use Freeze;
+with Gnatvsn;  use Gnatvsn;
 with Itypes;   use Itypes;
 with Lib;      use Lib;
 with Lib.Xref; use Lib.Xref;
@@ -420,7 +421,8 @@ package body Sem_Attr is
             --  an access, we set a flag to kill all tracked values on any call
             --  because this access value may be passed around, and any called
             --  code might use it to access a local procedure which clobbers a
-            --  tracked value.
+            --  tracked value. If the scope is a loop or block, indicate that
+            --  value tracking is disabled for the enclosing subprogram.
 
             function Get_Kind (E : Entity_Id) return Entity_Kind;
             --  Distinguish between access to regular/protected subprograms
@@ -433,6 +435,8 @@ package body Sem_Attr is
             begin
                if not Is_Library_Level_Entity (E) then
                   Set_Suppress_Value_Tracking_On_Call (Current_Scope);
+                  Set_Suppress_Value_Tracking_On_Call
+                    (Nearest_Dynamic_Scope (Current_Scope));
                end if;
             end Check_Local_Access;
 
@@ -1065,7 +1069,13 @@ package body Sem_Attr is
             --  the designated type of the access type, since the type of
             --  the referenced array is this type (see AI95-00106).
 
-            Freeze_Before (N, Designated_Type (P_Type));
+            --  As done elsewhere, freezing must not happen when pre-analyzing
+            --  a pre- or postcondition or a default value for an object or
+            --  for a formal parameter.
+
+            if not In_Spec_Expression then
+               Freeze_Before (N, Designated_Type (P_Type));
+            end if;
 
             Rewrite (P,
               Make_Explicit_Dereference (Sloc (P),
@@ -2534,6 +2544,16 @@ package body Sem_Attr is
          end if;
 
          Set_Etype (N, RTE (RE_Address));
+
+      ----------------------
+      -- Compiler_Version --
+      ----------------------
+
+      when Attribute_Compiler_Version =>
+         Check_E0;
+         Check_Standard_Prefix;
+         Rewrite (N, Make_String_Literal (Loc, "GNAT " & Gnat_Version_String));
+         Analyze_And_Resolve (N, Standard_String);
 
       --------------------
       -- Component_Size --
@@ -7473,6 +7493,7 @@ package body Sem_Attr is
            Attribute_Caller                   |
            Attribute_Class                    |
            Attribute_Code_Address             |
+           Attribute_Compiler_Version         |
            Attribute_Count                    |
            Attribute_Default_Bit_Order        |
            Attribute_Elaborated               |

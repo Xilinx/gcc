@@ -2015,7 +2015,6 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
   else if (TREE_CODE (newdecl) == NAMESPACE_DECL)
     NAMESPACE_LEVEL (newdecl) = NAMESPACE_LEVEL (olddecl);
 
-
   /* Now preserve various other info from the definition.  */
   TREE_ADDRESSABLE (newdecl) = TREE_ADDRESSABLE (olddecl);
   TREE_ASM_WRITTEN (newdecl) = TREE_ASM_WRITTEN (olddecl);
@@ -7854,7 +7853,7 @@ grokdeclarator (const cp_declarator *declarator,
      suppress reports of deprecated items.  */
   if (type && TREE_DEPRECATED (type)
       && deprecated_state != DEPRECATED_SUPPRESS)
-    warn_deprecated_use (type);
+    warn_deprecated_use (type, NULL_TREE);
   if (type && TREE_CODE (type) == TYPE_DECL)
     {
       typedef_decl = type;
@@ -7862,7 +7861,7 @@ grokdeclarator (const cp_declarator *declarator,
       if (TREE_DEPRECATED (type)
 	  && DECL_ARTIFICIAL (typedef_decl)
 	  && deprecated_state != DEPRECATED_SUPPRESS)
-	warn_deprecated_use (type);
+	warn_deprecated_use (type, NULL_TREE);
     }
   /* No type at all: default to `int', and set DEFAULTED_INT
      because it was not a user-defined typedef.  */
@@ -9716,7 +9715,7 @@ grokparms (tree parmlist, tree *parms)
 	    {
 	      tree deptype = type_is_deprecated (type);
 	      if (deptype)
-		warn_deprecated_use (deptype);
+		warn_deprecated_use (deptype, NULL_TREE);
 	    }
 
 	  /* Top-level qualifiers on the parameters are

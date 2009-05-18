@@ -532,10 +532,12 @@
 ;; with a PLUS.  We generally require fewer secondary reloads this way.
 
 (define_insn "*movsi_insn"
-  [(set (match_operand:SI 0 "nonimmediate_operand" "=da,x*y,da,x,x,x,da,mr")
-	(match_operand:SI 1 "general_operand" "da,x*y,xKs7,xKsh,xKuh,ix,mr,da"))]
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=da,x,da,y,da,x,x,x,da,mr")
+	(match_operand:SI 1 "general_operand" "da,x,y,da,xKs7,xKsh,xKuh,ix,mr,da"))]
   "GET_CODE (operands[0]) != MEM || GET_CODE (operands[1]) == REG"
  "@
+   %0 = %1;
+   %0 = %1;
    %0 = %1;
    %0 = %1;
    %0 = %1 (X);
@@ -544,8 +546,8 @@
    #
    %0 = %1%!
    %0 = %1%!"
-  [(set_attr "type" "move,move,mvi,mvi,mvi,*,mcld,mcst")
-   (set_attr "length" "2,2,2,4,4,*,*,*")])
+  [(set_attr "type" "move,move,move,move,mvi,mvi,mvi,*,mcld,mcst")
+   (set_attr "length" "2,2,2,2,2,4,4,*,*,*")])
 
 (define_insn "*movsi_insn32"
   [(set (match_operand:SI 0 "register_operand" "=d,d")
@@ -1908,7 +1910,7 @@
 	      (const_int -1)))
    (unspec [(const_int 0)] UNSPEC_LSETUP_END)
    (clobber (match_scratch:SI 2 "=&r"))]
-  "reload_completed"
+  "splitting_loops"
   [(set (match_dup 2) (match_dup 0))
    (set (match_dup 2) (plus:SI (match_dup 2) (const_int -1)))
    (set (match_dup 0) (match_dup 2))
@@ -2962,74 +2964,82 @@
 
 ;; Unusual arithmetic operations on 16-bit registers.
 
-(define_insn "ssaddhi3"
+(define_code_iterator sp_or_sm [ss_plus ss_minus])
+(define_code_attr spm_string [(ss_plus "+") (ss_minus "-")])
+(define_code_attr spm_name [(ss_plus "add") (ss_minus "sub")])
+
+(define_insn "ss<spm_name>hi3"
   [(set (match_operand:HI 0 "register_operand" "=d")
-	(ss_plus:HI (match_operand:HI 1 "register_operand" "d")
+	(sp_or_sm:HI (match_operand:HI 1 "register_operand" "d")
 		    (match_operand:HI 2 "register_operand" "d")))]
   ""
-  "%h0 = %h1 + %h2 (S)%!"
+  "%h0 = %h1 <spm_string>  %h2 (S)%!"
   [(set_attr "type" "dsp32")])
 
-(define_insn "ssaddhi3_parts"
-  [(set (vec_select:HI
-	 (match_operand:V2HI 0 "register_operand" "d")
-	 (parallel [(match_operand 3 "const01_operand" "P0P1")]))
-	(ss_plus:HI (vec_select:HI
-		     (match_operand:V2HI 1 "register_operand" "d")
-		     (parallel [(match_operand 4 "const01_operand" "P0P1")]))
-		    (vec_select:HI
-		     (match_operand:V2HI 2 "register_operand" "d")
-		     (parallel [(match_operand 5 "const01_operand" "P0P1")]))))]
-  ""
-{
-  const char *templates[] = {
-    "%h0 = %h1 + %h2 (S)%!",
-    "%d0 = %h1 + %h2 (S)%!",
-    "%h0 = %d1 + %h2 (S)%!",
-    "%d0 = %d1 + %h2 (S)%!",
-    "%h0 = %h1 + %d2 (S)%!",
-    "%d0 = %h1 + %d2 (S)%!",
-    "%h0 = %d1 + %d2 (S)%!",
-    "%d0 = %d1 + %d2 (S)%!" };
-  int alt = INTVAL (operands[3]) + (INTVAL (operands[4]) << 1)
-	    + (INTVAL (operands[5]) << 2);
-  return templates[alt];
-}
-  [(set_attr "type" "dsp32")])
-
-(define_insn "sssubhi3_parts"
-  [(set (vec_select:HI
-	 (match_operand:V2HI 0 "register_operand" "d")
-	 (parallel [(match_operand 3 "const01_operand" "P0P1")]))
-	(ss_minus:HI (vec_select:HI
+(define_insn "ss<spm_name>hi3_parts"
+  [(set (match_operand:HI 0 "register_operand" "=d")
+	(sp_or_sm:HI (vec_select:HI
 		      (match_operand:V2HI 1 "register_operand" "d")
-		      (parallel [(match_operand 4 "const01_operand" "P0P1")]))
+		      (parallel [(match_operand 3 "const01_operand" "P0P1")]))
 		     (vec_select:HI
 		      (match_operand:V2HI 2 "register_operand" "d")
-		      (parallel [(match_operand 5 "const01_operand" "P0P1")]))))]
-  ""
+		      (parallel [(match_operand 4 "const01_operand" "P0P1")]))))]
+   ""
 {
   const char *templates[] = {
-    "%h0 = %h1 - %h2 (S)%!",
-    "%d0 = %h1 - %h2 (S)%!",
-    "%h0 = %d1 - %h2 (S)%!",
-    "%d0 = %d1 - %h2 (S)%!",
-    "%h0 = %h1 - %d2 (S)%!",
-    "%d0 = %h1 - %d2 (S)%!",
-    "%h0 = %d1 - %d2 (S)%!",
-    "%d0 = %d1 - %d2 (S)%!" };
-  int alt = INTVAL (operands[3]) + (INTVAL (operands[4]) << 1)
-	    + (INTVAL (operands[5]) << 2);
+    "%h0 = %h1 <spm_string> %h2 (S)%!",
+    "%h0 = %d1 <spm_string> %h2 (S)%!",
+    "%h0 = %h1 <spm_string> %d2 (S)%!",
+    "%h0 = %d1 <spm_string> %d2 (S)%!" };
+  int alt = INTVAL (operands[3]) + (INTVAL (operands[4]) << 1);
   return templates[alt];
 }
   [(set_attr "type" "dsp32")])
 
-(define_insn "sssubhi3"
-  [(set (match_operand:HI 0 "register_operand" "=d")
-	(ss_minus:HI (match_operand:HI 1 "register_operand" "d")
-		     (match_operand:HI 2 "register_operand" "d")))]
-  ""
-  "%h0 = %h1 - %h2 (S)%!"
+(define_insn "ss<spm_name>hi3_low_parts"
+  [(set (match_operand:V2HI 0 "register_operand" "=d")
+	(vec_concat:V2HI
+	 (vec_select:HI (match_operand:V2HI 1 "register_operand" "0")
+			(parallel [(const_int 0)]))
+	 (sp_or_sm:HI (vec_select:HI
+		       (match_operand:V2HI 2 "register_operand" "d")
+		       (parallel [(match_operand 4 "const01_operand" "P0P1")]))
+		      (vec_select:HI
+		       (match_operand:V2HI 3 "register_operand" "d")
+		       (parallel [(match_operand 5 "const01_operand" "P0P1")])))))]
+   ""
+{
+  const char *templates[] = {
+    "%h0 = %h2 <spm_string> %h3 (S)%!",
+    "%h0 = %d2 <spm_string> %h3 (S)%!",
+    "%h0 = %h2 <spm_string> %d3 (S)%!",
+    "%h0 = %d2 <spm_string> %d3 (S)%!" };
+  int alt = INTVAL (operands[4]) + (INTVAL (operands[5]) << 1);
+  return templates[alt];
+}
+  [(set_attr "type" "dsp32")])
+
+(define_insn "ss<spm_name>hi3_high_parts"
+  [(set (match_operand:V2HI 0 "register_operand" "=d")
+	(vec_concat:V2HI
+	 (sp_or_sm:HI (vec_select:HI
+		       (match_operand:V2HI 2 "register_operand" "d")
+		       (parallel [(match_operand 4 "const01_operand" "P0P1")]))
+		      (vec_select:HI
+		       (match_operand:V2HI 3 "register_operand" "d")
+		       (parallel [(match_operand 5 "const01_operand" "P0P1")])))
+	 (vec_select:HI (match_operand:V2HI 1 "register_operand" "0")
+			(parallel [(const_int 1)]))))]
+   ""
+{
+  const char *templates[] = {
+    "%d0 = %h2 <spm_string> %h3 (S)%!",
+    "%d0 = %d2 <spm_string> %h3 (S)%!",
+    "%d0 = %h2 <spm_string> %d3 (S)%!",
+    "%d0 = %d2 <spm_string> %d3 (S)%!" };
+  int alt = INTVAL (operands[4]) + (INTVAL (operands[5]) << 1);
+  return templates[alt];
+}
   [(set_attr "type" "dsp32")])
 
 ;; V2HI vector insns
@@ -3239,30 +3249,23 @@
   [(set_attr "type" "dsp32")])
 
 (define_insn "flag_mulhi_parts"
-  [(set (vec_select:HI
-	 (match_operand:V2HI 0 "register_operand" "d")
-	 (parallel [(match_operand 3 "const01_operand" "P0P1")]))
+  [(set (match_operand:HI 0 "register_operand" "=d")
 	(unspec:HI [(vec_select:HI
 		     (match_operand:V2HI 1 "register_operand" "d")
-		     (parallel [(match_operand 4 "const01_operand" "P0P1")]))
+		     (parallel [(match_operand 3 "const01_operand" "P0P1")]))
 		    (vec_select:HI
 		     (match_operand:V2HI 2 "register_operand" "d")
-		     (parallel [(match_operand 5 "const01_operand" "P0P1")]))
-		    (match_operand 6 "const_int_operand" "n")]
+		     (parallel [(match_operand 4 "const01_operand" "P0P1")]))
+		    (match_operand 5 "const_int_operand" "n")]
 		   UNSPEC_MUL_WITH_FLAG))]
   ""
 {
   const char *templates[] = {
-    "%h0 = %h1 * %h2 %M6%!",
-    "%d0 = %h1 * %h2 %M6%!",
-    "%h0 = %d1 * %h2 %M6%!",
-    "%d0 = %d1 * %h2 %M6%!",
-    "%h0 = %h1 * %d2 %M6%!",
-    "%d0 = %h1 * %d2 %M6%!",
-    "%h0 = %d1 * %d2 %M6%!",
-    "%d0 = %d1 * %d2 %M6%!" };
-  int alt = INTVAL (operands[3]) + (INTVAL (operands[4]) << 1)
-	    + (INTVAL (operands[5]) << 2);
+    "%h0 = %h1 * %h2 %M5%!",
+    "%h0 = %d1 * %h2 %M5%!",
+    "%h0 = %h1 * %d2 %M5%!",
+    "%h0 = %d1 * %d2 %M5%!" };
+  int alt = INTVAL (operands[3]) + (INTVAL (operands[4]) << 1);
   return templates[alt];
 }
   [(set_attr "type" "dsp32")])

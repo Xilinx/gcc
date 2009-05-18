@@ -1,4 +1,4 @@
------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
@@ -36,7 +36,6 @@ with Exp_Pakd; use Exp_Pakd;
 with Exp_Util; use Exp_Util;
 with Exp_Tss;  use Exp_Tss;
 with Layout;   use Layout;
-with Lib.Xref; use Lib.Xref;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
@@ -134,10 +133,6 @@ package body Freeze is
    --  allocator is frozen, or an expression that may involve attributes of
    --  the designated type. Otherwise freezing the access type does not freeze
    --  the designated type.
-
-   procedure Generate_Prim_Op_References (Typ : Entity_Id);
-   --  For a tagged type, generate implicit references to its primitive
-   --  operations, for source navigation.
 
    procedure Process_Default_Expressions
      (E     : Entity_Id;
@@ -1550,7 +1545,16 @@ package body Freeze is
 
          Placed_Component : Boolean := False;
          --  Set True if we find at least one component with a component
-         --  clause (used to warn about useless Bit_Order pragmas).
+         --  clause (used to warn about useless Bit_Order pragmas, and also
+         --  to detect cases where Implicit_Packing may have an effect).
+
+         All_Scalar_Components : Boolean := True;
+         --  Set False if we encounter a component of a non-scalar type
+
+         Scalar_Component_Total_RM_Size : Uint := Uint_0;
+         Scalar_Component_Total_Esize   : Uint := Uint_0;
+         --  Accumulates total RM_Size values and total Esize values of all
+         --  scalar components. Used for processing of Implicit_Packing.
 
          function Check_Allocator (N : Node_Id) return Node_Id;
          --  If N is an allocator, possibly wrapped in one or more level of
@@ -1860,6 +1864,17 @@ package body Freeze is
                end;
             end if;
 
+            --  Gather data for possible Implicit_Packing later
+
+            if not Is_Scalar_Type (Etype (Comp)) then
+               All_Scalar_Components := False;
+            else
+               Scalar_Component_Total_RM_Size :=
+                 Scalar_Component_Total_RM_Size + RM_Size (Etype (Comp));
+               Scalar_Component_Total_Esize :=
+                 Scalar_Component_Total_Esize + Esize (Etype (Comp));
+            end if;
+
             --  If the component is an Itype with Delayed_Freeze and is either
             --  a record or array subtype and its base type has not yet been
             --  frozen, we must remove this from the entity list of this
@@ -2066,7 +2081,7 @@ package body Freeze is
          --  Finally, enforce the restriction that access attributes with a
          --  current instance prefix can only apply to limited types.
 
-         if  Ekind (Rec) = E_Record_Type then
+         if Ekind (Rec) = E_Record_Type then
             if Present (Corresponding_Remote_Type (Rec)) then
                Freeze_And_Append
                  (Corresponding_Remote_Type (Rec), Loc, Result);
@@ -2167,6 +2182,36 @@ package body Freeze is
                     ("\?use of convention for type& is dubious", A2, E);
                end if;
             end;
+         end if;
+
+         --  See if Implicit_Packing would work
+
+         if not Is_Packed (Rec)
+           and then not Placed_Component
+           and then Has_Size_Clause (Rec)
+           and then All_Scalar_Components
+           and then not Has_Discriminants (Rec)
+           and then Esize (Rec) < Scalar_Component_Total_Esize
+           and then Esize (Rec) >= Scalar_Component_Total_RM_Size
+         then
+            --  If implicit packing enabled, do it
+
+            if Implicit_Packing then
+               Set_Is_Packed (Rec);
+
+               --  Otherwise flag the size clause
+
+            else
+               declare
+                  Sz : constant Node_Id := Size_Clause (Rec);
+               begin
+                  Error_Msg_NE
+                    ("size given for& too small", Sz, Rec);
+                  Error_Msg_N
+                    ("\use explicit pragma Pack "
+                     & "or use pragma Implicit_Packing", Sz);
+               end;
+            end if;
          end if;
       end Freeze_Record_Type;
 
@@ -2583,29 +2628,10 @@ package body Freeze is
          --  Here for other than a subprogram or type
 
          else
-            --  For a generic package, freeze types within, so that proper
-            --  cross-reference information is generated for tagged types.
-            --  This is the only freeze processing needed for generic packages.
-
-            if Ekind (E) = E_Generic_Package then
-               declare
-                  T : Entity_Id;
-
-               begin
-                  T := First_Entity (E);
-                  while Present (T) loop
-                     if Is_Type (T) then
-                        Generate_Prim_Op_References (T);
-                     end if;
-
-                     Next_Entity (T);
-                  end loop;
-               end;
-
             --  If entity has a type, and it is not a generic unit, then
             --  freeze it first (RM 13.14(10)).
 
-            elsif Present (Etype (E))
+            if Present (Etype (E))
               and then Ekind (E) /= E_Generic_Function
             then
                Freeze_And_Append (Etype (E), Loc, Result);
@@ -2873,7 +2899,7 @@ package body Freeze is
                              and then Rsiz mod System_Storage_Unit /= 0
                            then
                               --  For implicit packing mode, just set the
-                              --  component size silently
+                              --  component size silently.
 
                               if Implicit_Packing then
                                  Set_Component_Size       (Btyp, Rsiz);
@@ -3269,7 +3295,7 @@ package body Freeze is
          --  later when the full type is frozen).
 
          elsif Ekind (E) = E_Record_Type
-           or else  Ekind (E) = E_Record_Subtype
+           or else Ekind (E) = E_Record_Subtype
          then
             Freeze_Record_Type (E);
 
@@ -3287,7 +3313,6 @@ package body Freeze is
             end if;
 
             Comp := First_Entity (E);
-
             while Present (Comp) loop
                if Is_Type (Comp) then
                   Freeze_And_Append (Comp, Loc, Result);
@@ -3597,10 +3622,6 @@ package body Freeze is
                end;
             end if;
          end if;
-
-         --  Generate references to primitive operations for a tagged type
-
-         Generate_Prim_Op_References (E);
 
          --  Now that all types from which E may depend are frozen, see if the
          --  size is known at compile time, if it must be unsigned, or if
@@ -5143,72 +5164,6 @@ package body Freeze is
            or else Present (Full_View (Base_Type (T)));
       end if;
    end Is_Fully_Defined;
-
-   ---------------------------------
-   -- Generate_Prim_Op_References --
-   ---------------------------------
-
-   procedure Generate_Prim_Op_References (Typ : Entity_Id) is
-      Base_T    : Entity_Id;
-      Prim      : Elmt_Id;
-      Prim_List : Elist_Id;
-      Ent       : Entity_Id;
-
-   begin
-      --  Handle subtypes of synchronized types
-
-      if Ekind (Typ) = E_Protected_Subtype
-        or else Ekind (Typ) = E_Task_Subtype
-      then
-         Base_T := Etype (Typ);
-      else
-         Base_T := Typ;
-      end if;
-
-      --  References to primitive operations are only relevant for tagged types
-
-      if not Is_Tagged_Type (Base_T)
-           or else Is_Class_Wide_Type (Base_T)
-      then
-         return;
-      end if;
-
-      --  Ada 2005 (AI-345): For synchronized types generate reference
-      --  to the wrapper that allow us to dispatch calls through their
-      --  implemented abstract interface types.
-
-      --  The check for Present here is to protect against previously
-      --  reported critical errors.
-
-      if Is_Concurrent_Type (Base_T)
-        and then Present (Corresponding_Record_Type (Base_T))
-      then
-         Prim_List := Primitive_Operations
-                       (Corresponding_Record_Type (Base_T));
-      else
-         Prim_List := Primitive_Operations (Base_T);
-      end if;
-
-      if No (Prim_List) then
-         return;
-      end if;
-
-      Prim := First_Elmt (Prim_List);
-      while Present (Prim) loop
-
-         --  If the operation is derived, get the original for cross-reference
-         --  reference purposes (it is the original for which we want the xref
-         --  and for which the comes_from_source test must be performed).
-
-         Ent := Node (Prim);
-         while Present (Alias (Ent)) loop
-            Ent := Alias (Ent);
-         end loop;
-
-         Generate_Reference (Typ, Ent, 'p', Set_Ref => False);
-         Next_Elmt (Prim);
-      end loop;
-   end Generate_Prim_Op_References;
 
    ---------------------------------
    -- Process_Default_Expressions --

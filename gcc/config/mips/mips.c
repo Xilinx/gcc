@@ -285,10 +285,10 @@ struct GTY(())  mips_frame_info {
   HOST_WIDE_INT acc_sp_offset;
   HOST_WIDE_INT cop0_sp_offset;
 
-  /* The offset of arg_pointer_rtx from frame_pointer_rtx.  */
+  /* The offset of arg_pointer_rtx from the bottom of the frame.  */
   HOST_WIDE_INT arg_pointer_offset;
 
-  /* The offset of hard_frame_pointer_rtx from frame_pointer_rtx.  */
+  /* The offset of hard_frame_pointer_rtx from the bottom of the frame.  */
   HOST_WIDE_INT hard_frame_pointer_offset;
 };
 
@@ -2703,8 +2703,10 @@ mips_add_offset (rtx temp, rtx reg, HOST_WIDE_INT offset)
 	}
       else
 	{
-	  /* Leave OFFSET as a 16-bit offset and put the excess in HIGH.  */
-	  high = GEN_INT (CONST_HIGH_PART (offset));
+	  /* Leave OFFSET as a 16-bit offset and put the excess in HIGH.
+	     The addition inside the macro CONST_HIGH_PART may cause an
+	     overflow, so we need to force a sign-extension check.  */
+	  high = gen_int_mode (CONST_HIGH_PART (offset), Pmode);
 	  offset = CONST_LOW_PART (offset);
 	}
       high = mips_force_temporary (temp, high);
@@ -2846,41 +2848,36 @@ mips_force_address (rtx x, enum machine_mode mode)
   return x;
 }
 
-/* This function is used to implement LEGITIMIZE_ADDRESS.  If *XLOC can
+/* This function is used to implement LEGITIMIZE_ADDRESS.  If X can
    be legitimized in a way that the generic machinery might not expect,
-   put the new address in *XLOC and return true.  MODE is the mode of
+   return a new address, otherwise return NULL.  MODE is the mode of
    the memory being accessed.  */
 
-bool
-mips_legitimize_address (rtx *xloc, enum machine_mode mode)
+static rtx
+mips_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+			 enum machine_mode mode)
 {
   rtx base, addr;
   HOST_WIDE_INT offset;
 
-  if (mips_tls_symbol_p (*xloc))
-    {
-      *xloc = mips_legitimize_tls_address (*xloc);
-      return true;
-    }
+  if (mips_tls_symbol_p (x))
+    return mips_legitimize_tls_address (x);
 
   /* See if the address can split into a high part and a LO_SUM.  */
-  if (mips_split_symbol (NULL, *xloc, mode, &addr))
-    {
-      *xloc = mips_force_address (addr, mode);
-      return true;
-    }
+  if (mips_split_symbol (NULL, x, mode, &addr))
+    return mips_force_address (addr, mode);
 
   /* Handle BASE + OFFSET using mips_add_offset.  */
-  mips_split_plus (*xloc, &base, &offset);
+  mips_split_plus (x, &base, &offset);
   if (offset != 0)
     {
       if (!mips_valid_base_register_p (base, mode, false))
 	base = copy_to_mode_reg (Pmode, base);
       addr = mips_add_offset (NULL, base, offset);
-      *xloc = mips_force_address (addr, mode);
-      return true;
+      return mips_force_address (addr, mode);
     }
-  return false;
+
+  return x;
 }
 
 /* Load VALUE into DEST.  TEMP is as for mips_force_temporary.  */
@@ -8671,16 +8668,16 @@ mips_save_reg_p (unsigned int regno)
 	|                               |       + UNITS_PER_WORD
 	|  accumulator save area        |
 	|                               |
-	+-------------------------------+ <-- frame_pointer_rtx + fp_sp_offset
+	+-------------------------------+ <-- stack_pointer_rtx + fp_sp_offset
 	|                               |       + UNITS_PER_HWFPVALUE
 	|  FPR save area                |
 	|                               |
-	+-------------------------------+ <-- frame_pointer_rtx + gp_sp_offset
+	+-------------------------------+ <-- stack_pointer_rtx + gp_sp_offset
 	|                               |       + UNITS_PER_WORD
 	|  GPR save area                |
 	|                               |
-	+-------------------------------+
-	|                               | \
+	+-------------------------------+ <-- frame_pointer_rtx with
+	|                               | \     -fstack-protector
 	|  local variables              |  | var_size
 	|                               | /
 	+-------------------------------+
@@ -8688,16 +8685,17 @@ mips_save_reg_p (unsigned int regno)
 	|  $gp save area                |  | cprestore_size
 	|                               | /
       P +-------------------------------+ <-- hard_frame_pointer_rtx for
-	|                               |       MIPS16 code
-	|  outgoing stack arguments     |
-	|                               |
-	+-------------------------------+
-	|                               |
-	|  caller-allocated save area   |
-	|  for register arguments       |
-	|                               |
+	|                               | \     MIPS16 code
+	|  outgoing stack arguments     |  |
+	|                               |  |
+	+-------------------------------+  | args_size
+	|                               |  |
+	|  caller-allocated save area   |  |
+	|  for register arguments       |  |
+	|                               | /
 	+-------------------------------+ <-- stack_pointer_rtx
-					      frame_pointer_rtx
+					      frame_pointer_rtx without
+					        -fstack-protector
 					      hard_frame_pointer_rtx for
 						non-MIPS16 code.
 
@@ -8742,11 +8740,11 @@ mips_compute_frame_info (void)
 
   cfun->machine->global_pointer = mips_global_pointer ();
 
-  /* The first STARTING_FRAME_OFFSET bytes contain the outgoing argument
-     area and the $gp save slot.  This area isn't needed in leaf functions,
-     but if the target-independent frame size is nonzero, we're committed
-     to allocating it anyway.  */
-  if (size == 0 && current_function_is_leaf)
+  /* The first two blocks contain the outgoing argument area and the $gp save
+     slot.  This area isn't needed in leaf functions, but if the
+     target-independent frame size is nonzero, we have already committed to
+     allocating these in STARTING_FRAME_OFFSET for !FRAME_GROWS_DOWNWARD.  */
+  if ((size == 0 || FRAME_GROWS_DOWNWARD) && current_function_is_leaf)
     {
       /* The MIPS 3.0 linker does not like functions that dynamically
 	 allocate the stack and have 0 for STACK_DYNAMIC_OFFSET, since it
@@ -8761,7 +8759,7 @@ mips_compute_frame_info (void)
   else
     {
       frame->args_size = crtl->outgoing_args_size;
-      frame->cprestore_size = STARTING_FRAME_OFFSET - frame->args_size;
+      frame->cprestore_size = MIPS_GP_SAVE_AREA_SIZE;
     }
   offset = frame->args_size + frame->cprestore_size;
 
@@ -8940,12 +8938,16 @@ mips_initial_elimination_offset (int from, int to)
 
   mips_compute_frame_info ();
 
-  /* Set OFFSET to the offset from the soft frame pointer, which is also
-     the offset from the end-of-prologue stack pointer.  */
+  /* Set OFFSET to the offset from the end-of-prologue stack pointer.  */
   switch (from)
     {
     case FRAME_POINTER_REGNUM:
-      offset = 0;
+      if (FRAME_GROWS_DOWNWARD)
+	offset = (cfun->machine->frame.args_size
+		  + cfun->machine->frame.cprestore_size
+		  + cfun->machine->frame.var_size);
+      else
+	offset = 0;
       break;
 
     case ARG_POINTER_REGNUM:
@@ -11642,8 +11644,9 @@ AVAIL_NON_MIPS16 (cache, TARGET_CACHE_BUILTIN)
    for instruction CODE_FOR_loongson_<INSN>.  FUNCTION_TYPE is a
    builtin_description field.  */
 #define LOONGSON_BUILTIN_ALIAS(INSN, FN_NAME, FUNCTION_TYPE)		\
-  { CODE_FOR_loongson_ ## INSN, 0, "__builtin_loongson_" #FN_NAME,	\
-    MIPS_BUILTIN_DIRECT, FUNCTION_TYPE, mips_builtin_avail_loongson }
+  { CODE_FOR_loongson_ ## INSN, MIPS_FP_COND_f,				\
+    "__builtin_loongson_" #FN_NAME, MIPS_BUILTIN_DIRECT,		\
+    FUNCTION_TYPE, mips_builtin_avail_loongson }
 
 /* Define a Loongson MIPS_BUILTIN_DIRECT function __builtin_loongson_<INSN>
    for instruction CODE_FOR_loongson_<INSN>.  FUNCTION_TYPE is a
@@ -14740,6 +14743,9 @@ mips_final_postscan_insn (FILE *file, rtx insn, rtx *opvec, int noperands)
 #define TARGET_ASM_ALIGNED_SI_OP "\t.word\t"
 #undef TARGET_ASM_ALIGNED_DI_OP
 #define TARGET_ASM_ALIGNED_DI_OP "\t.dword\t"
+
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS mips_legitimize_address
 
 #undef TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE mips_output_function_prologue

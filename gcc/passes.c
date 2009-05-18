@@ -738,7 +738,12 @@ init_optimization_passes (void)
       NEXT_PASS (pass_df_initialize_opt);
       NEXT_PASS (pass_cse);
       NEXT_PASS (pass_rtl_fwprop);
-      NEXT_PASS (pass_gcse);
+      NEXT_PASS (pass_rtl_cprop);
+      NEXT_PASS (pass_rtl_pre);
+      NEXT_PASS (pass_rtl_hoist);
+      NEXT_PASS (pass_rtl_cprop);
+      NEXT_PASS (pass_rtl_store_motion);
+      NEXT_PASS (pass_cse_after_global_opts);
       NEXT_PASS (pass_rtl_ifcvt);
       /* Perform loop optimizations.  It might be better to do them a bit
 	 sooner, but we want the profile feedback to work more
@@ -755,7 +760,7 @@ init_optimization_passes (void)
 	  *p = NULL;
 	}
       NEXT_PASS (pass_web);
-      NEXT_PASS (pass_jump_bypass);
+      NEXT_PASS (pass_rtl_cprop);
       NEXT_PASS (pass_cse2);
       NEXT_PASS (pass_rtl_dse1);
       NEXT_PASS (pass_rtl_fwprop_addr);
@@ -850,7 +855,7 @@ do_per_function (void (*callback) (void *data), void *data)
     {
       struct cgraph_node *node;
       for (node = cgraph_nodes; node; node = node->next)
-	if (node->analyzed)
+	if (node->analyzed && gimple_has_body_p (node->decl))
 	  {
 	    push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	    current_function_decl = node->decl;

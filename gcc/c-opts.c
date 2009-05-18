@@ -19,7 +19,6 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -402,11 +401,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	 headers.  */
       warn_unknown_pragmas = value;
 
-      /* We save the value of warn_uninitialized, since if they put
-	 -Wuninitialized on the command line, we need to generate a
-	 warning about not using it without also specifying -O.  */
-      if (warn_uninitialized != 1)
-	warn_uninitialized = (value ? 2 : 0);
+      warn_uninitialized = value;
 
       if (!c_dialect_cxx ())
 	{
@@ -1061,11 +1056,8 @@ c_common_post_options (const char **pfilename)
   if (flag_objc_exceptions && !flag_objc_sjlj_exceptions)
     flag_exceptions = 1;
 
-  /* -Wextra implies -Wtype-limits, -Wclobbered, 
-     -Wempty-body, -Wsign-compare, 
-     -Wmissing-field-initializers, -Wmissing-parameter-type
-     -Wold-style-declaration, -Woverride-init and -Wignored-qualifiers
-     but not if explicitly overridden.  */
+  /* -Wextra implies the following flags
+     unless explicitly overridden.  */
   if (warn_type_limits == -1)
     warn_type_limits = extra_warnings;
   if (warn_clobbered == -1)
@@ -1242,8 +1234,6 @@ c_common_init (void)
 
   return true;
 }
-
-extern void set_parsing_context (struct cpp_reader*, int, bool);
 
 /* Initialize the integrated preprocessor after debug output has been
    initialized; loop over each input file.  */
@@ -1490,8 +1480,6 @@ add_prefixed_path (const char *suffix, size_t chain)
 
   add_path (path, chain, 0, false);
 }
-
-extern void coverage_note_define (const char *cpp_def, bool is_def);
 
 /* Handle -D, -U, -A, -imacros, and the first -include.  */
 static void
