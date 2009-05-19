@@ -1529,48 +1529,6 @@ conv_function_val (gfc_se * se, gfc_symbol * sym, gfc_expr * expr)
 }
 
 
-/* Translate the call for an elemental subroutine call used in an operator
-   assignment.  This is a simplified version of gfc_conv_procedure_call.  */
-
-tree
-gfc_conv_operator_assign (gfc_se *lse, gfc_se *rse, gfc_symbol *sym)
-{
-  tree args;
-  tree tmp;
-  gfc_se se;
-  stmtblock_t block;
-
-  /* Only elemental subroutines with two arguments.  */
-  gcc_assert (sym->attr.elemental && sym->attr.subroutine);
-  gcc_assert (sym->formal->next->next == NULL);
-
-  gfc_init_block (&block);
-
-  gfc_add_block_to_block (&block, &lse->pre);
-  gfc_add_block_to_block (&block, &rse->pre);
-
-  /* Build the argument list for the call, including hidden string lengths.  */
-  args = gfc_chainon_list (NULL_TREE, gfc_build_addr_expr (NULL_TREE, lse->expr));
-  args = gfc_chainon_list (args, gfc_build_addr_expr (NULL_TREE, rse->expr));
-  if (lse->string_length != NULL_TREE)
-    args = gfc_chainon_list (args, lse->string_length);
-  if (rse->string_length != NULL_TREE)
-    args = gfc_chainon_list (args, rse->string_length);    
-
-  /* Build the function call.  */
-  gfc_init_se (&se, NULL);
-  conv_function_val (&se, sym, NULL);
-  tmp = TREE_TYPE (TREE_TYPE (TREE_TYPE (se.expr)));
-  tmp = build_call_list (tmp, se.expr, args);
-  gfc_add_expr_to_block (&block, tmp);
-
-  gfc_add_block_to_block (&block, &lse->post);
-  gfc_add_block_to_block (&block, &rse->post);
-
-  return gfc_finish_block (&block);
-}
-
-
 /* Initialize MAPPING.  */
 
 void
@@ -2466,7 +2424,8 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      f = f || !sym->attr.always_explicit;
 	  
 	      argss = gfc_walk_expr (arg->expr);
-	      gfc_conv_array_parameter (se, arg->expr, argss, f, NULL, NULL);
+	      gfc_conv_array_parameter (se, arg->expr, argss, f,
+					NULL, NULL, NULL);
 	    }
 
 	  /* TODO -- the following two lines shouldn't be necessary, but
@@ -2718,7 +2677,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 			fsym ? fsym->attr.intent : INTENT_INOUT);
 	      else
 	        gfc_conv_array_parameter (&parmse, e, argss, f, fsym,
-					  sym->name);
+					  sym->name, NULL);
 
               /* If an ALLOCATABLE dummy argument has INTENT(OUT) and is 
                  allocated on entry, it must be deallocated.  */
@@ -4056,7 +4015,7 @@ gfc_conv_expr_reference (gfc_se * se, gfc_expr * expr)
 tree
 gfc_trans_pointer_assign (gfc_code * code)
 {
-  return gfc_trans_pointer_assignment (code->expr, code->expr2);
+  return gfc_trans_pointer_assignment (code->expr1, code->expr2);
 }
 
 
@@ -4394,7 +4353,7 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
   gfc_start_block (&se.pre);
   se.want_pointer = 1;
 
-  gfc_conv_array_parameter (&se, expr1, ss, 0, NULL, NULL);
+  gfc_conv_array_parameter (&se, expr1, ss, 0, NULL, NULL, NULL);
 
   se.direct_byref = 1;
   se.ss = gfc_walk_expr (expr2);
@@ -4881,11 +4840,11 @@ gfc_trans_assignment (gfc_expr * expr1, gfc_expr * expr2, bool init_flag)
 tree
 gfc_trans_init_assign (gfc_code * code)
 {
-  return gfc_trans_assignment (code->expr, code->expr2, true);
+  return gfc_trans_assignment (code->expr1, code->expr2, true);
 }
 
 tree
 gfc_trans_assign (gfc_code * code)
 {
-  return gfc_trans_assignment (code->expr, code->expr2, false);
+  return gfc_trans_assignment (code->expr1, code->expr2, false);
 }

@@ -1909,7 +1909,7 @@ build_class_member_access_expr (tree object, tree member,
       member_scope = DECL_CLASS_CONTEXT (member);
       mark_used (member);
       if (TREE_DEPRECATED (member))
-	warn_deprecated_use (member);
+	warn_deprecated_use (member, NULL_TREE);
     }
   else
     member_scope = BINFO_TYPE (BASELINK_ACCESS_BINFO (member));
@@ -2369,7 +2369,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
     }
 
   if (TREE_DEPRECATED (member))
-    warn_deprecated_use (member);
+    warn_deprecated_use (member, NULL_TREE);
 
   if (template_p)
     check_template_keyword (member);
@@ -4141,8 +4141,20 @@ build_x_unary_op (enum tree_code code, tree xarg, tsubst_flags_t complain)
 			/*overloaded_p=*/NULL, complain);
   if (!exp && code == ADDR_EXPR)
     {
-      /*  A pointer to member-function can be formed only by saying
-	  &X::mf.  */
+      if (is_overloaded_fn (xarg))
+	{
+	  tree fn = get_first_fn (xarg);
+	  if (DECL_CONSTRUCTOR_P (fn) || DECL_DESTRUCTOR_P (fn))
+	    {
+	      const char *type =
+		(DECL_CONSTRUCTOR_P (fn) ? "constructor" : "destructor");
+	      error ("taking address of %s %qE", type, xarg);
+	      return error_mark_node;
+	    }
+	}
+
+      /* A pointer to member-function can be formed only by saying
+	 &X::mf.  */
       if (!flag_ms_extensions && TREE_CODE (TREE_TYPE (xarg)) == METHOD_TYPE
 	  && (TREE_CODE (xarg) != OFFSET_REF || !PTRMEM_OK_P (xarg)))
 	{

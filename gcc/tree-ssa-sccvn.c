@@ -1232,7 +1232,7 @@ vn_nary_op_lookup_stmt (gimple stmt, vn_nary_op_t *vnresult)
     *vnresult = NULL;
   vno1.opcode = gimple_assign_rhs_code (stmt);
   vno1.length = gimple_num_ops (stmt) - 1;
-  vno1.type = TREE_TYPE (gimple_assign_lhs (stmt));
+  vno1.type = gimple_expr_type (stmt);
   for (i = 0; i < vno1.length; ++i)
     vno1.op[i] = gimple_op (stmt, i + 1);
   if (vno1.opcode == REALPART_EXPR
@@ -1340,7 +1340,7 @@ vn_nary_op_insert_stmt (gimple stmt, tree result)
   vno1->value_id = VN_INFO (result)->value_id;
   vno1->opcode = gimple_assign_rhs_code (stmt);
   vno1->length = length;
-  vno1->type = TREE_TYPE (gimple_assign_lhs (stmt));
+  vno1->type = gimple_expr_type (stmt);
   for (i = 0; i < vno1->length; ++i)
     vno1->op[i] = gimple_op (stmt, i + 1);
   if (vno1->opcode == REALPART_EXPR
@@ -2065,7 +2065,7 @@ simplify_binary_expression (gimple stmt)
   fold_defer_overflow_warnings ();
 
   result = fold_binary (gimple_assign_rhs_code (stmt),
-		        TREE_TYPE (gimple_get_lhs (stmt)), op0, op1);
+		        gimple_expr_type (stmt), op0, op1);
   if (result)
     STRIP_USELESS_TYPE_CONVERSION (result);
 
@@ -2421,7 +2421,7 @@ compare_ops (const void *pa, const void *pb)
   basic_block bbb;
 
   if (gimple_nop_p (opstmta) && gimple_nop_p (opstmtb))
-    return 0;
+    return SSA_NAME_VERSION (opa) - SSA_NAME_VERSION (opb);
   else if (gimple_nop_p (opstmta))
     return -1;
   else if (gimple_nop_p (opstmtb))
@@ -2431,7 +2431,7 @@ compare_ops (const void *pa, const void *pb)
   bbb = gimple_bb (opstmtb);
 
   if (!bba && !bbb)
-    return 0;
+    return SSA_NAME_VERSION (opa) - SSA_NAME_VERSION (opb);
   else if (!bba)
     return -1;
   else if (!bbb)
@@ -2441,12 +2441,15 @@ compare_ops (const void *pa, const void *pb)
     {
       if (gimple_code (opstmta) == GIMPLE_PHI
 	  && gimple_code (opstmtb) == GIMPLE_PHI)
-	return 0;
+	return SSA_NAME_VERSION (opa) - SSA_NAME_VERSION (opb);
       else if (gimple_code (opstmta) == GIMPLE_PHI)
 	return -1;
       else if (gimple_code (opstmtb) == GIMPLE_PHI)
 	return 1;
-      return gimple_uid (opstmta) - gimple_uid (opstmtb);
+      else if (gimple_uid (opstmta) != gimple_uid (opstmtb))
+        return gimple_uid (opstmta) - gimple_uid (opstmtb);
+      else
+	return SSA_NAME_VERSION (opa) - SSA_NAME_VERSION (opb);
     }
   return rpo_numbers[bba->index] - rpo_numbers[bbb->index];
 }

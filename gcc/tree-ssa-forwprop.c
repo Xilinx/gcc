@@ -739,7 +739,11 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
 	 address which we cannot do in a single statement.  */
       if (!single_use_p
 	  || (!useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (def_rhs))
-	      && !is_gimple_min_invariant (def_rhs)))
+	      && (!is_gimple_min_invariant (def_rhs)
+		  || (INTEGRAL_TYPE_P (TREE_TYPE (lhs))
+		      && POINTER_TYPE_P (TREE_TYPE (def_rhs))
+		      && (TYPE_PRECISION (TREE_TYPE (lhs))
+			  > TYPE_PRECISION (TREE_TYPE (def_rhs)))))))
 	return forward_propagate_addr_expr (lhs, def_rhs);
 
       gimple_assign_set_rhs1 (use_stmt, unshare_expr (def_rhs));
@@ -1342,7 +1346,7 @@ tree_ssa_forward_propagate_single_use_vars (void)
 static bool
 gate_forwprop (void)
 {
-  return 1;
+  return flag_tree_forwprop;
 }
 
 struct gimple_opt_pass pass_forwprop = 

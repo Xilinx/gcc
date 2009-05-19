@@ -1,9 +1,138 @@
+2009-05-13  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/mutex: Move std::lock_error to ...
+	* src/compatibility.cc: Here.
+	* src/mutex.cc: Likewise.
+	* testsuite/30_threads/headers/mutex/types_std_c++0x.cc: Add checks
+	for lock types and remove std::lock_error check.
+
+2009-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/21_strings/basic_string/40160.cc: Remove spurious
+	double include.
+
+2009-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40160
+	* include/debug/formatter.h (_Parameter::_Parameter): Don't use
+	typeid when __GXX_RTTI is undefined.
+	* src/debug.cc (_Error_formatter::_Parameter::_M_print_field): Adjust
+	for null _M_variant._M_iterator._M_type,
+	_M_variant._M_iterator._M_seq_type, _M_variant._M_sequence._M_type.
+	* testsuite/21_strings/basic_string/40160.cc: New.
+
+2009-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/26_numerics/random/discrete_distribution/cons/
+	num_xbound_fun.cc: Minor tweaks.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	cons/initlist_fun.cc: Likewise
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	cons/num_xbound_fun.cc: Likewise
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	cons/initlist_fun.cc: Likewise
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	cons/num_xbound_fun.cc: Likewise
+
+2009-05-15  David Billinghurst <billingd@gcc.gnu.org>
+
+	PR libstdc++/36211
+	* testsuite/lib/libstdc++.exp(v3_target_compile):  Add
+	cxxldflags to additional_flags rather than cxx_final.
+
+2009-05-15  David Billinghurst <billingd@gcc.gnu.org>
+
+	* testsuite/26_numerics/random/discrete_distribution/cons/
+	num_xbound_fun.cc: Replace non-standard macro M_PI with constant pi.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/cons/
+	initlist_fun.cc: Likewise
+	* testsuite/26_numerics/random/piecewise_constant_distribution/cons/
+	num_xbound_fun.cc: Likewise
+	* testsuite/26_numerics/random/piecewise_linear_distribution/cons/
+	initlist_fun.cc: Likewise
+	* testsuite/26_numerics/random/piecewise_linear_distribution/cons/
+	num_xbound_fun.cc: Likewise 
+
+2009-05-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40123
+	* random.tcc (independent_bits_engine<>::operator()()): Use
+	result_type(1), not 1UL.
+
+	* random.tcc (independent_bits_engine<>::operator()()): Use _M_b.max()
+	and _M_b.min(), instead of this->max() and this->min().
+
+	* random.h (_ShiftMin1): Remove, adjust everywhere.
+
+	* random.tcc: Minor cosmetic changes.
+
+2009-05-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc (cauchy_distribution<>::
+	operator()(_UniformRandomNumberGenerator&, const param_type&)): 
+	Avoid M_PI, a glibc extension.
+
+2009-05-13  Ben Elliston  <bje@au.ibm.com>
+
+	* include/Makefile.am (PCHFLAGS): Remove -Winvalid-pch.
+	* include/Makefile.in: Likewise.
+
+2009-05-13  Ben Elliston  <bje@au.ibm.com>
+
+	* src/compatibility.cc (_ZTIe, _ZTIPe, _ZTIPKe): Change type to
+	const void * const.
+
+2009-05-12  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+        * doc/xml/manual/status_cxx200x.xml: Note missing constexpr for
+	random number engines, complex, bitset, array, time utilities, and
+	char_traits.
+
+2009-05-12  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* libsupc++/exception: Include nested_exception.h in C++0x mode.
+	* libsupc++/nested_exception.h: New.
+	* libsupc++/Makefile.am: Add new header.
+	* libsupc++/Makefile.in: Regenerate.
+	* testsuite/18_support/nested_exception/rethrow_nested.cc: New.
+	* testsuite/18_support/nested_exception/throw_with_nested.cc: New.
+	* testsuite/18_support/nested_exception/cons.cc: New.
+	* testsuite/18_support/nested_exception/nested_ptr.cc: New.
+	* testsuite/18_support/nested_exception/rethrow_if_nested.cc: New.
+	* doc/xml/manual/status_cxx200x.xml: Adjust.
+
+2009-05-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/throw_allocator.h: Remove redundant include.
+
+2009-05-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/throw_allocator.h (throw_allocator_base): Avoid
+	out of line member functions definitions.
+	(throw_allocator_base::_S_g, _S_map, _S_throw_prob, _S_label):
+	Remove, use static locals instead.
+	(throw_allocator_base::do_check_allocated, print_to_string): Declare.
+	* src/throw_allocator.cc: New.
+	* src/Makefile.am: Add.
+	* config/abi/pre/gnu.ver: Add exports.
+	* src/Makefile.in: Regenerate.
+
+2009-05-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* configure.ac: Bump libtool_VERSION to 6:12:0.
+	* configure: Regenerate.
+
+2009-05-07  Matthias Klose  <doko@ubuntu.com>
+
+	PR libstdc++/40038
+	* src/math_stubs_long_double.cc: Add ceill.
+
 2009-05-06  Johannes Singler  <singler@ira.uka.de>
 
-        PR libstdc++/39546
-        * include/parallel/algo.h (find_switch):
-        Parametrize binder2nd with const T& instead of T.
-        * testsuite/25_algorithms/find/39546.cc: new test case
+	PR libstdc++/39546
+	* include/parallel/algo.h (find_switch):
+	Parametrize binder2nd with const T& instead of T.
+	* testsuite/25_algorithms/find/39546.cc: new test case
 
 2009-05-06  Paolo Carlini  <paolo.carlini@oracle.com>
 

@@ -80,8 +80,8 @@ gfc_append_code (gfc_code *tail, gfc_code *new_code)
 void
 gfc_free_statement (gfc_code *p)
 {
-  if (p->expr)
-    gfc_free_expr (p->expr);
+  if (p->expr1)
+    gfc_free_expr (p->expr1);
   if (p->expr2)
     gfc_free_expr (p->expr2);
 
@@ -94,6 +94,7 @@ gfc_free_statement (gfc_code *p)
     case EXEC_GOTO:
     case EXEC_CYCLE:
     case EXEC_RETURN:
+    case EXEC_END_PROCEDURE:
     case EXEC_IF:
     case EXEC_PAUSE:
     case EXEC_STOP:

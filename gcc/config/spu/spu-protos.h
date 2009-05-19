@@ -28,8 +28,7 @@ extern int valid_subreg (rtx op);
 extern void spu_expand_extv (rtx * ops, int unsignedp);
 extern void spu_expand_insv (rtx * ops);
 extern int spu_expand_block_move (rtx * ops);
-extern void spu_emit_branch_or_set (int is_set, enum rtx_code code,
-				    rtx * operands);
+extern void spu_emit_branch_or_set (int is_set, rtx cmp, rtx * operands);
 extern int spu_emit_vector_cond_expr (rtx, rtx, rtx, rtx, rtx, rtx);
 extern HOST_WIDE_INT const_double_to_hwint (rtx x);
 extern rtx hwint_to_const_double (enum machine_mode mode, HOST_WIDE_INT v);
@@ -55,8 +54,6 @@ extern bool exp2_immediate_p (rtx op, enum machine_mode mode, int low,
 			      int high);
 extern int spu_constant_address_p (rtx x);
 extern int spu_legitimate_constant_p (rtx x);
-extern int spu_legitimate_address (enum machine_mode mode, rtx x,
-				   int reg_ok_strict);
 extern int spu_initial_elimination_offset (int from, int to);
 extern rtx spu_function_value (const_tree type, const_tree func);
 extern rtx spu_function_arg (int cum, enum machine_mode mode, tree type,

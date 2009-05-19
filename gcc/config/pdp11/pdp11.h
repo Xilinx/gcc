@@ -371,7 +371,7 @@ enum reg_class { NO_REGS, MUL_REGS, GENERAL_REGS, LOAD_FPU_REGS, NO_LOAD_FPU_REG
 
 #define EXTRA_CONSTRAINT(OP,CODE)					\
   ((GET_CODE (OP) != MEM) ? 0						\
-   : !legitimate_address_p (GET_MODE (OP), XEXP (OP, 0)) ? 0		\
+   : !memory_address_p (GET_MODE (OP), XEXP (OP, 0)) ? 0		\
    : ((CODE) == 'Q')	  ? !simple_memory_operand (OP, GET_MODE (OP))	\
    : ((CODE) == 'R')	  ? simple_memory_operand (OP, GET_MODE (OP))	\
    : 0)
@@ -1031,6 +1031,9 @@ JMP	FUNCTION	0x0058  0x0000 <- FUNCTION
 
 #define OPTIMIZATION_OPTIONS(LEVEL,SIZE)				\
 {									\
+  flag_finite_math_only		= 0;					\
+  flag_trapping_math		= 0;					\
+  flag_signaling_nans		= 0;					\
   if (LEVEL >= 3)							\
     {									\
       flag_omit_frame_pointer		= 1;				\

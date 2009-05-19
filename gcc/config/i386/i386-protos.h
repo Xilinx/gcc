@@ -56,7 +56,6 @@ extern bool legitimate_constant_p (rtx);
 extern bool constant_address_p (rtx);
 extern bool legitimate_pic_operand_p (rtx);
 extern int legitimate_pic_address_disp_p (rtx);
-extern int legitimate_address_p (enum machine_mode, rtx, int);
 
 extern void print_reg (rtx, int, FILE*);
 extern void print_operand (FILE*, rtx, int);
@@ -106,7 +105,7 @@ extern int ix86_match_ccmode (rtx, enum machine_mode);
 extern rtx ix86_expand_compare (enum rtx_code, rtx *, rtx *);
 extern int ix86_use_fcomi_compare (enum rtx_code);
 extern void ix86_expand_branch (enum rtx_code, rtx);
-extern int ix86_expand_setcc (enum rtx_code, rtx);
+extern void ix86_expand_setcc (enum rtx_code, rtx);
 extern int ix86_expand_int_movcc (rtx[]);
 extern int ix86_expand_fp_movcc (rtx[]);
 extern bool ix86_expand_fp_vcond (rtx[]);

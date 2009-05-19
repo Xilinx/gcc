@@ -61,7 +61,6 @@ extern void function_arg_advance (CUMULATIVE_ARGS *cum,
 
 #ifdef RTX_CODE
 extern void asm_output_external_libcall (FILE *file, rtx symref);
-extern int legitimate_address_p (enum machine_mode mode, rtx x,	int strict);
 extern int compare_diff_p (rtx insn);
 extern const char *output_movqi (rtx insn, rtx operands[], int *l);
 extern const char *output_movhi (rtx insn, rtx operands[], int *l);
@@ -72,8 +71,8 @@ extern const char *out_movhi_mr_r (rtx insn, rtx op[], int *l);
 extern const char *out_movsi_r_mr (rtx insn, rtx op[], int *l);
 extern const char *out_movsi_mr_r (rtx insn, rtx op[], int *l);
 extern const char *output_movsisf (rtx insn, rtx operands[], int *l);
-extern const char *out_tstsi (rtx insn, int *l);
-extern const char *out_tsthi (rtx insn, int *l);
+extern const char *out_tstsi (rtx insn, rtx src, int *l);
+extern const char *out_tsthi (rtx insn, rtx src, int *l);
 extern const char *ret_cond_branch (rtx x, int len, int reverse);
 
 extern const char *ashlqi3_out (rtx insn, rtx operands[], int *len);

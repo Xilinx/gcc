@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-attr.h"
 #include "toplev.h"
 #include "recog.h"
-#include "c-pragma.h"
 #include "integrate.h"
 #include "dwarf2.h"
 #include "tm_p.h"
@@ -105,12 +104,6 @@ static int skip_cycles = 0;
 /* Cached value of can_issue_more. This is cached in sh_variable_issue hook
    and returned from sh_reorder2.  */
 static short cached_can_issue_more;
-
-/* Saved operands from the last compare to use when we generate an scc
-   or bcc insn.  */
-
-rtx sh_compare_op0;
-rtx sh_compare_op1;
 
 /* Provides the class number of the smallest class containing
    reg number.  */
@@ -1678,10 +1671,26 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
   return true;
 }
 
+/* Emit INSN, possibly in a PARALLEL with an USE of fpscr for SH4.  */
+
+static void
+sh_emit_set_t_insn (rtx insn, enum machine_mode mode)
+{
+  if ((TARGET_SH4 || TARGET_SH2A) && GET_MODE_CLASS (mode) == MODE_FLOAT)
+    {
+      insn = gen_rtx_PARALLEL (VOIDmode,
+	               gen_rtvec (2, insn,
+			          gen_rtx_USE (VOIDmode, get_fpscr_rtx ())));
+      (mode == SFmode ? emit_sf_insn : emit_df_insn) (insn);
+    }
+  else
+    emit_insn (insn);
+}
+
 /* Prepare the operands for an scc instruction; make sure that the
-   compare has been done.  */
-rtx
-prepare_scc_operands (enum rtx_code code)
+   compare has been done and the result is in T_REG.  */
+void
+sh_emit_scc_to_t (enum rtx_code code, rtx op0, rtx op1)
 {
   rtx t_reg = gen_rtx_REG (SImode, T_REG);
   enum rtx_code oldcode = code;
@@ -1710,77 +1719,222 @@ prepare_scc_operands (enum rtx_code code)
     }
   if (code != oldcode)
     {
-      rtx tmp = sh_compare_op0;
-      sh_compare_op0 = sh_compare_op1;
-      sh_compare_op1 = tmp;
+      rtx tmp = op0;
+      op0 = op1;
+      op1 = tmp;
     }
 
-  mode = GET_MODE (sh_compare_op0);
+  mode = GET_MODE (op0);
   if (mode == VOIDmode)
-    mode = GET_MODE (sh_compare_op1);
+    mode = GET_MODE (op1);
 
-  sh_compare_op0 = force_reg (mode, sh_compare_op0);
+  op0 = force_reg (mode, op0);
   if ((code != EQ && code != NE
-       && (sh_compare_op1 != const0_rtx
+       && (op1 != const0_rtx
 	   || code == GTU  || code == GEU || code == LTU || code == LEU))
-      || (mode == DImode && sh_compare_op1 != const0_rtx)
+      || (mode == DImode && op1 != const0_rtx)
       || (TARGET_SH2E && GET_MODE_CLASS (mode) == MODE_FLOAT))
-    sh_compare_op1 = force_reg (mode, sh_compare_op1);
+    op1 = force_reg (mode, op1);
 
-  if ((TARGET_SH4 || TARGET_SH2A) && GET_MODE_CLASS (mode) == MODE_FLOAT)
-    (mode == SFmode ? emit_sf_insn : emit_df_insn)
-     (gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2,
-		gen_rtx_SET (VOIDmode, t_reg,
-			     gen_rtx_fmt_ee (code, SImode,
-					     sh_compare_op0, sh_compare_op1)),
-		gen_rtx_USE (VOIDmode, get_fpscr_rtx ()))));
-  else
-    emit_insn (gen_rtx_SET (VOIDmode, t_reg,
-			    gen_rtx_fmt_ee (code, SImode,
-					    sh_compare_op0, sh_compare_op1)));
+  sh_emit_set_t_insn (gen_rtx_SET (VOIDmode, t_reg,
+			           gen_rtx_fmt_ee (code, SImode, op0, op1)),
+		      mode);
+}
 
-  return t_reg;
+rtx
+sh_emit_cheap_store_flag (enum machine_mode mode, enum rtx_code code,
+			  rtx op0, rtx op1)
+{
+  rtx target = gen_reg_rtx (SImode);
+  rtx tmp;
+
+  gcc_assert (TARGET_SHMEDIA);
+  switch (code)
+    {
+    case EQ:
+    case GT:
+    case LT:
+    case UNORDERED:
+    case GTU:
+    case LTU:
+      tmp = gen_rtx_fmt_ee (code, SImode, op0, op1);
+      emit_insn (gen_cstore4_media (target, tmp, op0, op1));
+      code = NE;
+      break;
+
+    case NE:
+    case GE:
+    case LE:
+    case ORDERED:
+    case GEU:
+    case LEU:
+      tmp = gen_rtx_fmt_ee (reverse_condition (code), mode, op0, op1);
+      emit_insn (gen_cstore4_media (target, tmp, op0, op1));
+      code = EQ;
+      break;
+
+    case UNEQ:
+    case UNGE:
+    case UNGT:
+    case UNLE:
+    case UNLT:
+    case LTGT:
+      return NULL_RTX;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  if (mode == DImode)
+    {
+      rtx t2 = gen_reg_rtx (DImode);
+      emit_insn (gen_extendsidi2 (t2, target));
+      target = t2;
+    }
+
+  return gen_rtx_fmt_ee (code, VOIDmode, target, const0_rtx);
 }
 
 /* Called from the md file, set up the operands of a compare instruction.  */
 
 void
-from_compare (rtx *operands, int code)
+sh_emit_compare_and_branch (rtx *operands, enum machine_mode mode)
 {
-  enum machine_mode mode = GET_MODE (sh_compare_op0);
-  rtx insn;
-  if (mode == VOIDmode)
-    mode = GET_MODE (sh_compare_op1);
-  if (code != EQ
-      || mode == DImode
+  enum rtx_code code = GET_CODE (operands[0]);
+  enum rtx_code branch_code;
+  rtx op0 = operands[1];
+  rtx op1 = operands[2];
+  rtx insn, tem;
+  bool need_ccmpeq = false;
+
+  if (TARGET_SH2E && GET_MODE_CLASS (mode) == MODE_FLOAT)
+    {
+      op0 = force_reg (mode, op0);
+      op1 = force_reg (mode, op1);
+    }
+  else
+    {
+      if (code != EQ || mode == DImode)
+        {
+          /* Force args into regs, since we can't use constants here.  */
+          op0 = force_reg (mode, op0);
+          if (op1 != const0_rtx || code == GTU  || code == GEU)
+	    op1 = force_reg (mode, op1);
+        }
+    }
+
+  if (GET_MODE_CLASS (mode) == MODE_FLOAT)
+    {
+      if (code == LT
+	  || (code == LE && TARGET_IEEE && TARGET_SH2E)
+	  || (code == GE && !(TARGET_IEEE && TARGET_SH2E)))
+	{
+	  tem = op0, op0 = op1, op1 = tem;
+	  code = swap_condition (code);
+	}
+
+      /* GE becomes fcmp/gt+fcmp/eq, for SH2E and TARGET_IEEE only.  */
+      if (code == GE)
+	{
+	  gcc_assert (TARGET_IEEE && TARGET_SH2E);
+          need_ccmpeq = true;
+	  code = GT;
+	}
+
+      /* Now we can have EQ, NE, GT, LE.  NE and LE are then transformed
+	 to EQ/GT respectively.  */
+      gcc_assert (code == EQ || code == GT || code == NE || code == LE);
+    }
+
+  switch (code)
+    {
+    case EQ:
+    case GT:
+    case GE:
+    case GTU:
+    case GEU:
+      branch_code = code;
+      break;
+    case NE:
+    case LT:
+    case LE:
+    case LTU:
+    case LEU:
+      branch_code = reverse_condition (code);
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  insn = gen_rtx_SET (VOIDmode,
+		      gen_rtx_REG (SImode, T_REG),
+		      gen_rtx_fmt_ee (branch_code, SImode, op0, op1));
+
+  sh_emit_set_t_insn (insn, mode);
+  if (need_ccmpeq)
+    sh_emit_set_t_insn (gen_ieee_ccmpeqsf_t (op0, op1), mode);
+
+  if (branch_code == code)
+    emit_jump_insn (gen_branch_true (operands[3]));
+  else
+    emit_jump_insn (gen_branch_false (operands[3]));
+}
+
+void
+sh_emit_compare_and_set (rtx *operands, enum machine_mode mode)
+{
+  enum rtx_code code = GET_CODE (operands[1]);
+  rtx op0 = operands[2];
+  rtx op1 = operands[3];
+  rtx lab = NULL_RTX;
+  bool invert = false;
+  rtx tem;
+
+  op0 = force_reg (mode, op0);
+  if ((code != EQ && code != NE
+       && (op1 != const0_rtx
+	   || code == GTU  || code == GEU || code == LTU || code == LEU))
+      || (mode == DImode && op1 != const0_rtx)
       || (TARGET_SH2E && GET_MODE_CLASS (mode) == MODE_FLOAT))
+    op1 = force_reg (mode, op1);
+
+  if (GET_MODE_CLASS (mode) == MODE_FLOAT)
     {
-      /* Force args into regs, since we can't use constants here.  */
-      sh_compare_op0 = force_reg (mode, sh_compare_op0);
-      if (sh_compare_op1 != const0_rtx
-	  || code == GTU  || code == GEU
-	  || (TARGET_SH2E && GET_MODE_CLASS (mode) == MODE_FLOAT))
-	sh_compare_op1 = force_reg (mode, sh_compare_op1);
+      if (code == LT || code == LE)
+	{
+	  code = swap_condition (code);
+	  tem = op0, op0 = op1, op1 = tem;
+	}
+      if (code == GE)
+        {
+          if (TARGET_IEEE)
+            {
+              lab = gen_label_rtx ();
+              sh_emit_scc_to_t (EQ, op0, op1);
+              emit_jump_insn (gen_branch_true (lab));
+              code = GT;
+           }
+          else
+            {
+              code = LT;
+              invert = true;
+	    }
+        }
     }
-  if (TARGET_SH2E && GET_MODE_CLASS (mode) == MODE_FLOAT && code == GE)
+
+  if (code == NE)
     {
-      from_compare (operands, GT);
-      insn = gen_ieee_ccmpeqsf_t (sh_compare_op0, sh_compare_op1);
+      code = EQ;
+      invert = true;
     }
+
+  sh_emit_scc_to_t (code, op0, op1);
+  if (lab)
+    emit_label (lab);
+  if (invert)
+    emit_insn (gen_movnegt (operands[0]));
   else
-    insn = gen_rtx_SET (VOIDmode,
-			gen_rtx_REG (SImode, T_REG),
-			gen_rtx_fmt_ee ((enum rtx_code) code, SImode,
-					sh_compare_op0, sh_compare_op1));
-  if ((TARGET_SH4 || TARGET_SH2A) && GET_MODE_CLASS (mode) == MODE_FLOAT)
-    {
-      insn = gen_rtx_PARALLEL (VOIDmode,
-		      gen_rtvec (2, insn,
-				 gen_rtx_USE (VOIDmode, get_fpscr_rtx ())));
-      (mode == SFmode ? emit_sf_insn : emit_df_insn) (insn);
-    }
-  else
-    emit_insn (insn);
+    emit_move_insn (operands[0], gen_rtx_REG (SImode, T_REG));
 }
 
 /* Functions to output assembly code.  */
@@ -8041,8 +8195,8 @@ sh_insert_attributes (tree node, tree *attributes)
 		  || is_attribute_p ("nosave_low_regs", TREE_PURPOSE (attrs))
 		  || is_attribute_p ("resbank", TREE_PURPOSE (attrs)))
 		warning (OPT_Wattributes,
-			 "%qs attribute only applies to interrupt functions",
-			 IDENTIFIER_POINTER (TREE_PURPOSE (attrs)));
+			 "%qE attribute only applies to interrupt functions",
+			 TREE_PURPOSE (attrs));
 	      else
 		{
 		  *tail = tree_cons (TREE_PURPOSE (attrs), NULL_TREE,
@@ -8124,14 +8278,14 @@ sh_handle_resbank_handler_attribute (tree * node, tree name,
 {
   if (!TARGET_SH2A)
     {
-      warning (OPT_Wattributes, "%qs attribute is supported only for SH2A",
-               IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute is supported only for SH2A",
+               name);
       *no_add_attrs = true;
     }
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-               IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+               name);
       *no_add_attrs = true;
     }
 
@@ -8148,8 +8302,8 @@ sh_handle_interrupt_handler_attribute (tree *node, tree name,
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-               IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+               name);
       *no_add_attrs = true;
     }
   else if (TARGET_SHCOMPACT)
@@ -8171,30 +8325,30 @@ sh2a_handle_function_vector_handler_attribute (tree * node, tree name,
 {
   if (!TARGET_SH2A)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to SH2A",
-               IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to SH2A",
+               name);
       *no_add_attrs = true;
     }
   else if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-               IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+               name);
       *no_add_attrs = true;
     }
   else if (TREE_CODE (TREE_VALUE (args)) != INTEGER_CST)
     {
       /* The argument must be a constant integer.  */
       warning (OPT_Wattributes,
-               "`%s' attribute argument not an integer constant",
-               IDENTIFIER_POINTER (name));
+               "%qE attribute argument not an integer constant",
+               name);
       *no_add_attrs = true;
     }
   else if (TREE_INT_CST_LOW (TREE_VALUE (args)) > 255)
     {
       /* The argument value must be between 0 to 255.  */
       warning (OPT_Wattributes,
-               "`%s' attribute argument should be between 0 to 255",
-               IDENTIFIER_POINTER (name));
+               "%qE attribute argument should be between 0 to 255",
+               name);
       *no_add_attrs = true;
     }
   return NULL_TREE;
@@ -8259,15 +8413,15 @@ sh_handle_sp_switch_attribute (tree *node, tree name, tree args,
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
       *no_add_attrs = true;
     }
   else if (TREE_CODE (TREE_VALUE (args)) != STRING_CST)
     {
       /* The argument must be a constant string.  */
-      warning (OPT_Wattributes, "%qs attribute argument not a string constant",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute argument not a string constant",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -8282,8 +8436,8 @@ sh_handle_trap_exit_attribute (tree *node, tree name, tree args,
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
       *no_add_attrs = true;
     }
   /* The argument specifies a trap number to be used in a trapa instruction
@@ -8291,8 +8445,8 @@ sh_handle_trap_exit_attribute (tree *node, tree name, tree args,
   else if (TREE_CODE (TREE_VALUE (args)) != INTEGER_CST)
     {
       /* The argument must be a constant integer.  */
-      warning (OPT_Wattributes, "%qs attribute argument not an "
-	       "integer constant", IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute argument not an "
+	       "integer constant", name);
       *no_add_attrs = true;
     }
 
@@ -8794,6 +8948,124 @@ sh_insn_length_adjustment (rtx insn)
       return sum;
     }
   return 0;
+}
+
+/* Return TRUE for a valid displacement for the REG+disp addressing
+   with MODE.  */
+
+/* ??? The SH2e does not have the REG+disp addressing mode when loading values
+   into the FRx registers.  We implement this by setting the maximum offset
+   to zero when the value is SFmode.  This also restricts loading of SFmode
+   values into the integer registers, but that can't be helped.  */
+
+/* The SH allows a displacement in a QI or HI amode, but only when the
+   other operand is R0. GCC doesn't handle this very well, so we forgot
+   all of that.
+
+   A legitimate index for a QI or HI is 0, SI can be any number 0..63,
+   DI can be any number 0..60.  */
+
+bool
+sh_legitimate_index_p (enum machine_mode mode, rtx op)
+{
+  if (GET_CODE (op) == CONST_INT)
+    {
+      if (TARGET_SHMEDIA)
+	{
+	  int size;
+
+	  /* Check if this the address of an unaligned load / store.  */
+	  if (mode == VOIDmode)
+	    return CONST_OK_FOR_I06 (INTVAL (op));
+
+	  size = GET_MODE_SIZE (mode);
+	  return (!(INTVAL (op) & (size - 1))
+		  && INTVAL (op) >= -512 * size
+		  && INTVAL (op) < 512 * size);
+	}
+
+      if (TARGET_SH2A)
+	{
+	  if (GET_MODE_SIZE (mode) == 1
+		&& (unsigned) INTVAL (op) < 4096)
+	    return true;
+	}
+
+      if ((GET_MODE_SIZE (mode) == 4
+	   && (unsigned) INTVAL (op) < 64
+	   && !(INTVAL (op) & 3)
+	   && !(TARGET_SH2E && mode == SFmode))
+	  || (GET_MODE_SIZE (mode) == 4
+	      && (unsigned) INTVAL (op) < 16383
+	      && !(INTVAL (op) & 3) && TARGET_SH2A))
+	return true;
+
+      if ((GET_MODE_SIZE (mode) == 8
+	   && (unsigned) INTVAL (op) < 60
+	   && !(INTVAL (op) & 3)
+	   && !((TARGET_SH4 || TARGET_SH2A) && mode == DFmode))
+	  || ((GET_MODE_SIZE (mode)==8)
+	      && (unsigned) INTVAL (op) < 8192
+	      && !(INTVAL (op) & (TARGET_SH2A_DOUBLE ? 7 : 3))
+	      && (TARGET_SH2A && mode == DFmode)))
+	return true;
+    }
+
+  return false;
+}
+
+/* Recognize an RTL expression that is a valid memory address for
+   an instruction.
+   The MODE argument is the machine mode for the MEM expression
+   that wants to use this address.
+   Allow  REG
+	  REG+disp
+	  REG+r0
+	  REG++
+	  --REG  */
+
+bool
+sh_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
+{
+  if (MAYBE_BASE_REGISTER_RTX_P (x, strict))
+    return true;
+  else if ((GET_CODE (x) == POST_INC || GET_CODE (x) == PRE_DEC)
+	   && ! TARGET_SHMEDIA
+	   && MAYBE_BASE_REGISTER_RTX_P (XEXP (x, 0), strict))
+    return true;
+  else if (GET_CODE (x) == PLUS
+	   && (mode != PSImode || reload_completed))
+    {
+      rtx xop0 = XEXP (x, 0);
+      rtx xop1 = XEXP (x, 1);
+
+      if (GET_MODE_SIZE (mode) <= 8
+	  && MAYBE_BASE_REGISTER_RTX_P (xop0, strict)
+	  && sh_legitimate_index_p (mode, xop1))
+	return true;
+
+      if ((ALLOW_INDEXED_ADDRESS || GET_MODE (x) == DImode
+	   || ((xop0 == stack_pointer_rtx
+		|| xop0 == hard_frame_pointer_rtx)
+	       && REG_P (xop1) && REGNO (xop1) == R0_REG)
+	   || ((xop1 == stack_pointer_rtx
+		|| xop1 == hard_frame_pointer_rtx)
+	       && REG_P (xop0) && REGNO (xop0) == R0_REG))
+	  && ((!TARGET_SHMEDIA && GET_MODE_SIZE (mode) <= 4)
+	      || (TARGET_SHMEDIA && GET_MODE_SIZE (mode) <= 8)
+	      || ((TARGET_SH4 || TARGET_SH2A_DOUBLE)
+		  && TARGET_FMOVD && mode == DFmode)))
+	{
+	  if (MAYBE_BASE_REGISTER_RTX_P (xop1, strict)
+	      && MAYBE_INDEX_REGISTER_RTX_P (xop0, strict))
+	    return true;
+	  if (MAYBE_INDEX_REGISTER_RTX_P (xop1, strict)
+	      && MAYBE_BASE_REGISTER_RTX_P (xop0, strict))
+	    return true;
+	}
+    }
+
+  return false;
 }
 
 /* Return TRUE if X references a SYMBOL_REF or LABEL_REF whose symbol
@@ -10783,17 +11055,21 @@ sh_get_pr_initial_val (void)
 }
 
 int
-sh_expand_t_scc (enum rtx_code code, rtx target)
+sh_expand_t_scc (rtx operands[])
 {
+  enum rtx_code code = GET_CODE (operands[1]);
+  rtx target = operands[0];
+  rtx op0 = operands[2];
+  rtx op1 = operands[3];
   rtx result = target;
   HOST_WIDE_INT val;
 
-  if (GET_CODE (sh_compare_op0) != REG || REGNO (sh_compare_op0) != T_REG
-      || GET_CODE (sh_compare_op1) != CONST_INT)
+  if (GET_CODE (op0) != REG || REGNO (op0) != T_REG
+      || GET_CODE (op1) != CONST_INT)
     return 0;
   if (GET_CODE (result) != REG)
     result = gen_reg_rtx (SImode);
-  val = INTVAL (sh_compare_op1);
+  val = INTVAL (op1);
   if ((code == EQ && val == 1) || (code == NE && val == 0))
     emit_insn (gen_movt (result));
   else if (TARGET_SH2A && ((code == EQ && val == 0)
