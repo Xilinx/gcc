@@ -448,25 +448,30 @@ nb_reductions_in_loop (loop_p loop)
   return res;
 }
 
-/* Return true when it is not possible to represent LOOP in the
-   polyhedral representation.  This is evaluated taking SCOP_ENTRY and
-   OUTERMOST_LOOP in mind.  */
+/* Return true when it is possible to represent LOOP in the polyhedral
+   representation.  This is evaluated taking SCOP_ENTRY and OUTERMOST_LOOP into
+   account.  */
 
 static bool
-graphite_cannot_represent_loop (basic_block scop_entry, loop_p outermost_loop,
-			      loop_p loop)
+graphite_can_represent_loop (basic_block scop_entry, loop_p outermost_loop,
+			     loop_p loop)
 {
   tree niter = number_of_latch_executions (loop);
 
-  /* The upper bound of LOOP should be known.  */
-  return (chrec_contains_undetermined (niter)
+  /* Number of iterations unknown.  */
+  if (chrec_contains_undetermined (niter))
+    return false;
 
-	  /* Upper bound should be linear.   */
-	  || !graphite_can_represent_expr (scop_entry, loop, outermost_loop,
-					   niter)
+  /* Number of iterations not affine.  */
+  if (!graphite_can_represent_expr (scop_entry, loop, outermost_loop, niter))
+    return false;
 
-	  /* Code generation does not deal with scalar reductions.  */
-	  || nb_reductions_in_loop (loop) > 0);
+  /* Code generation does not deal with scalar reductions.
+     TODO: This limitation should be removed.  */
+  if (nb_reductions_in_loop (loop) > 0)
+    return false;
+
+  return true;
 }
 
 /* Store information needed by scopdet_* functions.  */
@@ -536,7 +541,7 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 
 	sinfo = build_scops_1 (bb, outermost_loop, &regions, loop);
 
-	if (graphite_cannot_represent_loop (entry_block, outermost_loop, loop))
+	if (!graphite_can_represent_loop (entry_block, outermost_loop, loop))
 	  result.difficult = true;
 
 	result.difficult |= sinfo.difficult;

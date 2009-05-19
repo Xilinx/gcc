@@ -1,3 +1,9 @@
+2009-05-19  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-scop-detection.c (graphite_can_represent_loop): Renamed
+	from graphite_cannot_represent_loop. Code refactored.
+	(scopdet_basic_block_info): Call graphite_can_represent_loop.
+
 2009-05-17  Li Feng  <nemokingdom@gmail.com>
 
 	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp:
