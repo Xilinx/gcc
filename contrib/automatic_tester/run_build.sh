@@ -40,7 +40,7 @@ if [ "${GIT_BRANCH}x" != "x" ] ; then
 fi
 
 MAIL_SUBJECT="[regtest] ${DATE}"
-if [ "${GIT_SRC}x" == "x" ] ; then
+if [ "${GIT_SRC}x" = "x" ] ; then
 	MAIL_SUBJECT="${MAIL_SUBJECT}"
 else
 	MAIL_SUBJECT="${MAIL_SUBJECT} ${GIT_BRANCH}"
@@ -134,7 +134,7 @@ git_get_last_hash () {
 
 update_src () {
 	
-	if [ "${GIT_SRC}x" == "x" ]; then
+	if [ "${GIT_SRC}x" = "x" ]; then
 		log "SVN update"
 
 		cd ${SRC_DIR_CURRENT} && svn update 2>&1 > ${LOG_DIR_CURRENT}/update.log 
@@ -167,7 +167,7 @@ delete_src_dir () {
 }
 
 get_previous_date () {
-	if [ "${GIT_SRC}x" == "x" ]; then
+	if [ "${GIT_SRC}x" = "x" ]; then
     		PREVIOUS_DATE=`ls ${LOG_DIR}/ | grep _success | sort \
 			       | tail -n 2 | head -n 1`
 	else
