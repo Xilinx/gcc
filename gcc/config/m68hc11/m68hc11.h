@@ -1132,7 +1132,7 @@ extern unsigned char m68hc11_reg_valid_for_index[FIRST_PSEUDO_REGISTER];
 /* Maximum number of registers that can appear in a valid memory address */
 #define MAX_REGS_PER_ADDRESS	2
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression that is a
+/* TARGET_LEGITIMATE_ADDRESS_P recognizes an RTL expression that is a
    valid memory address for an instruction. The MODE argument is the
    machine mode for the MEM expression that wants to use this address.  */
 
@@ -1168,19 +1168,6 @@ extern unsigned char m68hc11_reg_valid_for_index[FIRST_PSEUDO_REGISTER];
 #define PUSH_POP_ADDRESS_P(X) \
   (((GET_CODE (X) == PRE_DEC) || (GET_CODE (X) == POST_INC)) \
 	&& SP_REG_P (XEXP (X, 0)))
-
-/* Go to ADDR if X is a valid address.  */
-#ifndef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR) \
-{ \
-  if (m68hc11_go_if_legitimate_address ((X), (MODE), 0)) goto ADDR; \
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)		 \
-{							 \
-  if (m68hc11_go_if_legitimate_address ((X), (MODE), 1)) goto ADDR; \
-}
-#endif
 
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx and check its
    validity for a certain class.  We have two alternate definitions for each
@@ -1498,8 +1485,6 @@ extern int current_function_interrupt;
 extern int current_function_trap;
 extern int current_function_far;
 
-extern GTY(()) rtx m68hc11_compare_op0;
-extern GTY(()) rtx m68hc11_compare_op1;
 extern GTY(()) rtx m68hc11_soft_tmp_reg;
 extern GTY(()) rtx ix_reg;
 extern GTY(()) rtx iy_reg;

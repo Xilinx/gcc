@@ -76,6 +76,7 @@ static int thumb1_base_register_rtx_p (rtx, enum machine_mode, int);
 static rtx arm_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx thumb_legitimize_address (rtx, rtx, enum machine_mode);
 inline static int thumb1_index_register_rtx_p (rtx, int);
+static bool arm_legitimate_address_p (enum machine_mode, rtx, bool);
 static int thumb_far_jump_used_p (void);
 static bool thumb_force_lr_save (void);
 static int const_ok_for_op (HOST_WIDE_INT, enum rtx_code);
@@ -403,6 +404,9 @@ static bool arm_allocate_stack_slots_for_args (void);
 #define TARGET_ASM_OUTPUT_DWARF_DTPREL arm_output_dwarf_dtprel
 #endif
 
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	arm_legitimate_address_p
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 /* Obstack for minipool constant handling.  */
@@ -417,10 +421,6 @@ extern FILE * asm_out_file;
 
 /* True if we are currently building a constant table.  */
 int making_const_table;
-
-/* Define the information needed to generate branch insns.  This is
-   stored from the compare operation.  */
-rtx arm_compare_op0, arm_compare_op1;
 
 /* The processor for which instructions should be scheduled.  */
 enum processor_type arm_tune = arm_none;
@@ -3264,8 +3264,8 @@ arm_handle_fndecl_attribute (tree *node, tree name, tree args ATTRIBUTE_UNUSED,
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -3282,8 +3282,8 @@ arm_handle_isr_attribute (tree *node, tree name, tree args, int flags,
     {
       if (TREE_CODE (*node) != FUNCTION_DECL)
 	{
-	  warning (OPT_Wattributes, "%qs attribute only applies to functions",
-		   IDENTIFIER_POINTER (name));
+	  warning (OPT_Wattributes, "%qE attribute only applies to functions",
+		   name);
 	  *no_add_attrs = true;
 	}
       /* FIXME: the argument if any is checked for type attributes;
@@ -3296,8 +3296,8 @@ arm_handle_isr_attribute (tree *node, tree name, tree args, int flags,
 	{
 	  if (arm_isr_value (args) == ARM_FT_UNKNOWN)
 	    {
-	      warning (OPT_Wattributes, "%qs attribute ignored",
-		       IDENTIFIER_POINTER (name));
+	      warning (OPT_Wattributes, "%qE attribute ignored",
+		       name);
 	      *no_add_attrs = true;
 	    }
 	}
@@ -3324,8 +3324,8 @@ arm_handle_isr_attribute (tree *node, tree name, tree args, int flags,
 	    }
 	  else
 	    {
-	      warning (OPT_Wattributes, "%qs attribute ignored",
-		       IDENTIFIER_POINTER (name));
+	      warning (OPT_Wattributes, "%qE attribute ignored",
+		       name);
 	    }
 	}
     }
@@ -3596,7 +3596,11 @@ require_pic_register (void)
 
 	      seq = get_insns ();
 	      end_sequence ();
-	      emit_insn_after (seq, entry_of_function ());
+	      /* We can be called during expansion of PHI nodes, where
+	         we can't yet emit instructions directly in the final
+		 insn stream.  Queue the insns on the entry edge, they will
+		 be committed after everything else is expanded.  */
+	      insert_insn_on_edge (seq, single_succ_edge (ENTRY_BLOCK_PTR));
 	    }
 	}
     }
@@ -3914,8 +3918,8 @@ pcrel_constant_p (rtx x)
 
 /* Return nonzero if X is a valid ARM state address operand.  */
 int
-arm_legitimate_address_p (enum machine_mode mode, rtx x, RTX_CODE outer,
-			  int strict_p)
+arm_legitimate_address_outer_p (enum machine_mode mode, rtx x, RTX_CODE outer,
+			        int strict_p)
 {
   bool use_ldrd;
   enum rtx_code code = GET_CODE (x);
@@ -3999,7 +4003,7 @@ arm_legitimate_address_p (enum machine_mode mode, rtx x, RTX_CODE outer,
 }
 
 /* Return nonzero if X is a valid Thumb-2 address operand.  */
-int
+static int
 thumb2_legitimate_address_p (enum machine_mode mode, rtx x, int strict_p)
 {
   bool use_ldrd;
@@ -4305,7 +4309,7 @@ thumb1_index_register_rtx_p (rtx x, int strict_p)
    addresses based on the frame pointer or arg pointer until the
    reload pass starts.  This is so that eliminating such addresses
    into stack based ones won't produce impossible code.  */
-int
+static int
 thumb1_legitimate_address_p (enum machine_mode mode, rtx x, int strict_p)
 {
   /* ??? Not clear if this is right.  Experiment.  */
@@ -4417,6 +4421,17 @@ thumb_legitimate_offset_p (enum machine_mode mode, HOST_WIDE_INT val)
 	      && (val + GET_MODE_SIZE (mode)) <= 128
 	      && (val & 3) == 0);
     }
+}
+
+bool
+arm_legitimate_address_p (enum machine_mode mode, rtx x, bool strict_p)
+{
+  if (TARGET_ARM)
+    return arm_legitimate_address_outer_p (mode, x, SET, strict_p);
+  else if (TARGET_THUMB2)
+    return thumb2_legitimate_address_p (mode, x, strict_p);
+  else /* if (TARGET_THUMB1) */
+    return thumb1_legitimate_address_p (mode, x, strict_p);
 }
 
 /* Build the SYMBOL_REF for __tls_get_addr.  */
@@ -4654,7 +4669,7 @@ arm_legitimize_address (rtx x, rtx orig_x, enum machine_mode mode)
     }
 
   /* XXX We don't allow MINUS any more -- see comment in
-     arm_legitimate_address_p ().  */
+     arm_legitimate_address_outer_p ().  */
   else if (GET_CODE (x) == MINUS)
     {
       rtx xop0 = XEXP (x, 0);
@@ -6946,10 +6961,13 @@ arm_coproc_mem_operand (rtx op, bool wb)
 }
 
 /* Return TRUE if OP is a memory operand which we can load or store a vector
-   to/from. If CORE is true, we're moving from ARM registers not Neon
-   registers.  */
+   to/from. TYPE is one of the following values:
+    0 - Vector load/stor (vldr)
+    1 - Core registers (ldm)
+    2 - Element/structure loads (vld1)
+ */
 int
-neon_vector_mem_operand (rtx op, bool core)
+neon_vector_mem_operand (rtx op, int type)
 {
   rtx ind;
 
@@ -6982,23 +7000,15 @@ neon_vector_mem_operand (rtx op, bool core)
     return arm_address_register_rtx_p (ind, 0);
 
   /* Allow post-increment with Neon registers.  */
-  if (!core && GET_CODE (ind) == POST_INC)
+  if (type != 1 && (GET_CODE (ind) == POST_INC || GET_CODE (ind) == PRE_DEC))
     return arm_address_register_rtx_p (XEXP (ind, 0), 0);
 
-#if 0
-  /* FIXME: We can support this too if we use VLD1/VST1.  */
-  if (!core
-      && GET_CODE (ind) == POST_MODIFY
-      && arm_address_register_rtx_p (XEXP (ind, 0), 0)
-      && GET_CODE (XEXP (ind, 1)) == PLUS
-      && rtx_equal_p (XEXP (XEXP (ind, 1), 0), XEXP (ind, 0)))
-    ind = XEXP (ind, 1);
-#endif
+  /* FIXME: vld1 allows register post-modify.  */
 
   /* Match:
      (plus (reg)
           (const)).  */
-  if (!core
+  if (type == 0
       && GET_CODE (ind) == PLUS
       && GET_CODE (XEXP (ind, 0)) == REG
       && REG_MODE_OK_FOR_BASE_P (XEXP (ind, 0), VOIDmode)
@@ -7068,7 +7078,7 @@ coproc_secondary_reload_class (enum machine_mode mode, rtx x, bool wb)
   if (TARGET_NEON
       && (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
           || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
-      && neon_vector_mem_operand (x, FALSE))
+      && neon_vector_mem_operand (x, 0))
      return NO_REGS;
 
   if (arm_coproc_mem_operand (x, wb) || s_register_operand (x, mode))
@@ -10784,7 +10794,7 @@ output_move_double (rtx *operands)
 }
 
 /* Output a move, load or store for quad-word vectors in ARM registers.  Only
-   handles MEMs accepted by neon_vector_mem_operand with CORE=true.  */
+   handles MEMs accepted by neon_vector_mem_operand with TYPE=1.  */
 
 const char *
 output_move_quad (rtx *operands)
@@ -10980,6 +10990,13 @@ output_move_neon (rtx *operands)
       ops[1] = reg;
       break;
 
+    case PRE_DEC:
+      /* FIXME: We should be using vld1/vst1 here in BE mode?  */
+      templ = "v%smdb%%?\t%%0!, %%h1";
+      ops[0] = XEXP (addr, 0);
+      ops[1] = reg;
+      break;
+    
     case POST_MODIFY:
       /* FIXME: Not currently enabled in neon_vector_mem_operand.  */
       gcc_unreachable ();
@@ -13841,6 +13858,24 @@ arm_print_operand (FILE *stream, rtx x, int code)
       {
         HOST_WIDE_INT bits = INTVAL (x);
         fputs ((bits & 4) != 0 ? "r" : "", stream);
+      }
+      return;
+
+    /* Memory operand for vld1/vst1 instruction.  */
+    case 'A':
+      {
+	rtx addr;
+	bool postinc = FALSE;
+	gcc_assert (GET_CODE (x) == MEM);
+	addr = XEXP (x, 0);
+	if (GET_CODE (addr) == POST_INC)
+	  {
+	    postinc = 1;
+	    addr = XEXP (addr, 0);
+	  }
+	asm_fprintf (stream, "[%r]", REGNO (addr));
+	if (postinc)
+	  fputs("!", stream);
       }
       return;
 

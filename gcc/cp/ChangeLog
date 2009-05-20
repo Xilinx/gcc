@@ -1,3 +1,123 @@
+2009-05-18  Jason Merrill  <jason@redhat.com>
+
+	Implement explicit conversions ops as specified in N2437.
+	* decl.c (grokdeclarator): Handle explicit conversion ops.
+	(check_initializer): Pass flags to store_init_value.
+	* decl2.c (maybe_emit_vtables): Likewise.
+	* init.c (expand_aggr_init_1): Likewise.
+	* call.c (convert_class_to_reference): Take flags parm,
+	check DECL_NONCONVERTING_P.
+	(build_user_type_conversion_1): Check DECL_NONCONVERTING_P.
+	(add_builtin_candidates): Simplify getting type of conversion.
+	(build_object_call): Likewise.  Check DECL_NONCONVERTING_P.
+	(implicit_conversion): Pass through LOOKUP_ONLYCONVERTING.
+	(reference_binding): Take flags parm.  Direct-initialize copy parm.
+	(add_function_candidate): Direct-initialize the copy parm.
+	(add_conv_candidate): Use LOOKUP_IMPLICIT, not LOOKUP_NORMAL.
+	(build_builtin_candidate): Add LOOKUP_ONLYCONVERTING.
+	(conditional_conversion): Likewise.
+	(convert_like_real): Only complain about DECL_NONCONVERTING_P
+	constructors.
+	(perform_implicit_conversion_flags): Add flags parm to
+	perform_implicit_conversion.  Improve diagnostics.
+	* cp-tree.h (LOOKUP_IMPLICIT): New macro.
+	(LOOKUP_COPY_PARM): New bit macro.
+	* cvt.c (build_expr_type_conversion): Check DECL_NONCONVERTING_P.
+	* typeck.c (convert_for_assignment): Take flags parm, pass it to
+	perform_implicit_conversion_flags.
+	(cp_build_modify_expr): Pass flags to convert_for_assignment.
+	(convert_for_initialization): Likewise.
+	* typeck2.c (store_init_value): Take flags parm, pass to
+	digest_init_flags.
+	(digest_init_flags): Add flags parm to digest_init.
+	(digest_init_r): Take flags parm, pass to convert_for_initialization.
+	(process_init_constructor_array): Pass it.
+	(process_init_constructor_record): Likewise.
+	(process_init_constructor_union): Likewise.
+
+2009-05-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40139
+	* pt.c (tsubst_qualified_id): Retain the type if we aren't dealing
+	with a dependent type.  Actually look up the destructor.
+	* semantics.c (finish_id_expression): Fix logic.
+	(finish_qualified_id_expr): Don't try to use 'this' if we aren't in
+	a function.
+	* typeck.c (build_x_unary_op): Diagnose taking the address of a
+	constructor or destructor.
+	* tree.c (get_first_fn): Handle OFFSET_REF.
+
+2009-05-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* tree.c (cxx_printable_name_internal): Allow consecutive
+	translated and untranslated cached copies of the name of the
+	current function.
+
+2009-05-15  Ian Lance Taylor  <iant@google.com>
+
+	* cp-tree.h (enum cp_lvalue_kind_flags): Rename from
+	cp_lvalue_kind.  Change all uses.
+	(enum base_access_flags): Rename from enum base_access.  Change
+	all uses.
+	* parser.c (enum cp_parser_flags): Remove enum tag.
+
+2009-05-15  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 16302
+	* call.c (build_new_op): Update calls to warn_logical_operator.
+
+2009-05-14  Ian Lance Taylor  <iant@google.com>
+
+	* class.c (layout_class_type): Change itk to unsigned int.
+	* decl.c (finish_enum): Change itk to unsigned int.
+	* parser.c (cp_parser_check_decl_spec): Change ds to int.  Remove
+	casts.
+
+2009-05-13  David Mandelin <dmandelin@mozilla.com>:
+
+	* decl.c (duplicate_decls): Preserve parameter attributes.
+
+2009-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* decl2.c (cxx_callgraph_analyze_expr): Use
+	cgraph_mark_address_taken.
+
+2009-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* call.c (name_as_c_string): Call type_as_string_translate.
+	Translate identifiers to locale character set.
+	* cp-tree.h (lang_decl_name): Update prototype.
+	(type_as_string_translate, decl_as_string_translate,
+	cxx_printable_name_translate): Declare.
+	* cxx-pretty-print.c (M_): Define.
+	(pp_cxx_unqualified_id, pp_cxx_canonical_template_parameter): Mark
+	English fragments for conditional translation with M_.
+	* decl.c (grokdeclarator): Translate identifiers to locale
+	character set for diagnostics.
+	* error.c (M_): Define.
+	(dump_template_bindings, dump_type, dump_aggr_type,
+	dump_type_prefix, dump_global_iord, dump_simple_decl, dump_decl,
+	dump_function_decl, dump_template_parms, dump_expr,
+	dump_binary_op, op_to_string, assop_to_string): Mark English
+	fragments for conditional translation with M_.
+	(type_as_string): Disable translation of identifiers.
+	(type_as_string_translate): New.
+	(expr_as_string): Disable translation of identifiers.
+	(decl_as_string): Disable translation of identifiers.
+	(decl_as_string_translate): New.
+	(lang_decl_name): Add parameter translate.
+	(args_to_string): Call type_as_string_translate.
+	(cp_print_error_function): Call cxx_printable_name_translate.
+	(print_instantiation_full_context,
+	print_instantiation_partial_context): Call
+	decl_as_string_translate.
+	* parser.c (cp_lexer_get_preprocessor_token): Use %qE for
+	identifier in diagnostic.
+	* tree.c (cxx_printable_name): Change to
+	cxx_printable_name_internal.  Add parameter translate.
+	(cxx_printable_name, cxx_printable_name_translate): New wrappers
+	round cxx_printable_name_internal.
+
 2009-05-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR c/36892

@@ -1913,6 +1913,17 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
     {
       tree parm;
 
+      /* Merge parameter attributes. */
+      tree oldarg, newarg;
+      for (oldarg = DECL_ARGUMENTS(olddecl), 
+               newarg = DECL_ARGUMENTS(newdecl);
+           oldarg && newarg;
+           oldarg = TREE_CHAIN(oldarg), newarg = TREE_CHAIN(newarg)) {
+          DECL_ATTRIBUTES (newarg)
+              = (*targetm.merge_decl_attributes) (oldarg, newarg);
+          DECL_ATTRIBUTES (oldarg) = DECL_ATTRIBUTES (newarg);
+      }
+      
       if (DECL_TEMPLATE_INSTANTIATION (olddecl)
 	  && !DECL_TEMPLATE_INSTANTIATION (newdecl))
 	{
@@ -5176,7 +5187,7 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	return build_aggr_init_full_exprs (decl, init, flags);
       else if (TREE_CODE (init) != TREE_VEC)
 	{
-	  init_code = store_init_value (decl, init);
+	  init_code = store_init_value (decl, init, flags);
 	  if (pedantic && TREE_CODE (type) == ARRAY_TYPE
 	      && DECL_INITIAL (decl)
 	      && TREE_CODE (DECL_INITIAL (decl)) == STRING_CST
@@ -7719,7 +7730,7 @@ grokdeclarator (const cp_declarator *declarator,
 		  type = TREE_OPERAND (decl, 0);
 		  if (TYPE_P (type))
 		    type = constructor_name (type);
-		  name = IDENTIFIER_POINTER (type);
+		  name = identifier_to_locale (IDENTIFIER_POINTER (type));
 		  dname = decl;
 		}
 		break;
@@ -7745,10 +7756,10 @@ grokdeclarator (const cp_declarator *declarator,
 		  {
 		    error ("declarator-id missing; using reserved word %qD",
 			   dname);
-		    name = IDENTIFIER_POINTER (dname);
+		    name = identifier_to_locale (IDENTIFIER_POINTER (dname));
 		  }
 		else if (!IDENTIFIER_TYPENAME_P (dname))
-		  name = IDENTIFIER_POINTER (dname);
+		  name = identifier_to_locale (IDENTIFIER_POINTER (dname));
 		else
 		  {
 		    gcc_assert (flags == NO_SPECIAL);
@@ -7756,7 +7767,7 @@ grokdeclarator (const cp_declarator *declarator,
 		    ctor_return_type = TREE_TYPE (dname);
 		    sfk = sfk_conversion;
 		    if (is_typename_at_global_scope (dname))
-		      name = IDENTIFIER_POINTER (dname);
+		      name = identifier_to_locale (IDENTIFIER_POINTER (dname));
 		    else
 		      name = "<invalid operator>";
 		  }
@@ -8419,6 +8430,14 @@ grokdeclarator (const cp_declarator *declarator,
 		  error ("can't define friend function %qs in a local "
 			 "class definition",
 			 name);
+	      }
+	    else if (ctype && sfk == sfk_conversion)
+	      {
+		if (explicitp == 1)
+		  {
+		    maybe_warn_cpp0x ("explicit conversion operators");
+		    explicitp = 2;
+		  }
 	      }
 
 	    arg_types = grokparms (declarator->u.function.parameters,
@@ -11040,7 +11059,7 @@ finish_enum (tree enumtype)
   int lowprec;
   int highprec;
   int precision;
-  integer_type_kind itk;
+  unsigned int itk;
   tree underlying_type = NULL_TREE;
   bool fixed_underlying_type_p 
     = ENUM_UNDERLYING_TYPE (enumtype) != NULL_TREE;

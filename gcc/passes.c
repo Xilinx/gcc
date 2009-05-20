@@ -247,7 +247,7 @@ rest_of_type_compilation (tree type, int toplev)
 void
 finish_optimization_passes (void)
 {
-  enum tree_dump_index i;
+  int i;
   struct dump_file_info *dfi;
   char *name;
 
@@ -604,13 +604,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_complete_unrolli);
       NEXT_PASS (pass_ccp);
       NEXT_PASS (pass_forwprop);
-      /* Ideally the function call conditional
-	 dead code elimination phase can be delayed
-	 till later where potentially more opportunities
-	 can be found.  Due to lack of good ways to
-	 update VDEFs associated with the shrink-wrapped
-	 calls, it is better to do the transformation
-	 here where memory SSA is not built yet.  */
       NEXT_PASS (pass_call_cdce);
       /* pass_build_alias is a dummy pass that ensures that we
 	 execute TODO_rebuild_alias at this point.  Re-building
@@ -965,7 +958,6 @@ execute_function_todo (void *data)
       if (!(flags & TODO_update_address_taken))
 	execute_update_addresses_taken (true);
       compute_may_aliases ();
-      cfun->curr_properties |= PROP_alias;
     }
   
   if (flags & TODO_remove_unused_locals)
@@ -1170,14 +1162,14 @@ update_properties_after_pass (void *data)
 static void
 add_ipa_transform_pass (void *data)
 {
-  struct ipa_opt_pass *ipa_pass = (struct ipa_opt_pass *) data;
+  struct ipa_opt_pass_d *ipa_pass = (struct ipa_opt_pass_d *) data;
   VEC_safe_push (ipa_opt_pass, heap, cfun->ipa_transforms_to_apply, ipa_pass);
 }
 
 /* Execute summary generation for all of the passes in IPA_PASS.  */
 
 static void
-execute_ipa_summary_passes (struct ipa_opt_pass *ipa_pass)
+execute_ipa_summary_passes (struct ipa_opt_pass_d *ipa_pass)
 {
   while (ipa_pass)
     {
@@ -1191,7 +1183,7 @@ execute_ipa_summary_passes (struct ipa_opt_pass *ipa_pass)
 	  ipa_pass->generate_summary ();
 	  pass_fini_dump_file (pass);
 	}
-      ipa_pass = (struct ipa_opt_pass *)ipa_pass->pass.next;
+      ipa_pass = (struct ipa_opt_pass_d *)ipa_pass->pass.next;
     }
 }
 
@@ -1199,7 +1191,7 @@ execute_ipa_summary_passes (struct ipa_opt_pass *ipa_pass)
 
 static void
 execute_one_ipa_transform_pass (struct cgraph_node *node,
-				struct ipa_opt_pass *ipa_pass)
+				struct ipa_opt_pass_d *ipa_pass)
 {
   struct opt_pass *pass = &ipa_pass->pass;
   unsigned int todo_after = 0;
@@ -1371,7 +1363,7 @@ execute_ipa_pass_list (struct opt_pass *pass)
 	    {
 	      if (!quiet_flag && !cfun)
 		fprintf (stderr, " <summary generate>");
-	      execute_ipa_summary_passes ((struct ipa_opt_pass *) pass);
+	      execute_ipa_summary_passes ((struct ipa_opt_pass_d *) pass);
 	    }
 	  summaries_generated = true;
 	}

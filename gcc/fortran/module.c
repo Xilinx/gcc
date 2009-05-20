@@ -119,6 +119,20 @@ fixup_t;
 
 /* Structure for holding extra info needed for pointers being read.  */
 
+enum gfc_rsym_state
+{
+  UNUSED,
+  NEEDED,
+  USED
+};
+
+enum gfc_wsym_state
+{
+  UNREFERENCED = 0,
+  NEEDS_WRITE,
+  WRITTEN
+};
+
 typedef struct pointer_info
 {
   BBT_HEADER (pointer_info);
@@ -138,9 +152,7 @@ typedef struct pointer_info
     {
       gfc_symbol *sym;
       char true_name[GFC_MAX_SYMBOL_LEN + 1], module[GFC_MAX_SYMBOL_LEN + 1];
-      enum
-      { UNUSED, NEEDED, USED }
-      state;
+      enum gfc_rsym_state state;
       int ns, referenced, renamed;
       module_locus where;
       fixup_t *stfixup;
@@ -152,9 +164,7 @@ typedef struct pointer_info
     struct
     {
       gfc_symbol *sym;
-      enum
-      { UNREFERENCED = 0, NEEDS_WRITE, WRITTEN }
-      state;
+      enum gfc_wsym_state state;
     }
     wsym;
   }
@@ -4007,7 +4017,7 @@ read_module (void)
   module_locus operator_interfaces, user_operators;
   const char *p;
   char name[GFC_MAX_SYMBOL_LEN + 1];
-  gfc_intrinsic_op i;
+  int i;
   int ambiguous, j, nuse, symbol;
   pointer_info *info, *q;
   gfc_use_rename *u;
@@ -4215,7 +4225,7 @@ read_module (void)
 
       if (only_flag)
 	{
-	  u = find_use_operator (i);
+	  u = find_use_operator ((gfc_intrinsic_op) i);
 
 	  if (u == NULL)
 	    {
@@ -4667,7 +4677,7 @@ write_symtree (gfc_symtree *st)
 static void
 write_module (void)
 {
-  gfc_intrinsic_op i;
+  int i;
 
   /* Write the operator interfaces.  */
   mio_lparen ();

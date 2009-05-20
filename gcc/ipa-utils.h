@@ -46,5 +46,3 @@ tree get_base_var (tree);
 
  
 #endif  /* GCC_IPA_UTILS_H  */
-
-

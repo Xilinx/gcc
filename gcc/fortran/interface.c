@@ -873,22 +873,31 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
    which makes this test much easier than that for generic tests.
 
    This subroutine is also used when comparing a formal and actual
-   argument list when an actual parameter is a dummy procedure.  At
-   that point, two formal interfaces must be compared for equality
-   which is what happens here.  */
+   argument list when an actual parameter is a dummy procedure, and in
+   procedure pointer assignments. In these cases, two formal interfaces must be
+   compared for equality which is what happens here. 'intent_flag' specifies
+   whether the intents of the arguments are required to match, which is not the
+   case for ambiguity checks.  */
 
 static int
-operator_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
+operator_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2,
+			 int intent_flag)
 {
   for (;;)
     {
+      /* Check existence.  */
       if (f1 == NULL && f2 == NULL)
 	break;
       if (f1 == NULL || f2 == NULL)
 	return 1;
 
+      /* Check type and rank.  */
       if (!compare_type_rank (f1->sym, f2->sym))
 	return 1;
+
+      /* Check intent.  */
+      if (intent_flag && (f1->sym->attr.intent != f2->sym->attr.intent))
+       return 1;
 
       f1 = f1->next;
       f2 = f2->next;
@@ -961,7 +970,8 @@ generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
    would be ambiguous between the two interfaces, zero otherwise.  */
 
 int
-gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag)
+gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag,
+			int intent_flag)
 {
   gfc_formal_arglist *f1, *f2;
 
@@ -1001,7 +1011,7 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag)
     }
   else
     {
-      if (operator_correspondence (f1, f2))
+      if (operator_correspondence (f1, f2, intent_flag))
 	return 0;
     }
 
@@ -1080,7 +1090,7 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 	if (p->sym->name == q->sym->name && p->sym->module == q->sym->module)
 	  continue;
 
-	if (gfc_compare_interfaces (p->sym, q->sym, generic_flag))
+	if (gfc_compare_interfaces (p->sym, q->sym, generic_flag, 0))
 	  {
 	    if (referenced)
 	      {
@@ -1175,7 +1185,7 @@ gfc_check_interfaces (gfc_namespace *ns)
 {
   gfc_namespace *old_ns, *ns2;
   char interface_name[100];
-  gfc_intrinsic_op i;
+  int i;
 
   old_ns = gfc_current_ns;
   gfc_current_ns = ns;
@@ -1193,12 +1203,12 @@ gfc_check_interfaces (gfc_namespace *ns)
 	strcpy (interface_name, "intrinsic assignment operator");
       else
 	sprintf (interface_name, "intrinsic '%s' operator",
-		 gfc_op2string (i));
+		 gfc_op2string ((gfc_intrinsic_op) i));
 
       if (check_interface0 (ns->op[i], interface_name))
 	continue;
 
-      check_operator_interface (ns->op[i], i);
+      check_operator_interface (ns->op[i], (gfc_intrinsic_op) i);
 
       for (ns2 = ns; ns2; ns2 = ns2->parent)
 	{
@@ -1362,7 +1372,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 	  || actual->symtree->n.sym->attr.external)
 	return 1;		/* Assume match.  */
 
-      if (!gfc_compare_interfaces (formal, actual->symtree->n.sym, 0))
+      if (!gfc_compare_interfaces (formal, actual->symtree->n.sym, 0, 1))
 	goto proc_fail;
 
       return 1;
@@ -2591,7 +2601,7 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
   gfc_expr *lhs, *rhs;
   gfc_symbol *sym;
 
-  lhs = c->expr;
+  lhs = c->expr1;
   rhs = c->expr2;
 
   /* Don't allow an intrinsic assignment to be replaced.  */
@@ -2626,7 +2636,7 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
   /* Replace the assignment with the call.  */
   c->op = EXEC_ASSIGN_CALL;
   c->symtree = gfc_find_sym_in_symtree (sym);
-  c->expr = NULL;
+  c->expr1 = NULL;
   c->expr2 = NULL;
   c->ext.actual = actual;
 

@@ -1,3 +1,303 @@
+2009-05-18  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/explicit1.C: New.
+	* g++.dg/cpp0x/explicit2.C: New.
+
+2009-05-18  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/40109
+	* g++.dg/debug/dwarf2/nested-1.C: New test.
+
+2009-05-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/39907
+	* gcc.target/x86_64/abi/asm-support.S (snapshot_ret): Preserve
+	stack alignment.
+
+2009-05-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40164
+	* gfortran.dg/proc_ptr_comp_8.f90: New.
+
+2009-05-18  Richard Guenther  <rguenther@suse.de>
+
+	PR fortran/40168
+	* gfortran.dg/array_memset_2.f90: Adjust.
+
+2009-05-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36947
+	PR fortran/40039
+	* gfortran.dg/interface_27.f90: New.
+	* gfortran.dg/interface_28.f90: New.
+	* gfortran.dg/proc_ptr_11.f90: Fixing invalid test case.
+	* gfortran.dg/proc_ptr_result_1.f90: Ditto.
+
+2009-05-18  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.target/m68k/tls-ie.c: New test.
+	* gcc.target/m68k/tls-le.c: New test.
+	* gcc.target/m68k/tls-gd.c: New test.
+	* gcc.target/m68k/tls-ld.c: New test.
+	* gcc.target/m68k/tls-ie-xgot.c: New test.
+	* gcc.target/m68k/tls-le-xtls.c: New test.
+	* gcc.target/m68k/tls-gd-xgot.c: New test.
+	* gcc.target/m68k/tls-ld-xgot.c: New test.
+	* gcc.target/m68k/tls-ld-xtls.c: New test.
+	* gcc.target/m68k/tls-ld-xgot-xtls.c: New test.
+
+2009-05-18  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/ipa/modif-1.c: Do not check for unmodified int parameter.
+
+2009-05-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c/40172
+	* gcc.dg/pr40172.c: New.
+
+2009-05-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40139
+	* g++.dg/template/dtor6.C: New.
+
+2009-05-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++.dg/warn/translate-ice-1.C: New test.
+
+2009-05-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/c_kind_int128_test1.f03: Also test C_INT_FAST128_T.
+	* gfortran.dg/c_kind_int128_test2.f03: Update comment.
+	* gfortran.dg/c_kind_params.f90: Also test int_fast*_t.
+	* gfortran.dg/c_kinds.c: Add int_fast*_t arguments.
+
+2009-05-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33197
+	* gfortran.dg/erf_2.F90: New test.
+	* gfortran.dg/erfc_scaled_2.f90: New test.
+
+2009-05-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31243
+	* gcc/testsuite/gfortran.dg/string_1.f90: New test.
+	* gcc/testsuite/gfortran.dg/string_2.f90: New test.
+	* gcc/testsuite/gfortran.dg/string_3.f90: New test.
+
+2009-05-16  David Billinghurst <billingd@gcc.gnu.org>
+
+	* gfortran.dg/default_format_denormal_1.f90: XFAIL on cygwin.
+	* gfortran.dg/default_format_1.f90: Revert change of 2009-05-12
+
+2009-05-15  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-10.c: New testcase.
+
+2009-05-15  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 16302
+	* gcc.dg/pr16302.c: New.
+	* g++.dg/warn/pr16302.C: New.
+
+2009-05-15  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-5.c: New.
+	* gcc.dg/torture/builtin-math-6.c: New.
+	* lib/target-supports.exp (check_effective_target_mpc): New.
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/tree-ssa/inline-3.c: New testcase
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/align-main-1.c (check): Mark noinline.
+	* gcc.target/i386/align-main-2.c (check): Mark noinline.
+	* gcc.dg/ipa/ipa-4.c: Disable early inlining.
+	* gcc.dg/vect/vect-iv-10.c (main1): Mark noinline.
+	* gcc.dg/vect/costmodel/i386/costmodel-vect-33.c (main1): Mark noinline.
+	* gcc.dg/vect/costmodel/x86_64/costmodel-vect-33.c (main1): Mark noinline.
+	* gcc.dg/vect/pr31699.c (foo): Mark noinline.
+	* gcc.dg/vect/pr18400.c (main1): Mark noinline.
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* sibcall-6.c: Add no-ipa-cp argument and mark the function to be
+	optimized by sibcall noinline.
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* sibcall-1.c (track): Mark noinline.
+	* sibcall-2.c (track): Mark noinline.
+	* sibcall-3.c (track): Mark noinline.
+	* sibcall-4.c (track): Mark noinline.
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* flatten-2.c: Disable early inlining; add comment.
+	* flatten-3.c: New test based on flatten-2.c.
+
+2009-05-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39999
+	* gcc.c-torture/compile/pr39999.c: New testcase.
+
+2009-05-15  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c-torture/compile/ptr-conv-1.c: New test.
+
+2009-05-14  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-9.c: New testcase.
+
+2009-05-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39996
+	* gfortran.dg/func_decl_2.f90: Modified (replacing warnings by errors).
+	* gfortran.dg/duplicate_type_2.f90: Ditto.
+	* gfortran.dg/duplicate_type_3.f90: New.
+
+2009-05-14  Laurent GUERBY  <laurent@guerby.net>
+	
+        * ada/acats/tests/c3/c38202a.ada: Use Impdef.
+        * ada/acats/tests/c5/c59002c.ada: Likewise.
+	
+2009-05-13  Taras Glek  <tglek@mozilla.com>
+
+	* g++.dg/plugin/attribute_plugin-test-1.C Testcase input for custom attributes and decl smashing
+	* g++.dg/plugin/attribute_plugin.c Testcase plugin to test user attributes
+	* g++.dg/plugin/dumb_plugin.c Fixed typo
+	* g++.dg/plugin/plugin.exp Added attribute_plugin test 
+
+2009-05-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/39865
+	* gfortran.dg/pr39865.f90: New test.
+	* gfortran.dg/hollerith.f90: Don't expect errors for CHARACTER
+	arrays in FMT=.
+	* gfortran.dg/hollerith_f95.f90: Likewise.
+	* gfortran.dg/hollerith6.f90: New test.
+	* gfortran.dg/hollerith7.f90: New test.
+
+2009-05-14  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR cpp/36674
+	* gcc.dg/cpp/pr36674.i: New.
+
+2009-05-14  Ben Elliston  <bje@au.ibm.com>
+	 
+	PR middle-end/40035
+	* gcc.c-torture/compile/pr40035.c: New test.
+
+2009-05-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.target/i386/pr39543-2.c: Skip if ilp32 && pic.
+
+2009-05-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40110
+	* gfortran.dg/bind_c_usage_18.f90: Change dg-error into dg-warning.
+	* gfortran.dg/c_kind_tests_2.f03: Ditto.
+	* gfortran.dg/interop_params.f03: Ditto.
+
+2009-05-12  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/loop-36.c: Reduce amount of iterations to 2 so unrolling
+	still happens.
+	* gcc.dg/ipa/ipacost-1.c: Prevent inlining
+	* gcc.dg/ipa/ipacost-2.c: Likewise.
+	* gcc.dg/vect/slp-3.c: Loop is no longer unrolled.
+
+2009-05-12  David Billinghurst <billingd@gcc.gnu.org>
+
+	* gfortran.dg/default_format_1.f90: XFAIL on cygwin. 
+
+2009-05-12  David Billinghurst <billingd@gcc.gnu.org>
+
+	* lib/target-supports.exp (check_profiling_available): Return
+ 	false for -p on *-*-cygwin* targets.
+
+2009-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/38632
+	* g++.dg/tree-ssa/pr38632.C: New.
+
+2009-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/pr21829.c: Simplify matching since
+	we now optimize better.
+	* gcc.dg/Wunreachable-8.c: Bogus warnings now come
+	out at different places.
+	* gcc.dg/vect/vect-92.c: Increase loop iteration count to prevent
+	unroling.
+	* gcc.dg/vect/vect-76.c: Likewise.
+	* gcc.dg/vect/vect-70.c: Likewise.
+	* gcc.dg/vect/vect-66.c: Likewise.
+	* gcc.dg/vect/no-section-anchors-vect-66.c: Likewise.
+	* gcc.dg/vect/slp-3.c: One of loops gets now fully unrolled.
+
+2009-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/40080
+	* gcc.c-torture/compile/pr40080.c: New.
+
+2009-05-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	* gcc.c-torture/compile/pr40026.c: New testcase.
+
+2009-05-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40089
+	* gfortran.dg/proc_ptr_comp_7.f90: New.
+
+2009-05-11  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/40074
+	* gcc.dg/vect/pr40074.c: New test.
+
+2009-05-10  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-7.c: New testcase.
+	* gcc.dg/Wcxx-compat-8.c: New testcase.
+	* gcc.dg/c99-tag-1.c: Recognize new "originally defined here"
+	notes
+	* gcc.dg/pr17188-1.c: Likewise.
+	* gcc.dg/pr39084.c: Likewise.
+
+2009-05-10  Michael Matz  <matz@suse.de>
+
+	PR target/40031
+	* gcc.dg/pr40031.c: New test.
+
+2009-05-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40018
+	* gfortran.dg/array_constructor_31.f90: New test.
+
+2009-05-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40081
+	* g++.dg/torture/pr40081.C: New testcase.
+
+2009-05-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38863
+	* gfortran.dg/dependency_24.f90: New test.
+	* gfortran.dg/dependency_23.f90: Clean up module files.
+
+2009-05-10  David Billinghurst <billingd@gcc.gnu.org>
+
+	PR fortran/38956
+	* gfortran.dg/chmod_1.f90: Don't run on *-*-cygwin*.
+	* gfortran.dg/chmod_2.f90: Likewise.
+	* gfortran.dg/chmod_3.f90: Likewise.
+	* gfortran.dg/open_errors.f90: Likewise.
+
+2009-05-09  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/40043
+	* g++.dg/eh/nested-try.C: New test.
+
 2009-05-08  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	PR tree-optimization/40049

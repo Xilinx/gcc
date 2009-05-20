@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for NEC V850 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007, 2008 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
    This file is part of GCC.
@@ -463,6 +463,11 @@ v850_rtx_costs (rtx x,
       else
 	*total = 20;
       return true;
+
+    case ZERO_EXTRACT:
+      if (outer_code == COMPARE)
+	*total = 0;
+      return false;
 
     default:
       return false;
@@ -2045,8 +2050,8 @@ v850_handle_interrupt_attribute (tree * node,
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
       *no_add_attrs = true;
     }
 

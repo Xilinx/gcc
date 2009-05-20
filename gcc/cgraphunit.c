@@ -516,6 +516,7 @@ cgraph_finalize_function (tree decl, bool nested)
   notice_global_symbol (decl);
   node->local.finalized = true;
   node->lowered = DECL_STRUCT_FUNCTION (decl)->cfg != NULL;
+  node->finalized_by_frontend = true;
   record_cdtor_fn (node->decl);
   if (node->nested)
     lower_nested_functions (decl);
@@ -1978,7 +1979,8 @@ cgraph_expand_function (struct cgraph_node *node)
   gcc_assert (node->lowered);
 
   /* Generate RTL for the body of DECL.  */
-  if (lang_hooks.callgraph.emit_associated_thunks)
+  if (lang_hooks.callgraph.emit_associated_thunks
+      && node->finalized_by_frontend)
     lang_hooks.callgraph.emit_associated_thunks (decl);
   tree_rest_of_compilation (decl);
 
@@ -2050,9 +2052,17 @@ cgraph_expand_all_functions (void)
 
 /* This is used to sort the node types by the cgraph order number.  */
 
+enum cgraph_order_sort_kind
+{
+  ORDER_UNDEFINED = 0,
+  ORDER_FUNCTION,
+  ORDER_VAR,
+  ORDER_ASM
+};
+
 struct cgraph_order_sort
 {
-  enum { ORDER_UNDEFINED = 0, ORDER_FUNCTION, ORDER_VAR, ORDER_ASM } kind;
+  enum cgraph_order_sort_kind kind;
   union
   {
     struct cgraph_node *f;
@@ -2689,7 +2699,13 @@ cgraph_materialize_all_clones (void)
 	for (e = node->callees; e; e = e->next_callee)
 	  {
 	    tree decl = gimple_call_fndecl (e->call_stmt);
-	    if (decl != e->callee->decl
+	    /* When function gets inlined, indirect inlining might've invented
+	       new edge for orginally indirect stmt.  Since we are not
+	       preserving clones in the original form, we must not update here
+	       since other inline clones don't need to contain call to the same
+	       call.  Inliner will do the substitution for us later.  */
+
+	    if (decl && decl != e->callee->decl
                 && (!L_IPO_COMP_MODE || !decl
                     || (cgraph_real_node (decl)
                         != cgraph_real_node (e->callee->decl))))
@@ -2738,6 +2754,9 @@ cgraph_materialize_all_clones (void)
         verify_cgraph_node (node);
 #endif
       }
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+#endif
   cgraph_remove_unreachable_nodes (false, cgraph_dump_file);
 }
 

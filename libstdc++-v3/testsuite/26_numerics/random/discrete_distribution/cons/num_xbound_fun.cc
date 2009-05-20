@@ -40,7 +40,10 @@ struct cosine_distribution
       else if (x - _M_x0 > _M_lambda / 4)
         return 0.0;
       else
-        return std::cos(2 * M_PI * (x - _M_x0) / _M_lambda);
+	{
+	  const double pi = 3.14159265358979323846;
+	  return std::cos(2 * pi * (x - _M_x0) / _M_lambda);
+	}
     }
 
 private:

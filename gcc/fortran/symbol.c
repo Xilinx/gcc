@@ -1559,31 +1559,30 @@ gfc_try
 gfc_add_type (gfc_symbol *sym, gfc_typespec *ts, locus *where)
 {
   sym_flavor flavor;
+  bt type;
 
   if (where == NULL)
     where = &gfc_current_locus;
 
-  if (sym->ts.type != BT_UNKNOWN)
+  if (sym->result)
+    type = sym->result->ts.type;
+  else
+    type = sym->ts.type;
+
+  if (sym->attr.result && type == BT_UNKNOWN && sym->ns->proc_name)
+    type = sym->ns->proc_name->ts.type;
+
+  if (type != BT_UNKNOWN && !(sym->attr.function && sym->attr.implicit_type))
     {
-      const char *msg = "Symbol '%s' at %L already has basic type of %s";
-      if (!(sym->ts.type == ts->type && sym->attr.result)
-	  || gfc_notification_std (GFC_STD_GNU) == ERROR
-	  || pedantic)
-	{
-	  gfc_error (msg, sym->name, where, gfc_basic_typename (sym->ts.type));
-	  return FAILURE;
-	}
-      if (gfc_notify_std (GFC_STD_GNU, msg, sym->name, where,
-	      		  gfc_basic_typename (sym->ts.type)) == FAILURE)
-	return FAILURE;
-      if (gfc_option.warn_surprising)
-	gfc_warning (msg, sym->name, where, gfc_basic_typename (sym->ts.type));
+      gfc_error ("Symbol '%s' at %L already has basic type of %s", sym->name,
+		 where, gfc_basic_typename (type));
+      return FAILURE;
     }
 
   if (sym->attr.procedure && sym->ts.interface)
     {
-      gfc_error ("Procedure '%s' at %L may not have basic type of %s", sym->name, where,
-		 gfc_basic_typename (ts->type));
+      gfc_error ("Procedure '%s' at %L may not have basic type of %s",
+		 sym->name, where, gfc_basic_typename (ts->type));
       return FAILURE;
     }
 
@@ -2198,7 +2197,7 @@ gfc_get_namespace (gfc_namespace *parent, int parent_types)
 {
   gfc_namespace *ns;
   gfc_typespec *ts;
-  gfc_intrinsic_op in;
+  int in;
   int i;
 
   ns = XCNEW (gfc_namespace);
@@ -3089,7 +3088,7 @@ void
 gfc_free_namespace (gfc_namespace *ns)
 {
   gfc_namespace *p, *q;
-  gfc_intrinsic_op i;
+  int i;
 
   if (ns == NULL)
     return;
@@ -3915,6 +3914,7 @@ gfc_copy_formal_args_intr (gfc_symbol *dest, gfc_intrinsic_sym *src)
       /* May need to copy more info for the symbol.  */
       formal_arg->sym->ts = curr_arg->ts;
       formal_arg->sym->attr.optional = curr_arg->optional;
+      formal_arg->sym->attr.intent = curr_arg->intent;
       formal_arg->sym->attr.flavor = FL_VARIABLE;
       formal_arg->sym->attr.dummy = 1;
 
@@ -4495,4 +4495,3 @@ gfc_get_tbp_symtree (gfc_symtree **root, const char *name)
 
   return result;
 }
-

@@ -1,5 +1,5 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -48,17 +48,22 @@ enum availability
 
 extern const char * const cgraph_availability_names[];
 
+/* Function inlining information.  */
+
+struct GTY(()) inline_summary
+{
+  /* Estimated stack frame consumption by the function.  */
+  HOST_WIDE_INT estimated_self_stack_size;
+
+  /* Size of the function before inlining.  */
+  int self_insns;
+};
+
 /* Information about the function collected locally.
    Available after function is analyzed.  */
 
 struct GTY(()) cgraph_local_info {
-  struct inline_summary {
-    /* Estimated stack frame consumption by the function.  */
-    HOST_WIDE_INT estimated_self_stack_size;
-
-    /* Size of the function before inlining.  */
-    int self_insns;
-  } inline_summary;
+  struct inline_summary inline_summary;
 
   /* Set when function function is visible in current compilation unit only
      and its address is never taken.  */
@@ -189,6 +194,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* Set when function must be output - it is externally visible
      or its address is taken.  */
   unsigned needed : 1;
+  /* Set when function has address taken.  */
+  unsigned address_taken : 1;
   /* Set when decl is an abstract function pointed to by the
      ABSTRACT_DECL_ORIGIN of a reachable function.  */
   unsigned abstract_and_needed : 1;
@@ -204,6 +211,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   unsigned process : 1;
   /* Set for aliases once they got through assemble_alias.  */
   unsigned alias : 1;
+  /* Set for nodes that was constructed and finalized by frontend.  */
+  unsigned finalized_by_frontend : 1;
 
   /* Is this function cloned during versioning ?  */
   unsigned is_versioned_clone : 1;
@@ -397,7 +406,7 @@ void cgraph_create_edge_including_clones (struct cgraph_node *,
 					  struct cgraph_node *,
 					  gimple, gcov_type, int, int,
 					  cgraph_inline_failed_t);
-void cgraph_update_edges_for_call_stmt (gimple, gimple);
+void cgraph_update_edges_for_call_stmt (gimple, tree, gimple);
 struct cgraph_local_info *cgraph_local_info (tree);
 struct cgraph_global_info *cgraph_global_info (tree);
 struct cgraph_rtl_info *cgraph_rtl_info (tree);
@@ -429,6 +438,7 @@ void cgraph_mark_if_needed (tree);
 void cgraph_finalize_compilation_unit (void);
 void cgraph_optimize (void);
 void cgraph_mark_needed_node (struct cgraph_node *);
+void cgraph_mark_address_taken_node (struct cgraph_node *);
 void cgraph_mark_reachable_node (struct cgraph_node *);
 bool cgraph_inline_p (struct cgraph_edge *, cgraph_inline_failed_t *reason);
 bool cgraph_preserve_function_body_p (tree);

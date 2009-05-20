@@ -5737,6 +5737,11 @@ compute_may_aliases (void)
   return 0;
 }
 
+static bool
+gate_tree_pta (void)
+{
+  return flag_tree_pta;
+}
 
 /* A dummy pass to cause points-to information to be computed via
    TODO_rebuild_alias.  */
@@ -5746,14 +5751,14 @@ struct gimple_opt_pass pass_build_alias =
  {
   GIMPLE_PASS,
   "alias",		    /* name */
-  NULL,			    /* gate */
+  gate_tree_pta,	    /* gate */
   NULL,                     /* execute */
   NULL,                     /* sub */
   NULL,                     /* next */
   0,                        /* static_pass_number */
   TV_NONE,                  /* tv_id */
   PROP_cfg | PROP_ssa,      /* properties_required */
-  PROP_alias,               /* properties_provided */
+  0,			    /* properties_provided */
   0,                        /* properties_destroyed */
   0,                        /* todo_flags_start */
   TODO_rebuild_alias | TODO_dump_func  /* todo_flags_finish */

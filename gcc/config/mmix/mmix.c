@@ -125,6 +125,7 @@ static void mmix_emit_sp_add (HOST_WIDE_INT offset);
 static void mmix_target_asm_function_prologue (FILE *, HOST_WIDE_INT);
 static void mmix_target_asm_function_end_prologue (FILE *);
 static void mmix_target_asm_function_epilogue (FILE *, HOST_WIDE_INT);
+static bool mmix_legitimate_address_p (enum machine_mode, rtx, bool);
 static void mmix_reorg (void);
 static void mmix_asm_output_mi_thunk
   (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT, tree);
@@ -205,6 +206,9 @@ static bool mmix_pass_by_reference (CUMULATIVE_ARGS *,
 #define TARGET_CALLEE_COPIES hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true
 #undef TARGET_DEFAULT_TARGET_FLAGS
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	mmix_legitimate_address_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -985,13 +989,12 @@ mmix_constant_address_p (rtx x)
   return constant_ok || (addend & 3) == 0;
 }
 
-/* Return 1 if the address is OK, otherwise 0.
-   Used by GO_IF_LEGITIMATE_ADDRESS.  */
+/* Return 1 if the address is OK, otherwise 0.  */
 
-int
-mmix_legitimate_address (enum machine_mode mode ATTRIBUTE_UNUSED,
-			 rtx x,
-			 int strict_checking)
+bool
+mmix_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
+			   rtx x,
+			   bool strict_checking)
 {
 #define MMIX_REG_OK(X)							\
   ((strict_checking							\
@@ -2359,70 +2362,14 @@ mmix_shiftable_wyde_value (unsigned HOST_WIDEST_INT value)
   return 1;
 }
 
-/* Returns zero if code and mode is not a valid condition from a
-   compare-type insn.  Nonzero if it is.  The parameter op, if non-NULL,
-   is the comparison of mode is CC-somethingmode.  */
-
-int
-mmix_valid_comparison (RTX_CODE code, enum machine_mode mode, rtx op)
-{
-  if (mode == VOIDmode && op != NULL_RTX)
-    mode = GET_MODE (op);
-
-  /* We don't care to look at these, they should always be valid.  */
-  if (mode == CCmode || mode == CC_UNSmode || mode == DImode)
-    return 1;
-
-  if ((mode == CC_FPmode || mode == DFmode)
-      && (code == GT || code == LT))
-    return 1;
-
-  if ((mode == CC_FPEQmode || mode == DFmode)
-      && (code == EQ || code == NE))
-    return 1;
-
-  if ((mode == CC_FUNmode || mode == DFmode)
-      && (code == ORDERED || code == UNORDERED))
-    return 1;
-
-  return 0;
-}
-
-/* X and Y are two things to compare using CODE.  Emit a compare insn if
-   possible and return the rtx for the cc-reg in the proper mode, or
-   NULL_RTX if this is not a valid comparison.  */
+/* X and Y are two things to compare using CODE.  Return the rtx for
+   the cc-reg in the proper mode.  */
 
 rtx
 mmix_gen_compare_reg (RTX_CODE code, rtx x, rtx y)
 {
   enum machine_mode ccmode = SELECT_CC_MODE (code, x, y);
-  rtx cc_reg;
-
-  /* FIXME: Do we get constants here?  Of double mode?  */
-  enum machine_mode mode
-    = GET_MODE (x) == VOIDmode
-    ? GET_MODE (y)
-    : GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT ? DFmode : DImode;
-
-  if (! mmix_valid_comparison (code, mode, x))
-    return NULL_RTX;
-
-  cc_reg = gen_reg_rtx (ccmode);
-
-  /* FIXME:  Can we avoid emitting a compare insn here?  */
-  if (! REG_P (x) && ! REG_P (y))
-    x = force_reg (mode, x);
-
-  /* If it's not quite right yet, put y in a register.  */
-  if (! REG_P (y)
-      && (GET_CODE (y) != CONST_INT
-	  || ! CONST_OK_FOR_LETTER_P (INTVAL (y), 'I')))
-    y = force_reg (mode, y);
-
-  emit_insn (gen_rtx_SET (VOIDmode, cc_reg,
-			  gen_rtx_COMPARE (ccmode, x, y)));
-
-  return cc_reg;
+  return gen_reg_rtx (ccmode);
 }
 
 /* Local (static) helper functions.  */

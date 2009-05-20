@@ -1,5 +1,5 @@
 /* Interprocedural constant propagation
-   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Razya Ladelsky <RAZYA@il.ibm.com>
    
 This file is part of GCC.
@@ -439,6 +439,7 @@ ipcp_cloning_candidate_p (struct cgraph_node *node)
       if (dump_file)
 	fprintf (dump_file, "Not considering %s for cloning; no hot calls.\n",
 		 cgraph_node_name (node));
+      return false;
     }
   if (dump_file)
     fprintf (dump_file, "Considering %s for cloning.\n",
@@ -1211,7 +1212,7 @@ cgraph_gate_cp (void)
   return flag_ipa_cp;
 }
 
-struct ipa_opt_pass pass_ipa_cp = 
+struct ipa_opt_pass_d pass_ipa_cp =
 {
  {
   IPA_PASS,

@@ -931,29 +931,34 @@ enum
 
 /* Because a symbol can belong to multiple namelists, they must be
    linked externally to the symbol itself.  */
+
+enum gfc_omp_sched_kind
+{
+  OMP_SCHED_NONE,
+  OMP_SCHED_STATIC,
+  OMP_SCHED_DYNAMIC,
+  OMP_SCHED_GUIDED,
+  OMP_SCHED_RUNTIME,
+  OMP_SCHED_AUTO
+};
+
+enum gfc_omp_default_sharing
+{
+  OMP_DEFAULT_UNKNOWN,
+  OMP_DEFAULT_NONE,
+  OMP_DEFAULT_PRIVATE,
+  OMP_DEFAULT_SHARED,
+  OMP_DEFAULT_FIRSTPRIVATE
+};
+
 typedef struct gfc_omp_clauses
 {
   struct gfc_expr *if_expr;
   struct gfc_expr *num_threads;
   gfc_namelist *lists[OMP_LIST_NUM];
-  enum
-    {
-      OMP_SCHED_NONE,
-      OMP_SCHED_STATIC,
-      OMP_SCHED_DYNAMIC,
-      OMP_SCHED_GUIDED,
-      OMP_SCHED_RUNTIME,
-      OMP_SCHED_AUTO
-    } sched_kind;
+  enum gfc_omp_sched_kind sched_kind;
   struct gfc_expr *chunk_size;
-  enum
-    {
-      OMP_DEFAULT_UNKNOWN,
-      OMP_DEFAULT_NONE,
-      OMP_DEFAULT_PRIVATE,
-      OMP_DEFAULT_SHARED,
-      OMP_DEFAULT_FIRSTPRIVATE
-    } default_sharing;
+  enum gfc_omp_default_sharing default_sharing;
   int collapse;
   bool nowait, ordered, untied;
 }
@@ -1440,6 +1445,7 @@ typedef struct gfc_intrinsic_arg
 
   gfc_typespec ts;
   int optional;
+  ENUM_BITFIELD (sym_intent) intent:2;
   gfc_actual_arglist *actual;
 
   struct gfc_intrinsic_arg *next;
@@ -1888,7 +1894,7 @@ typedef enum
   EXEC_ENTRY, EXEC_PAUSE, EXEC_STOP, EXEC_CONTINUE, EXEC_INIT_ASSIGN,
   EXEC_IF, EXEC_ARITHMETIC_IF, EXEC_DO, EXEC_DO_WHILE, EXEC_SELECT,
   EXEC_FORALL, EXEC_WHERE, EXEC_CYCLE, EXEC_EXIT, EXEC_CALL_PPC,
-  EXEC_ALLOCATE, EXEC_DEALLOCATE,
+  EXEC_ALLOCATE, EXEC_DEALLOCATE, EXEC_END_PROCEDURE,
   EXEC_OPEN, EXEC_CLOSE, EXEC_WAIT,
   EXEC_READ, EXEC_WRITE, EXEC_IOLENGTH, EXEC_TRANSFER, EXEC_DT_END,
   EXEC_BACKSPACE, EXEC_ENDFILE, EXEC_INQUIRE, EXEC_REWIND, EXEC_FLUSH,
@@ -1908,9 +1914,9 @@ typedef struct gfc_code
   struct gfc_code *block, *next;
   locus loc;
 
-  gfc_st_label *here, *label, *label2, *label3;
+  gfc_st_label *here, *label1, *label2, *label3;
   gfc_symtree *symtree;
-  gfc_expr *expr, *expr2;
+  gfc_expr *expr1, *expr2;
   /* A name isn't sufficient to identify a subroutine, we need the actual
      symbol for the interface definition.
   const char *sub_name;  */
@@ -2055,7 +2061,6 @@ typedef struct
 
   int warn_std;
   int allow_std;
-  int fshort_enums;
   int convert;
   int record_marker;
   int max_subrecord_length;
@@ -2193,6 +2198,9 @@ unsigned int gfc_init_options (unsigned int, const char **);
 int gfc_handle_option (size_t, const char *, int);
 bool gfc_post_options (const char **);
 
+/* f95-lang.c */
+void gfc_maybe_initialize_eh (void);
+
 /* iresolve.c */
 const char * gfc_get_string (const char *, ...) ATTRIBUTE_PRINTF_1;
 bool gfc_find_sym_in_expr (gfc_symbol *, gfc_expr *);
@@ -2247,6 +2255,8 @@ bool gfc_check_character_range (gfc_char_t, int);
 /* trans-types.c */
 gfc_try gfc_check_any_c_kind (gfc_typespec *);
 int gfc_validate_kind (bt, int, bool);
+int gfc_get_int_kind_from_width_isofortranenv (int size);
+int gfc_get_real_kind_from_width_isofortranenv (int size);
 extern int gfc_index_integer_kind;
 extern int gfc_default_integer_kind;
 extern int gfc_max_integer_kind;
@@ -2557,7 +2567,7 @@ gfc_try gfc_ref_dimen_size (gfc_array_ref *, int dimen, mpz_t *);
 void gfc_free_interface (gfc_interface *);
 int gfc_compare_derived_types (gfc_symbol *, gfc_symbol *);
 int gfc_compare_types (gfc_typespec *, gfc_typespec *);
-int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, int);
+int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, int, int);
 void gfc_check_interfaces (gfc_namespace *);
 void gfc_procedure_use (gfc_symbol *, gfc_actual_arglist **, locus *);
 gfc_symbol *gfc_search_interface (gfc_interface *, int,

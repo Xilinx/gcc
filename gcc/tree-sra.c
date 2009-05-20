@@ -270,6 +270,10 @@ sra_type_can_be_decomposed_p (tree type)
 		      != TYPE_PRECISION (TREE_TYPE (t))))
 		goto fail;
 
+	      /* And volatile fields.  */
+	      if (TREE_THIS_VOLATILE (t))
+		goto fail;
+
 	      saw_one_field = true;
 	    }
 

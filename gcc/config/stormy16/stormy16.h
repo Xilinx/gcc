@@ -537,20 +537,6 @@ enum reg_class
 #define MAX_REGS_PER_ADDRESS 1
 
 #ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, LABEL)	\
-do {							\
-  if (xstormy16_legitimate_address_p (MODE, X, 1))	\
-    goto LABEL;						\
-} while (0)
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, LABEL)	\
-do {							\
-  if (xstormy16_legitimate_address_p (MODE, X, 0))	\
-    goto LABEL;						\
-} while (0)
-#endif
-
-#ifdef REG_OK_STRICT
 #define REG_OK_FOR_BASE_P(X) 						   \
   (REGNO_OK_FOR_BASE_P (REGNO (X)) && (REGNO (X) < FIRST_PSEUDO_REGISTER))
 #else
@@ -800,12 +786,5 @@ do  {						\
    number of instructions that can be issued in the current cycle.  This macro
    is responsible for updating the value of MORE (typically by (MORE)--).  */
 /* #define MD_SCHED_VARIABLE_ISSUE (FILE, VERBOSE, INSN, MORE) */
-
-
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  Note that we can't use "rtx" here
-   since it hasn't been defined!  */
-
-extern struct rtx_def *xstormy16_compare_op0, *xstormy16_compare_op1;
 
 /* End of xstormy16.h */

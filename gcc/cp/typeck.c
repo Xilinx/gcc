@@ -48,7 +48,7 @@ along with GCC; see the file COPYING3.  If not see
 static tree pfn_from_ptrmemfunc (tree);
 static tree delta_from_ptrmemfunc (tree);
 static tree convert_for_assignment (tree, tree, const char *, tree, int,
-				    tsubst_flags_t);
+				    tsubst_flags_t, int);
 static tree cp_pointer_int_sum (enum tree_code, tree, tree);
 static tree rationalize_conditional_expr (enum tree_code, tree, 
 					  tsubst_flags_t);
@@ -4141,8 +4141,20 @@ build_x_unary_op (enum tree_code code, tree xarg, tsubst_flags_t complain)
 			/*overloaded_p=*/NULL, complain);
   if (!exp && code == ADDR_EXPR)
     {
-      /*  A pointer to member-function can be formed only by saying
-	  &X::mf.  */
+      if (is_overloaded_fn (xarg))
+	{
+	  tree fn = get_first_fn (xarg);
+	  if (DECL_CONSTRUCTOR_P (fn) || DECL_DESTRUCTOR_P (fn))
+	    {
+	      const char *type =
+		(DECL_CONSTRUCTOR_P (fn) ? "constructor" : "destructor");
+	      error ("taking address of %s %qE", type, xarg);
+	      return error_mark_node;
+	    }
+	}
+
+      /* A pointer to member-function can be formed only by saying
+	 &X::mf.  */
       if (!flag_ms_extensions && TREE_CODE (TREE_TYPE (xarg)) == METHOD_TYPE
 	  && (TREE_CODE (xarg) != OFFSET_REF || !PTRMEM_OK_P (xarg)))
 	{
@@ -6145,12 +6157,14 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
     }
 
   if (modifycode == INIT_EXPR)
+    /* Calls with INIT_EXPR are all direct-initialization, so don't set
+       LOOKUP_ONLYCONVERTING.  */
     newrhs = convert_for_initialization (lhs, olhstype, newrhs, LOOKUP_NORMAL,
 					 "initialization", NULL_TREE, 0,
                                          complain);
   else
     newrhs = convert_for_assignment (olhstype, newrhs, "assignment",
-				     NULL_TREE, 0, complain);
+				     NULL_TREE, 0, complain, LOOKUP_IMPLICIT);
 
   if (!same_type_p (lhstype, olhstype))
     newrhs = cp_convert_and_check (lhstype, newrhs);
@@ -6556,7 +6570,7 @@ delta_from_ptrmemfunc (tree t)
 static tree
 convert_for_assignment (tree type, tree rhs,
 			const char *errtype, tree fndecl, int parmnum,
-			tsubst_flags_t complain)
+			tsubst_flags_t complain, int flags)
 {
   tree rhstype;
   enum tree_code coder;
@@ -6677,7 +6691,8 @@ convert_for_assignment (tree type, tree rhs,
       TREE_NO_WARNING (rhs) = 1;
     }
 
-  return perform_implicit_conversion (strip_top_quals (type), rhs, complain);
+  return perform_implicit_conversion_flags (strip_top_quals (type), rhs,
+					    complain, flags);
 }
 
 /* Convert RHS to be of type TYPE.
@@ -6768,7 +6783,7 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
     return ocp_convert (type, rhs, CONV_IMPLICIT|CONV_FORCE_TEMP, flags);
 
   return convert_for_assignment (type, rhs, errtype, fndecl, parmnum,
-				 complain);
+				 complain, flags);
 }
 
 /* If RETVAL is the address of, or a reference to, a local variable or
