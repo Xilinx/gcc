@@ -11,3 +11,8 @@
 	* decl.c (make_binding_level): Likewise.
 	* class.c (add_method_1): Likewise.
 
+2009-05-07  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* jcf-parse.c (java_parse_file, process_zip_dir): Use typed GC
+	allocation.
+	* java/decl.c (java_dup_lang_specific_decl): Likewise.

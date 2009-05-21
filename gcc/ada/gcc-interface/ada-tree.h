@@ -43,7 +43,7 @@ struct GTY(()) lang_decl { tree t; };
 #define SET_TYPE_LANG_SPECIFIC(NODE, X)	\
   (TYPE_LANG_SPECIFIC (NODE)		\
    = (TYPE_LANG_SPECIFIC (NODE)		\
-      ? TYPE_LANG_SPECIFIC (NODE) : GGC_NEW (struct lang_type)))->t = (X)
+      ? TYPE_LANG_SPECIFIC (NODE) : ggc_alloc_lang_type()))->t = (X)
 
 /* Macros to get and set the tree in DECL_LANG_SPECIFIC.  */
 #define GET_DECL_LANG_SPECIFIC(NODE) \
@@ -52,7 +52,7 @@ struct GTY(()) lang_decl { tree t; };
 #define SET_DECL_LANG_SPECIFIC(NODE, X)	\
   (DECL_LANG_SPECIFIC (NODE)		\
    = (DECL_LANG_SPECIFIC (NODE)		\
-      ? DECL_LANG_SPECIFIC (NODE) : GGC_NEW (struct lang_decl)))->t = (X)
+      ? DECL_LANG_SPECIFIC (NODE) : ggc_alloc_lang_decl()))->t = (X)
 
 
 /* Flags added to type nodes.  */

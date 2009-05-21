@@ -224,7 +224,7 @@ gimple_alloc_stat (enum gimple_code code, unsigned num_ops MEM_STAT_DECL)
   }
 #endif
 
-  stmt = (gimple) ggc_alloc_cleared_stat (size PASS_MEM_STAT);
+  stmt = ggc_alloc_cleared_gimple_statement_d (size);
   gimple_set_code (stmt, code);
   gimple_set_num_ops (stmt, num_ops);
 
@@ -1138,7 +1138,7 @@ gimple_seq_alloc (void)
     }
   else
     {
-      seq = (gimple_seq) ggc_alloc_cleared (sizeof (*seq));
+      seq = ggc_alloc_cleared_gimple_seq_d();
 #ifdef GATHER_STATISTICS
       gimple_alloc_counts[(int) gimple_alloc_kind_seq]++;
       gimple_alloc_sizes[(int) gimple_alloc_kind_seq] += sizeof (*seq);

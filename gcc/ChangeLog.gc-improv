@@ -1,3 +1,10 @@
+2009-05-21  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* tree-phinodes.c (allocate_phi_node): Likewise.
+	* gimple.c (gimple_alloc_stat, gimple_seq_alloc): Likewise.
+	* gimple.h (union gimple_statement_d): Add variable_size GTY
+	marker.
+
 2009-05-17  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* ggc-common.c (ggc_splay_alloc): Add enum gt_types_enum
@@ -28,18 +35,7 @@
 
 2009-05-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
-	* cp/lex.c (cxx_make_type): Use typed GC allocation.
-	* cp/name-lookup.c (begin_scope, push_to_top_level): Likewise.
-	* cp/parser.c (cp_lexer_new_main, cp_lexer_new_from_tokens)
-	(cp_parser_context_new, cp_parser_new)
-	(cp_parser_nested_name_specifier_opt)
-	(cp_parser_template_id): Likewise
-	* cp/decl.c (make_label_decl, start_preparsed_function): Likewise.
-	* fortran/trans-decl.c (gfc_allocate_lang_decl)
-	(gfc_find_module): Likewise.
-	* fortran/trans-types.c (gfc_get_nodesc_array_type)
-	(gfc_get_array_type_bounds): Likewise.
-	* varpool.c (varpool_node): Likewise.
+	* varpool.c (varpool_node): Use typed GC allocation.
 	* cfgrtl.c (init_rtl_bb_info): Likewise.
 	* cfgloop.c (alloc_loop): Likewise.
 	* tree-ssa.c (init_tree_ssa): Likewise.
@@ -56,23 +52,8 @@
 
 	* doc/tm.texi (Per-Function Data): Replace reference to ggc_alloc
 	with GC allocation in general.
-	* cp/name-lookup.c (binding_entry_make): Use typed GC allocation.
-	(binding_table_new): Likewise.
-	(cxx_binding_make): Likewise.
-	(pushdecl_maybe_friend): Likewise.
-	* cp/parser.c (cp_token_cache_new): Likewise.
-	(cp_parser_new): Likewise.
-	* cp/pt.c (add_pending_template): Likewise.
-	(push_tinst_level): Likewise.
-	* cp/typeck2.c (abstract_virtuals_error): Likewise.
-	* cp/decl.c (check_goto): Likewise.
-	(save_function_data): Likewise.
-	* fortran/f95-lang.c (pushlevel): Likewise.
-	* java/jcf-parse.c (java_parse_file): Likewise.
-	(java_parse_file): Likewise.
-	(process_zip_dir): Likewise.
-	* java/decl.c (java_dup_lang_specific_decl): Likewise.
-	* tree-ssanames.c (duplicate_ssa_name_ptr_info): Likewise.
+	* tree-ssanames.c (duplicate_ssa_name_ptr_info): Use typed GC
+	allocation.
 	* c-parser.c (c_parse_file): Likewise.
 	* tree-ssa-structalias.c (heapvar_insert): Likewise.
 	* cfgloop.c (rescan_loop_exit): Likewise.
