@@ -101,10 +101,10 @@ eoshift0 (gfc_array_char * ret, const gfc_array_char * array,
     {
       if (dim == which)
         {
-          roffset = ret->dim[dim].stride * size;
+          roffset = GFC_DESCRIPTOR_STRIDE_BYTES(ret,dim);
           if (roffset == 0)
             roffset = size;
-          soffset = array->dim[dim].stride * size;
+          soffset = GFC_DESCRIPTOR_STRIDE_BYTES(array,dim);
           if (soffset == 0)
             soffset = size;
           len = GFC_DESCRIPTOR_EXTENT(array,dim);

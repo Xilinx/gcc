@@ -76,7 +76,7 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
           if (n == 0)
 	    str = 1;
           else
-            str = retarray->dim[n-1].stride * extent[n-1];
+            str = GFC_DESCRIPTOR_STRIDE(retarray,n-1) * extent[n-1];
 
 	  GFC_DIMENSION_SET(retarray->dim[n], 0, extent[n] - 1, str);
 
@@ -85,7 +85,7 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
       retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
 
-      alloc_size = sizeof (rtype_name) * retarray->dim[rank-1].stride
+      alloc_size = sizeof (rtype_name) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
     		   * extent[rank-1];
 
       if (alloc_size == 0)
@@ -265,13 +265,13 @@ void
           if (n == 0)
             str = 1;
           else
-            str= retarray->dim[n-1].stride * extent[n-1];
+            str= GFC_DESCRIPTOR_STRIDE(retarray,n-1) * extent[n-1];
 
 	  GFC_DIMENSION_SET(retarray->dim[n], 0, extent[n] - 1, str);
 
         }
 
-      alloc_size = sizeof (rtype_name) * retarray->dim[rank-1].stride
+      alloc_size = sizeof (rtype_name) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
     		   * extent[rank-1];
 
       retarray->offset = 0;
@@ -446,7 +446,7 @@ void
           if (n == 0)
             str = 1;
           else
-            str = retarray->dim[n-1].stride * extent[n-1];
+            str = GFC_DESCRIPTOR_STRIDE(retarray,n-1) * extent[n-1];
 
 	  GFC_DIMENSION_SET(retarray->dim[n], 0, extent[n] - 1, str);
 
@@ -455,7 +455,7 @@ void
       retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
 
-      alloc_size = sizeof (rtype_name) * retarray->dim[rank-1].stride
+      alloc_size = sizeof (rtype_name) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
     		   * extent[rank-1];
 
       if (alloc_size == 0)

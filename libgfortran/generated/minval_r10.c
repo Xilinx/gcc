@@ -88,7 +88,7 @@ minval_r10 (gfc_array_r10 * const restrict retarray,
           if (n == 0)
 	    str = 1;
           else
-            str = retarray->dim[n-1].stride * extent[n-1];
+            str = GFC_DESCRIPTOR_STRIDE(retarray,n-1) * extent[n-1];
 
 	  GFC_DIMENSION_SET(retarray->dim[n], 0, extent[n] - 1, str);
 
@@ -97,7 +97,7 @@ minval_r10 (gfc_array_r10 * const restrict retarray,
       retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
 
-      alloc_size = sizeof (GFC_REAL_10) * retarray->dim[rank-1].stride
+      alloc_size = sizeof (GFC_REAL_10) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
     		   * extent[rank-1];
 
       if (alloc_size == 0)
@@ -278,13 +278,13 @@ mminval_r10 (gfc_array_r10 * const restrict retarray,
           if (n == 0)
             str = 1;
           else
-            str= retarray->dim[n-1].stride * extent[n-1];
+            str= GFC_DESCRIPTOR_STRIDE(retarray,n-1) * extent[n-1];
 
 	  GFC_DIMENSION_SET(retarray->dim[n], 0, extent[n] - 1, str);
 
         }
 
-      alloc_size = sizeof (GFC_REAL_10) * retarray->dim[rank-1].stride
+      alloc_size = sizeof (GFC_REAL_10) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
     		   * extent[rank-1];
 
       retarray->offset = 0;
@@ -460,7 +460,7 @@ sminval_r10 (gfc_array_r10 * const restrict retarray,
           if (n == 0)
             str = 1;
           else
-            str = retarray->dim[n-1].stride * extent[n-1];
+            str = GFC_DESCRIPTOR_STRIDE(retarray,n-1) * extent[n-1];
 
 	  GFC_DIMENSION_SET(retarray->dim[n], 0, extent[n] - 1, str);
 
@@ -469,7 +469,7 @@ sminval_r10 (gfc_array_r10 * const restrict retarray,
       retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
 
-      alloc_size = sizeof (GFC_REAL_10) * retarray->dim[rank-1].stride
+      alloc_size = sizeof (GFC_REAL_10) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
     		   * extent[rank-1];
 
       if (alloc_size == 0)
