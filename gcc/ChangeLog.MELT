@@ -1,5 +1,15 @@
 
 2009-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	[Added warning for let binding hiding another one, and corrected
+	code]
+	* melt/warmelt-first.melt: removed useless sbuf binding ...
+	* melt/warmelt-macro.melt (mexpand_letbinding): detecting let
+	bindings which are redefinitions...
+	* melt/warmelt-normal.melt: renamed already bound variables in
+	let.
+	* melt/warmelt-normatch.melt: likewise.
+
+2009-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	[funmatcher-s still incomplete, need to keep the data in the
 	funmatch binding...]
 	* melt/warmelt-macro.melt: added spac_operbind field and filled it

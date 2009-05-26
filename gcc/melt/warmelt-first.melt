@@ -3068,7 +3068,7 @@
 		      (elva (multiple_nth el 1)) )
 		 (let ( (:long nextdepth (get_int nextdepthbox))
 			(:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-			(sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+			)
 
 		   (assert_msg "check sbuf" (is_strbuf sbuf))
 		   (add2sbuf_indentnl sbuf nextdepth)

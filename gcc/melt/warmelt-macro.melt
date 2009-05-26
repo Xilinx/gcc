@@ -3409,6 +3409,26 @@
 	  (setq curarg (pair_head curpair))
 	  (if curarg (error_plain loc "too long letbinding"_))
 	  ))
+    (let ( (prevbind (find_env env var)) )
+      (cond
+       ( (null prevbind) ())
+       ( (is_a prevbind class_let_binding)
+	 (let ( (prevloc (get_field :letbind_loc prevbind)) )
+	   (warning_strv loc
+			 "local let binding hides upper one"
+			 (get_field :named_name var))
+	   (if prevloc
+	       (warning_strv prevloc
+			     "here is the hidden binding" 
+			     (get_field :named_name var)))
+				  
+	   ))
+       ( (is_a prevbind class_fixed_binding)
+	 (warning_strv loc
+		       "local let binding hides definition"
+		       (get_field :named_name var))
+	 )
+       ))
     (let ( (letb
 	    (instance class_src_letbinding
 		      :src_loc loc
