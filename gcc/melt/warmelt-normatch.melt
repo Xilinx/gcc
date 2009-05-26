@@ -377,6 +377,7 @@
     :super class_normtester_any
     :fields (
 	     ntmatch_matcher		;the matcher
+	     ntmatch_matndata		;the marcher's normal data
 	     ;; both inargs & outlocs are normalized
 	     ntmatch_inargs		;its input arguments tuple
 	     ntmatch_outlocs		;its output locals
@@ -873,217 +874,228 @@
     (assert_msg "check matopbind" (is_a matopbind class_any_binding))
     (debug_msg inargs "normpat_anymatchpat inargs")
     (debug_msg mat "normpat_anymatchpat mat")
-    (multicall
-     (nins bindins)
-     (normalize_tuple inargs env ncx sloc)
-     (debug_msg nins "normpat_anymatchpat nins")
-     (debug_msg bindins "normpat_anymatchpat bindins")
-     (if bindins (list_append2list bindlist bindins))
-     (let (
-	   (inmatchs (get_field :amatch_in mat))
-	   (outmatchs (get_field :amatch_out mat))
-	   (matbind (get_field :amatch_matchbind mat))
-	   (outbinds ())
-	   (tester ())
-	   )
-       ;; check compatibility of ctype
-       (if (!= matchctype (get_field :fbind_type matbind))
-	   (progn
-	     (error_strv sloc "unexpected matched type" (get_field :named_name matchctype))
-	     (inform_strv sloc "expecting type in matcher" (get_field :named_name (get_field :fbind_type matbind)))))
-       ;; input args
-       (debug_msg inargs "normpat_anymatchpat inargs")
-       (debug_msg inmatchs "normpat_anymatchpat inmatchs")
-       (let ( (:long nbinargs  (multiple_length inargs)) )
-	 (if (!=i nbinargs (multiple_length inmatchs))
-	     (error_strv 
-	      sloc 
-	      "formal and actual number of input matching arguments differ for anymatch"
-	      (get_field :named_name mat)))
-	 (if (>i nbinargs 0)
-	     (let ( (newenv (fresh_env env)) )
-	       (foreach_in_multiple
-		(nins)
-		(ncurin :long ix)
-		(debug_msg ncurin "normpat_anymatchpat ncurin")
-		(let ( (curmatch (multiple_nth inmatchs ix)) 
-		       (curctype (get_ctype ncurin env))
-		       (matchtype (get_field :fbind_type curmatch))
-		       )
-		  (debug_msg curmatch "normpat_anymatchpat curmatch")
-		  (assert_msg "check curmatch" 
-			      (is_a curmatch class_formal_binding))
-		  (debug_msg curctype "normpat_anymatchpat curctype")
-		  (debug_msg matchtype "normpat_anymatchpat matchtype")
-		  (if (!= curctype matchtype)
-		      (progn
-			(error_strv sloc
-				    "type mismatch for match argument in matcher"
-				    (get_field :named_name mat))
-			(inform_strv sloc
-				     "mismatched formal name in matcher is"
-				     (get_field :named_name (get_field :binder curmatch)))
-			(inform_strv sloc
-				     "mismatched input type is"
-				     (get_field :named_name curctype))
-			(inform_strv sloc
-				     "expected match type is"
-				     (get_field :named_name matchtype))
-			)
-		    (let ( (newb (instance class_normlet_binding
-					   :letbind_loc sloc
-					   :binder (get_field :binder curmatch)
-					   :letbind_type curctype
-					   :letbind_expr ncurin)
-				 )
-			   )
-		      (debug_msg newb "normpat_anymatchpat newb")
-		      (put_env newenv newb)
-		      ))))
-	       (setq env newenv)
-	       (put_fields pcn :pctn_env newenv)
-	       )))
-       ;; output args
-       (debug_msg outargs "normpat_anymatchpat outargs")
-       (debug_msg outmatchs "normpat_anymatchpat outmatchs")
-       (let ( (:long nboutargs (multiple_length outargs)) ) 
-	 (if (!=i nboutargs (multiple_length outmatchs))
-	     (error_strv 
-	      sloc 
-	      "formal and actual number of output matched arguments differ for anymatch"
-	      (get_field :named_name mat)))
-	 (let ( (tstuff (mapobject_get stuffmap nmatch)) 
-	        (curhdler hdler)
-		)
-	   (forever 
-	    loopstuff
-	    (debug_msg tstuff "normpat_anymatchpat tstuff")
-	    (cond 
-	     ((and (is_a tstuff class_normtester_matcher)
-		   (== (get_field :ntmatch_matcher tstuff) mat))
-	      (let ((tinargs (get_field :ntmatch_inargs tstuff)) 
-		    (:long good 1)
-		    )
-		(foreach_in_multiple
-		 (tinargs)
-		 (curinarg :long ix)
-		 (let ( (nthins (multiple_nth nins ix)) )
-		   (if (!= curinarg nthins)
-		       (setq good 0)))
-		 )
-		(if good 
-		    (progn 
-		      (debug_msg tstuff "normpat_anymatchpat good tstuff")
-		      (setq tester tstuff)
-		      (exit loopstuff))
-		  (progn
-		    (setq tstuff (get_field :ntest_else tstuff))
-		    (setq curhdler
-			  (lambda (tester)
-			    (put_fields tstuff :ntest_else tester)
-			    (list_append (get_field :ntest_comefrom tester) tstuff)
-			    ))
-		    ))
-		)
-	      (assert_msg "normpat_anymatchpat incomplete found tstuff" ())
-	      )
-	     ((is_a tstuff class_normtester_any)
-	      (setq tstuff (get_field :ntest_else tstuff))
-	      (setq curhdler
-		    (lambda (tester)
-		      (put_fields tstuff :ntest_else tester)
-		      (list_append (get_field :ntest_comefrom tester) tstuff)
+    (debug_msg matopbind "normpat_anymatchpat matopbind")
+    (let ( 
+	  (matvar (let ( (mv (get_field :binder matopbind)) )
+		    (assert_msg "check matvar's binding"
+				(== (find_env env mv) matopbind))))
+	  ;; we know that matvar is a symbol so its normalization
+	  ;; returns a single value
+	  (matndata (normal_exp matvar env ncx sloc))
+	  )
+      (multicall
+       (nins bindins)
+       (normalize_tuple inargs env ncx sloc)
+       (debug_msg nins "normpat_anymatchpat nins")
+       (debug_msg bindins "normpat_anymatchpat bindins")
+       (if bindins (list_append2list bindlist bindins))
+       (let (
+	     (inmatchs (get_field :amatch_in mat))
+	     (outmatchs (get_field :amatch_out mat))
+	     (matbind (get_field :amatch_matchbind mat))
+	     (outbinds ())
+	     (tester ())
+	     )
+	 ;; check compatibility of ctype
+	 (if (!= matchctype (get_field :fbind_type matbind))
+	     (progn
+	       (error_strv sloc "unexpected matched type" (get_field :named_name matchctype))
+	       (inform_strv sloc "expecting type in matcher" (get_field :named_name (get_field :fbind_type matbind)))))
+	 ;; input args
+	 (debug_msg inargs "normpat_anymatchpat inargs")
+	 (debug_msg inmatchs "normpat_anymatchpat inmatchs")
+	 (let ( (:long nbinargs  (multiple_length inargs)) )
+	   (if (!=i nbinargs (multiple_length inmatchs))
+	       (error_strv 
+		sloc 
+		"formal and actual number of input matching arguments differ for anymatch"
+		(get_field :named_name mat)))
+	   (if (>i nbinargs 0)
+	       (let ( (newenv (fresh_env env)) )
+		 (foreach_in_multiple
+		  (nins)
+		  (ncurin :long ix)
+		  (debug_msg ncurin "normpat_anymatchpat ncurin")
+		  (let ( (curmatch (multiple_nth inmatchs ix)) 
+			 (curctype (get_ctype ncurin env))
+			 (matchtype (get_field :fbind_type curmatch))
+			 )
+		    (debug_msg curmatch "normpat_anymatchpat curmatch")
+		    (assert_msg "check curmatch" 
+				(is_a curmatch class_formal_binding))
+		    (debug_msg curctype "normpat_anymatchpat curctype")
+		    (debug_msg matchtype "normpat_anymatchpat matchtype")
+		    (if (!= curctype matchtype)
+			(progn
+			  (error_strv sloc
+				      "type mismatch for match argument in matcher"
+				      (get_field :named_name mat))
+			  (inform_strv sloc
+				       "mismatched formal name in matcher is"
+				       (get_field :named_name (get_field :binder curmatch)))
+			  (inform_strv sloc
+				       "mismatched input type is"
+				       (get_field :named_name curctype))
+			  (inform_strv sloc
+				       "expected match type is"
+				       (get_field :named_name matchtype))
+			  )
+		      (let ( (newb (instance class_normlet_binding
+					     :letbind_loc sloc
+					     :binder (get_field :binder curmatch)
+					     :letbind_type curctype
+					     :letbind_expr ncurin)
+				   )
+			     )
+			(debug_msg newb "normpat_anymatchpat newb")
+			(put_env newenv newb)
+			))))
+		 (setq env newenv)
+		 (put_fields pcn :pctn_env newenv)
+		 )))
+	 ;; output args
+	 (debug_msg outargs "normpat_anymatchpat outargs")
+	 (debug_msg outmatchs "normpat_anymatchpat outmatchs")
+	 (let ( (:long nboutargs (multiple_length outargs)) ) 
+	   (if (!=i nboutargs (multiple_length outmatchs))
+	       (error_strv 
+		sloc 
+		"formal and actual number of output matched arguments differ for anymatch"
+		(get_field :named_name mat)))
+	   (let ( (tstuff (mapobject_get stuffmap nmatch)) 
+		  (curhdler hdler)
+		  )
+	     (forever 
+	      loopstuff
+	      (debug_msg tstuff "normpat_anymatchpat tstuff")
+	      (cond 
+	       ((and (is_a tstuff class_normtester_matcher)
+		     (== (get_field :ntmatch_matcher tstuff) mat))
+		(let ((tinargs (get_field :ntmatch_inargs tstuff)) 
+		      (:long good 1)
+		      )
+		  (foreach_in_multiple
+		   (tinargs)
+		   (curinarg :long ix)
+		   (let ( (nthins (multiple_nth nins ix)) )
+		     (if (!= curinarg nthins)
+			 (setq good 0)))
+		   )
+		  (if good 
+		      (progn 
+			(debug_msg tstuff "normpat_anymatchpat good tstuff")
+			(setq tester tstuff)
+			(exit loopstuff))
+		    (progn
+		      (setq tstuff (get_field :ntest_else tstuff))
+		      (setq curhdler
+			    (lambda (tester)
+			      (put_fields tstuff :ntest_else tester)
+			      (list_append (get_field :ntest_comefrom tester) tstuff)
+			      ))
 		      ))
-	      )
-	     (:else
-	      (let
-		  ( (outlocs
-		     (multiple_map 
-		      outmatchs
-		      (lambda (curoutmatch :long ix)
-			(debug_msg curoutmatch "normpat_anymatchpat curoutmatch")
-			(assert_msg "check curoutmatch" (is_a curoutmatch class_formal_binding))
-			(let ( (csym (clone_symbol (get_field :binder curoutmatch)))
-			       (curtyp (get_field :fbind_type curoutmatch))
-			       (cbind (instance class_normlet_binding
-						:letbind_loc sloc
-						:binder csym
-						:letbind_type curtyp
-						;; this is really nil,
-						;; the binding should
-						;; be cleared
-						:letbind_expr ()
-						))
-			       (clocc (instance class_nrep_locsymocc
-						:nrep_loc sloc
-						:nocc_ctyp curtyp
-						:nocc_symb csym
-						:nocc_bind cbind))
-			       )
-		 ;; put the clocc in the symbol cache map
-			  (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
-			  clocc
-			  ))))
-		    (newtester 
-		     (instance class_normtester_matcher
-			       :nrep_loc sloc
-			       :ntest_matched nmatch
-			       :ntest_then ()
-			       :ntest_else ()
-			       ;;;; one could imagine having some
-			       ;;;; subclass of cmatcher which add
-			       ;;;; additional local stuff...
-			       :ntest_locclist (multiple_to_list outlocs)
-			       :ntest_comefrom (make_list discr_list)
-			       :ntmatch_matcher mat
-			       :ntmatch_inargs nins
-			       :ntmatch_outlocs outlocs
-			       ))
-		    )
-		(debug_msg newtester "normpat_anymatchpat newtester")
-		(register_new_normtester newtester pcn)
-		(setq tester newtester)
-		(list_append testlist newtester)
-		(curhdler newtester)
-		(exit loopstuff)
-		))
-	     ))
+		  )
+		(assert_msg "normpat_anymatchpat incomplete found tstuff" ())
+		)
+	       ((is_a tstuff class_normtester_any)
+		(setq tstuff (get_field :ntest_else tstuff))
+		(setq curhdler
+		      (lambda (tester)
+			(put_fields tstuff :ntest_else tester)
+			(list_append (get_field :ntest_comefrom tester) tstuff)
+			))
+		)
+	       (:else
+		(let
+		    ( (outlocs
+		       (multiple_map 
+			outmatchs
+			(lambda (curoutmatch :long ix)
+			  (debug_msg curoutmatch "normpat_anymatchpat curoutmatch")
+			  (assert_msg "check curoutmatch" (is_a curoutmatch class_formal_binding))
+			  (let ( (csym (clone_symbol (get_field :binder curoutmatch)))
+				 (curtyp (get_field :fbind_type curoutmatch))
+				 (cbind (instance class_normlet_binding
+						  :letbind_loc sloc
+						  :binder csym
+						  :letbind_type curtyp
+						  ;; this is really nil,
+						  ;; the binding should
+						  ;; be cleared
+						  :letbind_expr ()
+						  ))
+				 (clocc (instance class_nrep_locsymocc
+						  :nrep_loc sloc
+						  :nocc_ctyp curtyp
+						  :nocc_symb csym
+						  :nocc_bind cbind))
+				 )
+			    ;; put the clocc in the symbol cache map
+			    (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
+			    clocc
+			    ))))
+		      (newtester 
+		       (instance class_normtester_matcher
+				 :nrep_loc sloc
+				 :ntest_matched nmatch
+				 :ntest_then ()
+				 :ntest_else ()
+;;;; one could imagine having some
+;;;; subclass of cmatcher which add
+;;;; additional local stuff...
+				 :ntest_locclist (multiple_to_list outlocs)
+				 :ntest_comefrom (make_list discr_list)
+				 :ntmatch_matcher mat
+				 :ntmatch_matndata matndata
+				 :ntmatch_inargs nins
+				 :ntmatch_outlocs outlocs
+				 ))
+		      )
+		  (debug_msg newtester "normpat_anymatchpat newtester")
+		  (register_new_normtester newtester pcn)
+		  (setq tester newtester)
+		  (list_append testlist newtester)
+		  (curhdler newtester)
+		  (exit loopstuff)
+		  ))
+	       ))
+	     )
 	   )
-	 )
-       (debug_msg tester "normpat_anymatchpat got tester")
-       (assert_msg "check tester" (is_a tester class_normtester_matcher))
-       ;;	
-       (let ( (outlocs (get_field :ntmatch_outlocs tester)) )
-	 (debug_msg outlocs "normpat_anymatchpat outlocs from tester")
-	 (debug_msg outargs "normpat_anymatchpat outargs before foreach")
-	 (debug_msg outmatchs "normpat_anymatchpat outmatchs before foreach")
-	 (foreach_in_multiple
-	  (outmatchs)
-	  (curmatch :long ixm)
-	  (messagenum_dbg "normpat_anymatchpat ixm in outmatchs" ixm)
-	  (debug_msg curmatch "normpat_anymatchpat curmatch in foreach")
-	  (let ( (clocc (multiple_nth outlocs ixm)) 
-		 (curout (multiple_nth outargs ixm))
-		 (testercont (instance class_container
-				       :container_value tester))
-		 (subhdler 
-		  ;; put the new tester as the last element of its
-		  ;; ntest_then chain
-		  (lambda (newtester)
+	 (debug_msg tester "normpat_anymatchpat got tester")
+	 (assert_msg "check tester" (is_a tester class_normtester_matcher))
+	 ;;	
+	 (let ( (outlocs (get_field :ntmatch_outlocs tester)) )
+	   (debug_msg outlocs "normpat_anymatchpat outlocs from tester")
+	   (debug_msg outargs "normpat_anymatchpat outargs before foreach")
+	   (debug_msg outmatchs "normpat_anymatchpat outmatchs before foreach")
+	   (foreach_in_multiple
+	    (outmatchs)
+	    (curmatch :long ixm)
+	    (messagenum_dbg "normpat_anymatchpat ixm in outmatchs" ixm)
+	    (debug_msg curmatch "normpat_anymatchpat curmatch in foreach")
+	    (let ( (clocc (multiple_nth outlocs ixm)) 
+		   (curout (multiple_nth outargs ixm))
+		   (testercont (instance class_container
+					 :container_value tester))
+		   (subhdler 
+		    ;; put the new tester as the last element of its
+		    ;; ntest_then chain
+		    (lambda (newtester)
 		      (debug_msg newtester "normpat_anymatchpat newtester")
 		      (set_newtester_lastthen newtester testercont)
-		    ))
-		 )
-	    (debug_msg curout "normpat_anymatchpat curout before normal_pattern")
-	    (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
-	    (normal_pattern curout clocc subhdler pcn)
-	    (debug_msg curmatch "normpat_anymatchpat curout after normal_pattern")
+		      ))
+		   )
+	      (debug_msg curout "normpat_anymatchpat curout before normal_pattern")
+	      (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
+	      (normal_pattern curout clocc subhdler pcn)
+	      (debug_msg curmatch "normpat_anymatchpat curout after normal_pattern")
+	      )
 	    )
-	  )
+	   )
+	 (debug_msg outbinds "normpat_anymatchpat outbinds")
 	 )
-       (debug_msg outbinds "normpat_anymatchpat outbinds")
        )
-     )
+      )
     (if (!= env oldenv)
 	(put_fields pcn :pctn_env oldenv))
     )

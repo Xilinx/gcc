@@ -1,5 +1,14 @@
 
 2009-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	[funmatcher-s still incomplete, ... ]
+	* melt/warmelt-first.melt: renamed binder as binderv to avoid
+	warning in find_env.
+	* melt/warmelt-normatch.melt: added ntmatch_matndata field and
+	filling it in normpat_anymatchpat.
+	* melt/warmelt-genobj.melt: still incomplete
+	compilmatcher_funmatcher - it should generate the test.
+
+2009-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	[Added warning for let binding hiding another one, and corrected
 	code]
 	* melt/warmelt-first.melt: removed useless sbuf binding ...

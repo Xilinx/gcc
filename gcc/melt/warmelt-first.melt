@@ -3599,16 +3599,16 @@
 	(shortbacktrace_dbg "put_env invalid binding" 15)))
   (assert_msg "check binding" (is_a binding class_any_binding))
   (let ( (bindmap (unsafe_get_field :env_bind env)) 
-	 (binder (unsafe_get_field :binder binding))
+	 (binderv (unsafe_get_field :binder binding))
 	 )
     (if (not (is_object binder))
 	(progn
 	  (debug_msg binding "put_env bad binder in binding")
-	  (debug_msg binder "put_env bad binder")
+	  (debug_msg binderv "put_env bad binderv")
 	  (shortbacktrace_dbg "put_env  bad binder in binding" 5)))
     (assert_msg "check bindmap" (is_mapobject bindmap))
-    (assert_msg "check binder" (is_object binder))
-    (mapobject_put bindmap binder binding)
+    (assert_msg "check binderv" (is_object binderv))
+    (mapobject_put bindmap binderv binding)
     ))
 
 ;; overwrite a binding in the environment where it has been already bind
