@@ -1,12 +1,12 @@
-/* GCC BASILYS GENERATED FILE warmelt-normatch-3.c - DO NOT EDIT */
-/* generated on Fri May  8 09:32:18 2009 */
+/* GCC MELT GENERATED FILE warmelt-normatch-3.c - DO NOT EDIT */
+/* generated on 2009 May 26 */
 
 
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* checksum of the gcc executable generating this file: */
 const unsigned char genchecksum_melt[16]=
- { 0x7f, 0xf4, 0x33, 0xdb, 0xc0, 0x79, 0x2e, 0x41,
-    0xff, 0xa5, 0xfe, 0xfb, 0xcd, 0x43, 0x80, 0xef};
+ { 0xee, 0x90, 0x32, 0xd6, 0xdc, 0xc1, 0x49, 0xab,
+    0x3d, 0x2f, 0x83, 0xc3, 0x82, 0x28, 0x46, 0xb8};
 #endif
 
 #include "run-basilys.h"
@@ -4018,11 +4018,11 @@ BASILYS_LOCATION("warmelt-normatch.melt:286:/ block");
   /*_.SOPER__V18*/ curfptr[16] = /*_.LET___V14*/ curfptr[13];;
   BASILYS_LOCATION("warmelt-normatch.melt:294:/ getslot");
   { basilys_ptr_t slot=0;
-   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 4, "SPAC_INARGS");/*_.SINS__V19*/ curfptr[14] = slot; };
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 5, "SPAC_INARGS");/*_.SINS__V19*/ curfptr[14] = slot; };
   ;
   BASILYS_LOCATION("warmelt-normatch.melt:295:/ getslot");
   { basilys_ptr_t slot=0;
-   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 5, "SPAC_OUTARGS");/*_.SOUTS__V20*/ curfptr[15] = slot; };
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 6, "SPAC_OUTARGS");/*_.SOUTS__V20*/ curfptr[15] = slot; };
   ;
   BASILYS_LOCATION("warmelt-normatch.melt:296:/ block");
   /*block*/{
@@ -11981,8 +11981,8 @@ rout_31_NORMPAT_ANYMATCHPAT(basilysclosure_ptr_t closp_, basilys_ptr_t firstargp
   struct basilysclosure_st *clos;
   struct excepth_basilys_st *exh;
   struct callframe_basilys_st *prev;
-#define CURFRAM_NBVARPTR 167
-  void* varptr[167];
+#define CURFRAM_NBVARPTR 168
+  void* varptr[168];
 #define CURFRAM_NBVARNUM 55
   long varnum[55];
 /*others*/
@@ -11992,13 +11992,13 @@ rout_31_NORMPAT_ANYMATCHPAT(basilysclosure_ptr_t closp_, basilys_ptr_t firstargp
    int ix=0;
    framptr_ = (void*)firstargp_;
    gt_ggc_mx_basilys_un (framptr_->clos);
-   for(ix=0; ix<167; ix++)
+   for(ix=0; ix<168; ix++)
     if (framptr_->varptr[ix])
      gt_ggc_mx_basilys_un (framptr_->varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&curfram__, 0, sizeof(curfram__));
- curfram__.nbvar = 167;
+ curfram__.nbvar = 168;
   curfram__.clos = closp_;
  curfram__.prev = (struct callframe_basilys_st *) basilys_topframe;
  basilys_topframe = (struct callframe_basilys_st *) &curfram__;
@@ -12246,11 +12246,11 @@ BASILYS_LOCATION("warmelt-normatch.melt:852:/ block");
   BASILYS_LOCATION("warmelt-normatch.melt:861:/ cond.then");
   BASILYS_LOCATION("warmelt-normatch.melt:861:/ getslot");
    { basilys_ptr_t slot=0;
-    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 4, "SPAC_INARGS");/*_.INARGS__V18*/ curfptr[17] = slot; };
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 4, "SPAC_OPERBIND");/*_.MATBIND__V18*/ curfptr[17] = slot; };
    ;
   } else {BASILYS_LOCATION("warmelt-normatch.melt:861:/ cond.else");
   
-   /*_.INARGS__V18*/ curfptr[17] = NULL;;
+   /*_.MATBIND__V18*/ curfptr[17] = NULL;;
    }
   ;
   BASILYS_LOCATION("warmelt-normatch.melt:862:/ cond");
@@ -12258,645 +12258,618 @@ BASILYS_LOCATION("warmelt-normatch.melt:852:/ block");
   BASILYS_LOCATION("warmelt-normatch.melt:862:/ cond.then");
   BASILYS_LOCATION("warmelt-normatch.melt:862:/ getslot");
    { basilys_ptr_t slot=0;
-    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 5, "SPAC_OUTARGS");/*_.OUTARGS__V19*/ curfptr[18] = slot; };
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 5, "SPAC_INARGS");/*_.INARGS__V19*/ curfptr[18] = slot; };
    ;
   } else {BASILYS_LOCATION("warmelt-normatch.melt:862:/ cond.else");
   
-   /*_.OUTARGS__V19*/ curfptr[18] = NULL;;
+   /*_.INARGS__V19*/ curfptr[18] = NULL;;
    }
   ;
+  BASILYS_LOCATION("warmelt-normatch.melt:863:/ cond");
+  /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SRCPATTERN_COMPOSITE*/ curfrout->tabval[4])))) /*then*/ {
+  BASILYS_LOCATION("warmelt-normatch.melt:863:/ cond.then");
   BASILYS_LOCATION("warmelt-normatch.melt:863:/ getslot");
-  { basilys_ptr_t slot=0;
-   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 2, "PCTN_ENV");/*_.ENV__V20*/ curfptr[19] = slot; };
+   { basilys_ptr_t slot=0;
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 6, "SPAC_OUTARGS");/*_.OUTARGS__V20*/ curfptr[19] = slot; };
+   ;
+  } else {BASILYS_LOCATION("warmelt-normatch.melt:863:/ cond.else");
+  
+   /*_.OUTARGS__V20*/ curfptr[19] = NULL;;
+   }
   ;
-  /*_.OLDENV__V21*/ curfptr[20] = /*_.ENV__V20*/ curfptr[19];;
-  BASILYS_LOCATION("warmelt-normatch.melt:865:/ getslot");
+  BASILYS_LOCATION("warmelt-normatch.melt:864:/ getslot");
   { basilys_ptr_t slot=0;
-   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 0, "PCTN_NORMCTXT");/*_.NCX__V22*/ curfptr[21] = slot; };
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 2, "PCTN_ENV");/*_.ENV__V21*/ curfptr[20] = slot; };
   ;
+  /*_.OLDENV__V22*/ curfptr[21] = /*_.ENV__V21*/ curfptr[20];;
   BASILYS_LOCATION("warmelt-normatch.melt:866:/ getslot");
   { basilys_ptr_t slot=0;
-   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 5, "PCTN_BINDLIST");/*_.BINDLIST__V23*/ curfptr[22] = slot; };
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 0, "PCTN_NORMCTXT");/*_.NCX__V23*/ curfptr[22] = slot; };
   ;
   BASILYS_LOCATION("warmelt-normatch.melt:867:/ getslot");
   { basilys_ptr_t slot=0;
-   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 6, "PCTN_STUFFMAP");/*_.STUFFMAP__V24*/ curfptr[23] = slot; };
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 5, "PCTN_BINDLIST");/*_.BINDLIST__V24*/ curfptr[23] = slot; };
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:868:/ msend");
+  BASILYS_LOCATION("warmelt-normatch.melt:868:/ getslot");
+  { basilys_ptr_t slot=0;
+   basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 6, "PCTN_STUFFMAP");/*_.STUFFMAP__V25*/ curfptr[24] = slot; };
+  ;
+  BASILYS_LOCATION("warmelt-normatch.melt:869:/ msend");
   /*msend*/{
    union basilysparam_un argtab[1];
    memset(&argtab, 0, sizeof(argtab));
-   BASILYS_LOCATION("warmelt-normatch.melt:868:/ ojbmsend.arg");
-   argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V20*/ curfptr[19];
-   /*_.MATCHCTYPE__V25*/ curfptr[24] = basilysgc_send((basilys_ptr_t)(/*_.NMATCH__V3*/ curfptr[2]), (basilys_ptr_t)((/*!GET_CTYPE*/ curfrout->tabval[5])), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+   BASILYS_LOCATION("warmelt-normatch.melt:869:/ ojbmsend.arg");
+   argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V21*/ curfptr[20];
+   /*_.MATCHCTYPE__V26*/ curfptr[25] = basilysgc_send((basilys_ptr_t)(/*_.NMATCH__V3*/ curfptr[2]), (basilys_ptr_t)((/*!GET_CTYPE*/ curfrout->tabval[5])), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:869:/ cond");
+  BASILYS_LOCATION("warmelt-normatch.melt:870:/ cond");
   /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (basilys_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])))) /*then*/ {
-  BASILYS_LOCATION("warmelt-normatch.melt:869:/ cond.then");
-  BASILYS_LOCATION("warmelt-normatch.melt:869:/ getslot");
+  BASILYS_LOCATION("warmelt-normatch.melt:870:/ cond.then");
+  BASILYS_LOCATION("warmelt-normatch.melt:870:/ getslot");
    { basilys_ptr_t slot=0;
-    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 8, "PCTN_TESTS");/*_.TESTLIST__V26*/ curfptr[25] = slot; };
+    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 8, "PCTN_TESTS");/*_.TESTLIST__V27*/ curfptr[26] = slot; };
    ;
-  } else {BASILYS_LOCATION("warmelt-normatch.melt:869:/ cond.else");
+  } else {BASILYS_LOCATION("warmelt-normatch.melt:870:/ cond.else");
   
-   /*_.TESTLIST__V26*/ curfptr[25] = NULL;;
+   /*_.TESTLIST__V27*/ curfptr[26] = NULL;;
    }
   ;
-  
-  #if ENABLE_CHECKING
-   BASILYS_LOCATION("warmelt-normatch.melt:871:/ cppif.then");
-  BASILYS_LOCATION("warmelt-normatch.melt:871:/ block");
-   /*block*/{
-    /*_#IS_A__L6*/ curfnum[0] = 
-      basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])));;
-    BASILYS_LOCATION("warmelt-normatch.melt:871:/ cond");
-    /*cond*/ if (/*_#IS_A__L6*/ curfnum[0]) /*then*/ {
-    BASILYS_LOCATION("warmelt-normatch.melt:871:/ cond.then");
-    /*_.IFELSE___V28*/ curfptr[27] = (/*nil*/NULL);;
-    } else {BASILYS_LOCATION("warmelt-normatch.melt:871:/ cond.else");
-    
-     BASILYS_LOCATION("warmelt-normatch.melt:871:/ block");
-     /*block*/{
-      /*block*/{
-       
-       {
-       BASILYS_LOCATION("warmelt-normatch.melt:871:/ locexp");
-       basilys_assert_failed(( "check mat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(871)?(871):__LINE__, __FUNCTION__);}
-       ;
-       /*clear*/ /*_.IFELSE___V28*/ curfptr[27] = 0 ;}
-      ;
-      /*epilog*/}
-     ;
-     }
-    ;
-    /*_.IFCPP___V27*/ curfptr[26] = /*_.IFELSE___V28*/ curfptr[27];;
-    /*epilog*/
-    BASILYS_LOCATION("warmelt-normatch.melt:871:/ clear");
-    /*clear*/ /*_#IS_A__L6*/ curfnum[0] = 0 ;
-    BASILYS_LOCATION("warmelt-normatch.melt:871:/ clear");
-    /*clear*/ /*_.IFELSE___V28*/ curfptr[27] = 0 ;}
-   
-   #else /*ENABLE_CHECKING*/
-   BASILYS_LOCATION("warmelt-normatch.melt:871:/ cppif.else");
-  /*_.IFCPP___V27*/ curfptr[26] = (/*nil*/NULL);
-   #endif /*ENABLE_CHECKING*/
-   ;
   
   #if ENABLE_CHECKING
    BASILYS_LOCATION("warmelt-normatch.melt:872:/ cppif.then");
   BASILYS_LOCATION("warmelt-normatch.melt:872:/ block");
    /*block*/{
-    /*_#THE_CALLCOUNT__L7*/ curfnum[0] = 
-     callcount;;
-    BASILYS_LOCATION("warmelt-normatch.melt:872:/ apply");
-    /*apply*/{
-     union basilysparam_un argtab[4];
-     memset(&argtab, 0, sizeof(argtab));
-     BASILYS_LOCATION("warmelt-normatch.melt:872:/ apply.arg");
-     argtab[0].bp_cstring =  "normpat_anymatchpat inargs";
-     BASILYS_LOCATION("warmelt-normatch.melt:872:/ apply.arg");
-     argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-normatch.melt:872:/ apply.arg");
-     argtab[2].bp_cstring =  "warmelt-normatch.melt";
-     BASILYS_LOCATION("warmelt-normatch.melt:872:/ apply.arg");
-     argtab[3].bp_long = 872;
-     /*_.DEBUG_MSG_FUN__V30*/ curfptr[29] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.INARGS__V18*/ curfptr[17]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+    /*_#IS_A__L6*/ curfnum[0] = 
+      basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])));;
+    BASILYS_LOCATION("warmelt-normatch.melt:872:/ cond");
+    /*cond*/ if (/*_#IS_A__L6*/ curfnum[0]) /*then*/ {
+    BASILYS_LOCATION("warmelt-normatch.melt:872:/ cond.then");
+    /*_.IFELSE___V29*/ curfptr[28] = (/*nil*/NULL);;
+    } else {BASILYS_LOCATION("warmelt-normatch.melt:872:/ cond.else");
+    
+     BASILYS_LOCATION("warmelt-normatch.melt:872:/ block");
+     /*block*/{
+      /*block*/{
+       
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:872:/ locexp");
+       basilys_assert_failed(( "check mat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(872)?(872):__LINE__, __FUNCTION__);}
+       ;
+       /*clear*/ /*_.IFELSE___V29*/ curfptr[28] = 0 ;}
+      ;
+      /*epilog*/}
+     ;
      }
     ;
-    /*_.IFCPP___V29*/ curfptr[27] = /*_.DEBUG_MSG_FUN__V30*/ curfptr[29];;
+    /*_.IFCPP___V28*/ curfptr[27] = /*_.IFELSE___V29*/ curfptr[28];;
     /*epilog*/
     BASILYS_LOCATION("warmelt-normatch.melt:872:/ clear");
-    /*clear*/ /*_#THE_CALLCOUNT__L7*/ curfnum[0] = 0 ;
+    /*clear*/ /*_#IS_A__L6*/ curfnum[0] = 0 ;
     BASILYS_LOCATION("warmelt-normatch.melt:872:/ clear");
-    /*clear*/ /*_.DEBUG_MSG_FUN__V30*/ curfptr[29] = 0 ;}
+    /*clear*/ /*_.IFELSE___V29*/ curfptr[28] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
    BASILYS_LOCATION("warmelt-normatch.melt:872:/ cppif.else");
-  /*_.IFCPP___V29*/ curfptr[27] = (/*nil*/NULL);
+  /*_.IFCPP___V28*/ curfptr[27] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
   
   #if ENABLE_CHECKING
-   BASILYS_LOCATION("warmelt-normatch.melt:873:/ cppif.then");
-  BASILYS_LOCATION("warmelt-normatch.melt:873:/ block");
+   BASILYS_LOCATION("warmelt-normatch.melt:874:/ cppif.then");
+  BASILYS_LOCATION("warmelt-normatch.melt:874:/ block");
    /*block*/{
-    /*_#THE_CALLCOUNT__L8*/ curfnum[0] = 
+    /*_#THE_CALLCOUNT__L7*/ curfnum[0] = 
      callcount;;
-    BASILYS_LOCATION("warmelt-normatch.melt:873:/ apply");
+    BASILYS_LOCATION("warmelt-normatch.melt:874:/ apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
-     BASILYS_LOCATION("warmelt-normatch.melt:873:/ apply.arg");
-     argtab[0].bp_cstring =  "normpat_anymatchpat mat";
-     BASILYS_LOCATION("warmelt-normatch.melt:873:/ apply.arg");
-     argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ curfnum[0];
-     BASILYS_LOCATION("warmelt-normatch.melt:873:/ apply.arg");
+     BASILYS_LOCATION("warmelt-normatch.melt:874:/ apply.arg");
+     argtab[0].bp_cstring =  "normpat_anymatchpat inargs";
+     BASILYS_LOCATION("warmelt-normatch.melt:874:/ apply.arg");
+     argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ curfnum[0];
+     BASILYS_LOCATION("warmelt-normatch.melt:874:/ apply.arg");
      argtab[2].bp_cstring =  "warmelt-normatch.melt";
-     BASILYS_LOCATION("warmelt-normatch.melt:873:/ apply.arg");
-     argtab[3].bp_long = 873;
-     /*_.DEBUG_MSG_FUN__V32*/ curfptr[31] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+     BASILYS_LOCATION("warmelt-normatch.melt:874:/ apply.arg");
+     argtab[3].bp_long = 874;
+     /*_.DEBUG_MSG_FUN__V31*/ curfptr[30] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.INARGS__V19*/ curfptr[18]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
-    /*_.IFCPP___V31*/ curfptr[29] = /*_.DEBUG_MSG_FUN__V32*/ curfptr[31];;
+    /*_.IFCPP___V30*/ curfptr[28] = /*_.DEBUG_MSG_FUN__V31*/ curfptr[30];;
     /*epilog*/
-    BASILYS_LOCATION("warmelt-normatch.melt:873:/ clear");
-    /*clear*/ /*_#THE_CALLCOUNT__L8*/ curfnum[0] = 0 ;
-    BASILYS_LOCATION("warmelt-normatch.melt:873:/ clear");
-    /*clear*/ /*_.DEBUG_MSG_FUN__V32*/ curfptr[31] = 0 ;}
+    BASILYS_LOCATION("warmelt-normatch.melt:874:/ clear");
+    /*clear*/ /*_#THE_CALLCOUNT__L7*/ curfnum[0] = 0 ;
+    BASILYS_LOCATION("warmelt-normatch.melt:874:/ clear");
+    /*clear*/ /*_.DEBUG_MSG_FUN__V31*/ curfptr[30] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
-   BASILYS_LOCATION("warmelt-normatch.melt:873:/ cppif.else");
-  /*_.IFCPP___V31*/ curfptr[29] = (/*nil*/NULL);
+   BASILYS_LOCATION("warmelt-normatch.melt:874:/ cppif.else");
+  /*_.IFCPP___V30*/ curfptr[28] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
-  BASILYS_LOCATION("warmelt-normatch.melt:874:/ block");
+  
+  #if ENABLE_CHECKING
+   BASILYS_LOCATION("warmelt-normatch.melt:875:/ cppif.then");
+  BASILYS_LOCATION("warmelt-normatch.melt:875:/ block");
+   /*block*/{
+    /*_#THE_CALLCOUNT__L8*/ curfnum[0] = 
+     callcount;;
+    BASILYS_LOCATION("warmelt-normatch.melt:875:/ apply");
+    /*apply*/{
+     union basilysparam_un argtab[4];
+     memset(&argtab, 0, sizeof(argtab));
+     BASILYS_LOCATION("warmelt-normatch.melt:875:/ apply.arg");
+     argtab[0].bp_cstring =  "normpat_anymatchpat mat";
+     BASILYS_LOCATION("warmelt-normatch.melt:875:/ apply.arg");
+     argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ curfnum[0];
+     BASILYS_LOCATION("warmelt-normatch.melt:875:/ apply.arg");
+     argtab[2].bp_cstring =  "warmelt-normatch.melt";
+     BASILYS_LOCATION("warmelt-normatch.melt:875:/ apply.arg");
+     argtab[3].bp_long = 875;
+     /*_.DEBUG_MSG_FUN__V33*/ curfptr[32] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+     }
+    ;
+    /*_.IFCPP___V32*/ curfptr[30] = /*_.DEBUG_MSG_FUN__V33*/ curfptr[32];;
+    /*epilog*/
+    BASILYS_LOCATION("warmelt-normatch.melt:875:/ clear");
+    /*clear*/ /*_#THE_CALLCOUNT__L8*/ curfnum[0] = 0 ;
+    BASILYS_LOCATION("warmelt-normatch.melt:875:/ clear");
+    /*clear*/ /*_.DEBUG_MSG_FUN__V33*/ curfptr[32] = 0 ;}
+   
+   #else /*ENABLE_CHECKING*/
+   BASILYS_LOCATION("warmelt-normatch.melt:875:/ cppif.else");
+  /*_.IFCPP___V32*/ curfptr[30] = (/*nil*/NULL);
+   #endif /*ENABLE_CHECKING*/
+   ;
+  BASILYS_LOCATION("warmelt-normatch.melt:876:/ block");
   /*block*/{
-   BASILYS_LOCATION("warmelt-normatch.melt:874:/ multiapply");
+   BASILYS_LOCATION("warmelt-normatch.melt:876:/ multiapply");
    /*multiapply 4args, 1x.res*/ {
     union basilysparam_un argtab[3];
     
     union basilysparam_un restab[1];
     memset(&restab, 0, sizeof(restab));
     memset(&argtab, 0, sizeof(argtab));
-    BASILYS_LOCATION("warmelt-normatch.melt:874:/ multiapply.arg");
-    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V20*/ curfptr[19];BASILYS_LOCATION("warmelt-normatch.melt:874:/ multiapply.arg");
-    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V22*/ curfptr[21];BASILYS_LOCATION("warmelt-normatch.melt:874:/ multiapply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:876:/ multiapply.arg");
+    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V21*/ curfptr[20];BASILYS_LOCATION("warmelt-normatch.melt:876:/ multiapply.arg");
+    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V23*/ curfptr[22];BASILYS_LOCATION("warmelt-normatch.melt:876:/ multiapply.arg");
     argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.SLOC__V16*/ curfptr[14];
-    BASILYS_LOCATION("warmelt-normatch.melt:874:/ multiapply.xres");
-    restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDINS__V35*/ curfptr[34];
-    BASILYS_LOCATION("warmelt-normatch.melt:874:/ multiapply.appl");
-    /*_.NINS__V34*/ curfptr[33] =  basilys_apply ((basilysclosure_ptr_t)((/*!NORMALIZE_TUPLE*/ curfrout->tabval[7])), (basilys_ptr_t)(/*_.INARGS__V18*/ curfptr[17]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
+    BASILYS_LOCATION("warmelt-normatch.melt:876:/ multiapply.xres");
+    restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDINS__V36*/ curfptr[35];
+    BASILYS_LOCATION("warmelt-normatch.melt:876:/ multiapply.appl");
+    /*_.NINS__V35*/ curfptr[34] =  basilys_apply ((basilysclosure_ptr_t)((/*!NORMALIZE_TUPLE*/ curfrout->tabval[7])), (basilys_ptr_t)(/*_.INARGS__V19*/ curfptr[18]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
     }
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:874:/ block");
+   BASILYS_LOCATION("warmelt-normatch.melt:876:/ block");
    /*block*/{
     
     #if ENABLE_CHECKING
-     BASILYS_LOCATION("warmelt-normatch.melt:877:/ cppif.then");
-    BASILYS_LOCATION("warmelt-normatch.melt:877:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:879:/ cppif.then");
+    BASILYS_LOCATION("warmelt-normatch.melt:879:/ block");
      /*block*/{
       /*_#THE_CALLCOUNT__L9*/ curfnum[0] = 
        callcount;;
-      BASILYS_LOCATION("warmelt-normatch.melt:877:/ apply");
+      BASILYS_LOCATION("warmelt-normatch.melt:879:/ apply");
       /*apply*/{
        union basilysparam_un argtab[4];
        memset(&argtab, 0, sizeof(argtab));
-       BASILYS_LOCATION("warmelt-normatch.melt:877:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:879:/ apply.arg");
        argtab[0].bp_cstring =  "normpat_anymatchpat nins";
-       BASILYS_LOCATION("warmelt-normatch.melt:877:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:879:/ apply.arg");
        argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ curfnum[0];
-       BASILYS_LOCATION("warmelt-normatch.melt:877:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:879:/ apply.arg");
        argtab[2].bp_cstring =  "warmelt-normatch.melt";
-       BASILYS_LOCATION("warmelt-normatch.melt:877:/ apply.arg");
-       argtab[3].bp_long = 877;
-       /*_.DEBUG_MSG_FUN__V37*/ curfptr[36] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NINS__V34*/ curfptr[33]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+       BASILYS_LOCATION("warmelt-normatch.melt:879:/ apply.arg");
+       argtab[3].bp_long = 879;
+       /*_.DEBUG_MSG_FUN__V38*/ curfptr[37] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NINS__V35*/ curfptr[34]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
        }
       ;
-      /*_.IFCPP___V36*/ curfptr[35] = /*_.DEBUG_MSG_FUN__V37*/ curfptr[36];;
+      /*_.IFCPP___V37*/ curfptr[36] = /*_.DEBUG_MSG_FUN__V38*/ curfptr[37];;
       /*epilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:877:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:879:/ clear");
       /*clear*/ /*_#THE_CALLCOUNT__L9*/ curfnum[0] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:877:/ clear");
-      /*clear*/ /*_.DEBUG_MSG_FUN__V37*/ curfptr[36] = 0 ;}
+      BASILYS_LOCATION("warmelt-normatch.melt:879:/ clear");
+      /*clear*/ /*_.DEBUG_MSG_FUN__V38*/ curfptr[37] = 0 ;}
      
      #else /*ENABLE_CHECKING*/
-     BASILYS_LOCATION("warmelt-normatch.melt:877:/ cppif.else");
-    /*_.IFCPP___V36*/ curfptr[35] = (/*nil*/NULL);
+     BASILYS_LOCATION("warmelt-normatch.melt:879:/ cppif.else");
+    /*_.IFCPP___V37*/ curfptr[36] = (/*nil*/NULL);
      #endif /*ENABLE_CHECKING*/
      ;
     
     #if ENABLE_CHECKING
-     BASILYS_LOCATION("warmelt-normatch.melt:878:/ cppif.then");
-    BASILYS_LOCATION("warmelt-normatch.melt:878:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:880:/ cppif.then");
+    BASILYS_LOCATION("warmelt-normatch.melt:880:/ block");
      /*block*/{
       /*_#THE_CALLCOUNT__L10*/ curfnum[0] = 
        callcount;;
-      BASILYS_LOCATION("warmelt-normatch.melt:878:/ apply");
+      BASILYS_LOCATION("warmelt-normatch.melt:880:/ apply");
       /*apply*/{
        union basilysparam_un argtab[4];
        memset(&argtab, 0, sizeof(argtab));
-       BASILYS_LOCATION("warmelt-normatch.melt:878:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:880:/ apply.arg");
        argtab[0].bp_cstring =  "normpat_anymatchpat bindins";
-       BASILYS_LOCATION("warmelt-normatch.melt:878:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:880:/ apply.arg");
        argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ curfnum[0];
-       BASILYS_LOCATION("warmelt-normatch.melt:878:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:880:/ apply.arg");
        argtab[2].bp_cstring =  "warmelt-normatch.melt";
-       BASILYS_LOCATION("warmelt-normatch.melt:878:/ apply.arg");
-       argtab[3].bp_long = 878;
-       /*_.DEBUG_MSG_FUN__V39*/ curfptr[38] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.BINDINS__V35*/ curfptr[34]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+       BASILYS_LOCATION("warmelt-normatch.melt:880:/ apply.arg");
+       argtab[3].bp_long = 880;
+       /*_.DEBUG_MSG_FUN__V40*/ curfptr[39] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.BINDINS__V36*/ curfptr[35]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
        }
       ;
-      /*_.IFCPP___V38*/ curfptr[36] = /*_.DEBUG_MSG_FUN__V39*/ curfptr[38];;
+      /*_.IFCPP___V39*/ curfptr[37] = /*_.DEBUG_MSG_FUN__V40*/ curfptr[39];;
       /*epilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:878:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
       /*clear*/ /*_#THE_CALLCOUNT__L10*/ curfnum[0] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:878:/ clear");
-      /*clear*/ /*_.DEBUG_MSG_FUN__V39*/ curfptr[38] = 0 ;}
+      BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
+      /*clear*/ /*_.DEBUG_MSG_FUN__V40*/ curfptr[39] = 0 ;}
      
      #else /*ENABLE_CHECKING*/
-     BASILYS_LOCATION("warmelt-normatch.melt:878:/ cppif.else");
-    /*_.IFCPP___V38*/ curfptr[36] = (/*nil*/NULL);
+     BASILYS_LOCATION("warmelt-normatch.melt:880:/ cppif.else");
+    /*_.IFCPP___V39*/ curfptr[37] = (/*nil*/NULL);
      #endif /*ENABLE_CHECKING*/
      ;
-    BASILYS_LOCATION("warmelt-normatch.melt:879:/ cond");
-    /*cond*/ if (/*_.BINDINS__V35*/ curfptr[34]) /*then*/ {
-    BASILYS_LOCATION("warmelt-normatch.melt:879:/ cond.then");
-    BASILYS_LOCATION("warmelt-normatch.melt:879:/ block");
+    BASILYS_LOCATION("warmelt-normatch.melt:881:/ cond");
+    /*cond*/ if (/*_.BINDINS__V36*/ curfptr[35]) /*then*/ {
+    BASILYS_LOCATION("warmelt-normatch.melt:881:/ cond.then");
+    BASILYS_LOCATION("warmelt-normatch.melt:881:/ block");
      /*block*/{
-      BASILYS_LOCATION("warmelt-normatch.melt:879:/ apply");
+      BASILYS_LOCATION("warmelt-normatch.melt:881:/ apply");
       /*apply*/{
        union basilysparam_un argtab[1];
        memset(&argtab, 0, sizeof(argtab));
-       BASILYS_LOCATION("warmelt-normatch.melt:879:/ apply.arg");
-       argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDINS__V35*/ curfptr[34];
-       /*_.LIST_APPEND2LIST__V41*/ curfptr[40] =  basilys_apply ((basilysclosure_ptr_t)((/*!LIST_APPEND2LIST*/ curfrout->tabval[8])), (basilys_ptr_t)(/*_.BINDLIST__V23*/ curfptr[22]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+       BASILYS_LOCATION("warmelt-normatch.melt:881:/ apply.arg");
+       argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDINS__V36*/ curfptr[35];
+       /*_.LIST_APPEND2LIST__V42*/ curfptr[41] =  basilys_apply ((basilysclosure_ptr_t)((/*!LIST_APPEND2LIST*/ curfrout->tabval[8])), (basilys_ptr_t)(/*_.BINDLIST__V24*/ curfptr[23]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
        }
       ;
-      /*_.IF___V40*/ curfptr[38] = /*_.LIST_APPEND2LIST__V41*/ curfptr[40];;
+      /*_.IF___V41*/ curfptr[39] = /*_.LIST_APPEND2LIST__V42*/ curfptr[41];;
       /*epilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:879:/ clear");
-      /*clear*/ /*_.LIST_APPEND2LIST__V41*/ curfptr[40] = 0 ;}
+      BASILYS_LOCATION("warmelt-normatch.melt:881:/ clear");
+      /*clear*/ /*_.LIST_APPEND2LIST__V42*/ curfptr[41] = 0 ;}
      ;
-    } else {BASILYS_LOCATION("warmelt-normatch.melt:879:/ cond.else");
+    } else {BASILYS_LOCATION("warmelt-normatch.melt:881:/ cond.else");
     
-     /*_.IF___V40*/ curfptr[38] = NULL;;
+     /*_.IF___V41*/ curfptr[39] = NULL;;
      }
     ;
-    BASILYS_LOCATION("warmelt-normatch.melt:880:/ block");
+    BASILYS_LOCATION("warmelt-normatch.melt:882:/ block");
     /*block*/{
-     BASILYS_LOCATION("warmelt-normatch.melt:881:/ cond");
-     /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])))) /*then*/ {
-     BASILYS_LOCATION("warmelt-normatch.melt:881:/ cond.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:881:/ getslot");
-      { basilys_ptr_t slot=0;
-       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 2, "AMATCH_IN");/*_.INMATCHS__V43*/ curfptr[42] = slot; };
-      ;
-     } else {BASILYS_LOCATION("warmelt-normatch.melt:881:/ cond.else");
-     
-      /*_.INMATCHS__V43*/ curfptr[42] = NULL;;
-      }
-     ;
-     BASILYS_LOCATION("warmelt-normatch.melt:882:/ cond");
-     /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])))) /*then*/ {
-     BASILYS_LOCATION("warmelt-normatch.melt:882:/ cond.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:882:/ getslot");
-      { basilys_ptr_t slot=0;
-       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 4, "AMATCH_OUT");/*_.OUTMATCHS__V44*/ curfptr[43] = slot; };
-      ;
-     } else {BASILYS_LOCATION("warmelt-normatch.melt:882:/ cond.else");
-     
-      /*_.OUTMATCHS__V44*/ curfptr[43] = NULL;;
-      }
-     ;
      BASILYS_LOCATION("warmelt-normatch.melt:883:/ cond");
      /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])))) /*then*/ {
      BASILYS_LOCATION("warmelt-normatch.melt:883:/ cond.then");
      BASILYS_LOCATION("warmelt-normatch.melt:883:/ getslot");
       { basilys_ptr_t slot=0;
-       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 3, "AMATCH_MATCHBIND");/*_.MATBIND__V45*/ curfptr[44] = slot; };
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 2, "AMATCH_IN");/*_.INMATCHS__V44*/ curfptr[43] = slot; };
       ;
      } else {BASILYS_LOCATION("warmelt-normatch.melt:883:/ cond.else");
      
-      /*_.MATBIND__V45*/ curfptr[44] = NULL;;
+      /*_.INMATCHS__V44*/ curfptr[43] = NULL;;
       }
      ;
-     /*_.OUTBINDS__V46*/ curfptr[45] = (/*nil*/NULL);;
-     /*_.TESTER__V47*/ curfptr[46] = (/*nil*/NULL);;
-     BASILYS_LOCATION("warmelt-normatch.melt:888:/ cond");
-     /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATBIND__V45*/ curfptr[44]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])))) /*then*/ {
-     BASILYS_LOCATION("warmelt-normatch.melt:888:/ cond.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:888:/ getslot");
+     BASILYS_LOCATION("warmelt-normatch.melt:884:/ cond");
+     /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])))) /*then*/ {
+     BASILYS_LOCATION("warmelt-normatch.melt:884:/ cond.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:884:/ getslot");
       { basilys_ptr_t slot=0;
-       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATBIND__V45*/ curfptr[44]), 1, "FBIND_TYPE");/*_.FBIND_TYPE__V48*/ curfptr[47] = slot; };
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 4, "AMATCH_OUT");/*_.OUTMATCHS__V45*/ curfptr[44] = slot; };
       ;
-     } else {BASILYS_LOCATION("warmelt-normatch.melt:888:/ cond.else");
+     } else {BASILYS_LOCATION("warmelt-normatch.melt:884:/ cond.else");
      
-      /*_.FBIND_TYPE__V48*/ curfptr[47] = NULL;;
+      /*_.OUTMATCHS__V45*/ curfptr[44] = NULL;;
+      }
+     ;
+     BASILYS_LOCATION("warmelt-normatch.melt:885:/ cond");
+     /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])))) /*then*/ {
+     BASILYS_LOCATION("warmelt-normatch.melt:885:/ cond.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:885:/ getslot");
+      { basilys_ptr_t slot=0;
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 3, "AMATCH_MATCHBIND");/*_.MATBIND__V46*/ curfptr[45] = slot; };
+      ;
+     } else {BASILYS_LOCATION("warmelt-normatch.melt:885:/ cond.else");
+     
+      /*_.MATBIND__V46*/ curfptr[45] = NULL;;
+      }
+     ;
+     /*_.OUTBINDS__V47*/ curfptr[46] = (/*nil*/NULL);;
+     /*_.TESTER__V48*/ curfptr[47] = (/*nil*/NULL);;
+     BASILYS_LOCATION("warmelt-normatch.melt:890:/ cond");
+     /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATBIND__V46*/ curfptr[45]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])))) /*then*/ {
+     BASILYS_LOCATION("warmelt-normatch.melt:890:/ cond.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:890:/ getslot");
+      { basilys_ptr_t slot=0;
+       basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATBIND__V46*/ curfptr[45]), 1, "FBIND_TYPE");/*_.FBIND_TYPE__V49*/ curfptr[48] = slot; };
+      ;
+     } else {BASILYS_LOCATION("warmelt-normatch.melt:890:/ cond.else");
+     
+      /*_.FBIND_TYPE__V49*/ curfptr[48] = NULL;;
       }
      ;
      /*_#__L11*/ curfnum[0] = 
-      ((/*_.MATCHCTYPE__V25*/ curfptr[24]) != (/*_.FBIND_TYPE__V48*/ curfptr[47]));;
-     BASILYS_LOCATION("warmelt-normatch.melt:888:/ cond");
+      ((/*_.MATCHCTYPE__V26*/ curfptr[25]) != (/*_.FBIND_TYPE__V49*/ curfptr[48]));;
+     BASILYS_LOCATION("warmelt-normatch.melt:890:/ cond");
      /*cond*/ if (/*_#__L11*/ curfnum[0]) /*then*/ {
-     BASILYS_LOCATION("warmelt-normatch.melt:888:/ cond.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:888:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:890:/ cond.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:890:/ block");
       /*block*/{
-       BASILYS_LOCATION("warmelt-normatch.melt:890:/ cond");
-       /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATCHCTYPE__V25*/ curfptr[24]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
-       BASILYS_LOCATION("warmelt-normatch.melt:890:/ cond.then");
-       BASILYS_LOCATION("warmelt-normatch.melt:890:/ getslot");
+       BASILYS_LOCATION("warmelt-normatch.melt:892:/ cond");
+       /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATCHCTYPE__V26*/ curfptr[25]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
+       BASILYS_LOCATION("warmelt-normatch.melt:892:/ cond.then");
+       BASILYS_LOCATION("warmelt-normatch.melt:892:/ getslot");
         { basilys_ptr_t slot=0;
-         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATCHCTYPE__V25*/ curfptr[24]), 1, "NAMED_NAME");/*_.NAMED_NAME__V49*/ curfptr[48] = slot; };
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATCHCTYPE__V26*/ curfptr[25]), 1, "NAMED_NAME");/*_.NAMED_NAME__V50*/ curfptr[49] = slot; };
         ;
-       } else {BASILYS_LOCATION("warmelt-normatch.melt:890:/ cond.else");
+       } else {BASILYS_LOCATION("warmelt-normatch.melt:892:/ cond.else");
        
-        /*_.NAMED_NAME__V49*/ curfptr[48] = NULL;;
+        /*_.NAMED_NAME__V50*/ curfptr[49] = NULL;;
         }
        ;
        
        {
-       BASILYS_LOCATION("warmelt-normatch.melt:890:/ locexp");
-       basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "unexpected matched type"), (basilys_ptr_t)(/*_.NAMED_NAME__V49*/ curfptr[48]));}
+       BASILYS_LOCATION("warmelt-normatch.melt:892:/ locexp");
+       basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "unexpected matched type"), (basilys_ptr_t)(/*_.NAMED_NAME__V50*/ curfptr[49]));}
        ;
-       BASILYS_LOCATION("warmelt-normatch.melt:891:/ cond");
-       /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATBIND__V45*/ curfptr[44]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])))) /*then*/ {
-       BASILYS_LOCATION("warmelt-normatch.melt:891:/ cond.then");
-       BASILYS_LOCATION("warmelt-normatch.melt:891:/ getslot");
+       BASILYS_LOCATION("warmelt-normatch.melt:893:/ cond");
+       /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATBIND__V46*/ curfptr[45]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])))) /*then*/ {
+       BASILYS_LOCATION("warmelt-normatch.melt:893:/ cond.then");
+       BASILYS_LOCATION("warmelt-normatch.melt:893:/ getslot");
         { basilys_ptr_t slot=0;
-         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATBIND__V45*/ curfptr[44]), 1, "FBIND_TYPE");/*_.FBIND_TYPE__V50*/ curfptr[49] = slot; };
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATBIND__V46*/ curfptr[45]), 1, "FBIND_TYPE");/*_.FBIND_TYPE__V51*/ curfptr[50] = slot; };
         ;
-       } else {BASILYS_LOCATION("warmelt-normatch.melt:891:/ cond.else");
+       } else {BASILYS_LOCATION("warmelt-normatch.melt:893:/ cond.else");
        
-        /*_.FBIND_TYPE__V50*/ curfptr[49] = NULL;;
+        /*_.FBIND_TYPE__V51*/ curfptr[50] = NULL;;
         }
        ;
-       BASILYS_LOCATION("warmelt-normatch.melt:891:/ cond");
-       /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.FBIND_TYPE__V50*/ curfptr[49]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
-       BASILYS_LOCATION("warmelt-normatch.melt:891:/ cond.then");
-       BASILYS_LOCATION("warmelt-normatch.melt:891:/ getslot");
+       BASILYS_LOCATION("warmelt-normatch.melt:893:/ cond");
+       /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.FBIND_TYPE__V51*/ curfptr[50]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
+       BASILYS_LOCATION("warmelt-normatch.melt:893:/ cond.then");
+       BASILYS_LOCATION("warmelt-normatch.melt:893:/ getslot");
         { basilys_ptr_t slot=0;
-         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.FBIND_TYPE__V50*/ curfptr[49]), 1, "NAMED_NAME");/*_.NAMED_NAME__V51*/ curfptr[50] = slot; };
+         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.FBIND_TYPE__V51*/ curfptr[50]), 1, "NAMED_NAME");/*_.NAMED_NAME__V52*/ curfptr[51] = slot; };
         ;
-       } else {BASILYS_LOCATION("warmelt-normatch.melt:891:/ cond.else");
+       } else {BASILYS_LOCATION("warmelt-normatch.melt:893:/ cond.else");
        
-        /*_.NAMED_NAME__V51*/ curfptr[50] = NULL;;
+        /*_.NAMED_NAME__V52*/ curfptr[51] = NULL;;
         }
        ;
        
        {
-       BASILYS_LOCATION("warmelt-normatch.melt:891:/ locexp");
-       basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "expecting type in matcher"), (basilys_ptr_t)(/*_.NAMED_NAME__V51*/ curfptr[50]));}
+       BASILYS_LOCATION("warmelt-normatch.melt:893:/ locexp");
+       basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "expecting type in matcher"), (basilys_ptr_t)(/*_.NAMED_NAME__V52*/ curfptr[51]));}
        ;
-       BASILYS_LOCATION("warmelt-normatch.melt:889:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:891:/ block");
        /*block*/{}
        ;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:888:/ clear");
-       /*clear*/ /*_.NAMED_NAME__V49*/ curfptr[48] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:888:/ clear");
-       /*clear*/ /*_.FBIND_TYPE__V50*/ curfptr[49] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:888:/ clear");
-       /*clear*/ /*_.NAMED_NAME__V51*/ curfptr[50] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:890:/ clear");
+       /*clear*/ /*_.NAMED_NAME__V50*/ curfptr[49] = 0 ;
+       BASILYS_LOCATION("warmelt-normatch.melt:890:/ clear");
+       /*clear*/ /*_.FBIND_TYPE__V51*/ curfptr[50] = 0 ;
+       BASILYS_LOCATION("warmelt-normatch.melt:890:/ clear");
+       /*clear*/ /*_.NAMED_NAME__V52*/ curfptr[51] = 0 ;}
       ;
      } /*noelse*/
      ;
      
      #if ENABLE_CHECKING
-      BASILYS_LOCATION("warmelt-normatch.melt:893:/ cppif.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:893:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:895:/ cppif.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:895:/ block");
       /*block*/{
        /*_#THE_CALLCOUNT__L12*/ curfnum[11] = 
         callcount;;
-       BASILYS_LOCATION("warmelt-normatch.melt:893:/ apply");
+       BASILYS_LOCATION("warmelt-normatch.melt:895:/ apply");
        /*apply*/{
         union basilysparam_un argtab[4];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:893:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:895:/ apply.arg");
         argtab[0].bp_cstring =  "normpat_anymatchpat inargs";
-        BASILYS_LOCATION("warmelt-normatch.melt:893:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:895:/ apply.arg");
         argtab[1].bp_long = /*_#THE_CALLCOUNT__L12*/ curfnum[11];
-        BASILYS_LOCATION("warmelt-normatch.melt:893:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:895:/ apply.arg");
         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-        BASILYS_LOCATION("warmelt-normatch.melt:893:/ apply.arg");
-        argtab[3].bp_long = 893;
-        /*_.DEBUG_MSG_FUN__V53*/ curfptr[49] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.INARGS__V18*/ curfptr[17]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        BASILYS_LOCATION("warmelt-normatch.melt:895:/ apply.arg");
+        argtab[3].bp_long = 895;
+        /*_.DEBUG_MSG_FUN__V54*/ curfptr[50] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.INARGS__V19*/ curfptr[18]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
-       /*_.IFCPP___V52*/ curfptr[48] = /*_.DEBUG_MSG_FUN__V53*/ curfptr[49];;
+       /*_.IFCPP___V53*/ curfptr[49] = /*_.DEBUG_MSG_FUN__V54*/ curfptr[50];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:893:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:895:/ clear");
        /*clear*/ /*_#THE_CALLCOUNT__L12*/ curfnum[11] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:893:/ clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V53*/ curfptr[49] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:895:/ clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V54*/ curfptr[50] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
-      BASILYS_LOCATION("warmelt-normatch.melt:893:/ cppif.else");
-     /*_.IFCPP___V52*/ curfptr[48] = (/*nil*/NULL);
+      BASILYS_LOCATION("warmelt-normatch.melt:895:/ cppif.else");
+     /*_.IFCPP___V53*/ curfptr[49] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
      
      #if ENABLE_CHECKING
-      BASILYS_LOCATION("warmelt-normatch.melt:894:/ cppif.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:894:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:896:/ cppif.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:896:/ block");
       /*block*/{
        /*_#THE_CALLCOUNT__L13*/ curfnum[11] = 
         callcount;;
-       BASILYS_LOCATION("warmelt-normatch.melt:894:/ apply");
+       BASILYS_LOCATION("warmelt-normatch.melt:896:/ apply");
        /*apply*/{
         union basilysparam_un argtab[4];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:894:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:896:/ apply.arg");
         argtab[0].bp_cstring =  "normpat_anymatchpat inmatchs";
-        BASILYS_LOCATION("warmelt-normatch.melt:894:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:896:/ apply.arg");
         argtab[1].bp_long = /*_#THE_CALLCOUNT__L13*/ curfnum[11];
-        BASILYS_LOCATION("warmelt-normatch.melt:894:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:896:/ apply.arg");
         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-        BASILYS_LOCATION("warmelt-normatch.melt:894:/ apply.arg");
-        argtab[3].bp_long = 894;
-        /*_.DEBUG_MSG_FUN__V55*/ curfptr[49] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.INMATCHS__V43*/ curfptr[42]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        BASILYS_LOCATION("warmelt-normatch.melt:896:/ apply.arg");
+        argtab[3].bp_long = 896;
+        /*_.DEBUG_MSG_FUN__V56*/ curfptr[50] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.INMATCHS__V44*/ curfptr[43]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
-       /*_.IFCPP___V54*/ curfptr[50] = /*_.DEBUG_MSG_FUN__V55*/ curfptr[49];;
+       /*_.IFCPP___V55*/ curfptr[51] = /*_.DEBUG_MSG_FUN__V56*/ curfptr[50];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:894:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:896:/ clear");
        /*clear*/ /*_#THE_CALLCOUNT__L13*/ curfnum[11] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:894:/ clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V55*/ curfptr[49] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:896:/ clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V56*/ curfptr[50] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
-      BASILYS_LOCATION("warmelt-normatch.melt:894:/ cppif.else");
-     /*_.IFCPP___V54*/ curfptr[50] = (/*nil*/NULL);
+      BASILYS_LOCATION("warmelt-normatch.melt:896:/ cppif.else");
+     /*_.IFCPP___V55*/ curfptr[51] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
-     BASILYS_LOCATION("warmelt-normatch.melt:895:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:897:/ block");
      /*block*/{
       /*_#NBINARGS__L14*/ curfnum[11] = 
-       (basilys_multiple_length((basilys_ptr_t)(/*_.INARGS__V18*/ curfptr[17])));;
+       (basilys_multiple_length((basilys_ptr_t)(/*_.INARGS__V19*/ curfptr[18])));;
       /*_#MULTIPLE_LENGTH__L15*/ curfnum[14] = 
-       (basilys_multiple_length((basilys_ptr_t)(/*_.INMATCHS__V43*/ curfptr[42])));;
+       (basilys_multiple_length((basilys_ptr_t)(/*_.INMATCHS__V44*/ curfptr[43])));;
       /*_#I__L16*/ curfnum[15] = 
        ((/*_#NBINARGS__L14*/ curfnum[11]) != (/*_#MULTIPLE_LENGTH__L15*/ curfnum[14]));;
-      BASILYS_LOCATION("warmelt-normatch.melt:896:/ cond");
+      BASILYS_LOCATION("warmelt-normatch.melt:898:/ cond");
       /*cond*/ if (/*_#I__L16*/ curfnum[15]) /*then*/ {
-      BASILYS_LOCATION("warmelt-normatch.melt:896:/ cond.then");
-      BASILYS_LOCATION("warmelt-normatch.melt:896:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:898:/ cond.then");
+      BASILYS_LOCATION("warmelt-normatch.melt:898:/ block");
        /*block*/{
-        BASILYS_LOCATION("warmelt-normatch.melt:900:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:902:/ cond");
         /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:900:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:900:/ getslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:902:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:902:/ getslot");
          { basilys_ptr_t slot=0;
-          basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 1, "NAMED_NAME");/*_.NAMED_NAME__V56*/ curfptr[49] = slot; };
+          basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 1, "NAMED_NAME");/*_.NAMED_NAME__V57*/ curfptr[50] = slot; };
          ;
-        } else {BASILYS_LOCATION("warmelt-normatch.melt:900:/ cond.else");
+        } else {BASILYS_LOCATION("warmelt-normatch.melt:902:/ cond.else");
         
-         /*_.NAMED_NAME__V56*/ curfptr[49] = NULL;;
+         /*_.NAMED_NAME__V57*/ curfptr[50] = NULL;;
          }
         ;
         
         {
-        BASILYS_LOCATION("warmelt-normatch.melt:897:/ locexp");
-        basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "formal and actual number of input matching arguments differ for anymatch"), (basilys_ptr_t)(/*_.NAMED_NAME__V56*/ curfptr[49]));}
+        BASILYS_LOCATION("warmelt-normatch.melt:899:/ locexp");
+        basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "formal and actual number of input matching arguments differ for anymatch"), (basilys_ptr_t)(/*_.NAMED_NAME__V57*/ curfptr[50]));}
         ;
         /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:896:/ clear");
-        /*clear*/ /*_.NAMED_NAME__V56*/ curfptr[49] = 0 ;}
+        BASILYS_LOCATION("warmelt-normatch.melt:898:/ clear");
+        /*clear*/ /*_.NAMED_NAME__V57*/ curfptr[50] = 0 ;}
        ;
       } /*noelse*/
       ;
       /*_#I__L17*/ curfnum[16] = 
        ((/*_#NBINARGS__L14*/ curfnum[11]) > (0));;
-      BASILYS_LOCATION("warmelt-normatch.melt:901:/ cond");
+      BASILYS_LOCATION("warmelt-normatch.melt:903:/ cond");
       /*cond*/ if (/*_#I__L17*/ curfnum[16]) /*then*/ {
-      BASILYS_LOCATION("warmelt-normatch.melt:901:/ cond.then");
-      BASILYS_LOCATION("warmelt-normatch.melt:901:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:903:/ cond.then");
+      BASILYS_LOCATION("warmelt-normatch.melt:903:/ block");
        /*block*/{
-        BASILYS_LOCATION("warmelt-normatch.melt:902:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:904:/ block");
         /*block*/{
-         BASILYS_LOCATION("warmelt-normatch.melt:902:/ apply");
+         BASILYS_LOCATION("warmelt-normatch.melt:904:/ apply");
          /*apply*/{
-          /*_.NEWENV__V57*/ curfptr[49] =  basilys_apply ((basilysclosure_ptr_t)((/*!FRESH_ENV*/ curfrout->tabval[11])), (basilys_ptr_t)(/*_.ENV__V20*/ curfptr[19]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
+          /*_.NEWENV__V58*/ curfptr[50] =  basilys_apply ((basilysclosure_ptr_t)((/*!FRESH_ENV*/ curfrout->tabval[11])), (basilys_ptr_t)(/*_.ENV__V21*/ curfptr[20]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
           }
          ;
          /*citerblock FOREACH_IN_MULTIPLE*/ {
-         long cit1__EACHTUP_ln = basilys_multiple_length((basilys_ptr_t)/*_.NINS__V34*/ curfptr[33]);
+         long cit1__EACHTUP_ln = basilys_multiple_length((basilys_ptr_t)/*_.NINS__V35*/ curfptr[34]);
 int cit1__EACHTUP_ix = 0;
 for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix ++) {
-/*_.NCURIN__V58*/ curfptr[57] = basilys_multiple_nth((basilys_ptr_t)(/*_.NINS__V34*/ curfptr[33]), cit1__EACHTUP_ix);
+/*_.NCURIN__V59*/ curfptr[58] = basilys_multiple_nth((basilys_ptr_t)(/*_.NINS__V35*/ curfptr[34]), cit1__EACHTUP_ix);
 /*_#IX__L18*/ curfnum[17] = cit1__EACHTUP_ix;
 
          
           
           #if ENABLE_CHECKING
-           BASILYS_LOCATION("warmelt-normatch.melt:906:/ cppif.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:906:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:908:/ cppif.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:908:/ block");
            /*block*/{
             /*_#THE_CALLCOUNT__L19*/ curfnum[18] = 
              callcount;;
-            BASILYS_LOCATION("warmelt-normatch.melt:906:/ apply");
+            BASILYS_LOCATION("warmelt-normatch.melt:908:/ apply");
             /*apply*/{
              union basilysparam_un argtab[4];
              memset(&argtab, 0, sizeof(argtab));
-             BASILYS_LOCATION("warmelt-normatch.melt:906:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:908:/ apply.arg");
              argtab[0].bp_cstring =  "normpat_anymatchpat ncurin";
-             BASILYS_LOCATION("warmelt-normatch.melt:906:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:908:/ apply.arg");
              argtab[1].bp_long = /*_#THE_CALLCOUNT__L19*/ curfnum[18];
-             BASILYS_LOCATION("warmelt-normatch.melt:906:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:908:/ apply.arg");
              argtab[2].bp_cstring =  "warmelt-normatch.melt";
-             BASILYS_LOCATION("warmelt-normatch.melt:906:/ apply.arg");
-             argtab[3].bp_long = 906;
-             /*_.DEBUG_MSG_FUN__V60*/ curfptr[59] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NCURIN__V58*/ curfptr[57]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+             BASILYS_LOCATION("warmelt-normatch.melt:908:/ apply.arg");
+             argtab[3].bp_long = 908;
+             /*_.DEBUG_MSG_FUN__V61*/ curfptr[60] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NCURIN__V59*/ curfptr[58]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
              }
             ;
-            /*_.IFCPP___V59*/ curfptr[58] = /*_.DEBUG_MSG_FUN__V60*/ curfptr[59];;
+            /*_.IFCPP___V60*/ curfptr[59] = /*_.DEBUG_MSG_FUN__V61*/ curfptr[60];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:906:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:908:/ clear");
             /*clear*/ /*_#THE_CALLCOUNT__L19*/ curfnum[18] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:906:/ clear");
-            /*clear*/ /*_.DEBUG_MSG_FUN__V60*/ curfptr[59] = 0 ;}
+            BASILYS_LOCATION("warmelt-normatch.melt:908:/ clear");
+            /*clear*/ /*_.DEBUG_MSG_FUN__V61*/ curfptr[60] = 0 ;}
            
            #else /*ENABLE_CHECKING*/
-           BASILYS_LOCATION("warmelt-normatch.melt:906:/ cppif.else");
-          /*_.IFCPP___V59*/ curfptr[58] = (/*nil*/NULL);
+           BASILYS_LOCATION("warmelt-normatch.melt:908:/ cppif.else");
+          /*_.IFCPP___V60*/ curfptr[59] = (/*nil*/NULL);
            #endif /*ENABLE_CHECKING*/
            ;
-          BASILYS_LOCATION("warmelt-normatch.melt:907:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:909:/ block");
           /*block*/{
-           /*_.CURMATCH__V62*/ curfptr[61] = 
-            (basilys_multiple_nth((basilys_ptr_t)(/*_.INMATCHS__V43*/ curfptr[42]), (/*_#IX__L18*/ curfnum[17])));;
-           BASILYS_LOCATION("warmelt-normatch.melt:908:/ msend");
+           /*_.CURMATCH__V63*/ curfptr[62] = 
+            (basilys_multiple_nth((basilys_ptr_t)(/*_.INMATCHS__V44*/ curfptr[43]), (/*_#IX__L18*/ curfnum[17])));;
+           BASILYS_LOCATION("warmelt-normatch.melt:910:/ msend");
            /*msend*/{
             union basilysparam_un argtab[1];
             memset(&argtab, 0, sizeof(argtab));
-            BASILYS_LOCATION("warmelt-normatch.melt:908:/ ojbmsend.arg");
-            argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V20*/ curfptr[19];
-            /*_.CURCTYPE__V63*/ curfptr[62] = basilysgc_send((basilys_ptr_t)(/*_.NCURIN__V58*/ curfptr[57]), (basilys_ptr_t)((/*!GET_CTYPE*/ curfrout->tabval[5])), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+            BASILYS_LOCATION("warmelt-normatch.melt:910:/ ojbmsend.arg");
+            argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V21*/ curfptr[20];
+            /*_.CURCTYPE__V64*/ curfptr[63] = basilysgc_send((basilys_ptr_t)(/*_.NCURIN__V59*/ curfptr[58]), (basilys_ptr_t)((/*!GET_CTYPE*/ curfrout->tabval[5])), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
             }
            ;
-           BASILYS_LOCATION("warmelt-normatch.melt:909:/ cond");
-           /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])))) /*then*/ {
-           BASILYS_LOCATION("warmelt-normatch.melt:909:/ cond.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:909:/ getslot");
+           BASILYS_LOCATION("warmelt-normatch.melt:911:/ cond");
+           /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V63*/ curfptr[62]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])))) /*then*/ {
+           BASILYS_LOCATION("warmelt-normatch.melt:911:/ cond.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:911:/ getslot");
             { basilys_ptr_t slot=0;
-             basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), 1, "FBIND_TYPE");/*_.MATCHTYPE__V64*/ curfptr[63] = slot; };
+             basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURMATCH__V63*/ curfptr[62]), 1, "FBIND_TYPE");/*_.MATCHTYPE__V65*/ curfptr[64] = slot; };
             ;
-           } else {BASILYS_LOCATION("warmelt-normatch.melt:909:/ cond.else");
+           } else {BASILYS_LOCATION("warmelt-normatch.melt:911:/ cond.else");
            
-            /*_.MATCHTYPE__V64*/ curfptr[63] = NULL;;
+            /*_.MATCHTYPE__V65*/ curfptr[64] = NULL;;
             }
            ;
            
            #if ENABLE_CHECKING
-            BASILYS_LOCATION("warmelt-normatch.melt:911:/ cppif.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:911:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:913:/ cppif.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:913:/ block");
             /*block*/{
              /*_#THE_CALLCOUNT__L20*/ curfnum[18] = 
               callcount;;
-             BASILYS_LOCATION("warmelt-normatch.melt:911:/ apply");
+             BASILYS_LOCATION("warmelt-normatch.melt:913:/ apply");
              /*apply*/{
               union basilysparam_un argtab[4];
               memset(&argtab, 0, sizeof(argtab));
-              BASILYS_LOCATION("warmelt-normatch.melt:911:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:913:/ apply.arg");
               argtab[0].bp_cstring =  "normpat_anymatchpat curmatch";
-              BASILYS_LOCATION("warmelt-normatch.melt:911:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:913:/ apply.arg");
               argtab[1].bp_long = /*_#THE_CALLCOUNT__L20*/ curfnum[18];
-              BASILYS_LOCATION("warmelt-normatch.melt:911:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:913:/ apply.arg");
               argtab[2].bp_cstring =  "warmelt-normatch.melt";
-              BASILYS_LOCATION("warmelt-normatch.melt:911:/ apply.arg");
-              argtab[3].bp_long = 911;
-              /*_.DEBUG_MSG_FUN__V66*/ curfptr[65] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+              BASILYS_LOCATION("warmelt-normatch.melt:913:/ apply.arg");
+              argtab[3].bp_long = 913;
+              /*_.DEBUG_MSG_FUN__V67*/ curfptr[66] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CURMATCH__V63*/ curfptr[62]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
               }
              ;
-             /*_.IFCPP___V65*/ curfptr[64] = /*_.DEBUG_MSG_FUN__V66*/ curfptr[65];;
+             /*_.IFCPP___V66*/ curfptr[65] = /*_.DEBUG_MSG_FUN__V67*/ curfptr[66];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:911:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:913:/ clear");
              /*clear*/ /*_#THE_CALLCOUNT__L20*/ curfnum[18] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:911:/ clear");
-             /*clear*/ /*_.DEBUG_MSG_FUN__V66*/ curfptr[65] = 0 ;}
+             BASILYS_LOCATION("warmelt-normatch.melt:913:/ clear");
+             /*clear*/ /*_.DEBUG_MSG_FUN__V67*/ curfptr[66] = 0 ;}
             
             #else /*ENABLE_CHECKING*/
-            BASILYS_LOCATION("warmelt-normatch.melt:911:/ cppif.else");
-           /*_.IFCPP___V65*/ curfptr[64] = (/*nil*/NULL);
-            #endif /*ENABLE_CHECKING*/
-            ;
-           
-           #if ENABLE_CHECKING
-            BASILYS_LOCATION("warmelt-normatch.melt:912:/ cppif.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:912:/ block");
-            /*block*/{
-             /*_#IS_A__L21*/ curfnum[18] = 
-               basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])));;
-             BASILYS_LOCATION("warmelt-normatch.melt:912:/ cond");
-             /*cond*/ if (/*_#IS_A__L21*/ curfnum[18]) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:912:/ cond.then");
-             /*_.IFELSE___V68*/ curfptr[67] = (/*nil*/NULL);;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:912:/ cond.else");
-             
-              BASILYS_LOCATION("warmelt-normatch.melt:912:/ block");
-              /*block*/{
-               /*block*/{
-                
-                {
-                BASILYS_LOCATION("warmelt-normatch.melt:912:/ locexp");
-                basilys_assert_failed(( "check curmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(912)?(912):__LINE__, __FUNCTION__);}
-                ;
-                /*clear*/ /*_.IFELSE___V68*/ curfptr[67] = 0 ;}
-               ;
-               /*epilog*/}
-              ;
-              }
-             ;
-             /*_.IFCPP___V67*/ curfptr[65] = /*_.IFELSE___V68*/ curfptr[67];;
-             /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:912:/ clear");
-             /*clear*/ /*_#IS_A__L21*/ curfnum[18] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:912:/ clear");
-             /*clear*/ /*_.IFELSE___V68*/ curfptr[67] = 0 ;}
-            
-            #else /*ENABLE_CHECKING*/
-            BASILYS_LOCATION("warmelt-normatch.melt:912:/ cppif.else");
-           /*_.IFCPP___V67*/ curfptr[65] = (/*nil*/NULL);
+            BASILYS_LOCATION("warmelt-normatch.melt:913:/ cppif.else");
+           /*_.IFCPP___V66*/ curfptr[65] = (/*nil*/NULL);
             #endif /*ENABLE_CHECKING*/
             ;
            
@@ -12904,325 +12877,364 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
             BASILYS_LOCATION("warmelt-normatch.melt:914:/ cppif.then");
            BASILYS_LOCATION("warmelt-normatch.melt:914:/ block");
             /*block*/{
-             /*_#THE_CALLCOUNT__L22*/ curfnum[18] = 
-              callcount;;
-             BASILYS_LOCATION("warmelt-normatch.melt:914:/ apply");
-             /*apply*/{
-              union basilysparam_un argtab[4];
-              memset(&argtab, 0, sizeof(argtab));
-              BASILYS_LOCATION("warmelt-normatch.melt:914:/ apply.arg");
-              argtab[0].bp_cstring =  "normpat_anymatchpat curctype";
-              BASILYS_LOCATION("warmelt-normatch.melt:914:/ apply.arg");
-              argtab[1].bp_long = /*_#THE_CALLCOUNT__L22*/ curfnum[18];
-              BASILYS_LOCATION("warmelt-normatch.melt:914:/ apply.arg");
-              argtab[2].bp_cstring =  "warmelt-normatch.melt";
-              BASILYS_LOCATION("warmelt-normatch.melt:914:/ apply.arg");
-              argtab[3].bp_long = 914;
-              /*_.DEBUG_MSG_FUN__V70*/ curfptr[69] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CURCTYPE__V63*/ curfptr[62]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+             /*_#IS_A__L21*/ curfnum[18] = 
+               basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V63*/ curfptr[62]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])));;
+             BASILYS_LOCATION("warmelt-normatch.melt:914:/ cond");
+             /*cond*/ if (/*_#IS_A__L21*/ curfnum[18]) /*then*/ {
+             BASILYS_LOCATION("warmelt-normatch.melt:914:/ cond.then");
+             /*_.IFELSE___V69*/ curfptr[68] = (/*nil*/NULL);;
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:914:/ cond.else");
+             
+              BASILYS_LOCATION("warmelt-normatch.melt:914:/ block");
+              /*block*/{
+               /*block*/{
+                
+                {
+                BASILYS_LOCATION("warmelt-normatch.melt:914:/ locexp");
+                basilys_assert_failed(( "check curmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(914)?(914):__LINE__, __FUNCTION__);}
+                ;
+                /*clear*/ /*_.IFELSE___V69*/ curfptr[68] = 0 ;}
+               ;
+               /*epilog*/}
+              ;
               }
              ;
-             /*_.IFCPP___V69*/ curfptr[67] = /*_.DEBUG_MSG_FUN__V70*/ curfptr[69];;
+             /*_.IFCPP___V68*/ curfptr[66] = /*_.IFELSE___V69*/ curfptr[68];;
              /*epilog*/
              BASILYS_LOCATION("warmelt-normatch.melt:914:/ clear");
-             /*clear*/ /*_#THE_CALLCOUNT__L22*/ curfnum[18] = 0 ;
+             /*clear*/ /*_#IS_A__L21*/ curfnum[18] = 0 ;
              BASILYS_LOCATION("warmelt-normatch.melt:914:/ clear");
-             /*clear*/ /*_.DEBUG_MSG_FUN__V70*/ curfptr[69] = 0 ;}
+             /*clear*/ /*_.IFELSE___V69*/ curfptr[68] = 0 ;}
             
             #else /*ENABLE_CHECKING*/
             BASILYS_LOCATION("warmelt-normatch.melt:914:/ cppif.else");
-           /*_.IFCPP___V69*/ curfptr[67] = (/*nil*/NULL);
+           /*_.IFCPP___V68*/ curfptr[66] = (/*nil*/NULL);
             #endif /*ENABLE_CHECKING*/
             ;
            
            #if ENABLE_CHECKING
-            BASILYS_LOCATION("warmelt-normatch.melt:915:/ cppif.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:915:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:916:/ cppif.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:916:/ block");
             /*block*/{
-             /*_#THE_CALLCOUNT__L23*/ curfnum[18] = 
+             /*_#THE_CALLCOUNT__L22*/ curfnum[18] = 
               callcount;;
-             BASILYS_LOCATION("warmelt-normatch.melt:915:/ apply");
+             BASILYS_LOCATION("warmelt-normatch.melt:916:/ apply");
              /*apply*/{
               union basilysparam_un argtab[4];
               memset(&argtab, 0, sizeof(argtab));
-              BASILYS_LOCATION("warmelt-normatch.melt:915:/ apply.arg");
-              argtab[0].bp_cstring =  "normpat_anymatchpat matchtype";
-              BASILYS_LOCATION("warmelt-normatch.melt:915:/ apply.arg");
-              argtab[1].bp_long = /*_#THE_CALLCOUNT__L23*/ curfnum[18];
-              BASILYS_LOCATION("warmelt-normatch.melt:915:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:916:/ apply.arg");
+              argtab[0].bp_cstring =  "normpat_anymatchpat curctype";
+              BASILYS_LOCATION("warmelt-normatch.melt:916:/ apply.arg");
+              argtab[1].bp_long = /*_#THE_CALLCOUNT__L22*/ curfnum[18];
+              BASILYS_LOCATION("warmelt-normatch.melt:916:/ apply.arg");
               argtab[2].bp_cstring =  "warmelt-normatch.melt";
-              BASILYS_LOCATION("warmelt-normatch.melt:915:/ apply.arg");
-              argtab[3].bp_long = 915;
-              /*_.DEBUG_MSG_FUN__V72*/ curfptr[71] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.MATCHTYPE__V64*/ curfptr[63]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+              BASILYS_LOCATION("warmelt-normatch.melt:916:/ apply.arg");
+              argtab[3].bp_long = 916;
+              /*_.DEBUG_MSG_FUN__V71*/ curfptr[70] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CURCTYPE__V64*/ curfptr[63]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
               }
              ;
-             /*_.IFCPP___V71*/ curfptr[69] = /*_.DEBUG_MSG_FUN__V72*/ curfptr[71];;
+             /*_.IFCPP___V70*/ curfptr[68] = /*_.DEBUG_MSG_FUN__V71*/ curfptr[70];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:915:/ clear");
-             /*clear*/ /*_#THE_CALLCOUNT__L23*/ curfnum[18] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:915:/ clear");
-             /*clear*/ /*_.DEBUG_MSG_FUN__V72*/ curfptr[71] = 0 ;}
+             BASILYS_LOCATION("warmelt-normatch.melt:916:/ clear");
+             /*clear*/ /*_#THE_CALLCOUNT__L22*/ curfnum[18] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:916:/ clear");
+             /*clear*/ /*_.DEBUG_MSG_FUN__V71*/ curfptr[70] = 0 ;}
             
             #else /*ENABLE_CHECKING*/
-            BASILYS_LOCATION("warmelt-normatch.melt:915:/ cppif.else");
-           /*_.IFCPP___V71*/ curfptr[69] = (/*nil*/NULL);
+            BASILYS_LOCATION("warmelt-normatch.melt:916:/ cppif.else");
+           /*_.IFCPP___V70*/ curfptr[68] = (/*nil*/NULL);
+            #endif /*ENABLE_CHECKING*/
+            ;
+           
+           #if ENABLE_CHECKING
+            BASILYS_LOCATION("warmelt-normatch.melt:917:/ cppif.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:917:/ block");
+            /*block*/{
+             /*_#THE_CALLCOUNT__L23*/ curfnum[18] = 
+              callcount;;
+             BASILYS_LOCATION("warmelt-normatch.melt:917:/ apply");
+             /*apply*/{
+              union basilysparam_un argtab[4];
+              memset(&argtab, 0, sizeof(argtab));
+              BASILYS_LOCATION("warmelt-normatch.melt:917:/ apply.arg");
+              argtab[0].bp_cstring =  "normpat_anymatchpat matchtype";
+              BASILYS_LOCATION("warmelt-normatch.melt:917:/ apply.arg");
+              argtab[1].bp_long = /*_#THE_CALLCOUNT__L23*/ curfnum[18];
+              BASILYS_LOCATION("warmelt-normatch.melt:917:/ apply.arg");
+              argtab[2].bp_cstring =  "warmelt-normatch.melt";
+              BASILYS_LOCATION("warmelt-normatch.melt:917:/ apply.arg");
+              argtab[3].bp_long = 917;
+              /*_.DEBUG_MSG_FUN__V73*/ curfptr[72] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.MATCHTYPE__V65*/ curfptr[64]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+              }
+             ;
+             /*_.IFCPP___V72*/ curfptr[70] = /*_.DEBUG_MSG_FUN__V73*/ curfptr[72];;
+             /*epilog*/
+             BASILYS_LOCATION("warmelt-normatch.melt:917:/ clear");
+             /*clear*/ /*_#THE_CALLCOUNT__L23*/ curfnum[18] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:917:/ clear");
+             /*clear*/ /*_.DEBUG_MSG_FUN__V73*/ curfptr[72] = 0 ;}
+            
+            #else /*ENABLE_CHECKING*/
+            BASILYS_LOCATION("warmelt-normatch.melt:917:/ cppif.else");
+           /*_.IFCPP___V72*/ curfptr[70] = (/*nil*/NULL);
             #endif /*ENABLE_CHECKING*/
             ;
            /*_#__L24*/ curfnum[18] = 
-            ((/*_.CURCTYPE__V63*/ curfptr[62]) != (/*_.MATCHTYPE__V64*/ curfptr[63]));;
-           BASILYS_LOCATION("warmelt-normatch.melt:916:/ cond");
+            ((/*_.CURCTYPE__V64*/ curfptr[63]) != (/*_.MATCHTYPE__V65*/ curfptr[64]));;
+           BASILYS_LOCATION("warmelt-normatch.melt:918:/ cond");
            /*cond*/ if (/*_#__L24*/ curfnum[18]) /*then*/ {
-           BASILYS_LOCATION("warmelt-normatch.melt:916:/ cond.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:916:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:918:/ cond.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:918:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:920:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:922:/ cond");
              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:920:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:920:/ getslot");
+             BASILYS_LOCATION("warmelt-normatch.melt:922:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:922:/ getslot");
               { basilys_ptr_t slot=0;
-               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 1, "NAMED_NAME");/*_.NAMED_NAME__V74*/ curfptr[73] = slot; };
+               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 1, "NAMED_NAME");/*_.NAMED_NAME__V75*/ curfptr[74] = slot; };
               ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:920:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:922:/ cond.else");
              
-              /*_.NAMED_NAME__V74*/ curfptr[73] = NULL;;
+              /*_.NAMED_NAME__V75*/ curfptr[74] = NULL;;
               }
              ;
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:918:/ locexp");
-             basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "type mismatch for match argument in matcher"), (basilys_ptr_t)(/*_.NAMED_NAME__V74*/ curfptr[73]));}
+             BASILYS_LOCATION("warmelt-normatch.melt:920:/ locexp");
+             basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "type mismatch for match argument in matcher"), (basilys_ptr_t)(/*_.NAMED_NAME__V75*/ curfptr[74]));}
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:923:/ cond");
-             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), (basilys_ptr_t)((/*!CLASS_ANY_BINDING*/ curfrout->tabval[12])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:923:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:923:/ getslot");
+             BASILYS_LOCATION("warmelt-normatch.melt:925:/ cond");
+             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V63*/ curfptr[62]), (basilys_ptr_t)((/*!CLASS_ANY_BINDING*/ curfrout->tabval[12])))) /*then*/ {
+             BASILYS_LOCATION("warmelt-normatch.melt:925:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:925:/ getslot");
               { basilys_ptr_t slot=0;
-               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), 0, "BINDER");/*_.BINDER__V75*/ curfptr[74] = slot; };
+               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURMATCH__V63*/ curfptr[62]), 0, "BINDER");/*_.BINDER__V76*/ curfptr[75] = slot; };
               ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:923:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:925:/ cond.else");
              
-              /*_.BINDER__V75*/ curfptr[74] = NULL;;
+              /*_.BINDER__V76*/ curfptr[75] = NULL;;
               }
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:923:/ cond");
-             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.BINDER__V75*/ curfptr[74]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:923:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:923:/ getslot");
+             BASILYS_LOCATION("warmelt-normatch.melt:925:/ cond");
+             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.BINDER__V76*/ curfptr[75]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
+             BASILYS_LOCATION("warmelt-normatch.melt:925:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:925:/ getslot");
               { basilys_ptr_t slot=0;
-               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BINDER__V75*/ curfptr[74]), 1, "NAMED_NAME");/*_.NAMED_NAME__V76*/ curfptr[75] = slot; };
+               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.BINDER__V76*/ curfptr[75]), 1, "NAMED_NAME");/*_.NAMED_NAME__V77*/ curfptr[76] = slot; };
               ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:923:/ cond.else");
-             
-              /*_.NAMED_NAME__V76*/ curfptr[75] = NULL;;
-              }
-             ;
-             
-             {
-             BASILYS_LOCATION("warmelt-normatch.melt:921:/ locexp");
-             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "mismatched formal name in matcher is"), (basilys_ptr_t)(/*_.NAMED_NAME__V76*/ curfptr[75]));}
-             ;
-             BASILYS_LOCATION("warmelt-normatch.melt:926:/ cond");
-             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURCTYPE__V63*/ curfptr[62]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:926:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:926:/ getslot");
-              { basilys_ptr_t slot=0;
-               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURCTYPE__V63*/ curfptr[62]), 1, "NAMED_NAME");/*_.NAMED_NAME__V77*/ curfptr[76] = slot; };
-              ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:926:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:925:/ cond.else");
              
               /*_.NAMED_NAME__V77*/ curfptr[76] = NULL;;
               }
              ;
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:924:/ locexp");
-             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "mismatched input type is"), (basilys_ptr_t)(/*_.NAMED_NAME__V77*/ curfptr[76]));}
+             BASILYS_LOCATION("warmelt-normatch.melt:923:/ locexp");
+             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "mismatched formal name in matcher is"), (basilys_ptr_t)(/*_.NAMED_NAME__V77*/ curfptr[76]));}
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:929:/ cond");
-             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATCHTYPE__V64*/ curfptr[63]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:929:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:929:/ getslot");
+             BASILYS_LOCATION("warmelt-normatch.melt:928:/ cond");
+             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURCTYPE__V64*/ curfptr[63]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
+             BASILYS_LOCATION("warmelt-normatch.melt:928:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:928:/ getslot");
               { basilys_ptr_t slot=0;
-               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATCHTYPE__V64*/ curfptr[63]), 1, "NAMED_NAME");/*_.NAMED_NAME__V78*/ curfptr[77] = slot; };
+               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURCTYPE__V64*/ curfptr[63]), 1, "NAMED_NAME");/*_.NAMED_NAME__V78*/ curfptr[77] = slot; };
               ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:929:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:928:/ cond.else");
              
               /*_.NAMED_NAME__V78*/ curfptr[77] = NULL;;
               }
              ;
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:927:/ locexp");
-             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "expected match type is"), (basilys_ptr_t)(/*_.NAMED_NAME__V78*/ curfptr[77]));}
+             BASILYS_LOCATION("warmelt-normatch.melt:926:/ locexp");
+             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "mismatched input type is"), (basilys_ptr_t)(/*_.NAMED_NAME__V78*/ curfptr[77]));}
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:917:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:931:/ cond");
+             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATCHTYPE__V65*/ curfptr[64]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
+             BASILYS_LOCATION("warmelt-normatch.melt:931:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:931:/ getslot");
+              { basilys_ptr_t slot=0;
+               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATCHTYPE__V65*/ curfptr[64]), 1, "NAMED_NAME");/*_.NAMED_NAME__V79*/ curfptr[78] = slot; };
+              ;
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:931:/ cond.else");
+             
+              /*_.NAMED_NAME__V79*/ curfptr[78] = NULL;;
+              }
+             ;
+             
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:929:/ locexp");
+             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "expected match type is"), (basilys_ptr_t)(/*_.NAMED_NAME__V79*/ curfptr[78]));}
+             ;
+             BASILYS_LOCATION("warmelt-normatch.melt:919:/ block");
              /*block*/{}
              ;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:916:/ clear");
-             /*clear*/ /*_.NAMED_NAME__V74*/ curfptr[73] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:916:/ clear");
-             /*clear*/ /*_.BINDER__V75*/ curfptr[74] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:916:/ clear");
-             /*clear*/ /*_.NAMED_NAME__V76*/ curfptr[75] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:916:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:918:/ clear");
+             /*clear*/ /*_.NAMED_NAME__V75*/ curfptr[74] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:918:/ clear");
+             /*clear*/ /*_.BINDER__V76*/ curfptr[75] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:918:/ clear");
              /*clear*/ /*_.NAMED_NAME__V77*/ curfptr[76] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:916:/ clear");
-             /*clear*/ /*_.NAMED_NAME__V78*/ curfptr[77] = 0 ;}
+             BASILYS_LOCATION("warmelt-normatch.melt:918:/ clear");
+             /*clear*/ /*_.NAMED_NAME__V78*/ curfptr[77] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:918:/ clear");
+             /*clear*/ /*_.NAMED_NAME__V79*/ curfptr[78] = 0 ;}
             ;
-           } else {BASILYS_LOCATION("warmelt-normatch.melt:916:/ cond.else");
+           } else {BASILYS_LOCATION("warmelt-normatch.melt:918:/ cond.else");
            
-            BASILYS_LOCATION("warmelt-normatch.melt:916:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:918:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:931:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:933:/ block");
              /*block*/{
-              BASILYS_LOCATION("warmelt-normatch.melt:933:/ cond");
-              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), (basilys_ptr_t)((/*!CLASS_ANY_BINDING*/ curfrout->tabval[12])))) /*then*/ {
-              BASILYS_LOCATION("warmelt-normatch.melt:933:/ cond.then");
-              BASILYS_LOCATION("warmelt-normatch.melt:933:/ getslot");
+              BASILYS_LOCATION("warmelt-normatch.melt:935:/ cond");
+              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V63*/ curfptr[62]), (basilys_ptr_t)((/*!CLASS_ANY_BINDING*/ curfrout->tabval[12])))) /*then*/ {
+              BASILYS_LOCATION("warmelt-normatch.melt:935:/ cond.then");
+              BASILYS_LOCATION("warmelt-normatch.melt:935:/ getslot");
                { basilys_ptr_t slot=0;
-                basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), 0, "BINDER");/*_.BINDER__V80*/ curfptr[74] = slot; };
+                basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURMATCH__V63*/ curfptr[62]), 0, "BINDER");/*_.BINDER__V81*/ curfptr[75] = slot; };
                ;
-              } else {BASILYS_LOCATION("warmelt-normatch.melt:933:/ cond.else");
+              } else {BASILYS_LOCATION("warmelt-normatch.melt:935:/ cond.else");
               
-               /*_.BINDER__V80*/ curfptr[74] = NULL;;
+               /*_.BINDER__V81*/ curfptr[75] = NULL;;
                }
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:931:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:933:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:931:/ rawallocobj");
+               BASILYS_LOCATION("warmelt-normatch.melt:933:/ rawallocobj");
                /*rawallocobj*/ { basilys_ptr_t newobj = 0;
-                basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NORMLET_BINDING*/ curfrout->tabval[13])), (4), "CLASS_NORMLET_BINDING");/*_.INST__V82*/ curfptr[76] =
+                basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NORMLET_BINDING*/ curfrout->tabval[13])), (4), "CLASS_NORMLET_BINDING");/*_.INST__V83*/ curfptr[77] =
                 newobj; };
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:931:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:933:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V82*/ curfptr[76])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V82*/ curfptr[76]))));basilys_putfield_object((/*_.INST__V82*/ curfptr[76]), (3), (/*_.SLOC__V16*/ curfptr[14]), "LETBIND_LOC");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V83*/ curfptr[77])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[77]))));basilys_putfield_object((/*_.INST__V83*/ curfptr[77]), (3), (/*_.SLOC__V16*/ curfptr[14]), "LETBIND_LOC");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:931:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:933:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V82*/ curfptr[76])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V82*/ curfptr[76]))));basilys_putfield_object((/*_.INST__V82*/ curfptr[76]), (0), (/*_.BINDER__V80*/ curfptr[74]), "BINDER");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V83*/ curfptr[77])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[77]))));basilys_putfield_object((/*_.INST__V83*/ curfptr[77]), (0), (/*_.BINDER__V81*/ curfptr[75]), "BINDER");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:931:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:933:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V82*/ curfptr[76])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V82*/ curfptr[76]))));basilys_putfield_object((/*_.INST__V82*/ curfptr[76]), (1), (/*_.CURCTYPE__V63*/ curfptr[62]), "LETBIND_TYPE");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V83*/ curfptr[77])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[77]))));basilys_putfield_object((/*_.INST__V83*/ curfptr[77]), (1), (/*_.CURCTYPE__V64*/ curfptr[63]), "LETBIND_TYPE");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:931:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:933:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V82*/ curfptr[76])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V82*/ curfptr[76]))));basilys_putfield_object((/*_.INST__V82*/ curfptr[76]), (2), (/*_.NCURIN__V58*/ curfptr[57]), "LETBIND_EXPR");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V83*/ curfptr[77])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V83*/ curfptr[77]))));basilys_putfield_object((/*_.INST__V83*/ curfptr[77]), (2), (/*_.NCURIN__V59*/ curfptr[58]), "LETBIND_EXPR");
                ;
-               /*_.NEWB__V81*/ curfptr[75] = /*_.INST__V82*/ curfptr[76];;}
+               /*_.NEWB__V82*/ curfptr[76] = /*_.INST__V83*/ curfptr[77];;}
               ;
               
               #if ENABLE_CHECKING
-               BASILYS_LOCATION("warmelt-normatch.melt:938:/ cppif.then");
-              BASILYS_LOCATION("warmelt-normatch.melt:938:/ block");
+               BASILYS_LOCATION("warmelt-normatch.melt:940:/ cppif.then");
+              BASILYS_LOCATION("warmelt-normatch.melt:940:/ block");
                /*block*/{
                 /*_#THE_CALLCOUNT__L25*/ curfnum[24] = 
                  callcount;;
-                BASILYS_LOCATION("warmelt-normatch.melt:938:/ apply");
+                BASILYS_LOCATION("warmelt-normatch.melt:940:/ apply");
                 /*apply*/{
                  union basilysparam_un argtab[4];
                  memset(&argtab, 0, sizeof(argtab));
-                 BASILYS_LOCATION("warmelt-normatch.melt:938:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:940:/ apply.arg");
                  argtab[0].bp_cstring =  "normpat_anymatchpat newb";
-                 BASILYS_LOCATION("warmelt-normatch.melt:938:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:940:/ apply.arg");
                  argtab[1].bp_long = /*_#THE_CALLCOUNT__L25*/ curfnum[24];
-                 BASILYS_LOCATION("warmelt-normatch.melt:938:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:940:/ apply.arg");
                  argtab[2].bp_cstring =  "warmelt-normatch.melt";
-                 BASILYS_LOCATION("warmelt-normatch.melt:938:/ apply.arg");
-                 argtab[3].bp_long = 938;
-                 /*_.DEBUG_MSG_FUN__V84*/ curfptr[83] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NEWB__V81*/ curfptr[75]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+                 BASILYS_LOCATION("warmelt-normatch.melt:940:/ apply.arg");
+                 argtab[3].bp_long = 940;
+                 /*_.DEBUG_MSG_FUN__V85*/ curfptr[84] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NEWB__V82*/ curfptr[76]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                  }
                 ;
-                /*_.IFCPP___V83*/ curfptr[77] = /*_.DEBUG_MSG_FUN__V84*/ curfptr[83];;
+                /*_.IFCPP___V84*/ curfptr[78] = /*_.DEBUG_MSG_FUN__V85*/ curfptr[84];;
                 /*epilog*/
-                BASILYS_LOCATION("warmelt-normatch.melt:938:/ clear");
+                BASILYS_LOCATION("warmelt-normatch.melt:940:/ clear");
                 /*clear*/ /*_#THE_CALLCOUNT__L25*/ curfnum[24] = 0 ;
-                BASILYS_LOCATION("warmelt-normatch.melt:938:/ clear");
-                /*clear*/ /*_.DEBUG_MSG_FUN__V84*/ curfptr[83] = 0 ;}
+                BASILYS_LOCATION("warmelt-normatch.melt:940:/ clear");
+                /*clear*/ /*_.DEBUG_MSG_FUN__V85*/ curfptr[84] = 0 ;}
                
                #else /*ENABLE_CHECKING*/
-               BASILYS_LOCATION("warmelt-normatch.melt:938:/ cppif.else");
-              /*_.IFCPP___V83*/ curfptr[77] = (/*nil*/NULL);
+               BASILYS_LOCATION("warmelt-normatch.melt:940:/ cppif.else");
+              /*_.IFCPP___V84*/ curfptr[78] = (/*nil*/NULL);
                #endif /*ENABLE_CHECKING*/
                ;
-              BASILYS_LOCATION("warmelt-normatch.melt:939:/ apply");
+              BASILYS_LOCATION("warmelt-normatch.melt:941:/ apply");
               /*apply*/{
                union basilysparam_un argtab[1];
                memset(&argtab, 0, sizeof(argtab));
-               BASILYS_LOCATION("warmelt-normatch.melt:939:/ apply.arg");
-               argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.NEWB__V81*/ curfptr[75];
-               /*_.PUT_ENV__V85*/ curfptr[83] =  basilys_apply ((basilysclosure_ptr_t)((/*!PUT_ENV*/ curfrout->tabval[14])), (basilys_ptr_t)(/*_.NEWENV__V57*/ curfptr[49]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+               BASILYS_LOCATION("warmelt-normatch.melt:941:/ apply.arg");
+               argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.NEWB__V82*/ curfptr[76];
+               /*_.PUT_ENV__V86*/ curfptr[84] =  basilys_apply ((basilysclosure_ptr_t)((/*!PUT_ENV*/ curfrout->tabval[14])), (basilys_ptr_t)(/*_.NEWENV__V58*/ curfptr[50]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
                }
               ;
-              /*_.LET___V79*/ curfptr[73] = /*_.PUT_ENV__V85*/ curfptr[83];;
+              /*_.LET___V80*/ curfptr[74] = /*_.PUT_ENV__V86*/ curfptr[84];;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:931:/ clear");
-              /*clear*/ /*_.BINDER__V80*/ curfptr[74] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:931:/ clear");
-              /*clear*/ /*_.NEWB__V81*/ curfptr[75] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:931:/ clear");
-              /*clear*/ /*_.IFCPP___V83*/ curfptr[77] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:931:/ clear");
-              /*clear*/ /*_.PUT_ENV__V85*/ curfptr[83] = 0 ;}
+              BASILYS_LOCATION("warmelt-normatch.melt:933:/ clear");
+              /*clear*/ /*_.BINDER__V81*/ curfptr[75] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:933:/ clear");
+              /*clear*/ /*_.NEWB__V82*/ curfptr[76] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:933:/ clear");
+              /*clear*/ /*_.IFCPP___V84*/ curfptr[78] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:933:/ clear");
+              /*clear*/ /*_.PUT_ENV__V86*/ curfptr[84] = 0 ;}
              ;
-             /*_.IFELSE___V73*/ curfptr[71] = /*_.LET___V79*/ curfptr[73];;
+             /*_.IFELSE___V74*/ curfptr[72] = /*_.LET___V80*/ curfptr[74];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:916:/ clear");
-             /*clear*/ /*_.LET___V79*/ curfptr[73] = 0 ;}
+             BASILYS_LOCATION("warmelt-normatch.melt:918:/ clear");
+             /*clear*/ /*_.LET___V80*/ curfptr[74] = 0 ;}
             ;
             }
            ;
-           /*_.LET___V61*/ curfptr[59] = /*_.IFELSE___V73*/ curfptr[71];;
+           /*_.LET___V62*/ curfptr[60] = /*_.IFELSE___V74*/ curfptr[72];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
-           /*clear*/ /*_.CURMATCH__V62*/ curfptr[61] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
-           /*clear*/ /*_.CURCTYPE__V63*/ curfptr[62] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
-           /*clear*/ /*_.MATCHTYPE__V64*/ curfptr[63] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
-           /*clear*/ /*_.IFCPP___V65*/ curfptr[64] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
-           /*clear*/ /*_.IFCPP___V67*/ curfptr[65] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
-           /*clear*/ /*_.IFCPP___V69*/ curfptr[67] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
-           /*clear*/ /*_.IFCPP___V71*/ curfptr[69] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
+           /*clear*/ /*_.CURMATCH__V63*/ curfptr[62] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
+           /*clear*/ /*_.CURCTYPE__V64*/ curfptr[63] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
+           /*clear*/ /*_.MATCHTYPE__V65*/ curfptr[64] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
+           /*clear*/ /*_.IFCPP___V66*/ curfptr[65] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
+           /*clear*/ /*_.IFCPP___V68*/ curfptr[66] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
+           /*clear*/ /*_.IFCPP___V70*/ curfptr[68] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
+           /*clear*/ /*_.IFCPP___V72*/ curfptr[70] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
            /*clear*/ /*_#__L24*/ curfnum[18] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:907:/ clear");
-           /*clear*/ /*_.IFELSE___V73*/ curfptr[71] = 0 ;}
+           BASILYS_LOCATION("warmelt-normatch.melt:909:/ clear");
+           /*clear*/ /*_.IFELSE___V74*/ curfptr[72] = 0 ;}
           ;
          } /* end cit1__EACHTUP*/
          
           /*citerepilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:903:/ clear");
-          /*clear*/ /*_.NCURIN__V58*/ curfptr[57] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:903:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:905:/ clear");
+          /*clear*/ /*_.NCURIN__V59*/ curfptr[58] = 0 ;
+          BASILYS_LOCATION("warmelt-normatch.melt:905:/ clear");
           /*clear*/ /*_#IX__L18*/ curfnum[17] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:903:/ clear");
-          /*clear*/ /*_.IFCPP___V59*/ curfptr[58] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:903:/ clear");
-          /*clear*/ /*_.LET___V61*/ curfptr[59] = 0 ;} /*endciterblock FOREACH_IN_MULTIPLE*/
+          BASILYS_LOCATION("warmelt-normatch.melt:905:/ clear");
+          /*clear*/ /*_.IFCPP___V60*/ curfptr[59] = 0 ;
+          BASILYS_LOCATION("warmelt-normatch.melt:905:/ clear");
+          /*clear*/ /*_.LET___V62*/ curfptr[60] = 0 ;} /*endciterblock FOREACH_IN_MULTIPLE*/
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:941:/ compute");
-         /*_.ENV__V20*/ curfptr[19] = /*_.SETQ___V86*/ curfptr[74] = /*_.NEWENV__V57*/ curfptr[49];;
-         BASILYS_LOCATION("warmelt-normatch.melt:942:/ cond");
+         BASILYS_LOCATION("warmelt-normatch.melt:943:/ compute");
+         /*_.ENV__V21*/ curfptr[20] = /*_.SETQ___V87*/ curfptr[75] = /*_.NEWENV__V58*/ curfptr[50];;
+         BASILYS_LOCATION("warmelt-normatch.melt:944:/ cond");
          /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (basilys_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])))) /*then*/ {
-         BASILYS_LOCATION("warmelt-normatch.melt:942:/ cond.then");
-         BASILYS_LOCATION("warmelt-normatch.melt:942:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:944:/ cond.then");
+         BASILYS_LOCATION("warmelt-normatch.melt:944:/ block");
           /*block*/{
-           BASILYS_LOCATION("warmelt-normatch.melt:942:/ putslot");
+           BASILYS_LOCATION("warmelt-normatch.melt:944:/ putslot");
            /*putslot*/
            basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4])) == OBMAG_OBJECT);
-           basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]))));basilys_putfield_object((/*_.PCN__V5*/ curfptr[4]), (2), (/*_.NEWENV__V57*/ curfptr[49]), "PCTN_ENV");
+           basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]))));basilys_putfield_object((/*_.PCN__V5*/ curfptr[4]), (2), (/*_.NEWENV__V58*/ curfptr[50]), "PCTN_ENV");
            ;
-           BASILYS_LOCATION("warmelt-normatch.melt:942:/ touch");
+           BASILYS_LOCATION("warmelt-normatch.melt:944:/ touch");
            basilysgc_touch(/*_.PCN__V5*/ curfptr[4]);
            ;
            /*epilog*/}
@@ -13230,1264 +13242,1264 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
          } /*noelse*/
          ;
          /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:902:/ clear");
-         /*clear*/ /*_.NEWENV__V57*/ curfptr[49] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:902:/ clear");
-         /*clear*/ /*_.SETQ___V86*/ curfptr[74] = 0 ;}
+         BASILYS_LOCATION("warmelt-normatch.melt:904:/ clear");
+         /*clear*/ /*_.NEWENV__V58*/ curfptr[50] = 0 ;
+         BASILYS_LOCATION("warmelt-normatch.melt:904:/ clear");
+         /*clear*/ /*_.SETQ___V87*/ curfptr[75] = 0 ;}
         ;
         /*epilog*/}
        ;
       } /*noelse*/
       ;
       /*epilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:895:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:897:/ clear");
       /*clear*/ /*_#NBINARGS__L14*/ curfnum[11] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:895:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:897:/ clear");
       /*clear*/ /*_#MULTIPLE_LENGTH__L15*/ curfnum[14] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:895:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:897:/ clear");
       /*clear*/ /*_#I__L16*/ curfnum[15] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:895:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:897:/ clear");
       /*clear*/ /*_#I__L17*/ curfnum[16] = 0 ;}
      ;
      
      #if ENABLE_CHECKING
-      BASILYS_LOCATION("warmelt-normatch.melt:945:/ cppif.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:945:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:947:/ cppif.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:947:/ block");
       /*block*/{
        /*_#THE_CALLCOUNT__L26*/ curfnum[24] = 
         callcount;;
-       BASILYS_LOCATION("warmelt-normatch.melt:945:/ apply");
+       BASILYS_LOCATION("warmelt-normatch.melt:947:/ apply");
        /*apply*/{
         union basilysparam_un argtab[4];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:945:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:947:/ apply.arg");
         argtab[0].bp_cstring =  "normpat_anymatchpat outargs";
-        BASILYS_LOCATION("warmelt-normatch.melt:945:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:947:/ apply.arg");
         argtab[1].bp_long = /*_#THE_CALLCOUNT__L26*/ curfnum[24];
-        BASILYS_LOCATION("warmelt-normatch.melt:945:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:947:/ apply.arg");
         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-        BASILYS_LOCATION("warmelt-normatch.melt:945:/ apply.arg");
-        argtab[3].bp_long = 945;
-        /*_.DEBUG_MSG_FUN__V88*/ curfptr[77] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTARGS__V19*/ curfptr[18]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        BASILYS_LOCATION("warmelt-normatch.melt:947:/ apply.arg");
+        argtab[3].bp_long = 947;
+        /*_.DEBUG_MSG_FUN__V89*/ curfptr[78] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTARGS__V20*/ curfptr[19]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
-       /*_.IFCPP___V87*/ curfptr[75] = /*_.DEBUG_MSG_FUN__V88*/ curfptr[77];;
+       /*_.IFCPP___V88*/ curfptr[76] = /*_.DEBUG_MSG_FUN__V89*/ curfptr[78];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:945:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:947:/ clear");
        /*clear*/ /*_#THE_CALLCOUNT__L26*/ curfnum[24] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:945:/ clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V88*/ curfptr[77] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:947:/ clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V89*/ curfptr[78] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
-      BASILYS_LOCATION("warmelt-normatch.melt:945:/ cppif.else");
-     /*_.IFCPP___V87*/ curfptr[75] = (/*nil*/NULL);
+      BASILYS_LOCATION("warmelt-normatch.melt:947:/ cppif.else");
+     /*_.IFCPP___V88*/ curfptr[76] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
      
      #if ENABLE_CHECKING
-      BASILYS_LOCATION("warmelt-normatch.melt:946:/ cppif.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:946:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:948:/ cppif.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:948:/ block");
       /*block*/{
        /*_#THE_CALLCOUNT__L27*/ curfnum[18] = 
         callcount;;
-       BASILYS_LOCATION("warmelt-normatch.melt:946:/ apply");
+       BASILYS_LOCATION("warmelt-normatch.melt:948:/ apply");
        /*apply*/{
         union basilysparam_un argtab[4];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:946:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:948:/ apply.arg");
         argtab[0].bp_cstring =  "normpat_anymatchpat outmatchs";
-        BASILYS_LOCATION("warmelt-normatch.melt:946:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:948:/ apply.arg");
         argtab[1].bp_long = /*_#THE_CALLCOUNT__L27*/ curfnum[18];
-        BASILYS_LOCATION("warmelt-normatch.melt:946:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:948:/ apply.arg");
         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-        BASILYS_LOCATION("warmelt-normatch.melt:946:/ apply.arg");
-        argtab[3].bp_long = 946;
-        /*_.DEBUG_MSG_FUN__V90*/ curfptr[73] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTMATCHS__V44*/ curfptr[43]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        BASILYS_LOCATION("warmelt-normatch.melt:948:/ apply.arg");
+        argtab[3].bp_long = 948;
+        /*_.DEBUG_MSG_FUN__V91*/ curfptr[74] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTMATCHS__V45*/ curfptr[44]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
-       /*_.IFCPP___V89*/ curfptr[83] = /*_.DEBUG_MSG_FUN__V90*/ curfptr[73];;
+       /*_.IFCPP___V90*/ curfptr[84] = /*_.DEBUG_MSG_FUN__V91*/ curfptr[74];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:946:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:948:/ clear");
        /*clear*/ /*_#THE_CALLCOUNT__L27*/ curfnum[18] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:946:/ clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V90*/ curfptr[73] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:948:/ clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V91*/ curfptr[74] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
-      BASILYS_LOCATION("warmelt-normatch.melt:946:/ cppif.else");
-     /*_.IFCPP___V89*/ curfptr[83] = (/*nil*/NULL);
+      BASILYS_LOCATION("warmelt-normatch.melt:948:/ cppif.else");
+     /*_.IFCPP___V90*/ curfptr[84] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
-     BASILYS_LOCATION("warmelt-normatch.melt:947:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:949:/ block");
      /*block*/{
       /*_#NBOUTARGS__L28*/ curfnum[11] = 
-       (basilys_multiple_length((basilys_ptr_t)(/*_.OUTARGS__V19*/ curfptr[18])));;
+       (basilys_multiple_length((basilys_ptr_t)(/*_.OUTARGS__V20*/ curfptr[19])));;
       /*_#MULTIPLE_LENGTH__L29*/ curfnum[14] = 
-       (basilys_multiple_length((basilys_ptr_t)(/*_.OUTMATCHS__V44*/ curfptr[43])));;
+       (basilys_multiple_length((basilys_ptr_t)(/*_.OUTMATCHS__V45*/ curfptr[44])));;
       /*_#I__L30*/ curfnum[15] = 
        ((/*_#NBOUTARGS__L28*/ curfnum[11]) != (/*_#MULTIPLE_LENGTH__L29*/ curfnum[14]));;
-      BASILYS_LOCATION("warmelt-normatch.melt:948:/ cond");
+      BASILYS_LOCATION("warmelt-normatch.melt:950:/ cond");
       /*cond*/ if (/*_#I__L30*/ curfnum[15]) /*then*/ {
-      BASILYS_LOCATION("warmelt-normatch.melt:948:/ cond.then");
-      BASILYS_LOCATION("warmelt-normatch.melt:948:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:950:/ cond.then");
+      BASILYS_LOCATION("warmelt-normatch.melt:950:/ block");
        /*block*/{
-        BASILYS_LOCATION("warmelt-normatch.melt:952:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:954:/ cond");
         /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:952:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:952:/ getslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:954:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:954:/ getslot");
          { basilys_ptr_t slot=0;
-          basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 1, "NAMED_NAME");/*_.NAMED_NAME__V92*/ curfptr[62] = slot; };
+          basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MAT__V17*/ curfptr[16]), 1, "NAMED_NAME");/*_.NAMED_NAME__V93*/ curfptr[63] = slot; };
          ;
-        } else {BASILYS_LOCATION("warmelt-normatch.melt:952:/ cond.else");
+        } else {BASILYS_LOCATION("warmelt-normatch.melt:954:/ cond.else");
         
-         /*_.NAMED_NAME__V92*/ curfptr[62] = NULL;;
+         /*_.NAMED_NAME__V93*/ curfptr[63] = NULL;;
          }
         ;
         
         {
-        BASILYS_LOCATION("warmelt-normatch.melt:949:/ locexp");
-        basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "formal and actual number of output matched arguments differ for anymatch"), (basilys_ptr_t)(/*_.NAMED_NAME__V92*/ curfptr[62]));}
+        BASILYS_LOCATION("warmelt-normatch.melt:951:/ locexp");
+        basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "formal and actual number of output matched arguments differ for anymatch"), (basilys_ptr_t)(/*_.NAMED_NAME__V93*/ curfptr[63]));}
         ;
         /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:948:/ clear");
-        /*clear*/ /*_.NAMED_NAME__V92*/ curfptr[62] = 0 ;}
+        BASILYS_LOCATION("warmelt-normatch.melt:950:/ clear");
+        /*clear*/ /*_.NAMED_NAME__V93*/ curfptr[63] = 0 ;}
        ;
       } /*noelse*/
       ;
-      BASILYS_LOCATION("warmelt-normatch.melt:953:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:955:/ block");
       /*block*/{
-       /*_.TSTUFF__V94*/ curfptr[64] = 
-        (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.STUFFMAP__V24*/ curfptr[23]), (basilysobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2])));;
-       /*_.CURHDLER__V95*/ curfptr[65] = /*_.HDLER__V4*/ curfptr[3];;
-       BASILYS_LOCATION("warmelt-normatch.melt:956:/ loop");
-       /*loop*/{ labloop_LOOPSTUFF_3:;BASILYS_LOCATION("warmelt-normatch.melt:956:/ loopbody");
+       /*_.TSTUFF__V95*/ curfptr[65] = 
+        (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.STUFFMAP__V25*/ curfptr[24]), (basilysobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2])));;
+       /*_.CURHDLER__V96*/ curfptr[66] = /*_.HDLER__V4*/ curfptr[3];;
+       BASILYS_LOCATION("warmelt-normatch.melt:958:/ loop");
+       /*loop*/{ labloop_LOOPSTUFF_3:;BASILYS_LOCATION("warmelt-normatch.melt:958:/ loopbody");
        
-        BASILYS_LOCATION("warmelt-normatch.melt:956:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:958:/ block");
         /*block*/{
          
          #if ENABLE_CHECKING
-          BASILYS_LOCATION("warmelt-normatch.melt:958:/ cppif.then");
-         BASILYS_LOCATION("warmelt-normatch.melt:958:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:960:/ cppif.then");
+         BASILYS_LOCATION("warmelt-normatch.melt:960:/ block");
           /*block*/{
            /*_#THE_CALLCOUNT__L31*/ curfnum[16] = 
             callcount;;
-           BASILYS_LOCATION("warmelt-normatch.melt:958:/ apply");
+           BASILYS_LOCATION("warmelt-normatch.melt:960:/ apply");
            /*apply*/{
             union basilysparam_un argtab[4];
             memset(&argtab, 0, sizeof(argtab));
-            BASILYS_LOCATION("warmelt-normatch.melt:958:/ apply.arg");
+            BASILYS_LOCATION("warmelt-normatch.melt:960:/ apply.arg");
             argtab[0].bp_cstring =  "normpat_anymatchpat tstuff";
-            BASILYS_LOCATION("warmelt-normatch.melt:958:/ apply.arg");
+            BASILYS_LOCATION("warmelt-normatch.melt:960:/ apply.arg");
             argtab[1].bp_long = /*_#THE_CALLCOUNT__L31*/ curfnum[16];
-            BASILYS_LOCATION("warmelt-normatch.melt:958:/ apply.arg");
+            BASILYS_LOCATION("warmelt-normatch.melt:960:/ apply.arg");
             argtab[2].bp_cstring =  "warmelt-normatch.melt";
-            BASILYS_LOCATION("warmelt-normatch.melt:958:/ apply.arg");
-            argtab[3].bp_long = 958;
-            /*_.DEBUG_MSG_FUN__V99*/ curfptr[49] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+            BASILYS_LOCATION("warmelt-normatch.melt:960:/ apply.arg");
+            argtab[3].bp_long = 960;
+            /*_.DEBUG_MSG_FUN__V100*/ curfptr[50] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
             }
            ;
-           /*_.IFCPP___V98*/ curfptr[71] = /*_.DEBUG_MSG_FUN__V99*/ curfptr[49];;
+           /*_.IFCPP___V99*/ curfptr[72] = /*_.DEBUG_MSG_FUN__V100*/ curfptr[50];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:958:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
            /*clear*/ /*_#THE_CALLCOUNT__L31*/ curfnum[16] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:958:/ clear");
-           /*clear*/ /*_.DEBUG_MSG_FUN__V99*/ curfptr[49] = 0 ;}
+           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
+           /*clear*/ /*_.DEBUG_MSG_FUN__V100*/ curfptr[50] = 0 ;}
           
           #else /*ENABLE_CHECKING*/
-          BASILYS_LOCATION("warmelt-normatch.melt:958:/ cppif.else");
-         /*_.IFCPP___V98*/ curfptr[71] = (/*nil*/NULL);
+          BASILYS_LOCATION("warmelt-normatch.melt:960:/ cppif.else");
+         /*_.IFCPP___V99*/ curfptr[72] = (/*nil*/NULL);
           #endif /*ENABLE_CHECKING*/
           ;
          /*_#IS_A__L32*/ curfnum[24] = 
-           basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])));;
-         BASILYS_LOCATION("warmelt-normatch.melt:960:/ cond");
+           basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])));;
+         BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond");
          /*cond*/ if (/*_#IS_A__L32*/ curfnum[24]) /*then*/ {
-         BASILYS_LOCATION("warmelt-normatch.melt:960:/ cond.then");
-         BASILYS_LOCATION("warmelt-normatch.melt:960:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond.then");
+         BASILYS_LOCATION("warmelt-normatch.melt:962:/ block");
           /*block*/{
-           BASILYS_LOCATION("warmelt-normatch.melt:961:/ cond");
-           /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])))) /*then*/ {
-           BASILYS_LOCATION("warmelt-normatch.melt:961:/ cond.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:961:/ getslot");
+           BASILYS_LOCATION("warmelt-normatch.melt:963:/ cond");
+           /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])))) /*then*/ {
+           BASILYS_LOCATION("warmelt-normatch.melt:963:/ cond.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:963:/ getslot");
             { basilys_ptr_t slot=0;
-             basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), 7, "NTMATCH_MATCHER");/*_.NTMATCH_MATCHER__V100*/ curfptr[74] = slot; };
+             basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), 7, "NTMATCH_MATCHER");/*_.NTMATCH_MATCHER__V101*/ curfptr[75] = slot; };
             ;
-           } else {BASILYS_LOCATION("warmelt-normatch.melt:961:/ cond.else");
+           } else {BASILYS_LOCATION("warmelt-normatch.melt:963:/ cond.else");
            
-            /*_.NTMATCH_MATCHER__V100*/ curfptr[74] = NULL;;
+            /*_.NTMATCH_MATCHER__V101*/ curfptr[75] = NULL;;
             }
            ;
            /*_#__L34*/ curfnum[16] = 
-            ((/*_.NTMATCH_MATCHER__V100*/ curfptr[74]) == (/*_.MAT__V17*/ curfptr[16]));;
+            ((/*_.NTMATCH_MATCHER__V101*/ curfptr[75]) == (/*_.MAT__V17*/ curfptr[16]));;
            /*_#IF___L33*/ curfnum[18] = /*_#__L34*/ curfnum[16];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
-           /*clear*/ /*_.NTMATCH_MATCHER__V100*/ curfptr[74] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
+           /*clear*/ /*_.NTMATCH_MATCHER__V101*/ curfptr[75] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
            /*clear*/ /*_#__L34*/ curfnum[16] = 0 ;}
           ;
-         } else {BASILYS_LOCATION("warmelt-normatch.melt:960:/ cond.else");
+         } else {BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond.else");
          
           /*_#IF___L33*/ curfnum[18] = 0;;
           }
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:960:/ cond");
+         BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond");
          /*cond*/ if (/*_#IF___L33*/ curfnum[18]) /*then*/ {
-         BASILYS_LOCATION("warmelt-normatch.melt:960:/ cond.then");
-         BASILYS_LOCATION("warmelt-normatch.melt:960:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond.then");
+         BASILYS_LOCATION("warmelt-normatch.melt:962:/ block");
           /*block*/{
-           BASILYS_LOCATION("warmelt-normatch.melt:962:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:964:/ block");
            /*block*/{
-            BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond");
-            /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])))) /*then*/ {
-            BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond.then");
-            BASILYS_LOCATION("warmelt-normatch.melt:962:/ getslot");
+            BASILYS_LOCATION("warmelt-normatch.melt:964:/ cond");
+            /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])))) /*then*/ {
+            BASILYS_LOCATION("warmelt-normatch.melt:964:/ cond.then");
+            BASILYS_LOCATION("warmelt-normatch.melt:964:/ getslot");
              { basilys_ptr_t slot=0;
-              basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), 8, "NTMATCH_INARGS");/*_.TINARGS__V103*/ curfptr[62] = slot; };
+              basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), 8, "NTMATCH_INARGS");/*_.TINARGS__V104*/ curfptr[63] = slot; };
              ;
-            } else {BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond.else");
+            } else {BASILYS_LOCATION("warmelt-normatch.melt:964:/ cond.else");
             
-             /*_.TINARGS__V103*/ curfptr[62] = NULL;;
+             /*_.TINARGS__V104*/ curfptr[63] = NULL;;
              }
             ;
             /*_#GOOD__L35*/ curfnum[16] = 1;;
             /*citerblock FOREACH_IN_MULTIPLE*/ {
-            long cit2__EACHTUP_ln = basilys_multiple_length((basilys_ptr_t)/*_.TINARGS__V103*/ curfptr[62]);
+            long cit2__EACHTUP_ln = basilys_multiple_length((basilys_ptr_t)/*_.TINARGS__V104*/ curfptr[63]);
 int cit2__EACHTUP_ix = 0;
 for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix ++) {
-/*_.CURINARG__V104*/ curfptr[49] = basilys_multiple_nth((basilys_ptr_t)(/*_.TINARGS__V103*/ curfptr[62]), cit2__EACHTUP_ix);
+/*_.CURINARG__V105*/ curfptr[50] = basilys_multiple_nth((basilys_ptr_t)(/*_.TINARGS__V104*/ curfptr[63]), cit2__EACHTUP_ix);
 /*_#IX__L36*/ curfnum[35] = cit2__EACHTUP_ix;
 
             
-             BASILYS_LOCATION("warmelt-normatch.melt:968:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:970:/ block");
              /*block*/{
-              /*_.NTHINS__V105*/ curfptr[74] = 
-               (basilys_multiple_nth((basilys_ptr_t)(/*_.NINS__V34*/ curfptr[33]), (/*_#IX__L36*/ curfnum[35])));;
+              /*_.NTHINS__V106*/ curfptr[75] = 
+               (basilys_multiple_nth((basilys_ptr_t)(/*_.NINS__V35*/ curfptr[34]), (/*_#IX__L36*/ curfnum[35])));;
               /*_#__L38*/ curfnum[37] = 
-               ((/*_.CURINARG__V104*/ curfptr[49]) != (/*_.NTHINS__V105*/ curfptr[74]));;
-              BASILYS_LOCATION("warmelt-normatch.melt:969:/ cond");
+               ((/*_.CURINARG__V105*/ curfptr[50]) != (/*_.NTHINS__V106*/ curfptr[75]));;
+              BASILYS_LOCATION("warmelt-normatch.melt:971:/ cond");
               /*cond*/ if (/*_#__L38*/ curfnum[37]) /*then*/ {
-              BASILYS_LOCATION("warmelt-normatch.melt:969:/ cond.then");
-              BASILYS_LOCATION("warmelt-normatch.melt:969:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:971:/ cond.then");
+              BASILYS_LOCATION("warmelt-normatch.melt:971:/ block");
                /*block*/{
-                BASILYS_LOCATION("warmelt-normatch.melt:970:/ compute");
+                BASILYS_LOCATION("warmelt-normatch.melt:972:/ compute");
                 /*_#GOOD__L35*/ curfnum[16] = /*_#SETQ___L40*/ curfnum[39] = 0;;
                 /*_#IF___L39*/ curfnum[38] = /*_#SETQ___L40*/ curfnum[39];;
                 /*epilog*/
-                BASILYS_LOCATION("warmelt-normatch.melt:969:/ clear");
+                BASILYS_LOCATION("warmelt-normatch.melt:971:/ clear");
                 /*clear*/ /*_#SETQ___L40*/ curfnum[39] = 0 ;}
                ;
-              } else {BASILYS_LOCATION("warmelt-normatch.melt:969:/ cond.else");
+              } else {BASILYS_LOCATION("warmelt-normatch.melt:971:/ cond.else");
               
                /*_#IF___L39*/ curfnum[38] = 0;;
                }
               ;
               /*_#LET___L37*/ curfnum[36] = /*_#IF___L39*/ curfnum[38];;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:968:/ clear");
-              /*clear*/ /*_.NTHINS__V105*/ curfptr[74] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:968:/ clear");
+              BASILYS_LOCATION("warmelt-normatch.melt:970:/ clear");
+              /*clear*/ /*_.NTHINS__V106*/ curfptr[75] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:970:/ clear");
               /*clear*/ /*_#__L38*/ curfnum[37] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:968:/ clear");
+              BASILYS_LOCATION("warmelt-normatch.melt:970:/ clear");
               /*clear*/ /*_#IF___L39*/ curfnum[38] = 0 ;}
              ;
             } /* end cit2__EACHTUP*/
             
              /*citerepilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:965:/ clear");
-             /*clear*/ /*_.CURINARG__V104*/ curfptr[49] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:965:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:967:/ clear");
+             /*clear*/ /*_.CURINARG__V105*/ curfptr[50] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:967:/ clear");
              /*clear*/ /*_#IX__L36*/ curfnum[35] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:965:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:967:/ clear");
              /*clear*/ /*_#LET___L37*/ curfnum[36] = 0 ;} /*endciterblock FOREACH_IN_MULTIPLE*/
             ;
-            BASILYS_LOCATION("warmelt-normatch.melt:972:/ cond");
+            BASILYS_LOCATION("warmelt-normatch.melt:974:/ cond");
             /*cond*/ if (/*_#GOOD__L35*/ curfnum[16]) /*then*/ {
-            BASILYS_LOCATION("warmelt-normatch.melt:972:/ cond.then");
-            BASILYS_LOCATION("warmelt-normatch.melt:972:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:974:/ cond.then");
+            BASILYS_LOCATION("warmelt-normatch.melt:974:/ block");
              /*block*/{
               
               #if ENABLE_CHECKING
-               BASILYS_LOCATION("warmelt-normatch.melt:974:/ cppif.then");
-              BASILYS_LOCATION("warmelt-normatch.melt:974:/ block");
+               BASILYS_LOCATION("warmelt-normatch.melt:976:/ cppif.then");
+              BASILYS_LOCATION("warmelt-normatch.melt:976:/ block");
                /*block*/{
                 /*_#THE_CALLCOUNT__L41*/ curfnum[39] = 
                  callcount;;
-                BASILYS_LOCATION("warmelt-normatch.melt:974:/ apply");
+                BASILYS_LOCATION("warmelt-normatch.melt:976:/ apply");
                 /*apply*/{
                  union basilysparam_un argtab[4];
                  memset(&argtab, 0, sizeof(argtab));
-                 BASILYS_LOCATION("warmelt-normatch.melt:974:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:976:/ apply.arg");
                  argtab[0].bp_cstring =  "normpat_anymatchpat good tstuff";
-                 BASILYS_LOCATION("warmelt-normatch.melt:974:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:976:/ apply.arg");
                  argtab[1].bp_long = /*_#THE_CALLCOUNT__L41*/ curfnum[39];
-                 BASILYS_LOCATION("warmelt-normatch.melt:974:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:976:/ apply.arg");
                  argtab[2].bp_cstring =  "warmelt-normatch.melt";
-                 BASILYS_LOCATION("warmelt-normatch.melt:974:/ apply.arg");
-                 argtab[3].bp_long = 974;
-                 /*_.DEBUG_MSG_FUN__V108*/ curfptr[107] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+                 BASILYS_LOCATION("warmelt-normatch.melt:976:/ apply.arg");
+                 argtab[3].bp_long = 976;
+                 /*_.DEBUG_MSG_FUN__V109*/ curfptr[108] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                  }
                 ;
-                /*_.IFCPP___V107*/ curfptr[106] = /*_.DEBUG_MSG_FUN__V108*/ curfptr[107];;
+                /*_.IFCPP___V108*/ curfptr[107] = /*_.DEBUG_MSG_FUN__V109*/ curfptr[108];;
                 /*epilog*/
-                BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
+                BASILYS_LOCATION("warmelt-normatch.melt:976:/ clear");
                 /*clear*/ /*_#THE_CALLCOUNT__L41*/ curfnum[39] = 0 ;
-                BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
-                /*clear*/ /*_.DEBUG_MSG_FUN__V108*/ curfptr[107] = 0 ;}
+                BASILYS_LOCATION("warmelt-normatch.melt:976:/ clear");
+                /*clear*/ /*_.DEBUG_MSG_FUN__V109*/ curfptr[108] = 0 ;}
                
                #else /*ENABLE_CHECKING*/
-               BASILYS_LOCATION("warmelt-normatch.melt:974:/ cppif.else");
-              /*_.IFCPP___V107*/ curfptr[106] = (/*nil*/NULL);
+               BASILYS_LOCATION("warmelt-normatch.melt:976:/ cppif.else");
+              /*_.IFCPP___V108*/ curfptr[107] = (/*nil*/NULL);
                #endif /*ENABLE_CHECKING*/
                ;
-              BASILYS_LOCATION("warmelt-normatch.melt:975:/ compute");
-              /*_.TESTER__V47*/ curfptr[46] = /*_.SETQ___V109*/ curfptr[107] = /*_.TSTUFF__V94*/ curfptr[64];;
-              BASILYS_LOCATION("warmelt-normatch.melt:976:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:977:/ compute");
+              /*_.TESTER__V48*/ curfptr[47] = /*_.SETQ___V110*/ curfptr[108] = /*_.TSTUFF__V95*/ curfptr[65];;
+              BASILYS_LOCATION("warmelt-normatch.melt:978:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:976:/ compute");
-               /*_.LOOPSTUFF__V97*/ curfptr[69] = NULL;;
+               BASILYS_LOCATION("warmelt-normatch.melt:978:/ compute");
+               /*_.LOOPSTUFF__V98*/ curfptr[70] = NULL;;
                /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:976:/ exit");
+               BASILYS_LOCATION("warmelt-normatch.melt:978:/ exit");
                /*exit*/{
                 goto labexit_LOOPSTUFF_3;}
                ;}
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:973:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:975:/ block");
               /*block*/{}
               ;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:972:/ clear");
-              /*clear*/ /*_.IFCPP___V107*/ curfptr[106] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:972:/ clear");
-              /*clear*/ /*_.SETQ___V109*/ curfptr[107] = 0 ;}
+              BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
+              /*clear*/ /*_.IFCPP___V108*/ curfptr[107] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
+              /*clear*/ /*_.SETQ___V110*/ curfptr[108] = 0 ;}
              ;
-            } else {BASILYS_LOCATION("warmelt-normatch.melt:972:/ cond.else");
+            } else {BASILYS_LOCATION("warmelt-normatch.melt:974:/ cond.else");
             
-             BASILYS_LOCATION("warmelt-normatch.melt:972:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:974:/ block");
              /*block*/{
-              BASILYS_LOCATION("warmelt-normatch.melt:978:/ cond");
-              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[16])))) /*then*/ {
-              BASILYS_LOCATION("warmelt-normatch.melt:978:/ cond.then");
-              BASILYS_LOCATION("warmelt-normatch.melt:978:/ getslot");
+              BASILYS_LOCATION("warmelt-normatch.melt:980:/ cond");
+              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[16])))) /*then*/ {
+              BASILYS_LOCATION("warmelt-normatch.melt:980:/ cond.then");
+              BASILYS_LOCATION("warmelt-normatch.melt:980:/ getslot");
                { basilys_ptr_t slot=0;
-                basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), 3, "NTEST_ELSE");/*_.NTEST_ELSE__V110*/ curfptr[106] = slot; };
+                basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), 3, "NTEST_ELSE");/*_.NTEST_ELSE__V111*/ curfptr[107] = slot; };
                ;
-              } else {BASILYS_LOCATION("warmelt-normatch.melt:978:/ cond.else");
+              } else {BASILYS_LOCATION("warmelt-normatch.melt:980:/ cond.else");
               
-               /*_.NTEST_ELSE__V110*/ curfptr[106] = NULL;;
+               /*_.NTEST_ELSE__V111*/ curfptr[107] = NULL;;
                }
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:978:/ compute");
-              /*_.TSTUFF__V94*/ curfptr[64] = /*_.SETQ___V111*/ curfptr[107] = /*_.NTEST_ELSE__V110*/ curfptr[106];;
-              BASILYS_LOCATION("warmelt-normatch.melt:980:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:980:/ compute");
+              /*_.TSTUFF__V95*/ curfptr[65] = /*_.SETQ___V112*/ curfptr[108] = /*_.NTEST_ELSE__V111*/ curfptr[107];;
+              BASILYS_LOCATION("warmelt-normatch.melt:982:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:980:/ newclosure");
-                /*newclosure*/ /*_.LAMBDA___V113*/ curfptr[112] =
+               BASILYS_LOCATION("warmelt-normatch.melt:982:/ newclosure");
+                /*newclosure*/ /*_.LAMBDA___V114*/ curfptr[113] =
                 basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_18*/ curfrout->tabval[18])), (1));
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:980:/ putclosedv");
+               BASILYS_LOCATION("warmelt-normatch.melt:982:/ putclosedv");
                /*putclosv*/
-               basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V113*/ curfptr[112])) == OBMAG_CLOSURE);
-               basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V113*/ curfptr[112])));
-               ((basilysclosure_ptr_t)/*_.LAMBDA___V113*/ curfptr[112])->tabval[0] = (basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]);
+               basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V114*/ curfptr[113])) == OBMAG_CLOSURE);
+               basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V114*/ curfptr[113])));
+               ((basilysclosure_ptr_t)/*_.LAMBDA___V114*/ curfptr[113])->tabval[0] = (basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]);
                ;
-               /*_.LAMBDA___V112*/ curfptr[111] = /*_.LAMBDA___V113*/ curfptr[112];;}
+               /*_.LAMBDA___V113*/ curfptr[112] = /*_.LAMBDA___V114*/ curfptr[113];;}
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:979:/ compute");
-              /*_.CURHDLER__V95*/ curfptr[65] = /*_.SETQ___V114*/ curfptr[113] = /*_.LAMBDA___V112*/ curfptr[111];;
-              BASILYS_LOCATION("warmelt-normatch.melt:977:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:981:/ compute");
+              /*_.CURHDLER__V96*/ curfptr[66] = /*_.SETQ___V115*/ curfptr[114] = /*_.LAMBDA___V113*/ curfptr[112];;
+              BASILYS_LOCATION("warmelt-normatch.melt:979:/ block");
               /*block*/{
-               /*_.PROGN___V115*/ curfptr[114] = /*_.SETQ___V114*/ curfptr[113];;}
+               /*_.PROGN___V116*/ curfptr[115] = /*_.SETQ___V115*/ curfptr[114];;}
               ;
-              /*_.IFELSE___V106*/ curfptr[74] = /*_.PROGN___V115*/ curfptr[114];;
+              /*_.IFELSE___V107*/ curfptr[75] = /*_.PROGN___V116*/ curfptr[115];;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:972:/ clear");
-              /*clear*/ /*_.NTEST_ELSE__V110*/ curfptr[106] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:972:/ clear");
-              /*clear*/ /*_.SETQ___V111*/ curfptr[107] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:972:/ clear");
-              /*clear*/ /*_.LAMBDA___V112*/ curfptr[111] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:972:/ clear");
-              /*clear*/ /*_.SETQ___V114*/ curfptr[113] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:972:/ clear");
-              /*clear*/ /*_.PROGN___V115*/ curfptr[114] = 0 ;}
+              BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
+              /*clear*/ /*_.NTEST_ELSE__V111*/ curfptr[107] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
+              /*clear*/ /*_.SETQ___V112*/ curfptr[108] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
+              /*clear*/ /*_.LAMBDA___V113*/ curfptr[112] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
+              /*clear*/ /*_.SETQ___V115*/ curfptr[114] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:974:/ clear");
+              /*clear*/ /*_.PROGN___V116*/ curfptr[115] = 0 ;}
              ;
              }
             ;
-            /*_.LET___V102*/ curfptr[73] = /*_.IFELSE___V106*/ curfptr[74];;
+            /*_.LET___V103*/ curfptr[74] = /*_.IFELSE___V107*/ curfptr[75];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
-            /*clear*/ /*_.TINARGS__V103*/ curfptr[62] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:964:/ clear");
+            /*clear*/ /*_.TINARGS__V104*/ curfptr[63] = 0 ;
+            BASILYS_LOCATION("warmelt-normatch.melt:964:/ clear");
             /*clear*/ /*_#GOOD__L35*/ curfnum[16] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
-            /*clear*/ /*_.IFELSE___V106*/ curfptr[74] = 0 ;}
+            BASILYS_LOCATION("warmelt-normatch.melt:964:/ clear");
+            /*clear*/ /*_.IFELSE___V107*/ curfptr[75] = 0 ;}
            ;
            
            #if ENABLE_CHECKING
-            BASILYS_LOCATION("warmelt-normatch.melt:986:/ cppif.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:986:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:988:/ cppif.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:988:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:986:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:988:/ cond");
              /*cond*/ if ((/*nil*/NULL)) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:986:/ cond.then");
-             /*_.IFELSE___V117*/ curfptr[107] = (/*nil*/NULL);;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:986:/ cond.else");
+             BASILYS_LOCATION("warmelt-normatch.melt:988:/ cond.then");
+             /*_.IFELSE___V118*/ curfptr[108] = (/*nil*/NULL);;
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:988:/ cond.else");
              
-              BASILYS_LOCATION("warmelt-normatch.melt:986:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:988:/ block");
               /*block*/{
                /*block*/{
                 
                 {
-                BASILYS_LOCATION("warmelt-normatch.melt:986:/ locexp");
-                basilys_assert_failed(( "normpat_anymatchpat incomplete found tstuff"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(986)?(986):__LINE__, __FUNCTION__);}
+                BASILYS_LOCATION("warmelt-normatch.melt:988:/ locexp");
+                basilys_assert_failed(( "normpat_anymatchpat incomplete found tstuff"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(988)?(988):__LINE__, __FUNCTION__);}
                 ;
-                /*clear*/ /*_.IFELSE___V117*/ curfptr[107] = 0 ;}
+                /*clear*/ /*_.IFELSE___V118*/ curfptr[108] = 0 ;}
                ;
                /*epilog*/}
               ;
               }
              ;
-             /*_.IFCPP___V116*/ curfptr[106] = /*_.IFELSE___V117*/ curfptr[107];;
+             /*_.IFCPP___V117*/ curfptr[107] = /*_.IFELSE___V118*/ curfptr[108];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:986:/ clear");
-             /*clear*/ /*_.IFELSE___V117*/ curfptr[107] = 0 ;}
+             BASILYS_LOCATION("warmelt-normatch.melt:988:/ clear");
+             /*clear*/ /*_.IFELSE___V118*/ curfptr[108] = 0 ;}
             
             #else /*ENABLE_CHECKING*/
-            BASILYS_LOCATION("warmelt-normatch.melt:986:/ cppif.else");
-           /*_.IFCPP___V116*/ curfptr[106] = (/*nil*/NULL);
+            BASILYS_LOCATION("warmelt-normatch.melt:988:/ cppif.else");
+           /*_.IFCPP___V117*/ curfptr[107] = (/*nil*/NULL);
             #endif /*ENABLE_CHECKING*/
             ;
-           BASILYS_LOCATION("warmelt-normatch.melt:960:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:962:/ block");
            /*block*/{
-            /*_.PROGN___V118*/ curfptr[111] = /*_.IFCPP___V116*/ curfptr[106];;}
+            /*_.PROGN___V119*/ curfptr[112] = /*_.IFCPP___V117*/ curfptr[107];;}
            ;
-           /*_.IFELSE___V101*/ curfptr[77] = /*_.PROGN___V118*/ curfptr[111];;
+           /*_.IFELSE___V102*/ curfptr[78] = /*_.PROGN___V119*/ curfptr[112];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
-           /*clear*/ /*_.LET___V102*/ curfptr[73] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
-           /*clear*/ /*_.IFCPP___V116*/ curfptr[106] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
-           /*clear*/ /*_.PROGN___V118*/ curfptr[111] = 0 ;}
+           BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
+           /*clear*/ /*_.LET___V103*/ curfptr[74] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
+           /*clear*/ /*_.IFCPP___V117*/ curfptr[107] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
+           /*clear*/ /*_.PROGN___V119*/ curfptr[112] = 0 ;}
           ;
-         } else {BASILYS_LOCATION("warmelt-normatch.melt:960:/ cond.else");
+         } else {BASILYS_LOCATION("warmelt-normatch.melt:962:/ cond.else");
          
-          BASILYS_LOCATION("warmelt-normatch.melt:960:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:962:/ block");
           /*block*/{
            /*_#IS_A__L42*/ curfnum[37] = 
-             basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[16])));;
-           BASILYS_LOCATION("warmelt-normatch.melt:988:/ cond");
+             basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[16])));;
+           BASILYS_LOCATION("warmelt-normatch.melt:990:/ cond");
            /*cond*/ if (/*_#IS_A__L42*/ curfnum[37]) /*then*/ {
-           BASILYS_LOCATION("warmelt-normatch.melt:988:/ cond.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:988:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:990:/ cond.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:990:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:989:/ cond");
-             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[16])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:989:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:989:/ getslot");
+             BASILYS_LOCATION("warmelt-normatch.melt:991:/ cond");
+             /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[16])))) /*then*/ {
+             BASILYS_LOCATION("warmelt-normatch.melt:991:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:991:/ getslot");
               { basilys_ptr_t slot=0;
-               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]), 3, "NTEST_ELSE");/*_.NTEST_ELSE__V120*/ curfptr[114] = slot; };
+               basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]), 3, "NTEST_ELSE");/*_.NTEST_ELSE__V121*/ curfptr[115] = slot; };
               ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:989:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:991:/ cond.else");
              
-              /*_.NTEST_ELSE__V120*/ curfptr[114] = NULL;;
+              /*_.NTEST_ELSE__V121*/ curfptr[115] = NULL;;
               }
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:989:/ compute");
-             /*_.TSTUFF__V94*/ curfptr[64] = /*_.SETQ___V121*/ curfptr[62] = /*_.NTEST_ELSE__V120*/ curfptr[114];;
-             BASILYS_LOCATION("warmelt-normatch.melt:991:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:991:/ compute");
+             /*_.TSTUFF__V95*/ curfptr[65] = /*_.SETQ___V122*/ curfptr[63] = /*_.NTEST_ELSE__V121*/ curfptr[115];;
+             BASILYS_LOCATION("warmelt-normatch.melt:993:/ block");
              /*block*/{
-              BASILYS_LOCATION("warmelt-normatch.melt:991:/ newclosure");
-               /*newclosure*/ /*_.LAMBDA___V123*/ curfptr[107] =
+              BASILYS_LOCATION("warmelt-normatch.melt:993:/ newclosure");
+               /*newclosure*/ /*_.LAMBDA___V124*/ curfptr[108] =
                basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_20*/ curfrout->tabval[20])), (1));
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:991:/ putclosedv");
+              BASILYS_LOCATION("warmelt-normatch.melt:993:/ putclosedv");
               /*putclosv*/
-              basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V123*/ curfptr[107])) == OBMAG_CLOSURE);
-              basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V123*/ curfptr[107])));
-              ((basilysclosure_ptr_t)/*_.LAMBDA___V123*/ curfptr[107])->tabval[0] = (basilys_ptr_t)(/*_.TSTUFF__V94*/ curfptr[64]);
+              basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V124*/ curfptr[108])) == OBMAG_CLOSURE);
+              basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V124*/ curfptr[108])));
+              ((basilysclosure_ptr_t)/*_.LAMBDA___V124*/ curfptr[108])->tabval[0] = (basilys_ptr_t)(/*_.TSTUFF__V95*/ curfptr[65]);
               ;
-              /*_.LAMBDA___V122*/ curfptr[74] = /*_.LAMBDA___V123*/ curfptr[107];;}
+              /*_.LAMBDA___V123*/ curfptr[75] = /*_.LAMBDA___V124*/ curfptr[108];;}
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:990:/ compute");
-             /*_.CURHDLER__V95*/ curfptr[65] = /*_.SETQ___V124*/ curfptr[73] = /*_.LAMBDA___V122*/ curfptr[74];;
-             BASILYS_LOCATION("warmelt-normatch.melt:988:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:992:/ compute");
+             /*_.CURHDLER__V96*/ curfptr[66] = /*_.SETQ___V125*/ curfptr[74] = /*_.LAMBDA___V123*/ curfptr[75];;
+             BASILYS_LOCATION("warmelt-normatch.melt:990:/ block");
              /*block*/{
-              /*_.PROGN___V125*/ curfptr[106] = /*_.SETQ___V124*/ curfptr[73];;}
+              /*_.PROGN___V126*/ curfptr[107] = /*_.SETQ___V125*/ curfptr[74];;}
              ;
-             /*_.IFELSE___V119*/ curfptr[113] = /*_.PROGN___V125*/ curfptr[106];;
+             /*_.IFELSE___V120*/ curfptr[114] = /*_.PROGN___V126*/ curfptr[107];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:988:/ clear");
-             /*clear*/ /*_.NTEST_ELSE__V120*/ curfptr[114] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:988:/ clear");
-             /*clear*/ /*_.SETQ___V121*/ curfptr[62] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:988:/ clear");
-             /*clear*/ /*_.LAMBDA___V122*/ curfptr[74] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:988:/ clear");
-             /*clear*/ /*_.SETQ___V124*/ curfptr[73] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:988:/ clear");
-             /*clear*/ /*_.PROGN___V125*/ curfptr[106] = 0 ;}
+             BASILYS_LOCATION("warmelt-normatch.melt:990:/ clear");
+             /*clear*/ /*_.NTEST_ELSE__V121*/ curfptr[115] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:990:/ clear");
+             /*clear*/ /*_.SETQ___V122*/ curfptr[63] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:990:/ clear");
+             /*clear*/ /*_.LAMBDA___V123*/ curfptr[75] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:990:/ clear");
+             /*clear*/ /*_.SETQ___V125*/ curfptr[74] = 0 ;
+             BASILYS_LOCATION("warmelt-normatch.melt:990:/ clear");
+             /*clear*/ /*_.PROGN___V126*/ curfptr[107] = 0 ;}
             ;
-           } else {BASILYS_LOCATION("warmelt-normatch.melt:988:/ cond.else");
+           } else {BASILYS_LOCATION("warmelt-normatch.melt:990:/ cond.else");
            
-            BASILYS_LOCATION("warmelt-normatch.melt:988:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:990:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:997:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:999:/ block");
              /*block*/{
-              BASILYS_LOCATION("warmelt-normatch.melt:1001:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1003:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:1001:/ newclosure");
-                /*newclosure*/ /*_.LAMBDA___V127*/ curfptr[114] =
+               BASILYS_LOCATION("warmelt-normatch.melt:1003:/ newclosure");
+                /*newclosure*/ /*_.LAMBDA___V128*/ curfptr[115] =
                 basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_29*/ curfrout->tabval[29])), (2));
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putclosedv");
+               BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putclosedv");
                /*putclosv*/
-               basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V127*/ curfptr[114])) == OBMAG_CLOSURE);
-               basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V127*/ curfptr[114])));
-               ((basilysclosure_ptr_t)/*_.LAMBDA___V127*/ curfptr[114])->tabval[0] = (basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]);
+               basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V128*/ curfptr[115])) == OBMAG_CLOSURE);
+               basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V128*/ curfptr[115])));
+               ((basilysclosure_ptr_t)/*_.LAMBDA___V128*/ curfptr[115])->tabval[0] = (basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]);
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putclosedv");
+               BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putclosedv");
                /*putclosv*/
-               basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V127*/ curfptr[114])) == OBMAG_CLOSURE);
-               basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V127*/ curfptr[114])));
-               ((basilysclosure_ptr_t)/*_.LAMBDA___V127*/ curfptr[114])->tabval[1] = (basilys_ptr_t)(/*_.NCX__V22*/ curfptr[21]);
+               basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V128*/ curfptr[115])) == OBMAG_CLOSURE);
+               basilys_assertmsg("putclosv checkoff", 1>= 0 && 1< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V128*/ curfptr[115])));
+               ((basilysclosure_ptr_t)/*_.LAMBDA___V128*/ curfptr[115])->tabval[1] = (basilys_ptr_t)(/*_.NCX__V23*/ curfptr[22]);
                ;
-               /*_.LAMBDA___V126*/ curfptr[111] = /*_.LAMBDA___V127*/ curfptr[114];;}
+               /*_.LAMBDA___V127*/ curfptr[112] = /*_.LAMBDA___V128*/ curfptr[115];;}
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:999:/ apply");
+              BASILYS_LOCATION("warmelt-normatch.melt:1001:/ apply");
               /*apply*/{
                union basilysparam_un argtab[1];
                memset(&argtab, 0, sizeof(argtab));
-               BASILYS_LOCATION("warmelt-normatch.melt:999:/ apply.arg");
-               argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V126*/ curfptr[111];
-               /*_.OUTLOCS__V128*/ curfptr[62] =  basilys_apply ((basilysclosure_ptr_t)((/*!MULTIPLE_MAP*/ curfrout->tabval[21])), (basilys_ptr_t)(/*_.OUTMATCHS__V44*/ curfptr[43]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+               BASILYS_LOCATION("warmelt-normatch.melt:1001:/ apply.arg");
+               argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V127*/ curfptr[112];
+               /*_.OUTLOCS__V129*/ curfptr[63] =  basilys_apply ((basilysclosure_ptr_t)((/*!MULTIPLE_MAP*/ curfrout->tabval[21])), (basilys_ptr_t)(/*_.OUTMATCHS__V45*/ curfptr[44]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
                }
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1034:/ apply");
+              BASILYS_LOCATION("warmelt-normatch.melt:1036:/ apply");
               /*apply*/{
-               /*_.MULTIPLE_TO_LIST__V129*/ curfptr[74] =  basilys_apply ((basilysclosure_ptr_t)((/*!MULTIPLE_TO_LIST*/ curfrout->tabval[30])), (basilys_ptr_t)(/*_.OUTLOCS__V128*/ curfptr[62]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
+               /*_.MULTIPLE_TO_LIST__V130*/ curfptr[75] =  basilys_apply ((basilysclosure_ptr_t)((/*!MULTIPLE_TO_LIST*/ curfrout->tabval[30])), (basilys_ptr_t)(/*_.OUTLOCS__V129*/ curfptr[63]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
                }
               ;
-              /*_.MAKE_LIST__V130*/ curfptr[73] = 
+              /*_.MAKE_LIST__V131*/ curfptr[74] = 
                (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[31]))));;
-              BASILYS_LOCATION("warmelt-normatch.melt:1026:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1028:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ rawallocobj");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ rawallocobj");
                /*rawallocobj*/ { basilys_ptr_t newobj = 0;
-                basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])), (10), "CLASS_NORMTESTER_MATCHER");/*_.INST__V132*/ curfptr[131] =
+                basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])), (10), "CLASS_NORMTESTER_MATCHER");/*_.INST__V133*/ curfptr[132] =
                 newobj; };
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (0), (/*_.SLOC__V16*/ curfptr[14]), "NREP_LOC");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (0), (/*_.SLOC__V16*/ curfptr[14]), "NREP_LOC");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (1), (/*_.NMATCH__V3*/ curfptr[2]), "NTEST_MATCHED");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (1), (/*_.NMATCH__V3*/ curfptr[2]), "NTEST_MATCHED");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (2), ((/*nil*/NULL)), "NTEST_THEN");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (2), ((/*nil*/NULL)), "NTEST_THEN");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (5), (/*_.MULTIPLE_TO_LIST__V129*/ curfptr[74]), "NTEST_LOCCLIST");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (5), (/*_.MULTIPLE_TO_LIST__V130*/ curfptr[75]), "NTEST_LOCCLIST");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (6), (/*_.MAKE_LIST__V130*/ curfptr[73]), "NTEST_COMEFROM");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (6), (/*_.MAKE_LIST__V131*/ curfptr[74]), "NTEST_COMEFROM");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (7), (/*_.MAT__V17*/ curfptr[16]), "NTMATCH_MATCHER");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (7), (/*_.MAT__V17*/ curfptr[16]), "NTMATCH_MATCHER");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (8), (/*_.NINS__V34*/ curfptr[33]), "NTMATCH_INARGS");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (8), (/*_.NINS__V35*/ curfptr[34]), "NTMATCH_INARGS");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1026:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1028:/ putslot");
                /*putslot*/
-               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131])) == OBMAG_OBJECT);
-               basilys_assertmsg("putslot checkoff", (9>=0 && 9< basilys_object_length((basilys_ptr_t)(/*_.INST__V132*/ curfptr[131]))));basilys_putfield_object((/*_.INST__V132*/ curfptr[131]), (9), (/*_.OUTLOCS__V128*/ curfptr[62]), "NTMATCH_OUTLOCS");
+               basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132])) == OBMAG_OBJECT);
+               basilys_assertmsg("putslot checkoff", (9>=0 && 9< basilys_object_length((basilys_ptr_t)(/*_.INST__V133*/ curfptr[132]))));basilys_putfield_object((/*_.INST__V133*/ curfptr[132]), (9), (/*_.OUTLOCS__V129*/ curfptr[63]), "NTMATCH_OUTLOCS");
                ;
-               /*_.NEWTESTER__V131*/ curfptr[106] = /*_.INST__V132*/ curfptr[131];;}
+               /*_.NEWTESTER__V132*/ curfptr[107] = /*_.INST__V133*/ curfptr[132];;}
               ;
               
               #if ENABLE_CHECKING
-               BASILYS_LOCATION("warmelt-normatch.melt:1041:/ cppif.then");
-              BASILYS_LOCATION("warmelt-normatch.melt:1041:/ block");
+               BASILYS_LOCATION("warmelt-normatch.melt:1043:/ cppif.then");
+              BASILYS_LOCATION("warmelt-normatch.melt:1043:/ block");
                /*block*/{
                 /*_#THE_CALLCOUNT__L43*/ curfnum[38] = 
                  callcount;;
-                BASILYS_LOCATION("warmelt-normatch.melt:1041:/ apply");
+                BASILYS_LOCATION("warmelt-normatch.melt:1043:/ apply");
                 /*apply*/{
                  union basilysparam_un argtab[4];
                  memset(&argtab, 0, sizeof(argtab));
-                 BASILYS_LOCATION("warmelt-normatch.melt:1041:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1043:/ apply.arg");
                  argtab[0].bp_cstring =  "normpat_anymatchpat newtester";
-                 BASILYS_LOCATION("warmelt-normatch.melt:1041:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1043:/ apply.arg");
                  argtab[1].bp_long = /*_#THE_CALLCOUNT__L43*/ curfnum[38];
-                 BASILYS_LOCATION("warmelt-normatch.melt:1041:/ apply.arg");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1043:/ apply.arg");
                  argtab[2].bp_cstring =  "warmelt-normatch.melt";
-                 BASILYS_LOCATION("warmelt-normatch.melt:1041:/ apply.arg");
-                 argtab[3].bp_long = 1041;
-                 /*_.DEBUG_MSG_FUN__V134*/ curfptr[133] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NEWTESTER__V131*/ curfptr[106]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+                 BASILYS_LOCATION("warmelt-normatch.melt:1043:/ apply.arg");
+                 argtab[3].bp_long = 1043;
+                 /*_.DEBUG_MSG_FUN__V135*/ curfptr[134] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NEWTESTER__V132*/ curfptr[107]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                  }
                 ;
-                /*_.IFCPP___V133*/ curfptr[132] = /*_.DEBUG_MSG_FUN__V134*/ curfptr[133];;
+                /*_.IFCPP___V134*/ curfptr[133] = /*_.DEBUG_MSG_FUN__V135*/ curfptr[134];;
                 /*epilog*/
-                BASILYS_LOCATION("warmelt-normatch.melt:1041:/ clear");
+                BASILYS_LOCATION("warmelt-normatch.melt:1043:/ clear");
                 /*clear*/ /*_#THE_CALLCOUNT__L43*/ curfnum[38] = 0 ;
-                BASILYS_LOCATION("warmelt-normatch.melt:1041:/ clear");
-                /*clear*/ /*_.DEBUG_MSG_FUN__V134*/ curfptr[133] = 0 ;}
+                BASILYS_LOCATION("warmelt-normatch.melt:1043:/ clear");
+                /*clear*/ /*_.DEBUG_MSG_FUN__V135*/ curfptr[134] = 0 ;}
                
                #else /*ENABLE_CHECKING*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1041:/ cppif.else");
-              /*_.IFCPP___V133*/ curfptr[132] = (/*nil*/NULL);
+               BASILYS_LOCATION("warmelt-normatch.melt:1043:/ cppif.else");
+              /*_.IFCPP___V134*/ curfptr[133] = (/*nil*/NULL);
                #endif /*ENABLE_CHECKING*/
                ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1042:/ apply");
+              BASILYS_LOCATION("warmelt-normatch.melt:1044:/ apply");
               /*apply*/{
                union basilysparam_un argtab[1];
                memset(&argtab, 0, sizeof(argtab));
-               BASILYS_LOCATION("warmelt-normatch.melt:1042:/ apply.arg");
+               BASILYS_LOCATION("warmelt-normatch.melt:1044:/ apply.arg");
                argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.PCN__V5*/ curfptr[4];
-               /*_.REGISTER_NEW_NORMTESTER__V135*/ curfptr[133] =  basilys_apply ((basilysclosure_ptr_t)((/*!REGISTER_NEW_NORMTESTER*/ curfrout->tabval[32])), (basilys_ptr_t)(/*_.NEWTESTER__V131*/ curfptr[106]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+               /*_.REGISTER_NEW_NORMTESTER__V136*/ curfptr[134] =  basilys_apply ((basilysclosure_ptr_t)((/*!REGISTER_NEW_NORMTESTER*/ curfrout->tabval[32])), (basilys_ptr_t)(/*_.NEWTESTER__V132*/ curfptr[107]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
                }
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1043:/ compute");
-              /*_.TESTER__V47*/ curfptr[46] = /*_.SETQ___V136*/ curfptr[135] = /*_.NEWTESTER__V131*/ curfptr[106];;
+              BASILYS_LOCATION("warmelt-normatch.melt:1045:/ compute");
+              /*_.TESTER__V48*/ curfptr[47] = /*_.SETQ___V137*/ curfptr[136] = /*_.NEWTESTER__V132*/ curfptr[107];;
               
               {
-              BASILYS_LOCATION("warmelt-normatch.melt:1044:/ locexp");
-              basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V26*/ curfptr[25]), (basilys_ptr_t)(/*_.NEWTESTER__V131*/ curfptr[106]));}
+              BASILYS_LOCATION("warmelt-normatch.melt:1046:/ locexp");
+              basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V27*/ curfptr[26]), (basilys_ptr_t)(/*_.NEWTESTER__V132*/ curfptr[107]));}
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1045:/ apply");
+              BASILYS_LOCATION("warmelt-normatch.melt:1047:/ apply");
               /*apply*/{
-               /*_.CURHDLER__V137*/ curfptr[136] =  basilys_apply ((basilysclosure_ptr_t)(/*_.CURHDLER__V95*/ curfptr[65]), (basilys_ptr_t)(/*_.NEWTESTER__V131*/ curfptr[106]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
+               /*_.CURHDLER__V138*/ curfptr[137] =  basilys_apply ((basilysclosure_ptr_t)(/*_.CURHDLER__V96*/ curfptr[66]), (basilys_ptr_t)(/*_.NEWTESTER__V132*/ curfptr[107]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
                }
               ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1046:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1048:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:1046:/ compute");
-               /*_.LOOPSTUFF__V97*/ curfptr[69] = NULL;;
+               BASILYS_LOCATION("warmelt-normatch.melt:1048:/ compute");
+               /*_.LOOPSTUFF__V98*/ curfptr[70] = NULL;;
                /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1046:/ exit");
+               BASILYS_LOCATION("warmelt-normatch.melt:1048:/ exit");
                /*exit*/{
                 goto labexit_LOOPSTUFF_3;}
                ;}
               ;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.LAMBDA___V126*/ curfptr[111] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.OUTLOCS__V128*/ curfptr[62] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.MULTIPLE_TO_LIST__V129*/ curfptr[74] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.MAKE_LIST__V130*/ curfptr[73] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.NEWTESTER__V131*/ curfptr[106] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.IFCPP___V133*/ curfptr[132] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.REGISTER_NEW_NORMTESTER__V135*/ curfptr[133] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.SETQ___V136*/ curfptr[135] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:997:/ clear");
-              /*clear*/ /*_.CURHDLER__V137*/ curfptr[136] = 0 ;}
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.LAMBDA___V127*/ curfptr[112] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.OUTLOCS__V129*/ curfptr[63] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.MULTIPLE_TO_LIST__V130*/ curfptr[75] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.MAKE_LIST__V131*/ curfptr[74] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.NEWTESTER__V132*/ curfptr[107] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.IFCPP___V134*/ curfptr[133] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.REGISTER_NEW_NORMTESTER__V136*/ curfptr[134] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.SETQ___V137*/ curfptr[136] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:999:/ clear");
+              /*clear*/ /*_.CURHDLER__V138*/ curfptr[137] = 0 ;}
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:996:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:998:/ block");
              /*block*/{}
              ;
              /*epilog*/}
             ;
             }
            ;
-           /*_.IFELSE___V101*/ curfptr[77] = /*_.IFELSE___V119*/ curfptr[113];;
+           /*_.IFELSE___V102*/ curfptr[78] = /*_.IFELSE___V120*/ curfptr[114];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
            /*clear*/ /*_#IS_A__L42*/ curfnum[37] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:960:/ clear");
-           /*clear*/ /*_.IFELSE___V119*/ curfptr[113] = 0 ;}
+           BASILYS_LOCATION("warmelt-normatch.melt:962:/ clear");
+           /*clear*/ /*_.IFELSE___V120*/ curfptr[114] = 0 ;}
           ;
           }
          ;
          /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:956:/ clear");
-         /*clear*/ /*_.IFCPP___V98*/ curfptr[71] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:956:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:958:/ clear");
+         /*clear*/ /*_.IFCPP___V99*/ curfptr[72] = 0 ;
+         BASILYS_LOCATION("warmelt-normatch.melt:958:/ clear");
          /*clear*/ /*_#IS_A__L32*/ curfnum[24] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:956:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:958:/ clear");
          /*clear*/ /*_#IF___L33*/ curfnum[18] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:956:/ clear");
-         /*clear*/ /*_.IFELSE___V101*/ curfptr[77] = 0 ;}
+         BASILYS_LOCATION("warmelt-normatch.melt:958:/ clear");
+         /*clear*/ /*_.IFELSE___V102*/ curfptr[78] = 0 ;}
         ;
         ;
          goto labloop_LOOPSTUFF_3;
-         labexit_LOOPSTUFF_3:;BASILYS_LOCATION("warmelt-normatch.melt:956:/ loopepilog");
+         labexit_LOOPSTUFF_3:;BASILYS_LOCATION("warmelt-normatch.melt:958:/ loopepilog");
        /*loopepilog*/
-        /*_.FOREVER___V96*/ curfptr[67] = /*_.LOOPSTUFF__V97*/ curfptr[69];;
+        /*_.FOREVER___V97*/ curfptr[68] = /*_.LOOPSTUFF__V98*/ curfptr[70];;
         }
        ;
-       /*_.LET___V93*/ curfptr[63] = /*_.FOREVER___V96*/ curfptr[67];;
+       /*_.LET___V94*/ curfptr[64] = /*_.FOREVER___V97*/ curfptr[68];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:953:/ clear");
-       /*clear*/ /*_.TSTUFF__V94*/ curfptr[64] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:953:/ clear");
-       /*clear*/ /*_.CURHDLER__V95*/ curfptr[65] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:953:/ clear");
-       /*clear*/ /*_.FOREVER___V96*/ curfptr[67] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:955:/ clear");
+       /*clear*/ /*_.TSTUFF__V95*/ curfptr[65] = 0 ;
+       BASILYS_LOCATION("warmelt-normatch.melt:955:/ clear");
+       /*clear*/ /*_.CURHDLER__V96*/ curfptr[66] = 0 ;
+       BASILYS_LOCATION("warmelt-normatch.melt:955:/ clear");
+       /*clear*/ /*_.FOREVER___V97*/ curfptr[68] = 0 ;}
       ;
-      /*_.LET___V91*/ curfptr[61] = /*_.LET___V93*/ curfptr[63];;
+      /*_.LET___V92*/ curfptr[62] = /*_.LET___V94*/ curfptr[64];;
       /*epilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:947:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:949:/ clear");
       /*clear*/ /*_#NBOUTARGS__L28*/ curfnum[11] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:947:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:949:/ clear");
       /*clear*/ /*_#MULTIPLE_LENGTH__L29*/ curfnum[14] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:947:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:949:/ clear");
       /*clear*/ /*_#I__L30*/ curfnum[15] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:947:/ clear");
-      /*clear*/ /*_.LET___V93*/ curfptr[63] = 0 ;}
+      BASILYS_LOCATION("warmelt-normatch.melt:949:/ clear");
+      /*clear*/ /*_.LET___V94*/ curfptr[64] = 0 ;}
      ;
      
      #if ENABLE_CHECKING
-      BASILYS_LOCATION("warmelt-normatch.melt:1051:/ cppif.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:1051:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:1053:/ cppif.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:1053:/ block");
       /*block*/{
        /*_#THE_CALLCOUNT__L44*/ curfnum[39] = 
         callcount;;
-       BASILYS_LOCATION("warmelt-normatch.melt:1051:/ apply");
+       BASILYS_LOCATION("warmelt-normatch.melt:1053:/ apply");
        /*apply*/{
         union basilysparam_un argtab[4];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:1051:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1053:/ apply.arg");
         argtab[0].bp_cstring =  "normpat_anymatchpat got tester";
-        BASILYS_LOCATION("warmelt-normatch.melt:1051:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1053:/ apply.arg");
         argtab[1].bp_long = /*_#THE_CALLCOUNT__L44*/ curfnum[39];
-        BASILYS_LOCATION("warmelt-normatch.melt:1051:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1053:/ apply.arg");
         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-        BASILYS_LOCATION("warmelt-normatch.melt:1051:/ apply.arg");
-        argtab[3].bp_long = 1051;
-        /*_.DEBUG_MSG_FUN__V139*/ curfptr[62] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.TESTER__V47*/ curfptr[46]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        BASILYS_LOCATION("warmelt-normatch.melt:1053:/ apply.arg");
+        argtab[3].bp_long = 1053;
+        /*_.DEBUG_MSG_FUN__V140*/ curfptr[63] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.TESTER__V48*/ curfptr[47]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
-       /*_.IFCPP___V138*/ curfptr[111] = /*_.DEBUG_MSG_FUN__V139*/ curfptr[62];;
+       /*_.IFCPP___V139*/ curfptr[112] = /*_.DEBUG_MSG_FUN__V140*/ curfptr[63];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1051:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1053:/ clear");
        /*clear*/ /*_#THE_CALLCOUNT__L44*/ curfnum[39] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1051:/ clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V139*/ curfptr[62] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:1053:/ clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V140*/ curfptr[63] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
-      BASILYS_LOCATION("warmelt-normatch.melt:1051:/ cppif.else");
-     /*_.IFCPP___V138*/ curfptr[111] = (/*nil*/NULL);
+      BASILYS_LOCATION("warmelt-normatch.melt:1053:/ cppif.else");
+     /*_.IFCPP___V139*/ curfptr[112] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
      
      #if ENABLE_CHECKING
-      BASILYS_LOCATION("warmelt-normatch.melt:1052:/ cppif.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:1052:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ cppif.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:1054:/ block");
       /*block*/{
        /*_#IS_A__L45*/ curfnum[16] = 
-         basilys_is_instance_of((basilys_ptr_t)(/*_.TESTER__V47*/ curfptr[46]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])));;
-       BASILYS_LOCATION("warmelt-normatch.melt:1052:/ cond");
+         basilys_is_instance_of((basilys_ptr_t)(/*_.TESTER__V48*/ curfptr[47]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])));;
+       BASILYS_LOCATION("warmelt-normatch.melt:1054:/ cond");
        /*cond*/ if (/*_#IS_A__L45*/ curfnum[16]) /*then*/ {
-       BASILYS_LOCATION("warmelt-normatch.melt:1052:/ cond.then");
-       /*_.IFELSE___V141*/ curfptr[73] = (/*nil*/NULL);;
-       } else {BASILYS_LOCATION("warmelt-normatch.melt:1052:/ cond.else");
+       BASILYS_LOCATION("warmelt-normatch.melt:1054:/ cond.then");
+       /*_.IFELSE___V142*/ curfptr[74] = (/*nil*/NULL);;
+       } else {BASILYS_LOCATION("warmelt-normatch.melt:1054:/ cond.else");
        
-        BASILYS_LOCATION("warmelt-normatch.melt:1052:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1054:/ block");
         /*block*/{
          /*block*/{
           
           {
-          BASILYS_LOCATION("warmelt-normatch.melt:1052:/ locexp");
-          basilys_assert_failed(( "check tester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1052)?(1052):__LINE__, __FUNCTION__);}
+          BASILYS_LOCATION("warmelt-normatch.melt:1054:/ locexp");
+          basilys_assert_failed(( "check tester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1054)?(1054):__LINE__, __FUNCTION__);}
           ;
-          /*clear*/ /*_.IFELSE___V141*/ curfptr[73] = 0 ;}
+          /*clear*/ /*_.IFELSE___V142*/ curfptr[74] = 0 ;}
          ;
          /*epilog*/}
         ;
         }
        ;
-       /*_.IFCPP___V140*/ curfptr[74] = /*_.IFELSE___V141*/ curfptr[73];;
+       /*_.IFCPP___V141*/ curfptr[75] = /*_.IFELSE___V142*/ curfptr[74];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1052:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1054:/ clear");
        /*clear*/ /*_#IS_A__L45*/ curfnum[16] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1052:/ clear");
-       /*clear*/ /*_.IFELSE___V141*/ curfptr[73] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:1054:/ clear");
+       /*clear*/ /*_.IFELSE___V142*/ curfptr[74] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
-      BASILYS_LOCATION("warmelt-normatch.melt:1052:/ cppif.else");
-     /*_.IFCPP___V140*/ curfptr[74] = (/*nil*/NULL);
+      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ cppif.else");
+     /*_.IFCPP___V141*/ curfptr[75] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1054:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:1056:/ block");
      /*block*/{
-      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ cond");
-      /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TESTER__V47*/ curfptr[46]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])))) /*then*/ {
-      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ cond.then");
-      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ getslot");
+      BASILYS_LOCATION("warmelt-normatch.melt:1056:/ cond");
+      /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TESTER__V48*/ curfptr[47]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[15])))) /*then*/ {
+      BASILYS_LOCATION("warmelt-normatch.melt:1056:/ cond.then");
+      BASILYS_LOCATION("warmelt-normatch.melt:1056:/ getslot");
        { basilys_ptr_t slot=0;
-        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TESTER__V47*/ curfptr[46]), 9, "NTMATCH_OUTLOCS");/*_.OUTLOCS__V142*/ curfptr[106] = slot; };
+        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TESTER__V48*/ curfptr[47]), 9, "NTMATCH_OUTLOCS");/*_.OUTLOCS__V143*/ curfptr[107] = slot; };
        ;
-      } else {BASILYS_LOCATION("warmelt-normatch.melt:1054:/ cond.else");
+      } else {BASILYS_LOCATION("warmelt-normatch.melt:1056:/ cond.else");
       
-       /*_.OUTLOCS__V142*/ curfptr[106] = NULL;;
+       /*_.OUTLOCS__V143*/ curfptr[107] = NULL;;
        }
       ;
-      
-      #if ENABLE_CHECKING
-       BASILYS_LOCATION("warmelt-normatch.melt:1055:/ cppif.then");
-      BASILYS_LOCATION("warmelt-normatch.melt:1055:/ block");
-       /*block*/{
-        /*_#THE_CALLCOUNT__L46*/ curfnum[38] = 
-         callcount;;
-        BASILYS_LOCATION("warmelt-normatch.melt:1055:/ apply");
-        /*apply*/{
-         union basilysparam_un argtab[4];
-         memset(&argtab, 0, sizeof(argtab));
-         BASILYS_LOCATION("warmelt-normatch.melt:1055:/ apply.arg");
-         argtab[0].bp_cstring =  "normpat_anymatchpat outlocs from tester";
-         BASILYS_LOCATION("warmelt-normatch.melt:1055:/ apply.arg");
-         argtab[1].bp_long = /*_#THE_CALLCOUNT__L46*/ curfnum[38];
-         BASILYS_LOCATION("warmelt-normatch.melt:1055:/ apply.arg");
-         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-         BASILYS_LOCATION("warmelt-normatch.melt:1055:/ apply.arg");
-         argtab[3].bp_long = 1055;
-         /*_.DEBUG_MSG_FUN__V144*/ curfptr[133] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTLOCS__V142*/ curfptr[106]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-         }
-        ;
-        /*_.IFCPP___V143*/ curfptr[132] = /*_.DEBUG_MSG_FUN__V144*/ curfptr[133];;
-        /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1055:/ clear");
-        /*clear*/ /*_#THE_CALLCOUNT__L46*/ curfnum[38] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1055:/ clear");
-        /*clear*/ /*_.DEBUG_MSG_FUN__V144*/ curfptr[133] = 0 ;}
-       
-       #else /*ENABLE_CHECKING*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1055:/ cppif.else");
-      /*_.IFCPP___V143*/ curfptr[132] = (/*nil*/NULL);
-       #endif /*ENABLE_CHECKING*/
-       ;
-      
-      #if ENABLE_CHECKING
-       BASILYS_LOCATION("warmelt-normatch.melt:1056:/ cppif.then");
-      BASILYS_LOCATION("warmelt-normatch.melt:1056:/ block");
-       /*block*/{
-        /*_#THE_CALLCOUNT__L47*/ curfnum[37] = 
-         callcount;;
-        BASILYS_LOCATION("warmelt-normatch.melt:1056:/ apply");
-        /*apply*/{
-         union basilysparam_un argtab[4];
-         memset(&argtab, 0, sizeof(argtab));
-         BASILYS_LOCATION("warmelt-normatch.melt:1056:/ apply.arg");
-         argtab[0].bp_cstring =  "normpat_anymatchpat outargs before foreach";
-         BASILYS_LOCATION("warmelt-normatch.melt:1056:/ apply.arg");
-         argtab[1].bp_long = /*_#THE_CALLCOUNT__L47*/ curfnum[37];
-         BASILYS_LOCATION("warmelt-normatch.melt:1056:/ apply.arg");
-         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-         BASILYS_LOCATION("warmelt-normatch.melt:1056:/ apply.arg");
-         argtab[3].bp_long = 1056;
-         /*_.DEBUG_MSG_FUN__V146*/ curfptr[136] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTARGS__V19*/ curfptr[18]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-         }
-        ;
-        /*_.IFCPP___V145*/ curfptr[135] = /*_.DEBUG_MSG_FUN__V146*/ curfptr[136];;
-        /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1056:/ clear");
-        /*clear*/ /*_#THE_CALLCOUNT__L47*/ curfnum[37] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1056:/ clear");
-        /*clear*/ /*_.DEBUG_MSG_FUN__V146*/ curfptr[136] = 0 ;}
-       
-       #else /*ENABLE_CHECKING*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1056:/ cppif.else");
-      /*_.IFCPP___V145*/ curfptr[135] = (/*nil*/NULL);
-       #endif /*ENABLE_CHECKING*/
-       ;
       
       #if ENABLE_CHECKING
        BASILYS_LOCATION("warmelt-normatch.melt:1057:/ cppif.then");
       BASILYS_LOCATION("warmelt-normatch.melt:1057:/ block");
        /*block*/{
-        /*_#THE_CALLCOUNT__L48*/ curfnum[24] = 
+        /*_#THE_CALLCOUNT__L46*/ curfnum[38] = 
          callcount;;
         BASILYS_LOCATION("warmelt-normatch.melt:1057:/ apply");
         /*apply*/{
          union basilysparam_un argtab[4];
          memset(&argtab, 0, sizeof(argtab));
          BASILYS_LOCATION("warmelt-normatch.melt:1057:/ apply.arg");
-         argtab[0].bp_cstring =  "normpat_anymatchpat outmatchs before foreach";
+         argtab[0].bp_cstring =  "normpat_anymatchpat outlocs from tester";
          BASILYS_LOCATION("warmelt-normatch.melt:1057:/ apply.arg");
-         argtab[1].bp_long = /*_#THE_CALLCOUNT__L48*/ curfnum[24];
+         argtab[1].bp_long = /*_#THE_CALLCOUNT__L46*/ curfnum[38];
          BASILYS_LOCATION("warmelt-normatch.melt:1057:/ apply.arg");
          argtab[2].bp_cstring =  "warmelt-normatch.melt";
          BASILYS_LOCATION("warmelt-normatch.melt:1057:/ apply.arg");
          argtab[3].bp_long = 1057;
-         /*_.DEBUG_MSG_FUN__V148*/ curfptr[71] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTMATCHS__V44*/ curfptr[43]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+         /*_.DEBUG_MSG_FUN__V145*/ curfptr[134] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTLOCS__V143*/ curfptr[107]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
          }
         ;
-        /*_.IFCPP___V147*/ curfptr[113] = /*_.DEBUG_MSG_FUN__V148*/ curfptr[71];;
+        /*_.IFCPP___V144*/ curfptr[133] = /*_.DEBUG_MSG_FUN__V145*/ curfptr[134];;
         /*epilog*/
         BASILYS_LOCATION("warmelt-normatch.melt:1057:/ clear");
-        /*clear*/ /*_#THE_CALLCOUNT__L48*/ curfnum[24] = 0 ;
+        /*clear*/ /*_#THE_CALLCOUNT__L46*/ curfnum[38] = 0 ;
         BASILYS_LOCATION("warmelt-normatch.melt:1057:/ clear");
-        /*clear*/ /*_.DEBUG_MSG_FUN__V148*/ curfptr[71] = 0 ;}
+        /*clear*/ /*_.DEBUG_MSG_FUN__V145*/ curfptr[134] = 0 ;}
        
        #else /*ENABLE_CHECKING*/
        BASILYS_LOCATION("warmelt-normatch.melt:1057:/ cppif.else");
-      /*_.IFCPP___V147*/ curfptr[113] = (/*nil*/NULL);
+      /*_.IFCPP___V144*/ curfptr[133] = (/*nil*/NULL);
+       #endif /*ENABLE_CHECKING*/
+       ;
+      
+      #if ENABLE_CHECKING
+       BASILYS_LOCATION("warmelt-normatch.melt:1058:/ cppif.then");
+      BASILYS_LOCATION("warmelt-normatch.melt:1058:/ block");
+       /*block*/{
+        /*_#THE_CALLCOUNT__L47*/ curfnum[37] = 
+         callcount;;
+        BASILYS_LOCATION("warmelt-normatch.melt:1058:/ apply");
+        /*apply*/{
+         union basilysparam_un argtab[4];
+         memset(&argtab, 0, sizeof(argtab));
+         BASILYS_LOCATION("warmelt-normatch.melt:1058:/ apply.arg");
+         argtab[0].bp_cstring =  "normpat_anymatchpat outargs before foreach";
+         BASILYS_LOCATION("warmelt-normatch.melt:1058:/ apply.arg");
+         argtab[1].bp_long = /*_#THE_CALLCOUNT__L47*/ curfnum[37];
+         BASILYS_LOCATION("warmelt-normatch.melt:1058:/ apply.arg");
+         argtab[2].bp_cstring =  "warmelt-normatch.melt";
+         BASILYS_LOCATION("warmelt-normatch.melt:1058:/ apply.arg");
+         argtab[3].bp_long = 1058;
+         /*_.DEBUG_MSG_FUN__V147*/ curfptr[137] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTARGS__V20*/ curfptr[19]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+         }
+        ;
+        /*_.IFCPP___V146*/ curfptr[136] = /*_.DEBUG_MSG_FUN__V147*/ curfptr[137];;
+        /*epilog*/
+        BASILYS_LOCATION("warmelt-normatch.melt:1058:/ clear");
+        /*clear*/ /*_#THE_CALLCOUNT__L47*/ curfnum[37] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1058:/ clear");
+        /*clear*/ /*_.DEBUG_MSG_FUN__V147*/ curfptr[137] = 0 ;}
+       
+       #else /*ENABLE_CHECKING*/
+       BASILYS_LOCATION("warmelt-normatch.melt:1058:/ cppif.else");
+      /*_.IFCPP___V146*/ curfptr[136] = (/*nil*/NULL);
+       #endif /*ENABLE_CHECKING*/
+       ;
+      
+      #if ENABLE_CHECKING
+       BASILYS_LOCATION("warmelt-normatch.melt:1059:/ cppif.then");
+      BASILYS_LOCATION("warmelt-normatch.melt:1059:/ block");
+       /*block*/{
+        /*_#THE_CALLCOUNT__L48*/ curfnum[24] = 
+         callcount;;
+        BASILYS_LOCATION("warmelt-normatch.melt:1059:/ apply");
+        /*apply*/{
+         union basilysparam_un argtab[4];
+         memset(&argtab, 0, sizeof(argtab));
+         BASILYS_LOCATION("warmelt-normatch.melt:1059:/ apply.arg");
+         argtab[0].bp_cstring =  "normpat_anymatchpat outmatchs before foreach";
+         BASILYS_LOCATION("warmelt-normatch.melt:1059:/ apply.arg");
+         argtab[1].bp_long = /*_#THE_CALLCOUNT__L48*/ curfnum[24];
+         BASILYS_LOCATION("warmelt-normatch.melt:1059:/ apply.arg");
+         argtab[2].bp_cstring =  "warmelt-normatch.melt";
+         BASILYS_LOCATION("warmelt-normatch.melt:1059:/ apply.arg");
+         argtab[3].bp_long = 1059;
+         /*_.DEBUG_MSG_FUN__V149*/ curfptr[72] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTMATCHS__V45*/ curfptr[44]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+         }
+        ;
+        /*_.IFCPP___V148*/ curfptr[114] = /*_.DEBUG_MSG_FUN__V149*/ curfptr[72];;
+        /*epilog*/
+        BASILYS_LOCATION("warmelt-normatch.melt:1059:/ clear");
+        /*clear*/ /*_#THE_CALLCOUNT__L48*/ curfnum[24] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1059:/ clear");
+        /*clear*/ /*_.DEBUG_MSG_FUN__V149*/ curfptr[72] = 0 ;}
+       
+       #else /*ENABLE_CHECKING*/
+       BASILYS_LOCATION("warmelt-normatch.melt:1059:/ cppif.else");
+      /*_.IFCPP___V148*/ curfptr[114] = (/*nil*/NULL);
        #endif /*ENABLE_CHECKING*/
        ;
       /*citerblock FOREACH_IN_MULTIPLE*/ {
-      long cit3__EACHTUP_ln = basilys_multiple_length((basilys_ptr_t)/*_.OUTMATCHS__V44*/ curfptr[43]);
+      long cit3__EACHTUP_ln = basilys_multiple_length((basilys_ptr_t)/*_.OUTMATCHS__V45*/ curfptr[44]);
 int cit3__EACHTUP_ix = 0;
 for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix ++) {
-/*_.CURMATCH__V149*/ curfptr[77] = basilys_multiple_nth((basilys_ptr_t)(/*_.OUTMATCHS__V44*/ curfptr[43]), cit3__EACHTUP_ix);
+/*_.CURMATCH__V150*/ curfptr[78] = basilys_multiple_nth((basilys_ptr_t)(/*_.OUTMATCHS__V45*/ curfptr[44]), cit3__EACHTUP_ix);
 /*_#IXM__L49*/ curfnum[18] = cit3__EACHTUP_ix;
 
       
        
        {
-       BASILYS_LOCATION("warmelt-normatch.melt:1061:/ locexp");
+       BASILYS_LOCATION("warmelt-normatch.melt:1063:/ locexp");
        debugnum(( "normpat_anymatchpat ixm in outmatchs"), (/*_#IXM__L49*/ curfnum[18]));}
        ;
        
        #if ENABLE_CHECKING
-        BASILYS_LOCATION("warmelt-normatch.melt:1062:/ cppif.then");
-       BASILYS_LOCATION("warmelt-normatch.melt:1062:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1064:/ cppif.then");
+       BASILYS_LOCATION("warmelt-normatch.melt:1064:/ block");
         /*block*/{
          /*_#THE_CALLCOUNT__L50*/ curfnum[11] = 
           callcount;;
-         BASILYS_LOCATION("warmelt-normatch.melt:1062:/ apply");
+         BASILYS_LOCATION("warmelt-normatch.melt:1064:/ apply");
          /*apply*/{
           union basilysparam_un argtab[4];
           memset(&argtab, 0, sizeof(argtab));
-          BASILYS_LOCATION("warmelt-normatch.melt:1062:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1064:/ apply.arg");
           argtab[0].bp_cstring =  "normpat_anymatchpat curmatch in foreach";
-          BASILYS_LOCATION("warmelt-normatch.melt:1062:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1064:/ apply.arg");
           argtab[1].bp_long = /*_#THE_CALLCOUNT__L50*/ curfnum[11];
-          BASILYS_LOCATION("warmelt-normatch.melt:1062:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1064:/ apply.arg");
           argtab[2].bp_cstring =  "warmelt-normatch.melt";
-          BASILYS_LOCATION("warmelt-normatch.melt:1062:/ apply.arg");
-          argtab[3].bp_long = 1062;
-          /*_.DEBUG_MSG_FUN__V151*/ curfptr[65] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CURMATCH__V149*/ curfptr[77]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+          BASILYS_LOCATION("warmelt-normatch.melt:1064:/ apply.arg");
+          argtab[3].bp_long = 1064;
+          /*_.DEBUG_MSG_FUN__V152*/ curfptr[66] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CURMATCH__V150*/ curfptr[78]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
           }
          ;
-         /*_.IFCPP___V150*/ curfptr[64] = /*_.DEBUG_MSG_FUN__V151*/ curfptr[65];;
+         /*_.IFCPP___V151*/ curfptr[65] = /*_.DEBUG_MSG_FUN__V152*/ curfptr[66];;
          /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1062:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1064:/ clear");
          /*clear*/ /*_#THE_CALLCOUNT__L50*/ curfnum[11] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1062:/ clear");
-         /*clear*/ /*_.DEBUG_MSG_FUN__V151*/ curfptr[65] = 0 ;}
+         BASILYS_LOCATION("warmelt-normatch.melt:1064:/ clear");
+         /*clear*/ /*_.DEBUG_MSG_FUN__V152*/ curfptr[66] = 0 ;}
         
         #else /*ENABLE_CHECKING*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1062:/ cppif.else");
-       /*_.IFCPP___V150*/ curfptr[64] = (/*nil*/NULL);
+        BASILYS_LOCATION("warmelt-normatch.melt:1064:/ cppif.else");
+       /*_.IFCPP___V151*/ curfptr[65] = (/*nil*/NULL);
         #endif /*ENABLE_CHECKING*/
         ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1063:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:1065:/ block");
        /*block*/{
-        /*_.CLOCC__V153*/ curfptr[63] = 
-         (basilys_multiple_nth((basilys_ptr_t)(/*_.OUTLOCS__V142*/ curfptr[106]), (/*_#IXM__L49*/ curfnum[18])));;
-        /*_.CUROUT__V154*/ curfptr[62] = 
-         (basilys_multiple_nth((basilys_ptr_t)(/*_.OUTARGS__V19*/ curfptr[18]), (/*_#IXM__L49*/ curfnum[18])));;
-        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ block");
+        /*_.CLOCC__V154*/ curfptr[64] = 
+         (basilys_multiple_nth((basilys_ptr_t)(/*_.OUTLOCS__V143*/ curfptr[107]), (/*_#IXM__L49*/ curfnum[18])));;
+        /*_.CUROUT__V155*/ curfptr[63] = 
+         (basilys_multiple_nth((basilys_ptr_t)(/*_.OUTARGS__V20*/ curfptr[19]), (/*_#IXM__L49*/ curfnum[18])));;
+        BASILYS_LOCATION("warmelt-normatch.melt:1067:/ block");
         /*block*/{
-         BASILYS_LOCATION("warmelt-normatch.melt:1065:/ rawallocobj");
+         BASILYS_LOCATION("warmelt-normatch.melt:1067:/ rawallocobj");
          /*rawallocobj*/ { basilys_ptr_t newobj = 0;
-          basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_CONTAINER*/ curfrout->tabval[33])), (1), "CLASS_CONTAINER");/*_.INST__V156*/ curfptr[133] =
+          basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_CONTAINER*/ curfrout->tabval[33])), (1), "CLASS_CONTAINER");/*_.INST__V157*/ curfptr[134] =
           newobj; };
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1065:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1067:/ putslot");
          /*putslot*/
-         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V156*/ curfptr[133])) == OBMAG_OBJECT);
-         basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V156*/ curfptr[133]))));basilys_putfield_object((/*_.INST__V156*/ curfptr[133]), (0), (/*_.TESTER__V47*/ curfptr[46]), "CONTAINER_VALUE");
+         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V157*/ curfptr[134])) == OBMAG_OBJECT);
+         basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V157*/ curfptr[134]))));basilys_putfield_object((/*_.INST__V157*/ curfptr[134]), (0), (/*_.TESTER__V48*/ curfptr[47]), "CONTAINER_VALUE");
          ;
-         /*_.TESTERCONT__V155*/ curfptr[73] = /*_.INST__V156*/ curfptr[133];;}
+         /*_.TESTERCONT__V156*/ curfptr[74] = /*_.INST__V157*/ curfptr[134];;}
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1070:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1072:/ block");
         /*block*/{
-         BASILYS_LOCATION("warmelt-normatch.melt:1070:/ newclosure");
-          /*newclosure*/ /*_.LAMBDA___V158*/ curfptr[71] =
+         BASILYS_LOCATION("warmelt-normatch.melt:1072:/ newclosure");
+          /*newclosure*/ /*_.LAMBDA___V159*/ curfptr[72] =
           basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_36*/ curfrout->tabval[36])), (1));
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1070:/ putclosedv");
+         BASILYS_LOCATION("warmelt-normatch.melt:1072:/ putclosedv");
          /*putclosv*/
-         basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V158*/ curfptr[71])) == OBMAG_CLOSURE);
-         basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V158*/ curfptr[71])));
-         ((basilysclosure_ptr_t)/*_.LAMBDA___V158*/ curfptr[71])->tabval[0] = (basilys_ptr_t)(/*_.TESTERCONT__V155*/ curfptr[73]);
+         basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V159*/ curfptr[72])) == OBMAG_CLOSURE);
+         basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V159*/ curfptr[72])));
+         ((basilysclosure_ptr_t)/*_.LAMBDA___V159*/ curfptr[72])->tabval[0] = (basilys_ptr_t)(/*_.TESTERCONT__V156*/ curfptr[74]);
          ;
-         /*_.SUBHDLER__V157*/ curfptr[136] = /*_.LAMBDA___V158*/ curfptr[71];;}
+         /*_.SUBHDLER__V158*/ curfptr[137] = /*_.LAMBDA___V159*/ curfptr[72];;}
         ;
         
         #if ENABLE_CHECKING
-         BASILYS_LOCATION("warmelt-normatch.melt:1075:/ cppif.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1075:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:1077:/ cppif.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1077:/ block");
          /*block*/{
           /*_#THE_CALLCOUNT__L51*/ curfnum[14] = 
            callcount;;
-          BASILYS_LOCATION("warmelt-normatch.melt:1075:/ apply");
+          BASILYS_LOCATION("warmelt-normatch.melt:1077:/ apply");
           /*apply*/{
            union basilysparam_un argtab[4];
            memset(&argtab, 0, sizeof(argtab));
-           BASILYS_LOCATION("warmelt-normatch.melt:1075:/ apply.arg");
+           BASILYS_LOCATION("warmelt-normatch.melt:1077:/ apply.arg");
            argtab[0].bp_cstring =  "normpat_anymatchpat curout before normal_pattern";
-           BASILYS_LOCATION("warmelt-normatch.melt:1075:/ apply.arg");
+           BASILYS_LOCATION("warmelt-normatch.melt:1077:/ apply.arg");
            argtab[1].bp_long = /*_#THE_CALLCOUNT__L51*/ curfnum[14];
-           BASILYS_LOCATION("warmelt-normatch.melt:1075:/ apply.arg");
+           BASILYS_LOCATION("warmelt-normatch.melt:1077:/ apply.arg");
            argtab[2].bp_cstring =  "warmelt-normatch.melt";
-           BASILYS_LOCATION("warmelt-normatch.melt:1075:/ apply.arg");
-           argtab[3].bp_long = 1075;
-           /*_.DEBUG_MSG_FUN__V160*/ curfptr[159] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CUROUT__V154*/ curfptr[62]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           BASILYS_LOCATION("warmelt-normatch.melt:1077:/ apply.arg");
+           argtab[3].bp_long = 1077;
+           /*_.DEBUG_MSG_FUN__V161*/ curfptr[160] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CUROUT__V155*/ curfptr[63]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
            }
           ;
-          /*_.IFCPP___V159*/ curfptr[65] = /*_.DEBUG_MSG_FUN__V160*/ curfptr[159];;
+          /*_.IFCPP___V160*/ curfptr[66] = /*_.DEBUG_MSG_FUN__V161*/ curfptr[160];;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1075:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1077:/ clear");
           /*clear*/ /*_#THE_CALLCOUNT__L51*/ curfnum[14] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1075:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V160*/ curfptr[159] = 0 ;}
+          BASILYS_LOCATION("warmelt-normatch.melt:1077:/ clear");
+          /*clear*/ /*_.DEBUG_MSG_FUN__V161*/ curfptr[160] = 0 ;}
          
          #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1075:/ cppif.else");
-        /*_.IFCPP___V159*/ curfptr[65] = (/*nil*/NULL);
+         BASILYS_LOCATION("warmelt-normatch.melt:1077:/ cppif.else");
+        /*_.IFCPP___V160*/ curfptr[66] = (/*nil*/NULL);
          #endif /*ENABLE_CHECKING*/
          ;
-        
-        #if ENABLE_CHECKING
-         BASILYS_LOCATION("warmelt-normatch.melt:1076:/ cppif.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1076:/ block");
-         /*block*/{
-          /*_#THE_CALLCOUNT__L52*/ curfnum[15] = 
-           callcount;;
-          BASILYS_LOCATION("warmelt-normatch.melt:1076:/ apply");
-          /*apply*/{
-           union basilysparam_un argtab[4];
-           memset(&argtab, 0, sizeof(argtab));
-           BASILYS_LOCATION("warmelt-normatch.melt:1076:/ apply.arg");
-           argtab[0].bp_cstring =  "normpat_anymatchpat clocc before normal_pattern";
-           BASILYS_LOCATION("warmelt-normatch.melt:1076:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L52*/ curfnum[15];
-           BASILYS_LOCATION("warmelt-normatch.melt:1076:/ apply.arg");
-           argtab[2].bp_cstring =  "warmelt-normatch.melt";
-           BASILYS_LOCATION("warmelt-normatch.melt:1076:/ apply.arg");
-           argtab[3].bp_long = 1076;
-           /*_.DEBUG_MSG_FUN__V162*/ curfptr[161] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CLOCC__V153*/ curfptr[63]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-           }
-          ;
-          /*_.IFCPP___V161*/ curfptr[159] = /*_.DEBUG_MSG_FUN__V162*/ curfptr[161];;
-          /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1076:/ clear");
-          /*clear*/ /*_#THE_CALLCOUNT__L52*/ curfnum[15] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1076:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V162*/ curfptr[161] = 0 ;}
-         
-         #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1076:/ cppif.else");
-        /*_.IFCPP___V161*/ curfptr[159] = (/*nil*/NULL);
-         #endif /*ENABLE_CHECKING*/
-         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1077:/ msend");
-        /*msend*/{
-         union basilysparam_un argtab[3];
-         memset(&argtab, 0, sizeof(argtab));
-         BASILYS_LOCATION("warmelt-normatch.melt:1077:/ ojbmsend.arg");
-         argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.CLOCC__V153*/ curfptr[63];
-         BASILYS_LOCATION("warmelt-normatch.melt:1077:/ ojbmsend.arg");
-         argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.SUBHDLER__V157*/ curfptr[136];
-         BASILYS_LOCATION("warmelt-normatch.melt:1077:/ ojbmsend.arg");
-         argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.PCN__V5*/ curfptr[4];
-         /*_.NORMAL_PATTERN__V163*/ curfptr[161] = basilysgc_send((basilys_ptr_t)(/*_.CUROUT__V154*/ curfptr[62]), (basilys_ptr_t)((/*!NORMAL_PATTERN*/ curfrout->tabval[37])), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
-         }
-        ;
         
         #if ENABLE_CHECKING
          BASILYS_LOCATION("warmelt-normatch.melt:1078:/ cppif.then");
         BASILYS_LOCATION("warmelt-normatch.melt:1078:/ block");
          /*block*/{
-          /*_#THE_CALLCOUNT__L53*/ curfnum[39] = 
+          /*_#THE_CALLCOUNT__L52*/ curfnum[15] = 
            callcount;;
           BASILYS_LOCATION("warmelt-normatch.melt:1078:/ apply");
           /*apply*/{
            union basilysparam_un argtab[4];
            memset(&argtab, 0, sizeof(argtab));
            BASILYS_LOCATION("warmelt-normatch.melt:1078:/ apply.arg");
-           argtab[0].bp_cstring =  "normpat_anymatchpat curout after normal_pattern";
+           argtab[0].bp_cstring =  "normpat_anymatchpat clocc before normal_pattern";
            BASILYS_LOCATION("warmelt-normatch.melt:1078:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L53*/ curfnum[39];
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L52*/ curfnum[15];
            BASILYS_LOCATION("warmelt-normatch.melt:1078:/ apply.arg");
            argtab[2].bp_cstring =  "warmelt-normatch.melt";
            BASILYS_LOCATION("warmelt-normatch.melt:1078:/ apply.arg");
            argtab[3].bp_long = 1078;
-           /*_.DEBUG_MSG_FUN__V165*/ curfptr[164] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CURMATCH__V149*/ curfptr[77]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           /*_.DEBUG_MSG_FUN__V163*/ curfptr[162] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CLOCC__V154*/ curfptr[64]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
            }
           ;
-          /*_.IFCPP___V164*/ curfptr[163] = /*_.DEBUG_MSG_FUN__V165*/ curfptr[164];;
+          /*_.IFCPP___V162*/ curfptr[160] = /*_.DEBUG_MSG_FUN__V163*/ curfptr[162];;
           /*epilog*/
           BASILYS_LOCATION("warmelt-normatch.melt:1078:/ clear");
-          /*clear*/ /*_#THE_CALLCOUNT__L53*/ curfnum[39] = 0 ;
+          /*clear*/ /*_#THE_CALLCOUNT__L52*/ curfnum[15] = 0 ;
           BASILYS_LOCATION("warmelt-normatch.melt:1078:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V165*/ curfptr[164] = 0 ;}
+          /*clear*/ /*_.DEBUG_MSG_FUN__V163*/ curfptr[162] = 0 ;}
          
          #else /*ENABLE_CHECKING*/
          BASILYS_LOCATION("warmelt-normatch.melt:1078:/ cppif.else");
-        /*_.IFCPP___V164*/ curfptr[163] = (/*nil*/NULL);
+        /*_.IFCPP___V162*/ curfptr[160] = (/*nil*/NULL);
          #endif /*ENABLE_CHECKING*/
          ;
-        /*_.LET___V152*/ curfptr[67] = /*_.IFCPP___V164*/ curfptr[163];;
+        BASILYS_LOCATION("warmelt-normatch.melt:1079:/ msend");
+        /*msend*/{
+         union basilysparam_un argtab[3];
+         memset(&argtab, 0, sizeof(argtab));
+         BASILYS_LOCATION("warmelt-normatch.melt:1079:/ ojbmsend.arg");
+         argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.CLOCC__V154*/ curfptr[64];
+         BASILYS_LOCATION("warmelt-normatch.melt:1079:/ ojbmsend.arg");
+         argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.SUBHDLER__V158*/ curfptr[137];
+         BASILYS_LOCATION("warmelt-normatch.melt:1079:/ ojbmsend.arg");
+         argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.PCN__V5*/ curfptr[4];
+         /*_.NORMAL_PATTERN__V164*/ curfptr[162] = basilysgc_send((basilys_ptr_t)(/*_.CUROUT__V155*/ curfptr[63]), (basilys_ptr_t)((/*!NORMAL_PATTERN*/ curfrout->tabval[37])), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
+         }
+        ;
+        
+        #if ENABLE_CHECKING
+         BASILYS_LOCATION("warmelt-normatch.melt:1080:/ cppif.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1080:/ block");
+         /*block*/{
+          /*_#THE_CALLCOUNT__L53*/ curfnum[39] = 
+           callcount;;
+          BASILYS_LOCATION("warmelt-normatch.melt:1080:/ apply");
+          /*apply*/{
+           union basilysparam_un argtab[4];
+           memset(&argtab, 0, sizeof(argtab));
+           BASILYS_LOCATION("warmelt-normatch.melt:1080:/ apply.arg");
+           argtab[0].bp_cstring =  "normpat_anymatchpat curout after normal_pattern";
+           BASILYS_LOCATION("warmelt-normatch.melt:1080:/ apply.arg");
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L53*/ curfnum[39];
+           BASILYS_LOCATION("warmelt-normatch.melt:1080:/ apply.arg");
+           argtab[2].bp_cstring =  "warmelt-normatch.melt";
+           BASILYS_LOCATION("warmelt-normatch.melt:1080:/ apply.arg");
+           argtab[3].bp_long = 1080;
+           /*_.DEBUG_MSG_FUN__V166*/ curfptr[165] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CURMATCH__V150*/ curfptr[78]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           }
+          ;
+          /*_.IFCPP___V165*/ curfptr[164] = /*_.DEBUG_MSG_FUN__V166*/ curfptr[165];;
+          /*epilog*/
+          BASILYS_LOCATION("warmelt-normatch.melt:1080:/ clear");
+          /*clear*/ /*_#THE_CALLCOUNT__L53*/ curfnum[39] = 0 ;
+          BASILYS_LOCATION("warmelt-normatch.melt:1080:/ clear");
+          /*clear*/ /*_.DEBUG_MSG_FUN__V166*/ curfptr[165] = 0 ;}
+         
+         #else /*ENABLE_CHECKING*/
+         BASILYS_LOCATION("warmelt-normatch.melt:1080:/ cppif.else");
+        /*_.IFCPP___V165*/ curfptr[164] = (/*nil*/NULL);
+         #endif /*ENABLE_CHECKING*/
+         ;
+        /*_.LET___V153*/ curfptr[68] = /*_.IFCPP___V165*/ curfptr[164];;
         /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1063:/ clear");
-        /*clear*/ /*_.CLOCC__V153*/ curfptr[63] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1063:/ clear");
-        /*clear*/ /*_.CUROUT__V154*/ curfptr[62] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1063:/ clear");
-        /*clear*/ /*_.TESTERCONT__V155*/ curfptr[73] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1063:/ clear");
-        /*clear*/ /*_.SUBHDLER__V157*/ curfptr[136] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1063:/ clear");
-        /*clear*/ /*_.IFCPP___V159*/ curfptr[65] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1063:/ clear");
-        /*clear*/ /*_.IFCPP___V161*/ curfptr[159] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1063:/ clear");
-        /*clear*/ /*_.NORMAL_PATTERN__V163*/ curfptr[161] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1063:/ clear");
-        /*clear*/ /*_.IFCPP___V164*/ curfptr[163] = 0 ;}
+        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ clear");
+        /*clear*/ /*_.CLOCC__V154*/ curfptr[64] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ clear");
+        /*clear*/ /*_.CUROUT__V155*/ curfptr[63] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ clear");
+        /*clear*/ /*_.TESTERCONT__V156*/ curfptr[74] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ clear");
+        /*clear*/ /*_.SUBHDLER__V158*/ curfptr[137] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ clear");
+        /*clear*/ /*_.IFCPP___V160*/ curfptr[66] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ clear");
+        /*clear*/ /*_.IFCPP___V162*/ curfptr[160] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ clear");
+        /*clear*/ /*_.NORMAL_PATTERN__V164*/ curfptr[162] = 0 ;
+        BASILYS_LOCATION("warmelt-normatch.melt:1065:/ clear");
+        /*clear*/ /*_.IFCPP___V165*/ curfptr[164] = 0 ;}
        ;
       } /* end cit3__EACHTUP*/
       
        /*citerepilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1058:/ clear");
-       /*clear*/ /*_.CURMATCH__V149*/ curfptr[77] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1058:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1060:/ clear");
+       /*clear*/ /*_.CURMATCH__V150*/ curfptr[78] = 0 ;
+       BASILYS_LOCATION("warmelt-normatch.melt:1060:/ clear");
        /*clear*/ /*_#IXM__L49*/ curfnum[18] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1058:/ clear");
-       /*clear*/ /*_.IFCPP___V150*/ curfptr[64] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1058:/ clear");
-       /*clear*/ /*_.LET___V152*/ curfptr[67] = 0 ;} /*endciterblock FOREACH_IN_MULTIPLE*/
+       BASILYS_LOCATION("warmelt-normatch.melt:1060:/ clear");
+       /*clear*/ /*_.IFCPP___V151*/ curfptr[65] = 0 ;
+       BASILYS_LOCATION("warmelt-normatch.melt:1060:/ clear");
+       /*clear*/ /*_.LET___V153*/ curfptr[68] = 0 ;} /*endciterblock FOREACH_IN_MULTIPLE*/
       ;
       /*epilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ clear");
-      /*clear*/ /*_.OUTLOCS__V142*/ curfptr[106] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ clear");
-      /*clear*/ /*_.IFCPP___V143*/ curfptr[132] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ clear");
-      /*clear*/ /*_.IFCPP___V145*/ curfptr[135] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1054:/ clear");
-      /*clear*/ /*_.IFCPP___V147*/ curfptr[113] = 0 ;}
+      BASILYS_LOCATION("warmelt-normatch.melt:1056:/ clear");
+      /*clear*/ /*_.OUTLOCS__V143*/ curfptr[107] = 0 ;
+      BASILYS_LOCATION("warmelt-normatch.melt:1056:/ clear");
+      /*clear*/ /*_.IFCPP___V144*/ curfptr[133] = 0 ;
+      BASILYS_LOCATION("warmelt-normatch.melt:1056:/ clear");
+      /*clear*/ /*_.IFCPP___V146*/ curfptr[136] = 0 ;
+      BASILYS_LOCATION("warmelt-normatch.melt:1056:/ clear");
+      /*clear*/ /*_.IFCPP___V148*/ curfptr[114] = 0 ;}
      ;
      
      #if ENABLE_CHECKING
-      BASILYS_LOCATION("warmelt-normatch.melt:1082:/ cppif.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:1082:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:1084:/ cppif.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:1084:/ block");
       /*block*/{
        /*_#THE_CALLCOUNT__L54*/ curfnum[16] = 
         callcount;;
-       BASILYS_LOCATION("warmelt-normatch.melt:1082:/ apply");
+       BASILYS_LOCATION("warmelt-normatch.melt:1084:/ apply");
        /*apply*/{
         union basilysparam_un argtab[4];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:1082:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1084:/ apply.arg");
         argtab[0].bp_cstring =  "normpat_anymatchpat outbinds";
-        BASILYS_LOCATION("warmelt-normatch.melt:1082:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1084:/ apply.arg");
         argtab[1].bp_long = /*_#THE_CALLCOUNT__L54*/ curfnum[16];
-        BASILYS_LOCATION("warmelt-normatch.melt:1082:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1084:/ apply.arg");
         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-        BASILYS_LOCATION("warmelt-normatch.melt:1082:/ apply.arg");
-        argtab[3].bp_long = 1082;
-        /*_.DEBUG_MSG_FUN__V167*/ curfptr[63] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTBINDS__V46*/ curfptr[45]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+        BASILYS_LOCATION("warmelt-normatch.melt:1084:/ apply.arg");
+        argtab[3].bp_long = 1084;
+        /*_.DEBUG_MSG_FUN__V168*/ curfptr[64] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.OUTBINDS__V47*/ curfptr[46]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
-       /*_.IFCPP___V166*/ curfptr[164] = /*_.DEBUG_MSG_FUN__V167*/ curfptr[63];;
+       /*_.IFCPP___V167*/ curfptr[165] = /*_.DEBUG_MSG_FUN__V168*/ curfptr[64];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1082:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1084:/ clear");
        /*clear*/ /*_#THE_CALLCOUNT__L54*/ curfnum[16] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1082:/ clear");
-       /*clear*/ /*_.DEBUG_MSG_FUN__V167*/ curfptr[63] = 0 ;}
+       BASILYS_LOCATION("warmelt-normatch.melt:1084:/ clear");
+       /*clear*/ /*_.DEBUG_MSG_FUN__V168*/ curfptr[64] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
-      BASILYS_LOCATION("warmelt-normatch.melt:1082:/ cppif.else");
-     /*_.IFCPP___V166*/ curfptr[164] = (/*nil*/NULL);
+      BASILYS_LOCATION("warmelt-normatch.melt:1084:/ cppif.else");
+     /*_.IFCPP___V167*/ curfptr[165] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
-     /*_.LET___V42*/ curfptr[40] = /*_.IFCPP___V166*/ curfptr[164];;
+     /*_.LET___V43*/ curfptr[41] = /*_.IFCPP___V167*/ curfptr[165];;
      /*epilog*/
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.INMATCHS__V43*/ curfptr[42] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.OUTMATCHS__V44*/ curfptr[43] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.MATBIND__V45*/ curfptr[44] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.OUTBINDS__V46*/ curfptr[45] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.TESTER__V47*/ curfptr[46] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.FBIND_TYPE__V48*/ curfptr[47] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.INMATCHS__V44*/ curfptr[43] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.OUTMATCHS__V45*/ curfptr[44] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.MATBIND__V46*/ curfptr[45] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.OUTBINDS__V47*/ curfptr[46] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.TESTER__V48*/ curfptr[47] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.FBIND_TYPE__V49*/ curfptr[48] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
      /*clear*/ /*_#__L11*/ curfnum[0] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.IFCPP___V52*/ curfptr[48] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.IFCPP___V54*/ curfptr[50] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.IFCPP___V87*/ curfptr[75] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.IFCPP___V89*/ curfptr[83] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.LET___V91*/ curfptr[61] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.IFCPP___V138*/ curfptr[111] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.IFCPP___V140*/ curfptr[74] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:880:/ clear");
-     /*clear*/ /*_.IFCPP___V166*/ curfptr[164] = 0 ;}
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.IFCPP___V53*/ curfptr[49] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.IFCPP___V55*/ curfptr[51] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.IFCPP___V88*/ curfptr[76] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.IFCPP___V90*/ curfptr[84] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.LET___V92*/ curfptr[62] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.IFCPP___V139*/ curfptr[112] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.IFCPP___V141*/ curfptr[75] = 0 ;
+     BASILYS_LOCATION("warmelt-normatch.melt:882:/ clear");
+     /*clear*/ /*_.IFCPP___V167*/ curfptr[165] = 0 ;}
     ;
-    /*_.MULTI___V33*/ curfptr[31] = /*_.LET___V42*/ curfptr[40];;
+    /*_.MULTI___V34*/ curfptr[32] = /*_.LET___V43*/ curfptr[41];;
     /*epilog*/
-    BASILYS_LOCATION("warmelt-normatch.melt:874:/ clear");
-    /*clear*/ /*_.IFCPP___V36*/ curfptr[35] = 0 ;
-    BASILYS_LOCATION("warmelt-normatch.melt:874:/ clear");
-    /*clear*/ /*_.IFCPP___V38*/ curfptr[36] = 0 ;
-    BASILYS_LOCATION("warmelt-normatch.melt:874:/ clear");
-    /*clear*/ /*_.IF___V40*/ curfptr[38] = 0 ;
-    BASILYS_LOCATION("warmelt-normatch.melt:874:/ clear");
-    /*clear*/ /*_.LET___V42*/ curfptr[40] = 0 ;}
+    BASILYS_LOCATION("warmelt-normatch.melt:876:/ clear");
+    /*clear*/ /*_.IFCPP___V37*/ curfptr[36] = 0 ;
+    BASILYS_LOCATION("warmelt-normatch.melt:876:/ clear");
+    /*clear*/ /*_.IFCPP___V39*/ curfptr[37] = 0 ;
+    BASILYS_LOCATION("warmelt-normatch.melt:876:/ clear");
+    /*clear*/ /*_.IF___V41*/ curfptr[39] = 0 ;
+    BASILYS_LOCATION("warmelt-normatch.melt:876:/ clear");
+    /*clear*/ /*_.LET___V43*/ curfptr[41] = 0 ;}
    ;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:874:/ clear");
-   /*clear*/ /*_.BINDINS__V35*/ curfptr[34] = 0 ;}
+   BASILYS_LOCATION("warmelt-normatch.melt:876:/ clear");
+   /*clear*/ /*_.BINDINS__V36*/ curfptr[35] = 0 ;}
   ;
   /*_#__L55*/ curfnum[38] = 
-   ((/*_.ENV__V20*/ curfptr[19]) != (/*_.OLDENV__V21*/ curfptr[20]));;
-  BASILYS_LOCATION("warmelt-normatch.melt:1085:/ cond");
+   ((/*_.ENV__V21*/ curfptr[20]) != (/*_.OLDENV__V22*/ curfptr[21]));;
+  BASILYS_LOCATION("warmelt-normatch.melt:1087:/ cond");
   /*cond*/ if (/*_#__L55*/ curfnum[38]) /*then*/ {
-  BASILYS_LOCATION("warmelt-normatch.melt:1085:/ cond.then");
-  BASILYS_LOCATION("warmelt-normatch.melt:1085:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1087:/ cond.then");
+  BASILYS_LOCATION("warmelt-normatch.melt:1087:/ block");
    /*block*/{
-    BASILYS_LOCATION("warmelt-normatch.melt:1086:/ cond");
+    BASILYS_LOCATION("warmelt-normatch.melt:1088:/ cond");
     /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (basilys_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])))) /*then*/ {
-    BASILYS_LOCATION("warmelt-normatch.melt:1086:/ cond.then");
-    BASILYS_LOCATION("warmelt-normatch.melt:1086:/ block");
+    BASILYS_LOCATION("warmelt-normatch.melt:1088:/ cond.then");
+    BASILYS_LOCATION("warmelt-normatch.melt:1088:/ block");
      /*block*/{
-      BASILYS_LOCATION("warmelt-normatch.melt:1086:/ putslot");
+      BASILYS_LOCATION("warmelt-normatch.melt:1088:/ putslot");
       /*putslot*/
       basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4])) == OBMAG_OBJECT);
-      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]))));basilys_putfield_object((/*_.PCN__V5*/ curfptr[4]), (2), (/*_.OLDENV__V21*/ curfptr[20]), "PCTN_ENV");
+      basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.PCN__V5*/ curfptr[4]))));basilys_putfield_object((/*_.PCN__V5*/ curfptr[4]), (2), (/*_.OLDENV__V22*/ curfptr[21]), "PCTN_ENV");
       ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1086:/ touch");
+      BASILYS_LOCATION("warmelt-normatch.melt:1088:/ touch");
       basilysgc_touch(/*_.PCN__V5*/ curfptr[4]);
       ;
       /*epilog*/}
@@ -14504,31 +14516,33 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
   /*clear*/ /*_.MAT__V17*/ curfptr[16] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.INARGS__V18*/ curfptr[17] = 0 ;
+  /*clear*/ /*_.MATBIND__V18*/ curfptr[17] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.OUTARGS__V19*/ curfptr[18] = 0 ;
+  /*clear*/ /*_.INARGS__V19*/ curfptr[18] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.ENV__V20*/ curfptr[19] = 0 ;
+  /*clear*/ /*_.OUTARGS__V20*/ curfptr[19] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.OLDENV__V21*/ curfptr[20] = 0 ;
+  /*clear*/ /*_.ENV__V21*/ curfptr[20] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.NCX__V22*/ curfptr[21] = 0 ;
+  /*clear*/ /*_.OLDENV__V22*/ curfptr[21] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.BINDLIST__V23*/ curfptr[22] = 0 ;
+  /*clear*/ /*_.NCX__V23*/ curfptr[22] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.STUFFMAP__V24*/ curfptr[23] = 0 ;
+  /*clear*/ /*_.BINDLIST__V24*/ curfptr[23] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.MATCHCTYPE__V25*/ curfptr[24] = 0 ;
+  /*clear*/ /*_.STUFFMAP__V25*/ curfptr[24] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.TESTLIST__V26*/ curfptr[25] = 0 ;
+  /*clear*/ /*_.MATCHCTYPE__V26*/ curfptr[25] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.IFCPP___V27*/ curfptr[26] = 0 ;
+  /*clear*/ /*_.TESTLIST__V27*/ curfptr[26] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.IFCPP___V29*/ curfptr[27] = 0 ;
+  /*clear*/ /*_.IFCPP___V28*/ curfptr[27] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.IFCPP___V31*/ curfptr[29] = 0 ;
+  /*clear*/ /*_.IFCPP___V30*/ curfptr[28] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
-  /*clear*/ /*_.MULTI___V33*/ curfptr[31] = 0 ;
+  /*clear*/ /*_.IFCPP___V32*/ curfptr[30] = 0 ;
+  BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
+  /*clear*/ /*_.MULTI___V34*/ curfptr[32] = 0 ;
   BASILYS_LOCATION("warmelt-normatch.melt:858:/ clear");
   /*clear*/ /*_#__L55*/ curfnum[38] = 0 ;}
  ;
@@ -14602,50 +14616,50 @@ basilys_trace_start("LAMBDA_", callcount);
 /*getargs*/
 
  /*getarg#0*/
- BASILYS_LOCATION("warmelt-normatch.melt:980:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:982:/ getarg");
  /*_.TESTER__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
-BASILYS_LOCATION("warmelt-normatch.melt:980:/ block");
+BASILYS_LOCATION("warmelt-normatch.melt:982:/ block");
 /*block*/{
- BASILYS_LOCATION("warmelt-normatch.melt:981:/ cond");
+ BASILYS_LOCATION("warmelt-normatch.melt:983:/ cond");
  /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[0])))) /*then*/ {
- BASILYS_LOCATION("warmelt-normatch.melt:981:/ cond.then");
- BASILYS_LOCATION("warmelt-normatch.melt:981:/ block");
+ BASILYS_LOCATION("warmelt-normatch.melt:983:/ cond.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:983:/ block");
   /*block*/{
-   BASILYS_LOCATION("warmelt-normatch.melt:981:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:983:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0]))) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])))));basilys_putfield_object(((/*~TSTUFF*/ curfclos->tabval[0])), (3), (/*_.TESTER__V2*/ curfptr[1]), "NTEST_ELSE");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:981:/ touch");
+   BASILYS_LOCATION("warmelt-normatch.melt:983:/ touch");
    basilysgc_touch((/*~TSTUFF*/ curfclos->tabval[0]));
    ;
    /*epilog*/}
   ;
  } /*noelse*/
  ;
- BASILYS_LOCATION("warmelt-normatch.melt:982:/ cond");
+ BASILYS_LOCATION("warmelt-normatch.melt:984:/ cond");
  /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TESTER__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[0])))) /*then*/ {
- BASILYS_LOCATION("warmelt-normatch.melt:982:/ cond.then");
- BASILYS_LOCATION("warmelt-normatch.melt:982:/ getslot");
+ BASILYS_LOCATION("warmelt-normatch.melt:984:/ cond.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:984:/ getslot");
   { basilys_ptr_t slot=0;
    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TESTER__V2*/ curfptr[1]), 6, "NTEST_COMEFROM");/*_.NTEST_COMEFROM__V3*/ curfptr[2] = slot; };
   ;
- } else {BASILYS_LOCATION("warmelt-normatch.melt:982:/ cond.else");
+ } else {BASILYS_LOCATION("warmelt-normatch.melt:984:/ cond.else");
  
   /*_.NTEST_COMEFROM__V3*/ curfptr[2] = NULL;;
   }
  ;
  
  {
- BASILYS_LOCATION("warmelt-normatch.melt:982:/ locexp");
+ BASILYS_LOCATION("warmelt-normatch.melt:984:/ locexp");
  basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));}
  ;
  /*epilog*/
- BASILYS_LOCATION("warmelt-normatch.melt:980:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:982:/ clear");
  /*clear*/ /*_.NTEST_COMEFROM__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -14706,50 +14720,50 @@ basilys_trace_start("LAMBDA_", callcount);
 /*getargs*/
 
  /*getarg#0*/
- BASILYS_LOCATION("warmelt-normatch.melt:991:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:993:/ getarg");
  /*_.TESTER__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
-BASILYS_LOCATION("warmelt-normatch.melt:991:/ block");
+BASILYS_LOCATION("warmelt-normatch.melt:993:/ block");
 /*block*/{
- BASILYS_LOCATION("warmelt-normatch.melt:992:/ cond");
+ BASILYS_LOCATION("warmelt-normatch.melt:994:/ cond");
  /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[0])))) /*then*/ {
- BASILYS_LOCATION("warmelt-normatch.melt:992:/ cond.then");
- BASILYS_LOCATION("warmelt-normatch.melt:992:/ block");
+ BASILYS_LOCATION("warmelt-normatch.melt:994:/ cond.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:994:/ block");
   /*block*/{
-   BASILYS_LOCATION("warmelt-normatch.melt:992:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:994:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0]))) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])))));basilys_putfield_object(((/*~TSTUFF*/ curfclos->tabval[0])), (3), (/*_.TESTER__V2*/ curfptr[1]), "NTEST_ELSE");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:992:/ touch");
+   BASILYS_LOCATION("warmelt-normatch.melt:994:/ touch");
    basilysgc_touch((/*~TSTUFF*/ curfclos->tabval[0]));
    ;
    /*epilog*/}
   ;
  } /*noelse*/
  ;
- BASILYS_LOCATION("warmelt-normatch.melt:993:/ cond");
+ BASILYS_LOCATION("warmelt-normatch.melt:995:/ cond");
  /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.TESTER__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[0])))) /*then*/ {
- BASILYS_LOCATION("warmelt-normatch.melt:993:/ cond.then");
- BASILYS_LOCATION("warmelt-normatch.melt:993:/ getslot");
+ BASILYS_LOCATION("warmelt-normatch.melt:995:/ cond.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:995:/ getslot");
   { basilys_ptr_t slot=0;
    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.TESTER__V2*/ curfptr[1]), 6, "NTEST_COMEFROM");/*_.NTEST_COMEFROM__V3*/ curfptr[2] = slot; };
   ;
- } else {BASILYS_LOCATION("warmelt-normatch.melt:993:/ cond.else");
+ } else {BASILYS_LOCATION("warmelt-normatch.melt:995:/ cond.else");
  
   /*_.NTEST_COMEFROM__V3*/ curfptr[2] = NULL;;
   }
  ;
  
  {
- BASILYS_LOCATION("warmelt-normatch.melt:993:/ locexp");
+ BASILYS_LOCATION("warmelt-normatch.melt:995:/ locexp");
  basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));}
  ;
  /*epilog*/
- BASILYS_LOCATION("warmelt-normatch.melt:991:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:993:/ clear");
  /*clear*/ /*_.NTEST_COMEFROM__V3*/ curfptr[2] = 0 ;}
 
 ;
@@ -14810,73 +14824,73 @@ basilys_trace_start("LAMBDA_", callcount);
 /*getargs*/
 
  /*getarg#0*/
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ getarg");
  /*_.CUROUTMATCH__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ getarg");
  if (xargdescr_[0] != BPAR_LONG) goto lab_endgetargs;
  /*_#IX__L1*/ curfnum[0] = xargtab_[0].bp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
-BASILYS_LOCATION("warmelt-normatch.melt:1001:/ block");
+BASILYS_LOCATION("warmelt-normatch.melt:1003:/ block");
 /*block*/{
  
  #if ENABLE_CHECKING
-  BASILYS_LOCATION("warmelt-normatch.melt:1002:/ cppif.then");
- BASILYS_LOCATION("warmelt-normatch.melt:1002:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ cppif.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:1004:/ block");
   /*block*/{
    /*_#THE_CALLCOUNT__L2*/ curfnum[1] = 
     callcount;;
-   BASILYS_LOCATION("warmelt-normatch.melt:1002:/ apply");
+   BASILYS_LOCATION("warmelt-normatch.melt:1004:/ apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
-    BASILYS_LOCATION("warmelt-normatch.melt:1002:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1004:/ apply.arg");
     argtab[0].bp_cstring =  "normpat_anymatchpat curoutmatch";
-    BASILYS_LOCATION("warmelt-normatch.melt:1002:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1004:/ apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L2*/ curfnum[1];
-    BASILYS_LOCATION("warmelt-normatch.melt:1002:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1004:/ apply.arg");
     argtab[2].bp_cstring =  "warmelt-normatch.melt";
-    BASILYS_LOCATION("warmelt-normatch.melt:1002:/ apply.arg");
-    argtab[3].bp_long = 1002;
+    BASILYS_LOCATION("warmelt-normatch.melt:1004:/ apply.arg");
+    argtab[3].bp_long = 1004;
     /*_.DEBUG_MSG_FUN__V4*/ curfptr[3] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.CUROUTMATCH__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V3*/ curfptr[2] = /*_.DEBUG_MSG_FUN__V4*/ curfptr[3];;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1002:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
    /*clear*/ /*_#THE_CALLCOUNT__L2*/ curfnum[1] = 0 ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1002:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V4*/ curfptr[3] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1002:/ cppif.else");
+  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ cppif.else");
  /*_.IFCPP___V3*/ curfptr[2] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
-  BASILYS_LOCATION("warmelt-normatch.melt:1003:/ cppif.then");
- BASILYS_LOCATION("warmelt-normatch.melt:1003:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1005:/ cppif.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:1005:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[1] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.CUROUTMATCH__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[1])));;
-   BASILYS_LOCATION("warmelt-normatch.melt:1003:/ cond");
+   BASILYS_LOCATION("warmelt-normatch.melt:1005:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[1]) /*then*/ {
-   BASILYS_LOCATION("warmelt-normatch.melt:1003:/ cond.then");
+   BASILYS_LOCATION("warmelt-normatch.melt:1005:/ cond.then");
    /*_.IFELSE___V6*/ curfptr[5] = (/*nil*/NULL);;
-   } else {BASILYS_LOCATION("warmelt-normatch.melt:1003:/ cond.else");
+   } else {BASILYS_LOCATION("warmelt-normatch.melt:1005:/ cond.else");
    
-    BASILYS_LOCATION("warmelt-normatch.melt:1003:/ block");
+    BASILYS_LOCATION("warmelt-normatch.melt:1005:/ block");
     /*block*/{
      /*block*/{
       
       {
-      BASILYS_LOCATION("warmelt-normatch.melt:1003:/ locexp");
-      basilys_assert_failed(( "check curoutmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1003)?(1003):__LINE__, __FUNCTION__);}
+      BASILYS_LOCATION("warmelt-normatch.melt:1005:/ locexp");
+      basilys_assert_failed(( "check curoutmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1005)?(1005):__LINE__, __FUNCTION__);}
       ;
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
@@ -14886,150 +14900,150 @@ BASILYS_LOCATION("warmelt-normatch.melt:1001:/ block");
    ;
    /*_.IFCPP___V5*/ curfptr[3] = /*_.IFELSE___V6*/ curfptr[5];;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1003:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1005:/ clear");
    /*clear*/ /*_#IS_A__L3*/ curfnum[1] = 0 ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1003:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1005:/ clear");
    /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1003:/ cppif.else");
+  BASILYS_LOCATION("warmelt-normatch.melt:1005:/ cppif.else");
  /*_.IFCPP___V5*/ curfptr[3] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
- BASILYS_LOCATION("warmelt-normatch.melt:1004:/ block");
+ BASILYS_LOCATION("warmelt-normatch.melt:1006:/ block");
  /*block*/{
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ cond");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ cond");
   /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CUROUTMATCH__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_ANY_BINDING*/ curfrout->tabval[3])))) /*then*/ {
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ cond.then");
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ getslot");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ cond.then");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ getslot");
    { basilys_ptr_t slot=0;
     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CUROUTMATCH__V2*/ curfptr[1]), 0, "BINDER");/*_.BINDER__V8*/ curfptr[7] = slot; };
    ;
-  } else {BASILYS_LOCATION("warmelt-normatch.melt:1004:/ cond.else");
+  } else {BASILYS_LOCATION("warmelt-normatch.melt:1006:/ cond.else");
   
    /*_.BINDER__V8*/ curfptr[7] = NULL;;
    }
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ apply");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ apply");
   /*apply*/{
    /*_.CSYM__V9*/ curfptr[8] =  basilys_apply ((basilysclosure_ptr_t)((/*!CLONE_SYMBOL*/ curfrout->tabval[2])), (basilys_ptr_t)(/*_.BINDER__V8*/ curfptr[7]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
    }
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1005:/ cond");
+  BASILYS_LOCATION("warmelt-normatch.melt:1007:/ cond");
   /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CUROUTMATCH__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[1])))) /*then*/ {
-  BASILYS_LOCATION("warmelt-normatch.melt:1005:/ cond.then");
-  BASILYS_LOCATION("warmelt-normatch.melt:1005:/ getslot");
+  BASILYS_LOCATION("warmelt-normatch.melt:1007:/ cond.then");
+  BASILYS_LOCATION("warmelt-normatch.melt:1007:/ getslot");
    { basilys_ptr_t slot=0;
     basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CUROUTMATCH__V2*/ curfptr[1]), 1, "FBIND_TYPE");/*_.CURTYP__V10*/ curfptr[9] = slot; };
    ;
-  } else {BASILYS_LOCATION("warmelt-normatch.melt:1005:/ cond.else");
+  } else {BASILYS_LOCATION("warmelt-normatch.melt:1007:/ cond.else");
   
    /*_.CURTYP__V10*/ curfptr[9] = NULL;;
    }
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1008:/ block");
   /*block*/{
-   BASILYS_LOCATION("warmelt-normatch.melt:1006:/ rawallocobj");
+   BASILYS_LOCATION("warmelt-normatch.melt:1008:/ rawallocobj");
    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NORMLET_BINDING*/ curfrout->tabval[4])), (4), "CLASS_NORMLET_BINDING");/*_.INST__V12*/ curfptr[11] =
     newobj; };
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1006:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1008:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));basilys_putfield_object((/*_.INST__V12*/ curfptr[11]), (3), ((/*~SLOC*/ curfclos->tabval[0])), "LETBIND_LOC");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1006:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1008:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));basilys_putfield_object((/*_.INST__V12*/ curfptr[11]), (0), (/*_.CSYM__V9*/ curfptr[8]), "BINDER");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1006:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1008:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));basilys_putfield_object((/*_.INST__V12*/ curfptr[11]), (1), (/*_.CURTYP__V10*/ curfptr[9]), "LETBIND_TYPE");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1006:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1008:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V12*/ curfptr[11]))));basilys_putfield_object((/*_.INST__V12*/ curfptr[11]), (2), ((/*nil*/NULL)), "LETBIND_EXPR");
    ;
    /*_.CBIND__V11*/ curfptr[10] = /*_.INST__V12*/ curfptr[11];;}
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1015:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1017:/ block");
   /*block*/{
-   BASILYS_LOCATION("warmelt-normatch.melt:1015:/ rawallocobj");
+   BASILYS_LOCATION("warmelt-normatch.melt:1017:/ rawallocobj");
    /*rawallocobj*/ { basilys_ptr_t newobj = 0;
     basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[5])), (4), "CLASS_NREP_LOCSYMOCC");/*_.INST__V14*/ curfptr[13] =
     newobj; };
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1015:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1017:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (0), ((/*~SLOC*/ curfclos->tabval[0])), "NREP_LOC");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1015:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1017:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (2), (/*_.CURTYP__V10*/ curfptr[9]), "NOCC_CTYP");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1015:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1017:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (1), (/*_.CSYM__V9*/ curfptr[8]), "NOCC_SYMB");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1015:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1017:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13])) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V14*/ curfptr[13]))));basilys_putfield_object((/*_.INST__V14*/ curfptr[13]), (3), (/*_.CBIND__V11*/ curfptr[10]), "NOCC_BIND");
    ;
    /*_.CLOCC__V13*/ curfptr[12] = /*_.INST__V14*/ curfptr[13];;}
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1022:/ cond");
+  BASILYS_LOCATION("warmelt-normatch.melt:1024:/ cond");
   /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)((/*~NCX*/ curfclos->tabval[1])), (basilys_ptr_t)((/*!CLASS_NORMCONTEXT*/ curfrout->tabval[6])))) /*then*/ {
-  BASILYS_LOCATION("warmelt-normatch.melt:1022:/ cond.then");
-  BASILYS_LOCATION("warmelt-normatch.melt:1022:/ getslot");
+  BASILYS_LOCATION("warmelt-normatch.melt:1024:/ cond.then");
+  BASILYS_LOCATION("warmelt-normatch.melt:1024:/ getslot");
    { basilys_ptr_t slot=0;
     basilys_object_get_field(slot,(basilys_ptr_t)((/*~NCX*/ curfclos->tabval[1])), 6, "NCTX_SYMBCACHEMAP");/*_.NCTX_SYMBCACHEMAP__V15*/ curfptr[14] = slot; };
    ;
-  } else {BASILYS_LOCATION("warmelt-normatch.melt:1022:/ cond.else");
+  } else {BASILYS_LOCATION("warmelt-normatch.melt:1024:/ cond.else");
   
    /*_.NCTX_SYMBCACHEMAP__V15*/ curfptr[14] = NULL;;
    }
   ;
   
   {
-  BASILYS_LOCATION("warmelt-normatch.melt:1022:/ locexp");
+  BASILYS_LOCATION("warmelt-normatch.melt:1024:/ locexp");
    basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V15*/ curfptr[14]), (basilysobject_ptr_t) (/*_.CSYM__V9*/ curfptr[8]), (basilys_ptr_t)(/*_.CLOCC__V13*/ curfptr[12]));}
   ;
   /*_.LET___V7*/ curfptr[5] = /*_.CLOCC__V13*/ curfptr[12];;
   /*epilog*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ clear");
   /*clear*/ /*_.BINDER__V8*/ curfptr[7] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ clear");
   /*clear*/ /*_.CSYM__V9*/ curfptr[8] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ clear");
   /*clear*/ /*_.CURTYP__V10*/ curfptr[9] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ clear");
   /*clear*/ /*_.CBIND__V11*/ curfptr[10] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ clear");
   /*clear*/ /*_.CLOCC__V13*/ curfptr[12] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1006:/ clear");
   /*clear*/ /*_.NCTX_SYMBCACHEMAP__V15*/ curfptr[14] = 0 ;}
  ;
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ block");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V7*/ curfptr[5];;
-  BASILYS_LOCATION("warmelt-normatch.melt:1001:/ finalreturn");
+  BASILYS_LOCATION("warmelt-normatch.melt:1003:/ finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ clear");
  /*clear*/ /*_.IFCPP___V3*/ curfptr[2] = 0 ;
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ clear");
  /*clear*/ /*_.IFCPP___V5*/ curfptr[3] = 0 ;
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ clear");
  /*clear*/ /*_.LET___V7*/ curfptr[5] = 0 ;}
 
 ;
@@ -15090,68 +15104,68 @@ basilys_trace_start("LAMBDA_", callcount);
 /*getargs*/
 
  /*getarg#0*/
- BASILYS_LOCATION("warmelt-normatch.melt:1070:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:1072:/ getarg");
  /*_.NEWTESTER__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
-BASILYS_LOCATION("warmelt-normatch.melt:1070:/ block");
+BASILYS_LOCATION("warmelt-normatch.melt:1072:/ block");
 /*block*/{
  
  #if ENABLE_CHECKING
-  BASILYS_LOCATION("warmelt-normatch.melt:1071:/ cppif.then");
- BASILYS_LOCATION("warmelt-normatch.melt:1071:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1073:/ cppif.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:1073:/ block");
   /*block*/{
    /*_#THE_CALLCOUNT__L1*/ curfnum[0] = 
     callcount;;
-   BASILYS_LOCATION("warmelt-normatch.melt:1071:/ apply");
+   BASILYS_LOCATION("warmelt-normatch.melt:1073:/ apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
-    BASILYS_LOCATION("warmelt-normatch.melt:1071:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1073:/ apply.arg");
     argtab[0].bp_cstring =  "normpat_anymatchpat newtester";
-    BASILYS_LOCATION("warmelt-normatch.melt:1071:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1073:/ apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L1*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-normatch.melt:1071:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1073:/ apply.arg");
     argtab[2].bp_cstring =  "warmelt-normatch.melt";
-    BASILYS_LOCATION("warmelt-normatch.melt:1071:/ apply.arg");
-    argtab[3].bp_long = 1071;
+    BASILYS_LOCATION("warmelt-normatch.melt:1073:/ apply.arg");
+    argtab[3].bp_long = 1073;
     /*_.DEBUG_MSG_FUN__V4*/ curfptr[3] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[0])), (basilys_ptr_t)(/*_.NEWTESTER__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V3*/ curfptr[2] = /*_.DEBUG_MSG_FUN__V4*/ curfptr[3];;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1071:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1073:/ clear");
    /*clear*/ /*_#THE_CALLCOUNT__L1*/ curfnum[0] = 0 ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1071:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1073:/ clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V4*/ curfptr[3] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1071:/ cppif.else");
+  BASILYS_LOCATION("warmelt-normatch.melt:1073:/ cppif.else");
  /*_.IFCPP___V3*/ curfptr[2] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
- BASILYS_LOCATION("warmelt-normatch.melt:1072:/ apply");
+ BASILYS_LOCATION("warmelt-normatch.melt:1074:/ apply");
  /*apply*/{
   union basilysparam_un argtab[1];
   memset(&argtab, 0, sizeof(argtab));
-  BASILYS_LOCATION("warmelt-normatch.melt:1072:/ apply.arg");
+  BASILYS_LOCATION("warmelt-normatch.melt:1074:/ apply.arg");
   argtab[0].bp_aptr = (basilys_ptr_t*) &(/*~TESTERCONT*/ curfclos->tabval[0]);
   /*_.SET_NEWTESTER_LASTTHEN__V5*/ curfptr[3] =  basilys_apply ((basilysclosure_ptr_t)((/*!SET_NEWTESTER_LASTTHEN*/ curfrout->tabval[1])), (basilys_ptr_t)(/*_.NEWTESTER__V2*/ curfptr[1]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
   }
  ;
- BASILYS_LOCATION("warmelt-normatch.melt:1070:/ block");
+ BASILYS_LOCATION("warmelt-normatch.melt:1072:/ block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.SET_NEWTESTER_LASTTHEN__V5*/ curfptr[3];;
-  BASILYS_LOCATION("warmelt-normatch.melt:1070:/ finalreturn");
+  BASILYS_LOCATION("warmelt-normatch.melt:1072:/ finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
- BASILYS_LOCATION("warmelt-normatch.melt:1070:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1072:/ clear");
  /*clear*/ /*_.IFCPP___V3*/ curfptr[2] = 0 ;
- BASILYS_LOCATION("warmelt-normatch.melt:1070:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1072:/ clear");
  /*clear*/ /*_.SET_NEWTESTER_LASTTHEN__V5*/ curfptr[3] = 0 ;}
 
 ;
@@ -15212,25 +15226,25 @@ basilys_trace_start("NORMEXP_MATCH", callcount);
 /*getargs*/
 
  /*getarg#0*/
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ getarg");
  /*_.RECV__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  
  /*getarg#1*/
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ getarg");
  if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
  /*_.ENV__V3*/ curfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2])) != NULL);
  
  
  /*getarg#2*/
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ getarg");
  if (xargdescr_[1] != BPAR_PTR) goto lab_endgetargs;
  /*_.NCX__V4*/ curfptr[3] = (xargtab_[1].bp_aptr) ? (*(xargtab_[1].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.NCX__V4*/ curfptr[3])) != NULL);
  
  
  /*getarg#3*/
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ getarg");
  if (xargdescr_[2] != BPAR_PTR) goto lab_endgetargs;
  /*_.PSLOC__V5*/ curfptr[4] = (xargtab_[2].bp_aptr) ? (*(xargtab_[2].bp_aptr)) : NULL;
  gcc_assert(basilys_discr((basilys_ptr_t)(/*_.PSLOC__V5*/ curfptr[4])) != NULL);
@@ -15239,28 +15253,28 @@ basilys_trace_start("NORMEXP_MATCH", callcount);
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
-BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
+BASILYS_LOCATION("warmelt-normatch.melt:1096:/ block");
 /*block*/{
  
  #if ENABLE_CHECKING
-  BASILYS_LOCATION("warmelt-normatch.melt:1095:/ cppif.then");
- BASILYS_LOCATION("warmelt-normatch.melt:1095:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cppif.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:1097:/ block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (basilys_ptr_t)((/*!CLASS_SRC_MATCH*/ curfrout->tabval[0])));;
-   BASILYS_LOCATION("warmelt-normatch.melt:1095:/ cond");
+   BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
-   BASILYS_LOCATION("warmelt-normatch.melt:1095:/ cond.then");
+   BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cond.then");
    /*_.IFELSE___V7*/ curfptr[6] = (/*nil*/NULL);;
-   } else {BASILYS_LOCATION("warmelt-normatch.melt:1095:/ cond.else");
+   } else {BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cond.else");
    
-    BASILYS_LOCATION("warmelt-normatch.melt:1095:/ block");
+    BASILYS_LOCATION("warmelt-normatch.melt:1097:/ block");
     /*block*/{
      /*block*/{
       
       {
-      BASILYS_LOCATION("warmelt-normatch.melt:1095:/ locexp");
-      basilys_assert_failed(( "check match recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1095)?(1095):__LINE__, __FUNCTION__);}
+      BASILYS_LOCATION("warmelt-normatch.melt:1097:/ locexp");
+      basilys_assert_failed(( "check match recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1097)?(1097):__LINE__, __FUNCTION__);}
       ;
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
@@ -15270,36 +15284,36 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
    ;
    /*_.IFCPP___V6*/ curfptr[5] = /*_.IFELSE___V7*/ curfptr[6];;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1095:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1097:/ clear");
    /*clear*/ /*_#IS_A__L1*/ curfnum[0] = 0 ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1095:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1097:/ clear");
    /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1095:/ cppif.else");
+  BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cppif.else");
  /*_.IFCPP___V6*/ curfptr[5] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
-  BASILYS_LOCATION("warmelt-normatch.melt:1096:/ cppif.then");
- BASILYS_LOCATION("warmelt-normatch.melt:1096:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1098:/ cppif.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:1098:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (basilys_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
-   BASILYS_LOCATION("warmelt-normatch.melt:1096:/ cond");
+   BASILYS_LOCATION("warmelt-normatch.melt:1098:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
-   BASILYS_LOCATION("warmelt-normatch.melt:1096:/ cond.then");
+   BASILYS_LOCATION("warmelt-normatch.melt:1098:/ cond.then");
    /*_.IFELSE___V9*/ curfptr[8] = (/*nil*/NULL);;
-   } else {BASILYS_LOCATION("warmelt-normatch.melt:1096:/ cond.else");
+   } else {BASILYS_LOCATION("warmelt-normatch.melt:1098:/ cond.else");
    
-    BASILYS_LOCATION("warmelt-normatch.melt:1096:/ block");
+    BASILYS_LOCATION("warmelt-normatch.melt:1098:/ block");
     /*block*/{
      /*block*/{
       
       {
-      BASILYS_LOCATION("warmelt-normatch.melt:1096:/ locexp");
-      basilys_assert_failed(( "check env"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1096)?(1096):__LINE__, __FUNCTION__);}
+      BASILYS_LOCATION("warmelt-normatch.melt:1098:/ locexp");
+      basilys_assert_failed(( "check env"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1098)?(1098):__LINE__, __FUNCTION__);}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -15309,36 +15323,36 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
    ;
    /*_.IFCPP___V8*/ curfptr[6] = /*_.IFELSE___V9*/ curfptr[8];;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1096:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1098:/ clear");
    /*clear*/ /*_#IS_A__L2*/ curfnum[0] = 0 ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1096:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1098:/ clear");
    /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1096:/ cppif.else");
+  BASILYS_LOCATION("warmelt-normatch.melt:1098:/ cppif.else");
  /*_.IFCPP___V8*/ curfptr[6] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
-  BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cppif.then");
- BASILYS_LOCATION("warmelt-normatch.melt:1097:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ cppif.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:1099:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
      basilys_is_instance_of((basilys_ptr_t)(/*_.NCX__V4*/ curfptr[3]), (basilys_ptr_t)((/*!CLASS_NORMCONTEXT*/ curfrout->tabval[2])));;
-   BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cond");
+   BASILYS_LOCATION("warmelt-normatch.melt:1099:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
-   BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cond.then");
+   BASILYS_LOCATION("warmelt-normatch.melt:1099:/ cond.then");
    /*_.IFELSE___V11*/ curfptr[10] = (/*nil*/NULL);;
-   } else {BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cond.else");
+   } else {BASILYS_LOCATION("warmelt-normatch.melt:1099:/ cond.else");
    
-    BASILYS_LOCATION("warmelt-normatch.melt:1097:/ block");
+    BASILYS_LOCATION("warmelt-normatch.melt:1099:/ block");
     /*block*/{
      /*block*/{
       
       {
-      BASILYS_LOCATION("warmelt-normatch.melt:1097:/ locexp");
-      basilys_assert_failed(( "check nctxt"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1097)?(1097):__LINE__, __FUNCTION__);}
+      BASILYS_LOCATION("warmelt-normatch.melt:1099:/ locexp");
+      basilys_assert_failed(( "check nctxt"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1099)?(1099):__LINE__, __FUNCTION__);}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -15348,61 +15362,61 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
    ;
    /*_.IFCPP___V10*/ curfptr[8] = /*_.IFELSE___V11*/ curfptr[10];;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1097:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
    /*clear*/ /*_#IS_A__L3*/ curfnum[0] = 0 ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1097:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
    /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1097:/ cppif.else");
+  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ cppif.else");
  /*_.IFCPP___V10*/ curfptr[8] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
  
  #if ENABLE_CHECKING
-  BASILYS_LOCATION("warmelt-normatch.melt:1098:/ cppif.then");
- BASILYS_LOCATION("warmelt-normatch.melt:1098:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1100:/ cppif.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:1100:/ block");
   /*block*/{
    /*_#THE_CALLCOUNT__L4*/ curfnum[0] = 
     callcount;;
-   BASILYS_LOCATION("warmelt-normatch.melt:1098:/ apply");
+   BASILYS_LOCATION("warmelt-normatch.melt:1100:/ apply");
    /*apply*/{
     union basilysparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
-    BASILYS_LOCATION("warmelt-normatch.melt:1098:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1100:/ apply.arg");
     argtab[0].bp_cstring =  "normexp_match recv";
-    BASILYS_LOCATION("warmelt-normatch.melt:1098:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1100:/ apply.arg");
     argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ curfnum[0];
-    BASILYS_LOCATION("warmelt-normatch.melt:1098:/ apply.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1100:/ apply.arg");
     argtab[2].bp_cstring =  "warmelt-normatch.melt";
-    BASILYS_LOCATION("warmelt-normatch.melt:1098:/ apply.arg");
-    argtab[3].bp_long = 1098;
+    BASILYS_LOCATION("warmelt-normatch.melt:1100:/ apply.arg");
+    argtab[3].bp_long = 1100;
     /*_.DEBUG_MSG_FUN__V13*/ curfptr[12] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
     }
    ;
    /*_.IFCPP___V12*/ curfptr[10] = /*_.DEBUG_MSG_FUN__V13*/ curfptr[12];;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1098:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1100:/ clear");
    /*clear*/ /*_#THE_CALLCOUNT__L4*/ curfnum[0] = 0 ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1098:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1100:/ clear");
    /*clear*/ /*_.DEBUG_MSG_FUN__V13*/ curfptr[12] = 0 ;}
   
   #else /*ENABLE_CHECKING*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1098:/ cppif.else");
+  BASILYS_LOCATION("warmelt-normatch.melt:1100:/ cppif.else");
  /*_.IFCPP___V12*/ curfptr[10] = (/*nil*/NULL);
   #endif /*ENABLE_CHECKING*/
   ;
- BASILYS_LOCATION("warmelt-normatch.melt:1099:/ block");
+ BASILYS_LOCATION("warmelt-normatch.melt:1101:/ block");
  /*block*/{
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ getslot");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ getslot");
   { basilys_ptr_t slot=0;
    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 0, "SRC_LOC");/*_.SLOC__V15*/ curfptr[14] = slot; };
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1100:/ getslot");
+  BASILYS_LOCATION("warmelt-normatch.melt:1102:/ getslot");
   { basilys_ptr_t slot=0;
    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 1, "SMAT_MATCHEDX");/*_.SMATSX__V16*/ curfptr[15] = slot; };
   ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ getslot");
+  BASILYS_LOCATION("warmelt-normatch.melt:1103:/ getslot");
   { basilys_ptr_t slot=0;
    basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]), 2, "SMAT_CASES");/*_.SCASES__V17*/ curfptr[16] = slot; };
   ;
@@ -15428,167 +15442,167 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
   /*_.OLDTESTER__V25*/ curfptr[24] = (/*nil*/NULL);;
   
   #if ENABLE_CHECKING
-   BASILYS_LOCATION("warmelt-normatch.melt:1114:/ cppif.then");
-  BASILYS_LOCATION("warmelt-normatch.melt:1114:/ block");
+   BASILYS_LOCATION("warmelt-normatch.melt:1116:/ cppif.then");
+  BASILYS_LOCATION("warmelt-normatch.melt:1116:/ block");
    /*block*/{
     /*_#THE_CALLCOUNT__L8*/ curfnum[7] = 
      callcount;;
-    BASILYS_LOCATION("warmelt-normatch.melt:1114:/ apply");
+    BASILYS_LOCATION("warmelt-normatch.melt:1116:/ apply");
     /*apply*/{
      union basilysparam_un argtab[4];
      memset(&argtab, 0, sizeof(argtab));
-     BASILYS_LOCATION("warmelt-normatch.melt:1114:/ apply.arg");
+     BASILYS_LOCATION("warmelt-normatch.melt:1116:/ apply.arg");
      argtab[0].bp_cstring =  "normexp_match smatsx";
-     BASILYS_LOCATION("warmelt-normatch.melt:1114:/ apply.arg");
+     BASILYS_LOCATION("warmelt-normatch.melt:1116:/ apply.arg");
      argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ curfnum[7];
-     BASILYS_LOCATION("warmelt-normatch.melt:1114:/ apply.arg");
+     BASILYS_LOCATION("warmelt-normatch.melt:1116:/ apply.arg");
      argtab[2].bp_cstring =  "warmelt-normatch.melt";
-     BASILYS_LOCATION("warmelt-normatch.melt:1114:/ apply.arg");
-     argtab[3].bp_long = 1114;
+     BASILYS_LOCATION("warmelt-normatch.melt:1116:/ apply.arg");
+     argtab[3].bp_long = 1116;
      /*_.DEBUG_MSG_FUN__V27*/ curfptr[26] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SMATSX__V16*/ curfptr[15]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
      }
     ;
     /*_.IFCPP___V26*/ curfptr[25] = /*_.DEBUG_MSG_FUN__V27*/ curfptr[26];;
     /*epilog*/
-    BASILYS_LOCATION("warmelt-normatch.melt:1114:/ clear");
+    BASILYS_LOCATION("warmelt-normatch.melt:1116:/ clear");
     /*clear*/ /*_#THE_CALLCOUNT__L8*/ curfnum[7] = 0 ;
-    BASILYS_LOCATION("warmelt-normatch.melt:1114:/ clear");
+    BASILYS_LOCATION("warmelt-normatch.melt:1116:/ clear");
     /*clear*/ /*_.DEBUG_MSG_FUN__V27*/ curfptr[26] = 0 ;}
    
    #else /*ENABLE_CHECKING*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1114:/ cppif.else");
+   BASILYS_LOCATION("warmelt-normatch.melt:1116:/ cppif.else");
   /*_.IFCPP___V26*/ curfptr[25] = (/*nil*/NULL);
    #endif /*ENABLE_CHECKING*/
    ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1115:/ block");
+  BASILYS_LOCATION("warmelt-normatch.melt:1117:/ block");
   /*block*/{
-   BASILYS_LOCATION("warmelt-normatch.melt:1115:/ multimsend");
+   BASILYS_LOCATION("warmelt-normatch.melt:1117:/ multimsend");
    /*multimsend*/{
     union basilysparam_un argtab[3];
     union basilysparam_un restab[1];
     memset(&argtab, 0, sizeof(argtab));
     memset(&restab, 0, sizeof(restab));
-    BASILYS_LOCATION("warmelt-normatch.melt:1115:/ multimsend.arg");
-    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];BASILYS_LOCATION("warmelt-normatch.melt:1115:/ multimsend.arg");
-    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V4*/ curfptr[3];BASILYS_LOCATION("warmelt-normatch.melt:1115:/ multimsend.arg");
+    BASILYS_LOCATION("warmelt-normatch.melt:1117:/ multimsend.arg");
+    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];BASILYS_LOCATION("warmelt-normatch.melt:1117:/ multimsend.arg");
+    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V4*/ curfptr[3];BASILYS_LOCATION("warmelt-normatch.melt:1117:/ multimsend.arg");
     argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.SLOC__V15*/ curfptr[14];
-    BASILYS_LOCATION("warmelt-normatch.melt:1115:/ multimsend.xres");
-    restab[0].bp_aptr = (basilys_ptr_t*) &/*_.NBINDMATX__V30*/ curfptr[29];BASILYS_LOCATION("warmelt-normatch.melt:1115:/ multimsend.send");
+    BASILYS_LOCATION("warmelt-normatch.melt:1117:/ multimsend.xres");
+    restab[0].bp_aptr = (basilys_ptr_t*) &/*_.NBINDMATX__V30*/ curfptr[29];BASILYS_LOCATION("warmelt-normatch.melt:1117:/ multimsend.send");
     /*_.NMATX__V29*/ curfptr[28] =  basilysgc_send ((basilys_ptr_t)(/*_.SMATSX__V16*/ curfptr[15]), ((basilys_ptr_t)((/*!NORMAL_EXP*/ curfrout->tabval[7]))), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
     }
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1115:/ block");
+   BASILYS_LOCATION("warmelt-normatch.melt:1117:/ block");
    /*block*/{
     
     #if ENABLE_CHECKING
-     BASILYS_LOCATION("warmelt-normatch.melt:1118:/ cppif.then");
-    BASILYS_LOCATION("warmelt-normatch.melt:1118:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ cppif.then");
+    BASILYS_LOCATION("warmelt-normatch.melt:1120:/ block");
      /*block*/{
       /*_#THE_CALLCOUNT__L9*/ curfnum[7] = 
        callcount;;
-      BASILYS_LOCATION("warmelt-normatch.melt:1118:/ apply");
+      BASILYS_LOCATION("warmelt-normatch.melt:1120:/ apply");
       /*apply*/{
        union basilysparam_un argtab[4];
        memset(&argtab, 0, sizeof(argtab));
-       BASILYS_LOCATION("warmelt-normatch.melt:1118:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:1120:/ apply.arg");
        argtab[0].bp_cstring =  "normexp_match nmatx";
-       BASILYS_LOCATION("warmelt-normatch.melt:1118:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:1120:/ apply.arg");
        argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ curfnum[7];
-       BASILYS_LOCATION("warmelt-normatch.melt:1118:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:1120:/ apply.arg");
        argtab[2].bp_cstring =  "warmelt-normatch.melt";
-       BASILYS_LOCATION("warmelt-normatch.melt:1118:/ apply.arg");
-       argtab[3].bp_long = 1118;
+       BASILYS_LOCATION("warmelt-normatch.melt:1120:/ apply.arg");
+       argtab[3].bp_long = 1120;
        /*_.DEBUG_MSG_FUN__V32*/ curfptr[31] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.NMATX__V29*/ curfptr[28]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
        }
       ;
       /*_.IFCPP___V31*/ curfptr[30] = /*_.DEBUG_MSG_FUN__V32*/ curfptr[31];;
       /*epilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:1118:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
       /*clear*/ /*_#THE_CALLCOUNT__L9*/ curfnum[7] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1118:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
       /*clear*/ /*_.DEBUG_MSG_FUN__V32*/ curfptr[31] = 0 ;}
      
      #else /*ENABLE_CHECKING*/
-     BASILYS_LOCATION("warmelt-normatch.melt:1118:/ cppif.else");
+     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ cppif.else");
     /*_.IFCPP___V31*/ curfptr[30] = (/*nil*/NULL);
      #endif /*ENABLE_CHECKING*/
      ;
     
     #if ENABLE_CHECKING
-     BASILYS_LOCATION("warmelt-normatch.melt:1119:/ cppif.then");
-    BASILYS_LOCATION("warmelt-normatch.melt:1119:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:1121:/ cppif.then");
+    BASILYS_LOCATION("warmelt-normatch.melt:1121:/ block");
      /*block*/{
       /*_#THE_CALLCOUNT__L10*/ curfnum[7] = 
        callcount;;
-      BASILYS_LOCATION("warmelt-normatch.melt:1119:/ apply");
+      BASILYS_LOCATION("warmelt-normatch.melt:1121:/ apply");
       /*apply*/{
        union basilysparam_un argtab[4];
        memset(&argtab, 0, sizeof(argtab));
-       BASILYS_LOCATION("warmelt-normatch.melt:1119:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:1121:/ apply.arg");
        argtab[0].bp_cstring =  "normexp_match scases";
-       BASILYS_LOCATION("warmelt-normatch.melt:1119:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:1121:/ apply.arg");
        argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ curfnum[7];
-       BASILYS_LOCATION("warmelt-normatch.melt:1119:/ apply.arg");
+       BASILYS_LOCATION("warmelt-normatch.melt:1121:/ apply.arg");
        argtab[2].bp_cstring =  "warmelt-normatch.melt";
-       BASILYS_LOCATION("warmelt-normatch.melt:1119:/ apply.arg");
-       argtab[3].bp_long = 1119;
+       BASILYS_LOCATION("warmelt-normatch.melt:1121:/ apply.arg");
+       argtab[3].bp_long = 1121;
        /*_.DEBUG_MSG_FUN__V34*/ curfptr[33] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SCASES__V17*/ curfptr[16]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
        }
       ;
       /*_.IFCPP___V33*/ curfptr[31] = /*_.DEBUG_MSG_FUN__V34*/ curfptr[33];;
       /*epilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:1119:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1121:/ clear");
       /*clear*/ /*_#THE_CALLCOUNT__L10*/ curfnum[7] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1119:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1121:/ clear");
       /*clear*/ /*_.DEBUG_MSG_FUN__V34*/ curfptr[33] = 0 ;}
      
      #else /*ENABLE_CHECKING*/
-     BASILYS_LOCATION("warmelt-normatch.melt:1119:/ cppif.else");
+     BASILYS_LOCATION("warmelt-normatch.melt:1121:/ cppif.else");
     /*_.IFCPP___V33*/ curfptr[31] = (/*nil*/NULL);
      #endif /*ENABLE_CHECKING*/
      ;
-    BASILYS_LOCATION("warmelt-normatch.melt:1120:/ block");
+    BASILYS_LOCATION("warmelt-normatch.melt:1122:/ block");
     /*block*/{
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ msend");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ msend");
      /*msend*/{
       union basilysparam_un argtab[1];
       memset(&argtab, 0, sizeof(argtab));
-      BASILYS_LOCATION("warmelt-normatch.melt:1120:/ ojbmsend.arg");
+      BASILYS_LOCATION("warmelt-normatch.melt:1122:/ ojbmsend.arg");
       argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];
       /*_.CTYP__V36*/ curfptr[35] = basilysgc_send((basilys_ptr_t)(/*_.NMATX__V29*/ curfptr[28]), (basilys_ptr_t)((/*!GET_CTYPE*/ curfrout->tabval[8])), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
       }
      ;
      
      #if ENABLE_CHECKING
-      BASILYS_LOCATION("warmelt-normatch.melt:1122:/ cppif.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:1124:/ cppif.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:1124:/ block");
       /*block*/{
        /*_#THE_CALLCOUNT__L11*/ curfnum[7] = 
         callcount;;
-       BASILYS_LOCATION("warmelt-normatch.melt:1122:/ apply");
+       BASILYS_LOCATION("warmelt-normatch.melt:1124:/ apply");
        /*apply*/{
         union basilysparam_un argtab[4];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:1122:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1124:/ apply.arg");
         argtab[0].bp_cstring =  "normexp_match ctyp";
-        BASILYS_LOCATION("warmelt-normatch.melt:1122:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1124:/ apply.arg");
         argtab[1].bp_long = /*_#THE_CALLCOUNT__L11*/ curfnum[7];
-        BASILYS_LOCATION("warmelt-normatch.melt:1122:/ apply.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1124:/ apply.arg");
         argtab[2].bp_cstring =  "warmelt-normatch.melt";
-        BASILYS_LOCATION("warmelt-normatch.melt:1122:/ apply.arg");
-        argtab[3].bp_long = 1122;
+        BASILYS_LOCATION("warmelt-normatch.melt:1124:/ apply.arg");
+        argtab[3].bp_long = 1124;
         /*_.DEBUG_MSG_FUN__V38*/ curfptr[37] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CTYP__V36*/ curfptr[35]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
        /*_.IFCPP___V37*/ curfptr[36] = /*_.DEBUG_MSG_FUN__V38*/ curfptr[37];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1124:/ clear");
        /*clear*/ /*_#THE_CALLCOUNT__L11*/ curfnum[7] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1124:/ clear");
        /*clear*/ /*_.DEBUG_MSG_FUN__V38*/ curfptr[37] = 0 ;}
       
       #else /*ENABLE_CHECKING*/
-      BASILYS_LOCATION("warmelt-normatch.melt:1122:/ cppif.else");
+      BASILYS_LOCATION("warmelt-normatch.melt:1124:/ cppif.else");
      /*_.IFCPP___V37*/ curfptr[36] = (/*nil*/NULL);
       #endif /*ENABLE_CHECKING*/
       ;
@@ -15596,70 +15610,70 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
        (basilys_magic_discr((basilys_ptr_t)(/*_.NMATX__V29*/ curfptr[28])) == OBMAG_OBJECT);;
      /*_#NOT__L13*/ curfnum[12] = 
       (!(/*_#IS_OBJECT__L12*/ curfnum[7]));;
-     BASILYS_LOCATION("warmelt-normatch.melt:1125:/ cond");
+     BASILYS_LOCATION("warmelt-normatch.melt:1127:/ cond");
      /*cond*/ if (/*_#NOT__L13*/ curfnum[12]) /*then*/ {
-     BASILYS_LOCATION("warmelt-normatch.melt:1125:/ cond.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:1125:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:1127:/ cond.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:1127:/ block");
       /*block*/{
-       BASILYS_LOCATION("warmelt-normatch.melt:1126:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:1128:/ block");
        /*block*/{
-        BASILYS_LOCATION("warmelt-normatch.melt:1127:/ apply");
+        BASILYS_LOCATION("warmelt-normatch.melt:1129:/ apply");
         /*apply*/{
          /*_.CSYM__V41*/ curfptr[40] =  basilys_apply ((basilysclosure_ptr_t)((/*!CLONE_SYMBOL*/ curfrout->tabval[9])), (basilys_ptr_t)((/*!konst_10_MATCHED_*/ curfrout->tabval[10])), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
          }
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1130:/ block");
         /*block*/{
-         BASILYS_LOCATION("warmelt-normatch.melt:1128:/ rawallocobj");
+         BASILYS_LOCATION("warmelt-normatch.melt:1130:/ rawallocobj");
          /*rawallocobj*/ { basilys_ptr_t newobj = 0;
           basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NORMLET_BINDING*/ curfrout->tabval[11])), (4), "CLASS_NORMLET_BINDING");/*_.INST__V43*/ curfptr[42] =
           newobj; };
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1128:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1130:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42]))));basilys_putfield_object((/*_.INST__V43*/ curfptr[42]), (3), (/*_.SLOC__V15*/ curfptr[14]), "LETBIND_LOC");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1128:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1130:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42]))));basilys_putfield_object((/*_.INST__V43*/ curfptr[42]), (0), (/*_.CSYM__V41*/ curfptr[40]), "BINDER");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1128:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1130:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42]))));basilys_putfield_object((/*_.INST__V43*/ curfptr[42]), (1), (/*_.CTYP__V36*/ curfptr[35]), "LETBIND_TYPE");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1128:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1130:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V43*/ curfptr[42]))));basilys_putfield_object((/*_.INST__V43*/ curfptr[42]), (2), (/*_.NMATX__V29*/ curfptr[28]), "LETBIND_EXPR");
          ;
          /*_.CBIND__V42*/ curfptr[41] = /*_.INST__V43*/ curfptr[42];;}
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1133:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1135:/ block");
         /*block*/{
-         BASILYS_LOCATION("warmelt-normatch.melt:1133:/ rawallocobj");
+         BASILYS_LOCATION("warmelt-normatch.melt:1135:/ rawallocobj");
          /*rawallocobj*/ { basilys_ptr_t newobj = 0;
           basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[12])), (4), "CLASS_NREP_LOCSYMOCC");/*_.INST__V45*/ curfptr[44] =
           newobj; };
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1133:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1135:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (0), (/*_.SLOC__V15*/ curfptr[14]), "NREP_LOC");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1133:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1135:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (2), (/*_.CTYP__V36*/ curfptr[35]), "NOCC_CTYP");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1133:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1135:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (1), (/*_.CSYM__V41*/ curfptr[40]), "NOCC_SYMB");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1133:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1135:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V45*/ curfptr[44]))));basilys_putfield_object((/*_.INST__V45*/ curfptr[44]), (3), (/*_.CBIND__V42*/ curfptr[41]), "NOCC_BIND");
@@ -15668,24 +15682,24 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
         ;
         
         #if ENABLE_CHECKING
-         BASILYS_LOCATION("warmelt-normatch.melt:1139:/ cppif.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1139:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:1141:/ cppif.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1141:/ block");
          /*block*/{
           /*_#NULL__L14*/ curfnum[13] = 
            ((/*_.NBINDMATX__V30*/ curfptr[29]) == NULL);;
-          BASILYS_LOCATION("warmelt-normatch.melt:1139:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1141:/ cond");
           /*cond*/ if (/*_#NULL__L14*/ curfnum[13]) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1139:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1141:/ cond.then");
           /*_.IFELSE___V47*/ curfptr[46] = (/*nil*/NULL);;
-          } else {BASILYS_LOCATION("warmelt-normatch.melt:1139:/ cond.else");
+          } else {BASILYS_LOCATION("warmelt-normatch.melt:1141:/ cond.else");
           
-           BASILYS_LOCATION("warmelt-normatch.melt:1139:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1141:/ block");
            /*block*/{
             /*block*/{
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:1139:/ locexp");
-             basilys_assert_failed(( "check no binding"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1139)?(1139):__LINE__, __FUNCTION__);}
+             BASILYS_LOCATION("warmelt-normatch.melt:1141:/ locexp");
+             basilys_assert_failed(( "check no binding"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1141)?(1141):__LINE__, __FUNCTION__);}
              ;
              /*clear*/ /*_.IFELSE___V47*/ curfptr[46] = 0 ;}
             ;
@@ -15695,90 +15709,90 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
           ;
           /*_.IFCPP___V46*/ curfptr[45] = /*_.IFELSE___V47*/ curfptr[46];;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1139:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1141:/ clear");
           /*clear*/ /*_#NULL__L14*/ curfnum[13] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1139:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1141:/ clear");
           /*clear*/ /*_.IFELSE___V47*/ curfptr[46] = 0 ;}
          
          #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1139:/ cppif.else");
+         BASILYS_LOCATION("warmelt-normatch.melt:1141:/ cppif.else");
         /*_.IFCPP___V46*/ curfptr[45] = (/*nil*/NULL);
          #endif /*ENABLE_CHECKING*/
          ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1141:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:1143:/ cond");
         /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.NCX__V4*/ curfptr[3]), (basilys_ptr_t)((/*!CLASS_NORMCONTEXT*/ curfrout->tabval[2])))) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:1141:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1141:/ getslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1143:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1143:/ getslot");
          { basilys_ptr_t slot=0;
           basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NCX__V4*/ curfptr[3]), 6, "NCTX_SYMBCACHEMAP");/*_.NCTX_SYMBCACHEMAP__V48*/ curfptr[46] = slot; };
          ;
-        } else {BASILYS_LOCATION("warmelt-normatch.melt:1141:/ cond.else");
+        } else {BASILYS_LOCATION("warmelt-normatch.melt:1143:/ cond.else");
         
          /*_.NCTX_SYMBCACHEMAP__V48*/ curfptr[46] = NULL;;
          }
         ;
         
         {
-        BASILYS_LOCATION("warmelt-normatch.melt:1141:/ locexp");
+        BASILYS_LOCATION("warmelt-normatch.melt:1143:/ locexp");
          basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V48*/ curfptr[46]), (basilysobject_ptr_t) (/*_.CSYM__V41*/ curfptr[40]), (basilys_ptr_t)(/*_.CLOCC__V44*/ curfptr[43]));}
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1142:/ apply");
+        BASILYS_LOCATION("warmelt-normatch.melt:1144:/ apply");
         /*apply*/{
          /*_.LIST1__V49*/ curfptr[48] =  basilys_apply ((basilysclosure_ptr_t)((/*!LIST1*/ curfrout->tabval[13])), (basilys_ptr_t)(/*_.CBIND__V42*/ curfptr[41]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
          }
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1142:/ compute");
+        BASILYS_LOCATION("warmelt-normatch.melt:1144:/ compute");
         /*_.NBINDMATX__V30*/ curfptr[29] = /*_.SETQ___V50*/ curfptr[49] = /*_.LIST1__V49*/ curfptr[48];;
-        BASILYS_LOCATION("warmelt-normatch.melt:1143:/ compute");
+        BASILYS_LOCATION("warmelt-normatch.melt:1145:/ compute");
         /*_.NMATX__V29*/ curfptr[28] = /*_.SETQ___V51*/ curfptr[50] = /*_.CLOCC__V44*/ curfptr[43];;
         /*_.LET___V40*/ curfptr[39] = /*_.SETQ___V51*/ curfptr[50];;
         /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1126:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ clear");
         /*clear*/ /*_.CSYM__V41*/ curfptr[40] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1126:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ clear");
         /*clear*/ /*_.CBIND__V42*/ curfptr[41] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1126:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ clear");
         /*clear*/ /*_.CLOCC__V44*/ curfptr[43] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1126:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ clear");
         /*clear*/ /*_.IFCPP___V46*/ curfptr[45] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1126:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ clear");
         /*clear*/ /*_.NCTX_SYMBCACHEMAP__V48*/ curfptr[46] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1126:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ clear");
         /*clear*/ /*_.LIST1__V49*/ curfptr[48] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1126:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ clear");
         /*clear*/ /*_.SETQ___V50*/ curfptr[49] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1126:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1128:/ clear");
         /*clear*/ /*_.SETQ___V51*/ curfptr[50] = 0 ;}
        ;
        /*_.IF___V39*/ curfptr[37] = /*_.LET___V40*/ curfptr[39];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1125:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1127:/ clear");
        /*clear*/ /*_.LET___V40*/ curfptr[39] = 0 ;}
       ;
-     } else {BASILYS_LOCATION("warmelt-normatch.melt:1125:/ cond.else");
+     } else {BASILYS_LOCATION("warmelt-normatch.melt:1127:/ cond.else");
      
       /*_.IF___V39*/ curfptr[37] = NULL;;
       }
      ;
      /*_#NULL__L15*/ curfnum[13] = 
       ((/*_.NBINDMATX__V30*/ curfptr[29]) == NULL);;
-     BASILYS_LOCATION("warmelt-normatch.melt:1146:/ cond");
+     BASILYS_LOCATION("warmelt-normatch.melt:1148:/ cond");
      /*cond*/ if (/*_#NULL__L15*/ curfnum[13]) /*then*/ {
-     BASILYS_LOCATION("warmelt-normatch.melt:1146:/ cond.then");
-     BASILYS_LOCATION("warmelt-normatch.melt:1146:/ block");
+     BASILYS_LOCATION("warmelt-normatch.melt:1148:/ cond.then");
+     BASILYS_LOCATION("warmelt-normatch.melt:1148:/ block");
       /*block*/{
        /*_.MAKE_LIST__V53*/ curfptr[41] = 
         (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[6]))));;
-       BASILYS_LOCATION("warmelt-normatch.melt:1146:/ compute");
+       BASILYS_LOCATION("warmelt-normatch.melt:1148:/ compute");
        /*_.NBINDMATX__V30*/ curfptr[29] = /*_.SETQ___V54*/ curfptr[43] = /*_.MAKE_LIST__V53*/ curfptr[41];;
        /*_.IF___V52*/ curfptr[40] = /*_.SETQ___V54*/ curfptr[43];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1146:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1148:/ clear");
        /*clear*/ /*_.MAKE_LIST__V53*/ curfptr[41] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1146:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1148:/ clear");
        /*clear*/ /*_.SETQ___V54*/ curfptr[43] = 0 ;}
       ;
-     } else {BASILYS_LOCATION("warmelt-normatch.melt:1146:/ cond.else");
+     } else {BASILYS_LOCATION("warmelt-normatch.melt:1148:/ cond.else");
      
       /*_.IF___V52*/ curfptr[40] = NULL;;
       }
@@ -15793,58 +15807,58 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
      
       
       #if ENABLE_CHECKING
-       BASILYS_LOCATION("warmelt-normatch.melt:1150:/ cppif.then");
-      BASILYS_LOCATION("warmelt-normatch.melt:1150:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ cppif.then");
+      BASILYS_LOCATION("warmelt-normatch.melt:1152:/ block");
        /*block*/{
         /*_#THE_CALLCOUNT__L17*/ curfnum[16] = 
          callcount;;
-        BASILYS_LOCATION("warmelt-normatch.melt:1150:/ apply");
+        BASILYS_LOCATION("warmelt-normatch.melt:1152:/ apply");
         /*apply*/{
          union basilysparam_un argtab[4];
          memset(&argtab, 0, sizeof(argtab));
-         BASILYS_LOCATION("warmelt-normatch.melt:1150:/ apply.arg");
+         BASILYS_LOCATION("warmelt-normatch.melt:1152:/ apply.arg");
          argtab[0].bp_cstring =  "normexp_match curcas";
-         BASILYS_LOCATION("warmelt-normatch.melt:1150:/ apply.arg");
+         BASILYS_LOCATION("warmelt-normatch.melt:1152:/ apply.arg");
          argtab[1].bp_long = /*_#THE_CALLCOUNT__L17*/ curfnum[16];
-         BASILYS_LOCATION("warmelt-normatch.melt:1150:/ apply.arg");
+         BASILYS_LOCATION("warmelt-normatch.melt:1152:/ apply.arg");
          argtab[2].bp_cstring =  "warmelt-normatch.melt";
-         BASILYS_LOCATION("warmelt-normatch.melt:1150:/ apply.arg");
-         argtab[3].bp_long = 1150;
+         BASILYS_LOCATION("warmelt-normatch.melt:1152:/ apply.arg");
+         argtab[3].bp_long = 1152;
          /*_.DEBUG_MSG_FUN__V57*/ curfptr[48] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
          }
         ;
         /*_.IFCPP___V56*/ curfptr[46] = /*_.DEBUG_MSG_FUN__V57*/ curfptr[48];;
         /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1150:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
         /*clear*/ /*_#THE_CALLCOUNT__L17*/ curfnum[16] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1150:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
         /*clear*/ /*_.DEBUG_MSG_FUN__V57*/ curfptr[48] = 0 ;}
        
        #else /*ENABLE_CHECKING*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1150:/ cppif.else");
+       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ cppif.else");
       /*_.IFCPP___V56*/ curfptr[46] = (/*nil*/NULL);
        #endif /*ENABLE_CHECKING*/
        ;
       
       #if ENABLE_CHECKING
-       BASILYS_LOCATION("warmelt-normatch.melt:1151:/ cppif.then");
-      BASILYS_LOCATION("warmelt-normatch.melt:1151:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:1153:/ cppif.then");
+      BASILYS_LOCATION("warmelt-normatch.melt:1153:/ block");
        /*block*/{
         /*_#IS_A__L18*/ curfnum[16] = 
           basilys_is_instance_of((basilys_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), (basilys_ptr_t)((/*!CLASS_SRC_CASEMATCH*/ curfrout->tabval[14])));;
-        BASILYS_LOCATION("warmelt-normatch.melt:1151:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:1153:/ cond");
         /*cond*/ if (/*_#IS_A__L18*/ curfnum[16]) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:1151:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1153:/ cond.then");
         /*_.IFELSE___V59*/ curfptr[50] = (/*nil*/NULL);;
-        } else {BASILYS_LOCATION("warmelt-normatch.melt:1151:/ cond.else");
+        } else {BASILYS_LOCATION("warmelt-normatch.melt:1153:/ cond.else");
         
-         BASILYS_LOCATION("warmelt-normatch.melt:1151:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:1153:/ block");
          /*block*/{
           /*block*/{
            
            {
-           BASILYS_LOCATION("warmelt-normatch.melt:1151:/ locexp");
-           basilys_assert_failed(( "check curcas"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1151)?(1151):__LINE__, __FUNCTION__);}
+           BASILYS_LOCATION("warmelt-normatch.melt:1153:/ locexp");
+           basilys_assert_failed(( "check curcas"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1153)?(1153):__LINE__, __FUNCTION__);}
            ;
            /*clear*/ /*_.IFELSE___V59*/ curfptr[50] = 0 ;}
           ;
@@ -15854,27 +15868,27 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         ;
         /*_.IFCPP___V58*/ curfptr[49] = /*_.IFELSE___V59*/ curfptr[50];;
         /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1151:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1153:/ clear");
         /*clear*/ /*_#IS_A__L18*/ curfnum[16] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1151:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1153:/ clear");
         /*clear*/ /*_.IFELSE___V59*/ curfptr[50] = 0 ;}
        
        #else /*ENABLE_CHECKING*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1151:/ cppif.else");
+       BASILYS_LOCATION("warmelt-normatch.melt:1153:/ cppif.else");
       /*_.IFCPP___V58*/ curfptr[49] = (/*nil*/NULL);
        #endif /*ENABLE_CHECKING*/
        ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1152:/ block");
+      BASILYS_LOCATION("warmelt-normatch.melt:1154:/ block");
       /*block*/{
-       BASILYS_LOCATION("warmelt-normatch.melt:1153:/ getslot");
+       BASILYS_LOCATION("warmelt-normatch.melt:1155:/ getslot");
        { basilys_ptr_t slot=0;
         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), 0, "SRC_LOC");/*_.CURLOC__V61*/ curfptr[41] = slot; };
        ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ getslot");
+       BASILYS_LOCATION("warmelt-normatch.melt:1156:/ getslot");
        { basilys_ptr_t slot=0;
         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), 1, "SCAM_PATT");/*_.CURPAT__V62*/ curfptr[43] = slot; };
        ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1155:/ getslot");
+       BASILYS_LOCATION("warmelt-normatch.melt:1157:/ getslot");
        { basilys_ptr_t slot=0;
         basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), 2, "SCAM_BODY");/*_.CURBODY__V63*/ curfptr[48] = slot; };
        ;
@@ -15884,240 +15898,240 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
          (basilysgc_new_mapobjects( (basilysobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (11)));;
        /*_.PVARMAP__V66*/ curfptr[65] = 
          (basilysgc_new_mapobjects( (basilysobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (23)));;
-       BASILYS_LOCATION("warmelt-normatch.melt:1159:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:1161:/ block");
        /*block*/{
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ rawallocobj");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ rawallocobj");
         /*rawallocobj*/ { basilys_ptr_t newobj = 0;
          basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[15])), (9), "CLASS_PATTERNCONTEXT");/*_.INST__V68*/ curfptr[67] =
          newobj; };
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (0), (/*_.NCX__V4*/ curfptr[3]), "PCTN_NORMCTXT");
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (1), (/*_.RECV__V2*/ curfptr[1]), "PCTN_SRC");
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (2), (/*_.ENV__V3*/ curfptr[2]), "PCTN_ENV");
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (3), (/*_.MAPVAR__V64*/ curfptr[50]), "PCTN_MAPATVAR");
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (4>=0 && 4< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (4), (/*_.MAPCST__V65*/ curfptr[64]), "PCTN_MAPATCST");
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (5>=0 && 5< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (5), (/*_.BINDLIST__V22*/ curfptr[21]), "PCTN_BINDLIST");
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (6), (/*_.STUFFMAP__V21*/ curfptr[20]), "PCTN_STUFFMAP");
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (7), (/*_.PVARMAP__V66*/ curfptr[65]), "PCTN_PVARLOCMAP");
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1159:/ putslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1161:/ putslot");
         /*putslot*/
         basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67])) == OBMAG_OBJECT);
         basilys_assertmsg("putslot checkoff", (8>=0 && 8< basilys_object_length((basilys_ptr_t)(/*_.INST__V68*/ curfptr[67]))));basilys_putfield_object((/*_.INST__V68*/ curfptr[67]), (8), (/*_.TESTLIST__V23*/ curfptr[22]), "PCTN_TESTS");
         ;
         /*_.PCN__V67*/ curfptr[66] = /*_.INST__V68*/ curfptr[67];;}
        ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1170:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:1172:/ block");
        /*block*/{
-        BASILYS_LOCATION("warmelt-normatch.melt:1170:/ rawallocobj");
+        BASILYS_LOCATION("warmelt-normatch.melt:1172:/ rawallocobj");
         /*rawallocobj*/ { basilys_ptr_t newobj = 0;
          basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_CONTAINER*/ curfrout->tabval[16])), (1), "CLASS_CONTAINER");/*_.INST__V70*/ curfptr[69] =
          newobj; };
         ;
         /*_.NTESTCONT__V69*/ curfptr[68] = /*_.INST__V70*/ curfptr[69];;}
        ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1172:/ msend");
+       BASILYS_LOCATION("warmelt-normatch.melt:1174:/ msend");
        /*msend*/{
         union basilysparam_un argtab[3];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:1172:/ ojbmsend.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1174:/ ojbmsend.arg");
         argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.CURLOC__V61*/ curfptr[41];
-        BASILYS_LOCATION("warmelt-normatch.melt:1172:/ ojbmsend.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1174:/ ojbmsend.arg");
         argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.CTYP__V36*/ curfptr[35];
-        BASILYS_LOCATION("warmelt-normatch.melt:1172:/ ojbmsend.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1174:/ ojbmsend.arg");
         argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.PCN__V67*/ curfptr[66];
         /*_.SCAN_PATTERN__V71*/ curfptr[70] = basilysgc_send((basilys_ptr_t)(/*_.CURPAT__V62*/ curfptr[43]), (basilys_ptr_t)((/*!SCAN_PATTERN*/ curfrout->tabval[17])), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
        
        #if ENABLE_CHECKING
-        BASILYS_LOCATION("warmelt-normatch.melt:1173:/ cppif.then");
-       BASILYS_LOCATION("warmelt-normatch.melt:1173:/ block");
-        /*block*/{
-         /*_#THE_CALLCOUNT__L19*/ curfnum[16] = 
-          callcount;;
-         BASILYS_LOCATION("warmelt-normatch.melt:1173:/ apply");
-         /*apply*/{
-          union basilysparam_un argtab[4];
-          memset(&argtab, 0, sizeof(argtab));
-          BASILYS_LOCATION("warmelt-normatch.melt:1173:/ apply.arg");
-          argtab[0].bp_cstring =  "normexp_match mapvar";
-          BASILYS_LOCATION("warmelt-normatch.melt:1173:/ apply.arg");
-          argtab[1].bp_long = /*_#THE_CALLCOUNT__L19*/ curfnum[16];
-          BASILYS_LOCATION("warmelt-normatch.melt:1173:/ apply.arg");
-          argtab[2].bp_cstring =  "warmelt-normatch.melt";
-          BASILYS_LOCATION("warmelt-normatch.melt:1173:/ apply.arg");
-          argtab[3].bp_long = 1173;
-          /*_.DEBUG_MSG_FUN__V73*/ curfptr[72] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.MAPVAR__V64*/ curfptr[50]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-          }
-         ;
-         /*_.IFCPP___V72*/ curfptr[71] = /*_.DEBUG_MSG_FUN__V73*/ curfptr[72];;
-         /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1173:/ clear");
-         /*clear*/ /*_#THE_CALLCOUNT__L19*/ curfnum[16] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1173:/ clear");
-         /*clear*/ /*_.DEBUG_MSG_FUN__V73*/ curfptr[72] = 0 ;}
-        
-        #else /*ENABLE_CHECKING*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1173:/ cppif.else");
-       /*_.IFCPP___V72*/ curfptr[71] = (/*nil*/NULL);
-        #endif /*ENABLE_CHECKING*/
-        ;
-       
-       #if ENABLE_CHECKING
-        BASILYS_LOCATION("warmelt-normatch.melt:1174:/ cppif.then");
-       BASILYS_LOCATION("warmelt-normatch.melt:1174:/ block");
-        /*block*/{
-         /*_#THE_CALLCOUNT__L20*/ curfnum[16] = 
-          callcount;;
-         BASILYS_LOCATION("warmelt-normatch.melt:1174:/ apply");
-         /*apply*/{
-          union basilysparam_un argtab[4];
-          memset(&argtab, 0, sizeof(argtab));
-          BASILYS_LOCATION("warmelt-normatch.melt:1174:/ apply.arg");
-          argtab[0].bp_cstring =  "normexp_match mapcst";
-          BASILYS_LOCATION("warmelt-normatch.melt:1174:/ apply.arg");
-          argtab[1].bp_long = /*_#THE_CALLCOUNT__L20*/ curfnum[16];
-          BASILYS_LOCATION("warmelt-normatch.melt:1174:/ apply.arg");
-          argtab[2].bp_cstring =  "warmelt-normatch.melt";
-          BASILYS_LOCATION("warmelt-normatch.melt:1174:/ apply.arg");
-          argtab[3].bp_long = 1174;
-          /*_.DEBUG_MSG_FUN__V75*/ curfptr[74] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.MAPCST__V65*/ curfptr[64]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-          }
-         ;
-         /*_.IFCPP___V74*/ curfptr[72] = /*_.DEBUG_MSG_FUN__V75*/ curfptr[74];;
-         /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1174:/ clear");
-         /*clear*/ /*_#THE_CALLCOUNT__L20*/ curfnum[16] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1174:/ clear");
-         /*clear*/ /*_.DEBUG_MSG_FUN__V75*/ curfptr[74] = 0 ;}
-        
-        #else /*ENABLE_CHECKING*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1174:/ cppif.else");
-       /*_.IFCPP___V74*/ curfptr[72] = (/*nil*/NULL);
-        #endif /*ENABLE_CHECKING*/
-        ;
-       
-       #if ENABLE_CHECKING
         BASILYS_LOCATION("warmelt-normatch.melt:1175:/ cppif.then");
        BASILYS_LOCATION("warmelt-normatch.melt:1175:/ block");
         /*block*/{
-         /*_#THE_CALLCOUNT__L21*/ curfnum[16] = 
+         /*_#THE_CALLCOUNT__L19*/ curfnum[16] = 
           callcount;;
          BASILYS_LOCATION("warmelt-normatch.melt:1175:/ apply");
          /*apply*/{
           union basilysparam_un argtab[4];
           memset(&argtab, 0, sizeof(argtab));
           BASILYS_LOCATION("warmelt-normatch.melt:1175:/ apply.arg");
-          argtab[0].bp_cstring =  "normexp_match bindlist";
+          argtab[0].bp_cstring =  "normexp_match mapvar";
           BASILYS_LOCATION("warmelt-normatch.melt:1175:/ apply.arg");
-          argtab[1].bp_long = /*_#THE_CALLCOUNT__L21*/ curfnum[16];
+          argtab[1].bp_long = /*_#THE_CALLCOUNT__L19*/ curfnum[16];
           BASILYS_LOCATION("warmelt-normatch.melt:1175:/ apply.arg");
           argtab[2].bp_cstring =  "warmelt-normatch.melt";
           BASILYS_LOCATION("warmelt-normatch.melt:1175:/ apply.arg");
           argtab[3].bp_long = 1175;
+          /*_.DEBUG_MSG_FUN__V73*/ curfptr[72] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.MAPVAR__V64*/ curfptr[50]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+          }
+         ;
+         /*_.IFCPP___V72*/ curfptr[71] = /*_.DEBUG_MSG_FUN__V73*/ curfptr[72];;
+         /*epilog*/
+         BASILYS_LOCATION("warmelt-normatch.melt:1175:/ clear");
+         /*clear*/ /*_#THE_CALLCOUNT__L19*/ curfnum[16] = 0 ;
+         BASILYS_LOCATION("warmelt-normatch.melt:1175:/ clear");
+         /*clear*/ /*_.DEBUG_MSG_FUN__V73*/ curfptr[72] = 0 ;}
+        
+        #else /*ENABLE_CHECKING*/
+        BASILYS_LOCATION("warmelt-normatch.melt:1175:/ cppif.else");
+       /*_.IFCPP___V72*/ curfptr[71] = (/*nil*/NULL);
+        #endif /*ENABLE_CHECKING*/
+        ;
+       
+       #if ENABLE_CHECKING
+        BASILYS_LOCATION("warmelt-normatch.melt:1176:/ cppif.then");
+       BASILYS_LOCATION("warmelt-normatch.melt:1176:/ block");
+        /*block*/{
+         /*_#THE_CALLCOUNT__L20*/ curfnum[16] = 
+          callcount;;
+         BASILYS_LOCATION("warmelt-normatch.melt:1176:/ apply");
+         /*apply*/{
+          union basilysparam_un argtab[4];
+          memset(&argtab, 0, sizeof(argtab));
+          BASILYS_LOCATION("warmelt-normatch.melt:1176:/ apply.arg");
+          argtab[0].bp_cstring =  "normexp_match mapcst";
+          BASILYS_LOCATION("warmelt-normatch.melt:1176:/ apply.arg");
+          argtab[1].bp_long = /*_#THE_CALLCOUNT__L20*/ curfnum[16];
+          BASILYS_LOCATION("warmelt-normatch.melt:1176:/ apply.arg");
+          argtab[2].bp_cstring =  "warmelt-normatch.melt";
+          BASILYS_LOCATION("warmelt-normatch.melt:1176:/ apply.arg");
+          argtab[3].bp_long = 1176;
+          /*_.DEBUG_MSG_FUN__V75*/ curfptr[74] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.MAPCST__V65*/ curfptr[64]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+          }
+         ;
+         /*_.IFCPP___V74*/ curfptr[72] = /*_.DEBUG_MSG_FUN__V75*/ curfptr[74];;
+         /*epilog*/
+         BASILYS_LOCATION("warmelt-normatch.melt:1176:/ clear");
+         /*clear*/ /*_#THE_CALLCOUNT__L20*/ curfnum[16] = 0 ;
+         BASILYS_LOCATION("warmelt-normatch.melt:1176:/ clear");
+         /*clear*/ /*_.DEBUG_MSG_FUN__V75*/ curfptr[74] = 0 ;}
+        
+        #else /*ENABLE_CHECKING*/
+        BASILYS_LOCATION("warmelt-normatch.melt:1176:/ cppif.else");
+       /*_.IFCPP___V74*/ curfptr[72] = (/*nil*/NULL);
+        #endif /*ENABLE_CHECKING*/
+        ;
+       
+       #if ENABLE_CHECKING
+        BASILYS_LOCATION("warmelt-normatch.melt:1177:/ cppif.then");
+       BASILYS_LOCATION("warmelt-normatch.melt:1177:/ block");
+        /*block*/{
+         /*_#THE_CALLCOUNT__L21*/ curfnum[16] = 
+          callcount;;
+         BASILYS_LOCATION("warmelt-normatch.melt:1177:/ apply");
+         /*apply*/{
+          union basilysparam_un argtab[4];
+          memset(&argtab, 0, sizeof(argtab));
+          BASILYS_LOCATION("warmelt-normatch.melt:1177:/ apply.arg");
+          argtab[0].bp_cstring =  "normexp_match bindlist";
+          BASILYS_LOCATION("warmelt-normatch.melt:1177:/ apply.arg");
+          argtab[1].bp_long = /*_#THE_CALLCOUNT__L21*/ curfnum[16];
+          BASILYS_LOCATION("warmelt-normatch.melt:1177:/ apply.arg");
+          argtab[2].bp_cstring =  "warmelt-normatch.melt";
+          BASILYS_LOCATION("warmelt-normatch.melt:1177:/ apply.arg");
+          argtab[3].bp_long = 1177;
           /*_.DEBUG_MSG_FUN__V77*/ curfptr[76] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.BINDLIST__V22*/ curfptr[21]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
           }
          ;
          /*_.IFCPP___V76*/ curfptr[74] = /*_.DEBUG_MSG_FUN__V77*/ curfptr[76];;
          /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1175:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1177:/ clear");
          /*clear*/ /*_#THE_CALLCOUNT__L21*/ curfnum[16] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1175:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1177:/ clear");
          /*clear*/ /*_.DEBUG_MSG_FUN__V77*/ curfptr[76] = 0 ;}
         
         #else /*ENABLE_CHECKING*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1175:/ cppif.else");
+        BASILYS_LOCATION("warmelt-normatch.melt:1177:/ cppif.else");
        /*_.IFCPP___V76*/ curfptr[74] = (/*nil*/NULL);
         #endif /*ENABLE_CHECKING*/
         ;
        
        {
-       BASILYS_LOCATION("warmelt-normatch.melt:1176:/ locexp");
+       BASILYS_LOCATION("warmelt-normatch.melt:1178:/ locexp");
         basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPVARMAP__V18*/ curfptr[17]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.MAPVAR__V64*/ curfptr[50]));}
        ;
        
        {
-       BASILYS_LOCATION("warmelt-normatch.melt:1177:/ locexp");
+       BASILYS_LOCATION("warmelt-normatch.melt:1179:/ locexp");
         basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPCSTMAP__V19*/ curfptr[18]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.MAPCST__V65*/ curfptr[64]));}
        ;
        
        {
-       BASILYS_LOCATION("warmelt-normatch.melt:1178:/ locexp");
+       BASILYS_LOCATION("warmelt-normatch.melt:1180:/ locexp");
         basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPBINDLIST__V20*/ curfptr[19]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.BINDLIST__V22*/ curfptr[21]));}
        ;
        
        #if ENABLE_CHECKING
-        BASILYS_LOCATION("warmelt-normatch.melt:1179:/ cppif.then");
-       BASILYS_LOCATION("warmelt-normatch.melt:1179:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1181:/ cppif.then");
+       BASILYS_LOCATION("warmelt-normatch.melt:1181:/ block");
         /*block*/{
          /*_#THE_CALLCOUNT__L22*/ curfnum[16] = 
           callcount;;
-         BASILYS_LOCATION("warmelt-normatch.melt:1179:/ apply");
+         BASILYS_LOCATION("warmelt-normatch.melt:1181:/ apply");
          /*apply*/{
           union basilysparam_un argtab[4];
           memset(&argtab, 0, sizeof(argtab));
-          BASILYS_LOCATION("warmelt-normatch.melt:1179:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1181:/ apply.arg");
           argtab[0].bp_cstring =  "normexp_match curpat before normal_pattern";
-          BASILYS_LOCATION("warmelt-normatch.melt:1179:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1181:/ apply.arg");
           argtab[1].bp_long = /*_#THE_CALLCOUNT__L22*/ curfnum[16];
-          BASILYS_LOCATION("warmelt-normatch.melt:1179:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1181:/ apply.arg");
           argtab[2].bp_cstring =  "warmelt-normatch.melt";
-          BASILYS_LOCATION("warmelt-normatch.melt:1179:/ apply.arg");
-          argtab[3].bp_long = 1179;
+          BASILYS_LOCATION("warmelt-normatch.melt:1181:/ apply.arg");
+          argtab[3].bp_long = 1181;
           /*_.DEBUG_MSG_FUN__V79*/ curfptr[78] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURPAT__V62*/ curfptr[43]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
           }
          ;
          /*_.IFCPP___V78*/ curfptr[76] = /*_.DEBUG_MSG_FUN__V79*/ curfptr[78];;
          /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1179:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1181:/ clear");
          /*clear*/ /*_#THE_CALLCOUNT__L22*/ curfnum[16] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1179:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1181:/ clear");
          /*clear*/ /*_.DEBUG_MSG_FUN__V79*/ curfptr[78] = 0 ;}
         
         #else /*ENABLE_CHECKING*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1179:/ cppif.else");
+        BASILYS_LOCATION("warmelt-normatch.melt:1181:/ cppif.else");
        /*_.IFCPP___V78*/ curfptr[76] = (/*nil*/NULL);
         #endif /*ENABLE_CHECKING*/
         ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1182:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:1184:/ block");
        /*block*/{
-        BASILYS_LOCATION("warmelt-normatch.melt:1182:/ newclosure");
+        BASILYS_LOCATION("warmelt-normatch.melt:1184:/ newclosure");
          /*newclosure*/ /*_.LAMBDA___V81*/ curfptr[80] =
          basilysgc_new_closure((basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_CLOSURE)))), (basilysroutine_ptr_t)((/*!konst_20*/ curfrout->tabval[20])), (1));
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1182:/ putclosedv");
+        BASILYS_LOCATION("warmelt-normatch.melt:1184:/ putclosedv");
         /*putclosv*/
         basilys_assertmsg("putclosv checkclo", basilys_magic_discr((basilys_ptr_t)(/*_.LAMBDA___V81*/ curfptr[80])) == OBMAG_CLOSURE);
         basilys_assertmsg("putclosv checkoff", 0>= 0 && 0< basilys_closure_size((basilys_ptr_t) (/*_.LAMBDA___V81*/ curfptr[80])));
@@ -16125,126 +16139,126 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         ;
         /*_.LAMBDA___V80*/ curfptr[78] = /*_.LAMBDA___V81*/ curfptr[80];;}
        ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1180:/ msend");
+       BASILYS_LOCATION("warmelt-normatch.melt:1182:/ msend");
        /*msend*/{
         union basilysparam_un argtab[3];
         memset(&argtab, 0, sizeof(argtab));
-        BASILYS_LOCATION("warmelt-normatch.melt:1180:/ ojbmsend.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1182:/ ojbmsend.arg");
         argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.NMATX__V29*/ curfptr[28];
-        BASILYS_LOCATION("warmelt-normatch.melt:1180:/ ojbmsend.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1182:/ ojbmsend.arg");
         argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.LAMBDA___V80*/ curfptr[78];
-        BASILYS_LOCATION("warmelt-normatch.melt:1180:/ ojbmsend.arg");
+        BASILYS_LOCATION("warmelt-normatch.melt:1182:/ ojbmsend.arg");
         argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.PCN__V67*/ curfptr[66];
         /*_.NORMAL_PATTERN__V82*/ curfptr[81] = basilysgc_send((basilys_ptr_t)(/*_.CURPAT__V62*/ curfptr[43]), (basilys_ptr_t)((/*!NORMAL_PATTERN*/ curfrout->tabval[18])), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
         }
        ;
        
        #if ENABLE_CHECKING
-        BASILYS_LOCATION("warmelt-normatch.melt:1184:/ cppif.then");
-       BASILYS_LOCATION("warmelt-normatch.melt:1184:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1186:/ cppif.then");
+       BASILYS_LOCATION("warmelt-normatch.melt:1186:/ block");
         /*block*/{
          /*_#THE_CALLCOUNT__L23*/ curfnum[16] = 
           callcount;;
-         BASILYS_LOCATION("warmelt-normatch.melt:1184:/ apply");
+         BASILYS_LOCATION("warmelt-normatch.melt:1186:/ apply");
          /*apply*/{
           union basilysparam_un argtab[4];
           memset(&argtab, 0, sizeof(argtab));
-          BASILYS_LOCATION("warmelt-normatch.melt:1184:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1186:/ apply.arg");
           argtab[0].bp_cstring =  "normexp_match ntestcont after normal_pattern";
-          BASILYS_LOCATION("warmelt-normatch.melt:1184:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1186:/ apply.arg");
           argtab[1].bp_long = /*_#THE_CALLCOUNT__L23*/ curfnum[16];
-          BASILYS_LOCATION("warmelt-normatch.melt:1184:/ apply.arg");
+          BASILYS_LOCATION("warmelt-normatch.melt:1186:/ apply.arg");
           argtab[2].bp_cstring =  "warmelt-normatch.melt";
-          BASILYS_LOCATION("warmelt-normatch.melt:1184:/ apply.arg");
-          argtab[3].bp_long = 1184;
+          BASILYS_LOCATION("warmelt-normatch.melt:1186:/ apply.arg");
+          argtab[3].bp_long = 1186;
           /*_.DEBUG_MSG_FUN__V84*/ curfptr[83] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.NTESTCONT__V69*/ curfptr[68]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
           }
          ;
          /*_.IFCPP___V83*/ curfptr[82] = /*_.DEBUG_MSG_FUN__V84*/ curfptr[83];;
          /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1184:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1186:/ clear");
          /*clear*/ /*_#THE_CALLCOUNT__L23*/ curfnum[16] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1184:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1186:/ clear");
          /*clear*/ /*_.DEBUG_MSG_FUN__V84*/ curfptr[83] = 0 ;}
         
         #else /*ENABLE_CHECKING*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1184:/ cppif.else");
+        BASILYS_LOCATION("warmelt-normatch.melt:1186:/ cppif.else");
        /*_.IFCPP___V83*/ curfptr[82] = (/*nil*/NULL);
         #endif /*ENABLE_CHECKING*/
         ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1185:/ block");
+       BASILYS_LOCATION("warmelt-normatch.melt:1187:/ block");
        /*block*/{
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ cond");
         /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.PCN__V67*/ curfptr[66]), (basilys_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[15])))) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ getslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ getslot");
          { basilys_ptr_t slot=0;
           basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V67*/ curfptr[66]), 2, "PCTN_ENV");/*_.NEWENV__V86*/ curfptr[85] = slot; };
          ;
-        } else {BASILYS_LOCATION("warmelt-normatch.melt:1185:/ cond.else");
+        } else {BASILYS_LOCATION("warmelt-normatch.melt:1187:/ cond.else");
         
          /*_.NEWENV__V86*/ curfptr[85] = NULL;;
          }
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1186:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:1188:/ cond");
         /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.PCN__V67*/ curfptr[66]), (basilys_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[15])))) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:1186:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1186:/ getslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1188:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1188:/ getslot");
          { basilys_ptr_t slot=0;
           basilys_object_get_field(slot,(basilys_ptr_t)(/*_.PCN__V67*/ curfptr[66]), 7, "PCTN_PVARLOCMAP");/*_.PVARLOCMAP__V87*/ curfptr[86] = slot; };
          ;
-        } else {BASILYS_LOCATION("warmelt-normatch.melt:1186:/ cond.else");
+        } else {BASILYS_LOCATION("warmelt-normatch.melt:1188:/ cond.else");
         
          /*_.PVARLOCMAP__V87*/ curfptr[86] = NULL;;
          }
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:1189:/ cond");
         /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.NTESTCONT__V69*/ curfptr[68]), (basilys_ptr_t)((/*!CLASS_CONTAINER*/ curfrout->tabval[16])))) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ getslot");
+        BASILYS_LOCATION("warmelt-normatch.melt:1189:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1189:/ getslot");
          { basilys_ptr_t slot=0;
           basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NTESTCONT__V69*/ curfptr[68]), 0, "CONTAINER_VALUE");/*_.CURTESTER__V88*/ curfptr[87] = slot; };
          ;
-        } else {BASILYS_LOCATION("warmelt-normatch.melt:1187:/ cond.else");
+        } else {BASILYS_LOCATION("warmelt-normatch.melt:1189:/ cond.else");
         
          /*_.CURTESTER__V88*/ curfptr[87] = NULL;;
          }
         ;
         /*_.MAKE_LIST__V89*/ curfptr[88] = 
          (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[6]))));;
-        BASILYS_LOCATION("warmelt-normatch.melt:1189:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1191:/ block");
         /*block*/{
-         BASILYS_LOCATION("warmelt-normatch.melt:1189:/ rawallocobj");
+         BASILYS_LOCATION("warmelt-normatch.melt:1191:/ rawallocobj");
          /*rawallocobj*/ { basilys_ptr_t newobj = 0;
           basilys_raw_object_create(newobj,(basilys_ptr_t)((/*!CLASS_NORMTESTER_SUCCESS*/ curfrout->tabval[21])), (8), "CLASS_NORMTESTER_SUCCESS");/*_.INST__V91*/ curfptr[90] =
           newobj; };
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1189:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1191:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[90]), (0), (/*_.CURLOC__V61*/ curfptr[41]), "NREP_LOC");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1189:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1191:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (1>=0 && 1< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[90]), (1), ((/*nil*/NULL)), "NTEST_MATCHED");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1189:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1191:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[90]), (2), ((/*nil*/NULL)), "NTEST_THEN");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1189:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1191:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[90]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1189:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1191:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (6>=0 && 6< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[90]), (6), (/*_.MAKE_LIST__V89*/ curfptr[88]), "NTEST_COMEFROM");
          ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1189:/ putslot");
+         BASILYS_LOCATION("warmelt-normatch.melt:1191:/ putslot");
          /*putslot*/
          basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90])) == OBMAG_OBJECT);
          basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.INST__V91*/ curfptr[90]))));basilys_putfield_object((/*_.INST__V91*/ curfptr[90]), (7), ((/*nil*/NULL)), "NTSUCCESS_DO");
@@ -16253,104 +16267,36 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         ;
         
         #if ENABLE_CHECKING
-         BASILYS_LOCATION("warmelt-normatch.melt:1202:/ cppif.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1202:/ block");
-         /*block*/{
-          /*_#THE_CALLCOUNT__L24*/ curfnum[16] = 
-           callcount;;
-          BASILYS_LOCATION("warmelt-normatch.melt:1202:/ apply");
-          /*apply*/{
-           union basilysparam_un argtab[4];
-           memset(&argtab, 0, sizeof(argtab));
-           BASILYS_LOCATION("warmelt-normatch.melt:1202:/ apply.arg");
-           argtab[0].bp_cstring =  "normexp_match newenv";
-           BASILYS_LOCATION("warmelt-normatch.melt:1202:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L24*/ curfnum[16];
-           BASILYS_LOCATION("warmelt-normatch.melt:1202:/ apply.arg");
-           argtab[2].bp_cstring =  "warmelt-normatch.melt";
-           BASILYS_LOCATION("warmelt-normatch.melt:1202:/ apply.arg");
-           argtab[3].bp_long = 1202;
-           /*_.DEBUG_MSG_FUN__V93*/ curfptr[92] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.NEWENV__V86*/ curfptr[85]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-           }
-          ;
-          /*_.IFCPP___V92*/ curfptr[91] = /*_.DEBUG_MSG_FUN__V93*/ curfptr[92];;
-          /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1202:/ clear");
-          /*clear*/ /*_#THE_CALLCOUNT__L24*/ curfnum[16] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1202:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V93*/ curfptr[92] = 0 ;}
-         
-         #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1202:/ cppif.else");
-        /*_.IFCPP___V92*/ curfptr[91] = (/*nil*/NULL);
-         #endif /*ENABLE_CHECKING*/
-         ;
-        
-        #if ENABLE_CHECKING
-         BASILYS_LOCATION("warmelt-normatch.melt:1203:/ cppif.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1203:/ block");
-         /*block*/{
-          /*_#THE_CALLCOUNT__L25*/ curfnum[16] = 
-           callcount;;
-          BASILYS_LOCATION("warmelt-normatch.melt:1203:/ apply");
-          /*apply*/{
-           union basilysparam_un argtab[4];
-           memset(&argtab, 0, sizeof(argtab));
-           BASILYS_LOCATION("warmelt-normatch.melt:1203:/ apply.arg");
-           argtab[0].bp_cstring =  "normexp_match pvarlocmap";
-           BASILYS_LOCATION("warmelt-normatch.melt:1203:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L25*/ curfnum[16];
-           BASILYS_LOCATION("warmelt-normatch.melt:1203:/ apply.arg");
-           argtab[2].bp_cstring =  "warmelt-normatch.melt";
-           BASILYS_LOCATION("warmelt-normatch.melt:1203:/ apply.arg");
-           argtab[3].bp_long = 1203;
-           /*_.DEBUG_MSG_FUN__V95*/ curfptr[94] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PVARLOCMAP__V87*/ curfptr[86]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-           }
-          ;
-          /*_.IFCPP___V94*/ curfptr[92] = /*_.DEBUG_MSG_FUN__V95*/ curfptr[94];;
-          /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1203:/ clear");
-          /*clear*/ /*_#THE_CALLCOUNT__L25*/ curfnum[16] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1203:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V95*/ curfptr[94] = 0 ;}
-         
-         #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1203:/ cppif.else");
-        /*_.IFCPP___V94*/ curfptr[92] = (/*nil*/NULL);
-         #endif /*ENABLE_CHECKING*/
-         ;
-        
-        #if ENABLE_CHECKING
          BASILYS_LOCATION("warmelt-normatch.melt:1204:/ cppif.then");
         BASILYS_LOCATION("warmelt-normatch.melt:1204:/ block");
          /*block*/{
-          /*_#THE_CALLCOUNT__L26*/ curfnum[16] = 
+          /*_#THE_CALLCOUNT__L24*/ curfnum[16] = 
            callcount;;
           BASILYS_LOCATION("warmelt-normatch.melt:1204:/ apply");
           /*apply*/{
            union basilysparam_un argtab[4];
            memset(&argtab, 0, sizeof(argtab));
            BASILYS_LOCATION("warmelt-normatch.melt:1204:/ apply.arg");
-           argtab[0].bp_cstring =  "normexp_match curcas after normal_pattern";
+           argtab[0].bp_cstring =  "normexp_match newenv";
            BASILYS_LOCATION("warmelt-normatch.melt:1204:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L26*/ curfnum[16];
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L24*/ curfnum[16];
            BASILYS_LOCATION("warmelt-normatch.melt:1204:/ apply.arg");
            argtab[2].bp_cstring =  "warmelt-normatch.melt";
            BASILYS_LOCATION("warmelt-normatch.melt:1204:/ apply.arg");
            argtab[3].bp_long = 1204;
-           /*_.DEBUG_MSG_FUN__V97*/ curfptr[96] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           /*_.DEBUG_MSG_FUN__V93*/ curfptr[92] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.NEWENV__V86*/ curfptr[85]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
            }
           ;
-          /*_.IFCPP___V96*/ curfptr[94] = /*_.DEBUG_MSG_FUN__V97*/ curfptr[96];;
+          /*_.IFCPP___V92*/ curfptr[91] = /*_.DEBUG_MSG_FUN__V93*/ curfptr[92];;
           /*epilog*/
           BASILYS_LOCATION("warmelt-normatch.melt:1204:/ clear");
-          /*clear*/ /*_#THE_CALLCOUNT__L26*/ curfnum[16] = 0 ;
+          /*clear*/ /*_#THE_CALLCOUNT__L24*/ curfnum[16] = 0 ;
           BASILYS_LOCATION("warmelt-normatch.melt:1204:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V97*/ curfptr[96] = 0 ;}
+          /*clear*/ /*_.DEBUG_MSG_FUN__V93*/ curfptr[92] = 0 ;}
          
          #else /*ENABLE_CHECKING*/
          BASILYS_LOCATION("warmelt-normatch.melt:1204:/ cppif.else");
-        /*_.IFCPP___V96*/ curfptr[94] = (/*nil*/NULL);
+        /*_.IFCPP___V92*/ curfptr[91] = (/*nil*/NULL);
          #endif /*ENABLE_CHECKING*/
          ;
         
@@ -16358,33 +16304,33 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
          BASILYS_LOCATION("warmelt-normatch.melt:1205:/ cppif.then");
         BASILYS_LOCATION("warmelt-normatch.melt:1205:/ block");
          /*block*/{
-          /*_#THE_CALLCOUNT__L27*/ curfnum[16] = 
+          /*_#THE_CALLCOUNT__L25*/ curfnum[16] = 
            callcount;;
           BASILYS_LOCATION("warmelt-normatch.melt:1205:/ apply");
           /*apply*/{
            union basilysparam_un argtab[4];
            memset(&argtab, 0, sizeof(argtab));
            BASILYS_LOCATION("warmelt-normatch.melt:1205:/ apply.arg");
-           argtab[0].bp_cstring =  "normexp_match curtester after normal_pattern";
+           argtab[0].bp_cstring =  "normexp_match pvarlocmap";
            BASILYS_LOCATION("warmelt-normatch.melt:1205:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L27*/ curfnum[16];
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L25*/ curfnum[16];
            BASILYS_LOCATION("warmelt-normatch.melt:1205:/ apply.arg");
            argtab[2].bp_cstring =  "warmelt-normatch.melt";
            BASILYS_LOCATION("warmelt-normatch.melt:1205:/ apply.arg");
            argtab[3].bp_long = 1205;
-           /*_.DEBUG_MSG_FUN__V99*/ curfptr[98] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           /*_.DEBUG_MSG_FUN__V95*/ curfptr[94] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PVARLOCMAP__V87*/ curfptr[86]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
            }
           ;
-          /*_.IFCPP___V98*/ curfptr[96] = /*_.DEBUG_MSG_FUN__V99*/ curfptr[98];;
+          /*_.IFCPP___V94*/ curfptr[92] = /*_.DEBUG_MSG_FUN__V95*/ curfptr[94];;
           /*epilog*/
           BASILYS_LOCATION("warmelt-normatch.melt:1205:/ clear");
-          /*clear*/ /*_#THE_CALLCOUNT__L27*/ curfnum[16] = 0 ;
+          /*clear*/ /*_#THE_CALLCOUNT__L25*/ curfnum[16] = 0 ;
           BASILYS_LOCATION("warmelt-normatch.melt:1205:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V99*/ curfptr[98] = 0 ;}
+          /*clear*/ /*_.DEBUG_MSG_FUN__V95*/ curfptr[94] = 0 ;}
          
          #else /*ENABLE_CHECKING*/
          BASILYS_LOCATION("warmelt-normatch.melt:1205:/ cppif.else");
-        /*_.IFCPP___V98*/ curfptr[96] = (/*nil*/NULL);
+        /*_.IFCPP___V94*/ curfptr[92] = (/*nil*/NULL);
          #endif /*ENABLE_CHECKING*/
          ;
         
@@ -16392,73 +16338,141 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
          BASILYS_LOCATION("warmelt-normatch.melt:1206:/ cppif.then");
         BASILYS_LOCATION("warmelt-normatch.melt:1206:/ block");
          /*block*/{
-          /*_#THE_CALLCOUNT__L28*/ curfnum[16] = 
+          /*_#THE_CALLCOUNT__L26*/ curfnum[16] = 
            callcount;;
           BASILYS_LOCATION("warmelt-normatch.melt:1206:/ apply");
           /*apply*/{
            union basilysparam_un argtab[4];
            memset(&argtab, 0, sizeof(argtab));
            BASILYS_LOCATION("warmelt-normatch.melt:1206:/ apply.arg");
-           argtab[0].bp_cstring =  "normexp_match oldtester after normal_pattern";
+           argtab[0].bp_cstring =  "normexp_match curcas after normal_pattern";
            BASILYS_LOCATION("warmelt-normatch.melt:1206:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L28*/ curfnum[16];
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L26*/ curfnum[16];
            BASILYS_LOCATION("warmelt-normatch.melt:1206:/ apply.arg");
            argtab[2].bp_cstring =  "warmelt-normatch.melt";
            BASILYS_LOCATION("warmelt-normatch.melt:1206:/ apply.arg");
            argtab[3].bp_long = 1206;
+           /*_.DEBUG_MSG_FUN__V97*/ curfptr[96] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           }
+          ;
+          /*_.IFCPP___V96*/ curfptr[94] = /*_.DEBUG_MSG_FUN__V97*/ curfptr[96];;
+          /*epilog*/
+          BASILYS_LOCATION("warmelt-normatch.melt:1206:/ clear");
+          /*clear*/ /*_#THE_CALLCOUNT__L26*/ curfnum[16] = 0 ;
+          BASILYS_LOCATION("warmelt-normatch.melt:1206:/ clear");
+          /*clear*/ /*_.DEBUG_MSG_FUN__V97*/ curfptr[96] = 0 ;}
+         
+         #else /*ENABLE_CHECKING*/
+         BASILYS_LOCATION("warmelt-normatch.melt:1206:/ cppif.else");
+        /*_.IFCPP___V96*/ curfptr[94] = (/*nil*/NULL);
+         #endif /*ENABLE_CHECKING*/
+         ;
+        
+        #if ENABLE_CHECKING
+         BASILYS_LOCATION("warmelt-normatch.melt:1207:/ cppif.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1207:/ block");
+         /*block*/{
+          /*_#THE_CALLCOUNT__L27*/ curfnum[16] = 
+           callcount;;
+          BASILYS_LOCATION("warmelt-normatch.melt:1207:/ apply");
+          /*apply*/{
+           union basilysparam_un argtab[4];
+           memset(&argtab, 0, sizeof(argtab));
+           BASILYS_LOCATION("warmelt-normatch.melt:1207:/ apply.arg");
+           argtab[0].bp_cstring =  "normexp_match curtester after normal_pattern";
+           BASILYS_LOCATION("warmelt-normatch.melt:1207:/ apply.arg");
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L27*/ curfnum[16];
+           BASILYS_LOCATION("warmelt-normatch.melt:1207:/ apply.arg");
+           argtab[2].bp_cstring =  "warmelt-normatch.melt";
+           BASILYS_LOCATION("warmelt-normatch.melt:1207:/ apply.arg");
+           argtab[3].bp_long = 1207;
+           /*_.DEBUG_MSG_FUN__V99*/ curfptr[98] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           }
+          ;
+          /*_.IFCPP___V98*/ curfptr[96] = /*_.DEBUG_MSG_FUN__V99*/ curfptr[98];;
+          /*epilog*/
+          BASILYS_LOCATION("warmelt-normatch.melt:1207:/ clear");
+          /*clear*/ /*_#THE_CALLCOUNT__L27*/ curfnum[16] = 0 ;
+          BASILYS_LOCATION("warmelt-normatch.melt:1207:/ clear");
+          /*clear*/ /*_.DEBUG_MSG_FUN__V99*/ curfptr[98] = 0 ;}
+         
+         #else /*ENABLE_CHECKING*/
+         BASILYS_LOCATION("warmelt-normatch.melt:1207:/ cppif.else");
+        /*_.IFCPP___V98*/ curfptr[96] = (/*nil*/NULL);
+         #endif /*ENABLE_CHECKING*/
+         ;
+        
+        #if ENABLE_CHECKING
+         BASILYS_LOCATION("warmelt-normatch.melt:1208:/ cppif.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1208:/ block");
+         /*block*/{
+          /*_#THE_CALLCOUNT__L28*/ curfnum[16] = 
+           callcount;;
+          BASILYS_LOCATION("warmelt-normatch.melt:1208:/ apply");
+          /*apply*/{
+           union basilysparam_un argtab[4];
+           memset(&argtab, 0, sizeof(argtab));
+           BASILYS_LOCATION("warmelt-normatch.melt:1208:/ apply.arg");
+           argtab[0].bp_cstring =  "normexp_match oldtester after normal_pattern";
+           BASILYS_LOCATION("warmelt-normatch.melt:1208:/ apply.arg");
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L28*/ curfnum[16];
+           BASILYS_LOCATION("warmelt-normatch.melt:1208:/ apply.arg");
+           argtab[2].bp_cstring =  "warmelt-normatch.melt";
+           BASILYS_LOCATION("warmelt-normatch.melt:1208:/ apply.arg");
+           argtab[3].bp_long = 1208;
            /*_.DEBUG_MSG_FUN__V101*/ curfptr[100] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
            }
           ;
           /*_.IFCPP___V100*/ curfptr[98] = /*_.DEBUG_MSG_FUN__V101*/ curfptr[100];;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1206:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1208:/ clear");
           /*clear*/ /*_#THE_CALLCOUNT__L28*/ curfnum[16] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1206:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1208:/ clear");
           /*clear*/ /*_.DEBUG_MSG_FUN__V101*/ curfptr[100] = 0 ;}
          
          #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1206:/ cppif.else");
+         BASILYS_LOCATION("warmelt-normatch.melt:1208:/ cppif.else");
         /*_.IFCPP___V100*/ curfptr[98] = (/*nil*/NULL);
          #endif /*ENABLE_CHECKING*/
          ;
         /*_#NULL__L29*/ curfnum[16] = 
          ((/*_.CURTESTER__V88*/ curfptr[87]) == NULL);;
-        BASILYS_LOCATION("warmelt-normatch.melt:1207:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:1209:/ cond");
         /*cond*/ if (/*_#NULL__L29*/ curfnum[16]) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:1207:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1207:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1209:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1209:/ block");
          /*block*/{
           
           #if ENABLE_CHECKING
-           BASILYS_LOCATION("warmelt-normatch.melt:1209:/ cppif.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1209:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1211:/ cppif.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1211:/ block");
            /*block*/{
             /*_#THE_CALLCOUNT__L30*/ curfnum[29] = 
              callcount;;
-            BASILYS_LOCATION("warmelt-normatch.melt:1209:/ apply");
+            BASILYS_LOCATION("warmelt-normatch.melt:1211:/ apply");
             /*apply*/{
              union basilysparam_un argtab[4];
              memset(&argtab, 0, sizeof(argtab));
-             BASILYS_LOCATION("warmelt-normatch.melt:1209:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1211:/ apply.arg");
              argtab[0].bp_cstring =  "normexp_match curcas for null curtester";
-             BASILYS_LOCATION("warmelt-normatch.melt:1209:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1211:/ apply.arg");
              argtab[1].bp_long = /*_#THE_CALLCOUNT__L30*/ curfnum[29];
-             BASILYS_LOCATION("warmelt-normatch.melt:1209:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1211:/ apply.arg");
              argtab[2].bp_cstring =  "warmelt-normatch.melt";
-             BASILYS_LOCATION("warmelt-normatch.melt:1209:/ apply.arg");
-             argtab[3].bp_long = 1209;
+             BASILYS_LOCATION("warmelt-normatch.melt:1211:/ apply.arg");
+             argtab[3].bp_long = 1211;
              /*_.DEBUG_MSG_FUN__V103*/ curfptr[102] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
              }
             ;
             /*_.IFCPP___V102*/ curfptr[100] = /*_.DEBUG_MSG_FUN__V103*/ curfptr[102];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1209:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1211:/ clear");
             /*clear*/ /*_#THE_CALLCOUNT__L30*/ curfnum[29] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1209:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1211:/ clear");
             /*clear*/ /*_.DEBUG_MSG_FUN__V103*/ curfptr[102] = 0 ;}
            
            #else /*ENABLE_CHECKING*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1209:/ cppif.else");
+           BASILYS_LOCATION("warmelt-normatch.melt:1211:/ cppif.else");
           /*_.IFCPP___V102*/ curfptr[100] = (/*nil*/NULL);
            #endif /*ENABLE_CHECKING*/
            ;
@@ -16468,72 +16482,72 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
            ((/*_#MULTIPLE_LENGTH__L31*/ curfnum[29]) - (1));;
           /*_#I__L33*/ curfnum[32] = 
            ((/*_#IX__L16*/ curfnum[15]) < (/*_#I__L32*/ curfnum[31]));;
-          BASILYS_LOCATION("warmelt-normatch.melt:1212:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1214:/ cond");
           /*cond*/ if (/*_#I__L33*/ curfnum[32]) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1212:/ cond.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1212:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1214:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1214:/ block");
            /*block*/{
             
             {
-            BASILYS_LOCATION("warmelt-normatch.melt:1213:/ locexp");
+            BASILYS_LOCATION("warmelt-normatch.melt:1215:/ locexp");
             basilys_warning_str(0, (basilys_ptr_t)(/*_.SLOC__V15*/ curfptr[14]), ( "joker case is not last"), (basilys_ptr_t)0);}
             ;
             /*epilog*/}
            ;
           } /*noelse*/
           ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1208:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1210:/ block");
           /*block*/{}
           ;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1207:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1209:/ clear");
           /*clear*/ /*_.IFCPP___V102*/ curfptr[100] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1207:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1209:/ clear");
           /*clear*/ /*_#MULTIPLE_LENGTH__L31*/ curfnum[29] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1207:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1209:/ clear");
           /*clear*/ /*_#I__L32*/ curfnum[31] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1207:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1209:/ clear");
           /*clear*/ /*_#I__L33*/ curfnum[32] = 0 ;}
          ;
         } /*noelse*/
         ;
         
         #if ENABLE_CHECKING
-         BASILYS_LOCATION("warmelt-normatch.melt:1215:/ cppif.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1215:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:1217:/ cppif.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1217:/ block");
          /*block*/{
           /*_#NULL__L34*/ curfnum[29] = 
            ((/*_.CURTESTER__V88*/ curfptr[87]) == NULL);;
-          BASILYS_LOCATION("warmelt-normatch.melt:1215:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1217:/ cond");
           /*cond*/ if (/*_#NULL__L34*/ curfnum[29]) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1215:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1217:/ cond.then");
           /*_#OR___L35*/ curfnum[31] = /*_#NULL__L34*/ curfnum[29];;
-          } else {BASILYS_LOCATION("warmelt-normatch.melt:1215:/ cond.else");
+          } else {BASILYS_LOCATION("warmelt-normatch.melt:1217:/ cond.else");
           
-           BASILYS_LOCATION("warmelt-normatch.melt:1215:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1217:/ block");
            /*block*/{
             /*_#IS_A__L36*/ curfnum[32] = 
               basilys_is_instance_of((basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])));;
             /*_#OR___L35*/ curfnum[31] = /*_#IS_A__L36*/ curfnum[32];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1215:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1217:/ clear");
             /*clear*/ /*_#IS_A__L36*/ curfnum[32] = 0 ;}
            ;
            }
           ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1215:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1217:/ cond");
           /*cond*/ if (/*_#OR___L35*/ curfnum[31]) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1215:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1217:/ cond.then");
           /*_.IFELSE___V105*/ curfptr[100] = (/*nil*/NULL);;
-          } else {BASILYS_LOCATION("warmelt-normatch.melt:1215:/ cond.else");
+          } else {BASILYS_LOCATION("warmelt-normatch.melt:1217:/ cond.else");
           
-           BASILYS_LOCATION("warmelt-normatch.melt:1215:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1217:/ block");
            /*block*/{
             /*block*/{
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:1215:/ locexp");
-             basilys_assert_failed(( "check curtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1215)?(1215):__LINE__, __FUNCTION__);}
+             BASILYS_LOCATION("warmelt-normatch.melt:1217:/ locexp");
+             basilys_assert_failed(( "check curtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1217)?(1217):__LINE__, __FUNCTION__);}
              ;
              /*clear*/ /*_.IFELSE___V105*/ curfptr[100] = 0 ;}
             ;
@@ -16543,70 +16557,70 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
           ;
           /*_.IFCPP___V104*/ curfptr[102] = /*_.IFELSE___V105*/ curfptr[100];;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1215:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1217:/ clear");
           /*clear*/ /*_#NULL__L34*/ curfnum[29] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1215:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1217:/ clear");
           /*clear*/ /*_#OR___L35*/ curfnum[31] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1215:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1217:/ clear");
           /*clear*/ /*_.IFELSE___V105*/ curfptr[100] = 0 ;}
          
          #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1215:/ cppif.else");
+         BASILYS_LOCATION("warmelt-normatch.melt:1217:/ cppif.else");
         /*_.IFCPP___V104*/ curfptr[102] = (/*nil*/NULL);
          #endif /*ENABLE_CHECKING*/
          ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1219:/ loop");
-        /*loop*/{ labloop_LASTESTERLOOP_2:;BASILYS_LOCATION("warmelt-normatch.melt:1219:/ loopbody");
+        BASILYS_LOCATION("warmelt-normatch.melt:1221:/ loop");
+        /*loop*/{ labloop_LASTESTERLOOP_2:;BASILYS_LOCATION("warmelt-normatch.melt:1221:/ loopbody");
         
-         BASILYS_LOCATION("warmelt-normatch.melt:1219:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:1221:/ block");
          /*block*/{
           
           #if ENABLE_CHECKING
-           BASILYS_LOCATION("warmelt-normatch.melt:1221:/ cppif.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1221:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1223:/ cppif.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1223:/ block");
            /*block*/{
             /*_#THE_CALLCOUNT__L37*/ curfnum[32] = 
              callcount;;
-            BASILYS_LOCATION("warmelt-normatch.melt:1221:/ apply");
+            BASILYS_LOCATION("warmelt-normatch.melt:1223:/ apply");
             /*apply*/{
              union basilysparam_un argtab[4];
              memset(&argtab, 0, sizeof(argtab));
-             BASILYS_LOCATION("warmelt-normatch.melt:1221:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1223:/ apply.arg");
              argtab[0].bp_cstring =  "normexp_match lastesterloop curtester";
-             BASILYS_LOCATION("warmelt-normatch.melt:1221:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1223:/ apply.arg");
              argtab[1].bp_long = /*_#THE_CALLCOUNT__L37*/ curfnum[32];
-             BASILYS_LOCATION("warmelt-normatch.melt:1221:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1223:/ apply.arg");
              argtab[2].bp_cstring =  "warmelt-normatch.melt";
-             BASILYS_LOCATION("warmelt-normatch.melt:1221:/ apply.arg");
-             argtab[3].bp_long = 1221;
+             BASILYS_LOCATION("warmelt-normatch.melt:1223:/ apply.arg");
+             argtab[3].bp_long = 1223;
              /*_.DEBUG_MSG_FUN__V109*/ curfptr[108] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
              }
             ;
             /*_.IFCPP___V108*/ curfptr[107] = /*_.DEBUG_MSG_FUN__V109*/ curfptr[108];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1221:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1223:/ clear");
             /*clear*/ /*_#THE_CALLCOUNT__L37*/ curfnum[32] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1221:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1223:/ clear");
             /*clear*/ /*_.DEBUG_MSG_FUN__V109*/ curfptr[108] = 0 ;}
            
            #else /*ENABLE_CHECKING*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1221:/ cppif.else");
+           BASILYS_LOCATION("warmelt-normatch.melt:1223:/ cppif.else");
           /*_.IFCPP___V108*/ curfptr[107] = (/*nil*/NULL);
            #endif /*ENABLE_CHECKING*/
            ;
           /*_#NULL__L38*/ curfnum[29] = 
            ((/*_.CURTESTER__V88*/ curfptr[87]) == NULL);;
-          BASILYS_LOCATION("warmelt-normatch.melt:1222:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1224:/ cond");
           /*cond*/ if (/*_#NULL__L38*/ curfnum[29]) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1222:/ cond.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1222:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1224:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1224:/ block");
            /*block*/{
-            BASILYS_LOCATION("warmelt-normatch.melt:1223:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1225:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:1223:/ compute");
+             BASILYS_LOCATION("warmelt-normatch.melt:1225:/ compute");
              /*_.LASTESTERLOOP__V107*/ curfptr[106] = NULL;;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1223:/ exit");
+             BASILYS_LOCATION("warmelt-normatch.melt:1225:/ exit");
              /*exit*/{
               goto labexit_LASTESTERLOOP_2;}
              ;}
@@ -16617,140 +16631,140 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
           ;
           /*_#IS_A__L39*/ curfnum[31] = 
             basilys_is_instance_of((basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_SUCCESS*/ curfrout->tabval[21])));;
-          BASILYS_LOCATION("warmelt-normatch.melt:1224:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1226:/ cond");
           /*cond*/ if (/*_#IS_A__L39*/ curfnum[31]) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1224:/ cond.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1224:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1226:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1226:/ block");
            /*block*/{
-            BASILYS_LOCATION("warmelt-normatch.melt:1225:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1227:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:1225:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:1227:/ cond");
              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (basilys_ptr_t)((/*!CLASS_NREP*/ curfrout->tabval[23])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:1225:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1225:/ getslot");
+             BASILYS_LOCATION("warmelt-normatch.melt:1227:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1227:/ getslot");
               { basilys_ptr_t slot=0;
                basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), 0, "NREP_LOC");/*_.OTHERLOC__V112*/ curfptr[111] = slot; };
               ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:1225:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:1227:/ cond.else");
              
               /*_.OTHERLOC__V112*/ curfptr[111] = NULL;;
               }
              ;
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:1226:/ locexp");
+             BASILYS_LOCATION("warmelt-normatch.melt:1228:/ locexp");
              basilys_warning_str(0, (basilys_ptr_t)(/*_.CURLOC__V61*/ curfptr[41]), ( "unreachable match case"), (basilys_ptr_t)0);}
              ;
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:1227:/ locexp");
+             BASILYS_LOCATION("warmelt-normatch.melt:1229:/ locexp");
              basilys_inform_str((basilys_ptr_t)(/*_.OTHERLOC__V112*/ curfptr[111]), ( "this is the other successful case"), (basilys_ptr_t)0);}
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1228:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1230:/ block");
              /*block*/{
-              BASILYS_LOCATION("warmelt-normatch.melt:1228:/ compute");
+              BASILYS_LOCATION("warmelt-normatch.melt:1230:/ compute");
               /*_.LASTESTERLOOP__V107*/ curfptr[106] = NULL;;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1228:/ exit");
+              BASILYS_LOCATION("warmelt-normatch.melt:1230:/ exit");
               /*exit*/{
                goto labexit_LASTESTERLOOP_2;}
               ;}
              ;
              /*_.LET___V111*/ curfptr[110] = (/*nil*/NULL);;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1225:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1227:/ clear");
              /*clear*/ /*_.OTHERLOC__V112*/ curfptr[111] = 0 ;}
             ;
             /*_.IF___V110*/ curfptr[108] = /*_.LET___V111*/ curfptr[110];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1224:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1226:/ clear");
             /*clear*/ /*_.LET___V111*/ curfptr[110] = 0 ;}
            ;
-          } else {BASILYS_LOCATION("warmelt-normatch.melt:1224:/ cond.else");
+          } else {BASILYS_LOCATION("warmelt-normatch.melt:1226:/ cond.else");
           
            /*_.IF___V110*/ curfptr[108] = NULL;;
            }
           ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1230:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1232:/ block");
           /*block*/{
-           BASILYS_LOCATION("warmelt-normatch.melt:1230:/ cond");
+           BASILYS_LOCATION("warmelt-normatch.melt:1232:/ cond");
            /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])))) /*then*/ {
-           BASILYS_LOCATION("warmelt-normatch.melt:1230:/ cond.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:1230:/ getslot");
+           BASILYS_LOCATION("warmelt-normatch.melt:1232:/ cond.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:1232:/ getslot");
             { basilys_ptr_t slot=0;
              basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), 2, "NTEST_THEN");/*_.NEXTESTER__V114*/ curfptr[110] = slot; };
             ;
-           } else {BASILYS_LOCATION("warmelt-normatch.melt:1230:/ cond.else");
+           } else {BASILYS_LOCATION("warmelt-normatch.melt:1232:/ cond.else");
            
             /*_.NEXTESTER__V114*/ curfptr[110] = NULL;;
             }
            ;
            /*_#IS_A__L40*/ curfnum[32] = 
              basilys_is_instance_of((basilys_ptr_t)(/*_.NEXTESTER__V114*/ curfptr[110]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])));;
-           BASILYS_LOCATION("warmelt-normatch.melt:1231:/ cond");
+           BASILYS_LOCATION("warmelt-normatch.melt:1233:/ cond");
            /*cond*/ if (/*_#IS_A__L40*/ curfnum[32]) /*then*/ {
-           BASILYS_LOCATION("warmelt-normatch.melt:1231:/ cond.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:1231:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1233:/ cond.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:1233:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:1233:/ compute");
+             BASILYS_LOCATION("warmelt-normatch.melt:1235:/ compute");
              /*_.CURTESTER__V88*/ curfptr[87] = /*_.SETQ___V116*/ curfptr[115] = /*_.NEXTESTER__V114*/ curfptr[110];;
              
              #if ENABLE_CHECKING
-              BASILYS_LOCATION("warmelt-normatch.melt:1234:/ cppif.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1234:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1236:/ cppif.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1236:/ block");
               /*block*/{
                /*_#THE_CALLCOUNT__L41*/ curfnum[40] = 
                 callcount;;
-               BASILYS_LOCATION("warmelt-normatch.melt:1234:/ apply");
+               BASILYS_LOCATION("warmelt-normatch.melt:1236:/ apply");
                /*apply*/{
                 union basilysparam_un argtab[4];
                 memset(&argtab, 0, sizeof(argtab));
-                BASILYS_LOCATION("warmelt-normatch.melt:1234:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1236:/ apply.arg");
                 argtab[0].bp_cstring =  "normexp_match curtester becomes";
-                BASILYS_LOCATION("warmelt-normatch.melt:1234:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1236:/ apply.arg");
                 argtab[1].bp_long = /*_#THE_CALLCOUNT__L41*/ curfnum[40];
-                BASILYS_LOCATION("warmelt-normatch.melt:1234:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1236:/ apply.arg");
                 argtab[2].bp_cstring =  "warmelt-normatch.melt";
-                BASILYS_LOCATION("warmelt-normatch.melt:1234:/ apply.arg");
-                argtab[3].bp_long = 1234;
+                BASILYS_LOCATION("warmelt-normatch.melt:1236:/ apply.arg");
+                argtab[3].bp_long = 1236;
                 /*_.DEBUG_MSG_FUN__V118*/ curfptr[117] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                 }
                ;
                /*_.IFCPP___V117*/ curfptr[116] = /*_.DEBUG_MSG_FUN__V118*/ curfptr[117];;
                /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1234:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1236:/ clear");
                /*clear*/ /*_#THE_CALLCOUNT__L41*/ curfnum[40] = 0 ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1234:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1236:/ clear");
                /*clear*/ /*_.DEBUG_MSG_FUN__V118*/ curfptr[117] = 0 ;}
               
               #else /*ENABLE_CHECKING*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1234:/ cppif.else");
+              BASILYS_LOCATION("warmelt-normatch.melt:1236:/ cppif.else");
              /*_.IFCPP___V117*/ curfptr[116] = (/*nil*/NULL);
               #endif /*ENABLE_CHECKING*/
               ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1232:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1234:/ block");
              /*block*/{
               /*_.PROGN___V119*/ curfptr[117] = /*_.IFCPP___V117*/ curfptr[116];;}
              ;
              /*_.IFELSE___V115*/ curfptr[114] = /*_.PROGN___V119*/ curfptr[117];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1231:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1233:/ clear");
              /*clear*/ /*_.SETQ___V116*/ curfptr[115] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1231:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1233:/ clear");
              /*clear*/ /*_.IFCPP___V117*/ curfptr[116] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1231:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1233:/ clear");
              /*clear*/ /*_.PROGN___V119*/ curfptr[117] = 0 ;}
             ;
-           } else {BASILYS_LOCATION("warmelt-normatch.melt:1231:/ cond.else");
+           } else {BASILYS_LOCATION("warmelt-normatch.melt:1233:/ cond.else");
            
-            BASILYS_LOCATION("warmelt-normatch.melt:1231:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1233:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:1235:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1237:/ block");
              /*block*/{
-              BASILYS_LOCATION("warmelt-normatch.melt:1235:/ compute");
+              BASILYS_LOCATION("warmelt-normatch.melt:1237:/ compute");
               /*_.LASTESTERLOOP__V107*/ curfptr[106] = /*_.IFELSE___V115*/ curfptr[114] = NULL;;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1235:/ exit");
+              BASILYS_LOCATION("warmelt-normatch.melt:1237:/ exit");
               /*exit*/{
                goto labexit_LASTESTERLOOP_2;}
               ;}
@@ -16761,111 +16775,111 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
            ;
            /*_.LET___V113*/ curfptr[111] = /*_.IFELSE___V115*/ curfptr[114];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1230:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1232:/ clear");
            /*clear*/ /*_.NEXTESTER__V114*/ curfptr[110] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1230:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1232:/ clear");
            /*clear*/ /*_#IS_A__L40*/ curfnum[32] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1230:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1232:/ clear");
            /*clear*/ /*_.IFELSE___V115*/ curfptr[114] = 0 ;}
           ;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1219:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1221:/ clear");
           /*clear*/ /*_.IFCPP___V108*/ curfptr[107] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1219:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1221:/ clear");
           /*clear*/ /*_#NULL__L38*/ curfnum[29] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1219:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1221:/ clear");
           /*clear*/ /*_#IS_A__L39*/ curfnum[31] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1219:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1221:/ clear");
           /*clear*/ /*_.IF___V110*/ curfptr[108] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1219:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1221:/ clear");
           /*clear*/ /*_.LET___V113*/ curfptr[111] = 0 ;}
          ;
          ;
           goto labloop_LASTESTERLOOP_2;
-          labexit_LASTESTERLOOP_2:;BASILYS_LOCATION("warmelt-normatch.melt:1219:/ loopepilog");
+          labexit_LASTESTERLOOP_2:;BASILYS_LOCATION("warmelt-normatch.melt:1221:/ loopepilog");
         /*loopepilog*/
          /*_.FOREVER___V106*/ curfptr[100] = /*_.LASTESTERLOOP__V107*/ curfptr[106];;
          }
         ;
         /*_#NULL__L42*/ curfnum[40] = 
          ((/*_.CURTESTER__V88*/ curfptr[87]) == NULL);;
-        BASILYS_LOCATION("warmelt-normatch.melt:1238:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:1240:/ cond");
         /*cond*/ if (/*_#NULL__L42*/ curfnum[40]) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:1238:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1238:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1240:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1240:/ block");
          /*block*/{
-          BASILYS_LOCATION("warmelt-normatch.melt:1240:/ compute");
+          BASILYS_LOCATION("warmelt-normatch.melt:1242:/ compute");
           /*_.CURTESTER__V88*/ curfptr[87] = /*_.SETQ___V121*/ curfptr[116] = /*_.NEWSUCTESTER__V90*/ curfptr[89];;
           
           #if ENABLE_CHECKING
-           BASILYS_LOCATION("warmelt-normatch.melt:1241:/ cppif.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1241:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1243:/ cppif.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1243:/ block");
            /*block*/{
             /*_#THE_CALLCOUNT__L43*/ curfnum[32] = 
              callcount;;
-            BASILYS_LOCATION("warmelt-normatch.melt:1241:/ apply");
+            BASILYS_LOCATION("warmelt-normatch.melt:1243:/ apply");
             /*apply*/{
              union basilysparam_un argtab[4];
              memset(&argtab, 0, sizeof(argtab));
-             BASILYS_LOCATION("warmelt-normatch.melt:1241:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1243:/ apply.arg");
              argtab[0].bp_cstring =  "normexp_match no curtester so success";
-             BASILYS_LOCATION("warmelt-normatch.melt:1241:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1243:/ apply.arg");
              argtab[1].bp_long = /*_#THE_CALLCOUNT__L43*/ curfnum[32];
-             BASILYS_LOCATION("warmelt-normatch.melt:1241:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1243:/ apply.arg");
              argtab[2].bp_cstring =  "warmelt-normatch.melt";
-             BASILYS_LOCATION("warmelt-normatch.melt:1241:/ apply.arg");
-             argtab[3].bp_long = 1241;
+             BASILYS_LOCATION("warmelt-normatch.melt:1243:/ apply.arg");
+             argtab[3].bp_long = 1243;
              /*_.DEBUG_MSG_FUN__V123*/ curfptr[110] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
              }
             ;
             /*_.IFCPP___V122*/ curfptr[117] = /*_.DEBUG_MSG_FUN__V123*/ curfptr[110];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1241:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1243:/ clear");
             /*clear*/ /*_#THE_CALLCOUNT__L43*/ curfnum[32] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1241:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1243:/ clear");
             /*clear*/ /*_.DEBUG_MSG_FUN__V123*/ curfptr[110] = 0 ;}
            
            #else /*ENABLE_CHECKING*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1241:/ cppif.else");
+           BASILYS_LOCATION("warmelt-normatch.melt:1243:/ cppif.else");
           /*_.IFCPP___V122*/ curfptr[117] = (/*nil*/NULL);
            #endif /*ENABLE_CHECKING*/
            ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1239:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1241:/ block");
           /*block*/{
            /*_.PROGN___V124*/ curfptr[114] = /*_.IFCPP___V122*/ curfptr[117];;}
           ;
           /*_.IF___V120*/ curfptr[115] = /*_.PROGN___V124*/ curfptr[114];;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1238:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1240:/ clear");
           /*clear*/ /*_.SETQ___V121*/ curfptr[116] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1238:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1240:/ clear");
           /*clear*/ /*_.IFCPP___V122*/ curfptr[117] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1238:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1240:/ clear");
           /*clear*/ /*_.PROGN___V124*/ curfptr[114] = 0 ;}
          ;
-        } else {BASILYS_LOCATION("warmelt-normatch.melt:1238:/ cond.else");
+        } else {BASILYS_LOCATION("warmelt-normatch.melt:1240:/ cond.else");
         
          /*_.IF___V120*/ curfptr[115] = NULL;;
          }
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1244:/ loop");
-        /*loop*/{ labloop_OLDTESTERLOOP_1:;BASILYS_LOCATION("warmelt-normatch.melt:1244:/ loopbody");
+        BASILYS_LOCATION("warmelt-normatch.melt:1246:/ loop");
+        /*loop*/{ labloop_OLDTESTERLOOP_1:;BASILYS_LOCATION("warmelt-normatch.melt:1246:/ loopbody");
         
-         BASILYS_LOCATION("warmelt-normatch.melt:1244:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:1246:/ block");
          /*block*/{
           /*_#NULL__L44*/ curfnum[29] = 
            ((/*_.OLDTESTER__V25*/ curfptr[24]) == NULL);;
-          BASILYS_LOCATION("warmelt-normatch.melt:1246:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1248:/ cond");
           /*cond*/ if (/*_#NULL__L44*/ curfnum[29]) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1246:/ cond.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1246:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1248:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1248:/ block");
            /*block*/{
-            BASILYS_LOCATION("warmelt-normatch.melt:1246:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1248:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:1246:/ compute");
+             BASILYS_LOCATION("warmelt-normatch.melt:1248:/ compute");
              /*_.OLDTESTERLOOP__V126*/ curfptr[108] = NULL;;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1246:/ exit");
+             BASILYS_LOCATION("warmelt-normatch.melt:1248:/ exit");
              /*exit*/{
               goto labexit_OLDTESTERLOOP_1;}
              ;}
@@ -16876,24 +16890,24 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
           ;
           
           #if ENABLE_CHECKING
-           BASILYS_LOCATION("warmelt-normatch.melt:1247:/ cppif.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1247:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1249:/ cppif.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1249:/ block");
            /*block*/{
             /*_#IS_A__L45*/ curfnum[31] = 
               basilys_is_instance_of((basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])));;
-            BASILYS_LOCATION("warmelt-normatch.melt:1247:/ cond");
+            BASILYS_LOCATION("warmelt-normatch.melt:1249:/ cond");
             /*cond*/ if (/*_#IS_A__L45*/ curfnum[31]) /*then*/ {
-            BASILYS_LOCATION("warmelt-normatch.melt:1247:/ cond.then");
+            BASILYS_LOCATION("warmelt-normatch.melt:1249:/ cond.then");
             /*_.IFELSE___V128*/ curfptr[110] = (/*nil*/NULL);;
-            } else {BASILYS_LOCATION("warmelt-normatch.melt:1247:/ cond.else");
+            } else {BASILYS_LOCATION("warmelt-normatch.melt:1249:/ cond.else");
             
-             BASILYS_LOCATION("warmelt-normatch.melt:1247:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1249:/ block");
              /*block*/{
               /*block*/{
                
                {
-               BASILYS_LOCATION("warmelt-normatch.melt:1247:/ locexp");
-               basilys_assert_failed(( "check oldtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1247)?(1247):__LINE__, __FUNCTION__);}
+               BASILYS_LOCATION("warmelt-normatch.melt:1249:/ locexp");
+               basilys_assert_failed(( "check oldtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1249)?(1249):__LINE__, __FUNCTION__);}
                ;
                /*clear*/ /*_.IFELSE___V128*/ curfptr[110] = 0 ;}
               ;
@@ -16903,315 +16917,315 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
             ;
             /*_.IFCPP___V127*/ curfptr[111] = /*_.IFELSE___V128*/ curfptr[110];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1247:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1249:/ clear");
             /*clear*/ /*_#IS_A__L45*/ curfnum[31] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1247:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1249:/ clear");
             /*clear*/ /*_.IFELSE___V128*/ curfptr[110] = 0 ;}
            
            #else /*ENABLE_CHECKING*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1247:/ cppif.else");
+           BASILYS_LOCATION("warmelt-normatch.melt:1249:/ cppif.else");
           /*_.IFCPP___V127*/ curfptr[111] = (/*nil*/NULL);
            #endif /*ENABLE_CHECKING*/
            ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1248:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1250:/ block");
           /*block*/{
-           BASILYS_LOCATION("warmelt-normatch.melt:1248:/ getslot");
+           BASILYS_LOCATION("warmelt-normatch.melt:1250:/ getslot");
            { basilys_ptr_t slot=0;
             basilys_object_get_field(slot,(basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]), 3, "NTEST_ELSE");/*_.OLDELSE__V130*/ curfptr[117] = slot; };
            ;
            /*_#NULL__L46*/ curfnum[32] = 
             ((/*_.OLDELSE__V130*/ curfptr[117]) == NULL);;
-           BASILYS_LOCATION("warmelt-normatch.melt:1249:/ cond");
+           BASILYS_LOCATION("warmelt-normatch.melt:1251:/ cond");
            /*cond*/ if (/*_#NULL__L46*/ curfnum[32]) /*then*/ {
-           BASILYS_LOCATION("warmelt-normatch.melt:1249:/ cond.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:1249:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1251:/ cond.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:1251:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:1251:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:1253:/ cond");
              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:1251:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1251:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1253:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1253:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:1251:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1253:/ putslot");
                /*putslot*/
                basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24])) == OBMAG_OBJECT);
                basilys_assertmsg("putslot checkoff", (3>=0 && 3< basilys_object_length((basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]))));basilys_putfield_object((/*_.OLDTESTER__V25*/ curfptr[24]), (3), (/*_.CURTESTER__V88*/ curfptr[87]), "NTEST_ELSE");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1251:/ touch");
+               BASILYS_LOCATION("warmelt-normatch.melt:1253:/ touch");
                basilysgc_touch(/*_.OLDTESTER__V25*/ curfptr[24]);
                ;
                /*epilog*/}
               ;
              } /*noelse*/
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1252:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:1254:/ cond");
              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:1252:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1252:/ getslot");
+             BASILYS_LOCATION("warmelt-normatch.melt:1254:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1254:/ getslot");
               { basilys_ptr_t slot=0;
                basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), 6, "NTEST_COMEFROM");/*_.NTEST_COMEFROM__V132*/ curfptr[110] = slot; };
               ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:1252:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:1254:/ cond.else");
              
               /*_.NTEST_COMEFROM__V132*/ curfptr[110] = NULL;;
               }
              ;
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:1252:/ locexp");
+             BASILYS_LOCATION("warmelt-normatch.melt:1254:/ locexp");
              basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V132*/ curfptr[110]), (basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]));}
              ;
              
              #if ENABLE_CHECKING
-              BASILYS_LOCATION("warmelt-normatch.melt:1253:/ cppif.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1253:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1255:/ cppif.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1255:/ block");
               /*block*/{
                /*_#THE_CALLCOUNT__L47*/ curfnum[31] = 
                 callcount;;
-               BASILYS_LOCATION("warmelt-normatch.melt:1253:/ apply");
+               BASILYS_LOCATION("warmelt-normatch.melt:1255:/ apply");
                /*apply*/{
                 union basilysparam_un argtab[4];
                 memset(&argtab, 0, sizeof(argtab));
-                BASILYS_LOCATION("warmelt-normatch.melt:1253:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1255:/ apply.arg");
                 argtab[0].bp_cstring =  "normexp_match updated oldtester";
-                BASILYS_LOCATION("warmelt-normatch.melt:1253:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1255:/ apply.arg");
                 argtab[1].bp_long = /*_#THE_CALLCOUNT__L47*/ curfnum[31];
-                BASILYS_LOCATION("warmelt-normatch.melt:1253:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1255:/ apply.arg");
                 argtab[2].bp_cstring =  "warmelt-normatch.melt";
-                BASILYS_LOCATION("warmelt-normatch.melt:1253:/ apply.arg");
-                argtab[3].bp_long = 1253;
+                BASILYS_LOCATION("warmelt-normatch.melt:1255:/ apply.arg");
+                argtab[3].bp_long = 1255;
                 /*_.DEBUG_MSG_FUN__V134*/ curfptr[133] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                 }
                ;
                /*_.IFCPP___V133*/ curfptr[132] = /*_.DEBUG_MSG_FUN__V134*/ curfptr[133];;
                /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1253:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1255:/ clear");
                /*clear*/ /*_#THE_CALLCOUNT__L47*/ curfnum[31] = 0 ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1253:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1255:/ clear");
                /*clear*/ /*_.DEBUG_MSG_FUN__V134*/ curfptr[133] = 0 ;}
               
               #else /*ENABLE_CHECKING*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1253:/ cppif.else");
+              BASILYS_LOCATION("warmelt-normatch.melt:1255:/ cppif.else");
              /*_.IFCPP___V133*/ curfptr[132] = (/*nil*/NULL);
               #endif /*ENABLE_CHECKING*/
               ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1254:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1256:/ block");
              /*block*/{
-              BASILYS_LOCATION("warmelt-normatch.melt:1254:/ compute");
+              BASILYS_LOCATION("warmelt-normatch.melt:1256:/ compute");
               /*_.OLDTESTERLOOP__V126*/ curfptr[108] = NULL;;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1254:/ exit");
+              BASILYS_LOCATION("warmelt-normatch.melt:1256:/ exit");
               /*exit*/{
                goto labexit_OLDTESTERLOOP_1;}
               ;}
              ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1250:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1252:/ block");
              /*block*/{}
              ;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1249:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1251:/ clear");
              /*clear*/ /*_.NTEST_COMEFROM__V132*/ curfptr[110] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1249:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1251:/ clear");
              /*clear*/ /*_.IFCPP___V133*/ curfptr[132] = 0 ;}
             ;
-           } else {BASILYS_LOCATION("warmelt-normatch.melt:1249:/ cond.else");
+           } else {BASILYS_LOCATION("warmelt-normatch.melt:1251:/ cond.else");
            
-            BASILYS_LOCATION("warmelt-normatch.melt:1249:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1251:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:1255:/ compute");
+             BASILYS_LOCATION("warmelt-normatch.melt:1257:/ compute");
              /*_.OLDTESTER__V25*/ curfptr[24] = /*_.SETQ___V135*/ curfptr[133] = /*_.OLDELSE__V130*/ curfptr[117];;
              /*_.IFELSE___V131*/ curfptr[114] = /*_.SETQ___V135*/ curfptr[133];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1249:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1251:/ clear");
              /*clear*/ /*_.SETQ___V135*/ curfptr[133] = 0 ;}
             ;
             }
            ;
            /*_.LET___V129*/ curfptr[116] = /*_.IFELSE___V131*/ curfptr[114];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1248:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1250:/ clear");
            /*clear*/ /*_.OLDELSE__V130*/ curfptr[117] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1248:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1250:/ clear");
            /*clear*/ /*_#NULL__L46*/ curfnum[32] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1248:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1250:/ clear");
            /*clear*/ /*_.IFELSE___V131*/ curfptr[114] = 0 ;}
           ;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1244:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1246:/ clear");
           /*clear*/ /*_#NULL__L44*/ curfnum[29] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1244:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1246:/ clear");
           /*clear*/ /*_.IFCPP___V127*/ curfptr[111] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1244:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1246:/ clear");
           /*clear*/ /*_.LET___V129*/ curfptr[116] = 0 ;}
          ;
          ;
           goto labloop_OLDTESTERLOOP_1;
-          labexit_OLDTESTERLOOP_1:;BASILYS_LOCATION("warmelt-normatch.melt:1244:/ loopepilog");
+          labexit_OLDTESTERLOOP_1:;BASILYS_LOCATION("warmelt-normatch.melt:1246:/ loopepilog");
         /*loopepilog*/
          /*_.FOREVER___V125*/ curfptr[107] = /*_.OLDTESTERLOOP__V126*/ curfptr[108];;
          }
         ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1258:/ compute");
+        BASILYS_LOCATION("warmelt-normatch.melt:1260:/ compute");
         /*_.OLDTESTER__V25*/ curfptr[24] = /*_.SETQ___V136*/ curfptr[110] = /*_.CURTESTER__V88*/ curfptr[87];;
         /*_#__L48*/ curfnum[31] = 
          ((/*_.CURTESTER__V88*/ curfptr[87]) != (/*_.NEWSUCTESTER__V90*/ curfptr[89]));;
-        BASILYS_LOCATION("warmelt-normatch.melt:1261:/ cond");
+        BASILYS_LOCATION("warmelt-normatch.melt:1263:/ cond");
         /*cond*/ if (/*_#__L48*/ curfnum[31]) /*then*/ {
-        BASILYS_LOCATION("warmelt-normatch.melt:1261:/ cond.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1261:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1263:/ cond.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1263:/ block");
          /*block*/{
-          BASILYS_LOCATION("warmelt-normatch.melt:1263:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1265:/ cond");
           /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])))) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1263:/ cond.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1263:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1265:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1265:/ block");
            /*block*/{
-            BASILYS_LOCATION("warmelt-normatch.melt:1263:/ putslot");
+            BASILYS_LOCATION("warmelt-normatch.melt:1265:/ putslot");
             /*putslot*/
             basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87])) == OBMAG_OBJECT);
             basilys_assertmsg("putslot checkoff", (2>=0 && 2< basilys_object_length((basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]))));basilys_putfield_object((/*_.CURTESTER__V88*/ curfptr[87]), (2), (/*_.NEWSUCTESTER__V90*/ curfptr[89]), "NTEST_THEN");
             ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1263:/ touch");
+            BASILYS_LOCATION("warmelt-normatch.melt:1265:/ touch");
             basilysgc_touch(/*_.CURTESTER__V88*/ curfptr[87]);
             ;
             /*epilog*/}
            ;
           } /*noelse*/
           ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1264:/ cond");
+          BASILYS_LOCATION("warmelt-normatch.melt:1266:/ cond");
           /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.NEWSUCTESTER__V90*/ curfptr[89]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])))) /*then*/ {
-          BASILYS_LOCATION("warmelt-normatch.melt:1264:/ cond.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1264:/ getslot");
+          BASILYS_LOCATION("warmelt-normatch.melt:1266:/ cond.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1266:/ getslot");
            { basilys_ptr_t slot=0;
             basilys_object_get_field(slot,(basilys_ptr_t)(/*_.NEWSUCTESTER__V90*/ curfptr[89]), 6, "NTEST_COMEFROM");/*_.NTEST_COMEFROM__V137*/ curfptr[132] = slot; };
            ;
-          } else {BASILYS_LOCATION("warmelt-normatch.melt:1264:/ cond.else");
+          } else {BASILYS_LOCATION("warmelt-normatch.melt:1266:/ cond.else");
           
            /*_.NTEST_COMEFROM__V137*/ curfptr[132] = NULL;;
            }
           ;
           
           {
-          BASILYS_LOCATION("warmelt-normatch.melt:1264:/ locexp");
+          BASILYS_LOCATION("warmelt-normatch.melt:1266:/ locexp");
           basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V137*/ curfptr[132]), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]));}
           ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1262:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1264:/ block");
           /*block*/{}
           ;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1261:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1263:/ clear");
           /*clear*/ /*_.NTEST_COMEFROM__V137*/ curfptr[132] = 0 ;}
          ;
         } /*noelse*/
         ;
         
         {
-        BASILYS_LOCATION("warmelt-normatch.melt:1266:/ locexp");
+        BASILYS_LOCATION("warmelt-normatch.melt:1268:/ locexp");
         basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V23*/ curfptr[22]), (basilys_ptr_t)(/*_.NEWSUCTESTER__V90*/ curfptr[89]));}
         ;
-        
-        #if ENABLE_CHECKING
-         BASILYS_LOCATION("warmelt-normatch.melt:1267:/ cppif.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1267:/ block");
-         /*block*/{
-          /*_#THE_CALLCOUNT__L49*/ curfnum[32] = 
-           callcount;;
-          BASILYS_LOCATION("warmelt-normatch.melt:1267:/ apply");
-          /*apply*/{
-           union basilysparam_un argtab[4];
-           memset(&argtab, 0, sizeof(argtab));
-           BASILYS_LOCATION("warmelt-normatch.melt:1267:/ apply.arg");
-           argtab[0].bp_cstring =  "normexp_match after lastesterloop curtester";
-           BASILYS_LOCATION("warmelt-normatch.melt:1267:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L49*/ curfnum[32];
-           BASILYS_LOCATION("warmelt-normatch.melt:1267:/ apply.arg");
-           argtab[2].bp_cstring =  "warmelt-normatch.melt";
-           BASILYS_LOCATION("warmelt-normatch.melt:1267:/ apply.arg");
-           argtab[3].bp_long = 1267;
-           /*_.DEBUG_MSG_FUN__V139*/ curfptr[117] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-           }
-          ;
-          /*_.IFCPP___V138*/ curfptr[133] = /*_.DEBUG_MSG_FUN__V139*/ curfptr[117];;
-          /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1267:/ clear");
-          /*clear*/ /*_#THE_CALLCOUNT__L49*/ curfnum[32] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1267:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V139*/ curfptr[117] = 0 ;}
-         
-         #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1267:/ cppif.else");
-        /*_.IFCPP___V138*/ curfptr[133] = (/*nil*/NULL);
-         #endif /*ENABLE_CHECKING*/
-         ;
-        
-        #if ENABLE_CHECKING
-         BASILYS_LOCATION("warmelt-normatch.melt:1268:/ cppif.then");
-        BASILYS_LOCATION("warmelt-normatch.melt:1268:/ block");
-         /*block*/{
-          /*_#THE_CALLCOUNT__L50*/ curfnum[29] = 
-           callcount;;
-          BASILYS_LOCATION("warmelt-normatch.melt:1268:/ apply");
-          /*apply*/{
-           union basilysparam_un argtab[4];
-           memset(&argtab, 0, sizeof(argtab));
-           BASILYS_LOCATION("warmelt-normatch.melt:1268:/ apply.arg");
-           argtab[0].bp_cstring =  "normexp_match pcn after lastesterloop";
-           BASILYS_LOCATION("warmelt-normatch.melt:1268:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L50*/ curfnum[29];
-           BASILYS_LOCATION("warmelt-normatch.melt:1268:/ apply.arg");
-           argtab[2].bp_cstring =  "warmelt-normatch.melt";
-           BASILYS_LOCATION("warmelt-normatch.melt:1268:/ apply.arg");
-           argtab[3].bp_long = 1268;
-           /*_.DEBUG_MSG_FUN__V141*/ curfptr[111] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PCN__V67*/ curfptr[66]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-           }
-          ;
-          /*_.IFCPP___V140*/ curfptr[114] = /*_.DEBUG_MSG_FUN__V141*/ curfptr[111];;
-          /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1268:/ clear");
-          /*clear*/ /*_#THE_CALLCOUNT__L50*/ curfnum[29] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1268:/ clear");
-          /*clear*/ /*_.DEBUG_MSG_FUN__V141*/ curfptr[111] = 0 ;}
-         
-         #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1268:/ cppif.else");
-        /*_.IFCPP___V140*/ curfptr[114] = (/*nil*/NULL);
-         #endif /*ENABLE_CHECKING*/
-         ;
         
         #if ENABLE_CHECKING
          BASILYS_LOCATION("warmelt-normatch.melt:1269:/ cppif.then");
         BASILYS_LOCATION("warmelt-normatch.melt:1269:/ block");
          /*block*/{
-          /*_#THE_CALLCOUNT__L51*/ curfnum[32] = 
+          /*_#THE_CALLCOUNT__L49*/ curfnum[32] = 
            callcount;;
           BASILYS_LOCATION("warmelt-normatch.melt:1269:/ apply");
           /*apply*/{
            union basilysparam_un argtab[4];
            memset(&argtab, 0, sizeof(argtab));
            BASILYS_LOCATION("warmelt-normatch.melt:1269:/ apply.arg");
-           argtab[0].bp_cstring =  "normexp_match pvarlocmap";
+           argtab[0].bp_cstring =  "normexp_match after lastesterloop curtester";
            BASILYS_LOCATION("warmelt-normatch.melt:1269:/ apply.arg");
-           argtab[1].bp_long = /*_#THE_CALLCOUNT__L51*/ curfnum[32];
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L49*/ curfnum[32];
            BASILYS_LOCATION("warmelt-normatch.melt:1269:/ apply.arg");
            argtab[2].bp_cstring =  "warmelt-normatch.melt";
            BASILYS_LOCATION("warmelt-normatch.melt:1269:/ apply.arg");
            argtab[3].bp_long = 1269;
+           /*_.DEBUG_MSG_FUN__V139*/ curfptr[117] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           }
+          ;
+          /*_.IFCPP___V138*/ curfptr[133] = /*_.DEBUG_MSG_FUN__V139*/ curfptr[117];;
+          /*epilog*/
+          BASILYS_LOCATION("warmelt-normatch.melt:1269:/ clear");
+          /*clear*/ /*_#THE_CALLCOUNT__L49*/ curfnum[32] = 0 ;
+          BASILYS_LOCATION("warmelt-normatch.melt:1269:/ clear");
+          /*clear*/ /*_.DEBUG_MSG_FUN__V139*/ curfptr[117] = 0 ;}
+         
+         #else /*ENABLE_CHECKING*/
+         BASILYS_LOCATION("warmelt-normatch.melt:1269:/ cppif.else");
+        /*_.IFCPP___V138*/ curfptr[133] = (/*nil*/NULL);
+         #endif /*ENABLE_CHECKING*/
+         ;
+        
+        #if ENABLE_CHECKING
+         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ cppif.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1270:/ block");
+         /*block*/{
+          /*_#THE_CALLCOUNT__L50*/ curfnum[29] = 
+           callcount;;
+          BASILYS_LOCATION("warmelt-normatch.melt:1270:/ apply");
+          /*apply*/{
+           union basilysparam_un argtab[4];
+           memset(&argtab, 0, sizeof(argtab));
+           BASILYS_LOCATION("warmelt-normatch.melt:1270:/ apply.arg");
+           argtab[0].bp_cstring =  "normexp_match pcn after lastesterloop";
+           BASILYS_LOCATION("warmelt-normatch.melt:1270:/ apply.arg");
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L50*/ curfnum[29];
+           BASILYS_LOCATION("warmelt-normatch.melt:1270:/ apply.arg");
+           argtab[2].bp_cstring =  "warmelt-normatch.melt";
+           BASILYS_LOCATION("warmelt-normatch.melt:1270:/ apply.arg");
+           argtab[3].bp_long = 1270;
+           /*_.DEBUG_MSG_FUN__V141*/ curfptr[111] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PCN__V67*/ curfptr[66]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+           }
+          ;
+          /*_.IFCPP___V140*/ curfptr[114] = /*_.DEBUG_MSG_FUN__V141*/ curfptr[111];;
+          /*epilog*/
+          BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+          /*clear*/ /*_#THE_CALLCOUNT__L50*/ curfnum[29] = 0 ;
+          BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+          /*clear*/ /*_.DEBUG_MSG_FUN__V141*/ curfptr[111] = 0 ;}
+         
+         #else /*ENABLE_CHECKING*/
+         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ cppif.else");
+        /*_.IFCPP___V140*/ curfptr[114] = (/*nil*/NULL);
+         #endif /*ENABLE_CHECKING*/
+         ;
+        
+        #if ENABLE_CHECKING
+         BASILYS_LOCATION("warmelt-normatch.melt:1271:/ cppif.then");
+        BASILYS_LOCATION("warmelt-normatch.melt:1271:/ block");
+         /*block*/{
+          /*_#THE_CALLCOUNT__L51*/ curfnum[32] = 
+           callcount;;
+          BASILYS_LOCATION("warmelt-normatch.melt:1271:/ apply");
+          /*apply*/{
+           union basilysparam_un argtab[4];
+           memset(&argtab, 0, sizeof(argtab));
+           BASILYS_LOCATION("warmelt-normatch.melt:1271:/ apply.arg");
+           argtab[0].bp_cstring =  "normexp_match pvarlocmap";
+           BASILYS_LOCATION("warmelt-normatch.melt:1271:/ apply.arg");
+           argtab[1].bp_long = /*_#THE_CALLCOUNT__L51*/ curfnum[32];
+           BASILYS_LOCATION("warmelt-normatch.melt:1271:/ apply.arg");
+           argtab[2].bp_cstring =  "warmelt-normatch.melt";
+           BASILYS_LOCATION("warmelt-normatch.melt:1271:/ apply.arg");
+           argtab[3].bp_long = 1271;
            /*_.DEBUG_MSG_FUN__V143*/ curfptr[132] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.PVARLOCMAP__V87*/ curfptr[86]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
            }
           ;
           /*_.IFCPP___V142*/ curfptr[116] = /*_.DEBUG_MSG_FUN__V143*/ curfptr[132];;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1269:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1271:/ clear");
           /*clear*/ /*_#THE_CALLCOUNT__L51*/ curfnum[32] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1269:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1271:/ clear");
           /*clear*/ /*_.DEBUG_MSG_FUN__V143*/ curfptr[132] = 0 ;}
          
          #else /*ENABLE_CHECKING*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1269:/ cppif.else");
+         BASILYS_LOCATION("warmelt-normatch.melt:1271:/ cppif.else");
         /*_.IFCPP___V142*/ curfptr[116] = (/*nil*/NULL);
          #endif /*ENABLE_CHECKING*/
          ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1270:/ block");
+        BASILYS_LOCATION("warmelt-normatch.melt:1272:/ block");
         /*block*/{
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ apply");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ apply");
          /*apply*/{
           /*_.SORTEDVARS__V145*/ curfptr[111] =  basilys_apply ((basilysclosure_ptr_t)((/*!MAPOBJECT_SORTED_ATTRIBUTE_TUPLE*/ curfrout->tabval[24])), (basilys_ptr_t)(/*_.PVARLOCMAP__V87*/ curfptr[86]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
           }
@@ -17220,42 +17234,42 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
           (basilys_multiple_length((basilys_ptr_t)(/*_.SORTEDVARS__V145*/ curfptr[111])));;
          /*_.SORTEDBINDINGS__V146*/ curfptr[132] = 
           (basilysgc_new_multiple((basilysobject_ptr_t)((/*!DISCR_MULTIPLE*/ curfrout->tabval[4])), (/*_#MULTIPLE_LENGTH__L52*/ curfnum[29])));;
-         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ apply");
+         BASILYS_LOCATION("warmelt-normatch.melt:1274:/ apply");
          /*apply*/{
           /*_.FRESHNEWENV__V147*/ curfptr[146] =  basilys_apply ((basilysclosure_ptr_t)((/*!FRESH_ENV*/ curfrout->tabval[25])), (basilys_ptr_t)(/*_.NEWENV__V86*/ curfptr[85]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
           }
          ;
          
          #if ENABLE_CHECKING
-          BASILYS_LOCATION("warmelt-normatch.melt:1274:/ cppif.then");
-         BASILYS_LOCATION("warmelt-normatch.melt:1274:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1276:/ cppif.then");
+         BASILYS_LOCATION("warmelt-normatch.melt:1276:/ block");
           /*block*/{
            /*_#THE_CALLCOUNT__L53*/ curfnum[32] = 
             callcount;;
-           BASILYS_LOCATION("warmelt-normatch.melt:1274:/ apply");
+           BASILYS_LOCATION("warmelt-normatch.melt:1276:/ apply");
            /*apply*/{
             union basilysparam_un argtab[4];
             memset(&argtab, 0, sizeof(argtab));
-            BASILYS_LOCATION("warmelt-normatch.melt:1274:/ apply.arg");
+            BASILYS_LOCATION("warmelt-normatch.melt:1276:/ apply.arg");
             argtab[0].bp_cstring =  "normexp_match sortedvars";
-            BASILYS_LOCATION("warmelt-normatch.melt:1274:/ apply.arg");
+            BASILYS_LOCATION("warmelt-normatch.melt:1276:/ apply.arg");
             argtab[1].bp_long = /*_#THE_CALLCOUNT__L53*/ curfnum[32];
-            BASILYS_LOCATION("warmelt-normatch.melt:1274:/ apply.arg");
+            BASILYS_LOCATION("warmelt-normatch.melt:1276:/ apply.arg");
             argtab[2].bp_cstring =  "warmelt-normatch.melt";
-            BASILYS_LOCATION("warmelt-normatch.melt:1274:/ apply.arg");
-            argtab[3].bp_long = 1274;
+            BASILYS_LOCATION("warmelt-normatch.melt:1276:/ apply.arg");
+            argtab[3].bp_long = 1276;
             /*_.DEBUG_MSG_FUN__V149*/ curfptr[148] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SORTEDVARS__V145*/ curfptr[111]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
             }
            ;
            /*_.IFCPP___V148*/ curfptr[147] = /*_.DEBUG_MSG_FUN__V149*/ curfptr[148];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1274:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1276:/ clear");
            /*clear*/ /*_#THE_CALLCOUNT__L53*/ curfnum[32] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1274:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1276:/ clear");
            /*clear*/ /*_.DEBUG_MSG_FUN__V149*/ curfptr[148] = 0 ;}
           
           #else /*ENABLE_CHECKING*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1274:/ cppif.else");
+          BASILYS_LOCATION("warmelt-normatch.melt:1276:/ cppif.else");
          /*_.IFCPP___V148*/ curfptr[147] = (/*nil*/NULL);
           #endif /*ENABLE_CHECKING*/
           ;
@@ -17269,96 +17283,96 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
          
           
           #if ENABLE_CHECKING
-           BASILYS_LOCATION("warmelt-normatch.melt:1279:/ cppif.then");
-          BASILYS_LOCATION("warmelt-normatch.melt:1279:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1281:/ cppif.then");
+          BASILYS_LOCATION("warmelt-normatch.melt:1281:/ block");
            /*block*/{
             /*_#THE_CALLCOUNT__L55*/ curfnum[54] = 
              callcount;;
-            BASILYS_LOCATION("warmelt-normatch.melt:1279:/ apply");
+            BASILYS_LOCATION("warmelt-normatch.melt:1281:/ apply");
             /*apply*/{
              union basilysparam_un argtab[4];
              memset(&argtab, 0, sizeof(argtab));
-             BASILYS_LOCATION("warmelt-normatch.melt:1279:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1281:/ apply.arg");
              argtab[0].bp_cstring =  "normexp_match svar";
-             BASILYS_LOCATION("warmelt-normatch.melt:1279:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1281:/ apply.arg");
              argtab[1].bp_long = /*_#THE_CALLCOUNT__L55*/ curfnum[54];
-             BASILYS_LOCATION("warmelt-normatch.melt:1279:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1281:/ apply.arg");
              argtab[2].bp_cstring =  "warmelt-normatch.melt";
-             BASILYS_LOCATION("warmelt-normatch.melt:1279:/ apply.arg");
-             argtab[3].bp_long = 1279;
+             BASILYS_LOCATION("warmelt-normatch.melt:1281:/ apply.arg");
+             argtab[3].bp_long = 1281;
              /*_.DEBUG_MSG_FUN__V152*/ curfptr[151] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SVAR__V150*/ curfptr[148]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
              }
             ;
             /*_.IFCPP___V151*/ curfptr[150] = /*_.DEBUG_MSG_FUN__V152*/ curfptr[151];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1279:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1281:/ clear");
             /*clear*/ /*_#THE_CALLCOUNT__L55*/ curfnum[54] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1279:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1281:/ clear");
             /*clear*/ /*_.DEBUG_MSG_FUN__V152*/ curfptr[151] = 0 ;}
            
            #else /*ENABLE_CHECKING*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1279:/ cppif.else");
+           BASILYS_LOCATION("warmelt-normatch.melt:1281:/ cppif.else");
           /*_.IFCPP___V151*/ curfptr[150] = (/*nil*/NULL);
            #endif /*ENABLE_CHECKING*/
            ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1280:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1282:/ block");
           /*block*/{
            /*_.SOCC__V154*/ curfptr[153] = 
             (basilys_get_mapobjects((basilysmapobjects_ptr_t)(/*_.PVARLOCMAP__V87*/ curfptr[86]), (basilysobject_ptr_t)(/*_.SVAR__V150*/ curfptr[148])));;
            
            #if ENABLE_CHECKING
-            BASILYS_LOCATION("warmelt-normatch.melt:1282:/ cppif.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:1282:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1284:/ cppif.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:1284:/ block");
             /*block*/{
              /*_#THE_CALLCOUNT__L56*/ curfnum[54] = 
               callcount;;
-             BASILYS_LOCATION("warmelt-normatch.melt:1282:/ apply");
+             BASILYS_LOCATION("warmelt-normatch.melt:1284:/ apply");
              /*apply*/{
               union basilysparam_un argtab[4];
               memset(&argtab, 0, sizeof(argtab));
-              BASILYS_LOCATION("warmelt-normatch.melt:1282:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1284:/ apply.arg");
               argtab[0].bp_cstring =  "normexp_match socc";
-              BASILYS_LOCATION("warmelt-normatch.melt:1282:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1284:/ apply.arg");
               argtab[1].bp_long = /*_#THE_CALLCOUNT__L56*/ curfnum[54];
-              BASILYS_LOCATION("warmelt-normatch.melt:1282:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1284:/ apply.arg");
               argtab[2].bp_cstring =  "warmelt-normatch.melt";
-              BASILYS_LOCATION("warmelt-normatch.melt:1282:/ apply.arg");
-              argtab[3].bp_long = 1282;
+              BASILYS_LOCATION("warmelt-normatch.melt:1284:/ apply.arg");
+              argtab[3].bp_long = 1284;
               /*_.DEBUG_MSG_FUN__V156*/ curfptr[155] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SOCC__V154*/ curfptr[153]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
               }
              ;
              /*_.IFCPP___V155*/ curfptr[154] = /*_.DEBUG_MSG_FUN__V156*/ curfptr[155];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1282:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1284:/ clear");
              /*clear*/ /*_#THE_CALLCOUNT__L56*/ curfnum[54] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1282:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1284:/ clear");
              /*clear*/ /*_.DEBUG_MSG_FUN__V156*/ curfptr[155] = 0 ;}
             
             #else /*ENABLE_CHECKING*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1282:/ cppif.else");
+            BASILYS_LOCATION("warmelt-normatch.melt:1284:/ cppif.else");
            /*_.IFCPP___V155*/ curfptr[154] = (/*nil*/NULL);
             #endif /*ENABLE_CHECKING*/
             ;
            
            #if ENABLE_CHECKING
-            BASILYS_LOCATION("warmelt-normatch.melt:1283:/ cppif.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:1283:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1285:/ cppif.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:1285:/ block");
             /*block*/{
              /*_#IS_A__L57*/ curfnum[54] = 
                basilys_is_instance_of((basilys_ptr_t)(/*_.SOCC__V154*/ curfptr[153]), (basilys_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[12])));;
-             BASILYS_LOCATION("warmelt-normatch.melt:1283:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:1285:/ cond");
              /*cond*/ if (/*_#IS_A__L57*/ curfnum[54]) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:1283:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1285:/ cond.then");
              /*_.IFELSE___V158*/ curfptr[157] = (/*nil*/NULL);;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:1283:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:1285:/ cond.else");
              
-              BASILYS_LOCATION("warmelt-normatch.melt:1283:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1285:/ block");
               /*block*/{
                /*block*/{
                 
                 {
-                BASILYS_LOCATION("warmelt-normatch.melt:1283:/ locexp");
-                basilys_assert_failed(( "check socc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1283)?(1283):__LINE__, __FUNCTION__);}
+                BASILYS_LOCATION("warmelt-normatch.melt:1285:/ locexp");
+                basilys_assert_failed(( "check socc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1285)?(1285):__LINE__, __FUNCTION__);}
                 ;
                 /*clear*/ /*_.IFELSE___V158*/ curfptr[157] = 0 ;}
                ;
@@ -17368,190 +17382,190 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
              ;
              /*_.IFCPP___V157*/ curfptr[155] = /*_.IFELSE___V158*/ curfptr[157];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1283:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1285:/ clear");
              /*clear*/ /*_#IS_A__L57*/ curfnum[54] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1283:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1285:/ clear");
              /*clear*/ /*_.IFELSE___V158*/ curfptr[157] = 0 ;}
             
             #else /*ENABLE_CHECKING*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1283:/ cppif.else");
+            BASILYS_LOCATION("warmelt-normatch.melt:1285:/ cppif.else");
            /*_.IFCPP___V157*/ curfptr[155] = (/*nil*/NULL);
             #endif /*ENABLE_CHECKING*/
             ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1284:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1286:/ block");
            /*block*/{
-            BASILYS_LOCATION("warmelt-normatch.melt:1284:/ getslot");
+            BASILYS_LOCATION("warmelt-normatch.melt:1286:/ getslot");
             { basilys_ptr_t slot=0;
              basilys_object_get_field(slot,(basilys_ptr_t)(/*_.SOCC__V154*/ curfptr[153]), 3, "NOCC_BIND");/*_.SBIND__V160*/ curfptr[159] = slot; };
             ;
             
             #if ENABLE_CHECKING
-             BASILYS_LOCATION("warmelt-normatch.melt:1285:/ cppif.then");
-            BASILYS_LOCATION("warmelt-normatch.melt:1285:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1287:/ cppif.then");
+            BASILYS_LOCATION("warmelt-normatch.melt:1287:/ block");
              /*block*/{
               /*_#THE_CALLCOUNT__L58*/ curfnum[54] = 
                callcount;;
-              BASILYS_LOCATION("warmelt-normatch.melt:1285:/ apply");
+              BASILYS_LOCATION("warmelt-normatch.melt:1287:/ apply");
               /*apply*/{
                union basilysparam_un argtab[4];
                memset(&argtab, 0, sizeof(argtab));
-               BASILYS_LOCATION("warmelt-normatch.melt:1285:/ apply.arg");
+               BASILYS_LOCATION("warmelt-normatch.melt:1287:/ apply.arg");
                argtab[0].bp_cstring =  "normexp_match sbind";
-               BASILYS_LOCATION("warmelt-normatch.melt:1285:/ apply.arg");
+               BASILYS_LOCATION("warmelt-normatch.melt:1287:/ apply.arg");
                argtab[1].bp_long = /*_#THE_CALLCOUNT__L58*/ curfnum[54];
-               BASILYS_LOCATION("warmelt-normatch.melt:1285:/ apply.arg");
+               BASILYS_LOCATION("warmelt-normatch.melt:1287:/ apply.arg");
                argtab[2].bp_cstring =  "warmelt-normatch.melt";
-               BASILYS_LOCATION("warmelt-normatch.melt:1285:/ apply.arg");
-               argtab[3].bp_long = 1285;
+               BASILYS_LOCATION("warmelt-normatch.melt:1287:/ apply.arg");
+               argtab[3].bp_long = 1287;
                /*_.DEBUG_MSG_FUN__V162*/ curfptr[161] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SBIND__V160*/ curfptr[159]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                }
               ;
               /*_.IFCPP___V161*/ curfptr[160] = /*_.DEBUG_MSG_FUN__V162*/ curfptr[161];;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1285:/ clear");
+              BASILYS_LOCATION("warmelt-normatch.melt:1287:/ clear");
               /*clear*/ /*_#THE_CALLCOUNT__L58*/ curfnum[54] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1285:/ clear");
+              BASILYS_LOCATION("warmelt-normatch.melt:1287:/ clear");
               /*clear*/ /*_.DEBUG_MSG_FUN__V162*/ curfptr[161] = 0 ;}
              
              #else /*ENABLE_CHECKING*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1285:/ cppif.else");
+             BASILYS_LOCATION("warmelt-normatch.melt:1287:/ cppif.else");
             /*_.IFCPP___V161*/ curfptr[160] = (/*nil*/NULL);
              #endif /*ENABLE_CHECKING*/
              ;
             
             {
-            BASILYS_LOCATION("warmelt-normatch.melt:1286:/ locexp");
+            BASILYS_LOCATION("warmelt-normatch.melt:1288:/ locexp");
              basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.SORTEDBINDINGS__V146*/ curfptr[132]), (/*_#SVIX__L54*/ curfnum[32]), (basilys_ptr_t)(/*_.SBIND__V160*/ curfptr[159]));}
             ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1287:/ apply");
+            BASILYS_LOCATION("warmelt-normatch.melt:1289:/ apply");
             /*apply*/{
              union basilysparam_un argtab[1];
              memset(&argtab, 0, sizeof(argtab));
-             BASILYS_LOCATION("warmelt-normatch.melt:1287:/ apply.arg");
+             BASILYS_LOCATION("warmelt-normatch.melt:1289:/ apply.arg");
              argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.SBIND__V160*/ curfptr[159];
              /*_.PUT_ENV__V163*/ curfptr[161] =  basilys_apply ((basilysclosure_ptr_t)((/*!PUT_ENV*/ curfrout->tabval[26])), (basilys_ptr_t)(/*_.FRESHNEWENV__V147*/ curfptr[146]), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
              }
             ;
             /*_.LET___V159*/ curfptr[157] = /*_.PUT_ENV__V163*/ curfptr[161];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1284:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1286:/ clear");
             /*clear*/ /*_.SBIND__V160*/ curfptr[159] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1284:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1286:/ clear");
             /*clear*/ /*_.IFCPP___V161*/ curfptr[160] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1284:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1286:/ clear");
             /*clear*/ /*_.PUT_ENV__V163*/ curfptr[161] = 0 ;}
            ;
            /*_.LET___V153*/ curfptr[151] = /*_.LET___V159*/ curfptr[157];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1280:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1282:/ clear");
            /*clear*/ /*_.SOCC__V154*/ curfptr[153] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1280:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1282:/ clear");
            /*clear*/ /*_.IFCPP___V155*/ curfptr[154] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1280:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1282:/ clear");
            /*clear*/ /*_.IFCPP___V157*/ curfptr[155] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1280:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1282:/ clear");
            /*clear*/ /*_.LET___V159*/ curfptr[157] = 0 ;}
           ;
          } /* end cit2__EACHTUP*/
          
           /*citerepilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1276:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1278:/ clear");
           /*clear*/ /*_.SVAR__V150*/ curfptr[148] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1276:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1278:/ clear");
           /*clear*/ /*_#SVIX__L54*/ curfnum[32] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1276:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1278:/ clear");
           /*clear*/ /*_.IFCPP___V151*/ curfptr[150] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1276:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1278:/ clear");
           /*clear*/ /*_.LET___V153*/ curfptr[151] = 0 ;} /*endciterblock FOREACH_IN_MULTIPLE*/
          ;
-         
-         #if ENABLE_CHECKING
-          BASILYS_LOCATION("warmelt-normatch.melt:1290:/ cppif.then");
-         BASILYS_LOCATION("warmelt-normatch.melt:1290:/ block");
-          /*block*/{
-           /*_#THE_CALLCOUNT__L59*/ curfnum[54] = 
-            callcount;;
-           BASILYS_LOCATION("warmelt-normatch.melt:1290:/ apply");
-           /*apply*/{
-            union basilysparam_un argtab[4];
-            memset(&argtab, 0, sizeof(argtab));
-            BASILYS_LOCATION("warmelt-normatch.melt:1290:/ apply.arg");
-            argtab[0].bp_cstring =  "normexp_match freshnewenv";
-            BASILYS_LOCATION("warmelt-normatch.melt:1290:/ apply.arg");
-            argtab[1].bp_long = /*_#THE_CALLCOUNT__L59*/ curfnum[54];
-            BASILYS_LOCATION("warmelt-normatch.melt:1290:/ apply.arg");
-            argtab[2].bp_cstring =  "warmelt-normatch.melt";
-            BASILYS_LOCATION("warmelt-normatch.melt:1290:/ apply.arg");
-            argtab[3].bp_long = 1290;
-            /*_.DEBUG_MSG_FUN__V165*/ curfptr[160] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.FRESHNEWENV__V147*/ curfptr[146]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-            }
-           ;
-           /*_.IFCPP___V164*/ curfptr[159] = /*_.DEBUG_MSG_FUN__V165*/ curfptr[160];;
-           /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1290:/ clear");
-           /*clear*/ /*_#THE_CALLCOUNT__L59*/ curfnum[54] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1290:/ clear");
-           /*clear*/ /*_.DEBUG_MSG_FUN__V165*/ curfptr[160] = 0 ;}
-          
-          #else /*ENABLE_CHECKING*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1290:/ cppif.else");
-         /*_.IFCPP___V164*/ curfptr[159] = (/*nil*/NULL);
-          #endif /*ENABLE_CHECKING*/
-          ;
-         
-         #if ENABLE_CHECKING
-          BASILYS_LOCATION("warmelt-normatch.melt:1291:/ cppif.then");
-         BASILYS_LOCATION("warmelt-normatch.melt:1291:/ block");
-          /*block*/{
-           /*_#THE_CALLCOUNT__L60*/ curfnum[54] = 
-            callcount;;
-           BASILYS_LOCATION("warmelt-normatch.melt:1291:/ apply");
-           /*apply*/{
-            union basilysparam_un argtab[4];
-            memset(&argtab, 0, sizeof(argtab));
-            BASILYS_LOCATION("warmelt-normatch.melt:1291:/ apply.arg");
-            argtab[0].bp_cstring =  "normexp_match sortedbindings";
-            BASILYS_LOCATION("warmelt-normatch.melt:1291:/ apply.arg");
-            argtab[1].bp_long = /*_#THE_CALLCOUNT__L60*/ curfnum[54];
-            BASILYS_LOCATION("warmelt-normatch.melt:1291:/ apply.arg");
-            argtab[2].bp_cstring =  "warmelt-normatch.melt";
-            BASILYS_LOCATION("warmelt-normatch.melt:1291:/ apply.arg");
-            argtab[3].bp_long = 1291;
-            /*_.DEBUG_MSG_FUN__V167*/ curfptr[153] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SORTEDBINDINGS__V146*/ curfptr[132]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-            }
-           ;
-           /*_.IFCPP___V166*/ curfptr[161] = /*_.DEBUG_MSG_FUN__V167*/ curfptr[153];;
-           /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1291:/ clear");
-           /*clear*/ /*_#THE_CALLCOUNT__L60*/ curfnum[54] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1291:/ clear");
-           /*clear*/ /*_.DEBUG_MSG_FUN__V167*/ curfptr[153] = 0 ;}
-          
-          #else /*ENABLE_CHECKING*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1291:/ cppif.else");
-         /*_.IFCPP___V166*/ curfptr[161] = (/*nil*/NULL);
-          #endif /*ENABLE_CHECKING*/
-          ;
          
          #if ENABLE_CHECKING
           BASILYS_LOCATION("warmelt-normatch.melt:1292:/ cppif.then");
          BASILYS_LOCATION("warmelt-normatch.melt:1292:/ block");
           /*block*/{
+           /*_#THE_CALLCOUNT__L59*/ curfnum[54] = 
+            callcount;;
+           BASILYS_LOCATION("warmelt-normatch.melt:1292:/ apply");
+           /*apply*/{
+            union basilysparam_un argtab[4];
+            memset(&argtab, 0, sizeof(argtab));
+            BASILYS_LOCATION("warmelt-normatch.melt:1292:/ apply.arg");
+            argtab[0].bp_cstring =  "normexp_match freshnewenv";
+            BASILYS_LOCATION("warmelt-normatch.melt:1292:/ apply.arg");
+            argtab[1].bp_long = /*_#THE_CALLCOUNT__L59*/ curfnum[54];
+            BASILYS_LOCATION("warmelt-normatch.melt:1292:/ apply.arg");
+            argtab[2].bp_cstring =  "warmelt-normatch.melt";
+            BASILYS_LOCATION("warmelt-normatch.melt:1292:/ apply.arg");
+            argtab[3].bp_long = 1292;
+            /*_.DEBUG_MSG_FUN__V165*/ curfptr[160] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.FRESHNEWENV__V147*/ curfptr[146]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+            }
+           ;
+           /*_.IFCPP___V164*/ curfptr[159] = /*_.DEBUG_MSG_FUN__V165*/ curfptr[160];;
+           /*epilog*/
+           BASILYS_LOCATION("warmelt-normatch.melt:1292:/ clear");
+           /*clear*/ /*_#THE_CALLCOUNT__L59*/ curfnum[54] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:1292:/ clear");
+           /*clear*/ /*_.DEBUG_MSG_FUN__V165*/ curfptr[160] = 0 ;}
+          
+          #else /*ENABLE_CHECKING*/
+          BASILYS_LOCATION("warmelt-normatch.melt:1292:/ cppif.else");
+         /*_.IFCPP___V164*/ curfptr[159] = (/*nil*/NULL);
+          #endif /*ENABLE_CHECKING*/
+          ;
+         
+         #if ENABLE_CHECKING
+          BASILYS_LOCATION("warmelt-normatch.melt:1293:/ cppif.then");
+         BASILYS_LOCATION("warmelt-normatch.melt:1293:/ block");
+          /*block*/{
+           /*_#THE_CALLCOUNT__L60*/ curfnum[54] = 
+            callcount;;
+           BASILYS_LOCATION("warmelt-normatch.melt:1293:/ apply");
+           /*apply*/{
+            union basilysparam_un argtab[4];
+            memset(&argtab, 0, sizeof(argtab));
+            BASILYS_LOCATION("warmelt-normatch.melt:1293:/ apply.arg");
+            argtab[0].bp_cstring =  "normexp_match sortedbindings";
+            BASILYS_LOCATION("warmelt-normatch.melt:1293:/ apply.arg");
+            argtab[1].bp_long = /*_#THE_CALLCOUNT__L60*/ curfnum[54];
+            BASILYS_LOCATION("warmelt-normatch.melt:1293:/ apply.arg");
+            argtab[2].bp_cstring =  "warmelt-normatch.melt";
+            BASILYS_LOCATION("warmelt-normatch.melt:1293:/ apply.arg");
+            argtab[3].bp_long = 1293;
+            /*_.DEBUG_MSG_FUN__V167*/ curfptr[153] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SORTEDBINDINGS__V146*/ curfptr[132]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+            }
+           ;
+           /*_.IFCPP___V166*/ curfptr[161] = /*_.DEBUG_MSG_FUN__V167*/ curfptr[153];;
+           /*epilog*/
+           BASILYS_LOCATION("warmelt-normatch.melt:1293:/ clear");
+           /*clear*/ /*_#THE_CALLCOUNT__L60*/ curfnum[54] = 0 ;
+           BASILYS_LOCATION("warmelt-normatch.melt:1293:/ clear");
+           /*clear*/ /*_.DEBUG_MSG_FUN__V167*/ curfptr[153] = 0 ;}
+          
+          #else /*ENABLE_CHECKING*/
+          BASILYS_LOCATION("warmelt-normatch.melt:1293:/ cppif.else");
+         /*_.IFCPP___V166*/ curfptr[161] = (/*nil*/NULL);
+          #endif /*ENABLE_CHECKING*/
+          ;
+         
+         #if ENABLE_CHECKING
+          BASILYS_LOCATION("warmelt-normatch.melt:1294:/ cppif.then");
+         BASILYS_LOCATION("warmelt-normatch.melt:1294:/ block");
+          /*block*/{
            /*_#IS_MULTIPLE__L61*/ curfnum[54] = 
             (basilys_magic_discr((basilys_ptr_t)(/*_.SORTEDBINDINGS__V146*/ curfptr[132])) == OBMAG_MULTIPLE);;
-           BASILYS_LOCATION("warmelt-normatch.melt:1292:/ cond");
+           BASILYS_LOCATION("warmelt-normatch.melt:1294:/ cond");
            /*cond*/ if (/*_#IS_MULTIPLE__L61*/ curfnum[54]) /*then*/ {
-           BASILYS_LOCATION("warmelt-normatch.melt:1292:/ cond.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:1294:/ cond.then");
            /*_.IFELSE___V169*/ curfptr[155] = (/*nil*/NULL);;
-           } else {BASILYS_LOCATION("warmelt-normatch.melt:1292:/ cond.else");
+           } else {BASILYS_LOCATION("warmelt-normatch.melt:1294:/ cond.else");
            
-            BASILYS_LOCATION("warmelt-normatch.melt:1292:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1294:/ block");
             /*block*/{
              /*block*/{
               
               {
-              BASILYS_LOCATION("warmelt-normatch.melt:1292:/ locexp");
-              basilys_assert_failed(( "check sortedbindings"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1292)?(1292):__LINE__, __FUNCTION__);}
+              BASILYS_LOCATION("warmelt-normatch.melt:1294:/ locexp");
+              basilys_assert_failed(( "check sortedbindings"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1294)?(1294):__LINE__, __FUNCTION__);}
               ;
               /*clear*/ /*_.IFELSE___V169*/ curfptr[155] = 0 ;}
              ;
@@ -17561,17 +17575,17 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
            ;
            /*_.IFCPP___V168*/ curfptr[154] = /*_.IFELSE___V169*/ curfptr[155];;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1292:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1294:/ clear");
            /*clear*/ /*_#IS_MULTIPLE__L61*/ curfnum[54] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1292:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1294:/ clear");
            /*clear*/ /*_.IFELSE___V169*/ curfptr[155] = 0 ;}
           
           #else /*ENABLE_CHECKING*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1292:/ cppif.else");
+          BASILYS_LOCATION("warmelt-normatch.melt:1294:/ cppif.else");
          /*_.IFCPP___V168*/ curfptr[154] = (/*nil*/NULL);
           #endif /*ENABLE_CHECKING*/
           ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1293:/ block");
+         BASILYS_LOCATION("warmelt-normatch.melt:1295:/ block");
          /*block*/{
           /*_.SUBINDLIST__V171*/ curfptr[160] = 
            (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[6]))));;
@@ -17585,58 +17599,58 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
           
            
            #if ENABLE_CHECKING
-            BASILYS_LOCATION("warmelt-normatch.melt:1298:/ cppif.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:1298:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1300:/ cppif.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:1300:/ block");
             /*block*/{
              /*_#THE_CALLCOUNT__L63*/ curfnum[62] = 
               callcount;;
-             BASILYS_LOCATION("warmelt-normatch.melt:1298:/ apply");
+             BASILYS_LOCATION("warmelt-normatch.melt:1300:/ apply");
              /*apply*/{
               union basilysparam_un argtab[4];
               memset(&argtab, 0, sizeof(argtab));
-              BASILYS_LOCATION("warmelt-normatch.melt:1298:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1300:/ apply.arg");
               argtab[0].bp_cstring =  "normexp_match cursortbind";
-              BASILYS_LOCATION("warmelt-normatch.melt:1298:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1300:/ apply.arg");
               argtab[1].bp_long = /*_#THE_CALLCOUNT__L63*/ curfnum[62];
-              BASILYS_LOCATION("warmelt-normatch.melt:1298:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1300:/ apply.arg");
               argtab[2].bp_cstring =  "warmelt-normatch.melt";
-              BASILYS_LOCATION("warmelt-normatch.melt:1298:/ apply.arg");
-              argtab[3].bp_long = 1298;
+              BASILYS_LOCATION("warmelt-normatch.melt:1300:/ apply.arg");
+              argtab[3].bp_long = 1300;
               /*_.DEBUG_MSG_FUN__V174*/ curfptr[173] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURSORTBIND__V172*/ curfptr[153]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
               }
              ;
              /*_.IFCPP___V173*/ curfptr[155] = /*_.DEBUG_MSG_FUN__V174*/ curfptr[173];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1298:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1300:/ clear");
              /*clear*/ /*_#THE_CALLCOUNT__L63*/ curfnum[62] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1298:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1300:/ clear");
              /*clear*/ /*_.DEBUG_MSG_FUN__V174*/ curfptr[173] = 0 ;}
             
             #else /*ENABLE_CHECKING*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1298:/ cppif.else");
+            BASILYS_LOCATION("warmelt-normatch.melt:1300:/ cppif.else");
            /*_.IFCPP___V173*/ curfptr[155] = (/*nil*/NULL);
             #endif /*ENABLE_CHECKING*/
             ;
            
            #if ENABLE_CHECKING
-            BASILYS_LOCATION("warmelt-normatch.melt:1299:/ cppif.then");
-           BASILYS_LOCATION("warmelt-normatch.melt:1299:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1301:/ cppif.then");
+           BASILYS_LOCATION("warmelt-normatch.melt:1301:/ block");
             /*block*/{
              /*_#IS_A__L64*/ curfnum[62] = 
                basilys_is_instance_of((basilys_ptr_t)(/*_.CURSORTBIND__V172*/ curfptr[153]), (basilys_ptr_t)((/*!CLASS_NORMLET_BINDING*/ curfrout->tabval[11])));;
-             BASILYS_LOCATION("warmelt-normatch.melt:1299:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:1301:/ cond");
              /*cond*/ if (/*_#IS_A__L64*/ curfnum[62]) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:1299:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1301:/ cond.then");
              /*_.IFELSE___V176*/ curfptr[175] = (/*nil*/NULL);;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:1299:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:1301:/ cond.else");
              
-              BASILYS_LOCATION("warmelt-normatch.melt:1299:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1301:/ block");
               /*block*/{
                /*block*/{
                 
                 {
-                BASILYS_LOCATION("warmelt-normatch.melt:1299:/ locexp");
-                basilys_assert_failed(( "check cursortbind"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1299)?(1299):__LINE__, __FUNCTION__);}
+                BASILYS_LOCATION("warmelt-normatch.melt:1301:/ locexp");
+                basilys_assert_failed(( "check cursortbind"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1301)?(1301):__LINE__, __FUNCTION__);}
                 ;
                 /*clear*/ /*_.IFELSE___V176*/ curfptr[175] = 0 ;}
                ;
@@ -17646,142 +17660,142 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
              ;
              /*_.IFCPP___V175*/ curfptr[173] = /*_.IFELSE___V176*/ curfptr[175];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1299:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1301:/ clear");
              /*clear*/ /*_#IS_A__L64*/ curfnum[62] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1299:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1301:/ clear");
              /*clear*/ /*_.IFELSE___V176*/ curfptr[175] = 0 ;}
             
             #else /*ENABLE_CHECKING*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1299:/ cppif.else");
+            BASILYS_LOCATION("warmelt-normatch.melt:1301:/ cppif.else");
            /*_.IFCPP___V175*/ curfptr[173] = (/*nil*/NULL);
             #endif /*ENABLE_CHECKING*/
             ;
            
            {
-           BASILYS_LOCATION("warmelt-normatch.melt:1301:/ locexp");
+           BASILYS_LOCATION("warmelt-normatch.melt:1303:/ locexp");
            basilysgc_append_list((basilys_ptr_t)(/*_.SUBINDLIST__V171*/ curfptr[160]), (basilys_ptr_t)(/*_.CURSORTBIND__V172*/ curfptr[153]));}
            ;
           } /* end cit3__EACHTUP*/
           
            /*citerepilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1295:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1297:/ clear");
            /*clear*/ /*_.CURSORTBIND__V172*/ curfptr[153] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1295:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1297:/ clear");
            /*clear*/ /*_#SORTBIX__L62*/ curfnum[54] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1295:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1297:/ clear");
            /*clear*/ /*_.IFCPP___V173*/ curfptr[155] = 0 ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1295:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1297:/ clear");
            /*clear*/ /*_.IFCPP___V175*/ curfptr[173] = 0 ;} /*endciterblock FOREACH_IN_MULTIPLE*/
           ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1303:/ block");
+          BASILYS_LOCATION("warmelt-normatch.melt:1305:/ block");
           /*block*/{
-           BASILYS_LOCATION("warmelt-normatch.melt:1303:/ multiapply");
+           BASILYS_LOCATION("warmelt-normatch.melt:1305:/ multiapply");
            /*multiapply 4args, 1x.res*/ {
             union basilysparam_un argtab[3];
             
             union basilysparam_un restab[1];
             memset(&restab, 0, sizeof(restab));
             memset(&argtab, 0, sizeof(argtab));
-            BASILYS_LOCATION("warmelt-normatch.melt:1303:/ multiapply.arg");
-            argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.FRESHNEWENV__V147*/ curfptr[146];BASILYS_LOCATION("warmelt-normatch.melt:1303:/ multiapply.arg");
-            argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V4*/ curfptr[3];BASILYS_LOCATION("warmelt-normatch.melt:1303:/ multiapply.arg");
+            BASILYS_LOCATION("warmelt-normatch.melt:1305:/ multiapply.arg");
+            argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.FRESHNEWENV__V147*/ curfptr[146];BASILYS_LOCATION("warmelt-normatch.melt:1305:/ multiapply.arg");
+            argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V4*/ curfptr[3];BASILYS_LOCATION("warmelt-normatch.melt:1305:/ multiapply.arg");
             argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.CURLOC__V61*/ curfptr[41];
-            BASILYS_LOCATION("warmelt-normatch.melt:1303:/ multiapply.xres");
+            BASILYS_LOCATION("warmelt-normatch.melt:1305:/ multiapply.xres");
             restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDSBODY__V179*/ curfptr[178];
-            BASILYS_LOCATION("warmelt-normatch.melt:1303:/ multiapply.appl");
+            BASILYS_LOCATION("warmelt-normatch.melt:1305:/ multiapply.appl");
             /*_.NBODY__V178*/ curfptr[177] =  basilys_apply ((basilysclosure_ptr_t)((/*!NORMALIZE_TUPLE*/ curfrout->tabval[27])), (basilys_ptr_t)(/*_.CURBODY__V63*/ curfptr[48]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
             }
            ;
-           BASILYS_LOCATION("warmelt-normatch.melt:1303:/ block");
+           BASILYS_LOCATION("warmelt-normatch.melt:1305:/ block");
            /*block*/{
-            
-            #if ENABLE_CHECKING
-             BASILYS_LOCATION("warmelt-normatch.melt:1306:/ cppif.then");
-            BASILYS_LOCATION("warmelt-normatch.melt:1306:/ block");
-             /*block*/{
-              /*_#THE_CALLCOUNT__L65*/ curfnum[62] = 
-               callcount;;
-              BASILYS_LOCATION("warmelt-normatch.melt:1306:/ apply");
-              /*apply*/{
-               union basilysparam_un argtab[4];
-               memset(&argtab, 0, sizeof(argtab));
-               BASILYS_LOCATION("warmelt-normatch.melt:1306:/ apply.arg");
-               argtab[0].bp_cstring =  "normexp_match nbody";
-               BASILYS_LOCATION("warmelt-normatch.melt:1306:/ apply.arg");
-               argtab[1].bp_long = /*_#THE_CALLCOUNT__L65*/ curfnum[62];
-               BASILYS_LOCATION("warmelt-normatch.melt:1306:/ apply.arg");
-               argtab[2].bp_cstring =  "warmelt-normatch.melt";
-               BASILYS_LOCATION("warmelt-normatch.melt:1306:/ apply.arg");
-               argtab[3].bp_long = 1306;
-               /*_.DEBUG_MSG_FUN__V181*/ curfptr[180] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.NBODY__V178*/ curfptr[177]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-               }
-              ;
-              /*_.IFCPP___V180*/ curfptr[179] = /*_.DEBUG_MSG_FUN__V181*/ curfptr[180];;
-              /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1306:/ clear");
-              /*clear*/ /*_#THE_CALLCOUNT__L65*/ curfnum[62] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1306:/ clear");
-              /*clear*/ /*_.DEBUG_MSG_FUN__V181*/ curfptr[180] = 0 ;}
-             
-             #else /*ENABLE_CHECKING*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1306:/ cppif.else");
-            /*_.IFCPP___V180*/ curfptr[179] = (/*nil*/NULL);
-             #endif /*ENABLE_CHECKING*/
-             ;
-            
-            #if ENABLE_CHECKING
-             BASILYS_LOCATION("warmelt-normatch.melt:1307:/ cppif.then");
-            BASILYS_LOCATION("warmelt-normatch.melt:1307:/ block");
-             /*block*/{
-              /*_#THE_CALLCOUNT__L66*/ curfnum[62] = 
-               callcount;;
-              BASILYS_LOCATION("warmelt-normatch.melt:1307:/ apply");
-              /*apply*/{
-               union basilysparam_un argtab[4];
-               memset(&argtab, 0, sizeof(argtab));
-               BASILYS_LOCATION("warmelt-normatch.melt:1307:/ apply.arg");
-               argtab[0].bp_cstring =  "normexp_match bindsbody";
-               BASILYS_LOCATION("warmelt-normatch.melt:1307:/ apply.arg");
-               argtab[1].bp_long = /*_#THE_CALLCOUNT__L66*/ curfnum[62];
-               BASILYS_LOCATION("warmelt-normatch.melt:1307:/ apply.arg");
-               argtab[2].bp_cstring =  "warmelt-normatch.melt";
-               BASILYS_LOCATION("warmelt-normatch.melt:1307:/ apply.arg");
-               argtab[3].bp_long = 1307;
-               /*_.DEBUG_MSG_FUN__V183*/ curfptr[182] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.BINDSBODY__V179*/ curfptr[178]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-               }
-              ;
-              /*_.IFCPP___V182*/ curfptr[180] = /*_.DEBUG_MSG_FUN__V183*/ curfptr[182];;
-              /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1307:/ clear");
-              /*clear*/ /*_#THE_CALLCOUNT__L66*/ curfnum[62] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1307:/ clear");
-              /*clear*/ /*_.DEBUG_MSG_FUN__V183*/ curfptr[182] = 0 ;}
-             
-             #else /*ENABLE_CHECKING*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1307:/ cppif.else");
-            /*_.IFCPP___V182*/ curfptr[180] = (/*nil*/NULL);
-             #endif /*ENABLE_CHECKING*/
-             ;
             
             #if ENABLE_CHECKING
              BASILYS_LOCATION("warmelt-normatch.melt:1308:/ cppif.then");
             BASILYS_LOCATION("warmelt-normatch.melt:1308:/ block");
              /*block*/{
+              /*_#THE_CALLCOUNT__L65*/ curfnum[62] = 
+               callcount;;
+              BASILYS_LOCATION("warmelt-normatch.melt:1308:/ apply");
+              /*apply*/{
+               union basilysparam_un argtab[4];
+               memset(&argtab, 0, sizeof(argtab));
+               BASILYS_LOCATION("warmelt-normatch.melt:1308:/ apply.arg");
+               argtab[0].bp_cstring =  "normexp_match nbody";
+               BASILYS_LOCATION("warmelt-normatch.melt:1308:/ apply.arg");
+               argtab[1].bp_long = /*_#THE_CALLCOUNT__L65*/ curfnum[62];
+               BASILYS_LOCATION("warmelt-normatch.melt:1308:/ apply.arg");
+               argtab[2].bp_cstring =  "warmelt-normatch.melt";
+               BASILYS_LOCATION("warmelt-normatch.melt:1308:/ apply.arg");
+               argtab[3].bp_long = 1308;
+               /*_.DEBUG_MSG_FUN__V181*/ curfptr[180] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.NBODY__V178*/ curfptr[177]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+               }
+              ;
+              /*_.IFCPP___V180*/ curfptr[179] = /*_.DEBUG_MSG_FUN__V181*/ curfptr[180];;
+              /*epilog*/
+              BASILYS_LOCATION("warmelt-normatch.melt:1308:/ clear");
+              /*clear*/ /*_#THE_CALLCOUNT__L65*/ curfnum[62] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:1308:/ clear");
+              /*clear*/ /*_.DEBUG_MSG_FUN__V181*/ curfptr[180] = 0 ;}
+             
+             #else /*ENABLE_CHECKING*/
+             BASILYS_LOCATION("warmelt-normatch.melt:1308:/ cppif.else");
+            /*_.IFCPP___V180*/ curfptr[179] = (/*nil*/NULL);
+             #endif /*ENABLE_CHECKING*/
+             ;
+            
+            #if ENABLE_CHECKING
+             BASILYS_LOCATION("warmelt-normatch.melt:1309:/ cppif.then");
+            BASILYS_LOCATION("warmelt-normatch.melt:1309:/ block");
+             /*block*/{
+              /*_#THE_CALLCOUNT__L66*/ curfnum[62] = 
+               callcount;;
+              BASILYS_LOCATION("warmelt-normatch.melt:1309:/ apply");
+              /*apply*/{
+               union basilysparam_un argtab[4];
+               memset(&argtab, 0, sizeof(argtab));
+               BASILYS_LOCATION("warmelt-normatch.melt:1309:/ apply.arg");
+               argtab[0].bp_cstring =  "normexp_match bindsbody";
+               BASILYS_LOCATION("warmelt-normatch.melt:1309:/ apply.arg");
+               argtab[1].bp_long = /*_#THE_CALLCOUNT__L66*/ curfnum[62];
+               BASILYS_LOCATION("warmelt-normatch.melt:1309:/ apply.arg");
+               argtab[2].bp_cstring =  "warmelt-normatch.melt";
+               BASILYS_LOCATION("warmelt-normatch.melt:1309:/ apply.arg");
+               argtab[3].bp_long = 1309;
+               /*_.DEBUG_MSG_FUN__V183*/ curfptr[182] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.BINDSBODY__V179*/ curfptr[178]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+               }
+              ;
+              /*_.IFCPP___V182*/ curfptr[180] = /*_.DEBUG_MSG_FUN__V183*/ curfptr[182];;
+              /*epilog*/
+              BASILYS_LOCATION("warmelt-normatch.melt:1309:/ clear");
+              /*clear*/ /*_#THE_CALLCOUNT__L66*/ curfnum[62] = 0 ;
+              BASILYS_LOCATION("warmelt-normatch.melt:1309:/ clear");
+              /*clear*/ /*_.DEBUG_MSG_FUN__V183*/ curfptr[182] = 0 ;}
+             
+             #else /*ENABLE_CHECKING*/
+             BASILYS_LOCATION("warmelt-normatch.melt:1309:/ cppif.else");
+            /*_.IFCPP___V182*/ curfptr[180] = (/*nil*/NULL);
+             #endif /*ENABLE_CHECKING*/
+             ;
+            
+            #if ENABLE_CHECKING
+             BASILYS_LOCATION("warmelt-normatch.melt:1310:/ cppif.then");
+            BASILYS_LOCATION("warmelt-normatch.melt:1310:/ block");
+             /*block*/{
               /*_#IS_LIST_OR_NULL__L67*/ curfnum[62] = 
                ((/*_.BINDSBODY__V179*/ curfptr[178]) == NULL || (basilys_magic_discr((basilys_ptr_t)(/*_.BINDSBODY__V179*/ curfptr[178])) == OBMAG_LIST));;
-              BASILYS_LOCATION("warmelt-normatch.melt:1308:/ cond");
+              BASILYS_LOCATION("warmelt-normatch.melt:1310:/ cond");
               /*cond*/ if (/*_#IS_LIST_OR_NULL__L67*/ curfnum[62]) /*then*/ {
-              BASILYS_LOCATION("warmelt-normatch.melt:1308:/ cond.then");
+              BASILYS_LOCATION("warmelt-normatch.melt:1310:/ cond.then");
               /*_.IFELSE___V185*/ curfptr[184] = (/*nil*/NULL);;
-              } else {BASILYS_LOCATION("warmelt-normatch.melt:1308:/ cond.else");
+              } else {BASILYS_LOCATION("warmelt-normatch.melt:1310:/ cond.else");
               
-               BASILYS_LOCATION("warmelt-normatch.melt:1308:/ block");
+               BASILYS_LOCATION("warmelt-normatch.melt:1310:/ block");
                /*block*/{
                 /*block*/{
                  
                  {
-                 BASILYS_LOCATION("warmelt-normatch.melt:1308:/ locexp");
-                 basilys_assert_failed(( "check bindsbody"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1308)?(1308):__LINE__, __FUNCTION__);}
+                 BASILYS_LOCATION("warmelt-normatch.melt:1310:/ locexp");
+                 basilys_assert_failed(( "check bindsbody"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1310)?(1310):__LINE__, __FUNCTION__);}
                  ;
                  /*clear*/ /*_.IFELSE___V185*/ curfptr[184] = 0 ;}
                 ;
@@ -17791,13 +17805,13 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
               ;
               /*_.IFCPP___V184*/ curfptr[182] = /*_.IFELSE___V185*/ curfptr[184];;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1308:/ clear");
+              BASILYS_LOCATION("warmelt-normatch.melt:1310:/ clear");
               /*clear*/ /*_#IS_LIST_OR_NULL__L67*/ curfnum[62] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1308:/ clear");
+              BASILYS_LOCATION("warmelt-normatch.melt:1310:/ clear");
               /*clear*/ /*_.IFELSE___V185*/ curfptr[184] = 0 ;}
              
              #else /*ENABLE_CHECKING*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1308:/ cppif.else");
+             BASILYS_LOCATION("warmelt-normatch.melt:1310:/ cppif.else");
             /*_.IFCPP___V184*/ curfptr[182] = (/*nil*/NULL);
              #endif /*ENABLE_CHECKING*/
              ;
@@ -17811,225 +17825,225 @@ basilys_magic_discr(/*_.BINDBODYPAIR__V186*/ curfptr[184]) == OBMAG_PAIR;
             
              
              #if ENABLE_CHECKING
-              BASILYS_LOCATION("warmelt-normatch.melt:1312:/ cppif.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1312:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1314:/ cppif.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1314:/ block");
               /*block*/{
                /*_#THE_CALLCOUNT__L68*/ curfnum[62] = 
                 callcount;;
-               BASILYS_LOCATION("warmelt-normatch.melt:1312:/ apply");
+               BASILYS_LOCATION("warmelt-normatch.melt:1314:/ apply");
                /*apply*/{
                 union basilysparam_un argtab[4];
                 memset(&argtab, 0, sizeof(argtab));
-                BASILYS_LOCATION("warmelt-normatch.melt:1312:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1314:/ apply.arg");
                 argtab[0].bp_cstring =  "normexp_match curbindbody";
-                BASILYS_LOCATION("warmelt-normatch.melt:1312:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1314:/ apply.arg");
                 argtab[1].bp_long = /*_#THE_CALLCOUNT__L68*/ curfnum[62];
-                BASILYS_LOCATION("warmelt-normatch.melt:1312:/ apply.arg");
+                BASILYS_LOCATION("warmelt-normatch.melt:1314:/ apply.arg");
                 argtab[2].bp_cstring =  "warmelt-normatch.melt";
-                BASILYS_LOCATION("warmelt-normatch.melt:1312:/ apply.arg");
-                argtab[3].bp_long = 1312;
+                BASILYS_LOCATION("warmelt-normatch.melt:1314:/ apply.arg");
+                argtab[3].bp_long = 1314;
                 /*_.DEBUG_MSG_FUN__V189*/ curfptr[188] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.CURBINDBODY__V187*/ curfptr[186]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                 }
                ;
                /*_.IFCPP___V188*/ curfptr[187] = /*_.DEBUG_MSG_FUN__V189*/ curfptr[188];;
                /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1312:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1314:/ clear");
                /*clear*/ /*_#THE_CALLCOUNT__L68*/ curfnum[62] = 0 ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1312:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1314:/ clear");
                /*clear*/ /*_.DEBUG_MSG_FUN__V189*/ curfptr[188] = 0 ;}
               
               #else /*ENABLE_CHECKING*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1312:/ cppif.else");
+              BASILYS_LOCATION("warmelt-normatch.melt:1314:/ cppif.else");
              /*_.IFCPP___V188*/ curfptr[187] = (/*nil*/NULL);
               #endif /*ENABLE_CHECKING*/
               ;
              
              {
-             BASILYS_LOCATION("warmelt-normatch.melt:1313:/ locexp");
+             BASILYS_LOCATION("warmelt-normatch.melt:1315:/ locexp");
              basilysgc_append_list((basilys_ptr_t)(/*_.SUBINDLIST__V171*/ curfptr[160]), (basilys_ptr_t)(/*_.CURBINDBODY__V187*/ curfptr[186]));}
              ;
             } /* end cit4__EACHLIST*/
 
             
              /*citerepilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1309:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1311:/ clear");
              /*clear*/ /*_.BINDBODYPAIR__V186*/ curfptr[184] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1309:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1311:/ clear");
              /*clear*/ /*_.CURBINDBODY__V187*/ curfptr[186] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1309:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1311:/ clear");
              /*clear*/ /*_.IFCPP___V188*/ curfptr[187] = 0 ;} /*endciterblock FOREACH_IN_LIST*/
             ;
             
             #if ENABLE_CHECKING
-             BASILYS_LOCATION("warmelt-normatch.melt:1315:/ cppif.then");
-            BASILYS_LOCATION("warmelt-normatch.melt:1315:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1317:/ cppif.then");
+            BASILYS_LOCATION("warmelt-normatch.melt:1317:/ block");
              /*block*/{
               /*_#THE_CALLCOUNT__L69*/ curfnum[62] = 
                callcount;;
-              BASILYS_LOCATION("warmelt-normatch.melt:1315:/ apply");
+              BASILYS_LOCATION("warmelt-normatch.melt:1317:/ apply");
               /*apply*/{
                union basilysparam_un argtab[4];
                memset(&argtab, 0, sizeof(argtab));
-               BASILYS_LOCATION("warmelt-normatch.melt:1315:/ apply.arg");
+               BASILYS_LOCATION("warmelt-normatch.melt:1317:/ apply.arg");
                argtab[0].bp_cstring =  "normexp_match final subindlist";
-               BASILYS_LOCATION("warmelt-normatch.melt:1315:/ apply.arg");
+               BASILYS_LOCATION("warmelt-normatch.melt:1317:/ apply.arg");
                argtab[1].bp_long = /*_#THE_CALLCOUNT__L69*/ curfnum[62];
-               BASILYS_LOCATION("warmelt-normatch.melt:1315:/ apply.arg");
+               BASILYS_LOCATION("warmelt-normatch.melt:1317:/ apply.arg");
                argtab[2].bp_cstring =  "warmelt-normatch.melt";
-               BASILYS_LOCATION("warmelt-normatch.melt:1315:/ apply.arg");
-               argtab[3].bp_long = 1315;
+               BASILYS_LOCATION("warmelt-normatch.melt:1317:/ apply.arg");
+               argtab[3].bp_long = 1317;
                /*_.DEBUG_MSG_FUN__V191*/ curfptr[190] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SUBINDLIST__V171*/ curfptr[160]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                }
               ;
               /*_.IFCPP___V190*/ curfptr[188] = /*_.DEBUG_MSG_FUN__V191*/ curfptr[190];;
               /*epilog*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1315:/ clear");
+              BASILYS_LOCATION("warmelt-normatch.melt:1317:/ clear");
               /*clear*/ /*_#THE_CALLCOUNT__L69*/ curfnum[62] = 0 ;
-              BASILYS_LOCATION("warmelt-normatch.melt:1315:/ clear");
+              BASILYS_LOCATION("warmelt-normatch.melt:1317:/ clear");
               /*clear*/ /*_.DEBUG_MSG_FUN__V191*/ curfptr[190] = 0 ;}
              
              #else /*ENABLE_CHECKING*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1315:/ cppif.else");
+             BASILYS_LOCATION("warmelt-normatch.melt:1317:/ cppif.else");
             /*_.IFCPP___V190*/ curfptr[188] = (/*nil*/NULL);
              #endif /*ENABLE_CHECKING*/
              ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1316:/ block");
+            BASILYS_LOCATION("warmelt-normatch.melt:1318:/ block");
             /*block*/{
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ apply");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ apply");
              /*apply*/{
               union basilysparam_un argtab[2];
               memset(&argtab, 0, sizeof(argtab));
-              BASILYS_LOCATION("warmelt-normatch.melt:1316:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1318:/ apply.arg");
               argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.SUBINDLIST__V171*/ curfptr[160];
-              BASILYS_LOCATION("warmelt-normatch.melt:1316:/ apply.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1318:/ apply.arg");
               argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.CURLOC__V61*/ curfptr[41];
               /*_.WNLET__V193*/ curfptr[192] =  basilys_apply ((basilysclosure_ptr_t)((/*!WRAP_NORMAL_LETSEQ*/ curfrout->tabval[28])), (basilys_ptr_t)(/*_.NBODY__V178*/ curfptr[177]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
               }
              ;
              /*_.LASTNBODY__V194*/ curfptr[193] = 
               (basilys_multiple_nth((basilys_ptr_t)(/*_.NBODY__V178*/ curfptr[177]), (-1)));;
-             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ msend");
+             BASILYS_LOCATION("warmelt-normatch.melt:1320:/ msend");
              /*msend*/{
               union basilysparam_un argtab[1];
               memset(&argtab, 0, sizeof(argtab));
-              BASILYS_LOCATION("warmelt-normatch.melt:1318:/ ojbmsend.arg");
+              BASILYS_LOCATION("warmelt-normatch.melt:1320:/ ojbmsend.arg");
               argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.FRESHNEWENV__V147*/ curfptr[146];
               /*_.LASTCTYPE__V195*/ curfptr[194] = basilysgc_send((basilys_ptr_t)(/*_.LASTNBODY__V194*/ curfptr[193]), (basilys_ptr_t)((/*!GET_CTYPE*/ curfrout->tabval[8])), (BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
               }
              ;
              
              #if ENABLE_CHECKING
-              BASILYS_LOCATION("warmelt-normatch.melt:1320:/ cppif.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1320:/ block");
-              /*block*/{
-               /*_#THE_CALLCOUNT__L70*/ curfnum[62] = 
-                callcount;;
-               BASILYS_LOCATION("warmelt-normatch.melt:1320:/ apply");
-               /*apply*/{
-                union basilysparam_un argtab[4];
-                memset(&argtab, 0, sizeof(argtab));
-                BASILYS_LOCATION("warmelt-normatch.melt:1320:/ apply.arg");
-                argtab[0].bp_cstring =  "normexp_match wnlet";
-                BASILYS_LOCATION("warmelt-normatch.melt:1320:/ apply.arg");
-                argtab[1].bp_long = /*_#THE_CALLCOUNT__L70*/ curfnum[62];
-                BASILYS_LOCATION("warmelt-normatch.melt:1320:/ apply.arg");
-                argtab[2].bp_cstring =  "warmelt-normatch.melt";
-                BASILYS_LOCATION("warmelt-normatch.melt:1320:/ apply.arg");
-                argtab[3].bp_long = 1320;
-                /*_.DEBUG_MSG_FUN__V197*/ curfptr[196] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.WNLET__V193*/ curfptr[192]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-                }
-               ;
-               /*_.IFCPP___V196*/ curfptr[195] = /*_.DEBUG_MSG_FUN__V197*/ curfptr[196];;
-               /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1320:/ clear");
-               /*clear*/ /*_#THE_CALLCOUNT__L70*/ curfnum[62] = 0 ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1320:/ clear");
-               /*clear*/ /*_.DEBUG_MSG_FUN__V197*/ curfptr[196] = 0 ;}
-              
-              #else /*ENABLE_CHECKING*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1320:/ cppif.else");
-             /*_.IFCPP___V196*/ curfptr[195] = (/*nil*/NULL);
-              #endif /*ENABLE_CHECKING*/
-              ;
-             
-             #if ENABLE_CHECKING
-              BASILYS_LOCATION("warmelt-normatch.melt:1321:/ cppif.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1321:/ block");
-              /*block*/{
-               /*_#THE_CALLCOUNT__L71*/ curfnum[62] = 
-                callcount;;
-               BASILYS_LOCATION("warmelt-normatch.melt:1321:/ apply");
-               /*apply*/{
-                union basilysparam_un argtab[4];
-                memset(&argtab, 0, sizeof(argtab));
-                BASILYS_LOCATION("warmelt-normatch.melt:1321:/ apply.arg");
-                argtab[0].bp_cstring =  "normexp_match lastnbody";
-                BASILYS_LOCATION("warmelt-normatch.melt:1321:/ apply.arg");
-                argtab[1].bp_long = /*_#THE_CALLCOUNT__L71*/ curfnum[62];
-                BASILYS_LOCATION("warmelt-normatch.melt:1321:/ apply.arg");
-                argtab[2].bp_cstring =  "warmelt-normatch.melt";
-                BASILYS_LOCATION("warmelt-normatch.melt:1321:/ apply.arg");
-                argtab[3].bp_long = 1321;
-                /*_.DEBUG_MSG_FUN__V199*/ curfptr[198] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.LASTNBODY__V194*/ curfptr[193]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
-                }
-               ;
-               /*_.IFCPP___V198*/ curfptr[196] = /*_.DEBUG_MSG_FUN__V199*/ curfptr[198];;
-               /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1321:/ clear");
-               /*clear*/ /*_#THE_CALLCOUNT__L71*/ curfnum[62] = 0 ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1321:/ clear");
-               /*clear*/ /*_.DEBUG_MSG_FUN__V199*/ curfptr[198] = 0 ;}
-              
-              #else /*ENABLE_CHECKING*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1321:/ cppif.else");
-             /*_.IFCPP___V198*/ curfptr[196] = (/*nil*/NULL);
-              #endif /*ENABLE_CHECKING*/
-              ;
-             
-             #if ENABLE_CHECKING
               BASILYS_LOCATION("warmelt-normatch.melt:1322:/ cppif.then");
              BASILYS_LOCATION("warmelt-normatch.melt:1322:/ block");
               /*block*/{
-               /*_#THE_CALLCOUNT__L72*/ curfnum[62] = 
+               /*_#THE_CALLCOUNT__L70*/ curfnum[62] = 
                 callcount;;
                BASILYS_LOCATION("warmelt-normatch.melt:1322:/ apply");
                /*apply*/{
                 union basilysparam_un argtab[4];
                 memset(&argtab, 0, sizeof(argtab));
                 BASILYS_LOCATION("warmelt-normatch.melt:1322:/ apply.arg");
-                argtab[0].bp_cstring =  "normexp_match lastctype";
+                argtab[0].bp_cstring =  "normexp_match wnlet";
                 BASILYS_LOCATION("warmelt-normatch.melt:1322:/ apply.arg");
-                argtab[1].bp_long = /*_#THE_CALLCOUNT__L72*/ curfnum[62];
+                argtab[1].bp_long = /*_#THE_CALLCOUNT__L70*/ curfnum[62];
                 BASILYS_LOCATION("warmelt-normatch.melt:1322:/ apply.arg");
                 argtab[2].bp_cstring =  "warmelt-normatch.melt";
                 BASILYS_LOCATION("warmelt-normatch.melt:1322:/ apply.arg");
                 argtab[3].bp_long = 1322;
+                /*_.DEBUG_MSG_FUN__V197*/ curfptr[196] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.WNLET__V193*/ curfptr[192]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+                }
+               ;
+               /*_.IFCPP___V196*/ curfptr[195] = /*_.DEBUG_MSG_FUN__V197*/ curfptr[196];;
+               /*epilog*/
+               BASILYS_LOCATION("warmelt-normatch.melt:1322:/ clear");
+               /*clear*/ /*_#THE_CALLCOUNT__L70*/ curfnum[62] = 0 ;
+               BASILYS_LOCATION("warmelt-normatch.melt:1322:/ clear");
+               /*clear*/ /*_.DEBUG_MSG_FUN__V197*/ curfptr[196] = 0 ;}
+              
+              #else /*ENABLE_CHECKING*/
+              BASILYS_LOCATION("warmelt-normatch.melt:1322:/ cppif.else");
+             /*_.IFCPP___V196*/ curfptr[195] = (/*nil*/NULL);
+              #endif /*ENABLE_CHECKING*/
+              ;
+             
+             #if ENABLE_CHECKING
+              BASILYS_LOCATION("warmelt-normatch.melt:1323:/ cppif.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1323:/ block");
+              /*block*/{
+               /*_#THE_CALLCOUNT__L71*/ curfnum[62] = 
+                callcount;;
+               BASILYS_LOCATION("warmelt-normatch.melt:1323:/ apply");
+               /*apply*/{
+                union basilysparam_un argtab[4];
+                memset(&argtab, 0, sizeof(argtab));
+                BASILYS_LOCATION("warmelt-normatch.melt:1323:/ apply.arg");
+                argtab[0].bp_cstring =  "normexp_match lastnbody";
+                BASILYS_LOCATION("warmelt-normatch.melt:1323:/ apply.arg");
+                argtab[1].bp_long = /*_#THE_CALLCOUNT__L71*/ curfnum[62];
+                BASILYS_LOCATION("warmelt-normatch.melt:1323:/ apply.arg");
+                argtab[2].bp_cstring =  "warmelt-normatch.melt";
+                BASILYS_LOCATION("warmelt-normatch.melt:1323:/ apply.arg");
+                argtab[3].bp_long = 1323;
+                /*_.DEBUG_MSG_FUN__V199*/ curfptr[198] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.LASTNBODY__V194*/ curfptr[193]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
+                }
+               ;
+               /*_.IFCPP___V198*/ curfptr[196] = /*_.DEBUG_MSG_FUN__V199*/ curfptr[198];;
+               /*epilog*/
+               BASILYS_LOCATION("warmelt-normatch.melt:1323:/ clear");
+               /*clear*/ /*_#THE_CALLCOUNT__L71*/ curfnum[62] = 0 ;
+               BASILYS_LOCATION("warmelt-normatch.melt:1323:/ clear");
+               /*clear*/ /*_.DEBUG_MSG_FUN__V199*/ curfptr[198] = 0 ;}
+              
+              #else /*ENABLE_CHECKING*/
+              BASILYS_LOCATION("warmelt-normatch.melt:1323:/ cppif.else");
+             /*_.IFCPP___V198*/ curfptr[196] = (/*nil*/NULL);
+              #endif /*ENABLE_CHECKING*/
+              ;
+             
+             #if ENABLE_CHECKING
+              BASILYS_LOCATION("warmelt-normatch.melt:1324:/ cppif.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1324:/ block");
+              /*block*/{
+               /*_#THE_CALLCOUNT__L72*/ curfnum[62] = 
+                callcount;;
+               BASILYS_LOCATION("warmelt-normatch.melt:1324:/ apply");
+               /*apply*/{
+                union basilysparam_un argtab[4];
+                memset(&argtab, 0, sizeof(argtab));
+                BASILYS_LOCATION("warmelt-normatch.melt:1324:/ apply.arg");
+                argtab[0].bp_cstring =  "normexp_match lastctype";
+                BASILYS_LOCATION("warmelt-normatch.melt:1324:/ apply.arg");
+                argtab[1].bp_long = /*_#THE_CALLCOUNT__L72*/ curfnum[62];
+                BASILYS_LOCATION("warmelt-normatch.melt:1324:/ apply.arg");
+                argtab[2].bp_cstring =  "warmelt-normatch.melt";
+                BASILYS_LOCATION("warmelt-normatch.melt:1324:/ apply.arg");
+                argtab[3].bp_long = 1324;
                 /*_.DEBUG_MSG_FUN__V201*/ curfptr[200] =  basilys_apply ((basilysclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.LASTCTYPE__V195*/ curfptr[194]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union basilysparam_un*)0);
                 }
                ;
                /*_.IFCPP___V200*/ curfptr[198] = /*_.DEBUG_MSG_FUN__V201*/ curfptr[200];;
                /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1322:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1324:/ clear");
                /*clear*/ /*_#THE_CALLCOUNT__L72*/ curfnum[62] = 0 ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1322:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1324:/ clear");
                /*clear*/ /*_.DEBUG_MSG_FUN__V201*/ curfptr[200] = 0 ;}
               
               #else /*ENABLE_CHECKING*/
-              BASILYS_LOCATION("warmelt-normatch.melt:1322:/ cppif.else");
+              BASILYS_LOCATION("warmelt-normatch.melt:1324:/ cppif.else");
              /*_.IFCPP___V200*/ curfptr[198] = (/*nil*/NULL);
               #endif /*ENABLE_CHECKING*/
               ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1323:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:1325:/ cond");
              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.NEWSUCTESTER__V90*/ curfptr[89]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_SUCCESS*/ curfrout->tabval[21])))) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:1323:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1323:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1325:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1325:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:1323:/ putslot");
+               BASILYS_LOCATION("warmelt-normatch.melt:1325:/ putslot");
                /*putslot*/
                basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)(/*_.NEWSUCTESTER__V90*/ curfptr[89])) == OBMAG_OBJECT);
                basilys_assertmsg("putslot checkoff", (7>=0 && 7< basilys_object_length((basilys_ptr_t)(/*_.NEWSUCTESTER__V90*/ curfptr[89]))));basilys_putfield_object((/*_.NEWSUCTESTER__V90*/ curfptr[89]), (7), (/*_.WNLET__V193*/ curfptr[192]), "NTSUCCESS_DO");
                ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1323:/ touch");
+               BASILYS_LOCATION("warmelt-normatch.melt:1325:/ touch");
                basilysgc_touch(/*_.NEWSUCTESTER__V90*/ curfptr[89]);
                ;
                /*epilog*/}
@@ -18038,292 +18052,292 @@ basilys_magic_discr(/*_.BINDBODYPAIR__V186*/ curfptr[184]) == OBMAG_PAIR;
              ;
              /*_#NULL__L73*/ curfnum[62] = 
               ((/*_.WHOLECTYPE__V24*/ curfptr[23]) == NULL);;
-             BASILYS_LOCATION("warmelt-normatch.melt:1326:/ cond");
+             BASILYS_LOCATION("warmelt-normatch.melt:1328:/ cond");
              /*cond*/ if (/*_#NULL__L73*/ curfnum[62]) /*then*/ {
-             BASILYS_LOCATION("warmelt-normatch.melt:1326:/ cond.then");
-             BASILYS_LOCATION("warmelt-normatch.melt:1326:/ block");
+             BASILYS_LOCATION("warmelt-normatch.melt:1328:/ cond.then");
+             BASILYS_LOCATION("warmelt-normatch.melt:1328:/ block");
               /*block*/{
-               BASILYS_LOCATION("warmelt-normatch.melt:1327:/ compute");
+               BASILYS_LOCATION("warmelt-normatch.melt:1329:/ compute");
                /*_.WHOLECTYPE__V24*/ curfptr[23] = /*_.SETQ___V203*/ curfptr[202] = /*_.LASTCTYPE__V195*/ curfptr[194];;
                /*_.IFELSE___V202*/ curfptr[200] = /*_.SETQ___V203*/ curfptr[202];;
                /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1326:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1328:/ clear");
                /*clear*/ /*_.SETQ___V203*/ curfptr[202] = 0 ;}
               ;
-             } else {BASILYS_LOCATION("warmelt-normatch.melt:1326:/ cond.else");
+             } else {BASILYS_LOCATION("warmelt-normatch.melt:1328:/ cond.else");
              
-              BASILYS_LOCATION("warmelt-normatch.melt:1326:/ block");
+              BASILYS_LOCATION("warmelt-normatch.melt:1328:/ block");
               /*block*/{
                /*_#__L74*/ curfnum[73] = 
                 ((/*_.LASTCTYPE__V195*/ curfptr[194]) == ((/*!CTYPE_VOID*/ curfrout->tabval[29])));;
-               BASILYS_LOCATION("warmelt-normatch.melt:1328:/ cond");
+               BASILYS_LOCATION("warmelt-normatch.melt:1330:/ cond");
                /*cond*/ if (/*_#__L74*/ curfnum[73]) /*then*/ {
-               BASILYS_LOCATION("warmelt-normatch.melt:1328:/ cond.then");
-               BASILYS_LOCATION("warmelt-normatch.melt:1328:/ block");
+               BASILYS_LOCATION("warmelt-normatch.melt:1330:/ cond.then");
+               BASILYS_LOCATION("warmelt-normatch.melt:1330:/ block");
                 /*block*/{
-                 BASILYS_LOCATION("warmelt-normatch.melt:1329:/ compute");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1331:/ compute");
                  /*_.WHOLECTYPE__V24*/ curfptr[23] = /*_.SETQ___V205*/ curfptr[204] = (/*!CTYPE_VOID*/ curfrout->tabval[29]);;
                  /*_.IFELSE___V204*/ curfptr[202] = /*_.SETQ___V205*/ curfptr[204];;
                  /*epilog*/
-                 BASILYS_LOCATION("warmelt-normatch.melt:1328:/ clear");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1330:/ clear");
                  /*clear*/ /*_.SETQ___V205*/ curfptr[204] = 0 ;}
                 ;
-               } else {BASILYS_LOCATION("warmelt-normatch.melt:1328:/ cond.else");
+               } else {BASILYS_LOCATION("warmelt-normatch.melt:1330:/ cond.else");
                
-                BASILYS_LOCATION("warmelt-normatch.melt:1328:/ block");
+                BASILYS_LOCATION("warmelt-normatch.melt:1330:/ block");
                 /*block*/{
                  /*_#__L75*/ curfnum[74] = 
                   ((/*_.WHOLECTYPE__V24*/ curfptr[23]) == ((/*!CTYPE_VOID*/ curfrout->tabval[29])));;
-                 BASILYS_LOCATION("warmelt-normatch.melt:1330:/ cond");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1332:/ cond");
                  /*cond*/ if (/*_#__L75*/ curfnum[74]) /*then*/ {
-                 BASILYS_LOCATION("warmelt-normatch.melt:1330:/ cond.then");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1332:/ cond.then");
                  /*_.IFELSE___V206*/ curfptr[204] = (/*nil*/NULL);;
-                 } else {BASILYS_LOCATION("warmelt-normatch.melt:1330:/ cond.else");
+                 } else {BASILYS_LOCATION("warmelt-normatch.melt:1332:/ cond.else");
                  
-                  BASILYS_LOCATION("warmelt-normatch.melt:1330:/ block");
+                  BASILYS_LOCATION("warmelt-normatch.melt:1332:/ block");
                   /*block*/{
                    /*_#__L76*/ curfnum[75] = 
                     ((/*_.WHOLECTYPE__V24*/ curfptr[23]) != (/*_.LASTCTYPE__V195*/ curfptr[194]));;
-                   BASILYS_LOCATION("warmelt-normatch.melt:1332:/ cond");
+                   BASILYS_LOCATION("warmelt-normatch.melt:1334:/ cond");
                    /*cond*/ if (/*_#__L76*/ curfnum[75]) /*then*/ {
-                   BASILYS_LOCATION("warmelt-normatch.melt:1332:/ cond.then");
-                   BASILYS_LOCATION("warmelt-normatch.melt:1332:/ block");
+                   BASILYS_LOCATION("warmelt-normatch.melt:1334:/ cond.then");
+                   BASILYS_LOCATION("warmelt-normatch.melt:1334:/ block");
                     /*block*/{
-                     BASILYS_LOCATION("warmelt-normatch.melt:1334:/ cond");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1336:/ cond");
                      /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.LASTCTYPE__V195*/ curfptr[194]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[30])))) /*then*/ {
-                     BASILYS_LOCATION("warmelt-normatch.melt:1334:/ cond.then");
-                     BASILYS_LOCATION("warmelt-normatch.melt:1334:/ getslot");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1336:/ cond.then");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1336:/ getslot");
                       { basilys_ptr_t slot=0;
                        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.LASTCTYPE__V195*/ curfptr[194]), 1, "NAMED_NAME");/*_.NAMED_NAME__V208*/ curfptr[207] = slot; };
                       ;
-                     } else {BASILYS_LOCATION("warmelt-normatch.melt:1334:/ cond.else");
+                     } else {BASILYS_LOCATION("warmelt-normatch.melt:1336:/ cond.else");
                      
                       /*_.NAMED_NAME__V208*/ curfptr[207] = NULL;;
                       }
                      ;
                      
                      {
-                     BASILYS_LOCATION("warmelt-normatch.melt:1333:/ locexp");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1335:/ locexp");
                      basilys_error_str((basilys_ptr_t)(/*_.CURLOC__V61*/ curfptr[41]), ( "invalid type of match case"), (basilys_ptr_t)(/*_.NAMED_NAME__V208*/ curfptr[207]));}
                      ;
-                     BASILYS_LOCATION("warmelt-normatch.melt:1336:/ cond");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1338:/ cond");
                      /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.WHOLECTYPE__V24*/ curfptr[23]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[30])))) /*then*/ {
-                     BASILYS_LOCATION("warmelt-normatch.melt:1336:/ cond.then");
-                     BASILYS_LOCATION("warmelt-normatch.melt:1336:/ getslot");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1338:/ cond.then");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1338:/ getslot");
                       { basilys_ptr_t slot=0;
                        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.WHOLECTYPE__V24*/ curfptr[23]), 1, "NAMED_NAME");/*_.NAMED_NAME__V209*/ curfptr[208] = slot; };
                       ;
-                     } else {BASILYS_LOCATION("warmelt-normatch.melt:1336:/ cond.else");
+                     } else {BASILYS_LOCATION("warmelt-normatch.melt:1338:/ cond.else");
                      
                       /*_.NAMED_NAME__V209*/ curfptr[208] = NULL;;
                       }
                      ;
                      
                      {
-                     BASILYS_LOCATION("warmelt-normatch.melt:1335:/ locexp");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1337:/ locexp");
                      basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V15*/ curfptr[14]), ( "expected type of match case"), (basilys_ptr_t)(/*_.NAMED_NAME__V209*/ curfptr[208]));}
                      ;
-                     BASILYS_LOCATION("warmelt-normatch.melt:1332:/ block");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1334:/ block");
                      /*block*/{}
                      ;
                      /*epilog*/
-                     BASILYS_LOCATION("warmelt-normatch.melt:1332:/ clear");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1334:/ clear");
                      /*clear*/ /*_.NAMED_NAME__V208*/ curfptr[207] = 0 ;
-                     BASILYS_LOCATION("warmelt-normatch.melt:1332:/ clear");
+                     BASILYS_LOCATION("warmelt-normatch.melt:1334:/ clear");
                      /*clear*/ /*_.NAMED_NAME__V209*/ curfptr[208] = 0 ;}
                     ;
-                   } else {BASILYS_LOCATION("warmelt-normatch.melt:1332:/ cond.else");
+                   } else {BASILYS_LOCATION("warmelt-normatch.melt:1334:/ cond.else");
                    
                     /*_.IFELSE___V207*/ curfptr[206] = NULL;;
                     }
                    ;
                    /*_.IFELSE___V206*/ curfptr[204] = /*_.IFELSE___V207*/ curfptr[206];;
                    /*epilog*/
-                   BASILYS_LOCATION("warmelt-normatch.melt:1330:/ clear");
+                   BASILYS_LOCATION("warmelt-normatch.melt:1332:/ clear");
                    /*clear*/ /*_#__L76*/ curfnum[75] = 0 ;
-                   BASILYS_LOCATION("warmelt-normatch.melt:1330:/ clear");
+                   BASILYS_LOCATION("warmelt-normatch.melt:1332:/ clear");
                    /*clear*/ /*_.IFELSE___V207*/ curfptr[206] = 0 ;}
                   ;
                   }
                  ;
                  /*_.IFELSE___V204*/ curfptr[202] = /*_.IFELSE___V206*/ curfptr[204];;
                  /*epilog*/
-                 BASILYS_LOCATION("warmelt-normatch.melt:1328:/ clear");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1330:/ clear");
                  /*clear*/ /*_#__L75*/ curfnum[74] = 0 ;
-                 BASILYS_LOCATION("warmelt-normatch.melt:1328:/ clear");
+                 BASILYS_LOCATION("warmelt-normatch.melt:1330:/ clear");
                  /*clear*/ /*_.IFELSE___V206*/ curfptr[204] = 0 ;}
                 ;
                 }
                ;
                /*_.IFELSE___V202*/ curfptr[200] = /*_.IFELSE___V204*/ curfptr[202];;
                /*epilog*/
-               BASILYS_LOCATION("warmelt-normatch.melt:1326:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1328:/ clear");
                /*clear*/ /*_#__L74*/ curfnum[73] = 0 ;
-               BASILYS_LOCATION("warmelt-normatch.melt:1326:/ clear");
+               BASILYS_LOCATION("warmelt-normatch.melt:1328:/ clear");
                /*clear*/ /*_.IFELSE___V204*/ curfptr[202] = 0 ;}
               ;
               }
              ;
              /*_.LET___V192*/ curfptr[190] = /*_.IFELSE___V202*/ curfptr[200];;
              /*epilog*/
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ clear");
              /*clear*/ /*_.WNLET__V193*/ curfptr[192] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ clear");
              /*clear*/ /*_.LASTNBODY__V194*/ curfptr[193] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ clear");
              /*clear*/ /*_.LASTCTYPE__V195*/ curfptr[194] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ clear");
              /*clear*/ /*_.IFCPP___V196*/ curfptr[195] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ clear");
              /*clear*/ /*_.IFCPP___V198*/ curfptr[196] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ clear");
              /*clear*/ /*_.IFCPP___V200*/ curfptr[198] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ clear");
              /*clear*/ /*_#NULL__L73*/ curfnum[62] = 0 ;
-             BASILYS_LOCATION("warmelt-normatch.melt:1316:/ clear");
+             BASILYS_LOCATION("warmelt-normatch.melt:1318:/ clear");
              /*clear*/ /*_.IFELSE___V202*/ curfptr[200] = 0 ;}
             ;
             /*_.MULTI___V177*/ curfptr[175] = /*_.LET___V192*/ curfptr[190];;
             /*epilog*/
-            BASILYS_LOCATION("warmelt-normatch.melt:1303:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1305:/ clear");
             /*clear*/ /*_.IFCPP___V180*/ curfptr[179] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1303:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1305:/ clear");
             /*clear*/ /*_.IFCPP___V182*/ curfptr[180] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1303:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1305:/ clear");
             /*clear*/ /*_.IFCPP___V184*/ curfptr[182] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1303:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1305:/ clear");
             /*clear*/ /*_.IFCPP___V190*/ curfptr[188] = 0 ;
-            BASILYS_LOCATION("warmelt-normatch.melt:1303:/ clear");
+            BASILYS_LOCATION("warmelt-normatch.melt:1305:/ clear");
             /*clear*/ /*_.LET___V192*/ curfptr[190] = 0 ;}
            ;
            /*epilog*/
-           BASILYS_LOCATION("warmelt-normatch.melt:1303:/ clear");
+           BASILYS_LOCATION("warmelt-normatch.melt:1305:/ clear");
            /*clear*/ /*_.BINDSBODY__V179*/ curfptr[178] = 0 ;}
           ;
-          /*_.LET___V170*/ curfptr[157] = (/*nil*/NULL);;
+          /*_.LET___V170*/ curfptr[157] = /*_.MULTI___V177*/ curfptr[175];;
           /*epilog*/
-          BASILYS_LOCATION("warmelt-normatch.melt:1293:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1295:/ clear");
           /*clear*/ /*_.SUBINDLIST__V171*/ curfptr[160] = 0 ;
-          BASILYS_LOCATION("warmelt-normatch.melt:1293:/ clear");
+          BASILYS_LOCATION("warmelt-normatch.melt:1295:/ clear");
           /*clear*/ /*_.MULTI___V177*/ curfptr[175] = 0 ;}
          ;
          /*_.LET___V144*/ curfptr[117] = /*_.LET___V170*/ curfptr[157];;
          /*epilog*/
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_.SORTEDVARS__V145*/ curfptr[111] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_#MULTIPLE_LENGTH__L52*/ curfnum[29] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_.SORTEDBINDINGS__V146*/ curfptr[132] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_.FRESHNEWENV__V147*/ curfptr[146] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_.IFCPP___V148*/ curfptr[147] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_.IFCPP___V164*/ curfptr[159] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_.IFCPP___V166*/ curfptr[161] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_.IFCPP___V168*/ curfptr[154] = 0 ;
-         BASILYS_LOCATION("warmelt-normatch.melt:1270:/ clear");
+         BASILYS_LOCATION("warmelt-normatch.melt:1272:/ clear");
          /*clear*/ /*_.LET___V170*/ curfptr[157] = 0 ;}
         ;
         /*_.LET___V85*/ curfptr[83] = /*_.LET___V144*/ curfptr[117];;
         /*epilog*/
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.NEWENV__V86*/ curfptr[85] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.PVARLOCMAP__V87*/ curfptr[86] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.CURTESTER__V88*/ curfptr[87] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.MAKE_LIST__V89*/ curfptr[88] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.NEWSUCTESTER__V90*/ curfptr[89] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V92*/ curfptr[91] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V94*/ curfptr[92] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V96*/ curfptr[94] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V98*/ curfptr[96] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V100*/ curfptr[98] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_#NULL__L29*/ curfnum[16] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V104*/ curfptr[102] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.FOREVER___V106*/ curfptr[100] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_#NULL__L42*/ curfnum[40] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IF___V120*/ curfptr[115] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.FOREVER___V125*/ curfptr[107] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.SETQ___V136*/ curfptr[110] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_#__L48*/ curfnum[31] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V138*/ curfptr[133] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V140*/ curfptr[114] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.IFCPP___V142*/ curfptr[116] = 0 ;
-        BASILYS_LOCATION("warmelt-normatch.melt:1185:/ clear");
+        BASILYS_LOCATION("warmelt-normatch.melt:1187:/ clear");
         /*clear*/ /*_.LET___V144*/ curfptr[117] = 0 ;}
        ;
        /*_.LET___V60*/ curfptr[39] = /*_.LET___V85*/ curfptr[83];;
        /*epilog*/
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.CURLOC__V61*/ curfptr[41] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.CURPAT__V62*/ curfptr[43] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.CURBODY__V63*/ curfptr[48] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.MAPVAR__V64*/ curfptr[50] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.MAPCST__V65*/ curfptr[64] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.PVARMAP__V66*/ curfptr[65] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.PCN__V67*/ curfptr[66] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.NTESTCONT__V69*/ curfptr[68] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.SCAN_PATTERN__V71*/ curfptr[70] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.IFCPP___V72*/ curfptr[71] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.IFCPP___V74*/ curfptr[72] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.IFCPP___V76*/ curfptr[74] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.IFCPP___V78*/ curfptr[76] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.LAMBDA___V80*/ curfptr[78] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.NORMAL_PATTERN__V82*/ curfptr[81] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.IFCPP___V83*/ curfptr[82] = 0 ;
-       BASILYS_LOCATION("warmelt-normatch.melt:1152:/ clear");
+       BASILYS_LOCATION("warmelt-normatch.melt:1154:/ clear");
        /*clear*/ /*_.LET___V85*/ curfptr[83] = 0 ;}
       ;
      } /* end cit1__EACHTUP*/
      
       /*citerepilog*/
-      BASILYS_LOCATION("warmelt-normatch.melt:1147:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1149:/ clear");
       /*clear*/ /*_.CURCAS__V55*/ curfptr[45] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1147:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1149:/ clear");
       /*clear*/ /*_#IX__L16*/ curfnum[15] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1147:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1149:/ clear");
       /*clear*/ /*_.IFCPP___V56*/ curfptr[46] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1147:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1149:/ clear");
       /*clear*/ /*_.IFCPP___V58*/ curfptr[49] = 0 ;
-      BASILYS_LOCATION("warmelt-normatch.melt:1147:/ clear");
+      BASILYS_LOCATION("warmelt-normatch.melt:1149:/ clear");
       /*clear*/ /*_.LET___V60*/ curfptr[39] = 0 ;} /*endciterblock FOREACH_IN_MULTIPLE*/
      ;
      
@@ -19131,98 +19145,98 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
      ;
      /*_.LET___V35*/ curfptr[33] = /*_.LET___V220*/ curfptr[198];;
      /*epilog*/
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.CTYP__V36*/ curfptr[35] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.IFCPP___V37*/ curfptr[36] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_#IS_OBJECT__L12*/ curfnum[7] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_#NOT__L13*/ curfnum[12] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.IF___V39*/ curfptr[37] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_#NULL__L15*/ curfnum[13] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.IF___V52*/ curfptr[40] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.IFCPP___V210*/ curfptr[207] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.IFCPP___V212*/ curfptr[206] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.IFCPP___V214*/ curfptr[202] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.IFCPP___V216*/ curfptr[193] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.IFCPP___V218*/ curfptr[195] = 0 ;
-     BASILYS_LOCATION("warmelt-normatch.melt:1120:/ clear");
+     BASILYS_LOCATION("warmelt-normatch.melt:1122:/ clear");
      /*clear*/ /*_.LET___V220*/ curfptr[198] = 0 ;}
     ;
     /*_.MULTI___V28*/ curfptr[26] = /*_.LET___V35*/ curfptr[33];;
     /*epilog*/
-    BASILYS_LOCATION("warmelt-normatch.melt:1115:/ clear");
+    BASILYS_LOCATION("warmelt-normatch.melt:1117:/ clear");
     /*clear*/ /*_.IFCPP___V31*/ curfptr[30] = 0 ;
-    BASILYS_LOCATION("warmelt-normatch.melt:1115:/ clear");
+    BASILYS_LOCATION("warmelt-normatch.melt:1117:/ clear");
     /*clear*/ /*_.IFCPP___V33*/ curfptr[31] = 0 ;
-    BASILYS_LOCATION("warmelt-normatch.melt:1115:/ clear");
+    BASILYS_LOCATION("warmelt-normatch.melt:1117:/ clear");
     /*clear*/ /*_.LET___V35*/ curfptr[33] = 0 ;}
    ;
    /*epilog*/
-   BASILYS_LOCATION("warmelt-normatch.melt:1115:/ clear");
+   BASILYS_LOCATION("warmelt-normatch.melt:1117:/ clear");
    /*clear*/ /*_.NBINDMATX__V30*/ curfptr[29] = 0 ;}
   ;
   /*_.LET___V14*/ curfptr[12] = /*_.MULTI___V28*/ curfptr[26];;
   /*epilog*/
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.SLOC__V15*/ curfptr[14] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.SMATSX__V16*/ curfptr[15] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.SCASES__V17*/ curfptr[16] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_#NBCASES__L5*/ curfnum[0] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.TUPVARMAP__V18*/ curfptr[17] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.TUPCSTMAP__V19*/ curfptr[18] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.TUPBINDLIST__V20*/ curfptr[19] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_#I__L6*/ curfnum[5] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_#I__L7*/ curfnum[6] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.STUFFMAP__V21*/ curfptr[20] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.BINDLIST__V22*/ curfptr[21] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.TESTLIST__V23*/ curfptr[22] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.WHOLECTYPE__V24*/ curfptr[23] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.OLDTESTER__V25*/ curfptr[24] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.IFCPP___V26*/ curfptr[25] = 0 ;
-  BASILYS_LOCATION("warmelt-normatch.melt:1099:/ clear");
+  BASILYS_LOCATION("warmelt-normatch.melt:1101:/ clear");
   /*clear*/ /*_.MULTI___V28*/ curfptr[26] = 0 ;}
  ;
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ block");
  /*block*/{
   /*_.RETVAL___V1*/ curfptr[0] = /*_.LET___V14*/ curfptr[12];;
-  BASILYS_LOCATION("warmelt-normatch.melt:1094:/ finalreturn");
+  BASILYS_LOCATION("warmelt-normatch.melt:1096:/ finalreturn");
   ;
   /*finalret*/ goto labend_rout ;}
  ;
  /*epilog*/
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ clear");
  /*clear*/ /*_.IFCPP___V6*/ curfptr[5] = 0 ;
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ clear");
  /*clear*/ /*_.IFCPP___V8*/ curfptr[6] = 0 ;
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ clear");
  /*clear*/ /*_.IFCPP___V10*/ curfptr[8] = 0 ;
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ clear");
  /*clear*/ /*_.IFCPP___V12*/ curfptr[10] = 0 ;
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ clear");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ clear");
  /*clear*/ /*_.LET___V14*/ curfptr[12] = 0 ;}
 
 ;
@@ -19283,25 +19297,25 @@ basilys_trace_start("LAMBDA_", callcount);
 /*getargs*/
 
  /*getarg#0*/
- BASILYS_LOCATION("warmelt-normatch.melt:1182:/ getarg");
+ BASILYS_LOCATION("warmelt-normatch.melt:1184:/ getarg");
  /*_.TESTER__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
-BASILYS_LOCATION("warmelt-normatch.melt:1182:/ block");
+BASILYS_LOCATION("warmelt-normatch.melt:1184:/ block");
 /*block*/{
- BASILYS_LOCATION("warmelt-normatch.melt:1182:/ cond");
+ BASILYS_LOCATION("warmelt-normatch.melt:1184:/ cond");
  /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)((/*~NTESTCONT*/ curfclos->tabval[0])), (basilys_ptr_t)((/*!CLASS_CONTAINER*/ curfrout->tabval[0])))) /*then*/ {
- BASILYS_LOCATION("warmelt-normatch.melt:1182:/ cond.then");
- BASILYS_LOCATION("warmelt-normatch.melt:1182:/ block");
+ BASILYS_LOCATION("warmelt-normatch.melt:1184:/ cond.then");
+ BASILYS_LOCATION("warmelt-normatch.melt:1184:/ block");
   /*block*/{
-   BASILYS_LOCATION("warmelt-normatch.melt:1182:/ putslot");
+   BASILYS_LOCATION("warmelt-normatch.melt:1184:/ putslot");
    /*putslot*/
    basilys_assertmsg("putslot checkobj", basilys_magic_discr((basilys_ptr_t)((/*~NTESTCONT*/ curfclos->tabval[0]))) == OBMAG_OBJECT);
    basilys_assertmsg("putslot checkoff", (0>=0 && 0< basilys_object_length((basilys_ptr_t)((/*~NTESTCONT*/ curfclos->tabval[0])))));basilys_putfield_object(((/*~NTESTCONT*/ curfclos->tabval[0])), (0), (/*_.TESTER__V2*/ curfptr[1]), "CONTAINER_VALUE");
    ;
-   BASILYS_LOCATION("warmelt-normatch.melt:1182:/ touch");
+   BASILYS_LOCATION("warmelt-normatch.melt:1184:/ touch");
    basilysgc_touch((/*~NTESTCONT*/ curfclos->tabval[0]));
    ;
    /*epilog*/}
@@ -19712,7 +19726,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_3__CLASS_ROOT));
   basilys_assertmsg("iniobj checkdiscr dobj_5__CLASS_PATTERNCONTEXT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_hash = 477894222;
+  cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_hash = 66502843;
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_5__CLASS_PATTERNCONTEXT));
  
@@ -19748,7 +19762,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_9__PCTN_NORMCTXT));
   basilys_assertmsg("iniobj checkdiscr dobj_11__PCTN_NORMCTXT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_11__PCTN_NORMCTXT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_11__PCTN_NORMCTXT.obj_num = 0;
-  cdat->dobj_11__PCTN_NORMCTXT.obj_hash = 668929984;
+  cdat->dobj_11__PCTN_NORMCTXT.obj_hash = 864652311;
   cdat->dobj_11__PCTN_NORMCTXT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_11__PCTN_NORMCTXT));
  
@@ -19776,7 +19790,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_13__PCTN_SRC));
   basilys_assertmsg("iniobj checkdiscr dobj_15__PCTN_SRC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_15__PCTN_SRC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_15__PCTN_SRC.obj_num = 1;
-  cdat->dobj_15__PCTN_SRC.obj_hash = 856457425;
+  cdat->dobj_15__PCTN_SRC.obj_hash = 239634390;
   cdat->dobj_15__PCTN_SRC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_15__PCTN_SRC));
  
@@ -19804,7 +19818,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_17__PCTN_ENV));
   basilys_assertmsg("iniobj checkdiscr dobj_19__PCTN_ENV", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_19__PCTN_ENV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_19__PCTN_ENV.obj_num = 2;
-  cdat->dobj_19__PCTN_ENV.obj_hash = 650703638;
+  cdat->dobj_19__PCTN_ENV.obj_hash = 20119231;
   cdat->dobj_19__PCTN_ENV.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_19__PCTN_ENV));
  
@@ -19832,7 +19846,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_21__PCTN_MAPATVAR))
   basilys_assertmsg("iniobj checkdiscr dobj_23__PCTN_MAPATVAR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_23__PCTN_MAPATVAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_23__PCTN_MAPATVAR.obj_num = 3;
-  cdat->dobj_23__PCTN_MAPATVAR.obj_hash = 374729765;
+  cdat->dobj_23__PCTN_MAPATVAR.obj_hash = 539786424;
   cdat->dobj_23__PCTN_MAPATVAR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_23__PCTN_MAPATVAR));
  
@@ -19860,7 +19874,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_25__PCTN_MAPATCST))
   basilys_assertmsg("iniobj checkdiscr dobj_27__PCTN_MAPATCST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_27__PCTN_MAPATCST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_27__PCTN_MAPATCST.obj_num = 4;
-  cdat->dobj_27__PCTN_MAPATCST.obj_hash = 1012859877;
+  cdat->dobj_27__PCTN_MAPATCST.obj_hash = 1024217567;
   cdat->dobj_27__PCTN_MAPATCST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_27__PCTN_MAPATCST));
  
@@ -19888,7 +19902,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_29__PCTN_BINDLIST))
   basilys_assertmsg("iniobj checkdiscr dobj_31__PCTN_BINDLIST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__PCTN_BINDLIST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__PCTN_BINDLIST.obj_num = 5;
-  cdat->dobj_31__PCTN_BINDLIST.obj_hash = 781536733;
+  cdat->dobj_31__PCTN_BINDLIST.obj_hash = 59701737;
   cdat->dobj_31__PCTN_BINDLIST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_31__PCTN_BINDLIST));
  
@@ -19916,7 +19930,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_33__PCTN_STUFFMAP))
   basilys_assertmsg("iniobj checkdiscr dobj_35__PCTN_STUFFMAP", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__PCTN_STUFFMAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__PCTN_STUFFMAP.obj_num = 6;
-  cdat->dobj_35__PCTN_STUFFMAP.obj_hash = 624459626;
+  cdat->dobj_35__PCTN_STUFFMAP.obj_hash = 751416756;
   cdat->dobj_35__PCTN_STUFFMAP.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_35__PCTN_STUFFMAP));
  
@@ -19944,7 +19958,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_37__PCTN_PVARLOCMAP
   basilys_assertmsg("iniobj checkdiscr dobj_39__PCTN_PVARLOCMAP", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_num = 7;
-  cdat->dobj_39__PCTN_PVARLOCMAP.obj_hash = 456380406;
+  cdat->dobj_39__PCTN_PVARLOCMAP.obj_hash = 711582802;
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_39__PCTN_PVARLOCMAP));
  
@@ -19972,7 +19986,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_41__PCTN_TESTS));
   basilys_assertmsg("iniobj checkdiscr dobj_43__PCTN_TESTS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_43__PCTN_TESTS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_43__PCTN_TESTS.obj_num = 8;
-  cdat->dobj_43__PCTN_TESTS.obj_hash = 575023210;
+  cdat->dobj_43__PCTN_TESTS.obj_hash = 1022427544;
   cdat->dobj_43__PCTN_TESTS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_43__PCTN_TESTS));
  
@@ -20012,7 +20026,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_47__CLASS_SELECTOR)
  if (!/*_.VALDATA___V112*/ curfptr[111]) /*_.VALDATA___V112*/ curfptr[111] = (void*)&cdat->dobj_49__SCAN_PATTERN;
   basilys_assertmsg("iniobj checkdiscr dobj_49__SCAN_PATTERN", NULL != (void*)/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
   cdat->dobj_49__SCAN_PATTERN.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
-  cdat->dobj_49__SCAN_PATTERN.obj_hash = 162776777;
+  cdat->dobj_49__SCAN_PATTERN.obj_hash = 651078886;
   cdat->dobj_49__SCAN_PATTERN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_49__SCAN_PATTERN));
  
@@ -20496,7 +20510,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_123__NORMAL_PATTERN
  if (!/*_.VALDATA___V188*/ curfptr[187]) /*_.VALDATA___V188*/ curfptr[187] = (void*)&cdat->dobj_125__NORMAL_PATTERN;
   basilys_assertmsg("iniobj checkdiscr dobj_125__NORMAL_PATTERN", NULL != (void*)/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
   cdat->dobj_125__NORMAL_PATTERN.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
-  cdat->dobj_125__NORMAL_PATTERN.obj_hash = 505053510;
+  cdat->dobj_125__NORMAL_PATTERN.obj_hash = 801623319;
   cdat->dobj_125__NORMAL_PATTERN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_125__NORMAL_PATTERN));
  
@@ -20537,7 +20551,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_129__CLASS_NREP_EXP
   basilys_assertmsg("iniobj checkdiscr dobj_131__CLASS_NORMTESTER_ANY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_hash = 541776094;
+  cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_hash = 210221971;
   cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_131__CLASS_NORMTESTER_ANY));
  
@@ -20573,7 +20587,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_135__NTEST_MATCHED)
   basilys_assertmsg("iniobj checkdiscr dobj_137__NTEST_MATCHED", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_137__NTEST_MATCHED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_137__NTEST_MATCHED.obj_num = 1;
-  cdat->dobj_137__NTEST_MATCHED.obj_hash = 36097046;
+  cdat->dobj_137__NTEST_MATCHED.obj_hash = 608562140;
   cdat->dobj_137__NTEST_MATCHED.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_137__NTEST_MATCHED));
  
@@ -20601,7 +20615,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_139__NTEST_THEN));
   basilys_assertmsg("iniobj checkdiscr dobj_141__NTEST_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_141__NTEST_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_141__NTEST_THEN.obj_num = 2;
-  cdat->dobj_141__NTEST_THEN.obj_hash = 1021659837;
+  cdat->dobj_141__NTEST_THEN.obj_hash = 1044576108;
   cdat->dobj_141__NTEST_THEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_141__NTEST_THEN));
  
@@ -20629,7 +20643,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_143__NTEST_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_145__NTEST_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_145__NTEST_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_145__NTEST_ELSE.obj_num = 3;
-  cdat->dobj_145__NTEST_ELSE.obj_hash = 144554871;
+  cdat->dobj_145__NTEST_ELSE.obj_hash = 309831562;
   cdat->dobj_145__NTEST_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_145__NTEST_ELSE));
  
@@ -20657,7 +20671,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_147__NTEST_NORMATCH
   basilys_assertmsg("iniobj checkdiscr dobj_149__NTEST_NORMATCH", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_149__NTEST_NORMATCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_149__NTEST_NORMATCH.obj_num = 4;
-  cdat->dobj_149__NTEST_NORMATCH.obj_hash = 475119342;
+  cdat->dobj_149__NTEST_NORMATCH.obj_hash = 632451612;
   cdat->dobj_149__NTEST_NORMATCH.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_149__NTEST_NORMATCH));
  
@@ -20685,7 +20699,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_151__NTEST_LOCCLIST
   basilys_assertmsg("iniobj checkdiscr dobj_153__NTEST_LOCCLIST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_153__NTEST_LOCCLIST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_153__NTEST_LOCCLIST.obj_num = 5;
-  cdat->dobj_153__NTEST_LOCCLIST.obj_hash = 51376243;
+  cdat->dobj_153__NTEST_LOCCLIST.obj_hash = 368407055;
   cdat->dobj_153__NTEST_LOCCLIST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_153__NTEST_LOCCLIST));
  
@@ -20713,7 +20727,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_155__NTEST_COMEFROM
   basilys_assertmsg("iniobj checkdiscr dobj_157__NTEST_COMEFROM", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_157__NTEST_COMEFROM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_157__NTEST_COMEFROM.obj_num = 6;
-  cdat->dobj_157__NTEST_COMEFROM.obj_hash = 679010814;
+  cdat->dobj_157__NTEST_COMEFROM.obj_hash = 1064017494;
   cdat->dobj_157__NTEST_COMEFROM.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_157__NTEST_COMEFROM));
  
@@ -20741,7 +20755,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_159__CLASS_NORMTEST
   basilys_assertmsg("iniobj checkdiscr dobj_161__CLASS_NORMTESTER_SUCCESS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_hash = 661341495;
+  cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_hash = 754586831;
   cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_161__CLASS_NORMTESTER_SUCCESS));
  
@@ -20777,7 +20791,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_165__NTSUCCESS_DO))
   basilys_assertmsg("iniobj checkdiscr dobj_167__NTSUCCESS_DO", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_167__NTSUCCESS_DO.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_167__NTSUCCESS_DO.obj_num = 7;
-  cdat->dobj_167__NTSUCCESS_DO.obj_hash = 55778135;
+  cdat->dobj_167__NTSUCCESS_DO.obj_hash = 397658237;
   cdat->dobj_167__NTSUCCESS_DO.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_167__NTSUCCESS_DO));
  
@@ -20805,7 +20819,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_169__CLASS_NORMTEST
   basilys_assertmsg("iniobj checkdiscr dobj_171__CLASS_NORMTESTER_SAME", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_num = OBMAG_OBJECT;
-  cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_hash = 8226813;
+  cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_hash = 1040325405;
   cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_171__CLASS_NORMTESTER_SAME));
  
@@ -20841,7 +20855,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_175__NTSAME_IDENTIC
   basilys_assertmsg("iniobj checkdiscr dobj_177__NTSAME_IDENTICAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_177__NTSAME_IDENTICAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_177__NTSAME_IDENTICAL.obj_num = 7;
-  cdat->dobj_177__NTSAME_IDENTICAL.obj_hash = 63736537;
+  cdat->dobj_177__NTSAME_IDENTICAL.obj_hash = 750859212;
   cdat->dobj_177__NTSAME_IDENTICAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_177__NTSAME_IDENTICAL));
  
@@ -20869,7 +20883,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_179__CLASS_NORMTEST
   basilys_assertmsg("iniobj checkdiscr dobj_181__CLASS_NORMTESTER_MATCHER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_hash = 741227089;
+  cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_hash = 907761276;
   cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_181__CLASS_NORMTESTER_MATCHER));
  
@@ -20905,7 +20919,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_185__NTMATCH_MATCHE
   basilys_assertmsg("iniobj checkdiscr dobj_187__NTMATCH_MATCHER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_187__NTMATCH_MATCHER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_187__NTMATCH_MATCHER.obj_num = 7;
-  cdat->dobj_187__NTMATCH_MATCHER.obj_hash = 804051808;
+  cdat->dobj_187__NTMATCH_MATCHER.obj_hash = 595674626;
   cdat->dobj_187__NTMATCH_MATCHER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_187__NTMATCH_MATCHER));
  
@@ -20933,7 +20947,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_189__NTMATCH_INARGS
   basilys_assertmsg("iniobj checkdiscr dobj_191__NTMATCH_INARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_191__NTMATCH_INARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_191__NTMATCH_INARGS.obj_num = 8;
-  cdat->dobj_191__NTMATCH_INARGS.obj_hash = 551334524;
+  cdat->dobj_191__NTMATCH_INARGS.obj_hash = 443529809;
   cdat->dobj_191__NTMATCH_INARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_191__NTMATCH_INARGS));
  
@@ -20961,7 +20975,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_193__NTMATCH_OUTLOC
   basilys_assertmsg("iniobj checkdiscr dobj_195__NTMATCH_OUTLOCS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_195__NTMATCH_OUTLOCS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_195__NTMATCH_OUTLOCS.obj_num = 9;
-  cdat->dobj_195__NTMATCH_OUTLOCS.obj_hash = 913176223;
+  cdat->dobj_195__NTMATCH_OUTLOCS.obj_hash = 454452958;
   cdat->dobj_195__NTMATCH_OUTLOCS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_195__NTMATCH_OUTLOCS));
  
@@ -20989,7 +21003,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_197__CLASS_NORMTEST
   basilys_assertmsg("iniobj checkdiscr dobj_199__CLASS_NORMTESTER_INSTANCE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_hash = 667260371;
+  cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_hash = 14594094;
   cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_199__CLASS_NORMTESTER_INSTANCE));
  
@@ -21025,7 +21039,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_203__NTINST_CLASS))
   basilys_assertmsg("iniobj checkdiscr dobj_205__NTINST_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_205__NTINST_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_205__NTINST_CLASS.obj_num = 7;
-  cdat->dobj_205__NTINST_CLASS.obj_hash = 35825214;
+  cdat->dobj_205__NTINST_CLASS.obj_hash = 707839259;
   cdat->dobj_205__NTINST_CLASS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_205__NTINST_CLASS));
  
@@ -21053,7 +21067,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_207__NTINST_FIELDLO
   basilys_assertmsg("iniobj checkdiscr dobj_209__NTINST_FIELDLOCS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__NTINST_FIELDLOCS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__NTINST_FIELDLOCS.obj_num = 8;
-  cdat->dobj_209__NTINST_FIELDLOCS.obj_hash = 398488135;
+  cdat->dobj_209__NTINST_FIELDLOCS.obj_hash = 96836095;
   cdat->dobj_209__NTINST_FIELDLOCS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_209__NTINST_FIELDLOCS));
  
@@ -21094,7 +21108,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_213__CLASS_NREP_TYP
   basilys_assertmsg("iniobj checkdiscr dobj_215__CLASS_NREP_MATCH", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_215__CLASS_NREP_MATCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_215__CLASS_NREP_MATCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_215__CLASS_NREP_MATCH.obj_hash = 729057222;
+  cdat->dobj_215__CLASS_NREP_MATCH.obj_hash = 1037576628;
   cdat->dobj_215__CLASS_NREP_MATCH.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_215__CLASS_NREP_MATCH));
  
@@ -21130,7 +21144,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_219__NMATCH_TESTS))
   basilys_assertmsg("iniobj checkdiscr dobj_221__NMATCH_TESTS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_221__NMATCH_TESTS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_221__NMATCH_TESTS.obj_num = 2;
-  cdat->dobj_221__NMATCH_TESTS.obj_hash = 451026238;
+  cdat->dobj_221__NMATCH_TESTS.obj_hash = 535664954;
   cdat->dobj_221__NMATCH_TESTS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_221__NMATCH_TESTS));
  
@@ -21158,7 +21172,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_223__NMATCH_STUFFMA
   basilys_assertmsg("iniobj checkdiscr dobj_225__NMATCH_STUFFMAP", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_225__NMATCH_STUFFMAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_225__NMATCH_STUFFMAP.obj_num = 3;
-  cdat->dobj_225__NMATCH_STUFFMAP.obj_hash = 792994703;
+  cdat->dobj_225__NMATCH_STUFFMAP.obj_hash = 273862260;
   cdat->dobj_225__NMATCH_STUFFMAP.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_225__NMATCH_STUFFMAP));
  
@@ -21186,7 +21200,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_227__NMATCH_MATCHED
   basilys_assertmsg("iniobj checkdiscr dobj_229__NMATCH_MATCHED", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_229__NMATCH_MATCHED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_229__NMATCH_MATCHED.obj_num = 4;
-  cdat->dobj_229__NMATCH_MATCHED.obj_hash = 346450862;
+  cdat->dobj_229__NMATCH_MATCHED.obj_hash = 452049772;
   cdat->dobj_229__NMATCH_MATCHED.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_229__NMATCH_MATCHED));
  
@@ -21606,14 +21620,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_293__PUT_ENV));
  /*inirout drout_295__LAMBDA_*/
  /*_.VALROUT___V349*/ curfptr[348] = (void*)&cdat->drout_295__LAMBDA_;
   cdat->drout_295__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_295__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:980",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_295__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:982",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_295__LAMBDA_.nbval = 1;
  BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_295__LAMBDA_, rout_32_LAMBDA_);
  
  /*inirout drout_296__LAMBDA_*/
  /*_.VALROUT___V350*/ curfptr[349] = (void*)&cdat->drout_296__LAMBDA_;
   cdat->drout_296__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_296__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:991",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_296__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:993",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_296__LAMBDA_.nbval = 1;
  BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_296__LAMBDA_, rout_33_LAMBDA_);
  
@@ -21633,7 +21647,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_297__MULTIPLE_MAP))
  /*inirout drout_299__LAMBDA_*/
  /*_.VALROUT___V351*/ curfptr[350] = (void*)&cdat->drout_299__LAMBDA_;
   cdat->drout_299__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_299__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:1001",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_299__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:1003",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_299__LAMBDA_.nbval = 7;
  BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_299__LAMBDA_, rout_34_LAMBDA_);
  
@@ -21653,14 +21667,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_300__MULTIPLE_TO_LI
  /*inirout drout_302__LAMBDA_*/
  /*_.VALROUT___V352*/ curfptr[351] = (void*)&cdat->drout_302__LAMBDA_;
   cdat->drout_302__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_302__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:1070",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_302__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:1072",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_302__LAMBDA_.nbval = 2;
  BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_302__LAMBDA_, rout_35_LAMBDA_);
  
  /*inirout drout_303__NORMEXP_MATCH*/
  /*_.VALROUT___V366*/ curfptr[365] = (void*)&cdat->drout_303__NORMEXP_MATCH;
   cdat->drout_303__NORMEXP_MATCH.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_303__NORMEXP_MATCH.routdescr, "NORMEXP_MATCH @warmelt-normatch.melt:1094",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_303__NORMEXP_MATCH.routdescr, "NORMEXP_MATCH @warmelt-normatch.melt:1096",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_303__NORMEXP_MATCH.nbval = 35;
  BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_303__NORMEXP_MATCH, rout_36_NORMEXP_MATCH);
  
@@ -21750,7 +21764,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_315__CLASS_SRC_CASE
  /*inirout drout_317__LAMBDA_*/
  /*_.VALROUT___V369*/ curfptr[368] = (void*)&cdat->drout_317__LAMBDA_;
   cdat->drout_317__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
-  strncpy(cdat->drout_317__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:1182",  BASILYS_ROUTDESCR_LEN - 1);
+  strncpy(cdat->drout_317__LAMBDA_.routdescr, "LAMBDA_ @warmelt-normatch.melt:1184",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_317__LAMBDA_.nbval = 1;
  BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_317__LAMBDA_, rout_37_LAMBDA_);
  
@@ -25914,13 +25928,13 @@ initial_frame_st     curfram__;
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V194*/ curfptr[193]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V348*/ curfptr[347])->tabval[17] = (basilys_ptr_t)(/*_.VALDATA___V194*/ curfptr[193]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:980:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:982:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V349*/ curfptr[348])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V194*/ curfptr[193]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V349*/ curfptr[348])->tabval[0] = (basilys_ptr_t)(/*_.VALDATA___V194*/ curfptr[193]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:980:/ touch");
+ BASILYS_LOCATION("warmelt-normatch.melt:982:/ touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V349*/ curfptr[348]);
  
@@ -25936,13 +25950,13 @@ initial_frame_st     curfram__;
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V194*/ curfptr[193]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V348*/ curfptr[347])->tabval[19] = (basilys_ptr_t)(/*_.VALDATA___V194*/ curfptr[193]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:991:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:993:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V350*/ curfptr[349])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V194*/ curfptr[193]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V350*/ curfptr[349])->tabval[0] = (basilys_ptr_t)(/*_.VALDATA___V194*/ curfptr[193]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:991:/ touch");
+ BASILYS_LOCATION("warmelt-normatch.melt:993:/ touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V350*/ curfptr[349]);
  
@@ -26000,49 +26014,49 @@ initial_frame_st     curfram__;
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_285__NORMPAT_ANYMATCHPAT#28", NULL != (/*_.CLASS_NORMCONTEXT__V41*/ curfptr[40]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V348*/ curfptr[347])->tabval[28] = (basilys_ptr_t)(/*_.CLASS_NORMCONTEXT__V41*/ curfptr[40]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V351*/ curfptr[350])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_299__LAMBDA_#0", NULL != (/*_.DEBUG_MSG_FUN__V9*/ curfptr[8]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V351*/ curfptr[350])->tabval[0] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V9*/ curfptr[8]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V351*/ curfptr[350])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_299__LAMBDA_#1", NULL != (/*_.CLASS_FORMAL_BINDING__V32*/ curfptr[31]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V351*/ curfptr[350])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_FORMAL_BINDING__V32*/ curfptr[31]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V351*/ curfptr[350])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_299__LAMBDA_#2", NULL != (/*_.CLONE_SYMBOL__V47*/ curfptr[46]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V351*/ curfptr[350])->tabval[2] = (basilys_ptr_t)(/*_.CLONE_SYMBOL__V47*/ curfptr[46]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V351*/ curfptr[350])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_299__LAMBDA_#3", NULL != (/*_.CLASS_ANY_BINDING__V50*/ curfptr[49]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V351*/ curfptr[350])->tabval[3] = (basilys_ptr_t)(/*_.CLASS_ANY_BINDING__V50*/ curfptr[49]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V351*/ curfptr[350])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_299__LAMBDA_#4", NULL != (/*_.CLASS_NORMLET_BINDING__V40*/ curfptr[39]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V351*/ curfptr[350])->tabval[4] = (basilys_ptr_t)(/*_.CLASS_NORMLET_BINDING__V40*/ curfptr[39]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V351*/ curfptr[350])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_299__LAMBDA_#5", NULL != (/*_.CLASS_NREP_LOCSYMOCC__V39*/ curfptr[38]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V351*/ curfptr[350])->tabval[5] = (basilys_ptr_t)(/*_.CLASS_NREP_LOCSYMOCC__V39*/ curfptr[38]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V351*/ curfptr[350])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_299__LAMBDA_#6", NULL != (/*_.CLASS_NORMCONTEXT__V41*/ curfptr[40]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V351*/ curfptr[350])->tabval[6] = (basilys_ptr_t)(/*_.CLASS_NORMCONTEXT__V41*/ curfptr[40]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1001:/ touch");
+ BASILYS_LOCATION("warmelt-normatch.melt:1003:/ touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V351*/ curfptr[350]);
  
@@ -26088,19 +26102,19 @@ initial_frame_st     curfram__;
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V299*/ curfptr[298]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V348*/ curfptr[347])->tabval[35] = (basilys_ptr_t)(/*_.VALCLO___V299*/ curfptr[298]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1070:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1072:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V352*/ curfptr[351])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_302__LAMBDA_#0", NULL != (/*_.DEBUG_MSG_FUN__V9*/ curfptr[8]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V352*/ curfptr[351])->tabval[0] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V9*/ curfptr[8]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1070:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:1072:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V352*/ curfptr[351])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALCLO___V299*/ curfptr[298]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V352*/ curfptr[351])->tabval[1] = (basilys_ptr_t)(/*_.VALCLO___V299*/ curfptr[298]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1070:/ touch");
+ BASILYS_LOCATION("warmelt-normatch.melt:1072:/ touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V352*/ curfptr[351]);
  
@@ -26182,61 +26196,61 @@ initial_frame_st     curfram__;
  /*touch:VALUEDATA_*/
  basilysgc_touch(/*_.VALDATA___V364*/ curfptr[363]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#0", NULL != (/*_.CLASS_SRC_MATCH__V54*/ curfptr[53]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_SRC_MATCH__V54*/ curfptr[53]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#1", NULL != (/*_.CLASS_ENVIRONMENT__V55*/ curfptr[54]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[1] = (basilys_ptr_t)(/*_.CLASS_ENVIRONMENT__V55*/ curfptr[54]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#2", NULL != (/*_.CLASS_NORMCONTEXT__V41*/ curfptr[40]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[2] = (basilys_ptr_t)(/*_.CLASS_NORMCONTEXT__V41*/ curfptr[40]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#3", NULL != (/*_.DEBUG_MSG_FUN__V9*/ curfptr[8]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[3] = (basilys_ptr_t)(/*_.DEBUG_MSG_FUN__V9*/ curfptr[8]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#4", NULL != (/*_.DISCR_MULTIPLE__V43*/ curfptr[42]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[4] = (basilys_ptr_t)(/*_.DISCR_MULTIPLE__V43*/ curfptr[42]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#5", NULL != (/*_.DISCR_MAPOBJECTS__V56*/ curfptr[55]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[5] = (basilys_ptr_t)(/*_.DISCR_MAPOBJECTS__V56*/ curfptr[55]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#6", NULL != (/*_.DISCR_LIST__V36*/ curfptr[35]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[6] = (basilys_ptr_t)(/*_.DISCR_LIST__V36*/ curfptr[35]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#7", NULL != (/*_.NORMAL_EXP__V23*/ curfptr[22]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[7] = (basilys_ptr_t)(/*_.NORMAL_EXP__V23*/ curfptr[22]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#8", NULL != (/*_.GET_CTYPE__V21*/ curfptr[20]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[8] = (basilys_ptr_t)(/*_.GET_CTYPE__V21*/ curfptr[20]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#9", NULL != (/*_.CLONE_SYMBOL__V47*/ curfptr[46]));
@@ -26251,149 +26265,149 @@ initial_frame_st     curfram__;
  /*touch:VALUEDATA_*/
  basilysgc_touch(/*_.VALDATA___V367*/ curfptr[366]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#10", NULL != (/*_.VALDATA___V367*/ curfptr[366]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[10] = (basilys_ptr_t)(/*_.VALDATA___V367*/ curfptr[366]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#11", NULL != (/*_.CLASS_NORMLET_BINDING__V40*/ curfptr[39]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[11] = (basilys_ptr_t)(/*_.CLASS_NORMLET_BINDING__V40*/ curfptr[39]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#12", NULL != (/*_.CLASS_NREP_LOCSYMOCC__V39*/ curfptr[38]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[12] = (basilys_ptr_t)(/*_.CLASS_NREP_LOCSYMOCC__V39*/ curfptr[38]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#13", NULL != (/*_.LIST1__V57*/ curfptr[56]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[13] = (basilys_ptr_t)(/*_.LIST1__V57*/ curfptr[56]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#14", NULL != (/*_.CLASS_SRC_CASEMATCH__V58*/ curfptr[57]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[14] = (basilys_ptr_t)(/*_.CLASS_SRC_CASEMATCH__V58*/ curfptr[57]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V68*/ curfptr[67]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[15] = (basilys_ptr_t)(/*_.VALDATA___V68*/ curfptr[67]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#16", NULL != (/*_.CLASS_CONTAINER__V37*/ curfptr[36]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[16] = (basilys_ptr_t)(/*_.CLASS_CONTAINER__V37*/ curfptr[36]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V112*/ curfptr[111]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[17] = (basilys_ptr_t)(/*_.VALDATA___V112*/ curfptr[111]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V188*/ curfptr[187]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[18] = (basilys_ptr_t)(/*_.VALDATA___V188*/ curfptr[187]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#19", NULL != (/*_.CLASS_CONTAINER__V37*/ curfptr[36]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[19] = (basilys_ptr_t)(/*_.CLASS_CONTAINER__V37*/ curfptr[36]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1182:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1184:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V369*/ curfptr[368])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_317__LAMBDA_#0", NULL != (/*_.CLASS_CONTAINER__V37*/ curfptr[36]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V369*/ curfptr[368])->tabval[0] = (basilys_ptr_t)(/*_.CLASS_CONTAINER__V37*/ curfptr[36]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1182:/ touch");
+ BASILYS_LOCATION("warmelt-normatch.melt:1184:/ touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V369*/ curfptr[368]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#20", NULL != (/*_.VALROUT___V369*/ curfptr[368]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[20] = (basilys_ptr_t)(/*_.VALROUT___V369*/ curfptr[368]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V224*/ curfptr[223]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[21] = (basilys_ptr_t)(/*_.VALDATA___V224*/ curfptr[223]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V194*/ curfptr[193]);
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[22] = (basilys_ptr_t)(/*_.VALDATA___V194*/ curfptr[193]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#23", NULL != (/*_.CLASS_NREP__V59*/ curfptr[58]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[23] = (basilys_ptr_t)(/*_.CLASS_NREP__V59*/ curfptr[58]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#24", NULL != (/*_.MAPOBJECT_SORTED_ATTRIBUTE_TUPLE__V60*/ curfptr[59]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[24] = (basilys_ptr_t)(/*_.MAPOBJECT_SORTED_ATTRIBUTE_TUPLE__V60*/ curfptr[59]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#25", NULL != (/*_.FRESH_ENV__V49*/ curfptr[48]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[25] = (basilys_ptr_t)(/*_.FRESH_ENV__V49*/ curfptr[48]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#26", NULL != (/*_.PUT_ENV__V51*/ curfptr[50]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[26] = (basilys_ptr_t)(/*_.PUT_ENV__V51*/ curfptr[50]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#27", NULL != (/*_.NORMALIZE_TUPLE__V33*/ curfptr[32]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[27] = (basilys_ptr_t)(/*_.NORMALIZE_TUPLE__V33*/ curfptr[32]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#28", NULL != (/*_.WRAP_NORMAL_LETSEQ__V61*/ curfptr[60]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[28] = (basilys_ptr_t)(/*_.WRAP_NORMAL_LETSEQ__V61*/ curfptr[60]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#29", NULL != (/*_.CTYPE_VOID__V62*/ curfptr[61]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[29] = (basilys_ptr_t)(/*_.CTYPE_VOID__V62*/ curfptr[61]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#30", NULL != (/*_.CLASS_NAMED__V12*/ curfptr[11]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[30] = (basilys_ptr_t)(/*_.CLASS_NAMED__V12*/ curfptr[11]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#31", NULL != (/*_.LIST_TO_MULTIPLE__V63*/ curfptr[62]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[31] = (basilys_ptr_t)(/*_.LIST_TO_MULTIPLE__V63*/ curfptr[62]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconstnotnull");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconstnotnull");
  /*putroutconstnotnull*/
  basilys_assertmsg("putroutconstnotnull checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  basilys_assertmsg("putroutconstnotnull notnullconst", NULL != /*_.VALDATA___V278*/ curfptr[277]);
@@ -26408,19 +26422,19 @@ initial_frame_st     curfram__;
  /*touch:VALUEDATA_*/
  basilysgc_touch(/*_.VALDATA___V370*/ curfptr[369]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#33", NULL != (/*_.VALDATA___V370*/ curfptr[369]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[33] = (basilys_ptr_t)(/*_.VALDATA___V370*/ curfptr[369]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ putroutconst");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ putroutconst");
  /*putroutconst*/
  basilys_assertmsg("putroutconst checkrout", basilys_magic_discr((basilys_ptr_t)(/*_.VALROUT___V366*/ curfptr[365])) == OBMAG_ROUTINE);
  if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg("putroutconst constnull.drout_303__NORMEXP_MATCH#34", NULL != (/*_.CLASS_NREP_SYMOCC__V44*/ curfptr[43]));
  ((basilysroutine_ptr_t)/*_.VALROUT___V366*/ curfptr[365])->tabval[34] = (basilys_ptr_t)(/*_.CLASS_NREP_SYMOCC__V44*/ curfptr[43]);
  
- BASILYS_LOCATION("warmelt-normatch.melt:1094:/ touch");
+ BASILYS_LOCATION("warmelt-normatch.melt:1096:/ touch");
  /*touch:IROUTVAL_*/
  basilysgc_touch(/*_.VALROUT___V366*/ curfptr[365]);
  
@@ -26857,13 +26871,13 @@ initial_frame_st     curfram__;
   /*clear*/ /*_.INSTALL_METHOD__V415*/ curfptr[394] = 0 ;}
  
  /*block*/{
-  BASILYS_LOCATION("warmelt-normatch.melt:1089:/ apply");
+  BASILYS_LOCATION("warmelt-normatch.melt:1091:/ apply");
   /*apply*/{
    union basilysparam_un argtab[2];
    memset(&argtab, 0, sizeof(argtab));
-   BASILYS_LOCATION("warmelt-normatch.melt:1089:/ apply.arg");
+   BASILYS_LOCATION("warmelt-normatch.melt:1091:/ apply.arg");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.VALDATA___V188*/ curfptr[187];
-   BASILYS_LOCATION("warmelt-normatch.melt:1089:/ apply.arg");
+   BASILYS_LOCATION("warmelt-normatch.melt:1091:/ apply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.VALCLO___V353*/ curfptr[352];
    /*_.INSTALL_METHOD__V416*/ curfptr[392] =  basilys_apply ((basilysclosure_ptr_t)(/*_.INSTALL_METHOD__V10*/ curfptr[9]), (basilys_ptr_t)(/*_.CLASS_SRCPATTERN_ANYMATCH__V48*/ curfptr[47]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union basilysparam_un*)0);
    }

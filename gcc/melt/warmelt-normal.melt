@@ -3952,21 +3952,13 @@
 	 (resbinds (make_list discr_list))
 	 (insfma (subseq_multiple sins 1 -1))
 	 (mbifma (multiple_nth sins 0))
-	 (funmatcher (instance class_funmatcher
-			       :named_name sname
-			       :amatch_in insfma
-			       :amatch_matchbind mbifma
-			       :amatch_out souts
-			       ;; these are filled later
-			       :fmatch_matchf ()
-			       :fmatch_applyf ()
-			       :fmatch_data ()
-			       ))
 	 (fmbind (let ( (b (find_env env sname)) )
 		   (debug_msg b "normexp_defunmatcher fmbind")
 		   (assert_msg "check fmbind" (is_a b class_funmatcher_binding))
 		   b))
+	 (funmatcher (get_field :fmbind_funmatcher fmbind))
 	 )
+    (debug_msg funmatcher "normexp_defunmatcher made funmatcher")
     (assert_msg "check smatched" (is_a smatched class_formal_binding))
     (assert_msg "check sins" (is_multiple sins))
     (assert_msg "check souts" (is_multiple souts))
@@ -4001,10 +3993,10 @@
 				)) 
 	     (instup (make_multiple discr_multiple (multiple_length insfma)))
 	     (outstup (make_multiple discr_multiple (multiple_length souts)))
-	 ;; map of formal symbol -> data of formal_binding
-	 (formsymbmap (make_mapobject discr_mapobjects
-				      (+i 5 (*i (+i (multiple_length insfma) 
-						    (multiple_length souts)) 2))))
+	     ;; map of formal symbol -> data of formal_binding
+	     (formsymbmap (make_mapobject discr_mapobjects
+					  (+i 5 (*i (+i (multiple_length insfma) 
+							(multiple_length souts)) 2))))
 	     )
 	 (add_nctx_data ncx namstrdata)
 	 (add_nctx_data ncx insdata)
@@ -4048,6 +4040,8 @@
 ;;; fill the fmatch_data of insdata
 	 (multiple_put_nth slotup (get_int fmatch_data)
 			   ndata)
+;;; put the data in the binding
+	 (unsafe_put_fields fmbind :fixbind_data insdata)
 ;;; make a funmatcher binding
 	 (compile_warning "$@$incomplete normexp_defunmatcher" ())
 ;;; return insdata and resbinds

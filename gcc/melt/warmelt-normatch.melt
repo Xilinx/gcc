@@ -858,6 +858,7 @@
   (let (
 	(sloc (get_field :src_loc recv))
 	(mat (get_field :spac_operator recv))
+	(matbind (get_field :spac_operbind recv))
 	(inargs (get_field :spac_inargs recv))
 	(outargs (get_field :spac_outargs recv))
 	(env (unsafe_get_field :pctn_env pcn))
@@ -869,6 +870,7 @@
 	(testlist (get_field :pctn_tests pcn))
 	)
     (assert_msg "check mat" (is_a mat class_any_matcher))
+    ;(assert_msg "check matbind" (is_a matbind class_any_binding))
     (debug_msg inargs "normpat_anymatchpat inargs")
     (debug_msg mat "normpat_anymatchpat mat")
     (multicall

@@ -1,4 +1,20 @@
 
+2009-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	[funmatcher-s still incomplete, need to keep the data in the
+	funmatch binding...]
+	* melt/warmelt-macro.melt: added spac_operbind field and filled it
+	in patternexpand_expr
+	* melt/warmelt-normal.melt: normexp_defunmatcher fills the
+	fixbind_data...
+	* melt/warmelt-normatch.melt: normpat_anymatchpat should use the
+	matbind...
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2009-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[funmatcher-s still incomplete]
 	* testsuite/melt/tfunmatch-1.melt: more and better debug messages.

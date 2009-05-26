@@ -502,6 +502,10 @@
 (defclass class_srcpattern_composite
   :super class_srcpattern_object
   :fields (spac_operator		;pattern operator
+	   ;;;; the operator binding is useful to compile some
+	   ;;;; composites (e.g. funmatching) and is better here,
+	   ;;;; since it is closely related to the operator
+	   spac_operbind		;operator binding (if any)
 	   spac_inargs			;input expressions
 	   spac_outargs			;output subpatterns
 	   ))
@@ -511,11 +515,13 @@
   :super class_srcpattern_composite
   :fields (
 	   ))
+
 ;; cmatcher composite source pattern
 (defclass class_srcpattern_cmatch
   :super class_srcpattern_anymatch
   :fields (
 	   ))
+
 ;; funmatcher composite source pattern
 (defclass class_srcpattern_funmatch
   :super class_srcpattern_anymatch
@@ -1008,6 +1014,7 @@
 	    (let ( (pcomp (instance class_srcpattern_cmatch
 				    :src_loc sloc
 				    :spac_operator cmat
+				    :spac_operbind opbind
 				    :spac_inargs args
 				    :spac_outargs pats
 				    ))
@@ -1036,6 +1043,7 @@
 	    (let ( (pcomp (instance class_srcpattern_funmatch
 				    :src_loc sloc
 				    :spac_operator fmat
+				    :spac_operbind opbind
 				    :spac_inargs args
 				    :spac_outargs pats
 				    )) )
@@ -1055,6 +1063,7 @@
 	       (let ( (pcomp (instance class_srcpattern_cmatch
 				       :src_loc sloc
 				       :spac_operator opval
+				       :spac_operbind opbind
 				       :spac_inargs args
 				       :spac_outargs pats
 				       ))
@@ -1063,9 +1072,23 @@
 		 (return pcomp)
 		 )))
 	    ( (is_a opval class_funmatcher) 
-	   (debug_msg opval "patternexpand_expr funmatcher value opval")
-	   (compile_warning "@$@unimplemented patternexpand_expr imported funmatcher" ())
-	   (assert_msg "@$@unimplemented patternexpand_expr imported funmatcher" ())
+	      (debug_msg opval "patternexpand_expr funmatcher value opval")
+	      (multicall
+	       (args pats)
+	       (patmacexpand_for_matcher (pair_tail curpair) opval env sloc pctx)
+	       (debug_msg args "patternexpand_expr imported funmatcher args")
+	       (debug_msg pats "patternexpand_expr imported funmatcher pats")
+	       (let ( (pcomp (instance class_srcpattern_funmatch
+				       :src_loc sloc
+				       :spac_operator opval
+				       :spac_operbind opbind
+				       :spac_inargs args
+				       :spac_outargs pats
+				       ))
+		      )
+		 (debug_msg pcomp "patternexpand_expr funmatcher value pcomp")
+		 (return pcomp)
+		 ))
 	      )
 	    (:else
 	     (error_strv sloc "invalid pattern operator value" opnam)
@@ -1871,6 +1894,7 @@
 			    ))
 	  )
       (put_env env fmbind)
+      (debug_msg fuma "mexpand_defunmatcher made fuma")
       (debug_msg fmbind "mexpand_defunmatcher fmbind")
       (debug_msg sdfum "mexpand_defunmatcher return sdfum")
       (return sdfum)
