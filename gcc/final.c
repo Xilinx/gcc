@@ -553,7 +553,17 @@ static int min_labelno, max_labelno;
 int
 label_to_alignment (rtx label)
 {
-  return LABEL_TO_ALIGNMENT (label);
+  if (CODE_LABEL_NUMBER (label) <= max_labelno)
+    return LABEL_TO_ALIGNMENT (label);
+  return 0;
+}
+
+int
+label_to_max_skip (rtx label)
+{
+  if (CODE_LABEL_NUMBER (label) <= max_labelno)
+    return LABEL_TO_MAX_SKIP (label);
+  return 0;
 }
 
 #ifdef HAVE_ATTR_length
@@ -891,6 +901,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
       if (LABEL_P (insn))
 	{
 	  rtx next;
+	  bool next_is_jumptable;
 
 	  /* Merge in alignments computed by compute_alignments.  */
 	  log = LABEL_TO_ALIGNMENT (insn);
@@ -900,31 +911,30 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 	      max_skip = LABEL_TO_MAX_SKIP (insn);
 	    }
 
-	  log = LABEL_ALIGN (insn);
-	  if (max_log < log)
-	    {
-	      max_log = log;
-	      max_skip = LABEL_ALIGN_MAX_SKIP;
-	    }
 	  next = next_nonnote_insn (insn);
+	  next_is_jumptable = next && JUMP_TABLE_DATA_P (next);
+	  if (!next_is_jumptable)
+	    {
+	      log = LABEL_ALIGN (insn);
+	      if (max_log < log)
+		{
+		  max_log = log;
+		  max_skip = LABEL_ALIGN_MAX_SKIP;
+		}
+	    }
 	  /* ADDR_VECs only take room if read-only data goes into the text
 	     section.  */
-	  if (JUMP_TABLES_IN_TEXT_SECTION
-	      || readonly_data_section == text_section)
-	    if (next && JUMP_P (next))
-	      {
-		rtx nextbody = PATTERN (next);
-		if (GET_CODE (nextbody) == ADDR_VEC
-		    || GET_CODE (nextbody) == ADDR_DIFF_VEC)
-		  {
-		    log = ADDR_VEC_ALIGN (next);
-		    if (max_log < log)
-		      {
-			max_log = log;
-			max_skip = LABEL_ALIGN_MAX_SKIP;
-		      }
-		  }
-	      }
+	  if ((JUMP_TABLES_IN_TEXT_SECTION
+	       || readonly_data_section == text_section)
+	      && next_is_jumptable)
+	    {
+	      log = ADDR_VEC_ALIGN (next);
+	      if (max_log < log)
+		{
+		  max_log = log;
+		  max_skip = LABEL_ALIGN_MAX_SKIP;
+		}
+	    }
 	  LABEL_TO_ALIGNMENT (insn) = max_log;
 	  LABEL_TO_MAX_SKIP (insn) = max_skip;
 	  max_log = 0;
@@ -2013,48 +2023,41 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
       app_disable ();
 
       next = next_nonnote_insn (insn);
-      if (next != 0 && JUMP_P (next))
+      /* If this label is followed by a jump-table, make sure we put
+	 the label in the read-only section.  Also possibly write the
+	 label and jump table together.  */
+      if (next != 0 && JUMP_TABLE_DATA_P (next))
 	{
-	  rtx nextbody = PATTERN (next);
-
-	  /* If this label is followed by a jump-table,
-	     make sure we put the label in the read-only section.  Also
-	     possibly write the label and jump table together.  */
-
-	  if (GET_CODE (nextbody) == ADDR_VEC
-	      || GET_CODE (nextbody) == ADDR_DIFF_VEC)
-	    {
 #if defined(ASM_OUTPUT_ADDR_VEC) || defined(ASM_OUTPUT_ADDR_DIFF_VEC)
-	      /* In this case, the case vector is being moved by the
-		 target, so don't output the label at all.  Leave that
-		 to the back end macros.  */
+	  /* In this case, the case vector is being moved by the
+	     target, so don't output the label at all.  Leave that
+	     to the back end macros.  */
 #else
-	      if (! JUMP_TABLES_IN_TEXT_SECTION)
-		{
-		  int log_align;
+	  if (! JUMP_TABLES_IN_TEXT_SECTION)
+	    {
+	      int log_align;
 
-		  switch_to_section (targetm.asm_out.function_rodata_section
-				     (current_function_decl));
+	      switch_to_section (targetm.asm_out.function_rodata_section
+				 (current_function_decl));
 
 #ifdef ADDR_VEC_ALIGN
-		  log_align = ADDR_VEC_ALIGN (next);
+	      log_align = ADDR_VEC_ALIGN (next);
 #else
-		  log_align = exact_log2 (BIGGEST_ALIGNMENT / BITS_PER_UNIT);
+	      log_align = exact_log2 (BIGGEST_ALIGNMENT / BITS_PER_UNIT);
 #endif
-		  ASM_OUTPUT_ALIGN (file, log_align);
-		}
-	      else
-		switch_to_section (current_function_section ());
+	      ASM_OUTPUT_ALIGN (file, log_align);
+	    }
+	  else
+	    switch_to_section (current_function_section ());
 
 #ifdef ASM_OUTPUT_CASE_LABEL
-	      ASM_OUTPUT_CASE_LABEL (file, "L", CODE_LABEL_NUMBER (insn),
-				     next);
+	  ASM_OUTPUT_CASE_LABEL (file, "L", CODE_LABEL_NUMBER (insn),
+				 next);
 #else
-	      targetm.asm_out.internal_label (file, "L", CODE_LABEL_NUMBER (insn));
+	  targetm.asm_out.internal_label (file, "L", CODE_LABEL_NUMBER (insn));
 #endif
 #endif
-	      break;
-	    }
+	  break;
 	}
       if (LABEL_ALT_ENTRY_P (insn))
 	output_alternate_entry_point (file, insn);

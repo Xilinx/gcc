@@ -1445,6 +1445,7 @@ typedef struct gfc_intrinsic_arg
 
   gfc_typespec ts;
   int optional;
+  ENUM_BITFIELD (sym_intent) intent:2;
   gfc_actual_arglist *actual;
 
   struct gfc_intrinsic_arg *next;
@@ -2060,7 +2061,6 @@ typedef struct
 
   int warn_std;
   int allow_std;
-  int fshort_enums;
   int convert;
   int record_marker;
   int max_subrecord_length;
@@ -2198,6 +2198,9 @@ unsigned int gfc_init_options (unsigned int, const char **);
 int gfc_handle_option (size_t, const char *, int);
 bool gfc_post_options (const char **);
 
+/* f95-lang.c */
+void gfc_maybe_initialize_eh (void);
+
 /* iresolve.c */
 const char * gfc_get_string (const char *, ...) ATTRIBUTE_PRINTF_1;
 bool gfc_find_sym_in_expr (gfc_symbol *, gfc_expr *);
@@ -2252,6 +2255,8 @@ bool gfc_check_character_range (gfc_char_t, int);
 /* trans-types.c */
 gfc_try gfc_check_any_c_kind (gfc_typespec *);
 int gfc_validate_kind (bt, int, bool);
+int gfc_get_int_kind_from_width_isofortranenv (int size);
+int gfc_get_real_kind_from_width_isofortranenv (int size);
 extern int gfc_index_integer_kind;
 extern int gfc_default_integer_kind;
 extern int gfc_max_integer_kind;
@@ -2562,7 +2567,7 @@ gfc_try gfc_ref_dimen_size (gfc_array_ref *, int dimen, mpz_t *);
 void gfc_free_interface (gfc_interface *);
 int gfc_compare_derived_types (gfc_symbol *, gfc_symbol *);
 int gfc_compare_types (gfc_typespec *, gfc_typespec *);
-int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, int);
+int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, int, int);
 void gfc_check_interfaces (gfc_namespace *);
 void gfc_procedure_use (gfc_symbol *, gfc_actual_arglist **, locus *);
 gfc_symbol *gfc_search_interface (gfc_interface *, int,

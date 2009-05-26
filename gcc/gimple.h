@@ -1360,35 +1360,6 @@ gimple_modified_p (const_gimple g)
   return (gimple_has_ops (g)) ? (bool) g->gsbase.modified : false;
 }
 
-/* Return the type of the main expression computed by STMT.  Return
-   void_type_node if the statement computes nothing.  */
-
-static inline tree
-gimple_expr_type (const_gimple stmt)
-{
-  enum gimple_code code = gimple_code (stmt);
-
-  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
-    {
-      tree type = TREE_TYPE (gimple_get_lhs (stmt));
-      /* Integral sub-types are never the type of the expression,
-         but they still can be the type of the result as the base
-	 type (in which expressions are computed) is trivially
-	 convertible to one of its sub-types.  So always return
-	 the base type here.  */
-      if (INTEGRAL_TYPE_P (type)
-	  && TREE_TYPE (type)
-	  /* But only if they are trivially convertible.  */
-	  && useless_type_conversion_p (type, TREE_TYPE (type)))
-	type = TREE_TYPE (type);
-      return type;
-    }
-  else if (code == GIMPLE_COND)
-    return boolean_type_node;
-  else
-    return void_type_node;
-}
-
 
 /* Return the tree code for the expression computed by STMT.  This is
    only valid for GIMPLE_COND, GIMPLE_CALL and GIMPLE_ASSIGN.  For
@@ -4135,69 +4106,6 @@ gimple_nop_p (const_gimple g)
 }
 
 
-/* Return the new type set by GIMPLE_CHANGE_DYNAMIC_TYPE statement GS.  */
-
-static inline tree
-gimple_cdt_new_type (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  return gimple_op (gs, 1);
-}
-
-/* Return a pointer to the new type set by GIMPLE_CHANGE_DYNAMIC_TYPE
-   statement GS.  */
-
-static inline tree *
-gimple_cdt_new_type_ptr (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  return gimple_op_ptr (gs, 1);
-}
-
-/* Set NEW_TYPE to be the type returned by GIMPLE_CHANGE_DYNAMIC_TYPE
-   statement GS.  */
-
-static inline void
-gimple_cdt_set_new_type (gimple gs, tree new_type)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  gcc_assert (TREE_CODE_CLASS (TREE_CODE (new_type)) == tcc_type);
-  gimple_set_op (gs, 1, new_type);
-}
-
-
-/* Return the location affected by GIMPLE_CHANGE_DYNAMIC_TYPE statement GS.  */
-
-static inline tree
-gimple_cdt_location (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  return gimple_op (gs, 0);
-}
-
-
-/* Return a pointer to the location affected by GIMPLE_CHANGE_DYNAMIC_TYPE
-   statement GS.  */
-
-static inline tree *
-gimple_cdt_location_ptr (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  return gimple_op_ptr (gs, 0);
-}
-
-
-/* Set PTR to be the location affected by GIMPLE_CHANGE_DYNAMIC_TYPE
-   statement GS.  */
-
-static inline void
-gimple_cdt_set_location (gimple gs, tree ptr)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  gimple_set_op (gs, 0, ptr);
-}
-
-
 /* Return the predictor of GIMPLE_PREDICT statement GS.  */
 
 static inline enum br_predictor
@@ -4239,6 +4147,44 @@ gimple_predict_set_outcome (gimple gs, enum prediction outcome)
     gs->gsbase.subcode |= GF_PREDICT_TAKEN;
   else
     gs->gsbase.subcode &= ~GF_PREDICT_TAKEN;
+}
+
+
+/* Return the type of the main expression computed by STMT.  Return
+   void_type_node if the statement computes nothing.  */
+
+static inline tree
+gimple_expr_type (const_gimple stmt)
+{
+  enum gimple_code code = gimple_code (stmt);
+
+  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
+    {
+      tree type;
+      /* In general we want to pass out a type that can be substituted
+         for both the RHS and the LHS types if there is a possibly
+	 useless conversion involved.  That means returning the
+	 original RHS type as far as we can reconstruct it.  */
+      if (code == GIMPLE_CALL)
+	type = gimple_call_return_type (stmt);
+      else
+	switch (gimple_assign_rhs_code (stmt))
+	  {
+	  case POINTER_PLUS_EXPR:
+	    type = TREE_TYPE (gimple_assign_rhs1 (stmt));
+	    break;
+
+	  default:
+	    /* As fallback use the type of the LHS.  */
+	    type = TREE_TYPE (gimple_get_lhs (stmt));
+	    break;
+	  }
+      return type;
+    }
+  else if (code == GIMPLE_COND)
+    return boolean_type_node;
+  else
+    return void_type_node;
 }
 
 

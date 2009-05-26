@@ -55,8 +55,14 @@ struct GTY(()) inline_summary
   /* Estimated stack frame consumption by the function.  */
   HOST_WIDE_INT estimated_self_stack_size;
 
-  /* Size of the function before inlining.  */
-  int self_insns;
+  /* Size of the function body.  */
+  int self_size;
+  /* How many instructions are likely going to disappear after inlining.  */
+  int size_inlining_benefit;
+  /* Estimated time spent executing the function body.  */
+  int self_time;
+  /* How much time is going to be saved by inlining.  */
+  int time_inlining_benefit;
 };
 
 /* Information about the function collected locally.
@@ -108,7 +114,8 @@ struct GTY(()) cgraph_global_info {
   struct cgraph_node *inlined_to;
 
   /* Estimated size of the function after inlining.  */
-  int insns;
+  int time;
+  int size;
 
   /* Estimated growth after inlining.  INT_MIN if not computed.  */
   int estimated_growth;
@@ -211,11 +218,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   unsigned process : 1;
   /* Set for aliases once they got through assemble_alias.  */
   unsigned alias : 1;
-
-  /* In non-unit-at-a-time mode the function body of inline candidates is saved
-     into clone before compiling so the function in original form can be
-     inlined later.  This pointer points to the clone.  */
-  tree inline_decl;
+  /* Set for nodes that was constructed and finalized by frontend.  */
+  unsigned finalized_by_frontend : 1;
 };
 
 typedef struct cgraph_node *cgraph_node_ptr;

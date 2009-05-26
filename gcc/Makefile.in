@@ -820,7 +820,7 @@ endif
 
 # Shorthand variables for dependency lists.
 EXCEPT_H = except.h sbitmap.h vecprim.h
-TOPLEV_H = toplev.h input.h
+TOPLEV_H = toplev.h input.h bversion.h
 TARGET_H = $(TM_H) target.h insn-modes.h
 MACHMODE_H = machmode.h mode-classes.def insn-modes.h
 HOOKS_H = hooks.h $(MACHMODE_H)
@@ -2523,6 +2523,14 @@ $(COMPILER_PROBE_OBJ): $(COMPILER_PROBE_C) $(COMPILER_PROBE_H) \
    $(GGC_H) vec.h $(CGRAPH_H) $(FLAGS_H) $(BASIC_BLOCK_H) $(RTL_H) version.h
 endif
 ### end of Basilys stuff
+
+bversion.h: s-bversion; @true
+s-bversion: BASE-VER
+	echo "#define BUILDING_GCC_MAJOR `echo $(BASEVER_c) | sed -e 's/^\([0-9]*\).*$$/\1/'`" > bversion.h
+	echo "#define BUILDING_GCC_MINOR `echo $(BASEVER_c) | sed -e 's/^[0-9]*\.\([0-9]*\).*$$/\1/'`" >> bversion.h
+	echo "#define BUILDING_GCC_PATCHLEVEL `echo $(BASEVER_c) | sed -e 's/^[0-9]*\.[0-9]*\.\([0-9]*\)$$/\1/'`" >> bversion.h
+	echo "#define BUILDING_GCC_VERSION (BUILDING_GCC_MAJOR * 1000 + BUILDING_GCC_MINOR)" >> bversion.h
+	$(STAMP) s-bversion
 
 toplev.o : toplev.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
    version.h $(RTL_H) $(FUNCTION_H) $(FLAGS_H) xcoffout.h $(INPUT_H) \

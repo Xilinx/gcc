@@ -472,9 +472,9 @@
   if (TARGET_THUMB1)
     {
       if (GET_CODE (operands[1]) != REG)
-        operands[1] = force_reg (SImode, operands[1]);
+        operands[1] = force_reg (DImode, operands[1]);
       if (GET_CODE (operands[2]) != REG)
-        operands[2] = force_reg (SImode, operands[2]);
+        operands[2] = force_reg (DImode, operands[2]);
      }
   "
 )
@@ -2615,11 +2615,11 @@
   [(set (match_operand:SI         0 "s_register_operand" "=r,r")
 	(ior:SI (match_operand:SI 1 "s_register_operand" "r,r")
 		(match_operand:SI 2 "reg_or_int_operand" "rI,?n")))]
-  "TARGET_32BIT"
+  "TARGET_ARM"
   "@
    orr%?\\t%0, %1, %2
    #"
-  "TARGET_32BIT
+  "TARGET_ARM
    && GET_CODE (operands[2]) == CONST_INT
    && !const_ok_for_arm (INTVAL (operands[2]))"
   [(clobber (const_int 0))]
@@ -2646,7 +2646,7 @@
    (set (match_operand:SI 0 "arm_general_register_operand" "")
 	(ior:SI (match_operand:SI 1 "arm_general_register_operand" "")
 		(match_operand:SI 2 "const_int_operand" "")))]
-  "TARGET_32BIT
+  "TARGET_ARM
    && !const_ok_for_arm (INTVAL (operands[2]))
    && const_ok_for_arm (~INTVAL (operands[2]))"
   [(set (match_dup 3) (match_dup 2))
@@ -5476,8 +5476,8 @@
 
           /* ??? We shouldn't really get invalid addresses here, but this can
 	     happen if we are passed a SP (never OK for HImode/QImode) or 
-	     virtual register (rejected by GO_IF_LEGITIMATE_ADDRESS for 
-	     HImode/QImode) relative address.  */
+	     virtual register (also rejected as illegitimate for HImode/QImode)
+	     relative address.  */
           /* ??? This should perhaps be fixed elsewhere, for instance, in
 	     fixup_stack_1, by checking for other kinds of invalid addresses,
 	     e.g. a bare reference to a virtual register.  This may confuse the
@@ -5708,8 +5708,8 @@
 	{
           /* ??? We shouldn't really get invalid addresses here, but this can
 	     happen if we are passed a SP (never OK for HImode/QImode) or
-	     virtual register (rejected by GO_IF_LEGITIMATE_ADDRESS for
-	     HImode/QImode) relative address.  */
+	     virtual register (also rejected as illegitimate for HImode/QImode)
+	     relative address.  */
           /* ??? This should perhaps be fixed elsewhere, for instance, in
 	     fixup_stack_1, by checking for other kinds of invalid addresses,
 	     e.g. a bare reference to a virtual register.  This may confuse the
@@ -7977,7 +7977,7 @@
 
 (define_insn "cstoresi_nltu_thumb1"
   [(set (match_operand:SI 0 "s_register_operand" "=l,l")
-        (neg:SI (gtu:SI (match_operand:SI 1 "s_register_operand" "l,*h")
+        (neg:SI (ltu:SI (match_operand:SI 1 "s_register_operand" "l,*h")
 			(match_operand:SI 2 "thumb1_cmp_operand" "lI*h,*r"))))]
   "TARGET_THUMB1"
   "cmp\\t%1, %2\;sbc\\t%0, %0, %0"

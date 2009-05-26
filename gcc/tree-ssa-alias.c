@@ -155,10 +155,13 @@ ptr_deref_may_alias_global_p (tree ptr)
   if (!pi)
     return true;
 
+  /* ???  This does not use TBAA to prune globals ptr may not access.  */
   return pt_solution_includes_global (&pi->pt);
 }
 
-/* Return true if dereferencing PTR may alias DECL.  */
+/* Return true if dereferencing PTR may alias DECL.
+   The caller is responsible for applying TBAA to see if PTR
+   may access DECL at all.  */
 
 static bool
 ptr_deref_may_alias_decl_p (tree ptr, tree decl)
@@ -190,7 +193,9 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
   return pt_solution_includes (&pi->pt, decl);
 }
 
-/* Return true if dereferenced PTR1 and PTR2 may alias.  */
+/* Return true if dereferenced PTR1 and PTR2 may alias.
+   The caller is responsible for applying TBAA to see if accesses
+   through PTR1 and PTR2 may conflict at all.  */
 
 static bool
 ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
@@ -222,6 +227,8 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
   if (!pi1 || !pi2)
     return true;
 
+  /* ???  This does not use TBAA to prune decls from the intersection
+     that not both pointers may access.  */
   return pt_solutions_intersect (&pi1->pt, &pi2->pt);
 }
 
@@ -323,7 +330,14 @@ dump_alias_info (FILE *file)
 	dump_variable (file, var);
     }
 
-  fprintf (file, "\n\nFlow-insensitive points-to information for %s\n\n", funcname);
+  fprintf (file, "\nCall clobber information\n");
+
+  fprintf (file, "\nESCAPED");
+  dump_points_to_solution (file, &cfun->gimple_df->escaped);
+  fprintf (file, "\nCALLUSED");
+  dump_points_to_solution (file, &cfun->gimple_df->callused);
+
+  fprintf (file, "\n\nFlow-insensitive points-to information\n\n");
 
   for (i = 1; i < num_ssa_names; i++)
     {
@@ -373,6 +387,32 @@ get_ptr_info (tree t)
   return pi;
 }
 
+/* Dump the points-to set *PT into FILE.  */
+
+void
+dump_points_to_solution (FILE *file, struct pt_solution *pt)
+{
+  if (pt->anything)
+    fprintf (file, ", points-to anything");
+
+  if (pt->nonlocal)
+    fprintf (file, ", points-to non-local");
+
+  if (pt->escaped)
+    fprintf (file, ", points-to escaped");
+
+  if (pt->null)
+    fprintf (file, ", points-to NULL");
+
+  if (pt->vars)
+    {
+      fprintf (file, ", points-to vars: ");
+      dump_decl_set (file, pt->vars);
+      if (pt->vars_contains_global)
+	fprintf (file, " (includes global vars)");
+    }
+}
+
 /* Dump points-to information for SSA_NAME PTR into FILE.  */
 
 void
@@ -383,27 +423,9 @@ dump_points_to_info_for (FILE *file, tree ptr)
   print_generic_expr (file, ptr, dump_flags);
 
   if (pi)
-    {
-      if (pi->pt.anything)
-	fprintf (file, ", points-to anything");
-
-      if (pi->pt.nonlocal)
-	fprintf (file, ", points-to non-local");
-
-      if (pi->pt.escaped)
-	fprintf (file, ", points-to escaped");
-
-      if (pi->pt.null)
-	fprintf (file, ", points-to NULL");
-
-      if (pi->pt.vars)
-	{
-	  fprintf (file, ", points-to vars: ");
-	  dump_decl_set (file, pi->pt.vars);
-	  if (pi->pt.vars_contains_global)
-	    fprintf (file, " (includes global vars)");
-	}
-    }
+    dump_points_to_solution (file, &pi->pt);
+  else
+    fprintf (file, ", points-to anything");
 
   fprintf (file, "\n");
 }
@@ -653,13 +675,14 @@ indirect_refs_may_alias_p (tree ref1, tree ptr1,
 /* Return true, if the two memory references REF1 and REF2 may alias.  */
 
 static bool
-refs_may_alias_p_1 (tree ref1, tree ref2)
+refs_may_alias_p_1 (tree ref1, tree ref2, bool tbaa_p)
 {
   tree base1, base2;
   HOST_WIDE_INT offset1 = 0, offset2 = 0;
   HOST_WIDE_INT size1 = -1, size2 = -1;
   HOST_WIDE_INT max_size1 = -1, max_size2 = -1;
   bool var1_p, var2_p, ind1_p, ind2_p;
+  alias_set_type set;
 
   gcc_assert ((SSA_VAR_P (ref1)
 	       || handled_component_p (ref1)
@@ -694,7 +717,8 @@ refs_may_alias_p_1 (tree ref1, tree ref2)
 				  base2, offset2, max_size2);
 
   /* First defer to TBAA if possible.  */
-  if (flag_strict_aliasing
+  if (tbaa_p
+      && flag_strict_aliasing
       && !alias_sets_conflict_p (get_alias_set (ref1), get_alias_set (ref2)))
     return false;
 
@@ -708,21 +732,22 @@ refs_may_alias_p_1 (tree ref1, tree ref2)
   /* Dispatch to the pointer-vs-decl or pointer-vs-pointer disambiguators.  */
   ind1_p = INDIRECT_REF_P (base1);
   ind2_p = INDIRECT_REF_P (base2);
+  set = tbaa_p ? -1 : 0;
   if (var1_p && ind2_p)
     return indirect_ref_may_alias_decl_p (ref2, TREE_OPERAND (base2, 0),
-					  offset2, max_size2, -1,
+					  offset2, max_size2, set,
 					  ref1, base1,
-					  offset1, max_size1, -1);
+					  offset1, max_size1, set);
   else if (ind1_p && var2_p)
     return indirect_ref_may_alias_decl_p (ref1, TREE_OPERAND (base1, 0),
-					  offset1, max_size1, -1,
+					  offset1, max_size1, set,
 					  ref2, base2,
-					  offset2, max_size2, -1);
+					  offset2, max_size2, set);
   else if (ind1_p && ind2_p)
     return indirect_refs_may_alias_p (ref1, TREE_OPERAND (base1, 0),
-				      offset1, max_size1, -1,
+				      offset1, max_size1, set,
 				      ref2, TREE_OPERAND (base2, 0),
-				      offset2, max_size2, -1);
+				      offset2, max_size2, set);
 
   gcc_unreachable ();
 }
@@ -730,7 +755,7 @@ refs_may_alias_p_1 (tree ref1, tree ref2)
 bool
 refs_may_alias_p (tree ref1, tree ref2)
 {
-  bool res = refs_may_alias_p_1 (ref1, ref2);
+  bool res = refs_may_alias_p_1 (ref1, ref2, true);
   if (res)
     ++alias_stats.refs_may_alias_p_may_alias;
   else
@@ -738,6 +763,23 @@ refs_may_alias_p (tree ref1, tree ref2)
   return res;
 }
 
+/* Returns true if there is a anti-dependence for the STORE that
+   executes after the LOAD.  */
+
+bool
+refs_anti_dependent_p (tree load, tree store)
+{
+  return refs_may_alias_p_1 (load, store, false);
+}
+
+/* Returns true if there is a output dependence for the stores
+   STORE1 and STORE2.  */
+
+bool
+refs_output_dependent_p (tree store1, tree store2)
+{
+  return refs_may_alias_p_1 (store1, store2, false);
+}
 
 /* If the call CALL may use the memory reference REF return true,
    otherwise return false.  */
@@ -1044,11 +1086,19 @@ get_continuation_for_phi (gimple phi, tree ref, bitmap *visited)
    WALKER returns non-NULL the walk stops and its result is returned.
    At the end of a non-successful walk NULL is returned.
 
+   TRANSLATE if non-NULL is called with a pointer to REF, the virtual
+   use which definition is a statement that may clobber REF and DATA.
+   If TRANSLATE returns (void *)-1 the walk stops and NULL is returned.
+   If TRANSLATE returns non-NULL the walk stops and its result is returned.
+   If TRANSLATE returns NULL the walk continues and TRANSLATE is supposed
+   to adjust REF and *DATA to make that valid.
+
    TODO: Cache the vector of equivalent vuses per ref, vuse pair.  */
 
 void *
 walk_non_aliased_vuses (tree ref, tree vuse,
-			void *(*walker)(tree, tree, void *), void *data)
+			void *(*walker)(tree, tree, void *),
+			void *(*translate)(tree *, tree, void *),void *data)
 {
   bitmap visited = NULL;
   void *res;
@@ -1072,7 +1122,21 @@ walk_non_aliased_vuses (tree ref, tree vuse,
       else
 	{
 	  if (stmt_may_clobber_ref_p (def_stmt, ref))
-	    break;
+	    {
+	      if (!translate)
+		break;
+	      res = (*translate) (&ref, vuse, data);
+	      /* Failed lookup and translation.  */
+	      if (res == (void *)-1)
+		{
+		  res = NULL;
+		  break;
+		}
+	      /* Lookup succeeded.  */
+	      else if (res != NULL)
+		break;
+	      /* Translation succeeded, continue walking.  */
+	    }
 	  vuse = gimple_vuse (def_stmt);
 	}
     }

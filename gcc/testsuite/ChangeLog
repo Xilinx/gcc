@@ -1,3 +1,336 @@
+2009-05-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38064
+	* g++.dg/cpp0x/enum3.C: New test.
+
+2009-05-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36327
+	* gcc.dg/tree-ssa/ssa-fre-24.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-fre-25.c: Likewise.
+	* gcc.dg/tree-ssa/sra-2.c: Disable FRE.
+	* gcc.dg/vect/no-vfa-vect-43.c: Adjust.
+	* gcc.dg/vect/vect-40.c: Likewise.
+	* gcc.dg/vect/vect-42.c: Likewise.
+	* gcc.dg/vect/vect-46.c: Likewise.
+	* gcc.dg/vect/vect-76.c: Likewise.
+
+2009-05-25  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40176
+	* gfortran.dg/proc_ptr_18.f90: New.
+	* gfortran.dg/proc_ptr_19.f90: New.
+	* gfortran.dg/proc_ptr_comp_9.f90: New.
+	* gfortran.dg/proc_ptr_comp_10.f90: New.
+
+2009-05-25  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-fre-14.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-fre-15.c: Likewise.
+
+2009-05-25  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/40238
+	* gcc.dg/vect/pr40238.c: New test.
+
+2009-05-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Dominique Dhumieres
+
+	PR fortran/35732
+	PR fortran/39872
+	* gfortran.dg/bounds_check_fail_3.f90: New test.
+	* gfortran.dg/bounds_check_fail_4.f90: New test.
+	* gfortran.dg/bounds_check_14.f90: Update test.
+	* gfortran.dg/bound_4.f90: Update test.
+
+2009-05-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40233
+	* gcc.c-torture/compile/pr40233.c: New testcase.
+
+2009-05-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gfortran.dg/erf_2.F90 (dg-options): Add -mieee
+	for alpha*-*-* targets.
+
+2009-05-24  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/bb-slp-1.c: New test.
+	* gcc.dg/vect/bb-slp-2.c, gcc.dg/vect/bb-slp-3.c, 
+	gcc.dg/vect/bb-slp-4.c, gcc.dg/vect/bb-slp-5.c, 
+	gcc.dg/vect/bb-slp-6.c, gcc.dg/vect/bb-slp-7.c,
+	gcc.dg/vect/bb-slp-8.c, gcc.dg/vect/bb-slp-9.c, 
+	gcc.dg/vect/bb-slp-10.c, gcc.dg/vect/bb-slp-11.c, 
+	gcc.dg/vect/no-tree-reassoc-bb-slp-12.c, gcc.dg/vect/bb-slp-13.c, 
+	gcc.dg/vect/bb-slp-14.c, gcc.dg/vect/bb-slp-15.c, 
+	gcc.dg/vect/bb-slp-16.c, gcc.dg/vect/bb-slp-17.c, 
+	gcc.dg/vect/bb-slp-18.c, gcc.dg/vect/bb-slp-19.c, 
+	gcc.dg/vect/bb-slp-20.c, gcc.dg/vect/bb-slp-21.c,
+	gcc.dg/vect/bb-slp-22.c: Likewise.
+	* gcc.dg/vect/vect.exp: Run basic block SLP tests.
+
+2009-05-23  Mark Mitchell  <mark@codesourcery.com>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.dg/falign-labels-1.c: New test.
+
+2009-05-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/rep_clause3.ads: New test.
+
+2009-05-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/addr6.adb: New test.
+
+2009-05-22  Mark Mitchell  <mark@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_arm_thumb2_ok):
+	New function.
+	* gcc.target/arm/thumb2-mul-space.c: New file.
+	* gcc.target/arm/thumb2-mul-space-2.c: New file.
+	* gcc.target/arm/thumb2-mul-space-3.c: New file.
+	* gcc.target/arm/thumb2-mul-speed.c: New file.
+
+2009-05-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/38964
+	* g++.dg/warn/Wstrict-aliasing-float-ref-int-obj.C: XFAIL.
+	* gcc.dg/Wstrict-aliasing-converted-assigned.c: Likewise.
+	* gcc.dg/Wstrict-aliasing-float-ptr-int-obj.c: Likewise.
+
+2009-05-22  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.dg/dll-6.c: New test.
+	* gcc.dg/dll-6a.c: Likewise.
+	* gcc.dg/dll-7.c: Likewise.
+	* gcc.dg/dll-7a.c: Likewise.
+	* g++.dg/ext/dllexport2.C: Likewise.
+	* g++.dg/ext/dllexport2a.cc: Likewise.
+
+2009-05-21  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/37846
+	* gcc.target/ia64/mfused-madd-vect.c: New test.
+	* gcc.target/ia64/mfused-madd.c: New test.
+	* gcc.target/ia64/mno-fused-madd-vect.c: New test.
+	* gcc.target/ia64/mno-fused-madd.c: New test.
+
+2009-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/movbe-1.c: New.
+	* gcc.target/i386/movbe-2.c: Likewise.
+
+2009-05-21  Taras Glek  <tglek@mozilla.com>
+
+	* gcc.dg/plugin/selfassign.c (plugin_init): Updated to new
+	plugin_init signature.
+	* g++.dg/plugin/selfassign.c (plugin_init): Likewise.
+	* g++.dg/plugin/dumb_plugin.c (plugin_init): Likewise.
+	* g++.dg/plugin/attribute_plugin.c (plugin_init): Likewise.
+
+2009-05-21  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.dg/target/arm/neon-vmla-1.c: New.
+	* gcc.dg/target/arm/neon-vmls-1.c: Likewise.
+
+2009-05-20  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/octeon-exts-6.c: New test.
+	* gcc.target/mips/extend-1.c: New test.
+	* gcc.target/mips/octeon-exts-2.c: Adjust to not match sign-extension
+	EXTS.
+	* gcc.target/mips/octeon-exts-5.c: Likewise.
+
+2009-05-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/40204
+	* gcc.c-torture/compile/pr40204.c: New test.
+
+2009-05-20  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/compile/20090518-1.c: New testcase.
+
+2009-05-19  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR tree-optimization/40087
+	* gcc.dg/tree-ssa/pr40087.c: New test.
+
+2009-05-19  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* gcc.dg/vector-4.c: New testcase.
+	* gcc.dg/simd-1b.c: % is now allowed for integer vectors.
+	* g++.dg/ext/vector16.C: New testcase.
+
+2009-05-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c/40172
+	* gcc.dg/pr40172.c: Renamed to ...
+	* gcc.dg/pr40172-1.c: This.
+
+	* gcc.dg/pr40172-2.c: New.
+	* gcc.dg/pr40172-3.c: Likewise.
+
+2009-05-19  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/40172
+	* gcc.dg/pr40172.c: Add -Wlogical-op to dg-options.
+	
+2009-05-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization6.ad[sb]: New test.
+
+2009-05-19  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/compile/20090519-1.c: New testcase.
+
+2009-05-18  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/explicit1.C: New.
+	* g++.dg/cpp0x/explicit2.C: New.
+
+2009-05-18  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/40109
+	* g++.dg/debug/dwarf2/nested-1.C: New test.
+
+2009-05-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/39907
+	* gcc.target/x86_64/abi/asm-support.S (snapshot_ret): Preserve
+	stack alignment.
+
+2009-05-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40164
+	* gfortran.dg/proc_ptr_comp_8.f90: New.
+
+2009-05-18  Richard Guenther  <rguenther@suse.de>
+
+	PR fortran/40168
+	* gfortran.dg/array_memset_2.f90: Adjust.
+
+2009-05-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36947
+	PR fortran/40039
+	* gfortran.dg/interface_27.f90: New.
+	* gfortran.dg/interface_28.f90: New.
+	* gfortran.dg/proc_ptr_11.f90: Fixing invalid test case.
+	* gfortran.dg/proc_ptr_result_1.f90: Ditto.
+
+2009-05-18  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.target/m68k/tls-ie.c: New test.
+	* gcc.target/m68k/tls-le.c: New test.
+	* gcc.target/m68k/tls-gd.c: New test.
+	* gcc.target/m68k/tls-ld.c: New test.
+	* gcc.target/m68k/tls-ie-xgot.c: New test.
+	* gcc.target/m68k/tls-le-xtls.c: New test.
+	* gcc.target/m68k/tls-gd-xgot.c: New test.
+	* gcc.target/m68k/tls-ld-xgot.c: New test.
+	* gcc.target/m68k/tls-ld-xtls.c: New test.
+	* gcc.target/m68k/tls-ld-xgot-xtls.c: New test.
+
+2009-05-18  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/ipa/modif-1.c: Do not check for unmodified int parameter.
+
+2009-05-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c/40172
+	* gcc.dg/pr40172.c: New.
+
+2009-05-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40139
+	* g++.dg/template/dtor6.C: New.
+
+2009-05-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++.dg/warn/translate-ice-1.C: New test.
+
+2009-05-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/c_kind_int128_test1.f03: Also test C_INT_FAST128_T.
+	* gfortran.dg/c_kind_int128_test2.f03: Update comment.
+	* gfortran.dg/c_kind_params.f90: Also test int_fast*_t.
+	* gfortran.dg/c_kinds.c: Add int_fast*_t arguments.
+
+2009-05-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33197
+	* gfortran.dg/erf_2.F90: New test.
+	* gfortran.dg/erfc_scaled_2.f90: New test.
+
+2009-05-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31243
+	* gcc/testsuite/gfortran.dg/string_1.f90: New test.
+	* gcc/testsuite/gfortran.dg/string_2.f90: New test.
+	* gcc/testsuite/gfortran.dg/string_3.f90: New test.
+
+2009-05-16  David Billinghurst <billingd@gcc.gnu.org>
+
+	* gfortran.dg/default_format_denormal_1.f90: XFAIL on cygwin.
+	* gfortran.dg/default_format_1.f90: Revert change of 2009-05-12
+
+2009-05-15  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-10.c: New testcase.
+
+2009-05-15  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 16302
+	* gcc.dg/pr16302.c: New.
+	* g++.dg/warn/pr16302.C: New.
+
+2009-05-15  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-5.c: New.
+	* gcc.dg/torture/builtin-math-6.c: New.
+	* lib/target-supports.exp (check_effective_target_mpc): New.
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/tree-ssa/inline-3.c: New testcase
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/align-main-1.c (check): Mark noinline.
+	* gcc.target/i386/align-main-2.c (check): Mark noinline.
+	* gcc.dg/ipa/ipa-4.c: Disable early inlining.
+	* gcc.dg/vect/vect-iv-10.c (main1): Mark noinline.
+	* gcc.dg/vect/costmodel/i386/costmodel-vect-33.c (main1): Mark noinline.
+	* gcc.dg/vect/costmodel/x86_64/costmodel-vect-33.c (main1): Mark noinline.
+	* gcc.dg/vect/pr31699.c (foo): Mark noinline.
+	* gcc.dg/vect/pr18400.c (main1): Mark noinline.
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* sibcall-6.c: Add no-ipa-cp argument and mark the function to be
+	optimized by sibcall noinline.
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* sibcall-1.c (track): Mark noinline.
+	* sibcall-2.c (track): Mark noinline.
+	* sibcall-3.c (track): Mark noinline.
+	* sibcall-4.c (track): Mark noinline.
+
+2009-05-15  Jan Hubicka  <jh@suse.cz>
+
+	* flatten-2.c: Disable early inlining; add comment.
+	* flatten-3.c: New test based on flatten-2.c.
+
+2009-05-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39999
+	* gcc.c-torture/compile/pr39999.c: New testcase.
+
+2009-05-15  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c-torture/compile/ptr-conv-1.c: New test.
+
 2009-05-14  Ian Lance Taylor  <iant@google.com>
 
 	* gcc.dg/Wcxx-compat-9.c: New testcase.
@@ -11,15 +344,17 @@
 
 2009-05-14  Laurent GUERBY  <laurent@guerby.net>
 	
-        * ada/acats/tests/c3/c38202a.ada: Use Impdef.
-        * ada/acats/tests/c5/c59002c.ada: Likewise.
+	* ada/acats/tests/c3/c38202a.ada: Use Impdef.
+	* ada/acats/tests/c5/c59002c.ada: Likewise.
 	
 2009-05-13  Taras Glek  <tglek@mozilla.com>
 
-	* g++.dg/plugin/attribute_plugin-test-1.C Testcase input for custom attributes and decl smashing
-	* g++.dg/plugin/attribute_plugin.c Testcase plugin to test user attributes
-	* g++.dg/plugin/dumb_plugin.c Fixed typo
-	* g++.dg/plugin/plugin.exp Added attribute_plugin test 
+	* g++.dg/plugin/attribute_plugin-test-1.C: Testcase input for custom
+	attributes and decl smashing.
+	* g++.dg/plugin/attribute_plugin.c: Testcase plugin to test user
+	attributes.
+	* g++.dg/plugin/dumb_plugin.c: Fixed typo.
+	* g++.dg/plugin/plugin.exp: Added attribute_plugin test .
 
 2009-05-14  Jakub Jelinek  <jakub@redhat.com>
 

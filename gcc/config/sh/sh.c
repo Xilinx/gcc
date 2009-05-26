@@ -238,6 +238,7 @@ static bool sh_rtx_costs (rtx, int, int, int *, bool);
 static int sh_address_cost (rtx, bool);
 static int sh_pr_n_sets (void);
 static rtx sh_allocate_initial_value (rtx);
+static bool sh_legitimate_address_p (enum machine_mode, rtx, bool);
 static rtx sh_legitimize_address (rtx, rtx, enum machine_mode);
 static int shmedia_target_regs_stack_space (HARD_REG_SET *);
 static int shmedia_reserve_space_for_target_registers_p (int, HARD_REG_SET *);
@@ -479,6 +480,9 @@ static int sh2a_function_vector_p (tree);
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD sh_secondary_reload
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	sh_legitimate_address_p
 
 /* Machine-specific symbol_ref flags.  */
 #define SYMBOL_FLAG_FUNCVEC_FUNCTION    (SYMBOL_FLAG_MACH_DEP << 0)
@@ -1632,7 +1636,8 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
   operands[2] = op2h;
   operands[4] = NULL_RTX;
   if (reload_completed
-      && ! arith_reg_or_0_operand (op2h, SImode) && true_regnum (op1h)
+      && ! arith_reg_or_0_operand (op2h, SImode)
+      && (true_regnum (op1h) || (comparison != EQ && comparison != NE))
       && (msw_taken != LAST_AND_UNUSED_RTX_CODE
 	  || msw_skip != LAST_AND_UNUSED_RTX_CODE))
     {
@@ -1662,8 +1667,12 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
   if (lsw_taken != LAST_AND_UNUSED_RTX_CODE)
     {
       if (reload_completed
-	  && ! arith_reg_or_0_operand (op2l, SImode) && true_regnum (op1l))
-	operands[4] = scratch;
+	  && ! arith_reg_or_0_operand (op2l, SImode)
+	  && (true_regnum (op1l) || (lsw_taken != EQ && lsw_taken != NE)))
+	{
+	  emit_move_insn (scratch, operands[2]);
+	  operands[2] = scratch;
+	}
       expand_cbranchsi4 (operands, lsw_taken, lsw_taken_prob);
     }
   if (msw_skip != LAST_AND_UNUSED_RTX_CODE)
@@ -7046,6 +7055,8 @@ sh_set_return_address (rtx ra, rtx tmp)
 
   tmp = gen_frame_mem (Pmode, tmp);
   emit_insn (GEN_MOV (tmp, ra));
+  /* Tell this store isn't dead.  */
+  emit_use (tmp);
 }
 
 /* Clear variables at function end.  */
@@ -9024,7 +9035,7 @@ sh_legitimate_index_p (enum machine_mode mode, rtx op)
 	  REG++
 	  --REG  */
 
-bool
+static bool
 sh_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   if (MAYBE_BASE_REGISTER_RTX_P (x, strict))

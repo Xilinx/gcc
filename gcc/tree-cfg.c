@@ -917,7 +917,7 @@ static struct label_record
 
 /* Callback for for_each_eh_region.  Helper for cleanup_dead_labels.  */
 static void
-update_eh_label (struct eh_region *region)
+update_eh_label (struct eh_region_d *region)
 {
   tree old_label = get_eh_region_tree_label (region);
   if (old_label)
@@ -1289,9 +1289,6 @@ replace_uses_by (tree name, tree val)
 
   FOR_EACH_IMM_USE_STMT (stmt, imm_iter, name)
     {
-      if (gimple_code (stmt) != GIMPLE_PHI)
-	push_stmt_changes (&stmt);
-
       FOR_EACH_IMM_USE_ON_STMT (use, imm_iter)
         {
 	  replace_exp (use, val);
@@ -1318,7 +1315,7 @@ replace_uses_by (tree name, tree val)
 	  if (cfgcleanup_altered_bbs)
 	    bitmap_set_bit (cfgcleanup_altered_bbs, gimple_bb (stmt)->index);
 
-	  /* FIXME.  This should go in pop_stmt_changes.  */
+	  /* FIXME.  This should go in update_stmt.  */
 	  for (i = 0; i < gimple_num_ops (stmt); i++)
 	    {
 	      tree op = gimple_op (stmt, i);
@@ -1330,8 +1327,7 @@ replace_uses_by (tree name, tree val)
 	    }
 
 	  maybe_clean_or_replace_eh_stmt (stmt, stmt);
-
-	  pop_stmt_changes (&stmt);
+	  update_stmt (stmt);
 	}
     }
 
@@ -2044,18 +2040,6 @@ remove_useless_stmts_1 (gimple_stmt_iterator *gsi, struct rus_data *data)
 	    gsi_next (gsi);
           }
           break;
-
-        case GIMPLE_CHANGE_DYNAMIC_TYPE:
-	  /* If we do not optimize remove GIMPLE_CHANGE_DYNAMIC_TYPE as
-	     expansion is confused about them and we only remove them
-	     during alias computation otherwise.  */
-	  if (!optimize)
-	    {
-	      data->last_was_goto = false;
-	      gsi_remove (gsi, false);
-	      break;
-	    }
-	  /* Fallthru.  */
 
         default:
           data->last_was_goto = false;
@@ -4037,10 +4021,6 @@ verify_types_in_gimple_stmt (gimple stmt)
 
     case GIMPLE_ASM:
       return false;
-
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
-      return (!is_gimple_val (gimple_cdt_location (stmt))
-	      || !POINTER_TYPE_P (TREE_TYPE (gimple_cdt_location (stmt))));
 
     case GIMPLE_PHI:
       return verify_gimple_phi (stmt);

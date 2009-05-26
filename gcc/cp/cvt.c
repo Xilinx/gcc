@@ -1,6 +1,6 @@
 /* Language-level data type conversion for GNU C++.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -581,6 +581,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
   tree e = expr;
   enum tree_code code = TREE_CODE (type);
   const char *invalid_conv_diag;
+  tree e1;
 
   if (error_operand_p (e) || type == error_mark_node)
     return error_mark_node;
@@ -628,6 +629,10 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
 	  return fold_if_not_in_template (build_nop (type, e));
 	}
     }
+
+  e1 = targetm.convert_to_type (type, e);
+  if (e1)
+    return e1;
 
   if (code == VOID_TYPE && (convtype & CONV_STATIC))
     {
@@ -750,11 +755,15 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
 	   the target with the temp (see [dcl.init]).  */
 	ctor = build_user_type_conversion (type, ctor, flags);
       else
-	ctor = build_special_member_call (NULL_TREE,
-					  complete_ctor_identifier,
-					  build_tree_list (NULL_TREE, ctor),
-					  type, flags,
-                                          tf_warning_or_error);
+	{
+	  VEC(tree,gc) *ctor_vec = make_tree_vector_single (ctor);
+	  ctor = build_special_member_call (NULL_TREE,
+					    complete_ctor_identifier,
+					    &ctor_vec,
+					    type, flags,
+					    tf_warning_or_error);
+	  release_tree_vector (ctor_vec);
+	}
       if (ctor)
 	return build_cplus_new (type, ctor);
     }
@@ -1181,6 +1190,9 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
       if (winner && winner == cand)
 	continue;
 
+      if (DECL_NONCONVERTING_P (cand))
+	continue;
+
       candidate = non_reference (TREE_TYPE (TREE_TYPE (cand)));
 
       switch (TREE_CODE (candidate))
@@ -1248,10 +1260,17 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
 tree
 type_promotes_to (tree type)
 {
+  tree promoted_type;
+
   if (type == error_mark_node)
     return error_mark_node;
 
   type = TYPE_MAIN_VARIANT (type);
+
+  /* Check for promotions of target-defined types first.  */
+  promoted_type = targetm.promoted_type (type);
+  if (promoted_type)
+    return promoted_type;
 
   /* bool always promotes to int (not unsigned), even if it's the same
      size.  */

@@ -9042,7 +9042,12 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case LTGT_EXPR:
       temp = do_store_flag (exp,
 			    modifier != EXPAND_STACK_PARM ? target : NULL_RTX,
-			    tmode != VOIDmode ? tmode : mode);
+			    (tmode != VOIDmode
+			     /* do_store_flag does not handle target modes
+				of a different class than the comparison mode.
+				Avoid ICEing in convert_move.  */
+			     && GET_MODE_CLASS (tmode) == GET_MODE_CLASS (mode))
+			    ? tmode : mode);
       if (temp != 0)
 	return temp;
 
@@ -9292,13 +9297,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case EXIT_EXPR:
       /* Lowered by gimplify.c.  */
       gcc_unreachable ();
-
-    case CHANGE_DYNAMIC_TYPE_EXPR:
-      /* This is ignored at the RTL level.  The tree level set
-	 DECL_POINTER_ALIAS_SET of any variable to be 0, which is
-	 overkill for the RTL layer but is all that we can
-	 represent.  */
-      return const0_rtx;
 
     case EXC_PTR_EXPR:
       return get_exception_pointer ();

@@ -2008,7 +2008,11 @@ const_ok_for_op (HOST_WIDE_INT i, enum rtx_code code)
 
     case MINUS:		/* Should only occur with (MINUS I reg) => rsb */
     case XOR:
+      return 0;
+
     case IOR:
+      if (TARGET_THUMB2)
+	return const_ok_for_arm (ARM_SIGN_EXTEND (~i));
       return 0;
 
     case AND:
@@ -2185,15 +2189,20 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 					     GEN_INT (ARM_SIGN_EXTEND (val))));
 	  return 1;
 	}
+
       if (remainder == 0)
 	{
 	  if (reload_completed && rtx_equal_p (target, source))
 	    return 0;
+
 	  if (generate)
 	    emit_constant_insn (cond,
 				gen_rtx_SET (VOIDmode, target, source));
 	  return 1;
 	}
+
+      if (TARGET_THUMB2)
+	can_invert = 1;
       break;
 
     case AND:
@@ -2281,6 +2290,7 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 
   /* Calculate a few attributes that may be useful for specific
      optimizations.  */
+  /* Count number of leading zeros.  */
   for (i = 31; i >= 0; i--)
     {
       if ((remainder & (1 << i)) == 0)
@@ -2289,6 +2299,7 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 	break;
     }
 
+  /* Count number of leading 1's.  */
   for (i = 31; i >= 0; i--)
     {
       if ((remainder & (1 << i)) != 0)
@@ -2297,6 +2308,7 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 	break;
     }
 
+  /* Count number of trailing zero's.  */
   for (i = 0; i <= 31; i++)
     {
       if ((remainder & (1 << i)) == 0)
@@ -2305,6 +2317,7 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 	break;
     }
 
+  /* Count number of trailing 1's.  */
   for (i = 0; i <= 31; i++)
     {
       if ((remainder & (1 << i)) != 0)
@@ -2492,6 +2505,17 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
       if (code == XOR)
 	break;
 
+      /*  Convert.
+	  x = y | constant ( which is composed of set_sign_bit_copies of leading 1s
+	                     and the remainder 0s for e.g. 0xfff00000)
+	  x = ~(~(y ashift set_sign_bit_copies) lshiftrt set_sign_bit_copies)
+
+	  This can be done in 2 instructions by using shifts with mov or mvn.
+	  e.g. for
+	  x = x | 0xfff00000;
+	  we generate.
+	  mvn	r0, r0, asl #12
+	  mvn	r0, r0, lsr #12  */
       if (set_sign_bit_copies > 8
 	  && (val & (-1 << (32 - set_sign_bit_copies))) == val)
 	{
@@ -2517,6 +2541,16 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 	  return 2;
 	}
 
+      /* Convert
+	  x = y | constant (which has set_zero_bit_copies number of trailing ones).
+	   to
+	  x = ~((~y lshiftrt set_zero_bit_copies) ashift set_zero_bit_copies).
+
+	  For eg. r0 = r0 | 0xfff
+	       mvn	r0, r0, lsr #12
+	       mvn	r0, r0, asl #12
+
+      */
       if (set_zero_bit_copies > 8
 	  && (remainder & ((1 << set_zero_bit_copies) - 1)) == remainder)
 	{
@@ -2542,6 +2576,13 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 	  return 2;
 	}
 
+      /* This will never be reached for Thumb2 because orn is a valid
+	 instruction. This is for Thumb1 and the ARM 32 bit cases.
+
+	 x = y | constant (such that ~constant is a valid constant)
+	 Transform this to
+	 x = ~(~y & ~constant).
+      */
       if (const_ok_for_arm (temp1 = ARM_SIGN_EXTEND (~val)))
 	{
 	  if (generate)
@@ -2651,7 +2692,8 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
     if (remainder & (1 << i))
       num_bits_set++;
 
-  if (code == AND || (can_invert && num_bits_set > 16))
+  if ((code == AND)
+      || (code != IOR && can_invert && num_bits_set > 16))
     remainder = (~remainder) & 0xffffffff;
   else if (code == PLUS && num_bits_set > 16)
     remainder = (-remainder) & 0xffffffff;
@@ -6961,10 +7003,13 @@ arm_coproc_mem_operand (rtx op, bool wb)
 }
 
 /* Return TRUE if OP is a memory operand which we can load or store a vector
-   to/from. If CORE is true, we're moving from ARM registers not Neon
-   registers.  */
+   to/from. TYPE is one of the following values:
+    0 - Vector load/stor (vldr)
+    1 - Core registers (ldm)
+    2 - Element/structure loads (vld1)
+ */
 int
-neon_vector_mem_operand (rtx op, bool core)
+neon_vector_mem_operand (rtx op, int type)
 {
   rtx ind;
 
@@ -6997,23 +7042,15 @@ neon_vector_mem_operand (rtx op, bool core)
     return arm_address_register_rtx_p (ind, 0);
 
   /* Allow post-increment with Neon registers.  */
-  if (!core && GET_CODE (ind) == POST_INC)
+  if (type != 1 && (GET_CODE (ind) == POST_INC || GET_CODE (ind) == PRE_DEC))
     return arm_address_register_rtx_p (XEXP (ind, 0), 0);
 
-#if 0
-  /* FIXME: We can support this too if we use VLD1/VST1.  */
-  if (!core
-      && GET_CODE (ind) == POST_MODIFY
-      && arm_address_register_rtx_p (XEXP (ind, 0), 0)
-      && GET_CODE (XEXP (ind, 1)) == PLUS
-      && rtx_equal_p (XEXP (XEXP (ind, 1), 0), XEXP (ind, 0)))
-    ind = XEXP (ind, 1);
-#endif
+  /* FIXME: vld1 allows register post-modify.  */
 
   /* Match:
      (plus (reg)
           (const)).  */
-  if (!core
+  if (type == 0
       && GET_CODE (ind) == PLUS
       && GET_CODE (XEXP (ind, 0)) == REG
       && REG_MODE_OK_FOR_BASE_P (XEXP (ind, 0), VOIDmode)
@@ -7083,7 +7120,7 @@ coproc_secondary_reload_class (enum machine_mode mode, rtx x, bool wb)
   if (TARGET_NEON
       && (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
           || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
-      && neon_vector_mem_operand (x, FALSE))
+      && neon_vector_mem_operand (x, 0))
      return NO_REGS;
 
   if (arm_coproc_mem_operand (x, wb) || s_register_operand (x, mode))
@@ -10799,7 +10836,7 @@ output_move_double (rtx *operands)
 }
 
 /* Output a move, load or store for quad-word vectors in ARM registers.  Only
-   handles MEMs accepted by neon_vector_mem_operand with CORE=true.  */
+   handles MEMs accepted by neon_vector_mem_operand with TYPE=1.  */
 
 const char *
 output_move_quad (rtx *operands)
@@ -10995,6 +11032,13 @@ output_move_neon (rtx *operands)
       ops[1] = reg;
       break;
 
+    case PRE_DEC:
+      /* FIXME: We should be using vld1/vst1 here in BE mode?  */
+      templ = "v%smdb%%?\t%%0!, %%h1";
+      ops[0] = XEXP (addr, 0);
+      ops[1] = reg;
+      break;
+    
     case POST_MODIFY:
       /* FIXME: Not currently enabled in neon_vector_mem_operand.  */
       gcc_unreachable ();
@@ -13856,6 +13900,24 @@ arm_print_operand (FILE *stream, rtx x, int code)
       {
         HOST_WIDE_INT bits = INTVAL (x);
         fputs ((bits & 4) != 0 ? "r" : "", stream);
+      }
+      return;
+
+    /* Memory operand for vld1/vst1 instruction.  */
+    case 'A':
+      {
+	rtx addr;
+	bool postinc = FALSE;
+	gcc_assert (GET_CODE (x) == MEM);
+	addr = XEXP (x, 0);
+	if (GET_CODE (addr) == POST_INC)
+	  {
+	    postinc = 1;
+	    addr = XEXP (addr, 0);
+	  }
+	asm_fprintf (stream, "[%r]", REGNO (addr));
+	if (postinc)
+	  fputs("!", stream);
       }
       return;
 

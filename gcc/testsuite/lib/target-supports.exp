@@ -1477,6 +1477,17 @@ proc check_effective_target_arm_thumb1_ok { } {
     } "-mthumb"]
 }
 
+# Return 1 is this is an ARM target where -mthumb causes Thumb-2 to be
+# used.
+
+proc check_effective_target_arm_thumb2_ok { } {
+    return [check_no_compiler_messages arm_thumb2_ok assembly {
+	#if !defined(__thumb2__)
+	#error FOO
+	#endif
+    } "-mthumb"]
+}
+
 # Return 1 if the target supports executing NEON instructions, 0
 # otherwise.  Cache the result.
 
@@ -2928,5 +2939,18 @@ proc check_effective_target_correct_iso_cpp_string_wchar_protos { } {
 	#else
 	int i;
 	#endif
+    }]
+}
+
+# Return 1 if the MPC library is integrated with GCC, 0 otherwise.
+
+proc check_effective_target_mpc { } {
+    return [check_no_compiler_messages mpc executable {
+	extern void link_error(void);
+	int main ()
+	{
+	  if (__builtin_csin(0) != 0)
+	    link_error();
+	}
     }]
 }

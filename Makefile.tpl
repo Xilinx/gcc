@@ -620,16 +620,16 @@ all:
 	@r=`${PWD_COMMAND}`; export r; \
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 @if gcc-bootstrap
-	if [ -f stage_last ]; then : ; \
+	if [ -f stage_last ]; then \
 	  TFLAGS="$(STAGE$(shell sed s,^stage,, stage_last)_TFLAGS)"; \
 	  $(MAKE) $(TARGET_FLAGS_TO_PASS) all-host all-target; \
 	else \
 @endif gcc-bootstrap
-	  $(MAKE) $(RECURSE_FLAGS_TO_PASS) all-host all-target; \
+	  $(MAKE) $(RECURSE_FLAGS_TO_PASS) all-host all-target \
 @if gcc-bootstrap
-	fi; \
+	    ; \
+	fi
 @endif gcc-bootstrap
-	:
 
 .PHONY: all-build
 [+ FOR build_modules +]
@@ -1434,7 +1434,7 @@ do-clean: clean-stage[+id+]
 	  $(do-[+compare-target+]) > /dev/null 2>&1; \
 	  if test $$? -eq 1; then \
 	    case $$file in \
-	      ./cc*-checksum$(objext) | ./libgcc/* ) \
+	      ./cc*-checksum$(objext) | ./libgcc/* | ./ada/*tools/* ) \
 	        echo warning: $$file differs ;; \
 	      *) \
 	        echo $$file differs >> .bad_compare ;; \

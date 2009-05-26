@@ -78,16 +78,20 @@ struct GTY(()) pt_solution
 extern enum escape_type is_escape_site (gimple);
 extern bool ptr_deref_may_alias_global_p (tree);
 extern bool refs_may_alias_p (tree, tree);
+extern bool refs_anti_dependent_p (tree, tree);
+extern bool refs_output_dependent_p (tree, tree);
 extern bool ref_maybe_used_by_stmt_p (gimple, tree);
 extern bool stmt_may_clobber_ref_p (gimple, tree);
 extern void *walk_non_aliased_vuses (tree, tree,
-				     void *(*)(tree, tree, void *), void *);
+				     void *(*)(tree, tree, void *),
+				     void *(*)(tree *, tree, void *), void *);
 extern unsigned int walk_aliased_vdefs (tree, tree,
 					bool (*)(tree, tree, void *), void *,
 					bitmap *);
 extern struct ptr_info_def *get_ptr_info (tree);
 extern void dump_alias_info (FILE *);
 extern void debug_alias_info (void);
+extern void dump_points_to_solution (FILE *, struct pt_solution *);
 extern void dump_points_to_info_for (FILE *, tree);
 extern void debug_points_to_info_for (tree);
 extern void dump_alias_stats (FILE *);

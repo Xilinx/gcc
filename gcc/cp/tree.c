@@ -1200,7 +1200,8 @@ get_first_fn (tree from)
 {
   gcc_assert (is_overloaded_fn (from));
   /* A baselink is also considered an overloaded function.  */
-  if (TREE_CODE (from) == COMPONENT_REF)
+  if (TREE_CODE (from) == OFFSET_REF
+      || TREE_CODE (from) == COMPONENT_REF)
     from = TREE_OPERAND (from, 1);
   if (BASELINK_P (from))
     from = BASELINK_FUNCTIONS (from);
@@ -1264,10 +1265,15 @@ cxx_printable_name_internal (tree decl, int v, bool translate)
 
   if (current_function_decl != NULL_TREE)
     {
-      if (uid_ring[ring_counter] == DECL_UID (current_function_decl))
-	ring_counter += 1;
-      if (ring_counter == PRINT_RING_SIZE)
-	ring_counter = 0;
+      /* There may be both translated and untranslated versions of the
+	 name cached.  */
+      for (i = 0; i < 2; i++)
+	{
+	  if (uid_ring[ring_counter] == DECL_UID (current_function_decl))
+	    ring_counter += 1;
+	  if (ring_counter == PRINT_RING_SIZE)
+	    ring_counter = 0;
+	}
       gcc_assert (uid_ring[ring_counter] != DECL_UID (current_function_decl));
     }
 
@@ -1713,9 +1719,9 @@ build_min_non_dep (enum tree_code code, tree non_dep, ...)
    built.  */
 
 tree
-build_min_non_dep_call_list (tree non_dep, tree fn, tree arglist)
+build_min_non_dep_call_vec (tree non_dep, tree fn, VEC(tree,gc) *argvec)
 {
-  tree t = build_nt_call_list (fn, arglist);
+  tree t = build_nt_call_vec (fn, argvec);
   TREE_TYPE (t) = TREE_TYPE (non_dep);
   TREE_SIDE_EFFECTS (t) = TREE_SIDE_EFFECTS (non_dep);
   return t;
@@ -2150,7 +2156,7 @@ pod_type_p (const_tree t)
 
   if (t == error_mark_node)
     return 1;
-  if (INTEGRAL_TYPE_P (t))
+  if (INTEGRAL_OR_ENUMERATION_TYPE_P (t))
     return 1;  /* integral, character or enumeral type */
   if (FLOAT_TYPE_P (t))
     return 1;

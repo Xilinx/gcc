@@ -76,16 +76,24 @@
   (and (match_code "reg")
        (match_test "REGNO (op) == FLAGS_REG")))
 
+;; Return true if op is a QImode register operand other than
+;; %[abcd][hl].
+(define_predicate "ext_QIreg_operand"
+  (and (match_code "reg")
+       (match_test "TARGET_64BIT
+		    && GET_MODE (op) == QImode
+		    && REGNO (op) > BX_REG")))
+
 ;; Return true if op is not xmm0 register.
 (define_predicate "reg_not_xmm0_operand"
    (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
+	(match_test "!REG_P (op) 
 		     || REGNO (op) != FIRST_SSE_REG")))
 
 ;; As above, but allow nonimmediate operands.
 (define_predicate "nonimm_not_xmm0_operand"
    (and (match_operand 0 "nonimmediate_operand")
-	(match_test "GET_CODE (op) != REG
+	(match_test "!REG_P (op) 
 		     || REGNO (op) != FIRST_SSE_REG")))
 
 ;; Return 1 if VALUE can be stored in a sign extended immediate field.
@@ -574,6 +582,16 @@
   (and (match_code "const_int")
        (match_test "INTVAL (op) == 8")))
 
+;; Match exactly 128.
+(define_predicate "const128_operand"
+  (and (match_code "const_int")
+       (match_test "INTVAL (op) == 128")))
+
+;; Match exactly -128.
+(define_predicate "constm128_operand"
+  (and (match_code "const_int")
+       (match_test "INTVAL (op) == -128")))
+
 ;; Match 2, 4, or 8.  Used for leal multiplicands.
 (define_predicate "const248_operand"
   (match_code "const_int")
@@ -811,7 +829,7 @@
   int ok;
 
   /* Registers and immediate operands are always "aligned".  */
-  if (GET_CODE (op) != MEM)
+  if (!MEM_P (op))
     return 1;
 
   /* All patterns using aligned_operand on memory operands ends up
@@ -877,6 +895,9 @@
 {
   struct ix86_address parts;
   int ok;
+
+  if (TARGET_64BIT)
+    return 0;
 
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);

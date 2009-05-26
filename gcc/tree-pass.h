@@ -164,7 +164,7 @@ struct cgraph_node_set_def;
 
 /* Description of IPA pass with generate summary, write, execute, read and
    transform stages.  */
-struct ipa_opt_pass
+struct ipa_opt_pass_d
 {
   struct opt_pass pass;
 
@@ -338,6 +338,7 @@ extern struct gimple_opt_pass pass_graphite_transforms;
 extern struct gimple_opt_pass pass_if_conversion;
 extern struct gimple_opt_pass pass_loop_distribution;
 extern struct gimple_opt_pass pass_vectorize;
+extern struct gimple_opt_pass pass_slp_vectorize;
 extern struct gimple_opt_pass pass_complete_unroll;
 extern struct gimple_opt_pass pass_complete_unrolli;
 extern struct gimple_opt_pass pass_parallelize_loops;
@@ -349,6 +350,7 @@ extern struct gimple_opt_pass pass_ccp;
 extern struct gimple_opt_pass pass_phi_only_cprop;
 extern struct gimple_opt_pass pass_build_ssa;
 extern struct gimple_opt_pass pass_build_alias;
+extern struct gimple_opt_pass pass_build_ealias;
 extern struct gimple_opt_pass pass_dominator;
 extern struct gimple_opt_pass pass_dce;
 extern struct gimple_opt_pass pass_dce_loop;
@@ -401,10 +403,10 @@ extern struct gimple_opt_pass pass_local_pure_const;
 extern struct gimple_opt_pass pass_tracer;
 
 /* IPA Passes */
-extern struct ipa_opt_pass pass_ipa_inline;
-extern struct ipa_opt_pass pass_ipa_cp;
-extern struct ipa_opt_pass pass_ipa_reference;
-extern struct ipa_opt_pass pass_ipa_pure_const;
+extern struct ipa_opt_pass_d pass_ipa_inline;
+extern struct ipa_opt_pass_d pass_ipa_cp;
+extern struct ipa_opt_pass_d pass_ipa_reference;
+extern struct ipa_opt_pass_d pass_ipa_pure_const;
 
 extern struct simple_ipa_opt_pass pass_ipa_matrix_reorg;
 extern struct simple_ipa_opt_pass pass_ipa_early_inline;

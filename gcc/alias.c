@@ -128,7 +128,7 @@ along with GCC; see the file COPYING3.  If not see
    However, this is no actual entry for alias set zero.  It is an
    error to attempt to explicitly construct a subset of zero.  */
 
-struct GTY(()) alias_set_entry {
+struct GTY(()) alias_set_entry_d {
   /* The alias set number, as stored in MEM_ALIAS_SET.  */
   alias_set_type alias_set;
 
@@ -145,7 +145,7 @@ struct GTY(()) alias_set_entry {
      `int', `double', `float', and `struct S'.  */
   splay_tree GTY((param1_is (int), param2_is (int))) children;
 };
-typedef struct alias_set_entry *alias_set_entry;
+typedef struct alias_set_entry_d *alias_set_entry;
 
 static int rtx_equal_for_memref_p (const_rtx, const_rtx);
 static int memrefs_conflict_p (int, rtx, int, rtx, HOST_WIDE_INT);
@@ -791,7 +791,7 @@ record_alias_subset (alias_set_type superset, alias_set_type subset)
     {
       /* Create an entry for the SUPERSET, so that we have a place to
 	 attach the SUBSET.  */
-      superset_entry = GGC_NEW (struct alias_set_entry);
+      superset_entry = GGC_NEW (struct alias_set_entry_d);
       superset_entry->alias_set = superset;
       superset_entry->children
 	= splay_tree_new_ggc (splay_tree_compare_ints);
@@ -2372,9 +2372,6 @@ write_dependence_p (const_rtx mem, const_rtx x, int writep)
   if (MEM_ALIAS_SET (x) == ALIAS_SET_MEMORY_BARRIER
       || MEM_ALIAS_SET (mem) == ALIAS_SET_MEMORY_BARRIER)
     return 1;
-
-  if (DIFFERENT_ALIAS_SETS_P (x, mem))
-    return 0;
 
   /* A read from read-only memory can't conflict with read-write memory.  */
   if (!writep && MEM_READONLY_P (mem))

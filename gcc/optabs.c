@@ -55,25 +55,25 @@ along with GCC; see the file COPYING3.  If not see
    See expr.h for documentation of these optabs.  */
 
 #if GCC_VERSION >= 4000
-__extension__ struct optab optab_table[OTI_MAX]
+__extension__ struct optab_d optab_table[OTI_MAX]
   = { [0 ... OTI_MAX - 1].handlers[0 ... NUM_MACHINE_MODES - 1].insn_code
       = CODE_FOR_nothing };
 #else
 /* init_insn_codes will do runtime initialization otherwise.  */
-struct optab optab_table[OTI_MAX];
+struct optab_d optab_table[OTI_MAX];
 #endif
 
 rtx libfunc_table[LTI_MAX];
 
 /* Tables of patterns for converting one mode to another.  */
 #if GCC_VERSION >= 4000
-__extension__ struct convert_optab convert_optab_table[COI_MAX]
+__extension__ struct convert_optab_d convert_optab_table[COI_MAX]
   = { [0 ... COI_MAX - 1].handlers[0 ... NUM_MACHINE_MODES - 1]
 	[0 ... NUM_MACHINE_MODES - 1].insn_code
       = CODE_FOR_nothing };
 #else
 /* init_convert_optab will do runtime initialization otherwise.  */
-struct convert_optab convert_optab_table[COI_MAX];
+struct convert_optab_d convert_optab_table[COI_MAX];
 #endif
 
 /* Contains the optab used for each rtx code.  */
@@ -2248,7 +2248,7 @@ sign_expand_binop (enum machine_mode mode, optab uoptab, optab soptab,
 {
   rtx temp;
   optab direct_optab = unsignedp ? uoptab : soptab;
-  struct optab wide_soptab;
+  struct optab_d wide_soptab;
 
   /* Do it without widening, if possible.  */
   temp = expand_binop (mode, direct_optab, op0, op1, target,
@@ -4322,10 +4322,12 @@ prepare_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison,
        mode != VOIDmode;
        mode = GET_MODE_WIDER_MODE (mode))
     {
-      if ((libfunc = optab_libfunc (code_to_optab[comparison], mode)))
+      if (code_to_optab[comparison]
+	  && (libfunc = optab_libfunc (code_to_optab[comparison], mode)))
 	break;
 
-      if ((libfunc = optab_libfunc (code_to_optab[swapped] , mode)))
+      if (code_to_optab[swapped]
+	  && (libfunc = optab_libfunc (code_to_optab[swapped], mode)))
 	{
 	  rtx tmp;
 	  tmp = x; x = y; y = tmp;
@@ -4333,7 +4335,8 @@ prepare_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison,
 	  break;
 	}
 
-      if ((libfunc = optab_libfunc (code_to_optab[reversed], mode))
+      if (code_to_optab[reversed]
+	  && (libfunc = optab_libfunc (code_to_optab[reversed], mode))
 	  && FLOAT_LIB_COMPARE_RETURNS_BOOL (mode, reversed))
 	{
 	  comparison = reversed;
