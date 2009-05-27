@@ -346,7 +346,6 @@ static bool flag_value_profile_transformations_set;
 static bool flag_peel_loops_set, flag_branch_probabilities_set;
 static bool flag_inline_functions_set, flag_ipa_cp_set, flag_ipa_cp_clone_set;
 static bool flag_predictive_commoning_set, flag_unswitch_loops_set, flag_gcse_after_reload_set;
-static char* profile_stdlib_type = NULL;
 
 /* Functions excluded from profiling.  */
 
@@ -1848,27 +1847,6 @@ common_handle_option (size_t scode, const char *arg, int value,
         flag_inline_functions = value;
       break;
     
-    case OPT_fprofile_stdlib_:
-      profile_stdlib_type = xstrdup (arg);
-      /* No break here - do -fprofile-stdlib processing. */
-    case OPT_fprofile_stdlib:
-      flag_profile_stdlib = true;
-      break;
-
-    case OPT_fprofile_stdlib_use_:
-      profile_stdlib_type = xstrdup (arg);
-      /* No break here - do -fprofile-stdlib-use processing. */
-    case OPT_fprofile_stdlib_use:
-      flag_profile_stdlib_use = true;
-      break;
-
-    case OPT_fprofile_stdlib_advise_:
-      profile_stdlib_type = xstrdup (arg);
-      /* No break here - do -fprofile-stdlib-advise processing. */
-    case OPT_fprofile_stdlib_advise:
-      flag_profile_stdlib_advise = true;
-      break;
-
     case OPT_fprofile_values:
       flag_profile_values_set = true;
       break;

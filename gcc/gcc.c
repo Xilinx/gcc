@@ -3721,12 +3721,6 @@ process_command (int argc, const char **argv)
 	  add_assembler_option ("--target-help", 13);
 	  add_linker_option ("--target-help", 13);
 	}
-      else if (strcmp (argv[i], "-fprofile-stdlib-use") == 0
-               || strcmp (argv[i], "-fprofile-stdlib-use=") == 0)
-        flag_profile_stdlib_use = true;
-      else if (strcmp (argv[i], "-fprofile-stdlib-advise") == 0
-               || strcmp (argv[i], "-fprofile-stdlib-advise=") == 0)
-        flag_profile_stdlib_advise = true;
       else if (! strcmp (argv[i], "-pass-exit-codes"))
 	{
 	  pass_exit_codes = 1;
@@ -6759,17 +6753,6 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	 the version of the sub-processes. */
       fputc ('\n', stdout);
       fflush (stdout);
-    }
-
-  if (flag_profile_stdlib_advise)
-    {
-      /* Execute a prebuilt tool, stdlib-advisor. */
-      int err = system("stdlib-advisor");
-      if (err) 
-      {
-        printf ("Can't find script stdlib-advisor\n");
-      }
-      return (0);
     }
 
   if (verbose_flag)
