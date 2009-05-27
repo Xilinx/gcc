@@ -1143,6 +1143,8 @@
 
 (install_method class_symbol normal_exp normexp_symbol)
 
+
+;;;
 (defun gectyp_symocc (recv env)
   (assert_msg "check recv" (is_a recv class_nrep_symocc))
   (unsafe_get_field :nocc_ctyp recv)
@@ -1192,6 +1194,8 @@
     ))
 
 (install_method class_class normal_exp normexp_class)
+
+
 
 ;;; normalize a primitive invocation
 (defun normexp_primitive (recv env ncx psloc)
@@ -1316,6 +1320,8 @@
 	    )))))))
 
 (install_method class_src_primitive normal_exp normexp_primitive)
+
+
 
 
 ;;; normalize a code_chunk

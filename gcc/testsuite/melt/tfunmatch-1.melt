@@ -18,7 +18,7 @@
    (debug_msg fmat "matchbiggereven start fmat=")
    (messagenum_dbg "matchbiggereven m=" m)
    (messagenum_dbg "matchbiggereven n=" n)
-   (if (== (%iraw m 2) 0)
+   (if (==i (%iraw m 2) 0)
        (if (>i m n)
 	   (let ( (:long h (/iraw m 2)) )
 	     (messagenum_dbg "matchbiggereven h=" h)

@@ -3615,8 +3615,8 @@
 (defun overwrite_env (env binding)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check binding" (is_a binding class_any_binding))
-  (let ( (binder  (unsafe_get_field :binder binding)) )
-    (assert_msg "check binder" (is_object binder))
+  (let ( (binderv  (unsafe_get_field :binder binding)) )
+    (assert_msg "check binderv" (is_object binderv))
     (forever findloop
 	     (if (not (is_a env class_environment)) (exit findloop))
 	     (let ( (bindmap (unsafe_get_field :env_bind env)) )
@@ -3624,7 +3624,7 @@
 	       (let ( (oldbinding (mapobject_get bindmap binder)) )
 		 (if oldbinding 
 		     (progn 
-		       (mapobject_put bindmap binder binding)
+		       (mapobject_put bindmap binderv binding)
 		       (exit findloop oldbinding))
 		   ))
 	       (setq env (unsafe_get_field :env_prev env))
@@ -3672,7 +3672,7 @@
   (assert_msg "check self" (is_a self class_any_binding))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
-	 (binder (unsafe_get_field :binder self))
+	 (binderv (unsafe_get_field :binder self))
 	 ) 
     (add2sbuf_indent sbuf depth)
     (add2sbuf_strconst sbuf "[~")
@@ -3680,7 +3680,7 @@
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
     (add2sbuf_strconst sbuf ":")
-    (dbg_outputagain binder dbgi (+i depth 2))
+    (dbg_outputagain binderv dbgi (+i depth 2))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (add2sbuf_strconst sbuf "; ")

@@ -877,12 +877,16 @@
     (debug_msg matopbind "normpat_anymatchpat matopbind")
     (let ( 
 	  (matvar (let ( (mv (get_field :binder matopbind)) )
+		    (debug_msg mv "normpat_anymatchpat matvar")
 		    (assert_msg "check matvar's binding"
-				(== (find_env env mv) matopbind))))
+				(== (find_env env mv) matopbind))
+		    mv
+		    ))
 	  ;; we know that matvar is a symbol so its normalization
 	  ;; returns a single value
 	  (matndata (normal_exp matvar env ncx sloc))
 	  )
+      (debug_msg matndata "normpat_anymatchpat matndata")
       (multicall
        (nins bindins)
        (normalize_tuple inargs env ncx sloc)

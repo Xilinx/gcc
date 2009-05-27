@@ -4574,9 +4574,15 @@
 	)
       )))
 (install_method class_cmatcher compile_matcher compilmatcher_cmatcher)
+
+
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilmatcher_funmatcher (fmat mcx gcx)
-  (debug_msg fmat "compilmatcher_funmatcher cmat")
+  (debug_msg fmat "compilmatcher_funmatcher fmat")
   (debug_msg mcx "compilmatcher_funmatcher mcx")
   (assert_msg "check fmat" (is_a fmat class_funmatcher))
   (assert_msg "check mcx" (is_a mcx class_matchcompilcontext))
@@ -4586,18 +4592,109 @@
 	(fmbind (unsafe_get_field :amatch_matchbind fmat))
 	(fmouts (unsafe_get_field :amatch_out fmat))
 	(ntma (get_field :mcx_normtester mcx))
+	;; fetch the olist to add instructions into
+	(olist (get_field :mcx_olist mcx)) 
+	(mloc (get_field :mcx_loc mcx))
 	)
     (debug_msg ntma "compilmatcher_funmatcher ntma")
     (assert_msg "check ntma" (is_a ntma class_normtester_matcher))
     (let ( (matndata (get_field :ntmatch_matndata ntma)) 
-	   (omat (compile_obj matndata gcx))
+	   (omatdata (compile_obj matndata gcx))
+	   (nmatched (get_field :ntest_matched ntma))
+	   (omatched (compile_obj nmatched gcx))
+	   (nins (get_field :ntmatch_inargs ntma))
+	   (nouts (get_field :ntmatch_outlocs ntma))
+	   (oins (multiple_map 
+		  nins 
+		  (lambda (thein)
+		    (compile_obj thein gcx)
+		    )))
+	   (oouts (multiple_map 
+		  nouts 
+		  (lambda (theout)
+		    (compile_obj theout gcx)
+		    )))
+	   (otestres (get_free_objlocptr gcx fmat))
+	   (otestclos (get_free_objlocptr gcx '_closfunmatch))
 	   )
       (debug_msg matndata "compilmatcher_funmatcher matndata")
-      (debug_msg omat "compilmatcher_funmatcher omat")
-      ;; should generate an application etc...
+      (debug_msg omatdata "compilmatcher_funmatcher omatdata")
+      (debug_msg fmins "compilmatcher_funmatcher fmins")
+      (debug_msg fmbind "compilmatcher_funmatcher fmbind")
+      (debug_msg fmouts "compilmatcher_funmatcher fmouts")
+      (debug_msg nins "compilmatcher_funmatcher nins")
+      (debug_msg nouts "compilmatcher_funmatcher nouts")
+      (debug_msg nmatched "compilmatcher_funmatcher nmatched")
+      (debug_msg omatched "compilmatcher_funmatcher omatched")
+      (debug_msg oins "compilmatcher_funmatcher oins")
+      (debug_msg oouts "compilmatcher_funmatcher oouts")
+      (debug_msg ntma "compilmatcher_funmatcher ntma")
+      (debug_msg otestres "compilmatcher_funmatcher otestres")
+      (debug_msg otestclos "compilmatcher_funmatcher otestclos")
+      ;; should generate a multiapplication etc...
+      (let (
+	    (oargs (make_multiple discr_multiple (+i 2 (multiple_length oins))))
+	    (ogetclos (instance class_objgetslot
+				:obi_loc mloc
+				:obdi_destlist (list1 otestclos)
+				:ogetsl_obj omatdata
+				:ogetsl_field fmatch_matchf
+				))
+	    (omapp (instance class_objmultiapply
+			      :obi_loc mloc
+			      :obdi_destlist (list1 otestres)
+			      :obapp_clos otestclos
+			      :obapp_args oargs
+			      :obmultapp_xres oouts
+			      ))
+	    (othenlist (make_list discr_list))
+	    (othenbody (instance class_objblock
+				 :obi_loc mloc
+				 :oblo_bodyl othenlist
+				 ))
+	    (oelselist (make_list discr_list))
+	    (oelsebody (instance class_objblock
+				 :obi_loc mloc
+				 :oblo_bodyl oelselist
+				 ))
+	    (ocond (instance class_objcond
+			     :obi_loc mloc
+			     :obcond_test otestres
+			     :obcond_then othenbody
+			     :obcond_else oelsebody
+			     ))
+	     )
+	(multiple_put_nth oargs 0 omatdata)
+	(multiple_put_nth oargs 1 omatched)
+	(foreach_in_multiple
+	 (oins)
+	 (curins :long inix)
+	 (multiple_put_nth oargs (+i inix 2) curins)
+	 )
+	;; add the clear of all the outs in the else branch
+	(foreach_in_multiple
+	 (oouts)
+	 (curouts :long outix)
+	 (let ( (obcl (instance class_objclear
+				:obi_loc mloc
+				:oclr_vloc curouts)) )
+	   (debug_msg obcl "compilmatcher_funmatcher obcl")
+	   (list_append oelselist obcl)
+	 ))
+	;; dispose the temporary variables
+	(dispose_objloc otestres gcx)
+	(dispose_objloc otestclos gcx)
+	;; add the final gotos
+	(list_append othenlist (get_field :mcx_gotothen mcx))
+	(list_append oelselist (get_field :mcx_gotoelse mcx))
+	(debug_msg ogetclos "compilmatcher_funmatcher ogetclos")
+	(debug_msg omapp "compilmatcher_funmatcher omapp")
+	(debug_msg ocond "compilmatcher_funmatcher ocond")
+	(list_append olist ogetclos)
+	(list_append olist omapp)
+	(list_append olist ocond)
+	)
       )
-    (assert_msg "@$@unimplemented compilmatcher_funmatcher" ())
-    (compile_warning  "@$@unimplemented compilmatcher_funmatcher" ())
     ))
 (install_method class_funmatcher compile_matcher compilmatcher_funmatcher)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
