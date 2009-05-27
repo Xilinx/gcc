@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2005, 2007, 2008 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
 
@@ -6,27 +6,22 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "io.h"
 #include <stdlib.h>
@@ -540,6 +535,8 @@ init_units (void)
       u->file_len = strlen (stdin_name);
       u->file = get_mem (u->file_len);
       memmove (u->file, stdin_name, u->file_len);
+
+      fbuf_init (u, 0);
     
       __gthread_mutex_unlock (&u->lock);
     }
@@ -624,7 +621,7 @@ close_unit_1 (gfc_unit *u, int locked)
   if (u->previous_nonadvancing_write)
     finish_last_advance_record (u);
 
-  rc = (u->s == NULL) ? 0 : sclose (u->s) == FAILURE;
+  rc = (u->s == NULL) ? 0 : sclose (u->s) == -1;
 
   u->closed = 1;
   if (!locked)
@@ -640,7 +637,8 @@ close_unit_1 (gfc_unit *u, int locked)
     free_mem (u->file);
   u->file = NULL;
   u->file_len = 0;
-  
+
+  free_format_hash_table (u);  
   fbuf_destroy (u);
 
   if (!locked)
@@ -697,12 +695,59 @@ close_units (void)
 void
 update_position (gfc_unit *u)
 {
-  if (file_position (u->s) == 0)
+  if (stell (u->s) == 0)
     u->flags.position = POSITION_REWIND;
-  else if (file_length (u->s) == file_position (u->s))
+  else if (file_length (u->s) == stell (u->s))
     u->flags.position = POSITION_APPEND;
   else
     u->flags.position = POSITION_ASIS;
+}
+
+
+/* High level interface to truncate a file safely, i.e. flush format
+   buffers, check that it's a regular file, and generate error if that
+   occurs.  Just like POSIX ftruncate, returns 0 on success, -1 on
+   failure.  */
+
+int
+unit_truncate (gfc_unit * u, gfc_offset pos, st_parameter_common * common)
+{
+  int ret;
+
+  /* Make sure format buffer is flushed.  */
+  if (u->flags.form == FORM_FORMATTED)
+    {
+      if (u->mode == READING)
+	pos += fbuf_reset (u);
+      else
+	fbuf_flush (u, u->mode);
+    }
+  
+  /* Don't try to truncate a special file, just pretend that it
+     succeeds.  */
+  if (is_special (u->s) || !is_seekable (u->s))
+    {
+      sflush (u->s);
+      return 0;
+    }
+
+  /* struncate() should flush the stream buffer if necessary, so don't
+     bother calling sflush() here.  */
+  ret = struncate (u->s, pos);
+
+  if (ret != 0)
+    {
+      generate_error (common, LIBERROR_OS, NULL);
+      u->endfile = NO_ENDFILE;
+      u->flags.position = POSITION_ASIS;
+    }
+  else
+    {
+      u->endfile = AT_ENDFILE;
+      u->flags.position = POSITION_APPEND;
+    }
+
+  return ret;
 }
 
 
@@ -746,23 +791,25 @@ finish_last_advance_record (gfc_unit *u)
 {
   
   if (u->saved_pos > 0)
-    fbuf_seek (u, u->saved_pos);
-    
-  fbuf_flush (u, 1);
+    fbuf_seek (u, u->saved_pos, SEEK_CUR);
 
   if (!(u->unit_number == options.stdout_unit
 	|| u->unit_number == options.stderr_unit))
     {
-      size_t len;
-
-      const char crlf[] = "\r\n";
 #ifdef HAVE_CRLF
-      len = 2;
+      const int len = 2;
 #else
-      len = 1;
+      const int len = 1;
 #endif
-      if (swrite (u->s, &crlf[2-len], &len) != 0)
+      char *p = fbuf_alloc (u, len);
+      if (!p)
 	os_error ("Completing record after ADVANCE_NO failed");
+#ifdef HAVE_CRLF
+      *(p++) = '\r';
+#endif
+      *p = '\n';
     }
+
+  fbuf_flush (u, u->mode);
 }
 

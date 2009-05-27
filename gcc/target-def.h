@@ -1,5 +1,5 @@
 /* Default initializers for a generic GCC target.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
@@ -236,6 +236,10 @@
 #define TARGET_ASM_OUTPUT_DWARF_DTPREL NULL
 #endif
 
+#ifndef TARGET_ASM_FINAL_POSTSCAN_INSN
+#define TARGET_ASM_FINAL_POSTSCAN_INSN NULL
+#endif
+
 #ifndef TARGET_ASM_RECORD_GCC_SWITCHES
 #define TARGET_ASM_RECORD_GCC_SWITCHES NULL
 #endif
@@ -291,7 +295,8 @@
 			TARGET_ASM_RECORD_GCC_SWITCHES,		\
 			TARGET_ASM_RECORD_GCC_SWITCHES_SECTION,	\
 			TARGET_ASM_OUTPUT_ANCHOR,		\
-			TARGET_ASM_OUTPUT_DWARF_DTPREL}
+			TARGET_ASM_OUTPUT_DWARF_DTPREL,		\
+			TARGET_ASM_FINAL_POSTSCAN_INSN}
 
 /* Scheduler hooks.  All of these default to null pointers, which
    haifa-sched.c looks for and handles.  */
@@ -473,18 +478,17 @@
 #define TARGET_VECTOR_MODE_SUPPORTED_P hook_bool_mode_false
 #endif
 
-#ifndef TARGET_VECTOR_OPAQUE_P
-#define TARGET_VECTOR_OPAQUE_P hook_bool_const_tree_false
-#endif
-
 /* In hooks.c.  */
 #define TARGET_CANNOT_MODIFY_JUMPS_P hook_bool_void_false
-#define TARGET_BRANCH_TARGET_REGISTER_CLASS hook_int_void_no_regs
+#define TARGET_BRANCH_TARGET_REGISTER_CLASS \
+  default_branch_target_register_class
 #define TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED hook_bool_bool_false
 #define TARGET_CANNOT_FORCE_CONST_MEM hook_bool_rtx_false
 #define TARGET_CANNOT_COPY_INSN_P NULL
 #define TARGET_COMMUTATIVE_P hook_bool_const_rtx_commutative_p
+#define TARGET_LEGITIMIZE_ADDRESS default_legitimize_address
 #define TARGET_DELEGITIMIZE_ADDRESS hook_rtx_rtx_identity
+#define TARGET_LEGITIMATE_ADDRESS_P default_legitimate_address_p
 #define TARGET_USE_BLOCKS_FOR_CONSTANT_P hook_bool_mode_const_rtx_false
 #define TARGET_MIN_ANCHOR_OFFSET 0
 #define TARGET_MAX_ANCHOR_OFFSET 0
@@ -532,6 +536,10 @@
 #define TARGET_INVALID_CONVERSION hook_constcharptr_const_tree_const_tree_null
 #define TARGET_INVALID_UNARY_OP hook_constcharptr_int_const_tree_null
 #define TARGET_INVALID_BINARY_OP hook_constcharptr_int_const_tree_const_tree_null
+#define TARGET_INVALID_PARAMETER_TYPE hook_constcharptr_const_tree_null
+#define TARGET_INVALID_RETURN_TYPE hook_constcharptr_const_tree_null
+#define TARGET_PROMOTED_TYPE hook_tree_const_tree_null
+#define TARGET_CONVERT_TO_TYPE hook_tree_tree_tree_null
 
 #define TARGET_FIXED_CONDITION_CODE_REGS hook_bool_uintp_uintp_false
 
@@ -651,6 +659,10 @@
 
 #ifndef TARGET_HARD_REGNO_SCRATCH_OK
 #define TARGET_HARD_REGNO_SCRATCH_OK default_hard_regno_scratch_ok
+#endif
+
+#ifndef TARGET_CASE_VALUES_THRESHOLD
+#define TARGET_CASE_VALUES_THRESHOLD default_case_values_threshold
 #endif
 
 /* C specific.  */
@@ -863,7 +875,9 @@
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
+  TARGET_LEGITIMIZE_ADDRESS,			\
   TARGET_DELEGITIMIZE_ADDRESS,			\
+  TARGET_LEGITIMATE_ADDRESS_P,			\
   TARGET_USE_BLOCKS_FOR_CONSTANT_P,		\
   TARGET_MIN_ANCHOR_OFFSET,			\
   TARGET_MAX_ANCHOR_OFFSET,			\
@@ -881,7 +895,6 @@
   TARGET_VALID_POINTER_MODE,                    \
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
-  TARGET_VECTOR_OPAQUE_P,			\
   TARGET_RTX_COSTS,				\
   TARGET_ADDRESS_COST,				\
   TARGET_ALLOCATE_INITIAL_VALUE,		\
@@ -913,11 +926,16 @@
   TARGET_INVALID_CONVERSION,			\
   TARGET_INVALID_UNARY_OP,			\
   TARGET_INVALID_BINARY_OP,			\
+  TARGET_INVALID_PARAMETER_TYPE,		\
+  TARGET_INVALID_RETURN_TYPE,			\
+  TARGET_PROMOTED_TYPE,				\
+  TARGET_CONVERT_TO_TYPE,			\
   TARGET_IRA_COVER_CLASSES,			\
   TARGET_SECONDARY_RELOAD,			\
   TARGET_EXPAND_TO_RTL_HOOK,			\
   TARGET_INSTANTIATE_DECLS,			\
   TARGET_HARD_REGNO_SCRATCH_OK,			\
+  TARGET_CASE_VALUES_THRESHOLD,			\
   TARGET_C,					\
   TARGET_CXX,					\
   TARGET_EMUTLS,				\

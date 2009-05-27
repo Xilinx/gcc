@@ -450,16 +450,13 @@ assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
    level where they are defined.  They are marked a "kept" so that
    free_temp_slots will not free them.  */
 
-struct temp_slot GTY(())
-{
+struct GTY(()) temp_slot {
   /* Points to next temporary slot.  */
   struct temp_slot *next;
   /* Points to previous temporary slot.  */
   struct temp_slot *prev;
   /* The rtx to used to reference the slot.  */
   rtx slot;
-  /* The alignment (in bits) of the slot.  */
-  unsigned int align;
   /* The size, in units, of the slot.  */
   HOST_WIDE_INT size;
   /* The type of the object in the slot, or zero if it doesn't correspond
@@ -467,6 +464,8 @@ struct temp_slot GTY(())
      It can be reused if objects of the type of the new slot will always
      conflict with objects of the type of the old slot.  */
   tree type;
+  /* The alignment (in bits) of the slot.  */
+  unsigned int align;
   /* Nonzero if this temporary is currently in use.  */
   char in_use;
   /* Nonzero if this temporary has its address taken.  */
@@ -488,8 +487,7 @@ struct temp_slot GTY(())
 static GTY((param_is(struct temp_slot_address_entry))) htab_t temp_slot_address_table;
 
 /* Entry for the above hash table.  */
-struct temp_slot_address_entry GTY(())
-{
+struct GTY(()) temp_slot_address_entry {
   hashval_t hash;
   rtx address;
   struct temp_slot *temp_slot;
@@ -1813,7 +1811,7 @@ struct rtl_opt_pass pass_instantiate_virtual_regs =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -1942,7 +1940,28 @@ use_register_for_decl (const_tree decl)
   if (DECL_IGNORED_P (decl))
     return true;
 
-  return (optimize || DECL_REGISTER (decl));
+  if (optimize)
+    return true;
+
+  if (!DECL_REGISTER (decl))
+    return false;
+
+  switch (TREE_CODE (TREE_TYPE (decl)))
+    {
+    case RECORD_TYPE:
+    case UNION_TYPE:
+    case QUAL_UNION_TYPE:
+      /* When not optimizing, disregard register keyword for variables with
+	 types containing methods, otherwise the methods won't be callable
+	 from the debugger.  */
+      if (TYPE_METHODS (TREE_TYPE (decl)))
+	return false;
+      break;
+    default:
+      break;
+    }
+
+  return true;
 }
 
 /* Return true if TYPE should be passed by invisible reference.  */
@@ -3228,7 +3247,7 @@ assign_parms (tree fndecl)
     = (all.stack_args_size.var == 0 ? GEN_INT (-all.stack_args_size.constant)
        : expand_expr (size_diffop (all.stack_args_size.var,
 				   size_int (-all.stack_args_size.constant)),
-		      NULL_RTX, VOIDmode, 0));
+		      NULL_RTX, VOIDmode, EXPAND_NORMAL));
 #else
   crtl->args.arg_offset_rtx = ARGS_SIZE_RTX (all.stack_args_size);
 #endif
@@ -4202,7 +4221,7 @@ struct rtl_opt_pass pass_init_function =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -4783,7 +4802,6 @@ expand_function_end (void)
 
     start_sequence ();
     clobber_return_register ();
-    expand_naked_return ();
     seq = get_insns ();
     end_sequence ();
 
@@ -4791,7 +4809,8 @@ expand_function_end (void)
   }
 
   /* Output the label for the naked return from the function.  */
-  emit_label (naked_return_label);
+  if (naked_return_label)
+    emit_label (naked_return_label);
 
   /* @@@ This is a kludge.  We want to ensure that instructions that
      may trap are not moved into the epilogue by scheduling, because
@@ -5319,13 +5338,6 @@ current_function_name (void)
 {
   return lang_hooks.decl_printable_name (cfun->decl, 2);
 }
-
-/* Returns the raw (mangled) name of the current function.  */
-const char *
-current_function_assembler_name (void)
-{
-  return IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (cfun->decl));
-}
 
 
 static unsigned int
@@ -5376,7 +5388,7 @@ struct rtl_opt_pass pass_leaf_regs =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -5611,7 +5623,7 @@ struct rtl_opt_pass pass_match_asm_constraints =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */

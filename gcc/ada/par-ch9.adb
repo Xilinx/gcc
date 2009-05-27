@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -651,7 +651,8 @@ package body Ch9 is
                Set_Must_Not_Override (Specification (Decl), Not_Overriding);
 
             else
-               Error_Msg_SC ("ENTRY, FUNCTION or PROCEDURE expected!");
+               Error_Msg_SC -- CODEFIX
+                 ("ENTRY, FUNCTION or PROCEDURE expected!");
             end if;
          end if;
 
@@ -736,9 +737,16 @@ package body Ch9 is
          if Token = Tok_Entry or else Bad_Spelling_Of (Tok_Entry) then
             Append (P_Entry_Body, Item_List);
 
+         --  If the operation starts with procedure, function, or an overriding
+         --  indicator ("overriding" or "not overriding"), parse a subprogram.
+
          elsif Token = Tok_Function or else Bad_Spelling_Of (Tok_Function)
                  or else
                Token = Tok_Procedure or else Bad_Spelling_Of (Tok_Procedure)
+                 or else
+               Token = Tok_Overriding or else Bad_Spelling_Of (Tok_Overriding)
+                 or else
+               Token = Tok_Not or else Bad_Spelling_Of (Tok_Not)
          then
             Append (P_Subprogram (Pf_Decl_Pbod), Item_List);
 

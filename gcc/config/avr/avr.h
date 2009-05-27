@@ -2,7 +2,7 @@
    for ATMEL AVR at90s8515, ATmega103/103L, ATmega603/603L microcontrollers.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 
    2008, 2009 Free Software Foundation, Inc.
-   Contributed by Denis Chertykov (denisc@overta.ru)
+   Contributed by Denis Chertykov (chertykov@gmail.com)
 
 This file is part of GCC.
 
@@ -350,7 +350,7 @@ enum reg_class {
 
 #define STATIC_CHAIN_REGNUM 2
 
-#define FRAME_POINTER_REQUIRED frame_pointer_required_p()
+#define FRAME_POINTER_REQUIRED avr_frame_pointer_required_p()
 
 /* Offset from the frame pointer register value to the top of the stack.  */
 #define FRAME_POINTER_CFA_OFFSET(FNDECL) 0
@@ -360,15 +360,10 @@ enum reg_class {
 	{FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}		\
        ,{FRAME_POINTER_REGNUM+1,STACK_POINTER_REGNUM+1}}
 
-#define CAN_ELIMINATE(FROM, TO) (((FROM) == ARG_POINTER_REGNUM		   \
-				  && (TO) == FRAME_POINTER_REGNUM)	   \
-				 || (((FROM) == FRAME_POINTER_REGNUM	   \
-				      || (FROM) == FRAME_POINTER_REGNUM+1) \
-				     && ! FRAME_POINTER_REQUIRED	   \
-				     ))
+#define CAN_ELIMINATE(FROM, TO)	avr_can_eliminate (FROM, TO)
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
-     OFFSET = initial_elimination_offset (FROM, TO)
+  OFFSET = avr_initial_elimination_offset (FROM, TO)
 
 #define RETURN_ADDR_RTX(count, x) \
   gen_rtx_MEM (Pmode, memory_address (Pmode, plus_constant (tem, 1)))
@@ -413,20 +408,6 @@ extern int avr_reg_order[];
 
 #define MAX_REGS_PER_ADDRESS 1
 
-#ifdef REG_OK_STRICT
-#  define GO_IF_LEGITIMATE_ADDRESS(mode, operand, ADDR)	\
-{							\
-  if (legitimate_address_p (mode, operand, 1))		\
-    goto ADDR;						\
-}
-#  else
-#  define GO_IF_LEGITIMATE_ADDRESS(mode, operand, ADDR)	\
-{							\
-  if (legitimate_address_p (mode, operand, 0))		\
-    goto ADDR;						\
-}
-#endif
-
 #define REG_OK_FOR_BASE_NOSTRICT_P(X) \
   (REGNO (X) >= FIRST_PSEUDO_REGISTER || REG_OK_FOR_BASE_STRICT_P(X))
 
@@ -439,13 +420,6 @@ extern int avr_reg_order[];
 #endif
 
 #define REG_OK_FOR_INDEX_P(X) 0
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)				\
-{									\
-  (X) = legitimize_address (X, OLDX, MODE);				\
-  if (memory_address_p (MODE, X))					\
-    goto WIN;								\
-}
 
 #define XEXP_(X,Y) (X)
 
@@ -493,8 +467,6 @@ do {									    \
 	}								    \
     }									    \
 } while(0)
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) 1
 
@@ -590,10 +562,7 @@ do {									\
    specific tm.h file (depending upon the particulars of your assembler).  */
 
 #define ASM_DECLARE_FUNCTION_NAME(FILE, NAME, DECL)		\
-do {								\
-     ASM_OUTPUT_TYPE_DIRECTIVE (FILE, NAME, "function");	\
-     ASM_OUTPUT_LABEL (FILE, NAME);				\
-} while (0)
+avr_asm_declare_function_name ((FILE), (NAME), (DECL))
 
 #define ASM_DECLARE_FUNCTION_SIZE(FILE, FNAME, DECL)			\
   do {									\
@@ -736,10 +705,6 @@ fprintf (STREAM, "\t.skip %lu,0\n", (unsigned long)(N))
   } while (0)
 
 #define CASE_VECTOR_MODE HImode
-
-extern int avr_case_values_threshold;
-
-#define CASE_VALUES_THRESHOLD avr_case_values_threshold
 
 #undef WORD_REGISTER_OPERATIONS
 
@@ -893,8 +858,11 @@ mmcu=*:-mmcu=%*}"
   mmcu=attiny327|\
   mmcu=at90can*|\
   mmcu=at90pwm*|\
+  mmcu=atmega8c1|\
+  mmcu=atmega16c1|\
   mmcu=atmega32c1|\
   mmcu=atmega64c1|\
+  mmcu=atmega8m1|\
   mmcu=atmega16m1|\
   mmcu=atmega32m1|\
   mmcu=atmega64m1|\
@@ -975,6 +943,8 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=atmega88p:crtm88p.o%s} \
 %{mmcu=atmega8515:crtm8515.o%s} \
 %{mmcu=atmega8535:crtm8535.o%s} \
+%{mmcu=atmega8c1:crtm8c1.o%s} \
+%{mmcu=atmega8m1:crtm8m1.o%s} \
 %{mmcu=at90pwm1:crt90pwm1.o%s} \
 %{mmcu=at90pwm2:crt90pwm2.o%s} \
 %{mmcu=at90pwm2b:crt90pwm2b.o%s} \
@@ -1023,6 +993,7 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=at90can64:crtcan64.o%s} \
 %{mmcu=at90pwm216:crt90pwm216.o%s} \
 %{mmcu=at90pwm316:crt90pwm316.o%s} \
+%{mmcu=atmega16c1:crtm16c1.o%s} \
 %{mmcu=atmega32c1:crtm32c1.o%s} \
 %{mmcu=atmega64c1:crtm64c1.o%s} \
 %{mmcu=atmega16m1:crtm16m1.o%s} \
@@ -1091,7 +1062,7 @@ mmcu=*:-mmcu=%*}"
 
 /* A C structure for machine-specific, per-function data.
    This is added to the cfun structure.  */
-struct machine_function GTY(())
+struct GTY(()) machine_function
 {
   /* 'true' - if the current function is a leaf function.  */
   int is_leaf;

@@ -54,9 +54,6 @@
 #define BITSET_P(VALUE, BIT)      (((VALUE) & (1L << (BIT))) != 0)
 #define INS_BUF_SZ                128
 
-/* Define the information needed to generate branch insns.  This is
-   stored from the compare operation.  */
-extern rtx cmp_op0, cmp_op1;
 extern enum reg_class score_char_to_class[256];
 
 static int score3_sdata_max;
@@ -414,31 +411,28 @@ score3_split_symbol (rtx temp, rtx addr)
   return gen_rtx_LO_SUM (Pmode, high, addr);
 }
 
-/* This function is used to implement LEGITIMIZE_ADDRESS.  If *XLOC can
+/* This function is used to implement LEGITIMIZE_ADDRESS.  If X can
    be legitimized in a way that the generic machinery might not expect,
-   put the new address in *XLOC and return true.  */
-int
-score3_legitimize_address (rtx *xloc)
+   return the new address.  */
+rtx
+score3_legitimize_address (rtx x)
 {
   enum score_symbol_type symbol_type;
 
-  if (score3_symbolic_constant_p (*xloc, &symbol_type)
+  if (score3_symbolic_constant_p (x, &symbol_type)
       && symbol_type == SYMBOL_GENERAL)
-    {
-      *xloc = score3_split_symbol (0, *xloc);
-      return 1;
-    }
+    return score3_split_symbol (0, x);
 
-  if (GET_CODE (*xloc) == PLUS
-      && GET_CODE (XEXP (*xloc, 1)) == CONST_INT)
+  if (GET_CODE (x) == PLUS
+      && GET_CODE (XEXP (x, 1)) == CONST_INT)
     {
-      rtx reg = XEXP (*xloc, 0);
+      rtx reg = XEXP (x, 0);
       if (!score3_valid_base_register_p (reg, 0))
         reg = copy_to_mode_reg (Pmode, reg);
-      *xloc = score3_add_offset (reg, INTVAL (XEXP (*xloc, 1)));
-      return 1;
+      return score3_add_offset (reg, INTVAL (XEXP (x, 1)));
     }
-  return 0;
+
+  return x;
 }
 
 /* Fill INFO with information about a single argument.  CUM is the
@@ -916,9 +910,9 @@ score3_regno_mode_ok_for_base_p (int regno, int strict)
   return GP_REG_P (regno);
 }
 
-/* Implement GO_IF_LEGITIMATE_ADDRESS macro.  */
-int
-score3_address_p (enum machine_mode mode, rtx x, int strict)
+/* Implement TARGET_LEGITIMATE_ADDRESS_P macro.  */
+bool
+score3_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   struct score3_address_info addr;
 
@@ -1650,13 +1644,6 @@ score3_epilogue (int sibcall_p)
     emit_jump_insn (gen_return_internal_score3 (gen_rtx_REG (Pmode, RA_REGNUM)));
 }
 
-void
-score3_gen_cmp (enum machine_mode mode)
-{
-  emit_insn (gen_rtx_SET (VOIDmode, gen_rtx_REG (mode, CC_REGNUM),
-                          gen_rtx_COMPARE (mode, cmp_op0, cmp_op1)));
-}
-
 /* Return true if X is a symbolic constant that can be calculated in
    the same way as a bare symbol.  If it is, store the type of the
    symbol in *SYMBOL_TYPE.  */
@@ -1695,7 +1682,8 @@ score3_movsicc (rtx *ops)
 
   mode = score3_select_cc_mode (GET_CODE (ops[1]), ops[2], ops[3]);
   emit_insn (gen_rtx_SET (VOIDmode, gen_rtx_REG (mode, CC_REGNUM),
-                          gen_rtx_COMPARE (mode, cmp_op0, cmp_op1)));
+                          gen_rtx_COMPARE (mode, XEXP (ops[1], 0),
+					   XEXP (ops[1], 1))));
 }
 
 /* Call and sibcall pattern all need call this function.  */

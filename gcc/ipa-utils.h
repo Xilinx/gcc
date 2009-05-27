@@ -23,9 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cgraph.h"
 
-/* Used for parsing attributes of asm code.  */
-extern tree memory_identifier_string;
-
 struct ipa_dfs_info {
   int dfn_number;
   int low_link;
@@ -39,7 +36,8 @@ struct ipa_dfs_info {
 
 /* In ipa-utils.c  */
 void ipa_utils_print_order (FILE*, const char *, struct cgraph_node**, int);
-int ipa_utils_reduced_inorder (struct cgraph_node **, bool, bool);
+int ipa_utils_reduced_inorder (struct cgraph_node **, bool, bool,
+			       bool (*ignore_edge) (struct cgraph_edge *));
 tree get_base_var (tree);
 
  

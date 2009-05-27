@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -459,6 +457,7 @@ package body Ada.Exceptions is
    procedure Rcheck_30 (File : System.Address; Line : Integer);
    procedure Rcheck_31 (File : System.Address; Line : Integer);
    procedure Rcheck_32 (File : System.Address; Line : Integer);
+   procedure Rcheck_33 (File : System.Address; Line : Integer);
 
    pragma Export (C, Rcheck_00, "__gnat_rcheck_00");
    pragma Export (C, Rcheck_01, "__gnat_rcheck_01");
@@ -493,6 +492,7 @@ package body Ada.Exceptions is
    pragma Export (C, Rcheck_30, "__gnat_rcheck_30");
    pragma Export (C, Rcheck_31, "__gnat_rcheck_31");
    pragma Export (C, Rcheck_32, "__gnat_rcheck_32");
+   pragma Export (C, Rcheck_33, "__gnat_rcheck_33");
 
    --  None of these procedures ever returns (they raise an exception!). By
    --  using pragma No_Return, we ensure that any junk code after the call,
@@ -530,6 +530,7 @@ package body Ada.Exceptions is
    pragma No_Return (Rcheck_29);
    pragma No_Return (Rcheck_30);
    pragma No_Return (Rcheck_32);
+   pragma No_Return (Rcheck_33);
 
    ---------------------------------------------
    -- Reason Strings for Run-Time Check Calls --
@@ -556,25 +557,27 @@ package body Ada.Exceptions is
    Rmsg_13 : constant String := "tag check failed"                 & NUL;
    Rmsg_14 : constant String := "access before elaboration"        & NUL;
    Rmsg_15 : constant String := "accessibility check failed"       & NUL;
-   Rmsg_16 : constant String := "all guards closed"                & NUL;
-   Rmsg_17 : constant String := "Current_Task referenced in entry" &
+   Rmsg_16 : constant String := "attempt to take address of"       &
+                                " intrinsic subprogram"            & NUL;
+   Rmsg_17 : constant String := "all guards closed"                & NUL;
+   Rmsg_18 : constant String := "Current_Task referenced in entry" &
                                 " body"                            & NUL;
-   Rmsg_18 : constant String := "duplicated entry address"         & NUL;
-   Rmsg_19 : constant String := "explicit raise"                   & NUL;
-   Rmsg_20 : constant String := "finalize/adjust raised exception" & NUL;
-   Rmsg_21 : constant String := "implicit return with No_Return"   & NUL;
-   Rmsg_22 : constant String := "misaligned address value"         & NUL;
-   Rmsg_23 : constant String := "missing return"                   & NUL;
-   Rmsg_24 : constant String := "overlaid controlled object"       & NUL;
-   Rmsg_25 : constant String := "potentially blocking operation"   & NUL;
-   Rmsg_26 : constant String := "stubbed subprogram called"        & NUL;
-   Rmsg_27 : constant String := "unchecked union restriction"      & NUL;
-   Rmsg_28 : constant String := "actual/returned class-wide value "
-                                & "not transportable"              & NUL;
-   Rmsg_29 : constant String := "empty storage pool"               & NUL;
-   Rmsg_30 : constant String := "explicit raise"                   & NUL;
-   Rmsg_31 : constant String := "infinite recursion"               & NUL;
-   Rmsg_32 : constant String := "object too large"                 & NUL;
+   Rmsg_19 : constant String := "duplicated entry address"         & NUL;
+   Rmsg_20 : constant String := "explicit raise"                   & NUL;
+   Rmsg_21 : constant String := "finalize/adjust raised exception" & NUL;
+   Rmsg_22 : constant String := "implicit return with No_Return"   & NUL;
+   Rmsg_23 : constant String := "misaligned address value"         & NUL;
+   Rmsg_24 : constant String := "missing return"                   & NUL;
+   Rmsg_25 : constant String := "overlaid controlled object"       & NUL;
+   Rmsg_26 : constant String := "potentially blocking operation"   & NUL;
+   Rmsg_27 : constant String := "stubbed subprogram called"        & NUL;
+   Rmsg_28 : constant String := "unchecked union restriction"      & NUL;
+   Rmsg_29 : constant String := "actual/returned class-wide"       &
+                                " value not transportable"         & NUL;
+   Rmsg_30 : constant String := "empty storage pool"               & NUL;
+   Rmsg_31 : constant String := "explicit raise"                   & NUL;
+   Rmsg_32 : constant String := "infinite recursion"               & NUL;
+   Rmsg_33 : constant String := "object too large"                 & NUL;
 
    -----------------------
    -- Polling Interface --
@@ -1163,7 +1166,7 @@ package body Ada.Exceptions is
 
    procedure Rcheck_29 (File : System.Address; Line : Integer) is
    begin
-      Raise_Storage_Error_Msg (File, Line, Rmsg_29'Address);
+      Raise_Program_Error_Msg (File, Line, Rmsg_29'Address);
    end Rcheck_29;
 
    procedure Rcheck_30 (File : System.Address; Line : Integer) is
@@ -1180,6 +1183,11 @@ package body Ada.Exceptions is
    begin
       Raise_Storage_Error_Msg (File, Line, Rmsg_32'Address);
    end Rcheck_32;
+
+   procedure Rcheck_33 (File : System.Address; Line : Integer) is
+   begin
+      Raise_Storage_Error_Msg (File, Line, Rmsg_33'Address);
+   end Rcheck_33;
 
    -------------
    -- Reraise --

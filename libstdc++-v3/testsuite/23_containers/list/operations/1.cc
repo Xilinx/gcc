@@ -1,9 +1,9 @@
-// Copyright (C) 2001, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2004, 2005, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -12,30 +12,32 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 23.2.2.4 list operations [lib.list.ops]
 
 #include <list>
 #include <testsuite_hooks.h>
 
-bool test __attribute__((unused)) = true;
-
 // splice(p, x) + remove + reverse
+template<typename _Tp>
 void
-test01()
+operations01()
 {
+  bool test __attribute__((unused)) = true;
+  typedef _Tp list_type;
+  typedef typename list_type::iterator iterator;
+
   const int K = 417;
   const int A[] = {1, 2, 3, 4, 5};
   const int B[] = {K, K, K, K, K};
   const std::size_t N = sizeof(A) / sizeof(int);
   const std::size_t M = sizeof(B) / sizeof(int);
 
-  std::list<int> list0101(A, A + N);
-  std::list<int> list0102(B, B + M);
-  std::list<int>::iterator p = list0101.begin();
+  list_type list0101(A, A + N);
+  list_type list0102(B, B + M);
+  iterator p = list0101.begin();
 
   VERIFY(list0101.size() == N);
   VERIFY(list0102.size() == M);
@@ -66,9 +68,9 @@ test01()
   VERIFY(p == list0101.end());
 }
 
-int main(void)
+int main()
 {
-  test01();
+  operations01<std::list<int> >();
   return 0;
 }
 

@@ -134,11 +134,7 @@ static VEC(expr_hash_elt_t,heap) *avail_exprs_stack;
    expressions are removed from AVAIL_EXPRS.  Else we may change the
    hash code for an expression and be unable to find/remove it from
    AVAIL_EXPRS.  */
-typedef gimple *gimple_p;
-DEF_VEC_P(gimple_p);
-DEF_VEC_ALLOC_P(gimple_p,heap);
-
-static VEC(gimple_p,heap) *stmts_to_rescan;
+static VEC(gimple,heap) *stmts_to_rescan;
 
 /* Structure for entries in the expression hash table.  */
 
@@ -623,7 +619,6 @@ static unsigned int
 tree_ssa_dominator_optimize (void)
 {
   struct dom_walk_data walk_data;
-  unsigned int i;
 
   memset (&opt_stats, 0, sizeof (opt_stats));
 
@@ -631,7 +626,7 @@ tree_ssa_dominator_optimize (void)
   avail_exprs = htab_create (1024, real_avail_expr_hash, avail_expr_eq, free_expr_hash_elt);
   avail_exprs_stack = VEC_alloc (expr_hash_elt_t, heap, 20);
   const_and_copies_stack = VEC_alloc (tree, heap, 20);
-  stmts_to_rescan = VEC_alloc (gimple_p, heap, 20);
+  stmts_to_rescan = VEC_alloc (gimple, heap, 20);
   need_eh_cleanup = BITMAP_ALLOC (NULL);
 
   /* Setup callbacks for the generic dominator tree walker.  */
@@ -662,6 +657,9 @@ tree_ssa_dominator_optimize (void)
      headers to an exit edge, or through loop header to the loop body, assuming
      that we update the loop info.  */
   loop_optimizer_init (LOOPS_HAVE_SIMPLE_LATCHES);
+
+  /* Initialize the value-handle array.  */
+  threadedge_initialize_values ();
 
   /* We need accurate information regarding back edges in the CFG
      for jump threading; this may include back edges that are not part of
@@ -720,23 +718,6 @@ tree_ssa_dominator_optimize (void)
       bitmap_zero (need_eh_cleanup);
     }
 
-  /* Finally, remove everything except invariants in SSA_NAME_VALUE.
-
-     Long term we will be able to let everything in SSA_NAME_VALUE
-     persist.  However, for now, we know this is the safe thing to do.  */
-  for (i = 0; i < num_ssa_names; i++)
-   {
-      tree name = ssa_name (i);
-      tree value;
-
-      if (!name)
-        continue;
-
-      value = SSA_NAME_VALUE (name);
-      if (value && !is_gimple_min_invariant (value))
-	SSA_NAME_VALUE (name) = NULL;
-    }
-
   statistics_counter_event (cfun, "Redundant expressions eliminated",
 			    opt_stats.num_re);
   statistics_counter_event (cfun, "Constants propagated",
@@ -761,8 +742,12 @@ tree_ssa_dominator_optimize (void)
   
   VEC_free (expr_hash_elt_t, heap, avail_exprs_stack);
   VEC_free (tree, heap, const_and_copies_stack);
-  VEC_free (gimple_p, heap, stmts_to_rescan);
+  VEC_free (gimple, heap, stmts_to_rescan);
   
+  /* Free the value-handle array.  */
+  threadedge_finalize_values ();
+  ssa_name_values = NULL;
+
   return 0;
 }
 
@@ -783,7 +768,7 @@ struct gimple_opt_pass pass_dominator =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_SSA_DOMINATOR_OPTS,		/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
@@ -916,7 +901,7 @@ restore_vars_to_original_value (void)
 	}
 
       prev_value = VEC_pop (tree, const_and_copies_stack);
-      SSA_NAME_VALUE (dest) =  prev_value;
+      set_ssa_name_value (dest, prev_value);
     }
 }
 
@@ -1062,17 +1047,16 @@ dom_opt_finalize_block (struct dom_walk_data *walk_data, basic_block bb)
 
   /* If we queued any statements to rescan in this block, then
      go ahead and rescan them now.  */
-  while (VEC_length (gimple_p, stmts_to_rescan) > 0)
+  while (VEC_length (gimple, stmts_to_rescan) > 0)
     {
-      gimple *stmt_p = VEC_last (gimple_p, stmts_to_rescan);
-      gimple stmt = *stmt_p;
+      gimple stmt = VEC_last (gimple, stmts_to_rescan);
       basic_block stmt_bb = gimple_bb (stmt);
 
       if (stmt_bb != bb)
 	break;
 
-      VEC_pop (gimple_p, stmts_to_rescan);
-      pop_stmt_changes (stmt_p);
+      VEC_pop (gimple, stmts_to_rescan);
+      update_stmt (stmt);
     }
 }
 
@@ -1128,7 +1112,7 @@ record_equivalences_from_phis (basic_block bb)
 	 inferred from a comparison.  All uses of this ssa name are dominated
 	 by this assignment, so unwinding just costs time and space.  */
       if (i == gimple_phi_num_args (phi) && may_propagate_copy (lhs, rhs))
-	SSA_NAME_VALUE (lhs) = rhs;
+	set_ssa_name_value (lhs, rhs);
     }
 }
 
@@ -1441,7 +1425,7 @@ record_conditions (struct edge_info *edge_info, tree cond, tree inverted)
 static void
 record_const_or_copy_1 (tree x, tree y, tree prev_x)
 {
-  SSA_NAME_VALUE (x) = y;
+  set_ssa_name_value (x, y);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -1841,7 +1825,7 @@ eliminate_redundant_computations (gimple_stmt_iterator* gsi)
   if (! def
       || TREE_CODE (def) != SSA_NAME
       || SSA_NAME_OCCURS_IN_ABNORMAL_PHI (def)
-      || !ZERO_SSA_OPERANDS (stmt, SSA_OP_VDEF)
+      || gimple_vdef (stmt)
       /* Do not record equivalences for increments of ivs.  This would create
 	 overlapping live ranges for a very questionable gain.  */
       || simple_iv_increment_p (stmt))
@@ -1919,26 +1903,6 @@ eliminate_redundant_computations (gimple_stmt_iterator* gsi)
   return retval;
 }
 
-/* Return true if statement GS is an assignment that peforms a useless
-   type conversion.  It is is intended to be a tuples analog of function
-   tree_ssa_useless_type_conversion.  */
-
-static bool
-gimple_assign_unary_useless_conversion_p (gimple gs)
-{
-  if (is_gimple_assign (gs)
-      && (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (gs))
-          || gimple_assign_rhs_code (gs) == VIEW_CONVERT_EXPR
-          || gimple_assign_rhs_code (gs) == NON_LVALUE_EXPR))
-    {
-      tree lhs_type = TREE_TYPE (gimple_assign_lhs (gs));
-      tree rhs_type = TREE_TYPE (gimple_assign_rhs1 (gs));
-      return useless_type_conversion_p (lhs_type, rhs_type);
-    }
-  
-  return false;
-}
-
 /* STMT, a GIMPLE_ASSIGN, may create certain equivalences, in either
    the available expressions table or the const_and_copies table.
    Detect and record those equivalences.  */
@@ -1957,14 +1921,10 @@ record_equivalences_from_stmt (gimple stmt, int may_optimize_p)
   lhs_code = TREE_CODE (lhs);
 
   if (lhs_code == SSA_NAME
-      && (gimple_assign_single_p (stmt)
-          || gimple_assign_unary_useless_conversion_p (stmt)))
+      && gimple_assign_single_p (stmt))
     {
       tree rhs = gimple_assign_rhs1 (stmt);
                
-      /* Strip away any useless type conversions.  */
-      STRIP_USELESS_TYPE_CONVERSION (rhs);
-
       /* If the RHS of the assignment is a constant or another variable that
 	 may be propagated, register it in the CONST_AND_COPIES table.  We
 	 do not need to record unwind data for this, since this is a true
@@ -1984,7 +1944,7 @@ record_equivalences_from_stmt (gimple stmt, int may_optimize_p)
 	    fprintf (dump_file, "\n");
 	  }
 
-	SSA_NAME_VALUE (lhs) = rhs;
+	set_ssa_name_value (lhs, rhs);
       }
     }
 
@@ -2021,7 +1981,7 @@ record_equivalences_from_stmt (gimple stmt, int may_optimize_p)
       else
         new_stmt = gimple_build_assign (rhs, lhs);
 
-      create_ssa_artificial_load_stmt (new_stmt, stmt, true);
+      gimple_set_vuse (new_stmt, gimple_vdef (stmt));
 
       /* Finally enter the statement into the available expression
 	 table.  */
@@ -2169,7 +2129,6 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
   
   update_stmt_if_modified (stmt);
   opt_stats.num_stmts++;
-  push_stmt_changes (gsi_stmt_ptr (&si));
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -2292,21 +2251,12 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
 	}
     }
 
+  /* Queue the statement to be re-scanned after all the
+     AVAIL_EXPRS have been processed.  The change buffer stack for
+     all the pushed statements will be processed when this queue
+     is emptied.  */
   if (may_have_exposed_new_symbols)
-    {
-      /* Queue the statement to be re-scanned after all the
-	 AVAIL_EXPRS have been processed.  The change buffer stack for
-	 all the pushed statements will be processed when this queue
-	 is emptied.  */
-      VEC_safe_push (gimple_p, heap, stmts_to_rescan, gsi_stmt_ptr (&si));
-    }
-  else
-    {
-      /* Otherwise, just discard the recently pushed change buffer.  If
-	 not, the STMTS_TO_RESCAN queue will get out of synch with the
-	 change buffer stack.  */
-      discard_stmt_changes (gsi_stmt_ptr (&si));
-    }
+    VEC_safe_push (gimple, heap, stmts_to_rescan, gsi_stmt (si));
 }
 
 /* Search for an existing instance of STMT in the AVAIL_EXPRS table.
@@ -2405,7 +2355,6 @@ avail_expr_hash (const void *p)
   gimple stmt = ((const struct expr_hash_elt *)p)->stmt;
   const struct hashable_expr *expr = &((const struct expr_hash_elt *)p)->expr;
   tree vuse;
-  ssa_op_iter iter;
   hashval_t val = 0;
 
   val = iterative_hash_hashable_expr (expr, val);
@@ -2416,11 +2365,11 @@ avail_expr_hash (const void *p)
   if (!stmt)
     return val;
 
-  /* Add the SSA version numbers of every vuse operand.  This is important
+  /* Add the SSA version numbers of the vuse operand.  This is important
      because compound variables like arrays are not renamed in the
      operands.  Rather, the rename is done on the virtual variable
      representing all the elements of the array.  */
-  FOR_EACH_SSA_TREE_OPERAND (vuse, stmt, iter, SSA_OP_VUSE)
+  if ((vuse = gimple_vuse (stmt)))
     val = iterative_hash_expr (vuse, val);
 
   return val;
@@ -2462,8 +2411,8 @@ avail_expr_eq (const void *p1, const void *p2)
       && types_compatible_p (expr1->type, expr2->type))
     {
       /* Note that STMT1 and/or STMT2 may be NULL.  */
-      bool ret = compare_ssa_operands_equal (stmt1, stmt2, SSA_OP_VUSE);
-      return ret;
+      return ((stmt1 ? gimple_vuse (stmt1) : NULL_TREE)
+	      == (stmt2 ? gimple_vuse (stmt2) : NULL_TREE));
     }
 
   return false;
@@ -2475,7 +2424,7 @@ avail_expr_eq (const void *p1, const void *p2)
 /* Given PHI, return its RHS if the PHI is a degenerate, otherwise return
    NULL.  */
 
-static tree
+tree
 degenerate_phi_result (gimple phi)
 {
   tree lhs = gimple_phi_result (phi);
@@ -2605,8 +2554,6 @@ propagate_rhs_into_lhs (gimple stmt, tree lhs, tree rhs, bitmap interesting_name
 	      print_gimple_stmt (dump_file, use_stmt, 0, dump_flags);
 	    }
 
-	  push_stmt_changes (&use_stmt);
-
 	  /* Propagate the RHS into this use of the LHS.  */
 	  FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
 	    propagate_value (use_p, rhs);
@@ -2641,7 +2588,6 @@ propagate_rhs_into_lhs (gimple stmt, tree lhs, tree rhs, bitmap interesting_name
 		  bitmap_set_bit (interesting_names, SSA_NAME_VERSION (result));
 		}
 
-	      discard_stmt_changes (&use_stmt);
 	      continue;
 	    }
 
@@ -2658,9 +2604,8 @@ propagate_rhs_into_lhs (gimple stmt, tree lhs, tree rhs, bitmap interesting_name
 	  fold_stmt_inplace (use_stmt);
 
 	  /* Sometimes propagation can expose new operands to the
-	     renamer.  Note this will call update_stmt at the 
-	     appropriate time.  */
-	  pop_stmt_changes (&use_stmt);
+	     renamer.  */
+	  update_stmt (use_stmt);
 
 	  /* Dump details.  */
 	  if (dump_file && (dump_flags & TDF_DETAILS))
@@ -2963,7 +2908,7 @@ struct gimple_opt_pass pass_phi_only_cprop =
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
   TV_TREE_PHI_CPROP,                    /* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,     /* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,                                    /* properties_provided */
   0,		                        /* properties_destroyed */
   0,                                    /* todo_flags_start */

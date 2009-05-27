@@ -1,6 +1,6 @@
 /* Natural loop functions
    Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008  Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -38,16 +38,14 @@ enum lpt_dec
   LPT_UNROLL_STUPID
 };
 
-struct lpt_decision GTY (())
-{
+struct GTY (()) lpt_decision {
   enum lpt_dec decision;
   unsigned times;
 };
 
 /* The structure describing a bound on number of iterations of a loop.  */
 
-struct nb_iter_bound GTY ((chain_next ("%h.next")))
-{
+struct GTY ((chain_next ("%h.next"))) nb_iter_bound {
   /* The statement STMT is executed at most ...  */
   gimple stmt;
 
@@ -71,8 +69,7 @@ struct nb_iter_bound GTY ((chain_next ("%h.next")))
 
 /* Description of the loop exit.  */
 
-struct loop_exit GTY (())
-{
+struct GTY (()) loop_exit {
   /* The exit edge.  */
   struct edge_def *e;
 
@@ -100,10 +97,12 @@ enum loop_estimation
 };
 
 /* Structure to hold information for each natural loop.  */
-struct loop GTY ((chain_next ("%h.next")))
-{
+struct GTY ((chain_next ("%h.next"))) loop {
   /* Index into loops array.  */
   int num;
+
+  /* Number of loop insns.  */
+  unsigned ninsns;
 
   /* Basic block of loop header.  */
   struct basic_block_def *header;
@@ -113,9 +112,6 @@ struct loop GTY ((chain_next ("%h.next")))
 
   /* For loop unrolling/peeling decision.  */
   struct lpt_decision lpt_decision;
-
-  /* Number of loop insns.  */
-  unsigned ninsns;
 
   /* Average number of executed insns per iteration.  */
   unsigned av_ninsns;
@@ -142,18 +138,19 @@ struct loop GTY ((chain_next ("%h.next")))
      information in this field.  */
   tree nb_iterations;
 
-  /* An integer estimation of the number of iterations.  Estimate_state
-     describes what is the state of the estimation.  */
-  enum loop_estimation estimate_state;
-
   /* An integer guaranteed to bound the number of iterations of the loop
      from above.  */
-  bool any_upper_bound;
   double_int nb_iterations_upper_bound;
 
   /* An integer giving the expected number of iterations of the loop.  */
-  bool any_estimate;
   double_int nb_iterations_estimate;
+
+  bool any_upper_bound;
+  bool any_estimate;
+
+  /* An integer estimation of the number of iterations.  Estimate_state
+     describes what is the state of the estimation.  */
+  enum loop_estimation estimate_state;
 
   /* Upper bound on number of iterations of a loop.  */
   struct nb_iter_bound *bounds;
@@ -180,8 +177,7 @@ enum
 #define AVOID_CFG_MODIFICATIONS (LOOPS_MAY_HAVE_MULTIPLE_LATCHES)
 
 /* Structure to hold CFG information about natural loops within a function.  */
-struct loops GTY (())
-{
+struct GTY (()) loops {
   /* State of loops.  */
   int state;
 
@@ -644,5 +640,6 @@ enum
 extern void unroll_and_peel_loops (int);
 extern void doloop_optimize_loops (void);
 extern void move_loop_invariants (void);
+extern bool finite_loop_p (struct loop *);
 
 #endif /* GCC_CFGLOOP_H */

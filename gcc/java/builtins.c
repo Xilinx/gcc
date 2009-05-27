@@ -65,15 +65,13 @@ typedef tree builtin_creator_function (tree, tree);
 
 /* Hold a char*, before initialization, or a tree, after
    initialization.  */
-union string_or_tree GTY(())
-{
+union GTY(()) string_or_tree {
   const char * GTY ((tag ("0"))) s;
   tree GTY ((tag ("1"))) t;
 };
 
 /* Used to hold a single builtin record.  */
-struct builtin_record GTY(())
-{
+struct GTY(()) builtin_record {
   union string_or_tree GTY ((desc ("1"))) class_name;
   union string_or_tree GTY ((desc ("1"))) method_name;
   builtin_creator_function * GTY((skip)) creator;
@@ -82,9 +80,9 @@ struct builtin_record GTY(())
 
 static GTY(()) struct builtin_record java_builtins[] =
 {
-  { { "java.lang.Math" }, { "min" }, min_builtin, 0 },
-  { { "java.lang.Math" }, { "max" }, max_builtin, 0 },
-  { { "java.lang.Math" }, { "abs" }, abs_builtin, 0 },
+  { { "java.lang.Math" }, { "min" }, min_builtin, (enum built_in_function) 0 },
+  { { "java.lang.Math" }, { "max" }, max_builtin, (enum built_in_function) 0 },
+  { { "java.lang.Math" }, { "abs" }, abs_builtin, (enum built_in_function) 0 },
   { { "java.lang.Math" }, { "acos" }, NULL, BUILT_IN_ACOS },
   { { "java.lang.Math" }, { "asin" }, NULL, BUILT_IN_ASIN },
   { { "java.lang.Math" }, { "atan" }, NULL, BUILT_IN_ATAN },
@@ -98,31 +96,47 @@ static GTY(()) struct builtin_record java_builtins[] =
   { { "java.lang.Math" }, { "sin" }, NULL, BUILT_IN_SIN },
   { { "java.lang.Math" }, { "sqrt" }, NULL, BUILT_IN_SQRT },
   { { "java.lang.Math" }, { "tan" }, NULL, BUILT_IN_TAN },
-  { { "java.lang.Float" }, { "intBitsToFloat" }, convert_real, 0 },
-  { { "java.lang.Double" }, { "longBitsToDouble" }, convert_real, 0 },
-  { { "java.lang.Float" }, { "floatToRawIntBits" }, convert_real, 0 },
-  { { "java.lang.Double" }, { "doubleToRawLongBits" }, convert_real, 0 },
-  { { "sun.misc.Unsafe" }, { "putInt" }, putObject_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "putLong" }, putObject_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "putObject" }, putObject_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "compareAndSwapInt" }, 
-    compareAndSwapInt_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "compareAndSwapLong" }, 
-    compareAndSwapLong_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "compareAndSwapObject" }, 
-    compareAndSwapObject_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "putOrderedInt" }, putVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "putOrderedLong" }, putVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "putOrderedObject" }, putVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "putIntVolatile" }, putVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "putLongVolatile" }, putVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "putObjectVolatile" }, putVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "getObjectVolatile" }, getVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "getIntVolatile" }, getVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "getLongVolatile" }, getVolatile_builtin, 0},
-  { { "sun.misc.Unsafe" }, { "getLong" }, getVolatile_builtin, 0},
-  { { "java.util.concurrent.atomic.AtomicLong" }, { "VMSupportsCS8" }, 
-    VMSupportsCS8_builtin, 0},
+  { { "java.lang.Float" }, { "intBitsToFloat" }, convert_real,
+    (enum built_in_function) 0 },
+  { { "java.lang.Double" }, { "longBitsToDouble" }, convert_real,
+    (enum built_in_function) 0 },
+  { { "java.lang.Float" }, { "floatToRawIntBits" }, convert_real,
+    (enum built_in_function) 0 },
+  { { "java.lang.Double" }, { "doubleToRawLongBits" }, convert_real,
+    (enum built_in_function) 0 },
+  { { "sun.misc.Unsafe" }, { "putInt" }, putObject_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "putLong" }, putObject_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "putObject" }, putObject_builtin,
+  (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "compareAndSwapInt" },
+    compareAndSwapInt_builtin, (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "compareAndSwapLong" },
+    compareAndSwapLong_builtin, (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "compareAndSwapObject" },
+    compareAndSwapObject_builtin, (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "putOrderedInt" }, putVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "putOrderedLong" }, putVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "putOrderedObject" }, putVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "putIntVolatile" }, putVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "putLongVolatile" }, putVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "putObjectVolatile" }, putVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "getObjectVolatile" }, getVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "getIntVolatile" }, getVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "getLongVolatile" }, getVolatile_builtin, (enum built_in_function) 0},
+  { { "sun.misc.Unsafe" }, { "getLong" }, getVolatile_builtin,
+    (enum built_in_function) 0},
+  { { "java.util.concurrent.atomic.AtomicLong" }, { "VMSupportsCS8" },
+    VMSupportsCS8_builtin, (enum built_in_function) 0},
   { { NULL }, { NULL }, NULL, END_BUILTINS }
 };
 
@@ -304,8 +318,7 @@ compareAndSwapInt_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			   tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (int_type_node);
-  if (sync_compare_and_swap_cc[mode] != CODE_FOR_nothing 
-      || sync_compare_and_swap[mode] != CODE_FOR_nothing)
+  if (sync_compare_and_swap[mode] != CODE_FOR_nothing)
     {
       tree addr, stmt;
       UNMARSHAL5 (orig_call);
@@ -324,8 +337,7 @@ compareAndSwapLong_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			    tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (long_type_node);
-  if (sync_compare_and_swap_cc[mode] != CODE_FOR_nothing 
-      || sync_compare_and_swap[mode] != CODE_FOR_nothing)
+  if (sync_compare_and_swap[mode] != CODE_FOR_nothing)
     {
       tree addr, stmt;
       UNMARSHAL5 (orig_call);
@@ -343,8 +355,7 @@ compareAndSwapObject_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			      tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (ptr_type_node);
-  if (sync_compare_and_swap_cc[mode] != CODE_FOR_nothing 
-      || sync_compare_and_swap[mode] != CODE_FOR_nothing)
+  if (sync_compare_and_swap[mode] != CODE_FOR_nothing)
   {
     tree addr, stmt;
     int builtin;
@@ -422,8 +433,7 @@ VMSupportsCS8_builtin (tree method_return_type,
 {
   enum machine_mode mode = TYPE_MODE (long_type_node);
   gcc_assert (method_return_type == boolean_type_node);
-  if (sync_compare_and_swap_cc[mode] != CODE_FOR_nothing 
-      || sync_compare_and_swap[mode] != CODE_FOR_nothing)
+  if (sync_compare_and_swap[mode] != CODE_FOR_nothing)
     return boolean_true_node;
   else
     return boolean_false_node;

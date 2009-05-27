@@ -4476,7 +4476,7 @@
 	fix some broken wraps with continuations.
 	* tree-ssa-reassoc.c: Fix comment typos.
 
-2000-10-04  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+2008-10-04  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR target/37603
 	* pa.c (legitimize_pic_address): Force function labels to memory in
@@ -13728,7 +13728,7 @@
 	(m32c_legitimate_address_p): Handle "++rii" addresses created by
 	m32c_legitimize_reload_address.
 
-2007-07-16  Rafael Ávila de Espíndola  <espindola@google.com>
+2008-07-16  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* c-decl.c (merge_decls): Keep DECL_SOURCE_LOCATION and
 	DECL_IN_SYSTEM_HEADER in sync.
@@ -13818,7 +13818,7 @@
 
 	* emit-rtl.c (set_mem_attributes_minus_bitpos): Improve comment.
 
-2007-07-14  Rafael Ávila de Espíndola  <espindola@google.com>
+2008-07-14  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* c-decl.c (diagnose_mismatched_decls): Don't warn if TREE_NO_WARNING
 	is set.
@@ -17771,12 +17771,6 @@
 	* config/i386/i386.c (override_options): Replace TARGET_64BIT_MS_ABI.
 	(X86_64_VARARGS_SIZE): Replace REGPARM_MAX and SSE_REGPARM_MAX by abi
 	specific defines.
-	(X86_64_REGPARM_MAX): New.
-	(X86_64_SSE_REGPARM_MAX): New.
-	(X64_REGPARM_MAX): New.
-	(X64_SSE_REGPARM_MAX): New.
-	(X86_32_REGPARM_MAX): New.
-	(X86_32_SSE_REGPARM_MAX): New.
 	(ix86_handle_cconv_attribute): Replace TARGET_64BIT_MS_ABI.
 	(ix86_function_regparm): Handle user calling abi.
 	(ix86_function_arg_regno_p): Replace TARGET_64BIT_MS_ABI
@@ -17816,6 +17810,14 @@
 	(OUTGOING_REG_PARM_STACK_SPACE): New.
 	(ix86_reg_parm_stack_space): New prototype.
 	(CUMULATIVE_ARGS): Add call_abi member.
+	(X86_64_REGPARM_MAX): New.
+	(X86_64_SSE_REGPARM_MAX): New.
+	(X64_REGPARM_MAX): New.
+	(X64_SSE_REGPARM_MAX): New.
+	(X86_32_REGPARM_MAX): New.
+	(X86_32_SSE_REGPARM_MAX): New.
+	(REGPARM_MAX): Updated.
+	(SSE_REGPARM_MAX): Updated.
 	(machine_function): Add call_abi member.
 	* config/i386/mingw32.h (EXTRA_OS_CPP_BUILTINS): Replace
 	TARGET_64BIT_MS_ABI by DEFAULT_ABI compare to MS_ABI.
@@ -28959,3 +28961,10 @@
 	* config/i386/sse.md (sse5_pperm, sse5_pperm_pack_v2di_v4si,
 	sse5_pperm_pack_v4si_v8hi, sse5_pperm_pack_v8hi_v16qi,
 	sse5_perm<mode>): Fix constraints.
+
+
+Copyright (C) 2008 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

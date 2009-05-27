@@ -37,12 +37,14 @@ set tests [prune $tests $srcdir/$subdir/compat/*]
 set tests [prune $tests $srcdir/$subdir/debug/*]
 set tests [prune $tests $srcdir/$subdir/gcov/*]
 set tests [prune $tests $srcdir/$subdir/pch/*]
+set tests [prune $tests $srcdir/$subdir/plugin/*]
 set tests [prune $tests $srcdir/$subdir/special/*]
 set tests [prune $tests $srcdir/$subdir/tls/*]
 set tests [prune $tests $srcdir/$subdir/vect/*]
 set tests [prune $tests $srcdir/$subdir/gomp/*]
 set tests [prune $tests $srcdir/$subdir/tree-prof/*]
 set tests [prune $tests $srcdir/$subdir/torture/*]
+set tests [prune $tests $srcdir/$subdir/graphite/*]
 
 # Main loop.
 dg-runtest $tests "" $DEFAULT_CXXFLAGS

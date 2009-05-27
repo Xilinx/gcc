@@ -1,5 +1,5 @@
 /* GCC core type declarations.
-   Copyright (C) 2002, 2004, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -13,8 +13,13 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING3.  If not see
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 /* Provide forward declarations of core types which are referred to by
@@ -32,7 +37,9 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_CORETYPES_H
 #define GCC_CORETYPES_H
 
+#ifndef GTY
 #define GTY(x)  /* nothing - marker for gengtype */
+#endif
 
 #ifndef USED_FOR_TARGET
 
@@ -90,6 +97,12 @@ enum tls_model {
   TLS_MODEL_LOCAL_EXEC
 };
 
+struct edge_def;
+typedef struct edge_def *edge;
+typedef const struct edge_def *const_edge;
+struct basic_block_def;
+typedef struct basic_block_def *basic_block;
+typedef const struct basic_block_def *const_basic_block;
 #else
 
 struct _dont_use_rtx_here_;

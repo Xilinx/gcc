@@ -32,7 +32,7 @@
 --  checks, is to attempt to detect at compilation time that a constraint
 --  error will occur. If this is detected a warning or error is issued and the
 --  offending expression or statement replaced with a constraint error node.
---  This always occurs whether checks are suppressed or not.  Dynamic range
+--  This always occurs whether checks are suppressed or not. Dynamic range
 --  checks are, of course, not inserted if checks are suppressed.
 
 with Namet;  use Namet;
@@ -135,9 +135,9 @@ package Checks is
       Typ        : Entity_Id;
       No_Sliding : Boolean := False);
    --  Top-level procedure, calls all the others depending on the class of Typ.
-   --  Checks that expression N verifies the constraint of type Typ. No_Sliding
-   --  is only relevant for constrained array types, if set to True, it
-   --  checks that indexes are in range.
+   --  Checks that expression N satisfies the constraint of type Typ.
+   --  No_Sliding is only relevant for constrained array types, if set to True,
+   --  it checks that indexes are in range.
 
    procedure Apply_Discriminant_Check
      (N   : Node_Id;
@@ -184,10 +184,11 @@ package Checks is
    --  to make sure that the universal result is in range.
 
    procedure Determine_Range
-     (N  : Node_Id;
-      OK : out Boolean;
-      Lo : out Uint;
-      Hi : out Uint);
+     (N            : Node_Id;
+      OK           : out Boolean;
+      Lo           : out Uint;
+      Hi           : out Uint;
+      Assume_Valid : Boolean := False);
    --  N is a node for a subexpression. If N is of a discrete type with no
    --  error indications, and no other peculiarities (e.g. missing type
    --  fields), then OK is True on return, and Lo and Hi are set to a
@@ -197,7 +198,10 @@ package Checks is
    --  type, or some kind of error condition is detected, then OK is False on
    --  exit, and Lo/Hi are set to No_Uint. Thus the significance of OK being
    --  False on return is that no useful information is available on the range
-   --  of the expression.
+   --  of the expression. Assume_Valid determines whether the processing is
+   --  allowed to assume that values are in range of their subtypes. If it is
+   --  set to True, then this assumption is valid, if False, then processing
+   --  is done using base types to allow invalid values.
 
    procedure Install_Null_Excluding_Check (N : Node_Id);
    --  Determines whether an access node requires a runtime access check and
@@ -210,9 +214,11 @@ package Checks is
    --  Range checks are controlled by the Do_Range_Check flag. The front end
    --  is responsible for setting this flag in relevant nodes. Originally
    --  the back end generated all corresponding range checks. But later on
-   --  we decided to generate all range checks in the front end. We are now
+   --  we decided to generate many range checks in the front end. We are now
    --  in the transitional phase where some of these checks are still done
-   --  by the back end, but many are done by the front end.
+   --  by the back end, but many are done by the front end. It is possible
+   --  that in the future we might move all the checks to the front end. The
+   --  main remaining back end checks are for subscript checking.
 
    --  Overflow checks are similarly controlled by the Do_Overflow_Check flag.
    --  The difference here is that if back end overflow checks are inactive
@@ -229,9 +235,9 @@ package Checks is
    --  First this routine determines if an overflow check is needed by doing
    --  an appropriate range check. If a check is not needed, then the call
    --  has no effect. If a check is needed then this routine sets the flag
-   --  Set Do_Overflow_Check in node N to True, unless it can be determined
-   --  that the check is not needed. The only condition under which this is
-   --  the case is if there was an identical check earlier on.
+   --  Do_Overflow_Check in node N to True, unless it can be determined that
+   --  the check is not needed. The only condition under which this is the
+   --  case is if there was an identical check earlier on.
 
    procedure Enable_Range_Check (N : Node_Id);
    --  Set Do_Range_Check flag in node N True, unless it can be determined
@@ -441,7 +447,7 @@ package Checks is
    --  Some of the earlier processing for checks results in temporarily setting
    --  the Do_Range_Check flag rather than actually generating checks. Now we
    --  are moving the generation of such checks into the front end for reasons
-   --  of efficiency and simplicity (there were difficutlies in handling this
+   --  of efficiency and simplicity (there were difficulties in handling this
    --  in the back end when side effects were present in the expressions being
    --  checked).
 

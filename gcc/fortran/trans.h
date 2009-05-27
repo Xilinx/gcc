@@ -1,6 +1,6 @@
 /* Header for code translation functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Paul Brook
 
 This file is part of GCC.
@@ -71,7 +71,7 @@ typedef struct gfc_se
      are NULL.  Used by intrinsic size.  */
   unsigned data_not_needed:1;
 
-  /* If set, gfc_conv_function_call does not put byref calls into se->pre.  */
+  /* If set, gfc_conv_procedure_call does not put byref calls into se->pre.  */
   unsigned no_function_call:1;
 
   /* Scalarization parameters.  */
@@ -310,12 +310,10 @@ void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 /* Does an intrinsic map directly to an external library call.  */
 int gfc_is_intrinsic_libcall (gfc_expr *);
 
-/* Used to call the elemental subroutines used in operator assignments.  */
-tree gfc_conv_operator_assign (gfc_se *, gfc_se *, gfc_symbol *);
-
-/* Also used to CALL subroutines.  */
-int gfc_conv_function_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
-			    tree);
+/* Used to call ordinary functions/subroutines
+   and procedure pointer components.  */
+int gfc_conv_procedure_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
+			    gfc_expr *, tree);
 
 void gfc_conv_subref_array_arg (gfc_se *, gfc_expr *, int, sym_intent);
 
@@ -429,8 +427,7 @@ void gfc_generate_block_data (gfc_namespace *);
 /* Output a decl for a module variable.  */
 void gfc_generate_module_vars (gfc_namespace *);
 
-struct module_htab_entry GTY(())
-{
+struct GTY(()) module_htab_entry {
   const char *name;
   tree namespace_decl;
   htab_t GTY ((param_is (union tree_node))) decls;
@@ -543,8 +540,7 @@ extern GTY(()) tree gfor_fndecl_associated;
 /* Math functions.  Many other math functions are handled in
    trans-intrinsic.c.  */
 
-typedef struct gfc_powdecl_list GTY(())
-{
+typedef struct GTY(()) gfc_powdecl_list {
   tree integer;
   tree real;
   tree cmplx;
@@ -615,8 +611,7 @@ enum gfc_array_kind
 };
 
 /* Array types only.  */
-struct lang_type		GTY(())
-{
+struct GTY(())	lang_type	 {
   int rank;
   enum gfc_array_kind akind;
   tree lbound[GFC_MAX_DIMENSIONS];
@@ -629,8 +624,7 @@ struct lang_type		GTY(())
   tree span;
 };
 
-struct lang_decl		GTY(())
-{
+struct GTY(()) lang_decl {
   /* Dummy variables.  */
   tree saved_descriptor;
   /* Assigned integer nodes.  Stringlength is the IO format string's length.
@@ -766,5 +760,12 @@ extern const char gfc_msg_bounds[];
 extern const char gfc_msg_fault[];
 extern const char gfc_msg_wrong_return[];
 
+#define OMPWS_WORKSHARE_FLAG	1	/* Set if in a workshare construct.  */
+#define OMPWS_CURR_SINGLEUNIT	2	/* Set if current gfc_code in workshare
+					   construct is not workshared.  */
+#define OMPWS_SCALARIZER_WS	4	/* Set if scalarizer should attempt
+					   to create parallel loops.  */
+#define OMPWS_NOWAIT		8	/* Use NOWAIT on OMP_FOR.  */
+extern int ompws_flags;
 
 #endif /* GFC_TRANS_H */

@@ -1,6 +1,6 @@
 /* Form lists of pseudo register references for autoinc optimization
    for GNU compiler.  This is part of flow optimization.
-   Copyright (C) 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Originally contributed by Michael P. Hayes 
              (m.hayes@elec.canterbury.ac.nz, mhayes@redhat.com)
@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "bitmap.h"
 #include "basic-block.h"
 #include "alloc-pool.h"
+#include "timevar.h"
 
 struct dataflow;
 struct df;
@@ -275,7 +276,7 @@ struct df_problem {
   struct df_problem *dependent_problem;
 
   /* The timevar id associated with this pass.  */
-  unsigned int tv_id;
+  timevar_id_t tv_id;
 
   /* True if the df_set_blocks should null out the basic block info if
      this block drops out of df->blocks_to_analyze.  */
@@ -341,8 +342,7 @@ struct df_mw_hardreg
      accesses to 16-bit fields will usually be quicker.  */
   ENUM_BITFIELD(df_ref_type) type : 16;
 				/* Used to see if the ref is read or write.  */
-  ENUM_BITFIELD(df_ref_flags) flags : 16;
-				/* Various flags.  */
+  int flags : 16;		/* Various df_ref_flags.  */
   unsigned int start_regno;     /* First word of the multi word subreg.  */
   unsigned int end_regno;       /* Last word of the multi word subreg.  */
   unsigned int mw_order;        /* Same as df_ref.ref_order.  */
@@ -360,8 +360,7 @@ struct df_base_ref
 
   ENUM_BITFIELD(df_ref_type) type : 8;
 				/* Type of ref.  */
-  ENUM_BITFIELD(df_ref_flags) flags : 16;
-				/* Various flags.  */
+  int flags : 16;		/* Various df_ref_flags.  */
   rtx reg;			/* The register referenced.  */
   struct df_link *chain;	/* Head of def-use, use-def.  */
   /* Pointer to the insn info of the containing instruction.  FIXME! 
@@ -535,21 +534,12 @@ struct df
 
   struct dataflow *problems_in_order[DF_LAST_PROBLEM_PLUS1]; 
   struct dataflow *problems_by_index[DF_LAST_PROBLEM_PLUS1]; 
-  int num_problems_defined;
 
   /* If not NULL, this subset of blocks of the program to be
      considered for analysis.  At certain times, this will contain all
      the blocks in the function so it cannot be used as an indicator
      of if we are analyzing a subset.  See analyze_subset.  */ 
   bitmap blocks_to_analyze;
-
-  /* If this is true, then only a subset of the blocks of the program
-     is considered to compute the solutions of dataflow problems.  */
-  bool analyze_subset;
-
-  /* True if someone added or deleted something from regs_ever_live so
-     that the entry and exit blocks need be reprocessed.  */
-  bool redo_entry_and_exit;
 
   /* The following information is really the problem data for the
      scanning instance but it is used too often by the other problems
@@ -568,6 +558,9 @@ struct df
 
   struct df_insn_info **insns;   /* Insn table, indexed by insn UID.  */
   unsigned int insns_size;       /* Size of insn table.  */
+
+  int num_problems_defined;
+
   bitmap hardware_regs_used;     /* The set of hardware registers used.  */
   /* The set of hard regs that are in the artificial uses at the end
      of a regular basic block.  */
@@ -608,8 +601,17 @@ struct df
      addresses.  It is incremented whenever a ref is created.  */
   unsigned int ref_order;
 
-  /* Problem specific control information.  */
-  enum df_changeable_flags changeable_flags;
+  /* Problem specific control information.  This is a combination of
+     enum df_changeable_flags values.  */
+  int changeable_flags : 8;
+
+  /* If this is true, then only a subset of the blocks of the program
+     is considered to compute the solutions of dataflow problems.  */
+  bool analyze_subset;
+
+  /* True if someone added or deleted something from regs_ever_live so
+     that the entry and exit blocks need be reprocessed.  */
+  bool redo_entry_and_exit;
 };
 
 #define DF_SCAN_BB_INFO(BB) (df_scan_get_bb_info((BB)->index))
@@ -876,8 +878,8 @@ extern struct df *df;
 /* Functions defined in df-core.c.  */
 
 extern void df_add_problem (struct df_problem *);
-extern enum df_changeable_flags df_set_flags (enum df_changeable_flags);
-extern enum df_changeable_flags df_clear_flags (enum df_changeable_flags);
+extern int df_set_flags (int);
+extern int df_clear_flags (int);
 extern void df_set_blocks (bitmap);
 extern void df_remove_problem (struct dataflow *);
 extern void df_finish_pass (bool);
@@ -937,12 +939,14 @@ extern void df_grow_bb_info (struct dataflow *);
 extern void df_chain_dump (struct df_link *, FILE *);
 extern void df_print_bb_index (basic_block bb, FILE *file);
 extern void df_rd_add_problem (void);
+extern void df_rd_simulate_artificial_defs_at_top (basic_block, bitmap);
+extern void df_rd_simulate_one_insn (basic_block, rtx, bitmap);
 extern void df_lr_add_problem (void);
 extern void df_lr_verify_transfer_functions (void);
 extern void df_live_verify_transfer_functions (void);
 extern void df_live_add_problem (void);
 extern void df_live_set_all_dirty (void);
-extern void df_chain_add_problem (enum df_chain_flags);
+extern void df_chain_add_problem (unsigned int);
 extern void df_byte_lr_add_problem (void);
 extern int df_byte_lr_get_regno_start (unsigned int);
 extern int df_byte_lr_get_regno_len (unsigned int);
@@ -969,7 +973,7 @@ extern void df_grow_reg_info (void);
 extern void df_grow_insn_info (void);
 extern void df_scan_blocks (void);
 extern df_ref df_ref_create (rtx, rtx *, rtx,basic_block, 
-				     enum df_ref_type, enum df_ref_flags,
+				     enum df_ref_type, int ref_flags,
 				     int, int, enum machine_mode);
 extern void df_ref_remove (df_ref);
 extern struct df_insn_info * df_insn_create_insn_record (rtx);

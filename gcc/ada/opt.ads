@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -158,14 +156,14 @@ package Opt is
    --  GNAT
    --  Enable assertions made using pragma Assert
 
-   Assume_No_Invalid_Values : Boolean := True;
-   --  ??? true for now, enable by setting to false later
+   Assume_No_Invalid_Values : Boolean := False;
    --  GNAT
    --  Normally, in accordance with (RM 13.9.1 (9-11)) the front end assumes
    --  that values could have invalid representations, unless it can clearly
    --  prove that the values are valid. If this switch is set (by -gnatB or by
    --  pragma Assume_No_Invalid_Values (Off)), then the compiler assumes values
-   --  are valid and in range of their representations.
+   --  are valid and in range of their representations. This feature is now
+   --  fully enabled in the compiler.
 
    Back_Annotate_Rep_Info : Boolean := False;
    --  GNAT
@@ -417,6 +415,12 @@ package Opt is
    --  to make a single long message, and then this message is split up into
    --  multiple lines not exceeding the specified length. Set by -gnatj=nn.
 
+   Exception_Handler_Encountered : Boolean := False;
+   --  GNAT
+   --  This flag is set true if the parser encounters an exception handler.
+   --  It is used to set Warn_On_Exception_Propagation True if the restriction
+   --  No_Exception_Propagation is set.
+
    Exception_Locations_Suppressed : Boolean := False;
    --  GNAT
    --  This flag is set True if a Suppress_Exception_Locations configuration
@@ -636,9 +640,10 @@ package Opt is
    Inspector_Mode : Boolean renames Debug.Debug_Flag_Dot_II;
    --  GNAT
    --  True if compiling in inspector mode (-gnatd.I switch).
-   --  Only relevant when VM_Target /= None. The compiler will attempt to
-   --  generate code even in case of unsupported construct, so that the byte
-   --  code can be used by static analysis tools.
+   --  Enable inspector mode, in particular SCIL generation.
+   --  When VM_Target /= None, the compiler will also attempt to
+   --  generate code even in case of unsupported construct instead of
+   --  displaying an error.
 
    Invalid_Value_Used : Boolean := False;
    --  GNAT
@@ -806,10 +811,11 @@ package Opt is
    --  File name of mapping between unit names, file names and path names.
    --  (given by switch -gnatem)
 
-   Maximum_Errors : Int := 9999;
+   Maximum_Messages : Int := 9999;
    --  GNAT, GNATBIND
-   --  Maximum default number of errors before compilation is terminated.
-   --  Can be overridden using -gnatm (GNAT) or -m (GNATBIND) switch.
+   --  Maximum default number of errors before compilation is terminated, or in
+   --  the case of GNAT, maximum number of warnings before further warnings are
+   --  suppressed. Can be overridden by -gnatm (GNAT) or -m (GNATBIND) switch.
 
    Maximum_File_Name_Length : Int;
    --  GNAT, GNATBIND
@@ -903,13 +909,20 @@ package Opt is
    Optimization_Level : Int;
    pragma Import (C, Optimization_Level, "optimize");
    --  Constant reflecting the optimization level (0,1,2,3 for -O0,-O1,-O2,-O3)
+   --  See jmissing.c and aamissing.c for definitions for dotnet/jgnat and
+   --  GNAAMP back ends.
+
+   Optimize_Size : Int;
+   pragma Import (C, Optimize_Size, "optimize_size");
+   --  Constant reflecting setting of -Os (optimize for size). Set to nonzero
+   --  in -Os mode and set to zero otherwise. See jmissing.c and aamissing.c
+   --  for definitions of "optimize_size" for dotnet/jgnat and GNAAMP backends
 
    Output_File_Name_Present : Boolean := False;
    --  GNATBIND, GNAT, GNATMAKE, GPRMAKE
-   --  Set to True when the output C file name is given with option -o
-   --  for GNATBIND, when the object file name is given with option
-   --  -gnatO for GNAT or when the executable is given with option -o
-   --  for GNATMAKE or GPRMAKE.
+   --  Set to True when the output C file name is given with option -o for
+   --  GNATBIND, when the object file name is given with option -gnatO for GNAT
+   --  or when the executable is given with option -o for GNATMAKE or GPRMAKE.
 
    Output_Linker_Option_List : Boolean := False;
    --  GNATBIND
@@ -1024,6 +1037,10 @@ package Opt is
    --  option for GNATBIND and to False when using the -static option. The
    --  value of this flag is set by Gnatbind.Scan_Bind_Arg.
 
+   Sprint_Line_Limit : Nat := 72;
+   --  Limit values for chopping long lines in Sprint output, can be reset
+   --  by use of NNN parameter with -gnatG or -gnatD switches.
+
    Stack_Checking_Enabled : Boolean;
    --  GNAT
    --  Set to indicate if -fstack-check switch is set for the compilation. True
@@ -1043,6 +1060,11 @@ package Opt is
    --  GNAT
    --  Set by -fno-inline. Suppresses all inlining, both front end and back end
    --  regardless of any other switches that are set.
+
+   Suppress_Control_Flow_Optimizations : Boolean := False;
+   --  GNAT
+   --  Set by -fpreserve-control-flow. Suppresses control flow optimizations
+   --  that interfere with coverage analysis based on the object code.
 
    System_Extend_Pragma_Arg : Node_Id := Empty;
    --  GNAT
@@ -1087,6 +1109,13 @@ package Opt is
    --  is the value in Alloc, used as the Table_Initial parameter value,
    --  multiplied by the factor given here. The default value is used if no
    --  -gnatT switch appears.
+
+   Tagged_Type_Expansion : Boolean := True;
+   --  GNAT
+   --  Set True if tagged types and interfaces should be expanded by the
+   --  front-end. If False, the original tree is left unexpanded for
+   --  tagged types and dispatching calls, assuming the underlying target
+   --  supports it (e.g. case of JVM).
 
    Task_Dispatching_Policy : Character := ' ';
    --  GNAT, GNATBIND
@@ -1143,6 +1172,12 @@ package Opt is
    --  occur. This will probably cause blowups at this stage in the game. On
    --  the other hand, most such blowups will be caught cleanly and simply
    --  say compilation abandoned. This flag is set to True by -gnatq or -gnatQ.
+
+   Unchecked_Shared_Lib_Imports : Boolean := False;
+   --  GPRBUILD
+   --  Set to True when shared library projects are allowed to import projects
+   --  that are not shared library projects. Set by switch
+   --  --unchecked-shared-lib-imports.
 
    Undefined_Symbols_Are_False : Boolean := False;
    --  GNAT, GNATPREP
@@ -1306,7 +1341,15 @@ package Opt is
    --  Set to True to generate warnings for non-local exception raises and also
    --  handlers that can never handle a local raise. This warning is only ever
    --  generated if pragma Restrictions (No_Exception_Propagation) is set. The
-   --  default is not to generate the warnings even if the restriction is set.
+   --  default is not to generate the warnings except that if the source has
+   --  at least one exception handler, and this restriction is set, and the
+   --  warning was not explicitly turned off, then it is turned on by default.
+
+   No_Warn_On_Non_Local_Exception : Boolean := False;
+   --  GNAT
+   --  This is set to True if the above warning is explicitly suppressed. We
+   --  use this to avoid turning it on by default when No_Exception_Propagation
+   --  restriction is set and an exception handler is present.
 
    Warn_On_Obsolescent_Feature : Boolean := False;
    --  GNAT
@@ -1425,8 +1468,8 @@ package Opt is
 
    Assume_No_Invalid_Values_Config : Boolean;
    --  GNAT
-   --  This is the value of the configuration switch for assuming no invalid
-   --  values enabled mode mode, as possibly set by the command line switch
+   --  This is the value of the configuration switch for assuming "no invalid
+   --  values enabled" mode, as possibly set by the command line switch
    --  -gnatB, and possibly modified by the use of the configuration pragma
    --  Assume_No_Invalid_Values.
 

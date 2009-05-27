@@ -35,16 +35,19 @@ Common Report Joined
 Common
 Alias for --help=target
 
-;; The following three entries are to work around the gcc driver
+;; The following four entries are to work around the gcc driver
 ;; program's insatiable desire to turn options starting with a
 ;; double dash (--) into options starting with a dash f (-f).
 fhelp
-Common
+Common Var(help_flag)
 
 fhelp=
 Common Joined
 
 ftarget-help
+Common
+
+fversion
 Common
 
 -param
@@ -67,7 +70,7 @@ Common Optimization
 Optimize for space rather than speed
 
 W
-Common RejectNegative
+Common RejectNegative Var(extra_warnings) Warning
 This switch is deprecated; use -Wextra instead
 
 Waggregate-return
@@ -94,10 +97,6 @@ Wdisabled-optimization
 Common Var(warn_disabled_optimization) Warning
 Warn when an optimization pass is disabled
 
-Wdisallowed-function-list=
-Common RejectNegative Joined Warning
-Warn on calls to these functions
-
 Werror
 Common Var(warnings_are_errors)
 Treat all warnings as errors
@@ -107,7 +106,7 @@ Common Joined
 Treat specified warning as error
 
 Wextra
-Common Warning
+Common Var(extra_warnings) Warning
 Print extra (possibly unwanted) warnings
 
 Wfatal-errors
@@ -128,10 +127,6 @@ Common RejectNegative Joined UInteger Warning
 Wlarger-than=
 Common RejectNegative Joined UInteger Warning
 -Wlarger-than=<number>	Warn if an object is larger than <number> bytes
-
-Wlogical-op
-Common Warning Var(warn_logical_op)
-Warn when a logical operator is suspicously always evaluating to true or false
 
 Wunsafe-loop-optimizations
 Common Var(warn_unsafe_loop_optimizations) Warning
@@ -202,7 +197,7 @@ Common Var(warn_type_limits) Init(-1) Warning
 Warn if a comparison is always true or always false due to the limited range of the data type
 
 Wuninitialized
-Common Var(warn_uninitialized) Warning
+Common Var(warn_uninitialized) Init(-1) Warning
 Warn about uninitialized automatic variables
 
 Wunreachable-code
@@ -402,8 +397,8 @@ Common Report Var(flag_cse_follow_jumps) Optimization
 When running CSE, follow jumps to their targets
 
 fcse-skip-blocks
-Common Report Var(flag_cse_skip_blocks) Optimization
-When running CSE, follow conditional jumps
+Common
+Does nothing.  Preserved for backward compatibility.
 
 fcx-limited-range
 Common Report Var(flag_cx_limited_range) Optimization
@@ -440,7 +435,7 @@ Common Report Var(flag_delayed_branch) Optimization
 Attempt to fill delay slots of branch instructions
 
 fdelete-null-pointer-checks
-Common Report Var(flag_delete_null_pointer_checks) Optimization
+Common Report Var(flag_delete_null_pointer_checks) Init(1) Optimization
 Delete useless null pointer checks
 
 fdiagnostics-show-location=
@@ -494,6 +489,10 @@ Enable exception handling
 fexpensive-optimizations
 Common Report Var(flag_expensive_optimizations) Optimization
 Perform a number of minor, expensive optimizations
+
+fexcess-precision=
+Common Joined RejectNegative
+-fexcess-precision=[fast|standard]	Specify handling of excess floating-point precision
 
 ffast-math
 Common
@@ -854,6 +853,14 @@ fpie
 Common Report Var(flag_pie,1) VarExists
 Generate position-independent code for executables if possible (small mode)
 
+fplugin=
+Common Joined RejectNegative
+Specify a plugin to load
+
+fplugin-arg-
+Common Joined RejectNegative
+-fplugin-arg-<name>-<key>[=<value>] Specify argument <key>=<value> for plugin <name>
+
 fpredictive-commoning
 Common Report Var(flag_predictive_commoning) Optimization
 Run predictive commoning optimization.
@@ -1061,10 +1068,6 @@ fsection-anchors
 Common Report Var(flag_section_anchors) Optimization
 Access data in the same section from shared anchor points
 
-frtl-abstract-sequences
-Common Report Var(flag_rtl_seqabstr) Optimization
-Perform sequence abstraction optimization on RTL
-
 fsee
 Common Report Var(flag_see) Init(0)
 Eliminate redundant sign extensions using LCM.
@@ -1223,6 +1226,10 @@ ftree-dse
 Common Report Var(flag_tree_dse) Optimization
 Enable dead store elimination
 
+ftree-forwprop
+Common Report Var(flag_tree_forwprop) Init(1) Optimization
+Enable forward propagation on trees
+
 ftree-fre
 Common Report Var(flag_tree_fre) Optimization
 Enable Full Redundancy Elimination (FRE) on trees
@@ -1251,9 +1258,17 @@ ftree-parallelize-loops=
 Common Report Joined UInteger Var(flag_tree_parallelize_loops) Init(1)
 Enable automatic parallelization of loops
 
+ftree-phiprop
+Common Report Var(flag_tree_phiprop) Init(1) Optimization
+Enable hoisting loads from conditional pointers.
+
 ftree-pre
 Common Report Var(flag_tree_pre) Optimization
 Enable SSA-PRE optimization on trees
+
+ftree-pta
+Common Report Var(flag_tree_pta) Init(1) Optimization
+Perform function-local points-to analysis on trees.
 
 ftree-reassoc
 Common Report Var(flag_tree_reassoc) Init(1) Optimization
@@ -1338,6 +1353,10 @@ Perform variable tracking and also tag variables that are uninitialized
 ftree-vectorize
 Common Report Var(flag_tree_vectorize) Optimization
 Enable loop vectorization on trees
+
+ftree-slp-vectorize
+Common Report Var(flag_tree_slp_vectorize) Init(2) Optimization
+Enable basic block vectorization (SLP) on trees
 
 fvect-cost-model
 Common Report Var(flag_vect_cost_model) Optimization

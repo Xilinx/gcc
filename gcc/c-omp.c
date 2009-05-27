@@ -1,7 +1,7 @@
 /* This file contains routines to construct GNU OpenMP constructs, 
    called from parsing in the C and C++ front ends.
 
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>,
 		  Diego Novillo <dnovillo@redhat.com>.
 
@@ -142,7 +142,7 @@ c_finish_omp_atomic (enum tree_code code, tree lhs, tree rhs)
   /* There are lots of warnings, errors, and conversions that need to happen
      in the course of interpreting a statement.  Use the normal mechanisms
      to do this, and then take it apart again.  */
-  x = build_modify_expr (input_location, lhs, code, rhs);
+  x = build_modify_expr (input_location, lhs, NULL_TREE, code, rhs, NULL_TREE);
   if (x == error_mark_node)
     return error_mark_node;
   gcc_assert (TREE_CODE (x) == MODIFY_EXPR);  
@@ -260,7 +260,8 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	      fail = true;
 	    }
 
-	  init = build_modify_expr (elocus, decl, NOP_EXPR, init);
+	  init = build_modify_expr (elocus, decl, NULL_TREE, NOP_EXPR, init,
+				    NULL_TREE);
 	}
       gcc_assert (TREE_CODE (init) == MODIFY_EXPR);
       gcc_assert (TREE_OPERAND (init, 0) == decl);
@@ -280,7 +281,8 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	  if (TREE_CODE (cond) == LT_EXPR
 	      || TREE_CODE (cond) == LE_EXPR
 	      || TREE_CODE (cond) == GT_EXPR
-	      || TREE_CODE (cond) == GE_EXPR)
+	      || TREE_CODE (cond) == GE_EXPR
+	      || TREE_CODE (cond) == NE_EXPR)
 	    {
 	      tree op0 = TREE_OPERAND (cond, 0);
 	      tree op1 = TREE_OPERAND (cond, 1);
@@ -323,6 +325,22 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 		  TREE_OPERAND (cond, 1) = TREE_OPERAND (cond, 0);
 		  TREE_OPERAND (cond, 0) = decl;
 		  cond_ok = true;
+		}
+
+	      if (TREE_CODE (cond) == NE_EXPR)
+		{
+		  if (!INTEGRAL_TYPE_P (TREE_TYPE (decl)))
+		    cond_ok = false;
+		  else if (operand_equal_p (TREE_OPERAND (cond, 1),
+					    TYPE_MIN_VALUE (TREE_TYPE (decl)),
+					    0))
+		    TREE_SET_CODE (cond, GT_EXPR);
+		  else if (operand_equal_p (TREE_OPERAND (cond, 1),
+					    TYPE_MAX_VALUE (TREE_TYPE (decl)),
+					    0))
+		    TREE_SET_CODE (cond, LT_EXPR);
+		  else
+		    cond_ok = false;
 		}
 	    }
 

@@ -2,13 +2,13 @@
 // Adpated from libstdc++/5464 submitted by jjessel@amadeus.net
 // Jean-Francois JESSEL (Amadeus SAS Development) 
 //
-// Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // This library is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* alpha*-*-osf* mips-sgi-irix6* } }
 // { dg-options "-pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* alpha*-*-osf* mips-sgi-irix6* } }
@@ -35,8 +34,6 @@
 #include <unistd.h>	// To test for _POSIX_THREAD_PRIORITY_SCHEDULING
 #endif
 
-using namespace std;
-
 #define NTHREADS 8
 #define LOOPS 20
 
@@ -49,19 +46,22 @@ struct tt_t
 void*
 thread_function (void* arg)
 {
+  typedef std::vector<tt_t>		vector_type;
+  typedef std::list<std::string*>	list_type;
+
   int myid __attribute__((unused)) = *(int*) arg;
   for (int i = 0; i < LOOPS; i++)
     {
-      vector<tt_t> myvect1;
+      vector_type myvect1;
 
       for (int j = 0; j < 2000; j++)
 	{
-	  vector<tt_t> myvect2;
+	  vector_type myvect2;
 	  tt_t v;
 	  v.i = j;
 	  myvect1.push_back (v);
 	  myvect2.push_back (v);
-	  list<std::string *> mylist;
+	  list_type mylist;
 	  std::string string_array[4];
 	  string_array[0] = "toto";
 	  string_array[1] = "titi";
@@ -71,7 +71,7 @@ thread_function (void* arg)
 	    {
 	      if (mylist.size ())
 		{
-		  list<std::string *>::iterator aIt;
+		  list_type::iterator aIt;
 		  for (aIt = mylist.begin (); aIt != mylist.end (); ++aIt)
 		    {
 		      if ((*aIt) == &(string_array[k]))

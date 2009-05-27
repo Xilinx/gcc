@@ -81,15 +81,10 @@ along with GCC; see the file COPYING3.  If not see
 #define MMIX_FUNCTION_ARG_SIZE(MODE, TYPE) \
  ((MODE) != BLKmode ? GET_MODE_SIZE (MODE) : int_size_in_bytes (TYPE))
 
-/* Declarations for helper variables that are not tied to a particular
-   target macro.  */
-extern GTY(()) rtx mmix_compare_op0;
-extern GTY(()) rtx mmix_compare_op1;
-
 /* Per-function machine data.  This is normally an opaque type just
    defined and used in the tm.c file, but we need to see the definition in
    mmix.md too.  */
-struct machine_function GTY(())
+struct GTY(()) machine_function
  {
    int has_landing_pad;
    int highest_saved_stack_register;
@@ -695,10 +690,6 @@ typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 
 #define MAX_REGS_PER_ADDRESS 2
 
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, LABEL)		\
- if (mmix_legitimate_address (MODE, X, MMIX_REG_OK_STRICT))	\
-   goto LABEL
-
 #ifndef REG_OK_STRICT
 # define REG_OK_FOR_BASE_P(X)			\
   (REGNO (X) <= MMIX_LAST_GENERAL_REGISTER	\
@@ -709,8 +700,6 @@ typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 #endif /* REG_OK_STRICT */
 
 #define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) \
  mmix_legitimate_constant_p (X)

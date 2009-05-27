@@ -1336,25 +1336,29 @@ simple_rhs_p (rtx rhs)
     {
     case PLUS:
     case MINUS:
+    case AND:
       op0 = XEXP (rhs, 0);
       op1 = XEXP (rhs, 1);
-      /* Allow reg + const and reg + reg.  */
+      /* Allow reg OP const and reg OP reg.  */
       if (!(REG_P (op0) && !HARD_REGISTER_P (op0))
-	  && !CONSTANT_P (op0))
+	  && !function_invariant_p (op0))
 	return false;
       if (!(REG_P (op1) && !HARD_REGISTER_P (op1))
-	  && !CONSTANT_P (op1))
+	  && !function_invariant_p (op1))
 	return false;
 
       return true;
 
     case ASHIFT:
+    case ASHIFTRT:
+    case LSHIFTRT:
+    case MULT:
       op0 = XEXP (rhs, 0);
       op1 = XEXP (rhs, 1);
-      /* Allow reg << const.  */
+      /* Allow reg OP const.  */
       if (!(REG_P (op0) && !HARD_REGISTER_P (op0)))
 	return false;
-      if (!CONSTANT_P (op1))
+      if (!function_invariant_p (op1))
 	return false;
 
       return true;
@@ -1364,39 +1368,74 @@ simple_rhs_p (rtx rhs)
     }
 }
 
-/* Simplifies *EXPR using assignment in INSN.  ALTERED is the set of registers
-   altered so far.  */
+/* If REG has a single definition, replace it with its known value in EXPR.
+   Callback for for_each_rtx.  */
 
-static void
-simplify_using_assignment (rtx insn, rtx *expr, regset altered)
+static int
+replace_single_def_regs (rtx *reg, void *expr1)
+{
+  unsigned regno;
+  df_ref adef;
+  rtx set, src;
+  rtx *expr = (rtx *)expr1;
+
+  if (!REG_P (*reg))
+    return 0;
+
+  regno = REGNO (*reg);
+  for (;;)
+    {
+      rtx note;
+      adef = DF_REG_DEF_CHAIN (regno);
+      if (adef == NULL || DF_REF_NEXT_REG (adef) != NULL
+	    || DF_REF_IS_ARTIFICIAL (adef))
+	return -1;
+
+      set = single_set (DF_REF_INSN (adef));
+      if (set == NULL || !REG_P (SET_DEST (set))
+	  || REGNO (SET_DEST (set)) != regno)
+	return -1;
+
+      note = find_reg_equal_equiv_note (DF_REF_INSN (adef));
+
+      if (note && function_invariant_p (XEXP (note, 0)))
+	{
+	  src = XEXP (note, 0);
+	  break;
+	}
+      src = SET_SRC (set);
+
+      if (REG_P (src))
+	{
+	  regno = REGNO (src);
+	  continue;
+	}
+      break;
+    }
+  if (!function_invariant_p (src))
+    return -1;
+
+  *expr = simplify_replace_rtx (*expr, *reg, src);
+  return 1;
+}
+
+/* A subroutine of simplify_using_initial_values, this function examines INSN
+   to see if it contains a suitable set that we can use to make a replacement.
+   If it is suitable, return true and set DEST and SRC to the lhs and rhs of
+   the set; return false otherwise.  */
+
+static bool
+suitable_set_for_replacement (rtx insn, rtx *dest, rtx *src)
 {
   rtx set = single_set (insn);
   rtx lhs = NULL_RTX, rhs;
-  bool ret = false;
 
-  if (set)
-    {
-      lhs = SET_DEST (set);
-      if (!REG_P (lhs)
-	  || altered_reg_used (&lhs, altered))
-	ret = true;
-    }
-  else
-    ret = true;
+  if (!set)
+    return false;
 
-  note_stores (PATTERN (insn), mark_altered, altered);
-  if (CALL_P (insn))
-    {
-      int i;
-
-      /* Kill all call clobbered registers.  */
-      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-	if (TEST_HARD_REG_BIT (regs_invalidated_by_call, i))
-	  SET_REGNO_REG_SET (altered, i);
-    }
-
-  if (ret)
-    return;
+  lhs = SET_DEST (set);
+  if (!REG_P (lhs))
+    return false;
 
   rhs = find_reg_equal_equiv_note (insn);
   if (rhs)
@@ -1405,12 +1444,25 @@ simplify_using_assignment (rtx insn, rtx *expr, regset altered)
     rhs = SET_SRC (set);
 
   if (!simple_rhs_p (rhs))
-    return;
+    return false;
 
-  if (for_each_rtx (&rhs, altered_reg_used, altered))
-    return;
+  *dest = lhs;
+  *src = rhs;
+  return true;
+}
 
-  *expr = simplify_replace_rtx (*expr, lhs, rhs);
+/* Using the data returned by suitable_set_for_replacement, replace DEST
+   with SRC in *EXPR and return the new expression.  Also call
+   replace_single_def_regs if the replacement changed something.  */
+static void
+replace_in_expr (rtx *expr, rtx dest, rtx src)
+{
+  rtx old = *expr;
+  *expr = simplify_replace_rtx (*expr, dest, src);
+  if (old == *expr)
+    return;
+  while (for_each_rtx (expr, replace_single_def_regs, expr) != 0)
+    continue;
 }
 
 /* Checks whether A implies B.  */
@@ -1653,13 +1705,20 @@ simplify_using_condition (rtx cond, rtx *expr, regset altered)
 {
   rtx rev, reve, exp = *expr;
 
-  if (!COMPARISON_P (exp))
-    return;
-
   /* If some register gets altered later, we do not really speak about its
      value at the time of comparison.  */
   if (altered
       && for_each_rtx (&cond, altered_reg_used, altered))
+    return;
+
+  if (GET_CODE (cond) == EQ
+      && REG_P (XEXP (cond, 0)) && CONSTANT_P (XEXP (cond, 1)))
+    {
+      *expr = simplify_replace_rtx (*expr, XEXP (cond, 0), XEXP (cond, 1));
+      return;
+    }
+
+  if (!COMPARISON_P (exp))
     return;
 
   rev = reversed_condition (cond);
@@ -1677,7 +1736,6 @@ simplify_using_condition (rtx cond, rtx *expr, regset altered)
       *expr = const_true_rtx;
       return;
     }
-
 
   if (rev && rtx_equal_p (exp, rev))
     {
@@ -1762,9 +1820,10 @@ eliminate_implied_conditions (enum rtx_code op, rtx *head, rtx tail)
 static void
 simplify_using_initial_values (struct loop *loop, enum rtx_code op, rtx *expr)
 {
-  rtx head, tail, insn;
+  bool expression_valid;
+  rtx head, tail, insn, cond_list, last_valid_expr;
   rtx neutral, aggr;
-  regset altered;
+  regset altered, this_altered;
   edge e;
 
   if (!*expr)
@@ -1824,48 +1883,122 @@ simplify_using_initial_values (struct loop *loop, enum rtx_code op, rtx *expr)
 
   gcc_assert (op == UNKNOWN);
 
+  for (;;)
+    if (for_each_rtx (expr, replace_single_def_regs, expr) == 0)
+      break;
+  if (CONSTANT_P (*expr))
+    return;
+
   e = loop_preheader_edge (loop);
   if (e->src == ENTRY_BLOCK_PTR)
     return;
 
   altered = ALLOC_REG_SET (&reg_obstack);
+  this_altered = ALLOC_REG_SET (&reg_obstack);
 
+  expression_valid = true;
+  last_valid_expr = *expr;
+  cond_list = NULL_RTX;
   while (1)
     {
       insn = BB_END (e->src);
       if (any_condjump_p (insn))
 	{
 	  rtx cond = get_condition (BB_END (e->src), NULL, false, true);
-      
+
 	  if (cond && (e->flags & EDGE_FALLTHRU))
 	    cond = reversed_condition (cond);
 	  if (cond)
 	    {
+	      rtx old = *expr;
 	      simplify_using_condition (cond, expr, altered);
-	      if (CONSTANT_P (*expr))
+	      if (old != *expr)
 		{
-		  FREE_REG_SET (altered);
-		  return;
+		  rtx note;
+		  if (CONSTANT_P (*expr))
+		    goto out;
+		  for (note = cond_list; note; note = XEXP (note, 1))
+		    {
+		      simplify_using_condition (XEXP (note, 0), expr, altered);
+		      if (CONSTANT_P (*expr))
+			goto out;
+		    }
 		}
+	      cond_list = alloc_EXPR_LIST (0, cond, cond_list);
 	    }
 	}
 
       FOR_BB_INSNS_REVERSE (e->src, insn)
 	{
+	  rtx src, dest;
+	  rtx old = *expr;
+
 	  if (!INSN_P (insn))
 	    continue;
-	    
-	  simplify_using_assignment (insn, expr, altered);
+
+	  CLEAR_REG_SET (this_altered);
+	  note_stores (PATTERN (insn), mark_altered, this_altered);
+	  if (CALL_P (insn))
+	    {
+	      int i;
+		  
+	      /* Kill all call clobbered registers.  */
+	      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
+		if (TEST_HARD_REG_BIT (regs_invalidated_by_call, i))
+		  SET_REGNO_REG_SET (this_altered, i);
+	    }
+
+	  if (suitable_set_for_replacement (insn, &dest, &src))
+	    {
+	      rtx *pnote, *pnote_next;
+
+	      replace_in_expr (expr, dest, src);
+	      if (CONSTANT_P (*expr))
+		goto out;
+
+	      for (pnote = &cond_list; *pnote; pnote = pnote_next)
+		{
+		  rtx note = *pnote;
+		  rtx old_cond = XEXP (note, 0);
+
+		  pnote_next = &XEXP (note, 1);
+		  replace_in_expr (&XEXP (note, 0), dest, src);
+
+		  /* We can no longer use a condition that has been simplified
+		     to a constant, and simplify_using_condition will abort if
+		     we try.  */
+		  if (CONSTANT_P (XEXP (note, 0)))
+		    {
+		      *pnote = *pnote_next;
+		      pnote_next = pnote;
+		      free_EXPR_LIST_node (note);
+		    }
+		  /* Retry simplifications with this condition if either the
+		     expression or the condition changed.  */
+		  else if (old_cond != XEXP (note, 0) || old != *expr)
+		    simplify_using_condition (XEXP (note, 0), expr, altered);
+		}
+	    }
+	  else
+	    /* If we did not use this insn to make a replacement, any overlap
+	       between stores in this insn and our expression will cause the
+	       expression to become invalid.  */
+	    if (for_each_rtx (expr, altered_reg_used, this_altered))
+	      goto out;
+
 	  if (CONSTANT_P (*expr))
-	    {
-	      FREE_REG_SET (altered);
-	      return;
-	    }
+	    goto out;
+
+	  IOR_REG_SET (altered, this_altered);
+
+	  /* If the expression now contains regs that have been altered, we
+	     can't return it to the caller.  However, it is still valid for
+	     further simplification, so keep searching to see if we can
+	     eventually turn it into a constant.  */
 	  if (for_each_rtx (expr, altered_reg_used, altered))
-	    {
-	      FREE_REG_SET (altered);
-	      return;
-	    }
+	    expression_valid = false;
+	  if (expression_valid)
+	    last_valid_expr = *expr;
 	}
 
       if (!single_pred_p (e->src)
@@ -1874,7 +2007,12 @@ simplify_using_initial_values (struct loop *loop, enum rtx_code op, rtx *expr)
       e = single_pred_edge (e->src);
     }
 
+ out:
+  free_EXPR_LIST_list (&cond_list);
+  if (!CONSTANT_P (*expr))
+    *expr = last_valid_expr;
   FREE_REG_SET (altered);
+  FREE_REG_SET (this_altered);
 }
 
 /* Transforms invariant IV into MODE.  Adds assumptions based on the fact
@@ -2051,10 +2189,13 @@ canonicalize_iv_subregs (struct rtx_iv *iv0, struct rtx_iv *iv1,
   return true;
 }
 
-/* Tries to estimate the maximum number of iterations.  */
+/* Tries to estimate the maximum number of iterations in LOOP, and store the
+   result in DESC.  This function is called from iv_number_of_iterations with
+   a number of fields in DESC already filled in.  OLD_NITER is the original
+   expression for the number of iterations, before we tried to simplify it.  */
 
 static unsigned HOST_WIDEST_INT
-determine_max_iter (struct loop *loop, struct niter_desc *desc)
+determine_max_iter (struct loop *loop, struct niter_desc *desc, rtx old_niter)
 {
   rtx niter = desc->niter_expr;
   rtx mmin, mmax, cmp;
@@ -2089,7 +2230,8 @@ determine_max_iter (struct loop *loop, struct niter_desc *desc)
 
   /* We could use a binary search here, but for now improving the upper
      bound by just one eliminates one important corner case.  */
-  cmp = gen_rtx_fmt_ee (desc->signed_p ? LT : LTU, VOIDmode, niter, mmax);
+  cmp = simplify_gen_relational (desc->signed_p ? LT : LTU, VOIDmode,
+				 desc->mode, old_niter, mmax);
   simplify_using_initial_values (loop, UNKNOWN, &cmp);
   if (cmp == const_true_rtx)
     {
@@ -2620,7 +2762,7 @@ iv_number_of_iterations (struct loop *loop, rtx insn, rtx condition,
   else
     {
       if (!desc->niter_max)
-	desc->niter_max = determine_max_iter (loop, desc);
+	desc->niter_max = determine_max_iter (loop, desc, old_niter);
 
       /* simplify_using_initial_values does a copy propagation on the registers
 	 in the expression for the number of iterations.  This prolongs life

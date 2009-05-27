@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,6 +36,7 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
@@ -1823,7 +1824,7 @@ package body Exp_Pakd is
 
       --    Result : Ltype;
 
-      --    System.Bitops.Bit_And/Or/Xor
+      --    System.Bit_Ops.Bit_And/Or/Xor
       --     (Left'Address,
       --      Ltype'Length * Ltype'Component_Size;
       --      Right'Address,
@@ -2182,7 +2183,7 @@ package body Exp_Pakd is
 
       --    Result : Typ;
 
-      --    System.Bitops.Bit_Not
+      --    System.Bit_Ops.Bit_Not
       --     (Opnd'Address,
       --      Typ'Length * Typ'Component_Size;
       --      Result'Address);

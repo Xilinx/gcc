@@ -1,5 +1,5 @@
 /* Top-level control of tree optimizations.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -72,7 +72,7 @@ struct gimple_opt_pass pass_all_optimizations =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   0,					/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -100,7 +100,7 @@ struct simple_ipa_opt_pass pass_early_local_passes =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   0,					/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -141,7 +141,7 @@ struct gimple_opt_pass pass_all_early_optimizations =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   0,					/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -172,7 +172,7 @@ struct gimple_opt_pass pass_cleanup_cfg =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -201,25 +201,26 @@ struct gimple_opt_pass pass_cleanup_cfg_post_optimizing =
 {
  {
   GIMPLE_PASS,
-  "final_cleanup",			/* name */
+  "optimized",			/* name */
   NULL,					/* gate */
   execute_cleanup_cfg_post_optimizing,	/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func			/* todo_flags_finish */
+    | TODO_remove_unused_locals
  }
 };
 
 /* Pass: do the actions required to finish with tree-ssa optimization
    passes.  */
 
-static unsigned int
+unsigned int
 execute_free_datastructures (void)
 {
   free_dominance_info (CDI_DOMINATORS);
@@ -228,56 +229,12 @@ execute_free_datastructures (void)
   /* Remove the ssa structures.  */
   if (cfun->gimple_df)
     delete_tree_ssa ();
-  return 0;
-}
 
-struct gimple_opt_pass pass_free_datastructures =
-{
- {
-  GIMPLE_PASS,
-  NULL,					/* name */
-  NULL,					/* gate */
-  execute_free_datastructures,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  0,					/* tv_id */
-  PROP_cfg,				/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  0					/* todo_flags_finish */
- }
-};
-/* Pass: free cfg annotations.  */
-
-static unsigned int
-execute_free_cfg_annotations (void)
-{
   /* And get rid of annotations we no longer need.  */
   delete_tree_cfg_annotations ();
 
   return 0;
 }
-
-struct gimple_opt_pass pass_free_cfg_annotations =
-{
- {
-  GIMPLE_PASS,
-  NULL,					/* name */
-  NULL,					/* gate */
-  execute_free_cfg_annotations,		/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  0,					/* tv_id */
-  PROP_cfg,				/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  0					/* todo_flags_finish */
- }
-};
 
 /* Pass: fixup_cfg.  IPA passes, compilation of earlier functions or inlining
    might have changed some properties, such as marked functions nothrow.
@@ -292,9 +249,6 @@ execute_fixup_cfg (void)
   basic_block bb;
   gimple_stmt_iterator gsi;
   int todo = gimple_in_ssa_p (cfun) ? TODO_verify_ssa : 0;
-
-  cfun->after_inlining = true;
-  cfun->always_inline_functions_inlined = true;
 
   if (cfun->eh)
     FOR_EACH_BB (bb)
@@ -314,6 +268,7 @@ execute_fixup_cfg (void)
 		if (gimple_in_ssa_p (cfun))
 		  {
 		    todo |= TODO_update_ssa | TODO_cleanup_cfg;
+		    mark_symbols_for_renaming (stmt);
 	            update_stmt (stmt);
 		  }
 	      }
@@ -332,6 +287,25 @@ execute_fixup_cfg (void)
 
   return todo;
 }
+
+struct gimple_opt_pass pass_fixup_cfg =
+{
+ {
+  GIMPLE_PASS,
+  NULL,					/* name */
+  NULL,					/* gate */
+  execute_fixup_cfg,		/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_NONE,				/* tv_id */
+  PROP_cfg,				/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  0					/* todo_flags_finish */
+ }
+};
 
 /* Do the actions required to initialize internal data structures used
    in tree-ssa optimization passes.  */
@@ -354,7 +328,7 @@ struct gimple_opt_pass pass_init_datastructures =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

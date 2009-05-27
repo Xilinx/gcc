@@ -19,8 +19,15 @@ module m
   public:: h
   procedure(),public:: h  ! { dg-error "was already specified" }
 
-end module m
+contains
 
+  subroutine abc
+    procedure() :: abc2
+  entry abc2(x)  ! { dg-error "PROCEDURE attribute conflicts with ENTRY attribute" }
+    real x
+  end subroutine
+
+end module m
 
 program prog
 
@@ -39,10 +46,6 @@ program prog
 
   procedure(dcos) :: my1
   procedure(amax0) :: my2  ! { dg-error "not allowed in PROCEDURE statement" }
-
-  type t
-    procedure(),pointer:: p  ! { dg-error "not yet implemented" }
-  end type
 
   real f, x
   f(x) = sin(x**2)
@@ -68,13 +71,3 @@ contains
   end subroutine foo 
 
 end program
-
-
-subroutine abc
-
- procedure() :: abc2
-
-entry abc2(x)  ! { dg-error "PROCEDURE attribute conflicts with ENTRY attribute" }
- real x
-
-end subroutine

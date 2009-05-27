@@ -248,7 +248,7 @@ expr_size (tree exp)
     {
       size = lang_hooks.expr_size (exp);
       gcc_assert (size);
-      size = SUBSTITUTE_PLACEHOLDER_IN_EXPR (size, exp);
+      gcc_assert (size == SUBSTITUTE_PLACEHOLDER_IN_EXPR (size, exp));
     }
 
   return expand_expr (size, NULL_RTX, TYPE_MODE (sizetype), EXPAND_NORMAL);
@@ -446,7 +446,12 @@ memory_address (enum machine_mode mode, rtx x)
 	 in certain cases.  This is not necessary since the code
 	 below can handle all possible cases, but machine-dependent
 	 transformations can make better code.  */
-      LEGITIMIZE_ADDRESS (x, oldx, mode, done);
+      {
+        rtx orig_x = x;
+        x = targetm.legitimize_address (x, oldx, mode);
+	if (orig_x != x && memory_address_p (mode, x))
+	  goto done;
+      }
 
       /* PLUS and MULT can appear in special ways
 	 as the result of attempts to make an address usable for indexing.

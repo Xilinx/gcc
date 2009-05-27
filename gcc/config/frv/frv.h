@@ -799,7 +799,7 @@
 	1, 1, 1, 1,			/* 164-167, accg8 - accg11 */	\
 	/* Other registers */						\
 	1,				/* 168, AP   - fake arg ptr */	\
-	0,				/* 169, LR   - Link register*/	\
+	1,				/* 169, LR   - Link register*/	\
 	0,				/* 170, LCR  - Loop count reg*/	\
 	1, 1				/* 171-172, iacc0 */		\
 }
@@ -2022,79 +2022,8 @@ __asm__("\n"								\
 
 /* A number, the maximum number of registers that can appear in a valid memory
    address.  Note that it is up to you to specify a value equal to the maximum
-   number that `GO_IF_LEGITIMATE_ADDRESS' would ever accept.  */
+   number that `TARGET_LEGITIMATE_ADDRESS_P' would ever accept.  */
 #define MAX_REGS_PER_ADDRESS 2
-
-/* A C compound statement with a conditional `goto LABEL;' executed if X (an
-   RTX) is a legitimate memory address on the target machine for a memory
-   operand of mode MODE.
-
-   It usually pays to define several simpler macros to serve as subroutines for
-   this one.  Otherwise it may be too complicated to understand.
-
-   This macro must exist in two variants: a strict variant and a non-strict
-   one.  The strict variant is used in the reload pass.  It must be defined so
-   that any pseudo-register that has not been allocated a hard register is
-   considered a memory reference.  In contexts where some kind of register is
-   required, a pseudo-register with no hard register must be rejected.
-
-   The non-strict variant is used in other passes.  It must be defined to
-   accept all pseudo-registers in every context where some kind of register is
-   required.
-
-   Compiler source files that want to use the strict variant of this macro
-   define the macro `REG_OK_STRICT'.  You should use an `#ifdef REG_OK_STRICT'
-   conditional to define the strict variant in that case and the non-strict
-   variant otherwise.
-
-   Subroutines to check for acceptable registers for various purposes (one for
-   base registers, one for index registers, and so on) are typically among the
-   subroutines used to define `GO_IF_LEGITIMATE_ADDRESS'.  Then only these
-   subroutine macros need have two variants; the higher levels of macros may be
-   the same whether strict or not.
-
-   Normally, constant addresses which are the sum of a `symbol_ref' and an
-   integer are stored inside a `const' RTX to mark them as constant.
-   Therefore, there is no need to recognize such sums specifically as
-   legitimate addresses.  Normally you would simply recognize any `const' as
-   legitimate.
-
-   Usually `PRINT_OPERAND_ADDRESS' is not prepared to handle constant sums that
-   are not marked with `const'.  It assumes that a naked `plus' indicates
-   indexing.  If so, then you *must* reject such naked constant sums as
-   illegitimate addresses, so that none of them will be given to
-   `PRINT_OPERAND_ADDRESS'.
-
-   On some machines, whether a symbolic address is legitimate depends on the
-   section that the address refers to.  On these machines, define the macro
-   `ENCODE_SECTION_INFO' to store the information into the `symbol_ref', and
-   then check for it here.  When you see a `const', you will have to look
-   inside it to find the `symbol_ref' in order to determine the section.
-
-   The best way to modify the name string is by adding text to the beginning,
-   with suitable punctuation to prevent any ambiguity.  Allocate the new name
-   in `saveable_obstack'.  You will have to modify `ASM_OUTPUT_LABELREF' to
-   remove and decode the added text and output the name accordingly, and define
-   `(* targetm.strip_name_encoding)' to access the original name string.
-
-   You can check the information stored here into the `symbol_ref' in the
-   definitions of the macros `GO_IF_LEGITIMATE_ADDRESS' and
-   `PRINT_OPERAND_ADDRESS'.  */
-
-#ifdef REG_OK_STRICT
-#define REG_OK_STRICT_P 1
-#else
-#define REG_OK_STRICT_P 0
-#endif
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, LABEL)			\
-  do									\
-    {									\
-      if (frv_legitimate_address_p (MODE, X, REG_OK_STRICT_P,		\
- 				    FALSE, FALSE))			\
-	goto LABEL;							\
-    }									\
-  while (0)
 
 /* A C expression that is nonzero if X (assumed to be a `reg' RTX) is valid for
    use as a base register.  For hard registers, it should always accept those
@@ -2120,30 +2049,7 @@ __asm__("\n"								\
    will reload one or both registers only if neither labeling works.  */
 #define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
 
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)		\
-do {							\
-  rtx new_x = frv_legitimize_address (X, OLDX, MODE);	\
-  if (new_x)						\
-    { 							\
-      (X) = new_x; 					\
-      goto WIN; 					\
-    } 							\
-} while (0)
-
 #define FIND_BASE_TERM frv_find_base_term
-
-/* A C statement or compound statement with a conditional `goto LABEL;'
-   executed if memory address X (an RTX) can have different meanings depending
-   on the machine mode of the memory reference it is used for or if the address
-   is valid for some modes but not others.
-
-   Autoincrement and autodecrement addresses typically have mode-dependent
-   effects because the amount of the increment or decrement is the size of the
-   operand being addressed.  Some machines have other mode-dependent addresses.
-   Many RISC machines have no mode-dependent addresses.
-
-   You may assume that ADDR is a valid address for the machine.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 /* A C expression that is nonzero if X is a legitimate constant for an
    immediate operand on the target machine.  You can assume that X satisfies
@@ -2935,9 +2841,6 @@ enum frv_builtins
 
 /* Enable prototypes on the call rtl functions.  */
 #define MD_CALL_PROTOTYPES 1
-
-extern GTY(()) rtx frv_compare_op0;			/* operand save for */
-extern GTY(()) rtx frv_compare_op1;			/* comparison generation */
 
 #define CPU_UNITS_QUERY 1
 

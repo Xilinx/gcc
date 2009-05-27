@@ -6,7 +6,7 @@
 //
 // GCC is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or (at your option)
+// the Free Software Foundation; either version 3, or (at your option)
 // any later version.
 // 
 // GCC is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
-// You should have received a copy of the GNU General Public License
-// along with GCC; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file exception_ptr.h
  *  This is an internal header file, included by other headers and the
@@ -82,10 +77,10 @@ namespace std
   namespace __exception_ptr
   {
     bool 
-    operator==(const exception_ptr&, const exception_ptr&) throw();
+    operator==(const exception_ptr&, const exception_ptr&) throw() __attribute__ ((__pure__));
 
     bool 
-    operator!=(const exception_ptr&, const exception_ptr&) throw();
+    operator!=(const exception_ptr&, const exception_ptr&) throw() __attribute__ ((__pure__));
 
     class exception_ptr
     {
@@ -96,9 +91,9 @@ namespace std
       void _M_addref() throw();
       void _M_release() throw();
 
-      void *_M_get() const throw();
+      void *_M_get() const throw() __attribute__ ((__pure__));
 
-      void _M_safe_bool_dummy();
+      void _M_safe_bool_dummy() throw() __attribute__ ((__const__));
 
       friend exception_ptr std::current_exception() throw();
       friend void std::rethrow_exception(exception_ptr);
@@ -146,14 +141,14 @@ namespace std
       }
 #endif
 
-      bool operator!() const throw();
+      bool operator!() const throw() __attribute__ ((__pure__));
       operator __safe_bool() const throw();
 
       friend bool 
-      operator==(const exception_ptr&, const exception_ptr&) throw();
+      operator==(const exception_ptr&, const exception_ptr&) throw() __attribute__ ((__pure__));
 
       const type_info*
-      __cxa_exception_type() const throw();
+      __cxa_exception_type() const throw() __attribute__ ((__pure__));
     };
 
   } // namespace __exception_ptr

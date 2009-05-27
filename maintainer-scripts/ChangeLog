@@ -1,3 +1,32 @@
+2009-04-23  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* update_web_docs_svn: Redirect output of texi2dvi to /dev/null.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc_release: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* maintainer-addresses: Likewise.
+
+2009-04-08  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* update_web_docs_svn: Run this script under plain /bin/sh
+	as opposed to /bin/sh -x.
+
+2009-03-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* update_version_svn (IGNORE_BRANCHES): Add 4.2 branch.
+
+2009-03-28  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* crontab: Stop 4.2 snapshots.
+	Spread out 4.3, 4.4, and 4.5 snapshots more evenly.
+
+2009-03-27  Mark Mitchell  <mark@codesourcery.com>
+
+	* crontab: Add 4.4 branch snapshots.
+
 2009-02-21  Gerald Pfeifer  <gerald@pfeifer.com>
 
 	* update_version_svn (ADD_BRANCHES): Remove autovect-branch

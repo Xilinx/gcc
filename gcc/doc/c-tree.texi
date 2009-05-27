@@ -373,7 +373,7 @@ The alignment of the type, in bits, represented as an @code{int}.
 
 @item TYPE_NAME
 This macro returns a declaration (in the form of a @code{TYPE_DECL}) for
-the type.  (Note this macro does @emph{not} return a
+the type.  (Note this macro does @emph{not} return an
 @code{IDENTIFIER_NODE}, as you might expect, given its name!)  You can
 look at the @code{DECL_NAME} of the @code{TYPE_DECL} to obtain the
 actual name of the type.  The @code{TYPE_NAME} will be @code{NULL_TREE}
@@ -1256,7 +1256,7 @@ structures, something like the following should be used
 @findex OVL_NEXT
 
 A function is represented by a @code{FUNCTION_DECL} node.  A set of
-overloaded functions is sometimes represented by a @code{OVERLOAD} node.
+overloaded functions is sometimes represented by an @code{OVERLOAD} node.
 
 An @code{OVERLOAD} node is not a declaration, so none of the
 @samp{DECL_} macros should be used on an @code{OVERLOAD}.  An
@@ -1995,7 +1995,6 @@ This macro returns the attributes on the type @var{type}.
 @tindex TARGET_EXPR
 @tindex AGGR_INIT_EXPR
 @tindex VA_ARG_EXPR
-@tindex CHANGE_DYNAMIC_TYPE_EXPR
 @tindex OMP_PARALLEL
 @tindex OMP_FOR
 @tindex OMP_SECTIONS
@@ -2113,9 +2112,9 @@ comparisons, and so forth.
 
 These nodes represent fixed-point constants.  The type of these constants
 is obtained with @code{TREE_TYPE}.  @code{TREE_FIXED_CST_PTR} points to
-to struct fixed_value;  @code{TREE_FIXED_CST} returns the structure itself.
-Struct fixed_value contains @code{data} with the size of two
-HOST_BITS_PER_WIDE_INT and @code{mode} as the associated fixed-point
+a @code{struct fixed_value};  @code{TREE_FIXED_CST} returns the structure
+itself.  @code{struct fixed_value} contains @code{data} with the size of two
+@code{HOST_BITS_PER_WIDE_INT} and @code{mode} as the associated fixed-point
 machine mode for @code{data}.
 
 @item COMPLEX_CST
@@ -2569,7 +2568,7 @@ The statement-expression extension allows code like this:
 @smallexample
 int f() @{ return (@{ int j; j = 3; j + 7; @}); @}
 @end smallexample
-In other words, an sequence of statements may occur where a single
+In other words, a sequence of statements may occur where a single
 expression would normally appear.  The @code{STMT_EXPR} node represents
 such an expression.  The @code{STMT_EXPR_STMT} gives the statement
 contained in the expression.  The value of the expression is the value
@@ -2636,10 +2635,10 @@ declaration order.  You should not assume that all fields will be
 represented.  Unrepresented fields will be set to zero.
 
 @item COMPOUND_LITERAL_EXPR
-@findex COMPOUND_LITERAL_EXPR_DECL_STMT
+@findex COMPOUND_LITERAL_EXPR_DECL_EXPR
 @findex COMPOUND_LITERAL_EXPR_DECL
 These nodes represent ISO C99 compound literals.  The
-@code{COMPOUND_LITERAL_EXPR_DECL_STMT} is a @code{DECL_STMT}
+@code{COMPOUND_LITERAL_EXPR_DECL_EXPR} is a @code{DECL_EXPR}
 containing an anonymous @code{VAR_DECL} for
 the unnamed object represented by the compound literal; the
 @code{DECL_INITIAL} of that @code{VAR_DECL} is a @code{CONSTRUCTOR}
@@ -2707,13 +2706,6 @@ This node is used to implement support for the C/C++ variable argument-list
 mechanism.  It represents expressions like @code{va_arg (ap, type)}.
 Its @code{TREE_TYPE} yields the tree representation for @code{type} and
 its sole argument yields the representation for @code{ap}.
-
-@item CHANGE_DYNAMIC_TYPE_EXPR
-Indicates the special aliasing required by C++ placement new.  It has
-two operands: a type and a location.  It means that the dynamic type
-of the location is changing to be the specified type.  The alias
-analysis code takes this into account when doing type based alias
-analysis.
 
 @item OMP_PARALLEL
 

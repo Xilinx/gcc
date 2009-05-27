@@ -1,4 +1,5 @@
 ! { dg-do compile }
+! { dg-options "-g" }
 !
 ! PR 38152: Procedure pointers as module variables.
 !
@@ -22,8 +23,7 @@ END MODULE myfortran_binding
 
 
 use myfortran_binding
-external foo
-error_handler => foo
+error_handler => error_stop
 end
 
 ! { dg-final { cleanup-modules "myfortran_binding" } }

@@ -1,12 +1,12 @@
 ;; ColdFire V1, V2, V3 and V4/V4e DFA description.
-;; Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+;; Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 ;; Contributed by CodeSourcery Inc., www.codesourcery.com
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with this program; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; Instruction Buffer
 (define_automaton "cfv123_ib")
@@ -1873,15 +1872,12 @@ move_l,tst_l"))
 (define_cpu_unit "cfv4_oag,cfv4_oc1,cfv4_oc2,cfv4_ex,cfv4_da"
   "cfv4_oep")
 
-;; This automaton is used to support CFv4 dual-issue.
-(define_automaton "cfv4_ds")
-
 ;; V4 has 3 cases of dual-issue.
 ;; After issuing a cfv4_pOEPx instruction, it'll be possible to issue
 ;; a cfv4_sOEPx instruction on the same cycle (see final_presence_sets below).
 (define_cpu_unit "cfv4_pOEP1,cfv4_sOEP1,
                   cfv4_pOEP2,cfv4_sOEP2,
-                  cfv4_pOEP3,cfv4_sOEP3" "cfv4_ds")
+                  cfv4_pOEP3,cfv4_sOEP3" "cfv4_oep")
 
 (final_presence_set "cfv4_sOEP1" "cfv4_pOEP1")
 (final_presence_set "cfv4_sOEP2" "cfv4_pOEP2")

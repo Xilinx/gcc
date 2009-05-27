@@ -7,7 +7,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -15,19 +15,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file locale_classes.h
  *  This is an internal header file, included by other library headers.
@@ -317,7 +312,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     _S_initialize();
 
     static void
-    _S_initialize_once();
+    _S_initialize_once() throw ();
 
     static category
     _S_normalize_category(category);
@@ -381,18 +376,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		       __c_locale __old = 0);
 
     static __c_locale
-    _S_clone_c_locale(__c_locale& __cloc);
+    _S_clone_c_locale(__c_locale& __cloc) throw ();
 
     static void
     _S_destroy_c_locale(__c_locale& __cloc);
+
+    static __c_locale
+    _S_lc_ctype_c_locale(__c_locale __cloc, const char* __s);
 
     // Returns data from the underlying "C" library data for the
     // classic locale.
     static __c_locale
     _S_get_c_locale();
 
-    static const char*
-    _S_get_c_name();
+    _GLIBCXX_CONST static const char*
+    _S_get_c_name() throw ();
 
   private:
     void
@@ -462,7 +460,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     id() { }
 
     size_t
-    _M_id() const;
+    _M_id() const throw ();
   };
 
 
@@ -702,10 +700,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       // Used to abstract out _CharT bits in virtual member functions, below.
       int
-      _M_compare(const _CharT*, const _CharT*) const;
+      _M_compare(const _CharT*, const _CharT*) const throw ();
 
       size_t
-      _M_transform(_CharT*, const _CharT*, size_t) const;
+      _M_transform(_CharT*, const _CharT*, size_t) const throw ();
 
   protected:
       /// Destructor.
@@ -764,20 +762,20 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // Specializations.
   template<>
     int
-    collate<char>::_M_compare(const char*, const char*) const;
+    collate<char>::_M_compare(const char*, const char*) const throw ();
 
   template<>
     size_t
-    collate<char>::_M_transform(char*, const char*, size_t) const;
+    collate<char>::_M_transform(char*, const char*, size_t) const throw ();
 
 #ifdef _GLIBCXX_USE_WCHAR_T
   template<>
     int
-    collate<wchar_t>::_M_compare(const wchar_t*, const wchar_t*) const;
+    collate<wchar_t>::_M_compare(const wchar_t*, const wchar_t*) const throw ();
 
   template<>
     size_t
-    collate<wchar_t>::_M_transform(wchar_t*, const wchar_t*, size_t) const;
+    collate<wchar_t>::_M_transform(wchar_t*, const wchar_t*, size_t) const throw ();
 #endif
 
   /// class collate_byname [22.2.4.2].

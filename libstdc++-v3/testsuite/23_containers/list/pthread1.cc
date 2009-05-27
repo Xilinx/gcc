@@ -1,12 +1,12 @@
 // 2002-01-23  Loren J. Rittle <rittle@labs.mot.com> <ljrittle@acm.org>
 //
-// Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // This library is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* alpha*-*-osf* mips-sgi-irix6* } }
 // { dg-options "-pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* alpha*-*-osf* mips-sgi-irix6* } }
@@ -34,8 +33,6 @@
 #include <cstdlib>
 #include <pthread.h>
 
-using namespace std;
-
 const int thread_cycles = 10;
 const int thread_pairs = 10;
 const unsigned max_size = 100;
@@ -43,6 +40,8 @@ const int iters = 10000;
 
 class task_queue
 {
+  typedef std::list<int> list_type;
+
 public:
   task_queue ()
   {
@@ -56,14 +55,15 @@ public:
     pthread_cond_destroy (&fooCond1);
     pthread_cond_destroy (&fooCond2);
   }
-  list<int> foo;
-  pthread_mutex_t fooLock;
-  pthread_cond_t fooCond1;
-  pthread_cond_t fooCond2;
+
+  list_type		foo;
+  pthread_mutex_t 	fooLock;
+  pthread_cond_t 	fooCond1;
+  pthread_cond_t 	fooCond2;
 };
 
 void*
-produce (void* t)
+produce(void* t)
 {
   task_queue& tq = *(static_cast<task_queue*> (t));
   int num = 0;
@@ -80,7 +80,7 @@ produce (void* t)
 }
 
 void*
-consume (void* t)
+consume(void* t)
 {
   task_queue& tq = *(static_cast<task_queue*> (t));
   int num = 0;
@@ -99,7 +99,7 @@ consume (void* t)
 }
 
 int
-main ()
+main()
 {
   pthread_t prod[thread_pairs];
   pthread_t cons[thread_pairs];

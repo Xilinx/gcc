@@ -5,7 +5,7 @@
    This code has no license restrictions, and is considered public
    domain.
 
-   Changes copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation,
+   Changes copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation,
    Inc.
    Contributed by Sebastian Pop <sebastian.pop@inria.fr>
 
@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "errors.h"
 #include "ggc.h"
 #include "tree.h"
 #include "diagnostic.h"
@@ -1306,7 +1305,7 @@ verify_omega_pb (omega_pb pb)
   enum omega_result result;
   int e;
   bool any_color = false;
-  omega_pb tmp_problem = XNEW (struct omega_pb);
+  omega_pb tmp_problem = XNEW (struct omega_pb_d);
 
   omega_copy_problem (tmp_problem, pb);
   tmp_problem->safe_vars = 0;
@@ -2287,7 +2286,7 @@ omega_eliminate_redundant (omega_pb pb, bool expensive)
   if (!expensive)
     goto eliminate_redundant_done;
 
-  tmp_problem = XNEW (struct omega_pb);
+  tmp_problem = XNEW (struct omega_pb_d);
   conservative++;
 
   for (e = pb->num_geqs - 1; e >= 0; e--)
@@ -2649,7 +2648,7 @@ omega_eliminate_red (omega_pb pb, bool eliminate_all)
     return;
 
   conservative++;
-  tmp_problem = XNEW (struct omega_pb);
+  tmp_problem = XNEW (struct omega_pb_d);
 
   for (e = pb->num_geqs - 1; e >= 0; e--)
     if (pb->geqs[e].color == omega_red)
@@ -3049,7 +3048,8 @@ omega_do_elimination (omega_pb pb, int e, int i)
 	      eqn->coef[j] *= a;
 	    k = eqn->coef[i];
 	    eqn->coef[i] = 0;
-	    eqn->color |= sub->color;
+	    if (sub->color == omega_red)
+	      eqn->color = omega_red;
 	    for (j = n_vars; j >= 0; j--)
 	      eqn->coef[j] -= sub->coef[j] * k / c;
 	  }
@@ -3491,7 +3491,7 @@ parallel_splinter (omega_pb pb, int e, int diff,
       omega_print_problem (dump_file, pb);
     }
 
-  tmp_problem = XNEW (struct omega_pb);
+  tmp_problem = XNEW (struct omega_pb_d);
   omega_copy_eqn (&pb->eqs[0], &pb->geqs[e], pb->num_vars);
   pb->num_eqs = 1;
 
@@ -5499,7 +5499,7 @@ omega_alloc_problem (int nvars, int nprot)
   omega_initialize ();
 
   /* Allocate and initialize PB.  */
-  pb = XCNEW (struct omega_pb);
+  pb = XCNEW (struct omega_pb_d);
   pb->var = XCNEWVEC (int, OMEGA_MAX_VARS + 2);
   pb->forwarding_address = XCNEWVEC (int, OMEGA_MAX_VARS + 2);
   pb->geqs = omega_alloc_eqns (0, OMEGA_MAX_GEQS);

@@ -169,6 +169,10 @@ static int print_multi_lib;
 
 static int print_help_list;
 
+/* Flag saying to print the version of gcc and its sub-processes.  */
+
+static int print_version;
+
 /* Flag saying to print the sysroot suffix used for searching for
    headers.  */
 
@@ -218,7 +222,15 @@ static const char *target_sysroot_hdrs_suffix = 0;
 /* Nonzero means write "temp" files in source directory
    and use the source file's name in them, and don't delete them.  */
 
-static int save_temps_flag;
+static enum save_temps {
+  SAVE_TEMPS_NONE,		/* no -save-temps */
+  SAVE_TEMPS_CWD,		/* -save-temps in current directory */
+  SAVE_TEMPS_OBJ		/* -save-temps in object directory */
+} save_temps_flag;
+
+/* Output file to use to get the object directory for -save-temps=obj  */
+static char *save_temps_prefix = 0;
+static size_t save_temps_length = 0;
 
 /* Nonzero means pass multiple source files to the compiler at one time.  */
 
@@ -256,10 +268,12 @@ static const char *cross_compile = "0";
    switch.  The only case we support now is simply appending or deleting a
    string to or from the end of the first part of the configuration name.  */
 
+enum add_del {ADD, DELETE};
+
 static const struct modify_target
 {
   const char *const sw;
-  const enum add_del {ADD, DELETE} add_del;
+  const enum add_del add_del;
   const char *const str;
 }
 modify_target[] = MODIFY_TARGET_NAME;
@@ -393,7 +407,8 @@ or with constant text in a single argument.
  %i     substitute the name of the input file being processed.
  %b     substitute the basename of the input file being processed.
 	This is the substring up to (and not including) the last period
-	and not including the directory.
+	and not including the directory unless -save-temps was specified
+	to put temporaries in a different location.	
  %B	same as %b, but include the file suffix (text after the last period).
  %gSUFFIX
 	substitute a file name that has suffix SUFFIX and is chosen
@@ -436,7 +451,7 @@ or with constant text in a single argument.
         it is subsequently output with %*. SUFFIX is terminated by the next
         space or %.
  %d	marks the argument containing or following the %d as a
-	temporary file name, so that that file will be deleted if CC exits
+	temporary file name, so that that file will be deleted if GCC exits
 	successfully.  Unlike %g, this contributes no text to the argument.
  %w	marks the argument containing or following the %w as the
 	"output file" of this compilation.  This puts the argument
@@ -505,12 +520,12 @@ or with constant text in a single argument.
 	argument vector in the usual fashion.  The function returns
 	a string which is processed as if it had appeared literally
 	as part of the current spec.
- %{S}   substitutes the -S switch, if that switch was given to CC.
+ %{S}   substitutes the -S switch, if that switch was given to GCC.
 	If that switch was not specified, this substitutes nothing.
 	Here S is a metasyntactic variable.
- %{S*}  substitutes all the switches specified to CC whose names start
+ %{S*}  substitutes all the switches specified to GCC whose names start
 	with -S.  This is used for -o, -I, etc; switches that take
-	arguments.  CC considers `-o foo' as being one switch whose
+	arguments.  GCC considers `-o foo' as being one switch whose
 	name starts with `o'.  %{o*} would substitute this text,
 	including the space; thus, two arguments would be generated.
  %{S*&T*} likewise, but preserve order of S and T options (the order
@@ -518,10 +533,10 @@ or with constant text in a single argument.
 	of ampersand-separated variables; for each the wild card is
 	optional.  Useful for CPP as %{D*&U*&A*}.
 
- %{S:X}   substitutes X, if the -S switch was given to CC.
- %{!S:X}  substitutes X, if the -S switch was NOT given to CC.
+ %{S:X}   substitutes X, if the -S switch was given to GCC.
+ %{!S:X}  substitutes X, if the -S switch was NOT given to GCC.
  %{S*:X}  substitutes X if one or more switches whose names start
-          with -S was given to CC.  Normally X is substituted only
+          with -S was given to GCC.  Normally X is substituted only
           once, no matter how many such switches appeared.  However,
           if %* appears somewhere in X, then X will be substituted
           once for each matching switch, with the %* replaced by the
@@ -531,13 +546,13 @@ or with constant text in a single argument.
  %{,S:X}  substitutes X, if processing a file which will use spec S.
  %{!,S:X} substitutes X, if NOT processing a file which will use spec S.
 	  
- %{S|T:X} substitutes X if either -S or -T was given to CC.  This may be
+ %{S|T:X} substitutes X if either -S or -T was given to GCC.  This may be
 	  combined with '!', '.', ',', and '*' as above binding stronger
 	  than the OR.
 	  If %* appears in X, all of the alternatives must be starred, and
 	  only the first matching alternative is substituted.
- %{S:X;   if S was given to CC, substitutes X;
-   T:Y;   else if T was given to CC, substitutes Y;
+ %{S:X;   if S was given to GCC, substitutes X;
+   T:Y;   else if T was given to GCC, substitutes Y;
     :D}   else substitutes D.  There can be as many clauses as you need.
           This may be combined with '.', '!', ',', '|', and '*' as above.
 
@@ -561,15 +576,15 @@ The character | at the beginning of the predicate text is used to indicate
 that a command should be piped to the following command, but only if -pipe
 is specified.
 
-Note that it is built into CC which switches take arguments and which
+Note that it is built into GCC which switches take arguments and which
 do not.  You might think it would be useful to generalize this to
 allow each compiler's spec to say which switches take arguments.  But
-this cannot be done in a consistent fashion.  CC cannot even decide
+this cannot be done in a consistent fashion.  GCC cannot even decide
 which input files have been specified without knowing which switches
 take arguments, and it must know which input files to compile in order
 to tell which compilers to run.
 
-CC also knows implicitly that arguments starting in `-l' are to be
+GCC also knows implicitly that arguments starting in `-l' are to be
 treated as compiler output files, and passed to the linker in their
 proper position among the other output files.  */
 
@@ -717,6 +732,13 @@ proper position among the other output files.  */
 #endif
 #endif
 
+#ifndef LINK_BUILDID_SPEC
+# if defined(HAVE_LD_BUILDID) && defined(ENABLE_LD_BUILDID)
+#  define LINK_BUILDID_SPEC "%{!r:--build-id} "
+# endif
+#endif
+
+
 /* -u* was put back because both BSD and SysV seem to support it.  */
 /* %{static:} simply prevents an error message if the target machine
    doesn't handle -static.  */
@@ -730,7 +752,7 @@ proper position among the other output files.  */
     %{s} %{t} %{u*} %{x} %{z} %{Z} %{!A:%{!nostdlib:%{!nostartfiles:%S}}}\
     %{static:} %{L*} %(mfwrap) %(link_libgcc) %o\
     %{fopenmp|ftree-parallelize-loops=*:%:include(libgomp.spec)%(link_gomp)} %(mflib)\
-    %{fprofile-arcs|fprofile-generate|coverage:-lgcov}\
+    %{fprofile-arcs|fprofile-generate*|coverage:-lgcov}\
     %{!nostdlib:%{!nodefaultlibs:%(link_ssp) %(link_gcc_c_sequence)}}\
     %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} }}}}}}"
 #endif
@@ -817,7 +839,7 @@ static const char *cpp_unique_options =
 static const char *cpp_options =
 "%(cpp_unique_options) %1 %{m*} %{std*&ansi&trigraphs} %{W*&pedantic*} %{w}\
  %{f*} %{g*:%{!g0:%{g*} %{!fno-working-directory:-fworking-directory}}} %{O*}\
- %{undef} %{save-temps:-fpch-preprocess}";
+ %{undef} %{save-temps*:-fpch-preprocess}";
 
 /* This contains cpp options which are not passed when the preprocessor
    output will be used by another program.  */
@@ -996,17 +1018,17 @@ static const struct compiler default_compilers[] =
           %{traditional|ftraditional:\
 %eGNU C no longer supports -traditional without -E}\
        %{!combine:\
-	  %{save-temps|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
-		%(cpp_options) -o %{save-temps:%b.i} %{!save-temps:%g.i} \n\
-		    cc1 -fpreprocessed %{save-temps:%b.i} %{!save-temps:%g.i} \
+	  %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+		%(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
+		    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
 			%(cc1_options)}\
-	  %{!save-temps:%{!traditional-cpp:%{!no-integrated-cpp:\
+	  %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
 		cc1 %(cpp_unique_options) %(cc1_options)}}}\
           %{!fsyntax-only:%(invoke_as)}} \
       %{combine:\
-	  %{save-temps|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
-		%(cpp_options) -o %{save-temps:%b.i} %{!save-temps:%g.i}}\
-	  %{!save-temps:%{!traditional-cpp:%{!no-integrated-cpp:\
+	  %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+		%(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i}}\
+	  %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
 		cc1 %(cpp_unique_options) %(cc1_options)}}\
                 %{!fsyntax-only:%(invoke_as)}}}}}}", 0, 1, 1},
   {"-",
@@ -1018,13 +1040,13 @@ static const struct compiler default_compilers[] =
       external preprocessor if -save-temps is given.  */
      "%{E|M|MM:%(trad_capable_cpp) %(cpp_options) %(cpp_debug_options)}\
       %{!E:%{!M:%{!MM:\
-	  %{save-temps|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
-		%(cpp_options) -o %{save-temps:%b.i} %{!save-temps:%g.i} \n\
-		    cc1 -fpreprocessed %{save-temps:%b.i} %{!save-temps:%g.i} \
+	  %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+		%(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
+		    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
 			%(cc1_options)\
                         -o %g.s %{!o*:--output-pch=%i.gch}\
                         %W{o*:--output-pch=%*}%V}\
-	  %{!save-temps:%{!traditional-cpp:%{!no-integrated-cpp:\
+	  %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
 		cc1 %(cpp_unique_options) %(cc1_options)\
                     -o %g.s %{!o*:--output-pch=%i.gch}\
                     %W{o*:--output-pch=%*}%V}}}}}}", 0, 0, 0},
@@ -1831,9 +1853,16 @@ init_spec (void)
     asm_spec = XOBFINISH (&obstack, const char *);
   }
 #endif
-#ifdef LINK_EH_SPEC
+
+#if defined LINK_EH_SPEC || defined LINK_BUILDID_SPEC
+# ifdef LINK_BUILDID_SPEC
+  /* Prepend LINK_BUILDID_SPEC to whatever link_spec we had before.  */
+  obstack_grow (&obstack, LINK_BUILDID_SPEC, sizeof(LINK_BUILDID_SPEC) - 1);
+# endif
+# ifdef LINK_EH_SPEC
   /* Prepend LINK_EH_SPEC to whatever link_spec we had before.  */
   obstack_grow (&obstack, LINK_EH_SPEC, sizeof(LINK_EH_SPEC) - 1);
+# endif
   obstack_grow0 (&obstack, link_spec, strlen (link_spec));
   link_spec = XOBFINISH (&obstack, const char *);
 #endif
@@ -3228,7 +3257,7 @@ display_help (void)
   fputs (_("  -pass-exit-codes         Exit with highest error code from a phase\n"), stdout);
   fputs (_("  --help                   Display this information\n"), stdout);
   fputs (_("  --target-help            Display target specific command line options\n"), stdout);
-  fputs (_("  --help={target|optimizers|warnings|undocumented|params}[,{[^]joined|[^]separate}]\n"), stdout);
+  fputs (_("  --help={target|optimizers|warnings|params|[^]{joined|separate|undocumented}}[,...]\n"), stdout);
   fputs (_("                           Display specific types of command line options\n"), stdout);
   if (! verbose_flag)
     fputs (_("  (Use '-v --help' to display command line options of sub-processes)\n"), stdout);
@@ -3255,6 +3284,7 @@ display_help (void)
   fputs (_("  -Xlinker <arg>           Pass <arg> on to the linker\n"), stdout);
   fputs (_("  -combine                 Pass multiple source files to compiler at once\n"), stdout);
   fputs (_("  -save-temps              Do not delete intermediate files\n"), stdout);
+  fputs (_("  -save-temps=<arg>        Do not delete intermediate files\n"), stdout);
   fputs (_("  -pipe                    Use pipes rather than intermediate files\n"), stdout);
   fputs (_("  -time                    Time the execution of each subprocess\n"), stdout);
   fputs (_("  -specs=<file>            Override built-in specs with the contents of <file>\n"), stdout);
@@ -3640,14 +3670,17 @@ process_command (int argc, const char **argv)
       else if (strcmp (argv[i], "-fversion") == 0)
 	{
 	  /* translate_options () has turned --version into -fversion.  */
-	  printf (_("%s %s%s\n"), programname, pkgversion_string,
-		  version_string);
-	  printf ("Copyright %s 2009 Free Software Foundation, Inc.\n",
-		  _("(C)"));
-	  fputs (_("This is free software; see the source for copying conditions.  There is NO\n\
-warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"),
-		 stdout);
-	  exit (0);
+	  print_version = 1;
+
+	  /* We will be passing a dummy file on to the sub-processes.  */
+	  n_infiles++;
+	  n_switches++;
+
+	  /* CPP driver cannot obtain switch from cc1_options.  */
+	  if (is_cpp_driver)
+	    add_preprocessor_option ("--version", strlen ("--version"));
+	  add_assembler_option ("--version", strlen ("--version"));
+	  add_linker_option ("--version", strlen ("--version"));
 	}
       else if (strcmp (argv[i], "-fhelp") == 0)
 	{
@@ -3795,8 +3828,19 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	n_infiles++;
       else if (strcmp (argv[i], "-save-temps") == 0)
 	{
-	  save_temps_flag = 1;
+	  save_temps_flag = SAVE_TEMPS_CWD;
 	  n_switches++;
+	}
+      else if (strncmp (argv[i], "-save-temps=", 12) == 0)
+	{
+	  n_switches++;
+	  if (strcmp (argv[i]+12, "cwd") == 0)
+	    save_temps_flag = SAVE_TEMPS_CWD;
+	  else if (strcmp (argv[i]+12, "obj") == 0
+		   || strcmp (argv[i]+12, "object") == 0)
+	    save_temps_flag = SAVE_TEMPS_OBJ;
+	  else
+	    fatal ("'%s' is an unknown -save-temps option", argv[i]);
 	}
       else if (strcmp (argv[i], "-combine") == 0)
 	{
@@ -3971,6 +4015,8 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	      else
 		argv[i] = convert_filename (argv[i], ! have_c, 0);
 #endif
+	      /* Save the output name in case -save-temps=obj was used.  */
+	      save_temps_prefix = xstrdup ((p[1] == 0) ? argv[i + 1] : argv[i] + 1);
 	      goto normal_switch;
 
 	    default:
@@ -4026,6 +4072,25 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  n_infiles++;
 	  lang_n_infiles++;
 	}
+    }
+
+  /* If -save-temps=obj and -o name, create the prefix to use for %b.
+     Otherwise just make -save-temps=obj the same as -save-temps=cwd.  */
+  if (save_temps_flag == SAVE_TEMPS_OBJ && save_temps_prefix != NULL)
+    {
+      save_temps_length = strlen (save_temps_prefix);
+      temp = strrchr (lbasename (save_temps_prefix), '.');
+      if (temp)
+	{
+	  save_temps_length -= strlen (temp);
+	  save_temps_prefix[save_temps_length] = '\0';
+	}
+
+    }
+  else if (save_temps_prefix != NULL)
+    {
+      free (save_temps_prefix);
+      save_temps_prefix = NULL;
     }
 
   if (save_temps_flag && use_pipes)
@@ -4328,7 +4393,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
     error ("warning: '-x %s' after last input file has no effect", spec_lang);
 
   /* Ensure we only invoke each subprocess once.  */
-  if (print_subprocess_help || print_help_list)
+  if (print_subprocess_help || print_help_list || print_version)
     {
       n_infiles = 1;
 
@@ -4698,6 +4763,49 @@ spec_path (char *path, void *data)
   return NULL;
 }
 
+/* Create a temporary FILE with the contents of ARGV. Add @FILE to the
+   argument list. */
+
+static void
+create_at_file (char **argv)
+{
+  char *temp_file = make_temp_file ("");
+  char *at_argument = concat ("@", temp_file, NULL);
+  FILE *f = fopen (temp_file, "w");
+  int status;
+
+  if (f == NULL)
+    fatal ("could not open temporary response file %s",
+	   temp_file);
+
+  status = writeargv (argv, f);
+
+  if (status)
+    fatal ("could not write to temporary response file %s",
+	   temp_file);
+
+  status = fclose (f);
+
+  if (EOF == status)
+    fatal ("could not close temporary response file %s",
+	   temp_file);
+
+  store_arg (at_argument, 0, 0);
+
+  record_temp_file (temp_file, !save_temps_flag, !save_temps_flag);
+}
+
+/* True if we should compile INFILE. */
+
+static bool
+compile_input_file_p (struct infile *infile)
+{
+  if ((!infile->language) || (infile->language[0] != '*'))
+    if (infile->incompiler == input_file_compiler)
+      return true;
+  return false;
+}
+
 /* Process the sub-spec SPEC as a portion of a larger spec.
    This is like processing a whole spec except that we do
    not initialize at the beginning and we do not supply a
@@ -4782,12 +4890,18 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	    fatal ("spec '%s' invalid", spec);
 
 	  case 'b':
-	    obstack_grow (&obstack, input_basename, basename_length);
+	    if (save_temps_length)
+	      obstack_grow (&obstack, save_temps_prefix, save_temps_length);
+	    else
+	      obstack_grow (&obstack, input_basename, basename_length);
 	    arg_going = 1;
 	    break;
 
 	  case 'B':
-	    obstack_grow (&obstack, input_basename, suffixed_basename_length);
+	    if (save_temps_length)
+	      obstack_grow (&obstack, save_temps_prefix, save_temps_length);
+	    else
+	      obstack_grow (&obstack, input_basename, suffixed_basename_length);
 	    arg_going = 1;
 	    break;
 
@@ -4933,6 +5047,26 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 		    suffix_length += strlen (TARGET_OBJECT_SUFFIX);
 		  }
 
+		/* If -save-temps=obj and -o were specified, use that for the
+		   temp file.  */
+		if (save_temps_length)
+		  {
+		    char *tmp;
+		    temp_filename_length
+		      = save_temps_length + suffix_length + 1;
+		    tmp = (char *) alloca (temp_filename_length);
+		    memcpy (tmp, save_temps_prefix, save_temps_length);
+		    memcpy (tmp + save_temps_length, suffix, suffix_length);
+		    tmp[save_temps_length + suffix_length] = '\0';
+		    temp_filename = save_string (tmp,
+						 temp_filename_length + 1);
+		    obstack_grow (&obstack, temp_filename,
+				  temp_filename_length);
+		    arg_going = 1;
+		    delete_this_arg = 0;
+		    break;
+		  }
+
 		/* If the input_filename has the same suffix specified
 		   for the %g, %u, or %U, and -save-temps is specified,
 		   we could end up using that file as an intermediate
@@ -4944,13 +5078,13 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 		if (save_temps_flag)
 		  {
 		    char *tmp;
-		    
-		    temp_filename_length = basename_length + suffix_length;
-		    tmp = (char *) alloca (temp_filename_length + 1);
-		    strncpy (tmp, input_basename, basename_length);
-		    strncpy (tmp + basename_length, suffix, suffix_length);
-		    tmp[temp_filename_length] = '\0';
+		    temp_filename_length = basename_length + suffix_length + 1;
+		    tmp = (char *) alloca (temp_filename_length);
+		    memcpy (tmp, input_basename, basename_length);
+		    memcpy (tmp + basename_length, suffix, suffix_length);
+		    tmp[basename_length + suffix_length] = '\0';
 		    temp_filename = tmp;
+
 		    if (strcmp (temp_filename, input_filename) != 0)
 		      {
 #ifndef HOST_LACKS_INODE_NUMBERS
@@ -5038,9 +5172,37 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	  case 'i':
 	    if (combine_inputs)
 	      {
-		for (i = 0; (int) i < n_infiles; i++)
-		  if ((!infiles[i].language) || (infiles[i].language[0] != '*'))
-		    if (infiles[i].incompiler == input_file_compiler)
+		if (at_file_supplied)
+		  {
+		    /* We are going to expand `%i' to `@FILE', where FILE
+		       is a newly-created temporary filename.  The filenames
+		       that would usually be expanded in place of %o will be
+		       written to the temporary file.  */
+		    char **argv;
+		    int n_files = 0;
+		    int j;
+
+		    for (i = 0; i < n_infiles; i++)
+		      if (compile_input_file_p (&infiles[i]))
+			n_files++;
+
+		    argv = (char **) alloca (sizeof (char *) * (n_files + 1));
+
+		    /* Copy the strings over.  */
+		    for (i = 0, j = 0; i < n_infiles; i++)
+		      if (compile_input_file_p (&infiles[i]))
+			{
+			  argv[j] = CONST_CAST (char *, infiles[i].name);
+			  infiles[i].compiled = true;
+			  j++;
+			}
+		    argv[j] = NULL;
+
+		    create_at_file (argv);
+		  }
+		else
+		  for (i = 0; (int) i < n_infiles; i++)
+		    if (compile_input_file_p (&infiles[i]))
 		      {
 			store_arg (infiles[i].name, 0, 0);
 			infiles[i].compiled = true;
@@ -5118,14 +5280,8 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
                      that would usually be expanded in place of %o will be
                      written to the temporary file.  */
 
-                  char *temp_file = make_temp_file ("");
-                  char *at_argument;
                   char **argv;
-                  int n_files, j, status;
-                  FILE *f;
-
-                  at_argument = concat ("@", temp_file, NULL);
-                  store_arg (at_argument, 0, 0);
+                  int n_files, j;
 
                   /* Convert OUTFILES into a form suitable for writeargv.  */
 
@@ -5144,25 +5300,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
                       }
                   argv[j] = NULL;
 
-                  f = fopen (temp_file, "w");
-
-                  if (f == NULL)
-                    fatal ("could not open temporary response file %s",
-                           temp_file);
-
-                  status = writeargv (argv, f);
-
-                  if (status)
-                    fatal ("could not write to temporary response file %s",
-                           temp_file);
-
-                  status = fclose (f);
-
-                  if (EOF == status)
-                    fatal ("could not close temporary response file %s",
-                           temp_file);
-
-                  record_temp_file (temp_file, !save_temps_flag, !save_temps_flag);
+		  create_at_file (argv);
                 }
               else
                 for (i = 0; i < max; i++)
@@ -6171,16 +6309,7 @@ set_input (const char *filename)
 
   input_filename = filename;
   input_filename_length = strlen (input_filename);
-
-  input_basename = input_filename;
-#ifdef HAVE_DOS_BASED_FILE_SYSTEM
-  /* Skip drive name so 'x:foo' is handled properly.  */
-  if (input_basename[1] == ':')
-    input_basename += 2;
-#endif
-  for (p = input_basename; *p; p++)
-    if (IS_DIR_SEPARATOR (*p))
-      input_basename = p + 1;
+  input_basename = lbasename (input_filename);
 
   /* Find a suffix starting with the last period,
      and set basename_length to exclude that suffix.  */
@@ -6614,7 +6743,25 @@ main (int argc, char **argv)
       fflush (stdout);
     }
 
-    if (flag_profile_stdlib_advise)
+  if (print_version)
+    {
+      printf (_("%s %s%s\n"), programname, pkgversion_string,
+	      version_string);
+      printf ("Copyright %s 2009 Free Software Foundation, Inc.\n",
+	      _("(C)"));
+      fputs (_("This is free software; see the source for copying conditions.  There is NO\n\
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"),
+	     stdout);
+      if (! verbose_flag)
+	return 0;
+
+      /* We do not exit here. We use the same mechanism of --help to print
+	 the version of the sub-processes. */
+      fputc ('\n', stdout);
+      fflush (stdout);
+    }
+
+  if (flag_profile_stdlib_advise)
     {
       /* Execute a prebuilt tool, stdlib-advisor. */
       int err = system("stdlib-advisor");

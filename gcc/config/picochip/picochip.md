@@ -111,9 +111,6 @@
    ; Internal TSTPORT instruction, used to generate a single TSTPORT
    ; instruction for use in the testport branch split.
    (UNSPEC_INTERNAL_TESTPORT        19)
-
-   ; instruction for use in the profile based optimizations.
-   (UNSPEC_INTERNAL_PROFILE        20)
   ]
 )
 
@@ -554,7 +551,7 @@
 (define_insn_and_split "cbranchhi4"
   [(set (pc)
         (if_then_else
-            (match_operator:CC 0 "comparison_operator"
+            (match_operator:CC 0 "ordered_comparison_operator"
                             [(match_operand:HI 1 "register_operand" "r")
                              (match_operand:HI 2 "picochip_comparison_operand" "ri")])
             (label_ref       (match_operand    3 "" ""))
@@ -2228,14 +2225,6 @@
   [(set_attr "length" "1")
    (set_attr "type" "unknown")])
 
-(define_insn "profile"
-  [(unspec_volatile [(match_operand:HI 0 "const_int_operand" "i")]
-	UNSPEC_INTERNAL_PROFILE)]
-  ""
-  "PROFILE_DUMMY %0 \t// (profile instruction %0)"
-  [(set_attr "length" "1")
-   (set_attr "type" "unknown")])
-
 (define_insn "internal_testport"
   [(set (reg:CC CC_REGNUM)
         (unspec_volatile:CC [(match_operand:HI 0 "const_int_operand" "i")]
@@ -2534,117 +2523,6 @@
   [(set_attr "length" "2")
    (set_attr "type" "picoAlu,picoAlu")
    (set_attr "longConstant" "false,true")])
-
-;; cmphi - This needs to be defined, to ensure that the conditional
-;; move works properly (because the if-cvt code uses this pattern to
-;; build the conditional move, even though normally we use cbranch to
-;; directly generate the instructions).
-
-(define_expand "cmphi"
-  [(match_operand:HI 0 "general_operand" "g")
-   (match_operand:HI 1 "general_operand" "g")]
-  ""
-  "DONE;")
-
-;;============================================================================
-;; Branch patterns - needed for conditional moves.  This is because
-;; they result in the bcc_gen_fctn array being initialised with the
-;; code to define_expand the following, and this in turn means that
-;; when noce_emit_cmove is called, the correct pattern can be
-;; generated, based upon the assumed presence of the following.  The
-;; following are never actually used, because the earlier cbranch
-;; patterns take precendence.
-;;============================================================================
-
-(define_expand "bne"
-  [(set (pc)
-	(if_then_else
-	    (ne (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "beq"
-  [(set (pc)
-	(if_then_else
-	    (eq (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "blt"
-  [(set (pc)
-	(if_then_else
-	    (lt (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "bge"
-  [(set (pc)
-	(if_then_else
-	    (ge (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "bgeu"
-  [(set (pc)
-	(if_then_else
-	    (geu (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "bltu"
-  [(set (pc)
-	(if_then_else
-	    (ltu (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "ble"
-  [(set (pc)
-	(if_then_else
-	    (le (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "bgt"
-  [(set (pc)
-	(if_then_else
-	    (gt (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "bleu"
-  [(set (pc)
-	(if_then_else
-	    (leu (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
-
-(define_expand "bgtu"
-  [(set (pc)
-	(if_then_else
-	    (gtu (reg:CC CC_REGNUM) (const_int 0))
-	    (label_ref       (match_operand    0 "" ""))
-	    (pc)))]
-  ""
-  "gcc_unreachable();")
 
 ;;============================================================================
 ;; Scheduling, including delay slot scheduling.

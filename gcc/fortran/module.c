@@ -119,6 +119,20 @@ fixup_t;
 
 /* Structure for holding extra info needed for pointers being read.  */
 
+enum gfc_rsym_state
+{
+  UNUSED,
+  NEEDED,
+  USED
+};
+
+enum gfc_wsym_state
+{
+  UNREFERENCED = 0,
+  NEEDS_WRITE,
+  WRITTEN
+};
+
 typedef struct pointer_info
 {
   BBT_HEADER (pointer_info);
@@ -138,9 +152,7 @@ typedef struct pointer_info
     {
       gfc_symbol *sym;
       char true_name[GFC_MAX_SYMBOL_LEN + 1], module[GFC_MAX_SYMBOL_LEN + 1];
-      enum
-      { UNUSED, NEEDED, USED }
-      state;
+      enum gfc_rsym_state state;
       int ns, referenced, renamed;
       module_locus where;
       fixup_t *stfixup;
@@ -152,9 +164,7 @@ typedef struct pointer_info
     struct
     {
       gfc_symbol *sym;
-      enum
-      { UNREFERENCED = 0, NEEDS_WRITE, WRITTEN }
-      state;
+      enum gfc_wsym_state state;
     }
     wsym;
   }
@@ -1700,6 +1710,7 @@ static const mstring binding_overriding[] =
 {
     minit ("OVERRIDABLE", 0),
     minit ("NON_OVERRIDABLE", 1),
+    minit ("DEFERRED", 2),
     minit (NULL, -1)
 };
 static const mstring binding_generic[] =
@@ -2161,7 +2172,7 @@ mio_array_ref (gfc_array_ref *ar)
       for (i = 0; i < ar->dimen; i++)
 	{
 	  require_atom (ATOM_INTEGER);
-	  ar->dimen_type[i] = atom_int;
+	  ar->dimen_type[i] = (enum gfc_array_ref_dimen_type) atom_int;
 	}
     }
 
@@ -3042,6 +3053,7 @@ mio_expr (gfc_expr **ep)
       break;
 
     case EXPR_COMPCALL:
+    case EXPR_PPC:
       gcc_unreachable ();
       break;
     }
@@ -3205,6 +3217,7 @@ static void
 mio_typebound_proc (gfc_typebound_proc** proc)
 {
   int flag;
+  int overriding_flag;
 
   if (iomode == IO_INPUT)
     {
@@ -3217,9 +3230,15 @@ mio_typebound_proc (gfc_typebound_proc** proc)
 
   (*proc)->access = MIO_NAME (gfc_access) ((*proc)->access, access_types);
 
+  /* IO the NON_OVERRIDABLE/DEFERRED combination.  */
+  gcc_assert (!((*proc)->deferred && (*proc)->non_overridable));
+  overriding_flag = ((*proc)->deferred << 1) | (*proc)->non_overridable;
+  overriding_flag = mio_name (overriding_flag, binding_overriding);
+  (*proc)->deferred = ((overriding_flag & 2) != 0);
+  (*proc)->non_overridable = ((overriding_flag & 1) != 0);
+  gcc_assert (!((*proc)->deferred && (*proc)->non_overridable));
+
   (*proc)->nopass = mio_name ((*proc)->nopass, binding_passing);
-  (*proc)->non_overridable = mio_name ((*proc)->non_overridable,
-				       binding_overriding);
   (*proc)->is_generic = mio_name ((*proc)->is_generic, binding_generic);
 
   if (iomode == IO_INPUT)
@@ -3243,12 +3262,14 @@ mio_typebound_proc (gfc_typebound_proc** proc)
 	  (*proc)->u.generic = NULL;
 	  while (peek_atom () != ATOM_RPAREN)
 	    {
+	      gfc_symtree** sym_root;
+
 	      g = gfc_get_tbp_generic ();
 	      g->specific = NULL;
 
 	      require_atom (ATOM_STRING);
-	      gfc_get_sym_tree (atom_string, current_f2k_derived,
-				&g->specific_st);
+	      sym_root = &current_f2k_derived->tb_sym_root;
+	      g->specific_st = gfc_get_tbp_symtree (sym_root, atom_string);
 	      gfc_free (atom_string);
 
 	      g->next = (*proc)->u.generic;
@@ -3267,7 +3288,7 @@ mio_typebound_proc (gfc_typebound_proc** proc)
 static void
 mio_typebound_symtree (gfc_symtree* st)
 {
-  if (iomode == IO_OUTPUT && !st->typebound)
+  if (iomode == IO_OUTPUT && !st->n.tb)
     return;
 
   if (iomode == IO_OUTPUT)
@@ -3277,7 +3298,7 @@ mio_typebound_symtree (gfc_symtree* st)
     }
   /* For IO_INPUT, the above is done in mio_f2k_derived.  */
 
-  mio_typebound_proc (&st->typebound);
+  mio_typebound_proc (&st->n.tb);
   mio_rparen ();
 }
 
@@ -3330,7 +3351,7 @@ mio_f2k_derived (gfc_namespace *f2k)
   /* Handle type-bound procedures.  */
   mio_lparen ();
   if (iomode == IO_OUTPUT)
-    gfc_traverse_symtree (f2k->sym_root, &mio_typebound_symtree);
+    gfc_traverse_symtree (f2k->tb_sym_root, &mio_typebound_symtree);
   else
     {
       while (peek_atom () == ATOM_LPAREN)
@@ -3340,7 +3361,7 @@ mio_f2k_derived (gfc_namespace *f2k)
 	  mio_lparen (); 
 
 	  require_atom (ATOM_STRING);
-	  gfc_get_sym_tree (atom_string, f2k, &st);
+	  st = gfc_get_tbp_symtree (&f2k->tb_sym_root, atom_string);
 	  gfc_free (atom_string);
 
 	  mio_typebound_symtree (st);
@@ -3452,7 +3473,7 @@ mio_symbol (gfc_symbol *sym)
   else
     {
       mio_integer (&intmod);
-      sym->from_intmod = intmod;
+      sym->from_intmod = (intmod_id) intmod;
     }
   
   mio_integer (&(sym->intmod_sym_id));
@@ -3996,7 +4017,7 @@ read_module (void)
   module_locus operator_interfaces, user_operators;
   const char *p;
   char name[GFC_MAX_SYMBOL_LEN + 1];
-  gfc_intrinsic_op i;
+  int i;
   int ambiguous, j, nuse, symbol;
   pointer_info *info, *q;
   gfc_use_rename *u;
@@ -4204,7 +4225,7 @@ read_module (void)
 
       if (only_flag)
 	{
-	  u = find_use_operator (i);
+	  u = find_use_operator ((gfc_intrinsic_op) i);
 
 	  if (u == NULL)
 	    {
@@ -4656,7 +4677,7 @@ write_symtree (gfc_symtree *st)
 static void
 write_module (void)
 {
-  gfc_intrinsic_op i;
+  int i;
 
   /* Write the operator interfaces.  */
   mio_lparen ();
@@ -4738,7 +4759,7 @@ read_md5_from_module_file (const char * filename, unsigned char md5[16])
   if ((file = fopen (filename, "r")) == NULL)
     return -1;
 
-  /* Read two lines.  */
+  /* Read the first line.  */
   if (fgets (buf, sizeof (buf) - 1, file) == NULL)
     {
       fclose (file);
@@ -4748,8 +4769,12 @@ read_md5_from_module_file (const char * filename, unsigned char md5[16])
   /* The file also needs to be overwritten if the version number changed.  */
   n = strlen ("GFORTRAN module version '" MOD_VERSION "' created");
   if (strncmp (buf, "GFORTRAN module version '" MOD_VERSION "' created", n) != 0)
-    return -1;
+    {
+      fclose (file);
+      return -1;
+    }
  
+  /* Read a second line.  */
   if (fgets (buf, sizeof (buf) - 1, file) == NULL)
     {
       fclose (file);
@@ -4986,7 +5011,9 @@ import_iso_c_binding_module (void)
 	      continue;
 	    }
 	  
-	  generate_isocbinding_symbol (iso_c_module_name, i, u->local_name);
+	  generate_isocbinding_symbol (iso_c_module_name,
+				       (iso_c_binding_symbol) i,
+				       u->local_name);
 	}
     }
   else
@@ -5003,7 +5030,9 @@ import_iso_c_binding_module (void)
 		  break;
 		}
 	    }
-	  generate_isocbinding_symbol (iso_c_module_name, i, local_name);
+	  generate_isocbinding_symbol (iso_c_module_name,
+				       (iso_c_binding_symbol) i,
+				       local_name);
 	}
 
       for (u = gfc_rename_list; u; u = u->next)

@@ -47,9 +47,8 @@ extern int frv_frame_pointer_required		(void);
 extern int frv_initial_elimination_offset	(int, int);
 
 #ifdef RTX_CODE
-extern int frv_legitimate_address_p		(enum machine_mode, rtx,
+extern int frv_legitimate_address_p_1		(enum machine_mode, rtx,
 						 int, int, int);
-extern rtx frv_legitimize_address		(rtx, rtx, enum machine_mode);
 extern rtx frv_find_base_term			(rtx);
 
 #ifdef TREE_CODE
@@ -82,8 +81,8 @@ extern const char *output_move_single	(rtx *, rtx);
 extern const char *output_move_double	(rtx *, rtx);
 extern const char *output_condmove_single
 					(rtx *, rtx);
-extern int frv_emit_cond_branch		(enum rtx_code, rtx);
-extern int frv_emit_scc			(enum rtx_code, rtx);
+extern int frv_emit_cond_branch		(rtx *);
+extern int frv_emit_scc			(rtx *);
 extern rtx frv_split_scc		(rtx, rtx, rtx, rtx, HOST_WIDE_INT);
 extern int frv_emit_cond_move		(rtx, rtx, rtx, rtx);
 extern rtx frv_split_cond_move		(rtx *);

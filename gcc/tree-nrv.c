@@ -1,5 +1,5 @@
 /* Language independent return value optimizations
-   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -56,6 +56,7 @@ struct nrv_data
   /* This is the function's RESULT_DECL.  We will replace all occurrences
      of VAR with RESULT_DECL when we apply this optimization.  */
   tree result;
+  int modified;
 };
 
 static tree finalize_nrv_r (tree *, int *, void *);
@@ -83,7 +84,10 @@ finalize_nrv_r (tree *tp, int *walk_subtrees, void *data)
 
   /* Otherwise replace all occurrences of VAR with RESULT.  */
   else if (*tp == dp->var)
-    *tp = dp->result;
+    {
+      *tp = dp->result;
+      dp->modified = 1;
+    }
 
   /* Keep iterating.  */
   return NULL_TREE;
@@ -229,13 +233,19 @@ tree_nrv (void)
 	  if (gimple_assign_copy_p (stmt)
 	      && gimple_assign_lhs (stmt) == result
 	      && gimple_assign_rhs1 (stmt) == found)
-	    gsi_remove (&gsi, true);
+	    {
+	      unlink_stmt_vdef (stmt);
+	      gsi_remove (&gsi, true);
+	    }
 	  else
 	    {
 	      struct walk_stmt_info wi;
 	      memset (&wi, 0, sizeof (wi));
 	      wi.info = &data;
+	      data.modified = 0;
 	      walk_gimple_op (stmt, finalize_nrv_r, &wi);
+	      if (data.modified)
+		update_stmt (stmt);
 	      gsi_next (&gsi);
 	    }
 	}
@@ -263,7 +273,7 @@ struct gimple_opt_pass pass_nrv =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_NRV,				/* tv_id */
-  PROP_cfg,				/* properties_required */
+  PROP_ssa | PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
@@ -349,8 +359,8 @@ struct gimple_opt_pass pass_return_slot =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
-  PROP_ssa | PROP_alias,		/* properties_required */
+  TV_NONE,				/* tv_id */
+  PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */

@@ -5,7 +5,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file ext/vstring.h
  *  This file is a GNU extension to the Standard C++ Library.
@@ -1444,11 +1439,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
        *  constant time.
       */
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(__versa_string&& __s)
-#else
       swap(__versa_string& __s)
-#endif
       { this->_M_swap(__s); }
 
       // String operations:
@@ -2339,22 +2330,6 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     swap(__versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
 	 __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
     { __lhs.swap(__rhs); }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<typename _CharT, typename _Traits, typename _Alloc,
-	   template <typename, typename, typename> class _Base>
-    inline void
-    swap(__versa_string<_CharT, _Traits, _Alloc, _Base>&& __lhs,
-	 __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
-    { __lhs.swap(__rhs); }
-
-  template<typename _CharT, typename _Traits, typename _Alloc,
-	   template <typename, typename, typename> class _Base>
-    inline void
-    swap(__versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
-	 __versa_string<_CharT, _Traits, _Alloc, _Base>&& __rhs)
-    { __lhs.swap(__rhs); }
-#endif
 
 _GLIBCXX_END_NAMESPACE
 

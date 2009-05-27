@@ -6,7 +6,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 #include "gstdint.h"
 #include <cstdatomic>
@@ -83,7 +78,7 @@ namespace std
   {
     bool
     atomic_flag_test_and_set_explicit(volatile __atomic_flag_base* __a,
-				      memory_order __m)
+				      memory_order __m) throw ()
     {
       volatile atomic_flag d(__a->_M_i);
       return d.test_and_set(__m);
@@ -91,7 +86,7 @@ namespace std
 
     void
     atomic_flag_clear_explicit(volatile __atomic_flag_base* __a,
-			       memory_order __m)
+			       memory_order __m) throw ()
     {
       volatile atomic_flag d(__a->_M_i);
       return d.clear(__m);
@@ -99,14 +94,14 @@ namespace std
 
     void
     __atomic_flag_wait_explicit(volatile __atomic_flag_base* __a,
-				memory_order __x)
+				memory_order __x) throw ()
     {
       while (atomic_flag_test_and_set_explicit(__a, __x))
 	{ };
     }
 
     volatile __atomic_flag_base*
-    __atomic_flag_for_address(const volatile void* __z)
+    __atomic_flag_for_address(const volatile void* __z) throw ()
     {
       uintptr_t __u = reinterpret_cast<uintptr_t>(__z);
       __u += (__u >> 2) + (__u << 4);

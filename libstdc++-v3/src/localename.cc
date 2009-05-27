@@ -5,7 +5,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 #include <clocale>
 #include <cstring>
@@ -185,6 +180,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     // see if the given name is valid.
     __c_locale __cloc;
     locale::facet::_S_create_c_locale(__cloc, __s);
+    __c_locale __clocm = __cloc;
 
     __try
       {
@@ -199,15 +195,19 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  _M_names[__k] = 0;
 
 	// Name the categories.
+	const char* __smon = __s;
 	const size_t __len = std::strlen(__s);
 	if (!std::memchr(__s, ';', __len))
 	  {
 	    _M_names[0] = new char[__len + 1];
-	    std::memcpy(_M_names[0], __s, __len + 1);	    
+	    std::memcpy(_M_names[0], __s, __len + 1);
 	  }
 	else
 	  {
 	    const char* __end = __s;
+	    bool __found_ctype = false;
+	    bool __found_monetary = false;
+	    size_t __ci = 0, __mi = 0;
 	    for (size_t __i = 0; __i < _S_categories_size; ++__i)
 	      {
 		const char* __beg = std::strchr(__end + 1, '=') + 1;
@@ -217,6 +217,24 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		_M_names[__i] = new char[__end - __beg + 1];
 		std::memcpy(_M_names[__i], __beg, __end - __beg);
 		_M_names[__i][__end - __beg] = '\0';
+		if (!__found_ctype
+		    && *(__beg - 2) == 'E' && *(__beg - 3) == 'P')
+		  {
+		    __found_ctype = true;
+		    __ci = __i;
+		  }
+		else if (!__found_monetary && *(__beg - 2) == 'Y')
+		  {
+		    __found_monetary = true;
+		    __mi = __i;
+		  }
+	      }
+
+	    if (std::strcmp(_M_names[__ci], _M_names[__mi]))
+	      {
+		__smon = _M_names[__mi];
+		__clocm = locale::facet::_S_lc_ctype_c_locale(__cloc,
+							      __smon);
 	      }
 	  }
  
@@ -227,8 +245,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	_M_init_facet(new num_get<char>);
 	_M_init_facet(new num_put<char>);
 	_M_init_facet(new std::collate<char>(__cloc));
-	_M_init_facet(new moneypunct<char, false>(__cloc, __s));
-	_M_init_facet(new moneypunct<char, true>(__cloc, __s));
+	_M_init_facet(new moneypunct<char, false>(__cloc, 0));
+	_M_init_facet(new moneypunct<char, true>(__cloc, 0));
 	_M_init_facet(new money_get<char>);
 	_M_init_facet(new money_put<char>);
 	_M_init_facet(new __timepunct<char>(__cloc, __s));
@@ -243,8 +261,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	_M_init_facet(new num_get<wchar_t>);
 	_M_init_facet(new num_put<wchar_t>);
 	_M_init_facet(new std::collate<wchar_t>(__cloc));
-	_M_init_facet(new moneypunct<wchar_t, false>(__cloc, __s));
-	_M_init_facet(new moneypunct<wchar_t, true>(__cloc, __s));
+	_M_init_facet(new moneypunct<wchar_t, false>(__clocm, __smon));
+	_M_init_facet(new moneypunct<wchar_t, true>(__clocm, __smon));
 	_M_init_facet(new money_get<wchar_t>);
 	_M_init_facet(new money_put<wchar_t>);
 	_M_init_facet(new __timepunct<wchar_t>(__cloc, __s));
@@ -253,10 +271,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	_M_init_facet(new std::messages<wchar_t>(__cloc, __s));
 #endif	  
 	locale::facet::_S_destroy_c_locale(__cloc);
+	if (__clocm != __cloc)
+	  locale::facet::_S_destroy_c_locale(__clocm);
       }
     __catch(...)
       {
 	locale::facet::_S_destroy_c_locale(__cloc);
+	if (__clocm != __cloc)
+	  locale::facet::_S_destroy_c_locale(__clocm);
 	this->~_Impl();
 	__throw_exception_again;
       }	

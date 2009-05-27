@@ -6,7 +6,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  * Copyright (c) 1996,1997
@@ -210,16 +205,16 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     };
 
   // Note: assumes long is at least 32 bits.
-  enum { _S_num_primes = 28 };
+  enum { _S_num_primes = 29 };
 
   static const unsigned long __stl_prime_list[_S_num_primes] =
     {
-      53ul,         97ul,         193ul,       389ul,       769ul,
-      1543ul,       3079ul,       6151ul,      12289ul,     24593ul,
-      49157ul,      98317ul,      196613ul,    393241ul,    786433ul,
-      1572869ul,    3145739ul,    6291469ul,   12582917ul,  25165843ul,
-      50331653ul,   100663319ul,  201326611ul, 402653189ul, 805306457ul,
-      1610612741ul, 3221225473ul, 4294967291ul
+      5ul,          53ul,         97ul,         193ul,       389ul,
+      769ul,        1543ul,       3079ul,       6151ul,      12289ul,
+      24593ul,      49157ul,      98317ul,      196613ul,    393241ul,
+      786433ul,     1572869ul,    3145739ul,    6291469ul,   12582917ul,
+      25165843ul,   50331653ul,   100663319ul,  201326611ul, 402653189ul,
+      805306457ul,  1610612741ul, 3221225473ul, 4294967291ul
     };
 
   inline unsigned long
@@ -869,8 +864,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     {
       const size_type __n = _M_bkt_num_key(__key);
       _Node* __first = _M_buckets[__n];
+      _Node* __saved_slot = 0;
       size_type __erased = 0;
-      
+
       if (__first)
 	{
 	  _Node* __cur = __first;
@@ -879,11 +875,20 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	    {
 	      if (_M_equals(_M_get_key(__next->_M_val), __key))
 		{
-		  __cur->_M_next = __next->_M_next;
-		  _M_delete_node(__next);
-		  __next = __cur->_M_next;
-		  ++__erased;
-		  --_M_num_elements;
+		  if (&_M_get_key(__next->_M_val) != &__key)
+		    {
+		      __cur->_M_next = __next->_M_next;
+		      _M_delete_node(__next);
+		      __next = __cur->_M_next;
+		      ++__erased;
+		      --_M_num_elements;
+		    }
+		  else
+		    {
+		      __saved_slot = __cur;
+		      __cur = __next;
+		      __next = __cur->_M_next;
+		    }
 		}
 	      else
 		{
@@ -895,6 +900,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	    {
 	      _M_buckets[__n] = __first->_M_next;
 	      _M_delete_node(__first);
+	      ++__erased;
+	      --_M_num_elements;
+	    }
+	  if (__saved_slot)
+	    {
+	      __next = __saved_slot->_M_next;
+	      __saved_slot->_M_next = __next->_M_next;
+	      _M_delete_node(__next);
 	      ++__erased;
 	      --_M_num_elements;
 	    }
@@ -1076,6 +1089,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     hashtable<_Val, _Key, _HF, _Ex, _Eq, _All>::
     clear()
     {
+      if (_M_num_elements == 0)
+	return;
+
       for (size_type __i = 0; __i < _M_buckets.size(); ++__i)
 	{
 	  _Node* __cur = _M_buckets[__i];

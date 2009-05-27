@@ -663,6 +663,10 @@ A @code{typeof}-construct can be used anywhere a typedef name could be
 used.  For example, you can use it in a declaration, in a cast, or inside
 of @code{sizeof} or @code{typeof}.
 
+The operand of @code{typeof} is evaluated for its side effects if and
+only if it is an expression of variably modified type or the name of
+such a type.
+
 @code{typeof} is often useful in conjunction with the
 statements-within-expressions feature.  Here is how the two together can
 be used to define a safe ``maximum'' macro that operates on any
@@ -953,10 +957,6 @@ GCC support of decimal float as specified by the draft technical report
 is incomplete:
 
 @itemize @bullet
-@item
-Pragma @code{FLOAT_CONST_DECIMAL64} is not supported, nor is the @samp{d}
-suffix for literal constants of type @code{double}.
-
 @item
 When the value of a decimal floating type cannot be represented in the
 integer type to which it is being converted, the result is undefined
@@ -2065,6 +2065,7 @@ objects (@pxref{C++ Attributes}).
 These attributes are not currently implemented for Objective-C@.
 
 @item deprecated
+@itemx deprecated (@var{msg})
 @cindex @code{deprecated} attribute.
 The @code{deprecated} attribute results in a warning if the function
 is used anywhere in the source file.  This is useful when identifying
@@ -2080,7 +2081,9 @@ int old_fn ();
 int (*fn_ptr)() = old_fn;
 @end smallexample
 
-results in a warning on line 3 but not line 2.
+results in a warning on line 3 but not line 2.  The optional msg
+argument, which must be a string, will be printed in the warning if
+present.
 
 The @code{deprecated} attribute can also be used for variables and
 types (@pxref{Variable Attributes}, @pxref{Type Attributes}.)
@@ -2149,7 +2152,7 @@ On the SH Symbian OS target the @code{dllimport} attribute also has
 another affect---it can cause the vtable and run-time type information
 for a class to be exported.  This happens when the class has a
 dllimport'ed constructor or a non-inline, non-pure virtual function
-and, for either of those two conditions, the class also has a inline
+and, for either of those two conditions, the class also has an inline
 constructor or destructor and has a key function that is defined in
 the current translation unit.
 
@@ -2398,7 +2401,7 @@ This attribute is ignored for R8C target.
 
 @item interrupt
 @cindex interrupt handler functions
-Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k,
+Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k, MIPS
 and Xstormy16 ports to indicate that the specified function is an
 interrupt handler.  The compiler will generate function entry and exit
 sequences suitable for use in an interrupt handler when this attribute
@@ -2420,6 +2423,42 @@ Permissible values for this parameter are: IRQ, FIQ, SWI, ABORT and UNDEF@.
 
 On ARMv7-M the interrupt type is ignored, and the attribute means the function
 may be called with a word aligned stack pointer.
+
+On MIPS targets, you can use the following attributes to modify the behavior
+of an interrupt handler:
+@table @code
+@item use_shadow_register_set
+@cindex @code{use_shadow_register_set} attribute
+Assume that the handler uses a shadow register set, instead of
+the main general-purpose registers.
+
+@item keep_interrupts_masked
+@cindex @code{keep_interrupts_masked} attribute
+Keep interrupts masked for the whole function.  Without this attribute,
+GCC tries to reenable interrupts for as much of the function as it can.
+
+@item use_debug_exception_return
+@cindex @code{use_debug_exception_return} attribute
+Return using the @code{deret} instruction.  Interrupt handlers that don't
+have this attribute return using @code{eret} instead.
+@end table
+
+You can use any combination of these attributes, as shown below:
+@smallexample
+void __attribute__ ((interrupt)) v0 ();
+void __attribute__ ((interrupt, use_shadow_register_set)) v1 ();
+void __attribute__ ((interrupt, keep_interrupts_masked)) v2 ();
+void __attribute__ ((interrupt, use_debug_exception_return)) v3 ();
+void __attribute__ ((interrupt, use_shadow_register_set,
+		     keep_interrupts_masked)) v4 ();
+void __attribute__ ((interrupt, use_shadow_register_set,
+		     use_debug_exception_return)) v5 ();
+void __attribute__ ((interrupt, keep_interrupts_masked,
+		     use_debug_exception_return)) v6 ();
+void __attribute__ ((interrupt, use_shadow_register_set,
+		     keep_interrupts_masked,
+		     use_debug_exception_return)) v7 ();
+@end smallexample
 
 @item interrupt_handler
 @cindex interrupt handler functions on the Blackfin, m68k, H8/300 and SH processors
@@ -2553,7 +2592,7 @@ defined by shared libraries.
 @cindex @code{ms_abi} attribute
 @cindex @code{sysv_abi} attribute
 
-On 64-bit x86_65-*-* targets, you can use an ABI attribute to indicate
+On 64-bit x86_64-*-* targets, you can use an ABI attribute to indicate
 which calling convention should be used for a function.  The @code{ms_abi}
 attribute tells the compiler to use the Microsoft ABI, while the
 @code{sysv_abi} attribute tells the compiler to use the ABI used on
@@ -2792,7 +2831,7 @@ default).  Lazy binding will send the first call via resolving code in
 the loader, which might assume EAX, EDX and ECX can be clobbered, as
 per the standard calling conventions.  Solaris 8 is affected by this.
 GNU systems with GLIBC 2.1 or higher, and FreeBSD, are believed to be
-safe since the loaders there save all registers.  (Lazy binding can be
+safe since the loaders there save EAX, EDX and ECX.  (Lazy binding can be
 disabled with the linker or the loader if desired, to avoid the
 problem.)
 
@@ -3069,7 +3108,7 @@ Do/do not align destination of inlined string operations.
 @itemx no-recip
 @cindex @code{target("recip")} attribute
 Enable/disable the generation of RCPSS, RCPPS, RSQRTSS and RSQRTPS
-instructions followed an additional Newton-Rhapson step instead of
+instructions followed an additional Newton-Raphson step instead of
 doing a floating point division.
 
 @item arch=@var{ARCH}
@@ -3809,6 +3848,7 @@ These attributes override the default chosen by the
 @option{-fno-common} and @option{-fcommon} flags respectively.
 
 @item deprecated
+@itemx deprecated (@var{msg})
 @cindex @code{deprecated} attribute
 The @code{deprecated} attribute results in a warning if the variable
 is used anywhere in the source file.  This is useful when identifying
@@ -3824,7 +3864,9 @@ extern int old_var;
 int new_fn () @{ return old_var; @}
 @end smallexample
 
-results in a warning on line 3 but not line 2.
+results in a warning on line 3 but not line 2.  The optional msg
+argument, which must be a string, will be printed in the warning if
+present.
 
 The @code{deprecated} attribute can also be used for functions and
 types (@pxref{Function Attributes}, @pxref{Type Attributes}.)
@@ -3861,7 +3903,7 @@ struct foo
 @emph{Note:} The 4.1, 4.2 and 4.3 series of GCC ignore the
 @code{packed} attribute on bit-fields of type @code{char}.  This has
 been fixed in GCC 4.4 but the change can lead to differences in the
-structure layout.  See the documention of
+structure layout.  See the documentation of
 @option{-Wpacked-bitfield-compat} for more information.
 
 @item section ("@var{section-name}")
@@ -4382,7 +4424,7 @@ struct __attribute__ ((__packed__)) my_packed_struct
   @};
 @end smallexample
 
-You may only specify this attribute on the definition of a @code{enum},
+You may only specify this attribute on the definition of an @code{enum},
 @code{struct} or @code{union}, not on a @code{typedef} which does not
 also define the enumerated type, structure or union.
 
@@ -4454,6 +4496,7 @@ not referenced, but contain constructors and destructors that have
 nontrivial bookkeeping functions.
 
 @item deprecated
+@itemx deprecated (@var{msg})
 The @code{deprecated} attribute results in a warning if the type
 is used anywhere in the source file.  This is useful when identifying
 types that are expected to be removed in a future version of a program.
@@ -4476,7 +4519,9 @@ T3 z __attribute__ ((deprecated));
 results in a warning on line 2 and 3 but not lines 4, 5, or 6.  No
 warning is issued for line 4 because T2 is not explicitly
 deprecated.  Line 5 has no warning because T3 is explicitly
-deprecated.  Similarly for line 6.
+deprecated.  Similarly for line 6.  The optional msg
+argument, which must be a string, will be printed in the warning if
+present.
 
 The @code{deprecated} attribute can also be used for functions and
 variables (@pxref{Function Attributes}, @pxref{Variable Attributes}.)
@@ -5701,7 +5746,7 @@ produce code that uses 4 @code{SIs}.
 
 The types defined in this manner can be used with a subset of normal C
 operations.  Currently, GCC will allow using the following operators
-on these types: @code{+, -, *, /, unary minus, ^, |, &, ~}@.
+on these types: @code{+, -, *, /, unary minus, ^, |, &, ~, %}@.
 
 The operations behave like C++ @code{valarrays}.  Addition is defined as
 the addition of the corresponding elements of the operands.  For
@@ -6635,9 +6680,8 @@ depending on the arguments' types.  For example:
 
 You can use the built-in function @code{__builtin_choose_expr} to
 evaluate code depending on the value of a constant expression.  This
-built-in function returns @var{exp1} if @var{const_exp}, which is a
-constant expression that must be able to be determined at compile time,
-is nonzero.  Otherwise it returns 0.
+built-in function returns @var{exp1} if @var{const_exp}, which is an
+integer constant expression, is nonzero.  Otherwise it returns 0.
 
 This built-in function is analogous to the @samp{? :} operator in C,
 except that the expression returned has its type unaltered by promotion
@@ -6716,7 +6760,11 @@ static const int table[] = @{
 
 @noindent
 This is an acceptable initializer even if @var{EXPRESSION} is not a
-constant expression.  GCC must be more conservative about evaluating the
+constant expression, including the case where
+@code{__builtin_constant_p} returns 1 because @var{EXPRESSION} can be
+folded to a constant but @var{EXPRESSION} contains operands that would
+not otherwise be permitted in a static initializer (for example,
+@code{0 && foo ()}).  GCC must be more conservative about evaluating the
 built-in in this case, because it has no opportunity to perform
 optimization.
 
@@ -7780,6 +7828,11 @@ The following floating point built-in functions are made available in the
 @table @code
 @item __float128 __builtin_infq (void)
 Similar to @code{__builtin_inf}, except the return type is @code{__float128}.
+@findex __builtin_infq
+
+@item __float128 __builtin_huge_valq (void)
+Similar to @code{__builtin_huge_val}, except the return type is @code{__float128}.
+@findex __builtin_huge_valq
 @end table
 
 The following built-in functions are made available by @option{-mmmx}.

@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -54,15 +52,13 @@
 --    significance, but they are significant for error reporting purposes,
 --    since errors are identified by line and column location.
 
---  In GNAT, a physical line is ended by any of the sequences LF, CR/LF, CR or
---  LF/CR. LF is used in typical Unix systems, CR/LF in DOS systems, and CR
---  alone in System 7. We don't know of any system using LF/CR, but it seems
---  reasonable to include this case for consistency. In addition, we recognize
---  any of these sequences in any of the operating systems, for better
---  behavior in treating foreign files (e.g. a Unix file with LF terminators
---  transferred to a DOS system). Finally, wide character codes in categories
---  Separator, Line and Separator, Paragraph are considered to be physical
---  line terminators.
+--  In GNAT, a physical line is ended by any of the sequences LF, CR/LF, or
+--  CR. LF is used in typical Unix systems, CR/LF in DOS systems, and CR
+--  alone in System 7. In addition, we recognize any of these sequences in
+--  any of the operating systems, for better behavior in treating foreign
+--  files (e.g. a Unix file with LF terminators transferred to a DOS system).
+--  Finally, wide character codes in categories Separator, Line and Separator,
+--  Paragraph are considered to be physical line terminators.
 
 with Alloc;
 with Casing; use Casing;
@@ -427,8 +423,10 @@ package Sinput is
    -- Global Data --
    -----------------
 
-   Current_Source_File : Source_File_Index;
-   --  Source_File table index of source file currently being scanned
+   Current_Source_File : Source_File_Index := No_Source_File;
+   --  Source_File table index of source file currently being scanned.
+   --  Initialized so that some tools (such as gprbuild) can be built with
+   --  -gnatVa and pragma Initialized_Scalars without problems.
 
    Current_Source_Unit : Unit_Number_Type;
    --  Unit number of source file currently being scanned. The special value
@@ -472,6 +470,14 @@ package Sinput is
    --  ". The returned string is appended to the Name_Buffer, terminated by
    --  ASCII.NUL, with Name_Length indicating the length not including the
    --  terminating Nul.
+
+   function Expr_First_Char (Expr : Node_Id) return Source_Ptr;
+   --  Given a node for a subexpression, returns the source location of the
+   --  first character of the expression.
+
+   function Expr_Last_Char (Expr : Node_Id) return Source_Ptr;
+   --  Given a node for a subexpression, returns the source location of the
+   --  last character of the expression.
 
    function Get_Column_Number (P : Source_Ptr) return Column_Number;
    --  The ones-origin column number of the specified Source_Ptr value is
@@ -575,8 +581,16 @@ package Sinput is
    --     CR on its own (MAC System 7)
    --     LF on its own (Unix and unix-like systems)
    --     CR/LF (DOS, Windows)
-   --     LF/CR (not used, but recognized in any case)
    --     Wide character in Separator,Line or Separator,Paragraph category
+   --
+   --     Note: we no longer recognize LF/CR (which we did in some earlier
+   --     versions of GNAT. The reason for this is that this sequence is not
+   --     used and recognizing it generated confusion. For example given the
+   --     sequence LF/CR/LF we were interpreting that as (LF/CR) ending the
+   --     first line and a blank line ending with CR following, but it is
+   --     clearly better to interpret this as LF, with a blank line terminated
+   --     by CR/LF, given that LF and CR/LF are both in common use, but no
+   --     system we know of uses LF/CR.
    --
    --  A logical line ending (that is not a physical line ending) is one of:
    --
