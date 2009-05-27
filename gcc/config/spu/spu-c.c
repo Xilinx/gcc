@@ -210,6 +210,9 @@ spu_cpu_cpp_builtins (struct cpp_reader *pfile)
        gcc_unreachable ();
     }
 
+  if (TARGET_SOFTWARE_ICACHE)
+    builtin_define_std ("__SOFTWARE_ICACHE__");
+
   if (!flag_iso)
     {
       /* Define this when supporting context-sensitive keywords.  */

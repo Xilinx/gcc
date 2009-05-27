@@ -78,7 +78,7 @@
   %<matomic-updates %<mno-atomic-updates"
 
 #define LINK_SPEC "%{mlarge-mem: --defsym __stack=0xfffffff0 } \
-		   %{msoftware-icache: --soft-icache --lrlive-analysis}"
+		   %{msoftware-icache: --soft-icache --auto-overlay --lrlive-analysis}"
 
 /* Match each of the mutually exclusive cache<n>k libraries because
    lgcc_cache* did not seem to work -- perhaps a bug in the specs

@@ -1,3 +1,8 @@
+2009-05-27  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* spu-c.c: Define __SOFTWARE_ICACHE__.
+	* spu-elf.h: Add --auto-overlay to LINK_SPEC.
+
 2009-05-18  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 	    Revital Eres  <eres@il.ibm.com>
 
