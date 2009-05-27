@@ -626,7 +626,7 @@ basilys_garbcoll (size_t wanted, bool needfull)
 	scanning (*storp);
     }
   memset (basilys_touched_cache, 0, sizeof (basilys_touched_cache));
-  /* sort of Chesney loop */
+  /* sort of Cheney loop; http://en.wikipedia.org/wiki/Cheney%27s_algorithm */
   while (!VEC_empty (basilys_ptr_t, bscanvec))
     {
       basilys_ptr_t p = VEC_pop (basilys_ptr_t, bscanvec);
@@ -634,7 +634,7 @@ basilys_garbcoll (size_t wanted, bool needfull)
 	continue;
 #if ENABLE_CHECKING
       if (debughack_file)
-	fprintf (debughack_file, "chesney scan %p\n", (void *) p);
+	fprintf (debughack_file, "cheney scan %p\n", (void *) p);
 #endif
       scanning (p);
     }
