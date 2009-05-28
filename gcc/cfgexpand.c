@@ -1392,16 +1392,23 @@ fini_vars_expansion (void)
   stack_vars_conflict_alloc = 0;
 }
 
+/* Make a fair guess for the size of the stack frame of the current
+   function.  This doesn't have to be exact, the result is only used
+   in the inline heuristics.  So we don't want to run the full stack
+   var packing algorithm (which is quadratic in the number of stack
+   vars).  Instead, we calculate the total size of all stack vars.
+   This turns out to be a pretty fair estimate -- packing of stack
+   vars doesn't happen very often.  */
+
 HOST_WIDE_INT
 estimated_stack_frame_size (void)
 {
   HOST_WIDE_INT size = 0;
+  size_t i;
   tree t, outer_block = DECL_INITIAL (current_function_decl);
 
   init_vars_expansion ();
 
-  /* At this point all variables on the local_decls with TREE_USED
-     set are not associated with any block scope.  Lay them out.  */
   for (t = cfun->local_decls; t; t = TREE_CHAIN (t))
     {
       tree var = TREE_VALUE (t);
@@ -1411,27 +1418,17 @@ estimated_stack_frame_size (void)
       TREE_USED (var) = 1;
     }
   size += account_used_vars_for_block (outer_block, true);
+
   if (stack_vars_num > 0)
     {
-      /* Due to the way alias sets work, no variables with non-conflicting
-	 alias sets may be assigned the same address.  Add conflicts to
-	 reflect this.  */
-      add_alias_set_conflicts ();
-
-      /* If stack protection is enabled, we don't share space between
-	 vulnerable data and non-vulnerable data.  */
-      if (flag_stack_protect)
-	add_stack_protection_conflicts ();
-
-      /* Now that we have collected all stack variables, and have computed a
-	 minimal interference graph, attempt to save some stack space.  */
-      partition_stack_vars ();
-      if (dump_file)
-	dump_stack_var_partition ();
-
+      /* Fake sorting the stack vars for account_stack_vars ().  */
+      stack_vars_sorted = XNEWVEC (size_t, stack_vars_num);
+      for (i = 0; i < stack_vars_num; ++i)
+	stack_vars_sorted[i] = i;
       size += account_stack_vars ();
       fini_vars_expansion ();
     }
+
   return size;
 }
 
@@ -2218,7 +2215,7 @@ static void
 expand_stack_alignment (void)
 {
   rtx drap_rtx;
-  unsigned int preferred_stack_boundary, incoming_stack_boundary;
+  unsigned int preferred_stack_boundary;
 
   if (! SUPPORTS_STACK_ALIGNMENT)
     return;
@@ -2230,10 +2227,6 @@ expand_stack_alignment (void)
 
   gcc_assert (crtl->stack_alignment_needed
 	      <= crtl->stack_alignment_estimated);
-
-  /* Update stack boundary if needed.  */
-  if (targetm.calls.update_stack_boundary)
-    targetm.calls.update_stack_boundary (); 
 
   /* Update crtl->stack_alignment_estimated and use it later to align
      stack.  We check PREFERRED_STACK_BOUNDARY if there may be non-call
@@ -2249,15 +2242,8 @@ expand_stack_alignment (void)
   if (preferred_stack_boundary > crtl->stack_alignment_needed)
     crtl->stack_alignment_needed = preferred_stack_boundary;
 
-  /* The incoming stack frame has to be aligned at least at
-     parm_stack_boundary.  */
-  if (crtl->parm_stack_boundary > INCOMING_STACK_BOUNDARY)
-    incoming_stack_boundary = crtl->parm_stack_boundary;
-  else
-    incoming_stack_boundary = INCOMING_STACK_BOUNDARY;
-
   crtl->stack_realign_needed
-    = incoming_stack_boundary < crtl->stack_alignment_estimated;
+    = INCOMING_STACK_BOUNDARY < crtl->stack_alignment_estimated;
   crtl->stack_realign_tried = crtl->stack_realign_needed;
 
   crtl->stack_realign_processed = true;
@@ -2361,6 +2347,23 @@ gimple_expand_cfg (void)
      call to __main (if any) so that the external decl is initialized.  */
   if (crtl->stack_protect_guard)
     stack_protect_prologue ();
+
+  /* Update stack boundary if needed.  */
+  if (SUPPORTS_STACK_ALIGNMENT)
+    {
+      /* Call update_stack_boundary here to update incoming stack
+	 boundary before TARGET_FUNCTION_OK_FOR_SIBCALL is called.
+	 TARGET_FUNCTION_OK_FOR_SIBCALL needs to know the accurate
+	 incoming stack alignment to check if it is OK to perform
+	 sibcall optimization since sibcall optimization will only
+	 align the outgoing stack to incoming stack boundary.  */
+      if (targetm.calls.update_stack_boundary)
+	targetm.calls.update_stack_boundary ();
+      
+      /* The incoming stack frame has to be aligned at least at
+	 parm_stack_boundary.  */
+      gcc_assert (crtl->parm_stack_boundary <= INCOMING_STACK_BOUNDARY);
+    }
 
   /* Register rtl specific functions for cfg.  */
   rtl_register_cfg_hooks ();

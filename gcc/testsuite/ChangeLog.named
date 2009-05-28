@@ -1,3 +1,64 @@
+2009-03-31  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gcc.dg/ea/cppdefine32.c: Support -mea32 / -mea64 testsuite runs.
+	* gcc.dg/ea/cppdefine64.c: Likewise.
+	* gcc.dg/ea/cache32.c: Likewise.
+	* gcc.dg/ea/cache64.c: Likewise.
+
+2008-12-30  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/spu/ea/errors3.c (ea_init): Move tests to errors4.c.
+	(lm_init): Ditto.
+	(ea_init2): Ditto.
+	(lm_init2): Ditto.
+	
+	* gcc.target/spu/ea/errors4.c: New static initialization tests.
+
+	* gcc.target/spu/ea/compile3.c (ea_init): Delete tests.
+	(lm_init): Ditto.
+	(ea_init2): Ditto.
+	(lm_init2): Ditto.
+
+	* gcc.target/spu/ea/execute1.c: Update execution tests.
+	* gcc.target/spu/ea/execute2.c: Ditto.
+	* gcc.target/spu/ea/execute3.c: Ditto.
+	* gcc.target/spu/ea/execute1-m64.c: Ditto.
+	* gcc.target/spu/ea/execute2-m64.c: Ditto.
+	* gcc.target/spu/ea/execute3-m64.c: Ditto.
+
+	* gcc.target/spu/ea/execute4.c: Delete tests that rely on
+	initialization of pointers within the __ea named address space or
+	pointers to the __ea named address space.
+	* gcc.target/spu/ea/execute5.c: Ditto.
+	* gcc.target/spu/ea/execute6.c: Ditto.
+	* gcc.target/spu/ea/execute4-m64.c: Ditto.
+	* gcc.target/spu/ea/execute5-m64.c: Ditto.
+	* gcc.target/spu/ea/execute6-m64.c: Ditto.
+
+2008-12-16  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/spu/ea/compile3.c: Add static initializations.
+	* gcc.target/spu/ea/errors3.c: Ditto.
+	
+	* gcc.target/spu/ea/compile4.c: New file to make sure __ea
+	structure references work.
+
+	* gcc.target/spu/ea/execute1.c: New file to make sure various
+	static initializations work for -mea32.
+	* gcc.target/spu/ea/execute2.c: Ditto.
+	* gcc.target/spu/ea/execute3.c: Ditto.
+	* gcc.target/spu/ea/execute4.c: Ditto.
+	* gcc.target/spu/ea/execute5.c: Ditto.
+	* gcc.target/spu/ea/execute6.c: Ditto.
+
+	* gcc.target/spu/ea/execute1-m64.c: New file to make sure various
+	static initializations work for -mea64.
+	* gcc.target/spu/ea/execute2-m64.c: Ditto.
+	* gcc.target/spu/ea/execute3-m64.c: Ditto.
+	* gcc.target/spu/ea/execute4-m64.c: Ditto.
+	* gcc.target/spu/ea/execute5-m64.c: Ditto.
+	* gcc.target/spu/ea/execute6-m64.c: Ditto.
+	
 2008-12-04  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* gcc.target/spu/ea/errors2.c: Add comment saying this is the same

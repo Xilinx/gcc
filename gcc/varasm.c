@@ -1528,10 +1528,16 @@ make_decl_rtl (tree decl)
     x = create_block_symbol (name, get_block_for_decl (decl), -1);
   else
     {
-      addrmode = (TREE_TYPE (decl) == error_mark_node)
-	? Pmode
-	: targetm.addr_space.pointer_mode
-	(TYPE_ADDR_SPACE (TREE_TYPE (decl)));
+      if (TREE_TYPE (decl) == error_mark_node)
+	addrmode = Pmode;
+      else
+	{
+	  addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (decl));
+	  addrmode = ((as == 0)
+		      ? Pmode
+		      : targetm.addr_space.pointer_mode (as));
+	}
+
       x = gen_rtx_SYMBOL_REF (addrmode, name);
     }
   SYMBOL_REF_WEAK (x) = DECL_WEAK (decl);
@@ -6534,23 +6540,6 @@ default_binds_local_p_1 (const_tree exp, int shlib)
     local_p = true;
 
   return local_p;
-}
-
-/* Determine whether or not a pointer mode is valid. Assume defaults
-   of ptr_mode or Pmode - can be overridden.  */
-bool
-default_valid_pointer_mode (enum machine_mode mode)
-{
-  return (mode == ptr_mode || mode == Pmode);
-}
-
-/* Return the pointer mode for a given ADDRSPACE, defaulting to
-   ptr_mode for the generic address space only.  */
-enum machine_mode
-default_addr_space_pointer_mode (addr_space_t addrspace)
-{
-  gcc_assert (addrspace == 0);
-  return ptr_mode;
 }
 
 /* Default function to output code that will globalize a label.  A

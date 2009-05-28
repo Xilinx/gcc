@@ -1,5 +1,5 @@
 /* Deal with interfaces.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -2411,9 +2411,12 @@ void
 gfc_procedure_use (gfc_symbol *sym, gfc_actual_arglist **ap, locus *where)
 {
 
-  /* Warn about calls with an implicit interface.  */
+  /* Warn about calls with an implicit interface.  Special case
+     for calling a ISO_C_BINDING becase c_loc and c_funloc
+     are pseudo-unknown.  */
   if (gfc_option.warn_implicit_interface
-      && sym->attr.if_source == IFSRC_UNKNOWN)
+      && sym->attr.if_source == IFSRC_UNKNOWN
+      && ! sym->attr.is_iso_c)
     gfc_warning ("Procedure '%s' called with an implicit interface at %L",
 		 sym->name, where);
 
@@ -2670,6 +2673,7 @@ gfc_extend_expr (gfc_expr *e)
   e->value.function.esym = NULL;
   e->value.function.isym = NULL;
   e->value.function.name = NULL;
+  e->user_operator = 1;
 
   if (gfc_pure (NULL) && !gfc_pure (sym))
     {

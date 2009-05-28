@@ -712,6 +712,35 @@ default_builtin_vector_alignment_reachable (const_tree type, bool is_packed)
   return true;
 }
 
+/* Determine whether or not a pointer mode is valid. Assume defaults
+   of ptr_mode or Pmode - can be overridden.  */
+bool
+default_valid_pointer_mode (enum machine_mode mode)
+{
+  return (mode == ptr_mode || mode == Pmode);
+}
+
+/* Return the mode for a pointer to a given ADDRSPACE, defaulting to ptr_mode
+   for the generic address space only.  */
+
+enum machine_mode
+default_addr_space_pointer_mode (addr_space_t addrspace ATTRIBUTE_UNUSED)
+{
+  gcc_assert (addrspace == 0);
+  return ptr_mode;
+}
+
+/* Return the integer mode for subtracting two pointers to named address
+   spaces.  */
+
+tree
+default_addr_space_minus_type (addr_space_t as1 ATTRIBUTE_UNUSED,
+			       addr_space_t as2 ATTRIBUTE_UNUSED)
+{
+  gcc_assert (as1 == 0 && as2 == 0);
+  return ptrdiff_type_node;
+}
+
 /* The default hook for TARGET_ADDR_SPACE_NAME.  This hook should
    never be called for targets with only a generic address space.  */
 
@@ -719,6 +748,41 @@ const char *
 default_addr_space_name (addr_space_t addrspace ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
+}
+
+/* Named address space version of memory_address_p.  */
+
+bool
+default_addr_space_memory_address_p (enum machine_mode mode, rtx mem,
+				     addr_space_t as)
+{
+  if (!as)
+    return memory_address_p (mode, mem);
+
+  gcc_unreachable ();
+}
+
+/* Named address space version of strict_memory_address_p.  */
+
+bool
+default_addr_space_strict_memory_address_p (enum machine_mode mode, rtx mem,
+					    addr_space_t as)
+{
+  if (!as)
+    return strict_memory_address_p (mode, mem);
+
+  gcc_unreachable ();
+}
+
+/* Named address space version of LEGITIMIZE_ADDRESS.  */
+
+rtx
+default_addr_space_legitimize_address (rtx x ATTRIBUTE_UNUSED,
+				       rtx oldx ATTRIBUTE_UNUSED,
+				       enum machine_mode mode ATTRIBUTE_UNUSED,
+				       addr_space_t as ATTRIBUTE_UNUSED)
+{
+  return NULL_RTX;
 }
 
 /* The default hook for determining whether you can convert from one address
@@ -780,6 +844,18 @@ tree
 default_addr_space_section_name (addr_space_t addrspace ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
+}
+
+/* The default hook for determining if a static initialization inside of or
+   pointing to a named address space is ok.  */
+
+bool
+default_addr_space_static_init_ok_p (tree ARG_UNUSED (type),
+				     tree ARG_UNUSED (init),
+				     addr_space_t as,
+				     addr_space_t as_ptr)
+{
+  return (as == 0 && as_ptr == 0);
 }
 
 bool

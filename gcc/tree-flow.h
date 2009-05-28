@@ -1,5 +1,5 @@
 /* Data and Control Flow Analysis for Trees.
-   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -752,6 +752,8 @@ extern bool cleanup_tree_cfg (void);
 
 /* In tree-pretty-print.c.  */
 extern void dump_generic_bb (FILE *, basic_block, int, int);
+extern int op_code_prio (enum tree_code);
+extern int op_prio (const_tree);
 extern const char *op_symbol_code (enum tree_code);
 
 /* In tree-dfa.c  */
@@ -787,6 +789,7 @@ extern gimple create_phi_node (tree, basic_block);
 extern void add_phi_arg (gimple, tree, edge);
 extern void remove_phi_args (edge);
 extern void remove_phi_node (gimple_stmt_iterator *, bool);
+extern void remove_phi_nodes (basic_block);
 extern void init_phinodes (void);
 extern void fini_phinodes (void);
 extern void release_phi_node (gimple);
@@ -988,6 +991,7 @@ unsigned int tree_ssa_prefetch_arrays (void);
 unsigned int remove_empty_loops (void);
 void tree_ssa_iv_optimize (void);
 unsigned tree_predictive_commoning (void);
+tree canonicalize_loop_ivs (struct loop *, htab_t, tree);
 bool parallelize_loops (void);
 
 bool loop_only_exit_p (const struct loop *, const_edge);
@@ -1067,6 +1071,8 @@ static inline bool unmodifiable_var_p (const_tree);
 /* In tree-eh.c  */
 extern void make_eh_edges (gimple);
 extern bool tree_could_trap_p (tree);
+extern bool operation_could_trap_helper_p (enum tree_code, bool, bool, bool,
+					   bool, tree, bool *);
 extern bool operation_could_trap_p (enum tree_code, bool, bool, tree);
 extern bool stmt_could_throw_p (gimple);
 extern bool tree_could_throw_p (tree);

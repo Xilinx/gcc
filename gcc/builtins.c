@@ -1,6 +1,6 @@
 /* Expand builtin functions.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1094,8 +1094,17 @@ expand_builtin_prefetch (tree exp)
 static rtx
 get_memory_rtx (tree exp, tree len)
 {
-  rtx addr = expand_expr (exp, NULL_RTX, ptr_mode, EXPAND_NORMAL);
-  rtx mem = gen_rtx_MEM (BLKmode, memory_address (BLKmode, addr));
+  tree orig_exp = exp;
+  rtx addr, mem;
+  HOST_WIDE_INT off;
+
+  /* When EXP is not resolved SAVE_EXPR, MEM_ATTRS can be still derived
+     from its expression, for expr->a.b only <variable>.a.b is recorded.  */
+  if (TREE_CODE (exp) == SAVE_EXPR && !SAVE_EXPR_RESOLVED_P (exp))
+    exp = TREE_OPERAND (exp, 0);
+
+  addr = expand_expr (orig_exp, NULL_RTX, ptr_mode, EXPAND_NORMAL);
+  mem = gen_rtx_MEM (BLKmode, memory_address (BLKmode, addr));
 
   /* Get an expression we can use to find the attributes to assign to MEM.
      If it is an ADDR_EXPR, use the operand.  Otherwise, dereference it if
@@ -1104,7 +1113,13 @@ get_memory_rtx (tree exp, tree len)
 	 && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0))))
     exp = TREE_OPERAND (exp, 0);
 
-  if (TREE_CODE (exp) == ADDR_EXPR)
+  off = 0;
+  if (TREE_CODE (exp) == POINTER_PLUS_EXPR
+      && TREE_CODE (TREE_OPERAND (exp, 0)) == ADDR_EXPR
+      && host_integerp (TREE_OPERAND (exp, 1), 0)
+      && (off = tree_low_cst (TREE_OPERAND (exp, 1), 0)) > 0)
+    exp = TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
+  else if (TREE_CODE (exp) == ADDR_EXPR)
     exp = TREE_OPERAND (exp, 0);
   else if (POINTER_TYPE_P (TREE_TYPE (exp)))
     exp = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (exp)), exp);
@@ -1117,6 +1132,9 @@ get_memory_rtx (tree exp, tree len)
   if (exp)
     {
       set_mem_attributes (mem, exp, 0);
+
+      if (off)
+	mem = adjust_automodify_address_nv (mem, BLKmode, NULL, off);
 
       /* Allow the string and memory builtins to overflow from one
 	 field into another, see http://gcc.gnu.org/PR23561.
@@ -7306,7 +7324,9 @@ fold_builtin_expect (tree arg0, tree arg1)
 	}
       while (TREE_CODE (inner) == COMPONENT_REF
 	     || TREE_CODE (inner) == ARRAY_REF);
-      if (DECL_P (inner) && DECL_WEAK (inner))
+      if ((TREE_CODE (inner) == VAR_DECL
+           || TREE_CODE (inner) == FUNCTION_DECL)
+	  && DECL_WEAK (inner))
 	return NULL_TREE;
     }
 
@@ -7682,7 +7702,7 @@ fold_builtin_sqrt (tree arg, tree type)
 	  tree tree_root;
 	  /* The inner root was either sqrt or cbrt.  */
 	  /* This was a conditional expression but it triggered a bug
-	     in the Solaris 8 compiler.  */
+	     in Sun C 5.5.  */
 	  REAL_VALUE_TYPE dconstroot;
 	  if (BUILTIN_SQRT_P (fcode))
 	    dconstroot = dconsthalf;
@@ -8887,7 +8907,9 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	  || !TYPE_SIZE_UNIT (srctype)
 	  || !TYPE_SIZE_UNIT (desttype)
 	  || TREE_CODE (TYPE_SIZE_UNIT (srctype)) != INTEGER_CST
-	  || TREE_CODE (TYPE_SIZE_UNIT (desttype)) != INTEGER_CST)
+	  || TREE_CODE (TYPE_SIZE_UNIT (desttype)) != INTEGER_CST
+	  || TYPE_VOLATILE (srctype)
+	  || TYPE_VOLATILE (desttype))
 	return NULL_TREE;
 
       src_align = get_pointer_alignment (src, BIGGEST_ALIGNMENT);
@@ -8904,7 +8926,7 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	{
 	  srcvar = build_fold_indirect_ref (src);
 	  if (TREE_THIS_VOLATILE (srcvar))
-	    srcvar = NULL_TREE;
+	    return NULL_TREE;
 	  else if (!tree_int_cst_equal (lang_hooks.expr_size (srcvar), len))
 	    srcvar = NULL_TREE;
 	  /* With memcpy, it is possible to bypass aliasing rules, so without
@@ -8922,7 +8944,7 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	{
 	  destvar = build_fold_indirect_ref (dest);
 	  if (TREE_THIS_VOLATILE (destvar))
-	    destvar = NULL_TREE;
+	    return NULL_TREE;
 	  else if (!tree_int_cst_equal (lang_hooks.expr_size (destvar), len))
 	    destvar = NULL_TREE;
 	  else if (!var_decl_component_p (destvar))
@@ -8938,7 +8960,7 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	  if (TREE_ADDRESSABLE (TREE_TYPE (destvar)))
 	    return NULL_TREE;
 
-	  srctype = desttype;
+	  srctype = build_qualified_type (desttype, 0);
 	  if (src_align < (int) TYPE_ALIGN (srctype))
 	    {
 	      if (AGGREGATE_TYPE_P (srctype)
@@ -8960,7 +8982,7 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	  if (TREE_ADDRESSABLE (TREE_TYPE (srcvar)))
 	    return NULL_TREE;
 
-	  desttype = srctype;
+	  desttype = build_qualified_type (srctype, 0);
 	  if (dest_align < (int) TYPE_ALIGN (desttype))
 	    {
 	      if (AGGREGATE_TYPE_P (desttype)

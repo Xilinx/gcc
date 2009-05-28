@@ -1,6 +1,6 @@
 // thread -*- C++ -*-
 
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -46,7 +46,7 @@ namespace std
 
 	try
 	  {
-	    __local_thread_data->__run();
+	    __local_thread_data->_M_run();
 	  }
 	catch(...)
 	  {
@@ -58,27 +58,6 @@ namespace std
     }
   }
 
-  thread::thread()
-  { }
-
-  thread::~thread()
-  {
-    detach();
-  }
-
-  thread::id
-  thread::get_id() const
-  {
-    if(_M_thread_data)
-      return thread::id(_M_thread_data->_M_thread_handle); 
-    else
-      return thread::id();
-  }
-
-  bool
-  thread::joinable() const
-  { return get_id() != id(); }
-  
   void
   thread::join()
   {
@@ -108,31 +87,14 @@ namespace std
       }
   }
 
-  void
-  thread::swap(thread&& __t)
-  {
-    std::swap(_M_thread_data, __t._M_thread_data);
-  }
-
   void 
-  thread::__start_thread()
+  thread::_M_start_thread()
   {
     _M_thread_data->_M_this_ptr = _M_thread_data;
     int __e = __gthread_create(&_M_thread_data->_M_thread_handle, 
 			       &__thread_proxy, _M_thread_data.get());
     if(__e)
       __throw_system_error(__e);
-  }
-
-  namespace this_thread
-  {
-    thread::id
-    get_id()
-    { return thread::id(__gthread_self()); }
-    
-    void
-    yield()
-    { __gthread_yield(); }   
   }
 }
 

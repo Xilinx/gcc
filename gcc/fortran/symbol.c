@@ -1,5 +1,5 @@
 /* Maintain binary trees of symbols.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -3197,6 +3197,7 @@ save_symbol (gfc_symbol *sym)
 
   if (sym->attr.in_common
       || sym->attr.dummy
+      || sym->attr.result
       || sym->attr.flavor != FL_VARIABLE)
     return;
   /* Automatic objects are not saved.  */
@@ -4168,6 +4169,7 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
 		tmp_sym->result = tmp_sym;
 		tmp_sym->attr.external = 1;
 		tmp_sym->attr.use_assoc = 0;
+		tmp_sym->attr.pure = 1;
 		tmp_sym->attr.if_source = IFSRC_UNKNOWN;
 		tmp_sym->attr.proc = PROC_UNKNOWN;
 	      }

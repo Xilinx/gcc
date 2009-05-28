@@ -477,8 +477,26 @@
 #define TARGET_ADDR_SPACE_POINTER_MODE default_addr_space_pointer_mode
 #endif
 
+#ifndef TARGET_ADDR_SPACE_MINUS_TYPE
+#define TARGET_ADDR_SPACE_MINUS_TYPE default_addr_space_minus_type
+#endif
+
 #ifndef TARGET_ADDR_SPACE_NAME
 #define TARGET_ADDR_SPACE_NAME default_addr_space_name
+#endif
+
+#ifndef TARGET_ADDR_SPACE_MEMORY_ADDRESS_P
+#define TARGET_ADDR_SPACE_MEMORY_ADDRESS_P default_addr_space_memory_address_p
+#endif
+
+#ifndef TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P
+#define TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P \
+  default_addr_space_strict_memory_address_p
+#endif
+
+#ifndef TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS
+#define TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS \
+  default_addr_space_legitimize_address
 #endif
 
 #ifndef TARGET_ADDR_SPACE_CAN_CONVERT_P
@@ -501,15 +519,24 @@
 #define TARGET_ADDR_SPACE_SECTION_NAME default_addr_space_section_name
 #endif
 
+#ifndef TARGET_ADDR_SPACE_STATIC_INIT_OK_P
+#define TARGET_ADDR_SPACE_STATIC_INIT_OK_P default_addr_space_static_init_ok_p
+#endif
+
 #define TARGET_ADDR_SPACE_HOOKS			\
   {						\
     TARGET_ADDR_SPACE_POINTER_MODE,		\
+    TARGET_ADDR_SPACE_MINUS_TYPE,		\
     TARGET_ADDR_SPACE_NAME,			\
+    TARGET_ADDR_SPACE_MEMORY_ADDRESS_P,		\
+    TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P,	\
+    TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS,	\
     TARGET_ADDR_SPACE_CAN_CONVERT_P,		\
     TARGET_ADDR_SPACE_NOP_CONVERT_P,		\
     TARGET_ADDR_SPACE_SUBSET_P,			\
     TARGET_ADDR_SPACE_CONVERT,			\
     TARGET_ADDR_SPACE_SECTION_NAME,		\
+    TARGET_ADDR_SPACE_STATIC_INIT_OK_P,		\
   }
 
 #ifndef TARGET_SCALAR_MODE_SUPPORTED_P

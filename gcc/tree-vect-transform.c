@@ -122,7 +122,6 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
   int vec_outside_cost = 0;
   int scalar_single_iter_cost = 0;
   int scalar_outside_cost = 0;
-  bool runtime_test = false;
   int vf = LOOP_VINFO_VECT_FACTOR (loop_vinfo);
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   basic_block *bbs = LOOP_VINFO_BBS (loop_vinfo);
@@ -141,15 +140,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
       return 0;
     }
 
-  /* If the number of iterations is unknown, or the
-     peeling-for-misalignment amount is unknown, we will have to generate
-     a runtime test to test the loop count against the threshold.    */
-  if (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
-      || (byte_misalign < 0))
-    runtime_test = true;
-
   /* Requires loop versioning tests to handle misalignment.  */
-
   if (VEC_length (gimple, LOOP_VINFO_MAY_MISALIGN_STMTS (loop_vinfo)))
     {
       /*  FIXME: Make cost depend on complexity of individual check.  */
@@ -240,12 +231,11 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
                  "peeling for alignment is unknown .");
 
       /* If peeled iterations are unknown, count a taken branch and a not taken
-	 branch per peeled loop. Even if scalar loop iterations are known, 
-	 vector iterations are not known since peeled prologue iterations are
-	 not known. Hence guards remain the same.  */
+         branch per peeled loop. Even if scalar loop iterations are known,
+         vector iterations are not known since peeled prologue iterations are
+         not known. Hence guards remain the same.  */
       peel_guard_costs +=  2 * (TARG_COND_TAKEN_BRANCH_COST
-			       + TARG_COND_NOT_TAKEN_BRANCH_COST);
-
+                              + TARG_COND_NOT_TAKEN_BRANCH_COST);
     }
   else 
     {
@@ -337,7 +327,12 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
      conditions/branch directions.  Change the estimates below to
      something more reasonable.  */
 
-  if (runtime_test)
+  /* If the number of iterations is known and we do not do versioning, we can
+     decide whether to vectorize at compile time. Hence the scalar version
+     do not carry cost model guard costs.  */
+  if (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
+      || VEC_length (gimple, LOOP_VINFO_MAY_MISALIGN_STMTS (loop_vinfo))
+      || VEC_length (ddr_p, LOOP_VINFO_MAY_ALIAS_DDRS (loop_vinfo)))
     {
       /* Cost model check occurs at versioning.  */
       if (VEC_length (gimple, LOOP_VINFO_MAY_MISALIGN_STMTS (loop_vinfo))
@@ -345,8 +340,8 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
 	scalar_outside_cost += TARG_COND_NOT_TAKEN_BRANCH_COST;
       else
 	{
-	  /* Cost model occurs at prologue generation.  */
-	  if (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo))
+	  /* Cost model check occurs at prologue generation.  */
+	  if (LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo) < 0)
 	    scalar_outside_cost += 2 * TARG_COND_TAKEN_BRANCH_COST
 	      + TARG_COND_NOT_TAKEN_BRANCH_COST;
 	  /* Cost model check occurs at epilogue generation.  */
@@ -7047,6 +7042,8 @@ vect_transform_stmt (gimple stmt, gimple_stmt_iterator *gsi,
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   gimple orig_stmt_in_pattern;
   bool done;
+  loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
+  struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
 
   switch (STMT_VINFO_TYPE (stmt_info))
     {
@@ -7130,6 +7127,43 @@ vect_transform_stmt (gimple stmt, gimple_stmt_iterator *gsi,
 	}
     }
 
+  /* Handle inner-loop stmts whose DEF is used in the loop-nest that
+     is being vectorized, but outside the immediately enclosing loop.  */
+  if (vec_stmt
+      && nested_in_vect_loop_p (loop, stmt)
+      && STMT_VINFO_TYPE (stmt_info) != reduc_vec_info_type
+      && (STMT_VINFO_RELEVANT (stmt_info) == vect_used_in_outer
+          || STMT_VINFO_RELEVANT (stmt_info) == vect_used_in_outer_by_reduction))
+    {
+      struct loop *innerloop = loop->inner;
+      imm_use_iterator imm_iter;
+      use_operand_p use_p;
+      tree scalar_dest;
+      gimple exit_phi;
+
+      if (vect_print_dump_info (REPORT_DETAILS))
+       fprintf (vect_dump, "Record the vdef for outer-loop vectorization.");
+
+      /* Find the relevant loop-exit phi-node, and reord the vec_stmt there
+        (to be used when vectorizing outer-loop stmts that use the DEF of
+        STMT).  */
+      if (gimple_code (stmt) == GIMPLE_PHI)
+        scalar_dest = PHI_RESULT (stmt);
+      else
+        scalar_dest = gimple_assign_lhs (stmt);
+
+      FOR_EACH_IMM_USE_FAST (use_p, imm_iter, scalar_dest)
+       {
+         if (!flow_bb_inside_loop_p (innerloop, gimple_bb (USE_STMT (use_p))))
+           {
+             exit_phi = USE_STMT (use_p);
+             STMT_VINFO_VEC_STMT (vinfo_for_stmt (exit_phi)) = vec_stmt;
+           }
+       }
+    }
+
+  /* Handle stmts whose DEF is used outside the loop-nest that is
+     being vectorized.  */
   if (STMT_VINFO_LIVE_P (stmt_info)
       && STMT_VINFO_TYPE (stmt_info) != reduc_vec_info_type)
     {

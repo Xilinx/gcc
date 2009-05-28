@@ -4,8 +4,17 @@
 /* This is the same as compile3.c except it should generate errors where
    pointers are mixed.  If you modify this code, please modify compile3.c as
    well.  */
+
+#define __lm
+
+__ea int ea_var = 1;
+__lm int lm_var = 2;
+
 typedef __ea int *ea_ptr_t;
-typedef      int *lm_ptr_t;
+typedef __lm int *lm_ptr_t;
+
+typedef __ea char *ea_cptr_t;
+typedef __lm char *lm_cptr_t;
 
 ea_ptr_t ea, ea2;
 lm_ptr_t lm, lm2;

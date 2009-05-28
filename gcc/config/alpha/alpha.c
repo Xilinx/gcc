@@ -1,6 +1,7 @@
 /* Subroutines used for code generation on the DEC Alpha.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
 This file is part of GCC.
@@ -863,9 +864,11 @@ alpha_legitimate_address_p (enum machine_mode mode, rtx x, int strict)
 	}
     }
 
-  /* If we're managing explicit relocations, LO_SUM is valid, as
-     are small data symbols.  */
-  else if (TARGET_EXPLICIT_RELOCS)
+  /* If we're managing explicit relocations, LO_SUM is valid, as are small
+     data symbols.  Avoid explicit relocations of modes larger than word
+     mode since i.e. $LC0+8($1) can fold around +/- 32k offset.  */
+  else if (TARGET_EXPLICIT_RELOCS
+	   && GET_MODE_SIZE (mode) <= UNITS_PER_WORD)
     {
       if (small_symbolic_operand (x, Pmode))
 	return true;
@@ -915,8 +918,7 @@ get_tls_get_addr (void)
    to be legitimate.  If we find one, return the new, valid address.  */
 
 rtx
-alpha_legitimize_address (rtx x, rtx scratch,
-			  enum machine_mode mode ATTRIBUTE_UNUSED)
+alpha_legitimize_address (rtx x, rtx scratch, enum machine_mode mode)
 {
   HOST_WIDE_INT addend;
 
@@ -964,8 +966,12 @@ alpha_legitimize_address (rtx x, rtx scratch,
       goto split_addend;
     }
 
-  /* If this is a local symbol, split the address into HIGH/LO_SUM parts.  */
-  if (TARGET_EXPLICIT_RELOCS && symbolic_operand (x, Pmode))
+  /* If this is a local symbol, split the address into HIGH/LO_SUM parts.
+     Avoid modes larger than word mode since i.e. $LC0+8($1) can fold
+     around +/- 32k offset.  */
+  if (TARGET_EXPLICIT_RELOCS
+      && GET_MODE_SIZE (mode) <= UNITS_PER_WORD
+      && symbolic_operand (x, Pmode))
     {
       rtx r0, r16, eqv, tga, tp, insn, dest, seq;
 
@@ -8272,6 +8278,11 @@ alpha_end_function (FILE *file, const char *fnname, tree decl ATTRIBUTE_UNUSED)
   if (GET_CODE (insn) == CALL_INSN)
     output_asm_insn (get_insn_template (CODE_FOR_nop, NULL), NULL);
 
+#if TARGET_ABI_OSF
+  if (crtl->is_thunk)
+    free_after_compilation (cfun);
+#endif
+
 #if TARGET_ABI_OPEN_VMS
   alpha_write_linkage (file, fnname, decl);
 #endif
@@ -8310,6 +8321,8 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 {
   HOST_WIDE_INT hi, lo;
   rtx this_rtx, insn, funexp;
+
+  gcc_assert (crtl->is_thunk);
 
   /* We always require a valid GP.  */
   emit_insn (gen_prologue_ldgp ());
@@ -8392,7 +8405,6 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   final_start_function (insn, file, 1);
   final (insn, file, 1);
   final_end_function ();
-  free_after_compilation (cfun);
 }
 #endif /* TARGET_ABI_OSF */
 
@@ -9299,12 +9311,66 @@ alpha_align_insns (unsigned int max_align,
       i = next;
     }
 }
+
+/* Insert an unop between a noreturn function call and GP load.  */
+
+static void
+alpha_pad_noreturn (void)
+{
+  rtx insn, next;
+
+  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+    {
+      if (!CALL_P (insn)
+	  || !find_reg_note (insn, REG_NORETURN, NULL_RTX))
+        continue;
+
+      next = next_active_insn (insn);
+
+      if (next)
+	{
+	  rtx pat = PATTERN (next);
+
+	  if (GET_CODE (pat) == SET
+	      && GET_CODE (SET_SRC (pat)) == UNSPEC_VOLATILE
+	      && XINT (SET_SRC (pat), 1) == UNSPECV_LDGP1)
+	    emit_insn_after (gen_unop (), insn);
+	}
+    }
+}
 
 /* Machine dependent reorg pass.  */
 
 static void
 alpha_reorg (void)
 {
+  /* Workaround for a linker error that triggers when an
+     exception handler immediatelly follows a noreturn function.
+
+     The instruction stream from an object file:
+
+  54:   00 40 5b 6b     jsr     ra,(t12),58 <__func+0x58>
+  58:   00 00 ba 27     ldah    gp,0(ra)
+  5c:   00 00 bd 23     lda     gp,0(gp)
+  60:   00 00 7d a7     ldq     t12,0(gp)
+  64:   00 40 5b 6b     jsr     ra,(t12),68 <__func+0x68>
+
+     was converted in the final link pass to:
+
+   fdb24:       a0 03 40 d3     bsr     ra,fe9a8 <_called_func+0x8>
+   fdb28:       00 00 fe 2f     unop
+   fdb2c:       00 00 fe 2f     unop
+   fdb30:       30 82 7d a7     ldq     t12,-32208(gp)
+   fdb34:       00 40 5b 6b     jsr     ra,(t12),fdb38 <__func+0x68>
+
+     GP load instructions were wrongly cleared by the linker relaxation
+     pass.  This workaround prevents removal of GP loads by inserting
+     an unop instruction between a noreturn function call and
+     exception handler prologue.  */
+
+  if (current_function_has_exception_handlers ())
+    alpha_pad_noreturn ();
+
   if (alpha_tp != ALPHA_TP_PROG || flag_exceptions)
     alpha_handle_trap_shadows ();
 

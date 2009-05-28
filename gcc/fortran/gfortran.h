@@ -1553,6 +1553,10 @@ typedef struct gfc_expr
   /* Sometimes, when an error has been emitted, it is necessary to prevent
       it from recurring.  */
   unsigned int error : 1;
+  
+  /* Mark and expression where a user operator has been substituted by
+     a function call in interface.c(gfc_extend_expr).  */
+  unsigned int user_operator : 1;
 
   /* Used to quickly find a given constructor by its offset.  */
   splay_tree con_by_offset;
@@ -2579,5 +2583,9 @@ void gfc_global_used (gfc_gsymbol *, locus *);
 
 /* dependency.c */
 int gfc_dep_compare_expr (gfc_expr *, gfc_expr *);
+int gfc_is_data_pointer (gfc_expr *);
+
+/* check.c */
+gfc_try gfc_check_same_strlen (const gfc_expr*, const gfc_expr*, const char*);
 
 #endif /* GCC_GFORTRAN_H  */

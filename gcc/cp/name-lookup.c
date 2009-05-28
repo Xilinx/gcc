@@ -3968,9 +3968,34 @@ qualified_lookup_using_namespace (tree name, tree scope,
   POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, result->value != error_mark_node);
 }
 
+/* Subroutine of outer_binding.
+   Returns TRUE if BINDING is a binding to a template parameter of SCOPE,
+   FALSE otherwise.  */
+
+static bool
+binding_to_template_parms_of_scope_p (cxx_binding *binding,
+				      cxx_scope *scope)
+{
+  tree binding_value;
+
+  if (!binding || !scope)
+    return false;
+
+  binding_value = binding->value ?  binding->value : binding->type;
+
+  return (scope
+	  && scope->this_entity
+	  && get_template_info (scope->this_entity)
+	  && parameter_of_template_p (binding_value,
+				      TI_TEMPLATE (get_template_info \
+						    (scope->this_entity))));
+}
+
 /* Return the innermost non-namespace binding for NAME from a scope
-   containing BINDING, or, if BINDING is NULL, the current scope.  If
-   CLASS_P is false, then class bindings are ignored.  */
+   containing BINDING, or, if BINDING is NULL, the current scope.
+   Please note that for a given template, the template parameters are
+   considered to be in the scope containing the current scope.
+   If CLASS_P is false, then class bindings are ignored.  */
 
 cxx_binding *
 outer_binding (tree name,
@@ -4018,6 +4043,16 @@ outer_binding (tree name,
 		return class_binding;
 	      }
 	  }
+	/* If we are in a member template, the template parms of the member
+	   template are considered to be inside the scope of the containing
+	   class, but within G++ the class bindings are all pushed between the
+	   template parms and the function body.  So if the outer binding is
+	   a template parm for the current scope, return it now rather than
+	   look for a class binding.  */
+	if (outer_scope && outer_scope->kind == sk_template_parms
+	    && binding_to_template_parms_of_scope_p (outer, scope))
+	  return outer;
+
 	scope = scope->level_chain;
       }
 
@@ -4118,16 +4153,25 @@ lookup_name_real (tree name, int prefer_type, int nonclass, bool block_p,
 	  {
 	    if (hidden_name_p (binding))
 	      {
-		/* A non namespace-scope binding can only be hidden if
-		   we are in a local class, due to friend declarations.
+		/* A non namespace-scope binding can only be hidden in the
+		   presence of a local class, due to friend declarations.
+
 		   In particular, consider:
 
+		   struct C;
 		   void f() {
 		     struct A {
 		       friend struct B;
-		       void g() { B* b; } // error: B is hidden
-		     }
+		       friend struct C;
+		       void g() {
+		         B* b; // error: B is hidden
+			 C* c; // OK, finds ::C
+		       } 
+		     };
+		     B *b;  // error: B is hidden
+		     C *c;  // OK, finds ::C
 		     struct B {};
+		     B *bb; // OK
 		   }
 
 		   The standard says that "B" is a local class in "f"
@@ -4143,21 +4187,19 @@ lookup_name_real (tree name, int prefer_type, int nonclass, bool block_p,
 		   the name specified is an unqualified name, a prior
 		   declaration is looked up without considering scopes
 		   that are outside the innermost enclosing non-class
-		   scope. For a friend class declaration, if there is no
-		   prior declaration, the class that is specified 
-		   belongs to the innermost enclosing non-class scope,
-		   but if it is subsequently referenced, its name is not
-		   found by name lookup until a matching declaration is
-		   provided in the innermost enclosing nonclass scope.
-		*/
-		gcc_assert (current_class_type &&
-			    LOCAL_CLASS_P (current_class_type));
+		   scope. For a friend function declaration, if there is
+		   no prior declaration, the program is ill-formed. For a
+		   friend class declaration, if there is no prior
+		   declaration, the class that is specified belongs to the
+		   innermost enclosing non-class scope, but if it is
+		   subsequently referenced, its name is not found by name
+		   lookup until a matching declaration is provided in the
+		   innermost enclosing nonclass scope.
 
-		/* This binding comes from a friend declaration in the local
-		   class. The standard (11.4.8) states that the lookup can
-		   only succeed if there is a non-hidden declaration in the
-		   current scope, which is not the case here.  */
-		POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
+		   So just keep looking for a non-hidden binding.
+		*/
+		gcc_assert (TREE_CODE (binding) == TYPE_DECL);
+		continue;
 	      }
 	    val = binding;
 	    break;
@@ -4701,6 +4743,7 @@ arg_assoc_type (struct arg_lookup *k, tree type)
     case VECTOR_TYPE:
     case BOOLEAN_TYPE:
     case FIXED_POINT_TYPE:
+    case DECLTYPE_TYPE:
       return false;
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (type))
@@ -5066,6 +5109,9 @@ pushtag (tree name, tree type, tag_scope scope)
 
       if (b->kind == sk_class)
 	{
+	  if (!TYPE_BEING_DEFINED (current_class_type))
+	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+
 	  if (!PROCESSING_REAL_TEMPLATE_DECL_P ())
 	    /* Put this TYPE_DECL on the TYPE_FIELDS list for the
 	       class.  But if it's a member template class, we want

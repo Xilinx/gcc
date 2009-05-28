@@ -2557,11 +2557,11 @@ extract_range_from_binary_expr (value_range_t *vr,
 	  ior_max.high = vr0_max.high | vr1_max.high;
 	  if (ior_max.high != 0)
 	    {
-	      ior_max.low = ~0u;
+	      ior_max.low = ~(unsigned HOST_WIDE_INT)0u;
 	      ior_max.high |= ((HOST_WIDE_INT) 1
 			       << floor_log2 (ior_max.high)) - 1;
 	    }
-	  else
+	  else if (ior_max.low != 0)
 	    ior_max.low |= ((unsigned HOST_WIDE_INT) 1u
 			    << floor_log2 (ior_max.low)) - 1;
 
@@ -6361,9 +6361,12 @@ vrp_visit_phi_node (gimple phi)
 	     minimums.  */
 	  if (cmp_min > 0 || cmp_min < 0)
 	    {
-	      /* If we will end up with a (-INF, +INF) range, set it
-		 to VARYING.  */
-	      if (vrp_val_is_max (vr_result.max))
+	      /* If we will end up with a (-INF, +INF) range, set it to
+		 VARYING.  Same if the previous max value was invalid for
+		 the type and we'd end up with vr_result.min > vr_result.max.  */
+	      if (vrp_val_is_max (vr_result.max)
+		  || compare_values (TYPE_MIN_VALUE (TREE_TYPE (vr_result.min)),
+				     vr_result.max) > 0)
 		goto varying;
 
 	      if (!needs_overflow_infinity (TREE_TYPE (vr_result.min))
@@ -6380,9 +6383,12 @@ vrp_visit_phi_node (gimple phi)
 	     the previous one, go all the way to +INF.  */
 	  if (cmp_max < 0 || cmp_max > 0)
 	    {
-	      /* If we will end up with a (-INF, +INF) range, set it
-		 to VARYING.  */
-	      if (vrp_val_is_min (vr_result.min))
+	      /* If we will end up with a (-INF, +INF) range, set it to
+		 VARYING.  Same if the previous min value was invalid for
+		 the type and we'd end up with vr_result.max < vr_result.min.  */
+	      if (vrp_val_is_min (vr_result.min)
+		  || compare_values (TYPE_MAX_VALUE (TREE_TYPE (vr_result.max)),
+				     vr_result.min) < 0)
 		goto varying;
 
 	      if (!needs_overflow_infinity (TREE_TYPE (vr_result.max))

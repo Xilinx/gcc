@@ -105,6 +105,7 @@ darwin port		Eric Christopher	echristo@apple.com
 darwin port		Stan Shebs		stanshebs@earthlink.net
 DJGPP			DJ Delorie		dj@delorie.com
 freebsd			Loren J. Rittle		ljrittle@acm.org
+GNU/Hurd		Thomas Schwinge		tschwinge@gnu.org
 hpux			John David Anglin	dave.anglin@nrc-cnrc.gc.ca
 hpux			Steve Ellcey		sje@cup.hp.com
 irix, osf		Rainer Orth		ro@TechFak.Uni-Bielefeld.DE
@@ -213,7 +214,6 @@ linear loop transforms	Daniel Berlin		dberlin@dberlin.org
 profile feedback	Jan Hubicka		jh@suse.cz
 type-safe vectors	Nathan Sidwell		nathan@codesourcery.com
 alias analysis		Daniel Berlin		dberlin@dberlin.org
-alias analysis		Diego Novillo		dnovillo@google.com
 reload			Ulrich Weigand		uweigand@de.ibm.com
 reload			Bernd Schmidt		bernd.schmidt@analog.com
 dfp.c, related		Ben Elliston		bje@au.ibm.com
@@ -247,6 +247,8 @@ Fortran			Janne Blomqvist		jb@gcc.gnu.org
 Fortran			Tobias Burnus		burnus@net-b.de
 Fortran			Jerry DeLisle		jvdelisle@gcc.gnu.org
 Fortran			Erik Edelmann		erik.edelmann@iki.fi
+Fortran			Daniel Franke		franke.daniel@gmail.com
+Fortran			Steven G. Kargl		sgk@troutmask.apl.washington.edu
 Fortran			Thomas König		tkoenig@gcc.gnu.org
 Fortran			Daniel Kraft		d@domob.eu
 Fortran			Toon Moene		toon@moene.org
@@ -271,7 +273,7 @@ from other maintainers or reviewers.
 Mark G. Adams					mark.g.adams@sympatico.ca
 Raksit Ashok					raksit@google.com
 Matt Austern					austern@google.com
-David Ayers					d.ayers@inode.at
+David Ayers					ayers@fsfe.org
 Giovanni Bajo					giovannibajo@gcc.gnu.org
 Simon Baldwin					simonb@google.com
 Scott Bambrough					scottb@netwinder.org
@@ -318,7 +320,6 @@ Doug Evans					dje@google.com
 Chris Fairles					cfairles@gcc.gnu.org
 Thomas Fitzsimmons				fitzsim@redhat.com
 Brian Ford					ford@vss.fsi.com
-Daniel Franke					franke.daniel@gmail.com
 Nathan Froyd					froydnj@codesourcery.com
 Chao-ying Fu					fu@mips.com
 Kaveh Ghazi					ghazi@caip.rutgers.edu
@@ -391,7 +392,6 @@ Michael Matz					matz@suse.de
 Greg McGary					gkm@gnu.org
 Adam Megacz					adam@xwt.org
 Martin Michlmayr				tbm@cyrius.com
-Robert Millan					rmh@gcc.gnu.org
 Lee Millward					lee.millward@gmail.com
 Alan Modra					amodra@bigpond.net.au
 Alexander Monakov				amonakov@ispras.ru
@@ -409,12 +409,13 @@ Jeffrey D. Oldham				oldham@codesourcery.com
 Andrea Ornstein					andrea.ornstein@st.com
 Seongbae Park					seongbae.park@gmail.com
 Devang Patel					dpatel@apple.com
-Fernando Pereira                                pronesto@gmail.com
+Fernando Pereira				pronesto@gmail.com
 Nicolas Pitre					nico@cam.org
 Antoniu Pop					antoniu.pop@gmail.com
 Vladimir Prus					vladimir@codesourcery.com
 Jerry Quinn					jlquinn@optonline.net
 Dwarakanath Rajagopal				dwarak.rajagopal@amd.com
+Ramana Radhakrishnan				ramana.r@gmail.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
 Volker Reichelt					v.reichelt@netcologne.de
 Bernhard Reutner-Fischer			rep.dot.nop@gmail.com
@@ -427,7 +428,6 @@ Douglas Rupp					rupp@gnat.com
 Silvius Rus					rus@google.com
 Matthew Sachs					msachs@apple.com
 Duncan Sands					baldrick@gcc.gnu.org
-Thomas Schwinge					tschwinge@gnu.org
 Dodji Seketeli					dseketel@redhat.com
 Svein Seldal					svein@dev.seldal.com
 Thiemo Seufer					ths@networkno.de

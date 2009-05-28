@@ -3844,7 +3844,12 @@ may_eliminate_iv (struct ivopts_data *data,
     return false;
 
   cand_value_at (loop, cand, use->stmt, nit, &bnd);
+
   *bound = aff_combination_to_tree (&bnd);
+  /* It is unlikely that computing the number of iterations using division
+     would be more profitable than keeping the original induction variable.  */
+  if (expression_expensive_p (*bound))
+    return false;
   return true;
 }
 
@@ -4355,8 +4360,8 @@ iv_ca_add_use (struct ivopts_data *data, struct iv_ca *ivs,
 static comp_cost
 iv_ca_cost (struct iv_ca *ivs)
 {
-  /* This was a conditional expression but it triggered a bug in the
-     Solaris 8 compiler.  */
+  /* This was a conditional expression but it triggered a bug in
+     Sun C 5.5.  */
   if (ivs->bad_uses)
     return infinite_cost;
   else

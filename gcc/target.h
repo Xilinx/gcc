@@ -667,15 +667,31 @@ struct gcc_target
     /* MODE to use for a pointer into another address space.  */
     enum machine_mode (* pointer_mode) (addr_space_t);
 
+    /* Tree type to use for pointer subtraction.  */
+    tree (* minus_type) (addr_space_t, addr_space_t);
+
     /* Function to map an address space to a descriptive string.  */
     const char * (* name) (addr_space_t);
+
+    /* True if an addrress is a valid memory address to a given named address
+       space for a given mode.  */
+    bool (* memory_address_p) (enum machine_mode, rtx, addr_space_t);
+
+    /* True if an addrress is a valid memory address for use after register
+       allocation to a given named address space for a given mode.  */
+    bool (* strict_memory_address_p) (enum machine_mode, rtx, addr_space_t);
+
+    /* Return an updated address to convert an invalid pointer to a named
+       address space to a valid one.  If NULL_RTX is returned use machine
+       independent methods to make the address valid.  */
+    rtx (* legitimize_address) (rtx, rtx, enum machine_mode, addr_space_t);
 
     /* True if it is legal to convert a pointer of one address space to
        another.  */
     bool (* can_convert_p) (addr_space_t, addr_space_t);
 
     /* True if converting a pointer of one address space to another is just a
-       NOP.  */
+       NOP and can be optimized away by the compiler.  */
     bool (* nop_convert_p) (addr_space_t, addr_space_t);
 
     /* True if one named address space is a subset of another and if so, which
@@ -688,6 +704,11 @@ struct gcc_target
 
     /* Section name to use for a named address space.  */
     tree (* section_name) (addr_space_t);
+
+    /* Return whether static initialization within a named address space or
+       pointing to a named address space is allowed.  */
+    bool (* static_init_ok_p) (tree, tree, addr_space_t, addr_space_t);
+
   } addr_space;
 
   /* True if MODE is valid for the target.  By "valid", we mean able to

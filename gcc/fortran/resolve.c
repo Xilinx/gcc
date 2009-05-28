@@ -1,5 +1,5 @@
 /* Perform type resolution on the various structures.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -2047,12 +2047,10 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
   char binding_label[GFC_MAX_BINDING_LABEL_LEN + 1];
-  int optional_arg = 0;
+  int optional_arg = 0, is_pointer = 0;
   gfc_try retval = SUCCESS;
   gfc_symbol *args_sym;
   gfc_typespec *arg_ts;
-  gfc_ref *parent_ref;
-  gfc_ref *curr_ref;
 
   if (args->expr->expr_type == EXPR_CONSTANT
       || args->expr->expr_type == EXPR_OP
@@ -2070,32 +2068,8 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
      the actual expression could be a part-ref of the expr symbol.  */
   arg_ts = &(args->expr->ts);
 
-  /* Get the parent reference (if any) for the expression.  This happens for
-     cases such as a%b%c.  */
-  parent_ref = args->expr->ref;
-  curr_ref = NULL;
-  if (parent_ref != NULL)
-    {
-      curr_ref = parent_ref->next;
-      while (curr_ref != NULL && curr_ref->next != NULL)
-        {
-	  parent_ref = curr_ref;
-	  curr_ref = curr_ref->next;
-	}
-    }
-
-  /* If curr_ref is non-NULL, we had a part-ref expression.  If the curr_ref
-     is for a REF_COMPONENT, then we need to use it as the parent_ref for
-     the name, etc.  Otherwise, the current parent_ref should be correct.  */
-  if (curr_ref != NULL && curr_ref->type == REF_COMPONENT)
-    parent_ref = curr_ref;
-
-  if (parent_ref == args->expr->ref)
-    parent_ref = NULL;
-  else if (parent_ref != NULL && parent_ref->type != REF_COMPONENT)
-    gfc_internal_error ("Unexpected expression reference type in "
-			"gfc_iso_c_func_interface");
-
+  is_pointer = gfc_is_data_pointer (args->expr);
+    
   if (sym->intmod_sym_id == ISOCBINDING_ASSOCIATED)
     {
       /* If the user gave two args then they are providing something for
@@ -2137,10 +2111,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
       else if (sym->intmod_sym_id == ISOCBINDING_LOC)
         {
           /* Make sure we have either the target or pointer attribute.  */
-	  if (!(args_sym->attr.target)
-	      && !(args_sym->attr.pointer)
-	      && (parent_ref == NULL ||
-		  !parent_ref->u.c.component->attr.pointer))
+	  if (!args_sym->attr.target && !is_pointer)
             {
               gfc_error_now ("Parameter '%s' to '%s' at %L must be either "
                              "a TARGET or an associated pointer",
@@ -2223,9 +2194,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 			  }
                     }
                 }
-              else if ((args_sym->attr.pointer == 1 ||
-			(parent_ref != NULL 
-			 && parent_ref->u.c.component->attr.pointer))
+              else if (is_pointer
 		       && is_scalar_expr_ptr (args->expr) != SUCCESS)
                 {
                   /* Case 1c, section 15.1.2.5, J3/04-007: an associated
@@ -2944,15 +2913,20 @@ resolve_call (gfc_code *c)
 
   if (csym && gfc_current_ns->parent && csym->ns != gfc_current_ns)
     {
-      gfc_find_symbol (csym->name, gfc_current_ns, 1, &sym);
+      gfc_symtree *st;
+      gfc_find_sym_tree (csym->name, gfc_current_ns, 1, &st);
+      sym = st ? st->n.sym : NULL;
       if (sym && csym != sym
 	      && sym->ns == gfc_current_ns
 	      && sym->attr.flavor == FL_PROCEDURE
 	      && sym->attr.contained)
 	{
 	  sym->refs++;
-	  csym = sym;
-	  c->symtree->n.sym = sym;
+	  if (csym->attr.generic)
+	    c->symtree->n.sym = sym;
+	  else
+	    c->symtree = st;
+	  csym = c->symtree->n.sym;
 	}
     }
 
@@ -4315,18 +4289,25 @@ resolve_procedure:
 /* Checks to see that the correct symbol has been host associated.
    The only situation where this arises is that in which a twice
    contained function is parsed after the host association is made.
-   Therefore, on detecting this, the line is rematched, having got
-   rid of the existing references and actual_arg_list.  */
+   Therefore, on detecting this, change the symbol in the expression
+   and convert the array reference into an actual arglist if the old
+   symbol is a variable.  */
 static bool
 check_host_association (gfc_expr *e)
 {
   gfc_symbol *sym, *old_sym;
-  locus temp_locus;
-  gfc_expr *expr;
+  gfc_symtree *st;
   int n;
+  gfc_ref *ref;
+  gfc_actual_arglist *arg, *tail;
   bool retval = e->expr_type == EXPR_FUNCTION;
 
-  if (e->symtree == NULL || e->symtree->n.sym == NULL)
+  /*  If the expression is the result of substitution in
+      interface.c(gfc_extend_expr) because there is no way in
+      which the host association can be wrong.  */
+  if (e->symtree == NULL
+	|| e->symtree->n.sym == NULL
+	|| e->user_operator)
     return retval;
 
   old_sym = e->symtree->n.sym;
@@ -4334,26 +4315,16 @@ check_host_association (gfc_expr *e)
   if (gfc_current_ns->parent
 	&& old_sym->ns != gfc_current_ns)
     {
-      gfc_find_symbol (old_sym->name, gfc_current_ns, 1, &sym);
+      /* Use the 'USE' name so that renamed module symbols are
+	 correctly handled.  */
+      gfc_find_symbol (e->symtree->name, gfc_current_ns, 1, &sym);
+
       if (sym && old_sym != sym
 	      && sym->ts.type == old_sym->ts.type
 	      && sym->attr.flavor == FL_PROCEDURE
 	      && sym->attr.contained)
 	{
-	  temp_locus = gfc_current_locus;
-	  gfc_current_locus = e->where;
-
-	  gfc_buffer_error (1);
-
-	  gfc_free_ref_list (e->ref);
-	  e->ref = NULL;
-
-	  if (retval)
-	    {
-	      gfc_free_actual_arglist (e->value.function.actual);
-	      e->value.function.actual = NULL;
-	    }
-
+	  /* Clear the shape, since it might not be valid.  */
 	  if (e->shape != NULL)
 	    {
 	      for (n = 0; n < e->rank; n++)
@@ -4362,17 +4333,58 @@ check_host_association (gfc_expr *e)
 	      gfc_free (e->shape);
 	    }
 
-	  gfc_match_rvalue (&expr);
-	  gfc_clear_error ();
-	  gfc_buffer_error (0);
+	  /* Give the symbol a symtree in the right place!  */
+	  gfc_get_sym_tree (sym->name, gfc_current_ns, &st);
+	  st->n.sym = sym;
 
-	  gcc_assert (expr && sym == expr->symtree->n.sym);
+	  if (old_sym->attr.flavor == FL_PROCEDURE)
+	    {
+	      /* Original was function so point to the new symbol, since
+		 the actual argument list is already attached to the
+		 expression. */
+	      e->value.function.esym = NULL;
+	      e->symtree = st;
+	    }
+	  else
+	    {
+	      /* Original was variable so convert array references into
+		 an actual arglist. This does not need any checking now
+		 since gfc_resolve_function will take care of it.  */
+	      e->value.function.actual = NULL;
+	      e->expr_type = EXPR_FUNCTION;
+	      e->symtree = st;
 
-	  *e = *expr;
-	  gfc_free (expr);
+	      /* Ambiguity will not arise if the array reference is not
+		 the last reference.  */
+	      for (ref = e->ref; ref; ref = ref->next)
+		if (ref->type == REF_ARRAY && ref->next == NULL)
+		  break;
+
+	      gcc_assert (ref->type == REF_ARRAY);
+
+	      /* Grab the start expressions from the array ref and
+		 copy them into actual arguments.  */
+	      for (n = 0; n < ref->u.ar.dimen; n++)
+		{
+		  arg = gfc_get_actual_arglist ();
+		  arg->expr = gfc_copy_expr (ref->u.ar.start[n]);
+		  if (e->value.function.actual == NULL)
+		    tail = e->value.function.actual = arg;
+	          else
+		    {
+		      tail->next = arg;
+		      tail = arg;
+		    }
+		}
+
+	      /* Dump the reference list and set the rank.  */
+	      gfc_free_ref_list (e->ref);
+	      e->ref = NULL;
+	      e->rank = sym->as ? sym->as->rank : 0;
+	    }
+
+	  gfc_resolve_expr (e);
 	  sym->refs++;
-
-	  gfc_current_locus = temp_locus;
 	}
     }
   /* This might have changed!  */
@@ -9263,6 +9275,7 @@ resolve_symbol (gfc_symbol *sym)
      module function and is not PRIVATE.  */
   if (sym->ts.type == BT_DERIVED
 	&& sym->ts.derived->attr.use_assoc
+	&& sym->ns->proc_name
 	&& sym->ns->proc_name->attr.flavor == FL_MODULE)
     {
       gfc_symbol *ds;

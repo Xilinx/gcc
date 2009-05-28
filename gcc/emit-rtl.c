@@ -1,6 +1,6 @@
 /* Emit RTL for the GCC expander.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-pass.h"
 #include "df.h"
+#include "target.h"
 
 /* Commonly used modes.  */
 
@@ -179,7 +180,7 @@ static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
 #define first_label_num (crtl->emit.x_first_label_num)
 
 static rtx make_call_insn_raw (rtx);
-static rtx change_address_1 (rtx, enum machine_mode, rtx, int);
+static rtx change_address_1 (rtx, enum machine_mode, rtx, int, addr_space_t);
 static void set_used_decls (tree);
 static void mark_label_nuses (rtx);
 static hashval_t const_int_htab_hash (const void *);
@@ -1493,6 +1494,90 @@ mem_expr_equal_p (const_tree expr1, const_tree expr2)
   return 0;
 }
 
+/* Return OFFSET if XEXP (MEM, 0) - OFFSET is known to be ALIGN
+   bits aligned for 0 <= OFFSET < ALIGN / BITS_PER_UNIT, or
+   -1 if not known.  */
+
+int
+get_mem_align_offset (rtx mem, int align)
+{
+  tree expr;
+  unsigned HOST_WIDE_INT offset;
+
+  /* This function can't use
+     if (!MEM_EXPR (mem) || !MEM_OFFSET (mem)
+	 || !CONST_INT_P (MEM_OFFSET (mem))
+	 || (get_object_alignment (MEM_EXPR (mem), MEM_ALIGN (mem), align)
+	     < align))
+       return -1;
+     else
+       return (- INTVAL (MEM_OFFSET (mem))) & (align / BITS_PER_UNIT - 1);
+     for two reasons:
+     - COMPONENT_REFs in MEM_EXPR can have NULL first operand,
+       for <variable>.  get_inner_reference doesn't handle it and
+       even if it did, the alignment in that case needs to be determined
+       from DECL_FIELD_CONTEXT's TYPE_ALIGN.
+     - it would do suboptimal job for COMPONENT_REFs, even if MEM_EXPR
+       isn't sufficiently aligned, the object it is in might be.  */
+  gcc_assert (MEM_P (mem));
+  expr = MEM_EXPR (mem);
+  if (expr == NULL_TREE
+      || MEM_OFFSET (mem) == NULL_RTX
+      || !CONST_INT_P (MEM_OFFSET (mem)))
+    return -1;
+
+  offset = INTVAL (MEM_OFFSET (mem));
+  if (DECL_P (expr))
+    {
+      if (DECL_ALIGN (expr) < align)
+	return -1;
+    }
+  else if (INDIRECT_REF_P (expr))
+    {
+      if (TYPE_ALIGN (TREE_TYPE (expr)) < (unsigned int) align)
+	return -1;
+    }
+  else if (TREE_CODE (expr) == COMPONENT_REF)
+    {
+      while (1)
+	{
+	  tree inner = TREE_OPERAND (expr, 0);
+	  tree field = TREE_OPERAND (expr, 1);
+	  tree byte_offset = component_ref_field_offset (expr);
+	  tree bit_offset = DECL_FIELD_BIT_OFFSET (field);
+
+	  if (!byte_offset
+	      || !host_integerp (byte_offset, 1)
+	      || !host_integerp (bit_offset, 1))
+	    return -1;
+
+	  offset += tree_low_cst (byte_offset, 1);
+	  offset += tree_low_cst (bit_offset, 1) / BITS_PER_UNIT;
+
+	  if (inner == NULL_TREE)
+	    {
+	      if (TYPE_ALIGN (DECL_FIELD_CONTEXT (field))
+		  < (unsigned int) align)
+		return -1;
+	      break;
+	    }
+	  else if (DECL_P (inner))
+	    {
+	      if (DECL_ALIGN (inner) < align)
+		return -1;
+	      break;
+	    }
+	  else if (TREE_CODE (inner) != COMPONENT_REF)
+	    return -1;
+	  expr = inner;
+	}
+    }
+  else
+    return -1;
+
+  return offset & ((align / BITS_PER_UNIT) - 1);
+}
+
 /* Given REF (a MEM) and T, either the type of X or the expression
    corresponding to REF, set the memory attributes.  OBJECTP is nonzero
    if we are making a new object of this type.  BITPOS is nonzero if
@@ -1862,7 +1947,8 @@ set_mem_size (rtx mem, rtx size)
    attributes are not changed.  */
 
 static rtx
-change_address_1 (rtx memref, enum machine_mode mode, rtx addr, int validate)
+change_address_1 (rtx memref, enum machine_mode mode, rtx addr, int validate,
+		  addr_space_t as)
 {
   rtx new_rtx;
 
@@ -1872,15 +1958,15 @@ change_address_1 (rtx memref, enum machine_mode mode, rtx addr, int validate)
   if (addr == 0)
     addr = XEXP (memref, 0);
   if (mode == GET_MODE (memref) && addr == XEXP (memref, 0)
-      && (!validate || memory_address_p (mode, addr)))
+      && (!validate || memory_address_addr_space_p (mode, addr, as)))
     return memref;
 
   if (validate)
     {
       if (reload_in_progress || reload_completed)
-	gcc_assert (memory_address_p (mode, addr));
+	gcc_assert (memory_address_addr_space_p (mode, addr, as));
       else
-	addr = memory_address (mode, addr);
+	addr = memory_address_addr_space (mode, addr, as);
     }
 
   if (rtx_equal_p (addr, XEXP (memref, 0)) && mode == GET_MODE (memref))
@@ -1888,16 +1974,23 @@ change_address_1 (rtx memref, enum machine_mode mode, rtx addr, int validate)
 
   new_rtx = gen_rtx_MEM (mode, addr);
   MEM_COPY_ATTRIBUTES (new_rtx, memref);
+
+  if (as != MEM_ADDR_SPACE (memref))
+    set_mem_addr_space (new_rtx, as);
+
   return new_rtx;
 }
 
-/* Like change_address_1 with VALIDATE nonzero, but we are not saying in what
-   way we are changing MEMREF, so we only preserve the alias set.  */
+/* Like change_address_1 with VALIDATE nonzero, and the address space set, but
+   we are not saying in what way we are changing MEMREF, so we only preserve
+   the alias set.  */
 
 rtx
-change_address (rtx memref, enum machine_mode mode, rtx addr)
+change_address_addr_space (rtx memref, enum machine_mode mode, rtx addr,
+			   addr_space_t as)
 {
-  rtx new_rtx = change_address_1 (memref, mode, addr, 1), size;
+  rtx new_rtx = change_address_1 (memref, mode, addr, 1, as);
+  rtx size;
   enum machine_mode mmode = GET_MODE (new_rtx);
   unsigned int align;
 
@@ -1911,17 +2004,31 @@ change_address (rtx memref, enum machine_mode mode, rtx addr)
 	  || (MEM_EXPR (memref) == NULL
 	      && MEM_OFFSET (memref) == NULL
 	      && MEM_SIZE (memref) == size
+	      && MEM_ADDR_SPACE (memref) == as
 	      && MEM_ALIGN (memref) == align))
 	return new_rtx;
 
       new_rtx = gen_rtx_MEM (mmode, XEXP (memref, 0));
       MEM_COPY_ATTRIBUTES (new_rtx, memref);
+
+      if (as != MEM_ADDR_SPACE (new_rtx))
+	set_mem_addr_space (new_rtx, as);
     }
 
   MEM_ATTRS (new_rtx)
-    = get_mem_attrs (MEM_ALIAS_SET (memref), 0, 0, size, align, MEM_ADDR_SPACE (memref), mmode);
+    = get_mem_attrs (MEM_ALIAS_SET (memref), 0, 0, size, align, as, mmode);
 
   return new_rtx;
+}
+
+/* Like change_address_addr_space, except we don't change the named address
+   space.  */
+
+rtx
+change_address (rtx memref, enum machine_mode mode, rtx addr)
+{
+  return change_address_addr_space (memref, mode, addr,
+				    MEM_ADDR_SPACE (memref));
 }
 
 /* Return a memory reference like MEMREF, but with its mode changed
@@ -1939,10 +2046,14 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
   rtx memoffset = MEM_OFFSET (memref);
   rtx size = 0;
   unsigned int memalign = MEM_ALIGN (memref);
+  addr_space_t as = MEM_ADDR_SPACE (memref);
+  enum machine_mode mem_Pmode = (!as
+				 ? Pmode
+				 : targetm.addr_space.pointer_mode (as));
 
   /* If there are no changes, just return the original memory reference.  */
   if (mode == GET_MODE (memref) && !offset
-      && (!validate || memory_address_p (mode, addr)))
+      && (!validate || memory_address_addr_space_p (mode, addr, as)))
     return memref;
 
   /* ??? Prefer to create garbage instead of creating shared rtl.
@@ -1958,13 +2069,18 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
 	  && offset >= 0
 	  && (unsigned HOST_WIDE_INT) offset
 	      < GET_MODE_ALIGNMENT (GET_MODE (memref)) / BITS_PER_UNIT)
-	addr = gen_rtx_LO_SUM (Pmode, XEXP (addr, 0),
+	addr = gen_rtx_LO_SUM (mem_Pmode, XEXP (addr, 0),
 			       plus_constant (XEXP (addr, 1), offset));
       else
 	addr = plus_constant (addr, offset);
     }
 
-  new_rtx = change_address_1 (memref, mode, addr, validate);
+  new_rtx = change_address_1 (memref, mode, addr, validate, as);
+
+  /* If the address is a REG, change_address_1 rightfully returns memref,
+     but this would destroy memref's MEM_ATTRS.  */
+  if (new_rtx == memref && offset != 0)
+    new_rtx = copy_rtx (new_rtx);
 
   /* Compute the new values of the memory attributes due to this adjustment.
      We add the offsets and update the alignment.  */
@@ -1986,8 +2102,8 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
     size = plus_constant (MEM_SIZE (memref), -offset);
 
   MEM_ATTRS (new_rtx) = get_mem_attrs (MEM_ALIAS_SET (memref), MEM_EXPR (memref),
-				   memoffset, size, memalign, MEM_ADDR_SPACE (memref),
-				   GET_MODE (new_rtx));
+				       memoffset, size, memalign, as,
+				       GET_MODE (new_rtx));
 
   /* At some point, we should validate that this offset is within the object,
      if all the appropriate values are known.  */
@@ -2003,7 +2119,8 @@ rtx
 adjust_automodify_address_1 (rtx memref, enum machine_mode mode, rtx addr,
 			     HOST_WIDE_INT offset, int validate)
 {
-  memref = change_address_1 (memref, VOIDmode, addr, validate);
+  memref = change_address_1 (memref, VOIDmode, addr, validate,
+			     MEM_ADDR_SPACE (memref));
   return adjust_address_1 (memref, mode, offset, validate, 0);
 }
 
@@ -2015,8 +2132,12 @@ rtx
 offset_address (rtx memref, rtx offset, unsigned HOST_WIDE_INT pow2)
 {
   rtx new_rtx, addr = XEXP (memref, 0);
+  addr_space_t as = MEM_ADDR_SPACE (memref);
+  enum machine_mode mem_Pmode = (!as
+				 ? Pmode
+				 : targetm.addr_space.pointer_mode (as));
 
-  new_rtx = simplify_gen_binary (PLUS, Pmode, addr, offset);
+  new_rtx = simplify_gen_binary (PLUS, mem_Pmode, addr, offset);
 
   /* At this point we don't know _why_ the address is invalid.  It
      could have secondary memory references, multiplies or anything.
@@ -2025,16 +2146,17 @@ offset_address (rtx memref, rtx offset, unsigned HOST_WIDE_INT pow2)
      being able to recognize the magic around pic_offset_table_rtx.
      This stuff is fragile, and is yet another example of why it is
      bad to expose PIC machinery too early.  */
-  if (! memory_address_p (GET_MODE (memref), new_rtx)
+  if (! memory_address_addr_space_p (GET_MODE (memref), new_rtx, as)
       && GET_CODE (addr) == PLUS
       && XEXP (addr, 0) == pic_offset_table_rtx)
     {
       addr = force_reg (GET_MODE (addr), addr);
-      new_rtx = simplify_gen_binary (PLUS, Pmode, addr, offset);
+      new_rtx = simplify_gen_binary (PLUS, mem_Pmode, addr, offset);
     }
 
   update_temp_slot_address (XEXP (memref, 0), new_rtx);
-  new_rtx = change_address_1 (memref, VOIDmode, new_rtx, 1);
+  new_rtx = change_address_1 (memref, VOIDmode, new_rtx, 1,
+			      MEM_ADDR_SPACE (memref));
 
   /* If there are no changes, just return the original memory reference.  */
   if (new_rtx == memref)
@@ -2045,7 +2167,7 @@ offset_address (rtx memref, rtx offset, unsigned HOST_WIDE_INT pow2)
   MEM_ATTRS (new_rtx)
     = get_mem_attrs (MEM_ALIAS_SET (memref), MEM_EXPR (memref), 0, 0,
 		     MIN (MEM_ALIGN (memref), pow2 * BITS_PER_UNIT),
-		     MEM_ADDR_SPACE (memref), GET_MODE (new_rtx));
+		     as, GET_MODE (new_rtx));
   return new_rtx;
 }
 
@@ -2060,7 +2182,8 @@ replace_equiv_address (rtx memref, rtx addr)
   /* change_address_1 copies the memory attribute structure without change
      and that's exactly what we want here.  */
   update_temp_slot_address (XEXP (memref, 0), addr);
-  return change_address_1 (memref, VOIDmode, addr, 1);
+  return change_address_1 (memref, VOIDmode, addr, 1,
+			   MEM_ADDR_SPACE (memref));
 }
 
 /* Likewise, but the reference is not required to be valid.  */
@@ -2068,7 +2191,7 @@ replace_equiv_address (rtx memref, rtx addr)
 rtx
 replace_equiv_address_nv (rtx memref, rtx addr)
 {
-  return change_address_1 (memref, VOIDmode, addr, 0);
+  return change_address_1 (memref, VOIDmode, addr, 0, MEM_ADDR_SPACE (memref));
 }
 
 /* Return a memory reference like MEMREF, but with its mode widened to

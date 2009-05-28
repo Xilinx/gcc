@@ -19,8 +19,4 @@
 /* { dg-require-effective-target "ea64" } */
 /* { dg-options "-mcache-size=8 -O2 -mea64 -g" } */
 
-#ifndef __EA64__
-#error "You must use -mea64 for this test"
-#endif
-
 #include "cache-common.h"

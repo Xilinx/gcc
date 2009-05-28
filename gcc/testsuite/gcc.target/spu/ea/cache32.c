@@ -19,8 +19,4 @@
 /* { dg-require-effective-target "ea32" } */
 /* { dg-options "-mcache-size=8 -O2 -mea32 -g" } */
 
-#ifndef __EA32__
-#error "You must use -mea32 for this test"
-#endif
-
 #include "cache-common.h"

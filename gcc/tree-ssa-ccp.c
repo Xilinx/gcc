@@ -860,6 +860,10 @@ may_propagate_address_into_dereference (tree addr, tree deref)
   gcc_assert (INDIRECT_REF_P (deref)
 	      && TREE_CODE (addr) == ADDR_EXPR);
 
+  /* Don't propagate if ADDR's operand has incomplete type.  */
+  if (!COMPLETE_TYPE_P (TREE_TYPE (TREE_OPERAND (addr, 0))))
+    return false;
+
   /* If the address is invariant then we do not need to preserve restrict
      qualifications.  But we do need to preserve volatile qualifiers until
      we can annotate the folded dereference itself properly.  */
@@ -962,7 +966,6 @@ ccp_fold (gimple stmt)
                  so this should almost always return a simplified RHS.  */
               tree lhs = gimple_assign_lhs (stmt);
               tree op0 = gimple_assign_rhs1 (stmt);
-	      tree res;
 
               /* Simplify the operand down to a constant.  */
               if (TREE_CODE (op0) == SSA_NAME)
@@ -998,20 +1001,8 @@ ccp_fold (gimple stmt)
 		  return op0;
 		}
 
-              res = fold_unary (subcode, gimple_expr_type (stmt), op0);
-
-	      /* If the operation was a conversion do _not_ mark a
-	         resulting constant with TREE_OVERFLOW if the original
-		 constant was not.  These conversions have implementation
-		 defined behavior and retaining the TREE_OVERFLOW flag
-		 here would confuse later passes such as VRP.  */
-	      if (res
-		  && TREE_CODE (res) == INTEGER_CST
-		  && TREE_CODE (op0) == INTEGER_CST
-		  && CONVERT_EXPR_CODE_P (subcode))
-		TREE_OVERFLOW (res) = TREE_OVERFLOW (op0);
-
-	      return res;
+              return fold_unary_ignore_overflow (subcode,
+						 gimple_expr_type (stmt), op0);
             }
 
           case GIMPLE_BINARY_RHS:
@@ -2720,10 +2711,19 @@ fold_gimple_assign (gimple_stmt_iterator *si)
     case GIMPLE_BINARY_RHS:
       /* Try to fold pointer addition.  */
       if (gimple_assign_rhs_code (stmt) == POINTER_PLUS_EXPR)
-        result = maybe_fold_stmt_addition (
-                   TREE_TYPE (gimple_assign_lhs (stmt)),
-                   gimple_assign_rhs1 (stmt),
-                   gimple_assign_rhs2 (stmt));
+	{
+	  tree type = TREE_TYPE (gimple_assign_rhs1 (stmt));
+	  if (TREE_CODE (TREE_TYPE (type)) == ARRAY_TYPE)
+	    {
+	      type = build_pointer_type (TREE_TYPE (TREE_TYPE (type)));
+	      if (!useless_type_conversion_p
+		    (TREE_TYPE (gimple_assign_lhs (stmt)), type))
+		type = TREE_TYPE (gimple_assign_rhs1 (stmt));
+	    }
+	  result = maybe_fold_stmt_addition (type,
+					     gimple_assign_rhs1 (stmt),
+					     gimple_assign_rhs2 (stmt));
+	}
 
       if (!result)
         result = fold_binary (subcode,

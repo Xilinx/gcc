@@ -600,9 +600,16 @@ write_decimal (st_parameter_dt *dtp, const fnode *f, const char *source,
   sign = calculate_sign (dtp, n < 0);
   if (n < 0)
     n = -n;
-
   nsign = sign == S_NONE ? 0 : 1;
+  
+  /* conv calls gfc_itoa which sets the negative sign needed
+     by write_integer. The sign '+' or '-' is set below based on sign
+     calculated above, so we just point past the sign in the string
+     before proceeding to avoid double signs in corner cases.
+     (see PR38504)  */
   q = conv (n, itoa_buf, sizeof (itoa_buf));
+  if (*q == '-')
+    q++;
 
   digits = strlen (q);
 
@@ -1003,13 +1010,12 @@ void
 write_real_g0 (st_parameter_dt *dtp, const char *source, int length, int d)
 {
   fnode f ;
-  int org_scale = dtp->u.p.scale_factor;
-  dtp->u.p.scale_factor = 1;
   set_fnode_default (dtp, &f, length);
-  f.format = FMT_ES;
-  f.u.real.d = d;
+  if (d > 0)
+    f.u.real.d = d;
+  dtp->u.p.g0_no_blanks = 1;
   write_float (dtp, &f, source , length);
-  dtp->u.p.scale_factor = org_scale;
+  dtp->u.p.g0_no_blanks = 0;
 }
 
 

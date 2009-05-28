@@ -2974,7 +2974,8 @@ check_field_decls (tree t, tree *access_decls,
 		 x);
 	      cant_pack = 1;
 	    }
-	  else if (TYPE_ALIGN (TREE_TYPE (x)) > BITS_PER_UNIT)
+	  else if (DECL_C_BIT_FIELD (x)
+		   || TYPE_ALIGN (TREE_TYPE (x)) > BITS_PER_UNIT)
 	    DECL_PACKED (x) = 1;
 	}
 
@@ -4147,7 +4148,8 @@ defaultable_fn_p (tree fn)
     }
   else if (DECL_DESTRUCTOR_P (fn))
     return true;
-  else if (DECL_ASSIGNMENT_OPERATOR_P (fn))
+  else if (DECL_ASSIGNMENT_OPERATOR_P (fn)
+	   && DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR)
     return copy_fn_p (fn);
   else
     return false;

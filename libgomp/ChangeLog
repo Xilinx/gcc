@@ -1,3 +1,35 @@
+2009-01-19  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+        * testsuite/lib/libgomp.exp: Add -B option for targets that
+	use libgfortran.a%s in their specs.
+
+2009-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgomp/38086
+	* acinclude.m4 (HAVE_AS_SYMVER_DIRECTIVE): New check.
+	* libgomp.h (LIBGOMP_GNU_SYMBOL_VERSIONING): Undefine if
+	HAVE_AS_SYMVER_DIRECTIVE is not defined.
+	* configure: Regenerated.
+	* config.h.in: Likewise.
+
+2008-12-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38650
+	* testsuite/libgomp.c/pr38650.c: New test.
+	* testsuite/libgomp.c++/pr38650.C: New test.
+
+2008-12-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/libgomp.c/collapse-1.c (main): Add private(k) clause.
+
+2008-12-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* testsuite/libgomp.c/atomic-6.c: Add -mieee for alpha*-*-* targets.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
 2008-12-08  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/36802

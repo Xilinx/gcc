@@ -2198,7 +2198,13 @@ extern enum machine_mode vector_type_mode (const_tree);
    than 8 qualifiers are added, these macros need to be adjusted.  */
 #define ENCODE_QUAL_ADDR_SPACE(NUM) ((NUM & 0xFF) << 8)
 #define DECODE_QUAL_ADDR_SPACE(X) (((X) >> 8) & 0xFF)
+
+/* Return all qualifiers except for the address space qualifiers.  */
 #define CLEAR_QUAL_ADDR_SPACE(X) ((X) & ~0xFF00)
+
+/* Only keep the address space out of the qualifiers and discard the other
+   qualifiers.  */
+#define KEEP_QUAL_ADDR_SPACE(X) ((X) & 0xFF00)
 
 /* The set of type qualifiers for this type.  */
 #define TYPE_QUALS(NODE)					\
@@ -4752,6 +4758,7 @@ extern tree native_interpret_expr (tree, const unsigned char *, int);
 
 extern tree fold (tree);
 extern tree fold_unary (enum tree_code, tree, tree);
+extern tree fold_unary_ignore_overflow (enum tree_code, tree, tree);
 extern tree fold_binary (enum tree_code, tree, tree, tree);
 extern tree fold_ternary (enum tree_code, tree, tree, tree, tree);
 extern tree fold_build1_stat (enum tree_code, tree, tree MEM_STAT_DECL);

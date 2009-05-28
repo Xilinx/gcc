@@ -666,7 +666,7 @@ Geoff Noer for his work on getting cygwin native builds working.
 
 @item
 Diego Novillo for his work on Tree SSA, OpenMP, SPEC performance
-tracking web pages and assorted fixes.
+tracking web pages, GIMPLE tuples, and assorted fixes.
 
 @item
 David O'Brien for the FreeBSD/alpha, FreeBSD/AMD x86-64, FreeBSD/ARM,
@@ -1419,6 +1419,9 @@ Sidney Cadot
 Bradford Castalia
 
 @item
+Robert Clark
+
+@item
 Jonathan Corbet
 
 @item
@@ -1611,5 +1614,6 @@ David E. Young
 And many others
 @end itemize
 
-And finally we'd like to thank everyone who uses the compiler, submits bug
-reports and generally reminds us why we're doing this work in the first place.
+And finally we'd like to thank everyone who uses the compiler, provides
+feedback and generally reminds us why we're doing this work in the first
+place.

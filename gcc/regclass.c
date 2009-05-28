@@ -49,6 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "tree-pass.h"
 #include "df.h"
+#include "ira.h"
 
 /* Maximum register number used in this function, plus one.  */
 
@@ -144,6 +145,16 @@ char global_regs[FIRST_PSEUDO_REGISTER];
    with the local stack frame are safe, but scant others.  */
 
 HARD_REG_SET regs_invalidated_by_call;
+
+/* Same information as REGS_INVALIDATED_BY_CALL but in regset form to be used
+   in dataflow more conveniently.  */
+
+regset regs_invalidated_by_call_regset;
+
+/* The bitmap_obstack is used to hold some static variables that
+   should not be reset after each function is compiled.  */
+
+static bitmap_obstack persistent_obstack;
 
 /* Table of register numbers in the order in which to try to use them.  */
 #ifdef REG_ALLOC_ORDER
@@ -568,6 +579,13 @@ init_reg_sets_1 (void)
   CLEAR_HARD_REG_SET (call_fixed_reg_set);
   CLEAR_HARD_REG_SET (regs_invalidated_by_call);
   CLEAR_HARD_REG_SET (losing_caller_save_reg_set);
+  if (!regs_invalidated_by_call_regset)
+    {
+      bitmap_obstack_initialize (&persistent_obstack);
+      regs_invalidated_by_call_regset = ALLOC_REG_SET (&persistent_obstack);
+    }
+  else
+    CLEAR_REG_SET (regs_invalidated_by_call_regset);
 
   memcpy (call_fixed_regs, fixed_regs, sizeof call_fixed_regs);
 
@@ -602,7 +620,10 @@ init_reg_sets_1 (void)
       if (i == STACK_POINTER_REGNUM)
 	;
       else if (global_regs[i])
-	SET_HARD_REG_BIT (regs_invalidated_by_call, i);
+        {
+	  SET_HARD_REG_BIT (regs_invalidated_by_call, i);
+	  SET_REGNO_REG_SET (regs_invalidated_by_call_regset, i);
+	}
       else if (i == FRAME_POINTER_REGNUM)
 	;
 #if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
@@ -618,7 +639,10 @@ init_reg_sets_1 (void)
 	;
 #endif
       else if (CALL_REALLY_USED_REGNO_P (i))
-	SET_HARD_REG_BIT (regs_invalidated_by_call, i);
+        {
+	  SET_HARD_REG_BIT (regs_invalidated_by_call, i);
+	  SET_REGNO_REG_SET (regs_invalidated_by_call_regset, i);
+        }
     }
 
   /* Preserve global registers if called more than once.  */
@@ -715,6 +739,17 @@ init_regs (void)
   init_reg_sets_1 ();
 
   init_reg_autoinc ();
+}
+
+/* The same as previous function plus initializing IRA if it is
+   necessary.  */
+void
+reinit_regs (void)
+{
+  init_regs ();
+
+  if (flag_ira)
+    ira_init ();
 }
 
 /* Initialize some fake stack-frame MEM references for use in
@@ -912,7 +947,10 @@ globalize_reg (int i)
      appropriate regs_invalidated_by_call bit, even if it's already
      set in fixed_regs.  */
   if (i != STACK_POINTER_REGNUM)
-    SET_HARD_REG_BIT (regs_invalidated_by_call, i);
+    {
+      SET_HARD_REG_BIT (regs_invalidated_by_call, i);
+      SET_REGNO_REG_SET (regs_invalidated_by_call_regset, i);
+   }
 
   /* If already fixed, nothing else to do.  */
   if (fixed_regs[i])

@@ -1,5 +1,5 @@
 /* Simplify intrinsic functions at compile-time.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -2253,7 +2253,10 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 	    case AR_FULL:
 	      /* We're done because 'as' has already been set in the
 		 previous iteration.  */
-	      goto done;
+	      if (!ref->next)
+	        goto done;
+
+	    /* Fall through.  */
 
 	    case AR_SECTION:
 	    case AR_UNKNOWN:
@@ -2616,6 +2619,18 @@ gfc_simplify_logical (gfc_expr *e, gfc_expr *k)
   result->value.logical = e->value.logical;
 
   return result;
+}
+
+
+gfc_expr *
+gfc_simplify_merge (gfc_expr *tsource, gfc_expr *fsource, gfc_expr *mask)
+{
+  if (tsource->expr_type != EXPR_CONSTANT
+      || fsource->expr_type != EXPR_CONSTANT
+      || mask->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  return gfc_copy_expr (mask->value.logical ? tsource : fsource);
 }
 
 

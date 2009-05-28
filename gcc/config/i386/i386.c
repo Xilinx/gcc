@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1655,6 +1655,10 @@ struct stack_local_entry GTY(())
 					      <- HARD_FRAME_POINTER
    [saved regs]
 
+   [padding0]
+
+   [saved SSE regs]
+
    [padding1]          \
 		        )
    [va_arg registers]  (
@@ -1665,6 +1669,8 @@ struct stack_local_entry GTY(())
   */
 struct ix86_frame
 {
+  int padding0;
+  int nsseregs;
   int nregs;
   int padding1;
   int va_arg_size;
@@ -2300,9 +2306,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     { "-mtls-direct-seg-refs",		MASK_TLS_DIRECT_SEG_REFS },
   };
 
-  const char *opts[ (sizeof (isa_opts) / sizeof (isa_opts[0])
-		     + sizeof (flag_opts) / sizeof (flag_opts[0])
-		     + 6)][2];
+  const char *opts[ARRAY_SIZE (isa_opts) + ARRAY_SIZE (flag_opts) + 6][2];
 
   char isa_other[40];
   char target_other[40];
@@ -2331,7 +2335,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     }
 
   /* Pick out the options in isa options.  */
-  for (i = 0; i < sizeof (isa_opts) / sizeof (isa_opts[0]); i++)
+  for (i = 0; i < ARRAY_SIZE (isa_opts); i++)
     {
       if ((isa & isa_opts[i].mask) != 0)
 	{
@@ -2347,7 +2351,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     }
 
   /* Add flag options.  */
-  for (i = 0; i < sizeof (flag_opts) / sizeof (flag_opts[0]); i++)
+  for (i = 0; i < ARRAY_SIZE (flag_opts); i++)
     {
       if ((flags & flag_opts[i].mask) != 0)
 	{
@@ -2373,7 +2377,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   if (num == 0)
     return NULL;
 
-  gcc_assert (num < sizeof (opts) / sizeof (opts[0]));
+  gcc_assert (num < ARRAY_SIZE (opts));
 
   /* Size the string.  */
   len = 0;
@@ -2686,7 +2690,9 @@ override_options (bool main_args_p)
 	stringop_alg = libcall;
       else if (!strcmp (ix86_stringop_string, "rep_4byte"))
 	stringop_alg = rep_prefix_4_byte;
-      else if (!strcmp (ix86_stringop_string, "rep_8byte"))
+      else if (!strcmp (ix86_stringop_string, "rep_8byte")
+	       && TARGET_64BIT)
+	/* rep; movq isn't available in 32-bit code.  */
 	stringop_alg = rep_prefix_8_byte;
       else if (!strcmp (ix86_stringop_string, "byte_loop"))
 	stringop_alg = loop_1_byte;
@@ -3520,7 +3526,7 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[])
       /* Find the option.  */
       ch = *p;
       opt = N_OPTS;
-      for (i = 0; i < sizeof (attrs) / sizeof (attrs[0]); i++)
+      for (i = 0; i < ARRAY_SIZE (attrs); i++)
 	{
 	  type = attrs[i].type;
 	  opt_len = attrs[i].len;
@@ -4600,9 +4606,7 @@ extern void init_regs (void);
 
 /* Implementation of call abi switching target hook. Specific to FNDECL
    the specific call register sets are set. See also CONDITIONAL_REGISTER_USAGE
-   for more details.
-   To prevent redudant calls of costy function init_regs (), it checks not to
-   reset register usage for default abi.  */
+   for more details.  */
 void
 ix86_call_abi_override (const_tree fndecl)
 {
@@ -4610,24 +4614,17 @@ ix86_call_abi_override (const_tree fndecl)
     cfun->machine->call_abi = DEFAULT_ABI;
   else
     cfun->machine->call_abi = ix86_function_type_abi (TREE_TYPE (fndecl));
-  if (TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
-    {
-      if (call_used_regs[4 /*RSI*/] != 0 || call_used_regs[5 /*RDI*/] != 0)
-        {
-          call_used_regs[4 /*RSI*/] = 0;
-          call_used_regs[5 /*RDI*/] = 0;
-          init_regs ();
-        }
-    }
-  else if (TARGET_64BIT)
-    {
-      if (call_used_regs[4 /*RSI*/] != 1 || call_used_regs[5 /*RDI*/] != 1)
-        {
-          call_used_regs[4 /*RSI*/] = 1;
-          call_used_regs[5 /*RDI*/] = 1;
-          init_regs ();
-        }
-    }
+}
+
+/* MS and SYSV ABI have different set of call used registers.  Avoid expensive
+   re-initialization of init_regs each time we switch function context since
+   this is needed only during RTL expansion.  */
+static void
+ix86_maybe_switch_abi (void)
+{
+  if (TARGET_64BIT &&
+      call_used_regs[4 /*RSI*/] ==  (cfun->machine->call_abi == MS_ABI))
+    reinit_regs ();
 }
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
@@ -4648,6 +4645,9 @@ init_cumulative_args (CUMULATIVE_ARGS *cum,  /* Argument info to initialize */
   else
    cum->call_abi = ix86_function_type_abi (fntype);
   /* Set up the number of registers to use for passing arguments.  */
+
+  if (cum->call_abi == MS_ABI && !ACCUMULATE_OUTGOING_ARGS)
+    sorry ("ms_abi attribute require -maccumulate-outgoing-args or subtarget optimization implying it");
   cum->nregs = ix86_regparm;
   if (TARGET_64BIT)
     {
@@ -5699,9 +5699,10 @@ function_arg_ms_64 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 {
   unsigned int regno;
 
-  /* Avoid the AL settings for the Unix64 ABI.  */
+  /* We need to add clobber for MS_ABI->SYSV ABI calls in expand_call.
+     We use value of -2 to specify that current function call is MSABI.  */
   if (mode == VOIDmode)
-    return constm1_rtx;
+    return GEN_INT (-2);
 
   /* If we've run out of registers, it goes on the stack.  */
   if (cum->nregs == 0)
@@ -7422,7 +7423,7 @@ ix86_save_reg (unsigned int regno, int maybe_eh_return)
 	  && (regno != HARD_FRAME_POINTER_REGNUM || !frame_pointer_needed));
 }
 
-/* Return number of registers to be saved on the stack.  */
+/* Return number of saved general prupose registers.  */
 
 static int
 ix86_nsaved_regs (void)
@@ -7430,9 +7431,25 @@ ix86_nsaved_regs (void)
   int nregs = 0;
   int regno;
 
-  for (regno = FIRST_PSEUDO_REGISTER - 1; regno >= 0; regno--)
-    if (ix86_save_reg (regno, true))
-      nregs++;
+  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
+    if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
+      nregs ++;
+  return nregs;
+}
+
+/* Return number of saved SSE registrers.  */
+
+static int
+ix86_nsaved_sseregs (void)
+{
+  int nregs = 0;
+  int regno;
+
+  if (ix86_cfun_abi () != MS_ABI)
+    return 0;
+  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
+    if (SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
+      nregs ++;
   return nregs;
 }
 
@@ -7492,10 +7509,21 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
   HOST_WIDE_INT size = get_frame_size ();
 
   frame->nregs = ix86_nsaved_regs ();
+  frame->nsseregs = ix86_nsaved_sseregs ();
   total_size = size;
 
   stack_alignment_needed = crtl->stack_alignment_needed / BITS_PER_UNIT;
   preferred_alignment = crtl->preferred_stack_boundary / BITS_PER_UNIT;
+
+  /* MS ABI seem to require stack alignment to be always 16 except for function
+     prologues.  */
+  if (ix86_cfun_abi () == MS_ABI && preferred_alignment < 16)
+    {
+      preferred_alignment = 16;
+      stack_alignment_needed = 16;
+      crtl->preferred_stack_boundary = 128;
+      crtl->stack_alignment_needed = 128;
+    }
 
   gcc_assert (!size || stack_alignment_needed);
   gcc_assert (preferred_alignment >= STACK_BOUNDARY / BITS_PER_UNIT);
@@ -7550,6 +7578,15 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
 
   /* Register save area */
   offset += frame->nregs * UNITS_PER_WORD;
+
+  /* Align SSE reg save area.  */
+  if (frame->nsseregs)
+    frame->padding0 = ((offset + 16 - 1) & -16) - offset;
+  else
+    frame->padding0 = 0;
+  
+  /* SSE register save area.  */
+  offset += frame->padding0 + frame->nsseregs * 16;
 
   /* Va-arg area */
   frame->va_arg_size = ix86_varargs_gpr_size + ix86_varargs_fpr_size;
@@ -7620,8 +7657,10 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
   frame->stack_pointer_offset -= frame->red_zone_size;
 #if 0
   fprintf (stderr, "\n");
-  fprintf (stderr, "nregs: %ld\n", (long)frame->nregs);
   fprintf (stderr, "size: %ld\n", (long)size);
+  fprintf (stderr, "nregs: %ld\n", (long)frame->nregs);
+  fprintf (stderr, "nsseregs: %ld\n", (long)frame->nsseregs);
+  fprintf (stderr, "padding0: %ld\n", (long)frame->padding0);
   fprintf (stderr, "alignment1: %ld\n", (long)stack_alignment_needed);
   fprintf (stderr, "padding1: %ld\n", (long)frame->padding1);
   fprintf (stderr, "va_arg: %ld\n", (long)frame->va_arg_size);
@@ -7646,8 +7685,8 @@ ix86_emit_save_regs (void)
   unsigned int regno;
   rtx insn;
 
-  for (regno = FIRST_PSEUDO_REGISTER; regno-- > 0; )
-    if (ix86_save_reg (regno, true))
+  for (regno = FIRST_PSEUDO_REGISTER - 1; regno-- > 0; )
+    if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
       {
 	insn = emit_insn (gen_push (gen_rtx_REG (Pmode, regno)));
 	RTX_FRAME_RELATED_P (insn) = 1;
@@ -7663,13 +7702,33 @@ ix86_emit_save_regs_using_mov (rtx pointer, HOST_WIDE_INT offset)
   rtx insn;
 
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
-    if (ix86_save_reg (regno, true))
+    if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
       {
 	insn = emit_move_insn (adjust_address (gen_rtx_MEM (Pmode, pointer),
 					       Pmode, offset),
 			       gen_rtx_REG (Pmode, regno));
 	RTX_FRAME_RELATED_P (insn) = 1;
 	offset += UNITS_PER_WORD;
+      }
+}
+
+/* Emit code to save registers using MOV insns.  First register
+   is restored from POINTER + OFFSET.  */
+static void
+ix86_emit_save_sse_regs_using_mov (rtx pointer, HOST_WIDE_INT offset)
+{
+  unsigned int regno;
+  rtx insn;
+  rtx mem;
+
+  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
+    if (SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
+      {
+	mem = adjust_address (gen_rtx_MEM (TImode, pointer), TImode, offset);
+	set_mem_align (mem, 128);
+	insn = emit_move_insn (mem, gen_rtx_REG (TImode, regno));
+	RTX_FRAME_RELATED_P (insn) = 1;
+	offset += 16;
       }
 }
 
@@ -7977,7 +8036,7 @@ ix86_expand_prologue (void)
       RTX_FRAME_RELATED_P (insn) = 1;
     }
 
-  allocate = frame.to_allocate;
+  allocate = frame.to_allocate + frame.nsseregs * 16 + frame.padding0;
 
   if (!frame.save_regs_using_mov)
     ix86_emit_save_regs ();
@@ -8056,11 +8115,22 @@ ix86_expand_prologue (void)
 	  || !frame.to_allocate
 	  || crtl->stack_realign_needed)
         ix86_emit_save_regs_using_mov (stack_pointer_rtx,
-				       frame.to_allocate);
+				       frame.to_allocate
+				       + frame.nsseregs * 16 + frame.padding0);
       else
         ix86_emit_save_regs_using_mov (hard_frame_pointer_rtx,
 				       -frame.nregs * UNITS_PER_WORD);
     }
+  if (!frame_pointer_needed
+      || !frame.to_allocate
+      || crtl->stack_realign_needed)
+    ix86_emit_save_sse_regs_using_mov (stack_pointer_rtx,
+				       frame.to_allocate);
+  else
+    ix86_emit_save_sse_regs_using_mov (hard_frame_pointer_rtx,
+				       - frame.nregs * UNITS_PER_WORD
+				       - frame.nsseregs * 16
+				       - frame.padding0);
 
   pic_reg_used = false;
   if (pic_offset_table_rtx
@@ -8132,7 +8202,7 @@ ix86_emit_restore_regs_using_mov (rtx pointer, HOST_WIDE_INT offset,
   rtx base_address = gen_rtx_MEM (Pmode, pointer);
 
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
-    if (ix86_save_reg (regno, maybe_eh_return))
+    if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, maybe_eh_return))
       {
 	/* Ensure that adjust_address won't be forced to produce pointer
 	   out of range allowed by x86-64 instruction set.  */
@@ -8147,8 +8217,40 @@ ix86_emit_restore_regs_using_mov (rtx pointer, HOST_WIDE_INT offset,
 	    offset = 0;
 	  }
 	emit_move_insn (gen_rtx_REG (Pmode, regno),
-			adjust_address (base_address, Pmode, offset));
+	                adjust_address (base_address, Pmode, offset));
 	offset += UNITS_PER_WORD;
+      }
+}
+
+/* Emit code to restore saved registers using MOV insns.  First register
+   is restored from POINTER + OFFSET.  */
+static void
+ix86_emit_restore_sse_regs_using_mov (rtx pointer, HOST_WIDE_INT offset,
+				      int maybe_eh_return)
+{
+  int regno;
+  rtx base_address = gen_rtx_MEM (TImode, pointer);
+  rtx mem;
+
+  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
+    if (SSE_REGNO_P (regno) && ix86_save_reg (regno, maybe_eh_return))
+      {
+	/* Ensure that adjust_address won't be forced to produce pointer
+	   out of range allowed by x86-64 instruction set.  */
+	if (TARGET_64BIT && offset != trunc_int_for_mode (offset, SImode))
+	  {
+	    rtx r11;
+
+	    r11 = gen_rtx_REG (DImode, R11_REG);
+	    emit_move_insn (r11, GEN_INT (offset));
+	    emit_insn (gen_adddi3 (r11, r11, pointer));
+	    base_address = gen_rtx_MEM (TImode, r11);
+	    offset = 0;
+	  }
+	mem = adjust_address (base_address, TImode, offset);
+	set_mem_align (mem, 128);
+	emit_move_insn (gen_rtx_REG (TImode, regno), mem);
+	offset += 16;
       }
 }
 
@@ -8179,6 +8281,7 @@ ix86_expand_epilogue (int style)
   if (crtl->calls_eh_return && style != 2)
     offset -= 2;
   offset *= -UNITS_PER_WORD;
+  offset -= frame.nsseregs * 16 + frame.padding0;
 
   /* If we're only restoring one register and sp is not valid then
      using a move instruction to restore the register since it's
@@ -8212,11 +8315,23 @@ ix86_expand_epilogue (int style)
       if (!frame_pointer_needed
 	  || (sp_valid && !frame.to_allocate) 
 	  || stack_realign_fp)
-	ix86_emit_restore_regs_using_mov (stack_pointer_rtx,
-					  frame.to_allocate, style == 2);
+	{
+	  ix86_emit_restore_sse_regs_using_mov (stack_pointer_rtx,
+					        frame.to_allocate, style == 2);
+	  ix86_emit_restore_regs_using_mov (stack_pointer_rtx,
+					    frame.to_allocate
+					    + frame.nsseregs * 16
+					    + frame.padding0, style == 2);
+	}
       else
-	ix86_emit_restore_regs_using_mov (hard_frame_pointer_rtx,
-					  offset, style == 2);
+        {
+	  ix86_emit_restore_sse_regs_using_mov (hard_frame_pointer_rtx,
+					        offset, style == 2);
+	  ix86_emit_restore_regs_using_mov (hard_frame_pointer_rtx,
+					    offset
+					    + frame.nsseregs * 16
+					    + frame.padding0, style == 2);
+        }
 
       /* eh_return epilogues need %ecx added to the stack pointer.  */
       if (style == 2)
@@ -8242,14 +8357,18 @@ ix86_expand_epilogue (int style)
 	    {
 	      tmp = gen_rtx_PLUS (Pmode, stack_pointer_rtx, sa);
 	      tmp = plus_constant (tmp, (frame.to_allocate
-                                         + frame.nregs * UNITS_PER_WORD));
+                                         + frame.nregs * UNITS_PER_WORD
+					 + frame.nsseregs * 16
+					 + frame.padding0));
 	      emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx, tmp));
 	    }
 	}
       else if (!frame_pointer_needed)
 	pro_epilogue_adjust_stack (stack_pointer_rtx, stack_pointer_rtx,
 				   GEN_INT (frame.to_allocate
-					    + frame.nregs * UNITS_PER_WORD),
+					    + frame.nregs * UNITS_PER_WORD
+					    + frame.nsseregs * 16
+					    + frame.padding0),
 				   style);
       /* If not an i386, mov & pop is faster than "leave".  */
       else if (TARGET_USE_LEAVE || optimize_function_for_size_p (cfun)
@@ -8280,13 +8399,24 @@ ix86_expand_epilogue (int style)
 	  pro_epilogue_adjust_stack (stack_pointer_rtx,
 				     hard_frame_pointer_rtx,
 				     GEN_INT (offset), style);
+          ix86_emit_restore_sse_regs_using_mov (stack_pointer_rtx,
+					        frame.to_allocate, style == 2);
+	  pro_epilogue_adjust_stack (stack_pointer_rtx, stack_pointer_rtx,
+				     GEN_INT (frame.nsseregs * 16), style);
 	}
-      else if (frame.to_allocate)
-	pro_epilogue_adjust_stack (stack_pointer_rtx, stack_pointer_rtx,
-				   GEN_INT (frame.to_allocate), style);
+      else if (frame.to_allocate || frame.nsseregs)
+	{
+          ix86_emit_restore_sse_regs_using_mov (stack_pointer_rtx,
+					        frame.to_allocate,
+						style == 2);
+	  pro_epilogue_adjust_stack (stack_pointer_rtx, stack_pointer_rtx,
+				     GEN_INT (frame.to_allocate
+				     	      + frame.nsseregs * 16
+					      + frame.padding0), style);
+	}
 
       for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
-	if (ix86_save_reg (regno, false))
+	if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, false))
 	  emit_insn ((*ix86_gen_pop1) (gen_rtx_REG (Pmode, regno)));
       if (frame_pointer_needed)
 	{
@@ -10704,7 +10834,8 @@ print_operand (FILE *file, rtx x, int code)
 		  fputs ("ord", file);
 		  break;
 		default:
-		  gcc_unreachable ();
+		  output_operand_lossage ("operand is not a condition code, invalid operand code 'D'");
+		  return;
 		}
 	    }
 	  else
@@ -10742,7 +10873,8 @@ print_operand (FILE *file, rtx x, int code)
 		  fputs ("ord", file);
 		  break;
 		default:
-		  gcc_unreachable ();
+		  output_operand_lossage ("operand is not a condition code, invalid operand code 'D'");
+		  return;
 		}
 	    }
 	  return;
@@ -10764,9 +10896,23 @@ print_operand (FILE *file, rtx x, int code)
 #endif
 	  return;
 	case 'C':
+	  if (!COMPARISON_P (x))
+	    {
+	      output_operand_lossage ("operand is neither a constant nor a "
+				      "condition code, invalid operand code "
+				      "'C'");
+	      return;
+	    }
 	  put_condition_code (GET_CODE (x), GET_MODE (XEXP (x, 0)), 0, 0, file);
 	  return;
 	case 'F':
+	  if (!COMPARISON_P (x))
+	    {
+	      output_operand_lossage ("operand is neither a constant nor a "
+				      "condition code, invalid operand code "
+				      "'F'");
+	      return;
+	    }
 #ifdef HAVE_AS_IX86_CMOV_SUN_SYNTAX
 	  if (ASSEMBLER_DIALECT == ASM_ATT)
 	    putc ('.', file);
@@ -10779,13 +10925,22 @@ print_operand (FILE *file, rtx x, int code)
 	  /* Check to see if argument to %c is really a constant
 	     and not a condition code which needs to be reversed.  */
 	  if (!COMPARISON_P (x))
-	  {
-	    output_operand_lossage ("operand is neither a constant nor a condition code, invalid operand code 'c'");
-	     return;
-	  }
+	    {
+	      output_operand_lossage ("operand is neither a constant nor a "
+				      "condition code, invalid operand "
+				      "code 'c'");
+	      return;
+	    }
 	  put_condition_code (GET_CODE (x), GET_MODE (XEXP (x, 0)), 1, 0, file);
 	  return;
 	case 'f':
+	  if (!COMPARISON_P (x))
+	    {
+	      output_operand_lossage ("operand is neither a constant nor a "
+				      "condition code, invalid operand "
+				      "code 'f'");
+	      return;
+	    }
 #ifdef HAVE_AS_IX86_CMOV_SUN_SYNTAX
 	  if (ASSEMBLER_DIALECT == ASM_ATT)
 	    putc ('.', file);
@@ -10892,7 +11047,8 @@ print_operand (FILE *file, rtx x, int code)
 	      fputs ("une", file);
 	      break;
 	    default:
-	      gcc_unreachable ();
+	      output_operand_lossage ("operand is not a condition code, invalid operand code 'D'");
+	      return;
 	    }
 	  return;
 
@@ -16644,6 +16800,22 @@ expand_movmem_via_rep_mov (rtx destmem, rtx srcmem,
       destexp = gen_rtx_PLUS (Pmode, destptr, countreg);
       srcexp = gen_rtx_PLUS (Pmode, srcptr, countreg);
     }
+  if (CONST_INT_P (count))
+    {
+      count = GEN_INT (INTVAL (count)
+		       & ~((HOST_WIDE_INT) GET_MODE_SIZE (mode) - 1));
+      destmem = shallow_copy_rtx (destmem);
+      srcmem = shallow_copy_rtx (srcmem);
+      set_mem_size (destmem, count);
+      set_mem_size (srcmem, count);
+    }
+  else
+    {
+      if (MEM_SIZE (destmem))
+	set_mem_size (destmem, NULL_RTX);
+      if (MEM_SIZE (srcmem))
+	set_mem_size (srcmem, NULL_RTX);
+    }
   emit_insn (gen_rep_mov (destptr, destmem, srcptr, srcmem, countreg,
 			  destexp, srcexp));
 }
@@ -16652,8 +16824,8 @@ expand_movmem_via_rep_mov (rtx destmem, rtx srcmem,
    Arguments have same meaning as for previous function */
 static void
 expand_setmem_via_rep_stos (rtx destmem, rtx destptr, rtx value,
-			    rtx count,
-			    enum machine_mode mode)
+			    rtx count, enum machine_mode mode,
+			    rtx orig_value)
 {
   rtx destexp;
   rtx countreg;
@@ -16670,6 +16842,15 @@ expand_setmem_via_rep_stos (rtx destmem, rtx destptr, rtx value,
     }
   else
     destexp = gen_rtx_PLUS (Pmode, destptr, countreg);
+  if (orig_value == const0_rtx && CONST_INT_P (count))
+    {
+      count = GEN_INT (INTVAL (count)
+		       & ~((HOST_WIDE_INT) GET_MODE_SIZE (mode) - 1));
+      destmem = shallow_copy_rtx (destmem);
+      set_mem_size (destmem, count);
+    }
+  else if (MEM_SIZE (destmem))
+    set_mem_size (destmem, NULL_RTX);
   emit_insn (gen_rep_stos (destptr, countreg, destmem, value, destexp));
 }
 
@@ -17003,6 +17184,85 @@ expand_movmem_prologue (rtx destmem, rtx srcmem,
   gcc_assert (desired_alignment <= 8);
 }
 
+/* Copy enough from DST to SRC to align DST known to DESIRED_ALIGN.
+   ALIGN_BYTES is how many bytes need to be copied.  */
+static rtx
+expand_constant_movmem_prologue (rtx dst, rtx *srcp, rtx destreg, rtx srcreg,
+				 int desired_align, int align_bytes)
+{
+  rtx src = *srcp;
+  rtx src_size, dst_size;
+  int off = 0;
+  int src_align_bytes = get_mem_align_offset (src, desired_align * BITS_PER_UNIT);
+  if (src_align_bytes >= 0)
+    src_align_bytes = desired_align - src_align_bytes;
+  src_size = MEM_SIZE (src);
+  dst_size = MEM_SIZE (dst);
+  if (align_bytes & 1)
+    {
+      dst = adjust_automodify_address_nv (dst, QImode, destreg, 0);
+      src = adjust_automodify_address_nv (src, QImode, srcreg, 0);
+      off = 1;
+      emit_insn (gen_strmov (destreg, dst, srcreg, src));
+    }
+  if (align_bytes & 2)
+    {
+      dst = adjust_automodify_address_nv (dst, HImode, destreg, off);
+      src = adjust_automodify_address_nv (src, HImode, srcreg, off);
+      if (MEM_ALIGN (dst) < 2 * BITS_PER_UNIT)
+	set_mem_align (dst, 2 * BITS_PER_UNIT);
+      if (src_align_bytes >= 0
+	  && (src_align_bytes & 1) == (align_bytes & 1)
+	  && MEM_ALIGN (src) < 2 * BITS_PER_UNIT)
+	set_mem_align (src, 2 * BITS_PER_UNIT);
+      off = 2;
+      emit_insn (gen_strmov (destreg, dst, srcreg, src));
+    }
+  if (align_bytes & 4)
+    {
+      dst = adjust_automodify_address_nv (dst, SImode, destreg, off);
+      src = adjust_automodify_address_nv (src, SImode, srcreg, off);
+      if (MEM_ALIGN (dst) < 4 * BITS_PER_UNIT)
+	set_mem_align (dst, 4 * BITS_PER_UNIT);
+      if (src_align_bytes >= 0)
+	{
+	  unsigned int src_align = 0;
+	  if ((src_align_bytes & 3) == (align_bytes & 3))
+	    src_align = 4;
+	  else if ((src_align_bytes & 1) == (align_bytes & 1))
+	    src_align = 2;
+	  if (MEM_ALIGN (src) < src_align * BITS_PER_UNIT)
+	    set_mem_align (src, src_align * BITS_PER_UNIT);
+	}
+      off = 4;
+      emit_insn (gen_strmov (destreg, dst, srcreg, src));
+    }
+  dst = adjust_automodify_address_nv (dst, BLKmode, destreg, off);
+  src = adjust_automodify_address_nv (src, BLKmode, srcreg, off);
+  if (MEM_ALIGN (dst) < (unsigned int) desired_align * BITS_PER_UNIT)
+    set_mem_align (dst, desired_align * BITS_PER_UNIT);
+  if (src_align_bytes >= 0)
+    {
+      unsigned int src_align = 0;
+      if ((src_align_bytes & 7) == (align_bytes & 7))
+	src_align = 8;
+      else if ((src_align_bytes & 3) == (align_bytes & 3))
+	src_align = 4;
+      else if ((src_align_bytes & 1) == (align_bytes & 1))
+	src_align = 2;
+      if (src_align > (unsigned int) desired_align)
+	src_align = desired_align;
+      if (MEM_ALIGN (src) < src_align * BITS_PER_UNIT)
+	set_mem_align (src, src_align * BITS_PER_UNIT);
+    }
+  if (dst_size)
+    set_mem_size (dst, GEN_INT (INTVAL (dst_size) - align_bytes));
+  if (src_size)
+    set_mem_size (dst, GEN_INT (INTVAL (src_size) - align_bytes));
+  *srcp = src;
+  return dst;
+}
+
 /* Set enough from DEST to align DEST known to by aligned by ALIGN to
    DESIRED_ALIGNMENT.  */
 static void
@@ -17037,6 +17297,47 @@ expand_setmem_prologue (rtx destmem, rtx destptr, rtx value, rtx count,
       LABEL_NUSES (label) = 1;
     }
   gcc_assert (desired_alignment <= 8);
+}
+
+/* Set enough from DST to align DST known to by aligned by ALIGN to
+   DESIRED_ALIGN.  ALIGN_BYTES is how many bytes need to be stored.  */
+static rtx
+expand_constant_setmem_prologue (rtx dst, rtx destreg, rtx value,
+				 int desired_align, int align_bytes)
+{
+  int off = 0;
+  rtx dst_size = MEM_SIZE (dst);
+  if (align_bytes & 1)
+    {
+      dst = adjust_automodify_address_nv (dst, QImode, destreg, 0);
+      off = 1;
+      emit_insn (gen_strset (destreg, dst,
+			     gen_lowpart (QImode, value)));
+    }
+  if (align_bytes & 2)
+    {
+      dst = adjust_automodify_address_nv (dst, HImode, destreg, off);
+      if (MEM_ALIGN (dst) < 2 * BITS_PER_UNIT)
+	set_mem_align (dst, 2 * BITS_PER_UNIT);
+      off = 2;
+      emit_insn (gen_strset (destreg, dst,
+			     gen_lowpart (HImode, value)));
+    }
+  if (align_bytes & 4)
+    {
+      dst = adjust_automodify_address_nv (dst, SImode, destreg, off);
+      if (MEM_ALIGN (dst) < 4 * BITS_PER_UNIT)
+	set_mem_align (dst, 4 * BITS_PER_UNIT);
+      off = 4;
+      emit_insn (gen_strset (destreg, dst,
+			     gen_lowpart (SImode, value)));
+    }
+  dst = adjust_automodify_address_nv (dst, BLKmode, destreg, off);
+  if (MEM_ALIGN (dst) < (unsigned int) desired_align * BITS_PER_UNIT)
+    set_mem_align (dst, desired_align * BITS_PER_UNIT);
+  if (dst_size)
+    set_mem_size (dst, GEN_INT (INTVAL (dst_size) - align_bytes));
+  return dst;
 }
 
 /* Given COUNT and EXPECTED_SIZE, decide on codegen of string operation.  */
@@ -17270,7 +17571,7 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
   unsigned HOST_WIDE_INT count = 0;
   HOST_WIDE_INT expected_size = -1;
   int size_needed = 0, epilogue_size_needed;
-  int desired_align = 0;
+  int desired_align = 0, align_bytes = 0;
   enum stringop_alg alg;
   int dynamic_check;
   bool need_zero_guard = false;
@@ -17281,6 +17582,11 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
   if (CONST_INT_P (expected_align_exp)
       && INTVAL (expected_align_exp) > align)
     align = INTVAL (expected_align_exp);
+  /* ALIGN is the minimum of destination and source alignment, but we care here
+     just about destination alignment.  */
+  else if (MEM_ALIGN (dst) > (unsigned HOST_WIDE_INT) align * BITS_PER_UNIT)
+    align = MEM_ALIGN (dst) / BITS_PER_UNIT;
+
   if (CONST_INT_P (count_exp))
     count = expected_size = INTVAL (count_exp);
   if (CONST_INT_P (expected_size_exp) && count == 0)
@@ -17340,7 +17646,20 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
 
   /* Alignment code needs count to be in register.  */
   if (CONST_INT_P (count_exp) && desired_align > align)
-    count_exp = force_reg (counter_mode (count_exp), count_exp);
+    {
+      if (INTVAL (count_exp) > desired_align
+	  && INTVAL (count_exp) > size_needed)
+	{
+	  align_bytes
+	    = get_mem_align_offset (dst, desired_align * BITS_PER_UNIT);
+	  if (align_bytes <= 0)
+	    align_bytes = 0;
+	  else
+	    align_bytes = desired_align - align_bytes;
+	}
+      if (align_bytes == 0)
+	count_exp = force_reg (counter_mode (count_exp), count_exp);
+    }
   gcc_assert (desired_align >= 1 && align >= 1);
 
   /* Ensure that alignment prologue won't copy past end of block.  */
@@ -17351,10 +17670,17 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
 	 Make sure it is power of 2.  */
       epilogue_size_needed = smallest_pow2_greater_than (epilogue_size_needed);
 
-      if (CONST_INT_P (count_exp))
+      if (count)
 	{
-	  if (UINTVAL (count_exp) < (unsigned HOST_WIDE_INT)epilogue_size_needed)
-	    goto epilogue;
+	  if (count < (unsigned HOST_WIDE_INT)epilogue_size_needed)
+	    {
+	      /* If main algorithm works on QImode, no epilogue is needed.
+		 For small sizes just don't align anything.  */
+	      if (size_needed == 1)
+		desired_align = align;
+	      else
+		goto epilogue;
+	    }
 	}
       else
 	{
@@ -17399,18 +17725,37 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
 
   if (desired_align > align)
     {
-      /* Except for the first move in epilogue, we no longer know
-         constant offset in aliasing info.  It don't seems to worth
-	 the pain to maintain it for the first move, so throw away
-	 the info early.  */
-      src = change_address (src, BLKmode, srcreg);
-      dst = change_address (dst, BLKmode, destreg);
-      expand_movmem_prologue (dst, src, destreg, srcreg, count_exp, align,
-			      desired_align);
-      if (need_zero_guard && !count)
+      if (align_bytes == 0)
+	{
+	  /* Except for the first move in epilogue, we no longer know
+	     constant offset in aliasing info.  It don't seems to worth
+	     the pain to maintain it for the first move, so throw away
+	     the info early.  */
+	  src = change_address (src, BLKmode, srcreg);
+	  dst = change_address (dst, BLKmode, destreg);
+	  expand_movmem_prologue (dst, src, destreg, srcreg, count_exp, align,
+				  desired_align);
+	}
+      else
+	{
+	  /* If we know how many bytes need to be stored before dst is
+	     sufficiently aligned, maintain aliasing info accurately.  */
+	  dst = expand_constant_movmem_prologue (dst, &src, destreg, srcreg,
+						 desired_align, align_bytes);
+	  count_exp = plus_constant (count_exp, -align_bytes);
+	  count -= align_bytes;
+	}
+      if (need_zero_guard
+	  && (count < (unsigned HOST_WIDE_INT) size_needed
+	      || (align_bytes == 0
+		  && count < ((unsigned HOST_WIDE_INT) size_needed
+			      + desired_align - align))))
 	{
 	  /* It is possible that we copied enough so the main loop will not
 	     execute.  */
+	  gcc_assert (size_needed > 1);
+	  if (label == NULL_RTX)
+	    label = gen_label_rtx ();
 	  emit_cmp_and_jump_insns (count_exp,
 				   GEN_INT (size_needed),
 				   LTU, 0, counter_mode (count_exp), 1, label);
@@ -17426,7 +17771,10 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
       emit_label (label);
       LABEL_NUSES (label) = 1;
       label = NULL;
+      epilogue_size_needed = 1;
     }
+  else if (label == NULL_RTX)
+    epilogue_size_needed = size_needed;
 
   /* Step 3: Main loop.  */
 
@@ -17615,7 +17963,7 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
   unsigned HOST_WIDE_INT count = 0;
   HOST_WIDE_INT expected_size = -1;
   int size_needed = 0, epilogue_size_needed;
-  int desired_align = 0;
+  int desired_align = 0, align_bytes = 0;
   enum stringop_alg alg;
   rtx promoted_val = NULL;
   bool force_loopy_epilogue = false;
@@ -17686,10 +18034,23 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
   /* Alignment code needs count to be in register.  */
   if (CONST_INT_P (count_exp) && desired_align > align)
     {
-      enum machine_mode mode = SImode;
-      if (TARGET_64BIT && (count & ~0xffffffff))
-	mode = DImode;
-      count_exp = force_reg (mode, count_exp);
+      if (INTVAL (count_exp) > desired_align
+	  && INTVAL (count_exp) > size_needed)
+	{
+	  align_bytes
+	    = get_mem_align_offset (dst, desired_align * BITS_PER_UNIT);
+	  if (align_bytes <= 0)
+	    align_bytes = 0;
+	  else
+	    align_bytes = desired_align - align_bytes;
+	}
+      if (align_bytes == 0)
+	{
+	  enum machine_mode mode = SImode;
+	  if (TARGET_64BIT && (count & ~0xffffffff))
+	    mode = DImode;
+	  count_exp = force_reg (mode, count_exp);
+	}
     }
   /* Do the cheap promotion to allow better CSE across the
      main loop and epilogue (ie one load of the big constant in the
@@ -17701,7 +18062,7 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
   if (size_needed > 1 || (desired_align > 1 && desired_align > align))
     {
       epilogue_size_needed = MAX (size_needed - 1, desired_align - align);
-      /* Epilogue always copies COUNT_EXP & EPILOGUE_SIZE_NEEDED bytes.
+      /* Epilogue always copies COUNT_EXP & (EPILOGUE_SIZE_NEEDED - 1) bytes.
 	 Make sure it is power of 2.  */
       epilogue_size_needed = smallest_pow2_greater_than (epilogue_size_needed);
 
@@ -17711,16 +18072,29 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
 	 loop variant.  */
       if (epilogue_size_needed > 2 && !promoted_val)
         force_loopy_epilogue = true;
-      label = gen_label_rtx ();
-      emit_cmp_and_jump_insns (count_exp,
-			       GEN_INT (epilogue_size_needed),
-			       LTU, 0, counter_mode (count_exp), 1, label);
-      if (GET_CODE (count_exp) == CONST_INT)
-	;
-      else if (expected_size == -1 || expected_size <= epilogue_size_needed)
-	predict_jump (REG_BR_PROB_BASE * 60 / 100);
+      if (count)
+	{
+	  if (count < (unsigned HOST_WIDE_INT)epilogue_size_needed)
+	    {
+	      /* If main algorithm works on QImode, no epilogue is needed.
+		 For small sizes just don't align anything.  */
+	      if (size_needed == 1)
+		desired_align = align;
+	      else
+		goto epilogue;
+	    }
+	}
       else
-	predict_jump (REG_BR_PROB_BASE * 20 / 100);
+	{
+	  label = gen_label_rtx ();
+	  emit_cmp_and_jump_insns (count_exp,
+				   GEN_INT (epilogue_size_needed),
+				   LTU, 0, counter_mode (count_exp), 1, label);
+	  if (expected_size == -1 || expected_size <= epilogue_size_needed)
+	    predict_jump (REG_BR_PROB_BASE * 60 / 100);
+	  else
+	    predict_jump (REG_BR_PROB_BASE * 20 / 100);
+	}
     }
   if (dynamic_check != -1)
     {
@@ -17744,17 +18118,36 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
 
   if (desired_align > align)
     {
-      /* Except for the first move in epilogue, we no longer know
-         constant offset in aliasing info.  It don't seems to worth
-	 the pain to maintain it for the first move, so throw away
-	 the info early.  */
-      dst = change_address (dst, BLKmode, destreg);
-      expand_setmem_prologue (dst, destreg, promoted_val, count_exp, align,
-			      desired_align);
-      if (need_zero_guard && !count)
+      if (align_bytes == 0)
+	{
+	  /* Except for the first move in epilogue, we no longer know
+	     constant offset in aliasing info.  It don't seems to worth
+	     the pain to maintain it for the first move, so throw away
+	     the info early.  */
+	  dst = change_address (dst, BLKmode, destreg);
+	  expand_setmem_prologue (dst, destreg, promoted_val, count_exp, align,
+				  desired_align);
+	}
+      else
+	{
+	  /* If we know how many bytes need to be stored before dst is
+	     sufficiently aligned, maintain aliasing info accurately.  */
+	  dst = expand_constant_setmem_prologue (dst, destreg, promoted_val,
+						 desired_align, align_bytes);
+	  count_exp = plus_constant (count_exp, -align_bytes);
+	  count -= align_bytes;
+	}
+      if (need_zero_guard
+	  && (count < (unsigned HOST_WIDE_INT) size_needed
+	      || (align_bytes == 0
+		  && count < ((unsigned HOST_WIDE_INT) size_needed
+			      + desired_align - align))))
 	{
 	  /* It is possible that we copied enough so the main loop will not
 	     execute.  */
+	  gcc_assert (size_needed > 1);
+	  if (label == NULL_RTX)
+	    label = gen_label_rtx ();
 	  emit_cmp_and_jump_insns (count_exp,
 				   GEN_INT (size_needed),
 				   LTU, 0, counter_mode (count_exp), 1, label);
@@ -17770,7 +18163,11 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
       emit_label (label);
       LABEL_NUSES (label) = 1;
       label = NULL;
+      promoted_val = val_exp;
+      epilogue_size_needed = 1;
     }
+  else if (label == NULL_RTX)
+    epilogue_size_needed = size_needed;
 
   /* Step 3: Main loop.  */
 
@@ -17793,15 +18190,15 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
       break;
     case rep_prefix_8_byte:
       expand_setmem_via_rep_stos (dst, destreg, promoted_val, count_exp,
-				  DImode);
+				  DImode, val_exp);
       break;
     case rep_prefix_4_byte:
       expand_setmem_via_rep_stos (dst, destreg, promoted_val, count_exp,
-				  SImode);
+				  SImode, val_exp);
       break;
     case rep_prefix_1_byte:
       expand_setmem_via_rep_stos (dst, destreg, promoted_val, count_exp,
-				  QImode);
+				  QImode, val_exp);
       break;
     }
   /* Adjust properly the offset of src and dest memory for aliasing.  */
@@ -17820,27 +18217,27 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
 	 Epilogue code will actually copy COUNT_EXP & EPILOGUE_SIZE_NEEDED
 	 bytes. Compensate if needed.  */
 
-      if (size_needed < desired_align - align)
+      if (size_needed < epilogue_size_needed)
 	{
 	  tmp =
 	    expand_simple_binop (counter_mode (count_exp), AND, count_exp,
 				 GEN_INT (size_needed - 1), count_exp, 1,
 				 OPTAB_DIRECT);
-	  size_needed = desired_align - align + 1;
 	  if (tmp != count_exp)
 	    emit_move_insn (count_exp, tmp);
 	}
       emit_label (label);
       LABEL_NUSES (label) = 1;
     }
+ epilogue:
   if (count_exp != const0_rtx && epilogue_size_needed > 1)
     {
       if (force_loopy_epilogue)
 	expand_setmem_epilogue_via_loop (dst, destreg, val_exp, count_exp,
-					 size_needed);
+					 epilogue_size_needed);
       else
 	expand_setmem_epilogue (dst, destreg, promoted_val, count_exp,
-				size_needed);
+				epilogue_size_needed);
     }
   if (jump_around_label)
     emit_label (jump_around_label);
@@ -18104,11 +18501,16 @@ construct_plt_address (rtx symbol)
 
 void
 ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
-		  rtx callarg2 ATTRIBUTE_UNUSED,
+		  rtx callarg2,
 		  rtx pop, int sibcall)
 {
   rtx use = NULL, call;
+  enum calling_abi function_call_abi;
 
+  if (callarg2 && INTVAL (callarg2) == -2)
+    function_call_abi = MS_ABI;
+  else
+    function_call_abi = SYSV_ABI;
   if (pop == const0_rtx)
     pop = NULL;
   gcc_assert (!TARGET_64BIT || !pop);
@@ -18164,6 +18566,32 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       pop = gen_rtx_PLUS (Pmode, stack_pointer_rtx, pop);
       pop = gen_rtx_SET (VOIDmode, stack_pointer_rtx, pop);
       call = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, call, pop));
+      gcc_assert (ix86_cfun_abi () != MS_ABI || function_call_abi != SYSV_ABI);
+    }
+  /* We need to represent that SI and DI registers are clobbered
+     by SYSV calls.  */
+  if (ix86_cfun_abi () == MS_ABI && function_call_abi == SYSV_ABI)
+    {
+      static int clobbered_registers[] = {27, 28, 45, 46, 47, 48, 49, 50, 51,
+      					  52, SI_REG, DI_REG};
+      unsigned int i;
+      rtx vec[ARRAY_SIZE (clobbered_registers) + 2];
+      rtx unspec = gen_rtx_UNSPEC (VOIDmode, gen_rtvec (1, const0_rtx),
+      				   UNSPEC_MS_TO_SYSV_CALL);
+
+      vec[0] = call;
+      vec[1] = unspec;
+      for (i = 0; i < ARRAY_SIZE (clobbered_registers); i++)
+        vec[i + 2] = gen_rtx_CLOBBER (SSE_REGNO_P (clobbered_registers[i])
+				      ? TImode : DImode,
+				      gen_rtx_REG
+				        (SSE_REGNO_P (clobbered_registers[i])
+						      ? TImode : DImode,
+					 clobbered_registers[i]));
+
+      call = gen_rtx_PARALLEL (VOIDmode,
+      			       gen_rtvec_v (ARRAY_SIZE (clobbered_registers)
+			       + 2, vec));
     }
 
   call = emit_call_insn (call);
@@ -19565,10 +19993,6 @@ enum ix86_builtins
   IX86_BUILTIN_VPERMILPS,
   IX86_BUILTIN_VPERMILPD256,
   IX86_BUILTIN_VPERMILPS256,
-  IX86_BUILTIN_VPERMIL2PD,
-  IX86_BUILTIN_VPERMIL2PS,
-  IX86_BUILTIN_VPERMIL2PD256,
-  IX86_BUILTIN_VPERMIL2PS256,
   IX86_BUILTIN_VPERM2F128PD256,
   IX86_BUILTIN_VPERM2F128PS256,
   IX86_BUILTIN_VPERM2F128SI256,
@@ -19585,6 +20009,9 @@ enum ix86_builtins
   IX86_BUILTIN_STOREUPD256,
   IX86_BUILTIN_STOREUPS256,
   IX86_BUILTIN_LDDQU256,
+  IX86_BUILTIN_MOVNTDQ256,
+  IX86_BUILTIN_MOVNTPD256,
+  IX86_BUILTIN_MOVNTPS256,
   IX86_BUILTIN_LOADDQU256,
   IX86_BUILTIN_STOREDQU256,
   IX86_BUILTIN_MASKLOADPD,
@@ -20056,6 +20483,7 @@ enum ix86_special_builtin_type
   V2DF_FTYPE_PCV2DF_V2DF,
   V2DI_FTYPE_PV2DI,
   VOID_FTYPE_PV2SF_V4SF,
+  VOID_FTYPE_PV4DI_V4DI,
   VOID_FTYPE_PV2DI_V2DI,
   VOID_FTYPE_PCHAR_V32QI,
   VOID_FTYPE_PCHAR_V16QI,
@@ -20225,10 +20653,6 @@ enum ix86_builtin_type
   V2DI2TI_FTYPE_V2DI_V2DI_INT,
   V1DI2DI_FTYPE_V1DI_V1DI_INT,
   V2DF_FTYPE_V2DF_V2DF_INT,
-  V8SF_FTYPE_V8SF_V8SF_V8SI_INT,
-  V4DF_FTYPE_V4DF_V4DF_V4DI_INT,
-  V4SF_FTYPE_V4SF_V4SF_V4SI_INT,
-  V2DF_FTYPE_V2DF_V2DF_V2DI_INT,
   V2DI_FTYPE_V2DI_UINT_UINT,
   V2DI_FTYPE_V2DI_V2DI_UINT_UINT
 };
@@ -20298,6 +20722,10 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movdqu256, "__builtin_ia32_loaddqu256", IX86_BUILTIN_LOADDQU256, UNKNOWN, (int) V32QI_FTYPE_PCCHAR },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movdqu256, "__builtin_ia32_storedqu256", IX86_BUILTIN_STOREDQU256, UNKNOWN, (int) VOID_FTYPE_PCHAR_V32QI },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_lddqu256, "__builtin_ia32_lddqu256", IX86_BUILTIN_LDDQU256, UNKNOWN, (int) V32QI_FTYPE_PCCHAR },
+
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movntv4di, "__builtin_ia32_movntdq256", IX86_BUILTIN_MOVNTDQ256, UNKNOWN, (int) VOID_FTYPE_PV4DI_V4DI },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movntv4df, "__builtin_ia32_movntpd256", IX86_BUILTIN_MOVNTPD256, UNKNOWN, (int) VOID_FTYPE_PDOUBLE_V4DF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movntv8sf, "__builtin_ia32_movntps256", IX86_BUILTIN_MOVNTPS256, UNKNOWN, (int) VOID_FTYPE_PFLOAT_V8SF },
 
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadpd, "__builtin_ia32_maskloadpd", IX86_BUILTIN_MASKLOADPD, UNKNOWN, (int) V2DF_FTYPE_PCV2DF_V2DF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadps, "__builtin_ia32_maskloadps", IX86_BUILTIN_MASKLOADPS, UNKNOWN, (int) V4SF_FTYPE_PCV4SF_V4SF },
@@ -20856,10 +21284,6 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vpermilv4sf, "__builtin_ia32_vpermilps", IX86_BUILTIN_VPERMILPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vpermilv4df, "__builtin_ia32_vpermilpd256", IX86_BUILTIN_VPERMILPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vpermilv8sf, "__builtin_ia32_vpermilps256", IX86_BUILTIN_VPERMILPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vpermil2v2df3,  "__builtin_ia32_vpermil2pd", IX86_BUILTIN_VPERMIL2PD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF_V2DI_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vpermil2v4sf3,  "__builtin_ia32_vpermil2ps", IX86_BUILTIN_VPERMIL2PS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF_V4SI_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vpermil2v4df3,  "__builtin_ia32_vpermil2pd256", IX86_BUILTIN_VPERMIL2PD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF_V4DI_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vpermil2v8sf3,  "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF_V8SI_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vinsertf128v4df, "__builtin_ia32_vinsertf128_pd256", IX86_BUILTIN_VINSERTF128PD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V2DF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vinsertf128v8sf, "__builtin_ia32_vinsertf128_ps256", IX86_BUILTIN_VINSERTF128PS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V4SF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vinsertf128v8si, "__builtin_ia32_vinsertf128_si256", IX86_BUILTIN_VINSERTF128SI256, UNKNOWN, (int) V8SI_FTYPE_V8SI_V4SI_INT },
@@ -21801,26 +22225,6 @@ ix86_init_mmx_sse_builtins (void)
 				V4DF_type_node, V4DF_type_node,
 				integer_type_node,
 				NULL_TREE);
-  tree v8sf_ftype_v8sf_v8sf_v8si_int
-    = build_function_type_list (V8SF_type_node,
-				V8SF_type_node, V8SF_type_node,
-				V8SI_type_node, integer_type_node,
-				NULL_TREE);
-  tree v4df_ftype_v4df_v4df_v4di_int
-    = build_function_type_list (V4DF_type_node,
-				V4DF_type_node, V4DF_type_node,
-				V4DI_type_node, integer_type_node,
-				NULL_TREE);
-  tree v4sf_ftype_v4sf_v4sf_v4si_int
-    = build_function_type_list (V4SF_type_node,
-				V4SF_type_node, V4SF_type_node,
-				V4SI_type_node, integer_type_node,
-				NULL_TREE);
-  tree v2df_ftype_v2df_v2df_v2di_int
-    = build_function_type_list (V2DF_type_node,
-				V2DF_type_node, V2DF_type_node,
-				V2DI_type_node, integer_type_node,
-				NULL_TREE);
   tree v8sf_ftype_pcfloat
     = build_function_type_list (V8SF_type_node,
 				pcfloat_type_node,
@@ -21853,6 +22257,11 @@ ix86_init_mmx_sse_builtins (void)
     = build_function_type_list (V8SI_type_node,
 				V8SI_type_node, V4SI_type_node,
 				integer_type_node,
+				NULL_TREE);
+  tree pv4di_type_node = build_pointer_type (V4DI_type_node);
+  tree void_ftype_pv4di_v4di
+    = build_function_type_list (void_type_node,
+				pv4di_type_node, V4DI_type_node,
 				NULL_TREE);
   tree v8sf_ftype_v8sf_v4sf_int
     = build_function_type_list (V8SF_type_node,
@@ -22039,6 +22448,9 @@ ix86_init_mmx_sse_builtins (void)
 	  break;
 	case VOID_FTYPE_PV2SF_V4SF:
 	  type = void_ftype_pv2sf_v4sf;
+	  break;
+	case VOID_FTYPE_PV4DI_V4DI:
+	  type = void_ftype_pv4di_v4di;
 	  break;
 	case VOID_FTYPE_PV2DI_V2DI:
 	  type = void_ftype_pv2di_v2di;
@@ -22523,18 +22935,6 @@ ix86_init_mmx_sse_builtins (void)
 	  break;
 	case V1DI2DI_FTYPE_V1DI_V1DI_INT:
 	  type = v1di_ftype_v1di_v1di_int;
-	  break;
-	case V8SF_FTYPE_V8SF_V8SF_V8SI_INT:
-	  type = v8sf_ftype_v8sf_v8sf_v8si_int;
-	  break;
-	case V4DF_FTYPE_V4DF_V4DF_V4DI_INT:
-	  type = v4df_ftype_v4df_v4df_v4di_int;
-	  break;
-	case V4SF_FTYPE_V4SF_V4SF_V4SI_INT:
-	  type = v4sf_ftype_v4sf_v4sf_v4si_int;
-	  break;
-	case V2DF_FTYPE_V2DF_V2DF_V2DI_INT:
-	  type = v2df_ftype_v2df_v2df_v2di_int;
 	  break;
 	default:
 	  gcc_unreachable ();
@@ -23697,13 +24097,6 @@ ix86_expand_args_builtin (const struct builtin_description *d,
       nargs = 3;
       nargs_constant = 2;
       break;
-    case V8SF_FTYPE_V8SF_V8SF_V8SI_INT:
-    case V4DF_FTYPE_V4DF_V4DF_V4DI_INT:
-    case V4SF_FTYPE_V4SF_V4SF_V4SI_INT:
-    case V2DF_FTYPE_V2DF_V2DF_V2DI_INT:
-      nargs = 4;
-      nargs_constant = 1;
-      break;
     case V2DI_FTYPE_V2DI_V2DI_UINT_UINT:
       nargs = 4;
       nargs_constant = 2;
@@ -23773,10 +24166,6 @@ ix86_expand_args_builtin (const struct builtin_description *d,
 
 	      case CODE_FOR_sse4_1_blendpd:
 	      case CODE_FOR_avx_vpermilv2df:
-	      case CODE_FOR_avx_vpermil2v2df3:
-	      case CODE_FOR_avx_vpermil2v4sf3:
-	      case CODE_FOR_avx_vpermil2v4df3:
-	      case CODE_FOR_avx_vpermil2v8sf3:
 		error ("the last argument must be a 2-bit immediate");
 		return const0_rtx;
 
@@ -23909,6 +24298,7 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
       memory = 0;
       break;
     case VOID_FTYPE_PV2SF_V4SF:
+    case VOID_FTYPE_PV4DI_V4DI:
     case VOID_FTYPE_PV2DI_V2DI:
     case VOID_FTYPE_PCHAR_V32QI:
     case VOID_FTYPE_PCHAR_V16QI:
@@ -29242,6 +29632,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_OPTION_CAN_INLINE_P
 #define TARGET_OPTION_CAN_INLINE_P ix86_can_inline_p
+
+#undef TARGET_EXPAND_TO_RTL_HOOK
+#define TARGET_EXPAND_TO_RTL_HOOK ix86_maybe_switch_abi
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

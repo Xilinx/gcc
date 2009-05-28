@@ -1,6 +1,6 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -5496,7 +5496,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  TREE_TYPE (decl) = error_mark_node;
 	  return;
 	}
-      else if (!type_dependent_expression_p (init))
+      else if (describable_type (init))
 	{
 	  type = TREE_TYPE (decl) = do_auto_deduction (type, init, auto_node);
 	  if (type == error_mark_node)
@@ -5517,7 +5517,10 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
       else if (init == ridpointers[(int)RID_DEFAULT])
 	{
 	  if (!defaultable_fn_p (decl))
-	    error ("%qD cannot be defaulted", decl);
+	    {
+	      error ("%qD cannot be defaulted", decl);
+	      DECL_INITIAL (decl) = NULL_TREE;
+	    }
 	  else
 	    DECL_DEFAULTED_FN (decl) = 1;
 	}
@@ -9282,6 +9285,13 @@ grokdeclarator (const cp_declarator *declarator,
 		       "declared out of global scope", name);
 	  }
 
+	if (ctype != NULL_TREE
+	    && TREE_CODE (ctype) != NAMESPACE_DECL && !MAYBE_CLASS_TYPE_P (ctype))
+	  {
+	    error ("%q#T is not a class or a namespace", ctype);
+	    ctype = NULL_TREE;
+	  }
+
 	if (ctype == NULL_TREE)
 	  {
 	    if (virtualp)
@@ -10891,6 +10901,9 @@ start_enum (tree name, tree underlying_type, bool scoped_enum_p)
       enumtype = pushtag (name, enumtype, /*tag_scope=*/ts_current);
     }
 
+  if (enumtype == error_mark_node)
+    return enumtype;
+
   if (scoped_enum_p)
     {
       SET_SCOPED_ENUM_P (enumtype, 1);
@@ -11768,10 +11781,15 @@ start_function (cp_decl_specifier_seq *declspecs,
   tree decl1;
 
   decl1 = grokdeclarator (declarator, declspecs, FUNCDEF, 1, &attrs);
+  if (decl1 == error_mark_node)
+    return 0;
   /* If the declarator is not suitable for a function definition,
      cause a syntax error.  */
   if (decl1 == NULL_TREE || TREE_CODE (decl1) != FUNCTION_DECL)
-    return 0;
+    {
+      error ("invalid function declaration");
+      return 0;
+    }
 
   if (DECL_MAIN_P (decl1))
     /* main must return int.  grokfndecl should have corrected it

@@ -423,12 +423,14 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 #endif
 
 #define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)			\
-    { if (spu_legitimate_address (MODE, X, REG_OK_STRICT_FLAG))	\
+    { if (spu_legitimate_address (MODE, X, REG_OK_STRICT_FLAG,	\
+				  ADDR_SPACE_GENERIC))		\
 	goto ADDR;						\
     }
 
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN) \
-  {  rtx result = spu_legitimize_address (X, OLDX, MODE);	\
+#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)			\
+  {  rtx result = spu_legitimize_address (X, OLDX, MODE,	\
+					  ADDR_SPACE_GENERIC);	\
      if (result != NULL_RTX)					\
        {							\
 	 (X) = result;						\

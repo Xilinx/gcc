@@ -1,6 +1,6 @@
 /* Header file for intrinsics check, resolve and simplify function
    prototypes.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -270,6 +270,7 @@ gfc_expr *gfc_simplify_llt (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_log (gfc_expr *);
 gfc_expr *gfc_simplify_log10 (gfc_expr *);
 gfc_expr *gfc_simplify_logical (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_merge (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_min (gfc_expr *);
 gfc_expr *gfc_simplify_minval (gfc_expr *, gfc_expr*, gfc_expr*);
 gfc_expr *gfc_simplify_max (gfc_expr *);

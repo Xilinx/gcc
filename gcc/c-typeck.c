@@ -1,6 +1,6 @@
 /* Build expressions with type checking for C compiler.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -91,12 +91,13 @@ static void push_member_name (tree);
 static int spelling_length (void);
 static char *print_spelling (char *);
 static void warning_init (int, const char *);
-static tree digest_init (tree, tree, bool, int);
-static void output_init_element (tree, bool, tree, tree, int);
+static bool digest_init_addr_space_ok_p (tree, tree, addr_space_t);
+static tree digest_init (tree, tree, bool, int, addr_space_t);
+static void output_init_element (tree, bool, tree, tree, int, bool);
 static void output_pending_init_elements (int);
 static int set_designator (int);
 static void push_range_stack (tree);
-static void add_pending_init (tree, tree);
+static void add_pending_init (tree, tree, bool);
 static void set_nonincremental_init (void);
 static void set_nonincremental_init_from_string (tree);
 static tree find_init_member (tree);
@@ -2868,7 +2869,11 @@ parser_build_binary_op (location_t location, enum tree_code code,
 static tree
 pointer_diff (tree op0, tree op1)
 {
-  tree restype = ptrdiff_type_node;
+  addr_space_t as0 = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (op0)));
+  addr_space_t as1 = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (op1)));
+  tree restype = ((as0 == 0 && as1 == 0)
+		  ? ptrdiff_type_node
+		  : targetm.addr_space.minus_type (as0, as1));
 
   tree target_type = TREE_TYPE (TREE_TYPE (op0));
   tree con0, con1, lit0, lit1;
@@ -3563,6 +3568,16 @@ build_conditional_expr (tree ifexp, tree op1, tree op2)
 	result_type = qualify_type (type2, type1);
       else if (null_pointer_constant_p (orig_op2))
 	result_type = qualify_type (type1, type2);
+      else if (((as1 = TYPE_ADDR_SPACE (TREE_TYPE (type1)))
+		!= (as2 = TYPE_ADDR_SPACE (TREE_TYPE (type2))))
+	       && (TYPE_MAIN_VARIANT (TREE_TYPE (type1))
+		   == TYPE_MAIN_VARIANT (TREE_TYPE (type2)))
+	       && !targetm.addr_space.subset_p (as1, as2, &as_common))
+	{
+	  error ("pointers to incompatible address spaces used in conditional "
+		 "expression");
+	  result_type = type1;
+	}
       else if (VOID_TYPE_P (TREE_TYPE (type1)))
 	{
 	  if (TREE_CODE (TREE_TYPE (type2)) == FUNCTION_TYPE)
@@ -3580,16 +3595,6 @@ build_conditional_expr (tree ifexp, tree op1, tree op2)
 		     "%<void *%> and function pointer");
 	  result_type = build_pointer_type (qualify_type (TREE_TYPE (type2),
 							  TREE_TYPE (type1)));
-	}
-      else if (((as1 = TYPE_ADDR_SPACE (TREE_TYPE (type1)))
-		!= (as2 = TYPE_ADDR_SPACE (TREE_TYPE (type2))))
-	       && (TYPE_MAIN_VARIANT (TREE_TYPE (type1))
-		   == TYPE_MAIN_VARIANT (TREE_TYPE (type2)))
-	       && !targetm.addr_space.subset_p (as1, as2, &as_common))
-	{
-	  error ("pointers to incompatible address spaces used in conditional "
-		 "expression");
-	  result_type = type1;
 	}
       else
 	{
@@ -3747,7 +3752,7 @@ build_c_cast (tree type, tree expr)
 		   "ISO C forbids casts to union type");
 	  t = digest_init (type,
 			   build_constructor_single (type, field, value),
-			   true, 0);
+			   true, 0, 0);
 	  TREE_CONSTANT (t) = TREE_CONSTANT (value);
 	  return t;
 	}
@@ -4390,8 +4395,8 @@ convert_for_assignment (tree type, tree rhs, enum impl_conv errtype,
 		     "space");
 	      break;
 	    case ic_init:
-	      error ("initialization of a pointer to an incompatible space"
-		     "address space");
+	      error ("initialization of a pointer to an incompatible address "
+		     "space");
 	      break;
 	    case ic_return:
 	      error ("return of a pointer to an incompatible address space");
@@ -4642,7 +4647,8 @@ store_init_value (tree decl, tree init)
 
   /* Digest the specified initializer into an expression.  */
 
-  value = digest_init (type, init, true, TREE_STATIC (decl));
+  value = digest_init (type, init, true, TREE_STATIC (decl),
+		       TYPE_ADDR_SPACE (TREE_TYPE (decl)));
 
   /* Store the expression if valid; else report error.  */
 
@@ -4870,6 +4876,41 @@ maybe_warn_string_init (tree type, struct c_expr expr)
 		  "array initialized from parenthesized string constant");
 }
 
+/* Subroutine of digest_init to allow the backend to restrict what type of
+   static initializations are allowed for named address spaces.  Return true if
+   the initialization is valid.  */
+
+static bool
+digest_init_addr_space_ok_p (tree type, tree init, addr_space_t as)
+{
+  addr_space_t ptr_as = 0;
+
+  if (init == error_mark_node)
+    return false;
+
+  if (POINTER_TYPE_P (TREE_TYPE (init)))
+    ptr_as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (init)));
+
+  /* See if initializing elements in a named address space is ok.  */
+  if (as && !targetm.addr_space.static_init_ok_p (type, init, as, ptr_as))
+    {
+      error_init ("initializer element is not allowed in named address space");
+      return false;
+    }
+
+  /* Check for initializing pointers to a named address space.  */
+  else if (ptr_as
+	   && !targetm.addr_space.static_init_ok_p (type, init, as, ptr_as))
+    {
+      error_init ("initializer element pointing to a named address space "
+		  "is not allowed");
+      return false;
+    }
+
+  else
+    return true;
+}
+
 /* Digest the parser output INIT as an initializer for type TYPE.
    Return a C expression of type TYPE to represent the initial value.
 
@@ -4878,10 +4919,13 @@ maybe_warn_string_init (tree type, struct c_expr expr)
    For other types of INIT, STRICT_STRING is not used.
 
    REQUIRE_CONSTANT requests an error if non-constant initializers or
-   elements are seen.  */
+   elements are seen.
+
+   AS is non-zero if the declaration is in a named address space.  */
 
 static tree
-digest_init (tree type, tree init, bool strict_string, int require_constant)
+digest_init (tree type, tree init, bool strict_string, int require_constant,
+	     addr_space_t as)
 {
   enum tree_code code = TREE_CODE (type);
   tree inside_init = init;
@@ -4920,6 +4964,10 @@ digest_init (tree type, tree init, bool strict_string, int require_constant)
 	  expr.value = inside_init;
 	  expr.original_code = (strict_string ? STRING_CST : ERROR_MARK);
 	  maybe_warn_string_init (type, expr);
+
+	  if (require_constant
+	      && !digest_init_addr_space_ok_p (type, inside_init, as))
+	    return error_mark_node;
 
 	  if (comptypes (TYPE_MAIN_VARIANT (TREE_TYPE (inside_init)),
 			 TYPE_MAIN_VARIANT (type)))
@@ -4981,6 +5029,10 @@ digest_init (tree type, tree init, bool strict_string, int require_constant)
       && vector_types_convertible_p (TREE_TYPE (inside_init), type, true)
       && TREE_CONSTANT (inside_init))
     {
+      if (require_constant
+	  && !digest_init_addr_space_ok_p (type, inside_init, as))
+	return error_mark_node;
+
       if (TREE_CODE (inside_init) == VECTOR_CST
 	  && comptypes (TYPE_MAIN_VARIANT (TREE_TYPE (inside_init)),
 			TYPE_MAIN_VARIANT (type)))
@@ -5091,6 +5143,9 @@ digest_init (tree type, tree init, bool strict_string, int require_constant)
 	  error_init ("initializer element is not constant");
 	  inside_init = error_mark_node;
 	}
+      else if (require_constant
+	       && !digest_init_addr_space_ok_p (type, inside_init, as))
+	inside_init = error_mark_node;
 
       /* Added to enable additional -Wmissing-format-attribute warnings.  */
       if (TREE_CODE (TREE_TYPE (inside_init)) == POINTER_TYPE)
@@ -5128,6 +5183,9 @@ digest_init (tree type, tree init, bool strict_string, int require_constant)
 	  error_init ("initializer element is not computable at load time");
 	  inside_init = error_mark_node;
 	}
+      else if (require_constant
+	       && !digest_init_addr_space_ok_p (type, inside_init, as))
+	inside_init = error_mark_node;
 
       return inside_init;
     }
@@ -5526,12 +5584,12 @@ push_init_level (int implicit)
 	  if ((TREE_CODE (constructor_type) == RECORD_TYPE
 	       || TREE_CODE (constructor_type) == UNION_TYPE)
 	      && constructor_fields == 0)
-	    process_init_element (pop_init_level (1));
+	    process_init_element (pop_init_level (1), true);
 	  else if (TREE_CODE (constructor_type) == ARRAY_TYPE
 		   && constructor_max_index
 		   && tree_int_cst_lt (constructor_max_index,
 				       constructor_index))
-	    process_init_element (pop_init_level (1));
+	    process_init_element (pop_init_level (1), true);
 	  else
 	    break;
 	}
@@ -5725,7 +5783,7 @@ pop_init_level (int implicit)
       /* When we come to an explicit close brace,
 	 pop any inner levels that didn't have explicit braces.  */
       while (constructor_stack->implicit)
-	process_init_element (pop_init_level (1));
+	process_init_element (pop_init_level (1), true);
 
       gcc_assert (!constructor_range_stack);
     }
@@ -5884,7 +5942,7 @@ set_designator (int array)
       /* Designator list starts at the level of closest explicit
 	 braces.  */
       while (constructor_stack->implicit)
-	process_init_element (pop_init_level (1));
+	process_init_element (pop_init_level (1), true);
       constructor_designated = 1;
       return 0;
     }
@@ -6045,10 +6103,15 @@ set_init_label (tree fieldname)
 
 /* Add a new initializer to the tree of pending initializers.  PURPOSE
    identifies the initializer, either array index or field in a structure.
-   VALUE is the value of that index or field.  */
+   VALUE is the value of that index or field.
+
+   IMPLICIT is true if value comes from pop_init_level (1),
+   the new initializer has been merged with the existing one
+   and thus no warnings should be emitted about overriding an
+   existing initializer.  */
 
 static void
-add_pending_init (tree purpose, tree value)
+add_pending_init (tree purpose, tree value, bool implicit)
 {
   struct init_node *p, **q, *r;
 
@@ -6066,10 +6129,13 @@ add_pending_init (tree purpose, tree value)
 	    q = &p->right;
 	  else
 	    {
-	      if (TREE_SIDE_EFFECTS (p->value))
-		warning_init (0, "initialized field with side-effects overwritten");
-	      else if (warn_override_init)
-		warning_init (OPT_Woverride_init, "initialized field overwritten");
+	      if (!implicit)
+		{
+		  if (TREE_SIDE_EFFECTS (p->value))
+		    warning_init (0, "initialized field with side-effects overwritten");
+		  else if (warn_override_init)
+		    warning_init (OPT_Woverride_init, "initialized field overwritten");
+		}
 	      p->value = value;
 	      return;
 	    }
@@ -6089,10 +6155,13 @@ add_pending_init (tree purpose, tree value)
 	    q = &p->right;
 	  else
 	    {
-	      if (TREE_SIDE_EFFECTS (p->value))
-		warning_init (0, "initialized field with side-effects overwritten");
-	      else if (warn_override_init)
-		warning_init (OPT_Woverride_init, "initialized field overwritten");
+	      if (!implicit)
+		{
+		  if (TREE_SIDE_EFFECTS (p->value))
+		    warning_init (0, "initialized field with side-effects overwritten");
+		  else if (warn_override_init)
+		    warning_init (OPT_Woverride_init, "initialized field overwritten");
+		}
 	      p->value = value;
 	      return;
 	    }
@@ -6277,7 +6346,7 @@ set_nonincremental_init (void)
     return;
 
   FOR_EACH_CONSTRUCTOR_ELT (constructor_elements, ix, index, value)
-    add_pending_init (index, value);
+    add_pending_init (index, value, false);
   constructor_elements = 0;
   if (TREE_CODE (constructor_type) == RECORD_TYPE)
     {
@@ -6367,7 +6436,7 @@ set_nonincremental_init_from_string (tree str)
 	}
 
       value = build_int_cst_wide (type, val[1], val[0]);
-      add_pending_init (purpose, value);
+      add_pending_init (purpose, value, false);
     }
 
   constructor_incremental = 0;
@@ -6440,11 +6509,16 @@ find_init_member (tree field)
 
    PENDING if non-nil means output pending elements that belong
    right after this element.  (PENDING is normally 1;
-   it is 0 while outputting pending elements, to avoid recursion.)  */
+   it is 0 while outputting pending elements, to avoid recursion.)
+
+   IMPLICIT is true if value comes from pop_init_level (1),
+   the new initializer has been merged with the existing one
+   and thus no warnings should be emitted about overriding an
+   existing initializer.  */
 
 static void
 output_init_element (tree value, bool strict_string, tree type, tree field,
-		     int pending)
+		     int pending, bool implicit)
 {
   constructor_elt *celt;
 
@@ -6506,7 +6580,8 @@ output_init_element (tree value, bool strict_string, tree type, tree field,
 		  || TREE_CHAIN (field)))))
     return;
 
-  value = digest_init (type, value, strict_string, require_constant_value);
+  value = digest_init (type, value, strict_string, require_constant_value,
+		       TYPE_ADDR_SPACE (type));
   if (value == error_mark_node)
     {
       constructor_erroneous = 1;
@@ -6523,7 +6598,7 @@ output_init_element (tree value, bool strict_string, tree type, tree field,
 	  && tree_int_cst_lt (field, constructor_unfilled_index))
 	set_nonincremental_init ();
 
-      add_pending_init (field, value);
+      add_pending_init (field, value, implicit);
       return;
     }
   else if (TREE_CODE (constructor_type) == RECORD_TYPE
@@ -6549,17 +6624,21 @@ output_init_element (tree value, bool strict_string, tree type, tree field,
 	    }
 	}
 
-      add_pending_init (field, value);
+      add_pending_init (field, value, implicit);
       return;
     }
   else if (TREE_CODE (constructor_type) == UNION_TYPE
 	   && !VEC_empty (constructor_elt, constructor_elements))
     {
-      if (TREE_SIDE_EFFECTS (VEC_last (constructor_elt,
-				       constructor_elements)->value))
-	warning_init (0, "initialized field with side-effects overwritten");
-      else if (warn_override_init)
-	warning_init (OPT_Woverride_init, "initialized field overwritten");
+      if (!implicit)
+	{
+	  if (TREE_SIDE_EFFECTS (VEC_last (constructor_elt,
+					   constructor_elements)->value))
+	    warning_init (0,
+			  "initialized field with side-effects overwritten");
+	  else if (warn_override_init)
+	    warning_init (OPT_Woverride_init, "initialized field overwritten");
+	}
 
       /* We can have just one union field set.  */
       constructor_elements = 0;
@@ -6630,7 +6709,7 @@ output_pending_init_elements (int all)
 				  constructor_unfilled_index))
 	    output_init_element (elt->value, true,
 				 TREE_TYPE (constructor_type),
-				 constructor_unfilled_index, 0);
+				 constructor_unfilled_index, 0, false);
 	  else if (tree_int_cst_lt (constructor_unfilled_index,
 				    elt->purpose))
 	    {
@@ -6683,7 +6762,7 @@ output_pending_init_elements (int all)
 	    {
 	      constructor_unfilled_fields = elt->purpose;
 	      output_init_element (elt->value, true, TREE_TYPE (elt->purpose),
-				   elt->purpose, 0);
+				   elt->purpose, 0, false);
 	    }
 	  else if (tree_int_cst_lt (ctor_unfilled_bitpos, elt_bitpos))
 	    {
@@ -6746,10 +6825,15 @@ output_pending_init_elements (int all)
    to handle a partly-braced initializer.
 
    Once this has found the correct level for the new element,
-   it calls output_init_element.  */
+   it calls output_init_element.
+
+   IMPLICIT is true if value comes from pop_init_level (1),
+   the new initializer has been merged with the existing one
+   and thus no warnings should be emitted about overriding an
+   existing initializer.  */
 
 void
-process_init_element (struct c_expr value)
+process_init_element (struct c_expr value, bool implicit)
 {
   tree orig_value = value.value;
   int string_flag = orig_value != 0 && TREE_CODE (orig_value) == STRING_CST;
@@ -6790,12 +6874,12 @@ process_init_element (struct c_expr value)
       if ((TREE_CODE (constructor_type) == RECORD_TYPE
 	   || TREE_CODE (constructor_type) == UNION_TYPE)
 	  && constructor_fields == 0)
-	process_init_element (pop_init_level (1));
+	process_init_element (pop_init_level (1), true);
       else if (TREE_CODE (constructor_type) == ARRAY_TYPE
 	       && (constructor_max_index == 0
 		   || tree_int_cst_lt (constructor_max_index,
 				       constructor_index)))
-	process_init_element (pop_init_level (1));
+	process_init_element (pop_init_level (1), true);
       else
 	break;
     }
@@ -6862,7 +6946,7 @@ process_init_element (struct c_expr value)
 	    {
 	      push_member_name (constructor_fields);
 	      output_init_element (value.value, strict_string,
-				   fieldtype, constructor_fields, 1);
+				   fieldtype, constructor_fields, 1, implicit);
 	      RESTORE_SPELLING_DEPTH (constructor_depth);
 	    }
 	  else
@@ -6952,7 +7036,7 @@ process_init_element (struct c_expr value)
 	    {
 	      push_member_name (constructor_fields);
 	      output_init_element (value.value, strict_string,
-				   fieldtype, constructor_fields, 1);
+				   fieldtype, constructor_fields, 1, implicit);
 	      RESTORE_SPELLING_DEPTH (constructor_depth);
 	    }
 	  else
@@ -7002,7 +7086,7 @@ process_init_element (struct c_expr value)
 	    {
 	      push_array_bounds (tree_low_cst (constructor_index, 1));
 	      output_init_element (value.value, strict_string,
-				   elttype, constructor_index, 1);
+				   elttype, constructor_index, 1, implicit);
 	      RESTORE_SPELLING_DEPTH (constructor_depth);
 	    }
 
@@ -7031,7 +7115,7 @@ process_init_element (struct c_expr value)
 	  /* Now output the actual element.  */
 	  if (value.value)
 	    output_init_element (value.value, strict_string,
-				 elttype, constructor_index, 1);
+				 elttype, constructor_index, 1, implicit);
 
 	  constructor_index
 	    = size_binop (PLUS_EXPR, constructor_index, bitsize_one_node);
@@ -7056,7 +7140,7 @@ process_init_element (struct c_expr value)
 	{
 	  if (value.value)
 	    output_init_element (value.value, strict_string,
-				 constructor_type, NULL_TREE, 1);
+				 constructor_type, NULL_TREE, 1, implicit);
 	  constructor_fields = 0;
 	}
 
@@ -7072,14 +7156,14 @@ process_init_element (struct c_expr value)
 	  while (constructor_stack != range_stack->stack)
 	    {
 	      gcc_assert (constructor_stack->implicit);
-	      process_init_element (pop_init_level (1));
+	      process_init_element (pop_init_level (1), true);
 	    }
 	  for (p = range_stack;
 	       !p->range_end || tree_int_cst_equal (p->index, p->range_end);
 	       p = p->prev)
 	    {
 	      gcc_assert (constructor_stack->implicit);
-	      process_init_element (pop_init_level (1));
+	      process_init_element (pop_init_level (1), true);
 	    }
 
 	  p->index = size_binop (PLUS_EXPR, p->index, bitsize_one_node);

@@ -1,6 +1,6 @@
 /* Compiler driver program that can handle many languages.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -3371,8 +3371,10 @@ process_command (int argc, const char **argv)
      Use heuristic that all configuration names must have at least
      one dash '-'. This allows us to pass options starting with -b.  */
   if (argc > 1 && argv[1][0] == '-'
-      && (argv[1][1] == 'V' ||
-	 ((argv[1][1] == 'b') && (NULL != strchr(argv[1] + 2,'-')))))
+      && (argv[1][1] == 'V'
+	  || (argv[1][1] == 'b'
+	      && (argv[1][2] == '\0'
+		  || NULL != strchr (argv[1] + 2, '-')))))
     {
       const char *new_version = DEFAULT_TARGET_VERSION;
       const char *new_machine = DEFAULT_TARGET_MACHINE;
@@ -3380,10 +3382,15 @@ process_command (int argc, const char **argv)
       char **new_argv;
       char *new_argv0;
       int baselen;
+      int status = 0;
+      int err = 0;
+      const char *errmsg;
 
       while (argc > 1 && argv[1][0] == '-'
-	     && (argv[1][1] == 'V' ||
-		((argv[1][1] == 'b') && ( NULL != strchr(argv[1] + 2,'-')))))
+	     && (argv[1][1] == 'V'
+		 || (argv[1][1] == 'b'
+		     && (argv[1][2] == '\0'
+			 || NULL != strchr (argv[1] + 2, '-')))))
 	{
 	  char opt = argv[1][1];
 	  const char *arg;
@@ -3420,8 +3427,18 @@ process_command (int argc, const char **argv)
       new_argv = XDUPVEC (char *, argv, argc + 1);
       new_argv[0] = new_argv0;
 
-      execvp (new_argv0, new_argv);
-      fatal ("couldn't run '%s': %s", new_argv0, xstrerror (errno));
+      errmsg = pex_one (PEX_SEARCH, new_argv0, new_argv, progname, NULL,
+			NULL, &status, &err);
+
+      if (errmsg)
+	{
+	  if (err == 0)
+	    fatal ("couldn't run '%s': %s", new_argv0, errmsg);
+	  else
+	    fatal ("couldn't run '%s': %s: %s", new_argv0, errmsg,
+		    xstrerror (err));
+        }
+      exit (status);
     }
 
   /* Set up the default search paths.  If there is no GCC_EXEC_PREFIX,
@@ -3842,7 +3859,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  switch (c)
 	    {
 	    case 'b':
-	      if (NULL == strchr(argv[i] + 2, '-'))
+	      if (p[1] && NULL == strchr (argv[i] + 2, '-'))
 		goto normal_switch;
 
 	      /* Fall through.  */

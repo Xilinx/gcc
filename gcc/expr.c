@@ -2698,7 +2698,7 @@ set_storage_via_libcall (rtx object, rtx size, rtx val, bool tailcall)
    for the function we use for block clears.  The first time FOR_CALL
    is true, we call assemble_external.  */
 
-static GTY(()) tree block_clear_fn;
+tree block_clear_fn;
 
 void
 init_block_clear_fn (const char *asmspec)
@@ -3430,12 +3430,14 @@ emit_move_insn (rtx x, rtx y)
   /* If X or Y are memory references, verify that their addresses are valid
      for the machine.  */
   if (MEM_P (x)
-      && (! memory_address_p (GET_MODE (x), XEXP (x, 0))
+      && (! memory_address_addr_space_p (GET_MODE (x), XEXP (x, 0),
+					 MEM_ADDR_SPACE (x))
 	  && ! push_operand (x, GET_MODE (x))))
     x = validize_mem (x);
 
   if (MEM_P (y)
-      && ! memory_address_p (GET_MODE (y), XEXP (y, 0)))
+      && ! memory_address_addr_space_p (GET_MODE (y), XEXP (y, 0),
+					MEM_ADDR_SPACE (y)))
     y = validize_mem (y);
 
   gcc_assert (mode != BLKmode);
@@ -6920,6 +6922,7 @@ expand_expr_addr_expr (tree exp, rtx target, enum machine_mode tmode,
 {
   enum machine_mode rmode;
   enum machine_mode addrmode;
+  enum machine_mode local_ptr_mode = ptr_mode;
   rtx result;
 
   /* Target mode of VOIDmode says "whatever's natural".  */
@@ -6931,13 +6934,13 @@ expand_expr_addr_expr (tree exp, rtx target, enum machine_mode tmode,
     {
       addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
       if (addr_space)
-	addrmode = targetm.addr_space.pointer_mode (addr_space);
+	local_ptr_mode = addrmode = targetm.addr_space.pointer_mode (addr_space);
     }
 
   /* We can get called with some Weird Things if the user does silliness
      like "(short) &a".  In that case, convert_memory_address won't do
      the right thing, so ignore the given target mode.  */
-  if (tmode != addrmode && tmode != ptr_mode)
+  if (tmode != addrmode && tmode != local_ptr_mode)
     tmode = addrmode;
 
   result = expand_expr_addr_expr_1 (TREE_OPERAND (exp, 0), target,
@@ -7340,7 +7343,9 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  decl_rtl = use_anchored_address (decl_rtl);
 	  if (modifier != EXPAND_CONST_ADDRESS
 	      && modifier != EXPAND_SUM
-	      && !memory_address_p (DECL_MODE (exp), XEXP (decl_rtl, 0)))
+	      && !memory_address_addr_space_p (DECL_MODE (exp),
+					       XEXP (decl_rtl, 0),
+					       MEM_ADDR_SPACE (decl_rtl)))
 	    temp = replace_equiv_address (decl_rtl,
 					  copy_rtx (XEXP (decl_rtl, 0)));
 	}
@@ -7462,7 +7467,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       if (modifier != EXPAND_CONST_ADDRESS
 	  && modifier != EXPAND_INITIALIZER
 	  && modifier != EXPAND_SUM
-	  && ! memory_address_p (mode, XEXP (temp, 0)))
+	  && ! memory_address_addr_space_p (mode, XEXP (temp, 0),
+					    MEM_ADDR_SPACE (temp)))
 	return replace_equiv_address (temp,
 				      copy_rtx (XEXP (temp, 0)));
       return temp;
@@ -7522,6 +7528,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case INDIRECT_REF:
       {
 	tree exp1 = TREE_OPERAND (exp, 0);
+	addr_space_t as = 0;
+	enum machine_mode mem_Pmode = Pmode;
 
 	if (modifier != EXPAND_WRITE)
 	  {
@@ -7532,19 +7540,29 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	      return expand_expr (t, target, tmode, modifier);
 	  }
 
+	if (POINTER_TYPE_P (TREE_TYPE (exp1)))
+	  {
+	    as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp1)));
+	    if (as)
+	      mem_Pmode = targetm.addr_space.pointer_mode (as);
+	  }
+
 	op0 = expand_expr (exp1, NULL_RTX, VOIDmode, EXPAND_SUM);
-	op0 = memory_address (mode, op0);
+	op0 = memory_address_addr_space (mode, op0, as);
 
 	if (code == ALIGN_INDIRECT_REF)
 	  {
 	    int align = TYPE_ALIGN_UNIT (type);
-	    op0 = gen_rtx_AND (Pmode, op0, GEN_INT (-align));
-	    op0 = memory_address (mode, op0);
+	    op0 = gen_rtx_AND (mem_Pmode, op0, GEN_INT (-align));
+	    op0 = memory_address_addr_space (mode, op0, as);
 	  }
 
 	temp = gen_rtx_MEM (mode, op0);
 
 	set_mem_attributes (temp, exp, 0);
+
+	if (as)
+	  set_mem_addr_space (temp, as);
 
 	/* Resolve the misalignment now, so that we don't have to remember
 	   to resolve it later.  Of course, this only works for reads.  */

@@ -2537,6 +2537,7 @@ coalesce_spill_slots (ira_allocno_t *spilled_coalesced_allocnos, int num)
   int i, j, n, last_coalesced_allocno_num;
   ira_allocno_t allocno, a;
   bool merged_p = false;
+  bitmap set_jump_crosses = regstat_get_setjmp_crosses ();
 
   slot_coalesced_allocnos_live_ranges
     = (allocno_live_range_t *) ira_allocate (sizeof (allocno_live_range_t)
@@ -2550,6 +2551,7 @@ coalesce_spill_slots (ira_allocno_t *spilled_coalesced_allocnos, int num)
     {
       allocno = spilled_coalesced_allocnos[i];
       if (ALLOCNO_FIRST_COALESCED_ALLOCNO (allocno) != allocno
+	  || bitmap_bit_p (set_jump_crosses, ALLOCNO_REGNO (allocno))
 	  || (ALLOCNO_REGNO (allocno) < ira_reg_equiv_len
 	      && (ira_reg_equiv_const[ALLOCNO_REGNO (allocno)] != NULL_RTX
 		  || ira_reg_equiv_invariant_p[ALLOCNO_REGNO (allocno)])))
@@ -2559,6 +2561,7 @@ coalesce_spill_slots (ira_allocno_t *spilled_coalesced_allocnos, int num)
 	  a = spilled_coalesced_allocnos[j];
 	  n = ALLOCNO_TEMP (a);
 	  if (ALLOCNO_FIRST_COALESCED_ALLOCNO (a) == a
+	      && ! bitmap_bit_p (set_jump_crosses, ALLOCNO_REGNO (a))
 	      && (ALLOCNO_REGNO (a) >= ira_reg_equiv_len
 		  || (! ira_reg_equiv_invariant_p[ALLOCNO_REGNO (a)]
 		      && ira_reg_equiv_const[ALLOCNO_REGNO (a)] == NULL_RTX))
@@ -3037,11 +3040,13 @@ ira_reuse_stack_slot (int regno, unsigned int inherent_size,
   if (x != NULL_RTX)
     {
       ira_assert (slot->width >= total_size);
+#ifdef ENABLE_IRA_CHECKING
       EXECUTE_IF_SET_IN_BITMAP (&slot->spilled_regs,
 				FIRST_PSEUDO_REGISTER, i, bi)
 	{
 	  ira_assert (! pseudos_have_intersected_live_ranges_p (regno, i));
 	}
+#endif
       SET_REGNO_REG_SET (&slot->spilled_regs, regno);
       if (internal_flag_ira_verbose > 3 && ira_dump_file)
 	{
@@ -3267,7 +3272,7 @@ fast_allocation (void)
 						  * ira_max_point);
   for (i = 0; i < ira_max_point; i++)
     CLEAR_HARD_REG_SET (used_hard_regs[i]);
-  qsort (sorted_allocnos, ira_allocnos_num, sizeof (ira_allocno_t), 
+  qsort (sorted_allocnos, num, sizeof (ira_allocno_t),
 	 allocno_priority_compare_func);
   for (i = 0; i < num; i++)
     {
@@ -3329,7 +3334,7 @@ ira_color (void)
       ALLOCNO_UPDATED_MEMORY_COST (a) = ALLOCNO_MEMORY_COST (a);
       ALLOCNO_UPDATED_COVER_CLASS_COST (a) = ALLOCNO_COVER_CLASS_COST (a);
     }
-  if (optimize)
+  if (ira_conflicts_p)
     color ();
   else
     fast_allocation ();

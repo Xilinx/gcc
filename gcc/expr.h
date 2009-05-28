@@ -404,6 +404,7 @@ enum block_op_methods
   BLOCK_OP_TAILCALL
 };
 
+extern GTY(()) tree block_clear_fn;
 extern void init_block_move_fn (const char *);
 extern void init_block_clear_fn (const char *);
 
@@ -634,15 +635,25 @@ extern rtx force_label_rtx (tree);
    The constant terms are added and stored via a second arg.  */
 extern rtx eliminate_constant_term (rtx, rtx *);
 
-/* Convert arg to a valid memory address for specified machine mode,
-   by emitting insns to perform arithmetic if nec.  */
-extern rtx memory_address (enum machine_mode, rtx);
+/* Convert arg to a valid memory address for specified machine mode that points
+   to a specific named address space, by emitting insns to perform arithmetic
+   if necessary.  */
+extern rtx memory_address_addr_space (enum machine_mode, rtx, addr_space_t);
+
+/* Like memory_address_addr_space, except assume the memory address points to
+   the generic named address space.  */
+#define memory_address(MODE,RTX) memory_address_addr_space (MODE, RTX, 0)
 
 /* Return a memory reference like MEMREF, but with its mode changed
    to MODE and its address changed to ADDR.
    (VOIDmode means don't change the mode.
    NULL for ADDR means don't change the address.)  */
 extern rtx change_address (rtx, enum machine_mode, rtx);
+
+/* Like change_address, except we change the address space of the memory
+   returned.  */
+extern rtx change_address_addr_space (rtx, enum machine_mode, rtx,
+				      addr_space_t);
 
 /* Return a memory reference like MEMREF, but with its mode changed
    to MODE and its address offset by OFFSET bytes.  */
@@ -694,6 +705,11 @@ extern void set_mem_attributes (rtx, tree, int);
    we alter MEM_OFFSET according to T then we should subtract BITPOS
    expecting that it'll be added back in later.  */
 extern void set_mem_attributes_minus_bitpos (rtx, tree, int, HOST_WIDE_INT);
+
+/* Return OFFSET if XEXP (MEM, 0) - OFFSET is known to be ALIGN
+   bits aligned for 0 <= OFFSET < ALIGN / BITS_PER_UNIT, or
+   -1 if not known.  */
+extern int get_mem_align_offset (rtx, int);
 
 /* Assemble the static constant template for function entry trampolines.  */
 extern rtx assemble_trampoline_template (void);

@@ -1253,6 +1253,17 @@ memory_address_p (enum machine_mode mode ATTRIBUTE_UNUSED, rtx addr)
   return 1;
 }
 
+/* Like memory_address_p, expect for a distinct named address space.  */
+
+int
+memory_address_addr_space_p (enum machine_mode mode, rtx addr, addr_space_t as)
+{
+  if (!as)
+    return memory_address_p (mode, addr);
+  else
+    return targetm.addr_space.memory_address_p (mode, addr, as);
+}
+
 /* Return 1 if OP is a valid memory reference with mode MODE,
    including a valid address.
 
@@ -3039,7 +3050,7 @@ peephole2_optimize (void)
 
       /* Start up propagation.  */
       bitmap_copy (live, DF_LR_OUT (bb));
-      df_simulate_artificial_refs_at_end (bb, live);
+      df_simulate_initialize_backwards (bb, live);
       bitmap_copy (peep2_insn_data[MAX_INSNS_PER_PEEP2].live_before, live);
 
       for (insn = BB_END (bb); ; insn = prev)
@@ -3059,7 +3070,7 @@ peephole2_optimize (void)
 		  && peep2_insn_data[peep2_current].insn == NULL_RTX)
 		peep2_current_count++;
 	      peep2_insn_data[peep2_current].insn = insn;
-	      df_simulate_one_insn (bb, insn, live);
+	      df_simulate_one_insn_backwards (bb, insn, live);
 	      COPY_REG_SET (peep2_insn_data[peep2_current].live_before, live);
 
 	      if (RTX_FRAME_RELATED_P (insn))
@@ -3218,7 +3229,7 @@ peephole2_optimize (void)
 			    peep2_current_count++;
 			  peep2_insn_data[i].insn = x;
 			  df_insn_rescan (x);
-			  df_simulate_one_insn (bb, x, live);
+			  df_simulate_one_insn_backwards (bb, x, live);
 			  bitmap_copy (peep2_insn_data[i].live_before, live);
 			}
 		      x = PREV_INSN (x);

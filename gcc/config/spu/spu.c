@@ -165,6 +165,7 @@ static bool spu_vector_alignment_reachable (const_tree, bool);
 static tree spu_builtin_vec_perm (tree, tree *);
 static int spu_sms_res_mii (struct ddg *g);
 static void asm_file_start (void);
+static bool spu_no_relocation (tree, tree);
 static unsigned HOST_WIDE_INT spu_estimate_section_overhead (void);
 static unsigned HOST_WIDE_INT spu_estimate_instruction_size (rtx);
 static bool begin_critical_section (rtx, enum critical_section_type *);
@@ -236,16 +237,37 @@ spu_libgcc_shift_count_mode (void);
 
 /* Built in types.  */
 tree spu_builtin_types[SPU_BTI_MAX];
+
+/* Pointer mode for __ea references.  */
+#define EAmode (spu_ea_model != 32 ? DImode : SImode)
 
 /*  TARGET overrides.  */
 
-static enum machine_mode spu_ea_pointer_mode (addr_space_t);
+static enum machine_mode spu_addr_space_pointer_mode (addr_space_t);
 #undef TARGET_ADDR_SPACE_POINTER_MODE
-#define TARGET_ADDR_SPACE_POINTER_MODE spu_ea_pointer_mode
+#define TARGET_ADDR_SPACE_POINTER_MODE spu_addr_space_pointer_mode
+
+static tree spu_addr_space_minus_type (addr_space_t, addr_space_t);
+#undef TARGET_ADDR_SPACE_MINUS_TYPE
+#define TARGET_ADDR_SPACE_MINUS_TYPE spu_addr_space_minus_type
 
 static const char *spu_addr_space_name (addr_space_t);
 #undef TARGET_ADDR_SPACE_NAME
 #define TARGET_ADDR_SPACE_NAME spu_addr_space_name
+
+static bool spu_addr_space_memory_address_p (enum machine_mode, rtx,
+					     addr_space_t);
+#undef TARGET_ADDR_SPACE_MEMORY_ADDRESS_P
+#define TARGET_ADDR_SPACE_MEMORY_ADDRESS_P spu_addr_space_memory_address_p
+
+static bool spu_addr_space_strict_memory_address_p (enum machine_mode, rtx,
+						    addr_space_t);
+#undef TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P
+#define TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P \
+  spu_addr_space_strict_memory_address_p
+
+#undef TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS
+#define TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS spu_legitimize_address
 
 static bool spu_addr_space_can_convert_p (addr_space_t, addr_space_t);
 #undef TARGET_ADDR_SPACE_CAN_CONVERT_P
@@ -269,6 +291,11 @@ static tree spu_addr_space_section_name (addr_space_t);
 #undef TARGET_ADDR_SPACE_SECTION_NAME
 #define TARGET_ADDR_SPACE_SECTION_NAME spu_addr_space_section_name
 
+static bool spu_addr_space_static_init_ok_p (tree, tree, addr_space_t,
+					     addr_space_t);
+#undef TARGET_ADDR_SPACE_STATIC_INIT_OK_P
+#define TARGET_ADDR_SPACE_STATIC_INIT_OK_P spu_addr_space_static_init_ok_p
+
 static unsigned int spu_section_type_flags (tree, const char *, int);
 #undef TARGET_SECTION_TYPE_FLAGS
 #define TARGET_SECTION_TYPE_FLAGS spu_section_type_flags
@@ -288,6 +315,15 @@ static bool spu_valid_pointer_mode (enum machine_mode mode);
 
 #undef TARGET_ASM_ALIGNED_DI_OP
 #define TARGET_ASM_ALIGNED_DI_OP "\t.quad\t"
+
+/* The current assembler doesn't like .4byte foo@ppu, so use the normal .long
+   and .quad for the debugger.  When it is known that the assembler is fixed,
+   these can be removed.  */
+#undef TARGET_ASM_UNALIGNED_SI_OP
+#define TARGET_ASM_UNALIGNED_SI_OP	"\t.long\t"
+
+#undef TARGET_ASM_UNALIGNED_DI_OP
+#define TARGET_ASM_UNALIGNED_DI_OP	"\t.quad\t"
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS spu_rtx_costs
@@ -4787,8 +4823,15 @@ spu_legitimate_constant_p (rtx x)
   preferable to allow any alignment and fix it up when splitting.) */
 int
 spu_legitimate_address (enum machine_mode mode ATTRIBUTE_UNUSED,
-			rtx x, int reg_ok_strict)
+			rtx x, int reg_ok_strict,
+			addr_space_t as)
 {
+  if (as == ADDR_SPACE_EA)
+    return (REG_P (x) && (GET_MODE (x) == EAmode));
+
+  else if (as != ADDR_SPACE_GENERIC)
+    gcc_unreachable ();
+
   if (mode == TImode && GET_CODE (x) == AND
       && GET_CODE (XEXP (x, 1)) == CONST_INT
       && INTVAL (XEXP (x, 1)) == (HOST_WIDE_INT) -16)
@@ -4870,9 +4913,13 @@ spu_legitimate_address (enum machine_mode mode ATTRIBUTE_UNUSED,
    register.  */
 rtx
 spu_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
-			enum machine_mode mode)
+			enum machine_mode mode, addr_space_t as)
 {
   rtx op0, op1;
+				 
+  if (as != ADDR_SPACE_GENERIC)
+    return NULL_RTX;
+
   /* Make sure both operands are registers.  */
   if (GET_CODE (x) == PLUS)
     {
@@ -4893,7 +4940,7 @@ spu_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
       else if (GET_CODE (op1) != REG)
 	op1 = force_reg (Pmode, op1);
       x = gen_rtx_PLUS (Pmode, op0, op1);
-      if (spu_legitimate_address (mode, x, 0))
+      if (spu_legitimate_address (mode, x, 0, as))
 	return x;
     }
   return NULL_RTX;
@@ -5427,9 +5474,6 @@ store_with_one_insn_p (rtx mem)
   return 0;
 }
 
-/* Pointer mode for __ea references.  */
-#define EAmode (spu_ea_model != 32 ? DImode : SImode)
-
 static GTY(()) rtx cache_fetch;		  /* __cache_fetch function */
 static GTY(()) rtx cache_fetch_dirty;	  /* __cache_fetch_dirty function */
 static alias_set_type ea_alias_set = -1;  /* alias set for __ea memory */
@@ -5646,7 +5690,8 @@ expand_ea_mem (rtx mem, bool is_store)
   if (ea_alias_set == -1)
     ea_alias_set = new_alias_set ();
 
-  new_mem = change_address (mem, VOIDmode, data_addr);
+  new_mem = change_address_addr_space (mem, VOIDmode, data_addr,
+				       ADDR_SPACE_GENERIC);
 
   /* We can't just change the alias set directly to ea_alias_set, because the
      --enable-checking code may complain that the alias sets don't conflict */
@@ -6087,6 +6132,7 @@ spu_valid_move (rtx * ops)
      the direct_load[] and direct_store[] arrays.  We always want to
      consider those loads and stores valid.  init_expr_once is called in
      the context of a dummy function which does not have a decl. */
+  gcc_assert (cfun);
   if (cfun->decl == 0)
     return 1;
 
@@ -7717,26 +7763,12 @@ spu_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_packed
   return true;
 }
 
-/* Return the appropriate mode for a named address pointer.  */
-static enum machine_mode
-spu_ea_pointer_mode (addr_space_t addrspace)
-{
-  switch (addrspace)
-    {
-    case ADDR_SPACE_GENERIC:
-      return ptr_mode;
-    case ADDR_SPACE_EA:
-      return (spu_ea_model == 64 ? DImode : ptr_mode);
-    default:
-      gcc_unreachable ();
-    }
-}
-
 /* Return valid pointer modes.  */
 static bool
 spu_valid_pointer_mode (enum machine_mode mode)
 {
-  return (mode == ptr_mode || mode == Pmode || mode == spu_ea_pointer_mode (1));
+  return (mode == ptr_mode || mode == Pmode ||
+	  (spu_ea_model != 32 && mode == DImode));
 }
 
 /* Adjust section flags for the __ea section.  */
@@ -7861,6 +7893,38 @@ spu_libgcc_shift_count_mode (void)
   return SImode;
 }
 
+/* Return the appropriate mode for a named address pointer.  */
+static enum machine_mode
+spu_addr_space_pointer_mode (addr_space_t addrspace)
+{
+  switch (addrspace)
+    {
+    case ADDR_SPACE_GENERIC:
+      return ptr_mode;
+    case ADDR_SPACE_EA:
+      return (EAmode);
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Return the appropriate type for subtracting two pointers.  */
+static tree
+spu_addr_space_minus_type (addr_space_t as1, addr_space_t as2)
+{
+  gcc_assert (as1 == ADDR_SPACE_GENERIC || as1 == ADDR_SPACE_EA);
+  gcc_assert (as2 == ADDR_SPACE_GENERIC || as2 == ADDR_SPACE_EA);
+
+  if (as1 == ADDR_SPACE_GENERIC && as2 == ADDR_SPACE_GENERIC)
+    return ptrdiff_type_node;
+
+  else if (spu_ea_model == 32)
+    return ptrdiff_type_node;
+
+  else
+    return unsigned_intDI_type_node;
+}
+
 /* Map an address space number into a name.  */
 static const char *
 spu_addr_space_name (addr_space_t addrspace)
@@ -7869,6 +7933,28 @@ spu_addr_space_name (addr_space_t addrspace)
     return "__ea";
 
   gcc_unreachable ();
+}
+
+/* Return if an address is valid for a given mode that points to a given named
+   address space.  */
+
+static bool
+spu_addr_space_memory_address_p (enum machine_mode mode, rtx x,
+				 addr_space_t as)
+{
+  gcc_assert (as == ADDR_SPACE_GENERIC || as == ADDR_SPACE_EA);
+  return spu_legitimate_address (mode, x, 0, as);
+}
+
+/* Return if an address is valid for a given mode that points to a given named
+   address space after register allocation has been done.  */
+
+static bool
+spu_addr_space_strict_memory_address_p (enum machine_mode mode, rtx x,
+					addr_space_t as)
+{
+  gcc_assert (as == ADDR_SPACE_GENERIC || as == ADDR_SPACE_EA);
+  return spu_legitimate_address (mode, x, 1, as);
 }
 
 /* Determine if you can convert one address to another.  */
@@ -7978,6 +8064,88 @@ spu_addr_space_section_name (addr_space_t addrspace)
   return spu_ea_name;
 }
 
+/* Return true if the tree contains any elements that require relocation that
+   would not be allowed to initialize a __ea memory address space.  */
+
+static bool
+spu_no_relocation (tree type, tree init)
+{
+  bool ret;
+  unsigned HOST_WIDE_INT idx;
+  tree value;
+  tree field;
+
+  switch (TREE_CODE (init))
+    {
+    default:
+      ret = false;
+      break;
+
+      /* Constants are not relocatable.  */
+    case REAL_CST:
+    case FIXED_CST:
+    case COMPLEX_CST:
+    case INTEGER_CST:
+      ret = true;
+      break;
+
+      /* Strings are ok if we are initializing a char array of some sort.  */
+    case STRING_CST:
+      ret = (type != NULL_TREE
+	     && TREE_CODE (type) == ARRAY_TYPE
+	     && TYPE_STRING_FLAG (TREE_TYPE (type)));
+      break;
+
+      /* Support a limited number of conversions.  */
+    case CONVERT_EXPR:
+    case NOP_EXPR:
+      ret = spu_no_relocation (type, TREE_OPERAND (init, 0));
+      break;
+
+      /* Decode the constructor.  */
+    case CONSTRUCTOR:
+      ret = true;
+      FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (init), idx, field, value)
+	{
+	  if (value && !spu_no_relocation (TREE_TYPE (field), value))
+	    {
+	      ret = false;
+	      break;
+	    }
+	}
+      break;
+    }
+
+  return ret;
+}
+
+static bool
+spu_addr_space_static_init_ok_p (tree type,
+				 tree init,
+				 addr_space_t as,
+				 addr_space_t as_ptr)
+{
+  bool ret;
+
+  if (init == error_mark_node)
+    ret = false;
+
+  /* Normal initializations are ok.  */
+  else if (as == ADDR_SPACE_GENERIC && as_ptr == ADDR_SPACE_GENERIC)
+    ret = true;
+
+  else
+    {
+      /* Don't allow things that need relocations in or pointing to the __ea
+	 address space.  */
+      gcc_assert (as == ADDR_SPACE_GENERIC || as == ADDR_SPACE_EA);
+      gcc_assert (as_ptr == ADDR_SPACE_GENERIC || as_ptr == ADDR_SPACE_EA);
+
+      ret = spu_no_relocation (type, init);
+    }
+
+  return ret;
+}
 
 /* An early place to adjust some flags after GCC has finished processing
  * them. */

@@ -306,7 +306,7 @@ break_out_memory_refs (rtx x)
       rtx op1 = break_out_memory_refs (XEXP (x, 1));
 
       if (op0 != XEXP (x, 0) || op1 != XEXP (x, 1))
-	x = simplify_gen_binary (GET_CODE (x), Pmode, op0, op1);
+	x = simplify_gen_binary (GET_CODE (x), GET_MODE (x), op0, op1);
     }
 
   return x;
@@ -405,22 +405,25 @@ convert_memory_address (enum machine_mode to_mode ATTRIBUTE_UNUSED,
 #endif /* defined(POINTERS_EXTEND_UNSIGNED) */
 }
 
-/* Return something equivalent to X but valid as a memory address
-   for something of mode MODE.  When X is not itself valid, this
-   works by copying X or subexpressions of it into registers.  */
+/* Return something equivalent to X but valid as a memory address for something
+   of mode MODE in the named address space AS.  When X is not itself valid,
+   this works by copying X or subexpressions of it into registers.  */
 
 rtx
-memory_address (enum machine_mode mode, rtx x)
+memory_address_addr_space (enum machine_mode mode, rtx x, addr_space_t as)
 {
   rtx oldx = x;
+  enum machine_mode mem_Pmode = ((!as)
+				 ? Pmode
+				 : targetm.addr_space.pointer_mode (as));
 
-  if (MEM_P (x) && !targetm.valid_pointer_mode (GET_MODE (x)))
-    x = convert_memory_address (Pmode, x);
+  if (MEM_P (x) && GET_MODE (x) != mem_Pmode)
+    x = convert_memory_address (mem_Pmode, x);
 
   /* By passing constant addresses through registers
      we get a chance to cse them.  */
   if (! cse_not_expected && CONSTANT_P (x) && CONSTANT_ADDRESS_P (x))
-    x = force_reg (Pmode, x);
+    x = force_reg (mem_Pmode, x);
 
   /* We get better cse by rejecting indirect addressing at this stage.
      Let the combiner create indirect addresses where appropriate.
@@ -432,12 +435,12 @@ memory_address (enum machine_mode mode, rtx x)
 	x = break_out_memory_refs (x);
 
       /* At this point, any valid address is accepted.  */
-      if (memory_address_p (mode, x))
+      if (memory_address_addr_space_p (mode, x, as))
 	goto done;
 
       /* If it was valid before but breaking out memory refs invalidated it,
 	 use it the old way.  */
-      if (memory_address_p (mode, oldx))
+      if (memory_address_addr_space_p (mode, oldx, as))
 	{
 	  x = oldx;
 	  goto done;
@@ -447,7 +450,19 @@ memory_address (enum machine_mode mode, rtx x)
 	 in certain cases.  This is not necessary since the code
 	 below can handle all possible cases, but machine-dependent
 	 transformations can make better code.  */
-      LEGITIMIZE_ADDRESS (x, oldx, mode, done);
+      if (!as)
+	{
+	  LEGITIMIZE_ADDRESS (x, oldx, mode, done);
+	}
+      else
+	{
+	  rtx y = targetm.addr_space.legitimize_address (x, oldx, mode, as);
+	  if (y)
+	    {
+	      x = y;
+	      goto done;
+	    }
+	}
 
       /* PLUS and MULT can appear in special ways
 	 as the result of attempts to make an address usable for indexing.
@@ -463,12 +478,12 @@ memory_address (enum machine_mode mode, rtx x)
 	  rtx constant_term = const0_rtx;
 	  rtx y = eliminate_constant_term (x, &constant_term);
 	  if (constant_term == const0_rtx
-	      || ! memory_address_p (mode, y))
+	      || ! memory_address_addr_space_p (mode, y, as))
 	    x = force_operand (x, NULL_RTX);
 	  else
 	    {
 	      y = gen_rtx_PLUS (GET_MODE (x), copy_to_reg (y), constant_term);
-	      if (! memory_address_p (mode, y))
+	      if (! memory_address_addr_space_p (mode, y, as))
 		x = force_operand (x, NULL_RTX);
 	      else
 		x = y;
@@ -485,15 +500,12 @@ memory_address (enum machine_mode mode, rtx x)
 
       /* Last resort: copy the value to a register, since
 	 the register is a valid address.  */
-      else if (targetm.valid_pointer_mode (GET_MODE (x)))
-	x = force_reg (GET_MODE (x), x);
-      else
-	x = force_reg (Pmode, x);
+      x = force_reg (mem_Pmode, x);
     }
 
  done:
 
-  gcc_assert (memory_address_p (mode, x));
+  gcc_assert (memory_address_addr_space_p (mode, x, as));
   /* If we didn't change the address, we are done.  Otherwise, mark
      a reg as a pointer if we have REG or REG + CONST_INT.  */
   if (oldx == x)
@@ -518,14 +530,21 @@ memory_address (enum machine_mode mode, rtx x)
 rtx
 validize_mem (rtx ref)
 {
+  addr_space_t as;
+  enum machine_mode mode;
+  rtx mem;
+
   if (!MEM_P (ref))
     return ref;
   ref = use_anchored_address (ref);
-  if (memory_address_p (GET_MODE (ref), XEXP (ref, 0)))
+  mode = GET_MODE (ref);
+  mem = XEXP (ref, 0);
+  as = MEM_ADDR_SPACE (ref);
+  if (memory_address_addr_space_p (mode, mem, as))
     return ref;
 
   /* Don't alter REF itself, since that is probably a stack slot.  */
-  return replace_equiv_address (ref, XEXP (ref, 0));
+  return replace_equiv_address (ref, mem);
 }
 
 /* If X is a memory reference to a member of an object block, try rewriting

@@ -1174,10 +1174,23 @@ get_proc_pointer_decl (gfc_symbol *sym)
       && sym->ns->proc_name->backend_decl == current_function_decl)
       || sym->attr.contained)
     gfc_add_decl_to_function (decl);
-  else
+  else if (sym->ns->proc_name->attr.flavor != FL_MODULE)
     gfc_add_decl_to_parent_function (decl);
 
   sym->backend_decl = decl;
+
+  /* If a variable is USE associated, it's always external.  */
+  if (sym->attr.use_assoc)
+    {
+      DECL_EXTERNAL (decl) = 1;
+      TREE_PUBLIC (decl) = 1;
+    }
+  else if (sym->module && sym->ns->proc_name->attr.flavor == FL_MODULE)
+    {
+      /* This is the declaration of a module variable.  */
+      TREE_PUBLIC (decl) = 1;
+      TREE_STATIC (decl) = 1;
+    }
 
   if (!sym->attr.use_assoc
 	&& (sym->attr.save != SAVE_NONE || sym->attr.data
@@ -2791,6 +2804,7 @@ init_intent_out_dt (gfc_symbol * proc_sym, tree body)
   stmtblock_t fnblock;
   gfc_formal_arglist *f;
   tree tmp;
+  tree present;
 
   gfc_init_block (&fnblock);
   for (f = proc_sym->formal; f; f = f->next)
@@ -2802,6 +2816,11 @@ init_intent_out_dt (gfc_symbol * proc_sym, tree body)
 	    tmp = gfc_deallocate_alloc_comp (f->sym->ts.derived,
 					     f->sym->backend_decl,
 					     f->sym->as ? f->sym->as->rank : 0);
+
+	    present = gfc_conv_expr_present (f->sym);
+	    tmp = build3 (COND_EXPR, TREE_TYPE (tmp), present,
+			  tmp, build_empty_stmt ());
+
 	    gfc_add_expr_to_block (&fnblock, tmp);
 	  }
 
@@ -3115,11 +3134,12 @@ gfc_create_module_variable (gfc_symbol * sym)
       gfc_module_add_decl (cur_module, TYPE_STUB_DECL (decl));
     }
 
-  /* Only output variables and array valued, or derived type,
-     parameters.  */
+  /* Only output variables, procedure pointers and array valued,
+     or derived type, parameters.  */
   if (sym->attr.flavor != FL_VARIABLE
 	&& !(sym->attr.flavor == FL_PARAMETER
-	       && (sym->attr.dimension || sym->ts.type == BT_DERIVED)))
+	       && (sym->attr.dimension || sym->ts.type == BT_DERIVED))
+	&& !(sym->attr.flavor == FL_PROCEDURE && sym->attr.proc_pointer))
     return;
 
   if ((sym->attr.in_common || sym->attr.in_equivalence) && sym->backend_decl)
