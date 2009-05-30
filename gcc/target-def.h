@@ -423,6 +423,7 @@
 
 /* In cse.c.  */
 #define TARGET_ADDRESS_COST default_address_cost
+#define TARGET_CONST_ANCHOR 0
 
 /* In builtins.c.  */
 #define TARGET_INIT_BUILTINS hook_void_void
@@ -536,6 +537,10 @@
 #define TARGET_INVALID_CONVERSION hook_constcharptr_const_tree_const_tree_null
 #define TARGET_INVALID_UNARY_OP hook_constcharptr_int_const_tree_null
 #define TARGET_INVALID_BINARY_OP hook_constcharptr_int_const_tree_const_tree_null
+#define TARGET_INVALID_PARAMETER_TYPE hook_constcharptr_const_tree_null
+#define TARGET_INVALID_RETURN_TYPE hook_constcharptr_const_tree_null
+#define TARGET_PROMOTED_TYPE hook_tree_const_tree_null
+#define TARGET_CONVERT_TO_TYPE hook_tree_tree_tree_null
 
 #define TARGET_FIXED_CONDITION_CODE_REGS hook_bool_uintp_uintp_false
 
@@ -918,10 +923,15 @@
   TARGET_STACK_PROTECT_FAIL,			\
   TARGET_INVALID_WITHIN_DOLOOP,			\
   TARGET_VALID_DLLIMPORT_ATTRIBUTE_P,		\
+  TARGET_CONST_ANCHOR,				\
   TARGET_CALLS,					\
   TARGET_INVALID_CONVERSION,			\
   TARGET_INVALID_UNARY_OP,			\
   TARGET_INVALID_BINARY_OP,			\
+  TARGET_INVALID_PARAMETER_TYPE,		\
+  TARGET_INVALID_RETURN_TYPE,			\
+  TARGET_PROMOTED_TYPE,				\
+  TARGET_CONVERT_TO_TYPE,			\
   TARGET_IRA_COVER_CLASSES,			\
   TARGET_SECONDARY_RELOAD,			\
   TARGET_EXPAND_TO_RTL_HOOK,			\

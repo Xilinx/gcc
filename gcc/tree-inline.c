@@ -500,7 +500,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
 	      && (var_ann (old_var) || !gimple_in_ssa_p (cfun)))
 	    cfun->local_decls = tree_cons (NULL_TREE, old_var,
 						   cfun->local_decls);
-	  if (debug_info_level > DINFO_LEVEL_TERSE
+	  if ((!optimize || debug_info_level > DINFO_LEVEL_TERSE)
 	      && !DECL_IGNORED_P (old_var)
 	      && nonlocalized_list)
 	    VEC_safe_push (tree, gc, *nonlocalized_list, origin_var);
@@ -518,7 +518,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
 	;
       else if (!new_var)
         {
-	  if (debug_info_level > DINFO_LEVEL_TERSE
+	  if ((!optimize || debug_info_level > DINFO_LEVEL_TERSE)
 	      && !DECL_IGNORED_P (old_var)
 	      && nonlocalized_list)
 	    VEC_safe_push (tree, gc, *nonlocalized_list, origin_var);
@@ -3071,7 +3071,6 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
     case GIMPLE_NOP:
     case GIMPLE_PHI:
     case GIMPLE_RETURN:
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
     case GIMPLE_PREDICT:
       return 0;
 
@@ -3155,12 +3154,6 @@ estimate_num_insns_fn (tree fndecl, eni_weights *weights)
 void
 init_inline_once (void)
 {
-  eni_inlining_weights.call_cost = PARAM_VALUE (PARAM_INLINE_CALL_COST);
-  eni_inlining_weights.target_builtin_call_cost = 1;
-  eni_inlining_weights.div_mod_cost = 10;
-  eni_inlining_weights.omp_cost = 40;
-  eni_inlining_weights.time_based = true;
-
   eni_size_weights.call_cost = 1;
   eni_size_weights.target_builtin_call_cost = 1;
   eni_size_weights.div_mod_cost = 1;
@@ -3428,13 +3421,6 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   /* Declare the return variable for the function.  */
   retvar = declare_return_variable (id, return_slot, modify_dest, &use_retvar);
 
-  if (DECL_IS_OPERATOR_NEW (fn))
-    {
-      gcc_assert (TREE_CODE (retvar) == VAR_DECL
-		  && POINTER_TYPE_P (TREE_TYPE (retvar)));
-      DECL_NO_TBAA_P (retvar) = 1;
-    }
-
   /* Add local vars in this inlined callee to caller.  */
   t_step = id->src_cfun->local_decls;
   for (; t_step; t_step = TREE_CHAIN (t_step))
@@ -3457,6 +3443,13 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      a self-referential call; if we're calling ourselves, we need to
      duplicate our body before altering anything.  */
   copy_body (id, bb->count, bb->frequency, bb, return_block);
+
+  /* Reset the escaped and callused solutions.  */
+  if (cfun->gimple_df)
+    {
+      pt_solution_reset (&cfun->gimple_df->escaped);
+      pt_solution_reset (&cfun->gimple_df->callused);
+    }
 
   /* Clean up.  */
   pointer_map_destroy (id->decl_map);
@@ -4191,7 +4184,6 @@ copy_decl_to_var (tree decl, copy_body_data *id)
   TREE_READONLY (copy) = TREE_READONLY (decl);
   TREE_THIS_VOLATILE (copy) = TREE_THIS_VOLATILE (decl);
   DECL_GIMPLE_REG_P (copy) = DECL_GIMPLE_REG_P (decl);
-  DECL_NO_TBAA_P (copy) = DECL_NO_TBAA_P (decl);
 
   return copy_decl_for_dup_finish (id, decl, copy);
 }
@@ -4218,7 +4210,6 @@ copy_result_decl_to_var (tree decl, copy_body_data *id)
     {
       TREE_ADDRESSABLE (copy) = TREE_ADDRESSABLE (decl);
       DECL_GIMPLE_REG_P (copy) = DECL_GIMPLE_REG_P (decl);
-      DECL_NO_TBAA_P (copy) = DECL_NO_TBAA_P (decl);
     }
 
   return copy_decl_for_dup_finish (id, decl, copy);

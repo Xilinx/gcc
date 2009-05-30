@@ -608,17 +608,22 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    return error_mark_node;
 	  }
 
-	/* If an alignment is specified, use it if valid.   Note that
-	   exceptions are objects but don't have alignments.  We must do this
-	   before we validate the size, since the alignment can affect the
-	   size.  */
+	/* If an alignment is specified, use it if valid.  Note that exceptions
+	   are objects but don't have an alignment.  We must do this before we
+	   validate the size, since the alignment can affect the size.  */
 	if (kind != E_Exception && Known_Alignment (gnat_entity))
 	  {
 	    gcc_assert (Present (Alignment (gnat_entity)));
 	    align = validate_alignment (Alignment (gnat_entity), gnat_entity,
 					TYPE_ALIGN (gnu_type));
-	    gnu_type = maybe_pad_type (gnu_type, NULL_TREE, align, gnat_entity,
-				       "PAD", false, definition, true);
+	    /* No point in changing the type if there is an address clause
+	       as the final type of the object will be a reference type.  */
+	    if (Present (Address_Clause (gnat_entity)))
+	      align = 0;
+	    else
+	      gnu_type
+		= maybe_pad_type (gnu_type, NULL_TREE, align, gnat_entity,
+				  "PAD", false, definition, true);
 	  }
 
 	/* If we are defining the object, see if it has a Size value and
@@ -3124,21 +3129,27 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			|| !Is_Tagged_Type (gnat_base_type)))
 		  {
 		    tree gnu_old_field
-		      = gnat_to_gnu_field_decl (Original_Record_Component
-						(gnat_field));
+		      = gnat_to_gnu_field_decl
+			(Original_Record_Component (gnat_field));
 		    tree gnu_offset
-		      = TREE_VALUE (purpose_member (gnu_old_field,
-						    gnu_pos_list));
+		      = TREE_VALUE
+			(purpose_member (gnu_old_field, gnu_pos_list));
 		    tree gnu_pos = TREE_PURPOSE (gnu_offset);
 		    tree gnu_bitpos = TREE_VALUE (TREE_VALUE (gnu_offset));
-		    tree gnu_field_type
-		      = gnat_to_gnu_type (Etype (gnat_field));
-		    tree gnu_size = TYPE_SIZE (gnu_field_type);
-		    tree gnu_new_pos = NULL_TREE;
+		    tree gnu_field, gnu_field_type, gnu_size, gnu_new_pos;
 		    unsigned int offset_align
-		      = tree_low_cst (TREE_PURPOSE (TREE_VALUE (gnu_offset)),
-				      1);
-		    tree gnu_field;
+		      = tree_low_cst
+			(TREE_PURPOSE (TREE_VALUE (gnu_offset)), 1);
+
+		    /* If the type is the same, retrieve the GCC type from the
+		       old field to take into account possible adjustments.  */
+		    if (Etype (gnat_field)
+			== Etype (Original_Record_Component (gnat_field)))
+		      gnu_field_type = TREE_TYPE (gnu_old_field);
+		    else
+		      gnu_field_type = gnat_to_gnu_type (Etype (gnat_field));
+
+		    gnu_size = TYPE_SIZE (gnu_field_type);
 
 		    /* If there was a component clause, the field types must be
 		       the same for the type and subtype, so copy the data from
@@ -3197,6 +3208,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 						 TYPE_SIZE (gnu_type)))
 			  continue;
 		      }
+		    else
+		      gnu_new_pos = NULL_TREE;
 
 		    gnu_field
 		      = create_field_decl
@@ -7378,11 +7391,18 @@ set_rm_size (Uint uint_size, tree gnu_type, Entity_Id gnat_entity)
   if (CONTAINS_PLACEHOLDER_P (old_size))
     old_size = max_size (old_size, true);
 
-  /* If the size of the object is a constant, the new size must not be
-     smaller (the front-end checks this for scalar types).  */
+  /* If the size of the object is a constant, the new size must not be smaller
+     (the front-end has verified this for scalar and packed array types).  */
   if (TREE_CODE (old_size) != INTEGER_CST
       || TREE_OVERFLOW (old_size)
-      || (AGGREGATE_TYPE_P (gnu_type) && tree_int_cst_lt (size, old_size)))
+      || (AGGREGATE_TYPE_P (gnu_type)
+	  && !(TREE_CODE (gnu_type) == ARRAY_TYPE
+	       && TYPE_PACKED_ARRAY_TYPE_P (gnu_type))
+	  && !(TREE_CODE (gnu_type) == RECORD_TYPE
+	       && TYPE_IS_PADDING_P (gnu_type)
+	       && TREE_CODE (TREE_TYPE (TYPE_FIELDS (gnu_type))) == ARRAY_TYPE
+	       && TYPE_PACKED_ARRAY_TYPE_P (TREE_TYPE (TYPE_FIELDS (gnu_type))))
+	  && tree_int_cst_lt (size, old_size)))
     {
       if (Present (gnat_attr_node))
 	post_error_ne_tree

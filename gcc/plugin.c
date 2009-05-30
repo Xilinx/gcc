@@ -38,6 +38,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "plugin.h"
 #include "timevar.h"
+#include "ggc.h"
+
 #ifdef ENABLE_PLUGIN
 #include "plugin-version.h"
 #endif
@@ -51,20 +53,11 @@ const char *plugin_event_name[] =
   "PLUGIN_CXX_CP_PRE_GENERICIZE",
   "PLUGIN_FINISH",
   "PLUGIN_INFO",
+  "PLUGIN_GGC_START",
+  "PLUGIN_GGC_MARKING",
+  "PLUGIN_GGC_END",
+  "PLUGIN_REGISTER_GGC_ROOTS",
   "PLUGIN_EVENT_LAST"
-};
-
-/* Object that keeps track of the plugin name and its arguments
-   when parsing the command-line options -fplugin=/path/to/NAME.so and
-   -fplugin-arg-NAME-<key>[=<value>].  */
-struct plugin_name_args
-{
-  char *base_name;
-  const char *full_name;
-  int argc;
-  struct plugin_argument *argv;
-  const char *version;
-  const char *help;
 };
 
 /* Hash table for the plugin_name_args objects created during command-line
@@ -485,14 +478,23 @@ register_callback (const char *plugin_name,
   switch (event)
     {
       case PLUGIN_PASS_MANAGER_SETUP:
+	gcc_assert (!callback);
         register_pass (plugin_name, (struct plugin_pass *) user_data);
         break;
       case PLUGIN_INFO:
+	gcc_assert (!callback);
 	register_plugin_info (plugin_name, (struct plugin_info *) user_data);
+	break;
+      case PLUGIN_REGISTER_GGC_ROOTS:
+	gcc_assert (!callback);
+        ggc_register_root_tab ((const struct ggc_root_tab*) user_data);
 	break;
       case PLUGIN_FINISH_TYPE:
       case PLUGIN_FINISH_UNIT:
       case PLUGIN_CXX_CP_PRE_GENERICIZE:
+      case PLUGIN_GGC_START:
+      case PLUGIN_GGC_MARKING:
+      case PLUGIN_GGC_END:
       case PLUGIN_ATTRIBUTES:
       case PLUGIN_FINISH:
         {
@@ -537,6 +539,9 @@ invoke_plugin_callbacks (enum plugin_event event, void *gcc_data)
       case PLUGIN_CXX_CP_PRE_GENERICIZE:
       case PLUGIN_ATTRIBUTES:
       case PLUGIN_FINISH:
+      case PLUGIN_GGC_START:
+      case PLUGIN_GGC_MARKING:
+      case PLUGIN_GGC_END:
         {
           /* Iterate over every callback registered with this event and
              call it.  */
@@ -548,6 +553,7 @@ invoke_plugin_callbacks (enum plugin_event event, void *gcc_data)
 
       case PLUGIN_PASS_MANAGER_SETUP:
       case PLUGIN_EVENT_LAST:
+      case PLUGIN_REGISTER_GGC_ROOTS:
       default:
         gcc_assert (false);
     }
@@ -596,8 +602,7 @@ try_init_one_plugin (struct plugin_name_args *plugin)
     }
 
   /* Call the plugin-provided initialization routine with the arguments.  */
-  if ((*plugin_init) (plugin->base_name, &gcc_version, plugin->argc,
-		      plugin->argv))
+  if ((*plugin_init) (plugin, &gcc_version))
     {
       error ("Fail to initialize plugin %s", plugin->full_name);
       return false;

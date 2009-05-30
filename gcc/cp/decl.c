@@ -5176,7 +5176,7 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	return build_aggr_init_full_exprs (decl, init, flags);
       else if (TREE_CODE (init) != TREE_VEC)
 	{
-	  init_code = store_init_value (decl, init);
+	  init_code = store_init_value (decl, init, flags);
 	  if (pedantic && TREE_CODE (type) == ARRAY_TYPE
 	      && DECL_INITIAL (decl)
 	      && TREE_CODE (DECL_INITIAL (decl)) == STRING_CST
@@ -7154,7 +7154,7 @@ check_static_variable_definition (tree decl, tree type)
     error ("ISO C++ forbids in-class initialization of non-const "
 	   "static member %qD",
 	   decl);
-  else if (!INTEGRAL_TYPE_P (type))
+  else if (!INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     pedwarn (input_location, OPT_pedantic, "ISO C++ forbids initialization of member constant "
 	     "%qD of non-integral type %qT", decl, type);
 
@@ -7177,7 +7177,7 @@ compute_array_index_type (tree name, tree size)
 
   type = TREE_TYPE (size);
   /* The array bound must be an integer type.  */
-  if (!dependent_type_p (type) && !INTEGRAL_TYPE_P (type))
+  if (!dependent_type_p (type) && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
     {
       if (name)
 	error ("size of array %qD has non-integral type %qT", name, type);
@@ -7606,6 +7606,7 @@ grokdeclarator (const cp_declarator *declarator,
   bool parameter_pack_p = declarator? declarator->parameter_pack_p : false;
   bool set_no_warning = false;
   bool template_type_arg = false;
+  const char *errmsg;
 
   signed_p = declspecs->specs[(int)ds_signed];
   unsigned_p = declspecs->specs[(int)ds_unsigned];
@@ -8285,6 +8286,12 @@ grokdeclarator (const cp_declarator *declarator,
 		type_quals = TYPE_UNQUALIFIED;
 		set_no_warning = true;
 	      }
+	    errmsg = targetm.invalid_return_type (type);
+	    if (errmsg)
+	      {
+		error (errmsg);
+		type = integer_type_node;
+	      }
 
 	    /* Error about some types functions can't return.  */
 
@@ -8412,6 +8419,14 @@ grokdeclarator (const cp_declarator *declarator,
 		  error ("can't define friend function %qs in a local "
 			 "class definition",
 			 name);
+	      }
+	    else if (ctype && sfk == sfk_conversion)
+	      {
+		if (explicitp == 1)
+		  {
+		    maybe_warn_cpp0x ("explicit conversion operators");
+		    explicitp = 2;
+		  }
 	      }
 
 	    arg_types = grokparms (declarator->u.function.parameters,
@@ -9669,6 +9684,7 @@ grokparms (tree parmlist, tree *parms)
       tree type = NULL_TREE;
       tree init = TREE_PURPOSE (parm);
       tree decl = TREE_VALUE (parm);
+      const char *errmsg;
 
       if (parm == void_list_node)
 	break;
@@ -9700,6 +9716,14 @@ grokparms (tree parmlist, tree *parms)
 	  type = error_mark_node;
 	  TREE_TYPE (decl) = error_mark_node;
 	  init = NULL_TREE;
+	}
+
+      if (type != error_mark_node
+	  && (errmsg = targetm.invalid_parameter_type (type)))
+	{
+	  error (errmsg);
+	  type = error_mark_node;
+	  TREE_TYPE (decl) = error_mark_node;
 	}
 
       if (type != error_mark_node)

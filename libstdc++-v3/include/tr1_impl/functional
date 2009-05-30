@@ -1557,7 +1557,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	template<typename _Signature>
 	  static bool
 	  _M_not_empty_function(const function<_Signature>& __f)
-	  { return __f; }
+          { return static_cast<bool>(__f); }
 
 	template<typename _Tp>
 	  static bool
@@ -1761,6 +1761,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
     : public _Maybe_unary_or_binary_function<_Res, _ArgTypes...>,
       private _Function_base
     {
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
       /// This class is used to implement the safe_bool idiom.
       struct _Hidden_type
       {
@@ -1769,6 +1770,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 
       /// This typedef is used to implement the safe_bool idiom.
       typedef _Hidden_type* _Hidden_type::* _Safe_bool;
+#endif
 
       typedef _Res _Signature_type(_ArgTypes...);
       
@@ -1918,6 +1920,10 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
        *
        *  This function will not throw an exception.
        */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      explicit operator bool() const
+      { return !_M_empty(); }
+#else
       operator _Safe_bool() const
       {
         if (_M_empty())
@@ -1925,6 +1931,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	else
 	  return &_Hidden_type::_M_bool;
       }
+#endif
 
       // [3.7.2.4] function invocation
 
@@ -1982,7 +1989,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
     function(const function& __x)
     : _Function_base()
     {
-      if (__x)
+      if (static_cast<bool>(__x))
 	{
 	  _M_invoker = __x._M_invoker;
 	  _M_manager = __x._M_manager;
@@ -2088,13 +2095,13 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
   template<typename _Signature>
     inline bool
     operator==(const function<_Signature>& __f, _M_clear_type*)
-    { return !__f; }
+    { return !static_cast<bool>(__f); }
 
   /// @overload
   template<typename _Signature>
     inline bool
     operator==(_M_clear_type*, const function<_Signature>& __f)
-    { return !__f; }
+    { return !static_cast<bool>(__f); }
 
   /**
    *  @brief Compares a polymorphic function object wrapper against 0
@@ -2106,13 +2113,13 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
   template<typename _Signature>
     inline bool
     operator!=(const function<_Signature>& __f, _M_clear_type*)
-    { return __f; }
+    { return static_cast<bool>(__f); }
 
   /// @overload
   template<typename _Signature>
     inline bool
     operator!=(_M_clear_type*, const function<_Signature>& __f)
-    { return __f; }
+    { return static_cast<bool>(__f); }
 
   // [3.7.2.8] specialized algorithms
 

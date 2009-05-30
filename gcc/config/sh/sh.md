@@ -9109,16 +9109,6 @@ mov.l\\t1f,r0\\n\\
   "movt	%0"
   [(set_attr "type" "arith")])
 
-;; complements the T bit and stores the result in a register
-(define_insn "movrt"
-  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
-        (if_then_else (eq:SI (reg:SI T_REG) (const_int 0))
-        (const_int 1)
-        (const_int 0)))]
-  "TARGET_SH2A"
-  "movrt\\t%0"
-   [(set_attr "type" "arith")])
-
 (define_expand "cstore4_media"
   [(set (match_operand:SI 0 "register_operand" "=r")
 	(match_operator:SI 1 "sh_float_comparison_operator"
@@ -9564,7 +9554,7 @@ mov.l\\t1f,r0\\n\\
 
 ;; The c / m alternative is a fake to guide reload to load directly into
 ;; fpscr, since reload doesn't know how to use post-increment.
-;; GO_IF_LEGITIMATE_ADDRESS guards about bogus addresses before reload,
+;; TARGET_LEGITIMATE_ADDRESS_P guards about bogus addresses before reload,
 ;; SECONDARY_INPUT_RELOAD_CLASS does this during reload, and the insn's
 ;; predicate after reload.
 ;; The mac_gp type for r/!c might look a bit odd, but it actually schedules

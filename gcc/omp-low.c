@@ -812,7 +812,6 @@ copy_var_decl (tree var, tree name, tree type)
   TREE_ADDRESSABLE (copy) = TREE_ADDRESSABLE (var);
   TREE_THIS_VOLATILE (copy) = TREE_THIS_VOLATILE (var);
   DECL_GIMPLE_REG_P (copy) = DECL_GIMPLE_REG_P (var);
-  DECL_NO_TBAA_P (copy) = DECL_NO_TBAA_P (var);
   DECL_ARTIFICIAL (copy) = DECL_ARTIFICIAL (var);
   DECL_IGNORED_P (copy) = DECL_IGNORED_P (var);
   DECL_CONTEXT (copy) = DECL_CONTEXT (var);
@@ -1912,7 +1911,11 @@ scan_omp_1_op (tree *tp, int *walk_subtrees, void *data)
       if (ctx && TYPE_P (t))
 	*tp = remap_type (t, &ctx->cb);
       else if (!DECL_P (t))
-	*walk_subtrees = 1;
+	{
+	  *walk_subtrees = 1;
+	  if (ctx)
+	    TREE_TYPE (t) = remap_type (TREE_TYPE (t), &ctx->cb);
+	}
       break;
     }
 
@@ -5010,7 +5013,6 @@ expand_omp_atomic_pipeline (basic_block load_bb, basic_block store_bb,
 				    false, NULL_TREE, true, GSI_SAME_STMT);
       stmt = gimple_build_assign (iaddr, iaddr_val);
       gsi_insert_before (&si, stmt, GSI_SAME_STMT);
-      DECL_NO_TBAA_P (iaddr) = 1;
       DECL_POINTER_ALIAS_SET (iaddr) = 0;
       loadedi = create_tmp_var (itype, NULL);
       if (gimple_in_ssa_p (cfun))
