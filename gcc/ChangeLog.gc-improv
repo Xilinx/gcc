@@ -1,6 +1,10 @@
+2009-05-30  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* tree.c (build_fixed, build_real): Use typed GC allocation.
+
 2009-05-21  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
-	* tree-phinodes.c (allocate_phi_node): Likewise.
+	* tree-phinodes.c (allocate_phi_node): Use typed GC allocation.
 	* gimple.c (gimple_alloc_stat, gimple_seq_alloc): Likewise.
 	* gimple.h (union gimple_statement_d): Add variable_size GTY
 	marker.
