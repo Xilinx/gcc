@@ -1778,9 +1778,7 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      stride[n] = iotype == BT_CHARACTER ?
-		  desc->dim[n].stride * GFC_SIZE_OF_CHAR_KIND(kind) :
-		  desc->dim[n].stride;
+      stride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(desc,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(desc,n);
 
       /* If the extent of even one dimension is zero, then the entire
@@ -1797,9 +1795,9 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
 
   stride0 = stride[0];
 
-  /* If the innermost dimension has stride 1, we can do the transfer
+  /* If the innermost dimension has a stride of 1, we can do the transfer
      in contiguous chunks.  */
-  if (stride0 == 1)
+  if (stride0 == size)
     tsize = extent[0];
   else
     tsize = 1;
@@ -1809,13 +1807,13 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   while (data)
     {
       dtp->u.p.transfer (dtp, iotype, data, kind, size, tsize);
-      data += stride0 * size * tsize;
+      data += stride0 * tsize;
       count[0] += tsize;
       n = 0;
       while (count[n] == extent[n])
 	{
 	  count[n] = 0;
-	  data -= stride[n] * extent[n] * size;
+	  data -= stride[n] * extent[n];
 	  n++;
 	  if (n == rank)
 	    {
@@ -1825,7 +1823,7 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
 	  else
 	    {
 	      count[n]++;
-	      data += stride[n] * size;
+	      data += stride[n];
 	    }
 	}
     }

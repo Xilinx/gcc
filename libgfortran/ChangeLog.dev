@@ -1,3 +1,28 @@
+2009-05-30  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/37577
+	PR libfortran/40187
+	* runtime/in_pack_generic (internal_pack):  Remove unnecessary
+	test for stride == 0.
+	* runtime/in_unpack_generic.c (internal_unpack):  Likewise.
+	* intrinsics/iso_c_binding.c (c_f_pointer_u0):  Take care
+	of stride in "shape" argument.  Use array access macros for
+	accessing array descriptors.
+	* libgfortran.h (struct descriptor_dimension):  Change stride
+	to _stride, lbound to _lbound and ubound to _ubound.
+	(GFC_DIMENSION_LBOUND):  Use new name(s) in struct
+	descriptor_dimension.
+	(GFC_DIMENSION_UBOUND):  Likewise.
+	(GFC_DIMENSION_STRIDE):  Likewise.
+	(GFC_DIMENSION_EXTENT):  Likewise.
+	(GFC_DIMENSION_SET):  Likewise.
+	(GFC_DESCRIPTOR_LBOUND):  Likewise.
+	(GFC_DESCRIPTOR_UBOUND):  Likewise.
+	(GFC_DESCRIPTOR_EXTENT):  Likewise.
+	(GFC_DESCRIPTOR_STRIDE):  Likewise.
+	* io/transfer.c (transfer_array):  Use array access macros.
+	Use byte-sized strides.
+
 2008-05-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/37577

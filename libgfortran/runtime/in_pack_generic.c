@@ -48,12 +48,6 @@ internal_pack (gfc_array_char * source)
   index_type size;
   index_type type_size;
 
-  if (source->dim[0].stride == 0)
-    {
-      source->dim[0].stride = 1;
-      return source->data;
-    }
-
   type_size = GFC_DTYPE_TYPE_SIZE(source);
   size = GFC_DESCRIPTOR_SIZE (source);
   switch (type_size)
