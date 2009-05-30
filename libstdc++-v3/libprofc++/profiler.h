@@ -160,10 +160,10 @@ void trace_map_to_unordered_map_destruct(const void*);
   cxxprof_runtime::trace_map_to_unordered_map_destruct
 #define __profcxx_map_to_unordered_map_insert \
   cxxprof_runtime::trace_map_to_unordered_map_insert
-#define __profcxx_map_to_unordered_map_insert \
+#define __profcxx_map_to_unordered_map_erase \
   cxxprof_runtime::trace_map_to_unordered_map_erase
 #define __profcxx_map_to_unordered_map_iterate \
-  cxxprof_runtime::trace_map_to_unordered_map_erase
+  cxxprof_runtime::trace_map_to_unordered_map_iterate
 #define __profcxx_map_to_unordered_map_invalidate \
   cxxprof_runtime::trace_map_to_unordered_map_invalidate
 #define __profcxx_map_to_unordered_map_find \

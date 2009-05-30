@@ -56,10 +56,11 @@ typedef std::basic_string<char_t, traits_t, allocator_t> string_t;
 int main()
 {
   bool test __attribute__((unused)) = true;
+  size_t alloc_cnt_before = alloc_cnt;
   {
     string_t s;
     s += "bayou bend";
   }
-  VERIFY( alloc_cnt == 0 );
+  VERIFY( alloc_cnt - alloc_cnt_before == 0 );
   return 0;
 }

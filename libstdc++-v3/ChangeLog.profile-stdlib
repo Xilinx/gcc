@@ -1,3 +1,34 @@
+2009-05-30  Silvius Rus  <rus@google.com>
+	* include/profile/set.h: Integrate updates from std.
+	* include/profile/unordered_set: Integrate updates from std.
+	* include/profile/vector: Integrate updates from std.
+	* include/profile/deque: Integrate updates from std.
+	* include/profile/map.h: Integrate updates from std.
+	* include/profile/unordered_map: Integrate updates from std.
+	* include/profile/bitset: Integrate updates from std.
+	* include/profile/list: Integrate updates from std.
+	* include/profile/multiset.h: Integrate updates from std.
+	* include/profile/multimap.h: Integrate updates from std.
+	* include/bits/c++config: Fix namespace defines for profile mode.
+	* libprofc++/profiler.h: Fix copy/paste error with names.
+	* libprofc++/profiler_trace.h: Remove printouts.
+	* testsuite/Makefile.in: Replace -fprofile-stdlib with 
+	-D_GLIBCXX_PROFILE -lprofc++.
+	* testsuite/ext/throw_allocator/deallocate_global.cc: Add ifndef
+	_GLIBCXX_PROFILE.
+	* testsuite/ext/throw_allocator/deallocate_local.cc(main): Discard
+	global allocation count from verification.
+	* testsuite/23_containers/unordered_map/profile/hash_map.cc: Add.
+	* testsuite/23_containers/unordered_map/profile/unordered.cc: Add.
+	* testsuite/23_containers/vector/profile/vector.cc: Add.
+	* testsuite/23_containers/deque/capacity/moveable.cc: Add ifndef
+	_GLIBCXX_PROFILE.
+	* testsuite/23_containers/list/capacity/29134.cc: Add ifndef
+	_GLIBCXX_PROFILE.
+	* testsuite/31_profile/hash_map.cc: Delete.
+	* testsuite/31_profile/unordered.cc: Delete.
+	* testsuite/31_profile/vector.cc: Delete.
+
 2009-03-11  Silvius Rus  <rus@google.com>
 	* libprofc++/Makefile.am: Add modules.
 	* libprofc++/Makefile.in: Add modules.

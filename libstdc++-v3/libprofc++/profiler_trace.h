@@ -137,8 +137,6 @@ void trace_base<object_info, stack_info>::add_object(object_t object,
 {
   if (max_mem() == 0 || object_table.size() * sizeof(object_info) <= max_mem())
     object_table.insert(typename object_table_t::value_type(object, info));
-  else
-    printf("Out of profiler memory: %s.\n", id);
 }
 
 template <typename object_info, typename stack_info>
@@ -168,8 +166,6 @@ void trace_base<object_info, stack_info>::retire_object(object_t object)
                                   + sizeof(stack) + sizeof(stack_info));
         cxxprof_runtime::write(stdout, stack);
         stack_table.insert(make_pair(stack, stack_info(info)));
-      } else {
-        printf("Out of profiler memory: %s.\n", id);
       }
     } else {
       // Merge object info into info summary for this call context.
@@ -177,8 +173,6 @@ void trace_base<object_info, stack_info>::retire_object(object_t object)
       delete stack;
     }
     object_table.erase(object);
-  } else {
-    printf("Bad object to retire %p.", object);
   }
 }
 

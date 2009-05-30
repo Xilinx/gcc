@@ -30,8 +30,10 @@ struct count_check
   count_check() {}
   ~count_check()
   {
+#if ! defined _GLIBCXX_PROFILE
     if (count != 0)
       throw std::runtime_error("count isn't zero");
+#endif
   }
 };
  

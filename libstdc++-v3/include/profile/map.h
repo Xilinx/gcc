@@ -38,6 +38,7 @@
 //#include <profile/safe_sequence.h>
 //#include <profile/safe_iterator.h>
 #include <utility>
+#include <profile/base.h>
 
 namespace std
 {
@@ -105,7 +106,7 @@ namespace __profile
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       map(map&& __x)
       : _Base(std::forward<map>(__x))
-      { this->_M_swap(__x); }
+      { }
 
       map(initializer_list<value_type> __l,
 	  const _Compare& __c = _Compare(),
@@ -195,11 +196,11 @@ namespace __profile
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       const_iterator
       cbegin() const
-      { return const_iterator(_Base::begin(), this); }
+      { return const_iterator(_Base::begin()); }
 
       const_iterator
       cend() const
-      { return const_iterator(_Base::end(), this); }
+      { return const_iterator(_Base::end()); }
 
       const_reverse_iterator
       crbegin() const
@@ -236,6 +237,13 @@ namespace __profile
         return _Base::at(__k);
       }
 
+      const mapped_type&
+      at(const key_type& __k) const
+      {
+        __profcxx_map_to_unordered_map_find(this, size());
+        return _Base::at(__k);
+      }
+
       // modifiers:
       std::pair<iterator, bool>
       insert(const value_type& __x)
@@ -243,20 +251,28 @@ namespace __profile
         __profcxx_map_to_unordered_map_insert(this, size(), 1);
 	typedef typename _Base::iterator _Base_iterator;
 	std::pair<_Base_iterator, bool> __res = _Base::insert(__x);
-	return std::pair<iterator, bool>(iterator(__res.first, this),
+	return std::pair<iterator, bool>(iterator(__res.first),
 					 __res.second);
       }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       void
       insert(std::initializer_list<value_type> __list)
-      { _Base::insert(__list); }
+      { 
+        size_type size_before = size();
+        _Base::insert(__list); 
+        __profcxx_map_to_unordered_map_insert(this, size_before, 
+                                                size() - size_before);
+      }
 #endif
 
       iterator
       insert(iterator __position, const value_type& __x)
       {
-	return iterator(_Base::insert(__position.base(), __x), this);
+        size_type size_before = size();
+	return iterator(_Base::insert(__position, __x));
+        __profcxx_map_to_unordered_map_insert(this, size_before, 
+                                                size() - size_before);
       }
 
       template<typename _InputIterator>
@@ -272,7 +288,7 @@ namespace __profile
       void
       erase(iterator __position)
       {
-	_Base::erase(__position.base());
+	_Base::erase(__position);
         __profcxx_map_to_unordered_map_erase(this, size(), 1);
       }
 
@@ -284,7 +300,7 @@ namespace __profile
 	  return 0;
 	else
 	{
-	  _Base::erase(__victim.base());
+	  _Base::erase(__victim);
 	  return 1;
 	}
       }
@@ -306,7 +322,6 @@ namespace __profile
 #endif
       {
 	_Base::swap(__x);
-	this->_M_swap(__x);
       }
 
       void
@@ -322,14 +337,14 @@ namespace __profile
       find(const key_type& __x)
       {
         __profcxx_map_to_unordered_map_find(this, size());
-        return iterator(_Base::find(__x), this);
+        return iterator(_Base::find(__x));
       }
 
       const_iterator
       find(const key_type& __x) const
       {
         __profcxx_map_to_unordered_map_find(this, size());
-        return const_iterator(_Base::find(__x), this);
+        return const_iterator(_Base::find(__x));
       }
 
       size_type
@@ -343,28 +358,28 @@ namespace __profile
       lower_bound(const key_type& __x)
       { 
         __profcxx_map_to_unordered_map_invalidate(this);
-        return iterator(_Base::lower_bound(__x), this); 
+        return iterator(_Base::lower_bound(__x)); 
       }
 
       const_iterator
       lower_bound(const key_type& __x) const
       { 
         __profcxx_map_to_unordered_map_invalidate(this);
-        return const_iterator(_Base::lower_bound(__x), this); 
+        return const_iterator(_Base::lower_bound(__x)); 
       }
 
       iterator
       upper_bound(const key_type& __x)
       { 
         __profcxx_map_to_unordered_map_invalidate(this);
-        return iterator(_Base::upper_bound(__x), this); 
+        return iterator(_Base::upper_bound(__x)); 
       }
 
       const_iterator
       upper_bound(const key_type& __x) const
       { 
         __profcxx_map_to_unordered_map_invalidate(this);
-        return const_iterator(_Base::upper_bound(__x), this); 
+        return const_iterator(_Base::upper_bound(__x)); 
       }
 
       std::pair<iterator,iterator>
@@ -373,8 +388,8 @@ namespace __profile
 	typedef typename _Base::iterator _Base_iterator;
 	std::pair<_Base_iterator, _Base_iterator> __res =
 	_Base::equal_range(__x);
-	return std::make_pair(iterator(__res.first, this),
-			      iterator(__res.second, this));
+	return std::make_pair(iterator(__res.first),
+			      iterator(__res.second));
       }
 
       std::pair<const_iterator,const_iterator>
@@ -384,8 +399,8 @@ namespace __profile
 	typedef typename _Base::const_iterator _Base_const_iterator;
 	std::pair<_Base_const_iterator, _Base_const_iterator> __res =
 	_Base::equal_range(__x);
-	return std::make_pair(const_iterator(__res.first, this),
-			      const_iterator(__res.second, this));
+	return std::make_pair(const_iterator(__res.first),
+			      const_iterator(__res.second));
       }
 
       _Base& 

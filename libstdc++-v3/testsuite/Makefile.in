@@ -328,8 +328,8 @@ parallel_flags = "unix/-D_GLIBCXX_PARALLEL/-fopenmp"
 libprofc++_dir = ${glibcxx_builddir}/libprofc++
 libprofc++_flags = -B${glibcxx_builddir}/libprofc++ \
               -I${glibcxx_builddir}/libprofc++ \
-	      -L${glibcxx_builddir}/libprofc++/.libs 
-profile_flags = "unix/-fprofile-stdlib"
+	      -L${glibcxx_builddir}/libprofc++/.libs
+profile_flags = "unix/-D_GLIBCXX_PROFILE/-lprofc++"
 
 # By adding these files here, automake will remove them for 'make clean'
 CLEANFILES = *.txt *.tst *.exe core* filebuf_* tmp* ostream_* *.log *.sum \

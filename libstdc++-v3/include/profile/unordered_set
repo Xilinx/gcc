@@ -43,6 +43,8 @@
 # include <c++0x_warning.h>
 #endif
 
+#include <initializer_list>
+
 #define _GLIBCXX_BASE unordered_set<_Key, _Hash, _Pred, _Alloc>
 #define _GLIBCXX_STD_BASE _GLIBCXX_STD_PR::_GLIBCXX_BASE
 
@@ -111,6 +113,37 @@ namespace __profile
         __profcxx_hashtable_construct2(this);
       }
 
+      unordered_set(initializer_list<value_type> __l,
+		    size_type __n = 10,
+		    const hasher& __hf = hasher(),
+		    const key_equal& __eql = key_equal(),
+		    const allocator_type& __a = allocator_type())
+      : _Base(__l, __n, __hf, __eql, __a) { }
+
+      unordered_set&
+      operator=(const unordered_set& __x)
+      {
+	*static_cast<_Base*>(this) = __x;
+	return *this;
+      }
+
+      unordered_set&
+      operator=(unordered_set&& __x)
+      {
+        // NB: DR 675.
+	clear();
+	swap(__x);
+	return *this;
+      }
+
+      unordered_set&
+      operator=(initializer_list<value_type> __l)
+      {
+	this->clear();
+	this->insert(__l);
+	return *this;
+      }
+
       ~unordered_set()
       {
         __profcxx_hashtable_destruct(this, _Base::bucket_count(), 
@@ -131,6 +164,13 @@ namespace __profile
                                      _Base::size());
         profile_destruct();
         _Base::clear();
+      }
+      void
+      insert(std::initializer_list<value_type> __l)
+      { 
+        size_type old_size =  _Base::bucket_count();
+        _Base::insert(__l); 
+        profile_resize(old_size,  _Base::bucket_count()); 
       }
       insert_return_type insert(const value_type& __obj)
       {
@@ -162,7 +202,7 @@ namespace __profile
       insert(_InputIter __first, _InputIter __last)
       {
         size_type old_size = _Base::bucket_count(); 
-        _Base::insert(__first.base(), __last.base());
+        _Base::insert(__first, __last);
         profile_resize(old_size,  _Base::bucket_count()); 
       }
 
@@ -294,6 +334,37 @@ namespace __profile
         __profcxx_hashtable_construct(this, _Base::bucket_count());
       }
 
+      unordered_multiset(initializer_list<value_type> __l,
+			 size_type __n = 10,
+			 const hasher& __hf = hasher(),
+			 const key_equal& __eql = key_equal(),
+			 const allocator_type& __a = allocator_type())
+      : _Base(__l, __n, __hf, __eql, __a) { }
+
+      unordered_multiset&
+      operator=(const unordered_multiset& __x)
+      {
+	*static_cast<_Base*>(this) = __x;
+	return *this;
+      }
+
+      unordered_multiset&
+      operator=(unordered_multiset&& __x)
+      {
+        // NB: DR 675.
+	clear();
+	swap(__x);
+	return *this;
+      }
+
+      unordered_multiset&
+      operator=(initializer_list<value_type> __l)
+      {
+	this->clear();
+	this->insert(__l);
+	return *this;
+      }
+
       ~unordered_multiset()
       {
         __profcxx_hashtable_destruct(this, _Base::bucket_count(), _Base::size());
@@ -312,6 +383,13 @@ namespace __profile
         __profcxx_hashtable_destruct(this, _Base::bucket_count(), _Base::size());
         profile_destruct();
         _Base::clear();
+      }
+      void
+      insert(std::initializer_list<value_type> __l)
+      { 
+        size_type old_size =  _Base::bucket_count();
+        _Base::insert(__l); 
+        profile_resize(old_size,  _Base::bucket_count()); 
       }
       insert_return_type insert(const value_type& __obj)
       {
@@ -343,7 +421,7 @@ namespace __profile
       insert(_InputIter __first, _InputIter __last)
       {
         size_type old_size = _Base::bucket_count(); 
-        _Base::insert(__first.base(), __last.base());
+        _Base::insert(__first, __last);
         profile_resize(old_size,  _Base::bucket_count()); 
       }
 
