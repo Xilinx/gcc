@@ -1,5 +1,12 @@
 2009-05-30  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* tree-ssa-operands.h (struct ssa_operand_memory_d): Add
+	variable_size GTY option.
+	* tree-ssa-operands.c (ssa_operand_alloc): Use typed GC
+	allocation.
+
+2009-05-30  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* tree.c (build_fixed, build_real): Use typed GC allocation.
 
 2009-05-21  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
