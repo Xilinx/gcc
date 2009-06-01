@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "incpath.h"
 #include "gcov-io.c"
 #include "params.h"
+#include "dbgcnt.h"
 
 struct function_list
 {
@@ -61,6 +62,9 @@ struct function_list
   unsigned checksum;	         /* function checksum */
   unsigned n_ctrs[GCOV_COUNTERS];/* number of counters.  */
 };
+
+/* Linked list of -D/-U strings for a
+   source module.  */
 
 struct cpp_def_list
 {
@@ -192,13 +196,17 @@ htab_counts_entry_del (void *of)
     }
 }
 
+/* Returns true if MOD_ID is the id of the last source module.  */
+
 int
 is_last_module (unsigned mod_id)
 {
   return (mod_id == module_infos[num_in_fnames - 1]->ident);
 }
 
-/* Read in the counts file, if available.  */
+/* Read in the counts file, if available. DA_FILE_NAME is the
+   name of the gcda file, and MODULE_ID is the module id of the
+   associated source module.  */
 
 static void
 read_counts_file (const char *da_file_name, unsigned module_id)
@@ -217,7 +225,7 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 
   if (!gcov_open (da_file_name, 1))
     {
-      if (getenv ("GCOV_DEBUG"))
+      if (PARAM_VALUE (PARAM_GCOV_DEBUG))
         {
           /* Try to find .gcda file in the current working dir.  */
           da_file_name = lbasename (da_file_name);
@@ -362,9 +370,11 @@ read_counts_file (const char *da_file_name, unsigned module_id)
         {
 	  struct gcov_module_info* mod_info;
           size_t info_sz;
-          /* each string has at least 8 bytes, so modinfo's 
+          /* each string has at least 8 bytes, so MOD_INFO's
              persistent length >= in core size.  */
-          mod_info = (struct gcov_module_info *) alloca ((length + 2) * sizeof (gcov_unsigned_t));
+          mod_info
+              = (struct gcov_module_info *) alloca ((length + 2)
+                                                    * sizeof (gcov_unsigned_t));
 	  gcov_read_module_info (mod_info, length);
 	  module_infos_read++;
 
@@ -396,7 +406,8 @@ read_counts_file (const char *da_file_name, unsigned module_id)
                   module_infos = XRESIZEVEC (struct gcov_module_info *, module_infos,
                                              num_in_fnames);
                   gcc_assert (num_in_fnames == module_infos_read);
-                  module_infos[module_infos_read - 1] = XCNEWVAR (struct gcov_module_info, info_sz);
+                  module_infos[module_infos_read - 1]
+                      = XCNEWVAR (struct gcov_module_info, info_sz);
                   memcpy (module_infos[module_infos_read - 1], mod_info, info_sz);
 		}
               else
@@ -405,27 +416,12 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 
 	  /* Debugging */
           {
-            fprintf (stderr, "MODULE Id=%d, Is_Primary=%s, Is_Exported=%s, Name=%s (%s)\n",
+            fprintf (stderr,
+                     "MODULE Id=%d, Is_Primary=%s,"
+                     " Is_Exported=%s, Name=%s (%s)\n",
                      mod_info->ident, mod_info->is_primary?"yes":"no",
                      mod_info->is_exported?"yes":"no", mod_info->source_filename,
                      mod_info->da_filename);
-#if 0
-            fprintf (stderr, "\t iquote: "); 
-            for (i = 0; i < mod_info->num_quote_paths; i++)
-              fprintf (stderr, " %s; ", mod_info->string_array[i]);
-            fprintf (stderr, "\n");
-            fprintf (stderr, "\t ibracket: "); 
-            for (i = 0; i < mod_info->num_bracket_paths; i++)
-              fprintf (stderr, " %s; ", 
-                       mod_info->string_array[i + mod_info->num_quote_paths]);
-            fprintf (stderr, "\n");
-            fprintf (stderr, "\t define/undef: "); 
-            for (i = 0; i < mod_info->num_cpp_defines; i++)
-              fprintf (stderr, " %s; ", 
-                       mod_info->string_array[i + mod_info->num_quote_paths +
-					      mod_info->num_bracket_paths]);
-            fprintf (stderr, "\n");
-#endif
           }
         }
       gcov_sync (offset, length);
@@ -439,12 +435,12 @@ read_counts_file (const char *da_file_name, unsigned module_id)
     }
 
   /* TODO: profile based multiple module compilation does not work
-     together with command line (-combine) based ipo -- add a nice 
+     together with command line (-combine) based ipo -- add a nice
      warning and bail out instead of asserting.  */
 
   if (modset)
     pointer_set_destroy (modset);
-  gcc_assert (module_infos_read == 0 
+  gcc_assert (module_infos_read == 0
               || module_infos_read == num_in_fnames);
 
   if (flag_dyn_ipa)
@@ -453,14 +449,18 @@ read_counts_file (const char *da_file_name, unsigned module_id)
   gcov_close ();
 }
 
+/* Returns the coverage data entry for counter type COUNTER of function
+   FUNC. EXPECTED is the number of expected counter entries.  */
+
 static counts_entry_t *
-get_coverage_counts_entry (struct function *func, unsigned counter, unsigned expected)
+get_coverage_counts_entry (struct function *func,
+                           unsigned counter, unsigned expected)
 {
   counts_entry_t *entry, *new_entry, elt;
   tree decl;
   struct cgraph_node *real_node;
 
-  elt.ident = FUNC_DECL_GLOBAL_ID (func); 
+  elt.ident = FUNC_DECL_GLOBAL_ID (func);
   elt.ctr = counter;
   entry = (counts_entry_t *) htab_find (counts_hash, &elt);
   if (entry)
@@ -571,7 +571,8 @@ get_coverage_counts (unsigned counter, unsigned expected,
   return entry->counts;
 }
 
-/* Returns the counters for a particular tag.  */
+/* Returns the coverage data entry for counter type COUNTER of function
+   FUNC. On return, *N_COUNTS is set to the number of entries in the counter.  */
 
 gcov_type *
 get_coverage_counts_no_warn (struct function *f, unsigned counter, unsigned *n_counts)
@@ -844,7 +845,7 @@ coverage_end_function (void)
   bbg_function_announced = 0;
 }
 
-/* True if a function entry corresponding to the given function identifier
+/* True if a function entry corresponding to the given FN_IDENT
    is present in the coverage internal data structures.  */
 
 bool
@@ -1498,7 +1499,7 @@ get_da_file_name (const char *base_file_name)
   strcpy (da_base_file_name, base_file_name);
 }
 
-/* Rebuild counts_hash built so far for the primary module. This hashtable
+/* Rebuild counts_hash already built the primary module. This hashtable
    was built with a module-id of zero. It needs to be rebuilt taking the
    correct primary module-id into account.  */
 
@@ -1513,6 +1514,10 @@ rebuild_counts_hash_entry (void **x, void *y)
   *slot = entry;
   return 1;
 }
+
+/* Rebuild counts_hash already built the primary module. This hashtable
+   was built with a module-id of zero. It needs to be rebuilt taking the
+   correct primary module-id into account.  */
 
 static void
 rebuild_counts_hash (void)
@@ -1533,7 +1538,7 @@ rebuild_counts_hash (void)
    INDEX is the index of the new record in the module info array.  */
 
 void
-add_module_info (unsigned module_id, int is_primary, int index)
+add_module_info (unsigned module_id, bool is_primary, int index)
 {
   struct gcov_module_info *cur_info;
   module_infos = XRESIZEVEC (struct gcov_module_info *,
@@ -1555,7 +1560,7 @@ add_module_info (unsigned module_id, int is_primary, int index)
    and VERBOSE is the verbose flag.  */
 
 void
-set_parsing_context (struct cpp_reader *parse_in, int i, bool verbose)
+set_lipo_c_parsing_context (struct cpp_reader *parse_in, int i, bool verbose)
 {
   struct gcov_module_info *mod_info;
   if (!L_IPO_COMP_MODE)

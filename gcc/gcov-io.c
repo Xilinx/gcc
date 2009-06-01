@@ -497,6 +497,8 @@ gcov_read_summary (struct gcov_summary *summary)
 }
 
 #if !IN_LIBGCOV && IN_GCOV != 1
+/* Read LEN words (unsigned type) and construct MOD_INFO.  */
+
 GCOV_LINKAGE void
 gcov_read_module_info (struct gcov_module_info *mod_info,
                        gcov_unsigned_t len)
@@ -573,7 +575,6 @@ gcov_seek (gcov_position_t base)
   fseek (gcov_var.file, base << 2, SEEK_SET);
   gcov_var.start = ftell (gcov_var.file) >> 2;
 }
-
 #endif
 
 #if IN_GCOV > 0

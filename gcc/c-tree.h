@@ -650,6 +650,7 @@ extern tree c_finish_omp_parallel (tree, tree);
 extern tree c_begin_omp_task (void);
 extern tree c_finish_omp_task (tree, tree);
 extern tree c_finish_omp_clauses (tree);
+extern tree c_build_va_arg (tree, tree, location_t);
 
 /* Set to 0 at beginning of a function definition, set to 1 if
    a return statement that specifies a return value is seen.  */
@@ -703,14 +704,14 @@ extern bool c_cpp_error (cpp_reader *, int, location_t, unsigned int,
 extern int c_get_lang_decl_size (tree t);
 extern void c_lipo_dup_lang_type (tree src, tree dest);
 extern void c_lipo_copy_lang_type (tree src, tree dest);
-extern int c_is_global_scope (tree decl, void *scope);
+extern bool c_is_global_scope (tree decl, void *scope);
 extern void c_clear_name_bindings (tree id);
 extern void c_add_built_in_decl (tree decl);
 extern void c_save_built_in_decl_pre_parsing (void);
 extern void c_restore_built_in_decl_pre_parsing (void);
 extern void c_save_built_in_decl_post_parsing (void);
 extern void c_restore_built_in_decl_post_parsing (void);
-extern int c_is_compiler_generated_type (tree t);
+extern bool c_is_compiler_generated_type (tree t);
 extern int c_cmp_lang_type (tree t1, tree t2);
 
 

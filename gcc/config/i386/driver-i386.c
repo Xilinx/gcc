@@ -378,6 +378,9 @@ const char *host_detect_local_cpu (int argc, const char **argv)
   /* Extended features */
   unsigned int has_lahf_lm = 0, has_sse4a = 0;
   unsigned int has_longmode = 0, has_3dnowp = 0, has_3dnow = 0;
+  unsigned int has_movbe = 0, has_sse4_1 = 0, has_sse4_2 = 0;
+  unsigned int has_popcnt = 0, has_aes = 0, has_avx = 0;
+  unsigned int has_pclmul = 0;
 
   bool arch;
 
@@ -395,13 +398,33 @@ const char *host_detect_local_cpu (int argc, const char **argv)
 
   __cpuid (1, eax, ebx, ecx, edx);
 
-  /* We don't care for extended family.  */
   model = (eax >> 4) & 0x0f;
   family = (eax >> 8) & 0x0f;
+  if (vendor == SIG_INTEL)
+    {
+      unsigned int extended_model, extended_family;
+
+      extended_model = (eax >> 12) & 0xf0;
+      extended_family = (eax >> 20) & 0xff;
+      if (family == 0x0f)
+	{
+	  family += extended_family;
+	  model += extended_model;
+	}
+      else if (family == 0x06)
+	model += extended_model;
+    }
 
   has_sse3 = ecx & bit_SSE3;
   has_ssse3 = ecx & bit_SSSE3;
+  has_sse4_1 = ecx & bit_SSE4_1;
+  has_sse4_2 = ecx & bit_SSE4_2;
+  has_avx = ecx & bit_AVX;
   has_cmpxchg16b = ecx & bit_CMPXCHG16B;
+  has_movbe = ecx & bit_MOVBE;
+  has_popcnt = ecx & bit_POPCNT;
+  has_aes = ecx & bit_AES;
+  has_pclmul = ecx & bit_PCLMUL;
 
   has_cmpxchg8b = edx & bit_CMPXCHG8B;
   has_cmov = edx & bit_CMOV;
@@ -496,8 +519,8 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       break;
     case PROCESSOR_PENTIUMPRO:
       if (has_longmode)
-	/* It is Core 2 Duo.  */
-	cpu = "core2";
+	/* It is Core 2 or Atom.  */
+	cpu = (model == 28) ? "atom" : "core2";
       else if (arch)
 	{
 	  if (has_sse3)
@@ -588,6 +611,20 @@ const char *host_detect_local_cpu (int argc, const char **argv)
 	options = concat (options, "-mcx16 ", NULL);
       if (has_lahf_lm)
 	options = concat (options, "-msahf ", NULL);
+      if (has_movbe)
+	options = concat (options, "-mmovbe ", NULL);
+      if (has_aes)
+	options = concat (options, "-maes ", NULL);
+      if (has_pclmul)
+	options = concat (options, "-mpclmul ", NULL);
+      if (has_popcnt)
+	options = concat (options, "-mpopcnt ", NULL);
+      if (has_avx)
+	options = concat (options, "-mavx ", NULL);
+      else if (has_sse4_2)
+	options = concat (options, "-msse4.2 ", NULL);
+      else if (has_sse4_1)
+	options = concat (options, "-msse4.1 ", NULL);
     }
 
 done:

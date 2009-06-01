@@ -223,14 +223,14 @@ DEF_VEC_ALLOC_O(saved_builtin,gc);
 
 static GTY (()) VEC(saved_builtin, gc) *saved_builtins = NULL;
 
-/* Return 1 if the type is not user defined.  */
+/* Return true if the type is not user defined.  */
 
-int
+bool
 cp_is_compiler_generated_type (tree t)
 {
   if (TYPE_PTRMEMFUNC_P (t))
-    return 1;
-  return 0;
+    return true;
+  return false;
 }
 
 /* Clear symbol binding for name ID. */
@@ -242,12 +242,12 @@ cp_clear_global_name_bindings (tree id)
     IDENTIFIER_NAMESPACE_BINDINGS (id) = NULL;
 }
 
-/* Return 1 if DECL is scoped in global/namespace scope, otherwise
-   return 0.  This is a langhook method that is used to select declarations
+/* Return true if DECL is scoped in global/namespace scope, otherwise
+   return false.  This is a langhook method that is used to select declarations
    that needs to be explicitly popped out the global/namespace scope
    at the end of parsing the file.  */
 
-int
+bool
 cp_is_non_sharable_global_decl (tree decl, void *scope)
 {
   cxx_scope *global_scope, *cur_scope;
@@ -255,14 +255,14 @@ cp_is_non_sharable_global_decl (tree decl, void *scope)
   cur_scope = (cxx_scope *) scope;
   global_scope = NAMESPACE_LEVEL (global_namespace);
   if (cur_scope->kind != sk_namespace && cur_scope != global_scope)
-    return 0;
+    return false;
 
   /* Type info objects are compiler created -- allow such
      decls to be shared (treated as other builtins) across modules.  */
   if (TREE_CODE (decl) == VAR_DECL && DECL_TINFO_P (decl))
-    return 0;
+    return false;
 
-  return 1;
+  return true;
 }
 
 /* Duplicate language specific type information from SRC
@@ -282,9 +282,10 @@ cp_lipo_dup_lang_type (tree src, tree dest)
     TYPE_CACHED_VALUES (dest) = TYPE_CACHED_VALUES (src);
   /* Main variant's clone's main variant should be itself. */
   TYPE_MAIN_VARIANT (dest) = dest;
-  /* Now copy the subdecl. 
-     do not reorder this with previous statement.  */
-  TYPE_MAIN_DECL (dest) = TYPE_MAIN_DECL (src);
+  /* Now copy the subdecl.
+     Do not reorder this with previous statement -- it
+     depends on the result of previous one.  */
+  TYPE_MAIN_DECL(dest) = TYPE_MAIN_DECL (src);
 }
 
 
@@ -347,7 +348,7 @@ cmp_templ_arg (tree ta1, tree ta2)
       if (!TYPE_P (ta2))
         return 0;
 
-      return cmp_type_arg (ta1, ta2);
+      return lipo_cmp_type (ta1, ta2);
     }
   else if (TREE_CODE (ta1) == TEMPLATE_DECL)
     {
@@ -483,9 +484,10 @@ cp_add_built_in_decl (tree decl)
   if (!flag_dyn_ipa)
     return;
 
-  if (at_eof) return;
+  if (at_eof)
+    return;
 
-  if (parsing_start)
+  if (parser_parsing_start)
     return;
 
   sb = VEC_safe_push (saved_builtin, gc, saved_builtins, NULL);

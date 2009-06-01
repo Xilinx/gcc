@@ -442,6 +442,10 @@ tree_gen_ic_func_profiler (void)
     }
 }
 
+/* Output instructions as GIMPLE trees for code to find the most
+   common called function in indirect call. Insert instructions at the
+   beginning of every possible called function.
+  */
 
 static void
 tree_gen_ic_func_topn_profiler (void)
@@ -504,7 +508,7 @@ tree_gen_dc_profiler (unsigned base, gimple call_stmt)
   gimple stmt1, stmt2, stmt3;
   gimple_stmt_iterator gsi = gsi_for_stmt (call_stmt);
   tree tmp1, tmp2, tmp3, callee = gimple_call_fn (call_stmt);
-    
+ 
   /* Insert code:
      __gcov_direct_call_counters = get_relevant_counter_ptr ();
      __gcov_callee = (void *) callee;
@@ -659,7 +663,7 @@ tree_profiling (void)
     return 0;
 
   /* After value profile transformation, artificial edges (that keep
-     function body from being deleted won't be needed.  */
+     function body from being deleted) won't be needed.  */
 
   cgraph_need_artificial_indirect_call_edges = 0;
 
@@ -669,11 +673,9 @@ tree_profiling (void)
   branch_prob ();
 
   if (! flag_branch_probabilities 
-      && flag_profile_values)
-    {
-      if (!flag_dyn_ipa)
-	tree_gen_ic_func_profiler ();
-    }
+      && flag_profile_values
+      && !flag_dyn_ipa)
+    tree_gen_ic_func_profiler ();
 
   if (flag_branch_probabilities
       && flag_profile_values
@@ -689,7 +691,7 @@ tree_profiling (void)
   return 0;
 }
 
-/* Return 1 if tree-based direct-call profiling is in effect, else 0.  */
+/* Return true if tree-based direct-call profiling is in effect, else false.  */
 
 static bool
 do_direct_call_profiling (void)
@@ -698,6 +700,8 @@ do_direct_call_profiling (void)
     && (profile_arc_flag || flag_test_coverage)
     && flag_dyn_ipa;
 }
+
+/* Instrument current function to collect direct call profile information.  */
 
 static unsigned int
 direct_call_profiling (void)

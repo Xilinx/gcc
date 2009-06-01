@@ -14,13 +14,8 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-Under Section 7 of GPL version 3, you are granted additional
-permissions described in the GCC Runtime Library Exception, version
-3.1, as published by the Free Software Foundation.
-
-You should have received a copy of the GNU General Public License and
-a copy of the GCC Runtime Library Exception along with this program;
-see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
@@ -36,6 +31,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "gimple.h"
 #include "cgraph.h"
 #include "l-ipo.h"
+#include "coverage.h"
+#include "gcov-io.h"
 
 struct GTY(()) saved_module_scope
 {
@@ -50,7 +47,7 @@ static location_t primary_module_last_loc;
 /* Primary module pending templates.  */
 /* Referenced asm ids in primary module.  */
 static GTY (()) VEC(tree, gc) *referenced_asm_ids = NULL;
-bool parsing_start = false;
+bool parser_parsing_start = false;
 /* Nonzero if we're done parsing and into end-of-file activities.  */
 int at_eof;
 
@@ -241,7 +238,7 @@ add_decl_to_current_module_scope (tree decl, void *scope)
   if (!flag_dyn_ipa)
     return;
 
-  if (!parsing_start)
+  if (!parser_parsing_start)
     {
       /* The source file may contains only global variable declations
          -- there is no module grouping data associated with it, so
@@ -272,17 +269,14 @@ add_decl_to_current_module_scope (tree decl, void *scope)
 static void
 clear_module_scope_bindings (struct saved_module_scope *module_scope)
 {
-  size_t i, len;
+  size_t i;
+  tree decl;
 
-  len = VEC_length (tree, module_scope->module_decls);
-  for (i = 0; i < len; i++)
-    {
-      tree decl;
-
-      decl = VEC_index (tree, module_scope->module_decls, i);
-      lang_hooks.l_ipo.clear_global_name_bindings (
-          get_type_or_decl_name (decl));
-    }
+  for (i = 0;
+       VEC_iterate (tree, module_scope->module_decls, i, decl);
+       ++i)
+    lang_hooks.l_ipo.clear_global_name_bindings (
+        get_type_or_decl_name (decl));
 }
 
 /* The referenced attribute of a decl is not associated with the
@@ -309,10 +303,12 @@ clear_assembler_name_reference_bit (void)
 static void
 restore_assembler_name_reference_bit (void)
 {
-  size_t i, len;
-  len = VEC_length (tree, referenced_asm_ids);
-  for (i = 0; i < len; i++)
-    TREE_SYMBOL_REFERENCED (VEC_index (tree, referenced_asm_ids, i)) = 1;
+  size_t i;
+  tree nm;
+  for (i = 0;
+       VEC_iterate (tree, referenced_asm_ids, i, nm);
+       ++i)
+    TREE_SYMBOL_REFERENCED (nm) = 1;
 }
 
 /* Set up the module scope before the parsing of the
@@ -325,16 +321,16 @@ push_module_scope (void)
 
   if (!flag_dyn_ipa || !L_IPO_COMP_MODE)
     {
-      parsing_start = true;
+      parser_parsing_start = true;
       return;
     }
 
   prev_module_scope = current_module_scope;
-  if (IS_PRIMARY_MODULE)
+  if (L_IPO_IS_PRIMARY_MODULE)
     {
       gcc_assert (!prev_module_scope);
       lang_hooks.l_ipo.save_built_in_decl_pre_parsing ();
-      parsing_start = true;
+      parser_parsing_start = true;
     }
 
   gcc_assert (current_module_id);
@@ -372,7 +368,7 @@ pop_module_scope (void)
 
   gcc_assert (current_module_id && current_module_scope);
 
-  if (IS_PRIMARY_MODULE)
+  if (L_IPO_IS_PRIMARY_MODULE)
     primary_module_last_loc = input_location;
 
   at_eof = 1;
@@ -385,7 +381,7 @@ pop_module_scope (void)
   lang_hooks.l_ipo.save_built_in_decl_post_module_parsing ();
   /* Save primary module state if needed (when module group
      size > 1)  */
-  if (IS_PRIMARY_MODULE && num_in_fnames > 1)
+  if (L_IPO_IS_PRIMARY_MODULE && num_in_fnames > 1)
     {
       save_assembler_name_reference_bit ();
       primary_module_last_fundef_no = get_current_funcdef_no ();
@@ -410,7 +406,7 @@ pop_module_scope (void)
   else if (num_in_fnames > 1)
     restore_post_parsing_states ();
   else
-    gcc_assert (IS_PRIMARY_MODULE && num_in_fnames == 1);
+    gcc_assert (L_IPO_IS_PRIMARY_MODULE && num_in_fnames == 1);
 }
 
 
@@ -426,7 +422,7 @@ static VEC(tree, heap) *pending_types = NULL;
 static struct pointer_set_t *type_set = NULL;
 static htab_t type_hash_tab = NULL;
 
-/* hash function for the type table.  */
+/* Hash function for the type table.  */
 
 static hashval_t
 type_hash_hash (const void *ent)
@@ -443,7 +439,7 @@ type_hash_hash (const void *ent)
   return htab_hash_string (IDENTIFIER_POINTER (name));
 }
 
-/* equality function for type hash table.  */
+/* Equality function for type hash table.  */
 
 static int
 type_hash_eq (const void *ent1, const void *ent2)
@@ -552,11 +548,11 @@ aggr_has_equiv_id (tree t1, tree t2)
 
   if ((ctx1 && !ctx2) || (!ctx1 && ctx2))
     return 0;
+
   if (ctx1 && TREE_CODE (ctx1) != TREE_CODE (ctx2))
     return 0;
 
-  if (ctx1 && (TREE_CODE (ctx1) == FUNCTION_DECL
-               || TREE_CODE (ctx2) == FUNCTION_DECL))
+  if (ctx1 && TREE_CODE (ctx1) == FUNCTION_DECL)
     return 0;
 
   if (!ctx1)
@@ -614,7 +610,7 @@ get_norm_type (tree type)
    structural equivalence check for sanity.  */
 
 int
-cmp_type_arg (tree t1, tree t2)
+lipo_cmp_type (tree t1, tree t2)
 {
   if (TREE_CODE (t1) != TREE_CODE (t2))
     return 0;
@@ -636,31 +632,31 @@ cmp_type_arg (tree t1, tree t2)
     case POINTER_TYPE:
     case REFERENCE_TYPE:
     case COMPLEX_TYPE:
-      return cmp_type_arg (TREE_TYPE (t1), TREE_TYPE (t2));
+      return lipo_cmp_type (TREE_TYPE (t1), TREE_TYPE (t2));
     case ARRAY_TYPE:
-      return cmp_type_arg (TYPE_DOMAIN (t1), TYPE_DOMAIN (t2))
-          && cmp_type_arg (TREE_TYPE (t1), TREE_TYPE (t2));
+      return (lipo_cmp_type (TYPE_DOMAIN (t1), TYPE_DOMAIN (t2))
+              && lipo_cmp_type (TREE_TYPE (t1), TREE_TYPE (t2)));
     case METHOD_TYPE:
-      return cmp_type_arg (TYPE_METHOD_BASETYPE (t1),
-                          TYPE_METHOD_BASETYPE (t2));
+      return lipo_cmp_type (TYPE_METHOD_BASETYPE (t1),
+                            TYPE_METHOD_BASETYPE (t2));
     case FUNCTION_TYPE:
       {
         tree arg1, arg2;
         for (arg1 = TYPE_ARG_TYPES (t1), arg2 = TYPE_ARG_TYPES (t2);
              arg1 && arg2;
              arg1 = TREE_CHAIN (arg1), arg2 = TREE_CHAIN (arg2))
-          if (!cmp_type_arg (TREE_VALUE (arg1),
-                             TREE_VALUE (arg2)))
+          if (!lipo_cmp_type (TREE_VALUE (arg1),
+                              TREE_VALUE (arg2)))
             return 0;
         if (arg1 || arg2)
           return 0;
         return 1;
       }
     case OFFSET_TYPE:
-      return cmp_type_arg (TYPE_OFFSET_BASETYPE (t1),
-                           TYPE_OFFSET_BASETYPE (t2));
+      return lipo_cmp_type (TYPE_OFFSET_BASETYPE (t1),
+                            TYPE_OFFSET_BASETYPE (t2));
     case ENUMERAL_TYPE:
-      return cmp_type_arg (TREE_TYPE (t1), TREE_TYPE (t2));
+      return lipo_cmp_type (TREE_TYPE (t1), TREE_TYPE (t2));
     case REAL_TYPE:
     case FIXED_POINT_TYPE:
     case INTEGER_TYPE:
@@ -670,7 +666,7 @@ cmp_type_arg (tree t1, tree t2)
               && TYPE_MAX_VALUE (t1) == TYPE_MAX_VALUE (t2));
     case VECTOR_TYPE:
       return (TYPE_VECTOR_SUBPARTS (t1) == TYPE_VECTOR_SUBPARTS (t2)
-              && cmp_type_arg (TREE_TYPE (t1), TREE_TYPE (t2)));
+              && lipo_cmp_type (TREE_TYPE (t1), TREE_TYPE (t2)));
     case VOID_TYPE:
     case BOOLEAN_TYPE:
       return 1;
@@ -736,30 +732,13 @@ find_struct_types (tree *tp,
               find_struct_types (&context, NULL, NULL);
             return NULL_TREE;
           }
-        case POINTER_TYPE:
-        case REFERENCE_TYPE:
-        case COMPLEX_TYPE:
-          find_struct_types (&(TREE_TYPE (*tp)), NULL, NULL);
-          return NULL_TREE;
-        case ARRAY_TYPE:
-          find_struct_types (&(TREE_TYPE (*tp)), NULL, NULL);
-          return NULL_TREE;
-        case METHOD_TYPE:
-          find_struct_types (&(TYPE_METHOD_BASETYPE (*tp)), NULL, NULL);
-          return NULL_TREE;
-        case FUNCTION_TYPE:
-          {
-            tree arg;
-            for (arg = TYPE_ARG_TYPES (*tp); arg; arg = TREE_CHAIN (arg))
-              find_struct_types (&(TREE_VALUE (arg)), NULL, NULL);
-            return NULL_TREE;
-          }
         default:
           return NULL_TREE;
         }
     }
   else if (DECL_P (*tp))
-    find_struct_types (&(TREE_TYPE (*tp)), NULL, NULL);
+    walk_tree (&(TREE_TYPE (*tp)), find_struct_types, NULL, NULL);
+
   return NULL_TREE;
 }
 
@@ -1027,5 +1006,993 @@ cgraph_unify_type_alias_sets (void)
   VEC_free (tree, heap, pending_types);
   htab_delete (type_hash_tab);
 }
+
+/* Return true if NODE->decl has external definition (and therefore not
+   needed for expansion).  */
+
+bool
+cgraph_is_decl_external (struct cgraph_node *node)
+{
+  tree decl = node->decl;
+  /* Extern inline  */
+  if (DECL_EXTERNAL (decl))
+    return true;
+
+  if (!L_IPO_COMP_MODE)
+    return false;
+
+  if (!cgraph_is_auxiliary (decl))
+    return false;
+
+  /* Versioned clones from auxiliary moduels are not
+     external.  */
+  if (node->is_versioned_clone)
+    return false;
+
+  /* virtual functions won't be deleted in the primary module.  */
+  if (DECL_VIRTUAL_P (decl))
+    return true;
+
+  /* Comdat or weak functions in aux modules are not external --
+     there is no guarantee that the definitition will be emitted
+     in the primary compilation of this auxiliary module.  */
+  if (DECL_COMDAT (decl) || DECL_WEAK (decl))
+    return false;
+
+  /* The others from aux modules are external. */
+  return true;
+}
+
+/* Linked function symbol (cgraph node)  table.  */
+static GTY((param_is (struct cgraph_sym))) htab_t cgraph_symtab;
+
+/* This is true when global linking is needed and performed (for C++).
+   For C, symbol linking is performed on the fly during parsing, and
+   the cgraph_symtab is used only for keeping additional information
+   for any already merged symbol if needed.  */
+
+static bool global_link_performed = 0;
+
+/* For an external (non-defined) function DECL, return the primary
+   module id (even though when the declaration is declared in an aux
+   module). For a defined function DECL, return the module id in which
+   it is defined.  */
+
+unsigned
+cgraph_get_module_id (tree decl)
+{
+  struct function *func = DECL_STRUCT_FUNCTION (decl);
+  /* Not defined.  */
+  if (!func)
+    return primary_module_id;
+  return FUNC_DECL_MODULE_ID (func);
+}
+
+/* Return true if function decl is defined in an auxiliary module.  */
+
+bool
+cgraph_is_auxiliary (tree decl)
+{
+  return (cgraph_get_module_id (decl) != primary_module_id);
+}
+
+/* Return the hash value for cgraph_sym pointed to by P. The
+   hash value is computed using function's assembler name.  */ 
+
+static hashval_t
+hash_sym_by_assembler_name (const void *p)
+{
+  const struct cgraph_sym *n = (const struct cgraph_sym *) p;
+  return (hashval_t) decl_assembler_name_hash (n->assembler_name);
+}
+
+/* Return nonzero if P1 and P2 are equal.  */
+
+static int
+eq_assembler_name (const void *p1, const void *p2)
+{
+  const struct cgraph_sym *n1 = (const struct cgraph_sym *) p1;
+  const_tree name = (const_tree) p2;
+  return (decl_assembler_name_equal (n1->rep_decl, name));
+}
+
+/* Return the cgraph_sym for function declaration DECL.  */
+
+static struct cgraph_sym **
+cgraph_sym (tree decl)
+{
+  struct cgraph_sym **slot;
+  tree name;
+
+  if (!cgraph_symtab)
+    {
+      gcc_assert (!global_link_performed);
+      return NULL;
+    }
+
+  name = DECL_ASSEMBLER_NAME (decl);
+  slot = (struct cgraph_sym **)
+      htab_find_slot_with_hash (cgraph_symtab, name,
+                                decl_assembler_name_hash (name),
+                                NO_INSERT);
+  return slot;
+}
+
+/* Return the representative declaration for assembler name
+   ASM_NAME.  */
+
+tree
+cgraph_find_decl (tree asm_name)
+{
+  struct cgraph_sym **slot;
+  if (!L_IPO_COMP_MODE)
+    return NULL;
+  if (!cgraph_symtab || !global_link_performed)
+    return NULL;
+
+  slot = (struct cgraph_sym **)
+      htab_find_slot_with_hash (cgraph_symtab, asm_name,
+                                decl_assembler_name_hash (asm_name),
+                                NO_INSERT);
+  if (!slot || !*slot)
+    return NULL;
+
+  return (*slot)->rep_node->decl;
+}
+
+/* Return true if function declaration DECL is originally file scope
+   static, which is promoted to global scope.  */
+
+bool
+cgraph_is_promoted_static_func (tree decl)
+{
+  struct cgraph_sym ** sym;
+  gcc_assert (L_IPO_COMP_MODE);
+
+  /* cgraph_symtab will be created when any symbol got
+     promoted.  */
+  if (!cgraph_symtab)
+    return false;
+
+  sym = cgraph_sym (decl);
+  if (!sym)
+    return false;
+  return (*sym)->is_promoted_static;
+}
+
+/* Hash function for module information table. ENT
+   is a pointer to a cgraph_module_info.  */
+
+static hashval_t
+htab_sym_hash (const void *ent)
+{
+  const struct cgraph_mod_info * const mi
+      = (const struct cgraph_mod_info * const ) ent;
+  return (hashval_t) mi->module_id;
+}
+
+/* Hash equality function for module information table.  */
+
+static int
+htab_sym_eq (const void *ent1, const void *ent2)
+{
+  const struct cgraph_mod_info * const mi1
+      = (const struct cgraph_mod_info * const ) ent1;
+  const struct cgraph_mod_info * const mi2
+      = (const struct cgraph_mod_info * const ) ent2;
+  return (mi1->module_id == mi2->module_id);
+}
+
+/* cgraph_sym SYM may be defined in more than one source modules.
+   Add declaration DECL's definiting module to SYM.  */
+
+static void
+add_define_module (struct cgraph_sym *sym, tree decl)
+{
+  unsigned module_id;
+  struct cgraph_mod_info **slot;
+  struct cgraph_mod_info mi;
+
+  struct function *f = DECL_STRUCT_FUNCTION (decl);
+  if (!f)
+    return;
+  module_id = FUNC_DECL_MODULE_ID (f);
+
+  if (!sym->def_module_hash)
+    sym->def_module_hash
+        = htab_create_ggc (10, htab_sym_hash, htab_sym_eq, NULL);
+
+  mi.module_id = module_id;
+  slot = (struct cgraph_mod_info **)htab_find_slot (sym->def_module_hash,
+                                                    &mi, INSERT);
+  if (!*slot)
+    {
+      *slot = GGC_CNEW (struct cgraph_mod_info);
+      (*slot)->module_id = module_id;
+    }
+  else
+    gcc_assert ((*slot)->module_id == module_id);
+}
+
+/* Return true if the symbol associated with DECL is defined in module
+   MODULE_ID.  This interface is used by the inliner to make sure profile-gen
+   and profile-use pass (L-IPO mode) make consistent inline decision.  */
+
+bool
+cgraph_is_inline_body_available_in_module (tree decl, unsigned module_id)
+{
+  struct cgraph_sym **sym;
+  void **slot;
+  struct cgraph_mod_info mi;
+
+  gcc_assert (L_IPO_COMP_MODE);
+
+  if (DECL_BUILT_IN (decl))
+    return true;
+
+  /* TODO: revisit this.  */
+  if (DECL_IN_SYSTEM_HEADER (decl) && DECL_DECLARED_INLINE_P (decl))
+    return true;
+
+  gcc_assert (TREE_STATIC (decl) || DECL_DECLARED_INLINE_P (decl));
+
+  if (cgraph_get_module_id (decl) == module_id)
+    return true;
+
+  sym = cgraph_sym (decl);
+  if (!sym || !(*sym)->def_module_hash)
+    return false;
+
+  mi.module_id = module_id;
+  slot = htab_find_slot ((*sym)->def_module_hash, &mi, NO_INSERT);
+  if (slot)
+    {
+      gcc_assert (((struct cgraph_mod_info*)*slot)->module_id == module_id);
+      return true;
+    }
+  return false;
+}
+
+/* Return the linked cgraph node using DECL's assembler name.  DO_ASSERT
+   is a flag indicating that a non null link target must be returned.  */
+
+struct cgraph_node *
+cgraph_real_node_1 (tree decl, bool do_assert)
+{
+  struct cgraph_sym **slot;
+
+  slot = cgraph_sym (decl);
+
+  if (!slot || !*slot)
+    {
+      if (!do_assert)
+        return NULL;
+      else
+        {
+          /* Nodes that are indirectly called are not 'reachable' in
+             the callgraph. If they are not needed (comdat, inline
+             extern etc), they may be removed from the link table
+             before direct calls to them are exposed (via indirect
+             call promtion by const folding etc). When this happens,
+             the node will be to be relinked. A probably better fix
+             is to modify the callgraph so that they are not eliminated
+             in the first place -- this will allow inlining to happen.  */
+
+          struct cgraph_node * n = cgraph_node (decl);
+          if (!n->analyzed)
+            {
+              gcc_assert (cgraph_is_decl_external (n) || DECL_VIRTUAL_P (decl));
+              gcc_assert ((!n->reachable && !n->needed)
+                          /* This is the case for explicit extern instantiation,
+                             when cgraph node is not created before link.  */
+                          || DECL_EXTERNAL (decl));
+              cgraph_link_node (n);
+              return n;
+            }
+          else
+            gcc_unreachable ();
+        }
+    }
+  else
+    {
+      struct cgraph_sym *sym = *slot;
+      return sym->rep_node;
+    }
+}
+
+/* Return the cgraph_node of DECL if decl has definition; otherwise return
+   the cgraph node of the representative decl, which is the declaration DECL
+   is resolved to after linking/symbol resolution.  */
+
+struct cgraph_node *
+cgraph_real_node (tree decl)
+{
+  struct cgraph_node *node = NULL;
+
+  /* No linking is needed.  */
+  if (!L_IPO_COMP_MODE || !global_link_performed)
+    return cgraph_node (decl);
+
+  gcc_assert (cgraph_symtab);
+
+  /* Never merged.  */
+  if (!TREE_PUBLIC (decl) || DECL_ARTIFICIAL (decl)
+      /* builtin function decls are shared across modules, but 'linking'
+         is still performed for them to keep track of the set of defining
+         modules. Skip the real resolution here to avoid merging '__builtin_xxx'
+         with 'xxx'.  */
+      || DECL_BUILT_IN (decl))
+    return cgraph_node (decl);
+
+  if (TREE_STATIC (decl))
+    return cgraph_node (decl);
+
+  node = cgraph_real_node_1 (decl, true);
+  return node;
+}
+
+/* When NODE->decl is dead function eliminated,
+   remove the entry in the link table.  */
+
+void
+cgraph_remove_link_node (struct cgraph_node *node)
+{
+  tree name, decl;
+
+  if (!L_IPO_COMP_MODE || !cgraph_symtab)
+    return;
+
+  decl = node->decl;
+
+  /* Skip nodes that are not in the link table.  */
+  if (!TREE_PUBLIC (decl) || DECL_ARTIFICIAL (decl))
+    return;
+
+  /* Skip if node is an inline clone or if the node has
+     defintion that is not really resolved to the merged node.  */
+  if (cgraph_real_node_1 (decl, false) != node)
+    return;
+
+  name = DECL_ASSEMBLER_NAME (decl);
+  htab_remove_elt_with_hash (cgraph_symtab, name,
+                             decl_assembler_name_hash (name));
+}
+
+/* Return true if the function body for DECL has profile information.  */
+
+static bool
+has_profile_info (tree decl)
+{
+  gcov_type *ctrs = NULL;
+  unsigned n;
+  struct function* f = DECL_STRUCT_FUNCTION (decl);
+
+  ctrs = get_coverage_counts_no_warn (f, GCOV_COUNTER_ARCS, &n);
+  if (ctrs)
+    {
+      unsigned i;
+      for (i = 0; i < n; i++)
+        if (ctrs[i])
+          return true;
+    }
+
+  return false;
+}
+
+/* Resolve delaration NODE->decl for function symbol *SLOT.  */
+
+static void
+resolve_cgraph_node (struct cgraph_sym **slot, struct cgraph_node *node)
+{
+  tree decl1, decl2;
+  int decl1_defined = 0;
+  int decl2_defined = 0;
+
+  decl1 = (*slot)->rep_decl;
+  decl2 = node->decl;
+
+  decl1_defined = TREE_STATIC (decl1);
+  decl2_defined = TREE_STATIC (decl2);
+
+  if (decl1_defined && !decl2_defined)
+    return;
+
+  if (!decl1_defined && decl2_defined)
+    {
+      (*slot)->rep_node = node;
+      (*slot)->rep_decl = decl2;
+      add_define_module (*slot, decl2);
+      return;
+    }
+
+  if (decl2_defined)
+    {
+      bool has_prof1 = false;
+      bool has_prof2 = false;
+      gcc_assert (decl1_defined);
+      add_define_module (*slot, decl2);
+
+      has_prof1 = has_profile_info (decl1);
+      if (has_prof1)
+        return;
+      has_prof2 = has_profile_info (decl2);
+      if (has_prof2)
+        {
+          (*slot)->rep_node = node;
+          (*slot)->rep_decl = decl2;
+        }
+      return;
+    }
+  return;
+}
+
+
+/* Resolve NODE->decl in the function symbol table.  */
+
+struct cgraph_sym *
+cgraph_link_node (struct cgraph_node *node)
+{
+  void **slot;
+  tree name;
+
+  if (!L_IPO_COMP_MODE)
+    return NULL;
+
+  if (!cgraph_symtab)
+    cgraph_symtab
+        = htab_create_ggc (10, hash_sym_by_assembler_name,
+                           eq_assembler_name, NULL);
+
+  /* Skip the cases when the  defintion can be locally resolved, and
+     when we do not need to keep track of defining modules.  */
+  if (!TREE_PUBLIC (node->decl) || DECL_ARTIFICIAL (node->decl))
+    return NULL;
+
+  name = DECL_ASSEMBLER_NAME (node->decl);
+  slot = htab_find_slot_with_hash (cgraph_symtab, name,
+                                   decl_assembler_name_hash (name),
+                                   INSERT);
+  if (*slot)
+    resolve_cgraph_node ((struct cgraph_sym **) slot, node);
+  else
+    {
+      struct cgraph_sym *sym = GGC_CNEW (struct cgraph_sym);
+      sym->rep_node = node;
+      sym->rep_decl = node->decl;
+      sym->assembler_name = name;
+      add_define_module (sym, node->decl);
+      *slot = sym;
+    }
+  return (struct cgraph_sym *) *slot;
+}
+
+/* Perform cross module linking of function declarations.  */
+
+void
+cgraph_do_link (void)
+{
+  struct cgraph_node *node;
+
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  global_link_performed = 1;
+
+  if (!cgraph_symtab)
+    cgraph_symtab
+        = htab_create_ggc (10, hash_sym_by_assembler_name,
+                           eq_assembler_name, NULL);
+
+  for (node = cgraph_nodes; node; node = node->next)
+    {
+      gcc_assert (!node->global.inlined_to);
+      cgraph_link_node (node);
+    }
+}
+
+struct promo_ent
+{
+  char* assemb_name;
+  int seq;
+};
+
+/* Hash function for promo_ent table.  */
+
+static hashval_t
+promo_ent_hash (const void *ent)
+{
+  const struct promo_ent *const entry
+      = (const struct promo_ent *) ent;
+
+  return htab_hash_string (entry->assemb_name);
+}
+
+/* Hash_eq function for promo_ent table.  */
+
+static int
+promo_ent_eq (const void *ent1, const void *ent2)
+{
+  const struct promo_ent *const entry1
+      = (const struct promo_ent *) ent1;
+  const struct promo_ent *const entry2
+      = (const struct promo_ent *) ent2;
+  if (!strcmp (entry1->assemb_name, entry2->assemb_name))
+    return 1;
+  return 0;
+}
+
+/* Delete function for promo_ent hash table.  */
+
+static void
+promo_ent_del (void *ent)
+{
+  struct promo_ent *const entry
+      = (struct promo_ent *) ent;
+
+  free (entry->assemb_name);
+  free (entry);
+}
+
+static htab_t promo_ent_hash_tab = NULL;
+
+/* Return a unique sequence number for NAME. This is needed to avoid
+   name conflict -- function scope statics may have identical names.
+
+   This function returns a zero sequence number if it is called with
+   a particular NAME for the first time, and non-zero otherwise.
+   This fact is used to keep track of unseen weak variables.  */
+
+static int
+get_name_seq_num (const char *name)
+{
+  struct promo_ent **slot;
+  struct promo_ent ent;
+  ent.assemb_name = xstrdup (name);
+  ent.seq = 0;
+
+  slot = (struct promo_ent **)
+      htab_find_slot (promo_ent_hash_tab, &ent, INSERT);
+
+  if (!*slot)
+    {
+      *slot = XCNEW (struct promo_ent);
+      (*slot)->assemb_name = ent.assemb_name;
+    }
+  else
+    {
+      (*slot)->seq++;
+      free (ent.assemb_name);
+    }
+  return (*slot)->seq;
+}
+
+/* Promote DECL to be global. MODULE_ID is the id of the module where
+   DECL is defined. IS_EXTERN is a flag indicating if externalization
+   is needed.  */
+
+static void
+promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
+{
+  tree id, assemb_id;
+  char *assembler_name;
+  const char *name;
+  struct  function *context = NULL;
+  tree alias;
+  int seq = 0;
+
+  /* No need to promote symbol alias.  */
+  alias = lookup_attribute ("alias", DECL_ATTRIBUTES (decl));
+  if (alias)
+    return;
+
+  /* Function decls in C++ may contain characters not taken by assembler.
+     Similarly, function scope static variable has UID as the assembler name
+     suffix which is not consistent across modules.  */
+
+  if (DECL_ASSEMBLER_NAME_SET_P (decl)
+      && TREE_CODE (decl) == FUNCTION_DECL)
+    cgraph_remove_assembler_hash_node (cgraph_node (decl));
+
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      if (!DECL_CONTEXT (decl)
+          || TREE_CODE (DECL_CONTEXT (decl)) == TRANSLATION_UNIT_DECL)
+        {
+          id = DECL_NAME (decl);
+          /* if (IDENTIFIER_OPNAME_P (id))  */
+          if (TREE_LANG_FLAG_2 (id))
+            id = DECL_ASSEMBLER_NAME (decl);
+        }
+      else
+        id = DECL_ASSEMBLER_NAME (decl);
+    }
+  else
+    {
+      if (!DECL_CONTEXT (decl))
+        id = DECL_NAME (decl);
+      else if (TREE_CODE (DECL_CONTEXT (decl)) == NAMESPACE_DECL)
+        id = DECL_ASSEMBLER_NAME (decl);
+      else if (TREE_CODE (DECL_CONTEXT (decl)) == FUNCTION_DECL)
+        {
+          id = DECL_NAME (decl);
+          context = DECL_STRUCT_FUNCTION (DECL_CONTEXT (decl));
+        }
+      else
+        /* file scope context */
+        id = DECL_NAME (decl);
+    }
+
+  name = IDENTIFIER_POINTER (id);
+  if (context)
+    {
+      char *n;
+      unsigned fno =  FUNC_DECL_FUNC_ID (context);
+      n = (char *)alloca (strlen (name) + 15);
+      sprintf (n, "%s_%u", name, fno);
+      name = n;
+    }
+
+  assembler_name = (char*) alloca (strlen (name) + 30);
+  sprintf (assembler_name, "%s_cmo_%u", name, module_id);
+  seq = get_name_seq_num (assembler_name);
+  if (seq)
+    sprintf (assembler_name, "%s_%d", assembler_name, seq);
+
+  assemb_id = get_identifier (assembler_name);
+  SET_DECL_ASSEMBLER_NAME (decl, assemb_id);
+  TREE_PUBLIC (decl) = 1;
+
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      struct cgraph_sym *resolved_sym = NULL;
+      struct cgraph_node *node = cgraph_node (decl);
+      cgraph_add_assembler_hash_node (node);
+      /* incremental update the link table -- or
+         can introduce a flag in cgraph node to indicate
+         non global origin.  */
+      resolved_sym = cgraph_link_node (node);
+      gcc_assert (resolved_sym);
+      resolved_sym->is_promoted_static = 1;
+    }
+  else
+    {
+      struct varpool_node *node = varpool_node (decl);
+      varpool_link_node (node);
+    }
+
+  if (is_extern)
+    {
+      if (TREE_CODE (decl) == VAR_DECL)
+        {
+          TREE_STATIC (decl) = 0;
+          DECL_EXTERNAL (decl) = 1;
+          DECL_INITIAL (decl) = 0;
+	  DECL_CONTEXT (decl) = 0;
+        }
+      /* else
+         Function body will be deleted later before expansion.  */
+    }
+  else
+    TREE_STATIC (decl) = 1;
+}
+
+/* Externalize global variables from aux modules and promote
+   static variables.
+   WEAK variables need special treatment. If there is a definition in the
+   primary module, all the definitions of this weak variable in auxiliary
+   modules are externalized. Otherwise, all but one definition in the
+   auxiliary modules is externalized. For this reason, before the first
+   call to this function, we must have a record of all the weak variables
+   emitted from the primary module.  */
+
+static void
+process_module_scope_static_var (struct varpool_node *vnode)
+{
+  tree decl = vnode->decl;
+
+  if (varpool_is_auxiliary (vnode))
+    {
+      gcc_assert (vnode->module_id != primary_module_id);
+      if (TREE_PUBLIC (decl))
+        {
+          /* Externalize non-weak variables, and those weak variables that
+	     we have seen one non-external copy of.  */
+	  if (!DECL_WEAK (decl)
+	      || (!DECL_EXTERNAL (decl)
+		  && get_name_seq_num (IDENTIFIER_POINTER (DECL_NAME (decl)))))
+	    {
+	      DECL_EXTERNAL (decl) = 1;
+	      TREE_STATIC (decl) = 0;
+	      DECL_INITIAL (decl) = NULL;
+	      DECL_CONTEXT (decl) = NULL;
+	    }
+        }
+      else
+        {
+          /* Promote static vars to global.  */
+          if (vnode->module_id)
+            promote_static_var_func (vnode->module_id, decl,
+                                     varpool_is_auxiliary (vnode));
+        }
+    }
+  else
+    {
+      if (PRIMARY_MODULE_EXPORTED && !TREE_PUBLIC (decl))
+        promote_static_var_func (vnode->module_id, decl,
+                                 varpool_is_auxiliary (vnode));
+    }
+}
+
+/* Promote static function CNODE->decl to be global.  */
+
+static void
+process_module_scope_static_func (struct cgraph_node *cnode)
+{
+  tree decl = cnode->decl;
+
+  if (TREE_PUBLIC (decl)
+      || !TREE_STATIC (decl)
+      || DECL_EXTERNAL (decl)
+      || DECL_ARTIFICIAL (decl))
+    return;
+
+  if (cgraph_is_auxiliary (cnode->decl))
+    {
+      gcc_assert (cgraph_get_module_id (cnode->decl)
+                  != primary_module_id);
+      /* Promote static function to global.  */
+      if (cgraph_get_module_id (cnode->decl))
+        promote_static_var_func (cgraph_get_module_id (cnode->decl), decl, 1);
+    }
+  else
+    {
+      if (PRIMARY_MODULE_EXPORTED
+          /* skip static_init routines.  */
+          && !DECL_ARTIFICIAL (decl))
+        {
+          promote_static_var_func (cgraph_get_module_id (cnode->decl), decl, 0);
+          cgraph_mark_if_needed (decl);
+        }
+    }
+}
+
+/* Process var_decls, func_decls with static storage.  */
+
+void
+cgraph_process_module_scope_statics (void)
+{
+  struct cgraph_node *pf;
+  struct varpool_node *pv;
+
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  promo_ent_hash_tab = htab_create (10, promo_ent_hash,
+                                    promo_ent_eq, promo_ent_del);
+
+  /* Process variable first.  */
+  /* Keep track of weak variables emitted from the primary module (see
+     comment for the process_module_scope_static_var function for why
+     this needs to be done). We use the get_name_seq_name function for
+     this.  */
+  for (pv = varpool_nodes_queue; pv; pv = pv->next_needed)
+    if (!varpool_is_auxiliary (pv) && DECL_WEAK (pv->decl) && !DECL_EXTERNAL (pv->decl))
+      get_name_seq_num (IDENTIFIER_POINTER (DECL_NAME (pv->decl)));
+  for (pv = varpool_nodes_queue; pv; pv = pv->next_needed)
+    process_module_scope_static_var (pv);
+
+  for (pf = cgraph_nodes; pf; pf = pf->next)
+    process_module_scope_static_func (pf);
+
+  htab_delete (promo_ent_hash_tab);
+}
+
+static GTY((param_is (struct varpool_node))) htab_t varpool_symtab;
+
+/* Hash function for varpool node.  */
+
+static hashval_t
+hash_node_by_assembler_name (const void *p)
+{
+  const struct varpool_node *n = (const struct varpool_node *) p;
+  return (hashval_t) decl_assembler_name_hash (DECL_ASSEMBLER_NAME (n->decl));
+}
+
+/* Returns nonzero if P1 and P2 are equal.  */
+
+static int
+eq_node_assembler_name (const void *p1, const void *p2)
+{
+  const struct varpool_node *n1 = (const struct varpool_node *) p1;
+  const_tree name = (const_tree)p2;
+  return (decl_assembler_name_equal (n1->decl, name));
+}
+
+/* Return true if NODE's decl is declared in an auxiliary module.  */
+
+bool
+varpool_is_auxiliary (struct varpool_node *node)
+{
+  return (node->module_id
+          && node->module_id != primary_module_id);
+}
+
+/* Return the varpool_node to which DECL is resolved to during linking.
+   This method can not be used after static to global promotion happens.  */
+
+struct varpool_node *
+real_varpool_node (tree decl)
+{
+  void **slot;
+  tree name;
+
+  if (!L_IPO_COMP_MODE || !varpool_symtab)
+    return varpool_node (decl);
+
+  if (!TREE_PUBLIC (decl) || DECL_ARTIFICIAL (decl))
+    return varpool_node (decl);
+
+  name = DECL_ASSEMBLER_NAME (decl);
+  slot = htab_find_slot_with_hash (varpool_symtab, name,
+                                   decl_assembler_name_hash (name),
+                                   NO_INSERT);
+  gcc_assert (slot && *slot);
+  return (struct varpool_node *)*slot;
+}
+
+/* Remove NODE from the link table.  */
+
+void
+varpool_remove_link_node (struct varpool_node *node)
+{
+  tree name;
+  tree decl;
+
+  if (!L_IPO_COMP_MODE || !varpool_symtab)
+    return;
+
+  decl = node->decl;
+
+  if (!TREE_PUBLIC (decl) || DECL_ARTIFICIAL (decl))
+    return;
+
+  if (real_varpool_node (decl) != node)
+    return;
+
+  name = DECL_ASSEMBLER_NAME (decl);
+  htab_remove_elt_with_hash (varpool_symtab, name,
+                             decl_assembler_name_hash (name));
+}
+
+/* Merge the addressable attribute from DECL2 to DECL1.  */
+
+static inline void
+merge_addressable_attr (tree decl1, tree decl2)
+{
+  if (TREE_ADDRESSABLE (decl2))
+    TREE_ADDRESSABLE (decl1) = 1;
+}
+
+/* Resolve NODE->decl to symbol table entry *SLOT.  */
+
+static void
+resolve_varpool_node (struct varpool_node **slot, struct varpool_node *node)
+{
+  tree decl1, decl2;
+
+  decl1 = (*slot)->decl;
+  decl2 = node->decl;
+
+  /* Take the decl with the complete type. */
+  if (COMPLETE_TYPE_P (TREE_TYPE (decl1))
+      && !COMPLETE_TYPE_P (TREE_TYPE (decl2)))
+    {
+      merge_addressable_attr (decl1, decl2);
+      return;
+    }
+  if (!COMPLETE_TYPE_P (TREE_TYPE (decl1))
+      && COMPLETE_TYPE_P (TREE_TYPE (decl2)))
+    {
+      *slot = node;
+      merge_addressable_attr (decl2, decl1);
+      return;
+    }
+
+  /* Either all complete or neither's type is complete. Just
+     pick the primary module's decl.  */
+  if (!varpool_is_auxiliary (*slot))
+    {
+      merge_addressable_attr (decl1, decl2);
+      return;
+    }
+
+  if (!varpool_is_auxiliary (node))
+    {
+      *slot = node;
+      merge_addressable_attr (decl2, decl1);
+      return;
+    }
+
+  merge_addressable_attr (decl1, decl2);
+  return;
+}
+
+/* Link NODE into var_decl symbol table.  */
+
+void
+varpool_link_node (struct varpool_node *node)
+{
+  tree name;
+  void **slot;
+
+  if (!L_IPO_COMP_MODE || !varpool_symtab)
+    return;
+
+  if (!TREE_PUBLIC (node->decl) || DECL_ARTIFICIAL (node->decl))
+    return;
+
+  name = DECL_ASSEMBLER_NAME (node->decl);
+  slot = htab_find_slot_with_hash (varpool_symtab, name,
+                                   decl_assembler_name_hash (name),
+                                   INSERT);
+  if (*slot)
+    resolve_varpool_node ((struct varpool_node **) slot, node);
+  else
+    *slot = node;
+}
+
+/* Perform cross module linking for var_decls.  */
+
+void
+varpool_do_link (void)
+{
+  struct varpool_node *node;
+
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  varpool_symtab
+      = htab_create_ggc (10, hash_node_by_assembler_name,
+                         eq_node_assembler_name, NULL);
+  for (node = varpool_nodes; node; node = node->next)
+    varpool_link_node (node);
+}
+
+/* Get the list of assembler name ids with reference bit set.  */
+
+void
+varpool_get_referenced_asm_ids (VEC(tree, gc) ** ids)
+{
+  struct varpool_node *node;
+  for (node = varpool_nodes; node; node = node->next)
+    {
+      tree asm_id = NULL;
+      tree decl = node->decl;
+      if (DECL_ASSEMBLER_NAME_SET_P (decl))
+        {
+          asm_id = DECL_ASSEMBLER_NAME (decl);
+          VEC_safe_push (tree, gc, *ids, asm_id);
+        }
+    }
+}
+
+/* Clear the referenced bit in all assembler ids.  */
+
+void
+varpool_clear_asm_id_reference_bit (void)
+{
+  struct varpool_node *node;
+  for (node = varpool_nodes; node; node = node->next)
+    {
+      tree asm_id = NULL;
+      tree decl = node->decl;
+      if (DECL_ASSEMBLER_NAME_SET_P (decl))
+        {
+          asm_id = DECL_ASSEMBLER_NAME (decl);
+          TREE_SYMBOL_REFERENCED (asm_id) = 0;
+        }
+    }
+}
+
 
 #include "gt-l-ipo.h"

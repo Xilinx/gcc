@@ -304,7 +304,8 @@ function_and_variable_visibility (void)
 	}
       /* Static variables defined in auxiliary modules are externalized to
          allow cross module inlining.  */
-      gcc_assert (TREE_STATIC (vnode->decl) || vnode->auxiliary);
+      gcc_assert (TREE_STATIC (vnode->decl)
+                  || varpool_is_auxiliary (vnode));
     }
 
   if (dump_file)

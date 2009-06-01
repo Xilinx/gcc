@@ -490,8 +490,16 @@ check_counter (gimple stmt, const char * name,
   return false;
 }
 
+/* The overall number of invocations of the counter should match
+   execution count of basic block.  Report it as error rather than
+   internal error as it might mean that user has misused the profile
+   somehow.  STMT is the indiret call, COUNT1 and COUNT2 are counts
+   of two top targets, and ALL is the enclosing basic block execution
+   count.  */
+
 static bool
-check_ic_counter (gimple stmt, gcov_type *count1, gcov_type *count2, gcov_type all)
+check_ic_counter (gimple stmt, gcov_type *count1, gcov_type *count2,
+                  gcov_type all)
 {
   location_t locus;
   if (*count1 > all && flag_profile_correction)
@@ -603,9 +611,9 @@ gimple_value_profile_transformations (void)
       counts_to_freqs ();
       /* Value profile transformations may change inline parameters
          a lot (e.g., indirect call promotion introduces new direct calls).
-         The update is also needed to avoid compiler ICE -- when MULTI target icall
-         promotion happens, the caller's size may become negative when the promoted
-         direct calls get promoted.  */
+         The update is also needed to avoid compiler ICE -- when MULTI
+         target icall promotion happens, the caller's size may become
+         negative when the promoted direct calls get promoted.  */
       /* Guard this for LIPO for now.  */
       if (L_IPO_COMP_MODE)
         compute_inline_parameters (cgraph_node (current_function_decl));
@@ -1160,12 +1168,16 @@ typedef struct func_gid_entry
   unsigned HOST_WIDEST_INT gid;
 } func_gid_entry_t;
 
+/* Hash function for function global unique ids.  */
+
 static hashval_t 
 htab_gid_hash (const void * ent)
 {
   const func_gid_entry_t *const entry = (const func_gid_entry_t *) ent;
   return entry->gid;
 }
+
+/* Hash table equality function for function global unique ids.  */
 
 static int
 htab_gid_eq (const void *ent1, const void * ent2)
@@ -1181,6 +1193,8 @@ htab_gid_del (void *ent)
   func_gid_entry_t *const entry = (func_gid_entry_t *) ent;
   free (entry);
 }
+
+/* Initialize the global unique id map for functions.  */
 
 static void
 init_gid_map (void)
@@ -1199,19 +1213,17 @@ init_gid_map (void)
       struct function *f;
       ent.node = n;
       f = DECL_STRUCT_FUNCTION (n->decl);
-      /* Do not care to icall promote a function without body.  */
+      /* Do not care to indirect call promote a function with id.  */
       if (!f || DECL_ABSTRACT (n->decl))
         continue;
       /* The global function id computed at profile-use time
-       * is slightly different from the one computed in
-       * instrumentation runtime -- for the latter, the intra-
-       * module function ident is 1 based while in profile-use
-       * phase, it is zero based. See get_next_funcdef_no in
-       * function.c */
-
+         is slightly different from the one computed in
+         instrumentation runtime -- for the latter, the intra-
+         module function ident is 1 based while in profile-use
+         phase, it is zero based. See get_next_funcdef_no in
+         function.c.  */
       ent.gid = FUNC_DECL_GLOBAL_ID (DECL_STRUCT_FUNCTION (n->decl));
-      slot = (func_gid_entry_t **)htab_find_slot
-          (gid_map, &ent, INSERT);
+      slot = (func_gid_entry_t **) htab_find_slot (gid_map, &ent, INSERT);
 
       gcc_assert (!*slot || ((*slot)->gid == ent.gid && (*slot)->node == n));
       if (!*slot)
@@ -1222,6 +1234,8 @@ init_gid_map (void)
         }
     }
 }
+
+/* Initialize the global unique id map for functions.  */
 
 void
 cgraph_init_gid_map (void)
@@ -1496,7 +1510,7 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
                 EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
       return false;
     }
-  else /*DEBUG*/
+  else 
     inform (locus, "Found indirect call target"
             " decl (%d:%d)[cnt:%u] in current module",
             EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
@@ -1528,7 +1542,8 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
 
   if (direct_call2 && check_ic_target (gimple_call_fn (stmt), direct_call2))
     {
-      modify2 = gimple_ic (stmt, stmt, direct_call2, prob2, count2, all - count1);
+      modify2 = gimple_ic (stmt, stmt, direct_call2,
+                           prob2, count2, all - count1);
       inform (locus, "Promote indirect call to target %s",
               lang_hooks.decl_printable_name (direct_call2->decl, 3));
       if (always_inline && count2 >= always_inline)
@@ -1548,7 +1563,8 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
           fprintf (dump_file, " to ");
           print_gimple_stmt (dump_file, modify2, 0, TDF_SLIM);
           fprintf (dump_file, "hist->count "HOST_WIDEST_INT_PRINT_DEC
-                   " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count2, all - count1);
+                   " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count2,
+                   all - count1);
         }
     }
 
@@ -1563,7 +1579,7 @@ gimple_ic_transform (gimple stmt)
 {
   histogram_value histogram;
   tree callee;
-  
+
   if (gimple_code (stmt) != GIMPLE_CALL)
     return false;
 
@@ -1575,7 +1591,8 @@ gimple_ic_transform (gimple stmt)
   histogram = gimple_histogram_value_of_type (cfun, stmt, HIST_TYPE_INDIR_CALL);
   if (!histogram)
     {
-      histogram = gimple_histogram_value_of_type (cfun, stmt, HIST_TYPE_INDIR_CALL_TOPN);
+      histogram = gimple_histogram_value_of_type (cfun, stmt,
+                                                  HIST_TYPE_INDIR_CALL_TOPN);
       if (!histogram)
         return false;
     }

@@ -42,8 +42,9 @@ extern void lhd_do_nothing_i (int);
 extern void lhd_do_nothing_u (unsigned);
 extern void lhd_do_nothing_t_t (tree, tree);
 extern int lhd_do_nothing_t_return_int (tree);
+extern bool lhd_do_nothing_t_return_bool (tree);
 extern int lhd_do_nothing_t_t_return_int (tree, tree);
-extern int lhd_do_nothing_t_vp_return_int (tree, void *);
+extern bool lhd_do_nothing_t_vp_return_bool (tree, void *);
 extern void lhd_do_nothing_f (struct function *);
 extern bool lhd_post_options (const char **);
 extern alias_set_type lhd_get_alias_set (tree);
@@ -196,13 +197,13 @@ extern tree lhd_make_node (enum tree_code);
 #define LANG_HOOKS_SAVE_BUILT_IN_POST lhd_do_nothing
 #define LANG_HOOKS_RESTORE_BUILT_IN_POST lhd_do_nothing
 #define LANG_HOOKS_CLEAR_NAME_BINDINGS lhd_do_nothing_t
-#define LANG_HOOKS_HAS_GLOBAL_NAME lhd_do_nothing_t_vp_return_int
+#define LANG_HOOKS_HAS_GLOBAL_NAME lhd_do_nothing_t_vp_return_bool
 #define LANG_HOOKS_GET_LANG_DECL_SIZE lhd_do_nothing_t_return_int
 #define LANG_HOOKS_DUP_LANG_TYPE lhd_do_nothing_t_t
 #define LANG_HOOKS_COPY_LANG_TYPE lhd_do_nothing_t_t
 #define LANG_HOOKS_PROCESS_PENDING_DECLS lhd_do_nothing_u
 #define LANG_HOOKS_CLEAR_DEFFERED_FNS lhd_do_nothing
-#define LANG_HOOKS_IS_GENERATED_TYPE lhd_do_nothing_t_return_int
+#define LANG_HOOKS_IS_GENERATED_TYPE lhd_do_nothing_t_return_bool
 #define LANG_HOOKS_CMP_LANG_TYPE lhd_do_nothing_t_t_return_int
 
 

@@ -108,7 +108,7 @@ extern void enable_warning_as_error (const char *arg, int value,
 				     unsigned int lang_mask);
 extern void print_ignored_options (void);
 extern void add_input_filename (const char *filename);
-extern void add_module_info (unsigned mod_id, int is_primary, int index);
-extern void set_parsing_context (struct cpp_reader *parse_in, int i, bool verbose);
+extern void add_module_info (unsigned mod_id, bool is_primary, int index);
+extern void set_lipo_c_parsing_context (struct cpp_reader *parse_in, int i, bool verbose);
 extern void coverage_note_define (const char *cpp_def, bool is_def);
 #endif

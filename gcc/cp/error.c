@@ -322,7 +322,7 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
       t = tsubst (t, args, tf_none, NULL_TREE);
       /* Strip typedefs.  We can't just use TFF_CHASE_TYPEDEF because
 	 pp_simple_type_specifier doesn't know about it.  */
-      t = canonical_type_variant (t);
+      t = strip_typedefs (t);
       dump_type (t, TFF_PLAIN_IDENTIFIER);
     }
 }
@@ -2761,8 +2761,8 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
   const char *result;
   tree t = NULL;
 #define next_tree    (t = va_arg (*text->args_ptr, tree))
-#define next_tcode   va_arg (*text->args_ptr, enum tree_code)
-#define next_lang    va_arg (*text->args_ptr, enum languages)
+#define next_tcode   ((enum tree_code) va_arg (*text->args_ptr, int))
+#define next_lang    ((enum languages) va_arg (*text->args_ptr, int))
 #define next_int     va_arg (*text->args_ptr, int)
 
   if (precision != 0 || wide)

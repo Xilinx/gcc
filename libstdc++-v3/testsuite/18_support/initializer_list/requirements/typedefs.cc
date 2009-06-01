@@ -1,7 +1,8 @@
-// { dg-options "-std=gnu++0x" }
 // { dg-do compile }
+// { dg-options "-std=gnu++0x" }
+// 2009-05-27 Benjamin Kosnik <bkoz@redhat.com>
 
-// Copyright (C) 2008, 2009 Free Software Foundation
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -18,30 +19,16 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// 20.7.12.2 Template class shared_ptr [util.smartptr.shared]
+#include <initializer_list>
 
-#include <memory>
-#include <testsuite_hooks.h>
-
-struct A { };
-
-// 20.7.12.2.4 shared_ptr modifiers [util.smartptr.shared.mod]
-
-// swap
-int
-test01()
+void test01()
 {
-  bool test __attribute__((unused)) = true;
-
-  std::shared_ptr<A> p(new A);
-  p.swap(std::shared_ptr<A>(new A));
-
-  return 0;
-}
-
-int 
-main()
-{
-  test01();
-  return 0;
+  // Check for required typedefs
+  typedef std::initializer_list<int> test_type;
+  typedef test_type::value_type type1;
+  typedef test_type::size_type type2;
+  typedef test_type::reference type3;
+  typedef test_type::const_reference type4;
+  typedef test_type::iterator type5;
+  typedef test_type::const_iterator type5;
 }

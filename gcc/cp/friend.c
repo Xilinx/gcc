@@ -563,8 +563,6 @@ do_friend (tree ctype, tree declarator, tree decl,
 
 	      push_nested_namespace (ns);
 	      decl = pushdecl_namespace_level (decl, /*is_friend=*/true);
-              if (L_IPO_COMP_MODE)
-                cgraph_node (decl);
 	      pop_nested_namespace (ns);
 	    }
 

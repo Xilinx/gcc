@@ -420,6 +420,9 @@ add_path (char *path, int chain, int cxx_aware, bool user_supplied_p)
   add_cpp_dir_path (p, chain);
 }
 
+/* Return the bracket and quote include search paths
+   in *BRACKETS and *QUOTES respectively.  */
+
 void
 get_include_chains (cpp_dir **quotes, cpp_dir **brackets)
 {
@@ -427,10 +430,13 @@ get_include_chains (cpp_dir **quotes, cpp_dir **brackets)
   *brackets = heads[BRACKET];
 }
 
+/* Make HEAD and TAIL pointers to include paths resynchronized
+   after appending new paths.  */
+
 void
 resync_include_chains (void)
 {
-  cpp_dir *pdir, *ppdir = 0;
+  cpp_dir *pdir, *ppdir = NULL;
   /* First split quote and bracket chains */
   pdir = heads[QUOTE];
   while (pdir && pdir != heads[BRACKET])

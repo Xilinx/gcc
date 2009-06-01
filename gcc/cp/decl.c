@@ -2167,16 +2167,24 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
      freeing these nodes represents in a significant savings.  */
   {
     tree clone;
-    /* fix dangling reference  */
+    bool found_clone = false;
+    /* Fix dangling reference.  */
     FOR_EACH_CLONE (clone, newdecl)
       {
         if (DECL_CLONED_FUNCTION (clone) == newdecl)
-          DECL_CLONED_FUNCTION (clone) = NULL;
+          {
+            found_clone = true;
+            break;
+          }
         if (DECL_ABSTRACT_ORIGIN (clone) == newdecl)
-          DECL_ABSTRACT_ORIGIN (clone) = NULL;
+          {
+            found_clone = true;
+            break;
+          }
       }
+    if (!found_clone)
+      ggc_free (newdecl);
   }
-  ggc_free (newdecl);
 
   return olddecl;
 }
@@ -5253,7 +5261,7 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
   /* Handle non-variables up front.  */
   if (TREE_CODE (decl) != VAR_DECL)
     {
-      /* capture the current module info.  */
+      /* Capture the current module info.  */
       if (L_IPO_COMP_MODE)
         cgraph_node (decl);
       rest_of_decl_compilation (decl, toplev, at_eof);
@@ -5307,7 +5315,7 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
 	   && DECL_IMPLICIT_INSTANTIATION (decl))
     defer_p = 1;
 
-  /* capture the current module info.  */
+  /* Capture the current module info.  */
   if (L_IPO_COMP_MODE)
     varpool_node (decl);
 
@@ -7172,7 +7180,7 @@ check_static_variable_definition (tree decl, tree type)
     error ("ISO C++ forbids in-class initialization of non-const "
 	   "static member %qD",
 	   decl);
-  else if (!INTEGRAL_TYPE_P (type))
+  else if (!INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     pedwarn (input_location, OPT_pedantic, "ISO C++ forbids initialization of member constant "
 	     "%qD of non-integral type %qT", decl, type);
 
@@ -7195,7 +7203,7 @@ compute_array_index_type (tree name, tree size)
 
   type = TREE_TYPE (size);
   /* The array bound must be an integer type.  */
-  if (!dependent_type_p (type) && !INTEGRAL_TYPE_P (type))
+  if (!dependent_type_p (type) && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
     {
       if (name)
 	error ("size of array %qD has non-integral type %qT", name, type);
@@ -7624,6 +7632,7 @@ grokdeclarator (const cp_declarator *declarator,
   bool parameter_pack_p = declarator? declarator->parameter_pack_p : false;
   bool set_no_warning = false;
   bool template_type_arg = false;
+  const char *errmsg;
 
   signed_p = declspecs->specs[(int)ds_signed];
   unsigned_p = declspecs->specs[(int)ds_unsigned];
@@ -8302,6 +8311,12 @@ grokdeclarator (const cp_declarator *declarator,
 		   decl, but to its return type.  */
 		type_quals = TYPE_UNQUALIFIED;
 		set_no_warning = true;
+	      }
+	    errmsg = targetm.invalid_return_type (type);
+	    if (errmsg)
+	      {
+		error (errmsg);
+		type = integer_type_node;
 	      }
 
 	    /* Error about some types functions can't return.  */
@@ -9695,6 +9710,7 @@ grokparms (tree parmlist, tree *parms)
       tree type = NULL_TREE;
       tree init = TREE_PURPOSE (parm);
       tree decl = TREE_VALUE (parm);
+      const char *errmsg;
 
       if (parm == void_list_node)
 	break;
@@ -9726,6 +9742,14 @@ grokparms (tree parmlist, tree *parms)
 	  type = error_mark_node;
 	  TREE_TYPE (decl) = error_mark_node;
 	  init = NULL_TREE;
+	}
+
+      if (type != error_mark_node
+	  && (errmsg = targetm.invalid_parameter_type (type)))
+	{
+	  error (errmsg);
+	  type = error_mark_node;
+	  TREE_TYPE (decl) = error_mark_node;
 	}
 
       if (type != error_mark_node)
@@ -12229,7 +12253,7 @@ finish_function (int flags)
 
   if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fndecl)
       && DECL_VIRTUAL_P (fndecl)
-      && !processing_template_decl) 
+      && !processing_template_decl)
     {
       tree fnclass = DECL_CONTEXT (fndecl);
       if (fndecl == CLASSTYPE_KEY_METHOD (fnclass))

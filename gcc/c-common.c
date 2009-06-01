@@ -55,180 +55,6 @@ along with GCC; see the file COPYING3.  If not see
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
-/* We let tm.h override the types used here, to handle trivial differences
-   such as the choice of unsigned int or long unsigned int for size_t.
-   When machines start needing nontrivial differences in the size type,
-   it would be best to do something here to figure out automatically
-   from other information what type to use.  */
-
-#ifndef SIZE_TYPE
-#define SIZE_TYPE "long unsigned int"
-#endif
-
-#ifndef PID_TYPE
-#define PID_TYPE "int"
-#endif
-
-/* If GCC knows the exact uint_least16_t and uint_least32_t types from
-   <stdint.h>, use them for char16_t and char32_t.  Otherwise, use
-   these guesses; getting the wrong type of a given width will not
-   affect C++ name mangling because in C++ these are distinct types
-   not typedefs.  */
-
-#ifdef UINT_LEAST16_TYPE
-#define CHAR16_TYPE UINT_LEAST16_TYPE
-#else
-#define CHAR16_TYPE "short unsigned int"
-#endif
-
-#ifdef UINT_LEAST32_TYPE
-#define CHAR32_TYPE UINT_LEAST32_TYPE
-#else
-#define CHAR32_TYPE "unsigned int"
-#endif
-
-#ifndef WCHAR_TYPE
-#define WCHAR_TYPE "int"
-#endif
-
-/* WCHAR_TYPE gets overridden by -fshort-wchar.  */
-#define MODIFIED_WCHAR_TYPE \
-	(flag_short_wchar ? "short unsigned int" : WCHAR_TYPE)
-
-#ifndef PTRDIFF_TYPE
-#define PTRDIFF_TYPE "long int"
-#endif
-
-#ifndef WINT_TYPE
-#define WINT_TYPE "unsigned int"
-#endif
-
-#ifndef INTMAX_TYPE
-#define INTMAX_TYPE ((INT_TYPE_SIZE == LONG_LONG_TYPE_SIZE)	\
-		     ? "int"					\
-		     : ((LONG_TYPE_SIZE == LONG_LONG_TYPE_SIZE)	\
-			? "long int"				\
-			: "long long int"))
-#endif
-
-#ifndef UINTMAX_TYPE
-#define UINTMAX_TYPE ((INT_TYPE_SIZE == LONG_LONG_TYPE_SIZE)	\
-		     ? "unsigned int"				\
-		     : ((LONG_TYPE_SIZE == LONG_LONG_TYPE_SIZE)	\
-			? "long unsigned int"			\
-			: "long long unsigned int"))
-#endif
-
-/* There are no default definitions of these <stdint.h> types.  */
-
-#ifndef SIG_ATOMIC_TYPE
-#define SIG_ATOMIC_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT8_TYPE
-#define INT8_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT16_TYPE
-#define INT16_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT32_TYPE
-#define INT32_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT64_TYPE
-#define INT64_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT8_TYPE
-#define UINT8_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT16_TYPE
-#define UINT16_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT32_TYPE
-#define UINT32_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT64_TYPE
-#define UINT64_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT_LEAST8_TYPE
-#define INT_LEAST8_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT_LEAST16_TYPE
-#define INT_LEAST16_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT_LEAST32_TYPE
-#define INT_LEAST32_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT_LEAST64_TYPE
-#define INT_LEAST64_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT_LEAST8_TYPE
-#define UINT_LEAST8_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT_LEAST16_TYPE
-#define UINT_LEAST16_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT_LEAST32_TYPE
-#define UINT_LEAST32_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT_LEAST64_TYPE
-#define UINT_LEAST64_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT_FAST8_TYPE
-#define INT_FAST8_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT_FAST16_TYPE
-#define INT_FAST16_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT_FAST32_TYPE
-#define INT_FAST32_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INT_FAST64_TYPE
-#define INT_FAST64_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT_FAST8_TYPE
-#define UINT_FAST8_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT_FAST16_TYPE
-#define UINT_FAST16_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT_FAST32_TYPE
-#define UINT_FAST32_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINT_FAST64_TYPE
-#define UINT_FAST64_TYPE ((const char *) NULL)
-#endif
-
-#ifndef INTPTR_TYPE
-#define INTPTR_TYPE ((const char *) NULL)
-#endif
-
-#ifndef UINTPTR_TYPE
-#define UINTPTR_TYPE ((const char *) NULL)
-#endif
-
 /* The following symbols are subsumed in the c_global_trees array, and
    listed here individually for documentation purposes.
 
@@ -1788,10 +1614,7 @@ warn_logical_operator (location_t location, enum tree_code code, tree type,
   if (lhs && rhs && operand_equal_p (lhs, rhs, 0)
       && merge_ranges (&in_p, &low, &high, in0_p, low0, high0,
 		       in1_p, low1, high1)
-      && 0 != (tem = build_range_check (type,
-					lhs != 0 ? lhs
-					: rhs != 0 ? rhs : integer_zero_node,
-					in_p, low, high)))
+      && 0 != (tem = build_range_check (type, lhs, in_p, low, high)))
     {
       if (TREE_CODE (tem) != INTEGER_CST)
 	return;
@@ -9307,6 +9130,71 @@ is_typedef_decl (tree x)
 {
   return (x && TREE_CODE (x) == TYPE_DECL
           && DECL_ORIGINAL_TYPE (x) != NULL_TREE);
+}
+
+/* The C and C++ parsers both use vectors to hold function arguments.
+   For efficiency, we keep a cache of unused vectors.  This is the
+   cache.  */
+
+typedef VEC(tree,gc)* tree_gc_vec;
+DEF_VEC_P(tree_gc_vec);
+DEF_VEC_ALLOC_P(tree_gc_vec,gc);
+static GTY((deletable)) VEC(tree_gc_vec,gc) *tree_vector_cache;
+
+/* Return a new vector from the cache.  If the cache is empty,
+   allocate a new vector.  These vectors are GC'ed, so it is OK if the
+   pointer is not released..  */
+
+VEC(tree,gc) *
+make_tree_vector (void)
+{
+  if (!VEC_empty (tree_gc_vec, tree_vector_cache))
+    return VEC_pop (tree_gc_vec, tree_vector_cache);
+  else
+    {
+      /* Passing 0 to VEC_alloc returns NULL, and our callers require
+	 that we always return a non-NULL value.  The vector code uses
+	 4 when growing a NULL vector, so we do too.  */
+      return VEC_alloc (tree, gc, 4);
+    }
+}
+
+/* Release a vector of trees back to the cache.  */
+
+void
+release_tree_vector (VEC(tree,gc) *vec)
+{
+  if (vec != NULL)
+    {
+      VEC_truncate (tree, vec, 0);
+      VEC_safe_push (tree_gc_vec, gc, tree_vector_cache, vec);
+    }
+}
+
+/* Get a new tree vector holding a single tree.  */
+
+VEC(tree,gc) *
+make_tree_vector_single (tree t)
+{
+  VEC(tree,gc) *ret = make_tree_vector ();
+  VEC_quick_push (tree, ret, t);
+  return ret;
+}
+
+/* Get a new tree vector which is a copy of an existing one.  */
+
+VEC(tree,gc) *
+make_tree_vector_copy (const VEC(tree,gc) *orig)
+{
+  VEC(tree,gc) *ret;
+  unsigned int ix;
+  tree t;
+
+  ret = make_tree_vector ();
+  VEC_reserve (tree, gc, ret, VEC_length (tree, orig));
+  for (ix = 0; VEC_iterate (tree, orig, ix, t); ++ix)
+    VEC_quick_push (tree, ret, t);
+  return ret;
 }
 
 #include "gt-c-common.h"

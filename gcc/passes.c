@@ -203,7 +203,8 @@ rest_of_decl_compilation (tree decl,
 #endif
       if (L_IPO_COMP_MODE)
         {
-          /* capture module id  */
+          /* Create the node early during parsing so
+             that module id can be captured.  */
           if (TREE_CODE (decl) == VAR_DECL)
             varpool_node (decl);
           else
@@ -562,7 +563,11 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_rename_ssa_copies);
 	  NEXT_PASS (pass_ccp);
 	  NEXT_PASS (pass_forwprop);
-	  NEXT_PASS (pass_update_address_taken);
+	  /* pass_build_ealias is a dummy pass that ensures that we
+	     execute TODO_rebuild_alias at this point.  Re-building
+	     alias information also rewrites no longer addressed
+	     locals into SSA form if possible.  */
+	  NEXT_PASS (pass_build_ealias);
 	  NEXT_PASS (pass_sra_early);
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
@@ -671,6 +676,7 @@ init_optimization_passes (void)
 	      NEXT_PASS (pass_dce_loop);
 	    }
 	  NEXT_PASS (pass_complete_unroll);
+	  NEXT_PASS (pass_slp_vectorize);
 	  NEXT_PASS (pass_parallelize_loops);
 	  NEXT_PASS (pass_loop_prefetch);
 	  NEXT_PASS (pass_iv_optimize);

@@ -172,18 +172,21 @@ gcov_version (struct gcov_info *ptr, gcov_unsigned_t version,
   return 1;
 }
 
+/* Strip GCOV_PREFIX_STRIP levels of leading '/' from FILENAME and
+   put the result into GI_FILENAME_UP.  */
+
 static void
 gcov_strip_leading_dirs (int gcov_prefix_strip, const char *filename,
                          char *gi_filename_up)
 {
-  /* Build relocated filename, stripping off leading 
+  /* Build relocated filename, stripping off leading
      directories from the initial filename if requested. */
   if (gcov_prefix_strip > 0)
     {
       int level = 0;
       const char *fname = filename;
       const char *s;
-      
+
       /* Skip selected directory levels. */
       for (s = fname + 1; (*s != '\0') && (level < gcov_prefix_strip); s++)
         if (IS_DIR_SEPARATOR(*s))
@@ -199,6 +202,10 @@ gcov_strip_leading_dirs (int gcov_prefix_strip, const char *filename,
     strcpy (gi_filename_up, filename);
 }
 
+/* Sort N entries in VALUE_ARRAY in descending order.
+   Each entry in VALUE_ARRAY has two values. The sorting
+   is based on the second value.  */
+
 GCOV_LINKAGE  void
 gcov_sort_n_vals (gcov_type *value_array, int n)
 {
@@ -208,7 +215,7 @@ gcov_sort_n_vals (gcov_type *value_array, int n)
       gcov_type cur_ent[2];
       cur_ent[0] = value_array[j];
       cur_ent[1] = value_array[j + 1];
-      k = j - 2; 
+      k = j - 2;
       while (k >= 0 && value_array[k + 1] < cur_ent[1])
         {
           value_array[k + 2] = value_array[k];
@@ -219,6 +226,9 @@ gcov_sort_n_vals (gcov_type *value_array, int n)
       value_array[k + 3] = cur_ent[1];
     }
 }
+
+/* Sort the profile counters for all indirect call sites. Counters
+   for each call site are allocated in array COUNTERS.  */
 
 static void
 gcov_sort_icall_topn_counter (const struct gcov_ctr_info *counters)
@@ -236,6 +246,9 @@ gcov_sort_icall_topn_counter (const struct gcov_ctr_info *counters)
       gcov_sort_n_vals (value_array, GCOV_ICALL_TOPN_NCOUNTS - 1);
     }
 }
+
+/* Write imported files (auxiliary modules) for primary module GI_PTR
+   into file GI_FILENAME.  */
 
 static void
 gcov_write_import_file (char *gi_filename, struct gcov_info *gi_ptr)
@@ -384,7 +397,6 @@ gcov_exit (void)
 	    }
 	  ci_ptr++;
 	}
-
 
       c_ix = 0;
       for (t_ix = 0; t_ix < GCOV_COUNTERS; t_ix++)
@@ -615,7 +627,6 @@ gcov_exit (void)
 	      gcov_write_tag_length (GCOV_TAG_FOR_COUNTER (t_ix),
 				     GCOV_TAG_COUNTER_LENGTH (n_counts));
 	      c_ptr = values[c_ix];
-
 	      while (n_counts--)
 		gcov_write_counter (*c_ptr++);
 
@@ -639,7 +650,7 @@ gcov_exit (void)
          position means that the module info table will overwrite the
          those other program summary. It also means a mismatch error
          may occur at the next merge if no matching program summary is
-         found before the module info data.  t*/
+         found before the module info data.  */
       if (!summary_pos)
         gi_ptr->eof_pos = gcov_position () - 1;
       else
@@ -719,9 +730,10 @@ __gcov_init (struct gcov_info *info)
 
       /* Assign the module ID (starting at 1).  */
       info->mod_info->ident = (++gcov_cur_module_id);
-      gcc_assert (EXTRACT_MODULE_ID_FROM_GLOBAL_ID (GEN_FUNC_GLOBAL_ID (info->mod_info->ident, 0))
+      gcc_assert (EXTRACT_MODULE_ID_FROM_GLOBAL_ID (GEN_FUNC_GLOBAL_ID (
+                                                       info->mod_info->ident, 0))
                   == info->mod_info->ident);
-      
+
       do
 	{
 	  unsigned ix;
@@ -801,7 +813,8 @@ __gcov_merge_ior (gcov_type *counters, unsigned n_counters)
 
 #ifdef L_gcov_merge_dc
 
-/* Returns 1 if the function global id is not valid.  */
+/* Returns 1 if the function global id GID is not valid.  */
+
 static int
 __gcov_is_gid_insane (gcov_type gid)
 {
@@ -814,6 +827,7 @@ __gcov_is_gid_insane (gcov_type gid)
 /* The profile merging function used for merging direct call counts
    This function is given array COUNTERS of N_COUNTERS old counters and it
    reads the same number of counters from the gcov file.  */
+
 void
 __gcov_merge_dc (gcov_type *counters, unsigned n_counters)
 {
@@ -860,6 +874,7 @@ __gcov_merge_dc (gcov_type *counters, unsigned n_counters)
 /* The profile merging function used for merging indirect call counts
    This function is given array COUNTERS of N_COUNTERS old counters and it
    reads the same number of counters from the gcov file.  */
+
 void
 __gcov_merge_icall_topn (gcov_type *counters, unsigned n_counters)
 {
@@ -881,8 +896,8 @@ __gcov_merge_icall_topn (gcov_type *counters, unsigned n_counters)
           tmp_array[j] = value_array[j];
           tmp_array[j + 1] = value_array [j + 1];
         }
-      
-      /* Skip the number_of_eviction entry */
+
+      /* Skip the number_of_eviction entry.  */
       gcov_read_counter ();
       for (k = 0; k < GCOV_ICALL_TOPN_NCOUNTS - 1; k += 2)
         {
@@ -1059,10 +1074,10 @@ __gcov_one_value_profiler_body (gcov_type *counters, gcov_type value)
 #ifdef L_gcov_indirect_call_topn_profiler
 /* Tries to keep track the most frequent N values in the counters where
    N is specified by parameter TOPN_VAL. To track top N values, 2*N counter
-   entries are used. 
-   counter[0] --- the accumative count of the number of times one entry in 
+   entries are used.
+   counter[0] --- the accumative count of the number of times one entry in
                   in the counters gets evicted/replaced due to limited capacity.
-                  When this value reaches a threshold, the bottom N values are 
+                  When this value reaches a threshold, the bottom N values are
                   cleared.
    counter[1] through counter[2*N] records the top 2*N values collected so far.
    Each value is represented by two entries: count[2*i+1] is the ith value, and
@@ -1079,7 +1094,7 @@ __gcov_topn_value_profiler_body (gcov_type *counters, gcov_type value,
    gcov_type *value_array = &counters[1];
    gcov_type *num_eviction = &counters[0];
 
-   /* There are 2*topn_val values tracked, each value takes two slots in the 
+   /* There are 2*topn_val values tracked, each value takes two slots in the
       counter array */
    for ( i = 0; i < (topn_val << 2); i += 2)
      {

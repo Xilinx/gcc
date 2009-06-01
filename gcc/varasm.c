@@ -1611,7 +1611,7 @@ notice_global_symbol (tree decl)
       && ((TREE_CODE (decl) == FUNCTION_DECL
            && cgraph_is_auxiliary (decl))
           || (TREE_CODE (decl) == VAR_DECL
-              && varpool_node (decl)->auxiliary)))
+              && varpool_is_auxiliary (varpool_node (decl)))))
     return;
 
   /* We win when global object is found, but it is useful to know about weak
@@ -2320,7 +2320,7 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
      which means platforms that requires ASM_OUTPUT_EXTERNAL may 
      have issues.  (TODO : one way is to flush the pending items from
      auxiliary modules at the end of parsing the module)  */
-  if (IS_AUXILIARY_MODULE)
+  if (L_IPO_IS_AUXILIARY_MODULE)
     return;
 
   if (!DECL_P (decl) || !DECL_EXTERNAL (decl) || !TREE_PUBLIC (decl))
@@ -5364,7 +5364,8 @@ finish_aliases_1 (void)
       else if (DECL_EXTERNAL (target_decl)
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
         {
-          /* In lightweight IPO, find the merged decl and check that it is defined.  */
+          /* In lightweight IPO, find the merged decl and check that
+	     it is defined.  */
           tree real_target_decl = cgraph_find_decl (p->target);
           if (!real_target_decl || DECL_EXTERNAL (real_target_decl))
             error ("%q+D aliased to external symbol %qE",
@@ -5398,7 +5399,7 @@ assemble_alias (tree decl, tree target)
   tree target_decl;
   bool is_weakref = false;
 
-  if (IS_AUXILIARY_MODULE)
+  if (L_IPO_IS_AUXILIARY_MODULE)
       return;
 
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))

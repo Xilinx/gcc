@@ -153,6 +153,9 @@ print_prefix (const char *filename, unsigned depth, gcov_position_t position)
   printf ("%.*s", (int) depth, prefix);
 }
 
+/* Dump auxiliary module information for gcda file with
+   name FILENAME.  */
+
 static int
 dump_aux_modules (const char *filename)
 {

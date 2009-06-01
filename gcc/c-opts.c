@@ -1076,8 +1076,6 @@ c_common_post_options (const char **pfilename)
     warn_override_init = extra_warnings;
   if (warn_ignored_qualifiers == -1)
     warn_ignored_qualifiers = extra_warnings;
-  if (warn_logical_op == -1)
-    warn_logical_op = extra_warnings;
 
   /* -Wpointer-sign is disabled by default, but it is enabled if any
      of -Wall or -pedantic are given.  */
@@ -1271,7 +1269,7 @@ c_common_parse_file (int set_yydebug)
 	(*debug_hooks->start_source_file) (0, this_input_filename);
       finish_options ();
       pch_init ();
-      set_parsing_context (parse_in, i, verbose);
+      set_lipo_c_parsing_context (parse_in, i, verbose);
       push_file_scope ();
       c_parse_file ();
       finish_file ();

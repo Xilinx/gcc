@@ -111,6 +111,13 @@ lhd_do_nothing_t_return_int (tree ARG_UNUSED (t))
   return false;
 }
 
+bool
+lhd_do_nothing_t_return_bool (tree ARG_UNUSED (t))
+{
+  return false;
+}
+
+
 void
 lhd_do_nothing_t_t (tree ARG_UNUSED (t), tree ARG_UNUSED (t2))
 {
@@ -122,10 +129,10 @@ lhd_do_nothing_t_t_return_int (tree ARG_UNUSED (t), tree ARG_UNUSED (t2))
   return 1;
 }
 
-int
-lhd_do_nothing_t_vp_return_int (tree ARG_UNUSED (t), void * ARG_UNUSED (t2))
+bool
+lhd_do_nothing_t_vp_return_bool (tree ARG_UNUSED (t), void * ARG_UNUSED (t2))
 {
-  return 1;
+  return true;
 }
 
 

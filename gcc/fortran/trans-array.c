@@ -3256,6 +3256,8 @@ gfc_conv_ss_startstride (gfc_loopinfo * loop)
 				 info->start[n]);
 	      tmp = fold_build2 (FLOOR_DIV_EXPR, gfc_array_index_type, tmp,
 				 info->stride[n]);
+	      tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type,
+				 gfc_index_one_node, tmp);
 	      tmp = fold_build2 (MAX_EXPR, gfc_array_index_type, tmp,
 				 build_int_cst (gfc_array_index_type, 0));
 	      /* We remember the size of the first section, and check all the
@@ -6293,6 +6295,7 @@ gfc_walk_function_expr (gfc_ss * ss, gfc_expr * expr)
   gfc_ss *newss;
   gfc_intrinsic_sym *isym;
   gfc_symbol *sym;
+  gfc_component *comp = NULL;
 
   isym = expr->value.function.isym;
 
@@ -6305,7 +6308,9 @@ gfc_walk_function_expr (gfc_ss * ss, gfc_expr * expr)
       sym = expr->symtree->n.sym;
 
   /* A function that returns arrays.  */
-  if (gfc_return_by_reference (sym) && sym->result->attr.dimension)
+  is_proc_ptr_comp (expr, &comp);
+  if ((!comp && gfc_return_by_reference (sym) && sym->result->attr.dimension)
+      || (comp && comp->attr.dimension))
     {
       newss = gfc_get_ss ();
       newss->type = GFC_SS_FUNCTION;

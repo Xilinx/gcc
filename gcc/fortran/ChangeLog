@@ -1,3 +1,87 @@
+2009-05-29  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/40019
+	* trans-types.c (gfc_build_uint_type): Make nonstatic.
+	* trans.h (gfor_fndecl_clz128, gfor_fndecl_ctz128): New prototypes.
+	* trans-types.h (gfc_build_uint_type): Add prototype.
+	* trans-decl.c (gfc_build_intrinsic_function_decls): Build
+	gfor_fndecl_clz128 and gfor_fndecl_ctz128.
+	* trans-intrinsic.c (gfc_conv_intrinsic_leadz,
+	gfc_conv_intrinsic_trailz): Call the right builtins or library
+	functions, and cast arguments to unsigned types first.
+	* simplify.c (gfc_simplify_leadz): Deal with negative arguments.
+
+2009-05-27  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (gfortran$(exeext)): Change $(COMPILER) to
+	$(LINKER).
+	(f951$(exeext)): Likewise.
+
+2009-05-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40270
+	* trans-decl.c (create_main_function): Mark MAIN__ and
+	argc/argv as TREE_USED and push/pop function_decl context
+	if needed.
+
+2009-05-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39178
+	* gfortranspec.c (lang_specific_driver): Stop linking
+	libgfortranbegin.
+	* trans-decl.c (gfc_build_builtin_function_decls): Stop
+	making MAIN__ publicly visible.
+	(gfc_build_builtin_function_decls): Add
+	gfor_fndecl_set_args.
+	(create_main_function) New function.
+	(gfc_generate_function_code): Use it.
+
+2009-05-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40246
+	* match.c (gfc_match_nullify): NULLify freed pointer.
+
+2009-05-26  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (gfortranspec.o): Use $(COMPILER).
+	(gfortran$(exeext), f951$(exeext), fortran/cpp.o): Likewise.
+
+2009-05-26  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gfortran.h (GFC_MPC_RND_MODE): New.
+	* simplify.c (call_mpc_func): New helper function.
+	(gfc_simplify_cos, gfc_simplify_exp, gfc_simplify_log,
+	gfc_simplify_sin, gfc_simplify_sqrt): Add MPC support.
+
+2009-05-25  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40176
+	* primary.c (gfc_match_varspec): Handle procedure pointer components
+	with array return value.
+	* resolve.c (resolve_expr_ppc): Ditto.
+	(resolve_symbol): Make sure the interface of a procedure pointer has
+	been resolved.
+	* trans-array.c (gfc_walk_function_expr): Handle procedure pointer
+	components with array return value.
+	* trans-expr.c (gfc_conv_component_ref,gfc_conv_procedure_call,
+	gfc_trans_arrayfunc_assign): Ditto.
+	(gfc_trans_pointer_assignment): Handle procedure pointer assignments,
+	where the rhs is a dummy argument.
+	* trans-types.c (gfc_get_ppc_type,gfc_get_derived_type): Handle
+	procedure pointer components with array return value.
+
+2009-05-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Dominique Dhumieres
+
+	PR fortran/35732
+	PR fortran/39872
+	* trans-array.c (gfc_conv_ss_startstride): Add one to index.
+
+2009-05-22  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/40195
+	* module.c (read_md5_from_module_file): Close file before returning.
+
 2009-05-18  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/40164
@@ -189,7 +273,7 @@
 	* gfortran.h (gfc_code): Rename struct member label to label1.
 	* dump-parse-tree.c (show_code_node): Update symbol.
 	* trans-stmt.c (gfc_trans_label_assign, gfc_trans_goto,
-	gfc_trans_arithmetic_if)": Ditto.
+	gfc_trans_arithmetic_if): Ditto.
 	* resolve.c (gfc_resolve_blocks, resolve_code): Ditto.
 	* match.c (match_arithmetic_if, gfc_match_if, gfc_reference_st_label,
 	gfc_match_assign, gfc_match_goto): Ditto.
@@ -447,13 +531,13 @@
 2009-04-24  Daniel Kraft  <d@domob.eu>
 
 	* gfortran.h (gfc_get_typebound_proc): Removed as macro, now a function.
-	(struct gfc_symtree): Moved `typebound' member inside union.
-	(struct gfc_namespace): Add `tb_sym_root' as new symtree to sort out
+	(struct gfc_symtree): Moved "typebound" member inside union.
+	(struct gfc_namespace): Add "tb_sym_root" as new symtree to sort out
 	type-bound procedures there.
 	(gfc_get_tbp_symtree): New procedure.
 	* symbol.c (tentative_tbp_list): New global.
-	(gfc_get_namespace): NULL new `tb_sym_root' member.
-	(gfc_new_symtree): Removed initialization of `typebound' member.
+	(gfc_get_namespace): NULL new "tb_sym_root" member.
+	(gfc_new_symtree): Removed initialization of "typebound" member.
 	(gfc_undo_symbols): Process list of tentative tbp's.
 	(gfc_commit_symbols): Ditto.
 	(free_tb_tree): New method.
@@ -466,8 +550,8 @@
 	* primary.c (gfc_match_varspec): Ditto.  Don't reference tbp-symbol
 	as it isn't a symbol any longer.
 	* module.c (mio_typebound_symtree): Adapt to changes.
-	(mio_typebound_proc): Ditto, create symtrees using `gfc_get_tbp_symtree'
-	rather than `gfc_get_sym_tree'.
+	(mio_typebound_proc): Ditto, create symtrees using "gfc_get_tbp_symtree"
+	rather than "gfc_get_sym_tree".
 	(mio_f2k_derived): Ditto.
 	* decl.c (match_procedure_in_type): Ditto.
 	(gfc_match_generic): Ditto.  Don't reference tbp-symbol.
@@ -576,7 +660,7 @@
 2009-04-11  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/37746
-	* gfortran.h (struct gfc_charlen): New field `passed_length' to store
+	* gfortran.h (struct gfc_charlen): New field "passed_length" to store
 	the actual passed string length for dummy arguments.
 	* trans-decl.c (gfc_create_string_length): Formatting fixes and added
 	assertion, moved a local variable into the innermost block it is needed.
@@ -684,15 +768,15 @@
 
 2009-04-06  Janus Weil  <janus@gcc.gnu.org>
 
-       PR fortran/39414
-       * decl.c (match_procedure_decl): Fix double declaration problems with
-       PROCEDURE statements.
-       * symbol.c (gfc_add_type): Ditto.
+	PR fortran/39414
+	* decl.c (match_procedure_decl): Fix double declaration problems with
+	PROCEDURE statements.
+	* symbol.c (gfc_add_type): Ditto.
 
 2009-04-06  Paul Thomas  <pault@gcc.gnu.org>
 
-        PR fortran/36091
-        * trans-array.c (gfc_conv_array_ref): If the symbol has the
+	PR fortran/36091
+	* trans-array.c (gfc_conv_array_ref): If the symbol has the
 	temporary attribute use the array_spec for the bounds.
 	* gfortran.h : Add the temporary field to the structure
 	'symbol_attribute'.
@@ -821,7 +905,7 @@
 2009-03-29  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/37423
-	* gfortran.h (struct gfc_typebound_proc): Added new flag `deferred' and
+	* gfortran.h (struct gfc_typebound_proc): Added new flag "deferred" and
 	added a comment explaining DEFERRED binding handling.
 	* decl.c (match_binding_attributes): Really match DEFERRED attribute.
 	(match_procedure_in_type): Really match PROCEDURE(interface) syntax
@@ -833,7 +917,7 @@
 	(resolve_typebound_procedure): Allow abstract interfaces as targets
 	for DEFERRED bindings.
 	(ensure_not_abstract_walker), (ensure_not_abstract): New methods.
-	(resolve_fl_derived): Use new `ensure_not_abstract' method for
+	(resolve_fl_derived): Use new "ensure_not_abstract" method for
 	non-ABSTRACT types extending ABSTRACT ones to ensure each DEFERRED
 	binding is overridden.
 	(check_typebound_baseobject): New method.
@@ -842,7 +926,7 @@
 	* gfc-internals.texi (Type-bound procedures): Document a little bit
 	about internal handling of DEFERRED bindings.
 
-2009-03-29  Tobias Schlüter  <tobi@gcc.gnu.org>
+2009-03-29  Tobias Schlueter  <tobi@gcc.gnu.org>
 
 	PR fortran/38507
 	* gfortran.h (gfc_st_label): Fix comment.

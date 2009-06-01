@@ -451,12 +451,11 @@ static tree grokdeclarator (const struct c_declarator *,
 			    bool *, enum deprecated_states);
 static tree grokparms (struct c_arg_info *, bool);
 static void layout_array_type (tree);
-
+static void pop_ext_scope (void);
 
 /* LIPO support */
-static void pop_ext_scope (void);
 /* The list of block nodes. A member node is  created
-   when an external scope is poped.  */
+   when an external scope is popped.  */
 static GTY (()) VEC(tree, gc) *ext_blocks = NULL;
 static inline void
 apply_for_each_ext_block (void (*func) (tree))
@@ -472,7 +471,6 @@ apply_for_each_ext_block (void (*func) (tree))
         func (BLOCK_VARS (eb));
     }
 }
-
 
 /* T is a statement.  Add it to the statement-tree.  This is the
    C/ObjC version--C++ has a slightly different version of this
@@ -971,13 +969,12 @@ pop_scope (void)
 	  if (!b->nested)
 	    {
               /* In LIPO mode compilation, ext_scope is popped out
-                 at end of each module. Since builtin decls are
-                 shared across modules, allowing builtin functions to
-                 be in the block var chain may lead to invalidation of
-                 both block var chain in each module, and invalidation
-                 of the visible builtin list. */
-              if ((!L_IPO_COMP_MODE
-                   || scope != external_scope)
+                 at end of each module to block name lookup across
+                 modules. The ext_scope is used to keep the list of
+                 global variables in that module scope. Other decls
+                 are filtered out.  */
+              if (!L_IPO_COMP_MODE
+                  || scope != external_scope
                   || TREE_CODE (p) == VAR_DECL)
                 {
                   TREE_CHAIN (p) = BLOCK_VARS (block);
@@ -4274,6 +4271,7 @@ grokdeclarator (const struct c_declarator *declarator,
   bool bitfield = width != NULL;
   tree element_type;
   struct c_arg_info *arg_info = 0;
+  const char *errmsg;
   tree expr_dummy;
   bool expr_const_operands_dummy;
 
@@ -4907,6 +4905,12 @@ grokdeclarator (const struct c_declarator *declarator,
 		  error ("type name declared as function returning an array");
 		type = integer_type_node;
 	      }
+	    errmsg = targetm.invalid_return_type (type);
+	    if (errmsg)
+	      {
+		error (errmsg);
+		type = integer_type_node;
+	      }
 
 	    /* Construct the function type and go to the next
 	       inner layer of declarator.  */
@@ -5453,6 +5457,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
     {
       tree parm, type, typelt;
       unsigned int parmno;
+      const char *errmsg;
 
       /* If there is a parameter of incomplete type in a definition,
 	 this is an error.  In a declaration this is valid, and a
@@ -5494,6 +5499,14 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 		    warning (0, "%Jparameter %u has void type",
 			     parm, parmno);
 		}
+	    }
+
+	  errmsg = targetm.invalid_parameter_type (type);
+	  if (errmsg)
+	    {
+	      error (errmsg);
+	      TREE_VALUE (typelt) = error_mark_node;
+	      TREE_TYPE (parm) = error_mark_node;
 	    }
 
 	  if (DECL_NAME (parm) && TREE_USED (parm))
@@ -8647,10 +8660,8 @@ c_write_global_declarations (void)
     c_write_global_declarations_1 (BLOCK_VARS (DECL_INITIAL (t)));
   if (ext_block)
     c_write_global_declarations_1 (BLOCK_VARS (ext_block));
-  /* LIPO */
   apply_for_each_ext_block (c_write_global_declarations_1);
 
-  /* LIPO:  */
   if (L_IPO_COMP_MODE)
     {
       maybe_apply_pending_pragma_weaks ();
@@ -8673,7 +8684,6 @@ c_write_global_declarations (void)
 	c_write_global_declarations_2 (BLOCK_VARS (DECL_INITIAL (t)));
       if (ext_block)
         c_write_global_declarations_2 (BLOCK_VARS (ext_block));
-      /* LIPO  */
       apply_for_each_ext_block (c_write_global_declarations_2);
       timevar_pop (TV_SYMOUT);
     }
@@ -8707,19 +8717,18 @@ c_get_lang_decl_size (tree t)
   return sizeof (struct lang_decl);
 }
 
-/* Return 1 if S is external or file scope.  */
+/* Return true if S is external or file scope.  */
 
-int
+bool
 c_is_global_scope (tree decl ATTRIBUTE_UNUSED, void *s)
 {
   struct c_scope *scope = (struct c_scope *)s;
 
   if (scope == external_scope || scope == file_scope)
-    return 1;
+    return true;
 
-  return 0;
+  return false;
 }
-
 
 /* Add DECL to the list of builtins.  */
 
@@ -8735,7 +8744,7 @@ c_add_built_in_decl (tree decl)
   if (at_eof)
     return;
 
-  if (parsing_start)
+  if (parser_parsing_start)
     return;
 
   sb = VEC_safe_push (c_saved_builtin, gc, saved_builtins, NULL);
@@ -8895,15 +8904,15 @@ c_restore_built_in_decl_post_parsing (void)
     }
 }
 
-/* Return 1 if type T is compiler generated.  */
+/* Return true if type T is compiler generated.  */
 
-int
+bool
 c_is_compiler_generated_type (tree t ATTRIBUTE_UNUSED)
 {
-  return 0;
+  return false;
 }
 
-/* Return 1 if lang specific attribute of T1 and T2 are 
+/* Return 1 if lang specific attribute of T1 and T2 are
    equivalent.  */
 
 int

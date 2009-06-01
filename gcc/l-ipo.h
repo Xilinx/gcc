@@ -14,13 +14,8 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-Under Section 7 of GPL version 3, you are granted additional
-permissions described in the GCC Runtime Library Exception, version
-3.1, as published by the Free Software Foundation.
-
-You should have received a copy of the GNU General Public License and
-a copy of the GCC Runtime Library Exception along with this program;
-see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_L_IPO_H
@@ -30,10 +25,18 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    be zero.  */
 extern unsigned primary_module_id;
 
+/* The macro to test if the compilation is in light weight IPO mode.
+   In this mode, the source module being compiled will be compiled
+   together with 0 or more auxiliary modules.  */
 #define L_IPO_COMP_MODE (primary_module_id != 0)
-#define RESET_L_IPO_COMP_MODE primary_module_id = 0;
-#define IS_PRIMARY_MODULE (current_module_id == primary_module_id)
-#define IS_AUXILIARY_MODULE (L_IPO_COMP_MODE && current_module_id \
+
+/* The macro to test if the current module being parsed is the
+   primary source module.  */
+#define L_IPO_IS_PRIMARY_MODULE (current_module_id == primary_module_id)
+
+/* The macro to test if the current module being parsed is an
+   auxiliary source module.  */
+#define L_IPO_IS_AUXILIARY_MODULE (L_IPO_COMP_MODE && current_module_id \
                              && current_module_id != primary_module_id)
 
 /* Current module id.  */
@@ -43,14 +46,14 @@ extern int is_last_module (unsigned mod_id);
 
 extern unsigned num_in_fnames;
 extern int at_eof;
-extern bool parsing_start;
+extern bool parser_parsing_start;
 
 void push_module_scope (void);
 void pop_module_scope (void);
 tree lipo_save_decl (tree src);
 void lipo_restore_decl (tree, tree);
 void add_decl_to_current_module_scope (tree decl, void *b);
-int cmp_type_arg (tree t1, tree t2);
+int lipo_cmp_type (tree t1, tree t2);
 tree get_type_or_decl_name (tree);
 int equivalent_struct_types_for_tbaa (tree t1, tree t2);
 

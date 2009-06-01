@@ -103,23 +103,18 @@ compute_call_stmt_bb_frequency (tree decl, basic_block bb)
 }
 
 
-int cgraph_need_artificial_indirect_call_edges = 1;
+bool cgraph_need_artificial_indirect_call_edges = true;
 
-bool cgraph_is_fake_indirect_call_edge (struct cgraph_edge *e)
+/* Return true if E is a fake indirect call edge.  */
+
+bool
+cgraph_is_fake_indirect_call_edge (struct cgraph_edge *e)
 {
  return !e->call_stmt && e->indirect_call;
 }
 
-/* After the early_inline_1 before value profile transformation, 
-   functions that are indirect call targets may have their bodies
-   removed (extern inline functions or functions from aux modules,
-   functions in comdat etc) if all direct callsites are inlined. This
-   will lead to missing inline opportunities after profile based 
-   indirect call promotion. The solution is to add fake edges to
-   indirect call targets. Note that such edges are not associated 
-   with actual indirect call sites because it is not possible to 
-   reliably match pre-early-inline indirect callsites with indirect
-   call profile counters which are from post-early inline function body.  */
+/* Add fake cgraph edges from NODE to its indirect call callees
+   using profile data.  */
 
 static void
 add_fake_indirect_call_edges (struct cgraph_node *node)
@@ -134,7 +129,7 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
   if (!cgraph_need_artificial_indirect_call_edges)
     return;
 
-  ic_counts 
+  ic_counts
       = get_coverage_counts_no_warn (DECL_STRUCT_FUNCTION (node->decl),
                                      GCOV_COUNTER_ICALL_TOPNV, &n_counts);
 
@@ -143,6 +138,16 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
 
   gcc_assert ((n_counts % GCOV_ICALL_TOPN_NCOUNTS) == 0);
 
+/* After the early_inline_1 before value profile transformation, 
+   functions that are indirect call targets may have their bodies
+   removed (extern inline functions or functions from aux modules,
+   functions in comdat etc) if all direct callsites are inlined. This
+   will lead to missing inline opportunities after profile based 
+   indirect call promotion. The solution is to add fake edges to
+   indirect call targets. Note that such edges are not associated 
+   with actual indirect call sites because it is not possible to 
+   reliably match pre-early-inline indirect callsites with indirect
+   call profile counters which are from post-early inline function body.  */
 
   for (i = 0; i < n_counts;
        i += GCOV_ICALL_TOPN_NCOUNTS, ic_counts += GCOV_ICALL_TOPN_NCOUNTS)
@@ -184,10 +189,12 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
 
 /* This can be implemented as an IPA pass that must be first one 
    before any unreachable node elimination. */
+
 void
 cgraph_add_fake_indirect_call_edges (void)
 {
   struct cgraph_node *node;
+
   /* Enable this only for LIPO for now.  */
   if (!L_IPO_COMP_MODE)
     return;

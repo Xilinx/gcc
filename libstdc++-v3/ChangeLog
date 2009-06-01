@@ -1,4 +1,249 @@
-2009-05-13  Jonathan Wakely  <jwakely.gcc@gmail.com>
+2009-05-28  Tom Tromey  <tromey@redhat.com>
+	    Phil Muldoon  <pmuldoon@redhat.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* python/Makefile.in, , python/libstdcxx/__init__.py,
+	python/libstdcxx/v6/__init__.py, python/libstdcxx/v6/printers.py,
+	python/hook.in, python/Makefile.am: New files.
+	* configure, Makefile.in: Rebuild.
+	* acinclude.m4 (glibcxx_SUBDIRS): Add python.
+	* Makefile.am (SUBDIRS): Add python.
+
+2009-05-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/testsuite_allocator.h (check_new, check_delete): Move
+	to ...
+	* testsuite/util/replacement_memory_operators.h: ...here. New.
+	* testsuite/util/testsuite_hooks.h (counter): To object_counter.
+	* testsuite/util/testsuite_hooks.cc: Same.
+
+	* testsuite/ext/mt_allocator/deallocate_local_thread-1.cc: Use
+	replacement_memory_operators.h.
+	* testsuite/ext/mt_allocator/deallocate_local_thread-3.cc: Same.
+	* testsuite/ext/mt_allocator/check_delete.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_local_thread-5.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_local_thread-7.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_global_thread-1.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_global_thread-3.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_local-2.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_local-4.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_local-6.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_local-8.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_global-2.cc: Same.
+	* testsuite/ext/mt_allocator/deallocate_global-4.cc: Same.
+	* testsuite/ext/mt_allocator/check_new.cc: Same.
+	* testsuite/ext/debug_allocator/check_delete.cc: Same.
+	* testsuite/ext/debug_allocator/check_new.cc: Same.
+	* testsuite/ext/new_allocator/deallocate_global.cc: Same.
+	* testsuite/ext/new_allocator/check_delete.cc: Same.
+	* testsuite/ext/new_allocator/check_new.cc: Same.
+	* testsuite/ext/new_allocator/deallocate_local.cc: Same.
+	* testsuite/ext/throw_allocator/deallocate_global.cc: Same.
+	* testsuite/ext/throw_allocator/check_delete.cc: Same.
+	* testsuite/ext/throw_allocator/check_new.cc: Same.
+	* testsuite/ext/throw_allocator/deallocate_local.cc: Same.
+	* testsuite/ext/malloc_allocator/deallocate_global.cc: Same.
+	* testsuite/ext/malloc_allocator/check_delete.cc: Same.
+	* testsuite/ext/malloc_allocator/check_new.cc: Same.
+	* testsuite/ext/malloc_allocator/deallocate_local.cc: Same.
+	* testsuite/ext/pool_allocator/check_delete.cc: Same.
+	* testsuite/ext/pool_allocator/check_new.cc: Same.
+	* testsuite/ext/bitmap_allocator/check_delete.cc: Same.
+	* testsuite/ext/bitmap_allocator/check_new.cc: Same.
+	* testsuite/ext/array_allocator/check_delete.cc: Same.
+	* testsuite/ext/array_allocator/check_new.cc: Same.
+	* testsuite/23_containers/deque/cons/1.cc: Same.
+	* testsuite/23_containers/deque/cons/2.cc: Same.
+
+2009-05-27  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* libsupc++/initializer_list: Format.
+	* testsuite/18_support/initializer_list/requirements/typedefs.cc: New.
+	* testsuite/18_support/initializer_list/requirements/
+	explicit_instantiation.cc: New.
+
+2009-05-27  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/40273
+	* include/tr1_impl/functional: Add explicit casts.
+	* testsuite/20_util/function/requirements/
+	explicit_instantiation.cc: New.
+	* testsuite/20_util/function/null_pointer_comparisons.cc: New.
+
+2009-05-24  Eelis van der Weegen  <eelis@eelis.net>
+
+	* libsupc++/initializer_list (initializer_list): Add missing typedefs.
+
+2009-05-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/40221
+	* include/tr1_impl/functional: Add explicit cast.
+
+2009-05-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40094
+	Revert:
+	2009-05-07  Paolo Carlini  <paolo.carlini@oracle.com>
+	* include/ext/throw_allocator.h (throw_allocator_base): Avoid
+	out of line member functions definitions.
+	(throw_allocator_base::_S_g, _S_map, _S_throw_prob, _S_label):
+	Remove, use static locals instead.
+	(throw_allocator_base::do_check_allocated, print_to_string): Declare.
+	* src/throw_allocator.cc: New.
+	* src/Makefile.am: Add.
+	* config/abi/pre/gnu.ver: Add exports.
+	* src/Makefile.in: Regenerate.
+
+2009-05-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/tr1_impl/functional (function): Use explicit operator bool.
+	* include/bits/shared_ptr.h (__shared_ptr): Same.
+	* include/bits/unique_ptr.h (unique_ptr): Same.
+	* include/std/mutex (unique_lock): Same.
+	* include/std/system_error (error_code): Same.
+	(error_condition): Same.
+	* include/std/ostream (sentry): Same.
+	* include/std/istream (sentry): Same.
+	* testsuite/19_diagnostics/error_condition/operators/bool.cc: Adjust.
+	* testsuite/19_diagnostics/error_condition/operators/bool_neg.cc: Same.
+	* testsuite/19_diagnostics/error_code/operators/bool.cc: Same.
+	* testsuite/19_diagnostics/error_code/operators/bool_neg.cc: Same.
+	* testsuite/20_util/unique_ptr/modifiers/reset_neg.cc: Same.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Same.
+	* testsuite/20_util/shared_ptr/observers/bool_conv.cc: Same.
+
+2009-05-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/23_containers/list/14340.cc: Abstract list type.
+	* testsuite/23_containers/list/init-list.cc: Same.
+	* testsuite/23_containers/list/pthread5.cc: Same.
+	* testsuite/23_containers/list/invalidation/1.cc: Same.
+	* testsuite/23_containers/list/invalidation/2.cc: Same.
+	* testsuite/23_containers/list/invalidation/3.cc: Same.
+	* testsuite/23_containers/list/invalidation/4.cc: Same.
+	* testsuite/23_containers/list/modifiers/insert/25288.cc: Same.
+	* testsuite/23_containers/list/modifiers/1.cc: Same.
+	* testsuite/23_containers/list/modifiers/2.cc: Same.
+	* testsuite/23_containers/list/modifiers/3.cc: Same.
+	* testsuite/23_containers/list/modifiers/swap/1.cc: Same.
+	* testsuite/23_containers/list/modifiers/swap/2.cc: Same.
+	* testsuite/23_containers/list/modifiers/swap/3.cc: Same.
+	* testsuite/23_containers/list/cons/1.cc: Same.
+	* testsuite/23_containers/list/cons/2.cc: Same.
+	* testsuite/23_containers/list/cons/3.cc: Same.
+	* testsuite/23_containers/list/cons/4.cc: Same.
+	* testsuite/23_containers/list/cons/5.cc: Same.
+	* testsuite/23_containers/list/cons/6.cc: Same.
+	* testsuite/23_containers/list/cons/7.cc: Same.
+	* testsuite/23_containers/list/cons/clear_allocator.cc: Same.
+	* testsuite/23_containers/list/cons/8.cc: Same.
+	* testsuite/23_containers/list/cons/9.cc: Same.
+	* testsuite/23_containers/list/operations/1.cc: Same.
+	* testsuite/23_containers/list/operations/2.cc: Same.
+	* testsuite/23_containers/list/operations/3.cc: Same.
+	* testsuite/23_containers/list/operations/4.cc: Same.
+	* testsuite/23_containers/list/operations/5.cc: Same.
+	* testsuite/23_containers/list/requirements/citerators.cc: Same.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc: Same.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc: Same.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Same.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Same.
+	* testsuite/23_containers/list/requirements/dr438/constructor.cc: Same.
+	* testsuite/23_containers/list/requirements/
+	partial_specialization/1.cc: Same.
+	* testsuite/23_containers/list/23781.cc: Same.
+	* testsuite/23_containers/list/pthread1.cc: Same.
+	* testsuite/23_containers/list/capacity/1.cc: Same.
+	* testsuite/23_containers/list/capacity/29134.cc: Same.
+	* testsuite/23_containers/list/check_construct_destroy.cc: Same.
+	* testsuite/23_containers/list/moveable.cc: Same.
+
+	* testsuite/util/common_type/assoc/common_type.hpp: Re-break lines.
+
+2009-05-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40184
+	* include/bits/locale_classes.h (locale::facet::_S_lc_ctype_c_locale):
+	Declare...
+	* config/locale/gnu/c_locale.cc: ... and define.
+	* config/locale/generic/c_locale.cc: Define.
+	* src/localename.cc (locale::_Impl::_Impl(const char*, size_t)):
+	Use it.
+	* testsuite/22_locale/locale/cons/40184.cc: New.
+
+2009-05-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40192
+	* include/bits/stl_construct.h (struct _Destroy_aux): Add.
+	(_Destroy(_ForwardIterator, _ForwardIterator)): Use the latter.
+	* testsuite/23_containers/vector/40192.cc: New.
+
+2009-05-18  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/stl_pair.h (swap): Do not swap rvalues.
+	* include/bits/stl_deque.h (swap): Likewise.
+	* include/bits/stl_list.h (swap): Likewise.
+	* include/bits/stl_vector.h (swap): Likewise.
+	* include/bits/stl_bvector.h (swap): Likewise.
+	* include/bits/stl_queue.h (swap): Likewise.
+	* include/bits/stl_stack.h (swap): Likewise.
+	* include/bits/stl_tree.h (swap): Likewise.
+	* include/bits/stl_map.h (swap): Likewise.
+	* include/bits/stl_multimap.h (swap): Likewise.
+	* include/bits/stl_set.h (swap): Likewise.
+	* include/bits/stl_multiset.h (swap): Likewise.
+	* include/bits/forward_list.h (swap): Likewise.
+	* include/bits/unique_ptr.h (swap): Likewise.
+	* include/debug/deque (swap): Likewise.
+	* include/debug/list (swap): Likewise.
+	* include/debug/vector (swap): Likewise.
+	* include/debug/map.h (swap): Likewise.
+	* include/debug/multimap.h (swap): Likewise.
+	* include/debug/set.h (swap): Likewise.
+	* include/debug/multiset.h (swap): Likewise.
+	* include/debug/unordered_map (swap): Likewise.
+	* include/debug/unordered_set (swap): Likewise.
+	* include/ext/vstring.h (swap): Likewise.
+	* include/tr1_impl/unordered_map (swap): Likewise.
+	* include/tr1_impl/hashtable (swap): Likewise.
+	* include/tr1_impl/unordered_set (swap): Likewise.
+	* include/std/tuple (swap): Likewise.
+	* include/std/mutex (swap): Likewise.
+	* include/std/thread (swap): Likewise.
+	(operator<<): Only output to lvalue streams.
+	* testsuite/20_util/shared_ptr/modifiers/swap_rvalue.cc: Remove.
+	* testsuite/23_containers/headers/forward_list/synopsis.cc: Adjust.
+	* testsuite/23_containers/deque/requirements/dr438/
+	assign_neg.cc: Adjust line numbers.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/30_threads/thread/swap/1.cc: Swap with lvalue and also
+	test non-member swap.
+	* testsuite/30_threads/thread/swap/2.cc: Remove.
+
+2009-05-16  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/std/mutex: Move std::lock_error to ...
 	* src/compatibility.cc: Here.
@@ -51,7 +296,7 @@
 	* testsuite/26_numerics/random/piecewise_linear_distribution/cons/
 	initlist_fun.cc: Likewise
 	* testsuite/26_numerics/random/piecewise_linear_distribution/cons/
-	num_xbound_fun.cc: Likewise 
+	num_xbound_fun.cc: Likewise
 
 2009-05-14  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -69,7 +314,7 @@
 2009-05-14  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/random.tcc (cauchy_distribution<>::
-	operator()(_UniformRandomNumberGenerator&, const param_type&)): 
+	operator()(_UniformRandomNumberGenerator&, const param_type&)):
 	Avoid M_PI, a glibc extension.
 
 2009-05-13  Ben Elliston  <bje@au.ibm.com>
@@ -84,7 +329,7 @@
 
 2009-05-12  Edward Smith-Rowland  <3dw4rd@verizon.net>
 
-        * doc/xml/manual/status_cxx200x.xml: Note missing constexpr for
+	* doc/xml/manual/status_cxx200x.xml: Note missing constexpr for
 	random number engines, complex, bitset, array, time utilities, and
 	char_traits.
 

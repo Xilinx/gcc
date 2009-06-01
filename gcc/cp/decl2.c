@@ -960,7 +960,7 @@ grokbitfield (const cp_declarator *declarator,
   if (TREE_CODE (value) == VOID_TYPE)
     return void_type_node;
 
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (value))
+  if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (value))
       && (POINTER_TYPE_P (value)
           || !dependent_type_p (TREE_TYPE (value))))
     {
@@ -1703,6 +1703,10 @@ decl_needed_p (tree decl)
       || (DECL_ASSEMBLER_NAME_SET_P (decl)
 	  && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl))))
       return true;
+  /* Functions marked "dllexport" must be emitted so that they are
+     visible to other DLLs.  */
+  if (lookup_attribute ("dllexport", DECL_ATTRIBUTES (decl)))
+    return true;
   /* Otherwise, DECL does not need to be emitted -- yet.  A subsequent
      reference to DECL might cause it to be emitted later.  */
   return false;
@@ -2707,7 +2711,7 @@ start_static_storage_duration_function (unsigned count)
   /* Create the identifier for this function.  It will be of the form
      SSDF_IDENTIFIER_<number>.  */
   sprintf (id, "%s_%u", SSDF_IDENTIFIER, count);
-  if (IS_AUXILIARY_MODULE)
+  if (L_IPO_IS_AUXILIARY_MODULE)
     sprintf (id, "%s_%u", id, current_module_id);
 
   /* Create the parameters.  */
@@ -3122,8 +3126,8 @@ prune_vars_needing_no_initialization (tree *vars)
 	  continue;
 	}
 
-      gcc_assert (!IS_AUXILIARY_MODULE 
-                  || varpool_node (decl)->auxiliary);
+      gcc_assert (!L_IPO_IS_AUXILIARY_MODULE
+                  || varpool_is_auxiliary (varpool_node (decl)));
 
       /* This variable is going to need initialization and/or
 	 finalization, so we add it to the list.  */
@@ -3325,12 +3329,17 @@ build_java_method_aliases (void)
     }
 }
 
+/* Clear the list of deferred functions.  */
+
 void
 cp_clear_deferred_fns (void)
 {
   VEC_free (tree, gc, deferred_fns);
   keyed_classes = NULL;
 }
+
+/* After parsing, process pending declarations such as
+   pending template instantiations.  */
 
 void
 cp_process_pending_declarations (location_t locus)
@@ -3552,8 +3561,7 @@ cp_process_pending_declarations (location_t locus)
     }
   while (reconsider);
 
-
-  if (IS_AUXILIARY_MODULE)
+  if (L_IPO_IS_AUXILIARY_MODULE)
     {
       tree fndecl;
       int i;
@@ -3561,7 +3569,7 @@ cp_process_pending_declarations (location_t locus)
 
       /* Do some cleanup -- we do not really need static init function
          to be created for auxiliary modules -- they are created to keep
-         funcdef_no to be consistent between profile use and profile gen.  */
+         funcdef_no consistent between profile use and profile gen.  */
       for (i = 0; VEC_iterate (tree, ssdf_decls, i, fndecl); ++i)
          {
            TREE_STATIC (fndecl) = 0;
@@ -3728,18 +3736,18 @@ cp_write_global_declarations (void)
 /* FN is an OFFSET_REF, DOTSTAR_EXPR or MEMBER_REF indicating the
    function to call in parse-tree form; it has not yet been
    semantically analyzed.  ARGS are the arguments to the function.
-   They have already been semantically analyzed.  */
+   They have already been semantically analyzed.  This may change
+   ARGS.  */
 
 tree
-build_offset_ref_call_from_tree (tree fn, tree args)
+build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
 {
   tree orig_fn;
-  tree orig_args;
+  VEC(tree,gc) *orig_args = NULL;
   tree expr;
   tree object;
 
   orig_fn = fn;
-  orig_args = args;
   object = TREE_OPERAND (fn, 0);
 
   if (processing_template_decl)
@@ -3747,17 +3755,19 @@ build_offset_ref_call_from_tree (tree fn, tree args)
       gcc_assert (TREE_CODE (fn) == DOTSTAR_EXPR
 		  || TREE_CODE (fn) == MEMBER_REF);
       if (type_dependent_expression_p (fn)
-	  || any_type_dependent_arguments_p (args))
-	return build_nt_call_list (fn, args);
+	  || any_type_dependent_arguments_p (*args))
+	return build_nt_call_vec (fn, *args);
+
+      orig_args = make_tree_vector_copy (*args);
 
       /* Transform the arguments and add the implicit "this"
 	 parameter.  That must be done before the FN is transformed
 	 because we depend on the form of FN.  */
-      args = build_non_dependent_args (args);
+      make_args_non_dependent (*args);
       object = build_non_dependent_expr (object);
       if (TREE_CODE (fn) == DOTSTAR_EXPR)
 	object = cp_build_unary_op (ADDR_EXPR, object, 0, tf_warning_or_error);
-      args = tree_cons (NULL_TREE, object, args);
+      VEC_safe_insert (tree, gc, *args, 0, object);
       /* Now that the arguments are done, transform FN.  */
       fn = build_non_dependent_expr (fn);
     }
@@ -3774,12 +3784,16 @@ build_offset_ref_call_from_tree (tree fn, tree args)
                                          tf_warning_or_error);
       fn = TREE_OPERAND (fn, 1);
       fn = get_member_function_from_ptrfunc (&object_addr, fn);
-      args = tree_cons (NULL_TREE, object_addr, args);
+      VEC_safe_insert (tree, gc, *args, 0, object_addr);
     }
 
-  expr = cp_build_function_call (fn, args, tf_warning_or_error);
+  expr = cp_build_function_call_vec (fn, args, tf_warning_or_error);
   if (processing_template_decl && expr != error_mark_node)
-    return build_min_non_dep_call_list (expr, orig_fn, orig_args);
+    expr = build_min_non_dep_call_vec (expr, orig_fn, orig_args);
+
+  if (orig_args != NULL)
+    release_tree_vector (orig_args);
+
   return expr;
 }
 

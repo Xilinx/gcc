@@ -397,7 +397,7 @@ ipcp_cloning_candidate_p (struct cgraph_node *node)
  	         cgraph_node_name (node));
       return false;
     }
-  if (node->local.inline_summary.self_insns < n_calls)
+  if (node->local.inline_summary.self_size < n_calls)
     {
       if (dump_file)
         fprintf (dump_file, "Considering %s for cloning; code would shrink.\n",
@@ -838,10 +838,7 @@ ipcp_update_callgraph (void)
 	  {
 	    next = cs->next_caller;
 	    if (!ipcp_node_is_clone (cs->caller) && ipcp_need_redirect_p (cs))
-	      {
-		cgraph_redirect_edge_callee (cs, orig_node);
-		gimple_call_set_fndecl (cs->call_stmt, orig_node->decl);
-	      }
+	      cgraph_redirect_edge_callee (cs, orig_node);
 	  }
       }
 }
@@ -923,7 +920,7 @@ ipcp_estimate_growth (struct cgraph_node *node)
      call site.  Precise cost is dificult to get, as our size metric counts
      constants and moves as free.  Generally we are looking for cases that
      small function is called very many times.  */
-  growth = node->local.inline_summary.self_insns
+  growth = node->local.inline_summary.self_size
   	   - removable_args * redirectable_node_callers;
   if (growth < 0)
     return 0;
@@ -963,7 +960,7 @@ ipcp_estimate_cloning_cost (struct cgraph_node *node)
     cost /= freq_sum * 1000 / REG_BR_PROB_BASE + 1;
   if (dump_file)
     fprintf (dump_file, "Cost of versioning %s is %i, (size: %i, freq: %i)\n",
-             cgraph_node_name (node), cost, node->local.inline_summary.self_insns,
+             cgraph_node_name (node), cost, node->local.inline_summary.self_size,
 	     freq_sum);
   return cost + 1;
 }
@@ -1019,7 +1016,7 @@ ipcp_insert_stage (void)
       {
 	if (node->count > max_count)
 	  max_count = node->count;
-	overall_size += node->local.inline_summary.self_insns;
+	overall_size += node->local.inline_summary.self_size;
       }
 
   max_new_size = overall_size;

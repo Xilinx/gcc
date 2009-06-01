@@ -230,7 +230,7 @@ struct lang_hooks_for_decls
 
 struct lang_hooks_for_lipo
 {
-  /* Add DECL to the list predefined builtins.  */
+  /* Add DECL to the list of predefined builtins.  */
   void (*add_built_in_decl) (tree decl);
 
   /* Save the tree (by making a copy) and binding values
@@ -252,9 +252,9 @@ struct lang_hooks_for_lipo
   /* Clear symbol binding for name ID. */
   void (*clear_global_name_bindings) (tree id);
 
-  /* Return 1 if DECL in SCOPE is scoped in global/namespace scope,
-     otherwise return 0. */
-  int (*has_global_name) (tree decl, void *scope);
+  /* Return true if DECL in SCOPE is scoped in global/namespace scope,
+     otherwise return false. */
+  bool (*has_global_name) (tree decl, void *scope);
 
   /* Return the actual size of the lang_decl struct for
      decl T.  */
@@ -273,10 +273,11 @@ struct lang_hooks_for_lipo
   /* Clear the list of deferred functions.  */
   void (*clear_deferred_fns) (void);
 
-  /* Return 1 if T is compiler generated.  */
-  int (*is_compiler_generated_type) (tree t);
+  /* Return true if T is compiler generated.  */
+  bool (*is_compiler_generated_type) (tree t);
 
-  /* Compare language specific types T1 and T2.  */
+  /* Compare language specific types T1 and T2.
+     Return 1 if they are compatible.  */
   int (*cmp_lang_type) (tree t1, tree t2);
 };
 
@@ -464,7 +465,7 @@ struct lang_hooks
      backend must add all of the builtins at program initialization time.  */
   tree (*builtin_function_ext_scope) (tree decl);
 
-  /* Returns true if DECL is a user defined conversion operator  */
+  /* Returns true if DECL is a user defined conversion operator (C++) */
   bool (*user_conv_function_p) (tree decl);
 
   /* Used to set up the tree_contains_structure array for a frontend. */

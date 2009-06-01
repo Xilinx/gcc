@@ -238,6 +238,7 @@ static bool sh_rtx_costs (rtx, int, int, int *, bool);
 static int sh_address_cost (rtx, bool);
 static int sh_pr_n_sets (void);
 static rtx sh_allocate_initial_value (rtx);
+static bool sh_legitimate_address_p (enum machine_mode, rtx, bool);
 static rtx sh_legitimize_address (rtx, rtx, enum machine_mode);
 static int shmedia_target_regs_stack_space (HARD_REG_SET *);
 static int shmedia_reserve_space_for_target_registers_p (int, HARD_REG_SET *);
@@ -479,6 +480,9 @@ static int sh2a_function_vector_p (tree);
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD sh_secondary_reload
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	sh_legitimate_address_p
 
 /* Machine-specific symbol_ref flags.  */
 #define SYMBOL_FLAG_FUNCVEC_FUNCTION    (SYMBOL_FLAG_MACH_DEP << 0)
@@ -7051,6 +7055,8 @@ sh_set_return_address (rtx ra, rtx tmp)
 
   tmp = gen_frame_mem (Pmode, tmp);
   emit_insn (GEN_MOV (tmp, ra));
+  /* Tell this store isn't dead.  */
+  emit_use (tmp);
 }
 
 /* Clear variables at function end.  */
@@ -9029,7 +9035,7 @@ sh_legitimate_index_p (enum machine_mode mode, rtx op)
 	  REG++
 	  --REG  */
 
-bool
+static bool
 sh_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   if (MAYBE_BASE_REGISTER_RTX_P (x, strict))
@@ -11079,7 +11085,7 @@ sh_expand_t_scc (rtx operands[])
     emit_insn (gen_movt (result));
   else if (TARGET_SH2A && ((code == EQ && val == 0)
 			    || (code == NE && val == 1)))
-    emit_insn (gen_movrt (result));
+    emit_insn (gen_xorsi3_movrt (result));
   else if ((code == EQ && val == 0) || (code == NE && val == 1))
     {
       emit_clobber (result);

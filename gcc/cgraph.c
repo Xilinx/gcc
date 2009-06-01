@@ -1,5 +1,5 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -444,7 +444,7 @@ cgraph_create_node (void)
   return node;
 }
 
-/* Add an entry in assembler hash.  */
+/* Add an entry in assembler hash for NODE.  */
 void
 cgraph_add_assembler_hash_node (struct cgraph_node *node)
 {
@@ -465,7 +465,7 @@ cgraph_add_assembler_hash_node (struct cgraph_node *node)
     }
 }
 
-/* Remove from assembler hash.  */
+/* Remove from assembler hash for NODE.  */
 void
 cgraph_remove_assembler_hash_node (struct cgraph_node *node)
 {
@@ -638,11 +638,14 @@ cgraph_edge (struct cgraph_node *node, gimple call_stmt)
       for (e2 = node->callees; e2; e2 = e2->next_callee)
 	{
           void **slot;
+          /* Skip fake edges.  */
+          if (!e2->call_stmt)
+	    continue;
 	  slot = htab_find_slot_with_hash (node->call_site_hash,
 					   e2->call_stmt,
 					   htab_hash_pointer (e2->call_stmt),
 					   INSERT);
-	  gcc_assert (!*slot || !e2->call_stmt);
+	  gcc_assert (!*slot);
 	  *slot = e2;
 	}
     }
@@ -911,6 +914,9 @@ cgraph_remove_edge (struct cgraph_edge *e)
   /* Put the edge onto the free list.  */
   cgraph_free_edge (e);
 }
+
+/* Remove fake cgraph edges for indirect calls. NODE is the callee
+   of the edges.  */
 
 void
 cgraph_remove_fake_indirect_call_in_edges (struct cgraph_node *node)
@@ -1423,8 +1429,9 @@ void
 dump_cgraph_node (FILE *f, struct cgraph_node *node)
 {
   struct cgraph_edge *edge;
-  fprintf (f, "%s/%i(%i) [%p]:", cgraph_node_name (node), node->uid,
-	   node->pid, (void *) node);
+  fprintf (f, "%s/%i(%i)", cgraph_node_name (node), node->uid,
+	   node->pid);
+  dump_addr (f, " @", (void *)node);
   if (node->global.inlined_to)
     fprintf (f, " (inline copy in %s/%i)",
 	     cgraph_node_name (node->global.inlined_to),
@@ -1439,11 +1446,18 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
   if (node->count)
     fprintf (f, " executed "HOST_WIDEST_INT_PRINT_DEC"x",
 	     (HOST_WIDEST_INT)node->count);
-  if (node->local.inline_summary.self_insns)
-    fprintf (f, " %i insns", node->local.inline_summary.self_insns);
-  if (node->global.insns && node->global.insns
-      != node->local.inline_summary.self_insns)
-    fprintf (f, " (%i after inlining)", node->global.insns);
+  if (node->local.inline_summary.self_time)
+    fprintf (f, " %i time, %i benefit", node->local.inline_summary.self_time,
+    					node->local.inline_summary.time_inlining_benefit);
+  if (node->global.time && node->global.time
+      != node->local.inline_summary.self_time)
+    fprintf (f, " (%i after inlining)", node->global.time);
+  if (node->local.inline_summary.self_size)
+    fprintf (f, " %i size, %i benefit", node->local.inline_summary.self_size,
+    					node->local.inline_summary.size_inlining_benefit);
+  if (node->global.size && node->global.size
+      != node->local.inline_summary.self_size)
+    fprintf (f, " (%i after inlining)", node->global.size);
   if (node->local.inline_summary.estimated_self_stack_size)
     fprintf (f, " %i bytes stack usage", (int)node->local.inline_summary.estimated_self_stack_size);
   if (node->global.estimated_stack_size != node->local.inline_summary.estimated_self_stack_size)
