@@ -50,7 +50,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite.h"
 #include "graphite-poly.h"
 #include "graphite-scop-detection.h"
-#include "graphite-data-ref.h"
 
 /* The type of the analyzed basic block.  */
 

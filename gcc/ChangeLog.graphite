@@ -1,3 +1,14 @@
+2009-06-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c: New.
+	* graphite-data-ref.c: Removed.
+	* graphite-data-ref.h: Removed.
+	* Makefile.in (graphite-data-ref.o): Removed.
+	(graphite-dependences.o): Added.
+	* graphite-clast-to-gimple.c: Remove dependence on graphite-data-ref.h.
+	* graphite-poly.c: Same.
+	Move the data dependence testing to graphite-dependences.c.
+
 2009-05-19  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (graphite_can_represent_loop): Renamed
