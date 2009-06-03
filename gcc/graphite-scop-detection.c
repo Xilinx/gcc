@@ -1221,6 +1221,24 @@ print_graphite_statistics (FILE* file, VEC (scop_p, heap) *scops)
     print_graphite_scop_statistics (file, scop);
 }
 
+/* Version of free_scops special cased for limit_scops.  */
+
+static void
+free_scops_1 (VEC (scop_p, heap) **scops)
+{
+  int i;
+  scop_p scop;
+
+  for (i = 0; VEC_iterate (scop_p, *scops, i, scop); i++)
+    {
+      sese region = SCOP_REGION (scop);
+      free (SESE_PARAMS_NAMES (region));
+      SESE_PARAMS_NAMES (region) = 0;
+    }
+
+  free_scops (*scops);
+}
+
 /* We limit all SCoPs to SCoPs, that are completely surrounded by a loop. 
 
    Example:
@@ -1275,7 +1293,7 @@ limit_scops (VEC (scop_p, heap) **scops)
 	  }
     }
 
-  free_scops (*scops);
+  free_scops_1 (scops);
   *scops = VEC_alloc (scop_p, heap, 3);
 
   create_sese_edges (regions);

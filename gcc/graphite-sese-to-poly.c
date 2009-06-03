@@ -265,6 +265,8 @@ build_scop_bbs_1 (scop_p scop, sbitmap visited, basic_block bb)
 	    break;
 	  }
     }
+
+  VEC_free (basic_block, heap, dom);
 }
 
 /* Gather the basic blocks belonging to the SCOP.  */
@@ -1349,6 +1351,7 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
     ppl_new_Constraint (&cstr, alias, PPL_CONSTRAINT_TYPE_EQUAL);
     ppl_Polyhedron_add_constraint (accesses, cstr);
 
+    ppl_delete_Coefficient (c);
     ppl_delete_Linear_Expression (alias);
     ppl_delete_Constraint (cstr); 
   }

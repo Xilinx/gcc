@@ -1457,6 +1457,8 @@ rewrite_all_phi_nodes_with_iv (loop_p loop, htab_t reduction_list, tree main_iv)
       for (psi = gsi_start_phis (bb); !gsi_end_p (psi); )
 	rewrite_phi_with_iv (loop, reduction_list, &psi, &gsi, main_iv);
     }
+
+  free (bbs);
 }
 
 /* Bases all the induction variables in LOOP on a single induction variable

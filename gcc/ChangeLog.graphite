@@ -1,3 +1,15 @@
+2009-06-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (extend_scattering): Free values.
+	* graphite-ppl.c (new_Cloog_Domain_from_ppl_Pointset_Powerset):
+	Free iterators.
+	(ppl_print_powerset_matrix): Same.
+	* graphite-scop-detection.c (free_scops_1): New.
+	(limit_scops): Call free_scops_1.
+	* graphite-sese-to-poly.c (build_scop_bbs_1): Free dom.
+	(build_poly_dr): Free PPL coefficients.
+	* tree-parloops.c (rewrite_all_phi_nodes_with_iv): Free bbs.
+
 2009-06-02  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-dependences.c: New.

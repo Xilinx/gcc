@@ -108,6 +108,7 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
       ppl_delete_Constraint (cstr);
       ppl_delete_Coefficient (coef);
       ppl_delete_Linear_Expression (expr);
+      value_clear (v);
     }
 }
 

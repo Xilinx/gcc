@@ -241,7 +241,6 @@ CloogDomain *
 new_Cloog_Domain_from_ppl_Pointset_Powerset (
   ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
 {
-
   CloogDomain *res = NULL;
   ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
 
@@ -264,6 +263,9 @@ new_Cloog_Domain_from_ppl_Pointset_Powerset (
       else
 	res = cloog_domain_union (res, tmp);
     }
+
+  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (it);
+  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (end);
   
   gcc_assert (res != NULL);
 
@@ -580,6 +582,9 @@ ppl_print_powerset_matrix (FILE *file,
       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_dereference (it, &ph);
       ppl_print_polyhedron_matrix (file, ph);
     }
+
+  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (it);
+  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (end);
 }
 
 /* Print to STDERR the polyhedron PH under its PolyLib matrix form.  */
