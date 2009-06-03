@@ -1,4 +1,18 @@
-
+2009-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	[preparing to pluginify MELT. 1. use PLUGIN_GGC_MARKING]
+	* basilys.c (basilys_extra_scanrout_p): removed since never used.
+	(basilys_extra_marking): removed and renamed.
+	(basilys_marking_callback): added, as PLUGIN_GGC_MARKING callback.
+	(basilys_garbcoll): don't call basilys_extra_scanrout_p anymore.
+	Call the usual ggc_collect.
+	(basilys_initialize): register the basilys_marking_callback as
+	PLUGIN_GGC_MARKING
+	* basilys.h (basilys_extra_scanrout_p): removed since never used.
+	* ggc.h: reverted to trunk.
+	* ggc-common.h: ditto.
+	* ggc-zone.h: ditto.
+	* ggc-page.h: ditto.
+	* Makefile.in: added plugin.h to basilys.o.
 2009-05-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	[funmatcher-s seems to work]
 	* testsuite/melt/tfunmatch-1.melt: replaced == by ==i in test.

@@ -1905,11 +1905,10 @@ validate_free_objects (void)
 #define validate_free_objects()
 #endif
 
+/* Top level mark-and-sweep routine.  */
 
-
-/* Top level mark-and-sweep routine with extra marker  */
 void
-ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
+ggc_collect (void)
 {
   /* Avoid frequent unnecessary work by skipping collection if the
      total allocations haven't expanded much since the last
@@ -1942,7 +1941,7 @@ ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
   invoke_plugin_callbacks (PLUGIN_GGC_START, NULL);
 
   clear_marks ();
-  ggc_mark_roots_extra_marking (walkrout, walkdata);
+  ggc_mark_roots ();
 #ifdef GATHER_STATISTICS
   ggc_prune_overhead_list ();
 #endif

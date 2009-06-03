@@ -2532,7 +2532,7 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
 ifdef BASILYSMELT_OBJ
 $(BASILYSMELT_OBJ):  $(BASILYS_C)  \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
-   tree-pass.h $(BASILYS_H) gt-basilys.h
+   tree-pass.h $(BASILYS_H) gt-basilys.h $(PLUGIN_H)
 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
 	  -DMELT_PRIVATE_INCLUDE_DIR=\"$(melt_private_include_dir)\" \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \

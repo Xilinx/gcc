@@ -49,6 +49,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "real.h"
 #include "prefix.h"
 #include "md5.h"
+#include "plugin.h"
 
 /* executable_checksum is declared in c-common.h which we can't
    include here.. */
@@ -154,7 +155,6 @@ bool basilys_prohibit_garbcoll;
 long basilys_dbgcounter;
 long basilys_debugskipcount;
 
-void (*basilys_extra_scanrout_p)(void);
 
 int basilys_last_global_ix = BGLOB__LASTGLOB;
 
@@ -509,25 +509,26 @@ basilys_cbreak_at (const char *msg, const char *fil, int lin)
 
 
 /***
- * the extra marking routine is passed to ggc_collect_extra_marking
- * from the full basilys garbage collection
+ * the marking routine is registered thru PLUGIN_GGC_MARKING
+ * it makes GGC play nice with MELT.
  **/
 static void
-basilys_extra_marking (void *xtradata)
+basilys_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
+			  void* user_data ATTRIBUTE_UNUSED)
 {
   int ix = 0;
   basilys_module_info_t *mi = 0;
   struct callframe_basilys_st *cf = 0;
-  gcc_assert (xtradata == basilys_topframe);
   /* first, scan all the modules and mark their frame if it is non null */
-  for (ix = 0; VEC_iterate (basilys_module_info_t, modinfvec, ix, mi); ix++)
-    {
+  if (modinfvec) 
+    for (ix = 0; VEC_iterate (basilys_module_info_t, modinfvec, ix, mi); ix++)
+      {
         if ( !mi->marker_rout || !mi->iniframp || !*mi->iniframp) 
 	  continue;
         (mi->marker_rout) (*mi->iniframp);
-    };
+      };
   /* then scan all the MELT call frames */
-  for (cf = (struct callframe_basilys_st*) xtradata; cf; cf = cf->prev) {
+  for (cf = (struct callframe_basilys_st*) basilys_topframe; cf; cf = cf->prev) {
     if (cf->clos) {
       basilysroutfun_t*funp = 0;
       gcc_assert(cf->clos->rout);
@@ -538,10 +539,11 @@ basilys_extra_marking (void *xtradata)
 	   (union basilysparam_un*)0, (char*)0, (union basilysparam_un*)0);
       continue;
     }
-    /* if no closure, mark the local pointers */
-    for (ix= 0; ix<(int) cf->nbvar; ix++) 
-      if (cf->varptr[ix]) 
-	gt_ggc_mx_basilys_un((basilys_ptr_t)(cf->varptr[ix]));
+    else 
+      /* if no closure, mark the local pointers */
+      for (ix= 0; ix<(int) cf->nbvar; ix++) 
+	if (cf->varptr[ix]) 
+	  gt_ggc_mx_basilys_un((basilys_ptr_t)(cf->varptr[ix]));
   }
 }
 
@@ -600,8 +602,6 @@ basilys_garbcoll (size_t wanted, bool needfull)
   blocaltab->lenix = primix;
   for (ix = 0; ix < BGLOB__LASTGLOB; ix++)
     FORWARDED (basilys_globarr[ix]);
-  if (basilys_extra_scanrout_p)
-    (*basilys_extra_scanrout_p) ();
   for (cfram = basilys_topframe; cfram != NULL; cfram = cfram->prev)
     {
       int varix;
@@ -680,9 +680,9 @@ basilys_garbcoll (size_t wanted, bool needfull)
       /* clear marks on the old spec list */
       for (specp = basilys_oldspeclist; specp; specp = specp->nextspec)
 	specp->mark = 0;
-      /* force major collection with extra marking */
+      /* force major collection, with our callback */
       ggc_force_collect = true;
-      ggc_collect_extra_marking (basilys_extra_marking, basilys_topframe);
+      ggc_collect ();
       ggc_force_collect = wasforced;
       /* delete the unmarked spec */
       prevspecptr = &basilys_oldspeclist;
@@ -7495,6 +7495,11 @@ basilys_initialize (void)
     debugeprintf ("basilys_initialize alloczon %p - %p (%ld Kw)",
 		  basilys_startalz, basilys_endalz, (long) wantedwords >> 10);
   }
+  /* we are using register_callback here, even if MELT is not yet a
+     plugin; we hope that MELT would become a plugin. */
+  register_callback ("__basilys_melt__", PLUGIN_GGC_MARKING, 
+		     basilys_marking_callback,
+		     (void*) 0);
   debugeprintf ("basilys_initialize cpp_PREFIX=%s", cpp_PREFIX);
   debugeprintf ("basilys_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
   debugeprintf ("basilys_initialize gcc_exec_prefix=%s", gcc_exec_prefix);
@@ -7505,7 +7510,6 @@ basilys_initialize (void)
 		melt_generated_dir);
   debugeprintf ("basilys_initialize melt_dynlib_dir=%s", melt_dynlib_dir);
   debugeprintf ("basilys_initialize basilys_init_string=%s", basilys_init_string);
-  /* if basilys_init_string is null, a suitable default is taken */
   if (ppl_set_error_handler(basilys_ppl_error_handler))
     fatal_error ("failed to set PPL handler");
   load_basilys_modules_and_do_command ();

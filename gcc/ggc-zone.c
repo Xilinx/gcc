@@ -478,8 +478,7 @@ static void free_small_page (struct small_page_entry *);
 static void free_large_page (struct large_page_entry *);
 static void release_pages (struct alloc_zone *);
 static void sweep_pages (struct alloc_zone *);
-/* static bool ggc_collect_1 (struct alloc_zone *, bool); */
-   static bool ggc_collect_1 (struct alloc_zone *zone, bool need_marking, gt_pointer_walker walkrout, void* walkdata);
+static bool ggc_collect_1 (struct alloc_zone *, bool);
 static void new_ggc_zone_1 (struct alloc_zone *, const char *);
 
 /* Traverse the page table and find the entry for a page.
@@ -1917,7 +1916,7 @@ sweep_pages (struct alloc_zone *zone)
    if we collected, false otherwise.  */
 
 static bool
-ggc_collect_1 (struct alloc_zone *zone, bool need_marking, gt_pointer_walker walkrout, void* walkdata)
+ggc_collect_1 (struct alloc_zone *zone, bool need_marking)
 {
 #if 0
   /* */
@@ -1959,7 +1958,7 @@ ggc_collect_1 (struct alloc_zone *zone, bool need_marking, gt_pointer_walker wal
   if (need_marking)
     {
       zone_allocate_marks ();
-      ggc_mark_roots_extra_marking (walkrout, walkdata);
+      ggc_mark_roots ();
 #ifdef GATHER_STATISTICS
       ggc_prune_overhead_list ();
 #endif
@@ -2002,7 +2001,7 @@ calculate_average_page_survival (struct alloc_zone *zone)
 /* Top level collection routine.  */
 
 void
-ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
+ggc_collect (void)
 {
   struct alloc_zone *zone;
   bool marked = false;
@@ -2035,7 +2034,7 @@ ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
 
   /* Start by possibly collecting the main zone.  */
   main_zone.was_collected = false;
-  marked |= ggc_collect_1 (&main_zone, true, walkrout, walkdata);
+  marked |= ggc_collect_1 (&main_zone, true);
 
   /* In order to keep the number of collections down, we don't
      collect other zones unless we are collecting the main zone.  This
@@ -2055,7 +2054,7 @@ ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
       for (zone = main_zone.next_zone; zone; zone = zone->next_zone)
 	{
 	  zone->was_collected = false;
-	  marked |= ggc_collect_1 (zone, !marked, walkrout, walkdata);
+	  marked |= ggc_collect_1 (zone, !marked);
 	}
     }
 

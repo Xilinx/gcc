@@ -1357,9 +1357,6 @@ extern unsigned long basilys_nb_garbcoll;
 
 extern bool basilys_prohibit_garbcoll;
 
-/* extra scanning routine pointer - only for GC experts, and mostly
-   useful to possibly scan bison or yacc semantic value stack */
-extern void (*basilys_extra_scanrout_p) (void);
 
 /* the basilys copying garbage collector routine - moves all locals on the stack! */
 enum
