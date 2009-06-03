@@ -27,7 +27,7 @@ if GLIBCXX_HOSTED
   hosted_source = doc src po testsuite
 endif
 ## Keep this list sync'd with acinclude.m4:GLIBCXX_CONFIGURE.
-SUBDIRS = include libsupc++ libprofc++ $(hosted_source)
+SUBDIRS = include libsupc++ $(hosted_source)
 
 ACLOCAL_AMFLAGS = -I . -I .. -I ../config
 

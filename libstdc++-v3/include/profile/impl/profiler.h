@@ -28,7 +28,7 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file libprofc++/profiler.h
+/** @file profile/impl/profiler.h
  *  @brief Interface of the profiling runtime library.
  */
 
@@ -37,9 +37,14 @@
 #ifndef PROFCXX_PROFILER_H__
 #define PROFCXX_PROFILER_H__ 1
 
-#include <cstddef>  // For size_t.
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#include <cstddef>
+#else
+#include <stddef.h>
+#endif
 
-namespace cxxprof_runtime
+// Forward declarations of instrumentation hooks.
+namespace __cxxprof_impl
 {
 // State management.
 void turn_on();
@@ -49,8 +54,7 @@ bool is_on();
 bool is_off();
 
 // Instrumentation hooks.  Do not use them directly in instrumented headers.
-// Instead use the corresponding __profcxx_ wrapper declared below, to enable
-// compile-time on/off switching.
+// Instead use the corresponding __profcxx_ wrapper declared below.
 void trace_hashtable_size_resize(const void*, size_t, size_t);
 void trace_hashtable_size_destruct(const void*, size_t, size_t);
 void trace_hashtable_size_construct(const void*, size_t);
@@ -72,7 +76,7 @@ void trace_map_to_unordered_map_erase(const void*, size_t, size_t);
 void trace_map_to_unordered_map_iterate(const void*, size_t);
 void trace_map_to_unordered_map_find(const void*, size_t);
 void trace_map_to_unordered_map_destruct(const void*);
-} // namespace cxxprof_runtime
+} // namespace __cxxprof_impl
 
 // Master switch turns on all diagnostics.
 #ifdef _GLIBCXX_PROFILE
@@ -90,11 +94,12 @@ void trace_map_to_unordered_map_destruct(const void*);
       && !defined(_NO_GLIBCXX_PROFILE_HASHTABLE_TOO_SMALL)) \
      || (defined(_GLIBCXX_PROFILE_HASHTABLE_TOO_LARGE) \
          && !defined(_NO_GLIBCXX_PROFILE_HASHTABLE_TOO_LARGE)))
-#define __profcxx_hashtable_resize cxxprof_runtime::trace_hashtable_size_resize
+#define __profcxx_hashtable_resize \
+  __cxxprof_impl::trace_hashtable_size_resize
 #define __profcxx_hashtable_destruct \
-  cxxprof_runtime::trace_hashtable_size_destruct
+  __cxxprof_impl::trace_hashtable_size_destruct
 #define __profcxx_hashtable_construct \
-  cxxprof_runtime::trace_hashtable_size_construct
+  __cxxprof_impl::trace_hashtable_size_construct
 #else
 #define __profcxx_hashtable_resize(x...)  
 #define __profcxx_hashtable_destruct(x...) 
@@ -106,9 +111,9 @@ void trace_map_to_unordered_map_destruct(const void*);
       && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TOO_SMALL)) \
      || (defined(_GLIBCXX_PROFILE_VECTOR_TOO_LARGE) \
          && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TOO_LARGE)))
-#define __profcxx_vector_resize cxxprof_runtime::trace_vector_size_resize
-#define __profcxx_vector_destruct cxxprof_runtime::trace_vector_size_destruct
-#define __profcxx_vector_construct cxxprof_runtime::trace_vector_size_construct
+#define __profcxx_vector_resize __cxxprof_impl::trace_vector_size_resize
+#define __profcxx_vector_destruct __cxxprof_impl::trace_vector_size_destruct
+#define __profcxx_vector_construct __cxxprof_impl::trace_vector_size_construct
 #else
 #define __profcxx_vector_resize(x...)  
 #define __profcxx_vector_destruct(x...) 
@@ -119,9 +124,9 @@ void trace_map_to_unordered_map_destruct(const void*);
 #if (defined(_GLIBCXX_PROFILE_INEFFICIENT_HASH) \
      && !defined(_NO_GLIBCXX_PROFILE_INEFFICIENT_HASH))
 #define __profcxx_hashtable_construct2 \
-  cxxprof_runtime::trace_hash_func_construct
+  __cxxprof_impl::trace_hash_func_construct
 #define __profcxx_hashtable_destruct2 \
-  cxxprof_runtime::trace_hash_func_destruct
+  __cxxprof_impl::trace_hash_func_destruct
 #else
 #define __profcxx_hashtable_destruct2(x...) 
 #define __profcxx_hashtable_construct2(x...)  
@@ -131,17 +136,17 @@ void trace_map_to_unordered_map_destruct(const void*);
 #if (defined(_GLIBCXX_PROFILE_VECTOR_TO_LIST) \
      && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TO_LIST))
 #define __profcxx_vector_construct2 \
-  cxxprof_runtime::trace_vector_to_list_construct
+  __cxxprof_impl::trace_vector_to_list_construct
 #define __profcxx_vector_destruct2 \
-  cxxprof_runtime::trace_vector_to_list_destruct
+  __cxxprof_impl::trace_vector_to_list_destruct
 #define __profcxx_vector_insert \
-  cxxprof_runtime::trace_vector_to_list_insert
+  __cxxprof_impl::trace_vector_to_list_insert
 #define __profcxx_vector_iterate \
-  cxxprof_runtime::trace_vector_to_list_iterate
+  __cxxprof_impl::trace_vector_to_list_iterate
 #define __profcxx_vector_invalid_operator \
-  cxxprof_runtime::trace_vector_to_list_invalid_operator
+  __cxxprof_impl::trace_vector_to_list_invalid_operator
 #define __profcxx_vector_resize2 \
-  cxxprof_runtime::trace_vector_to_list_resize
+  __cxxprof_impl::trace_vector_to_list_resize
 #else
 #define __profcxx_vector_destruct2(x...) 
 #define __profcxx_vector_construct2(x...)  
@@ -155,19 +160,19 @@ void trace_map_to_unordered_map_destruct(const void*);
 #if (defined(_GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP) \
      && !defined(_NO_GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP))
 #define __profcxx_map_to_unordered_map_construct \
-  cxxprof_runtime::trace_map_to_unordered_map_construct
+  __cxxprof_impl::trace_map_to_unordered_map_construct
 #define __profcxx_map_to_unordered_map_destruct \
-  cxxprof_runtime::trace_map_to_unordered_map_destruct
+  __cxxprof_impl::trace_map_to_unordered_map_destruct
 #define __profcxx_map_to_unordered_map_insert \
-  cxxprof_runtime::trace_map_to_unordered_map_insert
+  __cxxprof_impl::trace_map_to_unordered_map_insert
 #define __profcxx_map_to_unordered_map_erase \
-  cxxprof_runtime::trace_map_to_unordered_map_erase
+  __cxxprof_impl::trace_map_to_unordered_map_erase
 #define __profcxx_map_to_unordered_map_iterate \
-  cxxprof_runtime::trace_map_to_unordered_map_iterate
+  __cxxprof_impl::trace_map_to_unordered_map_iterate
 #define __profcxx_map_to_unordered_map_invalidate \
-  cxxprof_runtime::trace_map_to_unordered_map_invalidate
+  __cxxprof_impl::trace_map_to_unordered_map_invalidate
 #define __profcxx_map_to_unordered_map_find \
-  cxxprof_runtime::trace_map_to_unordered_map_find
+  __cxxprof_impl::trace_map_to_unordered_map_find
 #else
 #define __profcxx_map_to_unordered_map_construct(x...) 
 #define __profcxx_map_to_unordered_map_destruct(x...)  
@@ -177,5 +182,18 @@ void trace_map_to_unordered_map_destruct(const void*);
 #define __profcxx_map_to_unordered_map_invalidate(x...)
 #define __profcxx_map_to_unordered_map_find(x...)
 #endif
+
+// Run multithreaded unless instructed not to do so.
+#ifndef _GLIBCXX_PROFILE_NOTHREADS
+#define _GLIBCXX_PROFILE_THREADS
+#endif
+
+// Instrumentation hook implementations.
+// XXX: Don't move to top of file.
+#include "profile/impl/profiler_hash_func.h"
+#include "profile/impl/profiler_hashtable_size.h"
+#include "profile/impl/profiler_map_to_unordered_map.h"
+#include "profile/impl/profiler_vector_size.h"
+#include "profile/impl/profiler_vector_to_list.h"
 
 #endif // PROFCXX_PROFILER_H__

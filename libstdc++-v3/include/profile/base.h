@@ -41,7 +41,7 @@
 #include <cstdio>
 #include <functional>
 #include <bits/c++config.h>
-#include <profiler.h>
+#include <profile/impl/profiler.h>
 
 // Profiling mode namespaces.
 

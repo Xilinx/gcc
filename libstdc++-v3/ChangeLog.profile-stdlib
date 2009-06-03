@@ -1,3 +1,82 @@
+2009-06-02  Silvius Rus  <rus@google.com>
+	* configure: Remove libprof++.  Added check for execinfo.h.
+	* config.h.in: Add undef HAVE_EXECINFO_H.
+	* Makefile.am: Remove libprof++.
+	* Makefile.in: Remove libprof++.
+	* libprofc++/profiler_vector_size.cc: Merge into 
+	include/profile/impl/profiler_vector_size.h.
+	* libprofc++/profiler_vector_size.h: Merge into 
+	include/profile/impl/profiler_vector_size.h.
+	* libprofc++/profiler_hash_func.cc: Merge into 
+	include/profile/impl/profiler_hash_func.h.
+	* libprofc++/profiler_hash_func.h: Merge into 
+	include/profile/impl/profiler_hash_func.h.
+	* libprofc++/profiler_trace.cc: Merge into 
+	include/profile/impl/profiler_trace.h.
+	* libprofc++/profiler_trace.h: Merge into 
+	include/profile/impl/profiler_trace.h.
+	* libprofc++/profiler_vector_to_list.cc: Merge into 
+	include/profile/impl/profiler_vector_to_list.h.
+	* libprofc++/profiler_vector_to_list.h: Merge into 
+	include/profile/impl/profiler_vector_to_list.h.
+	* libprofc++/profiler_container_size.cc: Merge into 
+	include/profile/impl/profiler_container_size.h.
+	* libprofc++/profiler_container_size.h: Merge into 
+	include/profile/impl/profiler_container_size.h.
+	* libprofc++/profiler_state.cc: Merge into 
+	include/profile/impl/profiler_state.h.
+	* libprofc++/profiler_state.h: Merge into 
+	include/profile/impl/profiler_state.h.
+	* libprofc++/profiler_map_to_unordered_map.cc: Merge into 
+	include/profile/impl/profiler_map_to_unordered_map.h.
+	* libprofc++/profiler_map_to_unordered_map.h: Merge into 
+	include/profile/impl/profiler_map_to_unordered_map.h.
+	* libprofc++/profiler_node.cc: Merge into
+	include/profile/impl/profiler_node.h.
+	* libprofc++/profiler_node.h: Merge into
+	include/profile/impl/profiler_node.h.
+	* libprofc++/profiler_hashtable_size.cc: Merge into
+	include/profile/impl/profiler_hashtable_size.h.
+	* libprofc++/profiler_hashtable_size.h: Merge into
+	include/profile/impl/profiler_hashtable_size.h.
+	* libprofc++/profiler.h: Merge into include/profile/impl/profiler.h.
+	* include/Makefile.am: Added profile/impl directory.
+	* include/Makefile.in: Added profile/impl directory.
+	* include/profile/hashtable.h: Include profile/base.h instead of
+	profiler.h.
+	* include/profile/unordered_map: Uglify method name profile_destruct.
+	Uglify method name profile_resize.
+	* include/profile/unordered_set: Uglify method name profile_destruct.
+	Uglify method name profile_resize.
+	* include/profile/base.h: Include profile/impl/profiler.h instead
+	of profiler.h.
+	* include/profile/impl/profiler.h: Move from libprofc++/.  Include
+	diagnostic implementation files.
+	* include/profile/impl/profiler_state.h:  Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	(state): Templatize class.
+	* include/profile/impl/profiler_node.h:  Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	Add ifdef guard HAVE_EXECINFO_H for call to backtrace.
+	(size): new function.
+	* include/profile/impl/profiler_trace.h  Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	Use tr1/unordered_map instead of std/unordered_map without c++0x.
+	(tables): New class.  Add HAVE_TLS ifdef guard.
+	* include/profile/impl/profiler_container_size.h: Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	* include/profile/impl/profiler_vector_size.h: Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	* include/profile/impl/profiler_hash_func.h: Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	* include/profile/impl/profiler_vector_to_list.h: Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	* include/profile/impl/profiler_map_to_unordered_map.h: Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	* include/profile/impl/profiler_hashtable_size.h: Merge from
+	corresponding libprofc++/ files.  Make all methods inline.
+	* testsuite/Makefile.in: Removed references to libprofc++.
+	* testsuite/Makefile.am: Removed references to libprofc++.
 2009-05-30  Silvius Rus  <rus@google.com>
 	* include/profile/set.h: Integrate updates from std.
 	* include/profile/unordered_set: Integrate updates from std.

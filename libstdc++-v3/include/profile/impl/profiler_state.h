@@ -28,19 +28,73 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file libprofc++/profiler_node.h
- *  @brief Data structures to represent a single profiling event.
+/** @file profile/impl/profiler_state.cc
+ *  @brief Global profiler state.
  */
 
 // Written by Lixia Liu
 
-#include "profiler_node.h"
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cassert>
+#ifndef PROFCXX_PROFILER_STATE_H__
+#define PROFCXX_PROFILER_STATE_H__ 1
 
-namespace cxxprof_runtime
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#include <cstdio>
+#else
+#include <stdio.h>
+#endif
+
+namespace __cxxprof_impl
 {
 
-} // namespace cxxprof_runtime
+template <int Unused=0>
+class state
+{
+ public:
+
+  static state<0>* _S_diag_state;
+
+  state() : _M_state(INVALID) {}
+  ~state() {}
+
+  bool is_on() { return _M_state == ON; }
+  bool is_off() { return _M_state == OFF; }
+  bool is_invalid() { return _M_state == INVALID; }
+  void turn_on() { _M_state = ON; }
+  void turn_off() { _M_state = OFF; }
+
+ private:
+  enum state_type { ON, OFF, INVALID }; 
+  state_type _M_state;
+};
+
+template <>
+state<0>* state<0>::_S_diag_state = NULL;
+
+inline bool is_on()
+{
+  return state<0>::_S_diag_state && state<0>::_S_diag_state->is_on();
+}
+
+inline bool is_off()
+{
+  return state<0>::_S_diag_state && state<0>::_S_diag_state->is_off();
+}
+
+inline bool is_invalid()
+{
+  return !state<0>::_S_diag_state || state<0>::_S_diag_state->is_invalid();
+}
+
+inline void turn_on()
+{
+  if (!state<0>::_S_diag_state) { state<0>::_S_diag_state = new state<0>(); }
+  state<0>::_S_diag_state->turn_on();
+}
+
+inline void turn_off()
+{
+  state<0>::_S_diag_state->turn_off();
+}
+
+} // end namespace __cxxprof_impl
+#endif /* PROFCXX_PROFILER_STATE_H__ */

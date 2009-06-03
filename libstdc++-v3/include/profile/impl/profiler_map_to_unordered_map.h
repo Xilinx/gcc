@@ -28,8 +28,8 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file libprofc++/profiler_trace.h
- *  @brief Data structures to represent profiling traces.
+/** @file profile/impl/profiler_map_to_unordered_map.h
+ *  @brief Diagnostics for map to unordered_map.
  */
 
 // Written by Silvius Rus <silvius.rus@gmail.com>
@@ -37,15 +37,20 @@
 #ifndef PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__
 #define PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__ 1
 
-#include "profiler.h"
-#include "profiler_node.h"
-#include "profiler_trace.h"
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <cassert>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#endif
+#include "profile/impl/profiler.h"
+#include "profile/impl/profiler_node.h"
+#include "profile/impl/profiler_trace.h"
 
-namespace cxxprof_runtime
+namespace __cxxprof_impl
 {
 
 // Cost model. XXX: this must be taken from the machine model instead.
@@ -180,6 +185,13 @@ inline void map2umap_info:: record_invalidate()
   _M_valid = false;
 }
 
+inline void map2umap_info::write(FILE* f) const
+{
+  fprintf(f, "%Zu %Zu %Zu %Zu %.0f %.0f %s\n",
+          _M_insert, _M_erase, _M_find, _M_iterate, _M_map_cost, _M_umap_cost,
+          _M_valid ? "valid" : "invalid");
+}
+
 class map2umap_stack_info: public map2umap_info {
  public:
   map2umap_stack_info(const map2umap_info& o) : map2umap_info(o) {}
@@ -198,5 +210,83 @@ inline trace_map2umap::trace_map2umap()
   id = "map-to-unordered-map";
 }
 
-} // namespace cxxprof_runtime
+inline void trace_map_to_unordered_map_init() {
+  tables<0>::_S_map2umap = new trace_map2umap();
+}
+
+inline void trace_map_to_unordered_map_report(FILE* f) {
+  if (tables<0>::_S_map2umap) {
+    tables<0>::_S_map2umap->write(f);
+    delete tables<0>::_S_map2umap;
+    tables<0>::_S_map2umap = NULL;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Implementations of instrumentation hooks.
+//////////////////////////////////////////////////////////////////////////////
+
+inline void trace_map_to_unordered_map_construct(const void* __obj)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_map2umap->add_object(__obj, map2umap_info(get_stack()));
+}
+
+inline void trace_map_to_unordered_map_destruct(const void* __obj)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_map2umap->retire_object(__obj);
+}
+
+inline void trace_map_to_unordered_map_insert(const void* obj, size_t size,
+                                       size_t count)
+{
+  if (!__profcxx_init()) return;
+
+  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+
+  if (info) info->record_insert(size, count);
+}
+
+inline void trace_map_to_unordered_map_erase(const void* obj, size_t size,
+                                       size_t count)
+{
+  if (!__profcxx_init()) return;
+
+  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+
+  if (info) info->record_erase(size, count);
+}
+
+inline void trace_map_to_unordered_map_find(const void* obj, size_t size)
+{
+  if (!__profcxx_init()) return;
+
+  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+
+  if (info) info->record_find(size);
+}
+
+inline void trace_map_to_unordered_map_iterate(const void* obj, size_t count)
+{
+  if (!__profcxx_init()) return;
+
+  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+
+  if (info) info->record_iterate(count);
+}
+
+inline void trace_map_to_unordered_map_invalidate(const void* obj)
+{
+  if (!__profcxx_init()) return;
+
+  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+
+  if (info) info->record_invalidate();
+}
+
+
+} // namespace __cxxprof_impl
 #endif /* PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__ */

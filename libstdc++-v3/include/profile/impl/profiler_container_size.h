@@ -28,8 +28,8 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file libprofc++/profiler_trace.h
- *  @brief Data structures to represent profiling traces.
+/** @file profile/impl/profiler_trace.h
+ *  @brief Diagnostics for container sizes.
  */
 
 // Written by Lixia Liu
@@ -37,23 +37,20 @@
 #ifndef PROFCXX_PROFILER_CONTAINER_SIZE_H__
 #define PROFCXX_PROFILER_CONTAINER_SIZE_H__ 1
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <cassert>
-#include "profiler.h"
-#include "profiler_node.h"
-#include "profiler_trace.h"
-
-#ifndef _GLIBCXX_PROFILE
-using std::max;
-using std::min;
 #else
-using std::_GLIBCXX_STD_PR::max;
-using std::_GLIBCXX_STD_PR::min;
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #endif
+#include "profile/impl/profiler.h"
+#include "profile/impl/profiler_node.h"
+#include "profile/impl/profiler_trace.h"
 
-namespace cxxprof_runtime
+namespace __cxxprof_impl
 {
 
 // Class for container size node. 
@@ -105,7 +102,6 @@ inline void container_size_info::destruct(size_t __num, size_t __inum)
 inline void container_size_info::resize(size_t __from,
                                         size_t __to) 
 {
-  assert(__from <= __to);
   _M_cost += this->resize_cost(__from, __to);
   _M_resize += 1;
   _M_max = _M_max > __to ? _M_max : __to;
@@ -181,5 +177,39 @@ inline void trace_container_size::insert(const object_t __obj,
   add_object(__obj, container_size_info(__stack, __num));
 }
 
-} // namespace cxxprof_runtime
+inline void container_size_info::write(FILE* f) const
+{
+  fprintf(f, "%Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu\n", 
+          _M_init, _M_count, _M_cost,_M_resize, _M_min, _M_max, _M_total,
+          _M_item_min, _M_item_max, _M_item_total);
+}
+
+inline void trace_container_size::destruct(const void* __obj, size_t __num, 
+                                    size_t __inum)
+{
+  if (!is_on()) return;
+
+  object_t obj = static_cast<object_t>(__obj);
+
+  container_size_info* object_info = get_object_info(obj);
+  if (!object_info)
+    return;
+
+  object_info->destruct(__num, __inum);
+  retire_object(obj);
+}
+
+inline void trace_container_size::resize(const void* __obj, int __from, 
+                                         int __to)
+{
+  if (!is_on()) return;
+
+  container_size_info* object_info = get_object_info(__obj);
+  if (!object_info)
+    return;
+
+  object_info->resize(__from, __to);
+}
+
+} // namespace __cxxprof_impl
 #endif /* PROFCXX_PROFILER_CONTAINER_SIZE_H__ */

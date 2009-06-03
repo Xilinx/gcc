@@ -28,7 +28,7 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file libprofc++/profiler_trace.h
+/** @file profile/impl/profiler_trace.h
  *  @brief Data structures to represent profiling traces.
  */
 
@@ -37,15 +37,20 @@
 #ifndef PROFCXX_PROFILER_VECTOR_TO_LIST_H__
 #define PROFCXX_PROFILER_VECTOR_TO_LIST_H__ 1
 
-#include "profiler.h"
-#include "profiler_node.h"
-#include "profiler_trace.h"
-#include <cstdlib>
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
-#include <cassert>
+#else
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#endif
+#include "profile/impl/profiler.h"
+#include "profile/impl/profiler_node.h"
+#include "profile/impl/profiler_trace.h"
 
-namespace cxxprof_runtime
+namespace __cxxprof_impl
 {
 
 // Class for vector to list 
@@ -158,5 +163,157 @@ inline void trace_vector_to_list::insert(object_t __obj, stack_t __stack)
   add_object(__obj, vector2list_info(__stack));
 }
 
-} // namespace cxxprof_runtime
+inline void vector2list_info::write(FILE* f) const
+{
+  fprintf(f, "%Zu %Zu %Zu %.0f %.0f\n",
+          _M_shift_count, _M_resize, _M_iterate, _M_cost, _M_pred_cost);
+}
+
+inline float trace_vector_to_list::vector_cost(size_t shift, 
+                                               size_t iterate,
+                                               size_t resize)
+{
+  // Cost model
+  //  We assume operation cost of vector as follows.
+  //   - Cost per shift: 1
+  //   - Cost per access: 1
+  //   - Cost per resize: 1 //Already consider the # of elements
+  //  However, operation cost in list is assumed as follows:
+  //   - Cost per shift: 0
+  //   - Cost per accesse: 10
+  //   - Cost per resize: 0
+  return shift * 1 + iterate * 1 + resize * 1; 
+}
+
+inline float trace_vector_to_list::list_cost(size_t shift, 
+                                             size_t iterate,
+                                             size_t resize)
+{
+  // Cost model
+  //  We assume operation cost of vector as follows.
+  //   - Cost per shift: 1
+  //   - Cost per access: 1
+  //   - Cost per resize: 1 //Already consider the # of elements
+  //  However, operation cost in list is assumed as follows:
+  //   - Cost per shift: 0
+  //   - Cost per accesse: 10
+  //   - Cost per resize: 0
+  return shift * 0 + iterate * 10 + resize * 0; 
+}
+
+inline void trace_vector_to_list::destruct(const void* __obj)
+{
+  if (!is_on())
+    return;
+
+ vector2list_info* res = get_object_info(__obj);
+  if (!res)
+    return;
+
+  float vc = vector_cost(res->shift_count(), res->iterate(), res->resize());
+  float lc = list_cost(res->shift_count(), res->iterate(), res->resize());
+  res->set_cost(vc);
+  res->set_pred_cost(lc);
+
+  retire_object(__obj);
+}
+
+inline void trace_vector_to_list::opr_insert(const void* __obj, size_t __pos, 
+                                      size_t __num)
+{
+  vector2list_info* res = get_object_info(__obj);
+  if (res)
+    res->opr_insert(__pos, __num);
+}
+
+inline void trace_vector_to_list::opr_iterate(const void* __obj, size_t __num)
+{
+  vector2list_info* res = get_object_info(__obj);
+  if (res)
+    res->opr_iterate(__num);
+}
+
+inline void trace_vector_to_list::invalid_operator(const void* __obj)
+{
+  vector2list_info* res = get_object_info(__obj);
+  if (res)
+    res->set_invalid();
+}
+
+inline void trace_vector_to_list::resize(const void* __obj, size_t __from, 
+                                  size_t __to)
+{
+  vector2list_info* res = get_object_info(__obj);
+  if (res)
+    res->resize(__from, __to);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Initialization and report.
+//////////////////////////////////////////////////////////////////////////////
+
+inline void trace_vector_to_list_init() {
+  tables<0>::_S_vector_to_list = new trace_vector_to_list();
+}
+
+inline void trace_vector_to_list_report(FILE* f) {
+  if (tables<0>::_S_vector_to_list) {
+    tables<0>::_S_vector_to_list->write(f);
+    delete tables<0>::_S_vector_to_list;
+    tables<0>::_S_vector_to_list = NULL;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Implementations of instrumentation hooks.
+//////////////////////////////////////////////////////////////////////////////
+
+inline void trace_vector_to_list_construct(const void* __obj)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_vector_to_list->insert(__obj, get_stack());
+}
+
+inline void trace_vector_to_list_destruct(const void* __obj)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_vector_to_list->destruct(__obj);
+}
+
+inline void trace_vector_to_list_insert(const void* __obj, 
+                                        size_t __pos,
+                                        size_t __num)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_vector_to_list->opr_insert(__obj, __pos, __num);
+}
+
+
+inline void trace_vector_to_list_iterate(const void* __obj, size_t __num)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_vector_to_list->opr_iterate(__obj, __num);
+}
+
+inline void trace_vector_to_list_invalid_operator(const void* __obj)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_vector_to_list->invalid_operator(__obj);
+}
+
+inline void trace_vector_to_list_resize(const void* __obj, 
+                                        size_t __from, 
+                                        size_t __to)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_vector_to_list->resize(__obj, __from, __to);
+}
+
+} // namespace __cxxprof_impl
 #endif /* PROFCXX_PROFILER_VECTOR_TO_LIST_H__ */

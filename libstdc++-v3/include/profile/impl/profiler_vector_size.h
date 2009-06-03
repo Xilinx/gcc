@@ -28,46 +28,49 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file libprofc++/profiler_hashtable_size.cc
- *  @brief Collection of hashtable size traces.
+/** @file profile/impl/profiler_vector_size.cc
+ *  @brief Collection of vector size traces.
  */
 
 // Written by Lixia Liu
 
-#include "profiler.h"
-#include "profiler_node.h"
-#include "profiler_trace.h"
-#include "profiler_state.h"
-#include "profiler_container_size.h"
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <cassert>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#endif
+#include "profile/impl/profiler.h"
+#include "profile/impl/profiler_node.h"
+#include "profile/impl/profiler_trace.h"
+#include "profile/impl/profiler_state.h"
+#include "profile/impl/profiler_container_size.h"
 
-namespace cxxprof_runtime
+namespace __cxxprof_impl
 {
 
-class trace_hashtable_size : public trace_container_size
+class trace_vector_size : public trace_container_size
 {
  public:
-  trace_hashtable_size() : trace_container_size() { id = "hashtable-size"; }
+  trace_vector_size() : trace_container_size() { id = "vector-size"; }
 };
 
 //////////////////////////////////////////////////////////////////////////////
 // Initialization and report.
 //////////////////////////////////////////////////////////////////////////////
 
-static trace_hashtable_size* _S_hashtable_size = NULL;
-
-void trace_hashtable_size_init() {
-  _S_hashtable_size = new trace_hashtable_size();
+inline void trace_vector_size_init() {
+  tables<0>::_S_vector_size = new trace_vector_size();
 }
 
-void trace_hashtable_size_report(FILE* f) {
-  if (_S_hashtable_size) {
-    _S_hashtable_size->write(f);
-    delete _S_hashtable_size;
-    _S_hashtable_size = NULL;
+inline void trace_vector_size_report(FILE* f) {
+  if (tables<0>::_S_vector_size) {
+    tables<0>::_S_vector_size->write(f);
+    delete tables<0>::_S_vector_size;
+    tables<0>::_S_vector_size = NULL;
   }
 }
 
@@ -75,26 +78,27 @@ void trace_hashtable_size_report(FILE* f) {
 // Implementations of instrumentation hooks.
 //////////////////////////////////////////////////////////////////////////////
 
-void trace_hashtable_size_construct(const void* __obj, size_t __num)
-{
-  if (!__profcxx_init()) return;
-  
-  _S_hashtable_size->insert(__obj, get_stack(), __num);
-}
-
-void trace_hashtable_size_destruct(const void* __obj, size_t __num, 
-                                   size_t __inum)
+inline void trace_vector_size_construct(const void* __obj, size_t __num)
 {
   if (!__profcxx_init()) return;
 
-  _S_hashtable_size->destruct(__obj, __num, __inum);
+  tables<0>::_S_vector_size->insert(__obj, get_stack(), __num);
 }
 
-void trace_hashtable_size_resize(const void* __obj, size_t __from, size_t __to)
+inline void trace_vector_size_destruct(const void* __obj, size_t __num,
+                                       size_t __inum)
 {
   if (!__profcxx_init()) return;
 
-  _S_hashtable_size->resize(__obj, __from, __to);
+  tables<0>::_S_vector_size->destruct(__obj, __num, __inum);
 }
 
-} // namespace cxxprof_runtime
+inline void trace_vector_size_resize(const void* __obj, size_t __from,
+                                     size_t __to)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_vector_size->resize(__obj, __from, __to);
+}
+
+} // namespace __cxxprof_impl

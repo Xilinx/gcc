@@ -28,7 +28,7 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file libprofc++/profiler_trace.h
+/** @file profile/impl/profiler_trace.h
  *  @brief Data structures to represent profiling traces.
  */
 
@@ -37,23 +37,20 @@
 #ifndef PROFCXX_PROFILER_HASH_FUNC_H__
 #define PROFCXX_PROFILER_HASH_FUNC_H__ 1
 
-#include "profiler.h"
-#include "profiler_node.h"
-#include "profiler_trace.h"
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <cassert>
-
-#ifndef _GLIBCXX_PROFILE
-using std::max;
-using std::min;
 #else
-using std::_GLIBCXX_STD_PR::max;
-using std::_GLIBCXX_STD_PR::min;
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #endif
+#include "profile/impl/profiler.h"
+#include "profile/impl/profiler_node.h"
+#include "profile/impl/profiler_trace.h"
 
-namespace cxxprof_runtime
+namespace __cxxprof_impl
 {
 
 // Class for inefficient hash function. 
@@ -129,9 +126,62 @@ class trace_hash_func
 
 inline void trace_hash_func::insert(object_t __obj, stack_t __stack)
 {
-  printf("Adding %p.\n", __obj);
   add_object(__obj, hashfunc_info(__stack));
 }
 
-} // namespace cxxprof_runtime
+inline void hashfunc_info::write(FILE* f) const
+{
+  fprintf(f, "%Zu %Zu %Zu\n", _M_hops, _M_accesses, _M_longest_chain);
+}
+
+inline void trace_hash_func::destruct(const void* __obj, size_t __chain,
+                               size_t __accesses, size_t __hops)
+{
+  if (!is_on()) return;
+
+  // First find the item from the live objects and update the informations.
+  hashfunc_info* objs = get_object_info(__obj);
+  if (!objs)
+    return;
+
+  objs->destruct(__chain, __accesses, __hops);
+  retire_object(__obj);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Initialization and report.
+//////////////////////////////////////////////////////////////////////////////
+
+inline void trace_hash_func_init() {
+  tables<0>::_S_hash_func = new trace_hash_func();
+}
+
+inline void trace_hash_func_report(FILE* f) {
+  if (tables<0>::_S_hash_func) {
+    tables<0>::_S_hash_func->write(f);
+    delete tables<0>::_S_hash_func;
+    tables<0>::_S_hash_func = NULL;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Implementations of instrumentation hooks.
+//////////////////////////////////////////////////////////////////////////////
+
+inline void trace_hash_func_construct(const void* __obj)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_hash_func->insert(__obj, get_stack());
+}
+
+inline void trace_hash_func_destruct(const void* __obj, size_t __chain,
+                               size_t __accesses, size_t __hops)
+{
+  if (!__profcxx_init()) return;
+
+  tables<0>::_S_hash_func->destruct(__obj, __chain, __accesses, __hops);
+}
+
+} // namespace __cxxprof_impl
 #endif /* PROFCXX_PROFILER_HASH_FUNC_H__ */

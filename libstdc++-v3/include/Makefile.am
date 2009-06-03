@@ -776,7 +776,7 @@ profile_builddir = ./profile
 profile_headers = \
 	${profile_srcdir}/base.h \
 	${profile_srcdir}/unordered_map \
-	${profile_srcdir}/unordered_set \ 
+	${profile_srcdir}/unordered_set \
 	${profile_srcdir}/vector \
 	${profile_srcdir}/bitset \
 	${profile_srcdir}/deque \
@@ -786,8 +786,21 @@ profile_headers = \
 	${profile_srcdir}/multimap.h \
 	${profile_srcdir}/multiset.h \
 	${profile_srcdir}/set \
-	${profile_srcdir}/set.h \  
-	${profile_srcdir}/hashtable.h 
+	${profile_srcdir}/set.h \
+	${profile_srcdir}/hashtable.h
+profile_impl_srcdir = ${glibcxx_srcdir}/include/profile/impl
+profile_impl_builddir = ./profile/impl
+profile_impl_headers = \
+	${profile_impl_srcdir}/profiler.h \
+	${profile_impl_srcdir}/profiler_container_size.h \
+	${profile_impl_srcdir}/profiler_hash_func.h \
+	${profile_impl_srcdir}/profiler_hashtable_size.h \
+	${profile_impl_srcdir}/profiler_map_to_unordered_map.h \
+	${profile_impl_srcdir}/profiler_node.h \
+	${profile_impl_srcdir}/profiler_state.h \
+	${profile_impl_srcdir}/profiler_trace.h \
+	${profile_impl_srcdir}/profiler_vector_size.h \
+	${profile_impl_srcdir}/profiler_vector_to_list.h
 
 # Some of the different "C" header models need extra files.
 # Some "C" header schemes require the "C" compatibility headers.
@@ -883,7 +896,7 @@ allstamped = \
 	stamp-std stamp-bits stamp-c_base stamp-c_base_extra \
 	stamp-c_compatibility  stamp-backward stamp-ext stamp-pb \
 	stamp-tr1 stamp-tr1-impl stamp-debug stamp-parallel stamp-host \
-    stamp-profile
+    stamp-profile stamp-profile-impl
 
 # List of all files that are created by explicit building, editing, or
 # catenation.
@@ -1011,6 +1024,11 @@ stamp-profile: ${profile_headers}
 	@-mkdir -p ${profile_builddir}
 	@-cd ${profile_builddir} && $(LN_S) $? . 2>/dev/null
 	@$(STAMP) stamp-profile
+
+stamp-profile-impl: ${profile_impl_headers}
+	@-mkdir -p ${profile_impl_builddir}
+	@-cd ${profile_impl_builddir} && $(LN_S) $? . 2>/dev/null
+	@$(STAMP) stamp-profile-impl
 
 stamp-${host_alias}:
 	@-mkdir -p ${host_builddir}
@@ -1243,6 +1261,9 @@ install-headers:
 	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${profile_builddir}
 	for file in ${profile_headers}; do \
 	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${profile_builddir}; done
+	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${profile_impl_builddir}
+	for file in ${profile_impl_headers}; do \
+	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${profile_impl_builddir}; done
 	$(mkinstalldirs) $(DESTDIR)${host_installdir}
 	for file in ${host_headers} ${host_headers_extra} \
 	 ${thread_host_headers}; do \
