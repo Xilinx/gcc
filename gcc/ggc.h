@@ -1,6 +1,7 @@
 /* Garbage collection for the GNU compiler.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
-   Free Software Foundation, Inc.
+
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007,
+   2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -275,6 +276,10 @@ extern void ggc_collect	(void);
 
 /* Invoke the collector with an extra marking routine and data */
 extern void ggc_collect_extra_marking (gt_pointer_walker, void*);
+
+/* Register an additional root table.  This can be useful for some
+   plugins.  Does nothing if the passed pointer is null. */
+extern void ggc_register_root_tab (const struct ggc_root_tab *);
 
 /* Return the number of bytes allocated at the indicated address.  */
 extern size_t ggc_get_size (const void *);

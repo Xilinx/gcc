@@ -552,7 +552,9 @@ mark_all_vars_used (tree *expr_p, void *data)
   walk_tree (expr_p, mark_all_vars_used_1, data, NULL);
 }
 
-/* Dump scope blocks.  */
+
+/* Dump scope blocks starting at SCOPE to FILE.  INDENT is the
+   indentation level and FLAGS is as in print_generic_expr.  */
 
 static void
 dump_scope_block (FILE *file, int indent, tree scope, int flags)
@@ -606,10 +608,24 @@ dump_scope_block (FILE *file, int indent, tree scope, int flags)
   fprintf (file, "\n%*s}\n",indent, "");
 }
 
+
+/* Dump the tree of lexical scopes of current_function_decl to FILE.
+   FLAGS is as in print_generic_expr.  */
+
 void
 dump_scope_blocks (FILE *file, int flags)
 {
   dump_scope_block (file, 0, DECL_INITIAL (current_function_decl), flags);
+}
+
+
+/* Dump the tree of lexical scopes of current_function_decl to stderr.
+   FLAGS is as in print_generic_expr.  */
+
+void
+debug_scope_blocks (int flags)
+{
+  dump_scope_blocks (stderr, flags);
 }
 
 /* Remove local variables that are not referenced in the IL.  */
@@ -622,6 +638,12 @@ remove_unused_locals (void)
   referenced_var_iterator rvi;
   var_ann_t ann;
   bitmap global_unused_vars = NULL;
+
+  /* Removing declarations from lexical blocks when not optimizing is
+     not only a waste of time, it actually causes differences in stack
+     layout.  */
+  if (!optimize)
+    return;
 
   mark_scope_block_unused (DECL_INITIAL (current_function_decl));
 
@@ -685,8 +707,7 @@ remove_unused_locals (void)
 
       if (TREE_CODE (var) != FUNCTION_DECL
 	  && (!(ann = var_ann (var))
-	      || !ann->used)
-	  && (optimize || DECL_ARTIFICIAL (var)))
+	      || !ann->used))
 	{
 	  if (is_global_var (var))
 	    {
@@ -745,8 +766,7 @@ remove_unused_locals (void)
 	&& TREE_CODE (t) != PARM_DECL
 	&& TREE_CODE (t) != RESULT_DECL
 	&& !(ann = var_ann (t))->used
-	&& !TREE_ADDRESSABLE (t)
-	&& (optimize || DECL_ARTIFICIAL (t)))
+	&& !TREE_ADDRESSABLE (t))
       remove_referenced_var (t);
   remove_unused_scope_block_p (DECL_INITIAL (current_function_decl));
   if (dump_file && (dump_flags & TDF_DETAILS))

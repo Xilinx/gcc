@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "params.h"
 #include "tree-flow.h"
+#include "plugin.h"
 
 /* Prefer MAP_ANON(YMOUS) to /dev/zero, since we don't need to keep a
    file open.  Prefer either to valloc.  */
@@ -1938,6 +1939,8 @@ ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
   /* Indicate that we've seen collections at this context depth.  */
   G.context_depth_collections = ((unsigned long)1 << (G.context_depth + 1)) - 1;
 
+  invoke_plugin_callbacks (PLUGIN_GGC_START, NULL);
+
   clear_marks ();
   ggc_mark_roots_extra_marking (walkrout, walkdata);
 #ifdef GATHER_STATISTICS
@@ -1948,6 +1951,8 @@ ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
   sweep_pages ();
 
   G.allocated_last_gc = G.allocated;
+
+  invoke_plugin_callbacks (PLUGIN_GGC_END, NULL);
 
   timevar_pop (TV_GC);
 

@@ -2232,6 +2232,9 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 #define TI_TEMPLATE(NODE) (TREE_PURPOSE (NODE))
 #define TI_ARGS(NODE) (TREE_VALUE (NODE))
 #define TI_PENDING_TEMPLATE_FLAG(NODE) TREE_LANG_FLAG_1 (NODE)
+/* The list of typedefs - used in the template - that need
+   access checking at template instantiation time.  */
+#define TI_TYPEDEFS_NEEDING_ACCESS_CHECKING(NODE) (TREE_CHAIN (NODE))
 
 /* We use TREE_VECs to hold template arguments.  If there is only one
    level of template arguments, then the TREE_VEC contains the
@@ -3159,11 +3162,6 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    && !DECL_UNBOUND_CLASS_TEMPLATE_P (NODE) \
    && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == TYPE_DECL \
    && !DECL_TEMPLATE_TEMPLATE_PARM_P (NODE))
-
-/* The chained list of typedefs that are referenced in templates.
-   These typedefs need to be access checked at template instantiation time.
-   There are put here at parsing time.  */
-#define MEMBER_TYPES_NEEDING_ACCESS_CHECK(NODE) DECL_ACCESS (NODE)
 
 /* Nonzero if NODE which declares a type.  */
 #define DECL_DECLARES_TYPE_P(NODE) \
@@ -4193,7 +4191,7 @@ extern tree build_op_call			(tree, VEC(tree,gc) **,
 extern tree build_op_delete_call		(enum tree_code, tree, tree, bool, tree, tree);
 extern bool can_convert				(tree, tree);
 extern bool can_convert_arg			(tree, tree, tree, int);
-extern bool can_convert_arg_bad			(tree, tree, tree);
+extern bool can_convert_arg_bad			(tree, tree, tree, int);
 extern bool enforce_access			(tree, tree, tree);
 extern tree convert_default_arg			(tree, tree, tree, int);
 extern tree convert_arg_to_ellipsis		(tree);
@@ -4572,6 +4570,7 @@ extern bool template_parameter_pack_p           (const_tree);
 extern tree make_pack_expansion                 (tree);
 extern bool check_for_bare_parameter_packs      (tree);
 extern tree get_template_info			(tree);
+extern tree get_types_needing_access_check	(tree);
 extern int template_class_depth			(tree);
 extern int is_specialization_of			(tree, tree);
 extern bool is_specialization_of_friend		(tree, tree);
@@ -4828,7 +4827,7 @@ extern void init_tree				(void);
 extern int pod_type_p				(const_tree);
 extern bool class_tmpl_impl_spec_p		(const_tree);
 extern int zero_init_p				(const_tree);
-extern tree canonical_type_variant		(tree);
+extern tree strip_typedefs			(tree);
 extern tree copy_binfo				(tree, tree, tree,
 						 tree *, int);
 extern int member_p				(const_tree);

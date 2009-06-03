@@ -6746,10 +6746,9 @@ sh_expand_epilogue (bool sibcall_p)
 
   if (frame_pointer_needed)
     {
-      /* We must avoid scheduling the epilogue with previous basic blocks
-	 when exception handling is enabled.  See PR/18032.  */
-      if (flag_exceptions)
-	emit_insn (gen_blockage ());
+      /* We must avoid scheduling the epilogue with previous basic blocks.
+	 See PR/18032 and PR/40313.  */
+      emit_insn (gen_blockage ());
       output_stack_adjust (frame_size, hard_frame_pointer_rtx, e,
 			   &live_regs_mask);
 
@@ -11085,7 +11084,7 @@ sh_expand_t_scc (rtx operands[])
     emit_insn (gen_movt (result));
   else if (TARGET_SH2A && ((code == EQ && val == 0)
 			    || (code == NE && val == 1)))
-    emit_insn (gen_movrt (result));
+    emit_insn (gen_xorsi3_movrt (result));
   else if ((code == EQ && val == 0) || (code == NE && val == 1))
     {
       emit_clobber (result);

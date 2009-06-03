@@ -7384,7 +7384,14 @@ outputting a single uninitialized variable.
 A C statement (sans semicolon) to output to the stdio stream
 @var{stream} the assembler definition of a common-label named
 @var{name} whose size is @var{size} bytes.  The variable @var{rounded}
-is the size rounded up to whatever alignment the caller wants.
+is the size rounded up to whatever alignment the caller wants.  It is
+possible that @var{size} may be zero, for instance if a struct with no
+other member than a zero-length array is defined.  In this case, the
+backend must output a symbol definition that allocates at least one
+byte, both so that the address of the resulting object does not compare
+equal to any other, and because some object formats cannot even express
+the concept of a zero-sized common symbol, as that is how they represent
+an ordinary undefined external.
 
 Use the expression @code{assemble_name (@var{stream}, @var{name})} to
 output the name itself; before and after that, output the additional
@@ -10852,3 +10859,21 @@ cannot safely move arguments from the registers in which they are passed
 to the stack.  Therefore, this hook should return true in general, but
 false for naked functions.  The default implementation always returns true.
 @end deftypefn
+
+
+@deftypevr {Target Hook} {unsigned HOST_WIDE_INT} TARGET_CONST_ANCHOR
+On some architectures it can take multiple instructions to synthesize
+a constant.  If there is another constant already in a register that
+is close enough in value then it is preferable that the new constant
+is computed from this register using immediate addition or
+substraction.  We accomplish this through CSE.  Besides the value of
+the constant we also add a lower and an upper constant anchor to the
+available expressions.  These are then queried when encountering new
+constants.  The anchors are computed by rounding the constant up and
+down to a multiple of the value of @code{TARGET_CONST_ANCHOR}.
+@code{TARGET_CONST_ANCHOR} should be the maximum positive value
+accepted by immediate-add plus one.  We currently assume that the
+value of @code{TARGET_CONST_ANCHOR} is a power of 2.  For example, on
+MIPS, where add-immediate takes a 16-bit signed value,
+@code{TARGET_CONST_ANCHOR} is set to @samp{0x8000}.  The default value
+is zero, which disables this optimization.  @end deftypevr

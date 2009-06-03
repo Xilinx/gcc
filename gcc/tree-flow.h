@@ -679,7 +679,6 @@ int loop_depth_of_name (tree);
 tree degenerate_phi_result (gimple);
 
 /* In tree-ssa-copy.c  */
-extern void merge_alias_info (tree, tree);
 extern void propagate_value (use_operand_p, tree);
 extern void propagate_tree_value (tree *, tree);
 extern void propagate_tree_value_into_stmt (gimple_stmt_iterator *, tree);
@@ -911,6 +910,7 @@ void mark_addressable (tree);
 /* In tree-ssa-live.c */
 extern void remove_unused_locals (void);
 extern void dump_scope_blocks (FILE *, int);
+extern void debug_scope_blocks (int);
 
 /* In tree-ssa-address.c  */
 

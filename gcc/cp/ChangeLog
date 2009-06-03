@@ -1,3 +1,98 @@
+2009-06-02  Mark Mitchell  <mark@codesourcery.com>
+
+	* decl.c (maybe_deduce_size_from_array_init): Use relayout_decl.
+
+2009-06-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40308
+	PR c++/40311
+	* typeck.c (cp_build_modify_expr): Always pass init-lists to the
+	conversion code.
+	* call.c (implicit_conversion): Allow init-list conversion to scalar
+	during direct-initialization, too.  Mark the conversion bad if it
+	has too many levels of braces.
+	(convert_like_real): And give a helpful error.
+
+	PR c++/40306
+	PR c++/40307
+	* decl.c (cp_finish_decl): Handle auto deduction from ().
+	* typeck.c (build_x_indirect_ref): Handle dereferencing an operand
+	with dependent type that is known to be a pointer.
+
+2009-06-02  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/38089
+	* pt.c (register_specialization): Properly setup DECL_CONTEXT for
+	specializations in an invalid namespace.
+
+2009-06-01  Aldy Hernandez  <aldyh@redhat.com>
+
+	* error.c (print_instantiation_partial_context): Print column
+	numbers.
+
+2009-05-29  Ian Lance Taylor  <iant@google.com>
+
+	* error.c (cp_printer): Don't use va_arg with enum type.
+
+2009-05-28  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/39754
+	* cp-tree.h (canonical_type_variant): Remove this function declaration.
+	(strip_typedefs): New function declaration.
+	* tree.c (strip_typedefs): New function definition.
+	(canonical_type_variant): Remove function definition.
+	* cvt.c (convert_from_reference): No need to use
+	canonical_type_variant.
+	* typeck.c (cp_build_indirect_ref): Likewise.
+	* error.c (dump_template_bindings): Use strip_typedefs instead of
+	canonical_type_variant.
+	* pt.c (convert_template_argument, unify): Likewise.
+	* mangle.c (canonicalize_for_substitution): Don't use
+	canonical_type_variant.
+
+2009-05-27  Jason Merrill  <jason@redhat.com>
+
+	* call.c (implicit_conversion): Handle conversion from
+	initializer-list to scalar.
+	(convert_like_real): Likewise.  Avoid crashing on list
+	initialization with bad conversions.
+	(can_convert): Use LOOKUP_EXPLICIT.
+	(can_convert_arg_bad): Add flags parm.
+	* cp-tree.h: Adjust.
+	* typeck.c (convert_for_assignment): Pass flags.
+
+2009-05-27  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (g++$(exeext)): Change $(COMPILER) to $(LINKER).
+	(cc1plus-dummy$(exeext), cc1plus$(exeext)): Likewise.
+
+2009-05-26  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (g++spec.o): Use $(COMPILER).
+	(g++$(exeext), cc1plus-dummy$(exeext)): Likewise.
+	(cc1plus$(exeext)): Likewise.
+
+2009-05-26  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/40007
+	* cp-tree.h (MEMBER_TYPES_NEEDING_ACCESS_CHECK): Remove this accessor.
+	(TI_TYPEDEFS_NEEDING_ACCESS_CHECKING): New accessor.
+	(get_types_needing_access_check): Declare new entry point.
+	* pt.c (append_type_to_template_for_access_check_1,
+	get_types_needing_access_check): New functions.
+	(perform_typedefs_access_check): Accept FUNCTION_DECLs and
+	RECORD_TYPEs rather than TEMPLATE_DECLs. Use the new
+	get_types_needing_access_check, no more
+	MEMBER_TYPES_NEEDING_ACCESS_CHECK.
+	(instantiate_class_template): Set input_location to the source
+	location of the most specialized template definition.
+	Perform access check using the RECORD_TYPE of the template, not its
+	associated most generic TEMPLATE_DECL.
+	(append_type_to_template_for_access_check): Augment function
+	comments. Use the new get_types_needing_access_check, not
+	MEMBER_TYPE_NEEDING_ACCESS_CHECK. Use the new
+	append_type_to_template_for_access_check_1 subroutine.
+
 2009-05-22  Jason Merrill  <jason@redhat.com>
 
 	PR c++/38064

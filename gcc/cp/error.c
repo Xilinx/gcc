@@ -322,7 +322,7 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
       t = tsubst (t, args, tf_none, NULL_TREE);
       /* Strip typedefs.  We can't just use TFF_CHASE_TYPEDEF because
 	 pp_simple_type_specifier doesn't know about it.  */
-      t = canonical_type_variant (t);
+      t = strip_typedefs (t);
       dump_type (t, TFF_PLAIN_IDENTIFIER);
     }
 }
@@ -2705,19 +2705,30 @@ print_instantiation_partial_context (diagnostic_context *context,
 				     struct tinst_level *t, location_t loc)
 {
   expanded_location xloc;
+  const char *str;
   for (; ; t = t->next)
     {
       xloc = expand_location (loc);
       if (t == NULL)
 	break;
-      pp_verbatim (context->printer, _("%s:%d:   instantiated from %qs\n"),
-		   xloc.file, xloc.line,
-		   decl_as_string_translate (t->decl,
-					     TFF_DECL_SPECIFIERS | TFF_RETURN_TYPE));
+      str = decl_as_string_translate (t->decl,
+	  			      TFF_DECL_SPECIFIERS | TFF_RETURN_TYPE);
+      if (flag_show_column)
+	pp_verbatim (context->printer,
+		     _("%s:%d:%d:   instantiated from %qs\n"),
+		     xloc.file, xloc.line, xloc.column, str);
+      else
+	pp_verbatim (context->printer,
+		     _("%s:%d:   instantiated from %qs\n"),
+		     xloc.file, xloc.line, str);
       loc = t->locus;
     }
-  pp_verbatim (context->printer, _("%s:%d:   instantiated from here"),
-	       xloc.file, xloc.line);
+  if (flag_show_column)
+    pp_verbatim (context->printer, _("%s:%d:%d:   instantiated from here"),
+		 xloc.file, xloc.line, xloc.column);
+  else
+    pp_verbatim (context->printer, _("%s:%d:   instantiated from here"),
+		 xloc.file, xloc.line);
   pp_base_newline (context->printer);
 }
 
@@ -2761,8 +2772,8 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
   const char *result;
   tree t = NULL;
 #define next_tree    (t = va_arg (*text->args_ptr, tree))
-#define next_tcode   va_arg (*text->args_ptr, enum tree_code)
-#define next_lang    va_arg (*text->args_ptr, enum languages)
+#define next_tcode   ((enum tree_code) va_arg (*text->args_ptr, int))
+#define next_lang    ((enum languages) va_arg (*text->args_ptr, int))
 #define next_int     va_arg (*text->args_ptr, int)
 
   if (precision != 0 || wide)

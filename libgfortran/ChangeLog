@@ -1,3 +1,46 @@
+2009-05-29  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/40019
+	* intrinsics/bit_intrinsics.c: New file.
+	* gfortran.map (GFORTRAN_1.2): New list.
+	* Makefile.am: Add intrinsics/bit_intrinsics.c.
+	* Makefile.in: Regenerate.
+
+2009-05-29  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/40190
+	* configure.ac: Check for localtime_r and gmtime_r.
+	* intrinsics/date_and_time.c: Add fallback implementations for
+	localtime_r and gmtime_r.
+	(date_and_time): Change to use localtime_r and gmtime_r instead of
+	localtime and gmtime, respectively.
+	(itime0): Use localtime_r instead of localtime.
+	(ltime_0): Likewise.
+	(gmtime_0): Use gmtime_r instead of gmtime.
+	* config.h.in: Regenerated
+	* configure: Regenerated.
+
+2009-05-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/39178
+	* runtime/main.c (store_exe_path): Remove static attribute.
+	* libgfortran.h: Add back store_exe_path prototype.
+
+2009-05-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/40187
+	* intrinsics/iso_c_binding.c (c_f_pointer_u0):  Take care
+	of stride in "shape" argument.
+
+2009-05-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39178
+	* runtime/main.c (store_exe_path): Make static
+	and multiple-times callable.
+	(set_args): Call store_exe_path.
+	* libgfortran.h: Remove store_exe_path prototype.
+	* fmain.c (main): Remove store_exe_path call.
+
 2009-05-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/37754
