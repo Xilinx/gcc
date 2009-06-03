@@ -320,7 +320,7 @@ if_region_get_condition_block (ifsese if_region)
    names used after block copy in the new loop context.  */
 typedef struct rename_map_elt
 {
-  tree old_name, new_name;
+  tree old_name, expr;
 } *rename_map_elt;
 
 DEF_VEC_P(rename_map_elt);
@@ -334,13 +334,13 @@ extern void set_rename (htab_t, tree, tree);
 /* Constructs a new SCEV_INFO_STR structure for VAR and INSTANTIATED_BELOW.  */
 
 static inline rename_map_elt
-new_rename_map_elt (tree old_name, tree new_name)
+new_rename_map_elt (tree old_name, tree expr)
 {
   rename_map_elt res;
   
   res = XNEW (struct rename_map_elt);
   res->old_name = old_name;
-  res->new_name = new_name;
+  res->expr = expr;
 
   return res;
 }

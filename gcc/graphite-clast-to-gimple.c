@@ -500,16 +500,14 @@ build_iv_mapping (htab_t map, sese region,
 
   for (t = user_stmt->substitutions; t; t = t->next, index++)
     {
-      gimple_seq stmts;
       struct clast_expr *expr = (struct clast_expr *) 
        ((struct clast_assignment *)t)->RHS;
       tree type = gcc_type_for_clast_expr (expr, region, newivs,
 					   newivs_index);
       tree old_name = pbb_to_depth_to_oldiv (pbb, index);
-      tree new_name = clast_to_gcc_expression (type, expr, region, newivs,
-					       newivs_index);
-      new_name = force_gimple_operand (new_name, &stmts, true, NULL_TREE);
-      set_rename (map, old_name, new_name);
+      tree e = clast_to_gcc_expression (type, expr, region, newivs,
+					newivs_index);
+      set_rename (map, old_name, e);
     }
 }
 
@@ -521,7 +519,7 @@ copy_renames (void **slot, void *s)
   struct rename_map_elt *entry = (struct rename_map_elt *) *slot;
   htab_t res = (htab_t) s;
   tree old_name = entry->old_name;
-  tree new_name = entry->new_name;
+  tree expr = entry->expr;
   struct rename_map_elt tmp;
   PTR *x;
 
@@ -529,7 +527,7 @@ copy_renames (void **slot, void *s)
   x = htab_find_slot (res, &tmp, INSERT);
 
   if (!*x)
-    *x = new_rename_map_elt (old_name, new_name);
+    *x = new_rename_map_elt (old_name, expr);
 
   return 1;
 }

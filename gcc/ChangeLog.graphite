@@ -1,4 +1,21 @@
-2009-06-03  Sebastian Pop  <sebastian.pop@amd.com
+2009-06-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (build_iv_mapping): Insert full
+	expressions for an IV rename, as returned by clast_to_gcc_expression.
+	(copy_renames): Rename new_name to expr.
+	* sese.c (debug_rename_elt): Same.
+	(get_rename): Same.
+	(set_rename): Same.
+	(sese_adjust_liveout_phis): Call force_gimple_operand before using
+	the information from the rename map.
+	(rename_variables_in_stmt): Same.
+	(add_loop_exit_phis): Rename new_name to expr.
+	(insert_loop_close_phis): Same.
+	(add_guard_exit_phis): Same.  Call force_gimple_operand.
+	* sese.h (struct rename_map_elt): Rename new_name to expr.
+	(new_rename_map_elt): Same.
+
+2009-06-03  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-clast-to-gimple.c (build_iv_mapping): Use set_rename.
 	* sese.c (set_rename): Make it extern.

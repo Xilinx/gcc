@@ -51,7 +51,7 @@ debug_rename_elt (rename_map_elt elt)
   fprintf (stderr, "(");
   print_generic_expr (stderr, elt->old_name, 0);
   fprintf (stderr, ", ");
-  print_generic_expr (stderr, elt->new_name, 0);
+  print_generic_expr (stderr, elt->expr, 0);
   fprintf (stderr, ")\n");
 }
 
@@ -420,20 +420,20 @@ get_rename (htab_t map, tree old_name)
   slot = htab_find_slot (map, &tmp, NO_INSERT);
 
   if (slot && *slot)
-    return ((rename_map_elt) *slot)->new_name;
+    return ((rename_map_elt) *slot)->expr;
 
   return old_name;
 }
 
-/* Register in MAP the rename tuple (old_name, new_name).  */
+/* Register in MAP the rename tuple (old_name, expr).  */
 
 void
-set_rename (htab_t map, tree old_name, tree new_name)
+set_rename (htab_t map, tree old_name, tree expr)
 {
   struct rename_map_elt tmp;
   PTR *slot;
 
-  if (old_name == new_name)
+  if (old_name == expr)
     return;
 
   tmp.old_name = old_name;
@@ -445,7 +445,7 @@ set_rename (htab_t map, tree old_name, tree new_name)
   if (*slot)
     free (*slot);
 
-  *slot = new_rename_map_elt (old_name, new_name);
+  *slot = new_rename_map_elt (old_name, expr);
 }
 
 /* Adjusts the phi nodes in the block BB for variables defined in
@@ -490,9 +490,14 @@ sese_adjust_liveout_phis (sese region, htab_t rename_map, basic_block bb,
 	if (gimple_phi_arg_edge (phi, i) == true_e)
 	  {
 	    tree old_name = gimple_phi_arg_def (phi, false_i);
-	    tree new_name = get_rename (rename_map, old_name);
+	    tree expr = get_rename (rename_map, old_name);
+	    tree new_name;
+	    gimple_seq stmts;
 
-	    gcc_assert (old_name != new_name);
+	    gcc_assert (old_name != expr);
+
+	    new_name = force_gimple_operand (expr, &stmts, true, NULL);
+	    gsi_insert_seq_on_edge_immediate (true_e, stmts);
 	    SET_PHI_ARG_DEF (phi, i, new_name);
 	  }
     }
@@ -505,12 +510,17 @@ rename_variables_in_stmt (gimple stmt, htab_t map)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
+  gimple_stmt_iterator gsi = gsi_start_bb (gimple_bb (stmt));
 
   FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_USE)
     {
       tree use = USE_FROM_PTR (use_p);
-      tree new_name = get_rename (map, use);
+      tree expr = get_rename (map, use);
+      tree new_name;
+      gimple_seq stmts;
 
+      new_name = force_gimple_operand (expr, &stmts, true, NULL);
+      gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
       replace_exp (use_p, new_name);
     }
 
@@ -881,7 +891,7 @@ add_loop_exit_phis (void **slot, void *data)
   struct rename_map_elt *entry;
   alep_p a;
   loop_p loop;
-  tree new_name;
+  tree expr, new_name;
   bool def_in_loop_p, used_outside_p, need_close_phi_p;
   gimple old_close_phi;
 
@@ -891,11 +901,12 @@ add_loop_exit_phis (void **slot, void *data)
   entry = (struct rename_map_elt *) *slot;
   a = (alep_p) data;
   loop = a->loop;
-  new_name = entry->new_name;
+  expr = entry->expr;
 
-  if (TREE_CODE (new_name) != SSA_NAME)
+  if (TREE_CODE (expr) != SSA_NAME)
     return 1;
 
+  new_name = expr;
   def_in_loop_p = defined_in_loop_p (new_name, loop);
   old_close_phi = alive_after_loop (entry->old_name);
   used_outside_p = (old_close_phi != NULL);
@@ -946,7 +957,7 @@ insert_loop_close_phis (htab_t map, loop_p loop)
 
   for (i = 0; VEC_iterate (rename_map_elt, a.new_renames, i, elt); i++)
     {
-      set_rename (map, elt->old_name, elt->new_name);
+      set_rename (map, elt->old_name, elt->expr);
       free (elt);
     }
 
@@ -988,16 +999,19 @@ add_guard_exit_phis (void **slot, void *s)
   basic_block bb = i->bb;
   edge true_edge = i->true_edge;
   edge false_edge = i->false_edge;
-  tree name1 = entry->new_name;
+  tree name1 = entry->expr;
   tree name2 = default_before_guard (i->before_guard, entry->old_name);
   gimple phi;
   tree res;
+  gimple_seq stmts;
 
   /* Nothing to be merged if the name before the guard is the same as
      the one after.  */
   if (name1 == name2)
     return 1;
 
+  name1 = force_gimple_operand (name1, &stmts, true, NULL);
+  gsi_insert_seq_on_edge_immediate (true_edge, stmts);
   phi = create_phi_node (name1, bb);
   res = create_new_def_for (gimple_phi_result (phi), phi,
 			    gimple_phi_result_ptr (phi));
@@ -1005,7 +1019,7 @@ add_guard_exit_phis (void **slot, void *s)
   add_phi_arg (phi, name1, true_edge);
   add_phi_arg (phi, name2, false_edge);
 
-  entry->new_name = res;
+  entry->expr = res;
   *slot = entry;
   return 1;
 }
