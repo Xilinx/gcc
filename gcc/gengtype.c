@@ -1,5 +1,5 @@
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -128,7 +128,7 @@ typedef struct outf * outf_p;
 
 /* An output file, suitable for definitions, that can see declarations
    made in INPUT_FILE and is linked into every language that uses
-   INPUT_FILE.  */
+   INPUT_FILE.  May return null in plugin mode. */
 extern outf_p get_output_file_with_visibility
    (const char *input_file);
 const char *get_output_file_name (const char *);
@@ -139,6 +139,10 @@ static void oprintf (outf_p o, const char *S, ...)
 
 /* The list of output files.  */
 static outf_p output_files;
+
+/* the plugin input file; in that case only one gt-<plugin>.h is
+   generated */
+static char* plugin_file;
 
 /* The output header file that is included into pretty much every
    source file.  */
@@ -274,7 +278,7 @@ measure_input_list (FILE *list)
   int c;
   bool atbol = true;
   num_lang_dirs = 0;
-  num_gt_files = 0;
+  num_gt_files = plugin_file ? 1 : 0;
   while ((c = getc (list)) != EOF)
     {
       n++;
@@ -455,6 +459,9 @@ read_input_list (const char *listname)
       /* Update the global counts now that we know accurately how many
 	 things there are.  (We do not bother resizing the arrays down.)  */
       num_lang_dirs = langno;
+      /* add the plugin file if provided */
+      if (plugin_file) 
+	gt_files[nfiles++] = plugin_file;
       num_gt_files = nfiles;
     }
 
@@ -962,6 +969,8 @@ write_rtx_next (void)
 {
   outf_p f = get_output_file_with_visibility (NULL);
   int i;
+  if (!f) 
+    return;
 
   oprintf (f, "\n/* Used to implement the RTX_NEXT macro.  */\n");
   oprintf (f, "const unsigned char rtx_next[NUM_RTX_CODE] = {\n");
@@ -1449,7 +1458,7 @@ static outf_p
 create_file (const char *name, const char *oname)
 {
   static const char *const hdr[] = {
-    "   Copyright (C) 2004, 2007 Free Software Foundation, Inc.\n",
+    "   Copyright (C) 2004, 2007, 2009 Free Software Foundation, Inc.\n",
     "\n",
     "This file is part of GCC.\n",
     "\n",
@@ -1472,6 +1481,8 @@ create_file (const char *name, const char *oname)
   outf_p f;
   size_t i;
 
+  gcc_assert (name != NULL);
+  gcc_assert (oname != NULL);
   f = XCNEW (struct outf);
   f->next = output_files;
   f->name = oname;
@@ -1494,6 +1505,11 @@ oprintf (outf_p o, const char *format, ...)
   char *s;
   size_t slength;
   va_list ap;
+
+  /* in plugin mode, the O could be a null pointer, so avoid crashing
+     in that case */
+  if (!o) 
+    return;
 
   va_start (ap, format);
   slength = vasprintf (&s, format, ap);
@@ -1524,6 +1540,9 @@ open_base_files (void)
 {
   size_t i;
 
+  if (plugin_file)
+    return;
+
   header_file = create_file ("GCC", "gtype-desc.h");
 
   base_files = XNEWVEC (outf_p, num_lang_dirs);
@@ -1542,11 +1561,7 @@ open_base_files (void)
       "hard-reg-set.h", "basic-block.h", "cselib.h", "insn-addr.h",
       "optabs.h", "libfuncs.h", "debug.h", "ggc.h", "cgraph.h",
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
-      "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h", 
-#if ENABLE_BASILYSMELT
-      "basilys.h",
-#endif
-      NULL
+      "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h", NULL
     };
     const char *const *ifp;
     outf_p gtype_desc_c;
@@ -1690,6 +1705,13 @@ get_output_file_with_visibility (const char *input_file)
   if (input_file == NULL)
     input_file = "system.h";
 
+  /* in plugin mode, return null unless the input_file is the plugin */
+  if (plugin_file) 
+    { 
+      if (strcmp(input_file, plugin_file))
+	return NULL;
+    }
+
   /* Determine the output file name.  */
   basename = get_file_basename (input_file);
 
@@ -1741,6 +1763,7 @@ get_output_file_with_visibility (const char *input_file)
   /* If not, create it.  */
   r = create_file (for_name, output_name);
 
+  gcc_assert(r && r->name);
   return r;
 }
 
@@ -1751,7 +1774,10 @@ get_output_file_with_visibility (const char *input_file)
 const char *
 get_output_file_name (const char *input_file)
 {
-  return get_output_file_with_visibility (input_file)->name;
+  outf_p o =  get_output_file_with_visibility (input_file);
+  if (o)
+    return o->name;
+  return NULL;
 }
 
 /* Copy the output to its final destination,
@@ -1791,6 +1817,9 @@ close_output_files (void)
 	fatal ("opening output file %s: %s", of->name, strerror (errno));
       if (fwrite (of->buf, 1, of->bufused, newfile) != of->bufused)
 	fatal ("writing output file %s: %s", of->name, strerror (errno));
+      if (plugin_file)
+	fprintf (stderr, "wrote output file %s for plugin %s\n",
+		 of->name, plugin_file);
       if (fclose (newfile) != 0)
 	fatal ("closing output file %s: %s", of->name, strerror (errno));
     }
@@ -2662,7 +2691,7 @@ write_types (type_p structures, type_p param_structs,
 	     const struct write_types_data *wtd)
 {
   type_p s;
-
+  
   oprintf (header_file, "\n/* %s*/\n", wtd->comment);
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
@@ -2816,7 +2845,6 @@ write_local_func_for_structure (type_p orig_s, type_p s, type_p *param)
 
   memset (&d, 0, sizeof (d));
   d.of = get_output_file_with_visibility (fn);
-
   d.process_field = write_types_local_process_field;
   d.opt = s->u.s.opt;
   d.line = &s->u.s.line;
@@ -2852,6 +2880,8 @@ write_local (type_p structures, type_p param_structs)
 {
   type_p s;
 
+  if (!header_file) 
+    return;
   oprintf (header_file, "\n/* Local pointer-walking routines.  */\n");
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
@@ -2937,6 +2967,8 @@ write_enum_defn (type_p structures, type_p param_structs)
 {
   type_p s;
 
+  if (!header_file) 
+    return;
   oprintf (header_file, "\n/* Enumeration of types known.  */\n");
   oprintf (header_file, "enum gt_types_enum {\n");
   for (s = structures; s; s = s->next)
@@ -2987,6 +3019,8 @@ static void
 put_mangled_filename (outf_p f, const char *fn)
 {
   const char *name = get_output_file_name (fn);
+  if (!f || !name) 
+    return;
   for (; *name != 0; name++)
     if (ISALNUM (*name))
       oprintf (f, "%c", *name);
@@ -3002,7 +3036,7 @@ static void
 finish_root_table (struct flist *flp, const char *pfx, const char *lastname,
 		   const char *tname, const char *name)
 {
-  struct flist *fli2;
+  struct flist *fli2 = NULL;
 
   for (fli2 = flp; fli2; fli2 = fli2->next)
     if (fli2->started_p)
@@ -3011,7 +3045,7 @@ finish_root_table (struct flist *flp, const char *pfx, const char *lastname,
 	oprintf (fli2->f, "};\n\n");
       }
 
-  for (fli2 = flp; fli2; fli2 = fli2->next)
+  for (fli2 = flp; fli2 && base_files; fli2 = fli2->next)
     if (fli2->started_p)
       {
 	lang_bitmap bitmap = get_lang_bitmap (fli2->name);
@@ -3030,7 +3064,7 @@ finish_root_table (struct flist *flp, const char *pfx, const char *lastname,
 
   {
     size_t fnum;
-    for (fnum = 0; fnum < num_lang_dirs; fnum++)
+    for (fnum = 0; base_files && fnum < num_lang_dirs; fnum++)
       oprintf (base_files [fnum],
 	       "const struct %s * const %s[] = {\n",
 	       tname, name);
@@ -3045,7 +3079,7 @@ finish_root_table (struct flist *flp, const char *pfx, const char *lastname,
 
 	fli2->started_p = 0;
 
-	for (fnum = 0; bitmap != 0; fnum++, bitmap >>= 1)
+	for (fnum = 0; base_files && bitmap != 0; fnum++, bitmap >>= 1)
 	  if (bitmap & 1)
 	    {
 	      oprintf (base_files[fnum], "  gt_%s_", pfx);
@@ -3056,7 +3090,7 @@ finish_root_table (struct flist *flp, const char *pfx, const char *lastname,
 
   {
     size_t fnum;
-    for (fnum = 0; fnum < num_lang_dirs; fnum++)
+    for (fnum = 0; base_files && fnum < num_lang_dirs; fnum++)
       {
 	oprintf (base_files[fnum], "  NULL\n");
 	oprintf (base_files[fnum], "};\n");
@@ -3289,7 +3323,7 @@ write_roots (pair_p variables)
   for (v = variables; v; v = v->next)
     {
       outf_p f = get_output_file_with_visibility (v->line.file);
-      struct flist *fli;
+      struct flist *fli = NULL;
       const char *length = NULL;
       int deletable_p = 0;
       options_p o;
@@ -3313,7 +3347,7 @@ write_roots (pair_p variables)
 			 v->name, o->name);
 
       for (fli = flp; fli; fli = fli->next)
-	if (fli->f == f)
+	if (fli->f == f && f)
 	  break;
       if (fli == NULL)
 	{
@@ -3322,6 +3356,7 @@ write_roots (pair_p variables)
 	  fli->next = flp;
 	  fli->started_p = 0;
 	  fli->name = v->line.file;
+	  gcc_assert(fli->name);
 	  flp = fli;
 
 	  oprintf (f, "\n/* GC roots.  */\n\n");
@@ -3341,7 +3376,7 @@ write_roots (pair_p variables)
   for (v = variables; v; v = v->next)
     {
       outf_p f = get_output_file_with_visibility (v->line.file);
-      struct flist *fli;
+      struct flist *fli = NULL;
       int skip_p = 0;
       int length_p = 0;
       options_p o;
@@ -3590,17 +3625,28 @@ main (int argc, char **argv)
 {
   size_t i;
   static struct fileloc pos = { this_file, 0 };
-
+  char* inputlist = 0;
   /* fatal uses this */
   progname = "gengtype";
 
-  if (argc != 3)
-    fatal ("usage: gengtype srcdir input-list");
+  if (argc == 5 && !strcmp(argv[1], "-p")) 
+    {
+      srcdir = argv[2];
+      inputlist = argv[3];
+      plugin_file = argv[4];
+    }
+  else if (argc == 3) 
+    {
+      srcdir = argv[1];
+      inputlist = argv[2];
+    } 
+  else
+    fatal ("usage: gengtype srcdir input-list\n"
+	   "\t| gengtype -p srcdir input-list plugin #for plugins");
 
-  srcdir = argv[1];
   srcdir_len = strlen (srcdir);
 
-  read_input_list (argv[2]);
+  read_input_list (inputlist);
   if (hit_error)
     return 1;
 

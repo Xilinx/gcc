@@ -1,4 +1,21 @@
 2009-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	http://gcc.gnu.org/ml/gcc-patches/2009-06/msg00254.html
+	* gengtype.c: Updated copyright.
+	(plugin_file) Added new static variable.
+	(measure_input_list) Care about plugin_file.
+	(write_rtx_next): Added early return in plugin mode.
+	(create_file): Updated copyright year in generated file. Added asserts.
+	(oprintf): Added early return if null outf.
+	(get_output_file_with_visibility): Care of plugin_file.
+	(get_output_file_name): May return null.
+	(close_output_files) Emit a verbose message in plugin mode.
+	(write_local): Added early return.
+	(put_mangled_filename): Ditto.
+	(finish_root_table): Added check for base_files.
+	(write_roots): Care about null when plugins.
+	(main): added plugin mode.
+
+2009-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	[preparing to pluginify MELT. 1. use PLUGIN_GGC_MARKING]
 	* basilys.c (basilys_extra_scanrout_p): removed since never used.
 	(basilys_extra_marking): removed and renamed.
