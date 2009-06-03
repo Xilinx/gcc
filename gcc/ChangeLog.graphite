@@ -1,3 +1,9 @@
+2009-06-03  Sebastian Pop  <sebastian.pop@amd.com
+
+	* graphite-clast-to-gimple.c (build_iv_mapping): Use set_rename.
+	* sese.c (set_rename): Make it extern.
+	* sese.h (set_rename): Declared.
+
 2009-06-03  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-poly.c (extend_scattering): Free values.

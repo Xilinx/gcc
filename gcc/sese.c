@@ -427,7 +427,7 @@ get_rename (htab_t map, tree old_name)
 
 /* Register in MAP the rename tuple (old_name, new_name).  */
 
-static void
+void
 set_rename (htab_t map, tree old_name, tree new_name)
 {
   struct rename_map_elt tmp;

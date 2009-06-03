@@ -493,8 +493,6 @@ build_iv_mapping (htab_t map, sese region,
 		  VEC (tree, heap) *newivs, htab_t newivs_index,
 		  struct clast_user_stmt *user_stmt)
 {
-  struct rename_map_elt tmp;
-  PTR *slot;
   struct clast_stmt *t;
   int index = 0;
   CloogStatement *cs = user_stmt->statement;
@@ -502,23 +500,16 @@ build_iv_mapping (htab_t map, sese region,
 
   for (t = user_stmt->substitutions; t; t = t->next, index++)
     {
-      tree old_name, new_name;
+      gimple_seq stmts;
       struct clast_expr *expr = (struct clast_expr *) 
        ((struct clast_assignment *)t)->RHS;
       tree type = gcc_type_for_clast_expr (expr, region, newivs,
 					   newivs_index);
-
-      old_name = pbb_to_depth_to_oldiv (pbb, index);
-      tmp.old_name = old_name;
-      slot = htab_find_slot (map, &tmp, INSERT);
-
-      if (*slot)
-	free (*slot);
-
-      new_name = clast_to_gcc_expression (type, expr, region, newivs,
-					  newivs_index);
-
-      *slot = new_rename_map_elt (old_name, new_name);
+      tree old_name = pbb_to_depth_to_oldiv (pbb, index);
+      tree new_name = clast_to_gcc_expression (type, expr, region, newivs,
+					       newivs_index);
+      new_name = force_gimple_operand (new_name, &stmts, true, NULL_TREE);
+      set_rename (map, old_name, new_name);
     }
 }
 
