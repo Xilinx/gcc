@@ -383,11 +383,36 @@
 (defclass class_gcc_pass
   :predef CLASS_GCC_PASS
   :super class_named
+  ;; keep the fields list in sync with basilys.h FGCCPASS_*
   :fields (gccpass_gate			;closure for gate
 	   gccpass_exec			;closure for execution
 	   gccpass_data			;extra data
+	   ;;;; the following fields are mimicking their equivalent in
+	   ;;;; struct opt_pass of gcc/tree-pass.h
+	   ;;;;;; if it is a boxed integer, get the integer
+	   ;;;;;; if it is a string or a named, translate it
+	   ;;;;;; if it is a list or a tuple, make an OR mask of them
+	   gccpass_properties_required 
+	   gccpass_properties_provided
+	   gccpass_properties_destroyed
+	   gccpass_todo_flags_start
+	   gccpass_todo_flags_finish
 	   ))
 
+(defclass class_gcc_gimple_pass
+  :predef CLASS_GCC_GIMPLE_PASS
+  :fields (
+))
+
+(defclass class_gcc_rtl_pass
+  :predef CLASS_GCC_RTL_PASS
+  :fields (
+))
+
+(defclass class_gcc_simple_ipa_pass
+  :predef CLASS_GCC_SIMPLE_IPA_PASS
+  :fields (
+))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
 
@@ -3757,7 +3782,10 @@
  class_funmatcher
  class_funmatcher_binding
  class_genercontext
+ class_gcc_gimple_pass
  class_gcc_pass
+ class_gcc_rtl_pass
+ class_gcc_simple_ipa_pass
  class_initgenercontext
  class_instance_binding
  class_keyword

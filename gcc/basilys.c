@@ -111,6 +111,9 @@ extern const unsigned char executable_checksum[16];
 #error MELT_DEFAULT_MODLIS is not defined thru compile flags
 #endif
 
+/* we use the plugin registration facilities, so this is the plugin
+   name in use */
+#define MELT_PLUGIN_NAME "__MELT"
 /* BASILYS_HAS_OBJ_TAB_FIELDS has gone */
 
 
@@ -7497,7 +7500,7 @@ basilys_initialize (void)
   }
   /* we are using register_callback here, even if MELT is not yet a
      plugin; we hope that MELT would become a plugin. */
-  register_callback ("__basilys_melt__", PLUGIN_GGC_MARKING, 
+  register_callback (MELT_PLUGIN_NAME, PLUGIN_GGC_MARKING, 
 		     basilys_marking_callback,
 		     (void*) 0);
   debugeprintf ("basilys_initialize cpp_PREFIX=%s", cpp_PREFIX);
@@ -9252,6 +9255,557 @@ basilys_check_failed (const char *msg, const char *filnam,
 }
 
 
+/* convert a MELT value to a plugin flag or option */
+static unsigned long 
+basilys_val2passflag(basilys_ptr_t val_p)
+{
+  unsigned long res = 0;
+  int valmag = 0;
+  BASILYS_ENTERFRAME (3, NULL);
+#define valv    curfram__.varptr[0]
+#define compv   curfram__.varptr[1]
+#define pairv   curfram__.varptr[2]
+  valv = val_p;
+  if (!valv) goto end;
+  valmag = basilys_magic_discr((basilys_ptr_t) valv);
+  if (valmag == OBMAG_INT || valmag == OBMAG_MIXINT)
+    { 
+      res = basilys_get_int((basilys_ptr_t) valv);
+      goto end;
+    }
+  else if (valmag == OBMAG_OBJECT 
+	   && basilys_is_instance_of((basilys_ptr_t) valv, 
+				     BASILYSG(CLASS_NAMED)))
+    {
+      compv = ((basilysobject_ptr_t)valv)->obj_vartab[FNAMED_NAME];
+      res = basilys_val2passflag((basilys_ptr_t) compv);
+      goto end;
+    }
+  else if (valmag == OBMAG_STRING) {
+    const char *valstr = basilys_string_str((basilys_ptr_t) valv);
+    /* should be kept in sync with the defines in tree-pass.h */
+#define WHENFLAG(F) if (!strcasecmp(valstr, #F)) { res = F; goto end; } 
+    WHENFLAG(PROP_gimple_any);
+    WHENFLAG(PROP_gimple_lcf);		
+    WHENFLAG(PROP_gimple_leh);		
+    WHENFLAG(PROP_cfg);	
+    WHENFLAG(PROP_referenced_vars);
+    WHENFLAG(PROP_ssa);
+    WHENFLAG(PROP_no_crit_edges);
+    WHENFLAG(PROP_rtl);
+    WHENFLAG(PROP_gimple_lomp);
+    WHENFLAG(PROP_cfglayout);
+    WHENFLAG(PROP_trees);
+    /* likewise for TODO flags */
+    WHENFLAG(TODO_dump_func);
+    WHENFLAG(TODO_ggc_collect);
+    WHENFLAG(TODO_verify_ssa);
+    WHENFLAG(TODO_verify_flow);
+    WHENFLAG(TODO_verify_stmts);
+    WHENFLAG(TODO_cleanup_cfg);
+    WHENFLAG(TODO_verify_loops);
+    WHENFLAG(TODO_dump_cgraph);
+    WHENFLAG(TODO_remove_functions);
+    WHENFLAG(TODO_rebuild_frequencies);
+    WHENFLAG(TODO_verify_rtl_sharing);
+    WHENFLAG(TODO_update_ssa);
+    WHENFLAG(TODO_update_ssa_no_phi);
+    WHENFLAG(TODO_update_ssa_full_phi);
+    WHENFLAG(TODO_update_ssa_only_virtuals);
+    WHENFLAG(TODO_remove_unused_locals);
+    WHENFLAG(TODO_df_finish);
+    WHENFLAG(TODO_df_verify);
+    WHENFLAG(TODO_mark_first_instance);
+    WHENFLAG(TODO_rebuild_alias);
+    WHENFLAG(TODO_update_address_taken);
+    WHENFLAG(TODO_update_ssa_any);
+    WHENFLAG(TODO_verify_all);
+#undef WHENFLAG
+    goto end;
+  }
+  else if (valmag == OBMAG_LIST) {
+    for (pairv = ((struct basilyslist_st *) valv)->first;
+	 basilys_magic_discr ((basilys_ptr_t) pairv) ==
+	   OBMAG_PAIR; 
+	 pairv = ((struct basilyspair_st *)pairv)->tl) {
+      compv = ((struct basilyspair_st *)pairv)->hd;
+      res |= basilys_val2passflag((basilys_ptr_t) compv);
+    }
+  }
+  else if (valmag == OBMAG_MULTIPLE) {
+    int i=0, l=0;
+    l = basilys_multiple_length((basilys_ptr_t)valv);
+    for (i=0; i<l; i++) {
+      compv = basilys_multiple_nth((basilys_ptr_t) valv, i);
+      res |= basilys_val2passflag((basilys_ptr_t) compv);
+    }
+  }
+ end:
+  BASILYS_EXITFRAME();
+  return res;
+#undef valv    
+#undef compv   
+#undef pairv   
+}
+
+
+
+
+/* the gate function of MELT gimple passes */
+static bool 
+basilysgc_gimple_gate(void)
+{
+  int ok = 0;
+  BASILYS_ENTERFRAME(6, NULL);
+#define passv        curfram__.varptr[0]
+#define passdictv    curfram__.varptr[1]
+#define closv        curfram__.varptr[2]
+#define resv        curfram__.varptr[3]
+  if (!basilys_mode_string || !basilys_mode_string[0]) 
+    goto end;
+  passdictv =
+    basilys_object_nth_field ((basilys_ptr_t)
+			      BASILYSGOB (INITIAL_SYSTEM_DATA),
+			      FSYSDAT_PASS_DICT);
+  if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
+  gcc_assert(current_pass != NULL);
+  gcc_assert(current_pass->name != NULL);
+  gcc_assert(current_pass->type == GIMPLE_PASS);
+  passv = basilys_get_mapstrings((struct basilysmapstrings_st*) passdictv, current_pass->name);
+  if (!passv 
+      || !basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_GIMPLE_PASS)))
+    goto end;
+  closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
+  if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
+    goto end;
+  resv = 
+    basilys_apply ((struct basilysclosure_st *) closv,
+		   (basilys_ptr_t) passv, "",
+		   (union basilysparam_un *) 0, "",
+		   (union basilysparam_un *) 0);
+  ok = (resv != NULL);
+  /* force a minor GC to be sure that nothing is in the young region */
+  basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
+ end:
+  BASILYS_EXITFRAME();
+  return ok;
+}
+
+
+/* the execute function of MELT gimple passes */
+static unsigned int
+basilysgc_gimple_execute(void)
+{
+  unsigned int res = 0;
+  BASILYS_ENTERFRAME(6, NULL);
+#define passv        curfram__.varptr[0]
+#define passdictv    curfram__.varptr[1]
+#define closv        curfram__.varptr[2]
+#define resvalv        curfram__.varptr[3]
+  if (!basilys_mode_string || !basilys_mode_string[0]) 
+    goto end;
+  passdictv =
+    basilys_object_nth_field ((basilys_ptr_t)
+			      BASILYSGOB (INITIAL_SYSTEM_DATA),
+			      FSYSDAT_PASS_DICT);
+  if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
+  gcc_assert (current_pass != NULL);
+  gcc_assert (current_pass->name != NULL);
+  gcc_assert (current_pass->type == GIMPLE_PASS);
+  passv = basilys_get_mapstrings((struct basilysmapstrings_st *)passdictv, current_pass->name);
+  if (!passv 
+      || !basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_GIMPLE_PASS)))
+    goto end;
+  closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_EXEC);
+  if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
+    goto end;
+  {
+    long passdbgcounter = basilys_dbgcounter;
+    long todol = 0;
+    union basilysparam_un restab[1];
+    memset (&restab, 0, sizeof (restab));
+    restab[0].bp_longptr = &todol;
+    debugeprintf
+      ("gimple_execute passname %s dbgcounter %ld cfun %p ",
+       current_pass->name, basilys_dbgcounter, (void *) cfun);
+    if (cfun && flag_basilys_debug)
+      debug_tree (cfun->decl);
+    debugeprintf ("gimple_execute passname %s before apply",
+		  current_pass->name);
+    /* apply with one extra long result */
+    resvalv =
+      basilys_apply ((struct basilysclosure_st *) closv,
+		     (basilys_ptr_t) passv, "",
+		     (union basilysparam_un *) 0, BPARSTR_LONG "",
+		     restab);
+    debugeprintf ("gimple_execute passname %s after apply dbgcounter %ld",
+		  current_pass->name, passdbgcounter);
+    if (resvalv)
+      res = (unsigned int) todol;
+    /* force a minor GC to be sure that nothing is in the young region */
+    basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
+  }
+ end:
+  BASILYS_EXITFRAME();
+  return res;
+}
+
+
+
+/* the gate function of MELT rtl passes */
+static bool 
+basilysgc_rtl_gate(void)
+{
+  int ok = 0;
+  BASILYS_ENTERFRAME(6, NULL);
+#define passv        curfram__.varptr[0]
+#define passdictv    curfram__.varptr[1]
+#define closv        curfram__.varptr[2]
+#define resv        curfram__.varptr[3]
+  if (!basilys_mode_string || !basilys_mode_string[0]) 
+    goto end;
+  passdictv =
+    basilys_object_nth_field ((basilys_ptr_t)
+			      BASILYSGOB (INITIAL_SYSTEM_DATA),
+			      FSYSDAT_PASS_DICT);
+  if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
+  gcc_assert(current_pass != NULL);
+  gcc_assert(current_pass->name != NULL);
+  gcc_assert(current_pass->type == RTL_PASS);
+  passv = basilys_get_mapstrings((struct basilysmapstrings_st*) passdictv, 
+				  current_pass->name);
+  if (!passv 
+      || !basilys_is_instance_of((basilys_ptr_t) passv, 
+				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_RTL_PASS)))
+    goto end;
+  closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
+  if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
+    goto end;
+  resv = 
+    basilys_apply ((struct basilysclosure_st *) closv,
+		   (basilys_ptr_t) passv, "",
+		   (union basilysparam_un *) 0, "",
+		   (union basilysparam_un *) 0);
+  ok = (resv != NULL);
+  /* force a minor GC to be sure that nothing is in the young region */
+  basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
+ end:
+  BASILYS_EXITFRAME();
+  return ok;
+}
+
+
+/* the execute function of MELT rtl passes */
+static unsigned int
+basilysgc_rtl_execute(void)
+{
+  unsigned int res = 0;
+  BASILYS_ENTERFRAME(6, NULL);
+#define passv        curfram__.varptr[0]
+#define passdictv    curfram__.varptr[1]
+#define closv        curfram__.varptr[2]
+#define namev        curfram__.varptr[3]
+  if (!basilys_mode_string || !basilys_mode_string[0]) 
+    goto end;
+  passdictv =
+    basilys_object_nth_field ((basilys_ptr_t)
+			      BASILYSGOB (INITIAL_SYSTEM_DATA),
+			      FSYSDAT_PASS_DICT);
+  if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
+  gcc_assert (current_pass != NULL);
+  gcc_assert (current_pass->name != NULL);
+  gcc_assert (current_pass->type == RTL_PASS);
+  passv = basilys_get_mapstrings((struct basilysmapstrings_st*) passdictv, 
+				 current_pass->name);
+  if (!passv 
+      || !basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_RTL_PASS)))
+    goto end;
+  closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_EXEC);
+  if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
+    goto end;
+  {
+    long passdbgcounter = basilys_dbgcounter;
+    long todol = 0;
+    union basilysparam_un restab[1];
+    memset (&restab, 0, sizeof (restab));
+    restab[0].bp_longptr = &todol;
+    debugeprintf
+      ("rtl_execute passname %s dbgcounter %ld",
+       current_pass->name, basilys_dbgcounter);
+    debugeprintf ("rtl_execute passname %s before apply",
+		  current_pass->name);
+    /* apply with one extra long result */
+    resvalv =
+      basilys_apply ((struct basilysclosure_st *) closv,
+		     (basilys_ptr_t) passv, "",
+		     (union basilysparam_un *) 0, BPARSTR_LONG "",
+		     restab);
+    debugeprintf ("rtl_execute passname %s after apply dbgcounter %ld",
+		  current_pass->name, passdbgcounter);
+    if (resvalv)
+      res = (unsigned int) todol;
+    /* force a minor GC to be sure that nothing is in the young region */
+    basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
+  }
+ end:
+  BASILYS_EXITFRAME();
+  return res;
+}
+
+
+
+/* the gate function of MELT simple_ipa passes */
+static bool 
+basilysgc_simple_ipa_gate(void)
+{
+  int ok = 0;
+  BASILYS_ENTERFRAME(6, NULL);
+#define passv        curfram__.varptr[0]
+#define passdictv    curfram__.varptr[1]
+#define closv        curfram__.varptr[2]
+#define resv        curfram__.varptr[3]
+  if (!basilys_mode_string || !basilys_mode_string[0]) 
+    goto end;
+  passdictv =
+    basilys_object_nth_field ((basilys_ptr_t)
+			      BASILYSGOB (INITIAL_SYSTEM_DATA),
+			      FSYSDAT_PASS_DICT);
+  if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
+  gcc_assert(current_pass != NULL);
+  gcc_assert(current_pass->name != NULL);
+  gcc_assert(current_pass->type == SIMPLE_IPA_PASS);
+  passv = basilys_get_mapstrings((struct basilysmapstrings_st*) passdictv, 
+				 current_pass->name);
+  if (!passv 
+      || !basilys_is_instance_of((basilys_ptr_t) passv, 
+				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_SIMPLE_IPA_PASS)))
+    goto end;
+  closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
+  if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
+    goto end;
+  resv = 
+    basilys_apply ((struct basilysclosure_st *) closv,
+		   (basilys_ptr_t) passv, "",
+		   (union basilysparam_un *) 0, "",
+		   (union basilysparam_un *) 0);
+  ok = (resv != NULL);
+  /* force a minor GC to be sure that nothing is in the young region */
+  basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
+ end:
+  BASILYS_EXITFRAME();
+  return ok;
+}
+
+
+/* the execute function of MELT simple_ipa passes */
+static unsigned int
+basilysgc_simple_ipa_execute(void)
+{
+  unsigned int res = 0;
+  BASILYS_ENTERFRAME(6, NULL);
+#define passv        curfram__.varptr[0]
+#define passdictv    curfram__.varptr[1]
+#define closv        curfram__.varptr[2]
+#define namev        curfram__.varptr[3]
+  if (!basilys_mode_string || !basilys_mode_string[0]) 
+    goto end;
+  passdictv =
+    basilys_object_nth_field ((basilys_ptr_t)
+			      BASILYSGOB (INITIAL_SYSTEM_DATA),
+			      FSYSDAT_PASS_DICT);
+  if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
+  gcc_assert (current_pass != NULL);
+  gcc_assert (current_pass->name != NULL);
+  gcc_assert (current_pass->type == SIMPLE_IPA_PASS);
+  passv = basilys_get_mapstrings((struct basilysmapstrings_st*)passdictv, 
+				 current_pass->name);
+  if (!passv 
+      || !basilys_is_instance_of((basilys_ptr_t) passv, 
+				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_SIMPLE_IPA_PASS)))
+    goto end;
+  closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_EXEC);
+  if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
+    goto end;
+  {
+    long passdbgcounter = basilys_dbgcounter;
+    long todol = 0;
+    union basilysparam_un restab[1];
+    memset (&restab, 0, sizeof (restab));
+    restab[0].bp_longptr = &todol;
+    debugeprintf
+      ("simple_ipa_execute passname %s dbgcounter %ld",
+       current_pass->name, basilys_dbgcounter);
+    debugeprintf ("simple_ipa_execute passname %s before apply",
+		  current_pass->name);
+    /* apply with one extra long result */
+    resvalv =
+      basilys_apply ((struct basilysclosure_st *) closv,
+		     (basilys_ptr_t) passv, "",
+		     (union basilysparam_un *) 0, BPARSTR_LONG "",
+		     restab);
+    debugeprintf ("simple_ipa_execute passname %s after apply dbgcounter %ld",
+		  current_pass->name, passdbgcounter);
+    if (resvalv)
+      res = (unsigned int) todol;
+    /* force a minor GC to be sure that nothing is in the young region */
+    basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
+  }
+ end:
+  BASILYS_EXITFRAME();
+  return res;
+}
+
+
+
+
+
+/* register a MELT pass; there is no way to unregister it, and the
+   opt_pass and plugin_pass used internally are never deallocated.
+   Non-simple IPA passes are not yet implemented! */
+void
+basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
+				int refpassnum, enum pass_positioning_ops passop)
+{
+  /* the plugin_pass can be local, since it is only locally used in
+     plugin.c */
+  struct plugin_pass plugpass = { NULL, NULL, 0, 0 };
+  unsigned long propreq=0, propprov=0, propdest=0, todostart=0, todofinish=0;
+  BASILYS_ENTERFRAME (7, NULL);
+#define passv        curfram__.varptr[0]
+#define passdictv    curfram__.varptr[1]
+#define compv        curfram__.varptr[2]
+#define namev        curfram__.varptr[3]
+  passv = pass_p;
+  if (!basilys_mode_string || !basilys_mode_string[0]) 
+    goto end;
+  if (!refpassname || !refpassname[0]) 
+    goto end;
+  if (!passv || basilys_object_length((basilys_ptr_t) passv) < FGCCPASS__LAST
+      || !basilys_is_instance_of((basilys_ptr_t) passv, 
+				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_PASS)))
+    goto end;
+  namev = basilys_object_nth_field((basilys_ptr_t) passv, FNAMED_NAME);
+  if (basilys_magic_discr((basilys_ptr_t) namev) != OBMAG_STRING)
+    goto end;
+  passdictv =
+    basilys_object_nth_field ((basilys_ptr_t)
+			      BASILYSGOB (INITIAL_SYSTEM_DATA),
+			      FSYSDAT_PASS_DICT);
+  if (basilys_magic_discr((basilys_ptr_t)passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
+  if (basilys_get_mapstrings((struct basilysmapstrings_st*)passdictv, 
+			     basilys_string_str((basilys_ptr_t) namev)))
+    goto end;
+  compv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_PROPERTIES_REQUIRED);
+  propreq = basilys_val2passflag((basilys_ptr_t) compv);
+  compv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_PROPERTIES_PROVIDED);
+  propprov = basilys_val2passflag((basilys_ptr_t) compv);
+  compv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_TODO_FLAGS_START);
+  todostart = basilys_val2passflag((basilys_ptr_t) compv);
+  compv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_TODO_FLAGS_FINISH);
+  todofinish = basilys_val2passflag((basilys_ptr_t) compv);
+  /* allocate the opt pass and fill it; it is never deallocated (ie it
+     is never free-d)! */
+  if (basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_GIMPLE_PASS))) {
+    struct gimple_opt_pass* gimpass = NULL;     
+    gimpass = XNEW(struct gimple_opt_pass);
+    memset(gimpass, 0, sizeof(struct gimple_opt_pass));
+    gimpass->pass.type = GIMPLE_PASS;
+    /* the name of the pass is also strduped and is never deallocated
+       (so it it never free-d! */
+    gimpass->pass.name = xstrdup(basilys_string_str((basilys_ptr_t) namev));
+    gimpass->pass.gate = basilysgc_gimple_gate;
+    gimpass->pass.execute = basilysgc_gimple_execute;
+    gimpass->pass.tv_id = TV_PLUGIN_RUN;
+    gimpass->pass.properties_required = propreq;
+    gimpass->pass.properties_provided = propprov;
+    gimpass->pass.properties_destroyed = propdest;
+    gimpass->pass.todo_flags_start = todostart;
+    gimpass->pass.todo_flags_finish = todofinish;
+    plugpass.pass = (struct opt_pass*) gimpass;
+    plugpass.reference_pass_name = refpassname;
+    plugpass.ref_pass_instance_number = refpassnum;
+    plugpass.pos_op = passop;
+    register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
+		      NULL, &plugpass);
+    /* add the pass into the pass dict */
+    basilysgc_put_mapstrings((struct basilysmapstrings_st*) passdictv,
+			     gimpass->pass.name, (basilys_ptr_t) passv);
+  }
+  else if (basilys_is_instance_of((basilys_ptr_t) passv, 
+				  (basilys_ptr_t) BASILYSGOB(CLASS_GCC_RTL_PASS))) {
+    struct rtl_opt_pass* rtlpass = NULL;     
+    rtlpass = XNEW(struct rtl_opt_pass);
+    memset(rtlpass, 0, sizeof(struct rtl_opt_pass));
+    rtlpass->pass.type = RTL_PASS;
+    /* the name of the pass is also strduped and is never deallocated
+       (so it it never free-d! */
+    rtlpass->pass.name = xstrdup(basilys_string_str((basilys_ptr_t) namev));
+    rtlpass->pass.gate = basilysgc_rtl_gate;
+    rtlpass->pass.execute = basilysgc_rtl_execute;
+    rtlpass->pass.tv_id = TV_PLUGIN_RUN;
+    rtlpass->pass.properties_required = propreq;
+    rtlpass->pass.properties_provided = propprov;
+    rtlpass->pass.properties_destroyed = propdest;
+    rtlpass->pass.todo_flags_start = todostart;
+    rtlpass->pass.todo_flags_finish = todofinish;
+    plugpass.pass = (struct opt_pass*)rtlpass;
+    plugpass.reference_pass_name = refpassname;
+    plugpass.ref_pass_instance_number = refpassnum;
+    plugpass.pos_op = passop;
+    register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
+		      NULL, &plugpass);
+    /* add the pass into the pass dict */
+    basilysgc_put_mapstrings((struct basilysmapstrings_st*) passdictv,
+			     rtlpass->pass.name, (basilys_ptr_t) passv);
+  }
+  else if (basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_SIMPLE_IPA_PASS))) {
+    struct simple_ipa_opt_pass* sipapass = NULL;     
+    sipapass = XNEW(struct simple_ipa_opt_pass);
+    memset(sipapass, 0, sizeof(struct simple_ipa_opt_pass));
+    sipapass->pass.type = SIMPLE_IPA_PASS;
+    /* the name of the pass is also strduped and is never deallocated
+       (so it it never free-d! */
+    sipapass->pass.name = xstrdup(basilys_string_str((basilys_ptr_t) namev));
+    sipapass->pass.gate = basilysgc_simple_ipa_gate;
+    sipapass->pass.execute = basilysgc_simple_ipa_execute;
+    sipapass->pass.tv_id = TV_PLUGIN_RUN;
+    sipapass->pass.properties_required = propreq;
+    sipapass->pass.properties_provided = propprov;
+    sipapass->pass.properties_destroyed = propdest;
+    sipapass->pass.todo_flags_start = todostart;
+    sipapass->pass.todo_flags_finish = todofinish;
+    plugpass.pass = (struct opt_pass*) sipapass;
+    plugpass.reference_pass_name = refpassname;
+    plugpass.ref_pass_instance_number = refpassnum;
+    plugpass.pos_op = passop;
+    register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
+		      NULL, &plugpass);
+    /* add the pass into the pass dict */
+    basilysgc_put_mapstrings((struct basilysmapstrings_st*) passdictv,
+			     sipapass->pass.name, (basilys_ptr_t) passv);
+  }
+  /* non simple ipa passes are a different story - TODO! */
+  else 
+    fatal_error ("MELT cannot register pass %s of unexpected class %s",
+		 basilys_string_str ((basilys_ptr_t) namev), 
+		 basilys_string_str (basilys_object_nth_field 
+				     ((basilys_ptr_t) basilys_discr((basilys_ptr_t) passv), 
+				      FNAMED_NAME)));
+ end:
+  BASILYS_EXITFRAME();
+#undef passv
+#undef passdictv
+#undef namev
+}
+
+
 /*****************************************************************/
 /*** stuff for passes ***/
 static bool
@@ -9457,7 +10011,7 @@ struct simple_ipa_opt_pass pass_basilys_ipa = {
    NULL,			/* sub */
    NULL,			/* next */
    0,				/* static_pass_number */
-   TV_BASILE_ANALYSIS,		/* tv_id */
+   TV_PLUGIN_RUN,		/* tv_id */
    PROP_cfg | PROP_ssa,		/* properties_required */
    0,				/* properties_provided */
    0,				/* properties_destroyed */
@@ -9477,7 +10031,7 @@ struct gimple_opt_pass pass_basilys_lowering = {
    NULL,			/* sub */
    NULL,			/* next */
    0,				/* static_pass_number */
-   TV_BASILE_ANALYSIS,		/* tv_id */
+   TV_PLUGIN_RUN,		/* tv_id */
    PROP_cfg,			/* properties_required */
    0,				/* properties_provided */
    0,				/* properties_destroyed */
@@ -9497,7 +10051,7 @@ struct gimple_opt_pass pass_basilys_earlyopt = {
    NULL,			/* sub */
    NULL,			/* next */
    0,				/* static_pass_number */
-   TV_BASILE_ANALYSIS,		/* tv_id */
+   TV_PLUGIN_RUN,		/* tv_id */
    PROP_cfg | PROP_ssa,		/* properties_required */
    0,				/* properties_provided */
    0,				/* properties_destroyed */
@@ -9518,7 +10072,7 @@ struct gimple_opt_pass pass_basilys_lateopt = {
    NULL,			/* sub */
    NULL,			/* next */
    0,				/* static_pass_number */
-   TV_BASILE_ANALYSIS,		/* tv_id */
+   TV_PLUGIN_RUN,		/* tv_id */
    PROP_cfg | PROP_ssa,		/* properties_required */
    0,				/* properties_provided */
    0,				/* properties_destroyed */
@@ -9541,7 +10095,7 @@ struct gimple_opt_pass pass_basilys_latessa = {
    NULL,			/* sub */
    NULL,			/* next */
    0,				/* static_pass_number */
-   TV_BASILE_ANALYSIS,		/* tv_id */
+   TV_PLUGIN_RUN,		/* tv_id */
    PROP_cfg | PROP_ssa,		/* properties_required */
    0,				/* properties_provided */
    0,				/* properties_destroyed */

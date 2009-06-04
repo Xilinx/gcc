@@ -62,6 +62,7 @@ along with GCC; see the file COPYING3.   If not see
 
  *****/
 
+#include "gcc-plugin.h"
 
 /* declared in toplev.h which we want to avoid #include-ing */
 extern void fatal_error (const char *, ...);
@@ -2393,6 +2394,13 @@ void basilysgc_ppstrbuf_mpz(basilys_ptr_t sbuf_p, int indentsp, mpz_t mp);
    sbuf_p is nto a strbuf or big_p is not a MELT bigint */
 void basilysgc_ppstrbuf_mixbigint(basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t big_p);
 
+/***************** PASS MANAGEMENT ****************/
+/* register a MELT pass; there is no way to unregister it, and the
+   opt_pass and plugin_pass used internally are never deallocated.
+   Non-simple IPA passes are not yet implemented! */
+void
+basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
+				int refpassnum, enum pass_positioning_ops passop);
 
 /***************** PARMA POLYHEDRA LIBRARY ****************/
 
@@ -2866,8 +2874,14 @@ enum basilys_globalix_en
   BGLOB_ATOM_TRUE,
   /* the class of containers */
   BGLOB_CLASS_CONTAINER,
-  /* the class of basilys GCC compiler passes */
+  /* the super-class of basilys GCC compiler passes */
   BGLOB_CLASS_GCC_PASS,
+  /* the class of basilys GCC GIMPLE passes */
+  BGLOB_CLASS_GCC_GIMPLE_PASS,
+  /* the class of basilys GCC GIMPLE passes */
+  BGLOB_CLASS_GCC_RTL_PASS,
+  /* the class of basilys GCC GIMPLE passes */
+  BGLOB_CLASS_GCC_SIMPLE_IPA_PASS,
   /* the class of C iterators */
   BGLOB_CLASS_CITERATOR,
   /* the class of C matchers [in patterns] */
@@ -3004,9 +3018,14 @@ enum
 
 /* fields inside GCC passes */
 enum {
-  FGCCPASS_GATE = FNAMED__LAST,	/* the fate closure */
+  FGCCPASS_GATE = FNAMED__LAST,	/* the gate closure */
   FGCCPASS_EXEC,		/* the execute closure */
   FGCCPASS_DATA,		/* extra data */
+  FGCCPASS_PROPERTIES_REQUIRED,
+  FGCCPASS_PROPERTIES_PROVIDED,
+  FGCCPASS_PROPERTIES_DESTROYED,
+  FGCCPASS_TODO_FLAGS_START,
+  FGCCPASS_TODO_FLAGS_FINISH,
   FGCCPASS__LAST
 };
 

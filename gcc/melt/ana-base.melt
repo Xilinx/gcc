@@ -48,6 +48,7 @@
   #{ basilysgc_put_gdbmstate((basilys_ptr_t)($key), (basilys_ptr_t)($data)); 
   }# )
 
+(compile_warning "the current install_gcc_pass is soon deprecated - see basilysgc_register_pass in basilys.c" ())
 (defun install_gcc_pass (pass)
   (assert_msg "check pass" (is_a pass class_gcc_pass))
   (mapstring_putstr (unsafe_get_field :sysdata_pass_dict initial_system_data)

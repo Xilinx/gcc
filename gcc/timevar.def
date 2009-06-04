@@ -197,8 +197,6 @@ DEFTIMEVAR (TV_TREE_IFCOMBINE        , "tree if-combine")
 DEFTIMEVAR (TV_PLUGIN_INIT           , "plugin initialization")
 DEFTIMEVAR (TV_PLUGIN_RUN            , "plugin execution")
 
-/* Basilys needs */
-DEFTIMEVAR (TV_BASILE_ANALYSIS       , "Basile's analysis")
 
 /* Everything else in rest_of_compilation not included above.  */
 DEFTIMEVAR (TV_REST_OF_COMPILATION   , "rest of compilation")

@@ -1,3 +1,33 @@
+2009-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	[starting pluginification of MELT]
+	* basilys.h: included "gcc-plugin.h".
+	(basilysgc_register_pass, BGLOB_CLASS_GCC_GIMPLE_PASS)
+	(BGLOB_CLASS_GCC_RTL_PASS, BGLOB_CLASS_GCC_SIMPLE_IPA_PASS)
+	(FGCCPASS_PROPERTIES_REQUIRED, FGCCPASS_PROPERTIES_PROVIDED)
+	(FGCCPASS_PROPERTIES_DESTROYED, FGCCPASS_TODO_FLAGS_START)
+	(FGCCPASS_TODO_FLAGS_FINISH) Added declarations or enums.
+	* basilys.c (MELT_PLUGIN_NAME): added define.
+	(basilys_initialize) register PLUGIN_GGC_MARKING callback.
+	(basilys_val2passflag, basilysgc_gimple_gate)
+	(basilysgc_gimple_execute, basilysgc_rtl_gate)
+	(basilysgc_rtl_execute, basilysgc_simple_ipa_gate)
+	(basilysgc_simple_ipa_execute): Added new functions.
+	(basilysgc_register_pass): Added function, without handling full
+	IPA passes yet!
+	(pass_basilys_ipa, pass_basilys_lowering, pass_basilys_earlyopt)
+	(pass_basilys_lateopt, pass_basilys_latessa): These structures are
+	using TV_PLUGIN_RUN and should become obsolete soon.
+	* gengtype.c (open_base_files): temporarily re-added basilys.h!
+	* timevar.def: removed TV_BASILE_ANALYSIS. Should be same as in
+	trunk.
+	* melt/warmelt-first.melt: added class_gcc_gimple_pass
+	class_gcc_rtl_pass class_gcc_simple_ipa_pass
+	* melt/warmelt-normal.melt: added CLASS_GCC_PASS
+	CLASS_GCC_GIMPLE_PASS CLASS_GCC_RTL_PASS CLASS_GCC_SIMPLE_IPA_PASS
+	predefined. The set of predefined should be better handled
+	[perhaps using awk or m4].
+	* melt/ana-base.melt: will deprecate this install_gcc_pass.
+
 2009-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	http://gcc.gnu.org/ml/gcc-patches/2009-06/msg00254.html
 	* gengtype.c: Updated copyright.
