@@ -1,5 +1,21 @@
 2009-06-03  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.h
+	(pdr_accessp_nb_subscripts): Renamed pdr_nb_subscripts.
+	(pdr_accessp_nb_iterators): Renamed pdr_dim_iter_domain.
+	(pdr_accessp_nb_params): Renamed pdr_nb_params.
+	(pdr_accessp_alias_set_dim): Renamed pdr_alias_set_dim.
+	(pdr_accessp_subscript_dim): Renamed pdr_subscript_dim.
+	(pdr_accessp_iterator_dim): Renamed pdr_iterator_dim.
+	(pdr_accessp_param_dim): Renamed pdr_parameter_dim.
+	(pbb_nb_loops): Renamed pbb_dim_iter_domain.
+	* graphite-clast-to-gimple.c: Same.
+	* graphite-dependences.c: Same.
+	* graphite-poly.c: Same.
+	* graphite-sese-to-poly.c: Same.
+
+2009-06-03  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (build_iv_mapping): Insert full
 	expressions for an IV rename, as returned by clast_to_gcc_expression.
 	(copy_renames): Rename new_name to expr.

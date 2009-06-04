@@ -71,8 +71,12 @@ struct poly_dr
 
       - The iteration domain (variables and parameters) 
 
-     Do not hardcode the dimensions. Use the accessors pdr_accessp_*_dim.
-     
+     Do not hardcode the dimensions.  Use the following accessor functions:
+     - pdr_alias_set_dim
+     - pdr_subscript_dim
+     - pdr_iterator_dim
+     - pdr_parameter_dim
+
      Example:
 
      | int A[1335][123];
@@ -181,10 +185,10 @@ pdr_subscript_dim (poly_dr_p pdr, graphite_dim_t s)
   return pbb_dim_iter_domain (pbb) + pbb_nb_params (pbb) + 1 + s;
 }
 
-/* The dimension in PDR containing iterator ITER.  */
+/* The dimension in PDR containing the loop iteration  .  */
 
 static inline ppl_dimension_type
-pdr_accessp_iterator_dim (poly_dr_p pdr ATTRIBUTE_UNUSED, graphite_dim_t iter)
+pdr_iterator_dim (poly_dr_p pdr ATTRIBUTE_UNUSED, graphite_dim_t iter)
 {
   return iter;
 }
@@ -192,7 +196,7 @@ pdr_accessp_iterator_dim (poly_dr_p pdr ATTRIBUTE_UNUSED, graphite_dim_t iter)
 /* The dimension in PDR containing parameter PARAM.  */
 
 static inline ppl_dimension_type
-pdr_accessp_param_dim (poly_dr_p pdr, graphite_dim_t param)
+pdr_parameter_dim (poly_dr_p pdr, graphite_dim_t param)
 {
   poly_bb_p pbb = PDR_BB (pdr);
 
