@@ -174,7 +174,7 @@ pdr_alias_set_dim (poly_dr_p pdr)
 /* The dimension in PDR containing subscript S.  */
 
 static inline ppl_dimension_type
-pdr_accessp_subscript_dim (poly_dr_p pdr, graphite_dim_t s)
+pdr_subscript_dim (poly_dr_p pdr, graphite_dim_t s)
 {
   poly_bb_p pbb = PDR_BB (pdr);
 
