@@ -155,7 +155,7 @@ pdr_dim_iter_domain (poly_dr_p pdr)
 /* The dimension in PDR containing parameter PARAM.  */
 
 static inline ppl_dimension_type
-pdr_accessp_nb_params (poly_dr_p pdr)
+pdr_nb_params (poly_dr_p pdr)
 {
   poly_bb_p pbb = PDR_BB (pdr);
   return pbb_nb_params (pbb);
