@@ -144,13 +144,12 @@ pdr_accessp_nb_subscripts (poly_dr_p pdr)
   return dim - pbb_nb_loops (pbb) - pbb_nb_params (pbb) - 1;
 }
 
-/* The dimension in PDR containing iterator ITER.  */
+/* The dimension of the iteration domain for PDR.  */
 
 static inline ppl_dimension_type
-pdr_accessp_nb_iterators (poly_dr_p pdr ATTRIBUTE_UNUSED)
+pdr_accessp_nb_iterators (poly_dr_p pdr)
 {
-  poly_bb_p pbb = PDR_BB (pdr);
-  return pbb_nb_loops (pbb);
+  return pbb_nb_loops (PDR_BB (pdr));
 }
 
 /* The dimension in PDR containing parameter PARAM.  */
@@ -270,7 +269,8 @@ pbb_set_black_box (poly_bb_p pbb, void *black_box)
   pbb->black_box = black_box;
 }
 
-/* The number of loops around PBB.  */
+/* The number of loops around PBB: the dimension of the iteration
+   domain.  */
 
 static inline graphite_dim_t
 pbb_nb_loops (const struct poly_bb *pbb)
@@ -283,7 +283,7 @@ pbb_nb_loops (const struct poly_bb *pbb)
 }
 
 /* The number of scattering dimensions in the SCATTERING polyhedron
-   for a given SCOP.  */
+   of a PBB for a given SCOP.  */
 
 static inline graphite_dim_t 
 pbb_nb_scattering_dims (ppl_Polyhedron_t scattering, 
