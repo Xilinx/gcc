@@ -135,7 +135,7 @@ void free_poly_dr (poly_dr_p);
 /* The number of subscript dims in PDR.  */
 
 static inline graphite_dim_t
-pdr_accessp_nb_subscripts (poly_dr_p pdr)
+pdr_nb_subscripts (poly_dr_p pdr)
 {
   poly_bb_p pbb = PDR_BB (pdr);
   ppl_dimension_type dim;

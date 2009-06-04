@@ -318,8 +318,8 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
   graphite_dim_t tdim2 = pbb_nb_scattering_dims (s2, pbb2, scop);
   graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
   graphite_dim_t ddim2 = pbb_dim_iter_domain (pbb2);
-  graphite_dim_t sdim1 = pdr_accessp_nb_subscripts (pdr1) + 1;
-  graphite_dim_t sdim2 = pdr_accessp_nb_subscripts (pdr2) + 1;
+  graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
+  graphite_dim_t sdim2 = pdr_nb_subscripts (pdr2) + 1;
   graphite_dim_t gdim = scop_nb_params (scop);
   graphite_dim_t dim = tdim1 + ddim1 + tdim2 + ddim2 + sdim1 + sdim2 + gdim;
   ppl_Pointset_Powerset_NNC_Polyhedron_t res;
@@ -382,8 +382,8 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
   ppl_Polyhedron_t so2 = PBB_ORIGINAL_SCATTERING (pbb2);
   ppl_Pointset_Powerset_NNC_Polyhedron_t po;
 
-  graphite_dim_t sdim1 = pdr_accessp_nb_subscripts (pdr1) + 1;
-  graphite_dim_t sdim2 = pdr_accessp_nb_subscripts (pdr2) + 1;
+  graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
+  graphite_dim_t sdim2 = pdr_nb_subscripts (pdr2) + 1;
 
   if (sdim1 != sdim2)
     return true;
