@@ -869,7 +869,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
       CloogStatement *stmt = cloog_statement_alloc
 	(GBB_BB (PBB_BLACK_BOX (pbb))->index);
       CloogBlock *block = cloog_block_alloc (stmt, 0, NULL,
-					     pbb_nb_loops (pbb));
+					     pbb_dim_iter_domain (pbb));
 
       cloog_statement_set_usr (stmt, pbb);
 

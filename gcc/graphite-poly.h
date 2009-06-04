@@ -36,7 +36,7 @@ DEF_VEC_ALLOC_P (scop_p, heap);
 
 typedef ppl_dimension_type graphite_dim_t;
 
-static inline graphite_dim_t pbb_nb_loops (const struct poly_bb*);
+static inline graphite_dim_t pbb_dim_iter_domain (const struct poly_bb*);
 static inline graphite_dim_t pbb_nb_scattering (const struct poly_bb*);
 static inline graphite_dim_t pbb_nb_params (poly_bb_p);
 static inline graphite_dim_t scop_nb_params (scop_p);
@@ -141,7 +141,7 @@ pdr_accessp_nb_subscripts (poly_dr_p pdr)
   ppl_dimension_type dim;
 
   ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PDR_ACCESSES (pdr), &dim);
-  return dim - pbb_nb_loops (pbb) - pbb_nb_params (pbb) - 1;
+  return dim - pbb_dim_iter_domain (pbb) - pbb_nb_params (pbb) - 1;
 }
 
 /* The dimension of the iteration domain for PDR.  */
@@ -149,7 +149,7 @@ pdr_accessp_nb_subscripts (poly_dr_p pdr)
 static inline ppl_dimension_type
 pdr_accessp_nb_iterators (poly_dr_p pdr)
 {
-  return pbb_nb_loops (PDR_BB (pdr));
+  return pbb_dim_iter_domain (PDR_BB (pdr));
 }
 
 /* The dimension in PDR containing parameter PARAM.  */
@@ -168,7 +168,7 @@ pdr_accessp_alias_set_dim (poly_dr_p pdr)
 {
   poly_bb_p pbb = PDR_BB (pdr);
 
-  return pbb_nb_loops (pbb) + pbb_nb_params (pbb);
+  return pbb_dim_iter_domain (pbb) + pbb_nb_params (pbb);
 } 
 
 /* The dimension in PDR containing subscript S.  */
@@ -178,7 +178,7 @@ pdr_accessp_subscript_dim (poly_dr_p pdr, graphite_dim_t s)
 {
   poly_bb_p pbb = PDR_BB (pdr);
 
-  return pbb_nb_loops (pbb) + pbb_nb_params (pbb) + 1 + s;
+  return pbb_dim_iter_domain (pbb) + pbb_nb_params (pbb) + 1 + s;
 }
 
 /* The dimension in PDR containing iterator ITER.  */
@@ -196,7 +196,7 @@ pdr_accessp_param_dim (poly_dr_p pdr, graphite_dim_t param)
 {
   poly_bb_p pbb = PDR_BB (pdr);
 
-  return pbb_nb_loops (pbb) + param;
+  return pbb_dim_iter_domain (pbb) + param;
 }
 
 /* POLY_BB represents a blackbox in the polyhedral model.  */
@@ -273,7 +273,7 @@ pbb_set_black_box (poly_bb_p pbb, void *black_box)
    domain.  */
 
 static inline graphite_dim_t
-pbb_nb_loops (const struct poly_bb *pbb)
+pbb_dim_iter_domain (const struct poly_bb *pbb)
 {
   scop_p scop = PBB_SCOP (pbb);
   ppl_dimension_type dim;
@@ -293,7 +293,7 @@ pbb_nb_scattering_dims (ppl_Polyhedron_t scattering,
   ppl_dimension_type dim;
 
   ppl_Polyhedron_space_dimension (scattering, &dim);
-  return dim - pbb_nb_loops (pbb) - scop_nb_params (scop);
+  return dim - pbb_dim_iter_domain (pbb) - scop_nb_params (scop);
 }
 
 /* The number of scattering dimensions in PBB.  */

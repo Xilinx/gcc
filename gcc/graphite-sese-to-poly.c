@@ -322,7 +322,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 {
   int i;
   scop_p scop = PBB_SCOP (pbb);
-  int nb_iterators = pbb_nb_loops (pbb);
+  int nb_iterators = pbb_dim_iter_domain (pbb);
   int used_scattering_dimensions = nb_iterators * 2 + 1;
   int nb_params = scop_nb_params (scop);
   ppl_Coefficient_t c;
@@ -440,7 +440,7 @@ build_scop_scattering (scop_p scop)
       gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
       ppl_Linear_Expression_t common;
       int prefix;
-      int nb_scat_dims = pbb_nb_loops (pbb) * 2 + 1;
+      int nb_scat_dims = pbb_dim_iter_domain (pbb) * 2 + 1;
 
       if (previous_gbb)
 	prefix = nb_common_loops (SCOP_REGION (scop), previous_gbb, gbb);
@@ -958,7 +958,7 @@ create_linear_expr_from_tree (poly_bb_p pbb, tree t)
 
   value_init (one);
   value_set_si (one, 1);
-  dim = pbb_nb_loops (pbb) + scop_nb_params (scop);
+  dim = pbb_dim_iter_domain (pbb) + scop_nb_params (scop);
   ppl_new_Linear_Expression_with_dimension (&res, dim);
 
   t = analyze_scalar_evolution (loop, t);
@@ -1326,7 +1326,7 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
 
   scop_p scop = PBB_SCOP (pbb);
   sese region = SCOP_REGION (scop);
-  ppl_dimension_type dom_nb_dims = scop_nb_params (scop) + pbb_nb_loops (pbb);
+  ppl_dimension_type dom_nb_dims = scop_nb_params (scop) + pbb_dim_iter_domain (pbb);
   ppl_dimension_type accessp_nb_dims = dom_nb_dims + 1 + dr_nb_subscripts;
   ppl_new_NNC_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
 					       

@@ -62,7 +62,7 @@ scop_max_loop_depth (scop_p scop)
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++) 
     {    
-      int nb_loops = pbb_nb_loops (pbb);
+      int nb_loops = pbb_dim_iter_domain (pbb);
       if (max_nb_loops < nb_loops)
         max_nb_loops = nb_loops;
     }    
@@ -83,7 +83,7 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
 
   gcc_assert (nb_added_dims >= 0);
 
-  nb_old_dims = pbb_nb_scattering (pbb) + pbb_nb_loops (pbb)
+  nb_old_dims = pbb_nb_scattering (pbb) + pbb_dim_iter_domain (pbb)
     + scop_nb_params (PBB_SCOP (pbb));
   nb_new_dims = nb_old_dims + nb_added_dims;
 
