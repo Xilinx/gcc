@@ -164,7 +164,7 @@ pdr_nb_params (poly_dr_p pdr)
 /* The dimension of the alias set in PDR.  */
 
 static inline ppl_dimension_type
-pdr_accessp_alias_set_dim (poly_dr_p pdr)
+pdr_alias_set_dim (poly_dr_p pdr)
 {
   poly_bb_p pbb = PDR_BB (pdr);
 
