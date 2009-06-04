@@ -147,7 +147,7 @@ pdr_accessp_nb_subscripts (poly_dr_p pdr)
 /* The dimension of the iteration domain for PDR.  */
 
 static inline ppl_dimension_type
-pdr_accessp_nb_iterators (poly_dr_p pdr)
+pdr_dim_iter_domain (poly_dr_p pdr)
 {
   return pbb_dim_iter_domain (PDR_BB (pdr));
 }
