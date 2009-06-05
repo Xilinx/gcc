@@ -32,6 +32,8 @@
 #include "pcp_dynamic_array.h"
 // PCP Object 
 
+class PcpVisitor;
+
 class PcpObject
 {
  protected:
@@ -73,6 +75,8 @@ class PcpObject
   virtual class PcpScop* toScop();
   virtual class PcpParameter* toParameter();
 
+  virtual void accept(PcpVisitor* visitor) = 0;
+
 };
 
 class PcpAnnot
@@ -87,6 +91,8 @@ class PcpAnnot
   virtual class PcpAnnotInt* toAnnotInt();
   virtual class PcpAnnotObject* toAnnotObject();
   virtual class PcpAnnotString* toAnnotString();
+
+  virtual void accept(PcpVisitor* visitor) = 0;
 };
 
 // PCP Annot Set
@@ -105,6 +111,8 @@ class PcpAnnotSet
   virtual PcpAnnotTerm* getAnnotWithTag(const char* tag);
   virtual void addAnnot(PcpAnnotTerm* annot);
 
+  virtual void accept(PcpVisitor* visitor);
+
   PcpAnnotSet();
 };
 
@@ -122,6 +130,8 @@ class PcpAnnotInt : public PcpAnnot
   virtual int getValue();
   PcpAnnotInt();
   PcpAnnotInt(int value);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 class PcpAnnotTerm : public PcpAnnot
@@ -143,6 +153,8 @@ class PcpAnnotTerm : public PcpAnnot
   virtual int getNumArguments();
   virtual PcpAnnot* getArgument(int index);
   PcpAnnotTerm(const char* tag, PcpArray<PcpAnnot*>* arguments);
+
+  virtual void accept(PcpVisitor* visitor) ;
 };
 
 // PCP Annot String 
@@ -158,6 +170,8 @@ class PcpAnnotString : public PcpAnnot
   virtual PcpAnnotString* toAnnotString();
   virtual const char* getString();
   PcpAnnotString(const char* string);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP Annot Object 
@@ -175,6 +189,8 @@ class PcpAnnotObject : public PcpAnnot
 
   virtual PcpObject* getObject();
   PcpAnnotObject(PcpObject* object);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 
@@ -216,6 +232,7 @@ class PcpArrayType : public PcpObject
   virtual PcpIterator<PcpExpr*>* getDimensionsIterator();
   PcpArrayType(PcpArray<PcpExpr*>* dimensions);
   
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // Array Type Builder 
@@ -236,7 +253,7 @@ class PcpArrayTypeBuilder
 };
 
 
-// PCP Linear Expr 
+// PCP Expr 
 
 class PcpExpr : public PcpObject
 {
@@ -398,11 +415,15 @@ class PcpArith : public PcpExpr
   virtual int getNumOperands();
   virtual PcpExpr* getOperand(int index);
 
+  virtual PcpIterator<PcpExpr*>* getOperandsIterator();
+
   PcpArith(PcpArithOperator oper, PcpArray<PcpExpr*>* operands);
 
   static PcpArith* pcpArithBinaryCreate(PcpArithOperator oper,
 					PcpExpr* lhs,
 					PcpExpr* rhs);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP Arith builder.  
@@ -441,6 +462,8 @@ class PcpConstant : public PcpExpr
 
   virtual int getValue();
   PcpConstant(int value);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 
@@ -452,6 +475,8 @@ class PcpIv : public PcpExpr
   virtual bool isIv();
   virtual PcpIv* toIv();
   PcpIv(const char* name);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 
@@ -464,6 +489,8 @@ class PcpParameter : public PcpExpr
   virtual PcpParameter* toParameter();
 
   PcpParameter(const char* name);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP Bool Expr 
@@ -566,6 +593,8 @@ class PcpCompare : public PcpBoolExpr
   virtual PcpExpr* getLhs();
   virtual PcpExpr* getRhs();
   PcpCompare(PcpCompareOperator oper, PcpExpr* lhs, PcpExpr* rhs);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 
@@ -651,12 +680,16 @@ class PcpBoolArith : public PcpBoolExpr
   virtual PcpBoolArithOperator getOperator();
   virtual int getNumOperands();
   virtual PcpBoolExpr* getOperand(int index);
+
+  virtual PcpIterator<PcpBoolExpr*>* getOperandsIterator();
+
   PcpBoolArith(PcpBoolArithOperator oper,
 	       PcpArray<PcpBoolExpr*>* operands);
   static PcpBoolArith* pcpBoolArithBinaryCreate(PcpBoolArithOperator oper,
 						PcpBoolExpr* lhs,
 						PcpBoolExpr* rhs);
 
+  virtual void accept(PcpVisitor* visitor);
 };
 
 
@@ -698,6 +731,8 @@ class PcpVariable : public PcpObject
   virtual bool getIsOutput();
   virtual PcpArrayType* getType();
   PcpVariable(PcpArrayType* type, const char* name);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 
@@ -782,6 +817,8 @@ class PcpArrayOperator
 
 class PcpArrayAccess : public PcpObject
 {
+  friend class PcpExprCanonicalizer;
+
  protected:
   PcpArrayOperator oper;
   PcpVariable* base;
@@ -803,9 +840,14 @@ class PcpArrayAccess : public PcpObject
   virtual bool isUse();
   virtual bool isDef();
   virtual bool isMaydef();
+
+  virtual PcpIterator<PcpExpr*>* getSubscriptsIterator();
+
   PcpArrayAccess(PcpArrayOperator oper,
 		 PcpVariable* base,
 		 PcpArray<PcpExpr*>* subscripts);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 
@@ -878,6 +920,8 @@ class PcpCopy : public PcpStmt
   virtual PcpArrayAccess* getSrc();
   virtual PcpArrayAccess* getDest();
   PcpCopy(PcpArrayAccess* dest, PcpArrayAccess* src);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP User Stmt 
@@ -896,8 +940,12 @@ class PcpUserStmt : public PcpStmt
   virtual PcpUserStmt* toUserStmt();
   virtual int getNumAccesses();
   virtual PcpArrayAccess* getArrayAccess(int index);
+
+  virtual PcpIterator<PcpArrayAccess*>* getArrayAccessesIterator();
+  
   PcpUserStmt(const char* name, PcpArray<PcpArrayAccess*>* accesses);
 
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP User Stmt Builder 
@@ -917,7 +965,6 @@ class PcpUserStmtBuilder
   virtual void addAccess(PcpArrayAccess* access);
   virtual PcpUserStmt* createUserStmt();
   PcpUserStmtBuilder();
-
 };
 
 // PCP Sequence 
@@ -935,8 +982,12 @@ class PcpSequence : public PcpStmt
   virtual PcpSequence* toSequence();
   virtual int getNumStmts();
   virtual PcpStmt* getStmt(int index);
+
+  virtual PcpIterator<PcpStmt*>* getStmtsIterator();
+
   PcpSequence(PcpArray<PcpStmt*>* stmts);
 
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP Sequence Builder 
@@ -957,8 +1008,10 @@ class PcpSequenceBuilder
 // PCP Guard 
 class PcpGuard : public PcpStmt
 {
+
+  friend class PcpExprCanonicalizer;
+
  protected:
-  PcpStmt stmt;
   PcpBoolExpr* condition;
   PcpStmt* body;
 
@@ -972,11 +1025,16 @@ class PcpGuard : public PcpStmt
   virtual PcpBoolExpr* getCondition();
   virtual PcpStmt* getBody();
   PcpGuard(PcpBoolExpr* condition, PcpStmt* body);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP Loop 
 class PcpLoop : public PcpStmt
 {
+
+  friend class PcpExprCanonicalizer;
+
  protected:
   PcpIv* iv;
   PcpExpr* start;
@@ -1000,6 +1058,8 @@ class PcpLoop : public PcpStmt
   virtual PcpStmt* getBody();
   PcpLoop(PcpIv* iv, PcpExpr* start, PcpBoolExpr* condition,
 	  PcpConstant* stride, PcpStmt* body);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP Scop 
@@ -1025,9 +1085,15 @@ class PcpScop : public PcpObject
   virtual PcpVariable* getVariable(int index);
   virtual PcpParameter* getParameter(int index);
   virtual PcpStmt* getBody();
+
+  virtual PcpIterator<PcpVariable*>* getVariablesIterator();
+  virtual PcpIterator<PcpParameter*>* getParametersIterator();
+
   PcpScop(PcpArray<PcpVariable*>* variables,
 	  PcpArray<PcpParameter*>* parameters,
 	  PcpStmt* body);
+
+  virtual void accept(PcpVisitor* visitor);
 };
 
 // PCP Scop Builder 
@@ -1054,7 +1120,5 @@ class PcpScopBuilder
   PcpScop* createScop();
 
 };
-
-
 
 #endif // _PCP_H_ 

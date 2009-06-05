@@ -1,3 +1,8 @@
+2009-06-05  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* Makefile.def: Make libpcp dependent on cloog.
+	* Makefile.in: Generated.
+
 2009-02-12  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* configure.ac: Add libpcp.

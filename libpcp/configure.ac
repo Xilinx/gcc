@@ -23,6 +23,7 @@
 AC_PREREQ(2.59)
 AC_INIT(libpcp, [Polyhedral Compilation Package Library ], gcc-bugs@gcc.gnu.org, libpcp)
 AC_CONFIG_SRCDIR(pcp.h)
+AC_CONFIG_HEADER(auto-host.h:config.in)
 
 # Checks for programs.
 AC_PROG_MAKE_SET
@@ -68,6 +69,19 @@ AC_C_INLINE
 AC_PROG_CXX
 AC_HEADER_STDBOOL
 AC_CHECK_FUNCS([floor])
+
+
+AC_ARG_VAR(GMPLIBS,[How to link GMP])
+AC_ARG_VAR(GMPINC,[How to find GMP include files])
+
+AC_ARG_VAR(PPLLIBS,[How to link PPL])
+AC_ARG_VAR(PPLINC,[How to find PPL include files])
+
+AC_ARG_VAR(CLOOGLIBS,[How to link CLOOG])
+AC_ARG_VAR(CLOOGINC,[How to find CLOOG include files])
+if test "x${CLOOGLIBS}" != "x" ; then 
+   AC_DEFINE(HAVE_cloog, 1, [Define if cloog is in use.])
+fi
 
 # Output.
 

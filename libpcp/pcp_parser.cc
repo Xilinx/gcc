@@ -1091,9 +1091,16 @@ protected:
   toStringInBuffer(PcpStringBuffer* buffer)
   {
     PcpToken* token = this->getToken();
+    PcpToken* name = this->getName();
     int numChildren = this->getNumChildren();
     int i;
     
+    if(name != NULL)
+      {
+	buffer->append(name->getString());
+	buffer->append(" <- ");
+      }
+
     if(token == NULL)
       buffer->append("NULL");
     else
@@ -1115,15 +1122,6 @@ protected:
       }
   }
   
-  // Convert AST to string.  
-  const char* 
-  toString()
-  {
-    PcpStringBuffer* buffer = new PcpStringBuffer();
-    this->toStringInBuffer(buffer);
-    return buffer->toString();
-  }
-
   // Parse functor list surrounded by '{' '}'.  
   static PcpAst* 
   parseStmtList(PcpTokenizer* tokenizer)
@@ -1136,7 +1134,7 @@ protected:
       }
     result = PcpAst::parseStmtListHelper(tokenizer);
     token = tokenizer->peekNextToken();
-    if(token->isCloseBrace())
+    if(token != NULL && token->isCloseBrace())
       tokenizer->consumeToken(token);
     else
       pcpParseError("Expected close brace");
@@ -1170,6 +1168,7 @@ protected:
 	  root->addAnnot(object);
 	else
 	  root->addChild(object);
+
 	peek = tokenizer->peekNextToken();
 	if(peek == NULL)
 	  {
@@ -1180,7 +1179,6 @@ protected:
   }
   
   // Parse comma separated object list.  
-  // XXX: Must also add parsing of annots that will be added to the object.  
   static PcpAst* 
   parseObjectList(PcpTokenizer* tokenizer)
   {
@@ -1299,6 +1297,8 @@ protected:
     PcpToken* peek = tokenizer->peekNextToken();
     PcpAst* result = new PcpAst(PcpToken::getSequenceToken());
     PcpAst* object = NULL;
+
+    result->setHasChildren(true);
     
     if(peek->isFunctor() || peek->isIdentifier())
       {
@@ -1318,6 +1318,15 @@ protected:
   }
   
 public:
+
+  // Convert AST to string.  
+  const char* 
+  toString()
+  {
+    PcpStringBuffer* buffer = new PcpStringBuffer();
+    this->toStringInBuffer(buffer);
+    return buffer->toString();
+  }
 
   int
   getNumAnnots()
@@ -1406,6 +1415,7 @@ public:
   {
     PcpDynamicArray<PcpAst*>* children = new PcpDynamicArray<PcpAst*>(1);
     PcpDynamicArray<PcpAst*>* annots = new PcpDynamicArray<PcpAst*>(1);
+    this->setName(NULL);
     this->setToken(token);
     this->setChildren(children);
     this->setHasChildren(false);

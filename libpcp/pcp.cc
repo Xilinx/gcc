@@ -28,6 +28,7 @@
 #include "pcp_error.h"
 #include "pcp_alloc.h"
 #include "pcp.h"
+#include "pcp_visitor.h"
 
 // PCP Object 
 
@@ -319,6 +320,12 @@ PcpAnnotSet::PcpAnnotSet()
   this->setAnnots(annots);
 }
 
+void
+PcpAnnotSet::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
+}
+
 // Return true if ANNOT is an int.  
 bool
 PcpAnnot::isAnnotInt()
@@ -411,6 +418,12 @@ PcpAnnotInt::toAnnotInt()
   return this;
 }
 
+void
+PcpAnnotInt::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
+}
+
 // PcpAnnotString 
 bool PcpAnnotString::isAnnotString()
 {
@@ -439,6 +452,12 @@ PcpAnnotString::getString()
 PcpAnnotString::PcpAnnotString(const char* string)
 {
   this->setString(string);
+}
+
+void
+PcpAnnotString::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // PCP Annot Object 
@@ -471,6 +490,12 @@ PcpAnnotObject::getObject()
 PcpAnnotObject::PcpAnnotObject(PcpObject* object)
 {
   this->setObject(object);
+}
+
+void
+PcpAnnotObject::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // Pcp Annot Term 
@@ -548,6 +573,12 @@ PcpAnnotTerm::PcpAnnotTerm(const char* tag, PcpArray<PcpAnnot*>* arguments)
 {
   this->setTag(tag);
   this->setArguments(arguments);
+}
+
+void
+PcpAnnotTerm::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // PCP Annot Term Builder 
@@ -659,6 +690,12 @@ PcpArrayType::PcpArrayType(PcpArray<PcpExpr*>* dimensions)
 {
   initialize();
   this->setDimensions(dimensions);
+}
+
+void
+PcpArrayType::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // Pcp Array Type Builder
@@ -893,6 +930,12 @@ PcpCompare::PcpCompare(PcpCompareOperator oper,
   this->setRhs(rhs);
 }
 
+void
+PcpCompare::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
+}
+
 // PCP Bool Arith 
 
 // Return true if this is a bool arith
@@ -950,6 +993,13 @@ PcpBoolArith::getOperand(int index)
   return this->getOperands()->get(index);
 }
 
+PcpIterator<PcpBoolExpr*>*
+PcpBoolArith::getOperandsIterator()
+{
+  return this->getOperands()->getIterator();
+}
+
+
 // Create new boolean arithmetic operation.  
 PcpBoolArith::PcpBoolArith(PcpBoolArithOperator oper,
 			   PcpArray<PcpBoolExpr*>* operands)
@@ -957,6 +1007,12 @@ PcpBoolArith::PcpBoolArith(PcpBoolArithOperator oper,
   initialize();
   this->setOperator(oper);
   this->setOperands(operands);
+}
+
+void
+PcpBoolArith::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // PCP Bool Arith Builder.  
@@ -1020,11 +1076,14 @@ PcpBoolArith::pcpBoolArithBinaryCreate(PcpBoolArithOperator oper,
 				       PcpBoolExpr* lhs,
 				       PcpBoolExpr* rhs)
 {
+  PcpBoolArith* result;
   PcpBoolArithBuilder* builder = new PcpBoolArithBuilder();
   builder->setOperator(oper);
   builder->addOperand(lhs);
   builder->addOperand(rhs);
-  return builder->createBoolArith();
+  result = builder->createBoolArith();
+  delete builder;
+  return result;
 }
 
 // Set operator of ARITH to OPERATOR.  
@@ -1082,6 +1141,13 @@ PcpArith::getOperand(int index)
   return this->getOperands()->get(index);
 }
 
+PcpIterator<PcpExpr*>*
+PcpArith::getOperandsIterator()
+{
+  return this->getOperands()->getIterator();
+}
+
+
 // Create new arithmetic operation.  
 PcpArith::PcpArith(PcpArithOperator oper, PcpArray<PcpExpr*>* operands)
 {
@@ -1102,7 +1168,14 @@ PcpArith::pcpArithBinaryCreate(PcpArithOperator oper,
   builder->addOperand(lhs);
   builder->addOperand(rhs);
   arith = builder->createArith();
+  delete builder;
   return arith;
+}
+
+void
+PcpArith::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 
@@ -1196,6 +1269,12 @@ PcpConstant::PcpConstant(int value)
   this->setValue(value);
 }
 
+void
+PcpConstant::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
+}
+
 // PCP Induction Variable 
 
 // Return true if this is an iv.
@@ -1217,6 +1296,12 @@ PcpIv::PcpIv(const char* name)
 {
   initialize();
   this->setName(name);
+}
+
+void
+PcpIv::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // PCP Variable 
@@ -1285,6 +1370,12 @@ PcpVariable::PcpVariable(PcpArrayType* type, const char* name)
   this->setIsOutput(false);
 }
 
+void
+PcpVariable::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
+}
+
 // PCP Parameter 
 
 // Return true if this is a parameter.
@@ -1304,6 +1395,12 @@ PcpParameter::PcpParameter(const char* name)
 {
   initialize();
   this->setName(name);
+}
+
+void
+PcpParameter::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // Array Access.  
@@ -1387,6 +1484,13 @@ PcpArrayAccess::getNumSubscripts()
   return typeNumDims;
 }
 
+PcpIterator<PcpExpr*>* 
+PcpArrayAccess::getSubscriptsIterator()
+{
+  return this->getSubscripts()->getIterator();
+}
+
+
 // Create array access given OPERATOR, BASE and SUBSCRIPTS.  
 PcpArrayAccess::PcpArrayAccess(PcpArrayOperator oper, 
 			       PcpVariable* base,
@@ -1396,6 +1500,12 @@ PcpArrayAccess::PcpArrayAccess(PcpArrayOperator oper,
   this->setOperator(oper);
   this->setBase(base);
   this->setSubscripts(subscripts);
+}
+
+void
+PcpArrayAccess::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // Return true if this is a use, otherwise return false.  
@@ -1678,6 +1788,12 @@ PcpCopy::PcpCopy(PcpArrayAccess* dest, PcpArrayAccess* src)
   this->setSrc(src);
 }
 
+void
+PcpCopy::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
+}
+
 // PCP User Stmt 
 
 // Return true if this is a user stmt.
@@ -1727,6 +1843,12 @@ PcpUserStmt::getArrayAccess(int index)
   return this->getArrayAccesses()->get(index);
 }
 
+PcpIterator<PcpArrayAccess*>* 
+PcpUserStmt::getArrayAccessesIterator()
+{
+  return this->getArrayAccesses()->getIterator();
+}
+
 // Create new user stmt with given NAME and ACCESSES.
 PcpUserStmt::PcpUserStmt(const char* name, 
 			 PcpArray<PcpArrayAccess*>* accesses)
@@ -1734,6 +1856,12 @@ PcpUserStmt::PcpUserStmt(const char* name,
   this->initialize();
   this->setName(name);
   this->setArrayAccesses(accesses);
+}
+
+void
+PcpUserStmt::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // PCP User Stmt Builder 
@@ -1840,6 +1968,13 @@ PcpSequence::getStmt(int index)
   return this->getStmts()->get(index);
 }
 
+PcpIterator<PcpStmt*>*
+PcpSequence::getStmtsIterator()
+{
+  return this->getStmts()->getIterator();
+}
+
+
 // Create Sequence with STMTS 
 PcpSequence::PcpSequence(PcpArray<PcpStmt*>* stmts)
 {
@@ -1847,6 +1982,11 @@ PcpSequence::PcpSequence(PcpArray<PcpStmt*>* stmts)
   this->setStmts(stmts);
 }
 
+void
+PcpSequence::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
+}
 // PCP Sequence Builder 
 
 // Set stmts to STMTS.  
@@ -1933,6 +2073,12 @@ PcpGuard::PcpGuard(PcpBoolExpr* condition, PcpStmt* body)
   initialize();
   this->setCondition(condition);
   this->setBody(body);
+}
+
+void
+PcpGuard::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // PCP Loop 
@@ -2031,6 +2177,12 @@ PcpLoop::PcpLoop(PcpIv* iv, PcpExpr* start, PcpBoolExpr* condition,
   this->setBody(body);
 }
 
+void
+PcpLoop::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
+}
+
 // PCP Scop 
 
 // Return true if this is a scop.
@@ -2115,6 +2267,19 @@ PcpScop::getBody()
   return this->body;
 }
 
+PcpIterator<PcpVariable*>*
+PcpScop::getVariablesIterator()
+{
+  return this->getVariables()->getIterator();
+}
+
+PcpIterator<PcpParameter*>*
+PcpScop::getParametersIterator()
+{
+  return this->getParameters()->getIterator();
+}
+
+
 // Create new scop given VARIABLES, PARAMETERS and BODY.
 PcpScop::PcpScop(PcpArray<PcpVariable*>* variables,
 		 PcpArray<PcpParameter*>* parameters,
@@ -2124,6 +2289,12 @@ PcpScop::PcpScop(PcpArray<PcpVariable*>* variables,
   this->setVariables(variables);
   this->setParameters(parameters);
   this->setBody(body);
+}
+
+void
+PcpScop::accept(PcpVisitor* visitor)
+{
+  visitor->visit(this);
 }
 
 // Set varaibles to VARAIBLES.  

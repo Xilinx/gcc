@@ -56303,6 +56303,16 @@ all-stageprofile-libcpp: maybe-all-stageprofile-intl
 all-stagefeedback-libcpp: maybe-all-stagefeedback-intl
 all-fixincludes: maybe-all-libiberty
 all-gnattools: maybe-all-target-libada
+all-libpcp: maybe-all-cloog
+
+all-stage1-libpcp: maybe-all-stage1-cloog
+all-stage2-libpcp: maybe-all-stage2-cloog
+all-stageb2g0-libpcp: maybe-all-stageb2g0-cloog
+all-stage3-libpcp: maybe-all-stage3-cloog
+all-stageb3g2-libpcp: maybe-all-stageb3g2-cloog
+all-stage4-libpcp: maybe-all-stage4-cloog
+all-stageprofile-libpcp: maybe-all-stageprofile-cloog
+all-stagefeedback-libpcp: maybe-all-stagefeedback-cloog
 configure-mpfr: maybe-all-gmp
 
 configure-stage1-mpfr: maybe-all-stage1-gmp

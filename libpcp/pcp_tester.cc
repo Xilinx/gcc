@@ -18,7 +18,7 @@
 // Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 // MA 02110-1301, USA.  
 
-// As a special exception, if you link this library with other files, some
+// As a special exception, if you link this library with other files, so me
 // of which are compiled with GCC, to produce an executable, this library
 // does not by itself cause the resulting executable to be covered by the
 // GNU General Public License.  This exception does not however invalidate
@@ -30,79 +30,258 @@
 #include "pcp_dynamic_array.h"
 #include "pcp_tester.h"
 #include "pcp_emitter.h"
+#include "pcp_scalar_order.h"
+#include "pcp_expr_canonicalizer.h"
+#include "pcp_domain.h"
+#include "pcp_scattering.h"
 
 // Tester Option Class
 
 // Set action to ACTION.
 
-void 
-PcpTester::Option::setAction(PcpTester::Option::Action action)
+bool PcpTester::PcpTest::isHelp()
 {
-  this->action = action;
+  return false;
 }
 
-// Get action.
-
-PcpTester::Option::Action
-PcpTester::Option::getAction()
+void
+PcpTester::PcpTestHelp::setTests(PcpArray<PcpTest*>* tests)
 {
-  return this->action;
+  this->tests = tests;
 }
 
-// Create a new option with given ACTION
-
-PcpTester::Option::Option(Action action)
+PcpArray<PcpTester::PcpTest*>*
+PcpTester::PcpTestHelp::getTests()
 {
-  this->setAction(action);
+  return this->tests;
 }
-
-// Create a new identity option
-PcpTester::Option* 
-PcpTester::Option::getIdentity()
-{
-  return new PcpTester::Option(PCP_TESTER_OPTION_IDENTITY);
-}
-
-// Create a new help option
-
-PcpTester::Option*
-PcpTester::Option::getHelp()
-{
-  return new PcpTester::Option(PCP_TESTER_OPTION_HELP);
-}    
-
-// Return true if this option is identity
 
 bool
-PcpTester::Option::isIdentity()
+PcpTester::PcpTestHelp::run(const char* filename)
 {
-  return this->getAction() == PCP_TESTER_OPTION_IDENTITY;
+  PcpError::reportErrorNewline("Usage: pcp-tester --option filename.pcp");
+  PcpError::reportErrorNewline("Possible options are:");
+  int i;
+  PcpArray<PcpTester::PcpTest*>* tests = this->getTests();
+  for(i = 0; i < tests->getSize(); i++)
+    {
+      PcpTester::PcpTest* test = tests->get(i);
+      if(test != this)
+	{
+	  PcpError::reportError("--");
+	  PcpError::reportError(test->getFlagName());
+	  PcpError::reportError(" - ");
+	  PcpError::reportErrorNewline(test->getDescription());
+	}
+    }
 }
 
-// Return true if this option is help
+const char*
+PcpTester::PcpTestHelp::getFlagName()
+{
+  return "help";
+}
+
+const char*
+PcpTester::PcpTestHelp::getDescription()
+{
+  return "Display this message";
+}
 
 bool
-PcpTester::Option::isHelp()
+PcpTester::PcpTestHelp::isHelp()
 {
-  return this->getAction() == PCP_TESTER_OPTION_HELP;
+  return true;
 }
 
-// Return true if this option is unknown
-
-bool 
-PcpTester::Option::isUnknown()
+PcpTester::PcpTestHelp::PcpTestHelp(PcpArray<PcpTester::PcpTest*>* tests)
 {
-  return this->getAction() == PCP_TESTER_OPTION_UNKNOWN;
+  this->setTests(tests);
 }
 
-// Create new unknown option. This will not be used, but a default constructor
-// must exist.
-PcpTester::Option::Option()
+// Run the identity test for the parser and emitter, return true
+// if the test passes
+bool
+PcpTester::PcpTestIdentity::run(const char* filename)
 {
-  this->setAction(PCP_TESTER_OPTION_UNKNOWN);
+  PcpScop* scop = PcpParser::parseFile(filename);
+  if(scop == NULL)
+    {
+      PcpError::reportErrorNewline("Fatal error, aborting");
+      return false;
+    }
+
+  const char* parsedScop = PcpEmitter::pcpScopToString(scop);
+  const char* parsedScop2 = 
+    PcpEmitter::pcpScopToString(PcpParser::parse(parsedScop));
+  const char* parsedScop3 = 
+    PcpEmitter::pcpScopToString(PcpParser::parse(parsedScop2));
+  bool compareSuccess = compareScopStrings(parsedScop2, parsedScop3);
+  if(!compareSuccess)
+    {
+      PcpError::reportError("Identity check failed for file: ");
+      PcpError::reportErrorNewline(filename);
+    }
+  return compareSuccess;
 }
 
-// Print the expected command syntax in case of errors
+const char*
+PcpTester::PcpTestIdentity::getFlagName()
+{
+  return "identity";
+}
+
+const char*
+PcpTester::PcpTestIdentity::getDescription()
+{
+  return "Identity test for the parser and emitter";
+}
+
+PcpTester::PcpTestIdentity::PcpTestIdentity()
+{
+}
+
+bool
+PcpTester::PcpTestScalarOrder::run(const char* filename)
+{
+  PcpScop* scop = PcpParser::parseFile(filename);
+  
+  if(scop == NULL)
+    {
+      PcpError::reportErrorNewline("Fatal error, aborting");
+      return false;
+    }
+  
+  PcpScalarOrder order(scop);
+  
+  return true;
+}
+
+const char*
+PcpTester::PcpTestScalarOrder::getFlagName()
+{
+  return "scalarorder";
+}
+
+const char*
+PcpTester::PcpTestScalarOrder::getDescription()
+{
+  return "test ordering of scalars (ivs and parameters)";
+}
+
+PcpTester::PcpTestScalarOrder::PcpTestScalarOrder()
+{
+}
+
+bool
+PcpTester::PcpTestExprCanonicalize::run(const char* filename)
+{
+  PcpScop* scop = PcpParser::parseFile(filename);
+
+  if(scop == NULL)
+    {
+      PcpError::reportErrorNewline("Fatal error, aborting");
+      return false;
+    }
+
+  PcpScalarOrder order(scop);
+  printf("SCOP BEFORE CANONICALIZATION:\n");
+  printf("%s", PcpEmitter::pcpScopToString(scop));
+  PcpExprCanonicalizer canonicalizer(&order);
+  canonicalizer.canonicalize(scop);
+  printf("SCOP AFTER CANONICALIZATION:\n");
+  printf("%s", PcpEmitter::pcpScopToString(scop));
+  return true;
+}
+
+const char*
+PcpTester::PcpTestExprCanonicalize::getFlagName()
+{
+  return "canonicalize";
+}
+
+const char*
+PcpTester::PcpTestExprCanonicalize::getDescription()
+{
+  return "Test canonicalization of expressions";
+}
+
+PcpTester::PcpTestExprCanonicalize::PcpTestExprCanonicalize()
+{
+}
+
+bool
+PcpTester::PcpTestBuildDomain::run(const char* filename)
+{
+  PcpScop* scop = PcpParser::parseFile(filename);
+
+  if(scop == NULL)
+    {
+      PcpError::reportErrorNewline("Fatal error, aborting");
+      return false;
+    }
+
+  PcpScalarOrder order(scop);
+  //printf("SCOP BEFORE CANONICALIZATION:\n");
+  //printf("%s", PcpEmitter::pcpScopToString(scop));
+  PcpExprCanonicalizer canonicalizer(&order);
+  canonicalizer.canonicalize(scop);
+  printf("SCOP AFTER CANONICALIZATION:\n");
+  printf("%s", PcpEmitter::pcpScopToString(scop));
+
+  printf("DomainExpressions:\n");
+  PcpDomainMap map(scop, &canonicalizer);
+
+  return true;
+}
+
+const char*
+PcpTester::PcpTestBuildDomain::getFlagName()
+{
+  return "builddomain";
+}
+
+const char* 
+PcpTester::PcpTestBuildDomain::getDescription()
+{
+  return "Test building of statment domains";
+}
+
+PcpTester::PcpTestBuildDomain::PcpTestBuildDomain()
+{
+}
+
+bool
+PcpTester::PcpTestBuildScattering::run(const char* filename)
+{
+  PcpScop* scop = PcpParser::parseFile(filename);
+
+  if(scop == NULL)
+    {
+      PcpError::reportErrorNewline("Fatal error, aborting");
+      return false;
+    }
+  printf("ScatteringExpressions:\n");
+  PcpScatteringMap map(scop);
+  return true;
+}
+
+const char*
+PcpTester::PcpTestBuildScattering::getFlagName()
+{
+  return "buildscattering";
+}
+
+const char* 
+PcpTester::PcpTestBuildScattering::getDescription()
+{
+  return "Test building of scattering functions";
+}
+
+PcpTester::PcpTestBuildScattering::PcpTestBuildScattering()
+{
+}
+
 
 void
 PcpTester::reportCommandLineInfo()
@@ -123,7 +302,7 @@ PcpTester::isOptionString(const char* string)
 // Parse OPTIONSTRING and return the corresponding option, if parsing fails
 // return NULL
 
-PcpTester::Option*
+PcpTester::PcpTest* 
 PcpTester::parseOption(const char* optionString)
 {
   // Option syntax: --option
@@ -134,17 +313,20 @@ PcpTester::parseOption(const char* optionString)
       PcpError::reportErrorNewline(optionString);
       return NULL;
     }
-  
-  if(strcmp("identity", &(optionString[2])) == 0)
-    return PcpTester::Option::getIdentity();
-  if(strcmp("help", &(optionString[2])) == 0)
-    return PcpTester::Option::getHelp();
-  else
+
+  PcpArray<PcpTester::PcpTest*>* tests = this->getTests();
+  for(int i = 0; i < tests->getSize(); i++)
     {
-      PcpError::reportError("Unknown option:");
-      PcpError::reportErrorNewline(optionString);
-      return NULL;
+      PcpTester::PcpTest* test = tests->get(i);
+      if(strcmp(test->getFlagName(), &(optionString[2])) == 0)
+	return test;
     }
+
+  PcpError::reportError("Unknown option:");
+  PcpError::reportErrorNewline(optionString);
+  PcpTestHelp testHelp(this->getTests());
+  testHelp.run(NULL);
+  return NULL;
 }
 
 // Parse the different options given the argument count and strings from 
@@ -158,11 +340,11 @@ PcpTester::parseOption(const char* optionString)
 // --identity
 // --help
 
-PcpArray<PcpTester::Option*>*
+PcpArray<PcpTester::PcpTest*>*
 PcpTester::parseOptions(int argc, char** argv)
 {
-  PcpDynamicArray<PcpTester::Option*>* options = 
-    new PcpDynamicArray<PcpTester::Option*>(1);
+  PcpDynamicArray<PcpTester::PcpTest*>* options = 
+    new PcpDynamicArray<PcpTester::PcpTest*>(1);
 
   int currentArg = 1;
 
@@ -170,7 +352,7 @@ PcpTester::parseOptions(int argc, char** argv)
   while(currentArg < argc - 1)
     {
       const char* arg = argv[currentArg];
-      PcpTester::Option* option = parseOption(arg);
+      PcpTester::PcpTest* option = parseOption(arg);
       if(option != NULL)
 	options->add(option);
       else
@@ -195,8 +377,8 @@ PcpTester::parseFileName(int argc, char** argv)
 // false otherwise. 
 
 bool
-PcpTester::compareScopStrings(const char* str1,
-			      const char* str2)
+PcpTester::PcpTestIdentity::compareScopStrings(const char* str1,
+					       const char* str2)
 {
   int i = 0;
   while (str1[i] != '\0' && str2[i] != '\0'
@@ -209,37 +391,21 @@ PcpTester::compareScopStrings(const char* str1,
   return false;
 }
 
-// Run the identity test for the parser and emitter, return true
-// if the test passes
-
-bool
-PcpTester::runIdentity(const char* filename)
+void
+PcpTester::setTests(PcpArray<PcpTester::PcpTest*>* tests)
 {
-  PcpScop* scop = PcpParser::parseFile(filename);
-  if(scop == NULL)
-    {
-      PcpError::reportErrorNewline("Fatal error, aborting");
-      return false;
-    }
+  this->tests = tests;
+}
 
-  const char* parsedScop = PcpEmitter::pcpScopToString(scop);
-  const char* parsedScop2 = 
-    PcpEmitter::pcpScopToString(PcpParser::parse(parsedScop));
-  const char* parsedScop3 = 
-    PcpEmitter::pcpScopToString(PcpParser::parse(parsedScop2));
-  bool compareSuccess = compareScopStrings(parsedScop2, parsedScop3);
-  if(!compareSuccess)
-    {
-      PcpError::reportError("Identity check failed for file: ");
-      PcpError::reportErrorNewline(filename);
-    }
-  return compareSuccess;
+PcpArray<PcpTester::PcpTest*>*
+PcpTester::getTests()
+{
+  return this->tests;
 }
 
 // Start the tester with given FILENAME and OPTIONS
-
 bool
-PcpTester::start(const char* filename, PcpArray<PcpTester::Option*>* options)
+PcpTester::start(const char* filename, PcpArray<PcpTester::PcpTest*>* options)
 {
 
   if(filename == NULL || options == NULL)
@@ -258,14 +424,11 @@ PcpTester::start(const char* filename, PcpArray<PcpTester::Option*>* options)
 
 
   bool success = true;
-  PcpIterator<PcpTester::Option*>* iter = options->getIterator();
+  PcpIterator<PcpTester::PcpTest*>* iter = options->getIterator();
   for (;iter->hasNext(); iter->next())
     {
-      PcpTester::Option* option = iter->get();
-      if(option->isIdentity())
-	success = this->runIdentity(filename);
-      if(option->isHelp())
-	this->reportCommandLineInfo();
+      PcpTester::PcpTest* test = iter->get();
+      test->run(filename);
     }
   delete iter;
 
@@ -277,7 +440,7 @@ PcpTester::start(const char* filename, PcpArray<PcpTester::Option*>* options)
 bool
 PcpTester::run(int argc, char** argv)
 {
-  PcpArray<PcpTester::Option*>* options;
+  PcpArray<PcpTester::PcpTest*>* options;
   const char* filename;
 
   if(argc < 2)
@@ -289,19 +452,42 @@ PcpTester::run(int argc, char** argv)
 
   // Special case for handling "pcptester --help"
   if(argc == 2 
-     && this->isOptionString(argv[1])
-     && this->parseOption(argv[1])->isHelp())
+     && this->isOptionString(argv[1]))
     {
-      this->reportCommandLineInfo();
-      return true;
+      PcpTest* test = this->parseOption(argv[1]);
+      if(test->isHelp())
+	{
+	  test->run(NULL);
+	  return true;
+	}
+      else
+	{
+	  PcpError::reportErrorNewline("Error: No filename given");
+	  PcpError::reportErrorNewline("Usage: pcp-tester --option filename.pcp");
+	  return false;
+	}
     }
 
   options = parseOptions(argc, argv);
   if(options == NULL)
     return false;
+ 
+  
+  filename =  this->parseFileName(argc, argv);
 
-  filename = parseFileName(argc, argv);
-  return start(filename, options);
+  return this->start(filename, options);
+}
+
+PcpTester::PcpTester()
+{
+  PcpDynamicArray<PcpTest*>* tests = new PcpDynamicArray<PcpTest*>();
+  tests->add(new PcpTestHelp(tests));
+  tests->add(new PcpTestIdentity());
+  tests->add(new PcpTestScalarOrder());
+  tests->add(new PcpTestExprCanonicalize());
+  tests->add(new PcpTestBuildDomain());
+  tests->add(new PcpTestBuildScattering());
+  this->setTests(tests);
 }
 
 // Main function for the pcptester

@@ -1,3 +1,42 @@
+2009-06-05  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* libpcp/pcp_cloog_gateway.h: New.
+	* libpcp/pcp_cloog_gateway.cc: New.
+	* libpcp/pcp_domain.h: New.
+	* libpcp/pcp_domain.cc: New.
+	* libpcp/pcp_expr_canonicalizer.h: New.
+	* libpcp/pcp_expr_canonicalizer.cc: New.
+	* libpcp/pcp_full_visitor.h: New.
+	* libpcp/pcp_full_visitor.cc: New.
+	* libpcp/pcp_map.h: New.
+	* libpcp/pcp_poly.h: New.
+	* libpcp/pcp_poly.cc: New.
+	* libpcp/pcp_poly_spi.h: New.
+	* libpcp/pcp_poly_spi.cc: New.
+	* libpcp/pcp_poly_spi_c.h: New.
+	* libpcp/pcp_poly_spi_c.cc: New.
+	* libpcp/pcp_scalar_order.h: New.
+	* libpcp/pcp_scalar_order.cc: New.
+	* libpcp/pcp_scattering.h: New.
+	* libpcp/pcp_scattering.cc: New.
+	* libpcp/pcp_stack.h: New.
+	* libpcp/pcp_visitor.h: New.
+	* libpcp/pcp_visitor.cc: New.
+	* libpcp/Makefile.in: Add dependencies on PPL (temporary) and CLooG
+	* libpcp/configure.ac: Same.
+	* libpcp/config.in: Newly generated.
+	* libpcp/configure: Newly generated.
+	* libpcp/pcp.h: Added support for Visitor. 
+	* libpcp/pcp.cc: Same.
+	* libpcp/pcp_dynamic_array.h: Include "pcp_error.h"
+	* libpcp/pcp_parser.cc: (PcpAst::PcpAst): Initialize name. 
+	(PcpAst::toStringInBuffer): Append name binding.
+	(PcpAst::toString): Moved.
+	(PcpAst::parseObjecList): Set hasChildren to true.
+	(PcpAst::parseStmtList): Check that token is not NULL.
+	* libpcp/pcp_tester.h: Rewrite.
+	* libpcp/pcp_tester.cc: Rewrite.
+
 2009-02-27  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* pcp_tester.h: New.

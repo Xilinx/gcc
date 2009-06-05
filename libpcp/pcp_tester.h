@@ -33,34 +33,87 @@
 class PcpTester
 {
 protected:
-  // Options class
-  class Option
+
+  class PcpTest
+  {
+  public:
+    virtual bool run(const char* filename) = 0;
+    virtual const char* getFlagName() = 0;
+    virtual const char* getDescription() = 0;
+    virtual bool isHelp();
+  };
+
+  class PcpTestHelp : public PcpTest
   {
   protected:
-    enum Action
-    {
-      PCP_TESTER_OPTION_UNKNOWN,
-      PCP_TESTER_OPTION_IDENTITY,
-      PCP_TESTER_OPTION_HELP
-    };
+    PcpArray<PcpTest*>* tests;
 
-    Action action;
-
-    void setAction(Action action);
-    Action getAction();
-    
-    Option(Action action);
+    virtual void setTests(PcpArray<PcpTest*>* tests);
+    virtual PcpArray<PcpTest*>* getTests();
 
   public:
-    static Option* getIdentity();
-    static Option* getHelp();
-    
-    bool isUnknown();
-    bool isIdentity();
-    bool isHelp();
-
-    Option();
+    virtual bool run(const char* filename);
+    virtual const char* getFlagName();
+    virtual const char* getDescription();
+    PcpTestHelp(PcpArray<PcpTest*>* tests);
+    virtual bool isHelp();
   };
+
+  class PcpTestIdentity : public PcpTest
+  {
+  protected:
+    bool compareScopStrings(const char* str1,
+			    const char* str2);
+
+  public:
+    virtual bool run(const char* filename);
+    virtual const char* getFlagName();
+    virtual const char* getDescription();
+    PcpTestIdentity();
+  };
+
+  class PcpTestScalarOrder : public PcpTest
+  {
+  public:
+    virtual bool run(const char* filename);
+    virtual const char* getFlagName();
+    virtual const char* getDescription();
+    PcpTestScalarOrder();
+  };
+
+  class PcpTestExprCanonicalize : public PcpTest
+  {
+  public:
+    virtual bool run(const char* filename);
+    virtual const char* getFlagName();
+    virtual const char* getDescription();
+    PcpTestExprCanonicalize();
+  };
+
+  class PcpTestBuildDomain : public PcpTest
+  {
+  public:
+    bool run(const char* filename);
+    const char* getFlagName();
+    const char* getDescription();
+    PcpTestBuildDomain();
+  };
+
+  class PcpTestBuildScattering : public PcpTest
+  {
+  public:
+    bool run(const char* filename);
+    const char* getFlagName();
+    const char* getDescription();
+    PcpTestBuildScattering();
+  };
+
+  
+  PcpArray<PcpTest*>* tests;
+
+  void setTests(PcpArray<PcpTest*>* tests);
+  PcpArray<PcpTest*>* getTests();
+
 
   // Report expected command syntax.
   void reportCommandLineInfo();
@@ -69,10 +122,10 @@ protected:
   bool isOptionString(const char* string);
 
   // Parse option.
-  Option* parseOption(const char* optionString);
+  PcpTest* parseOption(const char* optionString);
 
   // Parse options.
-  PcpArray<Option*>* parseOptions(int argc, char** argv);
+  PcpArray<PcpTest*>* parseOptions(int argc, char** argv);
 
   // Parse file name
   const char* parseFileName(int arc, char** argv);
@@ -80,17 +133,16 @@ protected:
   // Compare strings
   bool compareScopStrings(const char* str1, const char* str2);
 
-  // Run identity test
-  bool runIdentity(const char* filename);
-
   // Start the tester.
-  bool start(const char* filename, PcpArray<Option*>* options);
-
+  bool start(const char* filename, PcpArray<PcpTest*>* options);
 
   public:
   
   // Entry point to the tester.
   bool run(int argc, char** argv);
+
+  // Constructor
+  PcpTester();
 };
 
 #endif // _PCP_TESTER_H_

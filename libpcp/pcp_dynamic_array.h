@@ -30,6 +30,7 @@
 #ifndef _PCP_DYNAMIC_ARRAY_
 #define _PCP_DYNAMIC_ARRAY_
 #include "pcp_alloc.h"
+#include "pcp_error.h"
 
 template <typename T> class PcpIterator
 {

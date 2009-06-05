@@ -332,11 +332,11 @@ dependencies = { module=all-fixincludes; on=all-libiberty; };
 
 dependencies = { module=all-gnattools; on=all-target-libada; };
 
+dependencies = { module=all-libpcp; on=all-cloog; };
 dependencies = { module=configure-mpfr; on=all-gmp; };
 dependencies = { module=configure-ppl; on=all-gmp; };
 dependencies = { module=configure-ppl; on=all-mpfr; };
 dependencies = { module=configure-cloog; on=all-ppl; };
-
 // Host modules specific to gdb.
 dependencies = { module=configure-gdb; on=all-intl; };
 dependencies = { module=configure-gdb; on=configure-sim; };

@@ -51,18 +51,63 @@ libdir = @libdir@
 localedir = $(datadir)/locale
 prefix = @prefix@
 
-INCLUDES = -I$(srcdir) -I.
+# How to find GMP
+GMPLIBS = @GMPLIBS@
+GMPINC = @GMPINC@
 
-ALL_CFLAGS = $(CFLAGS) $(WARN_CFLAGS) $(INCLUDES) $(CPPFLAGS)
+# How to find PPL
+PPLLIBS = @PPLLIBS@
+PPLINC = @PPLINC@
 
-libpcp_a_OBJS = pcp_c.o pcp_emitter.o pcp_parser.o  \
-		     pcp.o pcp_string_buffer.o pcp_error.o
+# How to find CLOOG
+CLOOGLIBS = @CLOOGLIBS@
+CLOOGINC = @CLOOGINC@
 
-libpcp_a_SOURCES = pcp_emitter.cc pcp_string_buffer.cc \
-	pcp_c.cc pcp_emitter.h pcp_string_buffer.h \
-	pcp_c.h pcp_parser.cc \
-        pcp.cc pcp_gcc_stuff.h pcp_parser.h pcp_error.cc pcp_error.h \
-	pcp_dynamic_array.h pcp.h pcp_set.h pcp_alloc.h
+INCLUDES = -I. -I$(srcdir) $(GMPINC) $(PPLINC) $(CLOOGINC)
+
+ALL_CFLAGS = $(CFLAGS) $(WARN_CFLAGS) $(INCLUDES) $(CPPFLAGS) 
+
+
+libpcp_a_OBJS = pcp.o \
+	pcp_c.o \
+	pcp_cloog_gateway.o \
+	pcp_domain.o \
+	pcp_emitter.o \
+	pcp_error.o \
+	pcp_expr_canonicalizer.o \
+	pcp_full_visitor.o \
+	pcp_parser.o  \
+	pcp_poly.o \
+	pcp_poly_spi.o \
+	pcp_poly_spi_c.o \
+	pcp_scalar_order.o \
+	pcp_scattering.o \
+	pcp_string_buffer.o \
+	pcp_visitor.o
+
+libpcp_a_SOURCES = pcp.h pcp.cc \
+	pcp_alloc.h \
+	pcp_c.h pcp_c.cc \
+	pcp_cloog_gateway.h pcp_cloog_gateway.cc \
+	pcp_domain.h pcp_domain.cc \
+	pcp_dynamic_array.h \
+	pcp_emitter.h pcp_emitter.pcc \
+	pcp_error.h pcp_error.cc \
+	pcp_expr_canonicalizer.h pcp_expr_canonicalizer.cc \
+	pcp_full_visitor.h pcp_full_visitor.cc \
+	pcp_gcc_stuff.h \
+	pcp_map.h \
+	pcp_parser.h pcp_parser.cc \
+	pcp_poly.h pcp_poly.cc \
+	pcp_poly_spi.h pcp_poly_spi.h \
+	pcp_poly_spi_c.h pcp_poly_spi_c.cc \
+	pcp_scalar_order.h pcp_scalar_order.cc \
+	pcp_scattering.h pcp_scattering.cc \
+	pcp_set.h \
+	pcp_stack.h \
+	pcp_string_buffer.h pcp_string_buffer.cc \
+	pcp_visitor.h pcp_visitor.cc
+
 
 tester_OBJS = pcp_tester.o
 
@@ -80,7 +125,7 @@ libpcp.a: $(libpcp_a_OBJS)
 	$(RANLIB) $@
 
 pcp-tester: $(tester_OBJS) libpcp.a 
-	$(CXXCOMPILEBIN) $(tester_OBJS) libpcp.a -o pcp-tester
+	$(CXXCOMPILEBIN) $(tester_OBJS) libpcp.a $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) -o pcp-tester
 
 # Rules to rebuild the configuration
 
