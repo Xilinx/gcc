@@ -166,7 +166,7 @@ dr_equality_constraints (graphite_dim_t dim,
   ppl_Polyhedron_t subscript_equalities;
   ppl_Pointset_Powerset_NNC_Polyhedron_t res;
   Value v, v_op;
-  unsigned int i;
+  graphite_dim_t i;
 
   value_init (v);
   value_init (v_op);
@@ -319,9 +319,10 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
   graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
   graphite_dim_t ddim2 = pbb_dim_iter_domain (pbb2);
   graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
-  graphite_dim_t sdim2 = pdr_nb_subscripts (pdr2) + 1;
   graphite_dim_t gdim = scop_nb_params (scop);
-  graphite_dim_t dim = tdim1 + ddim1 + tdim2 + ddim2 + sdim1 + sdim2 + gdim;
+  graphite_dim_t dim1 = pdr_dim (pdr1);
+  graphite_dim_t dim2 = pdr_dim (pdr2);
+  graphite_dim_t dim = tdim1 + tdim2 + dim1 + dim2;
   ppl_Pointset_Powerset_NNC_Polyhedron_t res;
   ppl_Pointset_Powerset_NNC_Polyhedron_t id1, id2, isc1, isc2, idr1, idr2;
   ppl_Pointset_Powerset_NNC_Polyhedron_t sc1, sc2, dreq;

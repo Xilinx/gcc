@@ -135,8 +135,9 @@ struct poly_dr
 void new_poly_dr (poly_bb_p, ppl_Pointset_Powerset_NNC_Polyhedron_t,
 		  enum POLY_DR_TYPE);
 void free_poly_dr (poly_dr_p);
+static inline scop_p pdr_scop (poly_dr_p pdr);
 
-/* The number of subscript dims in PDR.  */
+/* The number of subscripts of the PDR.  */
 
 static inline graphite_dim_t
 pdr_nb_subscripts (poly_dr_p pdr)
@@ -148,7 +149,7 @@ pdr_nb_subscripts (poly_dr_p pdr)
   return dim - pbb_dim_iter_domain (pbb) - pbb_nb_params (pbb) - 1;
 }
 
-/* The dimension of the iteration domain for PDR.  */
+/* The dimension of the iteration domain of the scop of PDR.  */
 
 static inline ppl_dimension_type
 pdr_dim_iter_domain (poly_dr_p pdr)
@@ -156,13 +157,23 @@ pdr_dim_iter_domain (poly_dr_p pdr)
   return pbb_dim_iter_domain (PDR_BB (pdr));
 }
 
-/* The dimension in PDR containing parameter PARAM.  */
+/* The number of parameters of the scop of PDR.  */
 
 static inline ppl_dimension_type
 pdr_nb_params (poly_dr_p pdr)
 {
-  poly_bb_p pbb = PDR_BB (pdr);
-  return pbb_nb_params (pbb);
+  return scop_nb_params (pdr_scop (pdr));
+}
+
+/* The dimension of the accesses polyhedron of PDR.  */
+
+static inline graphite_dim_t
+pdr_dim (poly_dr_p pdr)
+{
+  graphite_dim_t alias_nb_dimensions = 1;
+
+  return pbb_dim_iter_domain (PDR_BB (pdr)) + alias_nb_dimensions
+    + pdr_nb_subscripts (pdr) + scop_nb_params (pdr_scop (pdr));
 }
 
 /* The dimension of the alias set in PDR.  */
@@ -264,6 +275,13 @@ extern void print_iteration_domain (FILE *, poly_bb_p);
 extern void print_iteration_domains (FILE *, scop_p);
 extern void debug_iteration_domain (poly_bb_p);
 extern void debug_iteration_domains (scop_p);
+
+/* The scop that contains the PDR.  */
+
+static inline scop_p pdr_scop (poly_dr_p pdr)
+{
+  return PBB_SCOP (PDR_BB (pdr));
+}
 
 /* Set black box of PBB to BLACKBOX.  */
 

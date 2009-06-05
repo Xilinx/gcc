@@ -1,4 +1,11 @@
-2009-06-03  Sebastian Pop  <sebastian.pop@amd.com>
+2009-06-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (dependence_polyhedron): Use pdr_dim.
+	* graphite-poly.h: Fix some comments.
+	(pdr_dim): New.
+	(pdr_scop): New.
+
+2009-06-04  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-poly.h
 	(pdr_accessp_nb_subscripts): Renamed pdr_nb_subscripts.
