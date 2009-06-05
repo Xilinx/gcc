@@ -102,9 +102,6 @@ along with GCC; see the file COPYING3.  If not see
 				   declarations for e.g. AIX 4.x.  */
 #endif
 
-
-#include "compiler-probe.h"
-
 /* This is used for debugging.  It allows the current pass to printed
    from anywhere in compilation.  */
 struct opt_pass *current_pass;
@@ -524,9 +521,6 @@ init_optimization_passes (void)
   NEXT_PASS (pass_warn_function_return);
   NEXT_PASS (pass_build_cgraph_edges);
   NEXT_PASS (pass_inline_parameters);
-#if  ENABLE_BASILYSMELT
-  NEXT_PASS (pass_basilys_lowering);
-#endif
   *p = NULL;
 
   /* Interprocedural optimization passes.  */
@@ -571,11 +565,6 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_cd_dce);
 	  NEXT_PASS (pass_tail_recursion);
 	  NEXT_PASS (pass_convert_switch);
-
-#if  ENABLE_BASILYSMELT
-	  NEXT_PASS (pass_basilys_earlyopt);
-#endif /*ENABLE_BASILYSMELT*/
-
           NEXT_PASS (pass_cleanup_eh);
           NEXT_PASS (pass_profile);
           NEXT_PASS (pass_local_pure_const);
@@ -592,10 +581,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_pure_const); 
   NEXT_PASS (pass_ipa_type_escape);
   NEXT_PASS (pass_ipa_pta);
-  NEXT_PASS (pass_ipa_struct_reorg); 
-#if  ENABLE_BASILYSMELT
-  NEXT_PASS (pass_basilys_ipa); 
-#endif /*ENABLE_BASILYSMELT*/
+  NEXT_PASS (pass_ipa_struct_reorg);  
   *p = NULL;
 
   /* These passes are run after IPA passes on every function that is being
@@ -656,8 +642,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_pre);
       NEXT_PASS (pass_sink_code);
       NEXT_PASS (pass_tree_loop);
-      /* pass_compiler_probe does not work here */
-
 	{
 	  struct opt_pass **p = &pass_tree_loop.pass.sub;
 	  NEXT_PASS (pass_tree_loop_init);
@@ -718,25 +702,12 @@ init_optimization_passes (void)
       NEXT_PASS (pass_tail_calls);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_uncprop);
-#if  ENABLE_BASILYSMELT
-      NEXT_PASS (pass_basilys_lateopt); 
-#endif /*ENABLE_BASILYSMELT*/
       NEXT_PASS (pass_local_pure_const);
     }
-
-#if  ENABLE_BASILYSMELT
-  NEXT_PASS (pass_basilys_latessa); 
-#endif /*ENABLE_BASILYSMELT*/
-
   NEXT_PASS (pass_cleanup_eh);
   NEXT_PASS (pass_nrv);
   NEXT_PASS (pass_mudflap_2);
   NEXT_PASS (pass_cleanup_cfg_post_optimizing);
-
-#if ENABLE_COMPILER_PROBE
-  NEXT_PASS(pass_compiler_probe);
-#endif
-
   NEXT_PASS (pass_warn_function_noreturn);
 
   NEXT_PASS (pass_expand);
@@ -1258,10 +1229,6 @@ execute_one_pass (struct opt_pass *pass)
 {
   bool initializing_dump;
   unsigned int todo_after = 0;
-#if ENABLE_COMPILER_PROBE
-  static char cprobuf[80];
-  memset(cprobuf, 0, sizeof(cprobuf));
-#endif
 
   /* IPA passes are executed on whole program, so cfun should be NULL.
      Other passes need function context set.  */
@@ -1311,16 +1278,6 @@ execute_one_pass (struct opt_pass *pass)
 		   (void *)(size_t)pass->properties_required);
 #endif
 
-
-  if (pass->name && comprobe_replf) {
-    static char buf[80];
-    memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf)-1, "pass %s", pass->name);
-    comprobe_show_message(buf);
-  }
-
-  initializing_dump = pass_init_dump_file (pass);
-
   /* If a timevar is present, start it.  */
   if (pass->tv_id != TV_NONE)
     timevar_push (pass->tv_id);
@@ -1328,15 +1285,7 @@ execute_one_pass (struct opt_pass *pass)
   /* Do it!  */
   if (pass->execute)
     {
-      comprobe_check((snprintf(cprobuf, sizeof(cprobuf)-1, 
-			       "pass %s before execute", 
-			       pass->name?pass->name:"_"),
-		      cprobuf));
       todo_after = pass->execute ();
-      comprobe_check((snprintf(cprobuf, sizeof(cprobuf)-1, 
-			       "pass %s executed", 
-			       pass->name?pass->name:"_"),
-		      cprobuf));
       do_per_function (clear_last_verified, NULL);
     }
 

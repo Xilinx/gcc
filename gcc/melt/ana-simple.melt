@@ -921,13 +921,16 @@
 
 ;;; our small analysis command -fmelt=smallana
 (defun smallana_command (dispatcher arg secarg moduldata)
+  (let ( (smallana_ipa_gccpass 
+	  (compile_warning "should create and register a simple ipa pass" ())) )
   ;; fill the ipa pass
-  (put_fields basilys_ipa_gccpass
+  (put_fields smallana_ipa_gccpass
   :gccpass_gate smallanapass_gate
   :gccpass_exec smallanapass_exec)
-  (debug_msg basilys_latessa_gccpass "smallana sets basilys_latessa_gccpass")
+  (debug_msg smallana_ipa_gccpass "smallana_ipa_gccpass")
+  (assert_msg "$@$incomplete smallana_command" ())
   (return dispatcher)			;return non-nil to continue compilation
-  )
+  ))
 
 (initial_command_install smallana_command "smallana")
 

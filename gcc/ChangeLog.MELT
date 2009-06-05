@@ -1,3 +1,38 @@
+2009-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: BASILYS_HAS_OBJ_TAB_FIELDS fully removed.
+	(basilysgc_register_pass): changed signature in declaration.
+	* basilys.c: BASILYS_HAS_OBJ_TAB_FIELDS fully removed.
+	(handle_melt_attribute): moved from my c-common.c.
+	(melt_attr_spec): new static variable.
+	(melt_attribute_callback): added callback for attributes.
+	(basilys_initialize): registering attributes.
+	(basilysgc_register_pass): changed signature for positioning
+	passed as string.
+	(dispatch_gate_basilys, dispatch_execute_basilys)
+	(gate_basilys_lowering, execute_basilys_lowering)
+	(gate_basilys_earlyopt, gate_basilys_lateopt)
+	(execute_basilys_lateopt, gate_basilys_latessa, gate_basilys_ipa)
+	(execute_basilys_ipa): removed functions.
+	(pass_basilys_ipa, pass_basilys_lowering, pass_basilys_earlyopt)
+	(pass_basilys_lateopt, pass_basilys_latessa): removed these extra
+	built-in passes.  One can register arbitrary passes using
+	basilysgc_register_pass.
+	* melt/ana-base.melt: removed builtin basilys_earlyopt_gccpass
+	basilys_ipa_gccpass basilys_lateopt_gccpass
+	basilys_latessa_gccpass basilys_lowering_gccpass.
+	(install_melt_gcc_pass): added new primitive for
+	basilysgc_register_pass.
+	* melt/ana-simple.melt: TODO: smallana_command should create and
+	register its own simple IPA pass!
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+	* c-common.c: reverted to the trunk.
+	* passes.c: reverted to the trunk.
+
 2009-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	[starting pluginification of MELT]
 	* basilys.h: included "gcc-plugin.h".

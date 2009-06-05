@@ -114,7 +114,6 @@ extern const unsigned char executable_checksum[16];
 /* we use the plugin registration facilities, so this is the plugin
    name in use */
 #define MELT_PLUGIN_NAME "__MELT"
-/* BASILYS_HAS_OBJ_TAB_FIELDS has gone */
 
 
 /* *INDENT-OFF* */
@@ -7446,8 +7445,47 @@ load_basilys_modules_and_do_command (void)
 
 static void basilys_ppl_error_handler(enum ppl_enum_error_code err, const char* descr);
 
+
+
+/* handle a "melt" attribute
+ */
+static tree
+handle_melt_attribute(tree *node, tree name,
+		      tree args,
+		      int flag ATTRIBUTE_UNUSED,
+		      bool *no_add_attrs ATTRIBUTE_UNUSED)
+{
+  tree decl = *node;
+  tree id = 0;
+  const char* attrstr = 0;
+  id = TREE_VALUE (args);
+  if (TREE_CODE (id) != STRING_CST)
+    {
+      error ("melt attribute argument not a string");
+      return NULL_TREE;
+    }
+  attrstr = TREE_STRING_POINTER (id);
+  basilys_handle_melt_attribute (decl, name, attrstr, input_location);
+  return NULL_TREE;
+}
+
+static struct attribute_spec 
+melt_attr_spec =
+  { "melt",                   1, 1, true, false, false,
+    handle_melt_attribute };
+
+
+/* the plugin callback to register melt attributes */
+static void 
+melt_attribute_callback(void *gcc_data ATTRIBUTE_UNUSED,
+			void* user_data ATTRIBUTE_UNUSED) 
+{
+  register_attribute(&melt_attr_spec);
+}
+
 /****
- * Initialize basilys. Called from toplevel.c before pass management.
+ * Initialize basilys.  Called from toplevel.c before pass management.
+ * Should become the MELT plugin initializer.
  ****/
 void
 basilys_initialize (void)
@@ -7502,7 +7540,10 @@ basilys_initialize (void)
      plugin; we hope that MELT would become a plugin. */
   register_callback (MELT_PLUGIN_NAME, PLUGIN_GGC_MARKING, 
 		     basilys_marking_callback,
-		     (void*) 0);
+		     NULL);
+  register_callback (MELT_PLUGIN_NAME, PLUGIN_ATTRIBUTES,
+		     melt_attribute_callback,
+		     NULL);
   debugeprintf ("basilys_initialize cpp_PREFIX=%s", cpp_PREFIX);
   debugeprintf ("basilys_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
   debugeprintf ("basilys_initialize gcc_exec_prefix=%s", gcc_exec_prefix);
@@ -9669,12 +9710,15 @@ basilysgc_simple_ipa_execute(void)
    opt_pass and plugin_pass used internally are never deallocated.
    Non-simple IPA passes are not yet implemented! */
 void
-basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
-				int refpassnum, enum pass_positioning_ops passop)
+basilysgc_register_pass (basilys_ptr_t pass_p, 
+			 const char* positioning, 
+			 const char*refpassname,
+			 int refpassnum)
 {
   /* the plugin_pass can be local, since it is only locally used in
      plugin.c */
   struct plugin_pass plugpass = { NULL, NULL, 0, 0 };
+  enum pass_positioning_ops posop = PASS_POS_INSERT_AFTER;
   unsigned long propreq=0, propprov=0, propdest=0, todostart=0, todofinish=0;
   BASILYS_ENTERFRAME (7, NULL);
 #define passv        curfram__.varptr[0]
@@ -9686,6 +9730,15 @@ basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
     goto end;
   if (!refpassname || !refpassname[0]) 
     goto end;
+  if (!positioning || !positioning[0])
+    goto end;
+  if (!strcasecmp(positioning,"after"))
+    posop = PASS_POS_INSERT_AFTER;
+  else if (!strcasecmp(positioning,"before"))
+    posop = PASS_POS_INSERT_BEFORE;
+  else if (!strcasecmp(positioning,"replace"))
+    posop = PASS_POS_REPLACE;
+  else fatal_error("invalid positioning string %s in MELT pass", positioning);
   if (!passv || basilys_object_length((basilys_ptr_t) passv) < FGCCPASS__LAST
       || !basilys_is_instance_of((basilys_ptr_t) passv, 
 				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_PASS)))
@@ -9731,7 +9784,7 @@ basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
     plugpass.pass = (struct opt_pass*) gimpass;
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
-    plugpass.pos_op = passop;
+    plugpass.pos_op = posop;
     register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
@@ -9758,7 +9811,7 @@ basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
     plugpass.pass = (struct opt_pass*)rtlpass;
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
-    plugpass.pos_op = passop;
+    plugpass.pos_op = posop;
     register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
@@ -9784,7 +9837,7 @@ basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
     plugpass.pass = (struct opt_pass*) sipapass;
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
-    plugpass.pos_op = passop;
+    plugpass.pos_op = posop;
     register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
@@ -9806,310 +9859,14 @@ basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
 }
 
 
-/*****************************************************************/
-/*** stuff for passes ***/
-static bool
-dispatch_gate_basilys (const char *passname)
-{
-  bool res = FALSE;
-  BASILYS_ENTERFRAME (4, NULL);
-#define passdictv curfram__.varptr[0]
-#define passv     curfram__.varptr[1]
-#define gatev     curfram__.varptr[2]
-#define resvalv   curfram__.varptr[3]
-  if (errorcount > 0 || sorrycount > 0 || !basilys_mode_string
-      || !basilys_mode_string[0])
-    goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
-  passv =
-    basilys_get_mapstrings ((struct basilysmapstrings_st *) passdictv,
-			    passname);
-  debugeprintf ("dispatch_gate_basilys passname %s passv %p", passname,
-		passv);
-  if (basilys_is_instance_of
-      ((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
-    {
-      gatev = basilys_object_nth_field ((basilys_ptr_t) passv, FGCCPASS_GATE);
-      debugeprintf ("dispatch_gate_basilys passname %s gatev %p", passname,
-		    gatev);
-      if (basilys_magic_discr ((basilys_ptr_t) gatev) == OBMAG_CLOSURE)
-	{
-	  debugeprintf
-	    ("dispatch_gate_basilys passname %s before apply gatev %p",
-	     passname, gatev);
-	  resvalv =
-	    basilys_apply ((struct basilysclosure_st *) gatev,
-			   (basilys_ptr_t) passv, "",
-			   (union basilysparam_un *) 0, "",
-			   (union basilysparam_un *) 0);
-	  res = (resvalv != NULL);
-	  debugeprintf
-	    ("dispatch_gate_basilys passname %s after apply resv %p",
-	     passname, resvalv);
-	  /* force a minor GC to be sure that nothing is in the young region */
-	  basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
-	}
-    }
-end:
-  BASILYS_EXITFRAME ();
-#undef passdictv
-#undef passv
-#undef gatev
-#undef resvalv
-  return res;
-}
 
-static unsigned int
-dispatch_execute_basilys (const char *passname)
-{
-  unsigned int restodo = 0;
-  long todol = 0;
-  BASILYS_ENTERFRAME (4, NULL);
-#define passdictv curfram__.varptr[0]
-#define passv     curfram__.varptr[1]
-#define execuv    curfram__.varptr[2]
-#define resvalv   curfram__.varptr[3]
-  if (!basilys_mode_string || !basilys_mode_string[0])
-    goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
-  passv =
-    basilys_get_mapstrings ((struct basilysmapstrings_st *) passdictv,
-			    passname);
-  debugeprintf ("dispatch_execute_basilys passname %s passv %p", passname,
-		passv);
-  if (basilys_is_instance_of
-      ((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB (CLASS_GCC_PASS)))
-    {
-      execuv =
-	basilys_object_nth_field ((basilys_ptr_t) passv, FGCCPASS_EXEC);
-      if (basilys_magic_discr ((basilys_ptr_t) execuv) == OBMAG_CLOSURE)
-	{
-	  long passdbgcounter = basilys_dbgcounter;
-	  union basilysparam_un restab[1];
-	  memset (&restab, 0, sizeof (restab));
-	  restab[0].bp_longptr = &todol;
-	  debugeprintf
-	    ("dispatch_execute_basilys passname %s dbgcounter %ld cfun %p ",
-	     passname, basilys_dbgcounter, (void *) cfun);
-	  if (cfun && flag_basilys_debug)
-	    debug_tree (cfun->decl);
-	  debugeprintf ("dispatch_execute_basilys passname %s before apply",
-			passname);
-	  /* apply with one extra long result */
-	  resvalv =
-	    basilys_apply ((struct basilysclosure_st *) execuv,
-			   (basilys_ptr_t) passv, "",
-			   (union basilysparam_un *) 0, BPARSTR_LONG "",
-			   restab);
-	  debugeprintf ("dispatch_execute_basilys passname %s after apply",
-			passname);
-	  if (resvalv)
-	    restodo = (unsigned int) todol;
-	  /* force a minor GC to be sure that nothing is in the young region */
-	  basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
-	  debugeprintf
-	    ("dispatch_execute_basilys passname %s dbgcounter %ld was %ld ended\n",
-	     passname, basilys_dbgcounter, passdbgcounter);
-	}
-    }
-end:
-  BASILYS_EXITFRAME ();
-  return restodo;
-}
-
-/* decide if basilys_lowering pass has to be run */
-static bool
-gate_basilys_lowering (void)
-{
-  return dispatch_gate_basilys ("basilys-lowering");
-}
-
-/* execute the basilys_lowering pass */
-static unsigned int
-execute_basilys_lowering (void)
-{
-  return dispatch_execute_basilys ("basilys-lowering");
-}
-
-
-
-/* decide if basilys_earlyopt pass has to be run */
-static bool
-gate_basilys_earlyopt (void)
-{
-  return dispatch_gate_basilys ("basilys-earlyopt");
-}
-
-/* execute the basilys_earlyopt pass */
-static unsigned int
-execute_basilys_earlyopt (void)
-{
-  return dispatch_execute_basilys ("basilys-earlyopt");
-}
-
-
-
-/* decide if basilys_lateopt pass has to be run */
-static bool
-gate_basilys_lateopt (void)
-{
-  return dispatch_gate_basilys ("basilys-lateopt");
-}
-
-/* execute the basilys_lateopt pass */
-static unsigned int
-execute_basilys_lateopt (void)
-{
-  return dispatch_execute_basilys ("basilys-lateopt");
-}
-
-
-
-/* decide if basilys_latessa pass has to be run */
-static bool
-gate_basilys_latessa (void)
-{
-  return dispatch_gate_basilys ("basilys-latessa");
-}
-
-/* execute the basilys_lateopt pass */
-static unsigned int
-execute_basilys_latessa (void)
-{
-  return dispatch_execute_basilys ("basilys-latessa");
-}
-
-
-/* decide if basilys_ipa pass has to be run */
-static bool
-gate_basilys_ipa (void)
-{
-  return dispatch_gate_basilys ("basilys-ipa");
-}
-
-/* execute the basilys_ipa pass */
-static unsigned int
-execute_basilys_ipa (void)
-{
-  return dispatch_execute_basilys ("basilys-ipa");
-}
-
-
-
-struct simple_ipa_opt_pass pass_basilys_ipa = {
-  {
-   SIMPLE_IPA_PASS,		/* type */
-   "basilys-ipa",		/* name */
-   gate_basilys_ipa,		/* gate */
-   execute_basilys_ipa,		/* execute */
-   NULL,			/* sub */
-   NULL,			/* next */
-   0,				/* static_pass_number */
-   TV_PLUGIN_RUN,		/* tv_id */
-   PROP_cfg | PROP_ssa,		/* properties_required */
-   0,				/* properties_provided */
-   0,				/* properties_destroyed */
-   0,				/* todo_flags_start */
-   0,				/* todo_flags_finish */
-   }
-};
-
-
-/* pass_basilys_lowering is called in passes.c after pass_inline_parameters */
-struct gimple_opt_pass pass_basilys_lowering = {
-  {
-   GIMPLE_PASS,
-   "basilys-lowering",		/* name */
-   gate_basilys_lowering,	/* gate */
-   execute_basilys_lowering,	/* execute */
-   NULL,			/* sub */
-   NULL,			/* next */
-   0,				/* static_pass_number */
-   TV_PLUGIN_RUN,		/* tv_id */
-   PROP_cfg,			/* properties_required */
-   0,				/* properties_provided */
-   0,				/* properties_destroyed */
-   0,				/* todo_flags_start */
-   0,				/* todo_flags_finish */
-   }
-};
-
-/* pass_basilys_earlyopt is called in passes.c after
-   pass_convert_switch; code is in SSA form */
-struct gimple_opt_pass pass_basilys_earlyopt = {
-  {
-   GIMPLE_PASS,
-   "basilys-earlyopt",		/* name */
-   gate_basilys_earlyopt,	/* gate */
-   execute_basilys_earlyopt,	/* execute */
-   NULL,			/* sub */
-   NULL,			/* next */
-   0,				/* static_pass_number */
-   TV_PLUGIN_RUN,		/* tv_id */
-   PROP_cfg | PROP_ssa,		/* properties_required */
-   0,				/* properties_provided */
-   0,				/* properties_destroyed */
-   0,				/* todo_flags_start */
-   TODO_verify_ssa		/* todo_flags_finish */
-   }
-};
-
-
-/* pass_basilys_lateopt is called before pass_del_ssa in the
-   all_optimisations metapass */
-struct gimple_opt_pass pass_basilys_lateopt = {
-  {
-   GIMPLE_PASS,
-   "basilys-lateopt",		/* name */
-   gate_basilys_lateopt,	/* gate */
-   execute_basilys_lateopt,	/* execute */
-   NULL,			/* sub */
-   NULL,			/* next */
-   0,				/* static_pass_number */
-   TV_PLUGIN_RUN,		/* tv_id */
-   PROP_cfg | PROP_ssa,		/* properties_required */
-   0,				/* properties_provided */
-   0,				/* properties_destroyed */
-   0,				/* todo_flags_start */
-   TODO_verify_ssa		/* todo_flags_finish */
-   }
-};
-
-
-
-
-/* pass_basilys_latessa is called just before pass_del_ssa even
-   without optimization */
-struct gimple_opt_pass pass_basilys_latessa = {
-  {
-   GIMPLE_PASS,
-   "basilys-latessa",		/* name */
-   gate_basilys_latessa,	/* gate */
-   execute_basilys_latessa,	/* execute */
-   NULL,			/* sub */
-   NULL,			/* next */
-   0,				/* static_pass_number */
-   TV_PLUGIN_RUN,		/* tv_id */
-   PROP_cfg | PROP_ssa,		/* properties_required */
-   0,				/* properties_provided */
-   0,				/* properties_destroyed */
-   0,				/* todo_flags_start */
-   TODO_verify_ssa		/* todo_flags_finish */
-   }
-};
 
 
 
 
 
 /*****
- * called from c-common.c in handle_melt_attribute
+ * called from handle_melt_attribute
  *****/
 
 void

@@ -530,12 +530,6 @@ static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
 
-#if ENABLE_BASILYSMELT
-static tree handle_melt_attribute(tree *, tree, tree, int, bool *);
-/* in basilys.h */
-void basilys_handle_melt_attribute(tree decl, tree name, const char* attrstr, location_t srcloc);
-#endif
-
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
 static bool nonnull_check_p (tree, unsigned HOST_WIDE_INT);
@@ -819,12 +813,6 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_error_attribute },
   { "error",		      1, 1, true,  false, false,
 			      handle_error_attribute },
-
-#if ENABLE_BASILYSMELT
-  { "melt",                   1, 1, true, false, false,
-                              handle_melt_attribute },
-#endif /* ENABLE_BASILYSMELT */
-
   { "target",                 1, -1, true, false, false,
 			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
@@ -6913,31 +6901,6 @@ handle_tls_model_attribute (tree *node, tree name, tree args,
   DECL_TLS_MODEL (decl) = kind;
   return NULL_TREE;
 }
-
-
-#if ENABLE_BASILYSMELT
-/* handle a "melt" attribute 
- */
-static tree
-handle_melt_attribute(tree *node, tree name,
-		      tree args,
-		      int ARG_UNUSED (flags),
-		      bool *ARG_UNUSED (no_add_attrs))
-{
-  tree decl = *node;
-  tree id = 0;
-  const char* attrstr = 0;
-  id = TREE_VALUE (args);
-  if (TREE_CODE (id) != STRING_CST)
-    {
-      error ("melt attribute argument not a string");
-      return NULL_TREE;
-    }
-  attrstr = TREE_STRING_POINTER (id);
-  basilys_handle_melt_attribute(decl,name,attrstr,input_location);
-  return NULL_TREE;
-}
-#endif /*ENABLE_BASILYSMELT*/
 
 /* Handle a "no_instrument_function" attribute; arguments as in
    struct attribute_spec.handler.  */

@@ -48,15 +48,11 @@
   #{ basilysgc_put_gdbmstate((basilys_ptr_t)($key), (basilys_ptr_t)($data)); 
   }# )
 
-(compile_warning "the current install_gcc_pass is soon deprecated - see basilysgc_register_pass in basilys.c" ())
-(defun install_gcc_pass (pass)
-  (assert_msg "check pass" (is_a pass class_gcc_pass))
-  (mapstring_putstr (unsafe_get_field :sysdata_pass_dict initial_system_data)
-		 (unsafe_get_field :named_name pass)
-		 pass)
-  (debug_msg pass "installed gcc pass")
-)
 
+(defprimitive install_melt_gcc_pass 
+  (:value pass :cstring positioning refpassname :long refpassnum) :void
+  #{ basilysgc_register_pass ($pass, $positioning, $refpassname, $refpassnum); 
+  }#)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1235,57 +1231,7 @@
     ))
 (install_method discr_maptrees dbg_output dbgout_maptree_method)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;; G C C      P A S S E S 
-;; the named_name of passes is builtin in gcc/basilys.c [lowercase]
 
-
-;;;;;;;;;;;;;;;;;; lowering pass
-;; the CFG is available, but the tree is not in SSA form
-(definstance basilys_lowering_gccpass 
-  class_gcc_pass
-  :named_name (make_stringconst discr_string "basilys-lowering")
-  :gccpass_data ()
-)
-(install_gcc_pass basilys_lowering_gccpass)
-
-;;;;;;;;;;;;;;;;;; ipa (interprocedural analysis) pass
-;; the CFG is available & tree is in SSA form
-(definstance basilys_ipa_gccpass 
-  class_gcc_pass
-  :named_name (make_stringconst discr_string "basilys-ipa")
-  :gccpass_gate ()
-  :gccpass_exec ()
-  :gccpass_data ()
-)
-(install_gcc_pass basilys_ipa_gccpass)
-
-
-;;;;;;;;;;;;;;;;;; early optimisation pass
-;; code in SSA
-(definstance basilys_earlyopt_gccpass
-  class_gcc_pass
-  :named_name (make_stringconst discr_string "basilys-earlyopt")
-  :gccpass_data ()
-)
-(install_gcc_pass basilys_earlyopt_gccpass)
-
-;;;;;;;;;;;;;;;;;; late optimisation pass
-;; code in SSA, soon to be removed
-(definstance basilys_lateopt_gccpass class_gcc_pass
-  :named_name (make_stringconst discr_string "basilys-lateopt")
-  :gccpass_data ()
-)
-(install_gcc_pass basilys_lateopt_gccpass)
-
-
-;;;;;;;;;;;;;;;;;; late ssa pass
-;; code in SSA, soon to be removed
-(definstance basilys_latessa_gccpass class_gcc_pass
-  :named_name (make_stringconst discr_string "basilys-latessa")
-  :gccpass_data ()
-)
-(install_gcc_pass basilys_latessa_gccpass)
 
 
 
@@ -1548,11 +1494,6 @@
  basicblock_gimpleseq
  basicblock_phinodes
  basicblock_single_succ 
- basilys_earlyopt_gccpass
- basilys_ipa_gccpass
- basilys_lateopt_gccpass
- basilys_latessa_gccpass
- basilys_lowering_gccpass
  clear_special 
  debug_ppl_coefficient
  debug_ppl_constraint
@@ -1612,7 +1553,7 @@
  gimpleval
  inform_at_tree
  insert_ppl_constraint_in_boxed_system 
- install_gcc_pass
+ install_melt_gcc_pass
  is_basicblock
  is_gimple
  is_gimpleseq  

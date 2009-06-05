@@ -386,8 +386,6 @@ enum obmag_en    {
 
 /* when OBMAG_OBJECT -- */
 
-/* we now have fixed length objects - so the number of variables cannot change */
-#define BASILYS_HAS_OBJ_TAB_FIELDS 0
 
 struct 
 GTY (())
@@ -408,20 +406,6 @@ basilysobject_st
 
 #if ENABLE_CHECKING
 
-#if BASILYS_HAS_OBJ_TAB_FIELDS
-#error BASILYS_HAS_OBJ_TAB_FIELDS is no longer supported, because gengtype dislike CPP conditionals.
-/* 
-#define BASILYS_OBJECT_STRUCT(N) {		\
-  basilysobject_ptr_t obj_class;		\
-  unsigned obj_hash;				\
-  unsigned short obj_num;			\
-  unsigned short obj_len;			\
-  unsigned long obj_serial;                     \
-  basilys_ptr_t* obj_vartab;			\
-  basilys_ptr_t obj__tabfields[N];		\
-  long _gap; }
-*/
-#else /*!BASILYS_HAS_OBJ_TAB_FIELDS*/
 #define BASILYS_OBJECT_STRUCT(N) {		\
   basilysobject_ptr_t obj_class;		\
   unsigned obj_hash;				\
@@ -430,25 +414,11 @@ basilysobject_st
   unsigned long obj_serial;                     \
   basilys_ptr_t* obj_vartab[N];			\
   long _gap; }
-#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
 
 void basilys_object_set_serial(basilysobject_ptr_t ob);
 
 #else /*!ENABLE_CHECKING*/
 
-#if BASILYS_HAS_OBJ_TAB_FIELDS
-#error BASILYS_HAS_OBJ_TAB_FIELDS is no longer supported, because gengtype dislike CPP conditionals.
-/*
-#define BASILYS_OBJECT_STRUCT(N) {		\
-  basilysobject_ptr_t obj_class;		\
-  unsigned obj_hash;				\
-  unsigned short obj_num;			\
-  unsigned short obj_len;			\
-  basilys_ptr_t* obj_vartab;			\
-  basilys_ptr_t obj__tabfields[N];		\
-  long _gap; }
-*/
-#else /*!BASILYS_HAS_OBJ_TAB_FIELDS*/
 #define BASILYS_OBJECT_STRUCT(N) {		\
   basilysobject_ptr_t obj_class;		\
   unsigned obj_hash;				\
@@ -456,7 +426,6 @@ void basilys_object_set_serial(basilysobject_ptr_t ob);
   unsigned short obj_len;			\
   basilys_ptr_t* obj_vartab[N];			\
   long _gap; }
-#endif /*BASILYS_HAS_OBJ_TAB_FIELDS*/
 
 /* set serial is a nop */
 static inline void basilys_object_set_serial(basilysobject_ptr_t ob) {}
@@ -2395,12 +2364,17 @@ void basilysgc_ppstrbuf_mpz(basilys_ptr_t sbuf_p, int indentsp, mpz_t mp);
 void basilysgc_ppstrbuf_mixbigint(basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t big_p);
 
 /***************** PASS MANAGEMENT ****************/
-/* register a MELT pass; there is no way to unregister it, and the
+/* register a Melt pass PASS; there is no way to unregister it, and the
    opt_pass and plugin_pass used internally are never deallocated.
-   Non-simple IPA passes are not yet implemented! */
+   The POSITIONING is one of the strings "after" "before" "replace"
+   The REFPASSNAME is the name of the existing reference pass
+   The REFPASSNUMBER is the number of the reference pass or 0 for all.
+   Non-simple IPA passes are not yet implemented! 
+*/
 void
-basilysgc_register_pass (basilys_ptr_t pass_p, const char*refpassname,
-				int refpassnum, enum pass_positioning_ops passop);
+basilysgc_register_pass (basilys_ptr_t pass_p, const char* positioning, 
+			 const char*refpassname,
+			 int refpassnum);
 
 /***************** PARMA POLYHEDRA LIBRARY ****************/
 
