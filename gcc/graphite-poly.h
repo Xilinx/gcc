@@ -275,6 +275,7 @@ extern void print_iteration_domain (FILE *, poly_bb_p);
 extern void print_iteration_domains (FILE *, scop_p);
 extern void debug_iteration_domain (poly_bb_p);
 extern void debug_iteration_domains (scop_p);
+extern bool interchange_profitable_p (graphite_dim_t, graphite_dim_t, poly_bb_p);
 
 /* The scop that contains the PDR.  */
 
@@ -371,7 +372,7 @@ extern void debug_scattering_functions (scop_p);
 extern int scop_max_loop_depth (scop_p);
 extern int unify_scattering_dimensions (scop_p);
 extern bool apply_poly_transforms (scop_p);
-extern bool graphite_legal_transform (scop_p scop);
+extern bool graphite_legal_transform (scop_p);
 
 /* Set the region of SCOP to REGION.  */
 

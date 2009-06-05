@@ -1,3 +1,11 @@
+2009-06-05  Sebastian Pop  <sebastian.pop@amd.com>
+	    Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* graphite-interchange.c: New.
+	* Makefile.in (graphite-interchange.o): New.
+	* graphite-poly.h (interchange_profitable_p): Declared.
+	* graphite-ppl.h (value_max): New.
+
 2009-06-04  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-dependences.c (dependence_polyhedron): Use pdr_dim.

@@ -38,5 +38,16 @@ void debug_ppl_powerset_matrix (ppl_Pointset_Powerset_NNC_Polyhedron_t);
 void ppl_read_polyhedron_matrix (ppl_Polyhedron_t *, FILE *);
 void ppl_insert_dimensions (ppl_Polyhedron_t, int, int);
 void ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t, int, int);
+
+/* Sets RES to the max of V1 and V2.  */
+
+static inline void
+value_max (Value res, Value v1, Value v2)
+{
+  if (value_compare (v1, v2) < 0)
+    value_assign (res, v2);
+  value_assign (res, v1);
+}
+
 #endif
 
