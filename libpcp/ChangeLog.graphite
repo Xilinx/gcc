@@ -1,5 +1,10 @@
 2009-06-05  Jan Sjodin  <jan.sjodin@amd.com>
 
+	* libpcp/pcp_cloog_gateway.h: Enclosed code in #ifdef HAVE_cloog
+	* libpcp/pcp_cloog_gateway.cc: Same
+
+2009-06-05  Jan Sjodin  <jan.sjodin@amd.com>
+
 	* libpcp/pcp_cloog_gateway.h: New.
 	* libpcp/pcp_cloog_gateway.cc: New.
 	* libpcp/pcp_domain.h: New.

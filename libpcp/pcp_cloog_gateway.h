@@ -28,6 +28,7 @@
 #ifndef _PCP_GLOOG_GATEWAY_
 #define _PCP_GLOOG_GATEWAY_
 
+#ifdef HAVE_cloog
 #include "cloog/cloog.h"
 class PcpPolyScop;
 
@@ -35,5 +36,6 @@ class PcpCloogGateway
 {
   CloogProgram* buildCloogProgram(PcpPolyScop* polyScop);
 };
+#endif
 
 #endif // _PCP_GLOOG_GATEWAY_ 
