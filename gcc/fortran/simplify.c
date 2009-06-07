@@ -214,6 +214,26 @@ convert_mpz_to_signed (mpz_t x, int bitsize)
     }
 }
 
+/* Helper function to convert to/from mpfr_t & mpc_t and call the
+   supplied mpc function on the respective values.  */
+
+#ifdef HAVE_mpc
+static void
+call_mpc_func (mpfr_ptr result_re, mpfr_ptr result_im,
+	       mpfr_srcptr input_re, mpfr_srcptr input_im,
+	       int (*func)(mpc_ptr, mpc_srcptr, mpc_rnd_t))
+{
+  mpc_t c;
+  mpc_init2 (c, mpfr_get_default_prec());
+  mpc_set_fr_fr (c, input_re, input_im, GFC_MPC_RND_MODE);
+  func (c, c, GFC_MPC_RND_MODE);
+  mpfr_set (result_re, mpc_realref (c), GFC_RND_MODE);
+  mpfr_set (result_im, mpc_imagref (c), GFC_RND_MODE);
+  mpc_clear (c);
+}
+#endif
+
+
 /* Test that the expression is an constant array.  */
 
 static bool
@@ -226,7 +246,7 @@ is_constant_array_expr (gfc_expr *e)
 
   if (e->expr_type != EXPR_ARRAY || !gfc_is_constant_expr (e))
     return false;
-  
+
   for (c = e->value.constructor; c; c = c->next)
     if (c->expr->expr_type != EXPR_CONSTANT)
       return false;
@@ -1419,7 +1439,6 @@ gfc_expr *
 gfc_simplify_cos (gfc_expr *x)
 {
   gfc_expr *result;
-  mpfr_t xp, xq;
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
@@ -1433,6 +1452,12 @@ gfc_simplify_cos (gfc_expr *x)
       break;
     case BT_COMPLEX:
       gfc_set_model_kind (x->ts.kind);
+#ifdef HAVE_mpc
+      call_mpc_func (result->value.complex.r, result->value.complex.i,
+		     x->value.complex.r, x->value.complex.i, mpc_cos);
+#else
+    {
+      mpfr_t xp, xq;
       mpfr_init (xp);
       mpfr_init (xq);
 
@@ -1446,6 +1471,8 @@ gfc_simplify_cos (gfc_expr *x)
       mpfr_neg (result->value.complex.i, xp, GFC_RND_MODE );
 
       mpfr_clears (xp, xq, NULL);
+    }
+#endif
       break;
     default:
       gfc_internal_error ("in gfc_simplify_cos(): Bad type");
@@ -1699,6 +1726,143 @@ gfc_simplify_erfc (gfc_expr *x)
 }
 
 
+/* Helper functions to simplify ERFC_SCALED(x) = ERFC(x) * EXP(X**2).  */
+
+#define MAX_ITER 200
+#define ARG_LIMIT 12
+
+/* Calculate ERFC_SCALED directly by its definition:
+
+     ERFC_SCALED(x) = ERFC(x) * EXP(X**2)
+
+   using a large precision for intermediate results.  This is used for all
+   but large values of the argument.  */
+static void
+fullprec_erfc_scaled (mpfr_t res, mpfr_t arg)
+{
+  mp_prec_t prec;
+  mpfr_t a, b;
+
+  prec = mpfr_get_default_prec ();
+  mpfr_set_default_prec (10 * prec);
+
+  mpfr_init (a);
+  mpfr_init (b);
+
+  mpfr_set (a, arg, GFC_RND_MODE);
+  mpfr_sqr (b, a, GFC_RND_MODE);
+  mpfr_exp (b, b, GFC_RND_MODE);
+  mpfr_erfc (a, a, GFC_RND_MODE);
+  mpfr_mul (a, a, b, GFC_RND_MODE);
+
+  mpfr_set (res, a, GFC_RND_MODE);
+  mpfr_set_default_prec (prec);
+
+  mpfr_clear (a);
+  mpfr_clear (b);
+}
+
+/* Calculate ERFC_SCALED using a power series expansion in 1/arg:
+
+    ERFC_SCALED(x) = 1 / (x * sqrt(pi))
+                     * (1 + Sum_n (-1)**n * (1 * 3 * 5 * ... * (2n-1))
+                                          / (2 * x**2)**n)
+
+  This is used for large values of the argument.  Intermediate calculations
+  are performed with twice the precision.  We don't do a fixed number of
+  iterations of the sum, but stop when it has converged to the required
+  precision.  */
+static void
+asympt_erfc_scaled (mpfr_t res, mpfr_t arg)
+{
+  mpfr_t sum, x, u, v, w, oldsum, sumtrunc;
+  mpz_t num;
+  mp_prec_t prec;
+  unsigned i;
+
+  prec = mpfr_get_default_prec ();
+  mpfr_set_default_prec (2 * prec);
+
+  mpfr_init (sum);
+  mpfr_init (x);
+  mpfr_init (u);
+  mpfr_init (v);
+  mpfr_init (w);
+  mpz_init (num);
+
+  mpfr_init (oldsum);
+  mpfr_init (sumtrunc);
+  mpfr_set_prec (oldsum, prec);
+  mpfr_set_prec (sumtrunc, prec);
+
+  mpfr_set (x, arg, GFC_RND_MODE);
+  mpfr_set_ui (sum, 1, GFC_RND_MODE);
+  mpz_set_ui (num, 1);
+
+  mpfr_set (u, x, GFC_RND_MODE);
+  mpfr_sqr (u, u, GFC_RND_MODE);
+  mpfr_mul_ui (u, u, 2, GFC_RND_MODE);
+  mpfr_pow_si (u, u, -1, GFC_RND_MODE);
+
+  for (i = 1; i < MAX_ITER; i++)
+  {
+    mpfr_set (oldsum, sum, GFC_RND_MODE);
+
+    mpz_mul_ui (num, num, 2 * i - 1);
+    mpz_neg (num, num);
+
+    mpfr_set (w, u, GFC_RND_MODE);
+    mpfr_pow_ui (w, w, i, GFC_RND_MODE);
+
+    mpfr_set_z (v, num, GFC_RND_MODE);
+    mpfr_mul (v, v, w, GFC_RND_MODE);
+
+    mpfr_add (sum, sum, v, GFC_RND_MODE);
+
+    mpfr_set (sumtrunc, sum, GFC_RND_MODE);
+    if (mpfr_cmp (sumtrunc, oldsum) == 0)
+      break;
+  }
+
+  /* We should have converged by now; otherwise, ARG_LIMIT is probably
+     set too low.  */
+  gcc_assert (i < MAX_ITER);
+
+  /* Divide by x * sqrt(Pi).  */
+  mpfr_const_pi (u, GFC_RND_MODE);
+  mpfr_sqrt (u, u, GFC_RND_MODE);
+  mpfr_mul (u, u, x, GFC_RND_MODE);
+  mpfr_div (sum, sum, u, GFC_RND_MODE);
+
+  mpfr_set (res, sum, GFC_RND_MODE);
+  mpfr_set_default_prec (prec);
+
+  mpfr_clears (sum, x, u, v, w, oldsum, sumtrunc, NULL);
+  mpz_clear (num);
+}
+
+
+gfc_expr *
+gfc_simplify_erfc_scaled (gfc_expr *x)
+{
+  gfc_expr *result;
+
+  if (x->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+  if (mpfr_cmp_d (x->value.real, ARG_LIMIT) >= 0)
+    asympt_erfc_scaled (result->value.real, x->value.real);
+  else
+    fullprec_erfc_scaled (result->value.real, x->value.real);
+
+  return range_check (result, "ERFC_SCALED");
+}
+
+#undef MAX_ITER
+#undef ARG_LIMIT
+
+
 gfc_expr *
 gfc_simplify_epsilon (gfc_expr *e)
 {
@@ -1719,7 +1883,6 @@ gfc_expr *
 gfc_simplify_exp (gfc_expr *x)
 {
   gfc_expr *result;
-  mpfr_t xp, xq;
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
@@ -1734,6 +1897,12 @@ gfc_simplify_exp (gfc_expr *x)
 
     case BT_COMPLEX:
       gfc_set_model_kind (x->ts.kind);
+#ifdef HAVE_mpc
+      call_mpc_func (result->value.complex.r, result->value.complex.i,
+		     x->value.complex.r, x->value.complex.i, mpc_exp);
+#else
+    {
+      mpfr_t xp, xq;
       mpfr_init (xp);
       mpfr_init (xq);
       mpfr_exp (xq, x->value.complex.r, GFC_RND_MODE);
@@ -1742,6 +1911,8 @@ gfc_simplify_exp (gfc_expr *x)
       mpfr_sin (xp, x->value.complex.i, GFC_RND_MODE);
       mpfr_mul (result->value.complex.i, xq, xp, GFC_RND_MODE);
       mpfr_clears (xp, xq, NULL);
+    }
+#endif
       break;
 
     default:
@@ -2896,10 +3067,13 @@ gfc_simplify_leadz (gfc_expr *e)
   bs = gfc_integer_kinds[i].bit_size;
   if (mpz_cmp_si (e->value.integer, 0) == 0)
     lz = bs;
+  else if (mpz_cmp_si (e->value.integer, 0) < 0)
+    lz = 0;
   else
     lz = bs - mpz_sizeinbase (e->value.integer, 2);
 
-  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind, &e->where);
+  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
+				&e->where);
   mpz_set_ui (result->value.integer, lz);
 
   return result;
@@ -2919,7 +3093,13 @@ gfc_simplify_len (gfc_expr *e, gfc_expr *kind)
     {
       result = gfc_constant_result (BT_INTEGER, k, &e->where);
       mpz_set_si (result->value.integer, e->value.character.length);
-      return range_check (result, "LEN");
+      if (gfc_range_check (result) == ARITH_OK)
+	return result;
+      else
+	{
+	  gfc_free_expr (result);
+	  return NULL;
+	}
     }
 
   if (e->ts.cl != NULL && e->ts.cl->length != NULL
@@ -2928,7 +3108,13 @@ gfc_simplify_len (gfc_expr *e, gfc_expr *kind)
     {
       result = gfc_constant_result (BT_INTEGER, k, &e->where);
       mpz_set (result->value.integer, e->ts.cl->length->value.integer);
-      return range_check (result, "LEN");
+      if (gfc_range_check (result) == ARITH_OK)
+	return result;
+      else
+	{
+	  gfc_free_expr (result);
+	  return NULL;
+	}
     }
 
   return NULL;
@@ -3025,7 +3211,6 @@ gfc_expr *
 gfc_simplify_log (gfc_expr *x)
 {
   gfc_expr *result;
-  mpfr_t xr, xi;
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
@@ -3058,6 +3243,12 @@ gfc_simplify_log (gfc_expr *x)
 	}
 
       gfc_set_model_kind (x->ts.kind);
+#ifdef HAVE_mpc
+      call_mpc_func (result->value.complex.r, result->value.complex.i,
+		     x->value.complex.r, x->value.complex.i, mpc_log);
+#else
+    {
+      mpfr_t xr, xi;
       mpfr_init (xr);
       mpfr_init (xi);
 
@@ -3071,7 +3262,8 @@ gfc_simplify_log (gfc_expr *x)
       mpfr_log (result->value.complex.r, xr, GFC_RND_MODE);
 
       mpfr_clears (xr, xi, NULL);
-
+    }
+#endif
       break;
 
     default:
@@ -4731,7 +4923,6 @@ gfc_expr *
 gfc_simplify_sin (gfc_expr *x)
 {
   gfc_expr *result;
-  mpfr_t xp, xq;
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
@@ -4746,6 +4937,12 @@ gfc_simplify_sin (gfc_expr *x)
 
     case BT_COMPLEX:
       gfc_set_model (x->value.real);
+#ifdef HAVE_mpc
+      call_mpc_func (result->value.complex.r, result->value.complex.i,
+		     x->value.complex.r, x->value.complex.i, mpc_sin);
+#else
+    {
+      mpfr_t xp, xq;
       mpfr_init (xp);
       mpfr_init (xq);
 
@@ -4758,6 +4955,8 @@ gfc_simplify_sin (gfc_expr *x)
       mpfr_mul (result->value.complex.i, xp, xq, GFC_RND_MODE);
 
       mpfr_clears (xp, xq, NULL);
+    }
+#endif
       break;
 
     default:
@@ -4935,7 +5134,6 @@ gfc_expr *
 gfc_simplify_sqrt (gfc_expr *e)
 {
   gfc_expr *result;
-  mpfr_t ac, ad, s, t, w;
 
   if (e->expr_type != EXPR_CONSTANT)
     return NULL;
@@ -4952,10 +5150,16 @@ gfc_simplify_sqrt (gfc_expr *e)
       break;
 
     case BT_COMPLEX:
+      gfc_set_model (e->value.real);
+#ifdef HAVE_mpc
+      call_mpc_func (result->value.complex.r, result->value.complex.i,
+		     e->value.complex.r, e->value.complex.i, mpc_sqrt);
+#else
+    {
       /* Formula taken from Numerical Recipes to avoid over- and
 	 underflow.  */
 
-      gfc_set_model (e->value.real);
+      mpfr_t ac, ad, s, t, w;
       mpfr_init (ac);
       mpfr_init (ad);
       mpfr_init (s);
@@ -5027,7 +5231,8 @@ gfc_simplify_sqrt (gfc_expr *e)
 			    &e->where);
 
       mpfr_clears (s, t, ac, ad, w, NULL);
-
+    }
+#endif
       break;
 
     default:

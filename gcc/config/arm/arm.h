@@ -124,10 +124,6 @@ extern arm_cc arm_current_cc;
 extern int arm_target_label;
 extern int arm_ccfsm_state;
 extern GTY(()) rtx arm_target_insn;
-/* Define the information needed to generate branch insns.  This is
-   stored from the compare operation.  */
-extern GTY(()) rtx arm_compare_op0;
-extern GTY(()) rtx arm_compare_op1;
 /* The label of the current constant pool.  */
 extern rtx pool_vector_label;
 /* Set to 1 when a return insn is output, this means that the epilogue
@@ -484,10 +480,9 @@ extern int arm_arch_hwdiv;
     }
 
 #define PROMOTE_FUNCTION_MODE(MODE, UNSIGNEDP, TYPE)	\
-  if ((GET_MODE_CLASS (MODE) == MODE_INT		\
-       || GET_MODE_CLASS (MODE) == MODE_COMPLEX_INT)    \
+  if (GET_MODE_CLASS (MODE) == MODE_INT			\
       && GET_MODE_SIZE (MODE) < 4)                      \
-    (MODE) = SImode;				        \
+    (MODE) = SImode;
 
 /* Define this if most significant bit is lowest numbered
    in instructions that operate on numbered bit-fields.  */
@@ -2166,43 +2161,11 @@ typedef struct
 #define REG_MODE_OK_FOR_REG_BASE_P(X, MODE)	\
   REG_OK_FOR_INDEX_P (X)
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.  */
-
 #define ARM_BASE_REGISTER_RTX_P(X)  \
   (GET_CODE (X) == REG && ARM_REG_OK_FOR_BASE_P (X))
 
 #define ARM_INDEX_REGISTER_RTX_P(X)  \
   (GET_CODE (X) == REG && ARM_REG_OK_FOR_INDEX_P (X))
-
-#define ARM_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (arm_legitimate_address_p (MODE, X, SET, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define THUMB2_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (thumb2_legitimate_address_p (MODE, X, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define THUMB1_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (thumb1_legitimate_address_p (MODE, X, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, WIN)				\
-  if (TARGET_ARM)							\
-    ARM_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)  			\
-  else if (TARGET_THUMB2)						\
-    THUMB2_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)  			\
-  else /* if (TARGET_THUMB1) */						\
-    THUMB1_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)
-
 
 /* Define this for compatibility reasons. */
 #define HANDLE_PRAGMA_PACK_PUSH_POP

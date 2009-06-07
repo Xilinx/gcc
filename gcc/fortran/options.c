@@ -137,7 +137,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   set_default_std_flags ();
 
   /* -fshort-enums can be default on some targets.  */
-  gfc_option.fshort_enums = targetm.default_short_enums ();
+  flag_short_enums = targetm.default_short_enums ();
 
   /* Initialize cpp-related options.  */
   gfc_cpp_init_options(argc, argv);
@@ -238,9 +238,9 @@ gfc_post_options (const char **pfilename)
     sorry ("-fexcess-precision=standard for Fortran");
   flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
 
-  /* Issue an error if -fwhole-program was used.  */
+  /* Whole program needs whole file mode.  */
   if (flag_whole_program)
-    gfc_fatal_error ("Option -fwhole-program is not supported for Fortran");
+    gfc_option.flag_whole_file = 1;
 
   /* -fbounds-check is equivalent to -fcheck=bounds */
   if (flag_bounds_check)
@@ -858,7 +858,7 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fshort_enums:
-      gfc_option.fshort_enums = 1;
+      flag_short_enums = 1;
       break;
 
     case OPT_fconvert_little_endian:

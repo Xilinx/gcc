@@ -82,6 +82,14 @@ static struct cfg_stats_d cfg_stats;
 /* Nonzero if we found a computed goto while building basic blocks.  */
 static bool found_computed_goto;
 
+/* Hash table to store last discriminator assigned for each locus.  */
+struct locus_discrim_map
+{
+  location_t locus;
+  int discriminator;
+};
+static htab_t discriminator_per_locus;
+
 /* Basic blocks and flowgraphs.  */
 static void make_blocks (gimple_seq);
 static void factor_computed_gotos (void);
@@ -91,6 +99,9 @@ static void make_edges (void);
 static void make_cond_expr_edges (basic_block);
 static void make_gimple_switch_edges (basic_block);
 static void make_goto_expr_edges (basic_block);
+static unsigned int locus_map_hash (const void *);
+static int locus_map_eq (const void *, const void *);
+static void assign_discriminator (location_t, basic_block);
 static edge gimple_redirect_edge_and_branch (edge, basic_block);
 static edge gimple_try_redirect_by_replacing_jump (edge, basic_block);
 static unsigned int split_critical_edges (void);
@@ -100,6 +111,7 @@ static inline bool stmt_starts_bb_p (gimple, gimple);
 static int gimple_verify_flow_info (void);
 static void gimple_make_forwarder_block (edge);
 static void gimple_cfg2vcg (FILE *);
+static gimple first_non_label_stmt (basic_block);
 
 /* Flowgraph optimization and cleanup.  */
 static void gimple_merge_blocks (basic_block, basic_block);
@@ -193,8 +205,11 @@ build_gimple_cfg (gimple_seq seq)
   group_case_labels ();
 
   /* Create the edges of the flowgraph.  */
+  discriminator_per_locus = htab_create (13, locus_map_hash, locus_map_eq,
+                                         free);
   make_edges ();
   cleanup_dead_labels ();
+  htab_delete (discriminator_per_locus);
 
   /* Debugging dumps.  */
 
@@ -650,7 +665,11 @@ make_edges (void)
 	fallthru = true;
 
       if (fallthru)
-	make_edge (bb, bb->next_bb, EDGE_FALLTHRU);
+        {
+	  make_edge (bb, bb->next_bb, EDGE_FALLTHRU);
+	  if (last)
+            assign_discriminator (gimple_location (last), bb->next_bb);
+	}
     }
 
   if (root_omp_region)
@@ -660,6 +679,91 @@ make_edges (void)
   fold_cond_expr_cond ();
 }
 
+/* Trivial hash function for a location_t.  ITEM is a pointer to
+   a hash table entry that maps a location_t to a discriminator.  */
+
+static unsigned int
+locus_map_hash (const void *item)
+{
+  return ((const struct locus_discrim_map *) item)->locus;
+}
+
+/* Equality function for the locus-to-discriminator map.  VA and VB
+   point to the two hash table entries to compare.  */
+
+static int
+locus_map_eq (const void *va, const void *vb)
+{
+  const struct locus_discrim_map *a = (const struct locus_discrim_map *) va;
+  const struct locus_discrim_map *b = (const struct locus_discrim_map *) vb;
+  return a->locus == b->locus;
+}
+
+/* Find the next available discriminator value for LOCUS.  The
+   discriminator distinguishes among several basic blocks that
+   share a common locus, allowing for more accurate sample-based
+   profiling.  */
+
+static int
+next_discriminator_for_locus (location_t locus)
+{
+  struct locus_discrim_map item;
+  struct locus_discrim_map **slot;
+
+  item.locus = locus;
+  item.discriminator = 0;
+  slot = (struct locus_discrim_map **)
+      htab_find_slot_with_hash (discriminator_per_locus, (void *) &item,
+                                (hashval_t) locus, INSERT);
+  gcc_assert (slot);
+  if (*slot == HTAB_EMPTY_ENTRY)
+    {
+      *slot = XNEW (struct locus_discrim_map);
+      gcc_assert (*slot);
+      (*slot)->locus = locus;
+      (*slot)->discriminator = 0;
+    }
+  (*slot)->discriminator++;
+  return (*slot)->discriminator;
+}
+
+/* Return TRUE if LOCUS1 and LOCUS2 refer to the same source line.  */
+
+static bool
+same_line_p (location_t locus1, location_t locus2)
+{
+  expanded_location from, to;
+
+  if (locus1 == locus2)
+    return true;
+
+  from = expand_location (locus1);
+  to = expand_location (locus2);
+
+  if (from.line != to.line)
+    return false;
+  if (from.file == to.file)
+    return true;
+  return (from.file != NULL
+          && to.file != NULL
+          && strcmp (from.file, to.file) == 0);
+}
+
+/* Assign a unique discriminator value to block BB if it begins at the same
+   LOCUS as its predecessor block.  */
+
+static void
+assign_discriminator (location_t locus, basic_block bb)
+{
+  gimple to_stmt;
+
+  if (locus == 0 || bb->discriminator != 0)
+    return;
+
+  to_stmt = first_non_label_stmt (bb);
+  if (to_stmt && same_line_p (locus, gimple_location (to_stmt)))
+    bb->discriminator = next_discriminator_for_locus (locus);
+}
 
 /* Create the edges for a GIMPLE_COND starting at block BB.  */
 
@@ -671,9 +775,12 @@ make_cond_expr_edges (basic_block bb)
   basic_block then_bb, else_bb;
   tree then_label, else_label;
   edge e;
+  location_t entry_locus;
 
   gcc_assert (entry);
   gcc_assert (gimple_code (entry) == GIMPLE_COND);
+
+  entry_locus = gimple_location (entry);
 
   /* Entry basic blocks for each component.  */
   then_label = gimple_cond_true_label (entry);
@@ -684,12 +791,14 @@ make_cond_expr_edges (basic_block bb)
   else_stmt = first_stmt (else_bb);
 
   e = make_edge (bb, then_bb, EDGE_TRUE_VALUE);
+  assign_discriminator (entry_locus, then_bb);
   e->goto_locus = gimple_location (then_stmt);
   if (e->goto_locus)
     e->goto_block = gimple_block (then_stmt);
   e = make_edge (bb, else_bb, EDGE_FALSE_VALUE);
   if (e)
     {
+      assign_discriminator (entry_locus, else_bb);
       e->goto_locus = gimple_location (else_stmt);
       if (e->goto_locus)
 	e->goto_block = gimple_block (else_stmt);
@@ -799,7 +908,10 @@ static void
 make_gimple_switch_edges (basic_block bb)
 {
   gimple entry = last_stmt (bb);
+  location_t entry_locus;
   size_t i, n;
+
+  entry_locus = gimple_location (entry);
 
   n = gimple_switch_num_labels (entry);
 
@@ -808,6 +920,7 @@ make_gimple_switch_edges (basic_block bb)
       tree lab = CASE_LABEL (gimple_switch_label (entry, i));
       basic_block label_bb = label_to_block (lab);
       make_edge (bb, label_bb, 0);
+      assign_discriminator (entry_locus, label_bb);
     }
 }
 
@@ -880,8 +993,10 @@ make_goto_expr_edges (basic_block bb)
   if (simple_goto_p (goto_t))
     {
       tree dest = gimple_goto_dest (goto_t);
-      edge e = make_edge (bb, label_to_block (dest), EDGE_FALLTHRU);
+      basic_block label_bb = label_to_block (dest);
+      edge e = make_edge (bb, label_bb, EDGE_FALLTHRU);
       e->goto_locus = gimple_location (goto_t);
+      assign_discriminator (e->goto_locus, label_bb);
       if (e->goto_locus)
 	e->goto_block = gimple_block (goto_t);
       gsi_remove (&last, true);
@@ -917,7 +1032,7 @@ static struct label_record
 
 /* Callback for for_each_eh_region.  Helper for cleanup_dead_labels.  */
 static void
-update_eh_label (struct eh_region *region)
+update_eh_label (struct eh_region_d *region)
 {
   tree old_label = get_eh_region_tree_label (region);
   if (old_label)
@@ -1289,9 +1404,6 @@ replace_uses_by (tree name, tree val)
 
   FOR_EACH_IMM_USE_STMT (stmt, imm_iter, name)
     {
-      if (gimple_code (stmt) != GIMPLE_PHI)
-	push_stmt_changes (&stmt);
-
       FOR_EACH_IMM_USE_ON_STMT (use, imm_iter)
         {
 	  replace_exp (use, val);
@@ -1318,7 +1430,7 @@ replace_uses_by (tree name, tree val)
 	  if (cfgcleanup_altered_bbs)
 	    bitmap_set_bit (cfgcleanup_altered_bbs, gimple_bb (stmt)->index);
 
-	  /* FIXME.  This should go in pop_stmt_changes.  */
+	  /* FIXME.  This should go in update_stmt.  */
 	  for (i = 0; i < gimple_num_ops (stmt); i++)
 	    {
 	      tree op = gimple_op (stmt, i);
@@ -1330,8 +1442,7 @@ replace_uses_by (tree name, tree val)
 	    }
 
 	  maybe_clean_or_replace_eh_stmt (stmt, stmt);
-
-	  pop_stmt_changes (&stmt);
+	  update_stmt (stmt);
 	}
     }
 
@@ -2045,18 +2156,6 @@ remove_useless_stmts_1 (gimple_stmt_iterator *gsi, struct rus_data *data)
           }
           break;
 
-        case GIMPLE_CHANGE_DYNAMIC_TYPE:
-	  /* If we do not optimize remove GIMPLE_CHANGE_DYNAMIC_TYPE as
-	     expansion is confused about them and we only remove them
-	     during alias computation otherwise.  */
-	  if (!optimize)
-	    {
-	      data->last_was_goto = false;
-	      gsi_remove (gsi, false);
-	      break;
-	    }
-	  /* Fallthru.  */
-
         default:
           data->last_was_goto = false;
           gsi_next (gsi);
@@ -2703,6 +2802,17 @@ gimple
 first_stmt (basic_block bb)
 {
   gimple_stmt_iterator i = gsi_start_bb (bb);
+  return !gsi_end_p (i) ? gsi_stmt (i) : NULL;
+}
+
+/* Return the first non-label statement in basic block BB.  */
+
+static gimple
+first_non_label_stmt (basic_block bb)
+{
+  gimple_stmt_iterator i = gsi_start_bb (bb);
+  while (!gsi_end_p (i) && gimple_code (gsi_stmt (i)) == GIMPLE_LABEL)
+    gsi_next (&i);
   return !gsi_end_p (i) ? gsi_stmt (i) : NULL;
 }
 
@@ -4037,10 +4147,6 @@ verify_types_in_gimple_stmt (gimple stmt)
 
     case GIMPLE_ASM:
       return false;
-
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
-      return (!is_gimple_val (gimple_cdt_location (stmt))
-	      || !POINTER_TYPE_P (TREE_TYPE (gimple_cdt_location (stmt))));
 
     case GIMPLE_PHI:
       return verify_gimple_phi (stmt);
@@ -7074,7 +7180,7 @@ struct gimple_opt_pass pass_split_crit_edges =
   PROP_no_crit_edges,            /* properties_provided */
   0,                             /* properties_destroyed */
   0,                             /* todo_flags_start */
-  TODO_dump_func                 /* todo_flags_finish */
+  TODO_dump_func | TODO_verify_flow  /* todo_flags_finish */
  }
 };
 

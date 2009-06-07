@@ -2705,7 +2705,7 @@ check_bitfield_decl (tree field)
   DECL_INITIAL (field) = NULL_TREE;
 
   /* Detect invalid bit-field type.  */
-  if (!INTEGRAL_TYPE_P (type))
+  if (!INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     {
       error ("bit-field %q+#D with non-integral type", field);
       w = error_mark_node;
@@ -4864,7 +4864,7 @@ layout_class_type (tree t, tree *virtuals_p)
       if (DECL_C_BIT_FIELD (field)
 	  && INT_CST_LT (TYPE_SIZE (type), DECL_SIZE (field)))
 	{
-	  integer_type_kind itk;
+	  unsigned int itk;
 	  tree integer_type;
 	  bool was_unnamed_p = false;
 	  /* We must allocate the bits as if suitably aligned for the
@@ -6072,6 +6072,9 @@ resolve_address_of_overloaded_function (tree target_type,
       tree target_arg_types;
       tree target_ret_type;
       tree fns;
+      tree *args;
+      unsigned int nargs, ia;
+      tree arg;
 
       if (is_ptrmem)
 	target_fn_type
@@ -6084,6 +6087,14 @@ resolve_address_of_overloaded_function (tree target_type,
       /* Never do unification on the 'this' parameter.  */
       if (TREE_CODE (target_fn_type) == METHOD_TYPE)
 	target_arg_types = TREE_CHAIN (target_arg_types);
+
+      nargs = list_length (target_arg_types);
+      args = XALLOCAVEC (tree, nargs);
+      for (arg = target_arg_types, ia = 0;
+	   arg != NULL_TREE && arg != void_list_node;
+	   arg = TREE_CHAIN (arg), ++ia)
+	args[ia] = TREE_VALUE (arg);
+      nargs = ia;
 
       for (fns = overload; fns; fns = OVL_NEXT (fns))
 	{
@@ -6104,9 +6115,9 @@ resolve_address_of_overloaded_function (tree target_type,
 
 	  /* Try to do argument deduction.  */
 	  targs = make_tree_vec (DECL_NTPARMS (fn));
-	  if (fn_type_unification (fn, explicit_targs, targs,
-				   target_arg_types, target_ret_type,
-				   DEDUCE_EXACT, LOOKUP_NORMAL))
+	  if (fn_type_unification (fn, explicit_targs, targs, args, nargs,
+				   target_ret_type, DEDUCE_EXACT,
+				   LOOKUP_NORMAL))
 	    /* Argument deduction failed.  */
 	    continue;
 

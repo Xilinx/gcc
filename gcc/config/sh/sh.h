@@ -473,10 +473,7 @@ do {									\
       sh_div_str = SH_DIV_STR_FOR_SIZE ;				\
     }									\
   else									\
-    {									\
-      TARGET_CBRANCHDI4 = 1;						\
-      TARGET_EXPAND_CBRANCHDI4 = 1;					\
-    }									\
+    TARGET_CBRANCHDI4 = 1;						\
   /* We can't meaningfully test TARGET_SHMEDIA here, because -m options	\
      haven't been parsed yet, hence we'd read only the default.	\
      sh_target_reg_class will return NO_REGS if this is not SHMEDIA, so	\
@@ -712,8 +709,9 @@ do {									\
       /* Never run scheduling before reload, since that can		\
 	 break global alloc, and generates slower code anyway due	\
 	 to the pressure on R0.  */					\
-      /* Enable sched1 for SH4; ready queue will be reordered by	\
-	 the target hooks when pressure is high. We can not do this for \
+      /* Enable sched1 for SH4 if the user explicitly requests.		\
+	 When sched1 is enabled, the ready queue will be reordered by	\
+	 the target hooks if pressure is high.  We can not do this for	\
 	 PIC, SH3 and lower as they give spill failures for R0.  */	\
       if (!TARGET_HARD_SH4 || flag_pic)					\
         flag_schedule_insns = 0;		 			\
@@ -728,6 +726,8 @@ do {									\
 	    warning (0, "ignoring -fschedule-insns because of exception handling bug");	\
 	  flag_schedule_insns = 0;		 			\
 	}								\
+      else if (flag_schedule_insns == 2)				\
+	flag_schedule_insns = 0;		 			\
     }									\
 									\
   if (align_loops == 0)							\
@@ -888,7 +888,7 @@ do {									\
 #define LABEL_ALIGN(A_LABEL) \
 (									\
   (PREV_INSN (A_LABEL)							\
-   && GET_CODE (PREV_INSN (A_LABEL)) == INSN				\
+   && NONJUMP_INSN_P (PREV_INSN (A_LABEL))				\
    && GET_CODE (PATTERN (PREV_INSN (A_LABEL))) == UNSPEC_VOLATILE	\
    && XINT (PATTERN (PREV_INSN (A_LABEL)), 1) == UNSPECV_ALIGN)		\
    /* explicit alignment insn in constant tables.  */			\
@@ -900,9 +900,9 @@ do {									\
 
 /* The base two logarithm of the known minimum alignment of an insn length.  */
 #define INSN_LENGTH_ALIGNMENT(A_INSN)					\
-  (GET_CODE (A_INSN) == INSN						\
+  (NONJUMP_INSN_P (A_INSN)						\
    ? 1 << TARGET_SHMEDIA						\
-   : GET_CODE (A_INSN) == JUMP_INSN || GET_CODE (A_INSN) == CALL_INSN	\
+   : JUMP_P (A_INSN) || CALL_P (A_INSN)					\
    ? 1 << TARGET_SHMEDIA						\
    : CACHE_LOG)
 
@@ -1547,12 +1547,12 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
 #if 0
 #define SECONDARY_INOUT_RELOAD_CLASS(CLASS,MODE,X,ELSE) \
   ((((REGCLASS_HAS_FP_REG (CLASS) 					\
-      && (GET_CODE (X) == REG						\
+      && (REG_P (X)							\
       && (GENERAL_OR_AP_REGISTER_P (REGNO (X))				\
 	  || (FP_REGISTER_P (REGNO (X)) && (MODE) == SImode		\
 	      && TARGET_FMOVD))))					\
      || (REGCLASS_HAS_GENERAL_REG (CLASS) 				\
-	 && GET_CODE (X) == REG						\
+	 && REG_P (X)							\
 	 && FP_REGISTER_P (REGNO (X))))					\
     && ! TARGET_SHMEDIA							\
     && ((MODE) == SFmode || (MODE) == SImode))				\
@@ -1560,8 +1560,8 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
    : (((CLASS) == FPUL_REGS						\
        || (REGCLASS_HAS_FP_REG (CLASS)					\
 	   && ! TARGET_SHMEDIA && MODE == SImode))			\
-      && (GET_CODE (X) == MEM						\
-	  || (GET_CODE (X) == REG					\
+      && (MEM_P (X)							\
+	  || (REG_P (X)							\
 	      && (REGNO (X) >= FIRST_PSEUDO_REGISTER			\
 		  || REGNO (X) == T_REG					\
 		  || system_reg_operand (X, VOIDmode)))))		\
@@ -1569,13 +1569,13 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
    : (((CLASS) == TARGET_REGS						\
        || (TARGET_SHMEDIA && (CLASS) == SIBCALL_REGS))			\
       && !satisfies_constraint_Csy (X)					\
-      && (GET_CODE (X) != REG || ! GENERAL_REGISTER_P (REGNO (X))))	\
+      && (!REG_P (X) || ! GENERAL_REGISTER_P (REGNO (X))))		\
    ? GENERAL_REGS							\
    : (((CLASS) == MAC_REGS || (CLASS) == PR_REGS)			\
-      && GET_CODE (X) == REG && ! GENERAL_REGISTER_P (REGNO (X))	\
+      && REG_P (X) && ! GENERAL_REGISTER_P (REGNO (X))			\
       && (CLASS) != REGNO_REG_CLASS (REGNO (X)))			\
    ? GENERAL_REGS							\
-   : ((CLASS) != GENERAL_REGS && GET_CODE (X) == REG			\
+   : ((CLASS) != GENERAL_REGS && REG_P (X)				\
       && TARGET_REGISTER_P (REGNO (X)))					\
    ? GENERAL_REGS : (ELSE))
 
@@ -1590,7 +1590,7 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
 	  && (MODE) == SFmode && fldi_ok ()))				\
    ? R0_REGS								\
    : ((CLASS) == FPUL_REGS						\
-      && ((GET_CODE (X) == REG						\
+      && ((REG_P (X)							\
 	   && (REGNO (X) == MACL_REG || REGNO (X) == MACH_REG		\
 	       || REGNO (X) == T_REG))					\
 	  || GET_CODE (X) == PLUS))					\
@@ -1600,8 +1600,8 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
       ? GENERAL_REGS							\
       : R0_REGS)							\
    : ((CLASS) == FPSCR_REGS						\
-      && ((GET_CODE (X) == REG && REGNO (X) >= FIRST_PSEUDO_REGISTER)	\
-	  || (GET_CODE (X) == MEM && GET_CODE (XEXP ((X), 0)) == PLUS)))\
+      && ((REG_P (X) && REGNO (X) >= FIRST_PSEUDO_REGISTER)		\
+	  || (MEM_P (X) && GET_CODE (XEXP ((X), 0)) == PLUS)))		\
    ? GENERAL_REGS							\
    : (REGCLASS_HAS_FP_REG (CLASS) 					\
       && TARGET_SHMEDIA							\
@@ -2191,45 +2191,25 @@ struct sh_args {
 
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.
-   We have two alternate definitions for each of them.
-   The usual definition accepts all pseudo regs; the other rejects
-   them unless they have been allocated suitable hard regs.
-   The symbol REG_OK_STRICT causes the latter definition to be used.  */
+   The suitable hard regs are always accepted and all pseudo regs
+   are also accepted if STRICT is not set.  */
 
-#ifndef REG_OK_STRICT
+/* Nonzero if X is a reg that can be used as a base reg.  */
+#define REG_OK_FOR_BASE_P(X, STRICT)			\
+  (GENERAL_OR_AP_REGISTER_P (REGNO (X))			\
+   || (!STRICT && REGNO (X) >= FIRST_PSEUDO_REGISTER))
 
-/* Nonzero if X is a hard reg that can be used as a base reg
-   or if it is a pseudo reg.  */
-#define REG_OK_FOR_BASE_P(X) \
-  (GENERAL_OR_AP_REGISTER_P (REGNO (X)) || REGNO (X) >= FIRST_PSEUDO_REGISTER)
+/* Nonzero if X is a reg that can be used as an index.  */
+#define REG_OK_FOR_INDEX_P(X, STRICT)			\
+  ((TARGET_SHMEDIA ? GENERAL_REGISTER_P (REGNO (X))	\
+    : REGNO (X) == R0_REG)				\
+   || (!STRICT && REGNO (X) >= FIRST_PSEUDO_REGISTER))
 
-/* Nonzero if X is a hard reg that can be used as an index
-   or if it is a pseudo reg.  */
-#define REG_OK_FOR_INDEX_P(X) \
-  ((TARGET_SHMEDIA ? GENERAL_REGISTER_P (REGNO (X)) \
-    : REGNO (X) == R0_REG) || REGNO (X) >= FIRST_PSEUDO_REGISTER)
-
-/* Nonzero if X/OFFSET is a hard reg that can be used as an index
-   or if X is a pseudo reg.  */
-#define SUBREG_OK_FOR_INDEX_P(X, OFFSET) \
-  ((TARGET_SHMEDIA ? GENERAL_REGISTER_P (REGNO (X)) \
-    : REGNO (X) == R0_REG && OFFSET == 0) || REGNO (X) >= FIRST_PSEUDO_REGISTER)
-
-#else
-
-/* Nonzero if X is a hard reg that can be used as a base reg.  */
-#define REG_OK_FOR_BASE_P(X) \
-  REGNO_OK_FOR_BASE_P (REGNO (X))
-
-/* Nonzero if X is a hard reg that can be used as an index.  */
-#define REG_OK_FOR_INDEX_P(X) \
-  REGNO_OK_FOR_INDEX_P (REGNO (X))
-
-/* Nonzero if X/OFFSET is a hard reg that can be used as an index.  */
-#define SUBREG_OK_FOR_INDEX_P(X, OFFSET) \
-  (REGNO_OK_FOR_INDEX_P (REGNO (X)) && (OFFSET) == 0)
-
-#endif
+/* Nonzero if X/OFFSET is a reg that can be used as an index.  */
+#define SUBREG_OK_FOR_INDEX_P(X, OFFSET, STRICT)	\
+  ((TARGET_SHMEDIA ? GENERAL_REGISTER_P (REGNO (X))	\
+    : REGNO (X) == R0_REG && OFFSET == 0)		\
+   || (!STRICT && REGNO (X) >= FIRST_PSEUDO_REGISTER))
 
 /* Macros for extra constraints.  */
 
@@ -2238,11 +2218,11 @@ struct sh_args {
    || (GET_CODE ((OP)) == CONST						\
        && GET_CODE (XEXP ((OP), 0)) == PLUS				\
        && GET_CODE (XEXP (XEXP ((OP), 0), 0)) == LABEL_REF		\
-       && GET_CODE (XEXP (XEXP ((OP), 0), 1)) == CONST_INT))
+       && CONST_INT_P (XEXP (XEXP ((OP), 0), 1))))
 
 #define IS_NON_EXPLICIT_CONSTANT_P(OP)					\
   (CONSTANT_P (OP)							\
-   && GET_CODE (OP) != CONST_INT					\
+   && !CONST_INT_P (OP)					\
    && GET_CODE (OP) != CONST_DOUBLE					\
    && (!flag_pic							\
        || (LEGITIMATE_PIC_OPERAND_P (OP)				\
@@ -2272,7 +2252,7 @@ struct sh_args {
    && (UNSPEC_GOTOFF_P (XEXP ((OP), 0)) \
        || (GET_CODE (XEXP ((OP), 0)) == PLUS \
            && UNSPEC_GOTOFF_P (XEXP (XEXP ((OP), 0), 0)) \
-	   && GET_CODE (XEXP (XEXP ((OP), 0), 1)) == CONST_INT)))
+	   && CONST_INT_P (XEXP (XEXP ((OP), 0), 1)))))
 
 #define PIC_ADDR_P(OP) \
   (GET_CODE (OP) == CONST && GET_CODE (XEXP ((OP), 0)) == UNSPEC \
@@ -2293,7 +2273,7 @@ struct sh_args {
        && (GET_CODE (XEXP (XEXP ((OP), 0), 0)) == SYMBOL_REF \
 	   || GET_CODE (XEXP (XEXP ((OP), 0), 0)) == LABEL_REF \
 	   || DATALABEL_REF_NO_CONST_P (XEXP (XEXP ((OP), 0), 0))) \
-       && GET_CODE (XEXP (XEXP ((OP), 0), 1)) == CONST_INT))
+       && CONST_INT_P (XEXP (XEXP ((OP), 0), 1))))
 
 #define PIC_REFERENCE_P(OP) \
   (GOT_ENTRY_P (OP) || GOTPLT_ENTRY_P (OP) \
@@ -2305,144 +2285,41 @@ struct sh_args {
       || PCREL_SYMOFF_P (OP)) \
    : NON_PIC_REFERENCE_P (OP))
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.  */
-
-#define MODE_DISP_OK_4(X,MODE) \
-(GET_MODE_SIZE (MODE) == 4 && (unsigned) INTVAL (X) < 64	\
- && ! (INTVAL (X) & 3) && ! (TARGET_SH2E && (MODE) == SFmode))
-
-#define MODE_DISP_OK_8(X,MODE) \
-((GET_MODE_SIZE(MODE)==8) && ((unsigned)INTVAL(X)<60)	\
- && ! (INTVAL(X) & 3) && ! (TARGET_SH4 && (MODE) == DFmode))
-
-#undef MODE_DISP_OK_4
-#define MODE_DISP_OK_4(X,MODE) \
-((GET_MODE_SIZE (MODE) == 4 && (unsigned) INTVAL (X) < 64	\
-  && ! (INTVAL (X) & 3) && ! (TARGET_SH2E && (MODE) == SFmode)) \
-  || ((GET_MODE_SIZE(MODE)==4) && ((unsigned)INTVAL(X)<16383)	\
-  && ! (INTVAL(X) & 3) && TARGET_SH2A))
-
-#undef MODE_DISP_OK_8
-#define MODE_DISP_OK_8(X,MODE) \
-(((GET_MODE_SIZE(MODE)==8) && ((unsigned)INTVAL(X)<60)	\
-  && ! (INTVAL(X) & 3) && ! ((TARGET_SH4 || TARGET_SH2A) && (MODE) == DFmode)) \
- || ((GET_MODE_SIZE(MODE)==8) && ((unsigned)INTVAL(X)<8192)	\
-  && ! (INTVAL(X) & (TARGET_SH2A_DOUBLE ? 7 : 3)) && (TARGET_SH2A && (MODE) == DFmode)))
-
-#define BASE_REGISTER_RTX_P(X)				\
-  ((GET_CODE (X) == REG && REG_OK_FOR_BASE_P (X))	\
-   || (GET_CODE (X) == SUBREG				\
-       && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE ((X))), \
+#define MAYBE_BASE_REGISTER_RTX_P(X, STRICT)			\
+  ((REG_P (X) && REG_OK_FOR_BASE_P (X, STRICT))	\
+   || (GET_CODE (X) == SUBREG					\
+       && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE ((X))),	\
 				 GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (X)))) \
-       && GET_CODE (SUBREG_REG (X)) == REG		\
-       && REG_OK_FOR_BASE_P (SUBREG_REG (X))))
+       && REG_P (SUBREG_REG (X))			\
+       && REG_OK_FOR_BASE_P (SUBREG_REG (X), STRICT)))
 
 /* Since this must be r0, which is a single register class, we must check
    SUBREGs more carefully, to be sure that we don't accept one that extends
    outside the class.  */
-#define INDEX_REGISTER_RTX_P(X)				\
-  ((GET_CODE (X) == REG && REG_OK_FOR_INDEX_P (X))	\
-   || (GET_CODE (X) == SUBREG				\
+#define MAYBE_INDEX_REGISTER_RTX_P(X, STRICT)				\
+  ((REG_P (X) && REG_OK_FOR_INDEX_P (X, STRICT))	\
+   || (GET_CODE (X) == SUBREG					\
        && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE ((X))), \
 				 GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (X)))) \
-       && GET_CODE (SUBREG_REG (X)) == REG		\
-       && SUBREG_OK_FOR_INDEX_P (SUBREG_REG (X), SUBREG_BYTE (X))))
+       && REG_P (SUBREG_REG (X))		\
+       && SUBREG_OK_FOR_INDEX_P (SUBREG_REG (X), SUBREG_BYTE (X), STRICT)))
 
-/* Jump to LABEL if X is a valid address RTX.  This must also take
-   REG_OK_STRICT into account when deciding about valid registers, but it uses
-   the above macros so we are in luck.
-
-   Allow  REG
-	  REG+disp
-	  REG+r0
-	  REG++
-	  --REG  */
-
-/* ??? The SH2e does not have the REG+disp addressing mode when loading values
-   into the FRx registers.  We implement this by setting the maximum offset
-   to zero when the value is SFmode.  This also restricts loading of SFmode
-   values into the integer registers, but that can't be helped.  */
-
-/* The SH allows a displacement in a QI or HI amode, but only when the
-   other operand is R0. GCC doesn't handle this very well, so we forgo
-   all of that.
-
-   A legitimate index for a QI or HI is 0, SI can be any number 0..63,
-   DI can be any number 0..60.  */
-
-#define GO_IF_LEGITIMATE_INDEX(MODE, OP, LABEL)  			\
-  do {									\
-    if (GET_CODE (OP) == CONST_INT) 					\
-      {									\
-	if (TARGET_SHMEDIA)						\
-	  {								\
-	    int MODE_SIZE;						\
-	    /* Check if this the address of an unaligned load / store.  */\
-	    if ((MODE) == VOIDmode)					\
-	      {								\
-		if (CONST_OK_FOR_I06 (INTVAL (OP)))			\
-		  goto LABEL;						\
-		break;							\
-	      }								\
-	    MODE_SIZE = GET_MODE_SIZE (MODE);				\
-	    if (! (INTVAL (OP) & (MODE_SIZE - 1))			\
-		&& INTVAL (OP) >= -512 * MODE_SIZE			\
-		&& INTVAL (OP) < 512 * MODE_SIZE)			\
-	      goto LABEL;						\
-	    else							\
-	      break;							\
-	  }								\
-	if (TARGET_SH2A)						\
-	  {								\
-	    if (GET_MODE_SIZE (MODE) == 1				\
-		&& (unsigned) INTVAL (OP) < 4096)			\
-	    goto LABEL;							\
-	  }								\
-	if (MODE_DISP_OK_4 ((OP), (MODE)))  goto LABEL;		      	\
-	if (MODE_DISP_OK_8 ((OP), (MODE)))  goto LABEL;		      	\
-      }									\
-  } while(0)
+#ifdef REG_OK_STRICT
+#define BASE_REGISTER_RTX_P(X) MAYBE_BASE_REGISTER_RTX_P(X, true)
+#define INDEX_REGISTER_RTX_P(X) MAYBE_INDEX_REGISTER_RTX_P(X, true)
+#else
+#define BASE_REGISTER_RTX_P(X) MAYBE_BASE_REGISTER_RTX_P(X, false)
+#define INDEX_REGISTER_RTX_P(X) MAYBE_INDEX_REGISTER_RTX_P(X, false)
+#endif
 
 #define ALLOW_INDEXED_ADDRESS \
   ((!TARGET_SHMEDIA32 && !TARGET_SHCOMPACT) || TARGET_ALLOW_INDEXED_ADDRESS)
 
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, LABEL)			\
-{									\
-  if (BASE_REGISTER_RTX_P (X))						\
-    goto LABEL;								\
-  else if ((GET_CODE (X) == POST_INC || GET_CODE (X) == PRE_DEC)	\
-	   && ! TARGET_SHMEDIA						\
-	   && BASE_REGISTER_RTX_P (XEXP ((X), 0)))			\
-    goto LABEL;								\
-  else if (GET_CODE (X) == PLUS						\
-	   && ((MODE) != PSImode || reload_completed))			\
-    {									\
-      rtx xop0 = XEXP ((X), 0);						\
-      rtx xop1 = XEXP ((X), 1);						\
-      if (GET_MODE_SIZE (MODE) <= 8 && BASE_REGISTER_RTX_P (xop0))	\
-	GO_IF_LEGITIMATE_INDEX ((MODE), xop1, LABEL);			\
-      if ((ALLOW_INDEXED_ADDRESS || GET_MODE (X) == DImode		\
-	   || ((xop0 == stack_pointer_rtx				\
-		|| xop0 == hard_frame_pointer_rtx)			\
-	       && REG_P (xop1) && REGNO (xop1) == R0_REG)		\
-	   || ((xop1 == stack_pointer_rtx				\
-		|| xop1 == hard_frame_pointer_rtx)			\
-	       && REG_P (xop0) && REGNO (xop0) == R0_REG))		\
-	  && ((!TARGET_SHMEDIA && GET_MODE_SIZE (MODE) <= 4)		\
-	      || (TARGET_SHMEDIA && GET_MODE_SIZE (MODE) <= 8)		\
-	      || ((TARGET_SH4 || TARGET_SH2A_DOUBLE)			\
-		  && TARGET_FMOVD && MODE == DFmode)))			\
-	{								\
-	  if (BASE_REGISTER_RTX_P (xop1) && INDEX_REGISTER_RTX_P (xop0))\
-	    goto LABEL;							\
-	  if (INDEX_REGISTER_RTX_P (xop1) && BASE_REGISTER_RTX_P (xop0))\
-	    goto LABEL;							\
-	}								\
-    }									\
-}
+#define GO_IF_LEGITIMATE_INDEX(MODE, OP, WIN)	\
+  do {						\
+    if (sh_legitimate_index_p ((MODE), (OP)))	\
+      goto WIN;					\
+  } while (0)
 
 /* A C compound statement that attempts to replace X, which is an address
    that needs reloading, with a valid memory address for an operand of
@@ -2455,7 +2332,7 @@ struct sh_args {
 {									\
   if (GET_CODE (X) == PLUS						\
       && (GET_MODE_SIZE (MODE) == 4 || GET_MODE_SIZE (MODE) == 8)	\
-      && GET_CODE (XEXP (X, 1)) == CONST_INT				\
+      && CONST_INT_P (XEXP (X, 1))					\
       && BASE_REGISTER_RTX_P (XEXP (X, 0))				\
       && ! TARGET_SHMEDIA						\
       && ! (TARGET_SH4 && (MODE) == DFmode)				\
@@ -2510,9 +2387,9 @@ struct sh_args {
   else if (GET_CODE (X) == PLUS						\
 	   && (GET_MODE_SIZE (MODE) == 4 || GET_MODE_SIZE (MODE) == 8)	\
 	   && GET_CODE (XEXP (X, 0)) == PLUS				\
-	   && GET_CODE (XEXP (XEXP (X, 0), 1)) == CONST_INT		\
+	   && CONST_INT_P (XEXP (XEXP (X, 0), 1))			\
 	   && BASE_REGISTER_RTX_P (XEXP (XEXP (X, 0), 0))		\
-	   && GET_CODE (XEXP (X, 1)) == CONST_INT			\
+	   && CONST_INT_P (XEXP (X, 1))					\
 	   && ! TARGET_SHMEDIA						\
 	   && ! (TARGET_SH2E && MODE == SFmode))			\
     {									\
@@ -2644,14 +2521,14 @@ struct sh_args {
    in particular.  */
 
 #define INSN_SETS_ARE_DELAYED(X) 		\
-  ((GET_CODE (X) == INSN			\
+  ((NONJUMP_INSN_P (X)			\
     && GET_CODE (PATTERN (X)) != SEQUENCE	\
     && GET_CODE (PATTERN (X)) != USE		\
     && GET_CODE (PATTERN (X)) != CLOBBER	\
     && get_attr_is_sfunc (X)))
 
 #define INSN_REFERENCES_ARE_DELAYED(X) 		\
-  ((GET_CODE (X) == INSN			\
+  ((NONJUMP_INSN_P (X)			\
     && GET_CODE (PATTERN (X)) != SEQUENCE	\
     && GET_CODE (PATTERN (X)) != USE		\
     && GET_CODE (PATTERN (X)) != CLOBBER	\

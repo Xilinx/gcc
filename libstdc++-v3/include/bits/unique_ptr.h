@@ -85,7 +85,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     class unique_ptr
     {
       typedef std::tuple<_Tp*, _Tp_Deleter>  __tuple_type;
-      typedef __tuple_type unique_ptr::*     __unspecified_bool_type;
       typedef _Tp* unique_ptr::*             __unspecified_pointer_type;
 
     public:
@@ -181,8 +180,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       get_deleter() const
       { return std::get<1>(_M_t); }
 
-      operator __unspecified_bool_type () const
-      { return get() == 0 ? 0 : &unique_ptr::_M_t; }
+      explicit operator bool() const
+      { return get() == 0 ? false : true; }
 
       // Modifiers.
       pointer
@@ -204,7 +203,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       }
 
       void
-      swap(unique_ptr&& __u)
+      swap(unique_ptr& __u)
       {
 	using std::swap;
 	swap(_M_t, __u._M_t);
@@ -233,7 +232,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     class unique_ptr<_Tp[], _Tp_Deleter>
     {
       typedef std::tuple<_Tp*, _Tp_Deleter>  __tuple_type;
-      typedef __tuple_type unique_ptr::*     __unspecified_bool_type;
       typedef _Tp* unique_ptr::*             __unspecified_pointer_type;
 
     public:
@@ -323,8 +321,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       get_deleter() const
       { return std::get<1>(_M_t); }    
 
-      operator __unspecified_bool_type () const 
-      { return get() == 0 ? 0 : &unique_ptr::_M_t; }
+      explicit operator bool() const 
+      { return get() == 0 ? false : true; }
     
       // Modifiers.
       pointer
@@ -350,7 +348,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         void reset(_Up) = delete;
 
       void
-      swap(unique_ptr&& __u)
+      swap(unique_ptr& __u)
       {
 	using std::swap;
 	swap(_M_t, __u._M_t);
@@ -389,18 +387,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	 unique_ptr<_Tp, _Tp_Deleter>& __y)
     { __x.swap(__y); }
 
-  template<typename _Tp, typename _Tp_Deleter> 
-    inline void
-    swap(unique_ptr<_Tp, _Tp_Deleter>&& __x,
-	 unique_ptr<_Tp, _Tp_Deleter>& __y)
-    { __x.swap(__y); }
-
-  template<typename _Tp, typename _Tp_Deleter> 
-    inline void
-    swap(unique_ptr<_Tp, _Tp_Deleter>& __x,
-	 unique_ptr<_Tp, _Tp_Deleter>&& __y)
-    { __x.swap(__y); }
-  
   template<typename _Tp, typename _Tp_Deleter,
 	   typename _Up, typename _Up_Deleter>
     inline bool

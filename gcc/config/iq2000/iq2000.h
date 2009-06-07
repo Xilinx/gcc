@@ -528,20 +528,6 @@ typedef struct iq2000_args
 
 #define MAX_REGS_PER_ADDRESS 1
 
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)		\
-  {							\
-    if (iq2000_legitimate_address_p (MODE, X, 1))	\
-      goto ADDR;					\
-  }
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)		\
-  {							\
-    if (iq2000_legitimate_address_p (MODE, X, 0))	\
-      goto ADDR;					\
-  }
-#endif
-
 #define REG_OK_FOR_INDEX_P(X) 0
 
 #define LEGITIMATE_CONSTANT_P(X) (1)
@@ -1000,13 +986,6 @@ extern enum processor_type iq2000_tune;
 
 /* Which instruction set architecture to use.  */
 extern int iq2000_isa;
-
-/* Cached operands, and operator to compare for use in set/branch/trap
-   on condition codes.  */
-extern rtx branch_cmp[2];
-
-/* What type of branch to use.  */
-extern enum cmp_type branch_type;
 
 enum iq2000_builtins
 {

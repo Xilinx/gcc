@@ -119,6 +119,20 @@ fixup_t;
 
 /* Structure for holding extra info needed for pointers being read.  */
 
+enum gfc_rsym_state
+{
+  UNUSED,
+  NEEDED,
+  USED
+};
+
+enum gfc_wsym_state
+{
+  UNREFERENCED = 0,
+  NEEDS_WRITE,
+  WRITTEN
+};
+
 typedef struct pointer_info
 {
   BBT_HEADER (pointer_info);
@@ -138,9 +152,7 @@ typedef struct pointer_info
     {
       gfc_symbol *sym;
       char true_name[GFC_MAX_SYMBOL_LEN + 1], module[GFC_MAX_SYMBOL_LEN + 1];
-      enum
-      { UNUSED, NEEDED, USED }
-      state;
+      enum gfc_rsym_state state;
       int ns, referenced, renamed;
       module_locus where;
       fixup_t *stfixup;
@@ -152,9 +164,7 @@ typedef struct pointer_info
     struct
     {
       gfc_symbol *sym;
-      enum
-      { UNREFERENCED = 0, NEEDS_WRITE, WRITTEN }
-      state;
+      enum gfc_wsym_state state;
     }
     wsym;
   }
@@ -3043,6 +3053,7 @@ mio_expr (gfc_expr **ep)
       break;
 
     case EXPR_COMPCALL:
+    case EXPR_PPC:
       gcc_unreachable ();
       break;
     }
@@ -3329,7 +3340,7 @@ mio_f2k_derived (gfc_namespace *f2k)
       f2k->finalizers = NULL;
       while (peek_atom () != ATOM_RPAREN)
 	{
-	  gfc_finalizer *cur;
+	  gfc_finalizer *cur = NULL;
 	  mio_finalizer (&cur);
 	  cur->next = f2k->finalizers;
 	  f2k->finalizers = cur;
@@ -4006,7 +4017,7 @@ read_module (void)
   module_locus operator_interfaces, user_operators;
   const char *p;
   char name[GFC_MAX_SYMBOL_LEN + 1];
-  gfc_intrinsic_op i;
+  int i;
   int ambiguous, j, nuse, symbol;
   pointer_info *info, *q;
   gfc_use_rename *u;
@@ -4214,7 +4225,7 @@ read_module (void)
 
       if (only_flag)
 	{
-	  u = find_use_operator (i);
+	  u = find_use_operator ((gfc_intrinsic_op) i);
 
 	  if (u == NULL)
 	    {
@@ -4666,7 +4677,7 @@ write_symtree (gfc_symtree *st)
 static void
 write_module (void)
 {
-  gfc_intrinsic_op i;
+  int i;
 
   /* Write the operator interfaces.  */
   mio_lparen ();
@@ -4748,7 +4759,7 @@ read_md5_from_module_file (const char * filename, unsigned char md5[16])
   if ((file = fopen (filename, "r")) == NULL)
     return -1;
 
-  /* Read two lines.  */
+  /* Read the first line.  */
   if (fgets (buf, sizeof (buf) - 1, file) == NULL)
     {
       fclose (file);
@@ -4758,8 +4769,12 @@ read_md5_from_module_file (const char * filename, unsigned char md5[16])
   /* The file also needs to be overwritten if the version number changed.  */
   n = strlen ("GFORTRAN module version '" MOD_VERSION "' created");
   if (strncmp (buf, "GFORTRAN module version '" MOD_VERSION "' created", n) != 0)
-    return -1;
+    {
+      fclose (file);
+      return -1;
+    }
  
+  /* Read a second line.  */
   if (fgets (buf, sizeof (buf) - 1, file) == NULL)
     {
       fclose (file);

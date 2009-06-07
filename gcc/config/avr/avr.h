@@ -2,7 +2,7 @@
    for ATMEL AVR at90s8515, ATmega103/103L, ATmega603/603L microcontrollers.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 
    2008, 2009 Free Software Foundation, Inc.
-   Contributed by Denis Chertykov (denisc@overta.ru)
+   Contributed by Denis Chertykov (chertykov@gmail.com)
 
 This file is part of GCC.
 
@@ -407,20 +407,6 @@ extern int avr_reg_order[];
 #define CONSTANT_ADDRESS_P(X) CONSTANT_P (X)
 
 #define MAX_REGS_PER_ADDRESS 1
-
-#ifdef REG_OK_STRICT
-#  define GO_IF_LEGITIMATE_ADDRESS(mode, operand, ADDR)	\
-{							\
-  if (legitimate_address_p (mode, operand, 1))		\
-    goto ADDR;						\
-}
-#  else
-#  define GO_IF_LEGITIMATE_ADDRESS(mode, operand, ADDR)	\
-{							\
-  if (legitimate_address_p (mode, operand, 0))		\
-    goto ADDR;						\
-}
-#endif
 
 #define REG_OK_FOR_BASE_NOSTRICT_P(X) \
   (REGNO (X) >= FIRST_PSEUDO_REGISTER || REG_OK_FOR_BASE_STRICT_P(X))

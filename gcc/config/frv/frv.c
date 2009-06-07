@@ -193,11 +193,6 @@ typedef struct
   int base_offset;
 } frv_frame_accessor_t;
 
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  */
-rtx frv_compare_op0;
-rtx frv_compare_op1;
-
 /* Conditional execution support gathered together in one structure.  */
 typedef struct
   {
@@ -269,6 +264,7 @@ frv_cpu_t frv_cpu_type = CPU_TYPE;	/* value of -mcpu= */
 /* Forward references */
 
 static bool frv_handle_option			(size_t, const char *, int);
+static bool frv_legitimate_address_p		(enum machine_mode, rtx, bool);
 static int frv_default_flags_for_cpu		(void);
 static int frv_string_begins_with		(const_tree, const char *);
 static FRV_INLINE bool frv_small_data_reloc_p	(rtx, int);
@@ -471,6 +467,9 @@ static bool frv_secondary_reload                (bool, rtx, enum reg_class,
 
 #undef  TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD frv_secondary_reload
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P frv_legitimate_address_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -2537,7 +2536,7 @@ frv_return_addr_rtx (int count, rtx frame)
    MEMREF has already happened.
 
    MEMREF must be a legitimate operand for modes larger than SImode.
-   GO_IF_LEGITIMATE_ADDRESS forbids register+register addresses, which
+   frv_legitimate_address_p forbids register+register addresses, which
    this function cannot handle.  */
 rtx
 frv_index_memory (rtx memref, enum machine_mode mode, int index)
@@ -3328,12 +3327,6 @@ frv_regno_ok_for_base_p (int regno, int strict_p)
    conditional to define the strict variant in that case and the non-strict
    variant otherwise.
 
-   Subroutines to check for acceptable registers for various purposes (one for
-   base registers, one for index registers, and so on) are typically among the
-   subroutines used to define `GO_IF_LEGITIMATE_ADDRESS'.  Then only these
-   subroutine macros need have two variants; the higher levels of macros may be
-   the same whether strict or not.
-
    Normally, constant addresses which are the sum of a `symbol_ref' and an
    integer are stored inside a `const' RTX to mark them as constant.
    Therefore, there is no need to recognize such sums specifically as
@@ -3344,30 +3337,14 @@ frv_regno_ok_for_base_p (int regno, int strict_p)
    are not marked with `const'.  It assumes that a naked `plus' indicates
    indexing.  If so, then you *must* reject such naked constant sums as
    illegitimate addresses, so that none of them will be given to
-   `PRINT_OPERAND_ADDRESS'.
-
-   On some machines, whether a symbolic address is legitimate depends on the
-   section that the address refers to.  On these machines, define the macro
-   `ENCODE_SECTION_INFO' to store the information into the `symbol_ref', and
-   then check for it here.  When you see a `const', you will have to look
-   inside it to find the `symbol_ref' in order to determine the section.
-
-   The best way to modify the name string is by adding text to the beginning,
-   with suitable punctuation to prevent any ambiguity.  Allocate the new name
-   in `saveable_obstack'.  You will have to modify `ASM_OUTPUT_LABELREF' to
-   remove and decode the added text and output the name accordingly, and define
-   `(* targetm.strip_name_encoding)' to access the original name string.
-
-   You can check the information stored here into the `symbol_ref' in the
-   definitions of the macros `GO_IF_LEGITIMATE_ADDRESS' and
    `PRINT_OPERAND_ADDRESS'.  */
 
 int
-frv_legitimate_address_p (enum machine_mode mode,
-                          rtx x,
-                          int strict_p,
-                          int condexec_p,
-			  int allow_double_reg_p)
+frv_legitimate_address_p_1 (enum machine_mode mode,
+                            rtx x,
+                            int strict_p,
+                            int condexec_p,
+			    int allow_double_reg_p)
 {
   rtx x0, x1;
   int ret = 0;
@@ -3485,13 +3462,19 @@ frv_legitimate_address_p (enum machine_mode mode,
 
   if (TARGET_DEBUG_ADDR)
     {
-      fprintf (stderr, "\n========== GO_IF_LEGITIMATE_ADDRESS, mode = %s, result = %d, addresses are %sstrict%s\n",
+      fprintf (stderr, "\n========== legitimate_address_p, mode = %s, result = %d, addresses are %sstrict%s\n",
 	       GET_MODE_NAME (mode), ret, (strict_p) ? "" : "not ",
 	       (condexec_p) ? ", inside conditional code" : "");
       debug_rtx (x);
     }
 
   return ret;
+}
+
+bool
+frv_legitimate_address_p (enum machine_mode mode, rtx x, bool strict_p)
+{
+  return frv_legitimate_address_p_1 (mode, x, strict_p, FALSE, FALSE);
 }
 
 /* Given an ADDR, generate code to inline the PLT.  */
@@ -3788,8 +3771,8 @@ frv_legitimate_memory_operand (rtx op, enum machine_mode mode, int condexec_p)
 {
   return ((GET_MODE (op) == mode || mode == VOIDmode)
 	  && GET_CODE (op) == MEM
-	  && frv_legitimate_address_p (mode, XEXP (op, 0),
-				       reload_completed, condexec_p, FALSE));
+	  && frv_legitimate_address_p_1 (mode, XEXP (op, 0),
+				         reload_completed, condexec_p, FALSE));
 }
 
 void
@@ -3949,7 +3932,7 @@ condexec_memory_operand (rtx op, enum machine_mode mode)
     return FALSE;
 
   addr = XEXP (op, 0);
-  return frv_legitimate_address_p (mode, addr, reload_completed, TRUE, FALSE);
+  return frv_legitimate_address_p_1 (mode, addr, reload_completed, TRUE, FALSE);
 }
 
 /* Return true if the bare return instruction can be used outside of the
@@ -4768,19 +4751,18 @@ frv_emit_comparison (enum rtx_code test, rtx op0, rtx op1)
 }
 
 
-/* Emit code for a conditional branch.  The comparison operands were previously
-   stored in frv_compare_op0 and frv_compare_op1.
-
+/* Emit code for a conditional branch.
    XXX: I originally wanted to add a clobber of a CCR register to use in
    conditional execution, but that confuses the rest of the compiler.  */
 
 int
-frv_emit_cond_branch (enum rtx_code test, rtx label)
+frv_emit_cond_branch (rtx operands[])
 {
   rtx test_rtx;
   rtx label_ref;
   rtx if_else;
-  rtx cc_reg = frv_emit_comparison (test, frv_compare_op0, frv_compare_op1);
+  enum rtx_code test = GET_CODE (operands[0]);
+  rtx cc_reg = frv_emit_comparison (test, operands[1], operands[2]);
   enum machine_mode cc_mode = GET_MODE (cc_reg);
 
   /* Branches generate:
@@ -4788,7 +4770,7 @@ frv_emit_cond_branch (enum rtx_code test, rtx label)
 	     (if_then_else (<test>, <cc_reg>, (const_int 0))
 			    (label_ref <branch_label>)
 			    (pc))) */
-  label_ref = gen_rtx_LABEL_REF (VOIDmode, label);
+  label_ref = gen_rtx_LABEL_REF (VOIDmode, operands[3]);
   test_rtx = gen_rtx_fmt_ee (test, cc_mode, cc_reg, const0_rtx);
   if_else = gen_rtx_IF_THEN_ELSE (cc_mode, test_rtx, label_ref, pc_rtx);
   emit_jump_insn (gen_rtx_SET (VOIDmode, pc_rtx, if_else));
@@ -4796,23 +4778,23 @@ frv_emit_cond_branch (enum rtx_code test, rtx label)
 }
 
 
-/* Emit code to set a gpr to 1/0 based on a comparison.  The comparison
-   operands were previously stored in frv_compare_op0 and frv_compare_op1.  */
+/* Emit code to set a gpr to 1/0 based on a comparison.  */
 
 int
-frv_emit_scc (enum rtx_code test, rtx target)
+frv_emit_scc (rtx operands[])
 {
   rtx set;
   rtx test_rtx;
   rtx clobber;
   rtx cr_reg;
-  rtx cc_reg = frv_emit_comparison (test, frv_compare_op0, frv_compare_op1);
+  enum rtx_code test = GET_CODE (operands[1]);
+  rtx cc_reg = frv_emit_comparison (test, operands[2], operands[3]);
 
   /* SCC instructions generate:
 	(parallel [(set <target> (<test>, <cc_reg>, (const_int 0))
 		   (clobber (<ccr_reg>))])  */
   test_rtx = gen_rtx_fmt_ee (test, SImode, cc_reg, const0_rtx);
-  set = gen_rtx_SET (VOIDmode, target, test_rtx);
+  set = gen_rtx_SET (VOIDmode, operands[0], test_rtx);
 
   cr_reg = ((TARGET_ALLOC_CC)
 	    ? gen_reg_rtx (CC_CCRmode)
@@ -4874,7 +4856,8 @@ frv_emit_cond_move (rtx dest, rtx test_rtx, rtx src1, rtx src2)
   rtx cr_reg;
   rtx if_rtx;
   enum rtx_code test = GET_CODE (test_rtx);
-  rtx cc_reg = frv_emit_comparison (test, frv_compare_op0, frv_compare_op1);
+  rtx cc_reg = frv_emit_comparison (test,
+				    XEXP (test_rtx, 0), XEXP (test_rtx, 1));
   enum machine_mode cc_mode = GET_MODE (cc_reg);
 
   /* Conditional move instructions generate:
@@ -5851,7 +5834,7 @@ frv_ifcvt_rewrite_mem (rtx mem, enum machine_mode mode, rtx insn)
 {
   rtx addr = XEXP (mem, 0);
 
-  if (!frv_legitimate_address_p (mode, addr, reload_completed, TRUE, FALSE))
+  if (!frv_legitimate_address_p_1 (mode, addr, reload_completed, TRUE, FALSE))
     {
       if (GET_CODE (addr) == PLUS)
 	{

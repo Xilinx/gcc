@@ -56,7 +56,6 @@ extern bool legitimate_constant_p (rtx);
 extern bool constant_address_p (rtx);
 extern bool legitimate_pic_operand_p (rtx);
 extern int legitimate_pic_address_disp_p (rtx);
-extern int legitimate_address_p (enum machine_mode, rtx, int);
 
 extern void print_reg (rtx, int, FILE*);
 extern void print_operand (FILE*, rtx, int);
@@ -96,7 +95,6 @@ extern void ix86_expand_convert_uns_sixf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sidf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sisf_sse (rtx, rtx);
 extern void ix86_expand_convert_sign_didf_sse (rtx, rtx);
-extern rtx ix86_build_signbit_mask (enum machine_mode, bool, bool);
 extern void ix86_expand_fp_absneg_operator (enum rtx_code, enum machine_mode,
 					    rtx[]);
 extern void ix86_expand_copysign (rtx []);
@@ -107,7 +105,7 @@ extern int ix86_match_ccmode (rtx, enum machine_mode);
 extern rtx ix86_expand_compare (enum rtx_code, rtx *, rtx *);
 extern int ix86_use_fcomi_compare (enum rtx_code);
 extern void ix86_expand_branch (enum rtx_code, rtx);
-extern int ix86_expand_setcc (enum rtx_code, rtx);
+extern void ix86_expand_setcc (enum rtx_code, rtx);
 extern int ix86_expand_int_movcc (rtx[]);
 extern int ix86_expand_fp_movcc (rtx[]);
 extern bool ix86_expand_fp_vcond (rtx[]);

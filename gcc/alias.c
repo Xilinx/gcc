@@ -128,7 +128,7 @@ along with GCC; see the file COPYING3.  If not see
    However, this is no actual entry for alias set zero.  It is an
    error to attempt to explicitly construct a subset of zero.  */
 
-struct GTY(()) alias_set_entry {
+struct GTY(()) alias_set_entry_d {
   /* The alias set number, as stored in MEM_ALIAS_SET.  */
   alias_set_type alias_set;
 
@@ -145,7 +145,7 @@ struct GTY(()) alias_set_entry {
      `int', `double', `float', and `struct S'.  */
   splay_tree GTY((param1_is (int), param2_is (int))) children;
 };
-typedef struct alias_set_entry *alias_set_entry;
+typedef struct alias_set_entry_d *alias_set_entry;
 
 static int rtx_equal_for_memref_p (const_rtx, const_rtx);
 static int memrefs_conflict_p (int, rtx, int, rtx, HOST_WIDE_INT);
@@ -791,7 +791,7 @@ record_alias_subset (alias_set_type superset, alias_set_type subset)
     {
       /* Create an entry for the SUPERSET, so that we have a place to
 	 attach the SUBSET.  */
-      superset_entry = GGC_NEW (struct alias_set_entry);
+      superset_entry = GGC_NEW (struct alias_set_entry_d);
       superset_entry->alias_set = superset;
       superset_entry->children
 	= splay_tree_new_ggc (splay_tree_compare_ints);
@@ -1511,10 +1511,18 @@ find_base_term (rtx x)
 	/* If either operand is known to be a pointer, then use it
 	   to determine the base term.  */
 	if (REG_P (tmp1) && REG_POINTER (tmp1))
-	  return find_base_term (tmp1);
+	  {
+	    rtx base = find_base_term (tmp1);
+	    if (base)
+	      return base;
+	  }
 
 	if (REG_P (tmp2) && REG_POINTER (tmp2))
-	  return find_base_term (tmp2);
+	  {
+	    rtx base = find_base_term (tmp2);
+	    if (base)
+	      return base;
+	  }
 
 	/* Neither operand was known to be a pointer.  Go ahead and find the
 	   base term for both operands.  */
@@ -2372,9 +2380,6 @@ write_dependence_p (const_rtx mem, const_rtx x, int writep)
   if (MEM_ALIAS_SET (x) == ALIAS_SET_MEMORY_BARRIER
       || MEM_ALIAS_SET (mem) == ALIAS_SET_MEMORY_BARRIER)
     return 1;
-
-  if (DIFFERENT_ALIAS_SETS_P (x, mem))
-    return 0;
 
   /* A read from read-only memory can't conflict with read-write memory.  */
   if (!writep && MEM_READONLY_P (mem))

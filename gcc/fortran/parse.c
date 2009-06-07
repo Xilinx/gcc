@@ -1496,6 +1496,11 @@ accept_statement (gfc_statement st)
 	  new_st.op = EXEC_RETURN;
 	  add_statement ();
 	}
+      else
+	{
+	  new_st.op = EXEC_END_PROCEDURE;
+	  add_statement ();
+	}
 
       break;
 
@@ -1580,13 +1585,20 @@ unexpected_statement (gfc_statement st)
 
 */
 
+enum state_order
+{
+  ORDER_START,
+  ORDER_USE,
+  ORDER_IMPORT,
+  ORDER_IMPLICIT_NONE,
+  ORDER_IMPLICIT,
+  ORDER_SPEC,
+  ORDER_EXEC
+};
+
 typedef struct
 {
-  enum
-  { ORDER_START, ORDER_USE, ORDER_IMPORT, ORDER_IMPLICIT_NONE,
-    ORDER_IMPLICIT, ORDER_SPEC, ORDER_EXEC
-  }
-  state;
+  enum state_order state;
   gfc_statement last_statement;
   locus where;
 }
@@ -1878,13 +1890,9 @@ parse_derived (void)
 	  unexpected_eof ();
 
 	case ST_DATA_DECL:
+	case ST_PROCEDURE:
 	  accept_statement (st);
 	  seen_component = 1;
-	  break;
-
-	case ST_PROCEDURE:
-	  gfc_error ("PROCEDURE binding at %C must be inside CONTAINS");
-	  error_flag = 1;
 	  break;
 
 	case ST_FINAL:
@@ -1992,6 +2000,12 @@ endType:
       if (c->attr.pointer
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.pointer_comp))
 	sym->attr.pointer_comp = 1;
+
+      /* Look for procedure pointer components.  */
+      if (c->attr.proc_pointer
+	  || (c->ts.type == BT_DERIVED
+	      && c->ts.derived->attr.proc_pointer_comp))
+	sym->attr.proc_pointer_comp = 1;
 
       /* Look for private components.  */
       if (sym->component_access == ACCESS_PRIVATE
@@ -2494,10 +2508,10 @@ parse_where_block (void)
   push_state (&s, COMP_WHERE, gfc_new_block);
 
   d = add_statement ();
-  d->expr = top->expr;
+  d->expr1 = top->expr1;
   d->op = EXEC_WHERE;
 
-  top->expr = NULL;
+  top->expr1 = NULL;
   top->block = d;
 
   seen_empty_else = 0;
@@ -2527,12 +2541,12 @@ parse_where_block (void)
 	      break;
 	    }
 
-	  if (new_st.expr == NULL)
+	  if (new_st.expr1 == NULL)
 	    seen_empty_else = 1;
 
 	  d = new_level (gfc_state_stack->head);
 	  d->op = EXEC_WHERE;
-	  d->expr = new_st.expr;
+	  d->expr1 = new_st.expr1;
 
 	  accept_statement (st);
 
@@ -2637,8 +2651,8 @@ parse_if_block (void)
   new_st.op = EXEC_IF;
   d = add_statement ();
 
-  d->expr = top->expr;
-  top->expr = NULL;
+  d->expr1 = top->expr1;
+  top->expr1 = NULL;
   top->block = d;
 
   do
@@ -2662,7 +2676,7 @@ parse_if_block (void)
 
 	  d = new_level (gfc_state_stack->head);
 	  d->op = EXEC_IF;
-	  d->expr = new_st.expr;
+	  d->expr1 = new_st.expr1;
 
 	  accept_statement (st);
 
@@ -2853,7 +2867,7 @@ parse_do_block (void)
   gfc_state_data s;
   gfc_symtree *stree;
 
-  s.ext.end_do_label = new_st.label;
+  s.ext.end_do_label = new_st.label1;
 
   if (new_st.ext.iterator != NULL)
     stree = new_st.ext.iterator->var->symtree;

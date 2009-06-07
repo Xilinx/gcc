@@ -866,36 +866,64 @@ package body Sem_Ch8 is
          end if;
       end if;
 
-      --  Special processing for renaming function return object
+      --  Special processing for renaming function return object. Some errors
+      --  and warnings are produced only for calls that come from source.
 
-      if Nkind (Nam) = N_Function_Call
-        and then Comes_From_Source (Nam)
-      then
+      if Nkind (Nam) = N_Function_Call then
          case Ada_Version is
 
             --  Usage is illegal in Ada 83
 
             when Ada_83 =>
-               Error_Msg_N
-                 ("(Ada 83) cannot rename function return object", Nam);
+               if Comes_From_Source (Nam) then
+                  Error_Msg_N
+                    ("(Ada 83) cannot rename function return object", Nam);
+               end if;
 
             --  In Ada 95, warn for odd case of renaming parameterless function
-            --  call if this is not a limited type (where this is useful)
+            --  call if this is not a limited type (where this is useful).
 
             when others =>
                if Warn_On_Object_Renames_Function
                  and then No (Parameter_Associations (Nam))
                  and then not Is_Limited_Type (Etype (Nam))
+                 and then Comes_From_Source (Nam)
                then
                   Error_Msg_N
-                    ("?renaming function result object is suspicious",
-                     Nam);
+                    ("?renaming function result object is suspicious", Nam);
                   Error_Msg_NE
-                    ("\?function & will be called only once",
-                     Nam, Entity (Name (Nam)));
+                    ("\?function & will be called only once", Nam,
+                     Entity (Name (Nam)));
                   Error_Msg_N
                     ("\?suggest using an initialized constant object instead",
                      Nam);
+               end if;
+
+               --  If the function call returns an unconstrained type, we must
+               --  build a constrained subtype for the new entity, in a way
+               --  similar to what is done for an object declaration with an
+               --  unconstrained nominal type.
+
+               if Is_Composite_Type (Etype (Nam))
+                 and then not Is_Constrained (Etype (Nam))
+                 and then not Has_Unknown_Discriminants (Etype (Nam))
+                 and then Expander_Active
+               then
+                  declare
+                     Loc  : constant Source_Ptr := Sloc (N);
+                     Subt : constant Entity_Id :=
+                              Make_Defining_Identifier (Loc,
+                                Chars => New_Internal_Name ('T'));
+                  begin
+                     Remove_Side_Effects (Nam);
+                     Insert_Action (N,
+                       Make_Subtype_Declaration (Loc,
+                         Defining_Identifier => Subt,
+                         Subtype_Indication  =>
+                           Make_Subtype_From_Expr (Nam, Etype (Nam))));
+                     Rewrite (Subtype_Mark (N), New_Occurrence_Of (Subt, Loc));
+                     Set_Etype (Nam, Subt);
+                  end;
                end if;
          end case;
       end if;
@@ -918,6 +946,7 @@ package body Sem_Ch8 is
       then
          Error_Msg_NE ("invalid use of incomplete type&", Id, T2);
          return;
+
       elsif Ekind (Etype (T)) = E_Incomplete_Type then
          Error_Msg_NE ("invalid use of incomplete type&", Id, T);
          return;
@@ -935,8 +964,8 @@ package body Sem_Ch8 is
         and then Nkind (Nam) in N_Has_Entity
       then
          declare
-            Nam_Decl    : Node_Id;
-            Nam_Ent     : Entity_Id;
+            Nam_Decl : Node_Id;
+            Nam_Ent  : Entity_Id;
 
          begin
             if Nkind (Nam) = N_Attribute_Reference then
@@ -945,7 +974,7 @@ package body Sem_Ch8 is
                Nam_Ent := Entity (Nam);
             end if;
 
-            Nam_Decl    := Parent (Nam_Ent);
+            Nam_Decl := Parent (Nam_Ent);
 
             if Has_Null_Exclusion (N)
               and then not Has_Null_Exclusion (Nam_Decl)
@@ -958,7 +987,7 @@ package body Sem_Ch8 is
                --  have a null exclusion or a null-excluding subtype.
 
                if Is_Formal_Object (Nam_Ent)
-                 and then In_Generic_Scope (Id)
+                    and then In_Generic_Scope (Id)
                then
                   if not Can_Never_Be_Null (Etype (Nam_Ent)) then
                      Error_Msg_N
@@ -985,11 +1014,11 @@ package body Sem_Ch8 is
                --  of the renamed actual in the instance will raise
                --  constraint_error.
 
-               elsif Nkind (Parent (Nam_Ent)) = N_Object_Declaration
+               elsif Nkind (Nam_Decl) = N_Object_Declaration
                  and then In_Instance
                  and then Present
-                   (Corresponding_Generic_Association (Parent (Nam_Ent)))
-                 and then Nkind (Expression (Parent (Nam_Ent)))
+                   (Corresponding_Generic_Association (Nam_Decl))
+                 and then Nkind (Expression (Nam_Decl))
                    = N_Raise_Constraint_Error
                then
                   Error_Msg_N
@@ -1000,7 +1029,7 @@ package body Sem_Ch8 is
                --  must not be null-excluding.
 
                elsif No (Access_Definition (N))
-                 and then  Can_Never_Be_Null (T)
+                 and then Can_Never_Be_Null (T)
                then
                   Error_Msg_NE
                     ("`NOT NULL` not allowed (& already excludes null)",
@@ -1040,8 +1069,6 @@ package body Sem_Ch8 is
          then
             Error_Msg_N
               ("illegal renaming of discriminant-dependent component", Nam);
-         else
-            null;
          end if;
 
       --  A static function call may have been folded into a literal
@@ -1116,8 +1143,7 @@ package body Sem_Ch8 is
          return;
       end if;
 
-      --  Apply Text_IO kludge here, since we may be renaming one of the
-      --  children of Text_IO.
+      --  Apply Text_IO kludge here since we may be renaming a child of Text_IO
 
       Text_IO_Kludge (Name (N));
 
@@ -1135,8 +1161,7 @@ package body Sem_Ch8 is
       end if;
 
       if Etype (Old_P) = Any_Type then
-         Error_Msg_N
-           ("expect package name in renaming", Name (N));
+         Error_Msg_N ("expect package name in renaming", Name (N));
 
       elsif Ekind (Old_P) /= E_Package
         and then not (Ekind (Old_P) = E_Generic_Package
@@ -1373,8 +1398,8 @@ package body Sem_Ch8 is
 
          Inherit_Renamed_Profile (New_S, Old_S);
 
-         --  The prefix can be an arbitrary expression that yields a task
-         --  type, so it must be resolved.
+         --  The prefix can be an arbitrary expression that yields a task type,
+         --  so it must be resolved.
 
          Resolve (Prefix (Nam), Scope (Old_S));
       end if;
@@ -2556,11 +2581,12 @@ package body Sem_Ch8 is
               and then Etype (Pack) /= Any_Type
             then
                if Ekind (Pack) = E_Generic_Package then
-                  Error_Msg_N
+                  Error_Msg_N  -- CODEFIX
                    ("a generic package is not allowed in a use clause",
                       Pack_Name);
                else
-                  Error_Msg_N ("& is not a usable package", Pack_Name);
+                  Error_Msg_N -- CODEFIX???
+                    ("& is not a usable package", Pack_Name);
                end if;
 
             else
@@ -3716,12 +3742,14 @@ package body Sem_Ch8 is
             while Present (Ent) loop
                if Is_Potentially_Use_Visible (Ent) then
                   if not Hidden then
-                     Error_Msg_N ("multiple use clauses cause hiding!", N);
+                     Error_Msg_N -- CODEFIX
+                       ("multiple use clauses cause hiding!", N);
                      Hidden := True;
                   end if;
 
                   Error_Msg_Sloc := Sloc (Ent);
-                  Error_Msg_N ("hidden declaration#!", N);
+                  Error_Msg_N -- CODEFIX
+                    ("hidden declaration#!", N);
                end if;
 
                Ent := Homonym (Ent);
@@ -3754,7 +3782,8 @@ package body Sem_Ch8 is
                   if Is_Hidden (Ent) then
                      Error_Msg_N ("non-visible (private) declaration#!", N);
                   else
-                     Error_Msg_N ("non-visible declaration#!", N);
+                     Error_Msg_N -- CODEFIX
+                       ("non-visible declaration#!", N);
 
                      if Is_Compilation_Unit (Ent)
                        and then
@@ -3936,7 +3965,8 @@ package body Sem_Ch8 is
                end loop;
 
                if Present (Ematch) then
-                  Error_Msg_NE ("\possible misspelling of&", N, Ematch);
+                  Error_Msg_NE -- CODEFIX
+                    ("\possible misspelling of&", N, Ematch);
                end if;
             end;
          end if;
@@ -4722,7 +4752,7 @@ package body Sem_Ch8 is
                      if Is_Bad_Spelling_Of (Chars (Id), Chars (Selector))
                        and then not Is_Internal_Name (Chars (Id))
                      then
-                        Error_Msg_NE
+                        Error_Msg_NE -- CODEFIX
                           ("possible misspelling of&", Selector, Id);
                         exit;
                      end if;
@@ -5697,14 +5727,25 @@ package body Sem_Ch8 is
                if Ekind (Base_Type (T_Name)) = E_Task_Type then
 
                   --  In Ada 2005, a task name can be used in an access
-                  --  definition within its own body.
+                  --  definition within its own body. It cannot be used
+                  --  in the discriminant part of the task declaration,
+                  --  nor anywhere else in the declaration because entries
+                  --  cannot have access parameters.
 
                   if Ada_Version >= Ada_05
                     and then Nkind (Parent (N)) = N_Access_Definition
                   then
                      Set_Entity (N, T_Name);
                      Set_Etype  (N, T_Name);
-                     return;
+
+                     if Has_Completion (T_Name) then
+                        return;
+
+                     else
+                        Error_Msg_N
+                          ("task type cannot be used as type mark " &
+                           "within its own declaration", N);
+                     end if;
 
                   else
                      Error_Msg_N

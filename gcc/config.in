@@ -844,6 +844,13 @@
 #endif
 
 
+/* Define if your assembler supports specifying the alignment of objects
+   allocated using the GAS .comm command. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GAS_ALIGNED_COMM
+#endif
+
+
 /* Define if your assembler supports .balign and .p2align. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_GAS_BALIGN_AND_P2ALIGN
@@ -859,6 +866,12 @@
 /* Define 0/1 if your assembler supports .cfi_personality. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_GAS_CFI_PERSONALITY_DIRECTIVE
+#endif
+
+
+/* Define if your assembler supports the .loc discriminator sub-directive. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GAS_DISCRIMINATOR
 #endif
 
 
@@ -1364,6 +1377,12 @@
 /* Define if cloog is in use. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_cloog
+#endif
+
+
+/* Define if mpc is in use. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_mpc
 #endif
 
 

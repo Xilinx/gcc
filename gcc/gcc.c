@@ -198,6 +198,10 @@ static int print_subprocess_help;
 
 static int report_times;
 
+/* Whether we should report subprocess execution times to a file.  */
+
+FILE *report_times_to_file = NULL;
+
 /* Nonzero means place this string before uses of /, so that include
    and library files can be found in an alternate location.  */
 
@@ -268,10 +272,12 @@ static const char *cross_compile = "0";
    switch.  The only case we support now is simply appending or deleting a
    string to or from the end of the first part of the configuration name.  */
 
+enum add_del {ADD, DELETE};
+
 static const struct modify_target
 {
   const char *const sw;
-  const enum add_del {ADD, DELETE} add_del;
+  const enum add_del add_del;
   const char *const str;
 }
 modify_target[] = MODIFY_TARGET_NAME;
@@ -3015,7 +3021,8 @@ execute (void)
 
   /* Run each piped subprocess.  */
 
-  pex = pex_init (PEX_USE_PIPES | (report_times ? PEX_RECORD_TIMES : 0),
+  pex = pex_init (PEX_USE_PIPES | ((report_times || report_times_to_file)
+				   ? PEX_RECORD_TIMES : 0),
 		  programname, temp_filename);
   if (pex == NULL)
     pfatal_with_name (_("pex_init failed"));
@@ -3059,7 +3066,7 @@ execute (void)
     if (!pex_get_status (pex, n_commands, statuses))
       pfatal_with_name (_("failed to get exit status"));
 
-    if (report_times)
+    if (report_times || report_times_to_file)
       {
 	times = (struct pex_time *) alloca (n_commands * sizeof (struct pex_time));
 	if (!pex_get_times (pex, n_commands, times))
@@ -3104,7 +3111,7 @@ See %s for instructions.",
 	    ret_code = -1;
 	  }
 
-	if (report_times)
+	if (report_times || report_times_to_file)
 	  {
 	    struct pex_time *pt = &times[i];
 	    double ut, st;
@@ -3115,7 +3122,43 @@ See %s for instructions.",
 		  + (double) pt->system_microseconds / 1.0e6);
 
 	    if (ut + st != 0)
-	      notice ("# %s %.2f %.2f\n", commands[i].prog, ut, st);
+	      {
+		if (report_times)
+		  notice ("# %s %.2f %.2f\n", commands[i].prog, ut, st);
+
+		if (report_times_to_file)
+		  {
+		    int c = 0;
+		    const char *const *j;
+
+		    fprintf (report_times_to_file, "%g %g", ut, st);
+
+		    for (j = &commands[i].prog; *j; j = &commands[i].argv[++c])
+		      {
+			const char *p;
+			for (p = *j; *p; ++p)
+			  if (*p == '"' || *p == '\\' || *p == '$'
+			      || ISSPACE (*p))
+			    break;
+
+			if (*p)
+			  {
+			    fprintf (report_times_to_file, " \"");
+			    for (p = *j; *p; ++p)
+			      {
+				if (*p == '"' || *p == '\\' || *p == '$')
+				  fputc ('\\', report_times_to_file);
+				fputc (*p, report_times_to_file);
+			      }
+			    fputc ('"', report_times_to_file);
+			  }
+			else
+			  fprintf (report_times_to_file, " %s", *j);
+		      }
+
+		    fputc ('\n', report_times_to_file);
+		  }
+	      }
 	  }
       }
 
@@ -3634,10 +3677,15 @@ process_command (int argc, const char **argv)
     }
 
   /* Convert new-style -- options to old-style.  */
-  translate_options (&argc, (const char *const **) &argv);
+  translate_options (&argc,
+		     CONST_CAST2 (const char *const **, const char ***,
+				  &argv));
 
   /* Do language-specific adjustment/addition of flags.  */
-  lang_specific_driver (&argc, (const char *const **) &argv, &added_libraries);
+  lang_specific_driver (&argc,
+			CONST_CAST2 (const char *const **, const char ***,
+				     &argv),
+			&added_libraries);
 
   /* Scan argv twice.  Here, the first time, just count how many switches
      there will be in their vector, and how many input files in theirs.
@@ -3869,6 +3917,12 @@ process_command (int argc, const char **argv)
 	}
       else if (strcmp (argv[i], "-time") == 0)
 	report_times = 1;
+      else if (strncmp (argv[i], "-time=", sizeof ("-time=") - 1) == 0)
+	{
+	  if (report_times_to_file)
+	    fclose (report_times_to_file);
+	  report_times_to_file = fopen (argv[i] + sizeof ("-time=") - 1, "a");
+	}
       else if (strcmp (argv[i], "-pipe") == 0)
 	{
 	  /* -pipe has to go into the switches array as well as
@@ -4281,6 +4335,8 @@ process_command (int argc, const char **argv)
 	;
       else if (strcmp (argv[i], "-time") == 0)
 	;
+      else if (strncmp (argv[i], "-time=", sizeof ("-time=") - 1) == 0)
+	;
       else if (strcmp (argv[i], "-###") == 0)
 	;
       else if (argv[i][0] == '-' && argv[i][1] != 0)
@@ -4425,6 +4481,11 @@ set_collect_gcc_options (void)
 
       /* Ignore elided switches.  */
       if ((switches[i].live_cond & SWITCH_IGNORE) != 0)
+	continue;
+
+      /* Don't use -fwhole-program when compiling the init and fini routines,
+	 since we'd wrongly assume that the routines aren't needed.  */
+      if (strcmp (switches[i].part1, "fwhole-program") == 0)
 	continue;
 
       obstack_grow (&collect_obstack, "'-", 2);
@@ -6464,7 +6525,7 @@ main (int argc, char **argv)
      Make a table of specified input files (infiles, n_infiles).
      Decode switches that are handled locally.  */
 
-  process_command (argc, (const char **) argv);
+  process_command (argc, CONST_CAST2 (const char **, char **, argv));
 
   /* Initialize the vector of specs to just the default.
      This means one element containing 0s, as a terminator.  */

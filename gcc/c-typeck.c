@@ -1766,6 +1766,7 @@ default_conversion (tree exp)
   tree orig_exp;
   tree type = TREE_TYPE (exp);
   enum tree_code code = TREE_CODE (type);
+  tree promoted_type;
 
   /* Functions and arrays have been converted during parsing.  */
   gcc_assert (code != FUNCTION_TYPE);
@@ -1792,6 +1793,10 @@ default_conversion (tree exp)
   exp = require_complete_type (exp);
   if (exp == error_mark_node)
     return error_mark_node;
+
+  promoted_type = targetm.promoted_type (type);
+  if (promoted_type)
+    return convert (promoted_type, exp);
 
   if (INTEGRAL_TYPE_P (type))
     return perform_integral_promotions (exp);
@@ -1964,7 +1969,7 @@ build_component_ref (tree datum, tree component)
 	    TREE_THIS_VOLATILE (ref) = 1;
 
 	  if (TREE_DEPRECATED (subdatum))
-	    warn_deprecated_use (subdatum);
+	    warn_deprecated_use (subdatum, NULL_TREE);
 
 	  datum = ref;
 
@@ -2225,7 +2230,7 @@ build_external_ref (tree id, int fun, location_t loc, tree *type)
     return error_mark_node;
 
   if (TREE_DEPRECATED (ref))
-    warn_deprecated_use (ref);
+    warn_deprecated_use (ref, NULL_TREE);
 
   /* Recursive call does not count as usage.  */
   if (ref != current_function_decl) 
@@ -2246,6 +2251,17 @@ build_external_ref (tree id, int fun, location_t loc, tree *type)
   if (TREE_CODE (ref) == CONST_DECL)
     {
       used_types_insert (TREE_TYPE (ref));
+
+      if (warn_cxx_compat
+	  && TREE_CODE (TREE_TYPE (ref)) == ENUMERAL_TYPE
+	  && C_TYPE_DEFINED_IN_STRUCT (TREE_TYPE (ref)))
+	{
+	  warning_at (loc, OPT_Wc___compat,
+		      ("enum constant defined in struct or union "
+		       "is not visible in C++"));
+	  inform (DECL_SOURCE_LOCATION (ref), "enum constant defined here");
+	}
+
       ref = DECL_INITIAL (ref);
       TREE_CONSTANT (ref) = 1;
     }
@@ -2950,7 +2966,7 @@ parser_build_binary_op (location_t location, enum tree_code code,
     warn_about_parentheses (code, code1, arg1.value, code2, arg2.value);
 
   if (warn_logical_op)
-    warn_logical_operator (input_location, code,
+    warn_logical_operator (input_location, code, TREE_TYPE (result.value),
 			   code1, arg1.value, code2, arg2.value);
 
   /* Warn about comparisons against string literals, with the exception
@@ -3255,6 +3271,16 @@ build_unary_op (location_t location,
 				 ? lv_increment
 				 : lv_decrement)))
 	return error_mark_node;
+
+      if (warn_cxx_compat && TREE_CODE (TREE_TYPE (arg)) == ENUMERAL_TYPE)
+	{
+	  if (code == PREINCREMENT_EXPR || code == POSTINCREMENT_EXPR)
+	    warning_at (location, OPT_Wc___compat,
+			"increment of enumeration value is invalid in C++");
+	  else
+	    warning_at (location, OPT_Wc___compat,
+			"decrement of enumeration value is invalid in C++");
+	}
 
       /* Ensure the argument is fully folded inside any SAVE_EXPR.  */
       arg = c_fully_fold (arg, false, NULL);
@@ -4029,6 +4055,93 @@ build_compound_expr (tree expr1, tree expr2)
   return ret;
 }
 
+/* Issue -Wcast-qual warnings when appropriate.  TYPE is the type to
+   which we are casting.  OTYPE is the type of the expression being
+   cast.  Both TYPE and OTYPE are pointer types.  -Wcast-qual appeared
+   on the command line.  */
+
+static void
+handle_warn_cast_qual (tree type, tree otype)
+{
+  tree in_type = type;
+  tree in_otype = otype;
+  int added = 0;
+  int discarded = 0;
+  bool is_const;
+
+  /* Check that the qualifiers on IN_TYPE are a superset of the
+     qualifiers of IN_OTYPE.  The outermost level of POINTER_TYPE
+     nodes is uninteresting and we stop as soon as we hit a
+     non-POINTER_TYPE node on either type.  */
+  do
+    {
+      in_otype = TREE_TYPE (in_otype);
+      in_type = TREE_TYPE (in_type);
+
+      /* GNU C allows cv-qualified function types.  'const' means the
+	 function is very pure, 'volatile' means it can't return.  We
+	 need to warn when such qualifiers are added, not when they're
+	 taken away.  */
+      if (TREE_CODE (in_otype) == FUNCTION_TYPE
+	  && TREE_CODE (in_type) == FUNCTION_TYPE)
+	added |= (TYPE_QUALS (in_type) & ~TYPE_QUALS (in_otype));
+      else
+	discarded |= (TYPE_QUALS (in_otype) & ~TYPE_QUALS (in_type));
+    }
+  while (TREE_CODE (in_type) == POINTER_TYPE
+	 && TREE_CODE (in_otype) == POINTER_TYPE);
+
+  if (added)
+    warning (OPT_Wcast_qual, "cast adds new qualifiers to function type");
+
+  if (discarded)
+    /* There are qualifiers present in IN_OTYPE that are not present
+       in IN_TYPE.  */
+    warning (OPT_Wcast_qual,
+	     "cast discards qualifiers from pointer target type");
+
+  if (added || discarded)
+    return;
+
+  /* A cast from **T to const **T is unsafe, because it can cause a
+     const value to be changed with no additional warning.  We only
+     issue this warning if T is the same on both sides, and we only
+     issue the warning if there are the same number of pointers on
+     both sides, as otherwise the cast is clearly unsafe anyhow.  A
+     cast is unsafe when a qualifier is added at one level and const
+     is not present at all outer levels.
+
+     To issue this warning, we check at each level whether the cast
+     adds new qualifiers not already seen.  We don't need to special
+     case function types, as they won't have the same
+     TYPE_MAIN_VARIANT.  */
+
+  if (TYPE_MAIN_VARIANT (in_type) != TYPE_MAIN_VARIANT (in_otype))
+    return;
+  if (TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE)
+    return;
+
+  in_type = type;
+  in_otype = otype;
+  is_const = TYPE_READONLY (TREE_TYPE (in_type));
+  do
+    {
+      in_type = TREE_TYPE (in_type);
+      in_otype = TREE_TYPE (in_otype);
+      if ((TYPE_QUALS (in_type) &~ TYPE_QUALS (in_otype)) != 0
+	  && !is_const)
+	{
+	  warning (OPT_Wcast_qual,
+		   ("new qualifiers in middle of multi-level non-const cast "
+		    "are unsafe"));
+	  break;
+	}
+      if (is_const)
+	is_const = TYPE_READONLY (in_type);
+    }
+  while (TREE_CODE (in_type) == POINTER_TYPE);
+}
+
 /* Build an expression representing a cast to type TYPE of expression EXPR.  */
 
 tree
@@ -4113,46 +4226,10 @@ build_c_cast (tree type, tree expr)
       otype = TREE_TYPE (value);
 
       /* Optionally warn about potentially worrisome casts.  */
-
       if (warn_cast_qual
 	  && TREE_CODE (type) == POINTER_TYPE
 	  && TREE_CODE (otype) == POINTER_TYPE)
-	{
-	  tree in_type = type;
-	  tree in_otype = otype;
-	  int added = 0;
-	  int discarded = 0;
-
-	  /* Check that the qualifiers on IN_TYPE are a superset of
-	     the qualifiers of IN_OTYPE.  The outermost level of
-	     POINTER_TYPE nodes is uninteresting and we stop as soon
-	     as we hit a non-POINTER_TYPE node on either type.  */
-	  do
-	    {
-	      in_otype = TREE_TYPE (in_otype);
-	      in_type = TREE_TYPE (in_type);
-
-	      /* GNU C allows cv-qualified function types.  'const'
-		 means the function is very pure, 'volatile' means it
-		 can't return.  We need to warn when such qualifiers
-		 are added, not when they're taken away.  */
-	      if (TREE_CODE (in_otype) == FUNCTION_TYPE
-		  && TREE_CODE (in_type) == FUNCTION_TYPE)
-		added |= (TYPE_QUALS (in_type) & ~TYPE_QUALS (in_otype));
-	      else
-		discarded |= (TYPE_QUALS (in_otype) & ~TYPE_QUALS (in_type));
-	    }
-	  while (TREE_CODE (in_type) == POINTER_TYPE
-		 && TREE_CODE (in_otype) == POINTER_TYPE);
-
-	  if (added)
-	    warning (OPT_Wcast_qual, "cast adds new qualifiers to function type");
-
-	  if (discarded)
-	    /* There are qualifiers present in IN_OTYPE that are not
-	       present in IN_TYPE.  */
-	    warning (OPT_Wcast_qual, "cast discards qualifiers from pointer target type");
-	}
+	handle_warn_cast_qual (type, otype);
 
       /* Warn about possible alignment problems.  */
       if (STRICT_ALIGNMENT
@@ -4262,7 +4339,7 @@ build_c_cast (tree type, tree expr)
 
 /* Interpret a cast of expression EXPR to type TYPE.  */
 tree
-c_cast_expr (struct c_type_name *type_name, tree expr)
+c_cast_expr (struct c_type_name *type_name, tree expr, location_t loc)
 {
   tree type;
   tree type_expr = NULL_TREE;
@@ -4283,6 +4360,15 @@ c_cast_expr (struct c_type_name *type_name, tree expr)
       ret = build2 (C_MAYBE_CONST_EXPR, TREE_TYPE (ret), type_expr, ret);
       C_MAYBE_CONST_EXPR_NON_CONST (ret) = !type_expr_const;
     }
+
+  if (CAN_HAVE_LOCATION_P (ret) && !EXPR_HAS_LOCATION (ret))
+    SET_EXPR_LOCATION (ret, loc);
+
+  /* C++ does not permits types to be defined in a cast.  */
+  if (warn_cxx_compat && type_name->specs->tag_defined_p)
+    warning_at (loc, OPT_Wc___compat,
+		"defining a type in a cast is invalid in C++");
+
   return ret;
 }
 
@@ -8958,7 +9044,11 @@ build_binary_op (location_t location, enum tree_code code,
     case FLOOR_MOD_EXPR:
       warn_for_div_by_zero (location, op1);
 
-      if (code0 == INTEGER_TYPE && code1 == INTEGER_TYPE)
+      if (code0 == VECTOR_TYPE && code1 == VECTOR_TYPE
+	  && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE
+	  && TREE_CODE (TREE_TYPE (type1)) == INTEGER_TYPE)
+	common = 1;
+      else if (code0 == INTEGER_TYPE && code1 == INTEGER_TYPE)
 	{
 	  /* Although it would be tempting to shorten always here, that loses
 	     on some targets, since the modulo instruction is undefined if the
@@ -9246,13 +9336,98 @@ build_binary_op (location_t location, enum tree_code code,
       (code1 == INTEGER_TYPE || code1 == REAL_TYPE || code1 == COMPLEX_TYPE
        || code1 == FIXED_POINT_TYPE || code1 == VECTOR_TYPE))
     {
-      int none_complex = (code0 != COMPLEX_TYPE && code1 != COMPLEX_TYPE);
+      bool first_complex = (code0 == COMPLEX_TYPE);
+      bool second_complex = (code1 == COMPLEX_TYPE);
+      int none_complex = (!first_complex && !second_complex);
 
       if (shorten || common || short_compare)
 	{
 	  result_type = c_common_type (type0, type1);
 	  if (result_type == error_mark_node)
 	    return error_mark_node;
+	}
+
+      if (first_complex != second_complex
+	  && (code == PLUS_EXPR
+	      || code == MINUS_EXPR
+	      || code == MULT_EXPR
+	      || (code == TRUNC_DIV_EXPR && first_complex))
+	  && TREE_CODE (TREE_TYPE (result_type)) == REAL_TYPE
+	  && flag_signed_zeros)
+	{
+	  /* An operation on mixed real/complex operands must be
+	     handled specially, but the language-independent code can
+	     more easily optimize the plain complex arithmetic if
+	     -fno-signed-zeros.  */
+	  tree real_type = TREE_TYPE (result_type);
+	  tree real, imag;
+	  if (type0 != orig_type0 || type1 != orig_type1)
+	    {
+	      gcc_assert (may_need_excess_precision && common);
+	      real_result_type = c_common_type (orig_type0, orig_type1);
+	    }
+	  if (first_complex)
+	    {
+	      if (TREE_TYPE (op0) != result_type)
+		op0 = convert_and_check (result_type, op0);
+	      if (TREE_TYPE (op1) != real_type)
+		op1 = convert_and_check (real_type, op1);
+	    }
+	  else
+	    {
+	      if (TREE_TYPE (op0) != real_type)
+		op0 = convert_and_check (real_type, op0);
+	      if (TREE_TYPE (op1) != result_type)
+		op1 = convert_and_check (result_type, op1);
+	    }
+	  if (TREE_CODE (op0) == ERROR_MARK || TREE_CODE (op1) == ERROR_MARK)
+	    return error_mark_node;
+	  if (first_complex)
+	    {
+	      op0 = c_save_expr (op0);
+	      real = build_unary_op (EXPR_LOCATION (orig_op0), REALPART_EXPR,
+				     op0, 1);
+	      imag = build_unary_op (EXPR_LOCATION (orig_op0), IMAGPART_EXPR,
+				     op0, 1);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		case TRUNC_DIV_EXPR:
+		  imag = build2 (resultcode, real_type, imag, op1);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, real, op1);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  else
+	    {
+	      op1 = c_save_expr (op1);
+	      real = build_unary_op (EXPR_LOCATION (orig_op1), REALPART_EXPR,
+				     op1, 1);
+	      imag = build_unary_op (EXPR_LOCATION (orig_op1), IMAGPART_EXPR,
+				     op1, 1);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		  imag = build2 (resultcode, real_type, op0, imag);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  break;
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  imag = build1 (NEGATE_EXPR, real_type, imag);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  ret = build2 (COMPLEX_EXPR, result_type, real, imag);
+	  goto return_build_binary_op;
 	}
 
       /* For certain operations (which identify themselves by shorten != 0)
@@ -9851,4 +10026,15 @@ c_build_qualified_type (tree type, int type_quals)
     }
 
   return build_qualified_type (type, type_quals);
+}
+
+/* Build a VA_ARG_EXPR for the C parser.  */
+
+tree
+c_build_va_arg (tree expr, tree type, location_t loc)
+{
+  if (warn_cxx_compat && TREE_CODE (type) == ENUMERAL_TYPE)
+    warning_at (loc, OPT_Wc___compat,
+		"C++ requires promoted type, not enum type, in %<va_arg%>");
+  return build_va_arg (expr, type);
 }

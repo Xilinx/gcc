@@ -99,7 +99,10 @@ some_nonzerop (tree t)
 {
   int zerop = false;
 
-  if (TREE_CODE (t) == REAL_CST)
+  /* Operations with real or imaginary part of a complex number zero
+     cannot be treated the same as operations with a real or imaginary
+     operand if we care about the signs of zeros in the result.  */
+  if (TREE_CODE (t) == REAL_CST && !flag_signed_zeros)
     zerop = REAL_VALUES_IDENTICAL (TREE_REAL_CST (t), dconst0);
   else if (TREE_CODE (t) == FIXED_CST)
     zerop = fixed_zerop (t);
@@ -601,6 +604,7 @@ extract_component (gimple_stmt_iterator *gsi, tree t, bool imagpart_p,
     case INDIRECT_REF:
     case COMPONENT_REF:
     case ARRAY_REF:
+    case VIEW_CONVERT_EXPR:
       {
 	tree inner_type = TREE_TYPE (TREE_TYPE (t));
 

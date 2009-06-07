@@ -12,13 +12,14 @@
    The above copyright notice and this permission notice shall be included
    in all copies or substantial portions of the Software.
 
-   THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND, EXPRESS
-   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-   IN NO EVENT SHALL CYGNUS SOLUTIONS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-   OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-   OTHER DEALINGS IN THE SOFTWARE.
+   THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
 
    ----------------------------------------------------------------------- */
 
@@ -221,7 +222,7 @@ typedef ffi_raw ffi_java_raw;
 
 
 void ffi_raw_call (ffi_cif *cif,
-		   void (*fn)(),
+		   void (*fn)(void),
 		   void *rvalue,
 		   ffi_raw *avalue);
 
@@ -234,7 +235,7 @@ size_t ffi_raw_size (ffi_cif *cif);
 /* longs and doubles are followed by an empty 64-bit word.		*/
 
 void ffi_java_raw_call (ffi_cif *cif,
-			void (*fn)(),
+			void (*fn)(void),
 			void *rvalue,
 			ffi_java_raw *avalue);
 
@@ -348,7 +349,7 @@ ffi_status ffi_prep_cif(ffi_cif *cif,
 			ffi_type **atypes);
 
 void ffi_call(ffi_cif *cif,
-	      void (*fn)(),
+	      void (*fn)(void),
 	      void *rvalue,
 	      void **avalue);
 

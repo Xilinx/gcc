@@ -285,7 +285,7 @@ C ObjC C++ ObjC++ Warning
 Warn about PCH files that are found but not used
 
 Wlogical-op
-C ObjC C++ ObjC++ Var(warn_logical_op) Init(-1) Warning 
+C ObjC C++ ObjC++ Var(warn_logical_op) Init(0) Warning 
 Warn when a logical operator is suspiciously always evaluating to true or false
 
 Wlong-long
@@ -475,6 +475,10 @@ Warn if an undefined macro is used in an #if directive
 Wunknown-pragmas
 C ObjC C++ ObjC++ Warning
 Warn about unrecognized pragmas
+
+Wunsuffixed-float-constants
+C ObjC Var(warn_unsuffixed_float_constants) Warning
+Warn about unsuffixed float constants
 
 Wunused-macros
 C ObjC C++ ObjC++ Warning

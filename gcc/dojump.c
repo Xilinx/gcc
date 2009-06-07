@@ -141,7 +141,8 @@ prefer_and_bit_test (enum machine_mode mode, int bitnum)
     }
 
   /* Fill in the integers.  */
-  XEXP (and_test, 1) = GEN_INT ((unsigned HOST_WIDE_INT) 1 << bitnum);
+  XEXP (and_test, 1)
+    = immed_double_const ((unsigned HOST_WIDE_INT) 1 << bitnum, 0, mode);
   XEXP (XEXP (shift_test, 0), 1) = GEN_INT (bitnum);
 
   return (rtx_cost (and_test, IF_THEN_ELSE, optimize_insn_for_speed_p ())
@@ -474,10 +475,10 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 		  && prefer_and_bit_test (TYPE_MODE (argtype),
 					  TREE_INT_CST_LOW (shift)))
 		{
-		  HOST_WIDE_INT mask = (HOST_WIDE_INT) 1
-				       << TREE_INT_CST_LOW (shift);
+		  unsigned HOST_WIDE_INT mask
+		    = (unsigned HOST_WIDE_INT) 1 << TREE_INT_CST_LOW (shift);
 		  do_jump (build2 (BIT_AND_EXPR, argtype, arg,
-				   build_int_cst_type (argtype, mask)),
+				   build_int_cst_wide_type (argtype, mask, 0)),
 			   clr_label, set_label);
 		  break;
 		}
@@ -755,64 +756,6 @@ do_jump_by_parts_equality (tree exp, rtx if_false_label, rtx if_true_label)
 				 if_true_label);
 }
 
-/* Generate code for a comparison of OP0 and OP1 with rtx code CODE.
-   MODE is the machine mode of the comparison, not of the result.
-   (including code to compute the values to be compared) and set CC0
-   according to the result.  The decision as to signed or unsigned
-   comparison must be made by the caller.
-
-   We force a stack adjustment unless there are currently
-   things pushed on the stack that aren't yet used.
-
-   If MODE is BLKmode, SIZE is an RTX giving the size of the objects being
-   compared.  */
-
-rtx
-compare_from_rtx (rtx op0, rtx op1, enum rtx_code code, int unsignedp,
-		  enum machine_mode mode, rtx size)
-{
-  rtx tem;
-
-  /* If one operand is constant, make it the second one.  Only do this
-     if the other operand is not constant as well.  */
-
-  if (swap_commutative_operands_p (op0, op1))
-    {
-      tem = op0;
-      op0 = op1;
-      op1 = tem;
-      code = swap_condition (code);
-    }
-
-  do_pending_stack_adjust ();
-
-  code = unsignedp ? unsigned_condition (code) : code;
-  tem = simplify_relational_operation (code, VOIDmode, mode, op0, op1);
-  if (tem)
-    {
-      if (CONSTANT_P (tem))
-	return tem;
-
-      if (COMPARISON_P (tem))
-	{
-	  code = GET_CODE (tem);
-	  op0 = XEXP (tem, 0);
-	  op1 = XEXP (tem, 1);
-	  mode = GET_MODE (op0);
-	  unsignedp = (code == GTU || code == LTU
-		       || code == GEU || code == LEU);
-	}
-    }
-
-  emit_cmp_insn (op0, op1, code, size, mode, unsignedp);
-
-#if HAVE_cc0
-  return gen_rtx_fmt_ee (code, VOIDmode, cc0_rtx, const0_rtx);
-#else
-  return gen_rtx_fmt_ee (code, VOIDmode, op0, op1);
-#endif
-}
-
 /* Like do_compare_and_jump but expects the values to compare as two rtx's.
    The decision as to signed or unsigned comparison must be made by the caller.
 

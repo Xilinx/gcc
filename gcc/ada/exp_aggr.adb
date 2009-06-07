@@ -56,7 +56,6 @@ with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stand;    use Stand;
-with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
@@ -623,7 +622,9 @@ package body Exp_Aggr is
       --    with tagged components, but not clear whether it's worthwhile ???;
       --    in the case of the JVM, object tags are handled implicitly)
 
-      if Is_Tagged_Type (Component_Type (Typ)) and then VM_Target = No_VM then
+      if Is_Tagged_Type (Component_Type (Typ))
+        and then Tagged_Type_Expansion
+      then
          return False;
       end if;
 
@@ -1188,12 +1189,12 @@ package body Exp_Aggr is
             Append_To (L, A);
 
             --  Adjust the tag if tagged (because of possible view
-            --  conversions), unless compiling for the Java VM where
+            --  conversions), unless compiling for a VM where
             --  tags are implicit.
 
             if Present (Comp_Type)
               and then Is_Tagged_Type (Comp_Type)
-              and then VM_Target = No_VM
+              and then Tagged_Type_Expansion
             then
                A :=
                  Make_OK_Assignment_Statement (Loc,
@@ -2519,28 +2520,35 @@ package body Exp_Aggr is
                Ref := Convert_To (Init_Typ, New_Copy_Tree (Target));
                Set_Assignment_OK (Ref);
 
-               if Has_Default_Init_Comps (N)
-                 or else Has_Task (Base_Type (Init_Typ))
-               then
-                  Append_List_To (L,
-                    Build_Initialization_Call (Loc,
-                      Id_Ref       => Ref,
-                      Typ          => Init_Typ,
-                      In_Init_Proc => Within_Init_Proc,
-                      With_Default_Init => True));
-               else
-                  Append_List_To (L,
-                    Build_Initialization_Call (Loc,
-                      Id_Ref       => Ref,
-                      Typ          => Init_Typ,
-                      In_Init_Proc => Within_Init_Proc));
-               end if;
+               Append_List_To (L,
+                 Build_Initialization_Call (Loc,
+                   Id_Ref            => Ref,
+                   Typ               => Init_Typ,
+                   In_Init_Proc      => Within_Init_Proc,
+                   With_Default_Init => Has_Default_Init_Comps (N)
+                                          or else
+                                        Has_Task (Base_Type (Init_Typ))));
 
                if Is_Constrained (Entity (A))
                  and then Has_Discriminants (Entity (A))
                then
                   Check_Ancestor_Discriminants (Entity (A));
                end if;
+
+            --  Handle calls to C++ constructors
+
+            elsif Is_CPP_Constructor_Call (A) then
+               Init_Typ := Etype (Etype (A));
+               Ref := Convert_To (Init_Typ, New_Copy_Tree (Target));
+               Set_Assignment_OK (Ref);
+
+               Append_List_To (L,
+                 Build_Initialization_Call (Loc,
+                   Id_Ref            => Ref,
+                   Typ               => Init_Typ,
+                   In_Init_Proc      => Within_Init_Proc,
+                   With_Default_Init => Has_Default_Init_Comps (N),
+                   Constructor_Ref   => A));
 
             --  Ada 2005 (AI-287): If the ancestor part is an aggregate of
             --  limited type, a recursive call expands the ancestor. Note that
@@ -2612,7 +2620,7 @@ package body Exp_Aggr is
                --  the subsequent deep_adjust works properly (unless VM_Target,
                --  where tags are implicit).
 
-               if VM_Target = No_VM then
+               if Tagged_Type_Expansion then
                   Instr :=
                     Make_OK_Assignment_Statement (Loc,
                       Name =>
@@ -2763,6 +2771,18 @@ package body Exp_Aggr is
                end loop;
             end;
          end if;
+      end if;
+
+      --  For CPP types we generate an implicit call to the C++ default
+      --  constructor to ensure the proper initialization of the _Tag
+      --  component.
+
+      if Is_CPP_Class (Typ) then
+         pragma Assert (Present (Base_Init_Proc (Typ)));
+         Append_List_To (L,
+           Build_Initialization_Call (Loc,
+             Id_Ref => Lhs,
+             Typ    => Typ));
       end if;
 
       --  Generate the assignments, component by component
@@ -3013,7 +3033,9 @@ package body Exp_Aggr is
 
                --    tmp.comp._tag := comp_typ'tag;
 
-               if Is_Tagged_Type (Comp_Type) and then VM_Target = No_VM then
+               if Is_Tagged_Type (Comp_Type)
+                 and then Tagged_Type_Expansion
+               then
                   Instr :=
                     Make_OK_Assignment_Statement (Loc,
                       Name =>
@@ -3129,7 +3151,14 @@ package body Exp_Aggr is
       if Ancestor_Is_Expression then
          null;
 
-      elsif Is_Tagged_Type (Typ) and then VM_Target = No_VM then
+      --  For CPP types we generated a call to the C++ default constructor
+      --  before the components have been initialized to ensure the proper
+      --  initialization of the _Tag component (see above).
+
+      elsif Is_CPP_Class (Typ) then
+         null;
+
+      elsif Is_Tagged_Type (Typ) and then Tagged_Type_Expansion then
          Instr :=
            Make_OK_Assignment_Statement (Loc,
              Name =>
@@ -5272,7 +5301,7 @@ package body Exp_Aggr is
       else
          Set_Etype (N, Typ);
 
-         if VM_Target = No_VM then
+         if Tagged_Type_Expansion then
             Expand_Record_Aggregate (N,
               Orig_Tag    =>
                 New_Occurrence_Of
@@ -5363,7 +5392,7 @@ package body Exp_Aggr is
                          or else (Is_Entity_Name (Expr_Q)
                                     and then
                                       Ekind (Entity (Expr_Q)) in Formal_Kind))
-              and then VM_Target = No_VM
+              and then Tagged_Type_Expansion
             then
                Static_Components := False;
                return True;
@@ -5709,7 +5738,7 @@ package body Exp_Aggr is
 
             if Present (Orig_Tag) then
                Tag_Value := Orig_Tag;
-            elsif VM_Target /= No_VM then
+            elsif not Tagged_Type_Expansion then
                Tag_Value := Empty;
             else
                Tag_Value :=
@@ -5773,7 +5802,7 @@ package body Exp_Aggr is
             --  For a root type, the tag component is added (unless compiling
             --  for the VMs, where tags are implicit).
 
-            elsif VM_Target = No_VM then
+            elsif Tagged_Type_Expansion then
                declare
                   Tag_Name  : constant Node_Id :=
                                 New_Occurrence_Of
@@ -5875,7 +5904,7 @@ package body Exp_Aggr is
 
    begin
       return Static_Dispatch_Tables
-        and then VM_Target = No_VM
+        and then Tagged_Type_Expansion
         and then RTU_Loaded (Ada_Tags)
 
          --  Avoid circularity when rebuilding the compiler

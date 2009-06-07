@@ -28,8 +28,7 @@ extern int valid_subreg (rtx op);
 extern void spu_expand_extv (rtx * ops, int unsignedp);
 extern void spu_expand_insv (rtx * ops);
 extern int spu_expand_block_move (rtx * ops);
-extern void spu_emit_branch_or_set (int is_set, enum rtx_code code,
-				    rtx * operands);
+extern void spu_emit_branch_or_set (int is_set, rtx cmp, rtx * operands);
 extern int spu_emit_vector_cond_expr (rtx, rtx, rtx, rtx, rtx, rtx);
 extern HOST_WIDE_INT const_double_to_hwint (rtx x);
 extern rtx hwint_to_const_double (enum machine_mode mode, HOST_WIDE_INT v);
@@ -55,8 +54,6 @@ extern bool exp2_immediate_p (rtx op, enum machine_mode mode, int low,
 			      int high);
 extern int spu_constant_address_p (rtx x);
 extern int spu_legitimate_constant_p (rtx x);
-extern int spu_legitimate_address (enum machine_mode mode, rtx x,
-				   int reg_ok_strict);
 extern int spu_initial_elimination_offset (int from, int to);
 extern rtx spu_function_value (const_tree type, const_tree func);
 extern rtx spu_function_arg (int cum, enum machine_mode mode, tree type,
@@ -65,11 +62,9 @@ extern void spu_setup_incoming_varargs (int *cum, enum machine_mode mode,
 					tree type, int *pretend_size,
 					int no_rtl);
 extern void spu_conditional_register_usage (void);
-extern int aligned_mem_p (rtx mem);
 extern int spu_expand_mov (rtx * ops, enum machine_mode mode);
-extern void spu_split_load (rtx * ops);
-extern void spu_split_store (rtx * ops);
-extern int spu_valid_move (rtx * ops);
+extern int spu_split_load (rtx * ops);
+extern int spu_split_store (rtx * ops);
 extern int fsmbi_const_p (rtx x);
 extern int cpat_const_p (rtx x, enum machine_mode mode);
 extern rtx gen_cpat_const (rtx * ops);
@@ -90,6 +85,7 @@ extern void spu_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt);
 extern void spu_expand_sign_extend (rtx ops[]);
 extern void spu_expand_vector_init (rtx target, rtx vals);
 extern void spu_init_expanders (void);
+extern void spu_split_convert (rtx *);
 
 /* spu-c.c */
 extern tree spu_resolve_overloaded_builtin (tree fndecl, void *fnargs);

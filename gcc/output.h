@@ -1,7 +1,7 @@
 /* Declarations for insn-output.c.  These functions are defined in recog.c,
    final.c, and varasm.c.
    Copyright (C) 1987, 1991, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -93,6 +93,10 @@ extern int insn_current_reference_address (rtx);
 /* Find the alignment associated with a CODE_LABEL.
    Defined in final.c.  */
 extern int label_to_alignment (rtx);
+
+/* Find the alignment maximum skip associated with a CODE_LABEL.
+   Defined in final.c.  */
+extern int label_to_max_skip (rtx);
 
 /* Output a LABEL_REF, or a bare CODE_LABEL, as an assembler symbol.  */
 extern void output_asm_label (rtx);
@@ -298,6 +302,11 @@ extern bool constructor_static_from_elts_p (const_tree);
    therefore, we do not need to check for such things as
    arithmetic-combinations of integers.  */
 extern tree initializer_constant_valid_p (tree, tree);
+
+/* Return true if VALUE is a valid constant-valued expression
+   for use in initializing a static bit-field; one that can be
+   an element of a "constant" initializer.  */
+extern bool initializer_constant_valid_for_bitfield_p (tree);
 
 /* Output assembler code for constant EXP to FILE, with no label.
    This includes the pseudo-op such as ".int" or ".byte", and a newline.

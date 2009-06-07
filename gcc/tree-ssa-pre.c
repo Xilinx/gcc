@@ -1252,12 +1252,12 @@ do_unary:
 
 static tree
 translate_vuse_through_block (VEC (vn_reference_op_s, heap) *operands,
-			      tree vuse,
+			      alias_set_type set, tree type, tree vuse,
 			      basic_block phiblock,
 			      basic_block block)
 {
   gimple phi = SSA_NAME_DEF_STMT (vuse);
-  tree ref;
+  ao_ref ref;
 
   if (gimple_bb (phi) != phiblock)
     return vuse;
@@ -1268,13 +1268,13 @@ translate_vuse_through_block (VEC (vn_reference_op_s, heap) *operands,
       return PHI_ARG_DEF (phi, e->dest_idx);
     }
 
-  if (!(ref = get_ref_from_reference_ops (operands)))
+  if (!ao_ref_init_from_vn_reference (&ref, set, type, operands))
     return NULL_TREE;
 
   /* Use the alias-oracle to find either the PHI node in this block,
      the first VUSE used in this block that is equivalent to vuse or
      the first VUSE which definition in this block kills the value.  */
-  while (!stmt_may_clobber_ref_p (phi, ref))
+  while (!stmt_may_clobber_ref_p_1 (phi, &ref))
     {
       vuse = gimple_vuse (phi);
       phi = SSA_NAME_DEF_STMT (vuse);
@@ -1317,23 +1317,7 @@ get_expr_type (const pre_expr e)
     case CONSTANT:
       return TREE_TYPE (PRE_EXPR_CONSTANT (e));
     case REFERENCE:
-      {
-	vn_reference_op_t vro;
-
-	gcc_assert (PRE_EXPR_REFERENCE (e)->operands);
-	vro = VEC_index (vn_reference_op_s,
-			 PRE_EXPR_REFERENCE (e)->operands,
-			 0);
-	/* We don't store type along with COMPONENT_REF because it is
-	   always the same as FIELD_DECL's type.  */
-	if (!vro->type)
-	  {
-	    gcc_assert (vro->opcode == COMPONENT_REF);
-	    return TREE_TYPE (vro->op0);
-	  }
-	return vro->type;
-      }
-
+      return PRE_EXPR_REFERENCE (e)->type;
     case NARY:
       return PRE_EXPR_NARY (e)->type;
     }
@@ -1661,6 +1645,7 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	if (vuse)
 	  {
 	    newvuse = translate_vuse_through_block (newoperands,
+						    ref->set, ref->type,
 						    vuse, phiblock, pred);
 	    if (newvuse == NULL_TREE)
 	      {
@@ -1675,7 +1660,8 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	    unsigned int new_val_id;
 	    pre_expr constant;
 
-	    tree result = vn_reference_lookup_pieces (newvuse,
+	    tree result = vn_reference_lookup_pieces (newvuse, ref->set,
+						      ref->type,
 						      newoperands,
 						      &newref, true);
 	    if (newref)
@@ -1706,7 +1692,8 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		new_val_id = get_next_value_id ();
 		VEC_safe_grow_cleared (bitmap_set_t, heap, value_expressions,
 				       get_max_value_id() + 1);
-		newref = vn_reference_insert_pieces (newvuse,
+		newref = vn_reference_insert_pieces (newvuse, ref->set,
+						     ref->type,
 						     newoperands,
 						     result, new_val_id);
 		newoperands = NULL;
@@ -1884,10 +1871,10 @@ value_dies_in_block_x (pre_expr expr, basic_block block)
   tree vuse = PRE_EXPR_REFERENCE (expr)->vuse;
   vn_reference_t refx = PRE_EXPR_REFERENCE (expr);
   gimple def;
-  tree ref = NULL_TREE;
   gimple_stmt_iterator gsi;
   unsigned id = get_expression_id (expr);
   bool res = false;
+  ao_ref ref;
 
   if (!vuse)
     return false;
@@ -1902,6 +1889,7 @@ value_dies_in_block_x (pre_expr expr, basic_block block)
      top of the basic block, a statement uses VUSE there can be no kill
      inbetween that use and the original statement that loaded {e, VUSE},
      so we can stop walking.  */
+  ref.base = NULL_TREE;
   for (gsi = gsi_start_bb (block); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       tree def_vuse, def_vdef;
@@ -1924,16 +1912,15 @@ value_dies_in_block_x (pre_expr expr, basic_block block)
 	}
 
       /* Init ref only if we really need it.  */
-      if (ref == NULL_TREE)
+      if (ref.base == NULL_TREE
+	  && !ao_ref_init_from_vn_reference (&ref, refx->set, refx->type,
+					     refx->operands))
 	{
-	  if (!(ref = get_ref_from_reference_ops (refx->operands)))
-	    {
-	      res = true;
-	      break;
-	    }
+	  res = true;
+	  break;
 	}
       /* If the statement may clobber expr, it dies.  */
-      if (stmt_may_clobber_ref_p (def, ref))
+      if (stmt_may_clobber_ref_p_1 (def, &ref))
 	{
 	  res = true;
 	  break;
@@ -2647,6 +2634,36 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	return folded;
       }
       break;
+    case TARGET_MEM_REF:
+      {
+	vn_reference_op_t nextop = VEC_index (vn_reference_op_s, ref->operands,
+					      *operand);
+	pre_expr op0expr;
+	tree genop0 = NULL_TREE;
+	tree baseop = create_component_ref_by_pieces_1 (block, ref, operand,
+							stmts, domstmt);
+	if (!baseop)
+	  return NULL_TREE;
+	if (currop->op0)
+	  {
+	    op0expr = get_or_alloc_expr_for (currop->op0);
+	    genop0 = find_or_generate_expression (block, op0expr,
+						  stmts, domstmt);
+	    if (!genop0)
+	      return NULL_TREE;
+	  }
+	if (DECL_P (baseop))
+	  return build6 (TARGET_MEM_REF, currop->type,
+			 baseop, NULL_TREE,
+			 genop0, currop->op1, currop->op2,
+			 unshare_expr (nextop->op1));
+	else
+	  return build6 (TARGET_MEM_REF, currop->type,
+			 NULL_TREE, baseop,
+			 genop0, currop->op1, currop->op2,
+			 unshare_expr (nextop->op1));
+      }
+      break;
     case ADDR_EXPR:
       if (currop->op0)
 	{
@@ -2902,8 +2919,8 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
 			     gimple_seq *stmts, gimple domstmt, tree type)
 {
   tree temp, name;
-  tree folded, newexpr;
-  gimple_seq forced_stmts;
+  tree folded;
+  gimple_seq forced_stmts = NULL;
   unsigned int value_id;
   gimple_stmt_iterator gsi;
   tree exprtype = type ? type : get_expr_type (expr);
@@ -2975,13 +2992,16 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
     default:
       return NULL_TREE;
     }
-  folded = fold_convert (exprtype, folded);
+
+  if (!useless_type_conversion_p (exprtype, TREE_TYPE (folded)))
+    folded = fold_convert (exprtype, folded);
+
   /* Force the generated expression to be a sequence of GIMPLE
      statements.
      We have to call unshare_expr because force_gimple_operand may
      modify the tree we pass to it.  */
-  newexpr = force_gimple_operand (unshare_expr (folded), &forced_stmts,
-				  false, NULL);
+  folded = force_gimple_operand (unshare_expr (folded), &forced_stmts,
+				 false, NULL);
 
   /* If we have any intermediate expressions to the value sets, add them
      to the value sets and chain them in the instruction stream.  */
@@ -3025,7 +3045,7 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
       || TREE_CODE (exprtype) == VECTOR_TYPE)
     DECL_GIMPLE_REG_P (temp) = 1;
 
-  newstmt = gimple_build_assign (temp, newexpr);
+  newstmt = gimple_build_assign (temp, folded);
   name = make_ssa_name (temp, newstmt);
   gimple_assign_set_lhs (newstmt, name);
   gimple_set_plf (newstmt, NECESSARY, false);
@@ -3760,7 +3780,8 @@ compute_avail (void)
 		  continue;
 
 		copy_reference_ops_from_call (stmt, &ops);
-		vn_reference_lookup_pieces (gimple_vuse (stmt),
+		vn_reference_lookup_pieces (gimple_vuse (stmt), 0,
+					    gimple_expr_type (stmt),
 					    ops, &ref, false);
 		VEC_free (vn_reference_op_s, heap, ops);
 		if (!ref)
@@ -4135,7 +4156,7 @@ eliminate (void)
 		  /* Changing an indirect call to a direct call may
 		     have exposed different semantics.  This may
 		     require an SSA update.  */
-		  todo |= TODO_update_ssa;
+		  todo |= TODO_update_ssa_only_virtuals;
 		}
 	    }
 	}
@@ -4558,7 +4579,7 @@ struct gimple_opt_pass pass_pre =
   0,					/* static_pass_number */
   TV_TREE_PRE,				/* tv_id */
   PROP_no_crit_edges | PROP_cfg
-    | PROP_ssa | PROP_alias,		/* properties_required */
+    | PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   TODO_rebuild_alias,			/* todo_flags_start */
@@ -4593,7 +4614,7 @@ struct gimple_opt_pass pass_fre =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_FRE,				/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */

@@ -232,6 +232,7 @@ along with GCC; see the file COPYING3.  If not see
 #define FL_ISA_C     (1 << 16)
 #define FL_FIDOA     (1 << 17)
 #define FL_MMU 	     0   /* Used by multilib machinery.  */
+#define FL_UCLINUX   0   /* Used by multilib machinery.  */
 
 #define TARGET_68010		((m68k_cpu_flags & FL_ISA_68010) != 0)
 #define TARGET_68020		((m68k_cpu_flags & FL_ISA_68020) != 0)
@@ -749,21 +750,14 @@ __transfer_from_trampoline ()					\
 
 #define LEGITIMATE_PIC_OPERAND_P(X)				\
   (!symbolic_operand (X, VOIDmode)				\
-   || (TARGET_PCREL && REG_STRICT_P))
+   || (TARGET_PCREL && REG_STRICT_P)				\
+   || m68k_tls_reference_p (X, true))
 
 #define REG_OK_FOR_BASE_P(X) \
   m68k_legitimate_base_reg_p (X, REG_STRICT_P)
 
 #define REG_OK_FOR_INDEX_P(X) \
   m68k_legitimate_index_reg_p (X, REG_STRICT_P)
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)				\
-  do									\
-    {									\
-      if (m68k_legitimate_address_p (MODE, X, REG_STRICT_P))		\
-        goto ADDR;							\
-    }									\
-  while (0)
 
 
 /* This address is OK as it stands.  */
@@ -961,6 +955,13 @@ do { if (cc_prev_status.flags & CC_IN_68881)			\
   if ((LOG) >= 1)			\
     fprintf (FILE, "\t.even\n");
 
+#ifdef HAVE_GAS_BALIGN_AND_P2ALIGN
+/* Use "move.l %a4,%a4" to advance within code.  */
+#define ASM_OUTPUT_ALIGN_WITH_NOP(FILE,LOG)			\
+  if ((LOG) > 0)						\
+    fprintf ((FILE), "\t.balignw %u,0x284c\n", 1 << (LOG));
+#endif
+
 #define ASM_OUTPUT_SKIP(FILE,SIZE)  \
   fprintf (FILE, "\t.skip %u\n", (int)(SIZE))
 
@@ -973,6 +974,9 @@ do { if (cc_prev_status.flags & CC_IN_68881)			\
 ( fputs (".lcomm ", (FILE)),			\
   assemble_name ((FILE), (NAME)),		\
   fprintf ((FILE), ",%u\n", (int)(ROUNDED)))
+
+#define FINAL_PRESCAN_INSN(INSN, OPVEC, NOPERANDS) \
+  m68k_final_prescan_insn (INSN, OPVEC, NOPERANDS)
 
 /* On the 68000, we use several CODE characters:
    '.' for dot needed in Motorola-style opcode names.
@@ -1060,7 +1064,6 @@ enum m68k_function_kind
 
 /* Variables in m68k.c; see there for details.  */
 extern const char *m68k_library_id_string;
-extern int m68k_last_compare_had_fp_operands;
 extern enum target_device m68k_cpu;
 extern enum uarch_type m68k_tune;
 extern enum fpu_type m68k_fpu;

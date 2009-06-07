@@ -91,6 +91,18 @@ struct _dep;
 /* This is defined in ddg.h .  */
 struct ddg;
 
+/* Assembler instructions for creating various kinds of integer object.  */
+
+struct asm_int_op
+{
+  const char *hi;
+  const char *si;
+  const char *di;
+  const char *ti;
+};
+
+/* The target structure.  This holds all the backend hooks.  */
+
 struct gcc_target
 {
   /* Functions that output assembler for the target.  */
@@ -101,13 +113,7 @@ struct gcc_target
 
     /* Assembler instructions for creating various kinds of integer object.  */
     const char *byte_op;
-    struct asm_int_op
-    {
-      const char *hi;
-      const char *si;
-      const char *di;
-      const char *ti;
-    } aligned_op, unaligned_op;
+    struct asm_int_op aligned_op, unaligned_op;
 
     /* Try to output the assembler code for an integer object whose
        value is given by X.  SIZE is the size of the object in bytes and
@@ -475,7 +481,7 @@ struct gcc_target
 
     /* Target builtin that implements vector permute.  */
     tree (* builtin_vec_perm) (tree, tree*);
-} vectorize;
+  } vectorize;
 
   /* The initial value of target_flags.  */
   int default_target_flags;
@@ -609,6 +615,9 @@ struct gcc_target
 
   /* Given an address RTX, undo the effects of LEGITIMIZE_ADDRESS.  */
   rtx (* delegitimize_address) (rtx);
+
+  /* Given an address RTX, say whether it is valid.  */
+  bool (* legitimate_address_p) (enum machine_mode, rtx, bool);
 
   /* True if the given constant can be put into an object_block.  */
   bool (* use_blocks_for_constant_p) (enum machine_mode, const_rtx);
@@ -816,6 +825,10 @@ struct gcc_target
      checks to  handle_dll_attribute ().  */
   bool (* valid_dllimport_attribute_p) (const_tree decl);
 
+  /* If non-zero, align constant anchors in CSE to a multiple of this
+     value.  */
+  unsigned HOST_WIDE_INT const_anchor;
+
   /* Functions relating to calls - argument passing, returns, etc.  */
   struct calls {
     bool (*promote_function_args) (const_tree fntype);
@@ -903,6 +916,24 @@ struct gcc_target
   /* Return the diagnostic message string if the binary operation OP
      is not permitted on TYPE1 and TYPE2, NULL otherwise.  */
   const char *(*invalid_binary_op) (int op, const_tree type1, const_tree type2);
+
+  /* Return the diagnostic message string if TYPE is not valid as a
+     function parameter type, NULL otherwise.  */
+  const char *(*invalid_parameter_type) (const_tree type);
+
+  /* Return the diagnostic message string if TYPE is not valid as a
+     function return type, NULL otherwise.  */
+  const char *(*invalid_return_type) (const_tree type);
+
+  /* If values of TYPE are promoted to some other type when used in
+     expressions (analogous to the integer promotions), return that type,
+     or NULL_TREE otherwise.  */
+  tree (*promoted_type) (const_tree type);
+
+  /* Convert EXPR to TYPE, if target-specific types with special conversion
+     rules are involved.  Return the converted expression, or NULL to apply
+     the standard conversion rules.  */
+  tree (*convert_to_type) (tree type, tree expr);
 
   /* Return the array of IRA cover classes for the current target.  */
   const enum reg_class *(*ira_cover_classes) (void);

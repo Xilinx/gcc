@@ -1724,6 +1724,52 @@ label_rtx_for_bb (basic_block bb ATTRIBUTE_UNUSED)
 }
 
 
+/* A subroutine of expand_gimple_cond.  Given E, a fallthrough edge
+   of a basic block where we just expanded the conditional at the end,
+   possibly clean up the CFG and instruction sequence.  */
+
+static void
+maybe_cleanup_end_of_block (edge e)
+{
+  /* Special case: when jumpif decides that the condition is
+     trivial it emits an unconditional jump (and the necessary
+     barrier).  But we still have two edges, the fallthru one is
+     wrong.  purge_dead_edges would clean this up later.  Unfortunately
+     we have to insert insns (and split edges) before
+     find_many_sub_basic_blocks and hence before purge_dead_edges.
+     But splitting edges might create new blocks which depend on the
+     fact that if there are two edges there's no barrier.  So the
+     barrier would get lost and verify_flow_info would ICE.  Instead
+     of auditing all edge splitters to care for the barrier (which
+     normally isn't there in a cleaned CFG), fix it here.  */
+  if (BARRIER_P (get_last_insn ()))
+    {
+      basic_block bb = e->src;
+      rtx insn;
+      remove_edge (e);
+      /* Now, we have a single successor block, if we have insns to
+	 insert on the remaining edge we potentially will insert
+	 it at the end of this block (if the dest block isn't feasible)
+	 in order to avoid splitting the edge.  This insertion will take
+	 place in front of the last jump.  But we might have emitted
+	 multiple jumps (conditional and one unconditional) to the
+	 same destination.  Inserting in front of the last one then
+	 is a problem.  See PR 40021.  We fix this by deleting all
+	 jumps except the last unconditional one.  */
+      insn = PREV_INSN (get_last_insn ());
+      /* Make sure we have an unconditional jump.  Otherwise we're
+	 confused.  */
+      gcc_assert (JUMP_P (insn) && !any_condjump_p (insn));
+      for (insn = PREV_INSN (insn); insn != BB_HEAD (bb);)
+	{
+	  insn = PREV_INSN (insn);
+	  if (JUMP_P (NEXT_INSN (insn)))
+	    delete_insn (NEXT_INSN (insn));
+	}
+    }
+}
+
+
 /* A subroutine of expand_gimple_basic_block.  Expand one GIMPLE_COND.
    Returns a new basic block if we've terminated the current basic
    block and created a new one.  */
@@ -1767,19 +1813,7 @@ expand_gimple_cond (basic_block bb, gimple stmt)
       true_edge->goto_block = NULL;
       false_edge->flags |= EDGE_FALLTHRU;
       ggc_free (pred);
-      /* Special case: when jumpif decides that the condition is
-         trivial it emits an unconditional jump (and the necessary
-	 barrier).  But we still have two edges, the fallthru one is
-	 wrong.  purge_dead_edges would clean this up later.  Unfortunately
-	 we have to insert insns (and split edges) before
-	 find_many_sub_basic_blocks and hence before purge_dead_edges.
-	 But splitting edges might create new blocks which depend on the
-	 fact that if there are two edges there's no barrier.  So the
-	 barrier would get lost and verify_flow_info would ICE.  Instead
-	 of auditing all edge splitters to care for the barrier (which
-	 normally isn't there in a cleaned CFG), fix it here.  */
-      if (BARRIER_P (get_last_insn ()))
-	remove_edge (false_edge);
+      maybe_cleanup_end_of_block (false_edge);
       return NULL;
     }
   if (true_edge->dest == bb->next_bb)
@@ -1796,8 +1830,7 @@ expand_gimple_cond (basic_block bb, gimple stmt)
       false_edge->goto_block = NULL;
       true_edge->flags |= EDGE_FALLTHRU;
       ggc_free (pred);
-      if (BARRIER_P (get_last_insn ()))
-	remove_edge (true_edge);
+      maybe_cleanup_end_of_block (true_edge);
       return NULL;
     }
 
@@ -2067,7 +2100,7 @@ expand_gimple_basic_block (basic_block bb)
 		    return new_bb;
 		}
 	    }
-	  else if (gimple_code (stmt) != GIMPLE_CHANGE_DYNAMIC_TYPE)
+	  else
 	    {
 	      def_operand_p def_p;
 	      tree stmt_tree;
@@ -2288,7 +2321,8 @@ discover_nonconstant_array_refs_r (tree * tp, int *walk_subtrees,
       if (TREE_CODE (t) == ARRAY_REF || TREE_CODE (t) == ARRAY_RANGE_REF)
 	{
 	  t = get_base_address (t);
-	  if (t && DECL_P (t))
+	  if (t && DECL_P (t)
+              && DECL_MODE (t) != BLKmode)
 	    TREE_ADDRESSABLE (t) = 1;
 	}
 
@@ -2405,7 +2439,7 @@ gimple_expand_cfg (void)
   rtl_profile_for_bb (ENTRY_BLOCK_PTR);
 
   insn_locators_alloc ();
-  if (!DECL_BUILT_IN (current_function_decl))
+  if (!DECL_IS_BUILTIN (current_function_decl))
     {
       /* Eventually, all FEs should explicitly set function_start_locus.  */
       if (cfun->function_start_locus == UNKNOWN_LOCATION)

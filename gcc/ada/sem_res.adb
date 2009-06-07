@@ -72,7 +72,6 @@ with Snames;   use Snames;
 with Stand;    use Stand;
 with Stringt;  use Stringt;
 with Style;    use Style;
-with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 with Urealp;   use Urealp;
@@ -1996,7 +1995,7 @@ package body Sem_Res is
                              ("ambiguous expression "
                                & "(cannot resolve indirect call)!", N);
                         else
-                           Error_Msg_NE
+                           Error_Msg_NE -- CODEFIX
                              ("ambiguous expression (cannot resolve&)!",
                               N, It.Nam);
                         end if;
@@ -2007,7 +2006,8 @@ package body Sem_Res is
                            Error_Msg_N
                              ("\\possible interpretation (inherited)#!", N);
                         else
-                           Error_Msg_N ("\\possible interpretation#!", N);
+                           Error_Msg_N -- CODEFIX
+                             ("\\possible interpretation#!", N);
                         end if;
                      end if;
 
@@ -2089,7 +2089,8 @@ package body Sem_Res is
                         Error_Msg_N
                           ("\\possible interpretation (inherited)#!", N);
                      else
-                        Error_Msg_N ("\\possible interpretation#!", N);
+                        Error_Msg_N -- CODEFIX
+                          ("\\possible interpretation#!", N);
                      end if;
 
                   end if;
@@ -6936,7 +6937,8 @@ package body Sem_Res is
                           or else Base_Type (It.Typ) =
                             Base_Type (Component_Type (Typ))
                         then
-                           Error_Msg_N ("\\possible interpretation#", Arg);
+                           Error_Msg_N -- CODEFIX
+                             ("\\possible interpretation#", Arg);
                         end if;
 
                         Get_Next_Interp (I, It);
@@ -7841,13 +7843,13 @@ package body Sem_Res is
             --  undesired dependence on such run-time unit.
 
            and then
-             (VM_Target /= No_VM
-              or else not
-                (RTU_Loaded (Ada_Tags)
-                  and then Nkind (Prefix (N)) = N_Selected_Component
-                  and then Present (Entity (Selector_Name (Prefix (N))))
-                  and then Entity (Selector_Name (Prefix (N))) =
-                                        RTE_Record_Component (RE_Prims_Ptr)))
+             (not Tagged_Type_Expansion
+               or else not
+                 (RTU_Loaded (Ada_Tags)
+                   and then Nkind (Prefix (N)) = N_Selected_Component
+                   and then Present (Entity (Selector_Name (Prefix (N))))
+                   and then Entity (Selector_Name (Prefix (N))) =
+                                         RTE_Record_Component (RE_Prims_Ptr)))
          then
             Apply_Range_Check (Drange, Etype (Index));
          end if;
@@ -8285,7 +8287,7 @@ package body Sem_Res is
                      and then Covers (Orig_T, Etype (Entity (Orig_N)))))
          then
             Error_Msg_Node_2 := Orig_T;
-            Error_Msg_NE
+            Error_Msg_NE -- CODEFIX
               ("?redundant conversion, & is of type &!", N, Entity (Orig_N));
          end if;
       end if;
@@ -9314,10 +9316,12 @@ package body Sem_Res is
                   Error_Msg_N ("ambiguous operand in conversion", Operand);
 
                   Error_Msg_Sloc := Sloc (It.Nam);
-                  Error_Msg_N ("\\possible interpretation#!", Operand);
+                  Error_Msg_N -- CODEFIX
+                    ("\\possible interpretation#!", Operand);
 
                   Error_Msg_Sloc := Sloc (N1);
-                  Error_Msg_N ("\\possible interpretation#!", Operand);
+                  Error_Msg_N -- CODEFIX
+                    ("\\possible interpretation#!", Operand);
 
                   return False;
                end if;

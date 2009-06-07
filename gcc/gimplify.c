@@ -3643,14 +3643,11 @@ static enum gimplify_status
 gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 			   bool want_value, bool notify_temp_creation)
 {
-  tree object, new_ctor;
-  tree ctor = TREE_OPERAND (*expr_p, 1);
-  tree type = TREE_TYPE (ctor);
+  tree object, ctor, type;
   enum gimplify_status ret;
   VEC(constructor_elt,gc) *elts;
 
-  if (TREE_CODE (ctor) != CONSTRUCTOR)
-    return GS_UNHANDLED;
+  gcc_assert (TREE_CODE (TREE_OPERAND (*expr_p, 1)) == CONSTRUCTOR);
 
   if (!notify_temp_creation)
     {
@@ -3661,8 +3658,10 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
     }
 
   object = TREE_OPERAND (*expr_p, 0);
-  new_ctor = optimize_compound_literals_in_ctor (ctor);
-  elts = CONSTRUCTOR_ELTS (new_ctor);
+  ctor = TREE_OPERAND (*expr_p, 1) =
+    optimize_compound_literals_in_ctor (TREE_OPERAND (*expr_p, 1));
+  type = TREE_TYPE (ctor);
+  elts = CONSTRUCTOR_ELTS (ctor);
   ret = GS_ALL_DONE;
 
   switch (TREE_CODE (type))
@@ -6770,6 +6769,24 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  }
 	  break;
 
+	case TARGET_MEM_REF:
+	  {
+	    enum gimplify_status r0 = GS_ALL_DONE, r1 = GS_ALL_DONE;
+
+	    if (TMR_SYMBOL (*expr_p))
+	      r0 = gimplify_expr (&TMR_SYMBOL (*expr_p), pre_p,
+				  post_p, is_gimple_lvalue, fb_either);
+	    else if (TMR_BASE (*expr_p))
+	      r0 = gimplify_expr (&TMR_BASE (*expr_p), pre_p,
+				  post_p, is_gimple_val, fb_either);
+	    if (TMR_INDEX (*expr_p))
+	      r1 = gimplify_expr (&TMR_INDEX (*expr_p), pre_p,
+				  post_p, is_gimple_val, fb_rvalue);
+	    /* TMR_STEP and TMR_OFFSET are always integer constants.  */
+	    ret = MIN (r0, r1);
+	  }
+	  break;
+
 	case NON_LVALUE_EXPR:
 	  /* This should have been stripped above.  */
 	  gcc_unreachable ();
@@ -6838,19 +6855,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    ret = GS_ALL_DONE;
 	    break;
 	  }
-
-	case CHANGE_DYNAMIC_TYPE_EXPR:
-	  {
-	    gimple cdt;
-
-	    ret = gimplify_expr (&CHANGE_DYNAMIC_TYPE_LOCATION (*expr_p),
-				 pre_p, post_p, is_gimple_reg, fb_lvalue);
-	    cdt = gimple_build_cdt (CHANGE_DYNAMIC_TYPE_NEW_TYPE (*expr_p),
-				    CHANGE_DYNAMIC_TYPE_LOCATION (*expr_p));
-	    gimplify_seq_add_stmt (pre_p, cdt);
-	    ret = GS_ALL_DONE;
-	  }
-	  break;
 
 	case OBJ_TYPE_REF:
 	  {

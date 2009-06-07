@@ -462,6 +462,10 @@ fdwarf2-cfi-asm
 Common Report Var(flag_dwarf2_cfi_asm) Init(HAVE_GAS_CFI_DIRECTIVE)
 Enable CFI tables via GAS assembler directives.
 
+fdump-unnumbered-links
+Common Report Var(flag_dump_unnumbered_links) VarExists
+Suppress output of previous and next insn numbers in debugging dumps
+
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
 Perform early inlining
@@ -1049,8 +1053,8 @@ Common Report Var(flag_see) Init(0)
 Eliminate redundant sign extensions using LCM.
 
 fshow-column
-Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(0)
-Show column numbers in diagnostics, when available.  Default off
+Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(1)
+Show column numbers in diagnostics, when available.  Default on
 
 fsignaling-nans
 Common Report Var(flag_signaling_nans) Optimization
@@ -1202,6 +1206,10 @@ ftree-dse
 Common Report Var(flag_tree_dse) Optimization
 Enable dead store elimination
 
+ftree-forwprop
+Common Report Var(flag_tree_forwprop) Init(1) Optimization
+Enable forward propagation on trees
+
 ftree-fre
 Common Report Var(flag_tree_fre) Optimization
 Enable Full Redundancy Elimination (FRE) on trees
@@ -1230,9 +1238,17 @@ ftree-parallelize-loops=
 Common Report Joined UInteger Var(flag_tree_parallelize_loops) Init(1)
 Enable automatic parallelization of loops
 
+ftree-phiprop
+Common Report Var(flag_tree_phiprop) Init(1) Optimization
+Enable hoisting loads from conditional pointers.
+
 ftree-pre
 Common Report Var(flag_tree_pre) Optimization
 Enable SSA-PRE optimization on trees
+
+ftree-pta
+Common Report Var(flag_tree_pta) Init(1) Optimization
+Perform function-local points-to analysis on trees.
 
 ftree-reassoc
 Common Report Var(flag_tree_reassoc) Init(1) Optimization
@@ -1317,6 +1333,10 @@ Perform variable tracking and also tag variables that are uninitialized
 ftree-vectorize
 Common Report Var(flag_tree_vectorize) Optimization
 Enable loop vectorization on trees
+
+ftree-slp-vectorize
+Common Report Var(flag_tree_slp_vectorize) Init(2) Optimization
+Enable basic block vectorization (SLP) on trees
 
 fvect-cost-model
 Common Report Var(flag_vect_cost_model) Optimization

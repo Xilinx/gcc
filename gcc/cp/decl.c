@@ -1913,6 +1913,17 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
     {
       tree parm;
 
+      /* Merge parameter attributes. */
+      tree oldarg, newarg;
+      for (oldarg = DECL_ARGUMENTS(olddecl), 
+               newarg = DECL_ARGUMENTS(newdecl);
+           oldarg && newarg;
+           oldarg = TREE_CHAIN(oldarg), newarg = TREE_CHAIN(newarg)) {
+          DECL_ATTRIBUTES (newarg)
+              = (*targetm.merge_decl_attributes) (oldarg, newarg);
+          DECL_ATTRIBUTES (oldarg) = DECL_ATTRIBUTES (newarg);
+      }
+      
       if (DECL_TEMPLATE_INSTANTIATION (olddecl)
 	  && !DECL_TEMPLATE_INSTANTIATION (newdecl))
 	{
@@ -4491,7 +4502,7 @@ maybe_deduce_size_from_array_init (tree decl, tree init)
 
       cp_apply_type_quals_to_decl (cp_type_quals (TREE_TYPE (decl)), decl);
 
-      layout_decl (decl, 0);
+      relayout_decl (decl);
     }
 }
 
@@ -5165,7 +5176,7 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	return build_aggr_init_full_exprs (decl, init, flags);
       else if (TREE_CODE (init) != TREE_VEC)
 	{
-	  init_code = store_init_value (decl, init);
+	  init_code = store_init_value (decl, init, flags);
 	  if (pedantic && TREE_CODE (type) == ARRAY_TYPE
 	      && DECL_INITIAL (decl)
 	      && TREE_CODE (DECL_INITIAL (decl)) == STRING_CST
@@ -5520,7 +5531,9 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  TREE_TYPE (decl) = error_mark_node;
 	  return;
 	}
-      else if (describable_type (init))
+      if (TREE_CODE (init) == TREE_LIST)
+	init = build_x_compound_expr_from_list (init, "initializer");
+      if (describable_type (init))
 	{
 	  type = TREE_TYPE (decl) = do_auto_deduction (type, init, auto_node);
 	  if (type == error_mark_node)
@@ -7143,7 +7156,7 @@ check_static_variable_definition (tree decl, tree type)
     error ("ISO C++ forbids in-class initialization of non-const "
 	   "static member %qD",
 	   decl);
-  else if (!INTEGRAL_TYPE_P (type))
+  else if (!INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     pedwarn (input_location, OPT_pedantic, "ISO C++ forbids initialization of member constant "
 	     "%qD of non-integral type %qT", decl, type);
 
@@ -7166,7 +7179,7 @@ compute_array_index_type (tree name, tree size)
 
   type = TREE_TYPE (size);
   /* The array bound must be an integer type.  */
-  if (!dependent_type_p (type) && !INTEGRAL_TYPE_P (type))
+  if (!dependent_type_p (type) && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
     {
       if (name)
 	error ("size of array %qD has non-integral type %qT", name, type);
@@ -7595,6 +7608,7 @@ grokdeclarator (const cp_declarator *declarator,
   bool parameter_pack_p = declarator? declarator->parameter_pack_p : false;
   bool set_no_warning = false;
   bool template_type_arg = false;
+  const char *errmsg;
 
   signed_p = declspecs->specs[(int)ds_signed];
   unsigned_p = declspecs->specs[(int)ds_unsigned];
@@ -7701,7 +7715,7 @@ grokdeclarator (const cp_declarator *declarator,
 		  type = TREE_OPERAND (decl, 0);
 		  if (TYPE_P (type))
 		    type = constructor_name (type);
-		  name = IDENTIFIER_POINTER (type);
+		  name = identifier_to_locale (IDENTIFIER_POINTER (type));
 		  dname = decl;
 		}
 		break;
@@ -7727,10 +7741,10 @@ grokdeclarator (const cp_declarator *declarator,
 		  {
 		    error ("declarator-id missing; using reserved word %qD",
 			   dname);
-		    name = IDENTIFIER_POINTER (dname);
+		    name = identifier_to_locale (IDENTIFIER_POINTER (dname));
 		  }
 		else if (!IDENTIFIER_TYPENAME_P (dname))
-		  name = IDENTIFIER_POINTER (dname);
+		  name = identifier_to_locale (IDENTIFIER_POINTER (dname));
 		else
 		  {
 		    gcc_assert (flags == NO_SPECIAL);
@@ -7738,7 +7752,7 @@ grokdeclarator (const cp_declarator *declarator,
 		    ctor_return_type = TREE_TYPE (dname);
 		    sfk = sfk_conversion;
 		    if (is_typename_at_global_scope (dname))
-		      name = IDENTIFIER_POINTER (dname);
+		      name = identifier_to_locale (IDENTIFIER_POINTER (dname));
 		    else
 		      name = "<invalid operator>";
 		  }
@@ -7835,7 +7849,7 @@ grokdeclarator (const cp_declarator *declarator,
      suppress reports of deprecated items.  */
   if (type && TREE_DEPRECATED (type)
       && deprecated_state != DEPRECATED_SUPPRESS)
-    warn_deprecated_use (type);
+    warn_deprecated_use (type, NULL_TREE);
   if (type && TREE_CODE (type) == TYPE_DECL)
     {
       typedef_decl = type;
@@ -7843,7 +7857,7 @@ grokdeclarator (const cp_declarator *declarator,
       if (TREE_DEPRECATED (type)
 	  && DECL_ARTIFICIAL (typedef_decl)
 	  && deprecated_state != DEPRECATED_SUPPRESS)
-	warn_deprecated_use (type);
+	warn_deprecated_use (type, NULL_TREE);
     }
   /* No type at all: default to `int', and set DEFAULTED_INT
      because it was not a user-defined typedef.  */
@@ -8274,6 +8288,12 @@ grokdeclarator (const cp_declarator *declarator,
 		type_quals = TYPE_UNQUALIFIED;
 		set_no_warning = true;
 	      }
+	    errmsg = targetm.invalid_return_type (type);
+	    if (errmsg)
+	      {
+		error (errmsg);
+		type = integer_type_node;
+	      }
 
 	    /* Error about some types functions can't return.  */
 
@@ -8401,6 +8421,14 @@ grokdeclarator (const cp_declarator *declarator,
 		  error ("can't define friend function %qs in a local "
 			 "class definition",
 			 name);
+	      }
+	    else if (ctype && sfk == sfk_conversion)
+	      {
+		if (explicitp == 1)
+		  {
+		    maybe_warn_cpp0x ("explicit conversion operators");
+		    explicitp = 2;
+		  }
 	      }
 
 	    arg_types = grokparms (declarator->u.function.parameters,
@@ -9658,6 +9686,7 @@ grokparms (tree parmlist, tree *parms)
       tree type = NULL_TREE;
       tree init = TREE_PURPOSE (parm);
       tree decl = TREE_VALUE (parm);
+      const char *errmsg;
 
       if (parm == void_list_node)
 	break;
@@ -9691,13 +9720,21 @@ grokparms (tree parmlist, tree *parms)
 	  init = NULL_TREE;
 	}
 
+      if (type != error_mark_node
+	  && (errmsg = targetm.invalid_parameter_type (type)))
+	{
+	  error (errmsg);
+	  type = error_mark_node;
+	  TREE_TYPE (decl) = error_mark_node;
+	}
+
       if (type != error_mark_node)
 	{
 	  if (deprecated_state != DEPRECATED_SUPPRESS)
 	    {
 	      tree deptype = type_is_deprecated (type);
 	      if (deptype)
-		warn_deprecated_use (deptype);
+		warn_deprecated_use (deptype, NULL_TREE);
 	    }
 
 	  /* Top-level qualifiers on the parameters are
@@ -11022,7 +11059,7 @@ finish_enum (tree enumtype)
   int lowprec;
   int highprec;
   int precision;
-  integer_type_kind itk;
+  unsigned int itk;
   tree underlying_type = NULL_TREE;
   bool fixed_underlying_type_p 
     = ENUM_UNDERLYING_TYPE (enumtype) != NULL_TREE;

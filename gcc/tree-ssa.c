@@ -923,19 +923,9 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 	  || TYPE_PRECISION (inner_type) != TYPE_PRECISION (outer_type))
 	return false;
 
-      /* Conversions from a non-base to a base type are not useless.
-	 This way we preserve the invariant to do arithmetic in
-	 base types only.  */
-      if (TREE_TYPE (inner_type)
-	  && TREE_TYPE (inner_type) != inner_type
-	  && (TREE_TYPE (outer_type) == outer_type
-	      || TREE_TYPE (outer_type) == NULL_TREE))
-	return false;
-
       /* We don't need to preserve changes in the types minimum or
 	 maximum value in general as these do not generate code
 	 unless the types precisions are different.  */
-
       return true;
     }
 
@@ -1518,14 +1508,20 @@ execute_update_addresses_taken (bool do_optimize)
 	     a local decl that requires not to be a gimple register.  */
 	  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
 	    {
-	      tree lhs = gimple_get_lhs (stmt);
-	      /* A plain decl does not need it set.  */
-	      if (lhs && handled_component_p (lhs))
-	        {
-		  var = get_base_address (lhs);
-		  if (DECL_P (var))
-		    bitmap_set_bit (not_reg_needs, DECL_UID (var));
-		}
+              tree lhs = gimple_get_lhs (stmt);
+              
+              /* We may not rewrite TMR_SYMBOL to SSA.  */
+              if (lhs && TREE_CODE (lhs) == TARGET_MEM_REF
+                  && TMR_SYMBOL (lhs))
+                bitmap_set_bit (not_reg_needs, DECL_UID (TMR_SYMBOL (lhs)));
+
+              /* A plain decl does not need it set.  */
+              else if (lhs && handled_component_p (lhs))
+                {
+                  var = get_base_address (lhs);
+                  if (DECL_P (var))
+                    bitmap_set_bit (not_reg_needs, DECL_UID (var));
+                }
 	    }
 	}
 
