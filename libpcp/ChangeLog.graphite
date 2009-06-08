@@ -1,5 +1,12 @@
 2009-06-08  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Makefile.in (CLOOGLIBS): Undo "Use clooglibs not CLOOGLIBS."
+	(CLOOGINC): Undo "Use clooginc instead of CLOOGINC."
+	* configure: Regenerated.
+	* configure.ac: libPCP needs CLooG to be compiled.
+
+2009-06-08  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Makefile.in (CLOOGLIBS): Use clooglibs not CLOOGLIBS.
 	(CLOOGINC): Use clooginc instead of CLOOGINC.
 	* configure.ac (CLOOGLIBS): Do not test for it.
