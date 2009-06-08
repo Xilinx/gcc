@@ -91,7 +91,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 
 #ifdef DWARF2_DEBUGGING_INFO
-static void dwarf2out_source_line (unsigned int, const char *);
+static void dwarf2out_source_line (unsigned int, const char *, int);
 #endif
 
 #ifndef DWARF2_FRAME_INFO
@@ -3089,42 +3089,42 @@ output_cfi_directive (dw_cfi_ref cfi)
     case DW_CFA_offset:
     case DW_CFA_offset_extended:
     case DW_CFA_offset_extended_sf:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
       fprintf (asm_out_file, "\t.cfi_offset %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
 	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
       break;
 
     case DW_CFA_restore:
     case DW_CFA_restore_extended:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
       fprintf (asm_out_file, "\t.cfi_restore %lu\n", r);
       break;
 
     case DW_CFA_undefined:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
       fprintf (asm_out_file, "\t.cfi_undefined %lu\n", r);
       break;
 
     case DW_CFA_same_value:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
       fprintf (asm_out_file, "\t.cfi_same_value %lu\n", r);
       break;
 
     case DW_CFA_def_cfa:
     case DW_CFA_def_cfa_sf:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
       fprintf (asm_out_file, "\t.cfi_def_cfa %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
 	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
       break;
 
     case DW_CFA_def_cfa_register:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
       fprintf (asm_out_file, "\t.cfi_def_cfa_register %lu\n", r);
       break;
 
     case DW_CFA_register:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 0);
-      r2 = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd2.dw_cfi_reg_num, 0);
+      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
+      r2 = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd2.dw_cfi_reg_num, 1);
       fprintf (asm_out_file, "\t.cfi_register %lu, %lu\n", r, r2);
       break;
 
@@ -3608,7 +3608,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
      prologue case, not the eh frame case.  */
 #ifdef DWARF2_DEBUGGING_INFO
   if (file)
-    dwarf2out_source_line (line, file);
+    dwarf2out_source_line (line, file, 0);
 #endif
 
   if (dwarf2out_do_cfi_asm ())
@@ -3757,11 +3757,6 @@ struct GTY(()) dwarf_file_data {
   const char * filename;
   int emitted_number;
 };
-
-/* We need some way to distinguish DW_OP_addr with a direct symbol
-   relocation from DW_OP_addr with a dtp-relative symbol relocation.  */
-#define INTERNAL_DW_OP_tls_addr		(0x100 + DW_OP_addr)
-
 
 typedef struct dw_val_struct *dw_val_ref;
 typedef struct die_struct *dw_die_ref;
@@ -5181,6 +5176,11 @@ static GTY(()) dw_die_ref comp_unit_die;
 
 /* A list of DIEs with a NULL parent waiting to be relocated.  */
 static GTY(()) limbo_die_node *limbo_die_list;
+
+/* A list of DIEs for which we may have to generate
+   DW_AT_MIPS_linkage_name once their DECL_ASSEMBLER_NAMEs are
+   set.  */
+static GTY(()) limbo_die_node *deferred_asm_name;
 
 /* Filenames referenced by this compilation unit.  */
 static GTY((param_is (struct dwarf_file_data))) htab_t file_table;
@@ -12915,12 +12915,25 @@ add_name_and_src_coords_attributes (dw_die_ref die, tree decl)
 
       if ((TREE_CODE (decl) == FUNCTION_DECL || TREE_CODE (decl) == VAR_DECL)
 	  && TREE_PUBLIC (decl)
-	  && DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl)
 	  && !DECL_ABSTRACT (decl)
 	  && !(TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl))
 	  && !is_fortran ())
-	add_AT_string (die, DW_AT_MIPS_linkage_name,
-		       IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+	{
+	  /* Defer until we have an assembler name set.  */
+	  if (!DECL_ASSEMBLER_NAME_SET_P (decl))
+	    {
+	      limbo_die_node *asm_name;
+
+	      asm_name = GGC_CNEW (limbo_die_node);
+	      asm_name->die = die;
+	      asm_name->created_for = decl;
+	      asm_name->next = deferred_asm_name;
+	      deferred_asm_name = asm_name;
+	    }
+	  else if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
+	    add_AT_string (die, DW_AT_MIPS_linkage_name,
+			   IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+	}
     }
 
 #ifdef VMS_DEBUGGING_INFO
@@ -16207,7 +16220,8 @@ dwarf2out_begin_function (tree fun)
    'line_info_table' for later output of the .debug_line section.  */
 
 static void
-dwarf2out_source_line (unsigned int line, const char *filename)
+dwarf2out_source_line (unsigned int line, const char *filename,
+                       int discriminator ATTRIBUTE_UNUSED)
 {
   if (debug_info_level >= DINFO_LEVEL_NORMAL
       && line != 0)
@@ -16224,7 +16238,12 @@ dwarf2out_source_line (unsigned int line, const char *filename)
       if (DWARF2_ASM_LINE_DEBUG_INFO)
 	{
 	  /* Emit the .loc directive understood by GNU as.  */
-	  fprintf (asm_out_file, "\t.loc %d %d 0\n", file_num, line);
+	  fprintf (asm_out_file, "\t.loc %d %d 0", file_num, line);
+#ifdef HAVE_GAS_DISCRIMINATOR
+	  if (discriminator != 0)
+	    fprintf (asm_out_file, " discriminator %d", discriminator);
+#endif /* HAVE_GAS_DISCRIMINATOR */
+	  fputc ('\n', asm_out_file);
 
 	  /* Indicate that line number info exists.  */
 	  line_info_table_in_use++;
@@ -16818,6 +16837,36 @@ file_table_relative_p (void ** slot, void *param)
   return 1;
 }
 
+/* Move a DW_AT_MIPS_linkage_name attribute just added to dw_die_ref
+   to the location it would have been added, should we know its
+   DECL_ASSEMBLER_NAME when we added other attributes.  This will
+   probably improve compactness of debug info, removing equivalent
+   abbrevs, and hide any differences caused by deferring the
+   computation of the assembler name, triggered by e.g. PCH.  */
+
+static inline void
+move_linkage_attr (dw_die_ref die)
+{
+  unsigned ix = VEC_length (dw_attr_node, die->die_attr);
+  dw_attr_node linkage = *VEC_index (dw_attr_node, die->die_attr, ix - 1);
+
+  gcc_assert (linkage.dw_attr == DW_AT_MIPS_linkage_name);
+
+  while (--ix > 0)
+    {
+      dw_attr_node *prev = VEC_index (dw_attr_node, die->die_attr, ix - 1);
+
+      if (prev->dw_attr == DW_AT_decl_line || prev->dw_attr == DW_AT_name)
+	break;
+    }
+
+  if (ix != VEC_length (dw_attr_node, die->die_attr) - 1)
+    {
+      VEC_pop (dw_attr_node, die->die_attr);
+      VEC_quick_insert (dw_attr_node, die->die_attr, ix, &linkage);
+    }
+}
+
 /* Output stuff that dwarf requires at the end of every file,
    and generate the DWARF-2 debugging info.  */
 
@@ -16905,6 +16954,19 @@ dwarf2out_finish (const char *filename)
     }
 
   limbo_die_list = NULL;
+
+  for (node = deferred_asm_name; node; node = node->next)
+    {
+      tree decl = node->created_for;
+      if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
+	{
+	  add_AT_string (node->die, DW_AT_MIPS_linkage_name,
+			 IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+	  move_linkage_attr (node->die);
+	}
+    }
+
+  deferred_asm_name = NULL;
 
   /* Walk through the list of incomplete types again, trying once more to
      emit full debugging info for them.  */

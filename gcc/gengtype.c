@@ -973,7 +973,7 @@ write_rtx_next (void)
     return;
 
   oprintf (f, "\n/* Used to implement the RTX_NEXT macro.  */\n");
-  oprintf (f, "const unsigned char rtx_next[NUM_RTX_CODE] = {\n");
+  oprintf (f, "EXPORTED_CONST unsigned char rtx_next[NUM_RTX_CODE] = {\n");
   for (i = 0; i < NUM_RTX_CODE; i++)
     if (rtx_next_new[i] == -1)
       oprintf (f, "  0,\n");
@@ -3070,7 +3070,7 @@ finish_root_table (struct flist *flp, const char *pfx, const char *lastname,
     size_t fnum;
     for (fnum = 0; base_files && fnum < num_lang_dirs; fnum++)
       oprintf (base_files [fnum],
-	       "const struct %s * const %s[] = {\n",
+	       "EXPORTED_CONST struct %s * const %s[] = {\n",
 	       tname, name);
   }
 
@@ -3402,7 +3402,7 @@ write_roots (pair_p variables)
 	{
 	  fli->started_p = 1;
 
-	  oprintf (f, "const struct ggc_root_tab gt_ggc_r_");
+	  oprintf (f, "EXPORTED_CONST struct ggc_root_tab gt_ggc_r_");
 	  put_mangled_filename (f, v->line.file);
 	  oprintf (f, "[] = {\n");
 	}
@@ -3436,7 +3436,7 @@ write_roots (pair_p variables)
 	{
 	  fli->started_p = 1;
 
-	  oprintf (f, "const struct ggc_root_tab gt_ggc_rd_");
+	  oprintf (f, "EXPORTED_CONST struct ggc_root_tab gt_ggc_rd_");
 	  put_mangled_filename (f, v->line.file);
 	  oprintf (f, "[] = {\n");
 	}
@@ -3480,7 +3480,7 @@ write_roots (pair_p variables)
 	{
 	  fli->started_p = 1;
 
-	  oprintf (f, "const struct ggc_cache_tab gt_ggc_rc_");
+	  oprintf (f, "EXPORTED_CONST struct ggc_cache_tab gt_ggc_rc_");
 	  put_mangled_filename (f, v->line.file);
 	  oprintf (f, "[] = {\n");
 	}
@@ -3516,7 +3516,7 @@ write_roots (pair_p variables)
 	{
 	  fli->started_p = 1;
 
-	  oprintf (f, "const struct ggc_root_tab gt_pch_rc_");
+	  oprintf (f, "EXPORTED_CONST struct ggc_root_tab gt_pch_rc_");
 	  put_mangled_filename (f, v->line.file);
 	  oprintf (f, "[] = {\n");
 	}
@@ -3552,7 +3552,7 @@ write_roots (pair_p variables)
 	{
 	  fli->started_p = 1;
 
-	  oprintf (f, "const struct ggc_root_tab gt_pch_rs_");
+	  oprintf (f, "EXPORTED_CONST struct ggc_root_tab gt_pch_rs_");
 	  put_mangled_filename (f, v->line.file);
 	  oprintf (f, "[] = {\n");
 	}

@@ -1,3 +1,21 @@
+2009-06-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* repo.c (get_base_filename): Use aux_base_name rather than
+	alternate temporary file during second compare debug compilation.
+	(finish_repo): Skip during -fcompare-debug-second.
+
+2009-06-06  Ian Lance Taylor  <iant@google.com>
+
+	* parser.c (cp_parser_label_for_labeled_statement): Support
+	attribute on labels if immediately followed by semicolon.
+	* semantics.c (finish_label_stmt): Return new label.
+	* pt.c (tsubst_expr): Handle attributes for LABEL_EXPR.
+
+2009-06-03  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (cc1plus-checksum.o): Depend upon $(CONFIG_H) and
+	$(SYSTEM_H).
+
 2009-06-02  Mark Mitchell  <mark@codesourcery.com>
 
 	* decl.c (maybe_deduce_size_from_array_init): Use relayout_decl.
