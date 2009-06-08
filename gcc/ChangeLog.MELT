@@ -1,3 +1,11 @@
+2009-06-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding and patterns - still buggy]
+	* melt/warmelt-normal.melt (normexp_class): less strict assert.
+	* melt/warmelt-normatch.melt (normpat_andpat, normpat_orpat):
+	adding them, still buggy.
+	* testsuite/melt/tandmatch-1.melt: added new test case - not
+	working yet.
+
 2009-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: BASILYS_HAS_OBJ_TAB_FIELDS fully removed.
 	(basilysgc_register_pass): changed signature in declaration.

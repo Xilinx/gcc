@@ -1,0 +1,27 @@
+;; -*- lisp -*-
+;; file tandmatch-1.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=runfile -fmelt-dynlibdir=. \
+    -fmelt-compile-script=./built-melt-cc-script \
+    -fmelt-gensrcdir=. -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=.../tandmatch-1.melt -fmelt-debug
+|#
+
+(put_fields 'foobar 
+	    :symb_data 'foodata)
+
+(defun testmatchand (x)
+  (debug_msg x "testmatchand x")
+  (match x
+	 ;; the example is stupid, we could use a single instance test
+	 ;; but this is to test and patterns!
+	 ( ?(and 
+	     ?(instance class_named :named_name ?nam)
+	     ?(instance class_symbol :symb_data ?dat))
+	    (debug_msg nam "testmatchand nam")
+	    (debug_msg dat "testmatchand dat")))) 
+
+(testmatchand 'foobar)
+
+;; eof testmatchand

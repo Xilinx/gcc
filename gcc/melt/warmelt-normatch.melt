@@ -432,9 +432,9 @@
 
 ;; utility to set the newtester to the last of a ntest_then linked list
 (defun set_newtester_lastthen (newtester testercont)
+  (debug_msg newtester "set_newtester_lastthen newtester")
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check testercont" (is_a testercont class_container))
-  (debug_msg newtester "set_newtester_lastthen newtester")
   (let ( (curtester (get_field :container_value testercont)) )
     (forever 
      lastesterloop
@@ -448,6 +448,26 @@
     (let ( (fromnew (get_field :ntest_comefrom newtester)) )
       (list_append fromnew curtester))
     (debug_msg testercont "set_newtester_lastthen testercont")
+    ))
+
+;; utility to set the newtester to the last of a ntest_else linked list
+(defun set_newtester_lastelse (newtester testercont)
+  (debug_msg newtester "set_newtester_lastelse newtester")
+  (assert_msg "check newtester" (is_a newtester class_normtester_any))
+  (assert_msg "check testercont" (is_a testercont class_container))
+  (let ( (curtester (get_field :container_value testercont)) )
+    (forever 
+     lastesterloop
+     ;; indeed a safe get_field to handle the nil case!
+     (let ( (nextester (get_field :ntest_else curtester)) )
+       (if (is_a nextester class_normtester_any)
+	   (setq curtester nextester)
+	 (exit lastesterloop))))
+    (put_fields testercont :container_value curtester)
+    (put_fields curtester :ntest_else newtester)
+    (let ( (fromnew (get_field :ntest_comefrom newtester)) )
+      (list_append fromnew curtester))
+    (debug_msg testercont "set_newtester_lastelse testercont")
     ))
 
 ;;; expansion of tuples in cmatcher should be done in warmelt-genobj
@@ -804,7 +824,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
-;;; normalize an and of subpatterns
+;;; normalize a conjonction [and of subpatterns]
 (defun normpat_andpat (recv nmatch hdler pcn)
   (debug_msg recv "normpat_andpat recv")
   (debug_msg nmatch "normpat_andpat nmatch")
@@ -816,8 +836,9 @@
 	(conjpats (get_field :andpat_conj recv))
 	(curhdler hdler)
 	(testercont (instance class_container))
-	(subhdler (lambda (newtester) (set_newtester_lastthen newtester testercont)))
+	;(subhdler (lambda (newtester) (set_newtester_lastthen newtester testercont)))
 	)
+    (compile_warning "normpat_andpat is buggy" ())
     (foreach_in_multiple 
      (conjpats)
      (subpat :long subix)
@@ -825,24 +846,44 @@
      (normal_pattern subpat nmatch curhdler pcn)
      (setq curhdler
 	   (lambda (newtester) 
+	     (debug_msg newtester "normpat_andpat.lambda newtester")
+	     (debug_msg subpat "normpat_andpat.lambda subpat")
+	     (debug_msg testercont "normpat_andpat.lambda testercont")
 	     (set_newtester_lastthen newtester testercont)))
      )
-    (assert_msg "normpat_andpat not fully unimplemented" ())
-    (compile_warning "normpat_andpat not fully unimplemented" ())
+    (curhdler (get_field :container_value testercont))
     )
+  (debug_msg recv "normpat_andpat recv end")
   )
 (install_method class_srcpattern_and normal_pattern normpat_andpat)
 
-;;; normalize an or of subpatterns
+;;; normalize a disjonction [or of subpatterns]
 (defun normpat_orpat (recv nmatch hdler pcn)
   (debug_msg recv "normpat_orpat recv")
   (debug_msg nmatch "normpat_orpat nmatch")
   (debug_msg pcn "normpat_orpat pcn")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (assert_msg "check recv" (is_a recv class_srcpattern_or))
-  (assert_msg "normpat_orpat unimplemented" ())
-  (compile_warning "normpat_orpat unimplemented" ())
-)
+  (let (
+	(sloc (get_field :src_loc recv))
+	(disjpats (get_field :orpat_disj recv))
+	(curhdler hdler)
+	(testercont (instance class_container))
+	) 
+    (compile_warning "normpat_orpat is untested" ())
+    (foreach_in_multiple 
+     (disjpats)
+     (subpat :long subix)
+     (debug_msg subpat "normpat_orpat subpat")
+     (normal_pattern subpat nmatch curhdler pcn)
+     (setq curhdler
+	   (lambda (newtester) 
+	     (set_newtester_lastelse newtester testercont)))
+     )
+    (curhdler (get_field :container_value testercont))
+    )
+  (debug_msg recv "normpat_orpat recv end")
+  )
 (install_method class_srcpattern_or normal_pattern normpat_orpat)
 
 

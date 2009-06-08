@@ -1186,7 +1186,8 @@
 	    (assert_msg "check clabind value" (== recv (unsafe_get_field :vbind_value clabind)))
 	    (let ( (normcla (normexp_symbol clasymb env ncx psloc)) )
 	      (debug_msg normcla "normexp_class normcla class value")
-	      (assert_msg "check normcla" (is_a normcla class_nrep_constocc))
+	      ;; normcla can be a class_nrep_constocc or a class_nrep_importedval ...
+	      (assert_msg "check normcla" (is_a normcla class_nrep))
 	      (return normcla)
 	      ))
 	  (:else
