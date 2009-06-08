@@ -1,3 +1,152 @@
+2009-06-08  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/40126
+	* dwarf2out.c (dwarf2out_abstract_function): Free decl_loc_table.
+
+2009-06-08  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/39834
+	* cgraphunit.c (save_inline_function_body): Do not copy transform hooks
+	for saved inline bodies.
+	* ipa-passes.c (do_per_function): Do not add the hoks multiple times
+	for given function.
+
+2009-06-08  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* jump.c (returnjump_p): Handle delayed branches.  Add missing
+	function comment.
+
+2009-06-08  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/40102
+	* cgraph.c (cgraph_create_edge_including_clones): Also asume that the
+	original node might've been modified.
+	* tree-inline.c (copy_bb): Do not assume that all clones are the same.
+
+2009-06-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-object-size.c (addr_object_size): Add OSI argument.
+	Handle also INDIRECT_REF with SSA_NAME inside of it as base address.
+	(compute_builtin_object_size, expr_object_size): Adjust callers.
+	(plus_stmt_object_size): Call addr_object_size instead of
+	compute_builtin_object_size.
+
+2009-06-08  Ghassan Shobaki  <ghassan.shobaki@amd.com>
+            Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+	
+	* tree-ssa-loop-prefetch.c 
+	(gather_memory_references): Introduced a counter for the number of 
+	memory references.
+	(anything_to_prefetch_p): Introduced a counter for the number of 
+	prefetches.
+	(is_loop_prefetching_profitable): New function with a cost model 
+	for prefetching.
+	(loop_prefetch_arrays): Use the new cost model to determine if 
+	prefetching is profitable.
+	* params.def (MIN_INSN_TO_PREFETCH_RATIO, 
+	PREFETCH_MIN_INSN_TO_MEM_RATIO): New parameters.
+	* params.h (MIN_INSN_TO_PREFETCH_RATIO, 
+	PREFETCH_MIN_INSN_TO_MEM_RATIO): New parameters.
+	* doc/invoke.texi (MIN_INSN_TO_PREFETCH_RATIO, 
+	PREFETCH_MIN_INSN_TO_MEM_RATIO): New parameters.
+	
+2009-06-08  Michael Matz  <matz@suse.de>
+
+	PR debug/40012
+	* cfgexpand.c (set_rtl): Store place also in DECL_RTL, if all
+	partitions use the same.
+	(expand_one_var): Deal with DECL_RTL sometimes begin set also
+	for basevars of SSA_NAMEs.
+	(expand_used_vars): Reset TREE_USED for basevars of SSA_NAMEs,
+	to not expand them twice.
+	(gimple_expand_cfg): Clear DECL_RTL for those decls that have
+	multiple places.
+
+2009-06-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* common.opt (fcompare-debug=, fcompare-debug-second): New.
+	(fdump-final-insns=, gtoggle): New.
+	* doc/invoke.texi: Document them.
+	* final.c (rest_of_clean_state): Dump final insn stream.
+	* gcc.c (invoke_as): Hook in -fcompare-debug.
+	(static_spec_functions): Add compare-debug-dump-opt,
+	compare-debug-self-opt and compare-debug-auxbase-opt.
+	(compare_debug, compare_debug_second, compare_debug_opt): New.
+	(switches_debug_check, n_switches_debug_check): New.
+	(debug_auxbase_opt, debug_check_temp_file): New.
+	(process_command): Handle -fno-compare-debug, -fcompare-debug and
+	-fcompare-debug=*.
+	(do_self_spec): Handle arguments after switches.
+	(do_spec_1): Add .gk extension to temp file basenames for compare.
+	(check_live_switch): Take SWITCH_IGNORE into account, and earlier.
+	(cc1_options): Use it instead of normal auxbase computation for
+	the second compare-debug compilation.
+	(compare_files): New.
+	(main): Set up and implement compare debug mode.
+	(compare_debug_dump_opt_spec_function): New.
+	(compare_debug_self_opt_spec_function): New.
+	(compare_debug_auxbase_opt_spec_function): New.
+	* toplev.c (process_options): Handle flag_gtoggle,
+	flag_dump_final_insns.
+	* coverage.c (coverage_begin_output): Don't overwrite .gcno file
+	during -fcompare-debug-second compilation.
+
+2009-06-07  Ian Lance Taylor  <iant@google.com>
+
+	* dwarf2.h (enum dwarf_location_atom): Add
+	INTERNAL_DW_OP_tls_addr.
+	* dwarf2out.c (INTERNAL_DW_OP_tls_addr): Don't #define.
+
+	* c-common.c (c_do_switch_warnings): Don't exit early for -Wswitch
+	with no default node.  Change warning with %H to warning_at.
+	Don't clear warn_switch around case checking.
+	* doc/invoke.texi (Warning Options): Clarify distinction between
+	-Wswitch and -Wswitch-enum.
+
+2009-06-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* tree-pass.h (TODO_update_ssa_any): Document internal use only.
+
+2009-06-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* gbl-ctors.h: Add header guard.
+
+2009-06-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* tree-flow.h (make_value_handle, set_value_handle, sort_vuses,
+	sort_vuses_heap, vn_lookup_or_add, vn_lookup_or_add_with_stmt,
+	vn_lookup_or_add_with_vuses, vn_add, vn_add_with_vuses,
+	vn_lookup_with_stmt, vn_lookup, vn_lookup_with_vuses): Remove
+	prototypes for removed functions.
+	(expressions_equal_p): Move to ...
+	* tree-ssa-sccvn.h: ... here and ...
+	* matrix-reorg.c: ... adjust includes.
+
+2009-06-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* ipa-struct-reorg.c (do_reorg_1): Fix whitespace in dump output.
+
+2009-06-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* c-decl.c (finish_decl): Use bool for variable was_incomplete.
+	(finish_function): Remove erroneous whitespace.
+
+2009-06-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* tree-cfg.c (gimple_merge_blocks): Commentary typo fix.
+	(verify_stmts): Print statement who's gimple_bb is set to a wrong BB
+
+2009-06-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* errors.c (internal_error): Commentary typo fix.
+	* gimple-iterator.c (gsi_insert_seq_on_edge): Ditto.
+	* tree-ssa-pre.c: Ditto.
+
+2009-06-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* basic-block.h (ENTRY_BLOCK, EXIT_BLOCK): Document that neither of
+	them is supposed to hold actual statements.
+
 2009-06-06  Ian Lance Taylor  <iant@google.com>
 
 	* doc/extend.texi (Attribute Syntax): Document that C++ labels on

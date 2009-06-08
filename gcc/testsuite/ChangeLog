@@ -1,3 +1,50 @@
+2009-06-08  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/39834
+	* gcc.dg/torture/pr39834.c
+
+2009-06-08  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/40102
+	* g++.dg/torture/pr40102.C: New testcase.
+
+2009-06-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/builtin-object-size-2.c (test1): Adjust expected results.
+	* gcc.dg/builtin-object-size-4.c (test1): Adjust expected results.
+	* gcc.dg/builtin-object-size-6.c: New test.
+
+	PR c++/40373
+	* g++.dg/template/dtor7.C: New test.
+
+	PR c++/40370
+	PR c++/40372
+	* g++.dg/template/error41.C: New test.
+	* g++.dg/template/error42.C: New test.
+
+2009-06-08  Revital Eres  <eres@il.ibm.com>
+
+	PR testsuite/40359
+	* gcc.dg/vect/vect-58.c: Change checks to use vect_hw_misalign.
+	* gcc.dg/vect/vect-88.c: Likewise.
+	* gcc.dg/vect/no-section-anchors-vect-66.c: Likewise.
+	* gcc.dg/vect/pr25413.c: Likewise.
+	* lib/target-supports.exp: Add i?86 to vect_hw_misalign.
+
+2009-06-07  Ian Lance Taylor  <iant@google.com>
+
+	* g++.dg/warn/Wswitch-3.C: New testcase.
+	* gcc.dg/Wswitch.c: Adjust for -Wswitch change.
+	* gcc.dg/Wswitch-enum-error.c: Likewise.
+	* gcc.dg/Wswitch-error.c: Likewise.
+
+2009-06-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/40008
+	* gfortran.dg/negative_unit.f: Update test.
+	* gfortran.dg/negative_unit_int8.f: Update test.
+	* gfortran.dg/newunit_1.f90: New test.
+
 2009-06-07  Daniel Franke  <franke.daniel@gmail.com>
 
 	PR fortran/25104
