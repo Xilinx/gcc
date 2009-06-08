@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SET_MAKE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT RANLIB ac_ct_RANLIB ACLOCAL AUTOCONF AUTOHEADER WARN_CFLAGS WARN_PEDANTIC WERROR CPP EGREP MAINT CXX CXXFLAGS ac_ct_CXX GMPLIBS GMPINC PPLLIBS PPLINC CLOOGLIBS CLOOGINC LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SET_MAKE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT RANLIB ac_ct_RANLIB ACLOCAL AUTOCONF AUTOHEADER WARN_CFLAGS WARN_PEDANTIC WERROR CPP EGREP MAINT CXX CXXFLAGS ac_ct_CXX GMPLIBS GMPINC PPLLIBS PPLINC LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 ac_pwd=`pwd`
 
@@ -797,14 +797,6 @@ ac_env_PPLINC_set=${PPLINC+set}
 ac_env_PPLINC_value=$PPLINC
 ac_cv_env_PPLINC_set=${PPLINC+set}
 ac_cv_env_PPLINC_value=$PPLINC
-ac_env_CLOOGLIBS_set=${CLOOGLIBS+set}
-ac_env_CLOOGLIBS_value=$CLOOGLIBS
-ac_cv_env_CLOOGLIBS_set=${CLOOGLIBS+set}
-ac_cv_env_CLOOGLIBS_value=$CLOOGLIBS
-ac_env_CLOOGINC_set=${CLOOGINC+set}
-ac_env_CLOOGINC_value=$CLOOGINC
-ac_cv_env_CLOOGINC_set=${CLOOGINC+set}
-ac_cv_env_CLOOGINC_value=$CLOOGINC
 
 #
 # Report the --help message.
@@ -894,8 +886,6 @@ Some influential environment variables:
   GMPINC      How to find GMP include files
   PPLLIBS     How to link PPL
   PPLINC      How to find PPL include files
-  CLOOGLIBS   How to link CLOOG
-  CLOOGINC    How to find CLOOG include files
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -7036,16 +7026,6 @@ done
 
 
 
-
-
-if test "x${CLOOGLIBS}" != "x" ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_cloog 1
-_ACEOF
-
-fi
-
 # Output.
 
           ac_config_headers="$ac_config_headers config.h:config.in"
@@ -7718,8 +7698,6 @@ s,@GMPLIBS@,$GMPLIBS,;t t
 s,@GMPINC@,$GMPINC,;t t
 s,@PPLLIBS@,$PPLLIBS,;t t
 s,@PPLINC@,$PPLINC,;t t
-s,@CLOOGLIBS@,$CLOOGLIBS,;t t
-s,@CLOOGINC@,$CLOOGINC,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF

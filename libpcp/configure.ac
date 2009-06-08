@@ -77,12 +77,6 @@ AC_ARG_VAR(GMPINC,[How to find GMP include files])
 AC_ARG_VAR(PPLLIBS,[How to link PPL])
 AC_ARG_VAR(PPLINC,[How to find PPL include files])
 
-AC_ARG_VAR(CLOOGLIBS,[How to link CLOOG])
-AC_ARG_VAR(CLOOGINC,[How to find CLOOG include files])
-if test "x${CLOOGLIBS}" != "x" ; then 
-   AC_DEFINE(HAVE_cloog, 1, [Define if cloog is in use.])
-fi
-
 # Output.
 
 AC_CONFIG_HEADERS(config.h:config.in, [echo timestamp > stamp-h1])

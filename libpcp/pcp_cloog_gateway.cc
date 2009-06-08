@@ -25,9 +25,9 @@
 // any other reasons why the executable file might be covered by the GNU
 // General Public License.  
 
-#ifdef HAVE_cloog
 #include "pcp_cloog_gateway.h"
-#include "config.h"
+#include "cloog/cloog.h"
+#include "ppl_c.h"
 
 class PcpBlackBox;
 #if 0
@@ -129,7 +129,5 @@ PcpCloogGateway::buildCloogProgram(PcpPolyScop* polyScop)
     cloog_program_set_blocklist (prog, NULL);
   }
 }
-
-#endif
 
 #endif

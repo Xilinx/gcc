@@ -203,8 +203,6 @@ PcpPolySpiC(struct pcp_poly_spi* spi)
 
 };
 
-
-#ifdef HAVE_cloog
 #include "cloog/cloog.h"
 #include "ppl_c.h"
 #include "pcp_poly_spi_c.h"
@@ -497,7 +495,6 @@ PcpPolySpi* createPPLPolySpi()
   return new PcpPolySpiC(create_ppl_c_interface());
 }
 
-#endif
 
 
 

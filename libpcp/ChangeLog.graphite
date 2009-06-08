@@ -1,3 +1,14 @@
+2009-06-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Makefile.in (CLOOGLIBS): Use clooglibs not CLOOGLIBS.
+	(CLOOGINC): Use clooginc instead of CLOOGINC.
+	* configure.ac (CLOOGLIBS): Do not test for it.
+	CLOOGLIBS and CLOOGINC are required.
+	* pcp_cloog_gateway.cc: Do not test for HAVE_cloog.
+	Do not include config.h.
+	* pcp_cloog_gateway.h: Same.
+	* pcp_poly_spi_c.cc: Same.
+
 2009-06-05  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* libpcp/pcp_cloog_gateway.h: Enclosed code in #ifdef HAVE_cloog
