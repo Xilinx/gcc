@@ -1,3 +1,8 @@
+2009-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	[and pattern work for simple testcase]
+	* melt/warmelt-normatch.melt (normpat_andpat): work.
+	* testsuite/melt/tandmatch-1.melt: enhanced testcase.
+
 2009-06-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding and patterns - still buggy]
 	* melt/warmelt-normal.melt (normexp_class): less strict assert.

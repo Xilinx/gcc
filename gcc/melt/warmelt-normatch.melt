@@ -445,10 +445,12 @@
 	 (exit lastesterloop))))
     (put_fields testercont :container_value curtester)
     (put_fields curtester :ntest_then newtester)
+    (debug_msg curtester "set_newtester_lastthen curtester")
     (let ( (fromnew (get_field :ntest_comefrom newtester)) )
       (list_append fromnew curtester))
-    (debug_msg testercont "set_newtester_lastthen testercont")
+    (debug_msg testercont "set_newtester_lastthen end testercont")
     ))
+
 
 ;; utility to set the newtester to the last of a ntest_else linked list
 (defun set_newtester_lastelse (newtester testercont)
@@ -645,6 +647,11 @@
       )))
 (install_method class_srcpattern_as normal_pattern normpat_aspat)
 
+
+
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
 ;; normalize the null 
 (defun normpat_null (recv nmatch hdler pcn)
   (debug_msg recv "normpat_null recv")
@@ -668,6 +675,9 @@
     (hdler newtester)
     ))
 (install_method discr_nullrecv normal_pattern normpat_null)
+
+
+
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -834,29 +844,47 @@
   (let (
 	(sloc (get_field :src_loc recv))
 	(conjpats (get_field :andpat_conj recv))
-	(curhdler hdler)
 	(testercont (instance class_container))
-	;(subhdler (lambda (newtester) (set_newtester_lastthen newtester testercont)))
+	(subhdler
+	 (lambda (newtester) 
+	   (debug_msg newtester "normpat_andpat.subhdler newtester")
+	   (debug_msg testercont "normpat_andpat.subhdler testercont")
+	   (let ( (prevtester (get_field :container_value testercont)) )
+	     (cond
+	      ((is_a prevtester class_normtester_any)
+	       (debug_msg prevtester "normpat_andpat.subhdler prevtester")
+	       (set_newtester_lastthen newtester testercont)
+	       )
+	      (:else
+	       (debug_msg newtester "normpat_andpat.subhdler before calling hdler")
+	       (hdler newtester)
+	       (put_fields testercont :container_value newtester)
+	       (debug_msg newtester "normpat_andpat.subhdler after calling hdler")
+	       ))
+	     (debug_msg testercont "normpat_andpat.subhdler done testercont")
+	     )))
 	)
     (compile_warning "normpat_andpat is buggy" ())
     (foreach_in_multiple 
      (conjpats)
      (subpat :long subix)
-     (debug_msg subpat "normpat_andpat subpat")
-     (normal_pattern subpat nmatch curhdler pcn)
-     (setq curhdler
-	   (lambda (newtester) 
-	     (debug_msg newtester "normpat_andpat.lambda newtester")
-	     (debug_msg subpat "normpat_andpat.lambda subpat")
-	     (debug_msg testercont "normpat_andpat.lambda testercont")
-	     (set_newtester_lastthen newtester testercont)))
+     (debug_msg testercont "normpat_andpat testercont")
+     (debug_msg subpat "normpat_andpat subpat before normal_pattern")
+     (normal_pattern subpat nmatch subhdler pcn)
+     (debug_msg subpat "normpat_andpat subpat after normal_pattern")
+     (debug_msg testercont "normpat_andpat subpat testercont")
+     (debug_msg subpat "normpat_andpat subpat done")
      )
-    (curhdler (get_field :container_value testercont))
-    )
-  (debug_msg recv "normpat_andpat recv end")
-  )
+    (debug_msg testercont "normpat_andpat after foreach testercont")
+    (debug_msg recv "normpat_andpat recv end")
+    ))
 (install_method class_srcpattern_and normal_pattern normpat_andpat)
 
+
+
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
 ;;; normalize a disjonction [or of subpatterns]
 (defun normpat_orpat (recv nmatch hdler pcn)
   (debug_msg recv "normpat_orpat recv")
@@ -1238,7 +1266,9 @@
 	  (debug_msg curpat "normexp_match curpat before normal_pattern")
 	  (normal_pattern 
 	   curpat nmatx
-	   (lambda (tester) (put_fields ntestcont :container_value tester))
+	   (lambda (tester) 
+	     (debug_msg tester "normexp_match.lambda tester")
+	     (put_fields ntestcont :container_value tester))
 	   pcn)
 	  (debug_msg ntestcont "normexp_match ntestcont after normal_pattern")
 	  (let ( (newenv (get_field :pctn_env pcn))

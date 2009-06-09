@@ -18,7 +18,10 @@
 	 ;; but this is to test and patterns!
 	 ( ?(and 
 	     ?(instance class_named :named_name ?nam)
+	     ;; a simple variable gets no tester but should be bound
+	     ?xx
 	     ?(instance class_symbol :symb_data ?dat))
+	    (debug_msg xx "testmatchand xx")
 	    (debug_msg nam "testmatchand nam")
 	    (debug_msg dat "testmatchand dat")))) 
 
