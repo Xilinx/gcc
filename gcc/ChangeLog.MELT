@@ -1,3 +1,14 @@
+2009-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	[or patterns does not work yet]
+	* testsuite/melt/test0.melt: renamed previous test0.bysl file.
+	* melt/test0.bysl: renamed as above.
+	* testsuite/melt/tormatch-1.melt: new test file, not working yet.
+	* melt/warmelt-normatch.melt: added class_normtester_disjonction.
+	added scanpat_constant & normpat_integer. normpat_orpat is
+	incomplete.
+	* melt/warmelt-genobj.melt: compiltst_normtester_same was already
+	implemented, so removed error.
+
 2009-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[and pattern work for simple testcase]
 	* melt/warmelt-normatch.melt (normpat_andpat): work.

@@ -80,9 +80,17 @@
 	 (myclassname (get_field :named_name myclass)) )
     (error_strv psloc 
 		"unimplemented scan_pattern for any " myclassname)
-    (assert_msg "catchall scan_pattern unimplemented" ())
+    (assert_msg "catchall scan_pattern unimplemented for any reciever" ())
     ))
 (install_method discr_anyrecv scan_pattern scanpat_anyrecv)
+
+
+(defun scanpat_constant (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_constant recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+)
+(install_method discr_integer scan_pattern scanpat_constant)
+(install_method discr_string scan_pattern scanpat_constant)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -93,9 +101,10 @@
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
+    (debug_msg myclass "scanpat_anypattern myclass [discrim of recv]")
     (error_strv psloc 
 		"unimplemented scan_pattern for pattern " myclassname)
-    (assert_msg "catchall scan_pattern unimplemented" ())
+    (assert_msg "catchall scan_pattern unimplemented for pattern" ())
     ))
 (install_method class_srcpattern_any scan_pattern scanpat_anypattern)
 
@@ -360,6 +369,13 @@
 	   ))
 
 
+;;; the tester wrapping or. Needed to share the same ntest_then between disjuncts
+(defclass class_normtester_disjonction
+  :super class_normtester_any
+  :fields (ntdisjuncts			;the tuple of disjunct tests
+	   )
+)
+
 ;; final successful tester (always succeed) just evaluate the expression
 (defclass class_normtester_success
   :super class_normtester_any
@@ -598,6 +614,65 @@
     ))
 (install_method class_srcpattern_variable normal_pattern normpat_variablepat)
 ;;;;;;;;;;;;;;;;
+
+
+;;; normalize a constant integer as pattern
+(defun normpat_integer (recv nmatch hdler pcn)
+  (debug_msg recv "normpat_integer recv")
+  (debug_msg nmatch "normpat_integer nmatch")
+  (let ( (stuffmap (get_field :pctn_stuffmap pcn))
+	 (pvarmap (get_field :pctn_pvarlocmap pcn)) 
+	 (psloc (get_field :src_loc (get_field :pctn_src pcn)))
+	 (tstuff (mapobject_get stuffmap nmatch))
+	 (env (get_field :pctn_env pcn))
+	 (ncx (get_field :pctn_normctxt pcn))
+	 (testlist (get_field :pctn_tests pcn))
+	 )
+    (debug_msg tstuff "normpat_integer tstuff")
+    (let (
+	  (tester ())
+	  (curhdler hdler)
+	  )
+      (forever 
+       loopstuff
+       (debug_msg tstuff "normpat_integer tstuff")
+       (cond
+	( (== (get_field :ntsame_identical tstuff) recv)
+	  (setq tester tstuff)
+	  (exit loopstuff))
+	( (is_a tstuff class_normtester_any)
+	  (setq tstuff (get_field :ntest_else tstuff))
+	  (setq curhdler (lambda (tester)
+			   (put_fields tstuff :ntest_else tester)
+			   (list_append (get_field :ntest_comefrom tester) tstuff)
+			   ))
+	  )
+	(:else
+	 (let ( (newtester (instance class_normtester_same
+				     :nrep_loc psloc
+				     :ntest_matched nmatch
+				     :ntest_then ()
+				     :ntest_else ()
+				     :ntest_locclist ()
+				     :ntest_comefrom (make_list discr_list)
+				     :ntsame_identical recv))
+		)
+	   (register_new_normtester newtester pcn)
+	   (debug_msg newtester "normpat_integer newtester")
+	   (setq tester newtester)
+	   (list_append testlist newtester)
+	   (curhdler newtester)
+	   (exit loopstuff)
+	   )
+	 )
+	)
+       )
+      )))
+(install_method discr_integer normal_pattern normpat_integer)
+
+(compile_warning "we need a special normpat for strings which compare using strcmp..." ())
+
+
 
 ;;; normalize joker pattern
 (defun normpat_jokerpat (recv nmatch hdler pcn)
@@ -864,7 +939,6 @@
 	     (debug_msg testercont "normpat_andpat.subhdler done testercont")
 	     )))
 	)
-    (compile_warning "normpat_andpat is buggy" ())
     (foreach_in_multiple 
      (conjpats)
      (subpat :long subix)
@@ -873,9 +947,7 @@
      (normal_pattern subpat nmatch subhdler pcn)
      (debug_msg subpat "normpat_andpat subpat after normal_pattern")
      (debug_msg testercont "normpat_andpat subpat testercont")
-     (debug_msg subpat "normpat_andpat subpat done")
      )
-    (debug_msg testercont "normpat_andpat after foreach testercont")
     (debug_msg recv "normpat_andpat recv end")
     ))
 (install_method class_srcpattern_and normal_pattern normpat_andpat)
@@ -888,6 +960,7 @@
 ;;; normalize a disjonction [or of subpatterns]
 (defun normpat_orpat (recv nmatch hdler pcn)
   (debug_msg recv "normpat_orpat recv")
+  (shortbacktrace_dbg "normpat_orpat called" 16)
   (debug_msg nmatch "normpat_orpat nmatch")
   (debug_msg pcn "normpat_orpat pcn")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
@@ -895,20 +968,49 @@
   (let (
 	(sloc (get_field :src_loc recv))
 	(disjpats (get_field :orpat_disj recv))
-	(curhdler hdler)
 	(testercont (instance class_container))
+	(lisubtesters (make_list discr_list))
+	(subhdler
+	 (lambda (newtester) 
+	   (debug_msg newtester "normpat_orpat.subhdler newtester")
+	   (debug_msg testercont "normpat_orpat.subhdler testercont")
+	   (if newtester
+	       (progn
+		 (assert_msg "check newtester" (is_a newtester class_normtester_any))
+		 (list_append lisubtesters newtester)))
+	   (let ( (prevtester (get_field :container_value testercont)) )
+	     (cond
+	      ((is_a prevtester class_normtester_any)
+	       (debug_msg prevtester "normpat_orpat.subhdler prevtester")
+	       (set_newtester_lastelse newtester testercont)
+	       )
+	      (:else	   
+	       (hdler newtester)
+	       (debug_msg newtester "normpat_orpat.subhdler before calling hdler")
+	       (put_fields testercont :container_value newtester)
+	       (debug_msg newtester "normpat_orpat.subhdler after calling hdler")
+	       ))
+	     (debug_msg testercont "normpat_orpat.subhdler done testercont")
+	     )))
 	) 
     (compile_warning "normpat_orpat is untested" ())
     (foreach_in_multiple 
      (disjpats)
      (subpat :long subix)
-     (debug_msg subpat "normpat_orpat subpat")
-     (normal_pattern subpat nmatch curhdler pcn)
-     (setq curhdler
-	   (lambda (newtester) 
-	     (set_newtester_lastelse newtester testercont)))
+     (debug_msg testercont "normpat_orpat testercont")
+     (debug_msg subpat "normpat_orpat subpat before normal_pattern")
+     (normal_pattern subpat nmatch subhdler pcn)
+     (debug_msg subpat "normpat_orpat subpat after normal_pattern")
+     (debug_msg testercont "normpat_orpat testercont after normal_pattern")
      )
-    (curhdler (get_field :container_value testercont))
+    (let  (
+	   (subtesters (list_to_multiple lisubtesters))
+	   (:long nbsubtesters (multiple_length subtesters))
+	   )
+      (compile_warning "$@$incomplete nprmpat_orpat" ())
+      ;; we should build a class_normtester_disjonction unless we have 0 or 1 nbsubtesters
+      (assert_msg  "$@$incomplete nprmpat_orpat" ())
+      )
     )
   (debug_msg recv "normpat_orpat recv end")
   )
@@ -1299,7 +1401,7 @@
 		  ;; curtester is null if the whole case is a joker,
 		  ;; this should be the last case
 		  (if (<i ix (-i (multiple_length scases) 1))
-		      (warning_plain sloc "joker case is not last"))
+		      (warning_plain sloc "joker case in MATCH is not last"))
 		  ))
 	    (assert_msg "check curtester" (or (null curtester) (is_a curtester class_normtester_any)))
 	    ;; loop on the ntest_then chain to add the success test at
@@ -1346,7 +1448,7 @@
 	    ;; always set the oldtester to the curtester
 	    (setq oldtester curtester)
 	    ;; if the curtester is not the new success itself, put the
-	    ;; new success as it then case
+	    ;; new success as its then case
 	    (if (!= curtester newsuctester)
 		(progn
 		  (put_fields curtester :ntest_then newsuctester)
@@ -1492,6 +1594,7 @@
 (export_class
  class_patterncontext
  class_normtester_any
+ class_normtester_disjonction
  class_normtester_success
  class_normtester_same
  class_normtester_matcher

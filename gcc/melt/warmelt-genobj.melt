@@ -4376,7 +4376,6 @@
      ))
     ;; add the cond
     (list_append olist ocond)
-    (error_plain nloc "unimplemented compiltst_normtester_same")
     ;; also add the gotothen
     (assert_msg "check gotothen" (is_object gotothen))
     (list_append othenlist gotothen)

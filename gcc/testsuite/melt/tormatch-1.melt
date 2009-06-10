@@ -1,0 +1,35 @@
+;; -*- lisp -*-
+;; file tormatch-1.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=runfile -fmelt-dynlibdir=. \
+    -fmelt-compile-script=./built-melt-cc-script \
+    -fmelt-gensrcdir=. -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=.../tormatch-1.melt -fmelt-debug
+|#
+
+(defun testmatchor (x :long n)
+  (debug_msg x "testmatchor x")
+  (code_chunk begin #{printf("\n!testmatchor start n=%ld\n",$n);}#)
+  (match n
+	 ( 0
+	   (code_chunk casezero #{printf("!testmatchor case zero n=%ld\n",$n);
+		       }#)
+	   (debug_msg x "testmatchor got zero"))
+	 ( ?(or 1 2 3)
+	    (code_chunk caseone2three #{printf("!testmatchor case one two three n=%ld\n", $n);
+			}#)
+	    (debug_msg x "testmatchor got one two or three"))
+	 (?_
+	  (code_chunk caseelse #{printf("!testmatchor else case n=%ld\n", $n);
+		      }#)
+	  (debug_msg x "testmatchor got something else"))
+	 )
+)
+
+(testmatchor 'zero 0)
+(testmatchor 'one 1)
+(testmatchor 'two 2)
+(testmatchor 'three 3)
+(testmatchor 'four 4)
+;;eof tormatch-1.melt
