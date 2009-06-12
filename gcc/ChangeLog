@@ -1,3 +1,393 @@
+2009-06-12  Joey Ye  <joey.ye@intel.com>
+
+	PR middle-end/39146
+	* cfgexpand.c (get_decl_align_unit): Update
+	max_used_stack_slot_alignment with align instead of
+	stack_alignment_needed.
+
+	* function.c (assign_stack_local_1): Update
+	max_used_stack_slot_alignment with alignment_in_bits instead
+	of stack_alignment_needed.
+	(locate_and_pad_parm): Don't update max_used_stack_slot_alignment
+	here.
+
+2009-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (last_var_location_insn): New variable.
+	(dwarf2out_end_epilogue): Clear last_var_location_insn.
+	(dwarf2out_var_location): Don't record anything after last real
+	insn.  Only change labels if there were any real instructions
+	in between last note and this one, or if changed sections.
+
+2009-06-11  Richard Henderson  <rth@redhat.com>
+
+	* alpha.c (alpha_expand_prologue): Add a REF_CFA_REGISTER
+	note when storing the frame pointer in a register.
+	(FRP): Don't redefine to nothing for epilogue.
+	(alpha_expand_epilogue): Mark register and sp restores.
+	(unicosmk_gen_dsib): Don't mark weird frame pointer adjust.
+
+	* config/alpha/alpha.c (alpha_emit_setcc): Fix test for
+	when gen_lowpart is needed.
+
+2009-06-11  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2out.c (def_cfa_1): Likewise for DW_CFA_cfa_offset.
+
+	* dwarf2out.c (need_data_align_sf_opcode): New.
+	(div_data_align): Move earlier.
+	(def_cfa_1, reg_save): Use it.
+
+2009-06-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (OPTION_MASK_ISA_CRC32_SET): New.
+	(OPTION_MASK_ISA_CRC32_UNSET): Likewise.
+	(ix86_handle_option): Handle OPT_mcrc32.
+	(ix86_target_string): Add -mcrc32.
+	(bdesc_args): Enable crc32 builtins with OPTION_MASK_ISA_CRC32.
+
+	* config/i386/i386.h (TARGET_CRC32): New.
+
+	* config/i386/i386.md (sse4_2_crc32<mode>): Also check
+	TARGET_CRC32.
+	(sse4_2_crc32di): Likewise.
+
+	* config/i386/i386.opt (mcrc32: New.
+
+	* doc/invoke.texi: Document -mcrc32.
+
+2009-06-11  Richard Henderson  <rth@redhat.com>
+
+	* common.opt (gdwarf-): Accept a version number.
+	* doc/invoke.texi (gdwarf-): Update docs.
+	* opth-gen.awk: Special case -gdwarf+ to OPT_gdwarfplus.
+	* opts.c (common_handle_option) [OPT_gdwarf_]: Verify dwarf
+	version level, and record it.
+
+	* dwarf2.h (DW_CIE_VERSION): Remove.
+	* dwarf2out.c (DWARF_VERSION): Remove.
+	(add_fde_cfi): Skip DW_CFA_set_loc addition for dwarf3.
+	(output_call_frame_info): Use CIE version 3 for dwarf3,
+	or if the return register column is out of range for version 1.
+	(dwarf_stack_op_name): Add all dwarf3 values.
+	(DEBUG_PUBTYPES_SECTION): New.
+	(size_of_die) [dw_val_class_die_ref]: Handle DW_FORM_ref_addr
+	encoding change for dwarf3.
+	(output_die) [dw_val_class_die_ref]: Likewise.
+	(output_compilation_unit_header): Emit correct version for dwarf3.
+	(output_line_info): Likewise.
+	(output_pubnames): Update for DWARF_VERSION removal.
+	(output_aranges): Likewise.
+	(gen_subprogram_die): Emit DW_OP_call_frame_cfa if emitting dwarf3.
+	(dwarf2out_init): Don't ifdef DEBUG_PUBTYPES_SECTION.
+	(dwarf2out_finish): Likewise.
+
+2009-06-11  David Daney  <ddaney@caviumnetworks.com>
+
+	* system.h (gcc_assert, gcc_unreachable): Revert accidental commit
+	in r148403.
+
+2009-06-11  David Daney  <ddaney@caviumnetworks.com>
+
+	PR c/39252
+	* doc/extend.texi ( __builtin_unreachable): Document new builtin.
+	* builtins.c (expand_builtin_unreachable): New function.
+	(expand_builtin): Handle BUILT_IN_UNREACHABLE case.
+	* builtins.def (BUILT_IN_UNREACHABLE): Add new builtin.
+	* cfgcleanup.c (try_optimize_cfg): Delete empty blocks with no
+	successors.
+	* cfgrtl.c (rtl_verify_flow_info): Handle empty blocks when
+	searching for missing barriers.
+
+2009-06-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* config/darwin.h (LINK_COMMAND_SPEC): Adjust spec to link libcov
+	when -fprofile-generate* was passed.
+	* config/darwin9.h (LINK_COMMAND_SPEC): Likewise.
+
+2009-06-11  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/moxie.md: Define length attribute for all
+	instructions.
+	(rCC): Define.
+	(*b<cond:code>): Support limited branch ranges for new PC-relative
+	branch instructions.
+	* config/moxie/moxie.h (HAS_LONG_UNCOND_BRANCH): Define.
+
+2009-06-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (min_insn_size): Use get_attr_length
+	for normal insns other than TYPE_MULTI, TYPE_OTHER and TYPE_FCMP.
+	For __asm return 0.
+
+	* config/i386/i386.c (ix86_pad_returns): Use emit_jump_insn_before
+	instead of emit_insn_before.
+
+2009-06-10  Ian Lance Taylor  <iant@google.com>
+
+	PR bootstrap/40408
+	* graphite.c (add_conditions_to_domain): Change SWITCH_EXPR to
+	GIMPLE_SWITCH.
+
+2009-06-10  Revital Eres  <eres@il.ibm.com>
+
+	* passes.c (init_optimization_passes): Reschedule
+	predictive-commoning pass before complete unroll pass.
+
+2009-06-10  Martin Jambor  <mjambor@suse.cz>
+
+	* cgraph.c (cgraph_node_can_be_local_p): New function.
+	(cgraph_make_node_local): New function.
+	* cgraph.h (cgraph_node_can_be_local_p): Declare.
+	(cgraph_make_node_local): Declare.
+
+2009-06-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.h (tree_base): Add packed_flag and user_align fields.
+	Decrease size of spare field.
+	(TYPE_USER_ALIGN): Use user_align from tree_base.
+	(DECL_USER_ALIGN): Likewise.
+	(TYPE_PACKED): Use packed_flag from tree_base.
+	(DECL_PACKED): Likewise.
+	(tree_type): Delete packed_flag and user_align fields.  Widen
+	precision field.  Widen mode field and shuffle fields to align
+	mode on an 8-bit boundary.
+	(tree_decl_common): Delete decl_flag_1 and user_align fields.
+	Renumber decl_flag_* fields.  Fix comments.  Widen
+	decl_common_unused field.
+	(DECL_HAS_VALUE_EXPR_P): Adjust for renumbering of decl_flag_*
+	fields.
+	(DECL_EXTERNAL): Likewise.
+	(DECL_BIT_FIELD): Likewise.
+	(DECL_NONADDRESSABLE_P): Likewise.
+	(TYPE_DECL_SUPRESS_DEBUG): Likewise.
+	* config/arm/arm-modes.def (XImode): Make it an INT_MODE.
+
+2009-06-10  Ian Lance Taylor  <iant@google.com>
+
+	* vec.h (DEF_VEC_ALLOC_I): Use DEF_VEC_NONALLOC_FUNCS_I.
+	(DEF_VEC_ALLOC_P): Use DEF_VEC_NONALLOC_FUNCS_P.
+	(DEF_VEC_ALLOC_O): Use DEF_VEC_NONALLOC_FUNCS_O.
+	(DEF_VEC_ALLOC_FUNC_P): Only define VEC_OP (T,A,alloc).
+	(DEF_VEC_NONALLOC_FUNCS_P): New macro, broken out of old
+	DEF_VEC_ALLOC_FUNC_P.
+	(DEF_VEC_ALLOC_FUNC_O): Only define VEC_OP (T,A,alloc).
+	(DEF_VEC_NONALLOC_FUNCS_O): New macro, broken out of old
+	DEF_VEC_ALLOC_FUNC_O.
+	(DEF_VEC_ALLOC_FUNC_I): Only define VEC_OP (T,A,alloc).
+	(DEF_VEC_NONALLOC_FUNCS_I): New macro, broken out of old
+	DEF_VEC_ALLOC_FUNC_I.
+	(vec_stack_p_reserve, vec_stack_p_reserve_exact): Declare.
+	(vec_stack_p_reserve_exact_1): Declare.
+	(vec_stack_o_reserve, vec_stack_o_reserve_exact): Declare.
+	(vec_stack_free): Declare.
+	(VEC_stack_alloc): Define.
+	(DEF_VEC_ALLOC_P_STACK, DEF_VEC_ALLOC_FUNC_P_STACK): Define.
+	(DEF_VEC_ALLOC_O_STACK, DEF_VEC_ALLOC_FUNC_O_STACK): Define.
+	(DEF_VEC_ALLOC_I_STACK, DEF_VEC_ALLOC_FUNC_I_STACK): Define.
+	* vec.c (void_p): New type.  Call DEF_VEC_P and DEF_VEC_ALLOC_P
+	for void_p.
+	(stack_vecs): New static variable.
+	(vec_stack_p_reserve_exact_1): New function.
+	(vec_stack_o_reserve_1): New static function.
+	(vec_stack_p_reserve, vec_stack_p_reserve_exact): New functions.
+	(vec_stack_o_reserve, vec_stack_o_reserve_exact): New functions.
+	(vec_stack_free): New function.
+	* df-scan.c (df_ref): Use DEF_VEC_P and DEF_VEC_ALLOC_P_STACK.
+	(VEC_df_ref_stack_alloc): Define.
+	(df_mw_hardreg_ptr): New type.  Use DEF_VEC_P and
+	DEF_VEC_ALLOC_P_STACK.
+	(VEC_df_mw_hardreg_ptr_stack_alloc): Define.
+	(struct df_collection_rec): Change _vec fields to VEC.  Remove
+	_use fields.
+	(df_free_collection_rec): Adjust for new fields.
+	(df_insn_rescan): Use new df_collection_rec fields.
+	(df_notes_rescan, df_canonize_collection_rec): Likewise.
+	(df_ref_create_structure, df_ref_record): Likewise.
+	(df_get_conditional_uses, df_get_call_refs): Likewise.
+	(df_insn_refs_collect, df_bb_refs_collect): Likewise.
+	(df_bb_refs_record, df_record_entry_block_defs): Likewise.
+	(df_record_exit_block_uses, df_bb_verify): Likewise.
+	(df_swap_refs): Change ref_vec parameter to VEC.  Change all
+	callers.
+	(df_sort_and_compress_refs): Change ref_vec parameter to VEC.
+	Remove count parameter.  Change return type to void.  Change all
+	callers.
+	(df_sort_and_compress_mws): Change mw_vec parameter to VEC.
+	Remove count parameter.  Change return type to void.  Change all
+	callers.
+	(df_install_refs): Change old_vec parameter to VEC.  Remove count
+	parameter.  Change all callers.
+	(df_install_mws): Change old_vec parameter to VEC.  Remove count
+	parameter.  Change all callers.
+	(df_refs_verify): Change new_rec parameter to VEC.  Change call
+	callers.
+	(df_mws_verify): Likewise.
+
+2009-06-10  Alexandre Oliva  <aoliva@redhat.com>
+
+	* gcc.c (compare_files): Cast munmap argumento to caddr_t.
+
+2009-06-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/extend.texi: Add description for __builtin_ia32_crc32di.
+
+2009-06-10  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/crti.asm: New file.
+	* config/moxie/crtn.asm: New file.
+	* config/moxie/moxie.c: New file.
+	* config/moxie/moxie.h: New file.
+	* config/moxie/sfp-machine.h: New file.
+	* config/moxie/moxie-protos.h: New file.
+	* config/moxie/t-moxie: Created.
+	* config/moxie/t-moxie-softfp: Created.
+	* config/moxie/moxie.md: Created.
+	* config/moxie/constraints.md: Created.
+	* config.gcc: Add moxie support.
+	* doc/md.texi (Machine Constraints): Add moxie constraints.
+	* doc/contrib.texi (Contributors): Mention moxie port.
+	* doc/install.texi (Specific): Mention the moxie port.
+
+2009-06-09  Ian Lance Taylor  <iant@google.com>
+
+	* system.h (HAVE_DESIGNATED_INITIALIZERS): Don't define if
+	compiling with C++.
+	* optabs.c (optab_table): Only use designated initializers if
+	HAVE_DESIGNATED_INITIALIZERS is defined.
+	(convert_optab_table): Likewise.
+	(init_optabs): Always call init_insn_codes if
+	HAVE_DESIGNATED_INITIALIZERS is not defined.
+
+2009-06-09  Ian Lance Taylor  <iant@google.com>
+
+	* targhooks.c (default_builtin_vectorized_function): Change fn
+	parameter to unsigned int.
+	(default_builtin_vectorized_conversion): Change code parameter to
+	unsigned int.
+	(default_builtin_reciprocal): Change fn parameter to unsigned int.
+	* targhooks.h: Update declarations.
+	* config/rs6000/rs6000.c (rs6000_builtin_conversion): Change code
+	parameter to unsigned int.
+
+	* c-typeck.c (comptypes_check_enum_int): New static function.
+	(comptypes_internal): Add enum_and_int_p parameter.  Change all
+	callers.
+	(comp_target_types): Add location parameter.  Change all callers.
+	(tagged_types_tu_compatible_p): Add enum_and_int_p parameter.
+	Change all callers.
+	(function_types_compatible_p, type_lists_compatible_p): Likewise.
+	(build_conditional_expr): Add colon_loc parameter.  Change all
+	callers.
+	(convert_for_assignment): Add location parameter.  Change all
+	callers.
+	* c-parser.c (c_parser_conditional_expression): Pass location of
+	colon to build_conditional_expr.
+	* c-tree.h (build_conditional_expr): Update declaration.
+
+2009-06-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c: Revert previous patch.
+
+2009-06-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR bootstrap/40103
+	* graphite.c: Remove pragma GCC diagnostic warning "-Wc++-compat".
+
+2009-06-09  Ghassan Shobaki  <ghassan.shobaki@amd.com>
+
+	* tree-ssa-loop-prefetch.c
+	(loop_prefetch_arrays): Fixed a portability problem in printf format
+	string.
+
+2009-06-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/40351
+	* tree-sra.c (propagate_subacesses_accross_link): Check that a refrence
+	to a potential artifical subaccess can be constructed.
+
+2009-06-08  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (sh_optimization_options): Declare.
+	(sh_override_options): Likewise.
+	* config/sh/sh.c: Include params.h.
+	(sh_optimization_options): New.
+	(sh_override_options): Likewise.
+	* config/sh/sh.c (OPTIMIZATION_OPTIONS): Use sh_optimization_options.
+	(OVERRIDE_OPTIONS): Use sh_override_options.
+
+2009-06-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (emit_cfa_remember): New variable.
+	(add_fde_cfi): If emit_cfa_remember, recurse to add
+	DW_CFA_remember_state first.
+	(dwarf2out_begin_epilogue): Don't add_fde_cfi DW_CFA_remember_state,
+	instead just set emit_cfa_remember.
+
+2009-06-08  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/40126
+	* dwarf2out.c (dwarf2out_abstract_function): Free decl_loc_table.
+
+2009-06-08  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/39834
+	* cgraphunit.c (save_inline_function_body): Do not copy transform hooks
+	for saved inline bodies.
+	* ipa-passes.c (do_per_function): Do not add the hoks multiple times
+	for given function.
+
+2009-06-08  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* jump.c (returnjump_p): Handle delayed branches.  Add missing
+	function comment.
+
+2009-06-08  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/40102
+	* cgraph.c (cgraph_create_edge_including_clones): Also asume that the
+	original node might've been modified.
+	* tree-inline.c (copy_bb): Do not assume that all clones are the same.
+
+2009-06-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-object-size.c (addr_object_size): Add OSI argument.
+	Handle also INDIRECT_REF with SSA_NAME inside of it as base address.
+	(compute_builtin_object_size, expr_object_size): Adjust callers.
+	(plus_stmt_object_size): Call addr_object_size instead of
+	compute_builtin_object_size.
+
+2009-06-08  Ghassan Shobaki  <ghassan.shobaki@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+	
+	* tree-ssa-loop-prefetch.c 
+	(gather_memory_references): Introduced a counter for the number of 
+	memory references.
+	(anything_to_prefetch_p): Introduced a counter for the number of 
+	prefetches.
+	(is_loop_prefetching_profitable): New function with a cost model 
+	for prefetching.
+	(loop_prefetch_arrays): Use the new cost model to determine if 
+	prefetching is profitable.
+	* params.def (MIN_INSN_TO_PREFETCH_RATIO, 
+	PREFETCH_MIN_INSN_TO_MEM_RATIO): New parameters.
+	* params.h (MIN_INSN_TO_PREFETCH_RATIO, 
+	PREFETCH_MIN_INSN_TO_MEM_RATIO): New parameters.
+	* doc/invoke.texi (MIN_INSN_TO_PREFETCH_RATIO, 
+	PREFETCH_MIN_INSN_TO_MEM_RATIO): New parameters.
+	
+2009-06-08  Michael Matz  <matz@suse.de>
+
+	PR debug/40012
+	* cfgexpand.c (set_rtl): Store place also in DECL_RTL, if all
+	partitions use the same.
+	(expand_one_var): Deal with DECL_RTL sometimes begin set also
+	for basevars of SSA_NAMEs.
+	(expand_used_vars): Reset TREE_USED for basevars of SSA_NAMEs,
+	to not expand them twice.
+	(gimple_expand_cfg): Clear DECL_RTL for those decls that have
+	multiple places.
+
 2009-06-08  Alexandre Oliva  <aoliva@redhat.com>
 
 	* common.opt (fcompare-debug=, fcompare-debug-second): New.

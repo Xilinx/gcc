@@ -1,3 +1,55 @@
+2009-06-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40402
+	* resolve.c (next_data_value): It is an error if the value is
+	not constant.
+
+2009-06-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38718
+	* intrinsic.c (add_functions): Add simplifiers for ISNAN,
+	IS_IOSTAT_END and IS_IOSTAT_EOR.
+	* intrinsic.h (gfc_simplify_is_iostat_end, gfc_simplify_is_iostat_eor,
+	gfc_simplify_isnan): New prototypes.
+	* intrinsic.c (gfc_simplify_is_iostat_end, gfc_simplify_is_iostat_eor,
+	gfc_simplify_isnan): New functions.
+
+2009-06-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* interface.c (fold_unary): Rename to...
+	(fold_unary_intrinsic): ... this.
+	(gfc_extend_expr): Adjust caller.
+	(gfc_match_generic_spec): Likewise.  Initialize *op to INTRINSIC_NONE
+	to avoid warnings.
+	* expr.c (gfc_simplify_expr): Initialize start and end before calling
+	gfc_extract_int.
+
+2009-06-10  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* trans-decl.c (create_main_function):  Don't build main decl twice.
+
+2009-06-09  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-decl.c (gfc_generate_function_code): Use gfc_option.rtcheck
+	instead of flag_bounds_check.
+	* intrinsic.texi (ISO_FORTRAN_ENV): Document INT{8,16,32,64} and
+	REAL{32,64,128}.
+
+2009-06-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	* trans-array.h : Replace prototypes for
+	gfc_conv_descriptor_offset, gfc_conv_descriptor_stride,
+	gfc_conv_descriptor_lbound, gfc_conv_descriptor_ubound with new
+	prototypes of the same names with _get or _set appended.
+	* trans-array.c : Make the originals of the above static and
+	new functions for the _get and _set functions. Update all the
+	references to these descriptor access functions.
+	* trans-expr.c : Update references to the above descriptor
+	access functions.
+	* trans-intrinsic.c : The same.
+	* trans-openmp.c : The same.
+	* trans-stmt.c : The same.
+
 2009-06-08  Alexandre Oliva  <aoliva@redhat.com>
 
 	* options.c (gfc_post_options): Disable dump_parse_tree

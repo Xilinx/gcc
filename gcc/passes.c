@@ -648,7 +648,6 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_dce_loop);
 	  NEXT_PASS (pass_lim);
-	  NEXT_PASS (pass_predcom);
 	  NEXT_PASS (pass_tree_unswitch);
 	  NEXT_PASS (pass_scev_cprop);
 	  NEXT_PASS (pass_empty_loop);
@@ -665,6 +664,7 @@ init_optimization_passes (void)
 	      NEXT_PASS (pass_lower_vector_ssa);
 	      NEXT_PASS (pass_dce_loop);
 	    }
+          NEXT_PASS (pass_predcom);
 	  NEXT_PASS (pass_complete_unroll);
 	  NEXT_PASS (pass_slp_vectorize);
 	  NEXT_PASS (pass_parallelize_loops);
@@ -844,7 +844,8 @@ do_per_function (void (*callback) (void *data), void *data)
     {
       struct cgraph_node *node;
       for (node = cgraph_nodes; node; node = node->next)
-	if (node->analyzed && gimple_has_body_p (node->decl))
+	if (node->analyzed && gimple_has_body_p (node->decl)
+	    && (!node->clone_of || node->decl != node->clone_of->decl))
 	  {
 	    push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	    current_function_decl = node->decl;

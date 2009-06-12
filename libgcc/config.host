@@ -84,6 +84,8 @@ fido-*-*)
 	;;
 frv*)	cpu_type=frv
 	;;
+moxie*)	cpu_type=moxie
+	;;
 i[34567]86-*-*)
 	cpu_type=i386
 	;;
@@ -415,6 +417,10 @@ mmix-knuth-mmixware)
 	;;
 mn10300-*-*)
 	;;
+moxie-*-*)
+	tmake_file=${cpu_type}/t-moxie
+	extra_parts="crtbegin.o crtend.o crti.o crtn.o"
+	;;
 pdp11-*-*)
 	;;
 picochip-*-*)
@@ -527,6 +533,8 @@ v850e1-*-*)
 v850e-*-*)
 	;;
 v850-*-*)
+	;;
+vax-*-linux*)
 	;;
 vax-*-netbsdelf*)
 	;;

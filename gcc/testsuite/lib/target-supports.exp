@@ -499,6 +499,7 @@ proc check_profiling_available { test_what } {
 	     || [istarget m68k-*-elf]
 	     || [istarget m68k-*-uclinux*]
 	     || [istarget mips*-*-elf*]
+	     || [istarget moxie-*-elf*]
 	     || [istarget xstormy16-*]
 	     || [istarget xtensa*-*-elf]
 	     || [istarget *-*-rtems*]
@@ -2231,7 +2232,8 @@ proc check_effective_target_vect_hw_misalign { } {
         verbose "check_effective_target_vect_hw_misalign: using cached result" 2
     } else {
         set et_vect_hw_misalign_saved 0
-       if { [istarget x86_64-*-*] } {
+       if { ([istarget x86_64-*-*] 
+            || [istarget i?86-*-*]) } {
           set et_vect_hw_misalign_saved 1
        }
     }

@@ -3876,7 +3876,6 @@ create_main_function (tree fndecl)
 				   NULL_TREE);
   main_identifier_node = get_identifier ("main");
   ftn_main = build_decl (FUNCTION_DECL, main_identifier_node, tmp);
-  ftn_main = build_decl (FUNCTION_DECL, get_identifier ("main"), tmp);
   DECL_EXTERNAL (ftn_main) = 0;
   TREE_PUBLIC (ftn_main) = 1;
   TREE_STATIC (ftn_main) = 1;
@@ -4185,7 +4184,7 @@ gfc_generate_function_code (gfc_namespace * ns)
   /* If bounds-checking is enabled, generate code to check passed in actual
      arguments against the expected dummy argument attributes (e.g. string
      lengths).  */
-  if (flag_bounds_check)
+  if (gfc_option.rtcheck & GFC_RTCHECK_BOUNDS)
     add_argument_checking (&body, sym);
 
   tmp = gfc_trans_code (ns->code);

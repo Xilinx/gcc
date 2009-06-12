@@ -701,8 +701,9 @@ cgraph_create_edge_including_clones (struct cgraph_node *orig, struct cgraph_nod
 {
   struct cgraph_node *node;
 
-  cgraph_create_edge (orig, callee, stmt, count, freq, loop_depth)->inline_failed =
-    reason;
+  if (!cgraph_edge (orig, stmt))
+     cgraph_create_edge (orig, callee, stmt,
+     			 count, freq, loop_depth)->inline_failed = reason;
 
   if (orig->clones)
     for (node = orig->clones; node != orig;)
@@ -1867,6 +1868,34 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	pop_cfun ();
 	current_function_decl = NULL;
 	break;
+    }
+}
+
+/* Return true if NODE can be made local for API change.
+   Extern inline functions and C++ COMDAT functions can be made local
+   at the expense of possible code size growth if function is used in multiple
+   compilation units.  */
+bool
+cgraph_node_can_be_local_p (struct cgraph_node *node)
+{
+  return !node->needed;
+}
+
+/* Bring NODE local.  */
+void
+cgraph_make_node_local (struct cgraph_node *node)
+{
+  gcc_assert (cgraph_node_can_be_local_p (node));
+  if (DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl))
+    {
+      DECL_COMDAT (node->decl) = 0;
+      DECL_ONE_ONLY (node->decl) = 0;
+      TREE_PUBLIC (node->decl) = 0;
+      DECL_WEAK (node->decl) = 0;
+      DECL_EXTERNAL (node->decl) = 0;
+      node->local.externally_visible = false;
+      node->local.local = true;
+      gcc_assert (cgraph_function_body_availability (node) == AVAIL_LOCAL);
     }
 }
 
