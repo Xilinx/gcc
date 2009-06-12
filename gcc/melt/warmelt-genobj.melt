@@ -4146,6 +4146,18 @@
       (debug_msg freelist "normtester_free_objloc_list result freelist")
       (return freelist)
       )))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; catch-all for unimplemented normtester
+(defun compiltst_normtester_any (nta gcx tcx)
+  (debug_msg nta "compiltst_normtester_any nta")
+  (error_strv (get_field :nrep_loc nta) 
+	      "**UNIMPLEMENTED normal tester compilation "
+	      (get_field :named_name (discrim nta)))
+  (assert_msg "@$@UNIMPLEMENTED normal tester compilation" ())
+)
+(install_method class_normtester_any compile_tester compiltst_normtester_any)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compiltst_normtester_matcher (ntma gcx tcx)
   (debug_msg ntma "compiltst_normtester_matcher ntma")
@@ -4318,7 +4330,7 @@
   (debug_msg ntsa "compiltst_normtester_same ntsa")
   (assert_msg "check ntsa" (is_a ntsa class_normtester_same))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (assert_msg "check gcx" (is_a tcx class_testercompilcontext))
+  (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc ntsa))
 	(nmatched (unsafe_get_field :ntest_matched ntsa))
@@ -4422,6 +4434,17 @@
 	(return (list2 osucc gotoend) osucc))
       )))
 (install_method class_normtester_success compile_tester compiltst_normtester_success)
+
+;;;;;;;;;;;;;;;;
+(defun compiltst_normtester_disjunction (ntdj gcx tcx)
+  (debug_msg ntdj "compiltst_normtester_disjunction ntdj")
+  (assert_msg "check ntdj" (is_a ntdj class_normtester_disjunction))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
+  (assert_msg "$@$unimplemented compiltst_normtester_disjunction" ())
+  (compile_warning "$@$unimplemented compiltst_normtester_disjunction" ())
+)
+(install_method class_normtester_disjunction compile_tester compiltst_normtester_disjunction)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilmatcher_cmatcher (cmat mcx gcx)

@@ -1,3 +1,15 @@
+2009-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	[or pattern still not working, but constant patterns work]
+	* melt/warmelt-macro.melt: the patternexpand* function got a new
+	argument, the parent source location psloc.  Constant always
+	expanded as constant pattern in constants.
+	* melt/warmelt-normatch.melt: "disjunction" spelled correctly.
+	normpat_constpat: added function.  normpat_null, normpat_constant,
+	normpat_integer: removed functions.  put_tester_then: added
+	function to handle or patterns.
+	* melt/warmelt-genobj.melt: added compiltst_normtester_any &
+	compiltst_normtester_disjunction stub.
+
 2009-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	[or patterns does not work yet]
 	* testsuite/melt/test0.melt: renamed previous test0.bysl file.

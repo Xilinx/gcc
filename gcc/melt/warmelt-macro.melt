@@ -926,9 +926,9 @@
 	   ))
 
 
-(defun patternexpand_pairlist_as_tuple (pairlist env pctx)
+(defun patternexpand_pairlist_as_tuple (pairlist env pctx psloc)
   (pairlist_to_multiple pairlist discr_multiple
-			(lambda (x) (patternexpand_1 x env pctx)))
+			(lambda (x) (patternexpand_1 x env pctx psloc)))
   )
 
 
@@ -964,7 +964,7 @@
 		       (if (is_pair curpair)
 			   (let ( (curout (pair_head curpair)) )
 			     (box_put pairbox (pair_tail curpair))
-			     (patternexpand_1 curout env pctx))
+			     (patternexpand_1 curout env pctx psloc))
 			 (error_strv psloc "missing out argument for matcher"
 				     (get_field :named_name matcher))
 			 )))))
@@ -973,7 +973,7 @@
     ))
 
 ;; pattern expansion of a pattern expression like (question SEXPR)
-(defun patternexpand_expr (sexpr env pctx)
+(defun patternexpand_expr (sexpr env pctx psloc)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
@@ -1103,7 +1103,7 @@
   )
 
 ;; pattern expansion
-(defun patternexpand_1 (sexpr env pctx)
+(defun patternexpand_1 (sexpr env pctx psloc)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
   (cond
@@ -1159,7 +1159,7 @@
 	     )
 	    ((is_a parg1 class_sexpr)
 	     (debug_msg parg1 "patternexpand_1 sexpr parg1")
-	     (let ( (patex (patternexpand_expr parg1 env pctx)) )
+	     (let ( (patex (patternexpand_expr parg1 env pctx sloc)) )
 	       (debug_msg patex "patternexpand_1 return patex")
 	       (return patex))
 	     )
@@ -1169,10 +1169,15 @@
 	 ))
      )
    (:else
-    ;; not an s-expr, return itself
-    (debug_msg sexpr "patternexpand_1 return source")
-    (return sexpr)
-    )))
+    ;; not an s-expr, return the constant pattern with...
+    (let ( (mexpander (unsafe_get_field :pctx_mexpander pctx)) 
+	   (pat (instance class_srcpattern_constant
+			  :src_loc psloc
+			  :spat_constx sexpr))
+	   )
+      (debug_msg pat "patternexpand_1 return const pat as source")
+      (return pat)
+      ))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2509,7 +2514,7 @@
   (let (
 	(clafields (unsafe_get_field :class_fields cla))
 	(fldbox (make_box discr_box ())) 
-	(flpat (patternexpand_1 flpsexp env pctx)) 
+	(flpat (patternexpand_1 flpsexp env pctx psloc)) 
 	)
     ;; find the field inside the class
     (multiple_iterate_test
@@ -3154,7 +3159,7 @@
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(argsp (patternexpand_pairlist_as_tuple curpair env pctx))
+	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
 	)
     (if (!=i (multiple_length argsp) 2)
 	(progn
@@ -3205,7 +3210,7 @@
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(argsp (patternexpand_pairlist_as_tuple curpair env pctx))
+	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
 	(res (instance class_srcpattern_and
 		       :src_loc loc
 		       :andpat_conj argsp))
@@ -3255,7 +3260,7 @@
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(argsp (patternexpand_pairlist_as_tuple curpair env pctx))
+	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
 	(res (instance class_srcpattern_or
 		       :src_loc loc
 		       :orpat_disj argsp))
@@ -3317,7 +3322,7 @@
 					      :pctx_mexpander mexpander
 					      :pctx_pexpander patternexpand_1
 					      :pctx_varmap (make_mapobject discr_mapobjects 13)))
-			 (curpat (patternexpand_1 swhenpat env curpatctx))
+			 (curpat (patternexpand_1 swhenpat env curpatctx curmatch))
 			 (curcase (instance class_src_casewhenmatch
 					    :src_loc curmatchloc
 					    :scam_patt curpat
@@ -3338,7 +3343,7 @@
 					      :pctx_mexpander mexpander
 					      :pctx_pexpander patternexpand_1
 					      :pctx_varmap (make_mapobject discr_mapobjects 13)))
-			 (curpat (patternexpand_1 curmatchpatx env curpatctx))
+			 (curpat (patternexpand_1 curmatchpatx env curpatctx curmatchloc))
 			 (curbody (expand_pairlist_as_tuple curmatchrestpairs env mexpander))
 			 (curcase (instance class_src_casematch
 					    :src_loc curmatchloc
