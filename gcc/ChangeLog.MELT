@@ -1,4 +1,16 @@
 2009-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	[or pattern working]
+	* melt/warmelt-normatch.melt: normpat_orpat working...
+	* melt/warmelt-genobj.metl: compiltst_normtester_disjunction
+	implemented.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
+2009-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	[or pattern still not working, but constant patterns work]
 	* melt/warmelt-macro.melt: the patternexpand* function got a new
 	argument, the parent source location psloc.  Constant always
