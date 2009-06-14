@@ -1,3 +1,18 @@
+2009-06-14  Revital Eres  <eres@il.ibm.com>
+
+	* config/spu/spu.c (record_jump_table): Add parameter and fix
+	recognition of jump-table for icache scheme.
+	(critical_sections_t): Change allocation method from heap to gc.
+	(close_critical_sections): Adjust reference to critical_sections_t.
+	(begin_critical_section): Fix recognition of jump-table for
+	icache scheme.
+	(spu_start_new_section): Likewise, adjust reference to
+	critical_sections_t and free critical_sections_t list.
+	(spu_dont_create_jumptable): Fix jumptable size caclulation.
+	(spu_machine_dependent_reorg): Fix branch hint emission.
+	* config/spu/spu.md: Change generation of casei pattern for
+	icache scheme.
+
 2009-05-27  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* spu-c.c: Define __SOFTWARE_ICACHE__.

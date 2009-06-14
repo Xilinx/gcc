@@ -170,7 +170,7 @@ static unsigned HOST_WIDE_INT spu_estimate_section_overhead (void);
 static unsigned HOST_WIDE_INT spu_estimate_instruction_size (rtx);
 static bool begin_critical_section (rtx, enum critical_section_type *);
 static bool end_critical_section (rtx, enum critical_section_type *);
-static unsigned HOST_WIDE_INT record_jump_table (rtx);
+static unsigned HOST_WIDE_INT record_jump_table (rtx, rtx *);
 static bool spu_start_new_section (int, unsigned HOST_WIDE_INT, 
                                    unsigned HOST_WIDE_INT, 
                                    unsigned HOST_WIDE_INT);
@@ -2482,9 +2482,9 @@ typedef struct critical_sections
 }critical_sections_t;
 
 DEF_VEC_O(critical_sections_t);
-DEF_VEC_ALLOC_O(critical_sections_t,heap);
+DEF_VEC_ALLOC_O(critical_sections_t,gc);
 
-VEC (critical_sections_t, heap) *critical_sections = NULL;
+VEC (critical_sections_t, gc) *critical_sections = NULL;
 
 static bool
 bb_contains_prologue_p (basic_block bb)
@@ -2573,10 +2573,16 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
   if (TARGET_SOFTWARE_ICACHE)
     {
       rtx note = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX); 
+
       if (note)
 	{
 	  const char *info = XSTR (XEXP (note, 0), 0);
-
+  
+          if (strcmp (info, "jumptable start") == 0)
+          {
+             *type = JUMP_TABLE;
+             return true;
+           }
 	  if (strcmp (info, "epilogue_start") == 0)
 	    {
 	      *type = EPILOGUE;
@@ -2619,10 +2625,9 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
 	      }
 	  }
       
-      if (GET_CODE (src) == LABEL_REF)
+      if (!TARGET_SOFTWARE_ICACHE && GET_CODE (src) == LABEL_REF)
 	{
 	  *type = JUMP_TABLE;
-          dump_critical_section_info (JUMP_TABLE, true, insn);
 	  return true;
 	}
     }
@@ -2853,26 +2858,27 @@ spu_legal_breakpoint (rtx insn)
    .
    .
    end of table
-   */
+   LAST_INSN_CRITICAL SECTION denotes the jump_insn which is the last
+   instruction in the section (excluding the table itself).  */
 static unsigned HOST_WIDE_INT  
-record_jump_table (rtx ila_insn)
+record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
 {
-  rtx insn, set;
+  rtx insn;
   basic_block bb;
-  rtx label, label1;
+  rtx label1, set, label = NULL_RTX;
   bool *bb_aux;
   bool found_jump_table = false;
   unsigned HOST_WIDE_INT size = 0;
-  
+ 
   bb_aux = (bool *)xmalloc (last_basic_block * sizeof (bool));
   memset (bb_aux, false, last_basic_block * sizeof (bool));
 
-  set = single_set (ila_insn);
-  
-  gcc_assert (set);
-  
-  label = XEXP (SET_SRC (set), 0);
-
+  if (!TARGET_SOFTWARE_ICACHE)
+    {
+      set = single_set (ila_insn);
+      gcc_assert (set);
+      label = XEXP (SET_SRC (set), 0);
+   }
   /* Reset counters.  */
   mem_ref_counter = 0;
   safe_hints_counter = 0;
@@ -2880,27 +2886,32 @@ record_jump_table (rtx ila_insn)
   
   for (insn = ila_insn; insn != NULL; insn = NEXT_INSN (insn))
     {
-      bb = BLOCK_FOR_INSN (insn);
-      bb_aux[bb->index] = true;
-      
       if (!INSN_P (insn))
 	continue;
-      
-      size += spu_estimate_instruction_size (insn); 
+
+      bb = BLOCK_FOR_INSN (insn);
+      if (!TARGET_SOFTWARE_ICACHE)
+        bb_aux[bb->index] = true;
+      size += spu_estimate_instruction_size (insn);
+
       if (!tablejump_p (insn, &label1, NULL))
 	continue;
       
-      if (rtx_equal_p (label, label1))
+      if ((!TARGET_SOFTWARE_ICACHE && rtx_equal_p (label, label1))
+          || TARGET_SOFTWARE_ICACHE)
 	{
 	  found_jump_table = true;
+          *last_insn_critical_section = insn;
 	  break;
 	}
+       
     }
   
   if (found_jump_table)
     {
       int i;
-      
+     
+       dump_critical_section_info (JUMP_TABLE, true, ila_insn); 
       /* Mark the bb's between the jump-table and the code that
          reads the table so they reside in the same section.  */
       for (i = 0; i < last_basic_block; i++)
@@ -2920,7 +2931,7 @@ record_jump_table (rtx ila_insn)
    START_SEQUENCE; which appears in the same basic-block as bb and is
    of type TYPE.  */
 static void
-close_critical_sections (VEC (critical_sections_t, heap) *start_sequence,
+close_critical_sections (VEC (critical_sections_t, gc) *start_sequence,
 			 basic_block bb, enum critical_section_type type, 
 			 rtx insn)
 {
@@ -2939,7 +2950,7 @@ close_critical_sections (VEC (critical_sections_t, heap) *start_sequence,
 	  crit->closed_p = true;
 	  crit->end = insn;
 	  bb_close_critical_section_p = true;
-	  VEC_safe_push (critical_sections_t, heap, critical_sections, crit);
+	  VEC_safe_push (critical_sections_t, gc, critical_sections, crit);
 	  break;
 	}
     }
@@ -2964,7 +2975,7 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 		       unsigned HOST_WIDE_INT last_section_size)
 {
   rtx insn;
-  VEC (critical_sections_t, heap) *start_sequence = NULL;
+  VEC (critical_sections_t, gc) *start_sequence = NULL;
   int i;
   enum critical_section_type type;
   basic_block bb = BASIC_BLOCK (bb_index);
@@ -2991,19 +3002,24 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
   /* Loop through all of the basic-block's insns.  */
   FOR_BB_INSNS (bb, insn)
     {
-      if (tablejump_p (insn, NULL, NULL) && !bb->il.rtl->skip)
+      /* Free the critical section list from previous functions.  */
+      if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_FUNCTION_BEG)
+        VEC_free (critical_sections_t, gc, critical_sections);
+  
+      if (tablejump_p (insn, NULL, NULL) && !bb->il.rtl->skip && !TARGET_SOFTWARE_ICACHE)
 	warning (0, "Unexpected jump-table in basic-block %d.  ", bb->index);
       
       /* Check whether this insn can begin a critical sections.  */
       if (begin_critical_section (insn, &type))
 	{
 	  critical_sections_t crit;
+          rtx last_insn_critical_section = NULL_RTX;
 	  
 	  size = bb_size;
 	  
 	  if (type == JUMP_TABLE)
 	    {
-	      size = record_jump_table (insn);
+	      size = record_jump_table (insn, &last_insn_critical_section);
 	      if (size > estimate_max_section_size)
 		warning (0,
 			 "jump-table in bb exceeds section size %d.  ",
@@ -3017,8 +3033,19 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 	  crit.type = type;
 	  crit.start = insn;
 	  crit.closed_p = false;
+          crit.end = NULL_RTX;
 	  /* Record the start instruction unless this is the .  */
-	  VEC_safe_push (critical_sections_t, heap, start_sequence, &crit);
+	  VEC_safe_push (critical_sections_t, gc, start_sequence, &crit);
+          if (type == JUMP_TABLE)
+            {
+              /* If this section contains if of type JUMP_TABLE then
+                 we already have its first and last instructions, so we
+                 record the critical section now.  */
+              gcc_assert (tablejump_p (last_insn_critical_section, NULL, NULL));
+              crit.end = last_insn_critical_section;
+              dump_critical_section_info (JUMP_TABLE, false, crit.end);
+              VEC_safe_push (critical_sections_t, gc, critical_sections, &crit);
+            }
 	}
 
       /* Check whether this insn can end a critical sections.  */
@@ -3050,7 +3077,7 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
   if (last_section_size == 0)
     start_new_section_p = false;
   
-  VEC_free (critical_sections_t, heap, start_sequence);
+  VEC_free (critical_sections_t, gc, start_sequence);
  
   if (TARGET_SOFTWARE_ICACHE
       && !has_jump_table 
@@ -3088,7 +3115,12 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 static bool
 spu_dont_create_jumptable (unsigned int ncases)
 {
-  unsigned int table_size = ncases * 4 + 12 * 4;
+  unsigned int table_size = ncases * 4;
+
+  /* For the software icache scheme we should take into account the
+     inline check.  */
+  if (TARGET_SOFTWARE_ICACHE)
+    table_size += (12 * 4);
 
   if (flag_partition_functions_into_sections == 0)
     return false;
@@ -3991,7 +4023,8 @@ spu_machine_dependent_reorg (void)
 	      spu_bb_info[prop->index].prop_jump = branch;
 	      spu_bb_info[prop->index].bb_index = i;
 	    }
-	  else if (branch_addr - next_addr >= required_dist)
+	  else if (branch_addr - next_addr >= required_dist
+                   && !NOTE_INSN_BASIC_BLOCK_P (NEXT_INSN (insn)))
 	    {
 	      if (dump_file)
 		fprintf (dump_file, "hint for %i in block %i before %i\n",

@@ -3887,21 +3887,43 @@ selb\t%0,%4,%0,%3"
     rtx index = gen_reg_rtx (SImode);
     rtx sindex = gen_reg_rtx (SImode);
     rtx addr = gen_reg_rtx (Pmode);
+    rtx insn;
 
     if (TARGET_SOFTWARE_ICACHE)
-      emit_insn (gen_blockage ());
+    {
+      /* In icache scheme the sequence of instructions from the load from
+      the table and the final branch need to reside in a single section.
+      Thus we schedule them closer.  */
+      emit_move_insn (table, gen_rtx_LABEL_REF (SImode, operands[3]));
 
-    emit_move_insn (table, gen_rtx_LABEL_REF (SImode, operands[3]));
-
-    emit_insn (gen_subsi3(index, operands[0], force_reg(SImode, operands[1])));
-    emit_insn (gen_ashlsi3(sindex, index, GEN_INT (2)));
-    emit_move_insn (addr, gen_rtx_MEM (SImode,
-				       gen_rtx_PLUS (SImode, table, sindex)));
-    if (flag_pic)
+      emit_insn (gen_subsi3(index, operands[0], force_reg(SImode, operands[1])));
+      emit_insn (gen_ashlsi3(sindex, index, GEN_INT (2)));
+      if (flag_pic)
       emit_insn (gen_addsi3 (addr, addr, table));
 
-    emit_cmp_and_jump_insns (index, operands[2], GTU, NULL_RTX, SImode, 1, operands[4]);
-    emit_jump_insn (gen_tablejump (addr, operands[3]));
+      emit_cmp_and_jump_insns (index, operands[2], GTU, NULL_RTX, SImode, 1, operands[4]);
+      insn = emit_insn (gen_blockage ());
+      add_reg_note (insn, REG_BRANCH_INFO,
+                    gen_rtx_SYMBOL_REF (VOIDmode, ggc_strdup ("jumptable start")));
+      emit_move_insn (addr, gen_rtx_MEM (SImode,
+                      gen_rtx_PLUS (SImode, table, sindex)));
+      emit_jump_insn (gen_tablejump (addr, operands[3]));
+
+    }
+    else 
+    {
+      emit_move_insn (table, gen_rtx_LABEL_REF (SImode, operands[3]));
+
+      emit_insn (gen_subsi3(index, operands[0], force_reg(SImode, operands[1])));
+      emit_insn (gen_ashlsi3(sindex, index, GEN_INT (2)));
+      emit_move_insn (addr, gen_rtx_MEM (SImode,
+                                       gen_rtx_PLUS (SImode, table, sindex)));
+      if (flag_pic)
+        emit_insn (gen_addsi3 (addr, addr, table));
+
+      emit_cmp_and_jump_insns (index, operands[2], GTU, NULL_RTX, SImode, 1, operands[4]);
+      emit_jump_insn (gen_tablejump (addr, operands[3]));
+    }
     DONE;
   })
 
