@@ -32,6 +32,7 @@
 (defun applybiggereven (fmat :long x)
   (debug_msg fmat "applybiggereven fmat")
   (messagenum_dbg "applybiggereven x=" x)
+  (code_chunk apbigev #{ printf("applybiggereven x=%ld\n", $x); }#)
   (return fmat x)
 )
 
@@ -44,6 +45,7 @@
   matchbiggereven applybiggereven)
 	      
 
+#|
 (defun tfunmatch (o :long x)
   (debug_msg o "start tfunmatch o=")
   (messagenum_dbg "start tfunmatch x=" x)
@@ -59,5 +61,6 @@
 (tfunmatch 'one 1)
 (tfunmatch 'four 4)
 (tfunmatch 'ten 10)
-
+|#
+(isbiggereven 'six 6)
 ;; eof tfunmatch-1.melt

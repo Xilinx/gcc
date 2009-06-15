@@ -1,3 +1,10 @@
+2009-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	[funmatcher expressions not working]
+	* testsuite/melt/tfunmatch-1.melt: added funmatcher expr...
+	* melt/warmelt-macro.melt: added sfmatx_fmatbind field into
+	class_src_funmatchexpr for expand_funmatchexpr.
+	* melt/warmelt-normatch.melt: or pattern expansion ok.
+
 2009-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	[or pattern working]
 	* melt/warmelt-normatch.melt: normpat_orpat working...

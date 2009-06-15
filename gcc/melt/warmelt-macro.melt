@@ -79,6 +79,7 @@
 (defclass class_src_funmatchexpr
   :super class_src
   :fields (sfmatx_fmatcher		;the funmatcher
+	   sfmatx_fmatbind		;the funmatcher binding
 	   sfmatx_args			;the arguments
 ))
 
@@ -734,38 +735,29 @@
 
 ;;; expand a funmatcher expression
 ;;;; this is for funmatcher in expression contexts (not as patterns) 
-(defun expand_funmatchexpr (fmat sexpr env mexpander)
+(defun expand_funmatchexpr (fmat sexpr env mexpander opbind)
   (debug_msg sexpr "expand_funmatchexpr sexpr")
   (debug_msg fmat "expand_funmatchexpr fmat")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check fmat" (is_a fmat class_funmatcher))
-  (compile_warning "@$@unimplemented expand_funmatchexpr" ())
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
 	 (soper (pair_head (list_first scont)))
 	 (xargtup (expand_restlist_as_tuple scont env mexpander))
-	 (fmatin (unsafe_get_field :amatch_in fmat))
 	 (fmatapp (unsafe_get_field :fmatch_applyf fmat))
 	 )
-    (if (!=i (multiple_length xargtup)
-	     (multiple_length fmatin))
-	(warning_strv sloc
-		      "bad argument number for funmatcher expression"_
-		      (unsafe_get_field :named_name fmat)))
-    (if (null fmatapp)
-	(progn
-	  (error_strv sloc
-		      "funmatcher used without applying function expansion"_
-		      (unsafe_get_field :named_name fmat))
-	  (return)))
+    (debug_msg xargtup "expand_funmatchexpr xargtup")
+    (debug_msg fmatapp "expand_funmatchexpr fmatapp")
+    (debug_msg opbind "expand_funmatchexpr opbind")
     ;; we need to build a specific funmatchexpr, because it is handled
     ;; differently from a simple application
     (let ( (res (instance class_src_funmatchexpr
 			  :src_loc sloc
 			  :sfmatx_fmatcher fmat
+			  :sfmatx_fmatbind opbind
 			  :sfmatx_args xargtup)) )
       (debug_msg res "funmatcher result")
       (return res)
@@ -830,7 +822,7 @@
 			    ))
 			( (is_a opbind class_funmatcher_binding)
 			  (let ( (fmatch (unsafe_get_field :fmbind_funmatcher opbind)) 
-				 (resf (expand_funmatchexpr fmatch sexpr env mexpander))
+				 (resf (expand_funmatchexpr fmatch sexpr env mexpander opbind))
 				 )
 			    (debug_msg resf "macroexpand_1 result for funmatcher resf")
 			    (return resf)
@@ -860,7 +852,7 @@
 				 (debug_msg resc "macroexpand_1 result for cmatch resc")
 				 (return resc)))
 			     ( (is_a val class_funmatcher)
-			       (let ( (resf (expand_funmatchexpr val sexpr env mexpander)) )
+			       (let ( (resf (expand_funmatchexpr val sexpr env mexpander opbind)) )
 				 (debug_msg resf "macroexpand_1 result for funmatch resf")
 				 (return resf)))
 			     (:else
@@ -1036,10 +1028,6 @@
 	    (patmacexpand_for_matcher (pair_tail curpair) fmat env sloc pctx)
 	    (debug_msg args "patternexpand_expr funmatcher args")
 	    (debug_msg pats "patternexpand_expr funmatcher pats")
-	    ;; maybe we should transmit to the pcomp something from
-	    ;; the defunmatcher, eg the name or expression of the
-	    ;; matching function
-	    (compile_warning "patternexpand_expr funmatcher perhaps we should have more of the defunmatcher..." ())
 	    (let ( (pcomp (instance class_srcpattern_funmatch
 				    :src_loc sloc
 				    :spac_operator fmat

@@ -921,7 +921,6 @@
 	     (debug_msg testercont "normpat_orpat.subhdler done testercont")
 	     )))
 	) 
-    (compile_warning "normpat_orpat is untested" ())
     (foreach_in_multiple 
      (disjpats)
      (subpat :long subix)
@@ -953,7 +952,6 @@
 	  (list_append testlist disjtester)
 	  (debug_msg disjtester "normpat_orpat handled disjtester")
 	  ))
-      (compile_warning "$@$incomplete normpat_orpat" ())
       )
     )
   (debug_msg recv "normpat_orpat recv end")
