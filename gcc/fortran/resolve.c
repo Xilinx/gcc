@@ -9406,10 +9406,19 @@ resolve_symbol (gfc_symbol *sym)
   if (sym->attr.procedure && sym->ts.interface
       && sym->attr.if_source != IFSRC_DECL)
     {
+      if (sym->ts.interface == sym)
+	{
+	  gfc_error ("PROCEDURE '%s' at %L may not be used as its own "
+		     "interface", sym->name, &sym->declared_at);
+	  return;
+	}
       if (sym->ts.interface->attr.procedure)
-	gfc_error ("Interface '%s', used by procedure '%s' at %L, is declared "
-		   "in a later PROCEDURE statement", sym->ts.interface->name,
-		   sym->name,&sym->declared_at);
+	{
+	  gfc_error ("Interface '%s', used by procedure '%s' at %L, is declared"
+		     " in a later PROCEDURE statement", sym->ts.interface->name,
+		     sym->name,&sym->declared_at);
+	  return;
+	}
 
       /* Get the attributes from the interface (now resolved).  */
       if (sym->ts.interface->attr.if_source
@@ -9852,9 +9861,12 @@ values;
 static gfc_try
 next_data_value (void)
 {
-
   while (mpz_cmp_ui (values.left, 0) == 0)
     {
+      if (!gfc_is_constant_expr (values.vnode->expr))
+	gfc_error ("non-constant DATA value at %L",
+		   &values.vnode->expr->where);
+
       if (values.vnode->next == NULL)
 	return FAILURE;
 

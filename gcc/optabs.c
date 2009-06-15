@@ -54,7 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 
    See expr.h for documentation of these optabs.  */
 
-#if GCC_VERSION >= 4000
+#if GCC_VERSION >= 4000 && HAVE_DESIGNATED_INITIALIZERS
 __extension__ struct optab_d optab_table[OTI_MAX]
   = { [0 ... OTI_MAX - 1].handlers[0 ... NUM_MACHINE_MODES - 1].insn_code
       = CODE_FOR_nothing };
@@ -66,7 +66,7 @@ struct optab_d optab_table[OTI_MAX];
 rtx libfunc_table[LTI_MAX];
 
 /* Tables of patterns for converting one mode to another.  */
-#if GCC_VERSION >= 4000
+#if GCC_VERSION >= 4000 && HAVE_DESIGNATED_INITIALIZERS
 __extension__ struct convert_optab_d convert_optab_table[COI_MAX]
   = { [0 ... COI_MAX - 1].handlers[0 ... NUM_MACHINE_MODES - 1]
 	[0 ... NUM_MACHINE_MODES - 1].insn_code
@@ -6044,7 +6044,8 @@ init_one_libfunc (const char *name)
 	 targetm.encode_section_info.  */
       /* ??? We don't have any type information except for this is
 	 a function.  Pretend this is "int foo()".  */
-      decl = build_decl (FUNCTION_DECL, get_identifier (name),
+      decl = build_decl (UNKNOWN_LOCATION,
+			 FUNCTION_DECL, get_identifier (name),
 			 build_function_type (integer_type_node, NULL_TREE));
       DECL_ARTIFICIAL (decl) = 1;
       DECL_EXTERNAL (decl) = 1;
@@ -6153,7 +6154,7 @@ init_optabs (void)
       vcondu_gen_code[i] = CODE_FOR_nothing;
     }
 
-#if GCC_VERSION >= 4000
+#if GCC_VERSION >= 4000 && HAVE_DESIGNATED_INITIALIZERS
   /* We statically initialize the insn_codes with CODE_FOR_nothing.  */
   if (reinit)
     init_insn_codes ();

@@ -1,3 +1,183 @@
+2009-06-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/builtin-object-size-7.c: New test.
+
+2009-06-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/40426
+	* lib/gcc-dg.exp (gcc-dg-debug-runtest): For type -gdwarf-2 and
+	level != "" use separate -gdwarf-2 -g${level} options instead of
+	-gdwarf-2${level}.
+	* lib/gfortran-dg.exp (gfortran-dg-debug-runtest): Likewise.
+	* gfortran.dg/debug/pr37738.f: Also skip if -gdwarf-2 -g1.
+	* gfortran.dg/debug/pr35154-dwarf2.f: Likewise.
+
+2009-06-15  Rafael Avila de Espindola  <espindola@google.com>
+
+	* g++.dg/abi/mangle11.C: Update warning line.
+	* g++.dg/abi/mangle12.C: Update warning line.
+	* g++.dg/abi/mangle17.C: Update warning line.
+	* g++.dg/abi/mangle20-2.C: Update warning line.
+
+2009-06-14  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/optimize-bswap-1.c: Split into these two:
+	* gcc.dg/optimize-bswapsi-1.c: New testcase.
+	* gcc.dg/optimize-bswapdi-1.c: New testcase.
+
+2009-06-14  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/optimize-bswap-1.c: New testcase.
+
+2009-06-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40389
+	* g++.dg/torture/pr40389.C: New testcase.
+
+2009-06-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40421
+	* gfortran.fortran-torture/compile/pr40421.f: New testcase.
+
+2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/old-style-prom-3.c: Add column info.
+	* gcc.dg/overflow-warn-1.c
+	* gcc.dg/gomp/pr27415.c
+	* gcc.dg/gomp/for-1.c: Same.
+	* gcc.dg/enum-compat-1.c: Same.
+	* gcc.dg/c99-tag-3.c: Same.
+	* gcc.dg/Wredundant-decls-2.c: Same.
+	* gcc.dg/func-ptr-conv-1.c: Same.
+	* gcc.dg/asm-wide-1.c: Same.
+	* gcc.dg/nofixed-point-2.c: Same.
+	* gcc.dg/cpp/line3.c: Same.
+	* gcc.dg/array-10.c: Same.
+	* gcc.dg/c99-vla-jump-1.c: Same.
+	* gcc.dg/pr20368-1.c: Same.
+	* gcc.dg/Wshadow-3.c: Same.
+	* gcc.dg/c90-const-expr-8.c: Same.
+	* gcc.dg/label-decl-2.c: Same.
+	* gcc.dg/dremf-type-compat-2.c: Same.
+	* gcc.dg/c90-const-expr-5.c: Same.
+	* gcc.dg/builtins-30.c: Same.
+	* gcc.dg/Warray-bounds.c: Same.
+	* gcc.dg/Wcxx-compat-2.c: Same.
+	* gcc.dg/tree-ssa/col-1.c: Same.
+	* gcc.dg/old-style-prom-2.c: Same.
+	* gcc.dg/cast-function-1.c: Same.
+	* gcc.dg/pr15698-1.c: Same.
+	* gcc.dg/dremf-type-compat-3.c: Same.
+	* gcc.dg/vla-8.c: Same.
+	* gcc.dg/gomp/pr27415.c: Move firstprivate diagnostics to correct
+	line.
+	* gcc.dg/label-decl-2.c: Move label diagnostic to correct line.
+	* gcc.dg/old-style-prom-3.c: Check for error on the correct line.
+	* gcc.dg/enum-compat-1.c: Same.
+	* gcc.dg/dremf-type-compat-2.c: Same.
+	* gcc.dg/old-style-prom-2.c: Same.
+	* gcc.dg/pr15698-1.c: Same.
+	* gcc.dg/pr20368-1.c: Same.
+	* gcc.dg/dremf-type-compat-3.c: Same.
+	* gcc.dg/builtins-30.c: Same.  Test for columns.
+	
+2009-06-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40176
+	* gfortran.dg/proc_decl_1.f90: Extended.
+
+2009-06-12  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-13.c: New testcase.
+
+2009-06-12  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/38865
+	* gcc.dg/tree-ssa/fre-vce-1.c
+
+2009-06-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/40384
+	* gcc.dg/tree-ssa/prefetch-5.c: Add --param min-insn-to-prefetch-ratio=5.
+
+2009-06-12  Joey Ye  <joey.ye@intel.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/39146
+	* gcc.target/i386/stackalign/pr39146.c: New.
+
+2009-06-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/crc32-1.c: New.
+	* gcc.target/i386/crc32-2.c: Likewise.
+
+2009-06-11  David Daney  <ddaney@caviumnetworks.com>
+
+	PR c/39252
+	* gcc.dg/builtin-unreachable-1.c: New test.
+	* gcc.dg/builtin-unreachable-2.c: Same.
+
+2009-06-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40402
+	* gfortran.dg/data_value_1.f90: New test.
+
+2009-06-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR testsuite/39831
+	* gcc.target/i386/excess-precision-1.c: Use -mfpmath=387, and
+	remove ilp32 requirement.
+	* gcc.target/i386/excess-precision-2.c: Likewise.
+	* gcc.target/i386/excess-precision-3.c: Likewise.
+	* gcc.target/i386/excess-precision-4.c: Likewise.
+	* gcc.target/i386/excess-precision-5.c: Likewise.
+	* gcc.target/i386/excess-precision-6.c: Likewise.
+
+2009-06-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38718
+	* gfortran.dg/is_iostat_end_eor_2.f90: New test.
+	* gfortran.dg/nan_5.f90: New test.
+
+2009-06-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.target/arm/neon-modes-1.c: New test.
+
+2009-06-10  Kai Tietz  <kai.tietz@onevision.com>
+
+	* g++.dg/torture/pr31579.C: Cast pointer
+	via __SIZE_TYPE__ instead of 'unsigned long'.
+
+2009-06-10  Anthony Green  <green@moxielogic.com>
+
+	* testsuite/lib/target-supports.exp (check_profiling_available):
+	Profiling is not available for testing purposes on moxie.
+
+2009-06-09  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-12.c: New testcase.
+
+2009-06-09  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/40334
+	* gfortran.dg/backspace_11.f90: New.
+
+2009-06-09  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/defaulted10.C: New.
+
+2009-06-09  Martin Jambor  <mjambor@suse.cz>
+
+	* testsuite/gcc.c-torture/compile/pr40351.c: New file.
+
+2009-06-09  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/align_max.adb: New test.
+
+2009-06-08  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/auto15.C: New.
+
 2009-06-08  Jan Hubicka  <jh@suse.cz>
 
 	PR debug/39834
