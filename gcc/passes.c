@@ -538,7 +538,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_early_inline);
     {
       struct opt_pass **p = &pass_ipa_early_inline.pass.sub;
-      NEXT_PASS (pass_early_inline_pre_profile);
+      NEXT_PASS (pass_early_inline);
       NEXT_PASS (pass_inline_parameters);
       NEXT_PASS (pass_rebuild_cgraph_edges);
     }

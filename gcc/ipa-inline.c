@@ -164,7 +164,7 @@ enum inlining_mode {
 };
 static bool
 cgraph_decide_inlining_incrementally (struct cgraph_node *, enum inlining_mode,
-				      bool no_intermodule, int);
+				      int);
 
 
 /* Statistics we collect about inlining algorithm.  */
@@ -1226,7 +1226,7 @@ cgraph_decide_inlining (void)
 	      if (dump_file)
 		fprintf (dump_file,
 			 "Flattening %s\n", cgraph_node_name (node));
-	      cgraph_decide_inlining_incrementally (node, INLINE_ALL, false, 0);
+	      cgraph_decide_inlining_incrementally (node, INLINE_ALL, 0);
 	    }
 
 	  if (!node->local.disregard_inline_limits)
@@ -1354,7 +1354,7 @@ cgraph_decide_inlining (void)
    So after hitting cycle first time, we switch into ALWAYS_INLINE mode and
    stop inlining only after hitting ALWAYS_INLINE in ALWAY_INLINE mode.  */
 static bool
-try_inline (struct cgraph_edge *e, enum inlining_mode mode, bool no_intermodule, int depth)
+try_inline (struct cgraph_edge *e, enum inlining_mode mode, int depth)
 {
   struct cgraph_node *callee = e->callee;
   enum inlining_mode callee_mode = (enum inlining_mode) (size_t) callee->aux;
@@ -1413,8 +1413,7 @@ try_inline (struct cgraph_edge *e, enum inlining_mode mode, bool no_intermodule,
 	 Also flattening needs to be done recursively.  */
 
       if (mode == INLINE_ALL || always_inline)
-	cgraph_decide_inlining_incrementally (e->callee, mode, no_intermodule,
-					      depth + 1);
+	cgraph_decide_inlining_incrementally (e->callee, mode, depth + 1);
       inlined = true;
     }
   callee->aux = (void *)(size_t) callee_mode;
@@ -1442,13 +1441,14 @@ leaf_node_p (struct cgraph_node *n)
 static bool
 cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 				      enum inlining_mode mode,
-				      bool no_intermodule,
 				      int depth)
 {
   struct cgraph_edge *e;
   bool inlined = false;
   cgraph_inline_failed_t failed_reason;
   enum inlining_mode old_mode;
+  bool after_tree_profile =
+    (DECL_STRUCT_FUNCTION (node->decl))->after_tree_profile;
 
 #ifdef ENABLE_CHECKING
   verify_cgraph_node (node);
@@ -1482,7 +1482,7 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	   it in order to fully flatten the leaves.  */
 	if (!e->inline_failed && mode == INLINE_ALL)
 	  {
-	    inlined |= try_inline (e, mode, no_intermodule, depth);
+	    inlined |= try_inline (e, mode, depth);
 	    continue;
 	  }
 	if (dump_file)
@@ -1532,7 +1532,7 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	      }
 	    continue;
 	  }
-	inlined |= try_inline (e, mode, no_intermodule, depth);
+	inlined |= try_inline (e, mode, depth);
       }
 
   /* Now do the automatic inlining.  */
@@ -1548,7 +1548,9 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	    || !e->inline_failed
 	    || e->callee->local.disregard_inline_limits)
 	  continue;
-	if (no_intermodule 
+	/* Don't do cross-module inlining before profile-use, so that we have a
+	   consistent CFG between the profile-gen and profile-use passes.  */
+	if (!after_tree_profile
             && L_IPO_COMP_MODE
             && !cgraph_is_inline_body_available_in_module (
                 e->callee->decl, cgraph_get_module_id (e->caller->decl)))
@@ -1602,7 +1604,7 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
                it is hard to enable this heuristic and maintain consistent
                pre-profiling inline decisions between profiile generate
                and profile use passes.  */
-                || (no_intermodule && flag_dyn_ipa)))
+                || (!after_tree_profile && flag_dyn_ipa)))
 	  {
 	    if (dump_file)
 	      {
@@ -1649,7 +1651,7 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	    continue;
 	  }
 	if (cgraph_default_inline_p (e->callee, &failed_reason))
-	  inlined |= try_inline (e, mode, no_intermodule, depth);
+	  inlined |= try_inline (e, mode, depth);
         else
           {
 	    if (dump_file)
@@ -1675,7 +1677,7 @@ static GTY ((length ("nnodes"))) struct cgraph_node **order;
    passes to be somewhat more effective and avoids some code duplication in
    later real inlining pass for testcases with very many function calls.  */
 static unsigned int
-cgraph_early_inlining_pre_profile (void)
+cgraph_early_inlining (void)
 {
   struct cgraph_node *node = cgraph_node (current_function_decl);
   unsigned int todo = 0;
@@ -1685,7 +1687,7 @@ cgraph_early_inlining_pre_profile (void)
     return 0;
   while (cgraph_decide_inlining_incrementally (node,
   					       iterations
-					       ? INLINE_SIZE_NORECURSIVE : INLINE_SIZE, true, 0)
+					       ? INLINE_SIZE_NORECURSIVE : INLINE_SIZE, 0)
 	 && iterations < PARAM_VALUE (PARAM_EARLY_INLINER_MAX_ITERATIONS))
     {
       timevar_push (TV_INTEGRATION);
@@ -1701,18 +1703,18 @@ cgraph_early_inlining_pre_profile (void)
 
 /* When inlining shall be performed.  */
 static bool
-cgraph_gate_early_inlining_pre_profile (void)
+cgraph_gate_early_inlining (void)
 {
   return flag_early_inlining;
 }
 
-struct gimple_opt_pass pass_early_inline_pre_profile =
+struct gimple_opt_pass pass_early_inline = 
 {
  {
   GIMPLE_PASS,
-  "einline1",	 			/* name */
-  cgraph_gate_early_inlining_pre_profile,/* gate */
-  cgraph_early_inlining_pre_profile,	/* execute */
+  "einline",	 			/* name */
+  cgraph_gate_early_inlining,		/* gate */
+  cgraph_early_inlining,		/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
@@ -1755,58 +1757,6 @@ struct simple_ipa_opt_pass pass_ipa_early_inline =
  }
 };
 
-
-/* Do inlining of small functions.  Doing so early helps profiling and other
-   passes to be somewhat more effective and avoids some code duplication in
-   later real inlining pass for testcases with very many function calls.  */
-static unsigned int
-cgraph_early_inlining (void)
-{
-  struct cgraph_node *node = cgraph_node (current_function_decl);
-  unsigned int todo = 0;
-
-  if (sorrycount || errorcount)
-    return 0;
-  /* In LIPO mode, we may want to allow inter-module early inlining as
-     it is after the tree_profiling pass. However allowing inlining cross
-     module inlining can potentially change the result of some analysis results
-     such as pure-const analysis. This in turn can result in changes in caller
-     function's CFG (removal of EH edges), which leads to coverage mismatch.  */
-  if (cgraph_decide_inlining_incrementally (node, INLINE_SIZE, true, 0))
-    {
-      timevar_push (TV_INTEGRATION);
-      todo = optimize_inline_calls (current_function_decl);
-      timevar_pop (TV_INTEGRATION);
-    }
-  cfun->always_inline_functions_inlined = true;
-  return todo;
-}
-
-/* When inlining shall be performed.  */
-static bool
-cgraph_gate_early_inlining (void)
-{
-  return flag_early_inlining;
-}
-
-struct gimple_opt_pass pass_early_inline =
-{
- {
-  GIMPLE_PASS,
-  "einline2",	 			/* name */
-  cgraph_gate_early_inlining,           /* gate */
-  cgraph_early_inlining,        	/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_INLINE_HEURISTICS,			/* tv_id */
-  0,	                                /* properties_required */
-  PROP_cfg,				/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  TODO_dump_func    			/* todo_flags_finish */
- }
-};
 
 /* See if statement might disappear after inlining.  We are not terribly
    sophisficated, basically looking for simple abstraction penalty wrappers.  */
