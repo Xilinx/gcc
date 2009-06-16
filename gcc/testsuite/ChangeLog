@@ -1,3 +1,167 @@
+2009-06-16  Martin Jambor  <mjambor@suse.cz>
+
+	* testsuite/gcc.c-torture/compile/pr40432.c: New file.
+
+2009-06-16  Martin Jambor  <mjambor@suse.cz>
+
+	* testsuite/gfortran.fortran-torture/compile/pr40413.f90: New file.
+
+2009-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36947
+	PR fortran/40039
+	* gfortran.dg/dummy_procedure_1.f90: Extended test case.
+	* gfortran.dg/interface_20.f90: Modified error messages.
+	* gfortran.dg/interface_21.f90: Ditto.
+	* gfortran.dg/interface_26.f90: Ditto.
+	* gfortran.dg/interface_27.f90: Ditto.
+	* gfortran.dg/interface_28.f90: Extended test case.
+	* gfortran.dg/interface_29.f90: New.
+	* gfortran.dg/proc_decl_7.f90: Modified error messages.
+	* gfortran.dg/proc_decl_8.f90: Ditto.
+	* gfortran.dg/proc_ptr_11.f90: Ditto.
+	* gfortran.dg/proc_ptr_15.f90: Ditto.
+
+2009-06-16  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/vect-outer-4g.c: Don't look for pattern not allowed 
+	printing.
+	* gcc.dg/vect/vect-outer-4k.c, gcc.dg/vect/vect-outer-4l.c,
+	gcc.dg/vect/vect-outer-4f.c: Likewise.
+	* gcc.dg/vect/vect-nest-cycle-1.c: New test.
+	* gcc.dg/vect/vect-nest-cycle-2.c, gcc.dg/vect/vect-nest-cycle-3.c: 
+	Likewise.
+	* gcc.dg/vect/vect-outer-1a.c: Fail because of strided access in outer 
+	loop.
+
+2009-06-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40383
+	* gfortran.dg/bounds_check_strlen_8.f90: New test.
+
+2009-06-15  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wjump-misses-init-1.c: New testcase.
+	* gcc.dg/Wjump-misses-init-2.c: New testcase.
+	* gcc.dg/c99-vla-jump-5.c: Adjust expected error messages.
+	Recognize new notes.
+	* gcc.dg/stmt-expr-label-2.c: Likewise.
+	* gcc.dg/c99-vla-jump-1.c: Recognize new notes.  Fix column
+	numbers.
+	* gcc.dg/c99-vla-jump-2.c: Recognize new notes.
+	* gcc.dg/c99-vla-jump-3.c: Recognize new notes.
+	* gcc.dg/c99-vla-jump-4.c: Likewise.
+	* gcc.dg/stmt-expr-label-1.c: Likewise.
+	* gcc.dg/stmt-expr-label-3.c: Likewise.
+	* gcc.dg/vla-8.c: Likewise.  Move error message to different
+	line.
+
+2009-06-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-6.c: Robustify and fix clog cases.
+
+2009-06-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/builtin-object-size-7.c: New test.
+
+2009-06-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/40426
+	* lib/gcc-dg.exp (gcc-dg-debug-runtest): For type -gdwarf-2 and
+	level != "" use separate -gdwarf-2 -g${level} options instead of
+	-gdwarf-2${level}.
+	* lib/gfortran-dg.exp (gfortran-dg-debug-runtest): Likewise.
+	* gfortran.dg/debug/pr37738.f: Also skip if -gdwarf-2 -g1.
+	* gfortran.dg/debug/pr35154-dwarf2.f: Likewise.
+
+2009-06-15  Rafael Avila de Espindola  <espindola@google.com>
+
+	* g++.dg/abi/mangle11.C: Update warning line.
+	* g++.dg/abi/mangle12.C: Update warning line.
+	* g++.dg/abi/mangle17.C: Update warning line.
+	* g++.dg/abi/mangle20-2.C: Update warning line.
+
+2009-06-14  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/optimize-bswap-1.c: Split into these two:
+	* gcc.dg/optimize-bswapsi-1.c: New testcase.
+	* gcc.dg/optimize-bswapdi-1.c: New testcase.
+
+2009-06-14  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/optimize-bswap-1.c: New testcase.
+
+2009-06-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40389
+	* g++.dg/torture/pr40389.C: New testcase.
+
+2009-06-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40421
+	* gfortran.fortran-torture/compile/pr40421.f: New testcase.
+
+2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/old-style-prom-3.c: Add column info.
+	* gcc.dg/overflow-warn-1.c
+	* gcc.dg/gomp/pr27415.c
+	* gcc.dg/gomp/for-1.c: Same.
+	* gcc.dg/enum-compat-1.c: Same.
+	* gcc.dg/c99-tag-3.c: Same.
+	* gcc.dg/Wredundant-decls-2.c: Same.
+	* gcc.dg/func-ptr-conv-1.c: Same.
+	* gcc.dg/asm-wide-1.c: Same.
+	* gcc.dg/nofixed-point-2.c: Same.
+	* gcc.dg/cpp/line3.c: Same.
+	* gcc.dg/array-10.c: Same.
+	* gcc.dg/c99-vla-jump-1.c: Same.
+	* gcc.dg/pr20368-1.c: Same.
+	* gcc.dg/Wshadow-3.c: Same.
+	* gcc.dg/c90-const-expr-8.c: Same.
+	* gcc.dg/label-decl-2.c: Same.
+	* gcc.dg/dremf-type-compat-2.c: Same.
+	* gcc.dg/c90-const-expr-5.c: Same.
+	* gcc.dg/builtins-30.c: Same.
+	* gcc.dg/Warray-bounds.c: Same.
+	* gcc.dg/Wcxx-compat-2.c: Same.
+	* gcc.dg/tree-ssa/col-1.c: Same.
+	* gcc.dg/old-style-prom-2.c: Same.
+	* gcc.dg/cast-function-1.c: Same.
+	* gcc.dg/pr15698-1.c: Same.
+	* gcc.dg/dremf-type-compat-3.c: Same.
+	* gcc.dg/vla-8.c: Same.
+	* gcc.dg/gomp/pr27415.c: Move firstprivate diagnostics to correct
+	line.
+	* gcc.dg/label-decl-2.c: Move label diagnostic to correct line.
+	* gcc.dg/old-style-prom-3.c: Check for error on the correct line.
+	* gcc.dg/enum-compat-1.c: Same.
+	* gcc.dg/dremf-type-compat-2.c: Same.
+	* gcc.dg/old-style-prom-2.c: Same.
+	* gcc.dg/pr15698-1.c: Same.
+	* gcc.dg/pr20368-1.c: Same.
+	* gcc.dg/dremf-type-compat-3.c: Same.
+	* gcc.dg/builtins-30.c: Same.  Test for columns.
+	
+2009-06-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40176
+	* gfortran.dg/proc_decl_1.f90: Extended.
+
+2009-06-12  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-13.c: New testcase.
+
+2009-06-12  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/38865
+	* gcc.dg/tree-ssa/fre-vce-1.c
+
+2009-06-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/40384
+	* gcc.dg/tree-ssa/prefetch-5.c: Add --param min-insn-to-prefetch-ratio=5.
+
 2009-06-12  Joey Ye  <joey.ye@intel.com>
 	    H.J. Lu  <hongjiu.lu@intel.com>
 

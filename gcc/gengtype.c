@@ -128,21 +128,23 @@ typedef struct outf * outf_p;
 
 /* An output file, suitable for definitions, that can see declarations
    made in INPUT_FILE and is linked into every language that uses
-   INPUT_FILE.  May return null in plugin mode. */
+   INPUT_FILE.  May return NULL in plugin mode. */
 extern outf_p get_output_file_with_visibility
    (const char *input_file);
 const char *get_output_file_name (const char *);
 
-/* Print, like fprintf, to O.  */
+/* Print, like fprintf, to O.  No-op if O is NULL. */
 static void oprintf (outf_p o, const char *S, ...)
      ATTRIBUTE_PRINTF_2;
 
 /* The list of output files.  */
 static outf_p output_files;
 
-/* the plugin input file; in that case only one gt-<plugin>.h is
-   generated */
-static char* plugin_file;
+/* The plugin input files and their number; in that case only
+   corresponding gt-<plugin>.h are generated in the current
+   directory.  */
+static char** plugin_files;
+static int nb_plugin_files;
 
 /* The output header file that is included into pretty much every
    source file.  */
@@ -278,7 +280,7 @@ measure_input_list (FILE *list)
   int c;
   bool atbol = true;
   num_lang_dirs = 0;
-  num_gt_files = plugin_file ? 1 : 0;
+  num_gt_files = plugin_files ? nb_plugin_files : 0;
   while ((c = getc (list)) != EOF)
     {
       n++;
@@ -459,9 +461,13 @@ read_input_list (const char *listname)
       /* Update the global counts now that we know accurately how many
 	 things there are.  (We do not bother resizing the arrays down.)  */
       num_lang_dirs = langno;
-      /* add the plugin file if provided */
-      if (plugin_file) 
-	gt_files[nfiles++] = plugin_file;
+      /* Add the plugin files if provided.  */
+      if (plugin_files) 
+	{
+	  int i;
+	  for (i = 0; i < nb_plugin_files; i++)
+	    gt_files[nfiles++] = plugin_files[i];
+	}
       num_gt_files = nfiles;
     }
 
@@ -1506,8 +1512,8 @@ oprintf (outf_p o, const char *format, ...)
   size_t slength;
   va_list ap;
 
-  /* in plugin mode, the O could be a null pointer, so avoid crashing
-     in that case */
+  /* In plugin mode, the O could be a NULL pointer, so avoid crashing
+     in that case.  */
   if (!o) 
     return;
 
@@ -1540,7 +1546,7 @@ open_base_files (void)
 {
   size_t i;
 
-  if (plugin_file)
+  if (nb_plugin_files > 0 && plugin_files)
     return;
 
   header_file = create_file ("GCC", "gtype-desc.h");
@@ -1709,10 +1715,15 @@ get_output_file_with_visibility (const char *input_file)
   if (input_file == NULL)
     input_file = "system.h";
 
-  /* in plugin mode, return null unless the input_file is the plugin */
-  if (plugin_file) 
+  /* In plugin mode, return NULL unless the input_file is one of the
+     plugin_files.  */
+  if (plugin_files && nb_plugin_files > 0) 
     { 
-      if (strcmp(input_file, plugin_file))
+      int ix= -1, i;
+      for (i = 0; i < nb_plugin_files && ix < 0; i++)
+      if (strcmp (input_file, plugin_files[i]) == 0) 
+	ix = i;
+      if (ix < 0) 
 	return NULL;
     }
 
@@ -1767,7 +1778,7 @@ get_output_file_with_visibility (const char *input_file)
   /* If not, create it.  */
   r = create_file (for_name, output_name);
 
-  gcc_assert(r && r->name);
+  gcc_assert (r && r->name);
   return r;
 }
 
@@ -1821,9 +1832,6 @@ close_output_files (void)
 	fatal ("opening output file %s: %s", of->name, strerror (errno));
       if (fwrite (of->buf, 1, of->bufused, newfile) != of->bufused)
 	fatal ("writing output file %s: %s", of->name, strerror (errno));
-      if (plugin_file)
-	fprintf (stderr, "wrote output file %s for plugin %s\n",
-		 of->name, plugin_file);
       if (fclose (newfile) != 0)
 	fatal ("closing output file %s: %s", of->name, strerror (errno));
     }
@@ -2695,7 +2703,7 @@ write_types (type_p structures, type_p param_structs,
 	     const struct write_types_data *wtd)
 {
   type_p s;
-  
+
   oprintf (header_file, "\n/* %s*/\n", wtd->comment);
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
@@ -3040,7 +3048,7 @@ static void
 finish_root_table (struct flist *flp, const char *pfx, const char *lastname,
 		   const char *tname, const char *name)
 {
-  struct flist *fli2 = NULL;
+  struct flist *fli2;
 
   for (fli2 = flp; fli2; fli2 = fli2->next)
     if (fli2->started_p)
@@ -3327,7 +3335,7 @@ write_roots (pair_p variables)
   for (v = variables; v; v = v->next)
     {
       outf_p f = get_output_file_with_visibility (v->line.file);
-      struct flist *fli = NULL;
+      struct flist *fli;
       const char *length = NULL;
       int deletable_p = 0;
       options_p o;
@@ -3380,7 +3388,7 @@ write_roots (pair_p variables)
   for (v = variables; v; v = v->next)
     {
       outf_p f = get_output_file_with_visibility (v->line.file);
-      struct flist *fli = NULL;
+      struct flist *fli;
       int skip_p = 0;
       int length_p = 0;
       options_p o;
@@ -3633,11 +3641,12 @@ main (int argc, char **argv)
   /* fatal uses this */
   progname = "gengtype";
 
-  if (argc == 5 && !strcmp(argv[1], "-p")) 
+  if (argc >= 5 && !strcmp (argv[1], "-p")) 
     {
       srcdir = argv[2];
       inputlist = argv[3];
-      plugin_file = argv[4];
+      plugin_files = argv+4;
+      nb_plugin_files = argc-4;
     }
   else if (argc == 3) 
     {
@@ -3645,8 +3654,7 @@ main (int argc, char **argv)
       inputlist = argv[2];
     } 
   else
-    fatal ("usage: gengtype srcdir input-list\n"
-	   "\t| gengtype -p srcdir input-list plugin #for plugins");
+    fatal ("usage: gengtype [-p] srcdir input-list [file1 file2 ... fileN]");
 
   srcdir_len = strlen (srcdir);
 

@@ -8593,7 +8593,7 @@ check_generic_tbp_ambiguity (gfc_tbp_generic* t1, gfc_tbp_generic* t2,
     }
 
   /* Compare the interfaces.  */
-  if (gfc_compare_interfaces (sym1, sym2, 1, 0))
+  if (gfc_compare_interfaces (sym1, sym2, 1, 0, NULL, 0))
     {
       gfc_error ("'%s' and '%s' for GENERIC '%s' at %L are ambiguous",
 		 sym1->name, sym2->name, generic_name, &where);
@@ -9406,10 +9406,19 @@ resolve_symbol (gfc_symbol *sym)
   if (sym->attr.procedure && sym->ts.interface
       && sym->attr.if_source != IFSRC_DECL)
     {
+      if (sym->ts.interface == sym)
+	{
+	  gfc_error ("PROCEDURE '%s' at %L may not be used as its own "
+		     "interface", sym->name, &sym->declared_at);
+	  return;
+	}
       if (sym->ts.interface->attr.procedure)
-	gfc_error ("Interface '%s', used by procedure '%s' at %L, is declared "
-		   "in a later PROCEDURE statement", sym->ts.interface->name,
-		   sym->name,&sym->declared_at);
+	{
+	  gfc_error ("Interface '%s', used by procedure '%s' at %L, is declared"
+		     " in a later PROCEDURE statement", sym->ts.interface->name,
+		     sym->name,&sym->declared_at);
+	  return;
+	}
 
       /* Get the attributes from the interface (now resolved).  */
       if (sym->ts.interface->attr.if_source

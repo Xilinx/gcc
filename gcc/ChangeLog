@@ -1,3 +1,641 @@
+2009-06-16  Rafael Avila de Espindola  <espindola@google.com>
+
+	* config/i386/winnt.c (i386_pe_encode_section_info): Update call to
+	make_decl_one_only.
+
+2009-06-16  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/40432
+	* tree-sra.c (sra_modify_assign): When creating VIEW_CONVERT_EXPR,
+	check whether we need to force gimple register operand.
+
+2009-06-16  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/40413
+	* tree-sra.c (load_assign_lhs_subreplacements): Pass offset to
+	build_ref_for_offset.
+	(propagate_subacesses_accross_link): Fix a typo in a comment.
+
+2009-06-16  Ira Rosen  <irar@il.ibm.com>
+
+	* tree-parloops.c (loop_parallel_p): Call vect_is_simple_reduction
+	with additional parameter.
+	* tree-vectorizer.h (enum vect_def_type): Add new value 
+	vect_nested_cycle.
+	(enum vect_relevant): Add comments.
+	(vect_is_simple_reduction): Add new argument.
+	* tree-vect-loop.c (vect_analyze_scalar_cycles_1): Add comments.
+	Detect nested cycles.
+	(vect_is_simple_reduction): Update documentation, add an argument to
+	distinguish inner-loop reduction from nested cycle, detect nested
+	cycles, fix printings and indentation, don't swap operands in case
+	of nested cycle.
+	(get_initial_def_for_reduction): Handle subtraction.
+	(vect_create_epilog_for_reduction): Add new argument to specify
+	reduction variable.
+	(vect_finalize_reduction): Handle subtraction, fix comments.
+	(vectorizable_reduction): Handle nested cycles. In case of nested cycle
+	keep track of the reduction variable position. Call 
+	vect_is_simple_reduction with additional parameter. Use original 
+	statement code in reduction epilogue for nested cycle. Call
+	vect_create_epilog_for_reduction with additional parameter.
+	* tree-vect-patterns.c (vect_recog_dot_prod_pattern): Assert inner-loop
+	vectorization.
+	(vect_recog_widen_sum_pattern): Likewise.
+	* tree-vect-stmts.c (process_use): Distinguish between nested cycles
+	and reductions.
+	(vect_mark_stmts_to_be_vectorized): Likewise.
+	(vect_get_vec_def_for_operand): Handle nested cycles.
+
+2009-06-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/invoke.texi (Debugging Options): Fix option index entries
+	for -fdump-statistics, -frandom-seed add entries for
+	-fdump-tree-original, -fdump-tree-optimized, -frandom-seed.
+	(FRV Options): Fix entries for -mTLS, -mtls.
+	(HPPA Options): Fix entries for -mgnu-ld, -mhp-ld.
+	(i386 and x86-64 Options): Fix entry for -mno-red-zone.
+	(M68hc1x Options): Fix @itemx for -mnominmax.
+	(MCore Options): Fix entry for -mno-lsim.
+	(MMIX Options): Fix entry for -mabi=mmixware.
+	(PDP-11 Options): Fix entry for -mbcopy-builtin.
+
+2009-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* doc/plugins.texi (Interacting with the GCC Garbage Collector):
+	Mention the plugin mode of gengtype.
+	* doc/gty.texi (Source Files Containing Type Information):
+	Likewise.
+	* gengtype.c: Updated copyright.
+	(plugin_files, nb_plugin_files) Added new static variables.
+	(measure_input_list) Care about plugin_files.
+	(write_rtx_next): Added early return in plugin mode.
+	(create_file): Updated copyright year in generated file. Added
+	asserts.
+	(oprintf): Added early return if NULL outf.
+	(get_output_file_with_visibility): Care of plugin_files.
+	(get_output_file_name): May return null.
+	(write_local): Added early return.
+	(put_mangled_filename): Ditto.
+	(finish_root_table): Added check for base_files.
+	(write_roots): Care about null when plugins.
+	(main): Added plugin mode.
+
+2009-06-15  Ian Lance Taylor  <iant@google.com>
+
+	* df-problems.c (df_simulate_one_insn_forwards): Fix braces in
+	switch.
+	* gcov.c (read_count_file): Add braces around variables declared
+	before label.
+
+	* c.opt (Wjump-misses-init): New warning.
+	* c-opts.c (c_common_handle_option): Set warn_jump_misses_init for
+	-Wall and -Wc++-compat if not already set.
+	(c_common_post_options): Clear warn_jump_misses_init if it was not
+	set.
+	* c-decl.c (struct c_binding): Change type field to a union with
+	new label field.  Make it the first field in the struct.  Update
+	references to type to use u.type instead.
+	(struct c_spot_bindings): Define.
+	(struct c_goto_bindings): Define.
+	(c_goto_bindings_p): Define, along with VECs.
+	(struct c_label_vars): Define.
+	(struct c_scope): Add has_label_bindings field.
+	(bind_label, set_spot_bindings): New static functions.
+	(decl_jump_unsafe, update_spot_bindings): New static functions.
+	(update_label_decls): New static function.
+	(pop_scope): Call update_label_decls.  Don't call c_end_vm_scope.
+	Update binding u.label field to shadowed field.
+	(c_binding_start_stmt_expr): New function.
+	(c_binding_end_stmt_expr): New function.
+	(pushdecl): Don't call c_begin_vm_scope.
+	(make_label): Add defining and p_label_vars parameters.  Change
+	all callers.
+	(lookup_label): Correct test for whether a label has not yet been
+	defined.  Call bind_label rather than bind.
+	(warn_about_goto): New static function.
+	(lookup_label_for_goto): New function.
+	(declare_label): Call bind_label rather than bind.
+	(check_earlier_gotos): New static function.
+	(define_label): Don't give errors about jumping into statement
+	expressions or scopes of variably modified types.  Call
+	set_spot_bindings and check_earlier_gotos.  Call bind_label
+	instead of bind.  Don't set label_context_stack_se or
+	label_context_stack_vm.
+	(c_get_switch_bindings): New function.
+	(c_release_switch_bindings): New function.
+	(c_check_switch_jump_warnings): New function.
+	(start_function): Don't set label_context_stack_se or
+	label_context_stack_vm.
+	(finish_function): Likewise.
+	* c-typeck.c (label_context_stack_se): Don't define.
+	(label_context_stack_vm): Don't define.
+	(c_finish_goto_label): Call lookup_label_for_goto rather than
+	lookup_label.  Don't give errors about jumping into a statement
+	expression or the scope of a variably modified type.  Don't set
+	label_context_stack_se or label_context_stack_vm.
+	(struct c_switch): Remove blocked_stmt_expr and blocked_vm
+	fields.  Add bindings field.
+	(c_start_case): Don't set deleted fields.  Set bindings field.
+	(do_case): Rework order of tests.  Don't check blocked_stmt_expr
+	or blocked_vm.  Call c_check_switch_jump_warnings.
+	(c_finish_case): Don't test blocked_stmt_expr field.  Call
+	c_release_switch_bindings.
+	(c_begin_stmt_expr): Don't increment blocked_stmt_expr in
+	c_switch_stack.  Don't walk label_context_stack_se labels.  Don't
+	set label_context_stack_se.  Call c_bindings_start_stmt_expr.
+	(c_finish_stmt_expr): Don't decrement blocked_stmt_expr in
+	c_switch_stack.  Don't walk label_context_stack_se labels.  Don't
+	set label_context_stack_se.  Call c_bindings_end_stmt_expr.
+	(c_begin_vm_scope, c_end_vm_scope): Don't define.
+	* c-tree.h (C_DECL_UNJUMPABLE_STMT_EXPR): Don't define.
+	(C_DECL_UNDEFINABLE_STMT_EXPR): Don't define.
+	(C_DECL_UNJUMPABLE_VM): Don't define.
+	(C_DECL_UNDEFINABLE_VM): Don't define.
+	(struct c_label_list): Don't define.
+	(struct c_label_context_se): Don't define.
+	(struct c_label_context_vm): Don't define.
+	(struct c_spot_bindings): Declare.
+	(c_bindings_start_stmt_expr): Declare.
+	(c_bindings_end_stmt_expr): Declare.
+	(lookup_label_for_goto): Declare.
+	(c_get_switch_bindings, c_release_switch_bindings): Declare.
+	(c_check_switch_jump_warnings): Declare.
+	(label_context_stack_se, label_context_stack_vm): Don't declare.
+	(c_finish_goto_label): Update declaration.
+	(c_begin_vm_scope, c_end_vm_scope): Don't declare.
+	* doc/invoke.texi (Option Summary): Mention -Wjump-misses-init.
+	(Warning Options): Document -Wjump-misses-init.
+
+2009-06-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-object-size.c (addr_object_size): Fix a pasto in the last
+	change.
+
+2009-06-15  Rafael Avila de Espindola  <espindola@google.com>
+
+	* cgraph.c (cgraph_make_node_local): Use DECL_COMDAT_GROUP.
+
+2009-06-15  Aldy Hernandez  <aldyh@redhat.com>
+
+	* except.c (init_eh): Use BUILTINS_LOCATION when calling build_decl.
+
+2009-06-15  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree-eh.c (lower_try_finally_switch): Initialize tf_loc.
+
+2009-06-15  Rafael Avila de Espindola  <espindola@google.com>
+
+	* cgraphunit.c (cgraph_function_versioning,save_inline_function_body):
+	Use DECL_COMDAT_GROUP instead of DECL_ONE_ONLY.
+	* cgraph.c (cgraph_create_virtual_clone): Use DECL_COMDAT_GROUP.
+	* config/i386/i386.c (ix86_file_end): Compute DECL_COMDAT_GROUP.
+	* dwarf2asm.c(dw2_force_const_mem): Update call to make_decl_one_only.
+	* langhooks-def.h (lhd_comdat_group, LANG_HOOKS_COMDAT_GROUP): Remove.
+	(LANG_HOOKS_DECLS): Remove LANG_HOOKS_COMDAT_GROUP.
+	* langhooks.c (lhd_comdat_group): Remove.
+	* langhooks.h (lang_hooks_for_decls): Remove comdat_group.
+	* tree.h (DECL_COMDAT_GROUP): New.
+	(DECL_ONE_ONLY): Use DECL_COMDAT_GROUP.
+	(tree_decl_with_vis): Add comdat_group. Remove one_only.
+	(make_decl_one_only): Change signature.
+	* varasm.c (get_emutls_init_templ_addr, emutls_decl): Update call to
+	make_decl_one_only.
+	(make_decl_one_only): Change signature.
+	(default_elf_asm_named_section): Use DECL_COMDAT_GROUP.
+
+2009-06-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40439
+	* tree.c (widest_int_cst_value): Fix bootstrap on 32bit HWI hosts.
+
+2009-06-14  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* tree-ssa-math-opts.c: Remove extra divide.
+
+2009-06-14  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md ("bswap<mode>2"): Only available on z900.
+
+2009-06-14  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* passes.c: Add bswap pass.
+	* tree-pass.h: Add pass_optimize_bswap declaration.
+	* tree-ssa-math-opts.c: Include diagnostics.h for print_gimple_stmt.
+	Include rtl.h, expr.h and optabs.h for optab_handler check.
+	(struct symbolic_number, pass_optimize_bswap): New definition.
+	(do_shift_rotate, verify_symbolic_number_p): New functions.
+	(find_bswap_1, find_bswap, execute_optimize_bswap): New functions.
+	(gate_optimize_bswap): New function.
+	* tree.c (widest_int_cst_value): New function.
+	* tree.h (widest_int_cst_value): Prototype added.
+
+2009-06-14  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* cfgcleanup.c (old_insns_match_p): Remove code to substitute
+	REG_EQUAL/REG_EQUIV notes.
+
+2009-06-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40389
+	* gimple.c (walk_stmt_load_store_addr_ops): The LHS of a call
+	has its address taken if NRV was applied and it is addressable.
+	* tree-ssa-structalias.c (get_constraint_for_address_of): New
+	function split out from ...
+	(get_constraint_for_1): ... here.
+	(handle_rhs_call): Use it to mark the return slot escaped if
+	it is addressable and NRV was applied.
+
+2009-06-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	* config/rs6000/rs6000-protos.h (altivec_resolve_overloaded_builtin):
+	Change first argument type to location_t.
+	* config/rs6000/rs6000-c.c (altivec_resolve_overloaded_builtin): Same.
+	Do not set input_location.
+	Use loc instead of input_location throughout.
+
+2009-06-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40421
+	* tree-predcom.c (should_unroll_loop_p): Remove.
+	(tree_predictive_commoning_loop): Use can_unroll_loop_p.
+
+2009-06-13  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000-c.c (altivec_resolve_overloaded_builtin):
+	Add location argument.
+
+2009-06-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	* config/alpha/alpha.c (alpha_build_builtin_va_list): Pass location to
+	build_decl.
+	* config/s390/s390.c (s390_build_builtin_va_list): Same.
+	(s390_gimplify_va_arg): Pass location to create_artificial_label.
+	* config/spu/spu-protos.h: Add location to
+	spu_resolve_overloaded_builtin.
+	* config/spu/spu.c (spu_build_builtin_va_list): Pass location to
+	spu_build_builtin_va_list.
+	* config/spu/spu-c.c (spu_resolve_overloaded_builtin): Add location
+	argument.  Pass location to build_function_call_vec.
+	* config/sh/sh.c (sh_build_builtin_va_list): Pass location to
+	build_decl.
+	(emit_fpu_switch): Same.
+	(sh_gimplify_va_arg_expr): Pass location to create_artificial_label.
+	* config/xtensa/xtensa.c (xtensa_build_builtin_va_list): Pass location
+	to build_decl and create_artificial_label.
+	(xtensa_gimplify_va_arg_expr): Same.
+	* config/stormy16/stormy16.c (xstormy16_build_builtin_va_list): Same.
+	(xstormy16_gimplify_va_arg_expr): Same.
+	* config/iq2000/iq2000.c (iq2000_expand_prologue): Same.
+	* config/arm/arm.c (arm_build_builtin_va_list): Same.
+	* config/mips/mips.c (mips_build_builtin_va_list): Same.
+	(mips16_build_function_stub): Same.
+	(mips16_build_call_stub): Same.
+
+2009-06-13  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/40327
+	* arm/constraints.md (Pa, Pb): New constraints.
+	* arm/arm.md (thumb1_addsi3): Support more complex additions.  Add a 
+	split pattern to deal with them.
+
+2009-06-13  Joerg Sonnenberger  <joerg@britannica.bec.de>
+
+	* doc/invoke.texi: Add missing option -Wp,OPTION in list,
+	fix index entry for -Xpreprocessor.
+
+2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* config/rs6000/rs6000-c.c (altivec_resolve_overloaded_builtin):
+	Add location argument to build_decl call.
+	* config/rs6000/rs6000.c (rs6000_build_builtin_va_list): Same.
+	(rs6000_init_builtins): Same.
+	(spe_init_builtins): Same.
+	(rs6000_gimplify_va_arg): Add location argument to
+	create_artificial_label call.
+
+2009-06-12  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* timevar.def (TV_COMBINE_STACK_ADJUST): New timevar.
+	* combine-stack-adj.c (pass_stack_adjustments): Use it.
+	* Makefile.in: Fix GGC dependency for gcse.o.
+
+2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree-pretty-print.c (dump_generic_node): Dump column numbers.
+	* gimple-pretty-print.c (dump_gimple_stmt): Same.
+	* gimplify.c (gimplify_modify_expr): Set location for GIMPLE_ASSIGNs
+	created.
+	* c-parser.c (c_parser_binary_expression): Use current column while
+	building binary operations.
+	* common.opt (fshow-column): Enable by default.
+	* tree-vrp.c (check_array_ref): Use warning_at.
+	(check_array_bounds): Use location from call back if expr has no
+	location.
+	* tree.h: Add location argument to maybe_fold_*.
+	* tree-ssa-ccp.c (ccp_fold): Pass location to maybe_fold_*.
+	(maybe_fold_offset_to_array_ref): Add location argument and use it.
+	(maybe_fold_offset_to_component_ref): Same.
+	(maybe_fold_offset_to_reference): Same.
+	(maybe_fold_offset_to_address): Same.
+	(maybe_fold_stmt_indirect): Same.
+	(maybe_fold_stmt_addition): Same.
+	(fold_stmt_r): Pass location to maybe_fold_*.
+	(fold_gimple_assign): Same.
+	* c-tree.h: Add location argument to finish_decl,
+	default_function_array_conversion, store_init_value.
+	* c-decl.c (define_label): Use error_at.
+	(c_make_fname_decl): Pass location to finish_decl.
+	(finish_decl): New location argument.
+	(build_compound_literal): Pass location to store_init_value.
+	(grokdeclarator): Pass location to finish_decl.
+	(grokfield): Same.
+	* c-typeck.c (array_to_pointer_conversion): New location argument.
+	(function_to_pointer_conversion): Same.
+	(default_function_array_conversion): Same.
+	(parser_build_unary_op): Pass location to overflow_warning.
+	(parser_build_binary_op): Same.  Use warning_at.
+	(build_unary_op): Pass location to array_to_pointer_conversion.
+	(build_c_cast): Pass location to digest_init.
+	(build_modify_expr): New location argument.
+	(convert_for_assignment): Same.
+	(store_init_value): Same.
+	(digest_init): Same.
+	(output_init_element): Pass location to digest_init and
+	array_to_pointer_conversion.
+	(c_finish_return): Pass location to convert_for_assignment.
+	* gimplify.c (gimplify_conversion): Pass location to
+	maybe_fold_offset_to_address.
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Pass location
+	to maybe_fold_stmt_addition.
+	* c-omp.c (c_finish_omp_atomic): Pass new location to
+	build_modify_expr.
+	(c_finish_omp_for): Same.
+	* c-common.c (overflow_warning): New argument.
+	* c-common.h: New argument to build_modify_expr, overflow_warning.
+	* c-parser.c (c_parser_declaration_or_fndef): Pass location to
+	finish_decl.
+	(c_parser_initializer): Pass location to
+	default_function_array_conversion.
+	(c_parser_initelt): Same.
+	(c_parser_initval): Same.
+	(c_parser_asm_operands): Same.
+	(c_parser_expr_no_commas): Same.  Pass location to build_modify_expr.
+	(c_parser_conditional_expression): Same.
+	(c_parser_binary_expression): Add location info to stack.  Use it.
+	(c_parser_unary_expression): Pass location to
+	default_function_array_conversion, parser_build_unary_op,
+	build_indirect_ref, c_parser_postfix_expression_after_primary.
+	(c_parser_postfix_expression_after_primary): New location argument.
+	Use it.
+	(c_parser_expression_conv): Pass location to
+	default_function_array_conversion.
+	(c_parser_expr_list): Same.
+	(c_parser_omp_atomic): Same.
+	(c_parser_omp_for_loop): Same.
+	* c-tree.h: (struct c_declarator): Add comment to id_loc.
+	(build_array_declarator): New argument.
+	* c-decl.c (build_array_declarator): Add location argument.
+	(grokdeclarator): Set id_loc for cdk_array.
+	* c-parser.c (c_parser_direct_declarator_inner): Pass location to
+	build_array_declarator.
+	* tree.c (build_omp_clause): Add location argument.
+	* tree.h (OMP_CLAUSE_HAS_LOCATION): New macro.
+	(OMP_CLAUSE_LOCATION): New macro.
+	(struct tree_omp_clause): Add location field.
+	(build_omp_clause): Add argument.
+	* testsuite/gcc.dg/gomp/for-1.c: Fix column.
+	* cp/pt.c (tsubst_omp_for_iterator): Pass location to
+	build_omp_clause.
+	* cp/parser.c (cp_parser_omp_var_list_no_open): Same.
+	(cp_parser_omp_clause_collapse): Same.
+	(cp_parser_omp_clause_default): Same.
+	(cp_parser_omp_clause_if): Same.
+	(cp_parser_omp_clause_nowait): Same.
+	(cp_parser_omp_clause_num_threads): Same.
+	(cp_parser_omp_clause_ordered): Same.
+	(cp_parser_omp_clause_schedule): Same.
+	(cp_parser_omp_clause_untied): Same.
+	(cp_parser_omp_for_loop): Same.
+	(cp_parser_omp_parallel): Pass location to c_split_parallel_clauses.
+	* c-tree.h (c_start_case): Add location argument.
+	(c_process_expr_stmt): Same.
+	(c_finish_goto_*): Same.
+	* tree-parloops.c (initialize_reductions): Pass location to
+	build_omp_clause.
+	(create_parallel_loop): Same.
+	* fortran/trans-openmp.c (gfc_trans_omp_variable_list): Same.
+	(gfc_trans_omp_reduction_list): Same.
+	(gfc_trans_omp_clauses): Same.
+	(gfc_trans_omp_do): Same.
+	* c-typeck.c (c_finish_goto_label): Same.
+	(c_finish_goto_ptr): New location argument.
+	(c_start_case): Same.
+	(emit_side_effect_warnings): Same.
+	(c_process_expr_stmt): Same.
+	(c_finish_stmt_expr): Same.
+	(c_finish_omp_clauses): Use error_at instead of error.
+	* gimplify.c (gimplify_adjust_omp_clauses_1): Pass location to
+	build_omp_clause.
+	* c-omp.c (c_split_parallel_clauses): New location argument.
+	* tree-nested.c (convert_nonlocal_reference_stmt): Pass location
+	to build_omp_clause.
+	(convert_local_reference_stmt): Same.
+	(convert_gimple_call): Same.
+	* c-common.h (c_split_parallel_clauses): New argument.
+	* c-parser.c (c_parser_statement_after_labels): Pass location to
+	c_finish_goto_label.
+	(c_parser_switch_statement): Pass location to c_start_case.
+	(c_parser_for_statement): Pass location to c_finish_expr_stmt,
+	and c_process_expr_stmt.
+	(c_parser_omp_variable_list): Add location argument.
+	(c_parser_omp_clause_collapse): Pass location to
+	build_omp_clause.
+	(c_parser_omp_clause_default): Same.
+	(c_parser_omp_clause_if): Same.
+	(c_parser_omp_clause_num_threads): Same.
+	(-c_parser_omp_clause_ordered): Same.
+	(c_parser_omp_clause_reduction): Pass location to
+	c_parser_omp_variable_list.
+	(c_parser_omp_clause_schedule): Pass location to build_omp_clause.
+	(c_parser_omp_clause_untied): Same.
+	(c_parser_omp_for_loop): Pass location to c_process_expr_stmt.
+	(c_parser_omp_parallel): Pass location to
+	c_split_parallel_clauses.
+
+	* c-tree.h (check_for_loop_decls, undeclared_variable,
+	build_component_ref, build_array_ref, build_external_ref,
+	c_expr_sizeof_expr, c_expr_sizeof_type, parser_build_unary_op,
+	build_conditional_expr, build_compound_expr, c_cast_expr,
+	build_c_cast, build_asm_expr, c_end_compound_stmt, c_finish_stmt_expr,
+	c_finish_return, c_finish_omp_parallel, c_finish_omp_task): New
+	argument.
+	* c-semantics.c (build_stmt): Same.
+	(build_case_label): Same.
+	* c-decl.c (c_finish_incomplete_decl): Pass location on down.
+	(undeclared_variable): New argument.
+	(make_label): Same.
+	(lookup_label): Pass location on down.
+	(define_label): Same.
+	(finish_decl): Same.
+	(build_compound_literal): Same.
+	(finish_struct): Same.
+	(finish_function): Do not set location here.
+	(check_for_loop_decls): New argument.
+	* tree.c (save_expr): Set location.
+	(build_empty_stmt): New argument.
+	* tree.h (build_empty_stmt): New argument to build_empty_stmt.
+	(CAN_HAVE_LOCATION_P): Make sure we have a non empty node.
+	* builtins.c (gimplify_va_arg_expr): Use locations.
+	(expand_builtin_sync_operation): Same.
+	* c-typeck.c (build_component_ref): New argument.
+	(build_array_ref): Same.
+	(build_external_ref): Same.
+	(c_expr_sizeof_expr): Same.
+	(c_expr_sizeof_type): Same.
+	(parser_build_unary_op): Same.
+	(build_conditional_expr): Same.
+	(build_compound_expr): Pass location on down.
+	(build_compound_expr): New argument.
+	(build_c_cast): Same.
+	(c_cast_expr): Same.
+	(build_asm_expr): Same.
+	(c_finish_return): Same.
+	(c_process_expr_stmt): Pass location on down.
+	(c_finish_stmt_expr): New argument.
+	(push_clenaup): Same.
+	(c_finish_omp_parallel): Same.
+	(c_finish_omp_task): Same.
+	* gimplify.c (gimplify_call_expr): Pass location on down.
+	* c-omp.c (c_finish_omp_master): New argument.
+	(c_finish_omp_critical): Same.
+	(c_finish_omp_ordered): Same.
+	(c_finish_omp_barrier): Same.
+	(-c_finish_omp_taskwait): Same.
+	(c_finish_omp_atomic): Same.
+	(c_finish_omp_flush): Same.
+	* tree-inline.c (copy_tree_body_r): Pass location on down.
+	(inline_forbidden_p): Remove use of input_location.
+	* c-gimplify.c (c_build_bind_expr): New argument.
+	* c-common.c (c_common_truthvalue_conversion): Pass location on down.
+	(c_sizeof_or_alignof_type): New argument.
+	(c_alignof_expr): Same.
+	(build_va_arg): Same.
+	(c_add_case_label): Same.
+	* c-common.h (c_sizeof_or_alignof_type, c_alignof_expr,
+	c_sizeof, c_alignof, build_va_arg, build_stmt, build_case_label,
+	c_build_bind_expr, objc_build_selector_expr, objc_build_throw_stmt,
+	c_finish_omp_master, c_finish_omp_critical, c_finish_omp_ordered,
+	c_finish_omp_barrier, c_finish_omp_atomic, c_finish_omp_flush,
+	c_finish_omp_taskwait, c_finish_omp_for, c_split_parallel_clauses):
+	New argument.
+	* stub-objc.c (objc_build_selector_expr): Same.
+	(objc_build_throw_stmt): Same.
+	* c-parser.c (c_parser_declaration_or_fndef): Pass location on down.
+	(c_parser_initelt): Same.
+	(c_parser_compound_statement): Same.
+	(c_parser_compound_statement_nostart): Same.
+	(c_parser_label): Same.
+	(c_parser_statement_after_labels): Same.
+	(c_parser_if_body): Same.
+	(c_parser_else_body): Same.
+	(c_parser_if_statement): Same.
+	(c_parser_switch_statement): Same.
+	(c_parser_while_statement): Same.
+	(c_parser_do_statement): Same.
+	(c_parser_for_statement): Same.
+	(c_parser_asm_statement): Same.
+	(c_parser_conditional_expression): Same.
+	(c_parser_binary_expression): Same.
+	(c_parser_cast_expression): Same.
+	(c_parser_unary_expression): Same.
+	(c_parser_sizeof_expression): Same.
+	(c_parser_alignof_expression): Same.
+	(c_parser_postfix_expression): Same.
+	(c_parser_expression): Same.
+	(c_parser_objc_receiver): Same.
+	(c_parser_omp_variable_list): Same.
+	(c_parser_omp_structured_block): Same.
+	(c_parser_omp_atomic): New argument.
+	(c_parser_omp_barrier): Same.
+	(c_parser_omp_critical): Same.
+	(c_parser_omp_flush): Pass location on down.
+	(c_parser_omp_for_loop): New argument.
+	(c_parser_omp_for): Same.
+	(c_parser_omp_master): Same.
+	(c_parser_omp_ordered): Same.
+	(c_parser_omp_sections_scope): Same.
+	(c_parser_omp_sections): Same.
+	(c_parser_omp_parallel): Same.
+	(c_parser_omp_single): Same.
+	(c_parser_omp_task): Same.
+	(c_parser_omp_taskwait): Pass location on down.
+	(c_parser_omp_construct): Same.
+	(c_parser_omp_threadprivate): Same.
+	* dwarf2asm.c, targhooks.c, optabs.c, tree.c, tree.h, target.h,
+	builtins.c, omp-low.c, cgraphunit.c, tree-call-cdce.c,
+	tree-ssa-alias.c, gimple-low.c, c-tree.h, expr.c, tree-parloops.c,
+	c-decl.c, tree-eh.c, langhooks.c, function.c, stor-layout.c,
+	c-typeck.c, gimplify.c, c-pragma.c, expmed.c, except.c, coverage.c,
+	emit-rtl.c, cfgexpand.c, tree-mudflap.c, varasm.c, tree-nested.c,
+	rtl.h, tree-inline.c, tree-profile.c, c-common.c, c-common.h,
+	tree-switch-conversion.c, tree-cfg.c, ipa-struct-reorg.c, c-parser.c,
+	config/i386/i386.c, stmt.c:
+	Add location argument to the following function definitions and/or
+	function calls: build_decl, objcp_start_struct, objcp_finish_struct,
+	start_struct, finish_struct, PUSH_FIELD, create_artificial_label,
+	cp_make_fname_decl, pushtag, implicitly_declare, c_make_fname_decl,
+	build_compound_literal, parser_xref_tag, resolve_overloaded_builtin,
+	do_case, c_finish_bc_stmt, build_compound_literal,
+	build_function_call.
+	* c-decl.c (build_compound_literal): Add location argument.
+	Make all diagnostic calls use location.
+	(start_struct): Same.
+	(finish_struct): Same.
+	(start_enum): Same.
+	(build_enumerator): Same.
+	(start_function): Same.
+	(grokdeclarator): Make all diagnostic calls use location.
+	(store_parm_decls_oldstyle): Same.
+	* c-typeck.c (build_function_call): Add location argument.
+	Make all diagnostic calls use location.
+	(do_case): Same.
+	(c_finish_bc_stmt): Same.
+	* tree-nested.c (get_trampoline_type): Add argument.
+	Pass location to build_decl.
+	(lookup_tramp_for_decl): Pass location to get_trampoline_type.
+	* rtl.h (RTL_LOCATION): New.
+	* c-common.c (c_add_case_label): Add location argument.
+	Make all diagnostic calls use location.
+	* c-common.h: Add location argument to make_fname_decl, do_case,
+	c_add_case_label, build_function_call, resolve_overloaded_builtin.
+	* c-parser.c (c_parser_enum_specifier): Rename ident_loc to enum_loc.
+	Set it appropriately for every case.  Pass enum_loc to start_enum
+	call.  Pass value_loc first to build_enumerator.  Pass enum_loc to
+	parser_xref_tag.
+	(c_parser_struct_or_union_specifier): Save location.  Use it for
+	start_struct, finish_struct, and parser_xref_tag.
+
+2009-06-12  Ian Lance Taylor  <iant@google.com>
+
+	* fold-const.c (fold_unary): Rename local variable and to
+	and_expr.
+
+	* c-opts.c (c_common_handle_option): For -Wc++-compat set
+	cpp_opts->warn_cxx_operator_names.
+
+2009-06-12  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/38865
+	* tree-ssa-sccvn.c (visit_reference_op_load): If vn_reference_lookup
+	is returns NULL and OP is a VCE, look through the VCE.
+
+2009-06-12  Ian Lance Taylor  <iant@google.com>
+
+	PR bootstrap/40430
+	* collect2.c (main): Use CONST_CAST2 in code inside #if
+	LINK_ELIMINATE_DUPLICATE_LDIRECTORIES.
+
 2009-06-12  Joey Ye  <joey.ye@intel.com>
 
 	PR middle-end/39146
