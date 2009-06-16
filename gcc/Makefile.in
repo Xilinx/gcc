@@ -180,8 +180,6 @@ mips-tfile.o-warn = -Wno-error
 
 ## basilys.c contains tricky stuff 
 basilys.o-warn = -Wno-error
-## compiler-probe.o stuff
-compiler-probe.o-warn = -Wno-error
 
 # All warnings have to be shut off in stage1 if the compiler used then
 # isn't gcc; configure determines that.  WARN_CFLAGS will be either
@@ -1389,12 +1387,8 @@ ALL_HOST_OBJS = $(GCC_OBJS) $(C_OBJS) $(OBJS) libbackend.o \
   mips-tfile.o mips-tdump.o \
   $(GCOV_OBJS) $(GCOV_DUMP_OBJS)
 
-## gcc/configure.ac may set COMPILER_PROBE_OBJECT to compiler-probe.o or may leave it empty
-COMPILER_PROBE_OBJ =  @COMPILER_PROBE_OBJECT@
-COMPILER_PROBE_C= $(patsubst %.o, $(srcdir)/%.c, $(COMPILER_PROBE_OBJ))
-COMPILER_PROBE_H=  $(patsubst %.o, $(srcdir)/%.h, $(COMPILER_PROBE_OBJ))
 
-BACKEND = main.o @TREEBROWSER@  $(COMPILER_PROBE_OBJ) libbackend.a $(CPPLIB) $(LIBDECNUMBER)
+BACKEND = main.o @TREEBROWSER@  libbackend.a $(CPPLIB) $(LIBDECNUMBER)
 
 ## gcc/configure.ac may set BASILYSMELT_OBJECT to basilys.o or leave it empty
 BASILYSMELT_OBJ := @BASILYSMELT_OBJECT@
@@ -2542,14 +2536,6 @@ $(BASILYSMELT_OBJ):  $(BASILYS_C)  \
 	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" \
 	  -c $(BASILYS_C) $(OUTPUT_OPTION)
 endif
-
-ifdef COMPILER_PROBE_OBJ
-$(COMPILER_PROBE_OBJ): $(COMPILER_PROBE_C) $(COMPILER_PROBE_H) \
-   $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(REGS_H) $(TIMEVAR_H) \
-   intl.h $(DIAGNOSTIC_H) $(HASHTAB_H) $(TREE_H) tree-pass.h $(TREE_FLOW_H) \
-   $(TREE_DUMP_H) $(TREE_INLINE_H) tree-iterator.h $(DIAGNOSTIC_H) toplev.h \
-   $(GGC_H) vec.h $(CGRAPH_H) $(FLAGS_H) $(BASIC_BLOCK_H) $(RTL_H) version.h
-endif
 ### end of Basilys stuff
 
 bversion.h: s-bversion; @true
@@ -3449,7 +3435,6 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/ipa-reference.c \
   $(srcdir)/tree-ssa-structalias.c \
   $(srcdir)/tree-ssa-alias.h \
-  $(COMPILER_PROBE_C) \
   $(BASILYS_C) \
   @all_gtfiles@
 

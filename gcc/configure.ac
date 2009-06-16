@@ -516,73 +516,7 @@ AC_SUBST(gdbm_ldflags)
 # for debugging only
 echo '%!%' after GDBM LIBS= $LIBS  CFLAGS= $CFLAGS
 
-# ------------------------
-# Compiler probing support
-# ------------------------
-enabled_compiler_probe=no
-
-AC_ARG_ENABLE(compiler-probe,
-[  --enable-compiler-probe        Enable instrumenting probe of compiler
-                                  only useful for compiler hackers or
-				  users expecting huge compilation times;
-				  this could slow down the compiler
-				  [hence is disabled by default].
-],
-enabled_compiler_probe=$enableval,
-enabled_compiler_probe=no)
-
-if test "$enabled_compiler_probe" = "yes" ; then
-   AC_MSG_CHECKING([for features required for compiler probe])
-## we check specifically for the Posix/SuS (Single Unix Spec) select,
-## for the SIGPOLL SuS signal handled by SuS sigaction
-## and for fcntl F_SETOWN available in Linux, *BSD, Solaris
-AC_TRY_COMPILE([
-/* testing features for compiler probe */
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/select.h>
-#include <signal.h>
-#include <string.h>
-
-volatile sig_atomic_t my_flag;
-static void my_signal_handler(int sig) 
-{if (sig == SIGPOLL) my_flag=1;}
-],
-[
-  fd_set rfs;
-  int fd = 1;
-  struct timeval tv;
-  struct sigaction sa;
-  FD_ZERO (&rfs);
-  FD_SET (0, &rfs);
-  tv.tv_sec = 0;
-  tv.tv_usec = 500000;
-  /* Posix/Single Unix Spec select */
-  if (select (1, &rfs, (fd_set *) 0, (fd_set *) 0, &tv))
-    return 0;
-  /* Posix/SuS signal */
-  memset (&sa, 0, sizeof (sa));
-  sa.sa_handler = my_signal_handler;
-  if (sigaction (SIGPOLL, &sa, (struct sigaction *) 0))
-    return 0;
-  /* Linux, Solaris, and most BSD have F_SETOWN */
-  if (fcntl (fd, F_SETOWN, (long) getpid ()))
-    return 0;
-  return 0;
-],
-[AC_MSG_RESULT([yes]);
- enabled_compiler_probe=yes;
- AC_DEFINE(ENABLE_COMPILER_PROBE, 1, [Define if compiler probe is enabled.])
- COMPILER_PROBE_OBJECT=compiler-probe.o
-], 
-[AC_MSG_RESULT([no]); 
- AC_MSG_WARN([Your system lacks the required features for compiler probing.
-                Hence compiler probe is disabled.]);
- enabled_compiler_probe=no]
-);
-fi
-
-AC_SUBST(COMPILER_PROBE_OBJECT)
+## Compiler probe support remove in svn rev 148272
 
 # ------------------------
 # Basilys/MELT support (middle-end lisp translator)
@@ -594,8 +528,7 @@ AC_ARG_ENABLE(basilysmelt, [ --enable-basilysmelt Enable Basilys/MELT
 passes; This enable complex (sciptable) passes using the Middle End
 Lisp Translator feature (which dynamically translates the MELT lisp
 dialect into C plug-in like code); This requires PPL (Parma Polyhedra
-Library), GDBM and LTDL (LibTool Dynamic Loader) support.  The
-compiler-probe feature is also recommended.  ],
+Library), GDBM and LTDL (LibTool Dynamic Loader) support.],
 enabled_basilysmelt=$enableval, enabled_basilysmelt=no)
 
 if test "$enabled_basilysmelt" = "yes" ; then

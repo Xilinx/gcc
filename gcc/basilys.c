@@ -58,8 +58,6 @@ extern const unsigned char executable_checksum[16];
 #include "cppdefault.h"
 
 
-#include "compiler-probe.h"
-
 
 #include <dirent.h>
 

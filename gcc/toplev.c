@@ -91,7 +91,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
-#include "compiler-probe.h"
 #include "tree-pass.h"
 #include "gimple.h"
 #include "tree-ssa-alias.h"
@@ -2377,11 +2376,6 @@ do_compile (void)
       if (!no_backend)
 	backend_init ();
 
-#if ENABLE_COMPILER_PROBE
-      /* just to be sure the probe loads the input file */
-      (void) comprobe_file_rank(main_input_filename);
-#endif
-
 
       /* Language-dependent initialization.  Returns true on success.  */
       if (lang_dependent_init (main_input_filename))
@@ -2420,12 +2414,6 @@ toplev_main (int argc, char **argv)
 
   init_local_tick ();
 
-#if ENABLE_COMPILER_PROBE
-  /* Initialize the compiler probe (may install a SIGIO handler and
-     uses the random seed) */
-  comprobe_initialize();
-#endif
-
 #if ENABLE_BASILYSMELT
   /* initialize basilys if needed */
   if (basilys_mode_string && basilys_mode_string[0])
@@ -2435,11 +2423,6 @@ toplev_main (int argc, char **argv)
   /* Exit early if we can (e.g. -help).  */
   if (!exit_after_options)
     do_compile ();
-
-#if ENABLE_COMPILER_PROBE
-  /* Finish the compiler probe (may wait) */
-  comprobe_finish();
-#endif
 
 
 #if ENABLE_BASILYSMELT

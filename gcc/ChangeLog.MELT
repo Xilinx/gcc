@@ -1,3 +1,18 @@
+2009-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[removed compile probe for pluginification after rev148523]
+	* compiler-probe.c: removed file.
+	* compiler-probe.h: removed file.
+	* basilys.c: don't include compiler-probe.h
+	* tree-pass.h: reverted to trunk.
+	* diagnostic.c: reverted to trunk.
+	* toplev.c: don't use compiler probe.
+	* configure.ac: ditto. removed --enable-compiler-probe.
+	* tree-flow-inline.h: reverted to trunk.
+	* basic-block.h: reverted to trunk & removed compiler probe.
+	* Makefile.in: removed compiler-probe.h
+	* config.in: likewise.
+	* configure: regenerated.
+
 2009-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[funmatcher expressions not working]
 	* testsuite/melt/tfunmatch-1.melt: added funmatcher expr...

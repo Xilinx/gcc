@@ -42,8 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "plugin.h"
 
-#include "compiler-probe.h"
-
 /* we just need to kill the compiler probe on internal|fatal errors */
 #define pedantic_warning_kind() (flag_pedantic_errors ? DK_ERROR : DK_WARNING)
 #define permissive_error_kind() (flag_permissive ? DK_WARNING : DK_ERROR)
@@ -661,8 +659,6 @@ fatal_error (const char *gmsgid, ...)
   report_diagnostic (&diagnostic);
   va_end (ap);
 
-  comprobe_forced_kill();
-
   gcc_unreachable ();
 }
 
@@ -681,8 +677,6 @@ internal_error (const char *gmsgid, ...)
   report_diagnostic (&diagnostic);
   va_end (ap);
 
-  comprobe_forced_kill();
-  
   gcc_unreachable ();
 }
 
