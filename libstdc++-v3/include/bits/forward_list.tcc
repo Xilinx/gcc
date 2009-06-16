@@ -1,11 +1,11 @@
 // <forward_list.tcc> -*- C++ -*-
 
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file forward_list.tcc
  *  This is a Standard C++ Library header.
@@ -35,6 +30,50 @@
 #define _FORWARD_LIST_TCC 1
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
+
+  template<typename _Alloc>
+    void
+    _Fwd_list_node_base<_Alloc>::
+    _M_transfer_after(_Pointer __bbegin)
+    {
+      _Pointer __bend = __bbegin;
+      while (__bend && __bend->_M_next)
+	__bend = __bend->_M_next;
+      _M_transfer_after(__bbegin, __bend);
+    }
+
+  template<typename _Alloc>
+    void
+    _Fwd_list_node_base<_Alloc>::
+    _M_transfer_after(_Pointer __bbegin, _Pointer __bend)
+    {
+      _Pointer __keep = __bbegin->_M_next;
+      if (__bend)
+	{
+	  __bbegin->_M_next = __bend->_M_next;
+	  __bend->_M_next = _M_next;
+	}
+      else
+	__bbegin->_M_next = 0;
+      _M_next = __keep;
+    }
+ 
+  template<typename _Alloc>
+    void
+    _Fwd_list_node_base<_Alloc>::
+    _M_reverse_after()
+    {
+      _Pointer __tail = _M_next;
+      if (!__tail)
+	return;
+      while (_Pointer __temp = __tail->_M_next)
+	{
+	  _Pointer __keep = _M_next;
+	  _M_next = __temp;
+	  __tail->_M_next = __temp->_M_next;
+	  _M_next->_M_next = __keep;
+	}
+    }
 
  /**
   *  @brief  Sort the singly linked list starting after this node.
@@ -410,12 +449,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
             __list._M_impl._M_head._M_next = 0;
           }
       }
-
-  template<typename _Tp, typename _Alloc>
-    void
-    forward_list<_Tp, _Alloc>::
-    reverse()
-    { this->_M_impl._M_head._M_reverse_after(); }
 
   template<typename _Tp, typename _Alloc>
     bool

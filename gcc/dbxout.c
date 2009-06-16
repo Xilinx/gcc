@@ -1,6 +1,6 @@
 /* Output dbx-format symbol table information from GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -171,8 +171,7 @@ enum typestatus {TYPE_UNSEEN, TYPE_XREF, TYPE_DEFINED};
    The file_number and type_number elements are used if DBX_USE_BINCL
    is defined.  */
 
-struct typeinfo GTY(())
-{
+struct GTY(()) typeinfo {
   enum typestatus status;
   int file_number;
   int type_number;
@@ -276,8 +275,6 @@ static const char *base_input_file;
 
 #include "gstab.h"
 
-#define STAB_CODE_TYPE enum __stab_debug_code
-
 /* 1 if PARM is passed to this function in memory.  */
 
 #define PARM_PASSED_IN_MEMORY(PARM) \
@@ -319,15 +316,15 @@ static void dbxout_args (tree);
 static void dbxout_type_fields (tree);
 static void dbxout_type_method_1 (tree);
 static void dbxout_type_methods (tree);
-static void dbxout_range_type (tree);
+static void dbxout_range_type (tree, tree, tree);
 static void dbxout_type (tree, int);
-static bool print_int_cst_bounds_in_octal_p (tree);
+static bool print_int_cst_bounds_in_octal_p (tree, tree, tree);
 static bool is_fortran (void);
 static void dbxout_type_name (tree);
 static void dbxout_class_name_qualifiers (tree);
 static int dbxout_symbol_location (tree, tree, const char *, rtx);
 static void dbxout_symbol_name (tree, const char *, int);
-static void dbxout_common_name (tree, const char *, STAB_CODE_TYPE);
+static void dbxout_common_name (tree, const char *, stab_code_type);
 static const char *dbxout_common_check (tree, int *);
 static void dbxout_global_decl (tree);
 static void dbxout_type_decl (tree, int);
@@ -336,7 +333,7 @@ static void dbxout_handle_pch (unsigned);
 /* The debug hooks structure.  */
 #if defined (DBX_DEBUGGING_INFO)
 
-static void dbxout_source_line (unsigned int, const char *);
+static void dbxout_source_line (unsigned int, const char *, int);
 static void dbxout_begin_prologue (unsigned int, const char *);
 static void dbxout_source_file (const char *);
 static void dbxout_function_end (tree);
@@ -376,6 +373,7 @@ const struct gcc_debug_hooks dbx_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree_tree,		 /* set_name */
   0                                      /* start_end_main_source_file */
 };
 #endif /* DBX_DEBUGGING_INFO  */
@@ -408,6 +406,7 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree_tree,	         /* set_name */
   0                                      /* start_end_main_source_file */
 };
 #endif /* XCOFF_DEBUGGING_INFO  */
@@ -841,7 +840,7 @@ do {								\
    to DBX_FINISH_STABS; see above for details.  */
    
 static void
-dbxout_finish_complex_stabs (tree sym, STAB_CODE_TYPE code,
+dbxout_finish_complex_stabs (tree sym, stab_code_type code,
 			     rtx addr, const char *label, int number)
 {
   int line ATTRIBUTE_UNUSED;
@@ -1266,7 +1265,7 @@ dbxout_begin_prologue (unsigned int lineno, const char *filename)
   /* pre-increment the scope counter */
   scope_labelno++;
 
-  dbxout_source_line (lineno, filename);
+  dbxout_source_line (lineno, filename, 0);
   /* Output function begin block at function scope, referenced 
      by dbxout_block, dbxout_source_line and dbxout_function_end.  */
   emit_pending_bincls_if_required ();
@@ -1277,7 +1276,8 @@ dbxout_begin_prologue (unsigned int lineno, const char *filename)
    number LINENO.  */
 
 static void
-dbxout_source_line (unsigned int lineno, const char *filename)
+dbxout_source_line (unsigned int lineno, const char *filename,
+                    int discriminator ATTRIBUTE_UNUSED)
 {
   dbxout_source_file (filename);
 
@@ -1592,10 +1592,10 @@ dbxout_type_methods (tree type)
 
 /* Emit a "range" type specification, which has the form:
    "r<index type>;<lower bound>;<upper bound>;".
-   TYPE is an INTEGER_TYPE.  */
+   TYPE is an INTEGER_TYPE, LOW and HIGH are the bounds.  */
 
 static void
-dbxout_range_type (tree type)
+dbxout_range_type (tree type, tree low, tree high)
 {
   stabstr_C ('r');
   if (TREE_TYPE (type))
@@ -1623,25 +1623,23 @@ dbxout_range_type (tree type)
     }
 
   stabstr_C (';');
-  if (TYPE_MIN_VALUE (type) != 0
-      && host_integerp (TYPE_MIN_VALUE (type), 0))
+  if (low && host_integerp (low, 0))
     {
-      if (print_int_cst_bounds_in_octal_p (type))
-        stabstr_O (TYPE_MIN_VALUE (type));
+      if (print_int_cst_bounds_in_octal_p (type, low, high))
+        stabstr_O (low);
       else
-        stabstr_D (tree_low_cst (TYPE_MIN_VALUE (type), 0));
+        stabstr_D (tree_low_cst (low, 0));
     }
   else
     stabstr_C ('0');
 
   stabstr_C (';');
-  if (TYPE_MAX_VALUE (type) != 0
-      && host_integerp (TYPE_MAX_VALUE (type), 0))
+  if (high && host_integerp (high, 0))
     {
-      if (print_int_cst_bounds_in_octal_p (type))
-        stabstr_O (TYPE_MAX_VALUE (type));
+      if (print_int_cst_bounds_in_octal_p (type, low, high))
+        stabstr_O (high);
       else
-        stabstr_D (tree_low_cst (TYPE_MAX_VALUE (type), 0));
+        stabstr_D (tree_low_cst (high, 0));
       stabstr_C (';');
     }
   else
@@ -1662,10 +1660,9 @@ dbxout_range_type (tree type)
 static void
 dbxout_type (tree type, int full)
 {
-  tree tem;
-  tree main_variant;
   static int anonymous_type_number = 0;
   bool vector_type = false;
+  tree tem, main_variant, low, high;
 
   if (TREE_CODE (type) == VECTOR_TYPE)
     {
@@ -1673,6 +1670,27 @@ dbxout_type (tree type, int full)
 	 containing an array.  Pull out the array type.  */
       type = TREE_TYPE (TYPE_FIELDS (TYPE_DEBUG_REPRESENTATION_TYPE (type)));
       vector_type = true;
+    }
+
+  if (TREE_CODE (type) == INTEGER_TYPE)
+    {
+      if (TREE_TYPE (type) == 0)
+	{
+	  low = TYPE_MIN_VALUE (type);
+	  high = TYPE_MAX_VALUE (type);
+	}
+
+      else if (subrange_type_for_debug_p (type, &low, &high))
+	;
+
+      /* If this is a subtype that should not be emitted as a subrange type,
+	 use the base type.  */
+      else
+	{
+	  type = TREE_TYPE (type);
+	  low = TYPE_MIN_VALUE (type);
+	  high = TYPE_MAX_VALUE (type);
+	}
     }
 
   /* If there was an input error and we don't really have a type,
@@ -1876,7 +1894,7 @@ dbxout_type (tree type, int full)
 	      stabstr_C (';');
 	    }
 
-	  dbxout_range_type (type);
+	  dbxout_range_type (type, low, high);
 	}
 
       else
@@ -1892,7 +1910,7 @@ dbxout_type (tree type, int full)
 	      stabstr_C (';');
 	    }
 
-	  if (print_int_cst_bounds_in_octal_p (type))
+	  if (print_int_cst_bounds_in_octal_p (type, low, high))
 	    {
 	      stabstr_C ('r');
 
@@ -1907,15 +1925,15 @@ dbxout_type (tree type, int full)
                 dbxout_type_index (type);
 
 	      stabstr_C (';');
-	      stabstr_O (TYPE_MIN_VALUE (type));
+	      stabstr_O (low);
 	      stabstr_C (';');
-	      stabstr_O (TYPE_MAX_VALUE (type));
+	      stabstr_O (high);
 	      stabstr_C (';');
 	    }
 
 	  else
 	    /* Output other integer types as subranges of `int'.  */
-	    dbxout_range_type (type);
+	    dbxout_range_type (type, low, high);
 	}
 
       break;
@@ -2009,7 +2027,7 @@ dbxout_type (tree type, int full)
       else
 	{
 	  stabstr_C ('a');
-	  dbxout_range_type (tem);
+	  dbxout_range_type (tem, TYPE_MIN_VALUE (tem), TYPE_MAX_VALUE (tem));
 	}
 
       dbxout_type (TREE_TYPE (type), 0);
@@ -2257,7 +2275,7 @@ dbxout_type (tree type, int full)
    should be printed in octal format.  */
 
 static bool
-print_int_cst_bounds_in_octal_p (tree type)
+print_int_cst_bounds_in_octal_p (tree type, tree low, tree high)
 {
   /* If we can use GDB extensions and the size is wider than a long
      (the size used by GDB to read them) or we may have trouble writing
@@ -2271,10 +2289,8 @@ print_int_cst_bounds_in_octal_p (tree type)
      can't span same size unsigned types.  */
 
   if (use_gnu_debug_info_extensions
-      && TYPE_MIN_VALUE (type) != 0
-      && TREE_CODE (TYPE_MIN_VALUE (type)) == INTEGER_CST
-      && TYPE_MAX_VALUE (type) != 0
-      && TREE_CODE (TYPE_MAX_VALUE (type)) == INTEGER_CST
+      && low && TREE_CODE (low) == INTEGER_CST
+      && high && TREE_CODE (high) == INTEGER_CST
       && (TYPE_PRECISION (type) > TYPE_PRECISION (integer_type_node)
 	  || ((TYPE_PRECISION (type) == TYPE_PRECISION (integer_type_node))
 	      && TYPE_UNSIGNED (type))
@@ -2809,7 +2825,7 @@ dbxout_symbol (tree decl, int local ATTRIBUTE_UNUSED)
       if (!decl_rtl)
 	DBXOUT_DECR_NESTING_AND_RETURN (0);
 
-      decl_rtl = eliminate_regs (decl_rtl, 0, NULL_RTX);
+      decl_rtl = eliminate_regs (decl_rtl, VOIDmode, NULL_RTX);
 #ifdef LEAF_REG_REMAP
       if (current_function_uses_only_leaf_regs)
 	leaf_renumber_regs_insn (decl_rtl);
@@ -2835,7 +2851,7 @@ static int
 dbxout_symbol_location (tree decl, tree type, const char *suffix, rtx home)
 {
   int letter = 0;
-  STAB_CODE_TYPE code;
+  stab_code_type code;
   rtx addr = 0;
   int number = 0;
   int regno = -1;
@@ -3140,7 +3156,7 @@ dbxout_symbol_name (tree decl, const char *suffix, int letter)
    emits the N_BCOMM and N_ECOMM stabs.  */
 
 static void
-dbxout_common_name (tree decl, const char *name, STAB_CODE_TYPE op)
+dbxout_common_name (tree decl, const char *name, stab_code_type op)
 {
   dbxout_begin_complex_stabs ();
   stabstr_S (name);
@@ -3308,14 +3324,15 @@ dbxout_parms (tree parms)
       {
 	tree eff_type;
 	char letter;
-	STAB_CODE_TYPE code;
+	stab_code_type code;
 	int number;
 
 	/* Perform any necessary register eliminations on the parameter's rtl,
 	   so that the debugging output will be accurate.  */
 	DECL_INCOMING_RTL (parms)
-	  = eliminate_regs (DECL_INCOMING_RTL (parms), 0, NULL_RTX);
-	SET_DECL_RTL (parms, eliminate_regs (DECL_RTL (parms), 0, NULL_RTX));
+	  = eliminate_regs (DECL_INCOMING_RTL (parms), VOIDmode, NULL_RTX);
+	SET_DECL_RTL (parms,
+		      eliminate_regs (DECL_RTL (parms), VOIDmode, NULL_RTX));
 #ifdef LEAF_REG_REMAP
 	if (current_function_uses_only_leaf_regs)
 	  {
@@ -3625,20 +3642,6 @@ dbxout_block (tree block, int depth, tree args)
 		  scope_start = buf;
 		}
 
-	      if (BLOCK_HANDLER_BLOCK (block))
-		{
-		  /* A catch block.  Must precede N_LBRAC.  */
-		  tree decl = BLOCK_VARS (block);
-		  while (decl)
-		    {
-		      dbxout_begin_complex_stabs ();
-		      stabstr_I (DECL_NAME (decl));
-		      stabstr_S (":C1");
-		      dbxout_finish_complex_stabs (0, N_CATCH, 0,
-						   scope_start, 0);
-		      decl = TREE_CHAIN (decl);
-		    }
-		}
 	      dbx_output_lbrac (scope_start, begin_label);
 	    }
 

@@ -607,7 +607,8 @@ gfc_append_constructor (gfc_expr *base, gfc_expr *new_expr)
 
   c->expr = new_expr;
 
-  if (new_expr->ts.type != base->ts.type || new_expr->ts.kind != base->ts.kind)
+  if (new_expr
+      && (new_expr->ts.type != base->ts.type || new_expr->ts.kind != base->ts.kind))
     gfc_internal_error ("gfc_append_constructor(): New node has wrong kind");
 }
 
@@ -1876,14 +1877,14 @@ spec_size (gfc_array_spec *as, mpz_t *result)
 
 /* Get the number of elements in an array section.  */
 
-static gfc_try
-ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
+gfc_try
+gfc_ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
 {
   mpz_t upper, lower, stride;
   gfc_try t;
 
   if (dimen < 0 || ar == NULL || dimen > ar->dimen - 1)
-    gfc_internal_error ("ref_dimen_size(): Bad dimension");
+    gfc_internal_error ("gfc_ref_dimen_size(): Bad dimension");
 
   switch (ar->dimen_type[dimen])
     {
@@ -1957,7 +1958,7 @@ ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
       return t;
 
     default:
-      gfc_internal_error ("ref_dimen_size(): Bad dimen_type");
+      gfc_internal_error ("gfc_ref_dimen_size(): Bad dimen_type");
     }
 
   return t;
@@ -1974,7 +1975,7 @@ ref_size (gfc_array_ref *ar, mpz_t *result)
 
   for (d = 0; d < ar->dimen; d++)
     {
-      if (ref_dimen_size (ar, d, &size) == FAILURE)
+      if (gfc_ref_dimen_size (ar, d, &size) == FAILURE)
 	{
 	  mpz_clear (*result);
 	  return FAILURE;
@@ -2020,7 +2021,7 @@ gfc_array_dimen_size (gfc_expr *array, int dimen, mpz_t *result)
 		if (ref->u.ar.dimen_type[i] != DIMEN_ELEMENT)
 		  dimen--;
 
-	      return ref_dimen_size (&ref->u.ar, i - 1, result);
+	      return gfc_ref_dimen_size (&ref->u.ar, i - 1, result);
 	    }
 	}
 
@@ -2148,7 +2149,7 @@ gfc_array_ref_shape (gfc_array_ref *ar, mpz_t *shape)
 	{
 	  if (ar->dimen_type[i] != DIMEN_ELEMENT)
 	    {
-	      if (ref_dimen_size (ar, i, &shape[d]) == FAILURE)
+	      if (gfc_ref_dimen_size (ar, i, &shape[d]) == FAILURE)
 		goto cleanup;
 	      d++;
 	    }

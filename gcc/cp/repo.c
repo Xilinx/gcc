@@ -1,6 +1,6 @@
 /* Code to maintain a C++ template repository.
    Copyright (C) 1995, 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007  Free Software Foundation, Inc.
+   2006, 2007, 2008  Free Software Foundation, Inc.
    Contributed by Jason Merrill (jason@cygnus.com)
 
 This file is part of GCC.
@@ -90,7 +90,7 @@ static const char *
 get_base_filename (const char *filename)
 {
   char *p = getenv ("COLLECT_GCC_OPTIONS");
-  char *output = NULL;
+  const char *output = NULL;
   int compiling = 0;
 
   while (p && *p)
@@ -98,7 +98,15 @@ get_base_filename (const char *filename)
       char *q = extract_string (&p);
 
       if (strcmp (q, "-o") == 0)
-	output = extract_string (&p);
+	{
+	  if (flag_compare_debug)
+	    /* Just in case aux_base_name was based on a name with two
+	       or more '.'s, add an arbitrary extension that will be
+	       stripped by the caller.  */
+	    output = concat (aux_base_name, ".o", NULL);
+	  else
+	    output = extract_string (&p);
+	}
       else if (strcmp (q, "-c") == 0)
 	compiling = 1;
     }
@@ -231,7 +239,7 @@ finish_repo (void)
   char *dir, *args;
   FILE *repo_file;
 
-  if (!flag_use_repository)
+  if (!flag_use_repository || flag_compare_debug)
     return;
 
   if (errorcount || sorrycount)

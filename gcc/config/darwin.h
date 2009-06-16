@@ -1,6 +1,6 @@
 /* Target definitions for Darwin (Mac OS X) systems.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007
+   2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,10 +16,14 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef CONFIG_DARWIN_H
 #define CONFIG_DARWIN_H
@@ -71,6 +75,38 @@ Boston, MA 02110-1301, USA.  */
 #define WCHAR_TYPE "int"
 #undef	WCHAR_TYPE_SIZE
 #define WCHAR_TYPE_SIZE 32
+
+#define INT8_TYPE "signed char"
+#define INT16_TYPE "short int"
+#define INT32_TYPE "int"
+#define INT64_TYPE "long long int"
+#define UINT8_TYPE "unsigned char"
+#define UINT16_TYPE "short unsigned int"
+#define UINT32_TYPE "unsigned int"
+#define UINT64_TYPE "long long unsigned int"
+
+#define INT_LEAST8_TYPE "signed char"
+#define INT_LEAST16_TYPE "short int"
+#define INT_LEAST32_TYPE "int"
+#define INT_LEAST64_TYPE "long long int"
+#define UINT_LEAST8_TYPE "unsigned char"
+#define UINT_LEAST16_TYPE "short unsigned int"
+#define UINT_LEAST32_TYPE "unsigned int"
+#define UINT_LEAST64_TYPE "long long unsigned int"
+
+#define INT_FAST8_TYPE "signed char"
+#define INT_FAST16_TYPE "short int"
+#define INT_FAST32_TYPE "int"
+#define INT_FAST64_TYPE "long long int"
+#define UINT_FAST8_TYPE "unsigned char"
+#define UINT_FAST16_TYPE "short unsigned int"
+#define UINT_FAST32_TYPE "unsigned int"
+#define UINT_FAST64_TYPE "long long unsigned int"
+
+#define INTPTR_TYPE "long int"
+#define UINTPTR_TYPE "long unsigned int"
+
+#define SIG_ATOMIC_TYPE "int"
 
 /* Default to using the NeXT-style runtime, since that's what is
    pre-installed on Darwin systems.  */
@@ -997,5 +1033,9 @@ extern void darwin_default_min_version (int * argc, char *** argv);
 #define GCC_DRIVER_HOST_INITIALIZATION \
   darwin_default_min_version (&argc, &argv)
 #endif /* CROSS_DIRECTORY_STRUCTURE */
+
+/* The Apple assembler and linker do not support constructor priorities.  */
+#undef SUPPORTS_INIT_PRIORITY
+#define SUPPORTS_INIT_PRIORITY 0
 
 #endif /* CONFIG_DARWIN_H */

@@ -1,6 +1,6 @@
 /* Parser for Java(TM) .class files.
    Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -498,7 +498,7 @@ handle_long_constant (JCF *jcf, CPool *cpool, enum cpool_tag kind,
 static uint16
 handle_constant (JCF *jcf, int index, enum cpool_tag purpose)
 {
-  enum cpool_tag kind;
+  unsigned int kind;
   CPool *cpool = cpool_for_class (output_class);
   
   if (index == 0)
@@ -555,12 +555,12 @@ handle_constant (JCF *jcf, int index, enum cpool_tag purpose)
       break;
 
     case CONSTANT_Long:
-      index = handle_long_constant (jcf, cpool, kind, index, 
+      index = handle_long_constant (jcf, cpool, CONSTANT_Long, index,
 				    WORDS_BIG_ENDIAN);
       break;
       
     case CONSTANT_Double:
-      index = handle_long_constant (jcf, cpool, kind, index, 
+      index = handle_long_constant (jcf, cpool, CONSTANT_Double, index,
 				    FLOAT_WORDS_BIG_ENDIAN);
       break;
 

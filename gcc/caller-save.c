@@ -1,6 +1,7 @@
 /* Save and restore call-clobbered registers which are live across a call.
    Copyright (C) 1989, 1992, 1994, 1995, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -188,7 +189,7 @@ reg_restore_code (int reg, enum machine_mode mode)
 /* Initialize for caller-save.
 
    Look at all the hard registers that are used by a call and for which
-   regclass.c has not already excluded from being used across a call.
+   reginfo.c has not already excluded from being used across a call.
 
    Ensure that we can find a mode to save the register and that there is a
    simple insn to save and restore the register.  This latter check avoids
@@ -448,7 +449,7 @@ setup_save_areas (void)
 	    SET_HARD_REG_BIT (hard_regs_used, r);
       }
 
-  if (flag_ira && optimize && flag_ira_share_save_slots)
+  if (optimize && flag_ira_share_save_slots)
     {
       rtx insn, slot;
       struct insn_chain *chain, *next;

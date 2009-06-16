@@ -1,6 +1,6 @@
 /* Induction variable optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -219,14 +219,11 @@ struct ivopts_data
   /* The currently optimized loop.  */
   struct loop *current_loop;
 
-  /* Are we optimizing for speed?  */
-  bool speed;
+  /* Numbers of iterations for all exits of the current loop.  */
+  struct pointer_map_t *niters;
 
   /* Number of registers used in it.  */
   unsigned regs_used;
-
-  /* Numbers of iterations for all exits of the current loop.  */
-  struct pointer_map_t *niters;
 
   /* The size of version_info array allocated.  */
   unsigned version_info_size;
@@ -237,9 +234,6 @@ struct ivopts_data
   /* The bitmap of indices in version_info whose value was changed.  */
   bitmap relevant;
 
-  /* The maximum invariant id.  */
-  unsigned max_inv_id;
-
   /* The uses of induction variables.  */
   VEC(iv_use_p,heap) *iv_uses;
 
@@ -249,9 +243,15 @@ struct ivopts_data
   /* A bitmap of important candidates.  */
   bitmap important_candidates;
 
+  /* The maximum invariant id.  */
+  unsigned max_inv_id;
+
   /* Whether to consider just related and important candidates when replacing a
      use.  */
   bool consider_all_candidates;
+
+  /* Are we optimizing for speed?  */
+  bool speed;
 };
 
 /* An assignment of iv candidates to uses.  */
@@ -884,7 +884,7 @@ determine_biv_step (gimple phi)
   if (!is_gimple_reg (name))
     return NULL_TREE;
 
-  if (!simple_iv (loop, phi, name, &iv, true))
+  if (!simple_iv (loop, loop, name, &iv, true))
     return NULL_TREE;
 
   return integer_zerop (iv.step) ? NULL_TREE : iv.step;
@@ -990,7 +990,7 @@ find_givs_in_stmt_scev (struct ivopts_data *data, gimple stmt, affine_iv *iv)
   if (TREE_CODE (lhs) != SSA_NAME)
     return false;
 
-  if (!simple_iv (loop, stmt, lhs, iv, true))
+  if (!simple_iv (loop, loop_containing_stmt (stmt), lhs, iv, true))
     return false;
   iv->base = expand_simple_operations (iv->base);
 
@@ -1922,6 +1922,24 @@ strip_offset_1 (tree expr, bool inside_addr, bool top_compref,
 
       return fold_convert (orig_type, expr);
 
+    case MULT_EXPR:
+      op1 = TREE_OPERAND (expr, 1);
+      if (!cst_and_fits_in_hwi (op1))
+	return orig_expr;
+
+      op0 = TREE_OPERAND (expr, 0);
+      op0 = strip_offset_1 (op0, false, false, &off0);
+      if (op0 == TREE_OPERAND (expr, 0))
+	return orig_expr;
+
+      *offset = off0 * int_cst_value (op1);
+      if (integer_zerop (op0))
+	expr = op0;
+      else
+	expr = fold_build2 (MULT_EXPR, type, op0, op1);
+
+      return fold_convert (orig_type, expr);
+
     case ARRAY_REF:
     case ARRAY_RANGE_REF:
       if (!inside_addr)
@@ -2071,9 +2089,7 @@ add_candidate_1 (struct ivopts_data *data,
     {
       orig_type = TREE_TYPE (base);
       type = generic_type_for (orig_type);
-      /* Don't convert the base to the generic type for pointers as the generic
-	 type is an integer type with the same size as the pointer type.  */
-      if (type != orig_type && !POINTER_TYPE_P (orig_type))
+      if (type != orig_type)
 	{
 	  base = fold_convert (type, base);
 	  step = fold_convert (type, step);
@@ -3304,6 +3320,19 @@ force_expr_to_var_cost (tree expr, bool speed)
 
       break;
 
+    case NEGATE_EXPR:
+      op0 = TREE_OPERAND (expr, 0);
+      STRIP_NOPS (op0);
+      op1 = NULL_TREE;
+
+      if (is_gimple_val (op0))
+	cost0 = zero_cost;
+      else
+	cost0 = force_expr_to_var_cost (op0, speed);
+
+      cost1 = zero_cost;
+      break;
+
     default:
       /* Just an arbitrary value, FIXME.  */
       return new_cost (target_spill_cost[speed], 0);
@@ -3315,6 +3344,7 @@ force_expr_to_var_cost (tree expr, bool speed)
     case POINTER_PLUS_EXPR:
     case PLUS_EXPR:
     case MINUS_EXPR:
+    case NEGATE_EXPR:
       cost = new_cost (add_cost (mode, speed), 0);
       break;
 
@@ -3417,8 +3447,8 @@ ptr_difference_cost (struct ivopts_data *data,
 		     unsigned HOST_WIDE_INT *offset, bitmap *depends_on)
 {
   HOST_WIDE_INT diff = 0;
-  comp_cost cost;
-  bool speed = optimize_loop_for_speed_p (data->current_loop);
+  aff_tree aff_e1, aff_e2;
+  tree type;
 
   gcc_assert (TREE_CODE (e1) == ADDR_EXPR);
 
@@ -3436,12 +3466,14 @@ ptr_difference_cost (struct ivopts_data *data,
 
   *symbol_present = false;
   *var_present = true;
-  
-  cost = force_var_cost (data, e1, depends_on);
-  cost = add_costs (cost, force_var_cost (data, e2, depends_on));
-  cost.cost += add_cost (Pmode, speed);
 
-  return cost;
+  type = signed_type_for (TREE_TYPE (e1));
+  tree_to_aff_combination (e1, type, &aff_e1);
+  tree_to_aff_combination (e2, type, &aff_e2);
+  aff_combination_scale (&aff_e2, double_int_minus_one);
+  aff_combination_add (&aff_e1, &aff_e2);
+
+  return force_var_cost (data, aff_combination_to_tree (&aff_e1), depends_on);
 }
 
 /* Estimates cost of expressing difference E1 - E2 as
@@ -3455,9 +3487,10 @@ difference_cost (struct ivopts_data *data,
 		 tree e1, tree e2, bool *symbol_present, bool *var_present,
 		 unsigned HOST_WIDE_INT *offset, bitmap *depends_on)
 {
-  comp_cost cost;
   enum machine_mode mode = TYPE_MODE (TREE_TYPE (e1));
   unsigned HOST_WIDE_INT off1, off2;
+  aff_tree aff_e1, aff_e2;
+  tree type;
 
   e1 = strip_offset (e1, &off1);
   e2 = strip_offset (e2, &off2);
@@ -3467,8 +3500,8 @@ difference_cost (struct ivopts_data *data,
   STRIP_NOPS (e2);
 
   if (TREE_CODE (e1) == ADDR_EXPR)
-    return ptr_difference_cost (data, e1, e2, symbol_present, var_present, offset,
-				depends_on);
+    return ptr_difference_cost (data, e1, e2, symbol_present, var_present,
+				offset, depends_on);
   *symbol_present = false;
 
   if (operand_equal_p (e1, e2, 0))
@@ -3476,23 +3509,26 @@ difference_cost (struct ivopts_data *data,
       *var_present = false;
       return zero_cost;
     }
+
   *var_present = true;
+
   if (integer_zerop (e2))
     return force_var_cost (data, e1, depends_on);
 
   if (integer_zerop (e1))
     {
-      cost = force_var_cost (data, e2, depends_on);
+      comp_cost cost = force_var_cost (data, e2, depends_on);
       cost.cost += multiply_by_cost (-1, mode, data->speed);
-
       return cost;
     }
 
-  cost = force_var_cost (data, e1, depends_on);
-  cost = add_costs (cost, force_var_cost (data, e2, depends_on));
-  cost.cost += add_cost (mode, data->speed);
+  type = signed_type_for (TREE_TYPE (e1));
+  tree_to_aff_combination (e1, type, &aff_e1);
+  tree_to_aff_combination (e2, type, &aff_e2);
+  aff_combination_scale (&aff_e2, double_int_minus_one);
+  aff_combination_add (&aff_e1, &aff_e2);
 
-  return cost;
+  return force_var_cost (data, aff_combination_to_tree (&aff_e1), depends_on);
 }
 
 /* Determines the cost of the computation by that USE is expressed
@@ -3513,7 +3549,6 @@ get_computation_cost_at (struct ivopts_data *data,
   HOST_WIDE_INT ratio, aratio;
   bool var_present, symbol_present;
   comp_cost cost;
-  unsigned n_sums;
   double_int rat;
   bool speed = optimize_bb_for_speed_p (gimple_bb (at));
 
@@ -3546,7 +3581,7 @@ get_computation_cost_at (struct ivopts_data *data,
 	return infinite_cost;
     }
 
-  if (TYPE_PRECISION (utype) != TYPE_PRECISION (ctype))
+  if (TYPE_PRECISION (utype) < TYPE_PRECISION (ctype))
     {
       /* TODO -- add direct handling of this case.  */
       goto fallback;
@@ -3571,6 +3606,9 @@ get_computation_cost_at (struct ivopts_data *data,
   else
     return infinite_cost;
 
+  STRIP_NOPS (cbase);
+  ctype = TREE_TYPE (cbase);
+
   /* use = ubase + ratio * (var - cbase).  If either cbase is a constant
      or ratio == 1, it is better to handle this like
      
@@ -3593,6 +3631,18 @@ get_computation_cost_at (struct ivopts_data *data,
 			      &symbol_present, &var_present, &offset,
 			      depends_on);
     }
+  else if (address_p
+	   && !POINTER_TYPE_P (ctype)
+	   && multiplier_allowed_in_address_p (ratio,
+					       TYPE_MODE (TREE_TYPE (utype))))
+    {
+      cbase
+	= fold_build2 (MULT_EXPR, ctype, cbase, build_int_cst (ctype, ratio));
+      cost = difference_cost (data,
+			      ubase, cbase,
+			      &symbol_present, &var_present, &offset,
+			      depends_on);
+    }
   else
     {
       cost = force_var_cost (data, cbase, depends_on);
@@ -3610,39 +3660,38 @@ get_computation_cost_at (struct ivopts_data *data,
     offset -= ratio * cstepi;
 
   /* Now the computation is in shape symbol + var1 + const + ratio * var2.
-     (symbol/var/const parts may be omitted).  If we are looking for an address,
-     find the cost of addressing this.  */
+     (symbol/var1/const parts may be omitted).  If we are looking for an
+     address, find the cost of addressing this.  */
   if (address_p)
-    return add_costs (cost, get_address_cost (symbol_present, var_present,
-				offset, ratio,
-				TYPE_MODE (TREE_TYPE (*use->op_p)), speed));
+    return add_costs (cost,
+		      get_address_cost (symbol_present, var_present,
+					offset, ratio,
+					TYPE_MODE (TREE_TYPE (utype)), speed));
 
   /* Otherwise estimate the costs for computing the expression.  */
-  aratio = ratio > 0 ? ratio : -ratio;
   if (!symbol_present && !var_present && !offset)
     {
       if (ratio != 1)
 	cost.cost += multiply_by_cost (ratio, TYPE_MODE (ctype), speed);
-
       return cost;
     }
 
-  if (aratio != 1)
-    cost.cost += multiply_by_cost (aratio, TYPE_MODE (ctype), speed);
-
-  n_sums = 1;
-  if (var_present
-      /* Symbol + offset should be compile-time computable.  */
-      && (symbol_present || offset))
-    n_sums++;
+  /* Symbol + offset should be compile-time computable so consider that they
+      are added once to the variable, if present.  */
+  if (var_present && (symbol_present || offset))
+    cost.cost += add_cost (TYPE_MODE (ctype), speed)
+		 / AVG_LOOP_NITER (data->current_loop);
 
   /* Having offset does not affect runtime cost in case it is added to
      symbol, but it increases complexity.  */
   if (offset)
     cost.complexity++;
 
-  cost.cost += n_sums * add_cost (TYPE_MODE (ctype), speed);
-  return cost;
+  cost.cost += add_cost (TYPE_MODE (ctype), speed);
+
+  aratio = ratio > 0 ? ratio : -ratio;
+  if (aratio != 1)
+    cost.cost += multiply_by_cost (aratio, TYPE_MODE (ctype), speed);
 
 fallback:
   {
@@ -5224,63 +5273,6 @@ unshare_and_remove_ssa_names (tree ref)
   return ref;
 }
 
-/* Extract the alias analysis info for the memory reference REF.  There are
-   several ways how this information may be stored and what precisely is
-   its semantics depending on the type of the reference, but there always is
-   somewhere hidden one _DECL node that is used to determine the set of
-   virtual operands for the reference.  The code below deciphers this jungle
-   and extracts this single useful piece of information.  */
-
-static tree
-get_ref_tag (tree ref, tree orig)
-{
-  tree var = get_base_address (ref);
-  tree aref = NULL_TREE, tag, sv;
-  HOST_WIDE_INT offset, size, maxsize;
-
-  for (sv = orig; handled_component_p (sv); sv = TREE_OPERAND (sv, 0))
-    {
-      aref = get_ref_base_and_extent (sv, &offset, &size, &maxsize);
-      if (ref)
-	break;
-    }
-
-  if (!var)
-    return NULL_TREE;
-
-  if (TREE_CODE (var) == INDIRECT_REF)
-    {
-      /* If the base is a dereference of a pointer, first check its name memory
-	 tag.  If it does not have one, use its symbol memory tag.  */
-      var = TREE_OPERAND (var, 0);
-      if (TREE_CODE (var) != SSA_NAME)
-	return NULL_TREE;
-
-      if (SSA_NAME_PTR_INFO (var))
-	{
-	  tag = SSA_NAME_PTR_INFO (var)->name_mem_tag;
-	  if (tag)
-	    return tag;
-	}
- 
-      var = SSA_NAME_VAR (var);
-      tag = symbol_mem_tag (var);
-      gcc_assert (tag != NULL_TREE);
-      return tag;
-    }
-  else
-    { 
-      if (!DECL_P (var))
-	return NULL_TREE;
-
-      tag = symbol_mem_tag (var);
-      if (tag)
-	return tag;
-
-      return var;
-    }
-}
-
 /* Copies the reference information from OLD_REF to NEW_REF.  */
 
 static void
@@ -5289,10 +5281,7 @@ copy_ref_info (tree new_ref, tree old_ref)
   if (TREE_CODE (old_ref) == TARGET_MEM_REF)
     copy_mem_ref_info (new_ref, old_ref);
   else
-    {
-      TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
-      TMR_TAG (new_ref) = get_ref_tag (old_ref, TMR_ORIGINAL (new_ref));
-    }
+    TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
 }
 
 /* Rewrites USE (address that is an iv) using candidate CAND.  */
@@ -5366,8 +5355,6 @@ rewrite_use_compare (struct ivopts_data *data,
 static void
 rewrite_use (struct ivopts_data *data, struct iv_use *use, struct iv_cand *cand)
 {
-  push_stmt_changes (&use->stmt);
-
   switch (use->type)
     {
       case USE_NONLINEAR_EXPR:
@@ -5385,8 +5372,8 @@ rewrite_use (struct ivopts_data *data, struct iv_use *use, struct iv_cand *cand)
       default:
 	gcc_unreachable ();
     }
-
-  pop_stmt_changes (&use->stmt);
+  
+  update_stmt (use->stmt);
 }
 
 /* Rewrite the uses using the selected induction variables.  */

@@ -1,5 +1,5 @@
 /* Predictive commoning.
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -210,7 +210,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Data references (or phi nodes that carry data reference values across
    loop iterations).  */
 
-typedef struct dref
+typedef struct dref_d
 {
   /* The reference itself.  */
   struct data_reference *ref;
@@ -775,7 +775,7 @@ split_data_refs_to_components (struct loop *loop,
 	  comps[ca] = comp;
 	}
 
-      dataref = XCNEW (struct dref);
+      dataref = XCNEW (struct dref_d);
       dataref->ref = dr;
       dataref->stmt = DR_STMT (dr);
       dataref->offset = double_int_zero;
@@ -1126,7 +1126,7 @@ find_looparound_phi (struct loop *loop, dref ref, dref root)
 static void
 insert_looparound_copy (chain_p chain, dref ref, gimple phi)
 {
-  dref nw = XCNEW (struct dref), aref;
+  dref nw = XCNEW (struct dref_d), aref;
   unsigned i;
 
   nw->stmt = phi;
@@ -1374,7 +1374,7 @@ ref_at_iteration (struct loop *loop, tree ref, int iter)
   else
     return NULL_TREE;
 
-  ok = simple_iv (loop, first_stmt (loop->header), idx, &iv, true);
+  ok = simple_iv (loop, loop, idx, &iv, true);
   if (!ok)
     return NULL_TREE;
   iv.base = expand_simple_operations (iv.base);
@@ -1423,7 +1423,6 @@ get_init_expr (chain_p chain, unsigned index)
 void
 mark_virtual_ops_for_renaming (gimple stmt)
 {
-  ssa_op_iter iter;
   tree var;
 
   if (gimple_code (stmt) == GIMPLE_PHI)
@@ -1439,24 +1438,8 @@ mark_virtual_ops_for_renaming (gimple stmt)
     }
 
   update_stmt (stmt);
-
-  FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_ALL_VIRTUALS)
-    {
-      if (TREE_CODE (var) == SSA_NAME)
-	var = SSA_NAME_VAR (var);
-      mark_sym_for_renaming (var);
-    }
-}
-
-/* Calls mark_virtual_ops_for_renaming for all members of LIST.  */
-
-static void
-mark_virtual_ops_for_renaming_list (gimple_seq list)
-{
-  gimple_stmt_iterator gsi;
-
-  for (gsi = gsi_start (list); !gsi_end_p (gsi); gsi_next (&gsi))
-    mark_virtual_ops_for_renaming (gsi_stmt (gsi));
+  if (gimple_vuse (stmt))
+    mark_sym_for_renaming (gimple_vop (cfun));
 }
 
 /* Returns a new temporary variable used for the I-th variable carrying
@@ -1525,10 +1508,7 @@ initialize_root_vars (struct loop *loop, chain_p chain, bitmap tmp_vars)
 
       init = force_gimple_operand (init, &stmts, true, NULL_TREE);
       if (stmts)
-	{
-	  mark_virtual_ops_for_renaming_list (stmts);
-	  gsi_insert_seq_on_edge_immediate (entry, stmts);
-	}
+	gsi_insert_seq_on_edge_immediate (entry, stmts);
 
       phi = create_phi_node (var, loop->header);
       SSA_NAME_DEF_STMT (var) = phi;
@@ -1589,10 +1569,7 @@ initialize_root_vars_lm (struct loop *loop, dref root, bool written,
       
   init = force_gimple_operand (init, &stmts, written, NULL_TREE);
   if (stmts)
-    {
-      mark_virtual_ops_for_renaming_list (stmts);
-      gsi_insert_seq_on_edge_immediate (entry, stmts);
-    }
+    gsi_insert_seq_on_edge_immediate (entry, stmts);
 
   if (written)
     {
@@ -2362,7 +2339,7 @@ combine_chains (chain_p ch1, chain_p ch2)
   for (i = 0; (VEC_iterate (dref, ch1->refs, i, r1)
 	       && VEC_iterate (dref, ch2->refs, i, r2)); i++)
     {
-      nw = XCNEW (struct dref);
+      nw = XCNEW (struct dref_d);
       nw->stmt = stmt_combining_refs (r1, r2);
       nw->distance = r1->distance;
 
@@ -2421,31 +2398,6 @@ try_combine_chains (VEC (chain_p, heap) **chains)
     }
 }
 
-/* Sets alias information based on data reference DR for REF,
-   if necessary.  */
-
-static void
-set_alias_info (tree ref, struct data_reference *dr)
-{
-  tree var;
-  tree tag = DR_SYMBOL_TAG (dr);
-
-  gcc_assert (tag != NULL_TREE);
-
-  ref = get_base_address (ref);
-  if (!ref || !INDIRECT_REF_P (ref))
-    return;
-
-  var = SSA_NAME_VAR (TREE_OPERAND (ref, 0));
-  if (var_ann (var)->symbol_mem_tag)
-    return;
-
-  if (!MTAG_P (tag))
-    new_type_alias (var, tag, ref);
-  else
-    var_ann (var)->symbol_mem_tag = tag;
-}
-
 /* Prepare initializers for CHAIN in LOOP.  Returns false if this is
    impossible because one of these initializers may trap, true otherwise.  */
 
@@ -2491,11 +2443,7 @@ prepare_initializers_chain (struct loop *loop, chain_p chain)
 
       init = force_gimple_operand (init, &stmts, false, NULL_TREE);
       if (stmts)
-	{
-	  mark_virtual_ops_for_renaming_list (stmts);
-	  gsi_insert_seq_on_edge_immediate (entry, stmts);
-	}
-      set_alias_info (init, dr);
+	gsi_insert_seq_on_edge_immediate (entry, stmts);
 
       VEC_replace (tree, chain->inits, i, init);
     }

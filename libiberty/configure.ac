@@ -209,7 +209,7 @@ if [[ "${shared}" = "yes" ]]; then
     i[[34567]]86-*-* | x86_64-*-*)
 			PICFLAG=-fpic ;;
     m68k-*-*)		PICFLAG=-fpic ;;
-    mips*-*-linux)	PICFLAG=-fPIC ;;
+    mips*-*-linux*)	PICFLAG=-fPIC ;;
     powerpc*-*-aix*)	;;
     powerpc*-*-*)	PICFLAG=-fPIC ;;
     sparc*-*-*)		case "${CFLAGS}" in
@@ -317,6 +317,7 @@ funcs="$funcs insque"
 funcs="$funcs memchr"
 funcs="$funcs memcmp"
 funcs="$funcs memcpy"
+funcs="$funcs memmem"
 funcs="$funcs memmove"
 funcs="$funcs mempcpy"
 funcs="$funcs memset"
@@ -362,7 +363,7 @@ checkfuncs="$checkfuncs getsysinfo table sysctl wait3 wait4 __fsetlocking"
 if test "x" = "y"; then
   AC_CHECK_FUNCS(asprintf atexit basename bcmp bcopy bsearch bzero calloc clock \
   getcwd getpagesize gettimeofday index insque mkstemps memchr memcmp memcpy \
-  memmove mempcpy memset putenv random rename rindex sigsetmask \
+  memmem memmove mempcpy memset putenv random rename rindex sigsetmask \
   strcasecmp setenv stpcpy stpncpy strchr strdup strncasecmp strndup strrchr strstr \
   strtod strtol strtoul strverscmp tmpnam vasprintf vfprintf vprintf \
   vsprintf waitpid getrusage on_exit psignal strerror strsignal \
@@ -468,6 +469,28 @@ if test -n "${with_target_subdir}"; then
     setobjs=yes
     ;;
 
+  *-*-msdosdjgpp)
+    AC_LIBOBJ([vasprintf])
+    AC_LIBOBJ([vsnprintf])
+    AC_LIBOBJ([snprintf])
+    AC_LIBOBJ([asprintf])
+
+    for f in atexit basename bcmp bcopy bsearch bzero calloc clock ffs \
+             getcwd getpagesize getrusage gettimeofday \
+             index insque memchr memcmp memcpy memmove memset psignal \
+             putenv random rename rindex sbrk setenv stpcpy strcasecmp \
+             strchr strdup strerror strncasecmp strrchr strstr strtod \
+             strtol strtoul sysconf times tmpnam vfprintf vprintf \
+             vsprintf waitpid
+    do
+      n=HAVE_`echo $f | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+      AC_DEFINE_UNQUOTED($n)
+    done
+
+
+    setobjs=yes
+    ;;
+
   esac
 
   # We may wish to install the target headers somewhere.
@@ -543,23 +566,6 @@ if test -z "${setobjs}"; then
 
     # Of the functions in $checkfuncs, VxWorks only has strerror.
     AC_DEFINE(HAVE_STRERROR)
-
-    setobjs=yes
-    ;;
-
-  *-*-msdosdjgpp)
-    for f in atexit basename bcmp bcopy bsearch bzero calloc clock ffs \
-             getcwd getpagesize getrusage gettimeofday \
-             index insque memchr memcmp memcpy memmove memset psignal \
-             putenv random rename rindex sbrk setenv stpcpy strcasecmp \
-             strchr strdup strerror strncasecmp strrchr strstr strtod \
-             strtol strtoul sysconf times tmpnam vfprintf vprintf \
-             vsprintf waitpid
-    do
-      n=HAVE_`echo $f | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
-      AC_DEFINE_UNQUOTED($n)
-    done
-
 
     setobjs=yes
     ;;

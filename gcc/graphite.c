@@ -166,7 +166,6 @@ print_graphite_scop_statistics (FILE* file, scop_p scop)
 	  n_loops++;
 	  n_p_loops += bb->count;
 	}
-
     }
 
   fprintf (file, "\nSCoP statistics (");
@@ -187,6 +186,7 @@ static void
 print_graphite_statistics (FILE* file, VEC (scop_p, heap) *scops)
 {
   int i;
+
   scop_p scop;
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
@@ -202,6 +202,7 @@ graphite_initialize (void)
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	print_global_statistics (dump_file);
+
       return false;
     }
 
@@ -240,6 +241,7 @@ graphite_transform_loops (void)
   scop_p scop;
   bool transform_done = false;
   VEC (scop_p, heap) *scops = NULL;
+  bool foo = true;
 
   if (!graphite_initialize ())
     return;
@@ -253,6 +255,7 @@ graphite_transform_loops (void)
     }
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
+    if (foo)
     if (build_poly_scop (scop))
       {
 	if (apply_poly_transforms (scop))

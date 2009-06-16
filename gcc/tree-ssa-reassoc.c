@@ -242,7 +242,7 @@ get_rank (tree e)
 	return 0;
 
       if (!is_gimple_assign (stmt)
-	  || !ZERO_SSA_OPERANDS (stmt, SSA_OP_VIRTUAL_DEFS))
+	  || gimple_vdef (stmt))
 	return bb_rank[gimple_bb (stmt)->index];
 
       /* If we already have a rank for this expression, use that.  */
@@ -2070,7 +2070,7 @@ struct gimple_opt_pass pass_reassoc =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_REASSOC,			/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */

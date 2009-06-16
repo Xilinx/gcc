@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.
    MIPS SDE version.
-   Copyright (C) 2003, 2004, 2007
+   Copyright (C) 2003, 2004, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -60,7 +60,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef SUBTARGET_ASM_SPEC
 #define SUBTARGET_ASM_SPEC "\
 %{!mips1:--trap} \
-%{fPIC|fpic|fPIE|fpie:%{!mips16*:-KPIC}} \
 %{mips16:-no-mips16}"
 
 #undef LINK_SPEC
@@ -91,7 +90,8 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Use $5 as a temporary for both MIPS16 and non-MIPS16.  */
 #undef MIPS_EPILOGUE_TEMP_REGNUM
-#define MIPS_EPILOGUE_TEMP_REGNUM (GP_REG_FIRST + 5)
+#define MIPS_EPILOGUE_TEMP_REGNUM \
+  (cfun->machine->interrupt_handler_p ? K0_REG_NUM : GP_REG_FIRST + 5)
 
 /* Using long will always be right for size_t and ptrdiff_t, since
    sizeof(long) must equal sizeof(void *), following from the setting

@@ -6,18 +6,18 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License along  --
+-- with this program; see file COPYING3.  If not see                        --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -269,8 +269,10 @@ package Errout is
 
    --      Normally warning messages issued in other than the main unit are
    --      suppressed. If the message ends with !! then this suppression is
-   --      avoided. This is currently only used by the Compile_Time_Warning
-   --      pragma to ensure the message for a with'ed unit is output.
+   --      avoided. This is currently used by the Compile_Time_Warning pragma
+   --      to ensure the message for a with'ed unit is output, and for warnings
+   --      on ineffective back-end inlining, which is detected in units that
+   --      contain subprograms to be inlined in the main program.
 
    --    Insertion character ? (Question: warning message)
    --      The character ? appearing anywhere in a message makes the message
@@ -579,6 +581,33 @@ package Errout is
    --  Triggering switch. If non-zero, then ignore errors mode is activated.
    --  This is a counter to allow convenient nesting of enable/disable.
 
+   -----------------------
+   --  CODEFIX Facility --
+   -----------------------
+
+   --  The GPS and GNATBench IDE's have a codefix facility that allows for
+   --  automatic correction of a subset of the errors and warnings issued
+   --  by the compiler. This is done by recognizing the text of specific
+   --  messages using appropriate matching patterns.
+
+   --  The text of such messages should not be altered without coordinating
+   --  with the codefix code. All such messages are marked by a specific
+   --  style of comments, as shown by the following example:
+
+   --     Error_Msg_N -- CODEFIX
+   --       (parameters ....)
+
+   --  Any message marked with this -- CODEFIX comment should not be modified
+   --  without appropriate coordination. If new messages are added which may
+   --  be susceptible to automatic codefix action, they are marked using:
+
+   --     Error_Msg -- CODEFIX???
+   --       (parameters)
+
+   --  And subsequently either the appropriate code is added to codefix and the
+   --  ??? are removed, or it is determined that this is not an appropriate
+   --  case for codefix action, and the comment is removed.
+
    ------------------------------
    -- Error Output Subprograms --
    ------------------------------
@@ -649,8 +678,8 @@ package Errout is
    --  suppressed.
 
    procedure Error_Msg_F (Msg : String; N : Node_Id);
-   --  Similar to Error_Msg_N except that the message is placed on the
-   --  first node of the construct N (First_Node (N)).
+   --  Similar to Error_Msg_N except that the message is placed on the first
+   --  node of the construct N (First_Node (N)).
 
    procedure Error_Msg_NE
      (Msg : String;

@@ -508,7 +508,7 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 	  pp_space (buffer);
         }
-      dump_generic_node (buffer, gimple_call_fn (gs), spc, flags, false);
+      print_call_name (buffer, gimple_call_fn (gs));
       pp_string (buffer, " (");
       dump_gimple_call_args (buffer, gs, flags);
       pp_character (buffer, ')');
@@ -1132,33 +1132,6 @@ dump_gimple_asm (pretty_printer *buffer, gimple gs, int spc, int flags)
 }
 
 
-/* Dump the set of decls SYMS.  BUFFER, SPC and FLAGS are as in
-   dump_generic_node.  */
-
-static void
-dump_symbols (pretty_printer *buffer, bitmap syms, int flags)
-{
-  unsigned i;
-  bitmap_iterator bi;
-
-  if (syms == NULL)
-    pp_string (buffer, "NIL");
-  else
-    {
-      pp_string (buffer, " { ");
-
-      EXECUTE_IF_SET_IN_BITMAP (syms, 0, i, bi)
-	{
-	  tree sym = referenced_var_lookup (i);
-	  dump_generic_node (buffer, sym, 0, flags, false);
-	  pp_character (buffer, ' ');
-	}
-
-      pp_character (buffer, '}');
-    }
-}
-
-
 /* Dump a PHI node PHI.  BUFFER, SPC and FLAGS are as in
    dump_gimple_stmt.  */
 
@@ -1351,27 +1324,6 @@ dump_gimple_omp_atomic_store (pretty_printer *buffer, gimple gs, int spc,
     }
 }
 
-/* Dump a GIMPLE_CHANGE_DYNAMIC_TYPE statement GS.  BUFFER, SPC and
-   FLAGS are as in dump_gimple_stmt.  */
-
-static void
-dump_gimple_cdt (pretty_printer *buffer, gimple gs, int spc, int flags)
-{
-  if (flags & TDF_RAW)
-    dump_gimple_fmt (buffer, spc, flags, "%G <%T, %T>", gs,
-                     gimple_cdt_new_type (gs), gimple_cdt_location (gs));
-  else
-    {
-      pp_string (buffer, "<<<change_dynamic_type (");
-      dump_generic_node (buffer, gimple_cdt_new_type (gs), spc + 2, flags,
-                         false);
-      pp_string (buffer, ") ");
-      dump_generic_node (buffer, gimple_cdt_location (gs), spc + 2, flags,
-                         false);
-      pp_string (buffer, ")>>>");
-    }
-}
-
 
 /* Dump all the memory operands for statement GS.  BUFFER, SPC and
    FLAGS are as in dump_gimple_stmt.  */
@@ -1379,81 +1331,27 @@ dump_gimple_cdt (pretty_printer *buffer, gimple gs, int spc, int flags)
 static void
 dump_gimple_mem_ops (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
-  struct voptype_d *vdefs;
-  struct voptype_d *vuses;
-  int i, n;
+  tree vdef = gimple_vdef (gs);
+  tree vuse = gimple_vuse (gs);
 
   if (!ssa_operands_active () || !gimple_references_memory_p (gs))
     return;
 
-  /* Even if the statement doesn't have virtual operators yet, it may
-     contain symbol information (this happens before aliases have been
-     computed).  */
-  if ((flags & TDF_MEMSYMS)
-      && gimple_vuse_ops (gs) == NULL
-      && gimple_vdef_ops (gs) == NULL)
-    {
-      if (gimple_loaded_syms (gs))
-	{
-	  pp_string (buffer, "# LOADS: ");
-	  dump_symbols (buffer, gimple_loaded_syms (gs), flags);
-	  newline_and_indent (buffer, spc);
-	}
-
-      if (gimple_stored_syms (gs))
-	{
-	  pp_string (buffer, "# STORES: ");
-	  dump_symbols (buffer, gimple_stored_syms (gs), flags);
-	  newline_and_indent (buffer, spc);
-	}
-
-      return;
-    }
-
-  vuses = gimple_vuse_ops (gs);
-  while (vuses)
-    {
-      pp_string (buffer, "# VUSE <");
-
-      n = VUSE_NUM (vuses);
-      for (i = 0; i < n; i++)
-	{
-	  dump_generic_node (buffer, VUSE_OP (vuses, i), spc + 2, flags, false);
-	  if (i < n - 1)
-	    pp_string (buffer, ", ");
-	}
-
-      pp_character (buffer, '>');
-
-      if (flags & TDF_MEMSYMS)
-	dump_symbols (buffer, gimple_loaded_syms (gs), flags);
-
-      newline_and_indent (buffer, spc);
-      vuses = vuses->next;
-    }
-
-  vdefs = gimple_vdef_ops (gs);
-  while (vdefs)
+  if (vdef != NULL_TREE)
     {
       pp_string (buffer, "# ");
-      dump_generic_node (buffer, VDEF_RESULT (vdefs), spc + 2, flags, false);
+      dump_generic_node (buffer, vdef, spc + 2, flags, false);
       pp_string (buffer, " = VDEF <");
-
-      n = VDEF_NUM (vdefs);
-      for (i = 0; i < n; i++)
-	{
-	  dump_generic_node (buffer, VDEF_OP (vdefs, i), spc + 2, flags, 0);
-	  if (i < n - 1)
-	    pp_string (buffer, ", ");
-	}
-
+      dump_generic_node (buffer, vuse, spc + 2, flags, false);
       pp_character (buffer, '>');
-
-      if ((flags & TDF_MEMSYMS) && vdefs->next == NULL)
-	dump_symbols (buffer, gimple_stored_syms (gs), flags);
-
       newline_and_indent (buffer, spc);
-      vdefs = vdefs->next;
+    }
+  else if (vuse != NULL_TREE)
+    {
+      pp_string (buffer, "# VUSE <");
+      dump_generic_node (buffer, vuse, spc + 2, flags, false);
+      pp_character (buffer, '>');
+      newline_and_indent (buffer, spc);
     }
 }
 
@@ -1589,10 +1487,6 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
       dump_gimple_omp_critical (buffer, gs, spc, flags);
       break;
 
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
-      dump_gimple_cdt (buffer, gs, spc, flags);
-      break;
-
     case GIMPLE_CATCH:
       dump_gimple_catch (buffer, gs, spc, flags);
       break;
@@ -1664,6 +1558,12 @@ dump_bb_header (pretty_printer *buffer, basic_block bb, int indent, int flags)
 		pp_decimal_int (buffer, get_lineno (gsi_stmt (gsi)));
 		break;
 	      }
+
+          if (bb->discriminator)
+            {
+              pp_string (buffer, ", discriminator ");
+	      pp_decimal_int (buffer, bb->discriminator);
+            }
 	}
       newline_and_indent (buffer, indent);
 

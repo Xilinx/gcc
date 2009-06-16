@@ -1,6 +1,6 @@
 /* Expands front end tree to back end RTL for GCC
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "regs.h"
 #include "alloc-pool.h"
+#include "pretty-print.h"
 
 /* Functions and data structures for expanding case statements.  */
 
@@ -600,8 +601,8 @@ tree_conflicts_with_clobbers_p (tree t, HARD_REG_SET *clobbered_regs)
 
   if (overlap)
     {
-      error ("asm-specifier for variable %qs conflicts with asm clobber list",
-	     IDENTIFIER_POINTER (DECL_NAME (overlap)));
+      error ("asm-specifier for variable %qE conflicts with asm clobber list",
+	     DECL_NAME (overlap));
 
       /* Reset registerness to stop multiple errors emitted for a single
 	 variable.  */
@@ -886,7 +887,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
       else if (MEM_P (op))
 	op = validize_mem (op);
 
-      if (asm_operand_ok (op, constraint) <= 0)
+      if (asm_operand_ok (op, constraint, NULL) <= 0)
 	{
 	  if (allows_reg && TYPE_MODE (type) != BLKmode)
 	    op = force_reg (TYPE_MODE (type), op);
@@ -1322,7 +1323,7 @@ resolve_operand_name_1 (char *p, tree outputs, tree inputs)
     }
 
   *q = '\0';
-  error ("undefined named operand %qs", p + 1);
+  error ("undefined named operand %qs", identifier_to_locale (p + 1));
   op = 0;
  found:
 
@@ -1418,6 +1419,7 @@ warn_if_unused_value (const_tree exp, location_t locus)
       goto restart;
 
     case SAVE_EXPR:
+    case NON_LVALUE_EXPR:
       exp = TREE_OPERAND (exp, 0);
       goto restart;
 
@@ -1724,38 +1726,6 @@ expand_return (tree retval)
     }
 }
 
-/* Given a pointer to a BLOCK node return nonzero if (and only if) the node
-   in question represents the outermost pair of curly braces (i.e. the "body
-   block") of a function or method.
-
-   For any BLOCK node representing a "body block" of a function or method, the
-   BLOCK_SUPERCONTEXT of the node will point to another BLOCK node which
-   represents the outermost (function) scope for the function or method (i.e.
-   the one which includes the formal parameters).  The BLOCK_SUPERCONTEXT of
-   *that* node in turn will point to the relevant FUNCTION_DECL node.  */
-
-int
-is_body_block (const_tree stmt)
-{
-  if (lang_hooks.no_body_blocks)
-    return 0;
-
-  if (TREE_CODE (stmt) == BLOCK)
-    {
-      tree parent = BLOCK_SUPERCONTEXT (stmt);
-
-      if (parent && TREE_CODE (parent) == BLOCK)
-	{
-	  tree grandparent = BLOCK_SUPERCONTEXT (parent);
-
-	  if (grandparent && TREE_CODE (grandparent) == FUNCTION_DECL)
-	    return 1;
-	}
-    }
-
-  return 0;
-}
-
 /* Emit code to restore vital registers at the beginning of a nonlocal goto
    handler.  */
 static void
@@ -2352,7 +2322,7 @@ expand_case (tree exp)
 	 If the switch-index is a constant, do it this way
 	 because we can optimize it.  */
 
-      else if (count < case_values_threshold ()
+      else if (count < targetm.case_values_threshold ()
 	       || compare_tree_int (range,
 				    (optimize_insn_for_size_p () ? 3 : 10) * count) > 0
 	       /* RANGE may be signed, and really large ranges will show up

@@ -1,6 +1,6 @@
 /* Functions to support a pool of allocatable objects.
-   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
+   2007, 2008  Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@cgsoftware.com>
 
 This file is part of GCC.
@@ -116,7 +116,7 @@ alloc_pool_descriptor (const char *name)
   slot = (struct alloc_pool_descriptor **)
     htab_find_slot_with_hash (alloc_pool_hash, name,
 			      htab_hash_pointer (name),
-			      1);
+			      INSERT);
   if (*slot)
     return *slot;
   *slot = XCNEW (struct alloc_pool_descriptor);

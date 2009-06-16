@@ -1,12 +1,12 @@
 // Safe sequence/iterator base implementation  -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006
+// Copyright (C) 2003, 2004, 2005, 2006, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file debug/safe_base.h
  *  This file is a GNU debug extension to the Standard C++ Library.
@@ -110,7 +105,7 @@ namespace __gnu_debug
     ~_Safe_iterator_base() { this->_M_detach(); }
 
     /** For use in _Safe_iterator. */
-    __gnu_cxx::__mutex& _M_get_mutex();
+    __gnu_cxx::__mutex& _M_get_mutex() throw ();
 
   public:
     /** Attaches this iterator to the given sequence, detaching it
@@ -121,7 +116,7 @@ namespace __gnu_debug
     void _M_attach(_Safe_sequence_base* __seq, bool __constant);
 
     /** Likewise, but not thread-safe. */
-    void _M_attach_single(_Safe_sequence_base* __seq, bool __constant);
+    void _M_attach_single(_Safe_sequence_base* __seq, bool __constant) throw ();
 
     /** Detach the iterator for whatever sequence it is attached to,
      *	if any.
@@ -129,19 +124,19 @@ namespace __gnu_debug
     void _M_detach();
 
     /** Likewise, but not thread-safe. */
-    void _M_detach_single();
+    void _M_detach_single() throw ();
 
     /** Determines if we are attached to the given sequence. */
     bool _M_attached_to(const _Safe_sequence_base* __seq) const
     { return _M_sequence == __seq; }
 
     /** Is this iterator singular? */
-    bool _M_singular() const;
+    _GLIBCXX_PURE bool _M_singular() const throw ();
 
     /** Can we compare this iterator to the given iterator @p __x?
 	Returns true if both iterators are nonsingular and reference
 	the same sequence. */
-    bool _M_can_compare(const _Safe_iterator_base& __x) const;
+    _GLIBCXX_PURE bool _M_can_compare(const _Safe_iterator_base& __x) const throw ();
   };
 
   /**
@@ -212,7 +207,7 @@ namespace __gnu_debug
     _M_swap(_Safe_sequence_base& __x);
 
     /** For use in _Safe_sequence. */
-    __gnu_cxx::__mutex& _M_get_mutex();
+    __gnu_cxx::__mutex& _M_get_mutex() throw ();
 
   public:
     /** Invalidates all iterators. */

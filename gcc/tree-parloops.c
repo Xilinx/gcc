@@ -1,5 +1,5 @@
 /* Loop autoparallelization.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr> and
    Zdenek Dvorak <dvorakz@suse.cz>.
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -335,7 +334,7 @@ gather_scalar_reductions (loop_p loop, htab_t reduction_list)
       if (!is_gimple_reg (res))
 	continue;
 
-      if (!simple_iv (loop, phi, res, &iv, true))
+      if (!simple_iv (loop, loop, res, &iv, true))
 	{
 	  void **slot = htab_find_slot (reduction_list, res, INSERT);
 	  *slot = res;
@@ -442,7 +441,7 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list)
       tree def = PHI_RESULT (phi);
       affine_iv iv;
 
-      if (is_gimple_reg (def) && !simple_iv (loop, phi, def, &iv, true))
+      if (is_gimple_reg (def) && !simple_iv (loop, loop, def, &iv, true))
 	{
 	  struct reduction_info *red;
 
@@ -1414,7 +1413,7 @@ rewrite_phi_with_iv (loop_p loop, htab_t reduction_list,
       return;
     }
 
-  if (!simple_iv (loop, phi, res, &iv, true))
+  if (!simple_iv (loop, loop, res, &iv, true))
     {
       if (reduction_list)
 	gcc_assert (htab_find (reduction_list, res));
@@ -1454,6 +1453,9 @@ rewrite_all_phi_nodes_with_iv (loop_p loop, htab_t reduction_list, tree main_iv)
       basic_block bb = bbs[i];
       gimple_stmt_iterator gsi = gsi_after_labels (bb);
 
+      if (bb->loop_father != loop)
+	continue;
+
       for (psi = gsi_start_phis (bb); !gsi_end_p (psi); )
 	rewrite_phi_with_iv (loop, reduction_list, &psi, &gsi, main_iv);
     }
@@ -1461,11 +1463,14 @@ rewrite_all_phi_nodes_with_iv (loop_p loop, htab_t reduction_list, tree main_iv)
   free (bbs);
 }
 
-/* Bases all the induction variables in LOOP on a single induction variable
-   (unsigned with base 0 and step 1), whose final value is compared with
-   NIT.  The induction variable is incremented in the loop latch.  
-   REDUCTION_LIST describes the reductions in LOOP.  Return the induction 
-   variable that was created.  */
+/* Bases all the induction variables in LOOP on a single induction
+   variable (unsigned with base 0 and step 1), whose final value is
+   compared with *NIT.  When the IV type precision has to be larger
+   than *NIT type precision, *NIT is converted to the larger type, the
+   conversion code is inserted before the loop, and *NIT is updated to
+   the new definition.  The induction variable is incremented in the
+   loop latch.  REDUCTION_LIST describes the reductions in LOOP.
+   Return the induction variable that was created.  */
 
 tree
 canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree *nit)
@@ -1995,6 +2000,16 @@ parallelize_loops (void)
 
   free_stmt_vec_info_vec ();
   htab_delete (reduction_list);
+
+  /* Parallelization will cause new function calls to be inserted through
+     which local variables will escape.  Reset the points-to solutions
+     for ESCAPED and CALLUSED.  */
+  if (changed)
+    {
+      pt_solution_reset (&cfun->gimple_df->escaped);
+      pt_solution_reset (&cfun->gimple_df->callused);
+    }
+
   return changed;
 }
 

@@ -1,5 +1,6 @@
 ;; Predicate definitions for IA-32 and x86-64.
-;; Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -75,16 +76,30 @@
   (and (match_code "reg")
        (match_test "REGNO (op) == FLAGS_REG")))
 
+;; Return true if op is a QImode register operand other than
+;; %[abcd][hl].
+(define_predicate "ext_QIreg_operand"
+  (and (match_code "reg")
+       (match_test "TARGET_64BIT
+		    && GET_MODE (op) == QImode
+		    && REGNO (op) > BX_REG")))
+
+;; Similarly, but don't check mode of the operand.
+(define_predicate "ext_QIreg_nomode_operand"
+  (and (match_code "reg")
+       (match_test "TARGET_64BIT
+		    && REGNO (op) > BX_REG")))
+
 ;; Return true if op is not xmm0 register.
 (define_predicate "reg_not_xmm0_operand"
    (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
+	(match_test "!REG_P (op) 
 		     || REGNO (op) != FIRST_SSE_REG")))
 
 ;; As above, but allow nonimmediate operands.
 (define_predicate "nonimm_not_xmm0_operand"
    (and (match_operand 0 "nonimmediate_operand")
-	(match_test "GET_CODE (op) != REG
+	(match_test "!REG_P (op) 
 		     || REGNO (op) != FIRST_SSE_REG")))
 
 ;; Return 1 if VALUE can be stored in a sign extended immediate field.
@@ -573,6 +588,11 @@
   (and (match_code "const_int")
        (match_test "INTVAL (op) == 8")))
 
+;; Match exactly 128.
+(define_predicate "const128_operand"
+  (and (match_code "const_int")
+       (match_test "INTVAL (op) == 128")))
+
 ;; Match 2, 4, or 8.  Used for leal multiplicands.
 (define_predicate "const248_operand"
   (match_code "const_int")
@@ -701,7 +721,7 @@
 {
   /* On Pentium4, the inc and dec operations causes extra dependency on flag
      registers, since carry flag is not set.  */
-  if (!TARGET_USE_INCDEC && !optimize_size)
+  if (!TARGET_USE_INCDEC && !optimize_insn_for_size_p ())
     return 0;
   return op == const1_rtx || op == constm1_rtx;
 })
@@ -810,12 +830,12 @@
   int ok;
 
   /* Registers and immediate operands are always "aligned".  */
-  if (GET_CODE (op) != MEM)
+  if (!MEM_P (op))
     return 1;
 
   /* All patterns using aligned_operand on memory operands ends up
      in promoting memory operand to 64bit and thus causing memory mismatch.  */
-  if (TARGET_MEMORY_MISMATCH_STALL && !optimize_size)
+  if (TARGET_MEMORY_MISMATCH_STALL && !optimize_insn_for_size_p ())
     return 0;
 
   /* Don't even try to do any aligned optimizations with volatiles.  */
@@ -877,6 +897,9 @@
   struct ix86_address parts;
   int ok;
 
+  if (TARGET_64BIT)
+    return 0;
+
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);
 
@@ -885,6 +908,34 @@
 
   return parts.disp != NULL_RTX;
 })
+
+;; Returns 1 if OP is memory operand which will need zero or
+;; one register at most, not counting stack pointer or frame pointer.
+(define_predicate "cmpxchg8b_pic_memory_operand"
+  (match_operand 0 "memory_operand")
+{
+  struct ix86_address parts;
+  int ok;
+
+  ok = ix86_decompose_address (XEXP (op, 0), &parts);
+  gcc_assert (ok);
+  if (parts.base == NULL_RTX
+      || parts.base == arg_pointer_rtx
+      || parts.base == frame_pointer_rtx
+      || parts.base == hard_frame_pointer_rtx
+      || parts.base == stack_pointer_rtx)
+    return 1;
+
+  if (parts.index == NULL_RTX
+      || parts.index == arg_pointer_rtx
+      || parts.index == frame_pointer_rtx
+      || parts.index == hard_frame_pointer_rtx
+      || parts.index == stack_pointer_rtx)
+    return 1;
+
+  return 0;
+})
+
 
 ;; Returns 1 if OP is memory operand that cannot be represented
 ;; by the modRM array.
@@ -1049,6 +1100,10 @@
 (define_predicate "arith_or_logical_operator"
   (match_code "plus,mult,and,ior,xor,smin,smax,umin,umax,compare,minus,div,
 	       mod,udiv,umod,ashift,rotate,ashiftrt,lshiftrt,rotatert"))
+
+;; Return true for COMMUTATIVE_P.
+(define_predicate "commutative_operator"
+  (match_code "plus,mult,and,ior,xor,smin,smax,umin,umax"))
 
 ;; Return 1 if OP is a binary operator that can be promoted to wider mode.
 (define_predicate "promotable_binary_operator"

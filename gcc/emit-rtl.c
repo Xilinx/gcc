@@ -1028,7 +1028,7 @@ set_reg_attrs_for_parm (rtx parm_rtx, rtx mem)
 /* Set the REG_ATTRS for registers in value X, given that X represents
    decl T.  */
 
-static void
+void
 set_reg_attrs_for_decl_rtl (tree t, rtx x)
 {
   if (GET_CODE (x) == SUBREG)
@@ -1449,7 +1449,10 @@ component_ref_for_mem_expr (tree ref)
 	inner = NULL_TREE;
     }
 
-  if (inner == TREE_OPERAND (ref, 0))
+  if (inner == TREE_OPERAND (ref, 0)
+      /* Don't leak SSA-names in the third operand.  */
+      && (!TREE_OPERAND (ref, 2)
+	  || TREE_CODE (TREE_OPERAND (ref, 2)) != SSA_NAME))
     return ref;
   else
     return build3 (COMPONENT_REF, TREE_TYPE (ref), inner,
@@ -1495,7 +1498,7 @@ mem_expr_equal_p (const_tree expr1, const_tree expr2)
    -1 if not known.  */
 
 int
-get_mem_align_offset (rtx mem, int align)
+get_mem_align_offset (rtx mem, unsigned int align)
 {
   tree expr;
   unsigned HOST_WIDE_INT offset;
@@ -1858,17 +1861,6 @@ set_mem_attributes (rtx ref, tree t, int objectp)
   set_mem_attributes_minus_bitpos (ref, t, objectp, 0);
 }
 
-/* Set MEM to the decl that REG refers to.  */
-
-void
-set_mem_attrs_from_reg (rtx mem, rtx reg)
-{
-  MEM_ATTRS (mem)
-    = get_mem_attrs (MEM_ALIAS_SET (mem), REG_EXPR (reg),
-		     GEN_INT (REG_OFFSET (reg)),
-		     MEM_SIZE (mem), MEM_ALIGN (mem), GET_MODE (mem));
-}
-
 /* Set the alias set of MEM to SET.  */
 
 void
@@ -2008,6 +2000,7 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
   rtx memoffset = MEM_OFFSET (memref);
   rtx size = 0;
   unsigned int memalign = MEM_ALIGN (memref);
+  int pbits;
 
   /* If there are no changes, just return the original memory reference.  */
   if (mode == GET_MODE (memref) && !offset
@@ -2018,6 +2011,16 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
      This may happen even if offset is nonzero -- consider
      (plus (plus reg reg) const_int) -- so do this always.  */
   addr = copy_rtx (addr);
+
+  /* Convert a possibly large offset to a signed value within the
+     range of the target address space.  */
+  pbits = GET_MODE_BITSIZE (Pmode);
+  if (HOST_BITS_PER_WIDE_INT > pbits)
+    {
+      int shift = HOST_BITS_PER_WIDE_INT - pbits;
+      offset = (((HOST_WIDE_INT) ((unsigned HOST_WIDE_INT) offset << shift))
+		>> shift);
+    }
 
   if (adjust)
     {
@@ -2381,7 +2384,7 @@ struct rtl_opt_pass pass_unshare_all_rtl =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -3331,6 +3334,10 @@ try_split (rtx pat, rtx trial, int last)
   int probability;
   rtx insn_last, insn;
   int njumps = 0;
+
+  /* We're not good at redistributing frame information.  */
+  if (RTX_FRAME_RELATED_P (trial))
+    return trial;
 
   if (any_condjump_p (trial)
       && (note = find_reg_note (trial, REG_BR_PROB, 0)))
@@ -5046,6 +5053,9 @@ copy_insn_1 (rtx orig)
   int i, j;
   RTX_CODE code;
   const char *format_ptr;
+
+  if (orig == NULL)
+    return NULL;
 
   code = GET_CODE (orig);
 

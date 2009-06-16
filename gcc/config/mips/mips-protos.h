@@ -1,6 +1,7 @@
 /* Prototypes of target machine for GNU compiler.  MIPS version.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by A. Lichnewsky (lich@inria.inria.fr).
    Changed by Michael Meissner	(meissner@osf.org).
    64-bit r4000 support by Ian Lance Taylor (ian@cygnus.com) and
@@ -183,7 +184,6 @@ enum mips_call_type {
 extern bool mips_symbolic_constant_p (rtx, enum mips_symbol_context,
 				      enum mips_symbol_type *);
 extern int mips_regno_mode_ok_for_base_p (int, enum machine_mode, bool);
-extern bool mips_legitimate_address_p (enum machine_mode, rtx, bool);
 extern bool mips_stack_address_p (rtx, enum machine_mode);
 extern int mips_address_insns (rtx, enum machine_mode, bool);
 extern int mips_const_insns (rtx);
@@ -195,7 +195,6 @@ extern rtx mips_pic_base_register (rtx);
 extern rtx mips_got_load (rtx, rtx, enum mips_symbol_type);
 extern bool mips_split_symbol (rtx, rtx, enum machine_mode, rtx *);
 extern rtx mips_unspec_address (rtx, enum mips_symbol_type);
-extern bool mips_legitimize_address (rtx *, enum machine_mode);
 extern void mips_move_integer (rtx, rtx, unsigned HOST_WIDE_INT);
 extern bool mips_legitimize_move (enum machine_mode, rtx, rtx);
 
@@ -222,11 +221,11 @@ extern void mips_split_doubleword_move (rtx, rtx);
 extern const char *mips_output_move (rtx, rtx);
 extern void mips_restore_gp (rtx);
 #ifdef RTX_CODE
-extern bool mips_expand_scc (enum rtx_code, rtx);
-extern void mips_expand_conditional_branch (rtx *, enum rtx_code);
+extern void mips_expand_scc (rtx *);
+extern void mips_expand_conditional_branch (rtx *);
 extern void mips_expand_vcondv2sf (rtx, rtx, rtx, enum rtx_code, rtx, rtx);
 extern void mips_expand_conditional_move (rtx *);
-extern void mips_expand_conditional_trap (enum rtx_code);
+extern void mips_expand_conditional_trap (rtx);
 #endif
 extern bool mips_use_pic_fn_addr_reg_p (const_rtx);
 extern rtx mips_expand_call (enum mips_call_type, rtx, rtx, rtx, rtx, bool);
@@ -330,5 +329,8 @@ extern void mips_expand_atomic_qihi (union mips_gen_fn_ptrs,
 				     rtx, rtx, rtx, rtx);
 
 extern void mips_expand_vector_init (rtx, rtx);
+
+extern bool mips_epilogue_uses (unsigned int);
+extern void mips_final_prescan_insn (rtx, rtx *, int);
 
 #endif /* ! GCC_MIPS_PROTOS_H */

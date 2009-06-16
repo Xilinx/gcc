@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,6 +36,7 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch8;  use Sem_Ch8;
@@ -3644,9 +3645,7 @@ package body Exp_Dist is
         (Vis_Decl : Node_Id;
          RAS_Type : Entity_Id)
       is
-         pragma Warnings (Off);
          pragma Unreferenced (RAS_Type);
-         pragma Warnings (On);
       begin
          Add_RAS_Access_TSS (Vis_Decl);
       end Add_RAST_Features;
@@ -4110,10 +4109,8 @@ package body Exp_Dist is
          --  List of statements for extra formal parameters. It will appear
          --  after the regular statements for writing out parameters.
 
-         pragma Warnings (Off);
          pragma Unreferenced (RACW_Type);
          --  Used only for the PolyORB case
-         pragma Warnings (On);
 
       begin
          --  The general form of a calling stub for a given subprogram is:
@@ -5600,9 +5597,7 @@ package body Exp_Dist is
          RPC_Receiver_Decl : Node_Id;
          Body_Decls        : List_Id)
       is
-         pragma Warnings (Off);
          pragma Unreferenced (RPC_Receiver_Decl);
-         pragma Warnings (On);
 
       begin
          Add_RACW_From_Any
@@ -5729,9 +5724,8 @@ package body Exp_Dist is
          Stub_Type_Access : Entity_Id;
          Body_Decls       : List_Id)
       is
-         pragma Warnings (Off);
          pragma Unreferenced (Stub_Type, Stub_Type_Access);
-         pragma Warnings (On);
+
          Loc : constant Source_Ptr := Sloc (RACW_Type);
 
          Proc_Decl : Node_Id;
@@ -6046,9 +6040,7 @@ package body Exp_Dist is
          Stub_Type_Access : Entity_Id;
          Body_Decls       : List_Id)
       is
-         pragma Warnings (Off);
          pragma Unreferenced (Stub_Type, Stub_Type_Access);
-         pragma Warnings (On);
 
          Loc : constant Source_Ptr := Sloc (RACW_Type);
 
@@ -6638,13 +6630,13 @@ package body Exp_Dist is
                                  Make_Function_Call (Loc,
                                    Name =>
                                      New_Occurrence_Of
-                                       (RTE (RE_TA_String), Loc),
+                                       (RTE (RE_TA_Std_String), Loc),
                                    Parameter_Associations => New_List (
                                      Make_String_Literal (Loc, Name_String))),
                                  Make_Function_Call (Loc,
                                    Name =>
                                      New_Occurrence_Of
-                                       (RTE (RE_TA_String), Loc),
+                                       (RTE (RE_TA_Std_String), Loc),
                                    Parameter_Associations => New_List (
                                      Make_String_Literal (Loc,
                                        Strval => Repo_Id_String))))))))))));
@@ -7156,12 +7148,36 @@ package body Exp_Dist is
       is
          Loc : constant Source_Ptr := Sloc (Nod);
 
+         Request : constant Entity_Id :=
+                     Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         --  The request object constructed by these stubs
+         --  Could we use Name_R instead??? (see GLADE client stubs)
+
+         function Make_Request_RTE_Call
+           (RE      : RE_Id;
+            Actuals : List_Id := New_List) return Node_Id;
+         --  Generate a procedure call statement calling RE with the given
+         --  actuals. Request is appended to the list.
+
+         ---------------------------
+         -- Make_Request_RTE_Call --
+         ---------------------------
+
+         function Make_Request_RTE_Call
+           (RE      : RE_Id;
+            Actuals : List_Id := New_List) return Node_Id
+         is
+         begin
+            Append_To (Actuals, New_Occurrence_Of (Request, Loc));
+            return Make_Procedure_Call_Statement (Loc,
+                     Name                   =>
+                       New_Occurrence_Of (RTE (RE), Loc),
+                     Parameter_Associations => Actuals);
+         end Make_Request_RTE_Call;
+
          Arguments : Node_Id;
          --  Name of the named values list used to transmit parameters
          --  to the remote package
-
-         Request : Node_Id;
-         --  The request object constructed by these stubs
 
          Result : Node_Id;
          --  Name of the result named value (in non-APC cases) which get the
@@ -7193,8 +7209,8 @@ package body Exp_Dist is
          --  after the regular statements for writing out parameters.
 
          After_Statements : constant List_Id := New_List;
-         --  Statements to be executed after call returns (to assign
-         --  in out or out parameter values).
+         --  Statements to be executed after call returns (to assign IN OUT or
+         --  OUT parameter values).
 
          Etyp : Entity_Id;
          --  The type of the formal parameter being processed
@@ -7208,7 +7224,6 @@ package body Exp_Dist is
 
       begin
          --  ??? document general form of stub subprograms for the PolyORB case
-         Request := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
 
          Append_To (Decls,
            Make_Object_Declaration (Loc,
@@ -7448,19 +7463,13 @@ package body Exp_Dist is
          Append_List_To (Statements, Extra_Formal_Statements);
 
          Append_To (Statements,
-           Make_Procedure_Call_Statement (Loc,
-             Name =>
-               New_Occurrence_Of (RTE (RE_Request_Create), Loc),
-
-             Parameter_Associations => New_List (
-               Target_Object,
-               Subprogram_Id,
-               New_Occurrence_Of (Arguments, Loc),
-               New_Occurrence_Of (Result, Loc),
-               New_Occurrence_Of (RTE (RE_Nil_Exc_List), Loc))));
-
-         Append_To (Parameter_Associations (Last (Statements)),
-               New_Occurrence_Of (Request, Loc));
+           Make_Request_RTE_Call (RE_Request_Create, New_List (
+                                    Target_Object,
+                                    Subprogram_Id,
+                                    New_Occurrence_Of (Arguments, Loc),
+                                    New_Occurrence_Of (Result, Loc),
+                                    New_Occurrence_Of
+                                      (RTE (RE_Nil_Exc_List), Loc))));
 
          pragma Assert
            (not (Is_Known_Non_Asynchronous and Is_Known_Asynchronous));
@@ -7486,22 +7495,22 @@ package body Exp_Dist is
                  RTE (RE_Asynchronous_P_To_Sync_Scope), Loc),
              Expressions => New_List (Asynchronous_P)));
 
-         Append_To (Statements,
-             Make_Procedure_Call_Statement (Loc,
-               Name                   =>
-                 New_Occurrence_Of (RTE (RE_Request_Invoke), Loc),
-               Parameter_Associations => New_List (
-                 New_Occurrence_Of (Request, Loc))));
+         Append_To (Statements, Make_Request_RTE_Call (RE_Request_Invoke));
 
-         Non_Asynchronous_Statements := New_List (Make_Null_Statement (Loc));
-         Asynchronous_Statements := New_List (Make_Null_Statement (Loc));
+         --  Asynchronous case
+
+         if not Is_Known_Non_Asynchronous then
+            Asynchronous_Statements :=
+              New_List (Make_Request_RTE_Call (RE_Request_Destroy));
+         end if;
+
+         --  Non-asynchronous case
 
          if not Is_Known_Asynchronous then
-
             --  Reraise an exception occurrence from the completed request.
             --  If the exception occurrence is empty, this is a no-op.
 
-            Append_To (Non_Asynchronous_Statements,
+            Non_Asynchronous_Statements := New_List (
               Make_Procedure_Call_Statement (Loc,
                 Name                   =>
                   New_Occurrence_Of (RTE (RE_Request_Raise_Occurrence), Loc),
@@ -7509,6 +7518,9 @@ package body Exp_Dist is
                   New_Occurrence_Of (Request, Loc))));
 
             if Is_Function then
+
+               Append_To (Non_Asynchronous_Statements,
+                 Make_Request_RTE_Call (RE_Request_Destroy));
 
                --  If this is a function call, read the value and return it
 
@@ -7521,10 +7533,17 @@ package body Exp_Dist is
                           Prefix        => Result,
                           Selector_Name => Name_Argument),
                         Decls))));
+
+            else
+
+               --  Case of a procedure: deal with IN OUT and OUT formals
+
+               Append_List_To (Non_Asynchronous_Statements, After_Statements);
+
+               Append_To (Non_Asynchronous_Statements,
+                 Make_Request_RTE_Call (RE_Request_Destroy));
             end if;
          end if;
-
-         Append_List_To (Non_Asynchronous_Statements, After_Statements);
 
          if Is_Known_Asynchronous then
             Append_List_To (Statements, Asynchronous_Statements);
@@ -7601,9 +7620,8 @@ package body Exp_Dist is
          RPC_Receiver_Decl : out Node_Id)
       is
          Loc : constant Source_Ptr := Sloc (Stub_Type);
-         pragma Warnings (Off);
+
          pragma Unreferenced (RACW_Type);
-         pragma Warnings (On);
 
       begin
          Stub_Type_Decl :=
@@ -7666,9 +7684,9 @@ package body Exp_Dist is
          Request := Make_Defining_Identifier (Loc, Name_R);
 
          RPC_Receiver_Spec :=
-           Build_RPC_Receiver_Specification (
-             RPC_Receiver      => RPC_Receiver,
-             Request_Parameter => Request);
+           Build_RPC_Receiver_Specification
+             (RPC_Receiver      => RPC_Receiver,
+              Request_Parameter => Request);
 
          Subp_Id    := Make_Defining_Identifier (Loc, Name_P);
          Subp_Index := Make_Defining_Identifier (Loc, Name_I);
@@ -8447,7 +8465,7 @@ package body Exp_Dist is
             elsif U_Type = RTE (RE_Long_Long_Unsigned) then
                Lib_RE := RE_FA_LLU;
 
-            elsif U_Type = Standard_String then
+            elsif Is_RTE (U_Type, RE_Unbounded_String) then
                Lib_RE := RE_FA_String;
 
             --  Special DSA types
@@ -8460,8 +8478,17 @@ package body Exp_Dist is
             else
                declare
                   Decl : Entity_Id;
+                  Typ  : Entity_Id := U_Type;
+
                begin
-                  Build_From_Any_Function (Loc, U_Type, Decl, Fnam);
+                  --  For the subtype representing a generic actual type, go
+                  --  to the base type.
+
+                  if Is_Generic_Actual_Type (Typ) then
+                     Typ := Base_Type (Typ);
+                  end if;
+
+                  Build_From_Any_Function (Loc, Typ, Decl, Fnam);
                   Append_To (Decls, Decl);
                end;
             end if;
@@ -8527,7 +8554,7 @@ package body Exp_Dist is
                     Parameter_Type => New_Occurrence_Of (RTE (RE_Any), Loc))),
                 Result_Definition => New_Occurrence_Of (Typ, Loc));
 
-            --  The following  is taken care of by Exp_Dist.Add_RACW_From_Any
+            --  The RACW case is taken care of by Exp_Dist.Add_RACW_From_Any
 
             pragma Assert
               (not (Is_Remote_Access_To_Class_Wide_Type (Typ)));
@@ -8564,11 +8591,10 @@ package body Exp_Dist is
                   Append_To (Stms,
                     Make_Simple_Return_Statement (Loc,
                       Expression =>
-                        OK_Convert_To (Typ,
-                          Build_From_Any_Call
-                            (Etype (Typ),
-                             New_Occurrence_Of (Any_Parameter, Loc),
-                             Decls))));
+                        Build_From_Any_Call
+                          (Etype (Typ),
+                           New_Occurrence_Of (Any_Parameter, Loc),
+                           Decls)));
 
                else
                   declare
@@ -8944,7 +8970,11 @@ package body Exp_Dist is
                         for J in 1 .. Ndim loop
                            Lnam := New_External_Name ('L', J);
                            Hnam := New_External_Name ('H', J);
-                           Indt := Etype (Indx);
+
+                           --  Note, for empty arrays bounds may be out of
+                           --  the range of Etype (Indx).
+
+                           Indt := Base_Type (Etype (Indx));
 
                            Append_To (Decls,
                              Make_Object_Declaration (Loc,
@@ -9114,39 +9144,84 @@ package body Exp_Dist is
                         New_Occurrence_Of (Any_Parameter, Loc),
                         New_Occurrence_Of (Strm, Loc))));
 
-                  --  declare
-                  --     Res : constant T := T'Input (Strm);
-                  --  begin
-                  --     Release_Buffer (Strm);
-                  --     return Res;
-                  --  end;
+                  if Transmit_As_Unconstrained (Typ) then
 
-                  Append_To (Stms, Make_Block_Statement (Loc,
-                    Declarations => New_List (
-                      Make_Object_Declaration (Loc,
-                        Defining_Identifier => Res,
-                        Constant_Present    => True,
-                        Object_Definition   => New_Occurrence_Of (Typ, Loc),
-                        Expression          =>
-                            Make_Attribute_Reference (Loc,
-                              Prefix         => New_Occurrence_Of (Typ, Loc),
-                              Attribute_Name => Name_Input,
-                              Expressions => New_List (
-                                Make_Attribute_Reference (Loc,
-                                  Prefix => New_Occurrence_Of (Strm, Loc),
-                                  Attribute_Name => Name_Access))))),
+                     --  declare
+                     --     Res : constant T := T'Input (Strm);
+                     --  begin
+                     --     Release_Buffer (Strm);
+                     --     return Res;
+                     --  end;
 
-                    Handled_Statement_Sequence =>
-                      Make_Handled_Sequence_Of_Statements (Loc,
-                        Statements => New_List (
-                          Make_Procedure_Call_Statement (Loc,
-                            Name =>
-                              New_Occurrence_Of (RTE (RE_Release_Buffer), Loc),
-                            Parameter_Associations =>
-                              New_List (New_Occurrence_Of (Strm, Loc))),
-                          Make_Simple_Return_Statement (Loc,
-                            Expression => New_Occurrence_Of (Res, Loc))))));
+                     Append_To (Stms, Make_Block_Statement (Loc,
+                       Declarations               => New_List (
+                         Make_Object_Declaration (Loc,
+                           Defining_Identifier => Res,
+                           Constant_Present    => True,
+                           Object_Definition   => New_Occurrence_Of (Typ, Loc),
+                           Expression          =>
+                             Make_Attribute_Reference (Loc,
+                               Prefix         => New_Occurrence_Of (Typ, Loc),
+                               Attribute_Name => Name_Input,
+                               Expressions    => New_List (
+                                 Make_Attribute_Reference (Loc,
+                                   Prefix         =>
+                                     New_Occurrence_Of (Strm, Loc),
+                                   Attribute_Name => Name_Access))))),
 
+                       Handled_Statement_Sequence =>
+                         Make_Handled_Sequence_Of_Statements (Loc,
+                           Statements => New_List (
+                             Make_Procedure_Call_Statement (Loc,
+                               Name                   =>
+                                 New_Occurrence_Of
+                                   (RTE (RE_Release_Buffer), Loc),
+                               Parameter_Associations =>
+                                 New_List (New_Occurrence_Of (Strm, Loc))),
+
+                             Make_Simple_Return_Statement (Loc,
+                               Expression => New_Occurrence_Of (Res, Loc))))));
+
+                  else
+                     --  declare
+                     --     Res : T;
+                     --  begin
+                     --     T'Read (Strm, Res);
+                     --     Release_Buffer (Strm);
+                     --     return Res;
+                     --  end;
+
+                     Append_To (Stms, Make_Block_Statement (Loc,
+                       Declarations               => New_List (
+                         Make_Object_Declaration (Loc,
+                           Defining_Identifier => Res,
+                           Constant_Present    => False,
+                           Object_Definition   =>
+                             New_Occurrence_Of (Typ, Loc))),
+
+                       Handled_Statement_Sequence =>
+                         Make_Handled_Sequence_Of_Statements (Loc,
+                           Statements => New_List (
+                             Make_Attribute_Reference (Loc,
+                               Prefix         => New_Occurrence_Of (Typ, Loc),
+                               Attribute_Name => Name_Read,
+                               Expressions    => New_List (
+                                 Make_Attribute_Reference (Loc,
+                                   Prefix         =>
+                                     New_Occurrence_Of (Strm, Loc),
+                                   Attribute_Name => Name_Access),
+                                 New_Occurrence_Of (Res, Loc))),
+
+                             Make_Procedure_Call_Statement (Loc,
+                               Name                   =>
+                                 New_Occurrence_Of
+                                   (RTE (RE_Release_Buffer), Loc),
+                               Parameter_Associations =>
+                                 New_List (New_Occurrence_Of (Strm, Loc))),
+
+                             Make_Simple_Return_Statement (Loc,
+                               Expression => New_Occurrence_Of (Res, Loc))))));
+                  end if;
                end;
             end if;
 
@@ -9217,6 +9292,7 @@ package body Exp_Dist is
 
             Typ     : Entity_Id := Etype (N);
             U_Type  : Entity_Id;
+            C_Type  : Entity_Id;
             Fnam    : Entity_Id := Empty;
             Lib_RE  : RE_Id := RE_Null;
 
@@ -9312,7 +9388,7 @@ package body Exp_Dist is
             elsif U_Type = RTE (RE_Long_Long_Unsigned) then
                Lib_RE := RE_TA_LLU;
 
-            elsif U_Type = Standard_String then
+            elsif Is_RTE (U_Type, RE_Unbounded_String) then
                Lib_RE := RE_TA_String;
 
             --  Special DSA types
@@ -9345,11 +9421,23 @@ package body Exp_Dist is
                Fnam := RTE (Lib_RE);
             end if;
 
+            --  If Fnam is already analyzed, find the proper expected type,
+            --  else we have a newly constructed To_Any function and we know
+            --  that the expected type of its parameter is U_Type.
+
+            if Ekind (Fnam) = E_Function
+                 and then Present (First_Formal (Fnam))
+            then
+               C_Type := Etype (First_Formal (Fnam));
+            else
+               C_Type := U_Type;
+            end if;
+
             return
                 Make_Function_Call (Loc,
                   Name                   => New_Occurrence_Of (Fnam, Loc),
                   Parameter_Associations =>
-                    New_List (Unchecked_Convert_To (U_Type, N)));
+                    New_List (OK_Convert_To (C_Type, N)));
          end Build_To_Any_Call;
 
          ---------------------------
@@ -9549,7 +9637,7 @@ package body Exp_Dist is
                                  return Nod;
                               end Make_Discriminant_Reference;
 
-                           --  Start processing for Variant_Part
+                           --  Start of processing for Variant_Part
 
                            begin
                               Append_To (Stmts,
@@ -9813,9 +9901,7 @@ package body Exp_Dist is
                      Counter : Entity_Id;
                      Datum   : Node_Id)
                   is
-                     pragma Warnings (Off);
                      pragma Unreferenced (Counter);
-                     pragma Warnings (On);
 
                      Element_Any : Node_Id;
 
@@ -10084,7 +10170,7 @@ package body Exp_Dist is
                elsif U_Type = RTE (RE_Long_Long_Unsigned) then
                   Lib_RE := RE_TC_LLU;
 
-               elsif U_Type = Standard_String then
+               elsif Is_RTE (U_Type, RE_Unbounded_String) then
                   Lib_RE := RE_TC_String;
 
                --  Special DSA types
@@ -10184,7 +10270,7 @@ package body Exp_Dist is
             begin
                Append_To (Parameter_List,
                  Make_Function_Call (Loc,
-                   Name => New_Occurrence_Of (RTE (RE_TA_String), Loc),
+                   Name => New_Occurrence_Of (RTE (RE_TA_Std_String), Loc),
                    Parameter_Associations => New_List (
                      Make_String_Literal (Loc, S))));
             end Add_String_Parameter;
@@ -10306,9 +10392,7 @@ package body Exp_Dist is
                Rec     : Entity_Id;
                Field   : Node_Id)
             is
-               pragma Warnings (Off);
                pragma Unreferenced (Any, Counter, Rec);
-               pragma Warnings (On);
 
             begin
                if Nkind (Field) = N_Defining_Identifier then

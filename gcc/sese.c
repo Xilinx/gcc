@@ -60,7 +60,7 @@ debug_rename_elt (rename_map_elt elt)
 static int
 debug_rename_map_1 (void **slot, void *s ATTRIBUTE_UNUSED)
 {
-  struct rename_map_elt *entry = (struct rename_map_elt *) *slot;
+  struct rename_map_elt_s *entry = (struct rename_map_elt_s *) *slot;
   debug_rename_elt (entry);
   return 1;
 }
@@ -78,7 +78,7 @@ debug_rename_map (htab_t map)
 hashval_t
 rename_map_elt_info (const void *elt)
 {
-  return htab_hash_pointer (((const struct rename_map_elt *) elt)->old_name);
+  return htab_hash_pointer (((const struct rename_map_elt_s *) elt)->old_name);
 }
 
 /* Compares database elements E1 and E2.  */
@@ -86,8 +86,8 @@ rename_map_elt_info (const void *elt)
 int
 eq_rename_map_elts (const void *e1, const void *e2)
 {
-  const struct rename_map_elt *elt1 = (const struct rename_map_elt *) e1;
-  const struct rename_map_elt *elt2 = (const struct rename_map_elt *) e2;
+  const struct rename_map_elt_s *elt1 = (const struct rename_map_elt_s *) e1;
+  const struct rename_map_elt_s *elt2 = (const struct rename_map_elt_s *) e2;
 
   return (elt1->old_name == elt2->old_name);
 }
@@ -109,7 +109,7 @@ debug_ivtype_elt (ivtype_map_elt elt)
 static int
 debug_ivtype_map_1 (void **slot, void *s ATTRIBUTE_UNUSED)
 {
-  struct ivtype_map_elt *entry = (struct ivtype_map_elt *) *slot;
+  struct ivtype_map_elt_s *entry = (struct ivtype_map_elt_s *) *slot;
   debug_ivtype_elt (entry);
   return 1;
 }
@@ -127,7 +127,7 @@ debug_ivtype_map (htab_t map)
 hashval_t
 ivtype_map_elt_info (const void *elt)
 {
-  return htab_hash_pointer (((const struct ivtype_map_elt *) elt)->cloog_iv);
+  return htab_hash_pointer (((const struct ivtype_map_elt_s *) elt)->cloog_iv);
 }
 
 /* Compares database elements E1 and E2.  */
@@ -135,8 +135,8 @@ ivtype_map_elt_info (const void *elt)
 int
 eq_ivtype_map_elts (const void *e1, const void *e2)
 {
-  const struct ivtype_map_elt *elt1 = (const struct ivtype_map_elt *) e1;
-  const struct ivtype_map_elt *elt2 = (const struct ivtype_map_elt *) e2;
+  const struct ivtype_map_elt_s *elt1 = (const struct ivtype_map_elt_s *) e1;
+  const struct ivtype_map_elt_s *elt2 = (const struct ivtype_map_elt_s *) e2;
 
   return (elt1->cloog_iv == elt2->cloog_iv);
 }
@@ -227,7 +227,7 @@ sese_build_liveouts_bb (sese region, bitmap liveouts, basic_block bb)
   edge e;
   edge_iterator ei;
   ssa_op_iter iter;
-  tree var;
+  use_operand_p use_p;
 
   FOR_EACH_EDGE (e, ei, bb->succs)
     for (bsi = gsi_start_phis (e->dest); !gsi_end_p (bsi); gsi_next (&bsi))
@@ -235,8 +235,8 @@ sese_build_liveouts_bb (sese region, bitmap liveouts, basic_block bb)
 			       PHI_ARG_DEF_FROM_EDGE (gsi_stmt (bsi), e));
 
   for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
-    FOR_EACH_SSA_TREE_OPERAND (var, gsi_stmt (bsi), iter, SSA_OP_ALL_USES)
-      sese_build_liveouts_use (region, liveouts, bb, var);
+    FOR_EACH_SSA_USE_OPERAND (use_p, gsi_stmt (bsi), iter, SSA_OP_ALL_USES)
+      sese_build_liveouts_use (region, liveouts, bb, USE_FROM_PTR (use_p));
 }
 
 /* Build the LIVEOUTS of REGION: the set of variables defined inside
@@ -256,7 +256,7 @@ sese_build_liveouts (sese region, bitmap liveouts)
 sese
 new_sese (edge entry, edge exit)
 {
-  sese region = XNEW (struct sese);
+  sese region = XNEW (struct sese_s);
 
   SESE_ENTRY (region) = entry;
   SESE_EXIT (region) = exit;
@@ -413,7 +413,7 @@ sese_adjust_vphi (sese region, gimple phi, edge true_e)
 static tree
 get_rename (htab_t map, tree old_name)
 {
-  struct rename_map_elt tmp;
+  struct rename_map_elt_s tmp;
   PTR *slot;
 
   tmp.old_name = old_name;
@@ -430,7 +430,7 @@ get_rename (htab_t map, tree old_name)
 void
 set_rename (htab_t map, tree old_name, tree expr)
 {
-  struct rename_map_elt tmp;
+  struct rename_map_elt_s tmp;
   PTR *slot;
 
   if (old_name == expr)
@@ -491,14 +491,22 @@ sese_adjust_liveout_phis (sese region, htab_t rename_map, basic_block bb,
 	  {
 	    tree old_name = gimple_phi_arg_def (phi, false_i);
 	    tree expr = get_rename (rename_map, old_name);
-	    tree new_name;
 	    gimple_seq stmts;
 
 	    gcc_assert (old_name != expr);
 
-	    new_name = force_gimple_operand (expr, &stmts, true, NULL);
-	    gsi_insert_seq_on_edge_immediate (true_e, stmts);
-	    SET_PHI_ARG_DEF (phi, i, new_name);
+	    if (TREE_CODE (expr) != SSA_NAME
+		&& is_gimple_reg (old_name))
+	      {
+		tree type = TREE_TYPE (old_name);
+		tree var = create_tmp_var (type, "var");
+
+		expr = build2 (MODIFY_EXPR, type, var, expr);
+		expr = force_gimple_operand (expr, &stmts, true, NULL);
+		gsi_insert_seq_on_edge_immediate (true_e, stmts);
+	      }
+
+	    SET_PHI_ARG_DEF (phi, i, expr);
 	  }
     }
 }
@@ -512,16 +520,27 @@ rename_variables_in_stmt (gimple stmt, htab_t map)
   use_operand_p use_p;
   gimple_stmt_iterator gsi = gsi_start_bb (gimple_bb (stmt));
 
-  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_USE)
+  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
     {
       tree use = USE_FROM_PTR (use_p);
       tree expr = get_rename (map, use);
-      tree new_name;
       gimple_seq stmts;
 
-      new_name = force_gimple_operand (expr, &stmts, true, NULL);
-      gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
-      replace_exp (use_p, new_name);
+      if (use == expr)
+	continue;
+
+      if (TREE_CODE (expr) != SSA_NAME
+	  && is_gimple_reg (use))
+	{
+	  tree type = TREE_TYPE (use);
+	  tree var = create_tmp_var (type, "var");
+
+	  expr = build2 (MODIFY_EXPR, type, var, expr);
+	  expr = force_gimple_operand (expr, &stmts, true, NULL);
+	  gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
+	}
+
+      replace_exp (use_p, expr);
     }
 
   update_stmt (stmt);
@@ -648,12 +667,19 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	    tree old_name = TREE_OPERAND (op0, 0);
 	    tree expr = expand_scalar_variables_ssa_name
 	      (old_name, bb, region, map, gsi);
-	    tree new_name = force_gimple_operand_gsi (gsi, expr, true, NULL,
-						      true, GSI_SAME_STMT);
 
-	    set_symbol_mem_tag (SSA_NAME_VAR (new_name),
-				symbol_mem_tag (SSA_NAME_VAR (old_name)));
-	    return fold_build1 (code, type, new_name);
+	    if (TREE_CODE (expr) != SSA_NAME
+		&& is_gimple_reg (old_name))
+	      {
+		tree type = TREE_TYPE (old_name);
+		tree var = create_tmp_var (type, "var");
+
+		expr = build2 (MODIFY_EXPR, type, var, expr);
+		expr = force_gimple_operand_gsi (gsi, expr, true, NULL,
+						 true, GSI_SAME_STMT);
+	      }
+
+	    return fold_build1 (code, type, expr);
 	  }
 
 	case ARRAY_REF:
@@ -728,20 +754,29 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, sese region,
   ssa_op_iter iter;
   use_operand_p use_p;
 
-  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_USE)
+  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
     {
       tree use = USE_FROM_PTR (use_p);
       tree type = TREE_TYPE (use);
       enum tree_code code = TREE_CODE (use);
       tree use_expr = expand_scalar_variables_expr (type, use, code, NULL, bb,
 						    region, map, gsi);
-      if (use_expr != use)
+      use_expr = fold_convert (type, use_expr);
+
+      if (use_expr == use)
+	continue;
+
+      if (TREE_CODE (use_expr) != SSA_NAME
+	  && is_gimple_reg (use))
 	{
-	  tree new_use =
-	    force_gimple_operand_gsi (gsi, use_expr, true, NULL,
-				      true, GSI_SAME_STMT);
-	  replace_exp (use_p, new_use);
+	  tree var = create_tmp_var (type, "var");
+
+	  use_expr = build2 (MODIFY_EXPR, type, var, use_expr);
+	  use_expr = force_gimple_operand_gsi (gsi, use_expr, true, NULL,
+					       true, GSI_SAME_STMT);
 	}
+
+      replace_exp (use_p, use_expr);
     }
 
   update_stmt (stmt);
@@ -888,7 +923,7 @@ typedef struct alep {
 static int
 add_loop_exit_phis (void **slot, void *data)
 {
-  struct rename_map_elt *entry;
+  struct rename_map_elt_s *entry;
   alep_p a;
   loop_p loop;
   tree expr, new_name;
@@ -898,7 +933,7 @@ add_loop_exit_phis (void **slot, void *data)
   if (!slot || !data)
     return 1;
 
-  entry = (struct rename_map_elt *) *slot;
+  entry = (struct rename_map_elt_s *) *slot;
   a = (alep_p) data;
   loop = a->loop;
   expr = entry->expr;
@@ -983,7 +1018,7 @@ default_before_guard (htab_t before_guard, tree old_name)
     {
       if (is_gimple_reg (res))
 	return fold_convert (TREE_TYPE (res), integer_zero_node);
-      return gimple_default_def (cfun, res);
+      return gimple_default_def (cfun, SSA_NAME_VAR (res));
     }
 
   return res;
@@ -994,7 +1029,7 @@ default_before_guard (htab_t before_guard, tree old_name)
 static int
 add_guard_exit_phis (void **slot, void *s)
 {
-  struct rename_map_elt *entry = (struct rename_map_elt *) *slot;
+  struct rename_map_elt_s *entry = (struct rename_map_elt_s *) *slot;
   struct igp *i = (struct igp *) s;
   basic_block bb = i->bb;
   edge true_edge = i->true_edge;
@@ -1010,9 +1045,22 @@ add_guard_exit_phis (void **slot, void *s)
   if (name1 == name2)
     return 1;
 
-  name1 = force_gimple_operand (name1, &stmts, true, NULL);
-  gsi_insert_seq_on_edge_immediate (true_edge, stmts);
-  phi = create_phi_node (name1, bb);
+  if (TREE_TYPE (name1) != TREE_TYPE (name2))
+    name1 = fold_convert (TREE_TYPE (name2), name1);
+
+  if (TREE_CODE (name1) != SSA_NAME
+      && (TREE_CODE (name2) != SSA_NAME
+	  || is_gimple_reg (name2)))
+    {
+      tree type = TREE_TYPE (name2);
+      tree var = create_tmp_var (type, "var");
+
+      name1 = build2 (MODIFY_EXPR, type, var, name1);
+      name1 = force_gimple_operand (name1, &stmts, true, NULL);
+      gsi_insert_seq_on_edge_immediate (true_edge, stmts);
+    }
+
+  phi = create_phi_node (entry->old_name, bb);
   res = create_new_def_for (gimple_phi_result (phi), phi,
 			    gimple_phi_result_ptr (phi));
 
@@ -1076,7 +1124,7 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
 	 operands.  */
       copy = gimple_copy (stmt);
       gsi_insert_after (&gsi_tgt, copy, GSI_NEW_STMT);
-      mark_symbols_for_renaming (copy);
+      mark_sym_for_renaming (gimple_vop (cfun));
 
       region = lookup_stmt_eh_region (stmt);
       if (region >= 0)
@@ -1085,7 +1133,7 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
 
       /* Create new names for all the definitions created by COPY and
 	 add replacement mappings for each new name.  */
-      FOR_EACH_SSA_DEF_OPERAND (def_p, copy, op_iter, SSA_OP_DEF)
+      FOR_EACH_SSA_DEF_OPERAND (def_p, copy, op_iter, SSA_OP_ALL_DEFS)
 	{
 	  tree old_name = DEF_FROM_PTR (def_p);
 	  tree new_name = create_new_def_for (old_name, copy, def_p);
@@ -1183,10 +1231,10 @@ create_if_region_on_edge (edge entry, tree condition)
 {
   edge e;
   edge_iterator ei;
-  sese sese_region = GGC_NEW (struct sese);
-  sese true_region = GGC_NEW (struct sese);
-  sese false_region = GGC_NEW (struct sese);
-  ifsese if_region = GGC_NEW (struct ifsese);
+  sese sese_region = GGC_NEW (struct sese_s);
+  sese true_region = GGC_NEW (struct sese_s);
+  sese false_region = GGC_NEW (struct sese_s);
+  ifsese if_region = GGC_NEW (struct ifsese_s);
   edge exit = create_empty_if_region_on_edge (entry, condition);
 
   if_region->region = sese_region;

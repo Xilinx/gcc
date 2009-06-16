@@ -460,14 +460,6 @@ cp_gimplify_init_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	  if (from != sub)
 	    TREE_TYPE (from) = void_type_node;
 	}
-      else if (TREE_CODE (sub) == INIT_EXPR
-	       && TREE_OPERAND (sub, 0) == slot)
-	{
-	  /* An INIT_EXPR under TARGET_EXPR created by build_value_init,
-	     will be followed by an AGGR_INIT_EXPR.  */
-	  gimplify_expr (&to, pre_p, post_p, is_gimple_lvalue, fb_lvalue);
-	  TREE_OPERAND (sub, 0) = to;
-	}
 
       if (t == sub)
 	break;
@@ -593,16 +585,13 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       if (block)
 	{
 	  tree using_directive;
-	  gcc_assert (TREE_OPERAND (*expr_p,0)
-		      && NAMESPACE_DECL_CHECK (TREE_OPERAND (*expr_p, 0)));
+	  gcc_assert (TREE_OPERAND (*expr_p, 0));
 
 	  using_directive = make_node (IMPORTED_DECL);
 	  TREE_TYPE (using_directive) = void_type_node;
 
 	  IMPORTED_DECL_ASSOCIATED_DECL (using_directive)
 	    = TREE_OPERAND (*expr_p, 0);
-	  DECL_NAME (using_directive)
-	    = DECL_NAME (TREE_OPERAND (*expr_p, 0));
 	  TREE_CHAIN (using_directive) = BLOCK_VARS (block);
 	  BLOCK_VARS (block) = using_directive;
 	}
@@ -664,7 +653,7 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       break;
 
     default:
-      ret = c_gimplify_expr (expr_p, pre_p, post_p);
+      ret = (enum gimplify_status) c_gimplify_expr (expr_p, pre_p, post_p);
       break;
     }
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -145,7 +145,8 @@ package body Styleg is
    begin
       if Style_Check_Attribute_Casing then
          if Determine_Token_Casing /= Mixed_Case then
-            Error_Msg_SC ("(style) bad capitalization, mixed case required");
+            Error_Msg_SC -- CODEFIX
+              ("(style) bad capitalization, mixed case required");
          end if;
       end if;
    end Check_Attribute_Name;
@@ -379,7 +380,8 @@ package body Styleg is
          if Style_Check_Indentation /= 0 then
             if Start_Column rem Style_Check_Indentation /= 0 then
                if not Same_Column_As_Next_Non_Blank_Line then
-                  Error_Msg_S ("(style) bad column");
+                  Error_Msg_S -- CODEFIX
+                    ("(style) bad column");
                end if;
 
                return;
@@ -605,16 +607,20 @@ package body Styleg is
          end if;
       end if;
 
-      --  Check DOS line terminator (ignore EOF, since we only get called
-      --  with an EOF if it is the last character in the buffer, and was
-      --  therefore not present in the sources
+      --  Check DOS line terminator
 
       if Style_Check_DOS_Line_Terminator then
+
+      --  Ignore EOF, since we only get called with an EOF if it is the last
+      --  character in the buffer (and was therefore not in the source file),
+      --  since the terminating EOF is added to stop the scan.
+
          if Source (Scan_Ptr) = EOF then
             null;
-         elsif Source (Scan_Ptr) /= LF
-           or else Source (Scan_Ptr + 1) = CR
-         then
+
+         --  Bad terminator if we don't have an LF
+
+         elsif Source (Scan_Ptr) /= LF then
             Error_Msg_S ("(style) incorrect line terminator");
          end if;
       end if;
@@ -652,7 +658,7 @@ package body Styleg is
 
       else
          if Style_Check_Blank_Lines and then Blank_Lines > 1 then
-            Error_Msg
+            Error_Msg -- CODEFIX
               ("(style) multiple blank lines", Blank_Line_Location);
          end if;
 
@@ -716,7 +722,8 @@ package body Styleg is
    begin
       if Style_Check_Pragma_Casing then
          if Determine_Token_Casing /= Mixed_Case then
-            Error_Msg_SC ("(style) bad capitalization, mixed case required");
+            Error_Msg_SC -- CODEFIX
+              ("(style) bad capitalization, mixed case required");
          end if;
       end if;
    end Check_Pragma_Name;
@@ -974,7 +981,8 @@ package body Styleg is
    procedure Non_Lower_Case_Keyword is
    begin
       if Style_Check_Keyword_Casing then
-         Error_Msg_SC ("(style) reserved words must be all lower case");
+         Error_Msg_SC -- CODEIX
+           ("(style) reserved words must be all lower case");
       end if;
    end Non_Lower_Case_Keyword;
 
@@ -1001,14 +1009,5 @@ package body Styleg is
          Error_Space_Required (Token_Ptr);
       end if;
    end Require_Preceding_Space;
-
-   ---------------------
-   -- RM_Column_Check --
-   ---------------------
-
-   function RM_Column_Check return Boolean is
-   begin
-      return Style_Check and Style_Check_Layout;
-   end RM_Column_Check;
 
 end Styleg;

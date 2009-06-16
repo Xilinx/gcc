@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
@@ -124,10 +124,6 @@ extern arm_cc arm_current_cc;
 extern int arm_target_label;
 extern int arm_ccfsm_state;
 extern GTY(()) rtx arm_target_insn;
-/* Define the information needed to generate branch insns.  This is
-   stored from the compare operation.  */
-extern GTY(()) rtx arm_compare_op0;
-extern GTY(()) rtx arm_compare_op1;
 /* The label of the current constant pool.  */
 extern rtx pool_vector_label;
 /* Set to 1 when a return insn is output, this means that the epilogue
@@ -484,10 +480,9 @@ extern int arm_arch_hwdiv;
     }
 
 #define PROMOTE_FUNCTION_MODE(MODE, UNSIGNEDP, TYPE)	\
-  if ((GET_MODE_CLASS (MODE) == MODE_INT		\
-       || GET_MODE_CLASS (MODE) == MODE_COMPLEX_INT)    \
+  if (GET_MODE_CLASS (MODE) == MODE_INT			\
       && GET_MODE_SIZE (MODE) < 4)                      \
-    (MODE) = SImode;				        \
+    (MODE) = SImode;
 
 /* Define this if most significant bit is lowest numbered
    in instructions that operate on numbered bit-fields.  */
@@ -537,7 +532,7 @@ extern int arm_arch_hwdiv;
 #define PREFERRED_STACK_BOUNDARY \
     (arm_abi == ARM_ABI_ATPCS ? 64 : STACK_BOUNDARY)
 
-#define FUNCTION_BOUNDARY  32
+#define FUNCTION_BOUNDARY  ((TARGET_THUMB && optimize_size) ? 16 : 32)
 
 /* The lowest bit is used to indicate Thumb-mode functions, so the
    vbit must go into the delta field of pointers to member
@@ -1571,7 +1566,7 @@ do {									      \
    in the direction of stack growth.
    Only soft_frame is used in thumb mode.  */
 
-typedef struct arm_stack_offsets GTY(())
+typedef struct GTY(()) arm_stack_offsets
 {
   int saved_args;	/* ARG_POINTER_REGNUM.  */
   int frame;		/* ARM_HARD_FRAME_POINTER_REGNUM.  */
@@ -1585,7 +1580,7 @@ arm_stack_offsets;
 
 /* A C structure for machine-specific, per-function data.
    This is added to the cfun structure.  */
-typedef struct machine_function GTY(())
+typedef struct GTY(()) machine_function
 {
   /* Additional stack adjustment in __builtin_eh_throw.  */
   rtx eh_epilogue_sp_ofs;
@@ -1610,6 +1605,9 @@ typedef struct machine_function GTY(())
      register.  We can never call via LR or PC.  We can call via SP if a
      trampoline happens to be on the top of the stack.  */
   rtx call_via[14];
+  /* Set to 1 when a return insn is output, this means that the epilogue
+     is not needed.  */
+  int return_used_this_function;
 }
 machine_function;
 
@@ -1912,7 +1910,7 @@ typedef struct
 					      TARGET_32BIT ? 12 : 16)),	\
 		  FNADDR);						\
   emit_library_call (gen_rtx_SYMBOL_REF (Pmode, "__clear_cache"),	\
-		     0, VOIDmode, 2, TRAMP, Pmode,			\
+		     LCT_NORMAL, VOIDmode, 2, TRAMP, Pmode,		\
 		     plus_constant (TRAMP, TRAMPOLINE_SIZE), Pmode);	\
 }
 #endif
@@ -2163,88 +2161,14 @@ typedef struct
 #define REG_MODE_OK_FOR_REG_BASE_P(X, MODE)	\
   REG_OK_FOR_INDEX_P (X)
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.  */
-
 #define ARM_BASE_REGISTER_RTX_P(X)  \
   (GET_CODE (X) == REG && ARM_REG_OK_FOR_BASE_P (X))
 
 #define ARM_INDEX_REGISTER_RTX_P(X)  \
   (GET_CODE (X) == REG && ARM_REG_OK_FOR_INDEX_P (X))
-
-#define ARM_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (arm_legitimate_address_p (MODE, X, SET, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define THUMB2_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (thumb2_legitimate_address_p (MODE, X, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define THUMB1_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (thumb1_legitimate_address_p (MODE, X, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, WIN)				\
-  if (TARGET_ARM)							\
-    ARM_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)  			\
-  else if (TARGET_THUMB2)						\
-    THUMB2_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)  			\
-  else /* if (TARGET_THUMB1) */						\
-    THUMB1_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)
-
 
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.  */
-#define ARM_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-  X = arm_legitimize_address (X, OLDX, MODE);		\
-} while (0)
-
-/* ??? Implement LEGITIMIZE_ADDRESS for thumb2.  */
-#define THUMB2_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-} while (0)
-
-#define THUMB1_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-  X = thumb_legitimize_address (X, OLDX, MODE);		\
-} while (0)
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)		\
-do {							\
-  if (TARGET_ARM)					\
-    ARM_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-  else if (TARGET_THUMB2)				\
-    THUMB2_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-  else							\
-    THUMB1_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-							\
-  if (memory_address_p (MODE, X))			\
-    goto WIN;						\
-} while (0)
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-#define ARM_GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)  			\
-{									\
-  if (   GET_CODE (ADDR) == PRE_DEC || GET_CODE (ADDR) == POST_DEC	\
-      || GET_CODE (ADDR) == PRE_INC || GET_CODE (ADDR) == POST_INC)	\
-    goto LABEL;								\
-}
-
-/* Nothing helpful to do for the Thumb */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)	\
-  if (TARGET_32BIT)					\
-    ARM_GO_IF_MODE_DEPENDENT_ADDRESS (ADDR, LABEL)
-
+/* Define this for compatibility reasons. */
+#define HANDLE_PRAGMA_PACK_PUSH_POP
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
@@ -2448,7 +2372,7 @@ extern int making_const_table;
         {						\
           if (is_called_in_ARM_mode (DECL)		\
 	      || (TARGET_THUMB1 && !TARGET_THUMB1_ONLY	\
-		  && crtl->is_thunk))	\
+		  && cfun->is_thunk))	\
             fprintf (STREAM, "\t.code 32\n") ;		\
           else if (TARGET_THUMB1)			\
            fprintf (STREAM, "\t.code\t16\n\t.thumb_func\n") ;	\

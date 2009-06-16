@@ -5,7 +5,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file forward_list.h
  *  This is a Standard C++ Library header.
@@ -50,7 +45,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   using __gnu_cxx::__const_pointer_cast;
 
   /**
-   *  @brief  A helper basic node class for @forward_list.
+   *  @brief  A helper basic node class for %forward_list.
    *          This is just a linked list with nothing inside it.
    *          There are purely list shuffling utility methods here.
    */
@@ -62,60 +57,31 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         ::other::pointer        _Pointer;
       typedef typename _Alloc::template rebind<_Fwd_list_node_base<_Alloc> >
         ::other::const_pointer  _Const_pointer;
-  
+
       _Pointer _M_next;
-  
+
       _Fwd_list_node_base() : _M_next(0) { }
-  
+
       static void
       swap(_Fwd_list_node_base& __x, _Fwd_list_node_base& __y)
       { std::swap(__x._M_next, __y._M_next); }
-  
+
       void
-      _M_transfer_after(_Pointer __bbegin, _Pointer __bend)
-      { 
-        _Pointer __keep = __bbegin->_M_next;
-        if (__bend)
-          {
-            __bbegin->_M_next = __bend->_M_next;
-            __bend->_M_next = this->_M_next;
-          }
-        else
-          __bbegin->_M_next = 0;
-        this->_M_next = __keep;
-      }
-  
+      _M_transfer_after(_Pointer __bbegin);
+
       void
-      _M_transfer_after(_Pointer __bbegin)
-      {
-        _Pointer __bend = __bbegin;
-        while (__bend && __bend->_M_next)
-          __bend = __bend->_M_next;
-        _M_transfer_after(__bbegin, __bend);
-      }
-  
+      _M_transfer_after(_Pointer __bbegin, _Pointer __bend);
+
       void
-      _M_reverse_after()
-      { 
-        _Pointer __tail = this->_M_next;
-        if (!__tail)
-          return;
-        while (_Pointer __temp = __tail->_M_next)
-          {
-            _Pointer __keep = this->_M_next;
-            this->_M_next = __temp;
-            __tail->_M_next = __temp->_M_next;
-            this->_M_next->_M_next = __keep;
-          }
-      }    
+      _M_reverse_after();
     };
 
   /**
-   *  @brief  A helper node class for @forward_list.
+   *  @brief  A helper node class for %forward_list.
    *          This is just a linked list with a data value in each node.
    *          There is a sorting utility method.
    */
-  template<typename _Tp, typename _Alloc = std::allocator<_Tp> >
+  template<typename _Tp, typename _Alloc>
     struct _Fwd_list_node : public _Fwd_list_node_base<_Alloc>
     {
       typedef typename _Alloc::template rebind<_Fwd_list_node<_Tp, _Alloc> >
@@ -138,7 +104,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    * 
    *   All the functions are op overloads.
    */
-  template<typename _Tp, typename _Alloc = std::allocator<_Tp> >
+  template<typename _Tp, typename _Alloc>
     struct _Fwd_list_iterator
     {
       typedef _Fwd_list_iterator<_Tp, _Alloc>   _Self;
@@ -159,16 +125,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       reference
       operator*() const
-      { return __static_pointer_cast<_Node*>(this->_M_node)->_M_value; }
+      { return __static_pointer_cast<_Node*>(_M_node)->_M_value; }
 
       pointer
       operator->() const
-      { return &__static_pointer_cast<_Node*>(this->_M_node)->_M_value; }
+      { return &__static_pointer_cast<_Node*>(_M_node)->_M_value; }
 
       _Self&
       operator++()
       {
-        this->_M_node = this->_M_node->_M_next;
+        _M_node = _M_node->_M_next;
         return *this;
       }
 
@@ -176,23 +142,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       operator++(int)
       {
         _Self __tmp(*this);
-        this->_M_node = this->_M_node->_M_next;
+        _M_node = _M_node->_M_next;
         return __tmp;
       }
 
       bool
       operator==(const _Self& __x) const
-      { return this->_M_node == __x._M_node; }
+      { return _M_node == __x._M_node; }
 
       bool
       operator!=(const _Self& __x) const
-      { return this->_M_node != __x._M_node; }
+      { return _M_node != __x._M_node; }
 
       _Self
       _M_next() const
       {
         if (_M_node)
-          return _Fwd_list_iterator(this->_M_node->_M_next);
+          return _Fwd_list_iterator(_M_node->_M_next);
         else
           return _Fwd_list_iterator(0);
       }
@@ -205,7 +171,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    * 
    *   All the functions are op overloads.
    */
-  template<typename _Tp, typename _Alloc = std::allocator<_Tp> >
+  template<typename _Tp, typename _Alloc>
     struct _Fwd_list_const_iterator
     {
       typedef _Fwd_list_const_iterator<_Tp, _Alloc>   _Self;
@@ -230,16 +196,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       reference
       operator*() const
-      { return __static_pointer_cast<_Node*>(this->_M_node)->_M_value; }
+      { return __static_pointer_cast<_Node*>(_M_node)->_M_value; }
 
       pointer
       operator->() const
-      { return &__static_pointer_cast<_Node*>(this->_M_node)->_M_value; }
+      { return &__static_pointer_cast<_Node*>(_M_node)->_M_value; }
 
       _Self&
       operator++()
       {
-        this->_M_node = this->_M_node->_M_next;
+        _M_node = _M_node->_M_next;
         return *this;
       }
 
@@ -247,23 +213,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       operator++(int)
       {
         _Self __tmp(*this);
-        this->_M_node = this->_M_node->_M_next;
+        _M_node = _M_node->_M_next;
         return __tmp;
       }
 
       bool
       operator==(const _Self& __x) const
-      { return this->_M_node == __x._M_node; }
+      { return _M_node == __x._M_node; }
 
       bool
       operator!=(const _Self& __x) const
-      { return this->_M_node != __x._M_node; }
+      { return _M_node != __x._M_node; }
 
       _Self
       _M_next() const
       {
         if (this->_M_node)
-          return _Fwd_list_const_iterator(this->_M_node->_M_next);
+          return _Fwd_list_const_iterator(_M_node->_M_next);
         else
           return _Fwd_list_const_iterator(0);
       }
@@ -274,7 +240,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Forward list iterator equality comparison.
    */
-  template<typename _Tp,class _Alloc>
+  template<typename _Tp, typename _Alloc>
     inline bool
     operator==(const _Fwd_list_iterator<_Tp, _Alloc>& __x,
                const _Fwd_list_const_iterator<_Tp, _Alloc>& __y)
@@ -283,16 +249,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Forward list iterator inequality comparison.
    */
-  template<typename _Tp,class _Alloc>
+  template<typename _Tp, typename _Alloc>
     inline bool
     operator!=(const _Fwd_list_iterator<_Tp, _Alloc>& __x,
                const _Fwd_list_const_iterator<_Tp, _Alloc>& __y)
     { return __x._M_node != __y._M_node; }
 
   /**
-   *  @brief  Base class for @forward_list.
+   *  @brief  Base class for %forward_list.
    */
-  template<typename _Tp, typename _Alloc = allocator<_Tp> >
+  template<typename _Tp, typename _Alloc>
     struct _Fwd_list_base
     {
     protected:
@@ -366,13 +332,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         _M_create_node(_Args&&... __args)
         {
           typename _Node::_Pointer __node = this->_M_get_node();
-          try
+          __try
             {
               _M_get_Node_allocator().construct(__node,
                                               std::forward<_Args>(__args)...);
               __node->_M_next = 0;
             }
-          catch(...)
+          __catch(...)
             {
               this->_M_put_node(__node);
               __throw_exception_again;
@@ -400,8 +366,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @brief A standard container with linear time access to elements,
    *  and fixed time insertion/deletion at any point in the sequence.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#67">sequence</a>, including the
@@ -778,7 +743,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       reference
       front()
       {
-        _Node* __front = __static_pointer_cast<_Node*>(this->_M_impl._M_head._M_next);
+        _Node* __front =
+	  __static_pointer_cast<_Node*>(this->_M_impl._M_head._M_next);
         return __front->_M_value;
       }
 
@@ -1017,7 +983,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  function.
        */
       void
-      swap(forward_list&& __list)
+      swap(forward_list& __list)
       { _Node_base::swap(this->_M_impl._M_head, __list._M_impl._M_head); }
 
       /**
@@ -1230,7 +1196,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  Reverse the order of elements in the list in linear time.
        */
       void
-      reverse();
+      reverse()
+      { this->_M_impl._M_head._M_reverse_after(); }
 
     private:
       template<typename _Integer>
@@ -1316,20 +1283,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     inline void
     swap(forward_list<_Tp, _Alloc>& __lx,
          forward_list<_Tp, _Alloc>& __ly)
-    { __lx.swap(__ly); }
-
-  /// See std::forward_list::swap().
-  template<typename _Tp, typename _Alloc>
-    inline void
-    swap(forward_list<_Tp, _Alloc>&& __lx,
-         forward_list<_Tp, _Alloc>& __ly)
-    { __lx.swap(__ly); }
-
-  /// See std::forward_list::swap().
-  template<typename _Tp, typename _Alloc>
-    inline void 
-    swap(forward_list<_Tp, _Alloc>& __lx,
-         forward_list<_Tp, _Alloc>&& __ly)
     { __lx.swap(__ly); }
 
 _GLIBCXX_END_NAMESPACE // namespace std

@@ -1,5 +1,5 @@
 /* Implementation of the DATE_AND_TIME intrinsic.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Steven Bosscher.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -7,26 +7,21 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 #include <string.h>
@@ -52,6 +47,31 @@ Boston, MA 02110-1301, USA.  */
 #ifndef abs
 #define abs(x) ((x)>=0 ? (x) : -(x))
 #endif
+
+
+/* If the re-entrant versions of localtime and gmtime are not
+   available, provide fallback implementations.  On some targets where
+   the _r versions are not available, localtime and gmtime use
+   thread-local storage so they are threadsafe.  */
+
+#ifndef HAVE_LOCALTIME_R
+static struct tm *
+localtime_r (const time_t * timep, struct tm * result)
+{
+  *result = *localtime (timep);
+  return result;
+}
+#endif
+
+#ifndef HAVE_GMTIME_R
+static struct tm *
+gmtime_r (const time_t * timep, struct tm * result)
+{
+  *result = *gmtime (timep);
+  return result;
+}
+#endif
+
 
 /* DATE_AND_TIME ([DATE, TIME, ZONE, VALUES])
 
@@ -171,8 +191,8 @@ date_and_time (char *__date, char *__time, char *__zone,
 
   if (lt != (time_t) -1)
     {
-      local_time = *localtime (&lt);
-      UTC_time = *gmtime (&lt);
+      localtime_r (&lt, &local_time);
+      gmtime_r (&lt, &UTC_time);
 
       /* All arguments can be derived from VALUES.  */
       values[0] = 1900 + local_time.tm_year;
@@ -242,7 +262,7 @@ date_and_time (char *__date, char *__time, char *__zone,
   /* Copy the values into the arguments.  */
   if (__values)
     {
-      size_t len, delta, elt_size;
+      index_type len, delta, elt_size;
 
       elt_size = GFC_DESCRIPTOR_SIZE (__values);
       len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
@@ -366,7 +386,7 @@ itime0 (int x[3])
 
   if (lt != (time_t) -1)
     {
-      local_time = *localtime (&lt);
+      localtime_r (&lt, &local_time);
 
       x[0] = local_time.tm_hour;
       x[1] = local_time.tm_min;
@@ -384,7 +404,7 @@ void
 itime_i4 (gfc_array_i4 *__values)
 {
   int x[3], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_4 *vptr;
   
   /* Call helper function.  */
@@ -410,7 +430,7 @@ void
 itime_i8 (gfc_array_i8 *__values)
 {
   int x[3], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_8 *vptr;
   
   /* Call helper function.  */
@@ -448,7 +468,7 @@ idate0 (int x[3])
 
   if (lt != (time_t) -1)
     {
-      local_time = *localtime (&lt);
+      localtime_r (&lt, &local_time);
 
       x[0] = local_time.tm_mday;
       x[1] = 1 + local_time.tm_mon;
@@ -466,7 +486,7 @@ void
 idate_i4 (gfc_array_i4 *__values)
 {
   int x[3], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_4 *vptr;
   
   /* Call helper function.  */
@@ -492,7 +512,7 @@ void
 idate_i8 (gfc_array_i8 *__values)
 {
   int x[3], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_8 *vptr;
   
   /* Call helper function.  */
@@ -515,7 +535,7 @@ idate_i8 (gfc_array_i8 *__values)
 /* GMTIME(STIME, TARRAY) - Non-standard
 
    Description: Given a system time value STime, fills TArray with values
-   extracted from it appropriate to the GMT time zone using gmtime(3).
+   extracted from it appropriate to the GMT time zone using gmtime_r(3).
 
    The array elements are as follows:
 
@@ -535,7 +555,7 @@ gmtime_0 (const time_t * t, int x[9])
 {
   struct tm lt;
 
-  lt = *gmtime (t);
+  gmtime_r (t, &lt);
   x[0] = lt.tm_sec;
   x[1] = lt.tm_min;
   x[2] = lt.tm_hour;
@@ -554,7 +574,7 @@ void
 gmtime_i4 (GFC_INTEGER_4 * t, gfc_array_i4 * tarray)
 {
   int x[9], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_4 *vptr;
   time_t tt;
   
@@ -581,7 +601,7 @@ void
 gmtime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
 {
   int x[9], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_8 *vptr;
   time_t tt;
   
@@ -607,7 +627,7 @@ gmtime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
 /* LTIME(STIME, TARRAY) - Non-standard
 
    Description: Given a system time value STime, fills TArray with values
-   extracted from it appropriate to the local time zone using localtime(3).
+   extracted from it appropriate to the local time zone using localtime_r(3).
 
    The array elements are as follows:
 
@@ -627,7 +647,7 @@ ltime_0 (const time_t * t, int x[9])
 {
   struct tm lt;
 
-  lt = *localtime (t);
+  localtime_r (t, &lt);
   x[0] = lt.tm_sec;
   x[1] = lt.tm_min;
   x[2] = lt.tm_hour;
@@ -646,7 +666,7 @@ void
 ltime_i4 (GFC_INTEGER_4 * t, gfc_array_i4 * tarray)
 {
   int x[9], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_4 *vptr;
   time_t tt;
   
@@ -673,7 +693,7 @@ void
 ltime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
 {
   int x[9], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_8 *vptr;
   time_t tt;
   

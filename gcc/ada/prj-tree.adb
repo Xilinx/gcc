@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Unchecked_Deallocation;
 with Prj.Err;
 
 package body Prj.Tree is
@@ -984,6 +985,21 @@ package body Prj.Tree is
       Projects_Htable.Reset (Tree.Projects_HT);
    end Initialize;
 
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Prj : in out Project_Node_Tree_Ref) is
+      procedure Unchecked_Free is new Ada.Unchecked_Deallocation
+        (Project_Node_Tree_Data, Project_Node_Tree_Ref);
+   begin
+      if Prj /= null then
+         Project_Node_Table.Free (Prj.Project_Nodes);
+         Projects_Htable.Reset (Prj.Projects_HT);
+         Unchecked_Free (Prj);
+      end if;
+   end Free;
+
    -------------------------------
    -- Is_Followed_By_Empty_Line --
    -------------------------------
@@ -1486,11 +1502,14 @@ package body Prj.Tree is
       Comments.Set_Last (0);
    end Reset_State;
 
-   -------------
-   -- Restore --
-   -------------
+   ----------------------
+   -- Restore_And_Free --
+   ----------------------
 
-   procedure Restore (S : Comment_State) is
+   procedure Restore_And_Free (S : in out Comment_State) is
+      procedure Unchecked_Free is new
+        Ada.Unchecked_Deallocation (Comment_Array, Comments_Ptr);
+
    begin
       End_Of_Line_Node   := S.End_Of_Line_Node;
       Previous_Line_Node := S.Previous_Line_Node;
@@ -1504,7 +1523,9 @@ package body Prj.Tree is
          Comments.Increment_Last;
          Comments.Table (Comments.Last) := S.Comments (J);
       end loop;
-   end Restore;
+
+      Unchecked_Free (S.Comments);
+   end Restore_And_Free;
 
    ----------
    -- Save --

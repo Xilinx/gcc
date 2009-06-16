@@ -1,5 +1,6 @@
 ; Options for the C, ObjC, C++ and ObjC++ front ends.
-; Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -112,8 +113,11 @@ C ObjC C++ ObjC++ Joined Separate
 -U<macro>	Undefine <macro>
 
 Wabi
-C++ ObjC++ Var(warn_abi) Warning
+C ObjC C++ ObjC++ Var(warn_abi) Warning
 Warn about things that will change when compiling with an ABI-compliant compiler
+
+Wpsabi
+C ObjC C++ ObjC++ Var(warn_psabi) Init(1) Undocumented
 
 Waddress
 C ObjC C++ ObjC++ Var(warn_address) Warning
@@ -181,7 +185,7 @@ Warn when a declaration is found after a statement
 
 Wdeprecated
 C C++ ObjC ObjC++ Var(warn_deprecated) Init(1) Warning
-Warn about deprecated compiler features
+Warn if a deprecated compiler feature, class, method, or field is used
 
 Wdiv-by-zero
 C ObjC C++ ObjC++ Var(warn_div_by_zero) Init(1) Warning
@@ -200,7 +204,7 @@ C ObjC C++ ObjC++ Warning
 Warn about stray tokens after #elif and #endif
 
 Wenum-compare
-C++ ObjC++ Var(warn_enum_compare) Init(1) Warning
+C ObjC C++ ObjC++ Var(warn_enum_compare) Init(-1) Warning
 Warn about comparison of different enum types
 
 Werror
@@ -280,8 +284,12 @@ Winvalid-pch
 C ObjC C++ ObjC++ Warning
 Warn about PCH files that are found but not used
 
+Wlogical-op
+C ObjC C++ ObjC++ Var(warn_logical_op) Init(0) Warning 
+Warn when a logical operator is suspiciously always evaluating to true or false
+
 Wlong-long
-C ObjC C++ ObjC++ Var(warn_long_long) Init(1) Warning
+C ObjC C++ ObjC++ Var(warn_long_long) Init(-1) Warning
 Do not warn about using \"long long\" when -pedantic
 
 Wmain
@@ -365,7 +373,7 @@ C ObjC Var(warn_override_init) Init(-1) Warning
 Warn about overriding initializers without side effects
 
 Wpacked-bitfield-compat
-C ObjC C++ ObjC++ Var(warn_packed_bitfield_compat) Init(1) Warning
+C ObjC C++ ObjC++ Var(warn_packed_bitfield_compat) Init(-1) Warning
 Warn about packed bit-fields whose offset changed in GCC 4.4
 
 Wparentheses
@@ -442,7 +450,7 @@ Deprecated.  This switch has no effect
 
 Wsystem-headers
 C ObjC C++ ObjC++ Warning
-Do not suppress warnings from system headers
+; Documented in common.opt
 
 Wtraditional
 C ObjC Var(warn_traditional) Warning
@@ -467,6 +475,10 @@ Warn if an undefined macro is used in an #if directive
 Wunknown-pragmas
 C ObjC C++ ObjC++ Warning
 Warn about unrecognized pragmas
+
+Wunsuffixed-float-constants
+C ObjC Var(warn_unsuffixed_float_constants) Warning
+Warn about unsuffixed float constants
 
 Wunused-macros
 C ObjC C++ ObjC++ Warning
@@ -687,7 +699,7 @@ Enable Objective-C setjmp exception handling runtime
 
 fopenmp
 C ObjC C++ ObjC++ Var(flag_openmp)
-Enable OpenMP
+Enable OpenMP (implies -frecursive in Fortran)
 
 foperator-names
 C++ ObjC++
@@ -711,6 +723,10 @@ Downgrade conformance errors to warnings
 fpreprocessed
 C ObjC C++ ObjC++
 Treat the input file as already preprocessed
+
+fpretty-templates
+C++ ObjC++
+-fno-pretty-templates Do not pretty-print template specializations as the template signature followed by the arguments
 
 freplace-objc-classes
 ObjC ObjC++

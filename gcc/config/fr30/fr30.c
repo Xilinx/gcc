@@ -1,5 +1,5 @@
 /* FR30 specific functions.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2007
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Cygnus Solutions.
 
@@ -47,12 +47,6 @@
 
 /*}}}*/
 /*{{{  Function Prologues & Epilogues */ 
-
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  */
-
-struct rtx_def * fr30_compare_op0;
-struct rtx_def * fr30_compare_op1;
 
 /* The FR30 stack looks like this:
 

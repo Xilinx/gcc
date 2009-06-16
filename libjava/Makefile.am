@@ -98,7 +98,7 @@ endif
 dbexec_DATA = $(db_name)
 endif 
 
-bin_SCRIPTS = addr2name.awk contrib/rebuild-gcj-db contrib/aot-compile
+bin_SCRIPTS = contrib/rebuild-gcj-db contrib/aot-compile
 
 if INSTALL_AOT_RPM
 bin_SCRIPTS += contrib/aot-compile-rpm
@@ -128,12 +128,15 @@ if ANONVERSCRIPT
 extra_ldflags_libjava += -Wl,--version-script=$(srcdir)/libgcj.ver
 endif
 
+LTLDFLAGS = $(shell $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
 GCJLINK = $(LIBTOOL) --tag=GCJ --mode=link $(GCJ) -L$(here) $(JC1FLAGS) \
-          $(LDFLAGS) -o $@
+          $(LTLDFLAGS) -o $@
 GCJ_FOR_ECJX = @GCJ_FOR_ECJX@
 GCJ_FOR_ECJX_LINK = $(GCJ_FOR_ECJX) -o $@
 LIBLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXX) -L$(here) $(JC1FLAGS) \
-          $(LDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) -o $@
+          $(LTLDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) -o $@
+CXXLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LTLDFLAGS) -o $@
 
 GCC_UNWIND_INCLUDE = @GCC_UNWIND_INCLUDE@
 
@@ -302,8 +305,15 @@ libgcj_la_LINK = $(LIBLINK)
 ## compiled.
 EXTRA_libgcj_la_SOURCES = java/lang/Object.java
 
+# We compile libgcj_tools with -findirect-dispatch so that they can
+# depend on external classes: in particular, gjdoc uses antlr.  In
+# addition, -fno-bootstrap-classes ensures that the tools are loaded
+# by the system class loader rather than the bootstrap class loader:
+# only core library classes should be loaded by the bootstrap loader.
 libgcj_tools_la_SOURCES = classpath/tools/tools.zip
-libgcj_tools_la_GCJFLAGS = $(AM_GCJFLAGS) -findirect-dispatch -fno-indirect-classes  -fsource-filename=$(here)/classpath/tools/all-classes.lst
+libgcj_tools_la_GCJFLAGS = $(AM_GCJFLAGS) -findirect-dispatch \
+ -fno-bootstrap-classes -fno-indirect-classes \
+ -fsource-filename=$(here)/classpath/tools/all-classes.lst
 libgcj_tools_la_LDFLAGS = -rpath $(toolexeclibdir) \
  -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
  $(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
@@ -583,7 +593,6 @@ if CREATE_JAVA_HOME
 	  $(DESTDIR)$(SDK_BIN_DIR)/rmic; \
 	ln -sf $$RELATIVE/`echo gjavah | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
 	  $(DESTDIR)$(SDK_BIN_DIR)/javah; \
-	ln -sf $$RELATIVE/ecj $(DESTDIR)$(SDK_BIN_DIR)/javac; \
 	ln -sf $$RELATIVE/`echo gappletviewer | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
 	  $(DESTDIR)$(SDK_BIN_DIR)/appletviewer; \
 	ln -sf $$RELATIVE/`echo gjarsigner | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
@@ -635,7 +644,7 @@ if CREATE_JAVA_HOME
 	  done; \
 	cd $$working_dir; \
 	$(mkinstalldirs) $(DESTDIR)$(JRE_LIB_DIR)/security; \
-	RELATIVE=$$(relative $(DESTDIR)$(libdir)/security \
+	RELATIVE=$$(relative $(DESTDIR)$(toolexeclibdir)/security \
 	  $(DESTDIR)$(JRE_LIB_DIR)/security); \
 	cd $(DESTDIR)$(JRE_LIB_DIR)/security; \
 	  ln -sf $$RELATIVE/classpath.security java.security; \
@@ -665,7 +674,7 @@ if CREATE_JAVA_HOME
 	ln -sf $$RELATIVE/libgcj-tools-$(gcc_version).jar \
 	  $(DESTDIR)$(SDK_LIB_DIR)/tools.jar; \
 	for headername in jawt jni; do \
-	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/gcj \
+	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/`echo gcj | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
 	    -print-file-name=include/$$headername.h)); \
 	  RELATIVE=$$(relative $$DIRECTORY \
 	    $(DESTDIR)$(SDK_INCLUDE_DIR)); \
@@ -673,7 +682,7 @@ if CREATE_JAVA_HOME
 	    $(DESTDIR)$(SDK_INCLUDE_DIR)/$$headername.h; \
 	done; \
 	for headername in jawt_md jni_md; do \
-	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/gcj \
+	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/`echo gcj | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
 	    -print-file-name=include/$$headername.h)); \
 	  RELATIVE=$$(relative $$DIRECTORY \
 	    $(DESTDIR)$(SDK_INCLUDE_DIR)/linux); \
@@ -681,9 +690,7 @@ if CREATE_JAVA_HOME
 	    $(DESTDIR)$(SDK_INCLUDE_DIR)/linux/$$headername.h; \
 	done; \
 	RELATIVE=$$(relative $(DESTDIR)$(datadir)/java \
-	  $(DESTDIR)$(JVM_ROOT_DIR)/$(SDK_DIR)); \
-	ln -sf $$RELATIVE/src-$(gcc_version).zip \
-	  $(DESTDIR)$(JVM_ROOT_DIR)/$(SDK_DIR)/src.zip;
+	  $(DESTDIR)$(JVM_ROOT_DIR)/$(SDK_DIR)); 
 endif
 
 ## ################################################################
@@ -1088,6 +1095,7 @@ gnu/java/nio/natVMSelector.cc \
 gnu/java/nio/natNIOServerSocket.cc \
 gnu/java/nio/natVMChannel.cc \
 gnu/java/nio/channels/natFileChannelImpl.cc \
+gnu/java/security/jce/prng/natVMSecureRandom.cc \
 java/io/natFile.cc \
 java/io/natVMObjectInputStream.cc \
 java/io/natVMObjectStreamClass.cc \
@@ -1295,6 +1303,7 @@ AM_MAKEFLAGS = \
 	"SHELL=$(SHELL)" \
 	"RUNTESTFLAGS=$(RUNTESTFLAGS)" \
 	"exec_prefix=$(exec_prefix)" \
+	"datadir=$(datadir)" \
 	"infodir=$(infodir)" \
 	"libdir=$(libdir)" \
 	"mandir=$(mandir)" \

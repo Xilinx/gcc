@@ -1,6 +1,6 @@
 /* Exception handling semantics and decomposition for trees.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -87,7 +87,7 @@ struct_ptr_hash (const void *a)
    of space by only allocating memory for those that can throw.  */
 
 static void
-record_stmt_eh_region (struct eh_region *region, gimple t)
+record_stmt_eh_region (struct eh_region_d *region, gimple t)
 {
   if (!region)
     return;
@@ -344,6 +344,26 @@ outside_finally_tree (treemple start, gimple target)
    The eh region creation is straight-forward, but frobbing all the gotos
    and such into shape isn't.  */
 
+/* The GOTO_QUEUE is is an array of GIMPLE_GOTO and GIMPLE_RETURN
+   statements that are seen to escape this GIMPLE_TRY_FINALLY node.
+   The idea is to record a gimple statement for everything except for
+   the conditionals, which get their labels recorded. Since labels are
+   of type 'tree', we need this node to store both gimple and tree
+   objects.  REPL_STMT is the sequence used to replace the goto/return
+   statement.  CONT_STMT is used to store the statement that allows
+   the return/goto to jump to the original destination. */
+
+struct goto_queue_node
+{
+  treemple stmt;
+  gimple_seq repl_stmt;
+  gimple cont_stmt;
+  int index;
+  /* This is used when index >= 0 to indicate that stmt is a label (as
+     opposed to a goto stmt).  */
+  int is_label;
+};
+
 /* State of the world while lowering.  */
 
 struct leh_state
@@ -351,8 +371,7 @@ struct leh_state
   /* What's "current" while constructing the eh region tree.  These
      correspond to variables of the same name in cfun->eh, which we
      don't have easy access to.  */
-  struct eh_region *cur_region;
-  struct eh_region *prev_try;
+  struct eh_region_d *cur_region;
 
   /* Processing of TRY_FINALLY requires a bit more state.  This is
      split out into a separate structure so that we don't have to
@@ -376,25 +395,10 @@ struct leh_tf_state
   struct leh_state *outer;
 
   /* The exception region created for it.  */
-  struct eh_region *region;
+  struct eh_region_d *region;
 
-  /* The GOTO_QUEUE is is an array of GIMPLE_GOTO and GIMPLE_RETURN statements
-     that are seen to escape this GIMPLE_TRY_FINALLY node.
-     The idea is to record a gimple statement for everything except for 
-     the conditionals, which get their labels recorded. Since labels are of
-     type 'tree', we need this node to store both gimple and tree objects.
-     REPL_STMT is the sequence used to replace the goto/return statement.
-     CONT_STMT is used to store the statement that allows the return/goto to
-     jump to the original destination. */
-  struct goto_queue_node {
-    treemple stmt;
-    gimple_seq repl_stmt;
-    gimple cont_stmt;
-    int index;
-    /* this is used when index >= 0 to indicate that stmt is a label(as
-       opposed to a goto stmt) */
-    int is_label;
-  } *goto_queue;
+  /* The goto queue.  */
+  struct goto_queue_node *goto_queue;
   size_t goto_queue_size;
   size_t goto_queue_active;
 
@@ -1566,12 +1570,11 @@ lower_try_finally (struct leh_state *state, gimple tp)
   this_tf.outer = state;
   if (using_eh_for_cleanups_p)
     this_tf.region
-      = gen_eh_region_cleanup (state->cur_region, state->prev_try);
+      = gen_eh_region_cleanup (state->cur_region);
   else
     this_tf.region = NULL;
 
   this_state.cur_region = this_tf.region;
-  this_state.prev_try = state->prev_try;
   this_state.tf = &this_tf;
 
   lower_eh_constructs_1 (&this_state, gimple_try_eval(tp));
@@ -1643,14 +1646,13 @@ lower_try_finally (struct leh_state *state, gimple tp)
 static gimple_seq
 lower_catch (struct leh_state *state, gimple tp)
 {
-  struct eh_region *try_region;
+  struct eh_region_d *try_region;
   struct leh_state this_state;
   gimple_stmt_iterator gsi;
   tree out_label;
 
   try_region = gen_eh_region_try (state->cur_region);
   this_state.cur_region = try_region;
-  this_state.prev_try = try_region;
   this_state.tf = state->tf;
 
   lower_eh_constructs_1 (&this_state, gimple_try_eval (tp));
@@ -1663,7 +1665,7 @@ lower_catch (struct leh_state *state, gimple tp)
   out_label = NULL;
   for (gsi = gsi_start (gimple_try_cleanup (tp)); !gsi_end_p (gsi); )
     {
-      struct eh_region *catch_region;
+      struct eh_region_d *catch_region;
       tree eh_label;
       gimple x, gcatch;
 
@@ -1672,7 +1674,6 @@ lower_catch (struct leh_state *state, gimple tp)
                                           gimple_catch_types (gcatch));
 
       this_state.cur_region = catch_region;
-      this_state.prev_try = state->prev_try;
       lower_eh_constructs_1 (&this_state, gimple_catch_handler (gcatch));
 
       eh_label = create_artificial_label ();
@@ -1706,7 +1707,7 @@ static gimple_seq
 lower_eh_filter (struct leh_state *state, gimple tp)
 {
   struct leh_state this_state;
-  struct eh_region *this_region;
+  struct eh_region_d *this_region;
   gimple inner;
   tree eh_label;
 
@@ -1719,10 +1720,6 @@ lower_eh_filter (struct leh_state *state, gimple tp)
 					 gimple_eh_filter_types (inner));
   this_state = *state;
   this_state.cur_region = this_region;
-  /* For must not throw regions any cleanup regions inside it
-     can't reach outer catch regions.  */
-  if (gimple_eh_filter_must_not_throw (inner))
-    this_state.prev_try = NULL;
 
   lower_eh_constructs_1 (&this_state, gimple_try_eval (tp));
 
@@ -1747,7 +1744,7 @@ static gimple_seq
 lower_cleanup (struct leh_state *state, gimple tp)
 {
   struct leh_state this_state;
-  struct eh_region *this_region;
+  struct eh_region_d *this_region;
   struct leh_tf_state fake_tf;
   gimple_seq result;
 
@@ -1759,7 +1756,7 @@ lower_cleanup (struct leh_state *state, gimple tp)
       return result;
     }
 
-  this_region = gen_eh_region_cleanup (state->cur_region, state->prev_try);
+  this_region = gen_eh_region_cleanup (state->cur_region);
   this_state = *state;
   this_state.cur_region = this_region;
 
@@ -1823,6 +1820,25 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
     {
     case GIMPLE_CALL:
     case GIMPLE_ASSIGN:
+      /* If the stmt can throw use a new temporary for the assignment
+         to a LHS.  This makes sure the old value of the LHS is
+	 available on the EH edge.  */
+      if (stmt_could_throw_p (stmt)
+	  && gimple_has_lhs (stmt)
+	  && !tree_could_throw_p (gimple_get_lhs (stmt))
+	  && is_gimple_reg_type (TREE_TYPE (gimple_get_lhs (stmt))))
+	{
+	  tree lhs = gimple_get_lhs (stmt);
+	  tree tmp = create_tmp_var (TREE_TYPE (lhs), NULL);
+	  gimple s = gimple_build_assign (lhs, tmp);
+	  gimple_set_location (s, gimple_location (stmt));
+	  gimple_set_block (s, gimple_block (stmt));
+	  gimple_set_lhs (stmt, tmp);
+	  if (TREE_CODE (TREE_TYPE (tmp)) == COMPLEX_TYPE
+	      || TREE_CODE (TREE_TYPE (tmp)) == VECTOR_TYPE)
+	    DECL_GIMPLE_REG_P (tmp) = 1;
+	  gsi_insert_after (gsi, s, GSI_SAME_STMT);
+	}
       /* Look for things that can throw exceptions, and record them.  */
       if (state->cur_region && stmt_could_throw_p (stmt))
 	{
@@ -1931,7 +1947,7 @@ struct gimple_opt_pass pass_lower_eh =
 /* Construct EH edges for STMT.  */
 
 static void
-make_eh_edge (struct eh_region *region, void *data)
+make_eh_edge (struct eh_region_d *region, void *data)
 {
   gimple stmt;
   tree lab;
@@ -1943,7 +1959,29 @@ make_eh_edge (struct eh_region *region, void *data)
   src = gimple_bb (stmt);
   dst = label_to_block (lab);
 
-  make_edge (src, dst, EDGE_ABNORMAL | EDGE_EH);
+  make_edge (src, dst, EDGE_EH);
+}
+
+/* See if STMT is call that might be inlined.  */
+
+static bool
+inlinable_call_p (gimple stmt)
+{
+  tree decl;
+  if (gimple_code (stmt) != GIMPLE_CALL)
+    return false;
+  if (cfun->after_inlining)
+    return false;
+  /* Indirect calls can be propagated to direct call
+     and inlined.  */
+  decl = gimple_call_fndecl (stmt);
+  if (!decl)
+    return true;
+  if (cgraph_function_flags_ready
+      && cgraph_function_body_availability (cgraph_node (decl))
+      < AVAIL_OVERWRITABLE)
+    return false;
+  return !DECL_UNINLINABLE (decl);
 }
 
 void
@@ -1951,6 +1989,8 @@ make_eh_edges (gimple stmt)
 {
   int region_nr;
   bool is_resx;
+  bool inlinable = false;
+  basic_block bb;
 
   if (gimple_code (stmt) == GIMPLE_RESX)
     {
@@ -1963,9 +2003,61 @@ make_eh_edges (gimple stmt)
       if (region_nr < 0)
 	return;
       is_resx = false;
+      inlinable = inlinable_call_p (stmt);
     }
 
-  foreach_reachable_handler (region_nr, is_resx, make_eh_edge, stmt);
+  foreach_reachable_handler (region_nr, is_resx, inlinable, make_eh_edge, stmt);
+
+  /* Make CFG profile more consistent assuming that exception will resume to first
+     available EH handler.  In practice this makes little difference, but we get
+     fewer consistency errors in the dumps.  */
+  bb = gimple_bb (stmt);
+  if (is_resx && EDGE_COUNT (bb->succs))
+    EDGE_SUCC (bb, 0)->probability = REG_BR_PROB_BASE;
+}
+
+/* Redirect EH edge E to NEW_BB.  */
+
+edge
+redirect_eh_edge (edge e, basic_block new_bb)
+{
+  gimple stmt = gsi_stmt (gsi_last_bb (e->src));
+  int region_nr, new_region_nr;
+  bool is_resx;
+  bool inlinable = false;
+  tree label = gimple_block_label (new_bb);
+  struct eh_region_d *r;
+
+  if (gimple_code (stmt) == GIMPLE_RESX)
+    {
+      region_nr = gimple_resx_region (stmt);
+      is_resx = true;
+    }
+  else
+    {
+      region_nr = lookup_stmt_eh_region (stmt);
+      gcc_assert (region_nr >= 0);
+      is_resx = false;
+      inlinable = inlinable_call_p (stmt);
+    }
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "Redirecting EH edge %i->%i to %i, region %i, resx %i\n",
+	     e->src->index, e->dest->index, new_bb->index, region_nr, is_resx);
+  r = redirect_eh_edge_to_label (e, label, is_resx, inlinable, region_nr);
+  new_region_nr = get_eh_region_number (r);
+  if (new_region_nr != region_nr)
+    {
+      if (is_resx)
+        gimple_resx_set_region (stmt, new_region_nr);
+      else
+        {
+	  remove_stmt_from_eh_region (stmt);
+	  add_stmt_to_eh_region (stmt, new_region_nr);
+        }
+    }
+  e = ssa_redirect_edge (e, new_bb);
+  return e;
 }
 
 static bool mark_eh_edge_found_error;
@@ -1974,7 +2066,7 @@ static bool mark_eh_edge_found_error;
    field, output error if something goes wrong.  */
 
 static void
-mark_eh_edge (struct eh_region *region, void *data)
+mark_eh_edge (struct eh_region_d *region, void *data)
 {
   gimple stmt;
   tree lab;
@@ -2019,6 +2111,7 @@ verify_eh_edges (gimple stmt)
   basic_block bb = gimple_bb (stmt);
   edge_iterator ei;
   edge e;
+  bool inlinable = false;
 
   FOR_EACH_EDGE (e, ei, bb->succs)
     gcc_assert (!e->aux);
@@ -2046,10 +2139,11 @@ verify_eh_edges (gimple stmt)
 	  error ("BB %i last statement has incorrectly set region", bb->index);
 	  return true;
 	}
+      inlinable = inlinable_call_p (stmt);
       is_resx = false;
     }
 
-  foreach_reachable_handler (region_nr, is_resx, mark_eh_edge, stmt);
+  foreach_reachable_handler (region_nr, is_resx, inlinable, mark_eh_edge, stmt);
   FOR_EACH_EDGE (e, ei, bb->succs)
     {
       if ((e->flags & EDGE_EH) && !e->aux)
@@ -2342,15 +2436,7 @@ stmt_could_throw_p (gimple stmt)
   if (code == GIMPLE_ASSIGN || code == GIMPLE_COND)
     return stmt_could_throw_1_p (stmt);
   else if (is_gimple_call (stmt))
-    {
-      tree t = gimple_call_fndecl (stmt);
-
-      /* Assume that calls to weak functions may trap.  */
-      if (!t || !DECL_P (t) || DECL_WEAK (t))
-	return true;
-
-      return (gimple_call_flags (stmt) & ECF_NOTHROW) == 0;
-    }
+    return (gimple_call_flags (stmt) & ECF_NOTHROW) == 0;
   else if (gimple_code (stmt) == GIMPLE_ASM)
     return (gimple_asm_volatile_p (stmt));
   else
@@ -2384,15 +2470,18 @@ tree_could_throw_p (tree t)
   return false;
 }
 
-
-/* Return true if STMT can throw an exception that is caught within
+/* Return true if STMT can throw an exception that is not caught within
    the current function (CFUN).  */
 
 bool
-stmt_can_throw_internal (gimple stmt)
+stmt_can_throw_external (gimple stmt)
 {
   int region_nr;
   bool is_resx = false;
+  bool inlinable_call = false;
+
+  if (!stmt_could_throw_p (stmt))
+    return false;
 
   if (gimple_code (stmt) == GIMPLE_RESX)
     {
@@ -2403,9 +2492,36 @@ stmt_can_throw_internal (gimple stmt)
     region_nr = lookup_stmt_eh_region (stmt);
 
   if (region_nr < 0)
+    return true;
+
+  return can_throw_external_1 (region_nr, is_resx, inlinable_call);
+}
+
+/* Return true if STMT can throw an exception that is caught within
+   the current function (CFUN).  */
+
+bool
+stmt_can_throw_internal (gimple stmt)
+{
+  int region_nr;
+  bool is_resx = false;
+  bool inlinable_call = false;
+
+  if (gimple_code (stmt) == GIMPLE_RESX)
+    {
+      region_nr = gimple_resx_region (stmt);
+      is_resx = true;
+    }
+  else
+    {
+      region_nr = lookup_stmt_eh_region (stmt);
+      inlinable_call = inlinable_call_p (stmt);
+    }
+
+  if (region_nr < 0)
     return false;
 
-  return can_throw_internal_1 (region_nr, is_resx);
+  return can_throw_internal_1 (region_nr, is_resx, inlinable_call);
 }
 
 
@@ -2590,4 +2706,585 @@ struct gimple_opt_pass pass_refactor_eh =
   0,					/* todo_flags_start */
   TODO_dump_func			/* todo_flags_finish */
  }
+};
+
+/* Walk statements, see what regions are really references and remove unreachable ones.  */
+
+static void
+tree_remove_unreachable_handlers (void)
+{
+  sbitmap reachable, contains_stmt;
+  VEC(int,heap) * label_to_region;
+  basic_block bb;
+
+  label_to_region = label_to_region_map ();
+  reachable = sbitmap_alloc (num_eh_regions ());
+  sbitmap_zero (reachable);
+  contains_stmt = sbitmap_alloc (num_eh_regions ());
+  sbitmap_zero (contains_stmt);
+
+  FOR_EACH_BB (bb)
+  {
+    gimple_stmt_iterator gsi;
+    int region;
+    bool has_eh_preds = bb_has_eh_pred (bb);
+
+    for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+      {
+	gimple stmt = gsi_stmt (gsi);
+
+	if (gimple_code (stmt) == GIMPLE_LABEL && has_eh_preds)
+	  {
+	    int uid = LABEL_DECL_UID (gimple_label_label (stmt));
+	    int region;
+
+	    for (region = VEC_index (int, label_to_region, uid);
+		 region; region = get_next_region_sharing_label (region))
+	      SET_BIT (reachable, region);
+	  }
+	if (gimple_code (stmt) == GIMPLE_RESX)
+	  SET_BIT (reachable,
+	  	   VEC_index (eh_region, cfun->eh->region_array,
+		   	      gimple_resx_region (stmt))->region_number);
+	if ((region = lookup_stmt_eh_region (stmt)) >= 0)
+	  SET_BIT (contains_stmt, region);
+      }
+  }
+
+  if (dump_file)
+    {
+      fprintf (dump_file, "Before removal of unreachable regions:\n");
+      dump_eh_tree (dump_file, cfun);
+      fprintf (dump_file, "Reachable regions: ");
+      dump_sbitmap_file (dump_file, reachable);
+      fprintf (dump_file, "Regions containing insns: ");
+      dump_sbitmap_file (dump_file, contains_stmt);
+    }
+
+  remove_unreachable_regions (reachable, contains_stmt);
+  sbitmap_free (reachable);
+  sbitmap_free (contains_stmt);
+  VEC_free (int, heap, label_to_region);
+  if (dump_file)
+    {
+      fprintf (dump_file, "\n\nAfter removal of unreachable regions:\n");
+      dump_eh_tree (dump_file, cfun);
+      fprintf (dump_file, "\n\n");
+    }
+}
+
+/* Pattern match emtpy EH receiver looking like:
+  
+   save_filt.6352_662 = [filter_expr] <<<filter object>>>;
+   save_eptr.6351_663 = [exc_ptr_expr] <<<exception object>>>;
+   <<<exception object>>> = save_eptr.6351_663;
+   <<<filter object>>> = save_filt.6352_662;
+   resx 1
+
+   And various minor variants after DCE or copy propagation.
+ */
+
+static int
+tree_empty_eh_handler_p (basic_block bb)
+{
+  gimple_stmt_iterator gsi;
+  int region;
+  edge_iterator ei;
+  edge e;
+  use_operand_p imm_use;
+  gimple use_stmt;
+  bool found = false;
+
+  gsi = gsi_last_bb (bb);
+
+  /* RESX  */
+  if (gsi_end_p (gsi))
+    return 0;
+  if (gimple_code (gsi_stmt (gsi)) != GIMPLE_RESX)
+    return 0;
+  region = gimple_resx_region (gsi_stmt (gsi));
+
+  /* filter_object set.  */
+  gsi_prev (&gsi);
+  if (gsi_end_p (gsi))
+    return 0;
+  if (gimple_code (gsi_stmt (gsi)) == GIMPLE_ASSIGN)
+    {
+      tree filter_tmp;
+      tree exc_ptr_tmp;
+
+      if (TREE_CODE (gimple_assign_lhs (gsi_stmt (gsi))) != FILTER_EXPR)
+	return 0;
+      filter_tmp = gimple_assign_rhs1 (gsi_stmt (gsi));
+
+      /* filter_object set.  */
+      gsi_prev (&gsi);
+      if (gsi_end_p (gsi))
+	return 0;
+      if (gimple_code (gsi_stmt (gsi)) != GIMPLE_ASSIGN)
+	return 0;
+      if (TREE_CODE (gimple_assign_lhs (gsi_stmt (gsi))) != EXC_PTR_EXPR)
+	return 0;
+      exc_ptr_tmp = gimple_assign_rhs1 (gsi_stmt (gsi));
+
+      /* exc_ptr get.  */
+      if (TREE_CODE (exc_ptr_tmp) != EXC_PTR_EXPR)
+	{
+	  gsi_prev (&gsi);
+	  if (gsi_end_p (gsi))
+	    return 0;
+	  if (gimple_code (gsi_stmt (gsi)) != GIMPLE_ASSIGN)
+	    return 0;
+	  if (TREE_CODE (gimple_assign_rhs1 (gsi_stmt (gsi))) != EXC_PTR_EXPR)
+	    return 0;
+	  if (exc_ptr_tmp != gimple_assign_lhs (gsi_stmt (gsi)))
+	    return 0;
+	  if (!single_imm_use (exc_ptr_tmp, &imm_use, &use_stmt))
+	    return 0;
+	}
+
+      /* filter_object get.  */
+      if (TREE_CODE (filter_tmp) != FILTER_EXPR)
+	{
+	  gsi_prev (&gsi);
+	  if (gsi_end_p (gsi))
+	    return 0;
+	  if (gimple_code (gsi_stmt (gsi)) != GIMPLE_ASSIGN)
+	    return 0;
+	  if (TREE_CODE (gimple_assign_rhs1 (gsi_stmt (gsi))) != FILTER_EXPR)
+	    return 0;
+	  if (filter_tmp != gimple_assign_lhs (gsi_stmt (gsi)))
+	    return 0;
+	  if (!single_imm_use (filter_tmp, &imm_use, &use_stmt))
+	    return 0;
+	}
+
+      /* label.  */
+      gsi_prev (&gsi);
+      if (gsi_end_p (gsi))
+	return 0;
+    }
+  if (gimple_code (gsi_stmt (gsi)) != GIMPLE_LABEL)
+    return 0;
+
+  /* Be sure that there is at least on EH region reaching the block directly.
+     After EH edge redirection, it is possible that block is reached by one handler
+     but resumed by different.  */
+  FOR_EACH_EDGE (e, ei, bb->preds)
+    if ((e->flags & EDGE_EH))
+      found = true;
+  if (found)
+    return region;
+  return 0;
+}
+
+/* Return true if it is possible to remove basic block BB and propagate
+   through PHIs.  
+
+   This means that every PHI in BB has all uses such that they are PHIs
+   of basic blocks reachable througt BB and they appears only in use
+   reachable by the edge from BB to the block contianing the use.  
+   
+   This is same as in merge-phi code, but in slightly more general setting
+   because BB can have multiple successors.  */
+
+static bool
+all_phis_safe_to_merge (basic_block bb)
+{
+  gimple_stmt_iterator si;
+  bool ok = true;
+
+  for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
+    {
+      gimple phi = gsi_stmt (si);
+      tree result = gimple_phi_result (phi);
+      gimple stmt;
+      use_operand_p imm_use;
+      imm_use_iterator imm_iter;
+
+      /* If the PHI's result is never used, then we can just
+	 ignore it.  */
+      if (has_zero_uses (result))
+        continue;
+      /* We can always rebuild virtuals if needed.  */
+      if (!is_gimple_reg (result))
+	continue;
+      FOR_EACH_IMM_USE_STMT (stmt, imm_iter, result)
+        {
+	  if (gimple_code (stmt) != GIMPLE_PHI)
+	    {
+	      if (dump_file && (dump_flags & TDF_DETAILS))
+	        fprintf (dump_file,
+			 "PHI result has use in non-PHI statement.\n");
+	      ok = false;
+	      BREAK_FROM_IMM_USE_STMT (imm_iter);
+	    }
+	  else
+            FOR_EACH_IMM_USE_ON_STMT (imm_use, imm_iter)
+	      {
+               edge e;
+	       e = gimple_phi_arg_edge (stmt, PHI_ARG_INDEX_FROM_USE (imm_use));
+	       if (e->src != bb)
+	         {
+	          if (dump_file && (dump_flags & TDF_DETAILS))
+	            fprintf (dump_file, "PHI has use in PHI not reached from"
+		    	     "empty cleanup itself.\n");
+	          ok = false;
+		  break;
+	         }
+	      }
+	   if (!ok)
+	     BREAK_FROM_IMM_USE_STMT (imm_iter);
+	 }
+       if (!ok)
+         return false;
+    }
+  return ok;
+}
+
+static bool dominance_info_invalidated;
+
+/* Information to pass into make_eh_edge_and_update_phi.  */
+
+struct update_info
+{
+  basic_block bb_to_remove, bb;
+  edge edge_to_remove;
+};
+
+/* DATA points to update-info structure.
+   Like make_eh_edge create EH edge from DATA->bb to basic block containing
+   handler of REGION.  In addition also update PHI operands by copying
+   operands from DATA->bb_to_remove.  */
+
+static void
+make_eh_edge_and_update_phi (struct eh_region_d *region, void *data)
+{
+  struct update_info *info = (struct update_info *) data;
+  edge e, e2;
+  tree lab;
+  basic_block src, dst;
+  gimple_stmt_iterator si;
+
+  lab = get_eh_region_tree_label (region);
+
+  src = info->bb;
+  dst = label_to_block (lab);
+
+  e = find_edge (src, dst);
+  if (e)
+    {
+      gcc_assert (e->flags & EDGE_EH);
+      e->aux = e;
+      return;
+    }
+  dominance_info_invalidated = true;
+  e2 = find_edge (info->bb_to_remove, dst);
+  e = make_edge (src, dst, EDGE_EH);
+  e->aux = e;
+  gcc_assert (e2);
+  for (si = gsi_start_phis (dst); !gsi_end_p (si); gsi_next (&si))
+    {
+      gimple phi = gsi_stmt (si);
+      tree use = USE_FROM_PTR (PHI_ARG_DEF_PTR_FROM_EDGE (phi, e2));
+      gimple def = (TREE_CODE (use) == SSA_NAME
+      		    ? SSA_NAME_DEF_STMT (use) : NULL);
+
+      if (def && gimple_bb (def) == info->bb_to_remove)
+        {
+	  use = USE_FROM_PTR (PHI_ARG_DEF_PTR_FROM_EDGE (def,
+	  						 info->edge_to_remove));
+	  gcc_assert (info->bb_to_remove == info->edge_to_remove->dest);
+          def = TREE_CODE (use) == SSA_NAME ? SSA_NAME_DEF_STMT (use) : NULL;
+	  gcc_assert (!def
+	  	      || gimple_bb (def) != info->bb_to_remove
+	  	      || !is_gimple_reg (use));
+        }
+      SET_USE (PHI_ARG_DEF_PTR_FROM_EDGE (phi, e), use);
+    }
+}
+
+/* Make EH edges corresponding to STMT while updating PHI nodes after removal
+   empty cleanup BB_TO_REMOVE joined to BB containing STMT
+   by EDGE_TO_REMOVE.
+
+   Return if EDGE_TO_REMOVE was really removed.  It might stay reachable when
+   not all EH regions are cleaned up.  */
+
+static bool
+update_eh_edges (gimple stmt, basic_block bb_to_remove, edge edge_to_remove)
+{
+  int region_nr;
+  bool is_resx;
+  bool inlinable = false;
+  struct update_info info;
+  edge_iterator ei;
+  edge e;
+  int probability_sum = 0;
+  bool removed = false;
+
+  info.bb_to_remove = bb_to_remove;
+  info.bb = gimple_bb (stmt);
+  info.edge_to_remove = edge_to_remove;
+
+  if (gimple_code (stmt) == GIMPLE_RESX)
+    {
+      region_nr = gimple_resx_region (stmt);
+      is_resx = true;
+    }
+  else
+    {
+      region_nr = lookup_stmt_eh_region (stmt);
+      is_resx = false;
+      inlinable = inlinable_call_p (stmt);
+    }
+
+  /* First add new edges as neccesary.  */
+  foreach_reachable_handler (region_nr, is_resx, inlinable,
+  			     make_eh_edge_and_update_phi, &info);
+
+  /* And remove edges we didn't marked. */
+  for (ei = ei_start (info.bb->succs); (e = ei_safe_edge (ei)); )
+    {
+      if ((e->flags & EDGE_EH) && !e->aux)
+	{
+	  dominance_info_invalidated = true;
+	  if (e == edge_to_remove)
+	    removed = true;
+	  remove_edge (e);
+	}
+      else
+        {
+	  e->aux = NULL;
+	  probability_sum += e->probability;
+	  ei_next (&ei);
+	}
+    }
+
+  /* Make CFG profile more consistent assuming that exception will resume to
+     first available EH handler.  In practice this makes little difference, but
+     we get fewer consistency errors in the dumps.  */
+  if (is_resx && EDGE_COUNT (info.bb->succs) && !probability_sum)
+    EDGE_SUCC (info.bb, 0)->probability = REG_BR_PROB_BASE;
+  return removed;
+}
+
+/* Look for basic blocks containing empty exception handler and remove them.
+   This is similar to jump forwarding, just across EH edges.  */
+
+static bool
+cleanup_empty_eh (basic_block bb, VEC(int,heap) * label_to_region)
+{
+  int region;
+  gimple_stmt_iterator si;
+  edge_iterator ei;
+
+  /* When handler of EH region winds up to be empty, we can safely
+     remove it.  This leads to inner EH regions to be redirected
+     to outer one, if present in function. So we need to rebuild
+     EH edges in all sources.   */
+  if ((region = tree_empty_eh_handler_p (bb))
+      && all_phis_safe_to_merge (bb))
+    {
+      edge e;
+      bool found = false, removed_some = false, has_non_eh_preds = false;
+      gimple_stmt_iterator gsi;
+
+      /* Look for all EH regions sharing label of this block.
+         If they are not same as REGION, remove them and replace them
+	 by outer region of REGION.  Also note if REGION itself is one
+	 of them.  */
+
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+        if (gimple_code (gsi_stmt (gsi)) == GIMPLE_LABEL)
+	  {
+	    int uid = LABEL_DECL_UID (gimple_label_label (gsi_stmt (gsi)));
+	    int r = VEC_index (int, label_to_region, uid);
+	    int next;
+
+	    while (r)
+	      {
+		next = get_next_region_sharing_label (r);
+		if (r == region)
+		  found = true;
+		else
+		  {
+		     removed_some = true;
+		     remove_eh_region_and_replace_by_outer_of (r, region);
+		     if (dump_file && (dump_flags & TDF_DETAILS))
+		       fprintf (dump_file, "Empty EH handler %i removed and "
+		       		"replaced by %i\n", r, region);
+		  }
+		r = next;
+	      }
+	  }
+	else
+	  break;
+
+      gcc_assert (found || removed_some);
+      FOR_EACH_EDGE (e, ei, bb->preds)
+	if (!(e->flags & EDGE_EH))
+	  has_non_eh_preds = true;
+
+      /* When block is empty EH cleanup, but it is reachable via non-EH code too,
+	 we can not remove the region it is resumed via, because doing so will
+	 lead to redirection of its RESX edges.
+
+	 This case will be handled later after edge forwarding if the EH cleanup
+	 is really dead.  */
+
+      if (found && !has_non_eh_preds)
+        {
+	   if (dump_file && (dump_flags & TDF_DETAILS))
+	     fprintf (dump_file, "Empty EH handler %i removed.\n", region);
+          remove_eh_region (region);
+	}
+      else if (!removed_some)
+        return false;
+
+      for (ei = ei_start (bb->preds); (e = ei_safe_edge (ei)); )
+	{
+	  basic_block src = e->src;
+	  if (!(e->flags & EDGE_EH))
+	    {
+	      ei_next (&ei);
+	      continue;
+	    }
+	  if (stmt_can_throw_internal (last_stmt (src)))
+	    {
+	      if (!update_eh_edges (last_stmt (src), bb, e))
+	        ei_next (&ei);
+	    }
+	  else
+	    remove_edge (e);
+	}
+
+      /* Verify that we eliminated all uses of PHI we are going to remove.
+         If we didn't, rebuild SSA on affected variable (this is allowed only
+         for virtuals).  */
+      for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
+        {
+          gimple phi = gsi_stmt (si);
+          tree result = gimple_phi_result (phi);
+          if (!has_zero_uses (result))
+	    {
+              use_operand_p use_p;
+              imm_use_iterator iter;
+	      gimple stmt;
+
+	      FOR_EACH_IMM_USE_STMT (stmt, iter, result)
+		{
+		  /* We have use, see if it won't disappear after
+		     removing BB.  */
+		  if (gimple_bb (stmt) == bb)
+		    continue;
+		  if (gimple_code (stmt) == GIMPLE_PHI)
+		    {
+		      bool bad = false;
+
+		      FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
+	                if (gimple_phi_arg_edge (stmt,
+				PHI_ARG_INDEX_FROM_USE (use_p))->src != bb)
+			  {
+			    bad = true;
+			    break;
+			  }
+
+		      if (!bad)
+		        continue;
+		    }
+
+	          gcc_assert (!is_gimple_reg (result));
+	          mark_sym_for_renaming (SSA_NAME_VAR (result));
+	          /* As we are going to delete this block we will release all
+		     defs which makes the immediate uses on use stmts invalid.
+		     Avoid that by replacing all uses with the bare variable
+		     and updating the stmts.  */
+		  FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
+		    SET_USE (use_p, SSA_NAME_VAR (result));
+		  update_stmt (stmt);
+		}
+	    }
+	}
+      if (!ei_safe_edge (ei_start (bb->preds)))
+        delete_basic_block (bb);
+      return true;
+    }
+  return false;
+}
+
+
+/* Perform cleanups and lowering of exception handling
+    1) cleanups regions with handlers doing nothing are optimized out
+    2) MUST_NOT_THROW regions that became dead because of 1) are optimized out
+    3) Info about regions that are containing instructions, and regions
+       reachable via local EH edges is collected
+    4) Eh tree is pruned for regions no longer neccesary.
+ */
+
+static unsigned int
+cleanup_eh (void)
+{
+  bool changed = false;
+  basic_block bb;
+  VEC(int,heap) * label_to_region;
+  int i;
+
+  if (!cfun->eh)
+    return 0;
+  if (dump_file)
+    {
+      fprintf (dump_file, "Before cleanups:\n");
+      dump_eh_tree (dump_file, cfun);
+    }
+
+  if (optimize)
+    {
+      label_to_region = label_to_region_map ();
+      dominance_info_invalidated = false;
+      /* We cannot use FOR_EACH_BB, since the basic blocks may get removed.  */
+      for (i = NUM_FIXED_BLOCKS; i < last_basic_block; i++)
+	{
+	  bb = BASIC_BLOCK (i);
+	  if (bb)
+	    changed |= cleanup_empty_eh (bb, label_to_region);
+	}
+      VEC_free (int, heap, label_to_region);
+      if (dominance_info_invalidated)
+	{
+	  free_dominance_info (CDI_DOMINATORS);
+	  free_dominance_info (CDI_POST_DOMINATORS);
+	}
+
+      /* Removing contained cleanup can render MUST_NOT_THROW regions empty.  */
+      if (changed)
+	delete_unreachable_blocks ();
+    }
+
+  tree_remove_unreachable_handlers ();
+  if (dump_file)
+    {
+      fprintf (dump_file, "After cleanups:\n");
+      dump_eh_tree (dump_file, cfun);
+    }
+
+  return (changed ? TODO_cleanup_cfg | TODO_update_ssa : 0);
+}
+
+struct gimple_opt_pass pass_cleanup_eh = {
+  {
+   GIMPLE_PASS,
+   "ehcleanup",			/* name */
+   NULL,			/* gate */
+   cleanup_eh,			/* execute */
+   NULL,			/* sub */
+   NULL,			/* next */
+   0,				/* static_pass_number */
+   TV_TREE_EH,			/* tv_id */
+   PROP_gimple_lcf,		/* properties_required */
+   0,				/* properties_provided */
+   0,				/* properties_destroyed */
+   0,				/* todo_flags_start */
+   TODO_dump_func		/* todo_flags_finish */
+   }
 };

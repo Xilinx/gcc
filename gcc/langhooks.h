@@ -1,5 +1,5 @@
 /* The lang_hooks data structure.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -130,6 +130,9 @@ struct lang_hooks_for_types
      for the debugger about the array bounds, strides, etc.  */
   bool (*get_array_descr_info) (const_tree, struct array_descr_info *);
 
+  /* Fill in information for the debugger about the bounds of TYPE.  */
+  void (*get_subrange_bounds) (const_tree, tree *, tree *);
+
   /* If we requested a pointer to a vector, build up the pointers that
      we stripped off while looking for the inner type.  Similarly for
      return values from functions.  The argument TYPE is the top of the
@@ -158,6 +161,9 @@ struct lang_hooks_for_decls
 
   /* Returns the chain of decls so far in the current scope level.  */
   tree (*getdecls) (void);
+
+  /* Returns true if DECL is explicit member function.  */
+  bool (*function_decl_explicit_p) (tree);
 
   /* Returns true when we should warn for an unused global DECL.
      We will already have checked that it has static binding.  */
@@ -290,10 +296,6 @@ struct lang_hooks
      Returns -1 if the language does nothing special for it.  */
   alias_set_type (*get_alias_set) (tree);
 
-  /* Called by expand_expr for language-specific tree codes.
-     Fourth argument is actually an enum expand_modifier.  */
-  rtx (*expand_expr) (tree, rtx, enum machine_mode, int, rtx *);
-
   /* Function to finish handling an incomplete decl at the end of
      compilation.  Default hook is does nothing.  */
   void (*finish_incomplete_decl) (tree);
@@ -302,9 +304,6 @@ struct lang_hooks
      it; it should not be allocated in a register.  Return true if
      successful.  */
   bool (*mark_addressable) (tree);
-
-  /* Hook called by staticp for language-specific tree codes.  */
-  tree (*staticp) (tree);
 
   /* Replace the DECL_LANG_SPECIFIC data, which may be NULL, of the
      DECL_NODE with a newly GC-allocated copy.  */
@@ -316,11 +315,6 @@ struct lang_hooks
      Otherwise, set it to the ERROR_MARK_NODE to ensure that the
      assembler does not talk about it.  */
   void (*set_decl_assembler_name) (tree);
-
-  /* Nonzero if this front end does not generate a dummy BLOCK between
-     the outermost scope of the function and the FUNCTION_DECL.  See
-     is_body_block in stmt.c, and its callers.  */
-  bool no_body_blocks;
 
   /* The front end can add its own statistics to -fmem-report with
      this hook.  It should output to stderr.  */
@@ -341,7 +335,10 @@ struct lang_hooks
      information will be printed: 0: DECL_NAME, demangled as
      necessary.  1: and scope information.  2: and any other
      information that might be interesting, such as function parameter
-     types in C++.  */
+     types in C++.  The name is in the internal character set and
+     needs to be converted to the locale character set of diagnostics,
+     or to the execution character set for strings such as
+     __PRETTY_FUNCTION__.  */
   const char *(*decl_printable_name) (tree decl, int verbosity);
 
   /* Computes the dwarf-2/3 name for a tree.  VERBOSITY determines what

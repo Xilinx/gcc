@@ -1,5 +1,5 @@
 /* Language hooks common to C++ and ObjC++ front ends.
-   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Ziemowit Laski  <zlaski@apple.com>
 
 This file is part of GCC.
@@ -26,6 +26,8 @@ along with GCC; see the file COPYING3.  If not see
 extern tree objcp_tsubst_copy_and_build (tree, tree, tsubst_flags_t,
 					 tree, bool);
 
+extern bool cp_function_decl_explicit_p (tree decl);
+
 /* Lang hooks that are shared between C++ and ObjC++ are defined here.  Hooks
    specific to C++ or ObjC++ go in cp/cp-lang.c and objcp/objcp-lang.c,
    respectively.  */
@@ -50,12 +52,8 @@ extern tree objcp_tsubst_copy_and_build (tree, tree, tsubst_flags_t,
 #define LANG_HOOKS_POST_OPTIONS c_common_post_options
 #undef LANG_HOOKS_GET_ALIAS_SET
 #define LANG_HOOKS_GET_ALIAS_SET cxx_get_alias_set
-#undef LANG_HOOKS_EXPAND_EXPR
-#define LANG_HOOKS_EXPAND_EXPR c_expand_expr
 #undef LANG_HOOKS_PARSE_FILE
 #define LANG_HOOKS_PARSE_FILE c_common_parse_file
-#undef LANG_HOOKS_STATICP
-#define LANG_HOOKS_STATICP cxx_staticp
 #undef LANG_HOOKS_DUP_LANG_SPECIFIC_DECL
 #define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL cxx_dup_lang_specific_decl
 #undef LANG_HOOKS_SET_DECL_ASSEMBLER_NAME
@@ -131,6 +129,8 @@ extern tree objcp_tsubst_copy_and_build (tree, tree, tsubst_flags_t,
 #define LANG_HOOKS_TO_TARGET_CHARSET c_common_to_target_charset
 #undef LANG_HOOKS_GIMPLIFY_EXPR
 #define LANG_HOOKS_GIMPLIFY_EXPR cp_gimplify_expr
+#undef LANG_HOOKS_FUNCTION_DECL_EXPLICIT_P
+#define LANG_HOOKS_FUNCTION_DECL_EXPLICIT_P cp_function_decl_explicit_p
 #undef LANG_HOOKS_OMP_PREDETERMINED_SHARING
 #define LANG_HOOKS_OMP_PREDETERMINED_SHARING cxx_omp_predetermined_sharing
 #undef LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR

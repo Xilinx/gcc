@@ -1,5 +1,6 @@
 /* RTL-level loop invariant motion.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -52,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "df.h"
 #include "hashtab.h"
 #include "except.h"
+#include "params.h"
 
 /* The data stored for the loop.  */
 
@@ -69,7 +71,7 @@ struct use
 {
   rtx *pos;			/* Position of the use.  */
   rtx insn;			/* The insn in that the use occurs.  */
-
+  unsigned addr_use_p;		/* Whether the use occurs in an address.  */
   struct use *next;		/* Next use in the list.  */
 };
 
@@ -80,6 +82,7 @@ struct def
   struct use *uses;		/* The list of uses that are uniquely reached
 				   by it.  */
   unsigned n_uses;		/* Number of such uses.  */
+  unsigned n_addr_uses;		/* Number of uses in addresses.  */
   unsigned invno;		/* The corresponding invariant.  */
 };
 
@@ -108,6 +111,9 @@ struct invariant
 
   /* Whether to move the invariant.  */
   bool move;
+
+  /* Whether the invariant is cheap when used as an address.  */
+  bool cheap_address;
 
   /* Cost of the invariant.  */
   unsigned cost;
@@ -677,9 +683,16 @@ create_new_invariant (struct def *def, rtx insn, bitmap depends_on,
   /* If the set is simple, usually by moving it we move the whole store out of
      the loop.  Otherwise we save only cost of the computation.  */
   if (def)
-    inv->cost = rtx_cost (set, SET, speed);
+    {
+      inv->cost = rtx_cost (set, SET, speed);
+      inv->cheap_address = address_cost (SET_SRC (set), word_mode,
+					 speed) < COSTS_N_INSNS (1);
+    }
   else
-    inv->cost = rtx_cost (SET_SRC (set), SET, speed);
+    {
+      inv->cost = rtx_cost (SET_SRC (set), SET, speed);
+      inv->cheap_address = false;
+    }
 
   inv->move = false;
   inv->reg = NULL_RTX;
@@ -706,17 +719,19 @@ create_new_invariant (struct def *def, rtx insn, bitmap depends_on,
 /* Record USE at DEF.  */
 
 static void
-record_use (struct def *def, rtx *use, rtx insn)
+record_use (struct def *def, df_ref use)
 {
   struct use *u = XNEW (struct use);
 
-  gcc_assert (REG_P (*use));
-
-  u->pos = use;
-  u->insn = insn;
+  u->pos = DF_REF_REAL_LOC (use);
+  u->insn = DF_REF_INSN (use);
+  u->addr_use_p = (DF_REF_TYPE (use) == DF_REF_REG_MEM_LOAD
+		   || DF_REF_TYPE (use) == DF_REF_REG_MEM_STORE);
   u->next = def->uses;
   def->uses = u;
   def->n_uses++;
+  if (u->addr_use_p)
+    def->n_addr_uses++;
 }
 
 /* Finds the invariants USE depends on and store them to the DEPENDS_ON
@@ -824,7 +839,7 @@ find_invariant_insn (rtx insn, bool always_reached, bool always_executed)
     return;
 
   /* We cannot make trapping insn executed, unless it was executed before.  */
-  if (may_trap_after_code_motion_p (PATTERN (insn)) && !always_reached)
+  if (may_trap_or_fault_p (PATTERN (insn)) && !always_reached)
     return;
 
   depends_on = BITMAP_ALLOC (NULL);
@@ -863,14 +878,14 @@ record_uses (rtx insn)
       df_ref use = *use_rec;
       inv = invariant_for_use (use);
       if (inv)
-	record_use (inv->def, DF_REF_REAL_LOC (use), DF_REF_INSN (use));
+	record_use (inv->def, use);
     }
   for (use_rec = DF_INSN_INFO_EQ_USES (insn_info); *use_rec; use_rec++)
     {
       df_ref use = *use_rec;
       inv = invariant_for_use (use);
       if (inv)
-	record_use (inv->def, DF_REF_REAL_LOC (use), DF_REF_INSN (use));
+	record_use (inv->def, use);
     }
 }
 
@@ -990,7 +1005,9 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
   inv->stamp = actual_stamp;
 
   (*regs_needed)++;
-  (*comp_cost) += inv->cost;
+  if (!inv->cheap_address
+      || inv->def->n_addr_uses < inv->def->n_uses)
+    (*comp_cost) += inv->cost;
 
 #ifdef STACK_REGS
   {
@@ -1345,7 +1362,10 @@ move_loop_invariants (void)
   /* Process the loops, innermost first.  */
   FOR_EACH_LOOP (li, loop, LI_FROM_INNERMOST)
     {
-      move_single_loop_invariants (loop);
+      /* move_single_loop_invariants for very large loops
+	 is time consuming and might need a lot of memory.  */
+      if (loop->num_nodes <= (unsigned) LOOP_INVARIANT_MAX_BBS_IN_LOOP)
+	move_single_loop_invariants (loop);
     }
 
   FOR_EACH_LOOP (li, loop, 0)

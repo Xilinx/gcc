@@ -1,4 +1,4 @@
-/* Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -141,6 +141,8 @@ extern GTY(()) int spu_tune;
 #define LONG_DOUBLE_TYPE_SIZE 64
 
 #define DEFAULT_SIGNED_CHAR 0
+
+#define STDINT_LONG32 0
 
 
 /* Register Basics */
@@ -312,8 +314,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 /* Elimination */
 
-#define FRAME_POINTER_REQUIRED 0
-
 #define ELIMINABLE_REGS  \
   {{ARG_POINTER_REGNUM,	 STACK_POINTER_REGNUM},				\
   {ARG_POINTER_REGNUM,	 HARD_FRAME_POINTER_REGNUM},			\
@@ -415,28 +415,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 #define CONSTANT_ADDRESS_P(X)   spu_constant_address_p(X)
 
 #define MAX_REGS_PER_ADDRESS 2
-
-#ifdef REG_OK_STRICT
-# define REG_OK_STRICT_FLAG 1
-#else
-# define REG_OK_STRICT_FLAG 0
-#endif
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)			\
-    { if (spu_legitimate_address (MODE, X, REG_OK_STRICT_FLAG))	\
-	goto ADDR;						\
-    }
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN) \
-  {  rtx result = spu_legitimize_address (X, OLDX, MODE);	\
-     if (result != NULL_RTX)					\
-       {							\
-	 (X) = result;						\
-	 goto WIN;						\
-       }							\
-  }
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) spu_legitimate_constant_p(X)
 
@@ -617,8 +595,33 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
       }                                                                   \
   } while (0)
 
-/* These are set by the cmp patterns and used while expanding
-   conditional branches. */
-extern GTY(()) rtx spu_compare_op0;
-extern GTY(()) rtx spu_compare_op1;
+
+/* Builtins.  */
+
+enum spu_builtin_type
+{
+  B_INSN,
+  B_JUMP,
+  B_BISLED,
+  B_CALL,
+  B_HINT,
+  B_OVERLOAD,
+  B_INTERNAL
+};
+
+struct GTY(()) spu_builtin_description
+{
+  int fcode;
+  int icode;
+  const char *name;
+  enum spu_builtin_type type;
+
+  /* The first element of parm is always the return type.  The rest
+     are a zero terminated list of parameters.  */
+  int parm[5];
+
+  tree fndecl;
+};
+
+extern struct spu_builtin_description spu_builtins[];
 

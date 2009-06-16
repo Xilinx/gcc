@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.  MIPS version.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by A. Lichnewsky (lich@inria.inria.fr).
    Changed by Michael Meissner	(meissner@osf.org).
@@ -668,6 +668,32 @@ enum mips_code_readable_setting {
 #  endif
 #endif
 
+#ifndef MIPS_ABI_DEFAULT
+#define MIPS_ABI_DEFAULT ABI_32
+#endif
+
+/* Use the most portable ABI flag for the ASM specs.  */
+
+#if MIPS_ABI_DEFAULT == ABI_32
+#define MULTILIB_ABI_DEFAULT "mabi=32"
+#endif
+
+#if MIPS_ABI_DEFAULT == ABI_O64
+#define MULTILIB_ABI_DEFAULT "mabi=o64"
+#endif
+
+#if MIPS_ABI_DEFAULT == ABI_N32
+#define MULTILIB_ABI_DEFAULT "mabi=n32"
+#endif
+
+#if MIPS_ABI_DEFAULT == ABI_64
+#define MULTILIB_ABI_DEFAULT "mabi=64"
+#endif
+
+#if MIPS_ABI_DEFAULT == ABI_EABI
+#define MULTILIB_ABI_DEFAULT "mabi=eabi"
+#endif
+
 #ifndef MULTILIB_DEFAULTS
 #define MULTILIB_DEFAULTS \
     { MULTILIB_ENDIAN_DEFAULT, MULTILIB_ISA_DEFAULT, MULTILIB_ABI_DEFAULT }
@@ -709,7 +735,8 @@ enum mips_code_readable_setting {
      %{march=mips32|march=4kc|march=4km|march=4kp|march=4ksc:-mips32} \
      %{march=mips32r2|march=m4k|march=4ke*|march=4ksd|march=24k* \
        |march=34k*|march=74k*: -mips32r2} \
-     %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000: -mips64} \
+     %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000 \
+       |march=xlr: -mips64} \
      %{march=mips64r2|march=octeon: -mips64r2} \
      %{!march=*: -" MULTILIB_ISA_DEFAULT "}}"
 
@@ -720,7 +747,7 @@ enum mips_code_readable_setting {
 #define MIPS_ARCH_FLOAT_SPEC \
   "%{mhard-float|msoft-float|march=mips*:; \
      march=vr41*|march=m4k|march=4k*|march=24kc|march=24kec \
-     |march=34kc|march=74kc|march=5kc|march=octeon: -msoft-float; \
+     |march=34kc|march=74kc|march=5kc|march=octeon|march=xlr: -msoft-float; \
      march=*: -mhard-float}"
 
 /* A spec condition that matches 32-bit options.  It only works if
@@ -729,10 +756,21 @@ enum mips_code_readable_setting {
 #define MIPS_32BIT_OPTION_SPEC \
   "mips1|mips2|mips32*|mgp32"
 
+#if MIPS_ABI_DEFAULT == ABI_O64 \
+  || MIPS_ABI_DEFAULT == ABI_N32 \
+  || MIPS_ABI_DEFAULT == ABI_64
+#define OPT_ARCH64 "mabi=32|mgp32:;"
+#define OPT_ARCH32 "mabi=32|mgp32"
+#else
+#define OPT_ARCH64 "mabi=o64|mabi=n32|mabi=64|mgp64"
+#define OPT_ARCH32 "mabi=o64|mabi=n32|mabi=64|mgp64:;"
+#endif
+
 /* Support for a compile-time default CPU, et cetera.  The rules are:
    --with-arch is ignored if -march is specified or a -mips is specified
-     (other than -mips16).
-   --with-tune is ignored if -mtune is specified.
+     (other than -mips16); likewise --with-arch-32 and --with-arch-64.
+   --with-tune is ignored if -mtune is specified; likewise
+     --with-tune-32 and --with-tune-64.
    --with-abi is ignored if -mabi is specified.
    --with-float is ignored if -mhard-float or -msoft-float are
      specified.
@@ -740,7 +778,11 @@ enum mips_code_readable_setting {
      specified. */
 #define OPTION_DEFAULT_SPECS \
   {"arch", "%{" MIPS_ARCH_OPTION_SPEC ":;: -march=%(VALUE)}" }, \
+  {"arch_32", "%{" OPT_ARCH32 ":%{" MIPS_ARCH_OPTION_SPEC ":;: -march=%(VALUE)}}" }, \
+  {"arch_64", "%{" OPT_ARCH64 ":%{" MIPS_ARCH_OPTION_SPEC ":;: -march=%(VALUE)}}" }, \
   {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }, \
+  {"tune_32", "%{" OPT_ARCH32 ":%{!mtune=*:-mtune=%(VALUE)}}" }, \
+  {"tune_64", "%{" OPT_ARCH64 ":%{!mtune=*:-mtune=%(VALUE)}}" }, \
   {"abi", "%{!mabi=*:-mabi=%(VALUE)}" }, \
   {"float", "%{!msoft-float:%{!mhard-float:-m%(VALUE)-float}}" }, \
   {"divide", "%{!mdivide-traps:%{!mdivide-breaks:-mdivide-%(VALUE)}}" }, \
@@ -767,9 +809,15 @@ enum mips_code_readable_setting {
 /* Likewise for 32-bit regs.  */
 #define ABI_NEEDS_32BIT_REGS	(mips_abi == ABI_32)
 
-/* True if symbols are 64 bits wide.  At present, n64 is the only
-   ABI for which this is true.  */
-#define ABI_HAS_64BIT_SYMBOLS	(mips_abi == ABI_64 && !TARGET_SYM32)
+/* True if the file format uses 64-bit symbols.  At present, this is
+   only true for n64, which uses 64-bit ELF.  */
+#define FILE_HAS_64BIT_SYMBOLS	(mips_abi == ABI_64)
+
+/* True if symbols are 64 bits wide.  This is usually determined by
+   the ABI's file format, but it can be overridden by -msym32.  Note that
+   overriding the size with -msym32 changes the ABI of relocatable objects,
+   although it doesn't change the ABI of a fully-linked object.  */
+#define ABI_HAS_64BIT_SYMBOLS	(FILE_HAS_64BIT_SYMBOLS && !TARGET_SYM32)
 
 /* ISA has instructions for managing 64-bit fp and gp regs (e.g. mips3).  */
 #define ISA_HAS_64BIT_REGS	(ISA_MIPS3				\
@@ -1069,32 +1117,6 @@ enum mips_code_readable_setting {
 #endif
 
 
-#ifndef MIPS_ABI_DEFAULT
-#define MIPS_ABI_DEFAULT ABI_32
-#endif
-
-/* Use the most portable ABI flag for the ASM specs.  */
-
-#if MIPS_ABI_DEFAULT == ABI_32
-#define MULTILIB_ABI_DEFAULT "mabi=32"
-#endif
-
-#if MIPS_ABI_DEFAULT == ABI_O64
-#define MULTILIB_ABI_DEFAULT "mabi=o64"
-#endif
-
-#if MIPS_ABI_DEFAULT == ABI_N32
-#define MULTILIB_ABI_DEFAULT "mabi=n32"
-#endif
-
-#if MIPS_ABI_DEFAULT == ABI_64
-#define MULTILIB_ABI_DEFAULT "mabi=64"
-#endif
-
-#if MIPS_ABI_DEFAULT == ABI_EABI
-#define MULTILIB_ABI_DEFAULT "mabi=eabi"
-#endif
-
 /* SUBTARGET_ASM_OPTIMIZING_SPEC handles passing optimization options
    to the assembler.  It may be overridden by subtargets.  */
 #ifndef SUBTARGET_ASM_OPTIMIZING_SPEC
@@ -1218,7 +1240,14 @@ enum mips_code_readable_setting {
 #define PREFERRED_DEBUGGING_TYPE DWARF2_DEBUG
 #endif
 
-#define DWARF2_ADDR_SIZE (ABI_HAS_64BIT_SYMBOLS ? 8 : 4)
+/* The size of DWARF addresses should be the same as the size of symbols
+   in the target file format.  They shouldn't depend on things like -msym32,
+   because many DWARF consumers do not allow the mixture of address sizes
+   that one would then get from linking -msym32 code with -msym64 code.
+
+   Note that the default POINTER_SIZE test is not appropriate for MIPS.
+   EABI64 has 64-bit pointers but uses 32-bit ELF.  */
+#define DWARF2_ADDR_SIZE (FILE_HAS_64BIT_SYMBOLS ? 8 : 4)
 
 /* By default, turn on GDB extensions.  */
 #define DEFAULT_GDB_EXTENSIONS 1
@@ -1609,6 +1638,9 @@ enum mips_code_readable_setting {
 #define GP_REG_LAST  31
 #define GP_REG_NUM   (GP_REG_LAST - GP_REG_FIRST + 1)
 #define GP_DBX_FIRST 0
+#define K0_REG_NUM   (GP_REG_FIRST + 26)
+#define K1_REG_NUM   (GP_REG_FIRST + 27)
+#define KERNEL_REG_P(REGNO)	(IN_RANGE (REGNO, K0_REG_NUM, K1_REG_NUM))
 
 #define FP_REG_FIRST 32
 #define FP_REG_LAST  63
@@ -1636,6 +1668,10 @@ enum mips_code_readable_setting {
 #define COP0_REG_LAST 111
 #define COP0_REG_NUM (COP0_REG_LAST - COP0_REG_FIRST + 1)
 
+#define COP0_STATUS_REG_NUM	(COP0_REG_FIRST + 12)
+#define COP0_CAUSE_REG_NUM	(COP0_REG_FIRST + 13)
+#define COP0_EPC_REG_NUM	(COP0_REG_FIRST + 14)
+
 #define COP2_REG_FIRST 112
 #define COP2_REG_LAST 143
 #define COP2_REG_NUM (COP2_REG_LAST - COP2_REG_FIRST + 1)
@@ -1653,6 +1689,17 @@ enum mips_code_readable_setting {
 #define AT_REGNUM	(GP_REG_FIRST + 1)
 #define HI_REGNUM	(TARGET_BIG_ENDIAN ? MD_REG_FIRST : MD_REG_FIRST + 1)
 #define LO_REGNUM	(TARGET_BIG_ENDIAN ? MD_REG_FIRST + 1 : MD_REG_FIRST)
+
+/* A few bitfield locations for the coprocessor registers.  */
+/* Request Interrupt Priority Level is from bit 10 to bit 15 of
+   the cause register for the EIC interrupt mode.  */
+#define CAUSE_IPL	10
+/* Interrupt Priority Level is from bit 10 to bit 15 of the status register.  */
+#define SR_IPL		10
+/* Exception Level is at bit 1 of the status register.  */
+#define SR_EXL		1
+/* Interrupt Enable is at bit 0 of the status register.  */
+#define SR_IE		0
 
 /* FPSW_REGNUM is the single condition code used if !ISA_HAS_8CC.
    If ISA_HAS_8CC, it should not be used, and an arbitrary ST_REG
@@ -1741,11 +1788,18 @@ enum mips_code_readable_setting {
    incoming arguments, the static chain pointer, or the frame pointer.
    The epilogue temporary mustn't conflict with the return registers,
    the PIC call register ($25), the frame pointer, the EH stack adjustment,
-   or the EH data registers.  */
+   or the EH data registers.
+
+   If we're generating interrupt handlers, we use K0 as a temporary register
+   in prologue/epilogue code.  */
 
 #define MIPS16_PIC_TEMP_REGNUM (GP_REG_FIRST + 2)
-#define MIPS_PROLOGUE_TEMP_REGNUM (GP_REG_FIRST + 3)
-#define MIPS_EPILOGUE_TEMP_REGNUM (GP_REG_FIRST + (TARGET_MIPS16 ? 6 : 8))
+#define MIPS_PROLOGUE_TEMP_REGNUM \
+  (cfun->machine->interrupt_handler_p ? K0_REG_NUM : GP_REG_FIRST + 3)
+#define MIPS_EPILOGUE_TEMP_REGNUM		\
+  (cfun->machine->interrupt_handler_p		\
+   ? K0_REG_NUM					\
+   : GP_REG_FIRST + (TARGET_MIPS16 ? 6 : 8))
 
 #define MIPS16_PIC_TEMP gen_rtx_REG (Pmode, MIPS16_PIC_TEMP_REGNUM)
 #define MIPS_PROLOGUE_TEMP(MODE) gen_rtx_REG (MODE, MIPS_PROLOGUE_TEMP_REGNUM)
@@ -2042,12 +2096,20 @@ enum reg_class
 
 #define STACK_GROWS_DOWNWARD
 
-/* The offset of the first local variable from the beginning of the frame.
-   See mips_compute_frame_info for details about the frame layout.  */
+#define FRAME_GROWS_DOWNWARD flag_stack_protect
 
-#define STARTING_FRAME_OFFSET						\
-  (crtl->outgoing_args_size					\
-   + (TARGET_CALL_CLOBBERED_GP ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0))
+/* Size of the area allocated in the frame to save the GP.  */
+
+#define MIPS_GP_SAVE_AREA_SIZE \
+  (TARGET_CALL_CLOBBERED_GP ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0)
+
+/* The offset of the first local variable from the frame pointer.  See
+   mips_compute_frame_info for details about the frame layout.  */
+
+#define STARTING_FRAME_OFFSET				\
+  (FRAME_GROWS_DOWNWARD					\
+   ? 0							\
+   : crtl->outgoing_args_size + MIPS_GP_SAVE_AREA_SIZE)
 
 #define RETURN_ADDR_RTX mips_return_addr
 
@@ -2271,14 +2333,7 @@ typedef struct mips_args {
 	(mips_abi == ABI_EABI && UNITS_PER_FPVALUE >= UNITS_PER_DOUBLE)
 
 
-/* Say that the epilogue uses the return address register.  Note that
-   in the case of sibcalls, the values "used by the epilogue" are
-   considered live at the start of the called function.
-
-   If using a GOT, say that the epilogue also uses GOT_VERSION_REGNUM.
-   See the comment above load_call<mode> for details.  */
-#define EPILOGUE_USES(REGNO) \
-  ((REGNO) == 31 || (TARGET_USE_GOT && (REGNO) == GOT_VERSION_REGNUM))
+#define EPILOGUE_USES(REGNO)	mips_epilogue_uses (REGNO)
 
 /* Treat LOC as a byte offset from the stack pointer and round it up
    to the next fully-aligned offset.  */
@@ -2409,7 +2464,7 @@ typedef struct mips_args {
   /* Flush both caches.  We need to flush the data cache in case	\
      the system has a write-back cache.  */				\
   emit_library_call (gen_rtx_SYMBOL_REF (Pmode, mips_cache_flush_func),	\
-		     0, VOIDmode, 3, ADDR, Pmode, SIZE, Pmode,		\
+		     LCT_NORMAL, VOIDmode, 3, ADDR, Pmode, SIZE, Pmode,	\
 		     GEN_INT (3), TYPE_MODE (integer_type_node))
 
 /* A C statement to initialize the variable parts of a trampoline.
@@ -2464,49 +2519,13 @@ typedef struct mips_args {
 
 #define MAX_REGS_PER_ADDRESS 1
 
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)	\
-{						\
-  if (mips_legitimate_address_p (MODE, X, 1))	\
-    goto ADDR;					\
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)	\
-{						\
-  if (mips_legitimate_address_p (MODE, X, 0))	\
-    goto ADDR;					\
-}
-#endif
-
 /* Check for constness inline but use mips_legitimate_address_p
    to check whether a constant really is an address.  */
 
 #define CONSTANT_ADDRESS_P(X) \
-  (CONSTANT_P (X) && mips_legitimate_address_p (SImode, X, 0))
+  (CONSTANT_P (X) && memory_address_p (SImode, X))
 
 #define LEGITIMATE_CONSTANT_P(X) (mips_const_insns (X) > 0)
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)			\
-  do {								\
-    if (mips_legitimize_address (&(X), MODE))			\
-      goto WIN;							\
-  } while (0)
-
-
-/* A C statement or compound statement with a conditional `goto
-   LABEL;' executed if memory address X (an RTX) can have different
-   meanings depending on the machine mode of the memory reference it
-   is used for.
-
-   Autoincrement and autodecrement addresses typically have
-   mode-dependent effects because the amount of the increment or
-   decrement is the size of the operand being addressed.  Some
-   machines have other mode-dependent addresses.  Many RISC machines
-   have no mode-dependent addresses.
-
-   You may assume that ADDR is a valid address for the machine.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL) {}
 
 /* This handles the magic '..CURRENT_FUNCTION' symbol, which means
    'the start of the function that this code is output in'.  */
@@ -3414,7 +3433,6 @@ extern int mips_dbx_regno[];
 extern int mips_dwarf_regno[];
 extern bool mips_split_p[];
 extern bool mips_split_hi_p[];
-extern GTY(()) rtx cmp_operands[2];
 extern enum processor_type mips_arch;   /* which cpu to codegen for */
 extern enum processor_type mips_tune;   /* which cpu to schedule for */
 extern int mips_isa;			/* architectural level */
@@ -3428,3 +3446,10 @@ extern enum mips_code_readable_setting mips_code_readable;
 
 /* Enable querying of DFA units.  */
 #define CPU_UNITS_QUERY 1
+
+#define FINAL_PRESCAN_INSN(INSN, OPVEC, NOPERANDS)	\
+  mips_final_prescan_insn (INSN, OPVEC, NOPERANDS)
+
+/* This is necessary to avoid a warning about comparing different enum
+   types.  */
+#define mips_tune_attr ((enum attr_cpu) mips_tune)

@@ -1,11 +1,11 @@
 // 2004-07-26  Matt Austern  <austern@apple.com>
 //
-// Copyright (C) 2003 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // This library is distributed in the hope that it will be useful,
@@ -14,34 +14,29 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 //
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
 
 #include <list>
 #include <iterator>
 #include <testsuite_allocator.h>
 
-using namespace __gnu_test;
 
-int main()
+template<typename _Tp>
+bool
+construct_destroy()
 {
-  typedef std::list<int, tracker_allocator<int> > Container;
+  typedef _Tp list_type;
+  typedef typename list_type::iterator iterator_type;
+
+  using namespace __gnu_test;
   const int arr10[10] = { 2, 4, 1, 7, 3, 8, 10, 5, 9, 6 };
   bool ok = true;
 
   tracker_allocator_counter::reset();
   {
-    Container c;
+    list_type c;
     ok = check_construct_destroy("empty container", 0, 0) && ok;
   }
   ok = check_construct_destroy("empty container", 0, 0) && ok;
@@ -49,13 +44,13 @@ int main()
 
   tracker_allocator_counter::reset();
   {
-    Container c(arr10, arr10 + 10);
+    list_type c(arr10, arr10 + 10);
     ok = check_construct_destroy("Construct from range", 10, 0) && ok;
   }
   ok = check_construct_destroy("Construct from range", 10, 10) && ok;
 
   {
-    Container c(arr10, arr10 + 10);
+    list_type c(arr10, arr10 + 10);
     tracker_allocator_counter::reset();
     c.insert(c.begin(), arr10[0]);
     ok = check_construct_destroy("Insert element", 1, 0) && ok;
@@ -63,9 +58,9 @@ int main()
   ok = check_construct_destroy("Insert element", 1, 11) && ok;
 
   {
-    Container c(arr10, arr10 + 10);
+    list_type c(arr10, arr10 + 10);
     tracker_allocator_counter::reset();
-    Container::iterator i5 = c.begin();
+    iterator_type i5 = c.begin();
     std::advance(i5, 5);
     c.insert(i5, arr10, arr10+3);
     ok = check_construct_destroy("Insert short range", 3, 0) && ok;
@@ -73,9 +68,9 @@ int main()
   ok = check_construct_destroy("Insert short range", 3, 13) && ok;
 
   {
-    Container c(arr10, arr10 + 10);
+    list_type c(arr10, arr10 + 10);
     tracker_allocator_counter::reset();
-    Container::iterator i7 = c.begin();
+    iterator_type i7 = c.begin();
     std::advance(i7, 5);
     c.insert(i7, arr10, arr10+10);
     ok = check_construct_destroy("Insert long range", 10, 0) && ok;
@@ -85,3 +80,8 @@ int main()
   return ok ? 0 : 1;
 }
 
+int main()
+{
+  construct_destroy<std::list<int, __gnu_test::tracker_allocator<int> > >();
+  return 0;
+}

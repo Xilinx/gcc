@@ -1,4 +1,4 @@
-#  Copyright (C) 2003,2004,2005,2006,2007 Free Software Foundation, Inc.
+#  Copyright (C) 2003,2004,2005,2006,2007,2008 Free Software Foundation, Inc.
 #  Contributed by Kelley Cook, June 2004.
 #  Original code from Neil Booth, May 2003.
 #
@@ -98,7 +98,7 @@ print ""
 print "#if !defined(GCC_DRIVER) && !defined(IN_LIBGCC2) && !defined(IN_TARGET_LIBS)"
 print ""
 print "/* Structure to save/restore optimization and target specific options.  */";
-print "struct cl_optimization GTY(())";
+print "struct GTY(()) cl_optimization";
 print "{";
 
 n_opt_char = 2;
@@ -154,7 +154,7 @@ print "";
 
 # Target and optimization save/restore/print functions.
 print "/* Structure to save/restore selected target specific options.  */";
-print "struct cl_target_option GTY(())";
+print "struct GTY(()) cl_target_option";
 print "{";
 
 n_target_char = 0;

@@ -1,6 +1,6 @@
 /* Code translation -- generate GCC trees from gfc_code.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free
+   Software Foundation, Inc.
    Contributed by Paul Brook
 
 This file is part of GCC.
@@ -293,8 +293,9 @@ gfc_build_addr_expr (tree type, tree t)
     }
   else
     {
-      if (DECL_P (t))
-        TREE_ADDRESSABLE (t) = 1;
+      tree base = get_base_address (t);
+      if (base && DECL_P (base))
+        TREE_ADDRESSABLE (base) = 1;
       t = fold_build1 (ADDR_EXPR, natural_type, t);
     }
 
@@ -604,8 +605,8 @@ gfc_allocate_with_status (stmtblock_t * block, tree size, tree status)
 			 fold_build1 (INDIRECT_REF, status_type, status),
 			 build_int_cst (status_type, 0));
       tmp = fold_build3 (COND_EXPR, void_type_node,
-			 fold_build2 (NE_EXPR, boolean_type_node,
-				      status, build_int_cst (status_type, 0)),
+			 fold_build2 (NE_EXPR, boolean_type_node, status,
+				      build_int_cst (TREE_TYPE (status), 0)),
 			 tmp, build_empty_stmt ());
       gfc_add_expr_to_block (block, tmp);
     }
@@ -629,7 +630,7 @@ gfc_allocate_with_status (stmtblock_t * block, tree size, tree status)
 			   build_int_cst (pvoid_type_node, 0));
 
       tmp = fold_build2 (EQ_EXPR, boolean_type_node, status,
-			 build_int_cst (status_type, 0));
+			 build_int_cst (TREE_TYPE (status), 0));
       error = fold_build3 (COND_EXPR, void_type_node, tmp, error,
 			   gfc_finish_block (&set_status_block));
     }
@@ -652,7 +653,7 @@ gfc_allocate_with_status (stmtblock_t * block, tree size, tree status)
       tree tmp2;
 
       cond = fold_build2 (EQ_EXPR, boolean_type_node, status,
-			  build_int_cst (status_type, 0));
+			  build_int_cst (TREE_TYPE (status), 0));
       tmp2 = fold_build2 (MODIFY_EXPR, status_type,
 			  fold_build1 (INDIRECT_REF, status_type, status),
 			  build_int_cst (status_type, LIBERROR_ALLOCATION));
@@ -1054,6 +1055,8 @@ gfc_trans_code (gfc_code * code)
       switch (code->op)
 	{
 	case EXEC_NOP:
+	case EXEC_END_BLOCK:
+	case EXEC_END_PROCEDURE:
 	  res = NULL_TREE;
 	  break;
 
@@ -1109,12 +1112,19 @@ gfc_trans_code (gfc_code * code)
 	    if (code->resolved_isym
 		&& code->resolved_isym->id == GFC_ISYM_MVBITS)
 	      is_mvbits = true;
-	    res = gfc_trans_call (code, is_mvbits);
+	    res = gfc_trans_call (code, is_mvbits, NULL_TREE,
+				  NULL_TREE, false);
 	  }
 	  break;
 
+	case EXEC_CALL_PPC:
+	  res = gfc_trans_call (code, false, NULL_TREE,
+				NULL_TREE, false);
+	  break;
+
 	case EXEC_ASSIGN_CALL:
-	  res = gfc_trans_call (code, true);
+	  res = gfc_trans_call (code, true, NULL_TREE,
+				NULL_TREE, false);
 	  break;
 
 	case EXEC_RETURN:
@@ -1257,6 +1267,7 @@ gfc_trans_code (gfc_code * code)
 void
 gfc_generate_code (gfc_namespace * ns)
 {
+  ompws_flags = 0;
   if (ns->is_block_data)
     {
       gfc_generate_block_data (ns);

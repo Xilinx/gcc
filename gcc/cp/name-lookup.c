@@ -1,5 +1,5 @@
 /* Definitions for C++ name lookup routines.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
@@ -125,8 +125,7 @@ binding_entry_free (binding_entry entry)
 
 /* The datatype used to implement the mapping from names to types at
    a given scope.  */
-struct binding_table_s GTY(())
-{
+struct GTY(()) binding_table_s {
   /* Array of chains of "binding_entry"s  */
   binding_entry * GTY((length ("%h.chain_count"))) chain;
 
@@ -778,12 +777,18 @@ pushdecl_maybe_friend (tree x, bool is_friend)
       if ((TREE_CODE (x) == FUNCTION_DECL)
 	  && DECL_EXTERN_C_P (x)
           /* We should ignore declarations happening in system headers.  */
+	  && !DECL_ARTIFICIAL (x)
 	  && !DECL_IN_SYSTEM_HEADER (x))
 	{
 	  cxx_binding *function_binding =
 	      lookup_extern_c_fun_binding_in_all_ns (x);
-	  if (function_binding
-              && !DECL_IN_SYSTEM_HEADER (function_binding->value))
+	  tree previous = (function_binding
+			   ? function_binding->value
+			   : NULL_TREE);
+	  if (previous
+	      && !DECL_ARTIFICIAL (previous)
+              && !DECL_IN_SYSTEM_HEADER (previous)
+	      && DECL_CONTEXT (previous) != DECL_CONTEXT (x))
 	    {
 	      tree previous = function_binding->value;
 
@@ -810,11 +815,16 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		      POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 		    }
 		}
+	      else
+		{
+		  pedwarn (input_location, 0,
+			   "declaration of %q#D with C language linkage", x);
+		  pedwarn (input_location, 0,
+			   "conflicts with previous declaration %q+#D",
+			   previous);
+		}
 	    }
 	}
-
-      if (TREE_CODE (x) == FUNCTION_DECL || DECL_FUNCTION_TEMPLATE_P (x))
-	check_default_args (x);
 
       check_template_shadow (x);
 
@@ -826,11 +836,10 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	  SET_DECL_LANGUAGE (x, lang_c);
 	}
 
+      t = x;
       if (DECL_NON_THUNK_FUNCTION_P (x) && ! DECL_FUNCTION_MEMBER_P (x))
 	{
 	  t = push_overloaded_decl (x, PUSH_LOCAL, is_friend);
-	  if (t != x)
-	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 	  if (!namespace_bindings_p ())
 	    /* We do not need to create a binding for this name;
 	       push_overloaded_decl will have already done so if
@@ -842,33 +851,30 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	  t = push_overloaded_decl (x, PUSH_GLOBAL, is_friend);
 	  if (t == x)
 	    add_decl_to_level (x, NAMESPACE_LEVEL (CP_DECL_CONTEXT (t)));
-	  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 	}
+
+      if (TREE_CODE (x) == FUNCTION_DECL || DECL_FUNCTION_TEMPLATE_P (x))
+	check_default_args (x);
+
+      if (t != x || DECL_FUNCTION_TEMPLATE_P (t))
+	POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 
       /* If declaring a type as a typedef, copy the type (unless we're
 	 at line 0), and install this TYPE_DECL as the new type's typedef
-	 name.  See the extensive comment in ../c-decl.c (pushdecl).  */
+	 name.  See the extensive comment of set_underlying_type ().  */
       if (TREE_CODE (x) == TYPE_DECL)
 	{
 	  tree type = TREE_TYPE (x);
-	  if (DECL_IS_BUILTIN (x))
-	    {
-	      if (TYPE_NAME (type) == 0)
-		TYPE_NAME (type) = x;
-	    }
-	  else if (type != error_mark_node && TYPE_NAME (type) != x
-		   /* We don't want to copy the type when all we're
-		      doing is making a TYPE_DECL for the purposes of
-		      inlining.  */
-		   && (!TYPE_NAME (type)
-		       || TYPE_NAME (type) != DECL_ABSTRACT_ORIGIN (x)))
-	    {
-	      DECL_ORIGINAL_TYPE (x) = type;
-	      type = build_variant_type_copy (type);
-	      TYPE_STUB_DECL (type) = TYPE_STUB_DECL (DECL_ORIGINAL_TYPE (x));
-	      TYPE_NAME (type) = x;
-	      TREE_TYPE (x) = type;
-	    }
+
+	  if (DECL_IS_BUILTIN (x)
+	      || (TREE_TYPE (x) != error_mark_node
+		  && TYPE_NAME (type) != x
+		  /* We don't want to copy the type when all we're
+		     doing is making a TYPE_DECL for the purposes of
+		     inlining.  */
+		  && (!TYPE_NAME (type)
+		      || TYPE_NAME (type) != DECL_ABSTRACT_ORIGIN (x))))
+	    set_underlying_type (x);
 
 	  if (type != error_mark_node
 	      && TYPE_NAME (type)
@@ -1001,13 +1007,18 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	      && TREE_PUBLIC (x))
 	    TREE_PUBLIC (name) = 1;
 
+	  /* Don't complain about the parms we push and then pop
+	     while tentatively parsing a function declarator.  */
+	  if (TREE_CODE (x) == PARM_DECL && DECL_CONTEXT (x) == NULL_TREE)
+	    /* Ignore.  */;
+
 	  /* Warn if shadowing an argument at the top level of the body.  */
-	  if (oldlocal != NULL_TREE && !DECL_EXTERNAL (x)
-	      /* Inline decls shadow nothing.  */
-	      && !DECL_FROM_INLINE (x)
-	      && TREE_CODE (oldlocal) == PARM_DECL
-	      /* Don't check the `this' parameter.  */
-	      && !DECL_ARTIFICIAL (oldlocal))
+	  else if (oldlocal != NULL_TREE && !DECL_EXTERNAL (x)
+		   /* Inline decls shadow nothing.  */
+		   && !DECL_FROM_INLINE (x)
+		   && TREE_CODE (oldlocal) == PARM_DECL
+		   /* Don't check the `this' parameter.  */
+		   && !DECL_ARTIFICIAL (oldlocal))
 	    {
 	      bool err = false;
 
@@ -3337,7 +3348,8 @@ do_namespace_alias (tree alias, tree name_space)
   pushdecl (alias);
 
   /* Emit debug info for namespace alias.  */
-  (*debug_hooks->global_decl) (alias);
+  if (!building_stmt_tree ())
+    (*debug_hooks->global_decl) (alias);
 }
 
 /* Like pushdecl, only it places X in the current namespace,
@@ -3543,7 +3555,7 @@ pushdecl_top_level_1 (tree x, tree *init, bool is_friend)
   push_to_top_level ();
   x = pushdecl_namespace_level (x, is_friend);
   if (init)
-    finish_decl (x, *init, NULL_TREE);
+    finish_decl (x, *init, NULL_TREE, NULL_TREE);
   pop_from_top_level ();
   POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, x);
 }
@@ -3596,10 +3608,9 @@ merge_functions (tree s1, tree s2)
 	  /* If the function from S2 is already in S1, there is no
 	     need to add it again.  For `extern "C"' functions, we
 	     might have two FUNCTION_DECLs for the same function, in
-	     different namespaces; again, we only need one of them.  */
-	  if (fn1 == fn2
-	      || (DECL_EXTERN_C_P (fn1) && DECL_EXTERN_C_P (fn2)
-		  && DECL_NAME (fn1) == DECL_NAME (fn2)))
+	     different namespaces, but let's leave them in in case
+	     they have different default arguments.  */
+	  if (fn1 == fn2)
 	    break;
 	}
 
@@ -4224,7 +4235,7 @@ lookup_name_nonclass (tree name)
 }
 
 tree
-lookup_function_nonclass (tree name, tree args, bool block_p)
+lookup_function_nonclass (tree name, VEC(tree,gc) *args, bool block_p)
 {
   return
     lookup_arg_dependent (name,
@@ -4416,7 +4427,7 @@ lookup_type_current_level (tree name)
 struct arg_lookup
 {
   tree name;
-  tree args;
+  VEC(tree,gc) *args;
   tree namespaces;
   tree classes;
   tree functions;
@@ -4424,6 +4435,7 @@ struct arg_lookup
 
 static bool arg_assoc (struct arg_lookup*, tree);
 static bool arg_assoc_args (struct arg_lookup*, tree);
+static bool arg_assoc_args_vec (struct arg_lookup*, VEC(tree,gc) *);
 static bool arg_assoc_type (struct arg_lookup*, tree);
 static bool add_function (struct arg_lookup *, tree);
 static bool arg_assoc_namespace (struct arg_lookup *, tree);
@@ -4578,13 +4590,13 @@ arg_assoc_namespace (struct arg_lookup *k, tree scope)
 	 classes.  */
       if (hidden_name_p (OVL_CURRENT (value)))
 	{
-	  tree args;
+	  unsigned int ix;
+	  tree arg;
 
-	  for (args = k->args; args; args = TREE_CHAIN (args))
-	    if (friend_of_associated_class_p (TREE_VALUE (args),
-					      OVL_CURRENT (value)))
+	  for (ix = 0; VEC_iterate (tree, k->args, ix, arg); ++ix)
+	    if (friend_of_associated_class_p (arg, OVL_CURRENT (value)))
 	      break;
-	  if (!args)
+	  if (ix >= VEC_length (tree, k->args))
 	    continue;
 	}
 
@@ -4794,6 +4806,21 @@ arg_assoc_args (struct arg_lookup *k, tree args)
   return false;
 }
 
+/* Adds everything associated with an argument vector.  Returns true
+   on error.  */
+
+static bool
+arg_assoc_args_vec (struct arg_lookup *k, VEC(tree,gc) *args)
+{
+  unsigned int ix;
+  tree arg;
+
+  for (ix = 0; VEC_iterate (tree, args, ix, arg); ++ix)
+    if (arg_assoc (k, arg))
+      return true;
+  return false;
+}
+
 /* Adds everything associated with a given tree_node.  Returns 1 on error.  */
 
 static bool
@@ -4873,7 +4900,7 @@ arg_assoc (struct arg_lookup *k, tree n)
    are the functions found in normal lookup.  */
 
 tree
-lookup_arg_dependent (tree name, tree fns, tree args)
+lookup_arg_dependent (tree name, tree fns, VEC(tree,gc) *args)
 {
   struct arg_lookup k;
 
@@ -4896,7 +4923,7 @@ lookup_arg_dependent (tree name, tree fns, tree args)
      picking up later definitions) in the second stage. */
   k.namespaces = NULL_TREE;
 
-  arg_assoc_args (&k, args);
+  arg_assoc_args_vec (&k, args);
 
   fns = k.functions;
   
@@ -5386,7 +5413,12 @@ cp_emit_debug_info_for_using (tree t, tree context)
   /* FIXME: Handle TEMPLATE_DECLs.  */
   for (t = OVL_CURRENT (t); t; t = OVL_NEXT (t))
     if (TREE_CODE (t) != TEMPLATE_DECL)
-      (*debug_hooks->imported_module_or_decl) (t, NULL_TREE, context, false);
+      {
+	if (building_stmt_tree ())
+	  add_stmt (build_stmt (USING_STMT, t));
+	else
+	  (*debug_hooks->imported_module_or_decl) (t, NULL_TREE, context, false);
+      }
 }
 
 #include "gt-cp-name-lookup.h"

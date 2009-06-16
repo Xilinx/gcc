@@ -1,11 +1,11 @@
 // TR1 functional header -*- C++ -*-
 
-// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file tr1_impl/functional
  *  This is an internal header file, included by other library headers.
@@ -827,9 +822,13 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
   /// The type of placeholder objects defined by libstdc++.
   template<int _Num> struct _Placeholder { };
 
-  // Define a large number of placeholders. There is no way to
-  // simplify this with variadic templates, because we're introducing
-  // unique names for each.
+  /** @namespace std::placeholders
+   *  @brief ISO C++ 0x entities sub namespace for functional.
+   *
+   *  Define a large number of placeholders. There is no way to
+   *  simplify this with variadic templates, because we're introducing
+   *  unique names for each.
+   */
   namespace placeholders 
   { 
     namespace 
@@ -1558,7 +1557,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	template<typename _Signature>
 	  static bool
 	  _M_not_empty_function(const function<_Signature>& __f)
-	  { return __f; }
+          { return static_cast<bool>(__f); }
 
 	template<typename _Tp>
 	  static bool
@@ -1762,6 +1761,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
     : public _Maybe_unary_or_binary_function<_Res, _ArgTypes...>,
       private _Function_base
     {
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
       /// This class is used to implement the safe_bool idiom.
       struct _Hidden_type
       {
@@ -1770,6 +1770,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 
       /// This typedef is used to implement the safe_bool idiom.
       typedef _Hidden_type* _Hidden_type::* _Safe_bool;
+#endif
 
       typedef _Res _Signature_type(_ArgTypes...);
       
@@ -1919,6 +1920,10 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
        *
        *  This function will not throw an exception.
        */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      explicit operator bool() const
+      { return !_M_empty(); }
+#else
       operator _Safe_bool() const
       {
         if (_M_empty())
@@ -1926,6 +1931,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	else
 	  return &_Hidden_type::_M_bool;
       }
+#endif
 
       // [3.7.2.4] function invocation
 
@@ -1983,7 +1989,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
     function(const function& __x)
     : _Function_base()
     {
-      if (__x)
+      if (static_cast<bool>(__x))
 	{
 	  _M_invoker = __x._M_invoker;
 	  _M_manager = __x._M_manager;
@@ -2089,13 +2095,13 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
   template<typename _Signature>
     inline bool
     operator==(const function<_Signature>& __f, _M_clear_type*)
-    { return !__f; }
+    { return !static_cast<bool>(__f); }
 
   /// @overload
   template<typename _Signature>
     inline bool
     operator==(_M_clear_type*, const function<_Signature>& __f)
-    { return !__f; }
+    { return !static_cast<bool>(__f); }
 
   /**
    *  @brief Compares a polymorphic function object wrapper against 0
@@ -2107,13 +2113,13 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
   template<typename _Signature>
     inline bool
     operator!=(const function<_Signature>& __f, _M_clear_type*)
-    { return __f; }
+    { return static_cast<bool>(__f); }
 
   /// @overload
   template<typename _Signature>
     inline bool
     operator!=(_M_clear_type*, const function<_Signature>& __f)
-    { return __f; }
+    { return static_cast<bool>(__f); }
 
   // [3.7.2.8] specialized algorithms
 

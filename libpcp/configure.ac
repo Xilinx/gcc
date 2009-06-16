@@ -79,7 +79,7 @@ AC_ARG_VAR(PPLINC,[How to find PPL include files])
 
 AC_ARG_VAR(CLOOGLIBS,[How to link CLOOG])
 AC_ARG_VAR(CLOOGINC,[How to find CLOOG include files])
-if test "x${CLOOGLIBS}" = "x" ; then 
+if test x${CLOOGLIBS} = x ; then 
    AC_MSG_ERROR([cannot build libPCP without CLooG])
 fi
 

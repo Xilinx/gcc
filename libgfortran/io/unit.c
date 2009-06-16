@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2005, 2007, 2008 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
 
@@ -6,27 +6,22 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "io.h"
 #include <stdlib.h>
@@ -72,6 +67,8 @@ Boston, MA 02110-1301, USA.  */
 
 /* Subroutines related to units */
 
+GFC_INTEGER_4 next_available_newunit;
+#define GFC_FIRST_NEWUNIT -10
 
 #define CACHE_SIZE 3
 static gfc_unit *unit_cache[CACHE_SIZE];
@@ -134,7 +131,6 @@ rotate_right (gfc_unit * t)
 
   return temp;
 }
-
 
 
 static int
@@ -485,7 +481,7 @@ free_internal_unit (st_parameter_dt *dtp)
 
 
 /* get_unit()-- Returns the unit structure associated with the integer
- * unit or the internal file. */
+   unit or the internal file.  */
 
 gfc_unit *
 get_unit (st_parameter_dt *dtp, int do_create)
@@ -494,7 +490,7 @@ get_unit (st_parameter_dt *dtp, int do_create)
   if ((dtp->common.flags & IOPARM_DT_HAS_INTERNAL_UNIT) != 0)
     return get_internal_unit(dtp);
 
-  /* Has to be an external unit */
+  /* Has to be an external unit.  */
 
   dtp->u.p.unit_is_internal = 0;
   dtp->internal_unit_desc = NULL;
@@ -504,7 +500,7 @@ get_unit (st_parameter_dt *dtp, int do_create)
 
 
 /*************************/
-/* Initialize everything */
+/* Initialize everything.  */
 
 void
 init_units (void)
@@ -515,6 +511,8 @@ init_units (void)
 #ifndef __GTHREAD_MUTEX_INIT
   __GTHREAD_MUTEX_INIT_FUNCTION (&unit_lock);
 #endif
+
+  next_available_newunit = GFC_FIRST_NEWUNIT;
 
   if (options.stdin_unit >= 0)
     {				/* STDIN */
@@ -540,6 +538,8 @@ init_units (void)
       u->file_len = strlen (stdin_name);
       u->file = get_mem (u->file_len);
       memmove (u->file, stdin_name, u->file_len);
+
+      fbuf_init (u, 0);
     
       __gthread_mutex_unlock (&u->lock);
     }
@@ -604,10 +604,8 @@ init_units (void)
     }
 
   /* Calculate the maximum file offset in a portable manner.
-   * max will be the largest signed number for the type gfc_offset.
-   *
-   * set a 1 in the LSB and keep a running sum, stopping at MSB-1 bit. */
-
+     max will be the largest signed number for the type gfc_offset.
+     set a 1 in the LSB and keep a running sum, stopping at MSB-1 bit.  */
   max_offset = 0;
   for (i = 0; i < sizeof (max_offset) * 8 - 1; i++)
     max_offset = max_offset + ((gfc_offset) 1 << i);
@@ -624,7 +622,7 @@ close_unit_1 (gfc_unit *u, int locked)
   if (u->previous_nonadvancing_write)
     finish_last_advance_record (u);
 
-  rc = (u->s == NULL) ? 0 : sclose (u->s) == FAILURE;
+  rc = (u->s == NULL) ? 0 : sclose (u->s) == -1;
 
   u->closed = 1;
   if (!locked)
@@ -640,7 +638,8 @@ close_unit_1 (gfc_unit *u, int locked)
     free_mem (u->file);
   u->file = NULL;
   u->file_len = 0;
-  
+
+  free_format_hash_table (u);  
   fbuf_destroy (u);
 
   if (!locked)
@@ -665,8 +664,8 @@ unlock_unit (gfc_unit *u)
 }
 
 /* close_unit()-- Close a unit.  The stream is closed, and any memory
- * associated with the stream is freed.  Returns nonzero on I/O error.
- * Should be called with the u->lock locked. */
+   associated with the stream is freed.  Returns nonzero on I/O error.
+   Should be called with the u->lock locked. */
 
 int
 close_unit (gfc_unit *u)
@@ -676,11 +675,11 @@ close_unit (gfc_unit *u)
 
 
 /* close_units()-- Delete units on completion.  We just keep deleting
- * the root of the treap until there is nothing left.
- * Not sure what to do with locking here.  Some other thread might be
- * holding some unit's lock and perhaps hold it indefinitely
- * (e.g. waiting for input from some pipe) and close_units shouldn't
- * delay the program too much.  */
+   the root of the treap until there is nothing left.
+   Not sure what to do with locking here.  Some other thread might be
+   holding some unit's lock and perhaps hold it indefinitely
+   (e.g. waiting for input from some pipe) and close_units shouldn't
+   delay the program too much.  */
 
 void
 close_units (void)
@@ -697,12 +696,59 @@ close_units (void)
 void
 update_position (gfc_unit *u)
 {
-  if (file_position (u->s) == 0)
+  if (stell (u->s) == 0)
     u->flags.position = POSITION_REWIND;
-  else if (file_length (u->s) == file_position (u->s))
+  else if (file_length (u->s) == stell (u->s))
     u->flags.position = POSITION_APPEND;
   else
     u->flags.position = POSITION_ASIS;
+}
+
+
+/* High level interface to truncate a file safely, i.e. flush format
+   buffers, check that it's a regular file, and generate error if that
+   occurs.  Just like POSIX ftruncate, returns 0 on success, -1 on
+   failure.  */
+
+int
+unit_truncate (gfc_unit * u, gfc_offset pos, st_parameter_common * common)
+{
+  int ret;
+
+  /* Make sure format buffer is flushed.  */
+  if (u->flags.form == FORM_FORMATTED)
+    {
+      if (u->mode == READING)
+	pos += fbuf_reset (u);
+      else
+	fbuf_flush (u, u->mode);
+    }
+  
+  /* Don't try to truncate a special file, just pretend that it
+     succeeds.  */
+  if (is_special (u->s) || !is_seekable (u->s))
+    {
+      sflush (u->s);
+      return 0;
+    }
+
+  /* struncate() should flush the stream buffer if necessary, so don't
+     bother calling sflush() here.  */
+  ret = struncate (u->s, pos);
+
+  if (ret != 0)
+    {
+      generate_error (common, LIBERROR_OS, NULL);
+      u->endfile = NO_ENDFILE;
+      u->flags.position = POSITION_ASIS;
+    }
+  else
+    {
+      u->endfile = AT_ENDFILE;
+      u->flags.position = POSITION_APPEND;
+    }
+
+  return ret;
 }
 
 
@@ -746,23 +792,44 @@ finish_last_advance_record (gfc_unit *u)
 {
   
   if (u->saved_pos > 0)
-    fbuf_seek (u, u->saved_pos);
-    
-  fbuf_flush (u, 1);
+    fbuf_seek (u, u->saved_pos, SEEK_CUR);
 
   if (!(u->unit_number == options.stdout_unit
 	|| u->unit_number == options.stderr_unit))
     {
-      size_t len;
-
-      const char crlf[] = "\r\n";
 #ifdef HAVE_CRLF
-      len = 2;
+      const int len = 2;
 #else
-      len = 1;
+      const int len = 1;
 #endif
-      if (swrite (u->s, &crlf[2-len], &len) != 0)
+      char *p = fbuf_alloc (u, len);
+      if (!p)
 	os_error ("Completing record after ADVANCE_NO failed");
+#ifdef HAVE_CRLF
+      *(p++) = '\r';
+#endif
+      *p = '\n';
     }
+
+  fbuf_flush (u, u->mode);
 }
 
+/* Assign a negative number for NEWUNIT in OPEN statements.  */
+GFC_INTEGER_4
+get_unique_unit_number (st_parameter_open *opp)
+{
+  GFC_INTEGER_4 num;
+
+  __gthread_mutex_lock (&unit_lock);
+  num = next_available_newunit--;
+
+  /* Do not allow NEWUNIT numbers to wrap.  */
+  if (next_available_newunit >=  GFC_FIRST_NEWUNIT )
+    {
+      __gthread_mutex_unlock (&unit_lock);
+      generate_error (&opp->common, LIBERROR_INTERNAL, "NEWUNIT exhausted");
+      return 0;
+    }
+  __gthread_mutex_unlock (&unit_lock);
+  return num;
+}

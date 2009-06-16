@@ -1672,8 +1672,7 @@ try_crossjump_to_edge (int mode, edge e1, edge e2)
   /* Skip possible basic block header.  */
   if (LABEL_P (newpos1))
     newpos1 = NEXT_INSN (newpos1);
-
-  if (NOTE_P (newpos1))
+  if (NOTE_INSN_BASIC_BLOCK_P (newpos1))
     newpos1 = NEXT_INSN (newpos1);
 
   redirect_from = split_block (src1, PREV_INSN (newpos1))->src;
@@ -2198,8 +2197,6 @@ cleanup_cfg (int mode)
 static unsigned int
 rest_of_handle_jump (void)
 {
-  delete_unreachable_blocks ();
-
   if (crtl->tail_call_emit)
     fixup_tail_calls ();
   return 0;

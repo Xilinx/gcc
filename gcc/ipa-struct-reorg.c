@@ -1,5 +1,5 @@
 /* Struct-reorg optimization.
-   Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Olga Golovanevsky <olga@il.ibm.com>
    (Initial version of this code was developed
    by Caroline Tice and Mostafa Hagog.)
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -35,7 +34,6 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "langhooks.h"
 #include "pointer-set.h"
 #include "hashtab.h"
-#include "c-tree.h"
 #include "toplev.h"
 #include "flags.h"
 #include "debug.h"
@@ -54,7 +52,6 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "opts.h"
 #include "ipa-type-escape.h"
 #include "tree-dump.h"
-#include "c-common.h"
 #include "gimple.h"
 
 /* This optimization implements structure peeling.
@@ -496,8 +493,6 @@ static void
 finalize_var_creation (tree new_decl)
 {
   add_referenced_var (new_decl);  
-  if (is_global_var (new_decl))
-    mark_call_clobbered (new_decl, ESCAPE_UNKNOWN);
   mark_sym_for_renaming (new_decl); 
 }
 
@@ -609,13 +604,17 @@ gen_size (tree num, tree type, tree *res)
   if (exact_log2 (struct_size_int) == -1)
     {
       tree size = build_int_cst (TREE_TYPE (num), struct_size_int);
-      new_stmt = gimple_build_assign_with_ops (MULT_EXPR, *res, num, size);
+      new_stmt = gimple_build_assign (*res, fold_build2 (MULT_EXPR,
+							 TREE_TYPE (num),
+							 num, size));
     }
   else
     {
       tree C = build_int_cst (TREE_TYPE (num), exact_log2 (struct_size_int));
  
-      new_stmt = gimple_build_assign_with_ops (LSHIFT_EXPR, *res, num, C);
+      new_stmt = gimple_build_assign (*res, fold_build2 (LSHIFT_EXPR,
+							 TREE_TYPE (num),
+							 num, C));
     }
 
   finalize_stmt (new_stmt);
@@ -1250,11 +1249,18 @@ create_general_new_stmt (struct access_site *acc, tree new_type)
   gimple new_stmt = gimple_copy (old_stmt);
   unsigned i;
 
+  /* We are really building a new stmt, clear the virtual operands.  */
+  if (gimple_has_mem_ops (new_stmt))
+    {
+      gimple_set_vuse (new_stmt, NULL_TREE);
+      gimple_set_vdef (new_stmt, NULL_TREE);
+    }
+
   for (i = 0; VEC_iterate (tree, acc->vars, i, var); i++)
     {
       tree *pos;
       tree new_var = find_new_var_of_type (var, new_type);
-      tree lhs, rhs;
+      tree lhs, rhs = NULL_TREE;
 
       gcc_assert (new_var);
       finalize_var_creation (new_var);
@@ -1287,6 +1293,8 @@ create_general_new_stmt (struct access_site *acc, tree new_type)
 	    {
 	      pos = find_pos_in_stmt (new_stmt, var);
 	      gcc_assert (pos);
+	      /* ???  This misses adjustments to the type of the
+	         INDIRECT_REF we possibly replace the operand of.  */
 	      *pos = new_var;
 	    }      
 	}
@@ -3633,12 +3641,12 @@ do_reorg_1 (void)
   bitmap_obstack_initialize (NULL);
 
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->analyzed && node->decl && !node->next_clone)
+    if (node->analyzed && node->decl)
       {
 	push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	current_function_decl = node->decl;
 	if (dump_file)
-	  fprintf (dump_file, "\nFunction to do reorg is  %s: \n",
+	  fprintf (dump_file, "\nFunction to do reorg is %s: \n",
 		   (const char *) IDENTIFIER_POINTER (DECL_NAME (node->decl)));
 	do_reorg_for_func (node);
 	free_dominance_info (CDI_DOMINATORS);
@@ -3801,8 +3809,7 @@ collect_data_accesses (void)
 	{
 	  struct function *func = DECL_STRUCT_FUNCTION (c_node->decl);
 
-	  if (!c_node->next_clone)
-	    collect_accesses_in_func (func);
+	  collect_accesses_in_func (func);
 	  exclude_alloc_and_field_accs (c_node);
 	}
     }

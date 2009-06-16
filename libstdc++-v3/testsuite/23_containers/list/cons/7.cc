@@ -1,9 +1,9 @@
-// Copyright (C) 2001, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2004, 2005, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -12,16 +12,13 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 23.2.2.1 list constructors, copy, and assignment
 
 #include <list>
 #include <testsuite_hooks.h>
-
-bool test __attribute__((unused)) = true;
 
 // Fill assign
 //
@@ -31,17 +28,22 @@ bool test __attribute__((unused)) = true;
 // 23.2.2       const_iterator end() const
 // 23.2.2       size_type size() const
 //
+template<typename _Tp>
 void
-test06()
+cons07()
 {
+  bool test __attribute__((unused)) = true;
   const std::size_t BIG_LIST_SIZE = 11;
   const int BIG_INIT_VALUE = 7;
   const std::size_t SMALL_LIST_SIZE = 5;
   const int SMALL_INIT_VALUE = 17;
   std::size_t count;
-  std::list<int>::const_iterator i;
 
-  std::list<int> list0601;
+  typedef _Tp list_type;
+  typedef typename list_type::const_iterator const_iterator;
+  const_iterator i;
+
+  list_type list0601;
   VERIFY(list0601.size() == 0);
 
   // make it bigger
@@ -65,7 +67,7 @@ test06()
 
 int main()
 {
-  test06();
+  cons07<std::list<int> >();
   return 0;
 }
 

@@ -1,11 +1,11 @@
-// <bits/shared_ptr.h> -*- C++ -*-
+// shared_ptr and weak_ptr implementation -*- C++ -*-
 
-// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 //  shared_count.hpp
 //  Copyright (c) 2001, 2002, 2003 Peter Dimov and Multi Media Ltd.
@@ -51,6 +46,9 @@
  *  You should not attempt to use it directly.
  */
 
+#ifndef _SHARED_PTR_H
+#define _SHARED_PTR_H 1
+
 #ifndef __GXX_EXPERIMENTAL_CXX0X__
 # include <c++0x_warning.h>
 #endif
@@ -59,8 +57,13 @@
 #  error C++0x header cannot be included from TR1 header
 #endif
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /**
+   * @addtogroup pointer_abstractions
+   * @{
+   */
+
   // counted ptr with no deleter or allocator support
   template<typename _Ptr, _Lock_policy _Lp>
     class _Sp_counted_ptr
@@ -222,11 +225,11 @@ namespace std
       template<typename _Ptr>
         __shared_count(_Ptr __p) : _M_pi(0)
         {
-          try
+          __try
             {
               _M_pi = new _Sp_counted_ptr<_Ptr, _Lp>(__p);
             }
-          catch(...)
+          __catch(...)
             {
               delete __p;
               __throw_exception_again;
@@ -241,12 +244,12 @@ namespace std
           typedef _Sp_counted_deleter<_Ptr, _Deleter, _Alloc, _Lp> _Sp_cd_type;
           typedef std::allocator<_Sp_cd_type> _Alloc2;
           _Alloc2 __a2;
-          try
+          __try
             {
               _M_pi = __a2.allocate(1);
               ::new(static_cast<void*>(_M_pi)) _Sp_cd_type(__p, __d);
             }
-          catch(...)
+          __catch(...)
             {
               __d(__p); // Call _Deleter on __p.
               if (_M_pi)
@@ -261,12 +264,12 @@ namespace std
           typedef _Sp_counted_deleter<_Ptr, _Deleter, _Alloc, _Lp> _Sp_cd_type;
           typedef typename _Alloc::template rebind<_Sp_cd_type>::other _Alloc2;
           _Alloc2 __a2(__a);
-          try
+          __try
             {
               _M_pi = __a2.allocate(1);
               ::new(static_cast<void*>(_M_pi)) _Sp_cd_type(__p, __d, __a);
             }
-          catch(...)
+          __catch(...)
             {
               __d(__p); // Call _Deleter on __p.
               if (_M_pi)
@@ -282,13 +285,13 @@ namespace std
           typedef _Sp_counted_ptr_inplace<_Tp, _Alloc, _Lp> _Sp_cp_type;
           typedef typename _Alloc::template rebind<_Sp_cp_type>::other _Alloc2;
           _Alloc2 __a2(__a);
-          try
+          __try
             {
               _M_pi = __a2.allocate(1);
               ::new(static_cast<void*>(_M_pi)) _Sp_cp_type(__a,
                     std::forward<_Args>(__args)...);
             }
-          catch(...)
+          __catch(...)
             {
               if (_M_pi)
         	__a2.deallocate(static_cast<_Sp_cp_type*>(_M_pi), 1);
@@ -541,13 +544,6 @@ namespace std
     { }
 
 
-  /**
-   *  @class __shared_ptr 
-   *
-   *  A smart pointer with reference-counted copy semantics.
-   *  The object pointed to is deleted when the last shared_ptr pointing to
-   *  it is destroyed or reset.
-   */
   template<typename _Tp, _Lock_policy _Lp>
     class __shared_ptr
     {
@@ -820,13 +816,8 @@ namespace std
       get() const // never throws
       { return _M_ptr; }
 
-      // Implicit conversion to "bool"
-    private:
-      typedef _Tp* __shared_ptr::*__unspecified_bool_type;
-
-    public:
-      operator __unspecified_bool_type() const // never throws
-      { return _M_ptr == 0 ? 0 : &__shared_ptr::_M_ptr; }
+      explicit operator bool() const // never throws
+      { return _M_ptr == 0 ? false : true; }
 
       bool
       unique() const // never throws
@@ -1074,11 +1065,11 @@ namespace std
 	if (expired())
 	  return __shared_ptr<element_type, _Lp>();
 
-	try
+	__try
 	  {
 	    return __shared_ptr<element_type, _Lp>(*this);
 	  }
-	catch(const bad_weak_ptr&)
+	__catch(const bad_weak_ptr&)
 	  {
 	    // Q: How can we get here?
 	    // A: Another thread may have invalidated r after the
@@ -1228,10 +1219,12 @@ namespace std
       mutable __weak_ptr<_Tp, _Lp>  _M_weak_this;
     };
 
-
-  /// shared_ptr
-  // The actual shared_ptr, with forwarding constructors and
-  // assignment operators.
+  /**
+   *  @brief A smart pointer with reference-counted copy semantics. 
+   *  
+   *  The object pointed to is deleted when the last shared_ptr pointing to
+   *  it is destroyed or reset.
+   */
   template<typename _Tp>
     class shared_ptr
     : public __shared_ptr<_Tp>
@@ -1405,9 +1398,11 @@ namespace std
     }
 
 
-  /// weak_ptr
-  // The actual weak_ptr, with forwarding constructors and
-  // assignment operators.
+  /** 
+   *  @brief A smart pointer with weak semantics.
+   *  
+   *  With forwarding constructors and assignment operators.
+   */
   template<typename _Tp>
     class weak_ptr
     : public __weak_ptr<_Tp>
@@ -1447,11 +1442,11 @@ namespace std
 	if (this->expired())
 	  return shared_ptr<_Tp>();
 
-	try
+	__try
 	  {
 	    return shared_ptr<_Tp>(*this);
 	  }
-	catch(const bad_weak_ptr&)
+	__catch(const bad_weak_ptr&)
 	  {
 	    return shared_ptr<_Tp>();
 	  }
@@ -1489,7 +1484,9 @@ namespace std
     : public _Sp_owner_less<weak_ptr<_Tp>, shared_ptr<_Tp>>
     { };
 
-  /// enable_shared_from_this
+  /** 
+   *  @brief Base class allowing use of member function shared_from_this.
+   */
   template<typename _Tp>
     class enable_shared_from_this
     {
@@ -1549,7 +1546,7 @@ namespace std
               std::forward<_Args>(__args)...);
     }
 
-  /** @brief  Create an object that is owned by a shared_ptr. 
+  /** @brief  Create an object that is owned by a shared_ptr.
    *  @param  __a     An allocator.
    *  @param  __args  Arguments for the @a _Tp object's constructor.
    *  @return A shared_ptr that owns the newly created object.
@@ -1582,4 +1579,8 @@ namespace std
               std::forward<_Args>(__args)...);
     }
 
-}
+  // @} group pointer_abstractions
+
+_GLIBCXX_END_NAMESPACE
+
+#endif // _SHARED_PTR_H

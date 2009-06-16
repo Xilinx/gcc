@@ -1,5 +1,6 @@
 /* Variable tracking routines for the GNU compiler.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -870,13 +871,13 @@ var_reg_set (dataflow_set *set, rtx loc, enum var_init_status initialized,
   set_variable_part (set, loc, decl, offset, initialized, set_src);
 }
 
-static int
+static enum var_init_status
 get_init_value (dataflow_set *set, rtx loc, tree decl)
 {
   void **slot;
   variable var;
   int i;
-  int ret_val = VAR_INIT_STATUS_UNKNOWN;
+  enum var_init_status ret_val = VAR_INIT_STATUS_UNKNOWN;
 
   if (! flag_var_tracking_uninit)
     return VAR_INIT_STATUS_INITIALIZED;
@@ -3444,4 +3445,3 @@ struct rtl_opt_pass pass_variable_tracking =
   TODO_dump_func | TODO_verify_rtl_sharing/* todo_flags_finish */
  }
 };
-

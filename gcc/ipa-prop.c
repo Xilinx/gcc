@@ -1,5 +1,5 @@
 /* Interprocedural analyses.
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -172,48 +172,30 @@ ipa_initialize_node_params (struct cgraph_node *node)
     }
 }
 
-/* Check STMT to detect whether a formal parameter is directly modified within
-   STMT, the appropriate entry is updated in the modified flags of INFO.
-   Directly means that this function does not check for modifications through
-   pointers or escaping addresses because all TREE_ADDRESSABLE parameters are
-   considered modified anyway.  */
+/* Callback of walk_stmt_load_store_addr_ops for the visit_store and visit_addr
+   parameters.  If OP is a parameter declaration, mark it as modified in the
+   info structure passed in DATA.  */
 
-static void
-ipa_check_stmt_modifications (struct ipa_node_params *info, gimple stmt)
+static bool
+visit_store_addr_for_mod_analysis (gimple stmt ATTRIBUTE_UNUSED,
+				   tree op, void *data)
 {
-  int j;
-  int index;
-  tree lhs;
+  struct ipa_node_params *info = (struct ipa_node_params *) data;
 
-  switch (gimple_code (stmt))
+  if (TREE_CODE (op) == PARM_DECL)
     {
-    case GIMPLE_ASSIGN:
-      lhs = gimple_assign_lhs (stmt);
-
-      while (handled_component_p (lhs))
-	lhs = TREE_OPERAND (lhs, 0);
-      if (TREE_CODE (lhs) == SSA_NAME)
-	lhs = SSA_NAME_VAR (lhs);
-      index = ipa_get_param_decl_index (info, lhs);
-      if (index >= 0)
-	info->params[index].modified = true;
-      break;
-
-    case GIMPLE_ASM:
-      /* Asm code could modify any of the parameters.  */
-      for (j = 0; j < ipa_get_param_count (info); j++)
-	info->params[j].modified = true;
-      break;
-
-    default:
-      break;
+      int index = ipa_get_param_decl_index (info, op);
+      gcc_assert (index >= 0);
+      info->params[index].modified = true;
     }
+
+  return false;
 }
 
 /* Compute which formal parameters of function associated with NODE are locally
-   modified.  Parameters may be modified in NODE if they are TREE_ADDRESSABLE,
-   if they appear on the left hand side of an assignment or if there is an
-   ASM_EXPR in the function.  */
+   modified or their address is taken.  Note that this does not apply on
+   parameters with SSA names but those can and should be analyzed
+   differently.  */
 
 void
 ipa_detect_param_modifications (struct cgraph_node *node)
@@ -222,27 +204,17 @@ ipa_detect_param_modifications (struct cgraph_node *node)
   basic_block bb;
   struct function *func;
   gimple_stmt_iterator gsi;
-  gimple stmt;
   struct ipa_node_params *info = IPA_NODE_REF (node);
-  int i, count;
 
   if (ipa_get_param_count (info) == 0 || info->modification_analysis_done)
     return;
 
   func = DECL_STRUCT_FUNCTION (decl);
   FOR_EACH_BB_FN (bb, func)
-    {
-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-	{
-	  stmt = gsi_stmt (gsi);
-	  ipa_check_stmt_modifications (info, stmt);
-	}
-    }
-
-  count = ipa_get_param_count (info);
-  for (i = 0; i < count; i++)
-    if (TREE_ADDRESSABLE (ipa_get_param (info, i)))
-      info->params[i].modified = true;
+    for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+      walk_stmt_load_store_addr_ops (gsi_stmt (gsi), info, NULL,
+				     visit_store_addr_for_mod_analysis,
+				     visit_store_addr_for_mod_analysis);
 
   info->modification_analysis_done = 1;
 }
@@ -293,16 +265,16 @@ ipa_print_node_jump_functions (FILE *f, struct cgraph_node *node)
 	  type = jump_func->type;
 
 	  fprintf (f, "       param %d: ", i);
-	  if (type == IPA_UNKNOWN)
+	  if (type == IPA_JF_UNKNOWN)
 	    fprintf (f, "UNKNOWN\n");
-	  else if (type == IPA_CONST)
+	  else if (type == IPA_JF_CONST)
  	    {
 	      tree val = jump_func->value.constant;
 	      fprintf (f, "CONST: ");
 	      print_generic_expr (f, val, 0);
 	      fprintf (f, "\n");
 	    }
-	  else if (type == IPA_CONST_MEMBER_PTR)
+	  else if (type == IPA_JF_CONST_MEMBER_PTR)
 	    {
 	      fprintf (f, "CONST MEMBER PTR: ");
 	      print_generic_expr (f, jump_func->value.member_cst.pfn, 0);
@@ -310,7 +282,7 @@ ipa_print_node_jump_functions (FILE *f, struct cgraph_node *node)
 	      print_generic_expr (f, jump_func->value.member_cst.delta, 0);
 	      fprintf (f, "\n");
 	    }
-	  else if (type == IPA_PASS_THROUGH)
+	  else if (type == IPA_JF_PASS_THROUGH)
  	    {
 	      fprintf (f, "PASS THROUGH: ");
 	      fprintf (f, "%d\n", jump_func->value.formal_id);
@@ -353,7 +325,7 @@ compute_scalar_jump_functions (struct ipa_node_params *info,
 
       if (is_gimple_ip_invariant (arg))
 	{
-	  functions[num].type = IPA_CONST;
+	  functions[num].type = IPA_JF_CONST;
 	  functions[num].value.constant = arg;
 	}
       else if ((TREE_CODE (arg) == SSA_NAME) && SSA_NAME_IS_DEFAULT_DEF (arg))
@@ -362,7 +334,7 @@ compute_scalar_jump_functions (struct ipa_node_params *info,
 
 	  if (index >= 0)
 	    {
-	      functions[num].type = IPA_PASS_THROUGH;
+	      functions[num].type = IPA_JF_PASS_THROUGH;
 	      functions[num].value.formal_id = index;
 	    }
 	}
@@ -430,7 +402,7 @@ compute_pass_through_member_ptrs (struct ipa_node_params *info,
 	      gcc_assert (index >=0);
 	      if (!ipa_is_param_modified (info, index))
 		{
-		  functions[num].type = IPA_PASS_THROUGH;
+		  functions[num].type = IPA_JF_PASS_THROUGH;
 		  functions[num].value.formal_id = index;
 		}
 	      else
@@ -451,9 +423,27 @@ static void
 fill_member_ptr_cst_jump_function (struct ipa_jump_func *jfunc,
 				   tree pfn, tree delta)
 {
-  jfunc->type = IPA_CONST_MEMBER_PTR;
+  jfunc->type = IPA_JF_CONST_MEMBER_PTR;
   jfunc->value.member_cst.pfn = pfn;
   jfunc->value.member_cst.delta = delta;
+}
+
+/* If RHS is an SSA_NAMe and it is defined by a simple copy assign statement,
+   return the rhs of its defining statement.  */
+
+static inline tree
+get_ssa_def_if_simple_copy (tree rhs)
+{
+  while (TREE_CODE (rhs) == SSA_NAME && !SSA_NAME_IS_DEFAULT_DEF (rhs))
+    {
+      gimple def_stmt = SSA_NAME_DEF_STMT (rhs);
+
+      if (gimple_assign_single_p (def_stmt))
+	rhs = gimple_assign_rhs1 (def_stmt);
+      else
+	break;
+    }
+  return rhs;
 }
 
 /* Traverse statements from CALL backwards, scanning whether the argument ARG
@@ -482,7 +472,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
       gimple stmt = gsi_stmt (gsi);
       tree lhs, rhs, fld;
 
-      if (!is_gimple_assign (stmt) || gimple_num_ops (stmt) != 2)
+      if (!gimple_assign_single_p (stmt))
 	return;
 
       lhs = gimple_assign_lhs (stmt);
@@ -495,6 +485,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
       fld = TREE_OPERAND (lhs, 1);
       if (!method && fld == method_field)
 	{
+	  rhs = get_ssa_def_if_simple_copy (rhs);
 	  if (TREE_CODE (rhs) == ADDR_EXPR
 	      && TREE_CODE (TREE_OPERAND (rhs, 0)) == FUNCTION_DECL
 	      && TREE_CODE (TREE_TYPE (TREE_OPERAND (rhs, 0))) == METHOD_TYPE)
@@ -512,6 +503,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
 
       if (!delta && fld == delta_field)
 	{
+	  rhs = get_ssa_def_if_simple_copy (rhs);
 	  if (TREE_CODE (rhs) == INTEGER_CST)
 	    {
 	      delta = rhs;
@@ -545,7 +537,7 @@ compute_cst_member_ptr_arguments (struct ipa_jump_func *functions,
     {
       arg = gimple_call_arg (call, num);
 
-      if (functions[num].type == IPA_UNKNOWN
+      if (functions[num].type == IPA_JF_UNKNOWN
 	  && type_like_member_ptr_p (TREE_TYPE (arg), &method_field,
 				     &delta_field))
 	determine_cst_member_ptr (call, arg, method_field, delta_field,
@@ -617,7 +609,7 @@ ipa_get_stmt_member_ptr_load_param (gimple stmt)
 {
   tree rhs;
 
-  if (!is_gimple_assign (stmt) || gimple_num_ops (stmt) != 2)
+  if (!gimple_assign_single_p (stmt))
     return NULL_TREE;
 
   rhs = gimple_assign_rhs1 (stmt);
@@ -653,7 +645,7 @@ ipa_note_param_call (struct ipa_node_params *info, int formal_id,
   note->formal_id = formal_id;
   note->stmt = stmt;
   note->count = bb->count;
-  note->frequency = compute_call_stmt_bb_frequency (bb);
+  note->frequency = compute_call_stmt_bb_frequency (current_function_decl, bb);
 
   note->next = info->param_calls;
   info->param_calls = note;
@@ -797,7 +789,7 @@ ipa_analyze_call_uses (struct ipa_node_params *info, gimple call)
     return;
 
   def = SSA_NAME_DEF_STMT (cond);
-  if (!is_gimple_assign (def) || gimple_num_ops (def) != 3
+  if (!is_gimple_assign (def)
       || gimple_assign_rhs_code (def) != BIT_AND_EXPR
       || !integer_onep (gimple_assign_rhs2 (def)))
     return;
@@ -808,8 +800,8 @@ ipa_analyze_call_uses (struct ipa_node_params *info, gimple call)
 
   def = SSA_NAME_DEF_STMT (cond);
 
-  if (is_gimple_assign (def) && gimple_num_ops (def) == 2
-      && gimple_assign_rhs_code (def) == NOP_EXPR)
+  if (is_gimple_assign (def)
+      && CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def)))
     {
       cond = gimple_assign_rhs1 (def);
       if (!ipa_is_ssa_with_stmt_def (cond))
@@ -885,13 +877,13 @@ update_jump_functions_after_inlining (struct cgraph_edge *cs,
     {
       struct ipa_jump_func *src, *dst = ipa_get_ith_jump_func (args, i);
 
-      if (dst->type != IPA_PASS_THROUGH)
+      if (dst->type != IPA_JF_PASS_THROUGH)
 	continue;
 
       /* We must check range due to calls with variable number of arguments:  */
       if (dst->value.formal_id >= (unsigned) ipa_get_cs_argument_count (top))
 	{
-	  dst->type = IPA_BOTTOM;
+	  dst->type = IPA_JF_UNKNOWN;
 	  continue;
 	}
 
@@ -910,7 +902,7 @@ print_edge_addition_message (FILE *f, struct ipa_param_call_note *nt,
 			     struct cgraph_node *node)
 {
   fprintf (f, "ipa-prop: Discovered an indirect call to a known target (");
-  if (jfunc->type == IPA_CONST_MEMBER_PTR)
+  if (jfunc->type == IPA_JF_CONST_MEMBER_PTR)
     {
       print_node_brief (f, "", jfunc->value.member_cst.pfn, 0);
       print_node_brief (f, ", ", jfunc->value.member_cst.delta, 0);
@@ -953,16 +945,17 @@ update_call_notes_after_inlining (struct cgraph_edge *cs,
 	}
 
       jfunc = ipa_get_ith_jump_func (top, nt->formal_id);
-      if (jfunc->type == IPA_PASS_THROUGH)
+      if (jfunc->type == IPA_JF_PASS_THROUGH)
 	nt->formal_id = jfunc->value.formal_id;
-      else if (jfunc->type == IPA_CONST || jfunc->type == IPA_CONST_MEMBER_PTR)
+      else if (jfunc->type == IPA_JF_CONST
+	       || jfunc->type == IPA_JF_CONST_MEMBER_PTR)
 	{
 	  struct cgraph_node *callee;
 	  struct cgraph_edge *new_indirect_edge;
 	  tree decl;
 
 	  nt->processed = true;
-	  if (jfunc->type == IPA_CONST_MEMBER_PTR)
+	  if (jfunc->type == IPA_JF_CONST_MEMBER_PTR)
 	    decl = jfunc->value.member_cst.pfn;
 	  else
 	    decl = jfunc->value.constant;

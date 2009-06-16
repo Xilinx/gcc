@@ -24,7 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* A Single Entry, Single Exit region is a part of the CFG delimited
    by two edges.  */
-typedef struct sese
+typedef struct sese_s
 {
   /* Single ENTRY and single EXIT from the SESE region.  */
   edge entry, exit;
@@ -286,7 +286,7 @@ eq_clast_name_indexes (const void *e1, const void *e2)
 
 /* A single entry single exit specialized for conditions.  */
 
-typedef struct ifsese {
+typedef struct ifsese_s {
   sese region;
   sese true_region;
   sese false_region;
@@ -318,7 +318,7 @@ if_region_get_condition_block (ifsese if_region)
 
 /* Structure containing the mapping between the old names and the new
    names used after block copy in the new loop context.  */
-typedef struct rename_map_elt
+typedef struct rename_map_elt_s
 {
   tree old_name, expr;
 } *rename_map_elt;
@@ -338,7 +338,7 @@ new_rename_map_elt (tree old_name, tree expr)
 {
   rename_map_elt res;
   
-  res = XNEW (struct rename_map_elt);
+  res = XNEW (struct rename_map_elt_s);
   res->old_name = old_name;
   res->expr = expr;
 
@@ -347,7 +347,7 @@ new_rename_map_elt (tree old_name, tree expr)
 
 /* Structure containing the mapping between the CLooG's induction
    variable and the type of the old induction variable.  */
-typedef struct ivtype_map_elt
+typedef struct ivtype_map_elt_s
 {
   tree type;
   const char *cloog_iv;
@@ -364,7 +364,7 @@ new_ivtype_map_elt (const char *cloog_iv, tree type)
 {
   ivtype_map_elt res;
   
-  res = XNEW (struct ivtype_map_elt);
+  res = XNEW (struct ivtype_map_elt_s);
   res->cloog_iv = cloog_iv;
   res->type = type;
 

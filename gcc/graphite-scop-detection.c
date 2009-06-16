@@ -440,7 +440,7 @@ nb_reductions_in_loop (loop_p loop)
 
       scev = analyze_scalar_evolution (loop, PHI_RESULT (phi));
       scev = instantiate_parameters (loop, scev);
-      if (!simple_iv (loop, phi, PHI_RESULT (phi), &iv, true))
+      if (!simple_iv (loop, loop, PHI_RESULT (phi), &iv, true))
 	res++;
     }
 
@@ -1384,6 +1384,7 @@ canonicalize_loop_closed_ssa_form (void)
   FOR_EACH_LOOP (li, loop, 0)
     canonicalize_loop_closed_ssa (loop);
 
+  rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
   update_ssa (TODO_update_ssa);
 
 #ifdef ENABLE_CHECKING

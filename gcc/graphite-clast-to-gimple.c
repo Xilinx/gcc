@@ -355,7 +355,7 @@ graphite_translate_clast_equation (sese region,
   else
     comp = LE_EXPR;
 
-  return fold_build2 (comp, type, lhs, rhs);
+  return fold_build2 (comp, boolean_type_node, lhs, rhs);
 }
 
 /* Creates the test for the condition in STMT.  */
@@ -425,7 +425,7 @@ clast_get_body_of_loop (struct clast_stmt *stmt)
 static tree
 gcc_type_for_cloog_iv (const char *cloog_iv, gimple_bb_p gbb)
 {
-  struct ivtype_map_elt tmp;
+  struct ivtype_map_elt_s tmp;
   PTR *slot;
 
   tmp.cloog_iv = cloog_iv;
@@ -516,11 +516,11 @@ build_iv_mapping (htab_t map, sese region,
 static int
 copy_renames (void **slot, void *s)
 {
-  struct rename_map_elt *entry = (struct rename_map_elt *) *slot;
+  struct rename_map_elt_s *entry = (struct rename_map_elt_s *) *slot;
   htab_t res = (htab_t) s;
   tree old_name = entry->old_name;
   tree expr = entry->expr;
-  struct rename_map_elt tmp;
+  struct rename_map_elt_s tmp;
   PTR *x;
 
   tmp.old_name = old_name;
@@ -567,8 +567,8 @@ translate_clast (sese region, struct loop *context_loop,
 			(struct clast_user_stmt *) stmt);
       next_e = copy_bb_and_scalar_dependences (GBB_BB (gbb), region,
 					       next_e, rename_map);
-      update_ssa (TODO_update_ssa);
       recompute_all_dominators ();
+      update_ssa (TODO_update_ssa);
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, next_e,
 			      rename_map, newivs, newivs_index);
@@ -696,7 +696,7 @@ compute_cloog_iv_types_1 (poly_bb_p pbb, struct clast_user_stmt *user_stmt)
   for (t = user_stmt->substitutions; t; t = t->next, index++)
     {
       PTR *slot;
-      struct ivtype_map_elt tmp;
+      struct ivtype_map_elt_s tmp;
       struct clast_expr *expr = (struct clast_expr *) 
 	((struct clast_assignment *)t)->RHS;
 

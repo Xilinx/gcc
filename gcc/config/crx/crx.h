@@ -1,6 +1,7 @@
 /* Definitions of target machine for GNU compiler, for CRX.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -403,22 +404,6 @@ struct cumulative_args
 #define REG_OK_FOR_INDEX_P(X)	1
 #endif /* REG_OK_STRICT */
 
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, LABEL)			\
-{									\
-  if (crx_legitimate_address_p (MODE, X, 1))				\
-      goto LABEL;							\
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, LABEL)			\
-{									\
-  if (crx_legitimate_address_p (MODE, X, 0))				\
-      goto LABEL;							\
-}
-#endif /* REG_OK_STRICT */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
-
 #define LEGITIMATE_CONSTANT_P(X)  1
 
 /*****************************************************************************/
@@ -520,12 +505,5 @@ struct cumulative_args
 #define Pmode		SImode
 
 #define FUNCTION_MODE	QImode
-
-/*****************************************************************************/
-/* EXTERNAL DECLARATIONS FOR VARIABLES DEFINED IN CRX.C			     */
-/*****************************************************************************/
-
-extern rtx crx_compare_op0;    /* operand 0 for comparisons */
-extern rtx crx_compare_op1;    /* operand 1 for comparisons */
 
 #endif /* ! GCC_CRX_H */

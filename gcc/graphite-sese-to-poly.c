@@ -690,6 +690,38 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	break;
       }
 
+    case BIT_NOT_EXPR:
+      {
+	ppl_Linear_Expression_t tmp_expr = NULL;
+
+	if (c)
+	  {
+	    ppl_dimension_type dim;
+	    ppl_Linear_Expression_space_dimension (c, &dim);
+	    ppl_new_Linear_Expression_with_dimension (&tmp_expr, dim);
+	  }
+
+	scan_tree_for_params (s, TREE_OPERAND (e, 0), tmp_expr, k);
+
+	if (c)
+	  {
+	    ppl_Coefficient_t coef;
+	    Value minus_one;
+
+	    ppl_subtract_Linear_Expression_from_Linear_Expression (c, tmp_expr);
+	    ppl_delete_Linear_Expression (tmp_expr);
+	    value_init (minus_one);
+	    value_set_si (minus_one, -1);
+	    ppl_new_Coefficient_from_mpz_t (&coef, minus_one);
+	    ppl_Linear_Expression_add_to_inhomogeneous (c, coef);
+	    value_clear (minus_one);
+	    ppl_delete_Coefficient (coef);
+	  }
+
+	break;
+      }
+
+
     case SSA_NAME:
       {
 	ppl_dimension_type p = parameter_index_in_region (e, s);

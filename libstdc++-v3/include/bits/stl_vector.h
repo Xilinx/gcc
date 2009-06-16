@@ -1,12 +1,12 @@
 // Vector implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -157,8 +152,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
    *  @brief A standard container which offers fixed time access to
    *  individual elements in any order.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#66">reversible container</a>, and a
@@ -181,7 +175,6 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       __glibcxx_class_requires2(_Tp, _Alloc_value_type, _SameTypeConcept)
       
       typedef _Vector_base<_Tp, _Alloc>			 _Base;
-      typedef vector<_Tp, _Alloc>			 vector_type;
       typedef typename _Base::_Tp_alloc_type		 _Tp_alloc_type;
 
     public:
@@ -190,8 +183,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       typedef typename _Tp_alloc_type::const_pointer     const_pointer;
       typedef typename _Tp_alloc_type::reference         reference;
       typedef typename _Tp_alloc_type::const_reference   const_reference;
-      typedef __gnu_cxx::__normal_iterator<pointer, vector_type> iterator;
-      typedef __gnu_cxx::__normal_iterator<const_pointer, vector_type>
+      typedef __gnu_cxx::__normal_iterator<pointer, vector> iterator;
+      typedef __gnu_cxx::__normal_iterator<const_pointer, vector>
       const_iterator;
       typedef std::reverse_iterator<const_iterator>  const_reverse_iterator;
       typedef std::reverse_iterator<iterator>		 reverse_iterator;
@@ -930,11 +923,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
        *  std::swap(v1,v2) will feed to this function.
        */
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(vector&& __x)
-#else
       swap(vector& __x)
-#endif
       {
 	std::swap(this->_M_impl._M_start, __x._M_impl._M_start);
 	std::swap(this->_M_impl._M_finish, __x._M_impl._M_finish);
@@ -968,13 +957,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 			     _ForwardIterator __first, _ForwardIterator __last)
         {
 	  pointer __result = this->_M_allocate(__n);
-	  try
+	  __try
 	    {
 	      std::__uninitialized_copy_a(__first, __last, __result,
 					  _M_get_Tp_allocator());
 	      return __result;
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      _M_deallocate(__result, __n);
 	      __throw_exception_again;
@@ -1222,18 +1211,6 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
     inline void
     swap(vector<_Tp, _Alloc>& __x, vector<_Tp, _Alloc>& __y)
     { __x.swap(__y); }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<typename _Tp, typename _Alloc>
-    inline void
-    swap(vector<_Tp, _Alloc>&& __x, vector<_Tp, _Alloc>& __y)
-    { __x.swap(__y); }
-
-  template<typename _Tp, typename _Alloc>
-    inline void
-    swap(vector<_Tp, _Alloc>& __x, vector<_Tp, _Alloc>&& __y)
-    { __x.swap(__y); }
-#endif
 
 _GLIBCXX_END_NESTED_NAMESPACE
 

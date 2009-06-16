@@ -44,7 +44,7 @@ static tree build_cplus_array_type_1 (tree, tree);
 static int list_hash_eq (const void *, const void *);
 static hashval_t list_hash_pieces (tree, tree, tree);
 static hashval_t list_hash (const void *);
-static cp_lvalue_kind lvalue_p_1 (tree, int);
+static cp_lvalue_kind lvalue_p_1 (const_tree, int);
 static tree build_target_expr (tree, tree);
 static tree count_trees_r (tree *, int *, void *);
 static tree verify_stmt_tree_r (tree *, int *, void *);
@@ -59,7 +59,7 @@ static tree handle_init_priority_attribute (tree *, tree, tree, int, bool *);
    nonzero, rvalues of class type are considered lvalues.  */
 
 static cp_lvalue_kind
-lvalue_p_1 (tree ref,
+lvalue_p_1 (const_tree ref,
 	    int treat_class_rvalues_as_lvalues)
 {
   cp_lvalue_kind op1_lvalue_kind = clk_none;
@@ -82,7 +82,12 @@ lvalue_p_1 (tree ref,
 	  && TREE_CODE (ref) != PARM_DECL
 	  && TREE_CODE (ref) != VAR_DECL
 	  && TREE_CODE (ref) != COMPONENT_REF)
-	return clk_none;
+	{
+	  if (CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (ref))))
+	    return treat_class_rvalues_as_lvalues ? clk_class : clk_none;
+	  else
+	    return clk_none;
+	}
 
       /* lvalue references and named rvalue references are lvalues.  */
       return clk_ordinary;
@@ -202,7 +207,9 @@ lvalue_p_1 (tree ref,
     case BASELINK:
       /* We now represent a reference to a single static member function
 	 with a BASELINK.  */
-      return lvalue_p_1 (BASELINK_FUNCTIONS (ref),
+      /* This CONST_CAST is okay because BASELINK_FUNCTIONS returns
+	 its argument unmodified and we assign it to a const_tree.  */
+      return lvalue_p_1 (BASELINK_FUNCTIONS (CONST_CAST_TREE (ref)),
 			 treat_class_rvalues_as_lvalues);
 
     case NON_DEPENDENT_EXPR:
@@ -246,8 +253,8 @@ real_lvalue_p (tree ref)
 /* This differs from real_lvalue_p in that class rvalues are
    considered lvalues.  */
 
-int
-lvalue_p (tree ref)
+bool
+lvalue_p (const_tree ref)
 {
   return
     (lvalue_p_1 (ref, /*class rvalue ok*/ 1) != clk_none);
@@ -487,7 +494,10 @@ force_target_expr (tree type, tree init)
 tree
 get_target_expr (tree init)
 {
-  return build_target_expr_with_type (init, TREE_TYPE (init));
+  if (TREE_CODE (init) == AGGR_INIT_EXPR)
+    return build_target_expr (AGGR_INIT_EXPR_SLOT (init), init);
+  else
+    return build_target_expr_with_type (init, TREE_TYPE (init));
 }
 
 /* If EXPR is a bitfield reference, convert it to the declared type of
@@ -844,11 +854,10 @@ cp_build_qualified_type_real (tree type,
     }
 
   /* A restrict-qualified type must be a pointer (or reference)
-     to object or incomplete type, or a function type. */
+     to object or incomplete type. */
   if ((type_quals & TYPE_QUAL_RESTRICT)
       && TREE_CODE (type) != TEMPLATE_TYPE_PARM
       && TREE_CODE (type) != TYPENAME_TYPE
-      && TREE_CODE (type) != FUNCTION_TYPE
       && !POINTER_TYPE_P (type))
     {
       bad_quals |= TYPE_QUAL_RESTRICT;
@@ -902,19 +911,111 @@ cp_build_qualified_type_real (tree type,
   return result;
 }
 
-/* Returns the canonical version of TYPE.  In other words, if TYPE is
-   a typedef, returns the underlying type.  The cv-qualification of
-   the type returned matches the type input; they will always be
-   compatible types.  */
+/* Builds a qualified variant of T that is not a typedef variant.
+   E.g. consider the following declarations:
+     typedef const int ConstInt;
+     typedef ConstInt* PtrConstInt;
+   If T is PtrConstInt, this function returns a type representing
+     const int*.
+   In other words, if T is a typedef, the function returns the underlying type.
+   The cv-qualification and attributes of the type returned match the
+   input type.
+   They will always be compatible types.
+   The returned type is built so that all of its subtypes
+   recursively have their typedefs stripped as well.
+
+   This is different from just returning TYPE_CANONICAL (T)
+   Because of several reasons:
+    * If T is a type that needs structural equality
+      its TYPE_CANONICAL (T) will be NULL.
+    * TYPE_CANONICAL (T) desn't carry type attributes
+      and looses template parameter names.   */
 
 tree
-canonical_type_variant (tree t)
+strip_typedefs (tree t)
 {
-  if (t == error_mark_node)
-    return error_mark_node;
+  tree result = NULL, type = NULL, t0 = NULL;
 
-  return cp_build_qualified_type (TYPE_MAIN_VARIANT (t), cp_type_quals (t));
+  if (!t || t == error_mark_node || t == TYPE_CANONICAL (t))
+    return t;
+
+  gcc_assert (TYPE_P (t));
+
+  switch (TREE_CODE (t))
+    {
+    case POINTER_TYPE:
+      type = strip_typedefs (TREE_TYPE (t));
+      result = build_pointer_type (type);
+      break;
+    case REFERENCE_TYPE:
+      type = strip_typedefs (TREE_TYPE (t));
+      result = cp_build_reference_type (type, TYPE_REF_IS_RVALUE (t));
+      break;
+    case OFFSET_TYPE:
+      t0 = strip_typedefs (TYPE_OFFSET_BASETYPE (t));
+      type = strip_typedefs (TREE_TYPE (t));
+      result = build_offset_type (t0, type);
+      break;
+    case RECORD_TYPE:
+      if (TYPE_PTRMEMFUNC_P (t))
+	{
+	  t0 = strip_typedefs (TYPE_PTRMEMFUNC_FN_TYPE (t));
+	  result = build_ptrmemfunc_type (t0);
+	}
+      break;
+    case ARRAY_TYPE:
+      type = strip_typedefs (TREE_TYPE (t));
+      t0  = strip_typedefs (TYPE_DOMAIN (t));;
+      result = build_cplus_array_type (type, t0);
+      break;
+    case FUNCTION_TYPE:
+    case METHOD_TYPE:
+      {
+	tree arg_types = NULL, arg_node, arg_type;
+	for (arg_node = TYPE_ARG_TYPES (t);
+	     arg_node;
+	     arg_node = TREE_CHAIN (arg_node))
+	  {
+	    if (arg_node == void_list_node)
+	      break;
+	    arg_type = strip_typedefs (TREE_VALUE (arg_node));
+	    gcc_assert (arg_type);
+
+	    arg_types =
+	      tree_cons (TREE_PURPOSE (arg_node), arg_type, arg_types);
+	  }
+
+	if (arg_types)
+	  arg_types = nreverse (arg_types);
+
+	/* A list of parameters not ending with an ellipsis
+	   must end with void_list_node.  */
+	if (arg_node)
+	  arg_types = chainon (arg_types, void_list_node);
+
+	type = strip_typedefs (TREE_TYPE (t));
+	if (TREE_CODE (t) == METHOD_TYPE)
+	  {
+	    tree class_type = TREE_TYPE (TREE_VALUE (arg_types));
+	    gcc_assert (class_type);
+	    result =
+	      build_method_type_directly (class_type, type,
+					  TREE_CHAIN (arg_types));
+	  }
+	else
+	    result = build_function_type (type,
+					  arg_types);
+      }
+      break;
+    default:
+      break;
+    }
+
+  if (!result)
+      result = TYPE_MAIN_VARIANT (t);
+  return cp_build_qualified_type (result, cp_type_quals (t));
 }
+
 
 /* Makes a copy of BINFO and TYPE, which is to be inherited into a
    graph dominated by T.  If BINFO is NULL, TYPE is a dependent base,
@@ -1167,8 +1268,9 @@ is_overloaded_fn (tree x)
     x = TREE_OPERAND (x, 1);
   if (BASELINK_P (x))
     x = BASELINK_FUNCTIONS (x);
-  if (TREE_CODE (x) == TEMPLATE_ID_EXPR
-      || DECL_FUNCTION_TEMPLATE_P (OVL_CURRENT (x))
+  if (TREE_CODE (x) == TEMPLATE_ID_EXPR)
+    x = TREE_OPERAND (x, 0);
+  if (DECL_FUNCTION_TEMPLATE_P (OVL_CURRENT (x))
       || (TREE_CODE (x) == OVERLOAD && OVL_CHAIN (x)))
     return 2;
   return  (TREE_CODE (x) == FUNCTION_DECL
@@ -1190,10 +1292,13 @@ get_first_fn (tree from)
 {
   gcc_assert (is_overloaded_fn (from));
   /* A baselink is also considered an overloaded function.  */
-  if (TREE_CODE (from) == COMPONENT_REF)
+  if (TREE_CODE (from) == OFFSET_REF
+      || TREE_CODE (from) == COMPONENT_REF)
     from = TREE_OPERAND (from, 1);
   if (BASELINK_P (from))
     from = BASELINK_FUNCTIONS (from);
+  if (TREE_CODE (from) == TEMPLATE_ID_EXPR)
+    from = TREE_OPERAND (from, 0);
   return OVL_CURRENT (from);
 }
 
@@ -1226,11 +1331,12 @@ build_overload (tree decl, tree chain)
 
 #define PRINT_RING_SIZE 4
 
-const char *
-cxx_printable_name (tree decl, int v)
+static const char *
+cxx_printable_name_internal (tree decl, int v, bool translate)
 {
   static unsigned int uid_ring[PRINT_RING_SIZE];
   static char *print_ring[PRINT_RING_SIZE];
+  static bool trans_ring[PRINT_RING_SIZE];
   static int ring_counter;
   int i;
 
@@ -1238,11 +1344,11 @@ cxx_printable_name (tree decl, int v)
   if (v < 2
       || TREE_CODE (decl) != FUNCTION_DECL
       || DECL_LANG_SPECIFIC (decl) == 0)
-    return lang_decl_name (decl, v);
+    return lang_decl_name (decl, v, translate);
 
   /* See if this print name is lying around.  */
   for (i = 0; i < PRINT_RING_SIZE; i++)
-    if (uid_ring[i] == DECL_UID (decl))
+    if (uid_ring[i] == DECL_UID (decl) && translate == trans_ring[i])
       /* yes, so return it.  */
       return print_ring[i];
 
@@ -1251,19 +1357,37 @@ cxx_printable_name (tree decl, int v)
 
   if (current_function_decl != NULL_TREE)
     {
-      if (uid_ring[ring_counter] == DECL_UID (current_function_decl))
-	ring_counter += 1;
-      if (ring_counter == PRINT_RING_SIZE)
-	ring_counter = 0;
+      /* There may be both translated and untranslated versions of the
+	 name cached.  */
+      for (i = 0; i < 2; i++)
+	{
+	  if (uid_ring[ring_counter] == DECL_UID (current_function_decl))
+	    ring_counter += 1;
+	  if (ring_counter == PRINT_RING_SIZE)
+	    ring_counter = 0;
+	}
       gcc_assert (uid_ring[ring_counter] != DECL_UID (current_function_decl));
     }
 
   if (print_ring[ring_counter])
     free (print_ring[ring_counter]);
 
-  print_ring[ring_counter] = xstrdup (lang_decl_name (decl, v));
+  print_ring[ring_counter] = xstrdup (lang_decl_name (decl, v, translate));
   uid_ring[ring_counter] = DECL_UID (decl);
+  trans_ring[ring_counter] = translate;
   return print_ring[ring_counter];
+}
+
+const char *
+cxx_printable_name (tree decl, int v)
+{
+  return cxx_printable_name_internal (decl, v, false);
+}
+
+const char *
+cxx_printable_name_translate (tree decl, int v)
+{
+  return cxx_printable_name_internal (decl, v, true);
 }
 
 /* Build the FUNCTION_TYPE or METHOD_TYPE which may throw exceptions
@@ -1687,9 +1811,9 @@ build_min_non_dep (enum tree_code code, tree non_dep, ...)
    built.  */
 
 tree
-build_min_non_dep_call_list (tree non_dep, tree fn, tree arglist)
+build_min_non_dep_call_vec (tree non_dep, tree fn, VEC(tree,gc) *argvec)
 {
-  tree t = build_nt_call_list (fn, arglist);
+  tree t = build_nt_call_vec (fn, argvec);
   TREE_TYPE (t) = TREE_TYPE (non_dep);
   TREE_SIDE_EFFECTS (t) = TREE_SIDE_EFFECTS (non_dep);
   return t;
@@ -1870,9 +1994,8 @@ cp_tree_equal (tree t1, tree t2)
     case PARM_DECL:
       /* For comparing uses of parameters in late-specified return types
 	 with an out-of-class definition of the function.  */
-      if ((!DECL_CONTEXT (t1) || !DECL_CONTEXT (t2))
-	  && same_type_p (TREE_TYPE (t1), TREE_TYPE (t2))
-	  && DECL_NAME (t1) == DECL_NAME (t2))
+      if (same_type_p (TREE_TYPE (t1), TREE_TYPE (t2))
+	  && parm_index (t1) == parm_index (t2))
 	return true;
       else
 	return false;
@@ -2125,7 +2248,7 @@ pod_type_p (const_tree t)
 
   if (t == error_mark_node)
     return 1;
-  if (INTEGRAL_TYPE_P (t))
+  if (INTEGRAL_OR_ENUMERATION_TYPE_P (t))
     return 1;  /* integral, character or enumeral type */
   if (FLOAT_TYPE_P (t))
     return 1;

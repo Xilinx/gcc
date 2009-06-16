@@ -1,6 +1,6 @@
 /* Definitions for code generation pass of GNU compiler.
    Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -298,6 +298,9 @@ extern rtx expand_simple_unop (enum machine_mode, enum rtx_code, rtx, rtx,
    perform the operation described by CODE and MODE.  */
 extern int have_insn_for (enum rtx_code, enum machine_mode);
 
+extern rtx prepare_operand (int, rtx, int, enum machine_mode, enum machine_mode,
+			    int);
+
 /* Emit code to make a call to a constant function or a library call.  */
 extern void emit_libcall_block (rtx, rtx, rtx, rtx);
 
@@ -573,19 +576,12 @@ extern void jumpif (tree, rtx);
    the result is zero, or IF_TRUE_LABEL if the result is one.  */
 extern void do_jump (tree, rtx, rtx);
 
-/* Generate rtl to compare two rtx's, will call emit_cmp_insn.  */
-extern rtx compare_from_rtx (rtx, rtx, enum rtx_code, int, enum machine_mode,
-			     rtx);
 extern void do_compare_rtx_and_jump (rtx, rtx, enum rtx_code, int,
 				     enum machine_mode, rtx, rtx, rtx);
 
 /* Two different ways of generating switch statements.  */
 extern int try_casesi (tree, tree, tree, tree, rtx, rtx, rtx);
 extern int try_tablejump (tree, tree, tree, tree, rtx, rtx);
-
-/* Smallest number of adjacent cases before we use a jump table.
-   XXX Should be a target hook.  */
-extern unsigned int case_values_threshold (void);
 
 /* Functions from alias.c */
 #include "alias.h"
@@ -699,7 +695,7 @@ extern void set_mem_attributes_minus_bitpos (rtx, tree, int, HOST_WIDE_INT);
 /* Return OFFSET if XEXP (MEM, 0) - OFFSET is known to be ALIGN
    bits aligned for 0 <= OFFSET < ALIGN / BITS_PER_UNIT, or
    -1 if not known.  */
-extern int get_mem_align_offset (rtx, int);
+extern int get_mem_align_offset (rtx, unsigned int);
 
 /* Assemble the static constant template for function entry trampolines.  */
 extern rtx assemble_trampoline_template (void);
@@ -786,6 +782,7 @@ extern void init_all_optabs (void);
 
 /* Call this to initialize an optab function entry.  */
 extern rtx init_one_libfunc (const char *);
+extern rtx set_user_assembler_libfunc (const char *, const char *);
 
 extern int vector_mode_valid_p (enum machine_mode);
 

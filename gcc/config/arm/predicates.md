@@ -1,5 +1,5 @@
 ;; Predicate definitions for ARM and Thumb
-;; Copyright (C) 2004, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2007, 2008 Free Software Foundation, Inc.
 ;; Contributed by ARM Ltd.
 
 ;; This file is part of GCC.
@@ -191,9 +191,13 @@
 (define_special_predicate "equality_operator"
   (match_code "eq,ne"))
 
-;; True for comparisons other than LTGT or UNEQ.
+;; True for integer comparisons and, if FP is active, for comparisons
+;; other than LTGT or UNEQ.
 (define_special_predicate "arm_comparison_operator"
-  (match_code "eq,ne,le,lt,ge,gt,geu,gtu,leu,ltu,unordered,ordered,unlt,unle,unge,ungt"))
+  (ior (match_code "eq,ne,le,lt,ge,gt,geu,gtu,leu,ltu")
+       (and (match_test "TARGET_32BIT && TARGET_HARD_FLOAT
+			 && (TARGET_FPA || TARGET_VFP)")
+            (match_code "unordered,ordered,unlt,unle,unge,ungt"))))
 
 (define_special_predicate "minmax_operator"
   (and (match_code "smin,smax,umin,umax")
@@ -231,8 +235,8 @@
 
 (define_special_predicate "arm_extendqisi_mem_op"
   (and (match_operand 0 "memory_operand")
-       (match_test "arm_legitimate_address_p (mode, XEXP (op, 0), SIGN_EXTEND,
-					      0)")))
+       (match_test "arm_legitimate_address_outer_p (mode, XEXP (op, 0),
+						    SIGN_EXTEND, 0)")))
 
 (define_special_predicate "arm_reg_or_extendqisi_mem_op"
   (ior (match_operand 0 "arm_extendqisi_mem_op")

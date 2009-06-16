@@ -1,6 +1,7 @@
 /* Definitions of target machine for GNU compiler, for Sun SPARC.
    Copyright (C) 1987, 1988, 1989, 1992, 1994, 1995, 1996, 1997, 1998, 1999
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com).
    64-bit SPARC-V9 support by Michael Tiemann, Jim Wilson, and Doug Evans,
    at Cygnus Support.
@@ -624,9 +625,11 @@ extern struct sparc_cpu_select sparc_select[];
 /* The widest floating-point format really supported by the hardware.  */
 #define WIDEST_HARDWARE_FP_SIZE 64
 
-/* Width in bits of a pointer.
-   See also the macro `Pmode' defined below.  */
+/* Width in bits of a pointer.  This is the size of ptr_mode.  */
 #define POINTER_SIZE (TARGET_PTR64 ? 64 : 32)
+
+/* This is the machine mode used for addresses.  */
+#define Pmode (TARGET_ARCH64 ? DImode : SImode)
 
 /* If we have to extend pointers (only when TARGET_ARCH64 and not
    TARGET_PTR64), we want to do it unsigned.   This macro does nothing
@@ -1555,14 +1558,6 @@ function_arg_padding ((MODE), (TYPE))
   && (GET_MODE_ALIGNMENT (MODE) == 128		\
       || ((TYPE) && TYPE_ALIGN (TYPE) == 128)))	\
  ? 128 : PARM_BOUNDARY)
-
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  Note that we can't use "rtx" here
-   since it hasn't been defined!  */
-
-extern GTY(()) rtx sparc_compare_op0;
-extern GTY(()) rtx sparc_compare_op1;
-extern GTY(()) rtx sparc_compare_emitted;
 
 
 /* Generate the special assembly code needed to tell the assembler whatever
@@ -1850,15 +1845,9 @@ do {									\
 #define USE_AS_OFFSETABLE_LO10 0
 #endif
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.
-
-   On SPARC, the actual legitimate addresses must be REG+REG or REG+SMALLINT
-   ordinarily.  This changes a bit when generating PIC.
-
-   If you change this, execute "rm explow.o recog.o reload.o".  */
+/* On SPARC, the actual legitimate addresses must be REG+REG or REG+SMALLINT
+   ordinarily.  This changes a bit when generating PIC.  The details are
+   in sparc.c's implementation of TARGET_LEGITIMATE_ADDRESS_P.  */
 
 #define SYMBOLIC_CONST(X) symbolic_operand (X, VOIDmode)
 
@@ -1879,20 +1868,6 @@ do {									\
 
 #define RTX_OK_FOR_OLO10_P(X)						\
   (GET_CODE (X) == CONST_INT && INTVAL (X) >= -0x1000 && INTVAL (X) < 0xc00 - 8)
-
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)		\
-{							\
-  if (legitimate_address_p (MODE, X, 1))		\
-    goto ADDR;						\
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)		\
-{							\
-  if (legitimate_address_p (MODE, X, 0))		\
-    goto ADDR;						\
-}
-#endif
 
 /* Go to LABEL if ADDR (a legitimate address expression)
    has an effect that depends on the machine mode it is used for.
@@ -1922,27 +1897,6 @@ do {									\
     }							\
 }
 
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
-   It is always safe for this macro to do nothing.  It exists to recognize
-   opportunities to optimize the output.  */
-
-/* On SPARC, change REG+N into REG+REG, and REG+(X*Y) into REG+REG.  */
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)	\
-{						\
-  (X) = legitimize_address (X, OLDX, MODE);	\
-  if (memory_address_p (MODE, X))		\
-    goto WIN;					\
-}
-
 /* Try a machine-dependent way of reloading an illegitimate address
    operand.  If we find one, push the reload and jump to WIN.  This
    macro is used in only one place: `find_reloads_address' in reload.c.
@@ -2026,9 +1980,6 @@ do {                                                                    \
 /* Value is 1 if truncating an integer of INPREC bits to OUTPREC bits
    is done just by pretending it is already truncated.  */
 #define TRULY_NOOP_TRUNCATION(OUTPREC, INPREC) 1
-
-/* Specify the machine mode used for addresses.  */
-#define Pmode (TARGET_ARCH64 ? DImode : SImode)
 
 /* Given a comparison code (EQ, NE, etc.) and the first operand of a COMPARE,
    return the mode to be used for the comparison.  For floating-point,

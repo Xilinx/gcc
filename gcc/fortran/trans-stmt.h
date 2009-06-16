@@ -29,6 +29,7 @@ tree gfc_trans_code (gfc_code *);
 tree gfc_trans_assign (gfc_code *);
 tree gfc_trans_pointer_assign (gfc_code *);
 tree gfc_trans_init_assign (gfc_code *);
+tree gfc_get_proc_ptr_comp (gfc_se *, gfc_expr *);
 
 /* trans-stmt.c */
 tree gfc_trans_cycle (gfc_code *);
@@ -39,7 +40,7 @@ tree gfc_trans_goto (gfc_code *);
 tree gfc_trans_entry (gfc_code *);
 tree gfc_trans_pause (gfc_code *);
 tree gfc_trans_stop (gfc_code *);
-tree gfc_trans_call (gfc_code *, bool);
+tree gfc_trans_call (gfc_code *, bool, tree, tree, bool);
 tree gfc_trans_return (gfc_code *);
 tree gfc_trans_if (gfc_code *);
 tree gfc_trans_arithmetic_if (gfc_code *);

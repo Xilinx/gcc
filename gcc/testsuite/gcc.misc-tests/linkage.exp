@@ -1,4 +1,5 @@
-# Copyright (C) 1988, 90-96, 1997, 2000, 2001, 2002, 2007 Free Software Foundation, Inc.
+# Copyright (C) 1988, 90-96, 1997, 2000, 2001, 2002, 2007, 2008
+# Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -82,7 +83,7 @@ if { [isnative] && ![is_remote host] } then {
             }
         } elseif [istarget "*86*-*-darwin*"] {
 	   set file_string [exec file "linkage-x.o"]
-	   if [ string match "*x86_64" $file_string ] {
+	   if [ string match "*64*" $file_string ] {
 		set native_cflags "-m64"
 	   } elseif [ string match "*i386" $file_string ] {
 		set native_cflags "-m32"

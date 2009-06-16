@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008
+/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
@@ -7,27 +7,22 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "io.h"
 #include <unistd.h>
@@ -155,7 +150,7 @@ static const st_option async_opt[] =
 static void
 test_endfile (gfc_unit * u)
 {
-  if (u->endfile == NO_ENDFILE && file_length (u->s) == file_position (u->s))
+  if (u->endfile == NO_ENDFILE && file_length (u->s) == stell (u->s))
     u->endfile = AT_ENDFILE;
 }
 
@@ -271,7 +266,7 @@ edit_modes (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
       break;
 
     case POSITION_REWIND:
-      if (sseek (u->s, 0) == FAILURE)
+      if (sseek (u->s, 0, SEEK_SET) != 0)
 	goto seek_error;
 
       u->current_record = 0;
@@ -281,7 +276,7 @@ edit_modes (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
       break;
 
     case POSITION_APPEND:
-      if (sseek (u->s, file_length (u->s)) == FAILURE)
+      if (sseek (u->s, 0, SEEK_END) < 0)
 	goto seek_error;
 
       if (flags->access != ACCESS_STREAM)
@@ -557,7 +552,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
 
   if (flags->position == POSITION_APPEND)
     {
-      if (sseek (u->s, file_length (u->s)) == FAILURE)
+      if (sseek (u->s, 0, SEEK_END) < 0)
 	generate_error (&opp->common, LIBERROR_OS, NULL);
       u->endfile = AT_ENDFILE;
     }
@@ -611,7 +606,8 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
     {
       u->maxrec = max_offset;
       u->recl = 1;
-      u->strm_pos = file_position (u->s) + 1;
+      u->bytes_left = 1;
+      u->strm_pos = stell (u->s) + 1;
     }
 
   memmove (u->file, opp->file, opp->file_len);
@@ -627,7 +623,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
   if (flags->status == STATUS_SCRATCH && opp->file != NULL)
     free_mem (opp->file);
     
-  if (flags->form == FORM_FORMATTED && (flags->action != ACTION_READ))
+  if (flags->form == FORM_FORMATTED)
     {
       if ((opp->common.flags & IOPARM_OPEN_HAS_RECL_IN))
         fbuf_init (u, u->recl);
@@ -681,7 +677,7 @@ already_open (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
 	}
 #endif
 
-      if (sclose (u->s) == FAILURE)
+      if (sclose (u->s) == -1)
 	{
 	  unlock_unit (u);
 	  generate_error (&opp->common, LIBERROR_OS,
@@ -818,7 +814,7 @@ st_open (st_parameter_open *opp)
 
   flags.convert = conv;
 
-  if (opp->common.unit < 0)
+  if (!(opp->common.flags & IOPARM_OPEN_HAS_NEWUNIT) && opp->common.unit < 0)
     generate_error (&opp->common, LIBERROR_BAD_OPTION,
 		    "Bad unit number in OPEN statement");
 
@@ -846,8 +842,13 @@ st_open (st_parameter_open *opp)
 
   if ((opp->common.flags & IOPARM_LIBRETURN_MASK) == IOPARM_LIBRETURN_OK)
     {
-      u = find_or_create_unit (opp->common.unit);
+      if ((opp->common.flags & IOPARM_OPEN_HAS_NEWUNIT))
+	{
+	  *opp->newunit = get_unique_unit_number(opp);
+	  opp->common.unit = *opp->newunit;
+	}
 
+      u = find_or_create_unit (opp->common.unit);
       if (u->s == NULL)
 	{
 	  u = new_unit (opp, u, &flags);

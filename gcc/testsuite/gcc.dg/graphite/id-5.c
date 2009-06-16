@@ -12,6 +12,6 @@ void matmul_i1 ()
 	dest_y[x] += abase_n[x];
     }
 }
-/* { dg-final { scan-tree-dump-times "number of SCoPs: 1" 1 "graphite"} } */
+
 /* { dg-final { cleanup-tree-dump "graphite" } } */
 

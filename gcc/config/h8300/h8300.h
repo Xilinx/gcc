@@ -1,7 +1,8 @@
 /* Definitions of target machine for GNU compiler.
    Renesas H8/300 (generic)
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com),
    Jim Wilson (wilson@cygnus.com), and Doug Evans (dje@cygnus.com).
 
@@ -298,12 +299,6 @@ extern const char * const *h8_reg_names;
 
 /* Base register for access to local variables of the function.  */
 #define FRAME_POINTER_REGNUM FP_REG
-
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED 0
 
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM AP_REG
@@ -925,24 +920,6 @@ struct cum_arg
 #define EXTRA_MEMORY_CONSTRAINT(C, STR) \
   ((C) == 'W')
 
-
-#ifndef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)	\
-  do						\
-    {						\
-      if (h8300_legitimate_address_p ((MODE), (X), 0))	\
-	goto ADDR;				\
-    }						\
-  while (0)
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)	\
-  do						\
-    {						\
-      if (h8300_legitimate_address_p ((MODE), (X), 1))	\
-	goto ADDR;				\
-    }						\
-  while (0)
-#endif
 
 /* Go to LABEL if ADDR (a legitimate address expression)
    has an effect that depends on the machine mode it is used for.

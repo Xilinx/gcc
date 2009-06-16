@@ -1,5 +1,5 @@
 /* Discovery of auto-inc and auto-dec instructions.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
    
 This file is part of GCC.
@@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 
    There are (4) basic forms that are matched:
 
+      (1) FORM_PRE_ADD
            a <- b + c
            ...
            *a
@@ -55,6 +56,9 @@ along with GCC; see the file COPYING3.  If not see
            a <- b
            ...
            *(a += c) pre
+
+
+      (2) FORM_PRE_INC
            a += c
            ...
            *a
@@ -62,18 +66,24 @@ along with GCC; see the file COPYING3.  If not see
         becomes
 
            *(a += c) pre
+
+
+      (3) FORM_POST_ADD
            *a
            ...
            b <- a + c
 
-	   for this case to be true, b must not be assigned or used between 
-	   the *a and the assignment to b.  B must also be a Pmode reg.
+	   (For this case to be true, b must not be assigned or used between 
+	   the *a and the assignment to b.  B must also be a Pmode reg.)
 
         becomes
 
            b <- a
            ...
            *(b += c) post
+
+
+      (4) FORM_POST_INC
            *a
            ...
            a <- a + c
@@ -99,56 +109,8 @@ along with GCC; see the file COPYING3.  If not see
   The is one special case: if a already had an offset equal to it +-
   its width and that offset is equal to -c when the increment was
   before the ref or +c if the increment was after the ref, then if we
-  can do the combination but switch the pre/post bit.
+  can do the combination but switch the pre/post bit.  */
 
-        (1) FORM_PRE_ADD
-
-           a <- b + c
-           ...
-           *(a - c)
-
-        becomes
-
-           a <- b
-           ...
-           *(a += c) post
-
-        (2) FORM_PRE_INC
-
-           a += c
-           ...
-           *(a - c)
-
-        becomes
-
-           *(a += c) post
-
-        (3) FORM_POST_ADD
-
-           *(a + c)
-           ...
-           b <- a + c
-
-	   for this case to be true, b must not be assigned or used between 
-	   the *a and the assignment to b. B must also be a Pmode reg.
-
-        becomes
-
-           b <- a
-           ...
-           *(b += c) pre
-
-
-        (4) FORM_POST_INC
-
-           *(a + c)
-           ...
-           a <- a + c 
-
-        becomes
-
-           *(a += c) pre
-*/
 #ifdef AUTO_INC_DEC
 
 enum form
@@ -520,10 +482,10 @@ attempt_change (rtx new_addr, rtx inc_reg)
   PUT_MODE (mem_tmp, mode);
   XEXP (mem_tmp, 0) = new_addr;
 
-  old_cost = rtx_cost (mem, 0, speed) 
-    + rtx_cost (PATTERN (inc_insn.insn), 0, speed);
-  new_cost = rtx_cost (mem_tmp, 0, speed);
-  
+  old_cost = (rtx_cost (mem, SET, speed)
+	      + rtx_cost (PATTERN (inc_insn.insn), SET, speed));
+  new_cost = rtx_cost (mem_tmp, SET, speed);
+
   /* The first item of business is to see if this is profitable.  */
   if (old_cost < new_cost)
     {
@@ -1544,7 +1506,7 @@ struct rtl_opt_pass pass_inc_dec =
 {
  {
   RTL_PASS,
-  "auto-inc-dec",                       /* name */
+  "auto_inc_dec",                       /* name */
   gate_auto_inc_dec,                    /* gate */
   rest_of_handle_auto_inc_dec,          /* execute */
   NULL,                                 /* sub */
@@ -1559,4 +1521,3 @@ struct rtl_opt_pass pass_inc_dec =
   TODO_df_finish,                       /* todo_flags_finish */
  }
 };
-
