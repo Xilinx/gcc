@@ -1,5 +1,9 @@
 2009-06-16  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c: Cleanup foo.
+
+2009-06-16  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Merge from mainline (r143684:148293).
 	* Disabled libpcp until it gets fixed.
 

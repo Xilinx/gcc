@@ -241,7 +241,6 @@ graphite_transform_loops (void)
   scop_p scop;
   bool transform_done = false;
   VEC (scop_p, heap) *scops = NULL;
-  bool foo = true;
 
   if (!graphite_initialize ())
     return;
@@ -255,7 +254,6 @@ graphite_transform_loops (void)
     }
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
-    if (foo)
     if (build_poly_scop (scop))
       {
 	if (apply_poly_transforms (scop))
