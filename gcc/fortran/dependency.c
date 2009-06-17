@@ -1,5 +1,5 @@
 /* Dependency analysis
-   Copyright (C) 2000, 2001, 2002, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
@@ -422,6 +422,28 @@ gfc_ref_needs_temporary_p (gfc_ref *ref)
 }
 
 
+int
+gfc_is_data_pointer (gfc_expr *e)
+{
+  gfc_ref *ref;
+
+  if (e->expr_type != EXPR_VARIABLE && e->expr_type != EXPR_FUNCTION)
+    return 0;
+
+  /* No subreference if it is a function  */
+  gcc_assert (e->expr_type == EXPR_VARIABLE || !e->ref);
+
+  if (e->symtree->n.sym->attr.pointer)
+    return 1;
+
+  for (ref = e->ref; ref; ref = ref->next)
+    if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
+      return 1;
+
+  return 0;
+}
+
+
 /* Return true if array variable VAR could be passed to the same function
    as argument EXPR without interfering with EXPR.  INTENT is the intent
    of VAR.
@@ -449,19 +471,23 @@ gfc_check_argument_var_dependency (gfc_expr *var, sym_intent intent,
 	{
 	  if (elemental == ELEM_DONT_CHECK_VARIABLE)
 	    {
-	      /* Elemental procedures forbid unspecified intents, 
-		 and we don't check dependencies for INTENT_IN args.  */
-	      gcc_assert (intent == INTENT_OUT || intent == INTENT_INOUT);
+	      /* Too many false positive with pointers.  */
+	      if (!gfc_is_data_pointer (var) && !gfc_is_data_pointer (expr))
+		{
+		  /* Elemental procedures forbid unspecified intents, 
+		     and we don't check dependencies for INTENT_IN args.  */
+		  gcc_assert (intent == INTENT_OUT || intent == INTENT_INOUT);
 
-	      /* We are told not to check dependencies. 
-		 We do it, however, and issue a warning in case we find one. 
-		 If a dependency is found in the case 
-		 elemental == ELEM_CHECK_VARIABLE, we will generate
-		 a temporary, so we don't need to bother the user.  */
-	      gfc_warning ("INTENT(%s) actual argument at %L might interfere "
-			   "with actual argument at %L.", 
-			   intent == INTENT_OUT ? "OUT" : "INOUT", 
-			   &var->where, &expr->where);
+		  /* We are told not to check dependencies. 
+		     We do it, however, and issue a warning in case we find one.
+		     If a dependency is found in the case 
+		     elemental == ELEM_CHECK_VARIABLE, we will generate
+		     a temporary, so we don't need to bother the user.  */
+		  gfc_warning ("INTENT(%s) actual argument at %L might "
+			       "interfere with actual argument at %L.", 
+		   	       intent == INTENT_OUT ? "OUT" : "INOUT", 
+		   	       &var->where, &expr->where);
+		}
 	      return 0;
 	    }
 	  else
@@ -664,7 +690,6 @@ gfc_check_dependency (gfc_expr *expr1, gfc_expr *expr2, bool identical)
 {
   gfc_actual_arglist *actual;
   gfc_constructor *c;
-  gfc_ref *ref;
   int n;
 
   gcc_assert (expr1->expr_type == EXPR_VARIABLE);
@@ -700,17 +725,8 @@ gfc_check_dependency (gfc_expr *expr1, gfc_expr *expr2, bool identical)
 
 	  /* If either variable is a pointer, assume the worst.  */
 	  /* TODO: -fassume-no-pointer-aliasing */
-	  if (expr1->symtree->n.sym->attr.pointer)
+	  if (gfc_is_data_pointer (expr1) || gfc_is_data_pointer (expr2))
 	    return 1;
-	  for (ref = expr1->ref; ref; ref = ref->next)
-	    if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
-	      return 1;
-
-	  if (expr2->symtree->n.sym->attr.pointer)
-	    return 1;
-	  for (ref = expr2->ref; ref; ref = ref->next)
-	    if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
-	      return 1;
 
 	  /* Otherwise distinct symbols have no dependencies.  */
 	  return 0;
@@ -1228,6 +1244,71 @@ gfc_full_array_ref_p (gfc_ref *ref)
 }
 
 
+/* Determine if a full array is the same as an array section with one
+   variable limit.  For this to be so, the strides must both be unity
+   and one of either start == lower or end == upper must be true.  */
+
+static bool
+ref_same_as_full_array (gfc_ref *full_ref, gfc_ref *ref)
+{
+  int i;
+  bool upper_or_lower;
+
+  if (full_ref->type != REF_ARRAY)
+    return false;
+  if (full_ref->u.ar.type != AR_FULL)
+    return false;
+  if (ref->type != REF_ARRAY)
+    return false;
+  if (ref->u.ar.type != AR_SECTION)
+    return false;
+
+  for (i = 0; i < ref->u.ar.dimen; i++)
+    {
+      /* If we have a single element in the reference, we need to check
+	 that the array has a single element and that we actually reference
+	 the correct element.  */
+      if (ref->u.ar.dimen_type[i] == DIMEN_ELEMENT)
+	{
+	  if (!full_ref->u.ar.as
+	      || !full_ref->u.ar.as->lower[i]
+	      || !full_ref->u.ar.as->upper[i]
+	      || gfc_dep_compare_expr (full_ref->u.ar.as->lower[i],
+				       full_ref->u.ar.as->upper[i])
+	      || !ref->u.ar.start[i]
+	      || gfc_dep_compare_expr (ref->u.ar.start[i],
+				       full_ref->u.ar.as->lower[i]))
+	    return false;
+	}
+
+      /* Check the strides.  */
+      if (full_ref->u.ar.stride[i] && !gfc_expr_is_one (full_ref->u.ar.stride[i], 0))
+	return false;
+      if (ref->u.ar.stride[i] && !gfc_expr_is_one (ref->u.ar.stride[i], 0))
+	return false;
+
+      upper_or_lower = false;
+      /* Check the lower bound.  */
+      if (ref->u.ar.start[i]
+	  && (ref->u.ar.as
+	        && full_ref->u.ar.as->lower[i]
+	        && gfc_dep_compare_expr (ref->u.ar.start[i],
+				         full_ref->u.ar.as->lower[i]) == 0))
+	upper_or_lower =  true;
+      /* Check the upper bound.  */
+      if (ref->u.ar.end[i]
+	  && (ref->u.ar.as
+	        && full_ref->u.ar.as->upper[i]
+	        && gfc_dep_compare_expr (ref->u.ar.end[i],
+				         full_ref->u.ar.as->upper[i]) == 0))
+	upper_or_lower =  true;
+      if (!upper_or_lower)
+	return false;
+    }
+  return true;
+}
+
+
 /* Finds if two array references are overlapping or not.
    Return value
    	1 : array references are overlapping.
@@ -1265,6 +1346,13 @@ gfc_dep_resolver (gfc_ref *lref, gfc_ref *rref)
 	  return (fin_dep == GFC_DEP_OVERLAP) ? 1 : 0;
 	
 	case REF_ARRAY:
+
+	  if (ref_same_as_full_array (lref, rref))
+	    return 0;
+
+	  if (ref_same_as_full_array (rref, lref))
+	    return 0;
+
 	  if (lref->u.ar.dimen != rref->u.ar.dimen)
 	    {
 	      if (lref->u.ar.type == AR_FULL)

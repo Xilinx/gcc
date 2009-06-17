@@ -100,7 +100,7 @@ FLAGS_TO_PASS = \
 SUBDIRS = testsuite
 
 # FIXME: add @BUILD_INFO@ once we're sure it works for everyone.
-all: stamp-picdir $(TARGETLIB) needed-list required-list all-subdir
+all: stamp-picdir $(TARGETLIB) required-list all-subdir
 	@: $(MAKE) ; exec $(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=all
 
 .PHONY: check installcheck
@@ -135,8 +135,8 @@ CFILES = alloca.c argv.c asprintf.c atexit.c				\
 	lbasename.c							\
 	lrealpath.c							\
 	make-relative-prefix.c						\
-	make-temp-file.c md5.c memchr.c memcmp.c memcpy.c memmove.c	\
-	 mempcpy.c memset.c mkstemps.c					\
+	make-temp-file.c md5.c memchr.c memcmp.c memcpy.c memmem.c	\
+	 memmove.c mempcpy.c memset.c mkstemps.c			\
 	objalloc.c obstack.c						\
 	partition.c pexecute.c						\
 	 pex-common.c pex-djgpp.c pex-msdos.c pex-one.c			\
@@ -187,8 +187,8 @@ CONFIGURED_OFILES = ./asprintf.o ./atexit.o				\
 	./ffs.o								\
 	./getcwd.o ./getpagesize.o ./gettimeofday.o			\
 	./index.o ./insque.o						\
-	./memchr.o ./memcmp.o ./memcpy.o ./memmove.o ./mempcpy.o	\
-	 ./memset.o ./mkstemps.o					\
+	./memchr.o ./memcmp.o ./memcpy.o ./memmem.o ./memmove.o		\
+	 ./mempcpy.o ./memset.o ./mkstemps.o				\
 	./pex-djgpp.o ./pex-msdos.o					\
 	 ./pex-unix.o ./pex-win32.o					\
 	 ./putenv.o							\
@@ -377,22 +377,6 @@ install_to_tooldir: all
 	mv -f $(DESTDIR)$(tooldir)/lib/$(MULTIOSDIR)/$(TARGETLIB)n $(DESTDIR)$(tooldir)/lib/$(MULTIOSDIR)/$(TARGETLIB)
 	@$(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=install
 
-# needed-list is used by libstdc++.  NEEDED is the list of functions
-# to include there.  Do not add anything LGPL to this list; libstdc++
-# can't use anything encumbering.
-NEEDED = atexit calloc memchr memcmp memcpy memmove memset rename strchr \
-	 strerror strncmp strrchr strstr strtol strtoul tmpnam vfprintf vprintf \
-	 vfork waitpid bcmp bcopy bzero
-needed-list: Makefile
-	rm -f needed-list; touch needed-list; \
-	for f in $(NEEDED); do \
-	  for g in $(LIBOBJS) $(EXTRA_OFILES); do \
-	    case "$$g" in \
-	      *$$f*) echo $$g >> needed-list ;; \
-	    esac; \
-	  done; \
-	done
-
 # required-list was used when building a shared bfd/opcodes/libiberty
 # library.  I don't know if it used by anything currently.
 required-list: Makefile
@@ -440,8 +424,8 @@ maint-deps :
 # multiple times, hence our explicit recursion with an empty SUBDIRS.
 mostlyclean: mostlyclean-subdir
 	-rm -rf *.o pic core errs \#* *.E a.out
-	-rm -f needed.awk needed2.awk errors dummy needed-list config.h stamp-*
-	-rm -f $(CONFIG_H) $(NEEDED_LIST) stamp-picdir
+	-rm -f errors dummy config.h stamp-*
+	-rm -f $(CONFIG_H) stamp-picdir
 	-rm -f libiberty.aux libiberty.cp libiberty.cps libiberty.fn libiberty.ky
 	-rm -f libiberty.log libiberty.tmp libiberty.tps libiberty.pg
 	-rm -f libiberty.pgs libiberty.toc libiberty.tp libiberty.tpl libiberty.vr
@@ -797,6 +781,12 @@ $(CONFIGURED_OFILES): stamp-picdir
 	  $(COMPILE.c) $(PICFLAG) $(srcdir)/memcpy.c -o pic/$@; \
 	else true; fi
 	$(COMPILE.c) $(srcdir)/memcpy.c $(OUTPUT_OPTION)
+
+./memmem.o: $(srcdir)/memmem.c config.h
+	if [ x"$(PICFLAG)" != x ]; then \
+	  $(COMPILE.c) $(PICFLAG) $(srcdir)/memmem.c -o pic/$@; \
+	else true; fi
+	$(COMPILE.c) $(srcdir)/memmem.c $(OUTPUT_OPTION)
 
 ./memmove.o: $(srcdir)/memmove.c $(INCDIR)/ansidecl.h
 	if [ x"$(PICFLAG)" != x ]; then \

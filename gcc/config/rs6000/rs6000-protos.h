@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -42,6 +42,7 @@ extern void validate_condition_mode (enum rtx_code, enum machine_mode);
 extern bool legitimate_constant_pool_address_p (rtx);
 extern bool legitimate_indirect_address_p (rtx, int);
 extern bool legitimate_indexed_address_p (rtx, int);
+extern bool avoiding_indexed_address_p (enum machine_mode);
 
 extern rtx rs6000_got_register (rtx);
 extern rtx find_addr_reg (rtx);
@@ -80,8 +81,8 @@ extern void print_operand_address (FILE *, rtx);
 extern bool rs6000_output_addr_const_extra (FILE *, rtx);
 extern enum rtx_code rs6000_reverse_condition (enum machine_mode,
 					       enum rtx_code);
-extern void rs6000_emit_sCOND (enum rtx_code, rtx);
-extern void rs6000_emit_cbranch (enum rtx_code, rtx);
+extern void rs6000_emit_sCOND (enum machine_mode, rtx[]);
+extern void rs6000_emit_cbranch (enum machine_mode, rtx[]);
 extern char * output_cbranch (rtx, const char *, int, rtx);
 extern char * output_e500_flip_gt_bit (rtx, rtx);
 extern rtx rs6000_emit_set_const (rtx, enum machine_mode, rtx, int);
@@ -106,10 +107,8 @@ extern rtx create_TOC_reference (rtx);
 extern void rs6000_split_multireg_move (rtx, rtx);
 extern void rs6000_emit_move (rtx, rtx, enum machine_mode);
 extern rtx rs6000_secondary_memory_needed_rtx (enum machine_mode);
-extern rtx rs6000_legitimize_address (rtx, rtx, enum machine_mode);
 extern rtx rs6000_legitimize_reload_address (rtx, enum machine_mode,
 					     int, int, int, int *);
-extern int rs6000_legitimate_address (enum machine_mode, rtx, int);
 extern bool rs6000_legitimate_offset_address_p (enum machine_mode, rtx, int);
 extern bool rs6000_mode_dependent_address (rtx);
 extern rtx rs6000_find_base_term (rtx);
@@ -133,7 +132,7 @@ extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				  tree, int, int);
 extern int function_arg_boundary (enum machine_mode, tree);
 extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern tree altivec_resolve_overloaded_builtin (tree, tree);
+extern tree altivec_resolve_overloaded_builtin (location_t, tree, void *);
 extern rtx rs6000_function_value (const_tree, const_tree);
 extern rtx rs6000_libcall_value (enum machine_mode);
 extern rtx rs6000_va_arg (tree, tree);

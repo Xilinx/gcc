@@ -1,7 +1,7 @@
 /* Operating system specific defines to be used when targeting GCC for
    hosting on Windows32, using GNU tools and the Windows32 API Library.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007, 2008,
+   2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -38,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
       builtin_define_std ("WINNT");				\
       builtin_define_with_int_value ("_INTEGRAL_MAX_BITS",	\
 				     TYPE_PRECISION (intmax_type_node));\
-      if (TARGET_64BIT && DEFAULT_ABI == MS_ABI)			\
+      if (TARGET_64BIT && ix86_abi == MS_ABI)			\
 	{							\
 	  builtin_define ("__MINGW64__");			\
 	  builtin_define_std ("WIN64");				\
@@ -212,4 +212,10 @@ __enable_execute_stack (void *addr)					\
 #endif
 
 /* This matches SHLIB_SONAME and SHLIB_SOVERSION in t-cygming. */
-#define LIBGCC_SONAME "libgcc_s_1.dll"
+/* This matches SHLIB_SONAME and SHLIB_SOVERSION in t-cygwin. */
+#if DWARF2_UNWIND_INFO
+#define LIBGCC_EH_EXTN "_dw2"
+#else
+#define LIBGCC_EH_EXTN "_sjlj"
+#endif
+#define LIBGCC_SONAME "libgcc_s" LIBGCC_EH_EXTN "-1.dll"

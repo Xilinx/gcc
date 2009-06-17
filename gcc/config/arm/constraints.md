@@ -1,5 +1,5 @@
 ;; Constraint definitions for ARM and Thumb
-;; Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
 ;; Contributed by ARM Ltd.
 
 ;; This file is part of GCC.
@@ -30,9 +30,10 @@
 
 ;; The following multi-letter normal constraints have been used:
 ;; in ARM/Thumb-2 state: Da, Db, Dc, Dn, Dl, DL, Dv
+;; in Thumb-1 state: Pa, Pb
 
 ;; The following memory constraints have been used:
-;; in ARM/Thumb-2 state: Q, Ut, Uv, Uy, Un, Us
+;; in ARM/Thumb-2 state: Q, Ut, Uv, Uy, Un, Um, Us
 ;; in ARM state: Uq
 
 
@@ -129,6 +130,18 @@
       (match_test "TARGET_THUMB1 && ival >= -508 && ival <= 508
 		   && ((ival & 3) == 0)")))
 
+(define_constraint "Pa"
+  "@internal In Thumb-1 state a constant in the range -510 to +510"
+  (and (match_code "const_int")
+       (match_test "TARGET_THUMB1 && ival >= -510 && ival <= 510
+		    && (ival > 255 || ival < -255)")))
+
+(define_constraint "Pb"
+  "@internal In Thumb-1 state a constant in the range -262 to +262"
+  (and (match_code "const_int")
+       (match_test "TARGET_THUMB1 && ival >= -262 && ival <= 262
+		    && (ival > 255 || ival < -255)")))
+
 (define_constraint "G"
  "In ARM/Thumb-2 state a valid FPA immediate constant."
  (and (match_code "const_double")
@@ -214,25 +227,32 @@
 
 (define_memory_constraint "Un"
  "@internal
+  In ARM/Thumb-2 state a valid address for Neon doubleword vector
+  load/store instructions."
+ (and (match_code "mem")
+      (match_test "TARGET_32BIT && neon_vector_mem_operand (op, 0)")))
+
+(define_memory_constraint "Um"
+ "@internal
   In ARM/Thumb-2 state a valid address for Neon element and structure
   load/store instructions."
  (and (match_code "mem")
-      (match_test "TARGET_32BIT && neon_vector_mem_operand (op, FALSE)")))
+      (match_test "TARGET_32BIT && neon_vector_mem_operand (op, 2)")))
 
 (define_memory_constraint "Us"
  "@internal
   In ARM/Thumb-2 state a valid address for non-offset loads/stores of
   quad-word values in four ARM registers."
  (and (match_code "mem")
-      (match_test "TARGET_32BIT && neon_vector_mem_operand (op, TRUE)")))
+      (match_test "TARGET_32BIT && neon_vector_mem_operand (op, 1)")))
 
 (define_memory_constraint "Uq"
  "@internal
   In ARM state an address valid in ldrsb instructions."
  (and (match_code "mem")
       (match_test "TARGET_ARM
-		   && arm_legitimate_address_p (GET_MODE (op), XEXP (op, 0),
-						SIGN_EXTEND, 0)")))
+		   && arm_legitimate_address_outer_p (GET_MODE (op), XEXP (op, 0),
+						      SIGN_EXTEND, 0)")))
 
 (define_memory_constraint "Q"
  "@internal

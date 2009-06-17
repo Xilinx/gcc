@@ -1,5 +1,5 @@
 /* Subroutines for the C front end on the POWER and PowerPC architectures.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    Contributed by Zack Weinberg <zack@codesourcery.com>
@@ -91,6 +91,7 @@ static GTY(()) tree __pixel_keyword;
 static GTY(()) tree pixel_keyword;
 static GTY(()) tree __bool_keyword;
 static GTY(()) tree bool_keyword;
+static GTY(()) tree _Bool_keyword;
 
 /* Preserved across calls.  */
 static tree expand_bool_pixel;
@@ -100,7 +101,7 @@ altivec_categorize_keyword (const cpp_token *tok)
 {
   if (tok->type == CPP_NAME)
     {
-      cpp_hashnode *ident = tok->val.node;
+      cpp_hashnode *ident = tok->val.node.node;
 
       if (ident == C_CPP_HASHNODE (vector_keyword))
 	return C_CPP_HASHNODE (__vector_keyword);
@@ -109,6 +110,9 @@ altivec_categorize_keyword (const cpp_token *tok)
 	return C_CPP_HASHNODE (__pixel_keyword);
 
       if (ident == C_CPP_HASHNODE (bool_keyword))
+	return C_CPP_HASHNODE (__bool_keyword);
+
+      if (ident == C_CPP_HASHNODE (_Bool_keyword))
 	return C_CPP_HASHNODE (__bool_keyword);
 
       return ident;
@@ -141,6 +145,9 @@ init_vector_keywords (void)
 
   bool_keyword = get_identifier ("bool");
   C_CPP_HASHNODE (bool_keyword)->flags |= NODE_CONDITIONAL;
+
+  _Bool_keyword = get_identifier ("_Bool");
+  C_CPP_HASHNODE (_Bool_keyword)->flags |= NODE_CONDITIONAL;
 }
 
 /* Called to decide whether a conditional macro should be expanded.
@@ -150,7 +157,7 @@ init_vector_keywords (void)
 static cpp_hashnode *
 rs6000_macro_to_expand (cpp_reader *pfile, const cpp_token *tok)
 {
-  cpp_hashnode *expand_this = tok->val.node;
+  cpp_hashnode *expand_this = tok->val.node.node;
   cpp_hashnode *ident;
 
   ident = altivec_categorize_keyword (tok);
@@ -188,7 +195,19 @@ rs6000_macro_to_expand (cpp_reader *pfile, const cpp_token *tok)
 		tok = cpp_peek_token (pfile, idx++);
 	      while (tok->type == CPP_PADDING);
 	      ident = altivec_categorize_keyword (tok);
-	      if (ident)
+	      if (ident == C_CPP_HASHNODE (__pixel_keyword))
+		{
+		  expand_this = C_CPP_HASHNODE (__vector_keyword);
+		  expand_bool_pixel = __pixel_keyword;
+		  rid_code = RID_MAX;
+		}
+	      else if (ident == C_CPP_HASHNODE (__bool_keyword))
+		{
+		  expand_this = C_CPP_HASHNODE (__vector_keyword);
+		  expand_bool_pixel = __bool_keyword;
+		  rid_code = RID_MAX;
+		}
+	      else if (ident)
 		rid_code = (enum rid)(ident->rid_code);
 	    }
 
@@ -283,6 +302,7 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
 	  builtin_define ("vector=vector");
 	  builtin_define ("pixel=pixel");
 	  builtin_define ("bool=bool");
+	  builtin_define ("_Bool=_Bool");
 	  init_vector_keywords ();
 
 	  /* Enable context-sensitive macros.  */
@@ -335,6 +355,26 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
   /* Let the compiled code know if 'f' class registers will not be available.  */
   if (TARGET_SOFT_FLOAT || !TARGET_FPRS)
     builtin_define ("__NO_FPRS__");
+
+  /* Generate defines for Xilinx FPU. */
+  if (rs6000_xilinx_fpu) 
+    {
+      builtin_define ("_XFPU");
+      if (rs6000_single_float && ! rs6000_double_float)
+	{
+	  if (rs6000_simple_fpu) 
+	    builtin_define ("_XFPU_SP_LITE"); 
+	  else 
+	    builtin_define ("_XFPU_SP_FULL");
+	}
+      if (rs6000_double_float)
+	{
+	  if (rs6000_simple_fpu) 
+	    builtin_define ("_XFPU_DP_LITE");
+	  else
+	    builtin_define ("_XFPU_DP_FULL");
+        }
+    }
 }
 
 
@@ -2852,7 +2892,7 @@ const struct altivec_builtin_types altivec_overloaded_builtins[] = {
   { ALTIVEC_BUILTIN_VCMPGE_P, ALTIVEC_BUILTIN_VCMPGEFP_P,
     RS6000_BTI_INTSI, RS6000_BTI_INTSI, RS6000_BTI_V4SF, RS6000_BTI_V4SF },
 
-  { 0, 0, 0, 0, 0, 0 }
+  { (enum rs6000_builtins) 0, (enum rs6000_builtins) 0, 0, 0, 0, 0 }
 };
 
 
@@ -2961,13 +3001,16 @@ altivec_build_resolved_builtin (tree *args, int n,
    support Altivec's overloaded builtins.  */
 
 tree
-altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
+altivec_resolve_overloaded_builtin (location_t loc, tree fndecl,
+				    void *passed_arglist)
 {
+  VEC(tree,gc) *arglist = (VEC(tree,gc) *) passed_arglist;
+  unsigned int nargs = VEC_length (tree, arglist);
   unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
   tree fnargs = TYPE_ARG_TYPES (TREE_TYPE (fndecl));
   tree types[3], args[3];
   const struct altivec_builtin_types *desc;
-  int n;
+  unsigned int n;
 
   if (fcode < ALTIVEC_BUILTIN_OVERLOADED_FIRST
       || fcode > ALTIVEC_BUILTIN_OVERLOADED_LAST)
@@ -2984,33 +3027,27 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
       VEC(constructor_elt,gc) *vec;
       const char *name = fcode == ALTIVEC_BUILTIN_VEC_SPLATS ? "vec_splats": "vec_promote";
 
-      if (!arglist)
+      if (nargs == 0)
 	{
 	  error ("%s only accepts %d arguments", name, (fcode == ALTIVEC_BUILTIN_VEC_PROMOTE)+1 );
 	  return error_mark_node;
 	}
-      if (fcode == ALTIVEC_BUILTIN_VEC_SPLATS && TREE_CHAIN (arglist))
+      if (fcode == ALTIVEC_BUILTIN_VEC_SPLATS && nargs != 1)
 	{
 	  error ("%s only accepts 1 argument", name);
 	  return error_mark_node;
 	}
-      if (fcode == ALTIVEC_BUILTIN_VEC_PROMOTE && !TREE_CHAIN (arglist))
+      if (fcode == ALTIVEC_BUILTIN_VEC_PROMOTE && nargs != 2)
 	{
 	  error ("%s only accepts 2 arguments", name);
 	  return error_mark_node;
 	}
       /* Ignore promote's element argument.  */
       if (fcode == ALTIVEC_BUILTIN_VEC_PROMOTE
-	  && TREE_CHAIN (TREE_CHAIN (arglist)))
-	{
-	  error ("%s only accepts 2 arguments", name);
-	  return error_mark_node;
-	}
-      if (fcode == ALTIVEC_BUILTIN_VEC_PROMOTE
-	  && !INTEGRAL_TYPE_P (TREE_TYPE (TREE_VALUE (TREE_CHAIN (arglist)))))
+	  && !INTEGRAL_TYPE_P (TREE_TYPE (VEC_index (tree, arglist, 1))))
 	goto bad;
 
-      arg = TREE_VALUE (arglist);
+      arg = VEC_index (tree, arglist, 0);
       type = TREE_TYPE (arg);
       if (!SCALAR_FLOAT_TYPE_P (type)
 	  && !INTEGRAL_TYPE_P (type))
@@ -3061,15 +3098,14 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
       tree innerptrtype;
 
       /* No second argument. */
-      if (!arglist || !TREE_CHAIN (arglist)
-	  || TREE_CHAIN (TREE_CHAIN (arglist)))
+      if (nargs != 2)
 	{
 	  error ("vec_extract only accepts 2 arguments");
 	  return error_mark_node;
 	}
 
-      arg2 = TREE_VALUE (TREE_CHAIN (arglist));
-      arg1 = TREE_VALUE (arglist);
+      arg2 = VEC_index (tree, arglist, 1);
+      arg1 = VEC_index (tree, arglist, 0);
       arg1_type = TREE_TYPE (arg1);
 
       if (TREE_CODE (arg1_type) != VECTOR_TYPE)
@@ -3078,11 +3114,11 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
 	goto bad; 
       /* Build *(((arg1_inner_type*)&(vector type){arg1})+arg2). */
       arg1_inner_type = TREE_TYPE (arg1_type);
-      arg2 = build_binary_op (input_location, BIT_AND_EXPR, arg2,
+      arg2 = build_binary_op (loc, BIT_AND_EXPR, arg2,
 			      build_int_cst (TREE_TYPE (arg2),
 					     TYPE_VECTOR_SUBPARTS (arg1_type)
 					     - 1), 0);
-      decl = build_decl (VAR_DECL, NULL_TREE, arg1_type);
+      decl = build_decl (loc, VAR_DECL, NULL_TREE, arg1_type);
       DECL_EXTERNAL (decl) = 0;
       TREE_PUBLIC (decl) = 0;
       DECL_CONTEXT (decl) = current_function_decl;
@@ -3092,15 +3128,15 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
       DECL_INITIAL (decl) = arg1;
       stmt = build1 (DECL_EXPR, arg1_type, decl);
       TREE_ADDRESSABLE (decl) = 1;
-      SET_EXPR_LOCATION (stmt, input_location);
+      SET_EXPR_LOCATION (stmt, loc);
       stmt = build1 (COMPOUND_LITERAL_EXPR, arg1_type, stmt);
 
       innerptrtype = build_pointer_type (arg1_inner_type);
 
-      stmt = build_unary_op (input_location, ADDR_EXPR, stmt, 0);
+      stmt = build_unary_op (loc, ADDR_EXPR, stmt, 0);
       stmt = convert (innerptrtype, stmt);
-      stmt = build_binary_op (input_location, PLUS_EXPR, stmt, arg2, 1);
-      stmt = build_indirect_ref (input_location, stmt, NULL);
+      stmt = build_binary_op (loc, PLUS_EXPR, stmt, arg2, 1);
+      stmt = build_indirect_ref (loc, stmt, NULL);
 
       return stmt;
     }
@@ -3117,18 +3153,16 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
       tree innerptrtype;
       
       /* No second or third arguments. */
-      if (!arglist || !TREE_CHAIN (arglist)
-	  || !TREE_CHAIN (TREE_CHAIN (arglist))
-	  || TREE_CHAIN (TREE_CHAIN (TREE_CHAIN (arglist))))
+      if (nargs != 3)
 	{
 	  error ("vec_insert only accepts 3 arguments");
 	  return error_mark_node;
 	}
 
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      arg0 = VEC_index (tree, arglist, 0);
+      arg1 = VEC_index (tree, arglist, 1);
       arg1_type = TREE_TYPE (arg1);
-      arg2 = TREE_VALUE (TREE_CHAIN (TREE_CHAIN (arglist)));
+      arg2 = VEC_index (tree, arglist, 2);
 
       if (TREE_CODE (arg1_type) != VECTOR_TYPE)
 	goto bad; 
@@ -3136,11 +3170,11 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
 	goto bad; 
       /* Build *(((arg1_inner_type*)&(vector type){arg1})+arg2) = arg0. */
       arg1_inner_type = TREE_TYPE (arg1_type);
-      arg2 = build_binary_op (input_location, BIT_AND_EXPR, arg2,
+      arg2 = build_binary_op (loc, BIT_AND_EXPR, arg2,
 			      build_int_cst (TREE_TYPE (arg2),
 					     TYPE_VECTOR_SUBPARTS (arg1_type)
 					     - 1), 0);
-      decl = build_decl (VAR_DECL, NULL_TREE, arg1_type);
+      decl = build_decl (loc, VAR_DECL, NULL_TREE, arg1_type);
       DECL_EXTERNAL (decl) = 0;
       TREE_PUBLIC (decl) = 0;
       DECL_CONTEXT (decl) = current_function_decl;
@@ -3150,15 +3184,15 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
       DECL_INITIAL (decl) = arg1;
       stmt = build1 (DECL_EXPR, arg1_type, decl);
       TREE_ADDRESSABLE (decl) = 1;
-      SET_EXPR_LOCATION (stmt, input_location);
+      SET_EXPR_LOCATION (stmt, loc);
       stmt = build1 (COMPOUND_LITERAL_EXPR, arg1_type, stmt);
 
       innerptrtype = build_pointer_type (arg1_inner_type);
 
-      stmt = build_unary_op (input_location, ADDR_EXPR, stmt, 0);
+      stmt = build_unary_op (loc, ADDR_EXPR, stmt, 0);
       stmt = convert (innerptrtype, stmt);
-      stmt = build_binary_op (input_location, PLUS_EXPR, stmt, arg2, 1);
-      stmt = build_indirect_ref (input_location, stmt, NULL);
+      stmt = build_binary_op (loc, PLUS_EXPR, stmt, arg2, 1);
+      stmt = build_indirect_ref (loc, stmt, NULL);
       stmt = build2 (MODIFY_EXPR, TREE_TYPE (stmt), stmt,
 		     convert (TREE_TYPE (stmt), arg0));
       stmt = build2 (COMPOUND_EXPR, arg1_type, stmt, decl);
@@ -3166,11 +3200,11 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
     }
 
   for (n = 0;
-       !VOID_TYPE_P (TREE_VALUE (fnargs)) && arglist;
-       fnargs = TREE_CHAIN (fnargs), arglist = TREE_CHAIN (arglist), n++)
+       !VOID_TYPE_P (TREE_VALUE (fnargs)) && n < nargs;
+       fnargs = TREE_CHAIN (fnargs), n++)
     {
       tree decl_type = TREE_VALUE (fnargs);
-      tree arg = TREE_VALUE (arglist);
+      tree arg = VEC_index (tree, arglist, n);
       tree type;
 
       if (arg == error_mark_node)
@@ -3216,7 +3250,7 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
 
   /* If the number of arguments did not match the prototype, return NULL
      and the generic code will issue the appropriate error message.  */
-  if (!VOID_TYPE_P (TREE_VALUE (fnargs)) || arglist)
+  if (!VOID_TYPE_P (TREE_VALUE (fnargs)) || n < nargs)
     return NULL;
 
   if (n == 0)
@@ -3249,4 +3283,3 @@ altivec_resolve_overloaded_builtin (tree fndecl, tree arglist)
   error ("invalid parameter combination for AltiVec intrinsic");
   return error_mark_node;
 }
-

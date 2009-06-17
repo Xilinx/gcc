@@ -1059,7 +1059,7 @@ L2:     .word STATIC
 #define CONSTANT_ADDRESS_P(X)   \
   (    GET_CODE (X) == LABEL_REF  \
    ||  GET_CODE (X) == SYMBOL_REF \
-   ||  GET_CODE (X) == CONST_INT  \
+   ||  CONST_INT_P (X)  \
    || (GET_CODE (X) == CONST      \
        && ! (flag_pic && ! m32r_legitimate_pic_operand_p (X))))
 
@@ -1073,7 +1073,7 @@ L2:     .word STATIC
   (! (GET_CODE (X) == CONST						\
       && GET_CODE (XEXP (X, 0)) == PLUS					\
       && (GET_CODE (XEXP (XEXP (X, 0), 0)) == SYMBOL_REF || GET_CODE (XEXP (XEXP (X, 0), 0)) == LABEL_REF) \
-      && GET_CODE (XEXP (XEXP (X, 0), 1)) == CONST_INT			\
+      && CONST_INT_P (XEXP (XEXP (X, 0), 1))			\
       && (unsigned HOST_WIDE_INT) INTVAL (XEXP (XEXP (X, 0), 1)) > 32767))
 
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
@@ -1120,7 +1120,7 @@ L2:     .word STATIC
 
 /* Local to this file.  */
 #define RTX_OK_FOR_OFFSET_P(X) \
-  (GET_CODE (X) == CONST_INT && INT16_P (INTVAL (X)))
+  (CONST_INT_P (X) && INT16_P (INTVAL (X)))
 
 /* Local to this file.  */
 #define LEGITIMATE_OFFSET_ADDRESS_P(MODE, X)			\
@@ -1142,7 +1142,7 @@ L2:     .word STATIC
 #define LOAD_POSTINC_P(MODE, X)					\
   (((MODE) == SImode || (MODE) == SFmode)			\
    && GET_CODE (X) == POST_INC					\
-   && GET_CODE (XEXP (X, 0)) == REG				\
+   && REG_P (XEXP (X, 0))				\
    && RTX_OK_FOR_BASE_P (XEXP (X, 0)))
 
 /* Local to this file.  */
@@ -1150,7 +1150,7 @@ L2:     .word STATIC
 #define STORE_PREINC_PREDEC_P(MODE, X)				\
   (((MODE) == SImode || (MODE) == SFmode)			\
    && (GET_CODE (X) == PRE_INC || GET_CODE (X) == PRE_DEC)	\
-   && GET_CODE (XEXP (X, 0)) == REG				\
+   && REG_P (XEXP (X, 0))				\
    && RTX_OK_FOR_BASE_P (XEXP (X, 0)))
 
 #define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)			\
@@ -1167,29 +1167,6 @@ L2:     .word STATIC
       if (STORE_PREINC_PREDEC_P ((MODE), (X)))			\
 	goto ADDR;						\
     }								\
-  while (0)
-
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
-   It is always safe for this macro to do nothing.  It exists to recognize
-   opportunities to optimize the output.  */
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)			 \
-  do								 \
-    {								 \
-      if (flag_pic)						 \
-	(X) = m32r_legitimize_pic_address (X, NULL_RTX);	 \
-      if (memory_address_p (MODE, X))				 \
-	goto WIN;						 \
-    }								 \
   while (0)
 
 /* Go to LABEL if ADDR (a legitimate address expression)
@@ -1518,12 +1495,6 @@ extern char m32r_punct_chars[256];
 /* A function address in a call instruction.  */
 #define FUNCTION_MODE SImode
 
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  Note that we can't use "rtx" here
-   since it hasn't been defined!  */
-extern struct rtx_def * m32r_compare_op0;
-extern struct rtx_def * m32r_compare_op1;
-
 /* M32R function types.  */
 enum m32r_function_type
 {

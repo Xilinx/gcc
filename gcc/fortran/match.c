@@ -1306,7 +1306,7 @@ gfc_match_assignment (void)
   gfc_set_sym_referenced (lvalue->symtree->n.sym);
 
   new_st.op = EXEC_ASSIGN;
-  new_st.expr = lvalue;
+  new_st.expr1 = lvalue;
   new_st.expr2 = rvalue;
 
   gfc_check_do_variable (lvalue->symtree);
@@ -1336,7 +1336,8 @@ gfc_match_pointer_assignment (void)
       goto cleanup;
     }
 
-  if (lvalue->symtree->n.sym->attr.proc_pointer)
+  if (lvalue->symtree->n.sym->attr.proc_pointer
+      || is_proc_ptr_comp (lvalue, NULL))
     gfc_matching_procptr_assignment = 1;
 
   m = gfc_match (" %e%t", &rvalue);
@@ -1345,7 +1346,7 @@ gfc_match_pointer_assignment (void)
     goto cleanup;
 
   new_st.op = EXEC_POINTER_ASSIGN;
-  new_st.expr = lvalue;
+  new_st.expr1 = lvalue;
   new_st.expr2 = rvalue;
 
   return MATCH_YES;
@@ -1387,8 +1388,8 @@ match_arithmetic_if (void)
     return MATCH_ERROR;
 
   new_st.op = EXEC_ARITHMETIC_IF;
-  new_st.expr = expr;
-  new_st.label = l1;
+  new_st.expr1 = expr;
+  new_st.label1 = l1;
   new_st.label2 = l2;
   new_st.label3 = l3;
 
@@ -1468,8 +1469,8 @@ gfc_match_if (gfc_statement *if_type)
 	return MATCH_ERROR;
 
       new_st.op = EXEC_ARITHMETIC_IF;
-      new_st.expr = expr;
-      new_st.label = l1;
+      new_st.expr1 = expr;
+      new_st.label1 = l1;
       new_st.label2 = l2;
       new_st.label3 = l3;
 
@@ -1480,7 +1481,7 @@ gfc_match_if (gfc_statement *if_type)
   if (gfc_match (" then%t") == MATCH_YES)
     {
       new_st.op = EXEC_IF;
-      new_st.expr = expr;
+      new_st.expr1 = expr;
       *if_type = ST_IF_BLOCK;
       return MATCH_YES;
     }
@@ -1600,7 +1601,7 @@ got_match:
   *p->next = new_st;
   p->next->loc = gfc_current_locus;
 
-  p->expr = expr;
+  p->expr1 = expr;
   p->op = EXEC_IF;
 
   gfc_clear_new_st ();
@@ -1676,7 +1677,7 @@ gfc_match_elseif (void)
 
 done:
   new_st.op = EXEC_IF;
-  new_st.expr = expr;
+  new_st.expr1 = expr;
   return MATCH_YES;
 
 cleanup:
@@ -1788,10 +1789,10 @@ done:
       && gfc_reference_st_label (label, ST_LABEL_TARGET) == FAILURE)
     goto cleanup;
 
-  new_st.label = label;
+  new_st.label1 = label;
 
   if (new_st.op == EXEC_DO_WHILE)
-    new_st.expr = iter.end;
+    new_st.expr1 = iter.end;
   else
     {
       new_st.ext.iterator = ip = gfc_get_iterator ();
@@ -1951,7 +1952,7 @@ gfc_match_stopcode (gfc_statement st)
     }
 
   new_st.op = st == ST_STOP ? EXEC_STOP : EXEC_PAUSE;
-  new_st.expr = e;
+  new_st.expr1 = e;
   new_st.ext.stop_code = stop_code;
 
   return MATCH_YES;
@@ -2032,8 +2033,8 @@ gfc_match_assign (void)
 	  expr->symtree->n.sym->attr.assign = 1;
 
 	  new_st.op = EXEC_LABEL_ASSIGN;
-	  new_st.label = label;
-	  new_st.expr = expr;
+	  new_st.label1 = label;
+	  new_st.expr1 = expr;
 	  return MATCH_YES;
 	}
     }
@@ -2062,7 +2063,7 @@ gfc_match_goto (void)
 	return MATCH_ERROR;
 
       new_st.op = EXEC_GOTO;
-      new_st.label = label;
+      new_st.label1 = label;
       return MATCH_YES;
     }
 
@@ -2076,7 +2077,7 @@ gfc_match_goto (void)
 	return MATCH_ERROR;
 
       new_st.op = EXEC_GOTO;
-      new_st.expr = expr;
+      new_st.expr1 = expr;
 
       if (gfc_match_eos () == MATCH_YES)
 	return MATCH_YES;
@@ -2107,7 +2108,7 @@ gfc_match_goto (void)
 	      tail = tail->block;
 	    }
 
-	  tail->label = label;
+	  tail->label1 = label;
 	  tail->op = EXEC_GOTO;
 	}
       while (gfc_match_char (',') == MATCH_YES);
@@ -2160,7 +2161,7 @@ gfc_match_goto (void)
 
       tail->next = gfc_get_code ();
       tail->next->op = EXEC_GOTO;
-      tail->next->label = label;
+      tail->next->label1 = label;
     }
   while (gfc_match_char (',') == MATCH_YES);
 
@@ -2183,7 +2184,7 @@ gfc_match_goto (void)
      equivalent SELECT statement constructed.  */
 
   new_st.op = EXEC_SELECT;
-  new_st.expr = NULL;
+  new_st.expr1 = NULL;
 
   /* Hack: For a "real" SELECT, the expression is in expr. We put
      it in expr2 so we can distinguish then and produce the correct
@@ -2222,11 +2223,13 @@ match
 gfc_match_allocate (void)
 {
   gfc_alloc *head, *tail;
-  gfc_expr *stat;
+  gfc_expr *stat, *errmsg, *tmp;
   match m;
+  bool saw_stat, saw_errmsg;
 
   head = tail = NULL;
-  stat = NULL;
+  stat = errmsg = tmp = NULL;
+  saw_stat = saw_errmsg = false;
 
   if (gfc_match_char ('(') != MATCH_YES)
     goto syntax;
@@ -2250,35 +2253,92 @@ gfc_match_allocate (void)
       if (gfc_check_do_variable (tail->expr->symtree))
 	goto cleanup;
 
-      if (gfc_pure (NULL)
-	  && gfc_impure_variable (tail->expr->symtree->n.sym))
+      if (gfc_pure (NULL) && gfc_impure_variable (tail->expr->symtree->n.sym))
 	{
-	  gfc_error ("Bad allocate-object in ALLOCATE statement at %C for a "
-		     "PURE procedure");
+	  gfc_error ("Bad allocate-object at %C for a PURE procedure");
 	  goto cleanup;
 	}
 
       if (tail->expr->ts.type == BT_DERIVED)
 	tail->expr->ts.derived = gfc_use_derived (tail->expr->ts.derived);
 
+      /* FIXME: disable the checking on derived types and arrays.  */
+      if (!(tail->expr->ref
+	   && (tail->expr->ref->type == REF_COMPONENT
+	       || tail->expr->ref->type == REF_ARRAY)) 
+	  && tail->expr->symtree->n.sym
+	  && !(tail->expr->symtree->n.sym->attr.allocatable
+	       || tail->expr->symtree->n.sym->attr.pointer
+	       || tail->expr->symtree->n.sym->attr.proc_pointer))
+	{
+	  gfc_error ("Allocate-object at %C is not a nonprocedure pointer "
+		     "or an allocatable variable");
+	  goto cleanup;
+	}
+
       if (gfc_match_char (',') != MATCH_YES)
 	break;
 
-      m = gfc_match (" stat = %v", &stat);
+alloc_opt_list:
+
+      m = gfc_match (" stat = %v", &tmp);
       if (m == MATCH_ERROR)
 	goto cleanup;
       if (m == MATCH_YES)
-	break;
+	{
+	  if (saw_stat)
+	    {
+	      gfc_error ("Redundant STAT tag found at %L ", &tmp->where);
+	      gfc_free_expr (tmp);
+	      goto cleanup;
+	    }
+
+	  stat = tmp;
+	  saw_stat = true;
+
+	  if (gfc_check_do_variable (stat->symtree))
+	    goto cleanup;
+
+	  if (gfc_match_char (',') == MATCH_YES)
+	    goto alloc_opt_list;
+	}
+
+      m = gfc_match (" errmsg = %v", &tmp);
+      if (m == MATCH_ERROR)
+	goto cleanup;
+      if (m == MATCH_YES)
+	{
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ERRMSG at %L",
+			      &tmp->where) == FAILURE)
+	    goto cleanup;
+
+	  if (saw_errmsg)
+	    {
+	      gfc_error ("Redundant ERRMSG tag found at %L ", &tmp->where);
+	      gfc_free_expr (tmp);
+	      goto cleanup;
+	    }
+
+	  errmsg = tmp;
+	  saw_errmsg = true;
+
+	  if (gfc_match_char (',') == MATCH_YES)
+	    goto alloc_opt_list;
+	}
+
+	gfc_gobble_whitespace ();
+
+	if (gfc_peek_char () == ')')
+	  break;
     }
 
-  if (stat != NULL)
-    gfc_check_do_variable(stat->symtree);
 
   if (gfc_match (" )%t") != MATCH_YES)
     goto syntax;
 
   new_st.op = EXEC_ALLOCATE;
-  new_st.expr = stat;
+  new_st.expr1 = stat;
+  new_st.expr2 = errmsg;
   new_st.ext.alloc_list = head;
 
   return MATCH_YES;
@@ -2287,6 +2347,7 @@ syntax:
   gfc_syntax_error (ST_ALLOCATE);
 
 cleanup:
+  gfc_free_expr (errmsg);
   gfc_free_expr (stat);
   gfc_free_alloc_list (head);
   return MATCH_ERROR;
@@ -2341,7 +2402,7 @@ gfc_match_nullify (void)
 	}
 
       tail->op = EXEC_POINTER_ASSIGN;
-      tail->expr = p;
+      tail->expr1 = p;
       tail->expr2 = e;
 
       if (gfc_match (" )%t") == MATCH_YES)
@@ -2357,6 +2418,11 @@ syntax:
 
 cleanup:
   gfc_free_statements (new_st.next);
+  new_st.next = NULL;
+  gfc_free_expr (new_st.expr1);
+  new_st.expr1 = NULL;
+  gfc_free_expr (new_st.expr2);
+  new_st.expr2 = NULL;
   return MATCH_ERROR;
 }
 
@@ -2367,11 +2433,13 @@ match
 gfc_match_deallocate (void)
 {
   gfc_alloc *head, *tail;
-  gfc_expr *stat;
+  gfc_expr *stat, *errmsg, *tmp;
   match m;
+  bool saw_stat, saw_errmsg;
 
   head = tail = NULL;
-  stat = NULL;
+  stat = errmsg = tmp = NULL;
+  saw_stat = saw_errmsg = false;
 
   if (gfc_match_char ('(') != MATCH_YES)
     goto syntax;
@@ -2395,32 +2463,88 @@ gfc_match_deallocate (void)
       if (gfc_check_do_variable (tail->expr->symtree))
 	goto cleanup;
 
-      if (gfc_pure (NULL)
-	  && gfc_impure_variable (tail->expr->symtree->n.sym))
+      if (gfc_pure (NULL) && gfc_impure_variable (tail->expr->symtree->n.sym))
 	{
-	  gfc_error ("Illegal deallocate-expression in DEALLOCATE at %C "
-		     "for a PURE procedure");
+	  gfc_error ("Illegal allocate-object at %C for a PURE procedure");
+	  goto cleanup;
+	}
+
+      /* FIXME: disable the checking on derived types.  */
+      if (!(tail->expr->ref
+	   && (tail->expr->ref->type == REF_COMPONENT
+	       || tail->expr->ref->type == REF_ARRAY)) 
+	  && tail->expr->symtree->n.sym
+	  && !(tail->expr->symtree->n.sym->attr.allocatable
+	       || tail->expr->symtree->n.sym->attr.pointer
+	       || tail->expr->symtree->n.sym->attr.proc_pointer))
+	{
+	  gfc_error ("Allocate-object at %C is not a nonprocedure pointer "
+		     "or an allocatable variable");
 	  goto cleanup;
 	}
 
       if (gfc_match_char (',') != MATCH_YES)
 	break;
 
-      m = gfc_match (" stat = %v", &stat);
+dealloc_opt_list:
+
+      m = gfc_match (" stat = %v", &tmp);
       if (m == MATCH_ERROR)
 	goto cleanup;
       if (m == MATCH_YES)
-	break;
-    }
+	{
+	  if (saw_stat)
+	    {
+	      gfc_error ("Redundant STAT tag found at %L ", &tmp->where);
+	      gfc_free_expr (tmp);
+	      goto cleanup;
+	    }
 
-  if (stat != NULL)
-    gfc_check_do_variable(stat->symtree);
+	  stat = tmp;
+	  saw_stat = true;
+
+	  if (gfc_check_do_variable (stat->symtree))
+	    goto cleanup;
+
+	  if (gfc_match_char (',') == MATCH_YES)
+	    goto dealloc_opt_list;
+	}
+
+      m = gfc_match (" errmsg = %v", &tmp);
+      if (m == MATCH_ERROR)
+	goto cleanup;
+      if (m == MATCH_YES)
+	{
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ERRMSG at %L",
+			      &tmp->where) == FAILURE)
+	    goto cleanup;
+
+	  if (saw_errmsg)
+	    {
+	      gfc_error ("Redundant ERRMSG tag found at %L ", &tmp->where);
+	      gfc_free_expr (tmp);
+	      goto cleanup;
+	    }
+
+	  errmsg = tmp;
+	  saw_errmsg = true;
+
+	  if (gfc_match_char (',') == MATCH_YES)
+	    goto dealloc_opt_list;
+	}
+
+	gfc_gobble_whitespace ();
+
+	if (gfc_peek_char () == ')')
+	  break;
+    }
 
   if (gfc_match (" )%t") != MATCH_YES)
     goto syntax;
 
   new_st.op = EXEC_DEALLOCATE;
-  new_st.expr = stat;
+  new_st.expr1 = stat;
+  new_st.expr2 = errmsg;
   new_st.ext.alloc_list = head;
 
   return MATCH_YES;
@@ -2429,6 +2553,7 @@ syntax:
   gfc_syntax_error (ST_DEALLOCATE);
 
 cleanup:
+  gfc_free_expr (errmsg);
   gfc_free_expr (stat);
   gfc_free_alloc_list (head);
   return MATCH_ERROR;
@@ -2486,7 +2611,7 @@ done:
       return MATCH_ERROR;
 
   new_st.op = EXEC_RETURN;
-  new_st.expr = e;
+  new_st.expr1 = e;
 
   return MATCH_YES;
 }
@@ -2510,7 +2635,7 @@ match_typebound_call (gfc_symtree* varst)
   base->where = gfc_current_locus;
   gfc_set_sym_referenced (varst->n.sym);
   
-  m = gfc_match_varspec (base, 0, true);
+  m = gfc_match_varspec (base, 0, true, true);
   if (m == MATCH_NO)
     gfc_error ("Expected component reference at %C");
   if (m != MATCH_YES)
@@ -2522,14 +2647,17 @@ match_typebound_call (gfc_symtree* varst)
       return MATCH_ERROR;
     }
 
-  if (base->expr_type != EXPR_COMPCALL)
+  if (base->expr_type == EXPR_COMPCALL)
+    new_st.op = EXEC_COMPCALL;
+  else if (base->expr_type == EXPR_PPC)
+    new_st.op = EXEC_CALL_PPC;
+  else
     {
-      gfc_error ("Expected type-bound procedure reference at %C");
+      gfc_error ("Expected type-bound procedure or procedure pointer component "
+		 "at %C");
       return MATCH_ERROR;
     }
-
-  new_st.op = EXEC_COMPCALL;
-  new_st.expr = base;
+  new_st.expr1 = base;
 
   return MATCH_YES;
 }
@@ -2632,11 +2760,11 @@ gfc_match_call (void)
       select_sym->ts.type = BT_INTEGER;
       select_sym->ts.kind = gfc_default_integer_kind;
       gfc_set_sym_referenced (select_sym);
-      c->expr = gfc_get_expr ();
-      c->expr->expr_type = EXPR_VARIABLE;
-      c->expr->symtree = select_st;
-      c->expr->ts = select_sym->ts;
-      c->expr->where = gfc_current_locus;
+      c->expr1 = gfc_get_expr ();
+      c->expr1->expr_type = EXPR_VARIABLE;
+      c->expr1->symtree = select_st;
+      c->expr1->ts = select_sym->ts;
+      c->expr1->where = gfc_current_locus;
 
       i = 0;
       for (a = arglist; a; a = a->next)
@@ -2659,7 +2787,7 @@ gfc_match_call (void)
 
 	  c->next = gfc_get_code ();
 	  c->next->op = EXEC_GOTO;
-	  c->next->label = a->label;
+	  c->next->label1 = a->label;
 	}
     }
 
@@ -3532,7 +3660,7 @@ gfc_match_select (void)
     return m;
 
   new_st.op = EXEC_SELECT;
-  new_st.expr = expr;
+  new_st.expr1 = expr;
 
   return MATCH_YES;
 }
@@ -3637,7 +3765,7 @@ match_simple_where (void)
   c = gfc_get_code ();
 
   c->op = EXEC_WHERE;
-  c->expr = expr;
+  c->expr1 = expr;
   c->next = gfc_get_code ();
 
   *c->next = new_st;
@@ -3678,7 +3806,7 @@ gfc_match_where (gfc_statement *st)
     {
       *st = ST_WHERE_BLOCK;
       new_st.op = EXEC_WHERE;
-      new_st.expr = expr;
+      new_st.expr1 = expr;
       return MATCH_YES;
     }
 
@@ -3697,7 +3825,7 @@ gfc_match_where (gfc_statement *st)
   c = gfc_get_code ();
 
   c->op = EXEC_WHERE;
-  c->expr = expr;
+  c->expr1 = expr;
   c->next = gfc_get_code ();
 
   *c->next = new_st;
@@ -3767,7 +3895,7 @@ gfc_match_elsewhere (void)
     }
 
   new_st.op = EXEC_WHERE;
-  new_st.expr = expr;
+  new_st.expr1 = expr;
   return MATCH_YES;
 
 syntax:
@@ -3984,7 +4112,7 @@ match_simple_forall (void)
 
   gfc_clear_new_st ();
   new_st.op = EXEC_FORALL;
-  new_st.expr = mask;
+  new_st.expr1 = mask;
   new_st.ext.forall_iterator = head;
   new_st.block = gfc_get_code ();
 
@@ -4036,7 +4164,7 @@ gfc_match_forall (gfc_statement *st)
     {
       *st = ST_FORALL_BLOCK;
       new_st.op = EXEC_FORALL;
-      new_st.expr = mask;
+      new_st.expr1 = mask;
       new_st.ext.forall_iterator = head;
       return MATCH_YES;
     }
@@ -4059,7 +4187,7 @@ gfc_match_forall (gfc_statement *st)
 
   gfc_clear_new_st ();
   new_st.op = EXEC_FORALL;
-  new_st.expr = mask;
+  new_st.expr1 = mask;
   new_st.ext.forall_iterator = head;
   new_st.block = gfc_get_code ();
   new_st.block->op = EXEC_FORALL;

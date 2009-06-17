@@ -1,5 +1,5 @@
 /* Name mangling for the 3.0 C++ ABI.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Written by Alex Samuel <samuel@codesourcery.com>
 
@@ -90,8 +90,7 @@ along with GCC; see the file COPYING3.  If not see
 	   && (PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (NODE))))))
 
 /* Things we only need one of.  This module is not reentrant.  */
-typedef struct globals GTY(())
-{
+typedef struct GTY(()) globals {
   /* An array of the current substitution candidates, in the order
      we've seen them.  */
   VEC(tree,gc) *substitutions;
@@ -339,9 +338,14 @@ canonicalize_for_substitution (tree node)
   /* For a TYPE_DECL, use the type instead.  */
   if (TREE_CODE (node) == TYPE_DECL)
     node = TREE_TYPE (node);
-  if (TYPE_P (node))
-    node = canonical_type_variant (node);
-
+  if (TYPE_P (node)
+      && TYPE_CANONICAL (node) != node
+      && TYPE_MAIN_VARIANT (node) != node)
+      /* Here we want to strip the topmost typedef only.
+         We need to do that so is_std_substitution can do proper
+         name matching.  */
+    node = cp_build_qualified_type (TYPE_MAIN_VARIANT (node),
+                                    cp_type_quals (node));
   return node;
 }
 
@@ -1598,6 +1602,7 @@ write_type (tree type)
 	    case BOOLEAN_TYPE:
 	    case INTEGER_TYPE:  /* Includes wchar_t.  */
 	    case REAL_TYPE:
+	    case FIXED_POINT_TYPE:
 	      {
 		/* If this is a typedef, TYPE may not be one of
 		   the standard builtin type nodes, but an alias of one.  Use
@@ -1679,7 +1684,9 @@ write_type (tree type)
                 write_char ('t');
               else
                 write_char ('T');
+	      ++cp_unevaluated_operand;
               write_expression (DECLTYPE_TYPE_EXPR (type));
+	      --cp_unevaluated_operand;
               write_char ('E');
               break;
 
@@ -1850,6 +1857,59 @@ write_builtin_type (tree type)
 	write_char ('e');
       else
 	gcc_unreachable ();
+      break;
+
+    case FIXED_POINT_TYPE:
+      write_string ("DF");
+      if (GET_MODE_IBIT (TYPE_MODE (type)) > 0)
+	write_unsigned_number (GET_MODE_IBIT (TYPE_MODE (type)));
+      if (type == fract_type_node
+	  || type == sat_fract_type_node
+	  || type == accum_type_node
+	  || type == sat_accum_type_node)
+	write_char ('i');
+      else if (type == unsigned_fract_type_node
+	       || type == sat_unsigned_fract_type_node
+	       || type == unsigned_accum_type_node
+	       || type == sat_unsigned_accum_type_node)
+	write_char ('j');
+      else if (type == short_fract_type_node
+	       || type == sat_short_fract_type_node
+	       || type == short_accum_type_node
+	       || type == sat_short_accum_type_node)
+	write_char ('s');
+      else if (type == unsigned_short_fract_type_node
+	       || type == sat_unsigned_short_fract_type_node
+	       || type == unsigned_short_accum_type_node
+	       || type == sat_unsigned_short_accum_type_node)
+	write_char ('t');
+      else if (type == long_fract_type_node
+	       || type == sat_long_fract_type_node
+	       || type == long_accum_type_node
+	       || type == sat_long_accum_type_node)
+	write_char ('l');
+      else if (type == unsigned_long_fract_type_node
+	       || type == sat_unsigned_long_fract_type_node
+	       || type == unsigned_long_accum_type_node
+	       || type == sat_unsigned_long_accum_type_node)
+	write_char ('m');
+      else if (type == long_long_fract_type_node
+	       || type == sat_long_long_fract_type_node
+	       || type == long_long_accum_type_node
+	       || type == sat_long_long_accum_type_node)
+	write_char ('x');
+      else if (type == unsigned_long_long_fract_type_node
+	       || type == sat_unsigned_long_long_fract_type_node
+	       || type == unsigned_long_long_accum_type_node
+	       || type == sat_unsigned_long_long_accum_type_node)
+	write_char ('y');
+      else
+	sorry ("mangling unknown fixed point type");
+      write_unsigned_number (GET_MODE_FBIT (TYPE_MODE (type)));
+      if (TYPE_SATURATING (type))
+	write_char ('s');
+      else
+	write_char ('n');
       break;
 
     default:
@@ -2085,9 +2145,7 @@ write_member_name (tree member)
 static void
 write_expression (tree expr)
 {
-  enum tree_code code;
-
-  code = TREE_CODE (expr);
+  enum tree_code code = TREE_CODE (expr);
 
   /* Skip NOP_EXPRs.  They can occur when (say) a pointer argument
      is converted (via qualification conversions) to another
@@ -2102,12 +2160,6 @@ write_expression (tree expr)
   if (code == BASELINK)
     {
       expr = BASELINK_FUNCTIONS (expr);
-      code = TREE_CODE (expr);
-    }
-
-  if (code == OVERLOAD)
-    {
-      expr = OVL_FUNCTION (expr);
       code = TREE_CODE (expr);
     }
 
@@ -2135,10 +2187,12 @@ write_expression (tree expr)
     write_template_arg_literal (expr);
   else if (code == PARM_DECL)
     {
-      /* A function parameter used under decltype in a late-specified
-	 return type.  Represented with a type placeholder.  */
-      write_string ("sT");
-      write_type (non_reference (TREE_TYPE (expr)));
+      /* A function parameter used in a late-specified return type.  */
+      int index = parm_index (expr);
+      write_string ("fp");
+      if (index > 1)
+	write_unsigned_number (index - 2);
+      write_char ('_');
     }
   else if (DECL_P (expr))
     {
@@ -2154,6 +2208,12 @@ write_expression (tree expr)
 	   && TYPE_P (TREE_OPERAND (expr, 0)))
     {
       write_string ("st");
+      write_type (TREE_OPERAND (expr, 0));
+    }
+  else if (TREE_CODE (expr) == ALIGNOF_EXPR
+	   && TYPE_P (TREE_OPERAND (expr, 0)))
+    {
+      write_string ("at");
       write_type (TREE_OPERAND (expr, 0));
     }
   else if (abi_version_at_least (2) && TREE_CODE (expr) == SCOPE_REF)
@@ -2223,23 +2283,16 @@ write_expression (tree expr)
 	    write_template_args (template_args);
 	}
     }
-  else if (code == COMPONENT_REF)
+  else if (TREE_CODE (expr) == INDIRECT_REF
+	   && TREE_TYPE (TREE_OPERAND (expr, 0))
+	   && TREE_CODE (TREE_TYPE (TREE_OPERAND (expr, 0))) == REFERENCE_TYPE)
     {
-      tree ob = TREE_OPERAND (expr, 0);
-
-      if (TREE_CODE (ob) == ARROW_EXPR)
-	{
-	  code = ARROW_EXPR;
-	  ob = TREE_OPERAND (ob, 0);
-	}
-
-      write_string (operator_name_info[(int)code].mangled_name);
-      write_expression (ob);
-      write_member_name (TREE_OPERAND (expr, 1));
+      write_expression (TREE_OPERAND (expr, 0));
     }
   else
     {
       int i;
+      const char *name;
 
       /* When we bind a variable or function to a non-type template
 	 argument with reference type, we create an ADDR_EXPR to show
@@ -2259,13 +2312,55 @@ write_expression (tree expr)
 	  code = TREE_CODE (expr);
 	}
 
+      if (code == COMPONENT_REF)
+	{
+	  tree ob = TREE_OPERAND (expr, 0);
+
+	  if (TREE_CODE (ob) == ARROW_EXPR)
+	    {
+	      write_string (operator_name_info[(int)code].mangled_name);
+	      ob = TREE_OPERAND (ob, 0);
+	    }
+	  else
+	    write_string ("dt");
+
+	  write_expression (ob);
+	  write_member_name (TREE_OPERAND (expr, 1));
+	  return;
+	}
+
       /* If it wasn't any of those, recursively expand the expression.  */
-      write_string (operator_name_info[(int) code].mangled_name);
+      name = operator_name_info[(int) code].mangled_name;
+      if (name == NULL)
+	{
+	  sorry ("mangling %C", code);
+	  return;
+	}
+      else
+	write_string (name);	
 
       switch (code)
 	{
 	case CALL_EXPR:
-	  write_expression (CALL_EXPR_FN (expr));
+	  {
+	    tree fn = CALL_EXPR_FN (expr);
+
+	    if (TREE_CODE (fn) == ADDR_EXPR)
+	      fn = TREE_OPERAND (fn, 0);
+
+	    /* Mangle a dependent name as the name, not whatever happens to
+	       be the first function in the overload set.  */
+	    if ((TREE_CODE (fn) == FUNCTION_DECL
+		 || TREE_CODE (fn) == OVERLOAD)
+		&& type_dependent_expression_p_push (expr))
+	      fn = DECL_NAME (get_first_fn (fn));
+
+	    if (TREE_CODE (fn) == IDENTIFIER_NODE)
+	      write_source_name (fn);
+	    else
+	      write_expression (fn);
+	  }
+
 	  for (i = 0; i < call_expr_nargs (expr); ++i)
 	    write_expression (CALL_EXPR_ARG (expr, i));
 	  write_char ('E');
@@ -2273,21 +2368,27 @@ write_expression (tree expr)
 
 	case CAST_EXPR:
 	  write_type (TREE_TYPE (expr));
-	  if (!TREE_OPERAND (expr, 0))
-	    /* "T()" is mangled as "T(void)".  */
-	    write_char ('v');
-	  else if (list_length (TREE_OPERAND (expr, 0)) > 1)
-	    /* FIXME the above hack for T() needs to be replaced with
-	       something more general.  */
-	    sorry ("mangling function-style cast with more than one argument");
-	  else
+	  if (list_length (TREE_OPERAND (expr, 0)) == 1)	  
 	    write_expression (TREE_VALUE (TREE_OPERAND (expr, 0)));
+	  else
+	    {
+	      tree args = TREE_OPERAND (expr, 0);
+	      write_char ('_');
+	      for (; args; args = TREE_CHAIN (args))
+		write_expression (TREE_VALUE (args));
+	      write_char ('E');
+	    }
 	  break;
 
+	  /* FIXME these should have a distinct mangling.  */
 	case STATIC_CAST_EXPR:
 	case CONST_CAST_EXPR:
 	  write_type (TREE_TYPE (expr));
 	  write_expression (TREE_OPERAND (expr, 0));
+	  break;
+
+	case NEW_EXPR:
+	  sorry ("mangling new-expression");
 	  break;
 
 	/* Handle pointers-to-members specially.  */

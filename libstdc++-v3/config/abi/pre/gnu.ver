@@ -1,12 +1,12 @@
 ## Linker script for GNU versioning (GNU ld 2.13.91+ only.)
 ##
-## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 ## Free Software Foundation, Inc.
 ##
 ## This file is part of the GNU ISO C++ Library.  This library is free
 ## software; you can redistribute it and/or modify it under the
 ## terms of the GNU General Public License as published by the
-## Free Software Foundation; either version 2, or (at your option)
+## Free Software Foundation; either version 3, or (at your option)
 ## any later version.
 ##
 ## This library is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@
 ## GNU General Public License for more details.
 ##
 ## You should have received a copy of the GNU General Public License along
-## with this library; see the file COPYING.  If not, write to the Free
-## Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-## USA.
+## with this library; see the file COPYING3.  If not see
+## <http://www.gnu.org/licenses/>.
 
 GLIBCXX_3.4 {
 
@@ -403,8 +402,7 @@ GLIBCXX_3.4 {
     _ZNKSt9money_putI[cw]St19ostreambuf_iteratorI[cw]St11char_traitsI[cw]EEE*;
 
     # std::numeric_limits
-    # _ZNSt14numeric_limitsI[^g]*;
-    _ZNSt14numeric_limitsI[a-z]E*;
+    _ZNSt14numeric_limitsI[^g]E*;
 
     # std::_Rb_tree
     _ZSt18_Rb_tree_decrementPKSt18_Rb_tree_node_base;
@@ -637,9 +635,6 @@ GLIBCXX_3.4 {
     sqrtf;
     sqrtl;
     copysignf;
-    __signbit;
-    __signbitf;
-    __signbitl;
 
    # GLIBCXX_ABI compatibility only.
     # std::string
@@ -866,13 +861,11 @@ GLIBCXX_3.4.11 {
     # atomic
     __atomic_flag_for_address;
     __atomic_flag_wait_explicit;
-    atomic_flag_clear;
     atomic_flag_clear_explicit;
-    atomic_flag_fence;
-    atomic_flag_test_and_set;
     atomic_flag_test_and_set_explicit;
-    atomic_global_fence_compatibility;
-    
+    _ZNVSt9__atomic011atomic_flag12test_and_setESt12memory_order;
+    _ZNVSt9__atomic011atomic_flag5clearESt12memory_order;
+
     # mutex
     _ZSt10adopt_lock;
     _ZSt10defer_lock;
@@ -886,9 +879,7 @@ GLIBCXX_3.4.11 {
     _ZSt11__once_call;
     _ZSt15__once_callable;
     _ZSt14__once_functor;
-    _ZSt19__once_functor_lock;
-    _ZSt11__once_lock;
-    _ZSt12__once_mutex;
+    _ZSt23__get_once_functor_lockv;
     __once_proxy;
 
     # condition_variable
@@ -905,25 +896,13 @@ GLIBCXX_3.4.11 {
     _ZNSt22condition_variable_anyD2Ev;
 
     # thread
-    _ZNKSt6thread6get_idEv;
-    _ZNKSt6thread8joinableEv;
-    _ZNSt10shared_ptrISt18__thread_data_baseED1Ev;
-    _ZNSt11this_thread5yieldEv;
-    _ZNSt11this_thread6get_idEv;
-    _ZNSt12bad_weak_ptrD0Ev;
-    _ZNSt12bad_weak_ptrD1Ev;
-    _ZNSt6thread14__start_threadEv;
     _ZNSt6thread4joinEv;
-    _ZNSt6thread4swapEOS_;
     _ZNSt6thread6detachEv;
-    _ZNSt6threadC1Ev;
-    _ZNSt6threadC2Ev;
-    _ZNSt6threadD1Ev;
-    _ZNSt6threadD2Ev;
+    _ZNSt6thread15_M_start_threadESt10shared_ptrINS_10_Impl_baseEE;
 
     # system_error
-    _ZSt15system_category;
-    _ZSt16generic_category;
+    _ZSt15system_categoryv;
+    _ZSt16generic_categoryv;
 
     _ZNKSt10error_code23default_error_conditionEv;
     _ZNKSt14error_category23default_error_conditionEi;
@@ -943,11 +922,11 @@ GLIBCXX_3.4.11 {
 
     _ZNKSt4hashISt10error_codeEclES0_;
 
-    _ZSt20__throw_system_errorPKc;
     _ZSt20__throw_system_errori;
 
     # char16_t and char32_t
-    _ZNSt14numeric_limitsIu8char*;
+    _ZNSt14numeric_limitsIDiE*;
+    _ZNSt14numeric_limitsIDsE*;
 
     # chrono
     _ZNSt6chrono12system_clock12is_monotonicE;
@@ -978,6 +957,14 @@ GLIBCXX_3.4.11 {
     _ZNKSt5ctypeIcE13_M_widen_initEv;
 
 } GLIBCXX_3.4.10;
+
+GLIBCXX_3.4.12 {
+
+    # mutex
+    _ZSt27__set_once_functor_lock_ptrPSt11unique_lockISt5mutexE;
+    _ZSt16__get_once_mutexv;
+
+} GLIBCXX_3.4.11;
 
 # Symbols in the support library (libsupc++) have their own tag.
 CXXABI_1.3 {

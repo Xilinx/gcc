@@ -1,5 +1,5 @@
 /* Structure layout test generator.
-   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>.
 
 This file is part of GCC.
@@ -44,9 +44,9 @@ along with GCC; see the file COPYING3.  If not see
 
 const char *dg_options[] = {
 "/* { dg-options \"%s-I%s\" } */\n",
-"/* { dg-options \"%s-I%s -mno-mmx\" { target i?86-*-* x86_64-*-* } } */\n",
+"/* { dg-options \"%s-I%s -mno-mmx -Wno-abi\" { target i?86-*-* x86_64-*-* } } */\n",
 "/* { dg-options \"%s-I%s -fno-common\" { target hppa*-*-hpux* powerpc*-*-darwin* *-*-mingw32* *-*-cygwin* } } */\n",
-"/* { dg-options \"%s-I%s -mno-mmx -fno-common\" { target i?86-*-darwin* x86_64-*-darwin* } } */\n",
+"/* { dg-options \"%s-I%s -mno-mmx -fno-common -Wno-abi\" { target i?86-*-darwin* x86_64-*-darwin* } } */\n",
 "/* { dg-options \"%s-I%s -mno-base-addresses\" { target mmix-*-* } } */\n",
 "/* { dg-options \"%s-I%s -mlongcalls -mtext-section-literals\" { target xtensa*-*-* } } */\n"
 #define NDG_OPTIONS (sizeof (dg_options) / sizeof (dg_options[0]))

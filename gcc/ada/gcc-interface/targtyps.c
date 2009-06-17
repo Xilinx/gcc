@@ -6,24 +6,17 @@
  *                                                                          *
  *                                  Body                                    *
  *                                                                          *
- *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
  * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
- *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * Public License  distributed  with GNAT;  see file  COPYING3.  If not see *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -37,8 +30,7 @@
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "real.h"
-#include "rtl.h"
+
 #include "ada.h"
 #include "types.h"
 #include "atree.h"
@@ -135,7 +127,6 @@ get_target_long_double_size (void)
   return fp_prec_to_size (WIDEST_HARDWARE_FP_SIZE);
 }
 
-
 Pos
 get_target_pointer_size (void)
 {
@@ -225,7 +216,30 @@ get_bits_be (void)
 }
 
 Nat
-get_strict_alignment (void)
+get_target_strict_alignment (void)
 {
   return STRICT_ALIGNMENT;
+}
+
+Nat
+get_target_double_float_alignment (void)
+{
+#ifdef TARGET_ALIGN_NATURAL
+  /* This macro is only defined by the rs6000 port.  */
+  if (!TARGET_ALIGN_NATURAL
+      && (DEFAULT_ABI == ABI_AIX || DEFAULT_ABI == ABI_DARWIN))
+    return 32 / BITS_PER_UNIT;
+#endif
+  return 0;
+}
+
+Nat
+get_target_double_scalar_alignment (void)
+{
+#ifdef TARGET_ALIGN_DOUBLE
+  /* This macro is only defined by the i386 port.  */
+  if (!TARGET_ALIGN_DOUBLE && !TARGET_64BIT)
+    return 32 / BITS_PER_UNIT;
+#endif
+  return 0;
 }

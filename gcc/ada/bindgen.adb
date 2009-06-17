@@ -2273,7 +2273,7 @@ package body Bindgen is
 
                --  If the standard library is not suppressed, these variables
                --  are in the runtime data area for easy access from the
-               --  runtime
+               --  runtime.
 
                if not Suppress_Standard_Library_On_Target then
                   WBI ("");
@@ -2332,10 +2332,13 @@ package body Bindgen is
             """__gnat_ada_main_program_name"");");
       end if;
 
-      WBI ("");
-      WBI ("   procedure " & Ada_Final_Name.all & ";");
-      WBI ("   pragma Export (C, " & Ada_Final_Name.all & ", """ &
-           Ada_Final_Name.all & """);");
+      if not Cumulative_Restrictions.Set (No_Finalization) then
+         WBI ("");
+         WBI ("   procedure " & Ada_Final_Name.all & ";");
+         WBI ("   pragma Export (C, " & Ada_Final_Name.all & ", """ &
+              Ada_Final_Name.all & """);");
+      end if;
+
       WBI ("");
       WBI ("   procedure " & Ada_Init_Name.all & ";");
       WBI ("   pragma Export (C, " & Ada_Init_Name.all & ", """ &
@@ -2507,7 +2510,11 @@ package body Bindgen is
 
       Gen_Adainit_Ada;
 
-      Gen_Adafinal_Ada;
+      --  Generate the adafinal routine unless there is no finalization to do
+
+      if not Cumulative_Restrictions.Set (No_Finalization) then
+         Gen_Adafinal_Ada;
+      end if;
 
       if Bind_Main_Program and then VM_Target = No_VM then
 
@@ -2631,16 +2638,16 @@ package body Bindgen is
 
       Gen_Elab_Defs_C;
 
-      --  Imported variables used only when we have a runtime.
+      --  Imported variables used only when we have a runtime
 
       if not Suppress_Standard_Library_On_Target then
 
-         --  Track elaboration/finalization phase.
+         --  Track elaboration/finalization phase
 
          WBI ("extern int  __gnat_handler_installed;");
          WBI ("");
 
-         --  Track feature enable/disable on VMS.
+         --  Track feature enable/disable on VMS
 
          if OpenVMS_On_Target then
             WBI ("extern int  __gnat_features_set;");
@@ -2676,7 +2683,6 @@ package body Bindgen is
          end if;
 
          --  Similarly deal with exit status
-         --  are in the run-time library.
 
          if not Configurable_Run_Time_On_Target then
             WBI ("extern int gnat_exit_status;");

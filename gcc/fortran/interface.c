@@ -1,5 +1,5 @@
 /* Deal with interfaces.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -95,7 +95,7 @@ gfc_free_interface (gfc_interface *intr)
    minus respectively, leaving the rest unchanged.  */
 
 static gfc_intrinsic_op
-fold_unary (gfc_intrinsic_op op)
+fold_unary_intrinsic (gfc_intrinsic_op op)
 {
   switch (op)
     {
@@ -136,10 +136,11 @@ gfc_match_generic_spec (interface_type *type,
   if (gfc_match (" operator ( %o )", &i) == MATCH_YES)
     {				/* Operator i/f */
       *type = INTERFACE_INTRINSIC_OP;
-      *op = fold_unary (i);
+      *op = fold_unary_intrinsic (i);
       return MATCH_YES;
     }
 
+  *op = INTRINSIC_NONE;
   if (gfc_match (" operator ( ") == MATCH_YES)
     {
       m = gfc_match_defined_op_name (buffer, 1);
@@ -479,8 +480,6 @@ compare_type_rank (gfc_symbol *s1, gfc_symbol *s2)
 }
 
 
-static int compare_intr_interfaces (gfc_symbol *, gfc_symbol *);
-
 /* Given two symbols that are formal arguments, compare their types
    and rank and their formal interfaces if they are both dummy
    procedures.  Returns nonzero if the same, zero if different.  */
@@ -491,17 +490,26 @@ compare_type_rank_if (gfc_symbol *s1, gfc_symbol *s2)
   if (s1 == NULL || s2 == NULL)
     return s1 == s2 ? 1 : 0;
 
+  if (s1 == s2)
+    return 1;
+
   if (s1->attr.flavor != FL_PROCEDURE && s2->attr.flavor != FL_PROCEDURE)
     return compare_type_rank (s1, s2);
 
   if (s1->attr.flavor != FL_PROCEDURE || s2->attr.flavor != FL_PROCEDURE)
     return 0;
 
-  /* At this point, both symbols are procedures.  */
-  if ((s1->attr.function == 0 && s1->attr.subroutine == 0)
-      || (s2->attr.function == 0 && s2->attr.subroutine == 0))
-    return 0;
+  /* At this point, both symbols are procedures.  It can happen that
+     external procedures are compared, where one is identified by usage
+     to be a function or subroutine but the other is not.  Check TKR
+     nonetheless for these cases.  */
+  if (s1->attr.function == 0 && s1->attr.subroutine == 0)
+    return s1->attr.external == 1 ? compare_type_rank (s1, s2) : 0;
 
+  if (s2->attr.function == 0 && s2->attr.subroutine == 0)
+    return s2->attr.external == 1 ? compare_type_rank (s1, s2) : 0;
+
+  /* Now the type of procedure has been identified.  */
   if (s1->attr.function != s2->attr.function
       || s1->attr.subroutine != s2->attr.subroutine)
     return 0;
@@ -770,7 +778,7 @@ bad_repl:
    Since this test is asymmetric, it has to be called twice to make it
    symmetric.  Returns nonzero if the argument lists are incompatible
    by this test.  This subroutine implements rule 1 of section
-   14.1.2.3.  */
+   14.1.2.3 in the Fortran 95 standard.  */
 
 static int
 count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
@@ -861,36 +869,6 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
 }
 
 
-/* Perform the abbreviated correspondence test for operators.  The
-   arguments cannot be optional and are always ordered correctly,
-   which makes this test much easier than that for generic tests.
-
-   This subroutine is also used when comparing a formal and actual
-   argument list when an actual parameter is a dummy procedure.  At
-   that point, two formal interfaces must be compared for equality
-   which is what happens here.  */
-
-static int
-operator_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
-{
-  for (;;)
-    {
-      if (f1 == NULL && f2 == NULL)
-	break;
-      if (f1 == NULL || f2 == NULL)
-	return 1;
-
-      if (!compare_type_rank (f1->sym, f2->sym))
-	return 1;
-
-      f1 = f1->next;
-      f2 = f2->next;
-    }
-
-  return 0;
-}
-
-
 /* Perform the correspondence test in rule 2 of section 14.1.2.3.
    Returns zero if no argument is found that satisfies rule 2, nonzero
    otherwise.
@@ -951,150 +929,116 @@ generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
 
 /* 'Compare' two formal interfaces associated with a pair of symbols.
    We return nonzero if there exists an actual argument list that
-   would be ambiguous between the two interfaces, zero otherwise.  */
+   would be ambiguous between the two interfaces, zero otherwise.
+   'intent_flag' specifies whether INTENT and OPTIONAL of the arguments are
+   required to match, which is not the case for ambiguity checks.*/
 
 int
-gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag)
+gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag,
+			int intent_flag, char *errmsg, int err_len)
 {
   gfc_formal_arglist *f1, *f2;
 
-  if (s1->attr.function != s2->attr.function
-      || s1->attr.subroutine != s2->attr.subroutine)
-    return 0;		/* Disagreement between function/subroutine.  */
+  if (s1->attr.function && !s2->attr.function)
+    {
+      if (errmsg != NULL)
+	snprintf (errmsg, err_len, "'%s' is not a function", s2->name);
+      return 0;
+    }
+
+  if (s1->attr.subroutine && s2->attr.function)
+    {
+      if (errmsg != NULL)
+	snprintf (errmsg, err_len, "'%s' is not a subroutine", s2->name);
+      return 0;
+    }
+
+  /* If the arguments are functions, check type and kind
+     (only for dummy procedures and procedure pointer assignments).  */
+  if ((s1->attr.dummy || s1->attr.proc_pointer)
+      && s1->attr.function && s2->attr.function)
+    {
+      if (s1->ts.type == BT_UNKNOWN)
+	return 1;
+      if ((s1->ts.type != s2->ts.type) || (s1->ts.kind != s2->ts.kind))
+	{
+	  if (errmsg != NULL)
+	    snprintf (errmsg, err_len, "Type/kind mismatch in return value "
+		      "of '%s'", s2->name);
+	  return 0;
+	}
+      if (s1->attr.if_source == IFSRC_DECL)
+	return 1;
+    }
+
+  if (s1->attr.if_source == IFSRC_UNKNOWN
+      || s2->attr.if_source == IFSRC_UNKNOWN)
+    return 1;
 
   f1 = s1->formal;
   f2 = s2->formal;
 
   if (f1 == NULL && f2 == NULL)
-    return 1;			/* Special case.  */
-
-  if (count_types_test (f1, f2))
-    return 0;
-  if (count_types_test (f2, f1))
-    return 0;
+    return 1;			/* Special case: No arguments.  */
 
   if (generic_flag)
     {
-      if (generic_correspondence (f1, f2))
-	return 0;
-      if (generic_correspondence (f2, f1))
+      if (generic_correspondence (f1, f2) || generic_correspondence (f2, f1))
 	return 0;
     }
   else
+    /* Perform the abbreviated correspondence test for operators (the
+       arguments cannot be optional and are always ordered correctly).
+       This is also done when comparing interfaces for dummy procedures and in
+       procedure pointer assignments.  */
+
+    for (;;)
+      {
+	/* Check existence.  */
+	if (f1 == NULL && f2 == NULL)
+	  break;
+	if (f1 == NULL || f2 == NULL)
+	  {
+	    if (errmsg != NULL)
+	      snprintf (errmsg, err_len, "'%s' has the wrong number of "
+			"arguments", s2->name);
+	    return 0;
+	  }
+
+	/* Check type and rank.  */
+	if (!compare_type_rank (f1->sym, f2->sym))
+	  {
+	    if (errmsg != NULL)
+	      snprintf (errmsg, err_len, "Type/rank mismatch in argument '%s'",
+			f1->sym->name);
+	    return 0;
+	  }
+
+	/* Check INTENT.  */
+	if (intent_flag && (f1->sym->attr.intent != f2->sym->attr.intent))
+	  {
+	    snprintf (errmsg, err_len, "INTENT mismatch in argument '%s'",
+		      f1->sym->name);
+	    return 0;
+	  }
+
+	/* Check OPTIONAL.  */
+	if (intent_flag && (f1->sym->attr.optional != f2->sym->attr.optional))
+	  {
+	    snprintf (errmsg, err_len, "OPTIONAL mismatch in argument '%s'",
+		      f1->sym->name);
+	    return 0;
+	  }
+
+	f1 = f1->next;
+	f2 = f2->next;
+      }
+
+  if (count_types_test (f1, f2) || count_types_test (f2, f1))
     {
-      if (operator_correspondence (f1, f2))
-	return 0;
-    }
-
-  return 1;
-}
-
-
-static int
-compare_intr_interfaces (gfc_symbol *s1, gfc_symbol *s2)
-{
-  gfc_formal_arglist *f, *f1;
-  gfc_intrinsic_arg *fi, *f2;
-  gfc_intrinsic_sym *isym;
-
-  if (s1->attr.function != s2->attr.function
-      || s1->attr.subroutine != s2->attr.subroutine)
-    return 0;		/* Disagreement between function/subroutine.  */
-  
-  /* If the arguments are functions, check type and kind.  */
-  
-  if (s1->attr.dummy && s1->attr.function && s2->attr.function)
-    {
-      if (s1->ts.type != s2->ts.type)
-	return 0;
-      if (s1->ts.kind != s2->ts.kind)
-	return 0;
-      if (s1->attr.if_source == IFSRC_DECL)
-	return 1;
-    }
-
-  isym = gfc_find_function (s2->name);
-  
-  /* This should already have been checked in
-     resolve.c (resolve_actual_arglist).  */
-  gcc_assert (isym);
-
-  f1 = s1->formal;
-  f2 = isym->formal;
-
-  /* Special case.  */
-  if (f1 == NULL && f2 == NULL)
-    return 1;
-  
-  /* First scan through the formal argument list and check the intrinsic.  */
-  fi = f2;
-  for (f = f1; f; f = f->next)
-    {
-      if (fi == NULL)
-	return 0;
-      if ((fi->ts.type != f->sym->ts.type) || (fi->ts.kind != f->sym->ts.kind))
-	return 0;
-      fi = fi->next;
-    }
-
-  /* Now scan through the intrinsic argument list and check the formal.  */
-  f = f1;
-  for (fi = f2; fi; fi = fi->next)
-    {
-      if (f == NULL)
-	return 0;
-      if ((fi->ts.type != f->sym->ts.type) || (fi->ts.kind != f->sym->ts.kind))
-	return 0;
-      f = f->next;
-    }
-
-  return 1;
-}
-
-
-/* Compare an actual argument list with an intrinsic argument list.  */
-
-static int
-compare_actual_formal_intr (gfc_actual_arglist **ap, gfc_symbol *s2)
-{
-  gfc_actual_arglist *a;
-  gfc_intrinsic_arg *fi, *f2;
-  gfc_intrinsic_sym *isym;
-
-  isym = gfc_find_function (s2->name);
-  
-  /* This should already have been checked in
-     resolve.c (resolve_actual_arglist).  */
-  gcc_assert (isym);
-
-  f2 = isym->formal;
-
-  /* Special case.  */
-  if (*ap == NULL && f2 == NULL)
-    return 1;
-  
-  /* First scan through the actual argument list and check the intrinsic.  */
-  fi = f2;
-  for (a = *ap; a; a = a->next)
-    {
-      if (fi == NULL)
-	return 0;
-      if ((fi->ts.type != a->expr->ts.type)
-	  || (fi->ts.kind != a->expr->ts.kind))
-	return 0;
-      fi = fi->next;
-    }
-
-  /* Now scan through the intrinsic argument list and check the formal.  */
-  a = *ap;
-  for (fi = f2; fi; fi = fi->next)
-    {
-      if (a == NULL)
-	return 0;
-      if ((fi->ts.type != a->expr->ts.type)
-	  || (fi->ts.kind != a->expr->ts.kind))
-	return 0;
-      a = a->next;
+      if (errmsg != NULL)
+	snprintf (errmsg, err_len, "Interface not matching");
+      return 0;
     }
 
   return 1;
@@ -1172,7 +1116,7 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 	if (p->sym->name == q->sym->name && p->sym->module == q->sym->module)
 	  continue;
 
-	if (gfc_compare_interfaces (p->sym, q->sym, generic_flag))
+	if (gfc_compare_interfaces (p->sym, q->sym, generic_flag, 0, NULL, 0))
 	  {
 	    if (referenced)
 	      {
@@ -1267,7 +1211,7 @@ gfc_check_interfaces (gfc_namespace *ns)
 {
   gfc_namespace *old_ns, *ns2;
   char interface_name[100];
-  gfc_intrinsic_op i;
+  int i;
 
   old_ns = gfc_current_ns;
   gfc_current_ns = ns;
@@ -1285,12 +1229,12 @@ gfc_check_interfaces (gfc_namespace *ns)
 	strcpy (interface_name, "intrinsic assignment operator");
       else
 	sprintf (interface_name, "intrinsic '%s' operator",
-		 gfc_op2string (i));
+		 gfc_op2string ((gfc_intrinsic_op) i));
 
       if (check_interface0 (ns->op[i], interface_name))
 	continue;
 
-      check_operator_interface (ns->op[i], i);
+      check_operator_interface (ns->op[i], (gfc_intrinsic_op) i);
 
       for (ns2 = ns; ns2; ns2 = ns2->parent)
 	{
@@ -1443,32 +1387,25 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 
   if (actual->ts.type == BT_PROCEDURE)
     {
+      char err[200];
+
       if (formal->attr.flavor != FL_PROCEDURE)
-	goto proc_fail;
-
-      if (formal->attr.function
-	  && !compare_type_rank (formal, actual->symtree->n.sym))
-	goto proc_fail;
-
-      if (formal->attr.if_source == IFSRC_UNKNOWN
-	  || actual->symtree->n.sym->attr.external)
-	return 1;		/* Assume match.  */
-
-      if (actual->symtree->n.sym->attr.intrinsic)
 	{
-	 if (!compare_intr_interfaces (formal, actual->symtree->n.sym))
-	   goto proc_fail;
+	  if (where)
+	    gfc_error ("Invalid procedure argument at %L", &actual->where);
+	  return 0;
 	}
-      else if (!gfc_compare_interfaces (formal, actual->symtree->n.sym, 0))
-	goto proc_fail;
+
+      if (!gfc_compare_interfaces (formal, actual->symtree->n.sym, 0, 1, err,
+				   sizeof(err)))
+	{
+	  if (where)
+	    gfc_error ("Interface mismatch in dummy procedure '%s' at %L: %s",
+		       formal->name, &actual->where, err);
+	  return 0;
+	}
 
       return 1;
-
-      proc_fail:
-	if (where)
-	  gfc_error ("Type/rank mismatch in argument '%s' at %L",
-		     formal->name, &actual->where);
-      return 0;
     }
 
   if ((actual->expr_type != EXPR_NULL || actual->ts.type != BT_UNKNOWN)
@@ -1961,7 +1898,8 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
       /* Satisfy 12.4.1.3 by ensuring that a procedure pointer actual argument
 	 is provided for a procedure pointer formal argument.  */
       if (f->sym->attr.proc_pointer
-	  && !a->expr->symtree->n.sym->attr.proc_pointer)
+	  && !(a->expr->symtree->n.sym->attr.proc_pointer
+	       || is_proc_ptr_comp (a->expr, NULL)))
 	{
 	  if (where)
 	    gfc_error ("Expected a procedure pointer for argument '%s' at %L",
@@ -1971,7 +1909,7 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 
       /* Satisfy 12.4.1.2 by ensuring that a procedure actual argument is
 	 provided for a procedure formal argument.  */
-      if (a->expr->ts.type != BT_PROCEDURE
+      if (a->expr->ts.type != BT_PROCEDURE && !is_proc_ptr_comp (a->expr, NULL)
 	  && a->expr->expr_type == EXPR_VARIABLE
 	  && f->sym->attr.flavor == FL_PROCEDURE)
 	{
@@ -2411,25 +2349,14 @@ void
 gfc_procedure_use (gfc_symbol *sym, gfc_actual_arglist **ap, locus *where)
 {
 
-  /* Warn about calls with an implicit interface.  */
+  /* Warn about calls with an implicit interface.  Special case
+     for calling a ISO_C_BINDING becase c_loc and c_funloc
+     are pseudo-unknown.  */
   if (gfc_option.warn_implicit_interface
-      && sym->attr.if_source == IFSRC_UNKNOWN)
+      && sym->attr.if_source == IFSRC_UNKNOWN
+      && ! sym->attr.is_iso_c)
     gfc_warning ("Procedure '%s' called with an implicit interface at %L",
 		 sym->name, where);
-
-  if (sym->ts.interface && sym->ts.interface->attr.intrinsic)
-    {
-      gfc_intrinsic_sym *isym;
-      isym = gfc_find_function (sym->ts.interface->name);
-      if (isym != NULL)
-	{
-	  if (compare_actual_formal_intr (ap, sym->ts.interface))
-	    return;
-	  gfc_error ("Type/rank mismatch in argument '%s' at %L",
-		     sym->name, where);
-	  return;
-	}
-    }
 
   if (sym->attr.if_source == IFSRC_UNKNOWN)
     {
@@ -2579,7 +2506,7 @@ gfc_extend_expr (gfc_expr *e)
       actual->next->expr = e->value.op.op2;
     }
 
-  i = fold_unary (e->value.op.op);
+  i = fold_unary_intrinsic (e->value.op.op);
 
   if (i == INTRINSIC_USER)
     {
@@ -2670,6 +2597,7 @@ gfc_extend_expr (gfc_expr *e)
   e->value.function.esym = NULL;
   e->value.function.isym = NULL;
   e->value.function.name = NULL;
+  e->user_operator = 1;
 
   if (gfc_pure (NULL) && !gfc_pure (sym))
     {
@@ -2697,7 +2625,7 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
   gfc_expr *lhs, *rhs;
   gfc_symbol *sym;
 
-  lhs = c->expr;
+  lhs = c->expr1;
   rhs = c->expr2;
 
   /* Don't allow an intrinsic assignment to be replaced.  */
@@ -2732,7 +2660,7 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
   /* Replace the assignment with the call.  */
   c->op = EXEC_ASSIGN_CALL;
   c->symtree = gfc_find_sym_in_symtree (sym);
-  c->expr = NULL;
+  c->expr1 = NULL;
   c->expr2 = NULL;
   c->ext.actual = actual;
 

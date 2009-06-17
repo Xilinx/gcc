@@ -627,6 +627,9 @@ d_dump (struct demangle_component *dc, int indent)
     case DEMANGLE_COMPONENT_PTRMEM_TYPE:
       printf ("pointer to member type\n");
       break;
+    case DEMANGLE_COMPONENT_FIXED_TYPE:
+      printf ("fixed-point type\n");
+      break;
     case DEMANGLE_COMPONENT_ARGLIST:
       printf ("argument list\n");
       break;
@@ -722,8 +725,8 @@ cplus_demangle_fill_ctor (struct demangle_component *p,
 {
   if (p == NULL
       || name == NULL
-      || (kind < gnu_v3_complete_object_ctor
-	  && kind > gnu_v3_complete_object_allocating_ctor))
+      || (int) kind < gnu_v3_complete_object_ctor
+      || (int) kind > gnu_v3_complete_object_allocating_ctor)
     return 0;
   p->type = DEMANGLE_COMPONENT_CTOR;
   p->u.s_ctor.kind = kind;
@@ -741,8 +744,8 @@ cplus_demangle_fill_dtor (struct demangle_component *p,
 {
   if (p == NULL
       || name == NULL
-      || (kind < gnu_v3_deleting_dtor
-	  && kind > gnu_v3_base_object_dtor))
+      || (int) kind < gnu_v3_deleting_dtor
+      || (int) kind > gnu_v3_base_object_dtor)
     return 0;
   p->type = DEMANGLE_COMPONENT_DTOR;
   p->u.s_dtor.kind = kind;
@@ -969,6 +972,22 @@ d_make_template_param (struct d_info *di, long i)
   return p;
 }
 
+/* Add a new function parameter.  */
+
+static struct demangle_component *
+d_make_function_param (struct d_info *di, long i)
+{
+  struct demangle_component *p;
+
+  p = d_make_empty (di);
+  if (p != NULL)
+    {
+      p->type = DEMANGLE_COMPONENT_FUNCTION_PARAM;
+      p->u.s_number.number = i;
+    }
+  return p;
+}
+
 /* Add a new standard substitution component.  */
 
 static struct demangle_component *
@@ -994,7 +1013,11 @@ CP_STATIC_IF_GLIBCPP_V3
 struct demangle_component *
 cplus_demangle_mangled_name (struct d_info *di, int top_level)
 {
-  if (! d_check_char (di, '_'))
+  if (! d_check_char (di, '_')
+      /* Allow missing _ if not at toplevel to work around a
+	 bug in G++ abi-version=2 mangling; see the comment in
+	 write_template_arg.  */
+      && top_level)
     return NULL;
   if (! d_check_char (di, 'Z'))
     return NULL;
@@ -1486,6 +1509,8 @@ const struct demangle_operator_info cplus_demangle_operators[] =
   { "rs", NL (">>"),        2 },
   { "st", NL ("sizeof "),   1 },
   { "sz", NL ("sizeof "),   1 },
+  { "at", NL ("alignof "),   1 },
+  { "az", NL ("alignof "),   1 },
   { NULL, NULL, 0,          0 }
 };
 
@@ -2142,6 +2167,22 @@ cplus_demangle_type (struct d_info *di)
 	  ret = d_make_builtin_type (di, &cplus_demangle_builtin_types[31]);
 	  di->expansion += ret->u.s_builtin.type->len;
 	  break;
+
+	case 'F':
+	  /* Fixed point types. DF<int bits><length><fract bits><sat>  */
+	  ret = d_make_empty (di);
+	  ret->type = DEMANGLE_COMPONENT_FIXED_TYPE;
+	  if ((ret->u.s_fixed.accum = IS_DIGIT (d_peek_char (di))))
+	    /* For demangling we don't care about the bits.  */
+	    d_number (di);
+	  ret->u.s_fixed.length = cplus_demangle_type (di);
+	  d_number (di);
+	  peek = d_next_char (di);
+	  ret->u.s_fixed.sat = (peek == 's');
+	  break;
+
+	default:
+	  return NULL;
 	}
       break;
 
@@ -2572,11 +2613,31 @@ d_expression (struct d_info *di)
 			    d_make_comp (di, DEMANGLE_COMPONENT_TEMPLATE, name,
 					 d_template_args (di)));
     }
-  else if (peek == 's' && d_peek_next_char (di) == 'T')
+  else if (peek == 's' && d_peek_next_char (di) == 'p')
     {
-      /* Just demangle a parameter placeholder as its type.  */
       d_advance (di, 2);
-      return cplus_demangle_type (di);
+      return d_make_comp (di, DEMANGLE_COMPONENT_PACK_EXPANSION,
+			  d_expression (di), NULL);
+    }
+  else if (peek == 'f' && d_peek_next_char (di) == 'p')
+    {
+      /* Function parameter used in a late-specified return type.  */
+      int index;
+      d_advance (di, 2);
+      if (d_peek_char (di) == '_')
+	index = 1;
+      else
+	{
+	  index = d_number (di);
+	  if (index < 0)
+	    return NULL;
+	  index += 2;
+	}
+
+      if (! d_check_char (di, '_'))
+	return NULL;
+
+      return d_make_function_param (di, index);
     }
   else if (IS_DIGIT (peek))
     {
@@ -2619,20 +2680,23 @@ d_expression (struct d_info *di)
 	  args = op->u.s_extended_operator.args;
 	  break;
 	case DEMANGLE_COMPONENT_CAST:
-	  if (d_peek_char (di) == 'v')
-	    /* T() encoded as an operand of void.  */
-	    return d_make_comp (di, DEMANGLE_COMPONENT_UNARY, op,
-				cplus_demangle_type (di));
-	  else
-	    args = 1;
+	  args = 1;
 	  break;
 	}
 
       switch (args)
 	{
 	case 1:
-	  return d_make_comp (di, DEMANGLE_COMPONENT_UNARY, op,
-			      d_expression (di));
+	  {
+	    struct demangle_component *operand;
+	    if (op->type == DEMANGLE_COMPONENT_CAST
+		&& d_check_char (di, '_'))
+	      operand = d_exprlist (di);
+	    else
+	      operand = d_expression (di);
+	    return d_make_comp (di, DEMANGLE_COMPONENT_UNARY, op,
+				operand);
+	  }
 	case 2:
 	  {
 	    struct demangle_component *left;
@@ -2683,7 +2747,9 @@ d_expr_primary (struct d_info *di)
 
   if (! d_check_char (di, 'L'))
     return NULL;
-  if (d_peek_char (di) == '_')
+  if (d_peek_char (di) == '_'
+      /* Workaround for G++ bug; see comment in write_template_arg.  */
+      || d_peek_char (di) == 'Z')
     ret = cplus_demangle_mangled_name (di, 0);
   else
     {
@@ -3211,6 +3277,7 @@ d_find_pack (struct d_print_info *dpi,
     case DEMANGLE_COMPONENT_BUILTIN_TYPE:
     case DEMANGLE_COMPONENT_SUB_STD:
     case DEMANGLE_COMPONENT_CHARACTER:
+    case DEMANGLE_COMPONENT_FUNCTION_PARAM:
       return NULL;
 
     case DEMANGLE_COMPONENT_EXTENDED_OPERATOR:
@@ -3251,7 +3318,8 @@ d_print_subexpr (struct d_print_info *dpi,
 		 const struct demangle_component *dc)
 {
   int simple = 0;
-  if (dc->type == DEMANGLE_COMPONENT_NAME)
+  if (dc->type == DEMANGLE_COMPONENT_NAME
+      || dc->type == DEMANGLE_COMPONENT_FUNCTION_PARAM)
     simple = 1;
   if (!simple)
     d_append_char (dpi, '(');
@@ -3305,6 +3373,7 @@ d_print_comp (struct d_print_info *dpi,
 	   the right place for the type.  We also have to pass down
 	   any CV-qualifiers, which apply to the this parameter.  */
 	hold_modifiers = dpi->modifiers;
+	dpi->modifiers = 0;
 	i = 0;
 	typed_name = d_left (dc);
 	while (typed_name != NULL)
@@ -3762,14 +3831,36 @@ d_print_comp (struct d_print_info *dpi,
 	return;
       }
 
+    case DEMANGLE_COMPONENT_FIXED_TYPE:
+      if (dc->u.s_fixed.sat)
+	d_append_string (dpi, "_Sat ");
+      /* Don't print "int _Accum".  */
+      if (dc->u.s_fixed.length->u.s_builtin.type
+	  != &cplus_demangle_builtin_types['i'-'a'])
+	{
+	  d_print_comp (dpi, dc->u.s_fixed.length);
+	  d_append_char (dpi, ' ');
+	}
+      if (dc->u.s_fixed.accum)
+	d_append_string (dpi, "_Accum");
+      else
+	d_append_string (dpi, "_Fract");
+      return;
+
     case DEMANGLE_COMPONENT_ARGLIST:
     case DEMANGLE_COMPONENT_TEMPLATE_ARGLIST:
       if (d_left (dc) != NULL)
 	d_print_comp (dpi, d_left (dc));
       if (d_right (dc) != NULL)
 	{
+	  size_t len;
 	  d_append_string (dpi, ", ");
+	  len = dpi->len;
 	  d_print_comp (dpi, d_right (dc));
+	  /* If that didn't print anything (which can happen with empty
+	     template argument packs), remove the comma and space.  */
+	  if (dpi->len == len)
+	    dpi->len -= 2;
 	}
       return;
 
@@ -3805,12 +3896,7 @@ d_print_comp (struct d_print_info *dpi,
 	  d_print_cast (dpi, d_left (dc));
 	  d_append_char (dpi, ')');
 	}
-      if (d_left (dc)->type == DEMANGLE_COMPONENT_CAST
-	  && d_right (dc)->type == DEMANGLE_COMPONENT_BUILTIN_TYPE)
-	/* type() -- FIXME what about type(multiple,args) */
-	d_append_string (dpi, "()");
-      else
-	d_print_subexpr (dpi, d_right (dc));
+      d_print_subexpr (dpi, d_right (dc));
       return;
 
     case DEMANGLE_COMPONENT_BINARY:
@@ -3971,10 +4057,20 @@ d_print_comp (struct d_print_info *dpi,
 
     case DEMANGLE_COMPONENT_PACK_EXPANSION:
       {
-	struct demangle_component *a = d_find_pack (dpi, d_left (dc));
-	int len = d_pack_length (a);
+	int len;
 	int i;
+	struct demangle_component *a = d_find_pack (dpi, d_left (dc));
+	if (a == NULL)
+	  {
+	    /* d_find_pack won't find anything if the only packs involved
+	       in this expansion are function parameter packs; in that
+	       case, just print the pattern and "...".  */
+	    d_print_subexpr (dpi, d_left (dc));
+	    d_append_string (dpi, "...");
+	    return;
+	  }
 
+	len = d_pack_length (a);
 	dc = d_left (dc);
 	for (i = 0; i < len; ++i)
 	  {
@@ -3985,6 +4081,15 @@ d_print_comp (struct d_print_info *dpi,
 	  }
       }
       return;
+
+    case DEMANGLE_COMPONENT_FUNCTION_PARAM:
+      {
+	char buf[25];
+	d_append_string (dpi, "parm#");
+	sprintf(buf,"%ld", dc->u.s_number.number);
+	d_append_string (dpi, buf);
+	return;
+      }
 
     default:
       d_print_error (dpi);

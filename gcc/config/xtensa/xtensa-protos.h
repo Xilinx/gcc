@@ -39,9 +39,9 @@ extern int smalloffset_mem_p (rtx);
 extern int constantpool_address_p (rtx);
 extern int constantpool_mem_p (rtx);
 extern void xtensa_extend_reg (rtx, rtx);
-extern void xtensa_expand_conditional_branch (rtx *, enum rtx_code);
+extern void xtensa_expand_conditional_branch (rtx *, enum machine_mode);
 extern int xtensa_expand_conditional_move (rtx *, int);
-extern int xtensa_expand_scc (rtx *);
+extern int xtensa_expand_scc (rtx *, enum machine_mode);
 extern int xtensa_expand_block_move (rtx *);
 extern void xtensa_split_operand_pair (rtx *, enum machine_mode);
 extern int xtensa_emit_move_sequence (rtx *, enum machine_mode);
@@ -54,8 +54,6 @@ extern char *xtensa_emit_branch (bool, bool, rtx *);
 extern char *xtensa_emit_bit_branch (bool, bool, rtx *);
 extern char *xtensa_emit_movcc (bool, bool, bool, rtx *);
 extern char *xtensa_emit_call (int, rtx *);
-extern bool xtensa_legitimate_address_p (enum machine_mode, rtx, bool);
-extern rtx xtensa_legitimize_address (rtx, rtx, enum machine_mode);
 extern bool xtensa_tls_referenced_p (rtx);
 
 #ifdef TREE_CODE

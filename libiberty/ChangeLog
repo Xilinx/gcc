@@ -1,3 +1,151 @@
+2009-06-16  Nick Clifton  <nickc@redhat.com>
+
+	PR 10197
+	* testsuite/test-demangle.c: Rename getline to get_line to avoid
+	conflicts with system function of the same name.
+
+2009-05-30  Eli Zaretskii  <eliz@gnu.org>
+
+	* snprintf.c: Doc fix.
+
+	* vsnprintf.c: Doc fix.
+
+2009-05-29  Kai Tietz  <kai.tietz@onevision.com>
+
+        * pex-win32.c (pex_win32_fdopenr): Set INHERIT to false.
+
+2009-05-29  Michael Matz  <matz@suse.de>
+
+	* fibheap.c (fibheap_replace_key_data): Make sure we don't early
+	out when forcing the minimum.
+	(fibheap_delete_node): Assert that we managed to force the minimum.
+
+2009-05-25  Tristan Gingold  <gingold@adacore.com>
+
+	* config.h-vms: Rewritten.  Define configure macros.
+	Use DEC-C builtin alloca.
+
+	* makefile.vms (OBJS): Update list.
+	(OPT): New variable.
+	(CFLAGS): Update compilation flags.
+	(libiberty.olb): Do not depend on alloca-conf.h anymore.
+
+2009-05-19  Ian Lance Taylor  <iant@google.com>
+	    Ben Elliston  <bje@au.ibm.com>
+
+	* cp-demangle.c (cplus_demangle_fill_ctor): Fix logic bug.
+	(cplus_demangle_fill_dtor): Likewise.
+
+2009-05-17  Julian Brown  <julian@codesourcery.com>
+
+	* pex-win32.c (pex_win32_exec_child): Fix logic to avoid closing
+	standard handles (stdin, stdout, stderr) in parent.
+
+2009-04-29  Julian Brown  <julian@codesourcery.com>
+
+	* pex-win32.c (pex_win32_pipe): Add _O_NOINHERIT.    
+	(pex_win32_exec_child): Ensure each process has only one handle open
+	on pipe endpoints. Close standard input after creating child for
+	symmetry with standard output/standard error.
+
+2009-04-25  Eli Zaretskii  <eliz@gnu.org>
+
+	* Makefile.in (needed-list): Target removed (not used in GCC
+	3.0 and later).  All references deleted.
+	(mostlyclean): Remove references to needed.awk and needed2.awk.
+
+2009-04-14  Eli Zaretskii  <eliz@gnu.org>
+
+	* configure.ac  (setobjs, msdosdjgpp): Move a-priori setting of
+	existing and required library functions to with_target_subdir
+	section, so that the native build does detect them at configure
+	time.
+	* configure: Regenerated.
+	
+2009-04-13  Ozkan Sezer  <sezeroz@gmail.com>
+
+        PR target/39397
+        * pex-common.h (struct pex_obj): Store pid values as pid_t,
+        not as long (members *children and (*wait))
+        * pex-common.c (pex_run_in_environment): Likewise.
+        * pex-win32.c (pex_win32_wait): Return pid_t and properly check
+        returned pid value.
+        * pex-djgpp.c (pex_djgpp_wait): Return pid_t.
+        * pex-msdos.c (pex_msdos_wait): Likewise.
+
+2009-04-07  Arnaud Patard <apatard@mandriva.com>
+
+       * libiberty/configure.ac: Fix Linux/MIPS matching rule.
+       * libiberty/configure: Regenerate.
+
+2008-03-27  Ian Lance Taylor  <iant@google.com>
+
+	* memmem.c: New file, from gnulib.
+	* configure.ac: Add memmem to list of functions provided if they
+	are not available on the host.
+	* Makefile.in: Rebuild dependencies.
+	(CFILES): Add memmem.c.
+	(CONFIGURED_OFILES): Add memmem.o.
+	* configure, config.in, functions.texi: Rebuild.
+
+2009-03-23  Jason Merrill  <jason@redhat.com>
+
+	* cp-demangle.c (d_expression): Handle pack expansion.
+	(d_find_pack): Handle DEMANGLE_COMPONENT_FUNCTION_PARAM.
+	(d_print_subexpr): Don't wrap function parms in ().
+	(d_print_comp) [DEMANGLE_COMPONENT_PACK_EXPANSION]: Handle
+	not finding a pack.
+
+2009-03-17  Jason Merrill  <jason@redhat.com>
+
+	* cp-demangle.c (d_make_function_param): new fn.
+	(cplus_demangle_mangled_name): Work around abi v2 bug.
+	(d_expr_primary): Likewise.
+	(cplus_demangle_operators): Add alignof ops.
+	(d_expression): Handle function parameters and conversions
+	with other than 1 operand.
+	(d_print_comp): Handle function parameters.  Fix bug with
+	function used in type of function.
+	* testsuite/demangle-expected: Upate tests.
+
+2009-02-21  Mark Mitchell  <mark@codesourcery.com>
+
+	* make-temp-file.c (<windows.h>): Include on Windows.
+	(choose_tmpdir): On Windows, use GetTempPath.
+
+2009-01-18  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* configure.ac (funcs, vars, checkfuncs):  Don't munge on Cygwin,
+	as it no longer shares libiberty object files.
+	* configure:  Regenerated.
+
+2009-01-07  Jason Merrill  <jason@redhat.com>
+
+	* cp-demangle.c (d_expression): Remove mangling for zero-op casts.
+
+2009-01-06  Ben Elliston  <bje@au.ibm.com>
+
+	* cp-demangle.c (cplus_demangle_type): Return NULL if the
+	character following a 'D' cannot be recognised.
+
+2008-12-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38561
+	* cp-demangle.c (d_expression, d_print_comp): Revert
+	cast changes.
+
+2008-12-17  Jason Merrill  <jason@redhat.com>
+
+	* cp-demangle.c (d_expression): Handle rvalue stubs too.
+	[DEMANGLE_COMPONENT_CAST]: Update mangling.
+	(d_print_comp): Avoid extra ", " with empty template argument packs.
+	Remove handling for obsolete T() mangling.
+
+2008-12-10  Jason Merrill  <jason@redhat.com>
+
+	* cp-demangle.c (cplus_demangle_type): Support fixed-point types.
+	(d_print_comp, d_dump): Likewise.
+
 2008-10-22  Daniel Jacobowitz  <dan@codesourcery.com>
 
 	* Makefile.in (CPPFLAGS): Define.

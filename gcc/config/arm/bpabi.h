@@ -1,5 +1,5 @@
 /* Configuration file for ARM BPABI targets.
-   Copyright (C) 2004, 2005, 2007, 2008
+   Copyright (C) 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC   
 
@@ -55,7 +55,7 @@
 
 /* Tell the assembler to build BPABI binaries.  */
 #undef  SUBTARGET_EXTRA_ASM_SPEC
-#define SUBTARGET_EXTRA_ASM_SPEC "%{mabi=apcs-gnu|mabi=atpcs:-meabi=gnu;:-meabi=4}" TARGET_FIX_V4BX_SPEC
+#define SUBTARGET_EXTRA_ASM_SPEC "%{mabi=apcs-gnu|mabi=atpcs:-meabi=gnu;:-meabi=5}" TARGET_FIX_V4BX_SPEC
 
 #ifndef SUBTARGET_EXTRA_LINK_SPEC
 #define SUBTARGET_EXTRA_LINK_SPEC ""

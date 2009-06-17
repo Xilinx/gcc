@@ -1,6 +1,6 @@
 ;;  Machine Description for MIPS based processor synchronization
 ;;  instructions.
-;;  Copyright (C) 2007, 2008
+;;  Copyright (C) 2007, 2008, 2009
 ;;  Free Software Foundation, Inc.
 
 ;; This file is part of GCC.
@@ -27,9 +27,18 @@
 
 ;; Atomic memory operations.
 
-(define_insn "memory_barrier"
-  [(set (mem:BLK (scratch))
-        (unspec:BLK [(const_int 0)] UNSPEC_MEMORY_BARRIER))]
+(define_expand "memory_barrier"
+  [(set (match_dup 0)
+	(unspec:BLK [(match_dup 0)] UNSPEC_MEMORY_BARRIER))]
+  "GENERATE_SYNC"
+{
+  operands[0] = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (Pmode));
+  MEM_VOLATILE_P (operands[0]) = 1;
+})
+
+(define_insn "*memory_barrier"
+  [(set (match_operand:BLK 0 "" "")
+	(unspec:BLK [(match_dup 0)] UNSPEC_MEMORY_BARRIER))]
   "GENERATE_SYNC"
   "%|sync%-")
 
@@ -127,7 +136,7 @@
   "GENERATE_LL_SC"
 {
     return (mips_output_sync_loop
-	    (MIPS_SYNC_OP_12 ("<insn>", MIPS_SYNC_OP_12_NOT_NOP)));
+	    (MIPS_SYNC_OP_12 ("<insn>", MIPS_SYNC_OP_12_AND)));
 }
   [(set_attr "length" "40")])
 
@@ -164,8 +173,7 @@
   "GENERATE_LL_SC"
 {
     return (mips_output_sync_loop
-	    (MIPS_SYNC_OLD_OP_12 ("<insn>", MIPS_SYNC_OLD_OP_12_NOT_NOP,
-	    			  MIPS_SYNC_OLD_OP_12_NOT_NOP_REG)));
+	    (MIPS_SYNC_OLD_OP_12 ("<insn>", MIPS_SYNC_OLD_OP_12_AND)));
 }
   [(set_attr "length" "40")])
 
@@ -207,7 +215,7 @@
   "GENERATE_LL_SC"
 {
     return (mips_output_sync_loop
-	    (MIPS_SYNC_NEW_OP_12 ("<insn>", MIPS_SYNC_NEW_OP_12_NOT_NOP)));
+	    (MIPS_SYNC_NEW_OP_12 ("<insn>", MIPS_SYNC_NEW_OP_12_AND)));
 }
   [(set_attr "length" "40")])
 
@@ -239,9 +247,9 @@
   "GENERATE_LL_SC"
 {
     return (mips_output_sync_loop
-	    (MIPS_SYNC_OP_12 ("and", MIPS_SYNC_OP_12_NOT_NOT)));
+	    (MIPS_SYNC_OP_12 ("and", MIPS_SYNC_OP_12_XOR)));
 }
-  [(set_attr "length" "44")])
+  [(set_attr "length" "40")])
 
 (define_expand "sync_old_nand<mode>"
   [(parallel [
@@ -274,10 +282,9 @@
   "GENERATE_LL_SC"
 {
     return (mips_output_sync_loop
-	    (MIPS_SYNC_OLD_OP_12 ("and", MIPS_SYNC_OLD_OP_12_NOT_NOT,
-				  MIPS_SYNC_OLD_OP_12_NOT_NOT_REG)));
+	    (MIPS_SYNC_OLD_OP_12 ("and", MIPS_SYNC_OLD_OP_12_XOR)));
 }
-  [(set_attr "length" "44")])
+  [(set_attr "length" "40")])
 
 (define_expand "sync_new_nand<mode>"
   [(parallel [
@@ -315,7 +322,7 @@
   "GENERATE_LL_SC"
 {
     return (mips_output_sync_loop
-	    (MIPS_SYNC_NEW_OP_12 ("and", MIPS_SYNC_NEW_OP_12_NOT_NOT)));
+	    (MIPS_SYNC_NEW_OP_12 ("and", MIPS_SYNC_NEW_OP_12_XOR)));
 }
   [(set_attr "length" "40")])
 

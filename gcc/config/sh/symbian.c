@@ -1,5 +1,5 @@
 /* Routines for GCC for a Symbian OS targeted SH backend.
-   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2009 Free Software Foundation, Inc.
    Contributed by RedHat.
    Most of this code is stolen from i386/winnt.c.
 
@@ -139,7 +139,7 @@ sh_symbian_dllimport_p (tree decl)
      earlier declaration.  */
   if (TREE_CODE (decl) ==  FUNCTION_DECL
       && DECL_INITIAL (decl)
-      && !DECL_INLINE (decl))
+      && ! DECL_DECLARED_INLINE_P (decl))
     {
       /* Don't warn about artificial methods.  */
       if (!DECL_ARTIFICIAL (decl))
@@ -152,7 +152,7 @@ sh_symbian_dllimport_p (tree decl)
   /* We ignore the dllimport attribute for inline member functions.
      This differs from MSVC behavior which treats it like GNUC
      'extern inline' extension.   */
-  else if (TREE_CODE (decl) == FUNCTION_DECL && DECL_INLINE (decl))
+  else if (TREE_CODE (decl) == FUNCTION_DECL && DECL_DECLARED_INLINE_P (decl))
     {
       if (extra_warnings)
 	warning (OPT_Wattributes, "inline function %q+D is declared as "
@@ -217,7 +217,7 @@ sh_symbian_mark_dllexport (tree decl)
   tree idp;
 
   rtlname = XEXP (DECL_RTL (decl), 0);
-  if (GET_CODE (rtlname) == MEM)
+  if (MEM_P (rtlname))
     rtlname = XEXP (rtlname, 0);
   gcc_assert (GET_CODE (rtlname) == SYMBOL_REF);
   oldname = XSTR (rtlname, 0);
@@ -262,15 +262,15 @@ sh_symbian_mark_dllimport (tree decl)
   rtx newrtl;
 
   rtlname = XEXP (DECL_RTL (decl), 0);
-  if (GET_CODE (rtlname) == MEM)
+  if (MEM_P (rtlname))
     rtlname = XEXP (rtlname, 0);
   gcc_assert (GET_CODE (rtlname) == SYMBOL_REF);
   oldname = XSTR (rtlname, 0);
 
   if (sh_symbian_dllexport_name_p (oldname))
     {
-      error ("%qs declared as both exported to and imported from a DLL",
-             IDENTIFIER_POINTER (DECL_NAME (decl)));
+      error ("%qE declared as both exported to and imported from a DLL",
+             DECL_NAME (decl));
     }
   else if (sh_symbian_dllimport_name_p (oldname))
     {
@@ -312,8 +312,8 @@ sh_symbian_encode_section_info (tree decl, rtx rtl, int first)
   else if (  (TREE_CODE (decl) == FUNCTION_DECL
 	   || TREE_CODE (decl) == VAR_DECL)
 	   && DECL_RTL (decl) != NULL_RTX
-	   && GET_CODE (DECL_RTL (decl)) == MEM
-	   && GET_CODE (XEXP (DECL_RTL (decl), 0)) == MEM
+	   && MEM_P (DECL_RTL (decl))
+	   && MEM_P (XEXP (DECL_RTL (decl), 0))
 	   && GET_CODE (XEXP (XEXP (DECL_RTL (decl), 0), 0)) == SYMBOL_REF
 	   && sh_symbian_dllimport_name_p (XSTR (XEXP (XEXP (DECL_RTL (decl), 0), 0), 0)))
     {
@@ -502,8 +502,8 @@ sh_symbian_handle_dll_attribute (tree *pnode, tree name, tree args,
       && (   TREE_CODE (node) == VAR_DECL
 	  || TREE_CODE (node) == FUNCTION_DECL))
     {
-      error ("external linkage required for symbol %q+D because of %qs attribute",
-	     node, IDENTIFIER_POINTER (name));
+      error ("external linkage required for symbol %q+D because of %qE attribute",
+	     node, name);
       *no_add_attrs = true;
     }
 
@@ -580,7 +580,7 @@ symbian_possibly_export_base_class (tree base_class)
 	  if (DECL_PURE_VIRTUAL_P (member))
 	    continue;
 
-	  if (DECL_INLINE (member))
+	  if (DECL_DECLARED_INLINE_P (member))
 	    continue;
 
 	  break;
@@ -671,7 +671,7 @@ symbian_export_vtable_and_rtti_p (tree ctype)
 
 	  if (DECL_CONSTRUCTOR_P (member) || DECL_DESTRUCTOR_P (member))
 	    {
-	      if (DECL_INLINE (member)
+	      if (DECL_DECLARED_INLINE_P (member)
 		  /* Ignore C++ backend created inline ctors/dtors.  */
 		  && (   DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P (member)
 		      || DECL_MAYBE_IN_CHARGE_DESTRUCTOR_P (member)))
@@ -688,7 +688,7 @@ symbian_export_vtable_and_rtti_p (tree ctype)
 	      if (! DECL_VIRTUAL_P (member))
 		continue;
 
-	      if (DECL_INLINE (member))
+	      if (DECL_DECLARED_INLINE_P (member))
 		continue;
 
 	      if (lookup_attribute ("dllimport", DECL_ATTRIBUTES (member)))

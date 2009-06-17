@@ -1,6 +1,6 @@
 /* Header file for intrinsics check, resolve and simplify function
    prototypes.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -200,10 +200,12 @@ gfc_expr *gfc_simplify_adjustl (gfc_expr *);
 gfc_expr *gfc_simplify_adjustr (gfc_expr *);
 gfc_expr *gfc_simplify_aimag (gfc_expr *);
 gfc_expr *gfc_simplify_aint (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_all (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_dint (gfc_expr *);
 gfc_expr *gfc_simplify_anint (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_dnint (gfc_expr *);
 gfc_expr *gfc_simplify_and (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_any (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_asin (gfc_expr *);
 gfc_expr *gfc_simplify_asinh (gfc_expr *);
 gfc_expr *gfc_simplify_atan (gfc_expr *);
@@ -224,14 +226,17 @@ gfc_expr *gfc_simplify_complex (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_conjg (gfc_expr *);
 gfc_expr *gfc_simplify_cos (gfc_expr *);
 gfc_expr *gfc_simplify_cosh (gfc_expr *);
+gfc_expr *gfc_simplify_count (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_dcmplx (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_dble (gfc_expr *);
 gfc_expr *gfc_simplify_digits (gfc_expr *);
 gfc_expr *gfc_simplify_dim (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_dprod (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_dot_product (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_epsilon (gfc_expr *);
 gfc_expr *gfc_simplify_erf (gfc_expr *);
 gfc_expr *gfc_simplify_erfc (gfc_expr *);
+gfc_expr *gfc_simplify_erfc_scaled (gfc_expr *);
 gfc_expr *gfc_simplify_exp (gfc_expr *);
 gfc_expr *gfc_simplify_exponent (gfc_expr *);
 gfc_expr *gfc_simplify_float (gfc_expr *);
@@ -255,6 +260,9 @@ gfc_expr *gfc_simplify_long (gfc_expr *);
 gfc_expr *gfc_simplify_ifix (gfc_expr *);
 gfc_expr *gfc_simplify_idint (gfc_expr *);
 gfc_expr *gfc_simplify_ior (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_is_iostat_end (gfc_expr *);
+gfc_expr *gfc_simplify_is_iostat_eor (gfc_expr *);
+gfc_expr *gfc_simplify_isnan (gfc_expr *);
 gfc_expr *gfc_simplify_ishft (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_ishftc (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_kind (gfc_expr *);
@@ -270,6 +278,8 @@ gfc_expr *gfc_simplify_llt (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_log (gfc_expr *);
 gfc_expr *gfc_simplify_log10 (gfc_expr *);
 gfc_expr *gfc_simplify_logical (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_matmul (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_merge (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_min (gfc_expr *);
 gfc_expr *gfc_simplify_minval (gfc_expr *, gfc_expr*, gfc_expr*);
 gfc_expr *gfc_simplify_max (gfc_expr *);
@@ -287,7 +297,9 @@ gfc_expr *gfc_simplify_null (gfc_expr *);
 gfc_expr *gfc_simplify_idnint (gfc_expr *);
 gfc_expr *gfc_simplify_not (gfc_expr *);
 gfc_expr *gfc_simplify_or (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_pack (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_precision (gfc_expr *);
+gfc_expr *gfc_simplify_product (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_radix (gfc_expr *);
 gfc_expr *gfc_simplify_range (gfc_expr *);
 gfc_expr *gfc_simplify_real (gfc_expr *, gfc_expr *);
@@ -309,14 +321,18 @@ gfc_expr *gfc_simplify_sinh (gfc_expr *);
 gfc_expr *gfc_simplify_size (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_sngl (gfc_expr *);
 gfc_expr *gfc_simplify_spacing (gfc_expr *);
+gfc_expr *gfc_simplify_spread (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_sqrt (gfc_expr *);
+gfc_expr *gfc_simplify_sum (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_tan (gfc_expr *);
 gfc_expr *gfc_simplify_tanh (gfc_expr *);
 gfc_expr *gfc_simplify_tiny (gfc_expr *);
 gfc_expr *gfc_simplify_trailz (gfc_expr *);
 gfc_expr *gfc_simplify_transfer (gfc_expr *, gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_transpose (gfc_expr *);
 gfc_expr *gfc_simplify_trim (gfc_expr *);
 gfc_expr *gfc_simplify_ubound (gfc_expr *, gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_unpack (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_verify (gfc_expr *, gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_xor (gfc_expr *, gfc_expr *);
 

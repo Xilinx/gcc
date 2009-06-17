@@ -1,6 +1,6 @@
 ; Options for the ATMEL AVR port of the compiler.
 
-; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -36,10 +36,6 @@ Use an 8-bit 'int' type
 mno-interrupts
 Target Report RejectNegative Mask(NO_INTERRUPTS)
 Change the stack pointer without disabling interrupts
-
-mno-tablejump
-Target Report RejectNegative Mask(NO_TABLEJUMP)
-Do not generate tablejump insns
 
 morder1
 Target Report Undocumented Mask(ORDER_1)

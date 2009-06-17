@@ -1,6 +1,6 @@
 /* Output xcoff-format symbol table information from GNU compiler.
    Copyright (C) 1992, 1994, 1995, 1997, 1998, 1999, 2000, 2002, 2003, 2004,
-   2007  Free Software Foundation, Inc.
+   2007, 2008  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -321,7 +321,8 @@ xcoffout_source_file (FILE *file, const char *filename, int inline_p)
 /* Output a line number symbol entry for location (FILENAME, LINE).  */
 
 void
-xcoffout_source_line (unsigned int line, const char *filename)
+xcoffout_source_line (unsigned int line, const char *filename,
+                      int discriminator ATTRIBUTE_UNUSED)
 {
   bool inline_p = (strcmp (xcoff_current_function_file, filename) != 0
 		   || (int) line < xcoff_begin_function_line);

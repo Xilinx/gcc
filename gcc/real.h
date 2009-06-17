@@ -24,6 +24,9 @@
 #ifndef GENERATOR_FILE
 #include <gmp.h>
 #include <mpfr.h>
+#ifdef HAVE_mpc
+#include <mpc.h>
+#endif
 #endif
 #include "machmode.h"
 
@@ -43,8 +46,7 @@ enum real_value_class {
 #define SIGSZ			(SIGNIFICAND_BITS / HOST_BITS_PER_LONG)
 #define SIG_MSB			((unsigned long)1 << (HOST_BITS_PER_LONG - 1))
 
-struct real_value GTY(())
-{
+struct GTY(()) real_value {
   /* Use the same underlying type for all bit-fields, so as to make
      sure they're packed together, otherwise REAL_VALUE_TYPE_SIZE will
      be miscomputed.  */
@@ -304,6 +306,8 @@ extern const struct real_format real_internal_format;
 extern const struct real_format decimal_single_format;
 extern const struct real_format decimal_double_format;
 extern const struct real_format decimal_quad_format;
+extern const struct real_format ieee_half_format;
+extern const struct real_format arm_half_format;
 
 
 /* ====================================================================== */

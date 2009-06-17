@@ -1,3 +1,21 @@
+2009-05-17  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* win32_threads.c (GC_get_thread_stack_base):  Implement for Cygwin.
+
+2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-02-09  Mark Mitchell  <mark@codesourcery.com>
+
+	* Makefile.am (LTLDFLAGS): New variable.
+	(LINK): Use it.
+	* Makefile.in: Regenerated.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
 2008-09-26  Peter O'Gorman  <pogma@thewrittenword.com>
             Steve Ellcey  <sje@cup.hp.com>
 

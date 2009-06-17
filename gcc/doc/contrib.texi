@@ -1,5 +1,5 @@
 @c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,
-@c 2001,2002,2003,2004,2005,2006,2007 Free Software Foundation, Inc.
+@c 2001,2002,2003,2004,2005,2006,2007,2008,2009 Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -154,6 +154,10 @@ Glenn Chambers for help with the GCJ FAQ@.
 
 @item
 John-Marc Chandonia for various libgcj patches.
+
+@item
+Denis Chertykov for contributed and maintain the AVR port, the first GCC port
+for an 8-bit architecture.
 
 @item
 Scott Christley for his Objective-C contributions.
@@ -312,7 +316,8 @@ support, improved leaf function register allocation, and his direction
 via the steering committee.
 
 @item
-Anthony Green for his @option{-Os} contributions and Java front end work.
+Anthony Green for his @option{-Os} contributions, the moxie port, and
+Java front end work.
 
 @item
 Stu Grossman for gdb hacking, allowing GCJ developers to debug Java code.
@@ -666,7 +671,7 @@ Geoff Noer for his work on getting cygwin native builds working.
 
 @item
 Diego Novillo for his work on Tree SSA, OpenMP, SPEC performance
-tracking web pages and assorted fixes.
+tracking web pages, GIMPLE tuples, and assorted fixes.
 
 @item
 David O'Brien for the FreeBSD/alpha, FreeBSD/AMD x86-64, FreeBSD/ARM,
@@ -1419,6 +1424,9 @@ Sidney Cadot
 Bradford Castalia
 
 @item
+Robert Clark
+
+@item
 Jonathan Corbet
 
 @item
@@ -1611,5 +1619,6 @@ David E. Young
 And many others
 @end itemize
 
-And finally we'd like to thank everyone who uses the compiler, submits bug
-reports and generally reminds us why we're doing this work in the first place.
+And finally we'd like to thank everyone who uses the compiler, provides
+feedback and generally reminds us why we're doing this work in the first
+place.

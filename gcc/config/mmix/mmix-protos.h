@@ -82,7 +82,6 @@ extern rtx mmix_eh_return_stackadj_rtx (void);
 extern rtx mmix_eh_return_handler_rtx (void);
 extern void mmix_initialize_trampoline (rtx, rtx, rtx);
 extern int mmix_constant_address_p (rtx);
-extern int mmix_legitimate_address (enum machine_mode, rtx, int);
 extern int mmix_legitimate_constant_p (rtx);
 extern void mmix_print_operand (FILE *, rtx, int);
 extern void mmix_print_operand_address (FILE *, rtx);
@@ -96,7 +95,6 @@ extern void mmix_setup_frame_addresses (void);
 /* Needs to be ifdef:d for sake of enum rtx_code.  */
 extern enum machine_mode mmix_select_cc_mode (enum rtx_code, rtx, rtx);
 extern void mmix_canonicalize_comparison (enum rtx_code *, rtx *, rtx *);
-extern int mmix_valid_comparison (enum rtx_code, enum machine_mode, rtx);
 extern rtx mmix_gen_compare_reg (enum rtx_code, rtx, rtx);
 #endif
 

@@ -1,9 +1,9 @@
-// Copyright (C) 2001, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2004, 2005, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -12,16 +12,13 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 23.2.2.2 list capacity [lib.list.capacity]
 
 #include <list>
 #include <testsuite_hooks.h>
-
-bool test __attribute__((unused)) = true;
 
 // This test verifies the following.
 //
@@ -33,10 +30,15 @@ bool test __attribute__((unused)) = true;
 // 23.2.2       size_type max_size() const
 // 23.2.2.2     void resize(size_type s, T c = T())
 //
+template<typename _Tp>
 void
-test01()
+capacity01()
 {
-  std::list<int> list0101;
+  bool test __attribute__((unused)) = true;
+  typedef _Tp list_type;
+  typedef typename list_type::iterator iterator_type;
+
+  list_type list0101;
   VERIFY(list0101.empty());
   VERIFY(list0101.size() == 0);
 
@@ -48,7 +50,7 @@ test01()
   VERIFY(!list0101.empty());
   VERIFY(list0101.size() == 3);
 
-  std::list<int>::iterator i = list0101.begin();
+  iterator_type i = list0101.begin();
   VERIFY(*i == 1); ++i;
   VERIFY(*i == 2); ++i;
   VERIFY(*i == 2); ++i;
@@ -62,8 +64,6 @@ test01()
 int
 main()
 {
-  test01();
+  capacity01<std::list<int> >();
   return 0;
 }
-
-// vi:set sw=2 ts=2:

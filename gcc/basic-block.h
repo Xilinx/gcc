@@ -1,6 +1,6 @@
 /* Define control and data flow tables, and regsets.
    Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -106,6 +106,11 @@ typedef bitmap_iterator reg_set_iterator;
 #define EXECUTE_IF_AND_IN_REG_SET(REGSET1, REGSET2, MIN, REGNUM, RSI) \
   EXECUTE_IF_AND_IN_BITMAP (REGSET1, REGSET2, MIN, REGNUM, RSI)	\
 
+/* Same information as REGS_INVALIDATED_BY_CALL but in regset form to be used
+   in dataflow more conveniently.  */
+
+extern regset regs_invalidated_by_call_regset;
+
 /* Type we use to hold basic block counters.  Should be at least
    64bit.  Although a counter cannot be negative, we use a signed
    type, because erroneous negative counts can be generated when the
@@ -114,8 +119,7 @@ typedef bitmap_iterator reg_set_iterator;
 typedef HOST_WIDEST_INT gcov_type;
 
 /* Control flow edge information.  */
-struct edge_def GTY(())
-{
+struct GTY(()) edge_def {
   /* The two blocks at the ends of the edge.  */
   struct basic_block_def *src;
   struct basic_block_def *dest;
@@ -143,8 +147,6 @@ struct edge_def GTY(())
 				   in profile.c  */
 };
 
-typedef struct edge_def *edge;
-typedef const struct edge_def *const_edge;
 DEF_VEC_P(edge);
 DEF_VEC_ALLOC_P(edge,gc);
 DEF_VEC_ALLOC_P(edge,heap);
@@ -212,8 +214,7 @@ struct rtl_bb_info;
    basic blocks.  */
 
 /* Basic block information indexed by block number.  */
-struct basic_block_def GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb")))
-{
+struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_def {
   /* The edges into and out of the block.  */
   VEC(edge,gc) *preds;
   VEC(edge,gc) *succs;
@@ -248,12 +249,14 @@ struct basic_block_def GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb")
   /* Expected frequency.  Normalized to be in range 0 to BB_FREQ_MAX.  */
   int frequency;
 
+  /* The discriminator for this block.  */
+  int discriminator;
+
   /* Various flags.  See BB_* below.  */
   int flags;
 };
 
-struct rtl_bb_info GTY(())
-{
+struct GTY(()) rtl_bb_info {
   /* The first and last insns of the block.  */
   rtx head_;
   rtx end_;
@@ -267,17 +270,13 @@ struct rtl_bb_info GTY(())
   int visited;
 };
 
-struct gimple_bb_info GTY(())
-{
+struct GTY(()) gimple_bb_info {
   /* Sequence of statements in this block.  */
   gimple_seq seq;
 
   /* PHI nodes for this block.  */
   gimple_seq phi_nodes;
 };
-
-typedef struct basic_block_def *basic_block;
-typedef const struct basic_block_def *const_basic_block;
 
 DEF_VEC_P(basic_block);
 DEF_VEC_ALLOC_P(basic_block,gc);
@@ -360,12 +359,19 @@ enum dom_state
   DOM_OK		/* Everything is ok.  */
 };
 
+/* What sort of profiling information we have.  */
+enum profile_status
+{
+  PROFILE_ABSENT,
+  PROFILE_GUESSED,
+  PROFILE_READ
+};
+
 /* A structure to group all the per-function control flow graph data.
    The x_* prefixing is necessary because otherwise references to the
    fields of this struct are interpreted as the defines for backward
    source compatibility following the definition of this struct.  */
-struct control_flow_graph GTY(())
-{
+struct GTY(()) control_flow_graph {
   /* Block pointers for the exit and entry of a function.
      These are always the head and tail of the basic block list.  */
   basic_block x_entry_block_ptr;
@@ -387,11 +393,7 @@ struct control_flow_graph GTY(())
      only used for the gimple CFG.  */
   VEC(basic_block,gc) *x_label_to_block_map;
 
-  enum profile_status {
-    PROFILE_ABSENT,
-    PROFILE_GUESSED,
-    PROFILE_READ
-  } x_profile_status;
+  enum profile_status x_profile_status;
 
   /* Whether the dominators and the postdominators are available.  */
   enum dom_state x_dom_computed[2];
@@ -489,7 +491,8 @@ extern bitmap_obstack reg_obstack;
 #define BB_HEAD(B)      (B)->il.rtl->head_
 #define BB_END(B)       (B)->il.rtl->end_
 
-/* Special block numbers [markers] for entry and exit.  */
+/* Special block numbers [markers] for entry and exit.
+   Neither of them is supposed to hold actual statements.  */
 #define ENTRY_BLOCK (0)
 #define EXIT_BLOCK (1)
 
@@ -507,6 +510,7 @@ extern void update_bb_for_insn (basic_block);
 extern void insert_insn_on_edge (rtx, edge);
 basic_block split_edge_and_insert (edge, rtx);
 
+extern void commit_one_edge_insertion (edge e);
 extern void commit_edge_insertions (void);
 
 extern void remove_fake_edges (void);
@@ -891,7 +895,6 @@ extern bool purge_dead_edges (basic_block);
 /* In cfgbuild.c.  */
 extern void find_many_sub_basic_blocks (sbitmap);
 extern void rtl_make_eh_edge (sbitmap, basic_block, rtx);
-extern void find_basic_blocks (rtx);
 
 /* In cfgcleanup.c.  */
 extern bool cleanup_cfg (int);
@@ -933,6 +936,8 @@ extern VEC (basic_block, heap) *get_dominated_by (enum cdi_direction, basic_bloc
 extern VEC (basic_block, heap) *get_dominated_by_region (enum cdi_direction,
 							 basic_block *,
 							 unsigned);
+extern VEC (basic_block, heap) *get_all_dominated_blocks (enum cdi_direction,
+							  basic_block);
 extern void add_to_dominance_info (enum cdi_direction, basic_block);
 extern void delete_from_dominance_info (enum cdi_direction, basic_block);
 basic_block recompute_dominator (enum cdi_direction, basic_block);

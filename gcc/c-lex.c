@@ -313,7 +313,7 @@ c_lex_with_flags (tree *value, location_t *loc, unsigned char *cpp_flags,
       goto retry;
 
     case CPP_NAME:
-      *value = HT_IDENT_TO_GCC_IDENT (HT_NODE (tok->val.node));
+      *value = HT_IDENT_TO_GCC_IDENT (HT_NODE (tok->val.node.node));
       break;
 
     case CPP_NUMBER:
@@ -369,7 +369,7 @@ c_lex_with_flags (tree *value, location_t *loc, unsigned char *cpp_flags,
 	      break;
 
 	    case CPP_NAME:
-	      *value = HT_IDENT_TO_GCC_IDENT (HT_NODE (tok->val.node));
+	      *value = HT_IDENT_TO_GCC_IDENT (HT_NODE (tok->val.node.node));
 	      if (objc_is_reserved_word (*value))
 		{
 		  type = CPP_AT_NAME;
@@ -582,13 +582,18 @@ interpret_integer (const cpp_token *token, unsigned int flags)
 	    ? widest_unsigned_literal_type_node
 	    : widest_integer_literal_type_node);
   else
-    type = integer_types[itk];
-
-  if (itk > itk_unsigned_long
-      && (flags & CPP_N_WIDTH) != CPP_N_LARGE
-      && !in_system_header && !flag_isoc99)
-    pedwarn (input_location, 0, "integer constant is too large for %qs type",
-	     (flags & CPP_N_UNSIGNED) ? "unsigned long" : "long");
+    {
+      type = integer_types[itk];
+      if (itk > itk_unsigned_long
+	  && (flags & CPP_N_WIDTH) != CPP_N_LARGE)
+	emit_diagnostic 
+	  ((c_dialect_cxx () ? cxx_dialect == cxx98 : !flag_isoc99)
+	   ? DK_PEDWARN : DK_WARNING,
+	   input_location, OPT_Wlong_long,
+	   (flags & CPP_N_UNSIGNED) 
+	   ? "integer constant is too large for %<unsigned long%> type"
+	   : "integer constant is too large for %<long%> type");
+    }
 
   value = build_int_cst_wide (type, integer.low, integer.high);
 
@@ -605,10 +610,29 @@ static tree
 interpret_float (const cpp_token *token, unsigned int flags)
 {
   tree type;
+  tree const_type;
   tree value;
   REAL_VALUE_TYPE real;
+  REAL_VALUE_TYPE real_trunc;
   char *copy;
   size_t copylen;
+
+  /* Default (no suffix) depends on whether the FLOAT_CONST_DECIMAL64
+     pragma has been used and is either double or _Decimal64.  Types
+     that are not allowed with decimal float default to double.  */
+  if (flags & CPP_N_DEFAULT)
+    {
+      flags ^= CPP_N_DEFAULT;
+      flags |= CPP_N_MEDIUM;
+
+      if (((flags & CPP_N_HEX) == 0) && ((flags & CPP_N_IMAGINARY) == 0))
+	{
+	  warning (OPT_Wunsuffixed_float_constants,
+		   "unsuffixed float constant");
+	  if (float_const_decimal64_p ())
+	    flags |= CPP_N_DFLOAT;
+	}
+    }
 
   /* Decode _Fract and _Accum.  */
   if (flags & CPP_N_FRACT || flags & CPP_N_ACCUM)
@@ -655,6 +679,10 @@ interpret_float (const cpp_token *token, unsigned int flags)
     else
       type = double_type_node;
 
+  const_type = excess_precision_type (type);
+  if (!const_type)
+    const_type = type;
+
   /* Copy the constant to a nul-terminated buffer.  If the constant
      has any suffixes, cut them off; REAL_VALUE_ATOF/ REAL_VALUE_HTOF
      can't handle them.  */
@@ -675,13 +703,21 @@ interpret_float (const cpp_token *token, unsigned int flags)
   memcpy (copy, token->val.str.text, copylen);
   copy[copylen] = '\0';
 
-  real_from_string3 (&real, copy, TYPE_MODE (type));
+  real_from_string3 (&real, copy, TYPE_MODE (const_type));
+  if (const_type != type)
+    /* Diagnosing if the result of converting the value with excess
+       precision to the semantic type would overflow (with associated
+       double rounding) is more appropriate than diagnosing if the
+       result of converting the string directly to the semantic type
+       would overflow.  */
+    real_convert (&real_trunc, TYPE_MODE (type), &real);
 
   /* Both C and C++ require a diagnostic for a floating constant
      outside the range of representable values of its type.  Since we
      have __builtin_inf* to produce an infinity, this is now a
      mandatory pedwarn if the target does not support infinities.  */
-  if (REAL_VALUE_ISINF (real)) 
+  if (REAL_VALUE_ISINF (real)
+      || (const_type != type && REAL_VALUE_ISINF (real_trunc)))
     {
       if (!MODE_HAS_INFINITIES (TYPE_MODE (type)))
 	pedwarn (input_location, 0, "floating constant exceeds range of %qT", type);
@@ -689,7 +725,8 @@ interpret_float (const cpp_token *token, unsigned int flags)
 	warning (OPT_Woverflow, "floating constant exceeds range of %qT", type);
     }
   /* We also give a warning if the value underflows.  */
-  else if (REAL_VALUES_EQUAL (real, dconst0))
+  else if (REAL_VALUES_EQUAL (real, dconst0)
+	   || (const_type != type && REAL_VALUES_EQUAL (real_trunc, dconst0)))
     {
       REAL_VALUE_TYPE realvoidmode;
       int overflow = real_from_string (&realvoidmode, copy);
@@ -698,9 +735,13 @@ interpret_float (const cpp_token *token, unsigned int flags)
     }
 
   /* Create a node with determined type and value.  */
-  value = build_real (type, real);
+  value = build_real (const_type, real);
   if (flags & CPP_N_IMAGINARY)
-    value = build_complex (NULL_TREE, convert (type, integer_zero_node), value);
+    value = build_complex (NULL_TREE, convert (const_type, integer_zero_node),
+			   value);
+
+  if (type != const_type)
+    value = build1 (EXCESS_PRECISION_EXPR, type, value);
 
   return value;
 }

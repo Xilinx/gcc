@@ -1,3 +1,28 @@
+2009-06-16  Matthias Klose  <doko@ubuntu.com>
+
+	* tools/gnu/classpath/tools/gjdoc/Main.java (getGjdocVersion): Use
+	gnu.classpath.Configuration.CLASSPATH_VERSION as version number.
+	* tools/gnu/classpath/tools/doclets/htmldoclet/HtmlDoclet.java
+	(getDocletVersion): Likewise.
+	* tools/classes/gnu/classpath/tools/gjdoc/Main*.class: Regenerate.
+	* tools/classes/gnu/classpath/tools/doclets/htmldoclet/HtmlDoclet*.class:
+ 	Regenerate.
+
+2009-03-16  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: Detect xulrunner-1.9.
+	* configure: Regenerate.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* gnu/java/rmi/registry/RegistryImpl.java (version): Update
+	copyright notice dates.
+	* tools/gnu/classpath/tools/orbd/Main.java (run): Likewise.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
 2008-11-12  Jakub Jelinek  <jakub@redhat.com>
 
 	PR libgcj/33764
@@ -6,6 +31,12 @@
 	instead of bin_PROGRAMS for binaries.
 	* configure: Regenerated.
 	* tools/Makefile.in: Regenerated.
+
+2008-11-10  Andrew Haley  <aph@redhat.com>
+
+	* native/jni/gtk-peer/gnu_java_awt_peer_gtk_CairoGraphics2D.c 
+	(Java_gnu_java_awt_peer_gtk_CairoGraphics2D_cairoDrawGlyphVector): 
+	Remove bogus gdk_threads_leave ();
 
 2008-10-23  Jakub Jelinek  <jakub@redhat.com>
 

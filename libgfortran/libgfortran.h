@@ -1,33 +1,29 @@
 /* Common declarations for all of libgfortran.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>, and
    Andy Vaught <andy@xena.eas.asu.edu>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
-Libgfortran is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2.1 of the License, or (at your option) any later version.
+Libgfortran is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
+GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with libgfor; see the file COPYING.LIB.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
 
-/* As a special exception, if you link this library with other files,
-   some of which are compiled with GCC, to produce an executable,
-   this library does not by itself cause the resulting executable
-   to be covered by the GNU General Public License.
-   This exception does not however invalidate any other reasons why
-   the executable file might be covered by the GNU General Public License.  */
-
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef LIBGFOR_H
 #define LIBGFOR_H
@@ -594,6 +590,7 @@ st_parameter_common;
 #define IOPARM_OPEN_HAS_ROUND		(1 << 20)
 #define IOPARM_OPEN_HAS_SIGN		(1 << 21)
 #define IOPARM_OPEN_HAS_ASYNCHRONOUS	(1 << 22)
+#define IOPARM_OPEN_HAS_NEWUNIT		(1 << 23)
 
 /* library start function and end macro.  These can be expanded if needed
    in the future.  cmp is st_parameter_common *cmp  */
@@ -609,7 +606,7 @@ extern void stupid_function_name_for_static_linking (void);
 internal_proto(stupid_function_name_for_static_linking);
 
 extern void set_args (int, char **);
-export_proto(set_args);
+iexport_proto(set_args);
 
 extern void get_args (int *, char ***);
 internal_proto(get_args);
@@ -635,11 +632,8 @@ internal_proto(show_backtrace);
 extern void sys_exit (int) __attribute__ ((noreturn));
 internal_proto(sys_exit);
 
-extern const char *gfc_itoa (GFC_INTEGER_LARGEST, char *, size_t);
-internal_proto(gfc_itoa);
-
-extern const char *xtoa (GFC_UINTEGER_LARGEST, char *, size_t);
-internal_proto(xtoa);
+extern const char *gfc_xtoa (GFC_UINTEGER_LARGEST, char *, size_t);
+internal_proto(gfc_xtoa);
 
 extern void os_error (const char *) __attribute__ ((noreturn));
 iexport_proto(os_error);

@@ -72,11 +72,13 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/../compile \
 	$(top_srcdir)/contrib/aot-compile-rpm.in \
 	$(top_srcdir)/contrib/aot-compile.in \
 	$(top_srcdir)/contrib/aotcompile.py.in \
+	$(top_srcdir)/contrib/generate-cacerts.pl.in \
 	$(top_srcdir)/contrib/rebuild-gcj-db.in \
 	$(top_srcdir)/scripts/jar.in COPYING ChangeLog NEWS THANKS
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@am__append_19 = gen-from-JIS
 @NATIVE_TRUE@@USE_LIBGCJ_BC_TRUE@am__append_20 = libgcj_bc.la
-@XLIB_AWT_TRUE@am__append_21 = $(xlib_nat_headers)
+@NATIVE_TRUE@@USE_LIBGCJ_BC_FALSE@am__append_21 = libgcj.la
+@XLIB_AWT_TRUE@am__append_22 = $(xlib_nat_headers)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/libltdl/acinclude.m4 \
@@ -110,13 +112,15 @@ CONFIG_HEADER = $(top_builddir)/include/config.h \
 	$(top_builddir)/gcj/libgcj-config.h
 CONFIG_CLEAN_FILES = libgcj.pc libgcj.spec libgcj-test.spec \
 	contrib/aotcompile.py contrib/aot-compile \
-	contrib/aot-compile-rpm contrib/rebuild-gcj-db scripts/jar \
-	java/io/natFile.cc java/lang/natConcreteProcess.cc \
-	java/net/natVMInetAddress.cc java/net/natVMNetworkInterface.cc \
+	contrib/aot-compile-rpm contrib/generate-cacerts.pl \
+	contrib/rebuild-gcj-db scripts/jar java/io/natFile.cc \
+	java/lang/natConcreteProcess.cc java/net/natVMInetAddress.cc \
+	java/net/natVMNetworkInterface.cc \
 	gnu/java/net/natPlainSocketImpl.cc \
 	gnu/java/net/natPlainDatagramSocketImpl.cc \
 	gnu/java/nio/natVMPipe.cc gnu/java/nio/natVMSelector.cc \
-	gnu/java/nio/channels/natFileChannelImpl.cc sysdep/locks.h \
+	gnu/java/nio/channels/natFileChannelImpl.cc \
+	gnu/java/security/jce/prng/natVMSecureRandom.cc sysdep/locks.h \
 	sysdep/backtrace.h sysdep/descriptor.h
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -341,8 +345,9 @@ am__libgcj_la_SOURCES_DIST = prims.cc jni.cc exception.cc \
 	gnu/java/nio/natVMPipe.cc gnu/java/nio/natVMSelector.cc \
 	gnu/java/nio/natNIOServerSocket.cc \
 	gnu/java/nio/natVMChannel.cc \
-	gnu/java/nio/channels/natFileChannelImpl.cc java/io/natFile.cc \
-	java/io/natVMObjectInputStream.cc \
+	gnu/java/nio/channels/natFileChannelImpl.cc \
+	gnu/java/security/jce/prng/natVMSecureRandom.cc \
+	java/io/natFile.cc java/io/natVMObjectInputStream.cc \
 	java/io/natVMObjectStreamClass.cc java/lang/natCharacter.cc \
 	java/lang/natClass.cc java/lang/natClassLoader.cc \
 	java/lang/natConcreteProcess.cc java/lang/natVMDouble.cc \
@@ -405,8 +410,9 @@ am__objects_5 = $(am__objects_3) gnu/classpath/natConfiguration.lo \
 	gnu/java/nio/natVMPipe.lo gnu/java/nio/natVMSelector.lo \
 	gnu/java/nio/natNIOServerSocket.lo \
 	gnu/java/nio/natVMChannel.lo \
-	gnu/java/nio/channels/natFileChannelImpl.lo java/io/natFile.lo \
-	java/io/natVMObjectInputStream.lo \
+	gnu/java/nio/channels/natFileChannelImpl.lo \
+	gnu/java/security/jce/prng/natVMSecureRandom.lo \
+	java/io/natFile.lo java/io/natVMObjectInputStream.lo \
 	java/io/natVMObjectStreamClass.lo java/lang/natCharacter.lo \
 	java/lang/natClass.lo java/lang/natClassLoader.lo \
 	java/lang/natConcreteProcess.lo java/lang/natVMDouble.lo \
@@ -467,8 +473,9 @@ libexecsubPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@am__EXEEXT_4 =  \
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@	gen-from-JIS$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS) $(libexecsub_PROGRAMS) $(noinst_PROGRAMS)
-am_ecjx_OBJECTS =
+am_ecjx_OBJECTS = ecjx.$(OBJEXT)
 ecjx_OBJECTS = $(am_ecjx_OBJECTS)
+@NATIVE_TRUE@@USE_LIBGCJ_BC_FALSE@am__DEPENDENCIES_6 = libgcj.la
 am_gappletviewer_OBJECTS =
 gappletviewer_OBJECTS = $(am_gappletviewer_OBJECTS)
 am_gc_analyze_OBJECTS =
@@ -530,8 +537,6 @@ LTCXXCOMPILE = $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) \
 	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
-CXXLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXXLD) $(AM_CXXFLAGS) \
-	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 GCJCOMPILE = $(GCJ) $(AM_GCJFLAGS) $(GCJFLAGS)
 LTGCJCOMPILE = $(LIBTOOL) --tag=GCJ --mode=compile $(GCJ) \
 	$(AM_GCJFLAGS) $(GCJFLAGS)
@@ -740,7 +745,6 @@ PKG_CONFIG = @PKG_CONFIG@
 PLATFORM = @PLATFORM@
 RANLIB = @RANLIB@
 SDK_BIN_DIR = @SDK_BIN_DIR@
-SDK_DIR = @SDK_DIR@
 SDK_INCLUDE_DIR = @SDK_INCLUDE_DIR@
 SDK_LIB_DIR = @SDK_LIB_DIR@
 SDK_LNK = @SDK_LNK@
@@ -927,15 +931,19 @@ db_pathtail = $(gcjsubdir)/$(db_name)
 @NATIVE_TRUE@	gcjh gjavah gnative2ascii gorbd grmid gserialver \
 @NATIVE_TRUE@	gtnameserv gc-analyze $(am__append_5)
 @NATIVE_TRUE@dbexec_DATA = $(db_name)
-bin_SCRIPTS = addr2name.awk contrib/rebuild-gcj-db contrib/aot-compile \
+bin_SCRIPTS = contrib/rebuild-gcj-db contrib/aot-compile \
 	$(am__append_7)
 GCJ_WITH_FLAGS = $(GCJ) --encoding=UTF-8 -Wno-deprecated
+LTLDFLAGS = $(shell $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
 GCJLINK = $(LIBTOOL) --tag=GCJ --mode=link $(GCJ) -L$(here) $(JC1FLAGS) \
-          $(LDFLAGS) -o $@
+          $(LTLDFLAGS) -o $@
 
 GCJ_FOR_ECJX_LINK = $(GCJ_FOR_ECJX) -o $@
 LIBLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXX) -L$(here) $(JC1FLAGS) \
-          $(LDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) -o $@
+          $(LTLDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) -o $@
+
+CXXLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LTLDFLAGS) -o $@
 
 WARNINGS = -Wextra -Wall
 AM_CXXFLAGS = \
@@ -1022,8 +1030,17 @@ libgcj_la_DEPENDENCIES = libgcj-$(gcc_version).jar java/lang/Object.lo \
 	$(libgcj_la_LIBADD) $(am__append_18)
 libgcj_la_LINK = $(LIBLINK)
 EXTRA_libgcj_la_SOURCES = java/lang/Object.java
+
+# We compile libgcj_tools with -findirect-dispatch so that they can
+# depend on external classes: in particular, gjdoc uses antlr.  In
+# addition, -fno-bootstrap-classes ensures that the tools are loaded
+# by the system class loader rather than the bootstrap class loader:
+# only core library classes should be loaded by the bootstrap loader.
 libgcj_tools_la_SOURCES = classpath/tools/tools.zip
-libgcj_tools_la_GCJFLAGS = $(AM_GCJFLAGS) -findirect-dispatch -fno-indirect-classes  -fsource-filename=$(here)/classpath/tools/all-classes.lst
+libgcj_tools_la_GCJFLAGS = $(AM_GCJFLAGS) -findirect-dispatch \
+ -fno-bootstrap-classes -fno-indirect-classes \
+ -fsource-filename=$(here)/classpath/tools/all-classes.lst
+
 libgcj_tools_la_LDFLAGS = -rpath $(toolexeclibdir) \
  -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
  $(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
@@ -2263,6 +2280,7 @@ classpath/gnu/java/security/jce/prng/Sha256RandomSpi.java \
 classpath/gnu/java/security/jce/prng/Sha384RandomSpi.java \
 classpath/gnu/java/security/jce/prng/Sha512RandomSpi.java \
 classpath/gnu/java/security/jce/prng/TigerRandomSpi.java \
+gnu/java/security/jce/prng/VMSecureRandom.java \
 classpath/gnu/java/security/jce/prng/WhirlpoolRandomSpi.java
 
 gnu_java_security_jce_prng_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_security_jce_prng_source_files)))
@@ -4744,8 +4762,7 @@ classpath/java/security/Signer.java \
 classpath/java/security/UnrecoverableKeyException.java \
 classpath/java/security/UnresolvedPermission.java \
 java/security/VMAccessControlState.java \
-java/security/VMAccessController.java \
-java/security/VMSecureRandom.java
+java/security/VMAccessController.java
 
 java_security_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(java_security_source_files)))
 java_security_acl_source_files = \
@@ -8343,7 +8360,7 @@ gij_LDFLAGS = -rpath $(dbexecdir) -rpath $(toolexeclibdir) \
 gij_LINK = $(GCJLINK)
 gij_LDADD = -L$(here)/.libs libgij.la
 gij_DEPENDENCIES = libgij.la
-ecjx_SOURCES = 
+ecjx_SOURCES = ecjx.cc
 ECJX_BASE_FLAGS = -findirect-dispatch \
 	--main=org.eclipse.jdt.internal.compiler.batch.GCCMain
 
@@ -8353,7 +8370,8 @@ ECJX_BASE_FLAGS = -findirect-dispatch \
 @ENABLE_SHARED_TRUE@@NATIVE_TRUE@ecjx_LDFLAGS = $(ECJX_BASE_FLAGS) -Djava.class.path=$(ECJ_JAR)
 @NATIVE_FALSE@ecjx_LDFLAGS = $(ECJX_BASE_FLAGS) $(ECJ_BUILD_JAR)
 @NATIVE_FALSE@ecjx_LDADD = 
-@NATIVE_TRUE@ecjx_LDADD = -L$(here)/.libs libgcj.la
+@NATIVE_TRUE@ecjx_LDADD = -L$(here)/.libs $(extra_ldflags) \
+@NATIVE_TRUE@	$(am__append_21)
 @NATIVE_FALSE@ecjx_DEPENDENCIES = 
 @NATIVE_TRUE@ecjx_DEPENDENCIES = libgcj.la libgcj.spec \
 @NATIVE_TRUE@	$(am__append_20)
@@ -8508,6 +8526,7 @@ gnu/java/nio/natVMSelector.cc \
 gnu/java/nio/natNIOServerSocket.cc \
 gnu/java/nio/natVMChannel.cc \
 gnu/java/nio/channels/natFileChannelImpl.cc \
+gnu/java/security/jce/prng/natVMSecureRandom.cc \
 java/io/natFile.cc \
 java/io/natVMObjectInputStream.cc \
 java/io/natVMObjectStreamClass.cc \
@@ -8572,7 +8591,7 @@ gnu/gcj/xlib/natXImage.cc \
 gnu/gcj/xlib/natXUnmapEvent.cc
 
 sourcesdir = $(jardir)
-headers_to_make = $(nat_headers) $(am__append_21)
+headers_to_make = $(nat_headers) $(am__append_22)
 
 # Work around what appears to be a GNU make bug handling MAKEFLAGS
 # values defined in terms of make variables, as is the case for CC and
@@ -8600,6 +8619,7 @@ AM_MAKEFLAGS = \
 	"SHELL=$(SHELL)" \
 	"RUNTESTFLAGS=$(RUNTESTFLAGS)" \
 	"exec_prefix=$(exec_prefix)" \
+	"datadir=$(datadir)" \
 	"infodir=$(infodir)" \
 	"libdir=$(libdir)" \
 	"mandir=$(mandir)" \
@@ -8676,6 +8696,8 @@ contrib/aotcompile.py: $(top_builddir)/config.status $(top_srcdir)/contrib/aotco
 contrib/aot-compile: $(top_builddir)/config.status $(top_srcdir)/contrib/aot-compile.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 contrib/aot-compile-rpm: $(top_builddir)/config.status $(top_srcdir)/contrib/aot-compile-rpm.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+contrib/generate-cacerts.pl: $(top_builddir)/config.status $(top_srcdir)/contrib/generate-cacerts.pl.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 contrib/rebuild-gcj-db: $(top_builddir)/config.status $(top_srcdir)/contrib/rebuild-gcj-db.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
@@ -9000,6 +9022,15 @@ gnu/java/nio/channels/$(DEPDIR)/$(am__dirstamp):
 gnu/java/nio/channels/natFileChannelImpl.lo:  \
 	gnu/java/nio/channels/$(am__dirstamp) \
 	gnu/java/nio/channels/$(DEPDIR)/$(am__dirstamp)
+gnu/java/security/jce/prng/$(am__dirstamp):
+	@$(mkdir_p) gnu/java/security/jce/prng
+	@: > gnu/java/security/jce/prng/$(am__dirstamp)
+gnu/java/security/jce/prng/$(DEPDIR)/$(am__dirstamp):
+	@$(mkdir_p) gnu/java/security/jce/prng/$(DEPDIR)
+	@: > gnu/java/security/jce/prng/$(DEPDIR)/$(am__dirstamp)
+gnu/java/security/jce/prng/natVMSecureRandom.lo:  \
+	gnu/java/security/jce/prng/$(am__dirstamp) \
+	gnu/java/security/jce/prng/$(DEPDIR)/$(am__dirstamp)
 java/io/$(am__dirstamp):
 	@$(mkdir_p) java/io
 	@: > java/io/$(am__dirstamp)
@@ -9465,6 +9496,8 @@ mostlyclean-compile:
 	-rm -f gnu/java/nio/natVMPipe.lo
 	-rm -f gnu/java/nio/natVMSelector.$(OBJEXT)
 	-rm -f gnu/java/nio/natVMSelector.lo
+	-rm -f gnu/java/security/jce/prng/natVMSecureRandom.$(OBJEXT)
+	-rm -f gnu/java/security/jce/prng/natVMSecureRandom.lo
 	-rm -f java/io/natFile.$(OBJEXT)
 	-rm -f java/io/natFile.lo
 	-rm -f java/io/natVMObjectInputStream.$(OBJEXT)
@@ -9554,6 +9587,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/boehm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/darwin.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/defineclass.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecjx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exception.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gij.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interpret.Plo@am__quote@
@@ -9638,6 +9672,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/$(DEPDIR)/natVMPipe.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/$(DEPDIR)/natVMSelector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/channels/$(DEPDIR)/natFileChannelImpl.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@gnu/java/security/jce/prng/$(DEPDIR)/natVMSecureRandom.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/io/$(DEPDIR)/natFile.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/io/$(DEPDIR)/natVMObjectInputStream.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/io/$(DEPDIR)/natVMObjectStreamClass.Plo@am__quote@
@@ -9944,6 +9979,7 @@ clean-libtool:
 	-rm -rf gnu/java/net/protocol/core/.libs gnu/java/net/protocol/core/_libs
 	-rm -rf gnu/java/nio/.libs gnu/java/nio/_libs
 	-rm -rf gnu/java/nio/channels/.libs gnu/java/nio/channels/_libs
+	-rm -rf gnu/java/security/jce/prng/.libs gnu/java/security/jce/prng/_libs
 	-rm -rf java/io/.libs java/io/_libs
 	-rm -rf java/lang/.libs java/lang/_libs
 	-rm -rf java/lang/ref/.libs java/lang/ref/_libs
@@ -10352,6 +10388,8 @@ distclean-generic:
 	-rm -f gnu/java/nio/$(am__dirstamp)
 	-rm -f gnu/java/nio/channels/$(DEPDIR)/$(am__dirstamp)
 	-rm -f gnu/java/nio/channels/$(am__dirstamp)
+	-rm -f gnu/java/security/jce/prng/$(DEPDIR)/$(am__dirstamp)
+	-rm -f gnu/java/security/jce/prng/$(am__dirstamp)
 	-rm -f java/io/$(DEPDIR)/$(am__dirstamp)
 	-rm -f java/io/$(am__dirstamp)
 	-rm -f java/lang/$(DEPDIR)/$(am__dirstamp)
@@ -10393,7 +10431,7 @@ clean-am: clean-binPROGRAMS clean-dbexecLTLIBRARIES clean-generic \
 
 distclean: distclean-multi distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ./$(DEPDIR) classpath/tools/$(DEPDIR) gnu/classpath/$(DEPDIR) gnu/classpath/jdwp/$(DEPDIR) gnu/gcj/$(DEPDIR) gnu/gcj/convert/$(DEPDIR) gnu/gcj/io/$(DEPDIR) gnu/gcj/jvmti/$(DEPDIR) gnu/gcj/runtime/$(DEPDIR) gnu/gcj/tools/gcj_dbtool/$(DEPDIR) gnu/gcj/util/$(DEPDIR) gnu/gcj/xlib/$(DEPDIR) gnu/java/lang/$(DEPDIR) gnu/java/lang/management/$(DEPDIR) gnu/java/net/$(DEPDIR) gnu/java/net/protocol/core/$(DEPDIR) gnu/java/nio/$(DEPDIR) gnu/java/nio/channels/$(DEPDIR) java/io/$(DEPDIR) java/lang/$(DEPDIR) java/lang/ref/$(DEPDIR) java/lang/reflect/$(DEPDIR) java/net/$(DEPDIR) java/nio/$(DEPDIR) java/nio/channels/$(DEPDIR) java/security/$(DEPDIR) java/text/$(DEPDIR) java/util/$(DEPDIR) java/util/concurrent/atomic/$(DEPDIR) java/util/logging/$(DEPDIR) java/util/zip/$(DEPDIR) sun/misc/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) classpath/tools/$(DEPDIR) gnu/classpath/$(DEPDIR) gnu/classpath/jdwp/$(DEPDIR) gnu/gcj/$(DEPDIR) gnu/gcj/convert/$(DEPDIR) gnu/gcj/io/$(DEPDIR) gnu/gcj/jvmti/$(DEPDIR) gnu/gcj/runtime/$(DEPDIR) gnu/gcj/tools/gcj_dbtool/$(DEPDIR) gnu/gcj/util/$(DEPDIR) gnu/gcj/xlib/$(DEPDIR) gnu/java/lang/$(DEPDIR) gnu/java/lang/management/$(DEPDIR) gnu/java/net/$(DEPDIR) gnu/java/net/protocol/core/$(DEPDIR) gnu/java/nio/$(DEPDIR) gnu/java/nio/channels/$(DEPDIR) gnu/java/security/jce/prng/$(DEPDIR) java/io/$(DEPDIR) java/lang/$(DEPDIR) java/lang/ref/$(DEPDIR) java/lang/reflect/$(DEPDIR) java/net/$(DEPDIR) java/nio/$(DEPDIR) java/nio/channels/$(DEPDIR) java/security/$(DEPDIR) java/text/$(DEPDIR) java/util/$(DEPDIR) java/util/concurrent/atomic/$(DEPDIR) java/util/logging/$(DEPDIR) java/util/zip/$(DEPDIR) sun/misc/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-local distclean-tags
@@ -10426,7 +10464,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-multi maintainer-clean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ./$(DEPDIR) classpath/tools/$(DEPDIR) gnu/classpath/$(DEPDIR) gnu/classpath/jdwp/$(DEPDIR) gnu/gcj/$(DEPDIR) gnu/gcj/convert/$(DEPDIR) gnu/gcj/io/$(DEPDIR) gnu/gcj/jvmti/$(DEPDIR) gnu/gcj/runtime/$(DEPDIR) gnu/gcj/tools/gcj_dbtool/$(DEPDIR) gnu/gcj/util/$(DEPDIR) gnu/gcj/xlib/$(DEPDIR) gnu/java/lang/$(DEPDIR) gnu/java/lang/management/$(DEPDIR) gnu/java/net/$(DEPDIR) gnu/java/net/protocol/core/$(DEPDIR) gnu/java/nio/$(DEPDIR) gnu/java/nio/channels/$(DEPDIR) java/io/$(DEPDIR) java/lang/$(DEPDIR) java/lang/ref/$(DEPDIR) java/lang/reflect/$(DEPDIR) java/net/$(DEPDIR) java/nio/$(DEPDIR) java/nio/channels/$(DEPDIR) java/security/$(DEPDIR) java/text/$(DEPDIR) java/util/$(DEPDIR) java/util/concurrent/atomic/$(DEPDIR) java/util/logging/$(DEPDIR) java/util/zip/$(DEPDIR) sun/misc/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) classpath/tools/$(DEPDIR) gnu/classpath/$(DEPDIR) gnu/classpath/jdwp/$(DEPDIR) gnu/gcj/$(DEPDIR) gnu/gcj/convert/$(DEPDIR) gnu/gcj/io/$(DEPDIR) gnu/gcj/jvmti/$(DEPDIR) gnu/gcj/runtime/$(DEPDIR) gnu/gcj/tools/gcj_dbtool/$(DEPDIR) gnu/gcj/util/$(DEPDIR) gnu/gcj/xlib/$(DEPDIR) gnu/java/lang/$(DEPDIR) gnu/java/lang/management/$(DEPDIR) gnu/java/net/$(DEPDIR) gnu/java/net/protocol/core/$(DEPDIR) gnu/java/nio/$(DEPDIR) gnu/java/nio/channels/$(DEPDIR) gnu/java/security/jce/prng/$(DEPDIR) java/io/$(DEPDIR) java/lang/$(DEPDIR) java/lang/ref/$(DEPDIR) java/lang/reflect/$(DEPDIR) java/net/$(DEPDIR) java/nio/$(DEPDIR) java/nio/channels/$(DEPDIR) java/security/$(DEPDIR) java/text/$(DEPDIR) java/util/$(DEPDIR) java/util/concurrent/atomic/$(DEPDIR) java/util/logging/$(DEPDIR) java/util/zip/$(DEPDIR) sun/misc/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -12408,7 +12446,6 @@ install-data-local:
 @CREATE_JAVA_HOME_TRUE@	  $(DESTDIR)$(SDK_BIN_DIR)/rmic; \
 @CREATE_JAVA_HOME_TRUE@	ln -sf $$RELATIVE/`echo gjavah | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
 @CREATE_JAVA_HOME_TRUE@	  $(DESTDIR)$(SDK_BIN_DIR)/javah; \
-@CREATE_JAVA_HOME_TRUE@	ln -sf $$RELATIVE/ecj $(DESTDIR)$(SDK_BIN_DIR)/javac; \
 @CREATE_JAVA_HOME_TRUE@	ln -sf $$RELATIVE/`echo gappletviewer | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
 @CREATE_JAVA_HOME_TRUE@	  $(DESTDIR)$(SDK_BIN_DIR)/appletviewer; \
 @CREATE_JAVA_HOME_TRUE@	ln -sf $$RELATIVE/`echo gjarsigner | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
@@ -12460,7 +12497,7 @@ install-data-local:
 @CREATE_JAVA_HOME_TRUE@	  done; \
 @CREATE_JAVA_HOME_TRUE@	cd $$working_dir; \
 @CREATE_JAVA_HOME_TRUE@	$(mkinstalldirs) $(DESTDIR)$(JRE_LIB_DIR)/security; \
-@CREATE_JAVA_HOME_TRUE@	RELATIVE=$$(relative $(DESTDIR)$(libdir)/security \
+@CREATE_JAVA_HOME_TRUE@	RELATIVE=$$(relative $(DESTDIR)$(toolexeclibdir)/security \
 @CREATE_JAVA_HOME_TRUE@	  $(DESTDIR)$(JRE_LIB_DIR)/security); \
 @CREATE_JAVA_HOME_TRUE@	cd $(DESTDIR)$(JRE_LIB_DIR)/security; \
 @CREATE_JAVA_HOME_TRUE@	  ln -sf $$RELATIVE/classpath.security java.security; \
@@ -12490,7 +12527,7 @@ install-data-local:
 @CREATE_JAVA_HOME_TRUE@	ln -sf $$RELATIVE/libgcj-tools-$(gcc_version).jar \
 @CREATE_JAVA_HOME_TRUE@	  $(DESTDIR)$(SDK_LIB_DIR)/tools.jar; \
 @CREATE_JAVA_HOME_TRUE@	for headername in jawt jni; do \
-@CREATE_JAVA_HOME_TRUE@	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/gcj \
+@CREATE_JAVA_HOME_TRUE@	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/`echo gcj | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
 @CREATE_JAVA_HOME_TRUE@	    -print-file-name=include/$$headername.h)); \
 @CREATE_JAVA_HOME_TRUE@	  RELATIVE=$$(relative $$DIRECTORY \
 @CREATE_JAVA_HOME_TRUE@	    $(DESTDIR)$(SDK_INCLUDE_DIR)); \
@@ -12498,7 +12535,7 @@ install-data-local:
 @CREATE_JAVA_HOME_TRUE@	    $(DESTDIR)$(SDK_INCLUDE_DIR)/$$headername.h; \
 @CREATE_JAVA_HOME_TRUE@	done; \
 @CREATE_JAVA_HOME_TRUE@	for headername in jawt_md jni_md; do \
-@CREATE_JAVA_HOME_TRUE@	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/gcj \
+@CREATE_JAVA_HOME_TRUE@	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/`echo gcj | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
 @CREATE_JAVA_HOME_TRUE@	    -print-file-name=include/$$headername.h)); \
 @CREATE_JAVA_HOME_TRUE@	  RELATIVE=$$(relative $$DIRECTORY \
 @CREATE_JAVA_HOME_TRUE@	    $(DESTDIR)$(SDK_INCLUDE_DIR)/linux); \
@@ -12506,9 +12543,7 @@ install-data-local:
 @CREATE_JAVA_HOME_TRUE@	    $(DESTDIR)$(SDK_INCLUDE_DIR)/linux/$$headername.h; \
 @CREATE_JAVA_HOME_TRUE@	done; \
 @CREATE_JAVA_HOME_TRUE@	RELATIVE=$$(relative $(DESTDIR)$(datadir)/java \
-@CREATE_JAVA_HOME_TRUE@	  $(DESTDIR)$(JVM_ROOT_DIR)/$(SDK_DIR)); \
-@CREATE_JAVA_HOME_TRUE@	ln -sf $$RELATIVE/src-$(gcc_version).zip \
-@CREATE_JAVA_HOME_TRUE@	  $(DESTDIR)$(JVM_ROOT_DIR)/$(SDK_DIR)/src.zip;
+@CREATE_JAVA_HOME_TRUE@	  $(DESTDIR)$(JVM_ROOT_DIR)/$(SDK_DIR)); 
 
 maintainer-check: libgcj.la
 	$(NM) .libs/libgcj.a | grep ' T ' \

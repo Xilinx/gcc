@@ -1,6 +1,6 @@
 ; Options for the rs6000 port of the compiler
 ;
-; Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 ; Contributed by Aldy Hernandez <aldy@quesejoda.com>.
 ;
 ; This file is part of GCC.
@@ -119,6 +119,10 @@ mupdate
 Target Report RejectNegative InverseMask(NO_UPDATE, UPDATE)
 Generate load/store with update instructions
 
+mavoid-indexed-addresses
+Target Report Var(TARGET_AVOID_XFORM) Init(-1)
+Avoid generation of indexed load/store instructions when possible
+
 mno-fused-madd
 Target Report RejectNegative Mask(NO_FUSED_MADD)
 Do not generate fused multiply/add instructions
@@ -126,6 +130,10 @@ Do not generate fused multiply/add instructions
 mfused-madd
 Target Report RejectNegative InverseMask(NO_FUSED_MADD, FUSED_MADD)
 Generate fused multiply/add instructions
+
+mtls-markers
+Target Report Var(tls_markers) Init(1)
+Mark __tls_get_addr calls with argument info
 
 msched-prolog
 Target Report Var(TARGET_SCHED_PROLOG) Init(1)

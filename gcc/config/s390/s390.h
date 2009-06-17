@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for IBM S/390
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008 Free Software Foundation, Inc.
+   2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Hartmut Penner (hpenner@de.ibm.com) and
                   Ulrich Weigand (uweigand@de.ibm.com).
                   Andreas Krebbel (Andreas.Krebbel@de.ibm.com)
@@ -58,10 +58,14 @@ enum processor_flags
 };
 
 extern enum processor_type s390_tune;
-extern enum processor_flags s390_tune_flags;
+extern int s390_tune_flags;
+
+/* This is necessary to avoid a warning about comparing different enum
+   types.  */
+#define s390_tune_attr ((enum attr_cpu)s390_tune)
 
 extern enum processor_type s390_arch;
-extern enum processor_flags s390_arch_flags;
+extern int s390_arch_flags;
 
 /* These flags indicate that the generated code should run on a cpu
    providing the respective hardware facility regardless of the
@@ -176,7 +180,7 @@ extern enum processor_flags s390_arch_flags;
 #define S390_TDC_POSITIVE_NORMALIZED_DFP_NUMBER   (1 << 7)
 #define S390_TDC_NEGATIVE_NORMALIZED_DFP_NUMBER   (1 << 6)
 
-/* For signbit, the BFP-DFP-difference makes no difference. */ 
+/* For signbit, the BFP-DFP-difference makes no difference. */
 #define S390_TDC_SIGNBIT_SET (S390_TDC_NEGATIVE_ZERO \
                           | S390_TDC_NEGATIVE_NORMALIZED_BFP_NUMBER \
                           | S390_TDC_NEGATIVE_DENORMALIZED_BFP_NUMBER\
@@ -294,10 +298,10 @@ if (INTEGRAL_MODE_P (MODE) &&	        	    	\
    correspond to actual hardware:
    Reg 32: Argument pointer
    Reg 33: Condition code
-   Reg 34: Frame pointer  
+   Reg 34: Frame pointer
    Reg 35: Return address pointer
 
-   Registers 36 and 37 are mapped to access registers 
+   Registers 36 and 37 are mapped to access registers
    0 and 1, used to implement thread-local storage.  */
 
 #define FIRST_PSEUDO_REGISTER 38
@@ -451,7 +455,7 @@ if (INTEGRAL_MODE_P (MODE) &&	        	    	\
 enum reg_class
 {
   NO_REGS, CC_REGS, ADDR_REGS, GENERAL_REGS, ACCESS_REGS,
-  ADDR_CC_REGS, GENERAL_CC_REGS, 
+  ADDR_CC_REGS, GENERAL_CC_REGS,
   FP_REGS, ADDR_FP_REGS, GENERAL_FP_REGS,
   ALL_REGS, LIM_REG_CLASSES
 };
@@ -571,7 +575,7 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
    the argument area.  */
 #define FIRST_PARM_OFFSET(FNDECL) 0
 
-/* Defining this macro makes __builtin_frame_address(0) and 
+/* Defining this macro makes __builtin_frame_address(0) and
    __builtin_return_address(0) work with -fomit-frame-pointer.  */
 #define INITIAL_FRAME_ADDRESS_RTX                                             \
   (plus_constant (arg_pointer_rtx, -STACK_POINTER_OFFSET))
@@ -611,7 +615,7 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 /* Describe how we implement __builtin_eh_return.  */
 #define EH_RETURN_DATA_REGNO(N) ((N) < 4 ? (N) + 6 : INVALID_REGNUM)
 #define EH_RETURN_HANDLER_RTX gen_rtx_MEM (Pmode, return_address_pointer_rtx)
-       
+
 /* Select a format to encode pointers in exception handling data.  */
 #define ASM_PREFERRED_EH_DATA_FORMAT(CODE, GLOBAL)			    \
   (flag_pic								    \
@@ -639,8 +643,6 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 
 
 /* Frame pointer and argument pointer elimination.  */
-
-#define FRAME_POINTER_REQUIRED 0
 
 #define ELIMINABLE_REGS						\
 {{ FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM },		\
@@ -738,42 +740,11 @@ CUMULATIVE_ARGS;
 #define MAX_REGS_PER_ADDRESS 2
 
 /* This definition replaces the formerly used 'm' constraint with a
-different constraint letter in order to avoid changing semantics of
-the 'm' constraint when accepting new address formats in
-legitimate_address_p.  The constraint letter defined here must not be
-used in insn definitions or inline assemblies.  */
+   different constraint letter in order to avoid changing semantics of
+   the 'm' constraint when accepting new address formats in
+   TARGET_LEGITIMATE_ADDRESS_P.  The constraint letter defined here
+   must not be used in insn definitions or inline assemblies.  */
 #define TARGET_MEM_CONSTRAINT 'e'
-
-/* S/390 has no mode dependent addresses.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
-
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression that is a
-   valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.  */
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)                         \
-{                                                                       \
-  if (legitimate_address_p (MODE, X, 1))                                \
-    goto ADDR;                                                          \
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)                         \
-{                                                                       \
-  if (legitimate_address_p (MODE, X, 0))                                \
-    goto ADDR;                                                          \
-}
-#endif
-
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.  */
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)                          \
-{                                                                       \
-  (X) = legitimize_address (X, OLDX, MODE);                             \
-  if (memory_address_p (MODE, X))                                       \
-    goto WIN;                                                           \
-}
 
 /* Try a machine-dependent way of reloading an illegitimate address
    operand.  If we find one, push the reload and jump to WIN.  This
@@ -814,12 +785,6 @@ do {									\
 #define CANONICALIZE_COMPARISON(CODE, OP0, OP1) \
   s390_canonicalize_comparison (&(CODE), &(OP0), &(OP1))
 
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  Note that we can't use "rtx" here
-   since it hasn't been defined!  */
-extern struct rtx_def *s390_compare_op0, *s390_compare_op1, *s390_compare_emitted;
-
-
 /* Relative costs of operations.  */
 
 /* On s390, copy between fprs and gprs is expensive.  */
@@ -842,7 +807,7 @@ extern struct rtx_def *s390_compare_op0, *s390_compare_op1, *s390_compare_emitte
 #define SLOW_BYTE_ACCESS 1
 
 /* An integer expression for the size in bits of the largest integer machine
-   mode that should actually be used.  We allow pairs of registers.  */ 
+   mode that should actually be used.  We allow pairs of registers.  */
 #define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (TARGET_64BIT ? TImode : DImode)
 
 /* The maximum number of bytes that a single instruction can move quickly

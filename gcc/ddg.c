@@ -1,5 +1,5 @@
 /* DDG - Data Dependence Graph implementation.
-   Copyright (C) 2004, 2005, 2006, 2007
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Ayal Zaks and Mustafa Hagog <zaks,mustafa@il.ibm.com>
 
@@ -345,6 +345,10 @@ build_inter_loop_deps (ddg_ptr g)
 static void
 add_inter_loop_mem_dep (ddg_ptr g, ddg_node_ptr from, ddg_node_ptr to)
 {
+  if (!insn_alias_sets_conflict_p (from->insn, to->insn))
+    /* Do not create edge if memory references have disjoint alias sets.  */
+    return;
+    
   if (mem_write_insn_p (from->insn))
     {
       if (mem_read_insn_p (to->insn))

@@ -311,10 +311,15 @@ find_tm_replacement_function (tree fndecl)
    while transforming the __tm_abort statement.  */
 
 tree
-build_tm_abort_call (void)
+build_tm_abort_call (location_t loc)
 {
-  return build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 1,
-			  build_int_cst (integer_type_node, AR_USERABORT));
+  tree x;
+
+  x = build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 1,
+		       build_int_cst (integer_type_node, AR_USERABORT));
+  SET_EXPR_LOCATION (x, loc);
+
+  return x;
 }
 
 static void lower_sequence_tm (unsigned *, gimple_seq);
@@ -437,7 +442,7 @@ lower_tm_atomic (unsigned int *outer_state, gimple_stmt_iterator *gsi)
   /* If the transaction calls abort, add an "over" label afterwards.  */
   if (this_state & GTMA_HAVE_ABORT)
     {
-      tree label = create_artificial_label ();
+      tree label = create_artificial_label (UNKNOWN_LOCATION);
       gimple_tm_atomic_set_label (stmt, label);
       gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
     }
@@ -1873,33 +1878,6 @@ ipa_tm_create_version (struct cgraph_node *old_node)
     cgraph_mark_needed_node (new_node);
 }
 
-/* Clobber all memory state for the new call to irrevokable.  */
-
-static void
-ipa_tm_mark_for_rename (void)
-{
-  tree var = gimple_global_var (cfun);
-  if (var)
-    mark_sym_for_renaming (var);
-  else
-    {
-      bitmap_iterator bi;
-      unsigned int i;
-
-      EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, i, bi)
-	{
-	  var = referenced_var (i);
-	  mark_sym_for_renaming (var);
-	}
-
-      EXECUTE_IF_SET_IN_BITMAP (gimple_addressable_vars (cfun), 0, i, bi)
-	{
-	  var = referenced_var (i);
-	  mark_sym_for_renaming (var);
-	}
-    }
-}
-
 /* Construct a call to TM_IRREVOKABLE and insert it at the beginning of BB.  */
 
 static void
@@ -2071,10 +2049,7 @@ ipa_tm_transform_tm_atomic (struct cgraph_node *node)
     }
 
   if (need_ssa_rename)
-    {
-      ipa_tm_mark_for_rename ();
-      update_ssa (TODO_update_ssa_only_virtuals);
-    }
+    update_ssa (TODO_update_ssa_only_virtuals);
 
   pop_cfun ();
   current_function_decl = NULL;
@@ -2103,10 +2078,7 @@ ipa_tm_transform_clone (struct cgraph_node *node)
 			    d->irrevokable_blocks_clone);
 
   if (need_ssa_rename)
-    {
-      ipa_tm_mark_for_rename ();
-      update_ssa (TODO_update_ssa_only_virtuals);
-    }
+    update_ssa (TODO_update_ssa_only_virtuals);
 
   pop_cfun ();
   current_function_decl = NULL;

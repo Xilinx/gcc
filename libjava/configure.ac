@@ -244,7 +244,7 @@ AC_ARG_ENABLE(libgcj-debug,
   AS_HELP_STRING([--enable-libgcj-debug],
                  [enable runtime debugging code]),
   [if test "$enable_libgcj_debug" = yes; then
-    AC_DEFINE(DEBUG, 1, [Define this if you want runtime debugging enabled.])
+    AC_DEFINE(__GCJ_DEBUG, 1, [Define this if you want runtime debugging enabled.])
     LIBGCJDEBUG="enable"
   fi])
 
@@ -409,23 +409,33 @@ else
      which_gcj=path
   fi
 fi
+libgcjdir=`${PWDCMD-pwd}`
+case $GCJ in
+*" -B"*)
+  # Just in case there is a comma in the build dir, quote it for the
+  # sed command below.
+  case $libgcjdir in
+  *[[,\\]]*) qlibgcjdir=`echo "$libgcjdir" | sed 's:[[,\\]]:\\&:g'`;;
+  *) qlibgcjdir=$libgcjdir;;
+  esac
+  GCJ=`echo "$GCJ" | sed "s, -B, -B$qlibgcjdir/&,"`
+  ;;
+*)
+  GCJ=$GCJ" -B$libgcjdir/"
+  ;;
+esac
 case "${which_gcj}" in
    built)
-      GCJ="$built_gcc_dir/gcj -B`${PWDCMD-pwd}`/ -B$built_gcc_dir/"
       GCJH='$(top_builddir)/$(MULTIBUILDTOP)../../$(host_subdir)/gcc/gcjh'
    ;;
    cross)
       if test "x${with_newlib}" = "xyes"; then
          # FIXME (comment): Why is this needed?
          GCC_UNWIND_INCLUDE=
-         GCJ="${target_noncanonical}-gcj"
-      else
-         GCJ="${target_noncanonical}-gcj -B`${PWDCMD-pwd}`/"
       fi
       GCJH='$(target_noncanonical)-gcjh'
    ;;
    path)
-      GCJ="gcj -B`${PWDCMD-pwd}`/"
       GCJH=gcjh
    ;;
 esac
@@ -675,6 +685,9 @@ if AC_TRY_EVAL(ac_compile); then
     enable_sjlj_exceptions=yes
   elif grep _Unwind_Resume conftest.s >/dev/null 2>&1 ; then
     enable_sjlj_exceptions=no
+  elif grep __cxa_end_cleanup conftest.s >/dev/null 2>&1 ; then
+    # ARM EH ABI.
+    enable_sjlj_exceptions=no
   fi
 fi
 CXXFLAGS="$old_CXXFLAGS"
@@ -829,6 +842,12 @@ AC_CONFIG_LINKS(gnu/java/nio/natVMSelector.cc:gnu/java/nio/natVMSelector${PLATFO
 # Likewise for natFileChannelImpl.cc
 test -d gnu/java/nio/channels || mkdir gnu/java/nio/channels
 AC_CONFIG_LINKS(gnu/java/nio/channels/natFileChannelImpl.cc:gnu/java/nio/channels/natFileChannel${FILE-${PLATFORM}}.cc)
+
+# Likewise for natVMSecureRandom.cc
+test -d gnu/java/security || mkdir gnu/java/security
+test -d gnu/java/security/jce || mkdir gnu/java/security/jce
+test -d gnu/java/security/jce/prng || mkdir gnu/java/security/jce/prng
+AC_CONFIG_LINKS(gnu/java/security/jce/prng/natVMSecureRandom.cc:gnu/java/security/jce/prng/natVMSecureRandom${FILE-${PLATFORM}}.cc)
 
 case "${host}" in
     *mingw*)
@@ -1046,6 +1065,9 @@ AC_SUBST(THREADCXXFLAGS)
 AM_CONDITIONAL(USING_POSIX_THREADS, test "$THREADS" = posix)
 AM_CONDITIONAL(USING_WIN32_THREADS, test "$THREADS" = win32)
 AM_CONDITIONAL(USING_NO_THREADS, test "$THREADS" = none)
+if test "$enable_shared" != yes; then
+  use_libgcj_bc=no
+fi
 AM_CONDITIONAL(USE_LIBGCJ_BC, test "$use_libgcj_bc" = yes)
 
 if test -d sysdep; then true; else mkdir sysdep; fi
@@ -1055,7 +1077,7 @@ AC_CONFIG_LINKS(sysdep/descriptor.h:$descriptor_h)
 
 LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
 if test "$use_libgcj_bc" = yes; then
-  LIBGCJ_SPEC="%{s-bc-abi:-lgcj_bc;:-lgcj}"
+  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:-lgcj;:-lgcj_bc}"
 fi
 AC_SUBST(LIBGCJ_SPEC)
 
@@ -1632,7 +1654,7 @@ case "${host}" in
  m68*-*-linux*)
     SIGNAL_HANDLER=include/dwarf2-signal.h
     ;;
- powerpc*-*-darwin* | i?86-*-darwin9* | x86_64-*-darwin9*)
+ powerpc*-*-darwin* | i?86-*-darwin[[912]]* | x86_64-*-darwin[[912]]*)
     SIGNAL_HANDLER=include/darwin-signal.h
     ;;
  powerpc*-*-aix*)
@@ -1799,8 +1821,7 @@ then
   AC_SUBST(BUILD_VERSION)
   AC_MSG_RESULT(Java version: ${JAVA_VERSION})
 
-  jre_dir=java-${JAVA_VERSION}-${origin_name}-${JAVA_VERSION}.${BUILD_VERSION}${arch_suffix}/jre
-  sdk_dir=java-${JAVA_VERSION}-${origin_name}-${JAVA_VERSION}.${BUILD_VERSION}${arch_suffix}
+  jre_dir=jre
   jre_lnk=jre-${JAVA_VERSION}-${origin_name}
   sdk_lnk=java-${JAVA_VERSION}-${origin_name}
 
@@ -1812,15 +1833,12 @@ then
   AC_SUBST(JVM_JAR_ROOT_DIR)
   AC_MSG_RESULT(JVM JAR ROOT directory: ${JVM_JAR_ROOT_DIR})
 
-  JVM_JAR_DIR=${jvm_jar_dir}/${sdk_dir}
+  JVM_JAR_DIR=${jvm_jar_dir}
   AC_SUBST(JVM_JAR_DIR)
   AC_MSG_RESULT(JVM JAR directory: ${JVM_JAR_DIR})
 
   JRE_DIR=${jre_dir}
   AC_SUBST(JRE_DIR)
-
-  SDK_DIR=${sdk_dir}
-  AC_SUBST(SDK_DIR)
 
   JRE_LNK=${jre_lnk}
   AC_SUBST(JRE_LNK)
@@ -1828,15 +1846,15 @@ then
   SDK_LNK=${sdk_lnk}
   AC_SUBST(SDK_LNK)
 
-  SDK_BIN_DIR=${jvm_root_dir}/${sdk_dir}/bin
+  SDK_BIN_DIR=${jvm_root_dir}/bin
   AC_SUBST(SDK_BIN_DIR)
   AC_MSG_RESULT(SDK tools directory: ${SDK_BIN_DIR})
 
-  SDK_LIB_DIR=${jvm_root_dir}/${sdk_dir}/lib
+  SDK_LIB_DIR=${jvm_root_dir}/lib
   AC_SUBST(SDK_LIB_DIR)
   AC_MSG_RESULT(SDK jar directory: ${SDK_LIB_DIR})
 
-  SDK_INCLUDE_DIR=${jvm_root_dir}/${sdk_dir}/include
+  SDK_INCLUDE_DIR=${jvm_root_dir}/include
   AC_SUBST(SDK_INCLUDE_DIR)
   AC_MSG_RESULT(SDK include directory: ${SDK_INCLUDE_DIR})
 
@@ -1858,7 +1876,7 @@ then
   AC_SUBST(GCJ_BIN_DIR)
   AC_MSG_RESULT(GCJ tools directory: ${GCJ_BIN_DIR})
 
-  echo host is ${host}
+  AC_MSG_RESULT(host is ${host})
   if test "x${host_cpu}" = "x"
   then
     case ${host} in
@@ -1866,6 +1884,8 @@ then
         host_cpu=x86;;
       i486-* | i586-* | i686-*)
         host_cpu=i386;;
+      x86_64-*)
+        host_cpu=amd64;;
       *)
         host_cpu=${host_cpu};;
     esac
@@ -1913,6 +1933,7 @@ testsuite/Makefile
 contrib/aotcompile.py
 contrib/aot-compile
 contrib/aot-compile-rpm
+contrib/generate-cacerts.pl
 contrib/rebuild-gcj-db
 ])
 

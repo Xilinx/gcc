@@ -1,6 +1,7 @@
 /* Output sdb-format symbol table information from GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -116,7 +117,7 @@ static void sdbout_start_source_file	(unsigned int, const char *);
 static void sdbout_end_source_file	(unsigned int);
 static void sdbout_begin_block		(unsigned int, unsigned int);
 static void sdbout_end_block		(unsigned int, unsigned int);
-static void sdbout_source_line		(unsigned int, const char *);
+static void sdbout_source_line		(unsigned int, const char *, int);
 static void sdbout_end_epilogue		(unsigned int, const char *);
 static void sdbout_global_decl		(tree);
 #ifndef MIPS_DEBUGGING_INFO
@@ -336,6 +337,7 @@ const struct gcc_debug_hooks sdb_debug_hooks =
   debug_nothing_int,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree_tree,		 /* set_name */
   0                                      /* start_end_main_source_file */
 };
 
@@ -769,7 +771,7 @@ sdbout_symbol (tree decl, int local)
 	return;
 
       SET_DECL_RTL (decl,
-		    eliminate_regs (DECL_RTL (decl), 0, NULL_RTX));
+		    eliminate_regs (DECL_RTL (decl), VOIDmode, NULL_RTX));
 #ifdef LEAF_REG_REMAP
       if (current_function_uses_only_leaf_regs)
 	leaf_renumber_regs_insn (DECL_RTL (decl));
@@ -1269,9 +1271,9 @@ sdbout_parms (tree parms)
 	/* Perform any necessary register eliminations on the parameter's rtl,
 	   so that the debugging output will be accurate.  */
 	DECL_INCOMING_RTL (parms)
-	  = eliminate_regs (DECL_INCOMING_RTL (parms), 0, NULL_RTX);
+	  = eliminate_regs (DECL_INCOMING_RTL (parms), VOIDmode, NULL_RTX);
 	SET_DECL_RTL (parms,
-		      eliminate_regs (DECL_RTL (parms), 0, NULL_RTX));
+		      eliminate_regs (DECL_RTL (parms), VOIDmode, NULL_RTX));
 
 	if (PARM_PASSED_IN_MEMORY (parms))
 	  {
@@ -1539,7 +1541,8 @@ sdbout_end_block (unsigned int line, unsigned int n ATTRIBUTE_UNUSED)
    number LINE.  */
 
 static void
-sdbout_source_line (unsigned int line, const char *filename ATTRIBUTE_UNUSED)
+sdbout_source_line (unsigned int line, const char *filename ATTRIBUTE_UNUSED,
+                    int discriminator ATTRIBUTE_UNUSED)
 {
   /* COFF relative line numbers must be positive.  */
   if ((int) line > sdb_begin_function_line)

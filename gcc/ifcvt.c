@@ -1,5 +1,5 @@
 /* If-conversion support.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -61,9 +61,6 @@
 #endif
 #ifndef HAVE_trap
 #define HAVE_trap 0
-#endif
-#ifndef HAVE_conditional_trap
-#define HAVE_conditional_trap 0
 #endif
 
 #ifndef MAX_CONDITIONAL_EXECUTE
@@ -3043,7 +3040,8 @@ find_if_header (basic_block test_bb, int pass)
       && cond_exec_find_if_block (&ce_info))
     goto success;
 
-  if (HAVE_trap && HAVE_conditional_trap
+  if (HAVE_trap
+      && optab_handler (ctrap_optab, word_mode)->insn_code != CODE_FOR_nothing
       && find_cond_trap (test_bb, then_edge, else_edge))
     goto success;
 
@@ -3950,13 +3948,13 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       /* The loop below takes the set of live registers 
          after JUMP, and calculates the live set before EARLIEST. */
       bitmap_copy (test_live, df_get_live_in (other_bb));
-      df_simulate_artificial_refs_at_end (test_bb, test_live);
+      df_simulate_initialize_backwards (test_bb, test_live);
       for (insn = jump; ; insn = prev)
 	{
 	  if (INSN_P (insn))
 	    {
 	      df_simulate_find_defs (insn, test_set);
-	      df_simulate_one_insn (test_bb, insn, test_live);
+	      df_simulate_one_insn_backwards (test_bb, insn, test_live);
 	    }
 	  prev = PREV_INSN (insn);
 	  if (insn == earliest)

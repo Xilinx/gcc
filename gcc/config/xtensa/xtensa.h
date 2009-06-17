@@ -27,17 +27,6 @@ extern int optimize;
 
 /* External variables defined in xtensa.c.  */
 
-/* comparison type */
-enum cmp_type {
-  CMP_SI,				/* four byte integers */
-  CMP_DI,				/* eight byte integers */
-  CMP_SF,				/* single precision floats */
-  CMP_DF,				/* double precision floats */
-  CMP_MAX				/* max comparison type */
-};
-
-extern struct rtx_def * branch_cmp[2];	/* operands for compare */
-extern enum cmp_type branch_type;	/* what type of branch to use */
 extern unsigned xtensa_current_frame_size;
 
 /* Macros used in the machine description to select various Xtensa
@@ -782,13 +771,6 @@ typedef struct xtensa_args
 /* Maximum number of registers that can appear in a valid memory address.  */
 #define MAX_REGS_PER_ADDRESS 1
 
-/* Identify valid Xtensa addresses.  */
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, ADDR, LABEL)			\
-  do {									\
-    if (xtensa_legitimate_address_p (MODE, ADDR, REG_OK_STRICT_FLAG))	\
-      goto LABEL;							\
-  } while (0)
-
 /* A C expression that is 1 if the RTX X is a constant which is a
    valid address.  This is defined to be the same as 'CONSTANT_P (X)',
    but rejecting CONST_DOUBLE.  */
@@ -809,17 +791,6 @@ typedef struct xtensa_args
     || (SYMBOL_REF_LOCAL_P (X) && !SYMBOL_REF_EXTERNAL_P (X)))		\
    && GET_CODE (X) != LABEL_REF						\
    && GET_CODE (X) != CONST)
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)				\
-  do {									\
-    rtx new_x = xtensa_legitimize_address (X, OLDX, MODE);		\
-    if (new_x)								\
-      {									\
-	X = new_x;							\
-	goto WIN;							\
-      }									\
-  } while (0)
-
 
 /* Treat constant-pool references as "mode dependent" since they can
    only be accessed with SImode loads.  This works around a bug in the

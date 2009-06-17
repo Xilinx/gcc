@@ -1,6 +1,6 @@
 /* Standard problems for dataflow support routines.
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008 Free Software Foundation, Inc.
+   2008, 2009 Free Software Foundation, Inc.
    Originally contributed by Michael P. Hayes 
              (m.hayes@elec.canterbury.ac.nz, mhayes@redhat.com)
    Major rewrite contributed by Danny Berlin (dberlin@dberlin.org)
@@ -316,12 +316,66 @@ df_rd_alloc (bitmap all_blocks)
 }
 
 
-/* Process a list of DEFs for df_rd_bb_local_compute.  */
+/* Add the effect of the top artificial defs of BB to the reaching definitions
+   bitmap LOCAL_RD.  */
+
+void
+df_rd_simulate_artificial_defs_at_top (basic_block bb, bitmap local_rd)
+{
+  int bb_index = bb->index;
+  df_ref *def_rec;
+  for (def_rec = df_get_artificial_defs (bb_index); *def_rec; def_rec++)
+    {
+      df_ref def = *def_rec;
+      if (DF_REF_FLAGS (def) & DF_REF_AT_TOP)
+	{
+	  unsigned int dregno = DF_REF_REGNO (def);
+	  if (!(DF_REF_FLAGS (def) & (DF_REF_PARTIAL | DF_REF_CONDITIONAL)))
+	    bitmap_clear_range (local_rd, 
+				DF_DEFS_BEGIN (dregno), 
+				DF_DEFS_COUNT (dregno));
+	  bitmap_set_bit (local_rd, DF_REF_ID (def));
+	}
+    }
+}
+
+/* Add the effect of the defs of INSN to the reaching definitions bitmap
+   LOCAL_RD.  */
+
+void
+df_rd_simulate_one_insn (basic_block bb ATTRIBUTE_UNUSED, rtx insn,
+			 bitmap local_rd)
+{
+  unsigned uid = INSN_UID (insn);
+  df_ref *def_rec;
+
+  for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
+    {
+      df_ref def = *def_rec;
+      unsigned int dregno = DF_REF_REGNO (def);
+      if ((!(df->changeable_flags & DF_NO_HARD_REGS))
+          || (dregno >= FIRST_PSEUDO_REGISTER))
+        {
+          if (!(DF_REF_FLAGS (def) & (DF_REF_PARTIAL | DF_REF_CONDITIONAL)))
+	    bitmap_clear_range (local_rd, 
+				DF_DEFS_BEGIN (dregno), 
+				DF_DEFS_COUNT (dregno));
+	  if (!(DF_REF_FLAGS (def) 
+		& (DF_REF_MUST_CLOBBER | DF_REF_MAY_CLOBBER)))
+	    bitmap_set_bit (local_rd, DF_REF_ID (def));
+	}
+    }
+}
+
+/* Process a list of DEFs for df_rd_bb_local_compute.  This is a bit
+   more complicated than just simulating, because we must produce the
+   gen and kill sets and hence deal with the two possible representations
+   of kill sets.   */
 
 static void
 df_rd_bb_local_compute_process_def (struct df_rd_bb_info *bb_info, 
 				    df_ref *def_rec,
-				    enum df_ref_flags top_flag)
+				    int top_flag)
 {
   while (*def_rec)
     {
@@ -443,7 +497,7 @@ df_rd_local_compute (bitmap all_blocks)
     }
   
   /* Set up the knockout bit vectors to be applied across EH_EDGES.  */
-  EXECUTE_IF_SET_IN_BITMAP (df_invalidated_by_call, 0, regno, bi)
+  EXECUTE_IF_SET_IN_BITMAP (regs_invalidated_by_call_regset, 0, regno, bi)
     {
       if (DF_DEFS_COUNT (regno) > DF_SPARSE_THRESHOLD)
 	bitmap_set_bit (sparse_invalidated, regno);
@@ -975,7 +1029,7 @@ df_lr_confluence_n (edge e)
   /* ??? Abnormal call edges ignored for the moment, as this gets
      confused by sibling call edges, which crashes reg-stack.  */
   if (e->flags & EDGE_EH)
-    bitmap_ior_and_compl_into (op1, op2, df_invalidated_by_call);
+    bitmap_ior_and_compl_into (op1, op2, regs_invalidated_by_call_regset);
   else
     bitmap_ior_into (op1, op2);
 
@@ -1001,25 +1055,34 @@ df_lr_transfer_function (int bb_index)
 /* Run the fast dce as a side effect of building LR.  */
 
 static void
-df_lr_finalize (bitmap all_blocks ATTRIBUTE_UNUSED)
+df_lr_finalize (bitmap all_blocks)
 {
+  df_lr->solutions_dirty = false;
   if (df->changeable_flags & DF_LR_RUN_DCE)
     {
       run_fast_df_dce ();
-      if (df_lr->problem_data && df_lr->solutions_dirty)
+
+      /* If dce deletes some instructions, we need to recompute the lr
+	 solution before proceeding further.  The problem is that fast
+	 dce is a pessimestic dataflow algorithm.  In the case where
+	 it deletes a statement S inside of a loop, the uses inside of
+	 S may not be deleted from the dataflow solution because they
+	 were carried around the loop.  While it is conservatively
+	 correct to leave these extra bits, the standards of df
+	 require that we maintain the best possible (least fixed
+	 point) solution.  The only way to do that is to redo the
+	 iteration from the beginning.  See PR35805 for an
+	 example.  */
+      if (df_lr->solutions_dirty)
 	{
-	  /* If we are here, then it is because we are both verifying
-	  the solution and the dce changed the function.  In that case
-	  the verification info built will be wrong.  So we leave the
-	  dirty flag true so that the verifier will skip the checking
-	  part and just clean up.*/
-	  df_lr->solutions_dirty = true;
+	  df_clear_flags (DF_LR_RUN_DCE);
+	  df_lr_alloc (all_blocks);
+	  df_lr_local_compute (all_blocks);
+	  df_worklist_dataflow (df_lr, all_blocks, df->postorder, df->n_blocks);
+	  df_lr_finalize (all_blocks);
+	  df_set_flags (DF_LR_RUN_DCE);
 	}
-      else
-	df_lr->solutions_dirty = false;
     }
-  else
-    df_lr->solutions_dirty = false;
 }
 
 
@@ -2016,7 +2079,7 @@ df_chain_reset (bitmap blocks_to_clear ATTRIBUTE_UNUSED)
 static void
 df_chain_create_bb_process_use (bitmap local_rd,
 				df_ref *use_rec,
-				enum df_ref_flags top_flag)
+				int top_flag)
 {
   bitmap_iterator bi;
   unsigned int def_index;
@@ -2067,7 +2130,6 @@ df_chain_create_bb (unsigned int bb_index)
   struct df_rd_bb_info *bb_info = df_rd_get_bb_info (bb_index);
   rtx insn;
   bitmap cpy = BITMAP_ALLOC (NULL);
-  df_ref *def_rec;
 
   bitmap_copy (cpy, bb_info->in);
   bitmap_set_bit (df_chain->out_of_date_transfer_functions, bb_index);
@@ -2086,57 +2148,23 @@ df_chain_create_bb (unsigned int bb_index)
 				    DF_REF_AT_TOP);
 #endif
 
-  for (def_rec = df_get_artificial_defs (bb_index); *def_rec; def_rec++)
-    {
-      df_ref def = *def_rec;
-      if (DF_REF_FLAGS (def) & DF_REF_AT_TOP)
-	{
-	  unsigned int dregno = DF_REF_REGNO (def);
-	  if (!(DF_REF_FLAGS (def) & (DF_REF_PARTIAL | DF_REF_CONDITIONAL)))
-	    bitmap_clear_range (cpy, 
-				DF_DEFS_BEGIN (dregno), 
-				DF_DEFS_COUNT (dregno));
-	  bitmap_set_bit (cpy, DF_REF_ID (def));
-	}
-    }
+  df_rd_simulate_artificial_defs_at_top (bb, cpy);
   
   /* Process the regular instructions next.  */
   FOR_BB_INSNS (bb, insn)
-    {
-      df_ref *def_rec;
-      unsigned int uid = INSN_UID (insn);
+    if (INSN_P (insn))
+      {
+        unsigned int uid = INSN_UID (insn);
 
-      if (!INSN_P (insn))
-	continue;
+        /* First scan the uses and link them up with the defs that remain
+	   in the cpy vector.  */
+        df_chain_create_bb_process_use (cpy, DF_INSN_UID_USES (uid), 0);
+        if (df->changeable_flags & DF_EQ_NOTES)
+	  df_chain_create_bb_process_use (cpy, DF_INSN_UID_EQ_USES (uid), 0);
 
-      /* Now scan the uses and link them up with the defs that remain
-	 in the cpy vector.  */
-      
-      df_chain_create_bb_process_use (cpy, DF_INSN_UID_USES (uid), 0);
-
-      if (df->changeable_flags & DF_EQ_NOTES)
-	df_chain_create_bb_process_use (cpy, DF_INSN_UID_EQ_USES (uid), 0);
-
-
-      /* Since we are going forwards, process the defs second.  This
-         pass only changes the bits in cpy.  */
-      for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
-	{
-	  df_ref def = *def_rec;
-	  unsigned int dregno = DF_REF_REGNO (def);
-	  if ((!(df->changeable_flags & DF_NO_HARD_REGS))
-	      || (dregno >= FIRST_PSEUDO_REGISTER))
-	    {
-	      if (!(DF_REF_FLAGS (def) & (DF_REF_PARTIAL | DF_REF_CONDITIONAL)))
-		bitmap_clear_range (cpy, 
-				    DF_DEFS_BEGIN (dregno), 
-				    DF_DEFS_COUNT (dregno));
-	      if (!(DF_REF_FLAGS (def) 
-		    & (DF_REF_MUST_CLOBBER | DF_REF_MAY_CLOBBER)))
-		bitmap_set_bit (cpy, DF_REF_ID (def));
-	    }
-	}
-    }
+        /* Since we are going forwards, process the defs second.  */
+        df_rd_simulate_one_insn (bb, insn, cpy);
+      }
 
   /* Create the chains for the artificial uses of the hard registers
      at the end of the block.  */
@@ -2316,10 +2344,10 @@ static struct df_problem problem_CHAIN =
    solution.  */
 
 void
-df_chain_add_problem (enum df_chain_flags chain_flags)
+df_chain_add_problem (unsigned int chain_flags)
 {
   df_add_problem (&problem_CHAIN);
-  df_chain->local_flags = (unsigned int)chain_flags;
+  df_chain->local_flags = chain_flags;
   df_chain->out_of_date_transfer_functions = BITMAP_ALLOC (NULL);
 }
 
@@ -2481,8 +2509,8 @@ df_byte_lr_alloc (bitmap all_blocks ATTRIBUTE_UNUSED)
   unsigned int regno;
   unsigned int index = 0;
   unsigned int max_reg = max_reg_num();
-  struct df_byte_lr_problem_data *problem_data 
-    = problem_data = XNEW (struct df_byte_lr_problem_data);
+  struct df_byte_lr_problem_data *problem_data
+    = XNEW (struct df_byte_lr_problem_data);
 
   df_byte_lr->problem_data = problem_data;
 
@@ -2542,7 +2570,7 @@ df_byte_lr_alloc (bitmap all_blocks ATTRIBUTE_UNUSED)
   df_byte_lr_expand_bitmap (problem_data->hardware_regs_used, 
 			    df->hardware_regs_used);
   df_byte_lr_expand_bitmap (problem_data->invalidated_by_call, 
-			    df_invalidated_by_call);
+			    regs_invalidated_by_call_regset);
 
   EXECUTE_IF_SET_IN_BITMAP (df_byte_lr->out_of_date_transfer_functions, 0, bb_index, bi)
     {
@@ -3759,24 +3787,19 @@ df_simulate_fixup_sets (basic_block bb, bitmap live)
    The following three functions are used only for BACKWARDS scanning:
    i.e. they process the defs before the uses.
 
-   df_simulate_artificial_refs_at_end should be called first with a
+   df_simulate_initialize_backwards should be called first with a
    bitvector copyied from the DF_LIVE_OUT or DF_LR_OUT.  Then
-   df_simulate_one_insn should be called for each insn in the block,
-   starting with the last on.  Finally,
-   df_simulate_artificial_refs_at_top can be called to get a new value
+   df_simulate_one_insn_backwards should be called for each insn in
+   the block, starting with the last on.  Finally,
+   df_simulate_finalize_backwards can be called to get a new value
    of the sets at the top of the block (this is rarely used).
-
-   It would be not be difficult to define a similar set of functions
-   that work in the forwards direction.  In that case the functions
-   would ignore the use sets and look for the REG_DEAD and REG_UNUSED
-   notes.
-----------------------------------------------------------------------------*/
+   ----------------------------------------------------------------------------*/
 
 /* Apply the artificial uses and defs at the end of BB in a backwards
    direction.  */
 
 void 
-df_simulate_artificial_refs_at_end (basic_block bb, bitmap live)
+df_simulate_initialize_backwards (basic_block bb, bitmap live)
 {
   df_ref *def_rec;
   df_ref *use_rec;
@@ -3801,7 +3824,7 @@ df_simulate_artificial_refs_at_end (basic_block bb, bitmap live)
 /* Simulate the backwards effects of INSN on the bitmap LIVE.  */
 
 void 
-df_simulate_one_insn (basic_block bb, rtx insn, bitmap live)
+df_simulate_one_insn_backwards (basic_block bb, rtx insn, bitmap live)
 {
   if (! INSN_P (insn))
     return;	
@@ -3816,7 +3839,7 @@ df_simulate_one_insn (basic_block bb, rtx insn, bitmap live)
    direction.  */
 
 void 
-df_simulate_artificial_refs_at_top (basic_block bb, bitmap live)
+df_simulate_finalize_backwards (basic_block bb, bitmap live)
 {
   df_ref *def_rec;
 #ifdef EH_USES
@@ -3839,4 +3862,93 @@ df_simulate_artificial_refs_at_top (basic_block bb, bitmap live)
 	bitmap_set_bit (live, DF_REF_REGNO (use));
     }
 #endif
+}
+/*----------------------------------------------------------------------------
+   The following three functions are used only for FORWARDS scanning:
+   i.e. they process the defs and the REG_DEAD and REG_UNUSED notes.
+   Thus it is important to add the DF_NOTES problem to the stack of 
+   problems computed before using these functions.
+
+   df_simulate_initialize_forwards should be called first with a
+   bitvector copyied from the DF_LIVE_IN or DF_LR_IN.  Then
+   df_simulate_one_insn_forwards should be called for each insn in
+   the block, starting with the last on.  Finally,
+   df_simulate_finalize_forwards can be called to get a new value
+   of the sets at the bottom of the block (this is rarely used).
+   ----------------------------------------------------------------------------*/
+
+/* Apply the artificial uses and defs at the top of BB in a backwards
+   direction.  */
+
+void 
+df_simulate_initialize_forwards (basic_block bb, bitmap live)
+{
+  df_ref *def_rec;
+  int bb_index = bb->index;
+  
+  for (def_rec = df_get_artificial_defs (bb_index); *def_rec; def_rec++)
+    {
+      df_ref def = *def_rec;
+      if (DF_REF_FLAGS (def) & DF_REF_AT_TOP)
+	bitmap_clear_bit (live, DF_REF_REGNO (def));
+    }
+}
+
+/* Simulate the backwards effects of INSN on the bitmap LIVE.  */
+
+void 
+df_simulate_one_insn_forwards (basic_block bb, rtx insn, bitmap live)
+{
+  rtx link;
+  if (! INSN_P (insn))
+    return;	
+
+  /* Make sure that the DF_NOTES really is an active df problem.  */ 
+  gcc_assert (df_note);
+
+  df_simulate_defs (insn, live);
+
+  /* Clear all of the registers that go dead.  */
+  for (link = REG_NOTES (insn); link; link = XEXP (link, 1))
+    {
+      switch (REG_NOTE_KIND (link))
+	{
+	case REG_DEAD:
+	case REG_UNUSED:
+	  {
+	    rtx reg = XEXP (link, 0);
+	    int regno = REGNO (reg);
+	    if (regno < FIRST_PSEUDO_REGISTER)
+	      {
+		int n = hard_regno_nregs[regno][GET_MODE (reg)];
+		while (--n >= 0)
+		  bitmap_clear_bit (live, regno + n);
+	      }
+	    else 
+	      bitmap_clear_bit (live, regno);
+	  }
+	  break;
+	default:
+	  break;
+	}
+    }
+  df_simulate_fixup_sets (bb, live);
+}
+
+
+/* Apply the artificial uses and defs at the end of BB in a backwards
+   direction.  */
+
+void 
+df_simulate_finalize_forwards (basic_block bb, bitmap live)
+{
+  df_ref *def_rec;
+  int bb_index = bb->index;
+  
+  for (def_rec = df_get_artificial_defs (bb_index); *def_rec; def_rec++)
+    {
+      df_ref def = *def_rec;
+      if ((DF_REF_FLAGS (def) & DF_REF_AT_TOP) == 0)
+	bitmap_clear_bit (live, DF_REF_REGNO (def));
+    }
 }

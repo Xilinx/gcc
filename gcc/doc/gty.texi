@@ -1,4 +1,4 @@
-@c Copyright (C) 2002, 2003, 2004, 2007, 2008
+@c Copyright (C) 2002, 2003, 2004, 2007, 2008, 2009
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -46,12 +46,12 @@ In a structure field definition, before the name of the field.
 Here are some examples of marking simple data structures and globals.
 
 @smallexample
-struct @var{tag} GTY(())
+struct GTY(()) @var{tag}
 @{
   @var{fields}@dots{}
 @};
 
-typedef struct @var{tag} GTY(())
+typedef struct GTY(()) @var{tag}
 @{
   @var{fields}@dots{}
 @} *@var{typename};
@@ -69,6 +69,7 @@ These don't need to be marked.
 * GTY Options::         What goes inside a @code{GTY(())}.
 * GGC Roots::           Making global variables GGC roots.
 * Files::               How the generated files work.
+* Invoking the garbage collector::   How to invoke the garbage collector.
 @end menu
 
 @node GTY Options
@@ -135,7 +136,7 @@ There are two places the type machinery will need to be explicitly told
 the length of an array.  The first case is when a structure ends in a
 variable-length array, like this:
 @smallexample
-struct rtvec_def GTY(()) @{
+struct GTY(()) rtvec_def @{
   int num_elem;         /* @r{number of elements} */
   rtx GTY ((length ("%h.num_elem"))) elem[1];
 @};
@@ -193,7 +194,7 @@ constant.
 
 For example,
 @smallexample
-struct tree_binding GTY(())
+struct GTY(()) tree_binding
 @{
   struct tree_common common;
   union tree_binding_u @{
@@ -448,3 +449,30 @@ source file.  Don't forget to mention this file as a dependency in the
 For language frontends, there is another file that needs to be included
 somewhere.  It will be called @file{gtype-@var{lang}.h}, where
 @var{lang} is the name of the subdirectory the language is contained in.
+
+Plugins can add additional root tables.  Run the @code{gengtype}
+utility in plugin mode as @code{gengtype -p @var{source-dir}
+@var{file-list} @var{plugin*.c}} with your plugin files
+@var{plugin*.c} using @code{GTY} to generate the corresponding
+@var{gt-plugin*.h} files.  The GCC build tree is needed to be present in
+that mode.
+
+
+@node Invoking the garbage collector
+@section How to invoke the garbage collector
+@cindex garbage collector, invocation
+@findex ggc_collect
+
+The GCC garbage collector GGC is only invoked explicitly. In contrast
+with many other garbage collectors, it is not implicitly invoked by
+allocation routines when a lot of memory has been consumed. So the
+only way to have GGC reclaim storage it to call the @code{ggc_collect}
+function explicitly. This call is an expensive operation, as it may
+have to scan the entire heap. Beware that local variables (on the GCC
+call stack) are not followed by such an invocation (as many other
+garbage collectors do): you should reference all your data from static
+or external @code{GTY}-ed variables, and it is advised to call
+@code{ggc_collect} with a shallow call stack. The GGC is an exact mark
+and sweep garbage collector (so it does not scan the call stack for
+pointers). In practice GCC passes don't often call @code{ggc_collect}
+themselves, because it is called by the pass manager between passes.

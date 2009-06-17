@@ -1,20 +1,33 @@
 /* longlong.h -- definitions for mixed size 32/64 bit arithmetic.
-   Copyright (C) 1991, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2004,
-   2005, 2007  Free Software Foundation, Inc.
+   Copyright (C) 1991, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
-   This definition file is free software; you can redistribute it
-   and/or modify it under the terms of the GNU General Public
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
-   version 3, or (at your option) any later version.
+   version 2.1 of the License, or (at your option) any later version.
 
-   This definition file is distributed in the hope that it will be
-   useful, but WITHOUT ANY WARRANTY; without even the implied
-   warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-   See the GNU General Public License for more details.
+   In addition to the permissions in the GNU Lesser General Public
+   License, the Free Software Foundation gives you unlimited
+   permission to link the compiled version of this file into
+   combinations with other programs, and to distribute those
+   combinations without any restriction coming from the use of this
+   file.  (The Lesser General Public License restrictions do apply in
+   other respects; for example, they cover modification of the file,
+   and distribution when not linked into a combine executable.)
 
-   You should have received a copy of the GNU General Public License
-   along with this program; see the file COPYING3.  If not see
-   <http://www.gnu.org/licenses/>.  */
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
+   MA 02110-1301, USA.  */
 
 /* You have to define the following before including this file:
 
@@ -42,7 +55,12 @@
 #define UDWtype		UDItype
 #endif
 
-extern const UQItype __clz_tab[256];
+/* Used in glibc only.  */
+#ifndef attribute_hidden
+#define attribute_hidden
+#endif
+
+extern const UQItype __clz_tab[256] attribute_hidden;
 
 /* Define auxiliary asm macros.
 
@@ -413,6 +431,55 @@ UDItype __umulsidi3 (USItype, USItype);
 	       "dI" ((USItype) (v)));					\
     __w; })
 #endif /* __i960__ */
+
+#if defined (__ia64) && W_TYPE_SIZE == 64
+/* This form encourages gcc (pre-release 3.4 at least) to emit predicated
+   "sub r=r,r" and "sub r=r,r,1", giving a 2 cycle latency.  The generic
+   code using "al<bl" arithmetically comes out making an actual 0 or 1 in a
+   register, which takes an extra cycle.  */
+#define sub_ddmmss(sh, sl, ah, al, bh, bl)				\
+  do {									\
+    UWtype __x;								\
+    __x = (al) - (bl);							\
+    if ((al) < (bl))							\
+      (sh) = (ah) - (bh) - 1;						\
+    else								\
+      (sh) = (ah) - (bh);						\
+    (sl) = __x;								\
+  } while (0)
+
+/* Do both product parts in assembly, since that gives better code with
+   all gcc versions.  Some callers will just use the upper part, and in
+   that situation we waste an instruction, but not any cycles.  */
+#define umul_ppmm(ph, pl, m0, m1)					\
+  __asm__ ("xma.hu %0 = %2, %3, f0\n\txma.l %1 = %2, %3, f0"		\
+	   : "=&f" (ph), "=f" (pl)					\
+	   : "f" (m0), "f" (m1))
+#define count_leading_zeros(count, x)					\
+  do {									\
+    UWtype _x = (x), _y, _a, _c;					\
+    __asm__ ("mux1 %0 = %1, @rev" : "=r" (_y) : "r" (_x));		\
+    __asm__ ("czx1.l %0 = %1" : "=r" (_a) : "r" (-_y | _y));		\
+    _c = (_a - 1) << 3;							\
+    _x >>= _c;								\
+    if (_x >= 1 << 4)							\
+      _x >>= 4, _c += 4;						\
+    if (_x >= 1 << 2)							\
+      _x >>= 2, _c += 2;						\
+    _c += _x >> 1;							\
+    (count) =  W_TYPE_SIZE - 1 - _c;					\
+  } while (0)
+/* similar to what gcc does for __builtin_ffs, but 0 based rather than 1
+   based, and we don't need a special case for x==0 here */
+#define count_trailing_zeros(count, x)					\
+  do {									\
+    UWtype __ctz_x = (x);						\
+    __asm__ ("popcnt %0 = %1"						\
+	     : "=r" (count)						\
+	     : "r" ((__ctz_x-1) & ~__ctz_x));				\
+  } while (0)
+#define UMUL_TIME 14
+#endif
 
 #if defined (__M32R__) && W_TYPE_SIZE == 32
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \

@@ -1,5 +1,5 @@
 /* Loop distribution.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Georges-Andre Silber <Georges-Andre.Silber@ensmp.fr>
    and Sebastian Pop <sebastian.pop@amd.com>.
 
@@ -216,7 +216,7 @@ generate_loops_for_partition (struct loop *loop, bitmap partition, bool copy_p)
   return true;
 }
 
-/* Build size argument.  */
+/* Build the size argument for a memset call.  */
 
 static inline tree
 build_size_arg (tree nb_iter, tree op, gimple_seq* stmt_list)
@@ -224,8 +224,10 @@ build_size_arg (tree nb_iter, tree op, gimple_seq* stmt_list)
     tree nb_bytes;
     gimple_seq stmts = NULL;
 
-    nb_bytes = fold_build2 (MULT_EXPR, TREE_TYPE (nb_iter),
-			    nb_iter, TYPE_SIZE_UNIT (TREE_TYPE (op)));
+    nb_bytes = fold_build2 (MULT_EXPR, size_type_node,
+			    fold_convert (size_type_node, nb_iter),
+			    fold_convert (size_type_node,
+					  TYPE_SIZE_UNIT (TREE_TYPE (op))));
     nb_bytes = force_gimple_operand (nb_bytes, &stmts, true, NULL);
     gimple_seq_add_seq (stmt_list, stmts);
 
@@ -238,14 +240,13 @@ static bool
 generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
 		      gimple_stmt_iterator bsi)
 {
-  tree t, addr_base;
+  tree addr_base;
   tree nb_bytes = NULL;
   bool res = false;
   gimple_seq stmts = NULL, stmt_list = NULL;
   gimple fn_call;
   tree mem, fndecl, fntype, fn;
   gimple_stmt_iterator i;
-  ssa_op_iter iter;
   struct data_reference *dr = XCNEW (struct data_reference);
 
   DR_STMT (dr) = stmt;
@@ -256,10 +257,15 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
   /* Test for a positive stride, iterating over every element.  */
   if (integer_zerop (fold_build2 (MINUS_EXPR, integer_type_node, DR_STEP (dr),
 				  TYPE_SIZE_UNIT (TREE_TYPE (op0)))))
-    addr_base = fold_build2 (PLUS_EXPR, TREE_TYPE (DR_BASE_ADDRESS (dr)),
-			     DR_BASE_ADDRESS (dr), 
-			     size_binop (PLUS_EXPR,
-					 DR_OFFSET (dr), DR_INIT (dr)));
+    {
+      tree offset = fold_convert (sizetype,
+				  size_binop (PLUS_EXPR,
+					      DR_OFFSET (dr),
+					      DR_INIT (dr)));
+      addr_base = fold_build2 (POINTER_PLUS_EXPR,
+			       TREE_TYPE (DR_BASE_ADDRESS (dr)),
+			       DR_BASE_ADDRESS (dr), offset);
+    }
 
   /* Test for a negative stride, iterating over every element.  */
   else if (integer_zerop (fold_build2 (PLUS_EXPR, integer_type_node,
@@ -268,7 +274,8 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
     {
       nb_bytes = build_size_arg (nb_iter, op0, &stmt_list);
       addr_base = size_binop (PLUS_EXPR, DR_OFFSET (dr), DR_INIT (dr));
-      addr_base = fold_build2 (MINUS_EXPR, sizetype, addr_base, nb_bytes);
+      addr_base = fold_build2 (MINUS_EXPR, sizetype, addr_base,
+			       fold_convert (sizetype, nb_bytes));
       addr_base = force_gimple_operand (addr_base, &stmts, true, NULL);
       gimple_seq_add_seq (&stmt_list, stmts);
 
@@ -287,7 +294,7 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
   fn = build1 (ADDR_EXPR, build_pointer_type (fntype), fndecl);
 
   if (!nb_bytes)
-      nb_bytes = build_size_arg (nb_iter, op0, &stmt_list);
+    nb_bytes = build_size_arg (nb_iter, op0, &stmt_list);
   fn_call = gimple_build_call (fn, 3, mem, integer_zero_node, nb_bytes);
   gimple_seq_add_stmt (&stmt_list, fn_call);
 
@@ -295,29 +302,6 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
     {
       gimple s = gsi_stmt (i);
       update_stmt_if_modified (s);
-
-      FOR_EACH_SSA_TREE_OPERAND (t, s, iter, SSA_OP_VIRTUAL_DEFS)
-	{
-	  if (TREE_CODE (t) == SSA_NAME)
-	    t = SSA_NAME_VAR (t);
-	  mark_sym_for_renaming (t);
-	}
-    }
-
-  /* Mark also the uses of the VDEFS of STMT to be renamed.  */
-  FOR_EACH_SSA_TREE_OPERAND (t, stmt, iter, SSA_OP_VIRTUAL_DEFS)
-    {
-      if (TREE_CODE (t) == SSA_NAME)
-	{
-	  gimple s;
-	  imm_use_iterator imm_iter;
-
-	  FOR_EACH_IMM_USE_STMT (s, imm_iter, t)
-	    update_stmt (s);
-
-	  t = SSA_NAME_VAR (t);
-	}
-      mark_sym_for_renaming (t);
     }
 
   gsi_insert_seq_after (&bsi, stmt_list, GSI_CONTINUE_LINKING);
@@ -329,6 +313,38 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
  end:
   free_data_ref (dr);
   return res;
+}
+
+/* Propagate phis in BB b to their uses and remove them.  */
+
+static void
+prop_phis (basic_block b)
+{
+  gimple_stmt_iterator psi;
+  gimple_seq phis = phi_nodes (b);
+
+  for (psi = gsi_start (phis); !gsi_end_p (psi); )
+    {
+      gimple phi = gsi_stmt (psi);
+      tree def = gimple_phi_result (phi), use = gimple_phi_arg_def (phi, 0);
+
+      gcc_assert (gimple_phi_num_args (phi) == 1);
+
+      if (!is_gimple_reg (def))
+	{
+	  imm_use_iterator iter;
+	  use_operand_p use_p;
+	  gimple stmt;
+
+	  FOR_EACH_IMM_USE_STMT (stmt, iter, def)
+	    FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
+	      SET_USE (use_p, use);
+	}
+      else
+	replace_uses_by (def, use);
+
+      remove_phi_node (&psi, true);
+    }
 }
 
 /* Tries to generate a builtin function for the instructions of LOOP
@@ -400,12 +416,15 @@ generate_builtin (struct loop *loop, bitmap partition, bool copy_p)
       unsigned nbbs = loop->num_nodes;
       basic_block src = loop_preheader_edge (loop)->src;
       basic_block dest = single_exit (loop)->dest;
+      prop_phis (dest);
       make_edge (src, dest, EDGE_FALLTHRU);
-      set_immediate_dominator (CDI_DOMINATORS, dest, src);
       cancel_loop_tree (loop);
 
       for (i = 0; i < nbbs; i++)
 	delete_basic_block (bbs[i]);
+
+      set_immediate_dominator (CDI_DOMINATORS, dest,
+			       recompute_dominator (CDI_DOMINATORS, dest));
     }
 
  end:
@@ -561,7 +580,6 @@ static void
 rdg_flag_uses (struct graph *rdg, int u, bitmap partition, bitmap loops,
 	       bitmap processed, bool *part_has_writes)
 {
-  ssa_op_iter iter;
   use_operand_p use_p;
   struct vertex *x = &(rdg->vertices[u]);
   gimple stmt = RDGV_STMT (x);
@@ -581,7 +599,7 @@ rdg_flag_uses (struct graph *rdg, int u, bitmap partition, bitmap loops,
 
   if (gimple_code (stmt) != GIMPLE_PHI)
     {
-      FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_VIRTUAL_USES)
+      if ((use_p = gimple_vuse_op (stmt)) != NULL_USE_OPERAND_P)
 	{
 	  tree use = USE_FROM_PTR (use_p);
 

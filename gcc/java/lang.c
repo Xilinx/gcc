@@ -111,8 +111,7 @@ static int dependency_tracking = 0;
 #define DEPEND_TARGET_SET 4
 #define DEPEND_FILE_ALREADY_SET 8
 
-struct language_function GTY(())
-{
+struct GTY(()) language_function {
   int unused;
 };
 
@@ -527,6 +526,13 @@ static bool
 java_post_options (const char **pfilename)
 {
   const char *filename = *pfilename;
+
+  /* Excess precision other than "fast" requires front-end
+     support.  */
+  if (flag_excess_precision_cmdline == EXCESS_PRECISION_STANDARD
+      && TARGET_FLT_EVAL_METHOD_NON_DEFAULT)
+    sorry ("-fexcess-precision=standard for Java");
+  flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
 
   /* An absolute requirement: if we're not using indirect dispatch, we
      must always verify everything.  */

@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -1981,6 +1979,14 @@ package body Sinfo is
       return Node2 (N);
    end Next_Entity;
 
+   function Next_Implicit_With
+     (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_With_Clause);
+      return Node3 (N);
+   end Next_Implicit_With;
+
    function Next_Named_Actual
       (N : Node_Id) return Node_Id is
    begin
@@ -2089,6 +2095,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Subtype_Declaration);
       return Flag11 (N);
    end Null_Exclusion_Present;
+
+   function Null_Exclusion_In_Return_Present
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Access_Function_Definition);
+      return Flag14 (N);
+   end Null_Exclusion_In_Return_Present;
 
    function Null_Record_Present
       (N : Node_Id) return Boolean is
@@ -2622,6 +2636,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Subtype_Declaration);
       return Node5 (N);
    end Subtype_Indication;
+
+   function Suppress_Loop_Warnings
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Loop_Statement);
+      return Flag17 (N);
+   end Suppress_Loop_Warnings;
 
    function Subtype_Mark
       (N : Node_Id) return Node_Id is
@@ -4745,6 +4767,14 @@ package body Sinfo is
       Set_Node2 (N, Val); -- semantic field, no parent set
    end Set_Next_Entity;
 
+   procedure Set_Next_Implicit_With
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_With_Clause);
+      Set_Node3 (N, Val); -- semantic field, no parent set
+   end Set_Next_Implicit_With;
+
    procedure Set_Next_Named_Actual
       (N : Node_Id; Val : Node_Id) is
    begin
@@ -4853,6 +4883,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Subtype_Declaration);
       Set_Flag11 (N, Val);
    end Set_Null_Exclusion_Present;
+
+   procedure Set_Null_Exclusion_In_Return_Present
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Access_Function_Definition);
+      Set_Flag14 (N, Val);
+   end Set_Null_Exclusion_In_Return_Present;
 
    procedure Set_Null_Record_Present
       (N : Node_Id; Val : Boolean := True) is
@@ -5410,6 +5448,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Use_Type_Clause);
       Set_List2_With_Parent (N, Val);
    end Set_Subtype_Marks;
+
+   procedure Set_Suppress_Loop_Warnings
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Loop_Statement);
+      Set_Flag17 (N, Val);
+   end Set_Suppress_Loop_Warnings;
 
    procedure Set_Synchronized_Present
      (N : Node_Id; Val : Boolean := True) is

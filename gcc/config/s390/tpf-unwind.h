@@ -1,32 +1,27 @@
 /* DWARF2 EH unwinding support for TPF OS.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2009 Free Software Foundation, Inc.
    Contributed by P.J. Darcy (darcypj@us.ibm.com).
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combined
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include <dlfcn.h>
 
@@ -51,7 +46,7 @@ __isPATrange (void *addr)
 /* TPF return address offset from start of stack frame.  */
 #define TPFRA_OFFSET 168
 
-/* Exceptions macro defined for TPF so that functions without 
+/* Exceptions macro defined for TPF so that functions without
    dwarf frame information can be used with exceptions.  */
 #define MD_FALLBACK_FRAME_STATE_FOR s390_fallback_frame_state
 
@@ -170,20 +165,20 @@ __tpf_eh_return (void *target)
 
       /* Begin looping through stack frames.  Stop if invalid
          code information is retrieved or if a match between the
-         current stack frame iteration shared object's address 
+         current stack frame iteration shared object's address
          matches that of the target, calculated above.  */
       do
         {
           /* Get return address based on our stackptr iterator.  */
-          current = (void *) *((unsigned long int *) 
+          current = (void *) *((unsigned long int *)
                       (stackptr+RA_OFFSET));
 
           /* Is it a Pat Stub?  */
-          if (__isPATrange (current)) 
+          if (__isPATrange (current))
             {
-              /* Yes it was, get real return address 
+              /* Yes it was, get real return address
                  in TPF stack area.  */
-              current = (void *) *((unsigned long int *) 
+              current = (void *) *((unsigned long int *)
                           (stackptr+TPFRA_OFFSET));
               is_a_stub = 1;
             }
@@ -203,7 +198,7 @@ __tpf_eh_return (void *target)
                /* Yes! They are in the same module.
                   Force copy of TPF private stack area to
                   destination stack frame TPF private area. */
-               destination_frame = (void *) *((unsigned long int *) 
+               destination_frame = (void *) *((unsigned long int *)
                    (*PREVIOUS_STACK_PTR() + R15_OFFSET));
 
                /* Copy TPF linkage area from current frame to
@@ -214,24 +209,24 @@ __tpf_eh_return (void *target)
                /* Now overlay the
                   real target address into the TPF stack area of
                   the target frame we are jumping to.  */
-               *((unsigned long int *) (destination_frame + 
+               *((unsigned long int *) (destination_frame +
                    TPFRA_OFFSET)) = (unsigned long int) target;
 
                /* Before returning the desired pat stub address to
-                  the exception handling unwinder so that it can 
-                  actually do the "leap" shift out the low order 
+                  the exception handling unwinder so that it can
+                  actually do the "leap" shift out the low order
                   bit designated to determine if we are in 64BIT mode.
                   This is necessary for CTOA stubs.
-                  Otherwise we leap one byte past where we want to 
+                  Otherwise we leap one byte past where we want to
                   go to in the TPF pat stub linkage code.  */
-               shifter = *((unsigned long int *) 
+               shifter = *((unsigned long int *)
                      (stackptr + RA_OFFSET));
 
                shifter &= ~1ul;
 
                /* Store Pat Stub Address in destination Stack Frame.  */
                *((unsigned long int *) (destination_frame +
-                   RA_OFFSET)) = shifter;               
+                   RA_OFFSET)) = shifter;
 
                /* Re-adjust pat stub address to go to correct place
                   in linkage.  */

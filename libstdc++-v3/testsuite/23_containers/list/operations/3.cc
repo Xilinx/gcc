@@ -1,9 +1,9 @@
-// Copyright (C) 2001, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2004, 2005, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -12,21 +12,23 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 23.2.2.4 list operations [lib.list.ops]
 
 #include <list>
 #include <testsuite_hooks.h>
 
-bool test __attribute__((unused)) = true;
-
 // splice(p, x, f, l) + sort + merge + unique
+template<typename _Tp>
 void
-test03()
+operations03()
 {
+  bool test __attribute__((unused)) = true;
+  typedef _Tp list_type;
+  typedef typename list_type::iterator iterator;
+
   const int A[] = {103, 203, 603, 303, 403, 503};
   const int B[] = {417, 417, 417, 417, 417};
   const int E[] = {103, 417, 417, 203, 603, 303, 403, 503};
@@ -39,14 +41,14 @@ test03()
   const int Q = sizeof(D) / sizeof(int);
   const int R = sizeof(E) / sizeof(int);
 
-  std::list<int> list0301(A, A + N);
-  std::list<int> list0302(B, B + M);
-  std::list<int> list0303(C, C + P);
-  std::list<int> list0304(D, D + Q);
-  std::list<int> list0305(E, E + R);
-  std::list<int> list0306(F, F + R);
-  std::list<int>::iterator p = list0301.begin();
-  std::list<int>::iterator q = list0302.begin();
+  list_type list0301(A, A + N);
+  list_type list0302(B, B + M);
+  list_type list0303(C, C + P);
+  list_type list0304(D, D + Q);
+  list_type list0305(E, E + R);
+  list_type list0306(F, F + R);
+  iterator p = list0301.begin();
+  iterator q = list0302.begin();
 
   ++p; ++q; ++q;
   list0301.splice(p, list0302, list0302.begin(), q);
@@ -68,6 +70,6 @@ test03()
 
 int main(void)
 {
-  test03();
+  operations03<std::list<int> >();
   return 0;
 }

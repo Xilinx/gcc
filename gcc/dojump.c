@@ -1,6 +1,6 @@
 /* Convert tree expression to rtl instructions, for GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -141,7 +141,8 @@ prefer_and_bit_test (enum machine_mode mode, int bitnum)
     }
 
   /* Fill in the integers.  */
-  XEXP (and_test, 1) = GEN_INT ((unsigned HOST_WIDE_INT) 1 << bitnum);
+  XEXP (and_test, 1)
+    = immed_double_const ((unsigned HOST_WIDE_INT) 1 << bitnum, 0, mode);
   XEXP (XEXP (shift_test, 0), 1) = GEN_INT (bitnum);
 
   return (rtx_cost (and_test, IF_THEN_ELSE, optimize_insn_for_speed_p ())
@@ -257,8 +258,7 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
         if (! SLOW_BYTE_ACCESS
             && type != 0 && bitsize >= 0
             && TYPE_PRECISION (type) < TYPE_PRECISION (TREE_TYPE (exp))
-            && (optab_handler (cmp_optab, TYPE_MODE (type))->insn_code
-		!= CODE_FOR_nothing))
+            && have_insn_for (COMPARE, TYPE_MODE (type)))
           {
             do_jump (fold_convert (type, exp), if_false_label, if_true_label);
             break;
@@ -475,10 +475,10 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 		  && prefer_and_bit_test (TYPE_MODE (argtype),
 					  TREE_INT_CST_LOW (shift)))
 		{
-		  HOST_WIDE_INT mask = (HOST_WIDE_INT) 1
-				       << TREE_INT_CST_LOW (shift);
+		  unsigned HOST_WIDE_INT mask
+		    = (unsigned HOST_WIDE_INT) 1 << TREE_INT_CST_LOW (shift);
 		  do_jump (build2 (BIT_AND_EXPR, argtype, arg,
-				   build_int_cst_type (argtype, mask)),
+				   build_int_cst_wide_type (argtype, mask, 0)),
 			   clr_label, set_label);
 		  break;
 		}
@@ -499,8 +499,7 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
           && (mode = mode_for_size (i + 1, MODE_INT, 0)) != BLKmode
           && (type = lang_hooks.types.type_for_mode (mode, 1)) != 0
           && TYPE_PRECISION (type) < TYPE_PRECISION (TREE_TYPE (exp))
-          && (optab_handler (cmp_optab, TYPE_MODE (type))->insn_code
-              != CODE_FOR_nothing))
+          && have_insn_for (COMPARE, TYPE_MODE (type)))
         {
           do_jump (fold_convert (type, exp), if_false_label, if_true_label);
           break;
@@ -675,10 +674,10 @@ do_jump_by_parts_zero_rtx (enum machine_mode mode, rtx op0,
      be slower, but that's highly unlikely.  */
 
   part = gen_reg_rtx (word_mode);
-  emit_move_insn (part, operand_subword_force (op0, 0, GET_MODE (op0)));
+  emit_move_insn (part, operand_subword_force (op0, 0, mode));
   for (i = 1; i < nwords && part != 0; i++)
     part = expand_binop (word_mode, ior_optab, part,
-                         operand_subword_force (op0, i, GET_MODE (op0)),
+                         operand_subword_force (op0, i, mode),
                          part, 1, OPTAB_WIDEN);
 
   if (part != 0)
@@ -694,7 +693,7 @@ do_jump_by_parts_zero_rtx (enum machine_mode mode, rtx op0,
     drop_through_label = if_false_label = gen_label_rtx ();
 
   for (i = 0; i < nwords; i++)
-    do_compare_rtx_and_jump (operand_subword_force (op0, i, GET_MODE (op0)),
+    do_compare_rtx_and_jump (operand_subword_force (op0, i, mode),
                              const0_rtx, EQ, 1, word_mode, NULL_RTX,
                              if_false_label, NULL_RTX);
 
@@ -757,64 +756,6 @@ do_jump_by_parts_equality (tree exp, rtx if_false_label, rtx if_true_label)
 				 if_true_label);
 }
 
-/* Generate code for a comparison of OP0 and OP1 with rtx code CODE.
-   MODE is the machine mode of the comparison, not of the result.
-   (including code to compute the values to be compared) and set CC0
-   according to the result.  The decision as to signed or unsigned
-   comparison must be made by the caller.
-
-   We force a stack adjustment unless there are currently
-   things pushed on the stack that aren't yet used.
-
-   If MODE is BLKmode, SIZE is an RTX giving the size of the objects being
-   compared.  */
-
-rtx
-compare_from_rtx (rtx op0, rtx op1, enum rtx_code code, int unsignedp,
-		  enum machine_mode mode, rtx size)
-{
-  rtx tem;
-
-  /* If one operand is constant, make it the second one.  Only do this
-     if the other operand is not constant as well.  */
-
-  if (swap_commutative_operands_p (op0, op1))
-    {
-      tem = op0;
-      op0 = op1;
-      op1 = tem;
-      code = swap_condition (code);
-    }
-
-  do_pending_stack_adjust ();
-
-  code = unsignedp ? unsigned_condition (code) : code;
-  tem = simplify_relational_operation (code, VOIDmode, mode, op0, op1);
-  if (tem)
-    {
-      if (CONSTANT_P (tem))
-	return tem;
-
-      if (COMPARISON_P (tem))
-	{
-	  code = GET_CODE (tem);
-	  op0 = XEXP (tem, 0);
-	  op1 = XEXP (tem, 1);
-	  mode = GET_MODE (op0);
-	  unsignedp = (code == GTU || code == LTU
-		       || code == GEU || code == LEU);
-	}
-    }
-
-  emit_cmp_insn (op0, op1, code, size, mode, unsignedp);
-
-#if HAVE_cc0
-  return gen_rtx_fmt_ee (code, VOIDmode, cc0_rtx, const0_rtx);
-#else
-  return gen_rtx_fmt_ee (code, VOIDmode, op0, op1);
-#endif
-}
-
 /* Like do_compare_and_jump but expects the values to compare as two rtx's.
    The decision as to signed or unsigned comparison must be made by the caller.
 

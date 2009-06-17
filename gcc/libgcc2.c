@@ -1,33 +1,29 @@
 /* More subroutines needed by GCC output code on some machines.  */
 /* Compile this one with gcc.  */
 /* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007  Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "tconfig.h"
 #include "tsystem.h"
@@ -1806,7 +1802,7 @@ NAME (TYPE x, int m)
 #define isfinite(x)	__builtin_expect (!isnan((x) - (x)), 1)
 #define isinf(x)	__builtin_expect (!isnan(x) & !isfinite(x), 0)
 
-#define INFINITY	CONCAT2(__builtin_inf, CEXT) ()
+#define INFINITY	CONCAT2(__builtin_huge_val, CEXT) ()
 #define I		1i
 
 /* Helpers to make the following code slightly less gross.  */
@@ -1830,6 +1826,7 @@ CTYPE
 CONCAT3(__mul,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 {
   MTYPE ac, bd, ad, bc, x, y;
+  CTYPE res;
 
   ac = a * c;
   bd = b * d;
@@ -1886,7 +1883,9 @@ CONCAT3(__mul,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 	}
     }
 
-  return x + I * y;
+  __real__ res = x;
+  __imag__ res = y;
+  return res;
 }
 #endif /* complex multiply */
 
@@ -1897,6 +1896,7 @@ CTYPE
 CONCAT3(__div,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 {
   MTYPE denom, ratio, x, y;
+  CTYPE res;
 
   /* ??? We can get better behavior from logarithmic scaling instead of
      the division.  But that would mean starting to link libgcc against
@@ -1942,7 +1942,9 @@ CONCAT3(__div,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 	}
     }
 
-  return x + I * y;
+  __real__ res = x;
+  __imag__ res = y;
+  return res;
 }
 #endif /* complex divide */
 
@@ -2061,7 +2063,7 @@ getpagesize (void)
 int
 mprotect (char *addr, int len, int prot)
 {
-  int np, op;
+  DWORD np, op;
 
   if (prot == 7)
     np = 0x40;
@@ -2075,6 +2077,8 @@ mprotect (char *addr, int len, int prot)
     np = 0x02;
   else if (prot == 0)
     np = 0x01;
+  else
+    return -1;
 
   if (VirtualProtect (addr, len, np, &op))
     return 0;

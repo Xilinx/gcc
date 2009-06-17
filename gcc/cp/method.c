@@ -1,7 +1,7 @@
 /* Handle the hair of processing (but not expanding) inline functions.
    Also manage function and variable name overloading.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -126,7 +126,8 @@ make_thunk (tree function, bool this_adjusting,
   gcc_assert (TYPE_SIZE (DECL_CONTEXT (function))
 	      && TYPE_BEING_DEFINED (DECL_CONTEXT (function)));
 
-  thunk = build_decl (FUNCTION_DECL, NULL_TREE, TREE_TYPE (function));
+  thunk = build_decl (DECL_SOURCE_LOCATION (function),
+		      FUNCTION_DECL, NULL_TREE, TREE_TYPE (function));
   DECL_LANG_SPECIFIC (thunk) = DECL_LANG_SPECIFIC (function);
   cxx_dup_lang_specific_decl (thunk);
   DECL_THUNKS (thunk) = NULL_TREE;
@@ -262,7 +263,8 @@ static GTY (()) int thunk_labelno;
 tree
 make_alias_for (tree function, tree newid)
 {
-  tree alias = build_decl (FUNCTION_DECL, newid, TREE_TYPE (function));
+  tree alias = build_decl (DECL_SOURCE_LOCATION (function),
+			   FUNCTION_DECL, newid, TREE_TYPE (function));
   DECL_LANG_SPECIFIC (alias) = DECL_LANG_SPECIFIC (function);
   cxx_dup_lang_specific_decl (alias);
   DECL_CONTEXT (alias) = NULL;
@@ -381,7 +383,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
   DECL_VISIBILITY_SPECIFIED (thunk_fndecl)
     = DECL_VISIBILITY_SPECIFIED (function);
   if (DECL_ONE_ONLY (function))
-    make_decl_one_only (thunk_fndecl);
+    make_decl_one_only (thunk_fndecl, cxx_comdat_group (thunk_fndecl));
 
   if (flag_syntax_only)
     {
@@ -428,7 +430,8 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       
       current_function_decl = thunk_fndecl;
       DECL_RESULT (thunk_fndecl)
-	= build_decl (RESULT_DECL, 0, integer_type_node);
+	= build_decl (DECL_SOURCE_LOCATION (thunk_fndecl),
+		      RESULT_DECL, 0, integer_type_node);
       fnname = IDENTIFIER_POINTER (DECL_NAME (thunk_fndecl));
       /* The back end expects DECL_INITIAL to contain a BLOCK, so we
 	 create one.  */
@@ -436,7 +439,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       BLOCK_VARS (fn_block) = a;
       DECL_INITIAL (thunk_fndecl) = fn_block;
       init_function_start (thunk_fndecl);
-      crtl->is_thunk = 1;
+      cfun->is_thunk = 1;
       assemble_start_function (thunk_fndecl, fnname);
 
       targetm.asm_out.output_mi_thunk (asm_out_file, thunk_fndecl,
@@ -661,19 +664,21 @@ do_build_assign_ref (tree fndecl)
 	   BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
 	{
 	  tree converted_parm;
+	  VEC(tree,gc) *parmvec;
 
 	  /* We must convert PARM directly to the base class
 	     explicitly since the base class may be ambiguous.  */
 	  converted_parm = build_base_path (PLUS_EXPR, parm, base_binfo, 1);
 	  /* Call the base class assignment operator.  */
+	  parmvec = make_tree_vector_single (converted_parm);
 	  finish_expr_stmt
 	    (build_special_member_call (current_class_ref,
 					ansi_assopname (NOP_EXPR),
-					build_tree_list (NULL_TREE,
-							 converted_parm),
+					&parmvec,
 					base_binfo,
 					LOOKUP_NORMAL | LOOKUP_NONVIRTUAL,
                                         tf_warning_or_error));
+	  release_tree_vector (parmvec);
 	}
 
       /* Assign to each of the non-static data members.  */

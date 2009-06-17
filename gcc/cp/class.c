@@ -1,6 +1,6 @@
 /* Functions related to building classes and their related objects.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -295,7 +295,7 @@ build_base_path (enum tree_code code,
 
   /* Don't bother with the calculations inside sizeof; they'll ICE if the
      source type is incomplete and the pointer value doesn't matter.  */
-  if (skip_evaluation)
+  if (cp_unevaluated_operand != 0)
     {
       expr = build_nop (build_pointer_type (target_type), expr);
       if (!want_pointer)
@@ -625,9 +625,8 @@ build_vtbl_ref_1 (tree instance, tree idx)
   if (!vtbl)
     vtbl = build_vfield_ref (instance, basetype);
 
-  assemble_external (vtbl);
 
-  aref = build_array_ref (vtbl, idx, input_location);
+  aref = build_array_ref (input_location, vtbl, idx);
   TREE_CONSTANT (aref) |= TREE_CONSTANT (vtbl) && TREE_CONSTANT (idx);
 
   return aref;
@@ -775,7 +774,7 @@ get_vtable_decl (tree type, int complete)
   if (complete)
     {
       DECL_EXTERNAL (decl) = 1;
-      finish_decl (decl, NULL_TREE, NULL_TREE);
+      finish_decl (decl, NULL_TREE, NULL_TREE, NULL_TREE);
     }
 
   return decl;
@@ -1439,16 +1438,17 @@ determine_primary_bases (tree t)
       BINFO_VIRTUALS (type_binfo) = BINFO_VIRTUALS (primary);
     }
 }
-
-/* Set memoizing fields and bits of T (and its variants) for later
-   use.  */
 
-static void
-finish_struct_bits (tree t)
+/* Update the variant types of T.  */
+
+void
+fixup_type_variants (tree t)
 {
   tree variants;
 
-  /* Fix up variants (if any).  */
+  if (!t)
+    return;
+
   for (variants = TYPE_NEXT_VARIANT (t);
        variants;
        variants = TYPE_NEXT_VARIANT (variants))
@@ -1472,6 +1472,17 @@ finish_struct_bits (tree t)
       /* All variants of a class have the same attributes.  */
       TYPE_ATTRIBUTES (variants) = TYPE_ATTRIBUTES (t);
     }
+}
+
+
+/* Set memoizing fields and bits of T (and its variants) for later
+   use.  */
+
+static void
+finish_struct_bits (tree t)
+{
+  /* Fix up variants (if any).  */
+  fixup_type_variants (t);
 
   if (BINFO_N_BASE_BINFOS (TYPE_BINFO (t)) && TYPE_POLYMORPHIC_P (t))
     /* For a class w/o baseclasses, 'finish_struct' has set
@@ -2694,7 +2705,7 @@ check_bitfield_decl (tree field)
   DECL_INITIAL (field) = NULL_TREE;
 
   /* Detect invalid bit-field type.  */
-  if (!INTEGRAL_TYPE_P (type))
+  if (!INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     {
       error ("bit-field %q+#D with non-integral type", field);
       w = error_mark_node;
@@ -2974,7 +2985,8 @@ check_field_decls (tree t, tree *access_decls,
 		 x);
 	      cant_pack = 1;
 	    }
-	  else if (TYPE_ALIGN (TREE_TYPE (x)) > BITS_PER_UNIT)
+	  else if (DECL_C_BIT_FIELD (x)
+		   || TYPE_ALIGN (TREE_TYPE (x)) > BITS_PER_UNIT)
 	    DECL_PACKED (x) = 1;
 	}
 
@@ -3624,7 +3636,8 @@ build_base_field (record_layout_info rli, tree binfo,
       CLASSTYPE_EMPTY_P (t) = 0;
 
       /* Create the FIELD_DECL.  */
-      decl = build_decl (FIELD_DECL, NULL_TREE, CLASSTYPE_AS_BASE (basetype));
+      decl = build_decl (input_location,
+			 FIELD_DECL, NULL_TREE, CLASSTYPE_AS_BASE (basetype));
       DECL_ARTIFICIAL (decl) = 1;
       DECL_IGNORED_P (decl) = 1;
       DECL_FIELD_CONTEXT (decl) = t;
@@ -4089,6 +4102,9 @@ type_has_user_provided_constructor (tree t)
 {
   tree fns;
 
+  if (!CLASS_TYPE_P (t))
+    return false;
+
   if (!TYPE_HAS_USER_CONSTRUCTOR (t))
     return false;
 
@@ -4137,17 +4153,19 @@ defaultable_fn_p (tree fn)
 {
   if (DECL_CONSTRUCTOR_P (fn))
     {
-      if (skip_artificial_parms_for (fn, DECL_ARGUMENTS (fn))
-	  == NULL_TREE)
+      if (FUNCTION_FIRST_USER_PARMTYPE (fn) == void_list_node)
 	return true;
-      else if (copy_fn_p (fn) > 0)
+      else if (copy_fn_p (fn) > 0
+	       && (TREE_CHAIN (FUNCTION_FIRST_USER_PARMTYPE (fn))
+		   == void_list_node))
 	return true;
       else
 	return false;
     }
   else if (DECL_DESTRUCTOR_P (fn))
     return true;
-  else if (DECL_ASSIGNMENT_OPERATOR_P (fn))
+  else if (DECL_ASSIGNMENT_OPERATOR_P (fn)
+	   && DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR)
     return copy_fn_p (fn);
   else
     return false;
@@ -4411,7 +4429,8 @@ create_vtable_ptr (tree t, tree* virtuals_p)
 	 stores cannot alias stores to void*!  */
       tree field;
 
-      field = build_decl (FIELD_DECL, get_vfield_name (t), vtbl_ptr_type_node);
+      field = build_decl (input_location, 
+			  FIELD_DECL, get_vfield_name (t), vtbl_ptr_type_node);
       DECL_VIRTUAL_P (field) = 1;
       DECL_ARTIFICIAL (field) = 1;
       DECL_FIELD_CONTEXT (field) = t;
@@ -4847,7 +4866,7 @@ layout_class_type (tree t, tree *virtuals_p)
       if (DECL_C_BIT_FIELD (field)
 	  && INT_CST_LT (TYPE_SIZE (type), DECL_SIZE (field)))
 	{
-	  integer_type_kind itk;
+	  unsigned int itk;
 	  tree integer_type;
 	  bool was_unnamed_p = false;
 	  /* We must allocate the bits as if suitably aligned for the
@@ -4991,7 +5010,8 @@ layout_class_type (tree t, tree *virtuals_p)
 	{
 	  tree padding_field;
 
-	  padding_field = build_decl (FIELD_DECL,
+	  padding_field = build_decl (input_location,
+				      FIELD_DECL,
 				      NULL_TREE,
 				      char_type_node);
 	  DECL_BIT_FIELD (padding_field) = 1;
@@ -5079,7 +5099,8 @@ layout_class_type (tree t, tree *virtuals_p)
       for (field = TYPE_FIELDS (t); field; field = TREE_CHAIN (field))
 	if (TREE_CODE (field) == FIELD_DECL)
 	  {
-	    *next_field = build_decl (FIELD_DECL,
+	    *next_field = build_decl (input_location,
+				      FIELD_DECL,
 				      DECL_NAME (field),
 				      TREE_TYPE (field));
 	    DECL_CONTEXT (*next_field) = base_t;
@@ -5120,7 +5141,8 @@ layout_class_type (tree t, tree *virtuals_p)
   /* Make sure not to create any structures with zero size.  */
   if (integer_zerop (rli_size_unit_so_far (rli)) && CLASSTYPE_EMPTY_P (t))
     place_field (rli,
-		 build_decl (FIELD_DECL, NULL_TREE, char_type_node));
+		 build_decl (input_location,
+			     FIELD_DECL, NULL_TREE, char_type_node));
 
   /* Let the back end lay out the type.  */
   finish_record_layout (rli, /*free_p=*/true);
@@ -5781,6 +5803,9 @@ currently_open_class (tree t)
 {
   int i;
 
+  if (!CLASS_TYPE_P (t))
+    return false;
+
   /* We start looking from 1 because entry 0 is from global scope,
      and has no type.  */
   for (i = current_class_depth; i > 0; --i)
@@ -5923,9 +5948,13 @@ pop_lang_context (void)
    control of FLAGS.  Permit pointers to member function if FLAGS
    permits.  If TEMPLATE_ONLY, the name of the overloaded function was
    a template-id, and EXPLICIT_TARGS are the explicitly provided
-   template arguments.  If OVERLOAD is for one or more member
-   functions, then ACCESS_PATH is the base path used to reference
-   those member functions.  */
+   template arguments.  
+
+   If OVERLOAD is for one or more member functions, then ACCESS_PATH
+   is the base path used to reference those member functions.  If
+   TF_NO_ACCESS_CONTROL is not set in FLAGS, and the address is
+   resolved to a member function, access checks will be performed and
+   errors issued if appropriate.  */
 
 static tree
 resolve_address_of_overloaded_function (tree target_type,
@@ -6048,6 +6077,9 @@ resolve_address_of_overloaded_function (tree target_type,
       tree target_arg_types;
       tree target_ret_type;
       tree fns;
+      tree *args;
+      unsigned int nargs, ia;
+      tree arg;
 
       if (is_ptrmem)
 	target_fn_type
@@ -6060,6 +6092,14 @@ resolve_address_of_overloaded_function (tree target_type,
       /* Never do unification on the 'this' parameter.  */
       if (TREE_CODE (target_fn_type) == METHOD_TYPE)
 	target_arg_types = TREE_CHAIN (target_arg_types);
+
+      nargs = list_length (target_arg_types);
+      args = XALLOCAVEC (tree, nargs);
+      for (arg = target_arg_types, ia = 0;
+	   arg != NULL_TREE && arg != void_list_node;
+	   arg = TREE_CHAIN (arg), ++ia)
+	args[ia] = TREE_VALUE (arg);
+      nargs = ia;
 
       for (fns = overload; fns; fns = OVL_NEXT (fns))
 	{
@@ -6080,9 +6120,9 @@ resolve_address_of_overloaded_function (tree target_type,
 
 	  /* Try to do argument deduction.  */
 	  targs = make_tree_vec (DECL_NTPARMS (fn));
-	  if (fn_type_unification (fn, explicit_targs, targs,
-				   target_arg_types, target_ret_type,
-				   DEDUCE_EXACT, LOOKUP_NORMAL))
+	  if (fn_type_unification (fn, explicit_targs, targs, args, nargs,
+				   target_ret_type, DEDUCE_EXACT,
+				   LOOKUP_NORMAL))
 	    /* Argument deduction failed.  */
 	    continue;
 
@@ -6123,7 +6163,7 @@ resolve_address_of_overloaded_function (tree target_type,
       if (flags & tf_error)
 	{
 	  error ("no matches converting function %qD to type %q#T",
-		 DECL_NAME (OVL_FUNCTION (overload)),
+		 DECL_NAME (OVL_CURRENT (overload)),
 		 target_type);
 
 	  /* print_candidates expects a chain with the functions in
@@ -6139,25 +6179,33 @@ resolve_address_of_overloaded_function (tree target_type,
     }
   else if (TREE_CHAIN (matches))
     {
-      /* There were too many matches.  */
+      /* There were too many matches.  First check if they're all
+	 the same function.  */
+      tree match;
 
-      if (flags & tf_error)
+      fn = TREE_PURPOSE (matches);
+      for (match = TREE_CHAIN (matches); match; match = TREE_CHAIN (match))
+	if (!decls_match (fn, TREE_PURPOSE (matches)))
+	  break;
+
+      if (match)
 	{
-	  tree match;
+	  if (flags & tf_error)
+	    {
+	      error ("converting overloaded function %qD to type %q#T is ambiguous",
+		     DECL_NAME (OVL_FUNCTION (overload)),
+		     target_type);
 
-	  error ("converting overloaded function %qD to type %q#T is ambiguous",
-		    DECL_NAME (OVL_FUNCTION (overload)),
-		    target_type);
+	      /* Since print_candidates expects the functions in the
+		 TREE_VALUE slot, we flip them here.  */
+	      for (match = matches; match; match = TREE_CHAIN (match))
+		TREE_VALUE (match) = TREE_PURPOSE (match);
 
-	  /* Since print_candidates expects the functions in the
-	     TREE_VALUE slot, we flip them here.  */
-	  for (match = matches; match; match = TREE_CHAIN (match))
-	    TREE_VALUE (match) = TREE_PURPOSE (match);
+	      print_candidates (matches);
+	    }
 
-	  print_candidates (matches);
+	  return error_mark_node;
 	}
-
-      return error_mark_node;
     }
 
   /* Good, exactly one match.  Now, convert it to the correct type.  */
@@ -6190,14 +6238,16 @@ resolve_address_of_overloaded_function (tree target_type,
 	return error_mark_node;
       
       mark_used (fn);
-      /* We could not check access when this expression was originally
-	 created since we did not know at that time to which function
-	 the expression referred.  */
-      if (DECL_FUNCTION_MEMBER_P (fn))
-	{
-	  gcc_assert (access_path);
-	  perform_or_defer_access_check (access_path, fn, fn);
-	}
+    }
+
+  /* We could not check access to member functions when this
+     expression was originally created since we did not know at that
+     time to which function the expression referred.  */
+  if (!(flags & tf_no_access_control) 
+      && DECL_FUNCTION_MEMBER_P (fn))
+    {
+      gcc_assert (access_path);
+      perform_or_defer_access_check (access_path, fn, fn);
     }
 
   if (TYPE_PTRFN_P (target_type) || TYPE_PTRMEMFUNC_P (target_type))
@@ -6276,13 +6326,8 @@ instantiate_type (tree lhstype, tree rhs, tsubst_flags_t flags)
      dependent on overload resolution.  */
   gcc_assert (TREE_CODE (rhs) == ADDR_EXPR
 	      || TREE_CODE (rhs) == COMPONENT_REF
-	      || TREE_CODE (rhs) == COMPOUND_EXPR
-	      || really_overloaded_fn (rhs));
-
-  /* We don't overwrite rhs if it is an overloaded function.
-     Copying it would destroy the tree link.  */
-  if (TREE_CODE (rhs) != OVERLOAD)
-    rhs = copy_node (rhs);
+	      || really_overloaded_fn (rhs)
+	      || (flag_ms_extensions && TREE_CODE (rhs) == FUNCTION_DECL));
 
   /* This should really only be used when attempting to distinguish
      what sort of a pointer to function we have.  For now, any
@@ -6333,19 +6378,6 @@ instantiate_type (tree lhstype, tree rhs, tsubst_flags_t flags)
 						/*template_only=*/false,
 						/*explicit_targs=*/NULL_TREE,
 						access_path);
-
-    case COMPOUND_EXPR:
-      TREE_OPERAND (rhs, 0)
-	= instantiate_type (lhstype, TREE_OPERAND (rhs, 0), flags);
-      if (TREE_OPERAND (rhs, 0) == error_mark_node)
-	return error_mark_node;
-      TREE_OPERAND (rhs, 1)
-	= instantiate_type (lhstype, TREE_OPERAND (rhs, 1), flags);
-      if (TREE_OPERAND (rhs, 1) == error_mark_node)
-	return error_mark_node;
-
-      TREE_TYPE (rhs) = lhstype;
-      return rhs;
 
     case ADDR_EXPR:
     {
@@ -6446,7 +6478,7 @@ is_empty_class (tree type)
   if (type == error_mark_node)
     return 0;
 
-  if (! MAYBE_CLASS_TYPE_P (type))
+  if (! CLASS_TYPE_P (type))
     return 0;
 
   /* In G++ 3.2, whether or not a class was empty was determined by
@@ -6483,6 +6515,37 @@ contains_empty_class_p (tree type)
     }
   else if (TREE_CODE (type) == ARRAY_TYPE)
     return contains_empty_class_p (TREE_TYPE (type));
+  return false;
+}
+
+/* Returns true if TYPE contains no actual data, just various
+   possible combinations of empty classes.  */
+
+bool
+is_really_empty_class (tree type)
+{
+  if (is_empty_class (type))
+    return true;
+  if (CLASS_TYPE_P (type))
+    {
+      tree field;
+      tree binfo;
+      tree base_binfo;
+      int i;
+
+      for (binfo = TYPE_BINFO (type), i = 0;
+	   BINFO_BASE_ITERATE (binfo, i, base_binfo); ++i)
+	if (!is_really_empty_class (BINFO_TYPE (base_binfo)))
+	  return false;
+      for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	if (TREE_CODE (field) == FIELD_DECL
+	    && !DECL_ARTIFICIAL (field)
+	    && !is_really_empty_class (TREE_TYPE (field)))
+	  return false;
+      return true;
+    }
+  else if (TREE_CODE (type) == ARRAY_TYPE)
+    return is_really_empty_class (TREE_TYPE (type));
   return false;
 }
 

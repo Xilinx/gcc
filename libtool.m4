@@ -2445,7 +2445,7 @@ linux*oldld* | linux*aout* | linux*coff*)
   ;;
 
 # This must be Linux ELF.
-linux* | k*bsd*-gnu)
+linux* | k*bsd*-gnu | kopensolaris*-gnu)
   version_type=linux
   need_lib_prefix=no
   need_version=no
@@ -2454,16 +2454,21 @@ linux* | k*bsd*-gnu)
   finish_cmds='PATH="\$PATH:/sbin" ldconfig -n $libdir'
   shlibpath_var=LD_LIBRARY_PATH
   shlibpath_overrides_runpath=no
+
   # Some binutils ld are patched to set DT_RUNPATH
-  save_LDFLAGS=$LDFLAGS
-  save_libdir=$libdir
-  eval "libdir=/foo; wl=\"$_LT_TAGVAR(lt_prog_compiler_wl, $1)\"; \
-       LDFLAGS=\"\$LDFLAGS $_LT_TAGVAR(hardcode_libdir_flag_spec, $1)\""
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([],[])],
-    [AS_IF([ ($OBJDUMP -p conftest$ac_exeext) 2>/dev/null | grep "RUNPATH.*$libdir" >/dev/null],
-       [shlibpath_overrides_runpath=yes])])
-  LDFLAGS=$save_LDFLAGS
-  libdir=$save_libdir
+  AC_CACHE_VAL([lt_cv_shlibpath_overrides_runpath],
+    [lt_cv_shlibpath_overrides_runpath=no
+    save_LDFLAGS=$LDFLAGS
+    save_libdir=$libdir
+    eval "libdir=/foo; wl=\"$_LT_TAGVAR(lt_prog_compiler_wl, $1)\"; \
+	 LDFLAGS=\"\$LDFLAGS $_LT_TAGVAR(hardcode_libdir_flag_spec, $1)\""
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([],[])],
+      [AS_IF([ ($OBJDUMP -p conftest$ac_exeext) 2>/dev/null | grep "RUNPATH.*$libdir" >/dev/null],
+	 [lt_cv_shlibpath_overrides_runpath=yes])])
+    LDFLAGS=$save_LDFLAGS
+    libdir=$save_libdir
+    ])
+  shlibpath_overrides_runpath=$lt_cv_shlibpath_overrides_runpath
 
   # This implies no fast_install, which is unacceptable.
   # Some rework will be needed to allow for fast_install
@@ -3072,7 +3077,7 @@ irix5* | irix6* | nonstopux*)
   ;;
 
 # This must be Linux ELF.
-linux* | k*bsd*-gnu)
+linux* | k*bsd*-gnu | kopensolaris*-gnu)
   lt_cv_deplibs_check_method=pass_all
   ;;
 
@@ -3693,7 +3698,7 @@ m4_if([$1], [CXX], [
 	    ;;
 	esac
 	;;
-      linux* | k*bsd*-gnu)
+      linux* | k*bsd*-gnu | kopensolaris*-gnu)
 	case $cc_basename in
 	  KCC*)
 	    # KAI C++ Compiler
@@ -3977,7 +3982,7 @@ m4_if([$1], [CXX], [
       _LT_TAGVAR(lt_prog_compiler_static, $1)='-non_shared'
       ;;
 
-    linux* | k*bsd*-gnu)
+    linux* | k*bsd*-gnu | kopensolaris*-gnu)
       case $cc_basename in
       # old Intel for x86_64 which still supported -KPIC.
       ecc*)
@@ -4358,7 +4363,7 @@ _LT_EOF
       _LT_TAGVAR(archive_expsym_cmds, $1)='sed "s,^,_," $export_symbols >$output_objdir/$soname.expsym~$CC -shared $pic_flag $libobjs $deplibs $compiler_flags ${wl}-h,$soname ${wl}--retain-symbols-file,$output_objdir/$soname.expsym ${wl}--image-base,`expr ${RANDOM-$$} % 4096 / 2 \* 262144 + 1342177280` -o $lib'
       ;;
 
-    gnu* | linux* | tpf* | k*bsd*-gnu)
+    gnu* | linux* | tpf* | k*bsd*-gnu | kopensolaris*-gnu)
       tmp_diet=no
       if test "$host_os" = linux-dietlibc; then
 	case $cc_basename in
@@ -5111,36 +5116,38 @@ x|xyes)
       # Test whether the compiler implicitly links with -lc since on some
       # systems, -lgcc has to come before -lc. If gcc already passes -lc
       # to ld, don't add -lc before -lgcc.
-      AC_MSG_CHECKING([whether -lc should be explicitly linked in])
-      $RM conftest*
-      echo "$lt_simple_compile_test_code" > conftest.$ac_ext
+      AC_CACHE_CHECK([whether -lc should be explicitly linked in],
+	[lt_cv_]_LT_TAGVAR(archive_cmds_need_lc, $1),
+	[$RM conftest*
+	echo "$lt_simple_compile_test_code" > conftest.$ac_ext
 
-      if AC_TRY_EVAL(ac_compile) 2>conftest.err; then
-        soname=conftest
-        lib=conftest
-        libobjs=conftest.$ac_objext
-        deplibs=
-        wl=$_LT_TAGVAR(lt_prog_compiler_wl, $1)
-	pic_flag=$_LT_TAGVAR(lt_prog_compiler_pic, $1)
-        compiler_flags=-v
-        linker_flags=-v
-        verstring=
-        output_objdir=.
-        libname=conftest
-        lt_save_allow_undefined_flag=$_LT_TAGVAR(allow_undefined_flag, $1)
-        _LT_TAGVAR(allow_undefined_flag, $1)=
-        if AC_TRY_EVAL(_LT_TAGVAR(archive_cmds, $1) 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1)
-        then
-	  _LT_TAGVAR(archive_cmds_need_lc, $1)=no
-        else
-	  _LT_TAGVAR(archive_cmds_need_lc, $1)=yes
-        fi
-        _LT_TAGVAR(allow_undefined_flag, $1)=$lt_save_allow_undefined_flag
-      else
-        cat conftest.err 1>&5
-      fi
-      $RM conftest*
-      AC_MSG_RESULT([$_LT_TAGVAR(archive_cmds_need_lc, $1)])
+	if AC_TRY_EVAL(ac_compile) 2>conftest.err; then
+	  soname=conftest
+	  lib=conftest
+	  libobjs=conftest.$ac_objext
+	  deplibs=
+	  wl=$_LT_TAGVAR(lt_prog_compiler_wl, $1)
+	  pic_flag=$_LT_TAGVAR(lt_prog_compiler_pic, $1)
+	  compiler_flags=-v
+	  linker_flags=-v
+	  verstring=
+	  output_objdir=.
+	  libname=conftest
+	  lt_save_allow_undefined_flag=$_LT_TAGVAR(allow_undefined_flag, $1)
+	  _LT_TAGVAR(allow_undefined_flag, $1)=
+	  if AC_TRY_EVAL(_LT_TAGVAR(archive_cmds, $1) 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1)
+	  then
+	    lt_cv_[]_LT_TAGVAR(archive_cmds_need_lc, $1)=no
+	  else
+	    lt_cv_[]_LT_TAGVAR(archive_cmds_need_lc, $1)=yes
+	  fi
+	  _LT_TAGVAR(allow_undefined_flag, $1)=$lt_save_allow_undefined_flag
+	else
+	  cat conftest.err 1>&5
+	fi
+	$RM conftest*
+	])
+      _LT_TAGVAR(archive_cmds_need_lc, $1)=$lt_cv_[]_LT_TAGVAR(archive_cmds_need_lc, $1)
       ;;
     esac
   fi
@@ -5841,7 +5848,7 @@ if test "$_lt_caught_CXX_error" != yes; then
         _LT_TAGVAR(inherit_rpath, $1)=yes
         ;;
 
-      linux* | k*bsd*-gnu)
+      linux* | k*bsd*-gnu | kopensolaris*-gnu)
         case $cc_basename in
           KCC*)
 	    # Kuck and Associates, Inc. (KAI) C++ Compiler

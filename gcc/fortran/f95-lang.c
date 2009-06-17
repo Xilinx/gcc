@@ -43,6 +43,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "tree-dump.h"
 #include "cgraph.h"
+/* For gfc_maybe_initialize_eh.  */
+#include "libfuncs.h"
+#include "expr.h"
+#include "except.h"
 
 #include "gfortran.h"
 #include "cpp.h"
@@ -52,19 +56,17 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Language-dependent contents of an identifier.  */
 
-struct lang_identifier
-GTY(())
-{
+struct GTY(())
+lang_identifier {
   struct tree_identifier common;
 };
 
 /* The resulting tree type.  */
 
-union lang_tree_node
-GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
+union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
      chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
 
-{
+lang_tree_node {
   union tree_node GTY((tag ("0"),
 		       desc ("tree_node_structure (&%h)"))) generic;
   struct lang_identifier GTY((tag ("1"))) identifier;
@@ -74,9 +76,8 @@ GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
    that keep track of the progress of compilation of the current function.
    Used for nested functions.  */
 
-struct language_function
-GTY(())
-{
+struct GTY(())
+language_function {
   /* struct gfc_language_function base; */
   struct binding_level *binding_level;
 };
@@ -167,6 +168,10 @@ static GTY(()) struct binding_level *free_binding_level;
    for the reserved type names and storage classes.
    It is indexed by a RID_... value.  */
 tree *ridpointers = NULL;
+
+/* True means we've initialized exception handling.  */
+bool gfc_eh_initialized_p;
+
 
 /* Prepare expr to be an argument of a TRUTH_NOT_EXPR,
    or validate its data type for an `if' or `while' statement or ?..: exp.
@@ -309,9 +314,8 @@ gfc_print_identifier (FILE * file ATTRIBUTE_UNUSED,
 
    Binding contours are used to create GCC tree BLOCK nodes.  */
 
-struct binding_level
-GTY(())
-{
+struct GTY(())
+binding_level {
   /* A chain of ..._DECL nodes for all variables, constants, functions,
      parameters and type declarations.  These ..._DECL nodes are chained
      through the TREE_CHAIN field. Note that these ..._DECL nodes are stored
@@ -917,12 +921,12 @@ gfc_init_builtin_functions (void)
   gfc_define_builtin ("__builtin_fmodf", mfunc_float[1], 
 		      BUILT_IN_FMODF, "fmodf", true);
 
-  gfc_define_builtin ("__builtin_infl", mfunc_longdouble[3], 
-		      BUILT_IN_INFL, "__builtin_infl", true);
-  gfc_define_builtin ("__builtin_inf", mfunc_double[3], 
-		      BUILT_IN_INF, "__builtin_inf", true);
-  gfc_define_builtin ("__builtin_inff", mfunc_float[3], 
-		      BUILT_IN_INFF, "__builtin_inff", true);
+  gfc_define_builtin ("__builtin_huge_vall", mfunc_longdouble[3], 
+		      BUILT_IN_HUGE_VALL, "__builtin_huge_vall", true);
+  gfc_define_builtin ("__builtin_huge_val", mfunc_double[3], 
+		      BUILT_IN_HUGE_VAL, "__builtin_huge_val", true);
+  gfc_define_builtin ("__builtin_huge_valf", mfunc_float[3], 
+		      BUILT_IN_HUGE_VALF, "__builtin_huge_valf", true);
 
   /* lround{f,,l} and llround{f,,l} */
   type = tree_cons (NULL_TREE, float_type_node, void_list_node);
@@ -1226,6 +1230,22 @@ gfc_init_ts (void)
   tree_contains_struct[NAMESPACE_DECL][TS_DECL_COMMON] = 1;
   tree_contains_struct[NAMESPACE_DECL][TS_DECL_MINIMAL] = 1;
 }
+
+void
+gfc_maybe_initialize_eh (void)
+{
+  if (!flag_exceptions || gfc_eh_initialized_p)
+    return;
+
+  gfc_eh_initialized_p = true;
+  eh_personality_libfunc
+    = init_one_libfunc (USING_SJLJ_EXCEPTIONS
+                       ? "__gcc_personality_sj0"
+                       : "__gcc_personality_v0");
+  default_init_unwind_resume_libfunc ();
+  using_eh_for_cleanups ();
+}
+
 
 #include "gt-fortran-f95-lang.h"
 #include "gtype-fortran.h"

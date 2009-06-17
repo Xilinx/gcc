@@ -1,6 +1,6 @@
 /* XCOFF definitions.  These are needed in dbxout.c, final.c,
    and xcoffout.h.
-   Copyright (C) 1998, 2000, 2002, 2003, 2004, 2007
+   Copyright (C) 1998, 2000, 2002, 2003, 2004, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -182,4 +182,4 @@ extern void xcoffout_end_function (unsigned int);
 extern void xcoffout_end_block (unsigned, unsigned);
 extern int xcoff_assign_fundamental_type_number (tree);
 extern void xcoffout_declare_function (FILE *, tree, const char *);
-extern void xcoffout_source_line (unsigned int, const char *);
+extern void xcoffout_source_line (unsigned int, const char *, int);

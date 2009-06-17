@@ -1,5 +1,6 @@
 /* Lower complex number operations to scalar operations.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
    
@@ -37,13 +38,17 @@ along with GCC; see the file COPYING3.  If not see
    out whether a complex number is degenerate in some way, having only real
    or only complex parts.  */
 
-typedef enum
+enum
 {
   UNINITIALIZED = 0,
   ONLY_REAL = 1,
   ONLY_IMAG = 2,
   VARYING = 3
-} complex_lattice_t;
+};
+
+/* The type complex_lattice_t holds combinations of the above
+   constants.  */
+typedef int complex_lattice_t;
 
 #define PAIR(a, b)  ((a) << 2 | (b))
 
@@ -94,7 +99,10 @@ some_nonzerop (tree t)
 {
   int zerop = false;
 
-  if (TREE_CODE (t) == REAL_CST)
+  /* Operations with real or imaginary part of a complex number zero
+     cannot be treated the same as operations with a real or imaginary
+     operand if we care about the signs of zeros in the result.  */
+  if (TREE_CODE (t) == REAL_CST && !flag_signed_zeros)
     zerop = REAL_VALUES_IDENTICAL (TREE_REAL_CST (t), dconst0);
   else if (TREE_CODE (t) == FIXED_CST)
     zerop = fixed_zerop (t);
@@ -596,6 +604,7 @@ extract_component (gimple_stmt_iterator *gsi, tree t, bool imagpart_p,
     case INDIRECT_REF:
     case COMPONENT_REF:
     case ARRAY_REF:
+    case VIEW_CONVERT_EXPR:
       {
 	tree inner_type = TREE_TYPE (TREE_TYPE (t));
 
@@ -745,23 +754,6 @@ update_phi_components (basic_block bb)
     }
 }
 
-/* Mark each virtual op in STMT for ssa update.  */
-
-static void
-update_all_vops (gimple stmt)
-{
-  ssa_op_iter iter;
-  tree sym;
-
-  FOR_EACH_SSA_TREE_OPERAND (sym, stmt, iter, SSA_OP_ALL_VIRTUALS)
-    {
-      if (TREE_CODE (sym) == SSA_NAME)
-	sym = SSA_NAME_VAR (sym);
-      mark_sym_for_renaming (sym);
-    }
-}
-
-
 /* Expand a complex move to scalars.  */
 
 static void
@@ -817,7 +809,6 @@ expand_complex_move (gimple_stmt_iterator *gsi, tree type)
 	}
       else
 	{
-	  update_all_vops (stmt);
 	  if (gimple_assign_rhs_code (stmt) != COMPLEX_EXPR)
 	    {
 	      r = extract_component (gsi, rhs, 0, true);
@@ -860,7 +851,6 @@ expand_complex_move (gimple_stmt_iterator *gsi, tree type)
 	  gimple_return_set_retval (stmt, lhs);
 	}
 
-      update_all_vops (stmt);
       update_stmt (stmt);
     }
 }
@@ -953,19 +943,21 @@ expand_complex_libcall (gimple_stmt_iterator *gsi, tree ar, tree ai,
   enum machine_mode mode;
   enum built_in_function bcode;
   tree fn, type, lhs;
-  gimple stmt;
+  gimple old_stmt, stmt;
 
-  stmt = gsi_stmt (*gsi);
-  lhs = gimple_assign_lhs (stmt);
+  old_stmt = gsi_stmt (*gsi);
+  lhs = gimple_assign_lhs (old_stmt);
   type = TREE_TYPE (lhs);
 
   mode = TYPE_MODE (type);
   gcc_assert (GET_MODE_CLASS (mode) == MODE_COMPLEX_FLOAT);
 
   if (code == MULT_EXPR)
-    bcode = BUILT_IN_COMPLEX_MUL_MIN + mode - MIN_MODE_COMPLEX_FLOAT;
+    bcode = ((enum built_in_function)
+	     (BUILT_IN_COMPLEX_MUL_MIN + mode - MIN_MODE_COMPLEX_FLOAT));
   else if (code == RDIV_EXPR)
-    bcode = BUILT_IN_COMPLEX_DIV_MIN + mode - MIN_MODE_COMPLEX_FLOAT;
+    bcode = ((enum built_in_function)
+	     (BUILT_IN_COMPLEX_DIV_MIN + mode - MIN_MODE_COMPLEX_FLOAT));
   else
     gcc_unreachable ();
   fn = built_in_decls[bcode];
@@ -973,7 +965,10 @@ expand_complex_libcall (gimple_stmt_iterator *gsi, tree ar, tree ai,
   stmt = gimple_build_call (fn, 4, ar, ai, br, bi);
   gimple_call_set_lhs (stmt, lhs);
   update_stmt (stmt);
-  gsi_replace (gsi, stmt, true);
+  gsi_replace (gsi, stmt, false);
+
+  if (maybe_clean_or_replace_eh_stmt (old_stmt, stmt))
+    gimple_purge_dead_eh_edges (gsi_bb (*gsi));
 
   if (gimple_in_ssa_p (cfun))
     {
@@ -1621,7 +1616,7 @@ struct gimple_opt_pass pass_lower_complex =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,                       		/* properties_destroyed */
@@ -1672,7 +1667,7 @@ struct gimple_opt_pass pass_lower_complex_O0 =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

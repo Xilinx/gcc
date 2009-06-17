@@ -1,3 +1,115 @@
+2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* java-gimplify.c (java_gimplify_block): New argument to
+	build_empty_stmt.
+	* expr.c (force_evaluation_order): Same.
+	* typeck.c: Add location to build_decl or PUSH_FIELD calls.
+	* class.c: Same.
+	* decl.c: Same.
+	* jcf-parse.c: Same.
+	* constants.c: Same.
+	* resource.c: Same.
+	* except.c: Same.
+	* builtins.c: Same.
+	* expr.c: Same.
+	* java-tree.h (PUSH_FIELD): Add location field.
+	
+2009-06-09  Ian Lance Taylor  <iant@google.com>
+
+	* verify.h: Remove extern "C".
+
+2009-06-07  Ian Lance Taylor  <iant@google.com>
+
+	* jcf-parse.c (handle_constant): Change local variable 'kind' to
+	unsigned int.
+
+2009-06-01  Ian Lance Taylor  <iant@google.com>
+
+	* jcf-io.c (find_class): Use CONST_CAST.
+
+2009-05-27  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in ($(XGCJ)$(exeext)): Change $(COMPILER) to
+	$(LINKER).
+	(jc1$(exeext), jcf-dump$(exeext), jvgenmain$(exeext)): Likewise.
+
+2009-05-26  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (jvspec.o): Use $(COMPILER).
+	($(XGCJ)$(exeext), jc1$(exeext), jcf-dump$(exeext)): Likewise.
+	(jvgenmain$(exeext), java/jcf-io.o, java/jcf-path.o): Likewise.
+
+2009-05-12  Alexandre Oliva  <aoliva@redhat.com>
+
+	* Make-lang.in (GCJ): Renamed to...
+	(XGCJ): ... this.
+
+2009-04-27  Ian Lance Taylor  <iant@google.com>
+
+	* builtins.c (java_builtins): Add casts to enum type.
+	* verify-impl.c (check_class_constant): Add cast to enum type.
+	(check_constant, check_wide_constant): Likewise.
+
+2009-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR java/38374
+	* constants.c (build_constants_constructor): Retain the old
+	pointer type as valid TYPE_POINTER_TO after patching the
+	type of the constant pool decl.
+
+2009-04-24  Ian Lance Taylor  <iant@google.com>
+
+	* jcf-parse.c (handle_constant): Add cast to enum type.
+
+2009-04-21  Taras Glek <tglek@mozilla.com>
+
+	* builtins.c: Update GTY annotations to new syntax
+	* decl.c: Likewise
+	* java-tree.h: Likewise
+	* jcf.h: Likewise
+	* lang.c: Likewise
+
+2009-04-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* ChangeLog, ChangeLog.ptr, ChangeLog.tree-ssa: Add copyright and
+	license notices.
+
+2009-04-18  Ian Lance Taylor  <iant@google.com>
+
+	* verify-impl.c (verify_instructions_0): Add cast to enum type.
+
+2009-04-09  Paolo Bonzini  <bonzini@gnu.org>
+
+        * builtins.c (compareAndSwapLong_builtin,
+        compareAndSwapInt_builtin, compareAndSwapObject_builtin,
+        VMSupportsCS8_builtin): Do not look at sync_compare_and_swap_cc.
+
+2009-03-31  Richard Guenther  <rguenther@suse.de>
+
+	* java-gimplify.c (java_gimplify_expr): Do not manually gimplify
+	the first operand of binary and comaprison expressions.
+
+2009-03-30  Joseph Myers  <joseph@codesourcery.com>
+
+	PR rtl-optimization/323
+	* lang.c (java_post_options): Set flag_excess_precision_cmdline.
+	Give an error for -fexcess-precision=standard for processors where
+	the option is significant.
+
+2009-03-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* lang.opt: Unify help text for -Wdeprecated.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* jcf-dump.c (version): Update copyright notice dates.
+
+2009-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38835
+	PR middle-end/36227
+	* builtins.c (build_addr_sum): Use POINTER_PLUS_EXPR.
+
 2008-12-05  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR bootstrap/38262
@@ -21621,3 +21733,11 @@ Tue Mar  9 11:52:08 1999  Alexandre Petit-Bianco  <apbianco@cygnus.com>
 1996-10-24  Per Bothner  <bothner@deneb.cygnus.com>
 
 	New directory.
+
+
+Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

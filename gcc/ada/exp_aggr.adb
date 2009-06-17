@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,6 +35,7 @@ with Exp_Ch3;  use Exp_Ch3;
 with Exp_Ch7;  use Exp_Ch7;
 with Exp_Ch9;  use Exp_Ch9;
 with Exp_Tss;  use Exp_Tss;
+with Fname;    use Fname;
 with Freeze;   use Freeze;
 with Itypes;   use Itypes;
 with Lib;      use Lib;
@@ -47,6 +48,7 @@ with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Ttypes;   use Ttypes;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
@@ -54,7 +56,6 @@ with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stand;    use Stand;
-with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
@@ -505,6 +506,8 @@ package body Exp_Aggr is
    --    9. There cannot be any discriminated record components, since the
    --       back end cannot handle this complex case.
 
+   --   10. No controlled actions need to be generated for components
+
    function Backend_Processing_Possible (N : Node_Id) return Boolean is
       Typ : constant Entity_Id := Etype (N);
       --  Typ is the correct constrained array subtype of the aggregate
@@ -579,9 +582,9 @@ package body Exp_Aggr is
    --  Start of processing for Backend_Processing_Possible
 
    begin
-      --  Checks 2 (array must not be bit packed)
+      --  Checks 2 (array not bit packed) and 10 (no controlled actions)
 
-      if Is_Bit_Packed_Array (Typ) then
+      if Is_Bit_Packed_Array (Typ) or else Needs_Finalization (Typ) then
          return False;
       end if;
 
@@ -619,7 +622,9 @@ package body Exp_Aggr is
       --    with tagged components, but not clear whether it's worthwhile ???;
       --    in the case of the JVM, object tags are handled implicitly)
 
-      if Is_Tagged_Type (Component_Type (Typ)) and then VM_Target = No_VM then
+      if Is_Tagged_Type (Component_Type (Typ))
+        and then Tagged_Type_Expansion
+      then
          return False;
       end if;
 
@@ -1066,16 +1071,14 @@ package body Exp_Aggr is
          --  default initialized components (otherwise Expr_Q is not present).
 
          if Present (Expr_Q)
-           and then (Nkind (Expr_Q) = N_Aggregate
-                     or else Nkind (Expr_Q) = N_Extension_Aggregate)
+           and then Nkind_In (Expr_Q, N_Aggregate, N_Extension_Aggregate)
          then
-            --  At this stage the Expression may not have been
-            --  analyzed yet because the array aggregate code has not
-            --  been updated to use the Expansion_Delayed flag and
-            --  avoid analysis altogether to solve the same problem
-            --  (see Resolve_Aggr_Expr). So let us do the analysis of
-            --  non-array aggregates now in order to get the value of
-            --  Expansion_Delayed flag for the inner aggregate ???
+            --  At this stage the Expression may not have been analyzed yet
+            --  because the array aggregate code has not been updated to use
+            --  the Expansion_Delayed flag and avoid analysis altogether to
+            --  solve the same problem (see Resolve_Aggr_Expr). So let us do
+            --  the analysis of non-array aggregates now in order to get the
+            --  value of Expansion_Delayed flag for the inner aggregate ???
 
             if Present (Comp_Type) and then not Is_Array_Type (Comp_Type) then
                Analyze_And_Resolve (Expr_Q, Comp_Type);
@@ -1186,12 +1189,12 @@ package body Exp_Aggr is
             Append_To (L, A);
 
             --  Adjust the tag if tagged (because of possible view
-            --  conversions), unless compiling for the Java VM where
+            --  conversions), unless compiling for a VM where
             --  tags are implicit.
 
             if Present (Comp_Type)
               and then Is_Tagged_Type (Comp_Type)
-              and then VM_Target = No_VM
+              and then Tagged_Type_Expansion
             then
                A :=
                  Make_OK_Assignment_Statement (Loc,
@@ -1225,10 +1228,10 @@ package body Exp_Aggr is
             if Present (Comp_Type)
               and then Needs_Finalization (Comp_Type)
               and then not Is_Limited_Type (Comp_Type)
-              and then
-                (not Is_Array_Type (Comp_Type)
-                   or else not Is_Controlled (Component_Type (Comp_Type))
-                   or else Nkind (Expr) /= N_Aggregate)
+              and then not
+                (Is_Array_Type (Comp_Type)
+                   and then Is_Controlled (Component_Type (Comp_Type))
+                   and then Nkind (Expr) = N_Aggregate)
             then
                Append_List_To (L,
                  Make_Adjust_Call (
@@ -1868,7 +1871,9 @@ package body Exp_Aggr is
 
          Parent_Typ := Etype (Current_Typ);
          while Current_Typ /= Parent_Typ loop
-            if Has_Discriminants (Parent_Typ) then
+            if Has_Discriminants (Parent_Typ)
+              and then not Has_Unknown_Discriminants (Parent_Typ)
+            then
                Parent_Disc := First_Discriminant (Parent_Typ);
 
                --  We either get the association from the subtype indication
@@ -2436,12 +2441,8 @@ package body Exp_Aggr is
       --  to the actual type of the aggregate, so that the proper components
       --  are visible. We know already that the types are compatible.
 
-      --  There should also be a comment here explaining why the conversion
-      --  is needed in the case of interfaces.???
-
       if Present (Etype (Lhs))
-        and then (Is_Interface (Etype (Lhs))
-                   or else Is_Class_Wide_Type (Etype (Lhs)))
+        and then Is_Class_Wide_Type (Etype (Lhs))
       then
          Target := Unchecked_Convert_To (Typ, Lhs);
       else
@@ -2519,22 +2520,14 @@ package body Exp_Aggr is
                Ref := Convert_To (Init_Typ, New_Copy_Tree (Target));
                Set_Assignment_OK (Ref);
 
-               if Has_Default_Init_Comps (N)
-                 or else Has_Task (Base_Type (Init_Typ))
-               then
-                  Append_List_To (L,
-                    Build_Initialization_Call (Loc,
-                      Id_Ref       => Ref,
-                      Typ          => Init_Typ,
-                      In_Init_Proc => Within_Init_Proc,
-                      With_Default_Init => True));
-               else
-                  Append_List_To (L,
-                    Build_Initialization_Call (Loc,
-                      Id_Ref       => Ref,
-                      Typ          => Init_Typ,
-                      In_Init_Proc => Within_Init_Proc));
-               end if;
+               Append_List_To (L,
+                 Build_Initialization_Call (Loc,
+                   Id_Ref            => Ref,
+                   Typ               => Init_Typ,
+                   In_Init_Proc      => Within_Init_Proc,
+                   With_Default_Init => Has_Default_Init_Comps (N)
+                                          or else
+                                        Has_Task (Base_Type (Init_Typ))));
 
                if Is_Constrained (Entity (A))
                  and then Has_Discriminants (Entity (A))
@@ -2542,18 +2535,33 @@ package body Exp_Aggr is
                   Check_Ancestor_Discriminants (Entity (A));
                end if;
 
+            --  Handle calls to C++ constructors
+
+            elsif Is_CPP_Constructor_Call (A) then
+               Init_Typ := Etype (Etype (A));
+               Ref := Convert_To (Init_Typ, New_Copy_Tree (Target));
+               Set_Assignment_OK (Ref);
+
+               Append_List_To (L,
+                 Build_Initialization_Call (Loc,
+                   Id_Ref            => Ref,
+                   Typ               => Init_Typ,
+                   In_Init_Proc      => Within_Init_Proc,
+                   With_Default_Init => Has_Default_Init_Comps (N),
+                   Constructor_Ref   => A));
+
             --  Ada 2005 (AI-287): If the ancestor part is an aggregate of
             --  limited type, a recursive call expands the ancestor. Note that
             --  in the limited case, the ancestor part must be either a
             --  function call (possibly qualified, or wrapped in an unchecked
             --  conversion) or aggregate (definitely qualified).
+            --  The ancestor part can also be a function call (that may be
+            --  transformed into an explicit dereference) or a qualification
+            --  of one such.
 
             elsif Is_Limited_Type (Etype (A))
-              and then Nkind (Unqualify (A)) /= N_Function_Call --  aggregate?
-              and then
-                (Nkind (Unqualify (A)) /= N_Unchecked_Type_Conversion
-                   or else
-                 Nkind (Expression (Unqualify (A))) /= N_Function_Call)
+              and then Nkind_In (Unqualify (A), N_Aggregate,
+                                                N_Extension_Aggregate)
             then
                Ancestor_Is_Expression := True;
 
@@ -2588,8 +2596,8 @@ package body Exp_Aggr is
                --  If the ancestor part is an aggregate, force its full
                --  expansion, which was delayed.
 
-               if Nkind (Unqualify (A)) = N_Aggregate
-                 or else Nkind (Unqualify (A)) = N_Extension_Aggregate
+               if Nkind_In (Unqualify (A), N_Aggregate,
+                                           N_Extension_Aggregate)
                then
                   Set_Analyzed (A, False);
                   Set_Analyzed (Expression (A), False);
@@ -2612,7 +2620,7 @@ package body Exp_Aggr is
                --  the subsequent deep_adjust works properly (unless VM_Target,
                --  where tags are implicit).
 
-               if VM_Target = No_VM then
+               if Tagged_Type_Expansion then
                   Instr :=
                     Make_OK_Assignment_Statement (Loc,
                       Name =>
@@ -2765,6 +2773,18 @@ package body Exp_Aggr is
          end if;
       end if;
 
+      --  For CPP types we generate an implicit call to the C++ default
+      --  constructor to ensure the proper initialization of the _Tag
+      --  component.
+
+      if Is_CPP_Class (Typ) then
+         pragma Assert (Present (Base_Init_Proc (Typ)));
+         Append_List_To (L,
+           Build_Initialization_Call (Loc,
+             Id_Ref => Lhs,
+             Typ    => Typ));
+      end if;
+
       --  Generate the assignments, component by component
 
       --    tmp.comp1 := Expr1_From_Aggr;
@@ -2775,10 +2795,24 @@ package body Exp_Aggr is
       while Present (Comp) loop
          Selector := Entity (First (Choices (Comp)));
 
+         --  C++ constructors
+
+         if Is_CPP_Constructor_Call (Expression (Comp)) then
+            Append_List_To (L,
+              Build_Initialization_Call (Loc,
+                Id_Ref => Make_Selected_Component (Loc,
+                            Prefix => New_Copy_Tree (Target),
+                            Selector_Name => New_Occurrence_Of (Selector,
+                                                                   Loc)),
+                Typ    => Etype (Selector),
+                Enclos_Type => Typ,
+                With_Default_Init => True,
+                Constructor_Ref => Expression (Comp)));
+
          --  Ada 2005 (AI-287): For each default-initialized component generate
          --  a call to the corresponding IP subprogram if available.
 
-         if Box_Present (Comp)
+         elsif Box_Present (Comp)
            and then Has_Non_Null_Base_Init_Proc (Etype (Selector))
          then
             if Ekind (Selector) /= E_Discriminant then
@@ -2822,12 +2856,9 @@ package body Exp_Aggr is
                 Enclos_Type => Typ,
                 With_Default_Init => True));
 
-            goto Next_Comp;
-         end if;
-
          --  Prepare for component assignment
 
-         if Ekind (Selector) /= E_Discriminant
+         elsif Ekind (Selector) /= E_Discriminant
            or else Nkind (N) = N_Extension_Aggregate
          then
             --  All the discriminants have now been assigned
@@ -3002,7 +3033,9 @@ package body Exp_Aggr is
 
                --    tmp.comp._tag := comp_typ'tag;
 
-               if Is_Tagged_Type (Comp_Type) and then VM_Target = No_VM then
+               if Is_Tagged_Type (Comp_Type)
+                 and then Tagged_Type_Expansion
+               then
                   Instr :=
                     Make_OK_Assignment_Statement (Loc,
                       Name =>
@@ -3107,8 +3140,6 @@ package body Exp_Aggr is
             end;
          end if;
 
-         <<Next_Comp>>
-
          Next (Comp);
       end loop;
 
@@ -3120,7 +3151,14 @@ package body Exp_Aggr is
       if Ancestor_Is_Expression then
          null;
 
-      elsif Is_Tagged_Type (Typ) and then VM_Target = No_VM then
+      --  For CPP types we generated a call to the C++ default constructor
+      --  before the components have been initialized to ensure the proper
+      --  initialization of the _Tag component (see above).
+
+      elsif Is_CPP_Class (Typ) then
+         null;
+
+      elsif Is_Tagged_Type (Typ) and then Tagged_Type_Expansion then
          Instr :=
            Make_OK_Assignment_Statement (Loc,
              Name =>
@@ -3417,6 +3455,7 @@ package body Exp_Aggr is
 
    procedure Convert_To_Assignments (N : Node_Id; Typ : Entity_Id) is
       Loc  : constant Source_Ptr := Sloc (N);
+      T    : Entity_Id;
       Temp : Entity_Id;
 
       Instr       : Node_Id;
@@ -3493,7 +3532,7 @@ package body Exp_Aggr is
            (Is_Inherently_Limited_Type (Typ)
              and then
                (Nkind (Parent (Parent_Node)) = N_Extended_Return_Statement
-                  or else Nkind (Parent_Node) = N_Simple_Return_Statement))
+                 or else Nkind (Parent_Node) = N_Simple_Return_Statement))
       then
          Set_Expansion_Delayed (N);
          return;
@@ -3505,10 +3544,10 @@ package body Exp_Aggr is
                  Is_Controlled (Typ) or else Has_Controlled_Component (Typ));
       end if;
 
-      --  If the aggregate is non-limited, create a temporary. If it is
-      --  limited and the context is an assignment, this is a subaggregate
-      --  for an enclosing aggregate being expanded. It must be built in place,
-      --  so use the target of the current assignment.
+      --  If the aggregate is non-limited, create a temporary. If it is limited
+      --  and the context is an assignment, this is a subaggregate for an
+      --  enclosing aggregate being expanded. It must be built in place, so use
+      --  the target of the current assignment.
 
       if Is_Limited_Type (Typ)
         and then Nkind (Parent (N)) = N_Assignment_Statement
@@ -3521,18 +3560,29 @@ package body Exp_Aggr is
       else
          Temp := Make_Defining_Identifier (Loc, New_Internal_Name ('A'));
 
+         --  If the type inherits unknown discriminants, use the view with
+         --  known discriminants if available.
+
+         if Has_Unknown_Discriminants (Typ)
+            and then Present (Underlying_Record_View (Typ))
+         then
+            T := Underlying_Record_View (Typ);
+         else
+            T := Typ;
+         end if;
+
          Instr :=
            Make_Object_Declaration (Loc,
              Defining_Identifier => Temp,
-             Object_Definition   => New_Occurrence_Of (Typ, Loc));
+             Object_Definition   => New_Occurrence_Of (T, Loc));
 
          Set_No_Initialization (Instr);
          Insert_Action (N, Instr);
-         Initialize_Discriminants (Instr, Typ);
+         Initialize_Discriminants (Instr, T);
          Target_Expr := New_Occurrence_Of (Temp, Loc);
-         Insert_Actions (N, Build_Record_Aggr_Code (N, Typ, Target_Expr));
+         Insert_Actions (N, Build_Record_Aggr_Code (N, T, Target_Expr));
          Rewrite (N, New_Occurrence_Of (Temp, Loc));
-         Analyze_And_Resolve (N, Typ);
+         Analyze_And_Resolve (N, T);
       end if;
    end Convert_To_Assignments;
 
@@ -3678,7 +3728,7 @@ package body Exp_Aggr is
                   if Nkind (Elmt) = N_Aggregate
                     and then Present (Next_Index (Ix))
                     and then
-                         not Flatten (Elmt, Next_Index (Ix), Next_Index (Ixb))
+                      not Flatten (Elmt, Next_Index (Ix), Next_Index (Ixb))
                   then
                      return False;
                   end if;
@@ -3724,24 +3774,43 @@ package body Exp_Aggr is
                            --  Check for maximum others replication. Note that
                            --  we skip this test if either of the restrictions
                            --  No_Elaboration_Code or No_Implicit_Loops is
-                           --  active, or if this is a preelaborable unit.
+                           --  active, if this is a preelaborable unit or a
+                           --  predefined unit. This ensures that predefined
+                           --  units get the same level of constant folding in
+                           --  Ada 95 and Ada 05, where their categorization
+                           --  has changed.
 
                            declare
                               P : constant Entity_Id :=
                                     Cunit_Entity (Current_Sem_Unit);
 
                            begin
+                              --  Check if duplication OK and if so continue
+                              --  processing.
+
                               if Restriction_Active (No_Elaboration_Code)
                                 or else Restriction_Active (No_Implicit_Loops)
                                 or else Is_Preelaborated (P)
                                 or else (Ekind (P) = E_Package_Body
                                           and then
                                             Is_Preelaborated (Spec_Entity (P)))
+                                or else
+                                  Is_Predefined_File_Name
+                                    (Unit_File_Name (Get_Source_Unit (P)))
                               then
                                  null;
 
+                              --  If duplication not OK, then we return False
+                              --  if the replication count is too high
+
                               elsif Rep_Count > Max_Others_Replicate then
                                  return False;
+
+                              --  Continue on if duplication not OK, but the
+                              --  replication count is not excessive.
+
+                              else
+                                 null;
                               end if;
                            end;
                         end if;
@@ -4946,8 +5015,8 @@ package body Exp_Aggr is
 
       --  STEP 3
 
-      --  Delay expansion for nested aggregates it will be taken care of
-      --  when the parent aggregate is expanded
+      --  Delay expansion for nested aggregates: it will be taken care of
+      --  when the parent aggregate is expanded.
 
       Parent_Node := Parent (N);
       Parent_Kind := Nkind (Parent_Node);
@@ -5009,16 +5078,16 @@ package body Exp_Aggr is
       else
          Maybe_In_Place_OK :=
           (Nkind (Parent (N)) = N_Assignment_Statement
-             and then Comes_From_Source (N)
-             and then In_Place_Assign_OK)
+            and then Comes_From_Source (N)
+            and then In_Place_Assign_OK)
 
           or else
             (Nkind (Parent (Parent (N))) = N_Allocator
               and then In_Place_Assign_OK);
       end if;
 
-      --  If  this is an array of tasks, it will be expanded into build-in-
-      --  -place assignments. Build an activation chain for the tasks now
+      --  If this is an array of tasks, it will be expanded into build-in-place
+      --  assignments. Build an activation chain for the tasks now.
 
       if Has_Task (Etype (N)) then
          Build_Activation_Chain_Entity (N);
@@ -5113,8 +5182,8 @@ package body Exp_Aggr is
          Set_No_Initialization (Tmp_Decl, True);
 
          --  If we are within a loop, the temporary will be pushed on the
-         --  stack at each iteration. If the aggregate is the expression for
-         --  an allocator, it will be immediately copied to the heap and can
+         --  stack at each iteration. If the aggregate is the expression for an
+         --  allocator, it will be immediately copied to the heap and can
          --  be reclaimed at once. We create a transient scope around the
          --  aggregate for this purpose.
 
@@ -5127,9 +5196,9 @@ package body Exp_Aggr is
          Insert_Action (N, Tmp_Decl);
       end if;
 
-      --  Construct and insert the aggregate code. We can safely suppress
-      --  index checks because this code is guaranteed not to raise CE
-      --  on index checks. However we should *not* suppress all checks.
+      --  Construct and insert the aggregate code. We can safely suppress index
+      --  checks because this code is guaranteed not to raise CE on index
+      --  checks. However we should *not* suppress all checks.
 
       declare
          Target : Node_Id;
@@ -5232,7 +5301,7 @@ package body Exp_Aggr is
       else
          Set_Etype (N, Typ);
 
-         if VM_Target = No_VM then
+         if Tagged_Type_Expansion then
             Expand_Record_Aggregate (N,
               Orig_Tag    =>
                 New_Occurrence_Of
@@ -5323,7 +5392,7 @@ package body Exp_Aggr is
                          or else (Is_Entity_Name (Expr_Q)
                                     and then
                                       Ekind (Entity (Expr_Q)) in Formal_Kind))
-              and then VM_Target = No_VM
+              and then Tagged_Type_Expansion
             then
                Static_Components := False;
                return True;
@@ -5376,8 +5445,8 @@ package body Exp_Aggr is
       --  an atomic move for it.
 
       if Is_Atomic (Typ)
-        and then (Nkind (Parent (N)) = N_Object_Declaration
-                    or else Nkind (Parent (N)) = N_Assignment_Statement)
+        and then Nkind_In (Parent (N), N_Object_Declaration,
+                                       N_Assignment_Statement)
         and then Comes_From_Source (Parent (N))
       then
          Expand_Atomic_Aggregate (N, Typ);
@@ -5669,7 +5738,7 @@ package body Exp_Aggr is
 
             if Present (Orig_Tag) then
                Tag_Value := Orig_Tag;
-            elsif VM_Target /= No_VM then
+            elsif not Tagged_Type_Expansion then
                Tag_Value := Empty;
             else
                Tag_Value :=
@@ -5733,7 +5802,7 @@ package body Exp_Aggr is
             --  For a root type, the tag component is added (unless compiling
             --  for the VMs, where tags are implicit).
 
-            elsif VM_Target = No_VM then
+            elsif Tagged_Type_Expansion then
                declare
                   Tag_Name  : constant Node_Id :=
                                 New_Occurrence_Of
@@ -5764,8 +5833,7 @@ package body Exp_Aggr is
       C     : Node_Id;
       Expr  : Node_Id;
    begin
-      pragma Assert (Nkind (N) = N_Aggregate
-         or else Nkind (N) = N_Extension_Aggregate);
+      pragma Assert (Nkind_In (N, N_Aggregate, N_Extension_Aggregate));
 
       if No (Comps) then
          return False;
@@ -5793,8 +5861,8 @@ package body Exp_Aggr is
          Expr := Expression (C);
 
          if Present (Expr)
-           and then (Nkind (Expr) = N_Aggregate
-                     or else Nkind (Expr) = N_Extension_Aggregate)
+           and then
+             Nkind_In (Expr, N_Aggregate, N_Extension_Aggregate)
            and then Has_Default_Init_Comps (Expr)
          then
             return True;
@@ -5836,7 +5904,7 @@ package body Exp_Aggr is
 
    begin
       return Static_Dispatch_Tables
-        and then VM_Target = No_VM
+        and then Tagged_Type_Expansion
         and then RTU_Loaded (Ada_Tags)
 
          --  Avoid circularity when rebuilding the compiler
@@ -6410,8 +6478,8 @@ package body Exp_Aggr is
                return False;
 
             else
-               --  The aggregate is static if all components are literals, or
-               --  else all its components are static aggregates for the
+               --  The aggregate is static if all components are literals,
+               --  or else all its components are static aggregates for the
                --  component type. We also limit the size of a static aggregate
                --  to prevent runaway static expressions.
 

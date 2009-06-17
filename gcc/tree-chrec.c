@@ -1,5 +1,6 @@
 /* Chains of recurrences.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
 This file is part of GCC.
@@ -1099,21 +1100,6 @@ nb_vars_in_chrec (tree chrec)
     }
 }
 
-/* Returns true if TYPE is a type in that we cannot directly perform
-   arithmetics, even though it is a scalar type.  */
-
-static bool
-avoid_arithmetics_in_type_p (const_tree type)
-{
-  /* Ada frontend uses subtypes -- an arithmetic cannot be directly performed
-     in the subtype, but a base type must be used, and the result then can
-     be casted to the subtype.  */
-  if (TREE_CODE (type) == INTEGER_TYPE && TREE_TYPE (type) != NULL_TREE)
-    return true;
-
-  return false;
-}
-
 static tree chrec_convert_1 (tree, tree, gimple, bool);
 
 /* Converts BASE and STEP of affine scev to TYPE.  LOOP is the loop whose iv
@@ -1134,10 +1120,6 @@ convert_affine_scev (struct loop *loop, tree type,
   bool must_check_src_overflow, must_check_rslt_overflow;
   tree new_base, new_step;
   tree step_type = POINTER_TYPE_P (type) ? sizetype : type;
-
-  /* If we cannot perform arithmetic in TYPE, avoid creating an scev.  */
-  if (avoid_arithmetics_in_type_p (type))
-    return false;
 
   /* In general,
      (TYPE) (BASE + STEP * i) = (TYPE) BASE + (TYPE -- sign extend) STEP * i,
@@ -1341,10 +1323,6 @@ chrec_convert_aggressive (tree type, tree chrec)
   if (TYPE_PRECISION (type) > TYPE_PRECISION (inner_type))
     return NULL_TREE;
 
-  /* If we cannot perform arithmetic in TYPE, avoid creating an scev.  */
-  if (avoid_arithmetics_in_type_p (type))
-    return NULL_TREE;
-
   rtype = POINTER_TYPE_P (type) ? sizetype : type;
 
   left = CHREC_LEFT (chrec);
@@ -1430,3 +1408,64 @@ for_each_scev_op (tree *scev, bool (*cbck) (tree *, void *), void *data)
     }
 }
 
+/* Returns true when the operation can be part of a linear
+   expression.  */
+
+static inline bool
+operator_is_linear (tree scev)
+{
+  switch (TREE_CODE (scev))
+    {
+    case INTEGER_CST:
+    case POLYNOMIAL_CHREC:
+    case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
+    case MULT_EXPR:
+    case MINUS_EXPR:
+    case NEGATE_EXPR:
+    case SSA_NAME:
+    case NON_LVALUE_EXPR:
+    CASE_CONVERT:
+      return true;
+
+    default:
+      return false;
+    }
+}
+
+/* Return true when SCEV is a linear expression.  Linear expressions
+   can contain additions, substractions and multiplications.
+   Multiplications are restricted to constant scaling: "cst * x".  */
+
+bool
+scev_is_linear_expression (tree scev)
+{
+  if (scev == NULL
+      || !operator_is_linear (scev))
+    return false;
+
+  if (TREE_CODE (scev) == MULT_EXPR)
+    return !(tree_contains_chrecs (TREE_OPERAND (scev, 0), NULL)
+	     && tree_contains_chrecs (TREE_OPERAND (scev, 1), NULL));
+
+  switch (TREE_CODE_LENGTH (TREE_CODE (scev)))
+    {
+    case 3:
+      return scev_is_linear_expression (TREE_OPERAND (scev, 0))
+	&& scev_is_linear_expression (TREE_OPERAND (scev, 1))
+	&& scev_is_linear_expression (TREE_OPERAND (scev, 2));
+
+    case 2:
+      return scev_is_linear_expression (TREE_OPERAND (scev, 0))
+	&& scev_is_linear_expression (TREE_OPERAND (scev, 1));
+      
+    case 1:
+      return scev_is_linear_expression (TREE_OPERAND (scev, 0));
+
+    case 0:
+      return true;
+
+    default:
+      return false;
+    }
+}

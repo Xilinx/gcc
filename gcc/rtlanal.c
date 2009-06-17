@@ -1,7 +1,7 @@
 /* Analyze RTL for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -39,18 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "df.h"
 #include "tree.h"
 
-/* Information about a subreg of a hard register.  */
-struct subreg_info
-{
-  /* Offset of first hard register involved in the subreg.  */
-  int offset;
-  /* Number of hard registers involved in the subreg.  */
-  int nregs;
-  /* Whether this subreg can be represented as a hard reg with the new
-     mode.  */
-  bool representable_p;
-};
-
 /* Forward declarations */
 static void set_of_1 (rtx, const_rtx, void *);
 static bool covers_regno_p (const_rtx, unsigned int);
@@ -58,9 +46,6 @@ static bool covers_regno_no_parallel_p (const_rtx, unsigned int);
 static int rtx_referenced_p_1 (rtx *, void *);
 static int computed_jump_p_1 (const_rtx);
 static void parms_set (rtx, const_rtx, void *);
-static void subreg_get_info (unsigned int, enum machine_mode,
-			     unsigned int, enum machine_mode,
-			     struct subreg_info *);
 
 static unsigned HOST_WIDE_INT cached_nonzero_bits (const_rtx, enum machine_mode,
                                                    const_rtx, enum machine_mode,
@@ -263,14 +248,69 @@ rtx_varies_p (const_rtx x, bool for_alias)
    alignment machines.  */
 
 static int
-rtx_addr_can_trap_p_1 (const_rtx x, enum machine_mode mode, bool unaligned_mems)
+rtx_addr_can_trap_p_1 (const_rtx x, HOST_WIDE_INT offset, HOST_WIDE_INT size,
+		       enum machine_mode mode, bool unaligned_mems)
 {
   enum rtx_code code = GET_CODE (x);
+
+  if (STRICT_ALIGNMENT
+      && unaligned_mems
+      && GET_MODE_SIZE (mode) != 0)
+    {
+      HOST_WIDE_INT actual_offset = offset;
+#ifdef SPARC_STACK_BOUNDARY_HACK
+      /* ??? The SPARC port may claim a STACK_BOUNDARY higher than
+	     the real alignment of %sp.  However, when it does this, the
+	     alignment of %sp+STACK_POINTER_OFFSET is STACK_BOUNDARY.  */
+      if (SPARC_STACK_BOUNDARY_HACK
+	  && (x == stack_pointer_rtx || x == hard_frame_pointer_rtx))
+	actual_offset -= STACK_POINTER_OFFSET;
+#endif
+
+      if (actual_offset % GET_MODE_SIZE (mode) != 0)
+	return 1;
+    }
 
   switch (code)
     {
     case SYMBOL_REF:
-      return SYMBOL_REF_WEAK (x);
+      if (SYMBOL_REF_WEAK (x))
+	return 1;
+      if (!CONSTANT_POOL_ADDRESS_P (x))
+	{
+	  tree decl;
+	  HOST_WIDE_INT decl_size;
+
+	  if (offset < 0)
+	    return 1;
+	  if (size == 0)
+	    size = GET_MODE_SIZE (mode);
+	  if (size == 0)
+	    return offset != 0;
+
+	  /* If the size of the access or of the symbol is unknown,
+	     assume the worst.  */
+	  decl = SYMBOL_REF_DECL (x);
+
+	  /* Else check that the access is in bounds.  TODO: restructure
+	     expr_size/lhd_expr_size/int_expr_size and just use the latter.  */
+	  if (!decl)
+	    decl_size = -1;
+	  else if (DECL_P (decl) && DECL_SIZE_UNIT (decl))
+	    decl_size = (host_integerp (DECL_SIZE_UNIT (decl), 0)
+			 ? tree_low_cst (DECL_SIZE_UNIT (decl), 0)
+			 : -1);
+	  else if (TREE_CODE (decl) == STRING_CST)
+	    decl_size = TREE_STRING_LENGTH (decl);
+	  else if (TYPE_SIZE_UNIT (TREE_TYPE (decl)))
+	    decl_size = int_size_in_bytes (TREE_TYPE (decl));
+	  else
+	    decl_size = -1;
+
+	  return (decl_size <= 0 ? offset != 0 : offset + size > decl_size);
+        }
+
+      return 0;
 
     case LABEL_REF:
       return 0;
@@ -289,54 +329,37 @@ rtx_addr_can_trap_p_1 (const_rtx x, enum machine_mode mode, bool unaligned_mems)
       return 1;
 
     case CONST:
-      return rtx_addr_can_trap_p_1 (XEXP (x, 0), mode, unaligned_mems);
+      return rtx_addr_can_trap_p_1 (XEXP (x, 0), offset, size,
+				    mode, unaligned_mems);
 
     case PLUS:
       /* An address is assumed not to trap if:
-	 - it is an address that can't trap plus a constant integer,
+         - it is the pic register plus a constant.  */
+      if (XEXP (x, 0) == pic_offset_table_rtx && CONSTANT_P (XEXP (x, 1)))
+	return 0;
+
+      /* - or it is an address that can't trap plus a constant integer,
 	   with the proper remainder modulo the mode size if we are
 	   considering unaligned memory references.  */
-      if (!rtx_addr_can_trap_p_1 (XEXP (x, 0), mode, unaligned_mems)
-	  && GET_CODE (XEXP (x, 1)) == CONST_INT)
-	{
-	  HOST_WIDE_INT offset;
-
-	  if (!STRICT_ALIGNMENT
-	      || !unaligned_mems
-	      || GET_MODE_SIZE (mode) == 0)
-	    return 0;
-
-	  offset = INTVAL (XEXP (x, 1));
-
-#ifdef SPARC_STACK_BOUNDARY_HACK
-	  /* ??? The SPARC port may claim a STACK_BOUNDARY higher than
-	     the real alignment of %sp.  However, when it does this, the
-	     alignment of %sp+STACK_POINTER_OFFSET is STACK_BOUNDARY.  */
-	  if (SPARC_STACK_BOUNDARY_HACK
-	      && (XEXP (x, 0) == stack_pointer_rtx
-		  || XEXP (x, 0) == hard_frame_pointer_rtx))
-	    offset -= STACK_POINTER_OFFSET;
-#endif
-
-	  return offset % GET_MODE_SIZE (mode) != 0;
-	}
-
-      /* - or it is the pic register plus a constant.  */
-      if (XEXP (x, 0) == pic_offset_table_rtx && CONSTANT_P (XEXP (x, 1)))
+      if (GET_CODE (XEXP (x, 1)) == CONST_INT
+	  && !rtx_addr_can_trap_p_1 (XEXP (x, 0), offset + INTVAL (XEXP (x, 1)),
+				     size, mode, unaligned_mems))
 	return 0;
 
       return 1;
 
     case LO_SUM:
     case PRE_MODIFY:
-      return rtx_addr_can_trap_p_1 (XEXP (x, 1), mode, unaligned_mems);
+      return rtx_addr_can_trap_p_1 (XEXP (x, 1), offset, size,
+				    mode, unaligned_mems);
 
     case PRE_DEC:
     case PRE_INC:
     case POST_DEC:
     case POST_INC:
     case POST_MODIFY:
-      return rtx_addr_can_trap_p_1 (XEXP (x, 0), mode, unaligned_mems);
+      return rtx_addr_can_trap_p_1 (XEXP (x, 0), offset, size,
+				    mode, unaligned_mems);
 
     default:
       break;
@@ -351,7 +374,7 @@ rtx_addr_can_trap_p_1 (const_rtx x, enum machine_mode mode, bool unaligned_mems)
 int
 rtx_addr_can_trap_p (const_rtx x)
 {
-  return rtx_addr_can_trap_p_1 (x, VOIDmode, false);
+  return rtx_addr_can_trap_p_1 (x, 0, 0, VOIDmode, false);
 }
 
 /* Return true if X is an address that is known to not be zero.  */
@@ -1842,10 +1865,11 @@ find_regno_fusage (const_rtx insn, enum rtx_code code, unsigned int regno)
 }
 
 
-/* Add register note with kind KIND and datum DATUM to INSN.  */
+/* Allocate a register note with kind KIND and datum DATUM.  LIST is
+   stored as the pointer to the next register note.  */
 
-void
-add_reg_note (rtx insn, enum reg_note kind, rtx datum)
+rtx
+alloc_reg_note (enum reg_note kind, rtx datum, rtx list)
 {
   rtx note;
 
@@ -1858,16 +1882,24 @@ add_reg_note (rtx insn, enum reg_note kind, rtx datum)
       /* These types of register notes use an INSN_LIST rather than an
 	 EXPR_LIST, so that copying is done right and dumps look
 	 better.  */
-      note = alloc_INSN_LIST (datum, REG_NOTES (insn));
+      note = alloc_INSN_LIST (datum, list);
       PUT_REG_NOTE_KIND (note, kind);
       break;
 
     default:
-      note = alloc_EXPR_LIST (kind, datum, REG_NOTES (insn));
+      note = alloc_EXPR_LIST (kind, datum, list);
       break;
     }
 
-  REG_NOTES (insn) = note;
+  return note;
+}
+
+/* Add register note with kind KIND and datum DATUM to INSN.  */
+
+void
+add_reg_note (rtx insn, enum reg_note kind, rtx datum)
+{
+  REG_NOTES (insn) = alloc_reg_note (kind, datum, REG_NOTES (insn));
 }
 
 /* Remove register note NOTE from the REG_NOTES of INSN.  */
@@ -2170,17 +2202,10 @@ side_effects_p (const_rtx x)
   return 0;
 }
 
-enum may_trap_p_flags
-{
-  MTP_UNALIGNED_MEMS = 1,
-  MTP_AFTER_MOVE = 2
-};
 /* Return nonzero if evaluating rtx X might cause a trap.
-   (FLAGS & MTP_UNALIGNED_MEMS) controls whether nonzero is returned for
-   unaligned memory accesses on strict alignment machines.  If
-   (FLAGS & AFTER_MOVE) is true, returns nonzero even in case the expression
-   cannot trap at its current location, but it might become trapping if moved
-   elsewhere.  */
+   FLAGS controls how to consider MEMs.  A nonzero means the context
+   of the access may have changed from the original, such that the
+   address may have become invalid.  */
 
 int
 may_trap_p_1 (const_rtx x, unsigned flags)
@@ -2188,7 +2213,11 @@ may_trap_p_1 (const_rtx x, unsigned flags)
   int i;
   enum rtx_code code;
   const char *fmt;
-  bool unaligned_mems = (flags & MTP_UNALIGNED_MEMS) != 0;
+
+  /* We make no distinction currently, but this function is part of
+     the internal target-hooks ABI so we keep the parameter as
+     "unsigned flags".  */
+  bool code_changed = flags != 0;
 
   if (x == 0)
     return 0;
@@ -2223,14 +2252,17 @@ may_trap_p_1 (const_rtx x, unsigned flags)
       /* Memory ref can trap unless it's a static var or a stack slot.  */
     case MEM:
       if (/* MEM_NOTRAP_P only relates to the actual position of the memory
-	     reference; moving it out of condition might cause its address
-	     become invalid.  */
-	  !(flags & MTP_AFTER_MOVE)
-	  && MEM_NOTRAP_P (x)
-	  && (!STRICT_ALIGNMENT || !unaligned_mems))
-	return 0;
-      return
-	rtx_addr_can_trap_p_1 (XEXP (x, 0), GET_MODE (x), unaligned_mems);
+	     reference; moving it out of context such as when moving code
+	     when optimizing, might cause its address to become invalid.  */
+	  code_changed
+	  || !MEM_NOTRAP_P (x))
+	{
+	  HOST_WIDE_INT size = MEM_SIZE (x) ? INTVAL (MEM_SIZE (x)) : 0;
+	  return rtx_addr_can_trap_p_1 (XEXP (x, 0), 0, size,
+					GET_MODE (x), code_changed);
+	}
+
+      return 0;
 
       /* Division by a non-constant might trap.  */
     case DIV:
@@ -2328,15 +2360,6 @@ may_trap_p (const_rtx x)
   return may_trap_p_1 (x, 0);
 }
 
-/* Return nonzero if evaluating rtx X might cause a trap, when the expression
-   is moved from its current location by some optimization.  */
-
-int
-may_trap_after_code_motion_p (const_rtx x)
-{
-  return may_trap_p_1 (x, MTP_AFTER_MOVE);
-}
-
 /* Same as above, but additionally return nonzero if evaluating rtx X might
    cause a fault.  We define a fault for the purpose of this function as a
    erroneous execution condition that cannot be encountered during the normal
@@ -2380,7 +2403,7 @@ may_trap_after_code_motion_p (const_rtx x)
 int
 may_trap_or_fault_p (const_rtx x)
 {
-  return may_trap_p_1 (x, MTP_UNALIGNED_MEMS);
+  return may_trap_p_1 (x, 1);
 }
 
 /* Return nonzero if X contains a comparison that is not either EQ or NE,
@@ -3061,7 +3084,7 @@ subreg_lsb (const_rtx x)
    offset - The byte offset.
    ymode  - The mode of a top level SUBREG (or what may become one).
    info   - Pointer to structure to fill in.  */
-static void
+void
 subreg_get_info (unsigned int xregno, enum machine_mode xmode,
 		 unsigned int offset, enum machine_mode ymode,
 		 struct subreg_info *info)
@@ -4032,7 +4055,8 @@ nonzero_bits1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
 	 low-order bits by left shifts.  */
       if (GET_CODE (XEXP (x, 1)) == CONST_INT
 	  && INTVAL (XEXP (x, 1)) >= 0
-	  && INTVAL (XEXP (x, 1)) < HOST_BITS_PER_WIDE_INT)
+	  && INTVAL (XEXP (x, 1)) < HOST_BITS_PER_WIDE_INT
+	  && INTVAL (XEXP (x, 1)) < GET_MODE_BITSIZE (GET_MODE (x)))
 	{
 	  enum machine_mode inner_mode = GET_MODE (x);
 	  unsigned int width = GET_MODE_BITSIZE (inner_mode);
@@ -4513,7 +4537,8 @@ num_sign_bit_copies1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
       num0 = cached_num_sign_bit_copies (XEXP (x, 0), mode,
 					 known_x, known_mode, known_ret);
       if (GET_CODE (XEXP (x, 1)) == CONST_INT
-	  && INTVAL (XEXP (x, 1)) > 0)
+	  && INTVAL (XEXP (x, 1)) > 0
+	  && INTVAL (XEXP (x, 1)) < GET_MODE_BITSIZE (GET_MODE (x)))
 	num0 = MIN ((int) bitwidth, num0 + INTVAL (XEXP (x, 1)));
 
       return num0;
@@ -4522,7 +4547,8 @@ num_sign_bit_copies1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
       /* Left shifts destroy copies.  */
       if (GET_CODE (XEXP (x, 1)) != CONST_INT
 	  || INTVAL (XEXP (x, 1)) < 0
-	  || INTVAL (XEXP (x, 1)) >= (int) bitwidth)
+	  || INTVAL (XEXP (x, 1)) >= (int) bitwidth
+	  || INTVAL (XEXP (x, 1)) >= GET_MODE_BITSIZE (GET_MODE (x)))
 	return 1;
 
       num0 = cached_num_sign_bit_copies (XEXP (x, 0), mode,
@@ -5008,4 +5034,3 @@ constant_pool_constant_p (rtx x)
   x = avoid_constant_pool_reference (x);
   return GET_CODE (x) == CONST_DOUBLE;
 }
-

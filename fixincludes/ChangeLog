@@ -1,3 +1,140 @@
+2009-06-09  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* inclhack.def (darwin_stdint_1, darwin_stdint_2, darwin_stdint_3,
+	darwin_stdint_4): New fixes.
+	* tests/base/stdint.h: Adjust test results for new fixes.
+	* fixincl.x: Regenerate.
+
+2009-05-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* inclhack.def (solaris_int_const): New fix.
+	(solaris_int_limits_1): Likewise.
+	(solaris_int_limits_2): Likewise.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/int_const.h: New file.
+	* tests/base/sys/int_limits.h: Likewise.
+
+2009-05-15  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (glibc_tgmath): Correct bypass.
+	* fixincl.x: Regenerate.
+
+2009-04-28  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux11_uint32_c): Remove.
+	(hpux_long_double): Disable on hpux11.3*.
+	(hpux_long_double_2): New.
+	(hpux_c99_intptr): New.
+	(hpux_c99_inttypes): New.
+	(hpux_c99_inttypes2): New.
+	(hpux_stdint_least): New.
+	(hpux_stdint_fast): New.
+	(hpux_inttype_int_least8_t): New.
+	(hpux_inttype_int8_t): New.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/_inttypes.h: New.
+	* tests/base/inttypes.h: Update.
+	* tests/base/stdlib.h: Update.
+	* tests/base/stdint.h: Update.
+
+2009-04-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (glibc_stdint): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: Update.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.in: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* fixfixes.c: Likewise.
+	* fixinc.in: Likewise.
+	* fixincl.c: Likewise.
+	* fixlib.c: Likewise.
+	* fixlib.h: Likewise.
+	* fixopts.c: Likewise.
+	* fixtests.c: Likewise.
+	* genfixes: Likewise.
+	* mkheaders.in: Likewise.
+	* system.h: Likewise.
+
+2009-03-31  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/448
+	* inclhack.def (newlib_stdint_1, newlib_stdint_2): New fixes.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: Update.
+
+2009-03-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* tests/base/math.h, tests/base/pthread.h, tests/base/sys/wait.h:
+	Update.
+
+2009-03-29  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/456
+	PR c/5675
+	PR c/19976
+	PR c/29116
+	PR c/31871
+	PR c/35198
+	* inclhack.def (glibc_tgmath): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/tgmath.h: New.
+
+2009-03-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (aix_syswait, exception_structure,
+	pthread_page_size): Remove.
+	(math_exception): Remove mention of fixproto in comment.
+	* fixincl.x: Regenerate.
+	* mkheaders.in: Do not handle STMP_FIXPROTO.
+
+2009-03-27  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* server.c (run_shell): Quote directory name passed to cd.
+
+2009-03-01  Bruce Korb  <bkorb@gnu.org>
+	Apply a positively ancient patch:
+
+	2004-10-15  Giovanni Bajo  <giovannibajo@libero.it>
+
+	* inclhack.def (alpha_if_semicolon): new fix from long, long ago
+	* tests/base/net/if.h: Add new test.
+
+2009-01-06  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* tests/base/locale.h: Add new test.
+	* tests/base/stdarg.h: Likewise.
+
+2009-01-05  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux_spu_info):  Add files line.
+	* fixincl.x: Regenerate.
+
+2009-01-01  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* inclhack.def (openbsd_null_definition): Redefine NULL to (void *)0
+	in case of C.
+	* fixincl.x: Regenerate.
+
+2008-12-31  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR target/35460
+	* inclhack.def (openbsd_va_start): Use __builtin_va_start
+	for OpenBSD.
+	* fixincl.x: Regenerate.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-12-15  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux_spu_info): Match PA as well as IA64.
+	* fixincl.x: Regenerate.
+
 2008-09-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* configure.ac: Fix a typo.

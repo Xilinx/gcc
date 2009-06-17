@@ -1,5 +1,5 @@
 /* Default language-specific hooks.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Alexandre Oliva  <aoliva@redhat.com>
 
@@ -105,6 +105,9 @@ lhd_return_null_const_tree (const_tree ARG_UNUSED (t))
 bool
 lhd_post_options (const char ** ARG_UNUSED (pfilename))
 {
+  /* Excess precision other than "fast" requires front-end
+     support.  */
+  flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
   return false;
 }
 
@@ -115,14 +118,6 @@ lhd_print_tree_nothing (FILE * ARG_UNUSED (file),
 			tree ARG_UNUSED (node),
 			int ARG_UNUSED (indent))
 {
-}
-
-/* Called from staticp.  */
-
-tree
-lhd_staticp (tree ARG_UNUSED (exp))
-{
-  return NULL;
 }
 
 /* Called from check_global_declarations.  */
@@ -216,17 +211,6 @@ lhd_get_alias_set (tree ARG_UNUSED (t))
   return -1;
 }
 
-/* This is the default expand_expr function.  */
-
-rtx
-lhd_expand_expr (tree ARG_UNUSED (t), rtx ARG_UNUSED (r),
-		 enum machine_mode ARG_UNUSED (mm),
-		 int ARG_UNUSED (em),
-		 rtx * ARG_UNUSED (a))
-{
-  gcc_unreachable ();
-}
-
 /* This is the default decl_printable_name function.  */
 
 const char *
@@ -316,14 +300,6 @@ lhd_decl_ok_for_sibcall (const_tree decl ATTRIBUTE_UNUSED)
   return true;
 }
 
-/* Return the COMDAT group into which DECL should be placed.  */
-
-const char *
-lhd_comdat_group (tree decl)
-{
-  return IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-}
-
 /* lang_hooks.decls.final_write_globals: perform final processing on
    global variables.  */
 void
@@ -396,11 +372,11 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 	  if (TREE_CODE (TREE_TYPE (fndecl)) == METHOD_TYPE)
 	    pp_printf
 	      (context->printer, _("In member function %qs"),
-	       lang_hooks.decl_printable_name (fndecl, 2));
+	       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 	  else
 	    pp_printf
 	      (context->printer, _("In function %qs"),
-	       lang_hooks.decl_printable_name (fndecl, 2));
+	       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 
 	  while (abstract_origin)
 	    {
@@ -437,7 +413,7 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 		  while (block && TREE_CODE (block) == BLOCK)
 		    block = BLOCK_SUPERCONTEXT (block);
 
-		  if (TREE_CODE (block) == FUNCTION_DECL)
+		  if (block && TREE_CODE (block) == FUNCTION_DECL)
 		    fndecl = block;
 		  abstract_origin = NULL;
 		}
@@ -448,21 +424,21 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 		  pp_newline (context->printer);
 		  if (s.file != NULL)
 		    {
-		      if (flag_show_column && s.column != 0)
+		      if (flag_show_column)
 			pp_printf (context->printer,
 				   _("    inlined from %qs at %s:%d:%d"),
-				   lang_hooks.decl_printable_name (fndecl, 2),
+				   identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)),
 				   s.file, s.line, s.column);
 		      else
 			pp_printf (context->printer,
 				   _("    inlined from %qs at %s:%d"),
-				   lang_hooks.decl_printable_name (fndecl, 2),
+				   identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)),
 				   s.file, s.line);
 
 		    }
 		  else
 		    pp_printf (context->printer, _("    inlined from %qs"),
-			       lang_hooks.decl_printable_name (fndecl, 2));
+			       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 		}
 	    }
 	  pp_character (context->printer, ':');
@@ -540,15 +516,16 @@ add_builtin_function_common (const char *name,
 			     tree (*hook) (tree))
 {
   tree   id = get_identifier (name);
-  tree decl = build_decl (FUNCTION_DECL, id, type);
+  tree decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL, id, type);
 
   TREE_PUBLIC (decl)         = 1;
   DECL_EXTERNAL (decl)       = 1;
   DECL_BUILT_IN_CLASS (decl) = cl;
 
-  DECL_FUNCTION_CODE (decl)  = -1;
-  gcc_assert (DECL_FUNCTION_CODE (decl) >= function_code);
-  DECL_FUNCTION_CODE (decl)  = function_code;
+  DECL_FUNCTION_CODE (decl)  = (enum built_in_function) function_code;
+
+  /* DECL_FUNCTION_CODE is a bitfield; verify that the value fits.  */
+  gcc_assert (DECL_FUNCTION_CODE (decl) == function_code);
 
   if (library_name)
     {

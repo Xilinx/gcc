@@ -1,5 +1,6 @@
 /* Data references and dependences detectors. 
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
 This file is part of GCC.
@@ -87,7 +88,6 @@ struct dr_alias
 {
   /* The alias information that should be used for new pointers to this
      location.  SYMBOL_TAG is either a DECL or a SYMBOL_MEMORY_TAG.  */
-  tree symbol_tag;
   struct ptr_info_def *ptr_info;
 
   /* The set of virtual operands corresponding to this memory reference,
@@ -131,7 +131,7 @@ struct access_matrix
   VEC (loop_p, heap) *loop_nest;
   int nb_induction_vars;
   VEC (tree, heap) *parameters;
-  VEC (lambda_vector, heap) *matrix;
+  VEC (lambda_vector, gc) *matrix;
 };
 
 #define AM_LOOP_NEST(M) (M)->loop_nest
@@ -203,9 +203,7 @@ struct data_reference
 #define DR_OFFSET(DR)              (DR)->innermost.offset
 #define DR_INIT(DR)                (DR)->innermost.init
 #define DR_STEP(DR)                (DR)->innermost.step
-#define DR_SYMBOL_TAG(DR)          (DR)->alias.symbol_tag
 #define DR_PTR_INFO(DR)            (DR)->alias.ptr_info
-#define DR_VOPS(DR)		   (DR)->alias.vops
 #define DR_ALIGNED_TO(DR)          (DR)->innermost.aligned_to
 #define DR_ACCESS_MATRIX(DR)       (DR)->access_matrix
 
@@ -290,14 +288,6 @@ struct data_dependence_relation
   struct data_reference *a;
   struct data_reference *b;
 
-  /* When the dependence relation is affine, it can be represented by
-     a distance vector.  */
-  bool affine_p;
-
-  /* Set to true when the dependence relation is on the same data
-     access.  */
-  bool self_reference_p;
-
   /* A "yes/no/maybe" field for the dependence relation:
      
      - when "ARE_DEPENDENT == NULL_TREE", there exist a dependence
@@ -319,18 +309,26 @@ struct data_dependence_relation
   /* The analyzed loop nest.  */
   VEC (loop_p, heap) *loop_nest;
 
-  /* An index in loop_nest for the innermost loop that varies for
-     this data dependence relation.  */
-  unsigned inner_loop;
-
   /* The classic direction vector.  */
   VEC (lambda_vector, heap) *dir_vects;
 
   /* The classic distance vector.  */
   VEC (lambda_vector, heap) *dist_vects;
 
+  /* An index in loop_nest for the innermost loop that varies for
+     this data dependence relation.  */
+  unsigned inner_loop;
+
   /* Is the dependence reversed with respect to the lexicographic order?  */
   bool reversed_p;
+
+  /* When the dependence relation is affine, it can be represented by
+     a distance vector.  */
+  bool affine_p;
+
+  /* Set to true when the dependence relation is on the same data
+     access.  */
+  bool self_reference_p;
 };
 
 typedef struct data_dependence_relation *ddr_p;
@@ -385,6 +383,9 @@ bool dr_analyze_innermost (struct data_reference *);
 extern bool compute_data_dependences_for_loop (struct loop *, bool,
 					       VEC (data_reference_p, heap) **,
 					       VEC (ddr_p, heap) **);
+extern bool compute_data_dependences_for_bb (basic_block, bool,
+                                             VEC (data_reference_p, heap) **,
+                                             VEC (ddr_p, heap) **);
 extern tree find_data_references_in_loop (struct loop *, 
                                           VEC (data_reference_p, heap) **);
 extern void print_direction_vector (FILE *, lambda_vector, int);

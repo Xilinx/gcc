@@ -49,7 +49,7 @@ AC_DEFUN([GLIBCXX_CONFIGURE], [
   # Keep these sync'd with the list in Makefile.am.  The first provides an
   # expandable list at autoconf time; the second provides an expandable list
   # (i.e., shell variable) at configure time.
-  m4_define([glibcxx_SUBDIRS],[include libmath libsupc++ src doc po testsuite])
+  m4_define([glibcxx_SUBDIRS],[include libsupc++ python src doc po testsuite])
   SUBDIRS='glibcxx_SUBDIRS'
 
   # These need to be absolute paths, yet at the same time need to
@@ -123,7 +123,6 @@ AC_DEFUN([GLIBCXX_CONFIGURE], [
   # which are themselves conditionally expanded.
   ## (Right now, this only matters for enable_wchar_t, but nothing prevents
   ## other macros from doing the same.  This should be automated.)  -pme
-  need_libmath=no
 
   # Check for uClibc since Linux platforms use different configuration
   # directories depending on the C library in use.
@@ -639,7 +638,7 @@ AC_DEFUN([GLIBCXX_CONFIGURE_TESTSUITE], [
   fi
   
   # Export file names for ABI checking.
-  baseline_dir="$glibcxx_srcdir/config/abi/post/${abi_baseline_pair}\$(MULTISUBDIR)"
+  baseline_dir="$glibcxx_srcdir/config/abi/post/${abi_baseline_pair}"
   AC_SUBST(baseline_dir)
 ])
 
@@ -1074,26 +1073,28 @@ AC_DEFUN([GLIBCXX_ENABLE_C99], [
 
 
 dnl
-dnl Check for clock_gettime clocks, used in the implementation of 20.8.5
-dnl [time.clock] in the current C++0x working draft.
+dnl Check for clock_gettime, nanosleep and sched_yield, used in the
+dnl implementation of 20.8.5 [time.clock], and 30.2.2 [thread.thread.this]
+dnl in the current C++0x working draft.
 dnl
-dnl --enable-clock-gettime
-dnl --enable-clock-gettime=yes
-dnl        checks for the availability of monotonic and realtime clocks
-dnl        in libc and libposix4 and in case links the latter
-dnl --enable-clock-gettime=rt
+dnl --enable-libstdcxx-time
+dnl --enable-libstdcxx-time=yes
+dnl        checks for the availability of monotonic and realtime clocks,
+dnl        nanosleep and sched_yield in libc and libposix4 and, in case, links
+dnl       the latter
+dnl --enable-libstdcxx-time=rt
 dnl        also searches (and, in case, links) librt.  Note that this is
 dnl        not always desirable because, in glibc, for example, in turn it
 dnl        triggers the linking of libpthread too, which activates locking,
 dnl        a large overhead for single-thread programs.
-dnl --enable-clock-gettime=no
-dnl --disable-clock-gettime
+dnl --enable-libstdcxx-time=no
+dnl --disable-libstdcxx-time
 dnl        disables the checks completely
 dnl
-AC_DEFUN([GLIBCXX_ENABLE_CLOCK_GETTIME], [
+AC_DEFUN([GLIBCXX_ENABLE_LIBSTDCXX_TIME], [
 
-  AC_MSG_CHECKING([for clock_gettime clocks])					 
-  GLIBCXX_ENABLE(clock-gettime,$1,[=KIND],
+  AC_MSG_CHECKING([for clock_gettime, nanosleep and sched_yield])
+  GLIBCXX_ENABLE(libstdcxx-time,$1,[=KIND],
     [use KIND for check type],
     [permit yes|no|rt])
 
@@ -1103,19 +1104,47 @@ AC_DEFUN([GLIBCXX_ENABLE_CLOCK_GETTIME], [
   CXXFLAGS="$CXXFLAGS -fno-exceptions"
   ac_save_LIBS="$LIBS"
 
-  ac_has_clock_monotonic=no;  
+  ac_has_clock_monotonic=no;
   ac_has_clock_realtime=no;
 
-  if test x"$enable_clock_gettime" != x"no"; then
+  if test x"$enable_libstdcxx_time" != x"no"; then
 
-    if test x"$enable_clock_gettime" = x"rt"; then
+    if test x"$enable_libstdcxx_time" = x"rt"; then
       AC_SEARCH_LIBS(clock_gettime, [rt posix4])
+      AC_SEARCH_LIBS(nanosleep, [rt posix4])
     else
       AC_SEARCH_LIBS(clock_gettime, [posix4])
+      AC_SEARCH_LIBS(nanosleep, [posix4])
     fi
 
     case "$ac_cv_search_clock_gettime" in
       -l*) GLIBCXX_LIBS=$ac_cv_search_clock_gettime
+      ;;
+    esac
+    case "$ac_cv_search_nanosleep" in
+      -l*) GLIBCXX_LIBS="$GLIBCXX_LIBS $ac_cv_search_nanosleep"
+      ;;
+    esac
+
+    AC_SEARCH_LIBS(sched_yield, [rt posix4])
+
+    case "$ac_cv_search_sched_yield" in
+      -lposix4*)
+      GLIBCXX_LIBS="$GLIBCXX_LIBS $ac_cv_search_sched_yield"
+      AC_DEFINE(_GLIBCXX_USE_SCHED_YIELD, 1,
+                [ Defined if sched_yield is available. ])
+      ;;
+      -lrt*)
+      if test x"$enable_libstdcxx_time" = x"rt"; then
+        GLIBCXX_LIBS="$GLIBCXX_LIBS $ac_cv_search_sched_yield"
+	AC_DEFINE(_GLIBCXX_USE_SCHED_YIELD, 1, 
+	          [ Defined if sched_yield is available. ])
+      fi
+      ;;
+      *)
+      AC_DEFINE(_GLIBCXX_USE_SCHED_YIELD, 1,
+                [ Defined if sched_yield is available. ])
+      ;;
     esac
 
     AC_CHECK_HEADERS(unistd.h, ac_has_unistd_h=yes, ac_has_unistd_h=no)
@@ -1146,8 +1175,20 @@ AC_DEFUN([GLIBCXX_ENABLE_CLOCK_GETTIME], [
         ], [ac_has_clock_realtime=yes], [ac_has_clock_realtime=no])
 
       AC_MSG_RESULT($ac_has_clock_realtime)
-    fi
 
+      AC_MSG_CHECKING([for nanosleep])
+      AC_TRY_LINK(
+        [#include <unistd.h>
+         #include <time.h>
+        ],
+        [#if _POSIX_TIMERS > 0
+          timespec tp;
+         #endif
+          nanosleep(&tp, 0);
+        ], [ac_has_nanosleep=yes], [ac_has_nanosleep=no])
+
+      AC_MSG_RESULT($ac_has_nanosleep)
+    fi
   fi
 
   if test x"$ac_has_clock_monotonic" = x"yes"; then
@@ -1158,6 +1199,11 @@ AC_DEFUN([GLIBCXX_ENABLE_CLOCK_GETTIME], [
   if test x"$ac_has_clock_realtime" = x"yes"; then
     AC_DEFINE(_GLIBCXX_USE_CLOCK_REALTIME, 1,
       [ Defined if clock_gettime has realtime clock support. ])
+  fi
+
+  if test x"$ac_has_nanosleep" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_USE_NANOSLEEP, 1,
+      [ Defined if nanosleep is available. ])
   fi
 
   AC_SUBST(GLIBCXX_LIBS)
@@ -1196,39 +1242,6 @@ AC_DEFUN([GLIBCXX_CHECK_GETTIMEOFDAY], [
       [ Defined if gettimeofday is available. ])
   fi
   
-  CXXFLAGS="$ac_save_CXXFLAGS"
-  AC_LANG_RESTORE
-])
-
-dnl
-dnl Check for nanosleep, used in the implementation of 30.2.2
-dnl [thread.thread.this] in the current C++0x working draft.
-dnl
-AC_DEFUN([GLIBCXX_CHECK_NANOSLEEP], [
-
-  AC_MSG_CHECKING([for nanosleep])
-
-  AC_LANG_SAVE
-  AC_LANG_CPLUSPLUS
-  ac_save_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS="$CXXFLAGS -fno-exceptions"
-
-  ac_has_nanosleep=no;
-  AC_CHECK_HEADERS(time.h, ac_has_time_h=yes, ac_has_time_h=no)
-  if test x"$ac_has_time_h" = x"yes"; then
-    AC_MSG_CHECKING([for nanosleep])
-    AC_TRY_COMPILE([#include <time.h>],                                                                                                         
-      [timespec ts; nanosleep(&ts, 0);],
-      [ac_has_nanosleep=yes], [ac_has_nanosleep=no])
-
-    AC_MSG_RESULT($ac_has_nanosleep)
-  fi
-
-  if test x"$ac_has_nanosleep" = x"yes"; then
-    AC_DEFINE(_GLIBCXX_USE_NANOSLEEP, 1,
-      [ Defined if nanosleep is available. ])
-  fi
-
   CXXFLAGS="$ac_save_CXXFLAGS"
   AC_LANG_RESTORE
 ])
@@ -1674,41 +1687,6 @@ m4_define([n_syserr], m4_incr(n_syserr))dnl
 m4_popdef([SYSERR])dnl
 ])
 m4_popdef([n_syserr])dnl
-])
-
-dnl
-dnl Check whether C++200x's standard layout types are supported. 
-dnl
-AC_DEFUN([GLIBCXX_CHECK_STANDARD_LAYOUT], [
-
-  AC_MSG_CHECKING([for ISO C++200x standard layout type support])
-  AC_CACHE_VAL(ac_standard_layout, [
-  AC_LANG_SAVE
-  AC_LANG_CPLUSPLUS
-  ac_test_CXXFLAGS="${CXXFLAGS+set}"
-  ac_save_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS='-std=gnu++0x'
-
-  AC_TRY_COMPILE([struct b
-                  {
-  		    bool t;
-
-		    // Need standard layout relaxation from POD
-		    private:	    
-  		    b& operator=(const b&);
-  		    b(const b&);
-		    };],
-		 [b tst1 = { false };],
-		 [ac_standard_layout=yes], [ac_standard_layout=no])
-
-  CXXFLAGS="$ac_save_CXXFLAGS"
-  AC_LANG_RESTORE
-  ])
-  AC_MSG_RESULT($ac_standard_layout)
-  if test x"$ac_standard_layout" = x"yes"; then
-    AC_DEFINE(_GLIBCXX_USE_STANDARD_LAYOUT, 1,
-              [Define if standard layout types are supported in C++200x.])
-  fi
 ])
 
 dnl
@@ -2456,7 +2434,9 @@ dnl see: CHECK_SYNC_FETCH_AND_ADD
 dnl
 dnl Defines:
 dnl  _GLIBCXX_ATOMIC_BUILTINS_1 
+dnl  _GLIBCXX_ATOMIC_BUILTINS_2
 dnl  _GLIBCXX_ATOMIC_BUILTINS_4
+dnl  _GLIBCXX_ATOMIC_BUILTINS_8
 dnl
 AC_DEFUN([GLIBCXX_ENABLE_ATOMIC_BUILTINS], [
   AC_LANG_SAVE
@@ -2468,6 +2448,66 @@ AC_DEFUN([GLIBCXX_ENABLE_ATOMIC_BUILTINS], [
 
   # Fake what AC_TRY_COMPILE does, without linking as this is
   # unnecessary for a builtins test.
+
+    cat > conftest.$ac_ext << EOF
+[#]line __oline__ "configure"
+int main()
+{
+  typedef bool atomic_type;
+  atomic_type c1;
+  atomic_type c2;
+  const atomic_type c3(0);
+  __sync_fetch_and_add(&c1, c2);
+  __sync_val_compare_and_swap(&c1, c3, c2);
+  __sync_lock_test_and_set(&c1, c3);
+  __sync_lock_release(&c1);
+  __sync_synchronize();
+  return 0;
+}
+EOF
+
+    AC_MSG_CHECKING([for atomic builtins for bool])
+    if AC_TRY_EVAL(ac_compile); then
+      if grep __sync_ conftest.s >/dev/null 2>&1 ; then
+        enable_atomic_builtinsb=no
+      else
+      AC_DEFINE(_GLIBCXX_ATOMIC_BUILTINS_1, 1,
+      [Define if builtin atomic operations for bool are supported on this host.])
+        enable_atomic_builtinsb=yes
+      fi
+    fi
+    AC_MSG_RESULT($enable_atomic_builtinsb)
+    rm -f conftest*
+
+    cat > conftest.$ac_ext << EOF
+[#]line __oline__ "configure"
+int main()
+{
+  typedef short atomic_type;
+  atomic_type c1;
+  atomic_type c2;
+  const atomic_type c3(0);
+  __sync_fetch_and_add(&c1, c2);
+  __sync_val_compare_and_swap(&c1, c3, c2);
+  __sync_lock_test_and_set(&c1, c3);
+  __sync_lock_release(&c1);
+  __sync_synchronize();
+  return 0;
+}
+EOF
+
+    AC_MSG_CHECKING([for atomic builtins for short])
+    if AC_TRY_EVAL(ac_compile); then
+      if grep __sync_ conftest.s >/dev/null 2>&1 ; then
+        enable_atomic_builtinss=no
+      else
+      AC_DEFINE(_GLIBCXX_ATOMIC_BUILTINS_2, 1,
+      [Define if builtin atomic operations for short are supported on this host.])
+        enable_atomic_builtinss=yes
+      fi
+    fi
+    AC_MSG_RESULT($enable_atomic_builtinss)
+    rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
 [#]line __oline__ "configure"
@@ -2504,7 +2544,7 @@ EOF
 [#]line __oline__ "configure"
 int main()
 {
-  typedef bool atomic_type;
+  typedef long long atomic_type;
   atomic_type c1;
   atomic_type c2;
   const atomic_type c3(0);
@@ -2517,18 +2557,19 @@ int main()
 }
 EOF
 
-    AC_MSG_CHECKING([for atomic builtins for bool])
+    AC_MSG_CHECKING([for atomic builtins for long long])
     if AC_TRY_EVAL(ac_compile); then
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
-        enable_atomic_builtinsb=no
+        enable_atomic_builtinsll=no
       else
-      AC_DEFINE(_GLIBCXX_ATOMIC_BUILTINS_1, 1,
-      [Define if builtin atomic operations for bool are supported on this host.])
-        enable_atomic_builtinsb=yes
+      AC_DEFINE(_GLIBCXX_ATOMIC_BUILTINS_8, 1,
+      [Define if builtin atomic operations for long long are supported on this host.])
+        enable_atomic_builtinsll=yes
       fi
     fi
-    AC_MSG_RESULT($enable_atomic_builtinsb)
+    AC_MSG_RESULT($enable_atomic_builtinsll)
     rm -f conftest*
+
 
   CXXFLAGS="$old_CXXFLAGS"
   AC_LANG_RESTORE
@@ -2542,7 +2583,7 @@ EOF
   if test $atomicity_dir = "cpu/generic" ; then
     atomicity_dir=cpu/generic/atomicity_mutex
     AC_MSG_WARN([No native atomic operations are provided for this platform.])
-      if test $target_thread_file = single; then
+      if test "x$target_thread_file" = xsingle; then
         AC_MSG_WARN([They cannot be faked when thread support is disabled.])
         AC_MSG_WARN([Thread-safety of certain classes is not guaranteed.])
       else
@@ -2687,7 +2728,7 @@ if test x$enable_symvers = xyes ; then
   else
     if test $with_gnu_ld = yes ; then
       case ${target_os} in
-        cygwin* | pe | mingw32*)
+        cygwin* | pe | mingw32* | hpux*)
           enable_symvers=no ;;
         *)
           enable_symvers=gnu ;;
@@ -2789,6 +2830,16 @@ esac
 if test x$enable_symvers != xno ; then
   AC_DEFINE(_GLIBCXX_SYMVER, 1,
 	 [Define to use symbol versioning in the shared library.])
+fi
+
+AC_CACHE_CHECK([whether the target supports .symver directive],
+	       glibcxx_cv_have_as_symver_directive, [
+  AC_TRY_COMPILE([void foo (void); __asm (".symver foo, bar@SYMVER");],
+		 [], glibcxx_cv_have_as_symver_directive=yes,
+		 glibcxx_cv_have_as_symver_directive=no)])
+if test $glibcxx_cv_have_as_symver_directive = yes; then
+  AC_DEFINE(HAVE_AS_SYMVER_DIRECTIVE, 1,
+    [Define to 1 if the target assembler supports .symver directive.])
 fi
 
 AC_SUBST(SYMVER_FILE)

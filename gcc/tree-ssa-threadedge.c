@@ -1,5 +1,5 @@
 /* SSA Jump Threading
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Jeff Law  <law@redhat.com>
 
 This file is part of GCC.
@@ -48,6 +48,35 @@ along with GCC; see the file COPYING3.  If not see
    holds the number of statements currently seen that we'll have
    to copy as part of the jump threading process.  */
 static int stmt_count;
+
+/* Array to record value-handles per SSA_NAME.  */
+VEC(tree,heap) *ssa_name_values;
+
+/* Set the value for the SSA name NAME to VALUE.  */
+
+void
+set_ssa_name_value (tree name, tree value)
+{
+  if (SSA_NAME_VERSION (name) >= VEC_length (tree, ssa_name_values))
+    VEC_safe_grow_cleared (tree, heap, ssa_name_values,
+			   SSA_NAME_VERSION (name) + 1);
+  VEC_replace (tree, ssa_name_values, SSA_NAME_VERSION (name), value);
+}
+
+/* Initialize the per SSA_NAME value-handles array.  Returns it.  */
+void
+threadedge_initialize_values (void)
+{
+  gcc_assert (ssa_name_values == NULL);
+  ssa_name_values = VEC_alloc(tree, heap, num_ssa_names);
+}
+
+/* Free the per SSA_NAME value-handle array.  */
+void
+threadedge_finalize_values (void)
+{
+  VEC_free(tree, heap, ssa_name_values);
+}
 
 /* Return TRUE if we may be able to thread an incoming edge into
    BB to an outgoing edge from BB.  Return FALSE otherwise.  */
@@ -126,7 +155,7 @@ remove_temporary_equivalences (VEC(tree, heap) **stack)
 	break;
 
       prev_value = VEC_pop (tree, *stack);
-      SSA_NAME_VALUE (dest) = prev_value;
+      set_ssa_name_value (dest, prev_value);
     }
 }
 
@@ -145,7 +174,7 @@ record_temporary_equivalence (tree x, tree y, VEC(tree, heap) **stack)
       y = tmp ? tmp : y;
     }
 
-  SSA_NAME_VALUE (x) = y;
+  set_ssa_name_value (x, y);
   VEC_reserve (tree, heap, *stack, 2);
   VEC_quick_push (tree, *stack, prev_x);
   VEC_quick_push (tree, *stack, x);
@@ -320,12 +349,22 @@ record_temporary_equivalences_from_stmts_at_dest (edge e,
 
 	 The result of __builtin_object_size is defined to be the maximum of
 	 remaining bytes. If we use only one edge on the phi, the result will
-	 change to be the remaining bytes for the corresponding phi argument. */
+	 change to be the remaining bytes for the corresponding phi argument.
+
+	 Similarly for __builtin_constant_p:
+
+	 r = PHI <1(2), 2(3)>
+	 __builtin_constant_p (r)
+
+	 Both PHI arguments are constant, but x ? 1 : 2 is still not
+	 constant.  */
 
       if (is_gimple_call (stmt))
 	{
 	  tree fndecl = gimple_call_fndecl (stmt);
-	  if (fndecl && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_OBJECT_SIZE)
+	  if (fndecl
+	      && (DECL_FUNCTION_CODE (fndecl) == BUILT_IN_OBJECT_SIZE
+		  || DECL_FUNCTION_CODE (fndecl) == BUILT_IN_CONSTANT_P))
 	    continue;
 	}
 

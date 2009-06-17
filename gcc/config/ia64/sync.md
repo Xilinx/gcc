@@ -1,5 +1,5 @@
 ;; GCC machine description for IA-64 synchronization instructions.
-;; Copyright (C) 2005, 2007
+;; Copyright (C) 2005, 2007, 2008, 2009
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
@@ -27,9 +27,18 @@
 (define_code_attr fetchop_name
   [(plus "add") (minus "sub") (ior "ior") (xor "xor") (and "and")])
 
-(define_insn "memory_barrier"
-  [(set (mem:BLK (match_scratch:DI 0 "X"))
-	(unspec:BLK [(mem:BLK (match_scratch:DI 1 "X"))] UNSPEC_MF))]
+(define_expand "memory_barrier"
+  [(set (match_dup 0)
+	(unspec:BLK [(match_dup 0)] UNSPEC_MF))]
+  ""
+{
+  operands[0] = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (Pmode));
+  MEM_VOLATILE_P (operands[0]) = 1;
+})
+
+(define_insn "*memory_barrier"
+  [(set (match_operand:BLK 0 "" "")
+	(unspec:BLK [(match_dup 0)] UNSPEC_MF))]
   ""
   "mf"
   [(set_attr "itanium_class" "syst_m")])
@@ -142,10 +151,10 @@
         (unspec:I124MODE
 	  [(match_dup 1)
 	   (match_operand:DI 2 "ar_ccv_reg_operand" "")
-	   (match_operand:I124MODE 3 "gr_register_operand" "r")]
+	   (match_operand:I124MODE 3 "gr_reg_or_0_operand" "rO")]
 	  UNSPEC_CMPXCHG_ACQ))]
   ""
-  "cmpxchg<modesuffix>.rel %0 = %1, %3, %2"
+  "cmpxchg<modesuffix>.rel %0 = %1, %r3, %2"
   [(set_attr "itanium_class" "sem")])
 
 (define_insn "cmpxchg_rel_di"
@@ -154,19 +163,19 @@
    (set (match_dup 1)
         (unspec:DI [(match_dup 1)
 		    (match_operand:DI 2 "ar_ccv_reg_operand" "")
-		    (match_operand:DI 3 "gr_register_operand" "r")]
+		    (match_operand:DI 3 "gr_reg_or_0_operand" "rO")]
 		   UNSPEC_CMPXCHG_ACQ))]
   ""
-  "cmpxchg8.rel %0 = %1, %3, %2"
+  "cmpxchg8.rel %0 = %1, %r3, %2"
   [(set_attr "itanium_class" "sem")])
 
 (define_insn "sync_lock_test_and_set<mode>"
   [(set (match_operand:IMODE 0 "gr_register_operand" "=r")
         (match_operand:IMODE 1 "not_postinc_memory_operand" "+S"))
    (set (match_dup 1)
-        (match_operand:IMODE 2 "gr_register_operand" "r"))]
+        (match_operand:IMODE 2 "gr_reg_or_0_operand" "rO"))]
   ""
-  "xchg<modesuffix> %0 = %1, %2"
+  "xchg<modesuffix> %0 = %1, %r2"
   [(set_attr "itanium_class" "sem")])
 
 (define_expand "sync_lock_release<mode>"

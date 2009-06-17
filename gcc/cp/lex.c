@@ -81,6 +81,8 @@ struct impl_files
 
 static struct impl_files *impl_file_chain;
 
+/* True if we saw "#pragma GCC java_exceptions".  */
+bool pragma_java_exceptions;
 
 void
 cxx_finish (void)
@@ -430,6 +432,7 @@ handle_pragma_java_exceptions (cpp_reader* dfile ATTRIBUTE_UNUSED)
     warning (0, "junk at end of #pragma GCC java_exceptions");
 
   choose_personality_routine (lang_java);
+  pragma_java_exceptions = true;
 }
 
 /* Issue an error message indicating that the lookup of NAME (an
@@ -451,7 +454,8 @@ unqualified_name_lookup_error (tree name)
       if (current_function_decl)
 	{
 	  tree decl;
-	  decl = build_decl (VAR_DECL, name, error_mark_node);
+	  decl = build_decl (input_location,
+			     VAR_DECL, name, error_mark_node);
 	  DECL_CONTEXT (decl) = current_function_decl;
 	  push_local_binding (name, decl, 0);
 	  /* Mark the variable as used so that we do not get warnings
@@ -508,7 +512,8 @@ build_lang_decl (enum tree_code code, tree name, tree type)
 {
   tree t;
 
-  t = build_decl (code, name, type);
+  t = build_decl (input_location,
+		  code, name, type);
   retrofit_lang_decl (t);
 
   /* All nesting of C++ functions is lexical; there is never a "static

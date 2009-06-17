@@ -1,6 +1,6 @@
 /* Expands front end tree to back end RTL for GCC.
    Copyright (C) 1987, 1988, 1989, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -124,68 +124,11 @@ struct machine_function * (*init_machine_status) (void);
 /* The currently compiled function.  */
 struct function *cfun = 0;
 
-/* These arrays record the INSN_UIDs of the prologue and epilogue insns.  */
-static VEC(int,heap) *prologue;
-static VEC(int,heap) *epilogue;
-
-/* Array of INSN_UIDs to hold the INSN_UIDs for each sibcall epilogue
-   in this function.  */
-static VEC(int,heap) *sibcall_epilogue;
-
-/* In order to evaluate some expressions, such as function calls returning
-   structures in memory, we need to temporarily allocate stack locations.
-   We record each allocated temporary in the following structure.
-
-   Associated with each temporary slot is a nesting level.  When we pop up
-   one level, all temporaries associated with the previous level are freed.
-   Normally, all temporaries are freed after the execution of the statement
-   in which they were created.  However, if we are inside a ({...}) grouping,
-   the result may be in a temporary and hence must be preserved.  If the
-   result could be in a temporary, we preserve it if we can determine which
-   one it is in.  If we cannot determine which temporary may contain the
-   result, all temporaries are preserved.  A temporary is preserved by
-   pretending it was allocated at the previous nesting level.
-
-   Automatic variables are also assigned temporary slots, at the nesting
-   level where they are defined.  They are marked a "kept" so that
-   free_temp_slots will not free them.  */
-
-struct temp_slot GTY(())
-{
-  /* Points to next temporary slot.  */
-  struct temp_slot *next;
-  /* Points to previous temporary slot.  */
-  struct temp_slot *prev;
-
-  /* The rtx to used to reference the slot.  */
-  rtx slot;
-  /* The rtx used to represent the address if not the address of the
-     slot above.  May be an EXPR_LIST if multiple addresses exist.  */
-  rtx address;
-  /* The alignment (in bits) of the slot.  */
-  unsigned int align;
-  /* The size, in units, of the slot.  */
-  HOST_WIDE_INT size;
-  /* The type of the object in the slot, or zero if it doesn't correspond
-     to a type.  We use this to determine whether a slot can be reused.
-     It can be reused if objects of the type of the new slot will always
-     conflict with objects of the type of the old slot.  */
-  tree type;
-  /* Nonzero if this temporary is currently in use.  */
-  char in_use;
-  /* Nonzero if this temporary has its address taken.  */
-  char addr_taken;
-  /* Nesting level at which this slot is being used.  */
-  int level;
-  /* Nonzero if this should survive a call to free_temp_slots.  */
-  int keep;
-  /* The offset of the slot from the frame_pointer, including extra space
-     for alignment.  This info is for combine_temp_slots.  */
-  HOST_WIDE_INT base_offset;
-  /* The size of the slot, including extra space for alignment.  This
-     info is for combine_temp_slots.  */
-  HOST_WIDE_INT full_size;
-};
+/* These hashes record the prologue and epilogue insns.  */
+static GTY((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
+  htab_t prologue_insn_hash;
+static GTY((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
+  htab_t epilogue_insn_hash;
 
 /* Forward declarations.  */
 
@@ -198,8 +141,8 @@ static tree *get_block_vector (tree, int *);
 extern tree debug_find_var_in_block_tree (tree, tree);
 /* We always define `record_insns' even if it's not used so that we
    can always export `prologue_epilogue_contains'.  */
-static void record_insns (rtx, VEC(int,heap) **) ATTRIBUTE_UNUSED;
-static int contains (const_rtx, VEC(int,heap) **);
+static void record_insns (rtx, rtx, htab_t *) ATTRIBUTE_UNUSED;
+static bool contains (const_rtx, htab_t);
 #ifdef HAVE_return
 static void emit_return_into_block (basic_block);
 #endif
@@ -262,9 +205,9 @@ free_after_parsing (struct function *f)
 void
 free_after_compilation (struct function *f)
 {
-  VEC_free (int, heap, prologue);
-  VEC_free (int, heap, epilogue);
-  VEC_free (int, heap, sibcall_epilogue);
+  prologue_insn_hash = NULL;
+  epilogue_insn_hash = NULL;
+
   if (crtl->emit.regno_pointer_align)
     free (crtl->emit.regno_pointer_align);
 
@@ -412,8 +355,8 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size,
 
   if (crtl->stack_alignment_needed < alignment_in_bits)
     crtl->stack_alignment_needed = alignment_in_bits;
-  if (crtl->max_used_stack_slot_alignment < crtl->stack_alignment_needed)
-    crtl->max_used_stack_slot_alignment = crtl->stack_alignment_needed;
+  if (crtl->max_used_stack_slot_alignment < alignment_in_bits)
+    crtl->max_used_stack_slot_alignment = alignment_in_bits;
 
   /* Calculate how many bytes the start of local variables is off from
      stack alignment.  */
@@ -486,6 +429,68 @@ assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
   return assign_stack_local_1 (mode, size, align, false);
 }
 
+
+/* In order to evaluate some expressions, such as function calls returning
+   structures in memory, we need to temporarily allocate stack locations.
+   We record each allocated temporary in the following structure.
+
+   Associated with each temporary slot is a nesting level.  When we pop up
+   one level, all temporaries associated with the previous level are freed.
+   Normally, all temporaries are freed after the execution of the statement
+   in which they were created.  However, if we are inside a ({...}) grouping,
+   the result may be in a temporary and hence must be preserved.  If the
+   result could be in a temporary, we preserve it if we can determine which
+   one it is in.  If we cannot determine which temporary may contain the
+   result, all temporaries are preserved.  A temporary is preserved by
+   pretending it was allocated at the previous nesting level.
+
+   Automatic variables are also assigned temporary slots, at the nesting
+   level where they are defined.  They are marked a "kept" so that
+   free_temp_slots will not free them.  */
+
+struct GTY(()) temp_slot {
+  /* Points to next temporary slot.  */
+  struct temp_slot *next;
+  /* Points to previous temporary slot.  */
+  struct temp_slot *prev;
+  /* The rtx to used to reference the slot.  */
+  rtx slot;
+  /* The size, in units, of the slot.  */
+  HOST_WIDE_INT size;
+  /* The type of the object in the slot, or zero if it doesn't correspond
+     to a type.  We use this to determine whether a slot can be reused.
+     It can be reused if objects of the type of the new slot will always
+     conflict with objects of the type of the old slot.  */
+  tree type;
+  /* The alignment (in bits) of the slot.  */
+  unsigned int align;
+  /* Nonzero if this temporary is currently in use.  */
+  char in_use;
+  /* Nonzero if this temporary has its address taken.  */
+  char addr_taken;
+  /* Nesting level at which this slot is being used.  */
+  int level;
+  /* Nonzero if this should survive a call to free_temp_slots.  */
+  int keep;
+  /* The offset of the slot from the frame_pointer, including extra space
+     for alignment.  This info is for combine_temp_slots.  */
+  HOST_WIDE_INT base_offset;
+  /* The size of the slot, including extra space for alignment.  This
+     info is for combine_temp_slots.  */
+  HOST_WIDE_INT full_size;
+};
+
+/* A table of addresses that represent a stack slot.  The table is a mapping
+   from address RTXen to a temp slot.  */
+static GTY((param_is(struct temp_slot_address_entry))) htab_t temp_slot_address_table;
+
+/* Entry for the above hash table.  */
+struct GTY(()) temp_slot_address_entry {
+  hashval_t hash;
+  rtx address;
+  struct temp_slot *temp_slot;
+};
+
 /* Removes temporary slot TEMP from LIST.  */
 
 static void
@@ -554,6 +559,114 @@ make_slot_available (struct temp_slot *temp)
   insert_slot_to_list (temp, &avail_temp_slots);
   temp->in_use = 0;
   temp->level = -1;
+}
+
+/* Compute the hash value for an address -> temp slot mapping.
+   The value is cached on the mapping entry.  */
+static hashval_t
+temp_slot_address_compute_hash (struct temp_slot_address_entry *t)
+{
+  int do_not_record = 0;
+  return hash_rtx (t->address, GET_MODE (t->address),
+		   &do_not_record, NULL, false);
+}
+
+/* Return the hash value for an address -> temp slot mapping.  */
+static hashval_t
+temp_slot_address_hash (const void *p)
+{
+  const struct temp_slot_address_entry *t;
+  t = (const struct temp_slot_address_entry *) p;
+  return t->hash;
+}
+
+/* Compare two address -> temp slot mapping entries.  */
+static int
+temp_slot_address_eq (const void *p1, const void *p2)
+{
+  const struct temp_slot_address_entry *t1, *t2;
+  t1 = (const struct temp_slot_address_entry *) p1;
+  t2 = (const struct temp_slot_address_entry *) p2;
+  return exp_equiv_p (t1->address, t2->address, 0, true);
+}
+
+/* Add ADDRESS as an alias of TEMP_SLOT to the addess -> temp slot mapping.  */
+static void
+insert_temp_slot_address (rtx address, struct temp_slot *temp_slot)
+{
+  void **slot;
+  struct temp_slot_address_entry *t = GGC_NEW (struct temp_slot_address_entry);
+  t->address = address;
+  t->temp_slot = temp_slot;
+  t->hash = temp_slot_address_compute_hash (t);
+  slot = htab_find_slot_with_hash (temp_slot_address_table, t, t->hash, INSERT);
+  *slot = t;
+}
+
+/* Remove an address -> temp slot mapping entry if the temp slot is
+   not in use anymore.  Callback for remove_unused_temp_slot_addresses.  */
+static int
+remove_unused_temp_slot_addresses_1 (void **slot, void *data ATTRIBUTE_UNUSED)
+{
+  const struct temp_slot_address_entry *t;
+  t = (const struct temp_slot_address_entry *) *slot;
+  if (! t->temp_slot->in_use)
+    *slot = NULL;
+  return 1;
+}
+
+/* Remove all mappings of addresses to unused temp slots.  */
+static void
+remove_unused_temp_slot_addresses (void)
+{
+  htab_traverse (temp_slot_address_table,
+		 remove_unused_temp_slot_addresses_1,
+		 NULL);
+}
+
+/* Find the temp slot corresponding to the object at address X.  */
+
+static struct temp_slot *
+find_temp_slot_from_address (rtx x)
+{
+  struct temp_slot *p;
+  struct temp_slot_address_entry tmp, *t;
+
+  /* First try the easy way:
+     See if X exists in the address -> temp slot mapping.  */
+  tmp.address = x;
+  tmp.temp_slot = NULL;
+  tmp.hash = temp_slot_address_compute_hash (&tmp);
+  t = (struct temp_slot_address_entry *)
+    htab_find_with_hash (temp_slot_address_table, &tmp, tmp.hash);
+  if (t)
+    return t->temp_slot;
+
+  /* If we have a sum involving a register, see if it points to a temp
+     slot.  */
+  if (GET_CODE (x) == PLUS && REG_P (XEXP (x, 0))
+      && (p = find_temp_slot_from_address (XEXP (x, 0))) != 0)
+    return p;
+  else if (GET_CODE (x) == PLUS && REG_P (XEXP (x, 1))
+	   && (p = find_temp_slot_from_address (XEXP (x, 1))) != 0)
+    return p;
+
+  /* Last resort: Address is a virtual stack var address.  */
+  if (GET_CODE (x) == PLUS
+      && XEXP (x, 0) == virtual_stack_vars_rtx
+      && GET_CODE (XEXP (x, 1)) == CONST_INT)
+    {
+      int i;
+      for (i = max_slot_level (); i >= 0; i--)
+	for (p = *temp_slots_at_level (i); p; p = p->next)
+	  {
+	    if (INTVAL (XEXP (x, 1)) >= p->base_offset
+		&& INTVAL (XEXP (x, 1)) < p->base_offset + p->full_size)
+	      return p;
+	  }
+    }
+
+  return NULL;
 }
 
 /* Allocate a temporary stack slot and record it for possible later
@@ -641,7 +754,6 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
 	      p->full_size = best_p->full_size - rounded_size;
 	      p->slot = adjust_address_nv (best_p->slot, BLKmode, rounded_size);
 	      p->align = best_p->align;
-	      p->address = 0;
 	      p->type = best_p->type;
 	      insert_slot_to_list (p, &avail_temp_slots);
 
@@ -700,7 +812,6 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
 	  p->base_offset = frame_offset_old;
 	  p->full_size = frame_offset - frame_offset_old;
 	}
-      p->address = 0;
 
       selected = p;
     }
@@ -714,6 +825,7 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
 
   pp = temp_slots_at_level (p->level);
   insert_slot_to_list (p, pp);
+  insert_temp_slot_address (XEXP (p->slot, 0), p);
 
   /* Create a new MEM rtx to avoid clobbering MEM flags of old slots.  */
   slot = gen_rtx_MEM (mode, XEXP (p->slot, 0));
@@ -882,45 +994,6 @@ combine_temp_slots (void)
     }
 }
 
-/* Find the temp slot corresponding to the object at address X.  */
-
-static struct temp_slot *
-find_temp_slot_from_address (rtx x)
-{
-  struct temp_slot *p;
-  rtx next;
-  int i;
-
-  for (i = max_slot_level (); i >= 0; i--)
-    for (p = *temp_slots_at_level (i); p; p = p->next)
-      {
-	if (XEXP (p->slot, 0) == x
-	    || p->address == x
-	    || (GET_CODE (x) == PLUS
-		&& XEXP (x, 0) == virtual_stack_vars_rtx
-		&& GET_CODE (XEXP (x, 1)) == CONST_INT
-		&& INTVAL (XEXP (x, 1)) >= p->base_offset
-		&& INTVAL (XEXP (x, 1)) < p->base_offset + p->full_size))
-	  return p;
-
-	else if (p->address != 0 && GET_CODE (p->address) == EXPR_LIST)
-	  for (next = p->address; next; next = XEXP (next, 1))
-	    if (XEXP (next, 0) == x)
-	      return p;
-      }
-
-  /* If we have a sum involving a register, see if it points to a temp
-     slot.  */
-  if (GET_CODE (x) == PLUS && REG_P (XEXP (x, 0))
-      && (p = find_temp_slot_from_address (XEXP (x, 0))) != 0)
-    return p;
-  else if (GET_CODE (x) == PLUS && REG_P (XEXP (x, 1))
-	   && (p = find_temp_slot_from_address (XEXP (x, 1))) != 0)
-    return p;
-
-  return 0;
-}
-
 /* Indicate that NEW_RTX is an alternate way of referring to the temp
    slot that previously was known by OLD_RTX.  */
 
@@ -967,15 +1040,7 @@ update_temp_slot_address (rtx old_rtx, rtx new_rtx)
     }
 
   /* Otherwise add an alias for the temp's address.  */
-  else if (p->address == 0)
-    p->address = new_rtx;
-  else
-    {
-      if (GET_CODE (p->address) != EXPR_LIST)
-	p->address = gen_rtx_EXPR_LIST (VOIDmode, p->address, NULL_RTX);
-
-      p->address = gen_rtx_EXPR_LIST (VOIDmode, new_rtx, p->address);
-    }
+  insert_temp_slot_address (new_rtx, p);
 }
 
 /* If X could be a reference to a temporary slot, mark the fact that its
@@ -1103,6 +1168,7 @@ free_temp_slots (void)
 	make_slot_available (p);
     }
 
+  remove_unused_temp_slot_addresses ();
   combine_temp_slots ();
 }
 
@@ -1128,6 +1194,7 @@ pop_temp_slots (void)
       make_slot_available (p);
     }
 
+  remove_unused_temp_slot_addresses ();
   combine_temp_slots ();
 
   temp_slot_level--;
@@ -1142,6 +1209,15 @@ init_temp_slots (void)
   avail_temp_slots = 0;
   used_temp_slots = 0;
   temp_slot_level = 0;
+
+  /* Set up the table to map addresses to temp slots.  */
+  if (! temp_slot_address_table)
+    temp_slot_address_table = htab_create_ggc (32,
+					       temp_slot_address_hash,
+					       temp_slot_address_eq,
+					       NULL);
+  else
+    htab_empty (temp_slot_address_table);
 }
 
 /* These routines are responsible for converting virtual register references
@@ -1733,7 +1809,7 @@ struct rtl_opt_pass pass_instantiate_virtual_regs =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -1766,7 +1842,9 @@ aggregate_value_p (const_tree exp, const_tree fntype)
       {
       case CALL_EXPR:
 	fndecl = get_callee_fndecl (fntype);
-	fntype = fndecl ? TREE_TYPE (fndecl) : 0;
+	fntype = (fndecl
+		  ? TREE_TYPE (fndecl)
+		  : TREE_TYPE (TREE_TYPE (CALL_EXPR_FN (fntype))));
 	break;
       case FUNCTION_DECL:
 	fndecl = fntype;
@@ -1860,7 +1938,28 @@ use_register_for_decl (const_tree decl)
   if (DECL_IGNORED_P (decl))
     return true;
 
-  return (optimize || DECL_REGISTER (decl));
+  if (optimize)
+    return true;
+
+  if (!DECL_REGISTER (decl))
+    return false;
+
+  switch (TREE_CODE (TREE_TYPE (decl)))
+    {
+    case RECORD_TYPE:
+    case UNION_TYPE:
+    case QUAL_UNION_TYPE:
+      /* When not optimizing, disregard register keyword for variables with
+	 types containing methods, otherwise the methods won't be callable
+	 from the debugger.  */
+      if (TYPE_METHODS (TREE_TYPE (decl)))
+	return false;
+      break;
+    default:
+      break;
+    }
+
+  return true;
 }
 
 /* Return true if TYPE should be passed by invisible reference.  */
@@ -2001,7 +2100,8 @@ split_complex_args (tree args)
 	  layout_decl (p, 0);
 
 	  /* Build a second synthetic decl.  */
-	  decl = build_decl (PARM_DECL, NULL_TREE, subtype);
+	  decl = build_decl (EXPR_LOCATION (p),
+			     PARM_DECL, NULL_TREE, subtype);
 	  DECL_ARG_TYPE (decl) = DECL_ARG_TYPE (p);
 	  DECL_ARTIFICIAL (decl) = addressable;
 	  DECL_IGNORED_P (decl) = addressable;
@@ -2036,7 +2136,8 @@ assign_parms_augmented_arg_list (struct assign_parm_data_all *all)
       tree type = build_pointer_type (TREE_TYPE (fntype));
       tree decl;
 
-      decl = build_decl (PARM_DECL, NULL_TREE, type);
+      decl = build_decl (DECL_SOURCE_LOCATION (fndecl),
+			 PARM_DECL, NULL_TREE, type);
       DECL_ARG_TYPE (decl) = type;
       DECL_ARTIFICIAL (decl) = 1;
       DECL_IGNORED_P (decl) = 1;
@@ -2885,10 +2986,13 @@ assign_parm_setup_stack (struct assign_parm_data_all *all, tree parm,
 
       if (data->stack_parm == 0)
 	{
+	  int align = STACK_SLOT_ALIGNMENT (data->passed_type,
+					    GET_MODE (data->entry_parm),
+					    TYPE_ALIGN (data->passed_type));
 	  data->stack_parm
 	    = assign_stack_local (GET_MODE (data->entry_parm),
 				  GET_MODE_SIZE (GET_MODE (data->entry_parm)),
-				  TYPE_ALIGN (data->passed_type));
+				  align);
 	  set_mem_attributes (data->stack_parm, parm, 1);
 	}
 
@@ -2950,11 +3054,13 @@ assign_parms_unsplit_complex (struct assign_parm_data_all *all, tree fnargs)
 	    {
 	      rtx rmem, imem;
 	      HOST_WIDE_INT size = int_size_in_bytes (TREE_TYPE (parm));
+	      int align = STACK_SLOT_ALIGNMENT (TREE_TYPE (parm),
+						DECL_MODE (parm),
+						TYPE_ALIGN (TREE_TYPE (parm)));
 
 	      /* split_complex_arg put the real and imag parts in
 		 pseudos.  Move them to memory.  */
-	      tmp = assign_stack_local (DECL_MODE (parm), size,
-					TYPE_ALIGN (TREE_TYPE (parm)));
+	      tmp = assign_stack_local (DECL_MODE (parm), size, align);
 	      set_mem_attributes (tmp, parm, 1);
 	      rmem = adjust_address_nv (tmp, inner, 0);
 	      imem = adjust_address_nv (tmp, inner, GET_MODE_SIZE (inner));
@@ -3141,7 +3247,7 @@ assign_parms (tree fndecl)
     = (all.stack_args_size.var == 0 ? GEN_INT (-all.stack_args_size.constant)
        : expand_expr (size_diffop (all.stack_args_size.var,
 				   size_int (-all.stack_args_size.constant)),
-		      NULL_RTX, VOIDmode, 0));
+		      NULL_RTX, VOIDmode, EXPAND_NORMAL));
 #else
   crtl->args.arg_offset_rtx = ARGS_SIZE_RTX (all.stack_args_size);
 #endif
@@ -3416,8 +3522,6 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
      calling function side.  */
   if (crtl->stack_alignment_needed < boundary)
     crtl->stack_alignment_needed = boundary;
-  if (crtl->max_used_stack_slot_alignment < crtl->stack_alignment_needed)
-    crtl->max_used_stack_slot_alignment = crtl->stack_alignment_needed;
   if (crtl->preferred_stack_boundary < boundary)
     crtl->preferred_stack_boundary = boundary;
 
@@ -4033,6 +4137,7 @@ static void
 prepare_function_start (void)
 {
   gcc_assert (!crtl->emit.x_last_insn);
+  init_temp_slots ();
   init_emit ();
   init_varasm_status ();
   init_expr ();
@@ -4089,18 +4194,11 @@ init_function_start (tree subr)
     warning (OPT_Waggregate_return, "function returns an aggregate");
 }
 
-/* Make sure all values used by the optimization passes have sane
-   defaults.  */
+/* Make sure all values used by the optimization passes have sane defaults.  */
 unsigned int
 init_function_for_compilation (void)
 {
   reg_renumber = 0;
-
-  /* No prologue/epilogue insns yet.  Make sure that these vectors are
-     empty.  */
-  gcc_assert (VEC_length (int, prologue) == 0);
-  gcc_assert (VEC_length (int, epilogue) == 0);
-  gcc_assert (VEC_length (int, sibcall_epilogue) == 0);
   return 0;
 }
 
@@ -4114,7 +4212,7 @@ struct rtl_opt_pass pass_init_function =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -4695,7 +4793,6 @@ expand_function_end (void)
 
     start_sequence ();
     clobber_return_register ();
-    expand_naked_return ();
     seq = get_insns ();
     end_sequence ();
 
@@ -4703,7 +4800,8 @@ expand_function_end (void)
   }
 
   /* Output the label for the naked return from the function.  */
-  emit_label (naked_return_label);
+  if (naked_return_label)
+    emit_label (naked_return_label);
 
   /* @@@ This is a kludge.  We want to ensure that instructions that
      may trap are not moved into the epilogue by scheduling, because
@@ -4766,16 +4864,42 @@ get_arg_pointer_save_area (void)
   return ret;
 }
 
-/* Extend a vector that records the INSN_UIDs of INSNS
-   (a list of one or more insns).  */
+/* Add a list of INSNS to the hash HASHP, possibly allocating HASHP
+   for the first time.  */
 
 static void
-record_insns (rtx insns, VEC(int,heap) **vecp)
+record_insns (rtx insns, rtx end, htab_t *hashp)
 {
   rtx tmp;
+  htab_t hash = *hashp;
 
-  for (tmp = insns; tmp != NULL_RTX; tmp = NEXT_INSN (tmp))
-    VEC_safe_push (int, heap, *vecp, INSN_UID (tmp));
+  if (hash == NULL)
+    *hashp = hash
+      = htab_create_ggc (17, htab_hash_pointer, htab_eq_pointer, NULL);
+
+  for (tmp = insns; tmp != end; tmp = NEXT_INSN (tmp))
+    {
+      void **slot = htab_find_slot (hash, tmp, INSERT);
+      gcc_assert (*slot == NULL);
+      *slot = tmp;
+    }
+}
+
+/* INSN has been duplicated as COPY, as part of duping a basic block.
+   If INSN is an epilogue insn, then record COPY as epilogue as well.  */
+
+void
+maybe_copy_epilogue_insn (rtx insn, rtx copy)
+{
+  void **slot;
+
+  if (epilogue_insn_hash == NULL
+      || htab_find (epilogue_insn_hash, insn) == NULL)
+    return;
+
+  slot = htab_find_slot (epilogue_insn_hash, copy, INSERT);
+  gcc_assert (*slot == NULL);
+  *slot = copy;
 }
 
 /* Set the locator of the insn chain starting at INSN to LOC.  */
@@ -4790,49 +4914,34 @@ set_insn_locators (rtx insn, int loc)
     }
 }
 
-/* Determine how many INSN_UIDs in VEC are part of INSN.  Because we can
-   be running after reorg, SEQUENCE rtl is possible.  */
+/* Determine if any INSNs in HASH are, or are part of, INSN.  Because
+   we can be running after reorg, SEQUENCE rtl is possible.  */
 
-static int
-contains (const_rtx insn, VEC(int,heap) **vec)
+static bool
+contains (const_rtx insn, htab_t hash)
 {
-  int i, j;
+  if (hash == NULL)
+    return false;
 
-  if (NONJUMP_INSN_P (insn)
-      && GET_CODE (PATTERN (insn)) == SEQUENCE)
+  if (NONJUMP_INSN_P (insn) && GET_CODE (PATTERN (insn)) == SEQUENCE)
     {
-      int count = 0;
+      int i;
       for (i = XVECLEN (PATTERN (insn), 0) - 1; i >= 0; i--)
-	for (j = VEC_length (int, *vec) - 1; j >= 0; --j)
-	  if (INSN_UID (XVECEXP (PATTERN (insn), 0, i))
-	      == VEC_index (int, *vec, j))
-	    count++;
-      return count;
+	if (htab_find (hash, XVECEXP (PATTERN (insn), 0, i)))
+	  return true;
+      return false;
     }
-  else
-    {
-      for (j = VEC_length (int, *vec) - 1; j >= 0; --j)
-	if (INSN_UID (insn) == VEC_index (int, *vec, j))
-	  return 1;
-    }
-  return 0;
+
+  return htab_find (hash, insn) != NULL;
 }
 
 int
 prologue_epilogue_contains (const_rtx insn)
 {
-  if (contains (insn, &prologue))
+  if (contains (insn, prologue_insn_hash))
     return 1;
-  if (contains (insn, &epilogue))
+  if (contains (insn, epilogue_insn_hash))
     return 1;
-  return 0;
-}
-
-int
-sibcall_epilogue_contains (const_rtx insn)
-{
-  if (sibcall_epilogue)
-    return contains (insn, &sibcall_epilogue);
   return 0;
 }
 
@@ -4878,7 +4987,7 @@ thread_prologue_and_epilogue_insns (void)
 	emit_use (hard_frame_pointer_rtx);
 
       /* Retain a map of the prologue insns.  */
-      record_insns (seq, &prologue);
+      record_insns (seq, NULL, &prologue_insn_hash);
       emit_note (NOTE_INSN_PROLOGUE_END);
  
 #ifndef PROFILE_BEFORE_PROLOGUE
@@ -5010,6 +5119,38 @@ thread_prologue_and_epilogue_insns (void)
 	}
     }
 #endif
+
+  /* A small fib -- epilogue is not yet completed, but we wish to re-use
+     this marker for the splits of EH_RETURN patterns, and nothing else
+     uses the flag in the meantime.  */
+  epilogue_completed = 1;
+
+#ifdef HAVE_eh_return
+  /* Find non-fallthru edges that end with EH_RETURN instructions.  On
+     some targets, these get split to a special version of the epilogue
+     code.  In order to be able to properly annotate these with unwind
+     info, try to split them now.  If we get a valid split, drop an
+     EPILOGUE_BEG note and mark the insns as epilogue insns.  */
+  FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
+    {
+      rtx prev, last, trial;
+
+      if (e->flags & EDGE_FALLTHRU)
+	continue;
+      last = BB_END (e->src);
+      if (!eh_returnjump_p (last))
+	continue;
+
+      prev = PREV_INSN (last);
+      trial = try_split (PATTERN (last), last, 1);
+      if (trial == last)
+	continue;
+
+      record_insns (NEXT_INSN (prev), NEXT_INSN (trial), &epilogue_insn_hash);
+      emit_note_after (NOTE_INSN_EPILOGUE_BEG, prev);
+    }
+#endif
+
   /* Find the edge that falls through to EXIT.  Other edges may exist
      due to RETURN instructions, but those don't need epilogues.
      There really shouldn't be a mixture -- either all should have
@@ -5030,7 +5171,7 @@ thread_prologue_and_epilogue_insns (void)
       emit_jump_insn (seq);
 
       /* Retain a map of the epilogue insns.  */
-      record_insns (seq, &epilogue);
+      record_insns (seq, NULL, &epilogue_insn_hash);
       set_insn_locators (seq, epilogue_locator);
 
       seq = get_insns ();
@@ -5092,6 +5233,7 @@ epilogue_done:
 	}
 
       start_sequence ();
+      emit_note (NOTE_INSN_EPILOGUE_BEG);
       emit_insn (gen_sibcall_epilogue ());
       seq = get_insns ();
       end_sequence ();
@@ -5099,7 +5241,7 @@ epilogue_done:
       /* Retain a map of the epilogue insns.  Used in life analysis to
 	 avoid getting rid of sibcall epilogue insns.  Do this before we
 	 actually emit the sequence.  */
-      record_insns (seq, &sibcall_epilogue);
+      record_insns (seq, NULL, &epilogue_insn_hash);
       set_insn_locators (seq, epilogue_locator);
 
       emit_insn_before (seq, insn);
@@ -5133,23 +5275,29 @@ epilogue_done:
   df_update_entry_exit_and_calls ();
 }
 
-/* Reposition the prologue-end and epilogue-begin notes after instruction
-   scheduling and delayed branch scheduling.  */
+/* Reposition the prologue-end and epilogue-begin notes after
+   instruction scheduling.  */
 
 void
 reposition_prologue_and_epilogue_notes (void)
 {
-#if defined (HAVE_prologue) || defined (HAVE_epilogue)
+#if defined (HAVE_prologue) || defined (HAVE_epilogue) \
+    || defined (HAVE_sibcall_epilogue)
   rtx insn, last, note;
-  int len;
+  basic_block bb;
 
-  if ((len = VEC_length (int, prologue)) > 0)
+  /* Since the hash table is created on demand, the fact that it is
+     non-null is a signal that it is non-empty.  */
+  if (prologue_insn_hash != NULL)
     {
+      size_t len = htab_elements (prologue_insn_hash);
       last = 0, note = 0;
 
-      /* Scan from the beginning until we reach the last prologue insn.
-	 We apparently can't depend on basic_block_{head,end} after
-	 reorg has run.  */
+      /* Scan from the beginning until we reach the last prologue insn.  */
+      /* ??? While we do have the CFG intact, there are two problems:
+	 (1) The prologue can contain loops (typically probing the stack),
+	     which means that the end of the prologue isn't in the first bb.
+	 (2) Sometimes the PROLOGUE_END note gets pushed into the next bb.  */
       for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
 	{
 	  if (NOTE_P (insn))
@@ -5157,7 +5305,7 @@ reposition_prologue_and_epilogue_notes (void)
 	      if (NOTE_KIND (insn) == NOTE_INSN_PROLOGUE_END)
 		note = insn;
 	    }
-	  else if (contains (insn, &prologue))
+	  else if (contains (insn, prologue_insn_hash))
 	    {
 	      last = insn;
 	      if (--len == 0)
@@ -5167,14 +5315,17 @@ reposition_prologue_and_epilogue_notes (void)
 
       if (last)
 	{
-	  /* Find the prologue-end note if we haven't already, and
-	     move it to just after the last prologue insn.  */
-	  if (note == 0)
+	  if (note == NULL)
 	    {
-	      for (note = last; (note = NEXT_INSN (note));)
-		if (NOTE_P (note)
-		    && NOTE_KIND (note) == NOTE_INSN_PROLOGUE_END)
-		  break;
+	      /* Scan forward looking for the PROLOGUE_END note.  It should
+		 be right at the beginning of the block, possibly with other
+		 insn notes that got moved there.  */
+	      for (note = NEXT_INSN (last); ; note = NEXT_INSN (note))
+		{
+		  if (NOTE_P (note)
+		      && NOTE_KIND (note) == NOTE_INSN_PROLOGUE_END)
+		    break;
+		}
 	    }
 
 	  /* Avoid placing note between CODE_LABEL and BASIC_BLOCK note.  */
@@ -5184,41 +5335,39 @@ reposition_prologue_and_epilogue_notes (void)
 	}
     }
 
-  if ((len = VEC_length (int, epilogue)) > 0)
+  if (epilogue_insn_hash != NULL)
     {
-      last = 0, note = 0;
+      edge_iterator ei;
+      edge e;
 
-      /* Scan from the end until we reach the first epilogue insn.
-	 We apparently can't depend on basic_block_{head,end} after
-	 reorg has run.  */
-      for (insn = get_last_insn (); insn; insn = PREV_INSN (insn))
+      FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
 	{
-	  if (NOTE_P (insn))
-	    {
-	      if (NOTE_KIND (insn) == NOTE_INSN_EPILOGUE_BEG)
-		note = insn;
-	    }
-	  else if (contains (insn, &epilogue))
-	    {
-	      last = insn;
-	      if (--len == 0)
-		break;
-	    }
-	}
+	  last = 0, note = 0;
+	  bb = e->src;
 
-      if (last)
-	{
-	  /* Find the epilogue-begin note if we haven't already, and
-	     move it to just before the first epilogue insn.  */
-	  if (note == 0)
+	  /* Scan from the beginning until we reach the first epilogue insn.
+	     Take the cue for whether this is a plain or sibcall epilogue
+	     from the kind of note we find first.  */
+	  FOR_BB_INSNS (bb, insn)
 	    {
-	      for (note = insn; (note = PREV_INSN (note));)
-		if (NOTE_P (note)
-		    && NOTE_KIND (note) == NOTE_INSN_EPILOGUE_BEG)
-		  break;
+	      if (NOTE_P (insn))
+		{
+		  if (NOTE_KIND (insn) == NOTE_INSN_EPILOGUE_BEG)
+		    {
+		      note = insn;
+		      if (last)
+			break;
+		    }
+		}
+	      else if (contains (insn, epilogue_insn_hash))
+		{
+		  last = insn;
+		  if (note != NULL)
+		    break;
+		}
 	    }
-
-	  if (PREV_INSN (last) != note)
+	     
+	  if (last && note && PREV_INSN (last) != note)
 	    reorder_insns (note, note, PREV_INSN (last));
 	}
     }
@@ -5230,13 +5379,6 @@ const char *
 current_function_name (void)
 {
   return lang_hooks.decl_printable_name (cfun->decl, 2);
-}
-
-/* Returns the raw (mangled) name of the current function.  */
-const char *
-current_function_assembler_name (void)
-{
-  return IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (cfun->decl));
 }
 
 
@@ -5288,7 +5430,7 @@ struct rtl_opt_pass pass_leaf_regs =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -5393,6 +5535,9 @@ match_asm_constraints_1 (rtx insn, rtx *p_sets, int noutputs)
       const char *constraint = ASM_OPERANDS_INPUT_CONSTRAINT (op, i);
       char *end;
       int match, j;
+
+      if (*constraint == '%')
+	constraint++;
 
       match = strtoul (constraint, &end, 10);
       if (end == constraint)
@@ -5520,7 +5665,7 @@ struct rtl_opt_pass pass_match_asm_constraints =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */

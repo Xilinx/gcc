@@ -115,6 +115,7 @@ dnl  OPT_LDFLAGS='-Wl,-O1' if possible
 dnl  LD (as a side effect of testing)
 dnl Sets:
 dnl  with_gnu_ld
+dnl  libgomp_ld_is_gold (possibly)
 dnl  libgomp_gnu_ld_version (possibly)
 dnl
 dnl The last will be a single integer, e.g., version 1.23.45.0.67.89 will
@@ -146,9 +147,13 @@ AC_DEFUN([LIBGOMP_CHECK_LINKER_FEATURES], [
 
   # Start by getting the version number.  I think the libtool test already
   # does some of this, but throws away the result.
+  libgomp_ld_is_gold=no
+  if $LD --version 2>/dev/null | grep 'GNU gold'> /dev/null 2>&1; then
+    libgomp_ld_is_gold=yes
+  fi
   changequote(,)
   ldver=`$LD --version 2>/dev/null | head -1 | \
-         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+         sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
   changequote([,])
   libgomp_gnu_ld_version=`echo $ldver | \
          $AWK -F. '{ if (NF<3) [$]3=0; print ([$]1*100+[$]2)*100+[$]3 }'`
@@ -270,6 +275,8 @@ if test $enable_symvers = yes; then
   then
     if test $libgomp_gnu_ld_version -ge $libgomp_min_gnu_ld_version ; then
       enable_symvers=gnu
+    elif test $libgomp_ld_is_gold = yes ; then
+      enable_symvers=gnu
     else
       # The right tools, the right setup, but too old.  Fallbacks?
       AC_MSG_WARN(=== Linker version $libgomp_gnu_ld_version is too old for)
@@ -296,6 +303,16 @@ if test $enable_symvers = yes; then
     AC_MSG_WARN([=== Symbol versioning will be disabled.])
     enable_symvers=no
   fi
+fi
+
+AC_CACHE_CHECK([whether the target supports .symver directive],
+	       libgomp_cv_have_as_symver_directive, [
+  AC_TRY_COMPILE([void foo (void); __asm (".symver foo, bar@SYMVER");],
+		 [], libgomp_cv_have_as_symver_directive=yes,
+		 libgomp_cv_have_as_symver_directive=no)])
+if test $libgomp_cv_have_as_symver_directive = yes; then
+  AC_DEFINE(HAVE_AS_SYMVER_DIRECTIVE, 1,
+    [Define to 1 if the target assembler supports .symver directive.])
 fi
 
 AM_CONDITIONAL(LIBGOMP_BUILD_VERSIONED_SHLIB, test $enable_symvers != no)

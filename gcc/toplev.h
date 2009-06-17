@@ -1,6 +1,6 @@
 /* toplev.h - Various declarations for functions found in toplev.c
-   Copyright (C) 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -21,13 +21,14 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_TOPLEV_H
 #define GCC_TOPLEV_H
 #include "input.h"
+#include "bversion.h"
 
 /* If non-NULL, return one past-the-end of the matching SUBPART of
    the WHOLE string.  */
 #define skip_leading_substring(whole,  part) \
    (strncmp (whole, part, strlen (part)) ? NULL : whole + strlen (part))
 
-extern int toplev_main (unsigned int, const char **);
+extern int toplev_main (int, char **);
 extern int read_integral_parameter (const char *, const char *, const int);
 extern void strip_off_ending (char *, int);
 extern const char *trim_filename (const char *);
@@ -49,7 +50,7 @@ extern void _fatal_insn (const char *, const_rtx, const char *, int, const char 
 /* None of these functions are suitable for ATTRIBUTE_PRINTF, because
    each language front end can extend them with its own set of format
    specifiers.  We must use custom format checks.  */
-#if GCC_VERSION >= 4001
+#if (ENABLE_CHECKING && GCC_VERSION >= 4001) || GCC_VERSION == BUILDING_GCC_VERSION
 #define ATTRIBUTE_GCC_DIAG(m, n) __attribute__ ((__format__ (GCC_DIAG_STYLE, m, n))) ATTRIBUTE_NONNULL(m)
 #else
 #define ATTRIBUTE_GCC_DIAG(m, n) ATTRIBUTE_NONNULL(m)
@@ -83,7 +84,7 @@ extern void announce_function (tree);
 
 extern void error_for_asm (const_rtx, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
 extern void warning_for_asm (const_rtx, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
-extern void warn_deprecated_use (tree);
+extern void warn_deprecated_use (tree, tree);
 extern bool parse_optimize_options (tree, bool);
 
 #ifdef BUFSIZ
@@ -132,6 +133,7 @@ extern int flag_if_conversion;
 extern int flag_if_conversion2;
 extern int flag_keep_static_consts;
 extern int flag_peel_loops;
+extern int flag_rerun_cse_after_global_opts;
 extern int flag_rerun_cse_after_loop;
 extern int flag_thread_jumps;
 extern int flag_tracer;
@@ -140,7 +142,6 @@ extern int flag_unroll_all_loops;
 extern int flag_unswitch_loops;
 extern int flag_cprop_registers;
 extern int time_report;
-extern int flag_ira;
 extern int flag_ira_coalesce;
 extern int flag_ira_move_spills;
 extern int flag_ira_share_save_slots;
@@ -168,14 +169,17 @@ extern void decode_d_option		(const char *);
 extern bool fast_math_flags_set_p	(void);
 extern bool fast_math_flags_struct_set_p (struct cl_optimization *);
 
+/* Inline versions of the above for speed.  */
+#if GCC_VERSION < 3004
+
 /* Return log2, or -1 if not exact.  */
 extern int exact_log2                  (unsigned HOST_WIDE_INT);
 
 /* Return floor of log2, with -1 for zero.  */
 extern int floor_log2                  (unsigned HOST_WIDE_INT);
 
-/* Inline versions of the above for speed.  */
-#if GCC_VERSION >= 3004
+#else /* GCC_VERSION >= 3004 */
+
 # if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
 #  define CLZ_HWI __builtin_clzl
 #  define CTZ_HWI __builtin_ctzl
@@ -187,17 +191,18 @@ extern int floor_log2                  (unsigned HOST_WIDE_INT);
 #  define CTZ_HWI __builtin_ctz
 # endif
 
-extern inline int
+static inline int
 floor_log2 (unsigned HOST_WIDE_INT x)
 {
   return x ? HOST_BITS_PER_WIDE_INT - 1 - (int) CLZ_HWI (x) : -1;
 }
 
-extern inline int
+static inline int
 exact_log2 (unsigned HOST_WIDE_INT x)
 {
   return x == (x & -x) && x ? (int) CTZ_HWI (x) : -1;
 }
+
 #endif /* GCC_VERSION >= 3004 */
 
 /* Functions used to get and set GCC's notion of in what directory

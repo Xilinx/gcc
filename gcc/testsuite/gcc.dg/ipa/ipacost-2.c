@@ -1,5 +1,6 @@
 /* { dg-do compile } */
 /* { dg-options "-O3 -fipa-cp -fipa-cp-clone -fdump-ipa-cp -fno-early-inlining -fdump-tree-optimized"  } */
+/* { dg-options "-O3 -fipa-cp -fipa-cp-clone -fdump-ipa-cp -fno-early-inlining -fdump-tree-optimized -fpie" { target { ! nonpic } } } */
 
 int array[100];
 
@@ -46,6 +47,8 @@ i_can_not_be_propagated_fully2 (int *a)
 main()
 {
   i_can_be_propagated_fully2 (array);
+  i_can_be_propagated_fully2 (array);
+  i_can_not_be_propagated_fully2 (array);
   i_can_not_be_propagated_fully2 (array);
 }
 
@@ -53,7 +56,7 @@ main()
 /* { dg-final { scan-ipa-dump-times "versioned function i_can_be_propagated_fully " 1 "cp"  } } */
 /* { dg-final { scan-ipa-dump-times "versioned function i_can_not_be_propagated_fully2" 1 "cp"  } } */
 /* { dg-final { scan-ipa-dump-times "versioned function i_can_not_be_propagated_fully " 1 "cp"  } } */
-/* { dg-final { scan-tree-dump-not "i_can_be_propagated" "optimized"  } } */
-/* { dg-final { scan-tree-dump-not "i_can_be_propagated" "optimized"  } } */
+/* { dg-final { scan-tree-dump-not "i_can_be_propagated_fully \\(" "optimized"  } } */
+/* { dg-final { scan-tree-dump-not "i_can_be_propagated_fully2 \\(" "optimized"  } } */
 /* { dg-final { cleanup-ipa-dump "cp" } } */
 /* { dg-final { cleanup-tree-dump "optimized" } } */

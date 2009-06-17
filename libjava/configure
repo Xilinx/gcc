@@ -459,7 +459,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all classpath libltdl"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os build_libsubdir build_subdir host_subdir target_subdir multi_basedir host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical LN_S mkinstalldirs ANTLR_JAR CREATE_GJDOC_TRUE CREATE_GJDOC_FALSE JAVA_MAINTAINER_MODE_TRUE JAVA_MAINTAINER_MODE_FALSE CC ac_ct_CC EXEEXT OBJEXT CXX ac_ct_CXX CFLAGS CXXFLAGS LDFLAGS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE AS ac_ct_AS LD ac_ct_LD AR ac_ct_AR RANLIB ac_ct_RANLIB JAR ZIP UNZIP MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LIBGCJ_CFLAGS LIBGCJ_CXXFLAGS LIBGCJ_JAVAFLAGS LIBGCJ_LD_SYMBOLIC LIBGCJ_LD_SYMBOLIC_FUNCTIONS LIBGCJDEBUG TOOLKIT XLIB_AWT_TRUE XLIB_AWT_FALSE X_AWT_TRUE X_AWT_FALSE GCJ_FOR_ECJX GCJH host_exeext INCLTDL LIBLTDL DIRLTDL LIBTOOL SED EGREP FGREP GREP DUMPBIN ac_ct_DUMPBIN NM OBJDUMP ac_ct_OBJDUMP lt_ECHO DSYMUTIL ac_ct_DSYMUTIL NMEDIT ac_ct_NMEDIT LIPO ac_ct_LIPO OTOOL ac_ct_OTOOL OTOOL64 ac_ct_OTOOL64 CPP CPPFLAGS CXXCPP GCJ GCJFLAGS GCJDEPMODE am__fastdepGCJ_TRUE am__fastdepGCJ_FALSE subdirs TESTSUBDIR_TRUE TESTSUBDIR_FALSE ECJ_BUILD_JAR ECJ_JAR BUILD_ECJ1_TRUE BUILD_ECJ1_FALSE INSTALL_ECJ_JAR_TRUE INSTALL_ECJ_JAR_FALSE JAVA_HOME_SET_TRUE JAVA_HOME_SET_FALSE JAVA_HOME SUPPRESS_LIBGCJ_BC_TRUE SUPPRESS_LIBGCJ_BC_FALSE BUILD_LIBGCJ_REDUCED_REFLECTION_TRUE BUILD_LIBGCJ_REDUCED_REFLECTION_FALSE INTERPRETER INTERPRETER_TRUE INTERPRETER_FALSE LIBFFI LIBFFIINCS PLATFORM USING_WIN32_PLATFORM_TRUE USING_WIN32_PLATFORM_FALSE USING_POSIX_PLATFORM_TRUE USING_POSIX_PLATFORM_FALSE USING_DARWIN_CRT_TRUE USING_DARWIN_CRT_FALSE SYSTEMSPEC ZLIBSPEC ZLIBTESTSPEC X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS extra_ldflags_libjava extra_gij_ldflags extra_ldflags LIBSTDCXXSPEC LIBGCJTESTSPEC GCLIBS GCINCS GCDEPS GCSPEC JC1GCSPEC GCTESTSPEC USING_BOEHMGC_TRUE USING_BOEHMGC_FALSE USING_NOGC_TRUE USING_NOGC_FALSE THREADLIBS THREADINCS THREADDEPS THREADSPEC THREADSTARTFILESPEC THREADLDFLAGS THREADCXXFLAGS USING_POSIX_THREADS_TRUE USING_POSIX_THREADS_FALSE USING_WIN32_THREADS_TRUE USING_WIN32_THREADS_FALSE USING_NO_THREADS_TRUE USING_NO_THREADS_FALSE USE_LIBGCJ_BC_TRUE USE_LIBGCJ_BC_FALSE LIBGCJ_SPEC HASH_SYNC_SPEC USING_GCC_TRUE USING_GCC_FALSE LIBICONV LTLIBICONV PKG_CONFIG GTK_CFLAGS GTK_LIBS GLIB_CFLAGS GLIB_LIBS LIBART_CFLAGS LIBART_LIBS CLASSPATH_SEPARATOR ZLIBS SYS_ZLIBS ZINCS DIVIDESPEC CHECKREFSPEC EXCEPTIONSPEC BACKTRACESPEC IEEESPEC NATIVE_TRUE NATIVE_FALSE ENABLE_SHARED_TRUE ENABLE_SHARED_FALSE NEEDS_DATA_START_TRUE NEEDS_DATA_START_FALSE INSTALL_BINARIES_TRUE INSTALL_BINARIES_FALSE GCC_UNWIND_INCLUDE toolexecdir toolexecmainlibdir toolexeclibdir GCJVERSION dbexecdir gcjsubdir gxx_include_dir libstdcxx_incdir PERL SYSDEP_SOURCES ANONVERSCRIPT_TRUE ANONVERSCRIPT_FALSE LD_START_STATIC_SPEC LD_FINISH_STATIC_SPEC here python_mod_dir python_mod_dir_expanded MAKE INSTALL_AOT_RPM_TRUE INSTALL_AOT_RPM_FALSE CREATE_JAVA_HOME_TRUE CREATE_JAVA_HOME_FALSE gcc_suffix JAVA_VERSION BUILD_VERSION JVM_ROOT_DIR JVM_JAR_ROOT_DIR JVM_JAR_DIR JRE_DIR SDK_DIR JRE_LNK SDK_LNK SDK_BIN_DIR SDK_LIB_DIR SDK_INCLUDE_DIR JRE_BIN_DIR JRE_LIB_DIR GCJ_BIN_DIR CPU OS LIBDIR LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os build_libsubdir build_subdir host_subdir target_subdir multi_basedir host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical LN_S mkinstalldirs ANTLR_JAR CREATE_GJDOC_TRUE CREATE_GJDOC_FALSE JAVA_MAINTAINER_MODE_TRUE JAVA_MAINTAINER_MODE_FALSE CC ac_ct_CC EXEEXT OBJEXT CXX ac_ct_CXX CFLAGS CXXFLAGS LDFLAGS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE AS ac_ct_AS LD ac_ct_LD AR ac_ct_AR RANLIB ac_ct_RANLIB JAR ZIP UNZIP MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LIBGCJ_CFLAGS LIBGCJ_CXXFLAGS LIBGCJ_JAVAFLAGS LIBGCJ_LD_SYMBOLIC LIBGCJ_LD_SYMBOLIC_FUNCTIONS LIBGCJDEBUG TOOLKIT XLIB_AWT_TRUE XLIB_AWT_FALSE X_AWT_TRUE X_AWT_FALSE GCJ_FOR_ECJX GCJH host_exeext INCLTDL LIBLTDL DIRLTDL LIBTOOL SED EGREP FGREP GREP DUMPBIN ac_ct_DUMPBIN NM OBJDUMP ac_ct_OBJDUMP lt_ECHO DSYMUTIL ac_ct_DSYMUTIL NMEDIT ac_ct_NMEDIT LIPO ac_ct_LIPO OTOOL ac_ct_OTOOL OTOOL64 ac_ct_OTOOL64 CPP CPPFLAGS CXXCPP GCJ GCJFLAGS GCJDEPMODE am__fastdepGCJ_TRUE am__fastdepGCJ_FALSE subdirs TESTSUBDIR_TRUE TESTSUBDIR_FALSE ECJ_BUILD_JAR ECJ_JAR BUILD_ECJ1_TRUE BUILD_ECJ1_FALSE INSTALL_ECJ_JAR_TRUE INSTALL_ECJ_JAR_FALSE JAVA_HOME_SET_TRUE JAVA_HOME_SET_FALSE JAVA_HOME SUPPRESS_LIBGCJ_BC_TRUE SUPPRESS_LIBGCJ_BC_FALSE BUILD_LIBGCJ_REDUCED_REFLECTION_TRUE BUILD_LIBGCJ_REDUCED_REFLECTION_FALSE INTERPRETER INTERPRETER_TRUE INTERPRETER_FALSE LIBFFI LIBFFIINCS PLATFORM USING_WIN32_PLATFORM_TRUE USING_WIN32_PLATFORM_FALSE USING_POSIX_PLATFORM_TRUE USING_POSIX_PLATFORM_FALSE USING_DARWIN_CRT_TRUE USING_DARWIN_CRT_FALSE SYSTEMSPEC ZLIBSPEC ZLIBTESTSPEC X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS extra_ldflags_libjava extra_gij_ldflags extra_ldflags LIBSTDCXXSPEC LIBGCJTESTSPEC GCLIBS GCINCS GCDEPS GCSPEC JC1GCSPEC GCTESTSPEC USING_BOEHMGC_TRUE USING_BOEHMGC_FALSE USING_NOGC_TRUE USING_NOGC_FALSE THREADLIBS THREADINCS THREADDEPS THREADSPEC THREADSTARTFILESPEC THREADLDFLAGS THREADCXXFLAGS USING_POSIX_THREADS_TRUE USING_POSIX_THREADS_FALSE USING_WIN32_THREADS_TRUE USING_WIN32_THREADS_FALSE USING_NO_THREADS_TRUE USING_NO_THREADS_FALSE USE_LIBGCJ_BC_TRUE USE_LIBGCJ_BC_FALSE LIBGCJ_SPEC HASH_SYNC_SPEC USING_GCC_TRUE USING_GCC_FALSE LIBICONV LTLIBICONV PKG_CONFIG GTK_CFLAGS GTK_LIBS GLIB_CFLAGS GLIB_LIBS LIBART_CFLAGS LIBART_LIBS CLASSPATH_SEPARATOR ZLIBS SYS_ZLIBS ZINCS DIVIDESPEC CHECKREFSPEC EXCEPTIONSPEC BACKTRACESPEC IEEESPEC NATIVE_TRUE NATIVE_FALSE ENABLE_SHARED_TRUE ENABLE_SHARED_FALSE NEEDS_DATA_START_TRUE NEEDS_DATA_START_FALSE INSTALL_BINARIES_TRUE INSTALL_BINARIES_FALSE GCC_UNWIND_INCLUDE toolexecdir toolexecmainlibdir toolexeclibdir GCJVERSION dbexecdir gcjsubdir gxx_include_dir libstdcxx_incdir PERL SYSDEP_SOURCES ANONVERSCRIPT_TRUE ANONVERSCRIPT_FALSE LD_START_STATIC_SPEC LD_FINISH_STATIC_SPEC here python_mod_dir python_mod_dir_expanded MAKE INSTALL_AOT_RPM_TRUE INSTALL_AOT_RPM_FALSE CREATE_JAVA_HOME_TRUE CREATE_JAVA_HOME_FALSE gcc_suffix JAVA_VERSION BUILD_VERSION JVM_ROOT_DIR JVM_JAR_ROOT_DIR JVM_JAR_DIR JRE_DIR JRE_LNK SDK_LNK SDK_BIN_DIR SDK_LIB_DIR SDK_INCLUDE_DIR JRE_BIN_DIR JRE_LIB_DIR GCJ_BIN_DIR CPU OS LIBDIR LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 ac_pwd=`pwd`
 
@@ -5268,7 +5268,7 @@ if test "${enable_libgcj_debug+set}" = set; then
   if test "$enable_libgcj_debug" = yes; then
 
 cat >>confdefs.h <<\_ACEOF
-#define DEBUG 1
+#define __GCJ_DEBUG 1
 _ACEOF
 
     LIBGCJDEBUG="enable"
@@ -5469,23 +5469,33 @@ else
      which_gcj=path
   fi
 fi
+libgcjdir=`${PWDCMD-pwd}`
+case $GCJ in
+*" -B"*)
+  # Just in case there is a comma in the build dir, quote it for the
+  # sed command below.
+  case $libgcjdir in
+  *[,\\]*) qlibgcjdir=`echo "$libgcjdir" | sed 's:[,\\]:\\&:g'`;;
+  *) qlibgcjdir=$libgcjdir;;
+  esac
+  GCJ=`echo "$GCJ" | sed "s, -B, -B$qlibgcjdir/&,"`
+  ;;
+*)
+  GCJ=$GCJ" -B$libgcjdir/"
+  ;;
+esac
 case "${which_gcj}" in
    built)
-      GCJ="$built_gcc_dir/gcj -B`${PWDCMD-pwd}`/ -B$built_gcc_dir/"
       GCJH='$(top_builddir)/$(MULTIBUILDTOP)../../$(host_subdir)/gcc/gcjh'
    ;;
    cross)
       if test "x${with_newlib}" = "xyes"; then
          # FIXME (comment): Why is this needed?
          GCC_UNWIND_INCLUDE=
-         GCJ="${target_noncanonical}-gcj"
-      else
-         GCJ="${target_noncanonical}-gcj -B`${PWDCMD-pwd}`/"
       fi
       GCJH='$(target_noncanonical)-gcjh'
    ;;
    path)
-      GCJ="gcj -B`${PWDCMD-pwd}`/"
       GCJH=gcjh
    ;;
 esac
@@ -6003,13 +6013,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:6006: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:6016: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:6009: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:6019: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:6012: output\"" >&5)
+  (eval echo "\"\$as_me:6022: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -6452,7 +6462,7 @@ irix5* | irix6* | nonstopux*)
   ;;
 
 # This must be Linux ELF.
-linux* | k*bsd*-gnu)
+linux* | k*bsd*-gnu | kopensolaris*-gnu)
   lt_cv_deplibs_check_method=pass_all
   ;;
 
@@ -7156,7 +7166,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 7159 "configure"' > conftest.$ac_ext
+  echo '#line 7169 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -9539,11 +9549,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:9542: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:9552: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:9546: \$? = $ac_status" >&5
+   echo "$as_me:9556: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -9708,7 +9718,7 @@ echo $ECHO_N "checking for $compiler option to produce PIC... $ECHO_C" >&6
       lt_prog_compiler_static='-non_shared'
       ;;
 
-    linux* | k*bsd*-gnu)
+    linux* | k*bsd*-gnu | kopensolaris*-gnu)
       case $cc_basename in
       # old Intel for x86_64 which still supported -KPIC.
       ecc*)
@@ -9878,11 +9888,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:9881: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:9891: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:9885: \$? = $ac_status" >&5
+   echo "$as_me:9895: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -9983,11 +9993,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:9986: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:9996: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:9990: \$? = $ac_status" >&5
+   echo "$as_me:10000: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10038,11 +10048,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:10041: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:10051: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:10045: \$? = $ac_status" >&5
+   echo "$as_me:10055: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10269,7 +10279,7 @@ _LT_EOF
       archive_expsym_cmds='sed "s,^,_," $export_symbols >$output_objdir/$soname.expsym~$CC -shared $pic_flag $libobjs $deplibs $compiler_flags ${wl}-h,$soname ${wl}--retain-symbols-file,$output_objdir/$soname.expsym ${wl}--image-base,`expr ${RANDOM-$$} % 4096 / 2 \* 262144 + 1342177280` -o $lib'
       ;;
 
-    gnu* | linux* | tpf* | k*bsd*-gnu)
+    gnu* | linux* | tpf* | k*bsd*-gnu | kopensolaris*-gnu)
       tmp_diet=no
       if test "$host_os" = linux-dietlibc; then
 	case $cc_basename in
@@ -11219,44 +11229,50 @@ x|xyes)
       # to ld, don't add -lc before -lgcc.
       echo "$as_me:$LINENO: checking whether -lc should be explicitly linked in" >&5
 echo $ECHO_N "checking whether -lc should be explicitly linked in... $ECHO_C" >&6
-      $RM conftest*
-      echo "$lt_simple_compile_test_code" > conftest.$ac_ext
+if test "${lt_cv_archive_cmds_need_lc+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  $RM conftest*
+	echo "$lt_simple_compile_test_code" > conftest.$ac_ext
 
-      if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+	if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } 2>conftest.err; then
-        soname=conftest
-        lib=conftest
-        libobjs=conftest.$ac_objext
-        deplibs=
-        wl=$lt_prog_compiler_wl
-	pic_flag=$lt_prog_compiler_pic
-        compiler_flags=-v
-        linker_flags=-v
-        verstring=
-        output_objdir=.
-        libname=conftest
-        lt_save_allow_undefined_flag=$allow_undefined_flag
-        allow_undefined_flag=
-        if { (eval echo "$as_me:$LINENO: \"$archive_cmds 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
+	  soname=conftest
+	  lib=conftest
+	  libobjs=conftest.$ac_objext
+	  deplibs=
+	  wl=$lt_prog_compiler_wl
+	  pic_flag=$lt_prog_compiler_pic
+	  compiler_flags=-v
+	  linker_flags=-v
+	  verstring=
+	  output_objdir=.
+	  libname=conftest
+	  lt_save_allow_undefined_flag=$allow_undefined_flag
+	  allow_undefined_flag=
+	  if { (eval echo "$as_me:$LINENO: \"$archive_cmds 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
   (eval $archive_cmds 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }
-        then
-	  archive_cmds_need_lc=no
-        else
-	  archive_cmds_need_lc=yes
-        fi
-        allow_undefined_flag=$lt_save_allow_undefined_flag
-      else
-        cat conftest.err 1>&5
-      fi
-      $RM conftest*
-      echo "$as_me:$LINENO: result: $archive_cmds_need_lc" >&5
-echo "${ECHO_T}$archive_cmds_need_lc" >&6
+	  then
+	    lt_cv_archive_cmds_need_lc=no
+	  else
+	    lt_cv_archive_cmds_need_lc=yes
+	  fi
+	  allow_undefined_flag=$lt_save_allow_undefined_flag
+	else
+	  cat conftest.err 1>&5
+	fi
+	$RM conftest*
+
+fi
+echo "$as_me:$LINENO: result: $lt_cv_archive_cmds_need_lc" >&5
+echo "${ECHO_T}$lt_cv_archive_cmds_need_lc" >&6
+      archive_cmds_need_lc=$lt_cv_archive_cmds_need_lc
       ;;
     esac
   fi
@@ -11827,7 +11843,7 @@ linux*oldld* | linux*aout* | linux*coff*)
   ;;
 
 # This must be Linux ELF.
-linux* | k*bsd*-gnu)
+linux* | k*bsd*-gnu | kopensolaris*-gnu)
   version_type=linux
   need_lib_prefix=no
   need_version=no
@@ -11836,12 +11852,17 @@ linux* | k*bsd*-gnu)
   finish_cmds='PATH="\$PATH:/sbin" ldconfig -n $libdir'
   shlibpath_var=LD_LIBRARY_PATH
   shlibpath_overrides_runpath=no
+
   # Some binutils ld are patched to set DT_RUNPATH
-  save_LDFLAGS=$LDFLAGS
-  save_libdir=$libdir
-  eval "libdir=/foo; wl=\"$lt_prog_compiler_wl\"; \
-       LDFLAGS=\"\$LDFLAGS $hardcode_libdir_flag_spec\""
-  if test x$gcc_no_link = xyes; then
+  if test "${lt_cv_shlibpath_overrides_runpath+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  lt_cv_shlibpath_overrides_runpath=no
+    save_LDFLAGS=$LDFLAGS
+    save_libdir=$libdir
+    eval "libdir=/foo; wl=\"$lt_prog_compiler_wl\"; \
+	 LDFLAGS=\"\$LDFLAGS $hardcode_libdir_flag_spec\""
+    if test x$gcc_no_link = xyes; then
   { { echo "$as_me:$LINENO: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&5
 echo "$as_me: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&2;}
    { (exit 1); exit 1; }; }
@@ -11884,7 +11905,7 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
   if  ($OBJDUMP -p conftest$ac_exeext) 2>/dev/null | grep "RUNPATH.*$libdir" >/dev/null; then
-  shlibpath_overrides_runpath=yes
+  lt_cv_shlibpath_overrides_runpath=yes
 fi
 
 else
@@ -11894,8 +11915,12 @@ sed 's/^/| /' conftest.$ac_ext >&5
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
-  LDFLAGS=$save_LDFLAGS
-  libdir=$save_libdir
+    LDFLAGS=$save_LDFLAGS
+    libdir=$save_libdir
+
+fi
+
+  shlibpath_overrides_runpath=$lt_cv_shlibpath_overrides_runpath
 
   # This implies no fast_install, which is unacceptable.
   # Some rework will be needed to allow for fast_install
@@ -12890,7 +12915,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12893 "configure"
+#line 12918 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12986,7 +13011,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12989 "configure"
+#line 13014 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13996,7 +14021,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
         inherit_rpath_CXX=yes
         ;;
 
-      linux* | k*bsd*-gnu)
+      linux* | k*bsd*-gnu | kopensolaris*-gnu)
         case $cc_basename in
           KCC*)
 	    # Kuck and Associates, Inc. (KAI) C++ Compiler
@@ -14824,7 +14849,7 @@ echo $ECHO_N "checking for $compiler option to produce PIC... $ECHO_C" >&6
 	    ;;
 	esac
 	;;
-      linux* | k*bsd*-gnu)
+      linux* | k*bsd*-gnu | kopensolaris*-gnu)
 	case $cc_basename in
 	  KCC*)
 	    # KAI C++ Compiler
@@ -15012,11 +15037,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15015: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15040: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:15019: \$? = $ac_status" >&5
+   echo "$as_me:15044: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -15111,11 +15136,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15114: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15139: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15118: \$? = $ac_status" >&5
+   echo "$as_me:15143: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15163,11 +15188,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15166: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15191: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15170: \$? = $ac_status" >&5
+   echo "$as_me:15195: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15275,44 +15300,50 @@ x|xyes)
       # to ld, don't add -lc before -lgcc.
       echo "$as_me:$LINENO: checking whether -lc should be explicitly linked in" >&5
 echo $ECHO_N "checking whether -lc should be explicitly linked in... $ECHO_C" >&6
-      $RM conftest*
-      echo "$lt_simple_compile_test_code" > conftest.$ac_ext
+if test "${lt_cv_archive_cmds_need_lc_CXX+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  $RM conftest*
+	echo "$lt_simple_compile_test_code" > conftest.$ac_ext
 
-      if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+	if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } 2>conftest.err; then
-        soname=conftest
-        lib=conftest
-        libobjs=conftest.$ac_objext
-        deplibs=
-        wl=$lt_prog_compiler_wl_CXX
-	pic_flag=$lt_prog_compiler_pic_CXX
-        compiler_flags=-v
-        linker_flags=-v
-        verstring=
-        output_objdir=.
-        libname=conftest
-        lt_save_allow_undefined_flag=$allow_undefined_flag_CXX
-        allow_undefined_flag_CXX=
-        if { (eval echo "$as_me:$LINENO: \"$archive_cmds_CXX 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
+	  soname=conftest
+	  lib=conftest
+	  libobjs=conftest.$ac_objext
+	  deplibs=
+	  wl=$lt_prog_compiler_wl_CXX
+	  pic_flag=$lt_prog_compiler_pic_CXX
+	  compiler_flags=-v
+	  linker_flags=-v
+	  verstring=
+	  output_objdir=.
+	  libname=conftest
+	  lt_save_allow_undefined_flag=$allow_undefined_flag_CXX
+	  allow_undefined_flag_CXX=
+	  if { (eval echo "$as_me:$LINENO: \"$archive_cmds_CXX 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
   (eval $archive_cmds_CXX 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }
-        then
-	  archive_cmds_need_lc_CXX=no
-        else
-	  archive_cmds_need_lc_CXX=yes
-        fi
-        allow_undefined_flag_CXX=$lt_save_allow_undefined_flag
-      else
-        cat conftest.err 1>&5
-      fi
-      $RM conftest*
-      echo "$as_me:$LINENO: result: $archive_cmds_need_lc_CXX" >&5
-echo "${ECHO_T}$archive_cmds_need_lc_CXX" >&6
+	  then
+	    lt_cv_archive_cmds_need_lc_CXX=no
+	  else
+	    lt_cv_archive_cmds_need_lc_CXX=yes
+	  fi
+	  allow_undefined_flag_CXX=$lt_save_allow_undefined_flag
+	else
+	  cat conftest.err 1>&5
+	fi
+	$RM conftest*
+
+fi
+echo "$as_me:$LINENO: result: $lt_cv_archive_cmds_need_lc_CXX" >&5
+echo "${ECHO_T}$lt_cv_archive_cmds_need_lc_CXX" >&6
+      archive_cmds_need_lc_CXX=$lt_cv_archive_cmds_need_lc_CXX
       ;;
     esac
   fi
@@ -15738,7 +15769,7 @@ linux*oldld* | linux*aout* | linux*coff*)
   ;;
 
 # This must be Linux ELF.
-linux* | k*bsd*-gnu)
+linux* | k*bsd*-gnu | kopensolaris*-gnu)
   version_type=linux
   need_lib_prefix=no
   need_version=no
@@ -15747,12 +15778,17 @@ linux* | k*bsd*-gnu)
   finish_cmds='PATH="\$PATH:/sbin" ldconfig -n $libdir'
   shlibpath_var=LD_LIBRARY_PATH
   shlibpath_overrides_runpath=no
+
   # Some binutils ld are patched to set DT_RUNPATH
-  save_LDFLAGS=$LDFLAGS
-  save_libdir=$libdir
-  eval "libdir=/foo; wl=\"$lt_prog_compiler_wl_CXX\"; \
-       LDFLAGS=\"\$LDFLAGS $hardcode_libdir_flag_spec_CXX\""
-  if test x$gcc_no_link = xyes; then
+  if test "${lt_cv_shlibpath_overrides_runpath+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  lt_cv_shlibpath_overrides_runpath=no
+    save_LDFLAGS=$LDFLAGS
+    save_libdir=$libdir
+    eval "libdir=/foo; wl=\"$lt_prog_compiler_wl_CXX\"; \
+	 LDFLAGS=\"\$LDFLAGS $hardcode_libdir_flag_spec_CXX\""
+    if test x$gcc_no_link = xyes; then
   { { echo "$as_me:$LINENO: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&5
 echo "$as_me: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&2;}
    { (exit 1); exit 1; }; }
@@ -15795,7 +15831,7 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
   if  ($OBJDUMP -p conftest$ac_exeext) 2>/dev/null | grep "RUNPATH.*$libdir" >/dev/null; then
-  shlibpath_overrides_runpath=yes
+  lt_cv_shlibpath_overrides_runpath=yes
 fi
 
 else
@@ -15805,8 +15841,12 @@ sed 's/^/| /' conftest.$ac_ext >&5
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
-  LDFLAGS=$save_LDFLAGS
-  libdir=$save_libdir
+    LDFLAGS=$save_LDFLAGS
+    libdir=$save_libdir
+
+fi
+
+  shlibpath_overrides_runpath=$lt_cv_shlibpath_overrides_runpath
 
   # This implies no fast_install, which is unacceptable.
   # Some rework will be needed to allow for fast_install
@@ -16565,11 +16605,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16568: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16608: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16572: \$? = $ac_status" >&5
+   echo "$as_me:16612: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -16731,7 +16771,7 @@ echo $ECHO_N "checking for $compiler option to produce PIC... $ECHO_C" >&6
       lt_prog_compiler_static_GCJ='-non_shared'
       ;;
 
-    linux* | k*bsd*-gnu)
+    linux* | k*bsd*-gnu | kopensolaris*-gnu)
       case $cc_basename in
       # old Intel for x86_64 which still supported -KPIC.
       ecc*)
@@ -16898,11 +16938,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16901: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16941: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16905: \$? = $ac_status" >&5
+   echo "$as_me:16945: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -16997,11 +17037,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17000: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17040: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17004: \$? = $ac_status" >&5
+   echo "$as_me:17044: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17049,11 +17089,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17052: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17092: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17056: \$? = $ac_status" >&5
+   echo "$as_me:17096: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17277,7 +17317,7 @@ _LT_EOF
       archive_expsym_cmds_GCJ='sed "s,^,_," $export_symbols >$output_objdir/$soname.expsym~$CC -shared $pic_flag $libobjs $deplibs $compiler_flags ${wl}-h,$soname ${wl}--retain-symbols-file,$output_objdir/$soname.expsym ${wl}--image-base,`expr ${RANDOM-$$} % 4096 / 2 \* 262144 + 1342177280` -o $lib'
       ;;
 
-    gnu* | linux* | tpf* | k*bsd*-gnu)
+    gnu* | linux* | tpf* | k*bsd*-gnu | kopensolaris*-gnu)
       tmp_diet=no
       if test "$host_os" = linux-dietlibc; then
 	case $cc_basename in
@@ -18218,44 +18258,50 @@ x|xyes)
       # to ld, don't add -lc before -lgcc.
       echo "$as_me:$LINENO: checking whether -lc should be explicitly linked in" >&5
 echo $ECHO_N "checking whether -lc should be explicitly linked in... $ECHO_C" >&6
-      $RM conftest*
-      echo "$lt_simple_compile_test_code" > conftest.$ac_ext
+if test "${lt_cv_archive_cmds_need_lc_GCJ+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  $RM conftest*
+	echo "$lt_simple_compile_test_code" > conftest.$ac_ext
 
-      if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+	if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } 2>conftest.err; then
-        soname=conftest
-        lib=conftest
-        libobjs=conftest.$ac_objext
-        deplibs=
-        wl=$lt_prog_compiler_wl_GCJ
-	pic_flag=$lt_prog_compiler_pic_GCJ
-        compiler_flags=-v
-        linker_flags=-v
-        verstring=
-        output_objdir=.
-        libname=conftest
-        lt_save_allow_undefined_flag=$allow_undefined_flag_GCJ
-        allow_undefined_flag_GCJ=
-        if { (eval echo "$as_me:$LINENO: \"$archive_cmds_GCJ 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
+	  soname=conftest
+	  lib=conftest
+	  libobjs=conftest.$ac_objext
+	  deplibs=
+	  wl=$lt_prog_compiler_wl_GCJ
+	  pic_flag=$lt_prog_compiler_pic_GCJ
+	  compiler_flags=-v
+	  linker_flags=-v
+	  verstring=
+	  output_objdir=.
+	  libname=conftest
+	  lt_save_allow_undefined_flag=$allow_undefined_flag_GCJ
+	  allow_undefined_flag_GCJ=
+	  if { (eval echo "$as_me:$LINENO: \"$archive_cmds_GCJ 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
   (eval $archive_cmds_GCJ 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }
-        then
-	  archive_cmds_need_lc_GCJ=no
-        else
-	  archive_cmds_need_lc_GCJ=yes
-        fi
-        allow_undefined_flag_GCJ=$lt_save_allow_undefined_flag
-      else
-        cat conftest.err 1>&5
-      fi
-      $RM conftest*
-      echo "$as_me:$LINENO: result: $archive_cmds_need_lc_GCJ" >&5
-echo "${ECHO_T}$archive_cmds_need_lc_GCJ" >&6
+	  then
+	    lt_cv_archive_cmds_need_lc_GCJ=no
+	  else
+	    lt_cv_archive_cmds_need_lc_GCJ=yes
+	  fi
+	  allow_undefined_flag_GCJ=$lt_save_allow_undefined_flag
+	else
+	  cat conftest.err 1>&5
+	fi
+	$RM conftest*
+
+fi
+echo "$as_me:$LINENO: result: $lt_cv_archive_cmds_need_lc_GCJ" >&5
+echo "${ECHO_T}$lt_cv_archive_cmds_need_lc_GCJ" >&6
+      archive_cmds_need_lc_GCJ=$lt_cv_archive_cmds_need_lc_GCJ
       ;;
     esac
   fi
@@ -18739,7 +18785,7 @@ if test "${enable_sjlj_exceptions+set}" = set; then
   :
 else
   cat > conftest.$ac_ext << EOF
-#line 18742 "configure"
+#line 18788 "configure"
 struct S { ~S(); };
 void bar();
 void foo()
@@ -18758,6 +18804,9 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   if grep _Unwind_SjLj_Resume conftest.s >/dev/null 2>&1 ; then
     enable_sjlj_exceptions=yes
   elif grep _Unwind_Resume conftest.s >/dev/null 2>&1 ; then
+    enable_sjlj_exceptions=no
+  elif grep __cxa_end_cleanup conftest.s >/dev/null 2>&1 ; then
+    # ARM EH ABI.
     enable_sjlj_exceptions=no
   fi
 fi
@@ -19099,6 +19148,13 @@ test -d gnu/java/nio || mkdir gnu/java/nio
 # Likewise for natFileChannelImpl.cc
 test -d gnu/java/nio/channels || mkdir gnu/java/nio/channels
           ac_config_links="$ac_config_links gnu/java/nio/channels/natFileChannelImpl.cc:gnu/java/nio/channels/natFileChannel${FILE-${PLATFORM}}.cc"
+
+
+# Likewise for natVMSecureRandom.cc
+test -d gnu/java/security || mkdir gnu/java/security
+test -d gnu/java/security/jce || mkdir gnu/java/security/jce
+test -d gnu/java/security/jce/prng || mkdir gnu/java/security/jce/prng
+          ac_config_links="$ac_config_links gnu/java/security/jce/prng/natVMSecureRandom.cc:gnu/java/security/jce/prng/natVMSecureRandom${FILE-${PLATFORM}}.cc"
 
 
 case "${host}" in
@@ -20867,6 +20923,9 @@ else
   USING_NO_THREADS_FALSE=
 fi
 
+if test "$enable_shared" != yes; then
+  use_libgcj_bc=no
+fi
 
 
 if test "$use_libgcj_bc" = yes; then
@@ -20888,7 +20947,7 @@ if test -d sysdep; then true; else mkdir sysdep; fi
 
 LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
 if test "$use_libgcj_bc" = yes; then
-  LIBGCJ_SPEC="%{s-bc-abi:-lgcj_bc;:-lgcj}"
+  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:-lgcj;:-lgcj_bc}"
 fi
 
 
@@ -27517,7 +27576,7 @@ case "${host}" in
  m68*-*-linux*)
     SIGNAL_HANDLER=include/dwarf2-signal.h
     ;;
- powerpc*-*-darwin* | i?86-*-darwin9* | x86_64-*-darwin9*)
+ powerpc*-*-darwin* | i?86-*-darwin[912]* | x86_64-*-darwin[912]*)
     SIGNAL_HANDLER=include/darwin-signal.h
     ;;
  powerpc*-*-aix*)
@@ -27876,7 +27935,13 @@ fi;
       *) have_unwind_getipinfo=yes ;;
     esac
   else
-     have_unwind_getipinfo=yes
+    # Darwin before version 9 does not have _Unwind_GetIPInfo.
+
+    case ${target} in
+      *-*-darwin[3-8]|*-*-darwin[3-8].*) have_unwind_getipinfo=no ;;
+      *) have_unwind_getipinfo=yes ;;
+    esac
+
   fi
 
   if test x$have_unwind_getipinfo = xyes; then
@@ -28145,8 +28210,7 @@ echo "${ECHO_T}JAR root installation directory: ${jvm_jar_dir}" >&6
   echo "$as_me:$LINENO: result: Java version: ${JAVA_VERSION}" >&5
 echo "${ECHO_T}Java version: ${JAVA_VERSION}" >&6
 
-  jre_dir=java-${JAVA_VERSION}-${origin_name}-${JAVA_VERSION}.${BUILD_VERSION}${arch_suffix}/jre
-  sdk_dir=java-${JAVA_VERSION}-${origin_name}-${JAVA_VERSION}.${BUILD_VERSION}${arch_suffix}
+  jre_dir=jre
   jre_lnk=jre-${JAVA_VERSION}-${origin_name}
   sdk_lnk=java-${JAVA_VERSION}-${origin_name}
 
@@ -28160,15 +28224,12 @@ echo "${ECHO_T}JVM ROOT directory: ${JVM_ROOT_DIR}" >&6
   echo "$as_me:$LINENO: result: JVM JAR ROOT directory: ${JVM_JAR_ROOT_DIR}" >&5
 echo "${ECHO_T}JVM JAR ROOT directory: ${JVM_JAR_ROOT_DIR}" >&6
 
-  JVM_JAR_DIR=${jvm_jar_dir}/${sdk_dir}
+  JVM_JAR_DIR=${jvm_jar_dir}
 
   echo "$as_me:$LINENO: result: JVM JAR directory: ${JVM_JAR_DIR}" >&5
 echo "${ECHO_T}JVM JAR directory: ${JVM_JAR_DIR}" >&6
 
   JRE_DIR=${jre_dir}
-
-
-  SDK_DIR=${sdk_dir}
 
 
   JRE_LNK=${jre_lnk}
@@ -28177,17 +28238,17 @@ echo "${ECHO_T}JVM JAR directory: ${JVM_JAR_DIR}" >&6
   SDK_LNK=${sdk_lnk}
 
 
-  SDK_BIN_DIR=${jvm_root_dir}/${sdk_dir}/bin
+  SDK_BIN_DIR=${jvm_root_dir}/bin
 
   echo "$as_me:$LINENO: result: SDK tools directory: ${SDK_BIN_DIR}" >&5
 echo "${ECHO_T}SDK tools directory: ${SDK_BIN_DIR}" >&6
 
-  SDK_LIB_DIR=${jvm_root_dir}/${sdk_dir}/lib
+  SDK_LIB_DIR=${jvm_root_dir}/lib
 
   echo "$as_me:$LINENO: result: SDK jar directory: ${SDK_LIB_DIR}" >&5
 echo "${ECHO_T}SDK jar directory: ${SDK_LIB_DIR}" >&6
 
-  SDK_INCLUDE_DIR=${jvm_root_dir}/${sdk_dir}/include
+  SDK_INCLUDE_DIR=${jvm_root_dir}/include
 
   echo "$as_me:$LINENO: result: SDK include directory: ${SDK_INCLUDE_DIR}" >&5
 echo "${ECHO_T}SDK include directory: ${SDK_INCLUDE_DIR}" >&6
@@ -28213,7 +28274,8 @@ echo "${ECHO_T}JRE lib directory: ${JRE_LIB_DIR}" >&6
   echo "$as_me:$LINENO: result: GCJ tools directory: ${GCJ_BIN_DIR}" >&5
 echo "${ECHO_T}GCJ tools directory: ${GCJ_BIN_DIR}" >&6
 
-  echo host is ${host}
+  echo "$as_me:$LINENO: result: host is ${host}" >&5
+echo "${ECHO_T}host is ${host}" >&6
   if test "x${host_cpu}" = "x"
   then
     case ${host} in
@@ -28221,6 +28283,8 @@ echo "${ECHO_T}GCJ tools directory: ${GCJ_BIN_DIR}" >&6
         host_cpu=x86;;
       i486-* | i586-* | i686-*)
         host_cpu=i386;;
+      x86_64-*)
+        host_cpu=amd64;;
       *)
         host_cpu=${host_cpu};;
     esac
@@ -28258,7 +28322,7 @@ echo "${ECHO_T}arch directory: ${host_cpu}" >&6
 
 fi
 
-                                                                                                              ac_config_files="$ac_config_files Makefile libgcj.pc libgcj.spec libgcj-test.spec gcj/Makefile include/Makefile testsuite/Makefile contrib/aotcompile.py contrib/aot-compile contrib/aot-compile-rpm contrib/rebuild-gcj-db"
+                                                                                                                        ac_config_files="$ac_config_files Makefile libgcj.pc libgcj.spec libgcj-test.spec gcj/Makefile include/Makefile testsuite/Makefile contrib/aotcompile.py contrib/aot-compile contrib/aot-compile-rpm contrib/generate-cacerts.pl contrib/rebuild-gcj-db"
 
 
 if test ${multilib} = yes; then
@@ -29052,6 +29116,9 @@ ac_configure_args="${multilib_arg} ${ac_configure_args}"
 multi_basedir="$multi_basedir"
 CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
 CC="$CC"
+CXX="$CXX"
+GFORTRAN="$GFORTRAN"
+GCJ="$GCJ"
 AMDEP_TRUE="$AMDEP_TRUE" ac_aux_dir="$ac_aux_dir"
 
 
@@ -29508,6 +29575,7 @@ do
   "contrib/aotcompile.py" ) CONFIG_FILES="$CONFIG_FILES contrib/aotcompile.py" ;;
   "contrib/aot-compile" ) CONFIG_FILES="$CONFIG_FILES contrib/aot-compile" ;;
   "contrib/aot-compile-rpm" ) CONFIG_FILES="$CONFIG_FILES contrib/aot-compile-rpm" ;;
+  "contrib/generate-cacerts.pl" ) CONFIG_FILES="$CONFIG_FILES contrib/generate-cacerts.pl" ;;
   "contrib/rebuild-gcj-db" ) CONFIG_FILES="$CONFIG_FILES contrib/rebuild-gcj-db" ;;
   "scripts/jar" ) CONFIG_FILES="$CONFIG_FILES scripts/jar" ;;
   "include/platform.h" ) CONFIG_LINKS="$CONFIG_LINKS include/platform.h:include/$PLATFORMH" ;;
@@ -29520,6 +29588,7 @@ do
   "gnu/java/nio/natVMPipe.cc" ) CONFIG_LINKS="$CONFIG_LINKS gnu/java/nio/natVMPipe.cc:gnu/java/nio/natVMPipe${PLATFORM}.cc" ;;
   "gnu/java/nio/natVMSelector.cc" ) CONFIG_LINKS="$CONFIG_LINKS gnu/java/nio/natVMSelector.cc:gnu/java/nio/natVMSelector${PLATFORM}.cc" ;;
   "gnu/java/nio/channels/natFileChannelImpl.cc" ) CONFIG_LINKS="$CONFIG_LINKS gnu/java/nio/channels/natFileChannelImpl.cc:gnu/java/nio/channels/natFileChannel${FILE-${PLATFORM}}.cc" ;;
+  "gnu/java/security/jce/prng/natVMSecureRandom.cc" ) CONFIG_LINKS="$CONFIG_LINKS gnu/java/security/jce/prng/natVMSecureRandom.cc:gnu/java/security/jce/prng/natVMSecureRandom${FILE-${PLATFORM}}.cc" ;;
   "include/java-gc.h" ) CONFIG_LINKS="$CONFIG_LINKS include/java-gc.h:include/$GCHDR" ;;
   "include/java-threads.h" ) CONFIG_LINKS="$CONFIG_LINKS include/java-threads.h:include/$THREADH" ;;
   "sysdep/locks.h" ) CONFIG_LINKS="$CONFIG_LINKS sysdep/locks.h:sysdep/$sysdeps_dir/locks.h" ;;
@@ -29871,7 +29940,6 @@ s,@JVM_ROOT_DIR@,$JVM_ROOT_DIR,;t t
 s,@JVM_JAR_ROOT_DIR@,$JVM_JAR_ROOT_DIR,;t t
 s,@JVM_JAR_DIR@,$JVM_JAR_DIR,;t t
 s,@JRE_DIR@,$JRE_DIR,;t t
-s,@SDK_DIR@,$SDK_DIR,;t t
 s,@JRE_LNK@,$JRE_LNK,;t t
 s,@SDK_LNK@,$SDK_LNK,;t t
 s,@SDK_BIN_DIR@,$SDK_BIN_DIR,;t t

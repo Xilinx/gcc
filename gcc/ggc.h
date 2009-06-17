@@ -1,6 +1,7 @@
 /* Garbage collection for the GNU compiler.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
-   Free Software Foundation, Inc.
+
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007,
+   2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -249,7 +250,7 @@ extern void dump_ggc_loc_statistics (bool);
 #define ggc_alloc_tree(LENGTH) ((tree) ggc_alloc_zone (LENGTH, &tree_zone))
 
 #define htab_create_ggc(SIZE, HASH, EQ, DEL) \
-  htab_create_alloc (SIZE, HASH, EQ, DEL, ggc_calloc, NULL)
+  htab_create_alloc (SIZE, HASH, EQ, DEL, ggc_calloc, ggc_free)
 
 #define splay_tree_new_ggc(COMPARE)					 \
   splay_tree_new_with_allocator (COMPARE, NULL, NULL,			 \
@@ -269,6 +270,10 @@ extern const char *ggc_alloc_string (const char *contents, int length);
 /* Invoke the collector.  Garbage collection occurs only when this
    function is called, not during allocations.  */
 extern void ggc_collect	(void);
+
+/* Register an additional root table.  This can be useful for some
+   plugins.  Does nothing if the passed pointer is null. */
+extern void ggc_register_root_tab (const struct ggc_root_tab *);
 
 /* Return the number of bytes allocated at the indicated address.  */
 extern size_t ggc_get_size (const void *);

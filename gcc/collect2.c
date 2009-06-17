@@ -1,7 +1,8 @@
 /* Collect static initialization info into data structures that can be
    traversed by C++ initialization and finalization routines.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Chris Smith (csmith@convex.com).
    Heavily modified by Michael Meissner (meissner@cygnus.com),
    Per Bothner (bothner@cygnus.com), and John Gilmore (gnu@cygnus.com).
@@ -41,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #define COLLECT
 
 #include "collect2.h"
+#include "collect2-aix.h"
 #include "demangle.h"
 #include "obstack.h"
 #include "intl.h"
@@ -53,7 +55,9 @@ along with GCC; see the file COPYING3.  If not see
    cross-versions are in the proper directories.  */
 
 #ifdef CROSS_DIRECTORY_STRUCTURE
+#ifndef CROSS_AIX_SUPPORT
 #undef OBJECT_FORMAT_COFF
+#endif
 #undef MD_EXEC_PREFIX
 #undef REAL_LD_FILE_NAME
 #undef REAL_NM_FILE_NAME
@@ -71,6 +75,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifdef OBJECT_FORMAT_COFF
 
+#ifndef CROSS_DIRECTORY_STRUCTURE
 #include <a.out.h>
 #include <ar.h>
 
@@ -85,6 +90,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 #include <ldfcn.h>
+#endif
 
 /* Some systems have an ISCOFF macro, but others do not.  In some cases
    the macro may be wrong.  MY_ISCOFF is defined in tm.h files for machines
@@ -210,6 +216,14 @@ static char *response_file;		/* Name of any current response file */
 
 struct obstack temporary_obstack;
 char * temporary_firstobj;
+
+/* A string that must be prepended to a target OS path in order to find
+   it on the host system.  */
+#ifdef TARGET_SYSTEM_ROOT
+static const char *target_system_root = TARGET_SYSTEM_ROOT;
+#else
+static const char *target_system_root = "";
+#endif
 
 /* Structure to hold all the directories in which to search for files to
    execute.  */
@@ -537,7 +551,7 @@ dump_file (const char *name, FILE *to)
 static symkind
 is_ctor_dtor (const char *s)
 {
-  struct names { const char *const name; const int len; const int ret;
+  struct names { const char *const name; const int len; symkind ret;
     const int two_underscores; };
 
   const struct names *p;
@@ -856,9 +870,12 @@ main (int argc, char **argv)
   /* Do not invoke xcalloc before this point, since locale needs to be
      set first, in case a diagnostic is issued.  */
 
-  ld1 = (const char **)(ld1_argv = XCNEWVEC (char *, argc+4));
-  ld2 = (const char **)(ld2_argv = XCNEWVEC (char *, argc+11));
-  object = (const char **)(object_lst = XCNEWVEC (char *, argc));
+  ld1_argv = XCNEWVEC (char *, argc + 4);
+  ld1 = CONST_CAST2 (const char **, char **, ld1_argv);
+  ld2_argv = XCNEWVEC (char *, argc + 11);
+  ld2 = CONST_CAST2 (const char **, char **, ld2_argv);
+  object_lst = XCNEWVEC (char *, argc);
+  object = CONST_CAST2 (const char **, char **, object_lst);
 
 #ifdef DEBUG
   debug = 1;
@@ -903,7 +920,8 @@ main (int argc, char **argv)
      -fno-exceptions -w */
   num_c_args += 5;
 
-  c_ptr = (const char **) (c_argv = XCNEWVEC (char *, num_c_args));
+  c_argv = XCNEWVEC (char *, num_c_args);
+  c_ptr = CONST_CAST2 (const char **, char **, c_argv);
 
   if (argc < 2)
     fatal ("no arguments");
@@ -1149,7 +1167,9 @@ main (int argc, char **argv)
 #else
 #if LINK_ELIMINATE_DUPLICATE_LDIRECTORIES
 	    case 'L':
-	      if (is_in_args (arg, (const char **) ld1_argv, ld1-1))
+	      if (is_in_args (arg,
+			      CONST_CAST2 (const char **, char **, ld1_argv),
+			      ld1 - 1))
 		--ld1;
 	      break;
 #endif /* LINK_ELIMINATE_DUPLICATE_LDIRECTORIES */
@@ -1214,6 +1234,8 @@ main (int argc, char **argv)
 		  ld1--;
 		  ld2--;
 		}
+	      else if (strncmp (arg, "--sysroot=", 10) == 0)
+		target_system_root = arg + 10;
 	      break;
 	    }
 	}
@@ -1405,7 +1427,8 @@ main (int argc, char **argv)
       if (strip_flag)
 	{
 	  char **real_strip_argv = XCNEWVEC (char *, 3);
-	  const char ** strip_argv = (const char **) real_strip_argv;
+	  const char ** strip_argv = CONST_CAST2 (const char **, char **,
+						  real_strip_argv);
 
 	  strip_argv[0] = strip_file_name;
 	  strip_argv[1] = output_file;
@@ -2089,7 +2112,7 @@ scan_prog_file (const char *prog_name, enum pass which_pass)
   void (*quit_handler) (int);
 #endif
   char *real_nm_argv[4];
-  const char **nm_argv = (const char **) real_nm_argv;
+  const char **nm_argv = CONST_CAST2 (const char **, char**, real_nm_argv);
   int argc = 0;
   struct pex_obj *pex;
   const char *errmsg;
@@ -2403,7 +2426,7 @@ scan_libraries (const char *prog_name)
 #   define GCC_SYMZERO(X)	0
 
 /* 0757 = U803XTOCMAGIC (AIX 4.3) and 0767 = U64_TOCMAGIC (AIX V5) */
-#ifdef _AIX51
+#if TARGET_AIX_VERSION >= 51
 #   define GCC_CHECK_HDR(X) \
      ((HEADER (X).f_magic == U802TOCMAGIC && ! aix64_flag) \
       || (HEADER (X).f_magic == 0767 && aix64_flag))
@@ -2442,9 +2465,19 @@ static int ignore_library (const char *);
 static int
 ignore_library (const char *name)
 {
-  const char *const *p = &aix_std_libs[0];
-  while (*p++ != NULL)
-    if (! strcmp (name, *p)) return 1;
+  const char *const *p;
+  size_t length;
+
+  if (target_system_root[0] != '\0')
+    {
+      length = strlen (target_system_root);
+      if (strncmp (name, target_system_root, length) != 0)
+	return 0;
+      name += length;
+    }
+  for (p = &aix_std_libs[0]; *p != NULL; ++p)
+    if (strcmp (name, *p) == 0)
+      return 1;
   return 0;
 }
 #endif /* COLLECT_EXPORT_LIST */

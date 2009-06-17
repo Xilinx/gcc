@@ -1,5 +1,5 @@
 /* Various declarations for language-independent diagnostics subroutines.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@codesourcery.com>
 
@@ -41,6 +41,7 @@ typedef struct diagnostic_info
 {
   text_info message;
   location_t location;
+  unsigned int override_column;
   /* TREE_BLOCK if the diagnostic is to be reported in some inline
      function inlined into other function, otherwise NULL.  */
   tree abstract_origin;
@@ -185,6 +186,10 @@ extern diagnostic_context *global_dc;
 
 #define report_diagnostic(D) diagnostic_report_diagnostic (global_dc, D)
 
+/* Override the column number to be used for reporting a
+   diagnostic.  */
+#define diagnostic_override_column(DI, COL) (DI)->override_column = (COL)
+
 /* Diagnostic related functions.  */
 extern void diagnostic_initialize (diagnostic_context *);
 extern void diagnostic_report_current_module (diagnostic_context *);
@@ -221,6 +226,7 @@ extern void print_generic_expr (FILE *, tree, int);
 extern void print_generic_decl (FILE *, tree, int);
 extern void debug_c_tree (tree);
 extern void dump_omp_clauses (pretty_printer *, tree, int, int);
+extern void print_call_name (pretty_printer *, tree);
 
 /* In gimple-pretty-print.c  */
 extern void debug_generic_expr (tree);

@@ -1,7 +1,7 @@
 /* Gcov.c: prepend line execution counts and branch probabilities to a
    source file.
    Copyright (C) 1990, 1991, 1992, 1993, 1994, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by James E. Wilson of Cygnus Support.
    Mangled by Bob Manson of Cygnus Support.
@@ -426,7 +426,7 @@ static void
 print_version (void)
 {
   fnotice (stdout, "gcov %s%s\n", pkgversion_string, version_string);
-  fprintf (stdout, "Copyright %s 2008 Free Software Foundation, Inc.\n",
+  fprintf (stdout, "Copyright %s 2009 Free Software Foundation, Inc.\n",
 	   _("(C)"));
   fnotice (stdout,
 	   _("This is free software; see the source for copying conditions.\n"
@@ -1065,27 +1065,29 @@ read_count_file (void)
 	program_count++;
       else if (tag == GCOV_TAG_FUNCTION)
 	{
-	  unsigned ident = gcov_read_unsigned ();
-	  struct function_info *fn_n = functions;
+	  {
+	    unsigned ident = gcov_read_unsigned ();
+	    struct function_info *fn_n = functions;
 
-	  /* Try to find the function in the list.
-	     To speed up the search, first start from the last function
-	     found.   */
-	  for (fn = fn ? fn->next : NULL; ; fn = fn->next)
-	    {
-	      if (fn)
-		;
-	      else if ((fn = fn_n))
-		fn_n = NULL;
-	      else
-		{
-		  fnotice (stderr, "%s:unknown function '%u'\n",
-			   da_file_name, ident);
+	    /* Try to find the function in the list.
+	       To speed up the search, first start from the last function
+	       found.   */
+	    for (fn = fn ? fn->next : NULL; ; fn = fn->next)
+	      {
+		if (fn)
+		  ;
+		else if ((fn = fn_n))
+		  fn_n = NULL;
+		else
+		  {
+		    fnotice (stderr, "%s:unknown function '%u'\n",
+			     da_file_name, ident);
+		    break;
+		  }
+		if (fn->ident == ident)
 		  break;
-		}
-	      if (fn->ident == ident)
-		break;
-	    }
+	      }
+	  }
 
 	  if (!fn)
 	    ;
