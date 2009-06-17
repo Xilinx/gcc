@@ -64,7 +64,7 @@ maybe_init_pretty_print (FILE *file)
       initialized = true;
     }
 
-  buffer.buffer->bufstream = file;
+  buffer.buffer->stream = file;
 }
 
 
@@ -1580,8 +1580,8 @@ dump_bb_header (pretty_printer *buffer, basic_block bb, int indent, int flags)
 	    else
 	      pp_decimal_int (buffer, e->src->index);
 	  }
-	else if (buffer->buffer->bufstream)
-	  dump_edge_info (buffer->buffer->bufstream, e, 0);
+	else if (buffer->buffer->stream)
+	  dump_edge_info (buffer->buffer->stream, e, 0);
       pp_newline (buffer);
     }
   else
@@ -1597,8 +1597,8 @@ dump_bb_header (pretty_printer *buffer, basic_block bb, int indent, int flags)
 	}
     }
   pp_write_text_to_stream (buffer);
-  if (buffer->buffer->bufstream)
-    check_bb_profile (bb, buffer->buffer->bufstream);
+  if (buffer->buffer->stream)
+    check_bb_profile (bb, buffer->buffer->stream);
 }
 
 
@@ -1623,8 +1623,8 @@ dump_bb_end (pretty_printer *buffer, basic_block bb, int indent, int flags)
 	else
 	  pp_decimal_int (buffer, e->dest->index);
       }
-    else if (buffer->buffer->bufstream)
-      dump_edge_info (buffer->buffer->bufstream, e, 1);
+    else if (buffer->buffer->stream)
+      dump_edge_info (buffer->buffer->stream, e, 1);
   pp_newline (buffer);
 }
 
@@ -1773,8 +1773,8 @@ gimple_dump_bb_buff (pretty_printer *buffer, basic_block bb, int indent,
       INDENT (curr_indent);
       dump_gimple_stmt (buffer, stmt, curr_indent, flags);
       pp_newline (buffer);
-      if (buffer->buffer->bufstream)
-	dump_histograms_for_stmt (cfun, buffer->buffer->bufstream, stmt);
+      if (buffer->buffer->stream)
+	dump_histograms_for_stmt (cfun, buffer->buffer->stream, stmt);
     }
 
   dump_implicit_edges (buffer, bb, indent, flags);

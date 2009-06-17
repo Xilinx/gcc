@@ -1,3 +1,16 @@
+2009-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	[pretty printing made more similar to trunk by renaming bufstream
+	field as stream]
+	* tree-pretty-print.c (maybe_init_pretty_print): renmad bufstream
+	as stream.
+	* diagnostic.c (diagnostic_initialize): likewise.
+	* pretty-print.c (pp_write_text_to_stream, pp_construct)
+	(pp_construct_routdata): likewise.
+	* pretty-print.h: likewise.
+	* gimple-pretty-print.c (maybe_init_pretty_print, dump_bb_header)
+	(dump_bb_end, gimple_dump_bb_buff): likewise.
+	* c-pretty-print.c (print_c_tree): likewise.
+
 2009-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[removed compile probe for pluginification after rev148523]
 	* compiler-probe.c: removed file.

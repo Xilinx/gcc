@@ -88,7 +88,7 @@ typedef struct
   struct chunk_info *cur_chunk_array;
 
   /* Where to output formatted text.  */
-  FILE *bufstream;
+  FILE *stream;
 
   /* if the above stream is null, use the buflushroutine with its buflushdata */
   void (*buflushroutine) (const char*str, void*data);

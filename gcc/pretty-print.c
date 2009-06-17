@@ -101,8 +101,8 @@ void
 pp_write_text_to_stream (pretty_printer *pp)
 {
   const char *text = pp_formatted_text (pp);
-  if (pp->buffer->bufstream)
-    fputs (text, pp->buffer->bufstream);
+  if (pp->buffer->stream)
+    fputs (text, pp->buffer->stream);
   else if (pp->buffer->buflushroutine)
     pp->buffer->buflushroutine(text, pp->buffer->buflushdata);
   pp_clear_output_area (pp);
@@ -632,10 +632,11 @@ pp_base_flush (pretty_printer *pp)
 {
   pp_write_text_to_stream (pp);
   pp_clear_state (pp);
-  if (pp->buffer->bufstream) {
-    fputc ('\n', pp->buffer->bufstream);
-    fflush (pp->buffer->bufstream);
-  }
+  if (pp->buffer->stream) 
+    {
+      fputc ('\n', pp->buffer->stream);
+      fflush (pp->buffer->stream);
+    }
   else if (pp->buffer->buflushroutine) 
     pp->buffer->buflushroutine("\n",  pp->buffer->buflushdata);
   pp_needs_newline (pp) = false;
@@ -722,7 +723,7 @@ pp_construct (pretty_printer *pp, const char *prefix, int maximum_length)
   obstack_init (&pp->buffer->chunk_obstack);
   obstack_init (&pp->buffer->formatted_obstack);
   pp->buffer->obstack = &pp->buffer->formatted_obstack;
-  pp->buffer->bufstream = stderr;
+  pp->buffer->stream = stderr;
   pp_line_cutoff (pp) = maximum_length;
   pp_prefixing_rule (pp) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
   pp_set_prefix (pp, prefix);
@@ -737,7 +738,7 @@ pp_construct_routdata (pretty_printer *pp, const char *prefix, int maximum_lengt
   obstack_init (&pp->buffer->chunk_obstack);
   obstack_init (&pp->buffer->formatted_obstack);
   pp->buffer->obstack = &pp->buffer->formatted_obstack;
-  pp->buffer->bufstream = NULL;
+  pp->buffer->stream = NULL;
   pp->buffer->buflushroutine = flushrout;
   pp->buffer->buflushdata = flushdata;
   pp_line_cutoff (pp) = maximum_length;

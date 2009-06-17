@@ -2823,7 +2823,7 @@ maybe_init_pretty_print (FILE *file)
       initialized = 1;
     }
 
-  buffer.buffer->bufstream = file;
+  buffer.buffer->stream = file;
   buffer.buffer->buflushroutine = 0;
 }
 
