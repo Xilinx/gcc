@@ -61,7 +61,6 @@ Boston, MA 02110-1301, USA.  */
 
 /* basilys or MELT specific includes */
 
-#include "compiler-probe.h"
 
 
 #if HAVE_PARMAPOLY

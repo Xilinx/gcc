@@ -1,4 +1,8 @@
 2009-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* run-basilys.h: don't include compiler-probe.h.
+	* melt/warmelt-normal.melt: more stuff in normexp_funmatchexpr.
+
+2009-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	[pretty printing made more similar to trunk by renaming bufstream
 	field as stream]
 	* tree-pretty-print.c (maybe_init_pretty_print): renmad bufstream
