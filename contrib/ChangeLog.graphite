@@ -1,3 +1,7 @@
+2009-06-17  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* automatic_tester/git_run.sh: Mark build as running in git.
+
 2009-05-14  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* automatic_tester/graphite_env.sh: Removed.
