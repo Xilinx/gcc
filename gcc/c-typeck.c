@@ -2079,7 +2079,7 @@ build_indirect_ref (location_t loc, tree ptr, const char *errorstring)
 	      error_at (loc, "dereferencing pointer to incomplete type");
 	      return error_mark_node;
 	    }
-	  if (VOID_TYPE_P (t) && skip_evaluation == 0)
+	  if (VOID_TYPE_P (t) && c_inhibit_evaluation_warnings == 0)
 	    warning_at (loc, 0, "dereferencing %<void *%> pointer");
 
 	  /* We *must* set TREE_READONLY when dereferencing a pointer to const,
@@ -3864,7 +3864,7 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
 	 and later code won't know it used to be different.
 	 Do this check on the original types, so that explicit casts
 	 will be considered, but default promotions won't.  */
-      if (!skip_evaluation)
+      if (c_inhibit_evaluation_warnings == 0)
 	{
 	  int unsigned_op1 = TYPE_UNSIGNED (TREE_TYPE (orig_op1));
 	  int unsigned_op2 = TYPE_UNSIGNED (TREE_TYPE (orig_op2));
@@ -5546,16 +5546,26 @@ digest_init (location_t init_loc, tree type, tree init, tree origtype,
 	  TREE_TYPE (inside_init) = type;
 	  if (TYPE_DOMAIN (type) != 0
 	      && TYPE_SIZE (type) != 0
-	      && TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST
+	      && TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST)
+	    {
+	      unsigned HOST_WIDE_INT len = TREE_STRING_LENGTH (inside_init);
+
 	      /* Subtract the size of a single (possibly wide) character
 		 because it's ok to ignore the terminating null char
 		 that is counted in the length of the constant.  */
-	      && 0 > compare_tree_int (TYPE_SIZE_UNIT (type),
-				       TREE_STRING_LENGTH (inside_init)
-				       - (TYPE_PRECISION (typ1)
-					  / BITS_PER_UNIT)))
-	    pedwarn_init (init_loc, 0, 
-			  "initializer-string for array of chars is too long");
+	      if (0 > compare_tree_int (TYPE_SIZE_UNIT (type),
+					(len
+					 - (TYPE_PRECISION (typ1)
+					    / BITS_PER_UNIT))))
+		pedwarn_init (init_loc, 0,
+			      ("initializer-string for array of chars "
+			       "is too long"));
+	      else if (warn_cxx_compat
+		       && 0 > compare_tree_int (TYPE_SIZE_UNIT (type), len))
+		warning_at (init_loc, OPT_Wc___compat,
+			    ("initializer-string for array chars "
+			     "is too long for C++"));
+	    }
 
 	  return inside_init;
 	}
@@ -9074,7 +9084,7 @@ build_binary_op (location_t location, enum tree_code code,
 	      if (tree_int_cst_sgn (op1) < 0)
 		{
 		  int_const = false;
-		  if (skip_evaluation == 0)
+		  if (c_inhibit_evaluation_warnings == 0)
 		    warning (0, "right shift count is negative");
 		}
 	      else
@@ -9085,7 +9095,7 @@ build_binary_op (location_t location, enum tree_code code,
 		  if (compare_tree_int (op1, TYPE_PRECISION (type0)) >= 0)
 		    {
 		      int_const = false;
-		      if (skip_evaluation == 0)
+		      if (c_inhibit_evaluation_warnings == 0)
 			warning (0, "right shift count >= width of type");
 		    }
 		}
@@ -9111,14 +9121,14 @@ build_binary_op (location_t location, enum tree_code code,
 	      if (tree_int_cst_sgn (op1) < 0)
 		{
 		  int_const = false;
-		  if (skip_evaluation == 0)
+		  if (c_inhibit_evaluation_warnings == 0)
 		    warning (0, "left shift count is negative");
 		}
 
 	      else if (compare_tree_int (op1, TYPE_PRECISION (type0)) >= 0)
 		{
 		  int_const = false;
-		  if (skip_evaluation == 0)
+		  if (c_inhibit_evaluation_warnings == 0)
 		    warning (0, "left shift count >= width of type");
 		}
 	    }
@@ -9458,7 +9468,7 @@ build_binary_op (location_t location, enum tree_code code,
 	  converted = 1;
 	  resultcode = xresultcode;
 
-	  if (!skip_evaluation)
+	  if (c_inhibit_evaluation_warnings == 0)
 	    {
 	      bool op0_maybe_const = true;
 	      bool op1_maybe_const = true;
