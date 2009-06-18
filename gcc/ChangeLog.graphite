@@ -1,5 +1,10 @@
 2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* gcc/testsuite/gcc.dg/graphite/interchange-{1..7}.c: New avatars of
+	ltrans-{1..6,8}.c.
+
+2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-interchange.c (compute_subscript): Allow also -1 in the
 	subscript identification column.
 	(pbb_do_interchange): Print to dump_file that some loops "will be
