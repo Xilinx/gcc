@@ -285,7 +285,7 @@ gather_access_strides (poly_dr_p pdr, graphite_dim_t loop_depth,
    and loop at depth2 with depth1 < depth2 for the polyhedral black
    box PBB.  */
 
-bool
+static bool
 interchange_profitable_p (graphite_dim_t depth1, graphite_dim_t depth2, poly_bb_p pbb)
 {
   int i;
@@ -313,6 +313,65 @@ interchange_profitable_p (graphite_dim_t depth1, graphite_dim_t depth2, poly_bb_
   value_clear (access_strides2);
 
   return res;
+}
+
+/* Interchanges the loops at DEPTH1 and DEPTH2 of the original
+   scattering and assigns the resulting polyhedron to the transformed
+   scattering.  */
+
+static void
+pbb_interchange_loop_depths (graphite_dim_t depth1, graphite_dim_t depth2, poly_bb_p pbb)
+{
+  ppl_Polyhedron_t poly;
+  ppl_dimension_type i, dim;
+  ppl_dimension_type *map;
+  ppl_dimension_type dim1 = psct_iterator_dim (pbb, depth1);
+  ppl_dimension_type dim2 = psct_iterator_dim (pbb, depth2);
+
+  ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&poly, PBB_ORIGINAL_SCATTERING (pbb));
+
+  ppl_Polyhedron_space_dimension (poly, &dim);
+  map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
+
+  for (i = 0; i < dim; i++)
+    map[i] = i;
+
+  map[dim1] = dim2;
+  map[dim2] = dim1;
+
+  ppl_Polyhedron_map_space_dimensions (poly, map, dim);
+  PBB_TRANSFORMED_SCATTERING (pbb) = poly;
+  free (map);
+}
+
+/* Interchanges all the loop depths that are considered profitable for PBB.  */
+
+static void
+pbb_do_interchange (poly_bb_p pbb, scop_p scop)
+{
+  graphite_dim_t i, j;
+
+  for (i = 0; i < pbb_dim_iter_domain (pbb); i++)
+    for (j = i + 1; j < pbb_dim_iter_domain (pbb); j++)
+      if (interchange_profitable_p (i, j, pbb))
+	{
+	  pbb_interchange_loop_depths (i, j, pbb);
+
+	  if (!graphite_legal_transform (scop))
+	    pbb_interchange_loop_depths (j, i, pbb);
+	}
+}
+
+/* Interchanges all the loop depths that are considered profitable for SCOP.  */
+
+void
+scop_do_interchange (scop_p scop)
+{
+  int i;
+  poly_bb_p pbb;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    pbb_do_interchange (pbb, scop);
 }
 
 #endif

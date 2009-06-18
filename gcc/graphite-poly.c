@@ -261,7 +261,7 @@ apply_poly_transforms (scop_p scop)
     gcc_unreachable (); /* Not yet supported.  */
 
   if (flag_loop_interchange)
-    gcc_unreachable (); /* Not yet supported.  */
+    scop_do_interchange (scop);
 
   if (flag_loop_strip_mine)
     gcc_unreachable (); /* Not yet supported.  */

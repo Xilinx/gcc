@@ -275,7 +275,7 @@ extern void print_iteration_domain (FILE *, poly_bb_p);
 extern void print_iteration_domains (FILE *, scop_p);
 extern void debug_iteration_domain (poly_bb_p);
 extern void debug_iteration_domains (scop_p);
-extern bool interchange_profitable_p (graphite_dim_t, graphite_dim_t, poly_bb_p);
+extern void scop_do_interchange (scop_p);
 
 /* The scop that contains the PDR.  */
 

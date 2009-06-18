@@ -1,4 +1,16 @@
 2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
+	    Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Pranav Garg  <pranav.garg2107@gmail.com>
+
+	* graphite-interchange.c (interchange_profitable_p): Make static.
+	(pbb_interchange_loop_depths, pbb_do_interchange, scop_do_interchange): New.
+	* graphite-poly.c (apply_poly_transforms): Call scop_do_interchange for
+	flag_loop_interchange.
+	* graphite-poly.h (scop_do_interchange): Declared.
+	* tree-ssa-loop.c (gate_graphite_transforms): Do not fail when
+	flag_loop_interchange is used.
+
+2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-dependences.c (dependence_polyhedron): Update use of
 	pbb_nb_scattering_dims.
