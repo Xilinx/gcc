@@ -77,7 +77,8 @@ compute_subscript (poly_dr_p pdr, ppl_const_Constraint_t cstr)
 
       if (value_notzero_p (val))
 	{
-	  gcc_assert (value_one_p (val));
+	  gcc_assert (value_one_p (val)
+		      || value_mone_p (val));
 
 	  value_clear (val);
 	  ppl_delete_Coefficient (coef);
@@ -359,6 +360,11 @@ pbb_do_interchange (poly_bb_p pbb, scop_p scop)
 
 	  if (!graphite_legal_transform (scop))
 	    pbb_interchange_loop_depths (j, i, pbb);
+
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    fprintf (dump_file,
+		     "PBB %d: loops at depths %d and %d will be interchanged",
+		     GBB_BB (PBB_BLACK_BOX (pbb))->index, (int) i, (int) j);
 	}
 }
 

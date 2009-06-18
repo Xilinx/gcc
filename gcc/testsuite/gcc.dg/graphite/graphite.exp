@@ -55,6 +55,12 @@ set id_files [lsort [glob -nocomplain $srcdir/$subdir/id-*.c]]
 dg-runtest $id_files "" $DEFAULT_CFLAGS_GRAPHITE_IDENTITY
 foreach id_file $id_files {lremove wait_to_run_files $id_file}
 
+# Flags using for interchange-*.c files.
+set DEFAULT_CFLAGS_GRAPHITE_BLOCK "-O2 -fdump-tree-graphite-all -floop-interchange"
+set interchange_files [lsort [glob -nocomplain $srcdir/$subdir/interchange-*.c]]
+dg-runtest $interchange_files "" $DEFAULT_CFLAGS_GRAPHITE_BLOCK
+foreach interchange_file $interchange_files {lremove wait_to_run_files $interchange_file}
+
 # Flags using for scop-*.c files.
 set DEFAULT_CFLAGS_GRAPHITE_SCOP "-O2 -fgraphite -fdump-tree-graphite-all"
 set scop_files [lsort [glob -nocomplain $srcdir/$subdir/scop-*.c]]

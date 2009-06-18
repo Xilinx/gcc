@@ -1,3 +1,13 @@
+2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-interchange.c (compute_subscript): Allow also -1 in the
+	subscript identification column.
+	(pbb_do_interchange): Print to dump_file that some loops "will be
+	interchanged".  Rely on that chain of characters in the testcases.
+	* gcc.dg/graphite/interchange-0.c: New.
+	* gcc.dg/graphite/graphite.exp: Iterate over the testsuite
+	interchange-*.c files and compile them with -floop-interchange.
+
 2009-06-18  Pranav Garg  <pranav.garg2107@gmail.com>
 
 	* graphite-interchange.c (interchange_profitable_p): Renamed
