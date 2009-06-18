@@ -304,7 +304,7 @@ struct pretty_print_info
 /* construct a pretty printer on stderr */
 extern void pp_construct (pretty_printer *, const char *, int);
 /* construct a pretty printer to a routine with data */
-extern void pp_construct_routdata(pretty_printer *pp, const char *prefix, int maximum_length, void (*flushrout)(const char*,void*), void *flushdata);
+extern void pp_construct_routdata (pretty_printer *pp, const char *prefix, int maximum_length, void (*flushrout)(const char*,void*), void *flushdata);
 /* destruct a pretty printer */
 extern void pp_destruct (pretty_printer *);
 

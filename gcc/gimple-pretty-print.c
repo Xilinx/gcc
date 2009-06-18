@@ -1759,7 +1759,7 @@ gimple_dump_bb_buff (pretty_printer *buffer, basic_block bb, int indent,
     label_indent = 0;
 
   dump_bb_header (buffer, bb, indent, flags);
-  if (phi_nodes(bb))
+  if (phi_nodes (bb))
     dump_phi_nodes (buffer, bb, indent, flags);
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))

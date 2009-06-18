@@ -104,7 +104,7 @@ pp_write_text_to_stream (pretty_printer *pp)
   if (pp->buffer->stream)
     fputs (text, pp->buffer->stream);
   else if (pp->buffer->buflushroutine)
-    pp->buffer->buflushroutine(text, pp->buffer->buflushdata);
+    (pp->buffer->buflushroutine) (text, pp->buffer->buflushdata);
   pp_clear_output_area (pp);
 }
 
@@ -638,7 +638,7 @@ pp_base_flush (pretty_printer *pp)
       fflush (pp->buffer->stream);
     }
   else if (pp->buffer->buflushroutine) 
-    pp->buffer->buflushroutine("\n",  pp->buffer->buflushdata);
+    (pp->buffer->buflushroutine) ("\n",  pp->buffer->buflushdata);
   pp_needs_newline (pp) = false;
 }
 
@@ -751,7 +751,7 @@ void pp_destruct(pretty_printer *pp)
 {
   pp_write_text_to_stream (pp);
   pp_clear_state (pp);
-  XDELETE(pp->buffer);
+  XDELETE (pp->buffer);
   memset(pp, 0, sizeof (pretty_printer));
 }
 

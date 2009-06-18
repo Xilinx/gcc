@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "plugin.h"
 
-/* we just need to kill the compiler probe on internal|fatal errors */
 #define pedantic_warning_kind() (flag_pedantic_errors ? DK_ERROR : DK_WARNING)
 #define permissive_error_kind() (flag_permissive ? DK_WARNING : DK_ERROR)
 

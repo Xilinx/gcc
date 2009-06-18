@@ -1,3 +1,10 @@
+2009-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* diagnostic.c: removed useless comment.
+	* pretty-print.c (pp_write_text_to_stream): put better spacing.
+	(pp_destruct): likewise.
+	* pretty-print.h: likewise.
+	* gimple-pretty-print.c (gimple_dump_bb_buff): likewise.
+
 2009-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* run-basilys.h: don't include compiler-probe.h.
 	* melt/warmelt-normal.melt: more stuff in normexp_funmatchexpr.
