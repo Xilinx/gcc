@@ -1,3 +1,12 @@
+2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (dependence_polyhedron): Update use of
+	pbb_nb_scattering_dims.
+	* graphite-poly.h (pbb_nb_scattering_dims): Do not pass SCOP.
+	(pbb_nb_scattering): Update use of pbb_nb_scattering_dims.
+	(psco_scattering_dim, psct_scattering_dim, psco_iterator_dim,
+	psct_iterator_dim, psco_parameter_dim, psct_parameter_dim): New.
+
 2009-06-16  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c: Cleanup foo.

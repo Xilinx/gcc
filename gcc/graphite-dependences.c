@@ -314,8 +314,8 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
 		       bool direction)
 {
   scop_p scop = PBB_SCOP (pbb1);
-  graphite_dim_t tdim1 = pbb_nb_scattering_dims (s1, pbb1, scop);
-  graphite_dim_t tdim2 = pbb_nb_scattering_dims (s2, pbb2, scop);
+  graphite_dim_t tdim1 = pbb_nb_scattering_dims (s1, pbb1);
+  graphite_dim_t tdim2 = pbb_nb_scattering_dims (s2, pbb2);
   graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
   graphite_dim_t ddim2 = pbb_dim_iter_domain (pbb2);
   graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
@@ -399,11 +399,10 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
       ppl_Polyhedron_t st2 = PBB_TRANSFORMED_SCATTERING (pbb2);
       ppl_Pointset_Powerset_NNC_Polyhedron_t pt;
       graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
-      scop_p scop = PBB_SCOP (pbb1);
-      graphite_dim_t otdim1 = pbb_nb_scattering_dims (so1, pbb1, scop);
-      graphite_dim_t otdim2 = pbb_nb_scattering_dims (so2, pbb2, scop);
-      graphite_dim_t ttdim1 = pbb_nb_scattering_dims (st1, pbb1, scop);
-      graphite_dim_t ttdim2 = pbb_nb_scattering_dims (st2, pbb2, scop);
+      graphite_dim_t otdim1 = pbb_nb_scattering_dims (so1, pbb1);
+      graphite_dim_t otdim2 = pbb_nb_scattering_dims (so2, pbb2);
+      graphite_dim_t ttdim1 = pbb_nb_scattering_dims (st1, pbb1);
+      graphite_dim_t ttdim2 = pbb_nb_scattering_dims (st2, pbb2);
 
       pt = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, st1, st2, false);
       

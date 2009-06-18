@@ -36,9 +36,9 @@ DEF_VEC_ALLOC_P (scop_p, heap);
 
 typedef ppl_dimension_type graphite_dim_t;
 
-static inline graphite_dim_t pbb_dim_iter_domain (const struct poly_bb*);
-static inline graphite_dim_t pbb_nb_scattering (const struct poly_bb*);
-static inline graphite_dim_t pbb_nb_params (poly_bb_p);
+static inline graphite_dim_t pbb_dim_iter_domain (const struct poly_bb *);
+static inline graphite_dim_t pbb_nb_scattering (const struct poly_bb *);
+static inline graphite_dim_t pbb_nb_params (const struct poly_bb *);
 static inline graphite_dim_t scop_nb_params (scop_p);
 
 /* A data reference can write or read some memory or we
@@ -196,7 +196,7 @@ pdr_subscript_dim (poly_dr_p pdr, graphite_dim_t s)
   return pbb_dim_iter_domain (pbb) + pbb_nb_params (pbb) + 1 + s;
 }
 
-/* The dimension in PDR containing the loop iteration  .  */
+/* The dimension in PDR containing the loop iterator ITER.  */
 
 static inline ppl_dimension_type
 pdr_iterator_dim (poly_dr_p pdr ATTRIBUTE_UNUSED, graphite_dim_t iter)
@@ -305,18 +305,27 @@ pbb_dim_iter_domain (const struct poly_bb *pbb)
   return dim - scop_nb_params (scop);
 }
 
+/* The number of params defined in PBB.  */
+
+static inline graphite_dim_t
+pbb_nb_params (const struct poly_bb *pbb)
+{
+  scop_p scop = PBB_SCOP (pbb); 
+
+  return scop_nb_params (scop);
+}
+
 /* The number of scattering dimensions in the SCATTERING polyhedron
    of a PBB for a given SCOP.  */
 
 static inline graphite_dim_t 
-pbb_nb_scattering_dims (ppl_Polyhedron_t scattering, 
-                        const struct poly_bb *pbb, 
-                        scop_p scop)
+pbb_nb_scattering_dims (ppl_Polyhedron_t scattering,
+                        const struct poly_bb *pbb)
 {
   ppl_dimension_type dim;
 
   ppl_Polyhedron_space_dimension (scattering, &dim);
-  return dim - pbb_dim_iter_domain (pbb) - scop_nb_params (scop);
+  return dim - pbb_dim_iter_domain (pbb) - pbb_nb_params (pbb);
 }
 
 /* The number of scattering dimensions in PBB.  */
@@ -324,17 +333,67 @@ pbb_nb_scattering_dims (ppl_Polyhedron_t scattering,
 static inline graphite_dim_t 
 pbb_nb_scattering (const struct poly_bb *pbb)
 {
-  return pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb, PBB_SCOP (pbb));
+  return pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb);
 }
 
-/* The number of params defined in PBB.  */
+/* The dimension in the original scattering polyhedron of PBB
+   containing the scattering iterator SCATTER.  */
 
-static inline graphite_dim_t
-pbb_nb_params (poly_bb_p pbb)
+static inline ppl_dimension_type
+psco_scattering_dim (poly_bb_p pbb ATTRIBUTE_UNUSED, graphite_dim_t scatter)
 {
-  scop_p scop = PBB_SCOP (pbb); 
+  return scatter;
+}
 
-  return scop_nb_params (scop);
+/* The dimension in the transformed scattering polyhedron of PBB
+   containing the scattering iterator SCATTER.  */
+
+static inline ppl_dimension_type
+psct_scattering_dim (poly_bb_p pbb ATTRIBUTE_UNUSED, graphite_dim_t scatter)
+{
+  return scatter;
+}
+
+/* The dimension in the original scattering polyhedron of PBB
+   containing the loop iterator ITER.  */
+
+static inline ppl_dimension_type
+psco_iterator_dim (poly_bb_p pbb, graphite_dim_t iter)
+{
+  return iter
+    + pbb_nb_scattering_dims (PBB_ORIGINAL_SCATTERING (pbb), pbb);
+}
+
+/* The dimension in the transformed scattering polyhedron of PBB
+   containing the loop iterator ITER.  */
+
+static inline ppl_dimension_type
+psct_iterator_dim (poly_bb_p pbb, graphite_dim_t iter)
+{
+  return iter
+    + pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb);
+}
+
+/* The dimension in the original scattering polyhedron of PBB
+   containing parameter PARAM.  */
+
+static inline ppl_dimension_type
+psco_parameter_dim (poly_bb_p pbb, graphite_dim_t param)
+{
+  return param
+    + pbb_nb_scattering_dims (PBB_ORIGINAL_SCATTERING (pbb), pbb)
+    + pbb_dim_iter_domain (pbb);
+}
+
+/* The dimension in the transformed scattering polyhedron of PBB
+   containing parameter PARAM.  */
+
+static inline ppl_dimension_type
+psct_parameter_dim (poly_bb_p pbb, graphite_dim_t param)
+{
+  return param
+    + pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb)
+    + pbb_dim_iter_domain (pbb);
 }
 
 /* A SCOP is a Static Control Part of the program, simple enough to be
