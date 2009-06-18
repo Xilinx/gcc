@@ -755,7 +755,9 @@ struct GTY(()) saved_scope {
   int x_processing_specialization;
   BOOL_BITFIELD x_processing_explicit_instantiation : 1;
   BOOL_BITFIELD need_pop_function_context : 1;
-  BOOL_BITFIELD skip_evaluation : 1;
+
+  int unevaluated_operand;
+  int inhibit_evaluation_warnings;
 
   struct stmt_tree_s x_stmt_tree;
 
@@ -3621,6 +3623,14 @@ extern GTY(()) tree integer_three_node;
    function, two inside the body of a function in a local class, etc.)  */
 extern int function_depth;
 
+/* In parser.c.  */
+
+/* Nonzero if we are parsing an unevaluated operand: an operand to
+   sizeof, typeof, or alignof.  This is a count since operands to
+   sizeof can be nested.  */
+
+extern int cp_unevaluated_operand;
+
 /* in pt.c  */
 
 /* These values are used for the `STRICT' parameter to type_unification and
@@ -4323,7 +4333,6 @@ extern tree start_decl				(const cp_declarator *, cp_decl_specifier_seq *, int, 
 extern void start_decl_1			(tree, bool);
 extern bool check_array_initializer		(tree, tree, tree);
 extern void cp_finish_decl			(tree, tree, bool, tree, int);
-extern void finish_decl				(tree, tree, tree, tree);
 extern int cp_complete_array_type		(tree *, tree, bool);
 extern tree build_ptrmemfunc_type		(tree);
 extern tree build_ptrmem_type			(tree, tree);

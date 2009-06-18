@@ -347,7 +347,7 @@ resolve_contained_fntype (gfc_symbol *sym, gfc_namespace *ns)
     return;
 
   /* Try to find out of what the return type is.  */
-  if (sym->result->ts.type == BT_UNKNOWN)
+  if (sym->result->ts.type == BT_UNKNOWN && sym->result->ts.interface == NULL)
     {
       t = gfc_set_default_type (sym->result, 0, ns);
 
@@ -8593,7 +8593,7 @@ check_generic_tbp_ambiguity (gfc_tbp_generic* t1, gfc_tbp_generic* t2,
     }
 
   /* Compare the interfaces.  */
-  if (gfc_compare_interfaces (sym1, sym2, 1, 0))
+  if (gfc_compare_interfaces (sym1, sym2, 1, 0, NULL, 0))
     {
       gfc_error ("'%s' and '%s' for GENERIC '%s' at %L are ambiguous",
 		 sym1->name, sym2->name, generic_name, &where);

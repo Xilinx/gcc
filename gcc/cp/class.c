@@ -295,7 +295,7 @@ build_base_path (enum tree_code code,
 
   /* Don't bother with the calculations inside sizeof; they'll ICE if the
      source type is incomplete and the pointer value doesn't matter.  */
-  if (skip_evaluation)
+  if (cp_unevaluated_operand != 0)
     {
       expr = build_nop (build_pointer_type (target_type), expr);
       if (!want_pointer)
@@ -774,7 +774,7 @@ get_vtable_decl (tree type, int complete)
   if (complete)
     {
       DECL_EXTERNAL (decl) = 1;
-      finish_decl (decl, NULL_TREE, NULL_TREE, NULL_TREE);
+      cp_finish_decl (decl, NULL_TREE, false, NULL_TREE, 0);
     }
 
   return decl;
