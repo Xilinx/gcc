@@ -2178,7 +2178,8 @@ create_new_var_1 (tree orig_decl, d_str str, new_var node)
       type = gen_struct_type (orig_decl, type); 
 
       if (is_global_var (orig_decl))
-	new_decl = build_decl (VAR_DECL, new_name, type); 
+	new_decl = build_decl (DECL_SOURCE_LOCATION (orig_decl),
+			       VAR_DECL, new_name, type); 
       else
 	{
 	  const char *name = new_name ? IDENTIFIER_POINTER (new_name) : NULL;
@@ -3646,7 +3647,7 @@ do_reorg_1 (void)
 	push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	current_function_decl = node->decl;
 	if (dump_file)
-	  fprintf (dump_file, "\nFunction to do reorg is  %s: \n",
+	  fprintf (dump_file, "\nFunction to do reorg is %s: \n",
 		   (const char *) IDENTIFIER_POINTER (DECL_NAME (node->decl)));
 	do_reorg_for_func (node);
 	free_dominance_info (CDI_DOMINATORS);

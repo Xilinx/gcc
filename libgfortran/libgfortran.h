@@ -590,6 +590,7 @@ st_parameter_common;
 #define IOPARM_OPEN_HAS_ROUND		(1 << 20)
 #define IOPARM_OPEN_HAS_SIGN		(1 << 21)
 #define IOPARM_OPEN_HAS_ASYNCHRONOUS	(1 << 22)
+#define IOPARM_OPEN_HAS_NEWUNIT		(1 << 23)
 
 /* library start function and end macro.  These can be expanded if needed
    in the future.  cmp is st_parameter_common *cmp  */
@@ -605,7 +606,7 @@ extern void stupid_function_name_for_static_linking (void);
 internal_proto(stupid_function_name_for_static_linking);
 
 extern void set_args (int, char **);
-export_proto(set_args);
+iexport_proto(set_args);
 
 extern void get_args (int *, char ***);
 internal_proto(get_args);

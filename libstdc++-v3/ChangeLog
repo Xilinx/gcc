@@ -1,3 +1,129 @@
+2009-06-16  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* libsupc++/exception_ptr.h (exception_ptr::swap(exception_ptr&&)):
+	Remove.
+	(exception_ptr::operator=(exception_ptr&&)): Cast source to
+	rvalue-reference so that move constructor is called.
+	* testsuite/18_support/exception_ptr/move.cc: New.
+
+2009-06-16  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/thread (~thread(), operator=(thread&&)): Call terminate
+	if joinable.
+
+2009-06-15  Tom Tromey  <tromey@redhat.com>
+
+	* python/libstdcxx/v6/printers.py (StdMapPrinter.__init__): Don't
+	set self.iter.
+	(StdMapPrinter.to_string): Make a new iterator.
+	(StdMapPrinter.children): Likewise.
+	(StdSetPrinter.__init__): Don't set self.iter.
+	(StdSetPrinter.to_string): Make a new iterator.
+	(StdSetPrinter.children): Likewise.
+
+2009-06-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc
+	(negative_binomial_distribution<>::operator()
+	(_UniformRandomNumberGenerator&, const param_type&): Tweak to use a
+	class member gamma_distribution.
+	(negative_binomial_distribution<>::operator()
+	(_UniformRandomNumberGenerator&)): Implement out of line here.
+	(operator<<(basic_ostream<>&, negative_binomial_distribution<>),
+	operator>>(basic_ostream<>&, negative_binomial_distribution<>): Adjust.
+	(student_t_distribution<>::operator()
+	(_UniformRandomNumberGenerator&, const param_type&): Move inline,
+	simplify.
+	(operator<<(basic_ostream<>&, student_t_distribution<>),
+	operator>>(basic_ostream<>&, student_t_distribution<>): Adjust.
+	(chi_squared_distribution<>::operator()
+	(_UniformRandomNumberGenerator&, const param_type&): Move inline,
+	tweak to use a class member gamma_distribution.
+	(operator<<(basic_ostream<>&, chi_squared_distribution<>),
+	operator>>(basic_ostream<>&, chi_squared_distribution<>): Adjust.
+	(fisher_f_distribution<>::operator() (_UniformRandomNumberGenerator&,
+	const param_type&): Move inline, tweak to use class member
+	gamma_distributions.
+	(operator<<(basic_ostream<>&, fisher_f_distribution<>),
+	operator>>(basic_ostream<>&, fisher_f_distribution<>): Adjust.
+	* include/bits/random.h: Adjust, minor tweaks.
+
+2009-06-10  Tom Tromey  <tromey@redhat.com>
+
+	* python/libstdcxx/v6/printers.py (lookup_function): Remove extra ';'.
+	(build_libstdcxx_dictionary): Accept shortened form of
+	basic_string names.
+	(StdStringPrinter.to_string): Remove reference to WideEncoding.
+
+2009-06-10  Tom Tromey  <tromey@redhat.com>
+
+	PR libstdc++/40289:
+	* python/Makefile.in: Rebuild.
+	* python/hook.in: Compute module path relative to objfile.
+	* python/Makefile.am (pythondir): Redefine.
+	(gdb.py): Subst toolexeclibdir.
+	(install-data-local): Rewrite.
+
+2009-06-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/move.h: Doxygen group fixes.
+
+2009-06-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc (gamma_distribution<>::operator()
+	(_UniformRandomNumberGenerator&, const param_type&): Redo, using
+	the Marsaglia/Tsang algorithm.
+	(gamma_distribution<>::param_type::_M_initialize): Adjust.
+	(operator<<(basic_ostream<>&, gamma_distribution<>),
+	operator>>(basic_ostream<>&, gamma_distribution<>): Likewise.
+
+	* include/bits/random.tcc(student_t_distribution<>::_M_gaussian):
+	Remove, just use normal_distribution.
+	(operator<<(basic_ostream<>&, student_t_distribution<>),
+	operator>>(basic_ostream<>&, student_t_distribution<>): Adjust.
+	(linear_congruential_engine<>::operator()()): Move inline.
+	(lognormal_distribution<>::operator()(_UniformRandomNumberGenerator&,
+	const param_type&)): Move inline, just use normal_distribution.
+	(operator<<(basic_ostream<>&, lognormal_distribution<>),
+	operator>>(basic_ostream<>&, lognormal_distribution<>): Adjust.
+	(weibull_distribution<>::operator()(_UniformRandomNumberGenerator&,
+	const param_type&)): Move here, out of line.
+	(piecewise_constant_distribution<>::param_type::param_type()): Move
+	inline.
+	* include/bits/random.h: Adjust, minor tweaks.
+
+2009-06-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/29_atomics/atomic_address/cons/aggregate.cc: Remove xfail.
+
+2009-06-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/throw_allocator.h: Rework.
+	* include/ext/pb_ds/detail/debug_map_base.hpp: Adjust usage.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/resize_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/ov_tree_map_.hpp: Same.
+	* testsuite/23_containers/list/modifiers/insert/25288.cc: Same.
+	* testsuite/util/regression/rand/priority_queue/
+	container_rand_regression_test.tcc: Inline functions.
+	* testsuite/util/regression/rand/assoc/
+	container_rand_regression_test.tcc: Same.
+
+2009-06-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/23_containers/list/cons/6.cc: Adjust test name.
+
+2009-06-02  Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* crossconfig.m4 (GLIBCXX_CROSSCONFIG): Handle AIX targets.
+	* configure: Regenerate.
+
+2009-06-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40299
+	* include/ext/memory: Fully qualify calls with __gnu_cxx.
+	* testsuite/ext/rope/40299.cc: New.
+
 2009-05-28  Tom Tromey  <tromey@redhat.com>
 	    Phil Muldoon  <pmuldoon@redhat.com>
 	    Jonathan Wakely  <jwakely.gcc@gmail.com>

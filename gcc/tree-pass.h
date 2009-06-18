@@ -297,6 +297,7 @@ struct dump_file_info
 /* Rebuild the addressable-vars bitmap and do register promotion.  */
 #define TODO_update_address_taken	(1 << 21)
 
+/* Internally used in execute_function_todo().  */
 #define TODO_update_ssa_any		\
     (TODO_update_ssa			\
      | TODO_update_ssa_no_phi		\
@@ -376,6 +377,7 @@ extern struct gimple_opt_pass pass_late_warn_uninitialized;
 extern struct gimple_opt_pass pass_cse_reciprocals;
 extern struct gimple_opt_pass pass_cse_sincos;
 extern struct gimple_opt_pass pass_convert_to_rsqrt;
+extern struct gimple_opt_pass pass_optimize_bswap;
 extern struct gimple_opt_pass pass_warn_function_return;
 extern struct gimple_opt_pass pass_warn_function_noreturn;
 extern struct gimple_opt_pass pass_cselim;

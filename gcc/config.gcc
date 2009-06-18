@@ -274,6 +274,8 @@ crisv32-*)
 	;;
 frv*)	cpu_type=frv
 	;;
+moxie*)	cpu_type=moxie
+	;;
 fido-*-*)
 	cpu_type=m68k
 	extra_headers=math-68881.h
@@ -286,7 +288,7 @@ i[34567]86-*-*)
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h mmintrin-common.h
 		       wmmintrin.h immintrin.h x86intrin.h avxintrin.h 
-		       cross-stdarg.h"
+		       ia32intrin.h cross-stdarg.h"
 	;;
 x86_64-*-*)
 	cpu_type=i386
@@ -296,7 +298,7 @@ x86_64-*-*)
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h mmintrin-common.h
 		       wmmintrin.h immintrin.h x86intrin.h avxintrin.h 
-		       cross-stdarg.h"
+		       ia32intrin.h cross-stdarg.h"
 	need_64bit_hwint=yes
 	;;
 ia64-*-*)
@@ -475,7 +477,8 @@ case ${target} in
       exit 1
       ;;
   esac
-  fbsd_tm_file="${fbsd_tm_file} freebsd-spec.h freebsd.h"
+  fbsd_tm_file="${fbsd_tm_file} freebsd-spec.h freebsd.h freebsd-stdint.h"
+  use_gcc_stdint=wrap
   ;;
 *-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu)
   extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
@@ -879,6 +882,13 @@ frv-*-*linux*)
 	tm_file="dbxelf.h elfos.h svr4.h ${tm_file} \
 	         linux.h glibc-stdint.h frv/linux.h frv/frv-abi.h"
 	tmake_file="${tmake_file} frv/t-frv frv/t-linux"
+	;;
+moxie-*-elf)
+	gas=yes
+	gnu_ld=yes
+	tm_file="dbxelf.h elfos.h svr4.h ${tm_file}"
+	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
+	tmake_file="${tmake_file} moxie/t-moxie moxie/t-moxie-softfp soft-fp/t-softfp"
 	;;
 h8300-*-rtems*)
 	tmake_file="h8300/t-h8300 h8300/t-elf t-rtems h8300/t-rtems"

@@ -58,7 +58,7 @@
 typedef struct minipool_node    Mnode;
 typedef struct minipool_fixup   Mfix;
 
-const struct attribute_spec arm_attribute_table[];
+EXPORTED_CONST struct attribute_spec arm_attribute_table[];
 
 void (*arm_lang_output_object_attributes_hook)(void);
 
@@ -956,13 +956,15 @@ arm_build_builtin_va_list (void)
   /* Create the type.  */
   va_list_type = lang_hooks.types.make_type (RECORD_TYPE);
   /* Give it the required name.  */
-  va_list_name = build_decl (TYPE_DECL,
+  va_list_name = build_decl (BUILTINS_LOCATION,
+			     TYPE_DECL,
 			     get_identifier ("__va_list"),
 			     va_list_type);
   DECL_ARTIFICIAL (va_list_name) = 1;
   TYPE_NAME (va_list_type) = va_list_name;
   /* Create the __ap field.  */
-  ap_field = build_decl (FIELD_DECL, 
+  ap_field = build_decl (BUILTINS_LOCATION,
+			 FIELD_DECL, 
 			 get_identifier ("__ap"),
 			 ptr_type_node);
   DECL_ARTIFICIAL (ap_field) = 1;
@@ -4266,15 +4268,17 @@ thumb2_legitimate_index_p (enum machine_mode mode, rtx index, int strict_p)
 
   if (mode == DImode || mode == DFmode)
     {
-      HOST_WIDE_INT val = INTVAL (index);
-      /* ??? Can we assume ldrd for thumb2?  */
-      /* Thumb-2 ldrd only has reg+const addressing modes.  */
-      if (code != CONST_INT)
+      if (code == CONST_INT)
+	{
+	  HOST_WIDE_INT val = INTVAL (index);
+	  /* ??? Can we assume ldrd for thumb2?  */
+	  /* Thumb-2 ldrd only has reg+const addressing modes.  */
+	  /* ldrd supports offsets of +-1020.
+	     However the ldr fallback does not.  */
+	  return val > -256 && val < 256 && (val & 3) == 0;
+	}
+      else
 	return 0;
-
-      /* ldrd supports offsets of +-1020.
-         However the ldr fallback does not.  */
-      return val > -256 && val < 256 && (val & 3) == 0;
     }
 
   if (code == MULT)
@@ -12822,22 +12826,23 @@ arm_get_frame_offsets (void)
 	{
 	  int reg = -1;
 
-	  for (i = 4; i <= (TARGET_THUMB1 ? LAST_LO_REGNUM : 11); i++)
+	  /* If it is safe to use r3, then do so.  This sometimes 
+	     generates better code on Thumb-2 by avoiding the need to
+	     use 32-bit push/pop instructions.  */
+	  if (!crtl->tail_call_emit
+	      && arm_size_return_regs () <= 12)
 	    {
-	      if ((offsets->saved_regs_mask & (1 << i)) == 0)
-		{
-		  reg = i;
-		  break;
-		}
-	    }
-
-	  if (reg == -1 && arm_size_return_regs () <= 12
-	      && !crtl->tail_call_emit)
-	    {
-	      /* Push/pop an argument register (r3) if all callee saved
-	         registers are already being pushed.  */
 	      reg = 3;
 	    }
+	  else
+	    for (i = 4; i <= (TARGET_THUMB1 ? LAST_LO_REGNUM : 11); i++)
+	      {
+		if ((offsets->saved_regs_mask & (1 << i)) == 0)
+		  {
+		    reg = i;
+		    break;
+		  }
+	      }
 
 	  if (reg != -1)
 	    {
@@ -14740,13 +14745,13 @@ arm_hard_regno_mode_ok (unsigned int regno, enum machine_mode mode)
 	return VALID_IWMMXT_REG_MODE (mode);
     }
   
-  /* We allow any value to be stored in the general registers.
+  /* We allow almost any value to be stored in the general registers.
      Restrict doubleword quantities to even register pairs so that we can
-     use ldrd.  Do not allow Neon structure opaque modes in general registers;
-     they would use too many.  */
+     use ldrd.  Do not allow very large Neon structure opaque modes in
+     general registers; they would use too many.  */
   if (regno <= LAST_ARM_REGNUM)
     return !(TARGET_LDRD && GET_MODE_SIZE (mode) > 4 && (regno & 1) != 0)
-      && !VALID_NEON_STRUCT_MODE (mode);
+      && ARM_NUM_REGS (mode) <= 4;
 
   if (regno == FRAME_POINTER_REGNUM
       || regno == ARG_POINTER_REGNUM)
@@ -16984,7 +16989,7 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
 
   if (push && pushed_words && dwarf2out_do_frame ())
     {
-      char *l = dwarf2out_cfi_label ();
+      char *l = dwarf2out_cfi_label (false);
       int pushed_mask = real_regs;
 
       *cfa_offset += pushed_words * 4;
@@ -17880,7 +17885,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 	 the stack pointer.  */
       if (dwarf2out_do_frame ())
 	{
-	  char *l = dwarf2out_cfi_label ();
+	  char *l = dwarf2out_cfi_label (false);
 
 	  cfa_offset = cfa_offset + crtl->args.pretend_args_size;
 	  dwarf2out_def_cfa (l, SP_REGNUM, cfa_offset);
@@ -17929,7 +17934,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 
       if (dwarf2out_do_frame ())
 	{
-	  char *l = dwarf2out_cfi_label ();
+	  char *l = dwarf2out_cfi_label (false);
 
 	  cfa_offset = cfa_offset + 16;
 	  dwarf2out_def_cfa (l, SP_REGNUM, cfa_offset);

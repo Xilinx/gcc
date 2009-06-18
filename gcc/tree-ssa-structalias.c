@@ -1664,6 +1664,19 @@ do_ds_constraint (constraint_t c, bitmap delta)
       unsigned int t;
       HOST_WIDE_INT fieldoffset = v->offset + loff;
 
+      /* If v is a NONLOCAL then this is an escape point.  */
+      if (j == nonlocal_id)
+	{
+	  t = find (escaped_id);
+	  if (add_graph_edge (graph, t, rhs)
+	      && bitmap_ior_into (get_varinfo (t)->solution, sol)
+	      && !TEST_BIT (changed, t))
+	    {
+	      SET_BIT (changed, t);
+	      changed_count++;
+	    }
+	}
+
       if (v->is_special_var)
 	continue;
 
@@ -1680,18 +1693,24 @@ do_ds_constraint (constraint_t c, bitmap delta)
 	  if (v->may_have_pointers)
 	    {
 	      t = find (v->id);
-	      if (add_graph_edge (graph, t, rhs))
+	      if (add_graph_edge (graph, t, rhs)
+		  && bitmap_ior_into (get_varinfo (t)->solution, sol)
+		  && !TEST_BIT (changed, t))
 		{
-		  if (bitmap_ior_into (get_varinfo (t)->solution, sol))
-		    {
-		      if (t == rhs)
-			sol = get_varinfo (rhs)->solution;
-		      if (!TEST_BIT (changed, t))
-			{
-			  SET_BIT (changed, t);
-			  changed_count++;
-			}
-		    }
+		  SET_BIT (changed, t);
+		  changed_count++;
+		}
+	    }
+	  /* If v is a global variable then this is an escape point.  */
+	  if (is_global_var (v->decl))
+	    {
+	      t = find (escaped_id);
+	      if (add_graph_edge (graph, t, rhs)
+		  && bitmap_ior_into (get_varinfo (t)->solution, sol)
+		  && !TEST_BIT (changed, t))
+		{
+		  SET_BIT (changed, t);
+		  changed_count++;
 		}
 	    }
 
@@ -3080,6 +3099,28 @@ do_deref (VEC (ce_s, heap) **constraints)
     }
 }
 
+static void get_constraint_for_1 (tree, VEC (ce_s, heap) **, bool);
+
+/* Given a tree T, return the constraint expression for taking the
+   address of it.  */
+
+static void
+get_constraint_for_address_of (tree t, VEC (ce_s, heap) **results)
+{
+  struct constraint_expr *c;
+  unsigned int i;
+
+  get_constraint_for_1 (t, results, true);
+
+  for (i = 0; VEC_iterate (ce_s, *results, i, c); i++)
+    {
+      if (c->type == DEREF)
+	c->type = SCALAR;
+      else
+	c->type = ADDRESSOF;
+    }
+}
+
 /* Given a tree T, return the constraint expression for it.  */
 
 static void
@@ -3131,23 +3172,8 @@ get_constraint_for_1 (tree t, VEC (ce_s, heap) **results, bool address_p)
 	switch (TREE_CODE (t))
 	  {
 	  case ADDR_EXPR:
-	    {
-	      struct constraint_expr *c;
-	      unsigned int i;
-	      tree exp = TREE_OPERAND (t, 0);
-
-	      get_constraint_for_1 (exp, results, true);
-
-	      for (i = 0; VEC_iterate (ce_s, *results, i, c); i++)
-		{
-		  if (c->type == DEREF)
-		    c->type = SCALAR;
-		  else
-		    c->type = ADDRESSOF;
-		}
-	      return;
-	    }
-	    break;
+	    get_constraint_for_address_of (TREE_OPERAND (t, 0), results);
+	    return;
 	  default:;
 	  }
 	break;
@@ -3332,6 +3358,22 @@ handle_rhs_call (gimple stmt, VEC(ce_s, heap) **results)
   /* The static chain escapes as well.  */
   if (gimple_call_chain (stmt))
     make_escape_constraint (gimple_call_chain (stmt));
+
+  /* And if we applied NRV the address of the return slot escapes as well.  */
+  if (gimple_call_return_slot_opt_p (stmt)
+      && gimple_call_lhs (stmt) != NULL_TREE
+      && TREE_ADDRESSABLE (TREE_TYPE (gimple_call_lhs (stmt))))
+    {
+      VEC(ce_s, heap) *tmpc = NULL;
+      struct constraint_expr lhsc, *c;
+      get_constraint_for_address_of (gimple_call_lhs (stmt), &tmpc);
+      lhsc.var = escaped_id;
+      lhsc.offset = 0;
+      lhsc.type = SCALAR;
+      for (i = 0; VEC_iterate (ce_s, tmpc, i, c); ++i)
+	process_constraint (new_constraint (lhsc, *c));
+      VEC_free(ce_s, heap, tmpc);
+    }
 
   /* Regular functions return nonlocal memory.  */
   rhsc.var = nonlocal_id;
@@ -3519,7 +3561,6 @@ find_func_aliases (gimple origt)
   VEC(ce_s, heap) *lhsc = NULL;
   VEC(ce_s, heap) *rhsc = NULL;
   struct constraint_expr *c;
-  enum escape_type stmt_escape_type;
 
   /* Now build constraints expressions.  */
   if (gimple_code (t) == GIMPLE_PHI)
@@ -3711,38 +3752,21 @@ find_func_aliases (gimple origt)
 		process_constraint (new_constraint (*c, *c2));
 	    }
 	}
+      /* If there is a store to a global variable the rhs escapes.  */
+      if ((lhsop = get_base_address (lhsop)) != NULL_TREE
+	  && DECL_P (lhsop)
+	  && is_global_var (lhsop))
+	make_escape_constraint (rhsop);
     }
-
-  stmt_escape_type = is_escape_site (t);
-  if (stmt_escape_type == ESCAPE_STORED_IN_GLOBAL)
+  /* For conversions of pointers to non-pointers the pointer escapes.  */
+  else if (gimple_assign_cast_p (t)
+	   && POINTER_TYPE_P (TREE_TYPE (gimple_assign_rhs1 (t)))
+	   && !POINTER_TYPE_P (TREE_TYPE (gimple_assign_lhs (t))))
     {
-      gcc_assert (is_gimple_assign (t));
-      if (gimple_assign_rhs_code (t) == ADDR_EXPR)
-	{
-	  tree rhs = gimple_assign_rhs1 (t);
-	  tree base = get_base_address (TREE_OPERAND (rhs, 0));
-	  if (base
-	      && (!DECL_P (base)
-		  || !is_global_var (base)))
-	    make_escape_constraint (rhs);
-	}
-      else if (get_gimple_rhs_class (gimple_assign_rhs_code (t))
-	       == GIMPLE_SINGLE_RHS)
-	{
-	  if (could_have_pointers (gimple_assign_rhs1 (t)))
-	    make_escape_constraint (gimple_assign_rhs1 (t));
-	}
-      else
-	gcc_unreachable ();
-    }
-  else if (stmt_escape_type == ESCAPE_BAD_CAST)
-    {
-      gcc_assert (is_gimple_assign (t));
-      gcc_assert (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (t))
-		  || gimple_assign_rhs_code (t) == VIEW_CONVERT_EXPR);
       make_escape_constraint (gimple_assign_rhs1 (t));
     }
-  else if (stmt_escape_type == ESCAPE_TO_ASM)
+  /* Handle asms conservatively by adding escape constraints to everything.  */
+  else if (gimple_code (t) == GIMPLE_ASM)
     {
       unsigned i, noutputs;
       const char **oconstraints;

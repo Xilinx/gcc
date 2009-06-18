@@ -242,7 +242,7 @@ check_dtor_name (tree basetype, tree name)
       return false;
     }
 
-  if (!name)
+  if (!name || name == error_mark_node)
     return false;
   return same_type_p (TYPE_MAIN_VARIANT (basetype), TYPE_MAIN_VARIANT (name));
 }
@@ -1406,21 +1406,27 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
 	return build_list_conv (to, expr, flags);
 
       /* Allow conversion from an initializer-list with one element to a
-	 scalar type if this is copy-initialization.  Direct-initialization
-	 would be something like int i({1}), which is invalid.  */
-      if (SCALAR_TYPE_P (to) && CONSTRUCTOR_NELTS (expr) <= 1
-	  && (flags & LOOKUP_ONLYCONVERTING))
+	 scalar type.  */
+      if (SCALAR_TYPE_P (to))
 	{
+	  int nelts = CONSTRUCTOR_NELTS (expr);
 	  tree elt;
-	  if (CONSTRUCTOR_NELTS (expr) == 1)
+
+	  if (nelts == 0)
+	    elt = integer_zero_node;
+	  else if (nelts == 1)
 	    elt = CONSTRUCTOR_ELT (expr, 0)->value;
 	  else
-	    elt = integer_zero_node;
+	    elt = error_mark_node;
+
 	  conv = implicit_conversion (to, TREE_TYPE (elt), elt,
 				      c_cast_p, flags);
 	  if (conv)
 	    {
 	      conv->check_narrowing = true;
+	      if (BRACE_ENCLOSED_INITIALIZER_P (elt))
+		/* Too many levels of braces, i.e. '{{1}}'.  */
+		conv->bad_p = true;
 	      return conv;
 	    }
 	}
@@ -4392,7 +4398,7 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
       return cp_build_unary_op (code, arg1, candidates != 0, complain);
 
     case ARRAY_REF:
-      return build_array_ref (arg1, arg2, input_location);
+      return build_array_ref (input_location, arg1, arg2);
 
     case COND_EXPR:
       return build_conditional_expr (arg1, arg2, arg3, complain);
@@ -4698,6 +4704,14 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
       && convs->kind != ck_base)
     {
       conversion *t = convs;
+
+      /* Give a helpful error if this is bad because of excess braces.  */
+      if (BRACE_ENCLOSED_INITIALIZER_P (expr)
+	  && SCALAR_TYPE_P (totype)
+	  && CONSTRUCTOR_NELTS (expr) > 0
+	  && BRACE_ENCLOSED_INITIALIZER_P (CONSTRUCTOR_ELT (expr, 0)->value))
+	permerror (input_location, "too many braces around initializer for %qT", totype);
+
       for (; t; t = convs->u.next)
 	{
 	  if (t->kind == ck_user || !t->bad_p)
@@ -5050,7 +5064,7 @@ convert_arg_to_ellipsis (tree arg)
 	 If the call appears in the context of a sizeof expression,
 	 there is no need to emit a warning, since the expression won't be
 	 evaluated. We keep the builtin_trap just as a safety check.  */
-      if (!skip_evaluation)
+      if (cp_unevaluated_operand == 0)
 	warning (0, "cannot pass objects of non-POD type %q#T through %<...%>; "
 		 "call will abort at runtime", TREE_TYPE (arg));
       arg = call_builtin_trap ();
@@ -5088,7 +5102,7 @@ build_x_va_arg (tree expr, tree type)
       return expr;
     }
 
-  return build_va_arg (expr, type);
+  return build_va_arg (input_location, expr, type);
 }
 
 /* TYPE has been given to va_arg.  Apply the default conversions which
