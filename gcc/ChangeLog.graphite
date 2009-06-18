@@ -1,3 +1,8 @@
+2009-06-18  Pranav Garg  <pranav.garg2107@gmail.com>
+
+	* graphite-interchange.c (interchange_profitable_p): Renamed
+	pbb_interchange_profitable_p.
+
 2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
 	    Harsha Jagasia  <harsha.jagasia@amd.com>
 	    Pranav Garg  <pranav.garg2107@gmail.com>

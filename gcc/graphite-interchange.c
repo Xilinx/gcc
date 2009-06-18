@@ -286,7 +286,7 @@ gather_access_strides (poly_dr_p pdr, graphite_dim_t loop_depth,
    box PBB.  */
 
 static bool
-interchange_profitable_p (graphite_dim_t depth1, graphite_dim_t depth2, poly_bb_p pbb)
+pbb_interchange_profitable_p (graphite_dim_t depth1, graphite_dim_t depth2, poly_bb_p pbb)
 {
   int i;
   poly_dr_p pdr;
@@ -353,7 +353,7 @@ pbb_do_interchange (poly_bb_p pbb, scop_p scop)
 
   for (i = 0; i < pbb_dim_iter_domain (pbb); i++)
     for (j = i + 1; j < pbb_dim_iter_domain (pbb); j++)
-      if (interchange_profitable_p (i, j, pbb))
+      if (pbb_interchange_profitable_p (i, j, pbb))
 	{
 	  pbb_interchange_loop_depths (i, j, pbb);
 
