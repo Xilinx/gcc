@@ -294,14 +294,14 @@ apply_poly_transforms (scop_p scop)
 
 void
 new_poly_dr (poly_bb_p pbb, ppl_Pointset_Powerset_NNC_Polyhedron_t accesses,
-	     enum POLY_DR_TYPE type)
+	     enum POLY_DR_TYPE type, void *cdr)
 {
   poly_dr_p pdr = XNEW (struct poly_dr);
 
-  PDR_BB (pdr) = pbb;
+  PDR_PBB (pdr) = pbb;
   PDR_ACCESSES (pdr) = accesses;
   PDR_TYPE (pdr) = type;
-
+  PDR_CDR (pdr) = cdr;
   VEC_safe_push (poly_dr_p, heap, PBB_DRS (pbb), pdr);
 }
 
@@ -381,6 +381,8 @@ print_pdr (FILE *file, poly_dr_p pdr)
     default:
       gcc_unreachable ();
     }
+
+  dump_data_reference (file, (data_reference_p) PDR_CDR (pdr));
 
   fprintf (file, "#  eq");
 

@@ -1,5 +1,19 @@
 2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.c (new_poly_dr): Pass an extra argument for the 
+	compiler's data reference.  Initialize PDR_CDR.
+	(print_pdr): Call dump_data_reference.
+	* graphite-poly.h (struct poly_dr): Rename black_box into pbb.
+	Add compiler_dr field.
+	(PDR_BB): Renamed PDR_PBB.
+	(PDR_CDR): New.
+	* graphite-sese-to-poly.c (build_poly_dr): Pass to new_poly_dr
+	GCC's data reference representation.
+	* tree-data-ref.c (debug_data_references, debug_data_reference): New.
+	* tree-data-ref.h (debug_data_references, debug_data_reference): Decl.
+
+2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (print_scattering_function): Also print the layout.
 	* graphite-poly.h (pbb_nb_local_vars): New.
 

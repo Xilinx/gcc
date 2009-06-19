@@ -54,7 +54,11 @@ enum POLY_DR_TYPE
 
 struct poly_dr
 {
-  poly_bb_p black_box;
+  /* A pointer to compiler's data reference description.  */
+  void *compiler_dr;
+
+  /* A pointer to the PBB that contains this data reference.  */
+  poly_bb_p pbb;
 
   enum POLY_DR_TYPE type;
 
@@ -127,12 +131,13 @@ struct poly_dr
   ppl_Pointset_Powerset_NNC_Polyhedron_t accesses;
 };
 
-#define PDR_BB(PDR) (PDR->black_box)
+#define PDR_CDR(PDR) (PDR->compiler_dr)
+#define PDR_PBB(PDR) (PDR->pbb)
 #define PDR_TYPE(PDR) (PDR->type)
 #define PDR_ACCESSES(PDR) (PDR->accesses)
 
 void new_poly_dr (poly_bb_p, ppl_Pointset_Powerset_NNC_Polyhedron_t,
-		  enum POLY_DR_TYPE);
+		  enum POLY_DR_TYPE, void *);
 void free_poly_dr (poly_dr_p);
 void debug_pdr (poly_dr_p);
 void print_pdr (FILE *, poly_dr_p);
@@ -143,7 +148,7 @@ static inline scop_p pdr_scop (poly_dr_p pdr);
 static inline graphite_dim_t
 pdr_nb_subscripts (poly_dr_p pdr)
 {
-  poly_bb_p pbb = PDR_BB (pdr);
+  poly_bb_p pbb = PDR_PBB (pdr);
   ppl_dimension_type dim;
 
   ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PDR_ACCESSES (pdr), &dim);
@@ -155,7 +160,7 @@ pdr_nb_subscripts (poly_dr_p pdr)
 static inline ppl_dimension_type
 pdr_dim_iter_domain (poly_dr_p pdr)
 {
-  return pbb_dim_iter_domain (PDR_BB (pdr));
+  return pbb_dim_iter_domain (PDR_PBB (pdr));
 }
 
 /* The number of parameters of the scop of PDR.  */
@@ -173,7 +178,7 @@ pdr_dim (poly_dr_p pdr)
 {
   graphite_dim_t alias_nb_dimensions = 1;
 
-  return pbb_dim_iter_domain (PDR_BB (pdr)) + alias_nb_dimensions
+  return pbb_dim_iter_domain (PDR_PBB (pdr)) + alias_nb_dimensions
     + pdr_nb_subscripts (pdr) + scop_nb_params (pdr_scop (pdr));
 }
 
@@ -182,7 +187,7 @@ pdr_dim (poly_dr_p pdr)
 static inline ppl_dimension_type
 pdr_alias_set_dim (poly_dr_p pdr)
 {
-  poly_bb_p pbb = PDR_BB (pdr);
+  poly_bb_p pbb = PDR_PBB (pdr);
 
   return pbb_dim_iter_domain (pbb) + pbb_nb_params (pbb);
 } 
@@ -192,7 +197,7 @@ pdr_alias_set_dim (poly_dr_p pdr)
 static inline ppl_dimension_type
 pdr_subscript_dim (poly_dr_p pdr, graphite_dim_t s)
 {
-  poly_bb_p pbb = PDR_BB (pdr);
+  poly_bb_p pbb = PDR_PBB (pdr);
 
   return pbb_dim_iter_domain (pbb) + pbb_nb_params (pbb) + 1 + s;
 }
@@ -210,7 +215,7 @@ pdr_iterator_dim (poly_dr_p pdr ATTRIBUTE_UNUSED, graphite_dim_t iter)
 static inline ppl_dimension_type
 pdr_parameter_dim (poly_dr_p pdr, graphite_dim_t param)
 {
-  poly_bb_p pbb = PDR_BB (pdr);
+  poly_bb_p pbb = PDR_PBB (pdr);
 
   return pbb_dim_iter_domain (pbb) + param;
 }
@@ -282,7 +287,7 @@ extern void scop_do_interchange (scop_p);
 
 static inline scop_p pdr_scop (poly_dr_p pdr)
 {
-  return PBB_SCOP (PDR_BB (pdr));
+  return PBB_SCOP (PDR_PBB (pdr));
 }
 
 /* Set black box of PBB to BLACKBOX.  */

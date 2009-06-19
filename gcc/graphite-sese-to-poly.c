@@ -1418,9 +1418,9 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
   ppl_delete_Polyhedron (accesses);
 
   if (DR_IS_READ (dr))
-    new_poly_dr (pbb, accesses_ps, PDR_READ);
+    new_poly_dr (pbb, accesses_ps, PDR_READ, dr);
   else
-    new_poly_dr (pbb, accesses_ps, PDR_WRITE);
+    new_poly_dr (pbb, accesses_ps, PDR_WRITE, dr);
 }
 
 /* Build the data references for PBB.  */
