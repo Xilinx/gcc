@@ -2293,55 +2293,78 @@ basilys_list_last (basilys_ptr_t lis)
 struct basilysstrbuf_st *basilysgc_new_strbuf (basilysobject_ptr_t discr_p,
 					       const char *str);
 
-/* add into STRBUF the static string STR (which is not in the basilys heap) */
-void basilysgc_add_strbuf_raw (basilys_ptr_t strbuf_p,
+
+/**** 
+      Output routines can go into a boxed strbuf or a boxed file 
+****/
+
+/* add into OUT (a boxed STRBUF or a boxed FILE) the static string STR
+   (which is not in the basilys heap) */
+void basilysgc_add_out_raw (basilys_ptr_t outbuf_p,
 			       const char *str);
 
-/* add into STRBUF the static string STR (which is not in the basilys
-   heap) of length SLEN or strlen(STR) if SLEN<0 */
-void basilysgc_add_strbuf_raw_len (basilys_ptr_t strbuf_p,
-				   const char *str, int slen);
+#define basilysgc_add_strbuf_raw(Out,Str) basilysgc_add_out_raw((Out),(Str))
 
-/* add safely into STRBUF the string STR (which is first copied, so
+/*  add into OUT (a boxed STRBUF or a boxed FILE) the static string
+   STR (which is not in the basilys heap) of length SLEN or
+   strlen(STR) if SLEN<0 */
+void basilysgc_add_out_raw_len (basilys_ptr_t outbuf_p,
+				   const char *str, int slen);
+#define basilysgc_add_strbuf_raw_len(Out,Str,Len) basilysgc_add_out_raw_len((Out),(Str),(Len))
+
+/* add safely into OUTBUF the string STR (which is first copied, so
    can be in the basilys heap) */
-void basilysgc_add_strbuf (basilys_ptr_t strbuf_p,
+void basilysgc_add_out (basilys_ptr_t outbuf_p,
 			   const char *str);
-/* add safely into STRBUF the string STR encoded as a C string with
+#define basilysgc_add_strbuf(Out,Str) basilysgc_add_out((Out),(Str))
+
+/* add safely into OUTBUF the string STR encoded as a C string with
    backslash escapes */
-void basilysgc_add_strbuf_cstr (basilys_ptr_t strbuf_p,
+void basilysgc_add_out_cstr (basilys_ptr_t outbuf_p,
 				const char *str);
-/* add safely into STRBUF the string STR encoded as the interior of a
+#define basilysgc_add_strbuf_cstr(Out,Str) basilysgc_add_out_cstr(Out,Str)
+
+/* add safely into OUTBUF the string STR encoded as the interior of a
    C comment with slash star and star slash replaced by slash plus and
    plus slash */
-void basilysgc_add_strbuf_ccomment (basilys_ptr_t strbuf_p,
+void basilysgc_add_out_ccomment (basilys_ptr_t outbuf_p,
 				    const char *str);
+#define basilysgc_add_strbuf_ccomment(Out,Str) basilysgc_add_out_ccomment((Out),(Str))
 
-/* add safely into STRBUF the string STR (which is copied at first)
+/* add safely into OUTBUF the string STR (which is copied at first)
    encoded as a C identifier; ie non-alphanum begine encoded as an
    underscore */
-void basilysgc_add_strbuf_cident (basilys_ptr_t strbuf_p,
+void basilysgc_add_out_cident (basilys_ptr_t outbuf_p,
 				  const char *str);
+#define basilysgc_add_strbuf_cident(Out,Str) basilysgc_add_out_cident((Out),(Str))
 
-/* add safely into STRBUF the initial prefix of string STR (which is
+/* add safely into OUTBUF the initial prefix of string STR (which is
    copied at first), with a length of at most PREFLEN encoded as a C
    identifier; ie non-alphanum begine encoded as an underscore */
 void
-basilysgc_add_strbuf_cidentprefix (basilys_ptr_t strbuf_p, const char *str, int preflen);
+basilysgc_add_out_cidentprefix (basilys_ptr_t strbuf_p, const char *str, int preflen);
+#define basilysgc_add_strbuf_cidentprefix(Out,Str,Pln) basilysgc_add_out_cidentprefix((Out),(Str),(Pln))
 
-/* add safely into STRBUF the hex encoded number L */
-void basilysgc_add_strbuf_hex (basilys_ptr_t strbuf_p,
+/* add safely into OUTBUF the hex encoded number L */
+void basilysgc_add_out_hex (basilys_ptr_t outbuf_p,
 			       unsigned long l);
-/* add safely into STRBUF the decimal encoded number L */
-void basilysgc_add_strbuf_dec (basilys_ptr_t strbuf_p, long l);
+#define basilysgc_add_strbuf_hex(Out,L) basilysgc_add_out_hex((Out),(L))
 
-/* add safely into STRBUF a printf like stuff with FMT */
+/* add safely into OUTBUF the decimal encoded number L */
+void basilysgc_add_out_dec (basilys_ptr_t outbuf_p, long l);
+#define basilysgc_add_strbuf_dec(Out,L) basilysgc_add_out_dec((Out),(L))
+
+/* add safely into OUTBUF a printf like stuff with FMT */
 void
-basilysgc_strbuf_printf (basilys_ptr_t strbuf_p, const char *fmt,
+basilysgc_out_printf (basilys_ptr_t outbuf_p, const char *fmt,
 			 ...) ATTRIBUTE_PRINTF (2, 3);
+/* don't bother using CPP varargs */
+#define basilysgc_strbuf_printf basilysgc_out_printf
 
-/* add safely into STRBUF either a space or an indented newline if the current line is bigger than the threshold */
-void basilysgc_strbuf_add_indent (basilys_ptr_t strbuf_p,
-				  int indeptn, int linethresh);
+/* add safely into OUTBUF either a space or an indented newline if the current line is bigger than the threshold */
+void basilysgc_out_add_indent (basilys_ptr_t strbuf_p,
+			       int indeptn, int linethresh);
+#define basilysgc_strbuf_add_indent(Out,I,L) basilysgc_out_add_indent ((Out),(I),(L))
 
 /* pretty print into an sbuf a gimple */
 void basilysgc_ppstrbuf_gimple(basilys_ptr_t sbuf_p, int indentsp, gimple gstmt);
@@ -2375,6 +2398,9 @@ void
 basilysgc_register_pass (basilys_ptr_t pass_p, const char* positioning, 
 			 const char*refpassname,
 			 int refpassnum);
+
+/*** allocate a boxed file ***/
+basilys_ptr_t basilysgc_new_file(basilys_ptr_t discr_p, FILE* fil);
 
 /***************** PARMA POLYHEDRA LIBRARY ****************/
 

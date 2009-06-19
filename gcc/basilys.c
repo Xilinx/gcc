@@ -1995,125 +1995,154 @@ end:
 #undef buf_newbufv
 }
 
+/* we need to be able to compute the length of the last line of a
+   FILE* filled by MELT output primitives; very often this FILE* will
+   be stdout or stderr; and we don't care that much if the computed
+   length of the last [i.e. current] line is wrong. So we keep an
+   array of positions in FILE*, indexed by their fileno, which we
+   suppose is small */
+#define MELTMAXFILE 512
+static long lasteol[MELTMAXFILE];
 
 void
-basilysgc_add_strbuf_raw_len (basilys_ptr_t strbuf_p, const char *str, int slen)
+basilysgc_add_out_raw_len (basilys_ptr_t outbuf_p, const char *str, int slen)
 {
 #ifdef ENABLE_CHECKING
   static long addcount;
 #endif
   int blen = 0;
   BASILYS_ENTERFRAME (2, NULL);
-#define strbufv  curfram__.varptr[0]
-#define buf_strbufv  ((struct basilysstrbuf_st*)(strbufv))
-  strbufv = strbuf_p;
+#define outbufv  curfram__.varptr[0]
+#define buf_outbufv  ((struct basilysstrbuf_st*)(outbufv))
+#define spec_outbufv  ((struct basilysspecial_st*)(outbufv))
+  outbufv = outbuf_p;
   if (!str)
     goto end;
-  if (basilys_magic_discr ((basilys_ptr_t) (strbufv)) != OBMAG_STRBUF)
-    goto end;
-  gcc_assert (!basilys_is_young (str));
   if (slen<0)
     slen = strlen (str);
-  blen = basilys_primtab[buf_strbufv->buflenix];
-  gcc_assert (blen > 0);
+  if (slen<=0) 
+    goto end;
+  switch (basilys_magic_discr ((basilys_ptr_t) (outbufv))) {
+  case OBMAG_SPEC_FILE:
+    {
+      FILE* f = spec_outbufv->val.sp_file;
+      if (f) {
+	int fno = fileno(f);
+	char* eol = 0;
+	long fp = ftell(f);
+	(void) fwrite(str, (size_t)slen, (size_t)1, f);
+	if (fno < MELTMAXFILE && fno >= 0 && (eol = strchr(str, '\n')) && eol-str < slen)
+	  lasteol[fno] = fp + (eol-str);
+      }
+    }
+    break;
+  case OBMAG_STRBUF:
+    gcc_assert (!basilys_is_young (str));
+    blen = basilys_primtab[buf_outbufv->buflenix];
+    gcc_assert (blen > 0);
 #ifdef ENABLE_CHECKING
-  addcount++;
+    addcount++;
 #endif
-  gcc_assert (buf_strbufv->bufstart <= buf_strbufv->bufend
-	      && buf_strbufv->bufend < (unsigned) blen);
-  if ((int) buf_strbufv->bufend + slen + 2 < blen)
-    {				/* simple case, just copy at end */
-      strcpy (buf_strbufv->bufzn + buf_strbufv->bufend, str);
-      buf_strbufv->bufend += slen;
-      buf_strbufv->bufzn[buf_strbufv->bufend] = 0;
-    }
-  else
-    if ((int) buf_strbufv->bufstart > (int) 0
-	&& (int) buf_strbufv->bufend -
-	(int) buf_strbufv->bufstart + (int) slen + 2 < (int) blen)
-    {				/* should move the buffer to fit */
-      int siz = buf_strbufv->bufend - buf_strbufv->bufstart;
-      gcc_assert (siz > 0);
-      memmove (buf_strbufv->bufzn,
-	       buf_strbufv->bufzn + buf_strbufv->bufstart, siz);
-      buf_strbufv->bufstart = 0;
-      strcpy (buf_strbufv->bufzn + siz, str);
-      buf_strbufv->bufend = siz + slen;
-      buf_strbufv->bufzn[buf_strbufv->bufend] = 0;
-    }
-  else
-    {				/* should grow the buffer to fit */
-      int siz = buf_strbufv->bufend - buf_strbufv->bufstart;
-      int newsiz = (siz + slen + 50 + siz / 8) | 0x1f;
-      int newix = 0, newblen = 0;
-      char *newb = NULL;
-      int oldblen = basilys_primtab[buf_strbufv->buflenix];
-      for (newix = buf_strbufv->buflenix + 1;
-	   (newblen = basilys_primtab[newix]) != 0
-	   && newblen < newsiz; newix++);
-      gcc_assert (newblen >= newsiz);
-      gcc_assert (siz >= 0);
-      if (newblen > BASILYS_MAXLEN)
-	fatal_error ("strbuf overflow to %d bytes", newblen);
-      /* the newly grown buffer is allocated in young memory if the
-         previous was young, or in old memory if it was already old;
-         but we have to deal with the rare case when the allocation
-         triggers a GC which migrate the strbuf from young to old */
-      if (basilys_is_young (buf_strbufv->bufzn))
-	{
-	  /* bug to avoid: the strbuf was young, the allocation of
-	     newb triggers a GC, and then the strbuf becomes old. we
-	     cannot put newb inside it (this violate the GC invariant
-	     of no unfollowed -on store list- old to young
-	     pointers). So we reserve the required length to make sure
-	     that the following newb allocation does not trigger a
-	     GC */
-	  basilysgc_reserve (newblen + 10 * sizeof (void *));
-	  /* does the above reservation triggered a GC which moved buf_strbufv to old? */
-	  if (!basilys_is_young (buf_strbufv->bufzn))
-	    goto strbuf_in_old_memory;
-	  gcc_assert (basilys_is_young (buf_strbufv));
-	  newb = (char *) basilys_allocatereserved (newblen + 1, 0);
-	  gcc_assert (basilys_is_young (buf_strbufv));
-	  memcpy (newb, buf_strbufv->bufzn + buf_strbufv->bufstart, siz);
-	  strcpy (newb + siz, str);
-	  memset (buf_strbufv->bufzn, 0, oldblen);
-	  buf_strbufv->bufzn = newb;
+    gcc_assert (buf_outbufv->bufstart <= buf_outbufv->bufend
+		&& buf_outbufv->bufend < (unsigned) blen);
+    if ((int) buf_outbufv->bufend + slen + 2 < blen)
+      {				/* simple case, just copy at end */
+	strcpy (buf_outbufv->bufzn + buf_outbufv->bufend, str);
+	buf_outbufv->bufend += slen;
+	buf_outbufv->bufzn[buf_outbufv->bufend] = 0;
+      }
+    else
+      if ((int) buf_outbufv->bufstart > (int) 0
+	  && (int) buf_outbufv->bufend -
+	  (int) buf_outbufv->bufstart + (int) slen + 2 < (int) blen)
+	{				/* should move the buffer to fit */
+	  int siz = buf_outbufv->bufend - buf_outbufv->bufstart;
+	  gcc_assert (siz > 0);
+	  memmove (buf_outbufv->bufzn,
+		   buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
+	  buf_outbufv->bufstart = 0;
+	  strcpy (buf_outbufv->bufzn + siz, str);
+	  buf_outbufv->bufend = siz + slen;
+	  buf_outbufv->bufzn[buf_outbufv->bufend] = 0;
 	}
       else
-	{
-	  /* we may come here if the strbuf was young but became old
-	     by the basilysgc_reserve call above */
-	strbuf_in_old_memory:
-	  gcc_assert (!basilys_is_young (buf_strbufv));
-	  newb = (char *) ggc_alloc_cleared (newblen + 1);
-	  memcpy (newb, buf_strbufv->bufzn + buf_strbufv->bufstart, siz);
-	  strcpy (newb + siz, str);
-	  memset (buf_strbufv->bufzn, 0, oldblen);
-	  ggc_free (buf_strbufv->bufzn);
-	  buf_strbufv->bufzn = newb;
+	{				/* should grow the buffer to fit */
+	  int siz = buf_outbufv->bufend - buf_outbufv->bufstart;
+	  int newsiz = (siz + slen + 50 + siz / 8) | 0x1f;
+	  int newix = 0, newblen = 0;
+	  char *newb = NULL;
+	  int oldblen = basilys_primtab[buf_outbufv->buflenix];
+	  for (newix = buf_outbufv->buflenix + 1;
+	       (newblen = basilys_primtab[newix]) != 0
+		 && newblen < newsiz; newix++);
+	  gcc_assert (newblen >= newsiz);
+	  gcc_assert (siz >= 0);
+	  if (newblen > BASILYS_MAXLEN)
+	    fatal_error ("strbuf overflow to %d bytes", newblen);
+	  /* the newly grown buffer is allocated in young memory if the
+	     previous was young, or in old memory if it was already old;
+	     but we have to deal with the rare case when the allocation
+	     triggers a GC which migrate the strbuf from young to old */
+	  if (basilys_is_young (buf_outbufv->bufzn))
+	    {
+	      /* bug to avoid: the strbuf was young, the allocation of
+		 newb triggers a GC, and then the strbuf becomes old. we
+		 cannot put newb inside it (this violate the GC invariant
+		 of no unfollowed -on store list- old to young
+		 pointers). So we reserve the required length to make sure
+		 that the following newb allocation does not trigger a
+		 GC */
+	      basilysgc_reserve (newblen + 10 * sizeof (void *));
+	      /* does the above reservation triggered a GC which moved buf_outbufv to old? */
+	      if (!basilys_is_young (buf_outbufv->bufzn))
+		goto strbuf_in_old_memory;
+	      gcc_assert (basilys_is_young (buf_outbufv));
+	      newb = (char *) basilys_allocatereserved (newblen + 1, 0);
+	      gcc_assert (basilys_is_young (buf_outbufv));
+	      memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
+	      strcpy (newb + siz, str);
+	      memset (buf_outbufv->bufzn, 0, oldblen);
+	      buf_outbufv->bufzn = newb;
+	    }
+	  else
+	    {
+	      /* we may come here if the strbuf was young but became old
+		 by the basilysgc_reserve call above */
+	    strbuf_in_old_memory:
+	      gcc_assert (!basilys_is_young (buf_outbufv));
+	      newb = (char *) ggc_alloc_cleared (newblen + 1);
+	      memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
+	      strcpy (newb + siz, str);
+	      memset (buf_outbufv->bufzn, 0, oldblen);
+	      ggc_free (buf_outbufv->bufzn);
+	      buf_outbufv->bufzn = newb;
+	    }
+	  buf_outbufv->buflenix = newix;
+	  buf_outbufv->bufstart = 0;
+	  buf_outbufv->bufend = siz + slen;
+	  buf_outbufv->bufzn[buf_outbufv->bufend] = 0;
+	  /* touch the buffer so that it will be scanned if not young */
+	  basilysgc_touch (outbufv);
 	}
-      buf_strbufv->buflenix = newix;
-      buf_strbufv->bufstart = 0;
-      buf_strbufv->bufend = siz + slen;
-      buf_strbufv->bufzn[buf_strbufv->bufend] = 0;
-      /* touch the buffer so that it will be scanned if not young */
-      basilysgc_touch (strbufv);
-    }
-end:
+    break;
+  default: 
+    goto end;
+  }
+ end:
   BASILYS_EXITFRAME ();
-#undef strbufv
-#undef buf_strbufv
+#undef outbufv
+#undef buf_outbufv
+#undef fil_outbufv
 }
 
 void
-basilysgc_add_strbuf_raw (basilys_ptr_t strbuf_p, const char *str)
+basilysgc_add_out_raw (basilys_ptr_t out_p, const char *str)
 {
-  basilysgc_add_strbuf_raw_len(strbuf_p, str, -1);
+  basilysgc_add_out_raw_len(out_p, str, -1);
 }
 
 void
-basilysgc_add_strbuf (basilys_ptr_t strbuf_p, const char *str)
+basilysgc_add_out (basilys_ptr_t out_p, const char *str)
 {
   char sbuf[80];
   char *cstr = NULL;
@@ -2126,18 +2155,18 @@ basilysgc_add_strbuf (basilys_ptr_t strbuf_p, const char *str)
     {
       memset (sbuf, 0, sizeof (sbuf));
       strcpy (sbuf, str);
-      basilysgc_add_strbuf_raw (strbuf_p, sbuf);
+      basilysgc_add_out_raw (out_p, sbuf);
     }
   else
     {
       cstr = xstrdup (str);
-      basilysgc_add_strbuf_raw (strbuf_p, cstr);
+      basilysgc_add_out_raw (out_p, cstr);
       free (cstr);
     }
 }
 
 void
-basilysgc_add_strbuf_cstr (basilys_ptr_t strbuf_p, const char *str)
+basilysgc_add_out_cstr (basilys_ptr_t outbuf_p, const char *str)
 {
   int slen = str ? strlen (str) : 0;
   const char *ps = NULL;
@@ -2179,13 +2208,13 @@ basilysgc_add_strbuf_cstr (basilys_ptr_t strbuf_p, const char *str)
 	    }
 	}
     };
-  basilysgc_add_strbuf_raw (strbuf_p, cstr);
+  basilysgc_add_out_raw (outbuf_p, cstr);
   free (cstr);
 }
 
 
 void
-basilysgc_add_strbuf_ccomment (basilys_ptr_t strbuf_p, const char *str)
+basilysgc_add_out_ccomment (basilys_ptr_t outbuf_p, const char *str)
 {
   int slen = str ? strlen (str) : 0;
   const char *ps = NULL;
@@ -2214,12 +2243,12 @@ basilysgc_add_strbuf_ccomment (basilys_ptr_t strbuf_p, const char *str)
       else
 	*(pd++) = *ps;
     };
-  basilysgc_add_strbuf_raw (strbuf_p, cstr);
+  basilysgc_add_out_raw (outbuf_p, cstr);
   free (cstr);
 }
 
 void
-basilysgc_add_strbuf_cident (basilys_ptr_t strbuf_p, const char *str)
+basilysgc_add_out_cident (basilys_ptr_t outbuf_p, const char *str)
 {
   int slen = str ? strlen (str) : 0;
   char *dupstr = 0;
@@ -2246,13 +2275,13 @@ basilysgc_add_strbuf_cident (basilys_ptr_t strbuf_p, const char *str)
 	  *pd = (char) 0;
 	pd[1] = (char) 0;
       }
-  basilysgc_add_strbuf_raw (strbuf_p, dupstr);
+  basilysgc_add_out_raw (outbuf_p, dupstr);
   if (dupstr && dupstr != tinybuf)
     free (dupstr);
 }
 
 void
-basilysgc_add_strbuf_cidentprefix (basilys_ptr_t strbuf_p, const char *str, int preflen)
+basilysgc_add_out_cidentprefix (basilys_ptr_t outbuf_p, const char *str, int preflen)
 {
   const char *ps = 0;
   char *pd = 0;
@@ -2265,6 +2294,7 @@ basilysgc_add_strbuf_cidentprefix (basilys_ptr_t strbuf_p, const char *str, int 
     }
   else
     return;
+  /* we don't care to trim the C identifier in generated stuff */
   if (preflen >= (int) sizeof (tinybuf) - 1)
     preflen = sizeof (tinybuf) - 2;
   if (preflen <= 0)
@@ -2277,15 +2307,15 @@ basilysgc_add_strbuf_cidentprefix (basilys_ptr_t strbuf_p, const char *str, int 
       else if (pd > tinybuf && pd[-1] != '_')
 	*(pd++) = '_';
     }
-  basilysgc_add_strbuf_raw (strbuf_p, tinybuf);
+  basilysgc_add_out_raw (outbuf_p, tinybuf);
 }
 
 
 void
-basilysgc_add_strbuf_hex (basilys_ptr_t strbuf_p, unsigned long l)
+basilysgc_add_out_hex (basilys_ptr_t outbuf_p, unsigned long l)
 {
   if (l == 0UL)
-    basilysgc_add_strbuf_raw (strbuf_p, "0");
+    basilysgc_add_out_raw (outbuf_p, "0");
   else
     {
       int ix = 0, j = 0;
@@ -2301,16 +2331,16 @@ basilysgc_add_strbuf_hex (basilys_ptr_t strbuf_p, unsigned long l)
       ix--;
       for (j = 0; j < (int) sizeof (thebuf) - 1 && ix >= 0; j++, ix--)
 	thebuf[j] = revbuf[ix];
-      basilysgc_add_strbuf_raw (strbuf_p, thebuf);
+      basilysgc_add_out_raw (outbuf_p, thebuf);
     }
 }
 
 
 void
-basilysgc_add_strbuf_dec (basilys_ptr_t strbuf_p, long l)
+basilysgc_add_out_dec (basilys_ptr_t outbuf_p, long l)
 {
   if (l == 0L)
-    basilysgc_add_strbuf_raw (strbuf_p, "0");
+    basilysgc_add_out_raw (outbuf_p, "0");
   else
     {
       int ix = 0, j = 0, neg = 0;
@@ -2336,13 +2366,13 @@ basilysgc_add_strbuf_dec (basilys_ptr_t strbuf_p, long l)
 	};
       for (; j < (int) sizeof (thebuf) - 1 && ix >= 0; j++, ix--)
 	thebuf[j] = revbuf[ix];
-      basilysgc_add_strbuf_raw (strbuf_p, thebuf);
+      basilysgc_add_out_raw (outbuf_p, thebuf);
     }
 }
 
 
 void
-basilysgc_strbuf_printf (basilys_ptr_t strbuf_p,
+basilysgc_out_printf (basilys_ptr_t outbuf_p,
 			 const char *fmt, ...)
 {
   char *cstr = NULL;
@@ -2355,58 +2385,65 @@ basilysgc_strbuf_printf (basilys_ptr_t strbuf_p,
   va_end (ap);
   if (l < (int) sizeof (tinybuf) - 3)
     {
-      basilysgc_add_strbuf_raw (strbuf_p, tinybuf);
+      basilysgc_add_strbuf_raw (outbuf_p, tinybuf);
       return;
     }
   va_start (ap, fmt);
   vasprintf (&cstr, fmt, ap);
   va_end (ap);
-  basilysgc_add_strbuf_raw (strbuf_p, cstr);
+  basilysgc_add_out_raw (outbuf_p, cstr);
   free (cstr);
 }
 
 
-/* add safely into STRBUF either a space or an indented newline if the current line is bigger than the threshold */
+/* add safely into OUTBUF either a space or an indented newline if the current line is bigger than the threshold */
 void
-basilysgc_strbuf_add_indent (basilys_ptr_t strbuf_p, int depth, int linethresh)
+basilysgc_out_add_indent (basilys_ptr_t outbuf_p, int depth, int linethresh)
 {
   int llln = 0;			/* last line length */
   BASILYS_ENTERFRAME (2, NULL);
   /* we need a frame, because we have more than one call to
-     basilysgc_add_strbuf_raw */
-#define strbv   curfram__.varptr[0]
-#define strbufv ((struct basilysstrbuf_st*)(strbv))
-  strbv = strbuf_p;
-  if (!strbufv
-      || basilys_magic_discr ((basilys_ptr_t) (strbufv)) != OBMAG_STRBUF)
+     basilysgc_add_outbuf_raw */
+#define outbv   curfram__.varptr[0]
+#define outbufv ((struct basilysstrbuf_st*)(outbv))
+  outbv = outbuf_p;
+  if (!outbv)
     goto end;
   if (linethresh > 0 && linethresh < 40)
     linethresh = 40;
   /* compute the last line length llln */
-  {
-    char *bs = 0, *be = 0, *nl = 0;
-    bs = strbufv->bufzn + strbufv->bufstart;
-    be = strbufv->bufzn + strbufv->bufend;
-    for (nl = be - 1; nl > bs && *nl && *nl != '\n'; nl--);
-    llln = be - nl;
-    gcc_assert (llln >= 0);
+  if (basilys_magic_discr((basilys_ptr_t) outbv) == OBMAG_STRBUF) 
+    {
+      char *bs = 0, *be = 0, *nl = 0;
+      bs = outbufv->bufzn + outbufv->bufstart;
+      be = outbufv->bufzn + outbufv->bufend;
+      for (nl = be - 1; nl > bs && *nl && *nl != '\n'; nl--);
+      llln = be - nl;
+      gcc_assert (llln >= 0);
   }
+  else if (basilys_magic_discr((basilys_ptr_t) outbv) == OBMAG_SPEC_FILE) 
+    {
+      FILE *f = spec_outbufv->val.sp_file;
+      int fn = f?fileno(f):-1;
+      if (f && fn>=0 && fn<=MELTMAXFILE)
+	llln = ftell(f) - lasteol[fn];
+    }
   if (linethresh > 0 && llln < linethresh)
-    basilysgc_add_strbuf_raw ((basilys_ptr_t) strbv, " ");
+    basilysgc_add_out_raw ((basilys_ptr_t) outbv, " ");
   else
     {
       int nbsp = depth;
       static const char spaces32[] = "                                ";
-      basilysgc_add_strbuf_raw ((basilys_ptr_t) strbv, "\n");
+      basilysgc_add_out_raw ((basilys_ptr_t) outbv, "\n");
       if (nbsp < 0)
 	nbsp = 0;
       if (nbsp > 0 && nbsp % 32 != 0)
-	basilysgc_add_strbuf_raw ((basilys_ptr_t) strbv, spaces32 + (32 - nbsp % 32));
+	basilysgc_add_out_raw ((basilys_ptr_t) outbv, spaces32 + (32 - nbsp % 32));
     }
 end:
   BASILYS_EXITFRAME ();
-#undef strbufv
-#undef strbv
+#undef outbufv
+#undef outbv
 }
 
 
@@ -8671,6 +8708,30 @@ basilysgc_ppstrbuf_mixbigint (basilys_ptr_t sbuf_p, int indentsp,
   BASILYS_EXITFRAME ();
 #undef sbufv
 #undef bigv
+}
+
+/* make a new boxed file */
+basilys_ptr_t
+basilysgc_new_file(basilys_ptr_t discr_p, FILE* fil)
+{
+  BASILYS_ENTERFRAME(2, NULL);
+#define discrv curfram__.varptr[0]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define resv   curfram__.varptr[1]
+#define spec_resv ((struct basilysspecial_st*)(resv))
+  discrv = (void *) discr_p;
+  if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_SPEC_FILE)
+    goto end;
+  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
+  spec_resv->discr = (basilysobject_ptr_t) discrv;
+  spec_resv->mark = 0;
+  spec_resv->val.sp_pointer = NULL;
+  spec_resv->val.sp_file = fil;
+ end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) resv;
 }
 
 /***********************************************************************

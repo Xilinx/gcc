@@ -1,3 +1,32 @@
+2009-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	[the output primitives are made generic for boxed files or string
+	buffers]
+	* basilys.h (basilysgc_add_strbuf_raw): renamed as
+	(basilysgc_add_out_raw), and made as macro.
+	(basilysgc_add_strbuf_raw_len): renamed as
+	(basilysgc_add_out_raw_len), and made as macro.
+	(basilysgc_add_strbuf) renamed as
+	(basilysgc_add_out), and made as macro.
+	(basilysgc_add_strbuf_cstr) renamed as
+	(basilysgc_add_out_cstr), and made as macro.
+	(basilysgc_add_strbuf_ccomment) renamed as
+	(basilysgc_add_out_ccomment), and made as macro.
+	(basilysgc_add_strbuf_cident) renamed as
+	(basilysgc_add_out_cident), and made as macro.
+	(basilysgc_add_strbuf_cidentprefix) renamed as
+	(basilysgc_add_out_cidentprefix), and made as macro.
+	(basilysgc_add_strbuf_hex) renamed as
+	(basilysgc_add_out_hex), and made as macro.
+	(basilysgc_add_strbuf_dec) renamed as
+	(basilysgc_add_out_dec), and made as macro.
+	(basilysgc_strbuf_printf) renamed as
+	(basilysgc_out_printf), and made as macro.
+	(basilysgc_add_strbuf_indent) renamed as
+	(basilysgc_add_out_indent), and made as macro. 
+	(basilysgc_new_file): added new function.
+	* basilys.c: like above.
+	(lasteol, MELTMAXFILE) added new variable & constant.
+
 2009-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* diagnostic.c: removed useless comment.
 	* pretty-print.c (pp_write_text_to_stream): put better spacing.
