@@ -129,12 +129,13 @@ struct poly_dr
 
 #define PDR_BB(PDR) (PDR->black_box)
 #define PDR_TYPE(PDR) (PDR->type)
-#define PDR_BASE(PDR) (PDR->base)
 #define PDR_ACCESSES(PDR) (PDR->accesses)
 
 void new_poly_dr (poly_bb_p, ppl_Pointset_Powerset_NNC_Polyhedron_t,
 		  enum POLY_DR_TYPE);
 void free_poly_dr (poly_dr_p);
+void debug_pdr (poly_dr_p);
+void print_pdr (FILE *, poly_dr_p);
 static inline scop_p pdr_scop (poly_dr_p pdr);
 
 /* The number of subscripts of the PDR.  */

@@ -338,6 +338,61 @@ free_poly_bb (poly_bb_p pbb)
   XDELETE (pbb);
 }
 
+/* Prints to FILE the polyhedral data reference PDR.  */
+
+void
+print_pdr (FILE *file, poly_dr_p pdr)
+{
+  graphite_dim_t i;
+
+  fprintf (file, "pdr (");
+
+  switch (PDR_TYPE (pdr))
+    {
+    case PDR_READ:
+      fprintf (file, "read \n");
+      break;
+
+    case PDR_WRITE:
+      fprintf (file, "write \n");
+      break;
+
+    case PDR_MAY_WRITE:
+      fprintf (file, "may_write \n");
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  fprintf (file, "#  eq");
+
+  for (i = 0; i < pdr_dim_iter_domain (pdr); i++)
+    fprintf (file, "     i%d", (int) i);
+
+  for (i = 0; i < pdr_nb_params (pdr); i++)
+    fprintf (file, "     p%d", (int) i);
+
+  fprintf (file, "  alias");
+
+  for (i = 0; i < pdr_nb_subscripts (pdr); i++)
+    fprintf (file, "   sub%d", (int) i);
+
+  fprintf (file, "    cst\n");
+
+  ppl_print_powerset_matrix (file, PDR_ACCESSES (pdr));
+
+  fprintf (file, ")\n");
+}
+
+/* Prints to STDERR the polyhedral data reference PDR.  */
+
+void
+debug_pdr (poly_dr_p pdr)
+{
+  print_pdr (stderr, pdr);
+}
+
 /* Creates a new SCOP containing REGION.  */
 
 scop_p
