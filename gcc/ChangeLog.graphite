@@ -1,5 +1,9 @@
 2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.c (print_pbb_domain): Also print the layout names.
+
+2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (print_pdr, debug_pdr): New.
 	* graphite-poly.h (print_pdr, debug_pdr): Declared.
 	(PDR_BASE): Removed.

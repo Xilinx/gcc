@@ -428,9 +428,20 @@ free_scop (scop_p scop)
 void
 print_pbb_domain (FILE *file, poly_bb_p pbb)
 {
+  graphite_dim_t i;
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
 
-  fprintf (file, "domains bb_%d (", GBB_BB (gbb)->index);
+  fprintf (file, "domains bb_%d (\n", GBB_BB (gbb)->index);
+
+  fprintf (file, "#  eq");
+
+  for (i = 0; i < pbb_dim_iter_domain (pbb); i++)
+    fprintf (file, "     i%d", (int) i);
+
+  for (i = 0; i < pbb_nb_params (pbb); i++)
+    fprintf (file, "     p%d", (int) i);
+
+  fprintf (file, "    cst\n");
 
   if (PBB_DOMAIN (pbb))
     ppl_print_powerset_matrix (file, PBB_DOMAIN (pbb));
