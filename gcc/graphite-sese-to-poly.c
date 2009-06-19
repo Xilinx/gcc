@@ -520,10 +520,10 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
 }
 
 /* Scan the integer constant CST, and add it to the inhomogeneous part of the
-   linear expression EXPR.  */
+   linear expression EXPR.  K is the multiplier of the constant.  */
 
 static void
-scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr)
+scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr, Value k)
 {
   Value val;
   ppl_Coefficient_t coef;
@@ -538,6 +538,7 @@ scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr)
   else
     value_add_int (val, val, v);
 
+  value_multiply (val, val, k);
   ppl_new_Coefficient (&coef);
   ppl_assign_Coefficient_from_mpz_t (coef, val);
   ppl_Linear_Expression_add_to_inhomogeneous (expr, coef);
@@ -619,10 +620,12 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	      gcc_assert (host_integerp (TREE_OPERAND (e, 1), 0));
 	      value_init (val);
 	      value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
-	      value_multiply (k, k, val);
+	      value_multiply (val, val, k);
+	      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, val);
 	      value_clear (val);
 	    }
-	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k);
+	  else
+	    scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k);
 	}
       else
 	{
@@ -632,10 +635,12 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	      gcc_assert (host_integerp (TREE_OPERAND (e, 0), 0));
 	      value_init (val);
 	      value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
-	      value_multiply (k, k, val);
+	      value_multiply (val, val, k);
+	      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, val);
 	      value_clear (val);
 	    }
-	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k);
+	  else
+	    scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k);
 	}
       break;
 
@@ -738,7 +743,7 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 
     case INTEGER_CST:
       if (c)
-	scan_tree_for_params_int (e, c);
+	scan_tree_for_params_int (e, c, k);
       break;
 
     CASE_CONVERT:
@@ -1400,7 +1405,7 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
       scan_tree_for_params (region, DR_ACCESS_FN (dr, i), fn, v);
       ppl_assign_Linear_Expression_from_Linear_Expression (access, fn);
 
-      value_oppose (v, v);
+      value_set_si (v, -1);
       add_value_to_dim (dom_nb_dims + 1 + i, access, v);
       ppl_new_Constraint (&cstr, access, PPL_CONSTRAINT_TYPE_EQUAL);
       ppl_Polyhedron_add_constraint (accesses, cstr);

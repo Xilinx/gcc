@@ -1,5 +1,12 @@
 2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-sese-to-poly.c (scan_tree_for_params_int): Pass in the
+	multiplier and multiply the constant by the multiplier.
+	(scan_tree_for_params): Bound the multiplier to its MULT_EXPR.
+	(build_poly_dr): Do not use the multiplier to define the subscript.
+
+2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (new_poly_dr): Pass an extra argument for the 
 	compiler's data reference.  Initialize PDR_CDR.
 	(print_pdr): Call dump_data_reference.
