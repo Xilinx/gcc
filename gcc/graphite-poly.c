@@ -136,7 +136,24 @@ unify_scattering_dimensions (scop_p scop)
 void
 print_scattering_function (FILE *file, poly_bb_p pbb)
 {
+  graphite_dim_t i;
+
   fprintf (file, "scattering bb_%d (\n", GBB_BB (PBB_BLACK_BOX (pbb))->index);
+  fprintf (file, "#  eq");
+
+  for (i = 0; i < pbb_nb_scattering (pbb); i++)
+    fprintf (file, "     s%d", (int) i);
+
+  for (i = 0; i < pbb_nb_local_vars (pbb); i++)
+    fprintf (file, "    lv%d", (int) i);
+
+  for (i = 0; i < pbb_dim_iter_domain (pbb); i++)
+    fprintf (file, "     i%d", (int) i);
+
+  for (i = 0; i < pbb_nb_params (pbb); i++)
+    fprintf (file, "     p%d", (int) i);
+
+  fprintf (file, "    cst\n");
 
   if (PBB_TRANSFORMED_SCATTERING (pbb))
     ppl_print_polyhedron_matrix (file, PBB_TRANSFORMED_SCATTERING (pbb));
@@ -432,7 +449,6 @@ print_pbb_domain (FILE *file, poly_bb_p pbb)
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
 
   fprintf (file, "domains bb_%d (\n", GBB_BB (gbb)->index);
-
   fprintf (file, "#  eq");
 
   for (i = 0; i < pbb_dim_iter_domain (pbb); i++)

@@ -1,5 +1,10 @@
 2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.c (print_scattering_function): Also print the layout.
+	* graphite-poly.h (pbb_nb_local_vars): New.
+
+2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (print_pbb_domain): Also print the layout names.
 
 2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>

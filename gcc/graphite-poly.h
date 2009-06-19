@@ -337,6 +337,17 @@ pbb_nb_scattering (const struct poly_bb *pbb)
   return pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb);
 }
 
+/* Returns the number of local variables used in the transformed
+   scattering polyhedron of PBB.  */
+
+static inline graphite_dim_t
+pbb_nb_local_vars (const struct poly_bb *pbb ATTRIBUTE_UNUSED)
+{
+  /* For now we do not have any local variables, as we do not do strip
+     mining for example.  */
+  return 0;
+}
+
 /* The dimension in the original scattering polyhedron of PBB
    containing the scattering iterator SCATTER.  */
 
