@@ -1,3 +1,255 @@
+2009-06-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38729
+	* tree-ssa-loop-niter.c (find_loop_niter_by_eval): Restrict
+	to loops with a single exit if -fno-expensive-optimizations.
+
+2009-06-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* var-tracking.c (struct shared_hash_def, shared_hash): New types.
+	(dataflow_set): Change vars type from htab_t to shared_hash.
+	(shared_hash_pool, empty_shared_hash): New variables.
+	(vars_clear): Removed.
+	(shared_hash_shared, shared_hash_htab, shared_hash_copy,
+	shared_hash_find_slot_unshare, shared_hash_find_slot,
+	shared_hash_find_slot_noinsert, shared_hash_find): New
+	static inlines.
+	(shared_hash_unshare, shared_hash_destroy): New functions.
+	(unshare_variable): Unshare set->vars if shared, use
+	shared_hash_htab.
+	(vars_copy): Use htab_traverse_noresize instead of htab_traverse.
+	(get_init_value, find_src_set_src, dump_dataflow_set,
+	clobber_variable_part, emit_notes_for_differences): Use
+	shared_hash_htab.
+	(dataflow_set_init): Remove second argument, set vars to
+	empty_shared_hash instead of creating a new htab.
+	(dataflow_set_clear): Call shared_hash_destroy and set vars
+	to empty_shared_hash instead of calling vars_clear.
+	(dataflow_set_copy): Don't call vars_copy, instead just share
+	the src htab with dst.
+	(variable_union): Use shared_hash_*, use initially NO_INSERT
+	lookup if set->vars is shared.  Don't keep slot cleared before
+	calling unshare_variable.  Unshare set->vars if needed.
+	Even ->refcount == 1 vars must be unshared if set->vars is shared
+	and var needs to be modified.
+	(variable_canonicalize): New function.
+	(dataflow_set_union): If dst->vars is empty, just share src->vars
+	with dst->vars and traverse with variable_canonicalize to canonicalize
+	and unshare what is needed.
+	(dataflow_set_different): If old_set and new_set use the same shared
+	htab, they aren't different.  If number of htab elements is different,
+	htabs are different.  Use shared_hash_*.
+	(dataflow_set_destroy): Call shared_hash_destroy instead of
+	htab_delete.
+	(compute_bb_dataflow, emit_notes_in_bb, vt_emit_notes): Don't pass
+	second argument to dataflow_set_init.
+	(vt_initialize): Likewise.  Initialize shared_hash_pool and
+	empty_shared_hash, move bb in/out initialization afterwards.
+	Use variable_htab_free instead of NULL as changed_variables del hook.
+	(variable_was_changed): Change type of second argument to pointer to
+	dataflow_set.  When inserting var into changed_variables, bump
+	refcount.  Unshare set->vars if set is shared htab and slot needs to
+	be cleared.
+	(set_variable_part): Use shared_hash_*, use initially NO_INSERT
+	lookup if set->vars is shared.  Unshare set->vars if needed.
+	Even ->refcount == 1 vars must be unshared if set->vars is shared
+	and var needs to be modified.  Adjust variable_was_changed caller.
+	(delete_variable_part): Use shared_hash_*.  Even ->refcount == 1
+	vars must be unshared if set->vars is shared and var needs to be
+	modified.  Adjust variable_was_changed caller.
+	(emit_note_insn_var_location): Don't pool_free var.
+	(emit_notes_for_differences_1): Initialize empty_var->refcount to 0
+	instead of 1.
+	(vt_finalize): Call htab_delete on empty_shared_hash->htab and
+	free_alloc_pool on shared_hash_pool.
+
+2009-06-20  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/sfp-machine.h (__gcc_CMPtype, CMPtype): Define.
+	* config/moxie/moxie.h (LOAD_EXTEND_OP): Define.
+
+2009-06-20  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (find_func_aliases): For memset use
+	a constraint from NULL if we memset to zero.
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Add builtins
+	we explicitly handle that do not read from memory.
+	(call_may_clobber_ref_p_1): Properly handle builtins that may
+	set errno.
+
+2009-06-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40495
+	* tree-ssa-structalias.c (get_constraint_exp_for_temp): Remove.
+	(new_scalar_tmp_constraint_exp): New function.
+	(process_constraint): Do not create temporary decls.
+	(process_all_all_constraints): Likewise.
+	(handle_const_call): Likewise.
+	(create_function_info_for): Do not set decl.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* config/rs6000/rs6000.c (rs6000_explicit_options): Make static.
+	(rs6000_attribute_table): Make static; move before use.
+
+2009-06-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.c (substitute_in_expr) <COMPONENT_REF>: Tweak and reformat.
+	<tcc_vl_exp>: Call process_call_operands on the new CALL_EXPR.
+	Propagate the TREE_READONLY flag without overwriting it.
+	(substitute_placeholder_in_expr) <tcc_vl_exp>: Likewise.
+	Propagate the TREE_READONLY flag onto the result.
+	(process_call_operands): Move around.  Use correct constant value.
+
+2009-06-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/40482
+	* config/arm/arm.c (thumb_shiftable_const): Truncate val to 
+	32 bits.
+	* config/arm/arm.md: Likewise.
+
+2009-06-19  Ian Lance Taylor  <ian@airs.com>
+
+	* tree-cfg.c (gimple_redirect_edge_and_branch): Change ERROR_MARK
+	to GIMPLE_ERROR_MARK.
+
+	* c-typeck.c (build_conditional_expr): Add op1_original_type and
+	op2_original_type parameters.  Warn about using different enum
+	types.
+	* c-parser.c (c_parser_conditional_expression): Pass original
+	types to build_conditional_expr.
+	* c-tree.h (build_conditional_expr): Update declaration.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* config/i386/i386.c (ix86_function_specific_save): Test that
+	fields match values, rather than testing the values are in a
+	certain range.
+
+2009-06-19  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-alias.c (ptr_deref_may_alias_decl_p): Handle
+	ADDR_EXPR pointers.
+	(ptr_derefs_may_alias_p): Likewise.
+	(ptr_deref_may_alias_ref_p_1): New function.
+	(ptr_deref_may_alias_ref_p): Likewise.
+	(ref_maybe_used_by_call_p_1): Handle builtins that are not
+	covered by looking at the ESCAPED solution.
+	(call_may_clobber_ref_p_1): Likewise.
+	* tree-ssa-structalias.c (get_constraint_for_ptr_offset):
+	Handle NULL_TREE offset.  Do not produce redundant constraints.
+	(process_all_all_constraints): New helper function.
+	(do_structure_copy): Use it.
+	(handle_lhs_call): Likewise.
+	(find_func_aliases): Handle some builtins with pointer arguments
+	and/or return values explicitly.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* varasm.c (const_rtx_hash_1): Remove const qualifier from shift.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* rtl.h (SUBREG_PROMOTED_UNSIGNED_P): Add cast to int.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* ggc-page.c (ggc_pch_write_object): Initialize emptyBytes.
+	* sdbout.c (sdb_debug_hooks): Initialize non-SDB_DEBUGGING_INFO
+	version.
+
+	* c-decl.c (finish_decl): If -Wc++-compat, warn about
+	uninitialized const.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* dse.c (struct store_info): Rename bitmap field to bmap.  Change
+	all uses.
+
+	* c-decl.c (in_struct, struct_types): Remove.
+	(struct c_binding): Add in_struct field.
+	(c_binding_ptr): Define type, along with VEC.
+	(struct c_struct_parse_info): Define.
+	(struct_parse_info): New static variable.
+	(bind): Initialize in_struct field.
+	(start_struct): Remove enclosing_in_struct and
+	enclosing_struct_types parameters.  Add
+	enclosing_struct_parse_info parameter.  Change all callers.  Set
+	struct_parse_info rather than in_struct and struct_types.
+	(grokfield): If -Wc++-compat and there is a symbol binding for the
+	field name, set the in_struct flag and push it on the
+	struct_parse_info->fields vector.
+	(warn_cxx_compat_finish_struct): New static function.
+	(finish_struct): Remove enclosing_in_struct and
+	enclosing_struct_types parameters.  Add
+	enclosing_struct_parse_info parameter.  Change all callers.  Don't
+	set C_TYPE_DEFINED_IN_STRUCT here.  Call
+	warn_cxx_compat_finish_struct.  Free struct_parse_info and set to
+	parameter.  Only push on struct_types if warn_cxx_compat.
+	(finish_enum): Only push on struct_types if warn_cxx_compat.
+	(declspecs_add_type): Add loc parameter.  Change all callers.
+	Change all error calls to error_at.  Pass loc, not input_location,
+	to pedwarn calls.  Warn if -Wc++-compat and a typedef name is
+	defined in a struct.  If -Wc++-compat and parsing a struct, record
+	that a typedef name was used.
+	* c-parser.c (c_parser_declspecs): Get location to pass to
+	declspecs_add_type.
+	(c_parser_struct_or_union_specifier): Update calls to start_struct
+	and finish_struct.
+	* c-tree.h (struct c_struct_parse_info): Declare.
+	(finish_struct, start_struct): Update declarations.
+	(declspecs_add_type): Update declaration.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* c-decl.c (grokdeclarator): If -Wc++-compat, warn about a global
+	variable with an anonymous type.
+
+2009-06-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* see.c: Remove for real.
+
+2009-06-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* optabs.h (enum optab_index): Add new OTI_significand.
+	(significand_optab): Define corresponding macro.
+	* optabs.c (init_optabs): Initialize significand_optab.
+	* genopinit.c (optabs): Implement significand_optab using
+	significand?f2 patterns.
+	* builtins.c (expand_builtin_mathfn): Handle
+	BUILT_IN_SIGNIFICAND{,F,L}.
+	(expand_builtin): Expand BUILT_IN_SIGNIFICAND{,F,L} using
+	expand_builtin_mathfn if flag_unsafe_math_optimizations is set.
+
+	* config/i386/i386.md (significandxf2, significand<mode>2): New
+	expanders to implement significandf, significand and significandl
+	built-ins as inline x87 intrinsics.
+
+2009-06-18  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr.c (avr_override_options): Remove setting value of
+	PARAM_INLINE_CALL_COST.
+
+2009-06-18  Richard Henderson  <rth@redhat.com>
+
+	PR 40488
+	* tree-pass.h (TDF_ASMNAME): New.
+	* tree-dump.c (dump_options): Add asmname.
+	* doc/invoke.texi: Document it.
+
+	* tree-pretty-print.c (maybe_dump_asm_name): Merge into...
+	(dump_decl_name): ...here.
+	(dump_function_name): New flags arg; mind TDF_ASMNAME.
+	(dump_generic_node): Update dump_function_name calls.
+	(print_call_name): New flags arg; update all dump calls.
+	* diagnostic.h (print_call_name): Update.
+	* gimple-pretty-print.c (dump_gimple_call): Update.
+
+2009-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/40470
+	* config/i386/i386.h (CLASS_LIKELY_SPILLED_P): Add SSE_FIRST_REG.
+
 2009-06-18  Diego Novillo  <dnovillo@google.com>
 
 	* doc/plugins.texi: Document plugin_is_GPL_compatible.
@@ -17,8 +269,6 @@
 	* timevar.def (TV_SEE): Remove.
 	* tree-pass.h (pass_see): Remove declaration.
 	* doc/invoke.texi (-fsee): Remove documentation.
-	* testsuite/gcc.dg/20080522-1.c: Remove testcase.
-	* testsuite/gcc.dg/20080528-1.c: Remove testcase.
 	
 2009-06-18  Martin Jambor  <mjambor@suse.cz>
 
@@ -1738,8 +1988,8 @@
 	* config/rs6000/crtsavgpr.asm: Likewise.
 	* config/rs6000/crtsavfpr.asm: Likewise.
 
-	* dwarf2out.c (output_cfi_directive): Pass 1 instead of
-	0 to second argument of DWARF2_FRAME_REG_OUT macros.
+	* dwarf2out.c (output_cfi_directive): Pass 1 instead of 0 to second
+	argument of DWARF2_FRAME_REG_OUT macros.
 
 2009-06-03  Julian Brown  <julian@codesourcery.com>
 

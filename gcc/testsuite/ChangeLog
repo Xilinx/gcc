@@ -1,3 +1,83 @@
+2009-06-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/tree-ssa/fre-vce-1.c: Cleanup "fre" tree dump.
+	* gcc.dg/vect/vect-shift-2.c: Cleanup "vect" tree dump.
+	* gcc.dg/vect/vect.exp (VECT_SLP_CFLAGS): Initialize with original
+	DEFAULT_VECTFLAGS.
+
+2009-06-21  Ira Rosen  <irar@il.ibm.com>
+	    Revital Eres  <eres@il.ibm.com>
+
+	PR testsuite/40359
+	* gcc.dg/vect/vect-50.c: Fix syntax error in the check.
+	* gcc.dg/vect/vect-42.c: Likewise and separate vec_no_align check.
+	* gcc.dg/vect/vect-96.c: Fix syntax error in the check.
+
+2009-06-21  Ira Rosen  <irar@il.ibm.com>
+
+	PR testsuite/40475
+	* gcc.dg/vect/vect-nest-cycle-1.c: Fail to vectorize on targets
+	without misalignment support.
+	* gcc.dg/vect/vect-nest-cycle-2.c: Likewise.
+
+2009-06-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40452
+	* gfortran.dg/bounds_check_strlen_9.f90: New test.
+
+2009-06-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40440
+	* gfortran.dg/alloc_comp_result_2.f90: New test.
+
+2009-06-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/40482
+	* gcc.target/arm/pr40482.c: New test.
+	
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-18.c: New testcase.
+
+2009-06-19  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/20090618-1.c: New testcase.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-17.c: New testcase.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-15.c: New testcase.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-16.c: New testcase.
+
+2009-06-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/builtins-34.c: Add significand cases.
+
+2009-06-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/40491
+	* testsuite/gcc.dg/20080522-1.c: Remove testcase for real.
+	* testsuite/gcc.dg/20080528-1.c: Ditto.
+
+2009-06-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40450
+	* gfortran.dg/proc_ptr_20.f90: New.
+
+2009-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/40470
+	* gcc.dg/torture/pr40470-1.c: New.
+	* gcc.dg/torture/pr40470-2.c: Likewise.
+	* gcc.dg/torture/pr40470-3.c: Likewise.
+	* gcc.dg/torture/pr40470-4.c: Likewise.
+
 2009-06-18  Diego Novillo  <dnovillo@google.com>
 
 	* gcc.dg/plugin/selfassign.c: Declare plugin_is_GPL_compatible.
