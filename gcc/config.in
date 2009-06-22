@@ -1193,6 +1193,12 @@
 #endif
 
 
+/* Define if we have a open_memstream for memory FILE* */
+#ifndef USED_FOR_TARGET
+#undef HAVE_OPEN_MEMSTREAM
+#endif
+
+
 /* Define if Parma Polyhedra Library is in use. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_PARMAPOLY

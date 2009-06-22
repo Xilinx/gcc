@@ -2366,25 +2366,31 @@ void basilysgc_out_add_indent (basilys_ptr_t strbuf_p,
 			       int indeptn, int linethresh);
 #define basilysgc_strbuf_add_indent(Out,I,L) basilysgc_out_add_indent ((Out),(I),(L))
 
-/* pretty print into an sbuf a gimple */
-void basilysgc_ppstrbuf_gimple(basilys_ptr_t sbuf_p, int indentsp, gimple gstmt);
+/* pretty print into OUTBUF a gimple */
+void basilysgc_ppout_gimple(basilys_ptr_t outbuf_p, int indentsp, gimple gstmt);
+#define basilysgc_ppstrbuf_gimple(Out,I,G) basilysgc_ppout_gimple ((Out), (I), (G))
 
-/* pretty print into an sbuf a gimple seq */
-void basilysgc_ppstrbuf_gimple_seq(basilys_ptr_t sbuf_p, int indentsp, gimple_seq gseq);
+/* pretty print into an OUTBUF a gimple seq */
+void basilysgc_ppout_gimple_seq(basilys_ptr_t outbuf_p, int indentsp, gimple_seq gseq);
+#define basilysgc_ppstrbuf_gimple_seq(Out,I,G) basilysgc_ppout_gimple_seq ((Out), (I), (G))
 
-/* pretty print into an sbuf a tree */
-void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr);
+/* pretty print into an OUTBUF a tree */
+void basilysgc_ppout_tree(basilys_ptr_t outbuf_p, int indentsp, tree tr);
+#define basilysgc_ppstrbuf_tree(Out,I,T) basilysgc_ppout_tree  ((Out), (I), (T))
 
-/* pretty print into an sbuf a basic_block */
-void basilysgc_ppstrbuf_basicblock(basilys_ptr_t sbuf_p, int indentsp, basic_block bb);
+/* pretty print into an outbuf a basic_block */
+void basilysgc_ppout_basicblock(basilys_ptr_t out_p, int indentsp, basic_block bb);
+#define basilysgc_ppstrbuf_basicblock(Out,I,BB) basilysgc_ppout_basicblock ((Out),(I),(BB))
 
-/* pretty print into an sbuf a basic_block */
-void basilysgc_ppstrbuf_mpz(basilys_ptr_t sbuf_p, int indentsp, mpz_t mp);
+/* pretty print into an outbuf a multiprecision integer */
+void basilysgc_ppout_mpz(basilys_ptr_t out_p, int indentsp, mpz_t mp);
+#define basilysgc_ppstrbuf_mpz(O,I,M) basilysgc_ppout_mpz((O), (I), (M))
 
+/* pretty print into an outbuf the mpz of a MELT bigint; do nothing if
+   big_p is not a MELT bigint */
+void basilysgc_ppout_mixbigint(basilys_ptr_t out_p, int indentsp, basilys_ptr_t big_p);
+#define basilysgc_ppstrbuf_mixbigint(O,I,B) basilysgc_ppout_mixbigint ((O), (I), (B))
 
-/* pretty print into an sbuf the mpz of a MELT bigint; do nothing if
-   sbuf_p is nto a strbuf or big_p is not a MELT bigint */
-void basilysgc_ppstrbuf_mixbigint(basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t big_p);
 
 /***************** PASS MANAGEMENT ****************/
 /* register a Melt pass PASS; there is no way to unregister it, and the

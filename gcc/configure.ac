@@ -518,6 +518,31 @@ echo '%!%' after GDBM LIBS= $LIBS  CFLAGS= $CFLAGS
 
 ## Compiler probe support remove in svn rev 148272
 
+
+### check for open_memstream, a GNU libc extension useful to MELT,
+### since it opens a FILE* outputing to malloc-ed memory
+have_open_memstream=no
+AC_MSG_CHECKING([for open_memstream])
+AC_TRY_LINK([
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>],[
+  char* mem = NULL;
+  size_t sz = 0;
+  FILE* f = open_memstream(&mem, &sz);
+  fprintf (f, "hello argc=%d argv1=%s", argc, (argc>1)?argv[1]:"");
+  fflush (f);
+  printf ("mem=%s sz=%d\n", mem, (int) sz);
+  free(mem);
+  return 0;
+], [AC_MSG_RESULT([yes]); have_open_memstream=yes],
+    [AC_MSG_RESULT([no]); have_open_memstream=no])
+
+if test "$have_open_memstream" = "yes" ; then
+  AC_DEFINE(HAVE_OPEN_MEMSTREAM, 1,
+	     [Define if we have a open_memstream for memory FILE*])
+fi
+
 # ------------------------
 # Basilys/MELT support (middle-end lisp translator)
 # ------------------------

@@ -1,3 +1,35 @@
+2009-06-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (struct ppbasilysflushdata_st): removed.
+	(meltppbuffer, meltppbufsiz, meltppfile, meltppfilename): added
+	static variables.
+	(open_meltpp_file, close_meltpp_file): added new functions.
+	(basilysgc_ppstrbuf_gimple) renamed as (basilysgc_ppout_gimple)
+	using above meltpp stuff.
+	(basilysgc_ppstrbuf_gimpleseq) renamed
+	as (basilysgc_ppout_gimpleseq) using above meltpp stuff.
+	(basilysgc_ppstrbuf_tree) renamed as (basilysgc_ppout_tree) using
+	above meltpp stuff.
+	(basilysgc_ppstrbuf_basicblock) renamed
+	as (basilysgc_ppout_basicblock) using above meltpp stuff.
+	(basilysgc_ppstrbuf_mpz) renamed as (basilysgc_ppout_mpz) using
+	above meltpp stuff.
+	(basilysgc_ppstrbuf_mixbigint) renamed
+	as (basilysgc_ppout_mixbigint) using above meltpp stuff.
+	* basilys.h (basilysgc_ppstrbuf_gimple)
+	(basilysgc_ppstrbuf_gimple_seq, basilysgc_ppstrbuf_tree)
+	(basilysgc_ppstrbuf_basicblock, basilysgc_ppstrbuf_mpz)
+	(basilysgc_ppstrbuf_mixbigint): renamed and provided as macros.
+	(basilysgc_ppout_gimple)
+	(basilysgc_ppout_gimple_seq, basilysgc_ppout_tree)
+	(basilysgc_ppout_basicblock, basilysgc_ppout_mpz)
+	(basilysgc_ppout_mixbigint): added.
+	* pretty-print.c: reverted to trunk.
+	* pretty-print.h: reverted to trunk.
+	* gimple-pretty-print.c: reverted to trunk.
+	* configure: regenerated.
+	* configure.ac: testing for open_memstream.
+	* cfg.c: reverted to trunk.
+
 2009-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the output primitives are made generic for boxed files or string
 	buffers]

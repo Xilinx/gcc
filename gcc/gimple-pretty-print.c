@@ -1580,7 +1580,7 @@ dump_bb_header (pretty_printer *buffer, basic_block bb, int indent, int flags)
 	    else
 	      pp_decimal_int (buffer, e->src->index);
 	  }
-	else if (buffer->buffer->stream)
+	else
 	  dump_edge_info (buffer->buffer->stream, e, 0);
       pp_newline (buffer);
     }
@@ -1597,8 +1597,7 @@ dump_bb_header (pretty_printer *buffer, basic_block bb, int indent, int flags)
 	}
     }
   pp_write_text_to_stream (buffer);
-  if (buffer->buffer->stream)
-    check_bb_profile (bb, buffer->buffer->stream);
+  check_bb_profile (bb, buffer->buffer->stream);
 }
 
 
@@ -1623,7 +1622,7 @@ dump_bb_end (pretty_printer *buffer, basic_block bb, int indent, int flags)
 	else
 	  pp_decimal_int (buffer, e->dest->index);
       }
-    else if (buffer->buffer->stream)
+    else
       dump_edge_info (buffer->buffer->stream, e, 1);
   pp_newline (buffer);
 }
@@ -1759,8 +1758,7 @@ gimple_dump_bb_buff (pretty_printer *buffer, basic_block bb, int indent,
     label_indent = 0;
 
   dump_bb_header (buffer, bb, indent, flags);
-  if (phi_nodes (bb))
-    dump_phi_nodes (buffer, bb, indent, flags);
+  dump_phi_nodes (buffer, bb, indent, flags);
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
@@ -1773,8 +1771,7 @@ gimple_dump_bb_buff (pretty_printer *buffer, basic_block bb, int indent,
       INDENT (curr_indent);
       dump_gimple_stmt (buffer, stmt, curr_indent, flags);
       pp_newline (buffer);
-      if (buffer->buffer->stream)
-	dump_histograms_for_stmt (cfun, buffer->buffer->stream, stmt);
+      dump_histograms_for_stmt (cfun, buffer->buffer->stream, stmt);
     }
 
   dump_implicit_edges (buffer, bb, indent, flags);

@@ -8481,200 +8481,275 @@ end:
 
 /* wrapping gimple & tree prettyprinting for MELT debug */
 
-/* the  prettyprinter buflushdata */
-#define PPBASILYS_MAGIC 0x094f2de3
-struct ppbasilysflushdata_st
-{
-  int gf_magic;			/* always  PPBASILYS_MAGIC */
-  basilys_ptr_t *gf_sbufad;	/* adress of pointer to sbuf */
-  pretty_printer gf_pp;
-  int gf_indent;		/* current indentation */
-};
 
-static void
-ppbasilys_flushrout (const char *txt, void *data)
+/* we really need in memory FILE* output; GNU libc -ie Linux- provides
+   open_memstream for that; on other systems we use a temporary file,
+   which would be very slow if it happens to not be cached in
+   memory */
+
+static char* meltppbuffer;
+static size_t meltppbufsiz;
+static FILE* meltppfile;
+
+#if !HAVE_OPEN_MEMSTREAM
+static char* meltppfilename;
+#endif
+
+/* open the melttppfile for pretty printing */
+static void 
+open_meltpp_file(void)
 {
-  const char *bl = 0, *nl = 0;
-  struct ppbasilysflushdata_st *fldata =
-    (struct ppbasilysflushdata_st *) data;
-  gcc_assert (fldata->gf_magic == PPBASILYS_MAGIC);
-  gcc_assert (txt != NULL);
-  for (bl = txt; bl; bl = nl?(nl+1):0) {
-    int linelen = 0;
-    nl = strchr(bl, '\n');
-    if (nl && nl[1]==0) 
-      break;
-    linelen = nl?((int)(nl-bl)):((int)(strlen(bl)));
-    basilysgc_add_strbuf_raw_len ((basilys_ptr_t) (*fldata->gf_sbufad),
-				  bl, linelen);
-    if (nl) 
-      basilysgc_strbuf_add_indent((basilys_ptr_t) (*fldata->gf_sbufad), 
-				  fldata->gf_indent, 72);
-  }
+#if HAVE_OPEN_MEMSTREAM
+  meltppbufsiz = 1024;
+  meltppbuffer = xcalloc (1, meltppbufsiz);
+  meltppfile = open_memstream (&meltppbuffer, &meltppsiz);
+  if (!meltppfile)
+    fatal_error ("failed to open meltpp file in memory");
+#else
+  if (!meltppfilename) 
+    {
+      meltppfilename = make_temp_file (".meltmem");
+      if (!meltppfilename)
+	fatal_error ("failed to get melt memory temporary file");
+    }
+  meltppfile = fopen (meltppfilename, "w+");
+#endif
 }
 
-/* pretty print into an sbuf a gimple */
-void
-basilysgc_ppstrbuf_gimple (basilys_ptr_t sbuf_p, int indentsp, gimple gstmt)
+/* close the meltppfile for pretty printing; after than, the
+   meltppbuffer & meltppbufsize contains the FILE* content */
+static void
+close_meltpp_file(void)
 {
-  struct ppbasilysflushdata_st ppgdat;
-#define sbufv curfram__.varptr[0]
+  gcc_assert (meltppfile != (FILE*)0);
+#if HAVE_OPEN_MEMSTREAM
+  /* the fclose automagically updates meltppbuffer & meltppbufsiz */
+  fclose (meltppfile);
+#else
+  /* we don't have an in-memory FILE*; so we read the file; you'll
+     better have it in a fast file system, like a memory one. */
+  meltppbufsiz = (size_t) ftell (meltppfile);
+  rewind (meltppfile);
+  meltppbuffer = (char*) xcalloc(1, meltppbufsiz);
+  if (fread (meltppbuffer, meltppbufsiz, 1, meltppfile) <= 0)
+    fatal_error ("failed to re-read melt buffer temporary file");
+  fclose (meltppfile);
+#endif
+  meltppfile = NULL;
+}
+
+
+
+/* pretty print into an outbuf a gimple */
+void
+basilysgc_ppout_gimple (basilys_ptr_t out_p, int indentsp, gimple gstmt)
+{
+  int outmagic = 0;
+#define outv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
-  sbufv = sbuf_p;
-  if (!sbufv || basilys_magic_discr ((basilys_ptr_t) sbufv) != OBMAG_STRBUF)
+  outv = out_p;
+  if (!outv) 
     goto end;
+  outmagic = basilys_magic_discr ((basilys_ptr_t) outv);
   if (!gstmt)
     {
-      basilysgc_add_strbuf ((basilys_ptr_t) sbufv,
+      basilysgc_add_out ((basilys_ptr_t) outv,
 			    "%nullgimple%");
       goto end;
     }
-  memset (&ppgdat, 0, sizeof (ppgdat));
-  ppgdat.gf_sbufad = (basilys_ptr_t *) & sbufv;
-  ppgdat.gf_magic = PPBASILYS_MAGIC;
-  ppgdat.gf_indent = indentsp;
-  pp_construct_routdata (&ppgdat.gf_pp, NULL, 72, ppbasilys_flushrout,
-			 (void *) &ppgdat);
-  dump_gimple_stmt (&ppgdat.gf_pp, gstmt, indentsp,
-		    TDF_LINENO | TDF_SLIM | TDF_VOPS);
-  pp_flush (&ppgdat.gf_pp);
-  pp_destruct (&ppgdat.gf_pp);
+  switch (outmagic) 
+    {
+    case OBMAG_STRBUF:
+      {
+	open_meltpp_file ();
+	print_gimple_stmt (meltppfile, gstmt, indentsp,
+			   TDF_LINENO | TDF_SLIM | TDF_VOPS);
+	close_meltpp_file ();
+	basilysgc_add_out_raw_len ((basilys_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
+	free(meltppbuffer);
+	meltppbuffer = 0;
+	meltppbufsiz = 0;
+      }
+      break;
+    case OBMAG_SPEC_FILE:
+      {
+	FILE* f = ((struct basilysspecial_st*)outv)->val.sp_file;
+	if (!f) 
+	  goto end;
+	print_gimple_stmt (f, gstmt, indentsp,
+			   TDF_LINENO | TDF_SLIM | TDF_VOPS);
+	fflush (f);
+      }
+      break;
+    default:
+      goto end;
+    }
 end:
-  memset (&ppgdat, 0, sizeof (ppgdat));
   BASILYS_EXITFRAME ();
-#undef sbufv
+#undef outv
 }
 
-/* pretty print into an sbuf a gimple seq */
+/* pretty print into an outbuf a gimple seq */
 void
-basilysgc_ppstrbuf_gimple_seq (basilys_ptr_t sbuf_p, int indentsp,
+basilysgc_ppout_gimple_seq (basilys_ptr_t out_p, int indentsp,
 			       gimple_seq gseq)
 {
-  struct ppbasilysflushdata_st ppgdat;
-#define sbufv curfram__.varptr[0]
+  int outmagic = 0;
+#define outv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
-  sbufv = sbuf_p;
-  if (!sbufv || basilys_magic_discr ((basilys_ptr_t) sbufv) != OBMAG_STRBUF)
+  outv = out_p;
+  if (!outv)
     goto end;
   if (!gseq)
     {
-      basilysgc_add_strbuf ((basilys_ptr_t) sbufv,
+      basilysgc_add_out ((basilys_ptr_t) outv,
 			    "%nullgimpleseq%");
       goto end;
     }
-  memset (&ppgdat, 0, sizeof (ppgdat));
-  ppgdat.gf_sbufad = (basilys_ptr_t *) & sbufv;
-  ppgdat.gf_magic = PPBASILYS_MAGIC;
-  ppgdat.gf_indent = indentsp;
-  pp_construct_routdata (&ppgdat.gf_pp, NULL, 72, ppbasilys_flushrout,
-			 (void *) &ppgdat);
-  dump_gimple_seq (&ppgdat.gf_pp, gseq, indentsp,
-		   TDF_LINENO | TDF_SLIM | TDF_VOPS);
-  pp_flush (&ppgdat.gf_pp);
-  pp_destruct (&ppgdat.gf_pp);
-end:
-  memset (&ppgdat, 0, sizeof (ppgdat));
-  BASILYS_EXITFRAME ();
-#undef sbufv
-}
-
-/* pretty print into an sbuf a tree */
-void
-basilysgc_ppstrbuf_tree (basilys_ptr_t sbuf_p, int indentsp, tree tr)
-{
-  struct ppbasilysflushdata_st ppgdat;
-#define sbufv curfram__.varptr[0]
-  BASILYS_ENTERFRAME (2, NULL);
-  sbufv = sbuf_p;
-  if (!sbufv || basilys_magic_discr ((basilys_ptr_t) sbufv) != OBMAG_STRBUF)
-    goto end;
-  if (!tr)
+  outmagic = basilys_magic_discr ((basilys_ptr_t) outv);
+  switch (outmagic) 
     {
-      basilysgc_add_strbuf ((basilys_ptr_t) sbufv, "%nulltree%");
+    case OBMAG_STRBUF:
+      {
+	open_meltpp_file ();
+	print_gimple_seq (meltppfile, gseq, indentsp,
+			   TDF_LINENO | TDF_SLIM | TDF_VOPS);
+	close_meltpp_file ();
+	basilysgc_add_out_raw_len ((basilys_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
+	free(meltppbuffer);
+	meltppbuffer = 0;
+	meltppbufsiz = 0;
+      }
+      break;
+    case OBMAG_SPEC_FILE:
+      {
+	FILE* f = ((struct basilysspecial_st*)outv)->val.sp_file;
+	if (!f) 
+	  goto end;
+	print_gimple_seq (f, gseq, indentsp,
+			   TDF_LINENO | TDF_SLIM | TDF_VOPS);
+	fflush (f);
+      }
+      break;
+    default:
       goto end;
     }
-  memset (&ppgdat, 0, sizeof (ppgdat));
-  ppgdat.gf_sbufad = (basilys_ptr_t *) & sbufv;
-  ppgdat.gf_magic = PPBASILYS_MAGIC;
-  ppgdat.gf_indent = indentsp;
-  pp_construct_routdata (&ppgdat.gf_pp, NULL, 72, ppbasilys_flushrout,
-			 (void *) &ppgdat);
-  dump_generic_node (&ppgdat.gf_pp, tr, indentsp,
-		     TDF_LINENO | TDF_SLIM | TDF_VOPS, false);
-  pp_flush (&ppgdat.gf_pp);
-  pp_destruct (&ppgdat.gf_pp);
 end:
-  memset (&ppgdat, 0, sizeof (ppgdat));
   BASILYS_EXITFRAME ();
-#undef sbufv
+#undef endv
+}
+
+/* pretty print a tree */
+void
+basilysgc_ppout_tree (basilys_ptr_t out_p, int indentsp, tree tr)
+{
+  int outmagic = 0;
+#define outv curfram__.varptr[0]
+  BASILYS_ENTERFRAME (2, NULL);
+  outv = out_p;
+  if (!outv)
+    goto end;
+  if (!tr) 
+    {
+      basilysgc_add_out_raw ((basilys_ptr_t) outv, "%nulltree%");
+      goto end;
+    }
+  outmagic = basilys_magic_discr ((basilys_ptr_t) outv);
+  switch (outmagic) 
+    {
+    case OBMAG_STRBUF:
+      {
+	open_meltpp_file ();
+	print_node_brief (meltppfile, "", tr, indentsp);
+	close_meltpp_file ();
+	basilysgc_add_out_raw_len ((basilys_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
+	free(meltppbuffer);
+	meltppbuffer = 0;
+	meltppbufsiz = 0;
+      }
+      break;
+    case OBMAG_SPEC_FILE:
+      {
+	FILE* f = ((struct basilysspecial_st*)outv)->val.sp_file;
+	if (!f) 
+	  goto end;
+	print_node_brief (f, "", tr, indentsp);
+	fflush (f);
+      }
+      break;
+    default:
+      goto end;
+    }
+end:
+  BASILYS_EXITFRAME ();
+#undef outv
 }
 
 
-/* pretty print into an sbuf a basicblock */
+/* pretty print into an outbuf a basicblock */
 void
-basilysgc_ppstrbuf_basicblock (basilys_ptr_t sbuf_p, int indentsp,
+basilysgc_ppout_basicblock (basilys_ptr_t out_p, int indentsp,
 			       basic_block bb)
 {
   gimple_seq gsq = 0;
-#define sbufv curfram__.varptr[0]
+#define outv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
-  sbufv = sbuf_p;
-  if (!sbufv || basilys_magic_discr ((basilys_ptr_t) sbufv) != OBMAG_STRBUF)
+  outv = out_p;
+  if (!outv)
     goto end;
   if (!bb)
     {
-      basilysgc_add_strbuf ((basilys_ptr_t) sbufv,
+      basilysgc_add_out_raw ((basilys_ptr_t) outv,
 			    "%nullbasicblock%");
       goto end;
     }
-  basilysgc_strbuf_printf ((basilys_ptr_t) sbufv,
-			   "basicblock ix%d", bb->index);
+  basilysgc_out_printf ((basilys_ptr_t) outv,
+			"basicblock ix%d", bb->index);
   gsq = bb_seq (bb);
   if (gsq)
     {
-      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, "{.");
-      basilysgc_ppstrbuf_gimple_seq ((basilys_ptr_t) sbufv,
+      basilysgc_add_out_raw ((basilys_ptr_t) outv, "{.");
+      basilysgc_ppout_gimple_seq ((basilys_ptr_t) outv,
 				     indentsp + 1, gsq);
-      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, ".}");
+      basilysgc_add_out_raw ((basilys_ptr_t) outv, ".}");
     }
   else
-    basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, ";");
+    basilysgc_add_out_raw ((basilys_ptr_t) outv, ";");
 end:
   BASILYS_EXITFRAME ();
 #undef sbufv
 }
 
+
 /* pretty print into an sbuf a mpz_t GMP multiprecision integer */
 void
-basilysgc_ppstrbuf_mpz (basilys_ptr_t sbuf_p, int indentsp,
-			  mpz_t mp)
+basilysgc_ppout_mpz (basilys_ptr_t out_p, int indentsp, mpz_t mp)
 {
   int len = 0;
   char* cbuf = 0;
   char tinybuf [64];
-#define sbufv curfram__.varptr[0]
+#define outv curfram__.varptr[0]
   BASILYS_ENTERFRAME (2, NULL);
-  sbufv = sbuf_p;
+  outv = out_p;
   memset(tinybuf, 0, sizeof (tinybuf));
-  if (!sbufv || basilys_magic_discr ((basilys_ptr_t) sbufv) != OBMAG_STRBUF || indentsp<0)
+  if (!outv || indentsp<0)
     goto end;
   if (!mp)
     {
-      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv,
-				"%nullmp%");
+      basilysgc_add_out_raw ((basilys_ptr_t) outv, "%nullmp%");
       goto end;
     }
   len = mpz_sizeinbase(mp, 10) + 2;
   if (len < (int)sizeof(tinybuf)-2) 
     {
       mpz_get_str (tinybuf, 10, mp);
-      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, tinybuf);
+      basilysgc_add_out_raw ((basilys_ptr_t) outv, tinybuf);
     }
   else
     {
       cbuf = (char*) xcalloc(len+2, 1);
       mpz_get_str(cbuf, 10, mp);
-      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, cbuf);
+      basilysgc_add_out_raw ((basilys_ptr_t) outv, cbuf);
       free(cbuf);
     }
  end:
@@ -8683,17 +8758,17 @@ basilysgc_ppstrbuf_mpz (basilys_ptr_t sbuf_p, int indentsp,
 }
 
 
-/* pretty print into an sbuf the GMP multiprecision integer of a mixbigint */
+/* pretty print into an out the GMP multiprecision integer of a mixbigint */
 void
-basilysgc_ppstrbuf_mixbigint (basilys_ptr_t sbuf_p, int indentsp,
+basilysgc_ppout_mixbigint (basilys_ptr_t out_p, int indentsp,
 			      basilys_ptr_t big_p)
 {
-#define sbufv curfram__.varptr[0]
+#define outv curfram__.varptr[0]
 #define bigv  curfram__.varptr[1]
   BASILYS_ENTERFRAME (3, NULL);
-  sbufv = sbuf_p;
+  outv = out_p;
   bigv = big_p;
-  if (!sbufv || basilys_magic_discr ((basilys_ptr_t) sbufv) != OBMAG_STRBUF)
+  if (!outv)
     goto end;
   if (!bigv || basilys_magic_discr ((basilys_ptr_t) bigv) != OBMAG_MIXBIGINT)
     goto end;
@@ -8701,7 +8776,7 @@ basilysgc_ppstrbuf_mixbigint (basilys_ptr_t sbuf_p, int indentsp,
     mpz_t mp;
     mpz_init (mp);
     if (basilys_fill_mpz_from_mixbigint((basilys_ptr_t) bigv, mp)) 
-      basilysgc_ppstrbuf_mpz ((basilys_ptr_t) sbufv, indentsp, mp);
+      basilysgc_ppout_mpz ((basilys_ptr_t) outv, indentsp, mp);
     mpz_clear (mp);
   }
  end:
