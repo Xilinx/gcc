@@ -939,7 +939,9 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag,
 {
   gfc_formal_arglist *f1, *f2;
 
-  if (s1->attr.function && !s2->attr.function)
+  if (s1->attr.function && (s2->attr.subroutine
+      || (!s2->attr.function && s2->ts.type == BT_UNKNOWN
+	  && gfc_get_default_type (s2->name, s2->ns)->type == BT_UNKNOWN)))
     {
       if (errmsg != NULL)
 	snprintf (errmsg, err_len, "'%s' is not a function", s2->name);
@@ -967,8 +969,6 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, int generic_flag,
 		      "of '%s'", s2->name);
 	  return 0;
 	}
-      if (s1->attr.if_source == IFSRC_DECL)
-	return 1;
     }
 
   if (s1->attr.if_source == IFSRC_UNKNOWN
@@ -1388,6 +1388,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
   if (actual->ts.type == BT_PROCEDURE)
     {
       char err[200];
+      gfc_symbol *act_sym = actual->symtree->n.sym;
 
       if (formal->attr.flavor != FL_PROCEDURE)
 	{
@@ -1396,7 +1397,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 	  return 0;
 	}
 
-      if (!gfc_compare_interfaces (formal, actual->symtree->n.sym, 0, 1, err,
+      if (!gfc_compare_interfaces (formal, act_sym, 0, 1, err,
 				   sizeof(err)))
 	{
 	  if (where)
@@ -1404,6 +1405,13 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 		       formal->name, &actual->where, err);
 	  return 0;
 	}
+
+      if (formal->attr.function && !act_sym->attr.function)
+	gfc_add_function (&act_sym->attr, act_sym->name, &act_sym->declared_at);
+
+      if (formal->attr.subroutine && !act_sym->attr.subroutine)
+	gfc_add_subroutine (&act_sym->attr, act_sym->name,
+			    &act_sym->declared_at);
 
       return 1;
     }
@@ -2417,6 +2425,7 @@ gfc_symbol *
 gfc_search_interface (gfc_interface *intr, int sub_flag,
 		      gfc_actual_arglist **ap)
 {
+  gfc_symbol *elem_sym = NULL;
   for (; intr; intr = intr->next)
     {
       if (sub_flag && intr->sym->attr.function)
@@ -2425,10 +2434,19 @@ gfc_search_interface (gfc_interface *intr, int sub_flag,
 	continue;
 
       if (gfc_arglist_matches_symbol (ap, intr->sym))
-	return intr->sym;
+	{
+	  /* Satisfy 12.4.4.1 such that an elemental match has lower
+	     weight than a non-elemental match.  */ 
+	  if (intr->sym->attr.elemental)
+	    {
+	      elem_sym = intr->sym;
+	      continue;
+	    }
+	  return intr->sym;
+	}
     }
 
-  return NULL;
+  return elem_sym ? elem_sym : NULL;
 }
 
 

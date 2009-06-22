@@ -1,3 +1,56 @@
+2009-06-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40443
+	* interface.c (gfc_search_interface): Hold back a match to an
+	elementary procedure until all other possibilities are
+	exhausted.
+
+2009-06-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40472
+	* simplify.c (gfc_simplify_spread): Restrict the result size to
+	the limit for an array constructor.
+
+2009-06-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39850
+	* interface.c (gfc_compare_interfaces): Take care of implicit typing
+	when checking the function attribute. Plus another bugfix.
+	(compare_parameter): Set attr.function and attr.subroutine according
+	to the usage of a procedure as actual argument.
+
+2009-06-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40452
+	* trans-decl.c (add_argument_checking): Disable bounds check
+	for allowed argument storage association.
+
+2009-06-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40440
+	* trans-expr.c (gfc_conv_procedure_call): Do not deallocate
+	allocatable components if the argument is a pointer.
+
+2009-06-19  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gfortran.h (gfc_expr): Use mpc_t to represent complex numbers.
+
+	* arith.c, dump-parse-tree.c, expr.c, module.c, resolve.c,
+	simplify.c, target-memory.c, target-memory.h, trans-const.c,
+	trans-expr.c: Convert to mpc_t throughout.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* cpp.c (struct gfc_cpp_option_data): Give this struct, used for
+	the global variable gfc_cpp_option, a name.
+
+2009-06-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40450
+	* trans-expr.c (gfc_conv_procedure_call): Only add an extra addr_expr
+	to a procedure pointer actual argument, if it is not itself a
+	dummy arg.
+
 2009-06-18  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/40451
