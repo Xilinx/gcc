@@ -1,3 +1,13 @@
+2009-06-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* lambda.h (lambda_loop_new): Remove.
+	* lambda-code.c (lambda_loop_new): New function.
+	(compute_nest_using_fourier_motzkin): Pass lambda_obstack to
+	lambda_loop_new.
+	(lambda_compute_target_space): Likewise.
+	(gcc_loop_to_lambda_loop): Likewise.
+	* stringpool.c (stringpool_ggc_alloc): Use ggc_alloc_atomic.
+
 2009-06-17  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* c-tree.h (push_init_level, pop_init_level, set_init_index): new

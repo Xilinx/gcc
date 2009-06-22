@@ -150,6 +150,15 @@ static lambda_lattice lambda_lattice_compute_base (lambda_loopnest,
 
 static bool can_convert_to_perfect_nest (struct loop *);
 
+static
+lambda_loop lambda_loop_new (struct obstack * lambda_obstack)
+{
+  lambda_loop result = (lambda_loop) obstack_alloc (lambda_obstack,
+						    sizeof (struct lambda_loop_s));
+  memset (result, 0, sizeof (struct lambda_loop_s));
+  return result;
+}
+
 /* Create a new lambda body vector.  */
 
 lambda_body_vector
@@ -508,7 +517,7 @@ compute_nest_using_fourier_motzkin (int size,
 
   for (i = depth - 1; i >= 0; i--)
     {
-      loop = lambda_loop_new ();
+      loop = lambda_loop_new (lambda_obstack);
       LN_LOOPS (auxillary_nest)[i] = loop;
       LL_STEP (loop) = 1;
 
@@ -815,7 +824,7 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
     {
 
       /* Get a new loop structure.  */
-      target_loop = lambda_loop_new ();
+      target_loop = lambda_loop_new (lambda_obstack);
       LN_LOOPS (target_nest)[i] = target_loop;
 
       /* Computes the gcd of the coefficients of the linear part.  */
@@ -1424,7 +1433,7 @@ gcc_loop_to_lambda_loop (struct loop *loop, int depth,
       return NULL;
     }
 
-  lloop = lambda_loop_new ();
+  lloop = lambda_loop_new (lambda_obstack);
   LL_STEP (lloop) = stepint;
   LL_LOWER_BOUND (lloop) = lbound;
   LL_UPPER_BOUND (lloop) = ubound;

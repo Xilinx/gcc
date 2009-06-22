@@ -156,8 +156,6 @@ struct loop;
 bool perfect_nest_p (struct loop *);
 void print_lambda_loopnest (FILE *, lambda_loopnest, char);
 
-#define lambda_loop_new() (lambda_loop) ggc_alloc_cleared (sizeof (struct lambda_loop_s))
-
 void print_lambda_loop (FILE *, lambda_loop, int, int, char);
 
 lambda_matrix lambda_matrix_new (int, int);
