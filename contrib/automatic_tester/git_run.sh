@@ -7,10 +7,10 @@ run_command_for_branch () {
        cd $SRC_DIR
        HASH=`git log --pretty=format:%H ${BRANCH}| head -n 1`
 	if [ ! -z "${IGNORE_RUNNING}" -o ! -e ${LOG_DIR}/running ]; then
-		git tag test_${DATE}_running
+		git tag test_${BRANCH}_running
 		export GIT_BRANCH=$BRANCH
 		$BASE_DIR/run_build.sh 
-		git tag -d test_${DATE}_running
+		git tag -d test_${BRANCH}_running
 	fi
 }
 

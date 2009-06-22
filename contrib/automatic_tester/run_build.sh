@@ -46,10 +46,19 @@ else
 	MAIL_SUBJECT="${MAIL_SUBJECT} ${GIT_BRANCH}"
 fi
 
-
-
-
 mkdir -p ${LOG_DIR_CURRENT}
+
+touch ${LOG_DIR_CURRENT}/mutt.cfg
+MUTT_CMD="mutt"
+
+if [ "${EMAIL_REALNAME}x" != "x" -a "${EMAIL_FROM}x" != "x" ] ; then
+	echo "set use_from=yes" >> ${LOG_DIR_CURRENT}/mutt.cfg
+	echo "set realname=\"${EMAIL_REALNAME}\"" >> ${LOG_DIR_CURRENT}/mutt.cfg
+	echo "set from=\"${EMAIL_FROM}\"" >> ${LOG_DIR_CURRENT}/mutt.cfg
+	MUTT_CMD=${MUTT_CMD}\ -F\ ${LOG_DIR_CURRENT}/mutt.cfg
+fi
+
+
 cat ${BASE_DIR}/graphite_env.sh > ${LOG_DIR_CURRENT}/gcc_env.sh
 echo 'PATH='${INSTALL_DIR_CURRENT}'/bin:${PATH}' >> ${LOG_DIR_CURRENT}/gcc_env.sh
 echo 'LD_LIBRARY_PATH='${INSTALL_DIR_CURRENT}'/lib:${LD_LIBRARY_PATH}' \
@@ -68,7 +77,7 @@ mail_success () {
       ATTACHMENTS="${ATTACHMENTS} -a ${EXTRA_TEST_DIR}/report/${DATE}"
   fi
   echo "BUILD SUCCESSFUL" >> ${LOG_DIR_CURRENT}/info.log
-  mutt -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
+  ${MUTT_CMD} -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
     $ATTACHMENTS $EMAIL </dev/null
 }
 
@@ -83,10 +92,10 @@ build_git_tag () {
 
 mail_status () {
   if [ -z "${FIRST_MAIL_SENT}" ]; then
-  	mutt -s "${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log $EMAIL < /dev/null
+	${MUTT_CMD} -s "${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log $EMAIL < /dev/null
 	FIRST_MAIL_SENT="1"
   else
- 	mutt -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log $EMAIL < /dev/null
+	${MUTT_CMD} -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log $EMAIL < /dev/null
   fi
 }
 
@@ -97,7 +106,7 @@ mail_failure () {
     ATTACHMENTS="${ATTACHMENTS} -a ${file}"
   done
   echo "BUILD FAILED" >> ${LOG_DIR_CURRENT}/info.log
-  mutt -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
+  ${MUTT_CMD} -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
     $ATTACHMENTS $EMAIL </dev/null
 }
 
