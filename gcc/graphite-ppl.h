@@ -38,6 +38,8 @@ void debug_ppl_powerset_matrix (ppl_Pointset_Powerset_NNC_Polyhedron_t);
 void ppl_read_polyhedron_matrix (ppl_Polyhedron_t *, FILE *);
 void ppl_insert_dimensions (ppl_Polyhedron_t, int, int);
 void ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t, int, int);
+void ppl_set_inhomogeneous (ppl_Linear_Expression_t, int);
+void ppl_set_coef (ppl_Linear_Expression_t, ppl_dimension_type, int);
 
 /* Sets RES to the max of V1 and V2.  */
 

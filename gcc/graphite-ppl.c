@@ -274,8 +274,8 @@ new_Cloog_Domain_from_ppl_Pointset_Powerset (
 
 /* Set the inhomogeneous term of E to X.  */
 
-static void
-set_inhomogeneous (ppl_Linear_Expression_t e, int x)
+void
+ppl_set_inhomogeneous (ppl_Linear_Expression_t e, int x)
 {
   Value v0, v1;
   ppl_Coefficient_t c;
@@ -299,8 +299,8 @@ set_inhomogeneous (ppl_Linear_Expression_t e, int x)
 
 /* Set E[I] to X.  */
 
-static void
-set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
+void
+ppl_set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
 {
   Value v0, v1;
   ppl_Coefficient_t c;
@@ -474,8 +474,8 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
     ppl_Constraint_t new_cstr;
     ppl_new_Linear_Expression_with_dimension (&expr, dim + 1);
 
-    set_coef (expr, loop + 1, 1);
-    set_coef (expr, loop, -1 * stride);
+    ppl_set_coef (expr, loop + 1, 1);
+    ppl_set_coef (expr, loop, -1 * stride);
 
     ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
     ppl_delete_Linear_Expression (expr);
@@ -489,9 +489,9 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
     ppl_Constraint_t new_cstr;
     ppl_new_Linear_Expression_with_dimension (&expr, dim + 1);
 
-    set_coef (expr, loop + 1, -1);
-    set_coef (expr, loop, stride);
-    set_inhomogeneous (expr, stride - 1);
+    ppl_set_coef (expr, loop + 1, -1);
+    ppl_set_coef (expr, loop, stride);
+    ppl_set_inhomogeneous (expr, stride - 1);
 
     ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
     ppl_delete_Linear_Expression (expr);

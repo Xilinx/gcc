@@ -1,5 +1,11 @@
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-ppl.c (set_inhomogeneous): Renamed ppl_set_inhomogeneous.
+	(set_coef): Renamed ppl_set_coef.
+	* graphite-ppl.h (ppl_set_inhomogeneous, ppl_set_coef): Declared.
+
+2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-dependences.c (build_pairwise_scheduling_inequality): Don't
 	test a boolean against 1.
 	* graphite-interchange.c (pbb_interchange_loop_depths): Do not build
