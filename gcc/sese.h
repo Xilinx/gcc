@@ -68,6 +68,7 @@ extern edge copy_bb_and_scalar_dependences (basic_block, sese, edge, htab_t);
 extern struct loop *outermost_loop_in_sese (sese, basic_block);
 extern void insert_loop_close_phis (htab_t, loop_p);
 extern void insert_guard_phis (basic_block, edge, edge, htab_t, htab_t);
+extern void sese_reset_aux_in_loops (sese);
 
 /* Check that SESE contains LOOP.  */
 

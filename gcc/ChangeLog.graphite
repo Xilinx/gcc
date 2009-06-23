@@ -1,3 +1,10 @@
+2009-06-23  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-clast-to-gimple.c (gloog): Reset loop->aux right
+	after last use.
+	* sese.c (sese_reset_aux_in_loops): New.
+	* sese.h (sese_reset_aux_in_loops): New.
+
 2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-sese-to-poly.c (scan_tree_for_params_int): Pass in the

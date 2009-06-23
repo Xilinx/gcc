@@ -1125,6 +1125,7 @@ gloog (scop_p scop)
   new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
 					rename_map, &newivs, newivs_index);
+  sese_reset_aux_in_loops (region);
   graphite_verify ();
   sese_adjust_liveout_phis (region, rename_map,
 			    if_region->region->exit->src,
