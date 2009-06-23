@@ -1,3 +1,15 @@
+2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (build_pairwise_scheduling_inequality): Don't
+	test a boolean against 1.
+	* graphite-interchange.c (pbb_interchange_loop_depths): Do not build
+	a new polyhedron for the PBB_TRANSFORMED_SCATTERING.
+	(pbb_do_interchange): Returns true when a transform has been performed.
+	(scop_do_interchange): Same.
+	* graphite-poly.c (apply_poly_transforms): Use the return value of
+	scop_do_interchange.
+	* graphite-poly.h (scop_do_interchange): Update declaration.
+
 2009-06-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-clast-to-gimple.c (gloog): Reset loop->aux right

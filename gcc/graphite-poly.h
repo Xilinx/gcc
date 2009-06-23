@@ -281,7 +281,7 @@ extern void print_iteration_domain (FILE *, poly_bb_p);
 extern void print_iteration_domains (FILE *, scop_p);
 extern void debug_iteration_domain (poly_bb_p);
 extern void debug_iteration_domains (scop_p);
-extern void scop_do_interchange (scop_p);
+extern bool scop_do_interchange (scop_p);
 
 /* The scop that contains the PDR.  */
 

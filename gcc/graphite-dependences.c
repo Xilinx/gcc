@@ -239,7 +239,7 @@ build_pairwise_scheduling_inequality (graphite_dim_t dim,
 
   ppl_new_NNC_Polyhedron_from_space_dimension (&equalities, dim, 0);
 
-  if (direction == 1)
+  if (direction)
     cstr = build_pairwise_constraint (dim, pos, pos + offset, 0, PPL_CONSTRAINT_TYPE_GREATER_THAN); 
   else
     cstr = build_pairwise_constraint (dim, pos, pos + offset, 0, PPL_CONSTRAINT_TYPE_LESS_THAN); 

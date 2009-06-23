@@ -323,13 +323,11 @@ pbb_interchange_profitable_p (graphite_dim_t depth1, graphite_dim_t depth2, poly
 static void
 pbb_interchange_loop_depths (graphite_dim_t depth1, graphite_dim_t depth2, poly_bb_p pbb)
 {
-  ppl_Polyhedron_t poly;
   ppl_dimension_type i, dim;
   ppl_dimension_type *map;
+  ppl_Polyhedron_t poly = PBB_TRANSFORMED_SCATTERING (pbb);
   ppl_dimension_type dim1 = psct_iterator_dim (pbb, depth1);
   ppl_dimension_type dim2 = psct_iterator_dim (pbb, depth2);
-
-  ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&poly, PBB_ORIGINAL_SCATTERING (pbb));
 
   ppl_Polyhedron_space_dimension (poly, &dim);
   map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
@@ -341,16 +339,16 @@ pbb_interchange_loop_depths (graphite_dim_t depth1, graphite_dim_t depth2, poly_
   map[dim2] = dim1;
 
   ppl_Polyhedron_map_space_dimensions (poly, map, dim);
-  PBB_TRANSFORMED_SCATTERING (pbb) = poly;
   free (map);
 }
 
 /* Interchanges all the loop depths that are considered profitable for PBB.  */
 
-static void
+static bool
 pbb_do_interchange (poly_bb_p pbb, scop_p scop)
 {
   graphite_dim_t i, j;
+  bool transform_done = false;
 
   for (i = 0; i < pbb_dim_iter_domain (pbb); i++)
     for (j = i + 1; j < pbb_dim_iter_domain (pbb); j++)
@@ -358,26 +356,36 @@ pbb_do_interchange (poly_bb_p pbb, scop_p scop)
 	{
 	  pbb_interchange_loop_depths (i, j, pbb);
 
-	  if (!graphite_legal_transform (scop))
-	    pbb_interchange_loop_depths (j, i, pbb);
+	  if (graphite_legal_transform (scop))
+	    {
+	      transform_done = true;
 
-	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    fprintf (dump_file,
-		     "PBB %d: loops at depths %d and %d will be interchanged",
-		     GBB_BB (PBB_BLACK_BOX (pbb))->index, (int) i, (int) j);
+	      if (dump_file && (dump_flags & TDF_DETAILS))
+		fprintf (dump_file,
+			 "PBB %d: loops at depths %d and %d will be interchanged",
+			 GBB_BB (PBB_BLACK_BOX (pbb))->index, (int) i, (int) j);
+	    }
+	  else
+	    /* Undo the transform.  */
+	    pbb_interchange_loop_depths (j, i, pbb);
 	}
+
+  return transform_done;
 }
 
 /* Interchanges all the loop depths that are considered profitable for SCOP.  */
 
-void
+bool
 scop_do_interchange (scop_p scop)
 {
   int i;
   poly_bb_p pbb;
+  bool transform_done = false;
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    pbb_do_interchange (pbb, scop);
+    transform_done |= pbb_do_interchange (pbb, scop);
+
+  return transform_done;
 }
 
 #endif
