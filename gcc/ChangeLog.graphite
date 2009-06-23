@@ -1,5 +1,10 @@
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.c (extend_scattering): Avoid initializing and freeing
+	a GMP value and a PPL coefficient at each iteration of a loop.
+
+2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-dependences.c (dependence_polyhedron): Do not use
 	pbb_nb_scattering_dims anymore.  Use pbb_nb_scattering_orig and
 	pbb_nb_scattering_transform.

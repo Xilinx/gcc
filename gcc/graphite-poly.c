@@ -78,8 +78,14 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
 {
   ppl_dimension_type nb_old_dims, nb_new_dims;
   int nb_added_dims, i;
+  ppl_Coefficient_t coef;
+  Value one;
 
   nb_added_dims = max_scattering - pbb_nb_scattering_transform (pbb); 
+  value_init (one);
+  value_set_si (one, 1);
+  ppl_new_Coefficient (&coef);
+  ppl_assign_Coefficient_from_mpz_t (coef, one);
 
   gcc_assert (nb_added_dims >= 0);
 
@@ -93,23 +99,18 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
   for (i = max_scattering - nb_added_dims; i < max_scattering; i++)
     {
       ppl_Constraint_t cstr;
-      ppl_Coefficient_t coef;
       ppl_Linear_Expression_t expr;
-      Value v;
 
-      value_init (v);
-      value_set_si (v, 1);
-      ppl_new_Coefficient (&coef);
       ppl_new_Linear_Expression_with_dimension (&expr, nb_new_dims);
-      ppl_assign_Coefficient_from_mpz_t (coef, v);
       ppl_Linear_Expression_add_to_coefficient (expr, i, coef);
       ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
       ppl_Polyhedron_add_constraint (PBB_TRANSFORMED_SCATTERING (pbb), cstr);
       ppl_delete_Constraint (cstr);
-      ppl_delete_Coefficient (coef);
       ppl_delete_Linear_Expression (expr);
-      value_clear (v);
     }
+
+  ppl_delete_Coefficient (coef);
+  value_clear (one);
 }
 
 /* All scattering matrices in SCOP will have the same number of scattering
