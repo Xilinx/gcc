@@ -857,10 +857,11 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
   CloogBlockList *block_list = NULL;
   CloogDomainList *scattering = NULL;
   int nbs = 2 * max_nb_loops + 1;
-  int *scaldims = (int *) xmalloc (nbs * (sizeof (int)));
+  int *scaldims;
 
   build_scop_context (scop, prog);
   nbs = unify_scattering_dimensions (scop);
+  scaldims = (int *) xmalloc (nbs * (sizeof (int)));
   cloog_program_set_nb_scattdims (prog, nbs);
   initialize_cloog_names (scop, prog);
 

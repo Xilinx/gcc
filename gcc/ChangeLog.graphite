@@ -1,5 +1,10 @@
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (build_cloog_prog): Fix memory corruption.
+	Allocate scaldims after call to unify_scattering_dimensions.
+
+2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (translate_clast): Fix memory leak.
 
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
