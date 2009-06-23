@@ -1,4 +1,8 @@
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (translate_clast): Fix memory leak.
+
+2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 	    Albert Cohen  <albert.cohen@inria.fr>
 
 	* graphite-blocking.c (pbb_strip_mine_loop_depth): Do not use local

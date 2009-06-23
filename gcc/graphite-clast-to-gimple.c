@@ -630,6 +630,7 @@ translate_clast (sese region, struct loop *context_loop,
       insert_guard_phis (last_e->src, exit_true_e, exit_false_e,
 			 before_guard, rename_map);
 
+      htab_delete (before_guard);
       recompute_all_dominators ();
       graphite_verify ();
 
