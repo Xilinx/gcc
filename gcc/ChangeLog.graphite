@@ -1,5 +1,34 @@
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-dependences.c (dependence_polyhedron): Do not use
+	pbb_nb_scattering_dims anymore.  Use pbb_nb_scattering_orig and
+	pbb_nb_scattering_transform.
+	(graphite_legal_transform_dr): Same.
+	* graphite-poly.c (extend_scattering): Same.
+	(unify_scattering_dimensions): Same.
+	(print_scattering_function): Same.
+	(new_poly_bb): Initialize PBB_NB_SCATTERING_TRANSFORM and
+	PBB_NB_LOCAL_VARIABLES.
+	* graphite-poly.h (pbb_nb_scattering): Removed declaration.
+	(struct poly_bb): Added nb_local_variables and nb_scattering_transform.
+	(PBB_NB_LOCAL_VARIABLES, PBB_NB_SCATTERING_TRANSFORM): New.
+	(pbb_nb_scattering_orig, pbb_nb_scattering_transform): New.
+	(pbb_nb_scattering_dims, pbb_nb_scattering): Removed.
+	(pbb_nb_scattering_transform): New.
+	(pbb_nb_local_vars): Return PBB_NB_LOCAL_VARIABLES.
+	(psco_scattering_dim): Add assert on parameters.
+	(psct_scattering_dim): Same.
+	(psct_scattering_dim_for_loop_depth): Declared.
+	(psct_local_var_dim): New.
+	(psco_iterator_dim, psco_parameter_dim): Add assert on parameters.
+	(psct_iterator_dim, psct_parameter_dim): Same.  To maintain the 
+	correct layout, call pbb_nb_local_vars.
+	(psct_add_local_variable, psct_add_scattering_dimension): New.
+	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons): Initialize
+	PBB_NB_SCATTERING_TRANSFORM.
+
+2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-ppl.c (set_inhomogeneous): Renamed ppl_set_inhomogeneous.
 	(set_coef): Renamed ppl_set_coef.
 	* graphite-ppl.h (ppl_set_inhomogeneous, ppl_set_coef): Declared.

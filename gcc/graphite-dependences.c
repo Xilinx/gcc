@@ -311,11 +311,14 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
 		       ppl_Pointset_Powerset_NNC_Polyhedron_t d2,
 		       poly_dr_p pdr1, poly_dr_p pdr2,
 	               ppl_Polyhedron_t s1, ppl_Polyhedron_t s2,
-		       bool direction)
+		       bool direction,
+		       bool original_scattering_p)
 {
   scop_p scop = PBB_SCOP (pbb1);
-  graphite_dim_t tdim1 = pbb_nb_scattering_dims (s1, pbb1);
-  graphite_dim_t tdim2 = pbb_nb_scattering_dims (s2, pbb2);
+  graphite_dim_t tdim1 = original_scattering_p ?
+    pbb_nb_scattering_orig (pbb1) : pbb_nb_scattering_transform (pbb1);
+  graphite_dim_t tdim2 = original_scattering_p ?
+    pbb_nb_scattering_orig (pbb2) : pbb_nb_scattering_transform (pbb2);
   graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
   graphite_dim_t ddim2 = pbb_dim_iter_domain (pbb2);
   graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
@@ -389,7 +392,7 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
   if (sdim1 != sdim2)
     return true;
 
-  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true);
+  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true, true);
 
   if (ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (po))
     return true;
@@ -399,12 +402,12 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
       ppl_Polyhedron_t st2 = PBB_TRANSFORMED_SCATTERING (pbb2);
       ppl_Pointset_Powerset_NNC_Polyhedron_t pt;
       graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
-      graphite_dim_t otdim1 = pbb_nb_scattering_dims (so1, pbb1);
-      graphite_dim_t otdim2 = pbb_nb_scattering_dims (so2, pbb2);
-      graphite_dim_t ttdim1 = pbb_nb_scattering_dims (st1, pbb1);
-      graphite_dim_t ttdim2 = pbb_nb_scattering_dims (st2, pbb2);
+      graphite_dim_t otdim1 = pbb_nb_scattering_orig (pbb1);
+      graphite_dim_t otdim2 = pbb_nb_scattering_orig (pbb2);
+      graphite_dim_t ttdim1 = pbb_nb_scattering_transform (pbb1);
+      graphite_dim_t ttdim2 = pbb_nb_scattering_transform (pbb2);
 
-      pt = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, st1, st2, false);
+      pt = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, st1, st2, false, false);
       
       /* Extend PO and PT to have the same dimensions.  */
       ppl_insert_dimensions_pointset (po, otdim1, ttdim1);

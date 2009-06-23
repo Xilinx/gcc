@@ -336,6 +336,8 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
   ppl_new_NNC_Polyhedron_from_space_dimension
     (&PBB_TRANSFORMED_SCATTERING (pbb), dim, 0);
 
+  PBB_NB_SCATTERING_TRANSFORM (pbb) = scattering_dimensions;
+
   for (i = 0; i < scattering_dimensions; i++)
     {
       ppl_Constraint_t cstr;

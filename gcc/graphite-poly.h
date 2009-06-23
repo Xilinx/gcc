@@ -37,7 +37,6 @@ DEF_VEC_ALLOC_P (scop_p, heap);
 typedef ppl_dimension_type graphite_dim_t;
 
 static inline graphite_dim_t pbb_dim_iter_domain (const struct poly_bb *);
-static inline graphite_dim_t pbb_nb_scattering (const struct poly_bb *);
 static inline graphite_dim_t pbb_nb_params (const struct poly_bb *);
 static inline graphite_dim_t scop_nb_params (scop_p);
 
@@ -256,8 +255,15 @@ struct poly_bb
   /* The scattering function containing the transformations.  */
   ppl_Polyhedron_t transformed_scattering;
 
+
   /* The original scattering function.  */
   ppl_Polyhedron_t original_scattering;
+
+  /* The number of local variables.  */
+  int nb_local_variables;
+
+  /* The number of scattering dimensions in the TRANSFORMED scattering.  */
+  int nb_scattering_transform;
 };
 
 #define PBB_BLACK_BOX(PBB) ((gimple_bb_p) PBB->black_box)
@@ -266,6 +272,8 @@ struct poly_bb
 #define PBB_DRS(PBB) (PBB->drs)
 #define PBB_TRANSFORMED_SCATTERING(PBB) (PBB->transformed_scattering)
 #define PBB_ORIGINAL_SCATTERING(PBB) (PBB->original_scattering)
+#define PBB_NB_LOCAL_VARIABLES(PBB) (PBB->nb_local_variables)
+#define PBB_NB_SCATTERING_TRANSFORM(PBB) (PBB->nb_scattering_transform)
 
 extern void new_poly_bb (scop_p, void *);
 extern void free_poly_bb (poly_bb_p);
@@ -324,33 +332,29 @@ pbb_nb_params (const struct poly_bb *pbb)
 /* The number of scattering dimensions in the SCATTERING polyhedron
    of a PBB for a given SCOP.  */
 
-static inline graphite_dim_t 
-pbb_nb_scattering_dims (ppl_Polyhedron_t scattering,
-                        const struct poly_bb *pbb)
+static inline graphite_dim_t
+pbb_nb_scattering_orig (const struct poly_bb *pbb)
 {
-  ppl_dimension_type dim;
-
-  ppl_Polyhedron_space_dimension (scattering, &dim);
-  return dim - pbb_dim_iter_domain (pbb) - pbb_nb_params (pbb);
+  return 2 * pbb_dim_iter_domain (pbb) + 1;
 }
 
 /* The number of scattering dimensions in PBB.  */
 
-static inline graphite_dim_t 
-pbb_nb_scattering (const struct poly_bb *pbb)
+static inline graphite_dim_t
+pbb_nb_scattering_transform (const struct poly_bb *pbb)
 {
-  return pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb);
+  return PBB_NB_SCATTERING_TRANSFORM (pbb);
 }
 
 /* Returns the number of local variables used in the transformed
    scattering polyhedron of PBB.  */
 
 static inline graphite_dim_t
-pbb_nb_local_vars (const struct poly_bb *pbb ATTRIBUTE_UNUSED)
+pbb_nb_local_vars (const struct poly_bb *pbb)
 {
   /* For now we do not have any local variables, as we do not do strip
      mining for example.  */
-  return 0;
+  return PBB_NB_LOCAL_VARIABLES (pbb);
 }
 
 /* The dimension in the original scattering polyhedron of PBB
@@ -359,6 +363,7 @@ pbb_nb_local_vars (const struct poly_bb *pbb ATTRIBUTE_UNUSED)
 static inline ppl_dimension_type
 psco_scattering_dim (poly_bb_p pbb ATTRIBUTE_UNUSED, graphite_dim_t scatter)
 {
+  gcc_assert (scatter < pbb_nb_scattering_orig (pbb));
   return scatter;
 }
 
@@ -368,7 +373,21 @@ psco_scattering_dim (poly_bb_p pbb ATTRIBUTE_UNUSED, graphite_dim_t scatter)
 static inline ppl_dimension_type
 psct_scattering_dim (poly_bb_p pbb ATTRIBUTE_UNUSED, graphite_dim_t scatter)
 {
+  gcc_assert (scatter <= pbb_nb_scattering_transform (pbb));
   return scatter;
+}
+
+ppl_dimension_type psct_scattering_dim_for_loop_depth (poly_bb_p,
+						       graphite_dim_t);
+
+/* The dimension in the transformed scattering polyhedron of PBB of
+   the local variable LV.  */
+
+static inline ppl_dimension_type
+psct_local_var_dim (poly_bb_p pbb, graphite_dim_t lv)
+{
+  gcc_assert (lv <= pbb_nb_local_vars (pbb));
+  return lv + pbb_nb_scattering_transform (pbb);
 }
 
 /* The dimension in the original scattering polyhedron of PBB
@@ -377,8 +396,8 @@ psct_scattering_dim (poly_bb_p pbb ATTRIBUTE_UNUSED, graphite_dim_t scatter)
 static inline ppl_dimension_type
 psco_iterator_dim (poly_bb_p pbb, graphite_dim_t iter)
 {
-  return iter
-    + pbb_nb_scattering_dims (PBB_ORIGINAL_SCATTERING (pbb), pbb);
+  gcc_assert (iter < pbb_dim_iter_domain (pbb));
+  return iter + pbb_nb_scattering_orig (pbb);
 }
 
 /* The dimension in the transformed scattering polyhedron of PBB
@@ -387,8 +406,10 @@ psco_iterator_dim (poly_bb_p pbb, graphite_dim_t iter)
 static inline ppl_dimension_type
 psct_iterator_dim (poly_bb_p pbb, graphite_dim_t iter)
 {
+  gcc_assert (iter < pbb_dim_iter_domain (pbb));
   return iter
-    + pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb);
+    + pbb_nb_scattering_transform (pbb)
+    + pbb_nb_local_vars (pbb);
 }
 
 /* The dimension in the original scattering polyhedron of PBB
@@ -397,8 +418,9 @@ psct_iterator_dim (poly_bb_p pbb, graphite_dim_t iter)
 static inline ppl_dimension_type
 psco_parameter_dim (poly_bb_p pbb, graphite_dim_t param)
 {
+  gcc_assert (param < pbb_nb_params (pbb));
   return param
-    + pbb_nb_scattering_dims (PBB_ORIGINAL_SCATTERING (pbb), pbb)
+    + pbb_nb_scattering_orig (pbb)
     + pbb_dim_iter_domain (pbb);
 }
 
@@ -408,9 +430,35 @@ psco_parameter_dim (poly_bb_p pbb, graphite_dim_t param)
 static inline ppl_dimension_type
 psct_parameter_dim (poly_bb_p pbb, graphite_dim_t param)
 {
+  gcc_assert (param < pbb_nb_params (pbb));
   return param
-    + pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb)
+    + pbb_nb_scattering_transform (pbb)
+    + pbb_nb_local_vars (pbb)
     + pbb_dim_iter_domain (pbb);
+}
+
+/* Adds to the transformed scattering polyhedron of PBB a new local
+   variable and returns its index.  */
+
+static inline graphite_dim_t
+psct_add_local_variable (poly_bb_p pbb)
+{
+  graphite_dim_t nlv = pbb_nb_local_vars (pbb);
+  ppl_dimension_type lv_column = psct_local_var_dim (pbb, nlv);
+  ppl_insert_dimensions (PBB_TRANSFORMED_SCATTERING (pbb), lv_column, 1);
+  return nlv;
+}
+
+/* Adds a dimension to the transformed scattering polyhedron of PBB at
+   INDEX.  */
+
+static inline void
+psct_add_scattering_dimension (poly_bb_p pbb, ppl_dimension_type index)
+{
+  gcc_assert (index < pbb_nb_scattering_transform (pbb));
+
+  ppl_insert_dimensions (PBB_TRANSFORMED_SCATTERING (pbb), index, 1);
+  PBB_NB_SCATTERING_TRANSFORM (pbb) += 1;
 }
 
 /* A SCOP is a Static Control Part of the program, simple enough to be

@@ -79,16 +79,16 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
   ppl_dimension_type nb_old_dims, nb_new_dims;
   int nb_added_dims, i;
 
-  nb_added_dims = max_scattering - pbb_nb_scattering (pbb); 
+  nb_added_dims = max_scattering - pbb_nb_scattering_transform (pbb); 
 
   gcc_assert (nb_added_dims >= 0);
 
-  nb_old_dims = pbb_nb_scattering (pbb) + pbb_dim_iter_domain (pbb)
+  nb_old_dims = pbb_nb_scattering_transform (pbb) + pbb_dim_iter_domain (pbb)
     + scop_nb_params (PBB_SCOP (pbb));
   nb_new_dims = nb_old_dims + nb_added_dims;
 
   ppl_insert_dimensions (PBB_TRANSFORMED_SCATTERING (pbb),
-			 pbb_nb_scattering (pbb), nb_added_dims);
+			 pbb_nb_scattering_transform (pbb), nb_added_dims);
 
   for (i = max_scattering - nb_added_dims; i < max_scattering; i++)
     {
@@ -123,7 +123,7 @@ unify_scattering_dimensions (scop_p scop)
   graphite_dim_t max_scattering = 0;
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    max_scattering = MAX (pbb_nb_scattering (pbb), max_scattering);
+    max_scattering = MAX (pbb_nb_scattering_transform (pbb), max_scattering);
   
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     extend_scattering (pbb, max_scattering);
@@ -141,7 +141,7 @@ print_scattering_function (FILE *file, poly_bb_p pbb)
   fprintf (file, "scattering bb_%d (\n", GBB_BB (PBB_BLACK_BOX (pbb))->index);
   fprintf (file, "#  eq");
 
-  for (i = 0; i < pbb_nb_scattering (pbb); i++)
+  for (i = 0; i < pbb_nb_scattering_transform (pbb); i++)
     fprintf (file, "     s%d", (int) i);
 
   for (i = 0; i < pbb_nb_local_vars (pbb); i++)
@@ -328,6 +328,8 @@ new_poly_bb (scop_p scop, void *black_box)
   PBB_TRANSFORMED_SCATTERING (pbb) = NULL;
   PBB_ORIGINAL_SCATTERING (pbb) = NULL;
   PBB_DRS (pbb) = VEC_alloc (poly_dr_p, heap, 3);
+  PBB_NB_SCATTERING_TRANSFORM (pbb) = 0;
+  PBB_NB_LOCAL_VARIABLES (pbb) = 0;
   VEC_safe_push (poly_bb_p, heap, SCOP_BBS (scop), pbb);
 }
 
