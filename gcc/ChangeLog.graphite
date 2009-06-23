@@ -1,4 +1,20 @@
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
+	    Pranav Garg  <pranav.garg2107@gmail.com>
+
+	* Makefile.in (OBJS-common): Added graphite-blocking.o.
+	(graphite-sese-to-poly.o): Moved down to be in lexicographical order.
+	(graphite-blocking.o): New rule.
+	(graphite-poly.o, graphite-ppl.o): Moved to be in lexicographical order.
+	* graphite-blocking.c: New.
+	* graphite-poly.c (apply_poly_transforms): Call scop_do_strip_mine for
+	flag_loop_strip_mine.
+	(psct_scattering_dim_for_loop_depth): New.
+	* graphite-poly.h (scop_do_strip_mine): Declared.
+	(psct_add_local_variable): Increment PBB_NB_LOCAL_VARIABLES.
+	* tree-ssa-loop.c (gate_graphite_transforms): Do not fail when using
+	flag_loop_strip_mine.
+
+2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-poly.c (extend_scattering): Avoid initializing and freeing
 	a GMP value and a PPL coefficient at each iteration of a loop.

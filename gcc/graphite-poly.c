@@ -282,7 +282,7 @@ apply_poly_transforms (scop_p scop)
     transform_done |= scop_do_interchange (scop);
 
   if (flag_loop_strip_mine)
-    gcc_unreachable (); /* Not yet supported.  */
+    transform_done |= scop_do_strip_mine (scop);
 
   if (flag_graphite_write)
     graphite_write_transforms (scop);
@@ -563,6 +563,67 @@ void
 debug_scop (scop_p scop)
 {
   print_scop (stderr, scop);
+}
+
+/* The dimension in the transformed scattering polyhedron of PBB
+   containing the scattering iterator for the loop at depth LOOP_DEPTH.  */
+
+ppl_dimension_type
+psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
+{
+  ppl_const_Constraint_System_t pcs;
+  ppl_Constraint_System_const_iterator_t cit, cend;
+  ppl_const_Constraint_t cstr;
+  ppl_Polyhedron_t ph = PBB_TRANSFORMED_SCATTERING (pbb);
+  ppl_dimension_type iter = psct_iterator_dim (pbb, loop_depth);
+  ppl_Linear_Expression_t expr;
+  ppl_Coefficient_t coef;
+  Value val;
+  graphite_dim_t i;
+
+  value_init (val);
+  ppl_new_Coefficient (&coef);
+  ppl_Polyhedron_get_constraints (ph, &pcs);
+  ppl_new_Constraint_System_const_iterator (&cit);
+  ppl_new_Constraint_System_const_iterator (&cend);
+      
+  for (ppl_Constraint_System_begin (pcs, cit),
+	 ppl_Constraint_System_end (pcs, cend);
+       !ppl_Constraint_System_const_iterator_equal_test (cit, cend);
+       ppl_Constraint_System_const_iterator_increment (cit))
+    {
+      ppl_Constraint_System_const_iterator_dereference (cit, &cstr);
+      ppl_new_Linear_Expression_from_Constraint (&expr, cstr);
+      ppl_Linear_Expression_coefficient (expr, iter, coef);
+      ppl_Coefficient_to_mpz_t (coef, val);
+
+      if (value_zero_p (val))
+	{
+	  ppl_delete_Linear_Expression (expr);
+	  continue;
+	}
+
+      for (i = 0; i < pbb_nb_scattering_transform (pbb); i++)
+	{
+	  ppl_dimension_type scatter = psct_scattering_dim (pbb, i);
+
+	  ppl_Linear_Expression_coefficient (expr, scatter, coef);
+	  ppl_Coefficient_to_mpz_t (coef, val);
+
+	  if (value_notzero_p (val))
+	    {
+	      value_clear (val);
+	      ppl_delete_Linear_Expression (expr);
+	      ppl_delete_Coefficient (coef);
+	      ppl_delete_Constraint_System_const_iterator (cit);
+	      ppl_delete_Constraint_System_const_iterator (cend);
+
+	      return scatter;
+	    }
+	}
+    }
+
+  gcc_unreachable ();
 }
 
 #endif

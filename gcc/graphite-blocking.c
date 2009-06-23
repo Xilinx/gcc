@@ -1,0 +1,206 @@
+/* Heuristics and transform for loop blocking and strip mining on
+   polyhedral representation.
+
+   Copyright (C) 2009 Free Software Foundation, Inc.
+   Contributed by Sebastian Pop <sebastian.pop@amd.com> and
+   Pranav Garg  <pranav.garg2107@gmail.com>.
+
+This file is part of GCC.
+
+GCC is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
+
+GCC is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
+#include "config.h"
+#include "system.h"
+#include "coretypes.h"
+#include "tm.h"
+#include "ggc.h"
+#include "tree.h"
+#include "rtl.h"
+#include "output.h"
+#include "basic-block.h"
+#include "diagnostic.h"
+#include "tree-flow.h"
+#include "toplev.h"
+#include "tree-dump.h"
+#include "timevar.h"
+#include "cfgloop.h"
+#include "tree-chrec.h"
+#include "tree-data-ref.h"
+#include "tree-scalar-evolution.h"
+#include "tree-pass.h"
+#include "domwalk.h"
+#include "value-prof.h"
+#include "pointer-set.h"
+#include "gimple.h"
+#include "params.h"
+
+#ifdef HAVE_cloog
+#include "cloog/cloog.h"
+#include "ppl_c.h"
+#include "sese.h"
+#include "graphite-ppl.h"
+#include "graphite.h"
+#include "graphite-poly.h"
+
+
+/* Strip mines with a factor STRIDE the loop around PBB at depth
+   LOOP_DEPTH.  The following example comes from the wiki page:
+   http://gcc.gnu.org/wiki/Graphite/Strip_mine
+
+   The strip mine of a loop with a tile of 64 can be obtained with a
+   scattering function as follows:
+
+   $ cat ./strip_mine.cloog 
+   # language: C
+   c
+
+   # parameter {n | n >= 0}
+   1 3 
+   #  n  1
+   1  1  0
+   1
+   n
+
+   1 # Number of statements:
+
+   1
+   # {i | 0 <= i <= n}
+   2 4
+   #  i  n   1
+   1  1  0   0
+   1 -1  1   0
+
+   0  0  0
+   1
+   i
+
+   1 # Scattering functions
+
+   4 7
+   #  NEW ORIG  LV1    i    n    1
+   0    0    1    0   -1    0    0
+   1   -1    1    0    0    0    0
+   1    1   -1    0    0    0   63
+   0    1    0  -64    0    0    0
+
+   # LV1 is a "local variable" that is used to say that 
+   # "the NEW loop is an integer multiple of 64", 
+   # i.e. last row of the scattering function
+
+   1
+   NEW  ORIG  LV1
+
+   #the output of [[CLooG]] is like this:
+   #$ cloog -strides 1 ./strip_mine.cloog 
+   # for (NEW=0;NEW<=n;NEW+=64) {
+   #   for (ORIG=NEW;ORIG<=min(NEW+63,n);ORIG++) {
+   #     S1(i = ORIG) ;
+   #   }
+   # }
+*/
+
+static bool
+pbb_strip_mine_loop_depth (poly_bb_p pbb, int loop_depth, int stride)
+{
+  ppl_Polyhedron_t res = PBB_TRANSFORMED_SCATTERING (pbb);
+  graphite_dim_t local_var = psct_add_local_variable (pbb);
+  ppl_dimension_type strip = psct_scattering_dim_for_loop_depth (pbb,
+								 loop_depth);
+  ppl_dimension_type dim;
+
+  psct_add_scattering_dimension (pbb, strip);
+  ppl_Polyhedron_space_dimension (res, &dim);
+
+  /* Lower bound of the striped loop.  */
+  {
+    ppl_Constraint_t new_cstr;
+    ppl_Linear_Expression_t expr;
+
+    ppl_new_Linear_Expression_with_dimension (&expr, dim);
+    ppl_set_coef (expr, strip, -1);
+    ppl_set_coef (expr, strip + 1, 1);
+
+    ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+    ppl_delete_Linear_Expression (expr);
+    ppl_Polyhedron_add_constraint (res, new_cstr);
+    ppl_delete_Constraint (new_cstr);
+  }
+
+  /* Upper bound of the striped loop.  */
+  {
+    ppl_Constraint_t new_cstr;
+    ppl_Linear_Expression_t expr;
+
+    ppl_new_Linear_Expression_with_dimension (&expr, dim);
+    ppl_set_coef (expr, strip, 1);
+    ppl_set_coef (expr, strip + 1, -1);
+    ppl_set_inhomogeneous (expr, stride - 1);
+
+    ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+    ppl_delete_Linear_Expression (expr);
+    ppl_Polyhedron_add_constraint (res, new_cstr);
+    ppl_delete_Constraint (new_cstr);
+  }
+
+  /* Express the stride of the striped loop.  */
+  {
+    ppl_Constraint_t new_cstr;
+    ppl_Linear_Expression_t expr;
+
+    ppl_new_Linear_Expression_with_dimension (&expr, dim);
+    ppl_set_coef (expr, strip, 1);
+    ppl_set_coef (expr, psct_local_var_dim (pbb, local_var), -1 * stride);
+
+    ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
+    ppl_delete_Linear_Expression (expr);
+    ppl_Polyhedron_add_constraint (res, new_cstr);
+    ppl_delete_Constraint (new_cstr);
+  }
+
+  return true;
+}
+
+/* Strip mines all the loops around PBB.  Nothing profitable in all this:
+   this is just a driver function.  */
+
+static bool
+pbb_do_strip_mine (poly_bb_p pbb)
+{
+  graphite_dim_t loop_depth;
+  int stride = 64;
+  bool transform_done = false;
+
+  for (loop_depth = 0; loop_depth < pbb_dim_iter_domain (pbb); loop_depth++)
+    transform_done |= pbb_strip_mine_loop_depth (pbb, loop_depth, stride);
+
+  return transform_done;
+}
+
+/* Strip mines all the loops in SCOP.  Nothing profitable in all this:
+   this is just a driver function.  */
+
+bool
+scop_do_strip_mine (scop_p scop)
+{
+  poly_bb_p pbb;
+  int i;
+  bool transform_done = false;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    transform_done |= pbb_do_strip_mine (pbb);
+
+  return transform_done;
+}
+
+#endif

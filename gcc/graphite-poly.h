@@ -290,6 +290,7 @@ extern void print_iteration_domains (FILE *, scop_p);
 extern void debug_iteration_domain (poly_bb_p);
 extern void debug_iteration_domains (scop_p);
 extern bool scop_do_interchange (scop_p);
+extern bool scop_do_strip_mine (scop_p);
 
 /* The scop that contains the PDR.  */
 
@@ -446,6 +447,7 @@ psct_add_local_variable (poly_bb_p pbb)
   graphite_dim_t nlv = pbb_nb_local_vars (pbb);
   ppl_dimension_type lv_column = psct_local_var_dim (pbb, nlv);
   ppl_insert_dimensions (PBB_TRANSFORMED_SCATTERING (pbb), lv_column, 1);
+  PBB_NB_LOCAL_VARIABLES (pbb) += 1;
   return nlv;
 }
 
