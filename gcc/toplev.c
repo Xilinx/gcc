@@ -37,9 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include <ppl_c.h>
 #endif 
 
-#if HAVE_LIBTOOLDYNL
-#include <ltdl.h>
-#endif 
 
 #ifdef HAVE_SYS_RESOURCE_H
 # include <sys/resource.h>
@@ -1702,12 +1699,6 @@ general_init (const char *argv0)
     fatal_error ("failed to initialize Parma Polyedra Library");
 #endif
 
-#if HAVE_LIBTOOLDYNL
-  /* Initialize the Libtool Dynamic Loader */
-  if (lt_dlinit() > 0)
-    fatal_error ("failed to initialize Libtool Dynamic Loader");
-#endif
-
   /* Initialize register usage now so switches may override.  */
   init_reg_sets ();
 
@@ -2368,7 +2359,6 @@ do_compile (void)
       if (!no_backend)
 	backend_init ();
 
-
       /* Language-dependent initialization.  Returns true on success.  */
       if (lang_dependent_init (main_input_filename))
 	compile_file ();
@@ -2406,11 +2396,19 @@ toplev_main (int argc, char **argv)
 
   init_local_tick ();
 
+  initialize_plugins ();
+
 #if ENABLE_BASILYSMELT
   /* initialize basilys if needed */
-  if (basilys_mode_string && basilys_mode_string[0])
+  if (melt_mode_string && melt_mode_string[0])
     basilys_initialize();
 #endif
+
+  if (version_flag)
+    print_version (stderr, "");
+
+  if (help_flag)
+    print_plugins_help (stderr, "");
 
   /* Exit early if we can (e.g. -help).  */
   if (!exit_after_options)
@@ -2419,7 +2417,7 @@ toplev_main (int argc, char **argv)
 
 #if ENABLE_BASILYSMELT
   /* finalize basilys if needed */
-  if (basilys_mode_string && basilys_mode_string[0])
+  if (melt_mode_string && melt_mode_string[0])
     basilys_finalize();
 #endif
 

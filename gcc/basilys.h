@@ -77,18 +77,18 @@ extern void fatal_error (const char *, ...);
 extern long basilys_dbgcounter;
 extern long basilys_debugskipcount;
 
-#define debugeprintf_raw(Fmt,...) do{if (flag_basilys_debug) \
+#define debugeprintf_raw(Fmt,...) do{if (flag_melt_debug) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
 #define debugeprintf(Fmt,...) debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
       basename(__FILE__), __LINE__, ##__VA_ARGS__)
 #define debugeprintfnonl(Fmt,...) debugeprintf_raw("!@%s:%d:\n@! " Fmt, \
       basename(__FILE__), __LINE__, ##__VA_ARGS__)
-#define debugeprintvalue(Msg,Val) do{if (flag_basilys_debug){	\
+#define debugeprintvalue(Msg,Val) do{if (flag_melt_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
               basename(__FILE__), __LINE__, (Msg), __val);	\
       basilys_dbgeprint(__val); }} while(0)
-#define debugebacktrace(Msg,Depth)  do{if (flag_basilys_debug){	\
+#define debugebacktrace(Msg,Depth)  do{if (flag_melt_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
               basename(__FILE__), __LINE__, (Msg));	\
@@ -2647,7 +2647,7 @@ void basilys_finalize (void);
 void* basilys_dlsym_all(const char*nam);
 
 /* returns malloc-ed path inside a temporary directory, with a given basename & suffix  */
-char* basilys_tempdir_path(const char* basnam, const char* suffix);
+char* melt_tempdir_path(const char* basnam, const char* suffix);
 
 /***
     Load a MELT module by its name, which is only made of letters,
@@ -3282,7 +3282,7 @@ debugeputs_at (const char *fil, int lin, const char *msg)
 static inline void
 debugvalue_at (const char *fil, int lin, const char *msg, void *val)
 {
-  if (flag_basilys_debug)
+  if (flag_melt_debug)
     {
       fprintf (stderr, "!@%s:%d:\n@! %s @%p/%d= ",
 	       basename (fil), lin, (msg), val, basilys_magic_discr ((basilys_ptr_t)val));
@@ -3297,7 +3297,7 @@ void basilysgc_debugmsgval(void* val, const char*msg, long count);
 
 static inline void
 debugmsgval_at (const char*fil, int lin, const char* msg, void*val, long count) {
-  if (flag_basilys_debug)
+  if (flag_melt_debug)
     {
       fprintf (stderr, "!@%s:%d:\n",
 	       basename (fil), lin);
@@ -3311,7 +3311,7 @@ debugmsgval_at (const char*fil, int lin, const char* msg, void*val, long count) 
 static inline void
 debugbacktrace_at (const char *fil, int lin, const char *msg, int depth)
 {
-  if (flag_basilys_debug)
+  if (flag_melt_debug)
     {
       fprintf (stderr, "\n!@%s:%d: %s ** BACKTRACE** ",
 	       basename (fil), lin, msg);
@@ -3396,6 +3396,8 @@ void basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p);
    named, put it, eventually replacing the previous one; otherwise do
    nothing */
 void basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p);
+
+
 
 #endif /*BASILYS_INCLUDED_ */
 /* eof basilys.h */

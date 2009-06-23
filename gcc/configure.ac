@@ -385,79 +385,12 @@ AC_SUBST(pplinc)
 
 
 ################
-# Check for LTDL (Libtool dynamic loader)
-ltdllibs="-lltdl"
-ltdlinc=
-have_ltdl=yes
-
-AC_ARG_WITH(ltdl, [  --with-ltdl=PATH        Specify prefix directory for installed LibTool Dynamic Loader library
-                          Equivalent to --with-ltdl-include=PATH/include
-                          plus --with-ltdl-lib=PATH/lib])
-
-AC_ARG_WITH(ltdl_include, [  --with-ltdl-include=PATH Specify directory for installed LTDL include files])
-AC_ARG_WITH(ltdl_lib, [  --with-ltdl-lib=PATH     Specify the directory for the installed LTDL library])
-
-
-if test "x$with_ltdl" != x; then
-  ltdllibs="-L$with_ltdl/lib -lltdl"
-  ltdlinc="-I$with_ltdl/include"
-fi
-
-if test "x$ltdl_include" != x; then
-  ltdlinc="-I$ltdl_include $ltdlinc"
-fi
-
-if test "x$ltdl_lib" != x; then
-   ltdllibs="-L$ltdl_lib -lltdl  $ltdllibs"
-fi
-
-ltdl_ldflags=""
-
-saved_CFLAGS="$CFLAGS"
-saved_LIBS="$LIBS"
-saved_LDFLAGS="$LD_FLAGS"
-CFLAGS="$CFLAGS $ltdlinc"
-LIBS="$LIBS $ltdllibs"
-LDFLAGS="$LDFLAGS -rdynamic"
-AC_MSG_CHECKING([for  LibTool Dynamic Loader])
-AC_TRY_LINK([#include <ltdl.h>],[
-  lt_dlhandle h;
-  lt_dlinit ();
-  h = lt_dlopen ((const char *)0);
-], [AC_MSG_RESULT([yes]); have_ltdl=yes], [AC_MSG_RESULT([no]); have_ltdl=no])
-
-if test "x$have_ltdl" != xyes; then
-  AC_MSG_WARN([Some passes of GCC require LibTool Dynamic Loader.
-Try the --with-ltdl option to specify the installed LTDL location.
-Copies of this library source code can be found at its respective
-hosting site as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
-See also http://gcc.gnu.org/install/prerequisites.html for additional info.])
-else
-   AC_DEFINE(HAVE_LIBTOOLDYNL, 1,
-	     [Define if Libtool dynamic linker is in use.])
-   ltdl_ldflags="-rdynamic"
-fi
-
-CFLAGS="$saved_CFLAGS"
-LIBS="$saved_LIBS"
-LDFLAGS="$saved_LDFLAGS"
-
-# Flags needed for LTDL
-AC_SUBST(ltdllibs)
-AC_SUBST(ltdlinc)
-AC_SUBST(ltdl_ldflags)
-
-
-# for debugging only
-echo '%!%' after LTDL LIBS= $LIBS  CFLAGS= $CFLAGS
-
-################
 # Check for GDBM (GNU DBM - sort of database (actually inderxed file)
 gdbmlibs="-lgdbm"
 gdbminc=
 have_gdbm=yes
 
-AC_ARG_WITH(gdbm, [  --with-gdbm=PATH        Specify prefix directory for installed LibTool Dynamic Loader library
+AC_ARG_WITH(gdbm, [  --with-gdbm=PATH        Specify prefix directory for installed GDBM library
                           Equivalent to --with-gdbm-include=PATH/include
                           plus --with-gdbm-lib=PATH/lib])
 
@@ -553,18 +486,13 @@ AC_ARG_ENABLE(basilysmelt, [ --enable-basilysmelt Enable Basilys/MELT
 passes; This enable complex (sciptable) passes using the Middle End
 Lisp Translator feature (which dynamically translates the MELT lisp
 dialect into C plug-in like code); This requires PPL (Parma Polyhedra
-Library), GDBM and LTDL (LibTool Dynamic Loader) support.],
+Library) and GDBM support.],
 enabled_basilysmelt=$enableval, enabled_basilysmelt=no)
 
 if test "$enabled_basilysmelt" = "yes" ; then
    AC_MSG_CHECKING([for features required for basilysmelt])
    if test "$have_ppl" != "yes" ; then
      AC_MSG_WARN([Your system lacks the Parma Polyhedra Library (PPL) required for basilys/MELT.
-Hence Basilys/MELT is disabled.]);
-     enabled_basilysmelt=no;
-   fi
-   if test "$have_ltdl" != "yes" ; then
-     AC_MSG_WARN([Your system lacks the LibTool Dynamic Loader library (LTDL) required for basilys/MELT.
 Hence Basilys/MELT is disabled.]);
      enabled_basilysmelt=no;
    fi

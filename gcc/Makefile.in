@@ -292,10 +292,6 @@ GMPINC = @GMPINC@
 #PPLLIBS = @ppllibs@
 #PPLINC = @pplinc@
 
-# How to find LTDL (LibTool DynLoader)
-LTDLLIBS = @ltdllibs@
-LTDLINC = @ltdlinc@
-LTDL_LDFLAGS= @ltdl_ldflags@
 
 # How to file GDBM
 GDBMLIBS = @gdbmlibs@
@@ -968,7 +964,7 @@ BUILD_LIBDEPS= $(BUILD_LIBIBERTY)
 # How to link with both our special library facilities
 # and the system's installed libraries.
 LIBS = @LIBS@ $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER)
-BACKENDLIBS = $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) $(LTDLLIBS) $(GDBMLIBS) $(PLUGINLIBS)
+BACKENDLIBS = $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) $(GDBMLIBS) $(PLUGINLIBS)
 
 # Any system libraries needed just for GNAT.
 SYSLIBS = @GNAT_LIBEXC@
@@ -998,7 +994,7 @@ BUILD_ERRORS = build/errors.o
 INCLUDES = -I. -I$(@D) -I$(srcdir) -I$(srcdir)/$(@D) \
 	   -I$(srcdir)/../include @INCINTL@ \
 	   $(CPPINC) $(GMPINC) $(DECNUMINC) \
-	   $(PPLINC) $(CLOOGINC) $(LTDLINC)
+	   $(PPLINC) $(CLOOGINC) 
 
 .c.o:
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $< $(OUTPUT_OPTION)
@@ -2529,8 +2525,7 @@ $(BASILYSMELT_OBJ):  $(BASILYS_C)  \
 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
 	  -DMELT_PRIVATE_INCLUDE_DIR=\"$(melt_private_include_dir)\" \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
-	  -DMELT_GENERATED_DIR=\"$(melt_generated_dir)\" \
-	  -DMELT_DYNLIB_DIR=\"$(melt_dynlib_dir)\" \
+	  -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
 	  -DMELT_COMPILE_SCRIPT=\"$(melt_compile_script)\" \
 	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" \
 	  -c $(BASILYS_C) $(OUTPUT_OPTION)
@@ -4776,14 +4771,12 @@ MELTINDENT= indent -gnu -l90
 melt_private_include_dir=$(libexecsubdir)/melt-private-include/
 
 
-## this is the installation directory of melt sources (*.melt files, MELT dialect)
+## this is the installation directory of melt sources (*.melt files,
+## MELT dialect and the corresponding *.c files)
 melt_source_dir=$(libexecsubdir)/melt-source/
 
-## this is the installation directory of melt generated code (*.c files, generated C code)
-melt_generated_dir=$(libexecsubdir)/melt-generated/
-
-## this is the installation directory of melt dynamic libraries (ie *.so or *.dylib or *.la)
-melt_dynlib_dir=$(libexecsubdir)/melt-dynlib/
+## this is the installation directory of melt dynamic modules (*.so)
+melt_module_dir=$(libexecsubdir)/melt-module/
 
 ## this is the installed path of the script compiling MELT generated C file
 melt_compile_script=$(libexecsubdir)/melt-cc-script
@@ -4880,23 +4873,20 @@ melt.encap: run-basilys.d
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
 MELTBASILYSCCINIT1= time ./cc1$(exeext) -Wno-shadow -fmelt=translateinit  \
-	      -fmelt-dynlibdir=. \
+	      -fmelt-module-path=. -fmelt-source-path=. \
 	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
-	      -fmelt-gensrcdir=. \
 	      -fmelt-tempdir=. 
 #	      -frandom-seed=$$RANDOM
 
 MELTBASILYSCCFILE1= time ./cc1$(exeext) -Wno-shadow -fmelt=translatefile  \
-	      -fmelt-dynlibdir=. \
+	      -fmelt-module-path=. -fmelt-source-path=. \
 	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
-	      -fmelt-gensrcdir=. \
 	      -fmelt-tempdir=. 
 #	      -frandom-seed=$$RANDOM
 
 MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fmelt=showmdata  \
-	      -fmelt-dynlibdir=. \
+	      -fmelt-module-path=. -fmelt-source-path=. \
 	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
-	      -fmelt-gensrcdir=. \
 	      -fmelt-tempdir=. 
 #	      -frandom-seed=$$RANDOM
 
@@ -5185,12 +5175,12 @@ $(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
 #### installing melt generated shared object plugins (at MELT 3rd
 #### stage) and the default melt module list
 install-melt-dynlib: installdirs $(melt_default_modules_list).modlis $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
-	$(mkinstalldirs) $(melt_dynlib_dir)
-	rm -f  $(melt_dynlib_dir)/$(melt_default_modules_list).modlis	
-	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(melt_dynlib_dir)/$(melt_default_modules_list).modlis
+	$(mkinstalldirs) $(melt_module_dir)
+	rm -f  $(melt_module_dir)/$(melt_default_modules_list).modlis	
+	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(melt_module_dir)/$(melt_default_modules_list).modlis
 	for dynfile in  $(WARMELT_BASE3SO) $(ANAMELT_BASESO); do \
-	   rm -f $(melt_dynlib_dir)/$$dynfile; \
-	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(melt_dynlib_dir)/$$dynfile; \
+	   rm -f $(melt_module_dir)/$$dynfile; \
+	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(melt_module_dir)/$$dynfile; \
 	done
 
 

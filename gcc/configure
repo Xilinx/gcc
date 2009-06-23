@@ -458,7 +458,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical build_libsubdir build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT GNATBIND ac_ct_GNATBIND GNATMAKE ac_ct_GNATMAKE NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP EGREP ppllibs pplinc ltdllibs ltdlinc ltdl_ldflags gdbmlibs gdbminc gdbm_ldflags BASILYSMELT_OBJECT loose_warn strict_warn warn_cflags nocommon_flag TREEBROWSER valgrind_path valgrind_path_defines valgrind_command coverage_flags enable_multilib enable_decimal_float enable_fixed_point enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep PKGVERSION REPORT_BUGS_TO REPORT_BUGS_TEXI datarootdir docdir htmldir SET_MAKE AWK LN_S LN RANLIB ac_ct_RANLIB ranlib_flags INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON NM AR COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB LIBICONV LTLIBICONV LIBICONV_DEP manext objext gthread_flags extra_modes_file extra_opt_files USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS DATADIRNAME INSTOBJEXT GENCAT CATOBJEXT CROSS ALL SYSTEM_HEADER_DIR inhibit_libc CC_FOR_BUILD BUILD_CFLAGS BUILD_LDFLAGS STMP_FIXINC collect2 LIBTOOL SED FGREP GREP LD DUMPBIN ac_ct_DUMPBIN OBJDUMP ac_ct_OBJDUMP ac_ct_AR STRIP ac_ct_STRIP lt_ECHO DSYMUTIL ac_ct_DSYMUTIL NMEDIT ac_ct_NMEDIT LIPO ac_ct_LIPO OTOOL ac_ct_OTOOL OTOOL64 ac_ct_OTOOL64 objdir enable_fast_install gcc_cv_as ORIGINAL_AS_FOR_TARGET gcc_cv_ld ORIGINAL_LD_FOR_TARGET gcc_cv_nm ORIGINAL_NM_FOR_TARGET gcc_cv_objdump gcc_cv_readelf libgcc_visibility GGC zlibdir zlibinc MAINT gcc_tooldir dollar slibdir subdirs srcdir all_compilers all_gtfiles all_lang_makefrags all_lang_makefiles all_languages all_selected_languages build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines build_file_translate check_languages cpp_install_dir xmake_file tmake_file TM_ENDIAN_CONFIG TM_MULTILIB_CONFIG TM_MULTILIB_EXCEPTIONS_CONFIG extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines use_gcc_stdint c_target_objs cxx_target_objs fortran_target_objs target_cpu_default GMPLIBS GMPINC PPLLIBS PPLINC CLOOGLIBS CLOOGINC pluginlibs enable_plugin LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical build_libsubdir build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT GNATBIND ac_ct_GNATBIND GNATMAKE ac_ct_GNATMAKE NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP EGREP ppllibs pplinc gdbmlibs gdbminc gdbm_ldflags BASILYSMELT_OBJECT loose_warn strict_warn warn_cflags nocommon_flag TREEBROWSER valgrind_path valgrind_path_defines valgrind_command coverage_flags enable_multilib enable_decimal_float enable_fixed_point enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep PKGVERSION REPORT_BUGS_TO REPORT_BUGS_TEXI datarootdir docdir htmldir SET_MAKE AWK LN_S LN RANLIB ac_ct_RANLIB ranlib_flags INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON NM AR COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB LIBICONV LTLIBICONV LIBICONV_DEP manext objext gthread_flags extra_modes_file extra_opt_files USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS DATADIRNAME INSTOBJEXT GENCAT CATOBJEXT CROSS ALL SYSTEM_HEADER_DIR inhibit_libc CC_FOR_BUILD BUILD_CFLAGS BUILD_LDFLAGS STMP_FIXINC collect2 LIBTOOL SED FGREP GREP LD DUMPBIN ac_ct_DUMPBIN OBJDUMP ac_ct_OBJDUMP ac_ct_AR STRIP ac_ct_STRIP lt_ECHO DSYMUTIL ac_ct_DSYMUTIL NMEDIT ac_ct_NMEDIT LIPO ac_ct_LIPO OTOOL ac_ct_OTOOL OTOOL64 ac_ct_OTOOL64 objdir enable_fast_install gcc_cv_as ORIGINAL_AS_FOR_TARGET gcc_cv_ld ORIGINAL_LD_FOR_TARGET gcc_cv_nm ORIGINAL_NM_FOR_TARGET gcc_cv_objdump gcc_cv_readelf libgcc_visibility GGC zlibdir zlibinc MAINT gcc_tooldir dollar slibdir subdirs srcdir all_compilers all_gtfiles all_lang_makefrags all_lang_makefiles all_languages all_selected_languages build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines build_file_translate check_languages cpp_install_dir xmake_file tmake_file TM_ENDIAN_CONFIG TM_MULTILIB_CONFIG TM_MULTILIB_EXCEPTIONS_CONFIG extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines use_gcc_stdint c_target_objs cxx_target_objs fortran_target_objs target_cpu_default GMPLIBS GMPINC PPLLIBS PPLINC CLOOGLIBS CLOOGINC pluginlibs enable_plugin LIBOBJS LTLIBOBJS'
 ac_subst_files='language_hooks'
 ac_pwd=`pwd`
 
@@ -1032,7 +1032,7 @@ Optional Features:
 passes; This enable complex (sciptable) passes using the Middle End
 Lisp Translator feature (which dynamically translates the MELT lisp
 dialect into C plug-in like code); This requires PPL (Parma Polyhedra
-Library), GDBM and LTDL (LibTool Dynamic Loader) support.
+Library) and GDBM support.
   --enable-werror-always  enable -Werror despite compiler version
   --enable-checking=LIST
 			  enable expensive run-time checks.  With LIST,
@@ -1113,12 +1113,7 @@ Optional Packages:
                           plus --with-ppl-lib=PATH/lib
   --with-ppl-include=PATH Specify directory for installed PPL include files
   --with-ppl-lib=PATH     Specify the directory for the installed PPL library
-  --with-ltdl=PATH        Specify prefix directory for installed LibTool Dynamic Loader library
-                          Equivalent to --with-ltdl-include=PATH/include
-                          plus --with-ltdl-lib=PATH/lib
-  --with-ltdl-include=PATH Specify directory for installed LTDL include files
-  --with-ltdl-lib=PATH     Specify the directory for the installed LTDL library
-  --with-gdbm=PATH        Specify prefix directory for installed LibTool Dynamic Loader library
+  --with-gdbm=PATH        Specify prefix directory for installed GDBM library
                           Equivalent to --with-gdbm-include=PATH/include
                           plus --with-gdbm-lib=PATH/lib
   --with-gdbm-include=PATH Specify directory for installed GDBM include files
@@ -7238,142 +7233,6 @@ fi
 
 
 ################
-# Check for LTDL (Libtool dynamic loader)
-ltdllibs="-lltdl"
-ltdlinc=
-have_ltdl=yes
-
-
-# Check whether --with-ltdl or --without-ltdl was given.
-if test "${with_ltdl+set}" = set; then
-  withval="$with_ltdl"
-
-fi;
-
-
-# Check whether --with-ltdl_include or --without-ltdl_include was given.
-if test "${with_ltdl_include+set}" = set; then
-  withval="$with_ltdl_include"
-
-fi;
-
-# Check whether --with-ltdl_lib or --without-ltdl_lib was given.
-if test "${with_ltdl_lib+set}" = set; then
-  withval="$with_ltdl_lib"
-
-fi;
-
-
-if test "x$with_ltdl" != x; then
-  ltdllibs="-L$with_ltdl/lib -lltdl"
-  ltdlinc="-I$with_ltdl/include"
-fi
-
-if test "x$ltdl_include" != x; then
-  ltdlinc="-I$ltdl_include $ltdlinc"
-fi
-
-if test "x$ltdl_lib" != x; then
-   ltdllibs="-L$ltdl_lib -lltdl  $ltdllibs"
-fi
-
-ltdl_ldflags=""
-
-saved_CFLAGS="$CFLAGS"
-saved_LIBS="$LIBS"
-saved_LDFLAGS="$LD_FLAGS"
-CFLAGS="$CFLAGS $ltdlinc"
-LIBS="$LIBS $ltdllibs"
-LDFLAGS="$LDFLAGS -rdynamic"
-echo "$as_me:$LINENO: checking for  LibTool Dynamic Loader" >&5
-echo $ECHO_N "checking for  LibTool Dynamic Loader... $ECHO_C" >&6
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-#include <ltdl.h>
-int
-main ()
-{
-
-  lt_dlhandle h;
-  lt_dlinit ();
-  h = lt_dlopen ((const char *)0);
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6; have_ltdl=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; have_ltdl=no
-fi
-rm -f conftest.err conftest.$ac_objext \
-      conftest$ac_exeext conftest.$ac_ext
-
-if test "x$have_ltdl" != xyes; then
-  { echo "$as_me:$LINENO: WARNING: Some passes of GCC require LibTool Dynamic Loader.
-Try the --with-ltdl option to specify the installed LTDL location.
-Copies of this library source code can be found at its respective
-hosting site as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
-See also http://gcc.gnu.org/install/prerequisites.html for additional info." >&5
-echo "$as_me: WARNING: Some passes of GCC require LibTool Dynamic Loader.
-Try the --with-ltdl option to specify the installed LTDL location.
-Copies of this library source code can be found at its respective
-hosting site as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
-See also http://gcc.gnu.org/install/prerequisites.html for additional info." >&2;}
-else
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_LIBTOOLDYNL 1
-_ACEOF
-
-   ltdl_ldflags="-rdynamic"
-fi
-
-CFLAGS="$saved_CFLAGS"
-LIBS="$saved_LIBS"
-LDFLAGS="$saved_LDFLAGS"
-
-# Flags needed for LTDL
-
-
-
-
-
-# for debugging only
-echo '%!%' after LTDL LIBS= $LIBS  CFLAGS= $CFLAGS
-
-################
 # Check for GDBM (GNU DBM - sort of database (actually inderxed file)
 gdbmlibs="-lgdbm"
 gdbminc=
@@ -7605,13 +7464,6 @@ echo $ECHO_N "checking for features required for basilysmelt... $ECHO_C" >&6
      { echo "$as_me:$LINENO: WARNING: Your system lacks the Parma Polyhedra Library (PPL) required for basilys/MELT.
 Hence Basilys/MELT is disabled." >&5
 echo "$as_me: WARNING: Your system lacks the Parma Polyhedra Library (PPL) required for basilys/MELT.
-Hence Basilys/MELT is disabled." >&2;};
-     enabled_basilysmelt=no;
-   fi
-   if test "$have_ltdl" != "yes" ; then
-     { echo "$as_me:$LINENO: WARNING: Your system lacks the LibTool Dynamic Loader library (LTDL) required for basilys/MELT.
-Hence Basilys/MELT is disabled." >&5
-echo "$as_me: WARNING: Your system lacks the LibTool Dynamic Loader library (LTDL) required for basilys/MELT.
 Hence Basilys/MELT is disabled." >&2;};
      enabled_basilysmelt=no;
    fi
@@ -14990,13 +14842,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:14993: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:14845: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:14996: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:14848: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:14999: output\"" >&5)
+  (eval echo "\"\$as_me:14851: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -16153,7 +16005,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 16156 "configure"' > conftest.$ac_ext
+  echo '#line 16008 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -17452,11 +17304,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17455: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17307: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:17459: \$? = $ac_status" >&5
+   echo "$as_me:17311: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17791,11 +17643,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17794: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17646: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:17798: \$? = $ac_status" >&5
+   echo "$as_me:17650: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17896,11 +17748,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17899: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17751: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17903: \$? = $ac_status" >&5
+   echo "$as_me:17755: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17951,11 +17803,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17954: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17806: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17958: \$? = $ac_status" >&5
+   echo "$as_me:17810: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -20763,7 +20615,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 20766 "configure"
+#line 20618 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -20859,7 +20711,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 20862 "configure"
+#line 20714 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -26399,9 +26251,6 @@ s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@ppllibs@,$ppllibs,;t t
 s,@pplinc@,$pplinc,;t t
-s,@ltdllibs@,$ltdllibs,;t t
-s,@ltdlinc@,$ltdlinc,;t t
-s,@ltdl_ldflags@,$ltdl_ldflags,;t t
 s,@gdbmlibs@,$gdbmlibs,;t t
 s,@gdbminc@,$gdbminc,;t t
 s,@gdbm_ldflags@,$gdbm_ldflags,;t t

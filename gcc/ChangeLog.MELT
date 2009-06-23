@@ -1,4 +1,26 @@
 2009-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[simplified the program flags, using a source path and a module
+	path. Removed LTDL]
+	* common.opt: all *basilys* variables renamed as *melt*
+	* basilys.h (debugeprintf_raw, debugeprintvalue, debugebacktrace)
+	(debugvalue_at, debugmsgval_at, debugbacktrace_at):
+	flag_basilys_debug renamed as flag_melt_debug.
+	(basilys_tempdir_path) removed, renamed as (melt_tempdir_path).
+	* basilys.c: including <dlfcn.h>. renamed all *basilys* variables
+	as *melt*.
+	(load_basilys_modules_and_do_command, basilysgc_load_modulelist)
+	(load_checked_dynamic_module_index): simpler loading using path
+	and GCCMELT_SOURCE_PATH & GCCMELT_MODULE_PATH environment
+	variables.
+	* toplev.c: removed LTDL. 
+	(toplev_main) merged initialize_plugins calls from trunk.
+	* configure: regenerated.
+	* configure.ac: removed LTDL stuff.
+	* run-basilys.h: dont require LTDL.
+	* Makefile.in: replaced flags using our paths.
+	* doc/melt.texi: updated.
+	
+2009-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* diagnostic.h (dump_gimple_seq): removed. Reverted to trunk.
 	* gimple-pretty-print.c (dump_gimple_seq): reverted to static, as
 	inside the trunk.

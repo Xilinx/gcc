@@ -230,10 +230,19 @@ argument. When @code{-fmelt-debug} is given with
 @code{-fmelt-debugskip=1000} the first thousand debug messages are
 skipped, so are not printed.
 
-@item -fmelt-gensrcdir=
-@gccoptlist{-fmelt-gensrcdir=}
-@opindex fmelt-gensrcdir=
-This flag sets the directory containing MELT generated C files.
+@item -fmelt-source-path=
+@gccoptlist{-fmelt-source-path=}
+@opindex fmelt-source-path=
+This flag sets the path (colon separated list of directories) for
+sources (i.e. @file{*.melt} and @file{*.c}). Otherwise use the
+@code{GCCMELT_SOURCE_PATH} environment variable.
+
+@item -fmelt-module-path=
+@gccoptlist{-fmelt-module-path=}
+@opindex fmelt-module-path=
+This flag sets the path (colon separated list of directories) for
+MELT binary modules (i.e. @file{*.so}). Otherwise use the
+@code{GCCMELT_MODULE_PATH} environment variable.
 
 @item -fmelt-gdbmstate=
 @gccoptlist{-fmelt-gdbmstate=}
