@@ -1,3 +1,10 @@
+2009-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* diagnostic.h (dump_gimple_seq): removed. Reverted to trunk.
+	* gimple-pretty-print.c (dump_gimple_seq): reverted to static, as
+	inside the trunk.
+	* system.h: reverted to trunk. Don't include stuff when
+	ENABLE_COMPILER_PROBE.
+
 2009-06-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (struct ppbasilysflushdata_st): removed.
 	(meltppbuffer, meltppbufsiz, meltppfile, meltppfilename): added
