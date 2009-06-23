@@ -61,12 +61,12 @@ along with GCC; see the file COPYING3.  If not see
    The strip mine of a loop with a tile of 64 can be obtained with a
    scattering function as follows:
 
-   $ cat ./strip_mine.cloog 
+   $ cat ./albert_strip_mine.cloog 
    # language: C
    c
 
    # parameter {n | n >= 0}
-   1 3 
+   1 3
    #  n  1
    1  1  0
    1
@@ -87,25 +87,20 @@ along with GCC; see the file COPYING3.  If not see
 
    1 # Scattering functions
 
-   4 7
-   #  NEW ORIG  LV1    i    n    1
-   0    0    1    0   -1    0    0
-   1   -1    1    0    0    0    0
-   1    1   -1    0    0    0   63
-   0    1    0  -64    0    0    0
-
-   # LV1 is a "local variable" that is used to say that 
-   # "the NEW loop is an integer multiple of 64", 
-   # i.e. last row of the scattering function
+   3 6
+   #  NEW  OLD    i    n    1
+   1  -64    0    1    0    0
+   1   64    0   -1    0   63
+   0    0    1   -1    0    0
 
    1
-   NEW  ORIG  LV1
+   NEW  OLD
 
-   #the output of [[CLooG]] is like this:
-   #$ cloog -strides 1 ./strip_mine.cloog 
-   # for (NEW=0;NEW<=n;NEW+=64) {
-   #   for (ORIG=NEW;ORIG<=min(NEW+63,n);ORIG++) {
-   #     S1(i = ORIG) ;
+   #the output of CLooG is like this:
+   #$ cloog ./albert_strip_mine.cloog 
+   # for (NEW=0;NEW<=floord(n,64);NEW++) {
+   #   for (OLD=max(64*NEW,0);OLD<=min(64*NEW+63,n);OLD++) {
+   #     S1(i = OLD) ;
    #   }
    # }
 */
@@ -113,13 +108,14 @@ along with GCC; see the file COPYING3.  If not see
 static bool
 pbb_strip_mine_loop_depth (poly_bb_p pbb, int loop_depth, int stride)
 {
+  ppl_dimension_type iter, dim;
   ppl_Polyhedron_t res = PBB_TRANSFORMED_SCATTERING (pbb);
-  graphite_dim_t local_var = psct_add_local_variable (pbb);
   ppl_dimension_type strip = psct_scattering_dim_for_loop_depth (pbb,
 								 loop_depth);
-  ppl_dimension_type dim;
 
   psct_add_scattering_dimension (pbb, strip);
+
+  iter = psct_iterator_dim (pbb, loop_depth);
   ppl_Polyhedron_space_dimension (res, &dim);
 
   /* Lower bound of the striped loop.  */
@@ -128,8 +124,8 @@ pbb_strip_mine_loop_depth (poly_bb_p pbb, int loop_depth, int stride)
     ppl_Linear_Expression_t expr;
 
     ppl_new_Linear_Expression_with_dimension (&expr, dim);
-    ppl_set_coef (expr, strip, -1);
-    ppl_set_coef (expr, strip + 1, 1);
+    ppl_set_coef (expr, strip, -1 * stride);
+    ppl_set_coef (expr, iter, 1);
 
     ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
     ppl_delete_Linear_Expression (expr);
@@ -143,26 +139,11 @@ pbb_strip_mine_loop_depth (poly_bb_p pbb, int loop_depth, int stride)
     ppl_Linear_Expression_t expr;
 
     ppl_new_Linear_Expression_with_dimension (&expr, dim);
-    ppl_set_coef (expr, strip, 1);
-    ppl_set_coef (expr, strip + 1, -1);
+    ppl_set_coef (expr, strip, stride);
+    ppl_set_coef (expr, iter, -1);
     ppl_set_inhomogeneous (expr, stride - 1);
 
     ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
-    ppl_delete_Linear_Expression (expr);
-    ppl_Polyhedron_add_constraint (res, new_cstr);
-    ppl_delete_Constraint (new_cstr);
-  }
-
-  /* Express the stride of the striped loop.  */
-  {
-    ppl_Constraint_t new_cstr;
-    ppl_Linear_Expression_t expr;
-
-    ppl_new_Linear_Expression_with_dimension (&expr, dim);
-    ppl_set_coef (expr, strip, 1);
-    ppl_set_coef (expr, psct_local_var_dim (pbb, local_var), -1 * stride);
-
-    ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
     ppl_delete_Linear_Expression (expr);
     ppl_Polyhedron_add_constraint (res, new_cstr);
     ppl_delete_Constraint (new_cstr);
