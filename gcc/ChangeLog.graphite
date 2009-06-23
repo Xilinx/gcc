@@ -1,5 +1,10 @@
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* sese.c (expand_scalar_variables_stmt): Expand scalar variables only when
+	the use verifies is_gimple_reg.
+
+2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (build_cloog_prog): Fix memory corruption.
 	Allocate scaldims after call to unify_scattering_dimensions.
 

@@ -759,15 +759,19 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, sese region,
       tree use = USE_FROM_PTR (use_p);
       tree type = TREE_TYPE (use);
       enum tree_code code = TREE_CODE (use);
-      tree use_expr = expand_scalar_variables_expr (type, use, code, NULL, bb,
+      tree use_expr;
+
+      if (!is_gimple_reg (use))
+	continue;
+
+      use_expr = expand_scalar_variables_expr (type, use, code, NULL, bb,
 						    region, map, gsi);
       use_expr = fold_convert (type, use_expr);
 
       if (use_expr == use)
 	continue;
 
-      if (TREE_CODE (use_expr) != SSA_NAME
-	  && is_gimple_reg (use))
+      if (TREE_CODE (use_expr) != SSA_NAME)
 	{
 	  tree var = create_tmp_var (type, "var");
 
