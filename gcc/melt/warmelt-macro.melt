@@ -1169,24 +1169,41 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun macroexpand_toplevel_list (slist env)
+;; we add an additional hack in toplevel macro-expansion. If an s-expr
+;; macroexpands to a tuple, that tuple is handled as several source
+;; expressions... In particular, this allows a (load "filename")
+;; macro.
+
+;; the new version
+(defun macroexpand_toplevel_list (slist env mexpander)
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
   ;;  (debug_msg  env "macroexpand_toplevel_list env"(the_callcount)) 
   (debug_msg slist "macroexpand_toplevel_list slist") 
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check slist" (is_list slist))
-  (let ( (xlist (list_map slist 
-			  (lambda (sexp) 
-			    (debug_msg sexp "macroexpand_toplevel_list sexp")
-			    (let ( (mex (macroexpand_1 sexp env macroexpand_1)) 
-				   )
-			      (debug_msg mex "macroexpand_toplevel_list mex")
-			      mex
-			      )))) 
-	 )
-    (debug_msg xlist "macroexpand_toplevel_list res xlist")
-    xlist
-    ))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (let ( (reslist (make_list discr_list)) )
+    (foreach_in_list
+     (slist)
+     (curpair sexp)
+     (debug_msg sexp "macroexpand_toplevel_list sexp")
+     (let ( (mex (mexpander sexp env mexpander)) 
+	    )
+       (debug_msg mex "macroexpand_toplevel_list mex")
+       (cond
+	( (is_multiple mex)
+	  (foreach_in_multiple
+	   (mex)
+	   (curm :long curix)
+	   (list_append reslist curm))
+	  )
+	(:else (list_append reslist mex)
+	       ))))
+    (debug_msg reslist "macroexpand_toplevel_list reslist")
+    (return reslist)
+    )
+  )
+
 
 ;;; expand an s-expression into a tuple of formal bindings
 ;;; the formalsexp is the sexpr of formals 
@@ -2490,6 +2507,43 @@
 (install_initial_macro 'make_instance mexpand_instance)
 (export_macro make_instance mexpand_instance)
 
+
+
+;;;; the load expander should return the tuple of expanded stuff read from the file
+(defun mexpand_load (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_load start sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (filnam (pair_head curpair))
+	 )
+    (if (pair_tail curpair)
+	(error_plain loc "LOAD expects one argument"))
+    (if (is_a filnam class_sexpr)
+	(setq filnam (macroexpand_1 filnam env mexpander)))
+    (if (is_a filnam class_named)
+	(setq filnam (unsafe_get_field :named_name filnam)))
+    (cond 
+     ( (is_string filnam)
+       (inform_strv loc "; loading file " filnam)
+       (let ( (curead (read_file filnam)) )
+	 (debug_msg curead "mexpand_load curead")
+	 (let ( (explist (macroexpand_toplevel_list curead env mexpander)) 
+		(exptuple (list_to_multiple explist discr_multiple))
+		)
+	   (debug_msg exptuple "mexpand_load return exptuple")
+	   (return exptuple)
+	   )
+	 )
+       )
+     (:else
+      (debug_msg filnam "mexpand_load strange filnam")
+      (error_plain loc "LOAD expects a string filename")))
+    ))
+(install_initial_macro 'load mexpand_load)
+(export_macro load mexpand_load)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; parse a field pattern

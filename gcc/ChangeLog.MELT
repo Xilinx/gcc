@@ -1,3 +1,22 @@
+2009-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	[added load macro, because the set of predefined should be handled
+	better, using m4 to generate their declarations in C, and some of
+	their filling in MELT.]
+	* basilys.h (basilys_is_out): Added new function.
+	* melt/warmelt-first.melt: dbgi_sbuf field renamed as dbgi_out.
+	Added all add2out* primitives... using them in dbgout* methods.
+	* melt/warmelt-macro.melt: added mexpand_load function and load
+	macro. The macroexpand_toplevel_list function takes an optional
+	mexpander argument and handle tuple macroexpansions specially.
+	* melt/ana-base.melt: using out instead of sbuf.
+	* melt/ana-simple.melt: ditto.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2009-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[simplified the program flags, using a source path and a module
 	path. Removed LTDL]
@@ -19,7 +38,7 @@
 	* run-basilys.h: dont require LTDL.
 	* Makefile.in: replaced flags using our paths.
 	* doc/melt.texi: updated.
-	
+
 2009-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* diagnostic.h (dump_gimple_seq): removed. Reverted to trunk.
 	* gimple-pretty-print.c (dump_gimple_seq): reverted to static, as

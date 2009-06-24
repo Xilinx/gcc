@@ -984,6 +984,14 @@ basilys_magic_discr (basilys_ptr_t p)
   return p->u_discr->object_magic;
 }
 
+/* test if a pointer is an output - either a string buffer or a file */
+static inline bool
+basilys_is_out (basilys_ptr_t p)
+{
+  int d = basilys_magic_discr(p);
+  return d == OBMAG_STRBUF || d == OBMAG_SPEC_FILE;
+}
+
 
 /* return the nth of a multiple (starting from 0) */
 static inline basilys_ptr_t
