@@ -39,7 +39,7 @@ if [ "${GIT_BRANCH}x" != "x" ] ; then
 	git checkout src/$GIT_BRANCH
 fi
 
-MAIL_SUBJECT="[regtest] ${DATE}"
+MAIL_SUBJECT="[graphite] Regression testing on ${DATE}"
 if [ "${GIT_SRC}x" = "x" ] ; then
 	MAIL_SUBJECT="${MAIL_SUBJECT}"
 else

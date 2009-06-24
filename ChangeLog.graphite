@@ -1,3 +1,10 @@
+2009-06-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* contrib/automatic_tester/run_build.sh: Change the subject line
+	to contain [graphite].
+	* automatic_tester/graphite_env.sh.example: Added the gcc-testresults@
+	list.
+
 2009-06-05  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* Makefile.def: Make libpcp dependent on cloog.
