@@ -119,8 +119,8 @@ compute_array_size_cstr (ppl_dimension_type sub_dim, Value res,
   ppl_delete_Linear_Expression (expr);
 }
 
-/* Returns the size in bytes of the array PDR for the subscript at
-   dimension SUB_DIM.  */
+/* Returns in ARRAY_SIZE the size in bytes of the array PDR for the
+   subscript at dimension SUB_DIM.  */
 
 static void
 compute_array_size_poly (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_size,
@@ -131,6 +131,9 @@ compute_array_size_poly (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_
   ppl_const_Constraint_t cstr;
   Value val;
   Value res;
+
+  if (sub_dim >= pdr_subscript_dim (pdr, pdr_nb_subscripts (pdr)))
+    return;
 
   value_init (val);
   value_init (res);
@@ -149,7 +152,7 @@ compute_array_size_poly (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_
       ppl_Constraint_System_const_iterator_dereference (cit, &cstr);
 
       if (ppl_Constraint_type (cstr) == PPL_CONSTRAINT_TYPE_EQUAL)
-	break;
+	continue;
 
       compute_array_size_cstr (sub_dim, val, cstr);
       value_max (res, res, val);
@@ -173,7 +176,7 @@ compute_array_size (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_size)
   Value val;
 
   value_set_si (array_size, 1);
-  if (sub_dim >= pdr_nb_subscripts (pdr))
+  if (sub_dim >= pdr_subscript_dim (pdr, pdr_nb_subscripts (pdr)))
     return;
 
   value_init (val);
@@ -233,7 +236,7 @@ gather_access_strides_poly (poly_dr_p pdr, ppl_const_Polyhedron_t ph,
       ppl_Coefficient_to_mpz_t (coef, stride);
 
       if (value_zero_p (stride))
-	break;
+	continue;
 
       value_absolute (stride, stride);
       compute_array_size (pdr, compute_subscript (pdr, cstr), array_size);

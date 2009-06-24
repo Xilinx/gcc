@@ -1,3 +1,9 @@
+2009-06-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-interchange.c (compute_array_size_poly): Added exit of
+	recursion condition.  Continue iterating even after the first equality.
+	(compute_array_size): Same.
+
 2009-06-24  Li Feng  <nemokingdom@gmail.com>
 
 	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-1.c: Update
