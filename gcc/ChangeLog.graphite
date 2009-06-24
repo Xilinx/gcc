@@ -1,5 +1,12 @@
 2009-06-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (print_clast_stmt): New.
+	(gloog): Print to dump_file the generated clast.
+	* graphite-clast-to-gimple.h (print_clast_stmt): Declared.
+	* graphite-interchange.c (pbb_do_interchange): Fix dump formatting.
+
+2009-06-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (extend_scattering): Increment PBB_NB_LOCAL_VARIABLES by
 	the number of added dimensions.
 

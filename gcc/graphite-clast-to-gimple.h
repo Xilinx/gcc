@@ -31,6 +31,7 @@ typedef struct cloog_prog_clast {
 extern bool gloog (scop_p);
 extern cloog_prog_clast scop_to_clast (scop_p);
 extern void debug_clast_stmt (struct clast_stmt *);
+extern void print_clast_stmt (FILE *, struct clast_stmt *);
 extern void debug_clast_name_indexes (htab_t);
 
 
