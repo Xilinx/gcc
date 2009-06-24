@@ -95,7 +95,9 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
 
   ppl_insert_dimensions (PBB_TRANSFORMED_SCATTERING (pbb),
 			 pbb_nb_scattering_transform (pbb), nb_added_dims);
+  PBB_NB_SCATTERING_TRANSFORM (pbb) += nb_added_dims;
 
+  /* Add identity matrix for the added dimensions.  */
   for (i = max_scattering - nb_added_dims; i < max_scattering; i++)
     {
       ppl_Constraint_t cstr;
