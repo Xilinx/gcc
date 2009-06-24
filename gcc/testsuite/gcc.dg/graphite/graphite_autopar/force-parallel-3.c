@@ -23,6 +23,6 @@ int main(void)
 }
 
 /* Check that parallel code generation part make the right answer.  */
-/* { dg-final { scan-tree-dump-times "loopfn" 5 "final_cleanup" } } */
+/* { dg-final { scan-tree-dump-times "loopfn" 5 "optimized" } } */
 /* { dg-final { cleanup-tree-dump "parloops" } } */
-/* { dg-final { cleanup-tree-dump "final_cleanup" } } */
+/* { dg-final { cleanup-tree-dump "optimized" } } */

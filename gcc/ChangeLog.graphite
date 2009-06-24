@@ -1,3 +1,11 @@
+2009-06-24  Li Feng  <nemokingdom@gmail.com>
+
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-1.c: Update
+	-fdump-tree-final_cleanup to -fdump-tree-optimized.
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-2.c: Ditto.
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-3.c: Ditto.
+	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: Ditto.
+
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* sese.c (expand_scalar_variables_stmt): Expand scalar variables only when
