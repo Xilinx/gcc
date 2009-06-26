@@ -520,6 +520,26 @@ dump_gbb_conditions (FILE *file, gimple_bb_p gbb)
   fprintf (file, ")\n");
 }
 
+/* Print to FILE all the data references of PBB.  */
+
+void
+print_pdrs (FILE *file, poly_bb_p pbb)
+{
+  int i;
+  poly_dr_p pdr;
+
+  for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr); i++)
+    print_pdr (file, pdr);
+}
+
+/* Print to STDERR all the data references of PBB.  */
+
+void
+debug_pdrs (poly_bb_p pbb)
+{
+  print_pdrs (stderr, pbb);
+}
+
 /* Print to FILE the domain and scattering function of PBB.  */
 
 void
@@ -527,6 +547,7 @@ print_pbb (FILE *file, poly_bb_p pbb)
 {
   dump_gbb_conditions (file, PBB_BLACK_BOX (pbb));
   dump_gbb_cases (file, PBB_BLACK_BOX (pbb));
+  print_pdrs (file, pbb);
   print_pbb_domain (file, pbb);
   print_scattering_function (file, pbb);
 }

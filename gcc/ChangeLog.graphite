@@ -1,3 +1,9 @@
+2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (print_pdrs, debug_pdrs): New.
+	(print_pbb): Add call to print_pdrs.
+	* graphite-poly.h (print_pdrs, debug_pdrs): Declared.
+
 2009-6-24 Konrad Trifunovic <konrad.trifunovic@gmail.com>
 	  Li Feng <nemokingdom@gmail.com>
 

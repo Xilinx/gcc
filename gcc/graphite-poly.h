@@ -284,6 +284,8 @@ extern void print_pbb (FILE *, poly_bb_p);
 extern void print_scop (FILE *, scop_p);
 extern void debug_pbb_domain (poly_bb_p);
 extern void debug_pbb (poly_bb_p);
+extern void print_pdrs (FILE *, poly_bb_p);
+extern void debug_pdrs (poly_bb_p);
 extern void debug_scop (scop_p);
 extern void print_iteration_domain (FILE *, poly_bb_p);
 extern void print_iteration_domains (FILE *, scop_p);
