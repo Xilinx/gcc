@@ -2149,7 +2149,8 @@ ipa_tm_execute (void)
 
       /* Some callees cannot be arbitrarily cloned.  These will always be
 	 irrevokable.  Mark these now, so that we need not scan them.  */
-      if (is_tm_irrevokable (node->decl))
+      if (is_tm_irrevokable (node->decl)
+	  || !tree_versionable_function_p (node->decl))
 	{
 	  ipa_tm_note_irrevokable (node, &worklist);
 	  continue;

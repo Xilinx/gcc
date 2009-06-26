@@ -1,3 +1,11 @@
+2009-06-26  Richard Henderson  <rth@redhat.com>
+
+	* trans-mem.c (ipa_tm_execute): Check tree_versionable_function_p.
+
+2009-06-18  Richard Henderson  <rth@redhat.com>
+
+	* Merge from mainline rev 148549.
+
 2009-01-30  Richard Henderson  <rth@redhat.com>
 
 	* trans-mem.c (gimplify_addr): Rename from gimplify_mem_ref_addr;
