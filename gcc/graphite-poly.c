@@ -296,13 +296,16 @@ apply_poly_transforms (scop_p scop)
    its ACCESSES, its TYPE*/
 
 void
-new_poly_dr (poly_bb_p pbb, ppl_Pointset_Powerset_NNC_Polyhedron_t accesses,
+new_poly_dr (poly_bb_p pbb,
+	     ppl_Pointset_Powerset_NNC_Polyhedron_t accesses,
+	     ppl_Pointset_Powerset_NNC_Polyhedron_t data_container,
 	     enum POLY_DR_TYPE type, void *cdr)
 {
   poly_dr_p pdr = XNEW (struct poly_dr);
 
   PDR_PBB (pdr) = pbb;
   PDR_ACCESSES (pdr) = accesses;
+  PDR_DATA_CONTAINER (pdr) = data_container;
   PDR_TYPE (pdr) = type;
   PDR_CDR (pdr) = cdr;
   VEC_safe_push (poly_dr_p, heap, PBB_DRS (pbb), pdr);
@@ -360,13 +363,32 @@ free_poly_bb (poly_bb_p pbb)
   XDELETE (pbb);
 }
 
+static void
+print_pdr_access_layout (FILE *file, poly_dr_p pdr)
+{
+  graphite_dim_t i;
+
+  fprintf (file, "#  eq");
+
+  for (i = 0; i < pdr_dim_iter_domain (pdr); i++)
+    fprintf (file, "     i%d", (int) i);
+
+  for (i = 0; i < pdr_nb_params (pdr); i++)
+    fprintf (file, "     p%d", (int) i);
+
+  fprintf (file, "  alias");
+
+  for (i = 0; i < pdr_nb_subscripts (pdr); i++)
+    fprintf (file, "   sub%d", (int) i);
+
+  fprintf (file, "    cst\n");
+}
+
 /* Prints to FILE the polyhedral data reference PDR.  */
 
 void
 print_pdr (FILE *file, poly_dr_p pdr)
 {
-  graphite_dim_t i;
-
   fprintf (file, "pdr (");
 
   switch (PDR_TYPE (pdr))
@@ -389,22 +411,15 @@ print_pdr (FILE *file, poly_dr_p pdr)
 
   dump_data_reference (file, (data_reference_p) PDR_CDR (pdr));
 
-  fprintf (file, "#  eq");
-
-  for (i = 0; i < pdr_dim_iter_domain (pdr); i++)
-    fprintf (file, "     i%d", (int) i);
-
-  for (i = 0; i < pdr_nb_params (pdr); i++)
-    fprintf (file, "     p%d", (int) i);
-
-  fprintf (file, "  alias");
-
-  for (i = 0; i < pdr_nb_subscripts (pdr); i++)
-    fprintf (file, "   sub%d", (int) i);
-
-  fprintf (file, "    cst\n");
-
+  fprintf (file, "data accesses (\n");
+  print_pdr_access_layout (file, pdr);
   ppl_print_powerset_matrix (file, PDR_ACCESSES (pdr));
+  fprintf (file, ")\n");
+
+  fprintf (file, "data container (\n");
+  print_pdr_access_layout (file, pdr);
+  ppl_print_powerset_matrix (file, PDR_DATA_CONTAINER (pdr));
+  fprintf (file, ")\n");
 
   fprintf (file, ")\n");
 }

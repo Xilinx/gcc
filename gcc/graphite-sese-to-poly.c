@@ -1420,26 +1420,78 @@ pdr_add_memory_accesses (ppl_Polyhedron_t accesses, data_reference_p dr,
   value_clear (v);
 }
 
+/* Add constrains representing the size of the accessed data to the
+   DATA_CONTAINER polyhedron.  ACCESSP_NB_DIMS is the dimension of the
+   DATA_CONTAINER polyhedron, DOM_NB_DIMS is the dimension of the iteration
+   domain.  */
+
+static void
+pdr_add_data_dimensions (ppl_Polyhedron_t data_container, data_reference_p dr,
+			 ppl_dimension_type accessp_nb_dims,
+			 ppl_dimension_type dom_nb_dims)
+{
+  tree ref = DR_REF (dr);
+  int i, nb_subscripts = DR_NUM_DIMENSIONS (dr);
+
+  for (i = nb_subscripts - 1; i >= 0; i--, ref = TREE_OPERAND (ref, 0))
+    {
+      ppl_Linear_Expression_t expr;
+      ppl_Constraint_t cstr;
+      tree array_size;
+      ppl_dimension_type subscript = dom_nb_dims + 1 + i;
+
+      /* 0 <= subscript */
+      ppl_new_Linear_Expression_with_dimension (&expr, accessp_nb_dims);
+      ppl_set_coef (expr, subscript, 1);
+      ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+      ppl_Polyhedron_add_constraint (data_container, cstr);
+      ppl_delete_Linear_Expression (expr);
+      ppl_delete_Constraint (cstr);
+
+      array_size = TYPE_SIZE (TREE_TYPE (ref));
+      if (array_size == NULL_TREE
+	  || TREE_CODE (array_size) != INTEGER_CST)
+	continue;
+
+      /* subscript <= array_size */
+      ppl_new_Linear_Expression_with_dimension (&expr, accessp_nb_dims);
+      ppl_set_coef (expr, subscript, -1);
+      ppl_set_inhomogeneous (expr, int_cst_value (array_size));
+      ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+      ppl_Polyhedron_add_constraint (data_container, cstr);
+      ppl_delete_Linear_Expression (expr);
+      ppl_delete_Constraint (cstr);
+    }
+}
+
 /* Build data accesses for DR in PBB.  */
 
 static void
 build_poly_dr (data_reference_p dr, poly_bb_p pbb)
 {
-  ppl_Polyhedron_t accesses;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses_ps;
+  ppl_Polyhedron_t accesses, data_container;
+  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses_ps, data_container_ps;
   ppl_dimension_type dom_nb_dims;
   ppl_dimension_type accessp_nb_dims;
 
   ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PBB_DOMAIN (pbb),
 							&dom_nb_dims);
   accessp_nb_dims = dom_nb_dims + 1 + DR_NUM_DIMENSIONS (dr);
+
   ppl_new_NNC_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
+  ppl_new_NNC_Polyhedron_from_space_dimension (&data_container, accessp_nb_dims, 0);
+
   pdr_add_alias_set (accesses, dr, accessp_nb_dims, dom_nb_dims);
   pdr_add_memory_accesses (accesses, dr, accessp_nb_dims, dom_nb_dims, pbb);
+  pdr_add_data_dimensions (data_container, dr, accessp_nb_dims, dom_nb_dims);
+
   ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&accesses_ps,
 								accesses);
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&data_container_ps,
+								data_container);
   ppl_delete_Polyhedron (accesses);
-  new_poly_dr (pbb, accesses_ps, DR_IS_READ (dr) ? PDR_READ : PDR_WRITE, dr);
+  new_poly_dr (pbb, accesses_ps, data_container_ps,
+	       DR_IS_READ (dr) ? PDR_READ : PDR_WRITE, dr);
 }
 
 /* Build the data references for PBB.  */

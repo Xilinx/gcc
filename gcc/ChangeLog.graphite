@@ -1,5 +1,21 @@
 2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-interchange.c (compute_array_size_cstr): Allow the
+	subscript multiplier to be -1.
+	(compute_array_size): Use PDR_DATA_CONTAINER and not PDR_ACCESSES.
+	* graphite-poly.c (new_poly_dr): Takes an extra argument for the
+	data_container.  Initializes PDR_DATA_CONTAINER.
+	(print_pdr_access_layout): New.
+	(print_pdr): Call print_pdr_access_layout.  Print PDR_DATA_CONTAINER.
+	* graphite-poly.h (struct poly_dr): Adjust comment.  Add a new field
+	data_container.
+	(PDR_DATA_CONTAINER): New.
+	(new_poly_dr): Update declaration.
+	* graphite-sese-to-poly.c (pdr_add_data_dimensions): New.
+	(build_poly_dr): Call pdr_add_data_dimensions.
+
+2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.h (struct poly_dr): Fix comment.
 	* graphite-sese-to-poly.c (pdr_add_alias_set): New.
 	(pdr_add_memory_accesses): New.

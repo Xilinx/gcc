@@ -108,7 +108,7 @@ compute_array_size_cstr (ppl_dimension_type sub_dim, Value res,
 
   if (value_notzero_p (val))
     {
-      gcc_assert (value_one_p (val));
+      gcc_assert (value_one_p (val) || value_mone_p (val));
       ppl_Linear_Expression_inhomogeneous_term (expr, coef);
       ppl_Coefficient_to_mpz_t (coef, res);
       value_absolute (res, res);
@@ -171,7 +171,7 @@ compute_array_size_poly (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_
 static void
 compute_array_size (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_size)
 {
-  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses = PDR_ACCESSES (pdr);
+  ppl_Pointset_Powerset_NNC_Polyhedron_t data_container = PDR_DATA_CONTAINER (pdr);
   ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
   Value val;
 
@@ -183,8 +183,8 @@ compute_array_size (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_size)
   ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&it);
   ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&end);
 
-  for (ppl_Pointset_Powerset_NNC_Polyhedron_iterator_begin (accesses, it),
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_end (accesses, end);
+  for (ppl_Pointset_Powerset_NNC_Polyhedron_iterator_begin (data_container, it),
+       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_end (data_container, end);
        !ppl_Pointset_Powerset_NNC_Polyhedron_iterator_equal_test (it, end);
        ppl_Pointset_Powerset_NNC_Polyhedron_iterator_increment (it))
     {
@@ -223,7 +223,7 @@ gather_access_strides_poly (poly_dr_p pdr, ppl_const_Polyhedron_t ph,
   ppl_Polyhedron_get_constraints (ph, &pcs);
   ppl_new_Constraint_System_const_iterator (&cit);
   ppl_new_Constraint_System_const_iterator (&cend);
-      
+
   for (ppl_Constraint_System_begin (pcs, cit),
 	 ppl_Constraint_System_end (pcs, cend);
        !ppl_Constraint_System_const_iterator_equal_test (cit, cend);
