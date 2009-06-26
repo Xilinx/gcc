@@ -133,7 +133,10 @@ compute_array_size_poly (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_
   Value res;
 
   if (sub_dim >= pdr_subscript_dim (pdr, pdr_nb_subscripts (pdr)))
-    return;
+    {
+      value_set_si (array_size, 1);
+      return;
+    }
 
   value_init (val);
   value_init (res);

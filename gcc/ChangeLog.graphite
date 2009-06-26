@@ -1,5 +1,10 @@
 2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-interchange.c (compute_array_size_poly): The end of the
+	recursion should return 1.
+
+2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-interchange.c (compute_array_size_cstr): Allow the
 	subscript multiplier to be -1.
 	(compute_array_size): Use PDR_DATA_CONTAINER and not PDR_ACCESSES.
