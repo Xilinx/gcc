@@ -103,8 +103,8 @@ struct poly_dr
      | 0  -1  -1   0   0   1   0     =  0
      | 0   0   0   0   1   0   0     >= 0  # The last four lines describe the
      | 0   0   0   0   0   1   0     >= 0  # array size.
-     | 0   0   0   0   1   0  -1335  <= 0
-     | 0   0   0   0   0   1  -123   <= 0
+     | 0   0   0   0  -1   0 1335    >= 0
+     | 0   0   0   0   0  -1 123     >= 0
 
      The pointer "*p" in alias set "5" and "7" is described as a union of
      polyhedron:

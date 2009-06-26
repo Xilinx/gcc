@@ -1353,52 +1353,53 @@ build_scop_iteration_domain (scop_p scop)
   ppl_delete_Polyhedron (ph);
 }
 
-/* Build data accesses for DR in PBB.  */
+/* Add a constrain to the ACCESSES polyhedron for the alias set of
+   data reference DR.  ACCESSP_NB_DIMS is the dimension of the
+   ACCESSES polyhedron, DOM_NB_DIMS is the dimension of the iteration
+   domain.  */
 
 static void
-build_poly_dr (data_reference_p dr, poly_bb_p pbb)
+pdr_add_alias_set (ppl_Polyhedron_t accesses, data_reference_p dr ATTRIBUTE_UNUSED,
+		   ppl_dimension_type accessp_nb_dims,
+		   ppl_dimension_type dom_nb_dims)
 {
-  Value v;
-  ppl_Polyhedron_t accesses;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses_ps;
-  int i, dr_nb_subscripts = DR_NUM_DIMENSIONS (dr);
+  ppl_Linear_Expression_t alias;
+  ppl_Constraint_t cstr;
 
+  ppl_new_Linear_Expression_with_dimension (&alias, accessp_nb_dims);
+
+  ppl_set_coef (alias, dom_nb_dims, 1);
+  ppl_set_inhomogeneous (alias, -1);
+  ppl_new_Constraint (&cstr, alias, PPL_CONSTRAINT_TYPE_EQUAL);
+  ppl_Polyhedron_add_constraint (accesses, cstr);
+
+  ppl_delete_Linear_Expression (alias);
+  ppl_delete_Constraint (cstr); 
+}
+
+/* Add to ACCESSES polyhedron equalities defining the access functions
+   to the memory.  ACCESSP_NB_DIMS is the dimension of the ACCESSES
+   polyhedron, DOM_NB_DIMS is the dimension of the iteration domain.
+   PBB is the poly_bb_p that contains the data reference DR.  */
+
+static void
+pdr_add_memory_accesses (ppl_Polyhedron_t accesses, data_reference_p dr,
+			 ppl_dimension_type accessp_nb_dims,
+			 ppl_dimension_type dom_nb_dims,
+			 poly_bb_p pbb)
+{
+  int i, nb_subscripts = DR_NUM_DIMENSIONS (dr);
+  Value v;
   scop_p scop = PBB_SCOP (pbb);
   sese region = SCOP_REGION (scop);
-  ppl_dimension_type dom_nb_dims = scop_nb_params (scop) + pbb_dim_iter_domain (pbb);
-  ppl_dimension_type accessp_nb_dims = dom_nb_dims + 1 + dr_nb_subscripts;
-  ppl_new_NNC_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
-					       
+
   value_init (v);
 
-  /* Set alias set to 1 for all accesses.
-     TODO: Set alias set depending on the memory base of the dr.  */
-  {
-    ppl_Linear_Expression_t alias;
-    ppl_Coefficient_t c;
-    ppl_Constraint_t cstr;
-    
-    ppl_new_Coefficient (&c);
-    ppl_new_Linear_Expression_with_dimension (&alias, accessp_nb_dims);
-    value_set_si (v, 1);
-    add_value_to_dim (dom_nb_dims, alias, v);
-
-    value_set_si (v, -1);
-    ppl_assign_Coefficient_from_mpz_t (c, v);
-    ppl_Linear_Expression_add_to_inhomogeneous (alias, c);
-
-    ppl_new_Constraint (&cstr, alias, PPL_CONSTRAINT_TYPE_EQUAL);
-    ppl_Polyhedron_add_constraint (accesses, cstr);
-
-    ppl_delete_Coefficient (c);
-    ppl_delete_Linear_Expression (alias);
-    ppl_delete_Constraint (cstr); 
-  }
-  
-  for (i = 0; i < dr_nb_subscripts; i++)
+  for (i = 0; i < nb_subscripts; i++)
     {
       ppl_Linear_Expression_t fn, access;
       ppl_Constraint_t cstr;
+      ppl_dimension_type subscript = dom_nb_dims + 1 + i;
 
       ppl_new_Linear_Expression_with_dimension (&fn, dom_nb_dims);
       ppl_new_Linear_Expression_with_dimension (&access, accessp_nb_dims);
@@ -1407,8 +1408,7 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
       scan_tree_for_params (region, DR_ACCESS_FN (dr, i), fn, v);
       ppl_assign_Linear_Expression_from_Linear_Expression (access, fn);
 
-      value_set_si (v, -1);
-      add_value_to_dim (dom_nb_dims + 1 + i, access, v);
+      ppl_set_coef (access, subscript, -1);
       ppl_new_Constraint (&cstr, access, PPL_CONSTRAINT_TYPE_EQUAL);
       ppl_Polyhedron_add_constraint (accesses, cstr);
 
@@ -1418,16 +1418,28 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
     }
 
   value_clear (v);
+}
 
+/* Build data accesses for DR in PBB.  */
+
+static void
+build_poly_dr (data_reference_p dr, poly_bb_p pbb)
+{
+  ppl_Polyhedron_t accesses;
+  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses_ps;
+  ppl_dimension_type dom_nb_dims;
+  ppl_dimension_type accessp_nb_dims;
+
+  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PBB_DOMAIN (pbb),
+							&dom_nb_dims);
+  accessp_nb_dims = dom_nb_dims + 1 + DR_NUM_DIMENSIONS (dr);
+  ppl_new_NNC_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
+  pdr_add_alias_set (accesses, dr, accessp_nb_dims, dom_nb_dims);
+  pdr_add_memory_accesses (accesses, dr, accessp_nb_dims, dom_nb_dims, pbb);
   ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&accesses_ps,
 								accesses);
-
   ppl_delete_Polyhedron (accesses);
-
-  if (DR_IS_READ (dr))
-    new_poly_dr (pbb, accesses_ps, PDR_READ, dr);
-  else
-    new_poly_dr (pbb, accesses_ps, PDR_WRITE, dr);
+  new_poly_dr (pbb, accesses_ps, DR_IS_READ (dr) ? PDR_READ : PDR_WRITE, dr);
 }
 
 /* Build the data references for PBB.  */

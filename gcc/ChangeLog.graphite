@@ -1,5 +1,12 @@
 2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.h (struct poly_dr): Fix comment.
+	* graphite-sese-to-poly.c (pdr_add_alias_set): New.
+	(pdr_add_memory_accesses): New.
+	(build_poly_dr): Call pdr_add_memory_accesses and pdr_add_alias_set.
+
+2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (print_pdrs, debug_pdrs): New.
 	(print_pbb): Add call to print_pdrs.
 	* graphite-poly.h (print_pdrs, debug_pdrs): Declared.
