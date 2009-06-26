@@ -1,3 +1,25 @@
+2009-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt: removed compiler probe options
+	* basilys.h (melt_argument): added new declaration.
+	* basilys.c (melt_minorsizekilow) added new variable.
+	(melt_argument) added new function, and poisoning deprecated
+	variables.
+	(delete_special): use melt_minorsizekilow.
+	(melt_tempdir_path): uses melt_argument.
+	(compile_to_dyl): likewise.
+	(basilysgc_load_melt_module): likewise.
+	(basilysgc_load_modulelist): likewise.
+	(do_initial_command): likewise.
+	(load_basilys_modules_and_do_command): likewise.
+	(basilys_initialize): likewise.
+	(meltgdbmstate): added new static variable.
+	(fatal_gdbm, get_melt_gdbm, basilysgc_fetch_gdbmstate_constr)
+	(basilysgc_fetch_gdbmstate, basilysgc_put_gdbmstate_constr)
+	(basilysgc_put_gdbmstate, basilysgc_gimple_execute)
+	(basilysgc_rtl_execute, basilysgc_simple_ipa_gate)
+	(basilysgc_simple_ipa_execute, basilysgc_register_pass): uses
+	melt_argument.
+
 2009-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	[added load macro, because the set of predefined should be handled
 	better, using m4 to generate their declarations in C, and some of

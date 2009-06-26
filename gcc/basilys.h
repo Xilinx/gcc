@@ -114,6 +114,10 @@ extern long basilys_debugskipcount;
 extern const long basilys_primtab[256];
 
 
+/* function to retrieve a MELT program -or plugin- argument; return
+   NULL if not found */
+const char* melt_argument(const char* argname);
+
 /* naming convention: all struct basilys*_st are inside the
    basilys_un */
 

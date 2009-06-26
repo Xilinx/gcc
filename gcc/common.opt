@@ -446,14 +446,6 @@ fcommon
 Common Report Var(flag_no_common,0) Optimization
 Do not put uninitialized globals in the common section
 
-fcompiler-probe=
-Common Report Var(compiler_probe_string) RejectNegative Joined Condition(ENABLE_COMPILER_PROBE)
-Probe the compiler (using the comprobe protocol) with the given companion probing program
-
-fcompiler-probe-debug
-Common Report Var(flag_compiler_probe_debug)  RejectNegative  Condition(ENABLE_COMPILER_PROBE)
-Gives on stderr lot of debugging output for the compiler probe if enabled
-
 fconserve-stack
 Common Var(flag_conserve_stack) Optimization
 Do not perform optimizations increasing noticeably stack usage
