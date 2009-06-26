@@ -7,7 +7,7 @@
 --                                   S p e c                                --
 --                                                                          --
 --            Copyright (C) 1991-1994, Florida State University             --
---          Copyright (C) 1995-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1995-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -406,7 +406,7 @@ package System.OS_Interface is
    --  semTake() timeout with ticks > NO_WAIT
    S_objLib_OBJ_TIMEOUT     : constant := M_objLib + 4;
 
-   type SEM_ID is new System.Address;
+   subtype SEM_ID is System.VxWorks.Ext.SEM_ID;
    --  typedef struct semaphore *SEM_ID;
 
    --  We use two different kinds of VxWorks semaphores: mutex and binary
@@ -420,8 +420,8 @@ package System.OS_Interface is
    function semMCreate (options : int) return SEM_ID;
    pragma Import (C, semMCreate, "semMCreate");
 
-   function semDelete (Sem : SEM_ID) return int;
-   pragma Import (C, semDelete, "semDelete");
+   function semDelete (Sem : SEM_ID) return int
+     renames System.VxWorks.Ext.semDelete;
    --  Delete a semaphore
 
    function semGive (Sem : SEM_ID) return int;
@@ -471,14 +471,23 @@ package System.OS_Interface is
       Handler   : Interrupt_Handler;
       Parameter : System.Address := System.Null_Address) return int;
    pragma Inline (Interrupt_Connect);
-   --  Use this to set up an user handler. The routine installs a
-   --  a user handler which is invoked after the OS has saved enough
-   --  context for a high-level language routine to be safely invoked.
+   --  Use this to set up an user handler. The routine installs a a user
+   --  handler which is invoked after the OS has saved enough context for a
+   --  high-level language routine to be safely invoked.
 
    function Interrupt_Number_To_Vector (intNum : int) return Interrupt_Vector;
    pragma Inline (Interrupt_Number_To_Vector);
    --  Convert a logical interrupt number to the hardware interrupt vector
    --  number used to connect the interrupt.
+
+   --------------------------------
+   -- Processor Affinity for SMP --
+   --------------------------------
+
+   function taskCpuAffinitySet (tid : t_id; CPU : int) return int
+     renames System.VxWorks.Ext.taskCpuAffinitySet;
+   --  For SMP run-times the affinity to CPU.
+   --  For uniprocessor systems return ERROR status.
 
 private
    type sigset_t is new unsigned_long_long;

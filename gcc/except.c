@@ -221,11 +221,13 @@ init_eh (void)
 
       sjlj_fc_type_node = lang_hooks.types.make_type (RECORD_TYPE);
 
-      f_prev = build_decl (FIELD_DECL, get_identifier ("__prev"),
+      f_prev = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__prev"),
 			   build_pointer_type (sjlj_fc_type_node));
       DECL_FIELD_CONTEXT (f_prev) = sjlj_fc_type_node;
 
-      f_cs = build_decl (FIELD_DECL, get_identifier ("__call_site"),
+      f_cs = build_decl (BUILTINS_LOCATION,
+			 FIELD_DECL, get_identifier ("__call_site"),
 			 integer_type_node);
       DECL_FIELD_CONTEXT (f_cs) = sjlj_fc_type_node;
 
@@ -233,14 +235,17 @@ init_eh (void)
       tmp = build_array_type (lang_hooks.types.type_for_mode
 				(targetm.unwind_word_mode (), 1),
 			      tmp);
-      f_data = build_decl (FIELD_DECL, get_identifier ("__data"), tmp);
+      f_data = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__data"), tmp);
       DECL_FIELD_CONTEXT (f_data) = sjlj_fc_type_node;
 
-      f_per = build_decl (FIELD_DECL, get_identifier ("__personality"),
+      f_per = build_decl (BUILTINS_LOCATION,
+			  FIELD_DECL, get_identifier ("__personality"),
 			  ptr_type_node);
       DECL_FIELD_CONTEXT (f_per) = sjlj_fc_type_node;
 
-      f_lsda = build_decl (FIELD_DECL, get_identifier ("__lsda"),
+      f_lsda = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__lsda"),
 			   ptr_type_node);
       DECL_FIELD_CONTEXT (f_lsda) = sjlj_fc_type_node;
 
@@ -260,7 +265,8 @@ init_eh (void)
 #endif
       tmp = build_index_type (tmp);
       tmp = build_array_type (ptr_type_node, tmp);
-      f_jbuf = build_decl (FIELD_DECL, get_identifier ("__jbuf"), tmp);
+      f_jbuf = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__jbuf"), tmp);
 #ifdef DONT_USE_BUILTIN_SETJMP
       /* We don't know what the alignment requirements of the
 	 runtime's jmp_buf has.  Overestimate.  */
@@ -2814,7 +2820,7 @@ for_each_eh_label (void (*callback) (rtx))
     {
       struct eh_region_d *r = VEC_index (eh_region, cfun->eh->region_array, i);
       if (r && r->region_number == i && r->label
-          && GET_CODE (r->label) == CODE_LABEL)
+          && LABEL_P (r->label))
 	(*callback) (r->label);
     }
 }
@@ -4402,19 +4408,19 @@ dump_eh_tree (FILE * out, struct function *fun)
       if (i->landing_pad)
 	{
           fprintf (out, " landing_pad:%i", INSN_UID (i->landing_pad));
-	  if (GET_CODE (i->landing_pad) == NOTE)
+	  if (NOTE_P (i->landing_pad))
 	    fprintf (out, " (deleted)");
         }
       if (i->post_landing_pad)
 	{
           fprintf (out, " post_landing_pad:%i", INSN_UID (i->post_landing_pad));
-	  if (GET_CODE (i->post_landing_pad) == NOTE)
+	  if (NOTE_P (i->post_landing_pad))
 	    fprintf (out, " (deleted)");
 	}
       if (i->resume)
 	{
           fprintf (out, " resume:%i", INSN_UID (i->resume));
-	  if (GET_CODE (i->resume) == NOTE)
+	  if (NOTE_P (i->resume))
 	    fprintf (out, " (deleted)");
 	}
       if (i->may_contain_throw)

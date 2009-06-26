@@ -1,3 +1,44 @@
+2009-06-23  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* directives.c (parse_include): Add location argument. Update all
+	calls.
+	(parse_answer): Likewise.
+	(do_include_common): Error with exact location.
+	(parse_assertion): Likewise.
+
+2009-06-18  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* expr.c (num_div_op): Take explicit location.
+
+2009-06-17  Ian Lance Taylor  <iant@google.com>
+
+	* include/cpplib.h (progname): Don't declare.
+
+2009-06-12  Ian Lance Taylor  <iant@google.com>
+
+	* include/cpplib.h (struct cpp_options): Add
+	warn_cxx_operator_names field.
+	(NODE_WARN_OPERATOR): Define.
+	(struct cpp_hashnode): Increase flags field to 10 bits, decrease
+	type to 6 bits.
+	* init.c (mark_named_operators): Add flags parameter.
+	(cpp_post_options): Pick flags value to pass to
+	mark_named_operators.
+	* lex.c (lex_identifier): If NODE_WARN_OPERATOR is set, warn that
+	identifier is an operator name in C++.
+
+2009-06-01  Aldy Hernandez  <aldyh@redhat.com>
+
+	* include/line-map.h (LAST_SOURCE_COLUMN): New.
+
+2009-06-01  Ian Lance Taylor  <iant@google.com>
+
+	* include/cpp-id-data.h: Add extern "C".
+	* include/line-map.h: Likewise.
+	* include/mkdeps.h: Likewise.
+	* include/symtab.h: Likewise.
+	* internal.h: Likewise.
+
 2009-05-15  Ian Lance Taylor  <iant@google.com>
 
 	* include/cpplib.h (enum cpp_builtin_type): Rename from enum

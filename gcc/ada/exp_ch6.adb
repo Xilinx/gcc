@@ -1182,7 +1182,6 @@ package body Exp_Ch6 is
                    Expression => Expr));
             end;
          end if;
-
       end Add_Call_By_Copy_Code;
 
       ----------------------------------
@@ -1572,11 +1571,16 @@ package body Exp_Ch6 is
             --  treatment, whereas the formal is not volatile, then pass
             --  by copy unless it is a by-reference type.
 
+            --  Note: we use Is_Volatile here rather than Treat_As_Volatile,
+            --  because this is the enforcement of a language rule that applies
+            --  only to "real" volatile variables, not e.g. to the address
+            --  clause overlay case.
+
             elsif Is_Entity_Name (Actual)
-              and then Treat_As_Volatile (Entity (Actual))
+              and then Is_Volatile (Entity (Actual))
               and then not Is_By_Reference_Type (Etype (Actual))
               and then not Is_Scalar_Type (Etype (Entity (Actual)))
-              and then not Treat_As_Volatile (E_Formal)
+              and then not Is_Volatile (E_Formal)
             then
                Add_Call_By_Copy_Code;
 
@@ -1604,8 +1608,8 @@ package body Exp_Ch6 is
                Reset_Packed_Prefix;
                Expand_Packed_Element_Reference (Actual);
 
-            --  If we have a reference to a bit packed array, we copy it,
-            --  since the actual must be byte aligned.
+            --  If we have a reference to a bit packed array, we copy it, since
+            --  the actual must be byte aligned.
 
             --  Is this really necessary in all cases???
 
@@ -4436,35 +4440,24 @@ package body Exp_Ch6 is
             Pop_Scope;
          end if;
 
-      --  Ada 2005 (AI-348): Generation of the null body
+      --  Ada 2005 (AI-348): Generate body for a null procedure.
+      --  In most cases this is superfluous because calls to it
+      --  will be automatically inlined, but we definitely need
+      --  the body if preconditions for the procedure are present.
 
       elsif Nkind (Specification (N)) = N_Procedure_Specification
         and then Null_Present (Specification (N))
       then
          declare
-            Bod : constant Node_Id :=
-                    Make_Subprogram_Body (Loc,
-                      Specification =>
-                        New_Copy_Tree (Specification (N)),
-                      Declarations => New_List,
-                     Handled_Statement_Sequence =>
-                        Make_Handled_Sequence_Of_Statements (Loc,
-                          Statements => New_List (Make_Null_Statement (Loc))));
+            Bod : constant Node_Id := Body_To_Inline (N);
          begin
-            Set_Body_To_Inline (N, Bod);
-            Insert_After (N, Bod);
-            Analyze (Bod);
+            Set_Has_Completion (Subp, False);
+            Append_Freeze_Action (Subp, Bod);
 
-            --  Corresponding_Spec isn't being set by Analyze_Subprogram_Body,
-            --  evidently because Set_Has_Completion is called earlier for null
-            --  procedures in Analyze_Subprogram_Declaration, so we force its
-            --  setting here. If the setting of Has_Completion is not set
-            --  earlier, then it can result in missing body errors if other
-            --  errors were already reported (since expansion is turned off).
+            --  The body now contains raise statements, so calls to it will
+            --  not be inlined.
 
-            --  Should creation of the empty body be moved to the analyzer???
-
-            Set_Corresponding_Spec (Bod, Defining_Entity (Specification (N)));
+            Set_Is_Inlined (Subp, False);
          end;
       end if;
    end Expand_N_Subprogram_Declaration;
@@ -4906,8 +4899,8 @@ package body Exp_Ch6 is
       --  Check if this is a declared null procedure
 
       elsif Nkind (Decl) = N_Subprogram_Declaration then
-         if Null_Present (Specification (Decl)) then
-            return True;
+         if not Null_Present (Specification (Decl)) then
+            return False;
 
          elsif No (Body_To_Inline (Decl)) then
             return False;
@@ -4932,8 +4925,9 @@ package body Exp_Ch6 is
                   Stat2 := Next (Stat);
 
                   return
-                    Nkind (Stat) = N_Null_Statement
-                      and then
+                     Is_Empty_List (Declarations (Orig_Bod))
+                       and then Nkind (Stat) = N_Null_Statement
+                       and then
                         (No (Stat2)
                           or else
                             (Nkind (Stat2) = N_Simple_Return_Statement

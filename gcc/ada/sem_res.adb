@@ -119,6 +119,11 @@ package body Sem_Res is
    --  initialization of individual components within the init proc itself.
    --  Could be optimized away perhaps?
 
+   procedure Check_No_Direct_Boolean_Operators (N : Node_Id);
+   --  N is the node for a comparison or logical operator. If the operator
+   --  is predefined, and the root type of the operands is Standard.Boolean,
+   --  then a check is made for restriction No_Direct_Boolean_Operators.
+
    function Is_Definite_Access_Type (E : Entity_Id) return Boolean;
    --  Determine whether E is an access type declared by an access
    --  declaration, and not an (anonymous) allocator type.
@@ -925,6 +930,38 @@ package body Sem_Res is
          Establish_Transient_Scope (First_Actual (N), Sec_Stack => True);
       end if;
    end Check_Initialization_Call;
+
+   ---------------------------------------
+   -- Check_No_Direct_Boolean_Operators --
+   ---------------------------------------
+
+   procedure Check_No_Direct_Boolean_Operators (N : Node_Id) is
+   begin
+      if Scope (Entity (N)) = Standard_Standard
+        and then Root_Type (Etype (Left_Opnd (N))) = Standard_Boolean
+      then
+         --  Restriction does not apply to generated code
+
+         if not Comes_From_Source (N) then
+            null;
+
+         --  Restriction does not apply for A=False, A=True
+
+         elsif Nkind (N) = N_Op_Eq
+           and then (Is_Entity_Name (Right_Opnd (N))
+                      and then (Entity (Right_Opnd (N)) = Standard_True
+                                 or else
+                                Entity (Right_Opnd (N)) = Standard_False))
+         then
+            null;
+
+         --  Otherwise restriction applies
+
+         else
+            Check_Restriction (No_Direct_Boolean_Operators, N);
+         end if;
+      end if;
+   end Check_No_Direct_Boolean_Operators;
 
    ------------------------------
    -- Check_Parameterless_Call --
@@ -5431,6 +5468,8 @@ package body Sem_Res is
       T : Entity_Id;
 
    begin
+      Check_No_Direct_Boolean_Operators (N);
+
       --  If this is an intrinsic operation which is not predefined, use the
       --  types of its declared arguments to resolve the possibly overloaded
       --  operands. Otherwise the operands are unambiguous and specify the
@@ -6154,6 +6193,8 @@ package body Sem_Res is
    --  Start of processing for Resolve_Equality_Op
 
    begin
+      Check_No_Direct_Boolean_Operators (N);
+
       Set_Etype (N, Base_Type (Typ));
       Generate_Reference (T, N, ' ');
 
@@ -6609,9 +6650,10 @@ package body Sem_Res is
 
    procedure Resolve_Logical_Op (N : Node_Id; Typ : Entity_Id) is
       B_Typ : Entity_Id;
-      N_Opr : constant Node_Kind := Nkind (N);
 
    begin
+      Check_No_Direct_Boolean_Operators (N);
+
       --  Predefined operations on scalar types yield the base type. On the
       --  other hand, logical operations on arrays yield the type of the
       --  arguments (and the context).
@@ -6654,15 +6696,6 @@ package body Sem_Res is
       Set_Etype (N, B_Typ);
       Generate_Operator_Reference (N, B_Typ);
       Eval_Logical_Op (N);
-
-      --  Check for violation of restriction No_Direct_Boolean_Operators
-      --  if the operator was not eliminated by the Eval_Logical_Op call.
-
-      if Nkind (N) = N_Opr
-        and then Root_Type (Etype (Left_Opnd (N))) = Standard_Boolean
-      then
-         Check_Restriction (No_Direct_Boolean_Operators, N);
-      end if;
    end Resolve_Logical_Op;
 
    ---------------------------
@@ -9575,9 +9608,10 @@ package body Sem_Res is
             end if;
          end if;
 
-         --  Need some comments here, and a name for this block ???
+         --  In the presence of limited_with clauses we have to use non-limited
+         --  views, if available.
 
-         declare
+         Check_Limited : declare
             function Full_Designated_Type (T : Entity_Id) return Entity_Id;
             --  Helper function to handle limited views
 
@@ -9587,12 +9621,15 @@ package body Sem_Res is
 
             function Full_Designated_Type (T : Entity_Id) return Entity_Id is
                Desig : constant Entity_Id := Designated_Type (T);
+
             begin
-               if From_With_Type (Desig)
-                 and then Is_Incomplete_Type (Desig)
+               --  Handle the limited view of a type
+
+               if Is_Incomplete_Type (Desig)
+                 and then From_With_Type (Desig)
                  and then Present (Non_Limited_View (Desig))
                then
-                  return Non_Limited_View (Desig);
+                  return Available_View (Desig);
                else
                   return Desig;
                end if;
@@ -9606,7 +9643,7 @@ package body Sem_Res is
             Same_Base : constant Boolean :=
                           Base_Type (Target) = Base_Type (Opnd);
 
-         --  Start of processing for ???
+         --  Start of processing for Check_Limited
 
          begin
             if Is_Tagged_Type (Target) then
@@ -9660,7 +9697,7 @@ package body Sem_Res is
                   return False;
                end if;
             end if;
-         end;
+         end Check_Limited;
 
       --  Access to subprogram types. If the operand is an access parameter,
       --  the type has a deeper accessibility that any master, and cannot

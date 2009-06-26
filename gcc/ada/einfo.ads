@@ -214,13 +214,13 @@ package Einfo is
 --     type x1 is range 0..5;                      8               3
 
 --     type x2 is range 0..5;
---     for x2'size use 12;                        12              12
+--     for x2'size use 12;                        16              12
 
---     subtype x3 is x2 range 0 .. 3;             12               2
+--     subtype x3 is x2 range 0 .. 3;             16               2
 
 --     subtype x4 is x2'base range 0 .. 10;        8               4
 
---     subtype x5 is x2 range 0 .. dynamic;       12              (7)
+--     subtype x5 is x2 range 0 .. dynamic;       16              (7)
 
 --     subtype x6 is x2'base range 0 .. dynamic;   8              (7)
 
@@ -239,9 +239,12 @@ package Einfo is
 --  The RM_Size field keeps track of the RM Size as needed in these
 --  three situations.
 
---  For types other than discrete and fixed-point types, the Object_Size
---  and Value_Size are the same (and equivalent to the RM attribute Size).
---  Only Size may be specified for such types.
+--  For elementary types other than discrete and fixed-point types, the
+--  Object_Size and Value_Size are the same (and equivalent to the RM
+--  attribute Size). Only Size may be specified for such types.
+
+--  For composite types, Object_Size and Value_Size are computed from their
+--  respective value for the type of each element as well as the layout.
 
 --  All size attributes are stored as Uint values. Negative values are used to
 --  reference GCC expressions for the case of non-static sizes, as explained
@@ -2081,9 +2084,9 @@ package Einfo is
 --       (generic function, generic subprogram), False for all other entities.
 
 --    Is_Generic_Type (Flag13)
---       Present in all types and subtypes. Set for types which are generic
---       formal types. Such types have an Ekind that corresponds to their
---       classification, so the Ekind cannot be used to identify generic types.
+--       Present in all entities. Set for types which are generic formal types.
+--       Such types have an Ekind that corresponds to their classification, so
+--       the Ekind cannot be used to identify generic types.
 
 --    Is_Generic_Unit (synthesized)
 --       Applies to all entities. Yields True for a generic unit (generic
@@ -3647,7 +3650,7 @@ package Einfo is
 
 --    Wrapped_Entity (Node27)
 --       Present in functions and procedures which have been classified as
---       Is_Primitive_Wrapper. Set to the entity being wrapper.
+--       Is_Primitive_Wrapper. Set to the entity being wrapped.
 
    ------------------
    -- Access Kinds --
@@ -4503,6 +4506,7 @@ package Einfo is
    --    Is_First_Subtype                    (Flag70)
    --    Is_Formal_Subprogram                (Flag111)
    --    Is_Generic_Instance                 (Flag130)
+   --    Is_Generic_Type                     (Flag13)
    --    Is_Hidden                           (Flag57)
    --    Is_Hidden_Open_Scope                (Flag171)
    --    Is_Immediately_Visible              (Flag7)
@@ -4609,7 +4613,6 @@ package Einfo is
    --    Is_Eliminated                       (Flag124)
    --    Is_Frozen                           (Flag4)
    --    Is_Generic_Actual_Type              (Flag94)
-   --    Is_Generic_Type                     (Flag13)
    --    Is_Protected_Interface              (Flag198)
    --    Is_RACW_Stub_Type                   (Flag244)
    --    Is_Synchronized_Interface           (Flag199)

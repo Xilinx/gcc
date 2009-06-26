@@ -397,7 +397,7 @@ package body Prj.Env is
       File_Name : Path_Name_Type  := No_Path;
       File      : File_Descriptor := Invalid_FD;
 
-      Current_Unit : Unit_Index := Unit_Table.First;
+      Current_Unit : Unit_Index := Units_Htable.Get_First (In_Tree.Units_HT);
 
       First_Project : Project_List;
 
@@ -598,7 +598,7 @@ package body Prj.Env is
          Put (File, "pragma Source_File_Name_Project (");
          Put (File, Namet.Get_Name_String (Unit_Name));
 
-         if Unit_Kind = Specification then
+         if Unit_Kind = Spec then
             Put (File, ", Spec_File_Name => """);
          else
             Put (File, ", Body_File_Name => """);
@@ -673,30 +673,26 @@ package body Prj.Env is
 
          --  Visit all the units and process those that need an SFN pragma
 
-         while
-           Current_Unit <= Unit_Table.Last (In_Tree.Units)
-         loop
-            declare
-               Unit : constant Unit_Data :=
-                 In_Tree.Units.Table (Current_Unit);
+         while Current_Unit /= No_Unit_Index loop
+            if Current_Unit.File_Names (Spec) /= null
+              and then Current_Unit.File_Names (Spec).Naming_Exception
+            then
+               Put (Current_Unit.Name,
+                    Current_Unit.File_Names (Spec).File,
+                    Spec,
+                    Current_Unit.File_Names (Spec).Index);
+            end if;
 
-            begin
-               if Unit.File_Names (Specification).Needs_Pragma then
-                  Put (Unit.Name,
-                       Unit.File_Names (Specification).Name,
-                       Specification,
-                       Unit.File_Names (Specification).Index);
-               end if;
+            if Current_Unit.File_Names (Impl) /= null
+              and then Current_Unit.File_Names (Impl).Naming_Exception
+            then
+               Put (Current_Unit.Name,
+                    Current_Unit.File_Names (Impl).File,
+                    Impl,
+                    Current_Unit.File_Names (Impl).Index);
+            end if;
 
-               if Unit.File_Names (Body_Part).Needs_Pragma then
-                  Put (Unit.Name,
-                       Unit.File_Names (Body_Part).Name,
-                       Body_Part,
-                       Unit.File_Names (Body_Part).Index);
-               end if;
-
-               Current_Unit := Current_Unit + 1;
-            end;
+            Current_Unit := Units_Htable.Get_Next (In_Tree.Units_HT);
          end loop;
 
          --  If there are no non standard naming scheme, issue the GNAT
@@ -742,48 +738,50 @@ package body Prj.Env is
    --------------------
 
    procedure Create_Mapping (In_Tree : Project_Tree_Ref) is
-      The_Unit_Data : Unit_Data;
-      Data          : File_Name_Data;
+      Unit : Unit_Index;
+      Data : Source_Id;
 
    begin
       Fmap.Reset_Tables;
 
-      for Unit in 1 .. Unit_Table.Last (In_Tree.Units) loop
-         The_Unit_Data := In_Tree.Units.Table (Unit);
+      Unit := Units_Htable.Get_First (In_Tree.Units_HT);
+      while Unit /= No_Unit_Index loop
 
          --  Process only if the unit has a valid name
 
-         if The_Unit_Data.Name /= No_Name then
-            Data := The_Unit_Data.File_Names (Specification);
+         if Unit.Name /= No_Name then
+            Data := Unit.File_Names (Spec);
 
-            --  If there is a spec, put it in the mapping
+            --  If there is a spec put it in the mapping
 
-            if Data.Name /= No_File then
+            if Data /= null then
                if Data.Path.Name = Slash then
-                  Fmap.Add_Forbidden_File_Name (Data.Name);
+                  Fmap.Add_Forbidden_File_Name (Data.File);
                else
                   Fmap.Add_To_File_Map
-                    (Unit_Name => Unit_Name_Type (The_Unit_Data.Name),
-                     File_Name => Data.Name,
+                    (Unit_Name => Unit_Name_Type (Unit.Name),
+                     File_Name => Data.File,
                      Path_Name => File_Name_Type (Data.Path.Name));
                end if;
             end if;
 
-            Data := The_Unit_Data.File_Names (Body_Part);
+            Data := Unit.File_Names (Impl);
 
             --  If there is a body (or subunit) put it in the mapping
 
-            if Data.Name /= No_File then
+            if Data /= null then
                if Data.Path.Name = Slash then
-                  Fmap.Add_Forbidden_File_Name (Data.Name);
+                  Fmap.Add_Forbidden_File_Name (Data.File);
                else
                   Fmap.Add_To_File_Map
-                    (Unit_Name => Unit_Name_Type (The_Unit_Data.Name),
-                     File_Name => Data.Name,
+                    (Unit_Name => Unit_Name_Type (Unit.Name),
+                     File_Name => Data.File,
                      Path_Name => File_Name_Type (Data.Path.Name));
                end if;
             end if;
          end if;
+
+         Unit := Units_Htable.Get_Next (In_Tree.Units_HT);
       end loop;
    end Create_Mapping;
 
@@ -804,11 +802,11 @@ package body Prj.Env is
       --  For each project in the closure of Project, the corresponding flag
       --  will be set to True.
 
-      Source        : Source_Id;
-      Suffix        : File_Name_Type;
-      The_Unit_Data : Unit_Data;
-      Data          : File_Name_Data;
-      Iter          : Source_Iterator;
+      Source : Source_Id;
+      Suffix : File_Name_Type;
+      Unit   : Unit_Index;
+      Data   : Source_Id;
+      Iter   : Source_Iterator;
 
       procedure Put_Name_Buffer;
       --  Put the line contained in the Name_Buffer in the mapping file
@@ -846,7 +844,7 @@ package body Prj.Env is
       begin
          --  Line with the unit name
 
-         Get_Name_String (The_Unit_Data.Name);
+         Get_Name_String (Unit.Name);
          Name_Len := Name_Len + 1;
          Name_Buffer (Name_Len) := '%';
          Name_Len := Name_Len + 1;
@@ -861,7 +859,7 @@ package body Prj.Env is
 
          --  Line with the file name
 
-         Get_Name_String (Data.Name);
+         Get_Name_String (Data.File);
          Put_Name_Buffer;
 
          --  Line with the path name
@@ -922,34 +920,35 @@ package body Prj.Env is
 
       if Language = No_Name then
          if In_Tree.Private_Part.Fill_Mapping_File then
-            for Unit in 1 .. Unit_Table.Last (In_Tree.Units) loop
-               The_Unit_Data := In_Tree.Units.Table (Unit);
-
+            Unit := Units_Htable.Get_First (In_Tree.Units_HT);
+            while Unit /= null loop
                --  Case of unit has a valid name
 
-               if The_Unit_Data.Name /= No_Name then
-                  Data := The_Unit_Data.File_Names (Specification);
+               if Unit.Name /= No_Name then
+                  Data := Unit.File_Names (Spec);
 
                   --  If there is a spec, put it mapping in the file if it is
                   --  from a project in the closure of Project.
 
-                  if Data.Name /= No_File
+                  if Data /= No_Source
                     and then Project_Boolean_Htable.Get (Present, Data.Project)
                   then
                      Put_Data (Spec => True);
                   end if;
 
-                  Data := The_Unit_Data.File_Names (Body_Part);
+                  Data := Unit.File_Names (Impl);
 
                   --  If there is a body (or subunit) put its mapping in the
                   --  file if it is from a project in the closure of Project.
 
-                  if Data.Name /= No_File
+                  if Data /= No_Source
                     and then Project_Boolean_Htable.Get (Present, Data.Project)
                   then
                      Put_Data (Spec => False);
                   end if;
                end if;
+
+               Unit := Units_Htable.Get_Next (In_Tree.Units_HT);
             end loop;
          end if;
 
@@ -976,8 +975,8 @@ package body Prj.Env is
                        and then Source.Replaced_By = No_Source
                        and then Source.Path.Name /= No_Path
                      then
-                        if Source.Unit /= No_Name then
-                           Get_Name_String (Source.Unit);
+                        if Source.Unit /= No_Unit_Index then
+                           Get_Name_String (Source.Unit.Name);
 
                            if Source.Kind = Spec then
                               Suffix :=
@@ -1107,8 +1106,7 @@ package body Prj.Env is
                              Name &
                              Body_Suffix_Of (In_Tree, "ada", Project.Naming);
 
-      Unit : Unit_Data;
-
+      Unit              : Unit_Index;
       The_Original_Name : Name_Id;
       The_Spec_Name     : Name_Id;
       The_Body_Name     : Name_Id;
@@ -1150,26 +1148,24 @@ package body Prj.Env is
 
       loop
          --  Loop through units
-         --  Should have comment explaining reverse ???
 
-         for Current in reverse Unit_Table.First ..
-                                Unit_Table.Last (In_Tree.Units)
-         loop
-            Unit := In_Tree.Units.Table (Current);
-
+         Unit := Units_Htable.Get_First (In_Tree.Units_HT);
+         while Unit /= null loop
             --  Check for body
 
             if not Main_Project_Only
-              or else Unit.File_Names (Body_Part).Project = The_Project
+              or else
+                (Unit.File_Names (Impl) /= null
+                 and then Unit.File_Names (Impl).Project = The_Project)
             then
                declare
-                  Current_Name : constant File_Name_Type :=
-                                   Unit.File_Names (Body_Part).Name;
-
+                  Current_Name : File_Name_Type;
                begin
                   --  Case of a body present
 
-                  if Current_Name /= No_File then
+                  if Unit.File_Names (Impl) /= null then
+                     Current_Name := Unit.File_Names (Impl).File;
+
                      if Current_Verbosity = High then
                         Write_Str  ("   Comparing with """);
                         Write_Str  (Get_Name_String (Current_Name));
@@ -1190,7 +1186,7 @@ package body Prj.Env is
 
                         if Full_Path then
                            return Get_Name_String
-                             (Unit.File_Names (Body_Part).Path.Name);
+                             (Unit.File_Names (Impl).Path.Name);
 
                         else
                            return Get_Name_String (Current_Name);
@@ -1206,7 +1202,7 @@ package body Prj.Env is
 
                         if Full_Path then
                            return Get_Name_String
-                             (Unit.File_Names (Body_Part).Path.Name);
+                             (Unit.File_Names (Impl).Path.Name);
 
                         else
                            return Extended_Body_Name;
@@ -1224,16 +1220,19 @@ package body Prj.Env is
             --  Check for spec
 
             if not Main_Project_Only
-              or else Unit.File_Names (Specification).Project = The_Project
+              or else
+                (Unit.File_Names (Spec) /= null
+                 and then Unit.File_Names (Spec).Project =
+                   The_Project)
             then
                declare
-                  Current_Name : constant File_Name_Type :=
-                                   Unit.File_Names (Specification).Name;
+                  Current_Name : File_Name_Type;
 
                begin
                   --  Case of spec present
 
-                  if Current_Name /= No_File then
+                  if Unit.File_Names (Spec) /= null then
+                     Current_Name := Unit.File_Names (Spec).File;
                      if Current_Verbosity = High then
                         Write_Str  ("   Comparing with """);
                         Write_Str  (Get_Name_String (Current_Name));
@@ -1253,7 +1252,7 @@ package body Prj.Env is
 
                         if Full_Path then
                            return Get_Name_String
-                             (Unit.File_Names (Specification).Path.Name);
+                             (Unit.File_Names (Spec).Path.Name);
                         else
                            return Get_Name_String (Current_Name);
                         end if;
@@ -1268,7 +1267,7 @@ package body Prj.Env is
 
                         if Full_Path then
                            return Get_Name_String
-                             (Unit.File_Names (Specification).Path.Name);
+                             (Unit.File_Names (Spec).Path.Name);
                         else
                            return Extended_Spec_Name;
                         end if;
@@ -1281,6 +1280,8 @@ package body Prj.Env is
                   end if;
                end;
             end if;
+
+            Unit := Units_Htable.Get_Next (In_Tree.Units_HT);
          end loop;
 
          --  If we are not in an extending project, give up
@@ -1396,50 +1397,50 @@ package body Prj.Env is
 
       declare
          Original_Name : String := Source_File_Name;
-         Unit          : Unit_Data;
+         Unit          : Unit_Index;
 
       begin
          Canonical_Case_File_Name (Original_Name);
+         Unit := Units_Htable.Get_First (In_Tree.Units_HT);
 
-         for Id in Unit_Table.First ..
-                   Unit_Table.Last (In_Tree.Units)
-         loop
-            Unit := In_Tree.Units.Table (Id);
-
-            if (Unit.File_Names (Specification).Name /= No_File
-                 and then
-                   Namet.Get_Name_String
-                     (Unit.File_Names (Specification).Name) = Original_Name)
-              or else (Unit.File_Names (Specification).Path /=
-                                                         No_Path_Information
-                         and then
-                           Namet.Get_Name_String
-                           (Unit.File_Names (Specification).Path.Name) =
-                                                              Original_Name)
+         while Unit /= null loop
+            if Unit.File_Names (Spec) /= null
+              and then Unit.File_Names (Spec).File /= No_File
+              and then
+                (Namet.Get_Name_String
+                     (Unit.File_Names (Spec).File) = Original_Name
+                 or else (Unit.File_Names (Spec).Path /=
+                            No_Path_Information
+                          and then
+                            Namet.Get_Name_String
+                              (Unit.File_Names (Spec).Path.Name) =
+                            Original_Name))
             then
                Project := Ultimate_Extension_Of
-                          (Project => Unit.File_Names (Specification).Project);
-               Path := Unit.File_Names (Specification).Path.Display_Name;
+                          (Project => Unit.File_Names (Spec).Project);
+               Path := Unit.File_Names (Spec).Path.Display_Name;
 
                if Current_Verbosity > Default then
-                  Write_Str ("Done: Specification.");
+                  Write_Str ("Done: Spec.");
                   Write_Eol;
                end if;
 
                return;
 
-            elsif (Unit.File_Names (Body_Part).Name /= No_File
-                    and then
-                      Namet.Get_Name_String
-                        (Unit.File_Names (Body_Part).Name) = Original_Name)
-              or else (Unit.File_Names (Body_Part).Path /= No_Path_Information
-                         and then Namet.Get_Name_String
-                                    (Unit.File_Names (Body_Part).Path.Name) =
-                                                             Original_Name)
+            elsif Unit.File_Names (Impl) /= null
+              and then Unit.File_Names (Impl).File /= No_File
+              and then
+                (Namet.Get_Name_String
+                   (Unit.File_Names (Impl).File) = Original_Name
+                 or else (Unit.File_Names (Impl).Path /=
+                            No_Path_Information
+                          and then Namet.Get_Name_String
+                            (Unit.File_Names (Impl).Path.Name) =
+                            Original_Name))
             then
                Project := Ultimate_Extension_Of
-                            (Project => Unit.File_Names (Body_Part).Project);
-               Path := Unit.File_Names (Body_Part).Path.Display_Name;
+                            (Project => Unit.File_Names (Impl).Project);
+               Path := Unit.File_Names (Impl).Path.Display_Name;
 
                if Current_Verbosity > Default then
                   Write_Str ("Done: Body.");
@@ -1448,6 +1449,8 @@ package body Prj.Env is
 
                return;
             end if;
+
+            Unit := Units_Htable.Get_Next (In_Tree.Units_HT);
          end loop;
       end;
 
@@ -1478,51 +1481,51 @@ package body Prj.Env is
    --  Could use some comments in this body ???
 
    procedure Print_Sources (In_Tree : Project_Tree_Ref) is
-      Unit : Unit_Data;
+      Unit : Unit_Index;
 
    begin
       Write_Line ("List of Sources:");
 
-      for Id in Unit_Table.First ..
-                Unit_Table.Last (In_Tree.Units)
-      loop
-         Unit := In_Tree.Units.Table (Id);
+      Unit := Units_Htable.Get_First (In_Tree.Units_HT);
+
+      while Unit /= No_Unit_Index loop
          Write_Str  ("   ");
          Write_Line (Namet.Get_Name_String (Unit.Name));
 
-         if Unit.File_Names (Specification).Name /= No_File then
-            if Unit.File_Names (Specification).Project = No_Project then
+         if Unit.File_Names (Spec).File /= No_File then
+            if Unit.File_Names (Spec).Project = No_Project then
                Write_Line ("   No project");
 
             else
                Write_Str  ("   Project: ");
                Get_Name_String
-                 (Unit.File_Names (Specification).Project.Path.Name);
+                 (Unit.File_Names (Spec).Project.Path.Name);
                Write_Line (Name_Buffer (1 .. Name_Len));
             end if;
 
             Write_Str  ("      spec: ");
             Write_Line
               (Namet.Get_Name_String
-               (Unit.File_Names (Specification).Name));
+               (Unit.File_Names (Spec).File));
          end if;
 
-         if Unit.File_Names (Body_Part).Name /= No_File then
-            if Unit.File_Names (Body_Part).Project = No_Project then
+         if Unit.File_Names (Impl).File /= No_File then
+            if Unit.File_Names (Impl).Project = No_Project then
                Write_Line ("   No project");
 
             else
                Write_Str  ("   Project: ");
                Get_Name_String
-                 (Unit.File_Names (Body_Part).Project.Path.Name);
+                 (Unit.File_Names (Impl).Project.Path.Name);
                Write_Line (Name_Buffer (1 .. Name_Len));
             end if;
 
             Write_Str  ("      body: ");
             Write_Line
-              (Namet.Get_Name_String
-               (Unit.File_Names (Body_Part).Name));
+              (Namet.Get_Name_String (Unit.File_Names (Impl).File));
          end if;
+
+         Unit := Units_Htable.Get_Next (In_Tree.Units_HT);
       end loop;
 
       Write_Line ("end of List of Sources.");
@@ -1546,7 +1549,7 @@ package body Prj.Env is
       Extended_Body_Name : String :=
         Name & Body_Suffix_Of (In_Tree, "ada", Main_Project.Naming);
 
-      Unit : Unit_Data;
+      Unit : Unit_Index;
 
       Current_Name      : File_Name_Type;
       The_Original_Name : File_Name_Type;
@@ -1569,18 +1572,13 @@ package body Prj.Env is
       Name_Buffer (1 .. Name_Len) := Extended_Body_Name;
       The_Body_Name := Name_Find;
 
-      for Current in reverse Unit_Table.First ..
-                             Unit_Table.Last (In_Tree.Units)
-      loop
-         Unit := In_Tree.Units.Table (Current);
+      Unit := Units_Htable.Get_First (In_Tree.Units_HT);
 
-         --  Check for body
-
-         Current_Name := Unit.File_Names (Body_Part).Name;
-
+      while Unit /= null loop
          --  Case of a body present
 
-         if Current_Name /= No_File then
+         if Unit.File_Names (Impl) /= null then
+            Current_Name := Unit.File_Names (Impl).File;
 
             --  If it has the name of the original name or the body name,
             --  we have found the project.
@@ -1589,16 +1587,15 @@ package body Prj.Env is
               or else Current_Name = The_Original_Name
               or else Current_Name = The_Body_Name
             then
-               Result := Unit.File_Names (Body_Part).Project;
+               Result := Unit.File_Names (Impl).Project;
                exit;
             end if;
          end if;
 
          --  Check for spec
 
-         Current_Name := Unit.File_Names (Specification).Name;
-
-         if Current_Name /= No_File then
+         if Unit.File_Names (Spec) /= null then
+            Current_Name := Unit.File_Names (Spec).File;
 
             --  If name same as the original name, or the spec name, we have
             --  found the project.
@@ -1607,10 +1604,12 @@ package body Prj.Env is
               or else Current_Name = The_Original_Name
               or else Current_Name = The_Spec_Name
             then
-               Result := Unit.File_Names (Specification).Project;
+               Result := Unit.File_Names (Spec).Project;
                exit;
             end if;
          end if;
+
+         Unit := Units_Htable.Get_Next (In_Tree.Units_HT);
       end loop;
 
       --  Get the ultimate extending project

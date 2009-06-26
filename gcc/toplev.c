@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -541,11 +541,11 @@ read_integral_parameter (const char *p, const char *pname, const int  defval)
   return atoi (p);
 }
 
-/* When compiling with a recent enough GCC, we use the GNU C "extern inline"
-   for floor_log2 and exact_log2; see toplev.h.  That construct, however,
-   conflicts with the ISO C++ One Definition Rule.   */
+#if GCC_VERSION < 3004
 
-#if GCC_VERSION < 3004 || !defined (__cplusplus)
+/* The functions floor_log2 and exact_log2 are defined as inline
+   functions in toplev.h if GCC_VERSION >= 3004.  The definitions here
+   are used for older versions of gcc.  */
 
 /* Given X, an unsigned number, return the largest int Y such that 2**Y <= X.
    If X is 0, return -1.  */
@@ -558,9 +558,6 @@ floor_log2 (unsigned HOST_WIDE_INT x)
   if (x == 0)
     return -1;
 
-#ifdef CLZ_HWI
-  t = HOST_BITS_PER_WIDE_INT - 1 - (int) CLZ_HWI (x);
-#else
   if (HOST_BITS_PER_WIDE_INT > 64)
     if (x >= (unsigned HOST_WIDE_INT) 1 << (t + 64))
       t += 64;
@@ -577,7 +574,6 @@ floor_log2 (unsigned HOST_WIDE_INT x)
     t += 2;
   if (x >= ((unsigned HOST_WIDE_INT) 1) << (t + 1))
     t += 1;
-#endif
 
   return t;
 }
@@ -590,14 +586,10 @@ exact_log2 (unsigned HOST_WIDE_INT x)
 {
   if (x != (x & -x))
     return -1;
-#ifdef CTZ_HWI
-  return x ? CTZ_HWI (x) : -1;
-#else
   return floor_log2 (x);
-#endif
 }
 
-#endif /*  GCC_VERSION < 3004 || !defined (__cplusplus)  */
+#endif /* GCC_VERSION < 3004 */
 
 /* Handler for fatal signals, such as SIGSEGV.  These are transformed
    into ICE messages, which is much more user friendly.  In case the
@@ -1882,6 +1874,31 @@ process_options (void)
       profile_flag = 0;
     }
 
+  if (flag_gtoggle)
+    {
+      if (debug_info_level == DINFO_LEVEL_NONE)
+	debug_info_level = DINFO_LEVEL_NORMAL;
+      else
+	debug_info_level = DINFO_LEVEL_NONE;
+    }
+
+  if (flag_dump_final_insns)
+    {
+      FILE *final_output = fopen (flag_dump_final_insns, "w");
+      if (!final_output)
+	{
+	  error ("could not open final insn dump file %qs: %s",
+		 flag_dump_final_insns, strerror (errno));
+	  flag_dump_final_insns = NULL;
+	}
+      else if (fclose (final_output))
+	{
+	  error ("could not close zeroed insn dump file %qs: %s",
+		 flag_dump_final_insns, strerror (errno));
+	  flag_dump_final_insns = NULL;
+	}
+    }
+
   /* A lot of code assumes write_symbols == NO_DEBUG if the debugging
      level is 0.  */
   if (debug_info_level == DINFO_LEVEL_NONE)
@@ -2361,14 +2378,14 @@ toplev_main (int argc, char **argv)
 {
   expandargv (&argc, &argv);
 
-  save_argv = (const char **) argv;
+  save_argv = CONST_CAST2 (const char **, char **, argv);
 
   /* Initialization of GCC's environment, and diagnostics.  */
   general_init (argv[0]);
 
   /* Parse the options and do minimal processing; basically just
      enough to default flags appropriately.  */
-  decode_options (argc, (const char **) argv);
+  decode_options (argc, CONST_CAST2 (const char **, char **, argv));
 
   init_local_tick ();
 

@@ -100,6 +100,7 @@ static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
 static tree handle_malloc_attribute (tree *, tree, tree, int, bool *);
 static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
+static tree handle_vector_size_attribute (tree *, tree, tree, int, bool *);
 
 /* Fake handler for attributes we don't properly support, typically because
    they'd require dragging a lot of the common-c front-end circuitry.  */
@@ -118,7 +119,9 @@ const struct attribute_spec gnat_internal_attribute_table[] =
   { "sentinel",     0, 1,  false, true,  true,  handle_sentinel_attribute },
   { "noreturn",     0, 0,  true,  false, false, handle_noreturn_attribute },
   { "malloc",       0, 0,  true,  false, false, handle_malloc_attribute },
-  { "type generic", 0, 0, false, true, true, handle_type_generic_attribute },
+  { "type generic", 0, 0,  false, true, true, handle_type_generic_attribute },
+
+  { "vector_size",  1, 1,  false, true, false,  handle_vector_size_attribute },
 
   /* ??? format and format_arg are heavy and not supported, which actually
      prevents support for stdio builtins, which we however declare as part
@@ -547,7 +550,8 @@ gnat_init_decl_processing (void)
 void
 record_builtin_type (const char *name, tree type)
 {
-  tree type_decl = build_decl (TYPE_DECL, get_identifier (name), type);
+  tree type_decl = build_decl (input_location,
+			       TYPE_DECL, get_identifier (name), type);
 
   gnat_pushdecl (type_decl, Empty);
 
@@ -1244,7 +1248,8 @@ create_type_stub_decl (tree type_name, tree type)
   /* Using a named TYPE_DECL ensures that a type name marker is emitted in
      STABS while setting DECL_ARTIFICIAL ensures that no DW_TAG_typedef is
      emitted in DWARF.  */
-  tree type_decl = build_decl (TYPE_DECL, type_name, type);
+  tree type_decl = build_decl (input_location,
+			       TYPE_DECL, type_name, type);
   DECL_ARTIFICIAL (type_decl) = 1;
   return type_decl;
 }
@@ -1274,7 +1279,8 @@ create_type_decl (tree type_name, tree type, struct attrib *attr_list,
       DECL_NAME (type_decl) = type_name;
     }
   else
-    type_decl = build_decl (TYPE_DECL, type_name, type);
+    type_decl = build_decl (input_location,
+			    TYPE_DECL, type_name, type);
 
   DECL_ARTIFICIAL (type_decl) = artificial_p;
   gnat_pushdecl (type_decl, gnat_node);
@@ -1352,7 +1358,8 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
   /* The actual DECL node.  CONST_DECL was initially intended for enumerals
      and may be used for scalars in general but not for aggregates.  */
   tree var_decl
-    = build_decl ((constant_p && const_decl_allowed_p
+    = build_decl (input_location,
+		  (constant_p && const_decl_allowed_p
 		   && !AGGREGATE_TYPE_P (type)) ? CONST_DECL : VAR_DECL,
 		  var_name, type);
 
@@ -1465,7 +1472,8 @@ tree
 create_field_decl (tree field_name, tree field_type, tree record_type,
                    int packed, tree size, tree pos, int addressable)
 {
-  tree field_decl = build_decl (FIELD_DECL, field_name, field_type);
+  tree field_decl = build_decl (input_location,
+				FIELD_DECL, field_name, field_type);
 
   DECL_CONTEXT (field_decl) = record_type;
   TREE_READONLY (field_decl) = TYPE_READONLY (field_type);
@@ -1606,7 +1614,8 @@ create_field_decl (tree field_name, tree field_type, tree record_type,
 tree
 create_param_decl (tree param_name, tree param_type, bool readonly)
 {
-  tree param_decl = build_decl (PARM_DECL, param_name, param_type);
+  tree param_decl = build_decl (input_location,
+				PARM_DECL, param_name, param_type);
 
   /* Honor TARGET_PROMOTE_PROTOTYPES like the C compiler, as not doing so
      can lead to various ABI violations.  */
@@ -1786,7 +1795,8 @@ potential_alignment_gap (tree prev_field, tree curr_field, tree offset)
 tree
 create_label_decl (tree label_name)
 {
-  tree label_decl = build_decl (LABEL_DECL, label_name, void_type_node);
+  tree label_decl = build_decl (input_location,
+				LABEL_DECL, label_name, void_type_node);
 
   DECL_CONTEXT (label_decl)     = current_function_decl;
   DECL_MODE (label_decl)        = VOIDmode;
@@ -1810,7 +1820,8 @@ create_subprog_decl (tree subprog_name, tree asm_name,
                      struct attrib *attr_list, Node_Id gnat_node)
 {
   tree return_type  = TREE_TYPE (subprog_type);
-  tree subprog_decl = build_decl (FUNCTION_DECL, subprog_name, subprog_type);
+  tree subprog_decl = build_decl (input_location,
+				  FUNCTION_DECL, subprog_name, subprog_type);
 
   /* If this is a non-inline function nested inside an inlined external
      function, we cannot honor both requests without cloning the nested
@@ -1831,7 +1842,8 @@ create_subprog_decl (tree subprog_name, tree asm_name,
   TREE_SIDE_EFFECTS (subprog_decl) = TYPE_VOLATILE (subprog_type);
   DECL_DECLARED_INLINE_P (subprog_decl) = inline_flag;
   DECL_ARGUMENTS (subprog_decl) = param_decl_list;
-  DECL_RESULT (subprog_decl)    = build_decl (RESULT_DECL, 0, return_type);
+  DECL_RESULT (subprog_decl)    = build_decl (input_location,
+					      RESULT_DECL, 0, return_type);
   DECL_ARTIFICIAL (DECL_RESULT (subprog_decl)) = 1;
   DECL_IGNORED_P (DECL_RESULT (subprog_decl)) = 1;
 
@@ -3979,6 +3991,10 @@ convert (tree type, tree expr)
 	  unsigned HOST_WIDE_INT idx;
 	  tree index, value;
 
+	  /* Whether we need to clear TREE_CONSTANT et al. on the output
+	     constructor when we convert in place.  */
+	  bool clear_constant = false;
+
 	  FOR_EACH_CONSTRUCTOR_ELT(e, idx, index, value)
 	    {
 	      constructor_elt *elt = VEC_quick_push (constructor_elt, v, NULL);
@@ -3987,15 +4003,30 @@ convert (tree type, tree expr)
 		break;
 	      elt->index = field;
 	      elt->value = convert (TREE_TYPE (field), value);
+
+	      /* If packing has made this field a bitfield and the input
+		 value couldn't be emitted statically any more, we need to
+		 clear TREE_CONSTANT on our output.  */
+	      if (!clear_constant && TREE_CONSTANT (expr)
+		  && !CONSTRUCTOR_BITFIELD_P (efield)
+		  && CONSTRUCTOR_BITFIELD_P (field)
+		  && !initializer_constant_valid_for_bitfield_p (value))
+		clear_constant = true;
+
 	      efield = TREE_CHAIN (efield);
 	      field = TREE_CHAIN (field);
 	    }
 
+	  /* If we have been able to match and convert all the input fields
+	     to their output type, convert in place now.  We'll fallback to a
+	     view conversion downstream otherwise.  */
 	  if (idx == len)
 	    {
 	      expr = copy_node (expr);
 	      TREE_TYPE (expr) = type;
 	      CONSTRUCTOR_ELTS (expr) = v;
+	      if (clear_constant)
+		TREE_CONSTANT (expr) = TREE_STATIC (expr) = false;
 	      return expr;
 	    }
 	}
@@ -5243,6 +5274,90 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 
   /* Ensure we have a variadic function.  */
   gcc_assert (!params);
+
+  return NULL_TREE;
+}
+
+/* Handle a "vector_size" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_vector_size_attribute (tree *node, tree name, tree args,
+			      int ARG_UNUSED (flags),
+			      bool *no_add_attrs)
+{
+  unsigned HOST_WIDE_INT vecsize, nunits;
+  enum machine_mode orig_mode;
+  tree type = *node, new_type, size;
+
+  *no_add_attrs = true;
+
+  size = TREE_VALUE (args);
+
+  if (!host_integerp (size, 1))
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      return NULL_TREE;
+    }
+
+  /* Get the vector size (in bytes).  */
+  vecsize = tree_low_cst (size, 1);
+
+  /* We need to provide for vector pointers, vector arrays, and
+     functions returning vectors.  For example:
+
+       __attribute__((vector_size(16))) short *foo;
+
+     In this case, the mode is SI, but the type being modified is
+     HI, so we need to look further.  */
+
+  while (POINTER_TYPE_P (type)
+	 || TREE_CODE (type) == FUNCTION_TYPE
+	 || TREE_CODE (type) == METHOD_TYPE
+	 || TREE_CODE (type) == ARRAY_TYPE
+	 || TREE_CODE (type) == OFFSET_TYPE)
+    type = TREE_TYPE (type);
+
+  /* Get the mode of the type being modified.  */
+  orig_mode = TYPE_MODE (type);
+
+  if ((!INTEGRAL_TYPE_P (type)
+       && !SCALAR_FLOAT_TYPE_P (type)
+       && !FIXED_POINT_TYPE_P (type))
+      || (!SCALAR_FLOAT_MODE_P (orig_mode)
+	  && GET_MODE_CLASS (orig_mode) != MODE_INT
+	  && !ALL_SCALAR_FIXED_POINT_MODE_P (orig_mode))
+      || !host_integerp (TYPE_SIZE_UNIT (type), 1)
+      || TREE_CODE (type) == BOOLEAN_TYPE)
+    {
+      error ("invalid vector type for attribute %qE", name);
+      return NULL_TREE;
+    }
+
+  if (vecsize % tree_low_cst (TYPE_SIZE_UNIT (type), 1))
+    {
+      error ("vector size not an integral multiple of component size");
+      return NULL;
+    }
+
+  if (vecsize == 0)
+    {
+      error ("zero vector size");
+      return NULL;
+    }
+
+  /* Calculate how many units fit in the vector.  */
+  nunits = vecsize / tree_low_cst (TYPE_SIZE_UNIT (type), 1);
+  if (nunits & (nunits - 1))
+    {
+      error ("number of components of the vector not a power of two");
+      return NULL_TREE;
+    }
+
+  new_type = build_vector_type (type, nunits);
+
+  /* Build back pointers if needed.  */
+  *node = lang_hooks.types.reconstruct_complex_type (*node, new_type);
 
   return NULL_TREE;
 }

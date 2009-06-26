@@ -384,6 +384,14 @@ fconserve-stack
 Common Var(flag_conserve_stack) Optimization
 Do not perform optimizations increasing noticeably stack usage
 
+fcompare-debug=
+Common JoinedOrMissing RejectNegative Var(flag_compare_debug_opt)
+-fcompare-debug[=<opts>] Compile with and without e.g. -gtoggle, and compare the final-insns dump
+
+fcompare-debug-second
+Common RejectNegative Var(flag_compare_debug)
+Run only the second compilation of -fcompare-debug
+
 fcprop-registers
 Common Report Var(flag_cprop_registers) Optimization
 Perform a register copy-propagation optimization pass
@@ -450,6 +458,10 @@ fdump-
 Common Joined RejectNegative
 -fdump-<type>	Dump various compiler internals to a file
 
+fdump-final-insns=
+Common RejectNegative Joined Var(flag_dump_final_insns)
+-fdump-final-insns=filename	Dump to filename the insns at the end of translation
+
 fdump-noaddr
 Common Report Var(flag_dump_noaddr)
 Suppress output of addresses in debugging dumps
@@ -465,6 +477,10 @@ Enable CFI tables via GAS assembler directives.
 fripa
 Common Report Var(flag_dyn_ipa)
 Perform Dynamic Inter-Procedural Analysis.
+
+fdump-unnumbered-links
+Common Report Var(flag_dump_unnumbered_links) VarExists
+Suppress output of previous and next insn numbers in debugging dumps
 
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
@@ -1053,12 +1069,12 @@ Common Report Var(flag_section_anchors) Optimization
 Access data in the same section from shared anchor points
 
 fsee
-Common Report Var(flag_see) Init(0)
-Eliminate redundant sign extensions using LCM.
+Common
+Does nothing.  Preserved for backward compatibility.
 
 fshow-column
-Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(0)
-Show column numbers in diagnostics, when available.  Default off
+Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(1)
+Show column numbers in diagnostics, when available.  Default on
 
 fsignaling-nans
 Common Report Var(flag_signaling_nans) Optimization
@@ -1402,16 +1418,12 @@ Common JoinedOrMissing
 Generate debug information in default format
 
 gcoff
-Common JoinedOrMissing Negative(gdwarf-2)
+Common JoinedOrMissing Negative(gdwarf-)
 Generate debug information in COFF format
 
-gdwarf-2
-Common JoinedOrMissing Negative(gdwarf-4)
-Generate debug information in DWARF v2 format
-
-gdwarf-4
-Common JoinedOrMissing Negative(gstabs)
-Generate debug information in DWARF v4 format (experimental)
+gdwarf-
+Common Joined UInteger Var(dwarf_version) Init(2) Negative(gstabs)
+Generate debug information in DWARF v2 (or later) format
 
 ggdb
 Common JoinedOrMissing
@@ -1424,6 +1436,10 @@ Generate debug information in STABS format
 gstabs+
 Common JoinedOrMissing Negative(gvms)
 Generate debug information in extended STABS format
+
+gtoggle
+Common Report Var(flag_gtoggle)
+Toggle debug information generation
 
 gvms
 Common JoinedOrMissing Negative(gxcoff)

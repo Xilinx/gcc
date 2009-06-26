@@ -132,7 +132,7 @@ extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				  tree, int, int);
 extern int function_arg_boundary (enum machine_mode, tree);
 extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern tree altivec_resolve_overloaded_builtin (tree, void *);
+extern tree altivec_resolve_overloaded_builtin (location_t, tree, void *);
 extern rtx rs6000_function_value (const_tree, const_tree);
 extern rtx rs6000_libcall_value (enum machine_mode);
 extern rtx rs6000_va_arg (tree, tree);
@@ -168,7 +168,6 @@ extern int rs6000_register_move_cost (enum machine_mode,
 				      enum reg_class, enum reg_class);
 extern int rs6000_memory_move_cost (enum machine_mode, enum reg_class, int);
 extern bool rs6000_tls_referenced_p (rtx);
-extern int rs6000_hard_regno_nregs (int, enum machine_mode);
 extern void rs6000_conditional_register_usage (void);
 
 /* Declare functions in rs6000-c.c */
@@ -187,4 +186,6 @@ const char * rs6000_xcoff_strip_dollar (const char *);
 void rs6000_final_prescan_insn (rtx, rtx *operand, int num_operands);
 
 extern bool rs6000_hard_regno_mode_ok_p[][FIRST_PSEUDO_REGISTER];
+extern unsigned char rs6000_class_max_nregs[][LIM_REG_CLASSES];
+extern unsigned char rs6000_hard_regno_nregs[][FIRST_PSEUDO_REGISTER];
 #endif  /* rs6000-protos.h */

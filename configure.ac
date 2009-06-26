@@ -305,7 +305,7 @@ if test "${ENABLE_GOLD}" = "yes"; then
   case "${target}" in
     *-*-elf* | *-*-sysv4* | *-*-unixware* | *-*-eabi* | hppa*64*-*-hpux* \
     | *-*-linux* | frv-*-uclinux* | *-*-irix5* | *-*-irix6* \
-    | *-*-netbsd* | *-*-openbsd* | *-*-freebsd* | *-*-solaris2*)
+    | *-*-netbsd* | *-*-openbsd* | *-*-freebsd* | *-*-solaris2* | *-*-nto*)
       case "${target}" in
         *-*-linux*aout* | *-*-linux*oldld*)
           ;;
@@ -318,7 +318,7 @@ if test "${ENABLE_GOLD}" = "yes"; then
   if test "$is_elf" = "yes"; then
     # Check for target supported by gold.
     case "${target}" in
-      i?86-*-* | x86_64-*-* | sparc*-*-* | powerpc*-*-*)
+      i?86-*-* | x86_64-*-* | sparc*-*-* | powerpc*-*-* | arm*-*-*)
         configdirs="`echo " ${configdirs} " | sed -e 's/ ld / gold /'`"
         ;;
     esac
@@ -801,7 +801,7 @@ case "${target}" in
     ;;
   powerpc-*-aix*)
     # copied from rs6000-*-* entry
-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp target-newlib ${libgcj}"
     ;;
   powerpc*-*-winnt* | powerpc*-*-pe* | ppc*-*-pe)
     target_configdirs="$target_configdirs target-winsup"
@@ -828,7 +828,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-newlib gprof ${libgcj}"
     ;;
   rs6000-*-aix*)
-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp target-newlib ${libgcj}"
     ;;
   rs6000-*-*)
     noconfigdirs="$noconfigdirs gprof ${libgcj}"
@@ -1191,11 +1191,17 @@ fi
 ACX_PROG_GNAT
 ACX_PROG_CMP_IGNORE_INITIAL
 
+# See if we are building gcc with C++.
+AC_ARG_ENABLE(build-with-cxx,
+[  --enable-build-with-cxx build with C++ compiler instead of C compiler],
+ENABLE_BUILD_WITH_CXX=$enableval,
+ENABLE_BUILD_WITH_CXX=no)
+
 # Check for GMP, MPFR and MPC
 gmplibs="-lmpfr -lgmp"
 gmpinc=
 have_gmp=no
-mpclibs=
+mpclibs=-lmpc
 mpcinc=
 have_mpc=no
 
@@ -1397,6 +1403,11 @@ They may be located in separate packages.])
   fi
 fi
 
+if test x$have_mpc != xyes ; then
+  mpcinc=
+  mpclibs=
+fi
+
 gmpinc="$mpcinc $gmpinc"
 gmplibs="$mpclibs $gmplibs"
 
@@ -1417,10 +1428,59 @@ case $with_host_libstdcxx in
     ;;
 esac
 
+# Linker flags to use for stage1 or when not boostrapping.
+AC_ARG_WITH(stage1-ldflags,
+[  --with-stage1-ldflags=FLAGS Linker flags for stage1],
+[if test "$withval" = "no" -o "$withval" = "yes"; then
+   stage1_ldflags=
+ else
+   stage1_ldflags=$withval
+ fi],
+[stage1_ldflags=])
+AC_SUBST(stage1_ldflags)
+
+# Libraries to use for stage1 or when not bootstrapping.
+AC_ARG_WITH(stage1-libs,
+[  -with-stage1-libs=LIBS      Libraries for stage1],
+[if test "$withval" = "no" -o "$withval" = "yes"; then
+   stage1_libs=
+ else
+   stage1_libs=$withval
+ fi],
+[stage1_libs=$with_host_libstdcxx])
+AC_SUBST(stage1_libs)
+
+# Linker flags to use for stage2 and later builds.
+AC_ARG_WITH(boot-ldflags,
+[  --with-boot-ldflags=FLAGS Linker flags for stage2 and later],
+[if test "$withval" = "no" -o "$withval" = "yes"; then
+   poststage1_ldflags=
+ else
+   poststage1_ldflags=$withval
+ fi],
+[if test "$ENABLE_BUILD_WITH_CXX" = "yes"; then
+   poststage1_ldflags=-static-libstdc++
+ else
+   poststage1_ldflags=
+ fi])
+AC_SUBST(poststage1_ldflags)
+
+# Libraries to use for stage2 and later builds.  This defaults to the
+# argument passed to --with-host-libstdcxx.
+AC_ARG_WITH(boot-libs,
+[  --with-boot-libs=LIBS     Libraries for stage2 and later]
+[if test "$withval" = "no" -o "$withval" = "yes"; then
+   poststage1_libs=
+ else
+  poststage1_libs=$withval
+ fi],
+[poststage1_libs=$with_host_libstdcxx])
+AC_SUBST(poststage1_libs)
+
 # Check for PPL
 ppl_major_version=0
 ppl_minor_version=10
-ppllibs=" -lppl_c -lppl -lgmpxx $with_host_libstdcxx "
+ppllibs=" -lppl_c -lppl -lgmpxx"
 pplinc=
 
 AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
@@ -1434,7 +1494,7 @@ case $with_ppl in
     ppllibs=
     ;;
   *)
-    ppllibs="-L$with_ppl/lib -lppl_c -lppl -lgmpxx $with_host_libstdcxx"
+    ppllibs="-L$with_ppl/lib -lppl_c -lppl -lgmpxx"
     pplinc="-I$with_ppl/include $pplinc"
     LIBS="$ppllibs $LIBS"
     ;;
@@ -1443,11 +1503,11 @@ if test "x$with_ppl_include" != x; then
   pplinc="-I$with_ppl_include $pplinc"
 fi
 if test "x$with_ppl_lib" != x; then
-  ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx $with_host_libstdcxx"
+  ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx"
   LIBS="$ppllibs $LIBS"
 fi
 if test "x$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
-  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/.libs -L$$r/$(HOST_SUBDIR)/ppl/_libs -lppl_c -lppl -lgmpxx '"$with_host_libstdcxx "
+  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/.libs -L$$r/$(HOST_SUBDIR)/ppl/_libs -lppl_c -lppl -lgmpxx '
   pplinc='-I$$r/$(HOST_SUBDIR)/ppl/include -I$$s/ppl/include '
   LIBS="$ppllibs $LIBS"
 fi
@@ -1532,6 +1592,9 @@ AC_SUBST(clooginc)
 
 # By default, C is the only stage 1 language.
 stage1_languages=,c,
+
+# Target libraries that we bootstrap.
+bootstrap_target_libs=,target-libgcc,
 
 # Figure out what language subdirectories are present.
 # Look if the user specified --enable-languages="..."; if not, use
@@ -1618,6 +1681,10 @@ if test -d ${srcdir}/gcc; then
           exit 1
         fi
 
+	if test "$language" = "c++" -a "$ENABLE_BUILD_WITH_CXX" = "yes"; then
+	  boot_language=yes
+	fi
+
         case ,${enable_languages}, in
           *,${language},*)
             # Language was explicitly selected; include it.
@@ -1684,6 +1751,8 @@ if test -d ${srcdir}/gcc; then
 	      yes)
 		# Add to (comma-separated) list of stage 1 languages.
 		stage1_languages="${stage1_languages}${language},"
+		# We need to bootstrap any supporting libraries.
+		bootstrap_target_libs="${bootstrap_target_libs}${target_libs},"
 		;;
 	    esac
 	    ;;
@@ -2415,11 +2484,18 @@ for module in ${target_configdirs} ; do
     echo 1>&2 "*** removing ${target_subdir}/${module}/Makefile to force reconfigure"
     rm -f ${target_subdir}/${module}/Makefile
   fi
+
+  # We only bootstrap target libraries listed in bootstrap_target_libs.
+  case $bootstrap_target_libs in
+    *,target-$module,*) target_bootstrap_suffix=$bootstrap_suffix ;;
+    *) target_bootstrap_suffix=no-bootstrap ;;
+  esac
+
   extrasub="$extrasub
 /^@if target-$module\$/d
 /^@endif target-$module\$/d
-/^@if target-$module-$bootstrap_suffix\$/d
-/^@endif target-$module-$bootstrap_suffix\$/d"
+/^@if target-$module-$target_bootstrap_suffix\$/d
+/^@endif target-$module-$target_bootstrap_suffix\$/d"
 done
 
 extrasub="$extrasub
@@ -2983,7 +3059,7 @@ case $build in
 esac
 
 # This is aimed to mimic bootstrap with a non-GCC compiler to catch problems.
-if test "$GCC" = yes; then
+if test "$GCC" = yes -a "$ENABLE_BUILD_WITH_CXX" != yes; then
   saved_CFLAGS="$CFLAGS"
 
   # Pass -fkeep-inline-functions for stage 1 if the GCC version supports it.

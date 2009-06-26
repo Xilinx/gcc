@@ -284,6 +284,8 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
     builtin_define ("_ARCH_PWR6X");
   if (! TARGET_POWER && ! TARGET_POWER2 && ! TARGET_POWERPC)
     builtin_define ("_ARCH_COM");
+  if (TARGET_POPCNTD)
+    builtin_define ("_ARCH_PWR7");
   if (TARGET_ALTIVEC)
     {
       builtin_define ("__ALTIVEC__");
@@ -326,6 +328,8 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
   /* Used by libstdc++.  */
   if (TARGET_NO_LWSYNC)
     builtin_define ("__NO_LWSYNC__");
+  if (TARGET_VSX)
+    builtin_define ("__VSX__");
 
   /* May be overridden by target configuration.  */
   RS6000_CPU_CPP_ENDIAN_BUILTINS();
@@ -3001,7 +3005,8 @@ altivec_build_resolved_builtin (tree *args, int n,
    support Altivec's overloaded builtins.  */
 
 tree
-altivec_resolve_overloaded_builtin (tree fndecl, void *passed_arglist)
+altivec_resolve_overloaded_builtin (location_t loc, tree fndecl,
+				    void *passed_arglist)
 {
   VEC(tree,gc) *arglist = (VEC(tree,gc) *) passed_arglist;
   unsigned int nargs = VEC_length (tree, arglist);
@@ -3113,11 +3118,11 @@ altivec_resolve_overloaded_builtin (tree fndecl, void *passed_arglist)
 	goto bad; 
       /* Build *(((arg1_inner_type*)&(vector type){arg1})+arg2). */
       arg1_inner_type = TREE_TYPE (arg1_type);
-      arg2 = build_binary_op (input_location, BIT_AND_EXPR, arg2,
+      arg2 = build_binary_op (loc, BIT_AND_EXPR, arg2,
 			      build_int_cst (TREE_TYPE (arg2),
 					     TYPE_VECTOR_SUBPARTS (arg1_type)
 					     - 1), 0);
-      decl = build_decl (VAR_DECL, NULL_TREE, arg1_type);
+      decl = build_decl (loc, VAR_DECL, NULL_TREE, arg1_type);
       DECL_EXTERNAL (decl) = 0;
       TREE_PUBLIC (decl) = 0;
       DECL_CONTEXT (decl) = current_function_decl;
@@ -3127,15 +3132,15 @@ altivec_resolve_overloaded_builtin (tree fndecl, void *passed_arglist)
       DECL_INITIAL (decl) = arg1;
       stmt = build1 (DECL_EXPR, arg1_type, decl);
       TREE_ADDRESSABLE (decl) = 1;
-      SET_EXPR_LOCATION (stmt, input_location);
+      SET_EXPR_LOCATION (stmt, loc);
       stmt = build1 (COMPOUND_LITERAL_EXPR, arg1_type, stmt);
 
       innerptrtype = build_pointer_type (arg1_inner_type);
 
-      stmt = build_unary_op (input_location, ADDR_EXPR, stmt, 0);
+      stmt = build_unary_op (loc, ADDR_EXPR, stmt, 0);
       stmt = convert (innerptrtype, stmt);
-      stmt = build_binary_op (input_location, PLUS_EXPR, stmt, arg2, 1);
-      stmt = build_indirect_ref (input_location, stmt, NULL);
+      stmt = build_binary_op (loc, PLUS_EXPR, stmt, arg2, 1);
+      stmt = build_indirect_ref (loc, stmt, NULL);
 
       return stmt;
     }
@@ -3169,11 +3174,11 @@ altivec_resolve_overloaded_builtin (tree fndecl, void *passed_arglist)
 	goto bad; 
       /* Build *(((arg1_inner_type*)&(vector type){arg1})+arg2) = arg0. */
       arg1_inner_type = TREE_TYPE (arg1_type);
-      arg2 = build_binary_op (input_location, BIT_AND_EXPR, arg2,
+      arg2 = build_binary_op (loc, BIT_AND_EXPR, arg2,
 			      build_int_cst (TREE_TYPE (arg2),
 					     TYPE_VECTOR_SUBPARTS (arg1_type)
 					     - 1), 0);
-      decl = build_decl (VAR_DECL, NULL_TREE, arg1_type);
+      decl = build_decl (loc, VAR_DECL, NULL_TREE, arg1_type);
       DECL_EXTERNAL (decl) = 0;
       TREE_PUBLIC (decl) = 0;
       DECL_CONTEXT (decl) = current_function_decl;
@@ -3183,15 +3188,15 @@ altivec_resolve_overloaded_builtin (tree fndecl, void *passed_arglist)
       DECL_INITIAL (decl) = arg1;
       stmt = build1 (DECL_EXPR, arg1_type, decl);
       TREE_ADDRESSABLE (decl) = 1;
-      SET_EXPR_LOCATION (stmt, input_location);
+      SET_EXPR_LOCATION (stmt, loc);
       stmt = build1 (COMPOUND_LITERAL_EXPR, arg1_type, stmt);
 
       innerptrtype = build_pointer_type (arg1_inner_type);
 
-      stmt = build_unary_op (input_location, ADDR_EXPR, stmt, 0);
+      stmt = build_unary_op (loc, ADDR_EXPR, stmt, 0);
       stmt = convert (innerptrtype, stmt);
-      stmt = build_binary_op (input_location, PLUS_EXPR, stmt, arg2, 1);
-      stmt = build_indirect_ref (input_location, stmt, NULL);
+      stmt = build_binary_op (loc, PLUS_EXPR, stmt, arg2, 1);
+      stmt = build_indirect_ref (loc, stmt, NULL);
       stmt = build2 (MODIFY_EXPR, TREE_TYPE (stmt), stmt,
 		     convert (TREE_TYPE (stmt), arg0));
       stmt = build2 (COMPOUND_EXPR, arg1_type, stmt, decl);

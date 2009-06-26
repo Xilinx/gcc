@@ -520,7 +520,7 @@ __gnat_try_lock (char *dir, char *file)
 {
   char full_path[256];
   char temp_file[256];
-  struct stat stat_result;
+  STRUCT_STAT stat_result;
   int fd;
 
   sprintf (full_path, "%s%c%s", dir, DIR_SEPARATOR, file);
@@ -775,7 +775,7 @@ __gnat_fopen (char *path, char *mode, int encoding ATTRIBUTE_UNUSED)
 #elif defined (VMS)
   return decc$fopen (path, mode);
 #else
-  return fopen (path, mode);
+  return FOPEN (path, mode);
 #endif
 }
 
@@ -1019,11 +1019,15 @@ long
 __gnat_file_length (int fd)
 {
   int ret;
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  ret = fstat (fd, &statbuf);
+  ret = FSTAT (fd, &statbuf);
   if (ret || !S_ISREG (statbuf.st_mode))
     return 0;
+
+  /* st_size may be 32 bits, or 64 bits which is converted to long. We
+     don't return a useful value for files larger than 2 gigabytes in
+     either case. */
 
   return (statbuf.st_size);
 }
@@ -1034,11 +1038,15 @@ long
 __gnat_named_file_length (char *name)
 {
   int ret;
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
   ret = __gnat_stat (name, &statbuf);
   if (ret || !S_ISREG (statbuf.st_mode))
     return 0;
+
+  /* st_size may be 32 bits, or 64 bits which is converted to long. We
+     don't return a useful value for files larger than 2 gigabytes in
+     either case. */
 
   return (statbuf.st_size);
 }
@@ -1261,7 +1269,7 @@ __gnat_file_time_name (char *name)
     }
   return (OS_Time) ret;
 #else
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
   if (__gnat_stat (name, &statbuf) != 0) {
      return (OS_Time)-1;
   } else {
@@ -1353,9 +1361,9 @@ __gnat_file_time_fd (int fd)
   return (OS_Time) ret;
 
 #else
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  if (fstat (fd, &statbuf) != 0) {
+  if (FSTAT (fd, &statbuf) != 0) {
      return (OS_Time) -1;
   } else {
 #ifdef VMS
@@ -1643,7 +1651,7 @@ __gnat_get_libraries_from_registry (void)
 }
 
 int
-__gnat_stat (char *name, struct stat *statbuf)
+__gnat_stat (char *name, STRUCT_STAT *statbuf)
 {
 #ifdef __MINGW32__
   /* Under Windows the directory name for the stat function must not be
@@ -1675,7 +1683,7 @@ __gnat_stat (char *name, struct stat *statbuf)
   return _tstat (wname, (struct _stat *)statbuf);
 
 #else
-  return stat (name, statbuf);
+  return STAT (name, statbuf);
 #endif
 }
 
@@ -1691,7 +1699,7 @@ __gnat_file_exists (char *name)
   S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
   return GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES;
 #else
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
   return !__gnat_stat (name, &statbuf);
 #endif
@@ -1736,7 +1744,7 @@ int
 __gnat_is_regular_file (char *name)
 {
   int ret;
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
   ret = __gnat_stat (name, &statbuf);
   return (!ret && S_ISREG (statbuf.st_mode));
@@ -1746,7 +1754,7 @@ int
 __gnat_is_directory (char *name)
 {
   int ret;
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
   ret = __gnat_stat (name, &statbuf);
   return (!ret && S_ISDIR (statbuf.st_mode));
@@ -1964,9 +1972,9 @@ __gnat_is_readable_file (char *name)
 #else
   int ret;
   int mode;
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  ret = stat (name, &statbuf);
+  ret = STAT (name, &statbuf);
   mode = statbuf.st_mode & S_IRUSR;
   return (!ret && mode);
 #endif
@@ -1996,9 +2004,9 @@ __gnat_is_writable_file (char *name)
 #else
   int ret;
   int mode;
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  ret = stat (name, &statbuf);
+  ret = STAT (name, &statbuf);
   mode = statbuf.st_mode & S_IWUSR;
   return (!ret && mode);
 #endif
@@ -2023,13 +2031,12 @@ __gnat_is_executable_file (char *name)
   else
     return GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES
       && _tcsstr (wname, _T(".exe")) - wname == (int) (_tcslen (wname) - 4);
-
 #else
   int ret;
   int mode;
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  ret = stat (name, &statbuf);
+  ret = STAT (name, &statbuf);
   mode = statbuf.st_mode & S_IXUSR;
   return (!ret && mode);
 #endif
@@ -2049,9 +2056,9 @@ __gnat_set_writable (char *name)
   SetFileAttributes
     (wname, GetFileAttributes (wname) & ~FILE_ATTRIBUTE_READONLY);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode | S_IWUSR;
       chmod (name, statbuf.st_mode);
@@ -2071,9 +2078,9 @@ __gnat_set_executable (char *name)
     __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_EXECUTE);
 
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode | S_IXUSR;
       chmod (name, statbuf.st_mode);
@@ -2098,9 +2105,9 @@ __gnat_set_non_writable (char *name)
   SetFileAttributes
     (wname, GetFileAttributes (wname) | FILE_ATTRIBUTE_READONLY);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode & 07577;
       chmod (name, statbuf.st_mode);
@@ -2120,9 +2127,9 @@ __gnat_set_readable (char *name)
     __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_READ);
 
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (STAT (name, &statbuf) == 0)
     {
       chmod (name, statbuf.st_mode | S_IREAD);
     }
@@ -2141,9 +2148,9 @@ __gnat_set_non_readable (char *name)
     __gnat_set_OWNER_ACL (wname, DENY_ACCESS, FILE_GENERIC_READ);
 
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (STAT (name, &statbuf) == 0)
     {
       chmod (name, statbuf.st_mode & (~S_IREAD));
     }
@@ -2158,9 +2165,9 @@ __gnat_is_symbolic_link (char *name ATTRIBUTE_UNUSED)
 
 #elif defined (_AIX) || defined (__APPLE__) || defined (__unix__)
   int ret;
-  struct stat statbuf;
+  STRUCT_STAT statbuf;
 
-  ret = lstat (name, &statbuf);
+  ret = LSTAT (name, &statbuf);
   return (!ret && S_ISLNK (statbuf.st_mode));
 
 #else
@@ -3427,10 +3434,10 @@ __gnat_copy_attribs (char *from, char *to, int mode)
   return 0;
 
 #else
-  struct stat fbuf;
+  STRUCT_STAT fbuf;
   struct utimbuf tbuf;
 
-  if (stat (from, &fbuf) == -1)
+  if (STAT (from, &fbuf) == -1)
     {
       return -1;
     }

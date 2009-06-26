@@ -508,7 +508,7 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 	  pp_space (buffer);
         }
-      dump_generic_node (buffer, gimple_call_fn (gs), spc, flags, false);
+      print_call_name (buffer, gimple_call_fn (gs), flags);
       pp_string (buffer, " (");
       dump_gimple_call_args (buffer, gs, flags);
       pp_character (buffer, ')');
@@ -1379,6 +1379,8 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
 	  pp_string (buffer, " : ");
 	}
       pp_decimal_int (buffer, xloc.line);
+      pp_string (buffer, ":");
+      pp_decimal_int (buffer, xloc.column);
       pp_string (buffer, "] ");
     }
 
@@ -1558,6 +1560,12 @@ dump_bb_header (pretty_printer *buffer, basic_block bb, int indent, int flags)
 		pp_decimal_int (buffer, get_lineno (gsi_stmt (gsi)));
 		break;
 	      }
+
+          if (bb->discriminator)
+            {
+              pp_string (buffer, ", discriminator ");
+	      pp_decimal_int (buffer, bb->discriminator);
+            }
 	}
       newline_and_indent (buffer, indent);
 
@@ -1724,6 +1732,8 @@ dump_implicit_edges (pretty_printer *buffer, basic_block bb, int indent,
 	      pp_string (buffer, " : ");
 	    }
 	  pp_decimal_int (buffer, goto_xloc.line);
+	  pp_string (buffer, " : ");
+	  pp_decimal_int (buffer, goto_xloc.column);
 	  pp_string (buffer, "] ");
 	}
 

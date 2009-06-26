@@ -128,7 +128,8 @@ build_memfn_type (tree fntype, tree ctype, cp_cv_quals quals)
 tree
 cp_build_parm_decl (tree name, tree type)
 {
-  tree parm = build_decl (PARM_DECL, name, type);
+  tree parm = build_decl (input_location,
+			  PARM_DECL, name, type);
   /* DECL_ARG_TYPE is only used by the back end and the back end never
      sees templates.  */
   if (!processing_template_decl)
@@ -350,7 +351,7 @@ grok_array_decl (tree array_expr, tree index_exp)
       if (array_expr == error_mark_node || index_exp == error_mark_node)
 	error ("ambiguous conversion for array subscript");
 
-      expr = build_array_ref (array_expr, index_exp, input_location);
+      expr = build_array_ref (input_location, array_expr, index_exp);
     }
   if (processing_template_decl && expr != error_mark_node)
     return build_min_non_dep (ARRAY_REF, expr, orig_array_expr, orig_index_exp,
@@ -997,7 +998,7 @@ grokbitfield (const cp_declarator *declarator,
       error ("static member %qD cannot be a bit-field", value);
       return NULL_TREE;
     }
-  finish_decl (value, NULL_TREE, NULL_TREE, NULL_TREE);
+  cp_finish_decl (value, NULL_TREE, false, NULL_TREE, 0);
 
   if (width != error_mark_node)
     {
@@ -1283,7 +1284,8 @@ build_anon_union_vars (tree type, tree object)
 	{
 	  tree base;
 
-	  decl = build_decl (VAR_DECL, DECL_NAME (field), TREE_TYPE (field));
+	  decl = build_decl (input_location,
+			     VAR_DECL, DECL_NAME (field), TREE_TYPE (field));
 	  DECL_ANON_UNION_VAR_P (decl) = 1;
 
 	  base = get_base_address (object);
@@ -1504,7 +1506,7 @@ void
 comdat_linkage (tree decl)
 {
   if (flag_weak)
-    make_decl_one_only (decl);
+    make_decl_one_only (decl, cxx_comdat_group (decl));
   else if (TREE_CODE (decl) == FUNCTION_DECL
 	   || (TREE_CODE (decl) == VAR_DECL && DECL_ARTIFICIAL (decl)))
     /* We can just emit function and compiler-generated variables
@@ -1576,7 +1578,7 @@ maybe_make_one_only (tree decl)
       || (! DECL_EXPLICIT_INSTANTIATION (decl)
 	  && ! DECL_TEMPLATE_SPECIALIZATION (decl)))
     {
-      make_decl_one_only (decl);
+      make_decl_one_only (decl, cxx_comdat_group (decl));
 
       if (TREE_CODE (decl) == VAR_DECL)
 	{
@@ -1839,7 +1841,7 @@ constrain_visibility (tree decl, int visibility)
       if (!DECL_EXTERN_C_P (decl))
 	{
 	  TREE_PUBLIC (decl) = 0;
-	  DECL_ONE_ONLY (decl) = 0;
+	  DECL_COMDAT_GROUP (decl) = NULL_TREE;
 	  DECL_INTERFACE_KNOWN (decl) = 1;
 	  if (DECL_LANG_SPECIFIC (decl))
 	    DECL_NOT_REALLY_EXTERN (decl) = 1;
@@ -2491,13 +2493,14 @@ get_guard (tree decl)
       /* We use a type that is big enough to contain a mutex as well
 	 as an integer counter.  */
       guard_type = targetm.cxx.guard_type ();
-      guard = build_decl (VAR_DECL, sname, guard_type);
+      guard = build_decl (DECL_SOURCE_LOCATION (decl),
+			  VAR_DECL, sname, guard_type);
 
       /* The guard should have the same linkage as what it guards.  */
       TREE_PUBLIC (guard) = TREE_PUBLIC (decl);
       TREE_STATIC (guard) = TREE_STATIC (decl);
       DECL_COMMON (guard) = DECL_COMMON (decl);
-      DECL_ONE_ONLY (guard) = DECL_ONE_ONLY (decl);
+      DECL_COMDAT_GROUP (guard) = DECL_COMDAT_GROUP (decl);
       if (TREE_PUBLIC (decl))
 	DECL_WEAK (guard) = DECL_WEAK (decl);
       DECL_VISIBILITY (guard) = DECL_VISIBILITY (decl);
@@ -3861,9 +3864,10 @@ mark_used (tree decl)
     {
       error ("deleted function %q+D", decl);
       error ("used here");
+      return;
     }
   /* If we don't need a value, then we don't need to synthesize DECL.  */
-  if (skip_evaluation)
+  if (cp_unevaluated_operand != 0)
     return;
 
   /* If within finish_function, defer the rest until that function

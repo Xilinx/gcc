@@ -60,6 +60,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_POPCNT	OPTION_ISA_POPCNT
 #define TARGET_SAHF	OPTION_ISA_SAHF
 #define TARGET_MOVBE	OPTION_ISA_MOVBE
+#define TARGET_CRC32	OPTION_ISA_CRC32
 #define TARGET_AES	OPTION_ISA_AES
 #define TARGET_PCLMUL	OPTION_ISA_PCLMUL
 #define TARGET_CMPXCHG16B OPTION_ISA_CX16
@@ -1497,6 +1498,7 @@ enum reg_class
    || ((CLASS) == AD_REGS)						\
    || ((CLASS) == SIREG)						\
    || ((CLASS) == DIREG)						\
+   || ((CLASS) == SSE_FIRST_REG)					\
    || ((CLASS) == FP_TOP_REG)						\
    || ((CLASS) == FP_SECOND_REG))
 
@@ -1853,20 +1855,22 @@ typedef struct ix86_args {
 
 /* Abi specific values for REGPARM_MAX and SSE_REGPARM_MAX */
 #define X86_64_REGPARM_MAX 6
-#define X64_REGPARM_MAX 4
+#define X86_64_MS_REGPARM_MAX 4
+
 #define X86_32_REGPARM_MAX 3
 
-#define X86_64_SSE_REGPARM_MAX 8
-#define X64_SSE_REGPARM_MAX 4
-#define X86_32_SSE_REGPARM_MAX (TARGET_SSE ? 3 : 0)
-
 #define REGPARM_MAX							\
-  (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X64_REGPARM_MAX		\
+  (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X86_64_MS_REGPARM_MAX		\
 		   : X86_64_REGPARM_MAX)				\
    : X86_32_REGPARM_MAX)
 
+#define X86_64_SSE_REGPARM_MAX 8
+#define X86_64_MS_SSE_REGPARM_MAX 4
+
+#define X86_32_SSE_REGPARM_MAX (TARGET_SSE ? 3 : 0)
+
 #define SSE_REGPARM_MAX							\
-  (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X64_SSE_REGPARM_MAX		\
+  (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X86_64_MS_SSE_REGPARM_MAX	\
 		   : X86_64_SSE_REGPARM_MAX)				\
    : X86_32_SSE_REGPARM_MAX)
 
@@ -2395,7 +2399,7 @@ enum ix86_stack_slot
 
 /* Machine specific CFA tracking during prologue/epilogue generation.  */
 
-#if !defined(IN_LIBGCC2) && !defined(IN_TARGET_LIBS)
+#ifndef USED_FOR_TARGET
 struct GTY(()) machine_cfa_state
 {
   rtx reg;

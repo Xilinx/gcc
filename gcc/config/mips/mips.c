@@ -565,7 +565,7 @@ const enum reg_class mips_regno_to_class[FIRST_PSEUDO_REGISTER] = {
 };
 
 /* The value of TARGET_ATTRIBUTE_TABLE.  */
-const struct attribute_spec mips_attribute_table[] = {
+static const struct attribute_spec mips_attribute_table[] = {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
   { "long_call",   0, 0, false, true,  true,  NULL },
   { "far",     	   0, 0, false, true,  true,  NULL },
@@ -1327,7 +1327,7 @@ mips_merge_decl_attributes (tree olddecl, tree newdecl)
 static void
 mips_split_plus (rtx x, rtx *base_ptr, HOST_WIDE_INT *offset_ptr)
 {
-  if (GET_CODE (x) == PLUS && GET_CODE (XEXP (x, 1)) == CONST_INT)
+  if (GET_CODE (x) == PLUS && CONST_INT_P (XEXP (x, 1)))
     {
       *base_ptr = XEXP (x, 0);
       *offset_ptr = INTVAL (XEXP (x, 1));
@@ -1921,7 +1921,7 @@ mips_cannot_force_const_mem (rtx x)
      references, reload will consider forcing C into memory and using
      one of the instruction's memory alternatives.  Returning false
      here will force it to use an input reload instead.  */
-  if (GET_CODE (x) == CONST_INT && LEGITIMATE_CONSTANT_P (x))
+  if (CONST_INT_P (x) && LEGITIMATE_CONSTANT_P (x))
     return true;
 
   split_const (x, &base, &offset);
@@ -2153,7 +2153,7 @@ mips_lwxs_address_p (rtx addr)
       rtx offset = XEXP (addr, 0);
       if (GET_CODE (offset) == MULT
 	  && REG_P (XEXP (offset, 0))
-	  && GET_CODE (XEXP (offset, 1)) == CONST_INT
+	  && CONST_INT_P (XEXP (offset, 1))
 	  && INTVAL (XEXP (offset, 1)) == 4)
 	return true;
     }
@@ -3068,7 +3068,7 @@ mips_rewrite_small_data (rtx pattern)
 static int
 m16_check_op (rtx op, int low, int high, int mask)
 {
-  return (GET_CODE (op) == CONST_INT
+  return (CONST_INT_P (op)
 	  && IN_RANGE (INTVAL (op), low, high)
 	  && (INTVAL (op) & mask) == 0);
 }
@@ -4108,7 +4108,7 @@ mips_canonicalize_int_order_test (enum rtx_code *code, rtx *cmp1,
   if (mips_int_order_operand_ok_p (*code, *cmp1))
     return true;
 
-  if (GET_CODE (*cmp1) == CONST_INT)
+  if (CONST_INT_P (*cmp1))
     switch (*code)
       {
       case LE:
@@ -5160,22 +5160,28 @@ mips_build_builtin_va_list (void)
 
       record = lang_hooks.types.make_type (RECORD_TYPE);
 
-      f_ovfl = build_decl (FIELD_DECL, get_identifier ("__overflow_argptr"),
+      f_ovfl = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__overflow_argptr"),
 			   ptr_type_node);
-      f_gtop = build_decl (FIELD_DECL, get_identifier ("__gpr_top"),
+      f_gtop = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__gpr_top"),
 			   ptr_type_node);
-      f_ftop = build_decl (FIELD_DECL, get_identifier ("__fpr_top"),
+      f_ftop = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__fpr_top"),
 			   ptr_type_node);
-      f_goff = build_decl (FIELD_DECL, get_identifier ("__gpr_offset"),
+      f_goff = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__gpr_offset"),
 			   unsigned_char_type_node);
-      f_foff = build_decl (FIELD_DECL, get_identifier ("__fpr_offset"),
+      f_foff = build_decl (BUILTINS_LOCATION,
+			   FIELD_DECL, get_identifier ("__fpr_offset"),
 			   unsigned_char_type_node);
       /* Explicitly pad to the size of a pointer, so that -Wpadded won't
 	 warn on every user file.  */
       index = build_int_cst (NULL_TREE, GET_MODE_SIZE (ptr_mode) - 2 - 1);
       array = build_array_type (unsigned_char_type_node,
 			        build_index_type (index));
-      f_res = build_decl (FIELD_DECL, get_identifier ("__reserved"), array);
+      f_res = build_decl (BUILTINS_LOCATION,
+			  FIELD_DECL, get_identifier ("__reserved"), array);
 
       DECL_FIELD_CONTEXT (f_ovfl) = record;
       DECL_FIELD_CONTEXT (f_gtop) = record;
@@ -5749,10 +5755,12 @@ mips16_build_function_stub (void)
   stubname = ACONCAT (("__fn_stub_", fnname, NULL));
 
   /* Build a decl for the stub.  */
-  stubdecl = build_decl (FUNCTION_DECL, get_identifier (stubname),
+  stubdecl = build_decl (BUILTINS_LOCATION,
+			 FUNCTION_DECL, get_identifier (stubname),
 			 build_function_type (void_type_node, NULL_TREE));
   DECL_SECTION_NAME (stubdecl) = build_string (strlen (secname), secname);
-  DECL_RESULT (stubdecl) = build_decl (RESULT_DECL, NULL_TREE, void_type_node);
+  DECL_RESULT (stubdecl) = build_decl (BUILTINS_LOCATION,
+				       RESULT_DECL, NULL_TREE, void_type_node);
 
   /* Output a comment.  */
   fprintf (asm_out_file, "\t# Stub function for %s (",
@@ -5993,10 +6001,12 @@ mips16_build_call_stub (rtx retval, rtx *fn_ptr, rtx args_size, int fp_code)
       stubname = ACONCAT (("__call_stub_", fp_ret_p ? "fp_" : "",
 			   fnname, NULL));
       stubid = get_identifier (stubname);
-      stubdecl = build_decl (FUNCTION_DECL, stubid,
+      stubdecl = build_decl (BUILTINS_LOCATION,
+			     FUNCTION_DECL, stubid,
 			     build_function_type (void_type_node, NULL_TREE));
       DECL_SECTION_NAME (stubdecl) = build_string (strlen (secname), secname);
-      DECL_RESULT (stubdecl) = build_decl (RESULT_DECL, NULL_TREE,
+      DECL_RESULT (stubdecl) = build_decl (BUILTINS_LOCATION,
+					   RESULT_DECL, NULL_TREE,
 					   void_type_node);
 
       /* Output a comment.  */
@@ -6439,7 +6449,7 @@ mips_block_move_loop (rtx dest, rtx src, HOST_WIDE_INT length,
 bool
 mips_expand_block_move (rtx dest, rtx src, rtx length)
 {
-  if (GET_CODE (length) == CONST_INT)
+  if (CONST_INT_P (length))
     {
       if (INTVAL (length) <= MIPS_MAX_MOVE_BYTES_STRAIGHT)
 	{
@@ -7194,28 +7204,28 @@ mips_print_operand (FILE *file, rtx op, int letter)
   switch (letter)
     {
     case 'X':
-      if (GET_CODE (op) == CONST_INT)
+      if (CONST_INT_P (op))
 	fprintf (file, HOST_WIDE_INT_PRINT_HEX, INTVAL (op));
       else
 	output_operand_lossage ("invalid use of '%%%c'", letter);
       break;
 
     case 'x':
-      if (GET_CODE (op) == CONST_INT)
+      if (CONST_INT_P (op))
 	fprintf (file, HOST_WIDE_INT_PRINT_HEX, INTVAL (op) & 0xffff);
       else
 	output_operand_lossage ("invalid use of '%%%c'", letter);
       break;
 
     case 'd':
-      if (GET_CODE (op) == CONST_INT)
+      if (CONST_INT_P (op))
 	fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (op));
       else
 	output_operand_lossage ("invalid use of '%%%c'", letter);
       break;
 
     case 'm':
-      if (GET_CODE (op) == CONST_INT)
+      if (CONST_INT_P (op))
 	fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (op) - 1);
       else
 	output_operand_lossage ("invalid use of '%%%c'", letter);
@@ -9398,7 +9408,7 @@ mips_emit_loadgp (void)
 static int
 mips_kernel_reg_p (rtx *x, void *data ATTRIBUTE_UNUSED)
 {
-  return GET_CODE (*x) == REG && KERNEL_REG_P (REGNO (*x));
+  return REG_P (*x) && KERNEL_REG_P (REGNO (*x));
 }
 
 /* Expand the "prologue" pattern.  */
@@ -14710,7 +14720,7 @@ mips_epilogue_uses (unsigned int regno)
 static int
 mips_at_reg_p (rtx *x, void *data ATTRIBUTE_UNUSED)
 {
-  return GET_CODE (*x) == REG && REGNO (*x) == AT_REGNUM;
+  return REG_P (*x) && REGNO (*x) == AT_REGNUM;
 }
 
 

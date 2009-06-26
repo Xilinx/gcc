@@ -67,6 +67,7 @@ package Prj is
      (Unspecified,
       Standard,
       Library,
+      Configuration,
       Dry,
       Aggregate,
       Aggregate_Library);
@@ -77,6 +78,7 @@ package Prj is
    --    Dry:                  abstract project is
    --    Aggregate:            aggregate project is
    --    Aggregate_Library:    aggregate library project is ...
+   --    Configuration:        configuration project is ...
 
    function Get_Mode return Mode;
    pragma Inline (Get_Mode);
@@ -305,6 +307,12 @@ package Prj is
    No_Language_Index : constant Language_Ptr := null;
    --  Constant indicating that there is no language data
 
+   function Get_Language_From_Name
+     (Project : Project_Id;
+      Name    : String) return Language_Ptr;
+   --  Get a language from a project. This might return null if no such
+   --  language exists in the project
+
    Max_Header_Num : constant := 6150;
    type Header_Num is range 0 .. Max_Header_Num;
    --  Size for hash table below. The upper bound is an arbitrary value, the
@@ -390,6 +398,16 @@ package Prj is
    type Source_Data;
    type Source_Id is access all Source_Data;
 
+   function Is_Compilable (Source : Source_Id) return Boolean;
+   pragma Inline (Is_Compilable);
+   --  Return True if we know how to compile Source (i.e. if a compiler is
+   --  defined). This doesn't indicate whether the source should be compiled.
+
+   function Other_Part (Source : Source_Id) return Source_Id;
+   pragma Inline (Other_Part);
+   --  Source ID for the other part, if any: for a spec, indicates its body;
+   --  for a body, indicates its spec.
+
    No_Source : constant Source_Id := null;
 
    type Path_Syntax_Kind is
@@ -419,15 +437,25 @@ package Prj is
       Compiler_Driver_Path : String_Access := null;
       --  The path name of the executable for the compiler of the language
 
-      Compiler_Required_Switches : Name_List_Index := No_Name_List;
-      --  The list of switches that are required as a minimum to invoke the
-      --  compiler driver.
+      Compiler_Leading_Required_Switches : Name_List_Index := No_Name_List;
+      --  The list of initial switches that are required as a minimum to invoke
+      --  the compiler driver.
+
+      Compiler_Trailing_Required_Switches : Name_List_Index := No_Name_List;
+      --  The list of final switches that are required as a minimum to invoke
+      --  the compiler driver.
 
       Path_Syntax                  : Path_Syntax_Kind := Host;
       --  Value may be Canonical (Unix style) or Host (host syntax, for example
       --  on VMS for DEC C).
 
-      Object_File_Suffix : Name_Id := No_Name;
+      Object_File_Suffix                 : Name_Id := No_Name;
+      --  Optional alternate object file suffix
+
+      Object_File_Switches               : Name_List_Index := No_Name_List;
+      --  Optional object file switches. When this is defined, the switches
+      --  are used to specify the object file. The object file name is appended
+      --  to the last switch in the list. Example: ("-o", "").
 
       Compilation_PIC_Option : Name_List_Index := No_Name_List;
       --  The option(s) to compile a source in Position Independent Code for
@@ -543,9 +571,11 @@ package Prj is
                            Include_Compatible_Languages => No_Name_List,
                            Compiler_Driver              => No_File,
                            Compiler_Driver_Path         => null,
-                           Compiler_Required_Switches   => No_Name_List,
+                           Compiler_Leading_Required_Switches  => No_Name_List,
+                           Compiler_Trailing_Required_Switches => No_Name_List,
                            Path_Syntax                  => Canonical,
                            Object_File_Suffix           => No_Name,
+                           Object_File_Switches         => No_Name_List,
                            Compilation_PIC_Option       => No_Name_List,
                            Object_Generated             => True,
                            Objects_Linked               => True,
@@ -601,134 +631,126 @@ package Prj is
    end record;
 
    type Source_Kind is (Spec, Impl, Sep);
+   subtype Spec_Or_Body is Source_Kind range Spec .. Impl;
+
+   type File_Names_Data is array (Spec_Or_Body) of Source_Id;
+   type Unit_Data is record
+      Name       : Name_Id := No_Name;
+      File_Names : File_Names_Data;
+   end record;
+   type Unit_Index is access Unit_Data;
+   No_Unit_Index : constant Unit_Index := null;
+   --  Name and File and Path names of a unit, with a reference to its
+   --  GNAT Project File(s).
 
    type Source_Data is record
-      Project             : Project_Id            := No_Project;
+      Project                : Project_Id          := No_Project;
       --  Project of the source
 
-      Language            : Language_Ptr        := No_Language_Index;
+      Language               : Language_Ptr        := No_Language_Index;
       --  Index of the language. This is an index into
       --  Project_Tree.Languages_Data.
 
-      Lang_Kind           : Language_Kind         := File_Based;
-      --  Kind of the language
-
-      Compiled            : Boolean               := True;
-      --  False when there is no compiler for the language
-
-      In_Interfaces       : Boolean               := True;
+      In_Interfaces          : Boolean             := True;
       --  False when the source is not included in interfaces, when attribute
       --  Interfaces is declared.
 
-      Declared_In_Interfaces : Boolean            := False;
+      Declared_In_Interfaces : Boolean             := False;
       --  True when source is declared in attribute Interfaces
 
-      Alternate_Languages : Language_List;
+      Alternate_Languages    : Language_List;
       --  List of languages a header file may also be, in addition of language
       --  Language_Name.
 
-      Kind                : Source_Kind           := Spec;
+      Kind                   : Source_Kind         := Spec;
       --  Kind of the source: spec, body or subunit
 
-      Dependency          : Dependency_File_Kind  := None;
-      --  Kind of dependency: none, Makefile fragment or ALI file
-
-      Other_Part          : Source_Id             := No_Source;
-      --  Source ID for the other part, if any: for a spec, indicates its body;
-      --  for a body, indicates its spec.
-
-      Unit                : Name_Id               := No_Name;
+      Unit                   : Unit_Index          := No_Unit_Index;
       --  Name of the unit, if language is unit based
 
-      Index               : Int                   := 0;
-      --  Index of the source in a multi unit source file
+      Index                  : Int                 := 0;
+      --  Index of the source in a multi unit source file (the same Source_Data
+      --  is duplicated several times when there are several units in the same
+      --  file). Index is 0 if there is either no unit or a single one, and
+      --  starts at 1 when there are multiple units
 
-      Locally_Removed     : Boolean               := False;
+      Locally_Removed        : Boolean             := False;
       --  True if the source has been "excluded"
 
-      Get_Object          : Boolean               := False;
+      Get_Object             : Boolean             := False;
       --  Indicates that the object of the source should be put in the global
       --  archive. This is for Ada, when only the closure of a main needs to
       --  be compiled/recompiled.
 
-      Replaced_By         : Source_Id             := No_Source;
+      Replaced_By            : Source_Id           := No_Source;
 
-      File                : File_Name_Type        := No_File;
+      File                   : File_Name_Type      := No_File;
       --  Canonical file name of the source
 
-      Display_File        : File_Name_Type        := No_File;
+      Display_File           : File_Name_Type      := No_File;
       --  File name of the source, for display purposes
 
-      Path                : Path_Information      := No_Path_Information;
+      Path                   : Path_Information    := No_Path_Information;
       --  Path name of the source
+      --  Path.Name is set to Slash for an excluded file that does not belong
+      --  in the project in fact
 
-      Source_TS           : Time_Stamp_Type       := Empty_Time_Stamp;
+      Source_TS              : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Time stamp of the source file
 
-      Object_Project      : Project_Id            := No_Project;
+      Object_Project         : Project_Id          := No_Project;
       --  Project where the object file is. This might be different from
       --  Project when using extending project files.
 
-      Object_Exists       : Boolean               := True;
-      --  True if an object file exists
-
-      Object_Linked          : Boolean            := True;
-      --  False if the object file is not use to link executables or included
-      --  in libraries.
-
-      Object              : File_Name_Type        := No_File;
+      Object                 : File_Name_Type      := No_File;
       --  File name of the object file
 
-      Current_Object_Path : Path_Name_Type        := No_Path;
+      Current_Object_Path    : Path_Name_Type      := No_Path;
       --  Object path of an existing object file
 
-      Object_Path         : Path_Name_Type        := No_Path;
+      Object_Path            : Path_Name_Type      := No_Path;
       --  Object path of the real object file
 
-      Object_TS           : Time_Stamp_Type       := Empty_Time_Stamp;
+      Object_TS              : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Object file time stamp
 
-      Dep_Name            : File_Name_Type        := No_File;
+      Dep_Name               : File_Name_Type      := No_File;
       --  Dependency file simple name
 
-      Current_Dep_Path    : Path_Name_Type        := No_Path;
+      Current_Dep_Path       : Path_Name_Type      := No_Path;
       --  Path name of an existing dependency file
 
-      Dep_Path            : Path_Name_Type        := No_Path;
+      Dep_Path               : Path_Name_Type      := No_Path;
       --  Path name of the real dependency file
 
-      Dep_TS              : Time_Stamp_Type       := Empty_Time_Stamp;
+      Dep_TS                 : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Dependency file time stamp
 
-      Switches            : File_Name_Type        := No_File;
+      Switches               : File_Name_Type      := No_File;
       --  File name of the switches file. For all languages, this is a file
       --  that ends with the .cswi extension.
 
-      Switches_Path       : Path_Name_Type        := No_Path;
+      Switches_Path          : Path_Name_Type      := No_Path;
       --  Path name of the switches file
 
-      Switches_TS         : Time_Stamp_Type       := Empty_Time_Stamp;
+      Switches_TS            : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Switches file time stamp
 
-      Naming_Exception    : Boolean               := False;
+      Naming_Exception       : Boolean             := False;
       --  True if the source has an exceptional name
 
-      Next_In_Lang        : Source_Id             := No_Source;
+      Next_In_Lang           : Source_Id           := No_Source;
       --  Link to another source of the same language in the same project
    end record;
 
    No_Source_Data : constant Source_Data :=
                       (Project                => No_Project,
                        Language               => No_Language_Index,
-                       Lang_Kind              => File_Based,
-                       Compiled               => True,
                        In_Interfaces          => True,
                        Declared_In_Interfaces => False,
                        Alternate_Languages    => null,
                        Kind                   => Spec,
-                       Dependency             => None,
-                       Other_Part             => No_Source,
-                       Unit                   => No_Name,
+                       Unit                   => No_Unit_Index,
                        Index                  => 0,
                        Locally_Removed        => False,
                        Get_Object             => False,
@@ -738,8 +760,6 @@ package Prj is
                        Path                   => No_Path_Information,
                        Source_TS              => Empty_Time_Stamp,
                        Object_Project         => No_Project,
-                       Object_Exists          => True,
-                       Object_Linked          => True,
                        Object                 => No_File,
                        Current_Object_Path    => No_Path,
                        Object_Path            => No_Path,
@@ -1328,37 +1348,6 @@ package Prj is
    Project_Error : exception;
    --  Raised by some subprograms in Prj.Attr
 
-   type Spec_Or_Body is (Specification, Body_Part);
-
-   type File_Name_Data is record
-      Name         : File_Name_Type   := No_File;
-      Index        : Int              := 0;
-      Display_Name : File_Name_Type   := No_File;
-      Path         : Path_Information := No_Path_Information;
-      Project      : Project_Id       := No_Project;
-      Needs_Pragma : Boolean          := False;
-   end record;
-   --  File and Path name of a spec or body
-
-   type File_Names_Data is array (Spec_Or_Body) of File_Name_Data;
-
-   type Unit_Index is new Nat;
-   No_Unit_Index : constant Unit_Index := 0;
-   type Unit_Data is record
-      Name       : Name_Id    := No_Name;
-      File_Names : File_Names_Data;
-   end record;
-   --  Name and File and Path names of a unit, with a reference to its
-   --  GNAT Project File(s).
-
-   package Unit_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Unit_Data,
-      Table_Index_Type     => Unit_Index,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 100,
-      Table_Increment      => 100);
-   --  Table of all units in a project tree
-
    package Units_Htable is new Simple_HTable
      (Header_Num => Header_Num,
       Element    => Unit_Index,
@@ -1412,7 +1401,6 @@ package Prj is
          Arrays            : Array_Table.Instance;
          Packages          : Package_Table.Instance;
          Projects          : Project_List;
-         Units             : Unit_Table.Instance;
          Units_HT          : Units_Htable.Instance;
          Source_Paths_HT   : Source_Paths_Htable.Instance;
          Unit_Sources_HT   : Unit_Sources_Htable.Instance;

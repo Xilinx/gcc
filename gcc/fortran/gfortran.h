@@ -855,6 +855,7 @@ typedef struct gfc_component
   struct gfc_component *next;
 
   struct gfc_formal_arglist *formal;
+  struct gfc_namespace *formal_ns;
 }
 gfc_component;
 
@@ -1555,6 +1556,12 @@ gfc_intrinsic_sym;
 
 #include <gmp.h>
 #include <mpfr.h>
+#ifdef HAVE_mpc
+#include <mpc.h>
+#else
+#define mpc_realref(X) ((X).r)
+#define mpc_imagref(X) ((X).i)
+#endif
 #define GFC_RND_MODE GMP_RNDN
 #define GFC_MPC_RND_MODE MPC_RNDNN
 
@@ -1613,10 +1620,14 @@ typedef struct gfc_expr
 
     mpfr_t real;
 
+#ifdef HAVE_mpc
+    mpc_t
+#else
     struct
     {
       mpfr_t r, i;
     }
+#endif
     complex;
 
     struct
@@ -1818,7 +1829,7 @@ typedef struct
 {
   gfc_expr *unit, *file, *status, *access, *form, *recl,
     *blank, *position, *action, *delim, *pad, *iostat, *iomsg, *convert,
-    *decimal, *encoding, *round, *sign, *asynchronous, *id;
+    *decimal, *encoding, *round, *sign, *asynchronous, *id, *newunit;
   gfc_st_label *err;
 }
 gfc_open;
@@ -2249,7 +2260,6 @@ void gfc_get_errors (int *, int *);
 /* arith.c */
 void gfc_arith_init_1 (void);
 void gfc_arith_done_1 (void);
-gfc_expr *gfc_enum_initializer (gfc_expr *, locus);
 arith gfc_check_integer_range (mpz_t p, int kind);
 bool gfc_check_character_range (gfc_char_t, int);
 
@@ -2400,6 +2410,7 @@ gfc_symtree* gfc_get_tbp_symtree (gfc_symtree**, const char*);
 
 void gfc_copy_formal_args (gfc_symbol *, gfc_symbol *);
 void gfc_copy_formal_args_intr (gfc_symbol *, gfc_intrinsic_sym *);
+void gfc_copy_formal_args_ppc (gfc_component *, gfc_symbol *);
 
 void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
 
@@ -2484,7 +2495,7 @@ gfc_try gfc_specification_expr (gfc_expr *);
 int gfc_numeric_ts (gfc_typespec *);
 int gfc_kind_max (gfc_expr *, gfc_expr *);
 
-gfc_try gfc_check_conformance (const char *, gfc_expr *, gfc_expr *);
+gfc_try gfc_check_conformance (gfc_expr *, gfc_expr *, const char *, ...) ATTRIBUTE_PRINTF_3;
 gfc_try gfc_check_assign (gfc_expr *, gfc_expr *, int);
 gfc_try gfc_check_pointer_assign (gfc_expr *, gfc_expr *);
 gfc_try gfc_check_assign_symbol (gfc_symbol *, gfc_expr *);
@@ -2568,9 +2579,10 @@ gfc_try gfc_ref_dimen_size (gfc_array_ref *, int dimen, mpz_t *);
 void gfc_free_interface (gfc_interface *);
 int gfc_compare_derived_types (gfc_symbol *, gfc_symbol *);
 int gfc_compare_types (gfc_typespec *, gfc_typespec *);
-int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, int, int);
+int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, int, int, char *, int);
 void gfc_check_interfaces (gfc_namespace *);
 void gfc_procedure_use (gfc_symbol *, gfc_actual_arglist **, locus *);
+void gfc_ppc_use (gfc_component *, gfc_actual_arglist **, locus *);
 gfc_symbol *gfc_search_interface (gfc_interface *, int,
 				  gfc_actual_arglist **);
 gfc_try gfc_extend_expr (gfc_expr *);

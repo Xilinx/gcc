@@ -87,7 +87,7 @@ tree_init_ic_make_global_vars (void)
   if (flag_dyn_ipa)
     {
       ic_void_ptr_var 
-	= build_decl (VAR_DECL, 
+	= build_decl (UNKNOWN_LOCATION, VAR_DECL, 
 		      get_identifier ("__gcov_indirect_call_topn_callee"), 
 		      ptr_void);
       TREE_PUBLIC (ic_void_ptr_var) = 1;
@@ -97,7 +97,7 @@ tree_init_ic_make_global_vars (void)
 
       gcov_type_ptr = build_pointer_type (get_gcov_type ());
       ic_gcov_type_ptr_var 
-	= build_decl (VAR_DECL, 
+	= build_decl (UNKNOWN_LOCATION, VAR_DECL, 
 		      get_identifier ("__gcov_indirect_call_topn_counters"), 
 		      gcov_type_ptr);
       TREE_PUBLIC (ic_gcov_type_ptr_var) = 1;
@@ -108,7 +108,7 @@ tree_init_ic_make_global_vars (void)
   else
     {
       ic_void_ptr_var 
-	= build_decl (VAR_DECL, 
+	= build_decl (UNKNOWN_LOCATION, VAR_DECL, 
 		      get_identifier ("__gcov_indirect_call_callee"), 
 		      ptr_void);
       TREE_STATIC (ic_void_ptr_var) = 1;
@@ -117,7 +117,7 @@ tree_init_ic_make_global_vars (void)
 
       gcov_type_ptr = build_pointer_type (get_gcov_type ());
       ic_gcov_type_ptr_var 
-	= build_decl (VAR_DECL, 
+	= build_decl (UNKNOWN_LOCATION, VAR_DECL, 
 		      get_identifier ("__gcov_indirect_call_counters"), 
 		      gcov_type_ptr);
       TREE_STATIC (ic_gcov_type_ptr_var) = 1;
@@ -128,6 +128,7 @@ tree_init_ic_make_global_vars (void)
   DECL_ARTIFICIAL (ic_void_ptr_var) = 1;
   DECL_ARTIFICIAL (ic_gcov_type_ptr_var) = 1;
   assemble_variable (ic_void_ptr_var, 0, 0, 0);
+
   assemble_variable (ic_gcov_type_ptr_var, 0, 0, 0);
 }
 
@@ -150,7 +151,8 @@ tree_init_edge_profiler (void)
       gcov_type_ptr = build_pointer_type (gcov_type_node);
 
       ASM_GENERATE_INTERNAL_LABEL (name_buf, "LPBX", 0);
-      gcov_info_decl = build_decl (VAR_DECL, get_identifier (name_buf),
+      gcov_info_decl = build_decl (UNKNOWN_LOCATION, VAR_DECL,
+                                   get_identifier (name_buf),
                                    get_gcov_unsigned_t ());
       DECL_EXTERNAL (gcov_info_decl) = 1;
       TREE_ADDRESSABLE (gcov_info_decl) = 1;
@@ -716,7 +718,7 @@ direct_call_profiling (void)
   if (!dc_gcov_type_ptr_var)
     {
       dc_gcov_type_ptr_var
-	= build_decl (VAR_DECL,
+	= build_decl (UNKNOWN_LOCATION, VAR_DECL,
 		      get_identifier ("__gcov_direct_call_counters"),
 		      build_pointer_type (gcov_type_node));
       DECL_ARTIFICIAL (dc_gcov_type_ptr_var) = 1;
@@ -725,7 +727,8 @@ direct_call_profiling (void)
 	decl_default_tls_model (dc_gcov_type_ptr_var);
 
       dc_void_ptr_var =
-	build_decl (VAR_DECL, get_identifier ("__gcov_direct_call_callee"),
+	build_decl (UNKNOWN_LOCATION, VAR_DECL,
+	            get_identifier ("__gcov_direct_call_callee"),
 		    ptr_void);
       DECL_ARTIFICIAL (dc_void_ptr_var) = 1;
       DECL_EXTERNAL (dc_void_ptr_var) = 1;
