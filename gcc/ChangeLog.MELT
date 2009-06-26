@@ -1,4 +1,7 @@
 2009-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	[started plugininfication]
+	
+2009-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt: removed compiler probe options
 	* basilys.h (melt_argument): added new declaration.
 	* basilys.c (melt_minorsizekilow) added new variable.

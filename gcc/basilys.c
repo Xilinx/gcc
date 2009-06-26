@@ -23,6 +23,7 @@ along with GCC; see the file COPYING3.   If not see
 
 /* for debugging -fmelt-debug is useful */
 
+/* to compile as a plugin, try compiling with -DMELT_IS_PLUGIN */
 
 #include "config.h"
 #include "system.h"
@@ -106,7 +107,9 @@ extern const unsigned char executable_checksum[16];
 
 /* we use the plugin registration facilities, so this is the plugin
    name in use */
-#define MELT_PLUGIN_NAME "__MELT"
+static const char* melt_plugin_name;
+
+
 
 
 /* *INDENT-OFF* */
@@ -189,8 +192,35 @@ static struct obstack bname_obstack;
 
 
 /* retrieve a MELT related program or plugin argument */
+#ifdef MELT_IS_PLUGIN
+static int melt_plugin_argc;
+static struct plugin_argument* melt_plugin_argv;
+
 const char*
 melt_argument(const char* argname)
+{
+  int argix=0;
+  if (!argname || !argname[0])
+    return NULL;
+  for (argix = 0; argix < melt_plugin_argc; argix ++) 
+    {
+      if (!strcmp(argname, melt_plugin_argv[argix]->key)) 
+	{
+	  char* val = melt_plugin_argv[argix]->value;
+	  /* never return NULL if the argument is found; return an
+	     empty string if no value given */
+	  if (!val)
+	    return "";
+	  return val;
+	}
+    }
+  return NULL;
+}
+
+#else
+/* builtin MELT, retrieve the MELT relevant program argument */
+const char*
+melt_argument (const char* argname)
 {
   if (!argname || !argname[0]) 
     return NULL;
@@ -238,7 +268,7 @@ melt_argument(const char* argname)
     }
   return NULL;
 }
-
+#endif /*MELT_IS_PLUGIN*/
 #if defined(__GNUC__) && __GNUC__>3
 #pragma GCC poison melt_mode_string melt_argument_string melt_arglist_string
 /* don't poison flag_melt_debug */
@@ -246,6 +276,8 @@ melt_argument(const char* argname)
 #pragma GCC poison melt_dynmodpath_string melt_gdbmstate_string melt_srcpath_string
 #pragma GCC poison melt_init_string melt_secondargument_string melt_tempdir_string
 #endif
+
+
 
 static inline void
 delete_special (struct basilysspecial_st *sp)
@@ -7665,12 +7697,13 @@ melt_attribute_callback(void *gcc_data ATTRIBUTE_UNUSED,
   register_attribute(&melt_attr_spec);
 }
 
+
 /****
  * Initialize basilys.  Called from toplevel.c before pass management.
  * Should become the MELT plugin initializer.
  ****/
-void
-basilys_initialize (void)
+static void
+melt_really_initialize (const char* pluginame)
 {
   static int inited;
   long seed;
@@ -7681,6 +7714,8 @@ basilys_initialize (void)
   const char *countdbgstr = 0;
   if (inited)
     return;
+  gcc_assert(pluginame && pluginame[0]);
+  melt_plugin_name = xstrdup(pluginame);
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   countdbgstr = melt_argument ("debugskip");
@@ -7732,10 +7767,10 @@ basilys_initialize (void)
   }
   /* we are using register_callback here, even if MELT is not yet a
      plugin; we hope that MELT would become a plugin. */
-  register_callback (MELT_PLUGIN_NAME, PLUGIN_GGC_MARKING, 
+  register_callback (melt_plugin_name, PLUGIN_GGC_MARKING, 
 		     basilys_marking_callback,
 		     NULL);
-  register_callback (MELT_PLUGIN_NAME, PLUGIN_ATTRIBUTES,
+  register_callback (melt_plugin_name, PLUGIN_ATTRIBUTES,
 		     melt_attribute_callback,
 		     NULL);
   debugeprintf ("basilys_initialize cpp_PREFIX=%s", cpp_PREFIX);
@@ -7754,6 +7789,12 @@ basilys_initialize (void)
 }
 
 
+
+typedef char *char_p;
+
+DEF_VEC_P (char_p);
+DEF_VEC_ALLOC_P (char_p, heap);
+
 static void
 do_finalize_basilys (void)
 {
@@ -7770,56 +7811,6 @@ do_finalize_basilys (void)
 			    (basilys_ptr_t) NULL, "", NULL, "", NULL);
       basilys_garbcoll (0, BASILYS_NEED_FULL);
     }
-  BASILYS_EXITFRAME ();
-#undef finclosv
-}
-
-int *
-basilys_dynobjstruct_fieldoffset_at (const char *fldnam, const char *fil,
-				     int lin)
-{
-  char *nam = 0;
-  void *ptr = 0;
-  nam = concat ("fieldoff__", fldnam, NULL);
-  ptr = basilys_dlsym_all (nam);
-  if (!ptr)
-    fatal_error ("basilys failed to find field offset %s - %s (%s:%d)", nam,
-		 dlerror (), fil, lin);
-  free (nam);
-  return (int *) ptr;
-}
-
-
-int *
-basilys_dynobjstruct_classlength_at (const char *clanam, const char *fil,
-				     int lin)
-{
-  char *nam = 0;
-  void *ptr = 0;
-  nam = concat ("classlen__", clanam, NULL);
-  ptr = basilys_dlsym_all (nam);
-  if (!ptr)
-    fatal_error ("basilys failed to find class length %s - %s (%s:%d)", nam,
-		 dlerror (), fil, lin);
-  free (nam);
-  return (int *) ptr;
-}
-
-
-typedef char *char_p;
-
-DEF_VEC_P (char_p);
-DEF_VEC_ALLOC_P (char_p, heap);
-
-/****
- * finalize basilys. Called from toplevel.c after all is done
- ****/
-void
-basilys_finalize (void)
-{
-  do_finalize_basilys ();
-  debugeprintf ("basilys_finalize with %ld GarbColl, %ld fullGc",
-		basilys_nb_garbcoll, basilys_nb_full_garbcoll);
   if (gdbm_basilys)
     {
       gdbm_close (gdbm_basilys);
@@ -7859,6 +7850,80 @@ basilys_finalize (void)
 	warning (0, "failed to rmdir basilys tempdir %s (%s)",
 		 tempdir_basilys, strerror (errno));
     }
+  BASILYS_EXITFRAME ();
+#undef finclosv
+}
+
+#ifdef MELT_IS_PLUGIN
+/* this code is GPLv3 licenced & FSF copyrighted, so of course it is a
+   GPL compatible GCC plugin. */
+int plugin_is_GPL_compatible = 1;
+
+/* the plugin initialization code has to be exactly plugin_init */
+int
+plugin_init(struct plugin_name_args* plugin_info,
+	    struct plugin_gcc_version* version) 
+{
+  gcc_assert (plugin_info);
+  fprintf(stderr, "MELT plugin version base %s date %s phase %s revision %s confparam %s\n",
+	  version->basever, version->datestamp, version->devphase,
+	  version->revision, version->configuretion_arguments);
+  melt_plugin_argc = plugin_info->argc;
+  melt_plugin_argv = plugin_info->argv;
+  melt_really_initialize (plugin_info->base_name);
+  
+}
+
+#else
+void
+basilys_initialize (void)
+{
+  melt_really_initialize ("__MELT/buitin");
+}
+#endif
+
+
+int *
+basilys_dynobjstruct_fieldoffset_at (const char *fldnam, const char *fil,
+				     int lin)
+{
+  char *nam = 0;
+  void *ptr = 0;
+  nam = concat ("fieldoff__", fldnam, NULL);
+  ptr = basilys_dlsym_all (nam);
+  if (!ptr)
+    fatal_error ("basilys failed to find field offset %s - %s (%s:%d)", nam,
+		 dlerror (), fil, lin);
+  free (nam);
+  return (int *) ptr;
+}
+
+
+int *
+basilys_dynobjstruct_classlength_at (const char *clanam, const char *fil,
+				     int lin)
+{
+  char *nam = 0;
+  void *ptr = 0;
+  nam = concat ("classlen__", clanam, NULL);
+  ptr = basilys_dlsym_all (nam);
+  if (!ptr)
+    fatal_error ("basilys failed to find class length %s - %s (%s:%d)", nam,
+		 dlerror (), fil, lin);
+  free (nam);
+  return (int *) ptr;
+}
+
+
+/****
+ * finalize basilys. Called from toplevel.c after all is done
+ ****/
+void
+basilys_finalize (void)
+{
+  do_finalize_basilys ();
+  debugeprintf ("basilys_finalize with %ld GarbColl, %ld fullGc",
+		basilys_nb_garbcoll, basilys_nb_full_garbcoll);
 }
 
 
@@ -10112,7 +10177,7 @@ basilysgc_register_pass (basilys_ptr_t pass_p,
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
     plugpass.pos_op = posop;
-    register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
+    register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
     basilysgc_put_mapstrings((struct basilysmapstrings_st*) passdictv,
@@ -10139,7 +10204,7 @@ basilysgc_register_pass (basilys_ptr_t pass_p,
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
     plugpass.pos_op = posop;
-    register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
+    register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
     basilysgc_put_mapstrings((struct basilysmapstrings_st*) passdictv,
@@ -10165,7 +10230,7 @@ basilysgc_register_pass (basilys_ptr_t pass_p,
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
     plugpass.pos_op = posop;
-    register_callback(MELT_PLUGIN_NAME, PLUGIN_PASS_MANAGER_SETUP, 
+    register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
     basilysgc_put_mapstrings((struct basilysmapstrings_st*) passdictv,
