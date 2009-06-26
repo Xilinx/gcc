@@ -1,5 +1,10 @@
 2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (graphite_create_new_loop): Make the
+	type of lower and upper bound of loops signed long int.
+
+2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* cfgloopmanip.c (create_empty_loop_on_edge): Gimplify the loop exit
 	expression outside the loop.
 
