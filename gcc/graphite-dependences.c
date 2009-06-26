@@ -48,6 +48,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite-ppl.h"
 #include "graphite.h"
 #include "graphite-poly.h"
+#include "graphite-dependences.h"
 
 /* Returns a polyhedron of dimension DIM.
 
@@ -267,12 +268,12 @@ lexicographically_gt_p (ppl_Pointset_Powerset_NNC_Polyhedron_t res,
   ineq = build_pairwise_scheduling_inequality (dim, i, offset,
 					       direction);
   ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (ineq, res);
-
   empty_p = ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (ineq);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, ineq);
+  if (!empty_p)
+    ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, ineq);
   ppl_delete_Pointset_Powerset_NNC_Polyhedron (ineq);
 
-  return empty_p;
+  return !empty_p;
 }
 
 /* Build the precedence constraints for the lexicographical comparison
@@ -286,7 +287,7 @@ build_lexicographically_gt_constraint (ppl_Pointset_Powerset_NNC_Polyhedron_t re
 {
   graphite_dim_t i;
 
-  if (!lexicographically_gt_p (res, dim, offset, direction, 0))
+  if (lexicographically_gt_p (res, dim, offset, direction, 0))
     return;
 
   for (i = 0; i < tdim1 - 1; i++)
@@ -297,8 +298,14 @@ build_lexicographically_gt_constraint (ppl_Pointset_Powerset_NNC_Polyhedron_t re
       ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, sceq);
       ppl_delete_Pointset_Powerset_NNC_Polyhedron (sceq);
 
-      if (!lexicographically_gt_p (res, dim, offset, direction, i + 1))
+      if (lexicographically_gt_p (res, dim, offset, direction, i + 1))
 	return;
+    }
+
+  if (i == tdim1 - 1)
+    {
+      ppl_delete_Pointset_Powerset_NNC_Polyhedron (res);
+      ppl_new_Pointset_Powerset_NNC_Polyhedron_from_space_dimension (&res, dim, 1);
     }
 }
 
@@ -451,6 +458,66 @@ graphite_legal_transform (scop_p scop)
 	return false;
 
   return true;
+}
+
+/* Returns TRUE when the dependence polyhedron between PDR1 and
+   PDR2 represents a loop carried dependence at level LEVEL. Otherwise
+   return FALSE.  */
+
+static bool
+graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
+				     int level)
+{
+  poly_bb_p pbb1 = PDR_PBB (pdr1);
+  poly_bb_p pbb2 = PDR_PBB (pdr2);
+  ppl_Pointset_Powerset_NNC_Polyhedron_t d1 = PBB_DOMAIN (pbb1);
+  ppl_Pointset_Powerset_NNC_Polyhedron_t d2 = PBB_DOMAIN (pbb2);
+  ppl_Polyhedron_t so1 = PBB_TRANSFORMED_SCATTERING (pbb1);
+  ppl_Polyhedron_t so2 = PBB_TRANSFORMED_SCATTERING (pbb2);
+  ppl_Pointset_Powerset_NNC_Polyhedron_t po;
+  ppl_Pointset_Powerset_NNC_Polyhedron_t eqpp;
+  graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
+  graphite_dim_t sdim2 = pdr_nb_subscripts (pdr2) + 1;
+  graphite_dim_t tdim1 = pbb_nb_scattering_transform (pbb1);
+  graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
+  ppl_dimension_type dim;
+  bool empty_p;
+
+  if (sdim1 != sdim2)
+    return true;
+
+  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true, true);
+  if (ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (po))
+    {
+      ppl_delete_Pointset_Powerset_NNC_Polyhedron (po);
+      return false;
+    }
+
+  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (po, &dim);
+  eqpp = build_pairwise_scheduling_inequality (dim, level, tdim1 + ddim1, 1);
+
+  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (eqpp, po);
+  empty_p = ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (eqpp);
+
+  ppl_delete_Pointset_Powerset_NNC_Polyhedron (po);
+  ppl_delete_Pointset_Powerset_NNC_Polyhedron (eqpp);
+  return !empty_p;
+}
+
+/* Check data dependency between PBB1 and PBB2 at level LEVEL.  */
+
+bool
+dependency_between_pbbs_p (poly_bb_p pbb1, poly_bb_p pbb2, int level)
+{
+  int i, j;
+  poly_dr_p pdr1, pdr2;
+
+  for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb1), i, pdr1); i++)
+    for (j = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb2), j, pdr2); j++)
+      if (graphite_carried_dependence_level_k (pdr1, pdr2, level))
+	return true;
+
+  return false;
 }
 
 #endif

@@ -1,3 +1,14 @@
+2009-6-24 Konrad Trifunovic <konrad.trifunovic@gmail.com>
+	  Li Feng <nemokingdom@gmail.com>
+
+	* graphite-dependences.c (graphite_carried_dependence_level_k): New.
+	(dependency_between_pbbs_p): New.
+	(lexicographically_gt_p): Assure !empty_p before polyhedron intersection
+	assign.
+	(build_lexicographically_gt_constraint): Correct lexicographically judging.
+	* graphite-dependences.h: New.
+	* Makefile.in (graphite-dependences.o): Add graphite-dependences.h.
+
 2009-06-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-clast-to-gimple.c (print_clast_stmt): New.
