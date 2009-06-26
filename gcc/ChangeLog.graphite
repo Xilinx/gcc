@@ -1,5 +1,11 @@
 2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* gcc.dg/graphite/interchange-0.c: XFailed.
+	* gcc.dg/graphite/interchange-5.c: XFailed.
+	* gcc.dg/graphite/interchange-6.c: XFailed.
+
+2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-interchange.c (compute_array_size_poly): The end of the
 	recursion should return 1.
 
