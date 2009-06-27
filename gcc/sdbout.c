@@ -1,6 +1,6 @@
 /* Output sdb-format symbol table information from GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -117,7 +117,7 @@ static void sdbout_start_source_file	(unsigned int, const char *);
 static void sdbout_end_source_file	(unsigned int);
 static void sdbout_begin_block		(unsigned int, unsigned int);
 static void sdbout_end_block		(unsigned int, unsigned int);
-static void sdbout_source_line		(unsigned int, const char *, int);
+static void sdbout_source_line		(unsigned int, const char *, int, bool);
 static void sdbout_end_epilogue		(unsigned int, const char *);
 static void sdbout_global_decl		(tree);
 #ifndef MIPS_DEBUGGING_INFO
@@ -898,7 +898,7 @@ sdbout_symbol (tree decl, int local)
       else if (MEM_P (value)
 	       && ((GET_CODE (XEXP (value, 0)) == PLUS
 		    && REG_P (XEXP (XEXP (value, 0), 0))
-		    && GET_CODE (XEXP (XEXP (value, 0), 1)) == CONST_INT)
+		    && CONST_INT_P (XEXP (XEXP (value, 0), 1)))
 		   /* This is for variables which are at offset zero from
 		      the frame pointer.  This happens on the Alpha.
 		      Non-frame pointer registers are excluded above.  */
@@ -1237,10 +1237,10 @@ sdbout_one_type (tree type)
 	PUT_SDB_SIZE (size);
 	PUT_SDB_ENDEF;
 	break;
-
-      default:
-	break;
       }
+
+    default:
+      break;
     }
 }
 
@@ -1285,7 +1285,7 @@ sdbout_parms (tree parms)
 	       If that is not true, we produce meaningless results,
 	       but do not crash.  */
 	    if (GET_CODE (addr) == PLUS
-		&& GET_CODE (XEXP (addr, 1)) == CONST_INT)
+		&& CONST_INT_P (XEXP (addr, 1)))
 	      current_sym_value = INTVAL (XEXP (addr, 1));
 	    else
 	      current_sym_value = 0;
@@ -1413,7 +1413,7 @@ sdbout_reg_parms (tree parms)
 	/* Report parms that live in memory but not where they were passed.  */
 	else if (MEM_P (DECL_RTL (parms))
 		 && GET_CODE (XEXP (DECL_RTL (parms), 0)) == PLUS
-		 && GET_CODE (XEXP (XEXP (DECL_RTL (parms), 0), 1)) == CONST_INT
+		 && CONST_INT_P (XEXP (XEXP (DECL_RTL (parms), 0), 1))
 		 && PARM_PASSED_IN_MEMORY (parms)
 		 && ! rtx_equal_p (DECL_RTL (parms), DECL_INCOMING_RTL (parms)))
 	  {
@@ -1542,7 +1542,8 @@ sdbout_end_block (unsigned int line, unsigned int n ATTRIBUTE_UNUSED)
 
 static void
 sdbout_source_line (unsigned int line, const char *filename ATTRIBUTE_UNUSED,
-                    int discriminator ATTRIBUTE_UNUSED)
+                    int discriminator ATTRIBUTE_UNUSED,
+                    bool is_stmt ATTRIBUTE_UNUSED)
 {
   /* COFF relative line numbers must be positive.  */
   if ((int) line > sdb_begin_function_line)
@@ -1697,7 +1698,37 @@ sdbout_init (const char *input_file_name ATTRIBUTE_UNUSED)
 #else  /* SDB_DEBUGGING_INFO */
 
 /* This should never be used, but its address is needed for comparisons.  */
-const struct gcc_debug_hooks sdb_debug_hooks;
+const struct gcc_debug_hooks sdb_debug_hooks =
+{
+  0,		/* init */
+  0,		/* finish */
+  0,		/* define */
+  0,		/* undef */
+  0,		/* start_source_file */
+  0,		/* end_source_file */
+  0,		/* begin_block */
+  0,		/* end_block */
+  0,		/* ignore_block */
+  0,		/* source_line */
+  0,		/* begin_prologue */
+  0,		/* end_prologue */
+  0,		/* end_epilogue */
+  0,		/* begin_function */
+  0,		/* end_function */
+  0,		/* function_decl */
+  0,		/* global_decl */
+  0,		/* type_decl */
+  0,		/* imported_module_or_decl */
+  0,		/* deferred_inline_function */
+  0,		/* outlining_inline_function */
+  0,		/* label */
+  0,		/* handle_pch */
+  0,		/* var_location */
+  0,		/* switch_text_section */
+  0,		/* set_name */
+  0		/* start_end_main_source_file */
+};
+
 
 #endif /* SDB_DEBUGGING_INFO */
 

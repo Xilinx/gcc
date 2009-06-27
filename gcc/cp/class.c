@@ -774,7 +774,7 @@ get_vtable_decl (tree type, int complete)
   if (complete)
     {
       DECL_EXTERNAL (decl) = 1;
-      finish_decl (decl, NULL_TREE, NULL_TREE, NULL_TREE);
+      cp_finish_decl (decl, NULL_TREE, false, NULL_TREE, 0);
     }
 
   return decl;
@@ -6185,7 +6185,7 @@ resolve_address_of_overloaded_function (tree target_type,
 
       fn = TREE_PURPOSE (matches);
       for (match = TREE_CHAIN (matches); match; match = TREE_CHAIN (match))
-	if (!decls_match (fn, TREE_PURPOSE (matches)))
+	if (!decls_match (fn, TREE_PURPOSE (match)))
 	  break;
 
       if (match)

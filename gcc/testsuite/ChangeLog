@@ -1,3 +1,356 @@
+2009-06-26  Janis Johnson  <janis187@us.ibm.com>
+
+	PR c/39902
+	* gcc.dg/dfp/pr39902.c: New test.
+
+2009-06-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/40532
+	* gcc.dg/builtins-65.c: Require c99 runtime.
+
+2009-06-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/array7.ad[sb]: New test.
+
+2009-06-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/array6.adb: New test.
+
+2009-06-25  Ian Lance Taylor  <iant@google.com>
+
+	* g++.dg/warn/Wsign-compare-3.C: New testcase.
+
+2009-06-25  Ian Lance Taylor  <iant@google.com>
+
+	* g++.dg/warn/Wunused-16.C: New testcase.
+
+2009-06-25  Ian Lance Taylor  <iant@google.com>
+
+	* g++.dg/warn/skip-2.C: New testcase.
+
+2009-06-25  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.c-torture/execute/20090618-1.c: add dg-run and
+	dg-skip-if and move to ...
+	* gcc.dg/torture/20090618-1.c.
+
+2009-06-25  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/40493
+	* testsuite/gcc.c-torture/execute/pr40493.c: New test.
+
+2009-06-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40342
+	* g++.dg/template/overload10.C: New.
+
+2009-06-24  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40427
+	* gfortran.dg/proc_ptr_comp_11.f90: New.
+
+2009-06-24  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.dg/pr40501.c: New testcase.
+
+2009-06-23  DJ Delorie  <dj@redhat.com>
+
+	Add MeP port.
+	* lib/target-supports.exp: Add mep support (no profiling).
+
+2009-06-23  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/39297
+	* gcc.dg/ssa/loop-31.c: Change scan rules.
+
+2009-06-23  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* gcc.dg/cpp/empty-include.c: Update column info.
+	* gcc.dg/cpp/assert2.c: Update column info.
+
+2009-06-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.dg/ext/builtin-object-size1.C: New test.
+	* g++.dg/ext/builtin-object-size2.C: New test.
+
+2009-06-23  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.dg/optimize-bswapsi-1.c: Add new bswap implementation.
+	* gcc.dg/optimize-bswapdi-1.c: Likewise.
+
+2009-06-22  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/truncate-3.c: New test.
+
+2009-06-22  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/37254
+	PR fortran/39850
+	* gfortran.dg/interface_30.f90: Modified error message.
+	* gfortran.dg/proc_decl_22.f90: New.
+
+2009-06-22  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-19.c: New testcase.
+
+2009-06-22  Matthias Klose  <doko@ubuntu.com>
+
+	PR objc/28050
+	* pr28050.m: New testcase.
+
+2009-06-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/40481
+	* gcc.dg/plugin/one_time_plugin.c (one_pass_exec): Return 0;
+
+2009-06-22  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/40492
+	* g++.dg/torture/pr40492.C: New test.
+
+2009-06-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.c-torture/unsorted/dump-noaddr.x (dump_compare): Determine
+	dumpbase file name from $src.  Add -fdump-ipa-all to compile flags.
+
+2009-06-22  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/raise_ce.adb: Helper for ...
+	* gnat.dg/handle_and_return.adb: New test.
+
+2009-06-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40443
+	* gfortran.dg/generic_18.f90: New test.
+
+2009-06-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40472
+	* gfortran.dg/spread_size_limit.f90: New test.
+
+2009-06-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.c-torture/unsorted/dump-noaddr.x (dump_compare): Use -dumpbase
+	to put dump files in a subdirectory.
+	* gcc/testsuite/lib/gcc-dg.exp (cleanup-saved-temps): Also remove
+	".o" temporary files.
+
+2009-06-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39850
+	* gfortran.dg/interface_19.f90: Add 'cleanup-modules'.
+	* gfortran.dg/interface_20.f90: Ditto.
+	* gfortran.dg/interface_21.f90: Ditto.
+	* gfortran.dg/interface_22.f90: Ditto.
+	* gfortran.dg/interface_30.f90: New.
+	* gfortran.dg/proc_ptr_11.f90: Fix invalid test case.
+
+2009-06-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/tree-ssa/fre-vce-1.c: Cleanup "fre" tree dump.
+	* gcc.dg/vect/vect-shift-2.c: Cleanup "vect" tree dump.
+	* gcc.dg/vect/vect.exp (VECT_SLP_CFLAGS): Initialize with original
+	DEFAULT_VECTFLAGS.
+
+2009-06-21  Ira Rosen  <irar@il.ibm.com>
+	    Revital Eres  <eres@il.ibm.com>
+
+	PR testsuite/40359
+	* gcc.dg/vect/vect-50.c: Fix syntax error in the check.
+	* gcc.dg/vect/vect-42.c: Likewise and separate vec_no_align check.
+	* gcc.dg/vect/vect-96.c: Fix syntax error in the check.
+
+2009-06-21  Ira Rosen  <irar@il.ibm.com>
+
+	PR testsuite/40475
+	* gcc.dg/vect/vect-nest-cycle-1.c: Fail to vectorize on targets
+	without misalignment support.
+	* gcc.dg/vect/vect-nest-cycle-2.c: Likewise.
+
+2009-06-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40452
+	* gfortran.dg/bounds_check_strlen_9.f90: New test.
+
+2009-06-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40440
+	* gfortran.dg/alloc_comp_result_2.f90: New test.
+
+2009-06-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/40482
+	* gcc.target/arm/pr40482.c: New test.
+	
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-18.c: New testcase.
+
+2009-06-19  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/20090618-1.c: New testcase.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-17.c: New testcase.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-15.c: New testcase.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-16.c: New testcase.
+
+2009-06-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/builtins-34.c: Add significand cases.
+
+2009-06-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/40491
+	* testsuite/gcc.dg/20080522-1.c: Remove testcase for real.
+	* testsuite/gcc.dg/20080528-1.c: Ditto.
+
+2009-06-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40450
+	* gfortran.dg/proc_ptr_20.f90: New.
+
+2009-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/40470
+	* gcc.dg/torture/pr40470-1.c: New.
+	* gcc.dg/torture/pr40470-2.c: Likewise.
+	* gcc.dg/torture/pr40470-3.c: Likewise.
+	* gcc.dg/torture/pr40470-4.c: Likewise.
+
+2009-06-18  Diego Novillo  <dnovillo@google.com>
+
+	* gcc.dg/plugin/selfassign.c: Declare plugin_is_GPL_compatible.
+	* gcc.dg/plugin/ggcplug.c: Likewise.
+	* gcc.dg/plugin/one_time_plugin.c: Likewise.
+	* g++.dg/plugin/selfassign.c: Likewise.
+	* g++.dg/plugin/attribute_plugin.c: Likewise.
+	* g++.dg/plugin/dumb_plugin.c: Likewise.
+
+2009-06-18  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/cpp/arith-3.c: Add column info.
+	
+2009-06-18  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* gcc.target/arm/fp16-compile-none-2.c: New.
+	* gcc.target/arm/fp16-compile-ieee-12.c: New.
+	* gcc.target/arm/fp16-compile-alt-12.c: New.
+
+2009-06-18  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* gcc.target/arm/fp16-compile-alt-1.c: New.
+	* gcc.target/arm/fp16-compile-alt-2.c: New.
+	* gcc.target/arm/fp16-compile-alt-3.c: New.
+	* gcc.target/arm/fp16-compile-alt-4.c: New.
+	* gcc.target/arm/fp16-compile-alt-5.c: New.
+	* gcc.target/arm/fp16-compile-alt-6.c: New.
+	* gcc.target/arm/fp16-compile-alt-7.c: New.
+	* gcc.target/arm/fp16-compile-alt-8.c: New.
+	* gcc.target/arm/fp16-compile-alt-9.c: New.
+	* gcc.target/arm/fp16-compile-alt-10.c: New.
+	* gcc.target/arm/fp16-compile-alt-11.c: New.
+	* gcc.target/arm/fp16-compile-ieee-1.c: New.
+	* gcc.target/arm/fp16-compile-ieee-2.c: New.
+	* gcc.target/arm/fp16-compile-ieee-3.c: New.
+	* gcc.target/arm/fp16-compile-ieee-4.c: New.
+	* gcc.target/arm/fp16-compile-ieee-5.c: New.
+	* gcc.target/arm/fp16-compile-ieee-6.c: New.
+	* gcc.target/arm/fp16-compile-ieee-7.c: New.
+	* gcc.target/arm/fp16-compile-ieee-8.c: New.
+	* gcc.target/arm/fp16-compile-ieee-9.c: New.
+	* gcc.target/arm/fp16-compile-ieee-10.c: New.
+	* gcc.target/arm/fp16-compile-ieee-11.c: New.
+	* gcc.target/arm/fp16-compile-none-1.c: New.
+	* gcc.target/arm/fp16-compile-exprtype.c: New.
+	* gcc.target/arm/fp16-compile-vcvt.c: New.
+	* gcc.target/arm/fp16-builtins-1.c: New.
+	* gcc.target/arm/fp16-rounding-alt-1.c: New.
+	* gcc.target/arm/fp16-rounding-ieee-1.c: New.
+	* gcc.target/arm/fp16-param-1.c: New.
+	* gcc.target/arm/fp16-return-1.c: New.
+	* gcc.target/arm/fp16-unprototyped-1.c: New.
+	* gcc.target/arm/fp16-unprototyped-2.c: New.
+	* gcc.target/arm/fp16-variadic-1.c: New.
+	* gcc.dg/torture/arm-fp16-compile-assign.c: New.
+	* gcc.dg/torture/arm-fp16-compile-convert.c: New.
+	* gcc.dg/torture/arm-fp16-int-convert-alt.c: New.
+	* gcc.dg/torture/arm-fp16-int-convert-ieee.c: New.
+	* gcc.dg/torture/arm-fp16-ops.h: New.
+	* gcc.dg/torture/arm-fp16-ops-1.c: New.
+	* gcc.dg/torture/arm-fp16-ops-2.c: New.
+	* gcc.dg/torture/arm-fp16-ops-3.c: New.
+	* gcc.dg/torture/arm-fp16-ops-4.c: New.
+	* gcc.dg/torture/arm-fp16-ops-5.c: New.
+	* gcc.dg/torture/arm-fp16-ops-6.c: New.
+	* gcc.dg/torture/arm-fp16-ops-7.c: New.
+	* gcc.dg/torture/arm-fp16-ops-8.c: New.
+	* g++.dg/ext/arm-fp16/fp16-overload-1.C: New.
+	* g++.dg/ext/arm-fp16/fp16-return-1.C: New.
+	* g++.dg/ext/arm-fp16/fp16-param-1.C: New.
+	* g++.dg/ext/arm-fp16/fp16-mangle-1.C: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops.h: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-1.C: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-2.C: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-3.C: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-4.C: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-5.C: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-6.C: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-7.C: New.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-8.C: New.
+
+2009-06-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/builtins-65.c: New test.
+
+2009-06-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40451
+	* gfortran.dg/proc_ptr_result_4.f90: New.
+
+2009-06-17  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.c-torture/execute/bitfld-5.c: New test.
+
+2009-06-17  David Daney  <ddaney@caviumnetworks.com>
+
+	* gcc.dg/builtin-unreachable-3.c: New test.
+
+2009-06-17  David Daney  <ddaney@caviumnetworks.com>
+
+	* gcc.target/i386/builtin-unreachable.c: New test.
+
+2009-06-17  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-14.c: New testcase.
+
+2009-06-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/func-ptr-conv-1.c: Update column info.
+
+2009-06-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40404
+	* gcc.c-torture/execute/pr40404.c: New testcase.
+
+2009-06-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40460
+	* g++.dg/torture/pr40460.C: New testcase.
+
+2009-06-05  Olatunji Ruwase  <tjruwase@google.com>
+
+	* gcc.dg/plugin/one_time_plugin.c: New test.
+	* gcc.dg/plugin/one_time-test-1.c: New test.
+	* gcc.dg/plugin/plugin.exp: Added one_time_plugin.c test.
+
 2009-06-16  Ian Lance Taylor  <iant@google.com>
 
 	* g++.dg/warn/skip-1.C: New testcase.
@@ -40,15 +393,15 @@
 
 2009-06-16  Ira Rosen  <irar@il.ibm.com>
 
-	* gcc.dg/vect/vect-outer-4g.c: Don't look for pattern not allowed 
+	* gcc.dg/vect/vect-outer-4g.c: Don't look for pattern not allowed
 	printing.
 	* gcc.dg/vect/vect-outer-4k.c, gcc.dg/vect/vect-outer-4l.c,
 	gcc.dg/vect/vect-outer-4f.c: Likewise.
 	* gcc.dg/vect/vect-nest-cycle-1.c: New test.
-	* gcc.dg/vect/vect-nest-cycle-2.c, gcc.dg/vect/vect-nest-cycle-3.c: 
+	* gcc.dg/vect/vect-nest-cycle-2.c, gcc.dg/vect/vect-nest-cycle-3.c:
 	Likewise.
-	* gcc.dg/vect/vect-outer-1a.c: Fail because of strided access in outer 
-	loop.
+	* gcc.dg/vect/vect-outer-1a.c: Fail because of strided access in
+	outer loop.
 
 2009-06-16  Tobias Burnus  <burnus@net-b.de>
 
@@ -62,15 +415,13 @@
 	* gcc.dg/c99-vla-jump-5.c: Adjust expected error messages.
 	Recognize new notes.
 	* gcc.dg/stmt-expr-label-2.c: Likewise.
-	* gcc.dg/c99-vla-jump-1.c: Recognize new notes.  Fix column
-	numbers.
+	* gcc.dg/c99-vla-jump-1.c: Recognize new notes.  Fix column numbers.
 	* gcc.dg/c99-vla-jump-2.c: Recognize new notes.
 	* gcc.dg/c99-vla-jump-3.c: Recognize new notes.
 	* gcc.dg/c99-vla-jump-4.c: Likewise.
 	* gcc.dg/stmt-expr-label-1.c: Likewise.
 	* gcc.dg/stmt-expr-label-3.c: Likewise.
-	* gcc.dg/vla-8.c: Likewise.  Move error message to different
-	line.
+	* gcc.dg/vla-8.c: Likewise.  Move error message to different line.
 
 2009-06-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
@@ -176,7 +527,8 @@
 2009-06-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR testsuite/40384
-	* gcc.dg/tree-ssa/prefetch-5.c: Add --param min-insn-to-prefetch-ratio=5.
+	* gcc.dg/tree-ssa/prefetch-5.c: Add --param
+	min-insn-to-prefetch-ratio=5.
 
 2009-06-12  Joey Ye  <joey.ye@intel.com>
 	    H.J. Lu  <hongjiu.lu@intel.com>
@@ -323,8 +675,10 @@
 2009-06-07  Daniel Franke  <franke.daniel@gmail.com>
 
 	PR fortran/36874
-	* gfortran.dg/intrinsic_argument_conformance_2.f90: Adjusted error message.
-	* gfortran.dg/zero_sized_1.f90: Removed checks with incompatible shapes.
+	* gfortran.dg/intrinsic_argument_conformance_2.f90: Adjusted error
+	message.
+	* gfortran.dg/zero_sized_1.f90: Removed checks with incompatible
+	shapes.
 	* gfortran.dg/zero_sized_5.f90: Likewise.
 
 2009-06-07  H.J. Lu  <hongjiu.lu@intel.com>
@@ -370,8 +724,8 @@
 
 2009-06-05  Revital Eres  <eres@il.ibm.com>
 
-	* lib/target-supports.exp:
-	(check_effective_target_vect_hw_misalign): New procedure.
+	* lib/target-supports.exp (check_effective_target_vect_hw_misalign):
+	New procedure.
 	* gcc.dg/vect/vect-50.c: Change checks to use vect_hw_misalign.
 	* gcc.dg/vect/vect-33.c: Likewise.
 	* gcc.dg/vect/vect-92.c: Likewise.
@@ -532,8 +886,8 @@
 
 2009-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* gcc.dg/plugin/ggcplug.c: moved comment.
-	(plugin_init): fixed typo, declared i, returned 0 at end.
+	* gcc.dg/plugin/ggcplug.c: Moved comment.
+	(plugin_init): Fixed typo, declared i, returned 0 at end.
 
 2009-05-31  Ira Rosen  <irar@il.ibm.com>
 
@@ -607,7 +961,7 @@
 
 2009-05-28  Kai Tietz  <kai.tietz@onevision.com>
 
-	*  g++.dg/ext/packed6.C (size_t): Use __extension__ and __SIZE_TYPE__.
+	* g++.dg/ext/packed6.C (size_t): Use __extension__ and __SIZE_TYPE__.
 	* g++.dg/opt/memcpy1.C (size_t): Likewise.
 	* g++.dg/pr37742.C (size_t): Likewise.
 	* g++.dg/torture/pr34850.C (size_t): Likewise.
@@ -618,23 +972,23 @@
 	(size_t): Use __extension__ and __SIZE_TYPE__.
 	* gcc.c-torture/compile/20000211-1.c (size_t): Typedef size_t via
 	__SIZE_TYPE__.
-	* gcc.c-torture/compile/20010328-1.c (size_t): Likewise,
-	* gcc.c-torture/compile/20030320-1.c (size_t): Likewise,
-	* gcc.c-torture/compile/20030405-1.c (size_t): Likewise,
-	* gcc.c-torture/compile/20030902-1.c (size_t): Likewise,
-	* gcc.c-torture/compile/20060202-1.c (size_t): Likewise,
-	* gcc.c-torture/compile/20080613-1.c (size_t): Likewise,
-	* gcc.c-torture/compile/920428-2.c (size_t): Likewise,
-	* gcc.c-torture/compile/980329-1.c (size_t): Likewise,
-	* gcc.c-torture/compile/980816-1.c (size_t): Likewise,
-	* gcc.c-torture/compile/pr32584.c (size_t): Likewise,
-	* (__ssize_t): Likewise.
-	* gcc.c-torture/compile/pr33173.c (size_t): Likewise,
-	* gcc.c-torture/compile/pr33382.c (size_t): Likewise,
-	* gcc.c-torture/compile/pr34334.c (size_t): Likewise,
-	* gcc.c-torture/compile/pr34688.c (size_t): Likewise,
-	* gcc.c-torture/compile/pr35043.c (size_t): Likewise,
-	* gcc.c-torture/compile/pr37669.c (size_t): Likewise,
+	* gcc.c-torture/compile/20010328-1.c (size_t): Likewise.
+	* gcc.c-torture/compile/20030320-1.c (size_t): Likewise.
+	* gcc.c-torture/compile/20030405-1.c (size_t): Likewise.
+	* gcc.c-torture/compile/20030902-1.c (size_t): Likewise.
+	* gcc.c-torture/compile/20060202-1.c (size_t): Likewise.
+	* gcc.c-torture/compile/20080613-1.c (size_t): Likewise.
+	* gcc.c-torture/compile/920428-2.c (size_t): Likewise.
+	* gcc.c-torture/compile/980329-1.c (size_t): Likewise.
+	* gcc.c-torture/compile/980816-1.c (size_t): Likewise.
+	* gcc.c-torture/compile/pr32584.c (size_t): Likewise.
+	(__ssize_t): Likewise.
+	* gcc.c-torture/compile/pr33173.c (size_t): Likewise.
+	* gcc.c-torture/compile/pr33382.c (size_t): Likewise.
+	* gcc.c-torture/compile/pr34334.c (size_t): Likewise.
+	* gcc.c-torture/compile/pr34688.c (size_t): Likewise.
+	* gcc.c-torture/compile/pr35043.c (size_t): Likewise.
+	* gcc.c-torture/compile/pr37669.c (size_t): Likewise.
 	* gcc.dg/20050629-1.c (size_t): Typedef size_t via __SIZE_TYPE__.
 	* gcc.dg/pr33667.c (size_t): Likewise.
 	* gcc.dg/prefetch-loop-arrays-1.c (size_t): Likewise.
@@ -1180,8 +1534,7 @@
 
 	* gcc.dg/Wcxx-compat-7.c: New testcase.
 	* gcc.dg/Wcxx-compat-8.c: New testcase.
-	* gcc.dg/c99-tag-1.c: Recognize new "originally defined here"
-	notes
+	* gcc.dg/c99-tag-1.c: Recognize new "originally defined here" notes.
 	* gcc.dg/pr17188-1.c: Likewise.
 	* gcc.dg/pr39084.c: Likewise.
 

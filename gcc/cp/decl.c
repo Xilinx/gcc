@@ -916,6 +916,17 @@ decls_match (tree newdecl, tree olddecl)
       tree p1 = TYPE_ARG_TYPES (f1);
       tree p2 = TYPE_ARG_TYPES (f2);
 
+      /* Specializations of different templates are different functions
+	 even if they have the same type.  */
+      tree t1 = (DECL_USE_TEMPLATE (newdecl)
+		 ? DECL_TI_TEMPLATE (newdecl)
+		 : NULL_TREE);
+      tree t2 = (DECL_USE_TEMPLATE (olddecl)
+		 ? DECL_TI_TEMPLATE (olddecl)
+		 : NULL_TREE);
+      if (t1 != t2)
+	return 0;
+
       if (CP_DECL_CONTEXT (newdecl) != CP_DECL_CONTEXT (olddecl)
 	  && ! (DECL_EXTERN_C_P (newdecl)
 		&& DECL_EXTERN_C_P (olddecl)))
@@ -2067,11 +2078,11 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
       ggc_free (DECL_LANG_SPECIFIC (olddecl));
     }
 
-   /* Merge the USED information.  */
-   if (TREE_USED (olddecl))
-     TREE_USED (newdecl) = 1;
-   else if (TREE_USED (newdecl))
-     TREE_USED (olddecl) = 1;
+  /* Merge the USED information.  */
+  if (TREE_USED (olddecl))
+    TREE_USED (newdecl) = 1;
+  else if (TREE_USED (newdecl))
+    TREE_USED (olddecl) = 1;
 
   if (TREE_CODE (newdecl) == FUNCTION_DECL)
     {
@@ -5880,15 +5891,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
     mark_decl_referenced (decl);
 }
 
-/* This is here for a midend callback from c-common.c.  */
-
-void
-finish_decl (tree decl, tree init, tree origtype ATTRIBUTE_UNUSED,
-	     tree asmspec_tree)
-{
-  cp_finish_decl (decl, init, /*init_const_expr_p=*/false, asmspec_tree, 0);
-}
-
 /* Returns a declaration for a VAR_DECL as if:
 
      extern "C" TYPE NAME;
@@ -5911,7 +5913,7 @@ declare_global_var (tree name, tree type)
      library), then it is possible that our declaration will be merged
      with theirs by pushdecl.  */
   decl = pushdecl (decl);
-  finish_decl (decl, NULL_TREE, NULL_TREE, NULL_TREE);
+  cp_finish_decl (decl, NULL_TREE, false, NULL_TREE, 0);
   pop_from_top_level ();
 
   return decl;
@@ -12523,7 +12525,7 @@ start_method (cp_decl_specifier_seq *declspecs,
 	}
     }
 
-  finish_decl (fndecl, NULL_TREE, NULL_TREE, NULL_TREE);
+  cp_finish_decl (fndecl, NULL_TREE, false, NULL_TREE, 0);
 
   /* Make a place for the parms.  */
   begin_scope (sk_function_parms, fndecl);

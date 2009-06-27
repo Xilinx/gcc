@@ -430,6 +430,7 @@ extern void gen_aux_info_record (tree, int, int, int);
 
 /* in c-decl.c */
 struct c_spot_bindings;
+struct c_struct_parse_info;
 extern struct obstack parser_obstack;
 extern tree c_break_label;
 extern tree c_cont_label;
@@ -465,7 +466,8 @@ extern void c_maybe_initialize_eh (void);
 extern void finish_decl (tree, location_t, tree, tree, tree);
 extern tree finish_enum (tree, tree, tree);
 extern void finish_function (void);
-extern tree finish_struct (location_t, tree, tree, tree, bool, VEC(tree,heap) *);
+extern tree finish_struct (location_t, tree, tree, tree,
+			   struct c_struct_parse_info *);
 extern struct c_arg_info *get_parm_info (bool);
 extern tree grokfield (location_t, struct c_declarator *,
 		       struct c_declspecs *, tree, tree *);
@@ -487,7 +489,8 @@ extern tree start_enum (location_t, struct c_enum_contents *, tree);
 extern int  start_function (struct c_declspecs *, struct c_declarator *, tree);
 extern tree start_decl (struct c_declarator *, struct c_declspecs *, bool,
 			tree);
-extern tree start_struct (location_t, enum tree_code, tree, bool *, VEC(tree,heap) **);
+extern tree start_struct (location_t, enum tree_code, tree,
+			  struct c_struct_parse_info **);
 extern void store_parm_decls (void);
 extern void store_parm_decls_from (struct c_arg_info *);
 extern tree xref_tag (enum tree_code, tree);
@@ -504,7 +507,8 @@ extern struct c_declarator *make_pointer_declarator (struct c_declspecs *,
 						     struct c_declarator *);
 extern struct c_declspecs *build_null_declspecs (void);
 extern struct c_declspecs *declspecs_add_qual (struct c_declspecs *, tree);
-extern struct c_declspecs *declspecs_add_type (struct c_declspecs *,
+extern struct c_declspecs *declspecs_add_type (location_t,
+					       struct c_declspecs *,
 					       struct c_typespec);
 extern struct c_declspecs *declspecs_add_scspec (struct c_declspecs *, tree);
 extern struct c_declspecs *declspecs_add_attrs (struct c_declspecs *, tree);
@@ -552,7 +556,8 @@ extern struct c_expr parser_build_unary_op (location_t, enum tree_code,
 extern struct c_expr parser_build_binary_op (location_t, 
     					     enum tree_code, struct c_expr,
 					     struct c_expr);
-extern tree build_conditional_expr (location_t, tree, bool, tree, tree);
+extern tree build_conditional_expr (location_t, tree, bool, tree, tree,
+				    tree, tree);
 extern tree build_compound_expr (location_t, tree, tree);
 extern tree c_cast_expr (location_t, struct c_type_name *, tree);
 extern tree build_c_cast (location_t, tree, tree);

@@ -1,5 +1,9 @@
 2009-06-26  Richard Henderson  <rth@redhat.com>
 
+	* Merge from mainline rev 148984.
+
+2009-06-26  Richard Henderson  <rth@redhat.com>
+
 	* trans-mem.c (ipa_tm_execute): Check tree_versionable_function_p.
 
 2009-06-18  Richard Henderson  <rth@redhat.com>

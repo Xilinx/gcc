@@ -99,6 +99,7 @@
 			  ; correctly for PIC usage.
    (UNSPEC_GOTSYM_OFF 24) ; The offset of the start of the the GOT from a
 			  ; a given symbolic address.
+   (UNSPEC_THUMB1_CASESI 25) ; A Thumb1 compressed dispatch-table call.
   ]
 )
 
@@ -158,7 +159,7 @@
 ; Floating Point Unit.  If we only have floating point emulation, then there
 ; is no point in scheduling the floating point insns.  (Well, for best
 ; performance we should try and group them together).
-(define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp,vfpv3d16,vfpv3,neon"
+(define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp,vfpv3d16,vfpv3,neon,neon_fp16"
   (const (symbol_ref "arm_fpu_attr")))
 
 ; LENGTH of an instruction (in bytes)
@@ -3734,6 +3735,34 @@
 
 ;; Fixed <--> Floating conversion insns
 
+(define_expand "floatsihf2"
+  [(set (match_operand:HF           0 "general_operand" "")
+	(float:HF (match_operand:SI 1 "general_operand" "")))]
+  "TARGET_EITHER"
+  "
+  {
+    rtx op1 = gen_reg_rtx (SFmode);
+    expand_float (op1, operands[1], 0);
+    op1 = convert_to_mode (HFmode, op1, 0);
+    emit_move_insn (operands[0], op1);
+    DONE;
+  }"
+)
+
+(define_expand "floatdihf2"
+  [(set (match_operand:HF           0 "general_operand" "")
+	(float:HF (match_operand:DI 1 "general_operand" "")))]
+  "TARGET_EITHER"
+  "
+  {
+    rtx op1 = gen_reg_rtx (SFmode);
+    expand_float (op1, operands[1], 0);
+    op1 = convert_to_mode (HFmode, op1, 0);
+    emit_move_insn (operands[0], op1);
+    DONE;
+  }"
+)
+
 (define_expand "floatsisf2"
   [(set (match_operand:SF           0 "s_register_operand" "")
 	(float:SF (match_operand:SI 1 "s_register_operand" "")))]
@@ -3757,6 +3786,30 @@
       DONE;
     }
 ")
+
+(define_expand "fix_trunchfsi2"
+  [(set (match_operand:SI         0 "general_operand" "")
+	(fix:SI (fix:HF (match_operand:HF 1 "general_operand"  ""))))]
+  "TARGET_EITHER"
+  "
+  {
+    rtx op1 = convert_to_mode (SFmode, operands[1], 0);
+    expand_fix (operands[0], op1, 0);
+    DONE;
+  }"
+)
+
+(define_expand "fix_trunchfdi2"
+  [(set (match_operand:DI         0 "general_operand" "")
+	(fix:DI (fix:HF (match_operand:HF 1 "general_operand"  ""))))]
+  "TARGET_EITHER"
+  "
+  {
+    rtx op1 = convert_to_mode (SFmode, operands[1], 0);
+    expand_fix (operands[0], op1, 0);
+    DONE;
+  }"
+)
 
 (define_expand "fix_truncsfsi2"
   [(set (match_operand:SI         0 "s_register_operand" "")
@@ -3796,6 +3849,22 @@
  	 (match_operand:DF 1 "s_register_operand" "")))]
   "TARGET_32BIT && TARGET_HARD_FLOAT"
   ""
+)
+
+/* DFmode -> HFmode conversions have to go through SFmode.  */
+(define_expand "truncdfhf2"
+  [(set (match_operand:HF  0 "general_operand" "")
+	(float_truncate:HF
+ 	 (match_operand:DF 1 "general_operand" "")))]
+  "TARGET_EITHER"
+  "
+  {
+    rtx op1;
+    op1 = convert_to_mode (SFmode, operands[1], 0);
+    op1 = convert_to_mode (HFmode, op1, 0);
+    emit_move_insn (operands[0], op1);
+    DONE;
+  }"
 )
 
 ;; Zero and sign extension instructions.
@@ -4660,6 +4729,21 @@
   "TARGET_32BIT && TARGET_HARD_FLOAT"
   ""
 )
+
+/* HFmode -> DFmode conversions have to go through SFmode.  */
+(define_expand "extendhfdf2"
+  [(set (match_operand:DF                  0 "general_operand" "")
+	(float_extend:DF (match_operand:HF 1 "general_operand"  "")))]
+  "TARGET_EITHER"
+  "
+  {
+    rtx op1;
+    op1 = convert_to_mode (SFmode, operands[1], 0);
+    op1 = convert_to_mode (DFmode, op1, 0);
+    emit_insn (gen_movdf (operands[0], op1));
+    DONE;
+  }"
+)
 
 ;; Move insns (including loads and stores)
 
@@ -5002,18 +5086,9 @@
    (set_attr "length" "4")]
 )
 
-(define_insn "*arm_movw"
-  [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
-	(high:SI (match_operand:SI 1 "general_operand"      "i")))]
-  "TARGET_32BIT"
-  "movw%?\t%0, #:lower16:%c1"
-  [(set_attr "predicable" "yes")
-   (set_attr "length" "4")]
-)
-
 (define_insn "*arm_movsi_insn"
   [(set (match_operand:SI 0 "nonimmediate_operand" "=rk,r,r,r,rk,m")
-	(match_operand:SI 1 "general_operand"      "rk, I,K,N,mi,rk"))]
+	(match_operand:SI 1 "general_operand"      "rk, I,K,j,mi,rk"))]
   "TARGET_ARM && ! TARGET_IWMMXT
    && !(TARGET_HARD_FLOAT && TARGET_VFP)
    && (   register_operand (operands[0], SImode)
@@ -5083,7 +5158,7 @@
    (set (match_dup 0) (ashift:SI (match_dup 0) (match_dup 2)))]
   "
   {
-    unsigned HOST_WIDE_INT val = INTVAL (operands[1]);
+    unsigned HOST_WIDE_INT val = INTVAL (operands[1]) & 0xffffffffu;
     unsigned HOST_WIDE_INT mask = 0xff;
     int i;
     
@@ -5806,6 +5881,107 @@
   [(set_attr "length" "2")
    (set_attr "type" "*,load1,store1,*,*,*")
    (set_attr "pool_range" "*,32,*,*,*,*")]
+)
+
+;; HFmode moves
+(define_expand "movhf"
+  [(set (match_operand:HF 0 "general_operand" "")
+	(match_operand:HF 1 "general_operand" ""))]
+  "TARGET_EITHER"
+  "
+  if (TARGET_32BIT)
+    {
+      if (GET_CODE (operands[0]) == MEM)
+        operands[1] = force_reg (HFmode, operands[1]);
+    }
+  else /* TARGET_THUMB1 */
+    {
+      if (can_create_pseudo_p ())
+        {
+           if (GET_CODE (operands[0]) != REG)
+	     operands[1] = force_reg (HFmode, operands[1]);
+        }
+    }
+  "
+)
+
+(define_insn "*arm32_movhf"
+  [(set (match_operand:HF 0 "nonimmediate_operand" "=r,m,r,r")
+	(match_operand:HF 1 "general_operand"	   " m,r,r,F"))]
+  "TARGET_32BIT && !(TARGET_HARD_FLOAT && TARGET_NEON_FP16)
+   && (	  s_register_operand (operands[0], HFmode)
+       || s_register_operand (operands[1], HFmode))"
+  "*
+  switch (which_alternative)
+    {
+    case 0:	/* ARM register from memory */
+      return \"ldr%(h%)\\t%0, %1\\t%@ __fp16\";
+    case 1:	/* memory from ARM register */
+      return \"str%(h%)\\t%1, %0\\t%@ __fp16\";
+    case 2:	/* ARM register from ARM register */
+      return \"mov%?\\t%0, %1\\t%@ __fp16\";
+    case 3:	/* ARM register from constant */
+      {
+	REAL_VALUE_TYPE r;
+	long bits;
+	rtx ops[4];
+
+	REAL_VALUE_FROM_CONST_DOUBLE (r, operands[1]);
+	bits = real_to_target (NULL, &r, HFmode);
+	ops[0] = operands[0];
+	ops[1] = GEN_INT (bits);
+	ops[2] = GEN_INT (bits & 0xff00);
+	ops[3] = GEN_INT (bits & 0x00ff);
+
+	if (arm_arch_thumb2)
+	  output_asm_insn (\"movw%?\\t%0, %1\", ops);
+	else
+	  output_asm_insn (\"mov%?\\t%0, %2\;orr%?\\t%0, %0, %3\", ops);
+	return \"\";
+       }
+    default:
+      gcc_unreachable ();
+    }
+  "
+  [(set_attr "conds" "unconditional")
+   (set_attr "type" "load1,store1,*,*")
+   (set_attr "length" "4,4,4,8")
+   (set_attr "predicable" "yes")
+   ]
+)
+
+(define_insn "*thumb1_movhf"
+  [(set (match_operand:HF     0 "nonimmediate_operand" "=l,l,m,*r,*h")
+	(match_operand:HF     1 "general_operand"      "l,mF,l,*h,*r"))]
+  "TARGET_THUMB1
+   && (	  s_register_operand (operands[0], HFmode) 
+       || s_register_operand (operands[1], HFmode))"
+  "*
+  switch (which_alternative)
+    {
+    case 1:
+      {
+	rtx addr;
+	gcc_assert (GET_CODE(operands[1]) == MEM);
+	addr = XEXP (operands[1], 0);
+	if (GET_CODE (addr) == LABEL_REF
+	    || (GET_CODE (addr) == CONST
+		&& GET_CODE (XEXP (addr, 0)) == PLUS
+		&& GET_CODE (XEXP (XEXP (addr, 0), 0)) == LABEL_REF
+		&& GET_CODE (XEXP (XEXP (addr, 0), 1)) == CONST_INT))
+	  {
+	    /* Constant pool entry.  */
+	    return \"ldr\\t%0, %1\";
+	  }
+	return \"ldrh\\t%0, %1\";
+      }
+    case 2: return \"strh\\t%1, %0\";
+    default: return \"mov\\t%0, %1\";
+    }
+  "
+  [(set_attr "length" "2")
+   (set_attr "type" "*,load1,store1,*,*")
+   (set_attr "pool_range" "*,1020,*,*,*")]
 )
 
 (define_expand "movsf"
@@ -8717,37 +8893,33 @@
    (match_operand:SI 2 "const_int_operand" "")	; total range
    (match_operand:SI 3 "" "")			; table label
    (match_operand:SI 4 "" "")]			; Out of range label
-  "TARGET_32BIT"
+  "TARGET_32BIT || optimize_size || flag_pic"
   "
   {
-    rtx reg;
+    enum insn_code code;
     if (operands[1] != const0_rtx)
       {
-	reg = gen_reg_rtx (SImode);
+	rtx reg = gen_reg_rtx (SImode);
 
 	emit_insn (gen_addsi3 (reg, operands[0],
 			       GEN_INT (-INTVAL (operands[1]))));
 	operands[0] = reg;
       }
 
-    if (!const_ok_for_arm (INTVAL (operands[2])))
+    if (TARGET_ARM)
+      code = CODE_FOR_arm_casesi_internal;
+    else if (TARGET_THUMB)
+      code = CODE_FOR_thumb1_casesi_internal_pic;
+    else if (flag_pic)
+      code = CODE_FOR_thumb2_casesi_internal_pic;
+    else
+      code = CODE_FOR_thumb2_casesi_internal;
+
+    if (!insn_data[(int) code].operand[1].predicate(operands[2], SImode))
       operands[2] = force_reg (SImode, operands[2]);
 
-    if (TARGET_ARM)
-      {
-	emit_jump_insn (gen_arm_casesi_internal (operands[0], operands[2],
-						 operands[3], operands[4]));
-      }
-    else if (flag_pic)
-      {
-	emit_jump_insn (gen_thumb2_casesi_internal_pic (operands[0],
-	    operands[2], operands[3], operands[4]));
-      }
-    else
-      {
-	emit_jump_insn (gen_thumb2_casesi_internal (operands[0], operands[2],
-						    operands[3], operands[4]));
-      }
+    emit_jump_insn (GEN_FCN ((int) code) (operands[0], operands[2],
+					  operands[3], operands[4]));
     DONE;
   }"
 )
@@ -8772,6 +8944,37 @@
   "
   [(set_attr "conds" "clob")
    (set_attr "length" "12")]
+)
+
+(define_expand "thumb1_casesi_internal_pic"
+  [(match_operand:SI 0 "s_register_operand" "")
+   (match_operand:SI 1 "thumb1_cmp_operand" "")
+   (match_operand 2 "" "")
+   (match_operand 3 "" "")]
+  "TARGET_THUMB"
+  {
+    rtx reg0;
+    rtx test = gen_rtx_GTU (VOIDmode, operands[0], operands[1]);
+    emit_jump_insn (gen_cbranchsi4 (test, operands[0], operands[1],
+				    operands[3]));
+    reg0 = gen_rtx_REG (SImode, 0);
+    emit_move_insn (reg0, operands[0]);
+    emit_jump_insn (gen_thumb1_casesi_dispatch (operands[2]/*, operands[3]*/));
+    DONE;
+  }
+)
+
+(define_insn "thumb1_casesi_dispatch"
+  [(parallel [(set (pc) (unspec [(reg:SI 0)
+				 (label_ref (match_operand 0 "" ""))
+;;				 (label_ref (match_operand 1 "" ""))
+]
+			 UNSPEC_THUMB1_CASESI))
+	      (clobber (reg:SI IP_REGNUM))
+              (clobber (reg:SI LR_REGNUM))])]
+  "TARGET_THUMB"
+  "* return thumb1_output_casesi(operands);"
+  [(set_attr "length" "4")]
 )
 
 (define_expand "indirect_jump"
@@ -10674,6 +10877,7 @@
   "TARGET_THUMB1"
   "*
   making_const_table = TRUE;
+  gcc_assert (GET_MODE_CLASS (GET_MODE (operands[0])) != MODE_FLOAT);
   assemble_integer (operands[0], 2, BITS_PER_WORD, 1);
   assemble_zeros (2);
   return \"\";
@@ -10686,19 +10890,23 @@
   "TARGET_EITHER"
   "*
   {
+    rtx x = operands[0];
     making_const_table = TRUE;
-    switch (GET_MODE_CLASS (GET_MODE (operands[0])))
+    switch (GET_MODE_CLASS (GET_MODE (x)))
       {
       case MODE_FLOAT:
-      {
-        REAL_VALUE_TYPE r;
-        REAL_VALUE_FROM_CONST_DOUBLE (r, operands[0]);
-        assemble_real (r, GET_MODE (operands[0]), BITS_PER_WORD);
-        break;
-      }
+ 	if (GET_MODE (x) == HFmode)
+ 	  arm_emit_fp16_const (x);
+ 	else
+ 	  {
+ 	    REAL_VALUE_TYPE r;
+ 	    REAL_VALUE_FROM_CONST_DOUBLE (r, x);
+ 	    assemble_real (r, GET_MODE (x), BITS_PER_WORD);
+ 	  }
+ 	break;
       default:
-        assemble_integer (operands[0], 4, BITS_PER_WORD, 1);
-	mark_symbol_refs_as_used (operands[0]);
+        assemble_integer (x, 4, BITS_PER_WORD, 1);
+	mark_symbol_refs_as_used (x);
         break;
       }
     return \"\";
@@ -10815,6 +11023,7 @@
   [(unspec:SI [(match_operand:SI 0 "register_operand" "")] UNSPEC_PROLOGUE_USE)]
   ""
   "%@ %0 needed for prologue"
+  [(set_attr "length" "0")]
 )
 
 

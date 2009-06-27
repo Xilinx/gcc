@@ -255,6 +255,16 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 #endif
 
+/* This determines whether or not we support the discriminator
+   attribute in the .loc directive.  */
+#ifndef SUPPORTS_DISCRIMINATOR
+#ifdef HAVE_GAS_DISCRIMINATOR
+#define SUPPORTS_DISCRIMINATOR 1
+#else
+#define SUPPORTS_DISCRIMINATOR 0
+#endif
+#endif
+
 /* This determines whether or not we support link-once semantics.  */
 #ifndef SUPPORTS_ONE_ONLY
 #ifdef MAKE_DECL_ONE_ONLY
@@ -1131,6 +1141,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* Alignment value for attribute ((aligned)).  */
 #ifndef ATTRIBUTE_ALIGNED_VALUE
 #define ATTRIBUTE_ALIGNED_VALUE BIGGEST_ALIGNMENT
+#endif
+
+#ifndef CAN_ELIMINATE
+#define CAN_ELIMINATE(FROM, TO) true
 #endif
 
 /* Many ports have no mode-dependent addresses (except possibly autoincrement

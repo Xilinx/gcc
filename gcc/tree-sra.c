@@ -80,6 +80,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "tree-flow.h"
 #include "diagnostic.h"
+#include "statistics.h"
 #include "tree-dump.h"
 #include "timevar.h"
 #include "params.h"
@@ -218,6 +219,33 @@ static struct access *work_queue_head;
 /* Dump contents of ACCESS to file F in a human friendly way.  If GRP is true,
    representative fields are dumped, otherwise those which only describe the
    individual access are.  */
+
+static struct
+{
+  /* Number of created scalar replacements.  */
+  int replacements;
+
+  /* Number of times sra_modify_expr or sra_modify_assign themselves changed an
+     expression.  */
+  int exprs;
+
+  /* Number of statements created by generate_subtree_copies.  */
+  int subtree_copies;
+
+  /* Number of statements created by load_assign_lhs_subreplacements.  */
+  int subreplacements;
+
+  /* Number of times sra_modify_assign has deleted a statement.  */
+  int deleted;
+
+  /* Number of times sra_modify_assign has to deal with subaccesses of LHS and
+     RHS reparately due to type conversions or nonexistent matching
+     references.  */
+  int separate_lhs_rhs_handling;
+
+  /* Number of processed aggregates is readily available in
+     analyze_all_variable_accesses and so is not stored here.  */
+} sra_stats;
 
 static void
 dump_access (FILE *f, struct access *access, bool grp)
@@ -435,6 +463,7 @@ sra_initialize (void)
   access_pool = create_alloc_pool ("SRA accesses", sizeof (struct access), 16);
   link_pool = create_alloc_pool ("SRA links", sizeof (struct assign_link), 16);
   base_access_vec = pointer_map_create ();
+  memset (&sra_stats, 0, sizeof (sra_stats));
 }
 
 /* Hook fed to pointer_map_traverse, deallocate stored vectors.  */
@@ -1275,6 +1304,7 @@ create_access_replacement (struct access *access)
       print_generic_expr (dump_file, repl, 0);
       fprintf (dump_file, "\n");
     }
+  sra_stats.replacements++;
 
   return repl;
 }
@@ -1286,10 +1316,8 @@ get_access_replacement (struct access *access)
 {
   gcc_assert (access->grp_to_be_replaced);
 
-  if (access->replacement_decl)
-    return access->replacement_decl;
-
-  access->replacement_decl = create_access_replacement (access);
+  if (!access->replacement_decl)
+    access->replacement_decl = create_access_replacement (access);
   return access->replacement_decl;
 }
 
@@ -1597,7 +1625,7 @@ analyze_all_variable_accesses (void)
 {
   tree var;
   referenced_var_iterator rvi;
-  bool res = false;
+  int res = 0;
 
   FOR_EACH_REFERENCED_VAR (var, rvi)
     if (bitmap_bit_p (candidate_bitmap, DECL_UID (var)))
@@ -1621,7 +1649,7 @@ analyze_all_variable_accesses (void)
 
 	if (analyze_access_trees (access))
 	  {
-	    res = true;
+	    res++;
 	    if (dump_file && (dump_flags & TDF_DETAILS))
 	      {
 		fprintf (dump_file, "\nAccess trees for ");
@@ -1635,7 +1663,13 @@ analyze_all_variable_accesses (void)
 	  disqualify_candidate (var, "No scalar replacements to be created.");
       }
 
-  return res;
+  if (res)
+    {
+      statistics_counter_event (cfun, "Scalarized aggregates", res);
+      return true;
+    }
+  else
+    return false;
 }
 
 /* Return true iff a reference statement into aggregate AGG can be built for
@@ -1726,6 +1760,7 @@ generate_subtree_copies (struct access *access, tree agg,
 						 insert_after ? GSI_NEW_STMT
 						 : GSI_SAME_STMT);
 	      stmt = gimple_build_assign (expr, repl);
+	      sra_stats.subtree_copies++;
 	    }
 
 	  if (insert_after)
@@ -1862,6 +1897,7 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	  gcc_assert (useless_type_conversion_p (type, access->type));
 	  *expr = repl;
 	}
+      sra_stats.exprs++;
     }
 
   if (access->first_child)
@@ -1871,8 +1907,8 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	  && host_integerp (TREE_OPERAND (bfr, 1), 1)
 	  && host_integerp (TREE_OPERAND (bfr, 2), 1))
 	{
-	  start_offset = tree_low_cst (TREE_OPERAND (bfr, 1), 1);
-	  chunk_size = tree_low_cst (TREE_OPERAND (bfr, 2), 1);
+	  chunk_size = tree_low_cst (TREE_OPERAND (bfr, 1), 1);
+	  start_offset = tree_low_cst (TREE_OPERAND (bfr, 2), 1);
 	}
       else
 	start_offset = chunk_size = 0;
@@ -1883,20 +1919,33 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
   return true;
 }
 
+/* Where scalar replacements of the RHS have been written to when a replacement
+   of a LHS of an assigments cannot be direclty loaded from a replacement of
+   the RHS. */
+enum unscalarized_data_handling { SRA_UDH_NONE,  /* Nothing done so far. */
+				  SRA_UDH_RIGHT, /* Data flushed to the RHS. */
+				  SRA_UDH_LEFT }; /* Data flushed to the LHS. */
+
 /* Store all replacements in the access tree rooted in TOP_RACC either to their
    base aggregate if there are unscalarized data or directly to LHS
    otherwise.  */
 
-static void
+static enum unscalarized_data_handling
 handle_unscalarized_data_in_subtree (struct access *top_racc, tree lhs,
 				     gimple_stmt_iterator *gsi)
 {
   if (top_racc->grp_unscalarized_data)
-    generate_subtree_copies (top_racc->first_child, top_racc->base, 0, 0, 0,
-			     gsi, false, false);
+    {
+      generate_subtree_copies (top_racc->first_child, top_racc->base, 0, 0, 0,
+			       gsi, false, false);
+      return SRA_UDH_RIGHT;
+    }
   else
-    generate_subtree_copies (top_racc->first_child, lhs, top_racc->offset,
-			     0, 0, gsi, false, false);
+    {
+      generate_subtree_copies (top_racc->first_child, lhs, top_racc->offset,
+			       0, 0, gsi, false, false);
+      return SRA_UDH_LEFT;
+    }
 }
 
 
@@ -1915,7 +1964,8 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 				 HOST_WIDE_INT right_offset,
 				 gimple_stmt_iterator *old_gsi,
 				 gimple_stmt_iterator *new_gsi,
-				 bool *refreshed, tree lhs)
+				 enum unscalarized_data_handling *refreshed,
+				 tree lhs)
 {
   do
     {
@@ -1939,29 +1989,31 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 
 	      /* No suitable access on the right hand side, need to load from
 		 the aggregate.  See if we have to update it first... */
-	      if (!*refreshed)
-		{
-		  gcc_assert (top_racc->first_child);
-		  handle_unscalarized_data_in_subtree (top_racc, lhs, old_gsi);
-		  *refreshed = true;
-		}
+	      if (*refreshed == SRA_UDH_NONE)
+		*refreshed = handle_unscalarized_data_in_subtree (top_racc,
+								  lhs, old_gsi);
 
-	      rhs = unshare_expr (top_racc->base);
-	      repl_found = build_ref_for_offset (&rhs,
-						 TREE_TYPE (top_racc->base),
-						 offset, lacc->type, false);
-	      gcc_assert (repl_found);
+	      if (*refreshed == SRA_UDH_LEFT)
+		rhs = unshare_expr (lacc->expr);
+	      else
+		{
+		  rhs = unshare_expr (top_racc->base);
+		  repl_found = build_ref_for_offset (&rhs,
+						     TREE_TYPE (top_racc->base),
+						     offset, lacc->type, false);
+		  gcc_assert (repl_found);
+		}
 	    }
 
 	  stmt = gimple_build_assign (get_access_replacement (lacc), rhs);
 	  gsi_insert_after (new_gsi, stmt, GSI_NEW_STMT);
 	  update_stmt (stmt);
+	  sra_stats.subreplacements++;
 	}
-      else if (lacc->grp_read && !lacc->grp_covered && !*refreshed)
-	{
-	  handle_unscalarized_data_in_subtree (top_racc, lhs, old_gsi);
-	  *refreshed = true;
-	}
+      else if (*refreshed == SRA_UDH_NONE
+	       && lacc->grp_read && !lacc->grp_covered)
+	*refreshed = handle_unscalarized_data_in_subtree (top_racc, lhs,
+							  old_gsi);
 
       if (lacc->first_child)
 	load_assign_lhs_subreplacements (lacc->first_child, top_racc,
@@ -2059,6 +2111,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
       modify_this_stmt = true;
       if (lacc->grp_partial_lhs)
 	force_gimple_rhs = true;
+      sra_stats.exprs++;
     }
 
   if (racc && racc->grp_to_be_replaced)
@@ -2067,6 +2120,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
       modify_this_stmt = true;
       if (racc->grp_partial_lhs)
 	force_gimple_rhs = true;
+      sra_stats.exprs++;
     }
 
   if (modify_this_stmt)
@@ -2080,7 +2134,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
 	      && !access_has_children_p (lacc))
 	    {
 	      tree expr = unshare_expr (lhs);
-	      if (build_ref_for_offset (&expr, TREE_TYPE (lhs), racc->offset,
+	      if (build_ref_for_offset (&expr, TREE_TYPE (lhs), 0,
 					TREE_TYPE (rhs), false))
 		{
 		  lhs = expr;
@@ -2091,7 +2145,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
 		   && !access_has_children_p (racc))
 	    {
 	      tree expr = unshare_expr (rhs);
-	      if (build_ref_for_offset (&expr, TREE_TYPE (rhs), lacc->offset,
+	      if (build_ref_for_offset (&expr, TREE_TYPE (rhs), 0,
 					TREE_TYPE (lhs), false))
 		rhs = expr;
 	    }
@@ -2158,32 +2212,31 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
       if (access_has_children_p (lacc))
 	generate_subtree_copies (lacc->first_child, lacc->base, 0, 0, 0,
 				 gsi, true, true);
+      sra_stats.separate_lhs_rhs_handling++;
     }
   else
     {
       if (access_has_children_p (lacc) && access_has_children_p (racc))
 	{
 	  gimple_stmt_iterator orig_gsi = *gsi;
-	  bool refreshed;
+	  enum unscalarized_data_handling refreshed;
 
 	  if (lacc->grp_read && !lacc->grp_covered)
-	    {
-	      handle_unscalarized_data_in_subtree (racc, lhs, gsi);
-	      refreshed = true;
-	    }
+	    refreshed = handle_unscalarized_data_in_subtree (racc, lhs, gsi);
 	  else
-	    refreshed = false;
+	    refreshed = SRA_UDH_NONE;
 
 	  load_assign_lhs_subreplacements (lacc->first_child, racc,
 					   lacc->offset, racc->offset,
 					   &orig_gsi, gsi, &refreshed, lhs);
-	  if (!refreshed || !racc->grp_unscalarized_data)
+	  if (refreshed != SRA_UDH_RIGHT)
 	    {
 	      if (*stmt == gsi_stmt (*gsi))
 		gsi_next (gsi);
 
 	      unlink_stmt_vdef (*stmt);
 	      gsi_remove (&orig_gsi, true);
+	      sra_stats.deleted++;
 	      return SRA_SA_REMOVED;
 	    }
 	}
@@ -2199,6 +2252,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
 		  gcc_assert (*stmt == gsi_stmt (*gsi));
 		  unlink_stmt_vdef (*stmt);
 		  gsi_remove (gsi, true);
+		  sra_stats.deleted++;
 		  return SRA_SA_REMOVED;
 		}
 	      else
@@ -2274,6 +2328,18 @@ perform_intra_sra (void)
   scan_function (sra_modify_expr, sra_modify_assign, NULL,
 		 false, NULL);
   initialize_parameter_reductions ();
+
+  statistics_counter_event (cfun, "Scalar replacements created",
+			    sra_stats.replacements);
+  statistics_counter_event (cfun, "Modified expressions", sra_stats.exprs);
+  statistics_counter_event (cfun, "Subtree copy stmts",
+			    sra_stats.subtree_copies);
+  statistics_counter_event (cfun, "Subreplacement stmts",
+			    sra_stats.subreplacements);
+  statistics_counter_event (cfun, "Deleted stmts", sra_stats.deleted);
+  statistics_counter_event (cfun, "Separate LHS and RHS handling",
+			    sra_stats.separate_lhs_rhs_handling);
+
   ret = TODO_update_ssa;
 
  out:

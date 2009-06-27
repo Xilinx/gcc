@@ -2646,7 +2646,9 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		  if (fsym && e->expr_type != EXPR_NULL
 		      && ((fsym->attr.pointer
 			   && fsym->attr.flavor != FL_PROCEDURE)
-			  || fsym->attr.proc_pointer))
+			  || (fsym->attr.proc_pointer
+			      && !(e->expr_type == EXPR_VARIABLE
+			      && e->symtree->n.sym->attr.dummy))))
 		    {
 		      /* Scalar pointer dummy args require an extra level of
 			 indirection. The null pointer already contains
@@ -2737,6 +2739,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	 dealt with in trans-array.c(gfc_conv_array_parameter).  */
       if (e && e->ts.type == BT_DERIVED
 	    && e->ts.derived->attr.alloc_comp
+	    && !(e->symtree && e->symtree->n.sym->attr.pointer)
 	    && (e->expr_type != EXPR_VARIABLE && !e->rank))
         {
 	  int parm_rank;
@@ -4405,10 +4408,10 @@ is_zero_initializer_p (gfc_expr * expr)
       return expr->value.logical == 0;
 
     case BT_COMPLEX:
-      return mpfr_zero_p (expr->value.complex.r)
-	     && MPFR_SIGN (expr->value.complex.r) >= 0
-             && mpfr_zero_p (expr->value.complex.i)
-	     && MPFR_SIGN (expr->value.complex.i) >= 0;
+      return mpfr_zero_p (mpc_realref (expr->value.complex))
+	     && MPFR_SIGN (mpc_realref (expr->value.complex)) >= 0
+             && mpfr_zero_p (mpc_imagref (expr->value.complex))
+	     && MPFR_SIGN (mpc_imagref (expr->value.complex)) >= 0;
 
     default:
       break;

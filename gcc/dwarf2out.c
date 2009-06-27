@@ -91,7 +91,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 
 #ifdef DWARF2_DEBUGGING_INFO
-static void dwarf2out_source_line (unsigned int, const char *, int);
+static void dwarf2out_source_line (unsigned int, const char *, int, bool);
 
 static rtx last_var_location_insn;
 #endif
@@ -1197,7 +1197,7 @@ initial_return_save (rtx rtl)
       /* The return address is at some offset from any value we can
 	 actually load.  For instance, on the SPARC it is in %i7+8. Just
 	 ignore the offset for now; it doesn't matter for unwinding frames.  */
-      gcc_assert (GET_CODE (XEXP (rtl, 1)) == CONST_INT);
+      gcc_assert (CONST_INT_P (XEXP (rtl, 1)));
       initial_return_save (XEXP (rtl, 0));
       return;
 
@@ -1239,7 +1239,7 @@ stack_adjust_offset (const_rtx pattern, HOST_WIDE_INT cur_args_size,
 
       if (! (code == PLUS || code == MINUS)
 	  || XEXP (src, 0) != stack_pointer_rtx
-	  || GET_CODE (XEXP (src, 1)) != CONST_INT)
+	  || !CONST_INT_P (XEXP (src, 1)))
 	return 0;
 
       /* (set (reg sp) (plus (reg sp) (const_int))) */
@@ -1266,7 +1266,7 @@ stack_adjust_offset (const_rtx pattern, HOST_WIDE_INT cur_args_size,
 	      rtx val = XEXP (XEXP (src, 1), 1);
 	      /* We handle only adjustments by constant amount.  */
 	      gcc_assert (GET_CODE (XEXP (src, 1)) == PLUS
-			  && GET_CODE (val) == CONST_INT);
+			  && CONST_INT_P (val));
 	      offset = -INTVAL (val);
 	      break;
 	    }
@@ -2185,17 +2185,17 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 
   fde = current_fde ();
 
-  if (GET_CODE (src) == REG
+  if (REG_P (src)
       && fde
       && fde->drap_reg == REGNO (src)
       && (fde->drap_reg_saved
-	  || GET_CODE (dest) == REG))
+	  || REG_P (dest)))
     {
       /* Rule 20 */
       /* If we are saving dynamic realign argument pointer to a
 	 register, the destination is virtual dynamic realign
 	 argument pointer.  It may be used to access argument.  */
-      if (GET_CODE (dest) == REG)
+      if (REG_P (dest))
 	{
 	  gcc_assert (fde->vdrap_reg == INVALID_REGNUM);
 	  fde->vdrap_reg = REGNO (dest);
@@ -2296,7 +2296,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 
 	      gcc_assert (REG_P (XEXP (src, 0))
 			  && (unsigned) REGNO (XEXP (src, 0)) == cfa.reg
-			  && GET_CODE (XEXP (src, 1)) == CONST_INT);
+			  && CONST_INT_P (XEXP (src, 1)));
 	      offset = INTVAL (XEXP (src, 1));
 	      if (GET_CODE (src) != MINUS)
 		offset = -offset;
@@ -2310,7 +2310,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	      /* Rule 4 */
 	      if (REG_P (XEXP (src, 0))
 		  && REGNO (XEXP (src, 0)) == cfa.reg
-		  && GET_CODE (XEXP (src, 1)) == CONST_INT)
+		  && CONST_INT_P (XEXP (src, 1)))
 		{
 		  /* Setting a temporary CFA register that will be copied
 		     into the FP later on.  */
@@ -2336,7 +2336,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 
 	      /* Rule 9 */
 	      else if (GET_CODE (src) == LO_SUM
-		       && GET_CODE (XEXP (src, 1)) == CONST_INT)
+		       && CONST_INT_P (XEXP (src, 1)))
 		{
 		  cfa_temp.reg = REGNO (dest);
 		  cfa_temp.offset = INTVAL (XEXP (src, 1));
@@ -2356,7 +2356,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	case IOR:
 	  gcc_assert (REG_P (XEXP (src, 0))
 		      && (unsigned) REGNO (XEXP (src, 0)) == cfa_temp.reg
-		      && GET_CODE (XEXP (src, 1)) == CONST_INT);
+		      && CONST_INT_P (XEXP (src, 1)));
 
 	  if ((unsigned) REGNO (dest) != cfa_temp.reg)
 	    cfa_temp.reg = REGNO (dest);
@@ -2463,7 +2463,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  {
 	    int regno;
 
-	    gcc_assert (GET_CODE (XEXP (XEXP (dest, 0), 1)) == CONST_INT
+	    gcc_assert (CONST_INT_P (XEXP (XEXP (dest, 0), 1))
 			&& REG_P (XEXP (XEXP (dest, 0), 0)));
 	    offset = INTVAL (XEXP (XEXP (dest, 0), 1));
 	    if (GET_CODE (XEXP (dest, 0)) == MINUS)
@@ -3637,7 +3637,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
      prologue case, not the eh frame case.  */
 #ifdef DWARF2_DEBUGGING_INFO
   if (file)
-    dwarf2out_source_line (line, file, 0);
+    dwarf2out_source_line (line, file, 0, true);
 #endif
 
   if (dwarf2out_do_cfi_asm ())
@@ -10277,7 +10277,7 @@ is_based_loc (const_rtx rtl)
   return (GET_CODE (rtl) == PLUS
 	  && ((REG_P (XEXP (rtl, 0))
 	       && REGNO (XEXP (rtl, 0)) < FIRST_PSEUDO_REGISTER
-	       && GET_CODE (XEXP (rtl, 1)) == CONST_INT)));
+	       && CONST_INT_P (XEXP (rtl, 1)))));
 }
 
 /* Return a descriptor that describes the concatenation of N locations
@@ -10498,7 +10498,7 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	  if (mem_loc_result == 0)
 	    break;
 
-	  if (GET_CODE (XEXP (rtl, 1)) == CONST_INT)
+	  if (CONST_INT_P (XEXP (rtl, 1)))
 	    loc_descr_plus_const (&mem_loc_result, INTVAL (XEXP (rtl, 1)));
 	  else
 	    {
@@ -10832,7 +10832,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 
 	if (rtl == NULL_RTX)
 	  return 0;
-	else if (GET_CODE (rtl) == CONST_INT)
+	else if (CONST_INT_P (rtl))
 	  {
 	    HOST_WIDE_INT val = INTVAL (rtl);
 	    if (TYPE_UNSIGNED (TREE_TYPE (loc)))
@@ -16283,8 +16283,10 @@ dwarf2out_begin_function (tree fun)
 
 static void
 dwarf2out_source_line (unsigned int line, const char *filename,
-                       int discriminator ATTRIBUTE_UNUSED)
+                       int discriminator, bool is_stmt)
 {
+  static bool last_is_stmt = true;
+
   if (debug_info_level >= DINFO_LEVEL_NORMAL
       && line != 0)
     {
@@ -16301,10 +16303,13 @@ dwarf2out_source_line (unsigned int line, const char *filename,
 	{
 	  /* Emit the .loc directive understood by GNU as.  */
 	  fprintf (asm_out_file, "\t.loc %d %d 0", file_num, line);
-#ifdef HAVE_GAS_DISCRIMINATOR
-	  if (discriminator != 0)
+	  if (is_stmt != last_is_stmt)
+	    {
+	      fprintf (asm_out_file, " is_stmt %d", is_stmt ? 1 : 0);
+	      last_is_stmt = is_stmt;
+	    }
+	  if (SUPPORTS_DISCRIMINATOR && discriminator != 0)
 	    fprintf (asm_out_file, " discriminator %d", discriminator);
-#endif /* HAVE_GAS_DISCRIMINATOR */
 	  fputc ('\n', asm_out_file);
 
 	  /* Indicate that line number info exists.  */
@@ -17192,7 +17197,36 @@ dwarf2out_finish (const char *filename)
 #else
 
 /* This should never be used, but its address is needed for comparisons.  */
-const struct gcc_debug_hooks dwarf2_debug_hooks;
+const struct gcc_debug_hooks dwarf2_debug_hooks =
+{
+  0,		/* init */
+  0,		/* finish */
+  0,		/* define */
+  0,		/* undef */
+  0,		/* start_source_file */
+  0,		/* end_source_file */
+  0,		/* begin_block */
+  0,		/* end_block */
+  0,		/* ignore_block */
+  0,		/* source_line */
+  0,		/* begin_prologue */
+  0,		/* end_prologue */
+  0,		/* end_epilogue */
+  0,		/* begin_function */
+  0,		/* end_function */
+  0,		/* function_decl */
+  0,		/* global_decl */
+  0,		/* type_decl */
+  0,		/* imported_module_or_decl */
+  0,		/* deferred_inline_function */
+  0,		/* outlining_inline_function */
+  0,		/* label */
+  0,		/* handle_pch */
+  0,		/* var_location */
+  0,		/* switch_text_section */
+  0,		/* set_name */
+  0		/* start_end_main_source_file */
+};
 
 #endif /* DWARF2_DEBUGGING_INFO */
 

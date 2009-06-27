@@ -1,3 +1,17 @@
+2009-06-22  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR objc/28050
+	* objc-act.c (objc_build_message_args): Return if ARGS is the
+	error_mark_node.
+	
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_in_struct, objc_struct_types): Remove.
+	(objc_struct_info): New static variable.
+	(objc_start_struct): Pass &objc_struct_info, not &objc_in_struct
+	and &objc_struct_types, to start_struct.
+	(objc_finish_struct): Likewise for finish_struct.
+
 2009-06-15  Ian Lance Taylor  <iant@google.com>
 
 	* objc-act.c (objc_start_function): Don't set
