@@ -32,6 +32,7 @@
 
 	* tree.h (tree_decl_with_vis): Add ifunc_flag.
 	(DECL_IS_IFUNC): New.
+	(function_return_type): Likewise.
 
 	* varasm.c (default_binds_local_p_1): Return false for IFUNC
 	function.
