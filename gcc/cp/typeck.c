@@ -4712,9 +4712,20 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 		return error_mark_node;
 	      }
 
-	    type = build_ptrmem_type (context_for_name_lookup (t),
-				      TREE_TYPE (t));
-	    t = make_ptrmem_cst (type, TREE_OPERAND (arg, 1));
+	    if (current_function_decl != NULL
+		&& DECL_IS_IFUNC (current_function_decl)
+		&& DECL_NONSTATIC_MEMBER_FUNCTION_P (current_function_decl))
+	      {
+		/* In IFUNC member function, we take the address of
+		   another non-static member function.  */
+		t = build_address (t);
+	      }
+	    else
+	      {
+		type = build_ptrmem_type (context_for_name_lookup (t),
+					  TREE_TYPE (t));
+		t = make_ptrmem_cst (type, TREE_OPERAND (arg, 1));
+	      }
 	    return t;
 	  }
 
@@ -7103,7 +7114,7 @@ check_return_expr (tree retval, bool *no_warning)
         function.  */
      && same_type_p ((TYPE_MAIN_VARIANT (TREE_TYPE (retval))),
                      (TYPE_MAIN_VARIANT
-                      (TREE_TYPE (TREE_TYPE (current_function_decl)))))
+                      (function_return_type (current_function_decl))))
      /* And the returned value must be non-volatile.  */
      && ! TYPE_VOLATILE (TREE_TYPE (retval)));
      
@@ -7129,7 +7140,7 @@ check_return_expr (tree retval, bool *no_warning)
   else
     {
       /* The type the function is declared to return.  */
-      tree functype = TREE_TYPE (TREE_TYPE (current_function_decl));
+      tree functype = function_return_type (current_function_decl);
       int flags = LOOKUP_NORMAL | LOOKUP_ONLYCONVERTING;
 
       /* The functype's return type will have been set to void, if it
@@ -7145,7 +7156,7 @@ check_return_expr (tree retval, bool *no_warning)
           /* The variable must not have the `volatile' qualifier.  */
 	  && !(cp_type_quals (TREE_TYPE (retval)) & TYPE_QUAL_VOLATILE)
 	  /* The return type must be a class type.  */
-	  && CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (current_function_decl))))
+	  && CLASS_TYPE_P (functype))
 	flags = flags | LOOKUP_PREFER_RVALUE;
 
       /* First convert the value to the function's return type, then

@@ -1924,6 +1924,28 @@ is not defined in the same translation unit.
 
 Not all target machines support this attribute.
 
+@item ifunc
+@cindex @code{ifunc} attribute
+The @code{ifunc} attribute only applies to function definition, which
+causes the definition to be emitted as an indirec function.  For
+instance,
+
+@smallexample
+int f (int) __attribute__ ((ifunc));
+@end smallexample
+
+defines @samp{f} as an indirect function.  @samp{f} should return a
+pointer to the actual function that should be executed as @samp{f}.
+@samp{f} is called only by dynamic linker without any arguments. 
+It is an error if @samp{f} is undefined in the same translation unit,
+or any parameters are used inside @samp{f}, or the return type isn't
+a pointer to @samp{f}.
+
+See @code{STT_GNU_IFUNC} specified in @file{ifunc.txt} at
+@uref{http://groups.google.com/group/generic-abi/files}.
+
+Not all target machines support this attribute.
+
 @item aligned (@var{alignment})
 @cindex @code{aligned} attribute
 This attribute specifies a minimum alignment for the function,

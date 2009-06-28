@@ -1306,7 +1306,7 @@ gimplify_return_expr (tree stmt, gimple_seq *pre_p)
       return GS_ALL_DONE;
     }
 
-  if (VOID_TYPE_P (TREE_TYPE (TREE_TYPE (current_function_decl))))
+  if (VOID_TYPE_P (function_return_type (current_function_decl)))
     result_decl = NULL_TREE;
   else
     {

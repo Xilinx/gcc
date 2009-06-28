@@ -8035,7 +8035,7 @@ c_finish_goto_ptr (location_t loc, tree expr)
 tree
 c_finish_return (location_t loc, tree retval, tree origtype)
 {
-  tree valtype = TREE_TYPE (TREE_TYPE (current_function_decl)), ret_stmt;
+  tree valtype = function_return_type (current_function_decl), ret_stmt;
   bool no_warning = false;
   bool npc = false;
 

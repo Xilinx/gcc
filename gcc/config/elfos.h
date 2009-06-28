@@ -280,7 +280,11 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define ASM_DECLARE_FUNCTION_NAME(FILE, NAME, DECL)		\
   do								\
     {								\
-      ASM_OUTPUT_TYPE_DIRECTIVE (FILE, NAME, "function");	\
+      if (DECL_IS_IFUNC (DECL))					\
+	ASM_OUTPUT_TYPE_DIRECTIVE (FILE, NAME,			\
+				   "gnu_indirect_function");	\
+      else							\
+	ASM_OUTPUT_TYPE_DIRECTIVE (FILE, NAME, "function");	\
       ASM_DECLARE_RESULT (FILE, DECL_RESULT (DECL));		\
       ASM_OUTPUT_LABEL (FILE, NAME);				\
     }								\

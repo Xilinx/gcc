@@ -2951,10 +2951,11 @@ struct GTY(()) tree_decl_with_vis {
  unsigned visibility_specified : 1;
  /* Belong to FUNCTION_DECL exclusively.  */
  unsigned init_priority_p:1;
+ unsigned ifunc_flag:1;
 
  /* Belongs to VAR_DECL exclusively.  */
  ENUM_BITFIELD(tls_model) tls_model : 3;
- /* 14 unused bits. */
+ /* 13 unused bits. */
 };
 
 /* In a VAR_DECL that's static,
@@ -3020,6 +3021,10 @@ extern void decl_fini_priority_insert (tree, priority_type);
 /* The largest priority value reserved for use by system runtime
    libraries.  */
 #define MAX_RESERVED_INIT_PRIORITY 100
+
+/* For a FUNCTION_DECL, nonzero if it is an IFUNC symbol.  */
+#define DECL_IS_IFUNC(NODE) \
+  (DECL_WITH_VIS_CHECK(NODE)->decl_with_vis.ifunc_flag)
 
 /* In a VAR_DECL, the model to use if the data should be allocated from
    thread-local storage.  */
@@ -5303,5 +5308,17 @@ more_const_call_expr_args_p (const const_call_expr_arg_iterator *iter)
 #define FOR_EACH_CONST_CALL_EXPR_ARG(arg, iter, call)			\
   for ((arg) = first_const_call_expr_arg ((call), &(iter)); (arg);	\
        (arg) = next_const_call_expr_arg (&(iter)))
+
+/* Get the function return type inside function body.  Return a pointer
+   to the function for IFUNC function.  */
+
+static inline tree
+function_return_type (const_tree decl)
+{
+  if (DECL_IS_IFUNC (decl))
+    return build_pointer_type (TREE_TYPE (decl));
+  else
+    return TREE_TYPE (TREE_TYPE (decl));
+}
 
 #endif  /* GCC_TREE_H  */

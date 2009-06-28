@@ -2353,6 +2353,23 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	    DECL_ABSTRACT_ORIGIN (newdecl)
 	      = DECL_ABSTRACT_ORIGIN (olddecl);
 	}
+      else if (DECL_IS_IFUNC (olddecl)
+	       && !DECL_IS_IFUNC (newdecl))
+	{
+	  /* The IFUNC information must be on definition since it
+	     may change the function return type inside the function
+	     body.  */
+	  error ("definition of function %q+D conflicts with",
+		 newdecl);
+	  error ("previous declaration of indirect function %q+D here",
+		 olddecl);
+	}
+
+      /* Merge the IFUNC information.  */
+      if (DECL_IS_IFUNC (olddecl))
+	DECL_IS_IFUNC (newdecl) = 1;
+      else if (DECL_IS_IFUNC (newdecl))
+	DECL_IS_IFUNC (olddecl) = 1;
     }
 
   extern_changed = DECL_EXTERNAL (olddecl) && !DECL_EXTERNAL (newdecl);
@@ -7443,7 +7460,7 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
   push_scope ();
   declare_parm_level ();
 
-  restype = TREE_TYPE (TREE_TYPE (current_function_decl));
+  restype = function_return_type (current_function_decl);
   resdecl = build_decl (loc, RESULT_DECL, NULL_TREE, restype);
   DECL_ARTIFICIAL (resdecl) = 1;
   DECL_IGNORED_P (resdecl) = 1;
@@ -7496,7 +7513,11 @@ store_parm_decls_newstyle (tree fndecl, const struct c_arg_info *arg_info)
 	    warn_if_shadowing (decl);
 	}
       else
-	error ("%Jparameter name omitted", decl);
+	{
+	  /* Parameters in IFUNC function are never used.  */
+	  if (!DECL_IS_IFUNC (current_function_decl))
+	    error ("%Jparameter name omitted", decl);
+	}
     }
 
   /* Record the parameter list in the function declaration.  */
@@ -7938,8 +7959,9 @@ finish_function (void)
   finish_fname_decls ();
 
   /* Complain if there's just no return statement.  */
-  if (warn_return_type
-      && TREE_CODE (TREE_TYPE (TREE_TYPE (fndecl))) != VOID_TYPE
+  if ((warn_return_type
+       || DECL_IS_IFUNC (fndecl))
+      && TREE_CODE (function_return_type (fndecl)) != VOID_TYPE
       && !current_function_returns_value && !current_function_returns_null
       /* Don't complain if we are no-return.  */
       && !current_function_returns_abnormally
@@ -7951,8 +7973,11 @@ finish_function (void)
          optimize out static functions.  */
       && !TREE_PUBLIC (fndecl))
     {
-      warning (OPT_Wreturn_type,
-	       "no return statement in function returning non-void");
+      if (DECL_IS_IFUNC (fndecl))
+	error ("control reaches end of indirect function");
+      else
+	warning (OPT_Wreturn_type,
+		 "no return statement in function returning non-void");
       TREE_NO_WARNING (fndecl) = 1;
     }
 
@@ -9317,7 +9342,7 @@ finish_declspecs (struct c_declspecs *specs)
    GLOBALS.  */
 
 static void
-c_write_global_declarations_1 (tree globals)
+c_write_global_declarations_1 (tree globals, bool ext_scope)
 {
   tree decl;
   bool reconsider;
@@ -9327,15 +9352,30 @@ c_write_global_declarations_1 (tree globals)
     {
       /* Check for used but undefined static functions using the C
 	 standard's definition of "used", and set TREE_NO_WARNING so
-	 that check_global_declarations doesn't repeat the check.  */
+	 that check_global_declarations doesn't repeat the check.
+
+	 Issue an error if an IFUNC function is undefined.  */
       if (TREE_CODE (decl) == FUNCTION_DECL
 	  && DECL_INITIAL (decl) == 0
-	  && DECL_EXTERNAL (decl)
-	  && !TREE_PUBLIC (decl)
-	  && C_DECL_USED (decl))
+	  && DECL_EXTERNAL (decl))
 	{
-	  pedwarn (input_location, 0, "%q+F used but never defined", decl);
-	  TREE_NO_WARNING (decl) = 1;
+	  if (DECL_IS_IFUNC (decl))
+	    {
+	      if (ext_scope || !TREE_PUBLIC (decl))
+		{
+		  error_at (input_location,
+			    "indirect function %q+F never defined",
+			    decl);
+		  TREE_NO_WARNING (decl) = 1;
+		}
+	    }
+	  else if (!TREE_PUBLIC (decl)
+		   && C_DECL_USED (decl))
+	    {
+	      pedwarn (input_location, 0, "%q+F used but never defined",
+		       decl);
+	      TREE_NO_WARNING (decl) = 1;
+	    }
 	}
 
       wrapup_global_declaration_1 (decl);
@@ -9402,8 +9442,8 @@ c_write_global_declarations (void)
   /* Process all file scopes in this compilation, and the external_scope,
      through wrapup_global_declarations and check_global_declarations.  */
   for (t = all_translation_units; t; t = TREE_CHAIN (t))
-    c_write_global_declarations_1 (BLOCK_VARS (DECL_INITIAL (t)));
-  c_write_global_declarations_1 (BLOCK_VARS (ext_block));
+    c_write_global_declarations_1 (BLOCK_VARS (DECL_INITIAL (t)), false);
+  c_write_global_declarations_1 (BLOCK_VARS (ext_block), true);
 
   /* We're done parsing; proceed to optimize and emit assembly.
      FIXME: shouldn't be the front end's responsibility to call this.  */

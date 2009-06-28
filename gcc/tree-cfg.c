@@ -3993,7 +3993,7 @@ static bool
 verify_gimple_return (gimple stmt)
 {
   tree op = gimple_return_retval (stmt);
-  tree restype = TREE_TYPE (TREE_TYPE (cfun->decl));
+  tree restype = function_return_type (cfun->decl);
 
   /* We cannot test for present return values as we do not fix up missing
      return values from the original source.  */
@@ -7265,10 +7265,11 @@ execute_warn_function_return (void)
 
   /* If we see "return;" in some basic block, then we do reach the end
      without returning a value.  */
-  else if (warn_return_type
+  else if ((warn_return_type
+	    || DECL_IS_IFUNC (cfun->decl))
 	   && !TREE_NO_WARNING (cfun->decl)
 	   && EDGE_COUNT (EXIT_BLOCK_PTR->preds) > 0
-	   && !VOID_TYPE_P (TREE_TYPE (TREE_TYPE (cfun->decl))))
+	   && !VOID_TYPE_P (function_return_type (cfun->decl)))
     {
       FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
 	{
@@ -7280,7 +7281,12 @@ execute_warn_function_return (void)
 	      location = gimple_location (last);
 	      if (location == UNKNOWN_LOCATION)
 		  location = cfun->function_end_locus;
-	      warning_at (location, OPT_Wreturn_type, "control reaches end of non-void function");
+	      if (DECL_IS_IFUNC (cfun->decl))
+		error_at (location,
+			  "control reaches end of indirect function");
+	      else
+		warning_at (location, OPT_Wreturn_type,
+			    "control reaches end of non-void function");
 	      TREE_NO_WARNING (cfun->decl) = 1;
 	      break;
 	    }

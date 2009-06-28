@@ -529,8 +529,24 @@ cgraph_finalize_function (tree decl, bool nested)
   if (!TREE_ASM_WRITTEN (decl))
     (*debug_hooks->deferred_inline_function) (decl);
 
+  /* Parameters in IFUNC function should never be used.  */
+  if (DECL_IS_IFUNC (decl))
+    {
+      tree parm;
+
+      for (parm = DECL_ARGUMENTS (decl);
+	   parm; parm = TREE_CHAIN (parm))
+	{
+	  if (TREE_USED (parm)
+	      && TREE_CODE (parm) == PARM_DECL
+	      && DECL_NAME (parm))
+	    error ("parameter %q+D used in indirect function %q+F",
+		   parm, decl);
+	}
+    }
+
   /* Possibly warn about unused parameters.  */
-  if (warn_unused_parameter)
+  else if (warn_unused_parameter)
     do_warn_unused_parameter (decl);
 
   if (!nested)
@@ -836,7 +852,8 @@ process_function_and_variable_attributes (struct cgraph_node *first,
   for (node = cgraph_nodes; node != first; node = node->next)
     {
       tree decl = node->decl;
-      if (lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
+      if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (decl))
+	  || lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
 	{
 	  mark_decl_referenced (decl);
 	  if (node->local.finalized)

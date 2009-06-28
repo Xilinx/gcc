@@ -6488,8 +6488,13 @@ default_binds_local_p_1 (const_tree exp, int shlib)
 {
   bool local_p;
 
+  /* IFUNC DECLs are always global since it has to go through PLT even
+     for local definitions.  */
+  if (TREE_CODE (exp) == FUNCTION_DECL
+      && DECL_IS_IFUNC (exp))
+    local_p = false;
   /* A non-decl is an entry in the constant pool.  */
-  if (!DECL_P (exp))
+  else if (!DECL_P (exp))
     local_p = true;
   /* Weakrefs may not bind locally, even though the weakref itself is
      always static and therefore local.  */

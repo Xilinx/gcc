@@ -1,0 +1,43 @@
+2009-06-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c/40528
+	* c-common.c (handle_ifunc_attribute): New.
+	(c_common_attribute_table): Add "ifunc".
+
+	* c-decl.c (merge_decls): Only allow IFUNC attribute on
+	definition.  Merge the IFUNC information.
+	(start_function): Use function_return_type to get function
+	return type.
+	(store_parm_decls_newstyle): Don't warn omitted parameter name
+	on IFUNC function.
+	(finish_function): Issue an error if control reaches end of
+	IFUNC function.
+	(c_write_global_declarations_1): Add an argument to indicate
+	global scope.  Issue an error for undefined IFUNC function.
+	(c_write_global_declarations): Updated.
+
+	* c-typeck.c (c_finish_return): Use function_return_type to
+	get function return type.
+	* gimplify.c (gimplify_return_expr): Likewise.
+	* stmt.c (expand_return): Likewise.
+
+	* cgraphunit.c (cgraph_finalize_function): Don't allow
+	parameter usage in ifunc function.
+	(process_function_and_variable_attributes): Check ifunc attribute.
+
+	* tree-cfg.c (verify_gimple_return): Use function_return_type
+	to get function return type.
+	(execute_warn_function_return): Issue an error if control
+	reaches end of ifunc function.
+
+	* tree.h (tree_decl_with_vis): Add ifunc_flag.
+	(DECL_IS_IFUNC): New.
+
+	* varasm.c (default_binds_local_p_1): Return false for IFUNC
+	function.
+
+	* config/elfos.h (ASM_DECLARE_FUNCTION_NAME): Output
+	"gnu_indirect_function" instead of "function" for IFUNC
+	function.
+
+	* doc/extend.texi: Document ifunc attribute.

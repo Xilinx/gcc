@@ -529,6 +529,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
+static tree handle_ifunc_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
@@ -817,6 +818,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute },
+  { "ifunc",                  0, 0, true,  false, false,
+			      handle_ifunc_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -6643,6 +6646,32 @@ handle_weak_attribute (tree *node, tree name,
     declare_weak (*node);
   else
     warning (OPT_Wattributes, "%qE attribute ignored", name);
+
+  return NULL_TREE;
+}
+
+/* Handle an "ifunc" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_ifunc_attribute (tree *node, tree name, tree ARG_UNUSED (args),
+			int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  tree decl = *node;
+
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      /* This is an IFUNC DECL.  */
+      DECL_IS_IFUNC (decl) = 1;
+      DECL_UNINLINABLE (decl) = 1;
+      TREE_USED (decl) = 1;
+      DECL_PRESERVE_P (decl) = 1;
+    }
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
 
   return NULL_TREE;
 }

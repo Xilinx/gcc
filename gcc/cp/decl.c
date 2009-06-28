@@ -85,7 +85,7 @@ static void layout_var_decl (tree);
 static tree check_initializer (tree, tree, int, tree *);
 static void make_rtl_for_nonlocal_decl (tree, tree, const char *);
 static void save_function_data (tree);
-static void check_function_type (tree, tree);
+static bool check_function_type (tree, tree);
 static void finish_constructor_body (void);
 static void begin_destructor_body (void);
 static void finish_destructor_body (void);
@@ -817,8 +817,22 @@ wrapup_globals_for_namespace (tree name_space, void* data)
   struct cp_binding_level *level = NAMESPACE_LEVEL (name_space);
   VEC(tree,gc) *statics = level->static_decls;
   tree *vec = VEC_address (tree, statics);
+  tree decl;
   int len = VEC_length (tree, statics);
   int last_time = (data != 0);
+
+  /* Check undefined IFUNC symbols.  */
+  for (decl = level->names; decl; decl = TREE_CHAIN (decl))
+    if (TREE_CODE (decl) == FUNCTION_DECL
+	&& DECL_INITIAL (decl) == 0
+	&& DECL_EXTERNAL (decl)
+	&& ! TREE_NO_WARNING (decl)
+	&& DECL_IS_IFUNC (decl))
+    {
+      error_at (input_location,
+		"indirect function %q+F never defined", decl);
+      TREE_NO_WARNING (decl) = 1;
+    }
 
   if (last_time)
     {
@@ -1607,6 +1621,25 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	  error ("deleted definition of %qD", newdecl);
 	  error ("after previous declaration %q+D", olddecl);
 	}
+
+      /* The IFUNC information must be on definition since it may
+	 change the function return type inside the function body.  */
+      if (new_defines_function
+	  && DECL_IS_IFUNC (olddecl)
+	  && !DECL_IS_IFUNC (newdecl))
+	{
+	  error ("definition of function %q+D conflicts with",
+		 newdecl);
+	  error ("previous declaration of indirect function %q+D here",
+		 olddecl);
+	  return error_mark_node;
+	}
+
+      /* Merge the IFUNC information.  */
+      if (DECL_IS_IFUNC (olddecl))
+	DECL_IS_IFUNC (newdecl) = 1;
+      else if (DECL_IS_IFUNC (newdecl))
+	DECL_IS_IFUNC (olddecl) = 1;
     }
 
   /* Deal with C++: must preserve virtual function table size.  */
@@ -11435,9 +11468,10 @@ lookup_enumerator (tree enumtype, tree name)
 }
 
 
-/* We're defining DECL.  Make sure that it's type is OK.  */
+/* We're defining DECL.  Make sure that it's type is OK.  Return TRUE
+   if its type is changed to void.  */
 
-static void
+static bool
 check_function_type (tree decl, tree current_function_parms)
 {
   tree fntype = TREE_TYPE (decl);
@@ -11447,7 +11481,7 @@ check_function_type (tree decl, tree current_function_parms)
   require_complete_types_for_parms (current_function_parms);
 
   if (dependent_type_p (return_type))
-    return;
+    return false;
   if (!COMPLETE_OR_VOID_TYPE_P (return_type)
       || (TYPE_FOR_JAVA (return_type) && MAYBE_CLASS_TYPE_P (return_type)))
     {
@@ -11468,9 +11502,13 @@ check_function_type (tree decl, tree current_function_parms)
       TREE_TYPE (decl)
 	= build_exception_variant (fntype,
 				   TYPE_RAISES_EXCEPTIONS (TREE_TYPE (decl)));
+      return true;
     }
   else
-    abstract_virtuals_error (decl, TREE_TYPE (fntype));
+    {
+      abstract_virtuals_error (decl, TREE_TYPE (fntype));
+      return false;
+    }
 }
 
 /* Create the FUNCTION_DECL for a function definition.
@@ -11613,11 +11651,14 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
 
   /* Make sure the parameter and return types are reasonable.  When
      you declare a function, these types can be incomplete, but they
-     must be complete when you define the function.  */
-  check_function_type (decl1, current_function_parms);
+     must be complete when you define the function.
 
-  /* Build the return declaration for the function.  */
-  restype = TREE_TYPE (fntype);
+     Use function_return_type to build the return declaration for the
+     function if FNTYPE isn't changed to void.  */
+  if (check_function_type (decl1, current_function_parms))
+    restype = TREE_TYPE (fntype);
+  else
+    restype = function_return_type (decl1);
   if (DECL_RESULT (decl1) == NULL_TREE)
     {
       tree resdecl;
@@ -12224,7 +12265,7 @@ tree
 finish_function (int flags)
 {
   tree fndecl = current_function_decl;
-  tree fntype, ctype = NULL_TREE;
+  tree restype, ctype = NULL_TREE;
   int inclass_inline = (flags & 2) != 0;
   int nested;
 
@@ -12246,7 +12287,7 @@ finish_function (int flags)
     }
 
   nested = function_depth > 1;
-  fntype = TREE_TYPE (fndecl);
+  restype = function_return_type (fndecl);
 
   /*  TREE_READONLY (fndecl) = 1;
       This caused &foo to be of type ptr-to-const-function
@@ -12340,7 +12381,7 @@ finish_function (int flags)
       if (r != error_mark_node
 	  /* This is only worth doing for fns that return in memory--and
 	     simpler, since we don't have to worry about promoted modes.  */
-	  && aggregate_value_p (TREE_TYPE (TREE_TYPE (fndecl)), fndecl)
+	  && aggregate_value_p (restype, fndecl)
 	  /* Only allow this for variables declared in the outer scope of
 	     the function so we know that their lifetime always ends with a
 	     return; see g++.dg/opt/nrv6.C.  We could be more flexible if
@@ -12368,9 +12409,10 @@ finish_function (int flags)
     save_function_data (fndecl);
 
   /* Complain if there's just no return statement.  */
-  if (warn_return_type
-      && TREE_CODE (TREE_TYPE (fntype)) != VOID_TYPE
-      && !dependent_type_p (TREE_TYPE (fntype))
+  if ((warn_return_type
+       || DECL_IS_IFUNC (fndecl))
+      && TREE_CODE (restype) != VOID_TYPE
+      && !dependent_type_p (restype)
       && !current_function_returns_value && !current_function_returns_null
       /* Don't complain if we abort or throw.  */
       && !current_function_returns_abnormally
@@ -12380,8 +12422,11 @@ finish_function (int flags)
       && !DECL_CONSTRUCTOR_P (fndecl)
       && !DECL_DESTRUCTOR_P (fndecl))
     {
-      warning (OPT_Wreturn_type,
- 	       "no return statement in function returning non-void");
+      if (DECL_IS_IFUNC (fndecl))
+	error ("control reaches end of indirect function");
+      else
+	warning (OPT_Wreturn_type,
+		 "no return statement in function returning non-void");
       TREE_NO_WARNING (fndecl) = 1;
     }
 

@@ -1559,7 +1559,7 @@ expand_return (tree retval)
   tree retval_rhs;
 
   /* If function wants no value, give it none.  */
-  if (TREE_CODE (TREE_TYPE (TREE_TYPE (current_function_decl))) == VOID_TYPE)
+  if (TREE_CODE (function_return_type (current_function_decl)) == VOID_TYPE)
     {
       expand_normal (retval);
       expand_null_return ();

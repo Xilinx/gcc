@@ -1,0 +1,19 @@
+2009-06-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c/40528
+	* typeck.c (cp_build_unary_op): Take the address of non-static
+	member function for IFUNC member function.
+	(check_return_expr): Use function_return_type to get function
+	return type.
+
+	* decl.c (check_function_type): Change return type to bool.
+	Return true if the function type is changed to void. 
+	(wrapup_globals_for_namespace): Check undefined IFUNC symbols. 
+	(duplicate_decls): Only allow IFUNC attribute on definition.
+	Merge the IFUNC information.
+	(start_preparsed_function): Use function_return_type to build
+	the return declaration for the function if its type isn't
+	changed to void.
+	(finish_function): Use function_return_type to get function
+	return type.  Issue an error if control reaches end of IFUNC
+	function.
