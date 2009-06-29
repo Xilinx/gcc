@@ -1,3 +1,18 @@
+2009-06-29  Revital Eres  <eres@il.ibm.com>
+
+	* target.h (fpart_finalize): New field in struct gcc_target.	
+	* bb-reorder.c (partition_size_init): Use the new field.
+	* target-def.h (TARGET_FPART_FINALIZE): New definition.
+	* config/spu/spu.c (TARGET_FPART_FINALIZE): Define.
+	(critical_sections): Rename to critical_sections_t.
+	(critical_sections_p): New pointer type.
+	(spu_legal_breakpoint): Adjust the code to use the new
+	critical_sections_p type.
+	(close_critical_sections): Likewise.
+	(spu_start_new_section): Likewise.
+	(critical_sections): Change allocation scheme to DEF_VEC_ALLOC_P.
+	(fpart_finalize): New function.
+
 2009-06-14  Revital Eres  <eres@il.ibm.com>
 
 	* config/spu/spu.c (record_jump_table): Add parameter and fix

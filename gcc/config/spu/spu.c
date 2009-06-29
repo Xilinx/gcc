@@ -176,7 +176,7 @@ static bool spu_start_new_section (int, unsigned HOST_WIDE_INT,
                                    unsigned HOST_WIDE_INT);
 static bool spu_dont_create_jumptable (unsigned int ncases);
 static bool spu_legal_breakpoint (rtx insn);
-
+static void fpart_finalize (void);
 
 extern const char *reg_names[];
 rtx spu_compare_op0, spu_compare_op1;
@@ -451,6 +451,9 @@ const struct attribute_spec spu_attribute_table[];
 
 #undef TARGET_DONT_CREATE_JUMPTABLE
 #define TARGET_DONT_CREATE_JUMPTABLE spu_dont_create_jumptable
+
+#undef TARGET_FPART_FINALIZE
+#define TARGET_FPART_FINALIZE fpart_finalize 
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -2465,7 +2468,7 @@ spu_estimate_section_overhead (void)
 }
 
 /* An auxiliary structure for recognizing critical sections.  */
-typedef struct critical_sections
+typedef struct critical_sections_t
 {
   /* The type of the critical section.  */
   enum critical_section_type type;
@@ -2479,12 +2482,12 @@ typedef struct critical_sections
   /* The start and end insns of the critical section.  */
   rtx start;
   rtx end;
-}critical_sections_t;
+}*critical_sections_p;
 
-DEF_VEC_O(critical_sections_t);
-DEF_VEC_ALLOC_O(critical_sections_t,gc);
+DEF_VEC_P(critical_sections_p);
+DEF_VEC_ALLOC_P(critical_sections_p,gc);
 
-VEC (critical_sections_t, gc) *critical_sections = NULL;
+VEC (critical_sections_p, gc) *critical_sections = NULL;
 
 static bool
 bb_contains_prologue_p (basic_block bb)
@@ -2829,10 +2832,10 @@ static bool
 spu_legal_breakpoint (rtx insn)
 {
   int i;
-  critical_sections_t *crit;
+  critical_sections_p crit;
   rtx tmp;
   
-  for (i = 0; VEC_iterate (critical_sections_t, critical_sections, i, crit);
+  for (i = 0; VEC_iterate (critical_sections_p, critical_sections, i, crit);
        i++)
     {
       for (tmp = crit->start; tmp != NEXT_INSN (crit->end); tmp = NEXT_INSN (tmp))
@@ -2931,26 +2934,32 @@ record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
    START_SEQUENCE; which appears in the same basic-block as bb and is
    of type TYPE.  */
 static void
-close_critical_sections (VEC (critical_sections_t, gc) *start_sequence,
+close_critical_sections (VEC (critical_sections_p, gc) *start_sequence,
 			 basic_block bb, enum critical_section_type type, 
 			 rtx insn)
 {
   unsigned int i;
   bool bb_close_critical_section_p = false;
-  critical_sections_t *crit;
+  critical_sections_p crit;
 
   /* Loop through all of the critical sections.  */
-  for (i = 0; VEC_iterate (critical_sections_t, start_sequence, i, crit); i++)
+  for (i = 0; VEC_iterate (critical_sections_p, start_sequence, i, crit); i++)
     {
       /* First check that this bb closes a critical section of the
          right type.  */
       if (crit->type == type && !crit->closed_p)
 	{
+          critical_sections_p ncrit = GGC_CNEW (struct critical_sections_t);
 	  /* Mark this section as closed.  */
 	  crit->closed_p = true;
 	  crit->end = insn;
 	  bb_close_critical_section_p = true;
-	  VEC_safe_push (critical_sections_t, gc, critical_sections, crit);
+          ncrit->size = crit->size;
+          ncrit->type = crit->type;
+          ncrit->start = crit->start;
+          ncrit->closed_p = crit->closed_p;
+          ncrit->end = crit->end;
+	  VEC_safe_push (critical_sections_p, gc, critical_sections, ncrit);
 	  break;
 	}
     }
@@ -2961,6 +2970,23 @@ close_critical_sections (VEC (critical_sections_t, gc) *start_sequence,
 }
 
 static unsigned int estimate_number_of_external_branches_in_section = 0;
+
+/* Free the critical section list.  */
+void
+fpart_finalize (void)
+{
+  int i;
+  critical_sections_p crit1;
+
+  if (critical_sections != NULL)
+    {
+      for (i = 0;
+           VEC_iterate (critical_sections_p, critical_sections, i, crit1);
+           i++)
+        ggc_free (crit1);
+      VEC_free (critical_sections_p, gc, critical_sections);
+    }
+}
 
 /* Return true if the basic-block with index BB_INDEX should be put in
    a new section.
@@ -2975,14 +3001,14 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 		       unsigned HOST_WIDE_INT last_section_size)
 {
   rtx insn;
-  VEC (critical_sections_t, gc) *start_sequence = NULL;
+  VEC (critical_sections_p, gc) *start_sequence = NULL;
   int i;
   enum critical_section_type type;
   basic_block bb = BASIC_BLOCK (bb_index);
   bool start_new_section_p = false;
   bool has_jump_table = false;
   unsigned HOST_WIDE_INT size;
-  critical_sections_t *crit1;
+  critical_sections_p crit1;
 
   /* Estimate the number of external branch limit in the current section.  */
   if (TARGET_SOFTWARE_ICACHE)
@@ -3002,17 +3028,13 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
   /* Loop through all of the basic-block's insns.  */
   FOR_BB_INSNS (bb, insn)
     {
-      /* Free the critical section list from previous functions.  */
-      if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_FUNCTION_BEG)
-        VEC_free (critical_sections_t, gc, critical_sections);
-  
       if (tablejump_p (insn, NULL, NULL) && !bb->il.rtl->skip && !TARGET_SOFTWARE_ICACHE)
 	warning (0, "Unexpected jump-table in basic-block %d.  ", bb->index);
       
       /* Check whether this insn can begin a critical sections.  */
       if (begin_critical_section (insn, &type))
 	{
-	  critical_sections_t crit;
+	  struct critical_sections_t crit;
           rtx last_insn_critical_section = NULL_RTX;
 	  
 	  size = bb_size;
@@ -3035,16 +3057,22 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 	  crit.closed_p = false;
           crit.end = NULL_RTX;
 	  /* Record the start instruction unless this is the .  */
-	  VEC_safe_push (critical_sections_t, gc, start_sequence, &crit);
+	  VEC_safe_push (critical_sections_p, gc, start_sequence, &crit);
           if (type == JUMP_TABLE)
             {
+             critical_sections_p ncrit = GGC_CNEW (struct critical_sections_t);
               /* If this section contains if of type JUMP_TABLE then
                  we already have its first and last instructions, so we
                  record the critical section now.  */
               gcc_assert (tablejump_p (last_insn_critical_section, NULL, NULL));
               crit.end = last_insn_critical_section;
               dump_critical_section_info (JUMP_TABLE, false, crit.end);
-              VEC_safe_push (critical_sections_t, gc, critical_sections, &crit);
+              ncrit->size = crit.size;
+              ncrit->type = crit.type;
+              ncrit->start = crit.start;
+              ncrit->closed_p = crit.closed_p;
+              ncrit->end = crit.end;
+              VEC_safe_push (critical_sections_p, gc, critical_sections, ncrit);
             }
 	}
 
@@ -3056,10 +3084,10 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 	}
     }
   
-  if (dump_file && VEC_length (critical_sections_t, start_sequence))
+  if (dump_file && VEC_length (critical_sections_p, start_sequence))
     fprintf (dump_file, "\n;; bb %d starts a critical section", bb->index);
    
-  for (i = 0; VEC_iterate (critical_sections_t, start_sequence, i, crit1);
+  for (i = 0; VEC_iterate (critical_sections_p, start_sequence, i, crit1);
        i++)
     {
       if (dump_file)
@@ -3077,7 +3105,7 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
   if (last_section_size == 0)
     start_new_section_p = false;
   
-  VEC_free (critical_sections_t, gc, start_sequence);
+  VEC_free (critical_sections_p, gc, start_sequence);
  
   if (TARGET_SOFTWARE_ICACHE
       && !has_jump_table 

@@ -3120,6 +3120,7 @@ partition_size_init (void)
 static void
 partition_size_finalize (void)
 {
+  targetm.bb_partitioning.fpart_finalize ();
   /* Free data.  */
   free_fbb_data ();
   /* Finalize layout changes.  */

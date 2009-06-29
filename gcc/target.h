@@ -807,6 +807,8 @@ struct gcc_target
     /* Return true if jumptable should not be created.  Otherwise return
        false.  */
     bool (* dont_create_jumptable) (unsigned int table_size);
+    /* Free the data structures needed for function partitioning.  */
+    void (* fpart_finalize) (void);
   } bb_partitioning;
 
   /* Create the __builtin_va_list type.  */
