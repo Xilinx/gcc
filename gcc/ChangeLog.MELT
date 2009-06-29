@@ -1,5 +1,13 @@
 2009-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[started plugininfication]
+	* basilys.c (MELT_IS_PLUGIN): added possible preprocessor symbol.
+	(melt_plugin_argc, melt_plugin_argv): added static variables.
+	(melt_argument): added plugin variant.
+	(melt_really_initialize): new name of basilys_initialize body.
+	(do_finalize_basilys): do most of the stuff.
+	(plugin_is_GPL_compatible, plugin_init): added variable & function
+	in plugin mode.
+	(basilysgc_register_pass, ...): use melt_plugin_name everywhere.
 	
 2009-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt: removed compiler probe options
