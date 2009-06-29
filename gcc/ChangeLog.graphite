@@ -1,3 +1,8 @@
+2009-06-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (graphite_create_new_loop): Revert the
+	last commit on type of lower and upper bound of loops.
+
 2009-06-29  Li Feng  <nemokingdom@gmail.com>
 
 	* Makefile.in (graphite-clast-to-gimple.o): Added graphite-dependences.h.

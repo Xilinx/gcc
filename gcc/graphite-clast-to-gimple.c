@@ -466,19 +466,15 @@ graphite_create_new_loop (sese region, edge entry_edge,
 			  loop_p outer, VEC (tree, heap) **newivs,
 			  htab_t newivs_index)
 {
-  tree lb = clast_to_gcc_expression (long_integer_type_node, stmt->LB, region,
-				     *newivs, newivs_index);
-  tree ub = clast_to_gcc_expression (long_integer_type_node, stmt->UB, region,
-				     *newivs, newivs_index);
   tree type = gcc_type_for_iv_of_clast_loop (stmt);
+  tree lb = clast_to_gcc_expression (type, stmt->LB, region, *newivs,
+				     newivs_index);
+  tree ub = clast_to_gcc_expression (type, stmt->UB, region, *newivs,
+				     newivs_index);
   tree stride = gmp_cst_to_tree (type, stmt->stride);
   tree ivvar = create_tmp_var (type, "graphite_IV");
   tree iv, iv_after_increment;
-  loop_p loop;
-
-  lb = fold_convert (type, lb);
-  ub = fold_convert (type, ub);
-  loop = create_empty_loop_on_edge
+  loop_p loop = create_empty_loop_on_edge
     (entry_edge, lb, stride, ub, ivvar, &iv, &iv_after_increment,
      outer ? outer : entry_edge->src->loop_father);
 
