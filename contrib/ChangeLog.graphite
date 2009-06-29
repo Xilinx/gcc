@@ -1,3 +1,8 @@
+2009-06-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* automatic_tester/run_build.sh: Fix bug in comparison of test results
+	for SVN. We did not compare to the last run, but to the one before.
+
 2009-06-22  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* automatic_tester/graphite_env.sh.example: Add EMAIL_REALNAME and

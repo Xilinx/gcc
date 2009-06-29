@@ -178,7 +178,7 @@ delete_src_dir () {
 get_previous_date () {
 	if [ "${GIT_SRC}x" = "x" ]; then
     		PREVIOUS_DATE=`ls ${LOG_DIR}/ | grep _success | sort \
-			       | tail -n 2 | head -n 1`
+			       | tail -n 1`
 	else
 		git_get_last_hash
 		PREVIOUS_DATE=`echo $RUNS | sed -e 's/ /\n/g' | sort -r \
