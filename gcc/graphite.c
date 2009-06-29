@@ -226,6 +226,7 @@ graphite_finalize (bool transform_done)
 
   cloog_finalize ();
   free_original_copy_tables ();
+  free_aux_in_new_loops ();
 
   if (dump_file && dump_flags)
     dump_function_to_file (current_function_decl, dump_file, dump_flags);
@@ -241,6 +242,8 @@ graphite_transform_loops (void)
   scop_p scop;
   bool transform_done = false;
   VEC (scop_p, heap) *scops = NULL;
+  htab_t bb_pbb_mapping = htab_create (10, bb_pbb_map_hash,
+				       eq_bb_pbb_map, free);
 
   if (!graphite_initialize ())
     return;
@@ -257,11 +260,15 @@ graphite_transform_loops (void)
     if (build_poly_scop (scop))
       {
 	if (apply_poly_transforms (scop))
-	  transform_done |= gloog (scop);
+	  transform_done |= gloog (scop, bb_pbb_mapping);
 	else  
 	  check_poly_representation (scop);
       }
 
+  if (flag_graphite_force_parallel)
+    mark_loops_parallel (bb_pbb_mapping);
+
+  htab_delete (bb_pbb_mapping);
   free_scops (scops);
   graphite_finalize (transform_done);
 }

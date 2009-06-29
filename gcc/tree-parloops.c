@@ -461,21 +461,16 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list)
 
 /* Data dependency analysis. Returns true if the iterations of LOOP
    are independent on each other (that is, if we can execute them
-   in parallel).  */
+   in parallel).
+*/
 
 static bool
 loop_parallel_p (struct loop *loop)
 {
-  edge exit = single_dom_exit (loop);
   VEC (ddr_p, heap) * dependence_relations;
   VEC (data_reference_p, heap) *datarefs;
   lambda_trans_matrix trans;
   bool ret = false;
-
-  /* Only consider innermost loops with just one exit.  The innermost-loop
-     restriction is not necessary, but it makes things simpler.  */
-  if (loop->inner || !exit)
-    return false;
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "\nConsidering loop %d\n", loop->num);
@@ -1966,6 +1961,16 @@ parallelize_loops (void)
   FOR_EACH_LOOP (li, loop, 0)
     {
       htab_empty (reduction_list);
+
+      /* If we use autopar in graphite pass, we use it's marked dependency
+      checking results.  */
+      if (flag_graphite_force_parallel && !loop->can_be_parallel)
+	continue;
+
+      /* FIXME: Only consider innermost loops with just one exit.  */
+      if (loop->inner || !single_dom_exit (loop))
+	continue;
+
       if (/* And of course, the loop must be parallelizable.  */
 	  !can_duplicate_loop_p (loop)
 	  || loop_has_blocks_with_irreducible_flag (loop)
@@ -1975,7 +1980,7 @@ parallelize_loops (void)
 
       /* FIXME: Bypass this check as graphite doesn't update the
       count and frequency correctly now.  */
-      if (!loop->can_be_parallel
+      if (!flag_graphite_force_parallel
 	  && (expected_loop_iterations (loop) <= n_threads
 	      /* Do not bother with loops in cold areas.  */
 	      || optimize_loop_nest_for_size_p (loop)))
@@ -1987,7 +1992,7 @@ parallelize_loops (void)
       if (!try_create_reduction_list (loop, reduction_list))
 	continue;
 
-      if (!loop->can_be_parallel && !loop_parallel_p (loop))
+      if (!flag_graphite_force_parallel && !loop_parallel_p (loop))
 	continue;
 
       changed = true;

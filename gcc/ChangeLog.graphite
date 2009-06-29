@@ -1,3 +1,31 @@
+2009-06-29  Li Feng  <nemokingdom@gmail.com>
+
+	* Makefile.in (graphite-clast-to-gimple.o): Added graphite-dependences.h.
+	* graphite-clast-to-gimple.c (new_bb_pbb_def): New.
+	(mark_bb_with_pbb): New.
+	(get_stmtfor_depth): New.
+	(find_pbb_via_hash): New.
+	(dependency_in_loop_p): New.
+	(mark_loops_parallel): New.
+	(free_aux_in_new_loops): New.
+	(translate_clast): Add parameter BB_PBB_MAPPING. Mark newly created
+	bb with it's relevant pbb. Mark newly created loops. Remove mark innermost
+	loop parallel without checking.
+	(gloog): Add parameter BB_PBB_MAPPING.
+	* graphite-clast-to-gimple.h (struct bb_pbb_def): New.
+	(gloog): Change declaration.
+	(mark_loop_parallel): Make extern.
+	(free_aux_in_new_loops): Declare.
+	(bb_pbb_map_hash): New.
+	(eq_bb_pbb_map): New.
+	* graphite.c (graphite_transform_loops): Added BB_PBB_MAPPING. Trigger
+	auto parallelization when flag_graphite_force_parallel is set.
+	(graphite_finalize): Added free_aux_in_new_loops.
+	* tree-parloops.c (parallelize_loops): Only generate parallel code for
+	the innermost loop that marked parallel. Use flag_graphite_force_parallel
+	instead of loop->can_be_parallel.
+	(loop_parallel_p): Move inner most checking out of function.
+
 2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-clast-to-gimple.c (graphite_create_new_loop): Make the

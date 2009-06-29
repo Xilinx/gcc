@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite-poly.h"
 #include "graphite-scop-detection.h"
 #include "graphite-clast-to-gimple.h"
+#include "graphite-dependences.h"
 
 /* Verifies properties that GRAPHITE should maintain during translation.  */
 
@@ -536,6 +537,56 @@ copy_renames (void **slot, void *s)
   return 1;
 }
 
+/* Construct bb_pbb_def with BB and PBB. */
+
+static bb_pbb_def *
+new_bb_pbb_def (basic_block bb, poly_bb_p pbb)
+{
+  bb_pbb_def *bb_pbb_p;
+
+  bb_pbb_p = XNEW (bb_pbb_def);
+  bb_pbb_p->bb = bb;
+  bb_pbb_p->pbb = pbb;
+
+  return bb_pbb_p;
+}
+
+/* Mark BB with it's relevant PBB via hashing table BB_PBB_MAPPING.  */
+
+static void
+mark_bb_with_pbb (poly_bb_p pbb, basic_block bb, htab_t bb_pbb_mapping)
+{
+  bb_pbb_def tmp;
+  PTR *x;
+
+  tmp.bb = bb;
+  x = htab_find_slot (bb_pbb_mapping, &tmp, INSERT);
+
+  if (!*x)
+    *x = new_bb_pbb_def (bb, pbb);
+}
+
+/* Returns the scattering dimension for STMTFOR.
+
+   FIXME: This is a hackish solution to locate the scattering
+   dimension in newly created loops. Here the hackish solush
+   assume that the stmt_for->iterator is always something like:
+   scat_1 , scat_3 etc., where after "scat_" is loop level in
+   scattering dimension.
+*/
+
+static int get_stmtfor_depth (struct clast_for *stmtfor)
+{
+  const char * iterator = stmtfor->iterator;
+  const char * depth;
+
+  depth = strchr (iterator, '_');
+  if (!strncmp (iterator, "scat_", 5))
+    return atoi (depth+1);
+
+  gcc_unreachable();
+}
+
 /* Translates a CLAST statement STMT to GCC representation in the
    context of a SESE.
 
@@ -543,23 +594,26 @@ copy_renames (void **slot, void *s)
    - CONTEXT_LOOP is the loop in which the generated code will be placed
    - RENAME_MAP contains a set of tuples of new names associated to
      the original variables names.
+   - BB_PBB_MAPPING is is a basic_block and it's related poly_bb_p mapping.
 */
 
 static edge
 translate_clast (sese region, struct loop *context_loop,
 		 struct clast_stmt *stmt, edge next_e,
-		 htab_t rename_map, VEC (tree, heap) **newivs, htab_t newivs_index)
+		 htab_t rename_map, VEC (tree, heap) **newivs,
+		 htab_t newivs_index, htab_t bb_pbb_mapping)
 {
   if (!stmt)
     return next_e;
 
   if (CLAST_STMT_IS_A (stmt, stmt_root))
     return translate_clast (region, context_loop, stmt->next, next_e,
-			    rename_map, newivs, newivs_index);
+			    rename_map, newivs, newivs_index, bb_pbb_mapping);
 
   if (CLAST_STMT_IS_A (stmt, stmt_user))
     {
       gimple_bb_p gbb;
+      basic_block new_bb;
       CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
       poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
       gbb = PBB_BLACK_BOX (pbb);
@@ -571,29 +625,28 @@ translate_clast (sese region, struct loop *context_loop,
 			(struct clast_user_stmt *) stmt);
       next_e = copy_bb_and_scalar_dependences (GBB_BB (gbb), region,
 					       next_e, rename_map);
+      new_bb = next_e->src;
+      mark_bb_with_pbb (pbb, new_bb, bb_pbb_mapping);
       recompute_all_dominators ();
       update_ssa (TODO_update_ssa);
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, next_e,
-			      rename_map, newivs, newivs_index);
+			      rename_map, newivs, newivs_index, bb_pbb_mapping);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_for))
     {
+      struct clast_for *stmtfor = (struct clast_for *)stmt;
       struct loop *loop
-	= graphite_create_new_loop (region, next_e, (struct clast_for *) stmt,
+	= graphite_create_new_loop (region, next_e, stmtfor,
 				    context_loop, newivs, newivs_index);
       edge last_e = single_exit (loop);
       edge to_body = single_succ_edge (loop->header);
       basic_block after = to_body->dest;
 
-      /* Only mark the innermost loop parallel now.  */
-      if (flag_graphite_force_parallel)
-	{
-	  loop->can_be_parallel = true;
-	  if (context_loop)
-	    context_loop->can_be_parallel = false;
-	}
+      loop->aux = XNEW (int);
+      /* Pass scattering level information of the new loop by LOOP->AUX.  */
+      *((int *)(loop->aux)) = get_stmtfor_depth (stmtfor);
 
       /* Create a basic block for loop close phi nodes.  */
       last_e = single_succ_edge (split_edge (last_e));
@@ -601,7 +654,7 @@ translate_clast (sese region, struct loop *context_loop,
       /* Translate the body of the loop.  */
       next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
 				single_succ_edge (loop->header),
-				rename_map, newivs, newivs_index);
+				rename_map, newivs, newivs_index, bb_pbb_mapping);
       redirect_edge_succ_nodup (next_e, after);
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
 
@@ -612,7 +665,7 @@ translate_clast (sese region, struct loop *context_loop,
       recompute_all_dominators ();
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, last_e,
-			      rename_map, newivs, newivs_index);
+			      rename_map, newivs, newivs_index, bb_pbb_mapping);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_guard))
@@ -630,7 +683,8 @@ translate_clast (sese region, struct loop *context_loop,
       htab_traverse (rename_map, copy_renames, before_guard);
       next_e = translate_clast (region, context_loop, 
 				((struct clast_guard *) stmt)->then,
-				true_e, rename_map, newivs, newivs_index);
+				true_e, rename_map, newivs, newivs_index,
+				bb_pbb_mapping);
       insert_guard_phis (last_e->src, exit_true_e, exit_false_e,
 			 before_guard, rename_map);
 
@@ -639,18 +693,20 @@ translate_clast (sese region, struct loop *context_loop,
       graphite_verify ();
 
       return translate_clast (region, context_loop, stmt->next, last_e,
-			      rename_map, newivs, newivs_index);
+			      rename_map, newivs, newivs_index, bb_pbb_mapping);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_block))
     {
       next_e = translate_clast (region, context_loop,
 				((struct clast_block *) stmt)->body,
-				next_e, rename_map, newivs, newivs_index);
+				next_e, rename_map, newivs, newivs_index,
+				bb_pbb_mapping);
       recompute_all_dominators ();
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, next_e,
-			      rename_map, newivs, newivs_index);
+			      rename_map, newivs, newivs_index,
+			      bb_pbb_mapping);
     }
 
   gcc_unreachable ();
@@ -1104,10 +1160,12 @@ build_graphite_loop_normal_form (sese region)
 }
 
 /* GIMPLE Loop Generator: generates loops from STMT in GIMPLE form for
-   the given SCOP.  Return true if code generation succeeded.  */
+   the given SCOP.  Return true if code generation succeeded.
+   BB_PBB_MAPPING is a basic_block and it's related poly_bb_p mapping.
+*/
 
 bool
-gloog (scop_p scop)
+gloog (scop_p scop, htab_t bb_pbb_mapping)
 {
   edge new_scop_exit_edge = NULL;
   VEC (tree, heap) *newivs = VEC_alloc (tree, heap, 10);
@@ -1145,7 +1203,8 @@ gloog (scop_p scop)
 
   new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
-					rename_map, &newivs, newivs_index);
+					rename_map, &newivs, newivs_index,
+					bb_pbb_mapping);
   sese_reset_aux_in_loops (region);
   graphite_verify ();
   sese_adjust_liveout_phis (region, rename_map,
@@ -1161,6 +1220,101 @@ gloog (scop_p scop)
   cloog_clast_free (pc.stmt);
   cloog_program_free (pc.prog);
   return true;
+}
+
+
+
+/* Find BB's related poly_bb_p in hash table BB_PBB_MAPPING.  */
+
+static poly_bb_p
+find_pbb_via_hash (htab_t bb_pbb_mapping, basic_block bb)
+{
+  bb_pbb_def tmp;
+  PTR *slot;
+
+  tmp.bb = bb;
+  slot = htab_find_slot (bb_pbb_mapping, &tmp, NO_INSERT);
+
+  if (slot && *slot)
+    return ((bb_pbb_def *) *slot)->pbb;
+
+  return NULL;
+}
+
+/* Free loop->aux in newly created loops by translate_clast.  */
+
+void
+free_aux_in_new_loops (void)
+{
+  loop_p loop;
+  loop_iterator li;
+
+  FOR_EACH_LOOP (li, loop, 0)
+    {
+      if (!loop->aux)
+	continue;
+      free(loop->aux);
+      loop->aux = NULL;
+    }
+}
+
+/* Check data dependency in LOOP. BB_PBB_MAPPING is a basic_block and
+   it's related poly_bb_p mapping.
+*/
+
+static bool
+dependency_in_loop_p (loop_p loop, htab_t bb_pbb_mapping)
+{
+  unsigned i,j;
+  int level = 0;
+  basic_block *bbs = get_loop_body_in_dom_order (loop);
+
+  level = *((int *)(loop->aux));
+
+  for (i = 0; i < loop->num_nodes; i++)
+    {
+      poly_bb_p pbb1 = find_pbb_via_hash (bb_pbb_mapping, bbs[i]);
+
+      if (pbb1 == NULL)
+       continue;
+
+      for (j = 0; j < loop->num_nodes; j++)
+       {
+	 poly_bb_p pbb2 = find_pbb_via_hash (bb_pbb_mapping, bbs[j]);
+
+	 if (pbb2 == NULL)
+	   continue;
+
+	 if (dependency_between_pbbs_p (pbb1, pbb2, level))
+	   {
+	     free (bbs);
+	     return true;
+	   }
+       }
+    }
+
+  free (bbs);
+
+  return false;
+}
+
+/* Mark loop as parallel if data dependency does not exist.
+   BB_PBB_MAPPING is a basic_block and it's related poly_bb_p mapping.
+*/
+
+void mark_loops_parallel (htab_t bb_pbb_mapping)
+{
+  loop_p loop;
+  loop_iterator li;
+
+  FOR_EACH_LOOP (li, loop, 0)
+    {
+      if (!loop->aux)
+       continue;
+
+      if (!dependency_in_loop_p (loop, bb_pbb_mapping))
+       loop->can_be_parallel = true;
+    }
 }
 
 #endif
