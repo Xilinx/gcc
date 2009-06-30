@@ -2770,183 +2770,30 @@ basilys_ptr_t basilysgc_send (basilys_ptr_t recv,
 /**************************** globals **************************/
 
 /* enumeration of predefined global object indexes inside
-   basilys_globvec; the firsts are wired predefined, in the sense that
+   basilys_globvec; Most are wired predefined, in the sense that
    they are automagically allocated and partly filled before loading
-   the basilys file. The others are named, and are expected to be
-   created by loading the basilysfile  */
+   the basilys file. Others are named, and are expected to be
+   created by loading the melt files.  */
 enum basilys_globalix_en
 {
-  BGLOB__NONE,
+  MELTGLOB__NONE,
   /************************* wired predefined */
-  /****@@@ MAYBE SHOULD GO IN A SEPARATE FILE??? ***/
-  /***
-   * don't forget to fill these objects in warmelt*.melt file and to
-   * define the appropriate global_* primitives near
-   * create_normcontext function in warmelt-normal.melt
-   * e.g. (defprimitive global_DISCR_NULLRECV ....)
-   ***/
-  /* the pseudo discriminant using for sending to null pointers */
-  BGLOB_DISCR_NULLRECV,
-  /* the initial discriminant of string */
-  BGLOB_DISCR_STRING,
-  /* the initial discriminant of integer */
-  BGLOB_DISCR_INTEGER,
-  /* the initial discriminant of lists */
-  BGLOB_DISCR_LIST,
-  /* the initial discriminant of multiples */
-  BGLOB_DISCR_MULTIPLE,
-  /* the initial discriminant of boxes */
-  BGLOB_DISCR_BOX,
-  /* the initial discriminant of mapobjects */
-  BGLOB_DISCR_MAPOBJECTS,
-  /* the initial discriminant of mapstrings */
-  BGLOB_DISCR_MAPSTRINGS,
-  /* the initial discriminant of charcode integer */
-  BGLOB_DISCR_CHARINTEGER,
-  /* the initial discriminant of mixedint */
-  BGLOB_DISCR_MIXEDINT,
-  /* the discriminant of ancestors or other class sequences */
-  BGLOB_DISCR_SEQCLASS,
-  /* the discriminant of closures */
-  BGLOB_DISCR_CLOSURE,
-  /* the discriminant of routine */
-  BGLOB_DISCR_ROUTINE,
-  /* the discriminant of pairs */
-  BGLOB_DISCR_PAIR,
-  /* the discriminant of short name strings */
-  BGLOB_DISCR_NAMESTRING,
-  /* the discriminant of verbatim strings (in primitive expansions) */
-  BGLOB_DISCR_VERBATIMSTRING,
-  /* discriminant for sequence of fields */
-  BGLOB_DISCR_SEQFIELD,
-  /* discriminant for dictionnaries (mapobjects) of methods */
-  BGLOB_DISCR_METHODMAP,
-  /* the class of classes */
-  BGLOB_CLASS_CLASS,
-  /* the root class */
-  BGLOB_CLASS_ROOT,
-  /* the proped class */
-  BGLOB_CLASS_PROPED,
-  /* the named class */
-  BGLOB_CLASS_NAMED,
-  /* the located class */
-  BGLOB_CLASS_LOCATED,
-  /* the symbol class */
-  BGLOB_CLASS_SYMBOL,
-  /* the keyword class */
-  BGLOB_CLASS_KEYWORD,
-  /* the sexpr class */
-  BGLOB_CLASS_SEXPR,
-  /* class of fields */
-  BGLOB_CLASS_FIELD,
-  /* class of message selectors */
-  BGLOB_CLASS_SELECTOR,
-  /* class of primitives */
-  BGLOB_CLASS_PRIMITIVE,
-  /* class of formal bindings */
-  BGLOB_CLASS_FORMAL_BINDING,
-  /* the discr class */
-  BGLOB_CLASS_DISCR,
-  /* the class of system data */
-  BGLOB_CLASS_SYSTEM_DATA,
-  /* the class of ctypes */
-  BGLOB_CLASS_CTYPE,
-  /* the class of environments */
-  BGLOB_CLASS_ENVIRONMENT,
-  /**** every ctype should be predefined ****/
-  /* ctype of longs */
-  BGLOB_CTYPE_LONG,
-  /* ctype of values */
-  BGLOB_CTYPE_VALUE,
-  /* ctype of trees */
-  BGLOB_CTYPE_TREE,
-  /* ctype of gimples */
-  BGLOB_CTYPE_GIMPLE,
-  /* ctype of gimpleseqs */
-  BGLOB_CTYPE_GIMPLESEQ,
-  /* ctype of basicblocks */
-  BGLOB_CTYPE_BASICBLOCK,
-  /* ctype of edges */
-  BGLOB_CTYPE_EDGE,
-  /* ctype for void */
-  BGLOB_CTYPE_VOID,
-  /* ctype of constant cstrings */
-  BGLOB_CTYPE_CSTRING,
-  /* ctype of PPL coefficients */
-  BGLOB_CTYPE_PPL_COEFFICIENT,
-  /* ctype of PPL linear expressions */
-  BGLOB_CTYPE_PPL_LINEAR_EXPRESSION,
-  /* ctype of PPL constraints */
-  BGLOB_CTYPE_PPL_CONSTRAINT,
-  /* ctype of PPL constraint systems */
-  BGLOB_CTYPE_PPL_CONSTRAINT_SYSTEM,
-  /* @@unimplemented ctype of PPL generators */
-  BGLOB_CTYPE_PPL_GENERATOR,
-  /* @@unimplemented ctype of PPL generator systems */
-  BGLOB_CTYPE_PPL_GENERATOR_SYSTEM,
-  /* ctype of PPL polyhedrons */
-  BGLOB_CTYPE_PPL_POLYHEDRON,
-  /* the initial system data */
-  BGLOB_INITIAL_SYSTEM_DATA,
-  /* the atom for true */
-  BGLOB_ATOM_TRUE,
-  /* the class of containers */
-  BGLOB_CLASS_CONTAINER,
-  /* the super-class of basilys GCC compiler passes */
-  BGLOB_CLASS_GCC_PASS,
-  /* the class of basilys GCC GIMPLE passes */
-  BGLOB_CLASS_GCC_GIMPLE_PASS,
-  /* the class of basilys GCC GIMPLE passes */
-  BGLOB_CLASS_GCC_RTL_PASS,
-  /* the class of basilys GCC GIMPLE passes */
-  BGLOB_CLASS_GCC_SIMPLE_IPA_PASS,
-  /* the class of C iterators */
-  BGLOB_CLASS_CITERATOR,
-  /* the class of C matchers [in patterns] */
-  BGLOB_CLASS_CMATCHER,
-  /* the class of  function-matchers [in patterns] */
-  BGLOB_CLASS_FUNMATCHER,
-  /* the initial discriminant of mixedloc */
-  BGLOB_DISCR_MIXEDLOC,
-  /* the initial discriminant of tree-s */
-  BGLOB_DISCR_TREE,
-  /* the initial discriminant of gimple-s */
-  BGLOB_DISCR_GIMPLE,
-  /* the initial discriminant of gimpleseq-s */
-  BGLOB_DISCR_GIMPLESEQ,
-  /* the initial discriminant of edge-s */
-  BGLOB_DISCR_EDGE,
-  /* the initial discriminant of basicblock-s */
-  BGLOB_DISCR_BASICBLOCK,
-  /* the initial discriminant of tree map-s */
-  BGLOB_DISCR_MAPTREES,
-  /* the initial discriminant of gimple map-s */
-  BGLOB_DISCR_MAPGIMPLES,
-  /* the initial discriminant of gimpleseq map-s */
-  BGLOB_DISCR_MAPGIMPLESEQS,
-  /* the initial discriminant of edge map-s */
-  BGLOB_DISCR_MAPEDGES,
-  /* the initial discriminant of basicblock map-s */
-  BGLOB_DISCR_MAPBASICBLOCKS,
-  /* the initial discriminant of stringbuffers */
-  BGLOB_DISCR_STRBUF,
-  /* the initial discriminant of mixedbigint */
-  BGLOB_DISCR_MIXBIGINT,
+#include "melt-predef.h"
   /**************************** placeholder for last wired */
-  BGLOB__LASTWIRED,
-  BGLOB___SPARE1,
-  BGLOB___SPARE2,
-  BGLOB___SPARE3,
-  BGLOB___SPARE4,
+  MELTGLOB__LASTWIRED,
+  MELTGLOB___SPARE1,
+  MELTGLOB___SPARE2,
+  MELTGLOB___SPARE3,
+  MELTGLOB___SPARE4,
   /*****/
-  BGLOB__LASTGLOB
+  MELTGLOB__LASTGLOB
 };
-
+#define BGLOB__LASTGLOB MELTGLOB__LASTGLOB
 
 /* *INDENT-OFF* */
 
 /* the array of global values */
-extern GTY (()) basilys_ptr_t basilys_globarr[BGLOB__LASTGLOB];
+extern GTY (()) basilys_ptr_t basilys_globarr[MELTGLOB__LASTGLOB];
 
 /* *INDENT-ON* */
 
@@ -3047,11 +2894,30 @@ enum {
   FGCCPASS__LAST
 };
 
-/* BASILYSG(Foo) is the global of index BGLOB_Foo */
-#define BASILYSG(Glob) basilys_globarr[BGLOB_##Glob]
-#define BASILYSGOB(Glob) ((basilysobject_ptr_t)(BASILYSG(Glob)))
 
-#define BASILYSGIX(Tab,Glob) Tab[BGLOB_##Glob]
+static inline basilys_ptr_t melt_fetch_predefined(int ix)
+{
+  if (ix>0 && ix<MELTGLOB__LASTWIRED)
+    return (basilys_ptr_t)basilys_globarr[ix];
+  return NULL;
+}
+
+static inline void melt_store_predefined(int ix, basilys_ptr_t p)
+{
+  gcc_assert (ix>0 && ix<MELTGLOB__LASTWIRED);
+  gcc_assert (basilys_globarr[ix] == NULL);
+  basilys_globarr[ix] = p;
+}
+
+#define basilys_globpredef(Ix) ((void*)melt_fetch_predefined((Ix)))
+
+/* BASILYSG(Foo) is the global of index BGLOB_Foo */
+#define BASILYSG(Glob) basilys_globarr[MELTGLOB_##Glob]
+#define BASILYSGOB(Glob) ((basilysobject_ptr_t)(BASILYSG(Glob)))
+#define MELT_PREDEF(Glob)  melt_fetch_predefined(MELTGLOB_##Glob)
+#define MELT_STORE_PREDEF(Glob,P) melt_store_predefined(MELTGLOB_##Glob, (P))
+#define BASILYSGIX(Tab,Glob) Tab[MELTGLOB_##Glob]
+#define MELTPREDEFIX(Tab,Glob) Tab[MELTGLOB_##Glob]
 
 /* return the discriminant or class itself */
 static inline basilysobject_ptr_t
@@ -3342,13 +3208,6 @@ debugnum_at (const char *fil, int lin, const char *msg, long val)
 
 #define debugnum(Msg,Val) debugnum_at(__FILE__, __LINE__, (Msg), (Val))
 
-static inline void *
-basilys_globpredef (int rank)
-{
-  if (rank > 0 && rank < BGLOB__LASTGLOB)
-    return basilys_globarr[rank];
-  return NULL;
-}
 
 void basilys_dbgshortbacktrace(const char* msg, int maxdepth);
 

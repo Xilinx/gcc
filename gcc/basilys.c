@@ -118,7 +118,7 @@ static const char melt_source_dir[] = MELT_SOURCE_DIR;
 static const char melt_module_dir[] = MELT_MODULE_DIR;
 static const char melt_compile_script[] = MELT_COMPILE_SCRIPT;
 
-basilys_ptr_t basilys_globarr[BGLOB__LASTGLOB];
+basilys_ptr_t basilys_globarr[MELTGLOB__LASTGLOB];
 void* basilys_startalz=NULL;
 void* basilys_endalz;
 char* basilys_curalz;
@@ -154,7 +154,7 @@ long basilys_dbgcounter;
 long basilys_debugskipcount;
 
 
-int basilys_last_global_ix = BGLOB__LASTGLOB;
+int basilys_last_global_ix = MELTGLOB__LASTGLOB;
 
 /* our copying garbage collector needs a vector of basilys_ptr_t to
    scan and an hashtable of basilys_ptr_t which are local variables
@@ -669,7 +669,7 @@ basilys_garbcoll (size_t wanted, bool needfull)
   if (wanted < melt_minorsizekilow * sizeof (void *) * 1024)
     wanted = melt_minorsizekilow * sizeof (void *) * 1024;
   /* compute number of locals and depth of call stack */
-  nbglob = BGLOB__LASTGLOB;
+  nbglob = MELTGLOB__LASTGLOB;
   for (cfram = basilys_topframe; cfram != NULL; cfram = cfram->prev)
     {
       locdepth++;
@@ -690,7 +690,7 @@ basilys_garbcoll (size_t wanted, bool needfull)
     ggc_alloc_cleared (sizeof (struct basilocalsptr_st) +
 		       locsiz * sizeof (void *));
   blocaltab->lenix = primix;
-  for (ix = 0; ix < BGLOB__LASTGLOB; ix++)
+  for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
     FORWARDED (basilys_globarr[ix]);
   for (cfram = basilys_topframe; cfram != NULL; cfram = cfram->prev)
     {
@@ -7226,7 +7226,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
   debugeprintf ("basilysgc_read_file filnam %s locnam %s", filnam, locnam);
   fil = fopen (filnam, "rt");
   if (!fil)
-    fatal_error ("cannot open basilys file %s - %m", filnam);
+    fatal_error ("cannot open MELT file %s - %m", filnam);
   /*  debugeprintf ("starting loading file %s", filnamdup); */
   rds.rfil = fil;
   rds.rpath = filnam;
@@ -7755,7 +7755,7 @@ melt_really_initialize (const char* pluginame)
       wantedwords = (1 << 20);
     gcc_assert (basilys_startalz == NULL && basilys_endalz == NULL);
     gcc_assert (wantedwords * sizeof (void *) >
-		300 * BGLOB__LASTGLOB * sizeof (struct basilysobject_st));
+		300 * MELTGLOB__LASTGLOB * sizeof (struct basilysobject_st));
     basilys_curalz = (char *) xcalloc (sizeof (void *), wantedwords);
     basilys_startalz = basilys_curalz;
     basilys_endalz = (char *) basilys_curalz + wantedwords * sizeof (void *);

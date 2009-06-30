@@ -1,3 +1,27 @@
+2009-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	[the predefined names are listed in melt-predef.list]
+	* Makefile.in: added generation of melt-predef.h &
+	melt-predef.melt and dependencies. Redefined BASILYS_H.
+	* basilys.h: added inclusion of melt-predef.h.
+	(melt_fetch_predefined, melt_store_predefined): Added new
+	functions.
+	(BGLOB__LASTGLOB) renamed as (MELTGLOB__LASTGLOB).
+	(MELT_PREDEF, MELT_STORE_PREDEF): new macros.
+	(basilys_globpredef) function removed and defined as macro.
+	* basilys.c: uses MELTGLOB__LASTGLOB instead of BGLOB__LASTGLOB.
+	* make-warmelt-predef.awk: added new file.
+	* make-melt-predefh.awk: added new file.
+	* melt-predef.list: added new file.
+	* melt/warmelt-normal.melt: added loading of [generated]
+	melt-predef.melt.
+	* melt/warmelt-outobj.melt: uses MELT_PREDEF & MELT_STORE_PREDEF.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2009-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[started plugininfication]
 	* basilys.c (MELT_IS_PLUGIN): added possible preprocessor symbol.

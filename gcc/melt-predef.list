@@ -1,0 +1,169 @@
+## file melt-predef.list
+# Copyright (C) 2009 Free Software Foundation, Inc.
+
+#This file is part of GCC.
+
+#GCC is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 3, or (at your option)
+#any later version.
+
+#GCC is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with GCC; see the file COPYING3.  If not see
+#<http://www.gnu.org/licenses/>.
+
+
+# the pseudo discriminant using for sending to null pointers 
+  DISCR_NULLRECV
+# the initial discriminant of string 
+  DISCR_STRING
+# the initial discriminant of integer 
+  DISCR_INTEGER
+# the initial discriminant of lists 
+  DISCR_LIST
+# the initial discriminant of multiples 
+  DISCR_MULTIPLE
+# the initial discriminant of boxes 
+  DISCR_BOX
+# the initial discriminant of mapobjects 
+  DISCR_MAPOBJECTS
+# the initial discriminant of mapstrings 
+  DISCR_MAPSTRINGS
+# the initial discriminant of charcode integer 
+  DISCR_CHARINTEGER
+# the initial discriminant of mixedint 
+  DISCR_MIXEDINT
+# the discriminant of ancestors or other class sequences 
+  DISCR_SEQCLASS
+# the discriminant of closures 
+  DISCR_CLOSURE
+# the discriminant of routine 
+  DISCR_ROUTINE
+# the discriminant of pairs 
+  DISCR_PAIR
+# the discriminant of short name strings 
+  DISCR_NAMESTRING
+# the discriminant of verbatim strings (in primitive expansions) 
+  DISCR_VERBATIMSTRING
+# discriminant for sequence of fields 
+  DISCR_SEQFIELD
+# discriminant for dictionnaries (mapobjects) of methods 
+  DISCR_METHODMAP
+# the class of classes 
+  CLASS_CLASS
+# the root class 
+  CLASS_ROOT
+# the proped class 
+  CLASS_PROPED
+# the named class 
+  CLASS_NAMED
+# the located class 
+  CLASS_LOCATED
+# the symbol class 
+  CLASS_SYMBOL
+# the keyword class 
+  CLASS_KEYWORD
+# the sexpr class 
+  CLASS_SEXPR
+# class of fields 
+  CLASS_FIELD
+# class of message selectors 
+  CLASS_SELECTOR
+# class of primitives 
+  CLASS_PRIMITIVE
+# class of formal bindings 
+  CLASS_FORMAL_BINDING
+# the discr class 
+  CLASS_DISCR
+# the class of system data 
+  CLASS_SYSTEM_DATA
+# the class of ctypes 
+  CLASS_CTYPE
+# the class of environments 
+  CLASS_ENVIRONMENT
+#*** every ctype should be predefined ***
+# ctype of longs 
+  CTYPE_LONG
+# ctype of values 
+  CTYPE_VALUE
+# ctype of trees 
+  CTYPE_TREE
+# ctype of gimples 
+  CTYPE_GIMPLE
+# ctype of gimpleseqs 
+  CTYPE_GIMPLESEQ
+# ctype of basicblocks 
+  CTYPE_BASICBLOCK
+# ctype of edges 
+  CTYPE_EDGE
+# ctype for void 
+  CTYPE_VOID
+# ctype of constant cstrings 
+  CTYPE_CSTRING
+# ctype of PPL coefficients 
+  CTYPE_PPL_COEFFICIENT
+# ctype of PPL linear expressions 
+  CTYPE_PPL_LINEAR_EXPRESSION
+# ctype of PPL constraints 
+  CTYPE_PPL_CONSTRAINT
+# ctype of PPL constraint systems 
+  CTYPE_PPL_CONSTRAINT_SYSTEM
+# @@unimplemented ctype of PPL generators 
+  CTYPE_PPL_GENERATOR
+# @@unimplemented ctype of PPL generator systems 
+  CTYPE_PPL_GENERATOR_SYSTEM
+# ctype of PPL polyhedrons 
+  CTYPE_PPL_POLYHEDRON
+# the initial system data 
+  INITIAL_SYSTEM_DATA
+# the atom for true 
+  ATOM_TRUE
+# the class of containers 
+  CLASS_CONTAINER
+# the super-class of basilys GCC compiler passes 
+  CLASS_GCC_PASS
+# the class of basilys GCC GIMPLE passes 
+  CLASS_GCC_GIMPLE_PASS
+# the class of basilys GCC GIMPLE passes 
+  CLASS_GCC_RTL_PASS
+# the class of basilys GCC GIMPLE passes 
+  CLASS_GCC_SIMPLE_IPA_PASS
+# the class of C iterators 
+  CLASS_CITERATOR
+# the class of C matchers [in patterns] 
+  CLASS_CMATCHER
+# the class of  function-matchers [in patterns] 
+  CLASS_FUNMATCHER
+# the initial discriminant of mixedloc 
+  DISCR_MIXEDLOC
+# the initial discriminant of tree-s 
+  DISCR_TREE
+# the initial discriminant of gimple-s 
+  DISCR_GIMPLE
+# the initial discriminant of gimpleseq-s 
+  DISCR_GIMPLESEQ
+# the initial discriminant of edge-s 
+  DISCR_EDGE
+# the initial discriminant of basicblock-s 
+  DISCR_BASICBLOCK
+# the initial discriminant of tree map-s 
+  DISCR_MAPTREES
+# the initial discriminant of gimple map-s 
+  DISCR_MAPGIMPLES
+# the initial discriminant of gimpleseq map-s 
+  DISCR_MAPGIMPLESEQS
+# the initial discriminant of edge map-s 
+  DISCR_MAPEDGES
+# the initial discriminant of basicblock map-s 
+  DISCR_MAPBASICBLOCKS
+# the initial discriminant of stringbuffers 
+  DISCR_STRBUF
+# the initial discriminant of mixedbigint 
+  DISCR_MIXBIGINT
+
+#eof melt-predef.list

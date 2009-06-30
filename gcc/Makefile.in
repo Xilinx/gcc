@@ -1418,7 +1418,7 @@ BACKEND = main.o @TREEBROWSER@  libbackend.a $(CPPLIB) $(LIBDECNUMBER)
 
 ## gcc/configure.ac may set BASILYSMELT_OBJECT to basilys.o or leave it empty
 BASILYSMELT_OBJ := @BASILYSMELT_OBJECT@
-BASILYS_H= $(patsubst %.o, $(srcdir)/%.h, $(BASILYSMELT_OBJ))
+BASILYS_H= $(if $(BASILYSMELT_OBJ), $(srcdir)/basilys.h melt-predef.h)
 BASILYS_C= $(patsubst %.o, $(srcdir)/%.c, $(BASILYSMELT_OBJ))
 
 MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
@@ -2560,6 +2560,12 @@ $(BASILYSMELT_OBJ):  $(BASILYS_C)  \
 	  -DMELT_COMPILE_SCRIPT=\"$(melt_compile_script)\" \
 	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" \
 	  -c $(BASILYS_C) $(OUTPUT_OPTION)
+melt-predef.h: $(srcdir)/make-melt-predefh.awk $(srcdir)/melt-predef.list
+	$(AWK) -f $(srcdir)/make-melt-predefh.awk $(srcdir)/melt-predef.list > $@-tmp
+	$(SHELL) $(srcdir)/../move-if-change  $@-tmp $@
+warmelt-predef.melt: $(srcdir)/melt-predef.list  $(srcdir)/make-warmelt-predef.awk
+	$(AWK) -f $(srcdir)/make-warmelt-predef.awk $< > $@-tmp
+	$(SHELL) $(srcdir)/../move-if-change  $@-tmp $@
 endif
 ### end of Basilys stuff
 
@@ -5056,7 +5062,8 @@ warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.melt cc1$(exeext) \
 	 warmelt-normal-0.d.so \
 	 warmelt-normatch-0.d.so \
 	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so 
+	 warmelt-outobj-0.d.so \
+	 warmelt-predef.melt
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
 	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
@@ -5132,6 +5139,9 @@ warmelt-%-2.c: $(srcdir)/melt/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO) 
 	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fmelt-secondarg=$@
 	ls -l $@
+
+warmelt-normal-2.c: warmelt-predef.melt
+warmelt-normal-3.c: warmelt-predef.melt
 
 ## apparently, these dependencies are explicitly needed... because
 ## melt.encap target is making explicitly these
