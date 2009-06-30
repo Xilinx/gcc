@@ -896,6 +896,7 @@ decode_options (unsigned int argc, const char **argv)
   flag_ipa_cp = opt2;
 #ifdef HAVE_cloog
   flag_graphite_identity = opt2;
+  flag_loop_strip_mine = opt2;
 #endif
 
   /* Track fields in field-sensitive alias analysis.  */
