@@ -772,7 +772,7 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
 
   if (unsignedp && GET_MODE_CLASS (mode) == MODE_INT
       && GET_MODE_BITSIZE (mode) == 2 * HOST_BITS_PER_WIDE_INT
-      && GET_CODE (x) == CONST_INT && INTVAL (x) < 0)
+      && CONST_INT_P (x) && INTVAL (x) < 0)
     {
       HOST_WIDE_INT val = INTVAL (x);
 
@@ -793,7 +793,7 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
      non-volatile MEM.  Except for the constant case where MODE is no
      wider than HOST_BITS_PER_WIDE_INT, we must be narrowing the operand.  */
 
-  if ((GET_CODE (x) == CONST_INT
+  if ((CONST_INT_P (x)
        && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
       || (GET_MODE_CLASS (mode) == MODE_INT
 	  && GET_MODE_CLASS (oldmode) == MODE_INT
@@ -810,7 +810,7 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
       /* ?? If we don't know OLDMODE, we have to assume here that
 	 X does not need sign- or zero-extension.   This may not be
 	 the case, but it's the best we can do.  */
-      if (GET_CODE (x) == CONST_INT && oldmode != VOIDmode
+      if (CONST_INT_P (x) && oldmode != VOIDmode
 	  && GET_MODE_SIZE (mode) > GET_MODE_SIZE (oldmode))
 	{
 	  HOST_WIDE_INT val = INTVAL (x);
@@ -1199,7 +1199,7 @@ emit_block_move_hints (rtx x, rtx y, rtx size, enum block_op_methods method,
 
   /* Set MEM_SIZE as appropriate for this block copy.  The main place this
      can be incorrect is coming from __builtin_memcpy.  */
-  if (GET_CODE (size) == CONST_INT)
+  if (CONST_INT_P (size))
     {
       if (INTVAL (size) == 0)
 	return 0;
@@ -1210,7 +1210,7 @@ emit_block_move_hints (rtx x, rtx y, rtx size, enum block_op_methods method,
       set_mem_size (y, size);
     }
 
-  if (GET_CODE (size) == CONST_INT && MOVE_BY_PIECES_P (INTVAL (size), align))
+  if (CONST_INT_P (size) && MOVE_BY_PIECES_P (INTVAL (size), align))
     move_by_pieces (x, y, INTVAL (size), align, 0);
   else if (emit_block_move_via_movmem (x, y, size, align,
 				       expected_align, expected_size))
@@ -1313,7 +1313,7 @@ emit_block_move_via_movmem (rtx x, rtx y, rtx size, unsigned int align,
 	     here because if SIZE is less than the mode mask, as it is
 	     returned by the macro, it will definitely be less than the
 	     actual mode mask.  */
-	  && ((GET_CODE (size) == CONST_INT
+	  && ((CONST_INT_P (size)
 	       && ((unsigned HOST_WIDE_INT) INTVAL (size)
 		   <= (GET_MODE_MASK (mode) >> 1)))
 	      || GET_MODE_BITSIZE (mode) >= BITS_PER_WORD)
@@ -2608,7 +2608,7 @@ clear_storage_hints (rtx object, rtx size, enum block_op_methods method,
   /* If OBJECT is not BLKmode and SIZE is the same size as its mode,
      just move a zero.  Otherwise, do this a piece at a time.  */
   if (mode != BLKmode
-      && GET_CODE (size) == CONST_INT
+      && CONST_INT_P (size)
       && INTVAL (size) == (HOST_WIDE_INT) GET_MODE_SIZE (mode))
     {
       rtx zero = CONST0_RTX (mode);
@@ -2635,7 +2635,7 @@ clear_storage_hints (rtx object, rtx size, enum block_op_methods method,
 
   align = MEM_ALIGN (object);
 
-  if (GET_CODE (size) == CONST_INT
+  if (CONST_INT_P (size)
       && CLEAR_BY_PIECES_P (INTVAL (size), align))
     clear_by_pieces (object, INTVAL (size), align);
   else if (set_storage_via_setmem (object, size, const0_rtx, align,
@@ -2681,7 +2681,7 @@ set_storage_via_libcall (rtx object, rtx size, rtx val, bool tailcall)
      for returning pointers, we could end up generating incorrect code.  */
 
   object_tree = make_tree (ptr_type_node, object);
-  if (GET_CODE (val) != CONST_INT)
+  if (!CONST_INT_P (val))
     val = convert_to_mode (TYPE_MODE (integer_type_node), val, 1);
   size_tree = make_tree (sizetype, size);
   val_tree = make_tree (integer_type_node, val);
@@ -2774,7 +2774,7 @@ set_storage_via_setmem (rtx object, rtx size, rtx val, unsigned int align,
 	     BITS_PER_HOST_WIDE_INT here because if SIZE is less than
 	     the mode mask, as it is returned by the macro, it will
 	     definitely be less than the actual mode mask.  */
-	  && ((GET_CODE (size) == CONST_INT
+	  && ((CONST_INT_P (size)
 	       && ((unsigned HOST_WIDE_INT) INTVAL (size)
 		   <= (GET_MODE_MASK (mode) >> 1)))
 	      || GET_MODE_BITSIZE (mode) >= BITS_PER_WORD)
@@ -3046,7 +3046,7 @@ emit_move_resolve_push (enum machine_mode mode, rtx x)
       HOST_WIDE_INT val;
 
       gcc_assert (GET_CODE (expr) == PLUS || GET_CODE (expr) == MINUS);
-      gcc_assert (GET_CODE (XEXP (expr, 1)) == CONST_INT);
+      gcc_assert (CONST_INT_P (XEXP (expr, 1)));
       val = INTVAL (XEXP (expr, 1));
       if (GET_CODE (expr) == MINUS)
 	val = -val;
@@ -3572,7 +3572,7 @@ push_block (rtx size, int extra, int below)
     }
   else
     {
-      if (GET_CODE (size) == CONST_INT)
+      if (CONST_INT_P (size))
 	temp = plus_constant (virtual_outgoing_args_rtx,
 			      -INTVAL (size) - (below ? 0 : extra));
       else if (extra != 0 && !below)
@@ -3783,7 +3783,7 @@ emit_push_insn (rtx x, enum machine_mode mode, tree type, rtx size,
 	 on the stack for alignment purposes.  */
       if (args_addr == 0
 	  && PUSH_ARGS
-	  && GET_CODE (size) == CONST_INT
+	  && CONST_INT_P (size)
 	  && skip == 0
 	  && MEM_ALIGN (xinner) >= align
 	  && (MOVE_BY_PIECES_P ((unsigned) INTVAL (size) - used, align))
@@ -3816,7 +3816,7 @@ emit_push_insn (rtx x, enum machine_mode mode, tree type, rtx size,
 	  /* Deduct words put into registers from the size we must copy.  */
 	  if (partial != 0)
 	    {
-	      if (GET_CODE (size) == CONST_INT)
+	      if (CONST_INT_P (size))
 		size = GEN_INT (INTVAL (size) - used);
 	      else
 		size = expand_binop (GET_MODE (size), sub_optab, size,
@@ -3832,7 +3832,7 @@ emit_push_insn (rtx x, enum machine_mode mode, tree type, rtx size,
 	      temp = push_block (size, extra, where_pad == downward);
 	      extra = 0;
 	    }
-	  else if (GET_CODE (args_so_far) == CONST_INT)
+	  else if (CONST_INT_P (args_so_far))
 	    temp = memory_address (BLKmode,
 				   plus_constant (args_addr,
 						  skip + INTVAL (args_so_far)));
@@ -3948,7 +3948,7 @@ emit_push_insn (rtx x, enum machine_mode mode, tree type, rtx size,
       else
 #endif
 	{
-	  if (GET_CODE (args_so_far) == CONST_INT)
+	  if (CONST_INT_P (args_so_far))
 	    addr
 	      = memory_address (mode,
 				plus_constant (args_addr,
@@ -4732,7 +4732,7 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 	     type of the string, which is actually the size of the target.  */
 	  rtx size = expr_size (exp);
 
-	  if (GET_CODE (size) == CONST_INT
+	  if (CONST_INT_P (size)
 	      && INTVAL (size) < TREE_STRING_LENGTH (exp))
 	    emit_block_move (target, temp, size,
 			     (call_param_p
@@ -4759,7 +4759,7 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 
 	      /* Figure out how much is left in TARGET that we have to clear.
 		 Do all calculations in ptr_mode.  */
-	      if (GET_CODE (copy_size_rtx) == CONST_INT)
+	      if (CONST_INT_P (copy_size_rtx))
 		{
 		  size = plus_constant (size, -INTVAL (copy_size_rtx));
 		  target = adjust_address (target, BLKmode,
@@ -6343,7 +6343,7 @@ force_operand (rtx value, rtx target)
       op2 = XEXP (value, 1);
       if (!CONSTANT_P (op2) && !(REG_P (op2) && op2 != subtarget))
 	subtarget = 0;
-      if (code == MINUS && GET_CODE (op2) == CONST_INT)
+      if (code == MINUS && CONST_INT_P (op2))
 	{
 	  code = PLUS;
 	  op2 = negate_rtx (GET_MODE (value), op2);
@@ -6355,7 +6355,7 @@ force_operand (rtx value, rtx target)
          constant first and then add the other value.  This allows virtual
          register instantiation to simply modify the constant rather than
          creating another one around this addition.  */
-      if (code == PLUS && GET_CODE (op2) == CONST_INT
+      if (code == PLUS && CONST_INT_P (op2)
 	  && GET_CODE (XEXP (value, 0)) == PLUS
 	  && REG_P (XEXP (XEXP (value, 0), 0))
 	  && REGNO (XEXP (XEXP (value, 0), 0)) >= FIRST_VIRTUAL_REGISTER
@@ -8640,7 +8640,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
 	  /* If the last operand is a CONST_INT, use plus_constant of
 	     the negated constant.  Else make the MINUS.  */
-	  if (GET_CODE (op1) == CONST_INT)
+	  if (CONST_INT_P (op1))
 	    return REDUCE_BIT_FIELD (plus_constant (op0, - INTVAL (op1)));
 	  else
 	    return REDUCE_BIT_FIELD (gen_rtx_MINUS (mode, op0, op1));
@@ -8658,7 +8658,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		       subtarget, &op0, &op1, modifier);
 
       /* Convert A - const to A + (-const).  */
-      if (GET_CODE (op1) == CONST_INT)
+      if (CONST_INT_P (op1))
 	{
 	  op1 = negate_rtx (mode, op1);
 	  return REDUCE_BIT_FIELD (simplify_gen_binary (PLUS, mode, op0, op1));
@@ -9109,50 +9109,9 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       temp = do_store_flag (exp,
 			    modifier != EXPAND_STACK_PARM ? target : NULL_RTX,
 			    tmode != VOIDmode ? tmode : mode);
-      if (temp != 0)
-	return temp;
+      gcc_assert (temp);
+      return temp;
 
-      /* For foo != 0, load foo, and if it is nonzero load 1 instead.  */
-      if (code == NE_EXPR && integer_zerop (TREE_OPERAND (exp, 1))
-	  && original_target
-	  && REG_P (original_target)
-	  && (GET_MODE (original_target)
-	      == TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0)))))
-	{
-	  temp = expand_expr (TREE_OPERAND (exp, 0), original_target,
-			      VOIDmode, EXPAND_NORMAL);
-
-	  /* If temp is constant, we can just compute the result.  */
-	  if (GET_CODE (temp) == CONST_INT)
-	    {
-	      if (INTVAL (temp) != 0)
-	        emit_move_insn (target, const1_rtx);
-	      else
-	        emit_move_insn (target, const0_rtx);
-
-	      return target;
-	    }
-
-	  if (temp != original_target)
-	    {
-	      enum machine_mode mode1 = GET_MODE (temp);
-	      if (mode1 == VOIDmode)
-		mode1 = tmode != VOIDmode ? tmode : mode;
-
-	      temp = copy_to_mode_reg (mode1, temp);
-	    }
-
-	  op1 = gen_label_rtx ();
-	  emit_cmp_and_jump_insns (temp, const0_rtx, EQ, NULL_RTX,
-				   GET_MODE (temp), unsignedp, op1);
-	  emit_move_insn (temp, const1_rtx);
-	  emit_label (op1);
-	  return temp;
-	}
-
-      /* If no set-flag instruction, must generate a conditional store
-	 into a temporary variable.  Drop through and handle this
-	 like && and ||.  */
       /* Although TRUTH_{AND,OR}IF_EXPR aren't present in GIMPLE, they
 	 are occassionally created by folding during expansion.  */
     case TRUTH_ANDIF_EXPR:
@@ -9567,7 +9526,7 @@ reduce_to_bit_field_precision (rtx exp, rtx target, tree type)
   if (target && GET_MODE (target) != GET_MODE (exp))
     target = 0;
   /* For constant values, reduce using build_int_cst_type. */
-  if (GET_CODE (exp) == CONST_INT)
+  if (CONST_INT_P (exp))
     {
       HOST_WIDE_INT value = INTVAL (exp);
       tree t = build_int_cst_type (type, value);
@@ -9751,8 +9710,7 @@ string_constant (tree arg, tree *ptr_offset)
 }
 
 /* Generate code to calculate EXP using a store-flag instruction
-   and return an rtx for the result.  EXP is either a comparison
-   or a TRUTH_NOT_EXPR whose operand is a comparison.
+   and return an rtx for the result.  EXP is a comparison.
 
    If TARGET is nonzero, store the result there if convenient.
 
@@ -9774,19 +9732,9 @@ do_store_flag (tree exp, rtx target, enum machine_mode mode)
   tree arg0, arg1, type;
   tree tem;
   enum machine_mode operand_mode;
-  int invert = 0;
   int unsignedp;
   rtx op0, op1;
   rtx subtarget = target;
-  rtx result, label;
-
-  /* If this is a TRUTH_NOT_EXPR, set a flag indicating we must invert the
-     result at the end.  We can't simply invert the test since it would
-     have already been inverted if it were valid.  This case occurs for
-     some floating-point comparisons.  */
-
-  if (TREE_CODE (exp) == TRUTH_NOT_EXPR)
-    invert = 1, exp = TREE_OPERAND (exp, 0);
 
   arg0 = TREE_OPERAND (exp, 0);
   arg1 = TREE_OPERAND (exp, 1);
@@ -9916,10 +9864,6 @@ do_store_flag (tree exp, rtx target, enum machine_mode mode)
 			  target, VOIDmode, EXPAND_NORMAL);
     }
 
-  /* Now see if we are likely to be able to do this.  Return if not.  */
-  if (! can_compare_p (code, operand_mode, ccp_store_flag))
-    return 0;
-
   if (! get_subtarget (target)
       || GET_MODE (subtarget) != operand_mode)
     subtarget = 0;
@@ -9929,31 +9873,9 @@ do_store_flag (tree exp, rtx target, enum machine_mode mode)
   if (target == 0)
     target = gen_reg_rtx (mode);
 
-  result = emit_store_flag (target, code, op0, op1,
-			    operand_mode, unsignedp, 1);
-
-  if (result)
-    {
-      if (invert)
-	result = expand_binop (mode, xor_optab, result, const1_rtx,
-			       result, 0, OPTAB_LIB_WIDEN);
-      return result;
-    }
-
-  /* If this failed, we have to do this with set/compare/jump/set code.  */
-  if (!REG_P (target)
-      || reg_mentioned_p (target, op0) || reg_mentioned_p (target, op1))
-    target = gen_reg_rtx (GET_MODE (target));
-
-  emit_move_insn (target, invert ? const0_rtx : const1_rtx);
-  label = gen_label_rtx ();
-  do_compare_rtx_and_jump (op0, op1, code, unsignedp, operand_mode, NULL_RTX,
-			   NULL_RTX, label);
-
-  emit_move_insn (target, invert ? const1_rtx : const0_rtx);
-  emit_label (label);
-
-  return target;
+  /* Try a cstore if possible.  */
+  return emit_store_flag_force (target, code, op0, op1,
+			        operand_mode, unsignedp, 1);
 }
 
 

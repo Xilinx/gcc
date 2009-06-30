@@ -1,3 +1,72 @@
+2009-06-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (shared_future): Adjust doxygen comment.
+
+2009-06-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/40297
+	* include/bits/atomic_0.h: Reverse debug assertions.
+	* include/bits/atomic_2.h: Likewise.
+
+2009-06-23  DJ Delorie  <dj@redhat.com>
+
+	Add MeP port.
+	* configure.host: Add mep support.
+
+2009-06-23  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in (PREDEFINED): Add _GLIBCXX_ATOMIC_BUILTINS_*.
+	(INPUT): Add future.
+	* include/std/future: Adjust markup.
+	* testsuite/30_threads/shared_future/cons/assign_neg.cc: Adjust
+	line numbers.
+	* testsuite/30_threads/unique_future/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/unique_future/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/promise/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/promise/cons/copy_neg.cc: Same.
+
+2009-06-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/shared_ptr.h: Do not swap rvalues.
+	* testsuite/20_util/owner_less/cmp.cc: Add missing test variables.
+	* testsuite/20_util/shared_ptr/comparison/cmp.cc: Likewise.
+	* testsuite/20_util/shared_ptr/comparison/less.cc: Likewise.
+	* testsuite/20_util/weak_ptr/observers/owner_before.cc: Likewise.
+	* testsuite/20_util/tuple/swap.cc: Likewise.
+
+2009-06-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/debug/macros.h: Replace @tbd with valid doxygen tag @todo.
+	* include/std/ratio: Typo in comment.
+
+2009-06-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40518
+	* include/bits/basic_string.h (basic_string<>::_Rep::
+	_M_set_length_and_sharable): Do not write the empty rep.
+	(basic_string<>::erase(iterator, iterator)): Likewise,
+	move out of line...
+	* include/bits/basic_string.tcc: ... here.
+
+2009-06-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_common_types.h (bitwise_operators,
+	bitwise_assignment_operators): Initialize a and b.
+	(struct has_bitwise_operators): Do not call the latter.
+	* testsuite/29_atomics/atomic_integral/cons/assign_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/29_atomics/atomic_integral/cons/copy_neg.cc: Likewise.
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Likewise.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Likewise.
+
+2009-06-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/list/invalidation/1.cc: Mark test as
+	possibly unused.
+	* testsuite/23_containers/list/invalidation/2.cc: Likewise.
+	* testsuite/23_containers/list/invalidation/3.cc: Likewise.
+	* testsuite/23_containers/list/invalidation/4.cc: Likewise.
+
 2009-06-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/std/future: New.

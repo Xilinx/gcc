@@ -1565,14 +1565,17 @@ package body Exp_Ch3 is
             end if;
 
             --  Ada 2005 (AI-287): In case of default initialized components,
-            --  we need to generate the corresponding selected component node
-            --  to access the discriminant value. In other cases this is not
-            --  required because we are inside the init proc and we use the
-            --  corresponding formal.
+            --  if the component is constrained with a discriminant of the
+            --  enclosing type, we need to generate the corresponding selected
+            --  component node to access the discriminant value. In other cases
+            --  this is not required, either  because we are inside the init
+            --  proc and we use the corresponding formal, or else because the
+            --  component is constrained by an expression.
 
             if With_Default_Init
               and then Nkind (Id_Ref) = N_Selected_Component
               and then Nkind (Arg) = N_Identifier
+              and then Ekind (Entity (Arg)) = E_Discriminant
             then
                Append_To (Args,
                  Make_Selected_Component (Loc,
@@ -1854,7 +1857,7 @@ package body Exp_Ch3 is
          --  Take a copy of Exp to ensure that later copies of this component
          --  declaration in derived types see the original tree, not a node
          --  rewritten during expansion of the init_proc. If the copy contains
-         --  itypes, the scope of the new itypes is the init.proc being built.
+         --  itypes, the scope of the new itypes is the init_proc being built.
 
          Exp := New_Copy_Tree (Exp, New_Scope => Proc_Id);
 
@@ -1885,7 +1888,7 @@ package body Exp_Ch3 is
          end if;
 
          --  Adjust the component if controlled except if it is an aggregate
-         --  that will be expanded inline
+         --  that will be expanded inline.
 
          if Kind = N_Qualified_Expression then
             Kind := Nkind (Expression (N));
@@ -1895,14 +1898,17 @@ package body Exp_Ch3 is
            and then not (Nkind_In (Kind, N_Aggregate, N_Extension_Aggregate))
            and then not Is_Inherently_Limited_Type (Typ)
          then
-            Append_List_To (Res,
-              Make_Adjust_Call (
-               Ref          => New_Copy_Tree (Lhs, New_Scope => Proc_Id),
-               Typ          => Etype (Id),
-               Flist_Ref    =>
-                 Find_Final_List
-                   (Etype (Id), New_Copy_Tree (Lhs, New_Scope => Proc_Id)),
-               With_Attach  => Make_Integer_Literal (Loc, 1)));
+            declare
+               Ref : constant Node_Id :=
+                       New_Copy_Tree (Lhs, New_Scope => Proc_Id);
+            begin
+               Append_List_To (Res,
+                 Make_Adjust_Call (
+                  Ref          => Ref,
+                  Typ          => Etype (Id),
+                  Flist_Ref    => Find_Final_List (Etype (Id), Ref),
+                  With_Attach  => Make_Integer_Literal (Loc, 1)));
+            end;
          end if;
 
          return Res;

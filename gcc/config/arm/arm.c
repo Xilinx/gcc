@@ -59,8 +59,6 @@
 typedef struct minipool_node    Mnode;
 typedef struct minipool_fixup   Mfix;
 
-EXPORTED_CONST struct attribute_spec arm_attribute_table[];
-
 void (*arm_lang_output_object_attributes_hook)(void);
 
 /* Forward function declarations.  */
@@ -206,7 +204,42 @@ static const char *arm_invalid_return_type (const_tree t);
 static tree arm_promoted_type (const_tree t);
 static tree arm_convert_to_type (tree type, tree expr);
 static bool arm_scalar_mode_supported_p (enum machine_mode);
+
+/* Table of machine attributes.  */
+static const struct attribute_spec arm_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* Function calls made to this symbol must be done indirectly, because
+     it may lie outside of the 26 bit addressing range of a normal function
+     call.  */
+  { "long_call",    0, 0, false, true,  true,  NULL },
+  /* Whereas these functions are always known to reside within the 26 bit
+     addressing range.  */
+  { "short_call",   0, 0, false, true,  true,  NULL },
+  /* Interrupt Service Routines have special prologue and epilogue requirements.  */
+  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute },
+  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute },
+  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute },
+#ifdef ARM_PE
+  /* ARM/PE has three new attributes:
+     interfacearm - ?
+     dllexport - for exporting a function/variable that will live in a dll
+     dllimport - for importing a function/variable from a dll
 
+     Microsoft allows multiple declspecs in one __declspec, separating
+     them with spaces.  We do NOT support this.  Instead, use __declspec
+     multiple times.
+  */
+  { "dllimport",    0, 0, true,  false, false, NULL },
+  { "dllexport",    0, 0, true,  false, false, NULL },
+  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute },
+#elif TARGET_DLLIMPORT_DECL_ATTRIBUTES
+  { "dllimport",    0, 0, false, false, false, handle_dll_attribute },
+  { "dllexport",    0, 0, false, false, false, handle_dll_attribute },
+  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute },
+#endif
+  { NULL,           0, 0, false, false, false, NULL }
+};
 
 /* Initialize the GCC target structure.  */
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
@@ -1612,6 +1645,15 @@ arm_override_options (void)
   if (TARGET_AAPCS_BASED
       && (arm_fp_model == ARM_FP_MODEL_FPA))
     error ("FPA is unsupported in the AAPCS");
+
+  if (TARGET_AAPCS_BASED)
+    {
+      if (TARGET_CALLER_INTERWORKING)
+	error ("AAPCS does not support -mcaller-super-interworking");
+      else
+	if (TARGET_CALLEE_INTERWORKING)
+	  error ("AAPCS does not support -mcallee-super-interworking");
+    }
 
   /* FPA and iWMMXt are incompatible because the insn encodings overlap.
      VFP and iWMMXt can theoretically coexist, but it's unlikely such silicon
@@ -3366,42 +3408,6 @@ arm_pr_long_calls_off (struct cpp_reader * pfile ATTRIBUTE_UNUSED)
   arm_pragma_long_calls = OFF;
 }
 
-/* Table of machine attributes.  */
-const struct attribute_spec arm_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  /* Function calls made to this symbol must be done indirectly, because
-     it may lie outside of the 26 bit addressing range of a normal function
-     call.  */
-  { "long_call",    0, 0, false, true,  true,  NULL },
-  /* Whereas these functions are always known to reside within the 26 bit
-     addressing range.  */
-  { "short_call",   0, 0, false, true,  true,  NULL },
-  /* Interrupt Service Routines have special prologue and epilogue requirements.  */
-  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute },
-  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute },
-  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute },
-#ifdef ARM_PE
-  /* ARM/PE has three new attributes:
-     interfacearm - ?
-     dllexport - for exporting a function/variable that will live in a dll
-     dllimport - for importing a function/variable from a dll
-
-     Microsoft allows multiple declspecs in one __declspec, separating
-     them with spaces.  We do NOT support this.  Instead, use __declspec
-     multiple times.
-  */
-  { "dllimport",    0, 0, true,  false, false, NULL },
-  { "dllexport",    0, 0, true,  false, false, NULL },
-  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute },
-#elif TARGET_DLLIMPORT_DECL_ATTRIBUTES
-  { "dllimport",    0, 0, false, false, false, handle_dll_attribute },
-  { "dllexport",    0, 0, false, false, false, handle_dll_attribute },
-  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute },
-#endif
-  { NULL,           0, 0, false, false, false, NULL }
-};
-
 /* Handle an attribute requiring a FUNCTION_DECL;
    arguments as in struct attribute_spec.handler.  */
 static tree
@@ -14097,6 +14103,12 @@ arm_print_operand (FILE *stream, rtx x, int code)
 	default:
 	  gcc_assert (GET_CODE (x) != NEG);
 	  fputc ('#', stream);
+	  if (GET_CODE (x) == HIGH)
+	    {
+	      fputs (":lower16:", stream);
+	      x = XEXP (x, 0);
+	    }
+	    
 	  output_addr_const (stream, x);
 	  break;
 	}
@@ -14475,12 +14487,6 @@ arm_final_prescan_insn (rtx insn)
      reversed if it appears to fail.  */
   int reverse = 0;
 
-  /* JUMP_CLOBBERS will be one implies that the conditions if a branch is
-     taken are clobbered, even if the rtl suggests otherwise.  It also
-     means that we have to grub around within the jump expression to find
-     out what the conditions are when the jump isn't taken.  */
-  int jump_clobbers = 0;
-
   /* If we start with a return insn, we only succeed if we find another one.  */
   int seeking_return = 0;
 
@@ -14559,14 +14565,6 @@ arm_final_prescan_insn (rtx insn)
       int then_not_else = TRUE;
       rtx this_insn = start_insn, label = 0;
 
-      /* If the jump cannot be done with one instruction, we cannot
-	 conditionally execute the instruction in the inverse case.  */
-      if (get_attr_conds (insn) == CONDS_JUMP_CLOB)
-	{
-	  jump_clobbers = 1;
-	  return;
-	}
-
       /* Register the insn jumped to.  */
       if (reverse)
         {
@@ -14609,13 +14607,7 @@ arm_final_prescan_insn (rtx insn)
 		 control falls in from somewhere else.  */
 	      if (this_insn == label)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14630,13 +14622,7 @@ arm_final_prescan_insn (rtx insn)
 	      this_insn = next_nonnote_insn (this_insn);
 	      if (this_insn && this_insn == label)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14664,13 +14650,7 @@ arm_final_prescan_insn (rtx insn)
 	      if (this_insn && this_insn == label
 		  && insns_skipped < max_insns_skipped)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14776,25 +14756,11 @@ arm_final_prescan_insn (rtx insn)
 	        }
 	      arm_target_insn = this_insn;
 	    }
-	  if (jump_clobbers)
-	    {
-	      gcc_assert (!reverse);
-	      arm_current_cc =
-		  get_arm_condition_code (XEXP (XEXP (XEXP (SET_SRC (body),
-							    0), 0), 1));
-	      if (GET_CODE (XEXP (XEXP (SET_SRC (body), 0), 0)) == AND)
-		arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);
-	      if (GET_CODE (XEXP (SET_SRC (body), 0)) == NE)
-		arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);
-	    }
-	  else
-	    {
-	      /* If REVERSE is true, ARM_CURRENT_CC needs to be inverted from
-		 what it was.  */
-	      if (!reverse)
-		arm_current_cc = get_arm_condition_code (XEXP (SET_SRC (body),
-							       0));
-	    }
+
+	  /* If REVERSE is true, ARM_CURRENT_CC needs to be inverted from
+	     what it was.  */
+	  if (!reverse)
+	    arm_current_cc = get_arm_condition_code (XEXP (SET_SRC (body), 0));
 
 	  if (reverse || then_not_else)
 	    arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);

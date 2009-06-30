@@ -327,6 +327,12 @@
 #endif
 
 
+/* Define if your assembler supports LWSYNC instructions. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_LWSYNC
+#endif
+
+
 /* Define if your assembler supports mfcr field. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_MFCRF
@@ -360,6 +366,12 @@
 /* Define if your assembler supports popcntb field. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_POPCNTB
+#endif
+
+
+/* Define if your assembler supports POPCNTD instructions. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_POPCNTD
 #endif
 
 
