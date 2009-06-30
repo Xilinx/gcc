@@ -1,5 +1,10 @@
 2009-06-30  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.c (pbb_number_of_iterations): Check for returned
+	value 1 from ppl_Pointset_Powerset_NNC_Polyhedron_maximize.
+
+2009-06-30  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-blocking.c (pbb_strip_mine_profitable_p): New.
 	(pbb_do_strip_mine): Call pbb_strip_mine_profitable_p.
 	* graphite-poly.c (pbb_number_of_iterations): New.

@@ -686,7 +686,7 @@ pbb_number_of_iterations (poly_bb_p pbb, graphite_dim_t loop_depth, Value niter)
   ppl_Pointset_Powerset_NNC_Polyhedron_maximize (PBB_DOMAIN (pbb), le,
 						 num, denom, &maximum);
 
-  if (maximum)
+  if (maximum == 1)
     {
       ppl_Coefficient_to_mpz_t (num, niter);
       ppl_Coefficient_to_mpz_t (denom, dv);
