@@ -152,6 +152,28 @@ pbb_strip_mine_loop_depth (poly_bb_p pbb, int loop_depth, int stride)
   return true;
 }
 
+/* Returns true when strip mining with STRIDE of the loop around PBB
+   at depth LOOP_DEPTH is profitable.  */
+
+static bool
+pbb_strip_mine_profitable_p (poly_bb_p pbb,
+			     graphite_dim_t loop_depth,
+			     int stride)
+{
+  Value niter, strip_stride;
+  bool res;
+
+  value_init (strip_stride);
+  value_init (niter);
+  value_set_si (strip_stride, stride);
+  pbb_number_of_iterations (pbb, loop_depth, niter);
+  res = value_gt (niter, strip_stride);
+  value_clear (strip_stride);
+  value_clear (niter);
+
+  return res;
+}
+
 /* Strip mines all the loops around PBB.  Nothing profitable in all this:
    this is just a driver function.  */
 
@@ -163,7 +185,8 @@ pbb_do_strip_mine (poly_bb_p pbb)
   bool transform_done = false;
 
   for (loop_depth = 0; loop_depth < pbb_dim_iter_domain (pbb); loop_depth++)
-    transform_done |= pbb_strip_mine_loop_depth (pbb, loop_depth, stride);
+    if (pbb_strip_mine_profitable_p (pbb, loop_depth, stride))
+      transform_done |= pbb_strip_mine_loop_depth (pbb, loop_depth, stride);
 
   return transform_done;
 }

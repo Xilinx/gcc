@@ -300,6 +300,7 @@ extern void debug_iteration_domain (poly_bb_p);
 extern void debug_iteration_domains (scop_p);
 extern bool scop_do_interchange (scop_p);
 extern bool scop_do_strip_mine (scop_p);
+extern void pbb_number_of_iterations (poly_bb_p, graphite_dim_t, Value);
 
 /* The scop that contains the PDR.  */
 
@@ -365,6 +366,23 @@ pbb_nb_local_vars (const struct poly_bb *pbb)
   /* For now we do not have any local variables, as we do not do strip
      mining for example.  */
   return PBB_NB_LOCAL_VARIABLES (pbb);
+}
+
+/* The dimension in the domain of PBB containing the iterator ITER.  */
+
+static inline ppl_dimension_type
+pbb_iterator_dim (poly_bb_p pbb ATTRIBUTE_UNUSED, graphite_dim_t iter)
+{
+  return iter;
+}
+
+/* The dimension in the domain of PBB containing the iterator ITER.  */
+
+static inline ppl_dimension_type
+pbb_parameter_dim (poly_bb_p pbb, graphite_dim_t param)
+{
+  return param
+    + pbb_dim_iter_domain (pbb);
 }
 
 /* The dimension in the original scattering polyhedron of PBB

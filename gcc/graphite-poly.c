@@ -664,5 +664,41 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
   gcc_unreachable ();
 }
 
+/* Returns the number of iterations NITER of the loop around PBB at
+   depth LOOP_DEPTH.  */
+
+void
+pbb_number_of_iterations (poly_bb_p pbb, graphite_dim_t loop_depth, Value niter)
+{
+  ppl_dimension_type loop_iter = pbb_iterator_dim (pbb, loop_depth);
+  ppl_Linear_Expression_t le;
+  ppl_Coefficient_t num, denom;
+  Value dv;
+  int maximum;
+  ppl_dimension_type dim;
+
+  value_init (dv);
+  ppl_new_Coefficient (&num);
+  ppl_new_Coefficient (&denom);
+  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
+  ppl_new_Linear_Expression_with_dimension (&le, dim);
+  ppl_set_coef (le, loop_iter, 1);
+  ppl_Pointset_Powerset_NNC_Polyhedron_maximize (PBB_DOMAIN (pbb), le,
+						 num, denom, &maximum);
+
+  if (maximum)
+    {
+      ppl_Coefficient_to_mpz_t (num, niter);
+      ppl_Coefficient_to_mpz_t (denom, dv);
+      value_division (niter, niter, dv);
+    }
+  else
+    value_set_si (niter, -1);
+
+  value_clear (dv);
+  ppl_delete_Coefficient (num);
+  ppl_delete_Coefficient (denom);
+}
+
 #endif
 
