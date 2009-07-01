@@ -1,3 +1,18 @@
+2009-07-01  Richard Henderson  <rth@redhat.com>
+
+	* timevar.def (TV_TRANS_MEM): New.
+	* trans-mem.c (pass_lower_tm, pass_tm_init, pass_tm_mark,
+	pass_tm_edges, pass_tm_memopt, pass_ipa_tm): Use it.
+	(mark_vops_in_stmt): Remove.
+	(ipa_tm_execute): Don't call tree_versionable_function_p
+	on unavailable functions.
+	* tree-eh.c (struct leh_state): Fix eh_region_d tag use.
+	* except.c: Re-merge some bits that accidentally got dropped.
+	(remove_unreachable_regions): Don't remove transactions.
+	* tree-cfg.c (verify_gimple_tm_atomic): New.
+	(verify_types_in_gimple_stmt): Use it.
+	* testsuite/gcc.dg/tm/ipa-1.c: Use -asmname dump flag.
+
 2009-06-26  Richard Henderson  <rth@redhat.com>
 
 	* Merge from mainline rev 148984.

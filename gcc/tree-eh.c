@@ -376,7 +376,7 @@ struct leh_state
      correspond to variables of the same name in cfun->eh, which we
      don't have easy access to.  */
   struct eh_region_d *cur_region;
-  struct eh_region *prev_atomic;
+  struct eh_region_d *prev_atomic;
 
   /* Processing of TRY_FINALLY requires a bit more state.  This is
      split out into a separate structure so that we don't have to

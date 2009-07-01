@@ -4123,6 +4123,17 @@ verify_gimple_switch (gimple stmt)
   return false;
 }
 
+/* Verify the contents of a GIMPLE_TM_ATOMIC.  Returns true if there
+   is a problem, otherwise false.  */
+
+static bool
+verify_gimple_tm_atomic (gimple stmt)
+{
+  tree lab = gimple_tm_atomic_label (stmt);
+  if (lab != NULL && TREE_CODE (lab) != LABEL_DECL)
+    return true;
+  return false;
+}
 
 /* Verify the contents of a GIMPLE_PHI.  Returns true if there is a problem,
    and false otherwise.  */
@@ -4211,6 +4222,9 @@ verify_types_in_gimple_stmt (gimple stmt)
 
     case GIMPLE_PHI:
       return verify_gimple_phi (stmt);
+
+    case GIMPLE_TM_ATOMIC:
+      return verify_gimple_tm_atomic (stmt);
 
     /* Tuples that do not have tree operands.  */
     case GIMPLE_NOP:

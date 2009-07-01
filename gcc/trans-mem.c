@@ -541,7 +541,7 @@ struct gimple_opt_pass pass_lower_tm =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_TRANS_MEM,				/* tv_id */
   PROP_gimple_lcf,			/* properties_required */
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
@@ -719,7 +719,7 @@ struct gimple_opt_pass pass_tm_init =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_TRANS_MEM,				/* tv_id */
   PROP_ssa | PROP_cfg,			/* properties_required */
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
@@ -749,20 +749,6 @@ add_stmt_to_tm_region (struct tm_region *region, gimple stmt)
     add_stmt_to_eh_region (stmt, region->region_nr);
 }
 
-
-/* Mark virtuals in STMT for renaming.  */
-
-static void
-mark_vops_in_stmt (gimple stmt)
-{
-  ssa_op_iter iter;
-  tree op;
-
-  FOR_EACH_SSA_TREE_OPERAND (op, stmt, iter, SSA_OP_ALL_VIRTUALS)
-    {
-      mark_sym_for_renaming (SSA_NAME_VAR (op));
-    }
-}
 
 /* Gimplify the address of a TARGET_MEM_REF.  Return the SSA_NAME
    result, insert the new statements before GSI.  */
@@ -928,7 +914,6 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
       return;
     }
 
-  mark_vops_in_stmt (stmt);
   gsi_remove (gsi, true);
 
   if (load_p && store_p)
@@ -1081,7 +1066,7 @@ struct gimple_opt_pass pass_tm_mark =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_TRANS_MEM,				/* tv_id */
   PROP_ssa | PROP_cfg,			/* properties_required */
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
@@ -1151,8 +1136,6 @@ expand_tm_atomic (struct tm_region *region)
   tree t1, t2;
   gimple g;
   int flags, subcode;
-
-  mark_vops_in_stmt (region->tm_atomic_stmt);
 
   tm_start = built_in_decls[BUILT_IN_TM_START];
   status = make_rename_temp (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
@@ -1299,7 +1282,7 @@ struct gimple_opt_pass pass_tm_edges =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_TRANS_MEM,				/* tv_id */
   PROP_ssa | PROP_cfg,			/* properties_required */
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
@@ -1333,7 +1316,7 @@ struct gimple_opt_pass pass_tm_memopt =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_TRANS_MEM,				/* tv_id */
   PROP_ssa | PROP_cfg,			/* properties_required */
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
@@ -2150,7 +2133,8 @@ ipa_tm_execute (void)
       /* Some callees cannot be arbitrarily cloned.  These will always be
 	 irrevokable.  Mark these now, so that we need not scan them.  */
       if (is_tm_irrevokable (node->decl)
-	  || !tree_versionable_function_p (node->decl))
+	  || (a >= AVAIL_OVERWRITABLE
+	      && !tree_versionable_function_p (node->decl)))
 	{
 	  ipa_tm_note_irrevokable (node, &worklist);
 	  continue;
@@ -2250,7 +2234,7 @@ struct simple_ipa_opt_pass pass_ipa_tm =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_TRANS_MEM,				/* tv_id */
   PROP_ssa | PROP_cfg,			/* properties_required */
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
