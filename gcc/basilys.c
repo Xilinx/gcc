@@ -25,6 +25,12 @@ along with GCC; see the file COPYING3.   If not see
 
 /* to compile as a plugin, try compiling with -DMELT_IS_PLUGIN */
 
+#ifdef MELT_IS_PLUGIN
+#include "gcc-plugin.h"
+#endif
+
+/* the files marked notpluginexported are not exported by gcc-trunk in
+   PLUGIN_HEADERS */
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -36,28 +42,28 @@ along with GCC; see the file COPYING3.   If not see
 #include "filenames.h"
 #include "tree-pass.h"
 #include "tree-dump.h"
-#include "tree-flow.h"
-#include "tree-iterator.h"
-#include "tree-inline.h"
+#include "tree-flow.h" /*notpluginexported*/
+#include "tree-iterator.h" /*notpluginexported*/
+#include "tree-inline.h" /*notpluginexported*/
 #include "basic-block.h"
 #include "timevar.h"
 #include "ggc.h"
-#include "cgraph.h"
-#include "diagnostic.h"
-#include "flags.h"
+#include "cgraph.h" /*notpluginexported*/
+#include "diagnostic.h" /*notpluginexported*/
+#include "flags.h" /*notpluginexported*/
 #include "toplev.h"
 #include "options.h"
-#include "params.h"
-#include "real.h"
-#include "prefix.h"
-#include "md5.h"
-#include "plugin.h"
+#include "params.h" /*notpluginexported*/
+#include "real.h" /*notpluginexported*/
+#include "prefix.h" /*notpluginexported*/
+#include "md5.h" /*notpluginexported*/
+#include "plugin.h" /*notpluginexported*/
+#include "cppdefault.h" /*notpluginexported*/
 
 /* executable_checksum is declared in c-common.h which we can't
    include here.. */
 extern const unsigned char executable_checksum[16];
 
-#include "cppdefault.h"
 
 
 

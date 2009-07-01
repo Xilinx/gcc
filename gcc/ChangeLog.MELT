@@ -1,3 +1,9 @@
+2009-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: Marked with a notpluginexported comments those
+	include-s which are not yet plugin exported.
+	Added include of gcc-plugin.h at first.
+	* run-basilys.h: Added include of gcc-plugin.h at first.
+
 2009-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the predefined names are listed in melt-predef.list]
 	* Makefile.in: added generation of melt-predef.h &

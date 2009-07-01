@@ -22,6 +22,10 @@ along with GCC; see the file COPYING.  If not, write to
 the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
+/* all file including this are somehow plugins, perhaps MELT specific ones */
+#include "gcc-plugin.h"
+
+
 
 /* usual GCC middle-end includes, copied from basilys.c */
 
