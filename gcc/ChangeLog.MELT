@@ -1,4 +1,26 @@
 2009-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	[debug_msg go thru file to dump_file]
+	* basilys.h (FSYSDAT_STDOUT, FSYSDAT_STDERR, FSYSDAT_DUMPFILE)
+	(basilysgc_new_file): added declarations.
+	(basilys_is_out): works also for rawfiles.
+	(basilys_get_file, basilys_is_file): added functions.
+	* basilys.c (basilys_get_inisysdata): moved.
+	(basilysgc_load_melt_module, basilysgc_gimple_gate)
+	(basilysgc_gimple_execute, basilysgc_rtl_gate)
+	(basilysgc_rtl_execute, basilysgc_simple_ipa_gate)
+	(basilysgc_simple_ipa_execute): update FILE* of sysdata_dumpfile
+	to dump_file.
+	* melt/warmelt-first.melt: added discr_file discr_rawfile & fields
+	sysdata_stdout sysdata_stderr sysdata_dumpfile and uses them in
+	dbgout methods & debug_msg_fun.
+	* melt/warmelt-first-0.c: egenerated.
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+
+2009-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	[more flexible predefined machinery; moved all MELT files into
 	melt/ directory except basilys.[hc] to ease pluginification]
 

@@ -213,6 +213,9 @@
 	   sysdata_meltattr_definer	;;closure to be called for melt attributes
 	   sysdata_patmacro_exporter	;closure to export a patmacro
 	   sysdata_debugmsg		;closure for debugmsg
+	   sysdata_stdout		;raw file for stdout
+	   sysdata_stderr		;raw file for stderr
+	   sysdata_dumpfile		;raw file for dump_file
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -1469,7 +1472,7 @@
   :named_name (stringconst2val discr_namestring "DISCR_MAPBASICBLOCKS"))
 
 
-;;; the discriminant for PPL constraint system
+;;; the discriminant for PPL constraint system (not predefined)
 (definstance discr_ppl_constraint_system class_discr
   :obj_num OBMAG_SPECPPL_CONSTRAINT_SYSTEM
   :disc_super discr_anyrecv
@@ -1482,6 +1485,23 @@
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_PPL_POLYHEDRON")
   )
+
+;;; the discriminant for files [closed by the garbage collector] (not
+;;; predefined)
+(definstance discr_file class_discr
+  :obj_num OBMAG_SPEC_FILE
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_FILE")
+  )
+
+;; the discrimiant for raw files [not closed implicitly] (not
+;;; predefined)
+(definstance discr_rawfile class_discr
+  :obj_num OBMAG_SPEC_RAWFILE
+  :disc_super discr_file
+  :named_name (stringconst2val discr_namestring "DISCR_RAWFILE")
+  )
+
 
 ;;; the discriminant for sequence of classes 
 (definstance discr_seqclass class_discr
@@ -2084,6 +2104,8 @@
 (defprimitive the_dbgcounter () :long "basilys_dbgcounter")
 (defprimitive increment_dbgcounter () :void "(void) ++basilys_dbgcounter")
 
+
+;; this is a rarely used function
 (defun displaydebugmsg (val :cstring msgstr :long count)
   (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	 (sbuf (make_strbuf discr_strbuf)) 
@@ -2144,6 +2166,9 @@
   :sysdata_exit_finalizer init_exitfinalizer
   :sysdata_patmacro_exporter initpatmacro_exporter ; patmacro exporter in module
   :sysdata_debugmsg debugmsg
+  :sysdata_stdout ()			;initialized later
+  :sysdata_stderr ()			;initialized later
+  :sysdata_dumpfile ()			;initialized later
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2632,7 +2657,7 @@
 (defun dbg_out (obj dbgi  :long depth) 
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (checkcallstack_msg "start dbg_out")
-  (let ( (sbuf (unsafe_get_field :dbgi_out dbgi))
+  (let ( (out (unsafe_get_field :dbgi_out dbgi))
 	 (discr (discrim obj))
 	 )
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
@@ -2646,10 +2671,10 @@
 		;; (checkcallstack_msg "start dbg_out output")
 		(dbg_output obj dbgi depth)
 		)
-	    (if (is_strbuf sbuf) (add2sbuf_strconst sbuf "()")
+	    (if out (add2out_strconst out "()")
 	      )))
-      (if (is_strbuf sbuf)
-	  (add2sbuf_strconst sbuf "..")
+      (if out
+	  (add2out_strconst out "..")
 	))))
 
 ;; utility to dump fields in an object from a given rank to a given rank
@@ -2659,10 +2684,10 @@
   (let ( (:long nbf (object_length obj)) 
 	 (cla (discrim obj))
 	 (:long ix fromrank)
+	 (:long fldcnt 0)
 	 (clafieldseq (unsafe_get_field :class_fields cla))
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 )
-    (assert_msg "check sbuf" (is_strbuf sbuf))
     (if (<i ix 0) (setq ix 0))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(forever fldloop
@@ -2675,15 +2700,14 @@
 			(curval (object_nth_field obj ix))
 			)
 		   (if curval
-		       (let ( (:long curulen (strbuf_usedlength sbuf)) )
-			 (add2sbuf_indent sbuf depth)
-			 (add2sbuf_string sbuf (unsafe_get_field :named_name curfld))
-			 (add2sbuf_strconst sbuf "=")
+		       (progn
+			 (if (%iraw fldcnt 2) (add2out_indentnl out depth))
+			 (setq fldcnt (+i fldcnt 1))
+			 (add2out_string out (unsafe_get_field :named_name curfld))
+			 (add2out_strconst out "=")
 			 (dbg_out curval dbgi (+i depth 1))
-			 (let ( (:long deltalen (-i (strbuf_usedlength sbuf) curulen)) )
-			   (if  (>i deltalen 80)
-			       (add2sbuf_indentnl sbuf depth)))
-			 )))
+			 (add2out_indent out depth))
+			 ))
 		 (setq ix (+i ix 1))
 		 )
       )))
@@ -2696,9 +2720,9 @@
 	 (cla (discrim obj))
 	 (:long ix fromrank)
 	 (clafieldseq (unsafe_get_field :class_fields cla))
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 )
-    (assert_msg "check sbuf" (is_strbuf sbuf))
+    (assert_msg "check out" (is_out out))
     (if (<i ix 0) (setq ix 0))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(forever fldloop
@@ -2711,24 +2735,23 @@
 			(curval (object_nth_field obj ix))
 			)
 		   (if curval
-		       (let ( (:long curulen (strbuf_usedlength sbuf)) )
-			 (add2sbuf_indent sbuf depth)
-			 (add2sbuf_string sbuf (unsafe_get_field :named_name curfld))
-			 (add2sbuf_strconst sbuf "=")
+		       (progn 
+			 (add2out_indent out depth)
+			 (add2out_string out
+					 (unsafe_get_field :named_name curfld))
+			 (add2out_strconst out "=")
 			 (dbg_outputagain curval dbgi (+i depth 1))
-			 (let ( (:long deltalen (-i (strbuf_usedlength sbuf) curulen)) )
-			   (if  (>i deltalen 80)
-			       (add2sbuf_indentnl sbuf depth)))
-			 )))
-		 (setq ix (+i ix 1))
-		 )
-      )))
+			 (add2out_indent out depth))
+		     )
+		   (setq ix (+i ix 1))
+		   )
+		 ))))
 
 ;; null debug output
 (defun dbgout_null_method  (self dbgi :long depth)
-  (let (  (sbuf  (unsafe_get_field :dbgi_out dbgi))
+  (let (  (out  (unsafe_get_field :dbgi_out dbgi))
 	  )
-    (add2sbuf_strconst sbuf "()")))
+    (add2out_strconst out "()")))
 (install_method discr_nullrecv dbg_output dbgout_null_method)
 (install_method discr_nullrecv dbg_outputagain dbgout_null_method)
 
@@ -3114,17 +3137,18 @@
 (defun dbgout_mapobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (out  (get_field :dbgi_out dbgi))
 	 (:long mapcount (mapobject_count self))
 	 )
+    (assert_msg "check out at start" (is_out out))
     (if (== dis DISCR_MAPOBJECTS)
-	(add2sbuf_strconst sbuf " {")
+	(add2out_strconst out " {")
       (progn
-	(add2sbuf_strconst sbuf " |")
-	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	(add2sbuf_strconst sbuf "{")))
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longdec sbuf (mapobject_count self))
+	(add2out_strconst out " |")
+	(add2out_string out (unsafe_get_field :named_name dis))
+	(add2out_strconst out "{")))
+    (add2out_strconst out "/")
+    (add2out_longdec out (mapobject_count self))
     (if (need_dbglim (+i depth 2) (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let (
 	      (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
@@ -3174,18 +3198,18 @@
 			(:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 			)
 
-		   (assert_msg "check sbuf" (is_strbuf sbuf))
-		   (add2sbuf_indentnl sbuf nextdepth)
-		   (add2sbuf_strconst sbuf "**")  
+		   (assert_msg "check out" (is_out out))
+		   (add2out_indentnl out nextdepth)
+		   (add2out_strconst out "**")  
 		   (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
 		   (dbg_outobject elat dbgi nextdepth)
 		   (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
-		   (add2sbuf_strconst sbuf " ==")  
-		   (add2sbuf_indent sbuf (+i nextdepth 1))
+		   (add2out_strconst out " ==")  
+		   (add2out_indent out (+i nextdepth 1))
 		   (dbg_out elva dbgi (+i nextdepth 2))
-		   (add2sbuf_strconst sbuf "; ")
+		   (add2out_strconst out "; ")
 		   )))))
-	  (add2sbuf_strconst sbuf "}")))))
+	  (add2out_strconst out "}")))))
 (install_method discr_mapobjects dbg_output dbgout_mapobject_method)
 
 
@@ -3378,36 +3402,36 @@
 (defun dbgout_namedobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
 	 (oprop (unsafe_get_field :prop_table self))
 	 ) 
-    (assert_msg "check sbuf" (is_strbuf sbuf))
-    (add2sbuf_strconst sbuf "`")
-    (add2sbuf_string sbuf onam)
-    (add2sbuf_strconst sbuf "|")
-    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))
+    (assert_msg "check out" (is_out out))
+    (add2out_strconst out "`")
+    (add2out_string out onam)
+    (add2out_strconst out "|")
+    (add2out_string out (unsafe_get_field :named_name dis))
+    (add2out_strconst out "/")
+    (add2out_longhex out (obj_hash self))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let ( (:long onum (obj_num self)) 
 	       (:long oserial (obj_serial self)) )
 	  (if onum
 	      (progn
-		(add2sbuf_strconst sbuf "#")
-		(add2sbuf_longdec sbuf onum)))
+		(add2out_strconst out "#")
+		(add2out_longdec out onum)))
 	  (if oserial
 	      (progn
-		(add2sbuf_strconst sbuf "##")
-		(add2sbuf_longdec sbuf oserial)))
-	  (add2sbuf_strconst sbuf "{")
+		(add2out_strconst out "##")
+		(add2out_longdec out oserial)))
+	  (add2out_strconst out "{")
 	  (if oprop
 	      (progn 
-		(add2sbuf_strconst sbuf "prop=")
+		(add2out_strconst out "prop=")
 		(dbg_out oprop dbgi (+i depth 3))
 		))
 	  (dbgout_fields self dbgi (+i depth 3) 2 0)
-	  (add2sbuf_strconst sbuf "}")
+	  (add2out_strconst out "}")
 	  ))))
 (install_method class_named  dbg_output dbgout_namedobject_method)
 ;;; we explicitly export dbgout_namedobject_method needed afterwards
@@ -3417,20 +3441,20 @@
 (defun dbgoutagain_namedobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self)) 
 	 (:long oserial (obj_serial self))
 	 )
-    (add2sbuf_strconst sbuf " ^^`")
-    (add2sbuf_string sbuf onam)
-    (add2sbuf_strconst sbuf "|")
-    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))
+    (add2out_strconst out " ^^`")
+    (add2out_string out onam)
+    (add2out_strconst out "|")
+    (add2out_string out (unsafe_get_field :named_name dis))
+    (add2out_strconst out "/")
+    (add2out_longhex out (obj_hash self))
     (if oserial
 	(progn
-	  (add2sbuf_strconst sbuf "##")
-	  (add2sbuf_longdec sbuf oserial)
+	  (add2out_strconst out "##")
+	  (add2out_longdec out oserial)
 	  ))
     ))
 (install_method class_named dbg_outputagain dbgoutagain_namedobject_method)
@@ -3447,18 +3471,18 @@
 (defun dbgoutagain_symbol_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (assert_msg "check self" (is_a self class_symbol))
-  (let ( (sbuf  (unsafe_get_field :dbgi_out dbgi))
+  (let ( (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
 	 (:long oserial (obj_serial self))
 	 )	
-    (add2sbuf_strconst sbuf " $")
-    (add2sbuf_string sbuf onam)
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))
+    (add2out_strconst out " $")
+    (add2out_string out onam)
+    (add2out_strconst out "/")
+    (add2out_longhex out (obj_hash self))
     (if oserial
 	(progn
-	  (add2sbuf_strconst sbuf "##")
-	  (add2sbuf_longdec sbuf oserial)
+	  (add2out_strconst out "##")
+	  (add2out_longdec out oserial)
 	  ))
     ))
 (install_method class_symbol dbg_outputagain dbgoutagain_symbol_method)
@@ -3484,18 +3508,18 @@
 (defun dbgoutagain_keyword_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (assert_msg "check self" (is_a self class_keyword))
-  (let ( (sbuf  (unsafe_get_field :dbgi_out dbgi))
+  (let ( (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
 	 (:long oserial (obj_serial self))
 	 )	
-    (add2sbuf_strconst sbuf " $:")
-    (add2sbuf_string sbuf onam)
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))
+    (add2out_strconst out " $:")
+    (add2out_string out onam)
+    (add2out_strconst out "/")
+    (add2out_longhex out (obj_hash self))
     (if oserial
 	(progn
-	  (add2sbuf_strconst sbuf "##")
-	  (add2sbuf_longdec sbuf oserial)
+	  (add2out_strconst out "##")
+	  (add2out_longdec out oserial)
 	  ))
     ))
 (install_method class_keyword dbg_outputagain dbgoutagain_keyword_method)
@@ -3512,21 +3536,21 @@
 
 (defun dbgoutagain_clonedsymbol_method (self dbgi :long depth)
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (ourank (unsafe_get_field :csym_urank self))
 	 (:long lrk (get_int ourank))
 	 (:long oserial (obj_serial self))
 	 (onam (unsafe_get_field :named_name self)) )
-    (add2sbuf_strconst sbuf " $$")
-    (add2sbuf_string sbuf onam)
-    (add2sbuf_strconst sbuf ":")
-    (add2sbuf_longdec sbuf lrk)
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))
+    (add2out_strconst out " $$")
+    (add2out_string out onam)
+    (add2out_strconst out ":")
+    (add2out_longdec out lrk)
+    (add2out_strconst out "/")
+    (add2out_longhex out (obj_hash self))
     (if oserial
 	(progn
-	  (add2sbuf_strconst sbuf "##")
-	  (add2sbuf_longdec sbuf oserial)
+	  (add2out_strconst out "##")
+	  (add2out_longdec out oserial)
 	  ))
     ))
 (install_method class_clonedsymbol dbg_outputagain dbgoutagain_clonedsymbol_method)
@@ -3537,27 +3561,27 @@
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (assert_msg "check self" (is_a self class_environment))
   (let ( (dis (discrim self)) 
-	 (sbuf (unsafe_get_field :dbgi_out dbgi)) 
+	 (out (unsafe_get_field :dbgi_out dbgi)) 
 	 (:long oserial (obj_serial self))
 	 (:long onum (obj_num self)) 
 	 )  
     (if (== dis class_environment)
-	(add2sbuf_strconst sbuf "env")
+	(add2out_strconst out "env")
       (progn
-	(add2sbuf_strconst sbuf "|")
-	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2out_strconst out "|")
+	(add2out_string out (unsafe_get_field :named_name dis))
 	))
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))
+    (add2out_strconst out "/")
+    (add2out_longhex out (obj_hash self))
     (if onum
 	(progn
-	  (add2sbuf_strconst sbuf "#")
-	  (add2sbuf_longdec sbuf onum)))
+	  (add2out_strconst out "#")
+	  (add2out_longdec out onum)))
     (if oserial
 	(progn
-	  (add2sbuf_strconst sbuf "##")
-	  (add2sbuf_longdec sbuf oserial)))
-    (add2sbuf_strconst sbuf "{")
+	  (add2out_strconst out "##")
+	  (add2out_longdec out oserial)))
+    (add2out_strconst out "{")
     (let ( (:long offprev (get_int env_prev)) 
 	   (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	   (:long newmaxdepth  (-i (/i oldmaxdepth 2) 1))
@@ -3570,10 +3594,10 @@
 	    (dbgout_fields self dbgi (+i depth 1) 0 offprev)
 	    (if (need_dbglim (+i depth 2) newmaxdepth)
 		(dbgoutagain_fields self dbgi (+i depth 2) offprev 0)
-	      (add2sbuf_strconst sbuf ".._.."))
+	      (add2out_strconst out ".._.."))
 	    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
 	    )))
-    (add2sbuf_strconst sbuf "}")
+    (add2out_strconst out "}")
     ))
 (install_method class_environment dbg_output dbgout_environment_method)
 
@@ -3590,17 +3614,17 @@
 
 (defun dbgoutagain_ctype_method (self dbgi :long depth)
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (:long oserial (obj_serial self))
 	 (onam (unsafe_get_field :named_name self)) )
-    (add2sbuf_strconst sbuf " $!")
-    (add2sbuf_string sbuf onam)
-    (add2sbuf_strconst sbuf "!/")
-    (add2sbuf_longhex sbuf (obj_hash self))
+    (add2out_strconst out " $!")
+    (add2out_string out onam)
+    (add2out_strconst out "!/")
+    (add2out_longhex out (obj_hash self))
     (if oserial
 	(progn
-	  (add2sbuf_strconst sbuf "##")
-	  (add2sbuf_longdec sbuf oserial)
+	  (add2out_strconst out "##")
+	  (add2out_longdec out oserial)
 	  ))
     ))
 (install_method class_ctype dbg_outputagain dbgoutagain_ctype_method)
@@ -3735,39 +3759,67 @@
 	       ))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; debug_msg support
+;;; debug_msg support is done by calling this debug_msg_fun 
 (defun debug_msg_fun (val :cstring msgstr :long count :cstring filenam :long lineno)
   (increment_dbgcounter) 
   (if (need_dbg 0) 
       (let ( (:long dbgcounter (progn (the_dbgcounter)))
-	     (sbuf (make_strbuf discr_strbuf)) 
+	     (out (get_field :sysdata_dumpfile initial_system_data)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
 	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
-	     (dbgi (instance class_debuginfo
-			     :dbgi_out sbuf
-			     :dbgi_occmap occmap
-			     :dbgi_maxdepth boxedmaxdepth))
 	     )
-	(outnum_err "!!!!****####" dbgcounter "/")
-	(outnum_err "" (-i (the_framedepth) 1) ":")
-	(if filenam
-	    (progn
-	      (outcstring_err filenam)
-	      (outnum_err ":" lineno ":")
-	      ))
-	(outcstring_err msgstr)
-	(if (>i count 0) (outnum_err " !" count ": "))
-	(if val 
-	    (dbg_out val dbgi 0)
-	  (outcstring_err "() ;;;NIL!!!")
+	;; it may happen that OUT is null, e.g. because the dumpfile
+	;; is not yet initialized in initial_system_data...
+	(if (null out)
+	    (setq out (make_strbuf discr_strbuf)))
+	(assert_msg "check good out" (is_out out))
+	(let ( (:long nulloutfile 0) )
+	  (code_chunk getfile #{ 
+		      if (basilys_is_file($out))
+		      $nulloutfile = (basilys_get_file($out)==NULL)?1:0	;
+		      }#)
+	  (if nulloutfile 
+	      (progn 
+		(shortbacktrace_dbg "debug_msg_fun null output file" 50)
+		(return))))
+	(let ( 
+	      (dbgi (instance class_debuginfo
+			      :dbgi_out out
+			      :dbgi_occmap occmap
+			      :dbgi_maxdepth boxedmaxdepth))
+	      (:long framdepth (the_framedepth)) 
+	      )
+	  (add2out_strconst out "!!!!****####")
+	  (add2out_longdec out (-i framdepth 1))
+	  (add2out_strconst out ":")
+	  (if filenam
+	      (progn
+		(add2out_strconst out filenam)
+		(add2out_strconst out ":")
+		(add2out_longdec out lineno)
+		(add2out_strconst out ":")
+		))
+	  (add2out_strconst out msgstr)
+	  (if (>i count 0) 
+	      (progn
+		(add2out_strconst out " !")
+		(add2out_longdec out count)
+		(add2out_strconst out ": ")
+		))
+	  (if val 
+	      (dbg_out val dbgi 0)
+	    (add2out_strconst out "() ;;;NIL!!!")
+	    )
+	  (add2out_indentnl out 0)
 	  )
-	(outstrbuf_err sbuf)
-	(outcstring_err ";;;;")
-	(if (>i (strbuf_usedlength sbuf) 800)
+	(if (is_strbuf out)
 	    (progn
-	      (outnum_err "####" dbgcounter "---")
-	      (outnewline_err)))
-	(outnewline_err)
+	      (code_chunk debugstrbuf #{
+			  fprintf (stderr, "\n**debug_msg thru strbuffer:\n%s\n",
+					   basilys_strbuf_str ($out)) ;
+			  fflush (stderr) ;
+			  }#)
+	      ))
 	)))
 
 ;;;; any binding debug output
@@ -3775,22 +3827,22 @@
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (assert_msg "check self" (is_a self class_any_binding))
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) 
 	 (binderv (unsafe_get_field :binder self))
 	 ) 
-    (add2sbuf_indent sbuf depth)
-    (add2sbuf_strconst sbuf "[~")
-    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))
-    (add2sbuf_strconst sbuf ":")
+    (add2out_indent out depth)
+    (add2out_strconst out "[~")
+    (add2out_string out (unsafe_get_field :named_name dis))
+    (add2out_strconst out "/")
+    (add2out_longhex out (obj_hash self))
+    (add2out_strconst out ":")
     (dbg_outputagain binderv dbgi (+i depth 2))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
-	  (add2sbuf_strconst sbuf "; ")
+	  (add2out_strconst out "; ")
 	  (dbgout_fields self dbgi (+i depth 1) 1 0)
 	  ))
-    (add2sbuf_strconst sbuf "~]")
+    (add2out_strconst out "~]")
     ))
 (install_method class_any_binding dbg_output dbgout_anybinding_method)
 (install_method class_any_binding dbg_outputagain dbgout_anybinding_method)
@@ -3834,6 +3886,31 @@
   )
 
 
+(put_fields
+ initial_system_data
+  :sysdata_stdout (let ( (f ())
+			 (d discr_rawfile) 
+			 )
+		    (code_chunk makestdout 
+				#{ $f = basilysgc_new_file($d, stdout); }#
+				)
+		    f)
+  :sysdata_stderr (let ( (f ())
+			 (d discr_rawfile) 
+			 )
+		    (code_chunk makestdout 
+				#{ $f = basilysgc_new_file($d, stderr); }#
+				)
+		    f)
+  :sysdata_dumpfile (let ( (f ())
+			 (d discr_rawfile) 
+			 )
+;; the FILE* of dumpfile is also set in pass executions.
+		    (code_chunk makestdout 
+				#{ $f = basilysgc_new_file($d, dump_file); }#
+				)
+		    f)
+)
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
  class_any_binding
@@ -4121,9 +4198,9 @@
  ctype_gimpleseq
  ctype_long   
  ctype_ppl_coefficient
- ctype_ppl_linear_expression
  ctype_ppl_constraint
  ctype_ppl_constraint_system
+ ctype_ppl_linear_expression
  ctype_tree                           
  ctype_value                          
  ctype_void  
@@ -4135,6 +4212,7 @@
  discr_charinteger                    
  discr_closure                        
  discr_edge
+ discr_file
  discr_gimple
  discr_gimpleseq
  discr_integer                        
@@ -4156,6 +4234,7 @@
  discr_pair  
  discr_ppl_constraint_system 
  discr_ppl_polyhedron 
+ discr_rawfile
  discr_routine                        
  discr_seqclass                       
  discr_seqfield                       

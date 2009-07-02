@@ -4972,6 +4972,25 @@ end:
 #undef clo_closv
 }
 
+
+static inline basilys_ptr_t
+basilys_get_inisysdata(int off)
+{
+  basilysobject_ptr_t inisys = (basilysobject_ptr_t) MELT_PREDEF(INITIAL_SYSTEM_DATA);
+  if (basilys_magic_discr ((basilys_ptr_t) inisys) == OBMAG_OBJECT) 
+    {
+      int leninisys = inisys->obj_len;
+      gcc_assert(basilys_is_instance_of
+		 ((basilys_ptr_t) inisys,
+		  (basilys_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA)));
+      if (off>=0 && off<leninisys)
+	return inisys->obj_vartab[off];
+    }
+  return NULL;  
+  
+}
+
+
 /* our temporary directory */
 /* maybe it should not be static, or have a bigger length */
 static char tempdir_basilys[1024];
@@ -5316,6 +5335,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   char *srcpath = NULL;
   char *dynpath = NULL;
   FILE *srcfi = NULL;
+  FILE *oldf = NULL;
   int dlix = 0;
   int specialsuffix = 0; /* set for .d or .n suffix */
   int srcpathlen = 0;
@@ -5329,9 +5349,10 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   int modulnamlen = 0;
   const char* srcpathstr = melt_argument ("source-path");
   const char* modpathstr = melt_argument ("module-path");
-  BASILYS_ENTERFRAME (3, NULL);
+  BASILYS_ENTERFRAME (4, NULL);
 #define modulv curfram__.varptr[0]
 #define mdatav curfram__.varptr[1]
+#define dumpv  curfram__.varptr[2]
   mdatav = modata_p;
   if (!modulnam || !modulnam[0]) {
     error ("cannot load MELT module, no MELT module name given");
@@ -5581,6 +5602,12 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   gcc_assert (moduptr != 0);
   startroutp = moduptr->start_rout;
   gcc_assert (moduptr->iniframp != 0 && *moduptr->iniframp == (void *) 0);
+  dumpv = basilys_get_inisysdata (FSYSDAT_DUMPFILE);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      oldf = ((struct basilysspecial_st*)dumpv)->val.sp_file;
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = dump_file;
+    }
 #if ENABLE_CHECKING
   {
     static char locbuf[80];
@@ -5594,6 +5621,13 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   modulv = (*startroutp) ((basilys_ptr_t) mdatav);
   gcc_assert (moduptr->iniframp != 0 && *moduptr->iniframp == (void *) 0);
   BASILYS_LOCATION_HERE ("basilysgc_load_melt_module after calling module");
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      FILE *df = basilys_get_file ((basilys_ptr_t) dumpv);
+      if (df)
+	fflush (df);
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = oldf;
+    };
  end:
   debugeprintf ("basilysgc_load_melt_module returns modulv %p", (void *) modulv);
   /* we never free dynpath -since it is stored in moduptr- and we
@@ -5603,6 +5637,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   return (basilys_ptr_t) modulv;
 #undef mdatav
 #undef modulv
+#undef dumpv
 }
 
 
@@ -6074,23 +6109,6 @@ makesexpr (struct reading_st *rd, int lineno, basilys_ptr_t contents_p,
 #undef locmixv
 }
 
-
-static inline basilys_ptr_t
-basilys_get_inisysdata(int off)
-{
-  basilysobject_ptr_t inisys = (basilysobject_ptr_t) MELT_PREDEF(INITIAL_SYSTEM_DATA);
-  if (basilys_magic_discr ((basilys_ptr_t) inisys) == OBMAG_OBJECT) 
-    {
-      int leninisys = inisys->obj_len;
-      gcc_assert(basilys_is_instance_of
-		 ((basilys_ptr_t) inisys,
-		  (basilys_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA)));
-      if (off>=0 && off<leninisys)
-	return inisys->obj_vartab[off];
-    }
-  return NULL;  
-  
-}
 
 
 basilys_ptr_t
@@ -7565,11 +7583,12 @@ load_basilys_modules_and_do_command (void)
   const char *modstr = 0;
   const char *inistr = 0;
   const char* dbgstr = melt_argument("debug");
-  BASILYS_ENTERFRAME (2, NULL);
+  BASILYS_ENTERFRAME (3, NULL);
 #define modatv curfram__.varptr[0]
+#define dumpv  curfram__.varptr[1]
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
-  debugeprintf ("load_initial_basilys_modules start init=%s command=%s",
+  debugeprintf ("load_basilys_modules_and_do_command start init=%s command=%s",
 		inistr, modstr);
   /* if there is no -fmelt-init use the default list of modules */
   if (!inistr || !inistr[0])
@@ -7578,12 +7597,12 @@ load_basilys_modules_and_do_command (void)
     debugeprintf("inistr set to default %s", inistr);
   }
   dupmodpath = xstrdup (inistr);
-  if (dbgstr)
+  if (dbgstr && !dump_file)
     {
       fflush (stderr);
-#define modatv curfram__.varptr[0]
       dump_file = stderr;
       fflush (stderr);
+      
     }
 #if ENABLE_CHECKING
   if (dbgstr)
@@ -7694,6 +7713,7 @@ load_basilys_modules_and_do_command (void)
      inistr, modstr);
   BASILYS_EXITFRAME ();
 #undef modatv
+#undef dumpv
 }
 
 
@@ -9792,11 +9812,13 @@ basilysgc_gimple_gate(void)
 {
   int ok = 0;
   static const char* modstr;
+  FILE *oldf = NULL;
   BASILYS_ENTERFRAME(6, NULL);
 #define passv        curfram__.varptr[0]
 #define passdictv    curfram__.varptr[1]
 #define closv        curfram__.varptr[2]
-#define resv        curfram__.varptr[3]
+#define resv         curfram__.varptr[3]
+#define dumpv        curfram__.varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr) 
@@ -9814,17 +9836,35 @@ basilysgc_gimple_gate(void)
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
     goto end;
+  dumpv = basilys_get_inisysdata (FSYSDAT_DUMPFILE);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      oldf = ((struct basilysspecial_st*)dumpv)->val.sp_file;
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = dump_file;
+    }
   resv = 
     basilys_apply ((struct basilysclosure_st *) closv,
 		   (basilys_ptr_t) passv, "",
 		   (union basilysparam_un *) 0, "",
 		   (union basilysparam_un *) 0);
   ok = (resv != NULL);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      FILE *df = basilys_get_file ((basilys_ptr_t) dumpv);
+      if (df)
+	fflush (df);
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = oldf;
+    };
   /* force a minor GC to be sure that nothing is in the young region */
   basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
  end:
   BASILYS_EXITFRAME();
   return ok;
+#undef passv        
+#undef passdictv    
+#undef closv        
+#undef resv         
+#undef dumpv        
 }
 
 
@@ -9838,7 +9878,8 @@ basilysgc_gimple_execute(void)
 #define passv        curfram__.varptr[0]
 #define passdictv    curfram__.varptr[1]
 #define closv        curfram__.varptr[2]
-#define resvalv        curfram__.varptr[3]
+#define resvalv      curfram__.varptr[3]
+#define dumpv        curfram__.varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -9860,9 +9901,9 @@ basilysgc_gimple_execute(void)
   {
     long passdbgcounter = basilys_dbgcounter;
     long todol = 0;
+    FILE *oldf = NULL;
     union basilysparam_un restab[1];
     memset (&restab, 0, sizeof (restab));
-    restab[0].bp_longptr = &todol;
     debugeprintf
       ("gimple_execute passname %s dbgcounter %ld cfun %p ",
        current_pass->name, basilys_dbgcounter, (void *) cfun);
@@ -9870,7 +9911,13 @@ basilysgc_gimple_execute(void)
       debug_tree (cfun->decl);
     debugeprintf ("gimple_execute passname %s before apply",
 		  current_pass->name);
+    if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+      {
+	oldf = ((struct basilysspecial_st*)dumpv)->val.sp_file;
+	((struct basilysspecial_st*)dumpv)->val.sp_file = dump_file;
+      };
     /* apply with one extra long result */
+    restab[0].bp_longptr = &todol;
     resvalv =
       basilys_apply ((struct basilysclosure_st *) closv,
 		     (basilys_ptr_t) passv, "",
@@ -9878,6 +9925,13 @@ basilysgc_gimple_execute(void)
 		     restab);
     debugeprintf ("gimple_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
+    if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+      {
+	FILE *df = basilys_get_file ((basilys_ptr_t) dumpv);
+	if (df)
+	  fflush(df);
+	((struct basilysspecial_st*)dumpv)->val.sp_file = oldf;
+      };
     if (resvalv)
       res = (unsigned int) todol;
     /* force a minor GC to be sure that nothing is in the young region */
@@ -9886,6 +9940,11 @@ basilysgc_gimple_execute(void)
  end:
   BASILYS_EXITFRAME();
   return res;
+#undef passv        
+#undef passdictv    
+#undef closv        
+#undef resvalv      
+#undef dumpv        
 }
 
 
@@ -9895,12 +9954,14 @@ static bool
 basilysgc_rtl_gate(void)
 {
   int ok = 0;
+  FILE* oldf = NULL;
   static const char* modstr;
   BASILYS_ENTERFRAME(6, NULL);
 #define passv        curfram__.varptr[0]
 #define passdictv    curfram__.varptr[1]
 #define closv        curfram__.varptr[2]
-#define resv        curfram__.varptr[3]
+#define resv         curfram__.varptr[3]
+#define dumpv        curfram__.varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -9920,11 +9981,24 @@ basilysgc_rtl_gate(void)
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
     goto end;
+  dumpv = basilys_get_inisysdata (FSYSDAT_DUMPFILE);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      oldf = ((struct basilysspecial_st*)dumpv)->val.sp_file;
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = dump_file;
+    }
   resv = 
     basilys_apply ((struct basilysclosure_st *) closv,
 		   (basilys_ptr_t) passv, "",
 		   (union basilysparam_un *) 0, "",
 		   (union basilysparam_un *) 0);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      FILE *df = basilys_get_file ((basilys_ptr_t) dumpv);
+      if (df)
+	fflush (df);
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = oldf;
+    };
   ok = (resv != NULL);
   /* force a minor GC to be sure that nothing is in the young region */
   basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
@@ -9939,12 +10013,14 @@ static unsigned int
 basilysgc_rtl_execute(void)
 {
   unsigned int res = 0;
+  FILE* oldf = NULL;
   static const char*modstr;
   BASILYS_ENTERFRAME(6, NULL);
 #define passv        curfram__.varptr[0]
 #define passdictv    curfram__.varptr[1]
 #define closv        curfram__.varptr[2]
-#define namev        curfram__.varptr[3]
+#define resvalv      curfram__.varptr[3]
+#define dumpv        curfram__.varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -9968,6 +10044,12 @@ basilysgc_rtl_execute(void)
     long passdbgcounter = basilys_dbgcounter;
     long todol = 0;
     union basilysparam_un restab[1];
+    dumpv = basilys_get_inisysdata (FSYSDAT_DUMPFILE);
+    if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+      {
+	oldf = ((struct basilysspecial_st*)dumpv)->val.sp_file;
+	((struct basilysspecial_st*)dumpv)->val.sp_file = dump_file;
+      }
     memset (&restab, 0, sizeof (restab));
     restab[0].bp_longptr = &todol;
     debugeprintf
@@ -9983,6 +10065,13 @@ basilysgc_rtl_execute(void)
 		     restab);
     debugeprintf ("rtl_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
+    if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+      {
+	FILE *df = basilys_get_file ((basilys_ptr_t) dumpv);
+	if (df)
+	  fflush (df);
+	((struct basilysspecial_st*)dumpv)->val.sp_file = oldf;
+      };
     if (resvalv)
       res = (unsigned int) todol;
     /* force a minor GC to be sure that nothing is in the young region */
@@ -9991,6 +10080,11 @@ basilysgc_rtl_execute(void)
  end:
   BASILYS_EXITFRAME();
   return res;
+#undef passv        
+#undef passdictv    
+#undef closv        
+#undef resvalv      
+#undef dumpv        
 }
 
 
@@ -10000,12 +10094,14 @@ static bool
 basilysgc_simple_ipa_gate(void)
 {
   int ok = 0;
+  FILE* oldf = NULL;
   static const char*modstr;
   BASILYS_ENTERFRAME(6, NULL);
 #define passv        curfram__.varptr[0]
 #define passdictv    curfram__.varptr[1]
 #define closv        curfram__.varptr[2]
-#define resv        curfram__.varptr[3]
+#define resv         curfram__.varptr[3]
+#define dumpv        curfram__.varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -10025,18 +10121,37 @@ basilysgc_simple_ipa_gate(void)
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
     goto end;
+  dumpv = basilys_get_inisysdata (FSYSDAT_DUMPFILE);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      oldf = ((struct basilysspecial_st*)dumpv)->val.sp_file;
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = dump_file;
+    }
   resv = 
     basilys_apply ((struct basilysclosure_st *) closv,
 		   (basilys_ptr_t) passv, "",
 		   (union basilysparam_un *) 0, "",
 		   (union basilysparam_un *) 0);
   ok = (resv != NULL);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      FILE *df = basilys_get_file ((basilys_ptr_t) dumpv);
+      if (df)
+	fflush (df);
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = oldf;
+    };
   /* force a minor GC to be sure that nothing is in the young region */
   basilys_garbcoll (0, BASILYS_MINOR_OR_FULL);
  end:
   BASILYS_EXITFRAME();
   return ok;
+#undef passv        
+#undef passdictv    
+#undef closv        
+#undef resv         
+#undef dumpv
 }
+
 
 
 /* the execute function of MELT simple_ipa passes */
@@ -10044,12 +10159,14 @@ static unsigned int
 basilysgc_simple_ipa_execute(void)
 {
   static const char*modstr;
+  FILE* oldf = NULL;
   unsigned int res = 0;
   BASILYS_ENTERFRAME(6, NULL);
 #define passv        curfram__.varptr[0]
 #define passdictv    curfram__.varptr[1]
 #define closv        curfram__.varptr[2]
-#define namev        curfram__.varptr[3]
+#define resvalv      curfram__.varptr[3]
+#define dumpv        curfram__.varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -10080,12 +10197,25 @@ basilysgc_simple_ipa_execute(void)
        current_pass->name, basilys_dbgcounter);
     debugeprintf ("simple_ipa_execute passname %s before apply",
 		  current_pass->name);
+  dumpv = basilys_get_inisysdata (FSYSDAT_DUMPFILE);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      oldf = ((struct basilysspecial_st*)dumpv)->val.sp_file;
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = dump_file;
+    }
     /* apply with one extra long result */
     resvalv =
       basilys_apply ((struct basilysclosure_st *) closv,
 		     (basilys_ptr_t) passv, "",
 		     (union basilysparam_un *) 0, BPARSTR_LONG "",
 		     restab);
+  if (basilys_magic_discr ((basilys_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+    {
+      FILE *df = basilys_get_file ((basilys_ptr_t) dumpv);
+      if (df)
+	fflush (df);
+      ((struct basilysspecial_st*)dumpv)->val.sp_file = oldf;
+    };
     debugeprintf ("simple_ipa_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     if (resvalv)
@@ -10096,6 +10226,11 @@ basilysgc_simple_ipa_execute(void)
  end:
   BASILYS_EXITFRAME();
   return res;
+#undef passv       
+#undef passdictv   
+#undef closv       
+#undef resvalv     
+#undef dumpv       
 }
 
 

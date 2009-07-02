@@ -997,7 +997,15 @@ static inline bool
 basilys_is_out (basilys_ptr_t p)
 {
   int d = basilys_magic_discr(p);
-  return d == OBMAG_STRBUF || d == OBMAG_SPEC_FILE;
+  return d == OBMAG_STRBUF || d == OBMAG_SPEC_FILE || d == OBMAG_SPEC_RAWFILE;
+}
+
+/* test if a pointer is a file */
+static inline bool
+basilys_is_file (basilys_ptr_t p)
+{
+  int d = basilys_magic_discr(p);
+  return d == OBMAG_SPEC_FILE || d == OBMAG_SPEC_RAWFILE;
 }
 
 
@@ -2862,7 +2870,9 @@ enum
 };
 
 /* fields inside the system data - keep in sync with the
-   class_system_data definition in MELT file warmelt-first.melt */
+   class_system_data definition in MELT file warmelt-first.melt;
+   needed because the predefined are immutable objects, and cannot be
+   varying objects or non objects */
 enum
 {
   FSYSDAT_CMD_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
@@ -2881,6 +2891,9 @@ enum
   FSYSDAT_MELTATTR_DEFINER,	/* closure for melt attributes */
   FSYSDAT_PATMACRO_EXPORTER,    /* closure to export patmacro */
   FSYSDAT_DEBUGMSG,		/* closure for debugmsg */
+  FSYSDAT_STDOUT,		/* raw boxed file for stdout */
+  FSYSDAT_STDERR,		/* raw boxed file for stderr */
+  FSYSDAT_DUMPFILE,		/* raw boxed file for dump_file */
   FSYSDAT__LAST
 };
 
@@ -3279,6 +3292,23 @@ void basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p);
    nothing */
 void basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p);
 
+
+/* make a new boxed file - the discr should be for a file or a raw
+   file */
+basilys_ptr_t basilysgc_new_file(basilys_ptr_t discr_p, FILE* fil);
+
+/* get a file from a boxed file, may return NULL */
+static inline FILE*
+basilys_get_file(basilys_ptr_t file_p)
+{
+  int magic;
+  if (!file_p)
+    return NULL;
+  magic = basilys_magic_discr (file_p);
+  if (magic == OBMAG_SPEC_FILE || magic == OBMAG_SPEC_RAWFILE)
+    return ((struct basilysspecial_st*)file_p)->val.sp_file;
+  return NULL;
+}
 
 
 #endif /*BASILYS_INCLUDED_ */
