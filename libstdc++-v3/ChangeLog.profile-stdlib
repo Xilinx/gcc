@@ -1,4 +1,7 @@
 2009-07-02  Silvius Rus  <silvius.rus@gmail.com>
+	* include/profile/vector: Uglify names.
+
+2009-07-02  Silvius Rus  <silvius.rus@gmail.com>
 	* include/profile/impl/profiler.h: Uglify names.  
 	(__reentrance_guard): New class.
 	* include/profile/impl/profiler_container_size.h: Uglify names.

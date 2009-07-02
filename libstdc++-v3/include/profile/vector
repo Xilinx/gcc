@@ -165,7 +165,7 @@ namespace __profile
       resize(size_type __sz, _Tp __c = _Tp())
       {
         __profcxx_vector_invalid_operator(this);
-        profile_resize(this, this->capacity(), __sz);
+        _M_profile_resize(this, this->capacity(), __sz);
         _Base::resize(__sz, __c);
       }
 
@@ -221,7 +221,7 @@ namespace __profile
       {
         size_type old_size = this->capacity();
 	_Base::push_back(__x);
-        profile_resize(this, old_size, this->capacity());
+        _M_profile_resize(this, old_size, this->capacity());
       }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
@@ -230,7 +230,7 @@ namespace __profile
       {
         size_type old_size = this->capacity();
         _Base::push_back(__x);
-        profile_resize(this, old_size, this->capacity());
+        _M_profile_resize(this, old_size, this->capacity());
       }
 
 #endif
@@ -241,7 +241,7 @@ namespace __profile
         __profcxx_vector_insert(this,  __position-_Base::begin(), this->size());
         size_type old_size = this->capacity();
 	typename _Base::iterator __res = _Base::insert(__position,__x);
-        profile_resize(this, old_size, this->capacity());
+        _M_profile_resize(this, old_size, this->capacity());
 	return __res;
       }
 
@@ -252,7 +252,7 @@ namespace __profile
         __profcxx_vector_insert(this,  __position-_Base::begin(), this->size());
         size_type old_size = this->capacity();
 	typename _Base::iterator __res = _Base::insert(__position,__x);
-        profile_resize(this, old_size, this->capacity());
+        _M_profile_resize(this, old_size, this->capacity());
 	return __res;
       }
 
@@ -278,7 +278,7 @@ namespace __profile
         __profcxx_vector_insert(this,  __position-_Base::begin(), this->size());
         size_type old_size = this->capacity();
 	    _Base::insert(__position, __n, __x);
-        profile_resize(this, old_size, this->capacity());
+        _M_profile_resize(this, old_size, this->capacity());
       }
 
       template<class _InputIterator>
@@ -289,7 +289,7 @@ namespace __profile
         __profcxx_vector_insert(this,  __position-_Base::begin(), this->size());
         size_type old_size = this->capacity();
         _Base::insert(__position, __first, __last);
-        profile_resize(this, old_size, this->capacity());
+        _M_profile_resize(this, old_size, this->capacity());
       }
 
       void
@@ -316,7 +316,7 @@ namespace __profile
       }
 
     private:
-      void profile_resize(void* obj, size_type old_size, size_type new_size)
+      void _M_profile_resize(void* obj, size_type old_size, size_type new_size)
       {
         if (old_size < new_size) {
           __profcxx_vector_resize(this, this->size(), new_size);
