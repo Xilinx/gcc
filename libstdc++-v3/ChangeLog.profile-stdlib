@@ -1,4 +1,8 @@
 2009-07-02  Silvius Rus  <silvius.rus@gmail.com>
+	* include/profile/impl/profiler_trace.h: Add mutex for object table
+	and stack table operations.
+
+2009-07-02  Silvius Rus  <silvius.rus@gmail.com>
 	* include/profile/vector: Uglify names.
 
 2009-07-02  Silvius Rus  <silvius.rus@gmail.com>

@@ -42,6 +42,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#define _GLIBCXX_IMPL_UNORDERED_MAP std::_GLIBCXX_STD_PR::unordered_map
 #include <unordered_map>
 #else
 #include <errno.h>
@@ -49,6 +50,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tr1/unordered_map>
+#define _GLIBCXX_IMPL_UNORDERED_MAP std::tr1::unordered_map
 #endif
 #if defined _GLIBCXX_PROFILE_THREADS && defined HAVE_TLS
 #include <pthread.h>
@@ -60,16 +62,29 @@ namespace __cxxprof_impl
 {
 
 #if defined _GLIBCXX_PROFILE_THREADS && defined HAVE_TLS
-typedef pthread_mutex_t __stdlib_mutex_t;
-static __stdlib_mutex_t __init_lock = PTHREAD_MUTEX_INITIALIZER;
-#define __stdlib_lock(__A) pthread_mutex_lock(__A)
-#define __stdlib_unlock(__A) pthread_mutex_unlock(__A)
+#define _GLIBCXX_IMPL_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+typedef pthread_mutex_t __mutex_t;
+template <int __Unused=0>
+class __mutex {
+ public:
+  static __mutex_t __init_lock;
+  static void __lock(__mutex_t& __m) { pthread_mutex_lock(&__m); }
+  static void __unlock(__mutex_t& __m) { pthread_mutex_unlock(&__m); }
+};
 #else
-typedef int __stdlib_mutex_t;
-static __stdlib_mutex_t __init_lock = 0;
-#define __stdlib_lock(__A) 
-#define __stdlib_unlock(__A) 
+#define _GLIBCXX_IMPL_MUTEX_INITIALIZER 0
+typedef int __mutex_t;
+template <int __Unused=0>
+class __mutex {
+ public:
+  static __mutex_t __init_lock;
+  static void __lock(__mutex_t& __m) {}
+  static void __unlock(__mutex_t& __m) {}
+};
 #endif
+
+template <int __Unused>
+__mutex_t __mutex<__Unused>::__init_lock = _GLIBCXX_IMPL_MUTEX_INITIALIZER;
 
 // Defined in profiler_<diagnostic name>.h.
 class __trace_hash_func;
@@ -189,23 +204,24 @@ class __trace_base
  public:
   __trace_base();
   virtual ~__trace_base() {}
+  
   void __add_object(__object_t object, __object_info __info);
   __object_info* __get_object_info(__object_t __object);
   void __retire_object(__object_t __object);
   void __write(FILE* f);
 
+  void __lock_object_table();
+  void __lock_stack_table();
+  void __unlock_object_table();
+  void __unlock_stack_table();
+
  private:
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  typedef std::_GLIBCXX_STD_PR::unordered_map<__object_t, __object_info> 
-      __object_table_t;
-  typedef std::_GLIBCXX_STD_PR::unordered_map<__stack_t, __stack_info, 
-                                              __stack_hash, __stack_hash>
-      __stack_table_t;
-#else
-  typedef std::tr1::unordered_map<__object_t, __object_info> __object_table_t;
-  typedef std::tr1::unordered_map<__stack_t, __stack_info, 
-                                  __stack_hash, __stack_hash> __stack_table_t;
-#endif
+  __mutex_t __object_table_lock;
+  __mutex_t __stack_table_lock;
+  typedef _GLIBCXX_IMPL_UNORDERED_MAP<__object_t, 
+                                      __object_info> __object_table_t;
+  typedef _GLIBCXX_IMPL_UNORDERED_MAP<__stack_t, __stack_info, __stack_hash, 
+                                      __stack_hash> __stack_table_t;
   __object_table_t __object_table;
   __stack_table_t __stack_table;
   size_t __stack_table_byte_size;
@@ -213,6 +229,30 @@ class __trace_base
  protected:
   __trace_id_t __id;
 };
+
+template <typename __object_info, typename __stack_info>
+void __trace_base<__object_info, __stack_info>::__lock_object_table()
+{
+  __mutex<0>::__lock(this->__object_table_lock);
+}
+
+template <typename __object_info, typename __stack_info>
+void __trace_base<__object_info, __stack_info>::__lock_stack_table()
+{
+  __mutex<0>::__lock(this->__stack_table_lock);
+}
+
+template <typename __object_info, typename __stack_info>
+void __trace_base<__object_info, __stack_info>::__unlock_object_table()
+{
+  __mutex<0>::__unlock(this->__object_table_lock);
+}
+
+template <typename __object_info, typename __stack_info>
+void __trace_base<__object_info, __stack_info>::__unlock_stack_table()
+{
+  __mutex<0>::__unlock(this->__stack_table_lock);
+}
 
 template <typename __object_info, typename __stack_info>
 __trace_base<__object_info, __stack_info>::__trace_base()
@@ -223,6 +263,7 @@ __trace_base<__object_info, __stack_info>::__trace_base()
   __stack_table.rehash(10000);
   __stack_table_byte_size = 0;
   __id = NULL;
+  __object_table_lock = __stack_table_lock = _GLIBCXX_IMPL_MUTEX_INITIALIZER;
 }
 
 template <typename __object_info, typename __stack_info>
@@ -230,20 +271,29 @@ void __trace_base<__object_info, __stack_info>::__add_object(
     __object_t __object, __object_info __info)
 {
   if (__max_mem() == 0 
-      || __object_table.size() * sizeof(__object_info) <= __max_mem())
+      || __object_table.size() * sizeof(__object_info) <= __max_mem()) {
+    __lock_object_table();
     __object_table.insert(
         typename __object_table_t::value_type(__object, __info));
+    __unlock_object_table();
+  }
 }
 
 template <typename __object_info, typename __stack_info>
 __object_info* __trace_base<__object_info, __stack_info>::__get_object_info(
     __object_t __object)
 {
+  // XXX: Revisit this to see if we can decrease mutex spans.
+  // Without this mutex, the object table could be rehashed during an
+  // insertion on another thread, which could result in a segfault.
+  __lock_object_table();
   typename __object_table_t::iterator __object_it = 
       __object_table.find(__object);
   if (__object_it == __object_table.end()){
+    __unlock_object_table();
     return NULL;
   } else {
+    __unlock_object_table();
     return &__object_it->second;
   }
 }
@@ -252,7 +302,9 @@ template <typename __object_info, typename __stack_info>
 void __trace_base<__object_info, __stack_info>::__retire_object(
     __object_t __object)
 {
-  typename __object_table_t::iterator __object_it = 
+  __lock_object_table();
+  __lock_stack_table();
+  typename __object_table_t::iterator __object_it =
       __object_table.find(__object);
   if (__object_it != __object_table.end()){
     const __object_info& __info = __object_it->second;
@@ -274,6 +326,8 @@ void __trace_base<__object_info, __stack_info>::__retire_object(
     }
     __object_table.erase(__object);
   }
+  __unlock_stack_table();
+  __unlock_object_table();
 }
 
 template <typename __object_info, typename __stack_info>
@@ -365,7 +419,7 @@ inline void __set_trace_path()
 
 inline void __profcxx_init_unconditional()
 {
-  __stdlib_lock(&__init_lock);
+  __mutex<0>::__lock(__mutex<0>::__init_lock);
 
   if (__is_invalid()) {
     if (getenv(__settings<0>::_S_off_env_var)) {
@@ -389,7 +443,7 @@ inline void __profcxx_init_unconditional()
     }
   }
 
-  __stdlib_unlock(&__init_lock);
+  __mutex<0>::__unlock(__mutex<0>::__init_lock);
 }
 
 // This function must be called by each instrumentation point.
