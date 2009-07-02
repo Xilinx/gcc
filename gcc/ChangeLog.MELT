@@ -1,3 +1,62 @@
+2009-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	[more flexible predefined machinery; moved all MELT files into
+	melt/ directory except basilys.[hc] to ease pluginification]
+
+	* Makefile.in (-warmelt-%-0.d.so, upgrade-warmelt): the
+	warmelt*0.c files are in melt/ directory.
+
+	* basilys.h: the includes are also included in plugin mode.
+	(OBMAG_SPEC_RAWFILE): added.
+	(melt_fetch_predefined, melt_store_predefined): added functions.
+	(BASILYSG, BASILYSGOB, BASILYSGIX): removed macros.
+	(MELT_PREDEF, MELT_STORE_PREDEFINED, MELTPREDEFIX): added new
+	macros.
+	(basilys_discr): uses MELT_PREDEF for the null case.
+
+	* basilys.c (ALL_OBMAG_SPECIAL_CASES): Added OBMAG_SPEC_RAWFILE.
+	(delete_special, readsimplelong): Handles OBMAG_SPEC_RAWFILE.
+	(basilysgc_make_special): added new function.
+	(basilys_check_call_frames_at, basilysgc_new_mixbigint_mpz): use
+	MELT_PREDEF.
+	(basilysgc_add_out_raw_len, basilysgc_out_add_indent): Handles
+	OBMAG_SPEC_RAWFILE.
+	(basilysgc_new_tree, basilysgc_new_gimpleseq)
+	(basilysgc_new_basicblock, basilysgc_append_list)
+	(basilysgc_prepend_list, basilys_is_subclass_of, basilysgc_send)
+	(readseqlist, makesexpr): use MELT_PREDEF.
+	(basilys_get_inisysdata): added new function.
+	(basilysgc_named_symbol, basilysgc_intern_symbol)
+	(basilysgc_intern_keyword, basilysgc_named_keyword): use it &
+	MELT_PREDEF.
+	(readassoc, readmacrostringsequence, readhashescape, readval)
+	(basilysgc_read_from_rawstring, basilysgc_read_from_val)
+	(do_initial_command, load_basilys_modules_and_do_command)
+	(do_finalize_basilys, basilysgc_debugmsgval)
+	(basilysgc_fetch_gdbmstate, basilysgc_put_gdbmstate_constr)
+	(basilysgc_put_gdbmstate): ditto.
+	(basilysgc_ppout_gimple, basilysgc_ppout_gimple_seq)
+	(basilysgc_ppout_tree, basilysgc_new_file): handle
+	OBMAG_SPEC_RAWFILE.
+	(basilysgc_new_ppl_constraint_system)
+	(basilysgc_clone_ppl_constraint_system)
+	(basilysgc_new_ppl_polyhedron)
+	(basilysgc_new_ppl_linear_expression): use basilysgc_make_special.
+	(ppl_basilys_variable_output_function, basilys_val2passflag)
+	(basilysgc_gimple_gate, basilysgc_gimple_execute)
+	(basilysgc_rtl_gate, basilysgc_rtl_execute)
+	(basilysgc_simple_ipa_gate, basilysgc_simple_ipa_execute)
+	(basilysgc_register_pass, basilys_handle_melt_attribute): use
+	basilys_get_inisysdata & MELT_PREDEF.
+
+	* melt/warmelt-first-0.c: moved & regenerated.
+	* melt/warmelt-macro-0.c: moved & regenerated.
+	* melt/warmelt-normal-0.c: moved & regenerated.
+	* melt/warmelt-normatch-0.c: moved & regenerated.
+	* melt/warmelt-genobj-0.c: moved & regenerated.
+	* melt/warmelt-outobj-0.c: moved & regenerated.
+	* melt/ana-base.melt: uses MELT_PREDEF.
+	* melt/warmelt-genobj.melt: likewise.
+
 2009-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: Marked with a notpluginexported comments those
 	include-s which are not yet plugin exported.

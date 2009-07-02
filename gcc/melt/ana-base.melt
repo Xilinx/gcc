@@ -741,10 +741,10 @@
    mpz_init ($treeinty#_minz);
    mpz_init ($treeinty#_maxz);
    get_type_static_bounds($tr, $treeinty#_minz, $treeinty#_maxz);
-   $minbig = basilysgc_new_mixbigint_mpz(BASILYSGOB (DISCR_MIXBIGINT), 
+   $minbig = basilysgc_new_mixbigint_mpz((basilysobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT), 
 					 NULL, 
 					 $treeinty#_minz);
-   $maxbig =  basilysgc_new_mixbigint_mpz(BASILYSGOB (DISCR_MIXBIGINT), 
+   $maxbig =  basilysgc_new_mixbigint_mpz((basilysobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT), 
 					 NULL, 
 					 $treeinty#_maxz);
    mpz_clear ($treeinty#_minz);

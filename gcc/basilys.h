@@ -20,7 +20,7 @@ along with GCC; see the file COPYING3.   If not see
 #ifndef BASILYS_INCLUDED_
 #define BASILYS_INCLUDED_
 
-#if !ENABLE_BASILYSMELT
+#if !ENABLE_BASILYSMELT && !defined(MELT_IS_PLUGIN)
 #error basilys.h should enly be used when basilemelt is enabled at configuretion time
 #endif
 
@@ -31,7 +31,7 @@ along with GCC; see the file COPYING3.   If not see
    compile without this include. A better fix would be to ensure
    <ppl_c.h> is included for compilation of gtype-desc.c and other
    gengtype related files. */
-#if HAVE_PARMAPOLY
+#if HAVE_PARMAPOLY || defined (MELT_IS_PLUGIN)
 #ifndef PPL_VERSION_MAJOR
 #include <ppl_c.h>
 #endif
@@ -67,7 +67,6 @@ along with GCC; see the file COPYING3.   If not see
 /* declared in toplev.h which we want to avoid #include-ing */
 extern void fatal_error (const char *, ...);
 
-/* use -fdump-ipa-basilys */
 
 #define dbgprintf_raw(Fmt,...) do{if (dump_file) \
       {fprintf(dump_file, Fmt, ##__VA_ARGS__); fflush(dump_file);}}while(0)
@@ -352,8 +351,8 @@ enum obmag_en    {
   OBMAG__SPARE35,
   OBMAG__SPARE36,
   OBMAG__SPARE37,
-  OBMAG__SPARE38,
-  OBMAG_SPEC_FILE,
+  OBMAG_SPEC_FILE,		/* closed when deleted */
+  OBMAG_SPEC_RAWFILE,		/* not closed when deleted */
   OBMAG_SPEC_MPFR,
   OBMAG_SPECPPL_COEFFICIENT,
   OBMAG_SPECPPL_LINEAR_EXPRESSION,
@@ -681,6 +680,11 @@ basilys_mark_decay (struct basilysdecay_st *p)
   else
     p->remain--;
 }
+
+/* make a special value; return NULL if the discriminant is not
+   special; all special values should be made thru this */
+struct basilysspecial_st* basilysgc_make_special(basilys_ptr_t discr);
+
 
 /* when OBMAG_STRING -  */
 struct 
@@ -2895,7 +2899,13 @@ enum {
 };
 
 
-static inline basilys_ptr_t melt_fetch_predefined(int ix)
+/* currently each predefined is a GC root (so we have about two
+   hundreds of them), scanned at every minor garbage collection. We
+   might change that, e.g. by grouping the predefined set by 16 and
+   scanning in minor GC only groups which have been changed */
+
+static inline basilys_ptr_t
+melt_fetch_predefined(int ix)
 {
   if (ix>0 && ix<MELTGLOB__LASTWIRED)
     return (basilys_ptr_t)basilys_globarr[ix];
@@ -2911,20 +2921,21 @@ static inline void melt_store_predefined(int ix, basilys_ptr_t p)
 
 #define basilys_globpredef(Ix) ((void*)melt_fetch_predefined((Ix)))
 
-/* BASILYSG(Foo) is the global of index BGLOB_Foo */
-#define BASILYSG(Glob) basilys_globarr[MELTGLOB_##Glob]
-#define BASILYSGOB(Glob) ((basilysobject_ptr_t)(BASILYSG(Glob)))
+
+/* access or set a predefined */
 #define MELT_PREDEF(Glob)  melt_fetch_predefined(MELTGLOB_##Glob)
 #define MELT_STORE_PREDEF(Glob,P) melt_store_predefined(MELTGLOB_##Glob, (P))
-#define BASILYSGIX(Tab,Glob) Tab[MELTGLOB_##Glob]
+
+/* this is useful in generated MELT code */
 #define MELTPREDEFIX(Tab,Glob) Tab[MELTGLOB_##Glob]
+
 
 /* return the discriminant or class itself */
 static inline basilysobject_ptr_t
 basilys_discr (basilys_ptr_t p)
 {
   if (!p)
-    return BASILYSGOB(DISCR_NULLRECV);
+    return (basilysobject_ptr_t) MELT_PREDEF (DISCR_NULLRECV);
   return p->u_discr;
 }
 

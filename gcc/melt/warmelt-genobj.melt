@@ -905,7 +905,7 @@
 				 discr_multiple
 				 boxloc
 				 (make_stringconst discr_verbatimstring
-						   " || basilys_object_length((basilys_ptr_t)BASILYSG(INITIAL_SYSTEM_DATA))<FSYSDAT_BOX_FRESH_ENV"
+						   " || basilys_object_length((basilys_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA))<FSYSDAT_BOX_FRESH_ENV"
 						   )
 				 ))
 		     :obcond_then (the_null)
@@ -3062,7 +3062,7 @@
 		   class_objexpv
 		   :obx_cont (make_tuple3 discr_multiple
 					  (make_stringconst discr_verbatimstring 
-							    "BASILYSGIX(predefinited,")
+							    "MELTPREDEFIX(predefinited,")
 					  (make_string discr_verbatimstring 
 						       (unsafe_get_field :named_name ipredef))
 					  (make_stringconst discr_verbatimstring 
@@ -3675,25 +3675,46 @@
   (let ( (nloc (unsafe_get_field :nrep_loc nspr))
 	 (npred (unsafe_get_field :nstpd_predef nspr))
 	 (nval (unsafe_get_field :nstpd_value nspr))
-	 (oval (compile_obj nval gcx))
-	 ;; we cannot use class_objpredef as an lvalue, we need to call BASILYSG, not BASILYSGOB
-	 (opred (cond 
-		 ( (is_a npred class_symbol)
-		   (make_string discr_verbatimstring (unsafe_get_field :named_name npred)))
-		 ( (is_integerbox npred)
-		   npred)
-		 (:else (assert_msg "unexpected npred" ()))))
-	 (oleft (instance class_objexpv
-			  :obx_cont (make_tuple3 discr_multiple
-						 (make_stringconst discr_verbatimstring "BASILYSG(")
-						 opred
-						 (make_stringconst discr_verbatimstring ")"))))
-	 (res (instance class_objcompute
-			:obi_loc nloc
-			:obdi_destlist (list1 oleft)
-			:obcpt_expr oval
-			))
+	 (oval (compile_obj nval gcx)) 
+	 (res ())
 	 )
+    (cond 
+     ( (is_a npred class_symbol)
+       (setq res 
+	     (instance class_objcompute
+		       :obi_loc nloc
+		       :obcpt_expr 
+		       (make_tuple5
+			discr_multiple
+			(make_stringconst discr_verbatimstring
+					  "MELT_STORE_PREDEF(")
+			(make_string discr_verbatimstring 
+				     (get_field :named_name npred))
+			(make_stringconst discr_verbatimstring ", (")
+			oval
+			(make_stringconst discr_verbatimstring "))"))
+		       ))
+       )
+     ( (is_integerbox npred)
+       (setq res 
+	     (instance class_objcompute
+		       :obi_loc nloc
+		       :obcpt_expr 
+		       (make_tuple5
+			discr_multiple
+			(make_stringconst discr_verbatimstring
+					  "melt_store_predefined(")
+			npred
+			(make_stringconst discr_verbatimstring ", (")
+			oval
+			(make_stringconst discr_verbatimstring "))"))
+		       ))
+       )
+     (:else
+      (debug_msg npred "compilobj_nrep_store_predefined")
+      (assert_msg "compilobj_nrep_store_predefined invalid npred" ())
+      (return))
+     )
     (debug_msg res "compilobj_nrep_store_predefined result res")
     res
     ))
@@ -4610,6 +4631,7 @@
       )))
 (install_method class_cmatcher compile_matcher compilmatcher_cmatcher)
 
+;; eof warmelt-genobj.melt
 
 
 

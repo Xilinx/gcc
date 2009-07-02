@@ -146,9 +146,13 @@ DEF_VEC_ALLOC_O (basilys_module_info_t, heap);
 static VEC (basilys_module_info_t, heap) *modinfvec = 0;
 
 struct callframe_basilys_st* basilys_topframe; 
-struct basilyslocalsptr_st* basilys_localtab; 
+struct basilyslocalsptr_st* basilys_localtab;
+
+
+/** special values are linked in a list to permit their explicit deletion */
 struct basilysspecial_st* basilys_newspeclist;
 struct basilysspecial_st* basilys_oldspeclist;
+					 
 unsigned long basilys_kilowords_sincefull;
 /* number of full & any basilys garbage collections */
 unsigned long basilys_nb_full_garbcoll;
@@ -184,6 +188,7 @@ static void* proghandle;
 /* to code case ALL_OBMAG_SPECIAL_CASES: */
 #define ALL_OBMAG_SPECIAL_CASES			\
          OBMAG_SPEC_FILE:			\
+    case OBMAG_SPEC_RAWFILE:			\
     case OBMAG_SPECPPL_COEFFICIENT:   		\
     case OBMAG_SPECPPL_LINEAR_EXPRESSION:	\
     case OBMAG_SPECPPL_CONSTRAINT:		\
@@ -294,6 +299,13 @@ delete_special (struct basilysspecial_st *sp)
       if (sp->val.sp_file)
 	{
 	  fclose (sp->val.sp_file);
+	  sp->val.sp_file = NULL;
+	};
+      break;
+    case OBMAG_SPEC_RAWFILE:
+      if (sp->val.sp_file)
+	{
+	  fflush (sp->val.sp_file);
 	  sp->val.sp_file = NULL;
 	};
       break;
@@ -496,6 +508,36 @@ check_pointer_at (const char msg[], long count, basilys_ptr_t * pptr,
 static long nbcheckcallframes;
 static long thresholdcheckcallframes;
 
+
+/* make a special value; return NULL if the discriminant is not special */
+struct basilysspecial_st*
+basilysgc_make_special(basilys_ptr_t discr_p)
+{
+  BASILYS_ENTERFRAME (2, NULL);
+#define discrv       curfram__.varptr[0]
+#define specv      curfram__.varptr[1]
+#define sp_specv ((struct basilysspecial_st*)(specv))
+  discrv = discr_p;
+  if (!discrv || basilys_magic_discr((basilys_ptr_t)discrv) != OBMAG_OBJECT)
+    goto end;
+  switch (((basilysobject_ptr_t)discrv)->object_magic) 
+    {
+    case ALL_OBMAG_SPECIAL_CASES:
+      specv = basilysgc_allocate (sizeof(struct basilysspecial_st),0);
+      sp_specv->discr = (basilysobject_ptr_t) discrv;
+      sp_specv->mark = 0;
+      sp_specv->nextspec = basilys_newspeclist;
+      basilys_newspeclist = sp_specv;
+      break;
+    default: goto end;
+    }
+ end:
+  BASILYS_EXITFRAME();
+  return sp_specv;
+#undef discrv
+#undef specv
+#undef sp_specv
+}
 
 void
 basilys_check_call_frames_at (int noyoungflag, const char *msg,
@@ -1754,7 +1796,7 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
-		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
+		   (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
 			   basilys_string_str (curat->obj_vartab
@@ -1799,7 +1841,7 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 				     obj_class->obj_vartab[FNAMED_NAME]));
 	      if (basilys_is_instance_of
 		  ((basilys_ptr_t) attr,
-		   (basilys_ptr_t) BASILYSGOB (CLASS_NAMED)))
+		   (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED)))
 		dbgprintf ("gotten attr named %s found attr named %s",
 			   basilys_string_str (attr->obj_vartab[FNAMED_NAME]),
 			   basilys_string_str (curat->obj_vartab
@@ -1924,7 +1966,7 @@ basilysgc_new_mixbigint_mpz (basilysobject_ptr_t discr_p,
   newbig = NULL;
   discrv = (void *) discr_p;
   if (!discrv)
-    discrv = BASILYSGOB (DISCR_MIXBIGINT);
+    discrv = (basilysobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT);
   valv = val_p;
   if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
     goto end;
@@ -2120,6 +2162,7 @@ basilysgc_add_out_raw_len (basilys_ptr_t outbuf_p, const char *str, int slen)
     goto end;
   switch (basilys_magic_discr ((basilys_ptr_t) (outbufv))) {
   case OBMAG_SPEC_FILE:
+  case OBMAG_SPEC_RAWFILE:
     {
       FILE* f = spec_outbufv->val.sp_file;
       if (f) {
@@ -2497,6 +2540,7 @@ void
 basilysgc_out_add_indent (basilys_ptr_t outbuf_p, int depth, int linethresh)
 {
   int llln = 0;			/* last line length */
+  int outmagic = 0;		/* the magic of outbuf */
   BASILYS_ENTERFRAME (2, NULL);
   /* we need a frame, because we have more than one call to
      basilysgc_add_outbuf_raw */
@@ -2505,10 +2549,11 @@ basilysgc_out_add_indent (basilys_ptr_t outbuf_p, int depth, int linethresh)
   outbv = outbuf_p;
   if (!outbv)
     goto end;
+  outmagic = basilys_magic_discr((basilys_ptr_t) outbv);
   if (linethresh > 0 && linethresh < 40)
     linethresh = 40;
   /* compute the last line length llln */
-  if (basilys_magic_discr((basilys_ptr_t) outbv) == OBMAG_STRBUF) 
+  if (outmagic == OBMAG_STRBUF) 
     {
       char *bs = 0, *be = 0, *nl = 0;
       bs = outbufv->bufzn + outbufv->bufstart;
@@ -2517,7 +2562,7 @@ basilysgc_out_add_indent (basilys_ptr_t outbuf_p, int depth, int linethresh)
       llln = be - nl;
       gcc_assert (llln >= 0);
   }
-  else if (basilys_magic_discr((basilys_ptr_t) outbv) == OBMAG_SPEC_FILE) 
+  else if (outmagic == OBMAG_SPEC_FILE || outmagic == OBMAG_SPEC_RAWFILE) 
     {
       FILE *f = spec_outbufv->val.sp_file;
       int fn = f?fileno(f):-1;
@@ -2798,7 +2843,7 @@ basilysgc_sort_multiple (basilys_ptr_t mult_p, basilys_ptr_t clo_p,
   if (basilys_magic_discr ((basilys_ptr_t) clov) != OBMAG_CLOSURE)
     goto end;
   if (!discrmv)
-    discrmv = BASILYSGOB (DISCR_MULTIPLE);
+    discrmv = (basilysobject_ptr_t) MELT_PREDEF (DISCR_MULTIPLE);
   if (basilys_magic_discr ((basilys_ptr_t) discrmv) != OBMAG_OBJECT)
     goto end;
   if (((basilysobject_ptr_t) discrmv)->obj_num != OBMAG_MULTIPLE)
@@ -2896,7 +2941,7 @@ basilys_container_value (basilys_ptr_t cont)
       || ((basilysobject_ptr_t) cont)->obj_len < FCONTAINER__LAST)
     return 0;
   if (!basilys_is_instance_of
-      ((basilys_ptr_t) cont, (basilys_ptr_t) BASILYSGOB (CLASS_CONTAINER)))
+      ((basilys_ptr_t) cont, (basilys_ptr_t) MELT_PREDEF (CLASS_CONTAINER)))
     return 0;
   return ((basilysobject_ptr_t) cont)->obj_vartab[FCONTAINER_VALUE];
 }
@@ -2912,7 +2957,7 @@ basilysgc_new_tree (basilysobject_ptr_t discr_p, tree tr)
 #define object_discrv ((basilysobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
-    discrv = BASILYSG (DISCR_TREE);
+    discrv = MELT_PREDEF (DISCR_TREE);
   if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_TREE)
@@ -2941,7 +2986,7 @@ basilysgc_new_gimple (basilysobject_ptr_t discr_p, gimple g)
 #define object_discrv ((basilysobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
-    discrv = BASILYSG (DISCR_GIMPLE);
+    discrv = MELT_PREDEF (DISCR_GIMPLE);
   if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_GIMPLE)
@@ -2970,7 +3015,7 @@ basilysgc_new_gimpleseq (basilysobject_ptr_t discr_p, gimple_seq g)
 #define object_discrv ((basilysobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
-    discrv = BASILYSG (DISCR_GIMPLESEQ);
+    discrv = MELT_PREDEF (DISCR_GIMPLESEQ);
   if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_GIMPLESEQ)
@@ -2999,7 +3044,7 @@ basilysgc_new_basicblock (basilysobject_ptr_t discr_p, basic_block bb)
 #define object_discrv ((basilysobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
-    discrv = BASILYSG (DISCR_BASICBLOCK);
+    discrv = MELT_PREDEF (DISCR_BASICBLOCK);
   if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_BASICBLOCK)
@@ -3438,10 +3483,10 @@ basilysgc_append_list (basilys_ptr_t list_p, basilys_ptr_t valu_p)
   list = list_p;
   valu = valu_p;
   if (basilys_magic_discr ((basilys_ptr_t) list) != OBMAG_LIST
-      || !BASILYSGOB (DISCR_PAIR))
+      || ! MELT_PREDEF (DISCR_PAIR))
     goto end;
   pairv = basilysgc_allocate (sizeof (struct basilyspair_st), 0);
-  pai_pairv->discr = BASILYSGOB (DISCR_PAIR);
+  pai_pairv->discr = (basilysobject_ptr_t) MELT_PREDEF (DISCR_PAIR);
   pai_pairv->hd = (basilys_ptr_t) valu;
   pai_pairv->tl = NULL;
   gcc_assert (basilys_magic_discr ((basilys_ptr_t) pairv) == OBMAG_PAIR);
@@ -3479,10 +3524,10 @@ basilysgc_prepend_list (basilys_ptr_t list_p, basilys_ptr_t valu_p)
   list = list_p;
   valu = valu_p;
   if (basilys_magic_discr ((basilys_ptr_t) list) != OBMAG_LIST
-      || !BASILYSGOB (DISCR_PAIR))
+      || ! MELT_PREDEF (DISCR_PAIR))
     goto end;
   pairv = basilysgc_allocate (sizeof (struct basilyspair_st), 0);
-  pai_pairv->discr = BASILYSGOB (DISCR_PAIR);
+  pai_pairv->discr = (basilysobject_ptr_t) MELT_PREDEF (DISCR_PAIR);
   pai_pairv->hd = (basilys_ptr_t) valu;
   pai_pairv->tl = NULL;
   gcc_assert (basilys_magic_discr ((basilys_ptr_t) pairv) == OBMAG_PAIR);
@@ -4539,19 +4584,19 @@ basilys_is_subclass_of (basilysobject_ptr_t subclass_p,
     {
       return FALSE;
     }
-  if (superclass_p == BASILYSGOB (CLASS_ROOT))
+  if (superclass_p == (basilysobject_ptr_t) MELT_PREDEF (CLASS_ROOT))
     return TRUE;
   subanc =
     (struct basilysmultiple_st *) subclass_p->obj_vartab[FCLASS_ANCESTORS];
   superanc =
     (struct basilysmultiple_st *) superclass_p->obj_vartab[FCLASS_ANCESTORS];
-  if (basilys_magic_discr ((basilys_ptr_t) subanc) !=
-      OBMAG_MULTIPLE || subanc->discr != BASILYSGOB (DISCR_SEQCLASS))
+  if (basilys_magic_discr ((basilys_ptr_t) subanc) != OBMAG_MULTIPLE
+      || subanc->discr != (basilysobject_ptr_t) MELT_PREDEF (DISCR_SEQCLASS))
     {
       return FALSE;
     }
-  if (basilys_magic_discr ((basilys_ptr_t) superanc) !=
-      OBMAG_MULTIPLE || superanc->discr != BASILYSGOB (DISCR_SEQCLASS))
+  if (basilys_magic_discr ((basilys_ptr_t) superanc) != OBMAG_MULTIPLE
+      || superanc->discr != (basilysobject_ptr_t) MELT_PREDEF (DISCR_SEQCLASS))
     {
       return FALSE;
     }
@@ -4835,7 +4880,7 @@ basilysgc_send (basilys_ptr_t recv_p,
   if (basilys_magic_discr ((basilys_ptr_t) selv) != OBMAG_OBJECT)
     goto end;
   if (!basilys_is_instance_of
-      ((basilys_ptr_t) selv, (basilys_ptr_t) BASILYSGOB (CLASS_SELECTOR)))
+      ((basilys_ptr_t) selv, (basilys_ptr_t) MELT_PREDEF (CLASS_SELECTOR)))
     goto end;
 #if 0 && ENABLE_CHECKING
   debugeprintf ("send #%ld recv %p", sendnum, (void *) recv);
@@ -4850,7 +4895,7 @@ basilysgc_send (basilys_ptr_t recv_p,
     }
   else
     {
-      discrv = (BASILYSGOB (DISCR_NULLRECV));
+      discrv = ((basilysobject_ptr_t) MELT_PREDEF (DISCR_NULLRECV));
       gcc_assert (discrv != NULL);
     };
   while (discrv)
@@ -5941,6 +5986,7 @@ readsimplelong (struct reading_st *rd)
       NUMNAM (OBMAG_MAPEDGES);
       NUMNAM (OBMAG_DECAY);
       NUMNAM (OBMAG_SPEC_FILE);
+      NUMNAM (OBMAG_SPEC_RAWFILE);
       NUMNAM (OBMAG_SPEC_MPFR);
       NUMNAM (OBMAG_SPECPPL_COEFFICIENT);
       NUMNAM (OBMAG_SPECPPL_LINEAR_EXPRESSION);
@@ -5972,7 +6018,7 @@ readseqlist (struct reading_st *rd, int endc)
   BASILYS_ENTERFRAME (2, NULL);
 #define seqv curfram__.varptr[0]
 #define compv curfram__.varptr[1]
-  seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+  seqv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
 readagain:
   compv = NULL;
   c = skipspace_getc (rd, COMMENT_SKIP);
@@ -6010,12 +6056,12 @@ makesexpr (struct reading_st *rd, int lineno, basilys_ptr_t contents_p,
   contsv = contents_p;
   gcc_assert (basilys_magic_discr ((basilys_ptr_t) contsv) == OBMAG_LIST);
   if (loc == 0)
-    locmixv = basilysgc_new_mixint (BASILYSGOB (DISCR_MIXEDINT),
+    locmixv = basilysgc_new_mixint ((basilysobject_ptr_t) MELT_PREDEF (DISCR_MIXEDINT),
 				    *rd->rpfilnam, (long) lineno);
   else
-    locmixv = basilysgc_new_mixloc (BASILYSGOB (DISCR_MIXEDLOC),
+    locmixv = basilysgc_new_mixloc ((basilysobject_ptr_t) MELT_PREDEF (DISCR_MIXEDLOC),
 				    *rd->rpfilnam, (long) lineno, loc);
-  sexprv = basilysgc_new_raw_object (BASILYSGOB (CLASS_SEXPR), FSEXPR__LAST);
+  sexprv = basilysgc_new_raw_object ((basilysobject_ptr_t) MELT_PREDEF (CLASS_SEXPR), FSEXPR__LAST);
   ((basilysobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] =
     (basilys_ptr_t) locmixv;
   ((basilysobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_CONTENTS] =
@@ -6026,6 +6072,24 @@ makesexpr (struct reading_st *rd, int lineno, basilys_ptr_t contents_p,
 #undef sexprv
 #undef contsv
 #undef locmixv
+}
+
+
+static inline basilys_ptr_t
+basilys_get_inisysdata(int off)
+{
+  basilysobject_ptr_t inisys = (basilysobject_ptr_t) MELT_PREDEF(INITIAL_SYSTEM_DATA);
+  if (basilys_magic_discr ((basilys_ptr_t) inisys) == OBMAG_OBJECT) 
+    {
+      int leninisys = inisys->obj_len;
+      gcc_assert(basilys_is_instance_of
+		 ((basilys_ptr_t) inisys,
+		  (basilys_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA)));
+      if (off>=0 && off<leninisys)
+	return inisys->obj_vartab[off];
+    }
+  return NULL;  
+  
 }
 
 
@@ -6051,38 +6115,32 @@ basilysgc_named_symbol (const char *nam, int create)
     namdup = strcpy (tinybuf, nam);
   else
     namdup = strcpy ((char *) xcalloc (namlen + 1, 1), nam);
-  gcc_assert (basilys_magic_discr (BASILYSG (CLASS_SYSTEM_DATA))
+  gcc_assert (basilys_magic_discr ((basilys_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA))
 	      == OBMAG_OBJECT);
-  gcc_assert (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) ==
+  gcc_assert (basilys_magic_discr ((basilys_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) ==
 	      OBMAG_OBJECT);
   for (ix = 0; ix < namlen; ix++)
     if (ISALPHA (namdup[ix]))
       namdup[ix] = TOUPPER (namdup[ix]);
-  if (BASILYSG (INITIAL_SYSTEM_DATA) != 0
-      && basilys_is_instance_of
-      (BASILYSG (INITIAL_SYSTEM_DATA), BASILYSG (CLASS_SYSTEM_DATA))
-      && basilys_object_length ((basilys_ptr_t)
-				BASILYSG (INITIAL_SYSTEM_DATA)) >=
-      FSYSDAT__LAST)
+  if (MELT_PREDEF (INITIAL_SYSTEM_DATA) != 0)
     {
-      dictv =
-	BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_SYMBOLDICT];
+      dictv = basilys_get_inisysdata (FSYSDAT_SYMBOLDICT);
       if (basilys_magic_discr ((basilys_ptr_t) dictv) == OBMAG_MAPSTRINGS)
 	symbv =
 	  basilys_get_mapstrings ((struct basilysmapstrings_st *) dictv,
 				  namdup);
       if (symbv || !create)
 	goto end;
-      closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_ADDSYMBOL];
+      closv = basilys_get_inisysdata (FSYSDAT_ADDSYMBOL);
       if (basilys_magic_discr ((basilys_ptr_t) closv) == OBMAG_CLOSURE)
 	{
 	  union basilysparam_un pararg[1];
 	  memset (&pararg, 0, sizeof (pararg));
-	  nstrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), namdup);
+	  nstrv = basilysgc_new_string ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING), namdup);
 	  pararg[0].bp_aptr = (basilys_ptr_t *) & nstrv;
 	  symbv =
 	    basilys_apply ((basilysclosure_ptr_t) closv,
-			   (basilys_ptr_t) BASILYSG (INITIAL_SYSTEM_DATA),
+			   (basilys_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
 			   BPARSTR_PTR, pararg, "", NULL);
 	  goto end;
 	}
@@ -6112,20 +6170,12 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
   if (basilys_magic_discr ((basilys_ptr_t) symbv) != OBMAG_OBJECT
       || obj_symbv->obj_len < FSYMB__LAST
       || !basilys_is_instance_of ((basilys_ptr_t) symbv,
-				  (basilys_ptr_t) BASILYSG (CLASS_SYMBOL)))
+				  (basilys_ptr_t) MELT_PREDEF (CLASS_SYMBOL)))
     goto fail;
   nstrv = obj_symbv->obj_vartab[FNAMED_NAME];
   if (basilys_magic_discr ((basilys_ptr_t) nstrv) != OBMAG_STRING)
     goto fail;
-  if (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) !=
-      OBMAG_OBJECT
-      || basilys_object_length ((basilys_ptr_t)
-				BASILYSGOB (INITIAL_SYSTEM_DATA)) <
-      FSYSDAT__LAST
-      || !basilys_is_instance_of (BASILYSG (INITIAL_SYSTEM_DATA),
-				  BASILYSG (CLASS_SYSTEM_DATA)))
-    goto fail;
-  closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_INTERNSYMBOL];
+  closv = basilys_get_inisysdata (FSYSDAT_INTERNSYMBOL);
   if (basilys_magic_discr ((basilys_ptr_t) closv) != OBMAG_CLOSURE)
     goto fail;
   else
@@ -6136,7 +6186,7 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
       BASILYS_LOCATION_HERE ("intern symbol before apply");
       resv =
 	basilys_apply ((basilysclosure_ptr_t) closv,
-		       (basilys_ptr_t) BASILYSG (INITIAL_SYSTEM_DATA),
+		       (basilys_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
 		       BPARSTR_PTR, pararg, "", NULL);
       goto end;
     }
@@ -6168,18 +6218,12 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
   if (basilys_magic_discr ((basilys_ptr_t) keywv) != OBMAG_OBJECT
       || basilys_object_length ((basilys_ptr_t) obj_keywv) < FSYMB__LAST
       || !basilys_is_instance_of ((basilys_ptr_t) keywv,
-				  (basilys_ptr_t) BASILYSG (CLASS_KEYWORD)))
+				  (basilys_ptr_t) MELT_PREDEF (CLASS_KEYWORD)))
     goto fail;
   nstrv = obj_keywv->obj_vartab[FNAMED_NAME];
   if (basilys_magic_discr ((basilys_ptr_t) nstrv) != OBMAG_STRING)
     goto fail;
-  if (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) !=
-      OBMAG_OBJECT
-      || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len < FSYSDAT__LAST
-      || !basilys_is_instance_of (BASILYSG (INITIAL_SYSTEM_DATA),
-				  BASILYSG (CLASS_SYSTEM_DATA)))
-    goto fail;
-  closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_INTERNKEYW];
+  closv = basilys_get_inisysdata (FSYSDAT_INTERNKEYW);
   if (basilys_magic_discr ((basilys_ptr_t) closv) != OBMAG_CLOSURE)
     goto fail;
   else
@@ -6190,7 +6234,7 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
       BASILYS_LOCATION_HERE ("intern keyword before apply");
       resv =
 	basilys_apply ((basilysclosure_ptr_t) closv,
-		       (basilys_ptr_t) BASILYSG (INITIAL_SYSTEM_DATA),
+		       (basilys_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
 		       BPARSTR_PTR, pararg, "", NULL);
       goto end;
     }
@@ -6239,31 +6283,29 @@ basilysgc_named_keyword (const char *nam, int create)
   for (ix = 0; ix < namlen; ix++)
     if (ISALPHA (namdup[ix]))
       namdup[ix] = TOUPPER (namdup[ix]);
-  gcc_assert (basilys_magic_discr (BASILYSG (CLASS_SYSTEM_DATA))
+  gcc_assert (basilys_magic_discr ((basilys_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA))
 	      == OBMAG_OBJECT);
-  gcc_assert (basilys_magic_discr (BASILYSG (INITIAL_SYSTEM_DATA)) ==
+  gcc_assert (basilys_magic_discr ((basilys_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) ==
 	      OBMAG_OBJECT);
-  if (basilys_is_instance_of
-      (BASILYSG (INITIAL_SYSTEM_DATA), BASILYSG (CLASS_SYSTEM_DATA))
-      && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >= FSYSDAT__LAST)
+  if (MELT_PREDEF (INITIAL_SYSTEM_DATA))
     {
-      dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_KEYWDICT];
+      dictv = basilys_get_inisysdata (FSYSDAT_KEYWDICT);
       if (basilys_magic_discr ((basilys_ptr_t) dictv) == OBMAG_MAPSTRINGS)
 	keywv =
 	  basilys_get_mapstrings ((struct basilysmapstrings_st *) dictv,
 				  namdup);
       if (keywv || !create)
 	goto end;
-      closv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_ADDKEYW];
+      closv = basilys_get_inisysdata (FSYSDAT_ADDKEYW);
       if (basilys_magic_discr ((basilys_ptr_t) closv) == OBMAG_CLOSURE)
 	{
 	  union basilysparam_un pararg[1];
 	  memset (&pararg, 0, sizeof (pararg));
-	  nstrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), namdup);
+	  nstrv = basilysgc_new_string ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING), namdup);
 	  pararg[0].bp_aptr = (basilys_ptr_t *) & nstrv;
 	  keywv =
 	    basilys_apply ((basilysclosure_ptr_t) closv,
-			   (basilys_ptr_t) BASILYSG (INITIAL_SYSTEM_DATA),
+			   (basilys_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
 			   BPARSTR_PTR, pararg, "", NULL);
 	  goto end;
 	}
@@ -6323,7 +6365,7 @@ readassoc (struct reading_st *rd)
     sz = BASILYS_MAXLEN;
   else if (sz < 0)
     sz = 2;
-  mapv = basilysgc_new_mapobjects (BASILYSGOB (DISCR_MAPOBJECTS), sz);
+  mapv = basilysgc_new_mapobjects ((basilysobject_ptr_t) MELT_PREDEF (DISCR_MAPOBJECTS), sz);
   c = skipspace_getc (rd, COMMENT_SKIP);
   while (c != '}' && !rdeof ())
     {
@@ -6483,7 +6525,7 @@ readstring (struct reading_st *rd)
   cstr = XOBFINISH (&bstring_obstack, char *);
   if (isintl)
     cstr = gettext (cstr);
-  strv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), cstr);
+  strv = basilysgc_new_string ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING), cstr);
   obstack_free (&bstring_obstack, cstr);
   BASILYS_EXITFRAME ();
   return (basilys_ptr_t) strv;
@@ -6522,8 +6564,8 @@ readmacrostringsequence (struct reading_st *rd)
 #define seqv     curfram__.varptr[3]
 #define sbufv    curfram__.varptr[4]
   LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
-  seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
-  sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+  seqv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+  sbufv = basilysgc_new_strbuf((basilysobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
   for(;;) {
     if (!rdcurc()) {
       /* reached end of line */
@@ -6540,7 +6582,7 @@ readmacrostringsequence (struct reading_st *rd)
       rdnext(); 
       rdnext();
       if (sbufv && basilys_strbuf_usedlength((basilys_ptr_t)sbufv)>0) {
-	strv = basilysgc_new_stringdup (BASILYSGOB(DISCR_STRING),
+	strv = basilysgc_new_stringdup ((basilysobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 					basilys_strbuf_str((basilys_ptr_t) sbufv));
 	debugeprintf ("macrostring end appending str:%s", basilys_string_str((basilys_ptr_t)strv));
 	basilysgc_append_list((basilys_ptr_t) seqv, (basilys_ptr_t) strv);
@@ -6557,7 +6599,7 @@ readmacrostringsequence (struct reading_st *rd)
 	/* if there is any sbuf, make a string of it and add the
 	   string into the sequence */
 	if (sbufv && basilys_strbuf_usedlength((basilys_ptr_t)sbufv)>0) {
-	  strv = basilysgc_new_stringdup(BASILYSGOB(DISCR_STRING),
+	  strv = basilysgc_new_stringdup((basilysobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 					 basilys_strbuf_str((basilys_ptr_t) sbufv));
 	  basilysgc_append_list((basilys_ptr_t) seqv, (basilys_ptr_t) strv);
 	  debugeprintf ("macrostring var appending str:%s", basilys_string_str((basilys_ptr_t)strv));
@@ -6597,7 +6639,7 @@ readmacrostringsequence (struct reading_st *rd)
       /* $$ is handled as a single dollar $ */
       else if (rdfollowc(1) == '$') {
 	if (!sbufv)
-	  sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+	  sbufv = basilysgc_new_strbuf((basilysobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
 	basilysgc_add_strbuf_raw_len((basilys_ptr_t)sbufv, "$", 1);
 	rdnext();
 	rdnext();
@@ -6605,7 +6647,7 @@ readmacrostringsequence (struct reading_st *rd)
       /* $# is handled as a single hash # */
       else if (rdfollowc(1) == '#') {
 	if (!sbufv)
-	  sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+	  sbufv = basilysgc_new_strbuf((basilysobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
 	basilysgc_add_strbuf_raw_len((basilys_ptr_t)sbufv, "#", 1);
 	rdnext();
 	rdnext();
@@ -6618,7 +6660,7 @@ readmacrostringsequence (struct reading_st *rd)
       /* handle efficiently the common case of alphanum and spaces */
       int nbc = 0;
       if (!sbufv)
-	sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+	sbufv = basilysgc_new_strbuf((basilysobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
       while (ISALNUM(rdfollowc(nbc)) || ISSPACE(rdfollowc(nbc))) 
 	nbc++;
       basilysgc_add_strbuf_raw_len((basilys_ptr_t)sbufv, &rdcurc(), nbc);
@@ -6626,7 +6668,7 @@ readmacrostringsequence (struct reading_st *rd)
     }
     else { /* the current char is not a dollar $ */
       if (!sbufv)
-	sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+	sbufv = basilysgc_new_strbuf((basilysobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
       basilysgc_add_strbuf_raw_len((basilys_ptr_t)sbufv, &rdcurc(), 1);
       rdnext();
     }
@@ -6691,7 +6733,7 @@ readhashescape (struct reading_st *rd)
 	    READ_ERROR ("MELT: invalid char escape %s", nam);
 	  obstack_free (&bname_obstack, nam);
 	char_escape:
-	  readv = basilysgc_new_int (BASILYSGOB (DISCR_CHARINTEGER), c);
+	  readv = basilysgc_new_int ((basilysobject_ptr_t) MELT_PREDEF (DISCR_CHARINTEGER), c);
 	}
       else if (rdcurc () == 'x' && ISXDIGIT (rdfollowc (1)))
 	{
@@ -6719,7 +6761,7 @@ readhashescape (struct reading_st *rd)
       listv = readseqlist (rd, ')');
       ln = basilys_list_length ((basilys_ptr_t) listv);
       gcc_assert (ln >= 0);
-      readv = basilysgc_new_multiple (BASILYSGOB (DISCR_MULTIPLE), ln);
+      readv = basilysgc_new_multiple ((basilysobject_ptr_t) MELT_PREDEF (DISCR_MULTIPLE), ln);
       for ((ix = 0), (pairv =
 		      ((struct basilyslist_st *) (listv))->first);
 	   ix < ln
@@ -6743,7 +6785,7 @@ readhashescape (struct reading_st *rd)
       n = strtol (&rdcurc (), &endc, 2);
       if (n == 0 && endc <= &rdcurc ())
 	READ_ERROR ("MELT: bad binary number %s", endc);
-      readv = basilysgc_new_int (BASILYSGOB (DISCR_INTEGER), n);
+      readv = basilysgc_new_int ((basilysobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
     }
   else if ((c == 'o' || c == 'O') && ISDIGIT (rdfollowc (1)))
     {
@@ -6754,7 +6796,7 @@ readhashescape (struct reading_st *rd)
       n = strtol (&rdcurc (), &endc, 8);
       if (n == 0 && endc <= &rdcurc ())
 	READ_ERROR ("MELT: bad octal number %s", endc);
-      readv = basilysgc_new_int (BASILYSGOB (DISCR_INTEGER), n);
+      readv = basilysgc_new_int ((basilysobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
     }
   else if ((c == 'd' || c == 'D') && ISDIGIT (rdfollowc (1)))
     {
@@ -6765,7 +6807,7 @@ readhashescape (struct reading_st *rd)
       n = strtol (&rdcurc (), &endc, 10);
       if (n == 0 && endc <= &rdcurc ())
 	READ_ERROR ("MELT: bad decimal number %s", endc);
-      readv = basilysgc_new_int (BASILYSGOB (DISCR_INTEGER), n);
+      readv = basilysgc_new_int ((basilysobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
     }
   else if ((c == 'x' || c == 'x') && ISDIGIT (rdfollowc (1)))
     {
@@ -6776,7 +6818,7 @@ readhashescape (struct reading_st *rd)
       n = strtol (&rdcurc (), &endc, 16);
       if (n == 0 && endc <= &rdcurc ())
 	READ_ERROR ("MELT: bad octal number %s", endc);
-      readv = basilysgc_new_int (BASILYSGOB (DISCR_INTEGER), n);
+      readv = basilysgc_new_int ((basilysobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
     }
   else if (c == '+' && ISALPHA (rdfollowc (1)))
     {
@@ -6831,7 +6873,7 @@ readval (struct reading_st *rd, bool * pgot)
       long num = 0;
       num = readsimplelong (rd);
       readv =
-	basilysgc_new_int ((basilysobject_ptr_t) BASILYSGOB (DISCR_INTEGER),
+	basilysgc_new_int ((basilysobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
 			   num);
       *pgot = TRUE;
       goto end;
@@ -6888,7 +6930,7 @@ readval (struct reading_st *rd, bool * pgot)
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("MELT: expecting value after quote %.20s", &rdcurc ());
-      seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+      seqv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
       altv = basilysgc_named_symbol ("quote", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
@@ -6908,7 +6950,7 @@ readval (struct reading_st *rd, bool * pgot)
       if (!got)
 	READ_ERROR ("MELT: expecting value after backquote %.20s",
 		    &rdcurc ());
-      seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+      seqv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
       altv = basilysgc_named_symbol ("backquote", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
@@ -6926,7 +6968,7 @@ readval (struct reading_st *rd, bool * pgot)
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("MELT: expecting value after comma %.20s", &rdcurc ());
-      seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+      seqv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
       altv = basilysgc_named_symbol ("comma", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
@@ -6944,7 +6986,7 @@ readval (struct reading_st *rd, bool * pgot)
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("MELT: expecting value after question %.20s", &rdcurc ());
-      seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+      seqv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
       altv = basilysgc_named_symbol ("question", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
@@ -7239,10 +7281,10 @@ basilysgc_read_file (const char *filnam, const char *locnam)
   rds.rlineno = 0;
   linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
   rd = &rds;
-  locnamv = basilysgc_new_stringdup (BASILYSGOB (DISCR_STRING), locnam);
+  locnamv = basilysgc_new_stringdup ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
   rds.rpfilnam = (basilys_ptr_t *) & locnamv;
   rds.rpgenv = (basilys_ptr_t *) & genv;
-  seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+  seqv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   while (!rdeof ())
     {
       bool got = FALSE;
@@ -7288,8 +7330,8 @@ basilysgc_read_from_rawstring (const char *rawstr, const char *locnam,
   rds.rsrcloc = loch;
   rd = &rds;
   if (locnam)
-    locnamv = basilysgc_new_stringdup (BASILYSGOB (DISCR_STRING), locnam);
-  seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+    locnamv = basilysgc_new_stringdup ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
+  seqv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   rds.rpfilnam = (basilys_ptr_t *) & locnamv;
   rds.rpgenv = (basilys_ptr_t *) & genv;
   while (rdcurc ())
@@ -7343,7 +7385,7 @@ basilysgc_read_from_val (basilys_ptr_t strv_p, basilys_ptr_t locnam_p)
       break;
     case OBMAG_OBJECT:
       if (basilys_is_instance_of
-	  ((basilys_ptr_t) strv, BASILYSG (CLASS_NAMED)))
+	  ((basilys_ptr_t) strv, (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED)))
 	strv = basilys_object_nth_field ((basilys_ptr_t) strv, FNAMED_NAME);
       else
 	strv = NULL;
@@ -7409,14 +7451,9 @@ do_initial_command (basilys_ptr_t modata_p)
   secondargstr = melt_argument ("secondargument");
   debugeprintf ("do_initial_command mode_string %s modatav %p",
 		modstr, (void *) modatav);
-  if (basilys_magic_discr
-      ((BASILYSG (INITIAL_SYSTEM_DATA))) != OBMAG_OBJECT
-      || BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len <
-      FSYSDAT_CMD_FUNDICT + 1
-      || !BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab
-      || !modstr || !modstr[0])
+  if (!MELT_PREDEF (INITIAL_SYSTEM_DATA))
     goto end;
-  dictv = BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_vartab[FSYSDAT_CMD_FUNDICT];
+  dictv = basilys_get_inisysdata(FSYSDAT_CMD_FUNDICT);
   debugeprintf ("do_initial_command dictv=%p", dictv);
   debugeprintvalue ("do_initial_command dictv", dictv);
   if (basilys_magic_discr ((basilys_ptr_t) dictv) != OBMAG_MAPSTRINGS)
@@ -7450,7 +7487,7 @@ do_initial_command (basilys_ptr_t modata_p)
     if (argstr && argstr[0])
       {
 	cstrv =
-	  basilysgc_new_string (BASILYSGOB (DISCR_STRING),
+	  basilysgc_new_string ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING),
 				argstr);
 	pararg[0].bp_aptr = (basilys_ptr_t *) & cstrv;
       }
@@ -7458,14 +7495,14 @@ do_initial_command (basilys_ptr_t modata_p)
       {
 	char *comma = 0;
 	char *pc = 0;
-	arglv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+	arglv = basilysgc_new_list ((basilysobject_ptr_t) MELT_PREDEF (DISCR_LIST));
 	for (pc = CONST_CAST(char *, argliststr); pc;
 	     pc = comma ? (comma + 1) : 0)
 	  {
 	    comma = strchr (pc, ',');
 	    if (comma)
 	      *comma = (char) 0;
-	    curargv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), pc);
+	    curargv = basilysgc_new_string ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING), pc);
 	    if (comma)
 	      *comma = ',';
 	    basilysgc_append_list ((basilys_ptr_t) arglv,
@@ -7476,7 +7513,7 @@ do_initial_command (basilys_ptr_t modata_p)
     if (secondargstr && secondargstr[0])
       {
 	csecstrv =
-	  basilysgc_new_string (BASILYSGOB (DISCR_STRING),
+	  basilysgc_new_string ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING),
 				secondargstr);
 	pararg[1].bp_aptr = (basilys_ptr_t *) & csecstrv;
       }
@@ -7491,7 +7528,7 @@ do_initial_command (basilys_ptr_t modata_p)
     debugeprintf ("do_initial_command before apply closv %p", closv);
     BASILYS_LOCATION_HERE ("do_initial_command before apply");
     resv = basilys_apply ((basilysclosure_ptr_t) closv,
-			  (basilys_ptr_t) BASILYSG
+			  (basilys_ptr_t) MELT_PREDEF
 			  (INITIAL_SYSTEM_DATA),
 			  BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR, pararg, "",
 			  NULL);
@@ -7616,10 +7653,7 @@ load_basilys_modules_and_do_command (void)
   if (modstr && !strcmp (modstr, "exit"))
     exit_after_options = true;
   /* other commands */
-  else if (basilys_magic_discr
-	   ((BASILYSG (INITIAL_SYSTEM_DATA))) == OBMAG_OBJECT
-	   && BASILYSGOB (INITIAL_SYSTEM_DATA)->obj_len >=
-	   FSYSDAT_CMD_FUNDICT && modstr
+  else if (basilys_get_inisysdata (FSYSDAT_CMD_FUNDICT) && modstr
 	   && modstr[0])
     {
       debugeprintf
@@ -7806,9 +7840,7 @@ do_finalize_basilys (void)
 {
   BASILYS_ENTERFRAME (1, NULL);
 #define finclosv curfram__.varptr[0]
-  finclosv =
-    basilys_field_object ((basilys_ptr_t) BASILYSGOB (INITIAL_SYSTEM_DATA),
-			  FSYSDAT_EXIT_FINALIZER);
+  finclosv = basilys_get_inisysdata (FSYSDAT_EXIT_FINALIZER);
   if (basilys_magic_discr ((basilys_ptr_t) finclosv) == OBMAG_CLOSURE)
     {
       BASILYS_LOCATION_HERE
@@ -7990,7 +8022,7 @@ is_named_obj (basilysobject_ptr_t ob)
   str = (struct basilysstring_st *) ob->obj_vartab[FNAMED_NAME];
   if (basilys_magic_discr ((basilys_ptr_t) str) != OBMAG_STRING)
     return FALSE;
-  if (basilys_is_instance_of ((basilys_ptr_t) ob, BASILYSG (CLASS_NAMED)))
+  if (basilys_is_instance_of ((basilys_ptr_t) ob, (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED)))
     return TRUE;
   return FALSE;
 }
@@ -8361,10 +8393,7 @@ void basilysgc_debugmsgval(void* val_p, const char*msg, long count)
 #define valv   curfram__.varptr[0]
 #define dbgfv  curfram__.varptr[1]
   valv = val_p;
-  dbgfv = 
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_DEBUGMSG);
+  dbgfv = basilys_get_inisysdata (FSYSDAT_DEBUGMSG);
   {
     union basilysparam_un argtab[2];
     memset(argtab, 0, sizeof(argtab));
@@ -8500,7 +8529,7 @@ basilysgc_fetch_gdbmstate_constr (const char *key)
   if (valdata.dptr != NULL && valdata.dsize >= 0)
     {
       gcc_assert ((int) valdata.dsize == (int) strlen (valdata.dptr));
-      restrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), valdata.dptr);
+      restrv = basilysgc_new_string ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING), valdata.dptr);
       free (valdata.dptr);
       valdata.dptr = 0;
     }
@@ -8541,8 +8570,7 @@ basilysgc_fetch_gdbmstate (basilys_ptr_t key_p)
     }
   else if (keymagic == OBMAG_OBJECT
 	   && basilys_is_instance_of ((basilys_ptr_t) keyv,
-				      (basilys_ptr_t)
-				      BASILYSGOB (CLASS_NAMED)))
+				      (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED)))
     {
       kstrv = basilys_field_object ((basilys_ptr_t) keyv, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) kstrv) == OBMAG_STRING)
@@ -8559,7 +8587,7 @@ basilysgc_fetch_gdbmstate (basilys_ptr_t key_p)
   if (valdata.dptr != NULL && valdata.dsize >= 0)
     {
       gcc_assert ((int) valdata.dsize == (int) strlen (valdata.dptr));
-      restrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), valdata.dptr);
+      restrv = basilysgc_new_string ((basilysobject_ptr_t) MELT_PREDEF (DISCR_STRING), valdata.dptr);
       free (valdata.dptr);
       valdata.dptr = 0;
     }
@@ -8610,8 +8638,7 @@ basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p)
     }
   else if (datamagic == OBMAG_OBJECT
 	   && basilys_is_instance_of ((basilys_ptr_t) datav,
-				      (basilys_ptr_t)
-				      BASILYSGOB (CLASS_NAMED)))
+				      (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED)))
     {
       dstrv = basilys_field_object ((basilys_ptr_t) datav, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) dstrv) == OBMAG_STRING)
@@ -8664,8 +8691,7 @@ basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p)
     }
   else if (keymagic == OBMAG_OBJECT
 	   && basilys_is_instance_of ((basilys_ptr_t) keyv,
-				      (basilys_ptr_t)
-				      BASILYSGOB (CLASS_NAMED)))
+				      (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED)))
     {
       kstrv = basilys_field_object ((basilys_ptr_t) keyv, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) kstrv) == OBMAG_STRING)
@@ -8698,8 +8724,7 @@ basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p)
     }
   else if (datamagic == OBMAG_OBJECT
 	   && basilys_is_instance_of ((basilys_ptr_t) datav,
-				      (basilys_ptr_t)
-				      BASILYSGOB (CLASS_NAMED)))
+				      (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED)))
     {
       dstrv = basilys_field_object ((basilys_ptr_t) datav, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) dstrv) == OBMAG_STRING)
@@ -8814,6 +8839,7 @@ basilysgc_ppout_gimple (basilys_ptr_t out_p, int indentsp, gimple gstmt)
       }
       break;
     case OBMAG_SPEC_FILE:
+    case OBMAG_SPEC_RAWFILE:
       {
 	FILE* f = ((struct basilysspecial_st*)outv)->val.sp_file;
 	if (!f) 
@@ -8864,6 +8890,7 @@ basilysgc_ppout_gimple_seq (basilys_ptr_t out_p, int indentsp,
       }
       break;
     case OBMAG_SPEC_FILE:
+    case OBMAG_SPEC_RAWFILE:
       {
 	FILE* f = ((struct basilysspecial_st*)outv)->val.sp_file;
 	if (!f) 
@@ -8911,6 +8938,7 @@ basilysgc_ppout_tree (basilys_ptr_t out_p, int indentsp, tree tr)
       }
       break;
     case OBMAG_SPEC_FILE:
+    case OBMAG_SPEC_RAWFILE:
       {
 	FILE* f = ((struct basilysspecial_st*)outv)->val.sp_file;
 	if (!f) 
@@ -9039,12 +9067,10 @@ basilysgc_new_file(basilys_ptr_t discr_p, FILE* fil)
   discrv = (void *) discr_p;
   if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != OBMAG_SPEC_FILE)
+  if (object_discrv->object_magic != OBMAG_SPEC_FILE
+      && object_discrv->object_magic != OBMAG_SPEC_RAWFILE)
     goto end;
-  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
-  spec_resv->discr = (basilysobject_ptr_t) discrv;
-  spec_resv->mark = 0;
-  spec_resv->val.sp_pointer = NULL;
+  resv = basilysgc_make_special ((basilys_ptr_t) discrv);
   spec_resv->val.sp_file = fil;
  end:
   BASILYS_EXITFRAME ();
@@ -9118,9 +9144,7 @@ basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, bool unsatisfiable)
     goto end;
   if (object_discrv->object_magic != OBMAG_SPECPPL_CONSTRAINT_SYSTEM)
     goto end;
-  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
-  spec_resv->discr = (basilysobject_ptr_t) discrv;
-  spec_resv->mark = 0;
+  resv = basilysgc_make_special ((basilys_ptr_t) discrv);
   spec_resv->val.sp_pointer = NULL;
   if (!unsatisfiable)
     err = ppl_new_Constraint_System(&spec_resv->val.sp_constraint_system);
@@ -9155,10 +9179,7 @@ basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
   if (basilys_magic_discr ((basilys_ptr_t) (pplv)) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM)
     goto end;
   oldconsys =  spec_pplv->val.sp_constraint_system;
-  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
-  spec_resv->discr = spec_pplv->discr;
-  spec_resv->mark = 0;
-  spec_resv->val.sp_pointer = NULL;
+  resv = basilysgc_make_special ((basilys_ptr_t) discrv);
   if (oldconsys)
     err = ppl_new_Constraint_System_from_Constraint_System(&newconsys, oldconsys);
   if (err) 
@@ -9222,9 +9243,7 @@ basilysgc_new_ppl_polyhedron(basilys_ptr_t discr_p, ppl_Polyhedron_t poly, bool 
     goto end;
   if (object_discrv->object_magic != OBMAG_SPECPPL_POLYHEDRON)
     goto end;
-  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
-  spec_resv->discr = (basilysobject_ptr_t) discrv;
-  spec_resv->mark = 0;
+  resv = basilysgc_make_special ((basilys_ptr_t) discrv);
   spec_resv->val.sp_pointer = NULL;
   if (cloned && poly)
     {
@@ -9297,9 +9316,7 @@ basilysgc_new_ppl_linear_expression(basilys_ptr_t discr_p)
     goto end;
   if (object_discrv->object_magic != OBMAG_SPECPPL_LINEAR_EXPRESSION)
     goto end;
-  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
-  spec_resv->discr = (basilysobject_ptr_t) discrv;
-  spec_resv->mark = 0;
+  resv = basilysgc_make_special ((basilys_ptr_t) discrv);
   spec_resv->val.sp_pointer = NULL;
   err = ppl_new_Linear_Expression(&spec_resv->val.sp_linear_expression);
   if (err) 
@@ -9360,7 +9377,8 @@ ppl_basilys_variable_output_function(ppl_dimension_type var)
   memset(buf, 0, sizeof(buf));
   if (vectv)
     namv = basilys_multiple_nth((basilys_ptr_t) vectv, (int)var);
-  if (basilys_is_instance_of((basilys_ptr_t) namv, BASILYSG (CLASS_NAMED))) 
+  if (basilys_is_instance_of((basilys_ptr_t) namv,
+			     (basilys_ptr_t) MELT_PREDEF (CLASS_NAMED))) 
     namv = basilys_object_nth_field((basilys_ptr_t) namv, FNAMED_NAME);
   if (namv)
     s = basilys_string_str((basilys_ptr_t) namv);
@@ -9692,7 +9710,7 @@ basilys_val2passflag(basilys_ptr_t val_p)
     }
   else if (valmag == OBMAG_OBJECT 
 	   && basilys_is_instance_of((basilys_ptr_t) valv, 
-				     BASILYSG(CLASS_NAMED)))
+				     (basilys_ptr_t) MELT_PREDEF(CLASS_NAMED)))
     {
       compv = ((basilysobject_ptr_t)valv)->obj_vartab[FNAMED_NAME];
       res = basilys_val2passflag((basilys_ptr_t) compv);
@@ -9783,10 +9801,7 @@ basilysgc_gimple_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr) 
     goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
+  passdictv = basilys_get_inisysdata (FSYSDAT_PASS_DICT);
   if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
     goto end;
   gcc_assert(current_pass != NULL);
@@ -9794,7 +9809,7 @@ basilysgc_gimple_gate(void)
   gcc_assert(current_pass->type == GIMPLE_PASS);
   passv = basilys_get_mapstrings((struct basilysmapstrings_st*) passdictv, current_pass->name);
   if (!passv 
-      || !basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_GIMPLE_PASS)))
+      || !basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t)  MELT_PREDEF(CLASS_GCC_GIMPLE_PASS)))
     goto end;
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -9828,10 +9843,7 @@ basilysgc_gimple_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
+  passdictv = basilys_get_inisysdata (FSYSDAT_PASS_DICT);
   if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
     goto end;
   gcc_assert (current_pass != NULL);
@@ -9839,7 +9851,8 @@ basilysgc_gimple_execute(void)
   gcc_assert (current_pass->type == GIMPLE_PASS);
   passv = basilys_get_mapstrings((struct basilysmapstrings_st *)passdictv, current_pass->name);
   if (!passv 
-      || !basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_GIMPLE_PASS)))
+      || !basilys_is_instance_of((basilys_ptr_t) passv,
+				 (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_GIMPLE_PASS)))
     goto end;
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_EXEC);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -9892,10 +9905,7 @@ basilysgc_rtl_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
+  passdictv =  basilys_get_inisysdata (FSYSDAT_PASS_DICT);
   if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
     goto end;
   gcc_assert(current_pass != NULL);
@@ -9905,7 +9915,7 @@ basilysgc_rtl_gate(void)
 				  current_pass->name);
   if (!passv 
       || !basilys_is_instance_of((basilys_ptr_t) passv, 
-				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_RTL_PASS)))
+				 (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS)))
     goto end;
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -9939,10 +9949,7 @@ basilysgc_rtl_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
+  passdictv = basilys_get_inisysdata (FSYSDAT_PASS_DICT);
   if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
     goto end;
   gcc_assert (current_pass != NULL);
@@ -9951,7 +9958,8 @@ basilysgc_rtl_execute(void)
   passv = basilys_get_mapstrings((struct basilysmapstrings_st*) passdictv, 
 				 current_pass->name);
   if (!passv 
-      || !basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_RTL_PASS)))
+      || !basilys_is_instance_of((basilys_ptr_t) passv,
+				 (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS)))
     goto end;
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_EXEC);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -10002,10 +10010,7 @@ basilysgc_simple_ipa_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
+  passdictv = basilys_get_inisysdata (FSYSDAT_PASS_DICT);
   if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
     goto end;
   gcc_assert(current_pass != NULL);
@@ -10015,7 +10020,7 @@ basilysgc_simple_ipa_gate(void)
 				 current_pass->name);
   if (!passv 
       || !basilys_is_instance_of((basilys_ptr_t) passv, 
-				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_SIMPLE_IPA_PASS)))
+				 (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS)))
     goto end;
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_GATE);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -10049,11 +10054,7 @@ basilysgc_simple_ipa_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-    goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
+  passdictv = basilys_get_inisysdata (FSYSDAT_PASS_DICT);
   if (basilys_magic_discr((basilys_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
     goto end;
   gcc_assert (current_pass != NULL);
@@ -10063,7 +10064,7 @@ basilysgc_simple_ipa_execute(void)
 				 current_pass->name);
   if (!passv 
       || !basilys_is_instance_of((basilys_ptr_t) passv, 
-				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_SIMPLE_IPA_PASS)))
+				 (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS)))
     goto end;
   closv = basilys_object_nth_field((basilys_ptr_t) passv, FGCCPASS_EXEC);
   if (basilys_magic_discr((basilys_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -10139,15 +10140,12 @@ basilysgc_register_pass (basilys_ptr_t pass_p,
   else fatal_error("invalid positioning string %s in MELT pass", positioning);
   if (!passv || basilys_object_length((basilys_ptr_t) passv) < FGCCPASS__LAST
       || !basilys_is_instance_of((basilys_ptr_t) passv, 
-				 (basilys_ptr_t) BASILYSGOB(CLASS_GCC_PASS)))
+				 (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_PASS)))
     goto end;
   namev = basilys_object_nth_field((basilys_ptr_t) passv, FNAMED_NAME);
   if (basilys_magic_discr((basilys_ptr_t) namev) != OBMAG_STRING)
     goto end;
-  passdictv =
-    basilys_object_nth_field ((basilys_ptr_t)
-			      BASILYSGOB (INITIAL_SYSTEM_DATA),
-			      FSYSDAT_PASS_DICT);
+  passdictv = basilys_get_inisysdata (FSYSDAT_PASS_DICT);
   if (basilys_magic_discr((basilys_ptr_t)passdictv) != OBMAG_MAPSTRINGS) 
     goto end;
   if (basilys_get_mapstrings((struct basilysmapstrings_st*)passdictv, 
@@ -10163,7 +10161,8 @@ basilysgc_register_pass (basilys_ptr_t pass_p,
   todofinish = basilys_val2passflag((basilys_ptr_t) compv);
   /* allocate the opt pass and fill it; it is never deallocated (ie it
      is never free-d)! */
-  if (basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_GIMPLE_PASS))) {
+  if (basilys_is_instance_of((basilys_ptr_t) passv,
+			     (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_GIMPLE_PASS))) {
     struct gimple_opt_pass* gimpass = NULL;     
     gimpass = XNEW(struct gimple_opt_pass);
     memset(gimpass, 0, sizeof(struct gimple_opt_pass));
@@ -10190,7 +10189,7 @@ basilysgc_register_pass (basilys_ptr_t pass_p,
 			     gimpass->pass.name, (basilys_ptr_t) passv);
   }
   else if (basilys_is_instance_of((basilys_ptr_t) passv, 
-				  (basilys_ptr_t) BASILYSGOB(CLASS_GCC_RTL_PASS))) {
+				  (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS))) {
     struct rtl_opt_pass* rtlpass = NULL;     
     rtlpass = XNEW(struct rtl_opt_pass);
     memset(rtlpass, 0, sizeof(struct rtl_opt_pass));
@@ -10216,7 +10215,8 @@ basilysgc_register_pass (basilys_ptr_t pass_p,
     basilysgc_put_mapstrings((struct basilysmapstrings_st*) passdictv,
 			     rtlpass->pass.name, (basilys_ptr_t) passv);
   }
-  else if (basilys_is_instance_of((basilys_ptr_t) passv, (basilys_ptr_t) BASILYSGOB(CLASS_GCC_SIMPLE_IPA_PASS))) {
+  else if (basilys_is_instance_of((basilys_ptr_t) passv,
+				  (basilys_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS))) {
     struct simple_ipa_opt_pass* sipapass = NULL;     
     sipapass = XNEW(struct simple_ipa_opt_pass);
     memset(sipapass, 0, sizeof(struct simple_ipa_opt_pass));
@@ -10279,18 +10279,16 @@ basilys_handle_melt_attribute (tree decl, tree name, const char *attrstr,
   if (!attrstr || !attrstr[0])
     goto end;
   seqv = basilysgc_read_from_rawstring (attrstr, "*melt-attr*", loch);
-  atclov =
-    basilys_field_object ((basilys_ptr_t) BASILYSGOB (INITIAL_SYSTEM_DATA),
-			  FSYSDAT_MELTATTR_DEFINER);
+  atclov = basilys_get_inisysdata (FSYSDAT_MELTATTR_DEFINER);
   if (basilys_magic_discr ((basilys_ptr_t) atclov) == OBMAG_CLOSURE)
     {
       union basilysparam_un argtab[2];
       BASILYS_LOCATION_HERE ("melt attribute definer");
       declv =
-	basilysgc_new_tree ((basilysobject_ptr_t) BASILYSG (DISCR_TREE),
+	basilysgc_new_tree ((basilysobject_ptr_t) MELT_PREDEF (DISCR_TREE),
 			    decl);
       namev =
-	basilysgc_new_tree ((basilysobject_ptr_t) BASILYSG (DISCR_TREE),
+	basilysgc_new_tree ((basilysobject_ptr_t) MELT_PREDEF (DISCR_TREE),
 			    name);
       memset (argtab, 0, sizeof (argtab));
       argtab[0].bp_aptr = (basilys_ptr_t *) & namev;
