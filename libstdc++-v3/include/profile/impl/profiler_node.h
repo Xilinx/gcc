@@ -53,106 +53,111 @@
 
 namespace __cxxprof_impl
 {
-typedef const void* object_t;
-typedef void* instruction_address_t;
-typedef std::_GLIBCXX_STD_PR::vector<instruction_address_t> stack_npt;
-typedef stack_npt* stack_t;
+typedef const void* __object_t;
+typedef void* __instruction_address_t;
+typedef std::_GLIBCXX_STD_PR::vector<__instruction_address_t> __stack_npt;
+typedef __stack_npt* __stack_t;
 
-size_t stack_max_depth();
+size_t __stack_max_depth();
 
-inline stack_t get_stack()
+inline __stack_t __get_stack()
 {
 #if defined HAVE_EXECINFO_H
-  stack_npt buffer(stack_max_depth());
-  int __depth = backtrace(&buffer[0], stack_max_depth());
-  stack_t __stack = new stack_npt(__depth);
-  memcpy(&(*__stack)[0], &buffer[0], __depth * sizeof(object_t));
+  __stack_npt __buffer(__stack_max_depth());
+  int __depth = backtrace(&__buffer[0], __stack_max_depth());
+  __stack_t __stack = new __stack_npt(__depth);
+  memcpy(&(*__stack)[0], &__buffer[0], __depth * sizeof(__object_t));
   return __stack;
 #else
   return NULL;
 #endif
 }
 
-inline size(const stack_t& stack)
+inline __size(const __stack_t& __stack)
 {
-  if (!stack) {
+  if (!__stack) {
     return 0;
   } else {
-    return stack->size();
+    return __stack->size();
   }
 }
 
-inline void write(FILE* f, const stack_t stack)
+inline void __write(FILE* __f, const __stack_t __stack)
 {
-  if (!stack) {
+  if (!__stack) {
     return;
   }
 
-  stack_npt::const_iterator it;
-  for (it = stack->begin(); it != stack->end(); ++it) {
-    fprintf(f, "%p ", *it);
+  __stack_npt::const_iterator __it;
+  for (__it = __stack->begin(); __it != __stack->end(); ++__it) {
+    fprintf(__f, "%p ", *__it);
   }
 }
 
 // Hash function for summary trace using stack as index.
-class stack_hash 
+class __stack_hash 
 {
  public:
-  size_t operator()(const stack_t __s) const
+  size_t operator()(const __stack_t __s) const
   {
     if (!__s) {
       return 0;
     }
 
-    uintptr_t index = 0;
-    stack_npt::const_iterator it;
-    for (it = __s->begin(); it != __s->end(); ++it) {
-      index += reinterpret_cast<uintptr_t>(*it);
+    uintptr_t __index = 0;
+    __stack_npt::const_iterator __it;
+    for (__it = __s->begin(); __it != __s->end(); ++__it) {
+      __index += reinterpret_cast<uintptr_t>(*__it);
     } 
-    return index;
+    return __index;
   }
 
-  bool operator() (const stack_t stack1, const stack_t stack2) const
+  bool operator() (const __stack_t __stack1, const __stack_t __stack2) const
   {
-    if (!stack1 && !stack2) return true;
-    if (!stack1 || !stack2) return false;
-    if (stack1->size() != stack2->size()) return false;
+    if (!__stack1 && !__stack2) return true;
+    if (!__stack1 || !__stack2) return false;
+    if (__stack1->size() != __stack2->size()) return false;
 
-    size_t byte_size = stack1->size() * sizeof(stack_npt::value_type);
-    return memcmp(&(*stack1)[0], &(*stack2)[0], byte_size) == 0;
+    size_t __byte_size = __stack1->size() * sizeof(__stack_npt::value_type);
+    return memcmp(&(*__stack1)[0], &(*__stack2)[0], __byte_size) == 0;
   }
 };
 
-class object_info_base 
+class __object_info_base 
 {
  public:
-  object_info_base() {}
-  object_info_base(stack_t stack) { _M_stack = stack; _M_valid = true; }
-  object_info_base(const object_info_base& o);
-  virtual ~object_info_base() {}
-  bool is_valid() const { return _M_valid; }
-  stack_t stack() const { return _M_stack; }
-  virtual void write(FILE* f) const = 0;
+  __object_info_base() {}
+  __object_info_base(__stack_t __stack);
+  __object_info_base(const __object_info_base& o);
+  virtual ~__object_info_base() {}
+  bool __is_valid() const { return _M_valid; }
+  __stack_t __stack() const { return _M_stack; }
+  virtual void __write(FILE* f) const = 0;
 
  protected:
-  stack_t _M_stack;
+  __stack_t _M_stack;
   bool _M_valid;
 };
 
-inline object_info_base::object_info_base(const object_info_base& o)
-{
-  _M_stack = o._M_stack;
-  _M_valid = o._M_valid;
+inline __object_info_base::__object_info_base(__stack_t __stack) {
+  _M_stack = __stack;
+  _M_valid = true;
 }
 
-template<typename object_info>
-class stack_info_base
+inline __object_info_base::__object_info_base(const __object_info_base& __o)
+{
+  _M_stack = __o._M_stack;
+  _M_valid = __o._M_valid;
+}
+
+template<typename __object_info>
+class __stack_info_base
 {
  public:
-  stack_info_base() {}
-  stack_info_base(const object_info& info) = 0;
-  virtual ~stack_info_base() {}
-  void merge(const object_info& info) = 0;
+  __stack_info_base() {}
+  __stack_info_base(const __object_info& __info) = 0;
+  virtual ~__stack_info_base() {}
+  void __merge(const __object_info& __info) = 0;
 };
 
 } // namespace __cxxprof_impl

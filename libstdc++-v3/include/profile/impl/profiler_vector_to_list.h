@@ -54,32 +54,32 @@ namespace __cxxprof_impl
 {
 
 // Class for vector to list 
-class vector2list_info: public object_info_base
+class __vector2list_info: public __object_info_base
 {
  public:
-  vector2list_info()
+  __vector2list_info()
       :_M_shift_count(0), _M_iterate(0), _M_resize(0), _M_pred_cost(0),
        _M_valid(true) {}
-  vector2list_info(stack_t __stack)
-      : object_info_base(__stack), _M_shift_count(0), _M_iterate(0),
+  __vector2list_info(__stack_t __stack)
+      : __object_info_base(__stack), _M_shift_count(0), _M_iterate(0),
         _M_resize(0), _M_pred_cost(0), _M_valid(true) {} 
-  virtual ~vector2list_info() {}
-  vector2list_info(const vector2list_info& o);
-  void merge(const vector2list_info& o);
-  void write(FILE* f) const;
+  virtual ~__vector2list_info() {}
+  __vector2list_info(const __vector2list_info& __o);
+  void __merge(const __vector2list_info& __o);
+  void __write(FILE* __f) const;
 
-  size_t shift_count() { return _M_shift_count; }
-  size_t iterate()   { return _M_iterate; }
-  float pred_cost() { return _M_pred_cost; }
-  size_t resize() { return _M_resize; }
-  void set_pred_cost(float __lc) { _M_pred_cost = __lc; }
-  void set_cost(float __c) { _M_cost = __c; }
-  bool is_valid() { return _M_valid; }
-  void set_invalid() { _M_valid = false; }
+  size_t __shift_count() { return _M_shift_count; }
+  size_t __iterate()   { return _M_iterate; }
+  float __pred_cost() { return _M_pred_cost; }
+  size_t __resize() { return _M_resize; }
+  void __set_pred_cost(float __lc) { _M_pred_cost = __lc; }
+  void __set_cost(float __c) { _M_cost = __c; }
+  bool __is_valid() { return _M_valid; }
+  void __set_invalid() { _M_valid = false; }
 
-  void opr_insert(size_t __pos, size_t __num);
-  void opr_iterate(size_t __num) { _M_iterate += __num; }
-  void resize(size_t __from, size_t __to);
+  void __opr_insert(size_t __pos, size_t __num);
+  void __opr_iterate(size_t __num) { _M_iterate += __num; }
+  void __resize(size_t __from, size_t __to);
 
 private:
   size_t _M_shift_count;
@@ -90,88 +90,88 @@ private:
   bool  _M_valid;
 };
 
-inline vector2list_info::vector2list_info(const vector2list_info& o)
-    : object_info_base(o)
+inline __vector2list_info::__vector2list_info(const __vector2list_info& __o)
+    : __object_info_base(__o)
 {
-  _M_shift_count  = o._M_shift_count;
-  _M_iterate      = o._M_iterate;
-  _M_cost         = o._M_cost;
-  _M_pred_cost    = o._M_pred_cost;
-  _M_valid        = o._M_valid;
-  _M_resize       = o._M_resize;
+  _M_shift_count  = __o._M_shift_count;
+  _M_iterate      = __o._M_iterate;
+  _M_cost         = __o._M_cost;
+  _M_pred_cost    = __o._M_pred_cost;
+  _M_valid        = __o._M_valid;
+  _M_resize       = __o._M_resize;
 }
 
-inline void vector2list_info::merge(const vector2list_info& o)
+inline void __vector2list_info::__merge(const __vector2list_info& __o)
 {
-  _M_shift_count  += o._M_shift_count;
-  _M_iterate      += o._M_iterate;
-  _M_cost         += o._M_cost;
-  _M_pred_cost    += o._M_pred_cost;
-  _M_valid        &= o._M_valid;
-  _M_resize       += o._M_resize;
+  _M_shift_count  += __o._M_shift_count;
+  _M_iterate      += __o._M_iterate;
+  _M_cost         += __o._M_cost;
+  _M_pred_cost    += __o._M_pred_cost;
+  _M_valid        &= __o._M_valid;
+  _M_resize       += __o._M_resize;
 }
 
-inline void vector2list_info::opr_insert(size_t __pos, 
-                                                size_t __num)
+inline void __vector2list_info::__opr_insert(size_t __pos, size_t __num)
 {
   _M_shift_count += __num - __pos;
 }
 
-inline void vector2list_info::resize(size_t __from, 
-                                            size_t __to)
+inline void __vector2list_info::__resize(size_t __from, size_t __to)
 {
   _M_resize += __from;
 }
 
-class vector2list_stack_info: public vector2list_info {
+class __vector2list_stack_info: public __vector2list_info {
  public:
-  vector2list_stack_info(const vector2list_info& o) : vector2list_info(o) {}
+  __vector2list_stack_info(const __vector2list_info& __o) 
+      : __vector2list_info(__o) {}
 };
 
-class trace_vector_to_list
-    : public trace_base<vector2list_info, vector2list_stack_info> 
+class __trace_vector_to_list
+    : public __trace_base<__vector2list_info, __vector2list_stack_info> 
 {
  public:
-  trace_vector_to_list();
-  ~trace_vector_to_list() {}
+  __trace_vector_to_list();
+  ~__trace_vector_to_list() {}
 
   // Insert a new node at construct with object, callstack and initial size. 
-  void insert(object_t __obj, stack_t __stack);
+  void __insert(__object_t __obj, __stack_t __stack);
   // Call at destruction/clean to set container final size.
-  void destruct(const void* __obj);
+  void __destruct(const void* __obj);
 
   // Find the node in the live map.
-  vector2list_info* find(const void* __obj);
+  __vector2list_info* __find(const void* __obj);
 
   // Collect cost of operations.
-  void opr_insert(const void* __obj, size_t __pos, size_t __num);
-  void opr_iterate(const void* __obj, size_t __num);
-  void invalid_operator(const void* __obj);
-  void resize(const void* __obj, size_t __from, size_t __to);
-  float vector_cost(size_t __shift, size_t __iterate, size_t __resize);
-  float list_cost(size_t __shift, size_t __iterate, size_t __resize);
+  void __opr_insert(const void* __obj, size_t __pos, size_t __num);
+  void __opr_iterate(const void* __obj, size_t __num);
+  void __invalid_operator(const void* __obj);
+  void __resize(const void* __obj, size_t __from, size_t __to);
+  float __vector_cost(size_t __shift, size_t __iterate, size_t __resize);
+  float __list_cost(size_t __shift, size_t __iterate, size_t __resize);
 };
 
-inline trace_vector_to_list::trace_vector_to_list()
-    : trace_base<vector2list_info, vector2list_stack_info>()
+inline __trace_vector_to_list::__trace_vector_to_list()
+    : __trace_base<__vector2list_info, __vector2list_stack_info>()
 {
-  id = "vector-to-list";
+  __id = "vector-to-list";
 }
 
-inline void trace_vector_to_list::insert(object_t __obj, stack_t __stack)
+inline void __trace_vector_to_list::__insert(__object_t __obj,
+                                             __stack_t __stack)
 {
-  add_object(__obj, vector2list_info(__stack));
+  __add_object(__obj, __vector2list_info(__stack));
 }
 
-inline void vector2list_info::write(FILE* f) const
+inline void __vector2list_info::__write(FILE* __f) const
 {
-  fprintf(f, "%Zu %Zu %Zu %.0f %.0f\n",
+  fprintf(__f, "%Zu %Zu %Zu %.0f %.0f\n",
           _M_shift_count, _M_resize, _M_iterate, _M_cost, _M_pred_cost);
 }
 
-inline float trace_vector_to_list::vector_cost(size_t shift, 
-                                               size_t iterate,
-                                               size_t resize)
+inline float __trace_vector_to_list::__vector_cost(size_t __shift, 
+                                                   size_t __iterate,
+                                                   size_t __resize)
 {
   // Cost model
   //  We assume operation cost of vector as follows.
@@ -182,12 +182,12 @@ inline float trace_vector_to_list::vector_cost(size_t shift,
   //   - Cost per shift: 0
   //   - Cost per accesse: 10
   //   - Cost per resize: 0
-  return shift * 1 + iterate * 1 + resize * 1; 
+  return __shift * 1 + __iterate * 1 + __resize * 1; 
 }
 
-inline float trace_vector_to_list::list_cost(size_t shift, 
-                                             size_t iterate,
-                                             size_t resize)
+inline float __trace_vector_to_list::__list_cost(size_t __shift, 
+                                                 size_t __iterate,
+                                                 size_t __resize)
 {
   // Cost model
   //  We assume operation cost of vector as follows.
@@ -198,69 +198,72 @@ inline float trace_vector_to_list::list_cost(size_t shift,
   //   - Cost per shift: 0
   //   - Cost per accesse: 10
   //   - Cost per resize: 0
-  return shift * 0 + iterate * 10 + resize * 0; 
+  return __shift * 0 + __iterate * 10 + __resize * 0; 
 }
 
-inline void trace_vector_to_list::destruct(const void* __obj)
+inline void __trace_vector_to_list::__destruct(const void* __obj)
 {
-  if (!is_on())
+  if (!__is_on())
     return;
 
- vector2list_info* res = get_object_info(__obj);
-  if (!res)
+ __vector2list_info* __res = __get_object_info(__obj);
+  if (!__res)
     return;
 
-  float vc = vector_cost(res->shift_count(), res->iterate(), res->resize());
-  float lc = list_cost(res->shift_count(), res->iterate(), res->resize());
-  res->set_cost(vc);
-  res->set_pred_cost(lc);
+  float __vc = __vector_cost(__res->__shift_count(), __res->__iterate(),
+                             __res->__resize());
+  float __lc = __list_cost(__res->__shift_count(), __res->__iterate(),
+                           __res->__resize());
+  __res->__set_cost(__vc);
+  __res->__set_pred_cost(__lc);
 
-  retire_object(__obj);
+  __retire_object(__obj);
 }
 
-inline void trace_vector_to_list::opr_insert(const void* __obj, size_t __pos, 
-                                      size_t __num)
+inline void __trace_vector_to_list::__opr_insert(const void* __obj, 
+                                                 size_t __pos, size_t __num)
 {
-  vector2list_info* res = get_object_info(__obj);
-  if (res)
-    res->opr_insert(__pos, __num);
+  __vector2list_info* __res = __get_object_info(__obj);
+  if (__res)
+    __res->__opr_insert(__pos, __num);
 }
 
-inline void trace_vector_to_list::opr_iterate(const void* __obj, size_t __num)
+inline void __trace_vector_to_list::__opr_iterate(const void* __obj,
+                                                  size_t __num)
 {
-  vector2list_info* res = get_object_info(__obj);
-  if (res)
-    res->opr_iterate(__num);
+  __vector2list_info* __res = __get_object_info(__obj);
+  if (__res)
+    __res->__opr_iterate(__num);
 }
 
-inline void trace_vector_to_list::invalid_operator(const void* __obj)
+inline void __trace_vector_to_list::__invalid_operator(const void* __obj)
 {
-  vector2list_info* res = get_object_info(__obj);
-  if (res)
-    res->set_invalid();
+  __vector2list_info* __res = __get_object_info(__obj);
+  if (__res)
+    __res->__set_invalid();
 }
 
-inline void trace_vector_to_list::resize(const void* __obj, size_t __from, 
-                                  size_t __to)
+inline void __trace_vector_to_list::__resize(const void* __obj, size_t __from, 
+                                             size_t __to)
 {
-  vector2list_info* res = get_object_info(__obj);
-  if (res)
-    res->resize(__from, __to);
+  __vector2list_info* __res = __get_object_info(__obj);
+  if (__res)
+    __res->__resize(__from, __to);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Initialization and report.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void trace_vector_to_list_init() {
-  tables<0>::_S_vector_to_list = new trace_vector_to_list();
+inline void __trace_vector_to_list_init() {
+  __tables<0>::_S_vector_to_list = new __trace_vector_to_list();
 }
 
-inline void trace_vector_to_list_report(FILE* f) {
-  if (tables<0>::_S_vector_to_list) {
-    tables<0>::_S_vector_to_list->write(f);
-    delete tables<0>::_S_vector_to_list;
-    tables<0>::_S_vector_to_list = NULL;
+inline void __trace_vector_to_list_report(FILE* __f) {
+  if (__tables<0>::_S_vector_to_list) {
+    __tables<0>::_S_vector_to_list->__write(__f);
+    delete __tables<0>::_S_vector_to_list;
+    __tables<0>::_S_vector_to_list = NULL;
   }
 }
 
@@ -268,51 +271,49 @@ inline void trace_vector_to_list_report(FILE* f) {
 // Implementations of instrumentation hooks.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void trace_vector_to_list_construct(const void* __obj)
+inline void __trace_vector_to_list_construct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_to_list->insert(__obj, get_stack());
+  __tables<0>::_S_vector_to_list->__insert(__obj, __get_stack());
 }
 
-inline void trace_vector_to_list_destruct(const void* __obj)
+inline void __trace_vector_to_list_destruct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_to_list->destruct(__obj);
+  __tables<0>::_S_vector_to_list->__destruct(__obj);
 }
 
-inline void trace_vector_to_list_insert(const void* __obj, 
-                                        size_t __pos,
-                                        size_t __num)
+inline void __trace_vector_to_list_insert(const void* __obj, 
+                                          size_t __pos, size_t __num)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_to_list->opr_insert(__obj, __pos, __num);
+  __tables<0>::_S_vector_to_list->__opr_insert(__obj, __pos, __num);
 }
 
 
-inline void trace_vector_to_list_iterate(const void* __obj, size_t __num)
+inline void __trace_vector_to_list_iterate(const void* __obj, size_t __num)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_to_list->opr_iterate(__obj, __num);
+  __tables<0>::_S_vector_to_list->__opr_iterate(__obj, __num);
 }
 
-inline void trace_vector_to_list_invalid_operator(const void* __obj)
+inline void __trace_vector_to_list_invalid_operator(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_to_list->invalid_operator(__obj);
+  __tables<0>::_S_vector_to_list->__invalid_operator(__obj);
 }
 
-inline void trace_vector_to_list_resize(const void* __obj, 
-                                        size_t __from, 
-                                        size_t __to)
+inline void __trace_vector_to_list_resize(const void* __obj, 
+                                          size_t __from, size_t __to)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_to_list->resize(__obj, __from, __to);
+  __tables<0>::_S_vector_to_list->__resize(__obj, __from, __to);
 }
 
 } // namespace __cxxprof_impl

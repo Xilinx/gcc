@@ -65,61 +65,61 @@ namespace __cxxprof_impl
 //   - find: 10
 //   - iterate: 1.7
 
-const float map_insert_cost_factor = 1.5;
-const float map_erase_cost_factor = 1.5;
-const float map_find_cost_factor = 1;
-const float map_iterate_cost = 2.3;
+const float __map_insert_cost_factor = 1.5;
+const float __map_erase_cost_factor = 1.5;
+const float __map_find_cost_factor = 1;
+const float __map_iterate_cost = 2.3;
 
-const float umap_insert_cost = 12.0;
-const float umap_erase_cost = 12.0;
-const float umap_find_cost = 10.0;
-const float umap_iterate_cost = 1.7;
+const float __umap_insert_cost = 12.0;
+const float __umap_erase_cost = 12.0;
+const float __umap_find_cost = 10.0;
+const float __umap_iterate_cost = 1.7;
 
-inline int log2(size_t size)
+inline int __log2(size_t __size)
 {
-  for (int bit_count = sizeof(size_t) - 1; bit_count >= 0; --bit_count) {
-    if ((2 << bit_count) & size) {
-      return bit_count;
+  for (int __bit_count = sizeof(size_t) - 1; __bit_count >= 0; --__bit_count) {
+    if ((2 << __bit_count) & __size) {
+      return __bit_count;
     }
   }
   return 0;
 }
 
-inline float map_insert_cost(size_t size)
+inline float __map_insert_cost(size_t __size)
 {
-  return map_insert_cost_factor * static_cast<float>(log2(size));
+  return __map_insert_cost_factor * static_cast<float>(__log2(__size));
 }
 
-inline float map_erase_cost(size_t size)
+inline float __map_erase_cost(size_t __size)
 {
-  return map_erase_cost_factor * static_cast<float>(log2(size));
+  return __map_erase_cost_factor * static_cast<float>(__log2(__size));
 }
 
-inline float map_find_cost(size_t size)
+inline float __map_find_cost(size_t __size)
 {
-  return map_find_cost_factor * static_cast<float>(log2(size));
+  return __map_find_cost_factor * static_cast<float>(__log2(__size));
 }
 
 // Class for vector to list 
-class map2umap_info: public object_info_base
+class __map2umap_info: public __object_info_base
 {
  public:
-  map2umap_info()
+  __map2umap_info()
       : _M_insert(0), _M_erase(0), _M_find(0), _M_iterate(0),
         _M_map_cost(0.0), _M_umap_cost(0.0), _M_valid(true) {}
-  map2umap_info(stack_t __stack)
-      : object_info_base(__stack), _M_insert(0), _M_erase(0), _M_find(0), 
+  __map2umap_info(__stack_t __stack)
+      : __object_info_base(__stack), _M_insert(0), _M_erase(0), _M_find(0), 
         _M_iterate(0), _M_map_cost(0.0), _M_umap_cost(0.0), _M_valid(true) {} 
-  virtual ~map2umap_info() {}
-  map2umap_info(const map2umap_info& o);
-  void merge(const map2umap_info& o);
-  void write(FILE* f) const;
+  virtual ~__map2umap_info() {}
+  __map2umap_info(const __map2umap_info& o);
+  void __merge(const __map2umap_info& o);
+  void __write(FILE* __f) const;
 
-  void record_insert(size_t size, size_t count);
-  void record_erase(size_t size, size_t count);
-  void record_find(size_t size);
-  void record_iterate(size_t count);
-  void record_invalidate();
+  void __record_insert(size_t __size, size_t __count);
+  void __record_erase(size_t __size, size_t __count);
+  void __record_find(size_t __size);
+  void __record_iterate(size_t __count);
+  void __record_invalidate();
 
 private:
   size_t _M_insert;
@@ -131,94 +131,94 @@ private:
   bool  _M_valid;
 };
 
-inline map2umap_info::map2umap_info(const map2umap_info& o)
-    : object_info_base(o), 
-      _M_insert(o._M_insert),
-      _M_erase(o._M_erase),
-      _M_find(o._M_find),
-      _M_iterate(o._M_iterate),
-      _M_map_cost(o._M_map_cost),
-      _M_umap_cost(o._M_umap_cost),
-      _M_valid(o._M_valid)
+inline __map2umap_info::__map2umap_info(const __map2umap_info& __o)
+    : __object_info_base(__o), 
+      _M_insert(__o._M_insert),
+      _M_erase(__o._M_erase),
+      _M_find(__o._M_find),
+      _M_iterate(__o._M_iterate),
+      _M_map_cost(__o._M_map_cost),
+      _M_umap_cost(__o._M_umap_cost),
+      _M_valid(__o._M_valid)
 {}
 
-inline void map2umap_info::merge(const map2umap_info& o)
+inline void __map2umap_info::__merge(const __map2umap_info& __o)
 {
-  _M_insert    += o._M_insert;
-  _M_erase     += o._M_erase;
-  _M_find      += o._M_find;
-  _M_map_cost  += o._M_map_cost;
-  _M_umap_cost += o._M_umap_cost;
-  _M_valid     &= o._M_valid;
+  _M_insert    += __o._M_insert;
+  _M_erase     += __o._M_erase;
+  _M_find      += __o._M_find;
+  _M_map_cost  += __o._M_map_cost;
+  _M_umap_cost += __o._M_umap_cost;
+  _M_valid     &= __o._M_valid;
 }
 
-inline void map2umap_info:: record_insert(size_t size, size_t count)
+inline void __map2umap_info:: __record_insert(size_t __size, size_t __count)
 {
-  _M_insert += count;
-  _M_map_cost += count * map_insert_cost(size);
-  _M_umap_cost += count * umap_insert_cost;
+  _M_insert += __count;
+  _M_map_cost += __count * __map_insert_cost(__size);
+  _M_umap_cost += __count * __umap_insert_cost;
 }
 
-inline void map2umap_info:: record_erase(size_t size, size_t count)
+inline void __map2umap_info:: __record_erase(size_t __size, size_t __count)
 {
-  _M_erase += count;
-  _M_map_cost += count * map_erase_cost(size);
-  _M_umap_cost += count * umap_erase_cost;
+  _M_erase += __count;
+  _M_map_cost += __count * __map_erase_cost(__size);
+  _M_umap_cost += __count * __umap_erase_cost;
 }
 
-inline void map2umap_info:: record_find(size_t size)
+inline void __map2umap_info:: __record_find(size_t __size)
 {
   _M_find += 1;
-  _M_map_cost += map_find_cost(size);
-  _M_umap_cost += umap_find_cost;
+  _M_map_cost += __map_find_cost(__size);
+  _M_umap_cost += __umap_find_cost;
 }
 
-inline void map2umap_info:: record_iterate(size_t count)
+inline void __map2umap_info:: __record_iterate(size_t __count)
 {
-  _M_iterate += count;
-  _M_map_cost += count * map_iterate_cost;
-  _M_umap_cost += count * umap_iterate_cost;
+  _M_iterate += __count;
+  _M_map_cost += __count * __map_iterate_cost;
+  _M_umap_cost += __count * __umap_iterate_cost;
 }
 
-inline void map2umap_info:: record_invalidate()
+inline void __map2umap_info:: __record_invalidate()
 {
   _M_valid = false;
 }
 
-inline void map2umap_info::write(FILE* f) const
+inline void __map2umap_info::__write(FILE* __f) const
 {
-  fprintf(f, "%Zu %Zu %Zu %Zu %.0f %.0f %s\n",
+  fprintf(__f, "%Zu %Zu %Zu %Zu %.0f %.0f %s\n",
           _M_insert, _M_erase, _M_find, _M_iterate, _M_map_cost, _M_umap_cost,
           _M_valid ? "valid" : "invalid");
 }
 
-class map2umap_stack_info: public map2umap_info {
+class __map2umap_stack_info: public __map2umap_info {
  public:
-  map2umap_stack_info(const map2umap_info& o) : map2umap_info(o) {}
+  __map2umap_stack_info(const __map2umap_info& o) : __map2umap_info(o) {}
 };
 
-class trace_map2umap
-    : public trace_base<map2umap_info, map2umap_stack_info> 
+class __trace_map2umap
+    : public __trace_base<__map2umap_info, __map2umap_stack_info> 
 {
  public:
-  trace_map2umap();
+  __trace_map2umap();
 };
 
-inline trace_map2umap::trace_map2umap()
-    : trace_base<map2umap_info, map2umap_stack_info>()
+inline __trace_map2umap::__trace_map2umap()
+    : __trace_base<__map2umap_info, __map2umap_stack_info>()
 {
-  id = "map-to-unordered-map";
+  __id = "map-to-unordered-map";
 }
 
-inline void trace_map_to_unordered_map_init() {
-  tables<0>::_S_map2umap = new trace_map2umap();
+inline void __trace_map_to_unordered_map_init() {
+  __tables<0>::_S_map2umap = new __trace_map2umap();
 }
 
-inline void trace_map_to_unordered_map_report(FILE* f) {
-  if (tables<0>::_S_map2umap) {
-    tables<0>::_S_map2umap->write(f);
-    delete tables<0>::_S_map2umap;
-    tables<0>::_S_map2umap = NULL;
+inline void __trace_map_to_unordered_map_report(FILE* __f) {
+  if (__tables<0>::_S_map2umap) {
+    __tables<0>::_S_map2umap->__write(__f);
+    delete __tables<0>::_S_map2umap;
+    __tables<0>::_S_map2umap = NULL;
   }
 }
 
@@ -226,65 +226,67 @@ inline void trace_map_to_unordered_map_report(FILE* f) {
 // Implementations of instrumentation hooks.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void trace_map_to_unordered_map_construct(const void* __obj)
+inline void __trace_map_to_unordered_map_construct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_map2umap->add_object(__obj, map2umap_info(get_stack()));
+  __tables<0>::_S_map2umap->__add_object(__obj, 
+                                         __map2umap_info(__get_stack()));
 }
 
-inline void trace_map_to_unordered_map_destruct(const void* __obj)
+inline void __trace_map_to_unordered_map_destruct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_map2umap->retire_object(__obj);
+  __tables<0>::_S_map2umap->__retire_object(__obj);
 }
 
-inline void trace_map_to_unordered_map_insert(const void* obj, size_t size,
-                                       size_t count)
+inline void __trace_map_to_unordered_map_insert(const void* __obj, 
+                                                size_t __size, size_t __count)
 {
   if (!__profcxx_init()) return;
 
-  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
 
-  if (info) info->record_insert(size, count);
+  if (__info) __info->__record_insert(__size, __count);
 }
 
-inline void trace_map_to_unordered_map_erase(const void* obj, size_t size,
-                                       size_t count)
+inline void __trace_map_to_unordered_map_erase(const void* __obj, 
+                                               size_t __size, size_t __count)
 {
   if (!__profcxx_init()) return;
 
-  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
 
-  if (info) info->record_erase(size, count);
+  if (__info) __info->__record_erase(__size, __count);
 }
 
-inline void trace_map_to_unordered_map_find(const void* obj, size_t size)
+inline void __trace_map_to_unordered_map_find(const void* __obj, size_t __size)
 {
   if (!__profcxx_init()) return;
 
-  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
 
-  if (info) info->record_find(size);
+  if (__info) __info->__record_find(__size);
 }
 
-inline void trace_map_to_unordered_map_iterate(const void* obj, size_t count)
+inline void __trace_map_to_unordered_map_iterate(const void* __obj, 
+                                                 size_t __count)
 {
   if (!__profcxx_init()) return;
 
-  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
 
-  if (info) info->record_iterate(count);
+  if (__info) __info->__record_iterate(__count);
 }
 
-inline void trace_map_to_unordered_map_invalidate(const void* obj)
+inline void __trace_map_to_unordered_map_invalidate(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  map2umap_info* info = tables<0>::_S_map2umap->get_object_info(obj);
+  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
 
-  if (info) info->record_invalidate();
+  if (__info) __info->__record_invalidate();
 }
 
 

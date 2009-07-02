@@ -60,66 +60,68 @@ namespace __cxxprof_impl
 {
 
 #if defined _GLIBCXX_PROFILE_THREADS && defined HAVE_TLS
-static pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
-#define stdlib_lock(A) pthread_mutex_lock(A)
-#define stdlib_unlock(A) pthread_mutex_unlock(A)
+typedef pthread_mutex_t __stdlib_mutex_t;
+static __stdlib_mutex_t __init_lock = PTHREAD_MUTEX_INITIALIZER;
+#define __stdlib_lock(__A) pthread_mutex_lock(__A)
+#define __stdlib_unlock(__A) pthread_mutex_unlock(__A)
 #else
-#define stdlib_lock(A) 
-#define stdlib_unlock(A) 
+typedef int __stdlib_mutex_t;
+static __stdlib_mutex_t __init_lock = 0;
+#define __stdlib_lock(__A) 
+#define __stdlib_unlock(__A) 
 #endif
 
 // Defined in profiler_<diagnostic name>.h.
-class trace_hash_func;
-class trace_hashtable_size;
-class trace_map2umap;
-class trace_vector_size;
-class trace_vector_to_list;
-void trace_vector_size_init();
-void trace_hashtable_size_init();
-void trace_hash_func_init();
-void trace_vector_to_list_init();
-void trace_map_to_unordered_map_init();
-void trace_vector_size_report(FILE* f);
-void trace_hashtable_size_report(FILE* f);
-void trace_hash_func_report(FILE* f);
-void trace_vector_to_list_report(FILE* f);
-void trace_map_to_unordered_map_report(FILE* f);
+class __trace_hash_func;
+class __trace_hashtable_size;
+class __trace_map2umap;
+class __trace_vector_size;
+class __trace_vector_to_list;
+void __trace_vector_size_init();
+void __trace_hashtable_size_init();
+void __trace_hash_func_init();
+void __trace_vector_to_list_init();
+void __trace_map_to_unordered_map_init();
+void __trace_vector_size_report(FILE* f);
+void __trace_hashtable_size_report(FILE* f);
+void __trace_hash_func_report(FILE* f);
+void __trace_vector_to_list_report(FILE* f);
+void __trace_map_to_unordered_map_report(FILE* f);
 
 // Utility functions.
-inline size_t max(size_t a, size_t b) {
-  return a >= b ? a : b;
+inline size_t __max(size_t __a, size_t __b) {
+  return __a >= __b ? __a : __b;
 }
 
-inline size_t min(size_t a, size_t b) {
-  return a <= b ? a : b;
+inline size_t __min(size_t __a, size_t __b) {
+  return __a <= __b ? __a : __b;
 }
 
 // Diagnostic tables.
-template <int Unused=0>
-class tables {
+template <int __Unused=0>
+class __tables {
  public:
-  static trace_hash_func* _S_hash_func;
-  static trace_hashtable_size* _S_hashtable_size;
-  static trace_map2umap* _S_map2umap;
-  static trace_vector_size* _S_vector_size;
-  static trace_vector_to_list* _S_vector_to_list;
+  static __trace_hash_func* _S_hash_func;
+  static __trace_hashtable_size* _S_hashtable_size;
+  static __trace_map2umap* _S_map2umap;
+  static __trace_vector_size* _S_vector_size;
+  static __trace_vector_to_list* _S_vector_to_list;
 };
 
-template <int Unused>
-trace_hash_func* tables<Unused>::_S_hash_func = NULL;
-template <int Unused>
-trace_hashtable_size* tables<Unused>::_S_hashtable_size = NULL;
-template <int Unused>
-trace_map2umap* tables<Unused>::_S_map2umap = NULL;
-template <int Unused>
-trace_vector_size* tables<Unused>::_S_vector_size = NULL;
-template <int Unused>
-trace_vector_to_list* tables<Unused>::_S_vector_to_list = NULL;
+template <int __Unused>
+__trace_hash_func* __tables<__Unused>::_S_hash_func = NULL;
+template <int __Unused>
+__trace_hashtable_size* __tables<__Unused>::_S_hashtable_size = NULL;
+template <int __Unused>
+__trace_map2umap* __tables<__Unused>::_S_map2umap = NULL;
+template <int __Unused>
+__trace_vector_size* __tables<__Unused>::_S_vector_size = NULL;
+template <int __Unused>
+__trace_vector_to_list* __tables<__Unused>::_S_vector_to_list = NULL;
 
 // Settings.
-template <int Unused=0>
-class settings {
+template <int __Unused=0>
+class __settings {
  public:
   static char _S_trace_default_file_name[];
   static char _S_trace_env_var[];
@@ -137,261 +139,268 @@ class settings {
   static size_t _S_max_mem;
 };
 
-template <int Unused>
-char settings<Unused>::_S_trace_default_file_name[] = 
+template <int __Unused>
+char __settings<__Unused>::_S_trace_default_file_name[] = 
     "./profile-stdlib.txt";
-template <int Unused>
-char settings<Unused>::_S_trace_env_var[] = 
+template <int __Unused>
+char __settings<__Unused>::_S_trace_env_var[] = 
     "GLIBCXX_PROFILE_TRACE";
-template <int Unused>
-char* settings<Unused>::_S_trace_file_name = 
+template <int __Unused>
+char* __settings<__Unused>::_S_trace_file_name = 
     "./profile-stdlib.txt";
-template <int Unused>
-char settings<Unused>::_S_off_env_var[] = 
+template <int __Unused>
+char __settings<__Unused>::_S_off_env_var[] = 
     "GLIBCXX_PROFILE_OFF";
-template <int Unused>
-char settings<Unused>::_S_max_stack_depth_env_var[] =
+template <int __Unused>
+char __settings<__Unused>::_S_max_stack_depth_env_var[] =
     "GLIBCXX_PROFILE_MAX_STACK_DEPTH";
-template <int Unused>
-char settings<Unused>::_S_max_mem_env_var[] = 
+template <int __Unused>
+char __settings<__Unused>::_S_max_mem_env_var[] = 
     "GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC";
-template <int Unused>
-size_t settings<Unused>::_S_max_stack_depth = 32;
-template <int Unused>
-size_t settings<Unused>::_S_max_mem = 2 << 27;  // 128 MB.
+template <int __Unused>
+size_t __settings<__Unused>::_S_max_stack_depth = 32;
+template <int __Unused>
+size_t __settings<__Unused>::_S_max_mem = 2 << 27;  // 128 MB.
 
-inline size_t stack_max_depth()
+inline size_t __stack_max_depth()
 {
-  return settings<0>::_S_max_stack_depth;
+  return __settings<0>::_S_max_stack_depth;
 }
 
-inline size_t max_mem()
+inline size_t __max_mem()
 {
-  return settings<0>::_S_max_mem;
+  return __settings<0>::_S_max_mem;
 }
 
-typedef const char* trace_id_t;
-inline void print_trace_id(FILE* f, trace_id_t id)
+typedef const char* __trace_id_t;
+inline void __print_trace_id(FILE* __f, __trace_id_t __id)
 {
-  if (id) {
-    fprintf(f, "%s", id);
+  if (__id) {
+    fprintf(__f, "%s", __id);
   } else {
     fprintf(stderr, "Undefined trace id.");
     abort();
   }
 }
 
-template <typename object_info, typename stack_info>
-class trace_base
+template <typename __object_info, typename __stack_info>
+class __trace_base
 {
  public:
-  trace_base();
-  ~trace_base() {}
-  void add_object(object_t object, object_info info);
-  object_info* get_object_info(object_t object);
-  void retire_object(object_t object);
-  void write(FILE* f);
+  __trace_base();
+  virtual ~__trace_base() {}
+  void __add_object(__object_t object, __object_info __info);
+  __object_info* __get_object_info(__object_t __object);
+  void __retire_object(__object_t __object);
+  void __write(FILE* f);
 
  private:
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-  typedef std::_GLIBCXX_STD_PR::unordered_map<object_t, object_info> 
-      object_table_t;
-  typedef std::_GLIBCXX_STD_PR::unordered_map<stack_t, stack_info, 
-                                              stack_hash, stack_hash>
-      stack_table_t;
+  typedef std::_GLIBCXX_STD_PR::unordered_map<__object_t, __object_info> 
+      __object_table_t;
+  typedef std::_GLIBCXX_STD_PR::unordered_map<__stack_t, __stack_info, 
+                                              __stack_hash, __stack_hash>
+      __stack_table_t;
 #else
-  typedef std::tr1::unordered_map<object_t, object_info> object_table_t;
-  typedef std::tr1::unordered_map<stack_t, stack_info, 
-                                  stack_hash, stack_hash> stack_table_t;
+  typedef std::tr1::unordered_map<__object_t, __object_info> __object_table_t;
+  typedef std::tr1::unordered_map<__stack_t, __stack_info, 
+                                  __stack_hash, __stack_hash> __stack_table_t;
 #endif
-  object_table_t object_table;
-  stack_table_t stack_table;
-  size_t stack_table_byte_size;
+  __object_table_t __object_table;
+  __stack_table_t __stack_table;
+  size_t __stack_table_byte_size;
 
  protected:
-  trace_id_t id;
+  __trace_id_t __id;
 };
 
-template <typename object_info, typename stack_info>
-trace_base<object_info, stack_info>::trace_base()
+template <typename __object_info, typename __stack_info>
+__trace_base<__object_info, __stack_info>::__trace_base()
 {
   // Do not pick the initial size too large, as we don't know which diagnostics
   // are more active.
-  object_table.rehash(10000);
-  stack_table.rehash(10000);
-  stack_table_byte_size = 0;
-  id = NULL;
+  __object_table.rehash(10000);
+  __stack_table.rehash(10000);
+  __stack_table_byte_size = 0;
+  __id = NULL;
 }
 
-template <typename object_info, typename stack_info>
-void trace_base<object_info, stack_info>::add_object(object_t object,
-                                                     object_info info)
+template <typename __object_info, typename __stack_info>
+void __trace_base<__object_info, __stack_info>::__add_object(
+    __object_t __object, __object_info __info)
 {
-  if (max_mem() == 0 || object_table.size() * sizeof(object_info) <= max_mem())
-    object_table.insert(typename object_table_t::value_type(object, info));
+  if (__max_mem() == 0 
+      || __object_table.size() * sizeof(__object_info) <= __max_mem())
+    __object_table.insert(
+        typename __object_table_t::value_type(__object, __info));
 }
 
-template <typename object_info, typename stack_info>
-object_info* trace_base<object_info, stack_info>::get_object_info(
-    object_t object)
+template <typename __object_info, typename __stack_info>
+__object_info* __trace_base<__object_info, __stack_info>::__get_object_info(
+    __object_t __object)
 {
-  typename object_table_t::iterator object_it = object_table.find(object);
-  if (object_it == object_table.end()){
+  typename __object_table_t::iterator __object_it = 
+      __object_table.find(__object);
+  if (__object_it == __object_table.end()){
     return NULL;
   } else {
-    return &object_it->second;
+    return &__object_it->second;
   }
 }
 
-template <typename object_info, typename stack_info>
-void trace_base<object_info, stack_info>::retire_object(object_t object)
+template <typename __object_info, typename __stack_info>
+void __trace_base<__object_info, __stack_info>::__retire_object(
+    __object_t __object)
 {
-  typename object_table_t::iterator object_it = object_table.find(object);
-  if (object_it != object_table.end()){
-    const object_info& info = object_it->second;
-    const stack_t& stack = info.stack();
-    typename stack_table_t::iterator stack_it = stack_table.find(stack);
-    if (stack_it == stack_table.end()) {
+  typename __object_table_t::iterator __object_it = 
+      __object_table.find(__object);
+  if (__object_it != __object_table.end()){
+    const __object_info& __info = __object_it->second;
+    const __stack_t& __stack = __info.__stack();
+    typename __stack_table_t::iterator __stack_it = 
+        __stack_table.find(__stack);
+    if (__stack_it == __stack_table.end()) {
       // First occurence of this call context.
-      if (max_mem() == 0 || stack_table_byte_size < max_mem()) {
-        stack_table_byte_size += (sizeof(instruction_address_t) * size(stack)
-                                  + sizeof(stack) + sizeof(stack_info));
-        stack_table.insert(make_pair(stack, stack_info(info)));
+      if (__max_mem() == 0 || __stack_table_byte_size < __max_mem()) {
+        __stack_table_byte_size += 
+            (sizeof(__instruction_address_t) * __size(__stack)
+             + sizeof(__stack) + sizeof(__stack_info));
+        __stack_table.insert(make_pair(__stack, __stack_info(__info)));
       }
     } else {
       // Merge object info into info summary for this call context.
-      stack_it->second.merge(info);
-      delete stack;
+      __stack_it->second.__merge(__info);
+      delete __stack;
     }
-    object_table.erase(object);
+    __object_table.erase(__object);
   }
 }
 
-template <typename object_info, typename stack_info>
-void trace_base<object_info, stack_info>::write(FILE* f)
+template <typename __object_info, typename __stack_info>
+void __trace_base<__object_info, __stack_info>::__write(FILE* __f)
 {
-  typename stack_table_t::iterator it;
+  typename __stack_table_t::iterator __it;
 
-  for (it = stack_table.begin(); it != stack_table.end(); it++) {
-    if (it->second.is_valid()) {
-      print_trace_id(f, id);
-      fprintf(f, "|");
-      __cxxprof_impl::write(f, it->first);
-      fprintf(f, "|");
-      it->second.write(f);
+  for (__it = __stack_table.begin(); __it != __stack_table.end(); __it++) {
+    if (__it->second.__is_valid()) {
+      __print_trace_id(__f, __id);
+      fprintf(__f, "|");
+      __cxxprof_impl::__write(__f, __it->first);
+      fprintf(__f, "|");
+      __it->second.__write(__f);
     }
   }
 }
 
-inline size_t env_to_size_t(const char* env_var, size_t default_value)
+inline size_t __env_to_size_t(const char* __env_var, size_t __default_value)
 {
-  char* env_value = getenv(env_var);
-  if (env_value) {
-    long int converted_value = strtol(env_value, NULL, 10);
-    if (errno || converted_value < 0) {
-      fprintf(stderr, "Bad value for environment variable '%s'.", env_var);
+  char* __env_value = getenv(__env_var);
+  if (__env_value) {
+    long int __converted_value = strtol(__env_value, NULL, 10);
+    if (errno || __converted_value < 0) {
+      fprintf(stderr, "Bad value for environment variable '%s'.", __env_var);
       abort();
     } else {
-      return static_cast<size_t>(converted_value);
+      return static_cast<size_t>(__converted_value);
     }
   } else {
-    return default_value;
+    return __default_value;
   }
 }
 
-inline void set_max_stack_trace_depth()
+inline void __set_max_stack_trace_depth()
 {
-  settings<0>::_S_max_stack_depth = env_to_size_t(
-      settings<0>::_S_max_stack_depth_env_var, 
-      settings<0>::_S_max_stack_depth);
+  __settings<0>::_S_max_stack_depth = __env_to_size_t(
+      __settings<0>::_S_max_stack_depth_env_var, 
+      __settings<0>::_S_max_stack_depth);
 }
 
-inline void set_max_mem()
+inline void __set_max_mem()
 {
-  settings<0>::_S_max_mem = env_to_size_t(settings<0>::_S_max_mem_env_var, 
-                                          settings<0>::_S_max_mem);
+  __settings<0>::_S_max_mem = __env_to_size_t(
+      __settings<0>::_S_max_mem_env_var, 
+      __settings<0>::_S_max_mem);
 }
 
 // Final report, meant to be registered by "atexit".
 inline void __profcxx_report(void)
 {
-  turn_off();
+  __turn_off();
 
-  FILE* f = fopen(settings<0>::_S_trace_file_name, "a");
+  FILE* __f = fopen(__settings<0>::_S_trace_file_name, "a");
 
-  if (!f) {
+  if (!__f) {
     fprintf(stderr, "Could not open trace file '%s'.", 
-            settings<0>::_S_trace_file_name);
+            __settings<0>::_S_trace_file_name);
     abort();
   }
 
-  trace_vector_size_report(f);
-  trace_hashtable_size_report(f);
-  trace_hash_func_report(f);
-  trace_vector_to_list_report(f);
-  trace_map_to_unordered_map_report(f);
+  __trace_vector_size_report(__f);
+  __trace_hashtable_size_report(__f);
+  __trace_hash_func_report(__f);
+  __trace_vector_to_list_report(__f);
+  __trace_map_to_unordered_map_report(__f);
 
-  fclose(f);
+  fclose(__f);
 }
 
-inline void set_trace_path()
+inline void __set_trace_path()
 {
-  char* env_trace_file_name = getenv(settings<0>::_S_trace_env_var);
+  char* __env_trace_file_name = getenv(__settings<0>::_S_trace_env_var);
 
-  if (env_trace_file_name) { 
-    settings<0>::_S_trace_file_name = env_trace_file_name; 
+  if (__env_trace_file_name) { 
+    __settings<0>::_S_trace_file_name = __env_trace_file_name; 
   }
 
   // Make sure early that we can create the trace file.
-  FILE* f = fopen(settings<0>::_S_trace_file_name, "w");
-  if (f) {
-    fclose(f);
+  FILE* __f = fopen(__settings<0>::_S_trace_file_name, "w");
+  if (__f) {
+    fclose(__f);
   } else {
     fprintf(stderr, "Cannot create trace file at given path '%s'.",
-            settings<0>::_S_trace_file_name);
+            __settings<0>::_S_trace_file_name);
     exit(1);
   }
 }
 
 inline void __profcxx_init_unconditional()
 {
-  stdlib_lock(&init_lock);
+  __stdlib_lock(&__init_lock);
 
-  if (is_invalid()) {
-    if (getenv(settings<0>::_S_off_env_var)) {
-      turn_off();
+  if (__is_invalid()) {
+    if (getenv(__settings<0>::_S_off_env_var)) {
+      __turn_off();
     } else {
-      set_trace_path();
+      __set_trace_path();
       atexit(__profcxx_report);
 
-      set_max_stack_trace_depth();
-      set_max_mem();
+      __set_max_stack_trace_depth();
+      __set_max_mem();
 
       // Initialize data structures for each trace class.
-      trace_vector_size_init();
-      trace_hashtable_size_init();
-      trace_hash_func_init();
-      trace_vector_to_list_init();
-      trace_map_to_unordered_map_init();
+      __trace_vector_size_init();
+      __trace_hashtable_size_init();
+      __trace_hash_func_init();
+      __trace_vector_to_list_init();
+      __trace_map_to_unordered_map_init();
 
       // Go live.
-      turn_on();
+      __turn_on();
     }
   }
 
-  stdlib_unlock(&init_lock);
+  __stdlib_unlock(&__init_lock);
 }
 
 // This function must be called by each instrumentation point.
 // The common path is inlined fully.
 inline bool __profcxx_init(void)
 {
-  if (is_invalid()) {
+  if (__is_invalid()) {
     __profcxx_init_unconditional();
   }
-  return is_on();
+  return __is_on();
 }
-
 
 } // namespace __cxxprof_impl
 

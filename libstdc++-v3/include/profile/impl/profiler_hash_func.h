@@ -54,26 +54,20 @@ namespace __cxxprof_impl
 {
 
 // Class for inefficient hash function. 
-class hashfunc_info: public object_info_base
+class __hashfunc_info: public __object_info_base
 {
  public:
-
-  hashfunc_info()
+  __hashfunc_info()
       :_M_longest_chain(0), _M_accesses(0), _M_hops(0) {}
-
-  hashfunc_info(const hashfunc_info& o);
-
-  hashfunc_info(stack_t __stack)
-      : object_info_base(__stack),
+  __hashfunc_info(const __hashfunc_info& o);
+  __hashfunc_info(__stack_t __stack)
+      : __object_info_base(__stack),
         _M_longest_chain(0), _M_accesses(0), _M_hops(0){} 
+  virtual ~__hashfunc_info() {}
 
-  virtual ~hashfunc_info() {}
-
-  void merge(const hashfunc_info& o);
-
-  void destruct(size_t __chain, size_t __accesses, size_t __hops);
-
-  void write(FILE* f) const;
+  void __merge(const __hashfunc_info& __o);
+  void __destruct(size_t __chain, size_t __accesses, size_t __hops);
+  void __write(FILE* __f) const;
 
 private:
   size_t _M_longest_chain;
@@ -81,86 +75,91 @@ private:
   size_t _M_hops;
 };
 
-inline hashfunc_info::hashfunc_info(const hashfunc_info& o)
-    : object_info_base(o)
+inline __hashfunc_info::__hashfunc_info(const __hashfunc_info& __o)
+    : __object_info_base(__o)
 {
-  _M_longest_chain = o._M_longest_chain;
-  _M_accesses      = o._M_accesses;
-  _M_hops          = o._M_hops;
+  _M_longest_chain = __o._M_longest_chain;
+  _M_accesses      = __o._M_accesses;
+  _M_hops          = __o._M_hops;
 }
 
-inline void hashfunc_info::merge(const hashfunc_info& o)
+inline void __hashfunc_info::__merge(const __hashfunc_info& __o)
 {
-  _M_longest_chain  = max(_M_longest_chain, o._M_longest_chain);
-  _M_accesses      += o._M_accesses;
-  _M_hops          += o._M_hops;
+  _M_longest_chain  = __max(_M_longest_chain, __o._M_longest_chain);
+  _M_accesses      += __o._M_accesses;
+  _M_hops          += __o._M_hops;
 }
 
-inline void hashfunc_info::destruct(size_t __chain, size_t __accesses, 
-                                    size_t __hops)
+inline void __hashfunc_info::__destruct(size_t __chain, size_t __accesses, 
+                                        size_t __hops)
 { 
-  _M_longest_chain  = max(_M_longest_chain, __chain);
+  _M_longest_chain  = __max(_M_longest_chain, __chain);
   _M_accesses      += __accesses;
   _M_hops          += __hops;
 }
 
-class hashfunc_stack_info: public hashfunc_info {
+class __hashfunc_stack_info: public __hashfunc_info {
  public:
-  hashfunc_stack_info(const hashfunc_info& o) : hashfunc_info(o) {}
+  __hashfunc_stack_info(const __hashfunc_info& __o) : __hashfunc_info(__o) {}
 };
 
-class trace_hash_func
-    : public trace_base<hashfunc_info, hashfunc_stack_info> 
+class __trace_hash_func
+    : public __trace_base<__hashfunc_info, __hashfunc_stack_info> 
 {
  public:
-  trace_hash_func()
-      : trace_base<hashfunc_info, hashfunc_stack_info>() { id = "hash-distr"; }
-  ~trace_hash_func() {}
+  __trace_hash_func();
+  ~__trace_hash_func() {}
 
   // Insert a new node at construct with object, callstack and initial size. 
-  void insert(object_t __obj, stack_t __stack);
+  void __insert(__object_t __obj, __stack_t __stack);
   // Call at destruction/clean to set container final size.
-  void destruct(const void* __obj, size_t __chain,
-                size_t __accesses, size_t __hops);
+  void __destruct(const void* __obj, size_t __chain,
+                  size_t __accesses, size_t __hops);
 };
 
-inline void trace_hash_func::insert(object_t __obj, stack_t __stack)
+inline __trace_hash_func::__trace_hash_func()
+    : __trace_base<__hashfunc_info, __hashfunc_stack_info>()
 {
-  add_object(__obj, hashfunc_info(__stack));
+  __id = "hash-distr";
 }
 
-inline void hashfunc_info::write(FILE* f) const
+inline void __trace_hash_func::__insert(__object_t __obj, __stack_t __stack)
 {
-  fprintf(f, "%Zu %Zu %Zu\n", _M_hops, _M_accesses, _M_longest_chain);
+  __add_object(__obj, __hashfunc_info(__stack));
 }
 
-inline void trace_hash_func::destruct(const void* __obj, size_t __chain,
-                               size_t __accesses, size_t __hops)
+inline void __hashfunc_info::__write(FILE* __f) const
 {
-  if (!is_on()) return;
+  fprintf(__f, "%Zu %Zu %Zu\n", _M_hops, _M_accesses, _M_longest_chain);
+}
+
+inline void __trace_hash_func::__destruct(const void* __obj, size_t __chain,
+                                          size_t __accesses, size_t __hops)
+{
+  if (!__is_on()) return;
 
   // First find the item from the live objects and update the informations.
-  hashfunc_info* objs = get_object_info(__obj);
-  if (!objs)
+  __hashfunc_info* __objs = __get_object_info(__obj);
+  if (!__objs)
     return;
 
-  objs->destruct(__chain, __accesses, __hops);
-  retire_object(__obj);
+  __objs->__destruct(__chain, __accesses, __hops);
+  __retire_object(__obj);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Initialization and report.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void trace_hash_func_init() {
-  tables<0>::_S_hash_func = new trace_hash_func();
+inline void __trace_hash_func_init() {
+  __tables<0>::_S_hash_func = new __trace_hash_func();
 }
 
-inline void trace_hash_func_report(FILE* f) {
-  if (tables<0>::_S_hash_func) {
-    tables<0>::_S_hash_func->write(f);
-    delete tables<0>::_S_hash_func;
-    tables<0>::_S_hash_func = NULL;
+inline void __trace_hash_func_report(FILE* __f) {
+  if (__tables<0>::_S_hash_func) {
+    __tables<0>::_S_hash_func->__write(__f);
+    delete __tables<0>::_S_hash_func;
+    __tables<0>::_S_hash_func = NULL;
   }
 }
 
@@ -168,19 +167,19 @@ inline void trace_hash_func_report(FILE* f) {
 // Implementations of instrumentation hooks.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void trace_hash_func_construct(const void* __obj)
+inline void __trace_hash_func_construct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_hash_func->insert(__obj, get_stack());
+  __tables<0>::_S_hash_func->__insert(__obj, __get_stack());
 }
 
-inline void trace_hash_func_destruct(const void* __obj, size_t __chain,
-                               size_t __accesses, size_t __hops)
+inline void __trace_hash_func_destruct(const void* __obj, size_t __chain,
+                                       size_t __accesses, size_t __hops)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_hash_func->destruct(__obj, __chain, __accesses, __hops);
+  __tables<0>::_S_hash_func->__destruct(__obj, __chain, __accesses, __hops);
 }
 
 } // namespace __cxxprof_impl

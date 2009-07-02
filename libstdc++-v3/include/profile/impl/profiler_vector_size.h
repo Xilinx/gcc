@@ -52,25 +52,27 @@
 namespace __cxxprof_impl
 {
 
-class trace_vector_size : public trace_container_size
+class __trace_vector_size : public __trace_container_size
 {
  public:
-  trace_vector_size() : trace_container_size() { id = "vector-size"; }
+  __trace_vector_size() : __trace_container_size() { __id = "vector-size"; }
 };
 
 //////////////////////////////////////////////////////////////////////////////
 // Initialization and report.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void trace_vector_size_init() {
-  tables<0>::_S_vector_size = new trace_vector_size();
+inline void __trace_vector_size_init()
+{
+  __tables<0>::_S_vector_size = new __trace_vector_size();
 }
 
-inline void trace_vector_size_report(FILE* f) {
-  if (tables<0>::_S_vector_size) {
-    tables<0>::_S_vector_size->write(f);
-    delete tables<0>::_S_vector_size;
-    tables<0>::_S_vector_size = NULL;
+inline void __trace_vector_size_report(FILE* __f)
+{
+  if (__tables<0>::_S_vector_size) {
+    __tables<0>::_S_vector_size->__write(__f);
+    delete __tables<0>::_S_vector_size;
+    __tables<0>::_S_vector_size = NULL;
   }
 }
 
@@ -78,27 +80,27 @@ inline void trace_vector_size_report(FILE* f) {
 // Implementations of instrumentation hooks.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void trace_vector_size_construct(const void* __obj, size_t __num)
+inline void __trace_vector_size_construct(const void* __obj, size_t __num)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_size->insert(__obj, get_stack(), __num);
+  __tables<0>::_S_vector_size->__insert(__obj, __get_stack(), __num);
 }
 
-inline void trace_vector_size_destruct(const void* __obj, size_t __num,
-                                       size_t __inum)
+inline void __trace_vector_size_destruct(const void* __obj, size_t __num,
+                                         size_t __inum)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_size->destruct(__obj, __num, __inum);
+  __tables<0>::_S_vector_size->__destruct(__obj, __num, __inum);
 }
 
-inline void trace_vector_size_resize(const void* __obj, size_t __from,
-                                     size_t __to)
+inline void __trace_vector_size_resize(const void* __obj, size_t __from,
+                                       size_t __to)
 {
   if (!__profcxx_init()) return;
 
-  tables<0>::_S_vector_size->resize(__obj, __from, __to);
+  __tables<0>::_S_vector_size->__resize(__obj, __from, __to);
 }
 
 } // namespace __cxxprof_impl

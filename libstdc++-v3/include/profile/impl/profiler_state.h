@@ -46,54 +46,57 @@
 namespace __cxxprof_impl
 {
 
-template <int Unused=0>
-class state
+template <int __Unused=0>
+class __state
 {
  public:
 
-  static state<Unused>* _S_diag_state;
+  static __state<__Unused>* _S_diag_state;
 
-  state() : _M_state(INVALID) {}
-  ~state() {}
+  __state() : _M_state(__INVALID) {}
+  ~__state() {}
 
-  bool is_on() { return _M_state == ON; }
-  bool is_off() { return _M_state == OFF; }
-  bool is_invalid() { return _M_state == INVALID; }
-  void turn_on() { _M_state = ON; }
-  void turn_off() { _M_state = OFF; }
+  bool __is_on() { return _M_state == __ON; }
+  bool __is_off() { return _M_state == __OFF; }
+  bool __is_invalid() { return _M_state == __INVALID; }
+  void __turn_on() { _M_state = __ON; }
+  void __turn_off() { _M_state = __OFF; }
 
  private:
-  enum state_type { ON, OFF, INVALID }; 
-  state_type _M_state;
+  enum __state_type { __ON, __OFF, __INVALID };
+  __state_type _M_state;
 };
 
-template <int Unused>
-state<Unused>* state<Unused>::_S_diag_state = NULL;
+template <int __Unused>
+__state<__Unused>* __state<__Unused>::_S_diag_state = NULL;
 
-inline bool is_on()
+inline bool __is_on()
 {
-  return state<0>::_S_diag_state && state<0>::_S_diag_state->is_on();
+  return __state<0>::_S_diag_state && __state<0>::_S_diag_state->__is_on();
 }
 
-inline bool is_off()
+inline bool __is_off()
 {
-  return state<0>::_S_diag_state && state<0>::_S_diag_state->is_off();
+  return __state<0>::_S_diag_state && __state<0>::_S_diag_state->__is_off();
 }
 
-inline bool is_invalid()
+inline bool __is_invalid()
 {
-  return !state<0>::_S_diag_state || state<0>::_S_diag_state->is_invalid();
+  return (!__state<0>::_S_diag_state 
+          || __state<0>::_S_diag_state->__is_invalid());
 }
 
-inline void turn_on()
+inline void __turn_on()
 {
-  if (!state<0>::_S_diag_state) { state<0>::_S_diag_state = new state<0>(); }
-  state<0>::_S_diag_state->turn_on();
+  if (!__state<0>::_S_diag_state) { 
+    __state<0>::_S_diag_state = new __state<0>();
+  }
+  __state<0>::_S_diag_state->__turn_on();
 }
 
-inline void turn_off()
+inline void __turn_off()
 {
-  state<0>::_S_diag_state->turn_off();
+  __state<0>::_S_diag_state->__turn_off();
 }
 
 } // end namespace __cxxprof_impl

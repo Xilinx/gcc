@@ -54,21 +54,21 @@ namespace __cxxprof_impl
 {
 
 // Class for container size node. 
-class container_size_info: public object_info_base 
+class __container_size_info: public __object_info_base 
 {
  public:
-  container_size_info() {}
-  container_size_info(const container_size_info& o);
-  container_size_info(stack_t __stack, size_t __num);
-  virtual ~container_size_info() {}
-  void merge(const container_size_info& o);
-  void write(FILE* f) const;
+  __container_size_info() {}
+  __container_size_info(const __container_size_info& __o);
+  __container_size_info(__stack_t __stack, size_t __num);
+  virtual ~__container_size_info() {}
+  void __merge(const __container_size_info& __o);
+  void __write(FILE* f) const;
   // Call if a container is destructed or cleaned.
-  void destruct(size_t __num, size_t __inum);
+  void __destruct(size_t __num, size_t __inum);
   // Estimate the cost of resize/rehash. 
-  float resize_cost(size_t __from, size_t __to) { return __from; }
+  float __resize_cost(size_t __from, size_t __to) { return __from; }
   // Call if container is resized.
-  void resize(size_t __from, size_t __to);
+  void __resize(size_t __from, size_t __to);
 
  private:
   size_t _M_init;
@@ -83,33 +83,32 @@ class container_size_info: public object_info_base
   size_t _M_cost;
 };
 
-inline void container_size_info::destruct(size_t __num, size_t __inum) 
+inline void __container_size_info::__destruct(size_t __num, size_t __inum) 
 {
-  _M_max = max(_M_max, __num);
-  _M_item_max = max(_M_item_max, __inum);
+  _M_max = __max(_M_max, __num);
+  _M_item_max = __max(_M_item_max, __inum);
   if (_M_min == 0) {
     _M_min = __num; 
     _M_item_min = __inum;
   } else {
-    _M_min = min(_M_min, __num);
-    _M_item_min = min(_M_item_min, __inum);
+    _M_min = __min(_M_min, __num);
+    _M_item_min = __min(_M_item_min, __inum);
   }
   _M_total += __num;
   _M_item_total += __inum;
   _M_count += 1;
 }
 
-inline void container_size_info::resize(size_t __from,
-                                        size_t __to) 
+inline void __container_size_info::__resize(size_t __from, size_t __to) 
 {
-  _M_cost += this->resize_cost(__from, __to);
+  _M_cost += this->__resize_cost(__from, __to);
   _M_resize += 1;
-  _M_max = _M_max > __to ? _M_max : __to;
+  _M_max = __max(_M_max, __to);
 }
 
-inline container_size_info::container_size_info(stack_t __stack, 
-                                                size_t __num)
-  : object_info_base(__stack)
+inline __container_size_info::__container_size_info(__stack_t __stack, 
+                                                    size_t __num)
+  : __object_info_base(__stack)
 {
   _M_init = _M_max = __num;
   _M_item_min = _M_item_max = _M_item_total = _M_total = 0;
@@ -118,97 +117,97 @@ inline container_size_info::container_size_info(stack_t __stack,
   _M_resize = 0;
 }
 
-inline void container_size_info::merge(const container_size_info& o)
+inline void __container_size_info::__merge(const __container_size_info& __o)
 {
-  _M_init        = max(_M_init, o._M_init);
-  _M_max         = max(_M_max, o._M_max);
-  _M_item_max    = max(_M_item_max, o._M_item_max);
-  _M_min         = min(_M_min, o._M_min);
-  _M_item_min    = min(_M_item_min, o._M_item_min);
-  _M_total      += o._M_total;
-  _M_item_total += o._M_item_total;
-  _M_count      += o._M_count;
-  _M_cost       += o._M_cost;
-  _M_resize     += o._M_resize;
+  _M_init        = __max(_M_init, __o._M_init);
+  _M_max         = __max(_M_max, __o._M_max);
+  _M_item_max    = __max(_M_item_max, __o._M_item_max);
+  _M_min         = __min(_M_min, __o._M_min);
+  _M_item_min    = __min(_M_item_min, __o._M_item_min);
+  _M_total      += __o._M_total;
+  _M_item_total += __o._M_item_total;
+  _M_count      += __o._M_count;
+  _M_cost       += __o._M_cost;
+  _M_resize     += __o._M_resize;
 }
 
-inline container_size_info::container_size_info(const container_size_info& o)
-    : object_info_base(o)
+inline __container_size_info::__container_size_info(
+    const __container_size_info& __o)
+    : __object_info_base(__o)
 {
-  _M_init        = o._M_init;
-  _M_max         = o._M_max;
-  _M_item_max    = o._M_item_max;
-  _M_min         = o._M_min;
-  _M_item_min    = o._M_item_min;
-  _M_total       = o._M_total;
-  _M_item_total  = o._M_item_total;
-  _M_cost        = o._M_cost;
-  _M_count       = o._M_count;
-  _M_resize      = o._M_resize;
+  _M_init        = __o._M_init;
+  _M_max         = __o._M_max;
+  _M_item_max    = __o._M_item_max;
+  _M_min         = __o._M_min;
+  _M_item_min    = __o._M_item_min;
+  _M_total       = __o._M_total;
+  _M_item_total  = __o._M_item_total;
+  _M_cost        = __o._M_cost;
+  _M_count       = __o._M_count;
+  _M_resize      = __o._M_resize;
 }
 
-class container_size_stack_info: public container_size_info {
+class __container_size_stack_info: public __container_size_info {
  public:
-  container_size_stack_info(const container_size_info& o)
-      : container_size_info(o) {}
+  __container_size_stack_info(const __container_size_info& __o)
+      : __container_size_info(__o) {}
 };
 
-class trace_container_size
-    : public trace_base<container_size_info, container_size_stack_info> 
+class __trace_container_size
+    : public __trace_base<__container_size_info, __container_size_stack_info> 
 {
  public:
-  ~trace_container_size() {}
-  trace_container_size()
-      : trace_base<container_size_info, container_size_stack_info>() {};
+  ~__trace_container_size() {}
+  __trace_container_size()
+      : __trace_base<__container_size_info, __container_size_stack_info>() {};
 
   // Insert a new node at construct with object, callstack and initial size. 
-  void insert(const object_t __obj, stack_t __stack, size_t __num);
+  void __insert(const __object_t __obj, __stack_t __stack, size_t __num);
   // Call at destruction/clean to set container final size.
-  void destruct(const void* __obj, size_t __num, size_t __inum);
-  void construct(const void* __obj, size_t __inum);
+  void __destruct(const void* __obj, size_t __num, size_t __inum);
+  void __construct(const void* __obj, size_t __inum);
   // Call at resize to set resize/cost information.
-  void resize(const void* __obj, int __from, int __to);
+  void __resize(const void* __obj, int __from, int __to);
 };
 
-inline void trace_container_size::insert(const object_t __obj,
-                                         stack_t __stack,
-                                         size_t __num)
+inline void __trace_container_size::__insert(const __object_t __obj,
+                                             __stack_t __stack, size_t __num)
 {
-  add_object(__obj, container_size_info(__stack, __num));
+  __add_object(__obj, __container_size_info(__stack, __num));
 }
 
-inline void container_size_info::write(FILE* f) const
+inline void __container_size_info::__write(FILE* __f) const
 {
-  fprintf(f, "%Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu\n", 
+  fprintf(__f, "%Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu\n", 
           _M_init, _M_count, _M_cost,_M_resize, _M_min, _M_max, _M_total,
           _M_item_min, _M_item_max, _M_item_total);
 }
 
-inline void trace_container_size::destruct(const void* __obj, size_t __num, 
-                                    size_t __inum)
+inline void __trace_container_size::__destruct(const void* __obj, 
+                                               size_t __num, size_t __inum)
 {
-  if (!is_on()) return;
+  if (!__is_on()) return;
 
-  object_t obj = static_cast<object_t>(__obj);
+  __object_t __obj_handle = static_cast<__object_t>(__obj);
 
-  container_size_info* object_info = get_object_info(obj);
-  if (!object_info)
+  __container_size_info* __object_info = __get_object_info(__obj_handle);
+  if (!__object_info)
     return;
 
-  object_info->destruct(__num, __inum);
-  retire_object(obj);
+  __object_info->__destruct(__num, __inum);
+  __retire_object(__obj_handle);
 }
 
-inline void trace_container_size::resize(const void* __obj, int __from, 
-                                         int __to)
+inline void __trace_container_size::__resize(const void* __obj, int __from, 
+                                             int __to)
 {
-  if (!is_on()) return;
+  if (!__is_on()) return;
 
-  container_size_info* object_info = get_object_info(__obj);
-  if (!object_info)
+  __container_size_info* __object_info = __get_object_info(__obj);
+  if (!__object_info)
     return;
 
-  object_info->resize(__from, __to);
+  __object_info->__resize(__from, __to);
 }
 
 } // namespace __cxxprof_impl
