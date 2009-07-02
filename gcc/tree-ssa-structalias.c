@@ -3473,7 +3473,10 @@ handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc)
     {
       varinfo_t vi;
       vi = make_constraint_from_heapvar (get_vi_for_tree (lhs), "HEAP");
-      make_copy_constraint (vi, nonlocal_id);
+      /* We delay marking allocated storage global until we know if
+         it escapes.  */
+      DECL_EXTERNAL (vi->decl) = 0;
+      vi->is_global_var = 0;
     }
   else if (VEC_length (ce_s, rhsc) > 0)
     {
@@ -3909,6 +3912,13 @@ find_func_aliases (gimple origt)
 	   && !POINTER_TYPE_P (TREE_TYPE (gimple_assign_lhs (t))))
     {
       make_escape_constraint (gimple_assign_rhs1 (t));
+    }
+  /* Handle escapes through return.  */
+  else if (gimple_code (t) == GIMPLE_RETURN
+	   && gimple_return_retval (t) != NULL_TREE
+	   && could_have_pointers (gimple_return_retval (t)))
+    {
+      make_escape_constraint (gimple_return_retval (t));
     }
   /* Handle asms conservatively by adding escape constraints to everything.  */
   else if (gimple_code (t) == GIMPLE_ASM)
@@ -4776,8 +4786,10 @@ find_what_var_points_to (varinfo_t vi, struct pt_solution *pt)
 	  else if (vi->is_heap_var)
 	    /* We represent heapvars in the points-to set properly.  */
 	    ;
+	  else if (vi->id == readonly_id)
+	    /* Nobody cares.  */
+	    ;
 	  else if (vi->id == anything_id
-		   || vi->id == readonly_id
 		   || vi->id == integer_id)
 	    pt->anything = 1;
 	}
@@ -5350,6 +5362,7 @@ compute_points_to_sets (void)
   struct scc_info *si;
   basic_block bb;
   unsigned i;
+  varinfo_t vi;
 
   timevar_push (TV_TREE_PTA);
 
@@ -5446,6 +5459,14 @@ compute_points_to_sets (void)
      other solutions) does not reference itself.  This simplifies
      points-to solution queries.  */
   cfun->gimple_df->escaped.escaped = 0;
+
+  /* Mark escaped HEAP variables as global.  */
+  for (i = 0; VEC_iterate (varinfo_t, varmap, i, vi); ++i)
+    if (vi->is_heap_var
+	&& !vi->is_restrict_var
+	&& !vi->is_global_var)
+      DECL_EXTERNAL (vi->decl) = vi->is_global_var
+	= pt_solution_includes (&cfun->gimple_df->escaped, vi->decl);
 
   /* Compute the points-to sets for pointer SSA_NAMEs.  */
   for (i = 0; i < num_ssa_names; ++i)
