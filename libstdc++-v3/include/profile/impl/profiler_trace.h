@@ -106,16 +106,16 @@ class tables {
   static trace_vector_to_list* _S_vector_to_list;
 };
 
-template <>
-trace_hash_func* tables<0>::_S_hash_func = NULL;
-template <>
-trace_hashtable_size* tables<0>::_S_hashtable_size = NULL;
-template <>
-trace_map2umap* tables<0>::_S_map2umap = NULL;
-template <>
-trace_vector_size* tables<0>::_S_vector_size = NULL;
-template <>
-trace_vector_to_list* tables<0>::_S_vector_to_list = NULL;
+template <int Unused>
+trace_hash_func* tables<Unused>::_S_hash_func = NULL;
+template <int Unused>
+trace_hashtable_size* tables<Unused>::_S_hashtable_size = NULL;
+template <int Unused>
+trace_map2umap* tables<Unused>::_S_map2umap = NULL;
+template <int Unused>
+trace_vector_size* tables<Unused>::_S_vector_size = NULL;
+template <int Unused>
+trace_vector_to_list* tables<Unused>::_S_vector_to_list = NULL;
 
 // Settings.
 template <int Unused=0>
@@ -137,28 +137,28 @@ class settings {
   static size_t _S_max_mem;
 };
 
-template <>
-char settings<0>::_S_trace_default_file_name[] = 
+template <int Unused>
+char settings<Unused>::_S_trace_default_file_name[] = 
     "./profile-stdlib.txt";
-template <>
-char settings<0>::_S_trace_env_var[] = 
+template <int Unused>
+char settings<Unused>::_S_trace_env_var[] = 
     "GLIBCXX_PROFILE_TRACE";
-template <>
-char* settings<0>::_S_trace_file_name = 
+template <int Unused>
+char* settings<Unused>::_S_trace_file_name = 
     "./profile-stdlib.txt";
-template <>
-char settings<0>::_S_off_env_var[] = 
+template <int Unused>
+char settings<Unused>::_S_off_env_var[] = 
     "GLIBCXX_PROFILE_OFF";
-template <>
-char settings<0>::_S_max_stack_depth_env_var[] =
+template <int Unused>
+char settings<Unused>::_S_max_stack_depth_env_var[] =
     "GLIBCXX_PROFILE_MAX_STACK_DEPTH";
-template <>
-char settings<0>::_S_max_mem_env_var[] = 
+template <int Unused>
+char settings<Unused>::_S_max_mem_env_var[] = 
     "GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC";
-template <>
-size_t settings<0>::_S_max_stack_depth = 32;
-template <>
-size_t settings<0>::_S_max_mem = 2 << 27;  // 128 MB.
+template <int Unused>
+size_t settings<Unused>::_S_max_stack_depth = 32;
+template <int Unused>
+size_t settings<Unused>::_S_max_mem = 2 << 27;  // 128 MB.
 
 inline size_t stack_max_depth()
 {

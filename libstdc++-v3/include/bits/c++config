@@ -160,10 +160,12 @@
 #  define _GLIBCXX_EXTERN_TEMPLATE -1
 # endif
 
-// profile + anything else
-// XXX: should we disallow profile + anything and instead only allow
-// profile + nothing else?
+// profile
 # if _GLIBCXX_NAMESPACE_ASSOCIATION_PROFILE
+#  if _GLIBCXX_NAMESPACE_ASSOCIATION_PARALLEL || _GLIBCXX_NAMESPACE_ASSOCIATION_DEBUG
+#   error Cannot use -D_GLIBCXX_PROFILE with -D_GLIBCXX_DEBUG or \
+    -D_GLIBCXX_PARALLEL
+#  endif
 #  define _GLIBCXX_STD_D __norm
 #  define _GLIBCXX_STD_P _GLIBCXX_STD
 #  define _GLIBCXX_STD_PR __norm

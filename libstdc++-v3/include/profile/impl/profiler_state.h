@@ -51,7 +51,7 @@ class state
 {
  public:
 
-  static state<0>* _S_diag_state;
+  static state<Unused>* _S_diag_state;
 
   state() : _M_state(INVALID) {}
   ~state() {}
@@ -67,8 +67,8 @@ class state
   state_type _M_state;
 };
 
-template <>
-state<0>* state<0>::_S_diag_state = NULL;
+template <int Unused>
+state<Unused>* state<Unused>::_S_diag_state = NULL;
 
 inline bool is_on()
 {

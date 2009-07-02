@@ -1,4 +1,16 @@
-2009-06-02  Silvius Rus  <rus@google.com>
+2009-07-01  Silvius Rus  <silvius.rus@gmail.com>
+	* include/profile/impl/profiler.h: Add reentrance guards to all
+	hook calls.
+	* include/profile/impl/profiler_state.h: Fix definition of
+	template static members.
+	* include/profile/impl/profiler_trace.h: Fix definition of
+	template static members.
+	* include/bits/c++config: Make _GLIBCXX_PROFILE mutually exclusive
+	with _GLIBCXX_DEBUG and _GLIBCXX_PARALLEL.
+	* testsuite/ext/profile/mh.cc: Add.
+	* testsuite/ext/profile/mutex_extensions.cc: Add.
+
+2009-06-02  Silvius Rus  <silvius.rus@gmail.com>
 	* configure: Remove libprof++.  Added check for execinfo.h.
 	* config.h.in: Add undef HAVE_EXECINFO_H.
 	* Makefile.am: Remove libprof++.
@@ -77,7 +89,8 @@
 	corresponding libprofc++/ files.  Make all methods inline.
 	* testsuite/Makefile.in: Removed references to libprofc++.
 	* testsuite/Makefile.am: Removed references to libprofc++.
-2009-05-30  Silvius Rus  <rus@google.com>
+
+2009-05-30  Silvius Rus  <silvius.rus@gmail.com>
 	* include/profile/set.h: Integrate updates from std.
 	* include/profile/unordered_set: Integrate updates from std.
 	* include/profile/vector: Integrate updates from std.
@@ -108,7 +121,7 @@
 	* testsuite/31_profile/unordered.cc: Delete.
 	* testsuite/31_profile/vector.cc: Delete.
 
-2009-03-11  Silvius Rus  <rus@google.com>
+2009-03-11  Silvius Rus  <silvius.rus@gmail.com>
 	* libprofc++/Makefile.am: Add modules.
 	* libprofc++/Makefile.in: Add modules.
 	* libprofc++/profiler_trace.cc: Add calls to initialization and report
@@ -120,7 +133,7 @@
 	* include/profile/map.h: Update from include/debug/map.h.  Add calls
 	to trace_map_to_unordered_map hooks.
 
-2008-11-10  Silvius Rus  <rus@google.com>
+2008-11-10  Silvius Rus  <silvius.rus@gmail.com>
 	* libprofc++/Makefile.in: Add modules.
 	* libprofc++/profiler_vector_size.cc: Refactor.
 	* libprofc++/profiler_trace.cc: Refactor.

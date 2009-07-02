@@ -46,6 +46,38 @@
 // Forward declarations of instrumentation hooks.
 namespace __cxxprof_impl
 {
+
+// Reentrance guard.
+
+template <int Unused=0>
+class Guard {
+ public:
+  static __thread bool inside_cxxprof_impl;
+};
+
+template <int Unused>
+__thread bool Guard<Unused>::inside_cxxprof_impl = false;
+
+inline bool get_in() {
+  if (Guard<0>::inside_cxxprof_impl)
+    return false;
+  Guard<0>::inside_cxxprof_impl = true;
+  return true;
+}
+
+inline void get_out() {
+  Guard<0>::inside_cxxprof_impl = false;
+}
+
+// XXX: All hook calls must be protected by a reentrance guard.
+#define GUARD(x...)                             \
+  {                                             \
+    if (__cxxprof_impl::get_in()) {             \
+      x;                                        \
+      __cxxprof_impl::get_out();                \
+    }                                           \
+}
+
 // State management.
 void turn_on();
 void turn_off();
@@ -94,12 +126,12 @@ void trace_map_to_unordered_map_destruct(const void*);
       && !defined(_NO_GLIBCXX_PROFILE_HASHTABLE_TOO_SMALL)) \
      || (defined(_GLIBCXX_PROFILE_HASHTABLE_TOO_LARGE) \
          && !defined(_NO_GLIBCXX_PROFILE_HASHTABLE_TOO_LARGE)))
-#define __profcxx_hashtable_resize \
-  __cxxprof_impl::trace_hashtable_size_resize
-#define __profcxx_hashtable_destruct \
-  __cxxprof_impl::trace_hashtable_size_destruct
-#define __profcxx_hashtable_construct \
-  __cxxprof_impl::trace_hashtable_size_construct
+#define __profcxx_hashtable_resize(x...) \
+  GUARD(__cxxprof_impl::trace_hashtable_size_resize(x))
+#define __profcxx_hashtable_destruct(x...) \
+  GUARD(__cxxprof_impl::trace_hashtable_size_destruct(x))
+#define __profcxx_hashtable_construct(x...) \
+  GUARD(__cxxprof_impl::trace_hashtable_size_construct(x))
 #else
 #define __profcxx_hashtable_resize(x...)  
 #define __profcxx_hashtable_destruct(x...) 
@@ -111,9 +143,12 @@ void trace_map_to_unordered_map_destruct(const void*);
       && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TOO_SMALL)) \
      || (defined(_GLIBCXX_PROFILE_VECTOR_TOO_LARGE) \
          && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TOO_LARGE)))
-#define __profcxx_vector_resize __cxxprof_impl::trace_vector_size_resize
-#define __profcxx_vector_destruct __cxxprof_impl::trace_vector_size_destruct
-#define __profcxx_vector_construct __cxxprof_impl::trace_vector_size_construct
+#define __profcxx_vector_resize(x...) \
+  GUARD(__cxxprof_impl::trace_vector_size_resize(x))
+#define __profcxx_vector_destruct(x...) \
+  GUARD(__cxxprof_impl::trace_vector_size_destruct(x))
+#define __profcxx_vector_construct(x...) \
+  GUARD(__cxxprof_impl::trace_vector_size_construct(x))
 #else
 #define __profcxx_vector_resize(x...)  
 #define __profcxx_vector_destruct(x...) 
@@ -123,10 +158,10 @@ void trace_map_to_unordered_map_destruct(const void*);
 // Turn on/off instrumentation for INEFFICIENT_HASH.
 #if (defined(_GLIBCXX_PROFILE_INEFFICIENT_HASH) \
      && !defined(_NO_GLIBCXX_PROFILE_INEFFICIENT_HASH))
-#define __profcxx_hashtable_construct2 \
-  __cxxprof_impl::trace_hash_func_construct
-#define __profcxx_hashtable_destruct2 \
-  __cxxprof_impl::trace_hash_func_destruct
+#define __profcxx_hashtable_construct2(x...) \
+  GUARD(__cxxprof_impl::trace_hash_func_construct(x))
+#define __profcxx_hashtable_destruct2(x...) \
+  GUARD(__cxxprof_impl::trace_hash_func_destruct(x))
 #else
 #define __profcxx_hashtable_destruct2(x...) 
 #define __profcxx_hashtable_construct2(x...)  
@@ -135,21 +170,21 @@ void trace_map_to_unordered_map_destruct(const void*);
 // Turn on/off instrumentation for VECTOR_TO_LIST.
 #if (defined(_GLIBCXX_PROFILE_VECTOR_TO_LIST) \
      && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TO_LIST))
-#define __profcxx_vector_construct2 \
-  __cxxprof_impl::trace_vector_to_list_construct
-#define __profcxx_vector_destruct2 \
-  __cxxprof_impl::trace_vector_to_list_destruct
-#define __profcxx_vector_insert \
-  __cxxprof_impl::trace_vector_to_list_insert
-#define __profcxx_vector_iterate \
-  __cxxprof_impl::trace_vector_to_list_iterate
-#define __profcxx_vector_invalid_operator \
-  __cxxprof_impl::trace_vector_to_list_invalid_operator
-#define __profcxx_vector_resize2 \
-  __cxxprof_impl::trace_vector_to_list_resize
+#define __profcxx_vector_construct2(x...) \
+  GUARD(__cxxprof_impl::trace_vector_to_list_construct(x))
+#define __profcxx_vector_destruct2(x...) \
+  GUARD(__cxxprof_impl::trace_vector_to_list_destruct(x))
+#define __profcxx_vector_insert(x...) \
+  GUARD(__cxxprof_impl::trace_vector_to_list_insert(x))
+#define __profcxx_vector_iterate(x...) \
+  GUARD(__cxxprof_impl::trace_vector_to_list_iterate(x))
+#define __profcxx_vector_invalid_operator(x...) \
+  GUARD(__cxxprof_impl::trace_vector_to_list_invalid_operator(x))
+#define __profcxx_vector_resize2(x...) \
+  GUARD(__cxxprof_impl::trace_vector_to_list_resize(x))
 #else
-#define __profcxx_vector_destruct2(x...) 
-#define __profcxx_vector_construct2(x...)  
+#define __profcxx_vector_destruct2(x...)
+#define __profcxx_vector_construct2(x...)
 #define __profcxx_vector_insert(x...)
 #define __profcxx_vector_iterate(x...)
 #define __profcxx_vector_invalid_operator(x...)
@@ -159,23 +194,24 @@ void trace_map_to_unordered_map_destruct(const void*);
 // Turn on/off instrumentation for MAP_TO_UNORDERED_MAP.
 #if (defined(_GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP) \
      && !defined(_NO_GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP))
-#define __profcxx_map_to_unordered_map_construct \
-  __cxxprof_impl::trace_map_to_unordered_map_construct
-#define __profcxx_map_to_unordered_map_destruct \
-  __cxxprof_impl::trace_map_to_unordered_map_destruct
-#define __profcxx_map_to_unordered_map_insert \
-  __cxxprof_impl::trace_map_to_unordered_map_insert
-#define __profcxx_map_to_unordered_map_erase \
-  __cxxprof_impl::trace_map_to_unordered_map_erase
-#define __profcxx_map_to_unordered_map_iterate \
-  __cxxprof_impl::trace_map_to_unordered_map_iterate
-#define __profcxx_map_to_unordered_map_invalidate \
-  __cxxprof_impl::trace_map_to_unordered_map_invalidate
-#define __profcxx_map_to_unordered_map_find \
-  __cxxprof_impl::trace_map_to_unordered_map_find
+#define __profcxx_map_to_unordered_map_construct(x...) \
+  GUARD(__cxxprof_impl::trace_map_to_unordered_map_construct(x))
+#define __profcxx_map_to_unordered_map_destruct(x...) \
+  GUARD(__cxxprof_impl::trace_map_to_unordered_map_destruct(x))
+#define __profcxx_map_to_unordered_map_insert(x...) \
+  GUARD(__cxxprof_impl::trace_map_to_unordered_map_insert(x))
+#define __profcxx_map_to_unordered_map_erase(x...) \
+  GUARD(__cxxprof_impl::trace_map_to_unordered_map_erase(x))
+#define __profcxx_map_to_unordered_map_iterate(x...) \
+  GUARD(__cxxprof_impl::trace_map_to_unordered_map_iterate(x))
+#define __profcxx_map_to_unordered_map_invalidate(x...) \
+  GUARD(__cxxprof_impl::trace_map_to_unordered_map_invalidate(x))
+#define __profcxx_map_to_unordered_map_find(x...) \
+  GUARD(__cxxprof_impl::trace_map_to_unordered_map_find(x))
 #else
-#define __profcxx_map_to_unordered_map_construct(x...) 
-#define __profcxx_map_to_unordered_map_destruct(x...)  
+#define __profcxx_map_to_unordered_map_construct(x...) \
+  
+#define __profcxx_map_to_unordered_map_destruct(x...)
 #define __profcxx_map_to_unordered_map_insert(x...)
 #define __profcxx_map_to_unordered_map_erase(x...)
 #define __profcxx_map_to_unordered_map_iterate(x...)
