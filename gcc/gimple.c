@@ -1588,6 +1588,13 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
 	return ret;
       break;
 
+    case GIMPLE_TM_ATOMIC:
+      ret = walk_tree (gimple_tm_atomic_label_ptr (stmt), callback_op,
+		       wi, pset);
+      if (ret)
+	return ret;
+      break;
+
       /* Tuples that do not have operands.  */
     case GIMPLE_NOP:
     case GIMPLE_RESX:

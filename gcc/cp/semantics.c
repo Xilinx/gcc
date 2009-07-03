@@ -4468,6 +4468,42 @@ finish_omp_taskwait (void)
   finish_expr_stmt (stmt);
 }
 
+/* Begin a __tm_atomic statement.  If PCOMPOUND is non-null, this is for
+   a function-atomic block, and we should create an extra compound stmt.  */
+
+tree
+begin_tm_atomic_stmt (location_t loc, tree *pcompound)
+{
+  tree r;
+
+  if (pcompound)
+    *pcompound = begin_compound_stmt (0);
+
+  r = build_stmt (loc, TM_ATOMIC, NULL_TREE);
+
+  /* Only add the statement to the function if support enabled.  */
+  if (flag_tm)
+    add_stmt (r);
+  else
+    error_at (loc, "%<__tm_atomic%> without transactional memory "
+	      "support enabled");
+
+  TM_ATOMIC_BODY (r) = push_stmt_list ();
+  return r;
+}
+
+/* End a __tm_atomic statement.  If COMPOUND_STMT is non-null, this is
+   for a function-atomic block, and we should end the compound.  */
+
+void
+finish_tm_atomic_stmt (tree stmt, tree compound_stmt)
+{
+  TM_ATOMIC_BODY (stmt) = pop_stmt_list (TM_ATOMIC_BODY (stmt));
+  if (compound_stmt)
+    finish_compound_stmt (compound_stmt);
+  finish_stmt ();
+}
+
 void
 init_cp_semantics (void)
 {

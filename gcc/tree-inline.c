@@ -1247,6 +1247,12 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	    = gimple_build_omp_critical (s1, gimple_omp_critical_name (stmt));
 	  break;
 
+	case GIMPLE_TM_ATOMIC:
+	  s1 = remap_gimple_seq (gimple_tm_atomic_body (stmt), id);
+	  copy = gimple_build_tm_atomic (s1, gimple_tm_atomic_label (stmt));
+	  gimple_tm_atomic_set_subcode (copy, gimple_tm_atomic_subcode (stmt));
+	  break;
+
 	default:
 	  gcc_unreachable ();
 	}

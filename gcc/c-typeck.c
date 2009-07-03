@@ -9963,13 +9963,7 @@ c_finish_omp_clauses (tree clauses)
 tree
 c_finish_tm_atomic (location_t loc, tree block)
 {
-  tree stmt;
-
-  stmt = make_node (TM_ATOMIC);
-  TREE_TYPE (stmt) = void_type_node;
-  TM_ATOMIC_BODY (stmt) = block;
-  SET_EXPR_LOCATION (stmt, loc);
-
+  tree stmt = build_stmt (loc, TM_ATOMIC, block);
   return add_stmt (stmt);
 }
 

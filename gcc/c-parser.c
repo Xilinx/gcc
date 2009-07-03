@@ -8635,7 +8635,7 @@ c_parser_tm_atomic (c_parser *parser)
 /* Parse a __tm_abort statement (GCC Extension).
 
    tm-atomic-statement:
-     __tm_atomic;
+     __tm_abort;
 */
 
 static tree

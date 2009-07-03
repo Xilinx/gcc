@@ -1,3 +1,26 @@
+2009-07-02  Richard Henderson  <rth@redhat.com>
+
+	* c-typeck.c (c_finish_tm_atomic): Use build_stmt.
+
+	* cp/parser.c (struct cp_parser): Add in_tm_atomic.
+	(cp_parser_tm_atomic, cp_parser_tm_abort): New.
+	(cp_parser_statement): Use them.
+	(cp_parser_function_tm_atomic): New.
+	(cp_parser_function_definition_after_declarator): Use it.
+	(cp_parser_token_starts_function_definition_p): Allow __tm_atomic.
+	* cp/semantics.c (begin_tm_atomic_stmt): New.
+	(finish_tm_atomic_stmt): New.
+	* cp/cp-tree.h: Update decls.
+
+	* gimple.c (walk_gimple_op): Handle GIMPLE_TM_ATOMIC.
+	* gimple.h (gimple_has_substatements): Add GIMPLE_TM_ATOMIC.
+	(gimple_tm_atomic_label_ptr): New.
+	* tree-inline.c (remap_gimple_stmt): Handle GIMPLE_TM_ATOMIC.
+
+	* testsuite/gcc.dg/tm/ipa-2.c: Add -asmname flag.
+	* testsuite/g++.dg/dg.exp: Run tm tests.
+	* testsuite/g++.dg/tm/: New subdirectory.
+
 2009-07-01  Richard Henderson  <rth@redhat.com>
 
 	* timevar.def (TV_TRANS_MEM): New.

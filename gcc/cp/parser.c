@@ -1507,6 +1507,9 @@ typedef struct GTY(()) cp_parser {
      a local class.  */
   bool in_function_body;
 
+  /* TRUE if we're processing a __tm_atomic statement.  */
+  bool in_tm_atomic;
+
   /* If non-NULL, then we are parsing a construct where new type
      definitions are not permitted.  The string stored here will be
      issued as an error message if a type is defined.  */
@@ -1866,6 +1869,15 @@ static tree cp_parser_attribute_list
 static bool cp_parser_extension_opt
   (cp_parser *, int *);
 static void cp_parser_label_declaration
+  (cp_parser *);
+
+/* Transactional Memory Extensions */
+
+static tree cp_parser_tm_atomic
+  (cp_parser *);
+static bool cp_parser_function_tm_atomic
+  (cp_parser *);
+static tree cp_parser_tm_abort
   (cp_parser *);
 
 enum pragma_context { pragma_external, pragma_stmt, pragma_compound };
@@ -6918,6 +6930,11 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
      declaration-statement
      try-block
 
+  TM Extension:
+
+   statement:
+     atomic-statement
+
   IN_COMPOUND is true when the statement is nested inside a
   cp_parser_compound_statement; this matters for certain pragmas.
 
@@ -6994,6 +7011,13 @@ cp_parser_statement (cp_parser* parser, tree in_statement_expr,
 	  cp_parser_declaration_statement (parser);
 	  return;
 	  
+	case RID_TM_ATOMIC:
+	  statement = cp_parser_tm_atomic (parser);
+	  break;
+	case RID_TM_ABORT:
+	  statement = cp_parser_tm_abort (parser);
+	  break;
+
 	default:
 	  /* It might be a keyword like `int' that can start a
 	     declaration-statement.  */
@@ -12670,6 +12694,11 @@ cp_parser_asm_definition (cp_parser* parser)
    function-definition:
      __extension__ function-definition
 
+   TM Extension:
+
+   function-definition:
+     decl-specifier-seq [opt] declarator function-atomic-block
+
    The DECL_SPECIFIERS apply to this declarator.  Returns a
    representation of the entity declared.  If MEMBER_P is TRUE, then
    this declarator appears in a class scope.  The new DECL created by
@@ -17779,12 +17808,13 @@ cp_parser_function_definition_after_declarator (cp_parser* parser,
   saved_num_template_parameter_lists
     = parser->num_template_parameter_lists;
   parser->num_template_parameter_lists = 0;
-  /* If the next token is `try', then we are looking at a
-     function-try-block.  */
+  /* If the next token is `try' or `__tm_atomic', then we are looking at
+     either function-try-block or function-atomic-block.  Note that both
+     of these include the function-body.  */
   if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
     ctor_initializer_p = cp_parser_function_try_block (parser);
-  /* A function-try-block includes the function-body, so we only do
-     this next part if we're not processing a function-try-block.  */
+  else if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TM_ATOMIC))
+    ctor_initializer_p = cp_parser_function_tm_atomic (parser);
   else
     ctor_initializer_p
       = cp_parser_ctor_initializer_opt_and_function_body (parser);
@@ -18883,6 +18913,8 @@ cp_parser_token_starts_function_definition_p (cp_token* token)
 	  || token->type == CPP_COLON
 	  /* A function-try-block begins with `try'.  */
 	  || token->keyword == RID_TRY
+	  /* A function-atomic-block begins with `__tm_atomic'.  */
+	  || token->keyword == RID_TM_ATOMIC
 	  /* The named return value extension begins with `return'.  */
 	  || token->keyword == RID_RETURN);
 }
@@ -22063,6 +22095,112 @@ cp_parser_omp_construct (cp_parser *parser, cp_token *pragma_tok)
 
   if (stmt)
     SET_EXPR_LOCATION (stmt, pragma_tok->location);
+}
+
+/* Transactional Memory parsing routines.  */
+
+/* Parse a __tm_atomic statement.
+
+   atomic-statement:
+     __tm_atomic statement
+
+   ??? This is only vaguely described in 2009-04-30 Intel talk at Brown.
+   Need to nail down exactly what the grammer is.  Perhaps with this optional
+   throw specification, we need to require braces around the statement to
+   avoid parsing ambiguities?  Defer for now.
+
+     __tm_atomic exception-specification [opt] compound-statement
+*/
+
+static tree
+cp_parser_tm_atomic (cp_parser *parser)
+{
+  bool in_tm_atomic;
+  cp_token *token;
+  tree stmt;
+
+  token = cp_parser_require_keyword (parser, RID_TM_ATOMIC, "%<__tm_%>");
+  gcc_assert (token != NULL);
+
+  stmt = begin_tm_atomic_stmt (token->location, NULL);
+  
+  in_tm_atomic = parser->in_tm_atomic;
+  parser->in_tm_atomic = true;
+  cp_parser_implicitly_scoped_statement (parser, NULL);
+  parser->in_tm_atomic = in_tm_atomic;
+
+  finish_tm_atomic_stmt (stmt, NULL_TREE);
+
+  return stmt;
+}
+
+/* Parse a function-atomic-block.
+   ??? This is only vaguely described in the Brown talk.  It is not mentioned
+   how this should interact with function-try-block.  For now we simply don't
+   allow both.
+
+   function-atomic-block:
+     __tm_atomic ctor-initializer [opt] function-body
+*/
+
+static bool
+cp_parser_function_tm_atomic (cp_parser *parser)
+{
+  tree compound_stmt, stmt;
+  bool ctor_initializer_p;
+  cp_token *token;
+
+  token = cp_parser_require_keyword (parser, RID_TM_ATOMIC, "%<__tm_atomic%>");
+  gcc_assert (token != NULL);
+  
+  stmt = begin_tm_atomic_stmt (token->location, &compound_stmt);
+
+  /* Parse the function-body.  */
+  ctor_initializer_p
+    = cp_parser_ctor_initializer_opt_and_function_body (parser);
+
+  finish_tm_atomic_stmt (stmt, compound_stmt);
+
+  return ctor_initializer_p;
+}
+
+
+/* Parse a __tm_abort statement.
+
+   atomic-statement:
+     __tm_abort
+
+   ??? This is only vaguely described in the Brown talk.  Perhaps I'm
+   not keeping up on my C++ 2k, but that [[id]] syntax shows up a lot.
+   Is that supposed to be some sort of standardized attribute?  At
+   present I'd actually prefer a __tm_abort_outer keyword...
+     __tm_abort [[tm_outer]]
+
+   ??? Also only vaguely described, though one can infer that it should
+   call _ITM_registerThrownObject on the object it passes to __cxa_throw.
+     __tm_abort throw-expression
+*/
+
+static tree
+cp_parser_tm_abort (cp_parser *parser)
+{
+  cp_token *token;
+  tree stmt;
+
+  token = cp_parser_require_keyword (parser, RID_TM_ABORT, "%<__tm_abort%>");
+  gcc_assert (token != NULL);
+
+  if (!parser->in_tm_atomic)
+    {
+      error_at (token->location, "%<__tm_abort%> not within %<__tm_atomic%>");
+      return error_mark_node;
+    }
+
+  stmt = build_tm_abort_call (token->location);
+  add_stmt (stmt);
+  finish_stmt ();
+
+  return stmt;
 }
 
 /* The parser.  */

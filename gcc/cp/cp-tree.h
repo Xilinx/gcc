@@ -4815,6 +4815,8 @@ extern void finish_omp_atomic			(enum tree_code, tree, tree);
 extern void finish_omp_barrier			(void);
 extern void finish_omp_flush			(void);
 extern void finish_omp_taskwait			(void);
+extern tree begin_tm_atomic_stmt		(location_t, tree *);
+extern void finish_tm_atomic_stmt		(tree, tree);
 extern bool cxx_omp_create_clause_info		(tree, tree, bool, bool, bool);
 extern tree baselink_for_fns                    (tree);
 extern void finish_static_assert                (tree, tree, location_t,

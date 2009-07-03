@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-fgnu-tm -fdump-tree-tmmark" } */
+/* { dg-options "-fgnu-tm -fdump-tree-tmmark-asmname" } */
 
 void foo(void);
 

@@ -1058,6 +1058,7 @@ gimple_has_substatements (gimple g)
     case GIMPLE_OMP_SINGLE:
     case GIMPLE_OMP_CRITICAL:
     case GIMPLE_WITH_CLEANUP_EXPR:
+    case GIMPLE_TM_ATOMIC:
       return true;
 
     default:
@@ -4107,6 +4108,13 @@ gimple_tm_atomic_label (const_gimple gs)
 {
   GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
   return gs->gimple_tm_atomic.label;
+}
+
+static inline tree *
+gimple_tm_atomic_label_ptr (gimple gs)
+{
+  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
+  return &gs->gimple_tm_atomic.label;
 }
 
 /* Return the subcode associated with a GIMPLE_TM_ATOMIC.  */
