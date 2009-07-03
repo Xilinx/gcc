@@ -76,6 +76,10 @@ extern void fatal_error (const char *, ...);
 extern long basilys_dbgcounter;
 extern long basilys_debugskipcount;
 
+#ifdef MELT_IS_PLUGIN
+extern int flag_melt_debug;
+#endif
+
 #define debugeprintf_raw(Fmt,...) do{if (flag_melt_debug) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
 #define debugeprintf(Fmt,...) debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \

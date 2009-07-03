@@ -1546,10 +1546,12 @@ open_base_files (void)
 {
   size_t i;
 
+  /* header file should be generated even in plugin mode */
+  header_file = create_file ("GCC", "gtype-desc.h");
+  
   if (nb_plugin_files > 0 && plugin_files)
     return;
 
-  header_file = create_file ("GCC", "gtype-desc.h");
 
   base_files = XNEWVEC (outf_p, num_lang_dirs);
 

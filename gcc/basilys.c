@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "gcc-plugin.h"
 #endif
 
+
 /* the files marked notpluginexported are not exported by gcc-trunk in
    PLUGIN_HEADERS */
 #include "config.h"
@@ -47,6 +48,8 @@ along with GCC; see the file COPYING3.   If not see
 #include "tree-inline.h" /*notpluginexported*/
 #include "basic-block.h"
 #include "timevar.h"
+
+
 #include "ggc.h"
 #include "cgraph.h" /*notpluginexported*/
 #include "diagnostic.h" /*notpluginexported*/
@@ -72,11 +75,7 @@ extern const unsigned char executable_checksum[16];
 #include <dlfcn.h>
 
 
-#if HAVE_PARMAPOLY
 #include <ppl_c.h>
-#else
-#error required parma polyedral library PPL
-#endif /*HAVE_PARMAPOLY */
 
 
 /* basilysgc_sort_multiple needs setjmp */
@@ -88,8 +87,23 @@ extern const unsigned char executable_checksum[16];
 #include "basilys.h"
 
 
-#define MINOR_SIZE_KILOWORD PARAM_VALUE(PARAM_BASILYS_MINOR_ZONE)
-#define FULL_THRESHOLD PARAM_VALUE(PARAM_BASILYS_FULL_THRESHOLD)
+#ifdef MELT_IS_PLUGIN
+int flag_melt_debug;
+/**
+   NOTE:  july 2009
+  
+   This code does not yet compile in plugin mode, unless the gengtype
+   also generates a gtype-desc.h for the plugin and this gtype-desc.h
+   replaces the one in the plugin/include directory. This could be
+   achieved by compiling this plugin with
+      gcc -I. -iquote . -I- ...
+   where gcc is a very recent GCC. (trunk or 4.5)
+
+**/
+#endif
+
+
+
 
 #ifndef MELT_PRIVATE_INCLUDE_DIR
 #error MELT_PRIVATE_INCLUDE_DIR is not defined thru compile flags
@@ -131,6 +145,7 @@ char* basilys_curalz;
 void** basilys_storalz;
 
 static long melt_minorsizekilow = 0;
+static long melt_fullthresholdkilow = 0;
 
 typedef struct basilys_module_info_st
 {
@@ -215,9 +230,9 @@ melt_argument(const char* argname)
     return NULL;
   for (argix = 0; argix < melt_plugin_argc; argix ++) 
     {
-      if (!strcmp(argname, melt_plugin_argv[argix]->key)) 
+      if (!strcmp(argname, melt_plugin_argv[argix].key)) 
 	{
-	  char* val = melt_plugin_argv[argix]->value;
+	  char* val = melt_plugin_argv[argix].value;
 	  /* never return NULL if the argument is found; return an
 	     empty string if no value given */
 	  if (!val)
@@ -705,6 +720,14 @@ basilys_garbcoll (size_t wanted, bool needfull)
       if (melt_minorsizekilow<256) melt_minorsizekilow=256;
       else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
     }
+  if (melt_fullthresholdkilow == 0)
+    {
+      melt_fullthresholdkilow = atol (melt_argument ("full-threshold"));
+      if (melt_fullthresholdkilow<512) melt_fullthresholdkilow=512;
+      if (melt_fullthresholdkilow<2*melt_minorsizekilow)
+	melt_fullthresholdkilow = 2*melt_minorsizekilow;
+      else if (melt_fullthresholdkilow>65536) melt_fullthresholdkilow=65536;
+    }
   basilys_check_call_frames (BASILYS_ANYWHERE, "before garbage collection");
   gcc_assert ((char *) basilys_startalz < (char *) basilys_endalz);
   gcc_assert ((char *) basilys_curalz >= (char *) basilys_startalz
@@ -803,7 +826,7 @@ basilys_garbcoll (size_t wanted, bool needfull)
   basilys_storalz = NULL;
   basilys_kilowords_sincefull += wanted / (1024 * sizeof (void *));
   if (basilys_kilowords_sincefull >
-      (unsigned long) melt_minorsizekilow * FULL_THRESHOLD)
+      (unsigned long) melt_fullthresholdkilow)
     needfull = TRUE;
   basilys_startalz = basilys_curalz =
     (char *) xcalloc (sizeof (void *), wanted / sizeof (void *));
@@ -6708,6 +6731,7 @@ static basilys_ptr_t
 readhashescape (struct reading_st *rd)
 {
   int c = 0;
+  char *nam = NULL;
   BASILYS_ENTERFRAME (4, NULL);
 #define readv  curfram__.varptr[0]
 #define compv  curfram__.varptr[1]
@@ -6722,7 +6746,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       if (ISALPHA (rdcurc ()) && rdcurc () != 'x' && ISALPHA (rdfollowc (1)))
 	{
-	  char *nam = readsimplename (rd);
+	  nam = readsimplename (rd);
 	  c = 0;
 	  if (!strcmp (nam, "nul"))
 	    c = 0;
@@ -7925,11 +7949,11 @@ plugin_init(struct plugin_name_args* plugin_info,
   gcc_assert (plugin_info);
   fprintf(stderr, "MELT plugin version base %s date %s phase %s revision %s confparam %s\n",
 	  version->basever, version->datestamp, version->devphase,
-	  version->revision, version->configuretion_arguments);
+	  version->revision, version->configuration_arguments);
   melt_plugin_argc = plugin_info->argc;
   melt_plugin_argv = plugin_info->argv;
   melt_really_initialize (plugin_info->base_name);
-  
+  return 1;
 }
 
 #else
@@ -10439,7 +10463,6 @@ end:
 #undef namev
 #undef atclov
 }
-
 
 
 
