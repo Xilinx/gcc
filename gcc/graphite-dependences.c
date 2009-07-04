@@ -486,7 +486,7 @@ graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
   if (sdim1 != sdim2)
     return true;
 
-  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true, true);
+  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true, false);
   if (ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (po))
     {
       ppl_delete_Pointset_Powerset_NNC_Polyhedron (po);
