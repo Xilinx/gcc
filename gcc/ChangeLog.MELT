@@ -1,12 +1,12 @@
 2009-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	[basilys.c compiles in plugin mode, provided gengtype is hacked to
-	generated gtype-desc.h] * basilys.h (flag_melt_debug): added
-	declaration in plugin mode.  *
-	basilys.c (melt_fullthresholdkilow): added static variable.
+	generated gtype-desc.h] 
+	* basilys.h (flag_melt_debug): added declaration in plugin mode.  
+	* basilys.c (melt_fullthresholdkilow): added static variable.
 	(melt_argument) compiles ok.  uses melt_plugin_argv[ix].value....
 	(basilys_garbcoll): uses melt_fullthresholdkilow.
 	(readhashescape): moved declaration of nam.
-	(plugin_init): compiles & return 1.  *
+	(plugin_init): compiles & return 1. 
 	* gengtype.c (open_base_files): also opens gtype-desc.h even in
 	plugin mode.
 
