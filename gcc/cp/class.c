@@ -5992,17 +5992,24 @@ resolve_address_of_overloaded_function (tree target_type,
 
   int is_ptrmem = 0;
   int is_reference = 0;
+  int is_ifunc;
   /* We store the matches in a TREE_LIST rooted here.  The functions
      are the TREE_PURPOSE, not the TREE_VALUE, in this list, for easy
      interoperability with most_specialized_instantiation.  */
   tree matches = NULL_TREE;
   tree fn;
 
+  is_ifunc = (current_function_decl != NULL
+	      && DECL_IS_IFUNC (current_function_decl)
+	      && DECL_NONSTATIC_MEMBER_FUNCTION_P (current_function_decl));
+
   /* By the time we get here, we should be seeing only real
      pointer-to-member types, not the internal POINTER_TYPE to
-     METHOD_TYPE representation.  */
+     METHOD_TYPE representation unless it is in an IFUNC member
+     function.  */
   gcc_assert (TREE_CODE (target_type) != POINTER_TYPE
-	      || TREE_CODE (TREE_TYPE (target_type)) != METHOD_TYPE);
+	      || TREE_CODE (TREE_TYPE (target_type)) != METHOD_TYPE
+	      || is_ifunc);
 
   gcc_assert (is_overloaded_fn (overload));
 
@@ -6019,6 +6026,8 @@ resolve_address_of_overloaded_function (tree target_type,
       target_type = build_reference_type (target_type);
       is_reference = 1;
     }
+  else if (is_ifunc && TYPE_PTRMEMIFUNC_P (target_type))
+    /* This is OK.  */;
   else
     {
       if (flags & tf_error)
@@ -6046,7 +6055,7 @@ resolve_address_of_overloaded_function (tree target_type,
 	    continue;
 
 	  if ((TREE_CODE (TREE_TYPE (fn)) == METHOD_TYPE)
-	      != is_ptrmem)
+	      != (is_ptrmem | is_ifunc))
 	    /* We're looking for a non-static member, and this isn't
 	       one, or vice versa.  */
 	    continue;
@@ -6250,7 +6259,9 @@ resolve_address_of_overloaded_function (tree target_type,
       perform_or_defer_access_check (access_path, fn, fn);
     }
 
-  if (TYPE_PTRFN_P (target_type) || TYPE_PTRMEMFUNC_P (target_type))
+  if (TYPE_PTRFN_P (target_type)
+      || TYPE_PTRMEMFUNC_P (target_type)
+      || (is_ifunc && TYPE_PTRMEMIFUNC_P (target_type)))
     return cp_build_unary_op (ADDR_EXPR, fn, 0, flags);
   else
     {

@@ -710,7 +710,12 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
   to = strip_top_quals (to);
   from = strip_top_quals (from);
 
-  if ((TYPE_PTRFN_P (to) || TYPE_PTRMEMFUNC_P (to))
+  if ((TYPE_PTRFN_P (to)
+       || TYPE_PTRMEMFUNC_P (to)
+       || (current_function_decl != NULL
+	   && DECL_IS_IFUNC (current_function_decl)
+	   && DECL_NONSTATIC_MEMBER_FUNCTION_P (current_function_decl)
+	   && TYPE_PTRMEMIFUNC_P (to)))
       && expr && type_unknown_p (expr))
     {
       tsubst_flags_t tflags = tf_conv;

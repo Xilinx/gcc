@@ -4786,6 +4786,17 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
       if (TREE_CODE (argtype) == POINTER_TYPE
 	  && TREE_CODE (TREE_TYPE (argtype)) == METHOD_TYPE)
 	{
+	  if (current_function_decl != NULL
+	      && DECL_IS_IFUNC (current_function_decl)
+	      && DECL_NONSTATIC_MEMBER_FUNCTION_P (current_function_decl)
+	      && (TYPE_MAIN_VARIANT (argtype)
+		  == TYPE_MAIN_VARIANT (function_return_type (current_function_decl))))
+	    {
+	      /* IFUNC member function returns the address of another
+		 non-static member function.  */
+	      return val;
+	    }
+
 	  build_ptrmemfunc_type (argtype);
 	  val = build_ptrmemfunc (argtype, val, 0,
 				  /*c_cast_p=*/false);

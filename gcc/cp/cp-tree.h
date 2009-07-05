@@ -2909,6 +2909,12 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
   (TREE_CODE (NODE) == REFERENCE_TYPE			\
    && TREE_CODE (TREE_TYPE (NODE)) == FUNCTION_TYPE)
 
+/* Returns true if NODE is a pointer to a member function inside
+   the IFUNC function body.  */
+#define TYPE_PTRMEMIFUNC_P(NODE)			\
+  (TREE_CODE (NODE) == POINTER_TYPE			\
+   && TREE_CODE (TREE_TYPE (NODE)) == METHOD_TYPE)
+
 /* Nonzero for _TYPE node means that this type is a pointer to member
    function type.  */
 #define TYPE_PTRMEMFUNC_P(NODE)		\
