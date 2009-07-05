@@ -685,6 +685,7 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
       rtx xop0 = op0;
       rtx last = get_last_insn ();
       rtx pat;
+      bool copy_back = false;
 
       /* Add OFFSET into OP0's address.  */
       if (MEM_P (xop0))
@@ -698,6 +699,23 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	xop0 = gen_rtx_SUBREG (op_mode, SUBREG_REG (xop0), SUBREG_BYTE (xop0));
       if (REG_P (xop0) && GET_MODE (xop0) != op_mode)
 	xop0 = gen_rtx_SUBREG (op_mode, xop0, 0);
+
+      /* If the destination is a paradoxical subreg such that we need a
+	 truncate to the inner mode, perform the insertion on a temporary and
+	 truncate the result to the original destination.  Note that we can't
+	 just truncate the paradoxical subreg as (truncate:N (subreg:W (reg:N
+	 X) 0)) is (reg:N X).  */
+      if (GET_CODE (xop0) == SUBREG
+	  && REG_P (SUBREG_REG (xop0))
+	  && (!TRULY_NOOP_TRUNCATION
+	      (GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (xop0))),
+	       GET_MODE_BITSIZE (op_mode))))
+	{
+	  rtx tem = gen_reg_rtx (op_mode);
+	  emit_move_insn (tem, xop0);
+	  xop0 = tem;
+	  copy_back = true;
+	}
 
       /* On big-endian machines, we count bits from the most significant.
 	 If the bit field insn does not, we must invert.  */
@@ -758,15 +776,8 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	{
 	  emit_insn (pat);
 
-	  /* If the mode of the insertion is wider than the mode of the
-	     target register we created a paradoxical subreg for the
-	     target.  Truncate the paradoxical subreg of the target to
-	     itself properly.  */
-	  if (!TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (op0)),
-				      GET_MODE_BITSIZE (op_mode))
-	      && (REG_P (xop0)
-		  || GET_CODE (xop0) == SUBREG))
-	      convert_move (op0, xop0, true);
+	  if (copy_back)
+	    convert_move (op0, xop0, true);
 	  return true;
 	}
       delete_insns_since (last);
@@ -5115,12 +5126,12 @@ expand_and (enum machine_mode mode, rtx op0, rtx op1, rtx target)
 
 /* Helper function for emit_store_flag.  */
 static rtx
-emit_store_flag_1 (rtx target, enum insn_code icode, enum rtx_code code,
-		   enum machine_mode mode, enum machine_mode compare_mode,
-		   int unsignedp, rtx x, rtx y, int normalizep)
+emit_cstore (rtx target, enum insn_code icode, enum rtx_code code,
+	     enum machine_mode mode, enum machine_mode compare_mode,
+	     int unsignedp, rtx x, rtx y, int normalizep,
+	     enum machine_mode target_mode)
 {
   rtx op0, last, comparison, subtarget, pattern;
-  enum machine_mode target_mode;
   enum machine_mode result_mode = insn_data[(int) icode].operand[0].mode;
 
   last = get_last_insn ();
@@ -5138,8 +5149,12 @@ emit_store_flag_1 (rtx target, enum insn_code icode, enum rtx_code code,
       return NULL_RTX;
     }
 
-  if (!target
-      || optimize
+  if (target_mode == VOIDmode)
+    target_mode = result_mode;
+  if (!target)
+    target = gen_reg_rtx (target_mode);
+  
+  if (optimize
       || !(insn_data[(int) icode].operand[0].predicate (target, result_mode)))
     subtarget = gen_reg_rtx (result_mode);
   else
@@ -5150,10 +5165,6 @@ emit_store_flag_1 (rtx target, enum insn_code icode, enum rtx_code code,
     return NULL_RTX;
   emit_insn (pattern);
 
-  if (!target)
-    target = gen_reg_rtx (GET_MODE (subtarget));
-  target_mode = GET_MODE (target);
-  
   /* If we are converting to a wider mode, first convert to
      TARGET_MODE, then normalize.  This produces better combining
      opportunities on machines that have a SIGN_EXTRACT when we are
@@ -5217,34 +5228,22 @@ emit_store_flag_1 (rtx target, enum insn_code icode, enum rtx_code code,
     return op0;
 }
 
-/* Emit a store-flags instruction for comparison CODE on OP0 and OP1
-   and storing in TARGET.  Normally return TARGET.
-   Return 0 if that cannot be done.
 
-   MODE is the mode to use for OP0 and OP1 should they be CONST_INTs.  If
-   it is VOIDmode, they cannot both be CONST_INT.
+/* A subroutine of emit_store_flag only including "tricks" that do not
+   need a recursive call.  These are kept separate to avoid infinite
+   loops.  */
 
-   UNSIGNEDP is for the case where we have to widen the operands
-   to perform the operation.  It says to use zero-extension.
-
-   NORMALIZEP is 1 if we should convert the result to be either zero
-   or one.  Normalize is -1 if we should convert the result to be
-   either zero or -1.  If NORMALIZEP is zero, the result will be left
-   "raw" out of the scc insn.  */
-
-rtx
-emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
-		 enum machine_mode mode, int unsignedp, int normalizep)
+static rtx
+emit_store_flag_1 (rtx target, enum rtx_code code, rtx op0, rtx op1,
+		   enum machine_mode mode, int unsignedp, int normalizep,
+		   enum machine_mode target_mode)
 {
   rtx subtarget;
   enum insn_code icode;
   enum machine_mode compare_mode;
-  enum machine_mode target_mode = target ? GET_MODE (target) : VOIDmode;
   enum mode_class mclass;
-  enum rtx_code rcode;
   enum rtx_code scode;
-  rtx tem, trueval;
-  rtx last;
+  rtx tem;
 
   if (unsignedp)
     code = unsigned_condition (code);
@@ -5307,20 +5306,20 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
       if ((code == EQ || code == NE)
 	  && (op1 == const0_rtx || op1 == constm1_rtx))
 	{
-	  rtx op00, op01, op0both;
+	  rtx op00, op01;
 
 	  /* Do a logical OR or AND of the two words and compare the
 	     result.  */
 	  op00 = simplify_gen_subreg (word_mode, op0, mode, 0);
 	  op01 = simplify_gen_subreg (word_mode, op0, mode, UNITS_PER_WORD);
-	  op0both = expand_binop (word_mode,
-				  op1 == const0_rtx ? ior_optab : and_optab,
-				  op00, op01, NULL_RTX, unsignedp,
-				  OPTAB_DIRECT);
+	  tem = expand_binop (word_mode,
+			      op1 == const0_rtx ? ior_optab : and_optab,
+			      op00, op01, NULL_RTX, unsignedp,
+			      OPTAB_DIRECT);
 
-	  if (op0both != 0)
-	    return emit_store_flag (target, code, op0both, op1, word_mode,
-				    unsignedp, normalizep);
+	  if (tem != 0)
+	    tem = emit_store_flag (NULL_RTX, code, tem, op1, word_mode,
+				   unsignedp, normalizep);
 	}
       else if ((code == LT || code == GE) && op1 == const0_rtx)
 	{
@@ -5330,8 +5329,24 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	  op0h = simplify_gen_subreg (word_mode, op0, mode,
 				      subreg_highpart_offset (word_mode,
 							      mode));
-	  return emit_store_flag (target, code, op0h, op1, word_mode,
-				  unsignedp, normalizep);
+	  tem = emit_store_flag (NULL_RTX, code, op0h, op1, word_mode,
+				 unsignedp, normalizep);
+	}
+      else
+	tem = NULL_RTX;
+
+      if (tem)
+	{
+	  if (target_mode == VOIDmode || GET_MODE (tem) == target_mode)
+	    return tem;
+	  if (!target)
+	    target = gen_reg_rtx (target_mode);
+
+	  convert_move (target, tem,
+			0 == (STORE_FLAG_VALUE
+			      & ((HOST_WIDE_INT) 1
+				 << (GET_MODE_BITSIZE (word_mode) -1))));
+	  return target;
 	}
     }
 
@@ -5390,15 +5405,15 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
      if (icode != CODE_FOR_nothing)
 	{
 	  do_pending_stack_adjust ();
-	  tem = emit_store_flag_1 (target, icode, code, mode, compare_mode,
-				   unsignedp, op0, op1, normalizep);
+	  tem = emit_cstore (target, icode, code, mode, compare_mode,
+			     unsignedp, op0, op1, normalizep, target_mode);
 	  if (tem)
 	    return tem;
 
 	  if (GET_MODE_CLASS (mode) == MODE_FLOAT)
 	    {
-	      tem = emit_store_flag_1 (target, icode, scode, mode, compare_mode,
-				       unsignedp, op1, op0, normalizep);
+	      tem = emit_cstore (target, icode, scode, mode, compare_mode,
+				 unsignedp, op1, op0, normalizep, target_mode);
 	      if (tem)
 	        return tem;
 	    }
@@ -5406,7 +5421,37 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	}
     }
 
-  last = get_last_insn ();
+  return 0;
+}
+
+/* Emit a store-flags instruction for comparison CODE on OP0 and OP1
+   and storing in TARGET.  Normally return TARGET.
+   Return 0 if that cannot be done.
+
+   MODE is the mode to use for OP0 and OP1 should they be CONST_INTs.  If
+   it is VOIDmode, they cannot both be CONST_INT.
+
+   UNSIGNEDP is for the case where we have to widen the operands
+   to perform the operation.  It says to use zero-extension.
+
+   NORMALIZEP is 1 if we should convert the result to be either zero
+   or one.  Normalize is -1 if we should convert the result to be
+   either zero or -1.  If NORMALIZEP is zero, the result will be left
+   "raw" out of the scc insn.  */
+
+rtx
+emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
+		 enum machine_mode mode, int unsignedp, int normalizep)
+{
+  enum machine_mode target_mode = target ? GET_MODE (target) : VOIDmode;
+  enum rtx_code rcode;
+  rtx subtarget;
+  rtx tem, last, trueval;
+
+  tem = emit_store_flag_1 (target, code, op0, op1, mode, unsignedp, normalizep,
+			   target_mode);
+  if (tem)
+    return tem;
 
   /* If we reached here, we can't do this with a scc insn, however there
      are some comparisons that can be done in other ways.  Don't do any
@@ -5429,6 +5474,8 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
       else
 	return 0;
     }
+
+  last = get_last_insn ();
 
   /* If optimizing, use different pseudo registers for each insn, instead
      of reusing the same pseudo.  This leads to better CSE, but slows
@@ -5454,8 +5501,8 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	  if ((STORE_FLAG_VALUE == 1 && normalizep == -1)
 	      || (STORE_FLAG_VALUE == -1 && normalizep == 1))
 	    {
-	      tem = emit_store_flag (subtarget, rcode, op0, op1, mode, 0,
-				     STORE_FLAG_VALUE);
+	      tem = emit_store_flag_1 (subtarget, rcode, op0, op1, mode, 0,
+				       STORE_FLAG_VALUE, target_mode);
 	      if (tem)
                 return expand_binop (target_mode, add_optab, tem,
 				     GEN_INT (normalizep),
@@ -5463,8 +5510,8 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	    }
 	  else
 	    {
-	      tem = emit_store_flag (subtarget, rcode, op0, op1, mode, 0,
-				     normalizep);
+	      tem = emit_store_flag_1 (subtarget, rcode, op0, op1, mode, 0,
+				       normalizep, target_mode);
 	      if (tem)
                 return expand_binop (target_mode, xor_optab, tem, trueval,
 				     target, INTVAL (trueval) >= 0, OPTAB_WIDEN);
@@ -5484,13 +5531,15 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
       if (!HONOR_NANS (mode))
 	{
           gcc_assert (first_code == (and_them ? ORDERED : UNORDERED));
-	  return emit_store_flag (target, code, op0, op1, mode, 0, normalizep);
+	  return emit_store_flag_1 (target, code, op0, op1, mode, 0, normalizep,
+				    target_mode);
 	}
 
 #ifdef HAVE_conditional_move
       /* Try using a setcc instruction for ORDERED/UNORDERED, followed by a
 	 conditional move.  */
-      tem = emit_store_flag (subtarget, first_code, op0, op1, mode, 0, normalizep);
+      tem = emit_store_flag_1 (subtarget, first_code, op0, op1, mode, 0,
+			       normalizep, target_mode);
       if (tem == 0)
 	return 0;
 
@@ -5528,8 +5577,8 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	tem = expand_binop (mode, sub_optab, op0, op1, subtarget, 1,
 			    OPTAB_WIDEN);
       if (tem != 0)
-	tem = emit_store_flag (target, code, tem, const0_rtx,
-			       mode, unsignedp, normalizep);
+	tem = emit_store_flag_1 (target, code, tem, const0_rtx,
+			         mode, unsignedp, normalizep, target_mode);
       if (tem != 0)
 	return tem;
 
@@ -5550,16 +5599,16 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
       if ((STORE_FLAG_VALUE == 1 && normalizep == -1)
 	  || (STORE_FLAG_VALUE == -1 && normalizep == 1))
 	{
-	  tem = emit_store_flag (subtarget, rcode, op0, op1, mode, 0,
-				 STORE_FLAG_VALUE);
+	  tem = emit_store_flag_1 (subtarget, rcode, op0, op1, mode, 0,
+				   STORE_FLAG_VALUE, target_mode);
 	  if (tem != 0)
             tem = expand_binop (target_mode, add_optab, tem,
 				GEN_INT (normalizep), target, 0, OPTAB_WIDEN);
 	}
       else
 	{
-	  tem = emit_store_flag (subtarget, rcode, op0, op1, mode, 0,
-				 normalizep);
+	  tem = emit_store_flag_1 (subtarget, rcode, op0, op1, mode, 0,
+				   normalizep, target_mode);
 	  if (tem != 0)
             tem = expand_binop (target_mode, xor_optab, tem, trueval, target,
 				INTVAL (trueval) >= 0, OPTAB_WIDEN);

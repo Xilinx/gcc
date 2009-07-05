@@ -33,6 +33,7 @@
 #include "ggc.h"
 #include "target.h"
 #include "expr.h"
+#include "tree-inline.h"
 
 #include "ada.h"
 #include "types.h"
@@ -2627,12 +2628,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		  gcc_assert (!TYPE_ACTUAL_BOUNDS (gnu_inner_type));
 #endif
 		}
-
-	      /* ??? This is necessary to make sure that the container is
-		 allocated with a null tree upfront; otherwise, it could
-		 be allocated with an uninitialized tree that is accessed
-		 before being set below.  See ada-tree.h for details.  */
-	      SET_TYPE_ACTUAL_BOUNDS (gnu_inner_type, NULL_TREE);
 
 	      for (gnat_index = First_Index (gnat_entity);
 		   Present (gnat_index); gnat_index = Next_Index (gnat_index))
@@ -7189,6 +7184,15 @@ annotate_value (tree gnu_size)
     case GE_EXPR:		tcode = Ge_Expr; break;
     case EQ_EXPR:		tcode = Eq_Expr; break;
     case NE_EXPR:		tcode = Ne_Expr; break;
+
+    case CALL_EXPR:
+      {
+	tree t = maybe_inline_call_in_expr (gnu_size);
+	if (t)
+	  return annotate_value (t);
+      }
+
+      /* Fall through... */
 
     default:
       return No_Uint;

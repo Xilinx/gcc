@@ -1,3 +1,517 @@
+2009-07-04  Ian Lance Taylor  <iant@google.com>
+
+	PR target/40636
+	* config/i386/msformat-c.c (mingw_format_attributes): Declare as
+	EXPORTED_CONST.
+	(mingw_format_attribute_overrides): Likewise.
+
+2009-07-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/40596
+	* dwarf2out.c (based_loc_descr): For crtl->stack_realign_tried
+	don't check cfa.reg.  Instead of cfa.indirect use
+	fde && fde->drap_reg != INVALID_REGNUM test.
+
+2009-07-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* postreload.c (reload_combine): Replace CONST_REG with INDEX_REG.
+
+2009-07-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/40587
+	* ira.c (build_insn_chain): Use DF_LR_OUT instead of
+	df_get_live_out.
+	
+2009-07-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40640
+	* tree-switch-conversion.c (build_arrays): Perform arithmetic
+	in original type.
+
+2009-07-03  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.c (cgraph_decide_inlining_incrementally): When optimizing
+	for size, reduce amount of inlining.
+
+2009-07-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34163
+	* tree-chrec.c (chrec_convert_1): Fold (T2)(t +- x) to
+	(T2)t +- (T2)x if t +- x is known to not overflow and
+	the conversion widens the operation.
+	* Makefile.in (tree-chrec.o): Add $(FLAGS_H) dependency.
+
+2009-07-03  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-pure-const.c (analyze): Update loop optimizer init.
+	* tree-ssa-loop-iv-canon.c (empty_loop_p, remove_empty_loop,
+	try_remove_empty_loop, remove_empty_loops): Remove.
+	* tree-ssa-loop.c (tree_ssa_empty_loop, pass_empty_loop): Remove.
+	* tree-ssa-dce.c (find_obviously_necessary_stmts): Use finiteness info
+	to mark regular loops as neccesary.
+	(degenerate_phi_p): New function.
+	(propagate_necessity, remove_dead_phis): Use it.
+	(forward_edge_to_pdom): Likewise.
+	(eliminate_unnecessary_stmts): Take care to remove uses of results of
+	virtual PHI nodes that became unreachable.
+	(perform_tree_ssa_dce): Initialize/deinitialize loop optimizer.
+	* tree-flow.h (remove_empty_loops): Remove.
+	* passes.c (init_optimization_passes): Remove.
+
+2009-07-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (fix_trunc<mode>_fisttp_i387_1): Use
+	can_create_pseudo_p.
+	(*fix_trunc<mode>_i387_1): Ditto.
+	(*floathi<mode>2_1): Ditto.
+	(*float<SSEMODEI24:mode><X87MODEF:mode>2_1): Ditto.
+	(*fistdi2_1): Ditto.
+	(*fist<mode>2_1): Ditto.
+	(frndintxf2_floor): Ditto.
+	(*fist<mode>2_floor_1): Ditto.
+	(frndintxf2_ceil): Ditto.
+	(*fist<mode>2_ceil_1): Ditto.
+	(frndintxf2_trunc): Ditto.
+	(frndintxf2_mask_pm): Ditto.
+	(fxam<mode>2_i387_with_temp): Ditto.
+	* config/i386/sse.md (mulv16qi3): Ditto.
+	(*sse2_mulv4si3): Ditto.
+	(mulv2di3): Ditto.
+	(sse4_2_pcmpestr): Ditto.
+	(sse4_2_pcmpistr): Ditto.
+
+2009-07-03  Jan Hubicka  <jh@suse.cz>
+
+	* tree-ssa-dce.c (bb_contains_live_stmts): New bitmap.
+	(mark_stmt_necessary): Set it.
+	(mark_operand_necessary): Set it.
+	(mark_control_dependent_edges_necessary): Set it.
+	(mark_virtual_phi_result_for_renaming): New function.
+	(get_live_post_dom): New function.
+	(forward_edge_to_pdom): New function.
+	(remove_dead_stmt): Fix handling of control dependences.
+	(tree_dce_init): Init new bitmap.
+	(tree_dce_done): Free it.
+
+2009-07-02  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/40617
+	* tree-ssa-structalias.c (new_var_info): Initialize
+	is_restrict_var.
+
+2009-07-02  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-pure-const.c (check_op): Use PTA info to see if indirect_ref is
+	local.
+
+2009-07-02  Paolo Bonzini  <bonzini@gnu.org>
+
+	* expmed.c (emit_cstore, emit_store_flag_1): Accept target_mode
+	instead of recomputing it.  Adjust calls.
+	(emit_store_flag): Adjust recursive calls.
+
+2009-07-02  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-live.c (remove_unused_locals): Do not remove
+	heap variables.
+	* tree-ssa-structalias.c (handle_lhs_call): Delay setting
+	of DECL_EXTERNAL for HEAP variables.
+	(compute_points_to_sets): Set DECL_EXTERNAL for escaped
+	HEAP variables.  Do not adjust RESTRICT vars.
+	(find_what_var_points_to): Nobody cares if something
+	points to READONLY.
+
+2009-07-02  Ben Elliston  <bje@au.ibm.com>
+
+	* unwind-dw2-fde-glibc.c (_Unwind_IteratePhdrCallback): Move
+	pc_low and pc_high declarations to the top of the function.
+
+2009-07-01  DJ Delorie  <dj@redhat.com>
+
+	* config/mep/mep.c (mep_handle_option): Leave IVC2 control
+	registers as fixed.
+	(mep_interrupt_saved_reg): Save appropriate IVC2 control registers.
+	* config/mep/mep-ivc2.cpu: Add VOLATILE to insns that make
+	unspecified accesses to control registers.
+	* config/mep/intrinsics.md: Regenerate.
+	* config/mep/intrinsics.h: Regenerate.
+	* config/mep/mep-intrin.h: Regenerate.
+	
+2009-07-01  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/moxie.c (moxie_expand_prologue): Use dec
+	instruction when possible.
+	(moxie_expand_prologue): Ditto.  Also, save an instruction and
+	some complexity by popping off of $r12 instead of $sp.  
+	* config/moxie/moxie.md (movsi_pop): Don't assume $sp.  Take two
+	operands.
+	
+2009-07-01  Richard Henderson  <rth@redhat.com>
+
+	PR bootstrap/40347
+	* function.c (reposition_prologue_and_epilogue_notes): If epilogue
+	contained no insns, reposition note before last insn.
+
+2009-07-01  Richard Henderson  <rth@redhat.com>
+
+	PR debug/40431
+	* dwarf2out.c (def_cfa_1): Revert 2009-06-11 change for
+	DW_CFA_def_cfa_offset and DW_CFA_def_cfa.
+
+2009-07-01  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR bootstrap/40558
+	* config/rs6000/rs6000.c (print_operand): Undo change that breaks
+	darwin9 for printing reg addresses with %y.
+
+2009-07-01  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* combine.c (force_to_mode): Handle TRUNCATE.  Factor out
+	truncation from operands in binary operations.
+
+2009-07-01  Adam Nemet  <anemet@caviumnetworks.com>
+
+	Revert:
+	2009-01-11  Adam Nemet  <anemet@caviumnetworks.com>
+	* expmed.c (store_bit_field_1): Properly truncate the paradoxical
+	subreg of op0 to the original op0.
+
+	* expmed.c (store_bit_field_1): Use a temporary as the destination
+	instead of a paradoxical subreg when we need to truncate the result.
+
+2009-07-01  DJ Delorie  <dj@redhat.com>
+
+	* config/mep/mep-ivc2.cpu (cmov, cmovc, cmovh): Add intrinsic
+	names to VLIW variants.
+	(ivc2rm, ivc2crn): Make data type consistent with non-VLIW variants.
+	* config/mep/intrinsics.md: Regenerate.
+	* config/mep/intrinsics.h: Regenerate.
+	* config/mep/mep-intrin.h: Regenerate.
+
+2009-07-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/40462
+	* jump.c (returnjump_p): Revert last patch.
+	* dwarf2out.c (dwarf2out_begin_epilogue): Handle SEQUENCEs.
+
+2009-07-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/40575
+	* pa.md (casesi32p): Use jump table label to determine the offset
+	of the jump table.
+	(casesi64p): Likewise.
+
+	* pa.c (forward_branch_p): Return bool type.  Use instruction
+	addresses when available.  Assert that INSN has a jump label.
+	(pa_adjust_insn_length): Don't call forward_branch_p if INSN doesn't
+	have a jump label.
+
+2009-07-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/19831
+	* tree-ssa-dce.c (propagate_necessity): Calls to functions
+	that only act as barriers do not make any previous stores necessary.
+	* tree-ssa-structalias.c (handle_lhs_call): Delay making
+	HEAP variables global, do not add a constraint from nonlocal.
+	(find_func_aliases): Handle escapes through return statements.
+	(compute_points_to_sets): Make escaped HEAP variables global.
+
+2009-07-01  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/40597
+	* expmed.c (emit_store_flag): Perform a conversion if necessary,
+	after reducing a DImode cstore to SImode.
+
+2009-07-01  Paolo Bonzini  <bonzini@gnu.org>
+
+	* expr.c (expand_expr_real_1): Reinstate fallthrough to
+	TRUTH_ANDIF_EXPR if do_store_flag returns NULL.
+
+2009-07-01  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* config/vax/vax.h (TARGET_BSD_DIVMOD): New macro.  Set to 1.
+	* config/vax/linux.h (TARGET_BSD_DIVMOD): New macro.  Redefine the
+	to 0.
+	* config/vax/vax.c (vax_init_libfuncs): Only redefine udiv_optab
+	and umod_optab if TARGET_BSD_DIVMOD.
+	* config/vax/lib1funcs.asm: New file.
+	* config/vax/t-linux: New file.
+	* config.gcc (vax-*-linux*): Set tmake_file to vax/t-linux.
+
+2009-06-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/40566
+	* convert.c (convert_to_integer) <case COND_EXPR>: Don't convert
+	to type arguments that have void type.
+
+	PR debug/40573
+	* dwarf2out.c (gen_formal_parameter_die): Call
+	equate_decl_number_to_die if node is different from origin.
+
+2009-06-30  Anthony Green  <green@moxielogic.com>
+
+	Clean up moxie port for --enable-build-with-cxx.
+	* config/moxie/moxie.c (moxie_function_value): First two
+	parameters are const_tree, not tree.
+	* config/moxie/moxie.h (enum reg_class): Rename CC_REG to CC_REGS.
+	(REG_CLASS_NAMES): Ditto.
+	(REGNO_REG_CLASS): Ditto.
+	* config/moxie/moxie-protos.h (moxie_override_options): Declare.
+	(moxie_function_value): Fix constyness of arguments.
+
+2009-06-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cgraphunit.c (cgraph_finalize_compilation_unit): Call
+	finalize_size_functions before further processing.
+	* stor-layout.c: Include cgraph.h, tree-inline.h and tree-dump.h.
+	(variable_size): Call self_referential_size on size expressions
+	that contain a PLACEHOLDER_EXPR.
+	(size_functions): New static variable.
+	(copy_self_referential_tree_r): New static function.
+	(self_referential_size): Likewise.
+	(finalize_size_functions): New global function.
+	* tree.c: Include tree-inline.h.
+	(push_without_duplicates): New static function.
+	(find_placeholder_in_expr): New global function.
+	(substitute_in_expr) <tcc_declaration>: Return the replacement object
+	on equality.
+	<tcc_expression>: Likewise.
+	<tcc_vl_exp>: If the replacement object is a constant, try to inline
+	the call in the expression.
+	* tree.h (finalize_size_functions): Declare.
+	(find_placeholder_in_expr): Likewise.
+	(FIND_PLACEHOLDER_IN_EXPR): New macro.
+	(substitute_placeholder_in_expr): Update comment.
+	* tree-inline.c (remap_decl): Do not unshare trees if do_not_unshare
+	is true.
+	(copy_tree_body_r): Likewise.
+	(copy_tree_body): New static function.
+	(maybe_inline_call_in_expr): New global function.
+	* tree-inline.h (struct copy_body_data): Add do_not_unshare field.
+	(maybe_inline_call_in_expr): Declare.
+	* Makefile.in (tree.o): Depend on TREE_INLINE_H.
+	(stor-layout.o): Depend on CGRAPH_H, TREE_INLINE_H, TREE_DUMP_H and
+	GIMPLE_H.
+
+2009-06-30  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-dce.c (mark_all_reaching_defs_necessary_1): Always
+	continue walking.
+	(propagate_necessity): Do not mark reaching defs of stores
+	as necessary.
+
+2009-06-30  Jan Hubicka  <jh@suse.cz>
+
+	* cfgloopanal.c (check_irred): Move into ...
+	(mark_irreducible_loops): ... here; return true if ireducible
+	loops was found.
+	* ipa-pure-const.c: Include cfgloop.h and tree-scalar-evolution.h
+	(analyze_function): Try to prove loop finiteness.
+	* cfgloop.h (mark_irreducible_loops): Update prototype.
+	* Makefile.in (ipa-pure-const.o): Add dependency on SCEV and CFGLOOP.
+
+2009-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (PLUGIN_HEADERS): added ggc, tree-dump, pretty-print.
+
+2009-06-30  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/40542
+	* tree-vect-stmts.c (vect_analyze_stmt): Don't vectorize volatile 
+	types.
+
+2009-06-30  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/40582
+	* tree-sra.c (build_ref_for_offset_1): Use types_compatible_p rather
+	than useless_type_conversion_p.
+	(generate_subtree_copies): Increment sra_stats.subtree_copies at a
+	proper place.
+
+2009-06-30  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/40554
+	* tree-sra.c (sra_modify_expr): Add access->offset to start_offset.
+
+2009-06-30  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-alias.c (walk_aliased_vdefs_1): Change interface to
+	use ao_ref references.
+	(walk_aliased_vdefs): Likewise.
+	* tree-ssa-alias.h (walk_aliased_vdefs): Adjust prototype.
+	* tree-ssa-dce.c (struct ref_data): Remove.
+	(mark_aliased_reaching_defs_necessary_1): Use the ao_ref argument.
+	(mark_aliased_reaching_defs_necessary): Adjust.
+	(mark_all_reaching_defs_necessary_1): Likewise.
+
+2009-06-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR boostrap/40597
+	* expmed.c (emit_cstore): New name of emit_store_flag_1.
+	(emit_store_flag_1): Extract from emit_store_flag, adjust
+	calls to (what now is) emit_cstore.
+	(emit_store_flag): Call emit_store_flag_1 and also use it
+	for what used to be recursive calls.
+
+2009-06-30  Wei Guozhi  <carrot@google.com>
+
+	PR/40416
+	* tree-ssa-sink.c (statement_sink_location): Stop sinking expression
+	if the target bb post dominates from bb.
+	* config/i386/i386.c (memory_address_length): Check existence of base
+	register before using it.
+
+2009-06-29  DJ Delorie  <dj@redhat.com>
+
+	* doc/install.texi (mep-x-elf): Correct chip's full name.
+
+2009-06-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/extend.texi: Fix typo.
+
+2009-06-29  Tom Tromey  <tromey@redhat.com>
+
+	* dwarf2.h: Remove.
+	* Makefile.in (DWARF2_H): New variable.
+	(except.o): Use it.
+	(dwarf2out.o): Likewise.
+	(dwarf2asm.o): Likewise.
+	* config/i386/t-i386: Use DWARF2_H.
+	* except.c: Include elf/dwarf2.h.
+	* unwind-dw2.c: Include elf/dwarf2.h.
+	* dwarf2out.c: Include elf/dwarf2.h.
+	(dw_loc_descr_struct) <dw_loc_opc>: Now a bitfield.
+	<dtprel>: New field.
+	(dwarf_stack_op_name): Don't handle INTERNAL_DW_OP_tls_addr.
+	(size_of_loc_descr): Likewise.
+	(output_loc_operands_raw): Likewise.
+	(output_loc_operands): Handle new dtprel field.
+	(loc_checksum): Update.
+	(loc_descriptor_from_tree_1) <VAR_DDECL>: Set dtprel field.
+	* unwind-dw2-fde-glibc.c: Include elf/dwarf2.h.
+	* unwind-dw2-fde.c: Include elf/dwarf2.h.
+	* dwarf2asm.c: Include elf/dwarf2.h.
+	* unwind-dw2-fde-darwin.c: Include elf/dwarf2.h.
+	* config/mmix/mmix.c: Include elf/dwarf2.h.
+	* config/rs6000/darwin-fallback.c: Include elf/dwarf2.h.
+	* config/xtensa/unwind-dw2-xtensa.c: Include elf/dwarf2.h.
+	* config/sh/sh.c: Include elf/dwarf2.h.
+	* config/i386/i386.c: Include elf/dwarf2.h.
+
+2009-06-29  DJ Delorie  <dj@redhat.com>
+
+	* config/mep/mep.h (CPP_SPEC): Remove __cop macro.
+
+	* doc/extend.texi: Add MeP attributes and pragmas.
+	* doc/invoke.text: Add MeP Options.
+	* doc/contrib.texi: Add MeP contribution.
+	* doc/md.texi: Add MeP constraints.
+	* doc/install.texi: Add MeP target.
+
+2009-06-30  Anatoly Sokolov  <aesok@post.ru>
+
+	* target.h (struct gcc_target): Add frame_pointer_required field.
+	* target-def.h (TARGET_FRAME_POINTER_REQUIRED): New.
+	(TARGET_INITIALIZER): Use TARGET_FRAME_POINTER_REQUIRED.
+	* ira.c (setup_eliminable_regset): Use frame_pointer_required target
+	hook.
+	* reload1.c (update_eliminables): (Ditto.).
+	* gcc/system.h (FRAME_POINTER_REQUIRED): Poison.
+	* doc/tm.texi (FRAME_POINTER_REQUIRED): Revise documentation.
+	(INITIAL_FRAME_POINTER_OFFSET): (Ditto.).
+
+	* config/arc/arc.h (FRAME_POINTER_REQUIRED): Remove macro.
+
+	* config/arm/arm.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/arm/arm.c (TARGET_FRAME_POINTER_REQUIRED): Define.
+	(arm_frame_pointer_required): New function.
+
+	* config/avr/avr.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/avr/avr.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+	(avr_frame_pointer_required_p): Declare as static.
+	* config/avr/avr-protos.h (avr_frame_pointer_required_p): Remove.
+
+	* config/bfin/bfin.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/bfin/bfin.c (TARGET_FRAME_POINTER_REQUIRED): Define.
+	(bfin_frame_pointer_required): Make as static, change return type
+	to bool.
+	* config/bfin/bfin-protos.h (bfin_frame_pointer_required): Remove.
+
+	* config/cris/cris.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/cris/cris.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+	(cris_frame_pointer_required): New function.
+	
+	* config/crx/crx.h (FRAME_POINTER_REQUIRED): Remove macro.
+
+	* config/fr30/fr30.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/fr30/fr30.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+	(fr30_frame_pointer_required): New function.
+	
+	* config/frv/frv.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/frv/frv.c (TARGET_FRAME_POINTER_REQUIRED): Define.
+	(frv_frame_pointer_required): Make as static, change return type
+	to bool.
+	* config/bfin/bfin-protos.h (frv_frame_pointer_required): Remove.
+
+	* config/i386/i386.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/i386/i386.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+	(ix86_frame_pointer_required): Make as static, change return type to
+	bool.
+	* config/i386/i386-protos.h (ix86_frame_pointer_required): Remove.
+
+	* config/m32c/m32c.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/m32c/m32c.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+
+	* config/m32r/m32r.h (FRAME_POINTER_REQUIRED): Remove macro.
+
+	* config/mcore/mcore.h (CAN_ELIMINATE): Remove macro.
+	
+	* config/mep/mep.h (FRAME_POINTER_REQUIRED): Remove macro.
+
+	* config/mips/mips.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/mips/mips.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+	(mips_frame_pointer_required): Make as static.
+	* config/mips/mips-protos.h (mips_frame_pointer_required): Remove.
+	
+	* config/mmix/mmix.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/mmix/mmix.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+	(mmix_frame_pointer_required): Mew function.
+
+	* config/moxie/moxie.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/moxie/moxie.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+
+	* config/pa/pa.h (FRAME_POINTER_REQUIRED): Remove macro.
+
+	* config/score/score.h (FRAME_POINTER_REQUIRED): Remove macro.
+
+	* config/sh/sh.h (CAN_ELIMINATE): Remove macro.
+
+	* config/sparc/sparc.h (FRAME_POINTER_REQUIRED): Remove macro.
+	(CAN_ELIMINATE): Redefine.
+	* config/sparc/sparc.c (TARGET_FRAME_POINTER_REQUIRED): Define macro.
+	(sparc_frame_pointer_required): New function.
+	(sparc_can_eliminate): New function.
+	* config/sparc/sparc-protos.h (sparc_can_eliminate): Declare.
+
+	* config/vax/vax.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/vax/vax.c (TARGET_FRAME_POINTER_REQUIRED): Define.
+
+	* config/xtensa/xtensa.h (FRAME_POINTER_REQUIRED): Remove macro.
+	* config/xtensa/xtensa.c (TARGET_FRAME_POINTER_REQUIRED): Define.
+	(xtensa_frame_pointer_required): Make as static, change return type
+	to bool.
+	* config/xtensa/xtensa-protos.h (xtensa_frame_pointer_required):
+	Remove.
+
+2009-06-29  Olatunji Ruwase  <tjruwase@google.com>
+
+	* doc/plugins.texi: Document PLUGIN_START_UNIT.
+	* toplev.c (compile_file): Call PLUGIN_START_UNIT.
+	* gcc-plugin.h (PLUGIN_START_UNIT): Added new event.
+	* plugin.c (plugin_event_name): Added PLUGIN_START_UNIT.
+	(register_callback): Handle PLUGIN_START_UNIT.
+	(invoke_plugin_callbacks): Handle PLUGIN_START_UNIT.
+
 2009-06-29  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* tree.c (process_call_operands): Propagate TREE_READONLY from the
@@ -386,6 +900,19 @@
 2009-06-25  Michael Meissner  <meissner@linux.vnet.ibm.com>
 	    Pat Haugen  <pthaugen@us.ibm.com>
 	    Revital Eres <ERES@il.ibm.com>
+
+	* config/rs6000/rs6000.c (print_operand): Correct lossage message
+	for %c error.  Add %x support to print VSX registers as a unified
+	register set, instead of separate float and altivec registers.
+	Switch to use VECTOR_MEM_ALTIVEC_P instead of TARGET_ALTIVEC for
+	%y case, and add support for VSX pre-modify addresses.
+	(output_toc): Add assert for CONST containing an integer constant
+	in the PLUS case.
+	(rs6000_adjust_cost): Add POWER7 support.
+	(insn_must_be_first_in_group): Ditto.
+	(insn_must_be_last_in_group): Ditto.
+	(rs6000_emit_popcount): Ditto.
+	(rs6000_vector_mode_supported_p): Ditto.
 
 	* config/rs6000/rs6000-protos.h (rs6000_secondary_reload_class):
 	Change some of the functions called by macros to being called
