@@ -471,6 +471,14 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
           local->looping = true;
 	}
       return;
+    case GIMPLE_RETURN:
+      if (DECL_IS_IFUNC (current_function_decl))
+	{
+	  if (dump_file)
+	    fprintf (dump_file, "    Indirect function is not const/pure");
+	  local->pure_const_state = IPA_NEITHER;
+	}
+      break;
     default:
       break;
     }
