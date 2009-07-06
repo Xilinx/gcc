@@ -120,7 +120,7 @@ GTM_rollback_transaction (void)
 }
 
 void REGPARM
-_ITM_rollbackTransaction (_ITM_SRCLOCATION_DEFN_1)
+_ITM_rollbackTransaction (void)
 {
   assert ((gtm_thr.tx->prop & pr_hasNoAbort) == 0);
   assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
@@ -130,7 +130,7 @@ _ITM_rollbackTransaction (_ITM_SRCLOCATION_DEFN_1)
 }
 
 void REGPARM
-_ITM_abortTransaction (_ITM_abortReason reason _ITM_SRCLOCATION_DEFN_2)
+_ITM_abortTransaction (_ITM_abortReason reason)
 {
   struct gtm_transaction *tx;
 
@@ -170,7 +170,7 @@ GTM_trycommit_transaction (void)
 }
 
 bool REGPARM
-_ITM_tryCommitTransaction (_ITM_SRCLOCATION_DEFN_1)
+_ITM_tryCommitTransaction (void)
 {
   assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
   return GTM_trycommit_transaction ();
@@ -193,7 +193,7 @@ GTM_restart_transaction (enum restart_reason r)
 }
 
 void REGPARM
-_ITM_commitTransaction(_ITM_SRCLOCATION_DEFN_1)
+_ITM_commitTransaction(void)
 {
   struct gtm_transaction *tx = gtm_thr.tx;
 

@@ -11,6 +11,7 @@ LIBITM_1.0 {
 	_ITM_getTransactionId;
 	_ITM_inTransaction;
 	_ITM_libraryVersion;
+	_ITM_registerThrownObject;
 	_ITM_rollbackTransaction;
 	_ITM_tryCommitTransaction;
 	_ITM_versionCompatible;

@@ -1,3 +1,12 @@
+2009-07-06  Richard Henderson  <rth@redhat.com>
+
+	* libitm.h (_ITM_SRCLOCATION_DECL_1, _ITM_SRCLOCATION_DECL_2): Remove.
+	(_ITM_SRCLOCATION_DEFN_1, _ITM_SRCLOCATION_DEFN_2): Remove.
+	(_ITM_beginTransaction): Take variadic arguments.
+	(_ITM_registerThrownObject): Declare.
+	* beginend.c, serial.c: Update.
+	* libitm.map: Add _ITM_registerThrownObject.
+
 2009-01-28  Richard Henderson  <rth@redhat.com>
 
 	* Makefile.am (libitm_la_SOURCES): Add clone.c.

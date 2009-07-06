@@ -138,8 +138,7 @@ GTM_serialmode (bool initial, bool irrevokable)
 
 
 void REGPARM
-_ITM_changeTransactionMode (_ITM_transactionState state
-			    _ITM_SRCLOCATION_DEFN_2)
+_ITM_changeTransactionMode (_ITM_transactionState state)
 {
   assert (state == modeSerialIrrevocable);
   GTM_serialmode (false, true);

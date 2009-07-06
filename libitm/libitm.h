@@ -82,24 +82,29 @@ typedef enum
     inIrrevocableTransaction
 } _ITM_howExecuting;
 
-/* Values to describe properties of code, passed in to startTransaction */
+/* Values to describe properties of code, passed in to beginTransaction */
 typedef enum
 {
-   pr_instrumentedCode    = 0x0001,
-   pr_uninstrumentedCode  = 0x0002,
-   pr_multiwayCode        = pr_instrumentedCode | pr_uninstrumentedCode,
-   pr_hasNoXMMUpdate      = 0x0004,
-   pr_hasNoAbort          = 0x0008,
-   pr_hasNoRetry          = 0x0010,
-   pr_hasNoIrrevocable    = 0x0020,
-   pr_doesGoIrrevocable   = 0x0040,
-   pr_hasNoSimpleReads    = 0x0080,
-   pr_aWBarriersOmitted   = 0x0100,
-   pr_RaRBarriersOmitted  = 0x0200,
-   pr_undoLogCode         = 0x0400,
-   pr_preferUninstrumented=0x0800,
-   pr_exceptionBlock      = 0x1000,
-   pr_hasElse             = 0x2000,
+   pr_instrumentedCode		= 0x0001,
+   pr_uninstrumentedCode	= 0x0002,
+   pr_multiwayCode		= pr_instrumentedCode | pr_uninstrumentedCode,
+   /* Called pr_hasNoXMMUpdate in the Intel document, used for
+      avoiding vector register save/restore for any target.  */
+   pr_hasNoVectorUpdate		= 0x0004,
+   pr_hasNoAbort		= 0x0008,
+   /* Not present in the Intel document, used for avoiding
+      floating point register save/restore for any target.  */
+   pr_hasNoFloatUpdate		= 0x0010,
+   pr_hasNoIrrevocable		= 0x0020,
+   pr_doesGoIrrevocable		= 0x0040,
+   pr_aWBarriersOmitted		= 0x0100,
+   pr_RaRBarriersOmitted	= 0x0200,
+   pr_undoLogCode		= 0x0400,
+   pr_preferUninstrumented	= 0x0800,
+   pr_exceptionBlock		= 0x1000,
+   pr_readOnly			= 0x4000,
+   pr_hasElse			= 0x200000,
+   pr_hasNoSimpleReads		= 0x400000
 } _ITM_codeProperties;
 
 /* Result from startTransaction that describes what actions to take.  */
@@ -121,19 +126,6 @@ typedef struct
     const char *psource;
 } _ITM_srcLocation;
 
-/* ??? Under discussion whether we should have these.  */
-#if 0
-# define _ITM_SRCLOCATION_DECL_1	const _ITM_srcLocation *
-# define _ITM_SRCLOCATION_DECL_2	, const _ITM_srcLocation *
-# define _ITM_SRCLOCATION_DEFN_1	const _ITM_srcLocation * loc UNUSED
-# define _ITM_SRCLOCATION_DEFN_2	, const _ITM_srcLocation * loc UNUSED
-#else
-# define _ITM_SRCLOCATION_DECL_1	void
-# define _ITM_SRCLOCATION_DECL_2
-# define _ITM_SRCLOCATION_DEFN_1	void
-# define _ITM_SRCLOCATION_DEFN_2
-#endif
-
 typedef void (* _ITM_userUndoFunction)(void *);
 typedef void (* _ITM_userCommitFunction) (void *);
 
@@ -147,23 +139,22 @@ void _ITM_error(const _ITM_srcLocation *, int errorCode) REGPARM NORETURN;
  
 extern _ITM_howExecuting _ITM_inTransaction(void) REGPARM;
 
-typedef uint32_t _ITM_transactionId_t;	/* Transaction identifier */
+typedef uint64_t _ITM_transactionId_t;	/* Transaction identifier */
 #define _ITM_noTransactionId 1		/* Id for non-transactional code. */
 
 extern _ITM_transactionId_t _ITM_getTransactionId(void) REGPARM;
 
-extern uint32_t _ITM_beginTransaction(uint32_t _ITM_SRCLOCATION_DECL_2)
-	REGPARM;
+extern uint32_t _ITM_beginTransaction(uint32_t, ...) REGPARM;
 
-extern void _ITM_abortTransaction(_ITM_abortReason _ITM_SRCLOCATION_DECL_2)
-	REGPARM NORETURN;
-extern void _ITM_rollbackTransaction (_ITM_SRCLOCATION_DECL_1) REGPARM;
+extern void _ITM_abortTransaction(_ITM_abortReason) REGPARM NORETURN;
+extern void _ITM_rollbackTransaction (void) REGPARM;
 
-extern void _ITM_commitTransaction (_ITM_SRCLOCATION_DECL_1) REGPARM;
-extern bool _ITM_tryCommitTransaction(_ITM_SRCLOCATION_DECL_1) REGPARM;
+extern void _ITM_commitTransaction (void) REGPARM;
+extern bool _ITM_tryCommitTransaction(void) REGPARM;
 
-extern void _ITM_changeTransactionMode (_ITM_transactionState
-					_ITM_SRCLOCATION_DECL_2) REGPARM;
+extern void _ITM_registerThrownObject (const void *, size_t) REGPARM;
+
+extern void _ITM_changeTransactionMode (_ITM_transactionState) REGPARM;
 
 /* The following typedefs exist to make the macro expansions below work
    properly.  They are not part of any API.  */
