@@ -134,7 +134,8 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 #endif
   for (node = cgraph_nodes; node; node = node->next)
     if (node->needed && !node->global.inlined_to
-	&& ((!cgraph_is_decl_external (node)) 
+	&& ((!(DECL_EXTERNAL (node->decl)
+               || cgraph_is_aux_decl_external (node)))
             || !node->analyzed
             || before_inlining_p))
       {
@@ -157,7 +158,8 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	if (!e->callee->aux
 	    && node->analyzed
 	    && (!e->inline_failed || !e->callee->analyzed
-		|| (!cgraph_is_decl_external (e->callee))
+		|| !(DECL_EXTERNAL (e->callee->decl)
+                     || cgraph_is_aux_decl_external (e->callee))
                 || before_inlining_p))
 	  {
 	    e->callee->aux = first;
@@ -185,8 +187,10 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
       if (!node->aux)
 	{
           node->global.inlined_to = NULL;
-	  if ((!node->analyzed || !cgraph_is_decl_external (node)
-               || before_inlining_p))
+	  if (!node->analyzed
+              || !(DECL_EXTERNAL (node->decl)
+                   || cgraph_is_aux_decl_external (node))
+              || before_inlining_p)
 	    cgraph_remove_node (node);
 	  else
 	    {

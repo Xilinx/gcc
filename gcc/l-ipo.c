@@ -1007,16 +1007,13 @@ cgraph_unify_type_alias_sets (void)
   htab_delete (type_hash_tab);
 }
 
-/* Return true if NODE->decl has external definition (and therefore not
-   needed for expansion).  */
+/* Return true if NODE->decl from an auxiliary module has external
+   definition (and therefore is not needed for expansion).  */
 
 bool
-cgraph_is_decl_external (struct cgraph_node *node)
+cgraph_is_aux_decl_external (struct cgraph_node *node)
 {
   tree decl = node->decl;
-  /* Extern inline  */
-  if (DECL_EXTERNAL (decl))
-    return true;
 
   if (!L_IPO_COMP_MODE)
     return false;
@@ -1278,10 +1275,12 @@ cgraph_real_node_1 (tree decl, bool do_assert)
              is to modify the callgraph so that they are not eliminated
              in the first place -- this will allow inlining to happen.  */
 
-          struct cgraph_node * n = cgraph_node (decl);
+          struct cgraph_node *n = cgraph_node (decl);
           if (!n->analyzed)
             {
-              gcc_assert (cgraph_is_decl_external (n) || DECL_VIRTUAL_P (decl));
+              gcc_assert (DECL_EXTERNAL (decl)
+                          || cgraph_is_aux_decl_external (n)
+                          || DECL_VIRTUAL_P (decl));
               gcc_assert ((!n->reachable && !n->needed)
                           /* This is the case for explicit extern instantiation,
                              when cgraph node is not created before link.  */

@@ -2391,7 +2391,7 @@ mark_decl_referenced (tree decl)
 	 functions can be marked reachable, just use the external
 	 definition.  */
       struct cgraph_node *node = cgraph_node (decl);
-      if (!cgraph_is_decl_external (node)
+      if (!(DECL_EXTERNAL (decl) || cgraph_is_aux_decl_external (node))
 	  && (!node->local.vtable_method || !cgraph_global_info_ready
 	      || !node->local.finalized))
 	cgraph_mark_needed_node (node);

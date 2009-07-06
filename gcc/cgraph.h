@@ -485,7 +485,7 @@ bool cgraph_is_auxiliary (tree fndecl);
 void cgraph_process_module_scope_statics (void);
 bool cgraph_is_promoted_static_func (tree fndecl);
 bool cgraph_is_inline_body_available_in_module (tree fndecl, unsigned module_id);
-bool cgraph_is_decl_external (struct cgraph_node *);
+bool cgraph_is_aux_decl_external (struct cgraph_node *);
 void cgraph_unify_type_alias_sets (void);
 void varpool_do_link (void);
 void varpool_link_node (struct varpool_node *);

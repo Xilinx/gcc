@@ -1193,7 +1193,7 @@ cgraph_mark_functions_to_output (void)
 	  && (node->needed
 	      || (e && node->reachable))
 	  && !TREE_ASM_WRITTEN (decl)
-	  && !cgraph_is_decl_external (node))
+	  && !(DECL_EXTERNAL (decl) || cgraph_is_aux_decl_external (node)))
         {
           if (cgraph_add_output_node (node) == node)
             node->process = 1;
@@ -1204,7 +1204,7 @@ cgraph_mark_functions_to_output (void)
 #ifdef ENABLE_CHECKING
 	  if (!node->global.inlined_to
 	      && gimple_has_body_p (decl)
-	      && !cgraph_is_decl_external (node))
+	      && !(DECL_EXTERNAL (decl) || cgraph_is_aux_decl_external (node)))
 	    {
 	      dump_cgraph_node (stderr, node);
 	      internal_error ("failed to reclaim unneeded function");
@@ -1212,7 +1212,8 @@ cgraph_mark_functions_to_output (void)
 #endif
 	  gcc_assert (node->global.inlined_to
 		      || !gimple_has_body_p (decl)
-		      || cgraph_is_decl_external (node)
+		      || (DECL_EXTERNAL (decl)
+                          || cgraph_is_aux_decl_external (node))
 		      || cgraph_is_auxiliary (node->decl));
 
 	}
