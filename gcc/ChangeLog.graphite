@@ -1,5 +1,12 @@
 2009-07-06  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Makefile.in (tree-ssa-loop-manip.o): Depends on langhooks.h.
+	* tree-parloops.c (rewrite_phi_with_iv, rewrite_all_phi_nodes_with_iv,
+	canonicalize_loop_ivs): Moved...
+	* tree-ssa-loop-manip.c: ... here.  Include langhooks.h.
+
+2009-07-06  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* tree-parloops.c (try_create_reduction_list): Pass an extra
 	argument analyzed_reductions.  Call analyze_reduction_list.
 	(gen_parallel_loop): Do not call analyze_reduction_list.
