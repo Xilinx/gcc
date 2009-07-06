@@ -157,14 +157,14 @@ document pbm
 Dump the bitmap that is in $ as a comma-separated list of numbers.
 end
 
-## for basilys
+## for melt
 set breakpoint pending	on
 define pby
-set basilys_dbgeprint ($)
+set melt_dbgeprint ($)
 end
 
 document pby
-Print the basilys_ptr_t that is $.
+Print the melt_ptr_t that is $.
 Works only when an inferior is executing.
 end
 

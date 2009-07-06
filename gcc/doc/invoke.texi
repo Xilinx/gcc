@@ -383,7 +383,7 @@ Objective-C and Objective-C++ Dialects}.
 -fvariable-expansion-in-unroller -fvect-cost-model -fvpt -fweb @gol
 -fwhole-program @gol
 --param @var{name}=@var{value}
--fbasilys*
+-fmelt*
 -O  -O0  -O1  -O2  -O3  -Os}
 
 @item Preprocessor Options
@@ -2002,9 +2002,9 @@ option exists only for testing, and should not be used by end-users;
 it will result in inferior code and has no benefits.  This option may
 be removed in a future release of G++.
 
-@item -fbasilys*
-@opindex fbasilys*
-Every option of the form @code{-fbasilys*} is specific to MELT.
+@item -fmelt*
+@opindex fmelt*
+Every option of the form @code{-fmelt*} is specific to MELT.
 
 @item -nostdinc++
 @opindex nostdinc++

@@ -1,3 +1,46 @@
+
+2009-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	[replaced basilys by melt inside all files an in file names! to do
+	that, we temporarily generated extra #define-s included from
+	run-melt.h]
+	* doc/invoke.texi: replaced basilys by melt
+	* doc/melt.texi: ditto.
+	* basilys.c: removed since renamed file as melt-runtime.c
+	* basilys.h: removed since renamed file as melt-runtime.h
+	* gengtype.c: replaced basilys by melt
+	* configure: replaced basilys by melt & regenerated
+	* run-melt.h: replaced basilys by melt
+	* toplev.c: replaced basilys by melt
+	* run-basilys.h: removed since renamed file as run-melt.h
+	* melt-runtime.c: added, was named basilys.c
+	* melt-runtime.h: added, was named basilys.h
+	* testsuite/melt/tmatch-3.melt: replaced basilys by melt
+	* testsuite/melt/testrun1.melt: ditto
+	* testsuite/melt/test0.melt: ditto
+	* testsuite/melt/test1.melt: ditto
+	* melt/warmelt-normatch.melt: ditto
+	* melt/ana-simple.melt: ditto
+	* melt/warmelt-first.melt: ditto
+	* melt/warmelt-normal.melt: ditto
+	* melt/ana-base.melt: ditto
+	* melt/warmelt-macro.melt: ditto
+	* melt/warmelt-outobj.melt: ditto
+	* melt/warmelt-genobj.melt: ditto
+	* gdbinit.in: ditto
+	* configure.ac: ditto
+	* common.opt: ditto
+	* melt-predef.list: ditto
+	* melt-cc-script.proto: ditto
+	* Makefile.in: ditto
+	* params.def: ditto
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+	* config.in: regenerated.
+
 2009-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	[basilys.c compiles in plugin mode, provided gengtype is hacked to
 	generated gtype-desc.h] 

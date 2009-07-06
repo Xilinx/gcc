@@ -26,7 +26,7 @@
 ;; to the generated file  warmelt-first*.c
 
 ;;    This file is the first part of a bootstrapping compiler for the
-;;    basilys/MELT lisp dialect, compiler which should be able to
+;;    MELT lisp dialect, compiler which should be able to
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -183,17 +183,18 @@
   :fields (
 	   ctype_keyword ;the keyword associated to the ctype (e.g. :long)
 	   ctype_cname	 ;the name for C of the type (eg long)
-	   ctype_parchar ;the name of the basilys parameter char (eg BPAR_LONG)
-	   ctype_parstring ;the name of the basilys parameter string (eg BPARSTR_LONG)
-	   ctype_argfield ;the name of the basilys argument union field (eg bp_long)
-	   ctype_resfield ;the name of the basilys result union field (eg bp_longptr)
+	   ctype_parchar ;the name of the melt parameter char (eg BPAR_LONG)
+	   ctype_parstring ;the name of the melt parameter string (eg BPARSTR_LONG)
+	   ctype_argfield ;the name of the melt argument union field (eg bp_long)
+	   ctype_resfield ;the name of the melt result union field (eg bp_longptr)
 	   ctype_marker	  ;the name of the marker routine
 	   ctype_descr	  ;descriptive string
 	   )
   )
 
 
-;; class of system data  -- be careful to keep the FSYSDAT_* identifiers from basilys.h in sync!
+;; class of system data -- be careful to keep the FSYSDAT_*
+;; identifiers from melt-runtime.h in sync!
 (defclass class_system_data
   :predef CLASS_SYSTEM_DATA
   :super class_named
@@ -386,7 +387,7 @@
 (defclass class_gcc_pass
   :predef CLASS_GCC_PASS
   :super class_named
-  ;; keep the fields list in sync with basilys.h FGCCPASS_*
+  ;; keep the fields list in sync with melt-runtime.h FGCCPASS_*
   :fields (gccpass_gate			;closure for gate
 	   gccpass_exec			;closure for execution
 	   gccpass_data			;extra data
@@ -511,22 +512,22 @@
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
-  " basilysgc_new_string((basilysobject_ptr_t)(" discr "), (" strc "))")
+  " meltgc_new_string((meltobject_ptr_t)(" discr "), (" strc "))")
 
 
 ;; primitive for testing if an object is a (sub) instance of a class
 (defprimitive is_a (obj cla) :long
-  " basilys_is_instance_of((basilys_ptr_t)(" obj "), (basilys_ptr_t)(" cla "))")
+  " melt_is_instance_of((melt_ptr_t)(" obj "), (melt_ptr_t)(" cla "))")
 
 ;; primitive for testing if an object is NOT a (sub) instance of a class
 (defprimitive is_not_a (obj cla) :long
-  " !basilys_is_instance_of((basilys_ptr_t)(" obj "), (basilys_ptr_t)(" cla "))")
+  " !melt_is_instance_of((melt_ptr_t)(" obj "), (melt_ptr_t)(" cla "))")
 
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
-  " (basilys_magic_discr((basilys_ptr_t)(" obj ")) == OBMAG_OBJECT)")
+  " (melt_magic_discr((melt_ptr_t)(" obj ")) == OBMAG_OBJECT)")
 (defprimitive is_not_object (obj) :long
-  " (basilys_magic_discr((basilys_ptr_t)(" obj ")) != OBMAG_OBJECT)")
+  " (melt_magic_discr((melt_ptr_t)(" obj ")) != OBMAG_OBJECT)")
 
 ;; primitive returning OBMAG_OBJECT
 (defprimitive object_magic_object () :long "(OBMAG_OBJECT)")
@@ -537,34 +538,34 @@
 
 ;; primitive to safely return a global predef by its index
 (defprimitive get_globpredef (:long ix) :value
-  "(basilys_globpredef((" ix ")))")
+  "(melt_globpredef((" ix ")))")
 
 ;; primitive to get the discriminant of a value
 (defprimitive discrim (v) :value
-  "(basilys_discr((basilys_ptr_t)(" v ")))")
+  "(melt_discr((melt_ptr_t)(" v ")))")
 
 ;; primitive to get the integer inside a boxed or mixed integer or objnum
 (defprimitive get_int (v) :long
-  "(basilys_get_int((basilys_ptr_t)(" v ")))")
+  "(melt_get_int((melt_ptr_t)(" v ")))")
 ;; primitive to put the integer inside a boxed or mixed integer or objnum
 (defprimitive put_int (v :long i) :void
-  "basilys_put_int((basilys_ptr_t)(" v "), (" i "))")
+  "melt_put_int((melt_ptr_t)(" v "), (" i "))")
 
 ;; primitive to get the hashcode of an object (or 0)
 (defprimitive obj_hash (v) :long
-  "(basilys_obj_hash((basilys_ptr_t)(" v ")))")
+  "(melt_obj_hash((melt_ptr_t)(" v ")))")
 ;; primitive to get the length of an object (or 0)
 (defprimitive obj_len (v) :long
-  "(basilys_obj_len((basilys_ptr_t)(" v ")))")
+  "(melt_obj_len((melt_ptr_t)(" v ")))")
 ;; primitive to get the number of an object (or 0)
 (defprimitive obj_num (v) :long
-  "(basilys_obj_num((basilys_ptr_t)(" v ")))")
+  "(melt_obj_num((melt_ptr_t)(" v ")))")
 ;; primitive to get the serial of an object (or 0 when ENABLE_CHECKING is not set)
 (defprimitive obj_serial (v):long
-  "(basilys_obj_serial((basilys_ptr_t)(" v ")))")
+  "(melt_obj_serial((melt_ptr_t)(" v ")))")
 ;; primitive to compute a nonzero hash
 (defprimitive nonzero_hash () :long
-  "(basilys_nonzerohash())")
+  "(melt_nonzerohash())")
 
 ;; primitive for identity and non-identity test
 (defprimitive == (a b) :long "((" a ") == (" b "))")
@@ -576,43 +577,43 @@
 ;;; the call counter - do not redefine the name, it is used by expansion of debug_msg macro!
 (defprimitive the_callcount () :long "callcount")
 ;;; the current frame depth
-(defprimitive the_framedepth () :long "(basilys_curframdepth())")
+(defprimitive the_framedepth () :long "(melt_curframdepth())")
 
 ;;; the timestamp of compilation & md5 checksum of the generated C file
-(defprimitive out_cplugin_compiled_timestamp_err () :void "basilys_puts(stderr,basilys_compiled_timestamp)")
-(defprimitive out_cplugin_md5_checksum_err () :void "basilys_puts(stderr,basilys_md5)")
+(defprimitive out_cplugin_compiled_timestamp_err () :void "melt_puts(stderr,melt_compiled_timestamp)")
+(defprimitive out_cplugin_md5_checksum_err () :void "melt_puts(stderr,melt_md5)")
 
 ;; primitive to force garbage collection
 (defprimitive minor_garbcoll (:long siz) :void 
-  "basilys_garbcoll((" siz "), BASILYS_MINOR_OR_FULL)")
+  "melt_garbcoll((" siz "), MELT_MINOR_OR_FULL)")
 (defprimitive full_garbcoll (:long siz) :void
-  "basilys_garbcoll((" siz "), BASILYS_NEED_FULL)")
+  "melt_garbcoll((" siz "), MELT_NEED_FULL)")
 
 ;; primitive to get or create a symbol from a string value
 (defprimitive get_symbolstr (strv) :value
-  "basilysgc_named_symbol( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_GET)")
+  "meltgc_named_symbol( melt_string_str((melt_ptr_t)(" strv ")), MELT_GET)")
 (defprimitive create_symbolstr (strv) :value
-  "basilysgc_named_symbol( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_CREATE)")
+  "meltgc_named_symbol( melt_string_str((melt_ptr_t)(" strv ")), MELT_CREATE)")
 
 ;; primitive to get or create a keyword from a string value
 (defprimitive get_keywordstr (strv) :value
-  "basilysgc_named_keyword( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_GET)")
+  "meltgc_named_keyword( melt_string_str((melt_ptr_t)(" strv ")), MELT_GET)")
 (defprimitive create_keywordstr (strv) :value
-  "basilysgc_named_keyword( basilys_string_str((basilys_ptr_t)(" strv ")), BASILYS_CREATE)")
+  "meltgc_named_keyword( melt_string_str((melt_ptr_t)(" strv ")), MELT_CREATE)")
 
 
 ;; runtime assertion with message called by expansion of assert_msg
 ;;; @@ UGLY HACK TO ALWAYS HAVE A filename
 (defprimitive assert_failed (:cstring msg :cstring filename :long lineno) :void
-  "basilys_assert_failed((" msg "),(" filename ")?(" filename "):__FILE__,"
+  "melt_assert_failed((" msg "),(" filename ")?(" filename "):__FILE__,"
   "(" lineno ")?(" lineno "):__LINE__, __FUNCTION__)")
 
 ;; check explicitly the call stack  
 (defprimitive checkcallstack_msg (:cstring msg) :void
-  "basilys_check_call_frames(BASILYS_ANYWHERE, (" msg "))")
+  "melt_check_call_frames(MELT_ANYWHERE, (" msg "))")
 ;; for breakpoint
 (defprimitive cbreak_msg (:cstring msg) :void
-  "basilys_cbreak(" msg ")")
+  "melt_cbreak(" msg ")")
 
 ;;; less, lessorequal, greater, greaterorequal, equal, different number 
 (defprimitive <i (:long a b) :long "((" a ") < (" b "))")
@@ -631,8 +632,8 @@
 (defprimitive negi (:long i) :long "(-(" i "))")
 (defprimitive noti (:long i) :long "(~(" i "))")
 
-(defprimitive /i (:long a b) :long "(basilys_idiv((" a "), (" b ")))")
-(defprimitive %i (:long a b) :long "(basilys_imod((" a "), (" b ")))")
+(defprimitive /i (:long a b) :long "(melt_idiv((" a "), (" b ")))")
+(defprimitive %i (:long a b) :long "(melt_imod((" a "), (" b ")))")
 (defprimitive /iraw (:long a b)  :long "((" a ") / (" b "))")
 (defprimitive %iraw (:long a b)  :long "((" a ") % (" b "))")
 ;; boolean not
@@ -664,36 +665,36 @@
 (defprimitive zerop (:long i) :long "((" i ") == OL)")
 ;; primitive for testing if debug
 (defprimitive need_dbg (:long depth) :long
-  "(flag_basilys_debug && basilys_dbgcounter>=basilys_debugskipcount && (" depth ")>=0 && (" depth ") <= BASILYSDBG_MAXDEPTH)")
+  "(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && (" depth ")>=0 && (" depth ") <= MELTDBG_MAXDEPTH)")
 
 (defprimitive need_dbglim (:long depth limit) :long
-  "(flag_basilys_debug && basilys_dbgcounter>=basilys_debugskipcount && (" depth ")>=0 && (" depth ") < (" limit "))")
+  "(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && (" depth ")>=0 && (" depth ") < (" limit "))")
 ;;; debug on dumpfile
 (defprimitive outcstring_dbg (:cstring s) :void
-  "basilys_puts(dump_file,(" s "))")
+  "melt_puts(dump_file,(" s "))")
 (defprimitive outnum_dbg (:cstring pref :long l :cstring suf) :void
-  "basilys_putnum(dump_file,(" pref "), (" l "), (" suf "))")
+  "melt_putnum(dump_file,(" pref "), (" l "), (" suf "))")
 (defprimitive outstr_dbg (str) :void
-  "basilys_putstr(dump_file,(basilys_ptr_t)(" str "))")
+  "melt_putstr(dump_file,(melt_ptr_t)(" str "))")
 (defprimitive outstrbuf_dbg (sbuf) :void
-  "basilys_putstrbuf(dump_file,(basilys_ptr_t)(" sbuf "))")
+  "melt_putstrbuf(dump_file,(melt_ptr_t)(" sbuf "))")
 (defprimitive outnewline_dbg () :void
-  "basilys_newlineflush(dump_file)")
+  "melt_newlineflush(dump_file)")
 ;;; output on stderr
 (defprimitive outnum_err (:cstring pref :long l :cstring suf) :void
-  "basilys_putnum(stderr,(" pref "), (" l "), (" suf "))")
+  "melt_putnum(stderr,(" pref "), (" l "), (" suf "))")
 (defprimitive outcstring_err (:cstring s) :void
-  "basilys_puts(stderr,(" s "))")
+  "melt_puts(stderr,(" s "))")
 (defprimitive outstrbuf_err (sbuf) :void
-  "basilys_putstrbuf(stderr,(basilys_ptr_t)(" sbuf "))")
+  "melt_putstrbuf(stderr,(melt_ptr_t)(" sbuf "))")
 (defprimitive outnewline_err () :void
-  "basilys_newlineflush(stderr)")
+  "melt_newlineflush(stderr)")
 (defprimitive outstr_err (str) :void
-  "basilys_putstr(stderr, (basilys_ptr_t)(" str "))")
+  "melt_putstr(stderr, (melt_ptr_t)(" str "))")
 
 (defprimitive output_cfile_decl_impl (uninam declbuf implbuf) :void
-  "basilys_output_cfile_decl_impl((basilys_ptr_t)(" uninam 
-  "), (basilys_ptr_t)(" declbuf "), (basilys_ptr_t)(" implbuf "))")
+  "melt_output_cfile_decl_impl((melt_ptr_t)(" uninam 
+  "), (melt_ptr_t)(" declbuf "), (melt_ptr_t)(" implbuf "))")
 
 (defprimitive message_dbg (:cstring msg) :void
   "debugeputs((" msg "))")
@@ -704,9 +705,9 @@
 (defprimitive longbacktrace_dbg (:cstring msg :long maxdepth) :void
   "debugbacktrace((" msg "), (int)(" maxdepth "))")
 (defprimitive shortbacktrace_dbg (:cstring msg :long maxdepth) :void
-  "basilys_dbgshortbacktrace((" msg "), (" maxdepth "))")
+  "melt_dbgshortbacktrace((" msg "), (" maxdepth "))")
 (defprimitive checkval_dbg (val :cstring msg) :value
-  "basilys_checked_assignmsg((" val "),(" msg "))")
+  "melt_checked_assignmsg((" val "),(" msg "))")
 (defprimitive debugcstring (:cstring msg str) :void
   "debugeprintf(\"debugcstring %s '%s'\", " msg ", " str ")")
 
@@ -714,276 +715,276 @@
 ;;;;;; STRBUF primitives
 ;; primitive to make a strbuf
 (defprimitive make_strbuf (discr) :value
-  "basilysgc_new_strbuf((basilysobject_ptr_t)(" discr "), (char*)0)")
+  "meltgc_new_strbuf((meltobject_ptr_t)(" discr "), (char*)0)")
 (defprimitive strbuf_usedlength (sbuf) :long
-  "basilys_strbuf_usedlength((basilys_ptr_t)(" sbuf "))")
+  "melt_strbuf_usedlength((melt_ptr_t)(" sbuf "))")
 
 (defprimitive is_strbuf (v) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_STRBUF)")
+  "(melt_magic_discr((melt_ptr_t)(" v ")) == OBMAG_STRBUF)")
 
 
 ;; actually all the sbuf routines now take an outbuf argument, which can be either a string buffer of a file
 (defprimitive is_out (v) :long
-  #{ (basilys_is_out ((basilys_ptr_t) $v)) }#)
+  #{ (melt_is_out ((melt_ptr_t) $v)) }#)
 
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
-  "basilysgc_add_strbuf((basilys_ptr_t)(" sbuf "), (" str "))")
+  "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), (" str "))")
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
-  "basilysgc_add_strbuf((basilys_ptr_t)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), melt_string_str((melt_ptr_t)(" str ")))")
 ;; primitive to add the location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_mixloc (sbuf mixl) :void
-  "/*add2sbufmixloc*/ { if (basilys_magic_discr((basilys_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
-  " basilysgc_strbuf_printf((basilys_ptr_t)(" sbuf "), \"{%s:%d}\", "
-  "LOCATION_FILE(basilys_location_mixloc((basilys_ptr_t)" mixl ")), "
-  "LOCATION_LINE(basilys_location_mixloc((basilys_ptr_t)" mixl "))); }")
+  "/*add2sbufmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
+  " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"{%s:%d}\", "
+  "LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl ")), "
+  "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((basilys_ptr_t)(" sbuf "), (" depth "), 64)")
+  "meltgc_strbuf_add_indent((melt_ptr_t)(" sbuf "), (" depth "), 64)")
 
 
 ;; primitive to add an indented newline into a strbuf
 (defprimitive add2sbuf_indentnl (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((basilys_ptr_t)(" sbuf "), (" depth "), 0)")
+  "meltgc_strbuf_add_indent((melt_ptr_t)(" sbuf "), (" depth "), 0)")
 
 
 ;; primitive to add a strbuf into a strbuf
 (defprimitive add2sbuf_sbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf((basilys_ptr_t)(" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), melt_strbuf_str(" asbuf "))")
 
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
-  "basilysgc_add_strbuf_cstr((basilys_ptr_t)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "meltgc_add_strbuf_cstr((melt_ptr_t)(" sbuf "), melt_string_str((melt_ptr_t)(" str ")))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_cstr((basilys_ptr_t)(" sbuf "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
+  "meltgc_add_strbuf_cstr((melt_ptr_t)(" sbuf "), melt_strbuf_str((melt_ptr_t)(" asbuf ")))")
 
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
-  "basilysgc_add_strbuf_ccomment((basilys_ptr_t)(" sbuf
-  "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "meltgc_add_strbuf_ccomment((melt_ptr_t)(" sbuf
+  "), melt_string_str((melt_ptr_t)(" str ")))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_ccomment((basilys_ptr_t)(" sbuf 
-  "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
+  "meltgc_add_strbuf_ccomment((melt_ptr_t)(" sbuf 
+  "), melt_strbuf_str((melt_ptr_t)(" asbuf ")))")
 
 ;; primitive to add a cstring const, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomconst (sbuf :cstring cstr) :void 
-  "basilysgc_add_strbuf_ccomment((" sbuf "), "  cstr ")")
+  "meltgc_add_strbuf_ccomment((" sbuf "), "  cstr ")")
 
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
 ;; replaced by _)
 (defprimitive add2sbuf_cident (sbuf str) :void
-  "basilysgc_add_strbuf_cident((basilys_ptr_t)(" sbuf 
-  "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "meltgc_add_strbuf_cident((melt_ptr_t)(" sbuf 
+  "), melt_string_str((melt_ptr_t)(" str ")))")
 
 ;; primitive to add into a strbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2sbuf_cidentprefix  (sbuf str :long preflen) :void
-  "basilysgc_add_strbuf_cidentprefix((basilys_ptr_t)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")), (" preflen "))")
+  "meltgc_add_strbuf_cidentprefix((melt_ptr_t)(" sbuf "), melt_string_str((melt_ptr_t)(" str ")), (" preflen "))")
 
 ;; primitive to add a long in decimal into a strbuf
 (defprimitive add2sbuf_longdec (sbuf :long num) :void
-  "basilysgc_add_strbuf_dec((basilys_ptr_t)(" sbuf "), (" num "))")
+  "meltgc_add_strbuf_dec((melt_ptr_t)(" sbuf "), (" num "))")
 
 ;; primitive to add a long in hex into a strbuf
 (defprimitive add2sbuf_longhex (sbuf :long num) :void
-  "basilysgc_add_strbuf_hex((basilys_ptr_t)(" sbuf "), (" num "))")
+  "meltgc_add_strbuf_hex((melt_ptr_t)(" sbuf "), (" num "))")
 
 ;; primitive to add a routine descr into a strbuf
 (defprimitive add2sbuf_routinedescr (sbuf rout) :void
-  "basilysgc_add_strbuf((basilys_ptr_t)(" sbuf "), basilys_routine_descrstr((basilys_ptr_t)(" rout ")))")
+  "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), melt_routine_descrstr((melt_ptr_t)(" rout ")))")
 
 ;;;;;;;;;;;;;;;; variant for outbuf
 
 ;; primitive to add a string const into a outbuf
 (defprimitive add2out_strconst (out :cstring str) :void 
-  "basilysgc_add_out((basilys_ptr_t)(" out "), (" str "))")
+  "meltgc_add_out((melt_ptr_t)(" out "), (" str "))")
 ;; primitive to add a string value into a outbuf
 (defprimitive add2out_string (out str) :void 
-  "basilysgc_add_out((basilys_ptr_t)(" out "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "meltgc_add_out((melt_ptr_t)(" out "), melt_string_str((melt_ptr_t)(" str ")))")
 ;; primitive to add the location info of a mixedloc into a outbuf
 (defprimitive add2out_mixloc (out mixl) :void
-  "/*add2outmixloc*/ { if (basilys_magic_discr((basilys_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
-  " basilysgc_out_printf((basilys_ptr_t)(" out "), \"{%s:%d}\", "
-  "LOCATION_FILE(basilys_location_mixloc((basilys_ptr_t)" mixl ")), "
-  "LOCATION_LINE(basilys_location_mixloc((basilys_ptr_t)" mixl "))); }")
+  "/*add2outmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
+  " meltgc_out_printf((melt_ptr_t)(" out "), \"{%s:%d}\", "
+  "LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl ")), "
+  "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
 
 ;; primitive to add an indentation or space into a outbuf
 (defprimitive add2out_indent (out :long depth) :void
-  "basilysgc_out_add_indent((basilys_ptr_t)(" out "), (" depth "), 64)")
+  "meltgc_out_add_indent((melt_ptr_t)(" out "), (" depth "), 64)")
 
 
 ;; primitive to add an indented newline into a outbuf
 (defprimitive add2out_indentnl (out :long depth) :void
-  "basilysgc_out_add_indent((basilys_ptr_t)(" out "), (" depth "), 0)")
+  "meltgc_out_add_indent((melt_ptr_t)(" out "), (" depth "), 0)")
 
 
 ;; primitive to add a strbuf into a outbuf
 (defprimitive add2out_sbuf (out asbuf) :void 
-  "basilysgc_add_out((basilys_ptr_t)(" out "), basilys_out_str(" asbuf "))")
+  "meltgc_add_out((melt_ptr_t)(" out "), melt_out_str(" asbuf "))")
 
 ;; primitive to add a string value, C encoded, into a outbuf
 (defprimitive add2out_cencstring (out str) :void 
-  "basilysgc_add_out_cstr((basilys_ptr_t)(" out "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "meltgc_add_out_cstr((melt_ptr_t)(" out "), melt_string_str((melt_ptr_t)(" str ")))")
 
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_cencstrbuf (out asbuf) :void 
-  "basilysgc_add_out_cstr((basilys_ptr_t)(" out "), basilys_out_str((basilys_ptr_t)(" asbuf ")))")
+  "meltgc_add_out_cstr((melt_ptr_t)(" out "), melt_out_str((melt_ptr_t)(" asbuf ")))")
 
 ;; primitive to add a string value, Ccomment encoded, into a outbuf
 (defprimitive add2out_ccomstring (out str) :void 
-  "basilysgc_add_out_ccomment((basilys_ptr_t)(" out
-  "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "meltgc_add_out_ccomment((melt_ptr_t)(" out
+  "), melt_string_str((melt_ptr_t)(" str ")))")
 
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_ccomstrbuf (out asbuf) :void 
-  "basilysgc_add_out_ccomment((basilys_ptr_t)(" out 
-  "), basilys_out_str((basilys_ptr_t)(" asbuf ")))")
+  "meltgc_add_out_ccomment((melt_ptr_t)(" out 
+  "), melt_out_str((melt_ptr_t)(" asbuf ")))")
 
 ;; primitive to add a cstring const, Ccomment encoded, into a outbuf
 (defprimitive add2out_ccomconst (out :cstring cstr) :void 
-  "basilysgc_add_out_ccomment((" out "), "  cstr ")")
+  "meltgc_add_out_ccomment((" out "), "  cstr ")")
 
 ;; primitive to add into a outbuf a string as C ident (nonalphanum
 ;; replaced by _)
 (defprimitive add2out_cident (out str) :void
-  "basilysgc_add_out_cident((basilys_ptr_t)(" out 
-  "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "meltgc_add_out_cident((melt_ptr_t)(" out 
+  "), melt_string_str((melt_ptr_t)(" str ")))")
 
 ;; primitive to add into a outbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2out_cidentprefix  (out str :long preflen) :void
-  "basilysgc_add_out_cidentprefix((basilys_ptr_t)(" out "), basilys_string_str((basilys_ptr_t)(" str ")), (" preflen "))")
+  "meltgc_add_out_cidentprefix((melt_ptr_t)(" out "), melt_string_str((melt_ptr_t)(" str ")), (" preflen "))")
 
 ;; primitive to add a long in decimal into a outbuf
 (defprimitive add2out_longdec (out :long num) :void
-  "basilysgc_add_out_dec((basilys_ptr_t)(" out "), (" num "))")
+  "meltgc_add_out_dec((melt_ptr_t)(" out "), (" num "))")
 
 ;; primitive to add a long in hex into a outbuf
 (defprimitive add2out_longhex (out :long num) :void
-  "basilysgc_add_out_hex((basilys_ptr_t)(" out "), (" num "))")
+  "meltgc_add_out_hex((melt_ptr_t)(" out "), (" num "))")
 
 ;; primitive to add a routine descr into a outbuf
 (defprimitive add2out_routinedescr (out rout) :void
-  "basilysgc_add_out((basilys_ptr_t)(" out "), basilys_routine_descrstr((basilys_ptr_t)(" rout ")))")
+  "meltgc_add_out((melt_ptr_t)(" out "), melt_routine_descrstr((melt_ptr_t)(" rout ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; STRING primitives
 ;; primitive for testing if a value is a string
 (defprimitive is_string (str) :long
-  " (basilys_magic_discr((basilys_ptr_t)(" str ")) == OBMAG_STRING)")
+  " (melt_magic_discr((melt_ptr_t)(" str ")) == OBMAG_STRING)")
 ;; string equal
 (defprimitive ==s (s1 s2) :long
-  "basilys_string_same((basilys_ptr_t)(" s1 "), (basilys_ptr_t)(" s2 "))")
+  "melt_string_same((melt_ptr_t)(" s1 "), (melt_ptr_t)(" s2 "))")
 ;;; make a string
 (defprimitive make_string (dis str) :value
-  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis 
-  "), basilys_string_str((basilys_ptr_t)(" str "))))")
+  "(meltgc_new_stringdup((meltobject_ptr_t)(" dis 
+  "), melt_string_str((melt_ptr_t)(" str "))))")
 (defprimitive make_stringconst (dis :cstring cstr) :value
-  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis "), (" cstr ")))")
+  "(meltgc_new_stringdup((meltobject_ptr_t)(" dis "), (" cstr ")))")
 (defprimitive is_stringconst (str :cstring cs) :long
-  "(basilys_is_string_const((basilys_ptr_t)(" str "), (" cs ")))")
+  "(melt_is_string_const((melt_ptr_t)(" str "), (" cs ")))")
 (defprimitive string_length (str) :long
-  "basilys_string_length((basilys_ptr_t)(" str "))")
-(defprimitive string= (s1 s2) :long "basilys_string_same((" s1 "), (" s2 "))")
-(defprimitive string< (s1 s2) :long "basilys_string_less((basilys_ptr_t)(" s1 "), (basilys_ptr_t)(" s2 "))")
-(defprimitive string> (s1 s2) :long "basilys_string_less((basilys_ptr_t)(" s2 "), (basilys_ptr_t)(" s1 "))")
+  "melt_string_length((melt_ptr_t)(" str "))")
+(defprimitive string= (s1 s2) :long "melt_string_same((" s1 "), (" s2 "))")
+(defprimitive string< (s1 s2) :long "melt_string_less((melt_ptr_t)(" s1 "), (melt_ptr_t)(" s2 "))")
+(defprimitive string> (s1 s2) :long "melt_string_less((melt_ptr_t)(" s2 "), (melt_ptr_t)(" s1 "))")
 
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
-  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis 
-  "), basilys_strbuf_str((basilys_ptr_t)(" sbuf "))))")
+  "(meltgc_new_stringdup((meltobject_ptr_t)(" dis 
+  "), melt_strbuf_str((melt_ptr_t)(" sbuf "))))")
 
 
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
-  "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
+  "(meltgc_new_string_nakedbasename((meltobject_ptr_t)(" dis "), melt_string_str((melt_ptr_t)(" str "))))")
 ;;; compute the naked temporary path for a basename with a suffix
 (defprimitive make_string_tempname_suffixed (dis str :cstring suff) :value
-  "(basilysgc_new_string_tempname_suffixed((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str ")), (" suff ")))")
+  "(meltgc_new_string_tempname_suffixed((meltobject_ptr_t)(" dis "), melt_string_str((melt_ptr_t)(" str ")), (" suff ")))")
 
 ;;;; compile a C code file as module and load it. First argument is an
 ;;;; environment, second argument is the string containing the C file
 ;;;; path. Return value is the new environment provided by the loaded
 ;;;; module.
 (defprimitive load_melt_module (env str) :value
-  "(basilysgc_load_melt_module((basilys_ptr_t)(" env "), basilys_string_str((basilys_ptr_t)(" str "))))")
+  "(meltgc_load_melt_module((melt_ptr_t)(" env "), melt_string_str((melt_ptr_t)(" str "))))")
 
 ;; generate a loadable module from a MELT generated C source file; the
 ;;  out is the dynloaded module without any *.so suffix 
 (defprimitive generate_melt_module (src out) :void
-  #{basilysgc_generate_melt_module($src,$out);}#)
+  #{meltgc_generate_melt_module($src,$out);}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
 ;; primitive to get an object length
 (defprimitive object_length (ob) :long 
-  "((long)basilys_object_length((basilys_ptr_t)(" ob ")))")
+  "((long)melt_object_length((melt_ptr_t)(" ob ")))")
 ;; primitive to get the nth field of an object
 (defprimitive object_nth_field (ob :long n) :value
-  "(basilys_field_object((basilys_ptr_t)(" ob "), (" n ")))")
+  "(melt_field_object((melt_ptr_t)(" ob "), (" n ")))")
 
 (defprimitive subclass_of (cl1 cl2) :long
-  "basilys_is_subclass_of((basilysobject_ptr_t)(" cl1 "), (basilysobject_ptr_t)(" cl2 "))")
+  "melt_is_subclass_of((meltobject_ptr_t)(" cl1 "), (meltobject_ptr_t)(" cl2 "))")
 (defprimitive subclass_or_eq (cl1 cl2) :long
-  "((" cl1 " == " cl2 ") || basilys_is_subclass_of((basilysobject_ptr_t)(" cl1 "), (basilysobject_ptr_t)(" cl2 ")))")
+  "((" cl1 " == " cl2 ") || melt_is_subclass_of((meltobject_ptr_t)(" cl1 "), (meltobject_ptr_t)(" cl2 ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MULTIPLEs primitives
 ;;;; test
 (defprimitive is_multiple (mul) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE)")
+  "(melt_magic_discr((melt_ptr_t)(" mul  ")) == OBMAG_MULTIPLE)")
 (defprimitive is_multiple_or_null (mul) :long
-  "((" mul ") == NULL || (basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE))")
+  "((" mul ") == NULL || (melt_magic_discr((melt_ptr_t)(" mul  ")) == OBMAG_MULTIPLE))")
 ;;; make
 (defprimitive make_multiple (discr :long ln) :value
-  "(basilysgc_new_multiple((basilysobject_ptr_t)(" discr "), (" ln ")))")
+  "(meltgc_new_multiple((meltobject_ptr_t)(" discr "), (" ln ")))")
 (defprimitive make_tuple1 (discr v1) :value
-  "(basilysgc_new_mult1((basilysobject_ptr_t)(" discr
-  "), (basilys_ptr_t)(" v1 ")))")
+  "(meltgc_new_mult1((meltobject_ptr_t)(" discr
+  "), (melt_ptr_t)(" v1 ")))")
 (defprimitive make_tuple2 (discr v1 v2) :value
-  "(basilysgc_new_mult2((basilysobject_ptr_t)(" discr
-  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2 ")))")
+  "(meltgc_new_mult2((meltobject_ptr_t)(" discr
+  "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2 ")))")
 (defprimitive make_tuple3 (discr v1 v2 v3) :value
-  "(basilysgc_new_mult3((basilysobject_ptr_t)(" discr
-  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3 ")))")
+  "(meltgc_new_mult3((meltobject_ptr_t)(" discr
+  "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2  "),  (melt_ptr_t)(" v3 ")))")
 (defprimitive make_tuple4 (discr v1 v2 v3 v4) :value
-  "(basilysgc_new_mult4((basilysobject_ptr_t)(" discr
-  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4 ")))")
+  "(meltgc_new_mult4((meltobject_ptr_t)(" discr
+  "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2  "),  (melt_ptr_t)(" v3  "),  (melt_ptr_t)(" v4 ")))")
 (defprimitive make_tuple5 (discr v1 v2 v3 v4 v5) :value
-  "(basilysgc_new_mult5((basilysobject_ptr_t)(" discr 
-  "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2 
-  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4 
-  "),  (basilys_ptr_t)(" v5 ")))")
+  "(meltgc_new_mult5((meltobject_ptr_t)(" discr 
+  "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2 
+  "),  (melt_ptr_t)(" v3  "),  (melt_ptr_t)(" v4 
+  "),  (melt_ptr_t)(" v5 ")))")
 (defprimitive make_tuple6 (discr v1 v2 v3 v4 v5 v6) :value
-  "(basilysgc_new_mult6((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" 
-  v3  "),  (basilys_ptr_t)(" v4  "),  (basilys_ptr_t)(" v5  "),  (basilys_ptr_t)(" v6 ")))")
+  "(meltgc_new_mult6((meltobject_ptr_t)(" discr "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2  "),  (melt_ptr_t)(" 
+  v3  "),  (melt_ptr_t)(" v4  "),  (melt_ptr_t)(" v5  "),  (melt_ptr_t)(" v6 ")))")
 (defprimitive make_tuple7 (discr v1 v2 v3 v4 v5 v6 v7) :value
-  "(basilysgc_new_mult7((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" v1 "),  (basilys_ptr_t)(" v2  "),  (basilys_ptr_t)(" v3  "),  (basilys_ptr_t)(" v4  
-  "),  (basilys_ptr_t)(" v5  "),  (basilys_ptr_t)(" v6  "),  (basilys_ptr_t)(" v7 ")))")
+  "(meltgc_new_mult7((meltobject_ptr_t)(" discr "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2  "),  (melt_ptr_t)(" v3  "),  (melt_ptr_t)(" v4  
+  "),  (melt_ptr_t)(" v5  "),  (melt_ptr_t)(" v6  "),  (melt_ptr_t)(" v7 ")))")
 
 ;; primitive to build the subsequence of a multiple
 (defprimitive subseq_multiple (mul :long startix endix) :value
- #{ basilysgc_new_subseq_multiple((basilys_ptr_t)($mul),
+ #{ meltgc_new_subseq_multiple((melt_ptr_t)($mul),
 				  (int)($startix), (int)($endix)) }#)
 
 ;; primitive to get the nth  in a multiple
 (defprimitive multiple_nth (mul :long n) :value
-  "(basilys_multiple_nth((basilys_ptr_t)(" mul "), (" n ")))")
+  "(melt_multiple_nth((melt_ptr_t)(" mul "), (" n ")))")
 ;; primitive to get the length of a multiple
 (defprimitive multiple_length (v) :long
-  "(basilys_multiple_length((basilys_ptr_t)(" v ")))")
+  "(melt_multiple_length((melt_ptr_t)(" v ")))")
 ;; be careful to avoid circularities
 (defprimitive multiple_put_nth (mul :long n :value v) :void
-  " basilysgc_multiple_put_nth((basilys_ptr_t)(" mul "), (" n "), (basilys_ptr_t)(" v "))")
+  " meltgc_multiple_put_nth((melt_ptr_t)(" mul "), (" n "), (melt_ptr_t)(" v "))")
 ;; sort a multiple, the compare function should return a boxed integer
 (defprimitive multiple_sort (mul cmp discrm) :value
-  " basilysgc_sort_multiple((basilys_ptr_t)(" mul "), (basilys_ptr_t)(" cmp "), (basilys_ptr_t)( " discrm "))")
+  " meltgc_sort_multiple((melt_ptr_t)(" mul "), (melt_ptr_t)(" cmp "), (melt_ptr_t)( " discrm "))")
 
 
 ;; cmatcher for the tuple nth argument
@@ -992,10 +993,10 @@
   (outcomp)				;out
   tupnth				;statesymb
   (					;test expansion
-   "(basilys_is_multiple_at_least(((basilys_ptr_t)" matchedtup "), 1+ (int)(" matchedrk ")))"
+   "(melt_is_multiple_at_least(((melt_ptr_t)" matchedtup "), 1+ (int)(" matchedrk ")))"
    )
   (					;fill expansion
-   outcomp " = basilys_multiple_nth((basilys_ptr_t)(" matchedtup "),(int)(" matchedrk "));"
+   outcomp " = melt_multiple_nth((melt_ptr_t)(" matchedtup "),(int)(" matchedrk "));"
    )
   ;; no operator expansion 
 )
@@ -1007,7 +1008,7 @@
   () 					;outs
   tupsiz				;statesymb
   (					;test expansion
-   "(basilys_is_multiple_of_length((basilys_ptr_t)(" tup "), (int) (" ln ")))"
+   "(melt_is_multiple_of_length((melt_ptr_t)(" tup "), (int) (" ln ")))"
    )
   ;; no fill expansion
   ;; no operator expansion
@@ -1017,285 +1018,285 @@
 ;;;;;; MAPOBJECTs primitives
 ;;;; test
 (defprimitive is_mapobject (map) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" map  ")) == OBMAG_MAPOBJECTS)")
+  "(melt_magic_discr((melt_ptr_t)(" map  ")) == OBMAG_MAPOBJECTS)")
 ;; primitive to get the allocated size of a mapobject
 (defprimitive mapobject_size (map) :long
-  "(basilys_size_mapobjects((basilysmapobjects_ptr_t)(" map ")))")
+  "(melt_size_mapobjects((meltmapobjects_ptr_t)(" map ")))")
 ;; primitive to get the attribute count of a mapobject
 (defprimitive mapobject_count (map) :long
-  "(basilys_count_mapobjects((basilysmapobjects_ptr_t)(" map ")))")
+  "(melt_count_mapobjects((meltmapobjects_ptr_t)(" map ")))")
 ;; primitive to get the nth attribute of a mapobject
 (defprimitive mapobject_nth_attr (map :long n) :value
-  "(basilys_nthattr_mapobjects((basilysmapobjects_ptr_t)(" map "), (int)(" n ")))")
+  "(melt_nthattr_mapobjects((meltmapobjects_ptr_t)(" map "), (int)(" n ")))")
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapobject_nth_val (map :long n) :value
-  "(basilys_nthval_mapobjects((basilysmapobjects_ptr_t)(" map "), (int)(" n ")))")
+  "(melt_nthval_mapobjects((meltmapobjects_ptr_t)(" map "), (int)(" n ")))")
 ;; primitive to get the value of an attribute in a mapobject
 (defprimitive mapobject_get (map attr) :value
-  "(basilys_get_mapobjects((basilysmapobjects_ptr_t)(" map "), (basilysobject_ptr_t)(" attr ")))")
+  "(melt_get_mapobjects((meltmapobjects_ptr_t)(" map "), (meltobject_ptr_t)(" attr ")))")
 ;; primitive for making a new map of objects
 (defprimitive make_mapobject (discr :long len) :value
-  " (basilysgc_new_mapobjects( (basilysobject_ptr_t) (" discr "), (" len ")))")
+  " (meltgc_new_mapobjects( (meltobject_ptr_t) (" discr "), (" len ")))")
 ;; primitive for putting into a map of objects
 (defprimitive mapobject_put (map key val) :void
-  " basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t) (" key "), (basilys_ptr_t)(" val "))")
+  " meltgc_put_mapobjects( (meltmapobjects_ptr_t) (" map "), (meltobject_ptr_t) (" key "), (melt_ptr_t)(" val "))")
 ;; primitive for removing from a map of objects
 (defprimitive mapobject_remove (map key) :void
-  " basilysgc_remove_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t)(" key "))")
+  " meltgc_remove_mapobjects( (meltmapobjects_ptr_t) (" map "), (meltobject_ptr_t)(" key "))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPSTRINGs primitive
 ;; test
 (defprimitive is_mapstring (map) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPSTRINGS)")
+  "(melt_magic_discr((melt_ptr_t)(" map ")) == OBMAG_MAPSTRINGS)")
 ;; primitive to get the allocated size of a mapstring
 (defprimitive mapstring_size (map) :long 
-  "(basilys_size_mapstrings((struct basilysmapstrings_st*)(" map ")))")
+  "(melt_size_mapstrings((struct meltmapstrings_st*)(" map ")))")
 ;; primitive to get the attribute count of a mapstring
 (defprimitive mapstring_count (map) :long
-  "(basilys_count_mapstrings((struct basilysmapstrings_st*)(" map ")))")
+  "(melt_count_mapstrings((struct meltmapstrings_st*)(" map ")))")
 ;; get an entry in a mapstring from a C string
 (defprimitive mapstring_rawget (map :cstring cstr) :value
-  "(basilys_get_mapstrings((struct basilysmapstrings_st*)(" map "), (" cstr ")))")
+  "(melt_get_mapstrings((struct meltmapstrings_st*)(" map "), (" cstr ")))")
 ;; primitive for making a new map of strings
 (defprimitive make_mapstring (discr :long len) :value
-  " (basilysgc_new_mapstrings( (basilysobject_ptr_t) (" discr "), (" len ")))")
+  " (meltgc_new_mapstrings( (meltobject_ptr_t) (" discr "), (" len ")))")
 ;; primitive for putting into a map of strings
 (defprimitive mapstring_rawput (map :cstring key :value val) :void
-  " basilysgc_put_mapstrings( (struct basilysmapstrings_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
+  " meltgc_put_mapstrings( (struct meltmapstrings_st *) (" map "), (" key "), (melt_ptr_t) (" val "))")
 (defprimitive mapstring_putstr (map keystr val) :void
-  " basilysgc_put_mapstrings((struct basilysmapstrings_st *) (" map "), basilys_string_str((basilys_ptr_t)(" keystr ")), (basilys_ptr_t)(" val "))")
+  " meltgc_put_mapstrings((struct meltmapstrings_st *) (" map "), melt_string_str((melt_ptr_t)(" keystr ")), (melt_ptr_t)(" val "))")
 (defprimitive mapstring_getstr (map keystr) :value
-  "(basilys_get_mapstrings((struct basilysmapstrings_st*)(" map "), basilys_string_str((basilys_ptr_t)(" keystr "))))")
+  "(melt_get_mapstrings((struct meltmapstrings_st*)(" map "), melt_string_str((melt_ptr_t)(" keystr "))))")
 ;; primivite for removing from a map of strings
 (defprimitive mapstring_rawremove (map :cstring key) :void
-  " basilysgc_remove_mapstrings( (struct basilysmapstrings_st*) (" map "), (" key "))")
+  " meltgc_remove_mapstrings( (struct meltmapstrings_st*) (" map "), (" key "))")
 
 ;; primitive to make the nth stringattr of a mapobject
 (defprimitive mapstring_nth_attrstr (map sdicr :long n) :value
-  "(basilysgc_new_stringdup((basilysobject_ptr_t)(" sdicr "), basilys_nthattrraw_mapstrings((struct basilysmapstrings_st*)(" map "), (int)(" n "))))")
+  "(meltgc_new_stringdup((meltobject_ptr_t)(" sdicr "), melt_nthattrraw_mapstrings((struct meltmapstrings_st*)(" map "), (int)(" n "))))")
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapstring_nth_val (map :long n) :value
-  "(basilys_nthval_mapstrings((struct basilysmapstrings_st*)(" map "), (int)(" n ")))")
+  "(melt_nthval_mapstrings((struct meltmapstrings_st*)(" map "), (int)(" n ")))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; ROUTINEs primitives
 ;; test
 (defprimitive is_routine (rou) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
+  "(melt_magic_discr((melt_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
 ;;; descriptive string of a routine
 (defprimitive routine_descr (rou) :value
-  "(basilysgc_new_stringdup(basilys_routine_descrstr((basilys_ptr_t)(" rou "))))")
+  "(meltgc_new_stringdup(melt_routine_descrstr((melt_ptr_t)(" rou "))))")
 ;;; size of a routine
 (defprimitive routine_size  (rou) :long
-  "(basilys_routine_size((basilys_ptr_t)(" rou ")))")
+  "(melt_routine_size((melt_ptr_t)(" rou ")))")
 ;;; nth comp in routine
 (defprimitive routine_nth (rou :long ix) :value
-  "(basilys_routine_nth((basilys_ptr_t)(" rou "), (int) (" ix ")))")
+  "(melt_routine_nth((melt_ptr_t)(" rou "), (int) (" ix ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; CLOSUREs primitives
 ;; test
 (defprimitive is_closure (clo) :long
-  " (basilys_magic_discr((basilys_ptr_t)(" clo ")) == OBMAG_CLOSURE)")
+  " (melt_magic_discr((melt_ptr_t)(" clo ")) == OBMAG_CLOSURE)")
 (defprimitive closure_size (clo) :long
-  " (basilys_closure_size((basilys_ptr_t)(" clo ")))")
+  " (melt_closure_size((melt_ptr_t)(" clo ")))")
 (defprimitive closure_routine (clo) :value
-  " (basilys_closure_routine((basilys_ptr_t)(" clo ")))")
+  " (melt_closure_routine((melt_ptr_t)(" clo ")))")
 (defprimitive closure_nth (clo :long ix) :value
-  "(basilys_closure_nth((basilys_ptr_t)(" clo "), (int)(" ix ")))")
+  "(melt_closure_nth((melt_ptr_t)(" clo "), (int)(" ix ")))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; boxed INTEGERs primitives
 ;; test
 (defprimitive is_integerbox (ib) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" ib ")) == OBMAG_INT)")
+  "(melt_magic_discr((melt_ptr_t)(" ib ")) == OBMAG_INT)")
 ;; to get the boxed integer use get_int
 ;; make
 (defprimitive make_integerbox (discr :long n) :value
-  "(basilysgc_new_int((basilysobject_ptr_t)(" discr "), (" n ")))")
+  "(meltgc_new_int((meltobject_ptr_t)(" discr "), (" n ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; BOX primitives (boxed values)
 ;; test
 (defprimitive is_box (bx) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" bx ")) == OBMAG_BOX)")
+  "(melt_magic_discr((melt_ptr_t)(" bx ")) == OBMAG_BOX)")
 ;; safe fetch content
 (defprimitive box_content (box) :value
-  "basilys_box_content((basilysbox_ptr_t)(" box "))")
+  "melt_box_content((meltbox_ptr_t)(" box "))")
 ;; put into a box
 (defprimitive box_put (box val) :void
-  "basilysgc_box_put((basilys_ptr_t)(" box "), (basilys_ptr_t)(" val "))")
+  "meltgc_box_put((melt_ptr_t)(" box "), (melt_ptr_t)(" val "))")
 ;; make a box
 (defprimitive make_box (discr valb) :value
-  "basilysgc_new_box((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" valb "))")
+  "meltgc_new_box((meltobject_ptr_t)(" discr "), (melt_ptr_t)(" valb "))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; LIST primitives
 ;; test
 (defprimitive is_list (li) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" li ")) == OBMAG_LIST)")
+  "(melt_magic_discr((melt_ptr_t)(" li ")) == OBMAG_LIST)")
 (defprimitive is_list_or_null (li) :long
-  "((" li ") == NULL || (basilys_magic_discr((basilys_ptr_t)(" li ")) == OBMAG_LIST))")
+  "((" li ") == NULL || (melt_magic_discr((melt_ptr_t)(" li ")) == OBMAG_LIST))")
 ;; first pair of list
 (defprimitive list_first (li) :value
-  "(basilys_list_first((basilys_ptr_t)(" li ")))")
+  "(melt_list_first((melt_ptr_t)(" li ")))")
 ;; last pair of list
 (defprimitive list_last (li) :value
-  "(basilys_list_last((basilys_ptr_t)(" li ")))")
+  "(melt_list_last((melt_ptr_t)(" li ")))")
 ;; length of list
 (defprimitive list_length (li) :long
-  "(basilys_list_length((basilys_ptr_t)(" li ")))")
+  "(melt_list_length((melt_ptr_t)(" li ")))")
 ;; append into list
 (defprimitive list_append (li el) :void
-  "basilysgc_append_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
+  "meltgc_append_list((melt_ptr_t)(" li "), (melt_ptr_t)(" el "))")
 ;; prepend into list
 (defprimitive list_prepend (li el) :void
-  "basilysgc_prepend_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
+  "meltgc_prepend_list((melt_ptr_t)(" li "), (melt_ptr_t)(" el "))")
 ;; pop first from list
 (defprimitive list_popfirst (li) :value
-  "(basilysgc_popfirst_list((basilys_ptr_t)(" li ")))")
+  "(meltgc_popfirst_list((melt_ptr_t)(" li ")))")
 ;; make list
 (defprimitive make_list (discr) :value
-  "(basilysgc_new_list((basilysobject_ptr_t)(" discr ")))")
+  "(meltgc_new_list((meltobject_ptr_t)(" discr ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; PAIR primitives
 ;; test
 (defprimitive is_pair (pa) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" pa ")) == OBMAG_PAIR)")
+  "(melt_magic_discr((melt_ptr_t)(" pa ")) == OBMAG_PAIR)")
 ;; head
 (defprimitive pair_head (pa) :value
-  "(basilys_pair_head((basilys_ptr_t)(" pa ")))")
+  "(melt_pair_head((melt_ptr_t)(" pa ")))")
 ;; tail
 (defprimitive pair_tail (pa) :value
-  "(basilys_pair_tail((basilys_ptr_t)(" pa ")))")
+  "(melt_pair_tail((melt_ptr_t)(" pa ")))")
 ;; change the head of a pair
 (defprimitive pair_set_head (pa hd) :void
-  "basilysgc_pair_set_head((basilys_ptr_t)(" pa "), (" hd "))")
+  "meltgc_pair_set_head((melt_ptr_t)(" pa "), (" hd "))")
 ;; length of a pair list
 (defprimitive pair_listlength (pa) :long
-  "(basilys_pair_listlength((basilys_ptr_t)(" pa ")))")
+  "(melt_pair_listlength((melt_ptr_t)(" pa ")))")
 ;; make
 (defprimitive make_pair (discr hd tl) :value
-  "(basilysgc_new_pair((basilysobject_ptr_t)(" discr "), (basilys_ptr_t)(" hd "), (basilys_ptr_t)(" tl ")))")
+  "(meltgc_new_pair((meltobject_ptr_t)(" discr "), (melt_ptr_t)(" hd "), (melt_ptr_t)(" tl ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MIXINT primitives (use get_int to get the integer)
 ;; test
 (defprimitive is_mixint (mi) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" mi ")) == OBMAG_MIXINT)")
+  "(melt_magic_discr((melt_ptr_t)(" mi ")) == OBMAG_MIXINT)")
 ;; get the value
 (defprimitive mixint_val (mi) :value
-  "(basilys_val_mixint((basilys_ptr_t)(" mi ")))")
+  "(melt_val_mixint((melt_ptr_t)(" mi ")))")
 ;; make a mixint
 (defprimitive make_mixint (dis val :long num) :value
-  "(basilysgc_new_mixint((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num ")))")
+  "(meltgc_new_mixint((meltobject_ptr_t)(" dis "), (melt_ptr_t)(" val "), (" num ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MIXLOC primitives (use get_int to get the integer)
 ;; test
 (defprimitive is_mixloc (mi) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" mi ")) == OBMAG_MIXLOC)")
+  "(melt_magic_discr((melt_ptr_t)(" mi ")) == OBMAG_MIXLOC)")
 ;; get the value
 (defprimitive mixloc_val (mi) :value
-  "(basilys_val_mixloc((basilys_ptr_t)(" mi ")))")
+  "(melt_val_mixloc((melt_ptr_t)(" mi ")))")
 (defprimitive mixloc_location (mi) :long
-  "(basilys_location_mixloc((basilys_ptr_t)(" mi ")))")
+  "(melt_location_mixloc((melt_ptr_t)(" mi ")))")
 (defprimitive mixloc_locline (mi) :long
-  "(LOCATION_LINE(basilys_location_mixloc((basilys_ptr_t)" mi ")))")
+  "(LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mi ")))")
 (defprimitive mixloc_locfile (mi) :cstring
-  "(LOCATION_FILE(basilys_location_mixloc((basilys_ptr_t)" mi ")))")
+  "(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mi ")))")
 
 ;; make a mixloc
 (defprimitive make_mixloc (dis val :long num loc) :value
-  "(basilysgc_new_mixloc((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num "), (location_t)(" loc "))")
+  "(meltgc_new_mixloc((meltobject_ptr_t)(" dis "), (melt_ptr_t)(" val "), (" num "), (location_t)(" loc "))")
 
 ;; test for mixbigint
 (defprimitive is_mixbigint (mb) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" mb ")) == OBMAG_MIXBIGINT)")
+  "(melt_magic_discr((melt_ptr_t)(" mb ")) == OBMAG_MIXBIGINT)")
 (defprimitive mixbigint_val (mb) :value
-  #{basilys_val_mixbigint($mb)}#)
+  #{melt_val_mixbigint($mb)}#)
 
 (defprimitive ppstrbuf_mixbigint (:value sbuf :long indent :value mb) :void
- #{basilysgc_ppstrbuf_mixbigint($sbuf,$indent,$mb);}#
+ #{meltgc_ppstrbuf_mixbigint($sbuf,$indent,$mb);}#
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
-  "(basilysgc_read_file (basilys_string_str((basilys_ptr_t)(" filnam ")), (char*)0))")
+  "(meltgc_read_file (melt_string_str((melt_ptr_t)(" filnam ")), (char*)0))")
 
 
-;; to signal an error in a basilys source with some additional string value
+;; to signal an error in a melt source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void
-  "basilys_error_str((basilys_ptr_t)(" loc "), (" msg 
-  "), (basilys_ptr_t)(" strv "))")
+  "melt_error_str((melt_ptr_t)(" loc "), (" msg 
+  "), (melt_ptr_t)(" strv "))")
 
-;; signal a plain error in a basilys source
+;; signal a plain error in a melt source
 (defprimitive error_plain (loc :cstring msg) :void
-  "basilys_error_str((basilys_ptr_t)(" loc "), (" msg 
-  "), (basilys_ptr_t)0)")
+  "melt_error_str((melt_ptr_t)(" loc "), (" msg 
+  "), (melt_ptr_t)0)")
 
 
-;; to signal an warning in a basilys source with some additional string value
+;; to signal an warning in a melt source with some additional string value
 (defprimitive warning_strv (loc :cstring msg :value strv) :void
-  "basilys_warning_str(0, (basilys_ptr_t)(" loc "), (" msg 
-  "), (basilys_ptr_t)(" strv "))")
+  "melt_warning_str(0, (melt_ptr_t)(" loc "), (" msg 
+  "), (melt_ptr_t)(" strv "))")
 
-;; signal a plain warning in a basilys source
+;; signal a plain warning in a melt source
 (defprimitive warning_plain (loc :cstring msg) :void
-  "basilys_warning_str(0, (basilys_ptr_t)(" loc "), (" msg 
-  "), (basilys_ptr_t)0)")
+  "melt_warning_str(0, (melt_ptr_t)(" loc "), (" msg 
+  "), (melt_ptr_t)0)")
 
 
 ;; signal a plain warning 
 (defprimitive warningmsg_plain (:cstring msg) :void
-  "warning(0, \"BASILYS WARNING MSG [#%ld]::: %s \", basilys_dbgcounter, ("
+  "warning(0, \"MELT WARNING MSG [#%ld]::: %s \", melt_dbgcounter, ("
   msg "))"
   )
 
 
 ;; signal a plain warning 
 (defprimitive warningmsg_strv (:cstring msg :value strv) :void
-  "warning(0, \"BASILYS WARNING MSG [#%ld]::: %s - %s\", basilys_dbgcounter, ("
+  "warning(0, \"MELT WARNING MSG [#%ld]::: %s - %s\", melt_dbgcounter, ("
   msg 
-  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  "), melt_string_str((melt_ptr_t)(" strv ")))"
   )
 
 ;; signal a plain error 
 (defprimitive errormsg_plain (:cstring msg) :void
-  "error(\"BASILYS ERROR MSG [#%ld]::: %s \", basilys_dbgcounter, ("
+  "error(\"MELT ERROR MSG [#%ld]::: %s \", melt_dbgcounter, ("
   msg "))"
   )
 
 
 ;; signal a plain error
 (defprimitive errormsg_strv (:cstring msg :value strv) :void
-  "error(\"BASILYS ERROR MSG [#%ld]::: %s - %s\", basilys_dbgcounter, ("
+  "error(\"MELT ERROR MSG [#%ld]::: %s - %s\", melt_dbgcounter, ("
   msg 
-  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  "), melt_string_str((melt_ptr_t)(" strv ")))"
   )
 
 
-;; to signal an inform in a basilys source with some additional string value
+;; to signal an inform in a melt source with some additional string value
 (defprimitive inform_strv (loc :cstring msg :value strv) :void
-  "basilys_inform_str((basilys_ptr_t)(" loc "), (" msg 
-  "), (basilys_ptr_t)(" strv "))")
-;; signal a plain inform in a basilys source
+  "melt_inform_str((melt_ptr_t)(" loc "), (" msg 
+  "), (melt_ptr_t)(" strv "))")
+;; signal a plain inform in a melt source
 (defprimitive inform_plain (loc :cstring msg) :void
-  "basilys_inform_str((basilys_ptr_t)(" loc "), (" msg 
-  "), (basilys_ptr_t)0)")
+  "melt_inform_str((melt_ptr_t)(" loc "), (" msg 
+  "), (melt_ptr_t)0)")
 
 (defprimitive informsg_strv (:cstring msg :value strv) :void
-  "inform(UNKNOWN_LOCATION, (\"BASILYS INFORM [#%ld]: %s - %s\"), basilys_dbgcounter, ("
+  "inform(UNKNOWN_LOCATION, (\"MELT INFORM [#%ld]: %s - %s\"), melt_dbgcounter, ("
   msg
-  "), basilys_string_str((basilys_ptr_t)(" strv ")))"
+  "), melt_string_str((melt_ptr_t)(" strv ")))"
   )
 
 (defprimitive informsg_plain (:cstring msg) :void
-  "inform(UNKNOWN_LOCATION, (\"BASILYS INFORM [#%ld]: %s \"),  basilys_dbgcounter, ("
+  "inform(UNKNOWN_LOCATION, (\"MELT INFORM [#%ld]: %s \"),  melt_dbgcounter, ("
   msg
   "))"
   )
 
 (defprimitive informsg_long (:cstring msg :long n) :void
-  "inform(UNKNOWN_LOCATION, (\"BASILYS INFORM [#%ld]: %s * %ld\"),  basilys_dbgcounter, ("  msg  "), (" n "))"
+  "inform(UNKNOWN_LOCATION, (\"MELT INFORM [#%ld]: %s * %ld\"),  melt_dbgcounter, ("  msg  "), (" n "))"
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1587,22 +1588,22 @@
 
 ;;; every ctype should be predefined. normexp_defprimitive requires this
 ;;; while predef are somehow costly, we don't have that much many ctype-s
-;;; and each of them nearly requires some code in basilys.h
+;;; and each of them nearly requires some code in melt-runtime.h
 ;;; which should be enhanced for any new ctype
 ;; the C type for values
 (definstance ctype_value class_ctype
   :predef CTYPE_VALUE
   :named_name  (stringconst2val discr_namestring "CTYPE_VALUE")
   :ctype_keyword (quote :value)
-  :ctype_cname  (stringconst2val discr_namestring "basilys_ptr_t")
+  :ctype_cname  (stringconst2val discr_namestring "melt_ptr_t")
   :ctype_parchar (stringconst2val discr_namestring "BPAR_PTR")
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PTR")
   ;; value have to be passed specially, we need to pass the address of the pointer
   :ctype_argfield (stringconst2val discr_namestring "bp_aptr")
   :ctype_resfield (stringconst2val discr_namestring "bp_aptr")
-  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_basilys_un")
+  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_melt_un")
   )
-(install_ctype_descr ctype_value "any basilys value pointer")
+(install_ctype_descr ctype_value "any melt value pointer")
 
 ;; the C type for long
 (definstance ctype_long class_ctype
@@ -2101,8 +2102,8 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
-(defprimitive the_dbgcounter () :long "basilys_dbgcounter")
-(defprimitive increment_dbgcounter () :void "(void) ++basilys_dbgcounter")
+(defprimitive the_dbgcounter () :long "melt_dbgcounter")
+(defprimitive increment_dbgcounter () :void "(void) ++melt_dbgcounter")
 
 
 ;; this is a rarely used function
@@ -2292,10 +2293,10 @@
   (curpair curcomp)			;local formals
   (					;before expansion
    "/* start " eachlist "*/\n"
-   "for (" curpair " = basilys_list_first(" lis ");\n"
-   "basilys_magic_discr(" curpair ") == OBMAG_PAIR;\n"
-   curpair " = basilys_pair_tail(" curpair ")) {\n"
-   curcomp " = basilys_pair_head(" curpair ");\n"
+   "for (" curpair " = melt_list_first(" lis ");\n"
+   "melt_magic_discr(" curpair ") == OBMAG_PAIR;\n"
+   curpair " = melt_pair_tail(" curpair ")) {\n"
+   curcomp " = melt_pair_head(" curpair ");\n"
    )
   (					;after expansion
    "} /* end " eachlist "*/\n"
@@ -2489,11 +2490,11 @@
   eachtup				;state
   (comp :long ix)			;local formals
   (					;before expansion
-   "long " eachtup "_ln = basilys_multiple_length((basilys_ptr_t)" tup ");\n"
+   "long " eachtup "_ln = melt_multiple_length((melt_ptr_t)" tup ");\n"
    "int " eachtup "_ix = 0;\n"
    "for ("  eachtup "_ix = 0; " eachtup "_ix < " eachtup "_ln; " 
    eachtup "_ix ++) {\n"
-   comp " = basilys_multiple_nth((basilys_ptr_t)(" tup "), " eachtup "_ix);\n"
+   comp " = melt_multiple_nth((melt_ptr_t)(" tup "), " eachtup "_ix);\n"
    ix " = " eachtup "_ix;\n"
    )
   (					;after expansion
@@ -3775,8 +3776,8 @@
 	(assert_msg "check good out" (is_out out))
 	(let ( (:long nulloutfile 0) )
 	  (code_chunk getfile #{ 
-		      if (basilys_is_file($out))
-		      $nulloutfile = (basilys_get_file($out)==NULL)?1:0	;
+		      if (melt_is_file($out))
+		      $nulloutfile = (melt_get_file($out)==NULL)?1:0	;
 		      }#)
 	  (if nulloutfile 
 	      (progn 
@@ -3816,7 +3817,7 @@
 	    (progn
 	      (code_chunk debugstrbuf #{
 			  fprintf (stderr, "\n**debug_msg thru strbuffer:\n%s\n",
-					   basilys_strbuf_str ($out)) ;
+					   melt_strbuf_str ($out)) ;
 			  fflush (stderr) ;
 			  }#)
 	      ))
@@ -3892,14 +3893,14 @@
 			 (d discr_rawfile) 
 			 )
 		    (code_chunk makestdout 
-				#{ $f = basilysgc_new_file($d, stdout); }#
+				#{ $f = meltgc_new_file($d, stdout); }#
 				)
 		    f)
   :sysdata_stderr (let ( (f ())
 			 (d discr_rawfile) 
 			 )
 		    (code_chunk makestdout 
-				#{ $f = basilysgc_new_file($d, stderr); }#
+				#{ $f = meltgc_new_file($d, stderr); }#
 				)
 		    f)
   :sysdata_dumpfile (let ( (f ())
@@ -3907,7 +3908,7 @@
 			 )
 ;; the FILE* of dumpfile is also set in pass executions.
 		    (code_chunk makestdout 
-				#{ $f = basilysgc_new_file($d, dump_file); }#
+				#{ $f = meltgc_new_file($d, dump_file); }#
 				)
 		    f)
 )

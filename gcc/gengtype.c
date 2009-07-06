@@ -1570,8 +1570,8 @@ open_base_files (void)
       "optabs.h", "libfuncs.h", "debug.h", "ggc.h", "cgraph.h",
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
       "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h", 
-#if ENABLE_BASILYSMELT
-      "basilys.h",
+#if ENABLE_MELT
+      "melt-runtime.h",
 #endif
       NULL
     };

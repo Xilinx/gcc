@@ -820,10 +820,10 @@
 		   mpz_init_set_ui($testinside#_rminz, 0UL);
 		   mpz_init_set_ui($testinside#_rmaxz, 0UL);
 		   if ($lsize >= $rsize 
-		      && basilys_fill_mpz_from_mixbigint($lbigmin, $testinside#_lminz)
-	              && basilys_fill_mpz_from_mixbigint($lbigmax, $testinside#_lmaxz)
-		      && basilys_fill_mpz_from_mixbigint($rbigmin, $testinside#_rminz)
-	              && basilys_fill_mpz_from_mixbigint($rbigmax, $testinside#_rmaxz)
+		      && melt_fill_mpz_from_mixbigint($lbigmin, $testinside#_lminz)
+	              && melt_fill_mpz_from_mixbigint($lbigmax, $testinside#_lmaxz)
+		      && melt_fill_mpz_from_mixbigint($rbigmin, $testinside#_rminz)
+	              && melt_fill_mpz_from_mixbigint($rbigmax, $testinside#_rmaxz)
 		      && mpz_cmp($testinside#_lminz, $testinside#_rminz) <= 0
 		      && mpz_cmp($testinside#_lmaxz, $testinside#_rmaxz) >= 0)
 		         $widenningcast = 1;

@@ -91,10 +91,10 @@
   :fields (
 	   ctype_keyword ;the keyword associated to the ctype (e.g. :long)
 	   ctype_cname	 ;the name for C of the type (eg long)
-	   ctype_parchar ;the name of the basilys parameter char (eg BPAR_LONG)
-	   ctype_parstring ;the name of the basilys parameter string (eg BPARSTR_LONG)
-	   ctype_argfield ;the name of the basilys argument union field (eg bp_long)
-	   ctype_resfield ;the name of the basilys result union field (eg bp_longptr)
+	   ctype_parchar ;the name of the melt parameter char (eg BPAR_LONG)
+	   ctype_parstring ;the name of the melt parameter string (eg BPARSTR_LONG)
+	   ctype_argfield ;the name of the melt argument union field (eg bp_long)
+	   ctype_resfield ;the name of the melt result union field (eg bp_longptr)
 	   )
   )
 
@@ -161,21 +161,21 @@
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
-  " basilysgc_new_string((" discr "), (" strc "))")
+  " meltgc_new_string((" discr "), (" strc "))")
 
 ;; primitive for testing if an object is a (sub) instance of a class
 (defprimitive is_a (obj cla) :long
-  " basilys_is_instance_of((" obj "), (" cla "))")
+  " melt_is_instance_of((" obj "), (" cla "))")
 
 ;; primitive for testing if an object is NOT a (sub) instance of a class
 (defprimitive is_not_a (obj cla) :long
-  " !basilys_is_instance_of((" obj "), (" cla "))")
+  " !melt_is_instance_of((" obj "), (" cla "))")
   
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
-  " (basilys_magic_discr(" obj ") == OBMAG_OBJECT)")
+  " (melt_magic_discr(" obj ") == OBMAG_OBJECT)")
 (defprimitive is_not_object (obj) :long
-  " (basilys_magic_discr(" obj ") != OBMAG_OBJECT)")
+  " (melt_magic_discr(" obj ") != OBMAG_OBJECT)")
   
   
 
@@ -183,27 +183,27 @@
 
 ;; primitive to get the discriminant of a value
 (defprimitive discrim (v) :value
-  "(basilys_discr((" v ")))")
+  "(melt_discr((" v ")))")
 
 ;; primitive to get the integer inside a boxed or mixed integer or objnum
 (defprimitive get_int (v) :long
-  "(basilys_get_int((" v ")))")
+  "(melt_get_int((" v ")))")
 ;; primitive to put the integer inside a boxed or mixed integer or objnum
 (defprimitive put_int (v :long i) :void
-  "basilys_put_int((" v "), (" i "))")
+  "melt_put_int((" v "), (" i "))")
 
 ;; primitive to get the hashcode of an object (or 0)
 (defprimitive obj_hash(v) :long
-  "(basilys_obj_hash((" v ")))")
+  "(melt_obj_hash((" v ")))")
 ;; primitive to get the length of an object (or 0)
 (defprimitive obj_len(v) :long
-  "(basilys_obj_len((" v ")))")
+  "(melt_obj_len((" v ")))")
 ;; primitive to get the number of an object (or 0)
 (defprimitive obj_num(v) :long
-  "(basilys_obj_num((" v ")))")
+  "(melt_obj_num((" v ")))")
 ;; primitive to compue a nonzero hash
 (defprimitive nonzero_hash () :long
-  "(basilys_nonzerohash())")
+  "(melt_nonzerohash())")
 
 ;; primitive for identity and non-identity test
 (defprimitive == (a b) :long "((" a ") == (" b "))")
@@ -216,7 +216,7 @@
 
 ;; runtime assertion with message
 (defprimitive assert_msg (:cstring msg :long cond) :void
-  "basilys_assertmsg(" msg ", ( " cond "))")
+  "melt_assertmsg(" msg ", ( " cond "))")
 ;;; less, lessorequal, greater, greaterorequal, equal, different number 
 (defprimitive <i (:long a b) :long "((" a ") < (" b "))")
 (defprimitive <=i (:long a b) :long "((" a ") <= (" b "))")
@@ -234,8 +234,8 @@
 (defprimitive negi (:long i) :long "(-(" i "))")
 (defprimitive noti (:long i) :long "(~(" i "))")
 
-(defprimitive /i (:long a b) :long "(basilys_idiv((" a "), (" b ")))")
-(defprimitive %i (:long a b) :long "(basilys_imod((" a "), (" b ")))")
+(defprimitive /i (:long a b) :long "(melt_idiv((" a "), (" b ")))")
+(defprimitive %i (:long a b) :long "(melt_imod((" a "), (" b ")))")
 (defprimitive /iraw (:long a b)  :long "((" a ") / (" b "))")
 (defprimitive %iraw (:long a b)  :long "((" a ") % (" b "))")
 ;; boolean not
@@ -257,197 +257,197 @@
 ;;;;;; STRBUF primitives
 ;; primitive to make a strbuf
 (defprimitive make_strbuf (discr) :value
-  "basilysgc_new_strbuf((basilysobject_ptr_t)(" discr "), (char*)0)")
+  "meltgc_new_strbuf((meltobject_ptr_t)(" discr "), (char*)0)")
 (defprimitive strbuf_usedlength (sbuf) :long
-  "basilys_strbuf_usedlength((" sbuf "))")
+  "melt_strbuf_usedlength((" sbuf "))")
 
 (defprimitive is_strbuf (v) :long
-  "(basilys_magic_discr((" v ")) == OBMAG_STRBUF)")
+  "(melt_magic_discr((" v ")) == OBMAG_STRBUF)")
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
-  "basilysgc_add_strbuf((" sbuf "), (" str "))")
+  "meltgc_add_strbuf((" sbuf "), (" str "))")
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
-  "basilysgc_add_strbuf((" sbuf "), basilys_string_str(" str "))")
+  "meltgc_add_strbuf((" sbuf "), melt_string_str(" str "))")
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((" sbuf "), (" depth "), 72)")
+  "meltgc_strbuf_add_indent((" sbuf "), (" depth "), 72)")
 
 
 ;; primitive to add an indented newline into a strbuf
 (defprimitive add2sbuf_indentnl (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((" sbuf "), (" depth "), 0)")
+  "meltgc_strbuf_add_indent((" sbuf "), (" depth "), 0)")
 
 
 ;; primitive to add a strbuf into a strbuf
 (defprimitive add2sbuf_sbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf((" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "meltgc_add_strbuf((" sbuf "), melt_strbuf_str(" asbuf "))")
 
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
-  "basilysgc_add_strbuf_cstr((" sbuf "), basilys_string_str(" str "))")
+  "meltgc_add_strbuf_cstr((" sbuf "), melt_string_str(" str "))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_cstr((" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "meltgc_add_strbuf_cstr((" sbuf "), melt_strbuf_str(" asbuf "))")
 
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
-  "basilysgc_add_strbuf_ccomment((" sbuf "), basilys_string_str(" str "))")
+  "meltgc_add_strbuf_ccomment((" sbuf "), melt_string_str(" str "))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_ccomment((" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "meltgc_add_strbuf_ccomment((" sbuf "), melt_strbuf_str(" asbuf "))")
 
 
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
 ;; replaced by _)
 (defprimitive add2sbuf_cident (sbuf str) :void
-  "basilysgc_add_strbuf_cident((" sbuf "), basilys_string_str(" str "))")
+  "meltgc_add_strbuf_cident((" sbuf "), melt_string_str(" str "))")
 
 ;; primitive to add into a strbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2sbuf_cidentprefix  (sbuf str :long preflen) :void
-  "basilysgc_add_strbuf_cidentprefix((" sbuf "), basilys_string_str(" str "), (" preflen "))")
+  "meltgc_add_strbuf_cidentprefix((" sbuf "), melt_string_str(" str "), (" preflen "))")
 
 ;; primitive to add a long in decimal into a strbuf
 (defprimitive add2sbuf_longdec (sbuf :long num) :void
-  "basilysgc_add_strbuf_dec((" sbuf "), (" num "))")
+  "meltgc_add_strbuf_dec((" sbuf "), (" num "))")
 
 ;; primitive to add a long in hex into a strbuf
 (defprimitive add2sbuf_longhex (sbuf :long num) :void
-  "basilysgc_add_strbuf_hex((" sbuf "), (" num "))")
+  "meltgc_add_strbuf_hex((" sbuf "), (" num "))")
 
 ;; primitive to add a routine descr into a strbuf
 (defprimitive add2sbuf_routinedescr (sbuf rout) :void
-  "basilysgc_add_strbuf((" sbuf "), basilys_routine_descrstr(" rout "))")
+  "meltgc_add_strbuf((" sbuf "), melt_routine_descrstr(" rout "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; STRING primitives
 ;; primitive for testing if a value is a string
 (defprimitive is_string (str) :long
-  " (basilys_magic_discr(" str ") == OBMAG_STRING)")
+  " (melt_magic_discr(" str ") == OBMAG_STRING)")
 ;; string equal
 (defprimitive ==s (s1 s2) :long
-  "basilys_string_same((" s1 "), (" s2 "))")
+  "melt_string_same((" s1 "), (" s2 "))")
 ;;; make a string
 (defprimitive make_string (dis str) :value
-  "(basilysgc_new_stringdup((void*)(" dis "), basilys_string_str((" str "))))")
+  "(meltgc_new_stringdup((void*)(" dis "), melt_string_str((" str "))))")
 (defprimitive make_stringconst (dis :cstring cstr) :value
-  "(basilysgc_new_stringdup((void*)(" dis "), (" cstr ")))")
+  "(meltgc_new_stringdup((void*)(" dis "), (" cstr ")))")
 
 (defprimitive string_length (str) :long
-  "basilys_string_length((" str "))")
+  "melt_string_length((" str "))")
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
-  "(basilysgc_new_stringdup((void*)(" dis "), basilys_strbuf_str((" sbuf "))))")
+  "(meltgc_new_stringdup((void*)(" dis "), melt_strbuf_str((" sbuf "))))")
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
- "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((" str "))))")
+ "(meltgc_new_string_nakedbasename((meltobject_ptr_t)(" dis "), melt_string_str((" str "))))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
 ;; primitive to get an object length
 (defprimitive object_length (ob) :long 
-  "((long)basilys_object_length((" ob ")))")
+  "((long)melt_object_length((" ob ")))")
 ;; primitive to get the nth field of an object
 (defprimitive object_nth_field (ob :long n) :value
-  "(basilys_field_object((" ob "), (" n ")))")
+  "(melt_field_object((" ob "), (" n ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MULTIPLEs primitives
 ;;;; test
 (defprimitive is_multiple (mul) :long
- "(basilys_magic_discr((" mul  ")) == OBMAG_MULTIPLE)")
+ "(melt_magic_discr((" mul  ")) == OBMAG_MULTIPLE)")
 (defprimitive is_multiple_or_null (mul) :long
- "((" mul ") == NULL || (basilys_magic_discr((" mul  ")) == OBMAG_MULTIPLE))")
+ "((" mul ") == NULL || (melt_magic_discr((" mul  ")) == OBMAG_MULTIPLE))")
 ;;; make
 (defprimitive make_multiple (discr :long ln) :value
-  "(basilysgc_new_multiple((basilysobject_ptr_t)(" discr "), (" ln ")))")
+  "(meltgc_new_multiple((meltobject_ptr_t)(" discr "), (" ln ")))")
 (defprimitive make_tuple1 (discr v1) :value
-  "(basilysgc_new_mult1((basilysobject_ptr_t)(" discr "),(" v1 ")))")
+  "(meltgc_new_mult1((meltobject_ptr_t)(" discr "),(" v1 ")))")
 (defprimitive make_tuple2 (discr v1 v2) :value
-  "(basilysgc_new_mult2((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2 ")))")
+  "(meltgc_new_mult2((meltobject_ptr_t)(" discr "),(" v1 "), (" v2 ")))")
 (defprimitive make_tuple3 (discr v1 v2 v3) :value
-  "(basilysgc_new_mult3((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3 ")))")
+  "(meltgc_new_mult3((meltobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3 ")))")
 (defprimitive make_tuple4 (discr v1 v2 v3 v4) :value
-  "(basilysgc_new_mult4((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4 ")))")
+  "(meltgc_new_mult4((meltobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4 ")))")
 (defprimitive make_tuple5 (discr v1 v2 v3 v4 v5) :value
-  "(basilysgc_new_mult5((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4  "), (" v5 ")))")
+  "(meltgc_new_mult5((meltobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4  "), (" v5 ")))")
 ;; primitive to get the nth  in a multiple
 (defprimitive multiple_nth (mul :long n) :value
-    "(basilys_multiple_nth((void*)(" mul "), (" n ")))")
+    "(melt_multiple_nth((void*)(" mul "), (" n ")))")
 ;; primitive to get the length of a multiple
 (defprimitive multiple_length (v) :long
-  "(basilys_multiple_length((void*)(" v ")))")
+  "(melt_multiple_length((void*)(" v ")))")
 ;; be careful to avoid circularities
 (defprimitive multiple_put_nth (mul :long n :value v) :void
-  " basilysgc_multiple_put_nth((void*)(" mul "), (" n "), (void*)(" v "))")
+  " meltgc_multiple_put_nth((void*)(" mul "), (" n "), (void*)(" v "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPOBJECTs primitives
 ;;;; test
 (defprimitive is_mapobject (map) :long
- "(basilys_magic_discr((" map  ")) == OBMAG_MAPOBJECTS)")
+ "(melt_magic_discr((" map  ")) == OBMAG_MAPOBJECTS)")
 ;; primitive to get the allocated size of a mapobject
 (defprimitive mapobject_size (map) :long
-  "(basilys_size_mapobjects((void*)(" map ")))")
+  "(melt_size_mapobjects((void*)(" map ")))")
 ;; primitive to get the attribute count of a mapobject
 (defprimitive mapobject_count (map) :long
-  "(basilys_count_mapobjects((void*)(" map ")))")
+  "(melt_count_mapobjects((void*)(" map ")))")
 ;; primitive to get the nth attribute of a mapobject
 (defprimitive mapobject_nth_attr (map :long n) :value
-  "(basilys_nthattr_mapobjects((void*)(" map "), (int)(" n ")))")
+  "(melt_nthattr_mapobjects((void*)(" map "), (int)(" n ")))")
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapobject_nth_val (map :long n) :value
-  "(basilys_nthval_mapobjects((void*)(" map "), (int)(" n ")))")
+  "(melt_nthval_mapobjects((void*)(" map "), (int)(" n ")))")
 ;; primitive to get the value of an attribute in a mapobject
 (defprimitive mapobject_get (map attr) :value
-  "(basilys_get_mapobjects((void*)(" map "), (" attr ")))")
+  "(melt_get_mapobjects((void*)(" map "), (" attr ")))")
 ;; primitive for making a new map of objects
 (defprimitive make_mapobject (discr :long len) :value
-  " (basilysgc_new_mapobjects( (void*) (" discr "), (" len ")))")
+  " (meltgc_new_mapobjects( (void*) (" discr "), (" len ")))")
 ;; primitive for putting into a map of objects
 (defprimitive mapobject_put (map key val) :void
- " basilysgc_put_mapobjects( (void*) (" map "), (" key "), (" val "))")
+ " meltgc_put_mapobjects( (void*) (" map "), (" key "), (" val "))")
 ;; primivite for removing from a map of objects
 (defprimitive mapobject_remove (map key) :void
-  " basilysgc_remove_mapobjects( (void*) (" map "), (" key "))")
+  " meltgc_remove_mapobjects( (void*) (" map "), (" key "))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPSTRINGs primitive
 ;; test
 (defprimitive is_mapstring (map) :long
-"(basilys_magic_discr((" map ")) == OBMAG_MAPSTRINGS)")
+"(melt_magic_discr((" map ")) == OBMAG_MAPSTRINGS)")
 ;; primitive to get the allocated size of a mapstring
 (defprimitive mapstring_size (map) :long 
-  "(basilys_size_mapstrings(" map "))")
+  "(melt_size_mapstrings(" map "))")
 ;; primitive to get the attribute count of a mapstring
 (defprimitive mapstring_count (map) :long
-  "(basilys_count_mapstrings(" map "))")
+  "(melt_count_mapstrings(" map "))")
 ;; get an entry in a mapstring from a C string
 (defprimitive mapstring_rawget (map :cstring cstr) :value
-  "(basilys_get_mapstrings((void*)(" map "), (" cstr ")))")
+  "(melt_get_mapstrings((void*)(" map "), (" cstr ")))")
 ;; primitive for making a new map of strings
 (defprimitive make_mapstring (discr :long len) :value
-  " (basilysgc_new_mapstrings( (basilysobject_ptr_t) (" discr "), (" len ")))")
+  " (meltgc_new_mapstrings( (meltobject_ptr_t) (" discr "), (" len ")))")
 ;; primitive for putting into a map of strings
 (defprimitive mapstring_rawput (map :cstring key :value val) :void
- " basilysgc_put_mapstrings( (void*) (" map "), (" key "), (" val "))")
+ " meltgc_put_mapstrings( (void*) (" map "), (" key "), (" val "))")
 (defprimitive mapstring_putstr (map keystr val) :void
-  " basilysgc_put_mapstrings((void*) (" map "), basilys_string_str(" keystr "), (" val "))")
+  " meltgc_put_mapstrings((void*) (" map "), melt_string_str(" keystr "), (" val "))")
 (defprimitive mapstring_getstr (map keystr) :value
-  "(basilys_get_mapstrings((void*)(" map "), basilys_string_str(" keystr ")))")
+  "(melt_get_mapstrings((void*)(" map "), melt_string_str(" keystr ")))")
 ;; primivite for removing from a map of strings
 (defprimitive mapstring_rawremove (map :cstring key) :void
-  " basilysgc_remove_mapstrings( (void*) (" map "), (" key "))")
+  " meltgc_remove_mapstrings( (void*) (" map "), (" key "))")
 
 ;; primitive to make the nth stringattr of a mapobject
 (defprimitive mapstring_nth_attrstr (map sdicr :long n) :value
-  "(basilysgc_new_stringdup((void*)(" sdicr "), basilys_nthattrraw_mapstrings((" map "), (int)(" n "))))")
+  "(meltgc_new_stringdup((void*)(" sdicr "), melt_nthattrraw_mapstrings((" map "), (int)(" n "))))")
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapstring_nth_val (map :long n) :value
-  "(basilys_nthval_mapstrings((" map "), (int)(" n ")))")
+  "(melt_nthval_mapstrings((" map "), (int)(" n ")))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; ROUTINEs primitives
 ;; test
@@ -455,107 +455,107 @@
 "(basils_magic_discr((" rou ")) == OBMAG_ROUTINE)")
 ;;; descriptive string of a routine
 (defprimitive routine_descr (rou) :value
-  "(basilysgc_new_stringdup(basilys_routine_descrstr((" rou "))))")
+  "(meltgc_new_stringdup(melt_routine_descrstr((" rou "))))")
 ;;; size of a routine
 (defprimitive routine_size  (rou) :long
-  "(basilys_routine_size((" rou ")))")
+  "(melt_routine_size((" rou ")))")
 ;;; nth comp in routine
 (defprimitive routine_nth (rou :long ix) :value
-"(basilys_routine_nth((" rou "), (int) (" ix ")))")
+"(melt_routine_nth((" rou "), (int) (" ix ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; CLOSUREs primitives
 ;; test
 (defprimitive is_closure (clo) :long
-  " (basilys_magic_discr((" clo ")) == OBMAG_CLOSURE)")
+  " (melt_magic_discr((" clo ")) == OBMAG_CLOSURE)")
 (defprimitive closure_size (clo) :long
-  " (basilys_closure_size((" clo ")))")
+  " (melt_closure_size((" clo ")))")
 (defprimitive closure_routine (clo) :value
- " (basilys_closure_routine((" clo ")))")
+ " (melt_closure_routine((" clo ")))")
 (defprimitive closure_nth (clo :long ix) :value
-  "(basilys_closure_nth((" clo "), (int)(" ix ")))")
+  "(melt_closure_nth((" clo "), (int)(" ix ")))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; boxed INTEGERs primitives
 ;; test
 (defprimitive is_integerbox (ib) :long
-  "(basilys_magic_discr((void*)(" ib ")) == OBMAG_INT)")
+  "(melt_magic_discr((void*)(" ib ")) == OBMAG_INT)")
 ;; to get the boxed integer use get_int
 ;; make
 (defprimitive make_integerbox (discr :long n) :value
-  "(basilysgc_new_int((void*)(" discr "), (" n ")))")
+  "(meltgc_new_int((void*)(" discr "), (" n ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; BOX primitives (boxed values)
 ;; test
 (defprimitive is_box (bx) :long
-  "(basilys_magic_discr((" bx ")) == OBMAG_BOX)")
+  "(melt_magic_discr((" bx ")) == OBMAG_BOX)")
 ;; safe fetch content
 (defprimitive box_content (box) :value
-  "basilys_box_content((" box "))")
+  "melt_box_content((" box "))")
 ;; put into a box
 (defprimitive box_put (box val) :void
-  "basilysgc_box_put((" box "), (" val "))")
+  "meltgc_box_put((" box "), (" val "))")
 ;; make a box
 (defprimitive make_box (discr valb) :value
-  "basilysgc_new_box((void*)(" discr "), (void*)(" valb "))")
+  "meltgc_new_box((void*)(" discr "), (void*)(" valb "))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; LIST primitives
 ;; test
 (defprimitive is_list (li) :long
-  "(basilys_magic_discr((" li ")) == OBMAG_LIST)")
+  "(melt_magic_discr((" li ")) == OBMAG_LIST)")
 (defprimitive is_list_or_null (li) :long
-  "((" li ") == NULL || (basilys_magic_discr((" li ")) == OBMAG_LIST))")
+  "((" li ") == NULL || (melt_magic_discr((" li ")) == OBMAG_LIST))")
 ;; first pair of list
 (defprimitive list_first (li) :value
-  "(basilys_list_first((" li ")))")
+  "(melt_list_first((" li ")))")
 ;; last pair of list
 (defprimitive list_last (li) :value
-"(basilys_list_last((" li ")))")
+"(melt_list_last((" li ")))")
 ;; length of list
 (defprimitive list_length (li) :long
-"(basilys_list_length((" li ")))")
+"(melt_list_length((" li ")))")
 ;; append into list
 (defprimitive list_append (li el) :void
-"basilysgc_append_list((" li "), (" el "))")
+"meltgc_append_list((" li "), (" el "))")
 ;; prepend into list
 (defprimitive list_prepend (li el) :void
-"basilysgc_prepend_list((" li "), (" el "))")
+"meltgc_prepend_list((" li "), (" el "))")
 ;; pop first from list
 (defprimitive list_popfirst (li) :value
-  "(basilysgc_popfirst_list((" li ")))")
+  "(meltgc_popfirst_list((" li ")))")
 ;; make list
 (defprimitive make_list (discr) :value
-"(basilysgc_new_list((void*)(" discr ")))")
+"(meltgc_new_list((void*)(" discr ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; PAIR primitives
 ;; test
 (defprimitive is_pair (pa) :long
-  "(basilys_magic_discr((" pa ")) == OBMAG_PAIR)")
+  "(melt_magic_discr((" pa ")) == OBMAG_PAIR)")
 ;; head
 (defprimitive pair_head (pa) :value
-  "(basilys_pair_head((" pa ")))")
+  "(melt_pair_head((" pa ")))")
 ;; tail
 (defprimitive pair_tail (pa) :value
-  "(basilys_pair_tail((" pa ")))")
+  "(melt_pair_tail((" pa ")))")
 ;; change the head of a pair
 (defprimitive pair_set_head (pa hd) :void
-  "basilysgc_pair_set_head((" pa "), (" hd "))")
+  "meltgc_pair_set_head((" pa "), (" hd "))")
 ;; length of a pair list
 (defprimitive pair_listlength (pa) :long
-  "(basilys_pair_listlength((" pa ")))")
+  "(melt_pair_listlength((" pa ")))")
 ;; make
 (defprimitive pair_make (discr hd tl) :value
-  "(basilysgc_new_pair((" discr "), (" hd "), (" tl ")))")
+  "(meltgc_new_pair((" discr "), (" hd "), (" tl ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MIXINT primitives (use get_int to get the integer)
 ;; test
 (defprimitive is_mixint (mi) :long
-  "(basilys_magic_discr((" mi ")) == OBMAG_MIXINT)")
+  "(melt_magic_discr((" mi ")) == OBMAG_MIXINT)")
 ;; get the value
 (defprimitive mixint_val (mi) :value
-  "(basilys_val_mixint((" mi ")))")
+  "(melt_val_mixint((" mi ")))")
 
 ;;; debugging primitives
 (defprimitive message_dbg (:cstring msg) :void
@@ -785,15 +785,15 @@
 
 ;;; output on stderr
 (defprimitive outnum_err (:cstring pref :long l :cstring suf) :void
-  "basilys_putnum(stderr,(" pref "), (" l "), (" suf "))")
+  "melt_putnum(stderr,(" pref "), (" l "), (" suf "))")
 (defprimitive outcstring_err (:cstring s) :void
-  "basilys_puts(stderr,(" s "))")
+  "melt_puts(stderr,(" s "))")
 (defprimitive outstrbuf_err (sbuf) :void
-  "basilys_putstrbuf(stderr,(" sbuf "))")
+  "melt_putstrbuf(stderr,(" sbuf "))")
 (defprimitive outnewline_err () :void
-  "basilys_newlineflush(stderr)")
+  "melt_newlineflush(stderr)")
 (defprimitive outstr_err (str) :void
-  "basilys_putstr(stderr,(" str "))")
+  "melt_putstr(stderr,(" str "))")
 
 ;;; full iterator on tuple - 
 ;;; the function is called with the component and its index
@@ -934,14 +934,14 @@
 
 ;;; every ctype should be predefined. normexp_defprimitive requires this
 ;;; while predef are somehow costly, we don't have that much many ctype-s
-;;; and each of them nearly requires some code in basilys.h
+;;; and each of them nearly requires some code in melt.h
 ;;; which should be enhanced for any new ctype
 ;; the C type for values
 (definstance ctype_value class_ctype
   :predef CTYPE_VALUE
   :named_name  (stringconst2val discr_namestring "CTYPE_VALUE")
   :ctype_keyword (quote :value)
-  :ctype_cname  (stringconst2val discr_namestring "basilys_ptr_t")
+  :ctype_cname  (stringconst2val discr_namestring "melt_ptr_t")
   :ctype_parchar (stringconst2val discr_namestring "BPAR_PTR")
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PTR")
   ;; value have to be passed specially, we need to pass the address of the pointer

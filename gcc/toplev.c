@@ -32,7 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include <signal.h>
 
-/* Basilys needs the Parma Polyhedral Library & the Libtool dynamic loader */
+/* Melt needs the Parma Polyhedral Library & the Libtool dynamic loader */
 #if HAVE_PARMAPOLY 
 #include <ppl_c.h>
 #endif 
@@ -110,10 +110,10 @@ along with GCC; see the file COPYING3.  If not see
 				   declarations for e.g. AIX 4.x.  */
 #endif
 
-/* we don't include basilys.h but declare its initializer & finalizer here */
-#if ENABLE_BASILYSMELT
-extern void basilys_initialize(void); /* in basilys.c */
-extern void basilys_finalize(void); /* in basilys.c */
+/* we don't include melt.h but declare its initializer & finalizer here */
+#if ENABLE_MELT
+extern void melt_initialize(void); /* in melt.c */
+extern void melt_finalize(void); /* in melt.c */
 #endif
 
 static void general_init (const char *);
@@ -1693,7 +1693,7 @@ general_init (const char *argv0)
   line_table->reallocator = realloc_for_line_map;
   init_ttree ();
 
-  /* Basilys needs PARMAPOLY & LIBTOOLDYNL */
+  /* Melt needs PARMAPOLY & LIBTOOLDYNL */
 #if HAVE_PARMAPOLY
   /* Initialize the Parma Polyhedra Library. */
   if (ppl_initialize () <0) 
@@ -2399,10 +2399,10 @@ toplev_main (int argc, char **argv)
 
   initialize_plugins ();
 
-#if ENABLE_BASILYSMELT
-  /* initialize basilys if needed */
+#if ENABLE_MELT
+  /* initialize melt if needed */
   if (melt_mode_string && melt_mode_string[0])
-    basilys_initialize();
+    melt_initialize();
 #endif
 
   if (version_flag)
@@ -2416,10 +2416,10 @@ toplev_main (int argc, char **argv)
     do_compile ();
 
 
-#if ENABLE_BASILYSMELT
-  /* finalize basilys if needed */
+#if ENABLE_MELT
+  /* finalize melt if needed */
   if (melt_mode_string && melt_mode_string[0])
-    basilys_finalize();
+    melt_finalize();
 #endif
 
   if (warningcount || errorcount) 

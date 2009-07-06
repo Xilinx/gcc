@@ -7,27 +7,27 @@
 ;; boolean not
 (defprimitive not (:long i) :long "(!(" i "))")
 (defprimitive is_closure (clo) :long
-  " (basilys_magic_discr((" clo ")) == OBMAG_CLOSURE)")
+  " (melt_magic_discr((" clo ")) == OBMAG_CLOSURE)")
 ;;;;; PAIR primitives
 ;; test
 (defprimitive is_pair (pa) :long
-  "(basilys_magic_discr((" pa ")) == OBMAG_PAIR)")
+  "(melt_magic_discr((" pa ")) == OBMAG_PAIR)")
 ;; head
 (defprimitive pair_head (pa) :value
-  "(basilys_pair_head((" pa ")))")
+  "(melt_pair_head((" pa ")))")
 ;; tail
 (defprimitive pair_tail (pa) :value
-  "(basilys_pair_tail((" pa ")))")
+  "(melt_pair_tail((" pa ")))")
 (defprimitive make_multiple (discr :long ln) :value
-  "(basilysgc_new_multiple((" discr "), (" ln ")))")
+  "(meltgc_new_multiple((" discr "), (" ln ")))")
 ;; primitive to get the nth  in a multiple
 ;(defprimitive multiple_nth (mul :long n) :value
-;    "(basilys_multiple_nth((" mul "), (" n ")))")
+;    "(melt_multiple_nth((" mul "), (" n ")))")
 ;; primitive to get the length of a multiple
 ;(defprimitive multiple_length (v) :long
-;  "(basilys_multiple_length((" v ")))")
+;  "(melt_multiple_length((" v ")))")
 (defprimitive multiple_put_nth (mul :long n :value v) :void
-  " basilysgc_multiple_put_nth((" mul "), (" n "), (" v "))")
+  " meltgc_multiple_put_nth((" mul "), (" n "), (" v "))")
 (defprimitive +i (:long a b) :long "((" a ") + (" b "))")
 ;(defprimitive -i (:long a b) :long "((" a ") - (" b "))")
 ;(defprimitive *i (:long a b) :long "((" a ") * (" b "))")
@@ -45,10 +45,10 @@
     (f_cl y_arg)))
 
 
-(defprimitive tup1_pr2 (di t1) :value "basilysgc_new_mult1((" di "), (" t1 "))")
+(defprimitive tup1_pr2 (di t1) :value "meltgc_new_mult1((" di "), (" t1 "))")
 
 
-(defprimitive mkint_t2 (:long a) :value "basilysgc_new_int(BASILYSG(DISCR_INTEGER),(" a "))")
+(defprimitive mkint_t2 (:long a) :value "meltgc_new_int(MELT_PREDEF(DISCR_INTEGER),(" a "))")
 
 
 (defclass my_class_root 

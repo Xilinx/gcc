@@ -25,7 +25,7 @@
 ;; to the generated file or warmelt-macro*.c
 
 ;;    This file is the second part of a bootstrapping compiler for the
-;;    basilys/MELT lisp dialect, compiler which should be able to
+;;    MELT lisp dialect, compiler which should be able to
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -386,7 +386,7 @@
 	   scwarn_expr))
 
 ;; the fresh current module environment box, returning the newly build
-;; module environment result of the generated start_module_basilys
+;; module environment result of the generated start_module_melt
 (defclass class_src_current_module_environment_container
   :super class_src
   :fields (
@@ -394,7 +394,7 @@
 	   ))
 
 ;; the fres previous module environment, returning the argument passed
-;; to the generated start_module_basilys
+;; to the generated start_module_melt
 (defclass class_src_parent_module_environment
   :super class_src
   :fields (

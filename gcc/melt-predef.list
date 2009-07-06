@@ -125,13 +125,13 @@
   ATOM_TRUE
 # the class of containers 
   CLASS_CONTAINER
-# the super-class of basilys GCC compiler passes 
+# the super-class of melt GCC compiler passes 
   CLASS_GCC_PASS
-# the class of basilys GCC GIMPLE passes 
+# the class of melt GCC GIMPLE passes 
   CLASS_GCC_GIMPLE_PASS
-# the class of basilys GCC GIMPLE passes 
+# the class of melt GCC GIMPLE passes 
   CLASS_GCC_RTL_PASS
-# the class of basilys GCC GIMPLE passes 
+# the class of melt GCC GIMPLE passes 
   CLASS_GCC_SIMPLE_IPA_PASS
 # the class of C iterators 
   CLASS_CITERATOR

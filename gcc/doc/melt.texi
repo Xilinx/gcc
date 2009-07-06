@@ -17,9 +17,6 @@ The MELT branch introduces a Lisp dialect to express middle-end analysers.
 This chapter describes the dialect and how to use it.
 A working knowledge of Scheme or Lisp is presupposed.
 
-MELT was formerly known as Basilys, hence many functions or variables
-have basilys in their name, and the conventional file extensions for
-MELT source files is @code{.melt} (and used to be @code{.bysl}).
 
 See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 
@@ -69,9 +66,6 @@ enabled or disabled at GCC configure time or at GCC run time:
 
 @enumerate
 
-@item a compiler probe, which enable an advanced user to display some of
-the compilers internals data (but not to change them or change the
-GCC compiler's behavior.
 
 @item a Lisp dialect compiled into C code, with which one can code
 sophisticated or prototypical middle end passes.
@@ -87,7 +81,7 @@ MELT is bootstrapped, in the sense that the translation from the MELT
 dialect to C is coded in MELT (hence the MELT generated C code is
 available from the source code).
 
-The generated C code is including only one file @code{run-basilys.h}
+The generated C code is including only one file @code{run-melt.h}
 which includes many GCC include files internal to the compiler. It is
 compiled into a dynamic library by a shell script
 @code{*melt-cc-script*} which invokes the host GCC with appropriate
@@ -113,6 +107,7 @@ the installation procedure.
  
 @end enumerate
 
+MELT can also be used as a plugin for GCC.
 
 @c =======================================================================
 @node Building the MELT branch
@@ -121,24 +116,18 @@ the installation procedure.
 
 The MELT branch has to be configured appropriately to enable MELT. If
 MELT is disabled at configure time, the MELT branch is essentially the
-GCC trunk. Enabling MELT means passing the @code{-with-ppl --with-ltdl
---enable-compiler-probe --enable-basilysmelt} flags to the toplevel
-@code{configure}.
+GCC trunk. Enabling MELT means passing the @code{-with-ppl
+--enable-melt} flags to the toplevel @code{configure}.
 
-Actually, there are two different features enabled: the compiler probe
-and MELT. In practice, you'll need both.
 
-To compile the MELT branch, you need the libtool dynamic loader and
-the Parma Polyhedra Library. The libtool dynamic loader wraps the
-dynamic library loading functions like @code{dlopen} or @code{dlsym};
-it is part of @uref{http://www.gnu.org/software/libtool,,libtool}
-(version 2.x). The Parma Polyhedra Library (PPL) is a free library
-available @uref{http://www.cs.unipr.it/ppl/,,here}, it is a C++
-library (GPLv3 licensed) handling lattices like intervals etc. Also,
-the host compiler (the compiler which compiles the source code of
-GCC), also used to compile MELT generated C code during MELT enabled
-@code{gcc} execution, should be some version of @code{gcc} (preferably
-a 4.x version at least).
+To compile the MELT branch, you need the Parma Polyhedra Library. The
+Parma Polyhedra Library (PPL) is a free library available
+@uref{http://www.cs.unipr.it/ppl/,,here}, it is a C++ library (GPLv3
+licensed) handling lattices like intervals etc. Also, the host
+compiler (the compiler which compiles the source code of GCC), also
+used to compile MELT generated C code during MELT enabled @code{gcc}
+execution, should be some version of @code{gcc} (preferably a 4.x
+version at least).
 
 Note that currently MELT is only compiled on Linux machines.
 
@@ -322,7 +311,7 @@ Some familiarity with other Lisp dialects and with GCC internals is
 required to code in MELT.
 
 The MELT runtime contains a copying generational garbage collector
--GC- implemented in @file{gcc/basilys.c}, backed up by the previously
+-GC- implemented in @file{gcc/melt-runtime.c}, backed up by the previously
 existing GCC ordinary (precise, marking) garbage collector GGC. The
 MELT-specific copying GC is designed for efficiency (but requires a
 very specific C coding style, easy to achieve in generated C code, but
@@ -493,12 +482,12 @@ The real translation to C of the above is a quite big and messy C
 function, actually:
 
 @verbatim
-static basilys_ptr_t
-rout_9_DO_EACH_GIMPLESEQ (basilysclosure_ptr_t closp_,
-			  basilys_ptr_t firstargp_, const char xargdescr_[],
-			  union basilysparam_un *xargtab_,
+static melt_ptr_t
+rout_9_DO_EACH_GIMPLESEQ (meltclosure_ptr_t closp_,
+			  melt_ptr_t firstargp_, const char xargdescr_[],
+			  union meltparam_un *xargtab_,
 			  const char xresdescr_[],
-			  union basilysparam_un *xrestab_)
+			  union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
   static long call_counter__;
@@ -513,9 +502,9 @@ rout_9_DO_EACH_GIMPLESEQ (basilysclosure_ptr_t closp_,
 #if ENABLE_CHECKING
     const char *flocs;
 #endif
-    struct basilysclosure_st *clos;
-    struct excepth_basilys_st *exh;
-    struct callframe_basilys_st *prev;
+    struct meltclosure_st *clos;
+    struct excepth_melt_st *exh;
+    struct callframe_melt_st *prev;
 #define CURFRAM_NBVARPTR 5
     void *varptr[5];
 /*no varnum*/
@@ -529,9 +518,9 @@ rout_9_DO_EACH_GIMPLESEQ (basilysclosure_ptr_t closp_,
   memset (&curfram__, 0, sizeof (curfram__));
   curfram__.nbvar = 5;
   curfram__.clos = closp_;
-  curfram__.prev = (struct callframe_basilys_st *) basilys_topframe;
-  basilys_topframe = (struct callframe_basilys_st *) &curfram__;
-  basilys_trace_start ("DO_EACH_GIMPLESEQ", callcount);
+  curfram__.prev = (struct callframe_melt_st *) melt_topframe;
+  melt_topframe = (struct callframe_melt_st *) &curfram__;
+  melt_trace_start ("DO_EACH_GIMPLESEQ", callcount);
 @end verbatim
 
 The generated C function has a strange C formal arguments list (every
@@ -542,22 +531,22 @@ ctype. Secondary results are handled likewise). Some code is only
 enabled with @code{#if ENABLE_CHECKING} when GCC is configured for
 debugging (not for release). The MELT call frame is declared
 explicitly as a structure called @code{curfram__}, and is properly
-initialized, and set as the @code{basilys_topframe}. The
-@code{basilys_trace_strart BASILYS_LOCATION callcount} C macros are
+initialized, and set as the @code{melt_topframe}. The
+@code{melt_trace_strart MELT_LOCATION callcount} C macros are
 significant only when @code{#if ENABLE_CHECKING}.
 
 @verbatim
   /*getarg#0 */
-  BASILYS_LOCATION ("ana-base.melt:436:/ getarg");
+  MELT_LOCATION ("ana-base.melt:436:/ getarg");
 #ifndef MELTGCC_NOLINENUMBERING
 #line 436 "ana-base.melt" /**::getarg::**/
 #endif /*MELTGCC_NOLINENUMBERING */
- /*_.F__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
+ /*_.F__V2*/ curfptr[1] = (melt_ptr_t) firstargp_;
 @end verbatim
 
 We start to fetch the first argument into the current frame, since
 @code{curfptr} is actually a C macro defined as
-@code{curfram__.varptr}. The @code{BASILYS_LOCATION} macro call
+@code{curfram__.varptr}. The @code{MELT_LOCATION} macro call
 (significant only when checking was enabled, and setting the
 @code{flocs} field of the current frame in that case) and the
 @code{#line} directive@footnote{The @code{#line} directive can be
@@ -600,35 +589,35 @@ serious C compiler (like gcc).
 	    /*block */
 	    {
    /*_.GPLVAL__V4*/ curfptr[3] =
-		(basilysgc_new_gimple
-		 ((basilysobject_ptr_t)
+		(meltgc_new_gimple
+		 ((meltobject_ptr_t)
 		  (( /*!DISCR_GIMPLE */ curfrout->tabval[0])),
 		  ( /*_?*/ curfram__.loc_CTYPE_GIMPLE__o1)));;
 @end verbatim
 
 This is the beginning of a block generated by a citerator. It contains
 the translation of the @code{make_gimple} primitive use as a call to
-the @code{basilysgc_new_gimple} C function.
+the @code{meltgc_new_gimple} C function.
 
 @verbatim
 	      /*apply */
 	      {
 		/*_.F__V5*/ curfptr[4] =
-		  basilys_apply ((basilysclosure_ptr_t)
+		  melt_apply ((meltclosure_ptr_t)
 				 ( /*_.F__V2*/ curfptr[1]),
-				 (basilys_ptr_t) ( /*_.GPLVAL__V4*/
+				 (melt_ptr_t) ( /*_.GPLVAL__V4*/
 						  curfptr[3]), 
-                                 "", (union basilysparam_un *) 0, 
-                                 "", (union basilysparam_un *) 0);
+                                 "", (union meltparam_un *) 0, 
+                                 "", (union meltparam_un *) 0);
 	      };
 @end verbatim
 
 This is the translation of the application of @code{f}. Since there
 only one argument and no secundary results, we pass null @code{union
-basilysparam_un} pointers described by empty strings to follow the
+meltparam_un} pointers described by empty strings to follow the
 pecular conventions required by
-@code{basilys_apply}@footnote{@code{basilys_apply} is a short inlined
-function defined in @file{gcc/basilys.h} which checks that the applied
+@code{melt_apply}@footnote{@code{melt_apply} is a short inlined
+function defined in @file{gcc/melt.h} which checks that the applied
 value is indeed a MELT function closure and calls its routine.} and
 respected by MELT generated C functions implementing MELT routines.
 
@@ -652,9 +641,9 @@ again by clearing some locals.
     /*epilog */ };
   goto labend_rout;
 labend_rout:
-  basilys_trace_end ("DO_EACH_GIMPLESEQ", callcount);
-  basilys_topframe = (struct callframe_basilys_st *) curfram__.prev;
-  return (basilys_ptr_t) ( /*noretval */ NULL);
+  melt_trace_end ("DO_EACH_GIMPLESEQ", callcount);
+  melt_topframe = (struct callframe_melt_st *) curfram__.prev;
+  return (melt_ptr_t) ( /*noretval */ NULL);
 #undef callcount
 #undef CURFRAM_NBVARNUM
 #undef CURFRAM_NBVARPTR
@@ -858,7 +847,7 @@ and are each described by a predefined instance (of
 @code{ctype_}.
 @cindex ctype MELT keyword
 [For experts: to add a new ctype, define a @code{BGLOB_CTYPE_*}
-predefined in @file{gcc/basilys.h} and an instance in
+predefined in @file{gcc/melt.h} and an instance in
 @file{warmelt-first.melt} using @code{install_ctype_descr}, then
 regenerate all the @file{gcc/warmelt-*.c} files]
 
@@ -1054,7 +1043,7 @@ s-expressions are both objects (respectively of class
 (which is not as versatile as in CommonLisp) deals with them.
 
 Adding additional MELT value types require enhancing the
-@file{gcc/basilys.h} and @file{gcc/basilys.c} files.
+@file{gcc/melt.h} and @file{gcc/melt.c} files.
 
 @cindex discriminant for MELT values
 Each MELT [boxed] value starts with a @emph{discriminant}. This
@@ -1173,7 +1162,7 @@ Classes are discriminants, but in addition have the following fields
 is the multiple (of discriminant @code{DISCR_SEQCLASS}) of the
 classes' ancestors. Testing that a given object has some given class
 as its direct class or indirect ancestor is quick (@code{is_a}
-primitive in MELT, @code{basilys_is_instance_of} function in C code).
+primitive in MELT, @code{melt_is_instance_of} function in C code).
 
 @item @code{class_fields}
 is the multiple (of @code{DISCR_SEQFIELD}) of the classes' fields
@@ -1199,7 +1188,7 @@ can be used for describing the field's type in instances.
 
 Beware that the structure of classes, fields and discriminants is
 described not only in @file{warmelt-first.melt} but also ``built-in''
-in files @file{basilys.c} and @file{basilys.h} so changing them is
+in files @file{melt.c} and @file{melt.h} so changing them is
 very tricky.
 
 Fields should have a @emph{globally unique} name. Conventionally,
@@ -1229,7 +1218,7 @@ depending on the test @code{(p x)} applies either @code{f} or @code{g}
 to @code{x y}.
 
 The application of a non-function returns null. The
-@code{basilys_apply} C function doing the application checks that the
+@code{melt_apply} C function doing the application checks that the
 applied function is indeed a function (ie a closure). Function
 applications are never tail-recursive; they always consume some stack
 space.
@@ -1775,17 +1764,17 @@ to C is done using @code{cc1} (or @code{gcc}, not implemented yet)
 with the @code{-fmelt=translatefile -fmelt-arg=@var{foo}.melt
 -fmelt-secondarg=@var{foo}.c} options. The generated file
 @var{foo}.c is usually quite big (and only @code{#include}-ing one
-file, @code{"run-basilys.h"} which includes all the rest). It
+file, @code{"run-melt.h"} which includes all the rest). It
 essentially contains one static C function (of signature compatible
-with @code{basilys_apply}) for each @code{defun} or @code{lambda}
-function in MELT, and one big exported @code{start_module_basilys} C
+with @code{melt_apply}) for each @code{defun} or @code{lambda}
+function in MELT, and one big exported @code{start_module_melt} C
 function which does all the initializations, and some other stuff. The
 initialization code builds all the required data (quoted symbols,
 closures, classes, fields, boxed strings, static instances defined
 thru @code{definstance} etc..); MELT modules have no data outside of
-this @code{start_module_basilys} function.
+this @code{start_module_melt} function.
 
-The start function @code{start_module_basilys} (which is found by
+The start function @code{start_module_melt} (which is found by
 dynamic loading of the module, usually thru @code{dlopen} and
 @code{dlsym} or their equivalent, and called only once) expects a
 parent environment and returns the newly filled module
@@ -1942,31 +1931,31 @@ MELT function which really does the pass work), and an extra
 @code{:gccpass_data} field (to be used at will).
 
 The currently available passes (defined in @file{ana-base.melt} and
-used in @file{gcc/basilys.c}) are:
+used in @file{gcc/melt.c}) are:
 
 @itemize
 
-@item pass @code{basilys-lowering}
+@item pass @code{melt-lowering}
 @footnote{It is the name in the @code{opt_pass} structure and the
-@code{:named_name} field} instance @code{basilys_lowering_gccpass}
+@code{:named_name} field} instance @code{melt_lowering_gccpass}
 @footnote{The exported name in @file{ana-base.melt}}; is the last
 lowering pass in GCC. Here, the CFG is available, but the tree is not
 in SSA form.
 
-@item pass @code{basilys-earlyopt} 
-instance @code{basilys_earlyopt_gccpass} is the last early
+@item pass @code{melt-earlyopt} 
+instance @code{melt_earlyopt_gccpass} is the last early
 optimisation pass in GCC (not run in @code{-O0}). Here code in in SSA. 
 
-@item pass @code{basilys-ipa}
-instance @code{basilys_ipa_gccpass} is the last IPA [non-optimizing]
+@item pass @code{melt-ipa}
+instance @code{melt_ipa_gccpass} is the last IPA [non-optimizing]
 pass. Here CFF is available, code is in SSA.
 
-@item pass @code{basilys-lateopt}
-instance @code{basilys_lateopt_gccpass} is the last late optimisation
+@item pass @code{melt-lateopt}
+instance @code{melt_lateopt_gccpass} is the last late optimisation
 pass (not run in @code{-O0}). Here code is in SSA.
 
-@item pass @code{basilys-latessa}
-instance @code{basilys_latessa_gccpass} is the last late SSA
+@item pass @code{melt-latessa}
+instance @code{melt_latessa_gccpass} is the last late SSA
 pass. Here code is still SSA but will soon be removed.
 
 @end itemize
@@ -1991,7 +1980,7 @@ code have to use the @code{make_integerbox} defined in
 @file{warmelt-first.melt} as
 @lisp
 (defprimitive make_integerbox (discr :long n) :value
-  "(basilysgc_new_int((basilysobject_ptr_t)(" discr "), (" n ")))")
+  "(meltgc_new_int((meltobject_ptr_t)(" discr "), (" n ")))")
 @end lisp
 If the passed @code{discr} is not a discriminant for boxed integers,
 @code{make_integerbox} gives nil.
@@ -2000,21 +1989,21 @@ To get the boxed integer's content, use the @code{getint} primitive in
 MELT. To test if a value is a boxed integer, use the
 @code{is_integerbox} primitive.
 
-The @code{basilysgc_new_int} routine is implemented in
-@file{basilys.c} with the following code. We give it entirely, with
+The @code{meltgc_new_int} routine is implemented in
+@file{melt.c} with the following code. We give it entirely, with
 additional comments
 
 @verbatim
-basilys_ptr_t
-basilysgc_new_int (basilysobject_ptr_t discr_p, long num)
+melt_ptr_t
+meltgc_new_int (meltobject_ptr_t discr_p, long num)
 {
-  BASILYS_ENTERFRAME (2, NULL);
+  MELT_ENTERFRAME (2, NULL);
 #define newintv curfram__.varptr[0]
 #define discrv  curfram__.varptr[1]
-#define object_discrv ((basilysobject_ptr_t)(discrv))
-#define int_newintv ((struct basilysint_st*)(newintv))
+#define object_discrv ((meltobject_ptr_t)(discrv))
+#define int_newintv ((struct meltint_st*)(newintv))
 @end verbatim
-We first create a MELT frame using the @code{BASILYS_ENTERFRAME} macro
+We first create a MELT frame using the @code{MELT_ENTERFRAME} macro
 which creates, initialize the frame and install it at top. The first
 argument is the number of local MELT values, the second argument is
 the current MELT closure (so is @code{NULL} for C code which is not
@@ -2035,7 +2024,7 @@ be used directly afterwards. So never use @code{_p} suffixed arguments
 after have copied them inside the frame.
 
 @verbatim
-  if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
+  if (melt_magic_discr ((melt_ptr_t) (discrv)) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_INT)
     goto end;
@@ -2051,22 +2040,22 @@ end}. We cannot code a direct @code{return} statement, because that
 would not pop the topmost MELT frame.
 
 @verbatim
-  newintv = basilysgc_allocate (sizeof (struct basilysint_st), 0);
+  newintv = meltgc_allocate (sizeof (struct meltint_st), 0);
   int_newintv->discr = object_discrv;
   int_newintv->val = num;
 @end verbatim
-We allocate space in the nursery with @code{basilysgc_allocate}. This
+We allocate space in the nursery with @code{meltgc_allocate}. This
 C function sometimes trigger MELT garbage collection, so may move any
 pointer inside any MELT frames. The first argument to
-@code{basilysgc_allocate} is the @code{sizeof} of the fixed part of
+@code{meltgc_allocate} is the @code{sizeof} of the fixed part of
 the value, and the second is the size of its trailing variable
 part. The allocated zone should be immediately filled to make a valid
 MELT value.
 
 @verbatim
 end:
-  BASILYS_EXITFRAME ();
-  return (basilys_ptr_t) newintv;
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) newintv;
 #undef newintv
 #undef discrv
 #undef int_newintv
@@ -2089,7 +2078,7 @@ The whole purpose of MELT is to make coding more fun.
 
 @item make an explicit MELT frame and enter it.
 The C routine should start by making a frame usually with
-@code{BASILYS_ENTERFRAME} macro (which expands to a C declaration
+@code{MELT_ENTERFRAME} macro (which expands to a C declaration
 followed by some C statements, so should be the last ``declaration''
 like stuff in your function). For readability, you want to define C
 macros (conventionally ending with @code{v}) to access the local
@@ -2109,38 +2098,38 @@ values before using them.
 @item notify on MELT updates.
 When a MELT value is updated by changing some MELT pointer inside it,
 you have to notify the garbage collector (write barrier) using the
-@code{basilysgc_touch} function (taking as argument the modified MELT
-value) or the @code{basilysgc_touch_dest} (also given the new MELT
+@code{meltgc_touch} function (taking as argument the modified MELT
+value) or the @code{meltgc_touch_dest} (also given the new MELT
 pointer inside). These functions has to be called just after writing
 the MELT pointer into the data. They can call the MELT garbage
 collector (which may change any local value in the MELT frame).
 
 @item allocate MELT data appropriately.
-Use @code{basilysgc_allocate}, or preferably some existing allocating
-function (like @code{basilysgc_new_*}) to allocate new MELT
+Use @code{meltgc_allocate}, or preferably some existing allocating
+function (like @code{meltgc_new_*}) to allocate new MELT
 values. Never forget that such an allocation may trigger the MELT GC
 and change every local pointer in the current MELT frame
 @code{curfram__}. Most C functions which may directly or indirectly
-trigger a MELT garbage collection are prefixed with @code{basilysgc}
-(but @code{basilys_apply} could also trigger that).
+trigger a MELT garbage collection are prefixed with @code{meltgc}
+(but @code{melt_apply} could also trigger that).
 
 @item don't use longjmp,
 because @code{longjmp} won't pop the MELT frames.
 
 @item always exit the MELT frame
-explicitly using @code{BASILYS_EXITFRAME()} macro, which usually is
+explicitly using @code{MELT_EXITFRAME()} macro, which usually is
 the last statement of your function (so avoid @code{return}-ing
 before, hence always use a @code{goto end} instead.
 
 @item avoid using global MELT values.
-If you really need some, use the @code{BASILYSGOB} or @code{BASILYSG}
+If you really need some, use the @code{MELTGOB} or @code{MELTG}
 macros. Adding additional MELT globals is tricky (edit files
-@file{basilys.h} and @file{warmelt-normal.melt}). Using existing MELT
-globals is simpler, e.g. @code{BASILYSGOB(DISCR_LIST)} to fetch the
+@file{melt.h} and @file{warmelt-normal.melt}). Using existing MELT
+globals is simpler, e.g. @code{MELTGOB(DISCR_LIST)} to fetch the
 predefined discriminant @code{DISCR_LIST}.
 
 @item apply MELT functions and send MELT messages
-using @code{basilys_apply} and @code{basilysgc_send} with their
+using @code{melt_apply} and @code{meltgc_send} with their
 pecular calling conventions (constant string describing array of
 unions).
 @end enumerate

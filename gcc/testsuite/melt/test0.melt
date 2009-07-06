@@ -77,11 +77,11 @@
 	       (exit loop y)))))
 
 (defprimitive boxint (:long i) :value 
-  "basilysgc_new_int( BASILYSGOB(DISCR_INTEGER), (" i "))"
+  "meltgc_new_int( MELTGOB(DISCR_INTEGER), (" i "))"
 )
 
 (defprimitive is_integerbox (ib) :long
-  "(basilys_magic_discr((" ib ")) == OBMAG_INT)")
+  "(melt_magic_discr((" ib ")) == OBMAG_INT)")
 
 
 (defun testconstbox1 (xx) (if (is_integerbox xx) (boxint 2) ()))

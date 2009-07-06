@@ -313,7 +313,7 @@ AC_CHECK_TYPES([long long], [AC_CHECK_SIZEOF(long long)])
 AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
 
 ################################################
-##### Basilys/MELT specific stuff
+##### MELT specific stuff
 ##### (Middle End Lisp Translator)
 ################
 # Check for PPL (Parma Polyhedral Library)
@@ -478,35 +478,35 @@ if test "$have_open_memstream" = "yes" ; then
 fi
 
 # ------------------------
-# Basilys/MELT support (middle-end lisp translator)
+# MELT support (middle-end lisp translator)
 # ------------------------
-enabled_basilysmelt=no
-BASILYSMELT_OBJECT=
+enabled_melt=no
+MELT_OBJECT=
 
-AC_ARG_ENABLE(basilysmelt, [ --enable-basilysmelt Enable Basilys/MELT
+AC_ARG_ENABLE(melt, [ --enable-melt Enable MELT
 passes; This enable complex (sciptable) passes using the Middle End
 Lisp Translator feature (which dynamically translates the MELT lisp
 dialect into C plug-in like code); This requires PPL (Parma Polyhedra
 Library) and GDBM support.],
-enabled_basilysmelt=$enableval, enabled_basilysmelt=no)
+enabled_melt=$enableval, enabled_melt=no)
 
-if test "$enabled_basilysmelt" = "yes" ; then
-   AC_MSG_CHECKING([for features required for basilysmelt])
+if test "$enabled_melt" = "yes" ; then
+   AC_MSG_CHECKING([for features required for melt])
    if test "$have_ppl" != "yes" ; then
-     AC_MSG_WARN([Your system lacks the Parma Polyhedra Library (PPL) required for basilys/MELT.
-Hence Basilys/MELT is disabled.]);
-     enabled_basilysmelt=no;
+     AC_MSG_WARN([Your system lacks the Parma Polyhedra Library (PPL) required for MELT.
+Hence MELT is disabled.]);
+     enabled_melt=no;
    fi
 fi
 
-if test "$enabled_basilysmelt" = "yes" ; then
-   AC_DEFINE(ENABLE_BASILYSMELT, 1,
-	     [Define if Basilys/MELT (Middle End Lisp Translator) is in use.])
+if test "$enabled_melt" = "yes" ; then
+   AC_DEFINE(ENABLE_MELT, 1,
+	     [Define if MELT (Middle End Lisp Translator) is in use.])
 
-   BASILYSMELT_OBJECT=basilys.o
+   MELT_OBJECT=melt-runtime.o
 fi
-AC_SUBST(BASILYSMELT_OBJECT)
-###################### end of basilys/MELT specific stuff
+AC_SUBST(MELT_OBJECT)
+###################### end of MELT specific stuff
 ################################################################
 
 # ---------------------
@@ -4398,10 +4398,10 @@ done
 [subdirs='$subdirs'])
 
 ## Basile adds a notice if the MELT branch is configured without
-## --enable-basilysmelt
-if test "$enabled_basilysmelt" != "yes" ; then
+## --enable-melt
+if test "$enabled_melt" != "yes" ; then
    AC_MSG_NOTICE(
-[GCC MELT branch is configured WITHOUT enabling basilysmelt. 
+[GCC MELT branch is configured WITHOUT enabling melt. 
  Are you sure to want that?])
 fi
 

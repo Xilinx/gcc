@@ -100,9 +100,9 @@ md5src=`md5sum $csource`
 
 trap "rm -f $datf.* $datf $nakedynstuff.o" EXIT
 
-date "+const char basilys_compiled_timestamp[]=\"%c $csource\";" > $datf.c
-echo "const char basilys_md5[]=\"$md5src\";" >> $datf.c
-echo "const char basilys_csource[]=\"$csource\";" >> $datf.c
+date "+const char melt_compiled_timestamp[]=\"%c $csource\";" > $datf.c
+echo "const char melt_md5[]=\"$md5src\";" >> $datf.c
+echo "const char melt_csource[]=\"$csource\";" >> $datf.c
 
 case `uname` in
 Linux|SunOS|Solaris)

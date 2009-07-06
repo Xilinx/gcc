@@ -458,7 +458,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical build_libsubdir build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX GNATBIND ac_ct_GNATBIND GNATMAKE ac_ct_GNATMAKE NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP EGREP ppllibs pplinc gdbmlibs gdbminc gdbm_ldflags BASILYSMELT_OBJECT loose_warn c_loose_warn strict_warn c_strict_warn warn_cflags warn_cxxflags nocommon_flag TREEBROWSER valgrind_path valgrind_path_defines valgrind_command coverage_flags ENABLE_BUILD_WITH_CXX enable_multilib enable_decimal_float enable_fixed_point enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep PKGVERSION REPORT_BUGS_TO REPORT_BUGS_TEXI datarootdir docdir htmldir SET_MAKE AWK LN_S LN RANLIB ac_ct_RANLIB ranlib_flags INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON NM AR COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB LIBICONV LTLIBICONV LIBICONV_DEP manext objext gthread_flags extra_modes_file extra_opt_files USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS DATADIRNAME INSTOBJEXT GENCAT CATOBJEXT CROSS ALL SYSTEM_HEADER_DIR inhibit_libc CC_FOR_BUILD BUILD_CFLAGS BUILD_LDFLAGS STMP_FIXINC collect2 LIBTOOL SED FGREP GREP LD DUMPBIN ac_ct_DUMPBIN OBJDUMP ac_ct_OBJDUMP ac_ct_AR STRIP ac_ct_STRIP lt_ECHO DSYMUTIL ac_ct_DSYMUTIL NMEDIT ac_ct_NMEDIT LIPO ac_ct_LIPO OTOOL ac_ct_OTOOL OTOOL64 ac_ct_OTOOL64 CXXCPP objdir enable_fast_install gcc_cv_as ORIGINAL_AS_FOR_TARGET gcc_cv_ld ORIGINAL_LD_FOR_TARGET gcc_cv_nm ORIGINAL_NM_FOR_TARGET gcc_cv_objdump gcc_cv_readelf libgcc_visibility GGC HOST_LIBS zlibdir zlibinc MAINT gcc_tooldir dollar slibdir subdirs srcdir all_compilers all_gtfiles all_lang_makefrags all_lang_makefiles all_languages all_selected_languages build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines build_file_translate check_languages cpp_install_dir xmake_file tmake_file TM_ENDIAN_CONFIG TM_MULTILIB_CONFIG TM_MULTILIB_EXCEPTIONS_CONFIG extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines use_gcc_stdint c_target_objs cxx_target_objs fortran_target_objs target_cpu_default GMPLIBS GMPINC PPLLIBS PPLINC CLOOGLIBS CLOOGINC pluginlibs enable_plugin LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical build_libsubdir build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX GNATBIND ac_ct_GNATBIND GNATMAKE ac_ct_GNATMAKE NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP EGREP ppllibs pplinc gdbmlibs gdbminc gdbm_ldflags MELT_OBJECT loose_warn c_loose_warn strict_warn c_strict_warn warn_cflags warn_cxxflags nocommon_flag TREEBROWSER valgrind_path valgrind_path_defines valgrind_command coverage_flags ENABLE_BUILD_WITH_CXX enable_multilib enable_decimal_float enable_fixed_point enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep PKGVERSION REPORT_BUGS_TO REPORT_BUGS_TEXI datarootdir docdir htmldir SET_MAKE AWK LN_S LN RANLIB ac_ct_RANLIB ranlib_flags INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON NM AR COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB LIBICONV LTLIBICONV LIBICONV_DEP manext objext gthread_flags extra_modes_file extra_opt_files USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS DATADIRNAME INSTOBJEXT GENCAT CATOBJEXT CROSS ALL SYSTEM_HEADER_DIR inhibit_libc CC_FOR_BUILD BUILD_CFLAGS BUILD_LDFLAGS STMP_FIXINC collect2 LIBTOOL SED FGREP GREP LD DUMPBIN ac_ct_DUMPBIN OBJDUMP ac_ct_OBJDUMP ac_ct_AR STRIP ac_ct_STRIP lt_ECHO DSYMUTIL ac_ct_DSYMUTIL NMEDIT ac_ct_NMEDIT LIPO ac_ct_LIPO OTOOL ac_ct_OTOOL OTOOL64 ac_ct_OTOOL64 CXXCPP objdir enable_fast_install gcc_cv_as ORIGINAL_AS_FOR_TARGET gcc_cv_ld ORIGINAL_LD_FOR_TARGET gcc_cv_nm ORIGINAL_NM_FOR_TARGET gcc_cv_objdump gcc_cv_readelf libgcc_visibility GGC HOST_LIBS zlibdir zlibinc MAINT gcc_tooldir dollar slibdir subdirs srcdir all_compilers all_gtfiles all_lang_makefrags all_lang_makefiles all_languages all_selected_languages build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines build_file_translate check_languages cpp_install_dir xmake_file tmake_file TM_ENDIAN_CONFIG TM_MULTILIB_CONFIG TM_MULTILIB_EXCEPTIONS_CONFIG extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines use_gcc_stdint c_target_objs cxx_target_objs fortran_target_objs target_cpu_default GMPLIBS GMPINC PPLLIBS PPLINC CLOOGLIBS CLOOGINC pluginlibs enable_plugin LIBOBJS LTLIBOBJS'
 ac_subst_files='language_hooks'
 ac_pwd=`pwd`
 
@@ -1040,7 +1040,7 @@ Optional Features:
                           put copies of generated files in source dir
                           intended for creating source tarballs for users
                           without texinfo bison or flex.
- --enable-basilysmelt Enable Basilys/MELT
+ --enable-melt Enable MELT
 passes; This enable complex (sciptable) passes using the Middle End
 Lisp Translator feature (which dynamically translates the MELT lisp
 dialect into C plug-in like code); This requires PPL (Parma Polyhedra
@@ -7412,7 +7412,7 @@ fi
 
 
 ################################################
-##### Basilys/MELT specific stuff
+##### MELT specific stuff
 ##### (Middle End Lisp Translator)
 ################
 # Check for PPL (Parma Polyhedral Library)
@@ -7815,42 +7815,42 @@ _ACEOF
 fi
 
 # ------------------------
-# Basilys/MELT support (middle-end lisp translator)
+# MELT support (middle-end lisp translator)
 # ------------------------
-enabled_basilysmelt=no
-BASILYSMELT_OBJECT=
+enabled_melt=no
+MELT_OBJECT=
 
-# Check whether --enable-basilysmelt or --disable-basilysmelt was given.
-if test "${enable_basilysmelt+set}" = set; then
-  enableval="$enable_basilysmelt"
-  enabled_basilysmelt=$enableval
+# Check whether --enable-melt or --disable-melt was given.
+if test "${enable_melt+set}" = set; then
+  enableval="$enable_melt"
+  enabled_melt=$enableval
 else
-  enabled_basilysmelt=no
+  enabled_melt=no
 fi;
 
-if test "$enabled_basilysmelt" = "yes" ; then
-   echo "$as_me:$LINENO: checking for features required for basilysmelt" >&5
-echo $ECHO_N "checking for features required for basilysmelt... $ECHO_C" >&6
+if test "$enabled_melt" = "yes" ; then
+   echo "$as_me:$LINENO: checking for features required for melt" >&5
+echo $ECHO_N "checking for features required for melt... $ECHO_C" >&6
    if test "$have_ppl" != "yes" ; then
-     { echo "$as_me:$LINENO: WARNING: Your system lacks the Parma Polyhedra Library (PPL) required for basilys/MELT.
-Hence Basilys/MELT is disabled." >&5
-echo "$as_me: WARNING: Your system lacks the Parma Polyhedra Library (PPL) required for basilys/MELT.
-Hence Basilys/MELT is disabled." >&2;};
-     enabled_basilysmelt=no;
+     { echo "$as_me:$LINENO: WARNING: Your system lacks the Parma Polyhedra Library (PPL) required for MELT.
+Hence MELT is disabled." >&5
+echo "$as_me: WARNING: Your system lacks the Parma Polyhedra Library (PPL) required for MELT.
+Hence MELT is disabled." >&2;};
+     enabled_melt=no;
    fi
 fi
 
-if test "$enabled_basilysmelt" = "yes" ; then
+if test "$enabled_melt" = "yes" ; then
 
 cat >>confdefs.h <<\_ACEOF
-#define ENABLE_BASILYSMELT 1
+#define ENABLE_MELT 1
 _ACEOF
 
 
-   BASILYSMELT_OBJECT=basilys.o
+   MELT_OBJECT=melt-runtime.o
 fi
 
-###################### end of basilys/MELT specific stuff
+###################### end of MELT specific stuff
 ################################################################
 
 # ---------------------
@@ -29729,11 +29729,11 @@ fi
 
 
 ## Basile adds a notice if the MELT branch is configured without
-## --enable-basilysmelt
-if test "$enabled_basilysmelt" != "yes" ; then
-   { echo "$as_me:$LINENO: GCC MELT branch is configured WITHOUT enabling basilysmelt.
+## --enable-melt
+if test "$enabled_melt" != "yes" ; then
+   { echo "$as_me:$LINENO: GCC MELT branch is configured WITHOUT enabling melt.
  Are you sure to want that?" >&5
-echo "$as_me: GCC MELT branch is configured WITHOUT enabling basilysmelt.
+echo "$as_me: GCC MELT branch is configured WITHOUT enabling melt.
  Are you sure to want that?" >&6;}
 fi
 
@@ -30403,7 +30403,7 @@ s,@pplinc@,$pplinc,;t t
 s,@gdbmlibs@,$gdbmlibs,;t t
 s,@gdbminc@,$gdbminc,;t t
 s,@gdbm_ldflags@,$gdbm_ldflags,;t t
-s,@BASILYSMELT_OBJECT@,$BASILYSMELT_OBJECT,;t t
+s,@MELT_OBJECT@,$MELT_OBJECT,;t t
 s,@loose_warn@,$loose_warn,;t t
 s,@c_loose_warn@,$c_loose_warn,;t t
 s,@strict_warn@,$strict_warn,;t t

@@ -694,21 +694,21 @@ DEFPARAM (PARAM_USE_CANONICAL_TYPES,
 	  "Whether to use canonical types",
 	  1, 0, 1)
 
-/**** stuff for Basilys runtime */
+/**** stuff for MELT runtime */
 
-/* the Basilys minor zone size for its own copying garbage collector */
-DEFPARAM (PARAM_BASILYS_MINOR_ZONE,
-	 "basilys-minor-zone",
-	 "size in kilowords (one word = one pointer) of the minor zone for the specialized copying basilys collector",
+/* the Melt minor zone size for its own copying garbage collector */
+DEFPARAM (PARAM_MELT_MINOR_ZONE,
+	 "melt-minor-zone",
+	 "size in kilowords (one word = one pointer) of the minor zone for the specialized copying melt collector",
 	 512, 256, 32768)
 
 /* paramater tuning the frequency of full garbage collection in
-   Basilys - it is a threshold in kilowords */
-DEFPARAM (PARAM_BASILYS_FULL_THRESHOLD,
-	 "basilys-full-threshold",
-	 "tuning the frequency of full garbage collection in the specialized basilys collector (threshold in kilowords)",
+   Melt - it is a threshold in kilowords */
+DEFPARAM (PARAM_MELT_FULL_THRESHOLD,
+	 "melt-full-threshold",
+	 "tuning the frequency of full garbage collection in the specialized melt collector (threshold in kilowords)",
 	  2048, 512, 65536)
-/**** end of Basilys stuff */
+/**** end of Melt stuff */
 
 
 DEFPARAM (PARAM_MAX_PARTIAL_ANTIC_LENGTH,

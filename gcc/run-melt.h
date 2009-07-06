@@ -1,4 +1,4 @@
-/* Basile's static analysis (should have a better name) run-basilys.h
+/* Basile's static analysis (should have a better name) run-mmelt.h
    all include files for generated code
    
    Copyright 2008 Free Software Foundation, Inc.
@@ -27,7 +27,7 @@ Boston, MA 02110-1301, USA.  */
 
 
 
-/* usual GCC middle-end includes, copied from basilys.c */
+/* usual GCC middle-end includes, copied from melt-runtime.c */
 
 #include "config.h"
 
@@ -63,7 +63,7 @@ Boston, MA 02110-1301, USA.  */
 #include "cppdefault.h"
 
 
-/* basilys or MELT specific includes */
+/* MELT specific includes */
 
 
 
@@ -74,10 +74,10 @@ Boston, MA 02110-1301, USA.  */
 #endif /*HAVE_PARMAPOLY */
 
 
-#if ENABLE_BASILYSMELT
-#include "basilys.h"
+#if ENABLE_MELT
+#include "melt-runtime.h"
 #else
-#error required Basilys MELT enabling
+#error required MELT enabling
 #endif
 
 #define curfptr curfram__.varptr
@@ -86,8 +86,9 @@ Boston, MA 02110-1301, USA.  */
 #define curfrout curfram__.clos->rout
 
 /* these are added by the *melt-cc-script shell script */
-extern const char basilys_compiled_timestamp[];
-extern const char basilys_md5[];
+extern const char melt_compiled_timestamp[];
+extern const char melt_md5[];
 
-#define flag_basilys_debug flag_melt_debug
-/* eof run-basilys.h */
+/* #include "temporary-melt-defines.h" */
+
+/* eof run-melt.h */

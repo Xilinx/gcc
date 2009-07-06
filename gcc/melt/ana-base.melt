@@ -35,23 +35,23 @@
 ;;; primitive to access the gdbmstate
 
 (defprimitive fetch_gdbmstate_constr (:cstring keystr) :value
-  #{ (basilysgc_fetch_gdbmstate_const(($keystr))) }# )
+  #{ (meltgc_fetch_gdbmstate_const(($keystr))) }# )
 
 (defprimitive fetch_gdbmstate (key) :value
-   #{ (basilysgc_fetch_gdbmstate(($key))) }# )
+   #{ (meltgc_fetch_gdbmstate(($key))) }# )
 
 (defprimitive put_gdbmstate_constr (:cstring keystr :value data) :void
-  #{ basilysgc_put_gdbmstate_const(($keystr), (basilys_ptr_t) ($data)); 
+  #{ meltgc_put_gdbmstate_const(($keystr), (melt_ptr_t) ($data)); 
   }# )
 
 (defprimitive put_gdbmstate (key data) :void
-  #{ basilysgc_put_gdbmstate((basilys_ptr_t)($key), (basilys_ptr_t)($data)); 
+  #{ meltgc_put_gdbmstate((melt_ptr_t)($key), (melt_ptr_t)($data)); 
   }# )
 
 
 (defprimitive install_melt_gcc_pass 
   (:value pass :cstring positioning refpassname :long refpassnum) :void
-  #{ basilysgc_register_pass ($pass, $positioning, $refpassname, $refpassnum); 
+  #{ meltgc_register_pass ($pass, $positioning, $refpassname, $refpassnum); 
   }#)
 
 
@@ -59,13 +59,13 @@
 ;;;;; gimple & tree related primitives
 
 (defprimitive is_gimple (v) :long
-   #{(basilys_magic_discr((basilys_ptr_t)($v)) == OBMAG_GIMPLE)}# )
+   #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_GIMPLE)}# )
 
 (defprimitive make_gimple (discr :gimple g) :value
-  #{(basilysgc_new_gimple((basilysobject_ptr_t)($discr),($g)))}# )
+  #{(meltgc_new_gimple((meltobject_ptr_t)($discr),($g)))}# )
 
 (defprimitive gimple_content (v) :gimple
-  #{(basilys_gimple_content((basilys_ptr_t)($v)))}# )
+  #{(melt_gimple_content((melt_ptr_t)($v)))}# )
 
 (defprimitive ==g (:gimple g1 g2) :long
   #{(($g1) == ($g2))}#)
@@ -76,12 +76,12 @@
   (:gimple g) 				;outs
   gimpsta				;statesymb
   ;; test expansion
-  #{ (basilys_magic_discr((basilys_ptr_t)($gv)) == OBMAG_GIMPLE) }#
+  #{ (melt_magic_discr((melt_ptr_t)($gv)) == OBMAG_GIMPLE) }#
   ;; fill expansion
-  #{ $g = basilys_gimple_content(((basilys_ptr_t)($gv)));
+  #{ $g = melt_gimple_content(((melt_ptr_t)($gv)));
   }#
   ;; operator expansion
-  #{ (basilysgc_new_gimple((basilysobject_ptr_t)NULL, ($g))) }#
+  #{ (meltgc_new_gimple((meltobject_ptr_t)NULL, ($g))) }#
 )
 
 ;; match a gimple single assign
@@ -585,24 +585,24 @@
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defprimitive is_gimpleseq (v) :long
-  #{(basilys_magic_discr((basilys_ptr_t)($v)) == OBMAG_GIMPLESEQ)}# )
+  #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_GIMPLESEQ)}# )
 
 (defprimitive make_gimpleseq (discr :gimpleseq g) :value
-  #{(basilysgc_new_gimpleseq((basilysobject_ptr_t)($discr),($g)))}# )
+  #{(meltgc_new_gimpleseq((meltobject_ptr_t)($discr),($g)))}# )
 
 (defprimitive gimpleseq_content (v) :gimpleseq
-  #{(basilys_gimpleseq_content((basilys_ptr_t)($v)))}# )
+  #{(melt_gimpleseq_content((melt_ptr_t)($v)))}# )
 
 
 
 (defprimitive is_tree (v) :long
-  #{(basilys_magic_discr((basilys_ptr_t)($v)) == OBMAG_TREE)}# )
+  #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_TREE)}# )
 
 (defprimitive make_tree (discr :tree g) :value
-  #{(basilysgc_new_tree((basilysobject_ptr_t)($discr),($g)))}# )
+  #{(meltgc_new_tree((meltobject_ptr_t)($discr),($g)))}# )
 
 (defprimitive tree_content (v) :tree
-  #{(basilys_tree_content((basilys_ptr_t)($v)))}# )
+  #{(melt_tree_content((melt_ptr_t)($v)))}# )
 
 (defprimitive ==t (:tree t1 t2) :long
   #{(($t1) == ($t2))}# )
@@ -741,10 +741,10 @@
    mpz_init ($treeinty#_minz);
    mpz_init ($treeinty#_maxz);
    get_type_static_bounds($tr, $treeinty#_minz, $treeinty#_maxz);
-   $minbig = basilysgc_new_mixbigint_mpz((basilysobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT), 
+   $minbig = meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT), 
 					 NULL, 
 					 $treeinty#_minz);
-   $maxbig =  basilysgc_new_mixbigint_mpz((basilysobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT), 
+   $maxbig =  meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT), 
 					 NULL, 
 					 $treeinty#_maxz);
    mpz_clear ($treeinty#_minz);
@@ -785,7 +785,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
 (defprimitive is_basicblock (v) :long
- #{ (basilys_magic_discr((basilys_ptr_t)($v)) == OBMAG_BASICBLOCK)}# )
+ #{ (melt_magic_discr((melt_ptr_t)($v)) == OBMAG_BASICBLOCK)}# )
 
 (defprimitive null_basicblock (:basicblock bb) :long
  #{($bb == (basic_block)0)}# )
@@ -794,32 +794,32 @@
  #{($bb != (basic_block)0)}# )
 
 (defprimitive make_basicblock (discr :basicblock bb) :value
- #{(basilysgc_new_basicblock((basilysobject_ptr_t)($discr),($bb)))}# )
+ #{(meltgc_new_basicblock((meltobject_ptr_t)($discr),($bb)))}# )
 
 
 (defprimitive basicblock_content (v) :basicblock
- #{(basilys_basicblock_content((basilys_ptr_t)($v)))}# )
+ #{(melt_basicblock_content((melt_ptr_t)($v)))}# )
 
 (defprimitive basicblock_gimpleseq (v) :gimpleseq
-  #{(basilys_basicblock_gimpleseq((basilys_ptr_t)($v)))}# )
+  #{(melt_basicblock_gimpleseq((melt_ptr_t)($v)))}# )
   
 (defprimitive basicblock_phinodes (v) :gimpleseq
-  #{(basilys_basicblock_phinodes((basilys_ptr_t)($v)))}# )
+  #{(melt_basicblock_phinodes((melt_ptr_t)($v)))}# )
   
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
-  #{ basilysgc_ppstrbuf_gimple((basilys_ptr_t)($sbuf), 
+  #{ meltgc_ppstrbuf_gimple((melt_ptr_t)($sbuf), 
 			       (int) ($indent), ($g)) }# )
 
 (defprimitive ppstrbuf_gimple_seq (sbuf :long indent :gimpleseq gseq) :void
-  #{ basilysgc_ppstrbuf_gimple_seq((basilys_ptr_t)($sbuf),
+  #{ meltgc_ppstrbuf_gimple_seq((melt_ptr_t)($sbuf),
 				   (int) ($indent), ($gseq)) }# )
 
 (defprimitive ppstrbuf_tree (sbuf :long indent :tree t) :void
-  #{ basilysgc_ppstrbuf_tree((basilys_ptr_t)($sbuf), 
+  #{ meltgc_ppstrbuf_tree((melt_ptr_t)($sbuf), 
 			     (int) ($indent), ($t)) }# )
 
 (defprimitive ppstrbuf_basicblock (sbuf :long indent :basicblock bb) :void
-  #{ basilysgc_ppstrbuf_basicblock((basilys_ptr_t)($sbuf),
+  #{ meltgc_ppstrbuf_basicblock((melt_ptr_t)($sbuf),
 				   (int) ($indent), ($bb)) }# )
 
 (defprimitive basicblock_single_succ (:basicblock bb) :basicblock
@@ -834,34 +834,34 @@
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_mapbasicblock (map) :long
-  #{(basilys_magic_discr((basilys_ptr_t)($map)) == OBMAG_MAPBASICBLOCKS)}# )
+  #{(melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPBASICBLOCKS)}# )
 (defprimitive mapbasicblock_size (map) :long
-  #{(basilys_size_mapbasicblocks((struct basilysmapbasicblocks_st*)($map)))}#)
+  #{(melt_size_mapbasicblocks((struct meltmapbasicblocks_st*)($map)))}#)
 ;; primitive to get the attribute count of a mapbasicblock
 (defprimitive mapbasicblock_count (map) :long
-  #{(basilys_count_mapbasicblocks((struct basilysmapbasicblocks_st*)($map)))}#)
+  #{(melt_count_mapbasicblocks((struct meltmapbasicblocks_st*)($map)))}#)
 ;; get an entry in a mapbasicblock from a C basicblock
 (defprimitive mapbasicblock_get (map :basicblock bb) :value
-  #{(basilys_get_mapbasicblocks(($map), ($bb)))}#)
+  #{(melt_get_mapbasicblocks(($map), ($bb)))}#)
 ;; primitive for making a new map of basicblocks
 (defprimitive make_mapbasicblock (discr :long len) :value
-  #{(basilysgc_new_mapbasicblocks( (basilysobject_ptr_t) ($discr),
+  #{(meltgc_new_mapbasicblocks( (meltobject_ptr_t) ($discr),
 				   ($len)))}#)
 ;; primitive for putting into a map of basicblocks
 (defprimitive mapbasicblock_put (map :basicblock key :value val) :void
-  #{basilys_put_mapbasicblocks( (struct basilysmapbasicblocks_st *)
-				($map), ($key), (basilys_ptr_t) ($val))}#)
+  #{melt_put_mapbasicblocks( (struct meltmapbasicblocks_st *)
+				($map), ($key), (melt_ptr_t) ($val))}#)
 ;; primivite for removing from a map of basicblocks
 (defprimitive mapbasicblock_remove (map :basicblock key) :void
- #{basilysgc_remove_mapbasicblocks( (struct basilysmapbasicblocks_st*) ($map), ($key))}#)
+ #{meltgc_remove_mapbasicblocks( (struct meltmapbasicblocks_st*) ($map), ($key))}#)
 
 ;; primitive to get the nth basicblock of a mapbasicblock
 (defprimitive mapbasicblock_nth_attr (map :long n) :basicblock
- #{(basilys_nthattr_mapbasicblocks((struct basilysmapbasicblocks_st*)($map), 
+ #{(melt_nthattr_mapbasicblocks((struct meltmapbasicblocks_st*)($map), 
 				   (int)($n)))}#)
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapbasicblock_nth_val (map :long n) :value
- #{(basilys_nthval_mapbasicblocks((struct basilysmapbasicblocks_st*)($map),
+ #{(melt_nthval_mapbasicblocks((struct meltmapbasicblocks_st*)($map),
 				  (int)($n)))}#)
 (defciterator foreach_mapbasicblock 
   (bbmap)				; startformals
@@ -871,12 +871,12 @@
   #{
    /*eachbbmap*/ int  $eachmapbb#_rk=0;
    for ( $eachmapbb#_rk=0;  
-	 $eachmapbb#_rk<basilys_size_mapbasicblocks((struct basilysmapbasicblocks_st*)($bbmap));  
+	 $eachmapbb#_rk<melt_size_mapbasicblocks((struct meltmapbasicblocks_st*)($bbmap));  
 	 $eachmapbb#_rk++) {
-   basic_block $eachmapbb#_bb=basilys_nthattr_mapbasicblocks((struct basilysmapbasicblocks_st*)($bbmap), $eachmapbb#_rk);
+   basic_block $eachmapbb#_bb=melt_nthattr_mapbasicblocks((struct meltmapbasicblocks_st*)($bbmap), $eachmapbb#_rk);
    if (!$eachmapbb#_bb) continue;
    $bbatt = $eachmapbb#_bb;
-   $bbval = basilys_nthval_mapbasicblocks((struct basilysmapbasicblocks_st*)($bbmap ), $eachmapbb#_rk);
+   $bbval = melt_nthval_mapbasicblocks((struct meltmapbasicblocks_st*)($bbmap ), $eachmapbb#_rk);
    }#
   ;;after expansion
    #{
@@ -905,32 +905,32 @@
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_maptree (map) :long
-  #{ (basilys_magic_discr((basilys_ptr_t)($map)) == OBMAG_MAPTREES) }#)
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPTREES) }#)
 (defprimitive maptree_size (map) :long
- #{ (basilys_size_maptrees((struct basilysmaptrees_st*)($map))) }#)
+ #{ (melt_size_maptrees((struct meltmaptrees_st*)($map))) }#)
 ;; primitive to get the attribute count of a maptree
 (defprimitive maptree_count (map) :long
-  #{ (basilys_count_maptrees((struct basilysmaptrees_st*)($map))) }# )
+  #{ (melt_count_maptrees((struct meltmaptrees_st*)($map))) }# )
 ;; get an entry in a maptree from a C tree
 (defprimitive maptree_get (map :tree bb) :value
-  #{(basilys_get_maptrees(($map), ($bb)))}#)
+  #{(melt_get_maptrees(($map), ($bb)))}#)
 ;; primitive for making a new map of trees
 (defprimitive make_maptree (discr :long len) :value
- #{(basilysgc_new_maptrees((basilysobject_ptr_t) ($discr), ($len)))}#)
+ #{(meltgc_new_maptrees((meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of trees
 (defprimitive maptree_put (map :tree key :value val) :void
-  #{basilys_put_maptrees( (struct basilysmaptrees_st *) ($map), 
-			  ($key), (basilys_ptr_t) ($val))}#)
+  #{melt_put_maptrees( (struct meltmaptrees_st *) ($map), 
+			  ($key), (melt_ptr_t) ($val))}#)
 ;; primivite for removing from a map of trees
 (defprimitive maptree_remove (map :tree key) :void
-  #{basilysgc_remove_maptrees( (struct basilysmaptrees_st*) ($map), ($key))}#)
+  #{meltgc_remove_maptrees( (struct meltmaptrees_st*) ($map), ($key))}#)
 
 ;; primitive to get the nth tree of a maptree
 (defprimitive maptree_nth_attr (map :long n) :tree
-  #{(basilys_nthattr_maptrees((struct basilysmaptrees_st*)($map), (int)($n)))}#)
+  #{(melt_nthattr_maptrees((struct meltmaptrees_st*)($map), (int)($n)))}#)
 ;; primitive to get the nth value of a mapobject
 (defprimitive maptree_nth_val (map :long n) :value
-  #{(basilys_nthval_maptrees((struct basilysmaptrees_st*)($map), (int)($n)))}# )
+  #{(melt_nthval_maptrees((struct meltmaptrees_st*)($map), (int)($n)))}# )
 ;; iterator inside maptree
 (defciterator foreach_maptree 
   (trmap)				; startformals
@@ -940,12 +940,12 @@
   #{
    /*eachtrmap*/ int $eachmaptr#_rk=0;
    for ($eachmaptr#_rk=0;
-        $eachmaptr#_rk<basilys_size_maptrees((struct basilysmaptrees_st*)($trmap));
+        $eachmaptr#_rk<melt_size_maptrees((struct meltmaptrees_st*)($trmap));
 	$eachmaptr#_rk++) {
-   tree $eachmaptr#_tr=basilys_nthattr_maptrees((struct basilysmaptrees_st*)($trmap), $eachmaptr#_rk);
+   tree $eachmaptr#_tr=melt_nthattr_maptrees((struct meltmaptrees_st*)($trmap), $eachmaptr#_rk);
    if (!$eachmaptr#_tr) continue;
    $tratt = $eachmaptr#_tr;
-   $trval =basilys_nthval_maptrees((struct basilysmaptrees_st*)($trmap), 
+   $trval =melt_nthval_maptrees((struct meltmaptrees_st*)($trmap), 
 				   $eachmaptr#_rk);
    }#
   ;;after expansion
@@ -965,30 +965,30 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Parma Polyhedra Library stuff (aka PPL)
 (defprimitive ppl_new_empty_constraint_system (discr) :value
- #{ basilysgc_new_ppl_constraint_system(($discr), 
-					BASILYS_PPL_EMPTY_CONSTRAINT_SYSTEM)}# )
+ #{ meltgc_new_ppl_constraint_system(($discr), 
+					MELT_PPL_EMPTY_CONSTRAINT_SYSTEM)}# )
 
 (defprimitive ppl_clone_constraint_system (pplv) :value
- #{ basilysgc_clone_ppl_constraint_system($pplv) }#)
+ #{ meltgc_clone_ppl_constraint_system($pplv) }#)
 
 (defprimitive ppl_new_unsatisfiable_constraint_system (discr) :value
-  #{ basilysgc_new_ppl_constraint_system(($discr), 
-					 BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM) }#)
+  #{ meltgc_new_ppl_constraint_system(($discr), 
+					 MELT_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM) }#)
 
 (defprimitive raw_new_ppl_empty_constraint_system () :ppl_constraint_system
-  #{ basilys_raw_new_ppl_empty_constraint_system() }#)
+  #{ melt_raw_new_ppl_empty_constraint_system() }#)
 
 (defprimitive raw_new_ppl_unsatisfiable_constraint_system () :ppl_constraint_system
-  #{ basilys_raw_new_ppl_unsatisfiable_constraint_system() }#)
+  #{ melt_raw_new_ppl_unsatisfiable_constraint_system() }#)
 
 (defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varvect) :void
-  #{ basilysgc_ppstrbuf_ppl_varnamvect (($sbuf), ($indent), ($ppl), ($varvect))}#)
+  #{ meltgc_ppstrbuf_ppl_varnamvect (($sbuf), ($indent), ($ppl), ($varvect))}#)
 
 (defprimitive ppl_coefficient_from_tree (:tree tr) :ppl_coefficient
-  #{ (basilys_make_ppl_coefficient_from_tree($tr)) }#)
+  #{ (melt_make_ppl_coefficient_from_tree($tr)) }#)
 
 (defprimitive ppl_coefficient_from_long (:long l) :ppl_coefficient
-   #{(basilys_make_ppl_coefficient_from_long($l))}#)
+   #{(melt_make_ppl_coefficient_from_long($l))}#)
 
 (defprimitive ppl_delete_Coefficient (:ppl_coefficient coef) :void
   #{ { if ($coef) ppl_delete_Coefficient($coef); 
@@ -996,7 +996,7 @@
        }#)
 
 (defprimitive make_ppl_linear_expression () :ppl_linear_expression
-  #{ basilys_make_ppl_linear_expression() }#)
+  #{ melt_make_ppl_linear_expression() }#)
 
 (defprimitive ppl_delete_Linear_Expression (:ppl_linear_expression liex) :void
 #{ { if ($liex) 
@@ -1029,15 +1029,15 @@
 (defprimitive make_ppl_constraint 
   (:ppl_linear_expression liex
    :cstring constyp) :ppl_constraint
-#{ basilys_make_ppl_constraint_cstrtype(($liex), ($constyp)) }#)
+#{ melt_make_ppl_constraint_cstrtype(($liex), ($constyp)) }#)
 
 (defprimitive clear_special (v) :void
- #{ basilys_clear_special($v); 
+ #{ melt_clear_special($v); 
  }#)
 
 (defprimitive insert_ppl_constraint_in_boxed_system 
   (:ppl_constraint cons :value sysv) :void
- #{basilys_insert_ppl_constraint_in_boxed_system(($cons), ($sysv))}#)
+ #{melt_insert_ppl_constraint_in_boxed_system(($cons), ($sysv))}#)
 
 (defprimitive ppl_Constraint_System_insert_Constraint
  (:ppl_constraint_system consys :ppl_constraint cons) :void
@@ -1051,7 +1051,7 @@
 
 (defprimitive debug_ppl_coefficient
   (:cstring msg :ppl_coefficient coef) :void
-#{  if (flag_basilys_debug)  {char*s=0; 
+#{  if (flag_melt_debug)  {char*s=0; 
      if ($coef) ppl_io_asprint_Coefficient(&s, $coef); 
      debugeprintf("debug_ppl_coefficient %s @%p %s", $msg, (void*)$coef, s); 
      free(s);}
@@ -1059,21 +1059,21 @@
 
 (defprimitive debug_ppl_linear_expression
   (:cstring msg :ppl_linear_expression liex) :void
- #{ if (flag_basilys_debug)   {char*s=0; 
+ #{ if (flag_melt_debug)   {char*s=0; 
     if ($liex) ppl_io_asprint_Linear_Expression(&s, $liex); 
     debugeprintf("debug_ppl_linear_expression %s @%p %s", 
 		 $msg, (void*)$liex, s); free(s);}
  }#)
 
 (defprimitive debug_ppl_constraint (:cstring msg :ppl_constraint cons) :void
- #{if (flag_basilys_debug) { char*s=0; 
+ #{if (flag_melt_debug) { char*s=0; 
   if ($cons) ppl_io_asprint_Constraint(&s, $cons); 
   debugeprintf("debug_ppl_constraint %s @%p %s", $msg, (void*)$cons, s); 
   free(s);}
  }#)
 
 (defprimitive debug_ppl_polyhedron (:cstring msg :ppl_polyhedron poly) :void
-#{ if (flag_basilys_debug) {  char*s = 0; 
+#{ if (flag_melt_debug) {  char*s = 0; 
      debugeprintfnonl("debug_ppl_polyhedron %s @%p ", $msg, $poly);
      if ($poly) ppl_io_asprint_Polyhedron(&s, $poly);
      debugeprintf_raw("%s\n", s);
@@ -1082,15 +1082,15 @@
 
 (defprimitive ppl_NNC_Polyhedron_from_Constraint_System
   (:ppl_constraint_system consys) :ppl_polyhedron
-#{ basilys_make_ppl_NNC_Polyhedron_from_Constraint_System($consys) }#
+#{ melt_make_ppl_NNC_Polyhedron_from_Constraint_System($consys) }#
 )
 
 (defprimitive make_ppl_polyhedron_same(discr :ppl_polyhedron poly) :value
-#{ basilysgc_new_ppl_polyhedron($discr, $poly, SAME_PPL_POLHYEDRON) }#
+#{ meltgc_new_ppl_polyhedron($discr, $poly, SAME_PPL_POLHYEDRON) }#
 )
 
 (defprimitive make_ppl_polyhedron_cloned(discr :ppl_polyhedron poly) :value
-#{ basilysgc_new_ppl_polyhedron($discr, $poly, CLONED_PPL_POLHYEDRON) }#
+#{ meltgc_new_ppl_polyhedron($discr, $poly, CLONED_PPL_POLHYEDRON) }#
 )
 
 (defprimitive ppl_delete_Polyhedron (:ppl_polyhedron poly) :void
@@ -1102,19 +1102,19 @@
 )
 
 (defprimitive ppl_coefficient_content (pplv) :ppl_coefficient
-  #{ basilys_ppl_coefficient_content($pplv) }#
+  #{ melt_ppl_coefficient_content($pplv) }#
 )
 
 (defprimitive ppl_constraint_content (pplv) :ppl_constraint
-  #{ basilys_ppl_constraint_content($pplv) }#
+  #{ melt_ppl_constraint_content($pplv) }#
 )
 
 (defprimitive ppl_constraint_system_content (pplv) :ppl_constraint_system
-  #{ basilys_ppl_constraint_system_content($pplv) }#
+  #{ melt_ppl_constraint_system_content($pplv) }#
 )
 
 (defprimitive ppl_polyhedron_content (pplv) :ppl_polyhedron
-  #{ basilys_ppl_polyhedron_content($pplv) }#
+  #{ melt_ppl_polyhedron_content($pplv) }#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1244,7 +1244,7 @@
 
 ;;; Be careful to not declare any iterator related stuff in
 ;;; warmelt*.melt file, because we want to be able to bootstrap
-;;; Basilys/MELT (ie to generate the warmelt*.c files) even when GCC
+;;; Melt/MELT (ie to generate the warmelt*.c files) even when GCC
 ;;; internal representation changes a little.
 
 ;;;;;;;;;;;;;;;;
@@ -1328,7 +1328,7 @@
 (defprimitive debugtree (:cstring msg :tree tr) :void
   #{ do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
 		       ($tr)?tree_code_name[TREE_CODE($tr)]:" *niltree*");
-  if (flag_basilys_debug) debug_tree($tr);}while(0)
+  if (flag_melt_debug) debug_tree($tr);}while(0)
   }#
 )
 
@@ -1336,7 +1336,7 @@
 ;; debug_edge is ok even for nil
 (defprimitive debugedge (:cstring msg :edge eg) :void
   #{ do {debugeprintfnonl("debugedge %s @%p ", $msg, (void*)$eg);
-  if (flag_basilys_debug) { if ($eg) dump_edge_info(stderr,$eg,1);
+  if (flag_melt_debug) { if ($eg) dump_edge_info(stderr,$eg,1);
   fputc('\n',stderr); }
  }while(0)  }#
 )
@@ -1368,17 +1368,17 @@
   if ($g && gimple_location($g))
     debugeprintf_raw("{%s:%d} ", LOCATION_FILE(gimple_location($g)), 
 		     LOCATION_LINE(gimple_location($g)));
-  if (flag_basilys_debug) debug_gimple_stmt($g);} while(0)
+  if (flag_melt_debug) debug_gimple_stmt($g);} while(0)
 }# )
 
 (defprimitive debuggimpleseq(:cstring msg :gimpleseq gs) :void
   #{ do{debugeprintf("debuggimpleseq %s @%p", $msg, (void*)$gs);
-  if (flag_basilys_debug && $gs) debug_gimple_seq($gs);}while(0) 
+  if (flag_melt_debug && $gs) debug_gimple_seq($gs);}while(0) 
   }#)
 
 (defprimitive debugbasicblock(:cstring msg :basicblock bb) :void
   #{ do{debugeprintf("debugbasicblock %s @%p", $msg, (void*)$bb);
-  if (flag_basilys_debug && $bb) debug_bb($bb);}while(0) 
+  if (flag_melt_debug && $bb) debug_bb($bb);}while(0) 
 }#)
 
 

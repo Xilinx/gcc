@@ -39,12 +39,6 @@
 #endif
 
 
-/* Define if Basilys/MELT (Middle End Lisp Translator) is in use. */
-#ifndef USED_FOR_TARGET
-#undef ENABLE_BASILYSMELT
-#endif
-
-
 /* Define if you want more run-time sanity checks. This one gets a grab bag of
    miscellaneous but relatively cheap checks. */
 #ifndef USED_FOR_TARGET
@@ -110,6 +104,12 @@
 /* Define if gcc should always pass --build-id to linker. */
 #ifndef USED_FOR_TARGET
 #undef ENABLE_LD_BUILDID
+#endif
+
+
+/* Define if MELT (Middle End Lisp Translator) is in use. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_MELT
 #endif
 
 

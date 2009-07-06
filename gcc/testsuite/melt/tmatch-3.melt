@@ -9,7 +9,7 @@
 |#
 
 (defprimitive tree_content (v) :tree
-  "(basilys_tree_content((basilys_ptr_t)(" v ")))")
+  "(melt_tree_content((melt_ptr_t)(" v ")))")
 
 ;; pattern (tree_function_decl <funame>) match a tree for a function
 ;; declaration
@@ -34,7 +34,7 @@
 
 (defprimitive debugtree (:cstring msg :tree tr) :void
   " do{debugeprintf(\"debugtree %s @%p\", " msg ", (void*)" tr ");"
-  "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
+  "if (flag_melt_debug) debug_tree(" tr ");}while(0) "
 )
 
 (defun tmatch_tree (declv)

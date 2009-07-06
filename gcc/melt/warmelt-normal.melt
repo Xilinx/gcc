@@ -25,7 +25,7 @@
 ;; to the generated file  warmelt-normal*.c
 
 ;;    This file is the third part of a bootstrapping compiler for the
-;;    basilys/MELT lisp dialect, compiler which should be able to
+;;    MELT lisp dialect, compiler which should be able to
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -421,7 +421,7 @@
 	   ))
 
 ;; data field accessor (mostly used for defclass initialization) this
-;; translates into basilys_field_object(<obj>,<off>) of obj is not a
+;; translates into melt_field_object(<obj>,<off>) of obj is not a
 ;; datainstance and directly to the field if it is a datainstance
 (defclass class_nrep_fieldacc
   :super class_nrep_expr
@@ -430,7 +430,7 @@
 	   ))
 
 ;;; data multiple accessor (mostly used for defclass initialization)
-;; this translates into basilys_multiple_nth(<mul>,<ix>) if mul is not
+;; this translates into melt_multiple_nth(<mul>,<ix>) if mul is not
 ;; a datatuple and directly to the component if it is a datatuple
 (defclass class_nrep_multacc
   :super class_nrep_expr

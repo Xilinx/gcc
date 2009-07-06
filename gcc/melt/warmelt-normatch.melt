@@ -25,7 +25,7 @@
 ;; to the generated file  warmelt-normatch*.c
 
 ;;    This file is the fourth part of a bootstrapping compiler for the
-;;    basilys/MELT lisp dialect, compiler which should be able to
+;;    MELT lisp dialect, compiler which should be able to
 ;;    compile itself (into generated C file[s])
 
 
