@@ -29,7 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "target.h"
 #include "dwarf2asm.h"
-#include "dwarf2.h"
+#include "elf/dwarf2.h"
 #include "splay-tree.h"
 #include "ggc.h"
 #include "tm_p.h"
@@ -52,7 +52,7 @@ dw2_assemble_integer (int size, rtx x)
   if (op)
     {
       fputs (op, asm_out_file);
-      if (GET_CODE (x) == CONST_INT)
+      if (CONST_INT_P (x))
 	fprintf (asm_out_file, HOST_WIDE_INT_PRINT_HEX,
 		 (unsigned HOST_WIDE_INT) INTVAL (x));
       else

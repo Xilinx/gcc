@@ -99,6 +99,7 @@
 			  ; correctly for PIC usage.
    (UNSPEC_GOTSYM_OFF 24) ; The offset of the start of the the GOT from a
 			  ; a given symbolic address.
+   (UNSPEC_THUMB1_CASESI 25) ; A Thumb1 compressed dispatch-table call.
   ]
 )
 
@@ -333,15 +334,12 @@
 ; CLOB means that the condition codes are altered in an undefined manner, if
 ;   they are altered at all
 ;
-; JUMP_CLOB is used when the condition cannot be represented by a single
-;   instruction (UNEQ and LTGT).  These cannot be predicated.
-;
 ; UNCONDITIONAL means the instions can not be conditionally executed.
 ;
 ; NOCOND means that the condition codes are neither altered nor affect the
 ;   output of this insn
 
-(define_attr "conds" "use,set,clob,jump_clob,unconditional,nocond"
+(define_attr "conds" "use,set,clob,unconditional,nocond"
 	(if_then_else (eq_attr "type" "call")
 	 (const_string "clob")
 	 (if_then_else (eq_attr "neon_type" "none")
@@ -5085,18 +5083,9 @@
    (set_attr "length" "4")]
 )
 
-(define_insn "*arm_movw"
-  [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
-	(high:SI (match_operand:SI 1 "general_operand"      "i")))]
-  "TARGET_32BIT"
-  "movw%?\t%0, #:lower16:%c1"
-  [(set_attr "predicable" "yes")
-   (set_attr "length" "4")]
-)
-
 (define_insn "*arm_movsi_insn"
   [(set (match_operand:SI 0 "nonimmediate_operand" "=rk,r,r,r,rk,m")
-	(match_operand:SI 1 "general_operand"      "rk, I,K,N,mi,rk"))]
+	(match_operand:SI 1 "general_operand"      "rk, I,K,j,mi,rk"))]
   "TARGET_ARM && ! TARGET_IWMMXT
    && !(TARGET_HARD_FLOAT && TARGET_VFP)
    && (   register_operand (operands[0], SImode)
@@ -7428,7 +7417,7 @@
 (define_insn "*addsi3_cbranch"
   [(set (pc)
 	(if_then_else
-	 (match_operator 4 "comparison_operator"
+	 (match_operator 4 "arm_comparison_operator"
 	  [(plus:SI
 	    (match_operand:SI 2 "s_register_operand" "%l,0,*0,1,1,1")
 	    (match_operand:SI 3 "reg_or_int_operand" "lL,IJ,*r,lIJ,lIJ,lIJ"))
@@ -7510,7 +7499,7 @@
 (define_insn "*addsi3_cbranch_scratch"
   [(set (pc)
 	(if_then_else
-	 (match_operator 3 "comparison_operator"
+	 (match_operator 3 "arm_comparison_operator"
 	  [(plus:SI
 	    (match_operand:SI 1 "s_register_operand" "%l,l,l,0")
 	    (match_operand:SI 2 "reg_or_int_operand" "J,l,L,IJ"))
@@ -7578,7 +7567,7 @@
 (define_insn "*subsi3_cbranch"
   [(set (pc)
 	(if_then_else
-	 (match_operator 4 "comparison_operator"
+	 (match_operator 4 "arm_comparison_operator"
 	  [(minus:SI
 	    (match_operand:SI 2 "s_register_operand" "l,l,1,l")
 	    (match_operand:SI 3 "s_register_operand" "l,l,l,l"))
@@ -7819,38 +7808,6 @@
 ;; Patterns to match conditional branch insns.
 ;;
 
-; Special pattern to match UNEQ.
-(define_insn "*arm_buneq"
-  [(set (pc)
-	(if_then_else (uneq (match_operand 1 "cc_register" "") (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  "TARGET_32BIT && TARGET_HARD_FLOAT && (TARGET_FPA || TARGET_VFP)"
-  "*
-  gcc_assert (!arm_ccfsm_state);
-
-  return \"bvs\\t%l0\;beq\\t%l0\";
-  "
-  [(set_attr "conds" "jump_clob")
-   (set_attr "length" "8")]
-)
-
-; Special pattern to match LTGT.
-(define_insn "*arm_bltgt"
-  [(set (pc)
-	(if_then_else (ltgt (match_operand 1 "cc_register" "") (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  "TARGET_32BIT && TARGET_HARD_FLOAT && (TARGET_FPA || TARGET_VFP)"
-  "*
-  gcc_assert (!arm_ccfsm_state);
-
-  return \"bmi\\t%l0\;bgt\\t%l0\";
-  "
-  [(set_attr "conds" "jump_clob")
-   (set_attr "length" "8")]
-)
-
 (define_insn "*arm_cond_branch"
   [(set (pc)
 	(if_then_else (match_operator 1 "arm_comparison_operator"
@@ -7868,38 +7825,6 @@
   "
   [(set_attr "conds" "use")
    (set_attr "type" "branch")]
-)
-
-; Special pattern to match reversed UNEQ.
-(define_insn "*arm_buneq_reversed"
-  [(set (pc)
-	(if_then_else (uneq (match_operand 1 "cc_register" "") (const_int 0))
-		      (pc)
-		      (label_ref (match_operand 0 "" ""))))]
-  "TARGET_ARM && TARGET_HARD_FLOAT && (TARGET_FPA || TARGET_VFP)"
-  "*
-  gcc_assert (!arm_ccfsm_state);
-
-  return \"bmi\\t%l0\;bgt\\t%l0\";
-  "
-  [(set_attr "conds" "jump_clob")
-   (set_attr "length" "8")]
-)
-
-; Special pattern to match reversed LTGT.
-(define_insn "*arm_bltgt_reversed"
-  [(set (pc)
-	(if_then_else (ltgt (match_operand 1 "cc_register" "") (const_int 0))
-		      (pc)
-		      (label_ref (match_operand 0 "" ""))))]
-  "TARGET_ARM && TARGET_HARD_FLOAT && (TARGET_FPA || TARGET_VFP)"
-  "*
-  gcc_assert (!arm_ccfsm_state);
-
-  return \"bvs\\t%l0\;beq\\t%l0\";
-  "
-  [(set_attr "conds" "jump_clob")
-   (set_attr "length" "8")]
 )
 
 (define_insn "*arm_cond_branch_reversed"
@@ -8901,37 +8826,33 @@
    (match_operand:SI 2 "const_int_operand" "")	; total range
    (match_operand:SI 3 "" "")			; table label
    (match_operand:SI 4 "" "")]			; Out of range label
-  "TARGET_32BIT"
+  "TARGET_32BIT || optimize_size || flag_pic"
   "
   {
-    rtx reg;
+    enum insn_code code;
     if (operands[1] != const0_rtx)
       {
-	reg = gen_reg_rtx (SImode);
+	rtx reg = gen_reg_rtx (SImode);
 
 	emit_insn (gen_addsi3 (reg, operands[0],
 			       GEN_INT (-INTVAL (operands[1]))));
 	operands[0] = reg;
       }
 
-    if (!const_ok_for_arm (INTVAL (operands[2])))
+    if (TARGET_ARM)
+      code = CODE_FOR_arm_casesi_internal;
+    else if (TARGET_THUMB1)
+      code = CODE_FOR_thumb1_casesi_internal_pic;
+    else if (flag_pic)
+      code = CODE_FOR_thumb2_casesi_internal_pic;
+    else
+      code = CODE_FOR_thumb2_casesi_internal;
+
+    if (!insn_data[(int) code].operand[1].predicate(operands[2], SImode))
       operands[2] = force_reg (SImode, operands[2]);
 
-    if (TARGET_ARM)
-      {
-	emit_jump_insn (gen_arm_casesi_internal (operands[0], operands[2],
-						 operands[3], operands[4]));
-      }
-    else if (flag_pic)
-      {
-	emit_jump_insn (gen_thumb2_casesi_internal_pic (operands[0],
-	    operands[2], operands[3], operands[4]));
-      }
-    else
-      {
-	emit_jump_insn (gen_thumb2_casesi_internal (operands[0], operands[2],
-						    operands[3], operands[4]));
-      }
+    emit_jump_insn (GEN_FCN ((int) code) (operands[0], operands[2],
+					  operands[3], operands[4]));
     DONE;
   }"
 )
@@ -8956,6 +8877,37 @@
   "
   [(set_attr "conds" "clob")
    (set_attr "length" "12")]
+)
+
+(define_expand "thumb1_casesi_internal_pic"
+  [(match_operand:SI 0 "s_register_operand" "")
+   (match_operand:SI 1 "thumb1_cmp_operand" "")
+   (match_operand 2 "" "")
+   (match_operand 3 "" "")]
+  "TARGET_THUMB1"
+  {
+    rtx reg0;
+    rtx test = gen_rtx_GTU (VOIDmode, operands[0], operands[1]);
+    emit_jump_insn (gen_cbranchsi4 (test, operands[0], operands[1],
+				    operands[3]));
+    reg0 = gen_rtx_REG (SImode, 0);
+    emit_move_insn (reg0, operands[0]);
+    emit_jump_insn (gen_thumb1_casesi_dispatch (operands[2]/*, operands[3]*/));
+    DONE;
+  }
+)
+
+(define_insn "thumb1_casesi_dispatch"
+  [(parallel [(set (pc) (unspec [(reg:SI 0)
+				 (label_ref (match_operand 0 "" ""))
+;;				 (label_ref (match_operand 1 "" ""))
+]
+			 UNSPEC_THUMB1_CASESI))
+	      (clobber (reg:SI IP_REGNUM))
+              (clobber (reg:SI LR_REGNUM))])]
+  "TARGET_THUMB1"
+  "* return thumb1_output_casesi(operands);"
+  [(set_attr "length" "4")]
 )
 
 (define_expand "indirect_jump"
@@ -9581,7 +9533,7 @@
 	(compare:CC_NOOV (ior:SI
 			  (and:SI (match_operand:SI 0 "s_register_operand" "")
 				  (const_int 1))
-			  (match_operator:SI 1 "comparison_operator"
+			  (match_operator:SI 1 "arm_comparison_operator"
 			   [(match_operand:SI 2 "s_register_operand" "")
 			    (match_operand:SI 3 "arm_add_operand" "")]))
 			 (const_int 0)))
@@ -9598,7 +9550,7 @@
 (define_split
   [(set (reg:CC_NOOV CC_REGNUM)
 	(compare:CC_NOOV (ior:SI
-			  (match_operator:SI 1 "comparison_operator"
+			  (match_operator:SI 1 "arm_comparison_operator"
 			   [(match_operand:SI 2 "s_register_operand" "")
 			    (match_operand:SI 3 "arm_add_operand" "")])
 			  (and:SI (match_operand:SI 0 "s_register_operand" "")
@@ -11004,6 +10956,7 @@
   [(unspec:SI [(match_operand:SI 0 "register_operand" "")] UNSPEC_PROLOGUE_USE)]
   ""
   "%@ %0 needed for prologue"
+  [(set_attr "length" "0")]
 )
 
 

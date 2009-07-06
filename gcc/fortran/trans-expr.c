@@ -2640,6 +2640,15 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		  gfc_conv_expr (&parmse, e);
 		  parmse.expr = gfc_build_addr_expr (NULL_TREE, parmse.expr);
 		}
+	      else if (e->expr_type == EXPR_FUNCTION
+		       && e->symtree->n.sym->result
+		       && e->symtree->n.sym->result->attr.proc_pointer)
+		{
+		  /* Functions returning procedure pointers.  */
+		  gfc_conv_expr (&parmse, e);
+		  if (fsym && fsym->attr.proc_pointer)
+		    parmse.expr = gfc_build_addr_expr (NULL_TREE, parmse.expr);
+		}
 	      else
 		{
 		  gfc_conv_expr_reference (&parmse, e);
@@ -2771,6 +2780,48 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  gfc_add_expr_to_block (&se->post, tmp);
         }
+
+      /* Add argument checking of passing an unallocated/NULL actual to
+         a nonallocatable/nonpointer dummy.  */
+
+      if (gfc_option.rtcheck & GFC_RTCHECK_POINTER)
+        {
+	  gfc_symbol *sym;
+	  char *msg;
+	  tree cond;
+
+	  if (e->expr_type == EXPR_VARIABLE)
+	    sym = e->symtree->n.sym;
+	  else if (e->expr_type == EXPR_FUNCTION)
+	    sym = e->symtree->n.sym->result;
+	  else
+	    goto end_pointer_check;
+
+	  if (sym->attr.allocatable
+	      && (fsym == NULL || !fsym->attr.allocatable))
+	    asprintf (&msg, "Allocatable actual argument '%s' is not "
+		      "allocated", sym->name);
+	  else if (sym->attr.pointer
+	      && (fsym == NULL || !fsym->attr.pointer))
+	    asprintf (&msg, "Pointer actual argument '%s' is not "
+		      "associated", sym->name);
+          else if (sym->attr.proc_pointer
+	      && (fsym == NULL || !fsym->attr.proc_pointer))
+	    asprintf (&msg, "Proc-pointer actual argument '%s' is not "
+		      "associated", sym->name);
+	  else
+	    goto end_pointer_check;
+
+	  cond  = fold_build2 (EQ_EXPR, boolean_type_node, parmse.expr,
+			       fold_convert (TREE_TYPE (parmse.expr),
+					     null_pointer_node));
+ 
+	  gfc_trans_runtime_check (true, false, cond, &se->pre, &e->where,
+				   msg);
+	  gfc_free (msg);
+        }
+      end_pointer_check:
+
 
       /* Character strings are passed as two parameters, a length and a
          pointer - except for Bind(c) which only passes the pointer.  */
@@ -4300,6 +4351,7 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
   gfc_ss *ss;
   gfc_ref * ref;
   bool seen_array_ref;
+  bool c = false;
   gfc_component *comp = NULL;
 
   /* The caller has already checked rank>0 and expr_type == EXPR_FUNCTION.  */
@@ -4309,6 +4361,10 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
   /* Elemental functions don't need a temporary anyway.  */
   if (expr2->value.function.esym != NULL
       && expr2->value.function.esym->attr.elemental)
+    return NULL;
+
+  /* Fail if rhs is not FULL or a contiguous section.  */
+  if (expr1->ref && !(gfc_full_array_ref_p (expr1->ref, &c) || c))
     return NULL;
 
   /* Fail if EXPR1 can't be expressed as a descriptor.  */
@@ -4360,11 +4416,11 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
 
   /* The frontend doesn't seem to bother filling in expr->symtree for intrinsic
      functions.  */
-  is_proc_ptr_comp(expr2, &comp);
   gcc_assert (expr2->value.function.isym
-	      || (comp && comp->attr.dimension)
+	      || (is_proc_ptr_comp (expr2, &comp)
+		  && comp && comp->attr.dimension)
 	      || (!comp && gfc_return_by_reference (expr2->value.function.esym)
-	      && expr2->value.function.esym->result->attr.dimension));
+		  && expr2->value.function.esym->result->attr.dimension));
 
   ss = gfc_walk_expr (expr1);
   gcc_assert (ss != gfc_ss_terminator);
@@ -4785,7 +4841,7 @@ copyable_array_p (gfc_expr * expr)
   if (expr->rank < 1 || !expr->ref || expr->ref->next)
     return false;
 
-  if (!gfc_full_array_ref_p (expr->ref))
+  if (!gfc_full_array_ref_p (expr->ref, NULL))
     return false;
 
   /* Next check that it's of a simple enough type.  */

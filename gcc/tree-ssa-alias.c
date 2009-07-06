@@ -273,6 +273,13 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
   if (!pi1 || !pi2)
     return true;
 
+  /* If both pointers are restrict-qualified try to disambiguate
+     with restrict information.  */
+  if (TYPE_RESTRICT (TREE_TYPE (ptr1))
+      && TYPE_RESTRICT (TREE_TYPE (ptr2))
+      && !pt_solutions_same_restrict_base (&pi1->pt, &pi2->pt))
+    return false;
+
   /* ???  This does not use TBAA to prune decls from the intersection
      that not both pointers may access.  */
   return pt_solutions_intersect (&pi1->pt, &pi2->pt);
@@ -858,12 +865,8 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
       && (flags & (ECF_CONST|ECF_NOVOPS)))
     goto process_args;
 
-  /* If the reference is not based on a decl give up.
-     ???  Handle indirect references by intersecting the call-used
-     	  solution with that of the pointer.  */
   base = get_base_address (ref);
-  if (!base
-      || !DECL_P (base))
+  if (!base)
     return true;
 
   /* If the reference is based on a decl that is not aliased the call
@@ -945,12 +948,45 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
      it may be used.  */
   if (flags & (ECF_PURE|ECF_CONST|ECF_LOOPING_CONST_OR_PURE|ECF_NOVOPS))
     {
-      if (is_call_used (base))
+      if (DECL_P (base))
+	{
+	  if (is_call_used (base))
+	    return true;
+	}
+      else if (INDIRECT_REF_P (base)
+	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+	{
+	  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+	  if (!pi)
+	    return true;
+
+	  if (pt_solution_includes_global (&pi->pt)
+	      || pt_solutions_intersect (&cfun->gimple_df->callused, &pi->pt)
+	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt))
+	    return true;
+	}
+      else
 	return true;
     }
   else
     {
-      if (is_call_clobbered (base))
+      if (DECL_P (base))
+	{
+	  if (is_call_clobbered (base))
+	    return true;
+	}
+      else if (INDIRECT_REF_P (base)
+	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+	{
+	  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+	  if (!pi)
+	    return true;
+
+	  if (pt_solution_includes_global (&pi->pt)
+	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt))
+	    return true;
+	}
+      else
 	return true;
     }
 
@@ -1148,6 +1184,16 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 
   if (DECL_P (base))
     return is_call_clobbered (base);
+  else if (INDIRECT_REF_P (base)
+	   && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+    {
+      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+      if (!pi)
+	return true;
+
+      return (pt_solution_includes_global (&pi->pt)
+	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt));
+    }
 
   return true;
 }
@@ -1381,8 +1427,8 @@ walk_non_aliased_vuses (ao_ref *ref, tree vuse,
    The function returns the number of statements walked.  */
 
 static unsigned int
-walk_aliased_vdefs_1 (tree ref, tree vdef,
-		      bool (*walker)(tree, tree, void *), void *data,
+walk_aliased_vdefs_1 (ao_ref *ref, tree vdef,
+		      bool (*walker)(ao_ref *, tree, void *), void *data,
 		      bitmap *visited, unsigned int cnt)
 {
   do
@@ -1409,7 +1455,7 @@ walk_aliased_vdefs_1 (tree ref, tree vdef,
       /* ???  Do we want to account this to TV_ALIAS_STMT_WALK?  */
       cnt++;
       if ((!ref
-	   || stmt_may_clobber_ref_p (def_stmt, ref))
+	   || stmt_may_clobber_ref_p_1 (def_stmt, ref))
 	  && (*walker) (ref, vdef, data))
 	return cnt;
 
@@ -1419,8 +1465,8 @@ walk_aliased_vdefs_1 (tree ref, tree vdef,
 }
 
 unsigned int
-walk_aliased_vdefs (tree ref, tree vdef,
-		    bool (*walker)(tree, tree, void *), void *data,
+walk_aliased_vdefs (ao_ref *ref, tree vdef,
+		    bool (*walker)(ao_ref *, tree, void *), void *data,
 		    bitmap *visited)
 {
   bitmap local_visited = NULL;

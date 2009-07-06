@@ -1991,6 +1991,18 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 
 	  return false;
 	}
+
+      /* C++ does not permit a decl to appear multiple times at file
+	 scope.  */
+      if (warn_cxx_compat
+	  && DECL_FILE_SCOPE_P (newdecl)
+	  && !DECL_EXTERNAL (newdecl)
+	  && !DECL_EXTERNAL (olddecl))
+	warned |= warning_at (DECL_SOURCE_LOCATION (newdecl),
+			      OPT_Wc___compat,
+			      ("duplicate declaration of %qD is "
+			       "invalid in C++"),
+			      newdecl);
     }
 
   /* warnings */
@@ -2343,13 +2355,13 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	}
     }
 
-   extern_changed = DECL_EXTERNAL (olddecl) && !DECL_EXTERNAL (newdecl);
+  extern_changed = DECL_EXTERNAL (olddecl) && !DECL_EXTERNAL (newdecl);
 
-   /* Merge the USED information.  */
-   if (TREE_USED (olddecl))
-     TREE_USED (newdecl) = 1;
-   else if (TREE_USED (newdecl))
-     TREE_USED (olddecl) = 1;
+  /* Merge the USED information.  */
+  if (TREE_USED (olddecl))
+    TREE_USED (newdecl) = 1;
+  else if (TREE_USED (newdecl))
+    TREE_USED (olddecl) = 1;
 
   /* Copy most of the decl-specific fields of NEWDECL into OLDDECL.
      But preserve OLDDECL's DECL_UID and DECL_CONTEXT.  */

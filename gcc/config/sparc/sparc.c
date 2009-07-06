@@ -417,11 +417,19 @@ static int sparc_arg_partial_bytes (CUMULATIVE_ARGS *,
 static void sparc_dwarf_handle_frame_unspec (const char *, rtx, int);
 static void sparc_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void sparc_file_end (void);
+static bool sparc_frame_pointer_required (void);
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
 static const char *sparc_mangle_type (const_tree);
 #endif
+
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
-EXPORTED_CONST struct attribute_spec sparc_attribute_table[];
+/* Table of valid machine attributes.  */
+static const struct attribute_spec sparc_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  SUBTARGET_ATTRIBUTE_TABLE,
+  { NULL,        0, 0, false, false, false, NULL }
+};
 #endif
 
 /* Option handling.  */
@@ -583,6 +591,9 @@ static bool fpu_option_set = false;
 
 #undef TARGET_ASM_FILE_END
 #define TARGET_ASM_FILE_END sparc_file_end
+
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED sparc_frame_pointer_required
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
 #undef TARGET_MANGLE_TYPE
@@ -882,16 +893,6 @@ sparc_override_options (void)
 		       || sparc_cpu == PROCESSOR_NIAGARA2)
 		      ? 64 : 32));
 }
-
-#ifdef SUBTARGET_ATTRIBUTE_TABLE
-/* Table of valid machine attributes.  */
-const struct attribute_spec sparc_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  SUBTARGET_ATTRIBUTE_TABLE,
-  { NULL,        0, 0, false, false, false, NULL }
-};
-#endif
 
 /* Miscellaneous utilities.  */
 
@@ -9138,6 +9139,26 @@ sparc_expand_compare_and_swap_12 (rtx result, rtx mem, rtx oldval, rtx newval)
 			  gen_rtx_LSHIFTRT (SImode, res, off)));
 
   emit_move_insn (result, gen_lowpart (GET_MODE (result), res));
+}
+
+/* Implement TARGET_FRAME_POINTER_REQUIRED.  */
+
+bool
+sparc_frame_pointer_required (void)
+{
+  return !(leaf_function_p () && only_leaf_regs_used ());
+}
+
+/* The way this is structured, we can't eliminate SFP in favor of SP
+   if the frame pointer is required: we want to use the SFP->HFP elimination
+   in that case.  But the test in update_eliminables doesn't know we are
+   assuming below that we only do the former elimination.  */
+
+bool
+sparc_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
+{
+  return (to == HARD_FRAME_POINTER_REGNUM 
+          || !targetm.frame_pointer_required ());
 }
 
 #include "gt-sparc.h"
