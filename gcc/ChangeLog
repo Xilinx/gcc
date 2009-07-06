@@ -1,3 +1,98 @@
+2009-07-04  Ian Lance Taylor  <iant@google.com>
+
+	PR target/40636
+	* config/i386/msformat-c.c (mingw_format_attributes): Declare as
+	EXPORTED_CONST.
+	(mingw_format_attribute_overrides): Likewise.
+
+2009-07-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/40596
+	* dwarf2out.c (based_loc_descr): For crtl->stack_realign_tried
+	don't check cfa.reg.  Instead of cfa.indirect use
+	fde && fde->drap_reg != INVALID_REGNUM test.
+
+2009-07-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* postreload.c (reload_combine): Replace CONST_REG with INDEX_REG.
+
+2009-07-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/40587
+	* ira.c (build_insn_chain): Use DF_LR_OUT instead of
+	df_get_live_out.
+	
+2009-07-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40640
+	* tree-switch-conversion.c (build_arrays): Perform arithmetic
+	in original type.
+
+2009-07-03  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.c (cgraph_decide_inlining_incrementally): When optimizing
+	for size, reduce amount of inlining.
+
+2009-07-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34163
+	* tree-chrec.c (chrec_convert_1): Fold (T2)(t +- x) to
+	(T2)t +- (T2)x if t +- x is known to not overflow and
+	the conversion widens the operation.
+	* Makefile.in (tree-chrec.o): Add $(FLAGS_H) dependency.
+
+2009-07-03  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-pure-const.c (analyze): Update loop optimizer init.
+	* tree-ssa-loop-iv-canon.c (empty_loop_p, remove_empty_loop,
+	try_remove_empty_loop, remove_empty_loops): Remove.
+	* tree-ssa-loop.c (tree_ssa_empty_loop, pass_empty_loop): Remove.
+	* tree-ssa-dce.c (find_obviously_necessary_stmts): Use finiteness info
+	to mark regular loops as neccesary.
+	(degenerate_phi_p): New function.
+	(propagate_necessity, remove_dead_phis): Use it.
+	(forward_edge_to_pdom): Likewise.
+	(eliminate_unnecessary_stmts): Take care to remove uses of results of
+	virtual PHI nodes that became unreachable.
+	(perform_tree_ssa_dce): Initialize/deinitialize loop optimizer.
+	* tree-flow.h (remove_empty_loops): Remove.
+	* passes.c (init_optimization_passes): Remove.
+
+2009-07-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (fix_trunc<mode>_fisttp_i387_1): Use
+	can_create_pseudo_p.
+	(*fix_trunc<mode>_i387_1): Ditto.
+	(*floathi<mode>2_1): Ditto.
+	(*float<SSEMODEI24:mode><X87MODEF:mode>2_1): Ditto.
+	(*fistdi2_1): Ditto.
+	(*fist<mode>2_1): Ditto.
+	(frndintxf2_floor): Ditto.
+	(*fist<mode>2_floor_1): Ditto.
+	(frndintxf2_ceil): Ditto.
+	(*fist<mode>2_ceil_1): Ditto.
+	(frndintxf2_trunc): Ditto.
+	(frndintxf2_mask_pm): Ditto.
+	(fxam<mode>2_i387_with_temp): Ditto.
+	* config/i386/sse.md (mulv16qi3): Ditto.
+	(*sse2_mulv4si3): Ditto.
+	(mulv2di3): Ditto.
+	(sse4_2_pcmpestr): Ditto.
+	(sse4_2_pcmpistr): Ditto.
+
+2009-07-03  Jan Hubicka  <jh@suse.cz>
+
+	* tree-ssa-dce.c (bb_contains_live_stmts): New bitmap.
+	(mark_stmt_necessary): Set it.
+	(mark_operand_necessary): Set it.
+	(mark_control_dependent_edges_necessary): Set it.
+	(mark_virtual_phi_result_for_renaming): New function.
+	(get_live_post_dom): New function.
+	(forward_edge_to_pdom): New function.
+	(remove_dead_stmt): Fix handling of control dependences.
+	(tree_dce_init): Init new bitmap.
+	(tree_dce_done): Free it.
+
 2009-07-02  Richard Guenther  <rguenther@suse.de>
 
 	PR bootstrap/40617
@@ -35,8 +130,7 @@
 
 	* config/mep/mep.c (mep_handle_option): Leave IVC2 control
 	registers as fixed.
-	(mep_interrupt_saved_reg): Save appropriate IVC2 control
-	registers.
+	(mep_interrupt_saved_reg): Save appropriate IVC2 control registers.
 	* config/mep/mep-ivc2.cpu: Add VOLATILE to insns that make
 	unspecified accesses to control registers.
 	* config/mep/intrinsics.md: Regenerate.
@@ -87,7 +181,8 @@
 
 2009-07-01  DJ Delorie  <dj@redhat.com>
 
-	* config/mep/mep-ivc2.cpu (cmov, cmovc, cmovh): Add intrinsic names to VLIW variants.
+	* config/mep/mep-ivc2.cpu (cmov, cmovc, cmovh): Add intrinsic
+	names to VLIW variants.
 	(ivc2rm, ivc2crn): Make data type consistent with non-VLIW variants.
 	* config/mep/intrinsics.md: Regenerate.
 	* config/mep/intrinsics.h: Regenerate.
@@ -106,8 +201,8 @@
 	of the jump table.
 	(casesi64p): Likewise.
 
-	* pa.c (forward_branch_p): Return bool type.  Use instruction addresses
-	when available.  Assert that INSN has a jump label.
+	* pa.c (forward_branch_p): Return bool type.  Use instruction
+	addresses when available.  Assert that INSN has a jump label.
 	(pa_adjust_insn_length): Don't call forward_branch_p if INSN doesn't
 	have a jump label.
 
@@ -115,8 +210,7 @@
 
 	PR tree-optimization/19831
 	* tree-ssa-dce.c (propagate_necessity): Calls to functions
-	that only act as barriers do not make any previous stores
-	necessary.
+	that only act as barriers do not make any previous stores necessary.
 	* tree-ssa-structalias.c (handle_lhs_call): Delay making
 	HEAP variables global, do not add a constraint from nonlocal.
 	(find_func_aliases): Handle escapes through return statements.
@@ -409,7 +503,7 @@
 	* config/xtensa/xtensa-protos.h (xtensa_frame_pointer_required):
 	Remove.
 
-2009-06-29  Olatunji Ruwase   <tjruwase@google.com>
+2009-06-29  Olatunji Ruwase  <tjruwase@google.com>
 
 	* doc/plugins.texi: Document PLUGIN_START_UNIT.
 	* toplev.c (compile_file): Call PLUGIN_START_UNIT.

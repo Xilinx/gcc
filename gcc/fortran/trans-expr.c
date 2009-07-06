@@ -2640,6 +2640,15 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		  gfc_conv_expr (&parmse, e);
 		  parmse.expr = gfc_build_addr_expr (NULL_TREE, parmse.expr);
 		}
+	      else if (e->expr_type == EXPR_FUNCTION
+		       && e->symtree->n.sym->result
+		       && e->symtree->n.sym->result->attr.proc_pointer)
+		{
+		  /* Functions returning procedure pointers.  */
+		  gfc_conv_expr (&parmse, e);
+		  if (fsym && fsym->attr.proc_pointer)
+		    parmse.expr = gfc_build_addr_expr (NULL_TREE, parmse.expr);
+		}
 	      else
 		{
 		  gfc_conv_expr_reference (&parmse, e);
@@ -4407,11 +4416,11 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
 
   /* The frontend doesn't seem to bother filling in expr->symtree for intrinsic
      functions.  */
-  is_proc_ptr_comp(expr2, &comp);
   gcc_assert (expr2->value.function.isym
-	      || (comp && comp->attr.dimension)
+	      || (is_proc_ptr_comp (expr2, &comp)
+		  && comp && comp->attr.dimension)
 	      || (!comp && gfc_return_by_reference (expr2->value.function.esym)
-	      && expr2->value.function.esym->result->attr.dimension));
+		  && expr2->value.function.esym->result->attr.dimension));
 
   ss = gfc_walk_expr (expr1);
   gcc_assert (ss != gfc_ss_terminator);

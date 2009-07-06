@@ -1,3 +1,67 @@
+2009-07-04  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/using15.C: New.
+
+2009-07-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* gfortran.dg/maxloc_1.f90: New test.
+
+2009-07-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40593
+	* gfortran.dg/proc_ptr_result_6.f90: New.
+
+2009-07-04  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gcc.dg/framework-2.c: Adjust testcase to pass.
+
+2009-07-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40619
+	* g++.dg/cpp0x/auto16.C: New.
+
+2009-07-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/40587
+	* gfortran.dg/pr40587.f: New test.
+	
+2009-07-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/40638
+	* gfortran.dg/unit_1.f90: New test.
+
+2009-07-03  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/pure1.C: Expect another error.
+
+2009-07-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40640
+	* gcc.c-torture/compile/pr40640.c: New testcase.
+
+2009-07-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34163
+	* gfortran.dg/pr34163.f90: New testcase.
+
+2009-07-03  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/loop-24.c: Update dump file matching; enable -O2.
+	* gcc.dg/tree-ssa/loop-25.c: Likewise.
+	* gcc.dg/tree-ssa/loop-26.c: Likewise.
+	* gcc.dg/tree-ssa/pr32044.c: Likewise.
+	* gcc.dg/tree-ssa/loop-29.c: Likewise.
+	* gcc.dg/tree-ssa/loop-10.c: Likewise.
+	* gnat.dg/loop_optimization6.adb: Enable -O2.
+
+2009-07-02  Mark Mitchell  <mark@codesourcery.com>
+
+	* g++.dg/warn/null4.C: Extend.
+
+2009-07-02  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/spec8.C: Fix.
+
 2009-07-02  Michael Matz  <matz@suse.de>
 
 	PR fortran/32131
