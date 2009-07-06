@@ -365,10 +365,14 @@ try_get_loop_niter (loop_p loop, struct tree_niter_desc *niter)
   return true;
 }
 
-/* Try to initialize REDUCTION_LIST for code generation part.  */
+/* Try to initialize REDUCTION_LIST for code generation part.
+
+   REDUCTION_LIST: phi nodes for IVs that cannot be canonicalized.
+   ANALYZED_REDUCTIONS describes the reductions.  */
 
 static bool
-try_create_reduction_list (loop_p loop, htab_t reduction_list)
+try_create_reduction_list (loop_p loop, htab_t reduction_list,
+			   htab_t analyzed_reductions)
 {
   edge exit = single_dom_exit (loop);
   gimple_stmt_iterator gsi;
@@ -455,6 +459,9 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list)
 	    }
 	}
     }
+
+  if (!analyze_reduction_list (reduction_list, analyzed_reductions, loop))
+    return false;
 
   return true;
 }
@@ -1759,12 +1766,16 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
   return paral_bb;
 }
 
-/* Generates code to execute the iterations of LOOP in N_THREADS threads in
-   parallel.  NITER describes number of iterations of LOOP.  
-   REDUCTION_LIST describes the reductions existent in the LOOP.  */
+/* Generates code to execute the iterations of LOOP in N_THREADS
+   threads in parallel.
+
+   NITER describes number of iterations of LOOP.
+   REDUCTION_LIST is the list of phi nodes that cannot be canonicalized.
+   ANALYZED_REDUCTIONS describes the reductions existent in the LOOP.  */
 
 static void
-gen_parallel_loop (struct loop *loop, htab_t reduction_list, 
+gen_parallel_loop (struct loop *loop, htab_t reduction_list,
+		   htab_t analyzed_reductions,
 		   unsigned n_threads, struct tree_niter_desc *niter)
 {
   struct loop *nloop;
@@ -1776,10 +1787,6 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   edge entry, exit;
   struct clsn_data clsn_data;
   unsigned prob;
-  htab_t analyzed_reductions = htab_create (10, reduction_info_hash,
-					    reduction_info_eq, free);
-  if (!analyze_reduction_list (reduction_list, analyzed_reductions, loop))
-    return;
 
   /* From
 
@@ -1896,7 +1903,6 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   if (htab_elements (analyzed_reductions) > 0)   
     create_call_for_reduction (loop, analyzed_reductions, &clsn_data);
 
-  htab_delete (analyzed_reductions);
   scev_reset ();
 
   /* Cancel the loop (it is simpler to do it here rather than to teach the
@@ -1949,18 +1955,21 @@ parallelize_loops (void)
   struct loop *loop;
   struct tree_niter_desc niter_desc;
   loop_iterator li;
-  htab_t reduction_list;
+  htab_t reduction_list, analyzed_reductions;
 
   /* Do not parallelize loops in the functions created by parallelization.  */
   if (parallelized_function_p (cfun->decl))
     return false;
 
   reduction_list = htab_create (10, htab_hash_pointer, htab_eq_pointer, NULL);
+  analyzed_reductions = htab_create (10, reduction_info_hash,
+				     reduction_info_eq, free);
   init_stmt_vec_info_vec ();
 
   FOR_EACH_LOOP (li, loop, 0)
     {
       htab_empty (reduction_list);
+      htab_empty (analyzed_reductions);
 
       /* If we use autopar in graphite pass, we use it's marked dependency
       checking results.  */
@@ -1989,14 +1998,16 @@ parallelize_loops (void)
       if (!try_get_loop_niter (loop, &niter_desc))
 	continue;
 
-      if (!try_create_reduction_list (loop, reduction_list))
+      if (!try_create_reduction_list (loop, reduction_list,
+				      analyzed_reductions))
 	continue;
 
       if (!flag_graphite_force_parallel && !loop_parallel_p (loop))
 	continue;
 
       changed = true;
-      gen_parallel_loop (loop, reduction_list, n_threads, &niter_desc);
+      gen_parallel_loop (loop, reduction_list, analyzed_reductions,
+			 n_threads, &niter_desc);
       verify_flow_info ();
       verify_dominators (CDI_DOMINATORS);
       verify_loop_structure ();
@@ -2005,6 +2016,7 @@ parallelize_loops (void)
 
   free_stmt_vec_info_vec ();
   htab_delete (reduction_list);
+  htab_delete (analyzed_reductions);
 
   /* Parallelization will cause new function calls to be inserted through
      which local variables will escape.  Reset the points-to solutions

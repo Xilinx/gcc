@@ -1,3 +1,10 @@
+2009-07-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-parloops.c (try_create_reduction_list): Pass an extra
+	argument analyzed_reductions.  Call analyze_reduction_list.
+	(gen_parallel_loop): Do not call analyze_reduction_list.
+	(parallelize_loops): Init and finalize analyzed_reductions.
+
 2009-07-06  Li Feng  <nemokingdom@gmail.com>
 
 	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: Added
