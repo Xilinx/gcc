@@ -1,3 +1,8 @@
+2009-07-06  Li Feng  <nemokingdom@gmail.com>
+
+	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: Added
+	flag -fno-loop-strip-mine for autopar testcase.
+
 2009-07-04  Li Feng  <nemokingdom@gmail.com>
 
 	* graphite-dependences.c (graphite_carried_dependence_level_k): Use
