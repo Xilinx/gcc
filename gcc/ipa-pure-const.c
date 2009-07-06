@@ -471,14 +471,6 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
           local->looping = true;
 	}
       return;
-    case GIMPLE_RETURN:
-      if (DECL_IS_IFUNC (current_function_decl))
-	{
-	  if (dump_file)
-	    fprintf (dump_file, "    Indirect function is not const/pure");
-	  local->pure_const_state = IPA_NEITHER;
-	}
-      break;
     default:
       break;
     }
@@ -492,7 +484,7 @@ static funct_state
 analyze_function (struct cgraph_node *fn, bool ipa)
 {
   tree decl = fn->decl;
-  tree old_decl = current_function_decl;
+  tree old_decl;
   funct_state l;
   basic_block this_block;
 
@@ -504,11 +496,17 @@ analyze_function (struct cgraph_node *fn, bool ipa)
     }
 
   l = XCNEW (struct funct_state_d);
-  l->pure_const_state = IPA_CONST;
   l->state_previously_known = IPA_NEITHER;
   l->looping_previously_known = true;
   l->looping = false;
   l->can_throw = false;
+  if (DECL_IS_IFUNC (decl))
+    {
+      l->pure_const_state = IPA_NEITHER;
+      goto skip;
+    }
+  else
+    l->pure_const_state = IPA_CONST;
 
   if (dump_file)
     {
@@ -516,6 +514,7 @@ analyze_function (struct cgraph_node *fn, bool ipa)
 	       cgraph_node_name (fn));
     }
   
+  old_decl = current_function_decl;
   push_cfun (DECL_STRUCT_FUNCTION (decl));
   current_function_decl = decl;
   
@@ -595,6 +594,8 @@ end:
 
   pop_cfun ();
   current_function_decl = old_decl;
+
+skip:
   if (dump_file)
     {
       if (l->looping)
