@@ -1,5 +1,15 @@
 2009-07-05  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* g++.dg/torture/ifunc-16.C: Add function name to scan-assembler.
+	* g++.dg/torture/ifunc-22.C: Likewise.
+
+	* g++.dg/torture/ifunc-21.C: Swap scan-assembler.
+
+	* g++.dg/torture/ifunc-24.C: New.
+	* g++.dg/torture/ifunc-25.C: Likewise.
+
+2009-07-05  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* g++.dg/torture/ifunc-21.C: New.
 	* g++.dg/torture/ifunc-22.C: Likewise.
 	* g++.dg/torture/ifunc-23.C: Likewise.

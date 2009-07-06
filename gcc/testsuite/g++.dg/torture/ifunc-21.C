@@ -38,8 +38,8 @@ bar (float x)
   return ifunc::foo (x);
 }
 
-/* { dg-final { scan-assembler-not ".type\[ 	\]\+_ZN5ifunc3fooEf, .function" } } */
 /* { dg-final { scan-assembler-not ".type\[ 	\]\+_ZN5ifunc3fooEi, .function" } } */
+/* { dg-final { scan-assembler-not ".type\[ 	\]\+_ZN5ifunc3fooEf, .function" } } */
 /* { dg-final { scan-assembler "(call|jmp)\[ 	\]\+_ZN5ifunc3fooEi" } } */
 /* { dg-final { scan-assembler "(call|jmp)\[ 	\]\+_ZN5ifunc3fooEf" } } */
 /* { dg-final { scan-assembler ".type\[ 	\]\+_ZN5ifunc3fooEi, .gnu_indirect_function" } } */
