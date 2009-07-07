@@ -1302,14 +1302,24 @@ void mark_loops_parallel (htab_t bb_pbb_mapping)
 {
   loop_p loop;
   loop_iterator li;
+  int num_no_dependency = 0;
 
   FOR_EACH_LOOP (li, loop, 0)
     {
       if (!loop->aux)
-       continue;
+	continue;
 
       if (!dependency_in_loop_p (loop, bb_pbb_mapping))
-       loop->can_be_parallel = true;
+	{
+	  loop->can_be_parallel = true;
+	  num_no_dependency++;
+	}
+    }
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "\n%d loops carried no dependency.\n",
+	       num_no_dependency);
     }
 }
 
