@@ -1,4 +1,9 @@
 
+2009-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	[added melt-make.mk to ease pluginification]
+	* melt-make.mk: added new file.
+	* Makefile.in: include it.
+
 2009-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	[replaced basilys by melt inside all files an in file names! to do
 	that, we temporarily generated extra #define-s included from

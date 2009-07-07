@@ -306,11 +306,6 @@ GMPINC = @GMPINC@
 
 
 ### for MELT
-## graphite already uses PPL
-## How to find PPL (Parma Polyhedra Library)
-#PPLLIBS = @ppllibs@
-#PPLINC = @pplinc@
-
 
 # How to file GDBM
 GDBMLIBS = @gdbmlibs@
@@ -4142,6 +4137,8 @@ installdirs:
 PLUGIN_HEADERS = $(TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(TOPLEV_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(TREE_PASS_H) $(GCC_PLUGIN_H) \
   $(GGC_H) $(TREE_DUMP_H) $(PRETTY_PRINT_H) \
+  $(tm_file_list) $(tm_include_list) $(tm_p_file_list) $(tm_p_include_list) \
+  $(host_xm_file_list) $(host_xm_include_list) $(xm_include_list) \
   intl.h $(PLUGIN_VERSION_H)
 
 # Install the headers needed to build a plugin.
@@ -4911,300 +4908,16 @@ melt.encap: run-melt.d
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
-MELTCCINIT1= time ./cc1$(exeext) -Wno-shadow -fmelt=translateinit  \
-	      -fmelt-module-path=. -fmelt-source-path=. \
-	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
-	      -fmelt-tempdir=. 
-#	      -frandom-seed=$$RANDOM
+melt_cc1=./cc1$(exeext)
+melt_make_compile_script=$(objdir)/built-melt-cc-script
+melt_make_source_dir=$(srcdir)/melt
+melt_make_module_dir=$(objdir)
+melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 
-MELTCCFILE1= time ./cc1$(exeext) -Wno-shadow -fmelt=translatefile  \
-	      -fmelt-module-path=. -fmelt-source-path=. \
-	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
-	      -fmelt-tempdir=. 
-#	      -frandom-seed=$$RANDOM
+## leave melt_is_plugin as empty 
+melt_is_plugin=
 
-MELTCCSHOW1= time ./cc1$(exeext) -fmelt=showmdata  \
-	      -fmelt-module-path=. -fmelt-source-path=. \
-	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
-	      -fmelt-tempdir=. 
-#	      -frandom-seed=$$RANDOM
-
-
-## all the warm*.so need ./built-melt-cc-script to be built, but we
-## don't add a dependency to avoid them being rebuilt at install time.
-##
-warmelt-%-0.d.so: $(srcdir)/melt/warmelt-%-0.c 
-	$(RM) $(notdir $<)
-	$(LN_S) $<  $(notdir $<)
-	./built-melt-cc-script -d $(notdir $<) $@
-warm%.n.so: warm%.c 
-	./built-melt-cc-script -n $< $@
-warm%.so: warm%.c 
-	./built-melt-cc-script $< $@
-###
-
-ana%.n.so: ana%.c 
-	./built-melt-cc-script -n $< $@
-ana%.d.so : ana%.c 
-	./built-melt-cc-script -d $< $@
-ana%.so: ana%.c 
-	./built-melt-cc-script $< $@
-
-
-## the warmelt files - order is important!
-WARMELT_FILES= \
-	 warmelt-first.melt  \
-	 warmelt-macro.melt  \
-	 warmelt-normal.melt \
-	 warmelt-normatch.melt \
-	 warmelt-genobj.melt \
-	 warmelt-outobj.melt 
-
-WARMELT_SRCFILES= $(patsubst %.melt, $(srcdir)/melt/%.melt, $(WARMELT_FILES))
-WARMELT_SRCARGLIST:=$(shell echo $(realpath $(WARMELT_SRCFILES))|sed 's: :,:g')
-WARMELT_BASE= $(basename $(WARMELT_FILES))
-WARMELT_BASELIST:=$(shell echo $(WARMELT_BASE)|sed 's: :,:g')
-##
-WARMELT_BASE0= $(patsubst %, %-0, $(WARMELT_BASE))
-WARMELT_BASE0C= $(patsubst %, %-0.c, $(WARMELT_BASE))
-WARMELT_BASE0SO= $(patsubst %, %-0.so, $(WARMELT_BASE))
-WARMELT_BASE0DSO= $(patsubst %, %-0.d.so, $(WARMELT_BASE))
-WARMELT_BASE0ROW:=$(shell echo $(WARMELT_BASE0)|sed 's/ /:/g')
-WARMELT_BASE0DROW:=$(shell echo $(patsubst %, %-0.d, $(WARMELT_BASE))|sed 's/ /:/g')
-##
-WARMELT_BASE1= $(patsubst %, %-1, $(WARMELT_BASE))
-WARMELT_BASE1SO= $(patsubst %, %-1.so, $(WARMELT_BASE))
-WARMELT_BASE1NSO= $(patsubst %, %-1.n.so, $(WARMELT_BASE))
-WARMELT_BASE1C= $(patsubst %, %-1.c, $(WARMELT_BASE))
-WARMELT_BASE1ROW:=$(shell echo $(WARMELT_BASE1)|sed 's/ /:/g')
-##
-WARMELT_BASE2= $(patsubst %, %-2, $(WARMELT_BASE))
-WARMELT_BASE2SO= $(patsubst %, %-2.so, $(WARMELT_BASE))
-WARMELT_BASE2NSO= $(patsubst %, %-2.n.so, $(WARMELT_BASE))
-WARMELT_BASE2C= $(patsubst %, %-2.c, $(WARMELT_BASE))
-WARMELT_BASE2ROW:=$(shell echo $(WARMELT_BASE2)|sed 's/ /:/g')
-##
-WARMELT_BASE3= $(patsubst %, %-3, $(WARMELT_BASE))
-WARMELT_BASE3SO= $(patsubst %, %-3.so, $(WARMELT_BASE))
-WARMELT_BASE3C= $(patsubst %, %-3.c, $(WARMELT_BASE))
-WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
-
-## force a dependency
-$(WARMELT_BASE0SO): run-melt.h melt-runtime.h
-
-################
-## the analysis MELT files. They are not needed to bootstrap the MELT
-## translation, but they are needed to make any MELT analysis of a GCC
-## compiled source 
-
-## order is important
-ANAMELT_FILES= ana-base.melt ana-simple.melt
-ANAMELT_SRCFILES= $(patsubst %.melt, $(srcdir)/melt/%.melt, $(ANAMELT_FILES))
-ANAMELT_SRCARGLIST:=$(shell echo $(realpath $(ANAMELT_SRCFILES))|sed 's: :,:g')
-ANAMELT_BASE= $(basename $(ANAMELT_FILES))
-ANAMELT_BASELIST:=$(shell echo $(ANAMELT_BASE)|sed 's: :,:g')
-
-ANAMELT_BASESO= $(patsubst %, %.so, $(ANAMELT_BASE))
-ANAMELT_BASEC= $(patsubst %, %.c, $(ANAMELT_BASE))
-ANAMELT_BASEROW:=$(shell echo $(ANAMELT_BASE)|sed 's/ /:/g')
-
-## keep the generated warm*.c files!
-.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(ANAMELT_BASEC)
-
-## temporary
-
-warmelt0.modlis: $(WARMELT_BASE0DSO)
-	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE0); do echo $$f >> $@-tmp; done
-	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
-
-##
-
-warmelt1.modlis: $(WARMELT_BASE1SO)
-	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE1); do echo $$f >> $@-tmp; done
-	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
-
-warmelt1n.modlis: $(WARMELT_BASE1NSO)
-	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE1); do echo $$f.n >> $@-tmp; done
-	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
-
-
-### we need ad hoc rules, since warmelt-first-1 is build using the
-### warmelt*0.c files from SVN repository but warmelt-macro-1 is build
-### using wamelt-first-1.so
-
-warmelt-first-1.c: $(srcdir)/melt/warmelt-first.melt warmelt0.modlis   cc1$(exeext)  $(WARMELT_BASE0DSO)
-	-rm -f $@
-	@echo generating warmelt-first using $(WARMELT_BASE0) 
-	@echo WARMELT_BASE0= $(WARMELT_BASE0) WARMELT_BASE0ROW= $(WARMELT_BASE0DROW)
-	$(MELTCCINIT1) -fmelt-init=$(WARMELT_BASE0DROW) \
-	      -fmelt-arg=$< \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.melt cc1$(exeext) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-0.d.so  \
-	 warmelt-normal-0.d.so \
-	 warmelt-normatch-0.d.so \
-	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so 
-	-rm -f $@
-	$(MELTCCFILE1) \
-	-fmelt-init=warmelt-first-1:warmelt-macro-0.d:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
-	      -fmelt-arg=$< \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.melt cc1$(exeext) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-1.so  \
-	 warmelt-normal-0.d.so \
-	 warmelt-normatch-0.d.so \
-	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so \
-	 warmelt-predef.melt
-	-rm -f $@
-	$(MELTCCFILE1) \
-	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
-	      -fmelt-arg=$< \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-
-warmelt-normatch-1.c: $(srcdir)/melt/warmelt-normatch.melt cc1$(exeext) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-1.so  \
-	 warmelt-normal-1.so \
-	 warmelt-normatch-0.d.so \
-	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so 
-	-rm -f $@
-	$(MELTCCFILE1) \
-	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
-	      -fmelt-arg=$< \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-warmelt-genobj-1.c: $(srcdir)/melt/warmelt-genobj.melt cc1$(exeext) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-1.so  \
-	 warmelt-normal-1.so \
-	 warmelt-normatch-1.so \
-	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so 
-	-rm -f $@
-	$(MELTCCFILE1) \
-	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-0.d:warmelt-outobj-0.d \
-	      -fmelt-arg=$< \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-warmelt-outobj-1.c: $(srcdir)/melt/warmelt-outobj.melt cc1$(exeext) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-1.so  \
-	 warmelt-normal-1.so \
-	 warmelt-normatch-1.so \
-	 warmelt-genobj-1.so \
-	 warmelt-outobj-0.d.so 
-	-rm -f $@
-	$(MELTCCFILE1) \
-	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-1:warmelt-outobj-0.d \
-	      -fmelt-arg=$< \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-####
-warmelt2.modlis: $(WARMELT_BASE2SO)
-	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE2); do echo $$f >> $@-tmp; done
-	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
-
-warmelt-first-2.c: $(srcdir)/melt/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) cc1$(exeext)
-	-rm -f $@ 
-	@echo test showmdata using $(WARMELT_BASE1SO)
-	$(MELTCCSHOW1) -fmelt-init="@warmelt1"
-	@echo generating $@ using $(WARMELT_BASE1SO)
-	$(MELTCCINIT1) -fmelt-init="@warmelt1" \
-	      -fmelt-arg=$< \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-
-
-warmelt-%-2.c: $(srcdir)/melt/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
-	@echo generating $@ using $(WARMELT_BASE1SO)
-	-rm -f $@
-	$(MELTCCFILE1) -fmelt-init="@warmelt1" \
-	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-warmelt-normal-2.c: warmelt-predef.melt
-warmelt-normal-3.c: warmelt-predef.melt
-
-## apparently, these dependencies are explicitly needed... because
-## melt.encap target is making explicitly these
-warmelt-normatch-2.so: warmelt-normatch-2.c
-warmelt-outobj-3.so: warmelt-outobj-3.c
-
-warmelt2n.modlis: $(WARMELT_BASE2NSO)
-	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE2); do echo $$f.n >> $@-tmp; done
-	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
-
-####
-warmelt-%-3.c: $(srcdir)/melt/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
-	@echo generating $@ using $(WARMELT_BASE2SO)
-	-rm -f $@
-	$(MELTCCFILE1) -fmelt-init="@warmelt2" \
-	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fmelt-secondarg=$@
-	ls -l $@
-warmelt3.modlis: $(WARMELT_BASE2SO)
-	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
-	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
-
-warmelt-first-3.c: $(srcdir)/melt/warmelt-first.melt warmelt2.modlis $(WARMELT_BASE2SO) cc1$(exeext)
-	-rm -f $@ 
-	@echo generating $@ using $(WARMELT_BASE2SO)
-	$(MELTCCINIT1) -fmelt-init="@warmelt2" \
-	      -fmelt-arg=$< \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-
-####
-diff-warmelt-2-3: $(WARMELT_BASE3SO)
-	echo WARMELT_BASE3ROW= $(WARMELT_BASE3ROW)
-	for f in $(WARMELT_BASE); do; \
-	  diff $$f-2.c $$f-3.c || true; \
-	done
-
-
-####
-ana-base.c: $(srcdir)/melt/ana-base.melt  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
-	@echo generating $@ using $(WARMELT_BASE2SO)
-	-rm -f $@
-	$(MELTCCFILE1) -fmelt-init="@warmelt2" \
-	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-ana-simple.c:  $(srcdir)/melt/ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  ana-base.so   cc1$(exeext) 
-	@echo generating $@ using $(WARMELT_BASE2SO)
-	-rm -f $@
-	$(MELTCCFILE1) -fmelt-init="@warmelt2:ana-base" \
-	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fmelt-secondarg=$@
-	ls -l $@
-
-ana-%.so: ana-%.c built-melt-cc-script
-	echo Melt building $@ from $<
-	./built-melt-cc-script $< $@
+include $(srcdir)/melt-make.mk
 
 
 #### the default list of modules
