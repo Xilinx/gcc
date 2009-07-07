@@ -1296,3 +1296,34 @@ sese_reset_aux_in_loops (sese region)
     loop->aux = NULL;
 }
 
+/* Returns the scalar evolution of T in REGION.  Every variable that
+   is not defined in the REGION is considered a parameter.  */
+
+tree
+scalar_evolution_in_region (sese region, loop_p loop, tree t)
+{
+  gimple def;
+  struct loop *def_loop;
+  basic_block before = block_before_sese (region);
+
+  if (TREE_CODE (t) != SSA_NAME
+      || loop_in_sese_p (loop, region))
+    return instantiate_scev (before, loop,
+			     analyze_scalar_evolution (loop, t));
+
+  if (!defined_in_sese_p (t, region))
+    return t;
+
+  def = SSA_NAME_DEF_STMT (t);
+  def_loop = loop_containing_stmt (def);
+
+  if (loop_in_sese_p (def_loop, region))
+    {
+      t = analyze_scalar_evolution (def_loop, t);
+      def_loop = superloop_at_depth (def_loop, loop_depth (loop) + 1);
+      t = compute_overall_effect_of_inner_loop (def_loop, t);
+      return t;
+    }
+  else
+    return instantiate_scev (before, loop, t);
+}

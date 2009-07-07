@@ -111,9 +111,7 @@ graphite_stmt_p (sese region, basic_block bb,
 	    if (var_used_in_not_loop_header_phi_node (var))
 	      return true;
 
-	    var = analyze_scalar_evolution (loop, var);
-	    var = instantiate_scev (block_before_sese (region), loop, var);
-
+	    var = scalar_evolution_in_region (region, loop, var);
 	    if (chrec_contains_undetermined (var))
 	      return true;
 
@@ -506,6 +504,9 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
       ppl_dimension_type l = sese_loop_depth (s, loop) - 1;
       Value val;
 
+      /* Scalar evolutions should happen in the sese region.  */
+      gcc_assert (sese_loop_depth (s, loop) > 0);
+
       /* We can not deal with parametric strides like:
  
       | p = parameter;
@@ -568,10 +569,11 @@ save_var_name (char **nv, int i, tree p)
     }
 }
 
-/* Get the index for parameter NAME in REGION.  */
+/* When parameter NAME is in REGION, returns its index in SESE_PARAMS.
+   Otherwise returns -1.  */
 
-static int
-parameter_index_in_region (tree name, sese region)
+static inline int
+parameter_index_in_region_1 (tree name, sese region)
 {
   int i;
   tree p;
@@ -581,6 +583,24 @@ parameter_index_in_region (tree name, sese region)
   for (i = 0; VEC_iterate (tree, SESE_PARAMS (region), i, p); i++)
     if (p == name)
       return i;
+
+  return -1;
+}
+
+/* When the parameter NAME is in REGION, returns its index in
+   SESE_PARAMS.  Otherwise this function inserts NAME in SESE_PARAMS
+   and returns the index of NAME.  */
+
+static int
+parameter_index_in_region (tree name, sese region)
+{
+  int i;
+
+  gcc_assert (TREE_CODE (name) == SSA_NAME);
+
+  i = parameter_index_in_region_1 (name, region);
+  if (i != -1)
+    return i;
 
   gcc_assert (SESE_ADD_PARAMS (region));
 
@@ -783,39 +803,38 @@ idx_record_params (tree base, tree *idx, void *dta)
   if (TREE_CODE (*idx) == SSA_NAME)
     {
       tree scev;
-      sese sese = data->sese;
+      sese region = data->sese;
       struct loop *loop = data->loop;
       Value one;
 
-      scev = analyze_scalar_evolution (loop, *idx);
-      scev = instantiate_scev (block_before_sese (sese), loop, scev);
+      scev = scalar_evolution_in_region (region, loop, *idx);
 
       value_init (one);
       value_set_si (one, 1);
-      scan_tree_for_params (sese, scev, NULL, one);
+      scan_tree_for_params (region, scev, NULL, one);
       value_clear (one);
     }
 
   return true;
 }
 
-/* Find parameters with respect to SESE in BB. We are looking in memory
+/* Find parameters with respect to REGION in BB. We are looking in memory
    access functions, conditions and loop bounds.  */
 
 static void
-find_params_in_bb (sese sese, gimple_bb_p gbb)
+find_params_in_bb (sese region, gimple_bb_p gbb)
 {
   int i;
   data_reference_p dr;
   gimple stmt;
-  loop_p father = GBB_BB (gbb)->loop_father;
+  loop_p loop = GBB_BB (gbb)->loop_father;
 
   for (i = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gbb), i, dr); i++)
     {
       struct irp_data irp;
 
-      irp.loop = father;
-      irp.sese = sese;
+      irp.loop = loop;
+      irp.sese = region;
       for_each_index (&dr->ref, idx_record_params, &irp);
     }
 
@@ -823,22 +842,15 @@ find_params_in_bb (sese sese, gimple_bb_p gbb)
   for (i = 0; VEC_iterate (gimple, GBB_CONDITIONS (gbb), i, stmt); i++)
     {
       Value one;
-      loop_p loop = father;
-
-      tree lhs, rhs;
-
-      lhs = gimple_cond_lhs (stmt);
-      lhs = analyze_scalar_evolution (loop, lhs);
-      lhs = instantiate_scev (block_before_sese (sese), loop, lhs);
-
-      rhs = gimple_cond_rhs (stmt);
-      rhs = analyze_scalar_evolution (loop, rhs);
-      rhs = instantiate_scev (block_before_sese (sese), loop, rhs);
+      tree lhs = scalar_evolution_in_region (region, loop,
+					     gimple_cond_lhs (stmt));
+      tree rhs = scalar_evolution_in_region (region, loop,
+					     gimple_cond_rhs (stmt));
 
       value_init (one);
       value_set_si (one, 1);
-      scan_tree_for_params (sese, lhs, NULL, one);
-      scan_tree_for_params (sese, rhs, NULL, one);
+      scan_tree_for_params (region, lhs, NULL, one);
+      scan_tree_for_params (region, rhs, NULL, one);
       value_clear (one);
     }
 }
@@ -866,8 +878,7 @@ find_scop_parameters (scop_p scop)
       if (!chrec_contains_symbols (nb_iters))
 	continue;
 
-      nb_iters = analyze_scalar_evolution (loop, nb_iters);
-      nb_iters = instantiate_scev (block_before_sese (region), loop, nb_iters);
+      nb_iters = scalar_evolution_in_region (region, loop, nb_iters);
       scan_tree_for_params (region, nb_iters, NULL, one);
     }
 
@@ -907,6 +918,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   tree nb_iters = number_of_latch_executions (loop);
   ppl_dimension_type dim = nb + 1 + scop_nb_params (scop);
   ppl_dimension_type *map;
+  sese region = SCOP_REGION (scop);
 
   value_init (one);
   value_init (minus_one);
@@ -937,10 +949,8 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
     }
   else if (!chrec_contains_undetermined (nb_iters))
     {
-      nb_iters = analyze_scalar_evolution (loop, nb_iters);
-      nb_iters = instantiate_scev (block_before_sese (SCOP_REGION (scop)), loop,
-						      nb_iters);
-      scan_tree_for_params (SCOP_REGION (scop), nb_iters, ub_expr, one);
+      nb_iters = scalar_evolution_in_region (region, loop, nb_iters);
+      scan_tree_for_params (region, nb_iters, ub_expr, one);
       ppl_new_Constraint (&ub, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
     }
   else
@@ -964,12 +974,12 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   ppl_delete_Constraint (lb);
   ppl_delete_Constraint (ub);
 
-  if (loop->inner && loop_in_sese_p (loop->inner, SCOP_REGION (scop)))
+  if (loop->inner && loop_in_sese_p (loop->inner, region))
     build_loop_iteration_domains (scop, loop->inner, ph, nb + 1);
 
   if (nb != 0
       && loop->next
-      && loop_in_sese_p (loop->next, SCOP_REGION (scop)))
+      && loop_in_sese_p (loop->next, region))
     build_loop_iteration_domains (scop, loop->next, outer_ph, nb);
 
   ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron
@@ -988,24 +998,21 @@ static ppl_Linear_Expression_t
 create_linear_expr_from_tree (poly_bb_p pbb, tree t)
 {
   Value one;
-  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
-  loop_p loop = GBB_BB (gbb)->loop_father;
   ppl_Linear_Expression_t res;
   ppl_dimension_type dim;
-  scop_p scop = PBB_SCOP (pbb);
-  basic_block before_scop = block_before_sese (SCOP_REGION (scop));
+  sese region = SCOP_REGION (PBB_SCOP (pbb));
+  loop_p loop = GBB_BB (PBB_BLACK_BOX (pbb))->loop_father;
+
+  dim = pbb_dim_iter_domain (pbb) + pbb_nb_params (pbb);
+  ppl_new_Linear_Expression_with_dimension (&res, dim);
+
+  t = scalar_evolution_in_region (region, loop, t);
 
   value_init (one);
   value_set_si (one, 1);
-  dim = pbb_dim_iter_domain (pbb) + scop_nb_params (scop);
-  ppl_new_Linear_Expression_with_dimension (&res, dim);
-
-  t = analyze_scalar_evolution (loop, t);
-  t = instantiate_scev (before_scop, loop, t);
-  scan_tree_for_params (SCOP_REGION (scop), t, res, one);
-
+  scan_tree_for_params (region, t, res, one);
   value_clear (one);
- 
+
   return res; 
 }
 

@@ -466,7 +466,7 @@ loop_phi_node_p (gimple phi)
    EVOLUTION_FN = {i_0, +, 2}_1.
 */
  
-static tree 
+tree
 compute_overall_effect_of_inner_loop (struct loop *loop, tree evolution_fn)
 {
   bool val = false;

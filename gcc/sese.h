@@ -69,6 +69,7 @@ extern struct loop *outermost_loop_in_sese (sese, basic_block);
 extern void insert_loop_close_phis (htab_t, loop_p);
 extern void insert_guard_phis (basic_block, edge, edge, htab_t, htab_t);
 extern void sese_reset_aux_in_loops (sese);
+extern tree scalar_evolution_in_region (sese, loop_p, tree);
 
 /* Check that SESE contains LOOP.  */
 
@@ -123,6 +124,17 @@ bb_in_sese_p (basic_block bb, sese region)
   basic_block exit = SESE_EXIT_BB (region);
 
   return bb_in_region (bb, entry, exit);
+}
+
+/* Returns true when NAME is defined in REGION.  */
+
+static inline bool
+defined_in_sese_p (tree name, sese region)
+{
+  gimple stmt = SSA_NAME_DEF_STMT (name);
+  basic_block bb = gimple_bb (stmt);
+
+  return bb && bb_in_sese_p (bb, region);
 }
 
 /* Returns true when LOOP is in REGION.  */
