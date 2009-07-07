@@ -567,6 +567,24 @@ print_pbb (FILE *file, poly_bb_p pbb)
   print_scattering_function (file, pbb);
 }
 
+/* Print to FILE the parameters of SCOP.  */
+
+void
+print_scop_params (FILE *file, scop_p scop)
+{
+  int i;
+  tree t;
+
+  fprintf (file, "parameters (\n");
+  for (i = 0; VEC_iterate (tree, SESE_PARAMS (SCOP_REGION (scop)), i, t); i++)
+    {
+      fprintf (file, "p_%d -> ", i);
+      print_generic_expr (file, t, 0);
+      fprintf (file, "\n");
+    }
+  fprintf (file, ")\n");
+}
+
 /* Print to FILE the SCOP.  */
 
 void
@@ -574,6 +592,8 @@ print_scop (FILE *file, scop_p scop)
 {
   int i;
   poly_bb_p pbb;
+
+  print_scop_params (file, scop);
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     print_pbb (file, pbb);
@@ -602,6 +622,15 @@ debug_scop (scop_p scop)
 {
   print_scop (stderr, scop);
 }
+
+/* Print to STDERR the parameters of SCOP.  */
+
+void
+debug_scop_params (scop_p scop)
+{
+  print_scop_params (stderr, scop);
+}
+
 
 /* The dimension in the transformed scattering polyhedron of PBB
    containing the scattering iterator for the loop at depth LOOP_DEPTH.  */
