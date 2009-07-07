@@ -4377,6 +4377,39 @@ ix86_handle_cconv_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* The transactional memory builtins are implicitly regparm or fastcall
+   depending on the ABI.  Override the generic do-nothing attribute that
+   these builtins were declared with, and replace it with one of the two
+   attributes that we expect elsewhere.  */
+
+static tree
+ix86_handle_tm_regparm_attribute (tree *node, tree name, tree args,
+				  int flags ATTRIBUTE_UNUSED,
+				  bool *no_add_attrs)
+{
+  tree alt;
+
+  /* In no case do we want to add the placeholder attribute.  */
+  *no_add_attrs = true;
+
+  /* The 64-bit ABI is unchanged for transactional memory.  */
+  if (TARGET_64BIT)
+    return NULL_TREE;
+
+  /* ??? Is there a better way to validate 32-bit windows?  We have
+     cfun->machine->call_abi, but that seems to be set only for 64-bit.  */
+  if (CHECK_STACK_LIMIT > 0)
+    alt = tree_cons (get_identifier ("fastcall"), NULL, NULL);
+  else
+    {
+      alt = tree_cons (NULL, build_int_cst (NULL, 2), NULL);
+      alt = tree_cons (get_identifier ("regparm"), alt, NULL);
+    }
+  decl_attributes (node, alt, flags);
+
+  return NULL_TREE;
+}
+
 /* Return 0 if the attributes for two types are incompatible, 1 if they
    are compatible, and 2 if they are nearly compatible (which causes a
    warning to be generated).  */
@@ -30424,6 +30457,10 @@ static const struct attribute_spec ix86_attribute_table[] =
   /* Sseregparm attribute says we are using x86_64 calling conventions
      for FP arguments.  */
   { "sseregparm", 0, 0, false, true, true, ix86_handle_cconv_attribute },
+  /* The transactional memory builtins are implicitly regparm or fastcall
+     depending on the ABI.  Override the generic do-nothing attribute that
+     these builtins were declared with.  */
+  { "*tm regparm", 0, 0, false, true, true, ix86_handle_tm_regparm_attribute },
   /* force_align_arg_pointer says this function realigns the stack at entry.  */
   { (const char *)&ix86_force_align_arg_pointer_string, 0, 0,
     false, true,  true, ix86_handle_cconv_attribute },

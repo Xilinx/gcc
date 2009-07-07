@@ -530,6 +530,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
+static tree ignore_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
@@ -830,6 +831,10 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute },
+  /* For internal use only.  The leading '*' both prevents its usage in
+     source code and signals that it may be overridden by machine tables.  */
+  { "*tm regparm",	      0, 0, false, true, true,
+                              ignore_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -7865,6 +7870,19 @@ handle_optimize_attribute (tree *node, tree name, tree args,
 
   return NULL_TREE;
 }
+
+/* Ignore the given attribute.  Used when this attribute may be usefully
+   overridden by the target, but is not used generically.  */
+
+static tree
+ignore_attribute (tree *node, tree ARG_UNUSED (name), tree ARG_UNUSED (args),
+		  int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  *no_add_attrs = true;
+  return NULL_TREE;
+}
+
+
 
 /* Check for valid arguments being passed to a function.
    ATTRS is a list of attributes.  There are NARGS arguments in the array

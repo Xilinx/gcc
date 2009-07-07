@@ -2895,13 +2895,18 @@ remove_eh_handler_and_replace (struct eh_region_d *region,
     }
 }
 
-/* Splice REGION from the region tree and replace it by the outer region
-   etc.  */
+/* Splice REGION from the region tree and replace it by an outer region.  */
 
 static void
 remove_eh_handler (struct eh_region_d *region)
 {
-  remove_eh_handler_and_replace (region, region->outer, true);
+  struct eh_region_d *outer;
+
+  for (outer = region->outer; outer; outer = outer->outer)
+    if (outer->type != ERT_TRANSACTION)
+      break;
+
+  remove_eh_handler_and_replace (region, outer, true);
 }
 
 /* Remove Eh region R that has turned out to have no code in its handler.  */

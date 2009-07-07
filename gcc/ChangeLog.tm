@@ -1,3 +1,17 @@
+2009-07-06  Richard Henderson  <rth@redhat.com>
+
+	* attribs.c (init_attributes): Allow '*' prefix for overrides.
+	(register_attribute): Likewise.
+	* builtin-attrs.def (ATTR_TM_REGPARM): New.
+	(ATTR_TM_NOTHROW_LIST, ATTR_TM_NORETURN_NOTHROW_LIST,
+	ATTR_TM_NOTHROW_NONNULL, ATTR_TM_CONST_NOTHROW_LIST,
+	ATTR_TM_PURE_NOTHROW_LIST): New.
+	* c-common.c (ignore_attribute): New.
+	(c_common_attribute_table): Add "*tm regparm".
+
+	* config/i386/i386.c (ix86_handle_tm_regparm_attribute): New.
+	(ix86_attribute_table): Add "*tm regparm".
+
 2009-07-02  Richard Henderson  <rth@redhat.com>
 
 	* c-typeck.c (c_finish_tm_atomic): Use build_stmt.
