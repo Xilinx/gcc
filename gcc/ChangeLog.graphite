@@ -1,5 +1,10 @@
 2009-07-07  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Makefile.in: Replace dependences on tree-chrec.h with SCEV_H.
+	TREE_DATA_REF_H also implies SCEV_H.
+
+2009-07-07  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (print_scop_params): New.
 	(print_scop): Call print_scop_params.
 	(debug_scop_params): New.
