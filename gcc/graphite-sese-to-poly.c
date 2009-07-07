@@ -206,7 +206,7 @@ try_generate_gimple_bb (scop_p scop, basic_block bb)
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     graphite_find_data_references_in_stmt (nest, gsi_stmt (gsi), &drs);
 
-  if (!graphite_stmt_p (SCOP_REGION(scop), bb, drs))
+  if (!graphite_stmt_p (SCOP_REGION (scop), bb, drs))
     free_data_refs (drs);
   else
     new_poly_bb (scop, new_gimple_bb (bb, drs));

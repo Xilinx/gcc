@@ -151,6 +151,42 @@ move_sd_regions (VEC (sd_region, heap) **source, VEC (sd_region, heap) **target)
   VEC_free (sd_region, heap, *source);
 }
 
+/* Something like "n * m" is not allowed.  */
+
+static bool
+graphite_can_represent_init (tree e)
+{
+  switch (TREE_CODE (e))
+    {
+    case POLYNOMIAL_CHREC:
+      return graphite_can_represent_init (CHREC_LEFT (e))
+	&& graphite_can_represent_init (CHREC_RIGHT (e));
+
+    case MULT_EXPR:
+      if (chrec_contains_symbols (TREE_OPERAND (e, 0)))
+	return host_integerp (TREE_OPERAND (e, 1), 0);
+      else
+	return host_integerp (TREE_OPERAND (e, 0), 0);
+
+    case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
+    case MINUS_EXPR:
+      return graphite_can_represent_init (TREE_OPERAND (e, 0))
+	&& graphite_can_represent_init (TREE_OPERAND (e, 1));
+
+    case NEGATE_EXPR:
+    case BIT_NOT_EXPR:
+    CASE_CONVERT:
+    case NON_LVALUE_EXPR:
+      return graphite_can_represent_init (TREE_OPERAND (e, 0));
+
+   default:
+     break;
+    }
+
+  return true;
+}
+
 /* Return true when SCEV can be represented in the polyhedral model.
 
    An expression can be represented, if it can be expressed as an affine
@@ -161,7 +197,7 @@ move_sd_regions (VEC (sd_region, heap) **source, VEC (sd_region, heap) **target)
 
    1 i + 20 j + (-2) m + 25
 
-   Something like i * n is not allowed.
+   Something like "i * n" or "n * m" is not allowed.
 
    OUTERMOST_LOOP defines the outermost loop that can variate.  */
 
@@ -171,10 +207,14 @@ graphite_can_represent_scev (tree scev, int outermost_loop)
   if (chrec_contains_undetermined (scev))
     return false;
 
-  /* Check for constant strides. With a non constant stride of 'n' we would
-     have a value of 'iv * n'.  */
   if (TREE_CODE (scev) == POLYNOMIAL_CHREC
-      && !evolution_function_right_is_integer_cst (scev))
+
+      /* Check for constant strides.  With a non constant stride of
+	 'n' we would have a value of 'iv * n'.  */
+      && (!evolution_function_right_is_integer_cst (scev)
+
+	  /* Check the initial value: 'n * m' cannot be represented.  */
+	  || !graphite_can_represent_init (scev)))
     return false;
 
   if (evolution_function_is_invariant_p (scev, outermost_loop))
@@ -233,6 +273,34 @@ exclude_component_ref (tree op)
   return true;
 }
 
+/* Return true if the data references of STMT can be represented by
+   Graphite.  */
+
+static bool
+stmt_has_simple_data_refs_p (loop_p outermost_loop, gimple stmt)
+{
+  data_reference_p dr;
+  unsigned i;
+  int j;
+  bool res = true;
+  int loop = outermost_loop->num;
+  VEC (data_reference_p, heap) *drs = VEC_alloc (data_reference_p, heap, 5);
+
+  graphite_find_data_references_in_stmt (outermost_loop, stmt, &drs);
+
+  for (j = 0; VEC_iterate (data_reference_p, drs, j, dr); j++)
+    for (i = 0; i < DR_NUM_DIMENSIONS (dr); i++)
+      if (!graphite_can_represent_scev (DR_ACCESS_FN (dr, i), loop))
+	{
+	  res = false;
+	  goto done;
+	}
+
+ done:
+  free_data_refs (drs);
+  return res;
+}
+
 /* Return true if we can create an affine data-ref for OP in STMT
    in regards to OUTERMOST_LOOP.  */
 
@@ -269,14 +337,14 @@ is_simple_operand (loop_p outermost_loop, gimple stmt, tree op)
   if (DECL_P (op))
       return false;
 
-      /* or a structure,  */
+  /* or a structure,  */
   if (AGGREGATE_TYPE_P (TREE_TYPE (op)))
       return false;
 
-      /* or a memory access that cannot be analyzed by the data
-	 reference analysis.  */
+  /* or a memory access that cannot be analyzed by the data reference
+     analysis.  */
   if (handled_component_p (op) || INDIRECT_REF_P (op))
-    if ( !stmt_simple_memref_p (outermost_loop, stmt, op))
+    if (!stmt_simple_memref_p (outermost_loop, stmt, op))
       return false;
 
   return exclude_component_ref (op);
@@ -303,6 +371,9 @@ stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
       || (gimple_code (stmt) == GIMPLE_CALL
 	  && !(gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE)))
       || (gimple_code (stmt) == GIMPLE_ASM))
+    return false;
+
+  if (!stmt_has_simple_data_refs_p (outermost_loop, stmt))
     return false;
 
   switch (gimple_code (stmt))

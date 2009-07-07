@@ -1,5 +1,16 @@
 2009-07-07  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-scop-detection.c (graphite_can_represent_init): New.
+	(graphite_can_represent_scev): Call graphite_can_represent_init:
+	check that the initial value does not contain multiplications of
+	parameters.
+	(stmt_has_simple_data_refs_p): New.
+	(stmt_simple_for_scop_p): Call stmt_simple_for_scop_p.
+	(is_simple_operand): Fix formatting.
+	* graphite-sese-to-poly.c (try_generate_gimple_bb): Fix formatting.
+
+2009-07-07  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* testsuite/gcc.dg/graphite/id-13.c: New.
 	* graphite-sese-to-poly.c (graphite_stmt_p): Do not call
 	analyze_scalar_evolution, use scalar_evolution_in_region.
