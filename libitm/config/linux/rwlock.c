@@ -30,6 +30,9 @@
 #include "futex.h"
 
 
+#define EZ(X)	__builtin_expect((X), 0)
+
+
 /* Lock the summary bit on LOCK.  Return the contents of the summary word
    (without the summary lock bit included).  */
 
@@ -40,7 +43,7 @@ rwlock_lock_summary (gtm_rwlock *lock)
 
  restart:
   o = __sync_fetch_and_or (&lock->summary, RWLOCK_S_LOCK);
-  if (o & RWLOCK_S_LOCK)
+  if (EZ (o & RWLOCK_S_LOCK))
     {
       do
 	cpu_relax ();
@@ -66,7 +69,7 @@ gtm_rwlock_read_lock (gtm_rwlock *lock)
       /* If there is an active or waiting writer, then new readers
 	 must wait.  Increment the waiting reader count, then wait
 	 on the reader queue.  */
-      if (o & (RWLOCK_A_WRITER | RWLOCK_W_WRITER | RWLOCK_RW_UPGRADE))
+      if (EZ (o & (RWLOCK_A_WRITER | RWLOCK_W_WRITER | RWLOCK_RW_UPGRADE)))
 	{
 	  n = ++lock->w_readers;
 	  atomic_write_barrier ();
@@ -96,7 +99,7 @@ gtm_rwlock_write_lock (gtm_rwlock *lock)
 
   /* If anyone is manipulating the summary lock, the rest of the
      data structure is volatile.  */
-  if (o & RWLOCK_S_LOCK)
+  if (EZ (o & RWLOCK_S_LOCK))
     {
       cpu_relax ();
       goto restart;
@@ -105,7 +108,7 @@ gtm_rwlock_write_lock (gtm_rwlock *lock)
   /* If there is an active reader or active writer, then new writers
      must wait.  Increment the waiting writer count, then wait
      on the writer queue.  */
-  if (o & (RWLOCK_A_WRITER | RWLOCK_A_READER | RWLOCK_RW_UPGRADE))
+  if (EZ (o & (RWLOCK_A_WRITER | RWLOCK_A_READER | RWLOCK_RW_UPGRADE)))
     {
       /* Grab the summary lock.  We'll need it for incrementing
 	 the waiting reader.  */
@@ -122,7 +125,7 @@ gtm_rwlock_write_lock (gtm_rwlock *lock)
 
   /* Otherwise, may become a writer.  */
   n = o | RWLOCK_A_WRITER;
-  if (!__sync_bool_compare_and_swap (&lock->summary, o, n))
+  if (EZ (!__sync_bool_compare_and_swap (&lock->summary, o, n)))
     goto restart;
 }
 
@@ -141,20 +144,20 @@ gtm_rwlock_write_upgrade (gtm_rwlock *lock)
 
   /* If anyone is manipulating the summary lock, the rest of the
      data structure is volatile.  */
-  if (o & RWLOCK_S_LOCK)
+  if (EZ (o & RWLOCK_S_LOCK))
     {
       cpu_relax ();
       goto restart;
     }
 
   /* If there's already someone trying to upgrade, then we fail.  */
-  if (o & RWLOCK_RW_UPGRADE)
+  if (EZ (o & RWLOCK_RW_UPGRADE))
     return false;
 
   /* Grab the summary lock.  We'll need it for manipulating the
      active reader count or the waiting writer count.  */
   n = o | RWLOCK_S_LOCK;
-  if (!__sync_bool_compare_and_swap (&lock->summary, o, n))
+  if (EZ (!__sync_bool_compare_and_swap (&lock->summary, o, n)))
     goto restart;
 
   /* If there are more active readers, then we have to wait.  */
@@ -198,7 +201,7 @@ gtm_rwlock_read_unlock (gtm_rwlock *lock)
   o &= ~RWLOCK_A_READER;
 
   /* If there is a waiting upgrade, wake it.  */
-  if (o & RWLOCK_RW_UPGRADE)
+  if (EZ (o & RWLOCK_RW_UPGRADE))
     {
       atomic_write_barrier ();
       lock->summary = o;
@@ -207,7 +210,7 @@ gtm_rwlock_read_unlock (gtm_rwlock *lock)
     }
 
   /* If there is a waiting writer, wake it.  */
-  if (o & RWLOCK_W_WRITER)
+  if (EZ (o & RWLOCK_W_WRITER))
     {
       if (--lock->w_writers == 0)
 	o &= ~RWLOCK_W_WRITER;
@@ -233,7 +236,7 @@ gtm_rwlock_write_unlock (gtm_rwlock *lock)
   o &= ~RWLOCK_A_WRITER;
 
   /* If there is a waiting writer, wake it.  */
-  if (o & RWLOCK_W_WRITER)
+  if (EZ (o & RWLOCK_W_WRITER))
     {
       if (--lock->w_writers == 0)
 	o &= ~RWLOCK_W_WRITER;
@@ -244,7 +247,7 @@ gtm_rwlock_write_unlock (gtm_rwlock *lock)
     }
 
   /* If there are waiting readers, wake them.  */
-  if (o & RWLOCK_W_READER)
+  if (EZ (o & RWLOCK_W_READER))
     {
       lock->w_readers = 0;
       atomic_write_barrier ();
