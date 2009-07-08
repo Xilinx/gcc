@@ -1,3 +1,8 @@
+2009-07-08  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* automatic_tester/run_build.sh: Do not limit number of git versions
+	we check for the last tested version.
+
 2009-06-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* automatic_tester/run_build.sh: Fix bug in comparison of test results

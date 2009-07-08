@@ -131,8 +131,7 @@ error () {
 git_get_last_hash () {
 	cd ${SRC_DIR_CURRENT}
 	LAST_HASH="HEAD^"
-	for h in `git log --pretty=format:%H | \
-		  head -n 100`; do
+	for h in `git log --pretty=format:%H`; do
 		RUNS="`git tag -l --contains=$h test_\*_success`"
 		if ! test -z "$RUNS"; then
 			LAST_HASH=$h
