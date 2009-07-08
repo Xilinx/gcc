@@ -28,13 +28,13 @@
 #include "libitm.h"
 
 
-__thread struct gtm_thread gtm_thr;
+__thread struct gtm_thread _gtm_thr;
 gtm_rwlock gtm_serial_lock;
 
 /* ??? Move elsewhere when we figure out library initialization.  */
 unsigned long long gtm_spin_count_var = 1000;
 
-static uint32_t global_tid;
+static _ITM_transactionId_t global_tid;
 
 /* Allocate a transaction structure.  Reuse an old one if possible.  */
 
@@ -42,14 +42,15 @@ static struct gtm_transaction *
 alloc_tx (void)
 {
   struct gtm_transaction *tx;
+  struct gtm_thread *thr = gtm_thr ();
 
-  if (gtm_thr.free_tx_count == 0)
+  if (thr->free_tx_count == 0)
     tx = malloc (sizeof (*tx));
   else
     {
-      gtm_thr.free_tx_count--;
-      tx = gtm_thr.free_tx[gtm_thr.free_tx_idx];
-      gtm_thr.free_tx_idx = (gtm_thr.free_tx_idx + 1) % MAX_FREE_TX;
+      thr->free_tx_count--;
+      tx = thr->free_tx[thr->free_tx_idx];
+      thr->free_tx_idx = (thr->free_tx_idx + 1) % MAX_FREE_TX;
     }
 
   return tx;
@@ -63,35 +64,40 @@ alloc_tx (void)
 static void
 free_tx (struct gtm_transaction *tx)
 {
-  unsigned idx = (gtm_thr.free_tx_idx + gtm_thr.free_tx_count) % MAX_FREE_TX;
+  struct gtm_thread *thr = gtm_thr ();
+  unsigned idx = (thr->free_tx_idx + thr->free_tx_count) % MAX_FREE_TX;
 
-  if (gtm_thr.free_tx_count == MAX_FREE_TX)
+  if (thr->free_tx_count == MAX_FREE_TX)
     {
-      gtm_thr.free_tx_idx = (gtm_thr.free_tx_idx + 1) % MAX_FREE_TX;
-      free (gtm_thr.free_tx[idx]);
+      thr->free_tx_idx = (thr->free_tx_idx + 1) % MAX_FREE_TX;
+      free (thr->free_tx[idx]);
     }
   else
-    gtm_thr.free_tx_count++;
+    thr->free_tx_count++;
 
-  gtm_thr.free_tx[idx] = tx;
+  thr->free_tx[idx] = tx;
 }
 
 
 uint32_t REGPARM
 GTM_begin_transaction (uint32_t prop, const struct gtm_jmpbuf *jb)
 {
-  struct gtm_transaction *tx = alloc_tx ();
+  struct gtm_transaction *tx;
+  const struct gtm_dispatch *disp;
 
+  setup_gtm_thr ();
+
+  tx = alloc_tx ();
   memset (tx, 0, sizeof (*tx));
 
   tx->prop = prop;
-  tx->prev = gtm_thr.tx;
+  tx->prev = gtm_tx();
   if (tx->prev)
     tx->nesting = tx->prev->nesting + 1;
   tx->id = __sync_add_and_fetch (&global_tid, 1);
   tx->jb = *jb;
 
-  gtm_thr.tx = tx;
+  set_gtm_tx (tx);
 
   if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
     {
@@ -102,8 +108,9 @@ GTM_begin_transaction (uint32_t prop, const struct gtm_jmpbuf *jb)
 
   /* ??? Probably want some environment variable to choose the default
      STM implementation once we have more than one implemented.  */
-  gtm_thr.disp = &wbetl_dispatch;
-  gtm_thr.disp->init (true);
+  disp = &wbetl_dispatch;
+  set_gtm_disp (disp);
+  disp->init (true);
 
   gtm_rwlock_read_lock (&gtm_serial_lock);
 
@@ -113,44 +120,47 @@ GTM_begin_transaction (uint32_t prop, const struct gtm_jmpbuf *jb)
 static void
 GTM_rollback_transaction (void)
 {
-  gtm_thr.disp->rollback ();
+  struct gtm_transaction *tx;
+
+  gtm_disp()->rollback ();
   GTM_rollback_local ();
-  GTM_free_actions (&gtm_thr.tx->commit_actions);
-  GTM_run_actions (&gtm_thr.tx->undo_actions);
+
+  tx = gtm_tx();
+  GTM_free_actions (&tx->commit_actions);
+  GTM_run_actions (&tx->undo_actions);
 }
 
 void REGPARM
 _ITM_rollbackTransaction (void)
 {
-  assert ((gtm_thr.tx->prop & pr_hasNoAbort) == 0);
-  assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
+  assert ((gtm_tx()->prop & pr_hasNoAbort) == 0);
+  assert ((gtm_tx()->state & STATE_ABORTING) == 0);
 
   GTM_rollback_transaction ();
-  gtm_thr.tx->state |= STATE_ABORTING;
+  gtm_tx()->state |= STATE_ABORTING;
 }
 
 void REGPARM
 _ITM_abortTransaction (_ITM_abortReason reason)
 {
-  struct gtm_transaction *tx;
+  struct gtm_transaction *tx = gtm_tx();
 
   assert (reason == userAbort);
-  assert ((gtm_thr.tx->prop & pr_hasNoAbort) == 0);
-  assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
+  assert ((tx->prop & pr_hasNoAbort) == 0);
+  assert ((tx->state & STATE_ABORTING) == 0);
 
-  if (gtm_thr.tx->state & STATE_IRREVOKABLE)
+  if (tx->state & STATE_IRREVOKABLE)
     abort ();
 
   GTM_rollback_transaction ();
-  gtm_thr.disp->fini ();
+  gtm_disp()->fini ();
 
-  if (gtm_thr.tx->state & STATE_SERIAL)
+  if (tx->state & STATE_SERIAL)
     gtm_rwlock_write_unlock (&gtm_serial_lock);
   else
     gtm_rwlock_read_unlock (&gtm_serial_lock);
 
-  tx = gtm_thr.tx;
-  gtm_thr.tx = tx->prev;
+  set_gtm_tx (tx->prev);
   free_tx (tx);
 
   GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables, tx->prop);
@@ -159,11 +169,11 @@ _ITM_abortTransaction (_ITM_abortReason reason)
 static bool
 GTM_trycommit_transaction (void)
 {
-  if (gtm_thr.disp->trycommit ())
+  if (gtm_disp()->trycommit ())
     {
       GTM_commit_local ();
-      GTM_free_actions (&gtm_thr.tx->undo_actions);
-      GTM_run_actions (&gtm_thr.tx->commit_actions);
+      GTM_free_actions (&gtm_tx()->undo_actions);
+      GTM_run_actions (&gtm_tx()->commit_actions);
       return true;
     }
   return false;
@@ -172,14 +182,14 @@ GTM_trycommit_transaction (void)
 bool REGPARM
 _ITM_tryCommitTransaction (void)
 {
-  assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
+  assert ((gtm_tx()->state & STATE_ABORTING) == 0);
   return GTM_trycommit_transaction ();
 }
 
 void REGPARM NORETURN
 GTM_restart_transaction (enum restart_reason r)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
   uint32_t actions;
 
   GTM_rollback_transaction ();
@@ -195,12 +205,12 @@ GTM_restart_transaction (enum restart_reason r)
 void REGPARM
 _ITM_commitTransaction(void)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
 
   if ((tx->state & STATE_ABORTING) || GTM_trycommit_transaction ())
     {
-      gtm_thr.disp->fini ();
-      gtm_thr.tx = tx->prev;
+      gtm_disp()->fini ();
+      set_gtm_tx (tx->prev);
       free_tx (tx);
     }
   else

@@ -32,13 +32,14 @@
 #define LIBITM_H 1
 
 #include "config.h"
-#include "target.h"
 
 #include <assert.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "target.h"
 
 #ifndef REGPARM
 # define REGPARM
@@ -319,7 +320,7 @@ struct gtm_transaction
   uint32_t prop;
   uint32_t nesting;
   uint32_t state;
-  uint32_t id;
+  _ITM_transactionId_t id;
 
   struct gtm_jmpbuf jb;
 
@@ -340,8 +341,12 @@ struct gtm_transaction
 
 struct gtm_thread
 {
+#ifndef HAVE_ARCH_GTM_THREAD_TX
   struct gtm_transaction *tx;
+#endif
+#ifndef HAVE_ARCH_GTM_THREAD_DISP
   const struct gtm_dispatch *disp;
+#endif
 
   struct gtm_transaction *free_tx[MAX_FREE_TX];
   unsigned free_tx_idx, free_tx_count;
@@ -349,7 +354,39 @@ struct gtm_thread
   int thread_num;
 };
 
-extern __thread struct gtm_thread gtm_thr;
+/* Don't access this variable directly; use the functions below.  */
+extern __thread struct gtm_thread _gtm_thr;
+
+#include "target_tls.h"
+
+#ifndef HAVE_ARCH_GTM_THREAD
+static inline void setup_gtm_thr(void) { }
+static inline struct gtm_thread *gtm_thr(void) { return &_gtm_thr; }
+#endif
+
+#ifndef HAVE_ARCH_GTM_THREAD_TX
+static inline struct gtm_transaction * gtm_tx(void)
+{
+  return gtm_thr()->tx;
+}
+
+static inline void set_gtm_tx(struct gtm_transaction *x)
+{
+  gtm_thr()->tx = x;
+}
+#endif
+
+#ifndef HAVE_ARCH_GTM_THREAD_DISP
+static inline const struct gtm_dispatch *gtm_disp(void)
+{
+  return gtm_thr()->disp;
+}
+
+static inline void set_gtm_disp(const struct gtm_dispatch *x)
+{
+  gtm_thr()->disp = x;
+}
+#endif
 
 extern gtm_rwlock gtm_serial_lock;
 extern unsigned long long gtm_spin_count_var;

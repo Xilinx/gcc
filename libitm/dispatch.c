@@ -32,14 +32,14 @@
 _ITM_TYPE_##T REGPARM _ITM_TYPE_ATTR(T)					\
 _ITM_##R##T(const _ITM_TYPE_##T *ptr)					\
 {									\
-  return gtm_thr.disp->R##T (ptr);					\
+  return gtm_disp()->R##T (ptr);					\
 }
 
 #define _ITM_WRITE(W, T) \
 void REGPARM _ITM_TYPE_ATTR(T)						\
 _ITM_##W##T(_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)			\
 {									\
-  gtm_thr.disp->W##T (ptr, val);					\
+  gtm_disp()->W##T (ptr, val);						\
 }
 
 _ITM_ALL_TYPES (_ITM_ALL_READS)
@@ -51,7 +51,7 @@ _ITM_ALL_TYPES (_ITM_ALL_WRITES)
 #define _ITM_MCPY_RW(FN, R, W) \
 void REGPARM _ITM_##FN##R##W (void *dst, const void *src, size_t len)	\
 {									\
-  gtm_thr.disp->FN##R##W (dst, src, len);				\
+  gtm_disp()->FN##R##W (dst, src, len);					\
 }
 
 _ITM_MCPY(memcpy)
@@ -62,7 +62,7 @@ _ITM_MCPY(memmove)
 #define _ITM_MSET_W(FN, W) \
 void REGPARM _ITM_##FN##W (void *dst, int src, size_t len)		\
 {									\
-  gtm_thr.disp->FN##W (dst, src, len);					\
+  gtm_disp()->FN##W (dst, src, len);					\
 }
 
 _ITM_MSET(memset)

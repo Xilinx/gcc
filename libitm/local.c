@@ -31,7 +31,7 @@
 void
 GTM_commit_local (void)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
   struct gtm_local_undo **local_undo = tx->local_undo;
   size_t i, n = tx->n_local_undo;
 
@@ -58,7 +58,7 @@ rollback_local (struct gtm_local_undo *undo)
 void
 GTM_rollback_local (void)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
   struct gtm_local_undo **local_undo = tx->local_undo;
   size_t i, n = tx->n_local_undo;
 
@@ -76,7 +76,7 @@ GTM_rollback_local (void)
 static void *
 alloc_local (void *addr, size_t len)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
   struct gtm_local_undo *undo;
 
   undo = malloc (sizeof (struct gtm_local_undo) + len);

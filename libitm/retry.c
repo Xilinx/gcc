@@ -31,7 +31,7 @@
 void REGPARM
 GTM_decide_retry_strategy (enum restart_reason r)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
 
   tx->restarts[r + 1]++;
   tx->restarts[0]++;
@@ -41,5 +41,5 @@ GTM_decide_retry_strategy (enum restart_reason r)
   else if (tx->restarts[0] > 100)
     GTM_serialmode (false, false);
   else
-    gtm_thr.disp->init (false);
+    gtm_disp()->init (false);
 }

@@ -107,17 +107,18 @@ const static struct gtm_dispatch serial_dispatch =
 void REGPARM
 GTM_serialmode (bool initial, bool irrevokable)
 {
+  struct gtm_transaction *tx = gtm_tx();
   const struct gtm_dispatch *old_disp;
 
-  if (gtm_thr.tx->state & STATE_SERIAL)
+  if (tx->state & STATE_SERIAL)
     {
       if (irrevokable)
-	gtm_thr.tx->state |= STATE_IRREVOKABLE;
+	tx->state |= STATE_IRREVOKABLE;
       return;
     }
 
-  old_disp = gtm_thr.disp;
-  gtm_thr.disp = &serial_dispatch;
+  old_disp = gtm_disp ();
+  set_gtm_disp (&serial_dispatch);
 
   if (initial)
     gtm_rwlock_write_lock (&gtm_serial_lock);
@@ -128,12 +129,12 @@ GTM_serialmode (bool initial, bool irrevokable)
 	old_disp->fini ();
       else
 	{
-	  gtm_thr.tx->state = STATE_SERIAL;
+	  tx->state = STATE_SERIAL;
 	  GTM_restart_transaction (RESTART_VALIDATE_COMMIT);
 	}
     }
 
-  gtm_thr.tx->state = STATE_SERIAL | (irrevokable ? STATE_IRREVOKABLE : 0);
+  tx->state = STATE_SERIAL | (irrevokable ? STATE_IRREVOKABLE : 0);
 }
 
 

@@ -1,5 +1,19 @@
 2009-07-07  Richard Henderson  <rth@redhat.com>
 
+	* libitm.h (struct gtm_transaction): Widen id to _ITM_transactionId_t.
+	* beginend.c (global_tid): Widen to _ITM_transactionId_t.
+
+	* configure.tgt: Don't use -ftls-model for x86 linux.
+	* libitm.h: Include target.h after standard includes.
+	(_gtm_thr): Rename from gtm_thr.
+	(setup_gtm_thr, gtm_thr, gtm_tx, set_gtm_tx): New.
+	(gtm_disp, set_gtm_disp): New.
+	* beginend.c, dispatch.c, local.c, method-wbetl.c, query.c,
+	retry.c, serial.c, useraction.c: Use accessor functions throughout.
+	* config/alpha/target_tls.h, config/x86/target_tls.h: New files.
+
+2009-07-07  Richard Henderson  <rth@redhat.com>
+
 	* config/linux/rwlock.c (EZ): New define.  Use it throughout.
 
 2009-07-06  Richard Henderson  <rth@redhat.com>

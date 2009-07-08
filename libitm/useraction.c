@@ -74,7 +74,7 @@ _ITM_addUserCommitAction(_ITM_userCommitFunction fn,
   struct gtm_transaction *tx;
   struct gtm_user_action *a;
 
-  for (tx = gtm_thr.tx; tx->id != tid; tx = tx->prev)
+  for (tx = gtm_tx(); tx->id != tid; tx = tx->prev)
     continue;
 
   a = malloc (sizeof (*a));
@@ -88,7 +88,7 @@ _ITM_addUserCommitAction(_ITM_userCommitFunction fn,
 void REGPARM
 _ITM_addUserUndoAction(_ITM_userUndoFunction fn, void * arg)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
   struct gtm_user_action *a;
 
   a = malloc (sizeof (*a));

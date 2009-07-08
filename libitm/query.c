@@ -45,7 +45,7 @@ _ITM_libraryVersion (void)
 _ITM_howExecuting REGPARM
 _ITM_inTransaction (void)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
   if (tx)
     {
       if (tx->state & STATE_IRREVOKABLE)
@@ -60,7 +60,7 @@ _ITM_inTransaction (void)
 _ITM_transactionId_t REGPARM
 _ITM_getTransactionId (void)
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  struct gtm_transaction *tx = gtm_tx();
   return tx ? tx->id : _ITM_noTransactionId;
 }
 
@@ -69,12 +69,13 @@ int REGPARM
 _ITM_getThreadnum (void)
 {
   static int global_num;
-  int num = gtm_thr.thread_num;
+  struct gtm_thread *thr = gtm_thr();
+  int num = thr->thread_num;
 
   if (num == 0)
     {
       num = __sync_add_and_fetch (&global_num, 1);
-      gtm_thr.thread_num = num;
+      thr->thread_num = num;
     }
 
   return num;

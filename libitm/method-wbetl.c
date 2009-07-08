@@ -180,7 +180,7 @@ wbetl_write(volatile word *addr, word value, word mask)
   }
 #endif
 
-  m = gtm_thr.tx->m;
+  m = gtm_tx()->m;
   lock = GET_LOCK(addr);
 
  restart:
@@ -282,7 +282,7 @@ wbetl_load(volatile word *addr)
   w_entry_t *w;
   struct gtm_method *m;
 
-  m = gtm_thr.tx->m;
+  m = gtm_tx()->m;
   lock = GET_LOCK(addr);
 
   l = *lock;
@@ -363,7 +363,7 @@ wbetl_load(volatile word *addr)
 static bool
 wbetl_trycommit (void)
 {
-  struct gtm_method *m = gtm_thr.tx->m;
+  struct gtm_method *m = gtm_tx()->m;
   w_entry_t *w;
   word t;
   int i;
@@ -400,7 +400,7 @@ wbetl_trycommit (void)
 static void
 wbetl_rollback (void)
 {
-  struct gtm_method *m = gtm_thr.tx->m;
+  struct gtm_method *m = gtm_tx()->m;
   w_entry_t *w;
   int i;
 
@@ -425,7 +425,7 @@ wbetl_init (bool first)
 
   if (first)
     {
-      gtm_thr.tx->m = m = calloc (1, sizeof (*m));
+      gtm_tx()->m = m = calloc (1, sizeof (*m));
       m->r_set.size = RW_SET_SIZE;
       m->r_set.entries = malloc (RW_SET_SIZE * sizeof(r_entry_t));
       m->w_set.size = RW_SET_SIZE;
@@ -433,7 +433,7 @@ wbetl_init (bool first)
     }
   else
     {
-      m = gtm_thr.tx->m;
+      m = gtm_tx()->m;
       m->r_set.nb_entries = 0;
       m->w_set.nb_entries = 0;
       if (m->w_set.reallocate)
@@ -450,7 +450,7 @@ wbetl_init (bool first)
 static void
 wbetl_fini (void)
 {
-  struct gtm_method *m = gtm_thr.tx->m;
+  struct gtm_method *m = gtm_tx()->m;
 
   free (m->r_set.entries);
   free (m->w_set.entries);
