@@ -156,8 +156,12 @@ free_expr0 (gfc_expr *e)
 	  break;
 
 	case BT_COMPLEX:
+#ifdef HAVE_mpc
+	  mpc_clear (e->value.complex);
+#else
 	  mpfr_clear (e->value.complex.r);
 	  mpfr_clear (e->value.complex.i);
+#endif
 	  break;
 
 	default:
@@ -439,10 +443,15 @@ gfc_copy_expr (gfc_expr *p)
 
 	case BT_COMPLEX:
 	  gfc_set_model_kind (q->ts.kind);
+#ifdef HAVE_mpc
+	  mpc_init2 (q->value.complex, mpfr_get_default_prec());
+	  mpc_set (q->value.complex, p->value.complex, GFC_MPC_RND_MODE);
+#else
 	  mpfr_init (q->value.complex.r);
 	  mpfr_init (q->value.complex.i);
 	  mpfr_set (q->value.complex.r, p->value.complex.r, GFC_RND_MODE);
 	  mpfr_set (q->value.complex.i, p->value.complex.i, GFC_RND_MODE);
+#endif
 	  break;
 
 	case BT_CHARACTER:
@@ -1654,18 +1663,16 @@ gfc_simplify_expr (gfc_expr *p, int type)
 	  gfc_char_t *s;
 	  int start, end;
 
+	  start = 0;
 	  if (p->ref && p->ref->u.ss.start)
 	    {
 	      gfc_extract_int (p->ref->u.ss.start, &start);
 	      start--;  /* Convert from one-based to zero-based.  */
 	    }
-	  else
-	    start = 0;
 
+	  end = p->value.character.length;
 	  if (p->ref && p->ref->u.ss.end)
 	    gfc_extract_int (p->ref->u.ss.end, &end);
-	  else
-	    end = p->value.character.length;
 
 	  s = gfc_get_wide_string (end - start + 2);
 	  memcpy (s, p->value.character.string + start,
@@ -3144,6 +3151,7 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
   /* Checks on rvalue for procedure pointer assignments.  */
   if (proc_pointer)
     {
+      char err[200];
       attr = gfc_expr_attr (rvalue);
       if (!((rvalue->expr_type == EXPR_NULL)
 	    || (rvalue->expr_type == EXPR_FUNCTION && attr.proc_pointer)
@@ -3178,15 +3186,46 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 			      rvalue->symtree->name, &rvalue->where) == FAILURE)
 	    return FAILURE;
 	}
+
+      /* Ensure that the calling convention is the same. As other attributes
+	 such as DLLEXPORT may differ, one explicitly only tests for the
+	 calling conventions.  */
+      if (rvalue->expr_type == EXPR_VARIABLE
+	  && lvalue->symtree->n.sym->attr.ext_attr
+	       != rvalue->symtree->n.sym->attr.ext_attr)
+	{
+	  symbol_attribute cdecl, stdcall, fastcall;
+	  unsigned calls;
+
+	  gfc_add_ext_attribute (&cdecl, (unsigned) EXT_ATTR_CDECL, NULL);
+	  gfc_add_ext_attribute (&stdcall, (unsigned) EXT_ATTR_STDCALL, NULL);
+	  gfc_add_ext_attribute (&fastcall, (unsigned) EXT_ATTR_FASTCALL, NULL);
+	  calls = cdecl.ext_attr | stdcall.ext_attr | fastcall.ext_attr;
+
+	  if ((calls & lvalue->symtree->n.sym->attr.ext_attr)
+	      != (calls & rvalue->symtree->n.sym->attr.ext_attr))
+	    {
+	      gfc_error ("Mismatch in the procedure pointer assignment "
+			 "at %L: mismatch in the calling convention",
+			 &rvalue->where);
+	  return FAILURE;
+	    }
+	}
+
       /* TODO: Enable interface check for PPCs.  */
       if (is_proc_ptr_comp (rvalue, NULL))
 	return SUCCESS;
-      if (rvalue->expr_type == EXPR_VARIABLE
-	  && !gfc_compare_interfaces (lvalue->symtree->n.sym,
-				      rvalue->symtree->n.sym, 0, 1))
+      if ((rvalue->expr_type == EXPR_VARIABLE
+	   && !gfc_compare_interfaces (lvalue->symtree->n.sym,
+				       rvalue->symtree->n.sym, 0, 1, err,
+				       sizeof(err)))
+	  || (rvalue->expr_type == EXPR_FUNCTION
+	      && !gfc_compare_interfaces (lvalue->symtree->n.sym,
+					  rvalue->symtree->n.sym->result, 0, 1,
+					  err, sizeof(err))))
 	{
-	  gfc_error ("Interfaces don't match "
-		     "in procedure pointer assignment at %L", &rvalue->where);
+	  gfc_error ("Interface mismatch in procedure pointer assignment "
+		     "at %L: %s", &rvalue->where, err);
 	  return FAILURE;
 	}
       return SUCCESS;

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -3065,7 +3065,7 @@ package body Checks is
       function OK_Operands return Boolean;
       --  Used for binary operators. Determines the ranges of the left and
       --  right operands, and if they are both OK, returns True, and puts
-      --  the results in Lo_Right, Hi_Right, Lo_Left, Hi_Left
+      --  the results in Lo_Right, Hi_Right, Lo_Left, Hi_Left.
 
       -----------------
       -- OK_Operands --
@@ -3095,11 +3095,19 @@ package body Checks is
       Lor := No_Uint;
       Hir := No_Uint;
 
-      --  If the type is not discrete, or is undefined, then we can't do
-      --  anything about determining the range.
+      --  If type is not defined, we can't determine its range
 
-      if No (Typ) or else not Is_Discrete_Type (Typ)
-        or else Error_Posted (N)
+      if No (Typ)
+
+        --  We don't deal with anything except discrete types
+
+        or else not Is_Discrete_Type (Typ)
+
+        --  Ignore type for which an error has been posted, since range in
+        --  this case may well be a bogosity deriving from the error. Also
+        --  ignore if error posted on the reference node.
+
+        or else Error_Posted (N) or else Error_Posted (Typ)
       then
          OK := False;
          return;
@@ -3135,6 +3143,15 @@ package body Checks is
       --  the value cannot be outside this range (if it is, then we have an
       --  overflow situation, which is a separate check, we are talking here
       --  only about the expression value).
+
+      --  First a check, never try to find the bounds of a generic type, since
+      --  these bounds are always junk values, and it is only valid to look at
+      --  the bounds in an instance.
+
+      if Is_Generic_Type (Typ) then
+         OK := False;
+         return;
+      end if;
 
       --  First step, change to use base type unless we know the value is valid
 
@@ -3312,7 +3329,7 @@ package body Checks is
             case Attribute_Name (N) is
 
                --  For Pos/Val attributes, we can refine the range using the
-               --  possible range of values of the attribute expression
+               --  possible range of values of the attribute expression.
 
                when Name_Pos | Name_Val =>
                   Determine_Range
@@ -4665,6 +4682,12 @@ package body Checks is
 
       --  The conversions will always work and need no check
 
+      --  Unchecked_Convert_To is used instead of Convert_To to handle the case
+      --  of converting from an enumeration value to an integer type, such as
+      --  occurs for the case of generating a range check on Enum'Val(Exp)
+      --  (which used to be handled by gigi). This is OK, since the conversion
+      --  itself does not require a check.
+
       elsif In_Subrange_Of (Target_Type, Source_Base_Type) then
          Insert_Action (N,
            Make_Raise_Constraint_Error (Loc,
@@ -4675,14 +4698,14 @@ package body Checks is
                  Right_Opnd =>
                    Make_Range (Loc,
                      Low_Bound =>
-                       Convert_To (Source_Base_Type,
+                       Unchecked_Convert_To (Source_Base_Type,
                          Make_Attribute_Reference (Loc,
                            Prefix =>
                              New_Occurrence_Of (Target_Type, Loc),
                            Attribute_Name => Name_First)),
 
                      High_Bound =>
-                       Convert_To (Source_Base_Type,
+                       Unchecked_Convert_To (Source_Base_Type,
                          Make_Attribute_Reference (Loc,
                            Prefix =>
                              New_Occurrence_Of (Target_Type, Loc),
@@ -4874,7 +4897,7 @@ package body Checks is
                      New_Occurrence_Of (Target_Base_Type, Loc),
                    Constant_Present    => True,
                    Expression          =>
-                     Make_Type_Conversion (Loc,
+                     Make_Unchecked_Type_Conversion (Loc,
                        Subtype_Mark =>
                          New_Occurrence_Of (Target_Base_Type, Loc),
                        Expression   => Duplicate_Subexpr (N))),

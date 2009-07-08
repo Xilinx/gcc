@@ -173,7 +173,7 @@ static void vmsdbgout_end_source_file (unsigned int);
 static void vmsdbgout_begin_block (unsigned int, unsigned int);
 static void vmsdbgout_end_block (unsigned int, unsigned int);
 static bool vmsdbgout_ignore_block (const_tree);
-static void vmsdbgout_source_line (unsigned int, const char *, int);
+static void vmsdbgout_source_line (unsigned int, const char *, int, bool);
 static void vmsdbgout_begin_prologue (unsigned int, const char *);
 static void vmsdbgout_end_prologue (unsigned int, const char *);
 static void vmsdbgout_end_function (unsigned int);
@@ -490,7 +490,7 @@ addr_const_to_string (char *str, rtx x)
 
     case PLUS:
       /* Some assemblers need integer constants to appear last (eg masm).  */
-      if (GET_CODE (XEXP (x, 0)) == CONST_INT)
+      if (CONST_INT_P (XEXP (x, 0)))
 	{
 	  addr_const_to_string (buf1, XEXP (x, 1));
 	  strcat (str, buf1);
@@ -520,7 +520,7 @@ addr_const_to_string (char *str, rtx x)
       addr_const_to_string (buf1, XEXP (x, 0));
       strcat (str, buf1);
       strcat (str, "-");
-      if (GET_CODE (XEXP (x, 1)) == CONST_INT
+      if (CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) < 0)
 	{
 	  strcat (str, "(");
@@ -1297,7 +1297,7 @@ vmsdbgout_end_prologue (unsigned int line, const char *file)
       ASM_OUTPUT_LABEL (asm_out_file, label);
 
       /* VMS PCA expects every PC range to correlate to some line and file.  */
-      vmsdbgout_source_line (line, file, 0);
+      vmsdbgout_source_line (line, file, 0, true);
     }
 }
 
@@ -1331,7 +1331,7 @@ vmsdbgout_end_epilogue (unsigned int line, const char *file)
       ASM_OUTPUT_LABEL (asm_out_file, label);
 
       /* VMS PCA expects every PC range to correlate to some line and file.  */
-      vmsdbgout_source_line (line, file, 0);
+      vmsdbgout_source_line (line, file, 0, true);
     }
 }
 
@@ -1534,10 +1534,10 @@ lookup_filename (const char *file_name)
 
 static void
 vmsdbgout_source_line (register unsigned line, register const char *filename,
-                       int discriminator)
+                       int discriminator, bool is_stmt)
 {
   if (write_symbols == VMS_AND_DWARF2_DEBUG)
-    (*dwarf2_debug_hooks.source_line) (line, filename, discriminator);
+    (*dwarf2_debug_hooks.source_line) (line, filename, discriminator, is_stmt);
 
   if (debug_info_level >= DINFO_LEVEL_TERSE)
     {

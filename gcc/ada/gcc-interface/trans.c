@@ -100,7 +100,7 @@ bool type_annotate_only;
 /* When not optimizing, we cache the 'First, 'Last and 'Length attributes
    of unconstrained array IN parameters to avoid emitting a great deal of
    redundant instructions to recompute them each time.  */
-struct GTY (()) parm_attr {
+struct GTY (()) parm_attr_d {
   int id; /* GTY doesn't like Entity_Id.  */
   int dim;
   tree first;
@@ -108,7 +108,7 @@ struct GTY (()) parm_attr {
   tree length;
 };
 
-typedef struct parm_attr *parm_attr;
+typedef struct parm_attr_d *parm_attr;
 
 DEF_VEC_P(parm_attr);
 DEF_VEC_ALLOC_P(parm_attr,gc);
@@ -1464,7 +1464,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	int Dimension = (Present (Expressions (gnat_node))
 			 ? UI_To_Int (Intval (First (Expressions (gnat_node))))
 			 : 1), i;
-	struct parm_attr *pa = NULL;
+	struct parm_attr_d *pa = NULL;
 	Entity_Id gnat_param = Empty;
 
 	/* Make sure any implicit dereference gets done.  */
@@ -1508,7 +1508,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 
 	    if (!pa)
 	      {
-		pa = GGC_CNEW (struct parm_attr);
+		pa = GGC_CNEW (struct parm_attr_d);
 		pa->id = gnat_param;
 		pa->dim = Dimension;
 		VEC_safe_push (parm_attr, gc, f_parm_attr_cache, pa);
@@ -1552,43 +1552,38 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 		/* We used to compute the length as max (hb - lb + 1, 0),
 		   which could overflow for some cases of empty arrays, e.g.
 		   when lb == index_type'first.  We now compute the length as
-		   (hb < lb) ? 0 : hb - lb + 1, which would only overflow in
+		   (hb >= lb) ? hb - lb + 1 : 0, which would only overflow in
 		   much rarer cases, for extremely large arrays we expect
 		   never to encounter in practice.  In addition, the former
 		   computation required the use of potentially constraining
-		   signed arithmetic while the latter doesn't.  Note that the
-		   comparison must be done in the original index base type,
-		   otherwise the conversion of either bound to gnu_compute_type
-		   may overflow.  */
-		
-		tree gnu_compute_type = get_base_type (gnu_result_type);
-
-		tree index_type
-		  = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type));
-		tree lb
-		  = convert (gnu_compute_type, TYPE_MIN_VALUE (index_type));
-		tree hb
-		  = convert (gnu_compute_type, TYPE_MAX_VALUE (index_type));
-		
+		   signed arithmetic while the latter doesn't.  Note that
+		   the comparison must be done in the original index type,
+		   to avoid any overflow during the conversion.  */
+		tree comp_type = get_base_type (gnu_result_type);
+		tree index_type = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type));
+		tree lb = TYPE_MIN_VALUE (index_type);
+		tree hb = TYPE_MAX_VALUE (index_type);
 		gnu_result
-		  = build3
-		    (COND_EXPR, gnu_compute_type,
-		     build_binary_op (LT_EXPR, get_base_type (index_type),
-				      TYPE_MAX_VALUE (index_type),
-				      TYPE_MIN_VALUE (index_type)),
-		     convert (gnu_compute_type, integer_zero_node),
-		     build_binary_op
-		     (PLUS_EXPR, gnu_compute_type,
-		      build_binary_op (MINUS_EXPR, gnu_compute_type, hb, lb),
-		      convert (gnu_compute_type, integer_one_node)));
+		  = build_binary_op (PLUS_EXPR, comp_type,
+				     build_binary_op (MINUS_EXPR,
+						      comp_type,
+						      convert (comp_type, hb),
+						      convert (comp_type, lb)),
+				     convert (comp_type, integer_one_node));
+		gnu_result
+		  = build_cond_expr (comp_type,
+				     build_binary_op (GE_EXPR,
+						      integer_type_node,
+						      hb, lb),
+				     gnu_result,
+				     convert (comp_type, integer_zero_node));
 	      }
 	  }
 
 	/* If this has a PLACEHOLDER_EXPR, qualify it by the object we are
 	   handling.  Note that these attributes could not have been used on
 	   an unconstrained array type.  */
-	gnu_result = SUBSTITUTE_PLACEHOLDER_IN_EXPR (gnu_result,
-						     gnu_prefix);
+	gnu_result = SUBSTITUTE_PLACEHOLDER_IN_EXPR (gnu_result, gnu_prefix);
 
 	/* Cache the expression we have just computed.  Since we want to do it
 	   at runtime, we force the use of a SAVE_EXPR and let the gimplifier
@@ -1843,7 +1838,8 @@ Case_Statement_to_gnu (Node_Id gnat_node)
   /* We build a SWITCH_EXPR that contains the code with interspersed
      CASE_LABEL_EXPRs for each label.  */
 
-  push_stack (&gnu_switch_label_stack, NULL_TREE, create_artificial_label ());
+  push_stack (&gnu_switch_label_stack, NULL_TREE,
+	      create_artificial_label (input_location));
   start_stmt_group ();
   for (gnat_when = First_Non_Pragma (Alternatives (gnat_node));
        Present (gnat_when);
@@ -1908,9 +1904,10 @@ Case_Statement_to_gnu (Node_Id gnat_node)
 	  if ((!gnu_low || TREE_CODE (gnu_low) == INTEGER_CST)
 	      && (!gnu_high || TREE_CODE (gnu_high) == INTEGER_CST))
 	    {
-	      add_stmt_with_node (build3 (CASE_LABEL_EXPR, void_type_node,
-					  gnu_low, gnu_high,
-					  create_artificial_label ()),
+	      add_stmt_with_node (build3
+				  (CASE_LABEL_EXPR, void_type_node,
+				   gnu_low, gnu_high,
+				   create_artificial_label (input_location)),
 				  gnat_choice);
 	      choices_added++;
 	    }
@@ -1953,7 +1950,7 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
 
   TREE_TYPE (gnu_loop_stmt) = void_type_node;
   TREE_SIDE_EFFECTS (gnu_loop_stmt) = 1;
-  LOOP_STMT_LABEL (gnu_loop_stmt) = create_artificial_label ();
+  LOOP_STMT_LABEL (gnu_loop_stmt) = create_artificial_label (input_location);
   set_expr_location_from_node (gnu_loop_stmt, gnat_node);
   Sloc_to_locus (Sloc (End_Label (gnat_node)),
 		 &DECL_SOURCE_LOCATION (LOOP_STMT_LABEL (gnu_loop_stmt)));
@@ -2213,7 +2210,8 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
      properly copies them out.  We do this by making a new block and converting
      any inner return into a goto to a label at the end of the block.  */
   push_stack (&gnu_return_label_stack, NULL_TREE,
-	      gnu_cico_list ? create_artificial_label () : NULL_TREE);
+	      gnu_cico_list ? create_artificial_label (input_location)
+	      : NULL_TREE);
 
   /* Get a tree corresponding to the code for the subprogram.  */
   start_stmt_group ();
@@ -2270,7 +2268,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
   cache = DECL_STRUCT_FUNCTION (gnu_subprog_decl)->language->parm_attr_cache;
   if (cache)
     {
-      struct parm_attr *pa;
+      struct parm_attr_d *pa;
       int i;
 
       start_stmt_group ();
@@ -3073,7 +3071,9 @@ Handled_Sequence_Of_Statements_to_gnu (Node_Id gnat_node)
 	 defer abortion.  */
       gnu_expr = build_call_1_expr (raise_nodefer_decl,
 				    TREE_VALUE (gnu_except_ptr_stack));
-      set_expr_location_from_node (gnu_expr, gnat_node);
+      set_expr_location_from_node
+	(gnu_expr,
+	 Present (End_Label (gnat_node)) ? End_Label (gnat_node) : gnat_node);
 
       if (gnu_else_ptr)
 	*gnu_else_ptr = gnu_expr;
@@ -5101,9 +5101,6 @@ gnat_to_gnu (Node_Id gnat_node)
 	  tree gnu_obj_type;
 	  tree gnu_actual_obj_type = 0;
 	  tree gnu_obj_size;
-	  unsigned int align;
-	  unsigned int default_allocator_alignment
-	    = get_target_default_allocator_alignment () * BITS_PER_UNIT;
 
 	  /* If this is a thin pointer, we must dereference it to create
 	     a fat pointer, then go back below to a thin pointer.  The
@@ -5142,7 +5139,6 @@ gnat_to_gnu (Node_Id gnat_node)
 	    gnu_actual_obj_type = gnu_obj_type;
 
 	  gnu_obj_size = TYPE_SIZE_UNIT (gnu_actual_obj_type);
-	  align = TYPE_ALIGN (gnu_obj_type);
 
 	  if (TREE_CODE (gnu_obj_type) == RECORD_TYPE
 	      && TYPE_CONTAINS_TEMPLATE_P (gnu_obj_type))
@@ -5159,42 +5155,11 @@ gnat_to_gnu (Node_Id gnat_node)
 					 gnu_ptr, gnu_byte_offset);
 	    }
 
- 	  /* If the object was allocated from the default storage pool, the
- 	     alignment was greater than what the allocator provides, and this
- 	     is not a fat or thin pointer, what we have in gnu_ptr here is an
- 	     address dynamically adjusted to match the alignment requirement
- 	     (see build_allocator).  What we need to pass to free is the
- 	     initial allocator's return value, which has been stored just in
- 	     front of the block we have.  */
-
- 	  if (No (Procedure_To_Call (gnat_node))
- 	      && align > default_allocator_alignment
- 	      && ! TYPE_FAT_OR_THIN_POINTER_P (gnu_ptr_type))
- 	    {
- 	      /* We set GNU_PTR
- 		 as * (void **)((void *)GNU_PTR - (void *)sizeof(void *))
- 		 in two steps:  */
-
- 	      /* GNU_PTR (void *)
-		 = (void *)GNU_PTR - (void *)sizeof (void *))  */
- 	      gnu_ptr
- 		= build_binary_op
-		    (POINTER_PLUS_EXPR, ptr_void_type_node,
-		     convert (ptr_void_type_node, gnu_ptr),
-		     size_int (-POINTER_SIZE/BITS_PER_UNIT));
-
- 	      /* GNU_PTR (void *) = *(void **)GNU_PTR  */
- 	      gnu_ptr
- 		= build_unary_op
-		    (INDIRECT_REF, NULL_TREE,
-		     convert (build_pointer_type (ptr_void_type_node),
-			      gnu_ptr));
- 	    }
-
-	  gnu_result = build_call_alloc_dealloc (gnu_ptr, gnu_obj_size, align,
-						 Procedure_To_Call (gnat_node),
-						 Storage_Pool (gnat_node),
-						 gnat_node);
+	  gnu_result
+	      = build_call_alloc_dealloc (gnu_ptr, gnu_obj_size, gnu_obj_type,
+					  Procedure_To_Call (gnat_node),
+					  Storage_Pool (gnat_node),
+					  gnat_node);
 	}
       break;
 
@@ -5910,7 +5875,7 @@ gnat_gimplify_stmt (tree *stmt_p)
 
     case LOOP_STMT:
       {
-	tree gnu_start_label = create_artificial_label ();
+	tree gnu_start_label = create_artificial_label (input_location);
 	tree gnu_end_label = LOOP_STMT_LABEL (stmt);
 	tree t;
 
@@ -6642,10 +6607,7 @@ emit_check (tree gnu_cond, tree gnu_expr, int reason, Node_Id gnat_node)
      we don't need to evaluate it just for the check.  */
   TREE_SIDE_EFFECTS (gnu_result) = TREE_SIDE_EFFECTS (gnu_expr);
 
-  /* ??? Unfortunately, if we don't put a SAVE_EXPR around this whole thing,
-     we will repeatedly do the test and, at compile time, we will repeatedly
-     visit it during unsharing, which leads to an exponential explosion.  */
-  return save_expr (gnu_result);
+  return gnu_result;
 }
 
 /* Return an expression that converts GNU_EXPR to GNAT_TYPE, doing overflow
@@ -7261,8 +7223,15 @@ protect_multiple_eval (tree exp)
 {
   tree type = TREE_TYPE (exp);
 
-  /* If this has no side effects, we don't need to do anything.  */
-  if (!TREE_SIDE_EFFECTS (exp))
+  /* If EXP has no side effects, we theoritically don't need to do anything.
+     However, we may be recursively passed more and more complex expressions
+     involving checks which will be reused multiple times and eventually be
+     unshared for gimplification; in order to avoid a complexity explosion
+     at that point, we protect any expressions more complex than a simple
+     arithmetic expression.  */
+  if (!TREE_SIDE_EFFECTS (exp)
+      && (CONSTANT_CLASS_P (exp)
+	  || !EXPRESSION_CLASS_P (skip_simple_arithmetic (exp))))
     return exp;
 
   /* If this is a conversion, protect what's inside the conversion.

@@ -1044,8 +1044,10 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 
 	      if (warn_shadow && !err)
 		{
-		  warning (OPT_Wshadow, "declaration of %q#D shadows a parameter", x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldlocal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %q#D shadows a parameter", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	    }
 
@@ -1075,16 +1077,19 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	      else if (oldlocal != NULL_TREE
 		       && TREE_CODE (oldlocal) == VAR_DECL)
 		{
-		  warning (OPT_Wshadow, "declaration of %qD shadows a previous local", x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldlocal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %qD shadows a previous local", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	      else if (oldglobal != NULL_TREE
 		       && TREE_CODE (oldglobal) == VAR_DECL)
 		/* XXX shadow warnings in outer-more namespaces */
 		{
-		  warning (OPT_Wshadow, "declaration of %qD shadows a global declaration",
-			   x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldglobal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %qD shadows a global declaration", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldglobal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	    }
 	}
@@ -3491,7 +3496,7 @@ do_using_directive (tree name_space)
   gcc_assert (TREE_CODE (name_space) == NAMESPACE_DECL);
 
   if (building_stmt_tree ())
-    add_stmt (build_stmt (USING_STMT, name_space));
+    add_stmt (build_stmt (input_location, USING_STMT, name_space));
   name_space = ORIGINAL_NAMESPACE (name_space);
 
   if (!toplevel_bindings_p ())
@@ -3555,7 +3560,7 @@ pushdecl_top_level_1 (tree x, tree *init, bool is_friend)
   push_to_top_level ();
   x = pushdecl_namespace_level (x, is_friend);
   if (init)
-    finish_decl (x, *init, NULL_TREE, NULL_TREE);
+    cp_finish_decl (x, *init, false, NULL_TREE, 0);
   pop_from_top_level ();
   POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, x);
 }
@@ -5319,7 +5324,8 @@ push_to_top_level (void)
   s->bindings = b;
   s->need_pop_function_context = need_pop;
   s->function_decl = current_function_decl;
-  s->skip_evaluation = skip_evaluation;
+  s->unevaluated_operand = cp_unevaluated_operand;
+  s->inhibit_evaluation_warnings = c_inhibit_evaluation_warnings;
 
   scope_chain = s;
   current_function_decl = NULL_TREE;
@@ -5327,7 +5333,8 @@ push_to_top_level (void)
   current_lang_name = lang_name_cplusplus;
   current_namespace = global_namespace;
   push_class_stack ();
-  skip_evaluation = 0;
+  cp_unevaluated_operand = 0;
+  c_inhibit_evaluation_warnings = 0;
   timevar_pop (TV_NAME_LOOKUP);
 }
 
@@ -5360,7 +5367,8 @@ pop_from_top_level (void)
   if (s->need_pop_function_context)
     pop_function_context ();
   current_function_decl = s->function_decl;
-  skip_evaluation = s->skip_evaluation;
+  cp_unevaluated_operand = s->unevaluated_operand;
+  c_inhibit_evaluation_warnings = s->inhibit_evaluation_warnings;
   timevar_pop (TV_NAME_LOOKUP);
 }
 
@@ -5415,7 +5423,7 @@ cp_emit_debug_info_for_using (tree t, tree context)
     if (TREE_CODE (t) != TEMPLATE_DECL)
       {
 	if (building_stmt_tree ())
-	  add_stmt (build_stmt (USING_STMT, t));
+	  add_stmt (build_stmt (input_location, USING_STMT, t));
 	else
 	  (*debug_hooks->imported_module_or_decl) (t, NULL_TREE, context, false);
       }

@@ -260,7 +260,7 @@ build_reduction_list_info (void **slot, void *data)
   htab_t analyzed_reductions = b->analyzed_reductions;
   tree phi_res = (tree) *slot;
   gimple phi = SSA_NAME_DEF_STMT (phi_res);
-  gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi);
+  gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi, true);
 
   if (reduc_stmt)
     {
@@ -619,7 +619,8 @@ initialize_reductions (void **slot, void *data)
   bvar = create_tmp_var (type, "reduction");
   add_referenced_var (bvar);
 
-  c = build_omp_clause (OMP_CLAUSE_REDUCTION);
+  c = build_omp_clause (gimple_location (reduc->reduc_stmt),
+			OMP_CLAUSE_REDUCTION);
   OMP_CLAUSE_REDUCTION_CODE (c) = reduc->reduction_code;
   OMP_CLAUSE_DECL (c) = SSA_NAME_VAR (gimple_assign_lhs (reduc->reduc_stmt));
 
@@ -926,7 +927,8 @@ add_field_for_reduction (void **slot, void *data)
   struct reduction_info *const red = (struct reduction_info *) *slot;
   tree const type = (tree) data;
   tree var = SSA_NAME_VAR (gimple_assign_lhs (red->reduc_stmt));
-  tree field = build_decl (FIELD_DECL, DECL_NAME (var), TREE_TYPE (var));
+  tree field = build_decl (gimple_location (red->reduc_stmt),
+			   FIELD_DECL, DECL_NAME (var), TREE_TYPE (var));
 
   insert_field_into_struct (type, field);
 
@@ -945,7 +947,8 @@ add_field_for_name (void **slot, void *data)
   tree type = (tree) data;
   tree name = ssa_name (elt->version);
   tree var = SSA_NAME_VAR (name);
-  tree field = build_decl (FIELD_DECL, DECL_NAME (var), TREE_TYPE (var));
+  tree field = build_decl (DECL_SOURCE_LOCATION (var),
+			   FIELD_DECL, DECL_NAME (var), TREE_TYPE (var));
 
   insert_field_into_struct (type, field);
   elt->field = field;
@@ -1278,7 +1281,8 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
     {
       /* Create the type for the structure to store the ssa names to.  */
       type = lang_hooks.types.make_type (RECORD_TYPE);
-      type_name = build_decl (TYPE_DECL, create_tmp_var_name (".paral_data"),
+      type_name = build_decl (BUILTINS_LOCATION,
+			      TYPE_DECL, create_tmp_var_name (".paral_data"),
 			      type);
       TYPE_NAME (type) = type_name;
 
@@ -1358,7 +1362,8 @@ create_loop_fn (void)
   name = get_identifier (tname);
   type = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
 
-  decl = build_decl (FUNCTION_DECL, name, type);
+  decl = build_decl (BUILTINS_LOCATION,
+		     FUNCTION_DECL, name, type);
   if (!parallelized_functions)
     parallelized_functions = BITMAP_GGC_ALLOC ();
   bitmap_set_bit (parallelized_functions, DECL_UID (decl));
@@ -1373,12 +1378,14 @@ create_loop_fn (void)
   DECL_CONTEXT (decl) = NULL_TREE;
   DECL_INITIAL (decl) = make_node (BLOCK);
 
-  t = build_decl (RESULT_DECL, NULL_TREE, void_type_node);
+  t = build_decl (BUILTINS_LOCATION,
+		  RESULT_DECL, NULL_TREE, void_type_node);
   DECL_ARTIFICIAL (t) = 1;
   DECL_IGNORED_P (t) = 1;
   DECL_RESULT (decl) = t;
 
-  t = build_decl (PARM_DECL, get_identifier (".paral_data_param"),
+  t = build_decl (BUILTINS_LOCATION,
+		  PARM_DECL, get_identifier (".paral_data_param"),
 		  ptr_type_node);
   DECL_ARTIFICIAL (t) = 1;
   DECL_ARG_TYPE (t) = ptr_type_node;
@@ -1532,7 +1539,7 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
   paral_bb = single_pred (bb);
   gsi = gsi_last_bb (paral_bb);
 
-  t = build_omp_clause (OMP_CLAUSE_NUM_THREADS);
+  t = build_omp_clause (BUILTINS_LOCATION, OMP_CLAUSE_NUM_THREADS);
   OMP_CLAUSE_NUM_THREADS_EXPR (t)
     = build_int_cst (integer_type_node, n_threads);
   stmt = gimple_build_omp_parallel (NULL, t, loop_fn, data);
@@ -1603,7 +1610,7 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
   /* Emit GIMPLE_OMP_FOR.  */
   gimple_cond_set_lhs (cond_stmt, cvar_base);
   type = TREE_TYPE (cvar);
-  t = build_omp_clause (OMP_CLAUSE_SCHEDULE);
+  t = build_omp_clause (BUILTINS_LOCATION, OMP_CLAUSE_SCHEDULE);
   OMP_CLAUSE_SCHEDULE_KIND (t) = OMP_CLAUSE_SCHEDULE_STATIC;
 
   for_stmt = gimple_build_omp_for (NULL, t, 1, NULL);

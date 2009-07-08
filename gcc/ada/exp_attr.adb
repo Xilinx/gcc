@@ -907,9 +907,19 @@ package body Exp_Attr is
             then
                if Nkind (Ref_Object) /= N_Explicit_Dereference then
 
-                  --  No implicit conversion required if types match
+                  --  No implicit conversion required if types match, or if
+                  --  the prefix is the class_wide_type of the interface. In
+                  --  either case passing an object of the interface type has
+                  --  already set the pointer correctly.
 
-                  if Btyp_DDT /= Etype (Ref_Object) then
+                  if Btyp_DDT = Etype (Ref_Object)
+                    or else (Is_Class_Wide_Type (Etype (Ref_Object))
+                              and then
+                               Class_Wide_Type (Btyp_DDT) = Etype (Ref_Object))
+                  then
+                     null;
+
+                  else
                      Rewrite (Prefix (N),
                        Convert_To (Btyp_DDT,
                          New_Copy_Tree (Prefix (N))));
@@ -3378,10 +3388,13 @@ package body Exp_Attr is
          elsif Is_Modular_Integer_Type (Ptyp) then
             null;
 
-         --  For other types, if range checking is enabled, we must generate
-         --  a check if overflow checking is enabled.
+         --  For other types, if argument is marked as needing a range check or
+         --  overflow checking is enabled, we must generate a check.
 
-         elsif not Overflow_Checks_Suppressed (Ptyp) then
+         elsif not Overflow_Checks_Suppressed (Ptyp)
+           or else Do_Range_Check (First (Exprs))
+         then
+            Set_Do_Range_Check (First (Exprs), False);
             Expand_Pred_Succ (N);
          end if;
       end Pred;
@@ -4309,10 +4322,13 @@ package body Exp_Attr is
          elsif Is_Modular_Integer_Type (Ptyp) then
             null;
 
-         --  For other types, if range checking is enabled, we must generate
-         --  a check if overflow checking is enabled.
+         --  For other types, if argument is marked as needing a range check or
+         --  overflow checking is enabled, we must generate a check.
 
-         elsif not Overflow_Checks_Suppressed (Ptyp) then
+         elsif not Overflow_Checks_Suppressed (Ptyp)
+           or else Do_Range_Check (First (Exprs))
+         then
+            Set_Do_Range_Check (First (Exprs), False);
             Expand_Pred_Succ (N);
          end if;
       end Succ;
@@ -4619,6 +4635,13 @@ package body Exp_Attr is
             end if;
 
             Analyze_And_Resolve (N, Typ);
+
+         --  If the argument is marked as requiring a range check then generate
+         --  it here.
+
+         elsif Do_Range_Check (First (Exprs)) then
+            Set_Do_Range_Check (First (Exprs), False);
+            Generate_Range_Check (First (Exprs), Etyp, CE_Range_Check_Failed);
          end if;
       end Val;
 

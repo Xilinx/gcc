@@ -38,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "recog.h"
 #include "integrate.h"
-#include "dwarf2.h"
+#include "elf/dwarf2.h"
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
@@ -49,6 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfglayout.h"
 #include "intl.h"
 #include "sched-int.h"
+#include "params.h"
 #include "ggc.h"
 #include "gimple.h"
 #include "cfgloop.h"
@@ -184,7 +185,6 @@ static void push_regs (HARD_REG_SET *, int);
 static int calc_live_regs (HARD_REG_SET *);
 static HOST_WIDE_INT rounded_frame_size (int);
 static rtx mark_constant_pool_use (rtx);
-EXPORTED_CONST struct attribute_spec sh_attribute_table[];
 static tree sh_handle_interrupt_handler_attribute (tree *, tree, tree, int, bool *);
 static tree sh_handle_resbank_handler_attribute (tree *, tree,
 						 tree, int, bool *);
@@ -267,7 +267,31 @@ static bool sh_scalar_mode_supported_p (enum machine_mode);
 static int sh_dwarf_calling_convention (const_tree);
 static void sh_encode_section_info (tree, rtx, int);
 static int sh2a_function_vector_p (tree);
+
+static const struct attribute_spec sh_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  { "interrupt_handler", 0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
+  { "sp_switch",         1, 1, true,  false, false, sh_handle_sp_switch_attribute },
+  { "trap_exit",         1, 1, true,  false, false, sh_handle_trap_exit_attribute },
+  { "renesas",           0, 0, false, true, false, sh_handle_renesas_attribute },
+  { "trapa_handler",     0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
+  { "nosave_low_regs",   0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
+  { "resbank",           0, 0, true,  false, false, sh_handle_resbank_handler_attribute },
+  { "function_vector",   1, 1, true,  false, false, sh2a_handle_function_vector_handler_attribute },
+#ifdef SYMBIAN
+  /* Symbian support adds three new attributes:
+     dllexport - for exporting a function/variable that will live in a dll
+     dllimport - for importing a function/variable from a dll
 
+     Microsoft allows multiple declspecs in one __declspec, separating
+     them with spaces.  We do NOT support this.  Instead, use __declspec
+     multiple times.  */
+  { "dllimport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
+  { "dllexport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
+#endif
+  { NULL,                0, 0, false, false, false, NULL }
+};
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ATTRIBUTE_TABLE
@@ -608,6 +632,276 @@ sh_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
     default:
       return true;
     }
+}
+
+/* Set default optimization options.  */
+void
+sh_optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
+{
+  if (level)
+    {
+      flag_omit_frame_pointer = 2;
+      if (!size)
+	sh_div_str = "inv:minlat";
+    }
+  if (size)
+    {
+      target_flags |= MASK_SMALLCODE;
+      sh_div_str = SH_DIV_STR_FOR_SIZE ;
+    }
+  else
+    TARGET_CBRANCHDI4 = 1;
+  /* We can't meaningfully test TARGET_SHMEDIA here, because -m options
+     haven't been parsed yet, hence we'd read only the default.
+     sh_target_reg_class will return NO_REGS if this is not SHMEDIA, so
+     it's OK to always set flag_branch_target_load_optimize.  */
+  if (level > 1)
+    {
+      flag_branch_target_load_optimize = 1;
+      if (!size)
+	target_flags |= MASK_SAVE_ALL_TARGET_REGS;
+    }
+  /* Likewise, we can't meaningfully test TARGET_SH2E / TARGET_IEEE
+     here, so leave it to OVERRIDE_OPTIONS to set
+    flag_finite_math_only.  We set it to 2 here so we know if the user
+    explicitly requested this to be on or off.  */
+  flag_finite_math_only = 2;
+  /* If flag_schedule_insns is 1, we set it to 2 here so we know if
+     the user explicitly requested this to be on or off.  */
+  if (flag_schedule_insns > 0)
+    flag_schedule_insns = 2;
+
+  set_param_value ("simultaneous-prefetches", 2);
+}
+
+/* Implement OVERRIDE_OPTIONS macro.  Validate and override various
+   options, and do some machine dependent initialization.  */
+void
+sh_override_options (void)
+{
+  int regno;
+
+  SUBTARGET_OVERRIDE_OPTIONS;
+  if (flag_finite_math_only == 2)
+    flag_finite_math_only
+      = !flag_signaling_nans && TARGET_SH2E && ! TARGET_IEEE;
+  if (TARGET_SH2E && !flag_finite_math_only)
+    target_flags |= MASK_IEEE;
+  sh_cpu = PROCESSOR_SH1;
+  assembler_dialect = 0;
+  if (TARGET_SH2)
+    sh_cpu = PROCESSOR_SH2;
+  if (TARGET_SH2E)
+    sh_cpu = PROCESSOR_SH2E;
+  if (TARGET_SH2A)
+    sh_cpu = PROCESSOR_SH2A;
+  if (TARGET_SH3)
+    sh_cpu = PROCESSOR_SH3;
+  if (TARGET_SH3E)
+    sh_cpu = PROCESSOR_SH3E;
+  if (TARGET_SH4)
+    {
+      assembler_dialect = 1;
+      sh_cpu = PROCESSOR_SH4;
+    }
+  if (TARGET_SH4A_ARCH)
+    {
+      assembler_dialect = 1;
+      sh_cpu = PROCESSOR_SH4A;
+    }
+  if (TARGET_SH5)
+    {
+      sh_cpu = PROCESSOR_SH5;
+      target_flags |= MASK_ALIGN_DOUBLE;
+      if (TARGET_SHMEDIA_FPU)
+	target_flags |= MASK_FMOVD;
+      if (TARGET_SHMEDIA)
+	{
+	  /* There are no delay slots on SHmedia.  */
+	  flag_delayed_branch = 0;
+	  /* Relaxation isn't yet supported for SHmedia */
+	  target_flags &= ~MASK_RELAX;
+	  /* After reload, if conversion does little good but can cause
+	     ICEs:
+	     - find_if_block doesn't do anything for SH because we don't
+	       have conditional execution patterns.  (We use conditional
+	       move patterns, which are handled differently, and only
+	       before reload).
+	     - find_cond_trap doesn't do anything for the SH because we
+	       don't have conditional traps.
+	     - find_if_case_1 uses redirect_edge_and_branch_force in
+	       the only path that does an optimization, and this causes
+	       an ICE when branch targets are in registers.
+	     - find_if_case_2 doesn't do anything for the SHmedia after
+	       reload except when it can redirect a tablejump - and
+	       that's rather rare.  */
+	  flag_if_conversion2 = 0;
+	  if (! strcmp (sh_div_str, "call"))
+	    sh_div_strategy = SH_DIV_CALL;
+	  else if (! strcmp (sh_div_str, "call2"))
+	    sh_div_strategy = SH_DIV_CALL2;
+	  if (! strcmp (sh_div_str, "fp") && TARGET_FPU_ANY)
+	    sh_div_strategy = SH_DIV_FP;
+	  else if (! strcmp (sh_div_str, "inv"))
+	    sh_div_strategy = SH_DIV_INV;
+	  else if (! strcmp (sh_div_str, "inv:minlat"))
+	    sh_div_strategy = SH_DIV_INV_MINLAT;
+	  else if (! strcmp (sh_div_str, "inv20u"))
+	    sh_div_strategy = SH_DIV_INV20U;
+	  else if (! strcmp (sh_div_str, "inv20l"))
+	    sh_div_strategy = SH_DIV_INV20L;
+	  else if (! strcmp (sh_div_str, "inv:call2"))
+	    sh_div_strategy = SH_DIV_INV_CALL2;
+	  else if (! strcmp (sh_div_str, "inv:call"))
+	    sh_div_strategy = SH_DIV_INV_CALL;
+	  else if (! strcmp (sh_div_str, "inv:fp"))
+	    {
+	      if (TARGET_FPU_ANY)
+		sh_div_strategy = SH_DIV_INV_FP;
+	      else
+		sh_div_strategy = SH_DIV_INV;
+	    }
+	  TARGET_CBRANCHDI4 = 0;
+	  /* Assembler CFI isn't yet fully supported for SHmedia.  */
+	  flag_dwarf2_cfi_asm = 0;
+	}
+    }
+  else
+    {
+       /* Only the sh64-elf assembler fully supports .quad properly.  */
+       targetm.asm_out.aligned_op.di = NULL;
+       targetm.asm_out.unaligned_op.di = NULL;
+    }
+  if (TARGET_SH1)
+    {
+      if (! strcmp (sh_div_str, "call-div1"))
+	sh_div_strategy = SH_DIV_CALL_DIV1;
+      else if (! strcmp (sh_div_str, "call-fp")
+	       && (TARGET_FPU_DOUBLE
+		   || (TARGET_HARD_SH4 && TARGET_SH2E)
+		   || (TARGET_SHCOMPACT && TARGET_FPU_ANY)))
+	sh_div_strategy = SH_DIV_CALL_FP;
+      else if (! strcmp (sh_div_str, "call-table") && TARGET_SH2)
+	sh_div_strategy = SH_DIV_CALL_TABLE;
+      else
+	/* Pick one that makes most sense for the target in general.
+	   It is not much good to use different functions depending
+	   on -Os, since then we'll end up with two different functions
+	   when some of the code is compiled for size, and some for
+	   speed.  */
+
+	/* SH4 tends to emphasize speed.  */
+	if (TARGET_HARD_SH4)
+	  sh_div_strategy = SH_DIV_CALL_TABLE;
+	/* These have their own way of doing things.  */
+	else if (TARGET_SH2A)
+	  sh_div_strategy = SH_DIV_INTRINSIC;
+	/* ??? Should we use the integer SHmedia function instead?  */
+	else if (TARGET_SHCOMPACT && TARGET_FPU_ANY)
+	  sh_div_strategy = SH_DIV_CALL_FP;
+        /* SH1 .. SH3 cores often go into small-footprint systems, so
+	   default to the smallest implementation available.  */
+	else if (TARGET_SH2)	/* ??? EXPERIMENTAL */
+	  sh_div_strategy = SH_DIV_CALL_TABLE;
+	else
+	  sh_div_strategy = SH_DIV_CALL_DIV1;
+    }
+  if (!TARGET_SH1)
+    TARGET_PRETEND_CMOVE = 0;
+  if (sh_divsi3_libfunc[0])
+    ; /* User supplied - leave it alone.  */
+  else if (TARGET_DIVIDE_CALL_FP)
+    sh_divsi3_libfunc = "__sdivsi3_i4";
+  else if (TARGET_DIVIDE_CALL_TABLE)
+    sh_divsi3_libfunc = "__sdivsi3_i4i";
+  else if (TARGET_SH5)
+    sh_divsi3_libfunc = "__sdivsi3_1";
+  else
+    sh_divsi3_libfunc = "__sdivsi3";
+  if (sh_branch_cost == -1)
+    sh_branch_cost
+      = TARGET_SH5 ? 1 : ! TARGET_SH2 || TARGET_HARD_SH4 ? 2 : 1;
+
+  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
+    if (! VALID_REGISTER_P (regno))
+      sh_register_names[regno][0] = '\0';
+
+  for (regno = 0; regno < ADDREGNAMES_SIZE; regno++)
+    if (! VALID_REGISTER_P (ADDREGNAMES_REGNO (regno)))
+      sh_additional_register_names[regno][0] = '\0';
+
+  if (flag_omit_frame_pointer == 2)
+   {
+     /* The debugging information is sufficient,
+        but gdb doesn't implement this yet */
+     if (0)
+      flag_omit_frame_pointer
+        = (PREFERRED_DEBUGGING_TYPE == DWARF2_DEBUG);
+     else
+      flag_omit_frame_pointer = 0;
+   }
+
+  if ((flag_pic && ! TARGET_PREFERGOT)
+      || (TARGET_SHMEDIA && !TARGET_PT_FIXED))
+    flag_no_function_cse = 1;
+
+  if (SMALL_REGISTER_CLASSES)
+    {
+      /* Never run scheduling before reload, since that can
+	 break global alloc, and generates slower code anyway due
+	 to the pressure on R0.  */
+      /* Enable sched1 for SH4 if the user explicitly requests.
+	 When sched1 is enabled, the ready queue will be reordered by
+	 the target hooks if pressure is high.  We can not do this for
+	 PIC, SH3 and lower as they give spill failures for R0.  */
+      if (!TARGET_HARD_SH4 || flag_pic)
+        flag_schedule_insns = 0;
+      /* ??? Current exception handling places basic block boundaries
+	 after call_insns.  It causes the high pressure on R0 and gives
+	 spill failures for R0 in reload.  See PR 22553 and the thread
+	 on gcc-patches
+         <http://gcc.gnu.org/ml/gcc-patches/2005-10/msg00816.html>.  */
+      else if (flag_exceptions)
+	{
+	  if (flag_schedule_insns == 1)
+	    warning (0, "ignoring -fschedule-insns because of exception handling bug");
+	  flag_schedule_insns = 0;
+	}
+      else if (flag_schedule_insns == 2)
+	flag_schedule_insns = 0;
+    }
+
+  if (align_loops == 0)
+    align_loops =  1 << (TARGET_SH5 ? 3 : 2);
+  if (align_jumps == 0)
+    align_jumps = 1 << CACHE_LOG;
+  else if (align_jumps < (TARGET_SHMEDIA ? 4 : 2))
+    align_jumps = TARGET_SHMEDIA ? 4 : 2;
+
+  /* Allocation boundary (in *bytes*) for the code of a function.
+     SH1: 32 bit alignment is faster, because instructions are always
+     fetched as a pair from a longword boundary.
+     SH2 .. SH5 : align to cache line start.  */
+  if (align_functions == 0)
+    align_functions
+      = TARGET_SMALLCODE ? FUNCTION_BOUNDARY/8 : (1 << CACHE_LOG);
+  /* The linker relaxation code breaks when a function contains
+     alignments that are larger than that at the start of a
+     compilation unit.  */
+  if (TARGET_RELAX)
+    {
+      int min_align
+	= align_loops > align_jumps ? align_loops : align_jumps;
+
+      /* Also take possible .long constants / mova tables int account.	*/
+      if (min_align < 4)
+	min_align = 4;
+      if (align_functions < min_align)
+	align_functions = min_align;
+    }
+
+  if (sh_fixed_range_str)
+    sh_fix_range (sh_fixed_range_str);
 }
 
 /* Print the operand address in x to the stream.  */
@@ -3910,14 +4204,13 @@ broken_move (rtx insn)
 		&& GET_CODE (SET_SRC (pat)) == CONST_DOUBLE
 		&& (fp_zero_operand (SET_SRC (pat))
 		    || fp_one_operand (SET_SRC (pat)))
-		/* ??? If this is a -m4 or -m4-single compilation, in general
-		   we don't know the current setting of fpscr, so disable fldi.
+		/* In general we don't know the current setting of fpscr, so disable fldi.
 		   There is an exception if this was a register-register move
 		   before reload - and hence it was ascertained that we have
 		   single precision setting - and in a post-reload optimization
 		   we changed this to do a constant load.  In that case
 		   we don't have an r0 clobber, hence we must use fldi.  */
-		&& (! TARGET_SH4 || TARGET_FMOVD
+		&& (TARGET_FMOVD
 		    || (GET_CODE (XEXP (XVECEXP (PATTERN (insn), 0, 2), 0))
 			== SCRATCH))
 		&& REG_P (SET_DEST (pat))
@@ -7226,17 +7519,22 @@ sh_build_builtin_va_list (void)
 
   record = (*lang_hooks.types.make_type) (RECORD_TYPE);
 
-  f_next_o = build_decl (FIELD_DECL, get_identifier ("__va_next_o"),
+  f_next_o = build_decl (BUILTINS_LOCATION,
+			 FIELD_DECL, get_identifier ("__va_next_o"),
 			 ptr_type_node);
-  f_next_o_limit = build_decl (FIELD_DECL,
+  f_next_o_limit = build_decl (BUILTINS_LOCATION,
+			       FIELD_DECL,
 			       get_identifier ("__va_next_o_limit"),
 			       ptr_type_node);
-  f_next_fp = build_decl (FIELD_DECL, get_identifier ("__va_next_fp"),
+  f_next_fp = build_decl (BUILTINS_LOCATION,
+			  FIELD_DECL, get_identifier ("__va_next_fp"),
 			  ptr_type_node);
-  f_next_fp_limit = build_decl (FIELD_DECL,
+  f_next_fp_limit = build_decl (BUILTINS_LOCATION,
+				FIELD_DECL,
 				get_identifier ("__va_next_fp_limit"),
 				ptr_type_node);
-  f_next_stack = build_decl (FIELD_DECL, get_identifier ("__va_next_stack"),
+  f_next_stack = build_decl (BUILTINS_LOCATION,
+			     FIELD_DECL, get_identifier ("__va_next_stack"),
 			     ptr_type_node);
 
   DECL_FIELD_CONTEXT (f_next_o) = record;
@@ -7439,8 +7737,8 @@ sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 	}
 
       addr = create_tmp_var (pptr_type_node, NULL);
-      lab_false = create_artificial_label ();
-      lab_over = create_artificial_label ();
+      lab_false = create_artificial_label (UNKNOWN_LOCATION);
+      lab_over = create_artificial_label (UNKNOWN_LOCATION);
 
       valist = build1 (INDIRECT_REF, ptr_type_node, addr);
 
@@ -8252,31 +8550,6 @@ sh_insert_attributes (tree node, tree *attributes)
    R0-R14, MACH, MACL, GBR and PR.  This is useful only on SH2A targets.
 */
 
-const struct attribute_spec sh_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "interrupt_handler", 0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "sp_switch",         1, 1, true,  false, false, sh_handle_sp_switch_attribute },
-  { "trap_exit",         1, 1, true,  false, false, sh_handle_trap_exit_attribute },
-  { "renesas",           0, 0, false, true, false, sh_handle_renesas_attribute },
-  { "trapa_handler",     0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "nosave_low_regs",   0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "resbank",           0, 0, true,  false, false, sh_handle_resbank_handler_attribute },
-  { "function_vector",   1, 1, true,  false, false, sh2a_handle_function_vector_handler_attribute },
-#ifdef SYMBIAN
-  /* Symbian support adds three new attributes:
-     dllexport - for exporting a function/variable that will live in a dll
-     dllimport - for importing a function/variable from a dll
-
-     Microsoft allows multiple declspecs in one __declspec, separating
-     them with spaces.  We do NOT support this.  Instead, use __declspec
-     multiple times.  */
-  { "dllimport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
-  { "dllexport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
-#endif
-  { NULL,                0, 0, false, false, false, NULL }
-};
-
 /* Handle a 'resbank' attribute.  */
 static tree
 sh_handle_resbank_handler_attribute (tree * node, tree name,
@@ -8598,7 +8871,7 @@ fp_one_operand (rtx op)
   return REAL_VALUES_EQUAL (r, dconst1);
 }
 
-/* For -m4 and -m4-single-only, mode switching is used.  If we are
+/* In general mode switching is used.  If we are
    compiling without -mfmovd, movsf_ie isn't taken into account for
    mode switching.  We could check in machine_dependent_reorg for
    cases where we know we are in single precision mode, but there is
@@ -8608,7 +8881,7 @@ fp_one_operand (rtx op)
 int
 fldi_ok (void)
 {
-  return ! TARGET_SH4 || TARGET_FMOVD || reload_completed;
+  return 1;
 }
 
 int
@@ -8766,7 +9039,8 @@ emit_fpu_switch (rtx scratch, int index)
 
       t = build_index_type (integer_one_node);
       t = build_array_type (integer_type_node, t);
-      t = build_decl (VAR_DECL, get_identifier ("__fpscr_values"), t);
+      t = build_decl (BUILTINS_LOCATION,
+		      VAR_DECL, get_identifier ("__fpscr_values"), t);
       DECL_ARTIFICIAL (t) = 1;
       DECL_IGNORED_P (t) = 1;
       DECL_EXTERNAL (t) = 1;

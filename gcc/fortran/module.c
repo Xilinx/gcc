@@ -77,7 +77,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Don't put any single quote (') in MOD_VERSION, 
    if yout want it to be recognized.  */
-#define MOD_VERSION "0"
+#define MOD_VERSION "1"
 
 
 /* Structure that describes a position within a module file.  */
@@ -2262,11 +2262,16 @@ mio_component_ref (gfc_component **cp, gfc_symbol *sym)
 }
 
 
+static void mio_namespace_ref (gfc_namespace **nsp);
+static void mio_formal_arglist (gfc_formal_arglist **formal);
+
+
 static void
 mio_component (gfc_component *c)
 {
   pointer_info *p;
   int n;
+  gfc_formal_arglist *formal;
 
   mio_lparen ();
 
@@ -2293,6 +2298,30 @@ mio_component (gfc_component *c)
   c->attr.access = MIO_NAME (gfc_access) (c->attr.access, access_types); 
 
   mio_expr (&c->initializer);
+
+  if (iomode == IO_OUTPUT)
+    {
+      formal = c->formal;
+      while (formal && !formal->sym)
+	formal = formal->next;
+
+      if (formal)
+	mio_namespace_ref (&formal->sym->ns);
+      else
+	mio_namespace_ref (&c->formal_ns);
+    }
+  else
+    {
+      mio_namespace_ref (&c->formal_ns);
+      /* TODO: if (c->formal_ns)
+	{
+	  c->formal_ns->proc_name = c;
+	  c->refs++;
+	}*/
+    }
+
+  mio_formal_arglist (&c->formal);
+
   mio_rparen ();
 }
 
@@ -2386,7 +2415,7 @@ mio_actual_arglist (gfc_actual_arglist **ap)
 /* Read and write formal argument lists.  */
 
 static void
-mio_formal_arglist (gfc_symbol *sym)
+mio_formal_arglist (gfc_formal_arglist **formal)
 {
   gfc_formal_arglist *f, *tail;
 
@@ -2394,20 +2423,20 @@ mio_formal_arglist (gfc_symbol *sym)
 
   if (iomode == IO_OUTPUT)
     {
-      for (f = sym->formal; f; f = f->next)
+      for (f = *formal; f; f = f->next)
 	mio_symbol_ref (&f->sym);
     }
   else
     {
-      sym->formal = tail = NULL;
+      *formal = tail = NULL;
 
       while (peek_atom () != ATOM_RPAREN)
 	{
 	  f = gfc_get_formal_arglist ();
 	  mio_symbol_ref (&f->sym);
 
-	  if (sym->formal == NULL)
-	    sym->formal = f;
+	  if (*formal == NULL)
+	    *formal = f;
 	  else
 	    tail->next = f;
 
@@ -3027,8 +3056,8 @@ mio_expr (gfc_expr **ep)
 
 	case BT_COMPLEX:
 	  gfc_set_model_kind (e->ts.kind);
-	  mio_gmp_real (&e->value.complex.r);
-	  mio_gmp_real (&e->value.complex.i);
+	  mio_gmp_real (&mpc_realref (e->value.complex));
+	  mio_gmp_real (&mpc_imagref (e->value.complex));
 	  break;
 
 	case BT_LOGICAL:
@@ -3436,7 +3465,7 @@ mio_symbol (gfc_symbol *sym)
   /* Save/restore common block links.  */
   mio_symbol_ref (&sym->common_next);
 
-  mio_formal_arglist (sym);
+  mio_formal_arglist (&sym->formal);
 
   if (sym->attr.flavor == FL_PARAMETER)
     mio_expr (&sym->value);
@@ -4977,7 +5006,8 @@ import_iso_c_binding_module (void)
   if (mod_symtree == NULL)
     {
       /* symtree doesn't already exist in current namespace.  */
-      gfc_get_sym_tree (iso_c_module_name, gfc_current_ns, &mod_symtree);
+      gfc_get_sym_tree (iso_c_module_name, gfc_current_ns, &mod_symtree,
+			false);
       
       if (mod_symtree != NULL)
 	mod_sym = mod_symtree->n.sym;
@@ -5065,7 +5095,7 @@ create_int_parameter (const char *name, int value, const char *modname,
 	gfc_error ("Symbol '%s' already declared", name);
     }
 
-  gfc_get_sym_tree (name, gfc_current_ns, &tmp_symtree);
+  gfc_get_sym_tree (name, gfc_current_ns, &tmp_symtree, false);
   sym = tmp_symtree->n.sym;
 
   sym->module = gfc_get_string (modname);
@@ -5106,7 +5136,7 @@ use_iso_fortran_env_module (void)
   mod_symtree = gfc_find_symtree (gfc_current_ns->sym_root, mod);
   if (mod_symtree == NULL)
     {
-      gfc_get_sym_tree (mod, gfc_current_ns, &mod_symtree);
+      gfc_get_sym_tree (mod, gfc_current_ns, &mod_symtree, false);
       gcc_assert (mod_symtree);
       mod_sym = mod_symtree->n.sym;
 

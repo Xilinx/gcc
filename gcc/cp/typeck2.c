@@ -312,8 +312,9 @@ abstract_virtuals_error (tree decl, tree type)
       unsigned ix;
       tree fn;
 
-      inform (input_location, "%J  because the following virtual functions are pure "
-	      "within %qT:", TYPE_MAIN_DECL (type), type);
+      inform (DECL_SOURCE_LOCATION (TYPE_MAIN_DECL (type)),
+	      "  because the following virtual functions are pure within %qT:",
+	      type);
 
       for (ix = 0; VEC_iterate (tree, pure, ix, fn); ix++)
 	inform (input_location, "\t%+#D", fn);
@@ -323,8 +324,9 @@ abstract_virtuals_error (tree decl, tree type)
       VEC_truncate (tree, pure, 0);
     }
   else
-    inform (input_location, "%J  since type %qT has pure virtual functions",
-	    TYPE_MAIN_DECL (type), type);
+    inform (DECL_SOURCE_LOCATION (TYPE_MAIN_DECL (type)),
+	    "  since type %qT has pure virtual functions",
+	    type);
 
   return 1;
 }
@@ -516,7 +518,7 @@ split_nonconstant_init_1 (tree dest, tree init)
 			      NULL_TREE);
 
 	      code = build2 (INIT_EXPR, inner_type, sub, value);
-	      code = build_stmt (EXPR_STMT, code);
+	      code = build_stmt (input_location, EXPR_STMT, code);
 	      add_stmt (code);
 	      continue;
 	    }
@@ -530,7 +532,7 @@ split_nonconstant_init_1 (tree dest, tree init)
 	  tree cons = copy_node (init);
 	  CONSTRUCTOR_ELTS (init) = NULL;
 	  code = build2 (MODIFY_EXPR, type, dest, cons);
-	  code = build_stmt (EXPR_STMT, code);
+	  code = build_stmt (input_location, EXPR_STMT, code);
 	  add_stmt (code);
 	}
       break;

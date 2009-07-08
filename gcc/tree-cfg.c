@@ -329,7 +329,7 @@ factor_computed_gotos (void)
 
 	      /* Build a label for the new block which will contain the
 		 factored computed goto.  */
-	      factored_label_decl = create_artificial_label ();
+	      factored_label_decl = create_artificial_label (UNKNOWN_LOCATION);
 	      factored_computed_goto_label
 		= gimple_build_label (factored_label_decl);
 	      gsi_insert_after (&new_gsi, factored_computed_goto_label,
@@ -1643,7 +1643,7 @@ remove_useless_stmts_warn_notreached (gimple_seq stmts)
           location_t loc = gimple_location (stmt);
           if (LOCATION_LINE (loc) > 0)
 	    {
-              warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
+              warning_at (loc, OPT_Wunreachable_code, "will never be executed");
               return true;
             }
         }
@@ -2310,7 +2310,7 @@ remove_bb (basic_block bb)
      loop above, so the last statement we process is the first statement
      in the block.  */
   if (loc > BUILTINS_LOCATION && LOCATION_LINE (loc) > 0)
-    warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
+    warning_at (loc, OPT_Wunreachable_code, "will never be executed");
 
   remove_phi_nodes_and_edges_for_unreachable_block (bb);
   bb->il.gimple = NULL;
@@ -4268,7 +4268,7 @@ verify_stmt (gimple_stmt_iterator *gsi)
   if (addr)
     {
       debug_generic_expr (addr);
-      inform (input_location, "in statement");
+      inform (gimple_location (gsi_stmt (*gsi)), "in statement");
       debug_gimple_stmt (stmt);
       return true;
     }
@@ -4874,7 +4874,7 @@ gimple_block_label (basic_block bb)
 	}
     }
 
-  label = create_artificial_label ();
+  label = create_artificial_label (UNKNOWN_LOCATION);
   stmt = gimple_build_label (label);
   gsi_insert_before (&s, stmt, GSI_NEW_STMT);
   return label;
@@ -4947,7 +4947,7 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
   gsi = gsi_last_bb (bb);
   stmt = gsi_end_p (gsi) ? NULL : gsi_stmt (gsi);
 
-  switch (stmt ? gimple_code (stmt) : ERROR_MARK)
+  switch (stmt ? gimple_code (stmt) : GIMPLE_ERROR_MARK)
     {
     case GIMPLE_COND:
       /* For COND_EXPR, we only need to redirect the edge.  */
@@ -6033,7 +6033,7 @@ new_label_mapper (tree decl, void *data)
   m = XNEW (struct tree_map);
   m->hash = DECL_UID (decl);
   m->base.from = decl;
-  m->to = create_artificial_label ();
+  m->to = create_artificial_label (UNKNOWN_LOCATION);
   LABEL_DECL_UID (m->to) = LABEL_DECL_UID (decl);
   if (LABEL_DECL_UID (m->to) >= cfun->cfg->last_label_uid)
     cfun->cfg->last_label_uid = LABEL_DECL_UID (m->to) + 1;
@@ -7260,7 +7260,7 @@ execute_warn_function_return (void)
 	}
       if (location == UNKNOWN_LOCATION)
 	location = cfun->function_end_locus;
-      warning (0, "%H%<noreturn%> function does return", &location);
+      warning_at (location, 0, "%<noreturn%> function does return");
     }
 
   /* If we see "return;" in some basic block, then we do reach the end
@@ -7342,9 +7342,9 @@ execute_warn_function_noreturn (void)
       && !TREE_THIS_VOLATILE (cfun->decl)
       && EDGE_COUNT (EXIT_BLOCK_PTR->preds) == 0
       && !lang_hooks.missing_noreturn_ok_p (cfun->decl))
-    warning (OPT_Wmissing_noreturn, "%Jfunction might be possible candidate "
-	     "for attribute %<noreturn%>",
-	     cfun->decl);
+    warning_at (DECL_SOURCE_LOCATION (cfun->decl), OPT_Wmissing_noreturn,
+		"function might be possible candidate "
+		"for attribute %<noreturn%>");
   return 0;
 }
 

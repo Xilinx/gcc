@@ -255,6 +255,16 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 #endif
 
+/* This determines whether or not we support the discriminator
+   attribute in the .loc directive.  */
+#ifndef SUPPORTS_DISCRIMINATOR
+#ifdef HAVE_GAS_DISCRIMINATOR
+#define SUPPORTS_DISCRIMINATOR 1
+#else
+#define SUPPORTS_DISCRIMINATOR 0
+#endif
+#endif
+
 /* This determines whether or not we support link-once semantics.  */
 #ifndef SUPPORTS_ONE_ONLY
 #ifdef MAKE_DECL_ONE_ONLY
@@ -1133,15 +1143,15 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define ATTRIBUTE_ALIGNED_VALUE BIGGEST_ALIGNMENT
 #endif
 
+#ifndef CAN_ELIMINATE
+#define CAN_ELIMINATE(FROM, TO) true
+#endif
+
 /* Many ports have no mode-dependent addresses (except possibly autoincrement
    and autodecrement addresses, which are handled by target-independent code
    in recog.c).  */
 #ifndef GO_IF_MODE_DEPENDENT_ADDRESS
 #define GO_IF_MODE_DEPENDENT_ADDRESS(X, WIN)
-#endif
-
-#ifndef FRAME_POINTER_REQUIRED
-#define FRAME_POINTER_REQUIRED false
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

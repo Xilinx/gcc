@@ -564,7 +564,8 @@ struct gcc_target
      complete expression that implements the operation.  PARAMS really
      has type VEC(tree,gc)*, but we don't want to include tree.h
      here.  */
-  tree (*resolve_overloaded_builtin) (tree decl, void *params);
+  tree (*resolve_overloaded_builtin) (unsigned int /*location_t*/,
+      				      tree decl, void *params);
 
   /* Fold a target-specific builtin.  */
   tree (* fold_builtin) (tree fndecl, tree arglist, bool ignore);
@@ -959,6 +960,9 @@ struct gcc_target
   /* Return the smallest number of different values for which it is best to
      use a jump-table instead of a tree of conditional branches.  */
   unsigned int (* case_values_threshold) (void);
+  
+  /* Retutn true if a function must have and use a frame pointer.  */
+  bool (* frame_pointer_required) (void);
 
   /* Functions specific to the C family of frontends.  */
   struct c {

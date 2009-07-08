@@ -60,6 +60,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_POPCNT	OPTION_ISA_POPCNT
 #define TARGET_SAHF	OPTION_ISA_SAHF
 #define TARGET_MOVBE	OPTION_ISA_MOVBE
+#define TARGET_CRC32	OPTION_ISA_CRC32
 #define TARGET_AES	OPTION_ISA_AES
 #define TARGET_PCLMUL	OPTION_ISA_PCLMUL
 #define TARGET_CMPXCHG16B OPTION_ISA_CX16
@@ -1151,12 +1152,6 @@ do {									\
 #define FIRST_REX_SSE_REG  (LAST_REX_INT_REG + 1)
 #define LAST_REX_SSE_REG   (FIRST_REX_SSE_REG + 7)
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED  ix86_frame_pointer_required ()
-
 /* Override this in other tm.h files to cope with various OS lossage
    requiring a frame pointer.  */
 #ifndef SUBTARGET_FRAME_POINTER_REQUIRED
@@ -1497,6 +1492,7 @@ enum reg_class
    || ((CLASS) == AD_REGS)						\
    || ((CLASS) == SIREG)						\
    || ((CLASS) == DIREG)						\
+   || ((CLASS) == SSE_FIRST_REG)					\
    || ((CLASS) == FP_TOP_REG)						\
    || ((CLASS) == FP_SECOND_REG))
 
@@ -2306,6 +2302,12 @@ extern enum reg_class const regclass_map[FIRST_PSEUDO_REGISTER];
 
 extern rtx ix86_compare_op0;	/* operand 0 for comparisons */
 extern rtx ix86_compare_op1;	/* operand 1 for comparisons */
+
+enum ix86_fpcmp_strategy {
+  IX86_FPCMP_SAHF,
+  IX86_FPCMP_COMI,
+  IX86_FPCMP_ARITH
+};
 
 /* To properly truncate FP values into integers, we need to set i387 control
    word.  We can't emit proper mode switching code before reload, as spills

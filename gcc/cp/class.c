@@ -151,8 +151,6 @@ static void check_bases_and_members (tree);
 static tree create_vtable_ptr (tree, tree *);
 static void include_empty_classes (record_layout_info);
 static void layout_class_type (tree, tree *);
-static void fixup_pending_inline (tree);
-static void fixup_inline_methods (tree);
 static void propagate_binfo_offsets (tree, tree);
 static void layout_virtual_bases (record_layout_info, splay_tree);
 static void build_vbase_offset_vtbl_entries (tree, vtbl_init_data *);
@@ -295,7 +293,7 @@ build_base_path (enum tree_code code,
 
   /* Don't bother with the calculations inside sizeof; they'll ICE if the
      source type is incomplete and the pointer value doesn't matter.  */
-  if (skip_evaluation)
+  if (cp_unevaluated_operand != 0)
     {
       expr = build_nop (build_pointer_type (target_type), expr);
       if (!want_pointer)
@@ -626,7 +624,7 @@ build_vtbl_ref_1 (tree instance, tree idx)
     vtbl = build_vfield_ref (instance, basetype);
 
 
-  aref = build_array_ref (vtbl, idx, input_location);
+  aref = build_array_ref (input_location, vtbl, idx);
   TREE_CONSTANT (aref) |= TREE_CONSTANT (vtbl) && TREE_CONSTANT (idx);
 
   return aref;
@@ -774,7 +772,7 @@ get_vtable_decl (tree type, int complete)
   if (complete)
     {
       DECL_EXTERNAL (decl) = 1;
-      finish_decl (decl, NULL_TREE, NULL_TREE, NULL_TREE);
+      cp_finish_decl (decl, NULL_TREE, false, NULL_TREE, 0);
     }
 
   return decl;
@@ -3636,7 +3634,8 @@ build_base_field (record_layout_info rli, tree binfo,
       CLASSTYPE_EMPTY_P (t) = 0;
 
       /* Create the FIELD_DECL.  */
-      decl = build_decl (FIELD_DECL, NULL_TREE, CLASSTYPE_AS_BASE (basetype));
+      decl = build_decl (input_location,
+			 FIELD_DECL, NULL_TREE, CLASSTYPE_AS_BASE (basetype));
       DECL_ARTIFICIAL (decl) = 1;
       DECL_IGNORED_P (decl) = 1;
       DECL_FIELD_CONTEXT (decl) = t;
@@ -3798,12 +3797,27 @@ build_clone (tree fn, tree name)
 
   /* Copy the function.  */
   clone = copy_decl (fn);
-  /* Remember where this function came from.  */
-  DECL_CLONED_FUNCTION (clone) = fn;
-  DECL_ABSTRACT_ORIGIN (clone) = fn;
   /* Reset the function name.  */
   DECL_NAME (clone) = name;
   SET_DECL_ASSEMBLER_NAME (clone, NULL_TREE);
+  /* Remember where this function came from.  */
+  DECL_ABSTRACT_ORIGIN (clone) = fn;
+  /* Make it easy to find the CLONE given the FN.  */
+  TREE_CHAIN (clone) = TREE_CHAIN (fn);
+  TREE_CHAIN (fn) = clone;
+
+  /* If this is a template, do the rest on the DECL_TEMPLATE_RESULT.  */
+  if (TREE_CODE (clone) == TEMPLATE_DECL)
+    {
+      tree result = build_clone (DECL_TEMPLATE_RESULT (clone), name);
+      DECL_TEMPLATE_RESULT (clone) = result;
+      DECL_TEMPLATE_INFO (result) = copy_node (DECL_TEMPLATE_INFO (result));
+      DECL_TI_TEMPLATE (result) = clone;
+      TREE_TYPE (clone) = TREE_TYPE (result);
+      return clone;
+    }
+
+  DECL_CLONED_FUNCTION (clone) = fn;
   /* There's no pending inline data for this function.  */
   DECL_PENDING_INLINE_INFO (clone) = NULL;
   DECL_PENDING_INLINE_P (clone) = 0;
@@ -3851,61 +3865,79 @@ build_clone (tree fn, tree name)
 					   TYPE_ATTRIBUTES (TREE_TYPE (fn)));
     }
 
-  /* Copy the function parameters.  But, DECL_ARGUMENTS on a TEMPLATE_DECL
-     aren't function parameters; those are the template parameters.  */
-  if (TREE_CODE (clone) != TEMPLATE_DECL)
+  /* Copy the function parameters.  */
+  DECL_ARGUMENTS (clone) = copy_list (DECL_ARGUMENTS (clone));
+  /* Remove the in-charge parameter.  */
+  if (DECL_HAS_IN_CHARGE_PARM_P (clone))
     {
-      DECL_ARGUMENTS (clone) = copy_list (DECL_ARGUMENTS (clone));
-      /* Remove the in-charge parameter.  */
-      if (DECL_HAS_IN_CHARGE_PARM_P (clone))
+      TREE_CHAIN (DECL_ARGUMENTS (clone))
+	= TREE_CHAIN (TREE_CHAIN (DECL_ARGUMENTS (clone)));
+      DECL_HAS_IN_CHARGE_PARM_P (clone) = 0;
+    }
+  /* And the VTT parm, in a complete [cd]tor.  */
+  if (DECL_HAS_VTT_PARM_P (fn))
+    {
+      if (DECL_NEEDS_VTT_PARM_P (clone))
+	DECL_HAS_VTT_PARM_P (clone) = 1;
+      else
 	{
 	  TREE_CHAIN (DECL_ARGUMENTS (clone))
 	    = TREE_CHAIN (TREE_CHAIN (DECL_ARGUMENTS (clone)));
-	  DECL_HAS_IN_CHARGE_PARM_P (clone) = 0;
+	  DECL_HAS_VTT_PARM_P (clone) = 0;
 	}
-      /* And the VTT parm, in a complete [cd]tor.  */
-      if (DECL_HAS_VTT_PARM_P (fn))
-	{
-	  if (DECL_NEEDS_VTT_PARM_P (clone))
-	    DECL_HAS_VTT_PARM_P (clone) = 1;
-	  else
-	    {
-	      TREE_CHAIN (DECL_ARGUMENTS (clone))
-		= TREE_CHAIN (TREE_CHAIN (DECL_ARGUMENTS (clone)));
-	      DECL_HAS_VTT_PARM_P (clone) = 0;
-	    }
-	}
+    }
 
-      for (parms = DECL_ARGUMENTS (clone); parms; parms = TREE_CHAIN (parms))
-	{
-	  DECL_CONTEXT (parms) = clone;
-	  cxx_dup_lang_specific_decl (parms);
-	}
+  for (parms = DECL_ARGUMENTS (clone); parms; parms = TREE_CHAIN (parms))
+    {
+      DECL_CONTEXT (parms) = clone;
+      cxx_dup_lang_specific_decl (parms);
     }
 
   /* Create the RTL for this function.  */
   SET_DECL_RTL (clone, NULL_RTX);
   rest_of_decl_compilation (clone, /*top_level=*/1, at_eof);
 
-  /* Make it easy to find the CLONE given the FN.  */
-  TREE_CHAIN (clone) = TREE_CHAIN (fn);
-  TREE_CHAIN (fn) = clone;
-
-  /* If this is a template, handle the DECL_TEMPLATE_RESULT as well.  */
-  if (TREE_CODE (clone) == TEMPLATE_DECL)
-    {
-      tree result;
-
-      DECL_TEMPLATE_RESULT (clone)
-	= build_clone (DECL_TEMPLATE_RESULT (clone), name);
-      result = DECL_TEMPLATE_RESULT (clone);
-      DECL_TEMPLATE_INFO (result) = copy_node (DECL_TEMPLATE_INFO (result));
-      DECL_TI_TEMPLATE (result) = clone;
-    }
-  else if (pch_file)
+  if (pch_file)
     note_decl_for_pch (clone);
 
   return clone;
+}
+
+/* Implementation of DECL_CLONED_FUNCTION and DECL_CLONED_FUNCTION_P, do
+   not invoke this function directly.
+
+   For a non-thunk function, returns the address of the slot for storing
+   the function it is a clone of.  Otherwise returns NULL_TREE.
+
+   If JUST_TESTING, looks through TEMPLATE_DECL and returns NULL if
+   cloned_function is unset.  This is to support the separate
+   DECL_CLONED_FUNCTION and DECL_CLONED_FUNCTION_P modes; using the latter
+   on a template makes sense, but not the former.  */
+
+tree *
+decl_cloned_function_p (const_tree decl, bool just_testing)
+{
+  tree *ptr;
+  if (just_testing)
+    decl = STRIP_TEMPLATE (decl);
+
+  if (TREE_CODE (decl) != FUNCTION_DECL
+      || !DECL_LANG_SPECIFIC (decl)
+      || DECL_LANG_SPECIFIC (decl)->u.fn.thunk_p)
+    {
+#if defined ENABLE_TREE_CHECKING && (GCC_VERSION >= 2007)
+      if (!just_testing)
+	lang_check_failed (__FILE__, __LINE__, __FUNCTION__);
+      else
+#endif
+	return NULL;
+    }
+
+  ptr = &DECL_LANG_SPECIFIC (decl)->u.fn.u5.cloned_function;
+  if (just_testing && *ptr == NULL_TREE)
+    return NULL;
+  else
+    return ptr;
 }
 
 /* Produce declarations for all appropriate clones of FN.  If
@@ -3919,7 +3951,7 @@ clone_function_decl (tree fn, int update_method_vec_p)
 
   /* Avoid inappropriate cloning.  */
   if (TREE_CHAIN (fn)
-      && DECL_CLONED_FUNCTION (TREE_CHAIN (fn)))
+      && DECL_CLONED_FUNCTION_P (TREE_CHAIN (fn)))
     return;
 
   if (DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P (fn))
@@ -3976,7 +4008,7 @@ adjust_clone_args (tree decl)
 {
   tree clone;
 
-  for (clone = TREE_CHAIN (decl); clone && DECL_CLONED_FUNCTION (clone);
+  for (clone = TREE_CHAIN (decl); clone && DECL_CLONED_FUNCTION_P (clone);
        clone = TREE_CHAIN (clone))
     {
       tree orig_clone_parms = TYPE_ARG_TYPES (TREE_TYPE (clone));
@@ -4428,7 +4460,8 @@ create_vtable_ptr (tree t, tree* virtuals_p)
 	 stores cannot alias stores to void*!  */
       tree field;
 
-      field = build_decl (FIELD_DECL, get_vfield_name (t), vtbl_ptr_type_node);
+      field = build_decl (input_location, 
+			  FIELD_DECL, get_vfield_name (t), vtbl_ptr_type_node);
       DECL_VIRTUAL_P (field) = 1;
       DECL_ARTIFICIAL (field) = 1;
       DECL_FIELD_CONTEXT (field) = t;
@@ -4443,54 +4476,6 @@ create_vtable_ptr (tree t, tree* virtuals_p)
     }
 
   return NULL_TREE;
-}
-
-/* Fixup the inline function given by INFO now that the class is
-   complete.  */
-
-static void
-fixup_pending_inline (tree fn)
-{
-  if (DECL_PENDING_INLINE_INFO (fn))
-    {
-      tree args = DECL_ARGUMENTS (fn);
-      while (args)
-	{
-	  DECL_CONTEXT (args) = fn;
-	  args = TREE_CHAIN (args);
-	}
-    }
-}
-
-/* Fixup the inline methods and friends in TYPE now that TYPE is
-   complete.  */
-
-static void
-fixup_inline_methods (tree type)
-{
-  tree method = TYPE_METHODS (type);
-  VEC(tree,gc) *friends;
-  unsigned ix;
-
-  if (method && TREE_CODE (method) == TREE_VEC)
-    {
-      if (TREE_VEC_ELT (method, 1))
-	method = TREE_VEC_ELT (method, 1);
-      else if (TREE_VEC_ELT (method, 0))
-	method = TREE_VEC_ELT (method, 0);
-      else
-	method = TREE_VEC_ELT (method, 2);
-    }
-
-  /* Do inline member functions.  */
-  for (; method; method = TREE_CHAIN (method))
-    fixup_pending_inline (method);
-
-  /* Do friends.  */
-  for (friends = CLASSTYPE_INLINE_FRIENDS (type), ix = 0;
-       VEC_iterate (tree, friends, ix, method); ix++)
-    fixup_pending_inline (method);
-  CLASSTYPE_INLINE_FRIENDS (type) = NULL;
 }
 
 /* Add OFFSET to all base types of BINFO which is a base in the
@@ -5008,7 +4993,8 @@ layout_class_type (tree t, tree *virtuals_p)
 	{
 	  tree padding_field;
 
-	  padding_field = build_decl (FIELD_DECL,
+	  padding_field = build_decl (input_location,
+				      FIELD_DECL,
 				      NULL_TREE,
 				      char_type_node);
 	  DECL_BIT_FIELD (padding_field) = 1;
@@ -5096,7 +5082,8 @@ layout_class_type (tree t, tree *virtuals_p)
       for (field = TYPE_FIELDS (t); field; field = TREE_CHAIN (field))
 	if (TREE_CODE (field) == FIELD_DECL)
 	  {
-	    *next_field = build_decl (FIELD_DECL,
+	    *next_field = build_decl (input_location,
+				      FIELD_DECL,
 				      DECL_NAME (field),
 				      TREE_TYPE (field));
 	    DECL_CONTEXT (*next_field) = base_t;
@@ -5137,7 +5124,8 @@ layout_class_type (tree t, tree *virtuals_p)
   /* Make sure not to create any structures with zero size.  */
   if (integer_zerop (rli_size_unit_so_far (rli)) && CLASSTYPE_EMPTY_P (t))
     place_field (rli,
-		 build_decl (FIELD_DECL, NULL_TREE, char_type_node));
+		 build_decl (input_location,
+			     FIELD_DECL, NULL_TREE, char_type_node));
 
   /* Let the back end lay out the type.  */
   finish_record_layout (rli, /*free_p=*/true);
@@ -5213,8 +5201,6 @@ finish_struct_1 (tree t)
      make sure we lay it out again.  */
   TYPE_SIZE (t) = NULL_TREE;
   CLASSTYPE_PRIMARY_BINFO (t) = NULL_TREE;
-
-  fixup_inline_methods (t);
 
   /* Make assumptions about the class; we'll reset the flags if
      necessary.  */
@@ -5327,9 +5313,7 @@ finish_struct_1 (tree t)
       add_fields_to_record_type (TYPE_FIELDS (t), field_vec, 0);
       qsort (field_vec->elts, n_fields, sizeof (tree),
 	     field_decl_cmp);
-      if (! DECL_LANG_SPECIFIC (TYPE_MAIN_DECL (t)))
-	retrofit_lang_decl (TYPE_MAIN_DECL (t));
-      DECL_SORTED_FIELDS (TYPE_MAIN_DECL (t)) = field_vec;
+      CLASSTYPE_SORTED_FIELDS (t) = field_vec;
     }
 
   /* Complain if one of the field types requires lower visibility.  */
@@ -6180,7 +6164,7 @@ resolve_address_of_overloaded_function (tree target_type,
 
       fn = TREE_PURPOSE (matches);
       for (match = TREE_CHAIN (matches); match; match = TREE_CHAIN (match))
-	if (!decls_match (fn, TREE_PURPOSE (matches)))
+	if (!decls_match (fn, TREE_PURPOSE (match)))
 	  break;
 
       if (match)

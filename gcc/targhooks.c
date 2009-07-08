@@ -387,9 +387,7 @@ default_invalid_within_doloop (const_rtx insn)
   if (CALL_P (insn))
     return "Function call in loop.";
   
-  if (JUMP_P (insn)
-      && (GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC
-	  || GET_CODE (PATTERN (insn)) == ADDR_VEC))
+  if (JUMP_TABLE_DATA_P (insn))
     return "Computed branch in the loop.";
   
   return NULL;
@@ -398,7 +396,7 @@ default_invalid_within_doloop (const_rtx insn)
 /* Mapping of builtin functions to vectorized variants.  */
 
 tree
-default_builtin_vectorized_function (enum built_in_function fn ATTRIBUTE_UNUSED,
+default_builtin_vectorized_function (unsigned int fn ATTRIBUTE_UNUSED,
 				     tree type_out ATTRIBUTE_UNUSED,
 				     tree type_in ATTRIBUTE_UNUSED)
 {
@@ -408,7 +406,7 @@ default_builtin_vectorized_function (enum built_in_function fn ATTRIBUTE_UNUSED,
 /* Vectorized conversion.  */
 
 tree
-default_builtin_vectorized_conversion (enum tree_code code ATTRIBUTE_UNUSED,
+default_builtin_vectorized_conversion (unsigned int code ATTRIBUTE_UNUSED,
 				       tree type ATTRIBUTE_UNUSED)
 {
   return NULL_TREE;
@@ -417,7 +415,7 @@ default_builtin_vectorized_conversion (enum tree_code code ATTRIBUTE_UNUSED,
 /* Reciprocal.  */
 
 tree
-default_builtin_reciprocal (enum built_in_function fn ATTRIBUTE_UNUSED,
+default_builtin_reciprocal (unsigned int fn ATTRIBUTE_UNUSED,
 			    bool md_fn ATTRIBUTE_UNUSED,
 			    bool sqrt ATTRIBUTE_UNUSED)
 {
@@ -477,7 +475,8 @@ default_stack_protect_guard (void)
 
   if (t == NULL)
     {
-      t = build_decl (VAR_DECL, get_identifier ("__stack_chk_guard"),
+      t = build_decl (UNKNOWN_LOCATION,
+		      VAR_DECL, get_identifier ("__stack_chk_guard"),
 		      ptr_type_node);
       TREE_STATIC (t) = 1;
       TREE_PUBLIC (t) = 1;
@@ -503,7 +502,8 @@ default_external_stack_protect_fail (void)
   if (t == NULL_TREE)
     {
       t = build_function_type_list (void_type_node, NULL_TREE);
-      t = build_decl (FUNCTION_DECL, get_identifier ("__stack_chk_fail"), t);
+      t = build_decl (UNKNOWN_LOCATION,
+		      FUNCTION_DECL, get_identifier ("__stack_chk_fail"), t);
       TREE_STATIC (t) = 1;
       TREE_PUBLIC (t) = 1;
       DECL_EXTERNAL (t) = 1;
@@ -535,7 +535,7 @@ default_hidden_stack_protect_fail (void)
   if (t == NULL_TREE)
     {
       t = build_function_type_list (void_type_node, NULL_TREE);
-      t = build_decl (FUNCTION_DECL,
+      t = build_decl (UNKNOWN_LOCATION, FUNCTION_DECL,
 		      get_identifier ("__stack_chk_fail_local"), t);
       TREE_STATIC (t) = 1;
       TREE_PUBLIC (t) = 1;

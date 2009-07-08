@@ -333,7 +333,7 @@ static void dbxout_handle_pch (unsigned);
 /* The debug hooks structure.  */
 #if defined (DBX_DEBUGGING_INFO)
 
-static void dbxout_source_line (unsigned int, const char *, int);
+static void dbxout_source_line (unsigned int, const char *, int, bool);
 static void dbxout_begin_prologue (unsigned int, const char *);
 static void dbxout_source_file (const char *);
 static void dbxout_function_end (tree);
@@ -1265,7 +1265,7 @@ dbxout_begin_prologue (unsigned int lineno, const char *filename)
   /* pre-increment the scope counter */
   scope_labelno++;
 
-  dbxout_source_line (lineno, filename, 0);
+  dbxout_source_line (lineno, filename, 0, true);
   /* Output function begin block at function scope, referenced 
      by dbxout_block, dbxout_source_line and dbxout_function_end.  */
   emit_pending_bincls_if_required ();
@@ -1277,7 +1277,8 @@ dbxout_begin_prologue (unsigned int lineno, const char *filename)
 
 static void
 dbxout_source_line (unsigned int lineno, const char *filename,
-                    int discriminator ATTRIBUTE_UNUSED)
+                    int discriminator ATTRIBUTE_UNUSED,
+                    bool is_stmt ATTRIBUTE_UNUSED)
 {
   dbxout_source_file (filename);
 
@@ -2777,9 +2778,15 @@ dbxout_symbol (tree decl, int local ATTRIBUTE_UNUSED)
       }
 
     case PARM_DECL:
-      /* Parm decls go in their own separate chains
-	 and are output by dbxout_reg_parms and dbxout_parms.  */
-      gcc_unreachable ();
+      if (DECL_HAS_VALUE_EXPR_P (decl))
+	decl = DECL_VALUE_EXPR (decl);
+
+      /* PARM_DECLs go in their own separate chain and are output by
+	 dbxout_reg_parms and dbxout_parms, except for those that are
+	 disguised VAR_DECLs like Out parameters in Ada.  */
+      gcc_assert (TREE_CODE (decl) == VAR_DECL);
+
+      /* ... fall through ...  */
 
     case RESULT_DECL:
     case VAR_DECL:
@@ -3031,7 +3038,7 @@ dbxout_symbol_location (tree decl, tree type, const char *suffix, rtx home)
     }
   else if (MEM_P (home)
 	   && GET_CODE (XEXP (home, 0)) == PLUS
-	   && GET_CODE (XEXP (XEXP (home, 0), 1)) == CONST_INT)
+	   && CONST_INT_P (XEXP (XEXP (home, 0), 1)))
     {
       code = N_LSYM;
       /* RTL looks like (MEM (PLUS (REG...) (CONST_INT...)))
@@ -3217,7 +3224,7 @@ dbxout_common_check (tree decl, int *value)
       switch (GET_CODE (sym_addr))
         {
         case PLUS:
-          if (GET_CODE (XEXP (sym_addr, 0)) == CONST_INT)
+          if (CONST_INT_P (XEXP (sym_addr, 0)))
             {
               name =
                 targetm.strip_name_encoding(XSTR (XEXP (sym_addr, 1), 0));
@@ -3350,7 +3357,7 @@ dbxout_parms (tree parms)
 	       If that is not true, we produce meaningless results,
 	       but do not crash.  */
 	    if (GET_CODE (inrtl) == PLUS
-		&& GET_CODE (XEXP (inrtl, 1)) == CONST_INT)
+		&& CONST_INT_P (XEXP (inrtl, 1)))
 	      number = INTVAL (XEXP (inrtl, 1));
 	    else
 	      number = 0;

@@ -387,7 +387,7 @@ package body Sem_Ch4 is
            and then Comes_From_Source (N)
            and then not In_Instance_Body
          then
-            if not OK_For_Limited_Init (Expression (E)) then
+            if not OK_For_Limited_Init (Type_Id, Expression (E)) then
                Error_Msg_N ("initialization not allowed for limited types", N);
                Explain_Limited_Type (Type_Id, N);
             end if;
@@ -1237,11 +1237,38 @@ package body Sem_Ch4 is
       Condition : constant Node_Id := First (Expressions (N));
       Then_Expr : constant Node_Id := Next (Condition);
       Else_Expr : constant Node_Id := Next (Then_Expr);
+
    begin
+      if Comes_From_Source (N) then
+         Check_Compiler_Unit (N);
+      end if;
+
       Analyze_Expression (Condition);
       Analyze_Expression (Then_Expr);
-      Analyze_Expression (Else_Expr);
-      Set_Etype (N, Etype (Then_Expr));
+
+      if Present (Else_Expr) then
+         Analyze_Expression (Else_Expr);
+      end if;
+
+      if not  Is_Overloaded (Then_Expr) then
+         Set_Etype (N, Etype (Then_Expr));
+      else
+         declare
+            I  : Interp_Index;
+            It : Interp;
+
+         begin
+            Set_Etype (N, Any_Type);
+            Get_First_Interp (Then_Expr, I, It);
+            while Present (It.Nam) loop
+               if Has_Compatible_Type (Else_Expr, It.Typ) then
+                  Add_One_Interp (N, It.Typ, It.Typ);
+               end if;
+
+               Get_Next_Interp (I, It);
+            end loop;
+         end;
+      end if;
    end Analyze_Conditional_Expression;
 
    -------------------------
@@ -2262,7 +2289,9 @@ package body Sem_Ch4 is
          return;
       end if;
 
-      if Present (Actuals)
+      --  An indexing requires at least one actual
+
+      if not Is_Empty_List (Actuals)
         and then
           (Needs_No_Actuals (Nam)
             or else
@@ -2445,7 +2474,7 @@ package body Sem_Ch4 is
                   if Report and not Is_Indexed and not Is_Indirect then
 
                      --  Ada 2005 (AI-251): Complete the error notification
-                     --  to help new Ada 2005 users
+                     --  to help new Ada 2005 users.
 
                      if Is_Class_Wide_Type (Etype (Formal))
                        and then Is_Interface (Etype (Etype (Formal)))

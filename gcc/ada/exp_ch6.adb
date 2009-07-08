@@ -1182,7 +1182,6 @@ package body Exp_Ch6 is
                    Expression => Expr));
             end;
          end if;
-
       end Add_Call_By_Copy_Code;
 
       ----------------------------------
@@ -1572,11 +1571,16 @@ package body Exp_Ch6 is
             --  treatment, whereas the formal is not volatile, then pass
             --  by copy unless it is a by-reference type.
 
+            --  Note: we use Is_Volatile here rather than Treat_As_Volatile,
+            --  because this is the enforcement of a language rule that applies
+            --  only to "real" volatile variables, not e.g. to the address
+            --  clause overlay case.
+
             elsif Is_Entity_Name (Actual)
-              and then Treat_As_Volatile (Entity (Actual))
+              and then Is_Volatile (Entity (Actual))
               and then not Is_By_Reference_Type (Etype (Actual))
               and then not Is_Scalar_Type (Etype (Entity (Actual)))
-              and then not Treat_As_Volatile (E_Formal)
+              and then not Is_Volatile (E_Formal)
             then
                Add_Call_By_Copy_Code;
 
@@ -1584,6 +1588,30 @@ package body Exp_Ch6 is
               and then Is_Entity_Name (Prefix (Actual))
               and then Has_Volatile_Components (Entity (Prefix (Actual)))
             then
+               Add_Call_By_Copy_Code;
+
+            --  Add call-by-copy code for the case of scalar out parameters
+            --  when it is not known at compile time that the subtype of the
+            --  formal is a subrange of the subtype of the actual (or vice
+            --  versa for in out parameters), in order to get range checks
+            --  on such actuals. (Maybe this case should be handled earlier
+            --  in the if statement???)
+
+            elsif Is_Scalar_Type (E_Formal)
+              and then
+                (not In_Subrange_Of (E_Formal, Etype (Actual))
+                  or else
+                    (Ekind (Formal) = E_In_Out_Parameter
+                      and then not In_Subrange_Of (Etype (Actual), E_Formal)))
+            then
+               --  Perhaps the setting back to False should be done within
+               --  Add_Call_By_Copy_Code, since it could get set on other
+               --  cases occurring above???
+
+               if Do_Range_Check (Actual) then
+                  Set_Do_Range_Check (Actual, False);
+               end if;
+
                Add_Call_By_Copy_Code;
             end if;
 
@@ -1604,8 +1632,8 @@ package body Exp_Ch6 is
                Reset_Packed_Prefix;
                Expand_Packed_Element_Reference (Actual);
 
-            --  If we have a reference to a bit packed array, we copy it,
-            --  since the actual must be byte aligned.
+            --  If we have a reference to a bit packed array, we copy it, since
+            --  the actual must be byte aligned.
 
             --  Is this really necessary in all cases???
 
@@ -2016,21 +2044,24 @@ package body Exp_Ch6 is
       --  formals as we process the regular formals and collect the
       --  corresponding actuals in Extra_Actuals.
 
-      --  We also generate any required range checks for actuals as we go
-      --  through the loop, since this is a convenient place to do this.
+      --  We also generate any required range checks for actuals for in formals
+      --  as we go through the loop, since this is a convenient place to do it.
+      --  (Though it seems that this would be better done in Expand_Actuals???)
 
       Formal      := First_Formal (Subp);
       Actual      := First_Actual (N);
       Param_Count := 1;
       while Present (Formal) loop
 
-         --  Generate range check if required (not activated yet ???)
+         --  Generate range check if required
 
---         if Do_Range_Check (Actual) then
---            Set_Do_Range_Check (Actual, False);
---            Generate_Range_Check
---              (Actual, Etype (Formal), CE_Range_Check_Failed);
---         end if;
+         if Do_Range_Check (Actual)
+           and then Ekind (Formal) = E_In_Parameter
+         then
+            Set_Do_Range_Check (Actual, False);
+            Generate_Range_Check
+              (Actual, Etype (Formal), CE_Range_Check_Failed);
+         end if;
 
          --  Prepare to examine current entry
 
@@ -2707,6 +2738,15 @@ package body Exp_Ch6 is
                      Convert (Actual, Parent_Typ);
                      Enable_Range_Check (Actual);
 
+                     --  If the actual has been marked as requiring a range
+                     --  check, then generate it here.
+
+                     if Do_Range_Check (Actual) then
+                        Set_Do_Range_Check (Actual, False);
+                        Generate_Range_Check
+                          (Actual, Etype (Formal), CE_Range_Check_Failed);
+                     end if;
+
                   --  For access types, the parent formal type and actual type
                   --  differ.
 
@@ -3061,7 +3101,6 @@ package body Exp_Ch6 is
 
       if Needs_Finalization (Etype (Subp))
         and then not Is_Inherently_Limited_Type (Etype (Subp))
-        and then not Is_Limited_Interface (Etype (Subp))
       then
          Expand_Ctrl_Function_Call (N);
       end if;
@@ -4436,35 +4475,25 @@ package body Exp_Ch6 is
             Pop_Scope;
          end if;
 
-      --  Ada 2005 (AI-348): Generation of the null body
+      --  Ada 2005 (AI-348): Generate body for a null procedure.
+      --  In most cases this is superfluous because calls to it
+      --  will be automatically inlined, but we definitely need
+      --  the body if preconditions for the procedure are present.
 
       elsif Nkind (Specification (N)) = N_Procedure_Specification
         and then Null_Present (Specification (N))
       then
          declare
-            Bod : constant Node_Id :=
-                    Make_Subprogram_Body (Loc,
-                      Specification =>
-                        New_Copy_Tree (Specification (N)),
-                      Declarations => New_List,
-                     Handled_Statement_Sequence =>
-                        Make_Handled_Sequence_Of_Statements (Loc,
-                          Statements => New_List (Make_Null_Statement (Loc))));
+            Bod : constant Node_Id := Body_To_Inline (N);
+
          begin
-            Set_Body_To_Inline (N, Bod);
-            Insert_After (N, Bod);
-            Analyze (Bod);
+            Set_Has_Completion (Subp, False);
+            Append_Freeze_Action (Subp, Bod);
 
-            --  Corresponding_Spec isn't being set by Analyze_Subprogram_Body,
-            --  evidently because Set_Has_Completion is called earlier for null
-            --  procedures in Analyze_Subprogram_Declaration, so we force its
-            --  setting here. If the setting of Has_Completion is not set
-            --  earlier, then it can result in missing body errors if other
-            --  errors were already reported (since expansion is turned off).
+            --  The body now contains raise statements, so calls to it will
+            --  not be inlined.
 
-            --  Should creation of the empty body be moved to the analyzer???
-
-            Set_Corresponding_Spec (Bod, Defining_Entity (Specification (N)));
+            Set_Is_Inlined (Subp, False);
          end;
       end if;
    end Expand_N_Subprogram_Declaration;
@@ -4659,12 +4688,10 @@ package body Exp_Ch6 is
          then
             return False;
 
-         --  If the return type is a limited interface it has to be treated
-         --  as a return in place, even if the actual object is some non-
-         --  limited descendant.
-
-         elsif Is_Limited_Interface (Etype (E)) then
-            return True;
+         --  In Ada 2005 all functions with an inherently limited return type
+         --  must be handled using a build-in-place profile, including the case
+         --  of a function with a limited interface result, where the function
+         --  may return objects of nonlimited descendants.
 
          else
             return Is_Inherently_Limited_Type (Etype (E))
@@ -4906,8 +4933,8 @@ package body Exp_Ch6 is
       --  Check if this is a declared null procedure
 
       elsif Nkind (Decl) = N_Subprogram_Declaration then
-         if Null_Present (Specification (Decl)) then
-            return True;
+         if not Null_Present (Specification (Decl)) then
+            return False;
 
          elsif No (Body_To_Inline (Decl)) then
             return False;
@@ -4932,8 +4959,9 @@ package body Exp_Ch6 is
                   Stat2 := Next (Stat);
 
                   return
-                    Nkind (Stat) = N_Null_Statement
-                      and then
+                     Is_Empty_List (Declarations (Orig_Bod))
+                       and then Nkind (Stat) = N_Null_Statement
+                       and then
                         (No (Stat2)
                           or else
                             (Nkind (Stat2) = N_Simple_Return_Statement

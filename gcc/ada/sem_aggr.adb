@@ -776,7 +776,7 @@ package body Sem_Aggr is
          and then Comes_From_Source (Expr)
          and then not In_Instance_Body
       then
-         if not OK_For_Limited_Init (Expr) then
+         if not OK_For_Limited_Init (Etype (Expr), Expr) then
             Error_Msg_N ("initialization not allowed for limited types", Expr);
             Explain_Limited_Type (Etype (Expr), Expr);
          end if;
@@ -1471,6 +1471,14 @@ package body Sem_Aggr is
            and then Nkind (Parent (Expr)) /= N_Component_Association
          then
             Set_Raises_Constraint_Error (N);
+         end if;
+
+         --  If the expression has been marked as requiring a range check,
+         --  then generate it here.
+
+         if Do_Range_Check (Expr) then
+            Set_Do_Range_Check (Expr, False);
+            Generate_Range_Check (Expr, Component_Typ, CE_Range_Check_Failed);
          end if;
 
          return Resolution_OK;
@@ -2799,6 +2807,14 @@ package body Sem_Aggr is
 
          if Raises_Constraint_Error (Expr) then
             Set_Raises_Constraint_Error (N);
+         end if;
+
+         --  If the expression has been marked as requiring a range check,
+         --  then generate it here.
+
+         if Do_Range_Check (Expr) then
+            Set_Do_Range_Check (Expr, False);
+            Generate_Range_Check (Expr, Expr_Type, CE_Range_Check_Failed);
          end if;
 
          if Relocate then

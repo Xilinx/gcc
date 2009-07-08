@@ -3243,7 +3243,7 @@ Syntax:
 pragma Machine_Attribute (
      [Entity         =>] LOCAL_NAME,
      [Attribute_Name =>] static_string_EXPRESSION
-  [, [Info           =>] static_string_EXPRESSION] );
+  [, [Info           =>] static_EXPRESSION] );
 @end smallexample
 
 @noindent
@@ -3252,15 +3252,12 @@ declarations.  This pragma is semantically equivalent to
 @code{__attribute__((@var{attribute_name}))} (if @var{info} is not
 specified) or @code{__attribute__((@var{attribute_name}(@var{info})))}
 in GNU C, where @code{@var{attribute_name}} is recognized by the
-target macro @code{TARGET_ATTRIBUTE_TABLE} which is defined for each
-machine.  The optional parameter @var{info} is transformed into an
-identifier, which may make this pragma unusable for some attributes
-(parameter of some attributes must be a number or a string).
-@xref{Target Attributes,, Defining target-specific uses of
-@code{__attribute__}, gccint, GNU Compiler Colletion (GCC) Internals},
-further information.  It is not possible to specify
-attributes defined by other languages, only attributes defined by the
-machine the code is intended to run on.
+compiler middle-end or the @code{TARGET_ATTRIBUTE_TABLE} machine
+specific macro.  A string literal for the optional parameter @var{info}
+is transformed into an identifier, which may make this pragma unusable
+for some attributes.  @xref{Target Attributes,, Defining target-specific
+uses of @code{__attribute__}, gccint, GNU Compiler Collection (GCC)
+Internals}, further information.
 
 @node Pragma Main
 @unnumberedsec Pragma Main
@@ -4421,10 +4418,12 @@ function To_String (Source : Unbounded_String)
 @end smallexample
 
 @noindent
-The effect is that if the value of an unbounded string is written to a
-stream, then the representation of the item in the stream is in the same
-format used for @code{Standard.String}, and this same representation is
-expected when a value of this type is read from the stream.
+The effect is that if the value of an unbounded string is written to a stream,
+then the representation of the item in the stream is in the same format that
+would be used for @code{Standard.String'Output}, and this same representation
+is expected when a value of this type is read from the stream. Note that the
+value written always includes the bounds, even for Unbounded_String'Write,
+since Unbounded_String is not an array type.
 
 @node Pragma Style_Checks
 @unnumberedsec Pragma Style_Checks
@@ -8434,7 +8433,9 @@ This restriction ensures that no logical (and/or/xor) or comparison
 operators are used on operands of type Boolean (or any type derived
 from Boolean). This is intended for use in safety critical programs
 where the certification protocol requires the use of short-circuit
-(and then, or else) forms for all composite boolean operations.
+(and then, or else) forms for all composite boolean operations. An
+exception is that an explicit equality test with True or False as the
+right operand is not considered to violate this restriction.
 
 @item No_Dispatching_Calls
 @findex No_Dispatching_Calls

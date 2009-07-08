@@ -170,9 +170,7 @@ delete_insn (rtx insn)
       remove_note (insn, note);
     }
 
-  if (JUMP_P (insn)
-      && (GET_CODE (PATTERN (insn)) == ADDR_VEC
-	  || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC))
+  if (JUMP_TABLE_DATA_P (insn))
     {
       rtx pat = PATTERN (insn);
       int diff_vec_p = GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC;
@@ -2046,15 +2044,17 @@ rtl_verify_flow_info (void)
 	  rtx insn;
 
 	  /* Ensure existence of barrier in BB with no fallthru edges.  */
-	  for (insn = BB_END (bb); !insn || !BARRIER_P (insn);
-	       insn = NEXT_INSN (insn))
-	    if (!insn
-		|| NOTE_INSN_BASIC_BLOCK_P (insn))
+	  for (insn = NEXT_INSN (BB_END (bb)); ; insn = NEXT_INSN (insn))
+	    {
+	      if (!insn || NOTE_INSN_BASIC_BLOCK_P (insn))
 		{
 		  error ("missing barrier after block %i", bb->index);
 		  err = 1;
 		  break;
 		}
+	      if (BARRIER_P (insn))
+		break;
+	    }
 	}
       else if (e->src != ENTRY_BLOCK_PTR
 	       && e->dest != EXIT_BLOCK_PTR)
@@ -2122,9 +2122,7 @@ rtl_verify_flow_info (void)
 	    case CODE_LABEL:
 	      /* An addr_vec is placed outside any basic block.  */
 	      if (NEXT_INSN (x)
-		  && JUMP_P (NEXT_INSN (x))
-		  && (GET_CODE (PATTERN (NEXT_INSN (x))) == ADDR_DIFF_VEC
-		      || GET_CODE (PATTERN (NEXT_INSN (x))) == ADDR_VEC))
+		  && JUMP_TABLE_DATA_P (NEXT_INSN (x)))
 		x = NEXT_INSN (x);
 
 	      /* But in any case, non-deletable labels can appear anywhere.  */

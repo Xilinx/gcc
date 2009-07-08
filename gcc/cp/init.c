@@ -426,8 +426,9 @@ perform_member_init (tree member, tree init)
   /* Effective C++ rule 12 requires that all data members be
      initialized.  */
   if (warn_ecpp && init == NULL_TREE && TREE_CODE (type) != ARRAY_TYPE)
-    warning (OPT_Weffc__, "%J%qD should be initialized in the member initialization "
-	     "list", current_function_decl, member);
+    warning_at (DECL_SOURCE_LOCATION (current_function_decl), OPT_Weffc__,
+		"%qD should be initialized in the member initialization list",
+		member);
 
   /* Get an lvalue for the data member.  */
   decl = build_class_member_access_expr (current_class_ref, member,
@@ -451,9 +452,9 @@ perform_member_init (tree member, tree init)
       else
 	{
 	  if (TREE_CODE (type) == REFERENCE_TYPE)
-	    permerror (input_location, "%Jvalue-initialization of %q#D, "
-				       "which has reference type",
-		       current_function_decl, member);
+	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
+		       "value-initialization of %q#D, which has reference type",
+		       member);
 	  else
 	    {
 	      init = build2 (INIT_EXPR, type, decl, build_value_init (type));
@@ -492,8 +493,9 @@ perform_member_init (tree member, tree init)
 	      && !type_has_user_provided_default_constructor (type))
 	    /* TYPE_NEEDS_CONSTRUCTING can be set just because we have a
 	       vtable; still give this diagnostic.  */
-	    permerror (input_location, "%Juninitialized member %qD with %<const%> type %qT",
-		       current_function_decl, member, type);
+	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
+		       "uninitialized member %qD with %<const%> type %qT",
+		       member, type);
 	  finish_expr_stmt (build_aggr_init (decl, init, 0, 
 					     tf_warning_or_error));
 	}
@@ -504,11 +506,13 @@ perform_member_init (tree member, tree init)
 	{
 	  /* member traversal: note it leaves init NULL */
 	  if (TREE_CODE (type) == REFERENCE_TYPE)
-	    permerror (input_location, "%Juninitialized reference member %qD",
-		       current_function_decl, member);
+	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
+		       "uninitialized reference member %qD",
+		       member);
 	  else if (CP_TYPE_CONST_P (type))
-	    permerror (input_location, "%Juninitialized member %qD with %<const%> type %qT",
-		       current_function_decl, member, type);
+	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
+		       "uninitialized member %qD with %<const%> type %qT",
+		       member, type);
 	}
       else if (TREE_CODE (init) == TREE_LIST)
 	/* There was an explicit member initialization.  Do some work
@@ -661,7 +665,8 @@ sort_mem_initializers (tree t, tree mem_inits)
 	    warning (OPT_Wreorder, "  %q+#D", subobject);
 	  else
 	    warning (OPT_Wreorder, "  base %qT", subobject);
-	  warning (OPT_Wreorder, "%J  when initialized here", current_function_decl);
+	  warning_at (DECL_SOURCE_LOCATION (current_function_decl),
+		      OPT_Wreorder, "  when initialized here");
 	}
 
       /* Look again, from the beginning of the list.  */
@@ -677,11 +682,13 @@ sort_mem_initializers (tree t, tree mem_inits)
       if (TREE_VALUE (subobject_init))
 	{
 	  if (TREE_CODE (subobject) == FIELD_DECL)
-	    error ("%Jmultiple initializations given for %qD",
-		   current_function_decl, subobject);
+	    error_at (DECL_SOURCE_LOCATION (current_function_decl),
+		      "multiple initializations given for %qD",
+		      subobject);
 	  else
-	    error ("%Jmultiple initializations given for base %qT",
-		   current_function_decl, subobject);
+	    error_at (DECL_SOURCE_LOCATION (current_function_decl),
+		      "multiple initializations given for base %qT",
+		      subobject);
 	}
 
       /* Record the initialization.  */
@@ -747,8 +754,9 @@ sort_mem_initializers (tree t, tree mem_inits)
 		  if (same_type_p (last_field_type, field_type))
 		    {
 		      if (TREE_CODE (field_type) == UNION_TYPE)
-			error ("%Jinitializations for multiple members of %qT",
-			       current_function_decl, last_field_type);
+			error_at (DECL_SOURCE_LOCATION (current_function_decl),
+				  "initializations for multiple members of %qT",
+				  last_field_type);
 		      done = 1;
 		      break;
 		    }
@@ -810,9 +818,10 @@ emit_mem_initializers (tree mem_inits)
       if (extra_warnings && !arguments
 	  && DECL_COPY_CONSTRUCTOR_P (current_function_decl)
 	  && type_has_user_nondefault_constructor (BINFO_TYPE (subobject)))
-	warning (OPT_Wextra, "%Jbase class %q#T should be explicitly initialized in the "
-		 "copy constructor",
-		 current_function_decl, BINFO_TYPE (subobject));
+	warning_at (DECL_SOURCE_LOCATION (current_function_decl), OPT_Wextra,
+		    "base class %q#T should be explicitly initialized in the "
+		    "copy constructor",
+		    BINFO_TYPE (subobject));
 
       /* Initialize the base.  */
       if (BINFO_VIRTUAL_P (subobject))
@@ -2399,7 +2408,8 @@ build_java_class_ref (tree type)
   class_decl = IDENTIFIER_GLOBAL_VALUE (name);
   if (class_decl == NULL_TREE)
     {
-      class_decl = build_decl (VAR_DECL, name, TREE_TYPE (jclass_node));
+      class_decl = build_decl (input_location,
+			       VAR_DECL, name, TREE_TYPE (jclass_node));
       TREE_STATIC (class_decl) = 1;
       DECL_EXTERNAL (class_decl) = 1;
       TREE_PUBLIC (class_decl) = 1;
@@ -2465,15 +2475,17 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
 			 fold_convert (ptype, base)));
   tmp = fold_build1 (NEGATE_EXPR, sizetype, size_exp);
   body = build_compound_expr
-    (body, cp_build_modify_expr (tbase, NOP_EXPR,
+    (input_location, 
+     body, cp_build_modify_expr (tbase, NOP_EXPR,
 				 build2 (POINTER_PLUS_EXPR, ptype, tbase, tmp),
 				 tf_warning_or_error));
   body = build_compound_expr
-    (body, build_delete (ptype, tbase, sfk_complete_destructor,
+    (input_location,
+     body, build_delete (ptype, tbase, sfk_complete_destructor,
 			 LOOKUP_NORMAL|LOOKUP_DESTRUCTOR, 1));
 
   loop = build1 (LOOP_EXPR, void_type_node, body);
-  loop = build_compound_expr (tbase_init, loop);
+  loop = build_compound_expr (input_location, tbase_init, loop);
 
  no_destructor:
   /* If the delete flag is one, or anything else with the low bit set,
@@ -2520,7 +2532,7 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
   else if (!body)
     body = deallocate_expr;
   else
-    body = build_compound_expr (body, deallocate_expr);
+    body = build_compound_expr (input_location, body, deallocate_expr);
 
   if (!body)
     body = integer_zero_node;
@@ -2553,11 +2565,11 @@ create_temporary_var (tree type)
 {
   tree decl;
 
-  decl = build_decl (VAR_DECL, NULL_TREE, type);
+  decl = build_decl (input_location,
+		     VAR_DECL, NULL_TREE, type);
   TREE_USED (decl) = 1;
   DECL_ARTIFICIAL (decl) = 1;
   DECL_IGNORED_P (decl) = 1;
-  DECL_SOURCE_LOCATION (decl) = input_location;
   DECL_CONTEXT (decl) = current_function_decl;
 
   return decl;

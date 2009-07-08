@@ -51,6 +51,7 @@ with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_Ch10; use Sem_Ch10;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elim; use Sem_Elim;
 with Sem_Eval; use Sem_Eval;
@@ -1345,15 +1346,32 @@ package body Sem_Attr is
                E := Prefix (E);
             end loop;
 
-            if From_With_Type (Etype (E)) then
+            Typ := Etype (E);
+
+            if From_With_Type (Typ) then
                Error_Attr_P
                  ("prefix of % attribute cannot be an incomplete type");
 
             else
-               if Is_Access_Type (Etype (E)) then
-                  Typ := Directly_Designated_Type (Etype (E));
-               else
-                  Typ := Etype (E);
+               if Is_Access_Type (Typ) then
+                  Typ := Directly_Designated_Type (Typ);
+               end if;
+
+               if Is_Class_Wide_Type (Typ) then
+                  Typ := Root_Type (Typ);
+               end if;
+
+               --  A legal use of a shadow entity occurs only when the unit
+               --  where the non-limited view resides is imported via a regular
+               --  with clause in the current body. Such references to shadow
+               --  entities may occur in subprogram formals.
+
+               if Is_Incomplete_Type (Typ)
+                 and then From_With_Type (Typ)
+                 and then Present (Non_Limited_View (Typ))
+                 and then Is_Legal_Shadow_Entity_In_Body (Typ)
+               then
+                  Typ := Non_Limited_View (Typ);
                end if;
 
                if Ekind (Typ) = E_Incomplete_Type
@@ -7834,16 +7852,16 @@ package body Sem_Attr is
                   --  Check the static accessibility rule of 3.10.2(32).
                   --  This rule also applies within the private part of an
                   --  instantiation. This rule does not apply to anonymous
-                  --  access-to-subprogram types (Ada 2005).
+                  --  access-to-subprogram types in access parameters.
 
                   elsif Attr_Id = Attribute_Access
                     and then not In_Instance_Body
+                    and then
+                      (Ekind (Btyp) = E_Access_Subprogram_Type
+                        or else Is_Local_Anonymous_Access (Btyp))
+
                     and then Subprogram_Access_Level (Entity (P)) >
                                Type_Access_Level (Btyp)
-                    and then Ekind (Btyp) /=
-                               E_Anonymous_Access_Subprogram_Type
-                    and then Ekind (Btyp) /=
-                               E_Anonymous_Access_Protected_Subprogram_Type
                   then
                      Error_Msg_F
                        ("subprogram must not be deeper than access type", P);

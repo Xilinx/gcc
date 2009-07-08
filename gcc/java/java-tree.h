@@ -1224,6 +1224,8 @@ extern void java_read_sourcefilenames (const char *fsource_filename);
 
 extern void rewrite_reflection_indexes (void *);
 
+int cxx_keyword_p (const char *name, int length);
+
 #define DECL_FINAL(DECL) DECL_LANG_FLAG_3 (DECL)
 
 /* Access flags etc for a method (a FUNCTION_DECL): */
@@ -1435,15 +1437,15 @@ extern tree *type_map;
 #define DECL_INNER_CLASS_LIST(NODE) DECL_INITIAL (TYPE_DECL_CHECK (NODE))
 
 /* Add a FIELD_DECL to RECORD_TYPE RTYPE.
-   The field has name NAME (a char*), and type FTYPE.
+   The field has name NAME (a char*), a type FTYPE, and a location of LOC.
    Unless this is the first field, FIELD most hold the previous field.
    FIELD is set to the newly created FIELD_DECL.
 
    We set DECL_ARTIFICIAL so these fields get skipped by make_class_data
    if compiling java.lang.Object or java.lang.Class. */
 
-#define PUSH_FIELD(RTYPE, FIELD, NAME, FTYPE) \
-{ tree _field = build_decl (FIELD_DECL, get_identifier ((NAME)), (FTYPE)); \
+#define PUSH_FIELD(LOC, RTYPE, FIELD, NAME, FTYPE) \
+{ tree _field = build_decl (LOC, FIELD_DECL, get_identifier ((NAME)), (FTYPE)); \
   if (TYPE_FIELDS (RTYPE) == NULL_TREE)	\
     TYPE_FIELDS (RTYPE) = _field; 	\
   else					\

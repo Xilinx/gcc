@@ -53,12 +53,11 @@
 #include "debug.h"
 #include "langhooks.h"
 #include "df.h"
+#include "intl.h"
 
 /* Forward definitions of types.  */
 typedef struct minipool_node    Mnode;
 typedef struct minipool_fixup   Mfix;
-
-EXPORTED_CONST struct attribute_spec arm_attribute_table[];
 
 void (*arm_lang_output_object_attributes_hook)(void);
 
@@ -200,7 +199,49 @@ static bool arm_tls_symbol_p (rtx x);
 static int arm_issue_rate (void);
 static void arm_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static bool arm_allocate_stack_slots_for_args (void);
+static const char *arm_invalid_parameter_type (const_tree t);
+static const char *arm_invalid_return_type (const_tree t);
+static tree arm_promoted_type (const_tree t);
+static tree arm_convert_to_type (tree type, tree expr);
+static bool arm_scalar_mode_supported_p (enum machine_mode);
+static bool arm_frame_pointer_required (void);
 
+
+/* Table of machine attributes.  */
+static const struct attribute_spec arm_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* Function calls made to this symbol must be done indirectly, because
+     it may lie outside of the 26 bit addressing range of a normal function
+     call.  */
+  { "long_call",    0, 0, false, true,  true,  NULL },
+  /* Whereas these functions are always known to reside within the 26 bit
+     addressing range.  */
+  { "short_call",   0, 0, false, true,  true,  NULL },
+  /* Interrupt Service Routines have special prologue and epilogue requirements.  */
+  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute },
+  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute },
+  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute },
+#ifdef ARM_PE
+  /* ARM/PE has three new attributes:
+     interfacearm - ?
+     dllexport - for exporting a function/variable that will live in a dll
+     dllimport - for importing a function/variable from a dll
+
+     Microsoft allows multiple declspecs in one __declspec, separating
+     them with spaces.  We do NOT support this.  Instead, use __declspec
+     multiple times.
+  */
+  { "dllimport",    0, 0, true,  false, false, NULL },
+  { "dllexport",    0, 0, true,  false, false, NULL },
+  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute },
+#elif TARGET_DLLIMPORT_DECL_ATTRIBUTES
+  { "dllimport",    0, 0, false, false, false, handle_dll_attribute },
+  { "dllexport",    0, 0, false, false, false, handle_dll_attribute },
+  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute },
+#endif
+  { NULL,           0, 0, false, false, false, NULL }
+};
 
 /* Initialize the GCC target structure.  */
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
@@ -407,6 +448,24 @@ static bool arm_allocate_stack_slots_for_args (void);
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	arm_legitimate_address_p
 
+#undef TARGET_INVALID_PARAMETER_TYPE
+#define TARGET_INVALID_PARAMETER_TYPE arm_invalid_parameter_type
+
+#undef TARGET_INVALID_RETURN_TYPE
+#define TARGET_INVALID_RETURN_TYPE arm_invalid_return_type
+
+#undef TARGET_PROMOTED_TYPE
+#define TARGET_PROMOTED_TYPE arm_promoted_type
+
+#undef TARGET_CONVERT_TO_TYPE
+#define TARGET_CONVERT_TO_TYPE arm_convert_to_type
+
+#undef TARGET_SCALAR_MODE_SUPPORTED_P
+#define TARGET_SCALAR_MODE_SUPPORTED_P arm_scalar_mode_supported_p
+
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED arm_frame_pointer_required
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 /* Obstack for minipool constant handling.  */
@@ -439,6 +498,9 @@ enum fputype arm_fpu_tune;
 
 /* Whether to use floating point hardware.  */
 enum float_abi_type arm_float_abi;
+
+/* Which __fp16 format to use.  */
+enum arm_fp16_format_type arm_fp16_format;
 
 /* Which ABI to use.  */
 enum arm_abi_type arm_abi;
@@ -719,15 +781,16 @@ struct fpu_desc
 
 static const struct fpu_desc all_fpus[] =
 {
-  {"fpa",	FPUTYPE_FPA},
-  {"fpe2",	FPUTYPE_FPA_EMU2},
-  {"fpe3",	FPUTYPE_FPA_EMU2},
-  {"maverick",	FPUTYPE_MAVERICK},
-  {"vfp",	FPUTYPE_VFP},
-  {"vfp3",	FPUTYPE_VFP3},
-  {"vfpv3",	FPUTYPE_VFP3},
-  {"vfpv3-d16",	FPUTYPE_VFP3D16},
-  {"neon",	FPUTYPE_NEON}
+  {"fpa",		FPUTYPE_FPA},
+  {"fpe2",		FPUTYPE_FPA_EMU2},
+  {"fpe3",		FPUTYPE_FPA_EMU2},
+  {"maverick",		FPUTYPE_MAVERICK},
+  {"vfp",		FPUTYPE_VFP},
+  {"vfp3",		FPUTYPE_VFP3},
+  {"vfpv3",		FPUTYPE_VFP3},
+  {"vfpv3-d16",		FPUTYPE_VFP3D16},
+  {"neon",		FPUTYPE_NEON},
+  {"neon-fp16",		FPUTYPE_NEON_FP16}
 };
 
 
@@ -745,7 +808,8 @@ static const enum arm_fp_model fp_model_for_fpu[] =
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP  */
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP3D16  */
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP3  */
-  ARM_FP_MODEL_VFP		/* FPUTYPE_NEON  */
+  ARM_FP_MODEL_VFP,		/* FPUTYPE_NEON  */
+  ARM_FP_MODEL_VFP		/* FPUTYPE_NEON_FP16  */
 };
 
 
@@ -763,6 +827,23 @@ static const struct float_abi all_float_abis[] =
   {"soft",	ARM_FLOAT_ABI_SOFT},
   {"softfp",	ARM_FLOAT_ABI_SOFTFP},
   {"hard",	ARM_FLOAT_ABI_HARD}
+};
+
+
+struct fp16_format
+{
+  const char *name;
+  enum arm_fp16_format_type fp16_format_type;
+};
+
+
+/* Available values for -mfp16-format=.  */
+
+static const struct fp16_format all_fp16_formats[] =
+{
+  {"none",		ARM_FP16_FORMAT_NONE},
+  {"ieee",		ARM_FP16_FORMAT_IEEE},
+  {"alternative",	ARM_FP16_FORMAT_ALTERNATIVE}
 };
 
 
@@ -923,6 +1004,44 @@ arm_init_libfuncs (void)
   set_optab_libfunc (umod_optab, DImode, NULL);
   set_optab_libfunc (smod_optab, SImode, NULL);
   set_optab_libfunc (umod_optab, SImode, NULL);
+
+  /* Half-precision float operations.  The compiler handles all operations
+     with NULL libfuncs by converting the SFmode.  */
+  switch (arm_fp16_format)
+    {
+    case ARM_FP16_FORMAT_IEEE:
+    case ARM_FP16_FORMAT_ALTERNATIVE:
+
+      /* Conversions.  */
+      set_conv_libfunc (trunc_optab, HFmode, SFmode,
+			(arm_fp16_format == ARM_FP16_FORMAT_IEEE
+			 ? "__gnu_f2h_ieee"
+			 : "__gnu_f2h_alternative"));
+      set_conv_libfunc (sext_optab, SFmode, HFmode, 
+			(arm_fp16_format == ARM_FP16_FORMAT_IEEE
+			 ? "__gnu_h2f_ieee"
+			 : "__gnu_h2f_alternative"));
+      
+      /* Arithmetic.  */
+      set_optab_libfunc (add_optab, HFmode, NULL);
+      set_optab_libfunc (sdiv_optab, HFmode, NULL);
+      set_optab_libfunc (smul_optab, HFmode, NULL);
+      set_optab_libfunc (neg_optab, HFmode, NULL);
+      set_optab_libfunc (sub_optab, HFmode, NULL);
+
+      /* Comparisons.  */
+      set_optab_libfunc (eq_optab, HFmode, NULL);
+      set_optab_libfunc (ne_optab, HFmode, NULL);
+      set_optab_libfunc (lt_optab, HFmode, NULL);
+      set_optab_libfunc (le_optab, HFmode, NULL);
+      set_optab_libfunc (ge_optab, HFmode, NULL);
+      set_optab_libfunc (gt_optab, HFmode, NULL);
+      set_optab_libfunc (unord_optab, HFmode, NULL);
+      break;
+
+    default:
+      break;
+    }
 }
 
 /* On AAPCS systems, this is the "struct __va_list".  */
@@ -956,13 +1075,15 @@ arm_build_builtin_va_list (void)
   /* Create the type.  */
   va_list_type = lang_hooks.types.make_type (RECORD_TYPE);
   /* Give it the required name.  */
-  va_list_name = build_decl (TYPE_DECL,
+  va_list_name = build_decl (BUILTINS_LOCATION,
+			     TYPE_DECL,
 			     get_identifier ("__va_list"),
 			     va_list_type);
   DECL_ARTIFICIAL (va_list_name) = 1;
   TYPE_NAME (va_list_type) = va_list_name;
   /* Create the __ap field.  */
-  ap_field = build_decl (FIELD_DECL, 
+  ap_field = build_decl (BUILTINS_LOCATION,
+			 FIELD_DECL, 
 			 get_identifier ("__ap"),
 			 ptr_type_node);
   DECL_ARTIFICIAL (ap_field) = 1;
@@ -1292,6 +1413,23 @@ arm_override_options (void)
 
   tune_flags = all_cores[(int)arm_tune].flags;
 
+  if (target_fp16_format_name)
+    {
+      for (i = 0; i < ARRAY_SIZE (all_fp16_formats); i++)
+	{
+	  if (streq (all_fp16_formats[i].name, target_fp16_format_name))
+	    {
+	      arm_fp16_format = all_fp16_formats[i].fp16_format_type;
+	      break;
+	    }
+	}
+      if (i == ARRAY_SIZE (all_fp16_formats))
+	error ("invalid __fp16 format option: -mfp16-format=%s",
+	       target_fp16_format_name);
+    }
+  else
+    arm_fp16_format = ARM_FP16_FORMAT_NONE;
+
   if (target_abi_name)
     {
       for (i = 0; i < ARRAY_SIZE (arm_all_abis); i++)
@@ -1513,6 +1651,15 @@ arm_override_options (void)
       && (arm_fp_model == ARM_FP_MODEL_FPA))
     error ("FPA is unsupported in the AAPCS");
 
+  if (TARGET_AAPCS_BASED)
+    {
+      if (TARGET_CALLER_INTERWORKING)
+	error ("AAPCS does not support -mcaller-super-interworking");
+      else
+	if (TARGET_CALLEE_INTERWORKING)
+	  error ("AAPCS does not support -mcallee-super-interworking");
+    }
+
   /* FPA and iWMMXt are incompatible because the insn encodings overlap.
      VFP and iWMMXt can theoretically coexist, but it's unlikely such silicon
      will ever exist.  GCC makes no attempt to support this combination.  */
@@ -1522,6 +1669,10 @@ arm_override_options (void)
   /* ??? iWMMXt insn patterns need auditing for Thumb-2.  */
   if (TARGET_THUMB2 && TARGET_IWMMXT)
     sorry ("Thumb-2 iWMMXt");
+
+  /* __fp16 support currently assumes the core has ldrh.  */
+  if (!arm_arch4 && arm_fp16_format != ARM_FP16_FORMAT_NONE)
+    sorry ("__fp16 and no ldrh");
 
   /* If soft-float is specified then don't use FPU.  */
   if (TARGET_SOFT_FLOAT)
@@ -3262,42 +3413,6 @@ arm_pr_long_calls_off (struct cpp_reader * pfile ATTRIBUTE_UNUSED)
   arm_pragma_long_calls = OFF;
 }
 
-/* Table of machine attributes.  */
-const struct attribute_spec arm_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  /* Function calls made to this symbol must be done indirectly, because
-     it may lie outside of the 26 bit addressing range of a normal function
-     call.  */
-  { "long_call",    0, 0, false, true,  true,  NULL },
-  /* Whereas these functions are always known to reside within the 26 bit
-     addressing range.  */
-  { "short_call",   0, 0, false, true,  true,  NULL },
-  /* Interrupt Service Routines have special prologue and epilogue requirements.  */
-  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute },
-  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute },
-  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute },
-#ifdef ARM_PE
-  /* ARM/PE has three new attributes:
-     interfacearm - ?
-     dllexport - for exporting a function/variable that will live in a dll
-     dllimport - for importing a function/variable from a dll
-
-     Microsoft allows multiple declspecs in one __declspec, separating
-     them with spaces.  We do NOT support this.  Instead, use __declspec
-     multiple times.
-  */
-  { "dllimport",    0, 0, true,  false, false, NULL },
-  { "dllexport",    0, 0, true,  false, false, NULL },
-  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute },
-#elif TARGET_DLLIMPORT_DECL_ATTRIBUTES
-  { "dllimport",    0, 0, false, false, false, handle_dll_attribute },
-  { "dllexport",    0, 0, false, false, false, handle_dll_attribute },
-  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute },
-#endif
-  { NULL,           0, 0, false, false, false, NULL }
-};
-
 /* Handle an attribute requiring a FUNCTION_DECL;
    arguments as in struct attribute_spec.handler.  */
 static tree
@@ -4171,6 +4286,7 @@ arm_legitimate_index_p (enum machine_mode mode, rtx index, RTX_CODE outer,
   if (GET_MODE_SIZE (mode) <= 4
       && ! (arm_arch4
 	    && (mode == HImode
+		|| mode == HFmode
 		|| (mode == QImode && outer == SIGN_EXTEND))))
     {
       if (code == MULT)
@@ -4199,13 +4315,15 @@ arm_legitimate_index_p (enum machine_mode mode, rtx index, RTX_CODE outer,
      load.  */
   if (arm_arch4)
     {
-      if (mode == HImode || (outer == SIGN_EXTEND && mode == QImode))
+      if (mode == HImode
+	  || mode == HFmode
+	  || (outer == SIGN_EXTEND && mode == QImode))
 	range = 256;
       else
 	range = 4096;
     }
   else
-    range = (mode == HImode) ? 4095 : 4096;
+    range = (mode == HImode || mode == HFmode) ? 4095 : 4096;
 
   return (code == CONST_INT
 	  && INTVAL (index) < range
@@ -4378,7 +4496,8 @@ thumb1_legitimate_address_p (enum machine_mode mode, rtx x, int strict_p)
     return 1;
 
   /* This is PC relative data after arm_reorg runs.  */
-  else if (GET_MODE_SIZE (mode) >= 4 && reload_completed
+  else if ((GET_MODE_SIZE (mode) >= 4 || mode == HFmode)
+	   && reload_completed
 	   && (GET_CODE (x) == LABEL_REF
 	       || (GET_CODE (x) == CONST
 		   && GET_CODE (XEXP (x, 0)) == PLUS
@@ -7119,6 +7238,13 @@ arm_eliminable_register (rtx x)
 enum reg_class
 coproc_secondary_reload_class (enum machine_mode mode, rtx x, bool wb)
 {
+  if (mode == HFmode)
+    {
+      if (s_register_operand (x, mode) || neon_vector_mem_operand (x, 2))
+	return NO_REGS;
+      return GENERAL_REGS;
+    }
+
   if (TARGET_NEON
       && (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
           || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
@@ -13924,6 +14050,31 @@ arm_print_operand (FILE *stream, rtx x, int code)
       }
       return;
 
+    /* Register specifier for vld1.16/vst1.16.  Translate the S register
+       number into a D register number and element index.  */
+    case 'z':
+      {
+        int mode = GET_MODE (x);
+        int regno;
+
+        if (GET_MODE_SIZE (mode) != 2 || GET_CODE (x) != REG)
+          {
+	    output_operand_lossage ("invalid operand for code '%c'", code);
+	    return;
+          }
+
+        regno = REGNO (x);
+        if (!VFP_REGNO_OK_FOR_SINGLE (regno))
+          {
+	    output_operand_lossage ("invalid operand for code '%c'", code);
+	    return;
+          }
+
+	regno = regno - FIRST_VFP_REGNUM;
+	fprintf (stream, "d%d[%d]", regno/2, ((regno % 2) ? 2 : 0));
+      }
+      return;
+      
     default:
       if (x == 0)
 	{
@@ -13957,6 +14108,12 @@ arm_print_operand (FILE *stream, rtx x, int code)
 	default:
 	  gcc_assert (GET_CODE (x) != NEG);
 	  fputc ('#', stream);
+	  if (GET_CODE (x) == HIGH)
+	    {
+	      fputs (":lower16:", stream);
+	      x = XEXP (x, 0);
+	    }
+	    
 	  output_addr_const (stream, x);
 	  break;
 	}
@@ -14335,12 +14492,6 @@ arm_final_prescan_insn (rtx insn)
      reversed if it appears to fail.  */
   int reverse = 0;
 
-  /* JUMP_CLOBBERS will be one implies that the conditions if a branch is
-     taken are clobbered, even if the rtl suggests otherwise.  It also
-     means that we have to grub around within the jump expression to find
-     out what the conditions are when the jump isn't taken.  */
-  int jump_clobbers = 0;
-
   /* If we start with a return insn, we only succeed if we find another one.  */
   int seeking_return = 0;
 
@@ -14419,14 +14570,6 @@ arm_final_prescan_insn (rtx insn)
       int then_not_else = TRUE;
       rtx this_insn = start_insn, label = 0;
 
-      /* If the jump cannot be done with one instruction, we cannot
-	 conditionally execute the instruction in the inverse case.  */
-      if (get_attr_conds (insn) == CONDS_JUMP_CLOB)
-	{
-	  jump_clobbers = 1;
-	  return;
-	}
-
       /* Register the insn jumped to.  */
       if (reverse)
         {
@@ -14469,13 +14612,7 @@ arm_final_prescan_insn (rtx insn)
 		 control falls in from somewhere else.  */
 	      if (this_insn == label)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14490,13 +14627,7 @@ arm_final_prescan_insn (rtx insn)
 	      this_insn = next_nonnote_insn (this_insn);
 	      if (this_insn && this_insn == label)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14524,13 +14655,7 @@ arm_final_prescan_insn (rtx insn)
 	      if (this_insn && this_insn == label
 		  && insns_skipped < max_insns_skipped)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14636,25 +14761,11 @@ arm_final_prescan_insn (rtx insn)
 	        }
 	      arm_target_insn = this_insn;
 	    }
-	  if (jump_clobbers)
-	    {
-	      gcc_assert (!reverse);
-	      arm_current_cc =
-		  get_arm_condition_code (XEXP (XEXP (XEXP (SET_SRC (body),
-							    0), 0), 1));
-	      if (GET_CODE (XEXP (XEXP (SET_SRC (body), 0), 0)) == AND)
-		arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);
-	      if (GET_CODE (XEXP (SET_SRC (body), 0)) == NE)
-		arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);
-	    }
-	  else
-	    {
-	      /* If REVERSE is true, ARM_CURRENT_CC needs to be inverted from
-		 what it was.  */
-	      if (!reverse)
-		arm_current_cc = get_arm_condition_code (XEXP (SET_SRC (body),
-							       0));
-	    }
+
+	  /* If REVERSE is true, ARM_CURRENT_CC needs to be inverted from
+	     what it was.  */
+	  if (!reverse)
+	    arm_current_cc = get_arm_condition_code (XEXP (SET_SRC (body), 0));
 
 	  if (reverse || then_not_else)
 	    arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);
@@ -14720,6 +14831,12 @@ arm_hard_regno_mode_ok (unsigned int regno, enum machine_mode mode)
 
       if (mode == DFmode)
 	return VFP_REGNO_OK_FOR_DOUBLE (regno);
+
+      /* VFP registers can hold HFmode values, but there is no point in
+	 putting them there unless we have the NEON extensions for
+	 loading/storing them, too.  */
+      if (mode == HFmode)
+	return TARGET_NEON_FP16 && VFP_REGNO_OK_FOR_SINGLE (regno);
 
       if (TARGET_NEON)
         return (VALID_NEON_DREG_MODE (mode) && VFP_REGNO_OK_FOR_DOUBLE (regno))
@@ -16207,6 +16324,15 @@ arm_init_neon_builtins (void)
 }
 
 static void
+arm_init_fp16_builtins (void)
+{
+  tree fp16_type = make_node (REAL_TYPE);
+  TYPE_PRECISION (fp16_type) = 16;
+  layout_type (fp16_type);
+  (*lang_hooks.types.register_builtin_type) (fp16_type, "__fp16");
+}
+
+static void
 arm_init_builtins (void)
 {
   arm_init_tls_builtins ();
@@ -16216,6 +16342,71 @@ arm_init_builtins (void)
 
   if (TARGET_NEON)
     arm_init_neon_builtins ();
+
+  if (arm_fp16_format)
+    arm_init_fp16_builtins ();
+}
+
+/* Implement TARGET_INVALID_PARAMETER_TYPE.  */
+
+static const char *
+arm_invalid_parameter_type (const_tree t)
+{
+  if (SCALAR_FLOAT_TYPE_P (t) && TYPE_PRECISION (t) == 16)
+    return N_("function parameters cannot have __fp16 type");
+  return NULL;
+}
+
+/* Implement TARGET_INVALID_PARAMETER_TYPE.  */
+
+static const char *
+arm_invalid_return_type (const_tree t)
+{
+  if (SCALAR_FLOAT_TYPE_P (t) && TYPE_PRECISION (t) == 16)
+    return N_("functions cannot return __fp16 type");
+  return NULL;
+}
+
+/* Implement TARGET_PROMOTED_TYPE.  */
+
+static tree
+arm_promoted_type (const_tree t)
+{
+  if (SCALAR_FLOAT_TYPE_P (t) && TYPE_PRECISION (t) == 16)
+    return float_type_node;
+  return NULL_TREE;
+}
+
+/* Implement TARGET_CONVERT_TO_TYPE.
+   Specifically, this hook implements the peculiarity of the ARM
+   half-precision floating-point C semantics that requires conversions between
+   __fp16 to or from double to do an intermediate conversion to float.  */
+
+static tree
+arm_convert_to_type (tree type, tree expr)
+{
+  tree fromtype = TREE_TYPE (expr);
+  if (!SCALAR_FLOAT_TYPE_P (fromtype) || !SCALAR_FLOAT_TYPE_P (type))
+    return NULL_TREE;
+  if ((TYPE_PRECISION (fromtype) == 16 && TYPE_PRECISION (type) > 32)
+      || (TYPE_PRECISION (type) == 16 && TYPE_PRECISION (fromtype) > 32))
+    return convert (type, convert (float_type_node, expr));
+  return NULL_TREE;
+}
+
+/* Implement TARGET_SCALAR_MODE_SUPPORTED_P.
+   This simply adds HFmode as a supported mode; even though we don't
+   implement arithmetic on this type directly, it's supported by
+   optabs conversions, much the way the double-word arithmetic is
+   special-cased in the default hook.  */
+
+static bool
+arm_scalar_mode_supported_p (enum machine_mode mode)
+{
+  if (mode == HFmode)
+    return (arm_fp16_format != ARM_FP16_FORMAT_NONE);
+  else
+    return default_scalar_mode_supported_p (mode);
 }
 
 /* Errors in the source file can cause expand_expr to return const0_rtx
@@ -17295,6 +17486,7 @@ thumb_shiftable_const (unsigned HOST_WIDE_INT val)
   unsigned HOST_WIDE_INT mask = 0xff;
   int i;
 
+  val = val & (unsigned HOST_WIDE_INT)0xffffffffu;
   if (val == 0) /* XXX */
     return 0;
 
@@ -18411,6 +18603,10 @@ arm_file_start (void)
 	      fpu_name = "neon";
 	      set_float_abi_attributes = 1;
 	      break;
+	    case FPUTYPE_NEON_FP16:
+	      fpu_name = "neon-fp16";
+	      set_float_abi_attributes = 1;
+	      break;
 	    default:
 	      abort();
 	    }
@@ -18463,6 +18659,11 @@ arm_file_start (void)
       else
 	val = 6;
       asm_fprintf (asm_out_file, "\t.eabi_attribute 30, %d\n", val);
+
+      /* Tag_ABI_FP_16bit_format.  */
+      if (arm_fp16_format)
+	asm_fprintf (asm_out_file, "\t.eabi_attribute 38, %d\n",
+		     (int)arm_fp16_format);
 
       if (arm_lang_output_object_attributes_hook)
 	arm_lang_output_object_attributes_hook();
@@ -18691,6 +18892,23 @@ arm_emit_vector_const (FILE *file, rtx x)
     }
 
   return 1;
+}
+
+/* Emit a fp16 constant appropriately padded to occupy a 4-byte word.
+   HFmode constant pool entries are actually loaded with ldr.  */
+void
+arm_emit_fp16_const (rtx c)
+{
+  REAL_VALUE_TYPE r;
+  long bits;
+
+  REAL_VALUE_FROM_CONST_DOUBLE (r, c);
+  bits = real_to_target (NULL, &r, HFmode);
+  if (WORDS_BIG_ENDIAN)
+    assemble_zeros (2);
+  assemble_integer (GEN_INT (bits), 2, BITS_PER_WORD, 1);
+  if (!WORDS_BIG_ENDIAN)
+    assemble_zeros (2);
 }
 
 const char *
@@ -19613,6 +19831,32 @@ arm_output_shift(rtx * operands, int set_flags)
   return "";
 }
 
+/* Output a Thumb-1 casesi dispatch sequence.  */
+const char *
+thumb1_output_casesi (rtx *operands)
+{
+  rtx diff_vec = PATTERN (next_real_insn (operands[0]));
+  addr_diff_vec_flags flags;
+
+  gcc_assert (GET_CODE (diff_vec) == ADDR_DIFF_VEC);
+
+  flags = ADDR_DIFF_VEC_FLAGS (diff_vec);
+
+  switch (GET_MODE(diff_vec))
+    {
+    case QImode:
+      return (ADDR_DIFF_VEC_FLAGS (diff_vec).offset_unsigned ? 
+	      "bl\t%___gnu_thumb1_case_uqi" : "bl\t%___gnu_thumb1_case_sqi");
+    case HImode:
+      return (ADDR_DIFF_VEC_FLAGS (diff_vec).offset_unsigned ? 
+	      "bl\t%___gnu_thumb1_case_uhi" : "bl\t%___gnu_thumb1_case_shi");
+    case SImode:
+      return "bl\t%___gnu_thumb1_case_si";
+    default:
+      gcc_unreachable ();
+    }
+}
+
 /* Output a Thumb-2 casesi instruction.  */
 const char *
 thumb2_output_casesi (rtx *operands)
@@ -19722,6 +19966,10 @@ arm_mangle_type (const_tree type)
       return "St9__va_list";
     }
 
+  /* Half-precision float.  */
+  if (TREE_CODE (type) == REAL_TYPE && TYPE_PRECISION (type) == 16)
+    return "Dh";
+
   if (TREE_CODE (type) != VECTOR_TYPE)
     return NULL;
 
@@ -19778,6 +20026,16 @@ arm_optimization_options (int level, int size ATTRIBUTE_UNUSED)
      given on the command line.  */
   if (level > 0)
     flag_section_anchors = 2;
+}
+
+/* Implement TARGET_FRAME_POINTER_REQUIRED.  */
+
+bool
+arm_frame_pointer_required (void)
+{
+  return (cfun->has_nonlocal_label
+          || SUBTARGET_FRAME_POINTER_REQUIRED
+          || (TARGET_ARM && TARGET_APCS_FRAME && ! leaf_function_p ()));
 }
 
 #include "gt-arm.h"

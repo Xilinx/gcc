@@ -845,9 +845,9 @@ process_function_and_variable_attributes (struct cgraph_node *first,
       if (lookup_attribute ("externally_visible", DECL_ATTRIBUTES (decl)))
 	{
 	  if (! TREE_PUBLIC (node->decl))
-	    warning (OPT_Wattributes,
-		     "%J%<externally_visible%> attribute have effect only on public objects",
-		     node->decl);
+	    warning_at (DECL_SOURCE_LOCATION (node->decl), OPT_Wattributes,
+			"%<externally_visible%>"
+			" attribute have effect only on public objects");
 	  else
 	    {
 	      if (node->local.finalized)
@@ -868,9 +868,9 @@ process_function_and_variable_attributes (struct cgraph_node *first,
       if (lookup_attribute ("externally_visible", DECL_ATTRIBUTES (decl)))
 	{
 	  if (! TREE_PUBLIC (vnode->decl))
-	    warning (OPT_Wattributes,
-		     "%J%<externally_visible%> attribute have effect only on public objects",
-		     vnode->decl);
+	    warning_at (DECL_SOURCE_LOCATION (vnode->decl), OPT_Wattributes,
+			"%<externally_visible%>"
+			" attribute have effect only on public objects");
 	  else
 	    {
 	      if (vnode->finalized)
@@ -1012,6 +1012,7 @@ cgraph_finalize_compilation_unit (void)
   if (errorcount || sorrycount)
     return;
 
+  finalize_size_functions ();
   finish_aliases_1 ();
 
   if (!quiet_flag)
@@ -1429,11 +1430,12 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   sprintf (which_buf, "%c_%.5d_%d", which, priority, counter++);
   name = get_file_function_name (which_buf);
 
-  decl = build_decl (FUNCTION_DECL, name,
+  decl = build_decl (input_location, FUNCTION_DECL, name,
 		     build_function_type (void_type_node, void_list_node));
   current_function_decl = decl;
 
-  resdecl = build_decl (RESULT_DECL, NULL_TREE, void_type_node);
+  resdecl = build_decl (input_location,
+			RESULT_DECL, NULL_TREE, void_type_node);
   DECL_ARTIFICIAL (resdecl) = 1;
   DECL_RESULT (decl) = resdecl;
   DECL_CONTEXT (resdecl) = decl;
@@ -1615,7 +1617,7 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
      ??? We cannot use COMDAT linkage because there is no
      ABI support for this.  */
   DECL_EXTERNAL (new_version_node->decl) = 0;
-  DECL_ONE_ONLY (new_version_node->decl) = 0;
+  DECL_COMDAT_GROUP (new_version_node->decl) = NULL_TREE;
   TREE_PUBLIC (new_version_node->decl) = 0;
   DECL_COMDAT (new_version_node->decl) = 0;
   DECL_WEAK (new_version_node->decl) = 0;
@@ -1685,7 +1687,7 @@ save_inline_function_body (struct cgraph_node *node)
   tree_function_versioning (node->decl, first_clone->decl, NULL, true, NULL);
 
   DECL_EXTERNAL (first_clone->decl) = 0;
-  DECL_ONE_ONLY (first_clone->decl) = 0;
+  DECL_COMDAT_GROUP (first_clone->decl) = NULL_TREE;
   TREE_PUBLIC (first_clone->decl) = 0;
   DECL_COMDAT (first_clone->decl) = 0;
   VEC_free (ipa_opt_pass, heap,

@@ -1468,7 +1468,7 @@ warn_if_unused_value (const_tree exp, location_t locus)
 	return 0;
 
     warn:
-      warning (OPT_Wunused_value, "%Hvalue computed is not used", &locus);
+      warning_at (locus, OPT_Wunused_value, "value computed is not used");
       return 1;
     }
 }
@@ -2905,7 +2905,9 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      /* Neither node is bounded.  First distinguish the two sides;
 		 then emit the code for one side at a time.  */
 
-	      tree test_label = build_decl (LABEL_DECL, NULL_TREE, NULL_TREE);
+	      tree test_label
+		= build_decl (CURR_INSN_LOCATION,
+			      LABEL_DECL, NULL_TREE, NULL_TREE);
 
 	      /* See if the value is on the right.  */
 	      emit_cmp_and_jump_insns (index,
@@ -3028,7 +3030,8 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      /* Right hand node requires testing.
 		 Branch to a label where we will handle it later.  */
 
-	      test_label = build_decl (LABEL_DECL, NULL_TREE, NULL_TREE);
+	      test_label = build_decl (CURR_INSN_LOCATION,
+				       LABEL_DECL, NULL_TREE, NULL_TREE);
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,

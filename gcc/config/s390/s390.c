@@ -8384,15 +8384,20 @@ s390_build_builtin_va_list (void)
   record = lang_hooks.types.make_type (RECORD_TYPE);
 
   type_decl =
-    build_decl (TYPE_DECL, get_identifier ("__va_list_tag"), record);
+    build_decl (BUILTINS_LOCATION,
+		TYPE_DECL, get_identifier ("__va_list_tag"), record);
 
-  f_gpr = build_decl (FIELD_DECL, get_identifier ("__gpr"),
+  f_gpr = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, get_identifier ("__gpr"),
 		      long_integer_type_node);
-  f_fpr = build_decl (FIELD_DECL, get_identifier ("__fpr"),
+  f_fpr = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, get_identifier ("__fpr"),
 		      long_integer_type_node);
-  f_ovf = build_decl (FIELD_DECL, get_identifier ("__overflow_arg_area"),
+  f_ovf = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, get_identifier ("__overflow_arg_area"),
 		      ptr_type_node);
-  f_sav = build_decl (FIELD_DECL, get_identifier ("__reg_save_area"),
+  f_sav = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, get_identifier ("__reg_save_area"),
 		      ptr_type_node);
 
   va_list_gpr_counter_field = f_gpr;
@@ -8616,10 +8621,9 @@ s390_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 
   /* Pull the value out of the saved registers ...  */
 
-  lab_false = create_artificial_label ();
-  lab_over = create_artificial_label ();
+  lab_false = create_artificial_label (UNKNOWN_LOCATION);
+  lab_over = create_artificial_label (UNKNOWN_LOCATION);
   addr = create_tmp_var (ptr_type_node, "addr");
-  DECL_POINTER_ALIAS_SET (addr) = get_varargs_alias_set ();
 
   t = fold_convert (TREE_TYPE (reg), size_int (max_reg));
   t = build2 (GT_EXPR, boolean_type_node, reg, t);
@@ -8666,13 +8670,14 @@ s390_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 
   if (indirect_p)
     {
-      t = build_pointer_type (build_pointer_type (type));
+      t = build_pointer_type_for_mode (build_pointer_type (type),
+				       ptr_mode, true);
       addr = fold_convert (t, addr);
       addr = build_va_arg_indirect_ref (addr);
     }
   else
     {
-      t = build_pointer_type (type);
+      t = build_pointer_type_for_mode (type, ptr_mode, true);
       addr = fold_convert (t, addr);
     }
 

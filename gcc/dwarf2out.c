@@ -74,7 +74,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "libfuncs.h"
 #include "except.h"
-#include "dwarf2.h"
+#include "elf/dwarf2.h"
 #include "dwarf2out.h"
 #include "dwarf2asm.h"
 #include "toplev.h"
@@ -91,7 +91,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 
 #ifdef DWARF2_DEBUGGING_INFO
-static void dwarf2out_source_line (unsigned int, const char *, int);
+static void dwarf2out_source_line (unsigned int, const char *, int, bool);
+
+static rtx last_var_location_insn;
 #endif
 
 #ifndef DWARF2_FRAME_INFO
@@ -317,8 +319,6 @@ dw_fde_node;
 #define DWARF_INITIAL_LENGTH_SIZE (DWARF_OFFSET_SIZE == 4 ? 4 : 12)
 #endif
 
-#define DWARF_VERSION 2
-
 /* Round SIZE up to the nearest BOUNDARY.  */
 #define DWARF_ROUND(SIZE,BOUNDARY) \
   ((((SIZE) + (BOUNDARY) - 1) / (BOUNDARY)) * (BOUNDARY))
@@ -524,6 +524,25 @@ init_return_column_size (enum machine_mode mode, rtx mem, unsigned int c)
   emit_move_insn (adjust_address (mem, mode, offset), GEN_INT (size));
 }
 
+/* Divide OFF by DWARF_CIE_DATA_ALIGNMENT, asserting no remainder.  */
+
+static inline HOST_WIDE_INT
+div_data_align (HOST_WIDE_INT off)
+{
+  HOST_WIDE_INT r = off / DWARF_CIE_DATA_ALIGNMENT;
+  gcc_assert (r * DWARF_CIE_DATA_ALIGNMENT == off);
+  return r;
+}
+
+/* Return true if we need a signed version of a given opcode
+   (e.g. DW_CFA_offset_extended_sf vs DW_CFA_offset_extended).  */
+
+static inline bool
+need_data_align_sf_opcode (HOST_WIDE_INT off)
+{
+  return DWARF_CIE_DATA_ALIGNMENT < 0 ? off > 0 : off < 0;
+}
+
 /* Generate code to initialize the register size table.  */
 
 void
@@ -717,13 +736,29 @@ dwarf2out_cfi_label (bool force)
   return label;
 }
 
+/* True if remember_state should be emitted before following CFI directive.  */
+static bool emit_cfa_remember;
+
 /* Add CFI to the current fde at the PC value indicated by LABEL if specified,
    or to the CIE if LABEL is NULL.  */
 
 static void
 add_fde_cfi (const char *label, dw_cfi_ref cfi)
 {
-  dw_cfi_ref *list_head = &cie_cfi_head;
+  dw_cfi_ref *list_head;
+
+  if (emit_cfa_remember)
+    {
+      dw_cfi_ref cfi_remember;
+
+      /* Emit the state save.  */
+      emit_cfa_remember = false;
+      cfi_remember = new_cfi (); 
+      cfi_remember->dw_cfi_opc = DW_CFA_remember_state;
+      add_fde_cfi (label, cfi_remember);
+    }
+
+  list_head = &cie_cfi_head;
 
   if (dwarf2out_do_cfi_asm ())
     {
@@ -733,50 +768,51 @@ add_fde_cfi (const char *label, dw_cfi_ref cfi)
 
 	  gcc_assert (fde != NULL);
 
-	  /* We still have to add the cfi to the list so that
-	     lookup_cfa works later on.  When -g2 and above we
-	     even need to force emitting of CFI labels and
-	     add to list a DW_CFA_set_loc for convert_cfa_to_fb_loc_list
-	     purposes.  */
-	  switch (cfi->dw_cfi_opc)
+	  /* We still have to add the cfi to the list so that lookup_cfa
+	     works later on.  When -g2 and above we even need to force
+	     emitting of CFI labels and add to list a DW_CFA_set_loc for
+	     convert_cfa_to_fb_loc_list purposes.  If we're generating
+	     DWARF3 output we use DW_OP_call_frame_cfa and so don't use
+	     convert_cfa_to_fb_loc_list.  */
+	  if (dwarf_version == 2
+	      && debug_info_level > DINFO_LEVEL_TERSE
+	      && (write_symbols == DWARF2_DEBUG
+		  || write_symbols == VMS_AND_DWARF2_DEBUG))
 	    {
-	    case DW_CFA_def_cfa_offset:
-	    case DW_CFA_def_cfa_offset_sf:
-	    case DW_CFA_def_cfa_register:
-	    case DW_CFA_def_cfa:
-	    case DW_CFA_def_cfa_sf:
-	    case DW_CFA_def_cfa_expression:
-	    case DW_CFA_restore_state:
-	      if (write_symbols != DWARF2_DEBUG
-		  && write_symbols != VMS_AND_DWARF2_DEBUG)
-		break;
-	      if (debug_info_level <= DINFO_LEVEL_TERSE)
-		break;
-
-	      if (*label == 0 || strcmp (label, "<do not output>") == 0)
-		label = dwarf2out_cfi_label (true);
-
-	      if (fde->dw_fde_current_label == NULL
-		  || strcmp (label, fde->dw_fde_current_label) != 0)
+	      switch (cfi->dw_cfi_opc)
 		{
-		  dw_cfi_ref xcfi;
+		case DW_CFA_def_cfa_offset:
+		case DW_CFA_def_cfa_offset_sf:
+		case DW_CFA_def_cfa_register:
+		case DW_CFA_def_cfa:
+		case DW_CFA_def_cfa_sf:
+		case DW_CFA_def_cfa_expression:
+		case DW_CFA_restore_state:
+		  if (*label == 0 || strcmp (label, "<do not output>") == 0)
+		    label = dwarf2out_cfi_label (true);
 
-		  label = xstrdup (label);
+		  if (fde->dw_fde_current_label == NULL
+		      || strcmp (label, fde->dw_fde_current_label) != 0)
+		    {
+		      dw_cfi_ref xcfi;
 
-		  /* Set the location counter to the new label.  */
-		  xcfi = new_cfi ();
-		  /* It doesn't metter whether DW_CFA_set_loc
-		     or DW_CFA_advance_loc4 is added here, those aren't
-		     emitted into assembly, only looked up by
-		     convert_cfa_to_fb_loc_list.  */
-		  xcfi->dw_cfi_opc = DW_CFA_set_loc;
-		  xcfi->dw_cfi_oprnd1.dw_cfi_addr = label;
-		  add_cfi (&fde->dw_fde_cfi, xcfi);
-		  fde->dw_fde_current_label = label;
-		}
-	      break;
-	    default:
-	      break;
+		      label = xstrdup (label);
+
+		      /* Set the location counter to the new label.  */
+		      xcfi = new_cfi ();
+		      /* It doesn't metter whether DW_CFA_set_loc
+		         or DW_CFA_advance_loc4 is added here, those aren't
+		         emitted into assembly, only looked up by
+		         convert_cfa_to_fb_loc_list.  */
+		      xcfi->dw_cfi_opc = DW_CFA_set_loc;
+		      xcfi->dw_cfi_oprnd1.dw_cfi_addr = label;
+		      add_cfi (&fde->dw_fde_cfi, xcfi);
+		      fde->dw_fde_current_label = label;
+		    }
+		  break;
+		default:
+		  break;
+	        }
 	    }
 
 	  output_cfi_directive (cfi);
@@ -1033,7 +1069,7 @@ reg_save (const char *label, unsigned int reg, unsigned int sreg, HOST_WIDE_INT 
     }
   else if (sreg == INVALID_REGNUM)
     {
-      if (offset < 0)
+      if (need_data_align_sf_opcode (offset))
 	cfi->dw_cfi_opc = DW_CFA_offset_extended_sf;
       else if (reg & ~0x3f)
 	cfi->dw_cfi_opc = DW_CFA_offset_extended;
@@ -1161,7 +1197,7 @@ initial_return_save (rtx rtl)
       /* The return address is at some offset from any value we can
 	 actually load.  For instance, on the SPARC it is in %i7+8. Just
 	 ignore the offset for now; it doesn't matter for unwinding frames.  */
-      gcc_assert (GET_CODE (XEXP (rtl, 1)) == CONST_INT);
+      gcc_assert (CONST_INT_P (XEXP (rtl, 1)));
       initial_return_save (XEXP (rtl, 0));
       return;
 
@@ -1203,7 +1239,7 @@ stack_adjust_offset (const_rtx pattern, HOST_WIDE_INT cur_args_size,
 
       if (! (code == PLUS || code == MINUS)
 	  || XEXP (src, 0) != stack_pointer_rtx
-	  || GET_CODE (XEXP (src, 1)) != CONST_INT)
+	  || !CONST_INT_P (XEXP (src, 1)))
 	return 0;
 
       /* (set (reg sp) (plus (reg sp) (const_int))) */
@@ -1230,7 +1266,7 @@ stack_adjust_offset (const_rtx pattern, HOST_WIDE_INT cur_args_size,
 	      rtx val = XEXP (XEXP (src, 1), 1);
 	      /* We handle only adjustments by constant amount.  */
 	      gcc_assert (GET_CODE (XEXP (src, 1)) == PLUS
-			  && GET_CODE (val) == CONST_INT);
+			  && CONST_INT_P (val));
 	      offset = -INTVAL (val);
 	      break;
 	    }
@@ -2149,17 +2185,17 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 
   fde = current_fde ();
 
-  if (GET_CODE (src) == REG
+  if (REG_P (src)
       && fde
       && fde->drap_reg == REGNO (src)
       && (fde->drap_reg_saved
-	  || GET_CODE (dest) == REG))
+	  || REG_P (dest)))
     {
       /* Rule 20 */
       /* If we are saving dynamic realign argument pointer to a
 	 register, the destination is virtual dynamic realign
 	 argument pointer.  It may be used to access argument.  */
-      if (GET_CODE (dest) == REG)
+      if (REG_P (dest))
 	{
 	  gcc_assert (fde->vdrap_reg == INVALID_REGNUM);
 	  fde->vdrap_reg = REGNO (dest);
@@ -2260,7 +2296,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 
 	      gcc_assert (REG_P (XEXP (src, 0))
 			  && (unsigned) REGNO (XEXP (src, 0)) == cfa.reg
-			  && GET_CODE (XEXP (src, 1)) == CONST_INT);
+			  && CONST_INT_P (XEXP (src, 1)));
 	      offset = INTVAL (XEXP (src, 1));
 	      if (GET_CODE (src) != MINUS)
 		offset = -offset;
@@ -2274,7 +2310,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	      /* Rule 4 */
 	      if (REG_P (XEXP (src, 0))
 		  && REGNO (XEXP (src, 0)) == cfa.reg
-		  && GET_CODE (XEXP (src, 1)) == CONST_INT)
+		  && CONST_INT_P (XEXP (src, 1)))
 		{
 		  /* Setting a temporary CFA register that will be copied
 		     into the FP later on.  */
@@ -2300,7 +2336,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 
 	      /* Rule 9 */
 	      else if (GET_CODE (src) == LO_SUM
-		       && GET_CODE (XEXP (src, 1)) == CONST_INT)
+		       && CONST_INT_P (XEXP (src, 1)))
 		{
 		  cfa_temp.reg = REGNO (dest);
 		  cfa_temp.offset = INTVAL (XEXP (src, 1));
@@ -2320,7 +2356,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	case IOR:
 	  gcc_assert (REG_P (XEXP (src, 0))
 		      && (unsigned) REGNO (XEXP (src, 0)) == cfa_temp.reg
-		      && GET_CODE (XEXP (src, 1)) == CONST_INT);
+		      && CONST_INT_P (XEXP (src, 1)));
 
 	  if ((unsigned) REGNO (dest) != cfa_temp.reg)
 	    cfa_temp.reg = REGNO (dest);
@@ -2427,7 +2463,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  {
 	    int regno;
 
-	    gcc_assert (GET_CODE (XEXP (XEXP (dest, 0), 1)) == CONST_INT
+	    gcc_assert (CONST_INT_P (XEXP (XEXP (dest, 0), 1))
 			&& REG_P (XEXP (XEXP (dest, 0), 0)));
 	    offset = INTVAL (XEXP (XEXP (dest, 0), 1));
 	    if (GET_CODE (XEXP (dest, 0)) == MINUS)
@@ -2709,7 +2745,6 @@ dwarf2out_begin_epilogue (rtx insn)
 {
   bool saw_frp = false;
   rtx i;
-  dw_cfi_ref cfi;
 
   /* Scan forward to the return insn, noticing if there are possible
      frame related insns.  */
@@ -2723,6 +2758,22 @@ dwarf2out_begin_epilogue (rtx insn)
 	break;
       if (CALL_P (i) && SIBLING_CALL_P (i))
 	break;
+
+      if (GET_CODE (PATTERN (i)) == SEQUENCE)
+	{
+	  int idx;
+	  rtx seq = PATTERN (i);
+
+	  if (returnjump_p (XVECEXP (seq, 0, 0)))
+	    break;
+	  if (CALL_P (XVECEXP (seq, 0, 0))
+	      && SIBLING_CALL_P (XVECEXP (seq, 0, 0)))
+	    break;
+
+	  for (idx = 0; idx < XVECLEN (seq, 0); idx++)
+	    if (RTX_FRAME_RELATED_P (XVECEXP (seq, 0, idx)))
+	      saw_frp = true;
+	}
 
       if (RTX_FRAME_RELATED_P (i))
 	saw_frp = true;
@@ -2755,10 +2806,7 @@ dwarf2out_begin_epilogue (rtx insn)
     }
   emit_note_before (NOTE_INSN_CFA_RESTORE_STATE, i);
 
-  /* Emit the state save.  */
-  cfi = new_cfi (); 
-  cfi->dw_cfi_opc = DW_CFA_remember_state;
-  add_fde_cfi (dwarf2out_cfi_label (false), cfi);
+  emit_cfa_remember = true;
 
   /* And emulate the state save.  */
   gcc_assert (!cfa_remember.in_use);
@@ -2913,16 +2961,6 @@ switch_to_eh_frame_section (void)
 				       IDENTIFIER_POINTER (label));
       ASM_OUTPUT_LABEL (asm_out_file, IDENTIFIER_POINTER (label));
     }
-}
-
-/* Divide OFF by DWARF_CIE_DATA_ALIGNMENT, asserting no remainder.  */
-
-static HOST_WIDE_INT
-div_data_align (HOST_WIDE_INT off)
-{
-  HOST_WIDE_INT r = off / DWARF_CIE_DATA_ALIGNMENT;
-  gcc_assert (r * DWARF_CIE_DATA_ALIGNMENT == off);
-  return r;
 }
 
 /* Output a Call Frame Information opcode and its operand(s).  */
@@ -3185,6 +3223,7 @@ output_call_frame_info (int for_eh)
   int per_encoding = DW_EH_PE_absptr;
   int lsda_encoding = DW_EH_PE_absptr;
   int return_reg;
+  int dw_cie_version;
 
   /* Don't emit a CIE if there won't be any FDEs.  */
   if (fde_table_in_use == 0)
@@ -3265,7 +3304,14 @@ output_call_frame_info (int for_eh)
 		       (for_eh ? 0 : DWARF_CIE_ID),
 		       "CIE Identifier Tag");
 
-  dw2_asm_output_data (1, DW_CIE_VERSION, "CIE Version");
+  /* Use the CIE version 3 for DWARF3; allow DWARF2 to continue to
+     use CIE version 1, unless that would produce incorrect results
+     due to overflowing the return register column.  */
+  return_reg = DWARF2_FRAME_REG_OUT (DWARF_FRAME_RETURN_COLUMN, for_eh);
+  dw_cie_version = 1;
+  if (return_reg >= 256 || dwarf_version > 2)
+    dw_cie_version = 3;
+  dw2_asm_output_data (1, dw_cie_version, "CIE Version");
 
   augmentation[0] = 0;
   augmentation_size = 0;
@@ -3337,8 +3383,7 @@ output_call_frame_info (int for_eh)
   dw2_asm_output_data_sleb128 (DWARF_CIE_DATA_ALIGNMENT,
 			       "CIE Data Alignment Factor");
 
-  return_reg = DWARF2_FRAME_REG_OUT (DWARF_FRAME_RETURN_COLUMN, for_eh);
-  if (DW_CIE_VERSION == 1)
+  if (dw_cie_version == 1)
     dw2_asm_output_data (1, return_reg, "CIE RA Column");
   else
     dw2_asm_output_data_uleb128 (return_reg, "CIE RA Column");
@@ -3608,7 +3653,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
      prologue case, not the eh frame case.  */
 #ifdef DWARF2_DEBUGGING_INFO
   if (file)
-    dwarf2out_source_line (line, file, 0);
+    dwarf2out_source_line (line, file, 0, true);
 #endif
 
   if (dwarf2out_do_cfi_asm ())
@@ -3665,6 +3710,10 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
 {
   dw_fde_ref fde;
   char label[MAX_ARTIFICIAL_LABEL_BYTES];
+
+#ifdef DWARF2_DEBUGGING_INFO
+  last_var_location_insn = NULL_RTX;
+#endif
 
   if (dwarf2out_do_cfi_asm ())
     fprintf (asm_out_file, "\t.cfi_endproc\n");
@@ -3853,7 +3902,10 @@ dw_val_node;
 
 typedef struct GTY(()) dw_loc_descr_struct {
   dw_loc_descr_ref dw_loc_next;
-  enum dwarf_location_atom dw_loc_opc;
+  ENUM_BITFIELD (dwarf_location_atom) dw_loc_opc : 8;
+  /* Used to distinguish DW_OP_addr with a direct symbol relocation
+     from DW_OP_addr with a dtp-relative symbol relocation.  */
+  unsigned int dtprel : 1;
   int dw_loc_addr;
   dw_val_node dw_loc_oprnd1;
   dw_val_node dw_loc_oprnd2;
@@ -3885,7 +3937,6 @@ dwarf_stack_op_name (unsigned int op)
   switch (op)
     {
     case DW_OP_addr:
-    case INTERNAL_DW_OP_tls_addr:
       return "DW_OP_addr";
     case DW_OP_deref:
       return "DW_OP_deref";
@@ -4175,6 +4226,7 @@ dwarf_stack_op_name (unsigned int op)
       return "DW_OP_xderef_size";
     case DW_OP_nop:
       return "DW_OP_nop";
+
     case DW_OP_push_object_address:
       return "DW_OP_push_object_address";
     case DW_OP_call2:
@@ -4183,10 +4235,20 @@ dwarf_stack_op_name (unsigned int op)
       return "DW_OP_call4";
     case DW_OP_call_ref:
       return "DW_OP_call_ref";
+    case DW_OP_form_tls_address:
+      return "DW_OP_form_tls_address";
+    case DW_OP_call_frame_cfa:
+      return "DW_OP_call_frame_cfa";
+    case DW_OP_bit_piece:
+      return "DW_OP_bit_piece";
+
     case DW_OP_GNU_push_tls_address:
       return "DW_OP_GNU_push_tls_address";
     case DW_OP_GNU_uninit:
       return "DW_OP_GNU_uninit";
+    case DW_OP_GNU_encoded_addr:
+      return "DW_OP_GNU_encoded_addr";
+
     default:
       return "OP_<unknown>";
     }
@@ -4289,7 +4351,6 @@ size_of_loc_descr (dw_loc_descr_ref loc)
   switch (loc->dw_loc_opc)
     {
     case DW_OP_addr:
-    case INTERNAL_DW_OP_tls_addr:
       size += DWARF2_ADDR_SIZE;
       break;
     case DW_OP_const1u:
@@ -4430,9 +4491,6 @@ output_loc_operands (dw_loc_descr_ref loc)
   switch (loc->dw_loc_opc)
     {
 #ifdef DWARF2_DEBUGGING_INFO
-    case DW_OP_addr:
-      dw2_asm_output_addr_rtx (DWARF2_ADDR_SIZE, val1->v.val_addr, NULL);
-      break;
     case DW_OP_const2u:
     case DW_OP_const2s:
       dw2_asm_output_data (2, val1->v.val_int, NULL);
@@ -4458,7 +4516,6 @@ output_loc_operands (dw_loc_descr_ref loc)
       }
       break;
 #else
-    case DW_OP_addr:
     case DW_OP_const2u:
     case DW_OP_const2s:
     case DW_OP_const4u:
@@ -4541,16 +4598,27 @@ output_loc_operands (dw_loc_descr_ref loc)
       dw2_asm_output_data (1, val1->v.val_int, NULL);
       break;
 
-    case INTERNAL_DW_OP_tls_addr:
-      if (targetm.asm_out.output_dwarf_dtprel)
+    case DW_OP_addr:
+      if (loc->dtprel)
 	{
-	  targetm.asm_out.output_dwarf_dtprel (asm_out_file,
-					       DWARF2_ADDR_SIZE,
-					       val1->v.val_addr);
-	  fputc ('\n', asm_out_file);
+	  if (targetm.asm_out.output_dwarf_dtprel)
+	    {
+	      targetm.asm_out.output_dwarf_dtprel (asm_out_file,
+						   DWARF2_ADDR_SIZE,
+						   val1->v.val_addr);
+	      fputc ('\n', asm_out_file);
+	    }
+	  else
+	    gcc_unreachable ();
 	}
       else
-	gcc_unreachable ();
+	{
+#ifdef DWARF2_DEBUGGING_INFO
+	  dw2_asm_output_addr_rtx (DWARF2_ADDR_SIZE, val1->v.val_addr, NULL);
+#else
+	  gcc_unreachable ();
+#endif
+	}
       break;
 
     default:
@@ -4683,9 +4751,6 @@ output_loc_operands_raw (dw_loc_descr_ref loc)
       fputc (',', asm_out_file);
       dw2_asm_output_data_sleb128_raw (val2->v.val_int);
       break;
-
-    case INTERNAL_DW_OP_tls_addr:
-      gcc_unreachable ();
 
     default:
       /* Other codes have no operands.  */
@@ -5604,6 +5669,9 @@ static int maybe_emit_file (struct dwarf_file_data *fd);
 #endif
 #ifndef DEBUG_PUBNAMES_SECTION
 #define DEBUG_PUBNAMES_SECTION	".debug_pubnames"
+#endif
+#ifndef DEBUG_PUBTYPES_SECTION
+#define DEBUG_PUBTYPES_SECTION	".debug_pubtypes"
 #endif
 #ifndef DEBUG_STR_SECTION
 #define DEBUG_STR_SECTION	".debug_str"
@@ -7233,7 +7301,10 @@ pop_compile_unit (dw_die_ref old_unit)
 static inline void
 loc_checksum (dw_loc_descr_ref loc, struct md5_ctx *ctx)
 {
-  CHECKSUM (loc->dw_loc_opc);
+  int tem;
+
+  tem = (loc->dtprel << 8) | ((unsigned int) loc->dw_loc_opc);
+  CHECKSUM (tem);
   CHECKSUM (loc->dw_loc_oprnd1);
   CHECKSUM (loc->dw_loc_oprnd2);
 }
@@ -7857,7 +7928,6 @@ build_abbrev_table (dw_die_ref die)
 	&& AT_ref (a)->die_mark == 0)
       {
 	gcc_assert (AT_ref (a)->die_symbol);
-
 	set_AT_ref_external (a, 1);
       }
 
@@ -7985,7 +8055,9 @@ size_of_die (dw_die_ref die)
 	  size += 1;
 	  break;
 	case dw_val_class_die_ref:
-	  if (AT_ref_external (a))
+	  /* In DWARF2, DW_FORM_ref_addr is sized by target address length,
+	     whereas in DWARF3 it's always sized as an offset.  */
+	  if (AT_ref_external (a) && dwarf_version == 2)
 	    size += DWARF2_ADDR_SIZE;
 	  else
 	    size += DWARF_OFFSET_SIZE;
@@ -8514,10 +8586,17 @@ output_die (dw_die_ref die)
 	  if (AT_ref_external (a))
 	    {
 	      char *sym = AT_ref (a)->die_symbol;
+	      int size;
 
 	      gcc_assert (sym);
-	      dw2_asm_output_offset (DWARF2_ADDR_SIZE, sym, debug_info_section,
-				     "%s", name);
+
+	      /* In DWARF2, DW_FORM_ref_addr is sized by target address
+		 length, whereas in DWARF3 it's always sized as an offset.  */
+	      if (dwarf_version == 2)
+		size = DWARF2_ADDR_SIZE;
+	      else
+		size = DWARF_OFFSET_SIZE;
+	      dw2_asm_output_offset (size, sym, debug_info_section, "%s", name);
 	    }
 	  else
 	    {
@@ -8596,7 +8675,7 @@ output_compilation_unit_header (void)
   dw2_asm_output_data (DWARF_OFFSET_SIZE,
 		       next_die_offset - DWARF_INITIAL_LENGTH_SIZE,
 		       "Length of Compilation Unit Info");
-  dw2_asm_output_data (2, DWARF_VERSION, "DWARF version number");
+  dw2_asm_output_data (2, dwarf_version, "DWARF version number");
   dw2_asm_output_offset (DWARF_OFFSET_SIZE, abbrev_section_label,
 			 debug_abbrev_section,
 			 "Offset Into Abbrev. Section");
@@ -8677,7 +8756,6 @@ add_pubname_string (const char *str, dw_die_ref die)
 static void
 add_pubname (tree decl, dw_die_ref die)
 {
-
   if (TREE_PUBLIC (decl))
     add_pubname_string (dwarf2_name (decl, 1), die);
 }
@@ -8737,7 +8815,8 @@ output_pubnames (VEC (pubname_entry, gc) * names)
   else
     dw2_asm_output_data (DWARF_OFFSET_SIZE, pubnames_length,
 			 "Length of Public Type Names Info");
-  dw2_asm_output_data (2, DWARF_VERSION, "DWARF Version");
+  /* Version number for pubnames/pubtypes is still 2, even in DWARF3.  */
+  dw2_asm_output_data (2, 2, "DWARF Version");
   dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
 			 debug_info_section,
 			 "Offset of Compilation Unit Info");
@@ -8799,7 +8878,8 @@ output_aranges (void)
       "Initial length escape value indicating 64-bit DWARF extension");
   dw2_asm_output_data (DWARF_OFFSET_SIZE, aranges_length,
 		       "Length of Address Ranges Info");
-  dw2_asm_output_data (2, DWARF_VERSION, "DWARF Version");
+  /* Version number for aranges is still 2, even in DWARF3.  */
+  dw2_asm_output_data (2, 2, "DWARF Version");
   dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
 			 debug_info_section,
 			 "Offset of Compilation Unit Info");
@@ -9344,7 +9424,7 @@ output_line_info (void)
 			"Length of Source Line Info");
   ASM_OUTPUT_LABEL (asm_out_file, l1);
 
-  dw2_asm_output_data (2, DWARF_VERSION, "DWARF Version");
+  dw2_asm_output_data (2, dwarf_version, "DWARF Version");
   dw2_asm_output_delta (DWARF_OFFSET_SIZE, p2, p1, "Prolog Length");
   ASM_OUTPUT_LABEL (asm_out_file, p1);
 
@@ -10176,11 +10256,10 @@ based_loc_descr (rtx reg, HOST_WIDE_INT offset,
 	     is aligned without drap, use stack pointer + offset to
 	     access stack variables.  */
 	  if (crtl->stack_realign_tried
-	      && cfa.reg == HARD_FRAME_POINTER_REGNUM
 	      && reg == frame_pointer_rtx)
 	    {
 	      int base_reg
-		= DWARF_FRAME_REGNUM (cfa.indirect
+		= DWARF_FRAME_REGNUM ((fde && fde->drap_reg != INVALID_REGNUM)
 				      ? HARD_FRAME_POINTER_REGNUM
 				      : STACK_POINTER_REGNUM);
 	      return new_reg_loc_descr (base_reg, offset);
@@ -10221,7 +10300,7 @@ is_based_loc (const_rtx rtl)
   return (GET_CODE (rtl) == PLUS
 	  && ((REG_P (XEXP (rtl, 0))
 	       && REGNO (XEXP (rtl, 0)) < FIRST_PSEUDO_REGISTER
-	       && GET_CODE (XEXP (rtl, 1)) == CONST_INT)));
+	       && CONST_INT_P (XEXP (rtl, 1)))));
 }
 
 /* Return a descriptor that describes the concatenation of N locations
@@ -10442,7 +10521,7 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	  if (mem_loc_result == 0)
 	    break;
 
-	  if (GET_CODE (XEXP (rtl, 1)) == CONST_INT)
+	  if (CONST_INT_P (XEXP (rtl, 1)))
 	    loc_descr_plus_const (&mem_loc_result, INTVAL (XEXP (rtl, 1)));
 	  else
 	    {
@@ -10716,6 +10795,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 	  rtx rtl;
 	  enum dwarf_location_atom first_op;
 	  enum dwarf_location_atom second_op;
+	  bool dtprel = false;
 
 	  if (targetm.have_tls)
 	    {
@@ -10729,7 +10809,8 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 	     	  module.  */
 	      if (DECL_EXTERNAL (loc) && !targetm.binds_local_p (loc))
 		return 0;
-	      first_op = (enum dwarf_location_atom) INTERNAL_DW_OP_tls_addr;
+	      first_op = DW_OP_addr;
+	      dtprel = true;
 	      second_op = DW_OP_GNU_push_tls_address;
 	    }
 	  else
@@ -10754,6 +10835,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 	  ret = new_loc_descr (first_op, 0, 0);
 	  ret->dw_loc_oprnd1.val_class = dw_val_class_addr;
 	  ret->dw_loc_oprnd1.v.val_addr = rtl;
+	  ret->dtprel = dtprel;
 
 	  ret1 = new_loc_descr (second_op, 0, 0);
 	  add_loc_descr (&ret, ret1);
@@ -10776,7 +10858,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 
 	if (rtl == NULL_RTX)
 	  return 0;
-	else if (GET_CODE (rtl) == CONST_INT)
+	else if (CONST_INT_P (rtl))
 	  {
 	    HOST_WIDE_INT val = INTVAL (rtl);
 	    if (TYPE_UNSIGNED (TREE_TYPE (loc)))
@@ -13650,7 +13732,7 @@ gen_formal_parameter_die (tree node, tree origin, dw_die_ref context_die)
 	    add_AT_flag (parm_die, DW_AT_artificial, 1);
 	}
 
-      if (node)
+      if (node && node != origin)
         equate_decl_number_to_die (node, parm_die);
       if (! DECL_ABSTRACT (node_or_origin))
 	add_location_or_const_value_attribute (parm_die, node_or_origin,
@@ -14067,17 +14149,19 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	 (3) We can at least reuse the code inspection and interpretation
 	 code that determines the CFA position at various points in the
 	 function.  */
-      /* ??? Use some command-line or configury switch to enable the use
-	 of dwarf3 DW_OP_call_frame_cfa.  At present there are no dwarf
-	 consumers that understand it; fall back to "pure" dwarf2 and
-	 convert the CFA data into a location list.  */
-      {
-	dw_loc_list_ref list = convert_cfa_to_fb_loc_list (cfa_fb_offset);
-	if (list->dw_loc_next)
-	  add_AT_loc_list (subr_die, DW_AT_frame_base, list);
-	else
-	  add_AT_loc (subr_die, DW_AT_frame_base, list->expr);
-      }
+      if (dwarf_version >= 3)
+	{
+	  dw_loc_descr_ref op = new_loc_descr (DW_OP_call_frame_cfa, 0, 0);
+	  add_AT_loc (subr_die, DW_AT_frame_base, op);
+	}
+      else
+	{
+	  dw_loc_list_ref list = convert_cfa_to_fb_loc_list (cfa_fb_offset);
+	  if (list->dw_loc_next)
+	    add_AT_loc_list (subr_die, DW_AT_frame_base, list);
+	  else
+	    add_AT_loc (subr_die, DW_AT_frame_base, list->expr);
+	}
 
       /* Compute a displacement from the "steady-state frame pointer" to
 	 the CFA.  The former is what all stack slots and argument slots
@@ -16150,6 +16234,7 @@ dwarf2out_set_name (tree decl, tree name)
   else
     add_name_attribute (die, dwarf2_name (name, 0));
 }
+
 /* Called by the final INSN scan whenever we see a var location.  We
    use it to drop labels in the right places, and throw the location in
    our lookup table.  */
@@ -16159,26 +16244,27 @@ dwarf2out_var_location (rtx loc_note)
 {
   char loclabel[MAX_ARTIFICIAL_LABEL_BYTES];
   struct var_loc_node *newloc;
-  rtx prev_insn;
-  static rtx last_insn;
+  rtx next_real;
   static const char *last_label;
+  static bool last_in_cold_section_p;
   tree decl;
 
   if (!DECL_P (NOTE_VAR_LOCATION_DECL (loc_note)))
     return;
-  prev_insn = PREV_INSN (loc_note);
+
+  next_real = next_real_insn (loc_note);
+  /* If there are no instructions which would be affected by this note,
+     don't do anything.  */
+  if (next_real == NULL_RTX)
+    return;
 
   newloc = GGC_CNEW (struct var_loc_node);
-  /* If the insn we processed last time is the previous insn
-     and it is also a var location note, use the label we emitted
-     last time.  */
-  if (last_insn != NULL_RTX
-      && last_insn == prev_insn
-      && NOTE_P (prev_insn)
-      && NOTE_KIND (prev_insn) == NOTE_INSN_VAR_LOCATION)
-    {
-      newloc->label = last_label;
-    }
+  /* If there were no real insns between note we processed last time
+     and this note, use the label we emitted last time.  */
+  if (last_var_location_insn != NULL_RTX
+      && last_var_location_insn == next_real
+      && last_in_cold_section_p == in_cold_section_p)
+    newloc->label = last_label;
   else
     {
       ASM_GENERATE_INTERNAL_LABEL (loclabel, "LVL", loclabel_num);
@@ -16194,8 +16280,9 @@ dwarf2out_var_location (rtx loc_note)
   else
     newloc->section_label = text_section_label;
 
-  last_insn = loc_note;
+  last_var_location_insn = next_real;
   last_label = newloc->label;
+  last_in_cold_section_p = in_cold_section_p;
   decl = NOTE_VAR_LOCATION_DECL (loc_note);
   add_var_loc_to_decl (decl, newloc);
 }
@@ -16222,8 +16309,10 @@ dwarf2out_begin_function (tree fun)
 
 static void
 dwarf2out_source_line (unsigned int line, const char *filename,
-                       int discriminator ATTRIBUTE_UNUSED)
+                       int discriminator, bool is_stmt)
 {
+  static bool last_is_stmt = true;
+
   if (debug_info_level >= DINFO_LEVEL_NORMAL
       && line != 0)
     {
@@ -16240,10 +16329,13 @@ dwarf2out_source_line (unsigned int line, const char *filename,
 	{
 	  /* Emit the .loc directive understood by GNU as.  */
 	  fprintf (asm_out_file, "\t.loc %d %d 0", file_num, line);
-#ifdef HAVE_GAS_DISCRIMINATOR
-	  if (discriminator != 0)
+	  if (is_stmt != last_is_stmt)
+	    {
+	      fprintf (asm_out_file, " is_stmt %d", is_stmt ? 1 : 0);
+	      last_is_stmt = is_stmt;
+	    }
+	  if (SUPPORTS_DISCRIMINATOR && discriminator != 0)
 	    fprintf (asm_out_file, " discriminator %d", discriminator);
-#endif /* HAVE_GAS_DISCRIMINATOR */
 	  fputc ('\n', asm_out_file);
 
 	  /* Indicate that line number info exists.  */
@@ -16445,10 +16537,8 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
 				   SECTION_DEBUG, NULL);
   debug_pubnames_section = get_section (DEBUG_PUBNAMES_SECTION,
 					SECTION_DEBUG, NULL);
-#ifdef DEBUG_PUBTYPES_SECTION
   debug_pubtypes_section = get_section (DEBUG_PUBTYPES_SECTION,
 					SECTION_DEBUG, NULL);
-#endif
   debug_str_section = get_section (DEBUG_STR_SECTION,
 				   DEBUG_STR_SECTION_FLAGS, NULL);
   debug_ranges_section = get_section (DEBUG_RANGES_SECTION,
@@ -17080,14 +17170,15 @@ dwarf2out_finish (const char *filename)
       output_pubnames (pubname_table);
     }
 
-#ifdef DEBUG_PUBTYPES_SECTION
   /* Output public types table if necessary.  */
+  /* ??? Only defined by DWARF3, but emitted by Darwin for DWARF2.
+     It shouldn't hurt to emit it always, since pure DWARF2 consumers
+     simply won't look for the section.  */
   if (!VEC_empty (pubname_entry, pubtype_table))
     {
       switch_to_section (debug_pubtypes_section);
       output_pubnames (pubtype_table);
     }
-#endif
 
   /* Output the address range information.  We only put functions in the arange
      table, so don't write it out if we don't have any.  */
@@ -17132,7 +17223,36 @@ dwarf2out_finish (const char *filename)
 #else
 
 /* This should never be used, but its address is needed for comparisons.  */
-const struct gcc_debug_hooks dwarf2_debug_hooks;
+const struct gcc_debug_hooks dwarf2_debug_hooks =
+{
+  0,		/* init */
+  0,		/* finish */
+  0,		/* define */
+  0,		/* undef */
+  0,		/* start_source_file */
+  0,		/* end_source_file */
+  0,		/* begin_block */
+  0,		/* end_block */
+  0,		/* ignore_block */
+  0,		/* source_line */
+  0,		/* begin_prologue */
+  0,		/* end_prologue */
+  0,		/* end_epilogue */
+  0,		/* begin_function */
+  0,		/* end_function */
+  0,		/* function_decl */
+  0,		/* global_decl */
+  0,		/* type_decl */
+  0,		/* imported_module_or_decl */
+  0,		/* deferred_inline_function */
+  0,		/* outlining_inline_function */
+  0,		/* label */
+  0,		/* handle_pch */
+  0,		/* var_location */
+  0,		/* switch_text_section */
+  0,		/* set_name */
+  0		/* start_end_main_source_file */
+};
 
 #endif /* DWARF2_DEBUGGING_INFO */
 

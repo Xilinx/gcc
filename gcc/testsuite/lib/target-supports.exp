@@ -498,7 +498,9 @@ proc check_profiling_available { test_what } {
 	     || [istarget m32c-*-elf]
 	     || [istarget m68k-*-elf]
 	     || [istarget m68k-*-uclinux*]
+	     || [istarget mep-*-elf]
 	     || [istarget mips*-*-elf*]
+	     || [istarget moxie-*-elf*]
 	     || [istarget xstormy16-*]
 	     || [istarget xtensa*-*-elf]
 	     || [istarget *-*-rtems*]
@@ -730,6 +732,15 @@ proc check_effective_target_mips16_attribute { } {
 	#error FOO
 	#endif
     } [add_options_for_mips16_attribute ""]]
+}
+
+# Return 1 if the target supports long double larger than double when
+# using the new ABI, 0 otherwise.
+
+proc check_effective_target_mips_newabi_large_long_double { } {
+    return [check_no_compiler_messages mips_newabi_large_long_double object {
+	int dummy[sizeof(long double) > sizeof(double) ? 1 : -1];
+    } "-mabi=64"]
 }
 
 # Return 1 if the current multilib does not generate PIC by default.

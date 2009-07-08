@@ -488,17 +488,11 @@ enum reg_class
 
 /* Eliminating Frame Pointer and Arg Pointer */
 
-/* If the frame pointer isn't used, we detect it manually.  But the
-   stack pointer doesn't have as flexible addressing as the frame
-   pointer, so we always assume we have it.  */
-#define FRAME_POINTER_REQUIRED 1
-
 #define ELIMINABLE_REGS \
   {{AP_REGNO, SP_REGNO}, \
    {AP_REGNO, FB_REGNO}, \
    {FB_REGNO, SP_REGNO}}
 
-#define CAN_ELIMINATE(FROM,TO) 1
 #define INITIAL_ELIMINATION_OFFSET(FROM,TO,VAR) \
 	(VAR) = m32c_initial_elimination_offset(FROM,TO)
 

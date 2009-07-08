@@ -875,7 +875,8 @@ package body Scng is
                end if;
             end if;
 
-            Error_Msg_S ("missing string quote");
+            Error_Msg_S --  CODEFIX
+              ("missing string quote");
          end Error_Unterminated_String;
 
          ----------------
@@ -2411,11 +2412,16 @@ package body Scng is
                   Style.Non_Lower_Case_Keyword;
                end if;
 
+               --  Check THEN/ELSE style rules. These do not apply to AND THEN
+               --  or OR ELSE, and do not apply in conditional expressions.
+
                if (Token = Tok_Then and then Prev_Token /= Tok_And)
                     or else
                   (Token = Tok_Else and then Prev_Token /= Tok_Or)
                then
-                  Style.Check_Separate_Stmt_Lines;
+                  if Inside_Conditional_Expression = 0 then
+                     Style.Check_Separate_Stmt_Lines;
+                  end if;
                end if;
             end if;
 
@@ -2549,7 +2555,6 @@ package body Scng is
          else
             exit Tabs_Loop;
          end if;
-
       end loop Tabs_Loop;
 
       return Start_Column;

@@ -1411,7 +1411,7 @@ setup_eliminable_regset (void)
        || (cfun->calls_alloca && EXIT_IGNORE_STACK)
        || crtl->accesses_prior_frames
        || crtl->stack_realign_needed
-       || FRAME_POINTER_REQUIRED);
+       || targetm.frame_pointer_required ());
 
   frame_pointer_needed = need_fp;
 
@@ -2797,14 +2797,14 @@ build_insn_chain (void)
       CLEAR_REG_SET (live_relevant_regs);
       memset (live_subregs_used, 0, max_regno * sizeof (int));
       
-      EXECUTE_IF_SET_IN_BITMAP (df_get_live_out (bb), 0, i, bi)
+      EXECUTE_IF_SET_IN_BITMAP (DF_LR_OUT (bb), 0, i, bi)
 	{
 	  if (i >= FIRST_PSEUDO_REGISTER)
 	    break;
 	  bitmap_set_bit (live_relevant_regs, i);
 	}
 
-      EXECUTE_IF_SET_IN_BITMAP (df_get_live_out (bb),
+      EXECUTE_IF_SET_IN_BITMAP (DF_LR_OUT (bb),
 				FIRST_PSEUDO_REGISTER, i, bi)
 	{
 	  if (pseudo_for_reload_consideration_p (i))

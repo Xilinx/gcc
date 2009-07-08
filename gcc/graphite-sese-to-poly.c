@@ -784,7 +784,7 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 struct irp_data
 {
   struct loop *loop;
-  sese sese;
+  sese region;
 };
 
 /* For a data reference with an ARRAY_REF as its BASE, record the
@@ -803,7 +803,7 @@ idx_record_params (tree base, tree *idx, void *dta)
   if (TREE_CODE (*idx) == SSA_NAME)
     {
       tree scev;
-      sese region = data->sese;
+      sese region = data->region;
       struct loop *loop = data->loop;
       Value one;
 
@@ -834,7 +834,7 @@ find_params_in_bb (sese region, gimple_bb_p gbb)
       struct irp_data irp;
 
       irp.loop = loop;
-      irp.sese = region;
+      irp.region = region;
       for_each_index (&dr->ref, idx_record_params, &irp);
     }
 
@@ -1183,23 +1183,12 @@ scop_contains_non_iv_scalar_phi_nodes (scop_p scop)
   return false;
 }
 
-/* Flag in MAP all the BBs in SCOP.  */
-
-static void
-flag_bb_in_sese (sbitmap map, sese region)
-{
-  basic_block bb;
-
-  FOR_EACH_BB (bb)
-    if (bb_in_sese_p (bb, region))
-      SET_BIT (map, bb->index);
-}
-
 /* Structure used to pass data to dom_walk.  */
 
 struct bsc
 {
   VEC (gimple, heap) **conditions, **cases;
+  sese region;
 };
 
 /* Returns non NULL when BB has a single predecessor and the last
@@ -1232,6 +1221,9 @@ build_sese_conditions_before (struct dom_walk_data *dw_data,
   VEC (gimple, heap) **cases = data->cases;
   gimple_bb_p gbb = gbb_from_bb (bb);
   gimple stmt = single_pred_cond (bb);
+  
+  if (!bb_in_sese_p (bb, data->region))
+    return;
 
   if (stmt)
     {
@@ -1263,6 +1255,9 @@ build_sese_conditions_after (struct dom_walk_data *dw_data,
   VEC (gimple, heap) **conditions = data->conditions;
   VEC (gimple, heap) **cases = data->cases;
 
+  if (!bb_in_sese_p (bb, data->region))
+    return;
+
   if (single_pred_cond (bb))
     {
       VEC_pop (gimple, *conditions);
@@ -1278,33 +1273,23 @@ build_sese_conditions (sese region)
   struct dom_walk_data walk_data;
   VEC (gimple, heap) *conditions = VEC_alloc (gimple, heap, 3);
   VEC (gimple, heap) *cases = VEC_alloc (gimple, heap, 3);
-  sbitmap map = sbitmap_alloc (last_basic_block);
   struct bsc data;
-
-  sbitmap_zero (map);
-  flag_bb_in_sese (map, region);
 
   data.conditions = &conditions;
   data.cases = &cases;
+  data.region = region;
 
-  walk_data.walk_stmts_backward = false;
   walk_data.dom_direction = CDI_DOMINATORS;
   walk_data.initialize_block_local_data = NULL;
-  walk_data.before_dom_children_before_stmts = build_sese_conditions_before;
-  walk_data.before_dom_children_walk_stmts = NULL;
-  walk_data.before_dom_children_after_stmts = NULL;
-  walk_data.after_dom_children_before_stmts = build_sese_conditions_after;
-  walk_data.after_dom_children_walk_stmts = NULL;
-  walk_data.after_dom_children_after_stmts = NULL;
+  walk_data.before_dom_children = build_sese_conditions_before;
+  walk_data.after_dom_children = build_sese_conditions_after;
   walk_data.global_data = &data;
   walk_data.block_local_data_size = 0;
-  walk_data.interesting_blocks = map;
 
   init_walk_dominator_tree (&walk_data);
   walk_dominator_tree (&walk_data, SESE_ENTRY_BB (region));
   fini_walk_dominator_tree (&walk_data);
 
-  sbitmap_free (map);
   VEC_free (gimple, heap, conditions);
   VEC_free (gimple, heap, cases);
 }

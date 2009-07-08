@@ -126,7 +126,8 @@ make_thunk (tree function, bool this_adjusting,
   gcc_assert (TYPE_SIZE (DECL_CONTEXT (function))
 	      && TYPE_BEING_DEFINED (DECL_CONTEXT (function)));
 
-  thunk = build_decl (FUNCTION_DECL, NULL_TREE, TREE_TYPE (function));
+  thunk = build_decl (DECL_SOURCE_LOCATION (function),
+		      FUNCTION_DECL, NULL_TREE, TREE_TYPE (function));
   DECL_LANG_SPECIFIC (thunk) = DECL_LANG_SPECIFIC (function);
   cxx_dup_lang_specific_decl (thunk);
   DECL_THUNKS (thunk) = NULL_TREE;
@@ -262,7 +263,8 @@ static GTY (()) int thunk_labelno;
 tree
 make_alias_for (tree function, tree newid)
 {
-  tree alias = build_decl (FUNCTION_DECL, newid, TREE_TYPE (function));
+  tree alias = build_decl (DECL_SOURCE_LOCATION (function),
+			   FUNCTION_DECL, newid, TREE_TYPE (function));
   DECL_LANG_SPECIFIC (alias) = DECL_LANG_SPECIFIC (function);
   cxx_dup_lang_specific_decl (alias);
   DECL_CONTEXT (alias) = NULL;
@@ -275,7 +277,6 @@ make_alias_for (tree function, tree newid)
   DECL_SAVED_FUNCTION_DATA (alias) = NULL;
   DECL_DESTRUCTOR_P (alias) = 0;
   DECL_CONSTRUCTOR_P (alias) = 0;
-  DECL_CLONED_FUNCTION (alias) = NULL_TREE;
   DECL_EXTERNAL (alias) = 0;
   DECL_ARTIFICIAL (alias) = 1;
   DECL_NO_STATIC_CHAIN (alias) = 1;
@@ -381,7 +382,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
   DECL_VISIBILITY_SPECIFIED (thunk_fndecl)
     = DECL_VISIBILITY_SPECIFIED (function);
   if (DECL_ONE_ONLY (function))
-    make_decl_one_only (thunk_fndecl);
+    make_decl_one_only (thunk_fndecl, cxx_comdat_group (thunk_fndecl));
 
   if (flag_syntax_only)
     {
@@ -428,7 +429,8 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       
       current_function_decl = thunk_fndecl;
       DECL_RESULT (thunk_fndecl)
-	= build_decl (RESULT_DECL, 0, integer_type_node);
+	= build_decl (DECL_SOURCE_LOCATION (thunk_fndecl),
+		      RESULT_DECL, 0, integer_type_node);
       fnname = IDENTIFIER_POINTER (DECL_NAME (thunk_fndecl));
       /* The back end expects DECL_INITIAL to contain a BLOCK, so we
 	 create one.  */

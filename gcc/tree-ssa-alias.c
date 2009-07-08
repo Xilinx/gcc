@@ -168,14 +168,9 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
 {
   struct ptr_info_def *pi;
 
-  /* ???  During SCCVN/PRE we can end up with *&x during valueizing
-     operands.  Likewise we can end up with dereferencing constant
-     pointers.  Just bail out in these cases for now.  */
-  if (TREE_CODE (ptr) == ADDR_EXPR
-      || TREE_CODE (ptr) == INTEGER_CST)
-    return true;
-
-  gcc_assert (TREE_CODE (ptr) == SSA_NAME
+  gcc_assert ((TREE_CODE (ptr) == SSA_NAME
+	       || TREE_CODE (ptr) == ADDR_EXPR
+	       || TREE_CODE (ptr) == INTEGER_CST)
 	      && (TREE_CODE (decl) == VAR_DECL
 		  || TREE_CODE (decl) == PARM_DECL
 		  || TREE_CODE (decl) == RESULT_DECL));
@@ -183,6 +178,29 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
   /* Non-aliased variables can not be pointed to.  */
   if (!may_be_aliased (decl))
     return false;
+
+  /* ADDR_EXPR pointers either just offset another pointer or directly
+     specify the pointed-to set.  */
+  if (TREE_CODE (ptr) == ADDR_EXPR)
+    {
+      tree base = get_base_address (TREE_OPERAND (ptr, 0));
+      if (base
+	  && INDIRECT_REF_P (base))
+	ptr = TREE_OPERAND (base, 0);
+      else if (base
+	       && SSA_VAR_P (base))
+	return operand_equal_p (base, decl, 0);
+      else if (base
+	       && CONSTANT_CLASS_P (base))
+	return false;
+      else
+	return true;
+    }
+
+  /* We can end up with dereferencing constant pointers.
+     Just bail out in this case.  */
+  if (TREE_CODE (ptr) == INTEGER_CST)
+    return true;
 
   /* If we do not have useful points-to information for this pointer
      we cannot disambiguate anything else.  */
@@ -202,17 +220,45 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
 {
   struct ptr_info_def *pi1, *pi2;
 
-  /* ???  During SCCVN/PRE we can end up with *&x during valueizing
-     operands.  Likewise we can end up with dereferencing constant
-     pointers.  Just bail out in these cases for now.  */
-  if (TREE_CODE (ptr1) == ADDR_EXPR
-      || TREE_CODE (ptr1) == INTEGER_CST
-      || TREE_CODE (ptr2) == ADDR_EXPR
+  gcc_assert ((TREE_CODE (ptr1) == SSA_NAME
+	       || TREE_CODE (ptr1) == ADDR_EXPR
+	       || TREE_CODE (ptr1) == INTEGER_CST)
+	      && (TREE_CODE (ptr2) == SSA_NAME
+		  || TREE_CODE (ptr2) == ADDR_EXPR
+		  || TREE_CODE (ptr2) == INTEGER_CST));
+
+  /* ADDR_EXPR pointers either just offset another pointer or directly
+     specify the pointed-to set.  */
+  if (TREE_CODE (ptr1) == ADDR_EXPR)
+    {
+      tree base = get_base_address (TREE_OPERAND (ptr1, 0));
+      if (base
+	  && INDIRECT_REF_P (base))
+	ptr1 = TREE_OPERAND (base, 0);
+      else if (base
+	       && SSA_VAR_P (base))
+	return ptr_deref_may_alias_decl_p (ptr2, base);
+      else
+	return true;
+    }
+  if (TREE_CODE (ptr2) == ADDR_EXPR)
+    {
+      tree base = get_base_address (TREE_OPERAND (ptr2, 0));
+      if (base
+	  && INDIRECT_REF_P (base))
+	ptr2 = TREE_OPERAND (base, 0);
+      else if (base
+	       && SSA_VAR_P (base))
+	return ptr_deref_may_alias_decl_p (ptr1, base);
+      else
+	return true;
+    }
+
+  /* We can end up with dereferencing constant pointers.
+     Just bail out in this case.  */
+  if (TREE_CODE (ptr1) == INTEGER_CST
       || TREE_CODE (ptr2) == INTEGER_CST)
     return true;
-
-  gcc_assert (TREE_CODE (ptr1) == SSA_NAME
-	      && TREE_CODE (ptr2) == SSA_NAME);
 
   /* We may end up with two empty points-to solutions for two same pointers.
      In this case we still want to say both pointers alias, so shortcut
@@ -227,85 +273,41 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
   if (!pi1 || !pi2)
     return true;
 
+  /* If both pointers are restrict-qualified try to disambiguate
+     with restrict information.  */
+  if (TYPE_RESTRICT (TREE_TYPE (ptr1))
+      && TYPE_RESTRICT (TREE_TYPE (ptr2))
+      && !pt_solutions_same_restrict_base (&pi1->pt, &pi2->pt))
+    return false;
+
   /* ???  This does not use TBAA to prune decls from the intersection
      that not both pointers may access.  */
   return pt_solutions_intersect (&pi1->pt, &pi2->pt);
 }
 
-/* Return true if STMT is an "escape" site from the current function.  Escape
-   sites those statements which might expose the address of a variable
-   outside the current function.  STMT is an escape site iff:
+/* Return true if dereferencing PTR may alias *REF.
+   The caller is responsible for applying TBAA to see if PTR
+   may access *REF at all.  */
 
-   	1- STMT is a function call, or
-	2- STMT is an __asm__ expression, or
-	3- STMT is an assignment to a non-local variable, or
-	4- STMT is a return statement.
-
-   Return the type of escape site found, if we found one, or NO_ESCAPE
-   if none.  */
-
-enum escape_type
-is_escape_site (gimple stmt)
+static bool
+ptr_deref_may_alias_ref_p_1 (tree ptr, ao_ref *ref)
 {
-  if (is_gimple_call (stmt))
-    {
-      if (gimple_call_flags (stmt) & (ECF_PURE | ECF_CONST))
-	return ESCAPE_TO_PURE_CONST;
+  tree base = ao_ref_base (ref);
 
-      return ESCAPE_TO_CALL;
-    }
-  else if (gimple_code (stmt) == GIMPLE_ASM)
-    return ESCAPE_TO_ASM;
-  else if (is_gimple_assign (stmt))
-    {
-      tree lhs = gimple_assign_lhs (stmt);
+  if (INDIRECT_REF_P (base))
+    return ptr_derefs_may_alias_p (ptr, TREE_OPERAND (base, 0));
+  else if (SSA_VAR_P (base))
+    return ptr_deref_may_alias_decl_p (ptr, base);
 
-      /* Get to the base of _REF nodes.  */
-      if (TREE_CODE (lhs) != SSA_NAME)
-	lhs = get_base_address (lhs);
+  return true;
+}
 
-      /* If we couldn't recognize the LHS of the assignment, assume that it
-	 is a non-local store.  */
-      if (lhs == NULL_TREE)
-	return ESCAPE_UNKNOWN;
-
-      if (gimple_assign_cast_p (stmt))
-	{
-	  tree from = TREE_TYPE (gimple_assign_rhs1 (stmt));
-	  tree to = TREE_TYPE (lhs);
-
-	  /* If the RHS is a conversion between a pointer and an integer, the
-	     pointer escapes since we can't track the integer.  */
-	  if (POINTER_TYPE_P (from) && !POINTER_TYPE_P (to))
-	    return ESCAPE_BAD_CAST;
-	}
-
-      /* If the LHS is an SSA name, it can't possibly represent a non-local
-	 memory store.  */
-      if (TREE_CODE (lhs) == SSA_NAME)
-	return NO_ESCAPE;
-
-      /* If the LHS is a non-global decl, it isn't a non-local memory store.
-	 If the LHS escapes, the RHS escape is dealt with in the PTA solver.  */
-      if (DECL_P (lhs)
-	  && !is_global_var (lhs))
-	return NO_ESCAPE;
-
-      /* FIXME: LHS is not an SSA_NAME.  Even if it's an assignment to a
-	 local variables we cannot be sure if it will escape, because we
-	 don't have information about objects not in SSA form.  Need to
-	 implement something along the lines of
-
-	 J.-D. Choi, M. Gupta, M. J. Serrano, V. C. Sreedhar, and S. P.
-	 Midkiff, ``Escape analysis for java,'' in Proceedings of the
-	 Conference on Object-Oriented Programming Systems, Languages, and
-	 Applications (OOPSLA), pp. 1-19, 1999.  */
-      return ESCAPE_STORED_IN_GLOBAL;
-    }
-  else if (gimple_code (stmt) == GIMPLE_RETURN)
-    return ESCAPE_TO_RETURN;
-
-  return NO_ESCAPE;
+static bool
+ptr_deref_may_alias_ref_p (tree ptr, tree ref)
+{
+  ao_ref r;
+  ao_ref_init (&r, ref);
+  return ptr_deref_may_alias_ref_p_1 (ptr, &r);
 }
 
 
@@ -854,7 +856,7 @@ refs_output_dependent_p (tree store1, tree store2)
 static bool
 ref_maybe_used_by_call_p_1 (gimple call, tree ref)
 {
-  tree base;
+  tree base, callee;
   unsigned i;
   int flags = gimple_call_flags (call);
 
@@ -863,12 +865,8 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
       && (flags & (ECF_CONST|ECF_NOVOPS)))
     goto process_args;
 
-  /* If the reference is not based on a decl give up.
-     ???  Handle indirect references by intersecting the call-used
-     	  solution with that of the pointer.  */
   base = get_base_address (ref);
-  if (!base
-      || !DECL_P (base))
+  if (!base)
     return true;
 
   /* If the reference is based on a decl that is not aliased the call
@@ -879,13 +877,64 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
       && !is_global_var (base))
     goto process_args;
 
+  callee = gimple_call_fndecl (call);
+
+  /* Handle those builtin functions explicitly that do not act as
+     escape points.  See tree-ssa-structalias.c:find_func_aliases
+     for the list of builtins we might need to handle here.  */
+  if (callee != NULL_TREE
+      && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (callee))
+      {
+	/* All the following functions clobber memory pointed to by
+	   their first argument.  */
+	case BUILT_IN_STRCPY:
+	case BUILT_IN_STRNCPY:
+	case BUILT_IN_BCOPY:
+	case BUILT_IN_MEMCPY:
+	case BUILT_IN_MEMMOVE:
+	case BUILT_IN_MEMPCPY:
+	case BUILT_IN_STPCPY:
+	case BUILT_IN_STPNCPY:
+	case BUILT_IN_STRCAT:
+	case BUILT_IN_STRNCAT:
+	  {
+	    tree src = gimple_call_arg (call, 1);
+	    return ptr_deref_may_alias_ref_p (src, ref);
+	  }
+	/* The following builtins do not read from memory.  */
+	case BUILT_IN_FREE:
+	case BUILT_IN_MEMSET:
+	case BUILT_IN_FREXP:
+	case BUILT_IN_FREXPF:
+	case BUILT_IN_FREXPL:
+	case BUILT_IN_GAMMA_R:
+	case BUILT_IN_GAMMAF_R:
+	case BUILT_IN_GAMMAL_R:
+	case BUILT_IN_LGAMMA_R:
+	case BUILT_IN_LGAMMAF_R:
+	case BUILT_IN_LGAMMAL_R:
+	case BUILT_IN_MODF:
+	case BUILT_IN_MODFF:
+	case BUILT_IN_MODFL:
+	case BUILT_IN_REMQUO:
+	case BUILT_IN_REMQUOF:
+	case BUILT_IN_REMQUOL:
+	case BUILT_IN_SINCOS:
+	case BUILT_IN_SINCOSF:
+	case BUILT_IN_SINCOSL:
+	  return false;
+
+	default:
+	  /* Fallthru to general call handling.  */;
+      }
+
   /* Check if base is a global static variable that is not read
      by the function.  */
   if (TREE_CODE (base) == VAR_DECL
       && TREE_STATIC (base)
       && !TREE_PUBLIC (base))
     {
-      tree callee = gimple_call_fndecl (call);
       bitmap not_read;
 
       if (callee != NULL_TREE
@@ -899,12 +948,45 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
      it may be used.  */
   if (flags & (ECF_PURE|ECF_CONST|ECF_LOOPING_CONST_OR_PURE|ECF_NOVOPS))
     {
-      if (is_call_used (base))
+      if (DECL_P (base))
+	{
+	  if (is_call_used (base))
+	    return true;
+	}
+      else if (INDIRECT_REF_P (base)
+	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+	{
+	  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+	  if (!pi)
+	    return true;
+
+	  if (pt_solution_includes_global (&pi->pt)
+	      || pt_solutions_intersect (&cfun->gimple_df->callused, &pi->pt)
+	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt))
+	    return true;
+	}
+      else
 	return true;
     }
   else
     {
-      if (is_call_clobbered (base))
+      if (DECL_P (base))
+	{
+	  if (is_call_clobbered (base))
+	    return true;
+	}
+      else if (INDIRECT_REF_P (base)
+	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+	{
+	  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+	  if (!pi)
+	    return true;
+
+	  if (pt_solution_includes_global (&pi->pt)
+	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt))
+	    return true;
+	}
+      else
 	return true;
     }
 
@@ -977,6 +1059,7 @@ static bool
 call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 {
   tree base;
+  tree callee;
 
   /* If the call is pure or const it cannot clobber anything.  */
   if (gimple_call_flags (call)
@@ -1002,24 +1085,115 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	  || !is_global_var (base)))
     return false;
 
+  callee = gimple_call_fndecl (call);
+
+  /* Handle those builtin functions explicitly that do not act as
+     escape points.  See tree-ssa-structalias.c:find_func_aliases
+     for the list of builtins we might need to handle here.  */
+  if (callee != NULL_TREE
+      && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (callee))
+      {
+	/* All the following functions clobber memory pointed to by
+	   their first argument.  */
+	case BUILT_IN_STRCPY:
+	case BUILT_IN_STRNCPY:
+	case BUILT_IN_BCOPY:
+	case BUILT_IN_MEMCPY:
+	case BUILT_IN_MEMMOVE:
+	case BUILT_IN_MEMPCPY:
+	case BUILT_IN_STPCPY:
+	case BUILT_IN_STPNCPY:
+	case BUILT_IN_STRCAT:
+	case BUILT_IN_STRNCAT:
+	  {
+	    tree dest = gimple_call_arg (call, 0);
+	    return ptr_deref_may_alias_ref_p_1 (dest, ref);
+	  }
+	/* Freeing memory kills the pointed-to memory.  More importantly
+	   the call has to serve as a barrier for moving loads and stores
+	   across it.  Same is true for memset.  */
+	case BUILT_IN_FREE:
+	case BUILT_IN_MEMSET:
+	  {
+	    tree ptr = gimple_call_arg (call, 0);
+	    return ptr_deref_may_alias_ref_p_1 (ptr, ref);
+	  }
+	case BUILT_IN_GAMMA_R:
+	case BUILT_IN_GAMMAF_R:
+	case BUILT_IN_GAMMAL_R:
+	case BUILT_IN_LGAMMA_R:
+	case BUILT_IN_LGAMMAF_R:
+	case BUILT_IN_LGAMMAL_R:
+	  {
+	    tree out = gimple_call_arg (call, 1);
+	    if (ptr_deref_may_alias_ref_p_1 (out, ref))
+	      return true;
+	    if (flag_errno_math)
+	      break;
+	    return false;
+	  }
+	case BUILT_IN_FREXP:
+	case BUILT_IN_FREXPF:
+	case BUILT_IN_FREXPL:
+	case BUILT_IN_MODF:
+	case BUILT_IN_MODFF:
+	case BUILT_IN_MODFL:
+	  {
+	    tree out = gimple_call_arg (call, 1);
+	    return ptr_deref_may_alias_ref_p_1 (out, ref);
+	  }
+	case BUILT_IN_REMQUO:
+	case BUILT_IN_REMQUOF:
+	case BUILT_IN_REMQUOL:
+	  {
+	    tree out = gimple_call_arg (call, 2);
+	    if (ptr_deref_may_alias_ref_p_1 (out, ref))
+	      return true;
+	    if (flag_errno_math)
+	      break;
+	    return false;
+	  }
+	case BUILT_IN_SINCOS:
+	case BUILT_IN_SINCOSF:
+	case BUILT_IN_SINCOSL:
+	  {
+	    tree sin = gimple_call_arg (call, 1);
+	    tree cos = gimple_call_arg (call, 2);
+	    return (ptr_deref_may_alias_ref_p_1 (sin, ref)
+		    || ptr_deref_may_alias_ref_p_1 (cos, ref));
+	  }
+	default:
+	  /* Fallthru to general call handling.  */;
+      }
+
   /* Check if base is a global static variable that is not written
      by the function.  */
-  if (TREE_CODE (base) == VAR_DECL
+  if (callee != NULL_TREE
+      && TREE_CODE (base) == VAR_DECL
       && TREE_STATIC (base)
       && !TREE_PUBLIC (base))
     {
-      tree callee = gimple_call_fndecl (call);
       bitmap not_written;
 
-      if (callee != NULL_TREE
-	  && (not_written
-	        = ipa_reference_get_not_written_global (cgraph_node (callee)))
+      if ((not_written
+	     = ipa_reference_get_not_written_global (cgraph_node (callee)))
 	  && bitmap_bit_p (not_written, DECL_UID (base)))
 	return false;
     }
 
   if (DECL_P (base))
     return is_call_clobbered (base);
+  else if (INDIRECT_REF_P (base)
+	   && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+    {
+      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+      if (!pi)
+	return true;
+
+      return (pt_solution_includes_global (&pi->pt)
+	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt));
+    }
 
   return true;
 }
@@ -1253,8 +1427,8 @@ walk_non_aliased_vuses (ao_ref *ref, tree vuse,
    The function returns the number of statements walked.  */
 
 static unsigned int
-walk_aliased_vdefs_1 (tree ref, tree vdef,
-		      bool (*walker)(tree, tree, void *), void *data,
+walk_aliased_vdefs_1 (ao_ref *ref, tree vdef,
+		      bool (*walker)(ao_ref *, tree, void *), void *data,
 		      bitmap *visited, unsigned int cnt)
 {
   do
@@ -1281,7 +1455,7 @@ walk_aliased_vdefs_1 (tree ref, tree vdef,
       /* ???  Do we want to account this to TV_ALIAS_STMT_WALK?  */
       cnt++;
       if ((!ref
-	   || stmt_may_clobber_ref_p (def_stmt, ref))
+	   || stmt_may_clobber_ref_p_1 (def_stmt, ref))
 	  && (*walker) (ref, vdef, data))
 	return cnt;
 
@@ -1291,8 +1465,8 @@ walk_aliased_vdefs_1 (tree ref, tree vdef,
 }
 
 unsigned int
-walk_aliased_vdefs (tree ref, tree vdef,
-		    bool (*walker)(tree, tree, void *), void *data,
+walk_aliased_vdefs (ao_ref *ref, tree vdef,
+		    bool (*walker)(ao_ref *, tree, void *), void *data,
 		    bitmap *visited)
 {
   bitmap local_visited = NULL;
