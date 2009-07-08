@@ -4430,8 +4430,9 @@ redeclare_class_template (tree type, tree parms)
 
 	     A template-parameter may not be given default arguments
 	     by two different declarations in the same scope.  */
-	  error ("redefinition of default argument for %q#D", parm);
-	  inform (input_location, "%Joriginal definition appeared here", tmpl_parm);
+	  error_at (input_location, "redefinition of default argument for %q#D", parm);
+	  inform (DECL_SOURCE_LOCATION (tmpl_parm),
+		  "original definition appeared here");
 	  return false;
 	}
 
@@ -7142,7 +7143,7 @@ perform_typedefs_access_check (tree tmpl, tree targs)
   tree t;
 
   if (!tmpl
-      || (TREE_CODE (tmpl) != RECORD_TYPE
+      || (!RECORD_OR_UNION_CODE_P (TREE_CODE (tmpl))
 	  && TREE_CODE (tmpl) != FUNCTION_DECL))
     return;
 
@@ -8305,8 +8306,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
     case TEMPLATE_DECL:
       {
 	/* We can get here when processing a member function template,
-	   member class template, and template template parameter of
-	   a template class.  */
+	   member class template, or template template parameter.  */
 	tree decl = DECL_TEMPLATE_RESULT (t);
 	tree spec;
 	tree tmpl_args;
@@ -8350,10 +8350,10 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	if (full_args == error_mark_node)
 	  return error_mark_node;
 
-	/* tsubst_template_args doesn't copy the vector if
-	   nothing changed.  But, *something* should have
-	   changed.  */
-	gcc_assert (full_args != tmpl_args);
+	/* If this is a default template template argument,
+	   tsubst might not have changed anything.  */
+	if (full_args == tmpl_args)
+	  return t;
 
 	hash = hash_tmpl_and_args (t, full_args);
 	spec = retrieve_specialization (t, full_args, hash);
@@ -17512,7 +17512,8 @@ get_types_needing_access_check (tree t)
   if (!(ti = get_template_info (t)))
     return NULL_TREE;
 
-  if (TREE_CODE (t) == RECORD_TYPE || TREE_CODE (t) == FUNCTION_DECL)
+  if (RECORD_OR_UNION_CODE_P (TREE_CODE (t))
+      || TREE_CODE (t) == FUNCTION_DECL)
     {
       if (!TI_TEMPLATE (ti))
 	return NULL_TREE;
@@ -17544,7 +17545,7 @@ append_type_to_template_for_access_check_1 (tree t,
     return;
 
   gcc_assert ((TREE_CODE (t) == FUNCTION_DECL
-	       || TREE_CODE (t) == RECORD_TYPE)
+	       || RECORD_OR_UNION_CODE_P (TREE_CODE (t)))
 	      && type_decl
 	      && TREE_CODE (type_decl) == TYPE_DECL
 	      && scope);

@@ -1237,11 +1237,38 @@ package body Sem_Ch4 is
       Condition : constant Node_Id := First (Expressions (N));
       Then_Expr : constant Node_Id := Next (Condition);
       Else_Expr : constant Node_Id := Next (Then_Expr);
+
    begin
+      if Comes_From_Source (N) then
+         Check_Compiler_Unit (N);
+      end if;
+
       Analyze_Expression (Condition);
       Analyze_Expression (Then_Expr);
-      Analyze_Expression (Else_Expr);
-      Set_Etype (N, Etype (Then_Expr));
+
+      if Present (Else_Expr) then
+         Analyze_Expression (Else_Expr);
+      end if;
+
+      if not  Is_Overloaded (Then_Expr) then
+         Set_Etype (N, Etype (Then_Expr));
+      else
+         declare
+            I  : Interp_Index;
+            It : Interp;
+
+         begin
+            Set_Etype (N, Any_Type);
+            Get_First_Interp (Then_Expr, I, It);
+            while Present (It.Nam) loop
+               if Has_Compatible_Type (Else_Expr, It.Typ) then
+                  Add_One_Interp (N, It.Typ, It.Typ);
+               end if;
+
+               Get_Next_Interp (I, It);
+            end loop;
+         end;
+      end if;
    end Analyze_Conditional_Expression;
 
    -------------------------

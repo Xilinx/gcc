@@ -1038,6 +1038,11 @@ package body Exp_Ch4 is
 
          Apply_Constraint_Check (Exp, T, No_Sliding => True);
 
+         if Do_Range_Check (Exp) then
+            Set_Do_Range_Check (Exp, False);
+            Generate_Range_Check (Exp, DesigT, CE_Range_Check_Failed);
+         end if;
+
          --  A check is also needed in cases where the designated subtype is
          --  constrained and differs from the subtype given in the qualified
          --  expression. Note that the check on the qualified expression does
@@ -1048,6 +1053,11 @@ package body Exp_Ch4 is
          then
             Apply_Constraint_Check
               (Exp, DesigT, No_Sliding => False);
+
+            if Do_Range_Check (Exp) then
+               Set_Do_Range_Check (Exp, False);
+               Generate_Range_Check (Exp, DesigT, CE_Range_Check_Failed);
+            end if;
          end if;
 
          --  For an access to unconstrained packed array, GIGI needs to see an
@@ -7073,6 +7083,11 @@ package body Exp_Ch4 is
       --  Apply possible constraint check
 
       Apply_Constraint_Check (Operand, Target_Type, No_Sliding => True);
+
+      if Do_Range_Check (Operand) then
+         Set_Do_Range_Check (Operand, False);
+         Generate_Range_Check (Operand, Target_Type, CE_Range_Check_Failed);
+      end if;
    end Expand_N_Qualified_Expression;
 
    ---------------------------------

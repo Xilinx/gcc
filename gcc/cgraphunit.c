@@ -862,9 +862,9 @@ process_function_and_variable_attributes (struct cgraph_node *first,
       if (lookup_attribute ("externally_visible", DECL_ATTRIBUTES (decl)))
 	{
 	  if (! TREE_PUBLIC (node->decl))
-	    warning (OPT_Wattributes,
-		     "%J%<externally_visible%> attribute have effect only on public objects",
-		     node->decl);
+	    warning_at (DECL_SOURCE_LOCATION (node->decl), OPT_Wattributes,
+			"%<externally_visible%>"
+			" attribute have effect only on public objects");
 	  else
 	    {
 	      if (node->local.finalized)
@@ -885,9 +885,9 @@ process_function_and_variable_attributes (struct cgraph_node *first,
       if (lookup_attribute ("externally_visible", DECL_ATTRIBUTES (decl)))
 	{
 	  if (! TREE_PUBLIC (vnode->decl))
-	    warning (OPT_Wattributes,
-		     "%J%<externally_visible%> attribute have effect only on public objects",
-		     vnode->decl);
+	    warning_at (DECL_SOURCE_LOCATION (vnode->decl), OPT_Wattributes,
+			"%<externally_visible%>"
+			" attribute have effect only on public objects");
 	  else
 	    {
 	      if (vnode->finalized)
