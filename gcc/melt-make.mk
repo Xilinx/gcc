@@ -43,7 +43,7 @@ meltarg_source_path=$(if $(melt_is_plugin),-fplugin-arg-melt-source-path,-fmelt-
 meltarg_tempdir=$(if $(melt_is_plugin),-fplugin-arg-melt-tempdir,-fmelt-tempdir)
 meltarg_compile_script=$(if $(melt_is_plugin),-fplugin-arg-melt-compile-script,-fmelt-compile-script)
 meltarg_arg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-arg)
-meltarg_secondarg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-secondarg)
+meltarg_secondarg=$(if $(melt_is_plugin),-fplugin-arg-melt-secondarg,-fmelt-secondarg)
 
 ## the invocation to translate the very first initial MELT file
 MELTCCINIT1=$(melt_cc1) $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \

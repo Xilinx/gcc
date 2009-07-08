@@ -1,4 +1,35 @@
 
+2009-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	[enhancing gengtype for plugin mode; still buggy]
+	* gengtype.h (is_plugin_file): added new variable.
+	(dbgprintf): added temporarily macro for debugging.
+	* gengtype.c (struct pair) added inplugin field.
+	(struct type) likewise.
+	(first_plugin_file_ix, plugin_output_filename, plugin_output):
+	added static variables.
+	(is_plugin_file): defined variable.
+	(output_delayed_functions): added declaration.
+	(read_input_list): manage first_plugin_file_ix.
+	(string_type, scalar_nonchar, scalar_char): initialized inplugin.
+	(new_structure, find_structure, find_param_structure)
+	(create_array, note_variable): sets inplugin.
+	(create_file): allocates buf.
+	(oprintf): added asserts.
+	(open_base_files): moved return when plugins.
+	(get_output_file_with_visibility): handle plugin case.
+	(delay_func_for_structure): new static declaration.
+	(write_types): delays the output of func in plugin mode.
+	(write_local, write_roots): handle plugin mode.
+	(note_def_vec_alloc) renamed basename as base_name.
+	(struct delayedstructfunc_st, dlystructab, dlystructsiz)
+	(dlystructcnt): new.
+	(delay_func_for_structure, output_delayed_functions): added
+	function.
+	(main): updated for plugin mode which is now with -P outputfile.h
+	* melt-make.mk (meltarg_secondarg): corrected typo.
+	* melt-runtime.c (melt_marking_callback): declares
+	gt_ggc_mx_melt_un as external.
+
 2009-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	[added melt-make.mk to ease pluginification]
 	* melt-make.mk: added new file.

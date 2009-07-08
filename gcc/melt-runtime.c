@@ -686,11 +686,15 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	   (union meltparam_un*)0, (char*)0, (union meltparam_un*)0);
       continue;
     }
-    else 
-      /* if no closure, mark the local pointers */
-      for (ix= 0; ix<(int) cf->nbvar; ix++) 
-	if (cf->varptr[ix]) 
-	  gt_ggc_mx_melt_un((melt_ptr_t)(cf->varptr[ix]));
+    else
+      {
+	extern void gt_ggc_mx_melt_un (void *);
+	/* if no closure, mark the local pointers */
+	for (ix= 0; ix<(int) cf->nbvar; ix++) 
+	  if (cf->varptr[ix]) 
+	    gt_ggc_mx_melt_un((melt_ptr_t)(cf->varptr[ix]));
+      }
+    
   }
 }
 
