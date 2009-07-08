@@ -43,8 +43,8 @@ bar (float x)
   i.foo (x);
 }
 
-/* { dg-final { scan-assembler-not ".type\[ 	\]\+_ZN5ifuncIifE3fooEf, .function" } } */
 /* { dg-final { scan-assembler-not ".type\[ 	\]\+_ZN5ifuncIifE3fooEi, .function" } } */
+/* { dg-final { scan-assembler-not ".type\[ 	\]\+_ZN5ifuncIifE3fooEf, .function" } } */
 /* { dg-final { scan-assembler "(call|jmp)\[ 	\]\+_ZN5ifuncIifE3fooEi" } } */
 /* { dg-final { scan-assembler "(call|jmp)\[ 	\]\+_ZN5ifuncIifE3fooEf" } } */
 /* { dg-final { scan-assembler ".type\[ 	\]\+_ZN5ifuncIifE3fooEi, .gnu_indirect_function" } } */
