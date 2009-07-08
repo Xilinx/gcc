@@ -94,5 +94,9 @@ cpu_relax (void)
 static inline void
 atomic_write_barrier (void)
 {
+#if defined(__SSE__) || defined(__3dNOW_A__)
+  __builtin_ia32_sfence ();
+#else
   __sync_synchronize ();
+#endif
 }
