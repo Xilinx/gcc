@@ -296,7 +296,6 @@ analyze_reduction_list (htab_t reduction_list,
 			loop_p loop)
 {
   loop_vec_info simple_loop_info;
-  bool res;
 
   vect_dump = NULL;
   simple_loop_info = vect_analyze_loop_form (loop);

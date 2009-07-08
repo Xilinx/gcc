@@ -1,4 +1,10 @@
+2009-07-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-parloops.c (analyze_reduction_list): Remove unused variable
+	to fix bootstrap.
+
 2009-07-08  Razya Ladelsky  <razya@il.ibm.com>
+
 	* tree-parloops.c (analyze_reduction_list): Change return 
 	value to void.
 	(try_create_reduction_list): Move the call to 
