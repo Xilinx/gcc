@@ -290,7 +290,7 @@ build_reduction_list_info (void **slot, void *data)
 /* Analyze the reduction variables from REDUCTION_LIST and inserts
    them in the ANALYZED_REDUCTIONS.  */
 
-static bool
+static void
 analyze_reduction_list (htab_t reduction_list,
 			htab_t analyzed_reductions,
 			loop_p loop)
@@ -307,14 +307,9 @@ analyze_reduction_list (htab_t reduction_list,
       b.simple_loop_info = simple_loop_info;
       b.analyzed_reductions = analyzed_reductions;
       htab_traverse (reduction_list, build_reduction_list_info, &b);
-      res = true;
     }
-  else
-    res = false;
-
   /* Get rid of the information created by the vectorizer functions.  */
   destroy_loop_vec_info (simple_loop_info, true);
-  return res;
 }
 
 /* Insert in REDUCTION_LIST the PHI_RESULT of all the PHI nodes of
@@ -382,6 +377,9 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 
   gather_scalar_reductions (loop, reduction_list);
 
+  analyze_reduction_list (reduction_list, analyzed_reductions, loop);
+    
+	
   for (gsi = gsi_start_phis (exit->dest); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple phi = gsi_stmt (gsi);
@@ -403,7 +401,7 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 	      fprintf (dump_file,
 		       "  checking if it a part of reduction pattern:  \n");
 	    }
-	  if (htab_elements (reduction_list) == 0)
+	  if (htab_elements (analyzed_reductions) == 0)
 	    {
 	      if (dump_file && (dump_flags & TDF_DETAILS))
 		fprintf (dump_file,
@@ -419,7 +417,7 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 		  break;
 		}
 	    }
-	  red = reduction_phi (reduction_list, reduc_phi);
+	  red = reduction_phi (analyzed_reductions, reduc_phi);
 	  if (red == NULL)
 	    {
 	      if (dump_file && (dump_flags & TDF_DETAILS))
@@ -449,7 +447,7 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 	{
 	  struct reduction_info *red;
 
-	  red = reduction_phi (reduction_list, phi);
+	  red = reduction_phi (analyzed_reductions, phi);
 	  if (red == NULL)
 	    {
 	      if (dump_file && (dump_flags & TDF_DETAILS))
@@ -460,8 +458,6 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 	}
     }
 
-  if (!analyze_reduction_list (reduction_list, analyzed_reductions, loop))
-    return false;
 
   return true;
 }

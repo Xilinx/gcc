@@ -1,3 +1,11 @@
+2009-07-08  Razya Ladelsky  <razya@il.ibm.com>
+	* tree-parloops.c (analyze_reduction_list): Change return 
+	value to void.
+	(try_create_reduction_list): Move the call to 
+	analyze_reduction_list to the beginining.
+	Call reduction_phi with analyzed_reductions as argument 
+	instead of reduction_list.
+
 2009-07-08  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	*  Merge from mainline (r148296:149346)
