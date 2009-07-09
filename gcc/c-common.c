@@ -9390,4 +9390,21 @@ make_tree_vector_copy (const VEC(tree,gc) *orig)
   return ret;
 }
 
+/* Emit diagnostics that require gimple input for detection.  */
+
+void
+c_gimple_diagnostics (tree fndecl)
+{
+  /* Handle attribute((warn_unused_result)).  */
+  c_warn_unused_result (gimple_body (fndecl));
+
+  /* Notice when OpenMP structured block constraints are violated.  */
+  if (flag_openmp)
+    diagnose_omp_structured_block_errors (fndecl);
+
+  /* Notice when tm_safe constraints are violated.  */
+  if (flag_tm)
+    diagnose_tm_safe_errors (fndecl);
+}
+
 #include "gt-c-common.h"

@@ -322,6 +322,83 @@ build_tm_abort_call (location_t loc)
   return x;
 }
 
+/* Diagnostics for tm_safe functions/regions.  Called by the front end
+   once we've lowered the function to high-gimple.  */
+
+/* Subroutine of diagnose_tm_safe_errors, called through walk_gimple_seq.
+   Process exactly one statement.  WI->INFO is set to non-null when in
+   the context of a tm_safe function, and null for a __tm_atomic block.  */
+
+static tree
+diagnose_tm_safe_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
+		    struct walk_stmt_info *wi)
+{
+  gimple stmt = gsi_stmt (*gsi);
+  tree fn;
+
+  /* We're not interested in (normal) operands.  */
+  *handled_ops_p = !gimple_has_substatements (stmt);
+
+  switch (gimple_code (stmt))
+    {
+    case GIMPLE_CALL:
+      if (is_tm_pure_call (stmt))
+	break;
+
+      fn = gimple_call_fn (stmt);
+      if (fn && is_tm_safe (TREE_TYPE (fn)))
+	break;
+
+      if (wi->info)
+	error_at (gimple_location (stmt),
+		  "unsafe function call in %<tm_safe%> function");
+      else
+	error_at (gimple_location (stmt),
+		  "unsafe function call in %<__tm_atomic%>");
+      break;
+
+    case GIMPLE_ASM:
+      /* ??? The Approved Method of indicating that an inline
+	 assembly statement is not relevant to the transaction
+	 is to wrap it in a __tm_waiver block.  This is not 
+	 yet implemented, so we can't check for it.  */
+      if (wi->info)
+        error_at (gimple_location (stmt),
+		  "asm not allowed in %<tm_safe%> function");
+      else
+	error_at (gimple_location (stmt),
+		  "asm not allowed in %<__tm_atomic%>");
+      break;
+
+    default:
+      break;
+    }
+
+  return NULL_TREE;
+}
+
+void
+diagnose_tm_safe_errors (tree fndecl)
+{
+  tree save_current = current_function_decl;
+  struct function *save_cfun = cfun;
+  struct walk_stmt_info wi;
+
+  /* Only need to check tm_safe functions at the moment.  */
+  if (!is_tm_safe (TREE_TYPE (fndecl)))
+    return;
+
+  current_function_decl = fndecl;
+  set_cfun (DECL_STRUCT_FUNCTION (fndecl));
+
+  memset (&wi, 0, sizeof (wi));
+  wi.info = fndecl;
+  walk_gimple_seq (gimple_body (fndecl), diagnose_tm_safe_1, NULL, &wi);
+
+  set_cfun (save_cfun);
+  current_function_decl = save_current;
+}
+
 static void lower_sequence_tm (unsigned *, gimple_seq);
 static void lower_sequence_no_tm (gimple_seq);
 
@@ -1896,7 +1973,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 
   old_fn = gimple_call_fn (stmt);
 
-  safe = is_tm_safe (old_fn);
+  safe = is_tm_safe (TREE_TYPE (old_fn));
   gettm_fn = built_in_decls[safe ? BUILT_IN_TM_GETTMCLONE_SAFE
 			    : BUILT_IN_TM_GETTMCLONE_IRR];
   ret = create_tmp_var (TREE_TYPE (old_fn), NULL);

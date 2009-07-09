@@ -1,5 +1,19 @@
 2009-07-09  Richard Henderson  <rth@redhat.com>
 
+	* c-decl.c (c_gimple_diagnostics_recursively): Split out
+	non-recursive part to...
+	* c-common.c (c_gimple_diagnostics): ... here.  Handle tm_safe.
+	* c-common.h (c_gimple_diagnostics): Declare.
+	* gimple.h (diagnose_tm_safe_errors): Declare.
+	* trans-mem.c (diagnose_tm_safe_1, diagnose_tm_safe_errors): New.
+	(ipa_tm_insert_gettmclone_call): Fix is_tm_safe call.
+
+	* cp/decl.c (finish_function): Call c_gimple_diagnostics.
+
+	* omp-low.c (WALK_SUBSTMTS): Add GIMPLE_TM_ATOMIC.
+
+2009-07-09  Richard Henderson  <rth@redhat.com>
+
 	* builtin-attrs.def (ATTR_TM_NOTHROW_NONNULL): Remove.
 	* gtm-builtins.def (BUILT_IN_TM_MEMCPY, BUILT_IN_TM_MEMMOVE): Use
 	ATTR_TM_NOTHROW_LIST.

@@ -1008,6 +1008,9 @@ extern tree canonicalize_cond_expr_cond (tree);
 extern void diagnose_omp_structured_block_errors (tree);
 extern tree omp_reduction_init (tree, tree);
 
+/* In trans-mem.c.  */
+extern void diagnose_tm_safe_errors (tree);
+
 /* In tree-nested.c.  */
 extern void lower_nested_functions (tree);
 extern void insert_field_into_struct (tree, tree);

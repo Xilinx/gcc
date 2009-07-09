@@ -1040,6 +1040,8 @@ extern void release_tree_vector (VEC(tree,gc) *);
 extern VEC(tree,gc) *make_tree_vector_single (tree);
 extern VEC(tree,gc) *make_tree_vector_copy (const VEC(tree,gc) *);
 
+extern void c_gimple_diagnostics (tree);
+
 /* In c-gimplify.c  */
 extern void c_genericize (tree);
 extern int c_gimplify_expr (tree *, gimple_seq *, gimple_seq *);
