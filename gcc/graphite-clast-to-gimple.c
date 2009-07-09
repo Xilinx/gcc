@@ -150,13 +150,15 @@ clast_to_gcc_expression_red (tree type, enum tree_code op,
   int i;
   tree res = clast_to_gcc_expression (type, r->elts[0], region, newivs,
 				      newivs_index);
+  tree operand_type = (op == POINTER_PLUS_EXPR) ? sizetype : type;
 
   for (i = 1; i < r->n; i++)
     {
-      tree t = clast_to_gcc_expression (type, r->elts[i], region, newivs,
-					newivs_index);
+      tree t = clast_to_gcc_expression (operand_type, r->elts[i], region,
+					newivs, newivs_index);
       res = fold_build2 (op, type, res, t);
     }
+
   return res;
 }
 
@@ -210,8 +212,9 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
         switch (r->type)
           {
 	  case clast_red_sum:
-	    return clast_to_gcc_expression_red (type, PLUS_EXPR, r, region, newivs,
-						newivs_index);
+	    return clast_to_gcc_expression_red
+	      (type, POINTER_TYPE_P (type) ? POINTER_PLUS_EXPR : PLUS_EXPR,
+	       r, region, newivs, newivs_index);
 
 	  case clast_red_min:
 	    return clast_to_gcc_expression_red (type, MIN_EXPR, r, region, newivs,

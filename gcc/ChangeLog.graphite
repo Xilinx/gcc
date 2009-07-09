@@ -1,5 +1,11 @@
 2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (clast_to_gcc_expression_red): Generate
+	POINTER_PLUS_EXPR for pointer types.
+	(clast_to_gcc_expression): Same.
+
+2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (print_scattering_function): Early return when
 	PBB_TRANSFORMED_SCATTERING is not initialized.
 	(print_pbb_domain): Early return when PBB_DOMAIN is not initialized.
