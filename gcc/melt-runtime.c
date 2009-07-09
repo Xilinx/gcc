@@ -5326,7 +5326,7 @@ lookup_path(const char*path, const char* base, const char* suffix)
     if (!col) 
       col = pc + strlen(pc);
     dirnamlen = col - pc;
-    dir = xstrndup(pc, dirnamlen);
+    dir = xstrndup (pc, dirnamlen);
     if (dir && *dir)
       {
 	filnam = concat(dir, "/", base, suffix, NULL);
@@ -8823,9 +8823,26 @@ open_meltpp_file(void)
 #else
   if (!meltppfilename) 
     {
+#ifdef MELT_IS_PLUGIN
+      /* in plugin mode, make_temp_file is not available from cc1,
+	 because make_temp_file is defined in libiberty.a and cc1 does
+	 not use make_temp_file so do not load the make_temp_file.o
+	 member of the static library libiberty!
+	 See also http://gcc.gnu.org/ml/gcc/2009-07/msg00157.html
+      */
+      static char ourtempnamebuf[L_tmpnam+1];
+      int tfd = -1;
+      strcpy (ourtempnamebuf, "/tmp/meltemp_XXXXXX");
+      tfd = mkstemp (ourtempnamebuf);
+      if (tfd>=0)
+	meltppfilename = ourtempnamebuf;
+      else
+	fatal_error ("melt temporary file: mkstemp %s failed", ourtempnamebuf);
+#else
       meltppfilename = make_temp_file (".meltmem");
       if (!meltppfilename)
 	fatal_error ("failed to get melt memory temporary file");
+#endif
     }
   meltppfile = fopen (meltppfilename, "w+");
 #endif

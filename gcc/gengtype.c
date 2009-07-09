@@ -1922,6 +1922,7 @@ struct write_types_data
   const char *reorder_note_routine;
   const char *comment;
   int skip_hooks;		/* skip hook generation if non zero */
+  int is_pch;			/* set for PCH stuff to output ifndef  */
 };
 
 static void output_escaped_param (struct walk_type_data *d,
@@ -2646,6 +2647,8 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
     }
   oprintf (d.of, " (void *x_p)\n");
   oprintf (d.of, "{\n");
+  if (plugin_output && d.of == plugin_output && wtd->is_pch)
+    oprintf (d.of, "#ifdef GCC_PLUGIN_HAVE_PCH\n");
   oprintf (d.of, "  %s %s * %sx = (%s %s *)x_p;\n",
 	   s->kind == TYPE_UNION ? "union" : "struct", s->u.s.tag,
 	   chain_next == NULL ? "const " : "",
@@ -2750,6 +2753,8 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
   oprintf (d.of, "    }\n");
   if (chain_circular != NULL)
     oprintf (d.of, "  while (x != xlimit);\n");
+  if (plugin_output && d.of == plugin_output && wtd->is_pch)
+    oprintf (d.of, "/* end ifdef GCC_PLUGIN_HAVE_PCH*/\n#endif\n");
   oprintf (d.of, "}\n");
 }
 
@@ -2858,6 +2863,7 @@ static const struct write_types_data ggc_wtd =
 {
   "ggc_m", NULL, "ggc_mark", "ggc_test_and_set_mark", NULL,
   "GC marker procedures.  ",
+  FALSE,
   FALSE
 };
 
@@ -2866,6 +2872,7 @@ static const struct write_types_data pch_wtd =
   "pch_n", "pch_p", "gt_pch_note_object", "gt_pch_note_object",
   "gt_pch_note_reorder",
   "PCH type-walking procedures.  ",
+  TRUE,
   TRUE
 };
 
@@ -2938,11 +2945,15 @@ write_local_func_for_structure (type_p orig_s, type_p s, type_p *param)
 	   "\tATTRIBUTE_UNUSED gt_pointer_operator op,\n"
 	   "\tATTRIBUTE_UNUSED void *cookie)\n");
   oprintf (d.of, "{\n");
+  if (plugin_output && d.of == plugin_output)
+    oprintf (d.of, "#ifdef GCC_PLUGIN_HAVE_PCH\n");
   oprintf (d.of, "  %s %s * const x ATTRIBUTE_UNUSED = (%s %s *)x_p;\n",
 	   s->kind == TYPE_UNION ? "union" : "struct", s->u.s.tag,
 	   s->kind == TYPE_UNION ? "union" : "struct", s->u.s.tag);
   d.indent = 2;
   walk_type (s, &d);
+  if (plugin_output && d.of == plugin_output)
+    oprintf (d.of, "/* end ifdef GCC_PLUGIN_HAVE_PCH */\n#endif\n");
   oprintf (d.of, "}\n");
 }
 
@@ -3040,7 +3051,49 @@ write_local (type_p structures, type_p param_structs)
 static void
 write_enum_defn (type_p structures, type_p param_structs)
 {
-  type_p s;
+  type_p s = NULL;
+  /* in plugin mode, define dynamically the enumeration values */
+  if (plugin_output)
+    {
+      int cnt = 0;
+      oprintf (plugin_output, "\n/* Dynamic enumeration of plugin types.  */\n");
+      oprintf (plugin_output, "#ifdef GCC_PLUGIN_HAVE_PCH\n");
+      oprintf (plugin_output, "static int gccplugin_type_base;\n");
+      
+      for (s = structures; s; s = s->next)
+	{
+	  if (!s->inplugin)
+	    continue;
+	  if (s->gc_used == GC_POINTED_TO
+	      || s->gc_used == GC_MAYBE_POINTED_TO)
+	    {
+	      if (s->gc_used == GC_MAYBE_POINTED_TO
+		  && s->u.s.line.file == NULL)
+		continue;
+	      oprintf (plugin_output, "#define gt_ggc_e_");
+	      output_mangled_typename (plugin_output, s);
+	      oprintf (plugin_output,
+		       " ((gccplugin_type_base>0)?(gccplugin_type_base+%d):0)\n",
+		       cnt);
+	      cnt++;
+	    }
+	}
+      for (s = param_structs; s; s = s->next)
+	if (s->gc_used == GC_POINTED_TO && s->inplugin)
+	  {
+	    oprintf (plugin_output, "#define gt_e_");
+	    output_mangled_typename (plugin_output, s);
+	    oprintf (plugin_output,
+		     " ((gccplugin_type_base>0)?(gccplugin_type_base+%d):0)\n",
+		     cnt);
+	    cnt++;
+	  }
+      oprintf (plugin_output,
+	       "\n#define GCCPLUGIN_TYPE_COUNT %d\n", cnt);
+      oprintf (plugin_output, "/* end ifdef GCC_PLUGIN_HAVE_PCH */\n#endif\n");
+      return;
+    }
+  
   /* write only to header_file */
   if (!header_file) 
     return;

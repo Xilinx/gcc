@@ -122,7 +122,7 @@ WARMELT_BASE3C= $(patsubst %, %-3.c, $(WARMELT_BASE))
 WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
 
 ## force a dependency
-$(WARMELT_BASE0SO): run-melt.h melt-runtime.h
+$(WARMELT_BASE0SO): empty-file-for-melt.c run-melt.h melt-runtime.h
 
 
 ################
@@ -164,11 +164,14 @@ warmelt1n.modlis: $(WARMELT_BASE1NSO)
 ### we need ad hoc rules, since warmelt-first-1 is build using the
 ### warmelt*0.c files from SVN repository but warmelt-macro-1 is build
 ### using wamelt-first-1.so
+empty-file-for-melt.c:
+	date +"/* empty-file-for-melt.c %c */" > $@-tmp
+	$(melt_make_move) $@-tmp $@
 
-warmelt-first-1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO)
+warmelt-first-1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 
 
 warmelt-macro-1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \
@@ -177,11 +180,11 @@ warmelt-macro-1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \
 	 warmelt-normal-0.d.so \
 	 warmelt-normatch-0.d.so \
 	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so 
+	 warmelt-outobj-0.d.so   empty-file-for-melt.c
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-0.d:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 
 
 warmelt-normal-1.c: $(melt_make_source_dir)/warmelt-normal.melt $(melt_cc1) \
@@ -191,11 +194,11 @@ warmelt-normal-1.c: $(melt_make_source_dir)/warmelt-normal.melt $(melt_cc1) \
 	 warmelt-normatch-0.d.so \
 	 warmelt-genobj-0.d.so \
 	 warmelt-outobj-0.d.so \
-	 warmelt-predef.melt
+	 warmelt-predef.melt  empty-file-for-melt.c
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 
 
 warmelt-normatch-1.c: $(melt_make_source_dir)/warmelt-normatch.melt $(melt_cc1) \
@@ -204,11 +207,11 @@ warmelt-normatch-1.c: $(melt_make_source_dir)/warmelt-normatch.melt $(melt_cc1) 
 	 warmelt-normal-1.so \
 	 warmelt-normatch-0.d.so \
 	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so 
+	 warmelt-outobj-0.d.so  empty-file-for-melt.c
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 
 warmelt-genobj-1.c: $(melt_make_source_dir)/warmelt-genobj.melt $(melt_cc1) \
 	 warmelt-first-1.so  \
@@ -216,11 +219,11 @@ warmelt-genobj-1.c: $(melt_make_source_dir)/warmelt-genobj.melt $(melt_cc1) \
 	 warmelt-normal-1.so \
 	 warmelt-normatch-1.so \
 	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so 
+	 warmelt-outobj-0.d.so   empty-file-for-melt.c
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-0.d:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 
 warmelt-outobj-1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
 	 warmelt-first-1.so  \
@@ -228,11 +231,11 @@ warmelt-outobj-1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
 	 warmelt-normal-1.so \
 	 warmelt-normatch-1.so \
 	 warmelt-genobj-1.so \
-	 warmelt-outobj-0.d.so 
+	 warmelt-outobj-0.d.so   empty-file-for-melt.c
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-1:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 
 ####
 warmelt2.modlis: $(WARMELT_BASE2SO)
@@ -247,11 +250,11 @@ warmelt-first-2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(
 
 
 
-warmelt-%-2.c: $(melt_make_source_dir)/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  $(melt_cc1) $(WARMELT_BASE1NSO)
+warmelt-%-2.c: $(melt_make_source_dir)/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  $(melt_cc1) $(WARMELT_BASE1NSO)  empty-file-for-melt.c
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt1" \
 	        -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 
 warmelt-normal-2.c: warmelt-predef.melt
 warmelt-normal-3.c: warmelt-predef.melt
@@ -267,12 +270,12 @@ warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	$(melt_make_move) $@-tmp $@
 
 ####
-warmelt-%-3.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_cc1) 
+warmelt-%-3.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_cc1)  empty-file-for-melt.c
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 	ls -l $@
 warmelt3.modlis: $(WARMELT_BASE2SO)
 	date +"#$@ generated %c" > $@-tmp
@@ -284,7 +287,7 @@ warmelt-first-3.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt2" \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
 	ls -l $@
 
 
@@ -297,12 +300,12 @@ diff-warmelt-2-3: $(WARMELT_BASE3SO)
 
 
 ####
-ana-base.c: $(melt_make_source_dir)/ana-base.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_cc1) 
+ana-base.c: $(melt_make_source_dir)/ana-base.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_cc1)   empty-file-for-melt.c
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@   empty-file-for-melt.c
 	ls -l $@
 
 ana-simple.c:  $(melt_make_source_dir)/ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  ana-base.so   $(melt_cc1) 
@@ -310,6 +313,6 @@ ana-simple.c:  $(melt_make_source_dir)/ana-simple.melt  warmelt2.modlis $(WARMEL
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:ana-base" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_secondarg)=$@   empty-file-for-melt.c
 	ls -l $@
-
+#eof melt-make.mk
