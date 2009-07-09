@@ -141,6 +141,9 @@ print_scattering_function (FILE *file, poly_bb_p pbb)
 {
   graphite_dim_t i;
 
+  if (!PBB_TRANSFORMED_SCATTERING (pbb))
+    return;
+
   fprintf (file, "scattering bb_%d (\n", GBB_BB (PBB_BLACK_BOX (pbb))->index);
   fprintf (file, "#  eq");
 
@@ -158,8 +161,7 @@ print_scattering_function (FILE *file, poly_bb_p pbb)
 
   fprintf (file, "    cst\n");
 
-  if (PBB_TRANSFORMED_SCATTERING (pbb))
-    ppl_print_polyhedron_matrix (file, PBB_TRANSFORMED_SCATTERING (pbb));
+  ppl_print_polyhedron_matrix (file, PBB_TRANSFORMED_SCATTERING (pbb));
 
   fprintf (file, ")\n");
 }
@@ -469,6 +471,9 @@ print_pbb_domain (FILE *file, poly_bb_p pbb)
 {
   graphite_dim_t i;
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
+
+  if (!PBB_DOMAIN (pbb))
+    return;
 
   fprintf (file, "domains bb_%d (\n", GBB_BB (gbb)->index);
   fprintf (file, "#  eq");
