@@ -8,11 +8,11 @@ extern void f4(void) __attribute__((tm_safe));
 
 extern void g1(void) __attribute__((tm_callable, tm_safe));  /* { dg-error "previously declared" } */
 
-extern int v1 __attribute__((tm_pure));  /* { dg-warning "function types" } */
+extern int v1 __attribute__((tm_pure));  /* { dg-warning "ignored" } */
 
 typedef void t1(void) __attribute__((tm_callable));
 typedef void (*t2)(void) __attribute__((tm_callable));
-typedef int t3 __attribute__((tm_callable));  /* { dg-warning "function types" } */
+typedef int t3 __attribute__((tm_callable));  /* { dg-warning "ignored" } */
 
 typedef void u0(void);
 typedef u0 u1 __attribute__((tm_callable));

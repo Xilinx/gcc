@@ -943,6 +943,21 @@ extern tree resolve_overloaded_builtin (location_t, tree, VEC(tree,gc) *);
 
 extern tree finish_label_address_expr (tree, location_t);
 
+/* Mask used by tm_attr_to_mask and tm_mask_to_attr.  Note that these
+   are ordered specifically such that more restrictive attributes are
+   at lower bit positions.  This fact is known by the C++ tm attribute
+   inheritance code such that least bit extraction (mask & -mask) results
+   in the most restrictive attribute.  */
+#define TM_ATTR_SAFE		1
+#define TM_ATTR_CALLABLE	2
+#define TM_ATTR_PURE		4
+#define TM_ATTR_IRREVOKABLE	8
+#define TM_ATTR_UNKNOWN		16
+
+extern int tm_attr_to_mask (tree);
+extern tree tm_mask_to_attr (int);
+extern tree find_tm_attribute (tree);
+
 /* Same function prototype, but the C and C++ front ends have
    different implementations.  Used in c-common.c.  */
 extern tree lookup_label (tree);

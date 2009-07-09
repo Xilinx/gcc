@@ -514,7 +514,7 @@ static tree handle_returns_twice_attribute (tree *, tree, tree, int, bool *);
 static tree handle_no_limit_stack_attribute (tree *, tree, tree, int,
 					     bool *);
 static tree handle_pure_attribute (tree *, tree, tree, int, bool *);
-static tree handle_tm_fntype_attribute (tree *, tree, tree, int, bool *);
+static tree handle_tm_attribute (tree *, tree, tree, int, bool *);
 static tree handle_novops_attribute (tree *, tree, tree, int, bool *);
 static tree handle_deprecated_attribute (tree *, tree, tree, int,
 					 bool *);
@@ -780,16 +780,16 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_no_limit_stack_attribute },
   { "pure",                   0, 0, true,  false, false,
 			      handle_pure_attribute },
-  { "tm_callable",            0, 0, false,  true,  true,
-                              handle_tm_fntype_attribute },
-  { "tm_irrevokable",         0, 0, false, true, true,
-                              handle_tm_fntype_attribute },
-  { "tm_pure",                0, 0, false, true, true,
-                              handle_tm_fntype_attribute },
-  { "tm_safe",                0, 0, false,  true,  true,
-                              handle_tm_fntype_attribute },
-  { "tm_unknown",             0, 0, false,  true,  true,
-                              handle_tm_fntype_attribute },
+  { "tm_callable",            0, 0, false,  true,  false,
+                              handle_tm_attribute },
+  { "tm_irrevokable",         0, 0, false,  true,  false,
+                              handle_tm_attribute },
+  { "tm_pure",                0, 0, false,  true,  false,
+                              handle_tm_attribute },
+  { "tm_safe",                0, 0, false,  true,  false,
+                              handle_tm_attribute },
+  { "tm_unknown",             0, 0, false,  true,  false,
+                              handle_tm_attribute },
   /* For internal use (marking of builtins) only.  The name contains space
      to prevent its usage in source code.  */
   { "no vops",                0, 0, true,  false, false,
@@ -7102,70 +7102,116 @@ handle_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
   return NULL_TREE;
 }
 
-/* Return a bitmask of TM function attributes:
-   1 TM_UNKNOWN
-   2 TM_PURE
-   4 TM_CALLABLE
-   8 TM_SAFE
-  16 TM_IRREVOKABLE  */
+/* Transform a TM attribute name into a maskable integer and back.
+   Note that NULL (i.e. no attribute) is mapped to UNKNOWN, corresponding
+   to how the lack of an attribute is treated.  */
 
-static unsigned
-tm_attribute_mask (tree name)
+int
+tm_attr_to_mask (tree attr)
 {
-  if (is_attribute_p ("tm_unknown", name))
-    return 1;
-  if (is_attribute_p ("tm_pure", name))
-    return 2;
-  if (is_attribute_p ("tm_callable", name))
-    return 4;
-  if (is_attribute_p ("tm_safe", name))
-    return 8;
-  if (is_attribute_p ("tm_irrevokable", name))
-    return 16;
+  if (attr == NULL)
+    return TM_ATTR_UNKNOWN;
+  if (is_attribute_p ("tm_safe", attr))
+    return TM_ATTR_SAFE;
+  if (is_attribute_p ("tm_callable", attr))
+    return TM_ATTR_CALLABLE;
+  if (is_attribute_p ("tm_pure", attr))
+    return TM_ATTR_PURE;
+  if (is_attribute_p ("tm_irrevokable", attr))
+    return TM_ATTR_IRREVOKABLE;
+  if (is_attribute_p ("tm_unknown", attr))
+    return TM_ATTR_UNKNOWN;
   return 0;
+}
+
+tree
+tm_mask_to_attr (int mask)
+{
+  const char *str;
+  switch (mask)
+    {
+    case TM_ATTR_SAFE:		str = "tm_safe";	break;
+    case TM_ATTR_CALLABLE:	str = "tm_callable";	break;
+    case TM_ATTR_PURE:		str = "tm_pure";	break;
+    case TM_ATTR_IRREVOKABLE:	str = "tm_irrevokable";	break;
+    case TM_ATTR_UNKNOWN:	str = "tm_unknown";	break;
+    default:
+      gcc_unreachable ();
+    }
+  return get_identifier (str);
+}
+
+/* Return the first TM attribute seen in LIST.  */
+
+tree
+find_tm_attribute (tree list)
+{
+  for (; list ; list = TREE_CHAIN (list))
+    {
+      tree name = TREE_PURPOSE (list);
+      if (tm_attr_to_mask (name) != 0)
+	return name;
+    }
+  return NULL_TREE;
 }
   
 /* Handle the TM attributes; arguments as in struct attribute_spec.handler.
    Here we accept only function types, and verify that none of the other
    function TM attributes are also applied.  */
+/* ??? We need to accept class types for C++, but not C.  This greatly
+   complicates this function, since we can no longer rely on the extra
+   processing given by function_type_required.  */
 
 static tree
-handle_tm_fntype_attribute (tree *node, tree name, tree ARG_UNUSED (args),
-			    int ARG_UNUSED (flags), bool *no_add_attrs)
+handle_tm_attribute (tree *node, tree name, tree args,
+		     int flags, bool *no_add_attrs)
 {
-  if (TREE_CODE (*node) == FUNCTION_TYPE || TREE_CODE (*node) == METHOD_TYPE)
+  /* Only one path adds the attribute; others don't.  */
+  *no_add_attrs = true;
+
+  switch (TREE_CODE (*node))
     {
-      unsigned this_mask, old_mask = 0;
-      tree l;
+    case RECORD_TYPE:
+    case UNION_TYPE:
+      /* Only tm_callable and tm_safe apply to classes.  */
+      if (tm_attr_to_mask (name) & ~(TM_ATTR_SAFE | TM_ATTR_CALLABLE))
+	goto ignored;
+      /* FALLTHRU */
 
-      for (l = TYPE_ATTRIBUTES (*node); l ; l = TREE_CHAIN (l))
-	old_mask |= tm_attribute_mask (TREE_PURPOSE (l));
-      this_mask = tm_attribute_mask (name);
+    case FUNCTION_TYPE:
+    case METHOD_TYPE:
+      {
+	tree old_name = find_tm_attribute (TYPE_ATTRIBUTES (*node));
+	if (old_name == name)
+	  ;
+	else if (old_name != NULL_TREE)
+	  error ("type was previously declared %qE", old_name);
+	else
+	  *no_add_attrs = false;
+      }
+      break;
 
-      if (old_mask == this_mask)
-	*no_add_attrs = true;
-      else if (old_mask != 0)
-	{
-	  const char *old_name;
-	  switch (old_mask)
-	    {
-	    case  1: old_name = "tm_unknown"; break;
-	    case  2: old_name = "tm_pure"; break;
-	    case  4: old_name = "tm_callable"; break;
-	    case  8: old_name = "tm_safe"; break;
-	    case 16: old_name = "tm_irrevokable"; break;
-	    default:
-	      gcc_unreachable ();
-	    }
+    case POINTER_TYPE:
+      {
+	enum tree_code subcode = TREE_CODE (TREE_TYPE (*node));
+	if (subcode == FUNCTION_TYPE || subcode == METHOD_TYPE)
+	  {
+	    tree fn_tmp = TREE_TYPE (*node);
+	    decl_attributes (&fn_tmp, tree_cons (name, args, NULL), 0);
+	    *node = build_pointer_type (fn_tmp);
+	    break;
+	  }
+      }
+      /* FALLTHRU */
 
-	  error ("function type was previously declared %qs", old_name);
-	  *no_add_attrs = true;
-	}
-    }
-  else
-    {
+    default:
+      /* If a function is next, pass it on to be tried next.  */
+      if (flags & (int) ATTR_FLAG_FUNCTION_NEXT)
+	return tree_cons (name, args, NULL);
+
+    ignored:
       warning (OPT_Wattributes, "%qE attribute ignored", name);
-      *no_add_attrs = true;
+      break;
     }
 
   return NULL_TREE;
@@ -7875,14 +7921,13 @@ handle_optimize_attribute (tree *node, tree name, tree args,
    overridden by the target, but is not used generically.  */
 
 static tree
-ignore_attribute (tree *node, tree ARG_UNUSED (name), tree ARG_UNUSED (args),
-		  int ARG_UNUSED (flags), bool *no_add_attrs)
+ignore_attribute (tree * ARG_UNUSED (node), tree ARG_UNUSED (name),
+		  tree ARG_UNUSED (args), int ARG_UNUSED (flags),
+		  bool *no_add_attrs)
 {
   *no_add_attrs = true;
   return NULL_TREE;
 }
-
-
 
 /* Check for valid arguments being passed to a function.
    ATTRS is a list of attributes.  There are NARGS arguments in the array

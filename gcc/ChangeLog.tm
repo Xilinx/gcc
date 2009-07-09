@@ -1,3 +1,22 @@
+2009-07-08  Richard Henderson  <rth@redhat.com>
+
+	* c-common.c (handle_tm_attribute): Rename from
+	handle_tm_fntype_attribute; handle class types.
+	(tm_attr_to_mask): Rename from tm_attribute_mask; export.
+	(tm_mask_to_attr, find_tm_attribute): New.
+	* c-common.h: Add decls for new functions.
+	(TM_ATTR_SAFE, TM_ATTR_CALLABLE, TM_ATTR_PURE,
+	TM_ATTR_IRREVOKABLE, TM_ATTR_UNKNOWN): New.
+
+	* cp/class.c (check_bases): Compute tm attributes for the class
+	based on its base classes.
+	(apply_tm_attr, look_for_tm_attr_overrides): New.
+	(set_one_vmethod_tm_attributes, set_method_tm_attributes): New.
+	(finish_struct_1): Call it.
+
+	* testsuite/g++.dg/tm/attrib-[1234].C: New.
+	* testsuite/gcc.dg/tm/attrib-1.c: Update warning text.
+
 2009-07-06  Richard Henderson  <rth@redhat.com>
 
 	* attribs.c (init_attributes): Allow '*' prefix for overrides.
