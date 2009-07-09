@@ -288,11 +288,13 @@ extern void debug_loop_vec (poly_bb_p);
 extern void schedule_to_scattering (poly_bb_p, int);
 extern void print_pbb_domain (FILE *, poly_bb_p);
 extern void print_pbb (FILE *, poly_bb_p);
+extern void print_scop_context (FILE *, scop_p);
 extern void print_scop (FILE *, scop_p);
 extern void debug_pbb_domain (poly_bb_p);
 extern void debug_pbb (poly_bb_p);
 extern void print_pdrs (FILE *, poly_bb_p);
 extern void debug_pdrs (poly_bb_p);
+extern void debug_scop_context (scop_p);
 extern void debug_scop (scop_p);
 extern void print_scop_params (FILE *, scop_p);
 extern void debug_scop_params (scop_p);
@@ -509,11 +511,27 @@ struct scop
 
   /* Data dependence graph for this SCoP.  */
   struct graph *dep_graph;
+
+  /* The context describes known restrictions concerning the parameters
+     and relations in between the parameters.
+
+  void f (int8_t a, uint_16_t b) {
+    c = 2 a + b;
+    ...
+  }
+
+  Here we can add these restrictions to the context:
+
+  -128 >= a >= 127
+     0 >= b >= 65,535
+     c = 2a + b  */
+  ppl_Pointset_Powerset_NNC_Polyhedron_t context;
 };
 
 #define SCOP_BBS(S) (S->bbs)
 #define SCOP_REGION(S) ((sese) S->region)
 #define SCOP_DEP_GRAPH(S) (S->dep_graph)
+#define SCOP_CONTEXT(S) (S->context)
 
 extern scop_p new_scop (void *);
 extern void free_scop (scop_p);

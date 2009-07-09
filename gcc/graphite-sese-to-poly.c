@@ -1307,6 +1307,68 @@ add_conditions_to_constraints (scop_p scop)
     add_conditions_to_domain (pbb);
 }
 
+/* Add constraints on the possible values of parameter P from the type
+   of P.  */
+
+static void
+add_param_constraints (scop_p scop, ppl_Polyhedron_t context, graphite_dim_t p)
+{
+  ppl_Constraint_t cstr;
+  ppl_Linear_Expression_t le;
+  tree parameter = VEC_index (tree, SESE_PARAMS (SCOP_REGION (scop)), p);
+  tree type = TREE_TYPE (parameter);
+  tree lb, ub;
+
+  if (!INTEGRAL_TYPE_P (type))
+    return;
+
+  lb = TYPE_MIN_VALUE (type);
+  ub = TYPE_MAX_VALUE (type);
+
+  if (lb)
+    {
+      ppl_new_Linear_Expression_with_dimension (&le, scop_nb_params (scop));
+      ppl_set_coef (le, p, -1);
+      ppl_set_inhomogeneous_tree (le, lb);
+      ppl_new_Constraint (&cstr, le, PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL);
+      ppl_Polyhedron_add_constraint (context, cstr);
+      ppl_delete_Linear_Expression (le);
+      ppl_delete_Constraint (cstr);
+    }
+
+  if (ub)
+    {
+      ppl_new_Linear_Expression_with_dimension (&le, scop_nb_params (scop));
+      ppl_set_coef (le, p, -1);
+      ppl_set_inhomogeneous_tree (le, ub);
+      ppl_new_Constraint (&cstr, le, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+      ppl_Polyhedron_add_constraint (context, cstr);
+      ppl_delete_Linear_Expression (le);
+      ppl_delete_Constraint (cstr);
+    }
+}
+
+/* Build the context of the SCOP.  The context usually contains extra
+   constraints that are added to the iteration domains that constrain
+   some parameters.  */
+
+static void
+build_scop_context (scop_p scop)
+{
+  ppl_Polyhedron_t context;
+  graphite_dim_t p, n = scop_nb_params (scop);
+
+  ppl_new_NNC_Polyhedron_from_space_dimension (&context, n, 0);
+
+  for (p = 0; p < n; p++)
+    add_param_constraints (scop, context, p);
+
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron
+    (&SCOP_CONTEXT (scop), context);
+
+  ppl_delete_Polyhedron (context);
+}
+
 /* Build the iteration domains: the loops belonging to the current
    SCOP, and that vary for the execution of the current basic block.
    Returns false if there is no loop in SCOP.  */
@@ -1321,6 +1383,7 @@ build_scop_iteration_domain (scop_p scop)
   poly_bb_p pbb;
 
   ppl_new_NNC_Polyhedron_from_space_dimension (&ph, scop_nb_params (scop), 0);
+
   for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
     if (!loop_in_sese_p (loop_outer (loop), region)) 
       build_loop_iteration_domains (scop, loop, ph, 0);
@@ -1527,6 +1590,8 @@ build_poly_scop (scop_p scop)
   find_scop_parameters (scop);
 
   build_scop_iteration_domain (scop);
+  build_scop_context (scop);
+
   add_conditions_to_constraints (scop);
   build_scop_scattering (scop);
   build_scop_drs (scop);

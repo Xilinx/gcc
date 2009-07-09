@@ -881,21 +881,6 @@ initialize_cloog_names (scop_p scop, CloogProgram *prog)
 			      scattering);
 }
 
-/* Build the context constraints for SCOP: constraints and relations
-   on parameters.  */
-
-static void
-build_scop_context (scop_p scop, CloogProgram *prog)
-{
-  ppl_Polyhedron_t ph;
-  CloogDomain *dom;
-
-  ppl_new_NNC_Polyhedron_from_space_dimension (&ph, scop_nb_params (scop), 0);
-  dom = new_Cloog_Domain_from_ppl_Polyhedron (ph);
-  cloog_program_set_context (prog, dom);
-  ppl_delete_Polyhedron (ph);
-}
-
 /* Build cloog program for SCoP.  */
 
 static void
@@ -910,7 +895,8 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
   int nbs = 2 * max_nb_loops + 1;
   int *scaldims;
 
-  build_scop_context (scop, prog);
+  cloog_program_set_context
+    (prog, new_Cloog_Domain_from_ppl_Pointset_Powerset (SCOP_CONTEXT (scop)));
   nbs = unify_scattering_dimensions (scop);
   scaldims = (int *) xmalloc (nbs * (sizeof (int)));
   cloog_program_set_nb_scattdims (prog, nbs);

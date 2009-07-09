@@ -442,6 +442,7 @@ new_scop (void *region)
   scop_p scop = XNEW (struct scop);
 
   SCOP_DEP_GRAPH (scop) = NULL;
+  SCOP_CONTEXT (scop) = NULL;
   scop_set_region (scop, region);
   SCOP_BBS (scop) = VEC_alloc (poly_bb_p, heap, 3);
 
@@ -460,6 +461,9 @@ free_scop (scop_p scop)
     free_poly_bb (pbb);
 
   VEC_free (poly_bb_p, heap, SCOP_BBS (scop));
+
+  if (SCOP_CONTEXT (scop))
+    ppl_delete_Pointset_Powerset_NNC_Polyhedron (SCOP_CONTEXT (scop));
 
   XDELETE (scop);
 }
@@ -590,6 +594,26 @@ print_scop_params (FILE *file, scop_p scop)
   fprintf (file, ")\n");
 }
 
+/* Print to FILE the context of SCoP.  */
+void
+print_scop_context (FILE *file, scop_p scop)
+{
+  graphite_dim_t i;
+
+  fprintf (file, "context (\n");
+  fprintf (file, "#  eq");
+
+  for (i = 0; i < scop_nb_params (scop); i++)
+    fprintf (file, "     p%d", (int) i);
+
+  fprintf (file, "    cst\n");
+
+  if (SCOP_CONTEXT (scop))
+    ppl_print_powerset_matrix (file, SCOP_CONTEXT (scop));
+
+  fprintf (file, ")\n");
+}
+
 /* Print to FILE the SCOP.  */
 
 void
@@ -599,6 +623,7 @@ print_scop (FILE *file, scop_p scop)
   poly_bb_p pbb;
 
   print_scop_params (file, scop);
+  print_scop_context (file, scop);
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     print_pbb (file, pbb);
@@ -618,6 +643,14 @@ void
 debug_pbb (poly_bb_p pbb)
 {
   print_pbb (stderr, pbb);
+}
+
+/* Print to STDERR the context of SCOP.  */
+
+void
+debug_scop_context (scop_p scop)
+{
+  print_scop_context (stderr, scop);
 }
 
 /* Print to STDERR the SCOP.  */
