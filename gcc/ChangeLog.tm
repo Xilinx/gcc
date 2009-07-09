@@ -1,3 +1,14 @@
+2009-07-09  Richard Henderson  <rth@redhat.com>
+
+	* builtin-attrs.def (ATTR_TM_NOTHROW_NONNULL): Remove.
+	* gtm-builtins.def (BUILT_IN_TM_MEMCPY, BUILT_IN_TM_MEMMOVE): Use
+	ATTR_TM_NOTHROW_LIST.
+	(BUILT_IN_TM_GETTMCLONE_IRR): Use ATTR_TM_CONST_NOTHROW_LIST.
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Look through
+	OBJ_TYPE_REF.
+
+	* testsuite/g++.dg/tm/opt-1.C: New test.
+
 2009-07-08  Richard Henderson  <rth@redhat.com>
 
 	* c-common.c (handle_tm_attribute): Rename from

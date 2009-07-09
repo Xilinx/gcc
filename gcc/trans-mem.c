@@ -1902,6 +1902,10 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   ret = create_tmp_var (TREE_TYPE (old_fn), NULL);
   add_referenced_var (ret);
 
+  /* Discard OBJ_TYPE_REF, since we weren't able to fold it.  */
+  if (TREE_CODE (old_fn) == OBJ_TYPE_REF)
+    old_fn = OBJ_TYPE_REF_EXPR (old_fn);
+
   g = gimple_build_call (gettm_fn, 1, old_fn);
   ret = make_ssa_name (ret, g);
   gimple_call_set_lhs (g, ret);
