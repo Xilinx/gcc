@@ -21,6 +21,9 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_GRAPHITE_PPL_H
 #define GCC_GRAPHITE_PPL_H
 
+#include "double-int.h"
+#include "tree.h"
+
 CloogMatrix *new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
 CloogDomain *new_Cloog_Domain_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
 CloogDomain * new_Cloog_Domain_from_ppl_Pointset_Powerset (
@@ -38,8 +41,82 @@ void debug_ppl_powerset_matrix (ppl_Pointset_Powerset_NNC_Polyhedron_t);
 void ppl_read_polyhedron_matrix (ppl_Polyhedron_t *, FILE *);
 void ppl_insert_dimensions (ppl_Polyhedron_t, int, int);
 void ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t, int, int);
-void ppl_set_inhomogeneous (ppl_Linear_Expression_t, int);
-void ppl_set_coef (ppl_Linear_Expression_t, ppl_dimension_type, int);
+void ppl_set_inhomogeneous_gmp (ppl_Linear_Expression_t, Value);
+void ppl_set_coef_gmp (ppl_Linear_Expression_t, ppl_dimension_type, Value);
+
+/* Assigns to RES the value of the INTEGER_CST T.  */
+
+static inline void
+tree_int_to_gmp (tree t, Value res)
+{
+  double_int di = tree_to_double_int (t);
+  mpz_set_double_int (res, di, TYPE_UNSIGNED (TREE_TYPE (t)));
+}
+
+/* Converts a GMP constant VAL to a tree and returns it.  */
+
+static inline tree
+gmp_cst_to_tree (tree type, Value val)
+{
+  tree t = type ? type : integer_type_node;
+  Value tmp;
+  double_int di;
+
+  value_init (tmp);
+  value_assign (tmp, val);
+  di = mpz_get_double_int (t, tmp, true);
+  value_clear (tmp);
+
+  return double_int_to_tree (t, di);
+}
+
+/* Set the inhomogeneous term of E to the integer X.  */
+
+static inline void
+ppl_set_inhomogeneous (ppl_Linear_Expression_t e, int x)
+{
+  Value v;
+  value_init (v);
+  value_set_si (v, x);
+  ppl_set_inhomogeneous_gmp (e, v);
+  value_clear (v);
+}
+
+/* Set the inhomogeneous term of E to the tree X.  */
+
+static inline void
+ppl_set_inhomogeneous_tree (ppl_Linear_Expression_t e, tree x)
+{
+  Value v;
+  value_init (v);
+  tree_int_to_gmp (x, v);
+  ppl_set_inhomogeneous_gmp (e, v);
+  value_clear (v);
+}
+
+/* Set E[I] to integer X.  */
+
+static inline void
+ppl_set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
+{
+  Value v;
+  value_init (v);
+  value_set_si (v, x);
+  ppl_set_coef_gmp (e, i, v);
+  value_clear (v);
+}
+
+/* Set E[I] to tree X.  */
+
+static inline void
+ppl_set_coef_tree (ppl_Linear_Expression_t e, ppl_dimension_type i, tree x)
+{
+  Value v;
+  value_init (v);
+  tree_int_to_gmp (x, v);
+  ppl_set_coef_gmp (e, i, v);
+  value_clear (v);
+}
 
 /* Sets RES to the max of V1 and V2.  */
 

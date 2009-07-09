@@ -66,14 +66,6 @@ graphite_verify (void)
 #endif
 }
 
-/* Converts a GMP constant V to a tree and returns it.  */
-
-static tree
-gmp_cst_to_tree (tree type, Value v)
-{
-  return build_int_cst (type, value_get_si (v));
-}
-
 /* For a given loop DEPTH in the loop nest of the original black box
    PBB, return the old induction variable associated to that loop.  */
 

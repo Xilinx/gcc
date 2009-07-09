@@ -1,5 +1,16 @@
 2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (gmp_cst_to_tree): Moved...
+	* graphite-ppl.c (ppl_set_inhomogeneous_gmp, ppl_set_coef_gmp): New.
+	(ppl_set_inhomogeneous, ppl_set_coef): Moved...
+	* graphite-ppl.h: Include double-int.h and tree.h.
+	(ppl_set_inhomogeneous_gmp, ppl_set_coef_gmp): Declared.
+	(ppl_set_inhomogeneous, ppl_set_coef): ...here.
+	(gmp_cst_to_tree): ...here.  Reimplemented using mpz_get_double_int.
+	(tree_int_to_gmp, ppl_set_inhomogeneous_tree, ppl_set_coef_tree): New.
+
+2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (clast_to_gcc_expression_red): Generate
 	POINTER_PLUS_EXPR for pointer types.
 	(clast_to_gcc_expression): Same.

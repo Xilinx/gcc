@@ -275,7 +275,7 @@ new_Cloog_Domain_from_ppl_Pointset_Powerset (
 /* Set the inhomogeneous term of E to X.  */
 
 void
-ppl_set_inhomogeneous (ppl_Linear_Expression_t e, int x)
+ppl_set_inhomogeneous_gmp (ppl_Linear_Expression_t e, Value x)
 {
   Value v0, v1;
   ppl_Coefficient_t c;
@@ -287,7 +287,7 @@ ppl_set_inhomogeneous (ppl_Linear_Expression_t e, int x)
   ppl_Linear_Expression_inhomogeneous_term (e, c);
   ppl_Coefficient_to_mpz_t (c, v1);
   value_oppose (v1, v1);
-  value_set_si (v0, x);
+  value_assign (v0, x);
   value_addto (v0, v0, v1);
   ppl_assign_Coefficient_from_mpz_t (c, v0);
   ppl_Linear_Expression_add_to_inhomogeneous (e, c);
@@ -300,7 +300,7 @@ ppl_set_inhomogeneous (ppl_Linear_Expression_t e, int x)
 /* Set E[I] to X.  */
 
 void
-ppl_set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
+ppl_set_coef_gmp (ppl_Linear_Expression_t e, ppl_dimension_type i, Value x)
 {
   Value v0, v1;
   ppl_Coefficient_t c;
@@ -312,7 +312,7 @@ ppl_set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
   ppl_Linear_Expression_coefficient (e, i, c);
   ppl_Coefficient_to_mpz_t (c, v1);
   value_oppose (v1, v1);
-  value_set_si (v0, x);
+  value_assign (v0, x);
   value_addto (v0, v0, v1);
   ppl_assign_Coefficient_from_mpz_t (c, v0);
   ppl_Linear_Expression_add_to_coefficient (e, i, c);
