@@ -24,7 +24,7 @@
 #include "errors.h"	/* for fatal */
 #include "double-int.h"
 
-#warning assert ajouté par Basile
+#warning assert temporarily added by Basile
 #include <assert.h>
 #undef gcc_assert
 #define gcc_assert assert
@@ -1572,8 +1572,11 @@ oprintf (outf_p o, const char *format, ...)
 	new_len *= 2;
       } while (o->bufused + slength >= new_len);
       o->buf = XNEWVEC (char, new_len);
-      if (oldbuf)
-	memcpy(o->buf, oldbuf, o->bufused);
+      if (oldbuf) 
+	{
+	  memcpy(o->buf, oldbuf, o->bufused);
+	  oldbuf[0] = 0;
+	}
       free (oldbuf);
       o->buflength = new_len;
     }
@@ -3041,8 +3044,9 @@ write_enum_defn (type_p structures, type_p param_structs)
   /* write only to header_file */
   if (!header_file) 
     return;
-  oprintf (header_file, "\n/* Enumeration of types known.  */\n");
+  oprintf (header_file, "\n/* Enumeration of known types.  */\n");
   oprintf (header_file, "enum gt_types_enum {\n");
+  oprintf (header_file, "  gt_types_enum_firstempty,\n");
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
 	|| s->gc_used == GC_MAYBE_POINTED_TO)
@@ -3720,14 +3724,17 @@ delay_func_for_structure (type_p s, const struct write_types_data* wtd)
       int oldsiz = dlystructsiz;
       int newsiz = (32 + oldsiz) * 2;
       int i = 0;
+      gcc_assert (newsiz > dlystructcnt);
       dlystructab = XNEWVEC(struct delayedstructfunc_st, newsiz);
-      for (i = 0; i < oldsiz; i++)
+      for (i = 0; i < dlystructcnt; i++)
 	dlystructab[i] = oldtab[i];
-      for (i = oldsiz; i < newsiz; i++)
+      for (i = dlystructcnt; i < newsiz; i++)
 	{
 	  dlystructab[i].dly_s = NULL;
 	  dlystructab[i].dly_wtd = NULL;
 	}
+      dlystructsiz = newsiz;
+      free (oldtab);
     }
   dlystructab[dlystructcnt].dly_s = s;
   dlystructab[dlystructcnt].dly_wtd = wtd;
@@ -3742,8 +3749,8 @@ output_delayed_functions(void)
   gcc_assert (plugin_output);
   for (i = 0; i<dlystructcnt; i++)
     {
-      type_p s = dlystructab[dlystructcnt].dly_s;
-      const struct write_types_data* wtd = dlystructab[dlystructcnt].dly_wtd;
+      type_p s = dlystructab[i].dly_s;
+      const struct write_types_data* wtd = dlystructab[i].dly_wtd;
       gcc_assert (s != NULL && wtd != NULL);
       if (s->kind == TYPE_LANG_STRUCT)
 	  {

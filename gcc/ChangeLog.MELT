@@ -1,4 +1,11 @@
 
+2009-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	[enhancing gengtype for plugin mode; less buggy]
+	* gengtype.c (oprintf): clear oldbuf for ease of debugging.
+	(write_enum_defn): emit gt_types_enum_firstempty.
+	(delay_func_for_structure): [bug] updated dlystructsiz!
+	(output_delayed_functions): [bug] corrected initialization!
+
 2009-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[enhancing gengtype for plugin mode; still buggy]
 	* gengtype.h (is_plugin_file): added new variable.
