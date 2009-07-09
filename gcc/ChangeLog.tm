@@ -1,5 +1,14 @@
 2009-07-09  Richard Henderson  <rth@redhat.com>
 
+	* c-common.c (handle_tm_wrap_attribute): New.
+	(c_common_attribute_table): Add it.
+	* trans-mem.c (tm_wrap_map, record_tm_replacement): New.
+	(find_tm_replacement_function): Use tm_wrap_map.
+	(diagnose_tm_safe_1): Use find_tm_replacement_function.
+	* tree.h (record_tm_replacement): Declare.
+
+2009-07-09  Richard Henderson  <rth@redhat.com>
+
 	* c-decl.c (c_gimple_diagnostics_recursively): Split out
 	non-recursive part to...
 	* c-common.c (c_gimple_diagnostics): ... here.  Handle tm_safe.

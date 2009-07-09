@@ -515,6 +515,7 @@ static tree handle_no_limit_stack_attribute (tree *, tree, tree, int,
 					     bool *);
 static tree handle_pure_attribute (tree *, tree, tree, int, bool *);
 static tree handle_tm_attribute (tree *, tree, tree, int, bool *);
+static tree handle_tm_wrap_attribute (tree *, tree, tree, int, bool *);
 static tree handle_novops_attribute (tree *, tree, tree, int, bool *);
 static tree handle_deprecated_attribute (tree *, tree, tree, int,
 					 bool *);
@@ -780,16 +781,18 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_no_limit_stack_attribute },
   { "pure",                   0, 0, true,  false, false,
 			      handle_pure_attribute },
-  { "tm_callable",            0, 0, false,  true,  false,
+  { "tm_callable",            0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_irrevokable",         0, 0, false,  true,  false,
+  { "tm_irrevokable",         0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_pure",                0, 0, false,  true,  false,
+  { "tm_pure",                0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_safe",                0, 0, false,  true,  false,
+  { "tm_safe",                0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_unknown",             0, 0, false,  true,  false,
+  { "tm_unknown",             0, 0, false, true,  false,
                               handle_tm_attribute },
+  { "tm_wrap",                1, 1, true,  false,  false,
+			      handle_tm_wrap_attribute },
   /* For internal use (marking of builtins) only.  The name contains space
      to prevent its usage in source code.  */
   { "no vops",                0, 0, true,  false, false,
@@ -7212,6 +7215,45 @@ handle_tm_attribute (tree *node, tree name, tree args,
     ignored:
       warning (OPT_Wattributes, "%qE attribute ignored", name);
       break;
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle the TM_WRAP attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_tm_wrap_attribute (tree *node, tree name, tree args,
+			  int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  tree decl = *node;
+
+  /* We don't need the attribute even on success, since we
+     record the entry in an external table.  */
+  *no_add_attrs = true;
+
+  if (TREE_CODE (decl) != FUNCTION_DECL)
+    warning (OPT_Wattributes, "%qE attribute ignored", name);
+  else
+    {
+      tree wrap_id = TREE_VALUE (args);
+      if (TREE_CODE (wrap_id) != IDENTIFIER_NODE)
+	error ("tm_wrap argument not an identifier");
+      else
+	{
+	  tree wrap_decl = lookup_name (wrap_id);
+	  if (wrap_decl && TREE_CODE (wrap_decl) == FUNCTION_DECL)
+	    {
+	      if (lang_hooks.types_compatible_p (TREE_TYPE (decl),
+						 TREE_TYPE (wrap_decl)))
+	        record_tm_replacement (wrap_decl, decl);
+	      else
+		error ("%qD is not compatible with %qD", wrap_decl, decl);
+	    }
+	  else
+	    error ("%qE is not a function", wrap_id);
+	}
     }
 
   return NULL_TREE;

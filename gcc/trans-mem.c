@@ -285,6 +285,44 @@ is_tm_ending_fndecl (tree fndecl)
   return false;
 }
 
+/* Build a GENERIC tree for a user abort.  This is called by front ends
+   while transforming the __tm_abort statement.  */
+
+tree
+build_tm_abort_call (location_t loc)
+{
+  tree x;
+
+  x = build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 1,
+		       build_int_cst (integer_type_node, AR_USERABORT));
+  SET_EXPR_LOCATION (x, loc);
+
+  return x;
+}
+
+/* Map for aribtrary function replacement under TM, as created
+   by the tm_wrap attribute.  */
+
+static GTY((param_is (struct tree_map))) htab_t tm_wrap_map;
+
+void
+record_tm_replacement (tree from, tree to)
+{
+  struct tree_map **slot, *h;
+
+  if (tm_wrap_map == NULL)
+    tm_wrap_map = htab_create_ggc (32, tree_map_hash, tree_map_eq, 0);
+
+  h = GGC_NEW (struct tree_map);
+  h->hash = htab_hash_pointer (from);
+  h->base.from = from;
+  h->to = to;
+
+  slot = (struct tree_map **)
+    htab_find_slot_with_hash (tm_wrap_map, h, h->hash, INSERT);
+  *slot = h;
+}
+
 /* Return a TM-aware replacement function for DECL.  */
 
 static tree
@@ -303,23 +341,18 @@ find_tm_replacement_function (tree fndecl)
 	return NULL;
       }
 
-  /* ??? Handle tm_wrap attribute here.  */
+  if (tm_wrap_map)
+    {
+      struct tree_map *h, in;
+
+      in.base.from = fndecl;
+      in.hash = htab_hash_pointer (fndecl);
+      h = (struct tree_map *) htab_find_with_hash (tm_wrap_map, &in, in.hash);
+      if (h)
+	return h->to;
+    }
+
   return NULL;
-}
-
-/* Build a GENERIC tree for a user abort.  This is called by front ends
-   while transforming the __tm_abort statement.  */
-
-tree
-build_tm_abort_call (location_t loc)
-{
-  tree x;
-
-  x = build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 1,
-		       build_int_cst (integer_type_node, AR_USERABORT));
-  SET_EXPR_LOCATION (x, loc);
-
-  return x;
 }
 
 /* Diagnostics for tm_safe functions/regions.  Called by the front end
@@ -347,6 +380,9 @@ diagnose_tm_safe_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 
       fn = gimple_call_fn (stmt);
       if (fn && is_tm_safe (TREE_TYPE (fn)))
+	break;
+      if (TREE_CODE (fn) == ADDR_EXPR
+	  && find_tm_replacement_function (TREE_OPERAND (fn, 0)))
 	break;
 
       if (wi->info)

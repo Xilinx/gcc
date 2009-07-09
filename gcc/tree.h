@@ -5199,6 +5199,7 @@ extern bool is_tm_safe (tree);
 extern bool is_tm_pure (tree);
 extern bool is_tm_callable (tree);
 extern bool is_tm_irrevokable (tree);
+extern void record_tm_replacement (tree, tree);
 
 /* In tree-inline.c.  */
 
