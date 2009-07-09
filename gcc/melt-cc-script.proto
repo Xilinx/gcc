@@ -38,17 +38,18 @@ fi
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 
-## for commodity, we pass -D -U -I -O* to gcc, and -F to set the cflags,
+## for commodity, we pass -D -U -I -O* -g to gcc, and -F to set the cflags,
 ## -C to set the compiler, and -x & -v for debugging and -n to omit
 ## line info, -d for dynamic object structures
-while getopts "D:I:U:F:C:O:xvnd" flag ; do
+while getopts "D:I:U:F:C:O:gxvnd" flag ; do
     : the $flag 
     case "$flag" in
 	D) melt_cflags="$melt_cflags -D$OPTARG";;
 	U) melt_cflags="$melt_cflags -U$OPTARG";;
-	I) melt_cflags="$melt_cflags -U$OPTARG";;
+	I) melt_cflags="$melt_cflags -I$OPTARG";;
 	O) melt_cflags="$melt_cflags -O$OPTARG";;
 	F) melt_cflags="$melt_cflags $OPTARG";;
+	g) melt_cflags="$melt_cflags -g";;
 	C) melt_cc="$OPTARG";;
 	n)  melt_cflags="$melt_cflags -DMELTGCC_NOLINENUMBERING";;
 	d) melt_cflags="$melt_cflags -DMELTGCC_DYNAMIC_OBJSTRUCT";;

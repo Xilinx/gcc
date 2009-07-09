@@ -93,13 +93,22 @@ int flag_melt_debug;
    NOTE:  july 2009
   
    This code does not yet compile in plugin mode, unless the gengtype
-   also generates a gtype-desc.h for the plugin and this gtype-desc.h
-   replaces the one in the plugin/include directory. This could be
-   achieved by compiling this plugin with
-      gcc -I. -iquote . -I- ...
-   where gcc is a very recent GCC. (trunk or 4.5)
+   is suitably patched.
 
+   un addition, libiberty is not fully available from a plugin. So we
+   need to reproduce here some functions provided in libiberty.h
 **/
+char *
+xstrndup (const char *s, size_t n)
+{
+  char *result;
+  size_t len = strlen (s);
+  if (n < len)
+    len = n;
+  result = XNEWVEC (char, len + 1);
+  result[len] = '\0';
+  return (char *) memcpy (result, s, len);
+}
 #endif
 
 
@@ -138,11 +147,11 @@ static const char melt_source_dir[] = MELT_SOURCE_DIR;
 static const char melt_module_dir[] = MELT_MODULE_DIR;
 static const char melt_compile_script[] = MELT_COMPILE_SCRIPT;
 
-melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB];
+melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]={};
 void* melt_startalz=NULL;
-void* melt_endalz;
-char* melt_curalz;
-void** melt_storalz;
+void* melt_endalz=NULL;
+char* melt_curalz=NULL;
+void** melt_storalz=NULL;
 
 static long melt_minorsizekilow = 0;
 static long melt_fullthresholdkilow = 0;
@@ -720,13 +729,15 @@ melt_garbcoll (size_t wanted, bool needfull)
   melt_nb_garbcoll++;
   if (melt_minorsizekilow == 0)
     {
-      melt_minorsizekilow = atol (melt_argument ("minor-zone"));
+      const char* minzstr = melt_argument ("minor-zone");
+      melt_minorsizekilow = minzstr? (atol (minzstr)):0;
       if (melt_minorsizekilow<256) melt_minorsizekilow=256;
       else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
     }
   if (melt_fullthresholdkilow == 0)
     {
-      melt_fullthresholdkilow = atol (melt_argument ("full-threshold"));
+      const char* fullthstr = melt_argument ("full-threshold");
+      melt_fullthresholdkilow = fullthstr ? (atol (fullthstr)) : 0;
       if (melt_fullthresholdkilow<512) melt_fullthresholdkilow=512;
       if (melt_fullthresholdkilow<2*melt_minorsizekilow)
 	melt_fullthresholdkilow = 2*melt_minorsizekilow;
@@ -5053,9 +5064,17 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
 	{
 	  int n = melt_lrand () & 0xfffffff;
 	  memset(tempdir_melt, 0, sizeof(tempdir_melt));
+#ifdef MELT_IS_PLUGIN
+	  /* we don't have choose_tmpdir in plugin mode because it is
+	     in libiberty */
+	  snprintf (tempdir_melt, sizeof(tempdir_melt)-1,
+		    "%s-GccMelt%d-%d-d",
+		    tmpnam(NULL), (int)getpid (), n);
+#else
 	  snprintf (tempdir_melt, sizeof(tempdir_melt)-1, 
 		     "%s/GccMeltmpd%d-%d", choose_tmpdir (), (int) getpid (),
 		    n);
+#endif
 	  if (!mkdir (tempdir_melt, 0700))
 	    {
 	      made_tempdir_melt = true;
@@ -5064,8 +5083,7 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
 	  tempdir_melt[0] = '\0';
 	}
       if (!tempdir_melt[0])
-	fatal_error ("failed to create temporary directory for MELT in %s",
-		     choose_tmpdir ());
+	fatal_error ("failed to create temporary directory for MELT");
     };
   return concat (tempdir_melt, "/", basnam, suffix, NULL);
 }
@@ -5080,10 +5098,6 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
 static void
 compile_to_dyl (const char *srcfile, const char *dlfile)
 {
-  struct pex_obj *pex = 0;
-  int err = 0;
-  int cstatus = 0;
-  const char *errmsg = 0;
   /* possible improvement  : avoid recompiling
      when not necessary; using timestamps a la make is not enough,
      since the C source files are generated.  
@@ -5104,47 +5118,70 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
      command: md5sum $Csourcefile; where $Csourcefile is replaced by the
      source file path)
 
-   */
+  */
   const char *ourmeltcompilescript = NULL;
   const char* compscrstr = melt_argument ("compile-script");
-  struct pex_time ptime;
-  const char *argv[4];
   char pwdbuf[500];
   memset(pwdbuf, 0, sizeof(pwdbuf));
   getcwd(pwdbuf, sizeof(pwdbuf)-1);
-  memset (&ptime, 0, sizeof (ptime));
-  /* compute the ourmeltcompilscript */
-  debugeprintf ("compile_to_dyl compscrstr %s", compscrstr);
   ourmeltcompilescript = CONST_CAST (char *, compscrstr);
   if (!ourmeltcompilescript || !ourmeltcompilescript[0])
     ourmeltcompilescript = melt_compile_script;
+  debugeprintf ("compile_to_dyl compscrstr %s", compscrstr);
   debugeprintf ("compile_to_dyl melt ourmeltcompilescript=%s pwd %s",
 		ourmeltcompilescript, pwdbuf);
   debugeprintf ("compile_to_dyl srcfile %s dlfile %s", srcfile, dlfile);
   fflush (stdout);
   fflush (stderr);
-  pex = pex_init (PEX_RECORD_TIMES, ourmeltcompilescript, NULL);
-  argv[0] = ourmeltcompilescript;
-  argv[1] = srcfile;
-  argv[2] = dlfile;
-  argv[3] = NULL;
-  errmsg =
-    pex_run (pex, PEX_LAST | PEX_SEARCH, ourmeltcompilescript, 
-	     CONST_CAST (char**, argv),
-	     NULL, NULL, &err);
-  if (errmsg)
-    fatal_error
-      ("failed to melt compile to dyl: %s %s %s : %s",
-       ourmeltcompilescript, srcfile, dlfile, errmsg);
-  if (!pex_get_status (pex, 1, &cstatus))
-    fatal_error
-      ("failed to get status of melt dynamic compilation to dyl:  %s %s %s - %m",
-       ourmeltcompilescript, srcfile, dlfile);
-  if (!pex_get_times (pex, 1, &ptime))
-    fatal_error
-      ("failed to get time of melt dynamic compilation to dyl:  %s %s %s - %m",
-       ourmeltcompilescript, srcfile, dlfile);
-  pex_free (pex);
+#ifdef MELT_IS_PLUGIN
+  {
+    int err = 0;
+    char * cmd = concat(ourmeltcompilescript, " ",
+			srcfile, " ",
+			dlfile, NULL);
+    gcc_assert (cmd != NULL);
+    debugeprintf("compile_to_dyl cmd: %s", cmd);
+    err = system (cmd);
+    if (err) 
+      fatal_error
+	("failed to melt compile to dyl with command: %s : in %s, error code %d", cmd, pwdbuf, err);
+    free (cmd);
+    return;
+  } 
+#else
+  {
+    int err = 0;
+    int cstatus = 0;
+    const char *errmsg = 0;
+    const char *argv[4];
+    struct pex_obj *pex = 0;
+    struct pex_time ptime;
+    memset (&ptime, 0, sizeof (ptime));
+    /* compute the ourmeltcompilscript */
+    pex = pex_init (PEX_RECORD_TIMES, ourmeltcompilescript, NULL);
+    argv[0] = ourmeltcompilescript;
+    argv[1] = srcfile;
+    argv[2] = dlfile;
+    argv[3] = NULL;
+    errmsg =
+      pex_run (pex, PEX_LAST | PEX_SEARCH, ourmeltcompilescript, 
+	       CONST_CAST (char**, argv),
+	       NULL, NULL, &err);
+    if (errmsg)
+      fatal_error
+	("failed to melt compile to dyl: %s %s %s : %s",
+	 ourmeltcompilescript, srcfile, dlfile, errmsg);
+    if (!pex_get_status (pex, 1, &cstatus))
+      fatal_error
+	("failed to get status of melt dynamic compilation to dyl:  %s %s %s - %m",
+	 ourmeltcompilescript, srcfile, dlfile);
+    if (!pex_get_times (pex, 1, &ptime))
+      fatal_error
+	("failed to get time of melt dynamic compilation to dyl:  %s %s %s - %m",
+	 ourmeltcompilescript, srcfile, dlfile);
+    pex_free (pex);
+  }
+#endif
   debugeprintf ("compile_to_dyl done srcfile %s dlfile %s", srcfile, dlfile);
 }
 
@@ -5184,7 +5221,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   int i = 0, c = 0;
   char hbuf[4];
   debugeprintf ("load_check_dynamic_module_index dypath=%s md5src=%s", dypath, md5src);
-  dlh = (void *) dlopen (dypath, RTLD_NOW);
+  dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
   debugeprintf ("load_check_dynamic_module_index dlh=%p dypath=%s", dlh, dypath);
   if (!dlh) 
     {
@@ -7807,9 +7844,18 @@ melt_really_initialize (const char* pluginame)
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   countdbgstr = melt_argument ("debugskip");
+#ifdef MELT_IS_PLUGIN
+  { 
+    const char *dbgstr = melt_argument ("debug");
+    /* debug=n or debug=0 is handled as no debug */
+    if (dbgstr && (!dbgstr[0] || !strchr("Nn0", dbgstr[0])))
+      flag_melt_debug = 1;
+  }
+#endif
   if (melt_minorsizekilow == 0)
     {
-      melt_minorsizekilow = atol (melt_argument ("minor-zone"));
+      const char* minzstr = melt_argument ("minor-zone");
+      melt_minorsizekilow = minzstr ? (atol (minzstr)) : 0;
       if (melt_minorsizekilow<256) melt_minorsizekilow=256;
       else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
     }
@@ -7817,7 +7863,7 @@ melt_really_initialize (const char* pluginame)
   /* don't use the index 0 so push a null */
   VEC_safe_push (melt_module_info_t, heap, modinfvec,
 		 (melt_module_info_t *) 0);
-  proghandle = dlopen (NULL, RTLD_NOW);
+  proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
   if (!proghandle)
     fatal_error ("melt failed to get whole program handle - %s",
 		 dlerror ());

@@ -1,5 +1,23 @@
 
 2009-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	[compilable as a plugin to trunk -with RTLD_GLOBAL]
+	* run-melt.h: include files in plugin mode.
+	(gt_ggc_mx_melt_un) added declaration.
+	* melt-runtime.c: use less libiberty functions in plugin mode &
+	check plugin arguments.
+	(xstrndup): added function copied from libiberty in plugin mode.
+	(melt_garbcoll): accept null minor-zone & full-threshold arguments
+	in plugin mode.
+	(melt_tempdir_path): just use tmpnam in plugin mode, avoid
+	choose_tmpdir.	
+	(compile_to_dyl): avoid pex_execute in plugin mode, use system.
+	(load_checked_dynamic_module_index): use RTLD_GLOBAL.
+	(melt_really_initialize): initilize flag_melt_debug in plugin
+	mode.
+	* melt-cc-script.proto: typo for -I. handles -g.
+	* plugin.c (try_init_one_plugin): use RTLD_GLOBAL.
+
+2009-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[enhancing gengtype for plugin mode; less buggy]
 	* gengtype.c (struct write_types_data): added is_pch field.
 	(write_func_for_structure): output #ifdef GCC_PLUGIN_HAVE_PCH.
