@@ -2,6 +2,9 @@
 #include <malloc.h>
 #include <vector>
 
+// { dg-options "-D_GLIBCXX_PROFILE" }
+// { dg-do compile }
+
 using std::vector;
 
 static void my_init_hook (void);

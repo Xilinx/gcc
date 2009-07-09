@@ -114,7 +114,8 @@ inline size_t __min(size_t __a, size_t __b) {
 
 // Diagnostic tables.
 template <int __Unused=0>
-class __tables {
+class __tables
+{
  public:
   static __trace_hash_func* _S_hash_func;
   static __trace_hashtable_size* _S_hashtable_size;

@@ -23,7 +23,6 @@
 <title>Profile Mode</title>
 
 
-
 <sect1 id="manual.ext.profile_mode.intro" xreflabel="Intro">
   <title>Intro</title>
   <para>
@@ -36,6 +35,9 @@
   calls to an instrumentation library to record the internal state of
   various components at interesting entry/exit points to/from the standard
   library.  Process trace, recognize suboptimal patterns, give advice.
+  For details, see 
+  <ulink url="http://dx.doi.org/10.1109/CGO.2009.36">paper presented at
+   CGO 2009</ulink>.
   </para>
   <para>
   <emphasis>Strengths: </emphasis>
@@ -48,13 +50,13 @@
   identifying precisely interesting dynamic performance behavior.
   </para></listitem>
   <listitem><para>
-  The overhead model is pay-per-view.  When you turn off a diagnostic class,
-  its overhead disappears.
+  The overhead model is pay-per-view.  When you turn off a diagnostic class
+  at compile time, its overhead disappears.
   </para></listitem>
 </itemizedlist>
   </para>
   <para>
-  <emphasis>Weaknesses: </emphasis>
+  <emphasis>Drawbacks: </emphasis>
 <itemizedlist>
   <listitem><para>
   You must recompile the application code with custom options.
@@ -68,26 +70,6 @@
 </itemizedlist>
   </para>
 
-  <para><emphasis>Example:</emphasis> 
-<programlisting>
-cat foo.cc
-#include &lt;unordered_set&gt;
-int main() {
-  unordered_set&lt;int&gt; us;
-  for (int k = 0; k &lt; 1000000; ++k) {
-    us.insert(k);
-  }
-  return us.size();
-}
-
-g++ -fprofile-stdlib foo.cc
-
-./a.out
-
-stdlib-advisor -b ./a.out -f ./profile-stdlib.txt
-foo.cc:3: advice: Changing initial unordered_set size from 10 to 1000000 saves N rehash operations.
-</programlisting>
-  </para>
 
 </sect1>
 
@@ -95,22 +77,36 @@ foo.cc:3: advice: Changing initial unordered_set size from 10 to 1000000 saves N
 
 <sect1 id="manual.ext.profile_mode.using" xreflabel="Using">
   <title>Using the Profile Mode</title>
+
   <para>
-  The profile mode has to be turned on at application build time.
+  This is the anticipated common workflow for program <code>foo.cc</code>:
+<programlisting>
+$ cat foo.cc
+#include &lt;unordered_set&gt;
+int main() {
+  unordered_set&lt;int&gt; us;
+  for (int k = 0; k &lt; 1000000; ++k)
+    us.insert(k);
+  return us.size();
+}
+
+$ g++ -D_GLIBCXX_PROFILE foo.cc
+$ ./a.out
+$ stdlib-advisor -b ./a.out -f ./profile-stdlib.txt
+foo.cc:3: advice: Changing initial unordered_set size from 10 to 1000000 
+saves N rehash operations.
+</programlisting>
+  </para>
+
+<para>
+Fine tuning information:
 <itemizedlist>
-  <listitem><para><code>-D_GLIBCXX_PROFILE</code></para></listitem>
-  <listitem><para><code>-lprofc++</code></para></listitem>
-  <listitem><para>The GCC driver will set these compiler and linker flags
-   when invoked with <code>-fprofile-stdlib</code>.</para></listitem>
-  <listitem><para>Profiling can be turned off dynamically by setting
-   <code>GLIBCXX_PROFILE_OFF</code> to <code>true</code>.
-   This is meant to help debugging and will not necessarily reduce the
-   runtime overhead signficantly.</para></listitem>
   <listitem><para>For expert users, 
    <code>-D[_NO]_GLIBCXX_PROFILE_&lt;diagnostic&gt;</code> 
    can enable/disable specific diagnostics or classes of diagnostics.
    See section Diagnostics for possible values.</para></listitem>
   <listitem><para>
+   (Not implemented yet.)
    <code>-D_GLIBCXX_PROFILE_LIGHT</code> 
    will enable only diagnostics with little runtime overhead, such as those
    that instrument only container construction and destruction.
@@ -120,33 +116,31 @@ foo.cc:3: advice: Changing initial unordered_set size from 10 to 1000000 saves N
    <code>-D_GLIBCXX_PROFILE_HEAVY</code> will enable all diagnostics.
    Not all diagnostics are necessarily enabled by default.
    </para></listitem>
-  <listitem><para>Additionally, for accurate diagnostics it is important
-   to (1) disable inlining and (2) generate debug information.
-   With GCC, use <code>-fno-inline -g</code>.
+  <listitem><para>Profiling can be turned off dynamically by setting
+   <code>GLIBCXX_PROFILE_OFF</code> to <code>true</code>.
+   This is meant to help debugging and will not necessarily reduce the
+   runtime overhead signficantly.</para></listitem>
+  <listitem><para>Additionally, for most accurate diagnostics you can
+   (1) disable inlining and (2) generate debug information, i.e.,
+   <code>g++ -fno-inline -g</code>.
    If inlining is enabled, the advice may appear hoisted to the first
    parent on the call chain that did not get inlined.
    If debug info is not generated, the advice will not contain line numbers,
    though it will contain function names, unless the symbol table is stripped.
    If the symbol table is stripped, the advice may become confusing.
-   We use symbol names to associate the advice with application code, which 
-   is defined as the first site on the call stack for which the symbol in
-   outside the <code>std</code> namespace (and other standard library 
-   namespaces, if any).
+   We walk up the stack trace until we see the first symbol outside the
+   standard library, and use this symbol's code location in warnings.
    </para></listitem>
   <listitem><para>Our instrumentation makes frequent calls to libc function
-   <code>backtrace</code>, which depends on the presence of frame pointers.
-   With GCC, the user must turn on <code>-fno-omit-frame-pointer</code>
-   with the profile mode, if they need call context accurate information.
-   <code>_GLIBCXX_PROFILE_STACK_DEPTH</code> can be set
-   to 0 if you are willing to give up call context information.  Setting
-   it to a small integer may achieve the desired call context accuracy
-   while keeping the run time overhead low.
+   <code>backtrace</code>.  If this is not available, you can set
+   <code>GLIBCXX_PROFILE_STACK_DEPTH</code> to 0.
+   This solution could also be used in continuous regression tests, where you
+   just need to know whether there is a regression or not.
    </para></listitem>
-  <listitem><para>As in the release mode, access to <code>unordered_*</code>
-   containers requires <code>-std=c++0x</code>.</para></listitem>
 </itemizedlist>
   </para>
 
+<para>
 Trace generation and interpretation.
 <itemizedlist>
   <listitem><para>
@@ -160,22 +154,33 @@ Trace generation and interpretation.
    e.g., <code>"$HOME/tmp/%v/%p.profile-stdlib.txt"</code>.
    In addition to environment variable expansion, <code>%v</code> expands
    to <code>argv[0]</code> and <code>%p</code> expands to the process id.
+   (Expansion is not implemented yet.)
    </para></listitem>
   <listitem><para>
    The trace file size can be limited by setting environment variable
    <code>GLIBCXX_PROFILE_TRACE_SIZE</code> to a number of bytes.
    If trace size is very important, accuracy can be sacrificed by setting
-   <code>_GLIBCXX_PROFILE_STACK_DEPTH</code> to 0.  This means that the trace
+   <code>GLIBCXX_PROFILE_STACK_DEPTH</code> to 0.  This means that the trace
    size will be a constant factor of the number of diagnostics.
    </para></listitem>
   <listitem><para>
-   The trace contains partially processed information.  To generate advice,
-   you need to run <code>stdlib-advisor</code>, which can be downloaded from
-   http://TODO as a Python script.
+   The trace contains partially processed information.  
+   To generate advice, you need to run <code>stdlib-advisor</code>.
    </para></listitem>
 </itemizedlist>
-</sect1>
+</para>
 
+<para>
+The profile extension may use the following names:
+<itemizedlist>
+  <listitem><para>At compile time, preprocessor names _GLIBCXX_PROFILE_*.
+   </para></listitem>
+  <listitem><para>At run time, environment variables GLIBCXX_PROFILE_*.
+   </para></listitem>
+</itemizedlist>
+</para>
+
+</sect1>
 
 
 <sect1 id="manual.ext.profile_mode.design" xreflabel="Design">
@@ -195,59 +200,22 @@ Trace generation and interpretation.
 </thead>
 <tbody>
   <row>
-    <entry><code>gcc/gcc.c</code></entry>
-    <entry>Added handles for <code>-fprofile-stdlib</code>.</entry>
-  </row>
-  <row>
     <entry><code>libstdc++-v3/include/std/*</code></entry>
-    <entry>Added hooks to include instrumented headers when 
-     <code>_GLIBCXX_PROFILE</code> is defined.</entry>
+    <entry>Preprocessor code to redirect to profile extension headers.</entry>
   </row>
   <row>
     <entry><code>libstdc++-v3/include/profile/*</code></entry>
-    <entry>New instrumented headers.  They get included from the hooks under 
-     <code>include/std/</code> when <code>_GLIBCXX_PROFILE</code> is defined.
-     </entry>
+    <entry>Profile extension public headers (map, vector, ...).</entry>
   </row>
   <row>
-    <entry><code>libstdc++-v3/include/profile/config.h</code></entry>
-    <entry>Compile time switches for instrumentation hooks.</entry>
-  </row>
-  <row>
-    <entry><code>libstdc++-v3/libprofc++/*</code></entry>
-    <entry>New run time library.</entry>
-  </row>
-  <row>
-    <entry><code>stdlib-advisor</code></entry>
-    <entry>New Python script for the final advice phase.
-    Not included in distribution yet.</entry>
+    <entry><code>libstdc++-v3/include/profile/impl/*</code></entry>
+    <entry>Profile extension internals.  Implementation files are
+     only included from <code>impl/profiler.h</code>, which is the only
+     file included from the public headers.</entry>
   </row>
 </tbody>
 </tgroup>
 </table>
-
-
-<sect2 id="manual.ext.profile_mode.design.driver" 
- xreflabel="Compiler Driver">
-<title>Compiler Driver</title>
-  <para>
-  <emphasis>Profile collection:</emphasis>
-  The compiler driver translates <code>-fprofile-stdlib</code> into
-  <code>-D_GLIBCXX_PROFILE</code> when invoking the compiler.  
-  Fine tuning options
-  <code>-D[_NO]_GLIBCXX_PROFILE_&lt;diagnostic&gt;</code>
-   are passed to the compiler to enable specific diagnostics or classes 
-   of diagnostics.  See section Diagnostics for possible values.
-   The driver also passes <code>-lprofc++</code> to the linker.
-  </para>
-  <para>
-  <emphasis>Profile driven compiler optimization:</emphasis>
-   We hope to be able to use the profiles not only to give advice, but to
-   provide feedback to the compiler.  We reserve compiler option
-   <code>-fprofile-stdlib-use</code> for this purpose.
-  </para>
-
-</sect2>
 
 
 <sect2 id="manual.ext.profile_mode.design.wrapper" 
@@ -272,9 +240,10 @@ Trace generation and interpretation.
   Mixing object files built with and without the profile mode must
   not affect the program execution.  However, there are no guarantees to
   the accuracy of diagnostics when using even a single object not built with
-  <code>-fprofile-stdlib</code>.
-  Similarly, we give no guarantees about mixing profile mode with 
-  debug, parallel and other extensions.
+  <code>-D_GLIBCXX_PROFILE</code>.
+  Currently, mixing the profile mode with debug and parallel extensions is
+  not allowed.  Mixing them at compile time will result in preprocessor errors.
+  Mixing them at link time is undefined.
   </para>
 </sect2>
 
@@ -283,9 +252,9 @@ Trace generation and interpretation.
  xreflabel="Instrumentation">
 <title>Instrumentation</title>
   <para>
-  We considered instrumenting every public entry and exit point.
-  Instead, we chose to add instrumentation on demand, as needed
-  by individual diagonistics.
+  Instead of instrumenting every public entry and exit point,
+  we chose to add instrumentation on demand, as needed
+  by individual diagnostics.
   The main reason is that some diagnostics require us to extract bits of 
   internal state that are particular only to that diagnostic.
   We plan to formalize this later, after we learn more about the requirements
@@ -302,14 +271,14 @@ Trace generation and interpretation.
   </para>
   <para>
   All the instrumentation on/off compile time switches live in 
-  <code>include/profile/config.h</code>.
+  <code>include/profile/profiler.h</code>.
   </para>
 </sect2>
 
 
 <sect2 id="manual.ext.profile_mode.design.rtlib" 
- xreflabel="Run Time Library">
-<title>Run Time Library</title>
+ xreflabel="Run Time Behavior">
+<title>Run Time Behavior</title>
   <para>
   For practical reasons, the instrumentation library processes the trace
   partially
@@ -326,6 +295,12 @@ Trace generation and interpretation.
   the reports are only sensitive to call context.  Whenever a dynamic instance
   is destroyed, we accumulate its effect to the corresponding entry for the
   call stack of its constructor location.
+  </para>
+
+  <para>
+  For details, see 
+   <ulink url="http://dx.doi.org/10.1109/CGO.2009.36">paper presented at
+   CGO 2009</ulink>.
   </para>
 </sect2>
 
@@ -402,9 +377,9 @@ foo.cc:1: advice: Changing initial unordered_set size from 10 to 1000000 saves 1
   <para>
 Second, we report performance characteristics for which we do not have
 a clear solution for improvement.  For instance, we can point to the user
-the top 10 <code>set</code> construction locations
-which have the worst data locality in actual traversals, of all the sites
-that create sets in the program.  Although this does not offer a solution,
+the top 10 <code>multimap</code> locations
+which have the worst data locality in actual traversals.
+Although this does not offer a solution,
 it helps the user focus on the key problems and ignore the uninteresting ones.
   </para>
 </sect2>
@@ -415,7 +390,7 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
 <title>Testing</title>
   <para>
   First, we want to make sure we preserve the behavior of the release mode.
-  You can just type <code>make check-profile</code>, which
+  You can just type <code>"make check-profile"</code>, which
   builds and runs the whole test suite in profile mode.
   </para>
   <para>
@@ -428,6 +403,44 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
 
 </sect1>
 
+<sect1 id="manual.ext.profile_mode.api"
+ xreflabel="API">
+<title>Extensions for Custom Containers</title>
+
+Many large projects use their own data structures instead of the ones in the
+standard library.  If these data structures are similar in functionality
+to the standard library, they can be instrumented with the same hooks
+that are used to instrument the standard library.
+
+The instrumentation API is exposed in file
+<code>profiler.h</code> (look for "Instrumentation hooks").
+</sect1>
+
+
+<sect1 id="manual.ext.profile_mode.cost_model"
+ xreflabel="Cost Model">
+<title>Empirical Cost Model</title>
+
+  <para>
+  Currently, the cost model uses formulas with predefined relative weights
+  for alternative containers or container implementations.  For instance,
+  iterating through a vector is X times faster than iterating through a list.
+  </para>
+  <para>
+  (Under development.)
+  We are working on customizing this to a particular machine by providing
+  an automated way to compute the actual relative weights for operations
+  on the given machine.
+  </para>
+  <para>
+  (Under development.)
+  We plan to provide a performance parameter database format that can be
+  filled in either by hand or by an automated training mechanism.
+  The analysis module will then use this database instead of the built in.
+  generic parameters.
+  </para>
+
+</sect1>
 
 
 <sect1 id="manual.ext.profile_mode.implementation"
@@ -462,17 +475,6 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
   We translate them into symbols and code location (file:line) just before
   printing the diagnostic.
   </para>
-  <para>
-  We are currently using <code>addr2line</code> to get symbol and location
-  information.  
-  Symbolization requires access to the unstripped binary, which currently
-  is expected to be available as <code>./a.out</code>.  The current
-  interface does not allow passing another binary path to the compiler.
-  However, <code>stdlib-advisor</code> can be passed another path using 
-  <code>-b &lt;path&gt;</code>.
-  For accurate diagnostics,
-  the code must have been compiled with <code>-g -fno-inline</code>.
-  </para>
 </sect2>
 
 
@@ -483,25 +485,20 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
   Our current model is simplistic, but precise.
   We cannot afford to approximate because some of our diagnostics require
   precise matching of operations to container instance and call context.
-  During profiling, we keep a shared 
-  database in which we insert new nodes.  All operations are currently
-  guarded by a master lock.  As we add more complex analysis methods,
-  we will design private storage and locks of
-  appropriate granularity.
+  During profiling, we keep a single information table per diagnostic.
+  There is a single lock per information table.
   </para>
 </sect2>
 
 
 <sect2 id="manual.ext.profile_mode.implementation.stdlib-in-proflib"
  xreflabel="Using the Standard Library in the Runtime Library">
-<title>Using the Standard Library in the Runtime Library</title>
+<title>Using the Standard Library in the Instrumentation Implementation</title>
   <para>
   As much as we would like to avoid uses of stdlibc++ within our 
   instrumentation library, containers such as unordered_map are very 
   appealing.  We plan to use them as long as they are named properly 
-  to avoid ambiguity.  The library will be built with 
-  <code>-D_GNUCXX_PROFILE</code>.  The inner standard library code is 
-  referenced under the <code>std::__norm</code> namespace.
+  to avoid ambiguity.
   </para>
 </sect2>
 
@@ -510,25 +507,20 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
  xreflabel="Malloc Hooks">
 <title>Malloc Hooks</title>
   <para>
-  Some applications and libraries provide malloc hooks.  
-  This can be a show stopper to the profile mode, showing 
-  as infinite recursion or 
-  deadlock when the malloc hook uses stdlibc++ internally.  A reasonable
-  such case is instrumenting malloc to collect use statistics.
-  The statistic collection may use standard library algorithms.
-  The problem comes from the fact that our instrumentation library 
-  uses malloc to allocate its internal state, which may result in an
-  infinite loop.
+  User applications/libraries can provide malloc hooks.
+  When the implementation of the malloc hooks uses stdlibc++, there can
+  be an infinite cycle between the profile mode instrumentation and the
+  the malloc hook code.
   </para>
   <para>
-  For now, the workaround is to ask users to disable any malloc instrumentation
-  that may use the standard library internally.
-  For the future, we plan to provide a simple pool allocator and make all
-  our internal memory allocation go through it.
-  Unfortunately, its implementation cannot use malloc, thus it
-  will be system dependent.  This alternate allocator will be used only when
-  environment variable <code>_GCLIBCXX_PROFILE_ALLOC</code> is set to 
-  <code>internal</code> in the environment where the application runs.
+  We protect against reentrance to the profile mode instrumentation code,
+  which should avoid this problem in most cases.
+  The protection mechanism is thread safe and exception safe.
+  This mechanism does not prevent reentrance to the malloc hook itself,
+  which could still result in deadlock, if, for instance, the malloc hook
+  uses non-recursive locks.
+  XXX: A definitive solution to this problem would be for the profile extension
+  to use a custom allocator internally, and perhaps not to use libstdc++.
   </para>
 </sect2>
 
@@ -541,18 +533,7 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
   method.  This allows us to record the construction of all global objects.
   However, we cannot do the same at destruction time.  The trace is written
   by a function registered by <code>atexit</code>, thus invoked by 
-  <code>exit</code>.  This function will be called before any global 
-  destructors.  Before writing the trace, we would like to invoke, 
-  for each object
-  for which we have recorded construction but not destruction, the 
-  instrumentation method of its destructor.  This way we would not only 
-  capture the
-  state of global objects but also of those leaked by dynamic memory 
-  allocation.
-  Unfortunately this could lead to segmentation fault in cases when the
-  memory of a vector is freed without calling its destructor.  One safe
-  alternative would be to record, at program exit time, for each apparently
-  live object, the last known state, without trying to access the object state.
+  <code>exit</code>.
   </para>
 </sect2>
 
@@ -822,7 +803,7 @@ advice sample
   Record size increase, if any, after each relevant operation such as insert.
   Record the estimated rehash cost.</para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Number of individual rehash operations * cost per rehash.</para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 1 unordered_set&lt;int&gt; us;
@@ -865,7 +846,7 @@ foo.cc:1: advice: Changing initial unordered_set size from 10 to 1000000 saves 1
   with its size at destruction time.
   </para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Number of iteration operations + memory saved.</para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 1 vector&lt;unordered_set&lt;int&gt;&gt; v(100000, unordered_set&lt;int&gt;(100)) ;
@@ -876,7 +857,7 @@ foo.cc:1: advice: Changing initial unordered_set size from 10 to 1000000 saves 1
 6 }
 
 foo.cc:1: advice: Changing initial unordered_set size from 100 to 10 saves N
-bytes of memory and may reduce the number of cache and TLB misses.
+bytes of memory and M iteration steps.
 </programlisting>
 </para></listitem>
 </itemizedlist>
@@ -908,14 +889,10 @@ bytes of memory and may reduce the number of cache and TLB misses.
   insert, iterator.
   </para></listitem>
   <listitem><para><emphasis>Analysis:</emphasis>
-  Compute correlation of actual distribution per bucket to uniform 
-  distribution, at destruction time.  Report if over a threshold.
-  We could also count the exact number of link traversals, to avoid false
-  positives when longer chains are rarely followed.  This would make the
-  analysis more expensive though, for a not-so-likely benefit.
+  Count the exact number of link traversals.
   </para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Total number of links traversed.</para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 class dumb_hash {
@@ -959,7 +936,7 @@ class dumb_hash {
   <code>push_back</code>.  Record the estimated resize cost.
   </para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Total number of words copied * time to copy a word.</para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 1 vector&lt;int&gt; v;
@@ -999,7 +976,7 @@ copying 4000000 bytes and 20 memory allocations and deallocations.
   record initial size and call context of the constructor, and correlate it
   with its size at destruction time.</para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Total amount of memory saved.</para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 1 vector&lt;vector&lt;int&gt;&gt; v(100000, vector&lt;int&gt;(100)) ;
@@ -1045,7 +1022,9 @@ bytes of memory and may reduce the number of cache and TLB misses.
   <code>insert</code> and <code>find</code>.
   </para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Cost(vector::push_back) + cost(vector::insert) + cost(find, vector) -
+  cost(unordered_set::insert) + cost(unordered_set::find).
+  </para></listitem>
   <listitem><para><emphasis>Example:</emphasis>
 <programlisting>
 1  vector&lt;int&gt; v;
@@ -1089,7 +1068,7 @@ comparisons.
   number of elements, and methods <code>begin</code> or <code>end</code>
   are invoked (suggesting iteration).</para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Number of .</para></listitem>
   <listitem><para><emphasis>Example:</emphasis>
 <programlisting>
 1  unordered_set&lt;int&gt; us;
@@ -1135,7 +1114,9 @@ indirections and may achieve better data locality.
   Report instance with high insertion overhead.
   </para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  (Sum(cost(vector::method)) - Sum(cost(list::method)), for
+  method in [push_back, insert, erase])
+  + (Cost(iterate vector) - Cost(iterate list))</para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 1  vector&lt;int&gt; v;
@@ -1174,7 +1155,9 @@ operations.
   Issue the advice if there are no <code>insert</code> operations.
   </para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+    (Sum(cost(vector::method)) - Sum(cost(list::method)), for
+  method in [push_back, insert, erase])
+  + (Cost(iterate vector) - Cost(iterate list))</para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 1  list&lt;int&gt; l;
@@ -1216,8 +1199,10 @@ memory references.
   iterator on a particular <code>[multi]set|map</code>.
   </para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
-  <listitem><para><emphasis>Example:</emphasis> 
+  (Sum(cost(hashtable::method)) - Sum(cost(rbtree::method)), for
+  method in [insert, erase, find])
+  + (Cost(iterate hashtable) - Cost(iterate rbtree))</para></listitem>
+  <listitem><para><emphasis>Example:</emphasis>
 <programlisting>
 1  set&lt;int&gt; s;
 2  for (int i = 0; i &lt; 100000; ++i) {
@@ -1273,8 +1258,8 @@ memory references.
   would do better on this input.  Requires us to know what algorithm we 
   are using in our sort implementation in release mode.</para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
-  <listitem><para><emphasis>Example:</emphasis> 
+  Runtime(algo) for algo in [radix, quick, merge, ...]</para></listitem>
+  <listitem><para><emphasis>Example:</emphasis>
 <programlisting>
 </programlisting>
 </para></listitem>
@@ -1335,7 +1320,8 @@ memory references.
   </para>
   </listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Total distance between pointer values of successive elements in vectors
+  of pointers.</para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 1 int zero = 0;
@@ -1385,7 +1371,7 @@ foo.cc:7: advice: Insert prefetch instruction.
   only if the ratio between this number and the number of total node hops
   is above a threshold.</para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Sum(same_cache_line(this,previous))</para></listitem>
   <listitem><para><emphasis>Example:</emphasis>
 <programlisting>
  1  set&lt;int&gt; s;
@@ -1456,13 +1442,14 @@ the allocation sequence or switching to a structure conscious allocator.
   <listitem><para><emphasis>Analysis:</emphasis>
   Keep a shadow for each container.  Record iterator dereferences and
   container member accesses.  Issue advice for elements referenced by
-  multiple threads.  Need compiler support to tell which are writes.
+  multiple threads.
   See paper: <ulink url="http://portal.acm.org/citation.cfm?id=207110.207148">
   The LRPD test: speculative run-time parallelization of loops with 
   privatization and reduction parallelization</ulink>.
   </para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Number of accesses to elements referenced from multiple threads
+  </para></listitem>
   <listitem><para><emphasis>Example:</emphasis>
 <programlisting>
 </programlisting>
@@ -1497,12 +1484,12 @@ the allocation sequence or switching to a structure conscious allocator.
   For each shared container, record all the associated iterator dereferences 
   and member access methods with the thread id.  Compare the address lists
   across threads to detect references in two different threads to the same 
-  cache line.  Need compiler support to verify that at least one of them
-  is a write.  Issue a warning only if the ratio to total references is 
+  cache line.  Issue a warning only if the ratio to total references is 
   significant.  Do the same for iterator dereference values if they are 
   pointers.</para></listitem>
   <listitem><para><emphasis>Cost model:</emphasis>
-  How do we measure benefits?  Math goes here.</para></listitem>
+  Number of accesses to same cache line from different threads.
+  </para></listitem>
   <listitem><para><emphasis>Example:</emphasis> 
 <programlisting>
 1     vector&lt;int&gt; v(2, 0);
