@@ -594,8 +594,8 @@ try_init_one_plugin (struct plugin_name_args *plugin)
 
   /* We use RTLD_NOW to accelerate binding and detect any mismatch
      between the API expected by the plugin and the GCC API; we use
-     RTLD_GLOBAL which is useful for meta-plugins, i.e. those plugins
-     which themselves call dlopen.  */
+     RTLD_GLOBAL which is useful to plugins which themselves call
+     dlopen.  */
   dl_handle = dlopen (plugin->full_name, RTLD_NOW | RTLD_GLOBAL);
   if (!dl_handle)
     {

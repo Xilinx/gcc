@@ -3071,7 +3071,9 @@ Handled_Sequence_Of_Statements_to_gnu (Node_Id gnat_node)
 	 defer abortion.  */
       gnu_expr = build_call_1_expr (raise_nodefer_decl,
 				    TREE_VALUE (gnu_except_ptr_stack));
-      set_expr_location_from_node (gnu_expr, gnat_node);
+      set_expr_location_from_node
+	(gnu_expr,
+	 Present (End_Label (gnat_node)) ? End_Label (gnat_node) : gnat_node);
 
       if (gnu_else_ptr)
 	*gnu_else_ptr = gnu_expr;
@@ -5844,7 +5846,7 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
 
 	  stmt = gimplify_assign (new_var, op, pre_p);
 	  if (EXPR_HAS_LOCATION (op))
-	    gimple_set_location (stmt, *EXPR_LOCUS (op));
+	    gimple_set_location (stmt, EXPR_LOCATION (op));
 
 	  TREE_OPERAND (expr, 0) = new_var;
 	  recompute_tree_invariant_for_addr_expr (expr);

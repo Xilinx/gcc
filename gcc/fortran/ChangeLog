@@ -1,3 +1,62 @@
+2008-07-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40629
+	* resolve.c (check_host_association):  Use the existing
+	accessible symtree and treat function expressions with
+	symbols that have procedure flavor.
+
+2009-07-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40646
+	* dump-parse-tree.c (show_expr): Renamed 'is_proc_ptr_comp'.
+	* expr.c (is_proc_ptr_comp): Renamed to 'gfc_is_proc_ptr_comp'.
+	(gfc_check_pointer_assign): Renamed 'is_proc_ptr_comp'.
+	(replace_comp,gfc_expr_replace_comp): New functions, analogous
+	to 'replace_symbol' and 'gfc_expr_replace_symbol', just with components
+	instead of symbols.
+	* gfortran.h (gfc_expr_replace_comp): New prototype.
+	(is_proc_ptr_comp): Renamed to 'gfc_is_proc_ptr_comp'.
+	* interface.c (compare_actual_formal): Renamed 'is_proc_ptr_comp'.
+	* match.c (gfc_match_pointer_assignment): Ditto.
+	* primary.c (gfc_match_varspec): Handle array-valued procedure pointers
+	and procedure pointer components. Renamed 'is_proc_ptr_comp'.
+	* resolve.c (resolve_fl_derived): Correctly handle interfaces with
+	RESULT statement, and handle array-valued procedure pointer components.
+	(resolve_actual_arglist,resolve_ppc_call,resolve_expr_ppc): Renamed
+	'is_proc_ptr_comp'.
+	* trans-array.c (gfc_walk_function_expr): Ditto.
+	* trans-decl.c (gfc_get_symbol_decl): Security check for presence of
+	ns->proc_name.
+	* trans-expr.c (gfc_conv_procedure_call): Handle array-valued procedure
+	pointer components. Renamed 'is_proc_ptr_comp'.
+	(conv_function_val,gfc_trans_arrayfunc_assign): Renamed
+	'is_proc_ptr_comp'.
+	(gfc_get_proc_ptr_comp): Do not modify the argument 'e', but instead
+	make a copy of it.
+	* trans-io.c (gfc_trans_transfer): Handle array-valued procedure
+	pointer components.
+
+2009-07-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40604
+	* intrinsic.c (gfc_convert_type_warn): Set sym->result.
+	* trans-expr.c (gfc_conv_procedure_call): Fix -fcheck=pointer
+	for optional arguments.
+
+2009-07-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40675
+	* simplify.c (gfc_simplify_sign): Handle signed zero correctly.
+	* trans-intrinsic.c (gfc_conv_intrinsic_sign): Support
+	-fno-sign-zero.
+	* invoke.texi (-fno-sign-zero): Add text regarding SIGN intrinsic.
+
+2008-07-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40591
+	* decl.c (match_procedure_interface):  Correct the association
+	or creation of the interface procedure's symbol.
+
 2009-07-04  Jakub Jelinek  <jakub@redhat.com>
 
 	* trans-intrinsic.c (gfc_conv_intrinsic_minmaxloc): For integer
