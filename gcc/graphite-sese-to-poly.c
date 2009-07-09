@@ -948,11 +948,12 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 
   if (TREE_CODE (nb_iters) == INTEGER_CST)
     {
-      /* loop_i <= cst_nb_iters */
       ppl_Constraint_t ub;
       ppl_Linear_Expression_t ub_expr;
 
       ppl_new_Linear_Expression_with_dimension (&ub_expr, dim);
+
+      /* loop_i <= cst_nb_iters */
       ppl_set_coef (ub_expr, nb, -1);
       ppl_set_inhomogeneous_tree (ub_expr, nb_iters);
       ppl_new_Constraint (&ub, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
@@ -963,7 +964,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   else if (!chrec_contains_undetermined (nb_iters))
     {
       Value one;
-      ppl_Constraint_t ub;
+      ppl_Constraint_t ub, pos;
       ppl_Linear_Expression_t ub_expr;
 
       value_init (one);
@@ -972,6 +973,11 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       nb_iters = scalar_evolution_in_region (region, loop, nb_iters);
       scan_tree_for_params (SCOP_REGION (scop), nb_iters, ub_expr, one);
       value_clear (one);
+
+      /* expr_nb_iters >= 0 */
+      ppl_new_Constraint (&pos, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+      ppl_Polyhedron_add_constraint (ph, pos);
+      ppl_delete_Constraint (pos);
 
       /* loop_i <= expr_nb_iters */
       ppl_set_coef (ub_expr, nb, -1);
