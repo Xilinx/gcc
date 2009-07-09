@@ -1,5 +1,11 @@
 2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* testsuite/gcc.dg/graphite/graphite.exp: Added a rule to execute
+	run-id-*.c files.
+	* testsuite/gcc.dg/graphite/run-id-1.c: New.
+
+2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (build_loop_iteration_domains): Add the
 	positivity constraint on the symbolic number of iterations.
 

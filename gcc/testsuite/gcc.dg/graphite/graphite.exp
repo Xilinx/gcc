@@ -67,6 +67,21 @@ set scop_files [lsort [glob -nocomplain $srcdir/$subdir/scop-*.c]]
 dg-runtest $scop_files "" $DEFAULT_CFLAGS_GRAPHITE_SCOP
 foreach scop_file $scop_files {lremove wait_to_run_files $scop_file}
 
+
+# Schedule now the tests to be run.
+set dg-do-what-default run
+
+# Flags using for run-id-*.c files.
+set DEFAULT_CFLAGS_RUN_ID "-O2 -fgraphite-identity"
+set run_id_files \
+    [lsort [glob -nocomplain $srcdir/$subdir/run-id-*.c]]
+dg-runtest $run_id_files "" $DEFAULT_CFLAGS_RUN_ID
+foreach run_id_file $run_id_files {lremove wait_to_run_files $run_id_file}
+
+
+# The default action for the rest of the files is 'compile'.
+set dg-do-what-default compile
+
 # Flags using for other files.
 set DEFAULT_CFLAGS_GRAPHITE "-ansi -pedantic-errors"
 dg-runtest $wait_to_run_files "" $DEFAULT_CFLAGS_GRAPHITE
