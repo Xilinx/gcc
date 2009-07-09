@@ -909,70 +909,79 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 
 {
   int i;
-  Value one, minus_one, val;
   ppl_Polyhedron_t ph;
-  ppl_Linear_Expression_t lb_expr, ub_expr;
-  ppl_Constraint_t lb, ub;
-  ppl_Coefficient_t coef;
-  ppl_const_Constraint_System_t pcs;
   tree nb_iters = number_of_latch_executions (loop);
   ppl_dimension_type dim = nb + 1 + scop_nb_params (scop);
-  ppl_dimension_type *map;
   sese region = SCOP_REGION (scop);
 
-  value_init (one);
-  value_init (minus_one);
-  value_init (val);
-  value_set_si (one, 1);
-  value_set_si (minus_one, -1);
+  {
+    ppl_const_Constraint_System_t pcs;
+    ppl_dimension_type *map 
+      = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
 
-  ppl_new_Linear_Expression_with_dimension (&lb_expr, dim);
-  ppl_new_Linear_Expression_with_dimension (&ub_expr, dim);
-  ppl_new_NNC_Polyhedron_from_space_dimension (&ph, dim, 0);
+    ppl_new_NNC_Polyhedron_from_space_dimension (&ph, dim, 0);
+    ppl_Polyhedron_get_constraints (outer_ph, &pcs);
+    ppl_Polyhedron_add_constraints (ph, pcs);
+
+    for (i = 0; i < (int) nb; i++)
+      map[i] = i;
+    for (i = (int) nb; i < (int) dim - 1; i++)
+      map[i] = i + 1;
+    map[dim - 1] = nb;
+
+    ppl_Polyhedron_map_space_dimensions (ph, map, dim);
+    free (map);
+  }
 
   /* 0 <= loop_i */
-  ppl_new_Coefficient_from_mpz_t (&coef, one);
-  ppl_Linear_Expression_add_to_coefficient (lb_expr, nb, coef);
-  ppl_new_Constraint (&lb, lb_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
-  ppl_delete_Linear_Expression (lb_expr);
+  {
+    ppl_Constraint_t lb;
+    ppl_Linear_Expression_t lb_expr;
 
-  /* loop_i <= nb_iters */
-  ppl_assign_Coefficient_from_mpz_t (coef, minus_one);
-  ppl_Linear_Expression_add_to_coefficient (ub_expr, nb, coef);
+    ppl_new_Linear_Expression_with_dimension (&lb_expr, dim);
+    ppl_set_coef (lb_expr, nb, 1);
+    ppl_new_Constraint (&lb, lb_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+    ppl_delete_Linear_Expression (lb_expr);
+    ppl_Polyhedron_add_constraint (ph, lb);
+    ppl_delete_Constraint (lb);
+  }
 
   if (TREE_CODE (nb_iters) == INTEGER_CST)
     {
-      value_set_si (val, int_cst_value (nb_iters));
-      ppl_assign_Coefficient_from_mpz_t (coef, val);
-      ppl_Linear_Expression_add_to_inhomogeneous (ub_expr, coef);
+      /* loop_i <= cst_nb_iters */
+      ppl_Constraint_t ub;
+      ppl_Linear_Expression_t ub_expr;
+
+      ppl_new_Linear_Expression_with_dimension (&ub_expr, dim);
+      ppl_set_coef (ub_expr, nb, -1);
+      ppl_set_inhomogeneous_tree (ub_expr, nb_iters);
       ppl_new_Constraint (&ub, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+      ppl_Polyhedron_add_constraint (ph, ub);
+      ppl_delete_Linear_Expression (ub_expr);
+      ppl_delete_Constraint (ub);
     }
   else if (!chrec_contains_undetermined (nb_iters))
     {
+      Value one;
+      ppl_Constraint_t ub;
+      ppl_Linear_Expression_t ub_expr;
+
+      value_init (one);
+      value_set_si (one, 1);
+      ppl_new_Linear_Expression_with_dimension (&ub_expr, dim);
       nb_iters = scalar_evolution_in_region (region, loop, nb_iters);
-      scan_tree_for_params (region, nb_iters, ub_expr, one);
+      scan_tree_for_params (SCOP_REGION (scop), nb_iters, ub_expr, one);
+      value_clear (one);
+
+      /* loop_i <= expr_nb_iters */
+      ppl_set_coef (ub_expr, nb, -1);
       ppl_new_Constraint (&ub, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+      ppl_Polyhedron_add_constraint (ph, ub);
+      ppl_delete_Linear_Expression (ub_expr);
+      ppl_delete_Constraint (ub);
     }
   else
     gcc_unreachable ();
-
-  ppl_delete_Linear_Expression (ub_expr);
-  ppl_Polyhedron_get_constraints (outer_ph, &pcs);
-  ppl_Polyhedron_add_constraints (ph, pcs);
-
-  map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
-  for (i = 0; i < (int) nb; i++)
-    map[i] = i;
-  for (i = (int) nb; i < (int) dim - 1; i++)
-    map[i] = i + 1;
-  map[dim - 1] = nb;
-
-  ppl_Polyhedron_map_space_dimensions (ph, map, dim);
-  free (map);
-  ppl_Polyhedron_add_constraint (ph, lb);
-  ppl_Polyhedron_add_constraint (ph, ub);
-  ppl_delete_Constraint (lb);
-  ppl_delete_Constraint (ub);
 
   if (loop->inner && loop_in_sese_p (loop->inner, region))
     build_loop_iteration_domains (scop, loop->inner, ph, nb + 1);
@@ -985,11 +994,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron
     ((ppl_Pointset_Powerset_NNC_Polyhedron_t *) &loop->aux, ph);
 
-  ppl_delete_Coefficient (coef);
   ppl_delete_Polyhedron (ph);
-  value_clear (one);
-  value_clear (minus_one);
-  value_clear (val);
 }
 
 /* Returns a linear expression for tree T evaluated in PBB.  */
