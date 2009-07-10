@@ -55,15 +55,15 @@ along with GCC; see the file COPYING3.  If not see
    Maps the dimensions [0, ..., cut - 1] of polyhedron P to OFFSET0
    and the dimensions [cut, ..., nb_dim] to DIM - GDIM.  */
 
-static ppl_Pointset_Powerset_NNC_Polyhedron_t
+static ppl_Pointset_Powerset_C_Polyhedron_t
 map_into_dep_poly (graphite_dim_t dim, graphite_dim_t gdim,
-		   ppl_Pointset_Powerset_NNC_Polyhedron_t p,
+		   ppl_Pointset_Powerset_C_Polyhedron_t p,
 		   graphite_dim_t cut,
 		   graphite_dim_t offset)
 {
-  ppl_Pointset_Powerset_NNC_Polyhedron_t res;
+  ppl_Pointset_Powerset_C_Polyhedron_t res;
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron (&res, p);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron (&res, p);
   ppl_insert_dimensions_pointset (res, 0, offset);
   ppl_insert_dimensions_pointset (res, offset + cut, dim - offset - cut - gdim);
 
@@ -78,19 +78,19 @@ map_into_dep_poly (graphite_dim_t dim, graphite_dim_t gdim,
    Add DIM - NB0 - NB1 - PDIM zeros between "c" and "b":  "00...0 a 00...0 c 00...0 b"
 */
 
-static ppl_Pointset_Powerset_NNC_Polyhedron_t
+static ppl_Pointset_Powerset_C_Polyhedron_t
 map_dr_into_dep_poly (graphite_dim_t dim,
-		      ppl_Pointset_Powerset_NNC_Polyhedron_t dr, 
+		      ppl_Pointset_Powerset_C_Polyhedron_t dr,
 		      graphite_dim_t cut0, graphite_dim_t cut1,
 		      graphite_dim_t nb0, graphite_dim_t nb1)
 {
   ppl_dimension_type pdim;
   ppl_dimension_type *map;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t res;
+  ppl_Pointset_Powerset_C_Polyhedron_t res;
   ppl_dimension_type i;
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron (&res, dr);
-  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (res, &pdim);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron (&res, dr);
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (res, &pdim);
 
   map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, pdim);
 
@@ -104,7 +104,7 @@ map_dr_into_dep_poly (graphite_dim_t dim,
   for (i = cut1; i < pdim; i++)
     map[i] = cut0 + i - cut1;
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_map_space_dimensions (res, map, pdim);
+  ppl_Pointset_Powerset_C_Polyhedron_map_space_dimensions (res, map, pdim);
   free (map);
 
   /* After swapping 's' and 'g' vectors, we have to update a new cut.  */
@@ -160,12 +160,12 @@ build_pairwise_constraint (graphite_dim_t dim,
 
 /* Builds subscript equality constraints.  */
 
-static ppl_Pointset_Powerset_NNC_Polyhedron_t
+static ppl_Pointset_Powerset_C_Polyhedron_t
 dr_equality_constraints (graphite_dim_t dim,
 		         graphite_dim_t pos, graphite_dim_t nb_subscripts)
 {
   ppl_Polyhedron_t subscript_equalities;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t res;
+  ppl_Pointset_Powerset_C_Polyhedron_t res;
   Value v, v_op;
   graphite_dim_t i;
 
@@ -174,7 +174,7 @@ dr_equality_constraints (graphite_dim_t dim,
   value_set_si (v, 1);
   value_set_si (v_op, -1);
 
-  ppl_new_NNC_Polyhedron_from_space_dimension (&subscript_equalities, dim, 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&subscript_equalities, dim, 0);
   for (i = 0; i < nb_subscripts; i++)
     {
       ppl_Linear_Expression_t expr;
@@ -197,7 +197,7 @@ dr_equality_constraints (graphite_dim_t dim,
       ppl_delete_Coefficient (coef);
     }
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&res, subscript_equalities);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&res, subscript_equalities);
   value_clear (v);
   value_clear (v_op);
   ppl_delete_Polyhedron (subscript_equalities);
@@ -207,48 +207,50 @@ dr_equality_constraints (graphite_dim_t dim,
 
 /* Builds scheduling equality constraints.  */
 
-static ppl_Pointset_Powerset_NNC_Polyhedron_t
+static ppl_Pointset_Powerset_C_Polyhedron_t
 build_pairwise_scheduling_equality (graphite_dim_t dim,
 		                    graphite_dim_t pos, graphite_dim_t offset)
 {
-  ppl_Pointset_Powerset_NNC_Polyhedron_t res;
+  ppl_Pointset_Powerset_C_Polyhedron_t res;
   ppl_Polyhedron_t equalities;
   ppl_Constraint_t cstr;
 
-  ppl_new_NNC_Polyhedron_from_space_dimension (&equalities, dim, 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&equalities, dim, 0);
 
   cstr = build_pairwise_constraint (dim, pos, pos + offset, 0, PPL_CONSTRAINT_TYPE_EQUAL); 
   ppl_Polyhedron_add_constraint (equalities, cstr);
   ppl_delete_Constraint (cstr);
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&res, equalities);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&res, equalities);
   ppl_delete_Polyhedron (equalities);
   return res;
 }
 
 /* Builds scheduling inequality constraints.  */
 
-static ppl_Pointset_Powerset_NNC_Polyhedron_t
+static ppl_Pointset_Powerset_C_Polyhedron_t
 build_pairwise_scheduling_inequality (graphite_dim_t dim,
 				      graphite_dim_t pos,
 				      graphite_dim_t offset,
 				      bool direction)
 {
-  ppl_Pointset_Powerset_NNC_Polyhedron_t res;
+  ppl_Pointset_Powerset_C_Polyhedron_t res;
   ppl_Polyhedron_t equalities;
   ppl_Constraint_t cstr;
 
-  ppl_new_NNC_Polyhedron_from_space_dimension (&equalities, dim, 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&equalities, dim, 0);
 
   if (direction)
-    cstr = build_pairwise_constraint (dim, pos, pos + offset, 0, PPL_CONSTRAINT_TYPE_GREATER_THAN); 
+    cstr = build_pairwise_constraint (dim, pos, pos + offset, -1,
+				      PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
   else
-    cstr = build_pairwise_constraint (dim, pos, pos + offset, 0, PPL_CONSTRAINT_TYPE_LESS_THAN); 
+    cstr = build_pairwise_constraint (dim, pos, pos + offset, 1,
+				      PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL);
 
   ppl_Polyhedron_add_constraint (equalities, cstr);
   ppl_delete_Constraint (cstr);
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&res, equalities);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&res, equalities);
   ppl_delete_Polyhedron (equalities);
   return res;
 }
@@ -257,21 +259,21 @@ build_pairwise_scheduling_inequality (graphite_dim_t dim,
    to the RES dependence polyhedron returns an empty polyhedron.  */
 
 static bool
-lexicographically_gt_p (ppl_Pointset_Powerset_NNC_Polyhedron_t res,
+lexicographically_gt_p (ppl_Pointset_Powerset_C_Polyhedron_t res,
 			graphite_dim_t dim,
 			graphite_dim_t offset,
 			bool direction, graphite_dim_t i)
 {
-  ppl_Pointset_Powerset_NNC_Polyhedron_t ineq;
+  ppl_Pointset_Powerset_C_Polyhedron_t ineq;
   bool empty_p;
 
   ineq = build_pairwise_scheduling_inequality (dim, i, offset,
 					       direction);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (ineq, res);
-  empty_p = ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (ineq);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (ineq, res);
+  empty_p = ppl_Pointset_Powerset_C_Polyhedron_is_empty (ineq);
   if (!empty_p)
-    ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, ineq);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (ineq);
+    ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, ineq);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (ineq);
 
   return !empty_p;
 }
@@ -280,7 +282,7 @@ lexicographically_gt_p (ppl_Pointset_Powerset_NNC_Polyhedron_t res,
    of time vectors RES following the lexicographical order.  */
 
 static void
-build_lexicographically_gt_constraint (ppl_Pointset_Powerset_NNC_Polyhedron_t res,
+build_lexicographically_gt_constraint (ppl_Pointset_Powerset_C_Polyhedron_t res,
 				       graphite_dim_t dim,
 				       graphite_dim_t tdim1, graphite_dim_t offset,
 				       bool direction)
@@ -292,11 +294,11 @@ build_lexicographically_gt_constraint (ppl_Pointset_Powerset_NNC_Polyhedron_t re
 
   for (i = 0; i < tdim1 - 1; i++)
     {
-      ppl_Pointset_Powerset_NNC_Polyhedron_t sceq;
+      ppl_Pointset_Powerset_C_Polyhedron_t sceq;
 
       sceq = build_pairwise_scheduling_equality (dim, i, offset);
-      ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, sceq);
-      ppl_delete_Pointset_Powerset_NNC_Polyhedron (sceq);
+      ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, sceq);
+      ppl_delete_Pointset_Powerset_C_Polyhedron (sceq);
 
       if (lexicographically_gt_p (res, dim, offset, direction, i + 1))
 	return;
@@ -304,18 +306,18 @@ build_lexicographically_gt_constraint (ppl_Pointset_Powerset_NNC_Polyhedron_t re
 
   if (i == tdim1 - 1)
     {
-      ppl_delete_Pointset_Powerset_NNC_Polyhedron (res);
-      ppl_new_Pointset_Powerset_NNC_Polyhedron_from_space_dimension (&res, dim, 1);
+      ppl_delete_Pointset_Powerset_C_Polyhedron (res);
+      ppl_new_Pointset_Powerset_C_Polyhedron_from_space_dimension (&res, dim, 1);
     }
 }
 
 /*  Build the dependence polyhedron for data references PDR1 and PDR2.  */
 
 
-static ppl_Pointset_Powerset_NNC_Polyhedron_t
+static ppl_Pointset_Powerset_C_Polyhedron_t
 dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
-		       ppl_Pointset_Powerset_NNC_Polyhedron_t d1,
-		       ppl_Pointset_Powerset_NNC_Polyhedron_t d2,
+		       ppl_Pointset_Powerset_C_Polyhedron_t d1,
+		       ppl_Pointset_Powerset_C_Polyhedron_t d2,
 		       poly_dr_p pdr1, poly_dr_p pdr2,
 	               ppl_Polyhedron_t s1, ppl_Polyhedron_t s2,
 		       bool direction,
@@ -333,13 +335,13 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
   graphite_dim_t dim1 = pdr_dim (pdr1);
   graphite_dim_t dim2 = pdr_dim (pdr2);
   graphite_dim_t dim = tdim1 + tdim2 + dim1 + dim2;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t res;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t id1, id2, isc1, isc2, idr1, idr2;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t sc1, sc2, dreq;
+  ppl_Pointset_Powerset_C_Polyhedron_t res;
+  ppl_Pointset_Powerset_C_Polyhedron_t id1, id2, isc1, isc2, idr1, idr2;
+  ppl_Pointset_Powerset_C_Polyhedron_t sc1, sc2, dreq;
   
   gcc_assert (PBB_SCOP (pbb1) == PBB_SCOP (pbb2));
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&sc1, s1);
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&sc2, s2);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&sc1, s1);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&sc2, s2);
 
   id1 = map_into_dep_poly (dim, gdim, d1, ddim1, tdim1);
   id2 = map_into_dep_poly (dim, gdim, d2, ddim2, tdim1 + ddim1 + tdim2);
@@ -354,25 +356,25 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
   /* Now add the subscript equalities.  */
   dreq = dr_equality_constraints (dim, tdim1 + ddim1 + tdim2 + ddim2, sdim1); 
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_space_dimension (&res, dim, 0);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, id1);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, id2);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, isc1);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, isc2);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, idr1);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, idr2);
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (res, dreq);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (id1);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (id2);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (sc1);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (sc2);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (isc1);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (isc2);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (idr1);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (idr2);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (dreq);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_space_dimension (&res, dim, 0);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, id1);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, id2);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, isc1);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, isc2);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, idr1);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, idr2);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, dreq);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (id1);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (id2);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (sc1);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (sc2);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (isc1);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (isc2);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (idr1);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (idr2);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (dreq);
 
-  if (!ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (res))
+  if (!ppl_Pointset_Powerset_C_Polyhedron_is_empty (res))
     build_lexicographically_gt_constraint (res, dim, MIN (tdim1, tdim2),
 					   tdim1 + ddim1, direction);
 
@@ -387,11 +389,11 @@ static bool
 graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
 			     poly_dr_p pdr1, poly_dr_p pdr2)
 {
-  ppl_Pointset_Powerset_NNC_Polyhedron_t d1 = PBB_DOMAIN (pbb1);
-  ppl_Pointset_Powerset_NNC_Polyhedron_t d2 = PBB_DOMAIN (pbb2);
+  ppl_Pointset_Powerset_C_Polyhedron_t d1 = PBB_DOMAIN (pbb1);
+  ppl_Pointset_Powerset_C_Polyhedron_t d2 = PBB_DOMAIN (pbb2);
   ppl_Polyhedron_t so1 = PBB_ORIGINAL_SCATTERING (pbb1);
   ppl_Polyhedron_t so2 = PBB_ORIGINAL_SCATTERING (pbb2);
-  ppl_Pointset_Powerset_NNC_Polyhedron_t po;
+  ppl_Pointset_Powerset_C_Polyhedron_t po;
 
   graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
   graphite_dim_t sdim2 = pdr_nb_subscripts (pdr2) + 1;
@@ -401,13 +403,13 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
 
   po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true, true);
 
-  if (ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (po))
+  if (ppl_Pointset_Powerset_C_Polyhedron_is_empty (po))
     return true;
   else
     {
       ppl_Polyhedron_t st1 = PBB_TRANSFORMED_SCATTERING (pbb1);
       ppl_Polyhedron_t st2 = PBB_TRANSFORMED_SCATTERING (pbb2);
-      ppl_Pointset_Powerset_NNC_Polyhedron_t pt;
+      ppl_Pointset_Powerset_C_Polyhedron_t pt;
       graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
       graphite_dim_t otdim1 = pbb_nb_scattering_orig (pbb1);
       graphite_dim_t otdim2 = pbb_nb_scattering_orig (pbb2);
@@ -422,8 +424,8 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
       ppl_insert_dimensions_pointset (pt, 0, otdim1);
       ppl_insert_dimensions_pointset (pt, otdim1 + ttdim1 + ddim1, otdim2);
 
-      ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (po, pt);
-      return ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (po);
+      ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (po, pt);
+      return ppl_Pointset_Powerset_C_Polyhedron_is_empty (po);
     }
 }
 
@@ -470,12 +472,12 @@ graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
 {
   poly_bb_p pbb1 = PDR_PBB (pdr1);
   poly_bb_p pbb2 = PDR_PBB (pdr2);
-  ppl_Pointset_Powerset_NNC_Polyhedron_t d1 = PBB_DOMAIN (pbb1);
-  ppl_Pointset_Powerset_NNC_Polyhedron_t d2 = PBB_DOMAIN (pbb2);
+  ppl_Pointset_Powerset_C_Polyhedron_t d1 = PBB_DOMAIN (pbb1);
+  ppl_Pointset_Powerset_C_Polyhedron_t d2 = PBB_DOMAIN (pbb2);
   ppl_Polyhedron_t so1 = PBB_TRANSFORMED_SCATTERING (pbb1);
   ppl_Polyhedron_t so2 = PBB_TRANSFORMED_SCATTERING (pbb2);
-  ppl_Pointset_Powerset_NNC_Polyhedron_t po;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t eqpp;
+  ppl_Pointset_Powerset_C_Polyhedron_t po;
+  ppl_Pointset_Powerset_C_Polyhedron_t eqpp;
   graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
   graphite_dim_t sdim2 = pdr_nb_subscripts (pdr2) + 1;
   graphite_dim_t tdim1 = pbb_nb_scattering_transform (pbb1);
@@ -487,20 +489,20 @@ graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
     return true;
 
   po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true, false);
-  if (ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (po))
+  if (ppl_Pointset_Powerset_C_Polyhedron_is_empty (po))
     {
-      ppl_delete_Pointset_Powerset_NNC_Polyhedron (po);
+      ppl_delete_Pointset_Powerset_C_Polyhedron (po);
       return false;
     }
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (po, &dim);
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (po, &dim);
   eqpp = build_pairwise_scheduling_inequality (dim, level, tdim1 + ddim1, 1);
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_intersection_assign (eqpp, po);
-  empty_p = ppl_Pointset_Powerset_NNC_Polyhedron_is_empty (eqpp);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (eqpp, po);
+  empty_p = ppl_Pointset_Powerset_C_Polyhedron_is_empty (eqpp);
 
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (po);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (eqpp);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (po);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (eqpp);
   return !empty_p;
 }
 

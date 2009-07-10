@@ -131,8 +131,8 @@ struct poly_dr
 
      | i   j   k   a   1
      | 0   0   0  -1   15  = 0 */
-  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t data_container;
+  ppl_Pointset_Powerset_C_Polyhedron_t accesses;
+  ppl_Pointset_Powerset_C_Polyhedron_t data_container;
 };
 
 #define PDR_CDR(PDR) (PDR->compiler_dr)
@@ -141,8 +141,8 @@ struct poly_dr
 #define PDR_ACCESSES(PDR) (PDR->accesses)
 #define PDR_DATA_CONTAINER(PDR) (PDR->data_container)
 
-void new_poly_dr (poly_bb_p, ppl_Pointset_Powerset_NNC_Polyhedron_t,
-		  ppl_Pointset_Powerset_NNC_Polyhedron_t,
+void new_poly_dr (poly_bb_p, ppl_Pointset_Powerset_C_Polyhedron_t,
+		  ppl_Pointset_Powerset_C_Polyhedron_t,
 		  enum POLY_DR_TYPE, void *);
 void free_poly_dr (poly_dr_p);
 void debug_pdr (poly_dr_p);
@@ -157,7 +157,7 @@ pdr_nb_subscripts (poly_dr_p pdr)
   poly_bb_p pbb = PDR_PBB (pdr);
   ppl_dimension_type dim;
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PDR_ACCESSES (pdr), &dim);
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PDR_ACCESSES (pdr), &dim);
   return dim - pbb_dim_iter_domain (pbb) - pbb_nb_params (pbb) - 1;
 }
 
@@ -254,7 +254,7 @@ struct poly_bb
 
      The number of variables in the DOMAIN may change and is not
      related to the number of loops in the original code.  */
-  ppl_Pointset_Powerset_NNC_Polyhedron_t domain;
+  ppl_Pointset_Powerset_C_Polyhedron_t domain;
 
   /* The data references we access.  */
   VEC (poly_dr_p, heap) *drs;
@@ -330,7 +330,7 @@ pbb_dim_iter_domain (const struct poly_bb *pbb)
   scop_p scop = PBB_SCOP (pbb);
   ppl_dimension_type dim;
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
   return dim - scop_nb_params (scop);
 }
 
@@ -525,7 +525,7 @@ struct scop
   -128 >= a >= 127
      0 >= b >= 65,535
      c = 2a + b  */
-  ppl_Pointset_Powerset_NNC_Polyhedron_t context;
+  ppl_Pointset_Powerset_C_Polyhedron_t context;
 };
 
 #define SCOP_BBS(S) (S->bbs)

@@ -331,7 +331,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 
   value_init (v);
   ppl_new_Coefficient (&c);
-  ppl_new_NNC_Polyhedron_from_space_dimension
+  ppl_new_C_Polyhedron_from_space_dimension
     (&PBB_TRANSFORMED_SCATTERING (pbb), dim, 0);
 
   PBB_NB_SCATTERING_TRANSFORM (pbb) = scattering_dimensions;
@@ -376,7 +376,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
   value_clear (v);
   ppl_delete_Coefficient (c);
 
-  ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&PBB_ORIGINAL_SCATTERING (pbb),
+  ppl_new_C_Polyhedron_from_C_Polyhedron (&PBB_ORIGINAL_SCATTERING (pbb),
 					      PBB_TRANSFORMED_SCATTERING (pbb));
 }
 
@@ -919,7 +919,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
     ppl_dimension_type *map 
       = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
 
-    ppl_new_NNC_Polyhedron_from_space_dimension (&ph, dim, 0);
+    ppl_new_C_Polyhedron_from_space_dimension (&ph, dim, 0);
     ppl_Polyhedron_get_constraints (outer_ph, &pcs);
     ppl_Polyhedron_add_constraints (ph, pcs);
 
@@ -997,8 +997,8 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       && loop_in_sese_p (loop->next, region))
     build_loop_iteration_domains (scop, loop->next, outer_ph, nb);
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron
-    ((ppl_Pointset_Powerset_NNC_Polyhedron_t *) &loop->aux, ph);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
+    ((ppl_Pointset_Powerset_C_Polyhedron_t *) &loop->aux, ph);
 
   ppl_delete_Polyhedron (ph);
 }
@@ -1034,11 +1034,12 @@ ppl_constraint_type_from_tree_code (enum tree_code code)
 {
   switch (code)
     {
+    /* We do not support LT and GT to be able to work with C_Polyhedron.
+       As we work on integer polyhedron "a < b" can be expressed by
+       "a + 1 <= b".  */
     case LT_EXPR:
-      return PPL_CONSTRAINT_TYPE_LESS_THAN;
-
     case GT_EXPR:
-      return PPL_CONSTRAINT_TYPE_GREATER_THAN;
+      gcc_unreachable ();
 
     case LE_EXPR:
       return PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL;
@@ -1059,21 +1060,49 @@ ppl_constraint_type_from_tree_code (enum tree_code code)
    condition or to handle inequalities.  */
 
 static void
-add_condition_to_domain (ppl_Pointset_Powerset_NNC_Polyhedron_t ps, gimple stmt,
+add_condition_to_domain (ppl_Pointset_Powerset_C_Polyhedron_t ps, gimple stmt,
 			 poly_bb_p pbb, enum tree_code code)
 {
+  Value v;
+  ppl_Coefficient_t c;
   ppl_Linear_Expression_t left, right;
   ppl_Constraint_t cstr;
   enum ppl_enum_Constraint_Type type;
 
-  type = ppl_constraint_type_from_tree_code (code);
-
   left = create_linear_expr_from_tree (pbb, gimple_cond_lhs (stmt));
   right = create_linear_expr_from_tree (pbb, gimple_cond_rhs (stmt));
+
+  /* If we have < or > expressions convert them to <= or >= by adding 1 to
+     the left or the right side of the expression. */
+  if (code == LT_EXPR)
+    {
+      value_init (v);
+      value_set_si (v, 1);
+      ppl_new_Coefficient (&c);
+      ppl_assign_Coefficient_from_mpz_t (c, v);
+      ppl_Linear_Expression_add_to_inhomogeneous (left, c);
+      ppl_delete_Coefficient (c);
+
+      code = LE_EXPR;
+    }
+  else if (code == GT_EXPR)
+    {
+      value_init (v);
+      value_set_si (v, 1);
+      ppl_new_Coefficient (&c);
+      ppl_assign_Coefficient_from_mpz_t (c, v);
+      ppl_Linear_Expression_add_to_inhomogeneous (right, c);
+      ppl_delete_Coefficient (c);
+
+      code = GE_EXPR;
+    }
+
+  type = ppl_constraint_type_from_tree_code (code);
+
   ppl_subtract_Linear_Expression_from_Linear_Expression (left, right);
 
   ppl_new_Constraint (&cstr, left, type);
-  ppl_Pointset_Powerset_NNC_Polyhedron_add_constraint (ps, cstr); 
+  ppl_Pointset_Powerset_C_Polyhedron_add_constraint (ps, cstr);
 
   ppl_delete_Constraint (cstr);
   ppl_delete_Linear_Expression (left);
@@ -1089,15 +1118,15 @@ add_condition_to_pbb (poly_bb_p pbb, gimple stmt, enum tree_code code)
 {
   if (code == NE_EXPR)
     {
-      ppl_Pointset_Powerset_NNC_Polyhedron_t left = PBB_DOMAIN (pbb); 
-      ppl_Pointset_Powerset_NNC_Polyhedron_t right;
-      ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron
+      ppl_Pointset_Powerset_C_Polyhedron_t left = PBB_DOMAIN (pbb);
+      ppl_Pointset_Powerset_C_Polyhedron_t right;
+      ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
 	(&right, left);
       add_condition_to_domain (left, stmt, pbb, LT_EXPR);
       add_condition_to_domain (right, stmt, pbb, GT_EXPR);
-      ppl_Pointset_Powerset_NNC_Polyhedron_upper_bound_assign (left,
+      ppl_Pointset_Powerset_C_Polyhedron_upper_bound_assign (left,
 							       right);
-      ppl_delete_Pointset_Powerset_NNC_Polyhedron (right);
+      ppl_delete_Pointset_Powerset_C_Polyhedron (right);
     }
   else
     add_condition_to_domain (PBB_DOMAIN (pbb), stmt, pbb, code);
@@ -1369,12 +1398,12 @@ build_scop_context (scop_p scop)
   ppl_Polyhedron_t context;
   graphite_dim_t p, n = scop_nb_params (scop);
 
-  ppl_new_NNC_Polyhedron_from_space_dimension (&context, n, 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&context, n, 0);
 
   for (p = 0; p < n; p++)
     add_param_constraints (scop, context, p);
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
     (&SCOP_CONTEXT (scop), context);
 
   ppl_delete_Polyhedron (context);
@@ -1393,7 +1422,7 @@ build_scop_iteration_domain (scop_p scop)
   ppl_Polyhedron_t ph;
   poly_bb_p pbb;
 
-  ppl_new_NNC_Polyhedron_from_space_dimension (&ph, scop_nb_params (scop), 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&ph, scop_nb_params (scop), 0);
 
   for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
     if (!loop_in_sese_p (loop_outer (loop), region)) 
@@ -1401,18 +1430,18 @@ build_scop_iteration_domain (scop_p scop)
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     if (gbb_loop (PBB_BLACK_BOX (pbb))->aux)
-      ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron
-	(&PBB_DOMAIN (pbb), (ppl_const_Pointset_Powerset_NNC_Polyhedron_t)
+      ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
+	(&PBB_DOMAIN (pbb), (ppl_const_Pointset_Powerset_C_Polyhedron_t)
 	 gbb_loop (PBB_BLACK_BOX (pbb))->aux);
     else
-      ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron
+      ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
 	(&PBB_DOMAIN (pbb), ph);
 
   for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
     if (loop->aux)
       {
-	ppl_delete_Pointset_Powerset_NNC_Polyhedron 
-	  ((ppl_Pointset_Powerset_NNC_Polyhedron_t) loop->aux);
+	ppl_delete_Pointset_Powerset_C_Polyhedron
+	  ((ppl_Pointset_Powerset_C_Polyhedron_t) loop->aux);
 	loop->aux = NULL;
       }
 
@@ -1536,24 +1565,24 @@ static void
 build_poly_dr (data_reference_p dr, poly_bb_p pbb)
 {
   ppl_Polyhedron_t accesses, data_container;
-  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses_ps, data_container_ps;
+  ppl_Pointset_Powerset_C_Polyhedron_t accesses_ps, data_container_ps;
   ppl_dimension_type dom_nb_dims;
   ppl_dimension_type accessp_nb_dims;
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PBB_DOMAIN (pbb),
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PBB_DOMAIN (pbb),
 							&dom_nb_dims);
   accessp_nb_dims = dom_nb_dims + 1 + DR_NUM_DIMENSIONS (dr);
 
-  ppl_new_NNC_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
-  ppl_new_NNC_Polyhedron_from_space_dimension (&data_container, accessp_nb_dims, 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&data_container, accessp_nb_dims, 0);
 
   pdr_add_alias_set (accesses, dr, accessp_nb_dims, dom_nb_dims);
   pdr_add_memory_accesses (accesses, dr, accessp_nb_dims, dom_nb_dims, pbb);
   pdr_add_data_dimensions (data_container, dr, accessp_nb_dims, dom_nb_dims);
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&accesses_ps,
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&accesses_ps,
 								accesses);
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&data_container_ps,
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&data_container_ps,
 								data_container);
   ppl_delete_Polyhedron (accesses);
   new_poly_dr (pbb, accesses_ps, data_container_ps,

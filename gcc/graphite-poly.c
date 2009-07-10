@@ -299,8 +299,8 @@ apply_poly_transforms (scop_p scop)
 
 void
 new_poly_dr (poly_bb_p pbb,
-	     ppl_Pointset_Powerset_NNC_Polyhedron_t accesses,
-	     ppl_Pointset_Powerset_NNC_Polyhedron_t data_container,
+	     ppl_Pointset_Powerset_C_Polyhedron_t accesses,
+	     ppl_Pointset_Powerset_C_Polyhedron_t data_container,
 	     enum POLY_DR_TYPE type, void *cdr)
 {
   poly_dr_p pdr = XNEW (struct poly_dr);
@@ -318,7 +318,7 @@ new_poly_dr (poly_bb_p pbb,
 void
 free_poly_dr (poly_dr_p pdr)
 {
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (PDR_ACCESSES (pdr));
+  ppl_delete_Pointset_Powerset_C_Polyhedron (PDR_ACCESSES (pdr));
 
   XDELETE (pdr);
 }
@@ -349,7 +349,7 @@ free_poly_bb (poly_bb_p pbb)
   int i;
   poly_dr_p pdr;
   
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron (PBB_DOMAIN (pbb));
+  ppl_delete_Pointset_Powerset_C_Polyhedron (PBB_DOMAIN (pbb));
 
   if (PBB_TRANSFORMED_SCATTERING (pbb))
     ppl_delete_Polyhedron (PBB_TRANSFORMED_SCATTERING (pbb));
@@ -463,7 +463,7 @@ free_scop (scop_p scop)
   VEC_free (poly_bb_p, heap, SCOP_BBS (scop));
 
   if (SCOP_CONTEXT (scop))
-    ppl_delete_Pointset_Powerset_NNC_Polyhedron (SCOP_CONTEXT (scop));
+    ppl_delete_Pointset_Powerset_C_Polyhedron (SCOP_CONTEXT (scop));
 
   XDELETE (scop);
 }
@@ -747,10 +747,10 @@ pbb_number_of_iterations (poly_bb_p pbb, graphite_dim_t loop_depth, Value niter)
   value_init (dv);
   ppl_new_Coefficient (&num);
   ppl_new_Coefficient (&denom);
-  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
   ppl_new_Linear_Expression_with_dimension (&le, dim);
   ppl_set_coef (le, loop_iter, 1);
-  ppl_Pointset_Powerset_NNC_Polyhedron_maximize (PBB_DOMAIN (pbb), le,
+  ppl_Pointset_Powerset_C_Polyhedron_maximize (PBB_DOMAIN (pbb), le,
 						 num, denom, &maximum);
 
   if (maximum == 1)

@@ -85,12 +85,12 @@ new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *pcs,
 /* Creates a PPL Polyhedron from MATRIX.  */
 
 void
-new_NNC_Polyhedron_from_Cloog_Matrix (ppl_Polyhedron_t *ph,
+new_C_Polyhedron_from_Cloog_Matrix (ppl_Polyhedron_t *ph,
 				      CloogMatrix *matrix)
 {
   ppl_Constraint_System_t cs;
   new_Constraint_System_from_Cloog_Matrix (&cs, matrix);
-  ppl_new_NNC_Polyhedron_recycle_Constraint_System (ph, cs);
+  ppl_new_C_Polyhedron_recycle_Constraint_System (ph, cs);
 }
 
 /* Counts the number of constraints in PCS.  */
@@ -239,23 +239,23 @@ new_Cloog_Domain_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
 
 CloogDomain *
 new_Cloog_Domain_from_ppl_Pointset_Powerset (
-  ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
+  ppl_Pointset_Powerset_C_Polyhedron_t ps)
 {
   CloogDomain *res = NULL;
-  ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
+  ppl_Pointset_Powerset_C_Polyhedron_iterator_t it, end;
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&it);
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&end);
+  ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&it);
+  ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&end);
 
-  for (ppl_Pointset_Powerset_NNC_Polyhedron_iterator_begin (ps, it),
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_end (ps, end);
-       !ppl_Pointset_Powerset_NNC_Polyhedron_iterator_equal_test (it, end);
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_increment (it))
+  for (ppl_Pointset_Powerset_C_Polyhedron_iterator_begin (ps, it),
+       ppl_Pointset_Powerset_C_Polyhedron_iterator_end (ps, end);
+       !ppl_Pointset_Powerset_C_Polyhedron_iterator_equal_test (it, end);
+       ppl_Pointset_Powerset_C_Polyhedron_iterator_increment (it))
     {
       ppl_const_Polyhedron_t ph;
       CloogDomain *tmp;
 
-      ppl_Pointset_Powerset_NNC_Polyhedron_iterator_dereference (it, &ph);
+      ppl_Pointset_Powerset_C_Polyhedron_iterator_dereference (it, &ph);
       tmp = new_Cloog_Domain_from_ppl_Polyhedron (ph);
 
       if (res == NULL)
@@ -264,8 +264,8 @@ new_Cloog_Domain_from_ppl_Pointset_Powerset (
 	res = cloog_domain_union (res, tmp);
     }
 
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (it);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (end);
+  ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (it);
+  ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (end);
   
   gcc_assert (res != NULL);
 
@@ -336,7 +336,7 @@ ppl_set_coef_gmp (ppl_Linear_Expression_t e, ppl_dimension_type i, Value x)
 */
 
 void
-ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t ph, int x,
+ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_C_Polyhedron_t ph, int x,
 				int nb_new_dims)
 {
   ppl_dimension_type i, dim;
@@ -346,8 +346,8 @@ ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t ph, int x
   x_ppl = (ppl_dimension_type) x;
   nb_new_dims_ppl = (ppl_dimension_type) nb_new_dims;
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (ph, &dim);
-  ppl_Pointset_Powerset_NNC_Polyhedron_add_space_dimensions_and_embed (ph, nb_new_dims);
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (ph, &dim);
+  ppl_Pointset_Powerset_C_Polyhedron_add_space_dimensions_and_embed (ph, nb_new_dims);
 
   map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim + nb_new_dims);
 
@@ -360,7 +360,7 @@ ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t ph, int x
   for (i = x_ppl + nb_new_dims_ppl; i < dim + nb_new_dims_ppl; i++)
     map[i - nb_new_dims_ppl] = i;
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_map_space_dimensions (ph, map, dim + nb_new_dims);
+  ppl_Pointset_Powerset_C_Polyhedron_map_space_dimensions (ph, map, dim + nb_new_dims);
   free (map);
 }
 
@@ -430,7 +430,7 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
   ppl_Polyhedron_get_constraints (ph, &pcs);
 
   /* Start from a copy of the constraints.  */
-  ppl_new_NNC_Polyhedron_from_space_dimension (&res, dim + 1, 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&res, dim + 1, 0);
   ppl_Polyhedron_add_constraints (res, pcs);
 
   /* Add an empty dimension for the strip loop.  */
@@ -441,7 +441,7 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
   {
     ppl_Polyhedron_t tmp;
 
-    ppl_new_NNC_Polyhedron_from_space_dimension (&tmp, dim + 1, 0);
+    ppl_new_C_Polyhedron_from_space_dimension (&tmp, dim + 1, 0);
     ppl_new_Constraint_System_const_iterator (&cit);
     ppl_new_Constraint_System_const_iterator (&end);
 
@@ -565,26 +565,26 @@ ppl_print_polyhedron_matrix (FILE *file, ppl_const_Polyhedron_t ph)
 
 void
 ppl_print_powerset_matrix (FILE *file,
-			   ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
+			   ppl_Pointset_Powerset_C_Polyhedron_t ps)
 {
-  ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
+  ppl_Pointset_Powerset_C_Polyhedron_iterator_t it, end;
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&it);
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&end);
+  ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&it);
+  ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&end);
 
-  for (ppl_Pointset_Powerset_NNC_Polyhedron_iterator_begin (ps, it),
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_end (ps, end);
-       !ppl_Pointset_Powerset_NNC_Polyhedron_iterator_equal_test (it, end);
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_increment (it))
+  for (ppl_Pointset_Powerset_C_Polyhedron_iterator_begin (ps, it),
+       ppl_Pointset_Powerset_C_Polyhedron_iterator_end (ps, end);
+       !ppl_Pointset_Powerset_C_Polyhedron_iterator_equal_test (it, end);
+       ppl_Pointset_Powerset_C_Polyhedron_iterator_increment (it))
     {
       ppl_const_Polyhedron_t ph;
 
-      ppl_Pointset_Powerset_NNC_Polyhedron_iterator_dereference (it, &ph);
+      ppl_Pointset_Powerset_C_Polyhedron_iterator_dereference (it, &ph);
       ppl_print_polyhedron_matrix (file, ph);
     }
 
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (it);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (end);
+  ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (it);
+  ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (end);
 }
 
 /* Print to STDERR the polyhedron PH under its PolyLib matrix form.  */
@@ -598,7 +598,7 @@ debug_ppl_polyhedron_matrix (ppl_Polyhedron_t ph)
 /* Print to STDERR the powerset PS in its PolyLib matrix form.  */
 
 void
-debug_ppl_powerset_matrix (ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
+debug_ppl_powerset_matrix (ppl_Pointset_Powerset_C_Polyhedron_t ps)
 {
   ppl_print_powerset_matrix (stderr, ps);
 }
@@ -610,7 +610,7 @@ void
 ppl_read_polyhedron_matrix (ppl_Polyhedron_t *ph, FILE *file)
 {
   CloogMatrix *mat = cloog_matrix_read (file);
-  new_NNC_Polyhedron_from_Cloog_Matrix (ph, mat);
+  new_C_Polyhedron_from_Cloog_Matrix (ph, mat);
   cloog_matrix_free (mat);
 }
 #endif

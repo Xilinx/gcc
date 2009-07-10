@@ -174,8 +174,8 @@ compute_array_size_poly (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_
 static void
 compute_array_size (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_size)
 {
-  ppl_Pointset_Powerset_NNC_Polyhedron_t data_container = PDR_DATA_CONTAINER (pdr);
-  ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
+  ppl_Pointset_Powerset_C_Polyhedron_t data_container = PDR_DATA_CONTAINER (pdr);
+  ppl_Pointset_Powerset_C_Polyhedron_iterator_t it, end;
   Value val;
 
   value_set_si (array_size, 1);
@@ -183,24 +183,24 @@ compute_array_size (poly_dr_p pdr, ppl_dimension_type sub_dim, Value array_size)
     return;
 
   value_init (val);
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&it);
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&end);
+  ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&it);
+  ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&end);
 
-  for (ppl_Pointset_Powerset_NNC_Polyhedron_iterator_begin (data_container, it),
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_end (data_container, end);
-       !ppl_Pointset_Powerset_NNC_Polyhedron_iterator_equal_test (it, end);
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_increment (it))
+  for (ppl_Pointset_Powerset_C_Polyhedron_iterator_begin (data_container, it),
+       ppl_Pointset_Powerset_C_Polyhedron_iterator_end (data_container, end);
+       !ppl_Pointset_Powerset_C_Polyhedron_iterator_equal_test (it, end);
+       ppl_Pointset_Powerset_C_Polyhedron_iterator_increment (it))
     {
       ppl_const_Polyhedron_t ph;
 
-      ppl_Pointset_Powerset_NNC_Polyhedron_iterator_dereference (it, &ph);
+      ppl_Pointset_Powerset_C_Polyhedron_iterator_dereference (it, &ph);
       compute_array_size_poly (pdr, sub_dim, val, ph);
       value_max (array_size, array_size, val);
     }
 
   value_clear (val);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (it);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (end);
+  ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (it);
+  ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (end);
 }
 
 /* Computes ACCESS_STRIDES, the sum of all the strides of PDR at
@@ -263,29 +263,29 @@ gather_access_strides (poly_dr_p pdr, graphite_dim_t loop_depth,
 {
   ppl_dimension_type loop_dim = pdr_iterator_dim (pdr, loop_depth);
 
-  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses = PDR_ACCESSES (pdr);
-  ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
+  ppl_Pointset_Powerset_C_Polyhedron_t accesses = PDR_ACCESSES (pdr);
+  ppl_Pointset_Powerset_C_Polyhedron_iterator_t it, end;
   Value res;
 
   value_init (res);
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&it);
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&end);
+  ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&it);
+  ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&end);
 
-  for (ppl_Pointset_Powerset_NNC_Polyhedron_iterator_begin (accesses, it),
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_end (accesses, end);
-       !ppl_Pointset_Powerset_NNC_Polyhedron_iterator_equal_test (it, end);
-       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_increment (it))
+  for (ppl_Pointset_Powerset_C_Polyhedron_iterator_begin (accesses, it),
+       ppl_Pointset_Powerset_C_Polyhedron_iterator_end (accesses, end);
+       !ppl_Pointset_Powerset_C_Polyhedron_iterator_equal_test (it, end);
+       ppl_Pointset_Powerset_C_Polyhedron_iterator_increment (it))
     {
       ppl_const_Polyhedron_t ph;
 
-      ppl_Pointset_Powerset_NNC_Polyhedron_iterator_dereference (it, &ph);
+      ppl_Pointset_Powerset_C_Polyhedron_iterator_dereference (it, &ph);
       gather_access_strides_poly (pdr, ph, loop_dim, res);
       value_addto (access_strides, access_strides, res);
     }
 
   value_clear (res);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (it);
-  ppl_delete_Pointset_Powerset_NNC_Polyhedron_iterator (end);
+  ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (it);
+  ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (end);
 }
 
 /* Returns true when it is profitable to interchange loop at depth1

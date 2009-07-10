@@ -27,20 +27,21 @@ along with GCC; see the file COPYING3.  If not see
 CloogMatrix *new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
 CloogDomain *new_Cloog_Domain_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
 CloogDomain * new_Cloog_Domain_from_ppl_Pointset_Powerset (
-  ppl_Pointset_Powerset_NNC_Polyhedron_t);
-void new_NNC_Polyhedron_from_Cloog_Matrix (ppl_Polyhedron_t *, CloogMatrix *);
+  ppl_Pointset_Powerset_C_Polyhedron_t);
+void new_C_Polyhedron_from_Cloog_Matrix (ppl_Polyhedron_t *, CloogMatrix *);
 void insert_constraint_into_matrix (CloogMatrix *, int, ppl_const_Constraint_t);
 ppl_Polyhedron_t ppl_strip_loop (ppl_Polyhedron_t, ppl_dimension_type, int);
 int ppl_lexico_compare_linear_expressions (ppl_Linear_Expression_t,
 					   ppl_Linear_Expression_t);
 
 void ppl_print_polyhedron_matrix (FILE *, ppl_const_Polyhedron_t);
-void ppl_print_powerset_matrix (FILE *, ppl_Pointset_Powerset_NNC_Polyhedron_t);
+void ppl_print_powerset_matrix (FILE *, ppl_Pointset_Powerset_C_Polyhedron_t);
 void debug_ppl_polyhedron_matrix (ppl_Polyhedron_t);
-void debug_ppl_powerset_matrix (ppl_Pointset_Powerset_NNC_Polyhedron_t);
+void debug_ppl_powerset_matrix (ppl_Pointset_Powerset_C_Polyhedron_t);
 void ppl_read_polyhedron_matrix (ppl_Polyhedron_t *, FILE *);
 void ppl_insert_dimensions (ppl_Polyhedron_t, int, int);
-void ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t, int, int);
+void ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_C_Polyhedron_t, int,
+				     int);
 void ppl_set_inhomogeneous_gmp (ppl_Linear_Expression_t, Value);
 void ppl_set_coef_gmp (ppl_Linear_Expression_t, ppl_dimension_type, Value);
 

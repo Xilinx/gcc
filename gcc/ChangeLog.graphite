@@ -1,3 +1,33 @@
+2009-07-10  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-dependences.c (map_into_dep_poly, map_dr_into_dep_poly,
+	build_pairwise_constraint, dr_equality_constraints,
+	build_pairwise_scheduling_equality,
+	build_pairwise_scheduling_inequality, lexicographically_gt_p,
+	build_lexicographically_gt_constraint, dependence_polyhedron,
+	graphite_legal_transform_dr, graphite_carried_dependence_level_k):
+	Move from NNC_Polyhedron to C_Polyhedron.
+	* graphite-interchange.c (compute_array_size_poly,
+	gather_access_strides): Dito.
+	* graphite-poly.c (apply_poly_transforms, new_poly_dr, free_poly_bb,
+	free_scop, pbb_number_of_iterations): Dito.
+	* graphite-poly.h (struct poly_dr, pdr_nb_subscripts, struct poly_bb,
+	pbb_dim_iter_domain, struct scop): Dito.
+	* graphite-ppl.c (new_Constraint_System_from_Cloog_Matrix,
+	new_Cloog_Domain_from_ppl_Polyhedron,
+	new_Cloog_Domain_from_ppl_Pointset_Powerset, ppl_set_coef_gmp,
+	ppl_insert_dimensions_pointset, ppl_insert_dimensions_pointset,
+	ppl_strip_loop, ppl_strip_loop, ppl_print_polyhedron_matrix,
+	ppl_print_powerset_matrix, debug_ppl_polyhedron_matrix,
+	debug_ppl_powerset_matrix, ppl_read_polyhedron_matrix): Dito.
+	* graphite-ppl.h (ppl_Pointset_Powerset_C_Polyhedron_t,
+	new_C_Polyhedron_from_Cloog_Matrix, ppl_print_powerset_matrix,
+	debug_ppl_powerset_matrix, ppl_insert_dimensions_pointset): Dito.
+	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons,
+	build_loop_iteration_domains, ppl_constraint_type_from_tree_code,
+	add_condition_to_domain, add_condition_to_pbb, build_scop_context,
+	build_scop_iteration_domain, build_poly_dr): Dito
+
 2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* testsuite/gcc.dg/graphite/graphite.exp: Added a rule to execute
