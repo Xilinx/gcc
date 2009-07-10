@@ -275,6 +275,7 @@ is_tm_ending_fndecl (tree fndecl)
     switch (DECL_FUNCTION_CODE (fndecl))
       {
       case BUILT_IN_TM_COMMIT:
+      case BUILT_IN_TM_COMMIT_EH:
       case BUILT_IN_TM_ABORT:
       case BUILT_IN_TM_IRREVOKABLE:
 	return true;
@@ -435,8 +436,10 @@ diagnose_tm_safe_errors (tree fndecl)
   current_function_decl = save_current;
 }
 
-static void lower_sequence_tm (unsigned *, gimple_seq);
-static void lower_sequence_no_tm (gimple_seq);
+static tree lower_sequence_tm (gimple_stmt_iterator *, bool *,
+			       struct walk_stmt_info *);
+static tree lower_sequence_no_tm (gimple_stmt_iterator *, bool *,
+				  struct walk_stmt_info *);
 
 /* Determine whether X has to be instrumented using a read
    or write barrier.  */
@@ -518,17 +521,22 @@ examine_call_tm (unsigned *state, gimple_stmt_iterator *gsi)
   *state |= GTMA_HAVE_LOAD | GTMA_HAVE_STORE;
 }
 
-/* Lower a GIMPLE_TM_ATOMIC statement.  The GSI is advanced.  */
+/* Lower a GIMPLE_TM_ATOMIC statement.  */
 
 static void
-lower_tm_atomic (unsigned int *outer_state, gimple_stmt_iterator *gsi)
+lower_tm_atomic (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
 {
   gimple g, stmt = gsi_stmt (*gsi);
+  unsigned int *outer_state = (unsigned int *) wi->info;
   unsigned int this_state = 0;
+  struct walk_stmt_info this_wi;
 
   /* First, lower the body.  The scanning that we do inside gives
      us some idea of what we're dealing with.  */
-  lower_sequence_tm (&this_state, gimple_tm_atomic_body (stmt));
+  memset (&this_wi, 0, sizeof (this_wi));
+  this_wi.info = (void *) &this_state;
+  walk_gimple_seq (gimple_tm_atomic_body (stmt),
+		   lower_sequence_tm, NULL, &this_wi);
 
   /* If there was absolutely nothing transaction related inside the
      transaction, we may elide it.  Likewise if this is a nested
@@ -541,13 +549,27 @@ lower_tm_atomic (unsigned int *outer_state, gimple_stmt_iterator *gsi)
 
       gsi_insert_seq_before (gsi, gimple_tm_atomic_body (stmt), GSI_SAME_STMT);
       gimple_tm_atomic_set_body (stmt, NULL);
+
       gsi_remove (gsi, true);
+      wi->removed_stmt = true;
       return;
     }
 
   /* Wrap the body of the transaction in a try-finally node so that
      the commit call is always properly called.  */
   g = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT], 0);
+  if (flag_exceptions)
+    {
+      tree ptr;
+      gimple g2;
+
+      ptr = build0 (EXC_PTR_EXPR, ptr_type_node);
+      g2 = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT_EH], 1, ptr);
+
+      g = gimple_build_eh_else (gimple_seq_alloc_with_stmt (g),
+				gimple_seq_alloc_with_stmt (g2));
+    }
+
   g = gimple_build_try (gimple_tm_atomic_body (stmt),
 			gimple_seq_alloc_with_stmt (g), GIMPLE_TRY_FINALLY);
   gimple_tm_atomic_set_body (stmt, gimple_seq_alloc_with_stmt (g));
@@ -562,64 +584,65 @@ lower_tm_atomic (unsigned int *outer_state, gimple_stmt_iterator *gsi)
 
   /* Record the set of operations found for use later.  */
   gimple_tm_atomic_set_subcode (stmt, this_state);
-
-  /* Always update the iterator.  */
-  gsi_next (gsi);
 }
 
 /* Iterate through the statements in the sequence, lowering them all
    as appropriate for being in a transaction.  */
 
-static void
-lower_sequence_tm (unsigned int *state, gimple_seq seq)
+static tree
+lower_sequence_tm (gimple_stmt_iterator *gsi, bool *handled_ops_p,
+		   struct walk_stmt_info *wi)
 {
-  gimple_stmt_iterator gsi;
+  unsigned int *state = (unsigned int *) wi->info;
+  gimple stmt = gsi_stmt (*gsi);
 
-  for (gsi = gsi_start (seq); !gsi_end_p (gsi); )
+  *handled_ops_p = true;
+  switch (gimple_code (stmt))
     {
-      gimple stmt = gsi_stmt (gsi);
-      switch (gimple_code (stmt))
-	{
-	case GIMPLE_ASSIGN:
-	  /* Only memory reads/writes need to be instrumented.  */
-	  if (gimple_assign_single_p (stmt))
-	    examine_assign_tm (state, &gsi);
-	  break;
+    case GIMPLE_ASSIGN:
+      /* Only memory reads/writes need to be instrumented.  */
+      if (gimple_assign_single_p (stmt))
+      examine_assign_tm (state, gsi);
+      break;
 
-	case GIMPLE_CALL:
-	  examine_call_tm (state, &gsi);
-	  break;
+    case GIMPLE_CALL:
+      examine_call_tm (state, gsi);
+      break;
 
-	case GIMPLE_ASM:
-	  *state |= GTMA_HAVE_CALL_IRREVOKABLE;
-	  break;
+    case GIMPLE_ASM:
+      *state |= GTMA_HAVE_CALL_IRREVOKABLE;
+      break;
 
-	case GIMPLE_TM_ATOMIC:
-	  lower_tm_atomic (state, &gsi);
-	  goto no_update;
+    case GIMPLE_TM_ATOMIC:
+      lower_tm_atomic (gsi, wi);
+      break;
 
-	default:
-	  break;
-	}
-      gsi_next (&gsi);
-
-    no_update:;
+    default:
+      *handled_ops_p = !gimple_has_substatements (stmt);
+      break;
     }
+
+  return NULL_TREE;
 }
 
 /* Iterate through the statements in the sequence, lowering them all
    as appropriate for being outside of a transaction.  */
 
-static void
-lower_sequence_no_tm (gimple_seq seq)
+static tree
+lower_sequence_no_tm (gimple_stmt_iterator *gsi, bool *handled_ops_p,
+		      struct walk_stmt_info * wi)
 {
-  gimple_stmt_iterator gsi;
+  gimple stmt = gsi_stmt (*gsi);
 
-  for (gsi = gsi_start (seq); !gsi_end_p (gsi); )
-    if (gimple_code (gsi_stmt (gsi)) == GIMPLE_TM_ATOMIC)
-      lower_tm_atomic (NULL, &gsi);
-    else
-      gsi_next (&gsi);
+  if (gimple_code (stmt) == GIMPLE_TM_ATOMIC)
+    {
+      *handled_ops_p = true;
+      lower_tm_atomic (gsi, wi);
+    }
+  else
+    *handled_ops_p = !gimple_has_substatements (stmt);
+
+  return NULL_TREE;
 }
 
 /* Main entry point for flattening GIMPLE_TM_ATOMIC constructs.  After
@@ -630,10 +653,14 @@ lower_sequence_no_tm (gimple_seq seq)
 static unsigned int
 execute_lower_tm (void)
 {
+  struct walk_stmt_info wi;
+
   /* Transactional clones aren't created until a later pass.  */
   gcc_assert (!DECL_IS_TM_CLONE (current_function_decl));
 
-  lower_sequence_no_tm (gimple_body (current_function_decl));
+  memset (&wi, 0, sizeof (wi));
+  walk_gimple_seq (gimple_body (current_function_decl),
+		   lower_sequence_no_tm, NULL, &wi);
 
   return 0;
 }
@@ -739,7 +766,8 @@ tm_region_init_2 (struct tm_region *region, VEC (basic_block, heap) **pqueue)
 	    {
 	      tree fn = gimple_call_fndecl (g);
 	      if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
-		  && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
+		  && (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
+		      || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH)
 		  && lookup_stmt_eh_region (g) == region->region_nr)
 		{
 		  bitmap_set_bit (region->exit_blocks, bb->index);
@@ -2034,9 +2062,16 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
       gimple_call_set_in_tm_atomic (g, true);
       add_stmt_to_tm_region (region, g);
     }
+
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   cgraph_create_edge (node, cgraph_node (gettm_fn), g, 0, 0, 0);
+
+  /* ??? This is a hack to preserve the NOTHROW bit on the call,
+     which we would have derived from the decl.  Failure to save
+     this bit means we might have to split the basic block.  */
+  if (gimple_call_nothrow_p (stmt))
+    gimple_call_set_nothrow_p (stmt);
 
   gimple_call_set_fn (stmt, ret);
   update_stmt (stmt);

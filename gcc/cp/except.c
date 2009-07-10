@@ -190,6 +190,9 @@ do_get_exception_ptr (void)
     {
       /* Declare void* __cxa_get_exception_ptr (void *) throw().  */
       fn = declare_nothrow_library_fn (fn, ptr_type_node, ptr_type_node);
+
+      if (flag_tm)
+	apply_tm_attr (fn, get_identifier ("tm_pure"));
     }
 
   return cp_build_function_call (fn, tree_cons (NULL_TREE, build_exc_ptr (),
@@ -210,6 +213,14 @@ do_begin_catch (void)
     {
       /* Declare void* __cxa_begin_catch (void *) throw().  */
       fn = declare_nothrow_library_fn (fn, ptr_type_node, ptr_type_node);
+
+      /* Create its transactional-memory equivalent.  */
+      if (flag_tm)
+	{
+	  tree fn2 = get_identifier ("_ITM_cxa_begin_catch");
+	  fn2 = declare_nothrow_library_fn (fn2, ptr_type_node, ptr_type_node);
+	  record_tm_replacement (fn, fn2);
+	}
     }
 
   return cp_build_function_call (fn, tree_cons (NULL_TREE, build_exc_ptr (),
@@ -250,6 +261,15 @@ do_end_catch (tree type)
       fn = push_void_library_fn (fn, void_list_node);
       /* This can throw if the destructor for the exception throws.  */
       TREE_NOTHROW (fn) = 0;
+
+      /* Create its transactional-memory equivalent.  */
+      if (flag_tm)
+	{
+	  tree fn2 = get_identifier ("_ITM_cxa_end_catch");
+	  fn2 = push_void_library_fn (fn2, void_list_node);
+	  TREE_NOTHROW (fn2) = 0;
+	  record_tm_replacement (fn, fn2);
+	}
     }
 
   cleanup = cp_build_function_call (fn, NULL_TREE, tf_warning_or_error);
@@ -848,6 +868,13 @@ build_throw (tree exp)
 	  /* Declare void __cxa_rethrow (void).  */
 	  fn = push_throw_library_fn
 	    (fn, build_function_type (void_type_node, void_list_node));
+
+	  if (flag_tm)
+	    {
+	      tree fn2 = get_identifier ("_ITM_cxa_rethrow");
+	      fn2 = push_throw_library_fn (fn2, TREE_TYPE (fn));
+	      record_tm_replacement (fn, fn2);
+	    }
 	}
 
       /* ??? Indicate that this function call allows exceptions of the type

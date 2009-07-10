@@ -160,6 +160,12 @@ DEFGSCODE(GIMPLE_CATCH, "gimple_catch", NULL)
    sequence of statements to execute on failure.  */
 DEFGSCODE(GIMPLE_EH_FILTER, "gimple_eh_filter", NULL)
 
+/* GIMPLE_EH_ELSE <N_BODY, E_BODY> must be the sole contents of
+   a GIMPLE_TRY_FINALLY node.  For all normal exits from the try block,
+   we N_BODY is run; for all exception exits from the try block,
+   E_BODY is run.  */
+DEFGSCODE(GIMPLE_EH_ELSE, "gimple_eh_else", NULL)
+
 /* GIMPLE_PHI <RESULT, ARG1, ..., ARGN> represents the PHI node
 
    RESULT = PHI <ARG1, ..., ARGN>

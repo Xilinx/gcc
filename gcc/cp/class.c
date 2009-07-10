@@ -4076,7 +4076,7 @@ clone_constructors_and_destructors (tree t)
 /* Subroutine of set_method_tm_attributes.  Apply TM attribute ATTR
    to the method FNDECL.  */
 
-static void
+void
 apply_tm_attr (tree fndecl, tree attr)
 {
   decl_attributes (&TREE_TYPE (fndecl), tree_cons (attr, NULL, NULL), 0);

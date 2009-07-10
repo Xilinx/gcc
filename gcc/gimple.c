@@ -107,6 +107,7 @@ gss_for_code (enum gimple_code code)
     case GIMPLE_BIND:			return GSS_BIND;
     case GIMPLE_CATCH:			return GSS_CATCH;
     case GIMPLE_EH_FILTER:		return GSS_EH_FILTER;
+    case GIMPLE_EH_ELSE:		return GSS_EH_ELSE;
     case GIMPLE_NOP:			return GSS_BASE;
     case GIMPLE_PHI:			return GSS_PHI;
     case GIMPLE_RESX:			return GSS_RESX;
@@ -162,6 +163,8 @@ gimple_size (enum gimple_code code)
       return sizeof (struct gimple_statement_catch);
     case GSS_EH_FILTER:
       return sizeof (struct gimple_statement_eh_filter);
+    case GSS_EH_ELSE:
+      return sizeof (struct gimple_statement_eh_else);
     case GSS_PHI:
       return sizeof (struct gimple_statement_phi);
     case GSS_RESX:
@@ -711,6 +714,17 @@ gimple_build_eh_filter (tree types, gimple_seq failure)
   if (failure)
     gimple_eh_filter_set_failure (p, failure);
 
+  return p;
+}
+
+/* Build a GIMPLE_EH_ELSE statement.  */
+
+gimple
+gimple_build_eh_else (gimple_seq n_body, gimple_seq e_body)
+{
+  gimple p = gimple_alloc (GIMPLE_EH_ELSE, 0);
+  gimple_eh_else_set_n_body (p, n_body);
+  gimple_eh_else_set_e_body (p, e_body);
   return p;
 }
 
@@ -1269,7 +1283,7 @@ walk_gimple_seq (gimple_seq seq, walk_stmt_fn callback_stmt,
 {
   gimple_stmt_iterator gsi;
 
-  for (gsi = gsi_start (seq); !gsi_end_p (gsi); gsi_next (&gsi))
+  for (gsi = gsi_start (seq); !gsi_end_p (gsi); )
     {
       tree ret = walk_gimple_stmt (&gsi, callback_stmt, callback_op, wi);
       if (ret)
@@ -1278,8 +1292,12 @@ walk_gimple_seq (gimple_seq seq, walk_stmt_fn callback_stmt,
 	     to hold it.  */
 	  gcc_assert (wi);
 	  wi->callback_result = ret;
-	  return gsi_stmt (gsi);
+
+	  return wi->removed_stmt ? NULL : gsi_stmt (gsi);
 	}
+
+      if (!wi->removed_stmt)
+	gsi_next (&gsi);
     }
 
   if (wi)
@@ -1645,10 +1663,13 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
   gimple stmt = gsi_stmt (*gsi);
 
   if (wi)
-    wi->gsi = *gsi;
+    {
+      wi->gsi = *gsi;
+      wi->removed_stmt = false;
 
-  if (wi && wi->want_locations && gimple_has_location (stmt))
-    input_location = gimple_location (stmt);
+      if (wi->want_locations && gimple_has_location (stmt))
+	input_location = gimple_location (stmt);
+    }
 
   ret = NULL;
 
@@ -1666,6 +1687,8 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
       gcc_assert (tree_ret == NULL);
 
       /* Re-read stmt in case the callback changed it.  */
+      if (wi && wi->removed_stmt)
+	return NULL;
       stmt = gsi_stmt (*gsi);
     }
 
@@ -1697,6 +1720,17 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
     case GIMPLE_EH_FILTER:
       ret = walk_gimple_seq (gimple_eh_filter_failure (stmt), callback_stmt,
 		             callback_op, wi);
+      if (ret)
+	return wi->callback_result;
+      break;
+
+    case GIMPLE_EH_ELSE:
+      ret = walk_gimple_seq (gimple_eh_else_n_body (stmt),
+			     callback_stmt, callback_op, wi);
+      if (ret)
+	return wi->callback_result;
+      ret = walk_gimple_seq (gimple_eh_else_e_body (stmt),
+			     callback_stmt, callback_op, wi);
       if (ret)
 	return wi->callback_result;
       break;
@@ -1807,6 +1841,9 @@ gimple_call_flags (const_gimple stmt)
       else
 	flags = 0;
     }
+
+  if (stmt->gsbase.subcode & GF_CALL_NOTHROW)
+    flags |= ECF_NOTHROW;
 
   return flags;
 }
@@ -2098,6 +2135,13 @@ gimple_copy (gimple stmt)
 	  gimple_eh_filter_set_failure (copy, new_seq);
 	  t = unshare_expr (gimple_eh_filter_types (stmt));
 	  gimple_eh_filter_set_types (copy, t);
+	  break;
+
+	case GIMPLE_EH_ELSE:
+	  new_seq = gimple_seq_copy (gimple_eh_else_n_body (stmt));
+	  gimple_eh_else_set_n_body (copy, new_seq);
+	  new_seq = gimple_seq_copy (gimple_eh_else_e_body (stmt));
+	  gimple_eh_else_set_e_body (copy, new_seq);
 	  break;
 
 	case GIMPLE_TRY:

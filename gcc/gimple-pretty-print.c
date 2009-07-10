@@ -772,6 +772,24 @@ dump_gimple_eh_filter (pretty_printer *buffer, gimple gs, int spc, int flags)
 }
 
 
+/* Dump a GIMPLE_EH_ELSE tuple on the pretty_printer BUFFER, SPC spaces of
+   indent.  FLAGS specifies details to show in the dump (see TDF_* in
+   tree-pass.h).  */
+
+static void
+dump_gimple_eh_else (pretty_printer *buffer, gimple gs, int spc, int flags)
+{
+  if (flags & TDF_RAW)
+    dump_gimple_fmt (buffer, spc, flags,
+                     "%G <%+N_BODY <%S>%nE_BODY <%S>%->", gs,
+                     gimple_eh_else_n_body (gs), gimple_eh_else_e_body (gs));
+  else
+    dump_gimple_fmt (buffer, spc, flags,
+                    "IF_NORMAL_EXIT%+{%S}%-ELSE_EH_EXIT%+{%S}",
+                     gimple_eh_else_n_body (gs), gimple_eh_else_e_body (gs));
+}
+
+
 /* Dump a GIMPLE_RESX tuple on the pretty_printer BUFFER, SPC spaces of
    indent.  FLAGS specifies details to show in the dump (see TDF_* in
    tree-pass.h).  */
@@ -1531,6 +1549,10 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
 
     case GIMPLE_EH_FILTER:
       dump_gimple_eh_filter (buffer, gs, spc, flags);
+      break;
+
+    case GIMPLE_EH_ELSE:
+      dump_gimple_eh_else (buffer, gs, spc, flags);
       break;
 
     case GIMPLE_RESX:

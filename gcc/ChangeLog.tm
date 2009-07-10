@@ -1,3 +1,57 @@
+2009-07-10  Richard Henderson  <rth@redhat.com>
+
+	* gimple.def (GIMPLE_EH_ELSE): New.
+	* gsstruct.def (GSS_EH_ELSE): New.
+	* gimple-low.c (lower_stmt): Handle GIMPLE_EH_ELSE.
+	(gimple_stmt_may_fallthru): Likewise.
+	* gimple-pretty-print.c (dump_gimple_eh_else): New.
+	(dump_gimple_stmt): Call it.
+	* gimple.c (gss_for_code): Add GIMPLE_EH_ELSE.
+	(gimple_size): Add GSS_EH_ELSE.
+	(gimple_build_eh_else): New.
+	(walk_gimple_stmt, gimple_copy): Handle GIMPLE_EH_ELSE.
+	* gimple.h (struct gimple_statement_eh_else): New.
+	(gimple_statement_d): Add it.
+	(gimple_has_substatements): Add GIMPLE_EH_ELSE.
+	(gimple_eh_else_n_body, gimple_eh_else_e_body): New.
+	(gimple_eh_else_set_n_body, gimple_eh_else_set_e_body): New.
+	* tree-eh.c (collect_finally_tree): Handle GIMPLE_EH_ELSE.
+	(replace_goto_queue_1): Likewise.
+	(get_eh_else): New.
+	(honor_protect_cleanup_actions): Handle GIMPLE_EH_ELSE.
+	(lower_try_finally_nofallthru): Likewise.
+	(lower_try_finally_onedest): Likewise.
+	(lower_try_finally_copy): Likewise.
+	(lower_try_finally_switch): Likewise.
+	(decide_copy_try_finally): Likewise.
+	(lower_eh_constructs_2): Likewise.
+	(refactor_eh_r): Likewise.
+
+	* calls.c (special_function_p): Add BUILT_IN_TM_COMMIT_EH.
+	* gimple.c (walk_gimple_seq): Honor removed_stmt.
+	(gimple_call_flags): Handle GF_CALL_NOTHROW.
+	* gimple.h (GF_CALL_NOTHROW): New.
+	(gimple_call_set_nothrow_p): New.
+	(struct walk_stmt_info): Use BOOL_BITFIELD; add removed_stmt.
+	* gtm-builtins.def (BUILT_IN_TM_COMMIT_EH): New.
+	* trans-mem.c (is_tm_ending_fndecl): Handle it.
+	(tm_region_init_2): Likewise.
+	(lower_tm_atomic, lower_sequence_tm, lower_sequence_no_tm): Rewrite
+	in terms of walk_gimple_seq.
+	(ipa_tm_insert_gettmclone_call): Save nothrow bit on call.
+	* tree-eh.c (stmt_could_throw_p): Use gimple_call_nothrow_p.
+
+	* cp/class.c (apply_tm_attr): Export.
+	* cp/cp-tree.h: Declare it.
+	* cp/except.c (do_get_exception_ptr): Apply tm_pure.
+	(do_begin_catch): Record tm replacement function.
+	(do_end_catch, build_throw): Likewise.
+
+	* except.c (can_throw_internal_1): Remove inlinable_call parameter.
+	(can_throw_internal): Don't pass it.
+	* except.h (can_throw_internal_1): Update decl.
+	* tree-eh.c (stmt_can_throw_internal): Don't pass inlinable_call.
+
 2009-07-09  Richard Henderson  <rth@redhat.com>
 
 	* c-common.c (handle_tm_wrap_attribute): New.

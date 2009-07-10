@@ -151,7 +151,7 @@ extern void for_each_eh_region (void (*) (struct eh_region_d *));
 extern void for_each_tm_atomic (bool, void (*) (gimple, void *), void *);
 
 /* Determine if the given INSN can throw an exception.  */
-extern bool can_throw_internal_1 (int, bool, bool);
+extern bool can_throw_internal_1 (int, bool);
 extern bool can_throw_internal (const_rtx);
 extern bool can_throw_external_1 (int, bool, bool);
 extern bool can_throw_external (const_rtx);

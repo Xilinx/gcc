@@ -310,6 +310,11 @@ collect_finally_tree (gimple stmt, gimple region)
       collect_finally_tree_1 (gimple_eh_filter_failure (stmt), region);
       break;
 
+    case GIMPLE_EH_ELSE:
+      collect_finally_tree_1 (gimple_eh_else_n_body (stmt), region);
+      collect_finally_tree_1 (gimple_eh_else_e_body (stmt), region);
+      break;
+
     case GIMPLE_TM_ATOMIC:
       collect_finally_tree_1 (gimple_tm_atomic_body (stmt), region);
       break;
@@ -554,6 +559,10 @@ replace_goto_queue_1 (gimple stmt, struct leh_tf_state *tf,
       break;
     case GIMPLE_EH_FILTER:
       replace_goto_queue_stmt_list (gimple_eh_filter_failure (stmt), tf);
+      break;
+    case GIMPLE_EH_ELSE:
+      replace_goto_queue_stmt_list (gimple_eh_else_n_body (stmt), tf);
+      replace_goto_queue_stmt_list (gimple_eh_else_e_body (stmt), tf);
       break;
 
     default:
@@ -908,6 +917,21 @@ lower_try_finally_fallthru_label (struct leh_tf_state *tf)
   return label;
 }
 
+/* A subroutine of lower_try_finally.  If FINALLY consits of a
+   GIMPLE_EH_ELSE node, return it.  */
+
+static inline gimple
+get_eh_else (gimple_seq finally)
+{
+  gimple x = gimple_seq_first_stmt (finally);
+  if (gimple_code (x) == GIMPLE_EH_ELSE)
+    {
+      gcc_assert (gimple_seq_singleton_p (finally));
+      return x;
+    }
+  return NULL;
+}
+
 /* A subroutine of lower_try_finally.  If lang_protect_cleanup_actions
    returns non-null, then the language requires that the exception path out
    of a try_finally be treated specially.  To wit: the code within the
@@ -927,6 +951,9 @@ lower_try_finally_fallthru_label (struct leh_tf_state *tf)
    option.
 
    THIS_STATE may be null if this is a try-cleanup, not a try-finally.  */
+/* ??? We can probably implement protect_cleanup_actions with the new
+   GIMPLE_EH_ELSE node now, which would both eliminate the lang hook
+   and simplify this code.  */
 
 static void
 honor_protect_cleanup_actions (struct leh_state *outer_state,
@@ -973,8 +1000,15 @@ honor_protect_cleanup_actions (struct leh_state *outer_state,
     return;
 
   /* Duplicate the FINALLY block.  Only need to do this for try-finally,
-     and not for cleanups.  */
-  if (this_state)
+     and not for cleanups.  Also no need to do it for EH_ELSE, as we've
+     already got two code paths generated.  */
+  x = get_eh_else (finally);
+  if (x)
+    {
+      gimple_try_set_cleanup (tf->top_p, gimple_eh_else_n_body (x));
+      finally = gimple_eh_else_e_body (x);
+    }
+  else if (this_state)
     finally = lower_try_finally_dup_block (finally, outer_state);
 
   /* If this cleanup consists of a TRY_CATCH_EXPR with TRY_CATCH_IS_CLEANUP
@@ -1082,17 +1116,21 @@ lower_try_finally_nofallthru (struct leh_state *state,
 			      struct leh_tf_state *tf)
 {
   tree lab, return_val;
-  gimple x;
+  gimple x, eh_else;
   gimple_seq finally;
   struct goto_queue_node *q, *qe;
 
-  if (tf->may_throw)
+  /* We expect that tf->top_p is a GIMPLE_TRY. */
+  finally = gimple_try_cleanup (tf->top_p);
+  eh_else = get_eh_else (finally);
+
+  /* If the finally is an EH_ELSE, then arrange for all the goto
+     replacement to be to the normal label.  */
+  if (tf->may_throw && !eh_else)
     lab = tf->eh_label;
   else
     lab = create_artificial_label (gimple_location (tf->try_finally_expr));
 
-  /* We expect that tf->top_p is a GIMPLE_TRY. */
-  finally = gimple_try_cleanup (tf->top_p);
   tf->top_p_seq = gimple_try_eval (tf->top_p);
 
   x = gimple_build_label (lab);
@@ -1109,8 +1147,28 @@ lower_try_finally_nofallthru (struct leh_state *state,
 
   replace_goto_queue (tf);
 
-  lower_eh_constructs_1 (state, finally);
-  gimple_seq_add_seq (&tf->top_p_seq, finally);
+  /* Emit the finally block into the stream.  Lower EH_ELSE at this time.  */
+  if (eh_else)
+    {
+      finally = gimple_eh_else_n_body (eh_else);
+      lower_eh_constructs_1 (state, finally);
+      gimple_seq_add_seq (&tf->top_p_seq, finally);
+
+      if (tf->may_throw)
+	{
+	  x = gimple_build_label (tf->eh_label);
+	  gimple_seq_add_stmt (&tf->top_p_seq, x);
+
+	  finally = gimple_eh_else_e_body (eh_else);
+	  lower_eh_constructs_1 (state, finally);
+	  gimple_seq_add_seq (&tf->top_p_seq, finally);
+	}
+    }
+  else
+    {
+      lower_eh_constructs_1 (state, finally);
+      gimple_seq_add_seq (&tf->top_p_seq, finally);
+    }
 }
 
 /* A subroutine of lower_try_finally.  We have determined that there is
@@ -1127,6 +1185,19 @@ lower_try_finally_onedest (struct leh_state *state, struct leh_tf_state *tf)
   location_t loc = gimple_location (tf->try_finally_expr);
 
   finally = gimple_try_cleanup (tf->top_p);
+
+  /* Since there's only one destination, and the destination edge can only
+     either be EH or non-EH, that implies that all of our incoming edges
+     are of the same type.  Therefore we can lower EH_ELSE immediately.  */
+  x = get_eh_else (finally);
+  if (x)
+    {
+      if (tf->may_throw)
+	finally = gimple_eh_else_e_body (x);
+      else
+	finally = gimple_eh_else_n_body (x);
+    }
+
   tf->top_p_seq = gimple_try_eval (tf->top_p);
 
   lower_eh_constructs_1 (state, finally);
@@ -1207,11 +1278,18 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
   gimple_seq finally;
   gimple_seq new_stmt;
   gimple_seq seq;
-  gimple x;
+  gimple x, eh_else;
   tree tmp;
   location_t tf_loc = gimple_location (tf->try_finally_expr);
 
   finally = gimple_try_cleanup (tf->top_p);
+
+  /* Notice EH_ELSE, and simplify some of the remaining code
+     by considering FINALLY to be the normal return path only.  */
+  eh_else = get_eh_else (finally);
+  if (eh_else)
+    finally = gimple_eh_else_n_body (eh_else);
+
   tf->top_p_seq = gimple_try_eval (tf->top_p);
   new_stmt = NULL;
 
@@ -1231,7 +1309,12 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
       x = gimple_build_label (tf->eh_label);
       gimple_seq_add_stmt (&new_stmt, x);
 
-      seq = lower_try_finally_dup_block (finally, state);
+      /* Don't need to copy the EH path of EH_ELSE,
+	 since it is only emitted once.  */
+      if (eh_else)
+	seq = gimple_eh_else_e_body (eh_else);
+      else
+	seq = lower_try_finally_dup_block (finally, state);
       lower_eh_constructs_1 (state, seq);
       gimple_seq_add_seq (&new_stmt, seq);
 
@@ -1332,7 +1415,7 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
   tree last_case;
   VEC (tree,heap) *case_label_vec;
   gimple_seq switch_body;
-  gimple x;
+  gimple x, eh_else;
   tree tmp;
   gimple switch_stmt;
   gimple_seq finally;
@@ -1343,9 +1426,10 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
   location_t finally_loc;
 
   switch_body = gimple_seq_alloc ();
+  finally = gimple_try_cleanup (tf->top_p);
+  eh_else = get_eh_else (finally);
 
   /* Mash the TRY block to the head of the chain.  */
-  finally = gimple_try_cleanup (tf->top_p);
   tf->top_p_seq = gimple_try_eval (tf->top_p);
 
   /* The location of the finally is either the last stmt in the finally
@@ -1354,14 +1438,11 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
     gimple_location (gimple_seq_last_stmt (tf->top_p_seq))
     : tf_loc;
 
-  /* Lower the finally block itself.  */
-  lower_eh_constructs_1 (state, finally);
-
   /* Prepare for switch statement generation.  */
   nlabels = VEC_length (tree, tf->dest_array);
   return_index = nlabels;
   eh_index = return_index + tf->may_return;
-  fallthru_index = eh_index + tf->may_throw;
+  fallthru_index = eh_index + (eh_else ? 0 : tf->may_throw);
   ndests = fallthru_index + tf->may_fallthru;
 
   finally_tmp = create_tmp_var (integer_type_node, "finally_tmp");
@@ -1390,7 +1471,6 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
           gimple_seq_add_stmt (&tf->top_p_seq, x);
 	}
 
-
       last_case = build3 (CASE_LABEL_EXPR, void_type_node,
 			  build_int_cst (NULL_TREE, fallthru_index), NULL,
 			  create_artificial_label (tf_loc));
@@ -1405,7 +1485,26 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
       gimple_seq_add_stmt (&switch_body, x);
     }
 
-  if (tf->may_throw)
+  /* For EH_ELSE, emit the exception path (plus resx) now, then
+     subsequently we only need consider the normal path.  */
+  if (eh_else)
+    {
+      if (tf->may_throw)
+	{
+	  x = gimple_build_label (tf->eh_label);
+	  gimple_seq_add_stmt (&tf->top_p_seq, x);
+
+	  finally = gimple_eh_else_e_body (eh_else);
+	  lower_eh_constructs_1 (state, finally);
+	  gimple_seq_add_seq (&tf->top_p_seq, finally);
+
+	  x = gimple_build_resx (get_eh_region_number (tf->region));
+	  gimple_seq_add_stmt (&tf->top_p_seq, x);
+	}
+
+      finally = gimple_eh_else_n_body (eh_else);
+    }
+  else if (tf->may_throw)
     {
       x = gimple_build_label (tf->eh_label);
       gimple_seq_add_stmt (&tf->top_p_seq, x);
@@ -1429,6 +1528,7 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
   x = gimple_build_label (finally_label);
   gimple_seq_add_stmt (&tf->top_p_seq, x);
 
+  lower_eh_constructs_1 (state, finally);
   gimple_seq_add_seq (&tf->top_p_seq, finally);
 
   /* Redirect each incoming goto edge.  */
@@ -1545,12 +1645,22 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
    the estimate of the size of the switch machinery we'd have to add.  */
 
 static bool
-decide_copy_try_finally (int ndests, gimple_seq finally)
+decide_copy_try_finally (int ndests, bool may_throw, gimple_seq finally)
 {
   int f_estimate, sw_estimate;
+  gimple eh_else;
 
   if (!optimize)
     return false;
+
+  /* If there's an EH_ELSE involved, the exception path is separate
+     and really doesn't come into play for this computation.  */
+  eh_else = get_eh_else (finally);
+  if (eh_else)
+    {
+      ndests -= may_throw;
+      finally = gimple_eh_else_n_body (eh_else);
+    }
 
   /* Finally estimate N times, plus N gotos.  */
   f_estimate = count_insns_seq (finally, &eni_size_weights);
@@ -1639,7 +1749,8 @@ lower_try_finally (struct leh_state *state, gimple tp)
   /* We can easily special-case redirection to a single destination.  */
   else if (ndests == 1)
     lower_try_finally_onedest (state, &this_tf);
-  else if (decide_copy_try_finally (ndests, gimple_try_cleanup (tp)))
+  else if (decide_copy_try_finally (ndests, this_tf.may_throw,
+				    gimple_try_cleanup (tp)))
     lower_try_finally_copy (state, &this_tf);
   else
     lower_try_finally_switch (state, &this_tf);
@@ -1925,6 +2036,9 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
 	    case GIMPLE_EH_FILTER:
 	      replace = lower_eh_filter (state, stmt);
 	      break;
+	    case GIMPLE_EH_ELSE:
+	      /* This code is only valid with TRY_FINALLY.  */
+	      gcc_unreachable ();
 	    default:
 	      replace = lower_cleanup (state, stmt);
 	      break;
@@ -1938,6 +2052,10 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
 
       /* Return since we don't want gsi_next () */
       return;
+
+    case GIMPLE_EH_ELSE:
+      /* We should be eliminating this in lower_try_finally et al.  */
+      gcc_unreachable ();
 
     case GIMPLE_TM_ATOMIC:
       lower_tm_atomic_eh (state, gsi);
@@ -2497,7 +2615,7 @@ stmt_could_throw_p (gimple stmt)
   if (code == GIMPLE_ASSIGN || code == GIMPLE_COND)
     return stmt_could_throw_1_p (stmt);
   else if (is_gimple_call (stmt))
-    return (gimple_call_flags (stmt) & ECF_NOTHROW) == 0;
+    return !gimple_call_nothrow_p (stmt);
   else if (gimple_code (stmt) == GIMPLE_ASM)
     return (gimple_asm_volatile_p (stmt));
   else
@@ -2582,7 +2700,7 @@ stmt_can_throw_internal (gimple stmt)
   if (region_nr < 0)
     return false;
 
-  return can_throw_internal_1 (region_nr, is_resx, inlinable_call);
+  return can_throw_internal_1 (region_nr, is_resx);
 }
 
 
@@ -2733,6 +2851,10 @@ refactor_eh_r (gimple_seq seq)
 	    break;
 	  case GIMPLE_EH_FILTER:
 	    refactor_eh_r (gimple_eh_filter_failure (one));
+	    break;
+	  case GIMPLE_EH_ELSE:
+	    refactor_eh_r (gimple_eh_else_n_body (one));
+	    refactor_eh_r (gimple_eh_else_e_body (one));
 	    break;
 	  default:
 	    break;

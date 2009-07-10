@@ -106,6 +106,7 @@ enum gf_mask {
     GF_CALL_TAILCALL		= 1 << 3,
     GF_CALL_VA_ARG_PACK		= 1 << 4,
     GF_CALL_IN_TM_ATOMIC	= 1 << 5,
+    GF_CALL_NOTHROW		= 1 << 6,
     GF_OMP_PARALLEL_COMBINED	= 1 << 0,
 
     /* True on an GIMPLE_OMP_RETURN statement if the return does not require
@@ -449,6 +450,15 @@ struct GTY(()) gimple_statement_eh_filter {
   gimple_seq failure;
 };
 
+/* GIMPLE_EH_ELSE */
+
+struct GTY(()) gimple_statement_eh_else {
+  /* [ WORD 1-4 ]  */
+  struct gimple_statement_base gsbase;
+
+  /* [ WORD 5,6 ] */
+  gimple_seq n_body, e_body;
+};
 
 /* GIMPLE_PHI */
 
@@ -749,6 +759,7 @@ union GTY ((desc ("gimple_statement_structure (&%h)"))) gimple_statement_d {
   struct gimple_statement_bind GTY ((tag ("GSS_BIND"))) gimple_bind;
   struct gimple_statement_catch GTY ((tag ("GSS_CATCH"))) gimple_catch;
   struct gimple_statement_eh_filter GTY ((tag ("GSS_EH_FILTER"))) gimple_eh_filter;
+  struct gimple_statement_eh_else GTY ((tag ("GSS_EH_ELSE"))) gimple_eh_else;
   struct gimple_statement_phi GTY ((tag ("GSS_PHI"))) gimple_phi;
   struct gimple_statement_resx GTY ((tag ("GSS_RESX"))) gimple_resx;
   struct gimple_statement_try GTY ((tag ("GSS_TRY"))) gimple_try;
@@ -793,6 +804,7 @@ gimple gimple_build_asm_vec (const char *, VEC(tree,gc) *, VEC(tree,gc) *,
                              VEC(tree,gc) *);
 gimple gimple_build_catch (tree, gimple_seq);
 gimple gimple_build_eh_filter (tree, gimple_seq);
+gimple gimple_build_eh_else (gimple_seq, gimple_seq);
 gimple gimple_build_try (gimple_seq, gimple_seq, enum gimple_try_flags);
 gimple gimple_build_wce (gimple_seq);
 gimple gimple_build_resx (int);
@@ -1050,6 +1062,7 @@ gimple_has_substatements (gimple g)
     case GIMPLE_BIND:
     case GIMPLE_CATCH:
     case GIMPLE_EH_FILTER:
+    case GIMPLE_EH_ELSE:
     case GIMPLE_TRY:
     case GIMPLE_OMP_FOR:
     case GIMPLE_OMP_MASTER:
@@ -2199,6 +2212,14 @@ gimple_call_nothrow_p (gimple s)
   return (gimple_call_flags (s) & ECF_NOTHROW) != 0;
 }
 
+/* Set S to be a nothrow call.  */
+
+static inline void
+gimple_call_set_nothrow_p (gimple s)
+{
+  GIMPLE_CHECK (s, GIMPLE_CALL);
+  s->gsbase.subcode |= GF_CALL_NOTHROW;
+}
 
 /* Copy all the GF_CALL_* flags from ORIG_CALL to DEST_CALL.  */
 
@@ -2883,7 +2904,6 @@ gimple_eh_filter_set_failure (gimple gs, gimple_seq failure)
 /* Return the EH_FILTER_MUST_NOT_THROW flag.  */
 
 static inline bool
-
 gimple_eh_filter_must_not_throw (gimple gs)
 {
   GIMPLE_CHECK (gs, GIMPLE_EH_FILTER);
@@ -2899,6 +2919,35 @@ gimple_eh_filter_set_must_not_throw (gimple gs, bool mntp)
   gs->gsbase.subcode = (unsigned int) mntp;
 }
 
+/* GIMPLE_EH_ELSE accessors.  */
+
+static inline gimple_seq
+gimple_eh_else_n_body (gimple gs)
+{
+  GIMPLE_CHECK (gs, GIMPLE_EH_ELSE);
+  return gs->gimple_eh_else.n_body;
+}
+
+static inline gimple_seq
+gimple_eh_else_e_body (gimple gs)
+{
+  GIMPLE_CHECK (gs, GIMPLE_EH_ELSE);
+  return gs->gimple_eh_else.e_body;
+}
+
+static inline void
+gimple_eh_else_set_n_body (gimple gs, gimple_seq seq)
+{
+  GIMPLE_CHECK (gs, GIMPLE_EH_ELSE);
+  gs->gimple_eh_else.n_body = seq;
+}
+
+static inline void
+gimple_eh_else_set_e_body (gimple gs, gimple_seq seq)
+{
+  GIMPLE_CHECK (gs, GIMPLE_EH_ELSE);
+  gs->gimple_eh_else.e_body = seq;
+}
 
 /* GIMPLE_TRY accessors. */
 
@@ -4519,6 +4568,12 @@ struct walk_stmt_info
      will be visited more than once.  */
   struct pointer_set_t *pset;
 
+  /* Operand returned by the callbacks.  This is set when calling
+     walk_gimple_seq.  If the walk_stmt_fn or walk_tree_fn callback
+     returns non-NULL, this field will contain the tree returned by
+     the last callback.  */
+  tree callback_result;
+
   /* Indicates whether the operand being examined may be replaced
      with something that matches is_gimple_val (if true) or something
      slightly more complicated (if false).  "Something" technically
@@ -4531,23 +4586,20 @@ struct walk_stmt_info
      statement 'foo (&var)', the flag VAL_ONLY will initially be set
      to true, however, when walking &var, the operand of that
      ADDR_EXPR does not need to be a GIMPLE value.  */
-  bool val_only;
+  BOOL_BITFIELD val_only : 1;
 
   /* True if we are currently walking the LHS of an assignment.  */
-  bool is_lhs;
+  BOOL_BITFIELD is_lhs : 1;
 
   /* Optional.  Set to true by the callback functions if they made any
      changes.  */
-  bool changed;
+  BOOL_BITFIELD changed : 1;
 
   /* True if we're interested in location information.  */
-  bool want_locations;
+  BOOL_BITFIELD want_locations : 1;
 
-  /* Operand returned by the callbacks.  This is set when calling
-     walk_gimple_seq.  If the walk_stmt_fn or walk_tree_fn callback
-     returns non-NULL, this field will contain the tree returned by
-     the last callback.  */
-  tree callback_result;
+  /* True if we've removed the statement that was processed.  */
+  BOOL_BITFIELD removed_stmt : 1;
 };
 
 /* Callback for walk_gimple_stmt.  Called for every statement found

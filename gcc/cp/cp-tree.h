@@ -4278,6 +4278,7 @@ extern bool defaultable_fn_p			(tree);
 extern void fixup_type_variants			(tree);
 extern void clone_function_decl			(tree, int);
 extern void adjust_clone_args			(tree);
+extern void apply_tm_attr			(tree, tree);
 
 /* in cvt.c */
 extern tree convert_to_reference		(tree, tree, int, int, tree);
