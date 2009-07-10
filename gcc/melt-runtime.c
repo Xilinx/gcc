@@ -67,6 +67,9 @@ along with GCC; see the file COPYING3.   If not see
    include here.. */
 extern const unsigned char executable_checksum[16];
 
+/* the generating GGC marking routine */
+extern void gt_ggc_mx_melt_un (void *);
+
 
 
 
@@ -147,7 +150,7 @@ static const char melt_source_dir[] = MELT_SOURCE_DIR;
 static const char melt_module_dir[] = MELT_MODULE_DIR;
 static const char melt_compile_script[] = MELT_COMPILE_SCRIPT;
 
-melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]={};
+melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]={0};
 void* melt_startalz=NULL;
 void* melt_endalz=NULL;
 char* melt_curalz=NULL;
@@ -191,20 +194,10 @@ long melt_debugskipcount;
 int melt_last_global_ix = MELTGLOB__LASTGLOB;
 
 /* our copying garbage collector needs a vector of melt_ptr_t to
-   scan and an hashtable of melt_ptr_t which are local variables
-   copied into GGC heap;  */
+   scan, a la Cheney.  */
 static GTY(()) VEC(melt_ptr_t,gc) *bscanvec;
 
-
-struct GTY(())  basilocalsptr_st {
-  unsigned char lenix;			/* length is prime, this is the index of length */
-  int nbent;
-  melt_ptr_t  GTY((length("melt_primtab[%h.lenix]"))) ptrtab[FLEXIBLE_DIM];
-};
-
-/* @@@ blocaltab is probably not needed, since we have the
-   melt_marking_callback */
-static GTY(()) struct basilocalsptr_st* blocaltab; 
+				  
 
 static void* proghandle;
 
@@ -388,8 +381,7 @@ static melt_ptr_t forwarded_copy (melt_ptr_t);
 
 #ifdef ENABLE_CHECKING
 /* only for debugging, to be set from the debugger */
-static void *bstrangelocal;
-static long nbaddlocalptr;
+
 
 static FILE *debughack_file;
 FILE *melt_dbgtracefile;
@@ -424,61 +416,6 @@ forwarded (void *ptr)
 #endif
 static void scanning (melt_ptr_t);
 
-
-static void
-add_localptr (melt_ptr_t p)
-{
-  HOST_WIDE_INT ix;
-  int h, k;
-  long primsiz = melt_primtab[blocaltab->lenix];
-  if (!p)
-    return;
-  gcc_assert (blocaltab);
-  gcc_assert (blocaltab->nbent >= 0);
-#ifdef ENABLE_CHECKING
-  nbaddlocalptr++;
-  if (p == bstrangelocal)
-    {
-      debugeprintf ("adding #%ld bstrangelocal %p", nbaddlocalptr,
-		    (void *) p);
-    }
-#endif
-  gcc_assert ((void *) p != (void *) FORWARDED_DISCR);
-  gcc_assert (primsiz > 0);
-  gcc_assert (blocaltab->nbent < primsiz);
-  ix = (HOST_WIDE_INT) p;
-  ix ^= ((HOST_WIDE_INT) p) >> 11;
-  ix &= 0x3fffffff;
-  h = (int) ix % primsiz;
-  for (k = h; k < primsiz; k++)
-    {
-      if (!blocaltab->ptrtab[k])
-	{
-	  blocaltab->ptrtab[k] = p;
-	  blocaltab->nbent++;
-	  gcc_assert (blocaltab->nbent < primsiz);
-	  return;
-	}
-      else if (blocaltab->ptrtab[k] == p)
-	return;
-    }
-  for (k = 0; k < h; k++)
-    {
-      if (!blocaltab->ptrtab[k])
-	{
-	  blocaltab->ptrtab[k] = p;
-	  blocaltab->nbent++;
-	  gcc_assert (blocaltab->nbent < primsiz);
-	  return;
-	}
-      else if (blocaltab->ptrtab[k] == p)
-	return;
-    }
-  /* the only way to reach this point is that blocaltab is
-     full; this should never happen, since it was allocated bigger
-     than the number of locals! */
-  fatal_error ("corrupted bloctab foradd_localptr p=%p", (void *) p);
-}
 
 
 #if ENABLE_CHECKING
@@ -675,6 +612,8 @@ melt_cbreak_at (const char *msg, const char *fil, int lin)
  * the marking routine is registered thru PLUGIN_GGC_MARKING
  * it makes GGC play nice with MELT.
  **/
+static long meltmarkingcount;
+
 static void
 melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 			  void* user_data ATTRIBUTE_UNUSED)
@@ -682,6 +621,8 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
   int ix = 0;
   melt_module_info_t *mi = 0;
   struct callframe_melt_st *cf = 0;
+  meltmarkingcount++;
+  dbgprintf("start of melt_marking_callback %ld", meltmarkingcount);
   /* first, scan all the modules and mark their frame if it is non null */
   if (modinfvec) 
     for (ix = 0; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
@@ -691,13 +632,16 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
         (mi->marker_rout) (*mi->iniframp);
       };
   /* then scan all the MELT call frames */
-  for (cf = (struct callframe_melt_st*) melt_topframe; cf; cf = cf->prev) {
+  for (cf = (struct callframe_melt_st*) melt_topframe; cf != NULL;
+       cf = cf->prev) {
     if (cf->clos) {
       meltroutfun_t*funp = 0;
       gcc_assert(cf->clos->rout);
       funp = cf->clos->rout->routfunad;
       gcc_assert(funp);
-      /* call the function specially with the MARKGCC special parameter descriptor */
+      gt_ggc_mx_melt_un ((melt_ptr_t)(cf->clos));
+      /* call the function specially with the MARKGCC special
+	 parameter descriptor */
       funp(cf->clos, (melt_ptr_t)cf, MELTPAR_MARKGGC, 
 	   (union meltparam_un*)0, (char*)0, (union meltparam_un*)0);
       continue;
@@ -709,9 +653,9 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	for (ix= 0; ix<(int) cf->nbvar; ix++) 
 	  if (cf->varptr[ix]) 
 	    gt_ggc_mx_melt_un ((melt_ptr_t)(cf->varptr[ix]));
-      }
-    
+      } 
   }
+  dbgprintf("end of melt_marking_callback %ld", meltmarkingcount);
 }
 
 /***
@@ -720,11 +664,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 void
 melt_garbcoll (size_t wanted, bool needfull)
 {
-  long primix = 0;
-  int locdepth = 0;
-  int nbloc = 0;
-  int nbglob = 0;
-  int locsiz = 0;
+
   int ix = 0;
   struct callframe_melt_st *cfram = NULL;
   melt_ptr_t *storp = NULL;
@@ -761,29 +701,8 @@ melt_garbcoll (size_t wanted, bool needfull)
   wanted++;
   if (wanted < melt_minorsizekilow * sizeof (void *) * 1024)
     wanted = melt_minorsizekilow * sizeof (void *) * 1024;
-  /* compute number of locals and depth of call stack */
-  nbglob = MELTGLOB__LASTGLOB;
-  for (cfram = melt_topframe; cfram != NULL; cfram = cfram->prev)
-    {
-      locdepth++;
-      /* we should never have more than a few thousand locals in a
-         call frame, so we check this */
-      gcc_assert (cfram->nbvar < (int) MELT_MAXNBLOCALVAR);
-      nbloc += cfram->nbvar;
-    }
-  locsiz = 200 + (5 * (locdepth + nbloc + nbglob + 100)) / 4;
-  locsiz |= 0xff;
-  for (primix = 5;
-       melt_primtab[primix] > 0
-       && melt_primtab[primix] <= locsiz; primix++);
-  locsiz = melt_primtab[primix];
-  gcc_assert (locsiz > 10);
-  blocaltab =
-    (struct basilocalsptr_st *)
-    ggc_alloc_cleared (sizeof (struct basilocalsptr_st) +
-		       locsiz * sizeof (void *));
-  blocaltab->lenix = primix;
-  blocaltab->nbent = 0;
+  /* don't need anymore to allocate a local table, because of
+     melt_marking_callback */
   for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
     FORWARDED (melt_globarr[ix]);
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->prev)
@@ -792,14 +711,12 @@ melt_garbcoll (size_t wanted, bool needfull)
       if (cfram->clos)
 	{
 	  FORWARDED (cfram->clos);
-	  add_localptr ((melt_ptr_t) (cfram->clos));
 	}
       for (varix = ((int) cfram->nbvar) - 1; varix >= 0; varix--)
 	{
 	  if (!cfram->varptr[varix])
 	    continue;
 	  FORWARDED (cfram->varptr[varix]);
-	  add_localptr (cfram->varptr[varix]);
 	}
     };
   /* scan the store list */
@@ -885,10 +802,7 @@ melt_garbcoll (size_t wanted, bool needfull)
 	}
       melt_kilowords_sincefull = 0;
     }
-  blocaltab->nbent = -1;
-  ggc_free (blocaltab);
-  blocaltab = NULL;
-  ggc_free (bscanvec);
+  VEC_free (melt_ptr_t, gc, bscanvec);
   bscanvec = NULL;
   melt_check_call_frames (MELT_NOYOUNG, "after garbage collection");
 }

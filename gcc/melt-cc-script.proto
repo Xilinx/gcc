@@ -41,18 +41,19 @@ fi
 ## for commodity, we pass -D -U -I -O* -g to gcc, and -F to set the cflags,
 ## -C to set the compiler, and -x & -v for debugging and -n to omit
 ## line info, -d for dynamic object structures
+xtra_cflags=""
 while getopts "D:I:U:F:C:O:gxvnd" flag ; do
     : the $flag 
     case "$flag" in
-	D) melt_cflags="$melt_cflags -D$OPTARG";;
-	U) melt_cflags="$melt_cflags -U$OPTARG";;
-	I) melt_cflags="$melt_cflags -I$OPTARG";;
-	O) melt_cflags="$melt_cflags -O$OPTARG";;
-	F) melt_cflags="$melt_cflags $OPTARG";;
-	g) melt_cflags="$melt_cflags -g";;
+	D) xtra_cflags="$xtra_cflags -D$OPTARG";;
+	U) xtra_cflags="$xtra_cflags -U$OPTARG";;
+	I) xtra_cflags="$xtra_cflags -I$OPTARG";;
+	O) xtra_cflags="$xtra_cflags -O$OPTARG";;
+	F) xtra_cflags="$xtra_cflags $OPTARG";;
+	g) xtra_cflags="$xtra_cflags -g";;
 	C) melt_cc="$OPTARG";;
-	n)  melt_cflags="$melt_cflags -DMELTGCC_NOLINENUMBERING";;
-	d) melt_cflags="$melt_cflags -DMELTGCC_DYNAMIC_OBJSTRUCT";;
+	n) xtra_cflags="$xtra_cflags -DMELTGCC_NOLINENUMBERING";;
+	d) xtra_cflags="$xtra_cflags -DMELTGCC_DYNAMIC_OBJSTRUCT";;
 	x) set -x;;
 	v) set -v;;
 	*) echo unrecognized flag $flag;;
@@ -105,6 +106,8 @@ date "+const char melt_compiled_timestamp[]=\"%c $csource\";" > $datf.c
 echo "const char melt_md5[]=\"$md5src\";" >> $datf.c
 echo "const char melt_csource[]=\"$csource\";" >> $datf.c
 
+## add the extra cflags in front of the default ones!
+melt_cflags="$xtra_cflags $melt_cflags"
 case `uname` in
 Linux|SunOS|Solaris)
 	$melt_cc -Wall -fPIC $melt_cflags -I "$melt_headerdir" $csource -c -o $nakedynstuff.o
