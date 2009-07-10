@@ -1359,6 +1359,9 @@ add_param_constraints (scop_p scop, ppl_Polyhedron_t context, graphite_dim_t p)
   tree type = TREE_TYPE (parameter);
   tree lb, ub;
 
+  /* Disabled until we fix CPU2006.  */
+  return;
+
   if (!INTEGRAL_TYPE_P (type))
     return;
 

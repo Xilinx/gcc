@@ -1,3 +1,7 @@
+2009-07-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (add_param_constraints): Disabled.
+
 2009-07-10  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-dependences.c (map_into_dep_poly, map_dr_into_dep_poly,
