@@ -1498,12 +1498,13 @@ pdr_add_memory_accesses (ppl_Polyhedron_t accesses, data_reference_p dr,
       ppl_Linear_Expression_t fn, access;
       ppl_Constraint_t cstr;
       ppl_dimension_type subscript = dom_nb_dims + 1 + i;
+      tree afn = DR_ACCESS_FN (dr, nb_subscripts - 1 - i);
 
       ppl_new_Linear_Expression_with_dimension (&fn, dom_nb_dims);
       ppl_new_Linear_Expression_with_dimension (&access, accessp_nb_dims);
 
       value_set_si (v, 1);
-      scan_tree_for_params (region, DR_ACCESS_FN (dr, i), fn, v);
+      scan_tree_for_params (region, afn, fn, v);
       ppl_assign_Linear_Expression_from_Linear_Expression (access, fn);
 
       ppl_set_coef (access, subscript, -1);
