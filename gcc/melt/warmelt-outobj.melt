@@ -3060,6 +3060,7 @@
       (assert_msg "bad files - should be a list of filenames or a filename" ())
       ))
     (debug_msg rlist "after read compile_one_or_more_files rlist")
+    (assert_msg "check non empty rlist" (>i (list_length rlist) 0))
     (compile_list_sexpr rlist curenv modsrcname)    
     ))
 

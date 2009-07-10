@@ -683,8 +683,6 @@ new_structure (const char *name, int isunion, struct fileloc *pos,
       error_at_line (&s->u.s.line, "previous definition here");
     }
 
-  if (is_plugin_file)
-    dbgprintf("new_structure %s at %s:%d", name, pos->file, pos->line);
   
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
   s->inplugin = is_plugin_file;
@@ -734,8 +732,6 @@ find_structure (const char *name, int isunion)
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
   s->inplugin = is_plugin_file;
   s->u.s.tag = name;
-  if (is_plugin_file)
-    dbgprintf("find_structure %s", name);
   structures = s;
   return s;
 }
@@ -849,8 +845,6 @@ note_variable (const char *s, type_p t, options_p o, struct fileloc *pos)
   n->opt = o;
   n->next = variables;
   n->inplugin = is_plugin_file;
-  if (is_plugin_file)
-    dbgprintf("variable %s in plugin %s:%d", s, pos->file, pos->line);
   variables = n;
 }
 
@@ -3874,8 +3868,6 @@ main (int argc, char **argv)
     {
       is_plugin_file = first_plugin_file_ix >= 0
 	&& (int)i >= first_plugin_file_ix;
-      if (is_plugin_file)
-	dbgprintf("plugin file #%d %s", (int) i, gt_files[i]);
       parse_file (gt_files[i]);
       is_plugin_file = false;
     }

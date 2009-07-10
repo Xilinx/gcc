@@ -202,6 +202,8 @@ struct GTY(())  basilocalsptr_st {
   melt_ptr_t  GTY((length("melt_primtab[%h.lenix]"))) ptrtab[FLEXIBLE_DIM];
 };
 
+/* @@@ blocaltab is probably not needed, since we have the
+   melt_marking_callback */
 static GTY(()) struct basilocalsptr_st* blocaltab; 
 
 static void* proghandle;
@@ -261,7 +263,7 @@ melt_argument (const char* argname)
     return NULL;
   else if (!strcmp (argname, "mode")) 
     return melt_mode_string;
-  else if (!strcmp (argname, "argument"))
+  else if (!strcmp (argname, "arg"))
     return melt_argument_string;
   else if (!strcmp (argname, "arglist"))
     return melt_arglist_string;
@@ -279,7 +281,7 @@ melt_argument (const char* argname)
     return melt_srcpath_string;
   else if (!strcmp (argname, "init"))
     return melt_init_string;
-  else if (!strcmp (argname, "secondargument"))
+  else if (!strcmp (argname, "secondarg"))
     return melt_secondargument_string;
   else if (!strcmp (argname, "tempdir"))
     return melt_tempdir_string;
@@ -431,6 +433,8 @@ add_localptr (melt_ptr_t p)
   long primsiz = melt_primtab[blocaltab->lenix];
   if (!p)
     return;
+  gcc_assert (blocaltab);
+  gcc_assert (blocaltab->nbent >= 0);
 #ifdef ENABLE_CHECKING
   nbaddlocalptr++;
   if (p == bstrangelocal)
@@ -441,6 +445,7 @@ add_localptr (melt_ptr_t p)
 #endif
   gcc_assert ((void *) p != (void *) FORWARDED_DISCR);
   gcc_assert (primsiz > 0);
+  gcc_assert (blocaltab->nbent < primsiz);
   ix = (HOST_WIDE_INT) p;
   ix ^= ((HOST_WIDE_INT) p) >> 11;
   ix &= 0x3fffffff;
@@ -451,6 +456,7 @@ add_localptr (melt_ptr_t p)
 	{
 	  blocaltab->ptrtab[k] = p;
 	  blocaltab->nbent++;
+	  gcc_assert (blocaltab->nbent < primsiz);
 	  return;
 	}
       else if (blocaltab->ptrtab[k] == p)
@@ -462,6 +468,7 @@ add_localptr (melt_ptr_t p)
 	{
 	  blocaltab->ptrtab[k] = p;
 	  blocaltab->nbent++;
+	  gcc_assert (blocaltab->nbent < primsiz);
 	  return;
 	}
       else if (blocaltab->ptrtab[k] == p)
@@ -701,7 +708,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	/* if no closure, mark the local pointers */
 	for (ix= 0; ix<(int) cf->nbvar; ix++) 
 	  if (cf->varptr[ix]) 
-	    gt_ggc_mx_melt_un((melt_ptr_t)(cf->varptr[ix]));
+	    gt_ggc_mx_melt_un ((melt_ptr_t)(cf->varptr[ix]));
       }
     
   }
@@ -776,6 +783,7 @@ melt_garbcoll (size_t wanted, bool needfull)
     ggc_alloc_cleared (sizeof (struct basilocalsptr_st) +
 		       locsiz * sizeof (void *));
   blocaltab->lenix = primix;
+  blocaltab->nbent = 0;
   for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
     FORWARDED (melt_globarr[ix]);
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->prev)
@@ -877,6 +885,7 @@ melt_garbcoll (size_t wanted, bool needfull)
 	}
       melt_kilowords_sincefull = 0;
     }
+  blocaltab->nbent = -1;
   ggc_free (blocaltab);
   blocaltab = NULL;
   ggc_free (bscanvec);
@@ -1815,35 +1824,6 @@ unsafe_index_mapobject (struct entryobjectsmelt_st *tab,
 	    frix = ix;
 	  return frix;
 	}
-#if 0 && ENABLE_CHECKING
-      /* this to help hunt bugs on wrongly homonymous objects of same hash & class */
-      else if (curat->obj_hash == attr->obj_hash
-	       && curat->obj_class == attr->obj_class)
-	{
-	  samehashcnt++;
-	  if (flag_melt_debug
-	      || (samehashcnt < 16 || samehashcnt % 16 == 0))
-	    {
-	      melt_checkmsg ("similar gotten & found attr", curat == attr);
-	      dbgprintf
-		("unprobable #%ld gotten %p ##%ld & found attr %p ##%ld of same hash %#x & class %p [%s]",
-		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
-		 curat->obj_serial, curat->obj_hash,
-		 (void *) curat->obj_class,
-		 melt_string_str (curat->
-				     obj_class->obj_vartab[FNAMED_NAME]));
-	      if (melt_is_instance_of
-		  ((melt_ptr_t) attr,
-		   (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
-		dbgprintf ("gotten attr named %s found attr named %s",
-			   melt_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   melt_string_str (curat->obj_vartab
-					       [FNAMED_NAME]));
-	      melt_dbgshortbacktrace
-		("gotten & found attr of same hash & class", 15);
-	    }
-	}
-#endif
     }
   for (ix = 0; ix < (int) h; ix++)
     {
@@ -1861,34 +1841,6 @@ unsafe_index_mapobject (struct entryobjectsmelt_st *tab,
 	    frix = ix;
 	  return frix;
 	}
-#if 0 && ENABLE_CHECKING
-      else if (curat->obj_hash == attr->obj_hash
-	       && curat->obj_class == attr->obj_class)
-	{
-	  samehashcnt++;
-	  if (flag_melt_debug
-	      || (samehashcnt < 16 || samehashcnt % 16 == 0))
-	    {
-	      melt_checkmsg ("similar gotten & found attr", curat == attr);
-	      dbgprintf
-		("unprobable #%ld gotten %p ##%ld & found attr %p ##%ld of same hash %#x & class %p [%s]",
-		 samehashcnt, (void *) attr, attr->obj_serial, (void *) curat,
-		 curat->obj_serial, curat->obj_hash,
-		 (void *) curat->obj_class,
-		 melt_string_str (curat->
-				     obj_class->obj_vartab[FNAMED_NAME]));
-	      if (melt_is_instance_of
-		  ((melt_ptr_t) attr,
-		   (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
-		dbgprintf ("gotten attr named %s found attr named %s",
-			   melt_string_str (attr->obj_vartab[FNAMED_NAME]),
-			   melt_string_str (curat->obj_vartab
-					       [FNAMED_NAME]));
-	      melt_dbgshortbacktrace
-		("gotten & found attr of same hash & class", 15);
-	    }
-	}
-#endif
     }
   if (frix >= 0)
     return frix;		/* found some place in a table with
@@ -7349,7 +7301,8 @@ meltgc_read_file (const char *filnam, const char *locnam)
 #define locnamv   curfram__.varptr[2]
 #define seqv      curfram__.varptr[3]
   memset (&rds, 0, sizeof (rds));
-  if (!filnam)
+  debugeprintf ("meltgc_read_file filnam %s locnam %s", filnam, locnam);
+  if (!filnam || !filnam[0])
     goto end;
   if (!locnam || !locnam[0])
     locnam = basename (filnam);
@@ -7381,6 +7334,14 @@ meltgc_read_file (const char *filnam, const char *locnam)
     };
   rd = 0;
 end:
+  if (!seqv)
+    {
+      debugeprintf ("meltgc_read_file filnam %s fail & return NULL", filnam);
+      warning(0, "MELT file %s read without content, perhaps failed.", filnam);
+    }
+  else
+    debugeprintf ("meltgc_read_file filnam %s return list of %d elem",
+		  filnam, melt_list_length ((melt_ptr_t) seqv));
   MELT_EXITFRAME ();
   return (melt_ptr_t) seqv;
 #undef vecshv
@@ -7529,13 +7490,19 @@ do_initial_command (melt_ptr_t modata_p)
 #define resv      curfram__.varptr[7]
   modatav = modata_p;
   modstr = melt_argument ("mode");
-  argstr = melt_argument ("argument");
+  argstr = melt_argument ("arg");
   argliststr = melt_argument ("arglist");
-  secondargstr = melt_argument ("secondargument");
+  secondargstr = melt_argument ("secondarg");
   debugeprintf ("do_initial_command mode_string %s modatav %p",
 		modstr, (void *) modatav);
-  if (!MELT_PREDEF (INITIAL_SYSTEM_DATA))
-    goto end;
+  debugeprintf ("do_initial_command argstr %s", argstr);
+  debugeprintf ("do_initial_command argliststr %s", argliststr);
+  debugeprintf ("do_initial_command secondargstr %s", secondargstr);
+  if (!MELT_PREDEF (INITIAL_SYSTEM_DATA)) 
+    {
+      error("MELT cannot execute initial command mode %s without INITIAL_SYSTEM_DATA", modstr);
+      goto end;
+    }
   dictv = melt_get_inisysdata(FSYSDAT_CMD_FUNDICT);
   debugeprintf ("do_initial_command dictv=%p", dictv);
   debugeprintvalue ("do_initial_command dictv", dictv);
@@ -7997,13 +7964,10 @@ plugin_init(struct plugin_name_args* plugin_info,
 	    struct plugin_gcc_version* version) 
 {
   gcc_assert (plugin_info);
-  fprintf(stderr, "MELT plugin version base %s date %s phase %s revision %s confparam %s\n",
-	  version->basever, version->datestamp, version->devphase,
-	  version->revision, version->configuration_arguments);
   melt_plugin_argc = plugin_info->argc;
   melt_plugin_argv = plugin_info->argv;
   melt_really_initialize (plugin_info->base_name);
-  return 1;
+  return 0; /* success */
 }
 
 #else
@@ -9745,6 +9709,13 @@ melt_output_cfile_decl_impl (melt_ptr_t unitnam,
   if (rename (dotcdotnam, dotcnam))
     fatal_error ("failed to rename melt generated file %s to %s - %m",
 		 dotcdotnam, dotcnam);
+  {
+    static char pwdbuf[500];
+    memset(pwdbuf, 0, sizeof(pwdbuf));
+    getcwd(pwdbuf, sizeof(pwdbuf)-1);
+    inform (UNKNOWN_LOCATION, "MELT generated file %s in %s",
+	    dotcnam, pwdbuf);
+  }
   free (dotcnam);
   free (dotcdotnam);
   free (dotcpercentnam);

@@ -1,4 +1,24 @@
 
+2009-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (blocaltab): is probably obsolete.
+	(melt_argument): fixed typos in argument names.
+	(add_localptr): added asserts.
+	(unsafe_index_mapobject): removed old #if 0 code for checking.
+	(meltgc_read_file): issue warning when nothing is read.
+	(do_initial_command): added debug printfs.
+	(plugin_init): should return 0 on success.
+	(melt_output_cfile_decl_impl): inform the user.
+	* melt/warmelt-genobj.melt: check that the read files are not
+	empty.
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+	* gengtype.c: removed dbgprintf.
+	* melt-make.mk: added MELT_DEBUG
+	
 2009-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[compilable as a plugin to trunk -with RTLD_GLOBAL]
 	* run-melt.h: include files in plugin mode.

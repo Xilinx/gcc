@@ -45,19 +45,20 @@ meltarg_compile_script=$(if $(melt_is_plugin),-fplugin-arg-melt-compile-script,-
 meltarg_arg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-arg)
 meltarg_secondarg=$(if $(melt_is_plugin),-fplugin-arg-melt-secondarg,-fmelt-secondarg)
 
+## MELT_DEBUG could be set to -fmelt-debug or -fplugin-arg-melt-debug
 ## the invocation to translate the very first initial MELT file
 MELTCCINIT1=$(melt_cc1) $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
 	      $(meltarg_module_path)=.:$(melt_make_module_dir) \
 	      $(meltarg_source_path)=.:$(melt_make_source_dir):$(melt_source_dir) \
 	      $(meltarg_compile_script)=$(melt_make_compile_script) \
-	      $(meltarg_tempdir)=. 
+	      $(meltarg_tempdir)=.  $(MELT_DEBUG)
 
 ## the invocation to translate the other files
 MELTCCFILE1=$(melt_cc1)  $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
 	      $(meltarg_module_path)=.:$(melt_make_module_dir) \
 	      $(meltarg_source_path)=.:$(melt_make_source_dir):$(melt_source_dir) \
 	      $(meltarg_compile_script)=$(melt_make_compile_script) \
-	      $(meltarg_tempdir)=. 
+	      $(meltarg_tempdir)=.  $(MELT_DEBUG)
 
 
 vpath %.so $(melt_make_module_dir)
