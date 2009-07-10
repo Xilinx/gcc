@@ -1254,7 +1254,7 @@ cgraph_is_inline_body_available_in_module (tree decl, unsigned module_id)
    is a flag indicating that a non null link target must be returned.  */
 
 struct cgraph_node *
-cgraph_real_node_1 (tree decl, bool do_assert)
+cgraph_lipo_get_resolved_node_1 (tree decl, bool do_assert)
 {
   struct cgraph_sym **slot;
 
@@ -1304,14 +1304,11 @@ cgraph_real_node_1 (tree decl, bool do_assert)
    is resolved to after linking/symbol resolution.  */
 
 struct cgraph_node *
-cgraph_real_node (tree decl)
+cgraph_lipo_get_resolved_node (tree decl)
 {
   struct cgraph_node *node = NULL;
 
-  /* No linking is needed.  */
-  if (!L_IPO_COMP_MODE || !global_link_performed)
-    return cgraph_node (decl);
-
+  gcc_assert (L_IPO_COMP_MODE && global_link_performed);
   gcc_assert (cgraph_symtab);
 
   /* Never merged.  */
@@ -1326,7 +1323,7 @@ cgraph_real_node (tree decl)
   if (TREE_STATIC (decl))
     return cgraph_node (decl);
 
-  node = cgraph_real_node_1 (decl, true);
+  node = cgraph_lipo_get_resolved_node_1 (decl, true);
   return node;
 }
 
@@ -1349,7 +1346,7 @@ cgraph_remove_link_node (struct cgraph_node *node)
 
   /* Skip if node is an inline clone or if the node has
      defintion that is not really resolved to the merged node.  */
-  if (cgraph_real_node_1 (decl, false) != node)
+  if (cgraph_lipo_get_resolved_node_1 (decl, false) != node)
     return;
 
   name = DECL_ASSEMBLER_NAME (decl);

@@ -471,7 +471,7 @@ get_coverage_counts_entry (struct function *func,
     return NULL;
 
   decl = func->decl;
-  real_node = cgraph_real_node_1 (decl, false);
+  real_node = cgraph_lipo_get_resolved_node_1 (decl, false);
   if (real_node && 0)
     {
       counts_entry_t real_elt;

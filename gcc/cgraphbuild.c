@@ -168,7 +168,9 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
         {
           struct cgraph_edge *e;
           tree decl = direct_call1->decl;
-          e = cgraph_create_edge (node, cgraph_real_node (decl), NULL,
+          e = cgraph_create_edge (node,
+	                          cgraph_lipo_get_resolved_node (decl),
+				  NULL,
                                   count1, 0, 0);
           e->indirect_call = 1;
         }
@@ -180,7 +182,9 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
         {
           struct cgraph_edge *e;
           tree decl = direct_call2->decl;
-          e = cgraph_create_edge (node, cgraph_real_node (decl), NULL,
+          e = cgraph_create_edge (node,
+	                          cgraph_lipo_get_resolved_node (decl),
+				  NULL,
                                   count2, 0, 0);
           e->indirect_call = 1;
         }
@@ -230,7 +234,11 @@ build_cgraph_edges (void)
 	  {
 	    size_t i;
 	    size_t n = gimple_call_num_args (stmt);
-	    cgraph_create_edge (node, cgraph_real_node (decl), stmt,
+	    struct cgraph_node *callee_node = cgraph_node (decl);
+
+	    if (L_IPO_COMP_MODE)
+	      callee_node = cgraph_lipo_get_resolved_node (decl);
+	    cgraph_create_edge (node, callee_node, stmt,
 				bb->count, compute_call_stmt_bb_frequency (current_function_decl, bb),
 				bb->loop_depth);
 	    for (i = 0; i < n; i++)
@@ -333,11 +341,16 @@ rebuild_cgraph_edges (void)
 	tree decl;
 
 	if (is_gimple_call (stmt) && (decl = gimple_call_fndecl (stmt)))
-	  cgraph_create_edge (node, cgraph_real_node (decl), stmt,
-			      bb->count,
-			      compute_call_stmt_bb_frequency
+	  {
+            struct cgraph_node *callee_node = cgraph_node (decl);
+            if (L_IPO_COMP_MODE)
+              callee_node = cgraph_lipo_get_resolved_node (decl);
+	    cgraph_create_edge (node, callee_node, stmt,
+                                bb->count,
+                                compute_call_stmt_bb_frequency
 			        (current_function_decl, bb),
-			      bb->loop_depth);
+                                bb->loop_depth);
+          }
 
       }
 

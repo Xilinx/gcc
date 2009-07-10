@@ -733,7 +733,9 @@ verify_cgraph_node (struct cgraph_node *node)
 			    error_found = true;
 			  }
 			if (!clone_of_p (cgraph_node (decl), e->callee)
-                            && !clone_of_p (cgraph_real_node (decl), e->callee)
+                            && (!L_IPO_COMP_MODE
+                                || !clone_of_p (cgraph_lipo_get_resolved_node (decl),
+                                                e->callee))
 			    && !e->callee->global.inlined_to)
 			  {
 			    error ("edge points to wrong declaration:");
@@ -1972,8 +1974,8 @@ cgraph_materialize_all_clones (void)
 
 	    if (decl && decl != e->callee->decl
                 && (!L_IPO_COMP_MODE || !decl
-                    || (cgraph_real_node (decl)
-                        != cgraph_real_node (e->callee->decl))))
+                    || (cgraph_lipo_get_resolved_node (decl)
+                        != cgraph_lipo_get_resolved_node (e->callee->decl))))
 	      {
 		gimple new_stmt;
 		gimple_stmt_iterator gsi;
