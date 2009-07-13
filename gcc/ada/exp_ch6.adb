@@ -1146,7 +1146,7 @@ package body Exp_Ch6 is
             --  resulting variable is a temporary which does not designate
             --  the proper out-parameter, which may not be addressable. In
             --  that case, generate an assignment to the original expression
-            --  (before expansion of the  packed reference) so that the proper
+            --  (before expansion of the packed reference) so that the proper
             --  expansion of assignment to a packed component can take place.
 
             declare
@@ -3236,6 +3236,7 @@ package body Exp_Ch6 is
                        (Passoc, Next_Named_Actual (Parent (Temp)));
                   end loop;
                end;
+
             end if;
          end;
       end if;
@@ -4652,13 +4653,21 @@ package body Exp_Ch6 is
 
       end if;
 
-      Analyze (N);
-
       --  If it is a function call it can appear in elaboration code and
       --  the called entity must be frozen here.
 
       if Ekind (Subp) = E_Function then
          Freeze_Expression (Name (N));
+      end if;
+
+      --  Analyze and resolve the new call. The actuals have already been
+      --  resolved, but expansion of a function call will add extra actuals
+      --  if needed. Analysis of a procedure call already includes resolution.
+
+      Analyze (N);
+
+      if Ekind (Subp) = E_Function then
+         Resolve (N, Etype (Subp));
       end if;
    end Expand_Protected_Subprogram_Call;
 
