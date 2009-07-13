@@ -166,7 +166,7 @@ host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib l
 # binutils, gas and ld appear in that order because it makes sense to run
 # "make check" in that particular order.
 # If --enable-gold is used, "gold" will replace "ld".
-host_tools="texinfo byacc flex bison binutils gas ld fixincludes gcc sid sim gdb make patch prms send-pr gprof etc expect dejagnu ash bash bzip2 m4 autoconf automake libtool diff rcs fileutils shellutils time textutils wdiff find uudecode hello tar gzip indent recode release sed utils guile perl gawk findutils gettext zip fastjar gnattools"
+host_tools="texinfo byacc flex bison binutils gas ld fixincludes gcc cgen sid sim gdb make patch prms send-pr gprof etc expect dejagnu ash bash bzip2 m4 autoconf automake libtool diff rcs fileutils shellutils time textutils wdiff find uudecode hello tar gzip indent recode release sed utils guile perl gawk findutils gettext zip fastjar gnattools"
 
 # libgcj represents the runtime libraries only used by gcj.
 libgcj="target-libffi \
@@ -1468,11 +1468,11 @@ AC_SUBST(poststage1_ldflags)
 # Libraries to use for stage2 and later builds.  This defaults to the
 # argument passed to --with-host-libstdcxx.
 AC_ARG_WITH(boot-libs,
-[  --with-boot-libs=LIBS     Libraries for stage2 and later]
+[  --with-boot-libs=LIBS     Libraries for stage2 and later],
 [if test "$withval" = "no" -o "$withval" = "yes"; then
    poststage1_libs=
  else
-  poststage1_libs=$withval
+   poststage1_libs=$withval
  fi],
 [poststage1_libs=$with_host_libstdcxx])
 AC_SUBST(poststage1_libs)
@@ -3131,5 +3131,14 @@ AC_SUBST(datarootdir)
 AC_SUBST(docdir)
 AC_SUBST(pdfdir)
 AC_SUBST(htmldir)
+
+# Specify what files to not compare during bootstrap.
+
+compare_exclusions="gcc/cc*-checksum\$(objext) | gcc/ada/*tools/*"
+case "$target" in
+  hppa*64*-*-hpux*) ;;
+  hppa*-*-hpux*) compare_exclusions="gcc/cc*-checksum\$(objext) | */libgcc/lib2funcs* | gcc/ada/*tools/*" ;;
+esac
+AC_SUBST(compare_exclusions)
 
 AC_OUTPUT(Makefile)

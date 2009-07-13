@@ -121,10 +121,6 @@ package Prj is
    --  The name for the standard GNAT suffix for Ada body source file name
    --  ".adb". Initialized by Prj.Initialize.
 
-   function Slash return Path_Name_Type;
-   pragma Inline (Slash);
-   --  "/", used as the path of locally removed files
-
    Config_Project_File_Extension : String := ".cgpr";
    Project_File_Extension : String := ".gpr";
    --  The standard config and user project file name extensions. They are not
@@ -403,6 +399,12 @@ package Prj is
    --  Return True if we know how to compile Source (i.e. if a compiler is
    --  defined). This doesn't indicate whether the source should be compiled.
 
+   function Object_To_Global_Archive (Source : Source_Id) return Boolean;
+   pragma Inline (Object_To_Global_Archive);
+   --  Return True if the object file should be put in the global archive.
+   --  This is for Ada, when only the closure of a main needs to be
+   --  (re)compiled.
+
    function Other_Part (Source : Source_Id) return Source_Id;
    pragma Inline (Other_Part);
    --  Source ID for the other part, if any: for a spec, indicates its body;
@@ -585,7 +587,7 @@ package Prj is
                            Mapping_Spec_Suffix          => No_File,
                            Mapping_Body_Suffix          => No_File,
                            Config_File_Switches         => No_Name_List,
-                           Dependency_Kind              => Makefile,
+                           Dependency_Kind              => None,
                            Dependency_Option            => No_Name_List,
                            Compute_Dependency           => No_Name_List,
                            Include_Option               => No_Name_List,
@@ -638,7 +640,7 @@ package Prj is
       Name       : Name_Id := No_Name;
       File_Names : File_Names_Data;
    end record;
-   type Unit_Index is access Unit_Data;
+   type Unit_Index is access all Unit_Data;
    No_Unit_Index : constant Unit_Index := null;
    --  Name and File and Path names of a unit, with a reference to its
    --  GNAT Project File(s).
@@ -666,7 +668,10 @@ package Prj is
       --  Kind of the source: spec, body or subunit
 
       Unit                   : Unit_Index          := No_Unit_Index;
-      --  Name of the unit, if language is unit based
+      --  Name of the unit, if language is unit based. This is only set for
+      --  those files that are part of the compilation set (for instance a
+      --  file in an extended project that is overridden will not have this
+      --  field set).
 
       Index                  : Int                 := 0;
       --  Index of the source in a multi unit source file (the same Source_Data
@@ -676,11 +681,6 @@ package Prj is
 
       Locally_Removed        : Boolean             := False;
       --  True if the source has been "excluded"
-
-      Get_Object             : Boolean             := False;
-      --  Indicates that the object of the source should be put in the global
-      --  archive. This is for Ada, when only the closure of a main needs to
-      --  be compiled/recompiled.
 
       Replaced_By            : Source_Id           := No_Source;
 
@@ -692,8 +692,6 @@ package Prj is
 
       Path                   : Path_Information    := No_Path_Information;
       --  Path name of the source
-      --  Path.Name is set to Slash for an excluded file that does not belong
-      --  in the project in fact
 
       Source_TS              : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Time stamp of the source file
@@ -753,7 +751,6 @@ package Prj is
                        Unit                   => No_Unit_Index,
                        Index                  => 0,
                        Locally_Removed        => False,
-                       Get_Object             => False,
                        Replaced_By            => No_Source,
                        File                   => No_File,
                        Display_File           => No_File,
@@ -833,77 +830,6 @@ package Prj is
 
    --  The following record contains data for a naming scheme
 
-   type Naming_Data is record
-
-      Dot_Replacement : File_Name_Type := No_File;
-      --  The string to replace '.' in the source file name (for Ada)
-
-      Casing : Casing_Type := All_Lower_Case;
-      --  The casing of the source file name (for Ada)
-
-      Spec_Suffix : Array_Element_Id := No_Array_Element;
-      --  The string to append to the unit name for the
-      --  source file name of a spec.
-      --  Indexed by the programming language.
-
-      Body_Suffix : Array_Element_Id := No_Array_Element;
-      --  The string to append to the unit name for the
-      --  source file name of a body.
-      --  Indexed by the programming language.
-
-      Separate_Suffix : File_Name_Type := No_File;
-      --  String to append to unit name for source file name of an Ada subunit
-
-      Specs : Array_Element_Id := No_Array_Element;
-      --  An associative array mapping individual specs to source file names
-      --  This is specific to unit-based languages.
-
-      Bodies : Array_Element_Id := No_Array_Element;
-      --  An associative array mapping individual bodies to source file names
-      --  This is specific to unit-based languages.
-
-      Specification_Exceptions : Array_Element_Id := No_Array_Element;
-      --  An associative array listing spec file names that do not have the
-      --  spec suffix. Not used by Ada. Indexed by programming language name.
-
-      Implementation_Exceptions : Array_Element_Id := No_Array_Element;
-      --  An associative array listing body file names that do not have the
-      --  body suffix. Not used by Ada. Indexed by programming language name.
-
-   end record;
-
-   function Spec_Suffix_Of
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : Naming_Data) return String;
-
-   function Spec_Suffix_Id_Of
-     (In_Tree     : Project_Tree_Ref;
-      Language_Id : Name_Id;
-      Naming      : Naming_Data) return File_Name_Type;
-
-   procedure Set_Spec_Suffix
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : in out Naming_Data;
-      Suffix   : File_Name_Type);
-
-   function Body_Suffix_Id_Of
-     (In_Tree     : Project_Tree_Ref;
-      Language_Id : Name_Id;
-      Naming      : Naming_Data) return File_Name_Type;
-
-   function Body_Suffix_Of
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : Naming_Data) return String;
-
-   procedure Set_Body_Suffix
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : in out Naming_Data;
-      Suffix   : File_Name_Type);
-
    function Get_Object_Directory
      (Project             : Project_Id;
       Including_Libraries : Boolean;
@@ -924,18 +850,6 @@ package Prj is
      (Proj : Project_Id) return Project_Id;
    --  Returns the ultimate extending project of project Proj. If project Proj
    --  is not extended, returns Proj.
-
-   function Standard_Naming_Data
-     (Tree : Project_Tree_Ref := No_Project_Tree) return Naming_Data;
-   pragma Inline (Standard_Naming_Data);
-   --  The standard GNAT naming scheme when Tree is No_Project_Tree.
-   --  Otherwise, return the default naming scheme for the project tree Tree,
-   --  which must have been Initialized.
-
-   function Same_Naming_Scheme
-     (Left, Right : Naming_Data) return Boolean;
-   --  Returns True if Left and Right are the same naming scheme
-   --  not considering Specs and Bodies.
 
    type Project_List_Element;
    type Project_List is access all Project_List_Element;
@@ -1140,9 +1054,6 @@ package Prj is
       Location : Source_Ptr := No_Location;
       --  The location in the project file source of the reserved word project
 
-      Naming : Naming_Data := Standard_Naming_Data;
-      --  The naming scheme of this project file
-
       ---------------
       -- Languages --
       ---------------
@@ -1324,9 +1235,8 @@ package Prj is
 
    end record;
 
-   function Empty_Project (Tree : Project_Tree_Ref) return Project_Data;
-   --  Return the representation of an empty project in project Tree tree.
-   --  The project tree Tree must have been Initialized and/or Reset.
+   function Empty_Project return Project_Data;
+   --  Return the representation of an empty project.
 
    function Is_Extending
      (Extending : Project_Id;
@@ -1428,18 +1338,6 @@ package Prj is
    procedure Reset (Tree : Project_Tree_Ref);
    --  This procedure resets all the tables that are used when processing a
    --  project file tree. Initialize must be called before the call to Reset.
-
-   procedure Register_Default_Naming_Scheme
-     (Language            : Name_Id;
-      Default_Spec_Suffix : File_Name_Type;
-      Default_Body_Suffix : File_Name_Type;
-      In_Tree             : Project_Tree_Ref);
-   --  Register the default suffixes for a given language. These extensions
-   --  will be ignored if the user has specified a new naming scheme in a
-   --  project file.
-   --
-   --  Otherwise, this information will be automatically added to Naming_Data
-   --  when a project is processed, in the lists Spec_Suffix and Body_Suffix.
 
    package Project_Boolean_Htable is new Simple_HTable
      (Header_Num => Header_Num,
@@ -1550,16 +1448,6 @@ private
       Last : in out Natural);
    --  Append a String to the Buffer
 
-   type Naming_Id is new Nat;
-
-   package Naming_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Naming_Data,
-      Table_Index_Type     => Naming_Id,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 5,
-      Table_Increment      => 100);
-   --  Table storing the naming data for gnatmake/gprmake
-
    package Path_File_Table is new GNAT.Dynamic_Tables
      (Table_Component_Type => Path_Name_Type,
       Table_Index_Type     => Natural,
@@ -1586,26 +1474,28 @@ private
    --  A table to store the object dirs, before creating the object path file
 
    type Private_Project_Tree_Data is record
-      Namings        : Naming_Table.Instance;
       Path_Files     : Path_File_Table.Instance;
       Source_Paths   : Source_Path_Table.Instance;
       Object_Paths   : Object_Path_Table.Instance;
-      Default_Naming : Naming_Data;
 
       Current_Source_Path_File : Path_Name_Type := No_Path;
       --  Current value of project source path file env var. Used to avoid
       --  setting the env var to the same value.
+      --  gnatmake only
 
       Current_Object_Path_File : Path_Name_Type := No_Path;
       --  Current value of project object path file env var. Used to avoid
       --  setting the env var to the same value.
+      --  gnatmake only
 
       Ada_Path_Buffer : String_Access := new String (1 .. 1024);
       --  A buffer where values for ADA_INCLUDE_PATH and ADA_OBJECTS_PATH are
       --  stored.
+      --  gnatmake only
 
       Ada_Path_Length : Natural := 0;
       --  Index of the last valid character in Ada_Path_Buffer
+      --  gnatmake only
 
       Ada_Prj_Include_File_Set : Boolean := False;
       Ada_Prj_Objects_File_Set : Boolean := False;
@@ -1615,8 +1505,10 @@ private
       --  effect on most platforms, except on VMS where the logical names are
       --  deassigned, thus avoiding the pollution of the environment of the
       --  caller.
+      --  gnatmake only
 
       Fill_Mapping_File : Boolean := True;
+      --  gnatmake only
 
    end record;
    --  Type to represent the part of a project tree which is private to the

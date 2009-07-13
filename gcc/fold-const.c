@@ -988,7 +988,7 @@ fold_undefer_overflow_warnings (bool issue, const_gimple stmt, int code)
     locus = input_location;
   else
     locus = gimple_location (stmt);
-  warning (OPT_Wstrict_overflow, "%H%s", &locus, warnmsg);
+  warning_at (locus, OPT_Wstrict_overflow, "%s", warnmsg);
 }
 
 /* Stop deferring overflow warnings, ignoring any deferred
@@ -5303,6 +5303,8 @@ fold_cond_expr_with_comparison (tree type, tree arg0, tree arg1, tree arg2)
     switch (comp_code)
       {
       case EQ_EXPR:
+	if (TREE_CODE (arg1) == INTEGER_CST)
+	  break;
 	/* We can replace A with C1 in this case.  */
 	arg1 = fold_convert (type, arg01);
 	return fold_build3 (COND_EXPR, type, arg0, arg1, arg2);
@@ -13225,35 +13227,36 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
     } /* switch (code) */
 }
 
-/* Callback for walk_tree, looking for LABEL_EXPR.
-   Returns tree TP if it is LABEL_EXPR. Otherwise it returns NULL_TREE.
-   Do not check the sub-tree of GOTO_EXPR.  */
+/* Callback for walk_tree, looking for LABEL_EXPR.  Return *TP if it is
+   a LABEL_EXPR; otherwise return NULL_TREE.  Do not check the subtrees
+   of GOTO_EXPR.  */
 
 static tree
-contains_label_1 (tree *tp,
-                  int *walk_subtrees,
-                  void *data ATTRIBUTE_UNUSED)
+contains_label_1 (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
   switch (TREE_CODE (*tp))
     {
     case LABEL_EXPR:
       return *tp;
+
     case GOTO_EXPR:
       *walk_subtrees = 0;
-    /* no break */
+
+      /* ... fall through ...  */
+
     default:
       return NULL_TREE;
     }
 }
 
-/* Checks whether the sub-tree ST contains a label LABEL_EXPR which is
-   accessible from outside the sub-tree. Returns NULL_TREE if no
-   addressable label is found.  */
+/* Return whether the sub-tree ST contains a label which is accessible from
+   outside the sub-tree.  */
 
 static bool
 contains_label_p (tree st)
 {
-  return (walk_tree (&st, contains_label_1 , NULL, NULL) != NULL_TREE);
+  return
+   (walk_tree_without_duplicates (&st, contains_label_1 , NULL) != NULL_TREE);
 }
 
 /* Fold a ternary expression of code CODE and type TYPE with operands

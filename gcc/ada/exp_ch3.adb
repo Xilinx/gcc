@@ -53,6 +53,7 @@ with Sem_Aux;  use Sem_Aux;
 with Sem_Attr; use Sem_Attr;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
+with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Disp; use Sem_Disp;
 with Sem_Eval; use Sem_Eval;
@@ -2621,13 +2622,15 @@ package body Exp_Ch3 is
                      Stmts :=
                        Build_Initialization_Call
                          (Loc,
-                          Make_Selected_Component (Loc,
-                            Prefix => Make_Identifier (Loc, Name_uInit),
-                            Selector_Name => New_Occurrence_Of (Id, Loc)),
-                          Typ,
-                          In_Init_Proc => True,
-                          Enclos_Type => Rec_Type,
-                          Discr_Map => Discr_Map,
+                          Id_Ref          =>
+                            Make_Selected_Component (Loc,
+                              Prefix        =>
+                                Make_Identifier (Loc, Name_uInit),
+                              Selector_Name => New_Occurrence_Of (Id, Loc)),
+                          Typ             => Typ,
+                          In_Init_Proc    => True,
+                          Enclos_Type     => Rec_Type,
+                          Discr_Map       => Discr_Map,
                           Constructor_Ref => Expression (Decl));
                   else
                      Stmts := Build_Assignment (Id, Expression (Decl));
@@ -2641,13 +2644,14 @@ package body Exp_Ch3 is
                   Stmts :=
                     Build_Initialization_Call
                       (Loc,
-                       Make_Selected_Component (Loc,
-                         Prefix => Make_Identifier (Loc, Name_uInit),
-                         Selector_Name => New_Occurrence_Of (Id, Loc)),
-                       Typ,
+                       Id_Ref       =>
+                         Make_Selected_Component (Loc,
+                           Prefix        => Make_Identifier (Loc, Name_uInit),
+                           Selector_Name => New_Occurrence_Of (Id, Loc)),
+                       Typ          => Typ,
                        In_Init_Proc => True,
-                       Enclos_Type => Rec_Type,
-                       Discr_Map => Discr_Map);
+                       Enclos_Type  => Rec_Type,
+                       Discr_Map    => Discr_Map);
 
                   Clean_Task_Names (Typ, Proc_Id);
 
@@ -4515,6 +4519,14 @@ package body Exp_Ch3 is
                   null;
                else
                   Apply_Constraint_Check (Expr, Typ);
+
+                  --  If the expression has been marked as requiring a range
+                  --  generate it now and reset the flag.
+
+                  if Do_Range_Check (Expr) then
+                     Set_Do_Range_Check (Expr, False);
+                     Generate_Range_Check (Expr, Typ, CE_Range_Check_Failed);
+                  end if;
                end if;
             end if;
 
@@ -5693,6 +5705,12 @@ package body Exp_Ch3 is
          Next_Component (Comp);
       end loop;
 
+      --  Handle constructors of non-tagged CPP_Class types
+
+      if not Is_Tagged_Type (Def_Id) and then Is_CPP_Class (Def_Id) then
+         Set_CPP_Constructors (Def_Id);
+      end if;
+
       --  Creation of the Dispatch Table. Note that a Dispatch Table is built
       --  for regular tagged types as well as for Ada types deriving from a C++
       --  Class, but not for tagged types directly corresponding to C++ classes
@@ -6004,6 +6022,29 @@ package body Exp_Ch3 is
          if Present (Wrapper_Body_List) then
             Append_Freeze_Actions (Def_Id, Wrapper_Body_List);
          end if;
+
+         --  Create extra formals for the primitive operations of the type.
+         --  This must be done before analyzing the body of the initialization
+         --  procedure, because a self-referential type might call one of these
+         --  primitives in the body of the init_proc itself.
+
+         declare
+            Elmt : Elmt_Id;
+            Subp : Entity_Id;
+
+         begin
+            Elmt := First_Elmt (Primitive_Operations (Def_Id));
+            while Present (Elmt) loop
+               Subp := Node (Elmt);
+               if not Has_Foreign_Convention (Subp)
+                 and then not Is_Predefined_Dispatching_Operation (Subp)
+               then
+                  Create_Extra_Formals (Subp);
+               end if;
+
+               Next_Elmt (Elmt);
+            end loop;
+         end;
       end if;
    end Expand_Freeze_Record_Type;
 

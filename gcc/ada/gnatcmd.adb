@@ -417,7 +417,7 @@ procedure GNATCmd is
 
                if The_Command = List then
                   if Unit.File_Names (Impl) /= null
-                    and then Unit.File_Names (Impl).Path.Name /= Slash
+                    and then not Unit.File_Names (Impl).Locally_Removed
                   then
                      --  There is a body, check if it is for this project
 
@@ -427,7 +427,7 @@ procedure GNATCmd is
                         Subunit := False;
 
                         if Unit.File_Names (Spec) = null
-                          or else Unit.File_Names (Spec).Path.Name = Slash
+                          or else Unit.File_Names (Spec).Locally_Removed
                         then
                            --  We have a body with no spec: we need to check if
                            --  this is a subunit, because gnatls will complain
@@ -456,7 +456,7 @@ procedure GNATCmd is
                      end if;
 
                   elsif Unit.File_Names (Spec) /= null
-                    and then Unit.File_Names (Spec).Path.Name /= Slash
+                    and then not Unit.File_Names (Spec).Locally_Removed
                   then
                      --  We have a spec with no body. Check if it is for this
                      --  project.
@@ -478,7 +478,7 @@ procedure GNATCmd is
 
                elsif The_Command = Stack then
                   if Unit.File_Names (Impl) /= null
-                    and then Unit.File_Names (Impl).Path.Name /= Slash
+                    and then not Unit.File_Names (Impl).Locally_Removed
                   then
                      --  There is a body. Check if .ci files for this project
                      --  must be added.
@@ -489,7 +489,7 @@ procedure GNATCmd is
                         Subunit := False;
 
                         if Unit.File_Names (Spec) = null
-                          or else Unit.File_Names (Spec).Path.Name = Slash
+                          or else Unit.File_Names (Spec).Locally_Removed
                         then
                            --  We have a body with no spec: we need to check
                            --  if this is a subunit, because .ci files are not
@@ -523,7 +523,7 @@ procedure GNATCmd is
                      end if;
 
                   elsif Unit.File_Names (Spec) /= null
-                    and then Unit.File_Names (Spec).Path.Name /= Slash
+                    and then not Unit.File_Names (Spec).Locally_Removed
                   then
                      --  Spec with no body, check if it is for this project
 
@@ -552,7 +552,7 @@ procedure GNATCmd is
                      if Unit.File_Names (Kind) /= null
                        and then Check_Project
                                   (Unit.File_Names (Kind).Project, Project)
-                       and then Unit.File_Names (Kind).Path.Name /= Slash
+                       and then not Unit.File_Names (Kind).Locally_Removed
                      then
                         Get_Name_String
                           (Unit.File_Names (Kind).Path.Display_Name);
@@ -662,8 +662,7 @@ procedure GNATCmd is
 
    function Configuration_Pragmas_File return Path_Name_Type is
    begin
-      Prj.Env.Create_Config_Pragmas_File
-        (Project, Project, Project_Tree, Include_Config_Files => False);
+      Prj.Env.Create_Config_Pragmas_File (Project, Project_Tree);
       return Project.Config_File_Name;
    end Configuration_Pragmas_File;
 
@@ -2122,6 +2121,8 @@ begin
                File_Index : Integer := 0;
                Dir_Index  : Integer := 0;
                Last       : constant Integer := Last_Switches.Last;
+               Lang       : constant Language_Ptr :=
+                              Get_Language_From_Name (Project, "ada");
 
             begin
                for Index in 1 .. Last loop
@@ -2138,7 +2139,7 @@ begin
                --  indicate to gnatstub the name of the body file with
                --  a -o switch.
 
-               if Body_Suffix_Id_Of (Project_Tree, Name_Ada, Project.Naming) /=
+               if Lang.Config.Naming_Data.Body_Suffix /=
                     Prj.Default_Ada_Spec_Suffix
                then
                   if File_Index /= 0 then
@@ -2148,9 +2149,7 @@ begin
                         Last : Natural := Spec'Last;
 
                      begin
-                        Get_Name_String
-                          (Spec_Suffix_Id_Of
-                             (Project_Tree, Name_Ada, Project.Naming));
+                        Get_Name_String (Lang.Config.Naming_Data.Spec_Suffix);
 
                         if Spec'Length > Name_Len
                           and then Spec (Last - Name_Len + 1 .. Last) =
@@ -2158,8 +2157,7 @@ begin
                         then
                            Last := Last - Name_Len;
                            Get_Name_String
-                             (Body_Suffix_Id_Of
-                                (Project_Tree, Name_Ada, Project.Naming));
+                             (Lang.Config.Naming_Data.Body_Suffix);
                            Last_Switches.Increment_Last;
                            Last_Switches.Table (Last_Switches.Last) :=
                              new String'("-o");

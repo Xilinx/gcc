@@ -430,57 +430,6 @@ remove_suffix (char *name, int len)
     }
 }
 
-/* Subroutine for find_single_pointer_decl.  */
-
-static tree
-find_single_pointer_decl_1 (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
-			    void *data)
-{
-  tree *pdecl = (tree *) data;
-
-  /* We are only looking for pointers at the same level as the
-     original tree; we must not look through any indirections.
-     Returning anything other than NULL_TREE will cause the caller to
-     not find a base.  */
-  if (REFERENCE_CLASS_P (*tp))
-    return *tp;
-
-  if (DECL_P (*tp) && POINTER_TYPE_P (TREE_TYPE (*tp)))
-    {
-      if (*pdecl)
-	{
-	  /* We already found a pointer decl; return anything other
-	     than NULL_TREE to unwind from walk_tree signalling that
-	     we have a duplicate.  */
-	  return *tp;
-	}
-      *pdecl = *tp;
-    }
-
-  return NULL_TREE;
-}
-
-/* Find the single DECL of pointer type in the tree T, used directly
-   rather than via an indirection, and return it.  If there are zero
-   or more than one such DECLs, return NULL.  */
-
-static tree
-find_single_pointer_decl (tree t)
-{
-  tree decl = NULL_TREE;
-
-  if (walk_tree (&t, find_single_pointer_decl_1, &decl, NULL))
-    {
-      /* find_single_pointer_decl_1 returns a nonzero value, causing
-	 walk_tree to return a nonzero value, to indicate that it
-	 found more than one pointer DECL or that it found an
-	 indirection.  */
-      return NULL_TREE;
-    }
-
-  return decl;
-}
-
 /* Create a new temporary name with PREFIX.  Returns an identifier.  */
 
 static GTY(()) unsigned int tmp_var_id_num;
@@ -653,32 +602,15 @@ internal_get_tmp_var (tree val, gimple_seq *pre_p, gimple_seq *post_p,
 
   t = lookup_tmp_var (val, is_formal);
 
-  if (is_formal)
-    {
-      tree u = find_single_pointer_decl (val);
-
-      if (u && TREE_CODE (u) == VAR_DECL && DECL_BASED_ON_RESTRICT_P (u))
-	u = DECL_GET_RESTRICT_BASE (u);
-      if (u && TYPE_RESTRICT (TREE_TYPE (u)))
-	{
-	  if (DECL_BASED_ON_RESTRICT_P (t))
-	    gcc_assert (u == DECL_GET_RESTRICT_BASE (t));
-	  else
-	    {
-	      DECL_BASED_ON_RESTRICT_P (t) = 1;
-	      SET_DECL_RESTRICT_BASE (t, u);
-	    }
-	}
-
-      if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
-	  || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
-	DECL_GIMPLE_REG_P (t) = 1;
-    }
+  if (is_formal
+      && (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
+	  || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE))
+    DECL_GIMPLE_REG_P (t) = 1;
 
   mod = build2 (INIT_EXPR, TREE_TYPE (t), t, unshare_expr (val));
 
   if (EXPR_HAS_LOCATION (val))
-    SET_EXPR_LOCUS (mod, EXPR_LOCUS (val));
+    SET_EXPR_LOCATION (mod, EXPR_LOCATION (val));
   else
     SET_EXPR_LOCATION (mod, input_location);
 
@@ -882,7 +814,7 @@ gimple_set_do_not_emit_location (gimple g)
   gimple_set_plf (g, GF_PLF_1, true);
 }
 
-/* Set the location for gimple statement GS to LOCUS.  */
+/* Set the location for gimple statement GS to LOCATION.  */
 
 static void
 annotate_one_with_location (gimple gs, location_t location)
@@ -922,7 +854,7 @@ annotate_all_with_location_after (gimple_seq seq, gimple_stmt_iterator gsi,
 }
 
 
-/* Set the location for all the statements in a sequence STMT_P to LOCUS.  */
+/* Set the location for all the statements in a sequence STMT_P to LOCATION.  */
 
 void
 annotate_all_with_location (gimple_seq stmt_p, location_t location)
@@ -2443,7 +2375,7 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
 	    = CALL_EXPR_RETURN_SLOT_OPT (call);
 	  CALL_FROM_THUNK_P (*expr_p) = CALL_FROM_THUNK_P (call);
 	  CALL_CANNOT_INLINE_P (*expr_p) = CALL_CANNOT_INLINE_P (call);
-	  SET_EXPR_LOCUS (*expr_p, EXPR_LOCUS (call));
+	  SET_EXPR_LOCATION (*expr_p, EXPR_LOCATION (call));
 	  TREE_BLOCK (*expr_p) = TREE_BLOCK (call);
 
 	  /* Set CALL_EXPR_VA_ARG_PACK.  */
@@ -5445,7 +5377,7 @@ omp_notice_variable (struct gimplify_omp_ctx *ctx, tree decl, bool in_code)
 	case OMP_CLAUSE_DEFAULT_NONE:
 	  error ("%qE not specified in enclosing parallel",
 		 DECL_NAME (decl));
-	  error ("%Henclosing parallel", &ctx->location);
+	  error_at (ctx->location, "enclosing parallel");
 	  /* FALLTHRU */
 	case OMP_CLAUSE_DEFAULT_SHARED:
 	  flags |= GOVD_SHARED;
@@ -6855,6 +6787,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
 	    gimplify_and_add (EH_FILTER_FAILURE (*expr_p), &failure);
 	    ehf = gimple_build_eh_filter (EH_FILTER_TYPES (*expr_p), failure);
+	    gimple_set_no_warning (ehf, TREE_NO_WARNING (*expr_p));
 	    gimple_eh_filter_set_must_not_throw
 	      (ehf, EH_FILTER_MUST_NOT_THROW (*expr_p));
 	    gimplify_seq_add_stmt (pre_p, ehf);
@@ -7428,7 +7361,7 @@ gimplify_one_sizepos (tree *expr_p, gimple_seq *stmt_p)
       tmp = build1 (NOP_EXPR, type, expr);
       stmt = gimplify_assign (*expr_p, tmp, stmt_p);
       if (EXPR_HAS_LOCATION (expr))
-	gimple_set_location (stmt, *EXPR_LOCUS (expr));
+	gimple_set_location (stmt, EXPR_LOCATION (expr));
       else
 	gimple_set_location (stmt, input_location);
     }
@@ -7766,13 +7699,6 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 		DECL_GIMPLE_REG_P (temp) = 1;
 	      if (TREE_CODE (orig_lhs) == SSA_NAME)
 		orig_lhs = SSA_NAME_VAR (orig_lhs);
-	      if (TREE_CODE (orig_lhs) == VAR_DECL
-		  && DECL_BASED_ON_RESTRICT_P (orig_lhs))
-		{
-		  DECL_BASED_ON_RESTRICT_P (temp) = 1;
-		  SET_DECL_RESTRICT_BASE (temp,
-					  DECL_GET_RESTRICT_BASE (orig_lhs));
-		}
 
 	      if (gimple_in_ssa_p (cfun))
 		temp = make_ssa_name (temp, NULL);

@@ -931,7 +931,8 @@ package body Exp_Disp is
             Desig_Typ := Etype (Expression (N));
 
             if Is_Access_Type (Desig_Typ) then
-               Desig_Typ := Directly_Designated_Type (Desig_Typ);
+               Desig_Typ :=
+                 Available_View (Directly_Designated_Type (Desig_Typ));
             end if;
 
             if Is_Concurrent_Type (Desig_Typ) then
@@ -1830,6 +1831,11 @@ package body Exp_Disp is
                       RTE (RE_Asynchronous_Call), Loc),
                     Make_Identifier (Loc, Name_uF))));    --  status flag
          end if;
+
+      else
+         --  Ensure that the statements list is non-empty
+
+         Append_To (Stmts, Make_Null_Statement (Loc));
       end if;
 
       return
@@ -2198,6 +2204,11 @@ package body Exp_Disp is
                       RTE (RE_Conditional_Call), Loc),
                     Make_Identifier (Loc, Name_uF))));    --  status flag
          end if;
+
+      else
+         --  Ensure that the statements list is non-empty
+
+         Append_To (Stmts, Make_Null_Statement (Loc));
       end if;
 
       return
@@ -3021,6 +3032,11 @@ package body Exp_Disp is
                     Make_Identifier (Loc, Name_uM),       --  delay mode
                     Make_Identifier (Loc, Name_uF))));    --  status flag
          end if;
+
+      else
+         --  Ensure that the statements list is non-empty
+
+         Append_To (Stmts, Make_Null_Statement (Loc));
       end if;
 
       return

@@ -100,7 +100,7 @@ bool type_annotate_only;
 /* When not optimizing, we cache the 'First, 'Last and 'Length attributes
    of unconstrained array IN parameters to avoid emitting a great deal of
    redundant instructions to recompute them each time.  */
-struct GTY (()) parm_attr {
+struct GTY (()) parm_attr_d {
   int id; /* GTY doesn't like Entity_Id.  */
   int dim;
   tree first;
@@ -108,7 +108,7 @@ struct GTY (()) parm_attr {
   tree length;
 };
 
-typedef struct parm_attr *parm_attr;
+typedef struct parm_attr_d *parm_attr;
 
 DEF_VEC_P(parm_attr);
 DEF_VEC_ALLOC_P(parm_attr,gc);
@@ -1464,7 +1464,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	int Dimension = (Present (Expressions (gnat_node))
 			 ? UI_To_Int (Intval (First (Expressions (gnat_node))))
 			 : 1), i;
-	struct parm_attr *pa = NULL;
+	struct parm_attr_d *pa = NULL;
 	Entity_Id gnat_param = Empty;
 
 	/* Make sure any implicit dereference gets done.  */
@@ -1508,7 +1508,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 
 	    if (!pa)
 	      {
-		pa = GGC_CNEW (struct parm_attr);
+		pa = GGC_CNEW (struct parm_attr_d);
 		pa->id = gnat_param;
 		pa->dim = Dimension;
 		VEC_safe_push (parm_attr, gc, f_parm_attr_cache, pa);
@@ -1552,43 +1552,38 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 		/* We used to compute the length as max (hb - lb + 1, 0),
 		   which could overflow for some cases of empty arrays, e.g.
 		   when lb == index_type'first.  We now compute the length as
-		   (hb < lb) ? 0 : hb - lb + 1, which would only overflow in
+		   (hb >= lb) ? hb - lb + 1 : 0, which would only overflow in
 		   much rarer cases, for extremely large arrays we expect
 		   never to encounter in practice.  In addition, the former
 		   computation required the use of potentially constraining
-		   signed arithmetic while the latter doesn't.  Note that the
-		   comparison must be done in the original index base type,
-		   otherwise the conversion of either bound to gnu_compute_type
-		   may overflow.  */
-		
-		tree gnu_compute_type = get_base_type (gnu_result_type);
-
-		tree index_type
-		  = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type));
-		tree lb
-		  = convert (gnu_compute_type, TYPE_MIN_VALUE (index_type));
-		tree hb
-		  = convert (gnu_compute_type, TYPE_MAX_VALUE (index_type));
-		
+		   signed arithmetic while the latter doesn't.  Note that
+		   the comparison must be done in the original index type,
+		   to avoid any overflow during the conversion.  */
+		tree comp_type = get_base_type (gnu_result_type);
+		tree index_type = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type));
+		tree lb = TYPE_MIN_VALUE (index_type);
+		tree hb = TYPE_MAX_VALUE (index_type);
 		gnu_result
-		  = build3
-		    (COND_EXPR, gnu_compute_type,
-		     build_binary_op (LT_EXPR, get_base_type (index_type),
-				      TYPE_MAX_VALUE (index_type),
-				      TYPE_MIN_VALUE (index_type)),
-		     convert (gnu_compute_type, integer_zero_node),
-		     build_binary_op
-		     (PLUS_EXPR, gnu_compute_type,
-		      build_binary_op (MINUS_EXPR, gnu_compute_type, hb, lb),
-		      convert (gnu_compute_type, integer_one_node)));
+		  = build_binary_op (PLUS_EXPR, comp_type,
+				     build_binary_op (MINUS_EXPR,
+						      comp_type,
+						      convert (comp_type, hb),
+						      convert (comp_type, lb)),
+				     convert (comp_type, integer_one_node));
+		gnu_result
+		  = build_cond_expr (comp_type,
+				     build_binary_op (GE_EXPR,
+						      integer_type_node,
+						      hb, lb),
+				     gnu_result,
+				     convert (comp_type, integer_zero_node));
 	      }
 	  }
 
 	/* If this has a PLACEHOLDER_EXPR, qualify it by the object we are
 	   handling.  Note that these attributes could not have been used on
 	   an unconstrained array type.  */
-	gnu_result = SUBSTITUTE_PLACEHOLDER_IN_EXPR (gnu_result,
-						     gnu_prefix);
+	gnu_result = SUBSTITUTE_PLACEHOLDER_IN_EXPR (gnu_result, gnu_prefix);
 
 	/* Cache the expression we have just computed.  Since we want to do it
 	   at runtime, we force the use of a SAVE_EXPR and let the gimplifier
@@ -2273,7 +2268,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
   cache = DECL_STRUCT_FUNCTION (gnu_subprog_decl)->language->parm_attr_cache;
   if (cache)
     {
-      struct parm_attr *pa;
+      struct parm_attr_d *pa;
       int i;
 
       start_stmt_group ();
@@ -3076,7 +3071,9 @@ Handled_Sequence_Of_Statements_to_gnu (Node_Id gnat_node)
 	 defer abortion.  */
       gnu_expr = build_call_1_expr (raise_nodefer_decl,
 				    TREE_VALUE (gnu_except_ptr_stack));
-      set_expr_location_from_node (gnu_expr, gnat_node);
+      set_expr_location_from_node
+	(gnu_expr,
+	 Present (End_Label (gnat_node)) ? End_Label (gnat_node) : gnat_node);
 
       if (gnu_else_ptr)
 	*gnu_else_ptr = gnu_expr;
@@ -5849,7 +5846,7 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
 
 	  stmt = gimplify_assign (new_var, op, pre_p);
 	  if (EXPR_HAS_LOCATION (op))
-	    gimple_set_location (stmt, *EXPR_LOCUS (op));
+	    gimple_set_location (stmt, EXPR_LOCATION (op));
 
 	  TREE_OPERAND (expr, 0) = new_var;
 	  recompute_tree_invariant_for_addr_expr (expr);

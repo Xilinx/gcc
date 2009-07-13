@@ -315,10 +315,19 @@ cp_lipo_copy_lang_type (tree src, tree dest)
 int
 cp_get_lang_decl_size (tree t)
 {
-  if (CAN_HAVE_FULL_LANG_DECL_P (t))
-    return sizeof (struct lang_decl);
+  size_t size;
+  if (TREE_CODE (t) == FUNCTION_DECL)
+    size = sizeof (struct lang_decl_fn);
+  else if (TREE_CODE (t) == NAMESPACE_DECL)
+    size = sizeof (struct lang_decl_ns);
+  else if (TREE_CODE (t) == PARM_DECL)
+    size = sizeof (struct lang_decl_parm);
+  else if (LANG_DECL_HAS_MIN (t))
+    size = sizeof (struct lang_decl_min);
   else
-    return sizeof (struct lang_decl_flags);
+    gcc_unreachable ();
+
+  return (int) size;
 }
 
 /* Return 1 if template arguments TA1 and TA2 is compatible.

@@ -94,8 +94,7 @@ package body Ada.Strings.Search is
       --  Unmapped case
 
       if Mapping'Address = Maps.Identity'Address then
-         Ind := Source'First;
-         while Ind <= Source'Length - PL1 loop
+         while Ind <= Source'Last - PL1 loop
             if Pattern = Source (Ind .. Ind + PL1) then
                Num := Num + 1;
                Ind := Ind + Pattern'Length;
@@ -107,8 +106,7 @@ package body Ada.Strings.Search is
       --  Mapped case
 
       else
-         Ind := Source'First;
-         while Ind <= Source'Length - PL1 loop
+         while Ind <= Source'Last - PL1 loop
             Cur := Ind;
             for K in Pattern'Range loop
                if Pattern (K) /= Value (Mapping, Source (Cur)) then
@@ -240,8 +238,13 @@ package body Ada.Strings.Search is
       Mapping : Maps.Character_Mapping := Maps.Identity) return Natural
    is
       PL1 : constant Integer := Pattern'Length - 1;
-      Ind : Natural;
       Cur : Natural;
+
+      Ind : Integer;
+      --  Index for start of match check. This can be negative if the pattern
+      --  length is greater than the string length, which is why this variable
+      --  is Integer instead of Natural. In this case, the search loops do not
+      --  execute at all, so this Ind value is never used.
 
    begin
       if Pattern = "" then
@@ -348,6 +351,12 @@ package body Ada.Strings.Search is
 
       if Mapping = null then
          raise Constraint_Error;
+      end if;
+
+      --  If Pattern longer than Source it can't be found
+
+      if Pattern'Length > Source'Length then
+         return 0;
       end if;
 
       --  Forwards case

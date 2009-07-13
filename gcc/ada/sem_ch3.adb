@@ -2631,7 +2631,6 @@ package body Sem_Ch3 is
          if (Is_Class_Wide_Type (Etype (E)) or else Is_Dynamically_Tagged (E))
            and then Is_Tagged_Type (T)
            and then not Is_Class_Wide_Type (T)
-           and then not Is_CPP_Constructor_Call (E)
          then
             Error_Msg_N ("dynamically tagged expression not allowed!", E);
          end if;
@@ -6987,13 +6986,13 @@ package body Sem_Ch3 is
       --  Fields inherited from the Parent_Type
 
       Set_Discard_Names
-        (Derived_Type, Einfo.Discard_Names      (Parent_Type));
+        (Derived_Type, Einfo.Discard_Names  (Parent_Type));
       Set_Has_Specified_Layout
-        (Derived_Type, Has_Specified_Layout     (Parent_Type));
+        (Derived_Type, Has_Specified_Layout (Parent_Type));
       Set_Is_Limited_Composite
-        (Derived_Type, Is_Limited_Composite     (Parent_Type));
+        (Derived_Type, Is_Limited_Composite (Parent_Type));
       Set_Is_Private_Composite
-        (Derived_Type, Is_Private_Composite     (Parent_Type));
+        (Derived_Type, Is_Private_Composite (Parent_Type));
 
       --  Fields inherited from the Parent_Base
 
@@ -7014,10 +7013,22 @@ package body Sem_Ch3 is
       --  Fields inherited from the Parent_Base for record types
 
       if Is_Record_Type (Derived_Type) then
-         Set_OK_To_Reorder_Components
-           (Derived_Type, OK_To_Reorder_Components (Parent_Base));
-         Set_Reverse_Bit_Order
-           (Derived_Type, Reverse_Bit_Order (Parent_Base));
+
+         --  Ekind (Parent_Base) is not necessarily E_Record_Type since
+         --  Parent_Base can be a private type or private extension.
+
+         if Present (Full_View (Parent_Base)) then
+            Set_OK_To_Reorder_Components
+              (Derived_Type,
+               OK_To_Reorder_Components (Full_View (Parent_Base)));
+            Set_Reverse_Bit_Order
+              (Derived_Type, Reverse_Bit_Order (Full_View (Parent_Base)));
+         else
+            Set_OK_To_Reorder_Components
+              (Derived_Type, OK_To_Reorder_Components (Parent_Base));
+            Set_Reverse_Bit_Order
+              (Derived_Type, Reverse_Bit_Order (Parent_Base));
+         end if;
       end if;
 
       --  Direct controlled types do not inherit Finalize_Storage_Only flag
@@ -7049,7 +7060,6 @@ package body Sem_Ch3 is
          else
             Set_Component_Alignment
               (Derived_Type, Component_Alignment (Parent_Base));
-
             Set_C_Pass_By_Copy
               (Derived_Type, C_Pass_By_Copy      (Parent_Base));
          end if;
@@ -8610,8 +8620,11 @@ package body Sem_Ch3 is
          --  which has to have the flag Comes_From_Source for other purposes):
          --  we assume that the expander will provide the missing completion.
          --  In case of previous errors, other expansion actions that provide
-         --  bodies for null procedures with not be invoked. so inhibit message
+         --  bodies for null procedures with not be invoked, so inhibit message
          --  in those cases.
+         --  Note that E_Operator is not in the list that follows, because
+         --  this kind is reserved for predefined operators, that are
+         --  intrinsic and do not need completion.
 
          elsif     Ekind (E) = E_Function
            or else Ekind (E) = E_Procedure
@@ -8777,7 +8790,7 @@ package body Sem_Ch3 is
         and then not In_Instance
         and then not In_Inlined_Body
       then
-         if not OK_For_Limited_Init (Exp) then
+         if not OK_For_Limited_Init (T, Exp) then
 
             --  In GNAT mode, this is just a warning, to allow it to be evilly
             --  turned off. Otherwise it is a real error.
@@ -15313,20 +15326,36 @@ package body Sem_Ch3 is
    --  ???Check all calls of this, and compare the conditions under which it's
    --  called.
 
-   function OK_For_Limited_Init (Exp : Node_Id) return Boolean is
+   function OK_For_Limited_Init
+     (Typ : Entity_Id;
+      Exp : Node_Id) return Boolean
+   is
    begin
       return Is_CPP_Constructor_Call (Exp)
         or else (Ada_Version >= Ada_05
                   and then not Debug_Flag_Dot_L
-                  and then OK_For_Limited_Init_In_05 (Exp));
+                  and then OK_For_Limited_Init_In_05 (Typ, Exp));
    end OK_For_Limited_Init;
 
    -------------------------------
    -- OK_For_Limited_Init_In_05 --
    -------------------------------
 
-   function OK_For_Limited_Init_In_05 (Exp : Node_Id) return Boolean is
+   function OK_For_Limited_Init_In_05
+     (Typ : Entity_Id;
+      Exp : Node_Id) return Boolean
+   is
    begin
+      --  An object of a limited interface type can be initialized with any
+      --  expression of a nonlimited descendant type.
+
+      if Is_Class_Wide_Type (Typ)
+        and then Is_Limited_Interface (Typ)
+        and then not Is_Limited_Type (Etype (Exp))
+      then
+         return True;
+      end if;
+
       --  Ada 2005 (AI-287, AI-318): Relax the strictness of the front end in
       --  case of limited aggregates (including extension aggregates), and
       --  function calls. The function call may have been give in prefixed
@@ -15338,7 +15367,8 @@ package body Sem_Ch3 is
 
          when N_Qualified_Expression =>
             return
-              OK_For_Limited_Init_In_05 (Expression (Original_Node (Exp)));
+              OK_For_Limited_Init_In_05
+                (Typ, Expression (Original_Node (Exp)));
 
          --  Ada 2005 (AI-251): If a class-wide interface object is initialized
          --  with a function call, the expander has rewritten the call into an
@@ -15351,7 +15381,8 @@ package body Sem_Ch3 is
          when N_Type_Conversion | N_Unchecked_Type_Conversion =>
             return not Comes_From_Source (Exp)
               and then
-                OK_For_Limited_Init_In_05 (Expression (Original_Node (Exp)));
+                OK_For_Limited_Init_In_05
+                  (Typ, Expression (Original_Node (Exp)));
 
          when N_Indexed_Component | N_Selected_Component  =>
             return Nkind (Exp) = N_Function_Call;

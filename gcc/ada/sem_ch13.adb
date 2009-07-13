@@ -936,7 +936,7 @@ package body Sem_Ch13 is
 
                   elsif Present (Aent)
                     and then Ekind (U_Ent) = E_Constant
-                    and then Ekind (Aent) /= E_Constant
+                    and then not Is_Constant_Object (Aent)
                   then
                      Error_Msg_N ("constant overlays a variable?", Expr);
 
@@ -3225,7 +3225,7 @@ package body Sem_Ch13 is
             when N_Null =>
                return;
 
-            when N_Binary_Op | N_And_Then | N_Or_Else | N_Membership_Test =>
+            when N_Binary_Op | N_Short_Circuit | N_Membership_Test =>
                Check_Expr_Constants (Left_Opnd (Nod));
                Check_Expr_Constants (Right_Opnd (Nod));
 

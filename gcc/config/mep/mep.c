@@ -170,6 +170,7 @@ static tree mep_validate_interrupt (tree *, tree, tree, int, bool *);
 static tree mep_validate_io_cb (tree *, tree, tree, int, bool *);
 static tree mep_validate_vliw (tree *, tree, tree, int, bool *);
 static bool mep_function_attribute_inlinable_p (const_tree);
+static bool mep_can_inline_p (tree, tree);
 static bool mep_lookup_pragma_disinterrupt (const char *);
 static int mep_multiple_address_regions (tree, bool);
 static int mep_attrlist_to_encoding (tree, tree);
@@ -235,6 +236,8 @@ static tree mep_gimplify_va_arg_expr (tree, tree, tree *, tree *);
 #define TARGET_INSERT_ATTRIBUTES	mep_insert_attributes
 #undef  TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P
 #define TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P	mep_function_attribute_inlinable_p
+#undef  TARGET_CAN_INLINE_P
+#define TARGET_CAN_INLINE_P		mep_can_inline_p
 #undef  TARGET_SECTION_TYPE_FLAGS
 #define TARGET_SECTION_TYPE_FLAGS	mep_section_type_flags
 #undef  TARGET_ASM_NAMED_SECTION
@@ -2499,6 +2502,11 @@ mep_asm_without_operands_p (void)
    since they may get clobbered there too).  Here we check to see
    which call-used registers need saving.  */
 
+#define IVC2_ISAVED_REG(r) (TARGET_IVC2 \
+			   && (r == FIRST_CCR_REGNO + 1 \
+			       || (r >= FIRST_CCR_REGNO + 8 && r <= FIRST_CCR_REGNO + 11) \
+			       || (r >= FIRST_CCR_REGNO + 16 && r <= FIRST_CCR_REGNO + 31)))
+
 static bool
 mep_interrupt_saved_reg (int r)
 {
@@ -2509,11 +2517,12 @@ mep_interrupt_saved_reg (int r)
     return true;
   if (mep_asm_without_operands_p ()
       && (!fixed_regs[r]
-	  || (r == RPB_REGNO || r == RPE_REGNO || r == RPC_REGNO || r == LP_REGNO)))
+	  || (r == RPB_REGNO || r == RPE_REGNO || r == RPC_REGNO || r == LP_REGNO)
+	  || IVC2_ISAVED_REG (r)))
     return true;
   if (!current_function_is_leaf)
     /* Function calls mean we need to save $lp.  */
-    if (r == LP_REGNO)
+    if (r == LP_REGNO || IVC2_ISAVED_REG (r))
       return true;
   if (!current_function_is_leaf || cfun->machine->doloop_tags > 0)
     /* The interrupt handler might use these registers for repeat blocks,
@@ -2525,6 +2534,10 @@ mep_interrupt_saved_reg (int r)
   /* Functions we call might clobber these.  */
   if (call_used_regs[r] && !fixed_regs[r])
     return true;
+  /* Additional registers that need to be saved for IVC2.  */
+  if (IVC2_ISAVED_REG (r))
+    return true;
+
   return false;
 }
 
@@ -4096,6 +4109,22 @@ mep_function_attribute_inlinable_p (const_tree callee)
 	  && lookup_attribute ("interrupt", attrs) == 0);
 }
 
+static bool
+mep_can_inline_p (tree caller, tree callee)
+{
+  if (TREE_CODE (callee) == ADDR_EXPR)
+    callee = TREE_OPERAND (callee, 0);
+ 
+  if (TREE_CODE (callee) == FUNCTION_DECL
+      && DECL_DECLARED_INLINE_P (callee)
+      && !mep_vliw_function_p (caller)
+      && mep_vliw_function_p (callee))
+    {
+      return true;
+    }
+  return false;
+}
+
 #define FUNC_CALL		1
 #define FUNC_DISINTERRUPT	2
 
@@ -4594,13 +4623,13 @@ mep_select_section (tree decl, int reloc ATTRIBUTE_UNUSED,
 
 	  case 'i':
 	  case 'I':
-	    error ("%Hvariable %D of type %<io%> must be uninitialized",
-		   &DECL_SOURCE_LOCATION (decl), decl);
+	    error_at (DECL_SOURCE_LOCATION (decl),
+		      "variable %D of type %<io%> must be uninitialized", decl);
 	    return data_section;
 
 	  case 'c':
-	    error ("%Hvariable %D of type %<cb%> must be uninitialized",
-		   &DECL_SOURCE_LOCATION (decl), decl);
+	    error_at (DECL_SOURCE_LOCATION (decl),
+		      "variable %D of type %<cb%> must be uninitialized", decl);
 	    return data_section;
 	  }
     }
@@ -6925,6 +6954,8 @@ mep_bundle_insns (rtx insns)
      VOIDmode.  After this function, the first has VOIDmode and the
      rest have BImode.  */
 
+  /* Note: this doesn't appear to be true for JUMP_INSNs.  */
+
   /* First, move any NOTEs that are within a bundle, to the beginning
      of the bundle.  */
   for (insn = insns; insn ; insn = NEXT_INSN (insn))
@@ -6932,10 +6963,10 @@ mep_bundle_insns (rtx insns)
       if (NOTE_P (insn) && first)
 	/* Don't clear FIRST.  */;
 
-      else if (INSN_P (insn) && GET_MODE (insn) == TImode)
+      else if (NONJUMP_INSN_P (insn) && GET_MODE (insn) == TImode)
 	first = insn;
 
-      else if (INSN_P (insn) && GET_MODE (insn) == VOIDmode && first)
+      else if (NONJUMP_INSN_P (insn) && GET_MODE (insn) == VOIDmode && first)
 	{
 	  rtx note, prev;
 
@@ -6968,7 +6999,7 @@ mep_bundle_insns (rtx insns)
 	    }
 	}
 
-      else if (!INSN_P (insn))
+      else if (!NONJUMP_INSN_P (insn))
 	first = 0;
     }
 
@@ -6978,7 +7009,7 @@ mep_bundle_insns (rtx insns)
       if (NOTE_P (insn))
 	continue;
 
-      if (!INSN_P (insn))
+      if (!NONJUMP_INSN_P (insn))
 	{
 	  last = 0;
 	  continue;
@@ -7001,14 +7032,14 @@ mep_bundle_insns (rtx insns)
 	     The IVC2 assembler can insert whatever NOPs are needed,
 	     and allows a COP insn to be first.  */
 
-	  if (INSN_P (insn)
+	  if (NONJUMP_INSN_P (insn)
 	      && GET_CODE (PATTERN (insn)) != USE
 	      && GET_MODE (insn) == TImode)
 	    {
 	      for (last = insn;
 		   NEXT_INSN (last)
 		     && GET_MODE (NEXT_INSN (last)) == VOIDmode
-		     && INSN_P (NEXT_INSN (last));
+		     && NONJUMP_INSN_P (NEXT_INSN (last));
 		   last = NEXT_INSN (last))
 		{
 		  if (core_insn_p (last))
@@ -7225,19 +7256,6 @@ mep_handle_option (size_t code,
 	call_used_regs[i+48] = 1;
       for (i=6; i<8; i++)
 	call_used_regs[i+48] = 0;
-
-      call_used_regs[FIRST_CCR_REGNO + 1] = 0;
-      fixed_regs[FIRST_CCR_REGNO + 1] = 0;
-      for (i=8; i<=11; i++)
-	{
-	  call_used_regs[FIRST_CCR_REGNO + i] = 0;
-	  fixed_regs[FIRST_CCR_REGNO + i] = 0;
-	}
-      for (i=16; i<=31; i++)
-	{
-	  call_used_regs[FIRST_CCR_REGNO + i] = 0;
-	  fixed_regs[FIRST_CCR_REGNO + i] = 0;
-	}
 
 #define RN(n,s) reg_names[FIRST_CCR_REGNO + n] = s
       RN (0, "$csar0");

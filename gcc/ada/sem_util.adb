@@ -29,6 +29,7 @@ with Checks;   use Checks;
 with Debug;    use Debug;
 with Errout;   use Errout;
 with Elists;   use Elists;
+with Exp_Ch11; use Exp_Ch11;
 with Exp_Disp; use Exp_Disp;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
@@ -267,6 +268,10 @@ package body Sem_Util is
 
       Set_Etype (N, Rtyp);
       Set_Raises_Constraint_Error (N);
+
+      --  Now deal with possible local raise handling
+
+      Possible_Local_Raise (N, Standard_Constraint_Error);
 
       --  If the original expression was marked as static, the result is
       --  still marked as static, but the Raises_Constraint_Error flag is
@@ -5525,7 +5530,6 @@ package body Sem_Util is
    function Is_CPP_Constructor_Call (N : Node_Id) return Boolean is
    begin
       return Nkind (N) = N_Function_Call
-        and then Is_Class_Wide_Type (Etype (N))
         and then Is_CPP_Class (Etype (Etype (N)))
         and then Is_Constructor (Entity (Name (N)))
         and then Is_Imported (Entity (Name (N)));
@@ -7151,7 +7155,7 @@ package body Sem_Util is
          when N_Assignment_Statement =>
             return N = Name (P);
 
-            --  Function call arguments are never lvalues
+            --  Function call arguments are never Lvalues
 
          when N_Function_Call =>
             return False;
@@ -7237,7 +7241,7 @@ package body Sem_Util is
             end;
 
          --  Test for appearing in a conversion that itself appears
-         --  in an lvalue context, since this should be an lvalue.
+         --  in an Lvalue context, since this should be an Lvalue.
 
          when N_Type_Conversion =>
             return Known_To_Be_Assigned (P);
@@ -7272,8 +7276,8 @@ package body Sem_Util is
             return N = Prefix (P)
               and then Name_Implies_Lvalue_Prefix (Attribute_Name (P));
 
-         --  For an expanded name, the name is an lvalue if the expanded name
-         --  is an lvalue, but the prefix is never an lvalue, since it is just
+         --  For an expanded name, the name is an Lvalue if the expanded name
+         --  is an Lvalue, but the prefix is never an Lvalue, since it is just
          --  the scope where the name is found.
 
          when N_Expanded_Name        =>
@@ -7300,7 +7304,7 @@ package body Sem_Util is
             end if;
 
          --  For an indexed component or slice, the index or slice bounds is
-         --  never an Lvalue. The prefix is an lvalue if the indexed component
+         --  never an Lvalue. The prefix is an Lvalue if the indexed component
          --  or slice is an Lvalue, except if it is an access type, where we
          --  have an implicit dereference.
 
@@ -7410,7 +7414,7 @@ package body Sem_Util is
             end;
 
          --  Test for appearing in a conversion that itself appears in an
-         --  lvalue context, since this should be an lvalue.
+         --  Lvalue context, since this should be an Lvalue.
 
          when N_Type_Conversion =>
             return May_Be_Lvalue (P);
@@ -9815,10 +9819,12 @@ package body Sem_Util is
 
          P := Parent (N);
          while Present (P) loop
-            if Nkind (P) = N_If_Statement
+            if         Nkind (P) = N_If_Statement
               or else  Nkind (P) = N_Case_Statement
-              or else (Nkind (P) = N_And_Then and then Desc = Right_Opnd (P))
-              or else (Nkind (P) = N_Or_Else and then Desc = Right_Opnd (P))
+              or else (Nkind (P) in N_Short_Circuit
+                         and then Desc = Right_Opnd (P))
+              or else (Nkind (P) = N_Conditional_Expression
+                         and then Desc /= First (Expressions (P)))
               or else  Nkind (P) = N_Exception_Handler
               or else  Nkind (P) = N_Selective_Accept
               or else  Nkind (P) = N_Conditional_Entry_Call

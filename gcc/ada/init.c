@@ -178,7 +178,7 @@ __gnat_get_specific_dispatching (int priority)
    file now sets the __gl_* variables directly.  */
 
 void
-__gnat_set_globals ()
+__gnat_set_globals (void)
 {
 }
 
@@ -441,7 +441,9 @@ __gnat_error_handler (int sig, siginfo_t *siginfo, void *ucontext);
 
 static void
 __gnat_error_handler
-  (int sig, siginfo_t *siginfo ATTRIBUTE_UNUSED, void *ucontext)
+  (int sig,
+   siginfo_t *siginfo ATTRIBUTE_UNUSED,
+   void *ucontext ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   const char *msg;
@@ -1002,7 +1004,7 @@ __gnat_install_handler(void)
 static void __gnat_error_handler (int, siginfo_t *, ucontext_t *);
 
 static void
-__gnat_error_handler (int sig, siginfo_t *sip, ucontext_t *uctx)
+__gnat_error_handler (int sig, siginfo_t *sip, ucontext_t *cx ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   static int recurse = 0;
@@ -2101,6 +2103,7 @@ __gnat_install_handler(void)
 
 #include <signal.h>
 #include <mach/mach_vm.h>
+#include <mach/mach_init.h>
 #include <mach/vm_statistics.h>
 
 /* This must be in keeping with System.OS_Interface.Alternate_Stack_Size.  */
@@ -2138,7 +2141,7 @@ __gnat_is_stack_guard (mach_vm_address_t addr)
 }
 
 static void
-__gnat_error_handler (int sig, siginfo_t * si, void * uc)
+__gnat_error_handler (int sig, siginfo_t * si, void * uc ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   const char *msg;

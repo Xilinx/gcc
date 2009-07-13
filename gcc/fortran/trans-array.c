@@ -284,6 +284,12 @@ gfc_conv_descriptor_stride (tree desc, tree dim)
 tree
 gfc_conv_descriptor_stride_get (tree desc, tree dim)
 {
+  tree type = TREE_TYPE (desc);
+  gcc_assert (GFC_DESCRIPTOR_TYPE_P (type));
+  if (integer_zerop (dim)
+      && GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_ALLOCATABLE)
+    return gfc_index_one_node;
+
   return gfc_conv_descriptor_stride (desc, dim);
 }
 
@@ -5008,7 +5014,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
       else if (se->direct_byref)
 	full = 0;
       else
-	full = gfc_full_array_ref_p (info->ref);
+	full = gfc_full_array_ref_p (info->ref, NULL);
 
       if (full)
 	{
@@ -6360,7 +6366,7 @@ gfc_walk_function_expr (gfc_ss * ss, gfc_expr * expr)
       sym = expr->symtree->n.sym;
 
   /* A function that returns arrays.  */
-  is_proc_ptr_comp (expr, &comp);
+  gfc_is_proc_ptr_comp (expr, &comp);
   if ((!comp && gfc_return_by_reference (sym) && sym->result->attr.dimension)
       || (comp && comp->attr.dimension))
     {

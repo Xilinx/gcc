@@ -994,7 +994,7 @@ def_cfa_1 (const char *label, dw_cfa_location *loc_p)
 	 the CFA register did not change but the offset did.  The data 
 	 factoring for DW_CFA_def_cfa_offset_sf happens in output_cfi, or
 	 in the assembler via the .cfi_def_cfa_offset directive.  */
-      if (need_data_align_sf_opcode (loc.offset))
+      if (loc.offset < 0)
 	cfi->dw_cfi_opc = DW_CFA_def_cfa_offset_sf;
       else
 	cfi->dw_cfi_opc = DW_CFA_def_cfa_offset;
@@ -1021,7 +1021,7 @@ def_cfa_1 (const char *label, dw_cfa_location *loc_p)
 	 the specified offset.  The data factoring for DW_CFA_def_cfa_sf
 	 happens in output_cfi, or in the assembler via the .cfi_def_cfa
 	 directive.  */
-      if (need_data_align_sf_opcode (loc.offset))
+      if (loc.offset < 0)
 	cfi->dw_cfi_opc = DW_CFA_def_cfa_sf;
       else
 	cfi->dw_cfi_opc = DW_CFA_def_cfa;
@@ -2759,6 +2759,22 @@ dwarf2out_begin_epilogue (rtx insn)
       if (CALL_P (i) && SIBLING_CALL_P (i))
 	break;
 
+      if (GET_CODE (PATTERN (i)) == SEQUENCE)
+	{
+	  int idx;
+	  rtx seq = PATTERN (i);
+
+	  if (returnjump_p (XVECEXP (seq, 0, 0)))
+	    break;
+	  if (CALL_P (XVECEXP (seq, 0, 0))
+	      && SIBLING_CALL_P (XVECEXP (seq, 0, 0)))
+	    break;
+
+	  for (idx = 0; idx < XVECLEN (seq, 0); idx++)
+	    if (RTX_FRAME_RELATED_P (XVECEXP (seq, 0, idx)))
+	      saw_frp = true;
+	}
+
       if (RTX_FRAME_RELATED_P (i))
 	saw_frp = true;
     }
@@ -3886,7 +3902,10 @@ dw_val_node;
 
 typedef struct GTY(()) dw_loc_descr_struct {
   dw_loc_descr_ref dw_loc_next;
-  enum dwarf_location_atom dw_loc_opc;
+  ENUM_BITFIELD (dwarf_location_atom) dw_loc_opc : 8;
+  /* Used to distinguish DW_OP_addr with a direct symbol relocation
+     from DW_OP_addr with a dtp-relative symbol relocation.  */
+  unsigned int dtprel : 1;
   int dw_loc_addr;
   dw_val_node dw_loc_oprnd1;
   dw_val_node dw_loc_oprnd2;
@@ -3918,7 +3937,6 @@ dwarf_stack_op_name (unsigned int op)
   switch (op)
     {
     case DW_OP_addr:
-    case INTERNAL_DW_OP_tls_addr:
       return "DW_OP_addr";
     case DW_OP_deref:
       return "DW_OP_deref";
@@ -4333,7 +4351,6 @@ size_of_loc_descr (dw_loc_descr_ref loc)
   switch (loc->dw_loc_opc)
     {
     case DW_OP_addr:
-    case INTERNAL_DW_OP_tls_addr:
       size += DWARF2_ADDR_SIZE;
       break;
     case DW_OP_const1u:
@@ -4474,9 +4491,6 @@ output_loc_operands (dw_loc_descr_ref loc)
   switch (loc->dw_loc_opc)
     {
 #ifdef DWARF2_DEBUGGING_INFO
-    case DW_OP_addr:
-      dw2_asm_output_addr_rtx (DWARF2_ADDR_SIZE, val1->v.val_addr, NULL);
-      break;
     case DW_OP_const2u:
     case DW_OP_const2s:
       dw2_asm_output_data (2, val1->v.val_int, NULL);
@@ -4502,7 +4516,6 @@ output_loc_operands (dw_loc_descr_ref loc)
       }
       break;
 #else
-    case DW_OP_addr:
     case DW_OP_const2u:
     case DW_OP_const2s:
     case DW_OP_const4u:
@@ -4585,16 +4598,27 @@ output_loc_operands (dw_loc_descr_ref loc)
       dw2_asm_output_data (1, val1->v.val_int, NULL);
       break;
 
-    case INTERNAL_DW_OP_tls_addr:
-      if (targetm.asm_out.output_dwarf_dtprel)
+    case DW_OP_addr:
+      if (loc->dtprel)
 	{
-	  targetm.asm_out.output_dwarf_dtprel (asm_out_file,
-					       DWARF2_ADDR_SIZE,
-					       val1->v.val_addr);
-	  fputc ('\n', asm_out_file);
+	  if (targetm.asm_out.output_dwarf_dtprel)
+	    {
+	      targetm.asm_out.output_dwarf_dtprel (asm_out_file,
+						   DWARF2_ADDR_SIZE,
+						   val1->v.val_addr);
+	      fputc ('\n', asm_out_file);
+	    }
+	  else
+	    gcc_unreachable ();
 	}
       else
-	gcc_unreachable ();
+	{
+#ifdef DWARF2_DEBUGGING_INFO
+	  dw2_asm_output_addr_rtx (DWARF2_ADDR_SIZE, val1->v.val_addr, NULL);
+#else
+	  gcc_unreachable ();
+#endif
+	}
       break;
 
     default:
@@ -4727,9 +4751,6 @@ output_loc_operands_raw (dw_loc_descr_ref loc)
       fputc (',', asm_out_file);
       dw2_asm_output_data_sleb128_raw (val2->v.val_int);
       break;
-
-    case INTERNAL_DW_OP_tls_addr:
-      gcc_unreachable ();
 
     default:
       /* Other codes have no operands.  */
@@ -7280,7 +7301,10 @@ pop_compile_unit (dw_die_ref old_unit)
 static inline void
 loc_checksum (dw_loc_descr_ref loc, struct md5_ctx *ctx)
 {
-  CHECKSUM (loc->dw_loc_opc);
+  int tem;
+
+  tem = (loc->dtprel << 8) | ((unsigned int) loc->dw_loc_opc);
+  CHECKSUM (tem);
   CHECKSUM (loc->dw_loc_oprnd1);
   CHECKSUM (loc->dw_loc_oprnd2);
 }
@@ -10232,11 +10256,10 @@ based_loc_descr (rtx reg, HOST_WIDE_INT offset,
 	     is aligned without drap, use stack pointer + offset to
 	     access stack variables.  */
 	  if (crtl->stack_realign_tried
-	      && cfa.reg == HARD_FRAME_POINTER_REGNUM
 	      && reg == frame_pointer_rtx)
 	    {
 	      int base_reg
-		= DWARF_FRAME_REGNUM (cfa.indirect
+		= DWARF_FRAME_REGNUM ((fde && fde->drap_reg != INVALID_REGNUM)
 				      ? HARD_FRAME_POINTER_REGNUM
 				      : STACK_POINTER_REGNUM);
 	      return new_reg_loc_descr (base_reg, offset);
@@ -10772,6 +10795,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 	  rtx rtl;
 	  enum dwarf_location_atom first_op;
 	  enum dwarf_location_atom second_op;
+	  bool dtprel = false;
 
 	  if (targetm.have_tls)
 	    {
@@ -10785,7 +10809,8 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 	     	  module.  */
 	      if (DECL_EXTERNAL (loc) && !targetm.binds_local_p (loc))
 		return 0;
-	      first_op = (enum dwarf_location_atom) INTERNAL_DW_OP_tls_addr;
+	      first_op = DW_OP_addr;
+	      dtprel = true;
 	      second_op = DW_OP_GNU_push_tls_address;
 	    }
 	  else
@@ -10810,6 +10835,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
 	  ret = new_loc_descr (first_op, 0, 0);
 	  ret->dw_loc_oprnd1.val_class = dw_val_class_addr;
 	  ret->dw_loc_oprnd1.v.val_addr = rtl;
+	  ret->dtprel = dtprel;
 
 	  ret1 = new_loc_descr (second_op, 0, 0);
 	  add_loc_descr (&ret, ret1);
@@ -11449,22 +11475,31 @@ add_data_member_location_attribute (dw_die_ref die, tree decl)
 
   if (! loc_descr)
     {
-      enum dwarf_location_atom op;
-
-      /* The DWARF2 standard says that we should assume that the structure
-	 address is already on the stack, so we can specify a structure field
-	 address by using DW_OP_plus_uconst.  */
-
+      if (dwarf_version > 2)
+	{
+	  /* Don't need to output a location expression, just the constant. */
+	  add_AT_int (die, DW_AT_data_member_location, offset);
+	  return;
+	}
+      else
+	{
+	  enum dwarf_location_atom op;
+	  
+	  /* The DWARF2 standard says that we should assume that the structure
+	     address is already on the stack, so we can specify a structure
+	     field address by using DW_OP_plus_uconst.  */
+	  
 #ifdef MIPS_DEBUGGING_INFO
-      /* ??? The SGI dwarf reader does not handle the DW_OP_plus_uconst
-	 operator correctly.  It works only if we leave the offset on the
-	 stack.  */
-      op = DW_OP_constu;
+	  /* ??? The SGI dwarf reader does not handle the DW_OP_plus_uconst
+	     operator correctly.  It works only if we leave the offset on the
+	     stack.  */
+	  op = DW_OP_constu;
 #else
-      op = DW_OP_plus_uconst;
+	  op = DW_OP_plus_uconst;
 #endif
-
-      loc_descr = new_loc_descr (op, offset, 0);
+	  
+	  loc_descr = new_loc_descr (op, offset, 0);
+	}
     }
 
   add_AT_loc (die, DW_AT_data_member_location, loc_descr);
@@ -13706,7 +13741,7 @@ gen_formal_parameter_die (tree node, tree origin, dw_die_ref context_die)
 	    add_AT_flag (parm_die, DW_AT_artificial, 1);
 	}
 
-      if (node)
+      if (node && node != origin)
         equate_decl_number_to_die (node, parm_die);
       if (! DECL_ABSTRACT (node_or_origin))
 	add_location_or_const_value_attribute (parm_die, node_or_origin,

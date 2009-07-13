@@ -1,3 +1,93 @@
+2009-07-08  Janis Johnson  <janis187@us.ibm.com>
+
+	PR libstdc++/40691
+	* include/bits/valarray_after.h (_Expr::operator!): Fix return type.
+	* testsuite/26_numerics/valarray/40691.cc: New test.
+
+2009-07-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	*  testsuite/21_strings/c_strings/wchar_t/3.cc: Add copyright.
+	*  testsuite/21_strings/c_strings/char/3.cc: Same.
+
+2009-07-06  Jason Merrill  <jason@redhat.com>
+
+	* libsupc++/vmi_class_type_info.cc (__do_dyncast): Use src2dst hint
+	to defer searching bases that don't overlap the desired address.
+
+2009-07-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/stod.cc,
+	testsuite/21_strings/basic_string/numeric_conversions/wchar_t/stof.cc,
+	testsuite/21_strings/basic_string/numeric_conversions/wchar_t/stoi.cc,
+	testsuite/21_strings/basic_string/numeric_conversions/wchar_t/stol.cc,
+	testsuite/21_strings/basic_string/numeric_conversions/wchar_t/stold.cc,
+	testsuite/21_strings/basic_string/numeric_conversions/wchar_t/stoll.cc,
+	testsuite/21_strings/basic_string/numeric_conversions/wchar_t/stoul.cc,
+	testsuite/21_strings/basic_string/numeric_conversions/wchar_t/stoull.cc,
+	testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	to_wstring.cc, testsuite/ext/vstring/element_access/char/front_back.cc,
+	testsuite/ext/vstring/element_access/wchar_t/front_back.cc,
+	testsuite/ext/vstring/init-list.cc,
+	testsuite/ext/vstring/moveable.cc,
+	testsuite/ext/vstring/requirements/citerators.cc,
+	testsuite/ext/vstring/requirements/explicit_instantiation/char16_t/1.cc,
+	testsuite/ext/vstring/requirements/explicit_instantiation/char32_t/1.cc:
+	Use dg-require-string-conversions.
+
+2009-06-30  Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* testsuite/lib/libstdc++.exp (libstdc++_init): Don't add "."
+	to ld_library_path.  Use add_path.  Add just find_libgcc_s to
+	ld_library_path, not every libgcc multilib directory.
+
+2009-06-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40600
+	* testsuite/25_algorithms/minmax/2.cc: Fix consistently with
+	std::minmax return type.
+	* testsuite/25_algorithms/minmax/3.cc: Likewise.
+
+2009-06-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40511
+	* config/locale/gnu/c_locale.cc: Don't use LC_CTYPE_MASK together
+	with glibc2.2.x.
+
+2009-06-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc
+	(linear_congruential_engine<>::seed(seed_seq&)): Use uint_least32_t
+	as array type.
+
+2009-06-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (__mod(_Tp)): Use defaults.
+	(struct _Mod): Adjust template parameters.
+	(linear_congruential_engine<>::operator()()): Adjust.
+	(typedef _UInt32Type): Remove.
+	(mersenne_twister_engine<>::initialization_multiplier): Fix type.
+	* include/bits/random.tcc (struct _Mod): Adjust template parameters.
+	(linear_congruential_engine<>::seed(result_type)): Adjust __mod
+	calls.
+	(mersenne_twister_engine<>::seed(result_type)): Likewise.
+	(mersenne_twister_engine<>::seed(seed_seq&)): Likewise.
+	(subtract_with_carry_engine<>::seed(result_type)): Likewise.
+	(subtract_with_carry_engine<>::seed(seed_seq&)): Likewise.
+	(seed_seq::seed_seq(std::initializer_list<>)): Likewise.
+	(seed_seq::seed_seq(_InputIterator, _InputIterator)): Likewise.
+	(seed_seq::generate(_RandomAccessIterator, _RandomAccessIterator)):
+	Likewise.
+
+	* include/bits/random.tcc
+	(mersenne_twister_engine<>::seed(result_type)): Fix i usage in the
+	formula (i mod n).
+	(mersenne_twister_engine<>::seed(seed_seq&)): Use uint_least32_t
+	as array type.
+	(subtract_with_carry_engine<>::seed(seed_seq&)): Likewise; fix array
+	size.
+	(subtract_with_carry_engine<>::seed(result_type)): Fix; also use
+	uint_least32_t.
+
 2009-06-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/std/future (shared_future): Adjust doxygen comment.

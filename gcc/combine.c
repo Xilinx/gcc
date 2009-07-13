@@ -6692,18 +6692,25 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
       inner = adjust_address_nv (inner, wanted_inner_mode, offset);
     }
 
-  /* If INNER is not memory, we can always get it into the proper mode.  If we
-     are changing its mode, POS must be a constant and smaller than the size
-     of the new mode.  */
+  /* If INNER is not memory, get it into the proper mode.  If we are changing
+     its mode, POS must be a constant and smaller than the size of the new
+     mode.  */
   else if (!MEM_P (inner))
     {
+      /* On the LHS, don't create paradoxical subregs implicitely truncating
+	 the register unless TRULY_NOOP_TRUNCATION.  */
+      if (in_dest
+	  && !TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (inner)),
+				     GET_MODE_BITSIZE (wanted_inner_mode)))
+	return NULL_RTX;
+
       if (GET_MODE (inner) != wanted_inner_mode
 	  && (pos_rtx != 0
 	      || orig_pos + len > GET_MODE_BITSIZE (wanted_inner_mode)))
-	return 0;
+	return NULL_RTX;
 
       if (orig_pos < 0)
-	return 0;
+	return NULL_RTX;
 
       inner = force_to_mode (inner, wanted_inner_mode,
 			     pos_rtx
@@ -7358,6 +7365,10 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	return force_to_mode (SUBREG_REG (x), mode, mask, next_select);
       break;
 
+    case TRUNCATE:
+      /* Similarly for a truncate.  */
+      return force_to_mode (XEXP (x, 0), mode, mask, next_select);
+
     case AND:
       /* If this is an AND with a constant, convert it into an AND
 	 whose constant is the AND of that constant with MASK.  If it
@@ -7502,12 +7513,20 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
       /* For most binary operations, just propagate into the operation and
 	 change the mode if we have an operation of that mode.  */
 
-      op0 = gen_lowpart_or_truncate (op_mode,
-				     force_to_mode (XEXP (x, 0), mode, mask,
-						    next_select));
-      op1 = gen_lowpart_or_truncate (op_mode,
-				     force_to_mode (XEXP (x, 1), mode, mask,
-					next_select));
+      op0 = force_to_mode (XEXP (x, 0), mode, mask, next_select);
+      op1 = force_to_mode (XEXP (x, 1), mode, mask, next_select);
+
+      /* If we ended up truncating both operands, truncate the result of the
+	 operation instead.  */
+      if (GET_CODE (op0) == TRUNCATE
+	  && GET_CODE (op1) == TRUNCATE)
+	{
+	  op0 = XEXP (op0, 0);
+	  op1 = XEXP (op1, 0);
+	}
+
+      op0 = gen_lowpart_or_truncate (op_mode, op0);
+      op1 = gen_lowpart_or_truncate (op_mode, op1);
 
       if (op_mode != GET_MODE (x) || op0 != XEXP (x, 0) || op1 != XEXP (x, 1))
 	x = simplify_gen_binary (code, op_mode, op0, op1);

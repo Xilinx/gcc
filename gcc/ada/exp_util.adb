@@ -255,9 +255,8 @@ package body Exp_Util is
             --  to reset its type, since Standard.Boolean is just fine, and
             --  such operations always do Adjust_Condition on their operands.
 
-            elsif KP in N_Op_Boolean
-              or else KP = N_And_Then
-              or else KP = N_Or_Else
+            elsif     KP in N_Op_Boolean
+              or else KP in N_Short_Circuit
               or else KP = N_Op_Not
             then
                return;
@@ -1600,6 +1599,18 @@ package body Exp_Util is
    begin
       pragma Assert (Is_Interface (Iface));
 
+      --  Handle access types
+
+      if Is_Access_Type (Typ) then
+         Typ := Directly_Designated_Type (Typ);
+      end if;
+
+      --  Handle class-wide types
+
+      if Is_Class_Wide_Type (Typ) then
+         Typ := Root_Type (Typ);
+      end if;
+
       --  Handle private types
 
       if Has_Private_Declaration (Typ)
@@ -1608,27 +1619,17 @@ package body Exp_Util is
          Typ := Full_View (Typ);
       end if;
 
-      --  Handle access types
+      --  Handle entities from the limited view
 
-      if Is_Access_Type (Typ) then
-         Typ := Directly_Designated_Type (Typ);
+      if Ekind (Typ) = E_Incomplete_Type then
+         pragma Assert (Present (Non_Limited_View (Typ)));
+         Typ := Non_Limited_View (Typ);
       end if;
 
       --  Handle task and protected types implementing interfaces
 
       if Is_Concurrent_Type (Typ) then
          Typ := Corresponding_Record_Type (Typ);
-      end if;
-
-      if Is_Class_Wide_Type (Typ) then
-         Typ := Etype (Typ);
-      end if;
-
-      --  Handle entities from the limited view
-
-      if Ekind (Typ) = E_Incomplete_Type then
-         pragma Assert (Present (Non_Limited_View (Typ)));
-         Typ := Non_Limited_View (Typ);
       end if;
 
       Find_Tag (Typ);
@@ -2303,7 +2304,7 @@ package body Exp_Util is
             --  Nothing special needs to be done for the left operand since
             --  in that case the actions are executed unconditionally.
 
-            when N_And_Then | N_Or_Else =>
+            when N_Short_Circuit =>
                if N = Right_Opnd (P) then
 
                   --  We are now going to either append the actions to the
@@ -4393,12 +4394,10 @@ package body Exp_Util is
             --  are side effect free. For this purpose binary operators
             --  include membership tests and short circuit forms
 
-            when N_Binary_Op       |
-                 N_Membership_Test |
-                 N_And_Then        |
-                 N_Or_Else         =>
+            when N_Binary_Op | N_Membership_Test | N_Short_Circuit =>
                return Side_Effect_Free (Left_Opnd  (N))
-                 and then Side_Effect_Free (Right_Opnd (N));
+                        and then
+                      Side_Effect_Free (Right_Opnd (N));
 
             --  An explicit dereference is side effect free only if it is
             --  a side effect free prefixed reference.
@@ -4595,6 +4594,7 @@ package body Exp_Util is
 
          Set_Assignment_OK (E);
          Insert_Action (Exp, E);
+         Set_Related_Expression (Def_Id, Exp);
 
       --  If the expression has the form v.all then we can just capture
       --  the pointer, and then do an explicit dereference on the result.
@@ -4612,6 +4612,7 @@ package body Exp_Util is
                New_Reference_To (Etype (Prefix (Exp)), Loc),
              Constant_Present    => True,
              Expression          => Relocate_Node (Prefix (Exp))));
+         Set_Related_Expression (Def_Id, Exp);
 
       --  Similar processing for an unchecked conversion of an expression
       --  of the form v.all, where we want the same kind of treatment.
@@ -4653,6 +4654,7 @@ package body Exp_Util is
                 Defining_Identifier => Def_Id,
                 Subtype_Mark        => New_Reference_To (Exp_Type, Loc),
                 Name                => Relocate_Node (Exp)));
+            Set_Related_Expression (Def_Id, Exp);
 
          else
             Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
@@ -4668,6 +4670,7 @@ package body Exp_Util is
 
             Set_Assignment_OK (E);
             Insert_Action (Exp, E);
+            Set_Related_Expression (Def_Id, Exp);
          end if;
 
       --  For expressions that denote objects, we can use a renaming scheme.
@@ -4709,8 +4712,9 @@ package body Exp_Util is
                 Defining_Identifier => Def_Id,
                 Subtype_Mark        => New_Reference_To (Exp_Type, Loc),
                 Name                => Relocate_Node (Exp)));
-
          end if;
+
+         Set_Related_Expression (Def_Id, Exp);
 
          --  If this is a packed reference, or a selected component with a
          --  non-standard representation, a reference to the temporary will
@@ -4757,6 +4761,7 @@ package body Exp_Util is
                    Expression          => Relocate_Node (Exp));
                Insert_Action (Exp, Decl);
                Set_Etype (Obj, Exp_Type);
+               Set_Related_Expression (Obj, Exp);
                Rewrite (Exp, New_Occurrence_Of (Obj, Loc));
                return;
             end;
@@ -4814,6 +4819,7 @@ package body Exp_Util is
              Defining_Identifier => Def_Id,
              Object_Definition   => New_Reference_To (Ref_Type, Loc),
              Expression          => New_Exp));
+         Set_Related_Expression (Def_Id, Exp);
       end if;
 
       --  Preserve the Assignment_OK flag in all copies, since at least
