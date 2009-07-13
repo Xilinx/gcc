@@ -1,5 +1,13 @@
 2009-07-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-6.c: 
+	Expect to see the pattern twice.
+	* testsuite/gcc.dg/graphite/interchange-0.c: Un-XFAIL.
+	* testsuite/gcc.dg/graphite/interchange-5.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-6.c: Same.
+
+2009-07-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* testsuite/gcc.dg/graphite/id-10.c: New.
 	* testsuite/gcc.dg/graphite/id-12.c: New.
 	* testsuite/gfortran.dg/graphite/id-7.f: New.
