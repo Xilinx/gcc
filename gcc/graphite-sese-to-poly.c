@@ -1564,7 +1564,10 @@ pdr_add_data_dimensions (ppl_Polyhedron_t data_container, data_reference_p dr,
       /* subscript <= array_size */
       ppl_new_Linear_Expression_with_dimension (&expr, accessp_nb_dims);
       ppl_set_coef (expr, subscript, -1);
-      ppl_set_inhomogeneous (expr, int_cst_value (array_size) / elt_size);
+
+      if (elt_size)
+	ppl_set_inhomogeneous (expr, int_cst_value (array_size) / elt_size);
+
       ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
       ppl_Polyhedron_add_constraint (data_container, cstr);
       ppl_delete_Linear_Expression (expr);
