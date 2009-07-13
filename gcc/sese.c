@@ -524,20 +524,25 @@ rename_variables_in_stmt (gimple stmt, htab_t map)
     {
       tree use = USE_FROM_PTR (use_p);
       tree expr = get_rename (map, use);
+      tree type_use = TREE_TYPE (use);
+      tree type_expr = TREE_TYPE (expr);
       gimple_seq stmts;
 
       if (use == expr)
 	continue;
 
-      if (TREE_CODE (expr) != SSA_NAME
-	  && is_gimple_reg (use))
+      if (type_use != type_expr
+	  || (TREE_CODE (expr) != SSA_NAME
+	      && is_gimple_reg (use)))
 	{
-	  tree type = TREE_TYPE (use);
-	  tree var = create_tmp_var (type, "var");
+	  tree var = create_tmp_var (type_use, "var");
 
-	  expr = build2 (MODIFY_EXPR, type, var, expr);
+	  if (type_use != type_expr)
+	    expr = fold_convert (type_use, expr);
+
+	  expr = build2 (MODIFY_EXPR, type_use, var, expr);
 	  expr = force_gimple_operand (expr, &stmts, true, NULL);
-	  gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
+	  gsi_insert_seq_before (&gsi, stmts, GSI_NEW_STMT);
 	}
 
       replace_exp (use_p, expr);
