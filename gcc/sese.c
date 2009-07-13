@@ -764,8 +764,13 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, sese region,
       if (!is_gimple_reg (use))
 	continue;
 
+      /* Don't expand USE if we already have a rename for it.  */
+      use_expr = get_rename (map, use);
+      if (use_expr != use)
+	continue;
+
       use_expr = expand_scalar_variables_expr (type, use, code, NULL, bb,
-						    region, map, gsi);
+					       region, map, gsi);
       use_expr = fold_convert (type, use_expr);
 
       if (use_expr == use)
