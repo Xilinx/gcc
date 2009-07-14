@@ -580,6 +580,42 @@ static tree
 expand_scalar_variables_expr (tree, tree, enum tree_code, tree, basic_block,
 			      sese, htab_t, gimple_stmt_iterator *);
 
+static tree
+expand_scalar_variables_call (gimple stmt, basic_block bb, sese region,
+			      htab_t map, gimple_stmt_iterator *gsi)
+{
+  int i, nargs = gimple_call_num_args (stmt);
+  VEC (tree, gc) *args = VEC_alloc (tree, gc, nargs);
+  tree fn_type = TREE_TYPE (gimple_call_fn (stmt));
+  tree fn = gimple_call_fndecl (stmt);
+  tree call_expr, var, lhs;
+  gimple call;
+
+  for (i = 0; i < nargs; i++)
+    {
+      tree arg = gimple_call_arg (stmt, i);
+      tree t = TREE_TYPE (arg);
+
+      var = create_tmp_var (t, "var");
+      arg = expand_scalar_variables_expr (t, arg, TREE_CODE (arg), NULL,
+					  bb, region, map, gsi);
+      arg = build2 (MODIFY_EXPR, t, var, arg);
+      arg = force_gimple_operand_gsi (gsi, arg, true, NULL,
+				      true, GSI_SAME_STMT);
+      VEC_quick_push (tree, args, arg);
+    }
+
+  lhs = gimple_call_lhs (stmt);
+  var = create_tmp_var (TREE_TYPE (lhs), "var");
+  call_expr = build_call_vec (fn_type, fn, args);
+  call = gimple_build_call_from_tree (call_expr);
+  var = make_ssa_name (var, call);
+  gimple_call_set_lhs (call, var);
+  gsi_insert_before (gsi, call, GSI_SAME_STMT);
+
+  return var;
+}
+
 /* Copies at GSI all the scalar computations on which the ssa_name OP0
    depends on in the SESE: these are all the scalar variables used in
    the definition of OP0, that are defined outside BB and still in the
@@ -593,9 +629,7 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
 				  sese region, htab_t map, 
 				  gimple_stmt_iterator *gsi)
 {
-  tree var0, var1, type;
   gimple def_stmt;
-  enum tree_code subcode;
   tree new_op;
       
   if (is_parameter (region, op0)
@@ -604,7 +638,7 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
       
   def_stmt = SSA_NAME_DEF_STMT (op0);
 
-  /* We already created this stmt in this bb.  */
+  /* Check whether we already have a rename for OP0.  */
   new_op = get_rename (map, op0);
 
   if (new_op != op0
@@ -621,17 +655,30 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
     }
   else
     {
-      if (gimple_code (def_stmt) != GIMPLE_ASSIGN
+      if (!gimple_bb (def_stmt)
 	  || !bb_in_sese_p (gimple_bb (def_stmt), region))
 	return new_op;
 
-      var0 = gimple_assign_rhs1 (def_stmt);
-      subcode = gimple_assign_rhs_code (def_stmt);
-      var1 = gimple_assign_rhs2 (def_stmt);
-      type = gimple_expr_type (def_stmt);
+      switch (gimple_code (def_stmt))
+	{
+	case GIMPLE_ASSIGN:
+	  {
+	    tree var0 = gimple_assign_rhs1 (def_stmt);
+	    enum tree_code subcode = gimple_assign_rhs_code (def_stmt);
+	    tree var1 = gimple_assign_rhs2 (def_stmt);
+	    tree type = gimple_expr_type (def_stmt);
 
-      return expand_scalar_variables_expr (type, var0, subcode, var1, bb,
-					   region, map, gsi);
+	    return expand_scalar_variables_expr (type, var0, subcode, var1, bb,
+						 region, map, gsi);
+	  }
+
+	case GIMPLE_CALL:
+	  return expand_scalar_variables_call (def_stmt, bb, region, map, gsi);
+
+	default:
+	  gcc_unreachable ();
+	  return new_op;
+	}
     }
 }
 
