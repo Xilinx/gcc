@@ -1438,6 +1438,7 @@ operator_is_linear (tree scev)
     case NEGATE_EXPR:
     case SSA_NAME:
     case NON_LVALUE_EXPR:
+    case BIT_NOT_EXPR:
     CASE_CONVERT:
       return true;
 
@@ -1460,6 +1461,10 @@ scev_is_linear_expression (tree scev)
   if (TREE_CODE (scev) == MULT_EXPR)
     return !(tree_contains_chrecs (TREE_OPERAND (scev, 0), NULL)
 	     && tree_contains_chrecs (TREE_OPERAND (scev, 1), NULL));
+
+  if (TREE_CODE (scev) == POLYNOMIAL_CHREC
+      && !evolution_function_is_affine_multivariate_p (scev, CHREC_VARIABLE (scev)))
+    return false;
 
   switch (TREE_CODE_LENGTH (TREE_CODE (scev)))
     {

@@ -217,13 +217,12 @@ graphite_can_represent_scev (tree scev, int outermost_loop)
 	  || !graphite_can_represent_init (scev)))
     return false;
 
-  if (evolution_function_is_invariant_p (scev, outermost_loop))
-    return true;
+  /* Only affine functions can be represented.  */
+  if (!scev_is_linear_expression (scev))
+    return false;
 
-  if (evolution_function_is_affine_multivariate_p (scev, outermost_loop))
-    return true;
-
-  return false;
+  return evolution_function_is_invariant_p (scev, outermost_loop)
+    || evolution_function_is_affine_multivariate_p (scev, outermost_loop);
 }
 
 
