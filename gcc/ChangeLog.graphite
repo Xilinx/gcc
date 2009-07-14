@@ -1,5 +1,11 @@
 2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* tree-scalar-evolution.c (compute_overall_effect_of_inner_loop):
+	Instantiate scevs varying in outer loops.
+	* testsuite/gfortran.dg/graphite/id-9.f: Correct testcase.
+
+2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (build_loop_iteration_domains): Do not insert
 	redundant constraint.
 

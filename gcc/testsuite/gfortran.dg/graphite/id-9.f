@@ -12,7 +12,8 @@
                   enddo
             enddo
             do m=1,ne
-               do k=1,l*(v3b**(-coefm))
+               do k=1,l
+                  l = l*(v3b**(-coefm))
                enddo
             enddo
       enddo
