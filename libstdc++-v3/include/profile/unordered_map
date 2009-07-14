@@ -170,34 +170,34 @@ namespace __profile
       void
       insert(std::initializer_list<value_type> __l)
       { 
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         _Base::insert(__l);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
       }
 
        insert_return_type
       insert(const value_type& __obj)
       {
-        size_type old_size =  _Base::bucket_count();
+        size_type __old_size =  _Base::bucket_count();
         insert_return_type __res = _Base::insert(__obj);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
         return __res;
       }
       iterator
       insert(iterator __iter, const value_type& __v)
       { 
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         iterator res = _Base::insert(__iter, __v);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
         return res;
       }
 
       const_iterator
       insert(const_iterator __iter, const value_type& __v)
       { 
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         const_iterator res =_Base::insert(__iter, __v);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
         return res;
       }
 
@@ -205,27 +205,27 @@ namespace __profile
       void
       insert(_InputIter __first, _InputIter __last)
       {
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         _Base::insert(__first.base(), __last.base());
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
       }
 
       void
       insert(const value_type* __first, const value_type* __last)
       {
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         _Base::insert(__first, __last);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
       }
      
       // operator []
       mapped_type&
       operator[](const _Key& _k)
       {
-        size_type old_size =  _Base::bucket_count();
+        size_type __old_size =  _Base::bucket_count();
         mapped_type& __res = _M_base()[_k];
-        size_type new_size =  _Base::bucket_count();
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        size_type __new_size =  _Base::bucket_count();
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
         return __res;
       }   
       void
@@ -236,16 +236,16 @@ namespace __profile
       
       void rehash(size_type __n)
       {
-        size_type old_size =  _Base::bucket_count();
+        size_type __old_size =  _Base::bucket_count();
         _Base::rehash(__n);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
       }
     private:
-      void _M_profile_resize(size_type old_size, size_type new_size)
+      void _M_profile_resize(size_type __old_size, size_type __new_size)
       {
-        if (old_size != new_size)
+        if (__old_size != __new_size)
         {
-          __profcxx_hashtable_resize(this, old_size, new_size);
+          __profcxx_hashtable_resize(this, __old_size, __new_size);
         }
       }
       void _M_profile_destruct()
@@ -405,34 +405,34 @@ namespace __profile
       void
       insert(std::initializer_list<value_type> __l)
       { 
-        size_type old_size =  _Base::bucket_count();
+        size_type __old_size =  _Base::bucket_count();
         _Base::insert(__l);
-        _M_profile_resize(old_size, _Base::bucket_count());
+        _M_profile_resize(__old_size, _Base::bucket_count());
       }
 
       insert_return_type
       insert(const value_type& __obj)
       {
-        size_type old_size =  _Base::bucket_count();
+        size_type __old_size =  _Base::bucket_count();
         insert_return_type __res = _Base::insert(__obj);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
         return __res;
       }
       iterator
       insert(iterator __iter, const value_type& __v)
       { 
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         iterator res = _Base::insert(__iter, __v);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
         return res;
       }
 
       const_iterator
       insert(const_iterator __iter, const value_type& __v)
       { 
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         const_iterator res =_Base::insert(__iter, __v);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
         return res;
       }
 
@@ -440,17 +440,17 @@ namespace __profile
       void
       insert(_InputIter __first, _InputIter __last)
       {
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         _Base::insert(__first.base(), __last.base());
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
       }
 
       void
       insert(const value_type* __first, const value_type* __last)
       {
-        size_type old_size = _Base::bucket_count(); 
+        size_type __old_size = _Base::bucket_count(); 
         _Base::insert(__first, __last);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
       }
 
       void
@@ -461,16 +461,16 @@ namespace __profile
 
       void rehash(size_type __n)
       {
-        size_type old_size =  _Base::bucket_count();
+        size_type __old_size =  _Base::bucket_count();
         _Base::rehash(__n);
-        _M_profile_resize(old_size, _Base::bucket_count()); 
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
       }
     private:
-      void _M_profile_resize(size_type old_size, size_type new_size)
+      void _M_profile_resize(size_type __old_size, size_type __new_size)
       {
-        if (old_size != new_size)
+        if (__old_size != __new_size)
         {
-          __profcxx_hashtable_resize(this, old_size, new_size);
+          __profcxx_hashtable_resize(this, __old_size, __new_size);
         }
       }
 

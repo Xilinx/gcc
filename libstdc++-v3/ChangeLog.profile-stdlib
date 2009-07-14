@@ -1,3 +1,13 @@
+2009-07-14  Silvius Rus  <silvius.rus@gmail.com>
+	* include/profile/unordered_map: Uglify names.
+	* include/profile/unordered_set: Uglify names.
+	* include/profile/vector: Uglify names.
+	* include/profile/impl/profiler.h: Change guard macro name.
+	* include/profile/impl/profiler_trace.h: Change __Unused to _Unused.
+	* include/profile/impl/profiler_state.h: Same.
+	* include/profile/impl/profiler_container_size.h: 
+	(__container_size_info::__advice): Improve advice.
+
 2009-07-13  Silvius Rus  <silvius.rus@gmail.com>
 	* acinclude.m4: Remove libprofc++ reference.
 	* src/Makefile.in: Same.

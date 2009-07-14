@@ -69,7 +69,7 @@ namespace __cxxprof_impl
 #if defined _GLIBCXX_PROFILE_THREADS && defined HAVE_TLS
 #define _GLIBCXX_IMPL_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
 typedef pthread_mutex_t __mutex_t;
-template <int __Unused=0>
+template <int _Unused=0>
 class __mutex {
  public:
   static __mutex_t __global_lock;
@@ -79,7 +79,7 @@ class __mutex {
 #else
 #define _GLIBCXX_IMPL_MUTEX_INITIALIZER 0
 typedef int __mutex_t;
-template <int __Unused=0>
+template <int _Unused=0>
 class __mutex {
  public:
   static __mutex_t __global_lock;
@@ -88,8 +88,8 @@ class __mutex {
 };
 #endif
 
-template <int __Unused>
-__mutex_t __mutex<__Unused>::__global_lock = _GLIBCXX_IMPL_MUTEX_INITIALIZER;
+template <int _Unused>
+__mutex_t __mutex<_Unused>::__global_lock = _GLIBCXX_IMPL_MUTEX_INITIALIZER;
 
 struct __warning_data
 {
@@ -152,7 +152,7 @@ inline size_t __min(size_t __a, size_t __b)
 }
 
 // Diagnostic tables.
-template <int __Unused=0>
+template <int _Unused=0>
 class __tables
 {
  public:
@@ -163,19 +163,19 @@ class __tables
   static __trace_vector_to_list* _S_vector_to_list;
 };
 
-template <int __Unused>
-__trace_hash_func* __tables<__Unused>::_S_hash_func = NULL;
-template <int __Unused>
-__trace_hashtable_size* __tables<__Unused>::_S_hashtable_size = NULL;
-template <int __Unused>
-__trace_map2umap* __tables<__Unused>::_S_map2umap = NULL;
-template <int __Unused>
-__trace_vector_size* __tables<__Unused>::_S_vector_size = NULL;
-template <int __Unused>
-__trace_vector_to_list* __tables<__Unused>::_S_vector_to_list = NULL;
+template <int _Unused>
+__trace_hash_func* __tables<_Unused>::_S_hash_func = NULL;
+template <int _Unused>
+__trace_hashtable_size* __tables<_Unused>::_S_hashtable_size = NULL;
+template <int _Unused>
+__trace_map2umap* __tables<_Unused>::_S_map2umap = NULL;
+template <int _Unused>
+__trace_vector_size* __tables<_Unused>::_S_vector_size = NULL;
+template <int _Unused>
+__trace_vector_to_list* __tables<_Unused>::_S_vector_to_list = NULL;
 
 // Settings.
-template <int __Unused=0>
+template <int _Unused=0>
 class __settings {
  public:
   static const char* _S_trace_file_name;
@@ -184,17 +184,17 @@ class __settings {
   static size_t _S_max_mem;
 };
 
-template <int __Unused>
-const char* __settings<__Unused>::_S_trace_file_name = 
+template <int _Unused>
+const char* __settings<_Unused>::_S_trace_file_name = 
     _GLIBCXX_PROFILE_TRACE_PATH_ROOT;
-template <int __Unused>
-size_t __settings<__Unused>::_S_max_warn_count =
+template <int _Unused>
+size_t __settings<_Unused>::_S_max_warn_count =
     _GLIBCXX_PROFILE_MAX_WARN_COUNT;
-template <int __Unused>
-size_t __settings<__Unused>::_S_max_stack_depth =
+template <int _Unused>
+size_t __settings<_Unused>::_S_max_stack_depth =
     _GLIBCXX_PROFILE_MAX_STACK_DEPTH;
-template <int __Unused>
-size_t __settings<__Unused>::_S_max_mem =
+template <int _Unused>
+size_t __settings<_Unused>::_S_max_mem =
     _GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC;
 
 inline size_t __stack_max_depth()

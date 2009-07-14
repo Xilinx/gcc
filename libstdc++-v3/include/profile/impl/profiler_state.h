@@ -46,12 +46,12 @@
 namespace __cxxprof_impl
 {
 
-template <int __Unused=0>
+template <int _Unused=0>
 class __state
 {
  public:
 
-  static __state<__Unused>* _S_diag_state;
+  static __state<_Unused>* _S_diag_state;
 
   __state() : _M_state(__INVALID) {}
   ~__state() {}
@@ -67,8 +67,8 @@ class __state
   __state_type _M_state;
 };
 
-template <int __Unused>
-__state<__Unused>* __state<__Unused>::_S_diag_state = NULL;
+template <int _Unused>
+__state<_Unused>* __state<_Unused>::_S_diag_state = NULL;
 
 inline bool __is_on()
 {

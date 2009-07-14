@@ -50,7 +50,7 @@ namespace __cxxprof_guard
 
 // Thread safe reentrance guard.
 // Get in using __get_in.  Get out using the destructor.
-template <int __Unused=0>
+template <int _Unused=0>
 class __reentrance_guard
 {
  public:
@@ -60,11 +60,11 @@ class __reentrance_guard
   ~__reentrance_guard() { __inside_cxxprof_impl = false; }
 };
 
-template <int __Unused>
-__thread bool __reentrance_guard<__Unused>::__inside_cxxprof_impl = false;
+template <int _Unused>
+__thread bool __reentrance_guard<_Unused>::__inside_cxxprof_impl = false;
 
-template <int __Unused>
-bool __reentrance_guard<__Unused>::__get_in()
+template <int _Unused>
+bool __reentrance_guard<_Unused>::__get_in()
 {
   if (__inside_cxxprof_impl) {
     return false;
@@ -76,7 +76,7 @@ bool __reentrance_guard<__Unused>::__get_in()
 
 } // namespace __cxxprof_guard
 
-#define __GUARD(__x...)                                            \
+#define _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__x...)                                            \
   {                                                                \
     if (__cxxprof_guard::__reentrance_guard<0>::__get_in())        \
     {                                                              \
@@ -132,12 +132,18 @@ void __trace_map_to_unordered_map_destruct(const void*);
 
 // Expose global management routines to user code.
 #ifdef _GLIBCXX_PROFILE
-#define __profcxx_report() __GUARD(__cxxprof_impl::__report())
-#define __profcxx_turn_on() __GUARD(__cxxprof_impl::__turn_on())
-#define __profcxx_turn_off() __GUARD(__cxxprof_impl::__turn_off())
-#define __profcxx_is_invalid() __GUARD(__cxxprof_impl::__is_invalid())
-#define __profcxx_is_on() __GUARD(__cxxprof_impl::__is_on())
-#define __profcxx__is_off() __GUARD(__cxxprof_impl::__is_off())
+#define __profcxx_report() \
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__cxxprof_impl::__report())
+#define __profcxx_turn_on() \
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__cxxprof_impl::__turn_on())
+#define __profcxx_turn_off() \
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__cxxprof_impl::__turn_off())
+#define __profcxx_is_invalid() \
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__cxxprof_impl::__is_invalid())
+#define __profcxx_is_on() \
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__cxxprof_impl::__is_on())
+#define __profcxx__is_off() \
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__cxxprof_impl::__is_off())
 #else
 #define __report()
 #define __turn_on()
@@ -153,11 +159,14 @@ void __trace_map_to_unordered_map_destruct(const void*);
      || (defined(_GLIBCXX_PROFILE_HASHTABLE_TOO_LARGE) \
          && !defined(_NO_GLIBCXX_PROFILE_HASHTABLE_TOO_LARGE)))
 #define __profcxx_hashtable_resize(__x...) \
-  __GUARD(__cxxprof_impl::__trace_hashtable_size_resize(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_hashtable_size_resize(__x))
 #define __profcxx_hashtable_destruct(__x...) \
-  __GUARD(__cxxprof_impl::__trace_hashtable_size_destruct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_hashtable_size_destruct(__x))
 #define __profcxx_hashtable_construct(__x...) \
-  __GUARD(__cxxprof_impl::__trace_hashtable_size_construct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_hashtable_size_construct(__x))
 #else
 #define __profcxx_hashtable_resize(__x...)  
 #define __profcxx_hashtable_destruct(__x...) 
@@ -170,11 +179,14 @@ void __trace_map_to_unordered_map_destruct(const void*);
      || (defined(_GLIBCXX_PROFILE_VECTOR_TOO_LARGE) \
          && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TOO_LARGE)))
 #define __profcxx_vector_resize(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_size_resize(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_size_resize(__x))
 #define __profcxx_vector_destruct(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_size_destruct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_size_destruct(__x))
 #define __profcxx_vector_construct(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_size_construct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_size_construct(__x))
 #else
 #define __profcxx_vector_resize(__x...)  
 #define __profcxx_vector_destruct(__x...) 
@@ -185,9 +197,11 @@ void __trace_map_to_unordered_map_destruct(const void*);
 #if (defined(_GLIBCXX_PROFILE_INEFFICIENT_HASH) \
      && !defined(_NO_GLIBCXX_PROFILE_INEFFICIENT_HASH))
 #define __profcxx_hashtable_construct2(__x...) \
-  __GUARD(__cxxprof_impl::__trace_hash_func_construct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_hash_func_construct(__x))
 #define __profcxx_hashtable_destruct2(__x...) \
-  __GUARD(__cxxprof_impl::__trace_hash_func_destruct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_hash_func_destruct(__x))
 #else
 #define __profcxx_hashtable_destruct2(__x...) 
 #define __profcxx_hashtable_construct2(__x...)  
@@ -197,17 +211,23 @@ void __trace_map_to_unordered_map_destruct(const void*);
 #if (defined(_GLIBCXX_PROFILE_VECTOR_TO_LIST) \
      && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TO_LIST))
 #define __profcxx_vector_construct2(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_to_list_construct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_to_list_construct(__x))
 #define __profcxx_vector_destruct2(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_to_list_destruct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_to_list_destruct(__x))
 #define __profcxx_vector_insert(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_to_list_insert(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_to_list_insert(__x))
 #define __profcxx_vector_iterate(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_to_list_iterate(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_to_list_iterate(__x))
 #define __profcxx_vector_invalid_operator(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_to_list_invalid_operator(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_to_list_invalid_operator(__x))
 #define __profcxx_vector_resize2(__x...) \
-  __GUARD(__cxxprof_impl::__trace_vector_to_list_resize(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_vector_to_list_resize(__x))
 #else
 #define __profcxx_vector_destruct2(__x...)
 #define __profcxx_vector_construct2(__x...)
@@ -221,19 +241,26 @@ void __trace_map_to_unordered_map_destruct(const void*);
 #if (defined(_GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP) \
      && !defined(_NO_GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP))
 #define __profcxx_map_to_unordered_map_construct(__x...) \
-  __GUARD(__cxxprof_impl::__trace_map_to_unordered_map_construct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_map_to_unordered_map_construct(__x))
 #define __profcxx_map_to_unordered_map_destruct(__x...) \
-  __GUARD(__cxxprof_impl::__trace_map_to_unordered_map_destruct(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_map_to_unordered_map_destruct(__x))
 #define __profcxx_map_to_unordered_map_insert(__x...) \
-  __GUARD(__cxxprof_impl::__trace_map_to_unordered_map_insert(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_map_to_unordered_map_insert(__x))
 #define __profcxx_map_to_unordered_map_erase(__x...) \
-  __GUARD(__cxxprof_impl::__trace_map_to_unordered_map_erase(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_map_to_unordered_map_erase(__x))
 #define __profcxx_map_to_unordered_map_iterate(__x...) \
-  __GUARD(__cxxprof_impl::__trace_map_to_unordered_map_iterate(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_map_to_unordered_map_iterate(__x))
 #define __profcxx_map_to_unordered_map_invalidate(__x...) \
-  __GUARD(__cxxprof_impl::__trace_map_to_unordered_map_invalidate(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_map_to_unordered_map_invalidate(__x))
 #define __profcxx_map_to_unordered_map_find(__x...) \
-  __GUARD(__cxxprof_impl::__trace_map_to_unordered_map_find(__x))
+  _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD( \
+      __cxxprof_impl::__trace_map_to_unordered_map_find(__x))
 #else
 #define __profcxx_map_to_unordered_map_construct(__x...) \
   

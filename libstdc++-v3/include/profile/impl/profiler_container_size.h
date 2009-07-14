@@ -46,6 +46,7 @@
 #include <stdio.h>
 #include <string.h>
 #endif
+
 #include "profile/impl/profiler.h"
 #include "profile/impl/profiler_node.h"
 #include "profile/impl/profiler_trace.h"
@@ -97,8 +98,9 @@ inline const char* __container_size_info::__advice() const
                            - 2 * 2);
   char* __message = new char[__message_size + 1];
 
-  if (_M_init < _M_max)
-    snprintf(__message, __message_size, __message_pattern, _M_init, _M_max);
+  if (_M_init < _M_item_max)
+    snprintf(__message, __message_size, __message_pattern, _M_init,
+             _M_item_max);
   else
     snprintf(__message, __message_size, __message_pattern, _M_init,
              _M_item_max);
