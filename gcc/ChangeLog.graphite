@@ -1,5 +1,24 @@
 2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* testsuite/gcc.dg/graphite/graphite.exp: Fix comments.
+	* testsuite/gfortran.dg/graphite/graphite.exp: Trigger actions
+	based on the file names as in the C testsuite.
+	* testsuite/gfortran.dg/graphite/block-1.f90: Fix patterns.
+	* testsuite/gfortran.dg/graphite/block-2.f: Same.
+	* testsuite/gfortran.dg/graphite/block-3.f90: Same.
+	* testsuite/gfortran.dg/graphite/block-4.f90: Same.
+	* testsuite/gfortran.dg/graphite/id-1.f90: Same.
+	* testsuite/gfortran.dg/graphite/id-2.f90: Same.
+	* testsuite/gfortran.dg/graphite/id-3.f90: Same.
+	* testsuite/gfortran.dg/graphite/id-4.f90: Same.
+	* testsuite/gfortran.dg/graphite/id-6.f: Same.
+	* testsuite/gfortran.dg/graphite/id-9.f: Same.
+	* testsuite/gfortran.dg/graphite/interchange-1.f: Same.
+	* testsuite/gfortran.dg/graphite/interchange-2.f: Same.
+	* testsuite/gfortran.dg/graphite/scop-1.f: Same.
+
+2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* sese.c (expand_scalar_variables_call): New.
 	(expand_scalar_variables_ssa_name): Handle calls in expander.
 

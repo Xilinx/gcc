@@ -1,5 +1,3 @@
-! { dg-options "-O2" } 
-
       subroutine foo(f1,f2,f3,f4,f5,f6,f7,f8,f9,f0,g1,g2,g3)
       implicit none
       integer f4,f3,f2,f1

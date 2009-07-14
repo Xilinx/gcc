@@ -1,5 +1,3 @@
-! { dg-options "-O2 -fgraphite-identity" }
-
 program NF
 end program NF
 subroutine mattest(nx,ny,nz,band1,band2,band3,stiffness,maxiter,targrms,method)

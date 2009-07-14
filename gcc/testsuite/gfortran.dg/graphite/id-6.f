@@ -1,5 +1,3 @@
-c     { dg-options "-O2 -fgraphite-identity" }
-
       SUBROUTINE EIJDEN(EPS,V,E,IA,WRK,L1,L2,L3,L0,ECI)
       DIMENSION V(L1,L0),EPS(L2),E(*),IA(L1),WRK(L1),ECI(L0,L0)
       IF(SCFTYP.EQ.RHF .AND. MPLEVL.EQ.0 .AND.
