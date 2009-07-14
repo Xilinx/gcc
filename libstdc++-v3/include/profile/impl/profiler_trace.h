@@ -32,7 +32,7 @@
  *  @brief Data structures to represent profiling traces.
  */
 
-// Written by Lixia Liu
+// Written by Lixia Liu and Silvius Rus.
 
 #ifndef PROFCXX_PROFILER_TRACE_H__
 #define PROFCXX_PROFILER_TRACE_H__ 1
@@ -52,9 +52,14 @@
 #include <tr1/unordered_map>
 #define _GLIBCXX_IMPL_UNORDERED_MAP std::tr1::unordered_map
 #endif
+
+#include <algorithm>
+#include <utility>
+
 #if defined _GLIBCXX_PROFILE_THREADS && defined HAVE_TLS
 #include <pthread.h>
 #endif
+
 #include "profile/impl/profiler_state.h"
 #include "profile/impl/profiler_node.h"
 
@@ -67,7 +72,7 @@ typedef pthread_mutex_t __mutex_t;
 template <int __Unused=0>
 class __mutex {
  public:
-  static __mutex_t __init_lock;
+  static __mutex_t __global_lock;
   static void __lock(__mutex_t& __m) { pthread_mutex_lock(&__m); }
   static void __unlock(__mutex_t& __m) { pthread_mutex_unlock(&__m); }
 };
@@ -77,14 +82,46 @@ typedef int __mutex_t;
 template <int __Unused=0>
 class __mutex {
  public:
-  static __mutex_t __init_lock;
+  static __mutex_t __global_lock;
   static void __lock(__mutex_t& __m) {}
   static void __unlock(__mutex_t& __m) {}
 };
 #endif
 
 template <int __Unused>
-__mutex_t __mutex<__Unused>::__init_lock = _GLIBCXX_IMPL_MUTEX_INITIALIZER;
+__mutex_t __mutex<__Unused>::__global_lock = _GLIBCXX_IMPL_MUTEX_INITIALIZER;
+
+struct __warning_data
+{
+  float __magnitude;
+  __stack_t __context;
+  const char* __warning_id;
+  const char* __warning_message;
+  __warning_data();
+  __warning_data(float __m, __stack_t __c, const char* __id, 
+                 const char* __msg);
+  bool operator>(const struct __warning_data& other) const;
+};
+
+inline __warning_data::__warning_data()
+    : __magnitude(0.0), __context(NULL), __warning_id(NULL),
+      __warning_message(NULL)
+{
+}
+
+inline __warning_data::__warning_data(float __m, __stack_t __c, 
+                                      const char* __id, const char* __msg)
+    : __magnitude(__m), __context(__c), __warning_id(__id),
+      __warning_message(__msg)
+{
+}
+
+bool __warning_data::operator>(const struct __warning_data& other) const
+{
+  return __magnitude > other.__magnitude;
+}
+
+typedef std::_GLIBCXX_STD_PR::vector<__warning_data> __warning_vector_t;
 
 // Defined in profiler_<diagnostic name>.h.
 class __trace_hash_func;
@@ -97,18 +134,20 @@ void __trace_hashtable_size_init();
 void __trace_hash_func_init();
 void __trace_vector_to_list_init();
 void __trace_map_to_unordered_map_init();
-void __trace_vector_size_report(FILE* f);
-void __trace_hashtable_size_report(FILE* f);
-void __trace_hash_func_report(FILE* f);
-void __trace_vector_to_list_report(FILE* f);
-void __trace_map_to_unordered_map_report(FILE* f);
+void __trace_vector_size_report(FILE*, __warning_vector_t&);
+void __trace_hashtable_size_report(FILE*, __warning_vector_t&);
+void __trace_hash_func_report(FILE*, __warning_vector_t&);
+void __trace_vector_to_list_report(FILE*, __warning_vector_t&);
+void __trace_map_to_unordered_map_report(FILE*, __warning_vector_t&);
 
 // Utility functions.
-inline size_t __max(size_t __a, size_t __b) {
+inline size_t __max(size_t __a, size_t __b)
+{
   return __a >= __b ? __a : __b;
 }
 
-inline size_t __min(size_t __a, size_t __b) {
+inline size_t __min(size_t __a, size_t __b)
+{
   return __a <= __b ? __a : __b;
 }
 
@@ -139,44 +178,24 @@ __trace_vector_to_list* __tables<__Unused>::_S_vector_to_list = NULL;
 template <int __Unused=0>
 class __settings {
  public:
-  static char _S_trace_default_file_name[];
-  static char _S_trace_env_var[];
-  static char* _S_trace_file_name;
-
-  // Environment variable to turn everything off.
-  static char _S_off_env_var[];
-
-  // Environment variable to set maximum stack depth.
-  static char _S_max_stack_depth_env_var[];
+  static const char* _S_trace_file_name;
+  static size_t _S_max_warn_count;
   static size_t _S_max_stack_depth;
-
-  // Space budget for each object table.
-  static char _S_max_mem_env_var[];
   static size_t _S_max_mem;
 };
 
 template <int __Unused>
-char __settings<__Unused>::_S_trace_default_file_name[] = 
-    "./profile-stdlib.txt";
+const char* __settings<__Unused>::_S_trace_file_name = 
+    _GLIBCXX_PROFILE_TRACE_PATH_ROOT;
 template <int __Unused>
-char __settings<__Unused>::_S_trace_env_var[] = 
-    "GLIBCXX_PROFILE_TRACE";
+size_t __settings<__Unused>::_S_max_warn_count =
+    _GLIBCXX_PROFILE_MAX_WARN_COUNT;
 template <int __Unused>
-char* __settings<__Unused>::_S_trace_file_name = 
-    "./profile-stdlib.txt";
+size_t __settings<__Unused>::_S_max_stack_depth =
+    _GLIBCXX_PROFILE_MAX_STACK_DEPTH;
 template <int __Unused>
-char __settings<__Unused>::_S_off_env_var[] = 
-    "GLIBCXX_PROFILE_OFF";
-template <int __Unused>
-char __settings<__Unused>::_S_max_stack_depth_env_var[] =
-    "GLIBCXX_PROFILE_MAX_STACK_DEPTH";
-template <int __Unused>
-char __settings<__Unused>::_S_max_mem_env_var[] = 
-    "GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC";
-template <int __Unused>
-size_t __settings<__Unused>::_S_max_stack_depth = 32;
-template <int __Unused>
-size_t __settings<__Unused>::_S_max_mem = 2 << 27;  // 128 MB.
+size_t __settings<__Unused>::_S_max_mem =
+    _GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC;
 
 inline size_t __stack_max_depth()
 {
@@ -188,28 +207,18 @@ inline size_t __max_mem()
   return __settings<0>::_S_max_mem;
 }
 
-typedef const char* __trace_id_t;
-inline void __print_trace_id(FILE* __f, __trace_id_t __id)
-{
-  if (__id) {
-    fprintf(__f, "%s", __id);
-  } else {
-    fprintf(stderr, "Undefined trace id.");
-    abort();
-  }
-}
-
 template <typename __object_info, typename __stack_info>
 class __trace_base
 {
  public:
   __trace_base();
   virtual ~__trace_base() {}
-  
+
   void __add_object(__object_t object, __object_info __info);
   __object_info* __get_object_info(__object_t __object);
   void __retire_object(__object_t __object);
   void __write(FILE* f);
+  void __collect_warnings(__warning_vector_t& warnings);
 
   void __lock_object_table();
   void __lock_stack_table();
@@ -228,8 +237,22 @@ class __trace_base
   size_t __stack_table_byte_size;
 
  protected:
-  __trace_id_t __id;
+  const char* __id;
 };
+
+template <typename __object_info, typename __stack_info>
+void __trace_base<__object_info, __stack_info>::__collect_warnings(
+    __warning_vector_t& warnings)
+{
+  typename __stack_table_t::iterator __i = __stack_table.begin();
+  for ( ; __i != __stack_table.end(); ++__i )
+  {
+    warnings.push_back(__warning_data((*__i).second.__magnitude(), 
+                                      (*__i).first, 
+                                      __id,
+                                      (*__i).second.__advice()));
+  }
+}
 
 template <typename __object_info, typename __stack_info>
 void __trace_base<__object_info, __stack_info>::__lock_object_table()
@@ -338,7 +361,7 @@ void __trace_base<__object_info, __stack_info>::__write(FILE* __f)
 
   for (__it = __stack_table.begin(); __it != __stack_table.end(); __it++) {
     if (__it->second.__is_valid()) {
-      __print_trace_id(__f, __id);
+      fprintf(__f, __id);
       fprintf(__f, "|");
       __cxxprof_impl::__write(__f, __it->first);
       fprintf(__f, "|");
@@ -366,85 +389,155 @@ inline size_t __env_to_size_t(const char* __env_var, size_t __default_value)
 inline void __set_max_stack_trace_depth()
 {
   __settings<0>::_S_max_stack_depth = __env_to_size_t(
-      __settings<0>::_S_max_stack_depth_env_var, 
+      _GLIBCXX_PROFILE_MAX_STACK_DEPTH_ENV_VAR,
       __settings<0>::_S_max_stack_depth);
 }
 
 inline void __set_max_mem()
 {
   __settings<0>::_S_max_mem = __env_to_size_t(
-      __settings<0>::_S_max_mem_env_var, 
-      __settings<0>::_S_max_mem);
+      _GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC_ENV_VAR, __settings<0>::_S_max_mem);
 }
 
-// Final report, meant to be registered by "atexit".
-inline void __profcxx_report(void)
+inline int __log_magnitude(float f)
 {
-  __turn_off();
+  const float log_base = 10.0;
+  int result = 0;
+  int sign = 1;
+  if (f < 0) {
+    f = -f;
+    sign = -1;
+  }
+  while (f > log_base) {
+    ++result;
+    f /= 10.0;
+  }
+  return sign * result;
+}
 
-  FILE* __f = fopen(__settings<0>::_S_trace_file_name, "a");
+struct __warn
+{
+  FILE* __file;
+  __warn(FILE* __f) { __file = __f; }
+  void operator() (const __warning_data& __info)
+  {
+    fprintf(__file,  __info.__warning_id);
+    fprintf(__file, ": improvement = %d", __log_magnitude(__info.__magnitude));
+    fprintf(__file, ": call stack = ");
+    __cxxprof_impl::__write(__file, __info.__context);
+    fprintf(__file, ": advice = %s\n", __info.__warning_message);
+  }
+};
 
-  if (!__f) {
-    fprintf(stderr, "Could not open trace file '%s'.", 
-            __settings<0>::_S_trace_file_name);
+inline FILE* __open_output_file(const char* extension)
+{
+  // The path is made of _S_trace_file_name + "." + extension.
+  size_t root_len = strlen(__settings<0>::_S_trace_file_name);
+  size_t ext_len = strlen(extension);
+  char* file_name = new char[root_len + 1 + ext_len + 1];
+  char* p = file_name;
+  memcpy(file_name, __settings<0>::_S_trace_file_name, root_len);
+  *(file_name + root_len) = '.';
+  memcpy(file_name + root_len + 1, extension, ext_len + 1);
+  FILE* out_file = fopen(file_name, "w");
+  if (out_file) {
+    return out_file;
+  } else {
+    fprintf(stderr, "Could not open trace file '%s'.", file_name);
     abort();
   }
+}
 
-  __trace_vector_size_report(__f);
-  __trace_hashtable_size_report(__f);
-  __trace_hash_func_report(__f);
-  __trace_vector_to_list_report(__f);
-  __trace_map_to_unordered_map_report(__f);
+// Final report, registered by "atexit".
+// This can also be called directly by user code, including signal handlers.
+// It is protected against deadlocks by the reentrance guard in profiler.h.
+// However, when called from a signal handler that triggers while within
+// __cxxprof_impl (under the guarded zone), no output will be produced.
+inline void __report(void)
+{
+  __mutex<0>::__lock(__mutex<0>::__global_lock);
 
-  fclose(__f);
+  __warning_vector_t __warnings;
+
+  FILE* __raw_file = __open_output_file("raw");
+  __trace_vector_size_report(__raw_file, __warnings);
+  __trace_hashtable_size_report(__raw_file, __warnings);
+  __trace_hash_func_report(__raw_file, __warnings);
+  __trace_vector_to_list_report(__raw_file, __warnings);
+  __trace_map_to_unordered_map_report(__raw_file, __warnings);
+  fclose(__raw_file);
+
+  // Sort data by magnitude.
+  // XXX: instead of sorting, should collect only top N for better performance.
+  size_t __cutoff = __min(__settings<0>::_S_max_warn_count, 
+                          __warnings.size());
+
+  std::sort(__warnings.begin(), __warnings.end(),
+            std::greater<__warning_vector_t::value_type>());
+  __warnings.resize(__cutoff);
+
+  FILE* __warn_file = __open_output_file("txt");
+  std::for_each(__warnings.begin(), __warnings.end(), __warn(__warn_file));
+  fclose(__warn_file);
+
+  __mutex<0>::__unlock(__mutex<0>::__global_lock);
 }
 
 inline void __set_trace_path()
 {
-  char* __env_trace_file_name = getenv(__settings<0>::_S_trace_env_var);
+  char* __env_trace_file_name = getenv(_GLIBCXX_PROFILE_TRACE_ENV_VAR);
 
   if (__env_trace_file_name) { 
     __settings<0>::_S_trace_file_name = __env_trace_file_name; 
   }
 
   // Make sure early that we can create the trace file.
-  FILE* __f = fopen(__settings<0>::_S_trace_file_name, "w");
-  if (__f) {
-    fclose(__f);
-  } else {
-    fprintf(stderr, "Cannot create trace file at given path '%s'.",
-            __settings<0>::_S_trace_file_name);
-    exit(1);
+  fclose(__open_output_file("txt"));
+}
+
+inline void __set_max_warn_count()
+{
+  char* __env_max_warn_count_str = getenv(
+      _GLIBCXX_PROFILE_MAX_WARN_COUNT_ENV_VAR);
+
+  if (__env_max_warn_count_str) {
+    __settings<0>::_S_max_warn_count = static_cast<size_t>(
+        atoi(__env_max_warn_count_str));
   }
 }
 
 inline void __profcxx_init_unconditional()
 {
-  __mutex<0>::__lock(__mutex<0>::__init_lock);
+  __mutex<0>::__lock(__mutex<0>::__global_lock);
+
+  __set_max_warn_count();
 
   if (__is_invalid()) {
-    if (getenv(__settings<0>::_S_off_env_var)) {
+
+    if (__settings<0>::_S_max_warn_count == 0) {
+
       __turn_off();
+
     } else {
-      __set_trace_path();
-      atexit(__profcxx_report);
 
       __set_max_stack_trace_depth();
       __set_max_mem();
+      __set_trace_path();
 
-      // Initialize data structures for each trace class.
       __trace_vector_size_init();
       __trace_hashtable_size_init();
       __trace_hash_func_init();
       __trace_vector_to_list_init();
       __trace_map_to_unordered_map_init();
 
-      // Go live.
+      atexit(__report);
+
       __turn_on();
+
     }
   }
 
-  __mutex<0>::__unlock(__mutex<0>::__init_lock);
+  __mutex<0>::__unlock(__mutex<0>::__global_lock);
 }
 
 // This function must be called by each instrumentation point.
@@ -454,6 +547,7 @@ inline bool __profcxx_init(void)
   if (__is_invalid()) {
     __profcxx_init_unconditional();
   }
+
   return __is_on();
 }
 

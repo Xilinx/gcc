@@ -32,7 +32,7 @@
  *  @brief Diagnostics for map to unordered_map.
  */
 
-// Written by Silvius Rus <silvius.rus@gmail.com>
+// Written by Silvius Rus.
 
 #ifndef PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__
 #define PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__ 1
@@ -114,6 +114,8 @@ class __map2umap_info: public __object_info_base
   __map2umap_info(const __map2umap_info& o);
   void __merge(const __map2umap_info& o);
   void __write(FILE* __f) const;
+  float __magnitude() const { return _M_map_cost - _M_umap_cost; }
+  const char* __advice() const;
 
   void __record_insert(size_t __size, size_t __count);
   void __record_erase(size_t __size, size_t __count);
@@ -121,7 +123,7 @@ class __map2umap_info: public __object_info_base
   void __record_iterate(size_t __count);
   void __record_invalidate();
 
-private:
+ private:
   size_t _M_insert;
   size_t _M_erase;
   size_t _M_find;
@@ -130,6 +132,11 @@ private:
   float _M_map_cost;
   bool  _M_valid;
 };
+
+inline const char* __map2umap_info::__advice() const
+{
+  return "change std::map to std::unordered_map";
+}
 
 inline __map2umap_info::__map2umap_info(const __map2umap_info& __o)
     : __object_info_base(__o), 
@@ -192,7 +199,8 @@ inline void __map2umap_info::__write(FILE* __f) const
           _M_valid ? "valid" : "invalid");
 }
 
-class __map2umap_stack_info: public __map2umap_info {
+class __map2umap_stack_info: public __map2umap_info
+{
  public:
   __map2umap_stack_info(const __map2umap_info& o) : __map2umap_info(o) {}
 };
@@ -210,15 +218,17 @@ inline __trace_map2umap::__trace_map2umap()
   __id = "map-to-unordered-map";
 }
 
-inline void __trace_map_to_unordered_map_init() {
+inline void __trace_map_to_unordered_map_init()
+{
   __tables<0>::_S_map2umap = new __trace_map2umap();
 }
 
-inline void __trace_map_to_unordered_map_report(FILE* __f) {
+inline void __trace_map_to_unordered_map_report(
+    FILE* __f, __warning_vector_t& __warnings)
+{
   if (__tables<0>::_S_map2umap) {
+    __tables<0>::_S_map2umap->__collect_warnings(__warnings);
     __tables<0>::_S_map2umap->__write(__f);
-    delete __tables<0>::_S_map2umap;
-    __tables<0>::_S_map2umap = NULL;
   }
 }
 
@@ -288,7 +298,6 @@ inline void __trace_map_to_unordered_map_invalidate(const void* __obj)
 
   if (__info) __info->__record_invalidate();
 }
-
 
 } // namespace __cxxprof_impl
 #endif /* PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__ */

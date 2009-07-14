@@ -304,14 +304,12 @@ namespace __profile
       iterator
       begin()
       { 
-        __profcxx_vector_iterate(this, this->size());
         return _Base::begin(); 
       }
 
       const_iterator
       begin() const
       { 
-        __profcxx_vector_iterate(this, this->size());
         return _Base::begin(); 
       }
 

@@ -17,49 +17,34 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// { dg-options "-D_GLIBCXX_PROFILE" }
+// { dg-options "-O0 -D_GLIBCXX_PROFILE" }
 // { dg-do compile }
 
-#include <stdio.h>
-#include <malloc.h>
+#include <map>
 #include <vector>
+#include <unordered_map>
 
+using std::map;
 using std::vector;
+using std::unordered_map;
 
-static void my_init_hook (void);
-static void *my_malloc_hook (size_t, const void *);
-typedef void* (*malloc_hook) (size_t, const void *);
-
-malloc_hook old_malloc_hook;
-     
-void (*__malloc_initialize_hook) (void) = my_init_hook;
-
-static void
-my_init_hook (void)
-{
-  old_malloc_hook = __malloc_hook;
-  __malloc_hook = my_malloc_hook;
-}
-
-static void *
-my_malloc_hook (size_t size, const void *caller)
-{
-  void *result;
-  __malloc_hook = old_malloc_hook;
-  result = malloc (size);
-  old_malloc_hook = __malloc_hook;
-
-  // With _GLIBCXX_PROFILE, the instrumentation of the vector constructor
-  // will call back into malloc.
-  vector<int> v;
-
-  __malloc_hook = my_malloc_hook;
-  return result;
-}
-     
+struct dumb_hash {
+  size_t operator()(int x) const {return 0;}
+  size_t operator()(int x, int y) const {return x == y;}
+};
 
 int main() {
-  int* test = (int*) malloc(sizeof(int));
-  *test = 1;
-  return *test;
+  map<int, int> m_to_umap;
+  vector<int> v_to_list;
+  unordered_map<int, int> um_too_small;
+  unordered_map<int, int> um_too_large(1000000);
+  unordered_map<int, int, dumb_hash, dumb_hash> um_dumb_hash;
+
+  for (int i = 0; i < 10000; ++i) {
+    m_to_umap[i] = i;
+    v_to_list.insert(v_to_list.begin(), i);
+    um_too_small[i] = i;
+    um_too_small[i] = i;
+    um_dumb_hash[i] = i;
+  }
 }

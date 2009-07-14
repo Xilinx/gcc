@@ -28,11 +28,14 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file profile/impl/profiler_vector_size.cc
+/** @file profile/impl/profiler_vector_size.h
  *  @brief Collection of vector size traces.
  */
 
-// Written by Lixia Liu
+// Written by Lixia Liu and Silvius Rus.
+
+#ifndef PROFCXX_PROFILER_VECTOR_SIZE_H__
+#define PROFCXX_PROFILER_VECTOR_SIZE_H__ 1
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
@@ -67,12 +70,12 @@ inline void __trace_vector_size_init()
   __tables<0>::_S_vector_size = new __trace_vector_size();
 }
 
-inline void __trace_vector_size_report(FILE* __f)
+inline void __trace_vector_size_report(FILE* __f, 
+                                       __warning_vector_t& __warnings)
 {
   if (__tables<0>::_S_vector_size) {
+    __tables<0>::_S_vector_size->__collect_warnings(__warnings);
     __tables<0>::_S_vector_size->__write(__f);
-    delete __tables<0>::_S_vector_size;
-    __tables<0>::_S_vector_size = NULL;
   }
 }
 
@@ -104,3 +107,5 @@ inline void __trace_vector_size_resize(const void* __obj, size_t __from,
 }
 
 } // namespace __cxxprof_impl
+
+#endif /* PROFCXX_PROFILER_VECTOR_SIZE_H__ */

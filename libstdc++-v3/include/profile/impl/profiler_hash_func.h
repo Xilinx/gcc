@@ -32,7 +32,7 @@
  *  @brief Data structures to represent profiling traces.
  */
 
-// Written by Lixia Liu
+// Written by Lixia Liu and Silvius Rus.
 
 #ifndef PROFCXX_PROFILER_HASH_FUNC_H__
 #define PROFCXX_PROFILER_HASH_FUNC_H__ 1
@@ -68,6 +68,8 @@ class __hashfunc_info: public __object_info_base
   void __merge(const __hashfunc_info& __o);
   void __destruct(size_t __chain, size_t __accesses, size_t __hops);
   void __write(FILE* __f) const;
+  float __magnitude() const { return static_cast<float>(_M_hops); }
+  const char* __advice() const { return "change hash function"; }
 
 private:
   size_t _M_longest_chain;
@@ -151,15 +153,17 @@ inline void __trace_hash_func::__destruct(const void* __obj, size_t __chain,
 // Initialization and report.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void __trace_hash_func_init() {
+inline void __trace_hash_func_init()
+{
   __tables<0>::_S_hash_func = new __trace_hash_func();
 }
 
-inline void __trace_hash_func_report(FILE* __f) {
+inline void __trace_hash_func_report(FILE* __f,
+                                     __warning_vector_t& __warnings)
+{
   if (__tables<0>::_S_hash_func) {
+    __tables<0>::_S_hash_func->__collect_warnings(__warnings);
     __tables<0>::_S_hash_func->__write(__f);
-    delete __tables<0>::_S_hash_func;
-    __tables<0>::_S_hash_func = NULL;
   }
 }
 

@@ -1,3 +1,30 @@
+2009-07-13  Silvius Rus  <silvius.rus@gmail.com>
+	* acinclude.m4: Remove libprofc++ reference.
+	* src/Makefile.in: Same.
+	* src/Makefile.am: Same.
+	* doc/xml/manual/profile_mode.xml: Major review.
+	* include/profile/impl/profiler.h: Add default values for public
+	preprocessor and environment variables.  Add public hooks for
+	state methods.
+	* include/profile/impl/profiler_trace.h: Change warning mechanism.
+	Clean up.
+	* include/profile/impl/profiler_state.h: Fix bug with
+	GLIBCXX_PROFILE_MAX_WARN_COUNT=0.
+	* include/profile/impl/profiler_node.h: Fix bug with
+	GLIBCXX_PROFILE_MAX_STACK_DEPTH=0.
+	* include/profile/impl/profiler_vector_size.h: Add call to
+	__collect_warnings.
+	* include/profile/impl/profiler_hashtable_size.h: Same.
+	* include/profile/impl/profiler_container_size.h: Same.
+ 	(__container_size_info::__magnitude): Add.
+ 	(__container_size_info::__advice): Add.
+ 	(__container_size_info::__container_size_info): Add initializer list.
+	* include/profile/impl/profiler_hash_func.h: Same.
+	* include/profile/impl/profiler_vector_to_list.h: Same.
+	* include/profile/impl/profiler_map_to_unordered_map.h: Same.
+	* include/profile/vector: Fix analysis bug.
+	* testsuite/ext/profile/all.cc: Add.
+
 2009-07-07  Silvius Rus  <silvius.rus@gmail.com>
 	* include/profile/impl/profiler_trace.h: Fix formatting.
 	* testsuite/ext/profile/mh.cc: Add dg-options.

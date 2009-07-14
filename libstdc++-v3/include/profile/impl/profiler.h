@@ -32,7 +32,7 @@
  *  @brief Interface of the profiling runtime library.
  */
 
-// Written by Lixia Liu
+// Written by Lixia Liu and Silvius Rus.
 
 #ifndef PROFCXX_PROFILER_H__
 #define PROFCXX_PROFILER_H__ 1
@@ -43,14 +43,16 @@
 #include <stddef.h>
 #endif
 
-// Forward declarations of instrumentation hooks.
-namespace __cxxprof_impl
+// Define a mechanism to protect all __cxxprof_impl operations against
+// threaded and exception reentrance.
+namespace __cxxprof_guard
 {
 
 // Thread safe reentrance guard.
 // Get in using __get_in.  Get out using the destructor.
 template <int __Unused=0>
-class __reentrance_guard {
+class __reentrance_guard
+{
  public:
   static __thread bool __inside_cxxprof_impl;
   static bool __get_in();
@@ -62,7 +64,8 @@ template <int __Unused>
 __thread bool __reentrance_guard<__Unused>::__inside_cxxprof_impl = false;
 
 template <int __Unused>
-bool __reentrance_guard<__Unused>::__get_in() {
+bool __reentrance_guard<__Unused>::__get_in()
+{
   if (__inside_cxxprof_impl) {
     return false;
   } else {
@@ -71,25 +74,28 @@ bool __reentrance_guard<__Unused>::__get_in() {
   }
 }
 
-// XXX: All hook calls must be protected by a reentrance guard.
-#define __GUARD(__x...)                                           \
-  {                                                               \
-    if (__cxxprof_impl::__reentrance_guard<0>::__get_in())        \
-    {                                                             \
-      __cxxprof_impl::__reentrance_guard<0> __auto_get_out;       \
-      __x;                                                        \
-    }                                                             \
+} // namespace __cxxprof_guard
+
+#define __GUARD(__x...)                                            \
+  {                                                                \
+    if (__cxxprof_guard::__reentrance_guard<0>::__get_in())        \
+    {                                                              \
+      __cxxprof_guard::__reentrance_guard<0> __auto_get_out;       \
+      __x;                                                         \
+    }                                                              \
   }
 
-// State management.
+// Forward declarations of implementation functions.
+// Don't use any __cxxprof_impl:: in user code.
+// Instead, use the __profcxx... macros, which offer guarded access.
+namespace __cxxprof_impl
+{
 void __turn_on();
 void __turn_off();
 bool __is_invalid();
 bool __is_on();
 bool __is_off();
-
-// Instrumentation hooks.  Do not use them directly in instrumented headers.
-// Instead use the corresponding __profcxx_ wrapper declared below.
+void __report(void);
 void __trace_hashtable_size_resize(const void*, size_t, size_t);
 void __trace_hashtable_size_destruct(const void*, size_t, size_t);
 void __trace_hashtable_size_construct(const void*, size_t);
@@ -122,6 +128,23 @@ void __trace_map_to_unordered_map_destruct(const void*);
 #define _GLIBCXX_PROFILE_INEFFICIENT_HASH
 #define _GLIBCXX_PROFILE_VECTOR_TO_LIST
 #define _GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP
+#endif
+
+// Expose global management routines to user code.
+#ifdef _GLIBCXX_PROFILE
+#define __profcxx_report() __GUARD(__cxxprof_impl::__report())
+#define __profcxx_turn_on() __GUARD(__cxxprof_impl::__turn_on())
+#define __profcxx_turn_off() __GUARD(__cxxprof_impl::__turn_off())
+#define __profcxx_is_invalid() __GUARD(__cxxprof_impl::__is_invalid())
+#define __profcxx_is_on() __GUARD(__cxxprof_impl::__is_on())
+#define __profcxx__is_off() __GUARD(__cxxprof_impl::__is_off())
+#else
+#define __report()
+#define __turn_on()
+#define __turn_off()
+#define __is_invalid()
+#define __is_on()
+#define __is_off()
 #endif
 
 // Turn on/off instrumentation for HASHTABLE_TOO_SMALL and HASHTABLE_TOO_LARGE.
@@ -227,8 +250,36 @@ void __trace_map_to_unordered_map_destruct(const void*);
 #define _GLIBCXX_PROFILE_THREADS
 #endif
 
+// Set default values for compile-time customizable variables.
+#ifndef _GLIBCXX_PROFILE_TRACE_PATH_ROOT
+#define _GLIBCXX_PROFILE_TRACE_PATH_ROOT "libstdcxx-profile"
+#endif
+#ifndef _GLIBCXX_PROFILE_TRACE_ENV_VAR
+#define _GLIBCXX_PROFILE_TRACE_ENV_VAR "GLIBCXX_PROFILE_TRACE_PATH_ROOT"
+#endif
+#ifndef _GLIBCXX_PROFILE_MAX_WARN_COUNT_ENV_VAR
+#define _GLIBCXX_PROFILE_MAX_WARN_COUNT_ENV_VAR \
+  "GLIBCXX_PROFILE_MAX_WARN_COUNT"
+#endif
+#ifndef _GLIBCXX_PROFILE_MAX_WARN_COUNT
+#define _GLIBCXX_PROFILE_MAX_WARN_COUNT 10
+#endif
+#ifndef _GLIBCXX_PROFILE_MAX_STACK_DEPTH
+#define _GLIBCXX_PROFILE_MAX_STACK_DEPTH 32
+#endif
+#ifndef _GLIBCXX_PROFILE_MAX_STACK_DEPTH_ENV_VAR
+#define _GLIBCXX_PROFILE_MAX_STACK_DEPTH_ENV_VAR \
+  "GLIBCXX_PROFILE_MAX_STACK_DEPTH"
+#endif
+#ifndef _GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC
+#define _GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC 2 << 27
+#endif
+#ifndef _GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC_ENV_VAR
+#define _GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC_ENV_VAR \
+  "GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC"
+#endif
+
 // Instrumentation hook implementations.
-// XXX: Don't move to top of file.
 #include "profile/impl/profiler_hash_func.h"
 #include "profile/impl/profiler_hashtable_size.h"
 #include "profile/impl/profiler_map_to_unordered_map.h"

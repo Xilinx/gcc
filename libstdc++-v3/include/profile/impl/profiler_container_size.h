@@ -32,7 +32,7 @@
  *  @brief Diagnostics for container sizes.
  */
 
-// Written by Lixia Liu
+// Written by Lixia Liu and Silvius Rus.
 
 #ifndef PROFCXX_PROFILER_CONTAINER_SIZE_H__
 #define PROFCXX_PROFILER_CONTAINER_SIZE_H__ 1
@@ -57,12 +57,16 @@ namespace __cxxprof_impl
 class __container_size_info: public __object_info_base 
 {
  public:
-  __container_size_info() {}
+  __container_size_info();
   __container_size_info(const __container_size_info& __o);
   __container_size_info(__stack_t __stack, size_t __num);
   virtual ~__container_size_info() {}
-  void __merge(const __container_size_info& __o);
+
   void __write(FILE* f) const;
+  float __magnitude() const { return static_cast<float>(_M_cost); }
+  const char* __advice() const;
+
+  void __merge(const __container_size_info& __o);
   // Call if a container is destructed or cleaned.
   void __destruct(size_t __num, size_t __inum);
   // Estimate the cost of resize/rehash. 
@@ -82,6 +86,25 @@ class __container_size_info: public __object_info_base
   size_t _M_resize;
   size_t _M_cost;
 };
+
+inline const char* __container_size_info::__advice() const
+{
+  const size_t __max_chars_size_t_printed = 20;
+  const char* __message_pattern = 
+      "change initial container size from %d to %d";
+  size_t __message_size = (strlen(__message_pattern) 
+                           + 2 * __max_chars_size_t_printed
+                           - 2 * 2);
+  char* __message = new char[__message_size + 1];
+
+  if (_M_init < _M_max)
+    snprintf(__message, __message_size, __message_pattern, _M_init, _M_max);
+  else
+    snprintf(__message, __message_size, __message_pattern, _M_init,
+             _M_item_max);
+
+  return __message;
+}
 
 inline void __container_size_info::__destruct(size_t __num, size_t __inum) 
 {
@@ -108,7 +131,9 @@ inline void __container_size_info::__resize(size_t __from, size_t __to)
 
 inline __container_size_info::__container_size_info(__stack_t __stack, 
                                                     size_t __num)
-  : __object_info_base(__stack)
+    : __object_info_base(__stack), _M_init(0), _M_max(0), _M_item_max(0), 
+      _M_min(0), _M_item_min(0), _M_total(0), _M_item_total(0), _M_cost(0), 
+      _M_count(0), _M_resize(0)
 {
   _M_init = _M_max = __num;
   _M_item_min = _M_item_max = _M_item_total = _M_total = 0;
@@ -131,6 +156,12 @@ inline void __container_size_info::__merge(const __container_size_info& __o)
   _M_resize     += __o._M_resize;
 }
 
+inline __container_size_info::__container_size_info()
+    : _M_init(0), _M_max(0), _M_item_max(0), _M_min(0), _M_item_min(0),
+      _M_total(0), _M_item_total(0), _M_cost(0), _M_count(0), _M_resize(0)
+{
+}
+
 inline __container_size_info::__container_size_info(
     const __container_size_info& __o)
     : __object_info_base(__o)
@@ -147,7 +178,8 @@ inline __container_size_info::__container_size_info(
   _M_resize      = __o._M_resize;
 }
 
-class __container_size_stack_info: public __container_size_info {
+class __container_size_stack_info: public __container_size_info
+{
  public:
   __container_size_stack_info(const __container_size_info& __o)
       : __container_size_info(__o) {}
@@ -179,7 +211,7 @@ inline void __trace_container_size::__insert(const __object_t __obj,
 inline void __container_size_info::__write(FILE* __f) const
 {
   fprintf(__f, "%Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu\n", 
-          _M_init, _M_count, _M_cost,_M_resize, _M_min, _M_max, _M_total,
+          _M_init, _M_count, _M_cost, _M_resize, _M_min, _M_max, _M_total,
           _M_item_min, _M_item_max, _M_item_total);
 }
 

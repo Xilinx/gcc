@@ -32,7 +32,10 @@
  *  @brief Collection of hashtable size traces.
  */
 
-// Written by Lixia Liu
+// Written by Lixia Liu and Silvius Rus.
+
+#ifndef PROFCXX_PROFILER_HASHTABLE_SIZE_H__
+#define PROFCXX_PROFILER_HASHTABLE_SIZE_H__ 1
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
@@ -55,7 +58,8 @@ namespace __cxxprof_impl
 class __trace_hashtable_size : public __trace_container_size
 {
  public:
-  __trace_hashtable_size() : __trace_container_size() {
+  __trace_hashtable_size() : __trace_container_size()
+  {
     __id = "hashtable-size";
   }
 };
@@ -64,15 +68,17 @@ class __trace_hashtable_size : public __trace_container_size
 // Initialization and report.
 //////////////////////////////////////////////////////////////////////////////
 
-inline void __trace_hashtable_size_init() {
+inline void __trace_hashtable_size_init()
+{
   __tables<0>::_S_hashtable_size = new __trace_hashtable_size();
 }
 
-inline void __trace_hashtable_size_report(FILE* __f) {
+inline void __trace_hashtable_size_report(FILE* __f, 
+                                          __warning_vector_t& __warnings)
+{
   if (__tables<0>::_S_hashtable_size) {
+    __tables<0>::_S_hashtable_size->__collect_warnings(__warnings);
     __tables<0>::_S_hashtable_size->__write(__f);
-    delete __tables<0>::_S_hashtable_size;
-    __tables<0>::_S_hashtable_size = NULL;
   }
 }
 
@@ -104,3 +110,5 @@ inline void __trace_hashtable_size_resize(const void* __obj, size_t __from,
 }
 
 } // namespace __cxxprof_impl
+
+#endif /* PROFCXX_PROFILER_HASHTABLE_SIZE_H__ */

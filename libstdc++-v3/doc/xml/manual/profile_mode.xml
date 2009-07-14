@@ -71,114 +71,147 @@
   </para>
 
 
-</sect1>
-
-
-
-<sect1 id="manual.ext.profile_mode.using" xreflabel="Using">
+<sect2 id="manual.ext.profile_mode.using" xreflabel="Using">
   <title>Using the Profile Mode</title>
 
   <para>
   This is the anticipated common workflow for program <code>foo.cc</code>:
 <programlisting>
 $ cat foo.cc
-#include &lt;unordered_set&gt;
+#include &lt;vector&gt;
 int main() {
-  unordered_set&lt;int&gt; us;
-  for (int k = 0; k &lt; 1000000; ++k)
-    us.insert(k);
-  return us.size();
+  vector&lt;int&gt; v;
+  for (int k = 0; k &lt; 1024; ++k) v.insert(v.begin(), k);
 }
 
 $ g++ -D_GLIBCXX_PROFILE foo.cc
 $ ./a.out
-$ stdlib-advisor -b ./a.out -f ./profile-stdlib.txt
-foo.cc:3: advice: Changing initial unordered_set size from 10 to 1000000 
-saves N rehash operations.
+$ cat libstdcxx-profile.txt
+vector-to-list: improvement = 5: call stack = 0x804842c ...
+    : advice = change std::vector to std::list
+vector-size: improvement = 3: call stack = 0x804842c ...
+    : advice = change initial container size from 0 to 1024
 </programlisting>
   </para>
 
-<para>
-Fine tuning information:
-<itemizedlist>
-  <listitem><para>For expert users, 
-   <code>-D[_NO]_GLIBCXX_PROFILE_&lt;diagnostic&gt;</code> 
-   can enable/disable specific diagnostics or classes of diagnostics.
-   See section Diagnostics for possible values.</para></listitem>
-  <listitem><para>
-   (Not implemented yet.)
-   <code>-D_GLIBCXX_PROFILE_LIGHT</code> 
-   will enable only diagnostics with little runtime overhead, such as those
-   that instrument only container construction and destruction.
-   <code>-D_GLIBCXX_PROFILE_MEDIUM</code> 
-   will disable diagnostics with very high runtime overhead, such as those
-   relying on iterator instrumentation.
-   <code>-D_GLIBCXX_PROFILE_HEAVY</code> will enable all diagnostics.
-   Not all diagnostics are necessarily enabled by default.
-   </para></listitem>
-  <listitem><para>Profiling can be turned off dynamically by setting
-   <code>GLIBCXX_PROFILE_OFF</code> to <code>true</code>.
-   This is meant to help debugging and will not necessarily reduce the
-   runtime overhead signficantly.</para></listitem>
-  <listitem><para>Additionally, for most accurate diagnostics you can
-   (1) disable inlining and (2) generate debug information, i.e.,
-   <code>g++ -fno-inline -g</code>.
-   If inlining is enabled, the advice may appear hoisted to the first
-   parent on the call chain that did not get inlined.
-   If debug info is not generated, the advice will not contain line numbers,
-   though it will contain function names, unless the symbol table is stripped.
-   If the symbol table is stripped, the advice may become confusing.
-   We walk up the stack trace until we see the first symbol outside the
-   standard library, and use this symbol's code location in warnings.
-   </para></listitem>
-  <listitem><para>Our instrumentation makes frequent calls to libc function
-   <code>backtrace</code>.  If this is not available, you can set
-   <code>GLIBCXX_PROFILE_STACK_DEPTH</code> to 0.
-   This solution could also be used in continuous regression tests, where you
-   just need to know whether there is a regression or not.
-   </para></listitem>
-</itemizedlist>
+  <para>
+  Anatomy of a warning:
+  <itemizedlist>
+  <listitem>
+  <para>
+  Warning id.  This is a short descriptive string for the class
+  that this warning belongs to.  E.g., "vector-to-list".
+  </para>
+  </listitem>
+  <listitem>
+  <para>
+  Estimated improvement.  This is an approximation of the benefit expected
+  from implementing the change suggested by the warning.  It is given on
+  a log10 scale.  Negative values mean that the alternative would actually
+  do worse than the current choice.
+  In the example above, 5 comes from the fact that the overhead of
+  inserting at the beginning of a vector vs. a list is around 1024 * 1024 / 2,
+  which is around 10e5.  The improvement from setting the initial size to
+  1024 is in the range of 10e3, since the overhead of dynamic resizing is
+  linear in this case.
+  </para>
+  </listitem>
+  <listitem>
+  <para>
+  Call stack.  Currently, the addresses are printed without
+  symbol name or code location attribution.
+  Users are expected to postprocess the output using, for instance, addr2line.
+  </para>
+  </listitem>
+  <listitem>
+  <para>
+  The warning message.  For some warnings, this is static text, e.g.,
+  "change vector to list".  For other warnings, such as the one above,
+  the message contains numeric advice, e.g., the suggested initial size
+  of the hashtable.
+  </para>
+  </listitem>
+  </itemizedlist>
   </para>
 
-<para>
-Trace generation and interpretation.
-<itemizedlist>
-  <listitem><para>
-   After being built in profile mode, the program
-   must be run to produce an execution trace.
-   </para></listitem>
-  <listitem><para>
-   The trace path is by default <code>./profile-stdlib.txt</code>.
-   It can be overriden by setting environment variable
-   <code>GLIBCXX_PROFILE_TRACE_PATH</code> to a parameterized path,
-   e.g., <code>"$HOME/tmp/%v/%p.profile-stdlib.txt"</code>.
-   In addition to environment variable expansion, <code>%v</code> expands
-   to <code>argv[0]</code> and <code>%p</code> expands to the process id.
-   (Expansion is not implemented yet.)
-   </para></listitem>
-  <listitem><para>
-   The trace file size can be limited by setting environment variable
-   <code>GLIBCXX_PROFILE_TRACE_SIZE</code> to a number of bytes.
-   If trace size is very important, accuracy can be sacrificed by setting
-   <code>GLIBCXX_PROFILE_STACK_DEPTH</code> to 0.  This means that the trace
-   size will be a constant factor of the number of diagnostics.
-   </para></listitem>
-  <listitem><para>
-   The trace contains partially processed information.  
-   To generate advice, you need to run <code>stdlib-advisor</code>.
-   </para></listitem>
-</itemizedlist>
-</para>
+  <para>Two files are generated.  <code>libstdcxx-profile.txt</code>
+   contains human readable advice.  <code>libstdcxx-profile.raw</code>
+   contains implementation specific data about each diagnostic.
+   Their format is not documented.  They are sufficient to generate
+   all the advice given in <code>libstdcxx-profile.txt</code>.  The advantage
+   of keeping this raw format is that traces from multiple executions can
+   be aggregated simply by concatenating the raw traces.  We intend to
+   offer an external utility program that can issue advice from a trace.
+  </para>
 
-<para>
-The profile extension may use the following names:
-<itemizedlist>
-  <listitem><para>At compile time, preprocessor names _GLIBCXX_PROFILE_*.
+  <para>Advice is given regardless whether the transformation is valid.
+  For instance, we advise changing a map to an unordered_map even if the
+  application semantics require that data be ordered.
+  We believe such warnings can help users understand the performance
+  behavior of their application better, which can lead to changes
+  at a higher abstraction level.
+  </para>
+
+</sect2>
+
+<sect2 id="manual.ext.profile_mode.tuning" xreflabel="Tuning">
+  <title>Tuning the Profile Mode</title>
+
+  <para>Compile time switches and environment variables (see also file
+   profiler.h).  Unless specified otherwise, they can be set at compile time
+   using -D_&lt;name&gt; or by setting variable &lt;name&gt;
+   in the environment where the program is run, before starting execution.
+  <itemizedlist>
+  <listitem><para>
+   <code>[NO]_GLIBCXX_PROFILE_&lt;diagnostic&gt;</code>:
+   enable/disable specific diagnostics.
+   See section Diagnostics for possible values.
+   (Environment variables not supported.)
    </para></listitem>
-  <listitem><para>At run time, environment variables GLIBCXX_PROFILE_*.
+  <listitem><para>
+   <code>GLIBCXX_PROFILE_TRACE_PATH_ROOT</code>: set an alternative root
+   path for the output files.
    </para></listitem>
-</itemizedlist>
-</para>
+  <listitem><para>GLIBCXX_PROFILE_MAX_WARN_COUNT: set it to the maximum
+   number of warnings desired.  The default value is 10.</para></listitem>
+  <listitem><para>
+   <code>GLIBCXX_PROFILE_MAX_STACK_DEPTH</code>: if set to 0, 
+   the advice will
+   be collected and reported for the program as a whole, and not for each
+   call context.
+   This could also be used in continuous regression tests, where you
+   just need to know whether there is a regression or not.
+   The default value is 32.
+   </para></listitem>
+  <listitem><para>
+   <code>GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC</code>:
+   set a limit on how much memory to use for the accounting tables for each
+   diagnostic type.  When this limit is reached, new events are ignored
+   until the memory usage decreases under the limit.  Generally, this means
+   that newly created containers will not be instrumented until some
+   live containers are deleted.  The default is 128 MB.
+   </para></listitem>
+  <listitem><para>
+   <code>GLIBCXX_PROFILE_NOTHREADS</code>:
+   Make the library not use threads.  Otherwise, pthread mutexes are used
+   to protect access to internal data structures.  This should be useful
+   only if the program is single threaded and you want to avoid the overhead
+   of aquiring/releasing locks unnecessarily.
+   (Environment variable not supported.)
+   </para></listitem>
+  <listitem><para>
+   <code>HAVE_EXECINFO_H</code>:
+   This name should be defined at library configuration time.
+   If your library was configured without <code>execinfo.h</code>, but
+   you have it in your include path, you can define it explicitly.  Without
+   it, advice is collected for the program as a whole, and not for each
+   call context.
+   (Environment variable not supported.)
+   </para></listitem>
+  </itemizedlist>
+  </para>
+
+</sect2>
 
 </sect1>
 
@@ -370,9 +403,6 @@ There are two types of reports.  First, if we recognize a pattern for which
 we have a substitute that is likely to give better performance, we print
 the advice and estimated performance gain.  The advice is usually associated
 to a code position and possibly a call stack.
-<programlisting>
-foo.cc:1: advice: Changing initial unordered_set size from 10 to 1000000 saves 1025530 rehash operations.
-</programlisting>
   </para>
   <para>
 Second, we report performance characteristics for which we do not have
@@ -407,13 +437,15 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
  xreflabel="API">
 <title>Extensions for Custom Containers</title>
 
-Many large projects use their own data structures instead of the ones in the
-standard library.  If these data structures are similar in functionality
-to the standard library, they can be instrumented with the same hooks
-that are used to instrument the standard library.
+  <para>
+  Many large projects use their own data structures instead of the ones in the
+  standard library.  If these data structures are similar in functionality
+  to the standard library, they can be instrumented with the same hooks
+  that are used to instrument the standard library.
+  The instrumentation API is exposed in file
+  <code>profiler.h</code> (look for "Instrumentation hooks").
+  </para>
 
-The instrumentation API is exposed in file
-<code>profiler.h</code> (look for "Instrumentation hooks").
 </sect1>
 
 
@@ -472,8 +504,10 @@ The instrumentation API is exposed in file
 <title>Symbolization of Instruction Addresses</title>
   <para>
   The profiling and analysis phases use only instruction addresses.
-  We translate them into symbols and code location (file:line) just before
-  printing the diagnostic.
+  An external utility such as addr2line is needed to postprocess the result.
+  We do not plan to add symbolization support in the profile extension.
+  This would require access to symbol tables, debug information tables,
+  external programs or libraries and other system dependent information.
   </para>
 </sect2>
 
@@ -577,15 +611,16 @@ The instrumentation API is exposed in file
 <colspec colname='c4'></colspec>
 <colspec colname='c5'></colspec>
 <colspec colname='c6'></colspec>
+<colspec colname='c7'></colspec>
 
 <thead>
   <row>
-    <entry>Group Flag</entry>
-    <entry>Individual Flag</entry>
+    <entry>Group</entry>
+    <entry>Flag</entry>
     <entry>Benefit</entry>
     <entry>Cost</entry>
     <entry>Freq.</entry>
-    <entry>Accuracy</entry>
+    <entry>Implemented</entry>
   </row>
 </thead>
 <tbody>
@@ -598,6 +633,7 @@ The instrumentation API is exposed in file
     <entry>1</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>yes</entry>
   </row>
   <row>
     <entry></entry>
@@ -607,6 +643,7 @@ The instrumentation API is exposed in file
     <entry>1</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>yes</entry>
   </row>
   <row>
     <entry></entry>
@@ -616,6 +653,7 @@ The instrumentation API is exposed in file
     <entry>3</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>yes</entry>
   </row>
   <row>
     <entry></entry>
@@ -625,6 +663,7 @@ The instrumentation API is exposed in file
     <entry>1</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>yes</entry>
   </row>
   <row>
     <entry></entry>
@@ -634,6 +673,7 @@ The instrumentation API is exposed in file
     <entry>1</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>yes</entry>
   </row>
   <row>
     <entry></entry>
@@ -643,6 +683,7 @@ The instrumentation API is exposed in file
     <entry>7</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>no</entry>
   </row>
   <row>
     <entry></entry>
@@ -652,6 +693,7 @@ The instrumentation API is exposed in file
     <entry>7</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>no</entry>
   </row>
   <row>
     <entry></entry>
@@ -661,6 +703,7 @@ The instrumentation API is exposed in file
     <entry>5</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>yes</entry>
   </row>
   <row>
     <entry></entry>
@@ -670,6 +713,7 @@ The instrumentation API is exposed in file
     <entry>5</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>no</entry>
   </row>
   <row>
     <entry></entry>
@@ -679,6 +723,7 @@ The instrumentation API is exposed in file
     <entry>5</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>only map/unordered_map</entry>
   </row>
   <row>
     <entry><ulink url="#manual.ext.profile_mode.analysis.algorithms">
@@ -689,6 +734,7 @@ The instrumentation API is exposed in file
     <entry>8</entry>
     <entry></entry>
     <entry>7</entry>
+    <entry>no</entry>
   </row>
   <row>
     <entry><ulink url="#manual.ext.profile_mode.analysis.locality">
@@ -699,6 +745,7 @@ The instrumentation API is exposed in file
     <entry>8</entry>
     <entry></entry>
     <entry>5</entry>
+    <entry>no</entry>
   </row>
   <row>
     <entry></entry>
@@ -708,16 +755,7 @@ The instrumentation API is exposed in file
     <entry>8</entry>
     <entry></entry>
     <entry>5</entry>
-  </row>
-  <row>
-    <entry><ulink url="#manual.ext.profile_mode.analysis.mthread">
-    MULTITHREADED</ulink></entry>
-    <entry><ulink url="#manual.ext.profile_mode.analysis.mthread.ddtest">
-    DDTEST</ulink></entry>
-    <entry>8</entry>
-    <entry>10</entry>
-    <entry></entry>
-    <entry>10</entry>
+    <entry>no</entry>
   </row>
   <row>
     <entry></entry>
@@ -727,6 +765,7 @@ The instrumentation API is exposed in file
     <entry>10</entry>
     <entry></entry>
     <entry>10</entry>
+    <entry>no</entry>
   </row>
 </tbody>
 </tgroup>

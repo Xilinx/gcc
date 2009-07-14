@@ -32,7 +32,7 @@
  *  @brief Global profiler state.
  */
 
-// Written by Lixia Liu
+// Written by Lixia Liu and Silvius Rus.
 
 #ifndef PROFCXX_PROFILER_STATE_H__
 #define PROFCXX_PROFILER_STATE_H__ 1
@@ -96,6 +96,9 @@ inline void __turn_on()
 
 inline void __turn_off()
 {
+  if (!__state<0>::_S_diag_state) { 
+    __state<0>::_S_diag_state = new __state<0>();
+  }
   __state<0>::_S_diag_state->__turn_off();
 }
 

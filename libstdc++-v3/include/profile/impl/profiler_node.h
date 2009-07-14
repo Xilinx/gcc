@@ -32,7 +32,7 @@
  *  @brief Data structures to represent a single profiling event.
  */
 
-// Written by Lixia Liu
+// Written by Lixia Liu and Silvius Rus.
 
 #ifndef PROFCXX_PROFILER_NODE_H__
 #define PROFCXX_PROFILER_NODE_H__ 1
@@ -63,8 +63,11 @@ size_t __stack_max_depth();
 inline __stack_t __get_stack()
 {
 #if defined HAVE_EXECINFO_H
-  __stack_npt __buffer(__stack_max_depth());
-  int __depth = backtrace(&__buffer[0], __stack_max_depth());
+  size_t __max_depth = __stack_max_depth();
+  if (__max_depth == 0)
+    return NULL;
+  __stack_npt __buffer(__max_depth);
+  int __depth = backtrace(&__buffer[0], __max_depth);
   __stack_t __stack = new __stack_npt(__depth);
   memcpy(&(*__stack)[0], &__buffer[0], __depth * sizeof(__object_t));
   return __stack;
@@ -123,7 +126,7 @@ class __stack_hash
   }
 };
 
-class __object_info_base 
+class __object_info_base
 {
  public:
   __object_info_base() {}
@@ -139,7 +142,8 @@ class __object_info_base
   bool _M_valid;
 };
 
-inline __object_info_base::__object_info_base(__stack_t __stack) {
+inline __object_info_base::__object_info_base(__stack_t __stack)
+{
   _M_stack = __stack;
   _M_valid = true;
 }
@@ -158,6 +162,8 @@ class __stack_info_base
   __stack_info_base(const __object_info& __info) = 0;
   virtual ~__stack_info_base() {}
   void __merge(const __object_info& __info) = 0;
+  virtual float __magnitude() const = 0;
+  virtual const char* __get_id() const = 0;
 };
 
 } // namespace __cxxprof_impl
