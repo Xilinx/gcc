@@ -76,7 +76,7 @@ bool __reentrance_guard<_Unused>::__get_in()
 
 } // namespace __cxxprof_guard
 
-#define _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__x...)                                            \
+#define _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__x...)             \
   {                                                                \
     if (__cxxprof_guard::__reentrance_guard<0>::__get_in())        \
     {                                                              \
@@ -145,12 +145,12 @@ void __trace_map_to_unordered_map_destruct(const void*);
 #define __profcxx__is_off() \
   _GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD(__cxxprof_impl::__is_off())
 #else
-#define __report()
-#define __turn_on()
-#define __turn_off()
-#define __is_invalid()
-#define __is_on()
-#define __is_off()
+#define __profcxx_report()
+#define __profcxx_turn_on()
+#define __profcxx_turn_off()
+#define __profcxx_is_invalid()
+#define __profcxx_is_on()
+#define __profcxx_is_off()
 #endif
 
 // Turn on/off instrumentation for HASHTABLE_TOO_SMALL and HASHTABLE_TOO_LARGE.

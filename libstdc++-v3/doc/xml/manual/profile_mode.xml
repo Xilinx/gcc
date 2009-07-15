@@ -571,9 +571,116 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
   </para>
 </sect2>
 
-
 </sect1>
 
+
+<sect1 id="manual.ext.profile_mode.developer"
+ xreflabel="Developer Information">
+<title>Developer Information</title>
+
+<sect2 id="manual.ext.profile_mode.developer.bigpic"
+ xreflabel="Big Picture">
+<title>Big Picture</title>
+
+  <para>The profile mode headers are included with
+   <code>-D_GLIBCXX_PROFILE</code> through preprocessor directives in 
+   <code>include/std/*</code>.
+  </para>
+
+  <para>Instrumented implementations are provided in 
+   <code>include/profile/*</code>.  All instrumentation hooks are macros
+   defined in <code>include/profile/profiler.h</code>.
+  </para>
+
+  <para>All the implementation of the instrumentation hooks is in 
+   <code>include/profile/impl/*</code>.  Although all the code gets included,
+   thus is publicly visible, only a small number of functions are called from
+   outside this directory.  All calls to hook implementations must be
+   done through macros defined in <code>profiler.h</code>.  The macro
+   must ensure (1) that the call is guarded against reentrance and 
+   (2) that the call can be turned off at compile time using a
+   <code>-D_GLIBCXX_PROFILE_...</code> compiler option.
+  </para>
+
+</sect2>
+
+<sect2 id="manual.ext.profile_mode.developer.howto"
+ xreflabel="How To Add A Diagnostic">
+<title>How To Add A Diagnostic</title>
+
+  <para>Let's say the diagnostic name is "magic".
+  </para>
+
+  <para>If you need to instrument a header not already under 
+   <code>include/profile/*</code>, first edit the corresponding header
+   under <code>include/std/</code> and add a preprocessor directive such
+   as the one in <code>include/std/vector</code>:
+<programlisting>
+#ifdef _GLIBCXX_PROFILE
+# include &lt;profile/vector&gt;
+#endif
+</programlisting>
+  </para>
+
+  <para>If the file you need to instrument is not yet under
+   <code>include/profile/</code>, make a copy of the one in
+   <code>include/debug</code>, or the main implementation.
+   You'll need to include the main implementation and inherit the classes
+   you want to instrument.  Then define the methods you want to instrument,
+   define the instrumentation hooks and add calls to them.
+   Look at <code>include/profile/vector</code> for an example.
+  </para>
+
+  <para>Add macros for the instrumentation hooks in
+   <code>include/profile/impl/profiler.h</code>.
+   Hook names must start with <code>__profcxx_</code>.
+   Make sure they transform
+   in no code with <code>-D_NO_GLBICXX_PROFILE_MAGIC</code>.
+   Make sure all calls to any method in namespace <code>__cxxprof_impl</code>
+   is protected against reentrance using macro
+   <code>_GLIBCXX_PROFILE_IMPL_REENTRANCE_GUARD</code>.
+   All names of methods in namespace <code>__cxxprof_impl</code> called from
+   <code>profiler.h</code> must start with <code>__trace_magic_</code>.
+  </para>
+
+  <para>Add the implementation of the diagnostic.
+   <itemizedlist>
+     <listitem><para>
+      Create new file <code>include/profile/impl/profiler_magic.h</code>.
+     </para></listitem>
+     <listitem><para>
+      Define class <code>__magic_info: public __object_info_base</code>.
+      This is the representation of a line in the object table.
+      The <code>__merge</code> method is used to aggregate information
+      across all dynamic instances created at the same call context.
+      The <code>__magnitude</code> must return the estimation of the benefit
+      as a number of small operations, e.g., number of words copied.
+      The <code>__write</code> method is used to produce the raw trace.
+      The <code>__advice</code> method is used to produce the advice string.
+     </para></listitem>
+     <listitem><para>
+      Define class <code>__magic_stack_info: public __magic_info</code>.
+      This defines the content of a line in the stack table.
+     </para></listitem>
+     <listitem><para>
+      Define class <code>__trace_magic: public __trace_base&lt;__magic_info, 
+      __magic_stack_info&gt;</code>.
+      It defines the content of the trace associated with this diagnostic.
+     </para></listitem>
+    </itemizedlist>
+  </para>
+
+  <para>Add initialization and reporting calls in
+   <code>include/profile/impl/profiler_trace.h</code>.  Use
+   <code>__trace_vector_to_list</code> as an example.
+  </para>
+
+  <para>Add documentation in file <code>doc/xml/manual/profile_mode.xml</code>.
+  </para>
+
+</sect2>
+
+</sect1>
 
 
 <sect1 id="manual.ext.profile_mode.diagnostics"

@@ -1,4 +1,8 @@
 2009-07-14  Silvius Rus  <silvius.rus@gmail.com>
+	* doc/xml/manual/profile_mode.xml: Add developer information.
+	* include/profile/impl/profiler.h: Fix global state macro names.
+
+2009-07-14  Silvius Rus  <silvius.rus@gmail.com>
 	* include/profile/unordered_map: Uglify names.
 	* include/profile/unordered_set: Uglify names.
 	* include/profile/vector: Uglify names.
