@@ -675,6 +675,7 @@ package body Sem_Res is
 
       elsif Ada_Version >= Ada_05
         and then Is_Entity_Name (Pref)
+        and then Is_Access_Type (Etype (Pref))
         and then Ekind (Directly_Designated_Type (Etype (Pref))) =
                                                        E_Incomplete_Type
         and then Is_Tagged_Type (Directly_Designated_Type (Etype (Pref)))
@@ -2492,7 +2493,7 @@ package body Sem_Res is
 
             when N_Allocator => Resolve_Allocator                (N, Ctx_Type);
 
-            when N_And_Then | N_Or_Else
+            when N_Short_Circuit
                              => Resolve_Short_Circuit            (N, Ctx_Type);
 
             when N_Attribute_Reference
@@ -3982,17 +3983,9 @@ package body Sem_Res is
          Check_Unset_Reference (Expression (E));
 
          --  A qualified expression requires an exact match of the type,
-         --  class-wide matching is not allowed. We skip this test in a call
-         --  to a CPP constructor because in such case, although the function
-         --  profile indicates that it returns a class-wide type, the object
-         --  returned by the C++ constructor has a concrete type.
+         --  class-wide matching is not allowed.
 
-         if Is_Class_Wide_Type (Etype (Expression (E)))
-           and then Is_CPP_Constructor_Call (Expression (E))
-         then
-            null;
-
-         elsif (Is_Class_Wide_Type (Etype (Expression (E)))
+         if (Is_Class_Wide_Type (Etype (Expression (E)))
                  or else Is_Class_Wide_Type (Etype (E)))
            and then Base_Type (Etype (Expression (E))) /= Base_Type (Etype (E))
          then
@@ -6741,16 +6734,52 @@ package body Sem_Res is
    procedure Resolve_Membership_Op (N : Node_Id; Typ : Entity_Id) is
       pragma Warnings (Off, Typ);
 
-      L : constant Node_Id := Left_Opnd (N);
+      L : constant Node_Id := Left_Opnd  (N);
       R : constant Node_Id := Right_Opnd (N);
       T : Entity_Id;
+
+      procedure Resolve_Set_Membership;
+      --  Analysis has determined a unique type for the left operand.
+      --  Use it to resolve the disjuncts.
+
+      ----------------------------
+      -- Resolve_Set_Membership --
+      ----------------------------
+
+      procedure Resolve_Set_Membership is
+         Alt : Node_Id;
+
+      begin
+         Resolve (L, Etype (L));
+
+         Alt := First (Alternatives (N));
+         while Present (Alt) loop
+
+            --  Alternative is an expression, a range
+            --  or a subtype mark.
+
+            if not Is_Entity_Name (Alt)
+              or else not Is_Type (Entity (Alt))
+            then
+               Resolve (Alt, Etype (L));
+            end if;
+
+            Next (Alt);
+         end loop;
+      end Resolve_Set_Membership;
+
+   --  Start of processing for Resolve_Membership_Op
 
    begin
       if L = Error or else R = Error then
          return;
       end if;
 
-      if not Is_Overloaded (R)
+      if Present (Alternatives (N)) then
+         Resolve_Set_Membership;
+         return;
+
+      elsif not Is_Overloaded (R)
         and then
           (Etype (R) = Universal_Integer or else
            Etype (R) = Universal_Real)
@@ -7607,7 +7636,7 @@ package body Sem_Res is
 
       --  Generate cross-reference. We needed to wait until full overloading
       --  resolution was complete to do this, since otherwise we can't tell if
-      --  we are an Lvalue of not.
+      --  we are an lvalue or not.
 
       if May_Be_Lvalue (N) then
          Generate_Reference (Entity (S), S, 'm');

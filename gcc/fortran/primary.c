@@ -57,6 +57,9 @@ match_kind_param (int *kind)
   if (sym->attr.flavor != FL_PARAMETER)
     return MATCH_NO;
 
+  if (sym->value == NULL)
+    return MATCH_NO;
+
   p = gfc_extract_int (sym->value, kind);
   if (p != NULL)
     return MATCH_NO;
@@ -829,7 +832,7 @@ match_charkind_name (char *name)
 
       if (!ISALNUM (c)
 	  && c != '_'
-	  && (gfc_option.flag_dollar_ok && c != '$'))
+	  && (c != '$' || !gfc_option.flag_dollar_ok))
 	break;
 
       *name++ = c;
