@@ -1,3 +1,27 @@
+2009-07-14  Razya Ladelsky  <razya@il.ibm.com>
+
+	* tree-ssa-loop-manip.c (rewrite_phi_with_iv): Remove
+	reduction_list parameter.
+	(rewrite_all_phi_nodes_with_iv): Same.
+	(canonicalize_loop_ivs): Same.
+	* tree-parloops.c (struct brli): Removed.
+	(build_reduction_list_info): Removed.
+	(build_new_reduction): New.
+	(analyze_reduction_list): Removed.
+	(gather_scalar_reductions): Find reductions instead of phi
+	nodes that can't be canonicalized.
+	(try_create_reduction_list): Remove reduction_list parameter.
+	(gen_parallel_loop): Same.
+	(parallelize_loops): Remove analyze_reductions variable,
+	initialization and free.
+	Change reduction_list htab initialization to reduction_info
+	elements instead of ssa names.
+	Call try_create_reduction_list and gen_parallel_loop without
+	analyzed_reduction argument.
+	* graphite-clast-to-gimple (graphite_loop_normal_form): Call
+	canonicalize_loop_ivs with one less argument.
+	* tree-flow.h (canonicalize_loop_ivs): Remove one argument.
+
 2009-07-14  Konrad Trifunovic <konrad.trifunovic@gmail.com>
 
 	* graphite-dependences.c (new_poly_dr_pair): New.

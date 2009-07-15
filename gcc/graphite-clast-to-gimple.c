@@ -1121,7 +1121,7 @@ graphite_loop_normal_form (loop_p loop)
   if (stmts)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
-  loop->aux = canonicalize_loop_ivs (loop, NULL, &nit);
+  loop->aux = canonicalize_loop_ivs (loop, &nit);
 }
 
 /* Converts REGION to loop normal form: one induction variable per loop.  */

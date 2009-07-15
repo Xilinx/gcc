@@ -1095,11 +1095,10 @@ tree_unroll_loop (struct loop *loop, unsigned factor,
 
 
 /* Rewrite the phi node at position PSI in function of the main
-   induction variable MAIN_IV and insert the generated code at GSI.
-   REDUCTION_LIST lists the reductions of the LOOP.  */
+   induction variable MAIN_IV and insert the generated code at GSI.  */
 
 static void
-rewrite_phi_with_iv (loop_p loop, htab_t reduction_list,
+rewrite_phi_with_iv (loop_p loop,
 		     gimple_stmt_iterator *psi,
 		     gimple_stmt_iterator *gsi,
 		     tree main_iv)
@@ -1116,9 +1115,6 @@ rewrite_phi_with_iv (loop_p loop, htab_t reduction_list,
 
   if (!simple_iv (loop, loop, res, &iv, true))
     {
-      if (reduction_list)
-	gcc_assert (htab_find (reduction_list, res));
-
       gsi_next (psi);
       return;
     }
@@ -1140,10 +1136,10 @@ rewrite_phi_with_iv (loop_p loop, htab_t reduction_list,
 }
 
 /* Rewrite all the phi nodes of LOOP in function of the main induction
-   variable MAIN_IV.  REDUCTION_LIST lists all the reduction variables.  */
+   variable MAIN_IV.  */
 
 static void
-rewrite_all_phi_nodes_with_iv (loop_p loop, htab_t reduction_list, tree main_iv)
+rewrite_all_phi_nodes_with_iv (loop_p loop, tree main_iv)
 {
   unsigned i;
   basic_block *bbs = get_loop_body_in_dom_order (loop);
@@ -1158,7 +1154,7 @@ rewrite_all_phi_nodes_with_iv (loop_p loop, htab_t reduction_list, tree main_iv)
 	continue;
 
       for (psi = gsi_start_phis (bb); !gsi_end_p (psi); )
-	rewrite_phi_with_iv (loop, reduction_list, &psi, &gsi, main_iv);
+	rewrite_phi_with_iv (loop, &psi, &gsi, main_iv);
     }
 
   free (bbs);
@@ -1170,11 +1166,10 @@ rewrite_all_phi_nodes_with_iv (loop_p loop, htab_t reduction_list, tree main_iv)
    than *NIT type precision, *NIT is converted to the larger type, the
    conversion code is inserted before the loop, and *NIT is updated to
    the new definition.  The induction variable is incremented in the
-   loop latch.  REDUCTION_LIST describes the reductions in LOOP.
-   Return the induction variable that was created.  */
+   loop latch.  Return the induction variable that was created.  */
 
 tree
-canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree *nit)
+canonicalize_loop_ivs (struct loop *loop, tree *nit)
 {
   unsigned precision = TYPE_PRECISION (TREE_TYPE (*nit));
   unsigned original_precision = precision;
@@ -1208,7 +1203,7 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree *nit)
   create_iv (build_int_cst_type (type, 0), build_int_cst (type, 1), NULL_TREE,
 	     loop, &gsi, true, &var_before, NULL);
 
-  rewrite_all_phi_nodes_with_iv (loop, reduction_list, var_before);
+  rewrite_all_phi_nodes_with_iv (loop, var_before);
 
   stmt = last_stmt (exit->src);
   /* Make the loop exit if the control condition is not satisfied.  */

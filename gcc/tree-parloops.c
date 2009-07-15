@@ -241,32 +241,17 @@ name_to_copy_elt_hash (const void *aa)
   return (hashval_t) a->version;
 }
 
-/* Stores information for the htab_traverse helper function
-   build_reduction_list_info.  */
+/* Create a reduction_info struct, initialize it with REDUC_STMT
+   and PHI, insert it to the REDUCTION_LIST.  */
 
-struct brli {
-  loop_vec_info simple_loop_info;
-  htab_t analyzed_reductions;
-};
-
-/*  Create a reduction_info struct, initialize it and insert it to the
-    reduction list.  */
-
-static int
-build_reduction_list_info (void **slot, void *data)
+static void
+build_new_reduction (htab_t reduction_list, gimple reduc_stmt, gimple phi)
 {
-  struct brli *b = (struct brli *) data;
-  loop_vec_info simple_loop_info = b->simple_loop_info;
-  htab_t analyzed_reductions = b->analyzed_reductions;
-  tree phi_res = (tree) *slot;
-  gimple phi = SSA_NAME_DEF_STMT (phi_res);
-  gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi, true);
+  PTR *slot;
+  struct reduction_info *new_reduction;
 
-  if (reduc_stmt)
-    {
-      PTR *slot;
-      struct reduction_info *new_reduction;
-
+  gcc_assert (reduc_stmt);
+  
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
 	  fprintf (dump_file,
@@ -280,44 +265,21 @@ build_reduction_list_info (void **slot, void *data)
       new_reduction->reduc_stmt = reduc_stmt;
       new_reduction->reduc_phi = phi;
       new_reduction->reduction_code = gimple_assign_rhs_code (reduc_stmt);
-      slot = htab_find_slot (analyzed_reductions, new_reduction, INSERT);
+      slot = htab_find_slot (reduction_list, new_reduction, INSERT);
       *slot = new_reduction;
-    }
-
-  return 1;
 }
 
-/* Analyze the reduction variables from REDUCTION_LIST and inserts
-   them in the ANALYZED_REDUCTIONS.  */
 
-static void
-analyze_reduction_list (htab_t reduction_list,
-			htab_t analyzed_reductions,
-			loop_p loop)
-{
-  loop_vec_info simple_loop_info;
-
-  vect_dump = NULL;
-  simple_loop_info = vect_analyze_loop_form (loop);
-
-  if (simple_loop_info)
-    {
-      struct brli b;
-      b.simple_loop_info = simple_loop_info;
-      b.analyzed_reductions = analyzed_reductions;
-      htab_traverse (reduction_list, build_reduction_list_info, &b);
-    }
-  /* Get rid of the information created by the vectorizer functions.  */
-  destroy_loop_vec_info (simple_loop_info, true);
-}
-
-/* Insert in REDUCTION_LIST the PHI_RESULT of all the PHI nodes of
-   LOOP that do not satisfy simple_iv.  */
+/* Detect all reductions in the LOOP, insert them into REDUCTION_LIST.  */
 
 void
 gather_scalar_reductions (loop_p loop, htab_t reduction_list)
 {
   gimple_stmt_iterator gsi;
+  loop_vec_info simple_loop_info;
+
+  vect_dump = NULL;
+  simple_loop_info = vect_analyze_loop_form (loop);
 
   for (gsi = gsi_start_phis (loop->header); !gsi_end_p (gsi); gsi_next (&gsi))
     {
@@ -328,12 +290,15 @@ gather_scalar_reductions (loop_p loop, htab_t reduction_list)
       if (!is_gimple_reg (res))
 	continue;
 
-      if (!simple_iv (loop, loop, res, &iv, true))
+      if (!simple_iv (loop, loop, res, &iv, true)
+	&& simple_loop_info)
 	{
-	  void **slot = htab_find_slot (reduction_list, res, INSERT);
-	  *slot = res;
-	}
+           gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi, true);
+	   if (reduc_stmt)
+              build_new_reduction (reduction_list, reduc_stmt, phi);
+        }
     }
+    destroy_loop_vec_info (simple_loop_info, true);
 }
 
 /* Try to initialize NITER for code generation part.  */
@@ -360,13 +325,10 @@ try_get_loop_niter (loop_p loop, struct tree_niter_desc *niter)
 }
 
 /* Try to initialize REDUCTION_LIST for code generation part.
-
-   REDUCTION_LIST: phi nodes for IVs that cannot be canonicalized.
-   ANALYZED_REDUCTIONS describes the reductions.  */
+   REDUCTION_LIST describes the reductions.  */
 
 static bool
-try_create_reduction_list (loop_p loop, htab_t reduction_list,
-			   htab_t analyzed_reductions)
+try_create_reduction_list (loop_p loop, htab_t reduction_list)
 {
   edge exit = single_dom_exit (loop);
   gimple_stmt_iterator gsi;
@@ -376,8 +338,6 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 
   gather_scalar_reductions (loop, reduction_list);
 
-  analyze_reduction_list (reduction_list, analyzed_reductions, loop);
-    
 	
   for (gsi = gsi_start_phis (exit->dest); !gsi_end_p (gsi); gsi_next (&gsi))
     {
@@ -400,7 +360,7 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 	      fprintf (dump_file,
 		       "  checking if it a part of reduction pattern:  \n");
 	    }
-	  if (htab_elements (analyzed_reductions) == 0)
+	  if (htab_elements (reduction_list) == 0)
 	    {
 	      if (dump_file && (dump_flags & TDF_DETAILS))
 		fprintf (dump_file,
@@ -416,7 +376,7 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 		  break;
 		}
 	    }
-	  red = reduction_phi (analyzed_reductions, reduc_phi);
+	  red = reduction_phi (reduction_list, reduc_phi);
 	  if (red == NULL)
 	    {
 	      if (dump_file && (dump_flags & TDF_DETAILS))
@@ -446,7 +406,7 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list,
 	{
 	  struct reduction_info *red;
 
-	  red = reduction_phi (analyzed_reductions, phi);
+	  red = reduction_phi (reduction_list, phi);
 	  if (red == NULL)
 	    {
 	      if (dump_file && (dump_flags & TDF_DETAILS))
@@ -1638,12 +1598,10 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
    threads in parallel.
 
    NITER describes number of iterations of LOOP.
-   REDUCTION_LIST is the list of phi nodes that cannot be canonicalized.
-   ANALYZED_REDUCTIONS describes the reductions existent in the LOOP.  */
+   REDUCTION_LIST describes the reductions existent in the LOOP.  */
 
 static void
 gen_parallel_loop (struct loop *loop, htab_t reduction_list,
-		   htab_t analyzed_reductions,
 		   unsigned n_threads, struct tree_niter_desc *niter)
 {
   struct loop *nloop;
@@ -1745,14 +1703,14 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   free_original_copy_tables ();
 
   /* Base all the induction variables in LOOP on a single control one.  */
-  canonicalize_loop_ivs (loop, reduction_list, &nit);
+  canonicalize_loop_ivs (loop, &nit);
 
   /* Ensure that the exit condition is the first statement in the loop.  */
-  transform_to_exit_first_loop (loop, analyzed_reductions, nit);
+  transform_to_exit_first_loop (loop, reduction_list, nit);
 
   /* Generate initializations for reductions.  */
-  if (htab_elements (analyzed_reductions) > 0)  
-    htab_traverse (analyzed_reductions, initialize_reductions, loop);
+  if (htab_elements (reduction_list) > 0)  
+    htab_traverse (reduction_list, initialize_reductions, loop);
 
   /* Eliminate the references to local variables from the loop.  */
   gcc_assert (single_exit (loop));
@@ -1762,14 +1720,14 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   eliminate_local_variables (entry, exit);
   /* In the old loop, move all variables non-local to the loop to a structure
      and back, and create separate decls for the variables used in loop.  */
-  separate_decls_in_region (entry, exit, analyzed_reductions, &arg_struct, 
+  separate_decls_in_region (entry, exit, reduction_list, &arg_struct, 
 			    &new_arg_struct, &clsn_data);
 
   /* Create the parallel constructs.  */
   parallel_head = create_parallel_loop (loop, create_loop_fn (), arg_struct,
 					new_arg_struct, n_threads);
-  if (htab_elements (analyzed_reductions) > 0)   
-    create_call_for_reduction (loop, analyzed_reductions, &clsn_data);
+  if (htab_elements (reduction_list) > 0)   
+    create_call_for_reduction (loop, reduction_list, &clsn_data);
 
   scev_reset ();
 
@@ -1823,21 +1781,19 @@ parallelize_loops (void)
   struct loop *loop;
   struct tree_niter_desc niter_desc;
   loop_iterator li;
-  htab_t reduction_list, analyzed_reductions;
+  htab_t reduction_list;
 
   /* Do not parallelize loops in the functions created by parallelization.  */
   if (parallelized_function_p (cfun->decl))
     return false;
 
-  reduction_list = htab_create (10, htab_hash_pointer, htab_eq_pointer, NULL);
-  analyzed_reductions = htab_create (10, reduction_info_hash,
+  reduction_list = htab_create (10, reduction_info_hash,
 				     reduction_info_eq, free);
   init_stmt_vec_info_vec ();
 
   FOR_EACH_LOOP (li, loop, 0)
     {
       htab_empty (reduction_list);
-      htab_empty (analyzed_reductions);
 
       /* If we use autopar in graphite pass, we use it's marked dependency
       checking results.  */
@@ -1866,15 +1822,14 @@ parallelize_loops (void)
       if (!try_get_loop_niter (loop, &niter_desc))
 	continue;
 
-      if (!try_create_reduction_list (loop, reduction_list,
-				      analyzed_reductions))
+      if (!try_create_reduction_list (loop, reduction_list))
 	continue;
 
       if (!flag_graphite_force_parallel && !loop_parallel_p (loop))
 	continue;
 
       changed = true;
-      gen_parallel_loop (loop, reduction_list, analyzed_reductions,
+      gen_parallel_loop (loop, reduction_list, 
 			 n_threads, &niter_desc);
       verify_flow_info ();
       verify_dominators (CDI_DOMINATORS);
@@ -1884,7 +1839,6 @@ parallelize_loops (void)
 
   free_stmt_vec_info_vec ();
   htab_delete (reduction_list);
-  htab_delete (analyzed_reductions);
 
   /* Parallelization will cause new function calls to be inserted through
      which local variables will escape.  Reset the points-to solutions
