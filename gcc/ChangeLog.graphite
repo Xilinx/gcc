@@ -1,3 +1,19 @@
+2009-07-14  Konrad Trifunovic <konrad.trifunovic@gmail.com>
+
+	* graphite-dependences.c (new_poly_dr_pair): New.
+	(dependence_polyhedron): Renamed into dependence_polyhedron_1.
+	(new_poly_dr_pair): New.
+	(eq_poly_dr_pair_p): New.
+	(hash_poly_dr_pair_p): New.
+	* graphite-dependences.h (struct poly_dr_pair): New.
+	(eq_poly_dr_pair_p): Declared.
+	(hash_poly_dr_pair_p): Declared.
+	* graphite-poly.c (new_scop): Initialize SCOP_ORIGINAL_PDR_PAIRS.
+	(free_scop): Free SCOP_ORIGINAL_PDR_PAIRS.
+	* graphite-poly.h (struct scop): Add original_pdr_pairs field.
+	* Makefile.in (graphite-poly.o): Add dependence on
+	graphite-dependences.h.
+
 2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-scop-detection.c (graphite_can_represent_scev): Do not let
@@ -378,8 +394,8 @@
 	(print_pbb): Add call to print_pdrs.
 	* graphite-poly.h (print_pdrs, debug_pdrs): Declared.
 
-2009-6-24 Konrad Trifunovic <konrad.trifunovic@gmail.com>
-	  Li Feng <nemokingdom@gmail.com>
+2009-06-24  Konrad Trifunovic <konrad.trifunovic@gmail.com>
+	    Li Feng <nemokingdom@gmail.com>
 
 	* graphite-dependences.c (graphite_carried_dependence_level_k): New.
 	(dependency_between_pbbs_p): New.

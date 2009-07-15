@@ -24,4 +24,27 @@ along with GCC; see the file COPYING3.  If not see
 extern bool graphite_legal_transform (scop_p);
 extern bool dependency_between_pbbs_p (poly_bb_p, poly_bb_p, int);
 
+typedef struct poly_dr_pair *poly_dr_pair_p;
+
+typedef struct poly_dr_pair
+{
+  /* Source polyhedral data reference of the dependence.  */
+  poly_dr_p source;
+
+  /* Sink data reference of the dependence.  */
+  poly_dr_p sink;
+
+  /* Data dependence polyhedron descibing dependence
+     between SOURCE and SINK data references.  */
+  ppl_Pointset_Powerset_C_Polyhedron_t ddp;
+}poly_dr_pair;
+
+
+#define PDRP_SOURCE(PDRP) (PDR->source)
+#define PDRP_SINK(PDRP) (PDR->sink)
+#define PDRP_DDP(PDRP) (PDR->ddp)
+
+extern int eq_poly_dr_pair_p (const void *, const void *);
+extern hashval_t hash_poly_dr_pair_p (const void *);
+
 #endif
