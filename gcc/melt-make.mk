@@ -61,9 +61,9 @@ MELTCCFILE1=$(melt_cc1)  $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=translatef
 	      $(meltarg_tempdir)=.  $(MELT_DEBUG)
 
 
-vpath %.so $(melt_make_module_dir)
-vpath %.c $(melt_make_source_dir)
-vpath %.melt $(melt_make_source_dir)
+vpath %.so $(melt_make_module_dir) . 
+vpath %.c $(melt_make_source_dir) . $(melt_source_dir)
+vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 
 ## all the warm*.so need ./built-melt-cc-script to be built, but we
 ## don't add a dependency to avoid them being rebuilt at install time.

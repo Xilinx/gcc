@@ -748,6 +748,8 @@ melt_garbcoll (size_t wanted, bool needfull)
       delete_special (specp);
     }
   melt_newspeclist = NULL;
+  VEC_free (melt_ptr_t, gc, bscanvec);
+  bscanvec = NULL;
   /* free the previous young zone and allocate a new one */
 #if ENABLE_CHECKING
   if (debughack_file)
@@ -802,8 +804,6 @@ melt_garbcoll (size_t wanted, bool needfull)
 	}
       melt_kilowords_sincefull = 0;
     }
-  VEC_free (melt_ptr_t, gc, bscanvec);
-  bscanvec = NULL;
   melt_check_call_frames (MELT_NOYOUNG, "after garbage collection");
 }
 

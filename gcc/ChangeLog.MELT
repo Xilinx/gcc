@@ -1,4 +1,10 @@
 
+2009-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	[works in plugin mode]
+	* melt-runtime.c (melt_garbcoll): free bscanvec before full
+	collection!
+	* melt-make.mk: Enhanved vpath-s for %.c & %.melt.
+
 2009-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still crashes in plugin mode]
 	* melt-runtime.c (blocaltab, bstrangelocal, nbaddlocalptr):
