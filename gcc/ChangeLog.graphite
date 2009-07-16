@@ -1,5 +1,11 @@
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-sese-to-poly.c (nb_pbbs_in_loops): New.
+	(build_poly_scop): Return false when there are no pbbs within
+	loops to avoid to pass to cloog scops with no loops.
+
+2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons): Avoid 
 	useless test "i % 2".
 	(build_pbb_scattering_polyhedrons): Fix formatting.

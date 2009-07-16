@@ -1627,6 +1627,22 @@ build_scop_drs (scop_p scop)
     build_pbb_drs (pbb);
 }
 
+/* Returns the number of pbbs that are in loops contained in SCOP.  */
+
+static int
+nb_pbbs_in_loops (scop_p scop)
+{
+  int i;
+  poly_bb_p pbb;
+  int res = 0;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    if (loop_in_sese_p (gbb_loop (PBB_BLACK_BOX (pbb)), SCOP_REGION (scop)))
+      res++;
+
+  return res;
+}
+
 /* Builds the polyhedral representation for a SESE region.  */
 
 bool
@@ -1634,6 +1650,14 @@ build_poly_scop (scop_p scop)
 {
   sese region = SCOP_REGION (scop);
   build_scop_bbs (scop);
+
+  /* FIXME: This restriction is needed to avoid a problem in CLooG.
+     Once CLooG is fixed, remove this guard.  Anyways, it makes no
+     sense to optimize a scop containing only PBBs that do not belong
+     to any loops.  */
+  if (nb_pbbs_in_loops (scop) == 0)
+    return false;
+
   build_sese_loop_nests (region);
 
   if (scop_contains_non_iv_scalar_phi_nodes (scop))
