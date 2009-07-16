@@ -1,5 +1,12 @@
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (compute_cloog_iv_types): Do not create
+	GBB_CLOOG_IV_TYPES hash table twice.
+	* graphite-sese-to-poly.c (free_gimple_bb): Call free_data_refs.
+	(add_condition_to_domain): Clear GMP values.
+
+2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-dependences.c: Fix formatting.
 	* graphite-poly.c (free_poly_dr): Also free PDR_DATA_CONTAINER.
 	(pbb_number_of_iterations): Free ppl_Linear_Expression.

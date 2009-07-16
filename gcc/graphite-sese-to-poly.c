@@ -152,10 +152,7 @@ free_gimple_bb (struct gimple_bb *gbb)
   if (GBB_CLOOG_IV_TYPES (gbb))
     htab_delete (GBB_CLOOG_IV_TYPES (gbb));
 
-  /* FIXME: free_data_refs is disabled for the moment, but should be
-     enabled.
-
-     free_data_refs (GBB_DATA_REFS (gbb)); */
+  free_data_refs (GBB_DATA_REFS (gbb));
 
   VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
   VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
@@ -1077,6 +1074,7 @@ add_condition_to_domain (ppl_Pointset_Powerset_C_Polyhedron_t ps, gimple stmt,
       ppl_assign_Coefficient_from_mpz_t (c, v);
       ppl_Linear_Expression_add_to_inhomogeneous (left, c);
       ppl_delete_Coefficient (c);
+      value_clear (v);
 
       code = LE_EXPR;
     }
@@ -1088,6 +1086,7 @@ add_condition_to_domain (ppl_Pointset_Powerset_C_Polyhedron_t ps, gimple stmt,
       ppl_assign_Coefficient_from_mpz_t (c, v);
       ppl_Linear_Expression_add_to_inhomogeneous (right, c);
       ppl_delete_Coefficient (c);
+      value_clear (v);
 
       code = GE_EXPR;
     }

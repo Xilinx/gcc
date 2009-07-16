@@ -787,8 +787,11 @@ compute_cloog_iv_types (struct clast_stmt *stmt)
       CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
       poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
       gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
-      GBB_CLOOG_IV_TYPES (gbb) = htab_create (10, ivtype_map_elt_info,
-					      eq_ivtype_map_elts, free);
+
+      if (!GBB_CLOOG_IV_TYPES (gbb))
+	GBB_CLOOG_IV_TYPES (gbb) = htab_create (10, ivtype_map_elt_info,
+						eq_ivtype_map_elts, free);
+
       compute_cloog_iv_types_1 (pbb, (struct clast_user_stmt *) stmt);
       goto next;
     }
