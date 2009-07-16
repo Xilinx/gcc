@@ -1,5 +1,9 @@
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (graphite_finalize): Call scev_reset.
+
+2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (compute_cloog_iv_types): Do not create
 	GBB_CLOOG_IV_TYPES hash table twice.
 	* graphite-sese-to-poly.c (free_gimple_bb): Call free_data_refs.

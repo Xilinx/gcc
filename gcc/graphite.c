@@ -228,7 +228,10 @@ static void
 graphite_finalize (bool transform_done)
 {
   if (transform_done)
-    cleanup_tree_cfg ();
+    {
+      scev_reset ();
+      cleanup_tree_cfg ();
+    }
 
   cloog_finalize ();
   free_original_copy_tables ();
