@@ -1,5 +1,11 @@
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* testsuite/gcc.dg/graphite/id-14.c: New.
+	* testsuite/gcc.dg/graphite/pr40157.c: New.
+	* testsuite/gfortran.dg/graphite/id-11.f: New.
+
+2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (nb_pbbs_in_loops): New.
 	(build_poly_scop): Return false when there are no pbbs within
 	loops to avoid to pass to cloog scops with no loops.
