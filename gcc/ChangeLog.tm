@@ -1,3 +1,17 @@
+2009-07-16  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gimple-pretty-print.c:
+	Include trans-mem.h
+	(dump_gimple_call): Dump arguments for calls to
+	_ITM_beginTransaction.
+	* trans-mem.c: Include trans-mem.h
+	Move PR_* macros...
+	* trans-mem.h: ...here.
+	* Makefile.in (gimple-pretty-print.o): Depend on TRANS_MEM_H.
+	(trans-mem.o): Same.
+	* config/i386/i386.c (ix86_handle_cconv_attribute): Tag unused
+	arguments as so.
+
 2009-07-10  Richard Henderson  <rth@redhat.com>
 
 	* gimple.def (GIMPLE_EH_ELSE): New.

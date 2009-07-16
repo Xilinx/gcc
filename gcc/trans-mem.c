@@ -32,25 +32,11 @@
 #include "flags.h"
 #include "demangle.h"
 #include "output.h"
+#include "trans-mem.h"
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
 #define PROB_ALWAYS		(REG_BR_PROB_BASE)
-
-/* These defines must match the enumerations in libitm.h.  */
-#define PR_INSTRUMENTEDCODE	0x0001
-#define PR_UNINSTRUMENTEDCODE	0x0002
-#define PR_HASNOXMMUPDATE	0x0004
-#define PR_HASNOABORT		0x0008
-#define PR_HASNOIRREVOKABLE	0x0020
-#define PR_DOESGOIRREVOKABLE	0x0040
-#define PR_HASNOSIMPLEREADS	0x0080
-#define PR_AWBARRIERSOMITTED	0x0100
-#define PR_RARBARRIERSOMITTED	0x0200
-#define PR_UNDOLOGCODE		0x0400
-#define PR_PREFERUNINSTRUMENTED	0x0800
-#define PR_EXCEPTIONBLOCK	0x1000
-#define PR_HASELSE		0x2000
 
 #define A_RUNINSTRUMENTEDCODE	0x0001
 #define A_RUNUNINSTRUMENTEDCODE	0x0002
@@ -125,7 +111,7 @@
   functions and mark functions for cloning.
 
   At the end of gimple optimization, before exiting SSA form, 
-  pass_expand_tm replaces statements that perform transactional
+  pass_tm_edges replaces statements that perform transactional
   memory operations with the appropriate TM builtins, and swap
   out function calls with their transactional clones.  At this
   point we introduce the abnormal transaction restart edges and

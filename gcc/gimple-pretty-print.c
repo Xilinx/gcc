@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "gimple.h"
 #include "value-prof.h"
+#include "trans-mem.h"
 
 #define INDENT(SPACE)							\
   do { int i; for (i = 0; i < SPACE; i++) pp_space (buffer); } while (0)
@@ -489,11 +490,12 @@ static void
 dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
   tree lhs = gimple_call_lhs (gs);
+  tree fn = gimple_call_fn (gs);
 
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%T, %T",
-                     gs, gimple_call_fn (gs), lhs);
+                     gs, fn, lhs);
       if (gimple_call_num_args (gs) > 0)
         {
           pp_string (buffer, ", ");
@@ -513,7 +515,7 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 	  pp_space (buffer);
         }
-      print_call_name (buffer, gimple_call_fn (gs), flags);
+      print_call_name (buffer, fn, flags);
       pp_string (buffer, " (");
       dump_gimple_call_args (buffer, gs, flags);
       pp_character (buffer, ')');
@@ -534,6 +536,57 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
     pp_string (buffer, " [tail call]");
   if (gimple_call_in_tm_atomic_p (gs))
     pp_string (buffer, " [in atomic]");
+
+  /* Dump the arguments of _ITM_beginTransaction sanely.  */
+  if (TREE_CODE (fn) == ADDR_EXPR)
+    fn = TREE_OPERAND (fn, 0);
+  if (TREE_CODE (fn) == FUNCTION_DECL
+      && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
+      && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_START
+      /* Check we're referring to Intel's TM specifications.  */
+      && !strcmp (IDENTIFIER_POINTER (DECL_NAME (fn)),
+		  "__builtin__ITM_beginTransaction")
+      && gimple_call_num_args (gs) > 0
+      )
+    {
+      tree t = gimple_call_arg (gs, 0);
+      unsigned HOST_WIDE_INT props;
+      gcc_assert (TREE_CODE (t) == INTEGER_CST);
+
+      pp_string (buffer, " [ ");
+
+      /* Get the transaction code properties.  */
+      props = TREE_INT_CST_LOW (t);
+
+      if (props & PR_INSTRUMENTEDCODE)
+	pp_string (buffer, "instrumentedCode ");
+      if (props & PR_UNINSTRUMENTEDCODE)
+	pp_string (buffer, "uninstrumentedCode ");
+      if (props & PR_HASNOXMMUPDATE)
+	pp_string (buffer, "hasNoXMMUpdate ");
+      if (props & PR_HASNOABORT)
+	pp_string (buffer, "hasNoAbort ");
+      if (props & PR_HASNOIRREVOKABLE)
+	pp_string (buffer, "hasNoIrrevocable ");
+      if (props & PR_DOESGOIRREVOKABLE)
+	pp_string (buffer, "doesGoIrrevocable ");
+      if (props & PR_HASNOSIMPLEREADS)
+	pp_string (buffer, "hasNoSimpleReads ");
+      if (props & PR_AWBARRIERSOMITTED)
+	pp_string (buffer, "awBarriersOmitted ");
+      if (props & PR_RARBARRIERSOMITTED)
+	pp_string (buffer, "RaRBarriersOmitted ");
+      if (props & PR_UNDOLOGCODE)
+	pp_string (buffer, "undoLogCode ");
+      if (props & PR_PREFERUNINSTRUMENTED)
+	pp_string (buffer, "preferUninstrumented ");
+      if (props & PR_EXCEPTIONBLOCK)
+	pp_string (buffer, "exceptionBlock ");
+      if (props & PR_HASELSE)
+	pp_string (buffer, "hasElse ");
+
+      pp_string (buffer, "]");
+    }
 }
 
 

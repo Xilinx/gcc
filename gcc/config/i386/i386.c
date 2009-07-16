@@ -4383,7 +4383,8 @@ ix86_handle_cconv_attribute (tree *node, tree name,
    attributes that we expect elsewhere.  */
 
 static tree
-ix86_handle_tm_regparm_attribute (tree *node, tree name, tree args,
+ix86_handle_tm_regparm_attribute (tree *node, tree name ATTRIBUTE_UNUSED,
+    				  tree args ATTRIBUTE_UNUSED,
 				  int flags ATTRIBUTE_UNUSED,
 				  bool *no_add_attrs)
 {
