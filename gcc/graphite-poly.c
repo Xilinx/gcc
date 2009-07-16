@@ -320,6 +320,7 @@ void
 free_poly_dr (poly_dr_p pdr)
 {
   ppl_delete_Pointset_Powerset_C_Polyhedron (PDR_ACCESSES (pdr));
+  ppl_delete_Pointset_Powerset_C_Polyhedron (PDR_DATA_CONTAINER (pdr));
 
   XDELETE (pdr);
 }
@@ -754,7 +755,7 @@ pbb_number_of_iterations (poly_bb_p pbb, graphite_dim_t loop_depth, Value niter)
   ppl_new_Linear_Expression_with_dimension (&le, dim);
   ppl_set_coef (le, loop_iter, 1);
   ppl_Pointset_Powerset_C_Polyhedron_maximize (PBB_DOMAIN (pbb), le,
-						 num, denom, &maximum);
+					       num, denom, &maximum);
 
   if (maximum == 1)
     {
@@ -766,6 +767,7 @@ pbb_number_of_iterations (poly_bb_p pbb, graphite_dim_t loop_depth, Value niter)
     value_set_si (niter, -1);
 
   value_clear (dv);
+  ppl_delete_Linear_Expression (le);
   ppl_delete_Coefficient (num);
   ppl_delete_Coefficient (denom);
 }

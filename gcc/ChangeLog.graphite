@@ -1,5 +1,14 @@
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-dependences.c: Fix formatting.
+	* graphite-poly.c (free_poly_dr): Also free PDR_DATA_CONTAINER.
+	(pbb_number_of_iterations): Free ppl_Linear_Expression.
+	* graphite-sese-to-poly.c: Fix formatting.
+	* graphite.c (graphite_transform_loops): Create the hash table
+	after the early return.
+	
+2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* testsuite/gcc.dg/graphite/id-14.c: New.
 	* testsuite/gcc.dg/graphite/pr40157.c: New.
 	* testsuite/gfortran.dg/graphite/id-11.f: New.

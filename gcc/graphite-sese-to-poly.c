@@ -1594,10 +1594,11 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
   pdr_add_data_dimensions (data_container, dr, accessp_nb_dims, dom_nb_dims);
 
   ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&accesses_ps,
-								accesses);
+							    accesses);
   ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&data_container_ps,
-								data_container);
+							    data_container);
   ppl_delete_Polyhedron (accesses);
+  ppl_delete_Polyhedron (data_container);
   new_poly_dr (pbb, accesses_ps, data_container_ps,
 	       DR_IS_READ (dr) ? PDR_READ : PDR_WRITE, dr);
 }

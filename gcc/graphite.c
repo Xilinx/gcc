@@ -248,8 +248,7 @@ graphite_transform_loops (void)
   scop_p scop;
   bool transform_done = false;
   VEC (scop_p, heap) *scops = NULL;
-  htab_t bb_pbb_mapping = htab_create (10, bb_pbb_map_hash,
-				       eq_bb_pbb_map, free);
+  htab_t bb_pbb_mapping;
 
   if (!graphite_initialize ())
     return;
@@ -261,6 +260,8 @@ graphite_transform_loops (void)
       print_graphite_statistics (dump_file, scops);
       print_global_statistics (dump_file);
     }
+
+  bb_pbb_mapping = htab_create (10, bb_pbb_map_hash, eq_bb_pbb_map, free);
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
     {

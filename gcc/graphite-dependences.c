@@ -354,7 +354,7 @@ build_lexicographically_gt_constraint (ppl_Pointset_Powerset_C_Polyhedron_t res,
     }
 }
 
-/*  Build the dependence polyhedron for data references PDR1 and PDR2.  */
+/* Build the dependence polyhedron for data references PDR1 and PDR2.  */
 
 static ppl_Pointset_Powerset_C_Polyhedron_t
 dependence_polyhedron_1 (poly_bb_p pbb1, poly_bb_p pbb2,
