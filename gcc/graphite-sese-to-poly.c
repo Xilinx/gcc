@@ -357,7 +357,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 	}
 
       /* Iterations of this loop.  */
-      if ((i % 2) == 1)
+      else /* if ((i % 2) == 1) */
 	{
 	  int loop = (i - 1) / 2;
 
@@ -377,7 +377,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
   ppl_delete_Coefficient (c);
 
   ppl_new_C_Polyhedron_from_C_Polyhedron (&PBB_ORIGINAL_SCATTERING (pbb),
-					      PBB_TRANSFORMED_SCATTERING (pbb));
+					  PBB_TRANSFORMED_SCATTERING (pbb));
 }
 
 /* Build for BB the static schedule.
@@ -1583,7 +1583,7 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
   ppl_dimension_type accessp_nb_dims;
 
   ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PBB_DOMAIN (pbb),
-							&dom_nb_dims);
+						      &dom_nb_dims);
   accessp_nb_dims = dom_nb_dims + 1 + DR_NUM_DIMENSIONS (dr);
 
   ppl_new_C_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);

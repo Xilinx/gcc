@@ -263,13 +263,15 @@ graphite_transform_loops (void)
     }
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
-    if (build_poly_scop (scop))
-      {
-	if (apply_poly_transforms (scop))
-	  transform_done |= gloog (scop, bb_pbb_mapping);
-	else  
-	  check_poly_representation (scop);
-      }
+    {
+      if (!build_poly_scop (scop))
+	continue;
+
+      if (apply_poly_transforms (scop))
+	transform_done |= gloog (scop, bb_pbb_mapping);
+      else
+	check_poly_representation (scop);
+    }
 
   if (flag_graphite_force_parallel)
     mark_loops_parallel (bb_pbb_mapping);
