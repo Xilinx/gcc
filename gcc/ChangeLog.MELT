@@ -1,4 +1,8 @@
 
+2009-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-make.mk: added $(melt_default_modules_list).modlis
+	* Makefile.in: removed $(melt_default_modules_list).modlis
+
 2009-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[works in plugin mode]
 	* melt-runtime.c (melt_garbcoll): free bscanvec before full

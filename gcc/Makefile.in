@@ -4922,13 +4922,6 @@ melt_is_plugin=
 include $(srcdir)/melt-make.mk
 
 
-#### the default list of modules
-$(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
-	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
-	for f in  $(ANAMELT_BASE); do echo $$f >> $@-tmp; done
-	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
-
 ####
 #### installing melt generated shared object plugins (at MELT 3rd
 #### stage) and the default melt module list

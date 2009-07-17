@@ -146,19 +146,19 @@ ANAMELT_BASEROW:=$(shell echo $(ANAMELT_BASE)|sed 's/ /:/g')
 .SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(ANAMELT_BASEC)
 
 warmelt0.modlis: $(WARMELT_BASE0DSO)
-	date +"#$@ generated %D" > $@-tmp
+	date +"#$@ generated %F" > $@-tmp
 	for f in  $(WARMELT_BASE0); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
 ##
 
 warmelt1.modlis: $(WARMELT_BASE1SO)
-	date +"#$@ generated %D" > $@-tmp
+	date +"#$@ generated %F" > $@-tmp
 	for f in  $(WARMELT_BASE1); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
 warmelt1n.modlis: $(WARMELT_BASE1NSO)
-	date +"#$@ generated %D" > $@-tmp
+	date +"#$@ generated %F" > $@-tmp
 	for f in  $(WARMELT_BASE1); do echo $$f.n >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
@@ -240,7 +240,7 @@ warmelt-outobj-1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
 
 ####
 warmelt2.modlis: $(WARMELT_BASE2SO)
-	date +"#$@ generated %d" > $@-tmp
+	date +"#$@ generated %F" > $@-tmp
 	for f in  $(WARMELT_BASE2); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
@@ -316,4 +316,13 @@ ana-simple.c:  $(melt_make_source_dir)/ana-simple.melt  warmelt2.modlis $(WARMEL
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_secondarg)=$@   empty-file-for-melt.c
 	ls -l $@
+
+####
+#### the default list of modules
+$(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
+	date +"#$@ generated %F" > $@-tmp
+	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
+	for f in  $(ANAMELT_BASE); do echo $$f >> $@-tmp; done
+	$(melt_make_move) $@-tmp $@
+
 #eof melt-make.mk
