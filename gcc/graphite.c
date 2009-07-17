@@ -222,16 +222,14 @@ graphite_initialize (void)
   return true;
 }
 
-/* Finalize graphite: perform cleanup when TRANSFORM_DONE.  */
+/* Finalize graphite: perform CFG cleanup when NEED_CFG_CLEANUP_P is
+   true.  */
 
 static void
-graphite_finalize (bool transform_done)
+graphite_finalize (bool need_cfg_cleanup_p)
 {
-  if (transform_done)
-    {
-      scev_reset ();
-      cleanup_tree_cfg ();
-    }
+  if (need_cfg_cleanup_p)
+    cleanup_tree_cfg ();
 
   cloog_finalize ();
   free_original_copy_tables ();
@@ -249,7 +247,7 @@ graphite_transform_loops (void)
 {
   int i;
   scop_p scop;
-  bool transform_done = false;
+  bool need_cfg_cleanup_p = false;
   VEC (scop_p, heap) *scops = NULL;
   htab_t bb_pbb_mapping;
 
@@ -268,13 +266,21 @@ graphite_transform_loops (void)
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
     {
+      bool transform_done = false;
+
       if (!build_poly_scop (scop))
 	continue;
 
       if (apply_poly_transforms (scop))
-	transform_done |= gloog (scop, bb_pbb_mapping);
+	transform_done = gloog (scop, bb_pbb_mapping);
       else
 	check_poly_representation (scop);
+
+      if (transform_done)
+	{
+	  scev_reset ();
+	  need_cfg_cleanup_p = true;
+	}
     }
 
   if (flag_graphite_force_parallel)
@@ -282,7 +288,7 @@ graphite_transform_loops (void)
 
   htab_delete (bb_pbb_mapping);
   free_scops (scops);
-  graphite_finalize (transform_done);
+  graphite_finalize (need_cfg_cleanup_p);
 }
 
 #else /* If Cloog is not available: #ifndef HAVE_cloog.  */

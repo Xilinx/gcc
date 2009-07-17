@@ -1,5 +1,11 @@
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (graphite_finalize): Fix comment.
+	(graphite_transform_loops): Reset scev info after code generation
+	of each scop.
+
+2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (graphite_finalize): Call scev_reset.
 
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
