@@ -272,6 +272,17 @@ is_tm_ending_fndecl (tree fndecl)
   return false;
 }
 
+
+/* Return true if FNDECL is BUILT_IN_TM_ABORT.  */
+
+static bool
+is_tm_abort (tree fndecl)
+{
+  return (fndecl
+	  && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+	  && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_TM_ABORT);
+}
+
 /* Build a GENERIC tree for a user abort.  This is called by front ends
    while transforming the __tm_abort statement.  */
 
@@ -499,8 +510,7 @@ examine_call_tm (unsigned *state, gimple_stmt_iterator *gsi)
 
   /* Check if this call is a transaction abort.  */
   fn = gimple_call_fndecl (stmt);
-  if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
-      && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_ABORT)
+  if (is_tm_abort (fn))
     *state |= GTMA_HAVE_ABORT;
 
   /* Note that something may happen.  */
@@ -1077,7 +1087,7 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
    one of the builtins that end a transaction.  */
 
 static bool
-expand_call_tm (struct tm_region * ARG_UNUSED (region),
+expand_call_tm (struct tm_region *region,
 		gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
@@ -1087,7 +1097,10 @@ expand_call_tm (struct tm_region * ARG_UNUSED (region),
     return false;
 
   fn_decl = gimple_call_fndecl (stmt);
-  
+
+  if (is_tm_abort (fn_decl))
+    tm_atomic_subcode_ior (region, GTMA_HAVE_ABORT);
+
   /* For indirect calls, we already generated a call into the runtime.  */
   if (!fn_decl)
     return false;

@@ -1116,23 +1116,53 @@ dump_gimple_omp_return (pretty_printer *buffer, gimple gs, int spc, int flags)
     }
 }
 
+/* Dump the subcodes of a GIMPLE_ATOMIC tuple.  */
+
+static void
+dump_gimple_tm_atomic_subcode (pretty_printer *buffer, unsigned subcode)
+{
+  if (!subcode)
+    return;
+  pp_string (buffer, " [ ");
+  if (subcode & GTMA_HAVE_ABORT)
+    pp_string (buffer, "GTMA_HAVE_ABORT ");
+  if (subcode & GTMA_HAVE_LOAD)
+    pp_string (buffer, "GTMA_HAVE_LOAD ");
+  if (subcode & GTMA_HAVE_STORE)
+    pp_string (buffer, "GTMA_HAVE_STORE");
+  if (subcode & GTMA_HAVE_CALL_TM)
+    pp_string (buffer, "GTMA_HAVE_CALL_TM");
+  if (subcode & GTMA_HAVE_CALL_IRREVOKABLE)
+    pp_string (buffer, "GTMA_HAVE_CALL_IRREVOKABLE");
+  if (subcode & GTMA_MUST_CALL_IRREVOKABLE)
+    pp_string (buffer, "GTMA_MUST_CALL_IRREVOKABLE");
+  if (subcode & GTMA_HAVE_UNCOMMITTED_THROW)
+    pp_string (buffer, "GTMA_HAVE_UNCOMMITTED_THROW");
+  pp_string (buffer, " ]");
+}
+
 /* Dump a GIMPLE_TM_ATOMIC tuple on the pretty_printer BUFFER.  */
 
 static void
 dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
+  unsigned subcode = gimple_tm_atomic_subcode (gs);
+
   if (flags & TDF_RAW)
-    dump_gimple_fmt (buffer, spc, flags,
-		     "%G [SUBCODE=%x,LABEL=%T] <%+BODY <%S> >",
-		     gs, gimple_tm_atomic_subcode (gs),
-		     gimple_tm_atomic_label (gs), gimple_tm_atomic_body (gs));
+    {
+      dump_gimple_fmt (buffer, spc, flags,
+		       "%G [SUBCODE=%x,LABEL=%T] <%+BODY <%S> >",
+		       gs, subcode,
+		       gimple_tm_atomic_label (gs), gimple_tm_atomic_body (gs));
+      dump_gimple_tm_atomic_subcode (buffer, subcode);
+    }
   else
     {
-      pp_printf (buffer, "__tm_atomic [SUBCODE=%x,LABEL=",
-		 gimple_tm_atomic_subcode (gs));
+      pp_printf (buffer, "__tm_atomic [SUBCODE=%x,LABEL=", subcode);
       dump_generic_node (buffer, gimple_tm_atomic_label (gs),
 			 spc, flags, false);
       pp_string (buffer, "]");
+      dump_gimple_tm_atomic_subcode (buffer, subcode);
 
       if (!gimple_seq_empty_p (gimple_tm_atomic_body (gs)))
 	{

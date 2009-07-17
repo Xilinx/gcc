@@ -1,3 +1,11 @@
+2009-07-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gimple-pretty-print.c (dump_gimple_tm_atomic_subcode): New.
+	(dump_gimple_tm_atomic): Dump subcodes.
+	* trans-mem.c (is_tm_abort): New.
+	(examine_call_tm): Use is_tm_abort.
+	(expand_call_tm): Set GTMA_HAVE_ABORT.
+
 2009-07-17  Richard Henderson  <rth@redhat.com>
 
 	* Merge from mainline rev 149731.
