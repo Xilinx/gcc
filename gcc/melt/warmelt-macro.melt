@@ -2110,6 +2110,12 @@
    (debug_msg fieldsloc "mexp.defclass scanned fieldsloc")
    (debug_msg docstr "mexp.defclass scanned docstr")
    (assert_msg "check symb" (is_a symb class_symbol))
+   (and (null predef)
+	(null superclass)
+	(warning_strv loc 
+		      "DEFCLASS of a non-predefined class without superclass"
+		      (unsafe_get_field :named_name symb))
+	)
    (let ( 
 	 (ancestors (if (is_object superclass)
 			(let ( (superancestors (unsafe_get_field :class_ancestors superclass))
@@ -2480,6 +2486,7 @@
 		    (unsafe_get_field :named_name claname))
 	(return (the_null))
 	))
+      (debug_msg cla "mexpand_instance cla")
       (assert_msg "check cla" (is_a cla class_class))
       (setq curpair (pair_tail curpair))
       (forever insloop
@@ -2490,6 +2497,7 @@
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
 		   (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
+		     (debug_msg flda "mexpand_instance flda")
 		     (if flda 
 			 (list_append fldlist flda)
 		       (error_strv loc "bad field name in INSTANCE"_

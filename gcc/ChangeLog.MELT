@@ -1,5 +1,18 @@
 
 2009-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: the class_gcc_*_pass are all subclasses
+	of class_gcc_pass.
+	* melt/warmelt-macro.melt: issue a warning for DEFCLASS of
+	ordinary classes without superclasses!
+	* melt/ana-simple.melt: adding the makegreen command & passes...
+	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	
+2009-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make.mk: added $(melt_default_modules_list).modlis
 	* Makefile.in: removed $(melt_default_modules_list).modlis
 

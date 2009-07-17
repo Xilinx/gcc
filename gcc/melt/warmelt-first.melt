@@ -405,16 +405,19 @@
 
 (defclass class_gcc_gimple_pass
   :predef CLASS_GCC_GIMPLE_PASS
+  :super class_gcc_pass
   :fields (
 ))
 
 (defclass class_gcc_rtl_pass
   :predef CLASS_GCC_RTL_PASS
+  :super class_gcc_pass
   :fields (
 ))
 
 (defclass class_gcc_simple_ipa_pass
   :predef CLASS_GCC_SIMPLE_IPA_PASS
+  :super class_gcc_pass
   :fields (
 ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

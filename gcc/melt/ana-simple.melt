@@ -23,6 +23,34 @@
 ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; green transformation
+;;; a pass which converts fprintf(stdout, ..) to printf (..)
+
+(defun makegreenpass_gate (pass)
+  (debug_msg pass "makegreenapass_gate pass at start")
+  ;; always return true
+  pass
+)
+
+(defun makegreenpass_exec (pass)
+  (debug_msg pass "makegreenapass_execute pass at start")
+)
+
+(defun makegreen_command (dispatcher arg secarg moduldata)
+  (let ( (greenpass
+	  (instance class_gcc_simple_ipa_pass
+		    :gccpass_gate makegreenpass_gate
+		    :gccpass_exec makegreenpass_exec
+		    :gccpass_properties_required ()
+	      )
+        ) )
+ ;;; register your pass after the "ccp" pass 
+  (install_melt_gcc_pass greenpass "after" "ccp" 0)
+  (debug_msg greenpass "makegreen_command installed greenpass")
+))
+(initial_command_install makegreen_command "makegreen")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; small analysis
 
 (defclass class_smallcfun
