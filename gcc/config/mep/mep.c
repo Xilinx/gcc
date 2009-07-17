@@ -1182,6 +1182,20 @@ mep_vliw_mode_match (rtx tgt)
   return src_vliw == tgt_vliw;
 }
 
+/* Like the above, but also test for near/far mismatches.  */
+
+bool
+mep_vliw_jmp_match (rtx tgt)
+{
+  bool src_vliw = mep_vliw_function_p (cfun->decl);
+  bool tgt_vliw = INTVAL (tgt);
+
+  if (mep_section_tag (DECL_RTL (cfun->decl)) == 'f')
+    return false;
+
+  return src_vliw == tgt_vliw;
+}
+
 bool
 mep_multi_slot (rtx x)
 {
@@ -2894,7 +2908,12 @@ mep_expand_prologue (void)
       }
   
   if (frame_pointer_needed)
-    add_constant (FP_REGNO, SP_REGNO, sp_offset - frame_size, 1);
+    {
+      /* We've already adjusted down by sp_offset.  Total $sp change
+	 is reg_save_size + frame_size.  We want a net change here of
+	 just reg_save_size.  */
+      add_constant (FP_REGNO, SP_REGNO, sp_offset - reg_save_size, 1);
+    }
 
   add_constant (SP_REGNO, SP_REGNO, sp_offset-(reg_save_size+frame_size), 1);
 
