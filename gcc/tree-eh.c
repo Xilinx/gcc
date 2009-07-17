@@ -2148,6 +2148,8 @@ inlinable_call_p (gimple stmt)
     return false;
   if (cfun->after_inlining)
     return false;
+  if (gimple_call_noinline_p (stmt))
+    return false;
   /* Indirect calls can be propagated to direct call
      and inlined.  */
   decl = gimple_call_fndecl (stmt);
@@ -2700,7 +2702,7 @@ stmt_can_throw_internal (gimple stmt)
   if (region_nr < 0)
     return false;
 
-  return can_throw_internal_1 (region_nr, is_resx);
+  return can_throw_internal_1 (region_nr, is_resx, inlinable_call);
 }
 
 

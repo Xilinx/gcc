@@ -107,6 +107,7 @@ enum gf_mask {
     GF_CALL_VA_ARG_PACK		= 1 << 4,
     GF_CALL_IN_TM_ATOMIC	= 1 << 5,
     GF_CALL_NOTHROW		= 1 << 6,
+    GF_CALL_NOINLINE		= 1 << 7,
     GF_OMP_PARALLEL_COMBINED	= 1 << 0,
 
     /* True on an GIMPLE_OMP_RETURN statement if the return does not require
@@ -2219,6 +2220,22 @@ gimple_call_set_nothrow_p (gimple s)
 {
   GIMPLE_CHECK (s, GIMPLE_CALL);
   s->gsbase.subcode |= GF_CALL_NOTHROW;
+}
+
+/* Return true if S is a noinline call.  */
+
+static inline bool
+gimple_call_noinline_p (gimple s)
+{
+  GIMPLE_CHECK (s, GIMPLE_CALL);
+  return (s->gsbase.subcode & GF_CALL_NOINLINE) != 0;
+}
+
+static inline void
+gimple_call_set_noinline_p (gimple s)
+{
+  GIMPLE_CHECK (s, GIMPLE_CALL);
+  s->gsbase.subcode |= GF_CALL_NOINLINE;
 }
 
 /* Copy all the GF_CALL_* flags from ORIG_CALL to DEST_CALL.  */

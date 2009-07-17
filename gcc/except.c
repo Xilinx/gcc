@@ -3361,7 +3361,7 @@ reachable_handlers (rtx insn)
    within the function.  */
 
 bool
-can_throw_internal_1 (int region_number, bool is_resx)
+can_throw_internal_1 (int region_number, bool is_resx, bool inlinable_call)
 {
   struct eh_region_d *region;
   tree type_thrown;
@@ -3385,7 +3385,8 @@ can_throw_internal_1 (int region_number, bool is_resx)
   for (; region; region = region->outer)
     {
       enum reachable_code how
-	= reachable_next_level (region, type_thrown, 0, is_resx);
+	= reachable_next_level (region, type_thrown, 0,
+				is_resx || inlinable_call);
       if (how == RNL_BLOCKED)
 	return false;
       if (how != RNL_NOT_CAUGHT)
@@ -3407,7 +3408,7 @@ can_throw_internal (const_rtx insn)
   if (JUMP_P (insn)
       && GET_CODE (PATTERN (insn)) == RESX
       && XINT (PATTERN (insn), 0) > 0)
-    return can_throw_internal_1 (XINT (PATTERN (insn), 0), true);
+    return can_throw_internal_1 (XINT (PATTERN (insn), 0), true, false);
 
   if (NONJUMP_INSN_P (insn)
       && GET_CODE (PATTERN (insn)) == SEQUENCE)
@@ -3435,7 +3436,7 @@ can_throw_internal (const_rtx insn)
 	}
     }
 
-  return can_throw_internal_1 (region_number, false);
+  return can_throw_internal_1 (region_number, false, false);
 }
 
 /* Determine if the given INSN can throw an exception that is

@@ -1,3 +1,13 @@
+2009-07-16  Richard Henderson  <rth@redhat.com>
+
+	* except.c, except.h, tree-eh.c: Revert can_throw_internal_1
+	change from 2009-07-10.
+
+	* gimple.h (GF_CALL_NOINLINE): New.
+	(gimple_call_noinline_p, gimple_call_set_noinline_p): New.
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Set noinline on call.
+	* tree-eh.c (inlinable_call_p): Test noinline on call.
+
 2009-07-16  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gimple-pretty-print.c:
