@@ -1,3 +1,10 @@
+2009-07-17 Konrad Trifunovic <konrad.trifunovic@gmail.com>
+
+	* graphite-dependences.c (build_lexicographically_gt_constraint):
+        Replace RES parameter with *RES.
+        (dependence_polyhedron_1): Pass an address of the parameter RES
+        instead of value of RES.
+
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (graphite_finalize): Fix comment.

@@ -325,14 +325,14 @@ lexicographically_gt_p (ppl_Pointset_Powerset_C_Polyhedron_t res,
    of time vectors RES following the lexicographical order.  */
 
 static void
-build_lexicographically_gt_constraint (ppl_Pointset_Powerset_C_Polyhedron_t res,
+build_lexicographically_gt_constraint (ppl_Pointset_Powerset_C_Polyhedron_t *res,
 				       graphite_dim_t dim,
 				       graphite_dim_t tdim1, graphite_dim_t offset,
 				       bool direction)
 {
   graphite_dim_t i;
 
-  if (lexicographically_gt_p (res, dim, offset, direction, 0))
+  if (lexicographically_gt_p (*res, dim, offset, direction, 0))
     return;
 
   for (i = 0; i < tdim1 - 1; i++)
@@ -340,17 +340,17 @@ build_lexicographically_gt_constraint (ppl_Pointset_Powerset_C_Polyhedron_t res,
       ppl_Pointset_Powerset_C_Polyhedron_t sceq;
 
       sceq = build_pairwise_scheduling_equality (dim, i, offset);
-      ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, sceq);
+      ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (*res, sceq);
       ppl_delete_Pointset_Powerset_C_Polyhedron (sceq);
 
-      if (lexicographically_gt_p (res, dim, offset, direction, i + 1))
+      if (lexicographically_gt_p (*res, dim, offset, direction, i + 1))
 	return;
     }
 
   if (i == tdim1 - 1)
     {
-      ppl_delete_Pointset_Powerset_C_Polyhedron (res);
-      ppl_new_Pointset_Powerset_C_Polyhedron_from_space_dimension (&res, dim, 1);
+      ppl_delete_Pointset_Powerset_C_Polyhedron (*res);
+      ppl_new_Pointset_Powerset_C_Polyhedron_from_space_dimension (res, dim, 1);
     }
 }
 
@@ -417,7 +417,7 @@ dependence_polyhedron_1 (poly_bb_p pbb1, poly_bb_p pbb2,
   ppl_delete_Pointset_Powerset_C_Polyhedron (dreq);
 
   if (!ppl_Pointset_Powerset_C_Polyhedron_is_empty (res))
-    build_lexicographically_gt_constraint (res, dim, MIN (tdim1, tdim2),
+    build_lexicographically_gt_constraint (&res, dim, MIN (tdim1, tdim2),
 					   tdim1 + ddim1, direction);
   return res;
 }
