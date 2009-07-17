@@ -1170,6 +1170,14 @@ not provide them.
 On MIPS targets, make @option{-mno-llsc} the default when no
 @option{-mllsc} option is passed.
 
+@item --with-synci
+On MIPS targets, make @option{-msynci} the default when no
+@option{-mno-synci} option is passed.
+
+@item --without-synci 
+On MIPS targets, make @option{-mno-synci} the default when no
+@option{-msynci} option is passed.  This is the default.
+
 @item --with-mips-plt
 On MIPS targets, make use of copy relocations and PLTs.
 These features are extensions to the traditional
@@ -2785,6 +2793,8 @@ information are.
 @item
 @uref{#m68k-uclinux,,m68k-uclinux}
 @item
+@uref{#mep-x-elf,,mep-*-elf}
+@item
 @uref{#mips-x-x,,mips-*-*}
 @item
 @uref{#mips-sgi-irix5,,mips-sgi-irix5}
@@ -3623,6 +3633,14 @@ It also added improved support for C++ and flat shared libraries,
 both of which were ABI changes.  However, you can still use the
 original ABI by configuring for @samp{m68k-uclinuxoldabi} or
 @samp{m68k-@var{vendor}-uclinuxoldabi}.
+
+
+@html
+<hr />
+@end html
+@heading @anchor{mep-x-elf}mep-*-elf
+Toshiba Media embedded Processor.
+This configuration is intended for embedded systems.
 
 @html
 <hr />

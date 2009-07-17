@@ -674,7 +674,7 @@ gfc_match_sym_tree (gfc_symtree **matched_symbol, int host_assoc)
     return (gfc_get_ha_sym_tree (buffer, matched_symbol))
 	    ? MATCH_ERROR : MATCH_YES;
 
-  if (gfc_get_sym_tree (buffer, NULL, matched_symbol))
+  if (gfc_get_sym_tree (buffer, NULL, matched_symbol, false))
     return MATCH_ERROR;
 
   return MATCH_YES;
@@ -1337,7 +1337,7 @@ gfc_match_pointer_assignment (void)
     }
 
   if (lvalue->symtree->n.sym->attr.proc_pointer
-      || is_proc_ptr_comp (lvalue, NULL))
+      || gfc_is_proc_ptr_comp (lvalue, NULL))
     gfc_matching_procptr_assignment = 1;
 
   m = gfc_match (" %e%t", &rvalue);
@@ -2711,7 +2711,7 @@ gfc_match_call (void)
 	{
 	  /* ...create a symbol in this scope...  */
 	  if (sym->ns != gfc_current_ns
-	        && gfc_get_sym_tree (name, NULL, &st) == 1)
+	        && gfc_get_sym_tree (name, NULL, &st, false) == 1)
             return MATCH_ERROR;
 
 	  if (sym != st->n.sym)

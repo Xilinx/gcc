@@ -734,6 +734,15 @@ proc check_effective_target_mips16_attribute { } {
     } [add_options_for_mips16_attribute ""]]
 }
 
+# Return 1 if the target supports long double larger than double when
+# using the new ABI, 0 otherwise.
+
+proc check_effective_target_mips_newabi_large_long_double { } {
+    return [check_no_compiler_messages mips_newabi_large_long_double object {
+	int dummy[sizeof(long double) > sizeof(double) ? 1 : -1];
+    } "-mabi=64"]
+}
+
 # Return 1 if the current multilib does not generate PIC by default.
 
 proc check_effective_target_nonpic { } {
@@ -2985,6 +2994,19 @@ proc check_effective_target_mpc { } {
 	int main ()
 	{
 	  if (__builtin_csin(0) != 0)
+	    link_error();
+	}
+    }]
+}
+
+# Return 1 if the MPC library with mpc_pow is integrated with GCC, 0 otherwise.
+
+proc check_effective_target_mpc_pow { } {
+    return [check_no_compiler_messages mpc executable {
+	extern void link_error(void);
+	int main ()
+	{
+	  if (__builtin_cpow(1,1) != 1)
 	    link_error();
 	}
     }]

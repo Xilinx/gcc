@@ -1036,7 +1036,7 @@ build_ref_for_offset_1 (tree *res, tree type, HOST_WIDE_INT offset,
       HOST_WIDE_INT el_size;
 
       if (offset == 0 && exp_type
-	  && useless_type_conversion_p (exp_type, type))
+	  && types_compatible_p (exp_type, type))
 	return true;
 
       switch (TREE_CODE (type))
@@ -1123,11 +1123,13 @@ static bool
 build_ref_for_offset (tree *expr, tree type, HOST_WIDE_INT offset,
 		      tree exp_type, bool allow_ptr)
 {
+  location_t loc = expr ? EXPR_LOCATION (*expr) : UNKNOWN_LOCATION;
+
   if (allow_ptr && POINTER_TYPE_P (type))
     {
       type = TREE_TYPE (type);
       if (expr)
-	*expr = fold_build1 (INDIRECT_REF, type, *expr);
+	*expr = fold_build1_loc (loc, INDIRECT_REF, type, *expr);
     }
 
   return build_ref_for_offset_1 (expr, type, offset, exp_type);
@@ -1760,7 +1762,6 @@ generate_subtree_copies (struct access *access, tree agg,
 						 insert_after ? GSI_NEW_STMT
 						 : GSI_SAME_STMT);
 	      stmt = gimple_build_assign (expr, repl);
-	      sra_stats.subtree_copies++;
 	    }
 
 	  if (insert_after)
@@ -1768,6 +1769,7 @@ generate_subtree_copies (struct access *access, tree agg,
 	  else
 	    gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 	  update_stmt (stmt);
+	  sra_stats.subtree_copies++;
 	}
 
       if (access->first_child)
@@ -1908,7 +1910,8 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	  && host_integerp (TREE_OPERAND (bfr, 2), 1))
 	{
 	  chunk_size = tree_low_cst (TREE_OPERAND (bfr, 1), 1);
-	  start_offset = tree_low_cst (TREE_OPERAND (bfr, 2), 1);
+	  start_offset = access->offset
+	    + tree_low_cst (TREE_OPERAND (bfr, 2), 1);
 	}
       else
 	start_offset = chunk_size = 0;
@@ -1967,6 +1970,7 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 				 enum unscalarized_data_handling *refreshed,
 				 tree lhs)
 {
+  location_t loc = EXPR_LOCATION (lacc->expr);
   do
     {
       if (lacc->grp_to_be_replaced)
@@ -1981,7 +1985,7 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 	    {
 	      rhs = get_access_replacement (racc);
 	      if (!useless_type_conversion_p (lacc->type, racc->type))
-		rhs = fold_build1 (VIEW_CONVERT_EXPR, lacc->type, rhs);
+		rhs = fold_build1_loc (loc, VIEW_CONVERT_EXPR, lacc->type, rhs);
 	    }
 	  else
 	    {
@@ -2079,6 +2083,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
   tree lhs, rhs;
   bool modify_this_stmt = false;
   bool force_gimple_rhs = false;
+  location_t loc = gimple_location (*stmt);
 
   if (!gimple_assign_single_p (*stmt))
     return SRA_SA_NONE;
@@ -2151,7 +2156,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
 	    }
 	  if (!useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
 	    {
-	      rhs = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (lhs), rhs);
+	      rhs = fold_build1_loc (loc, VIEW_CONVERT_EXPR, TREE_TYPE (lhs), rhs);
 	      if (!is_gimple_reg (lhs))
 		force_gimple_rhs = true;
 	    }

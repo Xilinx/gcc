@@ -270,6 +270,7 @@ static struct haifa_sched_info sms_sched_info =
   NULL,
   sms_print_insn,
   NULL,
+  NULL, /* insn_finishes_block_p */
   NULL, NULL,
   NULL, NULL,
   0, 0,
@@ -1156,12 +1157,14 @@ sms_schedule (void)
 
       ps = sms_schedule_by_order (g, mii, maxii, node_order);
 
-      if (ps)
+      if (ps){
 	stage_count = PS_STAGE_COUNT (ps);
+        gcc_assert(stage_count >= 1);
+      }  
 
       /* Stage count of 1 means that there is no interleaving between
          iterations, let the scheduling passes do the job.  */
-      if (stage_count < 1
+      if (stage_count <= 1
 	  || (count_init && (loop_count <= stage_count))
 	  || (flag_branch_probabilities && (trip_count <= stage_count)))
 	{

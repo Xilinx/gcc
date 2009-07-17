@@ -1,3 +1,240 @@
+2009-07-17  Aldy Hernandez  <aldyh@redhat.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40435 
+	* trans-expr.c, trans-array.c, trans-openmp.c, trans-stmt.c,
+	trans.c, trans-io.c, trans-decl.c, trans-intrinsic.c: Add location
+	argument to fold_{unary,binary,ternary}, fold_build[123],
+	build_call_expr, build_size_arg, build_fold_addr_expr,
+	build_call_array, non_lvalue, size_diffop,
+	fold_build1_initializer, fold_build2_initializer,
+	fold_build3_initializer, fold_build_call_array,
+	fold_build_call_array_initializer, fold_single_bit_test,
+	omit_one_operand, omit_two_operands, invert_truthvalue,
+	fold_truth_not_expr, build_fold_indirect_ref, fold_indirect_ref,
+	combine_comparisons, fold_builtin_*, fold_call_expr,
+	build_range_check, maybe_fold_offset_to_address, round_up,
+	round_down.
+
+2009-07-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40743
+	* resolve.c (resolve_symbol): Don't resolve the formal namespace of a
+	contained procedure.
+
+2009-07-14  Taras Glek  <tglek@mozilla.com>
+	    Rafael Espindola  <espindola@google.com>
+
+	* Make-lang.in (fortran.install-plugin): New target for
+	installing plugin headers.
+
+2009-07-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* module.c (mio_symbol): Remove the unused variable, formal.
+
+2009-07-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40646
+	* module.c (mio_symbol): If the symbol has formal arguments,
+	the formal namespace will be present.
+	* resolve.c (resolve_actual_arglist): Correctly handle 'called'
+	procedure pointer components as actual arguments.
+	(resolve_fl_derived,resolve_symbol): Make sure the formal namespace
+	is present.
+	* trans-expr.c (gfc_conv_procedure_call): Correctly handle the formal
+	arguments of procedure pointer components.
+
+2009-07-12  Tobias Burnus  <burnus@net-b.de>
+	    Philippe Marguinaud <philippe.marguinaud@meteo.fr>
+
+	PR fortran/40588
+	* primary.c (match_charkind_name): Fix condition for $ matching.
+
+	PR libfortran/22423
+	* libgfortran.h: Typedef the GFC_DTYPE_* enum.
+
+2009-07-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/33197
+	* check.c (gfc_check_fn_rc2008): New function.
+	* intrinsic.h (gfc_check_fn_rc2008): New prototype.
+	* intrinsic.c (add_functions): Add complex tan, cosh, sinh,
+	and tanh.
+
+2009-07-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/39334
+	* primary.c (match_kind_param): Return MATCH_NO if the symbol
+	has no value.
+
+2008-07-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40629
+	* resolve.c (check_host_association):  Use the existing
+	accessible symtree and treat function expressions with
+	symbols that have procedure flavor.
+
+2009-07-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40646
+	* dump-parse-tree.c (show_expr): Renamed 'is_proc_ptr_comp'.
+	* expr.c (is_proc_ptr_comp): Renamed to 'gfc_is_proc_ptr_comp'.
+	(gfc_check_pointer_assign): Renamed 'is_proc_ptr_comp'.
+	(replace_comp,gfc_expr_replace_comp): New functions, analogous
+	to 'replace_symbol' and 'gfc_expr_replace_symbol', just with components
+	instead of symbols.
+	* gfortran.h (gfc_expr_replace_comp): New prototype.
+	(is_proc_ptr_comp): Renamed to 'gfc_is_proc_ptr_comp'.
+	* interface.c (compare_actual_formal): Renamed 'is_proc_ptr_comp'.
+	* match.c (gfc_match_pointer_assignment): Ditto.
+	* primary.c (gfc_match_varspec): Handle array-valued procedure pointers
+	and procedure pointer components. Renamed 'is_proc_ptr_comp'.
+	* resolve.c (resolve_fl_derived): Correctly handle interfaces with
+	RESULT statement, and handle array-valued procedure pointer components.
+	(resolve_actual_arglist,resolve_ppc_call,resolve_expr_ppc): Renamed
+	'is_proc_ptr_comp'.
+	* trans-array.c (gfc_walk_function_expr): Ditto.
+	* trans-decl.c (gfc_get_symbol_decl): Security check for presence of
+	ns->proc_name.
+	* trans-expr.c (gfc_conv_procedure_call): Handle array-valued procedure
+	pointer components. Renamed 'is_proc_ptr_comp'.
+	(conv_function_val,gfc_trans_arrayfunc_assign): Renamed
+	'is_proc_ptr_comp'.
+	(gfc_get_proc_ptr_comp): Do not modify the argument 'e', but instead
+	make a copy of it.
+	* trans-io.c (gfc_trans_transfer): Handle array-valued procedure
+	pointer components.
+
+2009-07-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40604
+	* intrinsic.c (gfc_convert_type_warn): Set sym->result.
+	* trans-expr.c (gfc_conv_procedure_call): Fix -fcheck=pointer
+	for optional arguments.
+
+2009-07-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40675
+	* simplify.c (gfc_simplify_sign): Handle signed zero correctly.
+	* trans-intrinsic.c (gfc_conv_intrinsic_sign): Support
+	-fno-sign-zero.
+	* invoke.texi (-fno-sign-zero): Add text regarding SIGN intrinsic.
+
+2008-07-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40591
+	* decl.c (match_procedure_interface):  Correct the association
+	or creation of the interface procedure's symbol.
+
+2009-07-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-intrinsic.c (gfc_conv_intrinsic_minmaxloc): For integer
+	maxloc initialize limit to -huge-1 rather than just -huge.
+
+2009-07-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40593
+	* interface.c (compare_actual_formal): Take care of proc-pointer-valued
+	functions as actual arguments.
+	* trans-expr.c (gfc_conv_procedure_call): Ditto.
+	* resolve.c (resolve_specific_f0): Use the correct ts.
+
+2009-07-02  Michael Matz  <matz@suse.de>
+
+	PR fortran/32131
+	* trans-array.c (gfc_conv_descriptor_stride_get): Return
+	constant one for strides in the first dimension of ALLOCATABLE
+	arrays.
+
+2009-06-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40594
+	* trans-types.c (gfc_get_derived_type): Bugfix, reverting one hunk from
+	r147206.
+
+2009-06-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40580
+	* trans-expr.c  (gfc_conv_procedure_call): Add -fcheck=pointer check.
+	* libgfortran.h: Add GFC_RTCHECK_POINTER.
+	* invoke.texi (-fcheck): Document new pointer option.
+	* options.c (gfc_handle_runtime_check_option): Handle pointer option.
+
+	* gfortran.texi (C Binding): Improve wording.
+	* iso-c-binding.def: Remove obsolete comment.
+
+2009-06-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40551
+	* dependency.h : Add second bool* argument to prototype of
+	gfc_full_array_ref_p.
+	* dependency.c (gfc_full_array_ref_p): If second argument is
+	present, return true if last dimension of reference is an
+	element or has unity stride.
+	* trans-array.c : Add NULL second argument to references to
+	gfc_full_array_ref_p.
+	* trans-expr.c : The same, except for;
+	(gfc_trans_arrayfunc_assign): Return fail if lhs reference
+	is not a full array or a contiguous section.
+
+2009-06-28  Tobias Burnus  <burnus@net-b.de>
+	    Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/34112
+	* symbol.c (gfc_add_ext_attribute): New function.
+	(gfc_get_sym_tree): New argument allow_subroutine.
+	(gfc_get_symbol,gfc_get_ha_sym_tree,gen_cptr_param,gen_fptr_param
+	gen_shape_param,generate_isocbinding_symbol): Use it.
+	* decl.c (find_special): New argument allow_subroutine.
+	(add_init_expr_to_sym,add_hidden_procptr_result,attr_decl1,
+	match_procedure_in_type,gfc_match_final_decl): Use it.
+	(gfc_match_gcc_attributes): New function.
+	* gfortran.texi (Mixed-Language Programming): New section
+	"GNU Fortran Compiler Directives".
+	* gfortran.h (ext_attr_t): New struct.
+	(symbol_attributes): Use it.
+	(gfc_add_ext_attribute): New prototype.
+	(gfc_get_sym_tree): Update pototype.
+	* expr.c (gfc_check_pointer_assign): Check whether call
+	convention is the same.
+	* module.c (import_iso_c_binding_module, create_int_parameter,
+	use_iso_fortran_env_module): Update gfc_get_sym_tree call.
+	* scanner.c (skip_gcc_attribute): New function.
+	(skip_free_comments,skip_fixed_comments): Use it.
+	(gfc_next_char_literal): Support !GCC$ lines.
+	* resolve.c (check_host_association): Update
+	gfc_get_sym_tree call.
+	* match.c (gfc_match_sym_tree,gfc_match_call): Update
+	gfc_get_sym_tree call.
+	* trans-decl.c (add_attributes_to_decl): New function.
+	(gfc_get_symbol_decl,get_proc_pointer_decl,
+	gfc_get_extern_function_decl,build_function_decl: Use it.
+	* match.h (gfc_match_gcc_attributes): Add prototype.
+	* parse.c (decode_gcc_attribute): New function.
+	(next_free,next_fixed): Support !GCC$ lines.
+	* primary.c (match_actual_arg,check_for_implicit_index,
+	gfc_match_rvalue,gfc_match_rvalue): Update
+	gfc_get_sym_tree call.
+
+2009-06-28  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gfortran.h: Define HAVE_mpc_pow.
+	* arith.c (complex_reciprocal, complex_pow): If HAVE_mpc_pow,
+	don't define these functions.
+	(arith_power): If HAVE_mpc_pow, use mpc_pow.
+
+2009-06-26  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39997
+	PR fortran/40541
+	* decl.c (add_hidden_procptr_result): Copy the typespec to the hidden
+	result.
+	* expr.c (gfc_check_pointer_assign): Enable interface check for
+	procedure pointer assignments where the rhs is a function returning a
+	procedure pointer.
+	* resolve.c (resolve_symbol): If an external procedure with unspecified
+	return type can not be implicitly typed, it must be a subroutine.
+
 2009-06-24  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/40427

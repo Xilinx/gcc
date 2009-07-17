@@ -4068,7 +4068,6 @@ spu_gimplify_va_arg_expr (tree valist, tree type, gimple_seq * pre_p,
     build3 (COMPONENT_REF, TREE_TYPE (f_skip), valist, f_skip, NULL_TREE);
 
   addr = create_tmp_var (ptr_type_node, "va_arg");
-  DECL_POINTER_ALIAS_SET (addr) = get_varargs_alias_set ();
 
   /* if an object is dynamically sized, a pointer to it is passed
      instead of the object itself. */
@@ -4098,7 +4097,8 @@ spu_gimplify_va_arg_expr (tree valist, tree type, gimple_seq * pre_p,
   tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node, addr, paddedsize);
   gimplify_assign (unshare_expr (args), tmp, pre_p);
 
-  addr = fold_convert (build_pointer_type (type), addr);
+  addr = fold_convert (build_pointer_type_for_mode (type, ptr_mode, true),
+		       addr);
 
   if (pass_by_reference_p)
     addr = build_va_arg_indirect_ref (addr);
@@ -4944,8 +4944,7 @@ array_to_constant (enum machine_mode mode, unsigned char arr[16])
 static void
 reloc_diagnostic (rtx x)
 {
-  tree loc_decl, decl = 0;
-  const char *msg;
+  tree decl = 0;
   if (!flag_pic || !(TARGET_WARN_RELOC || TARGET_ERROR_RELOC))
     return;
 
@@ -4959,24 +4958,32 @@ reloc_diagnostic (rtx x)
   if (decl && !DECL_P (decl))
     decl = 0;
 
-  /* We use last_assemble_variable_decl to get line information.  It's
-     not always going to be right and might not even be close, but will
-     be right for the more common cases. */
-  if (!last_assemble_variable_decl || in_section == ctors_section)
-    loc_decl = decl;
-  else
-    loc_decl = last_assemble_variable_decl;
-
   /* The decl could be a string constant.  */
   if (decl && DECL_P (decl))
-    msg = "%Jcreating run-time relocation for %qD";
-  else
-    msg = "creating run-time relocation";
+    {
+      location_t loc;
+      /* We use last_assemble_variable_decl to get line information.  It's
+	 not always going to be right and might not even be close, but will
+	 be right for the more common cases. */
+      if (!last_assemble_variable_decl || in_section == ctors_section)
+	loc = DECL_SOURCE_LOCATION (decl);
+      else
+	loc = DECL_SOURCE_LOCATION (last_assemble_variable_decl);
 
-  if (TARGET_WARN_RELOC)
-    warning (0, msg, loc_decl, decl);
-  else
-    error (msg, loc_decl, decl);
+      if (TARGET_WARN_RELOC)
+	warning_at (loc, 0,
+		    "creating run-time relocation for %qD", decl);
+      else
+	error_at (loc,
+		  "creating run-time relocation for %qD", decl);
+    }
+  else 
+    {
+      if (TARGET_WARN_RELOC)
+	warning_at (input_location, 0, "creating run-time relocation");
+      else
+	error_at (input_location, "creating run-time relocation");
+    }
 }
 
 /* Hook into assemble_integer so we can generate an error for run-time

@@ -787,7 +787,8 @@ enum mips_code_readable_setting {
   {"float", "%{!msoft-float:%{!mhard-float:-m%(VALUE)-float}}" }, \
   {"divide", "%{!mdivide-traps:%{!mdivide-breaks:-mdivide-%(VALUE)}}" }, \
   {"llsc", "%{!mllsc:%{!mno-llsc:-m%(VALUE)}}" }, \
-  {"mips-plt", "%{!mplt:%{!mno-plt:-m%(VALUE)}}" }
+  {"mips-plt", "%{!mplt:%{!mno-plt:-m%(VALUE)}}" }, \
+  {"synci", "%{!msynci:%{!mno-synci:-m%(VALUE)}}" }
 
 
 /* A spec that infers the -mdsp setting from an -march argument.  */
@@ -1766,8 +1767,6 @@ enum mips_code_readable_setting {
    pointer.  */
 #define HARD_FRAME_POINTER_REGNUM \
   (TARGET_MIPS16 ? GP_REG_FIRST + 17 : GP_REG_FIRST + 30)
-
-#define FRAME_POINTER_REQUIRED (mips_frame_pointer_required ())
 
 /* Register in which static-chain is passed to a function.  */
 #define STATIC_CHAIN_REGNUM (GP_REG_FIRST + 15)

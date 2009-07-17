@@ -57,6 +57,9 @@ match_kind_param (int *kind)
   if (sym->attr.flavor != FL_PARAMETER)
     return MATCH_NO;
 
+  if (sym->value == NULL)
+    return MATCH_NO;
+
   p = gfc_extract_int (sym->value, kind);
   if (p != NULL)
     return MATCH_NO;
@@ -829,7 +832,7 @@ match_charkind_name (char *name)
 
       if (!ISALNUM (c)
 	  && c != '_'
-	  && (gfc_option.flag_dollar_ok && c != '$'))
+	  && (c != '$' || !gfc_option.flag_dollar_ok))
 	break;
 
       *name++ = c;
@@ -1388,7 +1391,7 @@ match_actual_arg (gfc_expr **result)
 	 have a function argument.  */
       if (symtree == NULL)
 	{
-	  gfc_get_sym_tree (name, NULL, &symtree);
+	  gfc_get_sym_tree (name, NULL, &symtree, false);
 	  gfc_set_sym_referenced (symtree->n.sym);
 	}
       else
@@ -1727,7 +1730,10 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 
   gfc_gobble_whitespace ();
   if ((equiv_flag && gfc_peek_ascii_char () == '(')
-      || (sym->attr.dimension && !sym->attr.proc_pointer))
+      || (sym->attr.dimension && !sym->attr.proc_pointer
+	  && !gfc_is_proc_ptr_comp (primary, NULL)
+	  && !(gfc_matching_procptr_assignment
+	       && sym->attr.flavor == FL_PROCEDURE)))
     {
       /* In EQUIVALENCE, we don't know yet whether we are seeing
 	 an array, character variable or array of character
@@ -2365,7 +2371,7 @@ check_for_implicit_index (gfc_symtree **st, gfc_symbol **sym)
       && !(*sym)->attr.use_assoc)
     {
       int i;
-      i = gfc_get_sym_tree ((*sym)->name, NULL, st);
+      i = gfc_get_sym_tree ((*sym)->name, NULL, st, false);
       if (i)
 	return MATCH_ERROR;
       *sym = (*st)->n.sym;
@@ -2423,7 +2429,7 @@ gfc_match_rvalue (gfc_expr **result)
 
   if (gfc_find_state (COMP_INTERFACE) == SUCCESS
       && !gfc_current_ns->has_import_set)
-    i = gfc_get_sym_tree (name, NULL, &symtree);
+    i = gfc_get_sym_tree (name, NULL, &symtree, false);
   else
     i = gfc_get_ha_sym_tree (name, &symtree);
 
@@ -2782,7 +2788,7 @@ gfc_match_rvalue (gfc_expr **result)
 
       /* Give up, assume we have a function.  */
 
-      gfc_get_sym_tree (name, NULL, &symtree);	/* Can't fail */
+      gfc_get_sym_tree (name, NULL, &symtree, false);	/* Can't fail */
       sym = symtree->n.sym;
       e->expr_type = EXPR_FUNCTION;
 
@@ -2815,7 +2821,7 @@ gfc_match_rvalue (gfc_expr **result)
       break;
 
     generic_function:
-      gfc_get_sym_tree (name, NULL, &symtree);	/* Can't fail */
+      gfc_get_sym_tree (name, NULL, &symtree, false);	/* Can't fail */
 
       e = gfc_get_expr ();
       e->symtree = symtree;

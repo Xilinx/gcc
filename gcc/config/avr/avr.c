@@ -89,6 +89,7 @@ static struct machine_function * avr_init_machine_status (void);
 static rtx avr_builtin_setjmp_frame_value (void);
 static bool avr_hard_regno_scratch_ok (unsigned int);
 static unsigned int avr_case_values_threshold (void);
+static bool avr_frame_pointer_required_p (void);
 
 /* Allocate registers from r25 to r8 for parameters for function calls.  */
 #define FIRST_CUM_REG 26
@@ -106,7 +107,7 @@ static const char *const avr_regnames[] = REGISTER_NAMES;
 static int last_insn_address = 0;
 
 /* Preprocessor macros to define depending on MCU type.  */
-const char *avr_extra_arch_macro;
+static const char *avr_extra_arch_macro;
 
 /* Current architecture.  */
 const struct base_arch_s *avr_current_arch;
@@ -188,6 +189,9 @@ static const struct attribute_spec avr_attribute_table[] =
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P avr_legitimate_address_p
 
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED avr_frame_pointer_required_p
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 void
@@ -216,6 +220,53 @@ avr_override_options (void)
   zero_reg_rtx = gen_rtx_REG (QImode, ZERO_REGNO);
 
   init_machine_status = avr_init_machine_status;
+}
+
+/* Worker function for TARGET_CPU_CPP_BUILTINS.  */
+
+void
+avr_cpu_cpp_builtins (struct cpp_reader *pfile)
+{
+  builtin_define_std ("AVR");
+
+  if (avr_current_arch->macro)
+    cpp_define (pfile, avr_current_arch->macro);
+  if (avr_extra_arch_macro)
+    cpp_define (pfile, avr_extra_arch_macro);
+  if (avr_current_arch->have_elpm)
+    cpp_define (pfile, "__AVR_HAVE_RAMPZ__");
+  if (avr_current_arch->have_elpm)
+    cpp_define (pfile, "__AVR_HAVE_ELPM__");
+  if (avr_current_arch->have_elpmx)
+    cpp_define (pfile, "__AVR_HAVE_ELPMX__");
+  if (avr_current_arch->have_movw_lpmx)
+    {
+      cpp_define (pfile, "__AVR_HAVE_MOVW__");
+      cpp_define (pfile, "__AVR_HAVE_LPMX__");
+    }
+  if (avr_current_arch->asm_only)
+    cpp_define (pfile, "__AVR_ASM_ONLY__");
+  if (avr_current_arch->have_mul)
+    {
+      cpp_define (pfile, "__AVR_ENHANCED__");
+      cpp_define (pfile, "__AVR_HAVE_MUL__");
+    }
+  if (avr_current_arch->have_jmp_call)
+    {
+      cpp_define (pfile, "__AVR_MEGA__");
+      cpp_define (pfile, "__AVR_HAVE_JMP_CALL__");
+    }
+  if (avr_current_arch->have_eijmp_eicall)
+    {
+      cpp_define (pfile, "__AVR_HAVE_EIJMP_EICALL__");
+      cpp_define (pfile, "__AVR_3_BYTE_PC__");
+    }
+  else
+    {
+      cpp_define (pfile, "__AVR_2_BYTE_PC__");
+    }
+  if (TARGET_NO_INTERRUPTS)
+    cpp_define (pfile, "__NO_INTERRUPTS__");
 }
 
 /*  return register class from register number.  */

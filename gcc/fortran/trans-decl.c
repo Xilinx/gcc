@@ -408,7 +408,8 @@ gfc_finish_cray_pointee (tree decl, gfc_symbol *sym)
 
   /* Parameters need to be dereferenced.  */
   if (sym->cp_pointer->attr.dummy) 
-    ptr_decl = build_fold_indirect_ref (ptr_decl);
+    ptr_decl = build_fold_indirect_ref_loc (input_location,
+					ptr_decl);
 
   /* Check to see if we're dealing with a variable-sized array.  */
   if (sym->attr.dimension
@@ -422,7 +423,8 @@ gfc_finish_cray_pointee (tree decl, gfc_symbol *sym)
     {
       ptr_decl = convert (build_pointer_type (TREE_TYPE (decl)),
 			  ptr_decl);
-      value = build_fold_indirect_ref (ptr_decl);
+      value = build_fold_indirect_ref_loc (input_location,
+				       ptr_decl);
     }
 
   SET_DECL_VALUE_EXPR (decl, value);
@@ -980,6 +982,26 @@ gfc_add_assign_aux_vars (gfc_symbol * sym)
   GFC_DECL_ASSIGN_ADDR (decl) = addr;
 }
 
+
+static tree
+add_attributes_to_decl (symbol_attribute sym_attr, tree list)
+{
+  unsigned id;
+  tree attr;
+
+  for (id = 0; id < EXT_ATTR_NUM; id++)
+    if (sym_attr.ext_attr & (1 << id))
+      {
+	attr = build_tree_list (
+		 get_identifier (ext_attr_list[id].middle_end_name),
+				 NULL_TREE);
+	list = chainon (list, attr);
+      }
+
+  return list;
+}
+
+
 /* Return the decl for a gfc_symbol, create it if it doesn't already
    exist.  */
 
@@ -988,13 +1010,14 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 {
   tree decl;
   tree length = NULL_TREE;
+  tree attributes;
   int byref;
 
   gcc_assert (sym->attr.referenced
 		|| sym->attr.use_assoc
 		|| sym->ns->proc_name->attr.if_source == IFSRC_IFBODY);
 
-  if (sym->ns && sym->ns->proc_name->attr.function)
+  if (sym->ns && sym->ns->proc_name && sym->ns->proc_name->attr.function)
     byref = gfc_return_by_reference (sym->ns->proc_name);
   else
     byref = 0;
@@ -1187,6 +1210,10 @@ gfc_get_symbol_decl (gfc_symbol * sym)
       && !sym->attr.proc_pointer)
     DECL_BY_REFERENCE (decl) = 1;
 
+  /* Add attributes to variables.  Functions are handled elsewhere.  */
+  attributes = add_attributes_to_decl (sym->attr, NULL_TREE);
+  decl_attributes (&decl, attributes, 0);
+
   return decl;
 }
 
@@ -1223,6 +1250,7 @@ static tree
 get_proc_pointer_decl (gfc_symbol *sym)
 {
   tree decl;
+  tree attributes;
 
   decl = sym->backend_decl;
   if (decl)
@@ -1266,6 +1294,9 @@ get_proc_pointer_decl (gfc_symbol *sym)
 	  TREE_TYPE (decl), sym->attr.dimension, sym->attr.proc_pointer);
     }
 
+  attributes = add_attributes_to_decl (sym->attr, NULL_TREE);
+  decl_attributes (&decl, attributes, 0);
+
   return decl;
 }
 
@@ -1277,6 +1308,7 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
 {
   tree type;
   tree fndecl;
+  tree attributes;
   gfc_expr e;
   gfc_intrinsic_sym *isym;
   gfc_expr argexpr;
@@ -1439,6 +1471,9 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
   if (DECL_CONTEXT (fndecl) == NULL_TREE)
     pushdecl_top_level (fndecl);
 
+  attributes = add_attributes_to_decl (sym->attr, NULL_TREE);
+  decl_attributes (&fndecl, attributes, 0);
+
   return fndecl;
 }
 
@@ -1450,7 +1485,7 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
 static void
 build_function_decl (gfc_symbol * sym)
 {
-  tree fndecl, type;
+  tree fndecl, type, attributes;
   symbol_attribute attr;
   tree result_decl;
   gfc_formal_arglist *f;
@@ -1556,6 +1591,9 @@ build_function_decl (gfc_symbol * sym)
 	DECL_PURE_P (fndecl) = 1;
       TREE_SIDE_EFFECTS (fndecl) = 0;
     }
+
+  attributes = add_attributes_to_decl (attr, NULL_TREE);
+  decl_attributes (&fndecl, attributes, 0);
 
   /* Layout the function declaration and put it in the binding level
      of the current function.  */
@@ -1955,7 +1993,7 @@ build_entry_thunks (gfc_namespace * ns)
       args = nreverse (args);
       args = chainon (args, nreverse (string_args));
       tmp = ns->proc_name->backend_decl;
-      tmp = build_function_call_expr (tmp, args);
+      tmp = build_function_call_expr (input_location, tmp, args);
       if (ns->proc_name->attr.mixed_entry_master)
 	{
 	  tree union_decl, field;
@@ -3976,7 +4014,8 @@ create_main_function (tree fndecl)
   /* Call _gfortran_set_args (argc, argv).  */
   TREE_USED (argc) = 1;
   TREE_USED (argv) = 1;
-  tmp = build_call_expr (gfor_fndecl_set_args, 2, argc, argv);
+  tmp = build_call_expr_loc (input_location,
+			 gfor_fndecl_set_args, 2, argc, argv);
   gfc_add_expr_to_block (&body, tmp);
 
   /* Add a call to set_options to set up the runtime library Fortran
@@ -4024,7 +4063,8 @@ create_main_function (tree fndecl)
     DECL_INITIAL (var) = array;
     var = gfc_build_addr_expr (build_pointer_type (integer_type_node), var);
 
-    tmp = build_call_expr (gfor_fndecl_set_options, 2,
+    tmp = build_call_expr_loc (input_location,
+			   gfor_fndecl_set_options, 2,
 			   build_int_cst (integer_type_node, 8), var);
     gfc_add_expr_to_block (&body, tmp);
   }
@@ -4033,7 +4073,8 @@ create_main_function (tree fndecl)
      the library will raise a FPE when needed.  */
   if (gfc_option.fpe != 0)
     {
-      tmp = build_call_expr (gfor_fndecl_set_fpe, 1,
+      tmp = build_call_expr_loc (input_location,
+			     gfor_fndecl_set_fpe, 1,
 			     build_int_cst (integer_type_node,
 					    gfc_option.fpe));
       gfc_add_expr_to_block (&body, tmp);
@@ -4044,7 +4085,8 @@ create_main_function (tree fndecl)
 
   if (gfc_option.convert != GFC_CONVERT_NATIVE)
     {
-      tmp = build_call_expr (gfor_fndecl_set_convert, 1,
+      tmp = build_call_expr_loc (input_location,
+			     gfor_fndecl_set_convert, 1,
 			     build_int_cst (integer_type_node,
 					    gfc_option.convert));
       gfc_add_expr_to_block (&body, tmp);
@@ -4055,7 +4097,8 @@ create_main_function (tree fndecl)
 
   if (gfc_option.record_marker != 0)
     {
-      tmp = build_call_expr (gfor_fndecl_set_record_marker, 1,
+      tmp = build_call_expr_loc (input_location,
+			     gfor_fndecl_set_record_marker, 1,
 			     build_int_cst (integer_type_node,
 					    gfc_option.record_marker));
       gfc_add_expr_to_block (&body, tmp);
@@ -4063,14 +4106,16 @@ create_main_function (tree fndecl)
 
   if (gfc_option.max_subrecord_length != 0)
     {
-      tmp = build_call_expr (gfor_fndecl_set_max_subrecord_length, 1,
+      tmp = build_call_expr_loc (input_location,
+			     gfor_fndecl_set_max_subrecord_length, 1,
 			     build_int_cst (integer_type_node,
 					    gfc_option.max_subrecord_length));
       gfc_add_expr_to_block (&body, tmp);
     }
 
   /* Call MAIN__().  */
-  tmp = build_call_expr (fndecl, 0);
+  tmp = build_call_expr_loc (input_location,
+			 fndecl, 0);
   gfc_add_expr_to_block (&body, tmp);
 
   /* Mark MAIN__ as used.  */
@@ -4425,7 +4470,8 @@ gfc_generate_constructors (void)
 
   for (; gfc_static_ctors; gfc_static_ctors = TREE_CHAIN (gfc_static_ctors))
     {
-      tmp = build_call_expr (TREE_VALUE (gfc_static_ctors), 0);
+      tmp = build_call_expr_loc (input_location,
+			     TREE_VALUE (gfc_static_ctors), 0);
       DECL_SAVED_TREE (fndecl) = build_stmt (input_location, EXPR_STMT, tmp);
     }
 

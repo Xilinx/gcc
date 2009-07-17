@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 tree
 convert_to_pointer (tree type, tree expr)
 {
+  location_t loc = EXPR_LOCATION (expr);
   if (TREE_TYPE (expr) == type)
     return expr;
 
@@ -53,16 +54,16 @@ convert_to_pointer (tree type, tree expr)
     {
     case POINTER_TYPE:
     case REFERENCE_TYPE:
-      return fold_build1 (NOP_EXPR, type, expr);
+      return fold_build1_loc (loc, NOP_EXPR, type, expr);
 
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:
     case BOOLEAN_TYPE:
       if (TYPE_PRECISION (TREE_TYPE (expr)) != POINTER_SIZE)
-	expr = fold_build1 (NOP_EXPR,
+	expr = fold_build1_loc (loc, NOP_EXPR,
                             lang_hooks.types.type_for_size (POINTER_SIZE, 0),
 			    expr);
-      return fold_build1 (CONVERT_EXPR, type, expr);
+      return fold_build1_loc (loc, CONVERT_EXPR, type, expr);
 
 
     default:
@@ -772,10 +773,16 @@ convert_to_integer (tree type, tree expr)
 
 	case COND_EXPR:
 	  /* It is sometimes worthwhile to push the narrowing down through
-	     the conditional and never loses.  */
+	     the conditional and never loses.  A COND_EXPR may have a throw
+	     as one operand, which then has void type.  Just leave void
+	     operands as they are.  */
 	  return fold_build3 (COND_EXPR, type, TREE_OPERAND (expr, 0),
-			      convert (type, TREE_OPERAND (expr, 1)),
-			      convert (type, TREE_OPERAND (expr, 2)));
+			      VOID_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 1)))
+			      ? TREE_OPERAND (expr, 1)
+			      : convert (type, TREE_OPERAND (expr, 1)),
+			      VOID_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 2)))
+			      ? TREE_OPERAND (expr, 2)
+			      : convert (type, TREE_OPERAND (expr, 2)));
 
 	default:
 	  break;

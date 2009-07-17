@@ -4167,6 +4167,40 @@ m32c_compare_redundant (rtx cmp, rtx *operands)
 #endif
 	return false;
       }
+
+    /* Check for comparisons against memory - between volatiles and
+       aliases, we just can't risk this one.  */
+    if (GET_CODE (operands[0]) == MEM
+	|| GET_CODE (operands[0]) == MEM)
+      {
+#if DEBUG_CMP
+	fprintf(stderr, "comparisons with memory:\n");
+	debug_rtx(prev);
+#endif
+	return false;
+      }
+
+    /* Check for PREV changing a register that's used to compute a
+       value in CMP, even if it doesn't otherwise change flags.  */
+    if (GET_CODE (operands[0]) == REG
+	&& rtx_referenced_p (SET_DEST (PATTERN (prev)), operands[0]))
+      {
+#if DEBUG_CMP
+	fprintf(stderr, "sub-value affected, op0:\n");
+	debug_rtx(prev);
+#endif
+	return false;
+      }
+    if (GET_CODE (operands[1]) == REG
+	&& rtx_referenced_p (SET_DEST (PATTERN (prev)), operands[1]))
+      {
+#if DEBUG_CMP
+	fprintf(stderr, "sub-value affected, op1:\n");
+	debug_rtx(prev);
+#endif
+	return false;
+      }
+
   } while (pflags == FLAGS_N);
 #if DEBUG_CMP
   fprintf(stderr, "previous flag-setting insn:\n");
@@ -4251,13 +4285,20 @@ m32c_output_compare (rtx insn, rtx *operands)
     }
 
 #if DEBUG_CMP
-  fprintf(stderr, "cbranch: cmp needed: `%s'\n", templ);
+  fprintf(stderr, "cbranch: cmp needed: `%s'\n", templ + 1);
 #endif
   return templ + 1;
 }
 
 #undef TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO m32c_encode_section_info
+
+/* If the frame pointer isn't used, we detect it manually.  But the
+   stack pointer doesn't have as flexible addressing as the frame
+   pointer, so we always assume we have it.  */
+
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED hook_bool_void_true
 
 /* The Global `targetm' Variable. */
 

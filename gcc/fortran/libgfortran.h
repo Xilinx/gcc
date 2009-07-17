@@ -47,8 +47,10 @@ along with GCC; see the file COPYING3.  If not see
 #define GFC_RTCHECK_ARRAY_TEMPS (1<<1)
 #define GFC_RTCHECK_RECURSION   (1<<2)
 #define GFC_RTCHECK_DO          (1<<3)
+#define GFC_RTCHECK_POINTER     (1<<4)
 #define GFC_RTCHECK_ALL        (GFC_RTCHECK_BOUNDS | GFC_RTCHECK_ARRAY_TEMPS \
-				| GFC_RTCHECK_RECURSION | GFC_RTCHECK_DO)
+				| GFC_RTCHECK_RECURSION | GFC_RTCHECK_DO \
+				| GFC_RTCHECK_POINTER)
 
 
 /* Possible values for the CONVERT I/O specifier.  */
@@ -108,7 +110,7 @@ libgfortran_error_codes;
 #define GFC_DTYPE_TYPE_MASK 0x38
 #define GFC_DTYPE_SIZE_SHIFT 6
 
-enum
+typedef enum
 {
   GFC_DTYPE_UNKNOWN = 0,
   GFC_DTYPE_INTEGER,
@@ -118,5 +120,6 @@ enum
   GFC_DTYPE_COMPLEX,
   GFC_DTYPE_DERIVED,
   GFC_DTYPE_CHARACTER
-};
+}
+dtype;
 

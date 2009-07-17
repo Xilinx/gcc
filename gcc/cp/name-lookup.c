@@ -1044,8 +1044,10 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 
 	      if (warn_shadow && !err)
 		{
-		  warning (OPT_Wshadow, "declaration of %q#D shadows a parameter", x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldlocal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %q#D shadows a parameter", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	    }
 
@@ -1075,16 +1077,19 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	      else if (oldlocal != NULL_TREE
 		       && TREE_CODE (oldlocal) == VAR_DECL)
 		{
-		  warning (OPT_Wshadow, "declaration of %qD shadows a previous local", x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldlocal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %qD shadows a previous local", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	      else if (oldglobal != NULL_TREE
 		       && TREE_CODE (oldglobal) == VAR_DECL)
 		/* XXX shadow warnings in outer-more namespaces */
 		{
-		  warning (OPT_Wshadow, "declaration of %qD shadows a global declaration",
-			   x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldglobal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %qD shadows a global declaration", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldglobal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	    }
 	}
@@ -3924,6 +3929,7 @@ qualified_lookup_using_namespace (tree name, tree scope,
   /* ... and a list of namespace yet to see.  */
   tree todo = NULL_TREE;
   tree todo_maybe = NULL_TREE;
+  tree *todo_weak = &todo_maybe;
   tree usings;
   timevar_push (TV_NAME_LOOKUP);
   /* Look through namespace aliases.  */
@@ -3937,9 +3943,7 @@ qualified_lookup_using_namespace (tree name, tree scope,
 	ambiguous_decl (result, binding, flags);
 
       /* Consider strong using directives always, and non-strong ones
-	 if we haven't found a binding yet.  ??? Shouldn't we consider
-	 non-strong ones if the initial RESULT is non-NULL, but the
-	 binding in the given namespace is?  */
+	 if we haven't found a binding yet.  */
       for (usings = DECL_NAMESPACE_USING (scope); usings;
 	   usings = TREE_CHAIN (usings))
 	/* If this was a real directive, and we have not seen it.  */
@@ -3954,12 +3958,12 @@ qualified_lookup_using_namespace (tree name, tree scope,
 		&& !purpose_member (TREE_PURPOSE (usings), seen)
 		&& !purpose_member (TREE_PURPOSE (usings), todo))
 	      todo = tree_cons (TREE_PURPOSE (usings), NULL_TREE, todo);
-	    else if ((!result->value && !result->type)
+	    else if (!binding
 		     && !purpose_member (TREE_PURPOSE (usings), seen)
 		     && !purpose_member (TREE_PURPOSE (usings), todo)
 		     && !purpose_member (TREE_PURPOSE (usings), todo_maybe))
-	      todo_maybe = tree_cons (TREE_PURPOSE (usings), NULL_TREE,
-				      todo_maybe);
+	      *todo_weak = tree_cons (TREE_PURPOSE (usings), NULL_TREE,
+				      *todo_weak);
 	  }
       if (todo)
 	{
@@ -3972,6 +3976,7 @@ qualified_lookup_using_namespace (tree name, tree scope,
 	  scope = TREE_PURPOSE (todo_maybe);
 	  todo = TREE_CHAIN (todo_maybe);
 	  todo_maybe = NULL_TREE;
+	  todo_weak = &todo;
 	}
       else
 	scope = NULL_TREE; /* If there never was a todo list.  */

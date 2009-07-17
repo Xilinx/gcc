@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -435,6 +435,23 @@ package body Tbuild is
         Make_String_Literal (Sloc,
           Strval => End_String);
    end Make_String_Literal;
+
+   --------------------
+   -- Make_Temporary --
+   --------------------
+
+   function Make_Temporary
+     (Loc          : Source_Ptr;
+      Id           : Character;
+      Related_Node : Node_Id := Empty) return Node_Id
+   is
+      Temp : constant Node_Id :=
+               Make_Defining_Identifier (Loc,
+                 Chars => New_Internal_Name (Id));
+   begin
+      Set_Related_Expression (Temp, Related_Node);
+      return Temp;
+   end Make_Temporary;
 
    ---------------------------
    -- Make_Unsuppress_Block --

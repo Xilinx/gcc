@@ -1,3 +1,7 @@
+2009-07-17  Richard Henderson  <rth@redhat.com>
+
+	* Merge from mainline rev 149731.
+
 2009-07-16  Richard Henderson  <rth@redhat.com>
 
 	* except.c, except.h, tree-eh.c: Revert can_throw_internal_1

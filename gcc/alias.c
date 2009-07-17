@@ -46,6 +46,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "ipa-type-escape.h"
 #include "df.h"
+#include "tree-ssa-alias.h"
+#include "pointer-set.h"
+#include "tree-flow.h"
 
 /* The aliasing API provided here solves related but different problems:
 
@@ -155,7 +158,6 @@ static int base_alias_check (rtx, rtx, enum machine_mode,
 static rtx find_base_value (rtx);
 static int mems_in_disjoint_alias_sets_p (const_rtx, const_rtx);
 static int insert_subset_children (splay_tree_node, void*);
-static tree find_base_decl (tree);
 static alias_set_entry get_alias_set_entry (alias_set_type);
 static const_rtx fixed_scalar_and_varying_struct_p (const_rtx, const_rtx, rtx, rtx,
 						    bool (*) (const_rtx, bool));
@@ -250,6 +252,103 @@ DEF_VEC_ALLOC_P(alias_set_entry,gc);
 /* The splay-tree used to store the various alias set entries.  */
 static GTY (()) VEC(alias_set_entry,gc) *alias_sets;
 
+/* Build a decomposed reference object for querying the alias-oracle
+   from the MEM rtx and store it in *REF.
+   Returns false if MEM is not suitable for the alias-oracle.  */
+
+static bool
+ao_ref_from_mem (ao_ref *ref, const_rtx mem)
+{
+  tree expr = MEM_EXPR (mem);
+  tree base;
+
+  if (!expr)
+    return false;
+
+  ao_ref_init (ref, expr);
+
+  /* Get the base of the reference and see if we have to reject or
+     adjust it.  */
+  base = ao_ref_base (ref);
+  if (base == NULL_TREE)
+    return false;
+
+  /* If this is a pointer dereference of a non-SSA_NAME punt.
+     ???  We could replace it with a pointer to anything.  */
+  if (INDIRECT_REF_P (base)
+      && TREE_CODE (TREE_OPERAND (base, 0)) != SSA_NAME)
+    return false;
+
+  /* The tree oracle doesn't like to have these.  */
+  if (TREE_CODE (base) == FUNCTION_DECL
+      || TREE_CODE (base) == LABEL_DECL)
+    return false;
+
+  /* If this is a reference based on a partitioned decl replace the
+     base with an INDIRECT_REF of the pointer representative we
+     created during stack slot partitioning.  */
+  if (TREE_CODE (base) == VAR_DECL
+      && ! TREE_STATIC (base)
+      && cfun->gimple_df->decls_to_pointers != NULL)
+    {
+      void *namep;
+      namep = pointer_map_contains (cfun->gimple_df->decls_to_pointers, base);
+      if (namep)
+	{
+	  ref->base_alias_set = get_alias_set (base);
+	  ref->base = build1 (INDIRECT_REF, TREE_TYPE (base), *(tree *)namep);
+	}
+    }
+
+  ref->ref_alias_set = MEM_ALIAS_SET (mem);
+
+  /* For NULL MEM_OFFSET the MEM_EXPR may have been stripped arbitrarily
+     without recording offset or extent adjustments properly.  */
+  if (MEM_OFFSET (mem) == NULL_RTX)
+    {
+      ref->offset = 0;
+      ref->max_size = -1;
+    }
+  else
+    {
+      ref->offset += INTVAL (MEM_OFFSET (mem)) * BITS_PER_UNIT;
+    }
+
+  /* NULL MEM_SIZE should not really happen with a non-NULL MEM_EXPR,
+     but just play safe here.  The size may have been adjusted together
+     with the offset, so we need to take it if it is set and not rely
+     on MEM_EXPR here (which has the size determining parts potentially
+     stripped anyway).  We lose precision for max_size which is only
+     available from the remaining MEM_EXPR.  */
+  if (MEM_SIZE (mem) == NULL_RTX)
+    {
+      ref->size = -1;
+      ref->max_size = -1;
+    }
+  else
+    {
+      ref->size = INTVAL (MEM_SIZE (mem)) * BITS_PER_UNIT;
+    }
+
+  return true;
+}
+
+/* Query the alias-oracle on whether the two memory rtx X and MEM may
+   alias.  If TBAA_P is set also apply TBAA.  Returns true if the
+   two rtxen may alias, false otherwise.  */
+
+static bool
+rtx_refs_may_alias_p (const_rtx x, const_rtx mem, bool tbaa_p)
+{
+  ao_ref ref1, ref2;
+
+  if (!ao_ref_from_mem (&ref1, x)
+      || !ao_ref_from_mem (&ref2, mem))
+    return true;
+
+  return refs_may_alias_p_1 (&ref1, &ref2, tbaa_p);
+}
+
 /* Returns a pointer to the alias set entry for ALIAS_SET, if there is
    such an entry, or NULL otherwise.  */
 
@@ -422,57 +521,6 @@ objects_must_conflict_p (tree t1, tree t2)
   return alias_sets_must_conflict_p (set1, set2);
 }
 
-/* T is an expression with pointer type.  Find the DECL on which this
-   expression is based.  (For example, in `a[i]' this would be `a'.)
-   If there is no such DECL, or a unique decl cannot be determined,
-   NULL_TREE is returned.  */
-
-static tree
-find_base_decl (tree t)
-{
-  tree d0, d1;
-
-  if (t == 0 || t == error_mark_node || ! POINTER_TYPE_P (TREE_TYPE (t)))
-    return 0;
-
-  if (TREE_CODE (t) == SSA_NAME)
-    t = SSA_NAME_VAR (t);
-
-  /* If this is a declaration, return it.  If T is based on a restrict
-     qualified decl, return that decl.  */
-  if (DECL_P (t))
-    {
-      if (TREE_CODE (t) == VAR_DECL && DECL_BASED_ON_RESTRICT_P (t))
-	t = DECL_GET_RESTRICT_BASE (t);
-      return t;
-    }
-
-  /* Handle general expressions.  It would be nice to deal with
-     COMPONENT_REFs here.  If we could tell that `a' and `b' were the
-     same, then `a->f' and `b->f' are also the same.  */
-  switch (TREE_CODE_CLASS (TREE_CODE (t)))
-    {
-    case tcc_unary:
-      return find_base_decl (TREE_OPERAND (t, 0));
-
-    case tcc_binary:
-      /* Return 0 if found in neither or both are the same.  */
-      d0 = find_base_decl (TREE_OPERAND (t, 0));
-      d1 = find_base_decl (TREE_OPERAND (t, 1));
-      if (d0 == d1)
-	return d0;
-      else if (d0 == 0)
-	return d1;
-      else if (d1 == 0)
-	return d0;
-      else
-	return 0;
-
-    default:
-      return 0;
-    }
-}
-
 /* Return true if all nested component references handled by
    get_inner_reference in T are such that we should use the alias set
    provided by the object at the heart of T.
@@ -532,56 +580,9 @@ get_deref_alias_set_1 (tree t)
   if (!flag_strict_aliasing)
     return 0;
 
+  /* All we care about is the type.  */
   if (! TYPE_P (t))
-    {
-      tree decl = find_base_decl (t);
-
-      if (decl && DECL_POINTER_ALIAS_SET_KNOWN_P (decl))
-	{
-	  /* If we haven't computed the actual alias set, do it now.  */
-	  if (DECL_POINTER_ALIAS_SET (decl) == -2)
-	    {
-	      tree pointed_to_type = TREE_TYPE (TREE_TYPE (decl));
-
-	      /* No two restricted pointers can point at the same thing.
-		 However, a restricted pointer can point at the same thing
-		 as an unrestricted pointer, if that unrestricted pointer
-		 is based on the restricted pointer.  So, we make the
-		 alias set for the restricted pointer a subset of the
-		 alias set for the type pointed to by the type of the
-		 decl.  */
-	      alias_set_type pointed_to_alias_set
-		  = get_alias_set (pointed_to_type);
-
-	      if (pointed_to_alias_set == 0)
-		/* It's not legal to make a subset of alias set zero.  */
-		DECL_POINTER_ALIAS_SET (decl) = 0;
-	      else if (AGGREGATE_TYPE_P (pointed_to_type))
-		/* For an aggregate, we must treat the restricted
-		   pointer the same as an ordinary pointer.  If we
-		   were to make the type pointed to by the
-		   restricted pointer a subset of the pointed-to
-		   type, then we would believe that other subsets
-		   of the pointed-to type (such as fields of that
-		   type) do not conflict with the type pointed to
-		   by the restricted pointer.  */
-		DECL_POINTER_ALIAS_SET (decl)
-		    = pointed_to_alias_set;
-	      else
-		{
-		  DECL_POINTER_ALIAS_SET (decl) = new_alias_set ();
-		  record_alias_subset (pointed_to_alias_set,
-				       DECL_POINTER_ALIAS_SET (decl));
-		}
-	    }
-
-	  /* We use the alias set indicated in the declaration.  */
-	  return DECL_POINTER_ALIAS_SET (decl);
-	}
-
-      /* Now all we care about is the type.  */
-      t = TREE_TYPE (t);
-    }
+    t = TREE_TYPE (t);
 
   /* If we have an INDIRECT_REF via a void pointer, we don't
      know anything about what that might alias.  Likewise if the
@@ -2290,8 +2291,10 @@ true_dependence (const_rtx mem, enum machine_mode mem_mode, const_rtx x,
   if (mem_mode == BLKmode || GET_MODE (x) == BLKmode)
     return 1;
 
-  return ! fixed_scalar_and_varying_struct_p (mem, x, mem_addr, x_addr,
-					      varies);
+  if (fixed_scalar_and_varying_struct_p (mem, x, mem_addr, x_addr, varies))
+    return 0;
+
+  return rtx_refs_may_alias_p (x, mem, true);
 }
 
 /* Canonical true dependence: X is read after store in MEM takes place.
@@ -2354,8 +2357,10 @@ canon_true_dependence (const_rtx mem, enum machine_mode mem_mode, rtx mem_addr,
   if (mem_mode == BLKmode || GET_MODE (x) == BLKmode)
     return 1;
 
-  return ! fixed_scalar_and_varying_struct_p (mem, x, mem_addr, x_addr,
-					      varies);
+  if (fixed_scalar_and_varying_struct_p (mem, x, mem_addr, x_addr, varies))
+    return 0;
+
+  return rtx_refs_may_alias_p (x, mem, true);
 }
 
 /* Returns nonzero if a write to X might alias a previous read from
@@ -2415,8 +2420,11 @@ write_dependence_p (const_rtx mem, const_rtx x, int writep)
     = fixed_scalar_and_varying_struct_p (mem, x, mem_addr, x_addr,
 					 rtx_addr_varies_p);
 
-  return (!(fixed_scalar == mem && !aliases_everything_p (x))
-	  && !(fixed_scalar == x && !aliases_everything_p (mem)));
+  if ((fixed_scalar == mem && !aliases_everything_p (x))
+      || (fixed_scalar == x && !aliases_everything_p (mem)))
+    return 0;
+
+  return rtx_refs_may_alias_p (x, mem, false);
 }
 
 /* Anti dependence: X is written after read in MEM takes place.  */

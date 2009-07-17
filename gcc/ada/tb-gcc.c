@@ -6,8 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *                     Copyright (C) 2004-2007, AdaCore                     *
- *             Copyright (C) 2008, Free Software Foundation, Inc.           *
+ *          Copyright (C) 2004-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -82,7 +81,7 @@ trace_callback (struct _Unwind_Context * uw_context, uw_data_t * uw_data)
   if (uw_data->n_entries_filled >= uw_data->max_len)
     return _URC_NORMAL_STOP;
 
-  if (pc < uw_data->exclude_min || pc > uw_data->exclude_max)
+  if (pc < (char *)uw_data->exclude_min || pc > (char *)uw_data->exclude_max)
     uw_data->traceback [uw_data->n_entries_filled ++] = pc + PC_ADJUST;
 
   return _URC_NO_REASON;

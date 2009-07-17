@@ -33,6 +33,7 @@
 #include "ggc.h"
 #include "target.h"
 #include "expr.h"
+#include "tree-inline.h"
 
 #include "ada.h"
 #include "types.h"
@@ -904,6 +905,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			  mark_visited (&gnu_decl);
 			save_gnu_tree (gnat_entity, gnu_decl, true);
 			saved = true;
+			annotate_object (gnat_entity, gnu_type, NULL_TREE,
+					 false);
 			break;
 		      }
 
@@ -1381,32 +1384,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && Exception_Mechanism != Back_End_Exceptions)
 	  TREE_ADDRESSABLE (gnu_decl) = 1;
 
-	gnu_type = TREE_TYPE (gnu_decl);
-
-	/* Back-annotate Alignment and Esize of the object if not already
-	   known, except for when the object is actually a pointer to the
-	   real object, since alignment and size of a pointer don't have
-	   anything to do with those of the designated object.  Note that
-	   we pick the values of the type, not those of the object, to
-	   shield ourselves from low-level platform-dependent adjustments
-	   like alignment promotion.  This is both consistent with all the
-	   treatment above, where alignment and size are set on the type of
-	   the object and not on the object directly, and makes it possible
-	   to support confirming representation clauses in all cases.  */
-
-	if (!used_by_ref && Unknown_Alignment (gnat_entity))
-	  Set_Alignment (gnat_entity,
-			 UI_From_Int (TYPE_ALIGN (gnu_type) / BITS_PER_UNIT));
-
-	if (!used_by_ref && Unknown_Esize (gnat_entity))
-	  {
-	    if (TREE_CODE (gnu_type) == RECORD_TYPE
-		&& TYPE_CONTAINS_TEMPLATE_P (gnu_type))
-	      gnu_object_size
-		= TYPE_SIZE (TREE_TYPE (TREE_CHAIN (TYPE_FIELDS (gnu_type))));
-
-	    Set_Esize (gnat_entity, annotate_value (gnu_object_size));
-	  }
+	/* Back-annotate Esize and Alignment of the object if not already
+	   known.  Note that we pick the values of the type, not those of
+	   the object, to shield ourselves from low-level platform-dependent
+	   adjustments like alignment promotion.  This is both consistent with
+	   all the treatment above, where alignment and size are set on the
+	   type of the object and not on the object directly, and makes it
+	   possible to support all confirming representation clauses.  */
+	annotate_object (gnat_entity, TREE_TYPE (gnu_decl), gnu_object_size,
+			 used_by_ref);
       }
       break;
 
@@ -2628,12 +2614,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 #endif
 		}
 
-	      /* ??? This is necessary to make sure that the container is
-		 allocated with a null tree upfront; otherwise, it could
-		 be allocated with an uninitialized tree that is accessed
-		 before being set below.  See ada-tree.h for details.  */
-	      SET_TYPE_ACTUAL_BOUNDS (gnu_inner_type, NULL_TREE);
-
 	      for (gnat_index = First_Index (gnat_entity);
 		   Present (gnat_index); gnat_index = Next_Index (gnat_index))
 		SET_TYPE_ACTUAL_BOUNDS
@@ -2898,7 +2878,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		     gnat_field = Next_Stored_Discriminant (gnat_field))
 		  if (Present (Corresponding_Discriminant (gnat_field)))
 		    {
-		      gnu_field = gnat_to_gnu_field_decl (gnat_field);
+		      tree gnu_field = gnat_to_gnu_field_decl (gnat_field);
 		      tree gnu_ref
 			= build3 (COMPONENT_REF, TREE_TYPE (gnu_field),
 				  gnu_get_parent, gnu_field, NULL_TREE);
@@ -7190,6 +7170,15 @@ annotate_value (tree gnu_size)
     case EQ_EXPR:		tcode = Eq_Expr; break;
     case NE_EXPR:		tcode = Ne_Expr; break;
 
+    case CALL_EXPR:
+      {
+	tree t = maybe_inline_call_in_expr (gnu_size);
+	if (t)
+	  return annotate_value (t);
+      }
+
+      /* Fall through... */
+
     default:
       return No_Uint;
     }
@@ -7217,6 +7206,39 @@ annotate_value (tree gnu_size)
     }
 
   return ret;
+}
+
+/* Given GNAT_ENTITY, an object (constant, variable, parameter, exception)
+   and GNU_TYPE, its corresponding GCC type, set Esize and Alignment to the
+   size and alignment used by Gigi.  Prefer SIZE over TYPE_SIZE if non-null.
+   BY_REF is true if the object is used by reference.  */
+
+void
+annotate_object (Entity_Id gnat_entity, tree gnu_type, tree size, bool by_ref)
+{
+  if (by_ref)
+    {
+      if (TYPE_FAT_POINTER_P (gnu_type))
+	gnu_type = TYPE_UNCONSTRAINED_ARRAY (gnu_type);
+      else
+	gnu_type = TREE_TYPE (gnu_type);
+    }
+
+  if (Unknown_Esize (gnat_entity))
+    {
+      if (TREE_CODE (gnu_type) == RECORD_TYPE
+	  && TYPE_CONTAINS_TEMPLATE_P (gnu_type))
+	size = TYPE_SIZE (TREE_TYPE (TREE_CHAIN (TYPE_FIELDS (gnu_type))));
+      else if (!size)
+	size = TYPE_SIZE (gnu_type);
+
+      if (size)
+	Set_Esize (gnat_entity, annotate_value (size));
+    }
+
+  if (Unknown_Alignment (gnat_entity))
+    Set_Alignment (gnat_entity,
+		   UI_From_Int (TYPE_ALIGN (gnu_type) / BITS_PER_UNIT));
 }
 
 /* Given GNAT_ENTITY, a record type, and GNU_TYPE, its corresponding
@@ -7840,7 +7862,7 @@ compatible_signatures_p (tree ftype1, tree ftype2)
 tree
 substitute_in_type (tree t, tree f, tree r)
 {
-  tree new_tree;
+  tree nt;
 
   gcc_assert (CONTAINS_PLACEHOLDER_P (r));
 
@@ -7861,15 +7883,15 @@ substitute_in_type (tree t, tree f, tree r)
 	  if (low == TYPE_GCC_MIN_VALUE (t) && high == TYPE_GCC_MAX_VALUE (t))
 	    return t;
 
-	  new_tree = copy_type (t);
-	  TYPE_GCC_MIN_VALUE (new_tree) = low;
-	  TYPE_GCC_MAX_VALUE (new_tree) = high;
+	  nt = copy_type (t);
+	  TYPE_GCC_MIN_VALUE (nt) = low;
+	  TYPE_GCC_MAX_VALUE (nt) = high;
 
 	  if (TREE_CODE (t) == INTEGER_TYPE && TYPE_INDEX_TYPE (t))
 	    SET_TYPE_INDEX_TYPE
-	      (new_tree, substitute_in_type (TYPE_INDEX_TYPE (t), f, r));
+	      (nt, substitute_in_type (TYPE_INDEX_TYPE (t), f, r));
 
-	  return new_tree;
+	  return nt;
 	}
 
       /* Then the subtypes.  */
@@ -7882,21 +7904,21 @@ substitute_in_type (tree t, tree f, tree r)
 	  if (low == TYPE_RM_MIN_VALUE (t) && high == TYPE_RM_MAX_VALUE (t))
 	    return t;
 
-	  new_tree = copy_type (t);
-	  SET_TYPE_RM_MIN_VALUE (new_tree, low);
-	  SET_TYPE_RM_MAX_VALUE (new_tree, high);
+	  nt = copy_type (t);
+	  SET_TYPE_RM_MIN_VALUE (nt, low);
+	  SET_TYPE_RM_MAX_VALUE (nt, high);
 
-	  return new_tree;
+	  return nt;
 	}
 
       return t;
 
     case COMPLEX_TYPE:
-      new_tree = substitute_in_type (TREE_TYPE (t), f, r);
-      if (new_tree == TREE_TYPE (t))
+      nt = substitute_in_type (TREE_TYPE (t), f, r);
+      if (nt == TREE_TYPE (t))
 	return t;
 
-      return build_complex_type (new_tree);
+      return build_complex_type (nt);
 
     case OFFSET_TYPE:
     case METHOD_TYPE:
@@ -7913,16 +7935,16 @@ substitute_in_type (tree t, tree f, tree r)
 	if (component == TREE_TYPE (t) && domain == TYPE_DOMAIN (t))
 	  return t;
 
-	new_tree = build_array_type (component, domain);
-	TYPE_ALIGN (new_tree) = TYPE_ALIGN (t);
-	TYPE_USER_ALIGN (new_tree) = TYPE_USER_ALIGN (t);
-	SET_TYPE_MODE (new_tree, TYPE_MODE (t));
-	TYPE_SIZE (new_tree) = SUBSTITUTE_IN_EXPR (TYPE_SIZE (t), f, r);
-	TYPE_SIZE_UNIT (new_tree) = SUBSTITUTE_IN_EXPR (TYPE_SIZE_UNIT (t), f, r);
-	TYPE_NONALIASED_COMPONENT (new_tree) = TYPE_NONALIASED_COMPONENT (t);
-	TYPE_MULTI_ARRAY_P (new_tree) = TYPE_MULTI_ARRAY_P (t);
-	TYPE_CONVENTION_FORTRAN_P (new_tree) = TYPE_CONVENTION_FORTRAN_P (t);
-	return new_tree;
+	nt = build_array_type (component, domain);
+	TYPE_ALIGN (nt) = TYPE_ALIGN (t);
+	TYPE_USER_ALIGN (nt) = TYPE_USER_ALIGN (t);
+	SET_TYPE_MODE (nt, TYPE_MODE (t));
+	TYPE_SIZE (nt) = SUBSTITUTE_IN_EXPR (TYPE_SIZE (t), f, r);
+	TYPE_SIZE_UNIT (nt) = SUBSTITUTE_IN_EXPR (TYPE_SIZE_UNIT (t), f, r);
+	TYPE_NONALIASED_COMPONENT (nt) = TYPE_NONALIASED_COMPONENT (t);
+	TYPE_MULTI_ARRAY_P (nt) = TYPE_MULTI_ARRAY_P (t);
+	TYPE_CONVENTION_FORTRAN_P (nt) = TYPE_CONVENTION_FORTRAN_P (t);
+	return nt;
       }
 
     case RECORD_TYPE:
@@ -7935,8 +7957,8 @@ substitute_in_type (tree t, tree f, tree r)
 	/* Start out with no fields, make new fields, and chain them
 	   in.  If we haven't actually changed the type of any field,
 	   discard everything we've done and return the old type.  */
-	new_tree = copy_type (t);
-	TYPE_FIELDS (new_tree) = NULL_TREE;
+	nt = copy_type (t);
+	TYPE_FIELDS (nt) = NULL_TREE;
 
 	for (field = TYPE_FIELDS (t); field; field = TREE_CHAIN (field))
 	  {
@@ -7967,23 +7989,23 @@ substitute_in_type (tree t, tree f, tree r)
 		  }
 	      }
 
-	    DECL_CONTEXT (new_field) = new_tree;
+	    DECL_CONTEXT (new_field) = nt;
 	    SET_DECL_ORIGINAL_FIELD (new_field,
 				     (DECL_ORIGINAL_FIELD (field)
 				      ? DECL_ORIGINAL_FIELD (field) : field));
 
-	    TREE_CHAIN (new_field) = TYPE_FIELDS (new_tree);
-	    TYPE_FIELDS (new_tree) = new_field;
+	    TREE_CHAIN (new_field) = TYPE_FIELDS (nt);
+	    TYPE_FIELDS (nt) = new_field;
 	  }
 
 	if (!changed_field)
 	  return t;
 
-	TYPE_FIELDS (new_tree) = nreverse (TYPE_FIELDS (new_tree));
-	TYPE_SIZE (new_tree) = SUBSTITUTE_IN_EXPR (TYPE_SIZE (t), f, r);
-	TYPE_SIZE_UNIT (new_tree) = SUBSTITUTE_IN_EXPR (TYPE_SIZE_UNIT (t), f, r);
-	SET_TYPE_ADA_SIZE (new_tree, SUBSTITUTE_IN_EXPR (TYPE_ADA_SIZE (t), f, r));
-	return new_tree;
+	TYPE_FIELDS (nt) = nreverse (TYPE_FIELDS (nt));
+	TYPE_SIZE (nt) = SUBSTITUTE_IN_EXPR (TYPE_SIZE (t), f, r);
+	TYPE_SIZE_UNIT (nt) = SUBSTITUTE_IN_EXPR (TYPE_SIZE_UNIT (t), f, r);
+	SET_TYPE_ADA_SIZE (nt, SUBSTITUTE_IN_EXPR (TYPE_ADA_SIZE (t), f, r));
+	return nt;
       }
 
     default:

@@ -476,11 +476,12 @@ fold_cond_expr_cond (void)
 
       if (stmt && gimple_code (stmt) == GIMPLE_COND)
 	{
+	  location_t loc = gimple_location (stmt);
 	  tree cond;
 	  bool zerop, onep;
 
 	  fold_defer_overflow_warnings ();
-	  cond = fold_binary (gimple_cond_code (stmt), boolean_type_node,
+	  cond = fold_binary_loc (loc, gimple_cond_code (stmt), boolean_type_node,
 			      gimple_cond_lhs (stmt), gimple_cond_rhs (stmt));
 	  if (cond)
 	    {
@@ -1671,12 +1672,14 @@ remove_useless_stmts_warn_notreached (gimple_seq stmts)
     {
       gimple stmt = gsi_stmt (gsi);
 
+      if (gimple_no_warning_p (stmt)) return false;
+
       if (gimple_has_location (stmt))
         {
           location_t loc = gimple_location (stmt);
           if (LOCATION_LINE (loc) > 0)
 	    {
-              warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
+              warning_at (loc, OPT_Wunreachable_code, "will never be executed");
               return true;
             }
         }
@@ -2343,7 +2346,7 @@ remove_bb (basic_block bb)
      loop above, so the last statement we process is the first statement
      in the block.  */
   if (loc > BUILTINS_LOCATION && LOCATION_LINE (loc) > 0)
-    warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
+    warning_at (loc, OPT_Wunreachable_code, "will never be executed");
 
   remove_phi_nodes_and_edges_for_unreachable_block (bb);
   bb->il.gimple = NULL;
@@ -7285,8 +7288,9 @@ gimplify_build3 (gimple_stmt_iterator *gsi, enum tree_code code,
 		 tree type, tree a, tree b, tree c)
 {
   tree ret;
+  location_t loc = gimple_location (gsi_stmt (*gsi));
 
-  ret = fold_build3 (code, type, a, b, c);
+  ret = fold_build3_loc (loc, code, type, a, b, c);
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
@@ -7302,7 +7306,7 @@ gimplify_build2 (gimple_stmt_iterator *gsi, enum tree_code code,
 {
   tree ret;
 
-  ret = fold_build2 (code, type, a, b);
+  ret = fold_build2_loc (gimple_location (gsi_stmt (*gsi)), code, type, a, b);
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
@@ -7318,7 +7322,7 @@ gimplify_build1 (gimple_stmt_iterator *gsi, enum tree_code code, tree type,
 {
   tree ret;
 
-  ret = fold_build1 (code, type, a);
+  ret = fold_build1_loc (gimple_location (gsi_stmt (*gsi)), code, type, a);
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
@@ -7351,7 +7355,7 @@ execute_warn_function_return (void)
 	}
       if (location == UNKNOWN_LOCATION)
 	location = cfun->function_end_locus;
-      warning (0, "%H%<noreturn%> function does return", &location);
+      warning_at (location, 0, "%<noreturn%> function does return");
     }
 
   /* If we see "return;" in some basic block, then we do reach the end
@@ -7433,9 +7437,9 @@ execute_warn_function_noreturn (void)
       && !TREE_THIS_VOLATILE (cfun->decl)
       && EDGE_COUNT (EXIT_BLOCK_PTR->preds) == 0
       && !lang_hooks.missing_noreturn_ok_p (cfun->decl))
-    warning (OPT_Wmissing_noreturn, "%Jfunction might be possible candidate "
-	     "for attribute %<noreturn%>",
-	     cfun->decl);
+    warning_at (DECL_SOURCE_LOCATION (cfun->decl), OPT_Wmissing_noreturn,
+		"function might be possible candidate "
+		"for attribute %<noreturn%>");
   return 0;
 }
 
