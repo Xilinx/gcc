@@ -1,5 +1,9 @@
 2009-07-18  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* automatic_tester/run_build.sh: Fix build of gitorious.org URLS.
+
+2009-07-18  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* automatic_tester/git_run.sh: Push changes automatically to
 	repository called "push".
 	* automatic_tester/graphite_env.sh.example: Add gitorious.org URL.

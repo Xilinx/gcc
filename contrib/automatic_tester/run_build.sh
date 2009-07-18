@@ -161,11 +161,12 @@ update_src () {
 	else
 		log "GIT build"
 		git_get_last_hash
+		GIT_WEB_REPOSITORY=`echo ${GIT_WEB_REPOSITORY} \
+			| sed -e 's/\//\\\\\//g'`
 	      	cd ${SRC_DIR_CURRENT} && git log $LAST_HASH.. \
 		| sed -e 's/\(.*\)\(git-svn-id.*@\)\([0-9]*\)/\1http:\/\/gcc.gnu.org\/viewcvs?root=gcc\&view=rev\&rev=\3\
 \1\2\3/g'  \
-		| sed -e "s/commit \([0-9a-f]*\)/commit \1
-${GIT_WEB_REPOSITORY}\1/" >> ${LOG_DIR_CURRENT}/info.log
+		| sed -e "s/commit \([0-9a-f]*\)/commit \1\n${GIT_WEB_REPOSITORY}\1/" >> ${LOG_DIR_CURRENT}/info.log
 		
 	fi
 }
