@@ -289,15 +289,15 @@ apply_poly_transforms (scop_p scop)
   if (flag_loop_block)
     gcc_unreachable (); /* Not yet supported.  */
 
-  if (flag_loop_interchange)
-    {
-      transform_done |= scop_do_interchange (scop);
-      gcc_assert (graphite_legal_transform (scop));
-    }
-
   if (flag_loop_strip_mine)
     {
       transform_done |= scop_do_strip_mine (scop);
+      gcc_assert (graphite_legal_transform (scop));
+    }
+
+  if (flag_loop_interchange)
+    {
+      transform_done |= scop_do_interchange (scop);
       gcc_assert (graphite_legal_transform (scop));
     }
 
