@@ -21,3 +21,4 @@ export BOOTSTRAP_FLAG="--enable-bootstrap"
 export MAKE=make
 export RUN_GCC_TESTS=1
 export RUN_EXTRA_TESTS=1
+export GIT_WEB_REPOSITORY=http://gitorious.org/~graphite-tester/graphite/graphite-test-results/commits/

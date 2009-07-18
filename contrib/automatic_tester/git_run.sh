@@ -21,6 +21,7 @@ fi
 cd ${SRC_DIR}
 git remote update
 git svn fetch
+git push push
 
 # Checkout the new git-svn branch
 git checkout git-svn
