@@ -37,4 +37,5 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
 
 libitm_la_SOURCES = beginend.c clone.c dispatch.c local.c query.c retry.c \
 	rwlock.c serial.c sjlj.S useraction.c futex.c \
+	aatree.c alloc.c alloc_c.c alloc_cpp.c \
 	method-wbetl.c

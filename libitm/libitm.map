@@ -163,6 +163,20 @@ LIBITM_1.0 {
 	_ITM_memsetWaR;
 	_ITM_memsetWaW;
 
+	_ITM_malloc;
+	_ITM_calloc;
+	_ITM_realloc;
+	_ITM_free;
+
+	_ZGTtnwm;
+	_ZGTtnam;
+	_ZGTtdlPv;
+	_ZGTtdaPv;
+	_ZGTtnwmRKSt9nothrow_t;
+	_ZGTtnamRKSt9nothrow_t;
+	_ZGTtdlPvRKSt9nothrow_t;
+	_ZGTtdaPvRKSt9nothrow_t;
+
   local:
 	*;
 };

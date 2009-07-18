@@ -125,6 +125,7 @@ GTM_rollback_transaction (void)
   tx = gtm_tx();
   GTM_free_actions (&tx->commit_actions);
   GTM_run_actions (&tx->undo_actions);
+  GTM_commit_allocations (true);
 }
 
 void REGPARM
@@ -171,6 +172,7 @@ GTM_trycommit_transaction (void)
       GTM_commit_local ();
       GTM_free_actions (&gtm_tx()->undo_actions);
       GTM_run_actions (&gtm_tx()->commit_actions);
+      GTM_commit_allocations (false);
       return true;
     }
   return false;

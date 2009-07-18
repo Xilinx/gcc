@@ -246,6 +246,7 @@ extern void _ITM_deregisterTMCloneTable (void *);
 #endif
 
 #include "rwlock.h"
+#include "aatree.h"
 
 
 /* ??? We're talking about storing some of this data in glibc tls slots
@@ -294,6 +295,14 @@ struct gtm_user_action
   void *arg;
 };
 
+/* This is extra data attached to each node of an AA tree.  */
+struct gtm_alloc_action
+{
+  void (*free_fn)(void *);
+  size_t size;
+  bool allocated;
+};
+
 struct gtm_method;
 
 #define STATE_READONLY		0x0001
@@ -327,6 +336,7 @@ struct gtm_transaction
 
   struct gtm_user_action *commit_actions;
   struct gtm_user_action *undo_actions;
+  aa_tree alloc_actions;
 
   struct gtm_method *m;
   struct gtm_transaction *prev;
@@ -403,6 +413,11 @@ extern void GTM_restart_transaction (enum restart_reason) NORETURN REGPARM;
 
 extern void GTM_run_actions (struct gtm_user_action **) REGPARM;
 extern void GTM_free_actions (struct gtm_user_action **) REGPARM;
+
+extern void GTM_record_allocation (void *, size_t, void (*)(void *)) REGPARM;
+extern void GTM_forget_allocation (void *, void (*)(void *)) REGPARM;
+extern size_t GTM_get_allocation_size (void *) REGPARM;
+extern void GTM_commit_allocations (bool) REGPARM;
 
 extern const struct gtm_dispatch wbetl_dispatch;
 
