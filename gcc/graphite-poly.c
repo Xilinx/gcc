@@ -266,8 +266,14 @@ apply_poly_transforms (scop_p scop)
 {
   bool transform_done = false;
 
+  gcc_assert (graphite_legal_transform (scop));
+
   if (flag_graphite_read)
-    transform_done |= graphite_read_transforms (scop);
+    {
+      transform_done |= graphite_read_transforms (scop);
+      gcc_assert (graphite_legal_transform (scop));
+    }
+
 
   /* Generate code even if we did not apply any real transformation.
      This also allows to check the performance for the identity
@@ -284,10 +290,16 @@ apply_poly_transforms (scop_p scop)
     gcc_unreachable (); /* Not yet supported.  */
 
   if (flag_loop_interchange)
-    transform_done |= scop_do_interchange (scop);
+    {
+      transform_done |= scop_do_interchange (scop);
+      gcc_assert (graphite_legal_transform (scop));
+    }
 
   if (flag_loop_strip_mine)
-    transform_done |= scop_do_strip_mine (scop);
+    {
+      transform_done |= scop_do_strip_mine (scop);
+      gcc_assert (graphite_legal_transform (scop));
+    }
 
   if (flag_graphite_write)
     graphite_write_transforms (scop);

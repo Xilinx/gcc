@@ -1673,8 +1673,6 @@ build_poly_scop (scop_p scop)
   build_scop_scattering (scop);
   build_scop_drs (scop);
 
-  gcc_assert (graphite_legal_transform (scop));
-
   return true;
 }
 
