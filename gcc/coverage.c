@@ -1162,12 +1162,17 @@ build_gcov_module_info_value (void)
 
 
   /* is_primary */
+  /* We also overload this field to store a flag that indicates whether this
+     module was built in regular FDO or LIPO mode (-fripa). When reading this
+     field from a GCDA file, it should be used as the IS_PRIMARY flag. When
+     reading this field from the binary's data section, it should be used
+     as a FDO/LIPO flag.  */
   field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
                       NULL_TREE, get_gcov_unsigned_t ());
   TREE_CHAIN (field) = fields;
   fields = field;
   value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
-                                            0), value);
+                                            flag_dyn_ipa ? 1 :0), value);
 
   /* is_exported */
   field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,

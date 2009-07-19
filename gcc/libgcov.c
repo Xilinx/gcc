@@ -91,17 +91,17 @@ static gcov_unsigned_t gcov_cur_module_id = 0;
 
 /* Pointer to the direct-call counters (per call-site counters).
    Initialized by the caller.  */
-THREAD_PREFIX gcov_type *__gcov_direct_call_counters;
+THREAD_PREFIX gcov_type *__gcov_direct_call_counters ATTRIBUTE_HIDDEN;
 
 /* Direct call callee address.  */
-THREAD_PREFIX void *__gcov_direct_call_callee;
+THREAD_PREFIX void *__gcov_direct_call_callee ATTRIBUTE_HIDDEN;
 
 /* Pointer to the indirect-call counters (per call-site counters).
    Initialized by the caller.  */
-THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters;
+THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters ATTRIBUTE_HIDDEN;
 
 /* Indirect call callee address.  */
-THREAD_PREFIX void *__gcov_indirect_call_topn_callee;
+THREAD_PREFIX void *__gcov_indirect_call_topn_callee ATTRIBUTE_HIDDEN;
 
 /* A program checksum allows us to distinguish program data for an
    object file included in multiple programs.  */
@@ -111,8 +111,8 @@ static gcov_unsigned_t gcov_crc32;
 static size_t gcov_max_filename = 0;
 
 /* Dynamic call graph build and form module groups.  */
-void __gcov_compute_module_groups (void);
-void __gcov_finalize_dyn_callgraph (void);
+void __gcov_compute_module_groups (void) ATTRIBUTE_HIDDEN;
+void __gcov_finalize_dyn_callgraph (void) ATTRIBUTE_HIDDEN;
 
 #ifdef TARGET_POSIX_IO
 /* Make sure path component of the given FILENAME exists, create 
@@ -276,8 +276,12 @@ gcov_write_import_file (char *gi_filename, struct gcov_info *gi_ptr)
       if (imp_mods)
         {
           for (i = 0; i < imp_len; i++)
-            fprintf (imports_file, "%s\n",
-                     imp_mods[i]->mod_info->source_filename);
+	    {
+	      fprintf (imports_file, "%s\n",
+		       imp_mods[i]->mod_info->source_filename);
+	      fprintf (imports_file, "%s%s\n",
+		       imp_mods[i]->mod_info->da_filename, GCOV_DATA_SUFFIX);
+	    }
           free (imp_mods);
         }
       fclose (imports_file);
@@ -328,6 +332,9 @@ gcov_exit (void)
 	    }
 	  ci_ptr++;
 	}
+      /* The IS_PRIMARY field is overloaded to indicate if this module
+	 is FDO/LIPO.  */
+      dump_module_info |= gi_ptr->mod_info->is_primary;
     }
 
   /* Get file name relocation prefix.  Non-absolute values are ignored. */
@@ -405,9 +412,6 @@ gcov_exit (void)
 	    values[c_ix] = gi_ptr->counts[c_ix].values;
             if (t_ix == GCOV_COUNTER_ICALL_TOPNV)
               gcov_sort_icall_topn_counter (&gi_ptr->counts[c_ix]);
-	    if (t_ix == GCOV_COUNTER_DIRECT_CALL
-		|| t_ix == GCOV_COUNTER_ICALL_TOPNV)
-	      dump_module_info = 1;
 	    c_ix++;
 	  }
 
@@ -699,6 +703,7 @@ gcov_exit (void)
       gcov_seek (gi_ptr->eof_pos);
 
       gcov_write_module_infos (gi_ptr);
+      gcov_truncate ();
 
       if ((error = gcov_close ()))
 	  fprintf (stderr, error  < 0 ?
@@ -1199,8 +1204,8 @@ __gcov_indirect_call_profiler (gcov_type* counter, gcov_type value,
 
 
 #ifdef L_gcov_indirect_call_topn_profiler
-extern THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters;
-extern THREAD_PREFIX void *__gcov_indirect_call_topn_callee;
+extern THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters ATTRIBUTE_HIDDEN;
+extern THREAD_PREFIX void *__gcov_indirect_call_topn_callee ATTRIBUTE_HIDDEN;
 void
 __gcov_indirect_call_topn_profiler (void *cur_func,
                                     void *cur_module_gcov_info,
@@ -1226,8 +1231,8 @@ __gcov_indirect_call_topn_profiler (void *cur_func,
 #endif
 
 #ifdef L_gcov_direct_call_profiler
-extern THREAD_PREFIX gcov_type *__gcov_direct_call_counters;
-extern THREAD_PREFIX void *__gcov_direct_call_callee;
+extern THREAD_PREFIX gcov_type *__gcov_direct_call_counters ATTRIBUTE_HIDDEN;
+extern THREAD_PREFIX void *__gcov_direct_call_callee ATTRIBUTE_HIDDEN;
 /* Direct call profiler. */
 void
 __gcov_direct_call_profiler (void *cur_func,

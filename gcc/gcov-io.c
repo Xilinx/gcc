@@ -575,6 +575,22 @@ gcov_seek (gcov_position_t base)
   fseek (gcov_var.file, base << 2, SEEK_SET);
   gcov_var.start = ftell (gcov_var.file) >> 2;
 }
+
+/* Truncate the gcov file at the current position.  */
+
+GCOV_LINKAGE void
+gcov_truncate (void)
+{
+  long offs;
+  int filenum;
+  gcc_assert (gcov_var.mode < 0);
+  if (gcov_var.offset)
+    gcov_write_block (gcov_var.offset);
+  offs = ftell (gcov_var.file);
+  filenum = fileno (gcov_var.file);
+  if (offs == -1 || filenum == -1 || ftruncate (filenum, offs))
+    gcov_var.error = 1;
+}
 #endif
 
 #if IN_GCOV > 0

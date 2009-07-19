@@ -271,6 +271,7 @@ typedef HOST_WIDEST_INT gcov_type;
 #define gcov_position __gcov_position
 #define gcov_seek __gcov_seek
 #define gcov_rewrite __gcov_rewrite
+#define gcov_truncate __gcov_truncate
 #define gcov_is_error __gcov_is_error
 #define gcov_write_unsigned __gcov_write_unsigned
 #define gcov_write_counter __gcov_write_counter
@@ -458,7 +459,10 @@ struct gcov_summary
 struct gcov_module_info
 {
   gcov_unsigned_t ident;
-  gcov_unsigned_t is_primary;
+  gcov_unsigned_t is_primary; /* this is overloaded to mean two things:
+				 (1) means FDO/LIPO in instrumented binary.
+				 (2) means IS_PRIMARY in persistent file or
+				     memory copy used in profile-use.  */
   gcov_unsigned_t is_exported;
   gcov_unsigned_t lang;
   char *da_filename;
@@ -549,8 +553,8 @@ extern void __gcov_interval_profiler (gcov_type *, gcov_type, int, unsigned);
 extern void __gcov_pow2_profiler (gcov_type *, gcov_type);
 extern void __gcov_one_value_profiler (gcov_type *, gcov_type);
 extern void __gcov_indirect_call_profiler (gcov_type *, gcov_type, void *, void *);
-extern void __gcov_indirect_call_topn_profiler (void *, void *, gcov_unsigned_t);
-extern void __gcov_direct_call_profiler (void *, void *, gcov_unsigned_t);
+extern void __gcov_indirect_call_topn_profiler (void *, void *, gcov_unsigned_t) ATTRIBUTE_HIDDEN;
+extern void __gcov_direct_call_profiler (void *, void *, gcov_unsigned_t) ATTRIBUTE_HIDDEN;
 extern void __gcov_average_profiler (gcov_type *, gcov_type);
 extern void __gcov_ior_profiler (gcov_type *, gcov_type);
 extern void __gcov_sort_n_vals (gcov_type *value_array, int n);
@@ -643,6 +647,7 @@ gcov_get_sorted_import_module_array (struct gcov_info *mod_info, unsigned *len)
     ATTRIBUTE_HIDDEN;
 static void gcov_rewrite (void);
 GCOV_LINKAGE void gcov_seek (gcov_position_t /*position*/) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void gcov_truncate (void) ATTRIBUTE_HIDDEN;
 #else
 /* Available outside libgcov */
 GCOV_LINKAGE const char *gcov_read_string (void);

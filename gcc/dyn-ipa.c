@@ -98,8 +98,8 @@ struct dyn_pointer_set
 __gcov_build_callgraph (void) {}
 #else
 
-void __gcov_compute_module_groups (void);
-void __gcov_finalize_dyn_callgraph (void);
+void __gcov_compute_module_groups (void) ATTRIBUTE_HIDDEN;
+void __gcov_finalize_dyn_callgraph (void) ATTRIBUTE_HIDDEN;
 static void gcov_dump_callgraph (gcov_type);
 static void gcov_dump_cgraph_node_short (struct dyn_cgraph_node *node);
 static void gcov_dump_cgraph_node (struct dyn_cgraph_node *node,
@@ -169,7 +169,7 @@ get_module_info (gcov_unsigned_t module_id)
   return the_dyn_call_graph.modules[module_id];
 }
 
-struct gcov_info *__gcov_list;
+struct gcov_info *__gcov_list ATTRIBUTE_HIDDEN;
 
 /* Initialize dynamic call graph.  */
 
@@ -286,6 +286,8 @@ __gcov_finalize_dyn_callgraph (void)
               XDELETE (callees);
               callees = next_callee;
             }
+	  if (node->imported_modules)
+	    pointer_set_destroy (node->imported_modules);
         }
       if (the_dyn_call_graph.call_graph_nodes[i])
         XDELETEVEC (the_dyn_call_graph.call_graph_nodes[i]);

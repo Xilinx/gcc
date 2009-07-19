@@ -1510,11 +1510,19 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
                 EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
       return false;
     }
-  else 
-    inform (locus, "Found indirect call target"
-            " decl (%d:%d)[cnt:%u] in current module",
-            EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
-            EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
+
+  /* Don't indirect-call promote if the target is in auxiliary module and
+     DECL_ARTIFICIAL and not TREE_PUBLIC, because we don't static-promote
+     DECL_ARTIFICIALs yet.  */
+  if (cgraph_is_auxiliary (direct_call1->decl)
+      && DECL_ARTIFICIAL (direct_call1->decl)
+      && ! TREE_PUBLIC (direct_call1->decl))
+    return false;
+
+  inform (locus, "Found indirect call target"
+	  " decl (%d:%d)[cnt:%u] in current module",
+	  EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
+	  EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
 
 
   modify1 = gimple_ic (stmt, stmt, direct_call1, prob1, count1, all);
@@ -1540,7 +1548,13 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
 	       " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count1, all);
     }
 
-  if (direct_call2 && check_ic_target (gimple_call_fn (stmt), direct_call2))
+  if (direct_call2 && check_ic_target (gimple_call_fn (stmt), direct_call2)
+      /* Don't indirect-call promote if the target is in auxiliary module and
+	 DECL_ARTIFICIAL and not TREE_PUBLIC, because we don't static-promote
+	 DECL_ARTIFICIALs yet.  */
+      && ! (cgraph_is_auxiliary (direct_call2->decl)
+	    && DECL_ARTIFICIAL (direct_call2->decl)
+	    && ! TREE_PUBLIC (direct_call2->decl)))
     {
       modify2 = gimple_ic (stmt, stmt, direct_call2,
                            prob2, count2, all - count1);
