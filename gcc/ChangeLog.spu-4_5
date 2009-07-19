@@ -1,3 +1,9 @@
+2009-07-19  Revital Eres  <eres@il.ibm.com>
+
+	* config/spu/spu-elf.h: Remove --lrlive-analysis flag.
+	* gcc/config/spu/t-spu-elf (MULTILIB_OPTIONS, MULTILIB_DIRNAMES):
+	Pass icache flags.
+
 2009-06-29  Revital Eres  <eres@il.ibm.com>
 
 	* target.h (fpart_finalize): New field in struct gcc_target.	

@@ -67,7 +67,7 @@
 #define EH_FRAME_IN_DATA_SECTION 1
 
 #define LINK_SPEC "%{mlarge-mem: --defsym __stack=0xfffffff0 } \
-		   %{msoftware-icache: --soft-icache --auto-overlay --lrlive-analysis}"
+		   %{msoftware-icache: --soft-icache --auto-overlay}"
 
 #define LIB_SPEC "-( %{!shared:%{g*:-lg}} -lc -lgloss -) \
     %{mno-atomic-updates:-lgcc_cachemgr_nonatomic; :-lgcc_cachemgr} \

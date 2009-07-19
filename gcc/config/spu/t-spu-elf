@@ -61,10 +61,8 @@ fp-bit.c: $(srcdir)/config/fp-bit.c $(srcdir)/config/spu/t-spu-elf
 # Don't let CTOR_LIST end up in sdata section.
 CRTSTUFF_T_CFLAGS =
 
-#MULTILIB_OPTIONS=mlarge-mem/mtest-abi
-MULTILIB_OPTIONS=mea64
-#MULTILIB_DIRNAMES=large-mem test-abi
-#MULTILIB_MATCHES=
+MULTILIB_OPTIONS=msoftware-icache mea64
+MULTILIB_DIRNAMES=icache mea64
 
 # Neither gcc or newlib seem to have a standard way to generate multiple
 # crt*.o files.  So we don't use the standard crt0.o name anymore.
