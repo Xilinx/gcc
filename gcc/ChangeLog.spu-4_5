@@ -1,4 +1,5 @@
 2009-07-19  Revital Eres  <eres@il.ibm.com>
+	    Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* config/spu/spu-elf.h: Remove --lrlive-analysis flag.
 	* gcc/config/spu/t-spu-elf (MULTILIB_OPTIONS, MULTILIB_DIRNAMES):
