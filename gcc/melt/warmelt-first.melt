@@ -3785,7 +3785,8 @@
 	  (if nulloutfile 
 	      (progn 
 		(shortbacktrace_dbg "debug_msg_fun null output file" 50)
-		(return))))
+		(setq out (get_field :sysdata_stderr initial_system_data))
+		)))
 	(let ( 
 	      (dbgi (instance class_debuginfo
 			      :dbgi_out out

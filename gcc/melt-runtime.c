@@ -9822,6 +9822,16 @@ meltgc_gimple_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
   debugeprintf ("meltgc_gimple_gate pass %s before apply", current_pass->name);
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof (locbuf));
+    snprintf (locbuf, sizeof (locbuf) - 1,
+	      "%s:%d:meltgc_gimple_gate pass %s before apply",
+	      basename (__FILE__), __LINE__, current_pass->name);
+    curfram__.flocs = locbuf;
+  }
+#endif
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
 		(melt_ptr_t) passv, "",
@@ -9903,6 +9913,16 @@ meltgc_gimple_execute(void)
     debugeprintf ("gimple_execute passname %s before apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     /* apply with one extra long result */
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof (locbuf));
+    snprintf (locbuf, sizeof (locbuf) - 1,
+	      "%s:%d:meltgc_gimple_execute pass %s before apply",
+	      basename (__FILE__), __LINE__, current_pass->name);
+    curfram__.flocs = locbuf;
+  }
+#endif
     restab[0].bp_longptr = &todol;
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
@@ -9975,6 +9995,16 @@ meltgc_rtl_gate(void)
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof (locbuf));
+    snprintf (locbuf, sizeof (locbuf) - 1,
+	      "%s:%d:meltgc_rtl_gate pass %s before apply",
+	      basename (__FILE__), __LINE__, current_pass->name);
+    curfram__.flocs = locbuf;
+  }
+#endif
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
 		(melt_ptr_t) passv, "",
@@ -10048,6 +10078,16 @@ meltgc_rtl_execute(void)
     debugeprintf ("rtl_execute passname %s before apply",
 		  current_pass->name);
     /* apply with one extra long result */
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof (locbuf));
+    snprintf (locbuf, sizeof (locbuf) - 1,
+	      "%s:%d:meltgc_rtl_execute pass %s before apply",
+	      basename (__FILE__), __LINE__, current_pass->name);
+    curfram__.flocs = locbuf;
+  }
+#endif
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
 		  (melt_ptr_t) passv, "",
@@ -10120,6 +10160,16 @@ meltgc_simple_ipa_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
   debugeprintf ("meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof (locbuf));
+    snprintf (locbuf, sizeof (locbuf) - 1,
+	      "%s:%d:meltgc_simple_ipa_gate pass %s before apply",
+	      basename (__FILE__), __LINE__, current_pass->name);
+    curfram__.flocs = locbuf;
+  }
+#endif
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
 		(melt_ptr_t) passv, "",
@@ -10200,6 +10250,16 @@ meltgc_simple_ipa_execute(void)
 	((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
       }
     debugeprintf ("meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof (locbuf));
+    snprintf (locbuf, sizeof (locbuf) - 1,
+	      "%s:%d:meltgc_simple_ipa_execute pass %s before apply",
+	      basename (__FILE__), __LINE__, current_pass->name);
+    curfram__.flocs = locbuf;
+  }
+#endif
     /* apply with one extra long result */
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
@@ -10442,6 +10502,16 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
       memset (argtab, 0, sizeof (argtab));
       argtab[0].bp_aptr = (melt_ptr_t *) & namev;
       argtab[1].bp_aptr = (melt_ptr_t *) & seqv;
+#if ENABLE_CHECKING
+  {
+    static char locbuf[80];
+    memset (locbuf, 0, sizeof (locbuf));
+    snprintf (locbuf, sizeof (locbuf) - 1,
+	      "%s:%d:melt_handle_melt_attribute %s before apply",
+	      basename (__FILE__), __LINE__, attrstr);
+    curfram__.flocs = locbuf;
+  }
+#endif
       (void) melt_apply ((meltclosure_ptr_t) atclov,
 			    (melt_ptr_t) declv,
 			    BPARSTR_PTR BPARSTR_PTR, argtab, "", NULL);

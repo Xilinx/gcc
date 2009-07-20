@@ -1,5 +1,16 @@
 
 2009-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_gimple_gate, meltgc_gimple_execute)
+	(meltgc_rtl_gate, meltgc_rtl_execute, meltgc_simple_ipa_gate)
+	(meltgc_simple_ipa_execute, melt_handle_melt_attribute): generate
+	a precise location for MELT backtracking.
+	* melt/warmelt-first.melt: debug_msg_fun does give an output when
+	out is null.
+	* melt/ana-simple.melt: more of greenpass.. [should be a pass
+	registered after pta, not ccp]
+	* testsuite/melt/tgreenprint.c: added more statements.
+
+2009-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tgreenprint.c: Added new file.
 	* testsuite/melt/tmallbuf.c: Corrected comment about running it.
 	* melt-runtime.c (melt_really_initialize, plugin_init)

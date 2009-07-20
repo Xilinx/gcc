@@ -28,6 +28,8 @@ extern FILE* otherfile;
 
 void green_test(void)
 {
+  if (!otherfile)
+    otherfile = tmpfile ();
   say_str_int (stdout, "green_test stdout", __LINE__);
   say_str_int (stderr, "green_test stderr", __LINE__);
   say_str_int ((FILE*)0, "green_test nullfile", __LINE__);
