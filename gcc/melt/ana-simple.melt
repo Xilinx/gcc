@@ -27,28 +27,44 @@
 ;;; a pass which converts fprintf(stdout, ..) to printf (..)
 
 (defun makegreenpass_gate (pass)
-  (debug_msg pass "makegreenapass_gate pass at start")
+  (debug_msg pass "makegreenpass_gate pass at start")
   ;; always return true
   pass
 )
 
 (defun makegreenpass_exec (pass)
-  (debug_msg pass "makegreenapass_execute pass at start")
-)
+  (debug_msg pass "makegreenpass_exec pass at start")
+  (each_cgraph_fun_entryblock
+   ()
+   (:tree decl :basicblock bbent)
+   (push_cfun_decl decl)
+   (debugtree "makegreenpass_exec exec eachcgraph decl" decl)
+   (debugbasicblock "makegreenpass_exec bbent" bbent)
+   ;; do something useful here
+   (pop_cfun)
+   )
+  (debug_msg pass "makegreenpass_exec pass at end")
+  )
 
 (defun makegreen_command (dispatcher arg secarg moduldata)
   (let ( (greenpass
 	  (instance class_gcc_simple_ipa_pass
+		    :named_name (make_stringconst discr_string "melt_greenpass")
 		    :gccpass_gate makegreenpass_gate
 		    :gccpass_exec makegreenpass_exec
 		    :gccpass_properties_required ()
 	      )
         ) )
- ;;; register your pass after the "ccp" pass 
-  (install_melt_gcc_pass greenpass "after" "ccp" 0)
+ ;;; register our pass after the "pta" pass 
+  (install_melt_gcc_pass greenpass "after" "pta" 0)
   (debug_msg greenpass "makegreen_command installed greenpass")
+;; return the greenpass to accept the command
+  (return greenpass)
 ))
 (initial_command_install makegreen_command "makegreen")
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; small analysis

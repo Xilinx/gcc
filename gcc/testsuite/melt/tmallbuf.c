@@ -2,9 +2,9 @@
 /*** 
       run in buildir/gcc 
   ./cc1 -fmelt=smallana \
-   -fmelt-dynlibdir=. \
+   -fmelt-module-pass=. \
    -fmelt-compile-script=./built-melt-cc-script \
-   -fmelt-gensrcdir=. -fmelt-tempdir=/tmp \
+   -fmelt-source-path=. -fmelt-tempdir=/tmp \
    -fmelt-debug \
    -Wall -O .../tmallbuf.c
 

@@ -7777,7 +7777,7 @@ melt_really_initialize (const char* pluginame)
     melt_storalz = ((void **) melt_endalz) - 2;
     melt_newspeclist = NULL;
     melt_oldspeclist = NULL;
-    debugeprintf ("melt_initialize alloczon %p - %p (%ld Kw)",
+    debugeprintf ("melt_really_initialize alloczon %p - %p (%ld Kw)",
 		  melt_startalz, melt_endalz, (long) wantedwords >> 10);
   }
   /* we are using register_callback here, even if MELT is not yet a
@@ -7788,18 +7788,18 @@ melt_really_initialize (const char* pluginame)
   register_callback (melt_plugin_name, PLUGIN_ATTRIBUTES,
 		     melt_attribute_callback,
 		     NULL);
-  debugeprintf ("melt_initialize cpp_PREFIX=%s", cpp_PREFIX);
-  debugeprintf ("melt_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
-  debugeprintf ("melt_initialize gcc_exec_prefix=%s", gcc_exec_prefix);
-  debugeprintf ("melt_initialize melt_private_include_dir=%s",
+  debugeprintf ("melt_really_initialize cpp_PREFIX=%s", cpp_PREFIX);
+  debugeprintf ("melt_really_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
+  debugeprintf ("melt_really_initialize gcc_exec_prefix=%s", gcc_exec_prefix);
+  debugeprintf ("melt_really_initialize melt_private_include_dir=%s",
 		melt_private_include_dir);
-  debugeprintf ("melt_initialize melt_source_dir=%s", melt_source_dir);
-  debugeprintf ("melt_initialize melt_module_dir=%s", melt_module_dir);
-  debugeprintf ("melt_initialize inistr=%s", inistr);
+  debugeprintf ("melt_really_initialize melt_source_dir=%s", melt_source_dir);
+  debugeprintf ("melt_really_initialize melt_module_dir=%s", melt_module_dir);
+  debugeprintf ("melt_really_initialize inistr=%s", inistr);
   if (ppl_set_error_handler(melt_ppl_error_handler))
     fatal_error ("failed to set PPL handler");
   load_melt_modules_and_do_command ();
-  debugeprintf ("melt_initialize ended init=%s command=%s",
+  debugeprintf ("melt_ireally_nitialize ended init=%s command=%s",
 		inistr, modstr);
 }
 
@@ -7881,6 +7881,7 @@ plugin_init(struct plugin_name_args* plugin_info,
   melt_plugin_argc = plugin_info->argc;
   melt_plugin_argv = plugin_info->argv;
   melt_really_initialize (plugin_info->base_name);
+  debugeprintf ("end of melt plugin_init");
   return 0; /* success */
 }
 
@@ -7889,6 +7890,7 @@ void
 melt_initialize (void)
 {
   melt_really_initialize ("__MELT/buitin");
+  debugeprintf ("end of melt_initialize [builtin MELT]");
 }
 #endif
 
@@ -9706,7 +9708,7 @@ melt_val2passflag(melt_ptr_t val_p)
     }
   else if (valmag == OBMAG_OBJECT 
 	   && melt_is_instance_of((melt_ptr_t) valv, 
-				     (melt_ptr_t) MELT_PREDEF(CLASS_NAMED)))
+				  (melt_ptr_t) MELT_PREDEF(CLASS_NAMED)))
     {
       compv = ((meltobject_ptr_t)valv)->obj_vartab[FNAMED_NAME];
       res = melt_val2passflag((melt_ptr_t) compv);
@@ -9799,12 +9801,13 @@ meltgc_gimple_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr) 
     goto end;
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
-  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
-    goto end;
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == GIMPLE_PASS);
+  debugeprintf ("meltgc_gimple_gate pass %s", current_pass->name);
+  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*) passdictv, current_pass->name);
   if (!passv 
       || !melt_is_instance_of((melt_ptr_t) passv, (melt_ptr_t)  MELT_PREDEF(CLASS_GCC_GIMPLE_PASS)))
@@ -9818,12 +9821,15 @@ meltgc_gimple_gate(void)
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
+  debugeprintf ("meltgc_gimple_gate pass %s before apply", current_pass->name);
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
-		   (melt_ptr_t) passv, "",
-		   (union meltparam_un *) 0, "",
-		   (union meltparam_un *) 0);
+		(melt_ptr_t) passv, "",
+		(union meltparam_un *) 0, "",
+		(union meltparam_un *) 0);
   ok = (resv != NULL);
+  debugeprintf ("meltgc_gimple_gate pass %s after apply ok=%d",
+		current_pass->name, ok);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
     {
       FILE *df = melt_get_file ((melt_ptr_t) dumpv);
@@ -9834,6 +9840,7 @@ meltgc_gimple_gate(void)
   /* force a minor GC to be sure that nothing is in the young region */
   melt_garbcoll (0, MELT_MINOR_OR_FULL);
  end:
+  debugeprintf ("meltgc_gimple_gate pass %s ended ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
   return ok;
 #undef passv        
@@ -9860,16 +9867,17 @@ meltgc_gimple_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
-  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
-    goto end;
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == GIMPLE_PASS);
+  debugeprintf ("meltgc_gimple_execute pass %s starting", current_pass->name);
+  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st *)passdictv, current_pass->name);
   if (!passv 
       || !melt_is_instance_of((melt_ptr_t) passv,
-				 (melt_ptr_t) MELT_PREDEF(CLASS_GCC_GIMPLE_PASS)))
+			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_GIMPLE_PASS)))
     goto end;
   closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_EXEC);
   if (melt_magic_discr((melt_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -9892,13 +9900,15 @@ meltgc_gimple_execute(void)
 	oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
 	((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
       };
+    debugeprintf ("gimple_execute passname %s before apply dbgcounter %ld",
+		  current_pass->name, passdbgcounter);
     /* apply with one extra long result */
     restab[0].bp_longptr = &todol;
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
-		     (melt_ptr_t) passv, "",
-		     (union meltparam_un *) 0, BPARSTR_LONG "",
-		     restab);
+		  (melt_ptr_t) passv, "",
+		  (union meltparam_un *) 0, BPARSTR_LONG "",
+		  restab);
     debugeprintf ("gimple_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
@@ -9914,6 +9924,7 @@ meltgc_gimple_execute(void)
     melt_garbcoll (0, MELT_MINOR_OR_FULL);
   }
  end:
+  debugeprintf ("meltgc_gimple_execute pass %s ended res=%ud", current_pass->name, res);
   MELT_EXITFRAME();
   return res;
 #undef passv        
@@ -9942,17 +9953,18 @@ meltgc_rtl_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv =  melt_get_inisysdata (FSYSDAT_PASS_DICT);
-  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
-    goto end;
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == RTL_PASS);
+  debugeprintf ("meltgc_rtl_gate pass %s start", current_pass->name);
+  passdictv =  melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*) passdictv, 
-				  current_pass->name);
+			      current_pass->name);
   if (!passv 
       || !melt_is_instance_of((melt_ptr_t) passv, 
-				 (melt_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS)))
+			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS)))
     goto end;
   closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_GATE);
   if (melt_magic_discr((melt_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -9965,9 +9977,9 @@ meltgc_rtl_gate(void)
     }
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
-		   (melt_ptr_t) passv, "",
-		   (union meltparam_un *) 0, "",
-		   (union meltparam_un *) 0);
+		(melt_ptr_t) passv, "",
+		(union meltparam_un *) 0, "",
+		(union meltparam_un *) 0);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
     {
       FILE *df = melt_get_file ((melt_ptr_t) dumpv);
@@ -9979,6 +9991,7 @@ meltgc_rtl_gate(void)
   /* force a minor GC to be sure that nothing is in the young region */
   melt_garbcoll (0, MELT_MINOR_OR_FULL);
  end:
+  debugeprintf ("meltgc_rtl_gate pass %s end ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
   return ok;
 }
@@ -10001,17 +10014,18 @@ meltgc_rtl_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
-  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
-    goto end;
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == RTL_PASS);
+  debugeprintf ("meltgc_rtl_execute pass %s start", current_pass->name);
+  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*) passdictv, 
-				 current_pass->name);
+			      current_pass->name);
   if (!passv 
       || !melt_is_instance_of((melt_ptr_t) passv,
-				 (melt_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS)))
+			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS)))
     goto end;
   closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_EXEC);
   if (melt_magic_discr((melt_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -10036,9 +10050,9 @@ meltgc_rtl_execute(void)
     /* apply with one extra long result */
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
-		     (melt_ptr_t) passv, "",
-		     (union meltparam_un *) 0, BPARSTR_LONG "",
-		     restab);
+		  (melt_ptr_t) passv, "",
+		  (union meltparam_un *) 0, BPARSTR_LONG "",
+		  restab);
     debugeprintf ("rtl_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
@@ -10054,6 +10068,7 @@ meltgc_rtl_execute(void)
     melt_garbcoll (0, MELT_MINOR_OR_FULL);
   }
  end:
+  debugeprintf ("meltgc_rtl_execute pass %s end res=%ud", current_pass->name, res);
   MELT_EXITFRAME();
   return res;
 #undef passv        
@@ -10082,17 +10097,18 @@ meltgc_simple_ipa_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
-  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
-    goto end;
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == SIMPLE_IPA_PASS);
+  debugeprintf ("meltgc_simple_ipa_gate pass %s start", current_pass->name);
+  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*) passdictv, 
-				 current_pass->name);
+			      current_pass->name);
   if (!passv 
       || !melt_is_instance_of((melt_ptr_t) passv, 
-				 (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS)))
+			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS)))
     goto end;
   closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_GATE);
   if (melt_magic_discr((melt_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -10103,11 +10119,13 @@ meltgc_simple_ipa_gate(void)
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
+  debugeprintf ("meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
-		   (melt_ptr_t) passv, "",
-		   (union meltparam_un *) 0, "",
-		   (union meltparam_un *) 0);
+		(melt_ptr_t) passv, "",
+		(union meltparam_un *) 0, "",
+		(union meltparam_un *) 0);
+  debugeprintf ("meltgc_simple_ipa_gate pass %s after apply", current_pass->name);
   ok = (resv != NULL);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
     {
@@ -10119,6 +10137,7 @@ meltgc_simple_ipa_gate(void)
   /* force a minor GC to be sure that nothing is in the young region */
   melt_garbcoll (0, MELT_MINOR_OR_FULL);
  end:
+  debugeprintf ("meltgc_simple_ipa_gate pass %s end ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
   return ok;
 #undef passv        
@@ -10147,17 +10166,18 @@ meltgc_simple_ipa_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
-  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
-    goto end;
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == SIMPLE_IPA_PASS);
+  debugeprintf ("meltgc_simple_ipa_execute pass %s start", current_pass->name);
+  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  if (melt_magic_discr((melt_ptr_t) passdictv) != OBMAG_MAPSTRINGS) 
+    goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*)passdictv, 
-				 current_pass->name);
+			      current_pass->name);
   if (!passv 
       || !melt_is_instance_of((melt_ptr_t) passv, 
-				 (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS)))
+			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS)))
     goto end;
   closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_EXEC);
   if (melt_magic_discr((melt_ptr_t) closv) != OBMAG_CLOSURE) 
@@ -10173,25 +10193,26 @@ meltgc_simple_ipa_execute(void)
        current_pass->name, melt_dbgcounter);
     debugeprintf ("simple_ipa_execute passname %s before apply",
 		  current_pass->name);
-  dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
-  if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
-    {
-      oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
-      ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
-    }
+    dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
+    if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+      {
+	oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
+	((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
+      }
+    debugeprintf ("meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
     /* apply with one extra long result */
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
-		     (melt_ptr_t) passv, "",
-		     (union meltparam_un *) 0, BPARSTR_LONG "",
-		     restab);
-  if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
-    {
-      FILE *df = melt_get_file ((melt_ptr_t) dumpv);
-      if (df)
-	fflush (df);
-      ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
-    };
+		  (melt_ptr_t) passv, "",
+		  (union meltparam_un *) 0, BPARSTR_LONG "",
+		  restab);
+    if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
+      {
+	FILE *df = melt_get_file ((melt_ptr_t) dumpv);
+	if (df)
+	  fflush (df);
+	((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
+      };
     debugeprintf ("simple_ipa_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     if (resvalv)
@@ -10234,6 +10255,8 @@ meltgc_register_pass (melt_ptr_t pass_p,
 #define compv        curfram__.varptr[2]
 #define namev        curfram__.varptr[3]
   passv = pass_p;
+  debugeprintf ("meltgc_register_pass start passv %p refpassname %s positioning %s",
+		(void*)passv, refpassname, positioning);
   if (!modstr)
     modstr = melt_argument("mode");
   if (!modstr || !modstr[0])
@@ -10251,16 +10274,22 @@ meltgc_register_pass (melt_ptr_t pass_p,
   else fatal_error("invalid positioning string %s in MELT pass", positioning);
   if (!passv || melt_object_length((melt_ptr_t) passv) < FGCCPASS__LAST
       || !melt_is_instance_of((melt_ptr_t) passv, 
-				 (melt_ptr_t) MELT_PREDEF(CLASS_GCC_PASS)))
+			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_PASS)))
     goto end;
   namev = melt_object_nth_field((melt_ptr_t) passv, FNAMED_NAME);
   if (melt_magic_discr((melt_ptr_t) namev) != OBMAG_STRING)
-    goto end;
+    {
+      warning (0, "registering a MELT pass without any name!");
+      goto end;
+    };
+  debugeprintf ("meltgc_register_pass name %s refpassname %s positioning %s posop %d",
+		melt_string_str ((melt_ptr_t) namev), refpassname, positioning, (int)posop);
+  
   passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
   if (melt_magic_discr((melt_ptr_t)passdictv) != OBMAG_MAPSTRINGS) 
     goto end;
   if (melt_get_mapstrings((struct meltmapstrings_st*)passdictv, 
-			     melt_string_str((melt_ptr_t) namev)))
+			  melt_string_str((melt_ptr_t) namev)))
     goto end;
   compv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_PROPERTIES_REQUIRED);
   propreq = melt_val2passflag((melt_ptr_t) compv);
@@ -10273,7 +10302,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
   /* allocate the opt pass and fill it; it is never deallocated (ie it
      is never free-d)! */
   if (melt_is_instance_of((melt_ptr_t) passv,
-			     (melt_ptr_t) MELT_PREDEF(CLASS_GCC_GIMPLE_PASS))) {
+			  (melt_ptr_t) MELT_PREDEF(CLASS_GCC_GIMPLE_PASS))) {
     struct gimple_opt_pass* gimpass = NULL;     
     gimpass = XNEW(struct gimple_opt_pass);
     memset(gimpass, 0, sizeof(struct gimple_opt_pass));
@@ -10293,14 +10322,16 @@ meltgc_register_pass (melt_ptr_t pass_p,
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
     plugpass.pos_op = posop;
+    debugeprintf ("meltgc_register_pass name %s GIMPLE_PASS %p refpassname %s",
+		  melt_string_str ((melt_ptr_t) namev), (void*)gimpass, refpassname);
     register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
     meltgc_put_mapstrings((struct meltmapstrings_st*) passdictv,
-			     gimpass->pass.name, (melt_ptr_t) passv);
+			  gimpass->pass.name, (melt_ptr_t) passv);
   }
   else if (melt_is_instance_of((melt_ptr_t) passv, 
-				  (melt_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS))) {
+			       (melt_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS))) {
     struct rtl_opt_pass* rtlpass = NULL;     
     rtlpass = XNEW(struct rtl_opt_pass);
     memset(rtlpass, 0, sizeof(struct rtl_opt_pass));
@@ -10320,14 +10351,16 @@ meltgc_register_pass (melt_ptr_t pass_p,
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
     plugpass.pos_op = posop;
+    debugeprintf ("meltgc_register_pass name %s RTL_PASS %p refpassname %s",
+		  melt_string_str ((melt_ptr_t) namev), (void*)rtlpass, refpassname);
     register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
     meltgc_put_mapstrings((struct meltmapstrings_st*) passdictv,
-			     rtlpass->pass.name, (melt_ptr_t) passv);
+			  rtlpass->pass.name, (melt_ptr_t) passv);
   }
   else if (melt_is_instance_of((melt_ptr_t) passv,
-				  (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS))) {
+			       (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS))) {
     struct simple_ipa_opt_pass* sipapass = NULL;     
     sipapass = XNEW(struct simple_ipa_opt_pass);
     memset(sipapass, 0, sizeof(struct simple_ipa_opt_pass));
@@ -10347,20 +10380,25 @@ meltgc_register_pass (melt_ptr_t pass_p,
     plugpass.reference_pass_name = refpassname;
     plugpass.ref_pass_instance_number = refpassnum;
     plugpass.pos_op = posop;
+    debugeprintf ("meltgc_register_pass name %s SIMPLE_IPA_PASS %p refpassname %s",
+		  melt_string_str ((melt_ptr_t) namev), (void*)sipapass, refpassname);
     register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
 		      NULL, &plugpass);
     /* add the pass into the pass dict */
     meltgc_put_mapstrings((struct meltmapstrings_st*) passdictv,
-			     sipapass->pass.name, (melt_ptr_t) passv);
+			  sipapass->pass.name, (melt_ptr_t) passv);
   }
   /* non simple ipa passes are a different story - TODO! */
   else 
     fatal_error ("MELT cannot register pass %s of unexpected class %s",
 		 melt_string_str ((melt_ptr_t) namev), 
 		 melt_string_str (melt_object_nth_field 
-				     ((melt_ptr_t) melt_discr((melt_ptr_t) passv), 
-				      FNAMED_NAME)));
+				  ((melt_ptr_t) melt_discr((melt_ptr_t) passv), 
+				   FNAMED_NAME)));
  end:
+  debugeprintf ("meltgc_register_pass name %s refpassname %s end",
+		melt_string_str ((melt_ptr_t) namev), refpassname);
+  
   MELT_EXITFRAME();
 #undef passv
 #undef passdictv

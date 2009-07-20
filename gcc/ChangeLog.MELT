@@ -1,5 +1,17 @@
 
-2009-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tgreenprint.c: Added new file.
+	* testsuite/melt/tmallbuf.c: Corrected comment about running it.
+	* melt-runtime.c (melt_really_initialize, plugin_init)
+	(melt_initialize, meltgc_gimple_gate, meltgc_gimple_gate)
+	(meltgc_gimple_execute, meltgc_rtl_gate, meltgc_rtl_execute)
+	(meltgc_simple_ipa_gate, meltgc_simple_ipa_execute)
+	(meltgc_register_pass): better debug printfs.
+	(meltgc_register_pass): issue a warning if unamed pass.
+	* melt/ana-simple.melt: makegreen work but don't do anything
+	useful yet.
+
+2009-07-17  Basile Starynkevitch  <asile@starynkevitch.net>
 	* melt/warmelt-first.melt: the class_gcc_*_pass are all subclasses
 	of class_gcc_pass.
 	* melt/warmelt-macro.melt: issue a warning for DEFCLASS of
