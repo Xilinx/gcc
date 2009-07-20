@@ -1,3 +1,280 @@
+2009-07-20  Jan Hubicka  <jh@suse.cz>
+
+	* tree-ssa-dce.c (remove_dead_phis): Only look for abnormal PHIs
+	when handling SSA name.
+
+2009-07-19  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/40676
+	* tree-ssa-dce.c (eliminate_unnecessary_stmts): Do renaming on all
+	virtual PHIs in empty BBs.
+
+2009-07-18  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* combine.c (make_compound_operation) <SUBREG>: If force_to_mode
+	re-expanded the compound use gen_lowpart instead to convert to the
+	desired mode.
+
+2009-07-18  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* combine.c (try_widen_shift_mode): Add COUNT, OUTER_CODE and
+	OUTER_CONST arguments.
+	<LSHIFTRT>: Use them to allow widening if the bits shifted in from
+	the new wider mode will be masked off.
+	(simplify_shift_const_1): Adjust calls to try_widen_shift_mode.
+
+2009-07-18  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* combine.c (try_widen_shift_mode) <LSHIFTRT>: Allow widening if the
+	high-order bits are zero.
+
+2009-07-18  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* combine.c (simplify_shift_const_1): Split code to determine
+	shift_mode into ...
+	(try_widen_shift_mode): ... here.  Allow widening for ASHIFTRT if the
+	new bits shifted in are identical to the old sign bit.
+
+2009-07-18  Richard Guenther  <rguenther@suse.de>
+
+	PR c/40787
+	* gimplify.c (gimplify_call_expr): Reject code using results from
+	functions returning void.
+
+2009-07-18  Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* doc/md.texi: Document the new PowerPC "es" constraint.
+	Document that "m" can include automodified addresses on this target,
+	and explain how %U must be used.  Extend the "Q" and "Z" documentation
+	to suggest "es" as well as "m".
+	* config/rs6000/constraints.md (es): New memory constraint.
+	(Q, Z): Update strings to match new documentation.
+
+2009-07-18  Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* config/rs6000/rs6000.c (rs6000_mode_dependent_address): Allow any
+	offset from virtual_stack_vars_rtx and arg_pointer_rtx.
+	* config/rs6000/predicates.md (volatile_mem_operand): Use
+	offsettable_nonstrict_memref_p.
+	* config/rs6000/rs6000.md (*floatsidf2_internal): Remove split check.
+	(*floatunssidf2_internal): Likewise.
+	(*fix_truncdfsi2_internal): Likewise.
+	(*fix_trunctfsi2_internal): Likewise.
+
+2009-07-17  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr-devices.c (avr_mcu_t): Add atmega8u2, atmega16u2 and
+	atmega32u2 devices.
+	* config/avr/t-avr (MULTILIB_MATCHES): (Ditto.).
+
+2009-07-17  Richard Guenther  <rguenther@suse.de>
+
+	PR c/40401
+	* tree-pass.h (pass_diagnose_omp_blocks): Declare.
+	(pass_warn_unused_result): Likewise.
+	(TODO_set_props): Remove.
+	* omp-low.c (diagnose_omp_structured_block_errors): Change to
+	run as a pass.
+	(pass_diagnose_omp_blocks): Define.
+	* c-decl.c (pop_file_scope): Do not finalize the CU here.
+	(c_gimple_diagnostics_recursively): Remove.
+	(finish_function): Do not call it.
+	(c_write_global_declarations): Continue after errors.
+	Finalize the CU here.
+	* c-gimplify.c (c_genericize): Do not gimplify here.
+	* c-common.c (c_warn_unused_result): Move ...
+	* tree-cfg.c (do_warn_unused_result): ... here.
+	(run_warn_unused_result): New function.
+	(gate_warn_unused_result): New function.
+	(pass_warn_unused_result): New pass.
+	* c-common.h (c_warn_unused_result): Remove.
+	* flags.h (flag_warn_unused_result): Declare.
+	* c-opts.c (c_common_init_options): Enable flag_warn_unused_result.
+	* opts.c (flag_warn_unused_result): Initialize to false.
+	* toplev.c (compile_file): Add comment.
+	* omp-low.c (create_omp_child_function): Do not register
+	the function with the frontend.
+	(diagnose_omp_structured_block_errors): Prepare to be
+	called as optimization pass.
+	(gate_diagnose_omp_blocks): New function.
+	(pass_diagnose_omp_blocks): New pass.
+	* cgraph.h (cgraph_optimize): Remove.
+	(cgraph_analyze_function): Likewise.
+	* cgraph.c (cgraph_add_new_function): Gimplify C++ thunks.
+	* cgraphunit.c (cgraph_lower_function): Lower nested functions
+	before their parents here.
+	(cgraph_finalize_function): Not here.
+	(cgraph_analyze_function): Gimplify functions here.
+	(cgraph_finalize_compilation_unit): Continue after errors.
+	Optimize the callgraph from here.
+	(cgraph_optimize): Make static.
+	* langhooks.c (write_global_declarations): Finalize the CU.
+	* gimplify.c (gimplify_asm_expr): Do not emit ASMs with errors.
+	(gimplify_function_tree): Assert we gimplify only once.
+	Set PROP_gimple_any property.
+	* tree-nested.c (gimplify_all_functions): New function.
+	(lower_nested_functions): Gimplify all nested functions.
+	* gimple.h (diagnose_omp_structured_block_errors): Remove.
+	* passes.c (init_optimization_passes): Add pass_warn_unused_result
+	and pass_diagnose_omp_blocks after gimplification.  Do not
+	set TODO_set_props on all_lowering_passes.
+	(execute_one_pass): Do not handle TODO_set_props.
+	* Makefile.in (cgraphunit.o): Add $(TREE_DUMP_H) dependency.
+	(gimplify.o): Add tree-pass.h dependency.
+	* tree-inline.c (copy_statement_list): Properly copy STATEMENT_LIST.
+	(copy_tree_body_r): Properly handle TARGET_EXPR like SAVE_EXPR.
+	(unsave_r): Likewise.
+	* c-omp.c (c_finish_omp_atomic): Set DECL_CONTEXT on the
+	temporary variable.
+
+2009-07-17  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/service.texi (Service): Restore previously removed link,
+	which isn't broken after all.
+
+2009-07-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40321
+	* tree-ssa-pre.c (add_to_exp_gen): Also add names defined by
+	PHI nodes to the maximal set.
+	(make_values_for_phi): Add PHI arguments to the maximal set.
+	(execute_pre): Dump PHI_GEN and the maximal set.
+
+2009-07-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/40780
+	* gimplify.c (gimplify_conversion): Don't change non-conversions into
+	VIEW_CONVERT_EXPR.
+
+2009-07-16  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/extend.texi (Nested Functions): Replace broken link with
+	textual reference.
+	* doc/service.texi (Service): Remove broken link.
+
+2009-07-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/40781
+	* builtins.c (expand_builtin_memcmp): Use loc instead of
+	EXPR_LOCATION (exp).
+	(expand_builtin_strncmp): Likewise.
+
+2009-07-17  Aldy Hernandez  <aldyh@redhat.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40435 
+	* tree-complex.c, tree-loop-distribution.c, tree.c, tree.h,
+	builtins.c, fold-const.c, omp-low.c, cgraphunit.c, tree-ssa-ccp.c,
+	tree-ssa-dom.c, gimple-low.c, expr.c, tree-ssa-ifcombine.c,
+	c-decl.c, stor-layout.c, tree-if-conv.c, c-typeck.c, gimplify.c,
+	calls.c, tree-sra.c, tree-mudflap.c, tree-ssa-copy.c,
+	tree-ssa-forwprop.c, c-convert.c, c-omp.c, varasm.c,
+	tree-inline.c, c-common.c, c-common.h, gimple.c,
+	tree-switch-conversion.c, gimple.h, tree-cfg.c, c-parser.c,
+	convert.c: Add location argument to fold_{unary,binary,ternary},
+	fold_build[123], build_call_expr, build_size_arg,
+	build_fold_addr_expr, build_call_array, non_lvalue, size_diffop,
+	fold_build1_initializer, fold_build2_initializer,
+	fold_build3_initializer, fold_build_call_array,
+	fold_build_call_array_initializer, fold_single_bit_test,
+	omit_one_operand, omit_two_operands, invert_truthvalue,
+	fold_truth_not_expr, build_fold_indirect_ref, fold_indirect_ref,
+	combine_comparisons, fold_builtin_*, fold_call_expr,
+	build_range_check, maybe_fold_offset_to_address, round_up,
+	round_down.
+
+2009-07-16  Jason Merrill  <jason@redhat.com>
+
+	PR libstdc++/37907
+	* c-common.c (c_common_reswords): Add __is_standard_layout
+	and __is_trivial.
+	* c-common.h (enum rid): Add RID_IS_STD_LAYOUT and RID_IS_TRIVIAL.
+	* doc/implement-cxx.texi: New.
+	* doc/gcc.texi: Include it.
+
+2009-07-16  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/m32c.c (m32c_compare_redundant): Avoid removing
+	compares that may be indirectly affected by previous instructions.
+
+2009-07-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* builtins.c (do_mpc_arg2): New.
+	(fold_builtin_2): Fold builtin cpow.
+	* real.h (HAVE_mpc_pow): New.
+
+2009-07-16  Bingfeng Mei  <bmei@broadcom.com>
+
+	* modulo-sched.c (sms_schedule): stage_count <= 1 as correct comparison
+        to skip unprofitable schedule
+        
+2009-07-16  Simon Baldwin  <simonb@google.com>
+
+	* gcc.c (option_map): New flag -no-canonical-prefixes.
+	* (display_help): Print help text for new flag.
+	* (process_command): Move options translation and language specifics
+	and handle new flag early.  Use it to set a function pointer to a
+	prefix builder.  Replace make_relative_prefix calls with calls to
+	the function pointed to.  Ignore new flag in regular options handling.
+	* doc/invoke.texi (Overall Options): Documented -no-canonical-prefixes.
+
+2009-07-15  DJ Delorie  <dj@redhat.com>
+
+	* config/mep/mep.md (sibcall_internal): Change register to avoid
+	argument registers.
+	(sibcall_value_internal): Likewise.
+
+2009-07-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/40710
+	* resource.c (mark_target_live_regs): Reset DF problem to LR.
+
+2009-07-15  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.md (*extenddi_truncate<mode>,
+	*extendsi_truncate<mode>): Change type attribute to move_type
+	with shift_shift.  Split out code handling exts from here ...
+	(*extend<GPR:mode>_truncate<SHORT:mode>_exts): ... to this new
+	pattern.
+	(*extendhi_truncateqi): Change type attribute to move_type with
+	shift_shift.  Split out code handling exts from here ...
+	(*extendhi_truncateqi_exts): ... to this new pattern.
+
+2009-07-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (copysign<mode>3): Use "and-not" SSE instruction
+	instead of "and" with inverted sign bit mask value.  Use
+	"nonimmediate_operand" for operand 1 and operand 2 predicate.
+	Allocate registers only for operand 4 and operand 5.
+
+2009-07-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/40747
+	* fold-const.c (fold_cond_expr_with_comparison): When folding
+	< and <= to MIN, make sure the MIN uses the same type as the
+	comparison's operands.
+
+2009-07-15  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.md (ior_xor): New code iterator.
+	(split for ior/xor with shift and zero-extend): New split pattern.
+	* arm/predicates.md (subreg_lowpart_operator): New special predicate.
+
+2009-07-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (make_constraint_from_heapvar): Initialize
+	offset member.
+
+2009-07-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40753
+	* alias.c (ao_ref_from_mem): Reject FUNCTION_DECL and LABEL_DECL bases.
+
+2009-07-15  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/m68k/linux-unwind.h (m68k_fallback_frame_state): Update to
+	handle 2.6.30 kernel.
+
 2009-07-15  DJ Delorie  <dj@redhat.com>
 
 	* config/mep/mep.md (sibcall_internal): Change register to allow
@@ -6,9 +283,8 @@
 
 2009-07-14  Ghassan Shobaki  <ghassan.shobaki@amd.com>
 	
-	* doc/invoke.texi: Added descriptions of the 
-	scheduling heuristics that are enabled/disabled 
-        by the flags introduced by a previous patch.
+	* doc/invoke.texi: Added descriptions of the  scheduling heuristics
+	that are enabled/disabled by the flags introduced by a previous patch.
 	
 2009-07-14  DJ Delorie  <dj@redhat.com>
 

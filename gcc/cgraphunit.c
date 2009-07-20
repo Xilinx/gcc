@@ -132,6 +132,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "tree-iterator.h"
 #include "tree-pass.h"
+#include "tree-dump.h"
 #include "output.h"
 #include "coverage.h"
 
@@ -139,6 +140,8 @@ static void cgraph_expand_all_functions (void);
 static void cgraph_mark_functions_to_output (void);
 static void cgraph_expand_function (struct cgraph_node *);
 static void cgraph_output_pending_asms (void);
+static void cgraph_optimize (void);
+static void cgraph_analyze_function (struct cgraph_node *);
 
 static FILE *cgraph_dump_file;
 
@@ -208,7 +211,8 @@ build_cdtor (bool ctor_p, tree *cdtors, size_t len)
 	    priority = p;
 	  else if (p != priority)
 	    break;
-	  append_to_statement_list (build_function_call_expr (fn, 0),
+	  append_to_statement_list (build_function_call_expr (UNKNOWN_LOCATION,
+							      fn, 0),
 				    &body);
 	  ++i;
 	}
@@ -489,6 +493,11 @@ cgraph_lower_function (struct cgraph_node *node)
 {
   if (node->lowered)
     return;
+
+  if (node->nested)
+    lower_nested_functions (node->decl);
+  gcc_assert (!node->nested);
+
   tree_lowering_passes (node->decl);
   node->lowered = true;
 }
@@ -512,9 +521,6 @@ cgraph_finalize_function (tree decl, bool nested)
   node->lowered = DECL_STRUCT_FUNCTION (decl)->cfg != NULL;
   node->finalized_by_frontend = true;
   record_cdtor_fn (node->decl);
-  if (node->nested)
-    lower_nested_functions (decl);
-  gcc_assert (!node->nested);
 
   if (decide_is_function_needed (node, decl))
     cgraph_mark_needed_node (node);
@@ -788,18 +794,28 @@ cgraph_output_pending_asms (void)
 }
 
 /* Analyze the function scheduled to be output.  */
-void
+static void
 cgraph_analyze_function (struct cgraph_node *node)
 {
+  tree save = current_function_decl;
   tree decl = node->decl;
 
   current_function_decl = decl;
   push_cfun (DECL_STRUCT_FUNCTION (decl));
+
+  /* Make sure to gimplify bodies only once.  During analyzing a
+     function we lower it, which will require gimplified nested
+     functions, so we can end up here with an already gimplified
+     body.  */
+  if (!gimple_body (decl))
+    gimplify_function_tree (decl);
+  dump_function (TDI_generic, decl);
+
   cgraph_lower_function (node);
   node->analyzed = true;
 
   pop_cfun ();
-  current_function_decl = NULL;
+  current_function_decl = save;
 }
 
 /* Look for externally_visible and used attributes and mark cgraph nodes
@@ -934,8 +950,6 @@ cgraph_analyze_functions (void)
 	}
 
       gcc_assert (!node->analyzed && node->reachable);
-      gcc_assert (gimple_body (decl));
-
       cgraph_analyze_function (node);
 
       for (edge = node->callees; edge; edge = edge->next_callee)
@@ -1009,8 +1023,8 @@ cgraph_analyze_functions (void)
 void
 cgraph_finalize_compilation_unit (void)
 {
-  if (errorcount || sorrycount)
-    return;
+  /* Do not skip analyzing the functions if there were errors, we
+     miss diagnostics for following functions otherwise.  */
 
   finalize_size_functions ();
   finish_aliases_1 ();
@@ -1024,6 +1038,8 @@ cgraph_finalize_compilation_unit (void)
   timevar_push (TV_CGRAPH);
   cgraph_analyze_functions ();
   timevar_pop (TV_CGRAPH);
+
+  cgraph_optimize ();
 }
 
 
@@ -1310,7 +1326,7 @@ ipa_passes (void)
 
 /* Perform simple optimizations based on callgraph.  */
 
-void
+static void
 cgraph_optimize (void)
 {
   if (errorcount || sorrycount)
