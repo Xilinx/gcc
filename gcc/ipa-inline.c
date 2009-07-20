@@ -821,6 +821,9 @@ cgraph_decide_recursive_inlining (struct cgraph_node *node,
 	    }
 	}
 
+      if (!dbg_cnt (inl))
+        continue;
+
       if (dump_file)
 	{
 	  fprintf (dump_file, 
@@ -1103,6 +1106,9 @@ cgraph_decide_inlining_of_small_functions (void)
 			 cgraph_inline_failed_string (edge->inline_failed));
 	      continue;
 	    }
+          if (!dbg_cnt (inl))
+            continue;
+
 	  callee = edge->callee;
 	  cgraph_mark_inline_edge (edge, true, &new_indirect_edges);
 	  if (flag_indirect_inlining)
@@ -1126,8 +1132,9 @@ cgraph_decide_inlining_of_small_functions (void)
       if (dump_file)
 	{
 	  fprintf (dump_file, 
-		   " Inlined into %s which now has size %i and self time %i,"
+		   "INFO: %s Inlined into %s which now has size %i and self time %i,"
 		   "net change of %+i.\n",
+		   cgraph_node_name (edge->callee),
 		   cgraph_node_name (edge->caller),
 		   edge->caller->global.time,
 		   edge->caller->global.size,
@@ -1250,11 +1257,15 @@ cgraph_decide_inlining (void)
 		  gimple_call_set_cannot_inline (e->call_stmt, true);
 		  continue;
 		}
+              if (dbg_cnt (inl))
+                continue;
+
 	      if (cgraph_mark_inline_edge (e, true, NULL))
 		redo_always_inline = true;
 	      if (dump_file)
 		fprintf (dump_file,
-			 " Inlined into %s which now has size %i.\n",
+			 "INFO: %s Inlined into %s which now has size %i.\n",
+			 cgraph_node_name (e->callee),
 			 cgraph_node_name (e->caller),
 			 e->caller->global.size);
 	    }
@@ -1310,8 +1321,9 @@ cgraph_decide_inlining (void)
 		  cgraph_mark_inline (node->callers);
 		  if (dump_file)
 		    fprintf (dump_file,
-			     " Inlined into %s which now has %i size"
+			     "INFO: %s Inlined into %s which now has %i size"
 			     " for a net change of %+i size.\n",
+			     cgraph_node_name (node),
 			     cgraph_node_name (node->callers->caller),
 			     node->callers->caller->global.size,
 			     overall_size - old_size);
@@ -1871,6 +1883,9 @@ estimate_function_body_sizes (struct cgraph_node *node)
 	      if (dump_file)
 	        fprintf (dump_file, "  MUST_NOT_THROW landing pad.  Ignoring whole BB.\n");
 	    }
+          if (!dbg_cnt (inl))
+            continue;
+
 	  if (dump_file)
 	    {
 	      fprintf (dump_file, "  freq:%6i size:%3i time:%3i ", freq, this_size, this_time);
