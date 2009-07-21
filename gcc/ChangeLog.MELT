@@ -1,4 +1,16 @@
 
+2009-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	[heterogenous patterns compiled better]
+	* melt-runtime.c: Corrected typo in comment.
+	* melt/warmelt-first.melt: re-added dbgcounter in debug_msg
+	messages.
+	* melt/warmelt-normatch.melt: scanpat_srcpatcomposite compute the
+	right ctype for subpatterns.
+	* melt/ana-base.melt: added tree_of_type cmatcher.
+	* melt/ana-simple.melt: added gimple_assign_cast pattern to
+	makegreen_transform.
+	* testsuite/melt/tgreenprint.c: added simple_fprint_stdout.
+
 2009-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_gimple_gate, meltgc_gimple_execute)
 	(meltgc_rtl_gate, meltgc_rtl_execute, meltgc_simple_ipa_gate)

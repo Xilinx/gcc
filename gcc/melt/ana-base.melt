@@ -643,6 +643,18 @@
   }#
 )
 
+
+;;;;;;;;;;;;;;;;
+(defcmatcher tree_of_type 
+  (:tree tr)
+  (:tree typetr)
+  treeoftype
+  ;; test expansion
+  #{ ($tr) != NULL }#
+  ;; fill expansion
+  #{ $typetr = TREE_TYPE($tr); }#
+)
+
 ;;;;;;;;;;;;;;;;
 ;; similarily pattern (tree_variable_decl <funame>)
 (defcmatcher tree_variable_decl 
@@ -1620,6 +1632,7 @@
  tree_block
  tree_content 
  tree_decl
+ tree_of_type
  tree_function_decl 
  tree_integer_cst
  tree_integer_type

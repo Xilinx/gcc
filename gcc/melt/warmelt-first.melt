@@ -3784,7 +3784,7 @@
 		      }#)
 	  (if nulloutfile 
 	      (progn 
-		(shortbacktrace_dbg "debug_msg_fun null output file" 50)
+		(shortbacktrace_dbg "debug_msg_fun null output file" 5)
 		(setq out (get_field :sysdata_stderr initial_system_data))
 		)))
 	(let ( 
@@ -3795,6 +3795,8 @@
 	      (:long framdepth (the_framedepth)) 
 	      )
 	  (add2out_strconst out "!!!!****####")
+	  (add2out_longdec out dbgcounter)
+	  (add2out_strconst out "#^")
 	  (add2out_longdec out (-i framdepth 1))
 	  (add2out_strconst out ":")
 	  (if filenam

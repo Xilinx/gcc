@@ -14,6 +14,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void simple_fprint_stdout(int p)
+{
+  fprintf (stdout, "simple fprint stdout p=%d\n", p);
+}
+
 static inline void
 say_str_int (FILE* f, const char* str, int n)
 {

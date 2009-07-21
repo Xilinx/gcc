@@ -98,7 +98,7 @@ int flag_melt_debug;
    This code does not yet compile in plugin mode, unless the gengtype
    is suitably patched.
 
-   un addition, libiberty is not fully available from a plugin. So we
+   in addition, libiberty is not fully available from a plugin. So we
    need to reproduce here some functions provided in libiberty.h
 **/
 char *

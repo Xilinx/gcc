@@ -48,13 +48,25 @@
    (eachgimple_in_basicblock 
     (bb)
     (:gimple g)
-    (debuggimple "makegreen_transform g" g)
     (match g
+	   (?(gimple_assign_cast 
+	      ?(as ?lhs 
+		   ?(tree_of_type ?ltype))
+	      ?rhs)
+	     (debugtree "makegreen_transform assign cast lhs" lhs)
+	     (debugtree "makegreen_transform assign cast ltype" ltype)
+	     (debugtree "makegreen_transform assign cast rhs" rhs)
+	     )
+	   (?(gimple_assign_single  ?lhs ?rhs)
+	     (debugtree "makegreen_transform assign single lhs" lhs)
+	     (debugtree "makegreen_transform assign single rhs" rhs)
+	     )
 	   (?(gimple_call ?lhs ?callfndcl ?nbargs)
 	     (debugtree "makegreen_transform call lhs" lhs)
 	     (debugtree "makegreen_transform call fndecl" callfndcl)
 	     )
 	   (?_
+	    (debuggimple "makegreen_transform unmatched g" g)
 	    )
 	   )
     )
@@ -1014,5 +1026,6 @@
   ))
 
 (initial_command_install smallana_command "smallana")
+
 
 ;; eof ana-simple.melt
