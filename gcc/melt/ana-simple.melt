@@ -35,7 +35,10 @@
 (defclass makegreen_data_class 
   :super class_proped
   :fields (mkgreen_pass 
-	   mkgreen_data))
+	   mkgreen_data
+	   mkgreen_stdout
+	   mkgreen_fprintf
+	   ))
 
 (defun makegreen_transform (grdata :tree decl :basicblock bbent)
   (debug_msg grdata "makegreen_transform start grdata")
@@ -78,12 +81,20 @@
   (debug_msg pass "makegreenpass_exec pass at start")
   (let ( (grdata (instance makegreen_data_class 
 			   :mkgreen_pass pass)) )
-    (debug_msg grdata "makegreenpass_exec grdata")
+    (debug_msg grdata "makegreenpass_exec grdata before decls")
+    (each_cgraph_decl
+     ()
+     (:tree decl)
+     (push_cfun_decl decl)
+     (debugtree "makegreenpass_exec exec eachcgraphdecl decl" decl)
+     (pop_cfun)
+     )
+    (debug_msg grdata "makegreenpass_exec grdata before functions")
     (each_cgraph_fun_entryblock
      ()
      (:tree decl :basicblock bbent)
      (push_cfun_decl decl)
-     (debugtree "makegreenpass_exec exec eachcgraph decl" decl)
+     (debugtree "makegreenpass_exec exec block eachcgraph decl" decl)
      (debugbasicblock "makegreenpass_exec bbent" bbent) 
      (shortbacktrace_dbg "makegreenpass_exec" 24)
      ;; do something useful here
@@ -96,16 +107,16 @@
 
 (defun makegreen_command (dispatcher arg secarg moduldata)
   (let ( (greenpass
-	  (instance class_gcc_simple_ipa_pass
+	  (instance class_gcc_gimple_pass
 		    :named_name (make_stringconst discr_string "melt_greenpass")
 		    :gccpass_gate makegreenpass_gate
 		    :gccpass_exec makegreenpass_exec
 		    :gccpass_properties_required ()
 	      )
         ) )
- ;;; register our pass after the "pta" pass 
-  (install_melt_gcc_pass greenpass "after" "pta" 0)
-  ;;; note, register it after "ccp" does not work...
+ ;;; register our pass after the "reassoc" pass 
+  (install_melt_gcc_pass greenpass "after" "reassoc" 0)
+  ;;; note, register it after "ccp" or "pta" does not work...
   (debug_msg greenpass "makegreen_command installed greenpass")
 ;; return the greenpass to accept the command
   (return greenpass)

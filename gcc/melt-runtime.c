@@ -662,18 +662,21 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
  * our copying garbage collector 
  ***/
 void
-melt_garbcoll (size_t wanted, bool needfull)
+melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 {
 
   int ix = 0;
   struct callframe_melt_st *cfram = NULL;
   melt_ptr_t *storp = NULL;
+  bool needfull = FALSE;
   struct meltspecial_st *specp = NULL;
   struct meltspecial_st **prevspecptr = NULL;
   struct meltspecial_st *nextspecp = NULL;
   if (melt_prohibit_garbcoll)
     fatal_error ("melt garbage collection prohibited");
   melt_nb_garbcoll++;
+  if (gckd == MELT_NEED_FULL)
+    needfull = true;
   if (melt_minorsizekilow == 0)
     {
       const char* minzstr = melt_argument ("minor-zone");
@@ -767,7 +770,7 @@ melt_garbcoll (size_t wanted, bool needfull)
   melt_startalz = melt_endalz = melt_curalz = NULL;
   melt_storalz = NULL;
   melt_kilowords_sincefull += wanted / (1024 * sizeof (void *));
-  if (melt_kilowords_sincefull >
+  if (gckd > MELT_ONLY_MINOR && melt_kilowords_sincefull >
       (unsigned long) melt_fullthresholdkilow)
     needfull = TRUE;
   melt_startalz = melt_curalz =
@@ -9848,7 +9851,7 @@ meltgc_gimple_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
     };
   /* force a minor GC to be sure that nothing is in the young region */
-  melt_garbcoll (0, MELT_MINOR_OR_FULL);
+  melt_garbcoll (0, MELT_ONLY_MINOR);
  end:
   debugeprintf ("meltgc_gimple_gate pass %s ended ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
@@ -9941,7 +9944,7 @@ meltgc_gimple_execute(void)
     if (resvalv)
       res = (unsigned int) todol;
     /* force a minor GC to be sure that nothing is in the young region */
-    melt_garbcoll (0, MELT_MINOR_OR_FULL);
+    melt_garbcoll (0, MELT_ONLY_MINOR);
   }
  end:
   debugeprintf ("meltgc_gimple_execute pass %s ended res=%ud", current_pass->name, res);
@@ -10019,7 +10022,7 @@ meltgc_rtl_gate(void)
     };
   ok = (resv != NULL);
   /* force a minor GC to be sure that nothing is in the young region */
-  melt_garbcoll (0, MELT_MINOR_OR_FULL);
+  melt_garbcoll (0, MELT_ONLY_MINOR);
  end:
   debugeprintf ("meltgc_rtl_gate pass %s end ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
@@ -10105,7 +10108,7 @@ meltgc_rtl_execute(void)
     if (resvalv)
       res = (unsigned int) todol;
     /* force a minor GC to be sure that nothing is in the young region */
-    melt_garbcoll (0, MELT_MINOR_OR_FULL);
+    melt_garbcoll (0, MELT_ONLY_MINOR);
   }
  end:
   debugeprintf ("meltgc_rtl_execute pass %s end res=%ud", current_pass->name, res);
@@ -10185,7 +10188,7 @@ meltgc_simple_ipa_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
     };
   /* force a minor GC to be sure that nothing is in the young region */
-  melt_garbcoll (0, MELT_MINOR_OR_FULL);
+  melt_garbcoll (0, MELT_ONLY_MINOR);
  end:
   debugeprintf ("meltgc_simple_ipa_gate pass %s end ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
@@ -10278,7 +10281,7 @@ meltgc_simple_ipa_execute(void)
     if (resvalv)
       res = (unsigned int) todol;
     /* force a minor GC to be sure that nothing is in the young region */
-    melt_garbcoll (0, MELT_MINOR_OR_FULL);
+    melt_garbcoll (0, MELT_ONLY_MINOR);
   }
  end:
   MELT_EXITFRAME();

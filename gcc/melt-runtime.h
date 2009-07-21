@@ -1357,9 +1357,9 @@ extern bool melt_prohibit_garbcoll;
 
 
 /* the melt copying garbage collector routine - moves all locals on the stack! */
-enum
-{ MELT_MINOR_OR_FULL = 0, MELT_NEED_FULL = 1 };
-void melt_garbcoll (size_t wanted, bool needfull);
+enum melt_gckind_en
+  { MELT_ONLY_MINOR= 0, MELT_MINOR_OR_FULL = 1, MELT_NEED_FULL = 2};
+void melt_garbcoll (size_t wanted, enum melt_gckind_en gckd);
 
 /* the alignment */
 #if defined(__GNUC__) && !defined(__STRICT_ANSI__)

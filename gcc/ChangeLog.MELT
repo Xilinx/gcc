@@ -1,5 +1,17 @@
 
 2009-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	[tgreenprint.c may fail; and greenpass is very incomplete]
+	* melt-runtime.h: added enum melt_gckind_en & MELT_ONLY_MINOR.
+	* melt-runtime.c (melt_garbcoll): has a melt_gckind_en argument
+	and handles MELT_ONLY_MINOR.
+	(meltgc_gimple_gate, meltgc_gimple_execute, meltgc_rtl_gate)
+	(meltgc_rtl_execute, meltgc_simple_ipa_gate)
+	(meltgc_simple_ipa_execute) force only a MELT_ONLY_MINOR garbage
+	collection.
+	* melt/ana-base.melt; added each_cgraph_decl.
+	* melt/ana-simple.melt: trying a pass before reassoc.
+
+2009-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	[heterogenous patterns compiled better]
 	* melt-runtime.c: Corrected typo in comment.
 	* melt/warmelt-first.melt: re-added dbgcounter in debug_msg

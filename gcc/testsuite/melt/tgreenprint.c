@@ -12,6 +12,7 @@
  ***/
 
 #include <stdio.h>
+
 #include <stdlib.h>
 
 void simple_fprint_stdout(int p)

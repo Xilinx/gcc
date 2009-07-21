@@ -1271,8 +1271,8 @@
    for ($eachcgrfun#_nd = cgraph_nodes; 
 	$eachcgrfun#_nd != NULL; 
 	$eachcgrfun#_nd = $eachcgrfun#_nd->next) {
-     tree $eachcgrfun#_dcl = 0;
-     gimple_seq  $eachcgrfun#_bdy = 0;
+     tree $eachcgrfun#_dcl = NULL;
+     gimple_seq  $eachcgrfun#_bdy = NULL;
      $eachcgrfun#_dcl =  $eachcgrfun#_nd->decl;
      if (!$eachcgrfun#_dcl) continue;
      if (TREE_CODE($eachcgrfun#_dcl) != FUNCTION_DECL) continue;
@@ -1312,6 +1312,27 @@
   }#
   ;;after expansion
   #{ } }# )
+
+;;;;;;;;;;;;;;;;
+;;;; iterate on every cgraph_node which is a declaration
+(defciterator each_cgraph_decl
+  ()
+  eachcgrdcl
+  (:tree decl)
+  ;;before expansion
+#{ /* $eachcgrdcl */
+   struct cgraph_node *$eachcgrdcl#_nd = NULL; 
+   for ($eachcgrdcl#_nd = cgraph_nodes; 
+   $eachcgrdcl#_nd != NULL; 
+   $eachcgrdcl#_nd = $eachcgrdcl#_nd->next) {
+   tree  $eachcgrdcl#_dcl = NULL;
+   $eachcgrdcl#_dcl = $eachcgrdcl#_nd->decl;
+   if (!$eachcgrdcl#_dcl) continue;
+   $decl = $eachcgrdcl#_dcl;
+   }#
+   ;; after expansion
+#{ /* end $eachcgrdcl */ } }#
+)
 
 
 ;;; iterate on evey basicblock of the current cfun
@@ -1518,6 +1539,7 @@
  debugtree
  debugtreecodenum
  each_bb_cfun
+ each_cgraph_decl
  each_cgraph_fun_body
  each_cgraph_fun_entryblock
  each_in_gimpleseq
