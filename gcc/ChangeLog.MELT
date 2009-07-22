@@ -1,4 +1,12 @@
 
+2009-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tgreenprint.c: indented and all functions
+	prefixed for clarity with tGreenPrint.
+	* melt/ana-base.melt: added cfun_decl cfun_gimple_body
+	cfun_has_cfg cfun_local_decls cfun_nonlocal_goto_save_area
+	cfun_static_chain_decl has_cfun. each_bb_cfun made safer.
+	* melt/ana-simple.melt: greenpass is now after phiopt.
+
 2009-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tgreenprint.c may fail; and greenpass is very incomplete]
 	* melt-runtime.h: added enum melt_gckind_en & MELT_ONLY_MINOR.

@@ -1347,7 +1347,7 @@
   #{
    /* start $eachbbcfun */
    basic_block  $eachbbcfun#_bb = NULL;
-   if (cfun) {
+   if (cfun && cfun->cfg) {
      $cfundecl  = cfun->decl;
     FOR_EACH_BB_FN($eachbbcfun#_bb, cfun) {
       if (!$eachbbcfun#_bb) continue;
@@ -1517,7 +1517,29 @@
   }# )
 
 
+;;; safe queries to the cfun (when cfun is null, return null or 0)
+(defprimitive has_cfun () :long #{ cfun != NULL }#)
 
+(defprimitive cfun_gimple_body () :gimpleseq 
+  #{ (cfun?(cfun->gimple_body):NULL) }#)
+
+(defprimitive cfun_decl () :tree 
+  #{ (cfun?(cfun->decl):NULL) }#)
+
+(defprimitive cfun_static_chain_decl () :tree
+  #{ (cfun?(cfun->static_chain_decl):NULL) }#)
+
+(defprimitive cfun_nonlocal_goto_save_area () :tree
+  #{ (cfun?(cfun->nonlocal_goto_save_area):NULL) }#)
+
+(defprimitive cfun_local_decls () :tree
+  #{ (cfun?(cfun->local_decls):NULL) }#)
+
+(defprimitive cfun_has_cfg () :long
+  #{ (cfun?(cfun->cfg != NULL):0) }#)
+
+(defprimitive cfun_cfg_entry_block () :basicblock
+  #{ ((cfun && cfun->cfg)? ENTRY_BLOCK_PTR_FOR_FUNCTION(cfun):NULL) }#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
@@ -1527,6 +1549,12 @@
  basicblock_gimpleseq
  basicblock_phinodes
  basicblock_single_succ 
+ cfun_decl
+ cfun_gimple_body
+ cfun_has_cfg
+ cfun_local_decls
+ cfun_nonlocal_goto_save_area
+ cfun_static_chain_decl
  clear_special 
  debug_ppl_coefficient
  debug_ppl_constraint
@@ -1585,6 +1613,7 @@
  gimple_return
  gimpleseq_content 
  gimpleval
+ has_cfun
  inform_at_tree
  insert_ppl_constraint_in_boxed_system 
  install_melt_gcc_pass
@@ -1654,10 +1683,10 @@
  tree_block
  tree_content 
  tree_decl
- tree_of_type
  tree_function_decl 
  tree_integer_cst
  tree_integer_type
+ tree_of_type
  tree_parm_decl
  tree_ssa_name 
  tree_type

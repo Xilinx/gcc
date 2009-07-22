@@ -40,69 +40,60 @@
 	   mkgreen_fprintf
 	   ))
 
-(defun makegreen_transform (grdata :tree decl :basicblock bbent)
+(defun makegreen_transform (grdata :tree decl :basicblock bb)
   (debug_msg grdata "makegreen_transform start grdata")
   (debugtree "makegreen_transform decl" decl)
-  (debugbasicblock "makegreen_transform bbent" bbent)
-  (each_bb_cfun 
-   ()
-   (:basicblock bb :tree decl)
-   (debugbasicblock "makegreen_transform bb" bb)
-   (eachgimple_in_basicblock 
-    (bb)
-    (:gimple g)
-    (match g
-	   (?(gimple_assign_cast 
-	      ?(as ?lhs 
-		   ?(tree_of_type ?ltype))
-	      ?rhs)
-	     (debugtree "makegreen_transform assign cast lhs" lhs)
-	     (debugtree "makegreen_transform assign cast ltype" ltype)
-	     (debugtree "makegreen_transform assign cast rhs" rhs)
-	     )
-	   (?(gimple_assign_single  ?lhs ?rhs)
-	     (debugtree "makegreen_transform assign single lhs" lhs)
-	     (debugtree "makegreen_transform assign single rhs" rhs)
-	     )
-	   (?(gimple_call ?lhs ?callfndcl ?nbargs)
-	     (debugtree "makegreen_transform call lhs" lhs)
-	     (debugtree "makegreen_transform call fndecl" callfndcl)
-	     )
-	   (?_
-	    (debuggimple "makegreen_transform unmatched g" g)
+  (debugbasicblock "makegreen_transform bb" bb)
+  (eachgimple_in_basicblock 
+   (bb)
+   (:gimple g)
+   (match g
+	  (?(gimple_assign_cast 
+	     ?(as ?lhs 
+		  ?(tree_of_type ?ltype))
+	     ?rhs)
+	    (debugtree "makegreen_transform assign cast lhs" lhs)
+	    (debugtree "makegreen_transform assign cast ltype" ltype)
+	    (debugtree "makegreen_transform assign cast rhs" rhs)
 	    )
+	  (?(gimple_assign_single  ?lhs ?rhs)
+	    (debugtree "makegreen_transform assign single lhs" lhs)
+	    (debugtree "makegreen_transform assign single rhs" rhs)
+	    )
+	  (?(gimple_call ?lhs ?callfndcl ?nbargs)
+	    (debugtree "makegreen_transform call lhs" lhs)
+	    (debugtree "makegreen_transform call fndecl" callfndcl)
+	    )
+	  (?_
+	   (debuggimple "makegreen_transform unmatched g" g)
 	   )
-    )
+	  )
    )
   (debug_msg grdata "makegreen_transform end grdata")
   )
 
 (defun makegreenpass_exec (pass)
   (debug_msg pass "makegreenpass_exec pass at start")
+  (code_chunk dbgcfun #{ debugeprintf("makegreenpass_exec start cfun=%p cfg=%p", 
+				      (void*)cfun, cfun?cfun->cfg:NULL) ; 
+	      }#) 
+  (assert_msg "makegreenpass_exec check cfun has cfg" (cfun_has_cfg))
+  (debugtree "makegreenpass_exec start cfundecl" (cfun_decl))
   (let ( (grdata (instance makegreen_data_class 
 			   :mkgreen_pass pass)) )
-    (debug_msg grdata "makegreenpass_exec grdata before decls")
-    (each_cgraph_decl
+    ;; it is useless to do a each_cgraph_decl here...
+    (debug_msg grdata "makegreenpass_exec grdata before eachbbcfun")
+    ;; gimple ssa passes have a cfg..
+    (each_bb_cfun 
      ()
-     (:tree decl)
-     (push_cfun_decl decl)
-     (debugtree "makegreenpass_exec exec eachcgraphdecl decl" decl)
-     (pop_cfun)
-     )
-    (debug_msg grdata "makegreenpass_exec grdata before functions")
-    (each_cgraph_fun_entryblock
-     ()
-     (:tree decl :basicblock bbent)
-     (push_cfun_decl decl)
-     (debugtree "makegreenpass_exec exec block eachcgraph decl" decl)
-     (debugbasicblock "makegreenpass_exec bbent" bbent) 
-     (shortbacktrace_dbg "makegreenpass_exec" 24)
-     ;; do something useful here
-     (if bbent
-	 (makegreen_transform grdata decl bbent))
-     (pop_cfun)
+     (:basicblock bb :tree fundecl)
+     (debug_msg grdata "makegreenpass_exec grdata before makegreen_transform")
+     (makegreen_transform grdata fundecl bb)
      )
     (debug_msg pass "makegreenpass_exec pass at end")
+    (code_chunk dbgcfun #{ debugeprintf("makegreenpass_exec end cfun=%p", 
+					(void*)cfun) ; 
+		}#) 
     ))
 
 (defun makegreen_command (dispatcher arg secarg moduldata)
@@ -114,8 +105,9 @@
 		    :gccpass_properties_required ()
 	      )
         ) )
- ;;; register our pass after the "reassoc" pass 
-  (install_melt_gcc_pass greenpass "after" "reassoc" 0)
+ ;;; register our pass after the "phiopt" pass [reassoc is too early,
+ ;;; and phiopt keep the SSA form.]
+  (install_melt_gcc_pass greenpass "after" "phiopt" 0)
   ;;; note, register it after "ccp" or "pta" does not work...
   (debug_msg greenpass "makegreen_command installed greenpass")
 ;; return the greenpass to accept the command
