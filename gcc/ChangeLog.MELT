@@ -1,5 +1,18 @@
 
 2009-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	[tmatch-4 compiles, but perhaps wrongly; the runfile command does
+	not work...]
+	* melt/warmelt-macro.melt: added debugprint in mexpand_match.
+	* melt/warmelt-normatch.melt: added assert in normexp_match.
+	* melt/warmelt-genobj.melt: added more debugprint notably in
+	compilmatcher_cmatcher.
+	* melt/warmelt-outobj.melt: replaced some multiple_every with
+	foreach_in_multiple. class_objlocatedexpv may have null contents,
+	at least for ctype_void -that is an empty C generated block-.
+	* melt/ana-simple.melt: restored to previous version, but probably
+	still miscompiled...
+
+2009-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-4.melt: new file.
 	* testsuite/melt/tmatch-3.melt: updated comment.
 	* melt/ana-simple.melt: tomporarily remove code until tmatch-4

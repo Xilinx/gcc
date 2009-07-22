@@ -56,8 +56,6 @@
 	    (debugtree "makegreen_transform assign cast lhs" lhs)
 	    (debugtree "makegreen_transform assign cast rhs" rhs)
 	    )
-	  ;; we comment out the following, which fail to compile
-	  #|
 	  (?(gimple_assign_single  ?lhs 
 				   ?(as ?rhs
 					?(tree_var_decl 
@@ -65,7 +63,6 @@
 	    (debugtree "makegreen_transform assign single stdout lhs" lhs)
 	    (debugtree "makegreen_transform assign single stdout rhs" rhs)
 	    )
-	  |#
 	  (?(gimple_assign_single  ?lhs ?rhs)
 	    (debugtree "makegreen_transform assign single lhs" lhs)
 	    (debugtree "makegreen_transform assign single rhs" rhs)

@@ -1386,6 +1386,9 @@
 			     ))
 	      (ntestcont (instance class_container)) ;container for tester
 	      )
+	  ;; I am not entirely sure of this assert! Perhaps there maybe
+	  ;; strange cases where curpat is null...
+	  (assert_msg "normexp_match check curpat" curpat)
 	  (scan_pattern curpat curloc ctyp pcn)
 	  (debug_msg mapvar "normexp_match mapvar")
 	  (debug_msg mapcst "normexp_match mapcst")

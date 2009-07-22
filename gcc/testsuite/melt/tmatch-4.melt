@@ -4,7 +4,7 @@
 #| run in buildir/gcc
  ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:...melt-source \
     -fmelt-compile-script=./built-melt-cc-script \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2:ana-base \
     -fmelt-arg=.../tmatch-4.melt -fmelt-debug empty-file-for-melt.c
 |#
 
@@ -19,10 +19,12 @@
    (:gimple g)
    (debuggimple "tmatch4_transform before matching g" g)
    (match g
-	  (?(gimple_assign_single  ?lhs 
-				   ?(as ?rhs
-					?(tree_var_decl 
-					  ?(cstring_same "stdout"))))
+	  (?(gimple_assign_single  
+	     ?lhs 
+	     ?(as ?rhs
+		  ?(tree_var_decl 
+		    ?(cstring_same "stdout"))))
+	    ;
 	    (debugtree "tmatch4_transform assign single stdout lhs" lhs)
 	    (debugtree "tmatch4_transform assign single stdout rhs" rhs)
 	    )

@@ -3393,7 +3393,10 @@
 					      :pctx_mexpander mexpander
 					      :pctx_pexpander patternexpand_1
 					      :pctx_varmap (make_mapobject discr_mapobjects 13)))
-			 (curpat (patternexpand_1 curmatchpatx env curpatctx curmatchloc))
+			 (curpat (let ( (cp (patternexpand_1 curmatchpatx env curpatctx curmatchloc)) )
+					(debug_msg cp "mexpand_match curpat")
+					(assert_msg "check curpat" cp)
+					cp))
 			 (curbody (expand_pairlist_as_tuple curmatchrestpairs env mexpander))
 			 (curcase (instance class_src_casematch
 					    :src_loc curmatchloc

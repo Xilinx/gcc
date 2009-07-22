@@ -2728,11 +2728,10 @@
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (assert_msg "check cont" (is_multiple cont))
-    (multiple_every
-     cont
-     (lambda (comp :long ix)
-       (output_c_code comp declbuf implbuf (get_int boxdepthp1)))))
-  )
+    (foreach_in_multiple
+     (cont)
+     (comp :long ix)
+     (output_c_code comp declbuf implbuf (get_int boxdepthp1)))))
 (install_method class_objexpv output_c_code outpucod_objexpv)
 
 ;;; output a located expression
@@ -2743,7 +2742,8 @@
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 (otyp (unsafe_get_field :obv_type oexp))
 	 )
-    (assert_msg "check cont" (is_multiple cont))
+    ;; the cont may be null
+    (assert_msg "check cont" (is_multiple_or_null cont))
     (if (== otyp ctype_void)
 	(progn
 	  (add2sbuf_indentnl implbuf depth)
@@ -2755,10 +2755,11 @@
 	  (output_raw_location oloc implbuf depth "expr")
 	)
       )
-    (multiple_every
-     cont
-     (lambda (comp :long ix)
-       (output_c_code comp declbuf implbuf (get_int boxdepthp1))))
+    ;;
+    (foreach_in_multiple
+     (cont)
+     (comp :long ix)
+     (output_c_code comp declbuf implbuf (get_int boxdepthp1)))
     (if (== otyp ctype_void)
 	(progn
 	  (add2sbuf_strconst implbuf ";}")

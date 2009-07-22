@@ -4290,6 +4290,7 @@
 			 :obcond_then othenblock
 			 :obcond_else oelseblock))
 	)
+    (debug_msg otest "compiltst_normtester_instance otest")
     (debug_msg gotothen "compiltst_normtester_instance gotothen")
     (debug_msg gotoelse "compiltst_normtester_instance gotoelse")
     (debug_msg ocond "compiltst_normtester_instance oclass")
@@ -4395,6 +4396,7 @@
 			 :obcond_else oelseblock))
 	(olist (make_list discr_list))
 	)
+    (debug_msg ocond "compiltst_normtester_same ocond")
     ;; clear the freelist
     (foreach_in_list
      (freelist)
@@ -4588,6 +4590,9 @@
 	  )
       (debug_msg exptest "compilmatcher_cmatcher exptest")
       (debug_msg expfill  "compilmatcher_cmatcher expfill")
+      (assert_msg "compilmatcher_cmatcher check exptest" exptest)
+      (debug_msg testchunk "compilmatcher_cmatcher testchunk")
+      (debug_msg fillchunk "compilmatcher_cmatcher fillchunk")
       (let ( 
 	    (othenlist (make_list discr_list))
 	    (othenbody (instance class_objblock
@@ -4606,6 +4611,7 @@
 			     :obcond_else oelsebody
 			     ))
 	    )
+	(debug_msg ocond "compilmatcher_cmatcher ocond")
 	(list_append olist ocond)
 	(foreach_in_multiple
 	 (cmouts)
