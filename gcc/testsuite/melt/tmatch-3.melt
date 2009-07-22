@@ -2,9 +2,9 @@
 ;; file tmatch-3.melt
 
 #| run in buildir/gcc
- ./cc1 -fmelt=translatefile -fmelt-dynlibdir=. \
+ ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:...melt-source \
     -fmelt-compile-script=./built-melt-cc-script \
-    -fmelt-gensrcdir=. -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
     -fmelt-arg=..../tmatch-3.melt -fmelt-debug
 |#
 

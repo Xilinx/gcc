@@ -1,0 +1,41 @@
+; -*- lisp -*-
+;; file tmatch-4.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:...melt-source \
+    -fmelt-compile-script=./built-melt-cc-script \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=.../tmatch-4.melt -fmelt-debug empty-file-for-melt.c
+|#
+
+
+;; from makegreen_transform in melt/ana-simple.melt
+(defun tmatch4_transform (grdata :tree decl :basicblock bb)
+  (debug_msg grdata "tmatch4_transform start grdata")
+  (debugtree "tmatch4_transform decl" decl)
+  (debugbasicblock "tmatch4_transform bb" bb)
+  (eachgimple_in_basicblock 
+   (bb)
+   (:gimple g)
+   (debuggimple "tmatch4_transform before matching g" g)
+   (match g
+	  (?(gimple_assign_single  ?lhs 
+				   ?(as ?rhs
+					?(tree_var_decl 
+					  ?(cstring_same "stdout"))))
+	    (debugtree "tmatch4_transform assign single stdout lhs" lhs)
+	    (debugtree "tmatch4_transform assign single stdout rhs" rhs)
+	    )
+#|
+	  (?(gimple_call ?lhs ?callfndcl ?nbargs)
+	    (debugtree "tmatch4_transform call lhs" lhs)
+	    (debugtree "tmatch4_transform call fndecl" callfndcl)
+	    )
+|#
+	  (?_
+	   (debuggimple "tmatch4_transform unmatched g" g)
+	   )
+	  )
+   )
+  (debug_msg grdata "tmatch4_transform end grdata")
+  )

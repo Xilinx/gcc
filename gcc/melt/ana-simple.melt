@@ -40,6 +40,7 @@
 	   mkgreen_fprintf
 	   ))
 
+(compile_warning "makegreen_transform fail to compile; see tmatch-4 test" ())
 (defun makegreen_transform (grdata :tree decl :basicblock bb)
   (debug_msg grdata "makegreen_transform start grdata")
   (debugtree "makegreen_transform decl" decl)
@@ -55,11 +56,16 @@
 	    (debugtree "makegreen_transform assign cast lhs" lhs)
 	    (debugtree "makegreen_transform assign cast rhs" rhs)
 	    )
+	  ;; we comment out the following, which fail to compile
+	  #|
 	  (?(gimple_assign_single  ?lhs 
-				   ?(as ?rhs ?(tree_var_decl ?(cstring_same "stdout"))))
+				   ?(as ?rhs
+					?(tree_var_decl 
+					  ?(cstring_same "stdout"))))
 	    (debugtree "makegreen_transform assign single stdout lhs" lhs)
 	    (debugtree "makegreen_transform assign single stdout rhs" rhs)
 	    )
+	  |#
 	  (?(gimple_assign_single  ?lhs ?rhs)
 	    (debugtree "makegreen_transform assign single lhs" lhs)
 	    (debugtree "makegreen_transform assign single rhs" rhs)
