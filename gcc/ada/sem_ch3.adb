@@ -229,21 +229,6 @@ package body Sem_Ch3 is
    --  Needs a more complete spec--what are the parameters exactly, and what
    --  exactly is the returned value, and how is Bound affected???
 
-   procedure Build_Itype_Reference
-     (Ityp : Entity_Id;
-      Nod  : Node_Id);
-   --  Create a reference to an internal type, for use by Gigi. The back-end
-   --  elaborates itypes on demand, i.e. when their first use is seen. This
-   --  can lead to scope anomalies if the first use is within a scope that is
-   --  nested within the scope that contains  the point of definition of the
-   --  itype. The Itype_Reference node forces the elaboration of the itype
-   --  in the proper scope. The node is inserted after Nod, which is the
-   --  enclosing declaration that generated Ityp.
-   --
-   --  A related mechanism is used during expansion, for itypes created in
-   --  branches of conditionals. See Ensure_Defined in exp_util.
-   --  Could both mechanisms be merged ???
-
    procedure Build_Underlying_Full_View
      (N   : Node_Id;
       Typ : Entity_Id;
@@ -590,8 +575,8 @@ package body Sem_Ch3 is
 
    function Is_Progenitor
      (Iface : Entity_Id;
-      Typ   :  Entity_Id) return Boolean;
-   --  Determine whether type Typ implements interface Iface. This requires
+      Typ   : Entity_Id) return Boolean;
+   --  Determine whether the interface Iface is implemented by Typ. It requires
    --  traversing the list of abstract interfaces of the type, as well as that
    --  of the ancestor types. The predicate is used to determine when a formal
    --  in the signature of an inherited operation must carry the derived type.
@@ -2623,16 +2608,13 @@ package body Sem_Ch3 is
             end if;
          end if;
 
-         --  Check incorrect use of dynamically tagged expressions. Note
-         --  the use of Is_Tagged_Type (T) which seems redundant but is in
-         --  fact important to avoid spurious errors due to expanded code
-         --  for dispatching functions over an anonymous access type
+         --  Check incorrect use of dynamically tagged expressions.
 
-         if (Is_Class_Wide_Type (Etype (E)) or else Is_Dynamically_Tagged (E))
-           and then Is_Tagged_Type (T)
-           and then not Is_Class_Wide_Type (T)
-         then
-            Error_Msg_N ("dynamically tagged expression not allowed!", E);
+         if Is_Tagged_Type (T) then
+            Check_Dynamically_Tagged_Expression
+              (Expr        => E,
+               Typ         => T,
+               Related_Nod => N);
          end if;
 
          Apply_Scalar_Range_Check (E, T);
@@ -2724,6 +2706,13 @@ package body Sem_Ch3 is
               and then Nkind (Original_Node (E)) = N_Aggregate
             then
                Act_T := Etype (E);
+
+            --  In case of class-wide interface object declarations we delay
+            --  the generation of the equivalent record type declarations until
+            --  its expansion because there are cases in they are not required.
+
+            elsif Is_Interface (T) then
+               null;
 
             else
                Expand_Subtype_From_Expr (N, T, Object_Definition (N), E);
@@ -7905,7 +7894,7 @@ package body Sem_Ch3 is
       --  declaration, all clauses are inherited.
 
       if No (First_Rep_Item (Def_Id)) then
-         Set_First_Rep_Item    (Def_Id, First_Rep_Item (T));
+         Set_First_Rep_Item (Def_Id, First_Rep_Item (T));
       end if;
 
       if Is_Tagged_Type (T) then
@@ -11142,6 +11131,7 @@ package body Sem_Ch3 is
       Set_Convention           (T1, Convention            (T2));
       Set_Is_Limited_Composite (T1, Is_Limited_Composite  (T2));
       Set_Is_Private_Composite (T1, Is_Private_Composite  (T2));
+      Set_Packed_Array_Type    (T1, Packed_Array_Type     (T2));
    end Copy_Array_Subtype_Attributes;
 
    -----------------------------------
@@ -13288,9 +13278,9 @@ package body Sem_Ch3 is
       Ev := Uint_0;
 
       --  Loop through literals of enumeration type setting pos and rep values
-      --  except that if the Ekind is already set, then it means that the
-      --  literal was already constructed (case of a derived type declaration
-      --  and we should not disturb the Pos and Rep values.
+      --  except that if the Ekind is already set, then it means the literal
+      --  was already constructed (case of a derived type declaration and we
+      --  should not disturb the Pos and Rep values.
 
       while Present (L) loop
          if Ekind (L) /= E_Enumeration_Literal then
@@ -16442,6 +16432,22 @@ package body Sem_Ch3 is
       if Is_CPP_Class (Priv_T) then
          Set_Is_CPP_Class (Full_T);
          Set_Convention   (Full_T, Convention_CPP);
+      end if;
+
+      --  If the private view has user specified stream attributes, then so has
+      --  the full view.
+
+      if Has_Specified_Stream_Read (Priv_T) then
+         Set_Has_Specified_Stream_Read (Full_T);
+      end if;
+      if Has_Specified_Stream_Write (Priv_T) then
+         Set_Has_Specified_Stream_Write (Full_T);
+      end if;
+      if Has_Specified_Stream_Input (Priv_T) then
+         Set_Has_Specified_Stream_Input (Full_T);
+      end if;
+      if Has_Specified_Stream_Output (Priv_T) then
+         Set_Has_Specified_Stream_Output (Full_T);
       end if;
    end Process_Full_View;
 

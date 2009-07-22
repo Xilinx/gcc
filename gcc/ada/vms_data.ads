@@ -2914,6 +2914,10 @@ package VMS_Data is
                                                "-gnatwm "                  &
                                             "NOMODIFIED_UNREF "            &
                                                "-gnatwM "                  &
+                                            "SUSPICIOUS_MODULUS "          &
+                                               "-gnatw.m "                 &
+                                            "NOSUSPICIOUS_MODULUS "        &
+                                               "-gnatw.M "                 &
                                             "NORMAL "                      &
                                                "-gnatwn "                  &
                                             "OVERLAYS "                    &
@@ -6552,6 +6556,13 @@ package VMS_Data is
    --
    --  Avoid raising PROGRAM_ERROR in the generated program unit stubs.
 
+   S_Stub_No_Head : aliased constant S := "/NO_LOCAL_HEADER "             &
+                                          "--no-local-header";
+   --        /NONO_LOCAL_HEADER (D)
+   --        /NO_LOCAL_HEADER
+   --
+   --  Do not put local comment header before body stub for local program unit.
+
    S_Stub_Output  : aliased constant S := "/OUTPUT=@"                      &
                                             "-o@";
    --        /OUTPUT=filespec
@@ -6609,9 +6620,9 @@ package VMS_Data is
    --      OVERWRITE (D)  Overwrite the existing tree file. If the current
    --                     directory already contains the file which, according
    --                     to the GNAT file naming rules should be considered
-   --                     as a tree file for the argument source file,
-   --                     gnatstub will refuse to create the tree file needed
-   --                     to create a sample body unless this option is chosen.
+   --                     as a tree file for the argument source file, gnatstub
+   --                     will refuse to create the tree file needed to create
+   --                     a sample body unless this option is chosen.
    --
    --      SAVE           Do not remove the tree file (i.e., the snapshot
    --                     of the compiler internal structures used by gnatstub)
@@ -6649,6 +6660,7 @@ package VMS_Data is
                       S_Stub_Output     'Access,
                       S_Stub_Project    'Access,
                       S_Stub_No_Exc     'Access,
+                      S_Stub_No_Head    'Access,
                       S_Stub_Quiet      'Access,
                       S_Stub_Search     'Access,
                       S_Stub_Subdirs    'Access,

@@ -604,7 +604,12 @@ copy_statement_list (tree *tp)
   *tp = new_tree;
 
   for (; !tsi_end_p (oi); tsi_next (&oi))
-    tsi_link_after (&ni, tsi_stmt (oi), TSI_NEW_STMT);
+    {
+      tree stmt = tsi_stmt (oi);
+      if (TREE_CODE (stmt) == STATEMENT_LIST)
+	copy_statement_list (&stmt);
+      tsi_link_after (&ni, stmt, TSI_CONTINUE_LINKING);
+    }
 }
 
 static void
@@ -779,7 +784,8 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	        {
 		  if (TREE_CODE (new_tree) == ADDR_EXPR)
 		    {
-		      *tp = fold_indirect_ref_1 (type, new_tree);
+		      *tp = fold_indirect_ref_1 (EXPR_LOCATION (new_tree),
+						 type, new_tree);
 		      /* ???  We should either assert here or build
 			 a VIEW_CONVERT_EXPR instead of blindly leaking
 			 incompatible types to our IL.  */
@@ -921,7 +927,8 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
     }
   else if (TREE_CODE (*tp) == STATEMENT_LIST)
     copy_statement_list (tp);
-  else if (TREE_CODE (*tp) == SAVE_EXPR)
+  else if (TREE_CODE (*tp) == SAVE_EXPR
+	   || TREE_CODE (*tp) == TARGET_EXPR)
     remap_save_expr (tp, id->decl_map, walk_subtrees);
   else if (TREE_CODE (*tp) == LABEL_DECL
 	   && (! DECL_CONTEXT (*tp)
@@ -1011,7 +1018,8 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
 	        {
 		  if (TREE_CODE (new_tree) == ADDR_EXPR)
 		    {
-		      *tp = fold_indirect_ref_1 (type, new_tree);
+		      *tp = fold_indirect_ref_1 (EXPR_LOCATION (new_tree),
+						 type, new_tree);
 		      /* ???  We should either assert here or build
 			 a VIEW_CONVERT_EXPR instead of blindly leaking
 			 incompatible types to our IL.  */
@@ -3940,7 +3948,8 @@ unsave_r (tree *tp, int *walk_subtrees, void *data)
     gcc_unreachable ();
   else if (TREE_CODE (*tp) == BIND_EXPR)
     copy_bind_expr (tp, walk_subtrees, id);
-  else if (TREE_CODE (*tp) == SAVE_EXPR)
+  else if (TREE_CODE (*tp) == SAVE_EXPR
+	   || TREE_CODE (*tp) == TARGET_EXPR)
     remap_save_expr (tp, st, walk_subtrees);
   else
     {
@@ -4460,6 +4469,42 @@ delete_unreachable_blocks_update_callgraph (copy_body_data *id)
   return changed;
 }
 
+/* Update clone info after duplication.  */
+
+static void
+update_clone_info (copy_body_data * id)
+{
+  struct cgraph_node *node;
+  if (!id->dst_node->clones)
+    return;
+  for (node = id->dst_node->clones; node != id->dst_node;)
+    {
+      /* First update replace maps to match the new body.  */
+      if (node->clone.tree_map)
+        {
+	  unsigned int i;
+          for (i = 0; i < VEC_length (ipa_replace_map_p, node->clone.tree_map); i++)
+	    {
+	      struct ipa_replace_map *replace_info;
+	      replace_info = VEC_index (ipa_replace_map_p, node->clone.tree_map, i);
+	      walk_tree (&replace_info->old_tree, copy_tree_body_r, id, NULL);
+	      walk_tree (&replace_info->new_tree, copy_tree_body_r, id, NULL);
+	    }
+	}
+      if (node->clones)
+	node = node->clones;
+      else if (node->next_sibling_clone)
+	node = node->next_sibling_clone;
+      else
+	{
+	  while (node != id->dst_node && !node->next_sibling_clone)
+	    node = node->clone_of;
+	  if (node != id->dst_node)
+	    node = node->next_sibling_clone;
+	}
+    }
+}
+
 /* Create a copy of a function's tree.
    OLD_DECL and NEW_DECL are FUNCTION_DECL tree nodes
    of the original function and the new copied function
@@ -4616,6 +4661,7 @@ tree_function_versioning (tree old_decl, tree new_decl,
       while (VEC_length (gimple, init_stmts))
 	insert_init_stmt (bb, VEC_pop (gimple, init_stmts));
     }
+  update_clone_info (&id);
 
   /* Remap the nonlocal_goto_save_area, if any.  */
   if (cfun->nonlocal_goto_save_area)

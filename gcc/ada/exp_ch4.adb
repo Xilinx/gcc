@@ -4043,7 +4043,7 @@ package body Exp_Ch4 is
       --  and replace the conditional expresion by a reference to Cnn.all ???
 
       if Present (Then_Actions (N)) or else Present (Else_Actions (N)) then
-         Cnn := Make_Defining_Identifier (Loc, New_Internal_Name ('C'));
+         Cnn := Make_Temporary (Loc, 'C', N);
 
          New_If :=
            Make_Implicit_If_Statement (N,
@@ -4092,10 +4092,6 @@ package body Exp_Ch4 is
 
          Insert_Action (N, New_If);
          Analyze_And_Resolve (N, Typ);
-
-         --  Link temporary to original expression, for Codepeer
-
-         Set_Related_Expression (Cnn, Original_Node (N));
       end if;
    end Expand_N_Conditional_Expression;
 
@@ -4120,6 +4116,67 @@ package body Exp_Ch4 is
       Lop    : constant Node_Id    := Left_Opnd (N);
       Rop    : constant Node_Id    := Right_Opnd (N);
       Static : constant Boolean    := Is_OK_Static_Expression (N);
+
+      procedure Expand_Set_Membership;
+      --  For each disjunct we create a simple equality or membership test.
+      --  The whole membership is rewritten as a short-circuit disjunction.
+
+      ---------------------------
+      -- Expand_Set_Membership --
+      ---------------------------
+
+      procedure Expand_Set_Membership is
+         Alt  : Node_Id;
+         Res  : Node_Id;
+
+         function Make_Cond (Alt : Node_Id) return Node_Id;
+         --  If the alternative is a subtype mark, create a simple membership
+         --  test. Otherwise create an equality test for it.
+
+         ---------------
+         -- Make_Cond --
+         ---------------
+
+         function Make_Cond (Alt : Node_Id) return Node_Id is
+            Cond : Node_Id;
+            L    : constant Node_Id := New_Copy (Lop);
+            R    : constant Node_Id := Relocate_Node (Alt);
+
+         begin
+            if Is_Entity_Name (Alt)
+              and then Is_Type (Entity (Alt))
+            then
+               Cond :=
+                 Make_In (Sloc (Alt),
+                   Left_Opnd  => L,
+                   Right_Opnd => R);
+            else
+               Cond := Make_Op_Eq (Sloc (Alt),
+                 Left_Opnd  => L,
+                 Right_Opnd => R);
+            end if;
+
+            return Cond;
+         end Make_Cond;
+
+      --  Start of proessing for Expand_N_In
+
+      begin
+         Alt := Last (Alternatives (N));
+         Res := Make_Cond (Alt);
+
+         Prev (Alt);
+         while Present (Alt) loop
+            Res :=
+              Make_Or_Else (Sloc (Alt),
+                Left_Opnd  => Make_Cond (Alt),
+                Right_Opnd => Res);
+            Prev (Alt);
+         end loop;
+
+         Rewrite (N, Res);
+         Analyze_And_Resolve (N, Standard_Boolean);
+      end Expand_Set_Membership;
 
       procedure Substitute_Valid_Check;
       --  Replaces node N by Lop'Valid. This is done when we have an explicit
@@ -4146,6 +4203,13 @@ package body Exp_Ch4 is
    --  Start of processing for Expand_N_In
 
    begin
+
+      if Present (Alternatives (N)) then
+         Remove_Side_Effects (Lop);
+         Expand_Set_Membership;
+         return;
+      end if;
+
       --  Check case of explicit test for an expression in range of its
       --  subtype. This is suspicious usage and we replace it with a 'Valid
       --  test and give a warning.
@@ -4732,6 +4796,10 @@ package body Exp_Ch4 is
             Make_In (Loc,
               Left_Opnd  => Left_Opnd (N),
               Right_Opnd => Right_Opnd (N))));
+
+      --  If this is a set membership, preserve list of alternatives
+
+      Set_Alternatives (Right_Opnd (N), Alternatives (Original_Node (N)));
 
       --  We want this to appear as coming from source if original does (see
       --  transformations in Expand_N_In).
@@ -7844,9 +7912,14 @@ package body Exp_Ch4 is
 
    begin
       --  Nothing at all to do if conversion is to the identical type so remove
-      --  the conversion completely, it is useless.
+      --  the conversion completely, it is useless, except that it may carry
+      --  an Assignment_OK attribute, which must be propagated to the operand.
 
       if Operand_Type = Target_Type then
+         if Assignment_OK (N) then
+            Set_Assignment_OK (Operand);
+         end if;
+
          Rewrite (N, Relocate_Node (Operand));
          return;
       end if;
@@ -8434,6 +8507,19 @@ package body Exp_Ch4 is
       Operand_Type : constant Entity_Id := Etype (Operand);
 
    begin
+      --  Nothing at all to do if conversion is to the identical type so remove
+      --  the conversion completely, it is useless, except that it may carry
+      --  an Assignment_OK indication which must be proprgated to the operand.
+
+      if Operand_Type = Target_Type then
+         if Assignment_OK (N) then
+            Set_Assignment_OK (Operand);
+         end if;
+
+         Rewrite (N, Relocate_Node (Operand));
+         return;
+      end if;
+
       --  If we have a conversion of a compile time known value to a target
       --  type and the value is in range of the target type, then we can simply
       --  replace the construct by an integer literal of the correct type. We

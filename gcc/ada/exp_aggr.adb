@@ -2976,33 +2976,31 @@ package body Exp_Aggr is
                   declare
                      SubE : constant Entity_Id :=
                               Make_Defining_Identifier (Loc,
-                                New_Internal_Name ('T'));
+                                Chars => New_Internal_Name ('T'));
 
                      SubD : constant Node_Id :=
                               Make_Subtype_Declaration (Loc,
-                                Defining_Identifier =>
-                                  SubE,
+                                Defining_Identifier => SubE,
                                 Subtype_Indication  =>
                                   Make_Subtype_Indication (Loc,
-                                    Subtype_Mark => New_Reference_To (
-                                      Etype (Comp_Type), Loc),
+                                    Subtype_Mark =>
+                                      New_Reference_To
+                                        (Etype (Comp_Type), Loc),
                                     Constraint =>
-                                      Make_Index_Or_Discriminant_Constraint (
-                                        Loc, Constraints => New_List (
-                                          New_Copy_Tree (Aggregate_Bounds (
-                                            Expr_Q))))));
+                                      Make_Index_Or_Discriminant_Constraint
+                                        (Loc,
+                                         Constraints => New_List (
+                                          New_Copy_Tree
+                                            (Aggregate_Bounds (Expr_Q))))));
 
                      --  Create a temporary array of the above subtype which
                      --  will be used to capture the aggregate assignments.
 
-                     TmpE : constant Entity_Id :=
-                              Make_Defining_Identifier (Loc,
-                                New_Internal_Name ('A'));
+                     TmpE : constant Entity_Id := Make_Temporary (Loc, 'A', N);
 
                      TmpD : constant Node_Id :=
                               Make_Object_Declaration (Loc,
-                                Defining_Identifier =>
-                                  TmpE,
+                                Defining_Identifier => TmpE,
                                 Object_Definition   =>
                                   New_Reference_To (SubE, Loc));
 
@@ -3588,7 +3586,7 @@ package body Exp_Aggr is
          Rewrite (Parent (N), Make_Null_Statement (Loc));
 
       else
-         Temp := Make_Defining_Identifier (Loc, New_Internal_Name ('A'));
+         Temp := Make_Temporary (Loc, 'A', N);
 
          --  If the type inherits unknown discriminants, use the view with
          --  known discriminants if available.
@@ -5203,7 +5201,7 @@ package body Exp_Aggr is
 
       else
          Maybe_In_Place_OK := False;
-         Tmp := Make_Defining_Identifier (Loc, New_Internal_Name ('A'));
+         Tmp := Make_Temporary (Loc, 'A', N);
          Tmp_Decl :=
            Make_Object_Declaration
              (Loc,
@@ -5475,11 +5473,9 @@ package body Exp_Aggr is
       --  an atomic move for it.
 
       if Is_Atomic (Typ)
-        and then Nkind_In (Parent (N), N_Object_Declaration,
-                                       N_Assignment_Statement)
         and then Comes_From_Source (Parent (N))
+        and then Is_Atomic_Aggregate (N, Typ)
       then
-         Expand_Atomic_Aggregate (N, Typ);
          return;
 
       --  No special management required for aggregates used to initialize

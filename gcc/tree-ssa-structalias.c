@@ -3388,6 +3388,7 @@ make_constraint_from_heapvar (varinfo_t lhs, const char *name)
   vi->is_artificial_var = true;
   vi->is_heap_var = true;
   vi->is_unknown_size_var = true;
+  vi->offset = 0;
   vi->fullsize = ~0;
   vi->size = ~0;
   vi->is_full_var = true;
@@ -4884,6 +4885,28 @@ pt_solution_reset (struct pt_solution *pt)
 {
   memset (pt, 0, sizeof (struct pt_solution));
   pt->anything = true;
+}
+
+/* Set the points-to solution *PT to point only to the variables
+   in VARS.  */
+
+void
+pt_solution_set (struct pt_solution *pt, bitmap vars)
+{
+  bitmap_iterator bi;
+  unsigned i;
+
+  memset (pt, 0, sizeof (struct pt_solution));
+  pt->vars = vars;
+  EXECUTE_IF_SET_IN_BITMAP (vars, 0, i, bi)
+    {
+      tree var = referenced_var_lookup (i);
+      if (is_global_var (var))
+	{
+	  pt->vars_contains_global = true;
+	  break;
+	}
+    }
 }
 
 /* Return true if the points-to solution *PT is empty.  */

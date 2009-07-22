@@ -120,9 +120,9 @@ package body Sem_Res is
    --  Could be optimized away perhaps?
 
    procedure Check_No_Direct_Boolean_Operators (N : Node_Id);
-   --  N is the node for a comparison or logical operator. If the operator
-   --  is predefined, and the root type of the operands is Standard.Boolean,
-   --  then a check is made for restriction No_Direct_Boolean_Operators.
+   --  N is the node for a logical operator. If the operator is predefined, and
+   --  the root type of the operands is Standard.Boolean, then a check is made
+   --  for restriction No_Direct_Boolean_Operators.
 
    function Is_Definite_Access_Type (E : Entity_Id) return Boolean;
    --  Determine whether E is an access type declared by an access
@@ -941,24 +941,9 @@ package body Sem_Res is
       if Scope (Entity (N)) = Standard_Standard
         and then Root_Type (Etype (Left_Opnd (N))) = Standard_Boolean
       then
-         --  Restriction does not apply to generated code
+         --  Restriction only applies to original source code
 
-         if not Comes_From_Source (N) then
-            null;
-
-         --  Restriction does not apply for A=False, A=True
-
-         elsif Nkind (N) = N_Op_Eq
-           and then (Is_Entity_Name (Right_Opnd (N))
-                      and then (Entity (Right_Opnd (N)) = Standard_True
-                                 or else
-                                Entity (Right_Opnd (N)) = Standard_False))
-         then
-            null;
-
-         --  Otherwise restriction applies
-
-         else
+         if Comes_From_Source (N) then
             Check_Restriction (No_Direct_Boolean_Operators, N);
          end if;
       end if;
@@ -3659,9 +3644,16 @@ package body Sem_Res is
               and then (Is_Class_Wide_Type (Designated_Type (A_Typ))
                          or else (Nkind (A) = N_Attribute_Reference
                                    and then
-                                  Is_Class_Wide_Type (Etype (Prefix (A)))))
+                                     Is_Class_Wide_Type (Etype (Prefix (A)))))
               and then not Is_Class_Wide_Type (Designated_Type (F_Typ))
               and then not Is_Controlling_Formal (F)
+
+              --  Disable these checks for call to imported C++ subprograms
+
+              and then not
+                (Is_Entity_Name (Name (N))
+                  and then Is_Imported (Entity (Name (N)))
+                  and then Convention (Entity (Name (N))) = Convention_CPP)
             then
                Error_Msg_N
                  ("access to class-wide argument not allowed here!", A);
@@ -5472,8 +5464,6 @@ package body Sem_Res is
       T : Entity_Id;
 
    begin
-      Check_No_Direct_Boolean_Operators (N);
-
       --  If this is an intrinsic operation which is not predefined, use the
       --  types of its declared arguments to resolve the possibly overloaded
       --  operands. Otherwise the operands are unambiguous and specify the
@@ -6218,8 +6208,6 @@ package body Sem_Res is
    --  Start of processing for Resolve_Equality_Op
 
    begin
-      Check_No_Direct_Boolean_Operators (N);
-
       Set_Etype (N, Base_Type (Typ));
       Generate_Reference (T, N, ' ');
 
@@ -6734,16 +6722,52 @@ package body Sem_Res is
    procedure Resolve_Membership_Op (N : Node_Id; Typ : Entity_Id) is
       pragma Warnings (Off, Typ);
 
-      L : constant Node_Id := Left_Opnd (N);
+      L : constant Node_Id := Left_Opnd  (N);
       R : constant Node_Id := Right_Opnd (N);
       T : Entity_Id;
+
+      procedure Resolve_Set_Membership;
+      --  Analysis has determined a unique type for the left operand.
+      --  Use it to resolve the disjuncts.
+
+      ----------------------------
+      -- Resolve_Set_Membership --
+      ----------------------------
+
+      procedure Resolve_Set_Membership is
+         Alt : Node_Id;
+
+      begin
+         Resolve (L, Etype (L));
+
+         Alt := First (Alternatives (N));
+         while Present (Alt) loop
+
+            --  Alternative is an expression, a range
+            --  or a subtype mark.
+
+            if not Is_Entity_Name (Alt)
+              or else not Is_Type (Entity (Alt))
+            then
+               Resolve (Alt, Etype (L));
+            end if;
+
+            Next (Alt);
+         end loop;
+      end Resolve_Set_Membership;
+
+   --  Start of processing for Resolve_Membership_Op
 
    begin
       if L = Error or else R = Error then
          return;
       end if;
 
-      if not Is_Overloaded (R)
+      if Present (Alternatives (N)) then
+         Resolve_Set_Membership;
+         return;
+
+      elsif not Is_Overloaded (R)
         and then
           (Etype (R) = Universal_Integer or else
            Etype (R) = Universal_Real)
@@ -7600,7 +7624,7 @@ package body Sem_Res is
 
       --  Generate cross-reference. We needed to wait until full overloading
       --  resolution was complete to do this, since otherwise we can't tell if
-      --  we are an Lvalue of not.
+      --  we are an lvalue or not.
 
       if May_Be_Lvalue (N) then
          Generate_Reference (Entity (S), S, 'm');

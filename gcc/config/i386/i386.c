@@ -14017,7 +14017,7 @@ ix86_build_const_vector (enum machine_mode mode, bool vect, rtx value)
    all elements of the vector register.  If INVERT is true, then create
    a mask excluding the sign bit.  */
 
-static rtx
+rtx
 ix86_build_signbit_mask (enum machine_mode mode, bool vect, bool invert)
 {
   enum machine_mode vec_mode, imode;
@@ -14181,15 +14181,9 @@ ix86_expand_copysign (rtx operands[])
 	    op0 = CONST0_RTX (vmode);
 	  else
 	    {
-	      rtvec v;
+	      rtx v = ix86_build_const_vector (mode, false, op0);
 
-	      if (mode == SFmode)
-		v = gen_rtvec (4, op0, CONST0_RTX (SFmode),
-			       CONST0_RTX (SFmode), CONST0_RTX (SFmode));
-	      else
-		v = gen_rtvec (2, op0, CONST0_RTX (DFmode));
-
-	      op0 = force_reg (vmode, gen_rtx_CONST_VECTOR (vmode, v));
+	      op0 = force_reg (vmode, v);
 	    }
 	}
       else if (op0 != CONST0_RTX (mode))
@@ -20087,6 +20081,41 @@ ix86_local_alignment (tree exp, enum machine_mode mode,
     }
   return align;
 }
+
+/* Compute the minimum required alignment for dynamic stack realignment
+   purposes for a local variable, parameter or a stack slot.  EXP is
+   the data type or decl itself, MODE is its mode and ALIGN is the
+   alignment that the object would ordinarily have.  */
+
+unsigned int
+ix86_minimum_alignment (tree exp, enum machine_mode mode,
+			unsigned int align)
+{
+  tree type, decl;
+
+  if (TARGET_64BIT || align != 64 || ix86_preferred_stack_boundary >= 64)
+    return align;
+
+  if (exp && DECL_P (exp))
+    {
+      type = TREE_TYPE (exp);
+      decl = exp;
+    }
+  else
+    {
+      type = exp;
+      decl = NULL;
+    }
+
+  /* Don't do dynamic stack realignment for long long objects with
+     -mpreferred-stack-boundary=2.  */
+  if ((mode == DImode || (type && TYPE_MODE (type) == DImode))
+      && (!type || !TYPE_USER_ALIGN (type))
+      && (!decl || !DECL_USER_ALIGN (decl)))
+    return 32;
+
+  return align;
+}
 
 /* Emit RTL insns to initialize the variable parts of a trampoline.
    FNADDR is an RTX for the address of the function's pure code.
@@ -20874,6 +20903,10 @@ enum ix86_builtins
   IX86_BUILTIN_HUGE_VALQ,
   IX86_BUILTIN_FABSQ,
   IX86_BUILTIN_COPYSIGNQ,
+
+  /* Vectorizer support builtins.  */
+  IX86_BUILTIN_CPYSGNPS,
+  IX86_BUILTIN_CPYSGNPD,
 
   /* SSE5 instructions */
   IX86_BUILTIN_FMADDSS,
@@ -21711,6 +21744,8 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE, CODE_FOR_iorv4sf3, "__builtin_ia32_orps", IX86_BUILTIN_ORPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
   { OPTION_MASK_ISA_SSE, CODE_FOR_xorv4sf3,  "__builtin_ia32_xorps", IX86_BUILTIN_XORPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
 
+  { OPTION_MASK_ISA_SSE, CODE_FOR_copysignv4sf3,  "__builtin_ia32_copysignps", IX86_BUILTIN_CPYSGNPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
+
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movss,  "__builtin_ia32_movss", IX86_BUILTIN_MOVSS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movhlps_exp,  "__builtin_ia32_movhlps", IX86_BUILTIN_MOVHLPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movlhps_exp,  "__builtin_ia32_movlhps", IX86_BUILTIN_MOVLHPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
@@ -21807,6 +21842,8 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_andnotv2df3,  "__builtin_ia32_andnpd", IX86_BUILTIN_ANDNPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_iorv2df3, "__builtin_ia32_orpd", IX86_BUILTIN_ORPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_xorv2df3,  "__builtin_ia32_xorpd", IX86_BUILTIN_XORPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
+
+  { OPTION_MASK_ISA_SSE2, CODE_FOR_copysignv2df3,  "__builtin_ia32_copysignpd", IX86_BUILTIN_CPYSGNPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
 
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_movsd,  "__builtin_ia32_movsd", IX86_BUILTIN_MOVSD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_unpckhpd_exp, "__builtin_ia32_unpckhpd", IX86_BUILTIN_UNPCKHPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
@@ -25692,6 +25729,18 @@ ix86_builtin_vectorized_function (unsigned int fn, tree type_out,
       if (out_mode == SImode && out_n == 4
 	  && in_mode == SFmode && in_n == 4)
 	return ix86_builtins[IX86_BUILTIN_CVTPS2DQ];
+      break;
+
+    case BUILT_IN_COPYSIGN:
+      if (out_mode == DFmode && out_n == 2
+	  && in_mode == DFmode && in_n == 2)
+	return ix86_builtins[IX86_BUILTIN_CPYSGNPD];
+      break;
+
+    case BUILT_IN_COPYSIGNF:
+      if (out_mode == SFmode && out_n == 4
+	  && in_mode == SFmode && in_n == 4)
+	return ix86_builtins[IX86_BUILTIN_CPYSGNPS];
       break;
 
     default:

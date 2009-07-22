@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -185,19 +185,22 @@ procedure Gnatls is
    function Image (Restriction : Restriction_Id) return String;
    --  Returns the capitalized image of Restriction
 
-   ---------------------------------------
-   -- GLADE specific output subprograms --
-   ---------------------------------------
+   ------------------------------------------
+   -- GNATDIST specific output subprograms --
+   ------------------------------------------
 
-   package GLADE is
+   package GNATDIST is
 
-      --  Any modification to this subunit requires a synchronization
-      --  with the GLADE implementation.
+      --  Any modification to this subunit requires synchronization with the
+      --  GNATDIST sources.
 
-      procedure Output_ALI    (A : ALI_Id);
+      procedure Output_ALI (A : ALI_Id);
+      --  Comment required saying what this routine does ???
+
       procedure Output_No_ALI (Afile : File_Name_Type);
+      --  Comments required saying what this routine does ???
 
-   end GLADE;
+   end GNATDIST;
 
    -----------------
    -- Add_Lib_Dir --
@@ -347,7 +350,7 @@ procedure Gnatls is
       Source_End := Source_Start - 1;
 
       if Print_Source then
-         Source_End   := Source_Start + Max_Src_Length;
+         Source_End := Source_Start + Max_Src_Length;
       end if;
    end Find_General_Layout;
 
@@ -392,11 +395,11 @@ procedure Gnatls is
       end if;
    end Find_Status;
 
-   -----------
-   -- GLADE --
-   -----------
+   --------------
+   -- GNATDIST --
+   --------------
 
-   package body GLADE is
+   package body GNATDIST is
 
       N_Flags   : Natural;
       N_Indents : Natural := 0;
@@ -431,33 +434,33 @@ procedure Gnatls is
          T_Body);
 
       Image : constant array (Token_Type) of String_Access :=
-        (T_No_ALI         => new String'("No_ALI"),
-         T_ALI            => new String'("ALI"),
-         T_Unit           => new String'("Unit"),
-         T_With           => new String'("With"),
-         T_Source         => new String'("Source"),
-         T_Afile          => new String'("Afile"),
-         T_Ofile          => new String'("Ofile"),
-         T_Sfile          => new String'("Sfile"),
-         T_Name           => new String'("Name"),
-         T_Main           => new String'("Main"),
-         T_Kind           => new String'("Kind"),
-         T_Flags          => new String'("Flags"),
-         T_Preelaborated  => new String'("Preelaborated"),
-         T_Pure           => new String'("Pure"),
-         T_Has_RACW       => new String'("Has_RACW"),
-         T_Remote_Types   => new String'("Remote_Types"),
-         T_Shared_Passive => new String'("Shared_Passive"),
-         T_RCI            => new String'("RCI"),
-         T_Predefined     => new String'("Predefined"),
-         T_Internal       => new String'("Internal"),
-         T_Is_Generic     => new String'("Is_Generic"),
-         T_Procedure      => new String'("procedure"),
-         T_Function       => new String'("function"),
-         T_Package        => new String'("package"),
-         T_Subprogram     => new String'("subprogram"),
-         T_Spec           => new String'("spec"),
-         T_Body           => new String'("body"));
+                (T_No_ALI         => new String'("No_ALI"),
+                 T_ALI            => new String'("ALI"),
+                 T_Unit           => new String'("Unit"),
+                 T_With           => new String'("With"),
+                 T_Source         => new String'("Source"),
+                 T_Afile          => new String'("Afile"),
+                 T_Ofile          => new String'("Ofile"),
+                 T_Sfile          => new String'("Sfile"),
+                 T_Name           => new String'("Name"),
+                 T_Main           => new String'("Main"),
+                 T_Kind           => new String'("Kind"),
+                 T_Flags          => new String'("Flags"),
+                 T_Preelaborated  => new String'("Preelaborated"),
+                 T_Pure           => new String'("Pure"),
+                 T_Has_RACW       => new String'("Has_RACW"),
+                 T_Remote_Types   => new String'("Remote_Types"),
+                 T_Shared_Passive => new String'("Shared_Passive"),
+                 T_RCI            => new String'("RCI"),
+                 T_Predefined     => new String'("Predefined"),
+                 T_Internal       => new String'("Internal"),
+                 T_Is_Generic     => new String'("Is_Generic"),
+                 T_Procedure      => new String'("procedure"),
+                 T_Function       => new String'("function"),
+                 T_Package        => new String'("package"),
+                 T_Subprogram     => new String'("subprogram"),
+                 T_Spec           => new String'("spec"),
+                 T_Body           => new String'("body"));
 
       procedure Output_Name  (N : Name_Id);
       --  Remove any encoding info (%b and %s) and output N
@@ -465,12 +468,11 @@ procedure Gnatls is
       procedure Output_Afile (A : File_Name_Type);
       procedure Output_Ofile (O : File_Name_Type);
       procedure Output_Sfile (S : File_Name_Type);
-      --  Output various names. Check that the name is different from
-      --  no name. Otherwise, skip the output.
+      --  Output various names. Check that the name is different from no name.
+      --  Otherwise, skip the output.
 
       procedure Output_Token (T : Token_Type);
-      --  Output token using a specific format. That is several
-      --  indentations and:
+      --  Output token using specific format. That is several indentations and:
       --
       --  T_No_ALI  .. T_With : <token> & " =>" & NL
       --  T_Source  .. T_Kind : <token> & " => "
@@ -609,12 +611,12 @@ procedure Gnatls is
             FS := Full_Source_Name (FS);
 
             --  There is no full source name. This occurs for instance when a
-            --  withed unit has a spec file but no body file. This situation
-            --  is not a problem for GLADE since the unit may be located on
-            --  a partition we do not want to build. However, we need to
-            --  locate the spec file and to find its full source name.
-            --  Replace the body file name with the spec file name used to
-            --  compile the current unit when possible.
+            --  withed unit has a spec file but no body file. This situation is
+            --  not a problem for GNATDIST since the unit may be located on a
+            --  partition we do not want to build. However, we need to locate
+            --  the spec file and to find its full source name. Replace the
+            --  body file name with the spec file name used to compile the
+            --  current unit when possible.
 
             if FS = No_File then
                Get_Name_String (S);
@@ -794,7 +796,7 @@ procedure Gnatls is
          N_Indents := N_Indents - 1;
       end Output_With;
 
-   end GLADE;
+   end GNATDIST;
 
    -----------
    -- Image --
@@ -1754,7 +1756,7 @@ begin
 
       if Ali_File = No_File then
          if Very_Verbose_Mode then
-            GLADE.Output_No_ALI (Lib_File_Name (Main_File));
+            GNATDIST.Output_No_ALI (Lib_File_Name (Main_File));
 
          else
             Write_Str ("Can't find library info for ");
@@ -1791,7 +1793,7 @@ begin
 
    if Very_Verbose_Mode then
       for A in ALIs.First .. ALIs.Last loop
-         GLADE.Output_ALI (A);
+         GNATDIST.Output_ALI (A);
       end loop;
 
       return;

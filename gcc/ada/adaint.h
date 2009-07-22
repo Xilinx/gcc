@@ -62,7 +62,12 @@
 #define STRUCT_STAT struct stat
 #endif
 
-typedef long OS_Time; /* Type corresponding to GNAT.OS_Lib.OS_Time */
+/* Type corresponding to GNAT.OS_Lib.OS_Time */
+#if defined (_WIN64)
+typedef long long OS_Time;
+#else
+typedef long OS_Time;
+#endif
 
 extern int    __gnat_max_path_len;
 extern OS_Time __gnat_current_time		   (void);
@@ -199,8 +204,11 @@ extern void   __gnat_os_filename                   (char *, char *, char *,
 extern void   *__gnat_lwp_self			   (void);
 #endif
 
-#if defined (__MINGW32__) && !defined (RTX)
-extern void   __gnat_plist_init                    (void);
+#if defined (_WIN32)
+/* Interface to delete a handle from internally maintained list of child
+   process handles on Windows */
+extern void
+__gnat_win32_remove_handle (HANDLE h, int pid);
 #endif
 
 #ifdef IN_RTS

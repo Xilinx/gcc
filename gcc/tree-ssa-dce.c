@@ -873,7 +873,8 @@ remove_dead_phis (basic_block bb)
 	      FOR_EACH_IMM_USE_STMT (use_stmt, iter, vdef)
 		FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
 		  SET_USE (use_p, vuse);
-	      if (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (vdef))
+	      if (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (vdef)
+	          && TREE_CODE (vuse) == SSA_NAME)
 		SSA_NAME_OCCURS_IN_ABNORMAL_PHI (vuse) = 1;
 	    }
 	  else
@@ -1137,7 +1138,8 @@ eliminate_unnecessary_stmts (void)
       for (bb = ENTRY_BLOCK_PTR->next_bb; bb != EXIT_BLOCK_PTR; bb = next_bb)
 	{
 	  next_bb = bb->next_bb;
-	  if (!(bb->flags & BB_REACHABLE))
+	  if (!TEST_BIT (bb_contains_live_stmts, bb->index)
+	      || !(bb->flags & BB_REACHABLE))
 	    {
 	      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 		if (!is_gimple_reg (gimple_phi_result (gsi_stmt (gsi))))
@@ -1159,7 +1161,8 @@ eliminate_unnecessary_stmts (void)
 		    if (found)
 		      mark_virtual_phi_result_for_renaming (gsi_stmt (gsi));
 		  }
-	      delete_basic_block (bb);
+	      if (!(bb->flags & BB_REACHABLE))
+	        delete_basic_block (bb);
 	    }
 	}
     }

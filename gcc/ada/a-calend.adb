@@ -1357,8 +1357,8 @@ package body Ada.Calendar is
             Res_N := Res_N + Duration_To_Time_Rep (Day_Secs);
 
          else
-            Res_N := Res_N +
-              Time_Rep (Hour * 3_600 + Minute * 60 + Second) * Nano;
+            Res_N :=
+              Res_N + Time_Rep (Hour * 3_600 + Minute * 60 + Second) * Nano;
 
             if Sub_Sec = 1.0 then
                Res_N := Res_N + Time_Rep (1) * Nano;
@@ -1471,7 +1471,9 @@ package body Ada.Calendar is
       subtype long is Long_Integer;
       type long_Pointer is access all long;
 
-      subtype time_t is long;
+      type time_t is
+        range -(2 ** (Standard'Address_Size - Integer'(1))) ..
+              +(2 ** (Standard'Address_Size - Integer'(1)) - 1);
       type time_t_Pointer is access all time_t;
 
       procedure localtime_tzoff
