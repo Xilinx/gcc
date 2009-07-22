@@ -1,3 +1,161 @@
+2009-07-22  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/35229
+	PR tree-optimization/39300
+
+	* tree-ssa-pre.c (includes): Include tree-scalar-evolution.h.
+	(inhibit_phi_insertion): New function.
+	(insert_into_preds_of_block): Call it for REFERENCEs.
+	(init_pre): Initialize and finalize scalar evolutions.
+	* Makefile.in (tree-ssa-pre.o): Depend on tree-scalar-evolution.h .
+
+2009-07-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (zero_extended_scalar_load_operand):
+	Use CONST_VECTOR_NUNITS to determine number of elements.
+
+2009-07-22  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/constraints.md (ZQ, ZR, ZS, ZT): New constraints.
+	(U, W): Constraints are now deprecated and will be removed if we
+	run out of letters.	
+	* config/s390/s390.md (U, W): Replaced with ZQZR, ZSZT throughout
+	the file.
+	("prefetch"): Add the stcmh instruction for prefetching.
+	* config/s390/s390.c (s390_symref_operand_p): Function moved. No
+	changes.
+	(s390_short_displacement): Return always true if compiling for
+	machines not providing the long displacement facility.
+	(s390_mem_constraint): Support the new constraint letter Z.
+	(s390_check_qrst_address): New function.
+
+2009-07-21  DJ Delorie  <dj@redhat.com>
+
+	* config/mep/mep.c (mep_legitimize_arg): Leave control registers
+	alone too.
+
+2009-07-21  Jason Merrill  <jason@redhat.com>
+
+	* c-common.c (max_tinst_depth): Increase default to 1024.
+
+2009-07-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (vec_unpacku_float_hi_v4si): New expander.
+	(vec_unpacku_float_lo_v4si): Ditto.
+
+2009-07-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/40811
+	* config/i386/sse.md (sse2_cvtudq2ps): New expander.
+	(enum ix86_builtins): Add IX86_BUILTIN_CVTUDQ2PS.
+	(builtin_description): Add __builtin_ia32_cvtudq2ps.
+	(ix86_vectorize_builtin_conversion): Handle IX86_BUILTIN_CVTUDQ2PS.
+
+2009-07-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/40813
+	* tree-inline.c (copy_bb): Regimplify RHS after last stmt, not before
+	it.
+
+2009-07-21  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_gimplify_va_arg_expr): Wrap the result
+	with a NOP_EXPR if needed.
+
+2009-07-21  Paul Brook <paul@codesourcery.com>
+
+	* tree-vectorizer.c (increase_alignment): Handle nested arrays.
+	Terminate debug dump with newline.
+
+2009-07-20  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa.c (compute_zdepwi_operands): Limit deposit length to 32 - lsb.
+	Cast "1" to unsigned HOST_WIDE_INT.
+	(compute_zdepdi_operands): Limit maximum length to 64 bits.  Limit
+	deposit length to the maximum length - lsb.  Extend length if
+	HOST_BITS_PER_WIDE_INT is 32.
+
+2009-07-20  Olatunji Ruwase <tjruwase@google.com>
+
+	* cgraph.h (constant_pool_htab): New function.
+	(constant_descriptor_tree): Move from varasm.c.
+	* varasm.c (constant_pool_htab): New function.
+	(constant_descriptor_tree): Move to cgraph.h.
+
+2009-07-20  Olatunji Ruwase  <tjruwase@google.com>
+
+	* toplev.c: Invoke FINISH_UNIT callbacks before call to finalize().
+
+2009-07-20  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* Makefile.in (TREE_INLINE_H, tree-inline.o, cgraph.o): Remove
+	$(VARRAY_H).
+
+2009-07-20  Xinliang David Li  <davidxl@google.com>
+
+	* dbgcnt.c (dbg_cnt_set_limit_by_name): Add length check.
+
+2009-07-20  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.md (move_type): Add arith.
+	(type): Handle arith.
+	(zero_extendsidi2): Rename this into ...
+	(*zero_extendsidi2): ... this.  Don't match if ISA_HAS_EXT_INS.
+	(zero_extendsidi2): New expander.
+	(*zero_extendsidi2_dext): New pattern.
+
+2009-07-20  Nick Clifton  <nickc@redhat.com>
+
+	* config.gcc (mips64-*-*): Add definition of tm_defines in order
+	to set MIPS_ABI_DEFAULT.
+	* config/mips/vr.h (MIPS_ABI_DEFAULT): Remove definition.
+
+2009-07-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-object-size.c (addr_object_size): Handle unions with
+	array in it as last field of structs in __bos (, 1) as __bos (, 0).
+
+	PR tree-optimization/40792
+	* tree.c (build_function_type_skip_args): Remove bogus assert.
+
+2009-07-20  Jan Hubicka  <jh@suse.cz>
+	    Martin Jambor  <mjambor@suse.cz>
+
+	* cgraph.h (combined_args_to_skip): New field.
+	* cgraph.c (cgraph_create_virtual_clone): Properly handle
+	combined_args_to_skip and args_to_skip.
+	* tree-inline.c (update_clone_info): New function.
+	(tree_function_versioning): Call update_clone_info.
+	* cgraphunit.c: (cgraph_materialize_clone): Dump materialized
+	functions.
+	(cgraph_materialize_all_clones): More extensive dumping, working
+	with combined_args_to_skip rather than args_to_skip.
+
+2009-07-20  Ira Rosen  <irar@il.ibm.com>
+
+	* tree-vectorizer.h (vectorizable_condition): Add parameters.
+	* tree-vect-loop.c (vect_is_simple_reduction): Support COND_EXPR.
+	(get_initial_def_for_reduction): Likewise.
+	(vectorizable_reduction): Skip the check of first operand in case
+	of COND_EXPR. Add check that it is outer loop vectorization if
+	nested cycle was detected. Call vectorizable_condition() for 
+	COND_EXPR. If reduction epilogue cannot be created do not fail for
+	nested cycles (if it is not double reduction). Assert that there
+	is only one type in the loop in case of COND_EXPR. Call
+	vectorizable_condition() to vectorize COND_EXPR.
+	* tree-vect-stmts.c (vectorizable_condition): Update comment.
+	Add parameters. Allow nested cycles if called from 
+	vectorizable_reduction(). Use reduction vector variable if provided.
+	(vect_analyze_stmt): Call vectorizable_reduction() before
+	vectorizable_condition().
+	(vect_transform_stmt): Update call to vectorizable_condition().
+
+2009-07-20  Christian Bruel  <christian.bruel@st.com>
+	
+	* config/sh/sh.opt (-mfmovd): Resurrect and document.
+	* doc/invoke.texi (-mfmovd): Likewise.
+	* config/sh/sh.h (TARGET_FMOVD, MASK_FMOVD): Remove default setting.
+	
 2009-07-20  Jan Hubicka  <jh@suse.cz>
 
 	* tree-ssa-dce.c (remove_dead_phis): Only look for abnormal PHIs
@@ -205,9 +363,9 @@
 
 2009-07-16  Bingfeng Mei  <bmei@broadcom.com>
 
-	* modulo-sched.c (sms_schedule): stage_count <= 1 as correct comparison
-        to skip unprofitable schedule
-        
+	* modulo-sched.c (sms_schedule): stage_count <= 1 as correct
+	comparison to skip unprofitable schedule
+
 2009-07-16  Simon Baldwin  <simonb@google.com>
 
 	* gcc.c (option_map): New flag -no-canonical-prefixes.
@@ -352,7 +510,7 @@
 	alias information when not optimizing.
 
 2009-07-14  Richard Guenther  <rguenther@suse.de>
-	Andrey Belevantsev <abel@ispras.ru>
+	    Andrey Belevantsev <abel@ispras.ru>
 
 	* tree-ssa-alias.h (refs_may_alias_p_1): Declare.
 	(pt_solution_set): Likewise.

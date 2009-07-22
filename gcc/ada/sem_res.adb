@@ -120,9 +120,10 @@ package body Sem_Res is
    --  Could be optimized away perhaps?
 
    procedure Check_No_Direct_Boolean_Operators (N : Node_Id);
-   --  N is the node for a comparison or logical operator. If the operator
-   --  is predefined, and the root type of the operands is Standard.Boolean,
-   --  then a check is made for restriction No_Direct_Boolean_Operators.
+   --  N is the node for a logical operator. If the operator is predefined, and
+   --  the root type of the operands is Standard.Boolean, then a check is made
+   --  for restriction No_Direct_Boolean_Operators. This procedure also handles
+   --  the style check for Style_Check_Boolean_And_Or.
 
    function Is_Definite_Access_Type (E : Entity_Id) return Boolean;
    --  Determine whether E is an access type declared by an access
@@ -941,26 +942,15 @@ package body Sem_Res is
       if Scope (Entity (N)) = Standard_Standard
         and then Root_Type (Etype (Left_Opnd (N))) = Standard_Boolean
       then
-         --  Restriction does not apply to generated code
+         --  Restriction only applies to original source code
 
-         if not Comes_From_Source (N) then
-            null;
-
-         --  Restriction does not apply for A=False, A=True
-
-         elsif Nkind (N) = N_Op_Eq
-           and then (Is_Entity_Name (Right_Opnd (N))
-                      and then (Entity (Right_Opnd (N)) = Standard_True
-                                 or else
-                                Entity (Right_Opnd (N)) = Standard_False))
-         then
-            null;
-
-         --  Otherwise restriction applies
-
-         else
+         if Comes_From_Source (N) then
             Check_Restriction (No_Direct_Boolean_Operators, N);
          end if;
+      end if;
+
+      if Style_Check then
+         Check_Boolean_Operator (N);
       end if;
    end Check_No_Direct_Boolean_Operators;
 
@@ -1046,7 +1036,7 @@ package body Sem_Res is
             and then (Ekind (Entity (N)) /= E_Enumeration_Literal
                         or else Is_Overloaded (N)))
 
-      --  Rewrite as call if it is an explicit deference of an expression of
+      --  Rewrite as call if it is an explicit dereference of an expression of
       --  a subprogram access type, and the subprogram type is not that of a
       --  procedure or entry.
 
@@ -3659,9 +3649,16 @@ package body Sem_Res is
               and then (Is_Class_Wide_Type (Designated_Type (A_Typ))
                          or else (Nkind (A) = N_Attribute_Reference
                                    and then
-                                  Is_Class_Wide_Type (Etype (Prefix (A)))))
+                                     Is_Class_Wide_Type (Etype (Prefix (A)))))
               and then not Is_Class_Wide_Type (Designated_Type (F_Typ))
               and then not Is_Controlling_Formal (F)
+
+              --  Disable these checks for call to imported C++ subprograms
+
+              and then not
+                (Is_Entity_Name (Name (N))
+                  and then Is_Imported (Entity (Name (N)))
+                  and then Convention (Entity (Name (N))) = Convention_CPP)
             then
                Error_Msg_N
                  ("access to class-wide argument not allowed here!", A);
@@ -5472,8 +5469,6 @@ package body Sem_Res is
       T : Entity_Id;
 
    begin
-      Check_No_Direct_Boolean_Operators (N);
-
       --  If this is an intrinsic operation which is not predefined, use the
       --  types of its declared arguments to resolve the possibly overloaded
       --  operands. Otherwise the operands are unambiguous and specify the
@@ -6218,8 +6213,6 @@ package body Sem_Res is
    --  Start of processing for Resolve_Equality_Op
 
    begin
-      Check_No_Direct_Boolean_Operators (N);
-
       Set_Etype (N, Base_Type (Typ));
       Generate_Reference (T, N, ' ');
 
@@ -6418,9 +6411,8 @@ package body Sem_Res is
          Set_Etype (N, Get_Actual_Subtype (N));
       end if;
 
-      --  Note: there is no Eval processing required for an explicit deference,
-      --  because the type is known to be an allocators, and allocator
-      --  expressions can never be static.
+      --  Note: No Eval processing is required for an explicit dereference,
+      --  because such a name can never be static.
 
    end Resolve_Explicit_Dereference;
 

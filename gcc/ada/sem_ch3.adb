@@ -229,21 +229,6 @@ package body Sem_Ch3 is
    --  Needs a more complete spec--what are the parameters exactly, and what
    --  exactly is the returned value, and how is Bound affected???
 
-   procedure Build_Itype_Reference
-     (Ityp : Entity_Id;
-      Nod  : Node_Id);
-   --  Create a reference to an internal type, for use by Gigi. The back-end
-   --  elaborates itypes on demand, i.e. when their first use is seen. This
-   --  can lead to scope anomalies if the first use is within a scope that is
-   --  nested within the scope that contains  the point of definition of the
-   --  itype. The Itype_Reference node forces the elaboration of the itype
-   --  in the proper scope. The node is inserted after Nod, which is the
-   --  enclosing declaration that generated Ityp.
-   --
-   --  A related mechanism is used during expansion, for itypes created in
-   --  branches of conditionals. See Ensure_Defined in exp_util.
-   --  Could both mechanisms be merged ???
-
    procedure Build_Underlying_Full_View
      (N   : Node_Id;
       Typ : Entity_Id;
@@ -2345,13 +2330,13 @@ package body Sem_Ch3 is
       if Constant_Present (N) then
          Prev_Entity := Current_Entity_In_Scope (Id);
 
-         --  If the homograph is an implicit subprogram, it is overridden by
-         --  the current declaration.
-
          if Present (Prev_Entity)
            and then
+             --  If the homograph is an implicit subprogram, it is overridden
+             --  by the current declaration.
+
              ((Is_Overloadable (Prev_Entity)
-                 and then Is_Inherited_Operation (Prev_Entity))
+                and then Is_Inherited_Operation (Prev_Entity))
 
                --  The current object is a discriminal generated for an entry
                --  family index. Even though the index is a constant, in this
@@ -2361,7 +2346,17 @@ package body Sem_Ch3 is
                or else
                 (Is_Discriminal (Id)
                    and then Ekind (Discriminal_Link (Id)) =
-                              E_Entry_Index_Parameter))
+                              E_Entry_Index_Parameter)
+
+               --  The current object is the renaming for a generic declared
+               --  within the instance.
+
+               or else
+                (Ekind (Prev_Entity) = E_Package
+                  and then Nkind (Parent (Prev_Entity)) =
+                                         N_Package_Renaming_Declaration
+                  and then not Comes_From_Source (Prev_Entity)
+                  and then Is_Generic_Instance (Renamed_Entity (Prev_Entity))))
          then
             Prev_Entity := Empty;
          end if;
@@ -2623,16 +2618,13 @@ package body Sem_Ch3 is
             end if;
          end if;
 
-         --  Check incorrect use of dynamically tagged expressions. Note
-         --  the use of Is_Tagged_Type (T) which seems redundant but is in
-         --  fact important to avoid spurious errors due to expanded code
-         --  for dispatching functions over an anonymous access type
+         --  Check incorrect use of dynamically tagged expressions.
 
-         if (Is_Class_Wide_Type (Etype (E)) or else Is_Dynamically_Tagged (E))
-           and then Is_Tagged_Type (T)
-           and then not Is_Class_Wide_Type (T)
-         then
-            Error_Msg_N ("dynamically tagged expression not allowed!", E);
+         if Is_Tagged_Type (T) then
+            Check_Dynamically_Tagged_Expression
+              (Expr        => E,
+               Typ         => T,
+               Related_Nod => N);
          end if;
 
          Apply_Scalar_Range_Check (E, T);
@@ -11149,6 +11141,7 @@ package body Sem_Ch3 is
       Set_Convention           (T1, Convention            (T2));
       Set_Is_Limited_Composite (T1, Is_Limited_Composite  (T2));
       Set_Is_Private_Composite (T1, Is_Private_Composite  (T2));
+      Set_Packed_Array_Type    (T1, Packed_Array_Type     (T2));
    end Copy_Array_Subtype_Attributes;
 
    -----------------------------------

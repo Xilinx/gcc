@@ -679,6 +679,16 @@ package Sinfo is
    --    Sem_Aggr for the specific conditions under which an aggregate has this
    --    flag set. See also the flag Static_Processing_OK.
 
+   --  Componentwise_Assignment (Flag14-Sem)
+   --    Present in N_Assignment_Statement nodes. Set for a record assignment
+   --    where all that needs doing is to expand it into component-by-component
+   --    assignments. This is used internally for the case of tagged types with
+   --    rep clauses, where we need to avoid recursion (we don't want to try to
+   --    generate a call to the primitive operation, because this is the case
+   --    where we are compiling the primitive operation). Note that when we are
+   --    expanding component assignments in this case, we never assign the _tag
+   --    field, but we recursively assign components of the parent type.
+
    --  Condition_Actions (List3-Sem)
    --    This field appears in else-if nodes and in the iteration scheme node
    --    for while loops. This field is only used during semantic processing to
@@ -687,6 +697,13 @@ package Sinfo is
    --    details on how this field is used, see the routine Insert_Actions in
    --    package Exp_Util, and also the expansion routines for the relevant
    --    nodes.
+
+   --  Context_Pending (Flag16-Sem)
+   --    This field appears in Compilation_Unit nodes, to indicate that the
+   --    context of the unit is being compiled. Used to detect circularities
+   --    that are not otherwise detected by the loading mechanism. Such
+   --    circularities can occur in the presence of limited and non-limited
+   --    with_clauses that mention the same units.
 
    --  Controlling_Argument (Node1-Sem)
    --    This field is set in procedure and function call nodes if the call
@@ -3861,6 +3878,7 @@ package Sinfo is
       --  Forwards_OK (Flag5-Sem)
       --  Backwards_OK (Flag6-Sem)
       --  No_Ctrl_Actions (Flag7-Sem)
+      --  Componentwise_Assignment (Flag14-Sem)
 
       --  Note: if a range check is required, then the Do_Range_Check flag
       --  is set in the Expression (right hand side), with the check being
@@ -5382,6 +5400,7 @@ package Sinfo is
       --  Has_No_Elaboration_Code (Flag17-Sem)
       --  Body_Required (Flag13-Sem) set for spec if body is required
       --  Acts_As_Spec (Flag4-Sem) flag for subprogram body with no spec
+      --  Context_Pending (Flag16-Sem)
       --  First_Inlined_Subprogram (Node3-Sem)
 
       --  N_Compilation_Unit_Aux
@@ -7643,6 +7662,9 @@ package Sinfo is
    function Component_Name
      (N : Node_Id) return Node_Id;    -- Node1
 
+   function Componentwise_Assignment
+     (N : Node_Id) return Boolean;    -- Flag14
+
    function Condition
      (N : Node_Id) return Node_Id;    -- Node1
 
@@ -7663,6 +7685,9 @@ package Sinfo is
 
    function Context_Installed
      (N : Node_Id) return Boolean;    -- Flag13
+
+   function Context_Pending
+     (N : Node_Id) return Boolean;    -- Flag16
 
    function Context_Items
      (N : Node_Id) return List_Id;    -- List1
@@ -8537,6 +8562,9 @@ package Sinfo is
    procedure Set_Component_Name
      (N : Node_Id; Val : Node_Id);            -- Node1
 
+   procedure Set_Componentwise_Assignment
+     (N : Node_Id; Val : Boolean := True);    -- Flag14
+
    procedure Set_Condition
      (N : Node_Id; Val : Node_Id);            -- Node1
 
@@ -8560,6 +8588,9 @@ package Sinfo is
 
    procedure Set_Context_Items
      (N : Node_Id; Val : List_Id);            -- List1
+
+   procedure Set_Context_Pending
+     (N : Node_Id; Val : Boolean := True);    -- Flag16
 
    procedure Set_Controlling_Argument
      (N : Node_Id; Val : Node_Id);            -- Node1
@@ -10983,6 +11014,7 @@ package Sinfo is
    pragma Inline (Component_Items);
    pragma Inline (Component_List);
    pragma Inline (Component_Name);
+   pragma Inline (Componentwise_Assignment);
    pragma Inline (Condition);
    pragma Inline (Condition_Actions);
    pragma Inline (Config_Pragmas);
@@ -10991,6 +11023,7 @@ package Sinfo is
    pragma Inline (Constraints);
    pragma Inline (Context_Installed);
    pragma Inline (Context_Items);
+   pragma Inline (Context_Pending);
    pragma Inline (Controlling_Argument);
    pragma Inline (Conversion_OK);
    pragma Inline (Corresponding_Body);
@@ -11278,6 +11311,7 @@ package Sinfo is
    pragma Inline (Set_Component_Items);
    pragma Inline (Set_Component_List);
    pragma Inline (Set_Component_Name);
+   pragma Inline (Set_Componentwise_Assignment);
    pragma Inline (Set_Condition);
    pragma Inline (Set_Condition_Actions);
    pragma Inline (Set_Config_Pragmas);
@@ -11286,6 +11320,7 @@ package Sinfo is
    pragma Inline (Set_Constraints);
    pragma Inline (Set_Context_Installed);
    pragma Inline (Set_Context_Items);
+   pragma Inline (Set_Context_Pending);
    pragma Inline (Set_Controlling_Argument);
    pragma Inline (Set_Conversion_OK);
    pragma Inline (Set_Corresponding_Body);
