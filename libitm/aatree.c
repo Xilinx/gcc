@@ -264,7 +264,7 @@ aa_free_1 (aa_tree t)
 
 /* Free the tree rooted at *PTREE.  */
 
-void REGPARM
+void
 aa_free (aa_tree *ptree)
 {
   aa_tree t = *ptree;

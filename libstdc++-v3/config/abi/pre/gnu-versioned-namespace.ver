@@ -236,3 +236,12 @@ CXXABI_1.7 {
   local:
     *;
 };
+
+# Symbols in the support library (libsupc++) supporting trans-mem.
+CXXABI_TM_1 {
+  global:
+    __cxa_tm_cleanup;
+
+  local:
+    *;
+};

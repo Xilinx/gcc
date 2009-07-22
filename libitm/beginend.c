@@ -126,6 +126,13 @@ GTM_rollback_transaction (void)
   GTM_free_actions (&tx->commit_actions);
   GTM_run_actions (&tx->undo_actions);
   GTM_commit_allocations (true);
+
+  GTM_revert_cpp_exceptions ();
+  if (tx->eh_in_flight)
+    {
+      _Unwind_DeleteException (tx->eh_in_flight);
+      tx->eh_in_flight = NULL;
+    }
 }
 
 void REGPARM
@@ -164,7 +171,7 @@ _ITM_abortTransaction (_ITM_abortReason reason)
   GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables, tx->prop);
 }
 
-static bool
+static inline bool
 GTM_trycommit_transaction (void)
 {
   if (gtm_disp()->trycommit ())
@@ -173,6 +180,21 @@ GTM_trycommit_transaction (void)
       GTM_free_actions (&gtm_tx()->undo_actions);
       GTM_run_actions (&gtm_tx()->commit_actions);
       GTM_commit_allocations (false);
+      return true;
+    }
+  return false;
+}
+
+static bool
+GTM_trycommit_and_finalize_transaction (void)
+{
+  struct gtm_transaction *tx = gtm_tx();
+
+  if ((tx->state & STATE_ABORTING) || GTM_trycommit_transaction ())
+    {
+      gtm_disp()->fini ();
+      set_gtm_tx (tx->prev);
+      free_tx (tx);
       return true;
     }
   return false;
@@ -204,14 +226,16 @@ GTM_restart_transaction (enum restart_reason r)
 void REGPARM
 _ITM_commitTransaction(void)
 {
-  struct gtm_transaction *tx = gtm_tx();
-
-  if ((tx->state & STATE_ABORTING) || GTM_trycommit_transaction ())
-    {
-      gtm_disp()->fini ();
-      set_gtm_tx (tx->prev);
-      free_tx (tx);
-    }
-  else
+  if (!GTM_trycommit_and_finalize_transaction ())
     GTM_restart_transaction (RESTART_VALIDATE_COMMIT);
+}
+
+void REGPARM
+_ITM_commitTransactionEH(void *exc_ptr)
+{
+  if (!GTM_trycommit_and_finalize_transaction ())
+    {
+      gtm_tx()->eh_in_flight = exc_ptr;
+      GTM_restart_transaction (RESTART_VALIDATE_COMMIT);
+    }
 }

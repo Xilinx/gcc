@@ -1122,3 +1122,12 @@ CXXABI_1.3.3 {
     _ZSt17rethrow_exceptionNSt15__exception_ptr13exception_ptrE;
 
 } CXXABI_1.3.2;
+
+# Symbols in the support library (libsupc++) supporting trans-mem.
+CXXABI_TM_1 {
+  global:
+    __cxa_tm_cleanup;
+
+  local:
+    *;
+};

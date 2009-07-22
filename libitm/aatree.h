@@ -28,8 +28,8 @@
 typedef uintptr_t aa_key;
 typedef struct aa_node *aa_tree;
 
-extern void *aa_find (aa_tree, aa_key) REGPARM;
-extern void *aa_insert (aa_tree *, aa_key, size_t) REGPARM;
-extern void aa_delete (aa_tree *, aa_key) REGPARM;
-extern void aa_free (aa_tree *) REGPARM;
+extern void *aa_find (aa_tree, aa_key);
+extern void *aa_insert (aa_tree *, aa_key, size_t);
+extern void aa_delete (aa_tree *, aa_key);
+extern void aa_free (aa_tree *);
 extern void aa_traverse (aa_tree, void (*)(aa_key, void *, void *), void *);

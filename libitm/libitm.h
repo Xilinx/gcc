@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unwind.h>
 
 #include "target.h"
 
@@ -323,11 +324,6 @@ enum restart_reason
 
 struct gtm_transaction
 {
-  uint32_t prop;
-  uint32_t nesting;
-  uint32_t state;
-  _ITM_transactionId_t id;
-
   struct gtm_jmpbuf jb;
 
   struct gtm_local_undo **local_undo;
@@ -340,6 +336,15 @@ struct gtm_transaction
 
   struct gtm_method *m;
   struct gtm_transaction *prev;
+
+  _ITM_transactionId_t id;
+  uint32_t prop;
+  uint32_t nesting;
+  uint32_t state;
+
+  uint32_t cxa_catch_count;
+  void *cxa_unthrown;
+  void *eh_in_flight;
 
   uint32_t restarts[NUM_RESTARTS + 1];
 };
@@ -418,6 +423,8 @@ extern void GTM_record_allocation (void *, size_t, void (*)(void *)) REGPARM;
 extern void GTM_forget_allocation (void *, void (*)(void *)) REGPARM;
 extern size_t GTM_get_allocation_size (void *) REGPARM;
 extern void GTM_commit_allocations (bool) REGPARM;
+
+extern void GTM_revert_cpp_exceptions (void);
 
 extern const struct gtm_dispatch wbetl_dispatch;
 

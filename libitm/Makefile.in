@@ -80,7 +80,7 @@ LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 libitm_la_LIBADD =
 am_libitm_la_OBJECTS = beginend.lo clone.lo dispatch.lo local.lo \
 	query.lo retry.lo rwlock.lo serial.lo sjlj.lo useraction.lo \
-	futex.lo aatree.lo alloc.lo alloc_c.lo alloc_cpp.lo \
+	futex.lo aatree.lo alloc.lo alloc_c.lo alloc_cpp.lo eh_cpp.lo \
 	method-wbetl.lo
 libitm_la_OBJECTS = $(am_libitm_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
@@ -283,7 +283,7 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
 
 libitm_la_SOURCES = beginend.c clone.c dispatch.c local.c query.c retry.c \
 	rwlock.c serial.c sjlj.S useraction.c futex.c \
-	aatree.c alloc.c alloc_c.c alloc_cpp.c \
+	aatree.c alloc.c alloc_c.c alloc_cpp.c eh_cpp.c \
 	method-wbetl.c
 
 all: config.h
@@ -386,6 +386,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beginend.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clone.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dispatch.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eh_cpp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/futex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/local.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/method-wbetl.Plo@am__quote@
