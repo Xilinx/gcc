@@ -47,14 +47,18 @@
   (eachgimple_in_basicblock 
    (bb)
    (:gimple g)
+   (debuggimple "makegreen_transform before matching g" g)
    (match g
 	  (?(gimple_assign_cast 
-	     ?(as ?lhs 
-		  ?(tree_of_type ?ltype))
+	     ?lhs
 	     ?rhs)
 	    (debugtree "makegreen_transform assign cast lhs" lhs)
-	    (debugtree "makegreen_transform assign cast ltype" ltype)
 	    (debugtree "makegreen_transform assign cast rhs" rhs)
+	    )
+	  (?(gimple_assign_single  ?lhs 
+				   ?(as ?rhs ?(tree_var_decl ?(cstring_same "stdout"))))
+	    (debugtree "makegreen_transform assign single stdout lhs" lhs)
+	    (debugtree "makegreen_transform assign single stdout rhs" rhs)
 	    )
 	  (?(gimple_assign_single  ?lhs ?rhs)
 	    (debugtree "makegreen_transform assign single lhs" lhs)
@@ -305,7 +309,7 @@
 	)
       (pop_cfun)
       )
-   ( ?(tree_variable_decl ?_)
+   ( ?(tree_var_decl ?_)
       (debugtree  "smallana_cfun_entbb decl of variable" decltree)
       (inform_at_tree decltree "smallana: global variable not analyzed")
       )

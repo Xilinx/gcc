@@ -1,5 +1,13 @@
 
 2009-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	[probably ana-simple.melt hit a bug in pattern compilation]
+	* melt/warmelt-first.melt: added cstring_same cmatcher.
+	* melt/ana-base.melt: renamed tree_variable_decl cmatcher as
+	tree_var_decl. added tree_var_decl_named cmatcher.
+	* melt/ana-simple.melt: using complex pattern tree, which breaks
+	the pattern compiler :-(
+
+2009-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tgreenprint.c: indented and all functions
 	prefixed for clarity with tGreenPrint.
 	* melt/ana-base.melt: added cfun_decl cfun_gimple_body

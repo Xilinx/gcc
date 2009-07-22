@@ -656,8 +656,8 @@
 )
 
 ;;;;;;;;;;;;;;;;
-;; similarily pattern (tree_variable_decl <funame>)
-(defcmatcher tree_variable_decl 
+;; similarily pattern (tree_var_decl <name>)
+(defcmatcher tree_var_decl 
   (:tree tr)
   (:cstring varname
    )
@@ -670,7 +670,20 @@
    if (DECL_NAME($tr))
      $varname = IDENTIFIER_POINTER(DECL_NAME($tr));
    }# )
+
+;; pattern for a var_decl of given name
 	   
+(defcmatcher tree_var_decl_named 
+  (:tree tr :cstring varname)
+  ()
+  treevar				;statesym
+  ;; test expansion
+  #{ (($tr) && TREE_CODE($tr) == VAR_DECL && DECL_NAME($tr) 
+      && !strcmp($varname, IDENTIFIER_POINTER(DECL_NAME($tr)))) }#
+  ;; fill expansion
+  #{
+   }# )
+
 ;;;;;;;;;;;;;;;;
 ;; pattern tree_block matches a block
 (defcmatcher tree_block 
@@ -1690,7 +1703,8 @@
  tree_parm_decl
  tree_ssa_name 
  tree_type
- tree_variable_decl
+ tree_var_decl
+ tree_var_decl_named
 )
 
 (export_class

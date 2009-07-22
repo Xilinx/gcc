@@ -1005,6 +1005,15 @@
 )
 
 
+;;; cmatcher for a cstring of a given content
+(defcmatcher cstring_same 
+  (:cstring str cstr)
+  ()
+  strsam
+  #{ ($str && $cstr && !strcmp($str, $cstr)) }#
+  ;; no fill or operator
+)
+
 ;; cmatcher for a tuple of a given exact size
 (defcmatcher tuple_sized
   (tup :long ln)			;match & ins
@@ -4265,7 +4274,8 @@
  boxval					
  clone_symbol
  closure_every
- compare_obj_ranked			
+ compare_obj_ranked
+ cstring_same
  dbg_out				
  dbg_outobject	
  dbgout_fields
