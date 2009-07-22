@@ -2009,12 +2009,14 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
 {
   gimple_stmt_iterator gsi;
   gimple g;
+  edge e;
 
   tm_atomic_subcode_ior (region, GTMA_HAVE_CALL_IRREVOKABLE);
 
   g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOKABLE], 0);
   add_stmt_to_tm_region (region, g);
 
+  e = split_block_after_labels (bb);
   gsi = gsi_after_labels (bb);
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
 
@@ -2396,6 +2398,6 @@ struct simple_ipa_opt_pass pass_ipa_tm =
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0,					/* todo_flags_finish */
+  TODO_dump_func,			/* todo_flags_finish */
  },
 };

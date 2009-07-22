@@ -1,3 +1,9 @@
+2009-07-22  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_insert_irr_call): Make a new block for
+	TM_IRREVOKABLE calls.
+	(pass_ipa_tm): Enable dump.
+
 2009-07-17  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gimple-pretty-print.c (dump_gimple_tm_atomic_subcode): New.
