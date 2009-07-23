@@ -1129,16 +1129,16 @@ dump_gimple_tm_atomic_subcode (pretty_printer *buffer, unsigned subcode)
   if (subcode & GTMA_HAVE_LOAD)
     pp_string (buffer, "GTMA_HAVE_LOAD ");
   if (subcode & GTMA_HAVE_STORE)
-    pp_string (buffer, "GTMA_HAVE_STORE");
+    pp_string (buffer, "GTMA_HAVE_STORE ");
   if (subcode & GTMA_HAVE_CALL_TM)
-    pp_string (buffer, "GTMA_HAVE_CALL_TM");
-  if (subcode & GTMA_HAVE_CALL_IRREVOKABLE)
-    pp_string (buffer, "GTMA_HAVE_CALL_IRREVOKABLE");
+    pp_string (buffer, "GTMA_HAVE_CALL_TM ");
+  if (subcode & GTMA_MAY_ENTER_IRREVOKABLE)
+    pp_string (buffer, "GTMA_MAY_ENTER_IRREVOKABLE ");
   if (subcode & GTMA_MUST_CALL_IRREVOKABLE)
-    pp_string (buffer, "GTMA_MUST_CALL_IRREVOKABLE");
+    pp_string (buffer, "GTMA_MUST_CALL_IRREVOKABLE ");
   if (subcode & GTMA_HAVE_UNCOMMITTED_THROW)
-    pp_string (buffer, "GTMA_HAVE_UNCOMMITTED_THROW");
-  pp_string (buffer, " ]");
+    pp_string (buffer, "GTMA_HAVE_UNCOMMITTED_THROW ");
+  pp_string (buffer, "]");
 }
 
 /* Dump a GIMPLE_TM_ATOMIC tuple on the pretty_printer BUFFER.  */

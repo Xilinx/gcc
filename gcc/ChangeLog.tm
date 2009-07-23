@@ -1,3 +1,23 @@
+2009-07-23  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gimple-pretty-print.c (dump_gimple_tm_atomic_subcode): Add space
+	after every GTMA_*.
+	* trans-mem.c (is_tm_irrevokable): Return true for direct calls to
+	the irrevocable builtin.
+	(lower_sequence_tm): Rename GTMA_HAVE_CALL_IRREVOKABLE into
+	GTMA_MAY_ENTER_IRREVOKABLE.
+	(ipa_tm_insert_irr_call): Same.
+	(expand_call_tm): Early return when is_tm_abort .
+	Mark as GTMA_HAVE_STORE if the LHS of a call requires a barrier.
+	(execute_tm_mark): Do not clear the GTMA_MAY_ENTER_IRREVOKABLE.
+	(ipa_tm_insert_gettmclone_call): Set GTMA_MAY_ENTER_IRREVOKABLE
+	unless safe.
+	* gimple.h: Rename GTMA_HAVE_CALL_IRREVOKABLE into
+	GTMA_MAY_ENTER_IRREVOKABLE.
+	Add comments for GTMA_*IRREV*.
+	* c-parser.c (c_parser_tm_abort): Complain if using tm_abort
+	without TM enabled, and return a NOP_EXPR.
+
 2009-07-22  Richard Henderson  <rth@redhat.com>
 
 	* cgraphunit.c (verify_cgraph): Don't exempt clones from verification.

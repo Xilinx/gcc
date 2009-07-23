@@ -180,6 +180,16 @@ is_tm_irrevokable (tree x)
 
   if (attrs)
     return lookup_attribute ("tm_irrevokable", attrs) != NULL;
+
+  /* A call to the irrevocable builtin is by definition,
+     irrevocable.  */
+  if (TREE_CODE (x) == ADDR_EXPR)
+    x = TREE_OPERAND (x, 0);
+  if (TREE_CODE (x) == FUNCTION_DECL
+      && DECL_BUILT_IN_CLASS (x) == BUILT_IN_NORMAL
+      && DECL_FUNCTION_CODE (x) == BUILT_IN_TM_IRREVOKABLE)
+    return true;
+
   return false;
 }
 
@@ -606,7 +616,7 @@ lower_sequence_tm (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       break;
 
     case GIMPLE_ASM:
-      *state |= GTMA_HAVE_CALL_IRREVOKABLE;
+      *state |= GTMA_MAY_ENTER_IRREVOKABLE;
       break;
 
     case GIMPLE_TM_ATOMIC:
@@ -1091,6 +1101,7 @@ expand_call_tm (struct tm_region *region,
 		gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
+  tree lhs = gimple_call_lhs (stmt);
   tree fn_decl;
 
   if (is_tm_pure_call (stmt))
@@ -1098,12 +1109,18 @@ expand_call_tm (struct tm_region *region,
 
   fn_decl = gimple_call_fndecl (stmt);
 
-  if (is_tm_abort (fn_decl))
-    tm_atomic_subcode_ior (region, GTMA_HAVE_ABORT);
-
   /* For indirect calls, we already generated a call into the runtime.  */
   if (!fn_decl)
     return false;
+
+  if (is_tm_abort (fn_decl))
+    {
+      tm_atomic_subcode_ior (region, GTMA_HAVE_ABORT);
+      return true;
+    }
+
+  if (lhs && requires_barrier (lhs))
+    tm_atomic_subcode_ior (region, GTMA_HAVE_STORE);
 
   return is_tm_ending_fndecl (fn_decl);
 }
@@ -1166,8 +1183,18 @@ execute_tm_mark (void)
   for (region = all_tm_regions; region ; region = region->next)
     if (region->exit_blocks)
       {
-	/* Collect a new SUBCODE set, now that optimizations are done.  */
+	unsigned int subcode
+	  = gimple_tm_atomic_subcode (region->tm_atomic_stmt);
+
+	/* Collect a new SUBCODE set, now that optimizations are done...  */
 	gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, 0);
+	/* ...but keep the bits that require IPA to collect.  Ideally
+	   we should do IPA again to make sure things like DCE didn't
+	   invalidate irrevocability, but we are certain not to
+	   introduce things that go irrevocable, so it's safe to keep
+	   the irrevocability bit.  */
+	gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
+				      subcode & GTMA_MAY_ENTER_IRREVOKABLE);
 
 	VEC_quick_push (basic_block, queue, region->entry_block);
 	do
@@ -1924,7 +1951,7 @@ ipa_tm_region_init (struct cgraph_node *node)
   return regions;
 }
 
-/* Create a copy the function (possibly declaration only) of OLD_NODE,
+/* Create a copy of the function (possibly declaration only) of OLD_NODE,
    appropriate for the transactional clone.  */
 
 static void
@@ -2011,7 +2038,7 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
   gimple g;
   edge e;
 
-  tm_atomic_subcode_ior (region, GTMA_HAVE_CALL_IRREVOKABLE);
+  tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
 
   g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOKABLE], 0);
   add_stmt_to_tm_region (region, g);
@@ -2043,6 +2070,9 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 			    : BUILT_IN_TM_GETTMCLONE_IRR];
   ret = create_tmp_var (TREE_TYPE (old_fn), NULL);
   add_referenced_var (ret);
+
+  if (!safe)
+    tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
 
   /* Discard OBJ_TYPE_REF, since we weren't able to fold it.  */
   if (TREE_CODE (old_fn) == OBJ_TYPE_REF)

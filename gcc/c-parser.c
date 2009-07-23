@@ -8645,6 +8645,9 @@ c_parser_tm_abort (c_parser *parser)
 
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_TM_ABORT));
 
+  if (!flag_tm)
+    error_at (loc,
+	      "%<__tm_abort%> without transactional memory support enabled");
   if (!parser->in_tm_atomic)
     {
       error_at (loc, "%<__tm_abort%> not within %<__tm_atomic%>");
@@ -8653,6 +8656,9 @@ c_parser_tm_abort (c_parser *parser)
     }
 
   c_parser_consume_token (parser);
+
+  if (!flag_tm)
+    return build1 (NOP_EXPR, void_type_node, error_mark_node);
 
   return add_stmt (build_tm_abort_call (loc));
 }
