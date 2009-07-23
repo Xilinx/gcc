@@ -770,8 +770,7 @@ verify_cgraph (void)
     return;
 
   for (node = cgraph_nodes; node; node = node->next)
-    if (!DECL_IS_TM_CLONE (node->decl))
-      verify_cgraph_node (node);
+    verify_cgraph_node (node);
 }
 
 /* Output all asm statements we have stored up to be output.  */

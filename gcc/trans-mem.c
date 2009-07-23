@@ -2239,6 +2239,10 @@ ipa_tm_execute (void)
   enum availability a;
   unsigned int i;
 
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+#endif
+
   bitmap_obstack_initialize (&tm_obstack);
 
   /* For all local public functions marked tm_callable, queue them.  */
@@ -2379,6 +2383,10 @@ ipa_tm_execute (void)
 
   for (node = cgraph_nodes; node; node = node->next)
     node->aux = NULL;
+
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+#endif
 
   return 0;
 }

@@ -1,3 +1,11 @@
+2009-07-22  Richard Henderson  <rth@redhat.com>
+
+	* cgraphunit.c (verify_cgraph): Don't exempt clones from verification.
+	* trans-mem.c (ipa_tm_execute): Call it.
+
+	* cp/except.c (do_allocate_exception): Add tm_wrap declaration.
+	(build_throw): Likewise.  Remove it from __cxa_rethrow.
+
 2009-07-22  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_insert_irr_call): Make a new block for
