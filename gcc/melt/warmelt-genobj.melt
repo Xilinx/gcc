@@ -3838,7 +3838,8 @@
 	   mcx_gotothen			;the goto then part
 	   mcx_gotoelse 		;the goto else part
 	   mcx_olist			;the objcode list to be filled
-	   mcx_prefix			;the prefix
+	   mcx_suffix			;the suffix for state expansion
+	   mcx_statecounter		;boxed counter for state expansion
 	   ))
 (export_class class_matchcompilcontext)
 
@@ -3888,11 +3889,12 @@
 	(matlabel (let ( (:long nbmat (mapobject_count matmap))
 			 (labuf (make_strbuf discr_strbuf))
 			 )
-		    (add2sbuf_strconst labuf "labmatch_")
+		    (add2sbuf_strconst labuf "mtch")
 		    (add2sbuf_longdec labuf (+i nbmat 1))
 		    (add2sbuf_strconst labuf "_")
 		    (let ( (labstr (strbuf2string discr_verbatimstring labuf)) )
 		      (mapobject_put matmap  nmat labstr)
+		      (debug_msg labstr "compilobj_nrep_match matlabel")
 		      labstr
 		      )))
 	(endlabel (let (
@@ -3932,6 +3934,7 @@
     (list_append obodyl ofirstgoto)
     (debug_msg ntests "compilobj_nrep_match ntests")
     (debug_msg omatched "compilobj_nrep_match omatched")
+    (debug_msg oendlabel "compilobj_nrep_match oendlabel")
     (foreach_in_multiple
      (ntests)
      (curotest :long testix)
@@ -4230,7 +4233,9 @@
 			    :mcx_gotothen gotothen
 			    :mcx_gotoelse gotoelse
 			    :mcx_olist olist
-			    :mcx_prefix prefix)) )
+			    :mcx_suffix prefix
+			    :mcx_statecounter (make_integerbox discr_integer 0)
+			    )) )
       (debug_msg matcx "compiltst_normtester_matcher matcx")
       (compile_matcher nmatcher matcx gcx)
       (debug_msg olist "compiltst_normtester_matcher return olist")
@@ -4503,11 +4508,17 @@
 				  (+i 5
 				      (*i 2 (+i (multiple_length cmins)
 						(multiple_length cmouts))))))
+	(:long mcxcount (let ( (boxcnt (get_field :mcx_statecounter mcx))
+			      (cnt (+i 1 (get_int boxcnt)) ) )
+			  (put_int boxcnt cnt)
+			  cnt))
 	;; generate a unique state string
 	(uniqstate (let ( (sbuf (make_strbuf discr_strbuf)) )
-		     (add2sbuf_string sbuf (get_field :mcx_prefix mcx))
-		     (add2sbuf_strconst sbuf "__")
 		     (add2sbuf_cident sbuf (get_field :named_name cmstate))
+		     (add2sbuf_strconst sbuf "_")
+		     (add2sbuf_string sbuf (get_field :mcx_suffix mcx))
+		     (add2sbuf_strconst sbuf "_")
+		     (add2sbuf_longdec sbuf mcxcount)
 		     (strbuf2string discr_verbatimstring sbuf)))
 	;; fetch the olist to add instructions into
 	(olist (get_field :mcx_olist mcx))

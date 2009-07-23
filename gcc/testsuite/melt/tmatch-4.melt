@@ -8,36 +8,61 @@
     -fmelt-arg=.../tmatch-4.melt -fmelt-debug empty-file-for-melt.c
 |#
 
+(defun simple4 (data f :tree t)
+  (match t
+;;;
+         ( ?(tree_integer_cst 33)
+            (f data 1))
+;;;
+         (  ?(tree_of_type
+	      ?(as ?ty
+		   ?(tree_var_decl 
+		     ?(cstring_same "needle"))
+		   )
+	      )
+	     (f data 2))
+	 )
+  )
 
-;; from makegreen_transform in melt/ana-simple.melt
-(defun tmatch4_transform (grdata :tree decl :basicblock bb)
-  (debug_msg grdata "tmatch4_transform start grdata")
-  (debugtree "tmatch4_transform decl" decl)
-  (debugbasicblock "tmatch4_transform bb" bb)
-  (eachgimple_in_basicblock 
-   (bb)
-   (:gimple g)
-   (debuggimple "tmatch4_transform before matching g" g)
-   (match g
-	  (?(gimple_assign_single  
-	     ?lhs 
-	     ?(as ?rhs
-		  ?(tree_var_decl 
-		    ?(cstring_same "stdout"))))
-	    ;
-	    (debugtree "tmatch4_transform assign single stdout lhs" lhs)
-	    (debugtree "tmatch4_transform assign single stdout rhs" rhs)
-	    )
 #|
-	  (?(gimple_call ?lhs ?callfndcl ?nbargs)
-	    (debugtree "tmatch4_transform call lhs" lhs)
-	    (debugtree "tmatch4_transform call fndecl" callfndcl)
-	    )
-|#
+;; from makegreen_transform in melt/ana-simple.melt
+(defun tmatch4 (grdata f :gimple g)
+  (debug_msg grdata "tmatch4 start grdata")
+  ;;-  (debuggimple "tmatch4 before matching g" g) ;
+;;;;					;
+  (match g
+	 ;;				;
+	 (?(gimple_assign_cast 
+	    ?lhs
+	    ?rhs)
+;;;					;
+	   ;;-	   (debugtree "tmatch4 assign cast lhs" lhs) ;
+	   ;;-	   (debugtree "tmatch4 assign cast rhs" rhs) ;
+	   (f grdata 1 lhs rhs)
+	   )
+	 ;;				;
+	 (?(gimple_assign_single  
+	    ?lhs 
+	    ?(as ?rhs
+		 ?(tree_var_decl 
+		   ?(cstring_same "stdout"))))
+;;;					;
+	   ;;-	   (debugtree "tmatch4 assign single stdout lhs" lhs) ;
+	   ;;-	   (debugtree "tmatch4 assign single stdout rhs" rhs) ;
+	   (f grdata 2 lhs rhs)
+	   )
+	 ;;
 	  (?_
-	   (debuggimple "tmatch4_transform unmatched g" g)
+	   ;;;
+;;-	   (debuggimple "tmatch4 unmatched g" g)
+	   (f grdata 0)
 	   )
 	  )
-   )
-  (debug_msg grdata "tmatch4_transform end grdata")
+  ;;;;;;;
+;;-  (debug_msg grdata "tmatch4 end grdata")
   )
+
+(debug_msg tmatch4 "tmatch4")
+|#
+
+;; eof tmatch-4.melt

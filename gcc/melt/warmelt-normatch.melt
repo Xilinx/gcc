@@ -348,7 +348,7 @@
 ;;; reciever is the pattern to normalize
 ;;; arguments are
 ;;; the normal matched stuff
-;;; the closure (if any) to handle the newly created stuff
+;;; the closure (if any) to handle the newly created stuff -e.g. tester
 ;;; the pattern context
 
 
@@ -481,6 +481,8 @@
 ;; utility to set the newtester to the last of a ntest_then linked list
 (defun set_newtester_lastthen (newtester testercont)
   (debug_msg newtester "set_newtester_lastthen newtester")
+  (debug_msg testercont "set_newtester_lastthen testercont")
+  (shortbacktrace_dbg "set_newtester_lastthen start" 15)
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check testercont" (is_a testercont class_container))
   (let ( (curtester (get_field :container_value testercont)) )
@@ -502,6 +504,7 @@
   (debug_msg newtester "set_newtester_lastelse newtester")
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check testercont" (is_a testercont class_container))
+  (shortbacktrace_dbg "set_newtester_lastelse start" 15)
   (let ( (curtester (get_field :container_value testercont)) )
     (forever 
      lastesterloop
@@ -512,6 +515,7 @@
 	 (exit lastesterloop))))
     (put_fields testercont :container_value curtester)
     (put_fields curtester :ntest_else newtester)
+    (debug_msg curtester "set_newtester_lastelse updatelse curtester")
     (let ( (fromnew (get_field :ntest_comefrom newtester)) )
       (list_append fromnew curtester))
     (debug_msg testercont "set_newtester_lastelse testercont")
@@ -591,10 +595,13 @@
 	      )
 	    ( (is_a tstuff class_normtester_any)
 	      (setq tstuff (get_field :ntest_else tstuff))
-	      (setq curhdler (lambda (tester)
-			       (put_fields tstuff :ntest_else tester)
-			       (list_append (get_field :ntest_comefrom tester) tstuff)
-			       ))
+	      (setq curhdler 
+		    (lambda (tester)
+		      (shortbacktrace_dbg "normpat_variablepat lambda curhdler" 15)
+		      (put_fields tstuff :ntest_else tester)
+		      (debug_msg tstuff "normpat_variablepat lambda curhdler updatelse of tstuff")
+		      (list_append (get_field :ntest_comefrom tester) tstuff)
+		      ))
 	      )
 	    (:else
 	     (let ( (newtester (instance class_normtester_same
@@ -663,8 +670,10 @@
 (defun normpat_aspat  (recv nmatch hdler pcn)
   (debug_msg recv "normpat_aspat recv")
   (debug_msg nmatch "normpat_aspat nmatch")
+  (debug_msg hdler "normpat_aspat hdler")
   (assert_msg "check recv" (is_a recv class_srcpattern_as))
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (shortbacktrace_dbg "normpat_aspat start" 15)
   (let (
 	(sloc (get_field :src_loc recv))
 	(aspat (get_field :aspat_varpat recv))
@@ -673,9 +682,18 @@
 	)
     (debug_msg aspat "normpat_aspat before normalizing aspat")
     (assert_msg "check aspat" (is_a aspat class_srcpattern_variable))
-    (normal_pattern aspat nmatch
-		    (lambda (tester) (put_fields testvarcont :container_value tester) (hdler tester)) 
-		    pcn)
+    (normal_pattern 			;;this is normpat_variablepat
+     aspat nmatch
+     (lambda (tester) 
+       (debug_msg tester "normpat_aspat lambda do tester")
+       (debug_msg recv "normpat_aspat lambda recv")
+       (put_fields testvarcont :container_value tester) 
+       (shortbacktrace_dbg "normpat_aspat lambda" 15)
+       (hdler tester)
+       (debug_msg tester "normpat_aspat lambda did tester")
+       ) 
+     pcn)
+    (debug_msg testvarcont "normpat_aspat testvarcont")
     (let ( (testvar (unsafe_get_field :container_value testvarcont)) 
 	   )
       (debug_msg testvar "normpat_aspat testvar")
@@ -684,12 +702,18 @@
        subpat nmatch
        (if testvar
 	   (lambda (subtester) 
-	     (debug_msg subtester "normpat_aspat subtester with testvar")
+	     (debug_msg subtester "normpat_aspat lambda subtester with testvar")
+	     (debug_msg recv "normpat_aspat lambda subtester with testvarrecv")
+	     (shortbacktrace_dbg "normpat_aspat lambda subtester with testvar" 15)
 	     (set_newtester_lastthen subtester testvarcont)
 	     )
 	 (lambda (subtester)
-	   (debug_msg subtester "normpat_aspat subtester without testvar")
+	   (debug_msg subtester "normpat_aspat lambda subtester without testvar")
+	   (debug_msg recv "normpat_aspat lambda subtester  without testvar recv")
+	   (debug_msg hdler "normpat_aspat lambda subtester  without testvar hdler")
+	   (shortbacktrace_dbg "normpat_aspat lambda nosubtester" 15)
 	   (hdler subtester)
+	   (debug_msg subtester "normpat_aspat lambda subtester after hdler")
 	   ))
        pcn)
       (debug_msg recv "normpat_aspat end recv")
@@ -739,7 +763,9 @@
        (setq tstuff (get_field :ntest_else tstuff))
        (setq curhdler
 	     (lambda (tester)
+	       (shortbacktrace_dbg "normpat_instancepat lambda" 15)
 	       (put_fields tstuff :ntest_else tester)
+	       (debug_msg tstuff "normpat_instancepat lambda updatelse of tstuff")
 	       (list_append (get_field :ntest_comefrom tester) tstuff)
 	       ))
        )
@@ -987,6 +1013,7 @@
   (debug_msg pcn "normpat_anymatchpat pcn")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (assert_msg "check recv" (is_a recv class_srcpattern_anymatch))
+  (shortbacktrace_dbg "normpat_anymatchpat start" 14)
   (let (
 	(sloc (get_field :src_loc recv))
 	(mat (get_field :spac_operator recv))
@@ -1125,7 +1152,9 @@
 		      (setq tstuff (get_field :ntest_else tstuff))
 		      (setq curhdler
 			    (lambda (tester)
+			      (shortbacktrace_dbg "normpat_anymatchpat lambda updating else" 15)
 			      (put_fields tstuff :ntest_else tester)
+			      (debug_msg tstuff "normpat_anymatchpat lambda updatelse of tstuff")
 			      (list_append (get_field :ntest_comefrom tester) tstuff)
 			      ))
 		      ))
@@ -1137,6 +1166,8 @@
 		(setq curhdler
 		      (lambda (tester)
 			(put_fields tstuff :ntest_else tester)
+			(shortbacktrace_dbg "normpat_anymatchpat updatelse" 15)
+			(debug_msg tstuff "normpat_anymatchpat updatelse tsuff")
 			(list_append (get_field :ntest_comefrom tester) tstuff)
 			))
 		)
@@ -1190,6 +1221,7 @@
 		  (register_new_normtester newtester pcn)
 		  (setq tester newtester)
 		  (list_append testlist newtester)
+		  (shortbacktrace_dbg "normpat_anymatchpat before curhdler" 12)
 		  (curhdler newtester)
 		  (exit loopstuff)
 		  ))
@@ -1216,12 +1248,14 @@
 		    ;; put the new tester as the last element of its
 		    ;; ntest_then chain
 		    (lambda (newtester)
-		      (debug_msg newtester "normpat_anymatchpat newtester")
+		      (debug_msg newtester "normpat_anymatchpat subhdler newtester")
+		      (shortbacktrace_dbg "normpat_anymatchpat subhdler" 14)
 		      (set_newtester_lastthen newtester testercont)
 		      ))
 		   )
 	      (debug_msg curout "normpat_anymatchpat curout before normal_pattern")
 	      (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
+	      (shortbacktrace_dbg "normpat_anymatchpat before normal_pattern curout" 14)
 	      (normal_pattern curout clocc subhdler pcn)
 	      (debug_msg curmatch "normpat_anymatchpat curout after normal_pattern")
 	      )
@@ -1275,10 +1309,13 @@
 	  (exit loopstuff))
 	( (is_a tstuff class_normtester_any)
 	  (setq tstuff (get_field :ntest_else tstuff))
-	  (setq curhdler (lambda (tester)
-			   (put_fields tstuff :ntest_else tester)
-			   (list_append (get_field :ntest_comefrom tester) tstuff)
-			   ))
+	  (setq curhdler 
+		(lambda (tester)
+		  (put_fields tstuff :ntest_else tester)
+		  (shortbacktrace_dbg "normpat_constpat lambda updatelse" 15)
+		  (debug_msg tstuff "normpat_constpat lambda updatelse tstuff")
+		  (list_append (get_field :ntest_comefrom tester) tstuff)
+		  ))
 	  )
 	(:else
 	 (let ( (newtester (instance class_normtester_same
@@ -1470,9 +1507,11 @@
 	     (let ( (oldelse (unsafe_get_field :ntest_else oldtester)) )
 	       (if (null oldelse)
 		   (progn
+		     (compile_warning "the bug for simple4 in tmatch-4 test could be here" ())
 		     (put_fields oldtester :ntest_else curtester)
 		     (list_append (get_field :ntest_comefrom curtester) oldtester)
-		     (debug_msg oldtester "normexp_match updated oldtester")
+		     (shortbacktrace_dbg "normexp_match updatelse" 16)
+		     (debug_msg oldtester "normexp_match updatelse oldtester")
 		     (exit oldtesterloop))
 		 (setq oldtester oldelse))
 	       ))
@@ -1568,7 +1607,9 @@
        (debug_msg testlist "normexp_match testlist")
        (debug_msg stuffmap "normexp_match stuffmap")
        (let ( 
-	     (teststupl (list_to_multiple testlist)) 
+	     (teststupl (let ( (tt (list_to_multiple testlist)) )
+			  (debug_msg tt "normexp_match teststupl")
+			  tt))
 	     (nmatch (instance class_nrep_match
 			       :nrep_loc sloc
 			       :nexpr_ctyp wholectype

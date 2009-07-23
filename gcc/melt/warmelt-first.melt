@@ -708,7 +708,12 @@
 (defprimitive longbacktrace_dbg (:cstring msg :long maxdepth) :void
   "debugbacktrace((" msg "), (int)(" maxdepth "))")
 (defprimitive shortbacktrace_dbg (:cstring msg :long maxdepth) :void
-  "melt_dbgshortbacktrace((" msg "), (" maxdepth "))")
+  #{ 
+#if ENABLE_CHECKING
+  if (flag_melt_debug)
+    melt_dbgshortbacktrace(($msg), ($maxdepth));
+#endif
+}#)
 (defprimitive checkval_dbg (val :cstring msg) :value
   "melt_checked_assignmsg((" val "),(" msg "))")
 (defprimitive debugcstring (:cstring msg str) :void
@@ -1010,7 +1015,7 @@
   (:cstring str cstr)
   ()
   strsam
-  #{ ($str && $cstr && !strcmp($str, $cstr)) }#
+  #{/*$strsam test*/ ($str && $cstr && !strcmp($str, $cstr)) }#
   ;; no fill or operator
 )
 

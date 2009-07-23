@@ -1,5 +1,23 @@
 
 2009-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[function simple4 of testcase tmatch-4 is still compiled
+	erronously; some ntest_else is put incorrectly inside the second
+	test
+	{same as 33}....; bug could be near line 1510 of
+	warmelt-normatch.melt.]
+	* testsuite/melt/tmatch-4.melt: simplified greatly to exercise
+	the bug; commented temporarily most of the code.
+	* melt/warmelt-first.melt: shortbacktrace_dbg is only if
+	flag_melt_debug..
+	* melt/warmelt-normatch.melt: added lots of debugprint &
+	shortbacktrace.
+	* melt/warmelt-genobj.melt: the uniqstate in matching is more
+	sexy.
+	* melt/ana-base.melt: added comments with statevar in most
+	cmatchers [to ease debugging].
+	* melt/ana-simple.melt: still miscompiled :-(
+
+2009-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-cc-script.proto: using GCCMELT* var, not MELT*
 	* Makefile.in (install-melt-cc-script, built-melt-cc-script):
 	likewise.

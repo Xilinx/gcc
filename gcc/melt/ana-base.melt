@@ -91,11 +91,11 @@
   (:tree lhs				;left hand side
    :tree rhs				;first right operand
   )					
-  gimpasg
+  gimpassi
   ;; test expansion
-  #{($ga && gimple_assign_single_p ($ga))}#
+  #{/*$gimpassi test*/ ($ga && gimple_assign_single_p ($ga))}#
   ;;fill expansion
-  #{
+  #{/*$gimpassi fill*/
    $lhs = gimple_assign_lhs($ga);
    $rhs = gimple_assign_rhs1($ga);
    }#
@@ -108,11 +108,11 @@
   (:tree lhs				;left hand side
    :tree rhs				;first right operand
   )					;outs
-  gimpasg
+  gimpascs
   ;;test expansion
-  #{($ga && gimple_assign_cast_p ($ga))}#
+  #{/*$gimpascs test*/($ga && gimple_assign_cast_p ($ga))}#
   ;;fill expansion
-  #{
+  #{/*$gimpascs fill*/
    $lhs = gimple_assign_lhs($ga);
    $rhs = gimple_assign_rhs1($ga);
   }#
@@ -650,9 +650,9 @@
   (:tree typetr)
   treeoftype
   ;; test expansion
-  #{ ($tr) != NULL }#
+  #{ /*$treeoftype ?*/ ($tr) != NULL }#
   ;; fill expansion
-  #{ $typetr = TREE_TYPE($tr); }#
+  #{ /*$treeoftype !*/ $typetr = TREE_TYPE($tr); }#
 )
 
 ;;;;;;;;;;;;;;;;
@@ -661,11 +661,11 @@
   (:tree tr)
   (:cstring varname
    )
-  treevar				;statesym
+  treevard				;statesym
   ;; test expansion
-  #{ (($tr) && TREE_CODE($tr) == VAR_DECL) }#
+  #{/*$treevard ?*/ (($tr) && TREE_CODE($tr) == VAR_DECL) }#
   ;; fill expansion
-  #{
+  #{/*$treevard !*/
    $varname =NULL;
    if (DECL_NAME($tr))
      $varname = IDENTIFIER_POINTER(DECL_NAME($tr));
@@ -676,13 +676,12 @@
 (defcmatcher tree_var_decl_named 
   (:tree tr :cstring varname)
   ()
-  treevar				;statesym
+  treevarn				;statesym
   ;; test expansion
-  #{ (($tr) && TREE_CODE($tr) == VAR_DECL && DECL_NAME($tr) 
+  #{ /*$treevarn ?*/ (($tr) && TREE_CODE($tr) == VAR_DECL && DECL_NAME($tr) 
       && !strcmp($varname, IDENTIFIER_POINTER(DECL_NAME($tr)))) }#
   ;; fill expansion
-  #{
-   }# )
+  #{ /*$treevarn !*/ }# )
 
 ;;;;;;;;;;;;;;;;
 ;; pattern tree_block matches a block
@@ -693,9 +692,9 @@
    )
   treeblock				;statesym
   ;; test expander
-   #{(($tr) && TREE_CODE($tr) == BLOCK)}#
+   #{/*$treeblock ?*/ (($tr) && TREE_CODE($tr) == BLOCK)}#
   ;; fill expander
-   #{
+   #{ /*$treeblock !*/
    $trvars = BLOCK_VARS($tr);
    $trsubblocks =BLOCK_SUBBLOCKS($tr);
    }# )
@@ -752,9 +751,9 @@
    )
   treeinty				;statesym
   ;; test expander
-   #{ (($tr) && TREE_CODE($tr) == INTEGER_TYPE) }#
+   #{ /*$treeinty ?*/ (($tr) && TREE_CODE($tr) == INTEGER_TYPE) }#
   ;; fill expander
-   #{
+   #{ /*$treeinty !*/
    tree $treeinty#_ty= TYPE_NAME($tr);
    tree $treeinty#_sizt= TYPE_SIZE($tr);
    mpz_t $treeinty#_minz, $treeinty#_maxz;
@@ -787,9 +786,9 @@
    :long n )
   treeintk
   ;; test expander
-  #{ (($tr) && TREE_CODE($tr) == INTEGER_CST) }#
+  #{ /*$treeintk ?*/ (($tr) && TREE_CODE($tr) == INTEGER_CST) }#
   ;; fill expander
-  #{ $n  = tree_low_cst(($tr), 0);
+  #{ /*$treeintk !*/ $n  = tree_low_cst(($tr), 0);
   }#  )
 
 
