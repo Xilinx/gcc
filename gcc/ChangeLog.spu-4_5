@@ -1,3 +1,15 @@
+2009-07-23  Revital Eres  <eres@il.ibm.com>
+
+	* config/spu/spu.c (need_to_save_reg, frame_emit_add_imm,
+	spu_expand_prologue, spu_expand_epilogue, begin_critical_section,
+	end_critical_section, spu_dont_create_jumptable,
+	record_branch_info, spu_initial_elimination_offset): Change
+	icache behavior to support lr bits calculation.
+	(spu_machine_dependent_reorg): Call record_link_elements_liveness.
+	(record_link_elements_liveness): New function.
+	(bb_contains_prologue_p): Remove.
+	* config/spu/spu.md: Add %@ to ibranch patterns.
+
 2009-07-19  Revital Eres  <eres@il.ibm.com>
 	    Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 

@@ -2684,7 +2684,7 @@
 (define_insn "indirect_jump_hw"
   [(set (pc) (match_operand:SI 0 "spu_reg_operand" "r"))]
   ""
-  "bi\t%0"
+  "%@bi\t%0"
   [(set_attr "type" "br")])
 
 (define_expand "indirect_jump"
@@ -2766,7 +2766,7 @@
 (define_insn "_return"
   [(return)]
   ""
-  "bi\t$lr"
+  "%@bi\t$lr"
   [(set_attr "type" "br")])
 
 
@@ -3603,7 +3603,7 @@ selb\t%0,%4,%0,%3"
 		      (return)
 		      (pc)))]
   "direct_return ()"
-  "bi%b1%b0z\t%1,$lr"
+  "%@bi%b1%b0z\t%1,$lr"
   [(set_attr "type" "br")])
 
 (define_insn ""
@@ -3627,7 +3627,7 @@ selb\t%0,%4,%0,%3"
 		      (pc)
 		      (return)))]
   "direct_return ()"
-  "bi%b1%b0z\t%1,$lr"
+  "%@bi%b1%b0z\t%1,$lr"
   [(set_attr "type" "br")])
 
 
@@ -3931,7 +3931,7 @@ selb\t%0,%4,%0,%3"
   [(set (pc) (match_operand:SI 0 "spu_reg_operand" "r"))
    (use (label_ref (match_operand 1 "" "")))]
   ""
-  "bi\t%0"
+  "%@bi\t%0"
   [(set_attr "type" "br")])
 
 (define_expand "tablejump"
@@ -4063,7 +4063,7 @@ selb\t%0,%4,%0,%3"
      (use (reg:SI 0))])]
   "SIBLING_CALL_P(insn)"
   "@
-   bi\t%i0
+   %@bi\t%i0
    %@br\t%0"
    [(set_attr "type" "br,br")])
 
@@ -4137,7 +4137,7 @@ selb\t%0,%4,%0,%3"
      (use (reg:SI 0))])]
   "SIBLING_CALL_P(insn)"
   "@
-   bi\t%i1
+   %@bi\t%i1
    %@br\t%1"
    [(set_attr "type" "br,br")])
 
@@ -4214,7 +4214,7 @@ selb\t%0,%4,%0,%3"
      (clobber (reg:SI 130))])]
   ""
   "@
-   bisl\t$lr,%i0
+   %@bisl\t$lr,%i0
    %@brsl\t$lr,%0
    %@brasl\t$lr,%0"
    [(set_attr "type" "br")])
@@ -4292,7 +4292,7 @@ selb\t%0,%4,%0,%3"
      (clobber (reg:SI 130))])]
   ""
   "@
-   bisl\t$lr,%i1
+   %@bisl\t$lr,%i1
    %@brsl\t$lr,%1
    %@brasl\t$lr,%1"
 [(set_attr "type" "br")])

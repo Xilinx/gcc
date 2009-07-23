@@ -1922,8 +1922,7 @@ need_to_save_reg (int regno, int saving)
       && (!saving || crtl->uses_pic_offset_table)
       && (!saving
 	  || !current_function_is_leaf 
-	  || df_regs_ever_live_p (LAST_ARG_REGNUM) 
-	  || (current_function_is_leaf && TARGET_SOFTWARE_ICACHE)))
+	  || df_regs_ever_live_p (LAST_ARG_REGNUM)))
     return 1;
   return 0;
 }
@@ -1984,8 +1983,6 @@ frame_emit_add_imm (rtx dst, rtx src, HOST_WIDE_INT imm, rtx scratch)
 int
 direct_return (void)
 {
-  if (TARGET_SOFTWARE_ICACHE)
-    return 0;
   if (reload_completed)
     {
       if (cfun->static_chain_decl == 0
@@ -2046,8 +2043,7 @@ spu_expand_prologue (void)
   if (flag_pic && optimize == 0)
     crtl->uses_pic_offset_table = 1;
 
-  if (spu_naked_function_p (current_function_decl)
-      && !TARGET_SOFTWARE_ICACHE)
+  if (spu_naked_function_p (current_function_decl))
     return;
 
   scratch_reg_0 = gen_rtx_REG (SImode, LAST_ARG_REGNUM + 1);
@@ -2062,18 +2058,25 @@ spu_expand_prologue (void)
      always save the lr on the stack.  */ 
   if (!current_function_is_leaf
       || cfun->calls_alloca 
-      || total_size > 0
-      || (current_function_is_leaf && TARGET_SOFTWARE_ICACHE))
+      || total_size > 0)
     total_size += STACK_POINTER_OFFSET;
 
   /* Save this first because code after this might use the link
      register as a scratch register. */
-  if (!current_function_is_leaf
-      || (current_function_is_leaf && TARGET_SOFTWARE_ICACHE))
+  if (!current_function_is_leaf)
     {
       insn = frame_emit_store (LINK_REGISTER_REGNUM, sp_reg, 16);
       RTX_FRAME_RELATED_P (insn) = 1;
     }
+
+   if (TARGET_SOFTWARE_ICACHE && (total_size > 0))
+    {
+      rtx insn = emit_insn (gen_blockage ());
+
+      add_reg_note (insn, REG_BRANCH_INFO,
+                    gen_rtx_SYMBOL_REF (VOIDmode,
+                                        ggc_strdup ("prologue_start")));
+   }
 
   if (total_size > 0)
     {
@@ -2163,7 +2166,7 @@ spu_expand_prologue (void)
 	}
     }
 
-  if (TARGET_SOFTWARE_ICACHE)
+  if (TARGET_SOFTWARE_ICACHE && (total_size > 0))
     {
       insn = emit_insn (gen_blockage ());
       add_reg_note (insn, REG_BRANCH_INFO,
@@ -2186,8 +2189,7 @@ spu_expand_epilogue (bool sibcall_p)
      the "toplevel" insn chain.  */
   emit_note (NOTE_INSN_DELETED);
 
-  if (spu_naked_function_p (current_function_decl)
-      && !TARGET_SOFTWARE_ICACHE)
+  if (spu_naked_function_p (current_function_decl))
     return;
 
   scratch_reg_0 = gen_rtx_REG (SImode, LAST_ARG_REGNUM + 1);
@@ -2199,18 +2201,8 @@ spu_expand_epilogue (bool sibcall_p)
 
   if (!current_function_is_leaf
       || cfun->calls_alloca 
-      || total_size > 0
-      || (current_function_is_leaf && TARGET_SOFTWARE_ICACHE))
+      || total_size > 0)
     total_size += STACK_POINTER_OFFSET;
-
-  if (TARGET_SOFTWARE_ICACHE)
-    {
-      rtx insn = emit_insn (gen_blockage ());
-
-      add_reg_note (insn, REG_BRANCH_INFO,
-		    gen_rtx_SYMBOL_REF (VOIDmode,
-					ggc_strdup ("epilogue_start")));
-    }
 
   if (total_size > 0)
     {
@@ -2232,8 +2224,7 @@ spu_expand_epilogue (bool sibcall_p)
 	}
     }
 
-  if (!current_function_is_leaf
-      || (current_function_is_leaf && TARGET_SOFTWARE_ICACHE))
+  if (!current_function_is_leaf)
     frame_emit_load (LINK_REGISTER_REGNUM, sp_reg, 16);
 
   if (!sibcall_p)
@@ -2489,19 +2480,6 @@ DEF_VEC_ALLOC_P(critical_sections_p,gc);
 
 VEC (critical_sections_p, gc) *critical_sections = NULL;
 
-static bool
-bb_contains_prologue_p (basic_block bb)
-{
-  rtx insn;
- 
-  FOR_BB_INSNS (bb, insn)
-    {
-      if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_PROLOGUE_END)
-        return true;
-    }
-  return false;
-}
-
 static void
 dump_critical_section_type (enum critical_section_type type)
 {
@@ -2558,17 +2536,6 @@ static bool
 begin_critical_section (rtx insn, enum critical_section_type *type)
 {
   rtx body, set;
-  basic_block bb = BLOCK_FOR_INSN (insn);
-
-  if (TARGET_SOFTWARE_ICACHE
-      && (rtx_equal_p (insn, bb->il.rtl->head_)) 
-      && (bb_contains_prologue_p (bb)))
-    {
-      /* After stqd $lr,16($sp) instruction $lr is dead.  */
-      *type = PROLOGUE;
-      dump_critical_section_info (PROLOGUE, true, insn);
-      return true;
-    }
 
   if (!INSN_P (insn))
     return false;
@@ -2586,12 +2553,12 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
              *type = JUMP_TABLE;
              return true;
            }
-	  if (strcmp (info, "epilogue_start") == 0)
-	    {
-	      *type = EPILOGUE;
-	      dump_critical_section_info (EPILOGUE, true, insn);
-	      return true;
-	    }
+          if (strcmp (info, "prologue_start") == 0)
+             {
+               *type = PROLOGUE;
+               dump_critical_section_info (PROLOGUE, true, insn);
+               return true;
+             }
 	  if (strcmp (info, "ibranch_seq") == 0)
 	    {  
 	      *type = IBRANCH_SEQ;
@@ -2747,14 +2714,6 @@ end_critical_section (rtx insn, enum critical_section_type *type)
 	{
 	  *type = IBRANCH_SEQ;
 	  dump_critical_section_info (IBRANCH_SEQ, false, insn);
-	  return true;
-	}
-
-      if ((JUMP_P (insn) && GET_CODE (PATTERN (insn)) == RETURN)
-	  || (CALL_P (insn) && SIBLING_CALL_P (insn)))
-	{
-	  *type = EPILOGUE;
-	  dump_critical_section_info (EPILOGUE, false, insn);
 	  return true;
 	}
     }
@@ -3158,6 +3117,234 @@ spu_dont_create_jumptable (unsigned int ncases)
   return false;
 }
 
+/* All inter-block branches can cause cache misses, and therefore
+   evictions.  During eviction, a block is deallocated from the cache.
+   A stack back-trace is performed to locate the first return pointer to
+   the evicted block.  This back-trace process requires knowlege about
+   the current state of liveness of the first three link elements.
+   Therefor, all external branches must be labeled with a 3 bit link
+   liveness indicator.
+
+   liveness
+   indicator  meaning
+   ---------  -------------------------------------
+              1..       indicates the lr itself is live
+              .1.       indicates the value *(sp+16) is live
+              ..1       indicates the value *(*sp+16) is live
+
+   For example, on entry to a function the liveness indicator would be
+   "101" because the link register is live, but the link value in the
+   current stack frame is not while the the link value in the previous
+   stack frame is valid.  After, the link register is saved in a non-leaf
+   function, the indicator would be "011".  If the function then allocates
+   a new stack frame, the indicator would be "001".  If a leaf proceedure
+   creates a new stack frame, the indicator would transition from "101"
+   to "100".  */ 
+static void
+record_link_elements_liveness (void)
+{
+  rtx note;
+  basic_block bb;
+  int lr_reg, current_stack, prev_stack;
+  int save_current = 0;
+  int lr_save = 1;
+  int save_prev = 1;
+  char *info = (char *) alloca (2 + 2 * HOST_BITS_PER_INT / 4 + 1);
+
+  /*  Initial start is 101.  */
+  lr_reg = 1;
+  current_stack = 0;
+  prev_stack = 1;
+
+  gcc_assert (TARGET_SOFTWARE_ICACHE);
+
+  if (dump_file)
+    {
+      fprintf (dump_file, "\nStarting lr liveness calculation.");
+      fprintf (dump_file, "\n---> Starting with LR bits: %d%d%d\n", lr_reg,
+	       current_stack, prev_stack);
+    }
+
+  FOR_EACH_BB (bb)
+  {
+    rtx insn;
+
+    FOR_BB_INSNS (bb, insn)
+    {
+      rtx set;
+
+      strcpy (info, "");
+
+      if (!INSN_P (insn))
+	continue;
+
+      set = single_set (insn);
+      note = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX);
+      if (set)
+	{
+	  rtx src = SET_SRC (set);
+	  rtx dest = SET_DEST (set);
+
+	  if (REG_P (src) && (REGNO (src) == LINK_REGISTER_REGNUM))
+	    {
+	      /* After stqd $lr,16($sp) instruction $lr is dead.  */
+	      gcc_assert (MEM_P (dest));
+	      lr_reg = 0;
+	      lr_save = 0;
+	      save_current = 1;
+	      current_stack = 1;
+
+	      if (dump_file)
+		{
+		  print_rtl_single (dump_file, insn);
+		  fprintf (dump_file, "\n--> Changing LR bits: (LR: %d)"
+			   " (current_stack: %d) (prev_stack: %d)\n",
+			   lr_reg, current_stack, prev_stack);
+		}
+	      continue;
+	    }
+	  else if (REG_P (dest) && (REGNO (dest) == LINK_REGISTER_REGNUM))
+	    {
+	      /* After lqd $lr,16($sp) instruction lr value is alive
+	         in $lr.  */
+	      gcc_assert (MEM_P (src));
+	      lr_reg = 1;
+	      current_stack = 0;
+	      if (dump_file)
+		{
+		  print_rtl_single (dump_file, insn);
+		  fprintf (dump_file, "\n---> Changing LR bits: (LR: %d) "
+			   "(current_stack: %d) (prev_stack: %d)\n",
+			   lr_reg, current_stack, prev_stack);
+		}
+
+	      continue;
+	    }
+	  else if (REG_P (dest)
+		   && REGNO (dest) == STACK_POINTER_REGNUM
+		   && GET_CODE (src) == PLUS
+		   && XEXP (src, 0) == STACK_POINTER_REGNUM
+		   && (GET_CODE (XEXP (src, 1)) == CONST_INT)
+		   && (INTVAL (XEXP (src, 1)) > 0))
+
+	    {
+	      current_stack = prev_stack;
+	      prev_stack = 1;
+	      if (dump_file)
+		{
+		  print_rtl_single (dump_file, insn);
+		  fprintf (dump_file, "\n---> Changing LR bits: (LR: %d) "
+			   "(current_stack: %d) (prev_stack: %d)\n",
+			   lr_reg, current_stack, prev_stack);
+		}
+	      continue;
+	    }
+	}
+      if (note)
+	{
+	  const char *branch_info = XSTR (XEXP (note, 0), 0);
+
+	  strcpy (info, branch_info);
+
+	  if (strcmp (info, "prologue_start") == 0)
+	    {
+	      prev_stack = current_stack;
+	      save_prev = prev_stack;
+	      save_current = 0;
+	      current_stack = 0;
+
+	      if (dump_file)
+		{
+		  print_rtl_single (dump_file, insn);
+		  fprintf (dump_file, "\n---> Changing LR bits: (LR: %d)"
+			   " (current_stack: %d) (prev_stack: %d)\n",
+			   lr_reg, current_stack, prev_stack);
+		}
+
+	      continue;
+	    }
+	}
+      if (JUMP_P (insn))
+	{
+	  int lr_info = (prev_stack + (current_stack << 1) + (lr_reg << 2));
+	  char *tmp;
+
+	  if (strcmp (info, "") != 0)
+	    {
+	      tmp = strstr (info, ",");
+	      if (tmp)
+		{
+		  char *buf =
+		    (char *) alloca (2 + 2 * HOST_BITS_PER_INT / 4 + 1);
+		  sprintf (buf, ",%d", lr_info);
+		  strcpy (tmp, buf);
+		}
+	      XSTR (XEXP (note, 0), 0) = ggc_strdup (info);
+	    }
+	  else
+	    {
+	      sprintf (info, "0,%d", lr_info);
+	      add_reg_note (insn, REG_BRANCH_INFO,
+			    gen_rtx_SYMBOL_REF (VOIDmode, ggc_strdup (info)));
+
+	    }
+	  if (dump_file)
+	    print_rtl_single (dump_file, insn);
+	}
+      else if (GET_CODE (insn) == CALL_INSN)
+	{
+	  int lr_info = (prev_stack + (current_stack << 1) + (lr_reg << 2));
+	  char *tmp;
+	  rtx reg = gen_rtx_REG (SImode, LINK_REGISTER_REGNUM);
+
+	  if (rtx_referenced_p (reg, insn))
+	    {
+	      lr_info = (prev_stack + (current_stack << 1) + (1 << 2));
+	    }
+
+	  if (strcmp (info, "") != 0)
+	    {
+	      tmp = strstr (info, ",");
+	      if (tmp)
+		{
+		  char *buf =
+		    (char *) alloca (2 + 2 * HOST_BITS_PER_INT / 4 + 1);
+		  sprintf (buf, ",%d", lr_info);
+		  strcpy (tmp, buf);
+
+		}
+	      XSTR (XEXP (note, 0), 0) = ggc_strdup (info);
+	    }
+	  else
+	    {
+	      sprintf (info, "0,%d", lr_info);
+	      add_reg_note (insn, REG_BRANCH_INFO,
+			    gen_rtx_SYMBOL_REF (VOIDmode, ggc_strdup (info)));
+
+	    }
+	  if (dump_file)
+	    print_rtl_single (dump_file, insn);
+	}
+
+      if (((JUMP_P (insn) && GET_CODE (PATTERN (insn)) == RETURN)
+	   || (CALL_P (insn) && SIBLING_CALL_P (insn))))
+	{
+	  /* Restore the lr bits to the state before the return.  */
+	  prev_stack = save_prev;
+	  current_stack = save_current;
+	  lr_reg = lr_save;
+	  if (dump_file)
+	    {
+	      print_rtl_single (dump_file, insn);
+	      fprintf (dump_file, "\n---> Changing LR bits: (LR: %d)"
+		       " (current_stack: %d) (prev_stack: %d)\n",
+		       lr_reg, current_stack, prev_stack);
+	    }
+	}
+    }
+  }
+}
+ 
 /* A structure to hold information for each branch instruction.
    For the software i-cache scheme we emit sequences of code that are
    later been construction by the linker into cache lines.  To help the
@@ -3253,6 +3440,7 @@ record_branch_info (void)
 			}
 		    }
 		  e = BRANCH_EDGE (bb);
+                  branchi.frequency = 0;
 		  if (e && e->probability)
 		    {
 		      branchi.frequency = EDGE_FREQUENCY (e);
@@ -3273,7 +3461,8 @@ record_branch_info (void)
 		    abort ();
 		  if (REG_P (XEXP (XEXP (call, 0), 0)))
 		    continue;
-		  
+
+		  branchi.frequency = 0;
 		  if (bb->frequency)
 		    {
 		      branchi.frequency = bb->frequency;
@@ -3320,11 +3509,11 @@ record_branch_info (void)
        i++)
     {
       if (prev == branchi1->frequency)
-	sprintf (branch_info_str, "%d,0", priority);
+        sprintf (branch_info_str, "%d,", priority);
       else
 	{
 	  priority -= stride;
-	  sprintf (branch_info_str, "%d,0", priority);
+          sprintf (branch_info_str, "%d,", priority);
 	}
       add_reg_note (branchi1->insn, REG_BRANCH_INFO,
 		    gen_rtx_SYMBOL_REF (VOIDmode,
@@ -3891,6 +4080,7 @@ spu_machine_dependent_reorg (void)
       if (TARGET_SOFTWARE_ICACHE)
         {
           record_branch_info ();
+          record_link_elements_liveness ();
         }
 
       return;
@@ -4092,6 +4282,7 @@ spu_machine_dependent_reorg (void)
   if (TARGET_SOFTWARE_ICACHE)
     {
       record_branch_info ();
+      record_link_elements_liveness ();
     }
 
   free_bb_for_insn ();
@@ -5101,8 +5292,7 @@ spu_initial_elimination_offset (int from, int to)
   int saved_regs_size = spu_saved_regs_size ();
   int sp_offset = 0;
   if (!current_function_is_leaf || crtl->outgoing_args_size
-      || get_frame_size () || saved_regs_size
-      || (current_function_is_leaf && TARGET_SOFTWARE_ICACHE))
+      || get_frame_size () || saved_regs_size)
     sp_offset = STACK_POINTER_OFFSET;
   if (from == FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
     return get_frame_size () + crtl->outgoing_args_size + sp_offset;
