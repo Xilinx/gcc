@@ -582,6 +582,13 @@ do_allocate_exception (tree type)
     {
       /* Declare void *__cxa_allocate_exception(size_t) throw().  */
       fn = declare_nothrow_library_fn (fn, ptr_type_node, size_type_node);
+
+      if (flag_tm)
+	{
+	  tree fn2 = get_identifier ("_ITM_cxa_allocate_exception");
+	  fn2 = declare_nothrow_library_fn (fn2, ptr_type_node, size_type_node);
+	  record_tm_replacement (fn, fn2);
+	}
     }
 
   return cp_build_function_call (fn, 
@@ -717,6 +724,13 @@ build_throw (tree exp)
 	  tmp = tree_cons (NULL_TREE, ptr_type_node, tmp);
 	  tmp = build_function_type (void_type_node, tmp);
 	  fn = push_throw_library_fn (fn, tmp);
+
+	  if (flag_tm)
+	    {
+	      tree fn2 = get_identifier ("_ITM_cxa_throw");
+	      fn2 = push_throw_library_fn (fn2, tmp);
+	      record_tm_replacement (fn, fn2);
+	    }
 	}
 
       /* [except.throw]
@@ -869,13 +883,6 @@ build_throw (tree exp)
 	  /* Declare void __cxa_rethrow (void).  */
 	  fn = push_throw_library_fn
 	    (fn, build_function_type (void_type_node, void_list_node));
-
-	  if (flag_tm)
-	    {
-	      tree fn2 = get_identifier ("_ITM_cxa_rethrow");
-	      fn2 = push_throw_library_fn (fn2, TREE_TYPE (fn));
-	      record_tm_replacement (fn, fn2);
-	    }
 	}
 
       /* ??? Indicate that this function call allows exceptions of the type
