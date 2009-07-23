@@ -35,8 +35,8 @@ if [ -n "$MELT_EXTRACFLAGS" ]; then
 fi
 
 #set -x
-## script invoked by cc1 with two arguments : the generated C source to compile
-## and the naked (without suffix) dynamically-loadable stuff to generate
+## script invoked by cc1 with at least two arguments : the generated C
+## source to compile and the dynamically-loadable stuff to generate
 
 ## for commodity, we pass -D -U -I -O* -g to gcc, and -F to set the cflags,
 ## -C to set the compiler, and -x & -v for debugging and -n to omit
@@ -65,61 +65,55 @@ csource=$1
 dynstuff=$2
 
 
-## on some machines, try to guess the dynstuff from the csource
+## if not given, try to guess the dynstuff from the csource
 if [ -z $dynstuff ]; then
-    case `uname` in
-	Linux|SunOS|Solaris) 
-	    dynstuff=`basename $csource .c`.so;;
-    esac
+    dynstuff=`basename $csource .c`.so
 fi
 
+## if the dynstuff has no *.so suffix, append it
 case $dynstuff in
-    *.so) nakedynstuff=`basename $dynstuff .so`;;
-    *.sl) nakedynstuff=`basename $dynstuff .sl`;;
-    *.la) nakedynstuff=`basename $dynstuff .la`;;
-    *.lo) nakedynstuff=`basename $dynstuff .lo`;;
-    *.shlib) nakedynstuff=`basename $dynstuff .shlib`;;
-    *.dylib) nakedynstuff=`basename $dynstuff .dylib`;;
-    *) nakedynstuff=`echo $dynstuff | sed 's/\.[a-z]*$//'`;;
+    *.so) ;;
+    *) dynstuff=$dynstuff.so;;
 esac
 
+# set TMPDIR if it was not set
 : ${TMPDIR=/tmp}
 
+## sadly, even in 2009, there seems no standard way to make temporary files!
+
 if which tempfile > /dev/null 2>&1; then
-    datf=`tempfile  -p bdat`
+    datf=`tempfile  -p bdat -s .c`
+    dobf=`tempfile  -p dobj -s .o`
 elif which mktemp > /dev/null 2>&1; then
-    datf=`mktemp -t bdat.XXXXXXXX`
+    datf=`mktemp -t bdat.XXXXXXXX`.c
+    dobf=`mktemp -t dobj.XXXXXXXX`.o
 else
-    datf=$TMPDIR/bdat$$-$RANDOM
+    datf=$TMPDIR/bdat$$-$RANDOM.c
+    dobf=$TMPDIR/dobj$$-$RANDOM.o
 fi
 
-rm -f $datf $datf.c $datf.*
+rm -f $datf $dobf 
 
 #pwd
 
 # generate the temporary timestamp & md5s file
 md5src=`md5sum $csource`     
 
-trap "rm -f $datf.* $datf $nakedynstuff.o" EXIT
+trap "rm -f $datf $dobf" EXIT
 
-date "+const char melt_compiled_timestamp[]=\"%c $csource\";" > $datf.c
-echo "const char melt_md5[]=\"$md5src\";" >> $datf.c
-echo "const char melt_csource[]=\"$csource\";" >> $datf.c
+date "+const char melt_compiled_timestamp[]=\"%c $csource\";" > $datf
+echo "const char melt_md5[]=\"$md5src\";" >> $datf
+echo "const char melt_csource[]=\"$csource\";" >> $datf
 
 ## add the extra cflags in front of the default ones!
 melt_cflags="$xtra_cflags $melt_cflags"
-case `uname` in
-Linux|SunOS|Solaris)
-	$melt_cc -Wall -fPIC $melt_cflags -I "$melt_headerdir" $csource -c -o $nakedynstuff.o
-	$melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir"  $datf.c $nakedynstuff.o  -o $nakedynstuff.so
-	;;
-*) 
-	libtool --mode=compile -prefer-pic $melt_cc $melt_cflags $csource  -I "$melt_headerdir" -o $nakedynstuff.lo;
-	libtool --mode=compile -prefer-pic $melt_cc $melt_cflags $datf.c -o $datf.lo
-	libtool --mode=link -module $melt_cc  $makedynstuff.lo $datf.lo -o  $nakedynstuff.la
-	rm -f $datf.*
-	;;
-esac
 
-#echo done $0 $* '@@@@'
-#echo
+### we do not compile everything in a single step to help ccache, in
+### the event $melt_cc happens to run ccache.
+
+# compile the generated C source into a temporary object; this
+# compilation may run for a while.
+$melt_cc -Wall -fPIC $melt_cflags -I "$melt_headerdir" $csource -c -o $dobf
+# compile & link the short date file & the temporary object
+$melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir"  $datf $dobf  -o $dynstuff
+

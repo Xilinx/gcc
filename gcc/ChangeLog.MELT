@@ -1,4 +1,17 @@
 
+2009-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[runfile command works again]
+	* melt-cc-script.proto: simplified, and generate the PIC object
+	file as a temporary file; don't touch to the current directory
+	unless source or module are inside.
+	* melt-runtime.c (compile_to_dyl): passing -x to the compile
+	script in debug mode. more debugprints.
+	(meltgc_load_melt_module): appending ".so" to temporary module
+	name.
+	(melt_initialize): shows the build date in debugprint.
+	* melt/warmmelt-genobj.melt: better message when generating C
+	source.
+
 2009-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmatch-4 compiles, but perhaps wrongly; the runfile command does
 	not work...]
@@ -17,7 +30,7 @@
 	* testsuite/melt/tmatch-3.melt: updated comment.
 	* melt/ana-simple.melt: tomporarily remove code until tmatch-4
 	works.
-	
+
 2009-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	[probably ana-simple.melt hit a bug in pattern compilation]
 	* melt/warmelt-first.melt: added cstring_same cmatcher.

@@ -5005,7 +5005,12 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
 #ifdef MELT_IS_PLUGIN
   {
     int err = 0;
-    char * cmd = concat(ourmeltcompilescript, " ",
+    char * cmd = concat(ourmeltcompilescript, 
+#if ENABLE_CHECKING
+			flag_melt_debug?" -x ":" ",
+#else
+			" ",
+#endif
 			srcfile, " ",
 			dlfile, NULL);
     gcc_assert (cmd != NULL);
@@ -5019,19 +5024,22 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
   } 
 #else
   {
+    int argc = 0;
     int err = 0;
     int cstatus = 0;
     const char *errmsg = 0;
-    const char *argv[4];
+    const char *argv[6] = { 0,0,0,0,0,0 };
     struct pex_obj *pex = 0;
     struct pex_time ptime;
     memset (&ptime, 0, sizeof (ptime));
     /* compute the ourmeltcompilscript */
     pex = pex_init (PEX_RECORD_TIMES, ourmeltcompilescript, NULL);
-    argv[0] = ourmeltcompilescript;
-    argv[1] = srcfile;
-    argv[2] = dlfile;
-    argv[3] = NULL;
+    argv[argc++] = ourmeltcompilescript;
+    debugeprintf("compile_to_dyl adding %s", (argv[argc++]="-x"));
+    argv[argc++] = srcfile;
+    argv[argc++] = dlfile;
+    argv[argc] = NULL;
+    debugeprintf("compile_to_dyl pex: %s %s %s", ourmeltcompilescript, srcfile, dlfile);
     errmsg =
       pex_run (pex, PEX_LAST | PEX_SEARCH, ourmeltcompilescript, 
 	       CONST_CAST (char**, argv),
@@ -5291,6 +5299,7 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
     error ("cannot load MELT module, no MELT module name given");
     goto end;
   }
+  debugeprintf("meltgc_load_melt_module modulnam %s", modulnam);
   if (!ISALNUM(modulnam[0]) && modulnam[0] != '_')
     error ("bad MELT module name %s to load", modulnam);
   /* always check the module name */
@@ -5496,7 +5505,7 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
   /* if we have the srcpath but did'nt found the stuff, try to compile it using the temporary directory */
   if (srcpath)
     {
-      tmpath = melt_tempdir_path (dupmodulnam, NULL);
+      tmpath = melt_tempdir_path (dupmodulnam, ".so");
       debugeprintf ("meltgc_load_melt_module before compiling tmpath %s", tmpath);
       compile_to_dyl (srcpath, tmpath);
       debugeprintf ("meltgc_compile srcpath=%s compiled to tmpath=%s",
@@ -5510,7 +5519,10 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
 	{
 	  dynpath = tmpath;
 	  goto dylibfound;
-	};
+	}
+      else
+	error ("compilation & loading of MELT generated file %s to temporary module %s failed",
+	       srcpath, tmpath);
     }
   debugeprintf ("failed here dlix=%d", dlix);
   /* catch all situation, failed to find the dynamic stuff */
@@ -7893,7 +7905,7 @@ void
 melt_initialize (void)
 {
   melt_really_initialize ("__MELT/buitin");
-  debugeprintf ("end of melt_initialize [builtin MELT]");
+  debugeprintf ("end of melt_initialize [builtin MELT] meltruntime %s", __DATE__);
 }
 #endif
 

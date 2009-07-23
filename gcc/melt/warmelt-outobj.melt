@@ -2998,7 +2998,7 @@
 	    (output_c_code iniobj declbuf implbuf 0)
 	    (output_exported_offsets modctx declbuf implbuf)
 	    (output_cfile_decl_impl modnamstr declbuf implbuf)
-	    (informsg_strv "warmelt generated module" modnamstr)
+	    (informsg_strv "warmelt generated module C file" modnamstr)
 	    )))))
   (message_dbg "ended compile_list_sexpr")
   )
