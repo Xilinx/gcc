@@ -1,3 +1,7 @@
+2009-07-24  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* Makefile.def: Fix formatting to match trunk.
+
 2009-06-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* contrib/automatic_tester/run_build.sh: Change the subject line
