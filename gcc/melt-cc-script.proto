@@ -20,18 +20,18 @@
 # along with GCC; see the file COPYING3.   If not see
 # <http://www.gnu.org/licenses/>. 
 
-#:! :MELT_CC: & :MELT_CFLAGS: &:MELT_HEADERDIR:  are substituted in the first 30 lines
+#:! :GCCMELT_CC: & :GCCMELT_CFLAGS: &:GCCMELT_HEADERDIR:  are substituted in the first 30 lines
 
-melt_cc=":MELT_CC:"
-melt_cflags=":MELT_CFLAGS:"
-melt_headerdir=":MELT_HEADERDIR:"
+gccmelt_cc=":GCCMELT_CC:"
+gccmelt_cflags=":GCCMELT_CFLAGS:"
+gccmelt_headerdir=":GCCMELT_HEADERDIR:"
 
-if [ -n "$MELT_CC" ]; then
-    melt_cc=$MELT_CC
+if [ -n "$GCCMELT_CC" ]; then
+    gccmelt_cc=$GCCMELT_CC
 fi
 
-if [ -n "$MELT_EXTRACFLAGS" ]; then
-    melt_cflags="$melt_cflags $MELT_EXTRACFLAGS"
+if [ -n "$GCCMELT_EXTRACFLAGS" ]; then
+    gccmelt_cflags="$gccmelt_cflags $GCCMELT_EXTRACFLAGS"
 fi
 
 #set -x
@@ -51,7 +51,7 @@ while getopts "D:I:U:F:C:O:gxvnd" flag ; do
 	O) xtra_cflags="$xtra_cflags -O$OPTARG";;
 	F) xtra_cflags="$xtra_cflags $OPTARG";;
 	g) xtra_cflags="$xtra_cflags -g";;
-	C) melt_cc="$OPTARG";;
+	C) gccmelt_cc="$OPTARG";;
 	n) xtra_cflags="$xtra_cflags -DMELTGCC_NOLINENUMBERING";;
 	d) xtra_cflags="$xtra_cflags -DMELTGCC_DYNAMIC_OBJSTRUCT";;
 	x) set -x;;
@@ -106,14 +106,14 @@ echo "const char melt_md5[]=\"$md5src\";" >> $datf
 echo "const char melt_csource[]=\"$csource\";" >> $datf
 
 ## add the extra cflags in front of the default ones!
-melt_cflags="$xtra_cflags $melt_cflags"
+gccmelt_cflags="$xtra_cflags $gccmelt_cflags"
 
 ### we do not compile everything in a single step to help ccache, in
-### the event $melt_cc happens to run ccache.
+### the event $gccmelt_cc happens to run ccache.
 
 # compile the generated C source into a temporary object; this
 # compilation may run for a while.
-$melt_cc -Wall -fPIC $melt_cflags -I "$melt_headerdir" $csource -c -o $dobf
+$gccmelt_cc -Wall -fPIC $gccmelt_cflags -I "$gccmelt_headerdir" $csource -c -o $dobf
 # compile & link the short date file & the temporary object
-$melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir"  $datf $dobf  -o $dynstuff
+$gccmelt_cc -Wall -fPIC -shared $gccmelt_cflags -I "$gccmelt_headerdir"  $datf $dobf  -o $dynstuff
 
