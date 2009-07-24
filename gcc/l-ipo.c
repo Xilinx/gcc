@@ -173,7 +173,8 @@ lipo_restore_decl (tree dest, tree saved)
       if (tc == FUNCTION_DECL)
         memcpy ((char *) dest + sizeof (struct tree_decl_common),
                 (char *) saved + sizeof (struct tree_decl_common),
-                sizeof (struct tree_function_decl) - sizeof (struct tree_decl_common));
+                sizeof (struct tree_function_decl)
+                - sizeof (struct tree_decl_common));
 
       DECL_UID (dest) = old_uid;
       if (DECL_LANG_SPECIFIC (saved))
@@ -552,7 +553,8 @@ aggr_has_equiv_id (tree t1, tree t2)
   if (ctx1 && TREE_CODE (ctx1) != TREE_CODE (ctx2))
     return 0;
 
-  if (ctx1 && TREE_CODE (ctx1) == FUNCTION_DECL)
+  if (ctx1 && (TREE_CODE (ctx1) == FUNCTION_DECL
+               || TREE_CODE (ctx1) == BLOCK))
     return 0;
 
   if (!ctx1)
@@ -565,10 +567,10 @@ aggr_has_equiv_id (tree t1, tree t2)
   else if (TYPE_P (ctx1))
     ctx_match = aggr_has_equiv_id (ctx1, ctx2);
   else
-  {
-    gcc_assert (TREE_CODE (ctx1) == TRANSLATION_UNIT_DECL);
-    ctx_match = 1;
-  }
+    {
+      gcc_assert (TREE_CODE (ctx1) == TRANSLATION_UNIT_DECL);
+      ctx_match = 1;
+    }
 
   if (!ctx_match)
     return 0;
@@ -607,7 +609,15 @@ get_norm_type (tree type)
 /* Return 1 if type T1 and T2 are equivalent. Struct/union/class
    types are compared using qualified name ids.  Alias sets of
    equivalent types will be merged. Client code may choose to do
-   structural equivalence check for sanity.  */
+   structural equivalence check for sanity.  Note the difference
+   between the types_compatible_p (and its langhooks subroutines)
+   and this interface. The former is mainly used to remove useless
+   type conversion and value numbering computation. It returns 1
+   only when it is sure and should not be used in contexts where
+   erroneously returning 0 causes problems. This interface
+   lipo_cmp_type behaves differently - it returns 1 when it is not
+   sure -- as the primary purpose of the interface is for alias
+   set computation.  */
 
 int
 lipo_cmp_type (tree t1, tree t2)
@@ -876,66 +886,82 @@ re_record_component_aliases (tree type,
 static int
 type_eq_process (void **slot, void *data ATTRIBUTE_UNUSED)
 {
-  unsigned i, n;
-  alias_set_type alias_set;
-  bool zero_set = false;
-  tree rep_type;
+  unsigned i;
+  alias_set_type alias_set, ptr_alias_set = -1;
+  tree rep_type, type;
   VEC(tree, heap) *eq_types;
   struct type_ec ** te = (struct type_ec **)slot;
+  bool zero_set = false, ptr_zero_set = false;
   struct type_ent **slot2, key, *tent;
+
 
   rep_type = (*te)->rep_type;
   eq_types = (*te)->eq_types;
   alias_set = get_alias_set (rep_type);
 
-  n = VEC_length (tree, eq_types);
-  /* fprintf (stderr, "%%TYPE EQ:\n"); */
-  for (i = 0; i < n; i++)
+  for (i = 0;
+       VEC_iterate (tree, eq_types, i, type);
+       ++i)
     {
-      alias_set_type als;
-      tree type = VEC_index (tree, eq_types, i);
+      alias_set_type als, ptr_als = -1;
+      tree type_ptr = TYPE_POINTER_TO (type);;
 
       als = get_alias_set (type);
-
       if (als == 0)
         zero_set = true;
 
       if (alias_set && als && alias_set != als)
         record_alias_subset (alias_set, als);
-#if 0
-      /* Dump */
-      {
-      tree tn = TYPE_NAME (type);
-      fprintf (stderr, "\t");
-      print_generic_expr (stderr, type, 0);
-      if (DECL_P (tn))
-        fprintf (stderr, " @ %s:%d \n", DECL_SOURCE_FILE (tn), DECL_SOURCE_LINE (tn));
-      else
-        fprintf (stderr, "\n");
-      /* End Dump */
-      }
-#endif
+
+      if (type_ptr)
+        {
+          ptr_als = get_alias_set (type_ptr);
+          if (ptr_als == 0)
+            ptr_zero_set = true;
+
+          if (ptr_alias_set == -1)
+            ptr_alias_set = ptr_als;
+          else
+            {
+              if (!ptr_zero_set && ptr_alias_set != ptr_als)
+                record_alias_subset (ptr_alias_set, ptr_als);
+            }
+        }
     }
-  /* fprintf (stderr, "\n"); */
 
   /* Now propagate back.  */
-  for (i = 0; i < n; i++)
+  for (i = 0;
+       VEC_iterate (tree, eq_types, i, type);
+       ++i)
     {
-      alias_set_type als;
-      tree type = VEC_index (tree, eq_types, i);
+      alias_set_type als, ptr_als;
+      tree ptr_type = TYPE_POINTER_TO (type);
+
       als = get_alias_set (type);
 
       if (zero_set)
         TYPE_ALIAS_SET (type) = 0;
       else if (alias_set != als)
         record_alias_subset (als, alias_set);
+
+      if (ptr_type)
+        {
+          ptr_als = get_alias_set (ptr_type);
+          if (ptr_zero_set)
+            TYPE_ALIAS_SET (ptr_type) = 0;
+          else if (ptr_alias_set != ptr_als)
+            record_alias_subset (ptr_als, ptr_alias_set);
+        }
     }
+
 
   /* Now populate the type table.  */
   l_ipo_eq_id++;
-  for (i = 0; i < n; i++)
+  for (i = 0;
+       VEC_iterate (tree, eq_types, i, type);
+       ++i)
     {
-      key.type = VEC_index (tree, eq_types, i);
+      key.type = type;
       slot2 = (struct type_ent **)
           htab_find_slot (l_ipo_type_tab, &key, INSERT);
       tent = *slot2;
@@ -974,6 +1000,7 @@ void
 cgraph_unify_type_alias_sets (void)
 {
   struct cgraph_node *node;
+  struct varpool_node *pv;
 
   if (!L_IPO_COMP_MODE || !flag_strict_aliasing)
     return;
@@ -994,6 +1021,9 @@ cgraph_unify_type_alias_sets (void)
           pop_cfun ();
         }
     }
+
+  for (pv = varpool_nodes; pv; pv = pv->next)
+    walk_tree (&pv->decl, find_struct_types, NULL, NULL); 
 
   /* Compute type equivalent classes.  */
   cgraph_build_type_equivalent_classes ();
@@ -1387,8 +1417,8 @@ resolve_cgraph_node (struct cgraph_sym **slot, struct cgraph_node *node)
   decl1 = (*slot)->rep_decl;
   decl2 = node->decl;
 
-  decl1_defined = TREE_STATIC (decl1);
-  decl2_defined = TREE_STATIC (decl2);
+  decl1_defined = gimple_has_body_p (decl1);
+  decl2_defined = gimple_has_body_p (decl2);
 
   if (decl1_defined && !decl2_defined)
     return;
@@ -1637,6 +1667,8 @@ promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
   assemb_id = get_identifier (assembler_name);
   SET_DECL_ASSEMBLER_NAME (decl, assemb_id);
   TREE_PUBLIC (decl) = 1;
+  DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
+  DECL_VISIBILITY_SPECIFIED (decl) = 1;
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {

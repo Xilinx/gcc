@@ -1246,6 +1246,39 @@ tagged_types_tu_compatible_p (const_tree t1, const_tree t2,
   if (flag_isoc99 && TYPE_NAME (t1) != TYPE_NAME (t2))
     return 0;
 
+  /* See comments for lhd_types_compatible_p in langhooks.c. The interface
+     should be designed so that it returns 1 only when it is sure. However
+     the following structural comparison is doing the other way. For instance,
+     it returns 1 (compatible) falsely for the following types defined in
+     different translation units:
+     struct A
+     {
+        int a1;
+        int a2;
+        int a3;
+     };
+     struct A'
+     {
+        int a1;
+        int a2;
+     }
+
+     In LIPO mode, name checking is done to avoid the false
+     positive. */
+
+  if (L_IPO_COMP_MODE)
+    {
+      if ((TYPE_NAME (t1) != NULL)
+          && (TYPE_NAME (t2) != NULL)
+          && ((DECL_P (TYPE_NAME (t1)) && DECL_P (TYPE_NAME (t2))
+               && DECL_NAME (TYPE_NAME (t1)) == DECL_NAME (TYPE_NAME (t2)))
+              || (!DECL_P (TYPE_NAME (t1)) && !DECL_P (TYPE_NAME (t2))
+                  && TYPE_NAME (t1) == TYPE_NAME (t2))))
+        return 1;
+      else
+        return 0;
+    }
+
   /* C90 didn't say what happened if one or both of the types were
      incomplete; we choose to follow C99 rules here, which is that they
      are compatible.  */

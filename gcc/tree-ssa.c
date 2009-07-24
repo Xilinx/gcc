@@ -840,6 +840,26 @@ delete_tree_ssa (void)
   redirect_edge_var_map_destroy ();
 }
 
+/* Return true if the alias sets of TYPE1 and TYPE2
+   are not the same or equivalent.  */
+
+static bool
+ptr_has_non_eq_alias_set (tree type1, tree type2)
+{
+  alias_set_type als1, als2;
+
+  als1 = get_deref_alias_set (type1);
+  als2 = get_deref_alias_set (type2);
+
+  if ((als1 != als2)
+      && (!L_IPO_COMP_MODE
+          || !(alias_set_subset_of (als1, als2)
+               && alias_set_subset_of (als2, als1))))
+    return true;
+
+  return false;
+}
+
 /* Helper function for useless_type_conversion_p.  */
 
 static bool
@@ -913,7 +933,7 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 
       /* Do not lose casts between pointers that when dereferenced access
 	 memory with different alias sets.  */
-      if (get_deref_alias_set (inner_type) != get_deref_alias_set (outer_type))
+      if (ptr_has_non_eq_alias_set (inner_type, outer_type))
 	return false;
 
       /* We do not care for const qualification of the pointed-to types
