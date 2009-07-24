@@ -63,6 +63,10 @@ struct GTY(()) gimple_df {
   /* The PTA solution for the CALLUSED artificial variable.  */
   struct pt_solution callused;
 
+  /* A map of decls to artificial ssa-names that point to the partition
+     of the decl.  */
+  struct pointer_map_t * GTY((skip(""))) decls_to_pointers;
+
   /* Free list of SSA_NAMEs.  */
   tree free_ssanames;
 
@@ -728,11 +732,6 @@ struct tree_niter_desc
   tree bound;
   enum tree_code cmp;
 };
-
-/* In tree-vectorizer.c */
-unsigned vectorize_loops (void);
-extern bool vect_can_force_dr_alignment_p (const_tree, unsigned int);
-extern tree get_vectype_for_scalar_type (tree);
 
 /* In tree-ssa-phiopt.c */
 bool empty_block_p (basic_block);

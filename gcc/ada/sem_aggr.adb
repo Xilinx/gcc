@@ -28,6 +28,7 @@ with Checks;   use Checks;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
+with Expander; use Expander;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
 with Freeze;   use Freeze;
@@ -1439,6 +1440,14 @@ package body Sem_Aggr is
 
                else
                   Error_Msg_N ("nested array aggregate expected", Expr);
+
+                  --  If the expression is parenthesized, this may be
+                  --  a missing component association for a 1-aggregate.
+
+                  if Paren_Count (Expr) > 0 then
+                     Error_Msg_N ("\if single-component aggregate is intended,"
+                                  & " write e.g. (1 ='> ...)", Expr);
+                  end if;
                   return Failure;
                end if;
             end if;
@@ -1759,6 +1768,42 @@ package body Sem_Aggr is
                                             Single_Elmt => Single_Choice)
                then
                   return Failure;
+
+               --  Check incorrect use of dynamically tagged expression
+
+               --  We differentiate here two cases because the expression may
+               --  not be decorated. For example, the analysis and resolution
+               --  of the expression associated with the others choice will
+               --  be done later with the full aggregate. In such case we
+               --  duplicate the expression tree to analyze the copy and
+               --  perform the required check.
+
+               elsif not Present (Etype (Expression (Assoc))) then
+                  declare
+                     Save_Analysis : constant Boolean := Full_Analysis;
+                     Expr          : constant Node_Id :=
+                                       New_Copy_Tree (Expression (Assoc));
+
+                  begin
+                     Expander_Mode_Save_And_Set (False);
+                     Full_Analysis := False;
+                     Analyze (Expr);
+                     Full_Analysis := Save_Analysis;
+                     Expander_Mode_Restore;
+
+                     if Is_Tagged_Type (Etype (Expr)) then
+                        Check_Dynamically_Tagged_Expression
+                          (Expr => Expr,
+                           Typ  => Component_Type (Etype (N)),
+                           Related_Nod => N);
+                     end if;
+                  end;
+
+               elsif Is_Tagged_Type (Etype (Expression (Assoc))) then
+                  Check_Dynamically_Tagged_Expression
+                    (Expr => Expression (Assoc),
+                     Typ  => Component_Type (Etype (N)),
+                     Related_Nod => N);
                end if;
 
                Next (Assoc);
@@ -1992,6 +2037,15 @@ package body Sem_Aggr is
                return Failure;
             end if;
 
+            --  Check incorrect use of dynamically tagged expression
+
+            if Is_Tagged_Type (Etype (Expr)) then
+               Check_Dynamically_Tagged_Expression
+                 (Expr => Expr,
+                  Typ  => Component_Type (Etype (N)),
+                  Related_Nod => N);
+            end if;
+
             Next (Expr);
          end loop;
 
@@ -2021,6 +2075,32 @@ package body Sem_Aggr is
                                          Single_Elmt => False)
             then
                return Failure;
+
+            --  Check incorrect use of dynamically tagged expression. The
+            --  expression of the others choice has not been resolved yet.
+            --  In order to diagnose the semantic error we create a duplicate
+            --  tree to analyze it and perform the check.
+
+            else
+               declare
+                  Save_Analysis : constant Boolean := Full_Analysis;
+                  Expr          : constant Node_Id :=
+                                    New_Copy_Tree (Expression (Assoc));
+
+               begin
+                  Expander_Mode_Save_And_Set (False);
+                  Full_Analysis := False;
+                  Analyze (Expr);
+                  Full_Analysis := Save_Analysis;
+                  Expander_Mode_Restore;
+
+                  if Is_Tagged_Type (Etype (Expr)) then
+                     Check_Dynamically_Tagged_Expression
+                       (Expr => Expr,
+                        Typ  => Component_Type (Etype (N)),
+                        Related_Nod => N);
+                  end if;
+               end;
             end if;
          end if;
 
@@ -2183,11 +2263,6 @@ package body Sem_Aggr is
             if Etype (Imm_Type) = Base_Type (A_Type) then
                return True;
 
-            elsif Is_CPP_Constructor_Call (A)
-              and then Etype (Imm_Type) = Base_Type (Etype (A_Type))
-            then
-               return True;
-
             --  The base type of the parent type may appear as  a private
             --  extension if it is declared as such in a parent unit of
             --  the current one. For consistency of the subsequent analysis
@@ -2303,7 +2378,6 @@ package body Sem_Aggr is
 
             if Is_Class_Wide_Type (Etype (A))
               and then Nkind (Original_Node (A)) = N_Function_Call
-              and then not Is_CPP_Constructor_Call (Original_Node (A))
             then
                --  If the ancestor part is a dispatching call, it appears
                --  statically to be a legal ancestor, but it yields any
@@ -2379,7 +2453,7 @@ package body Sem_Aggr is
       --  Builds a new N_Component_Association node which associates
       --  Component to expression Expr and adds it to the association
       --  list being built, either New_Assoc_List, or the association
-      --  being build for an inner aggregate.
+      --  being built for an inner aggregate.
 
       function Discr_Present (Discr : Entity_Id) return Boolean;
       --  If aggregate N is a regular aggregate this routine will return True.
@@ -2795,9 +2869,7 @@ package body Sem_Aggr is
 
          --  Check wrong use of class-wide types
 
-         if Is_Class_Wide_Type (Etype (Expr))
-           and then not Is_CPP_Constructor_Call (Expr)
-         then
+         if Is_Class_Wide_Type (Etype (Expr)) then
             Error_Msg_N ("dynamically tagged expression not allowed", Expr);
          end if;
 
@@ -3100,21 +3172,7 @@ package body Sem_Aggr is
             --  ancestors, starting with the root.
 
             if Nkind (N) = N_Extension_Aggregate then
-
-               --  Handle case where ancestor part is a C++ constructor. In
-               --  this case it must be a function returning a class-wide type.
-               --  If the ancestor part is a C++ constructor, then it must be a
-               --  function returning a class-wide type, so handle that here.
-
-               if Is_CPP_Constructor_Call (Ancestor_Part (N)) then
-                  pragma Assert
-                    (Is_Class_Wide_Type (Etype (Ancestor_Part (N))));
-                  Root_Typ := Root_Type (Etype (Ancestor_Part (N)));
-
-               --  Normal case, not a C++ constructor
-               else
-                  Root_Typ := Base_Type (Etype (Ancestor_Part (N)));
-               end if;
+               Root_Typ := Base_Type (Etype (Ancestor_Part (N)));
 
             else
                Root_Typ := Root_Type (Typ);
@@ -3390,7 +3448,7 @@ package body Sem_Aggr is
                            Assoc_List : List_Id;
                            Comp       : Entity_Id);
                         --  Nested components may themselves be discriminated
-                        --  types constrained by outer discriminants. Their
+                        --  types constrained by outer discriminants, whose
                         --  values must be captured before the aggregate is
                         --  expanded into assignments.
 
@@ -3527,7 +3585,7 @@ package body Sem_Aggr is
                         --  have been collected in the aggregate earlier, and
                         --  they may appear as constraints of subcomponents.
                         --  Similarly if this component has discriminants, they
-                        --  might it turn be propagated to their components.
+                        --  might in turn be propagated to their components.
 
                         if Has_Discriminants (Typ) then
                            Add_Discriminant_Values (Expr, New_Assoc_List);
@@ -3546,7 +3604,7 @@ package body Sem_Aggr is
 
                            begin
                               --  If the type has additional components, create
-                              --  an others box association for them.
+                              --  an OTHERS box association for them.
 
                               Comp := First_Component (Ctyp);
                               while Present (Comp) loop

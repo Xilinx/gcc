@@ -671,7 +671,6 @@ package Sinfo is
    --  Comes_From_Extended_Return_Statement (Flag18-Sem)
    --    Present in N_Simple_Return_Statement nodes. True if this node was
    --    constructed as part of the N_Extended_Return_Statement expansion.
-   --    .
 
    --  Compile_Time_Known_Aggregate (Flag18-Sem)
    --    Present in N_Aggregate nodes. Set for aggregates which can be fully
@@ -679,6 +678,16 @@ package Sinfo is
    --    aggregates can be passed as is to Gigi without any expansion. See
    --    Sem_Aggr for the specific conditions under which an aggregate has this
    --    flag set. See also the flag Static_Processing_OK.
+
+   --  Componentwise_Assignment (Flag14-Sem)
+   --    Present in N_Assignment_Statement nodes. Set for a record assignment
+   --    where all that needs doing is to expand it into component-by-component
+   --    assignments. This is used internally for the case of tagged types with
+   --    rep clauses, where we need to avoid recursion (we don't want to try to
+   --    generate a call to the primitive operation, because this is the case
+   --    where we are compiling the primitive operation). Note that when we are
+   --    expanding component assignments in this case, we never assign the _tag
+   --    field, but we recursively assign components of the parent type.
 
    --  Condition_Actions (List3-Sem)
    --    This field appears in else-if nodes and in the iteration scheme node
@@ -688,6 +697,13 @@ package Sinfo is
    --    details on how this field is used, see the routine Insert_Actions in
    --    package Exp_Util, and also the expansion routines for the relevant
    --    nodes.
+
+   --  Context_Pending (Flag16-Sem)
+   --    This field appears in Compilation_Unit nodes, to indicate that the
+   --    context of the unit is being compiled. Used to detect circularities
+   --    that are not otherwise detected by the loading mechanism. Such
+   --    circularities can occur in the presence of limited and non-limited
+   --    with_clauses that mention the same units.
 
    --  Controlling_Argument (Node1-Sem)
    --    This field is set in procedure and function call nodes if the call
@@ -2176,7 +2192,7 @@ package Sinfo is
       --  Aliased_Present (Flag4) set if ALIASED appears
       --  Constant_Present (Flag17) set if CONSTANT appears
       --  Null_Exclusion_Present (Flag11)
-      --  Object_Definition (Node4) subtype indic./array type def./ access def.
+      --  Object_Definition (Node4) subtype indic./array type def./access def.
       --  Expression (Node3) (set to Empty if not present)
       --  Handler_List_Entry (Node2-Sem)
       --  Corresponding_Generic_Association (Node5-Sem)
@@ -3472,23 +3488,38 @@ package Sinfo is
       --    SIMPLE_EXPRESSION [not] in RANGE
       --  | SIMPLE_EXPRESSION [not] in SUBTYPE_MARK
 
-      --  Note: although the grammar above allows only a range or a
-      --  subtype mark, the parser in fact will accept any simple
-      --  expression in place of a subtype mark. This means that the
-      --  semantic analyzer must be prepared to deal with, and diagnose
-      --  a simple expression other than a name for the right operand.
-      --  This simplifies error recovery in the parser.
+      --  Note: although the grammar above allows only a range or a subtype
+      --  mark, the parser in fact will accept any simple expression in place
+      --  of a subtype mark. This means that the semantic analyzer must be able
+      --  to deal with, and diagnose a simple expression other than a name for
+      --  the right operand. This simplifies error recovery in the parser.
+
+      --  If extensions are enabled, the grammar is as follows:
+
+      --  RELATION ::=
+      --    SIMPLE_EXPRESSION [not] in SET_ALTERNATIVE {| SET_ALTERNATIVE}
+
+      --  SET_ALTERNATIVE ::= RANGE | SUBTYPE_MARK
+
+      --  The Alternatives field below is present only if there is more than
+      --  one Set_Alternative present, in which case Right_Opnd is set to
+      --  Empty, and Alternatives contains the list of alternatives. In the
+      --  tree passed to the back end, Alternatives is always No_List, and
+      --  Right_Opnd is set (i.e. the expansion circuitry expands out the
+      --  complex set membership case using simple membership operations).
 
       --  N_In
       --  Sloc points to IN
       --  Left_Opnd (Node2)
       --  Right_Opnd (Node3)
+      --  Alternatives (List4) (set to No_List if only one set alternative)
       --  plus fields for expression
 
       --  N_Not_In
       --  Sloc points to NOT of NOT IN
       --  Left_Opnd (Node2)
       --  Right_Opnd (Node3)
+      --  Alternatives (List4) (set to No_List if only one set alternative)
       --  plus fields for expression
 
       --------------------
@@ -3847,6 +3878,7 @@ package Sinfo is
       --  Forwards_OK (Flag5-Sem)
       --  Backwards_OK (Flag6-Sem)
       --  No_Ctrl_Actions (Flag7-Sem)
+      --  Componentwise_Assignment (Flag14-Sem)
 
       --  Note: if a range check is required, then the Do_Range_Check flag
       --  is set in the Expression (right hand side), with the check being
@@ -5368,6 +5400,7 @@ package Sinfo is
       --  Has_No_Elaboration_Code (Flag17-Sem)
       --  Body_Required (Flag13-Sem) set for spec if body is required
       --  Acts_As_Spec (Flag4-Sem) flag for subprogram body with no spec
+      --  Context_Pending (Flag16-Sem)
       --  First_Inlined_Subprogram (Node3-Sem)
 
       --  N_Compilation_Unit_Aux
@@ -6460,7 +6493,7 @@ package Sinfo is
       --  The Ada language does not permit conditional expressions, however
       --  this is under discussion as a possible extension by the ARG, and we
       --  have implemented a form of this capability in GNAT under control of
-      --  the -X switch. The syntax is:
+      --  the -gnatX switch. The syntax is:
 
       --  CONDITIONAL_EXPRESSION ::=
       --    if EXPRESSION then EXPRESSION
@@ -7044,16 +7077,19 @@ package Sinfo is
       N_In,
       N_Not_In,
 
-      --  N_Subexpr, N_Has_Etype
+      --  N_Subexpr, N_Has_Etype, N_Short_Circuit
 
       N_And_Then,
+      N_Or_Else,
+
+      --  N_Subexpr, N_Has_Etype
+
       N_Conditional_Expression,
       N_Explicit_Dereference,
       N_Function_Call,
       N_Indexed_Component,
       N_Integer_Literal,
       N_Null,
-      N_Or_Else,
       N_Procedure_Call_Statement,
       N_Qualified_Expression,
 
@@ -7438,6 +7474,10 @@ package Sinfo is
      N_At_Clause ..
      N_Attribute_Definition_Clause;
 
+   subtype N_Short_Circuit is Node_Kind range
+      N_And_Then ..
+      N_Or_Else;
+
    subtype N_Statement_Other_Than_Procedure_Call is Node_Kind range
      N_Abort_Statement ..
      N_If_Statement;
@@ -7622,6 +7662,9 @@ package Sinfo is
    function Component_Name
      (N : Node_Id) return Node_Id;    -- Node1
 
+   function Componentwise_Assignment
+     (N : Node_Id) return Boolean;    -- Flag14
+
    function Condition
      (N : Node_Id) return Node_Id;    -- Node1
 
@@ -7642,6 +7685,9 @@ package Sinfo is
 
    function Context_Installed
      (N : Node_Id) return Boolean;    -- Flag13
+
+   function Context_Pending
+     (N : Node_Id) return Boolean;    -- Flag16
 
    function Context_Items
      (N : Node_Id) return List_Id;    -- List1
@@ -8516,6 +8562,9 @@ package Sinfo is
    procedure Set_Component_Name
      (N : Node_Id; Val : Node_Id);            -- Node1
 
+   procedure Set_Componentwise_Assignment
+     (N : Node_Id; Val : Boolean := True);    -- Flag14
+
    procedure Set_Condition
      (N : Node_Id; Val : Node_Id);            -- Node1
 
@@ -8539,6 +8588,9 @@ package Sinfo is
 
    procedure Set_Context_Items
      (N : Node_Id; Val : List_Id);            -- List1
+
+   procedure Set_Context_Pending
+     (N : Node_Id; Val : Boolean := True);    -- Flag16
 
    procedure Set_Controlling_Argument
      (N : Node_Id; Val : Node_Id);            -- Node1
@@ -9349,6 +9401,18 @@ package Sinfo is
       V7 : Node_Kind;
       V8 : Node_Kind) return Boolean;
 
+   function Nkind_In
+     (T  : Node_Kind;
+      V1 : Node_Kind;
+      V2 : Node_Kind;
+      V3 : Node_Kind;
+      V4 : Node_Kind;
+      V5 : Node_Kind;
+      V6 : Node_Kind;
+      V7 : Node_Kind;
+      V8 : Node_Kind;
+      V9 : Node_Kind) return Boolean;
+
    pragma Inline (Nkind_In);
    --  Inline all above functions
 
@@ -9750,14 +9814,14 @@ package Sinfo is
        (1 => False,   --  unused
         2 => True,    --  Left_Opnd (Node2)
         3 => True,    --  Right_Opnd (Node3)
-        4 => False,   --  unused
+        4 => True,    --  Alternatives (List4)
         5 => False),  --  Etype (Node5-Sem)
 
      N_Not_In =>
        (1 => False,   --  unused
         2 => True,    --  Left_Opnd (Node2)
         3 => True,    --  Right_Opnd (Node3)
-        4 => False,   --  unused
+        4 => True,    --  Alternatives (List4)
         5 => False),  --  Etype (Node5-Sem)
 
      N_Op_And =>
@@ -10950,6 +11014,7 @@ package Sinfo is
    pragma Inline (Component_Items);
    pragma Inline (Component_List);
    pragma Inline (Component_Name);
+   pragma Inline (Componentwise_Assignment);
    pragma Inline (Condition);
    pragma Inline (Condition_Actions);
    pragma Inline (Config_Pragmas);
@@ -10958,6 +11023,7 @@ package Sinfo is
    pragma Inline (Constraints);
    pragma Inline (Context_Installed);
    pragma Inline (Context_Items);
+   pragma Inline (Context_Pending);
    pragma Inline (Controlling_Argument);
    pragma Inline (Conversion_OK);
    pragma Inline (Corresponding_Body);
@@ -11245,6 +11311,7 @@ package Sinfo is
    pragma Inline (Set_Component_Items);
    pragma Inline (Set_Component_List);
    pragma Inline (Set_Component_Name);
+   pragma Inline (Set_Componentwise_Assignment);
    pragma Inline (Set_Condition);
    pragma Inline (Set_Condition_Actions);
    pragma Inline (Set_Config_Pragmas);
@@ -11253,6 +11320,7 @@ package Sinfo is
    pragma Inline (Set_Constraints);
    pragma Inline (Set_Context_Installed);
    pragma Inline (Set_Context_Items);
+   pragma Inline (Set_Context_Pending);
    pragma Inline (Set_Controlling_Argument);
    pragma Inline (Set_Conversion_OK);
    pragma Inline (Set_Corresponding_Body);

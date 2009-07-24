@@ -1399,8 +1399,10 @@ proc check_effective_target_vect_uintfloat_cvt { } {
         verbose "check_effective_target_vect_uintfloat_cvt: using cached result" 2
     } else {
         set et_vect_uintfloat_cvt_saved 0
-        if { ([istarget powerpc*-*-*]
-	      && ![istarget powerpc-*-linux*paired*]) } {
+        if { [istarget i?86-*-*]
+	      || ([istarget powerpc*-*-*]
+		  && ![istarget powerpc-*-linux*paired*])
+	      || [istarget x86_64-*-*] } {
            set et_vect_uintfloat_cvt_saved 1
         }
     }
@@ -2553,7 +2555,8 @@ proc check_effective_target_section_anchors { } {
         verbose "check_effective_target_section_anchors: using cached result" 2
     } else {
         set et_section_anchors_saved 0
-        if { [istarget powerpc*-*-*] } {
+        if { [istarget powerpc*-*-*] 
+	      || [istarget arm*-*-*] } {
            set et_section_anchors_saved 1
         }
     }
@@ -2994,6 +2997,19 @@ proc check_effective_target_mpc { } {
 	int main ()
 	{
 	  if (__builtin_csin(0) != 0)
+	    link_error();
+	}
+    }]
+}
+
+# Return 1 if the MPC library with mpc_pow is integrated with GCC, 0 otherwise.
+
+proc check_effective_target_mpc_pow { } {
+    return [check_no_compiler_messages mpc executable {
+	extern void link_error(void);
+	int main ()
+	{
+	  if (__builtin_cpow(1,1) != 1)
 	    link_error();
 	}
     }]

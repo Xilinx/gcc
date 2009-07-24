@@ -1,7 +1,179 @@
+2009-07-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/valarray (valarray<>::operator=(const valarray<>&),
+	valarray<>::operator=(initializer_list<>)): Implement resolution
+	of DR 630, [Ready] in Frankfurt.
+	* testsuite/26_numerics/valarray/dr630-1.cc: New.
+	* testsuite/26_numerics/valarray/dr630-2.cc: Likewise.
+	* doc/xml/manual/intro.xml: Add an entry for DR 630.
+
+2009-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/chrono (duration<>::operator%=,  operator%):
+	Add, per DR 934.
+	* testsuite/20_util/duration/arithmetic/dr934-1.cc: New.
+	* testsuite/20_util/duration/arithmetic/dr934-2.cc: Likewise.
+
+	* include/std/chrono (operator/): Simplify implementation.
+
+2009-07-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/intro.xml: Escape '&', validate.
+	* doc/xml/manual/using.xml: Validate, dead link check.
+	* doc/xml/manual/strings.xml: Same.
+	* doc/xml/manual/appendix_contributing.xml: Same.
+	* doc/xml/manual/iterators.xml: Same.
+	* doc/xml/manual/spine.xml: Same.
+
+	* doc/xml/faq.xml: Remove redundant xreflabel entities.
+	* doc/xml/gnu/gpl-3.0.xml: Same.
+	* doc/xml/manual/mt_allocator.xml: Same.
+	* doc/xml/manual/allocator.xml: Same.
+	* doc/xml/manual/ctype.xml: Same.
+	* doc/xml/manual/codecvt.xml: Same.
+	* doc/xml/manual/backwards_compatibility.xml: Same.
+	* doc/xml/manual/shared_ptr.xml: Same.
+	* doc/xml/manual/abi.xml: Same.
+	* doc/xml/manual/auto_ptr.xml: Same.
+	* doc/xml/manual/internals.xml: Same.
+	* doc/xml/manual/parallel_mode.xml: Same.
+	* doc/xml/manual/bitmap_allocator.xml: Same.
+	* doc/xml/manual/build_hacking.xml: Same.
+	* doc/xml/manual/evolution.xml: Same.
+	* doc/xml/manual/debug.xml: Same.
+	* doc/xml/manual/localization.xml: Same.
+	* doc/xml/manual/appendix_contributing.xml: Same.
+	* doc/xml/manual/locale.xml: Same.
+	* doc/xml/manual/messages.xml: Same.
+	* doc/xml/manual/spine.xml: Same.
+	* doc/xml/manual/test.xml: Same.
+	* doc/xml/book.txml: Same.
+	* doc/xml/spine.xml: Same.
+
+	* doc/xml/api.xml: Clean up ulink targets, convert to link if possible.
+	* doc/xml/manual/backwards_compatibility.xml: Same.
+	* doc/xml/manual/concurrency.xml: Same.
+	* doc/xml/manual/intro.xml: Same.
+	* doc/xml/manual/parallel_mode.xml: Same.
+	* doc/xml/manual/status_cxx1998.xml: Same.
+	* doc/xml/manual/containers.xml: Same.
+	* doc/xml/manual/io.xml: Same.
+	* doc/xml/manual/support.xml: Same.
+	* doc/xml/manual/strings.xml: Same.
+	* doc/xml/manual/debug_mode.xml: Same.
+	* doc/xml/manual/extensions.xml: Same.
+	* doc/xml/manual/appendix_contributing.xml: Same.
+	* doc/xml/manual/messages.xml: Same.
+	* doc/xml/manual/test.xml: Same.
+
+	* doc/xml/manual/abi.xml: Same.
+	* doc/xml/manual/auto_ptr.xml: Same.
+	* doc/xml/manual/parallel_mode.xml: Same.
+	* doc/xml/manual/build_hacking.xml: Same.
+	* doc/xml/manual/evolution.xml: Same.
+	* doc/xml/manual/using.xml: Same.
+	* doc/xml/manual/debug_mode.xml: Same.
+	* doc/xml/manual/extensions.xml: Same.
+	* doc/xml/manual/diagnostics.xml: Same.
+	* doc/xml/manual/algorithms.xml: Same.
+
+	* doc/html: Regenerate.
+
+2009-07-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40712
+	* config/locale/gnu/numeric_members.cc (numpunct<>::
+	_M_initialize_numpunct): Dynamically allocate _M_data->_M_grouping
+	and copy the langinfo data into it.
+	(numpunct<>::~numpunct): Free the allocated memory.
+	* config/locale/gnu/monetary_members.cc (moneypunct<>::
+	_M_initialize_moneypunct): Dynamically allocate _M_data->_M_grouping,
+	_M_data->_M_positive_sign, _M_data->_M_negative_sign,
+	_M_data->_M_curr_symbol.
+	(moneypunct<>::~moneypunct): Free the allocated memory.
+	* testsuite/22_locale/moneypunct/40712.cc: New.
+
+	* include/bits/locale_facets.tcc (__numpunct_cache<>::_M_cache):
+	Do not leak memory if new throws.
+	* include/bits/locale_facets_nonio.tcc
+	(__moneypunct_cache<>::_M_cache): Likewise.
+
+2009-07-17  Joseph Myers  <joseph@codesourcery.com>
+
+	PR other/40784
+	* configure: Regenerate.
+
+2009-07-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/testsuite_common_types.h (standard_layout): Activate.
+	* testsuite/29_atomics/atomic_integral/cons/assign_neg.cc: Adjust
+	line numbers.
+	* testsuite/29_atomics/atomic_integral/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Same.
+
+2009-07-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure: Regenerate.
+
+2009-07-16  Jason Merrill  <jason@redhat.com>
+
+	PR libstdc++/37907
+	* include/std/type_traits: Add is_standard_layout, is_trivial.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc,
+	testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Update line numbers.
+
+2009-07-16  Phil Muldoon <pmuldoon@redhat.com>
+	    Tom Tromey <tromey@redhat.com>
+
+	* python/libstdcxx/v6/printers.py (StdStringPrinter.to_string):
+	Fetch std::string to the given length.
+
+2009-07-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/istream.tcc (basic_istream<>::operator>>(short&),
+	basic_istream<>::operator>>(int&)): Implement resolution of DR 696,
+	[Ready] in Frankfurt.
+	* include/tr1_impl/regex (regex_traits<>::value): Adjust.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/char/dr696.cc:
+	New.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/wchar_t/dr696.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/char/13.cc:
+	Adjust.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/wchar_t/13.cc:
+	Likewise.
+	* doc/xml/manual/intro.xml: Add an entry for DR 696.
+
+	* include/bits/istream.tcc: Minor clean-up to the initializers of the
+	__err locals.
+	* include/bits/ostream.tcc: Likewise.
+	* src/compatibility.cc: Likewise.
+	* src/istream.cc: Likewise.
+
+2009-07-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (common_type): Remove workaround for
+	PR36628, now fixed.
+
+2009-07-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR testsuite/40699
+	PR testsuite/40707
+	PR testsuite/40709
+	* testsuite/lib/libstdc++.exp: Revert 2009-06-30 commit.
+
+2009-07-08  Janis Johnson  <janis187@us.ibm.com>
+
+	PR libstdc++/40691
+	* include/bits/valarray_after.h (_Expr::operator!): Fix return type.
+	* testsuite/26_numerics/valarray/40691.cc: New test.
+
 2009-07-06  Benjamin Kosnik  <bkoz@redhat.com>
 
-	*  testsuite/21_strings/c_strings/wchar_t/3.cc: Add copyright.
-	*  testsuite/21_strings/c_strings/char/3.cc: Same.
+	* testsuite/21_strings/c_strings/wchar_t/3.cc: Add copyright.
+	* testsuite/21_strings/c_strings/char/3.cc: Same.
 
 2009-07-06  Jason Merrill  <jason@redhat.com>
 

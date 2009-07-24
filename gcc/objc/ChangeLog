@@ -1,3 +1,21 @@
+2009-07-17  Aldy Hernandez  <aldyh@redhat.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40435 
+	* objc-act.c: Add location argument to all calls to
+	build_fold_addr_expr.
+	
+2009-07-14  Taras Glek  <tglek@mozilla.com>
+	    Rafael Espindola  <espindola@google.com>
+
+	* Make-lang.in (objc.install-plugin): New target for
+	installing plugin headers.
+
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* objc-act.c (next_sjlj_build_catch_list): Replace EXPR_LOCUS by
+	EXPR_LOCATION.
+	
 2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	* objc-act.c: Replace %J by an explicit location. Update all

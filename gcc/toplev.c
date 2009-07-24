@@ -1036,6 +1036,8 @@ compile_file (void)
 
   ggc_protect_identifiers = false;
 
+  /* This must also call cgraph_finalize_compilation_unit and
+     cgraph_optimize.  */
   lang_hooks.decls.final_write_globals ();
 
   if (errorcount || sorrycount)
@@ -1091,6 +1093,9 @@ compile_file (void)
     }
 #endif
 
+  /* Invoke registered plugin callbacks.  */
+  invoke_plugin_callbacks (PLUGIN_FINISH_UNIT, NULL);
+  
   /* This must be at the end.  Some target ports emit end of file directives
      into the assembly file here, and hence we can not output anything to the
      assembly file after this point.  */
@@ -2381,9 +2386,6 @@ do_compile (void)
 	compile_file ();
 
       finalize ();
-
-      /* Invoke registered plugin callbacks.  */
-      invoke_plugin_callbacks (PLUGIN_FINISH_UNIT, NULL);
     }
 
   /* Stop timing and print the times.  */

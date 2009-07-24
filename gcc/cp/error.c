@@ -770,7 +770,8 @@ dump_type_suffix (tree t, int flags)
 	    dump_expr (TREE_OPERAND (max, 0),
 		       flags & ~TFF_EXPR_IN_PARENS);
 	  else
-	    dump_expr (fold_build2 (PLUS_EXPR, dtype, max,
+	    dump_expr (fold_build2_loc (input_location,
+				    PLUS_EXPR, dtype, max,
 				    build_int_cst (dtype, 1)),
 		       flags & ~TFF_EXPR_IN_PARENS);
 	}
@@ -2603,7 +2604,7 @@ cp_print_error_function (diagnostic_context *context,
 		  while (block && TREE_CODE (block) == BLOCK)
 		    block = BLOCK_SUPERCONTEXT (block);
 
-		  if (TREE_CODE (block) == FUNCTION_DECL)
+		  if (block && TREE_CODE (block) == FUNCTION_DECL)
 		    fndecl = block;
 		  abstract_origin = NULL;
 		}
@@ -2646,7 +2647,11 @@ cp_print_error_function (diagnostic_context *context,
 static const char *
 function_category (tree fn)
 {
-  if (DECL_FUNCTION_MEMBER_P (fn))
+  /* We can get called from the middle-end for diagnostics of function
+     clones.  Make sure we have language specific information before
+     dereferencing it.  */
+  if (DECL_LANG_SPECIFIC (STRIP_TEMPLATE (fn))
+      && DECL_FUNCTION_MEMBER_P (fn))
     {
       if (DECL_STATIC_FUNCTION_P (fn))
 	return _("In static member function %qs");

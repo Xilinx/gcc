@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "tree-scalar-evolution.h"
 #include "toplev.h"
+#include "tree-vectorizer.h"
 
 /* The loop superpass.  */
 

@@ -140,16 +140,16 @@ package body Make is
    --    Q   |   |  ........    |   |   |   | .......   |   |
    --        +---+--------------+---+---+---+-----------+---+--------
    --          ^                  ^                       ^
-   --       Q.First             Q_Front               Q.Last - 1
+   --       Q.First             Q_Front               Q.Last-1
    --
-   --  The elements comprised between Q.First and Q_Front - 1 are the elements
+   --  The elements comprised between Q.First and Q_Front-1 are the elements
    --  that have been enqueued and then dequeued, while the elements between
-   --  Q_Front and Q.Last - 1 are the elements currently in the Q. When the Q
+   --  Q_Front and Q.Last-1 are the elements currently in the Q. When the Q
    --  is initialized Q_Front = Q.First = Q.Last. After Compile_Sources has
    --  terminated its execution, Q_Front = Q.Last and the elements contained
-   --  between Q.Front and Q.Last-1 are those that were explored and thus
+   --  between Q.First and Q.Last-1 are those that were explored and thus
    --  marked by Compile_Sources. Whenever the Q is reinitialized, the elements
-   --  between Q.First and Q.Last - 1 are unmarked.
+   --  between Q.First and Q.Last-1 are unmarked.
 
    procedure Init_Q;
    --  Must be called to (re)initialize the Q
@@ -834,10 +834,6 @@ package body Make is
 
    Gnatmake_Mapping_File : String_Access := null;
    --  The path name of a mapping file specified by switch -C=
-
-   procedure Delete_Mapping_Files;
-   --  Delete all temporary mapping files. Called only in Delete_All_Temp_Files
-   --  which ensures that Debug_Flag_N is False.
 
    procedure Init_Mapping_File
      (Project    : Project_Id;
@@ -1978,12 +1974,8 @@ package body Make is
                   Name_Len := 0;
                   Add_Str_To_Name_Buffer (Res_Obj_Dir);
 
-                  if Name_Len > 1 and then
-                    (Name_Buffer (Name_Len) = '/'
-                       or else
-                     Name_Buffer (Name_Len) = Directory_Separator)
-                  then
-                     Name_Len := Name_Len - 1;
+                  if not Is_Directory_Separator (Name_Buffer (Name_Len)) then
+                     Add_Char_To_Name_Buffer (Directory_Separator);
                   end if;
 
                   Obj_Dir := Name_Find;
@@ -2987,7 +2979,9 @@ package body Make is
          Comp_Next := Comp_Next + 1;
 
          --  Optimize the simple case where the gcc command line looks like
-         --     gcc -c -I. ... -I- file.adb  --into->  gcc -c ... file.adb
+         --     gcc -c -I. ... -I- file.adb
+         --  into
+         --     gcc -c ... file.adb
 
          if Args (Args'First).all = "-I" & Normalized_CWD
            and then Args (Args'Last).all = "-I-"
@@ -3090,9 +3084,9 @@ package body Make is
             end if;
          end if;
 
-         if Create_Mapping_File then
+         if Create_Mapping_File and then Mapping_File_Arg /= null then
             Comp_Last := Comp_Last + 1;
-            Comp_Args (Comp_Last) := Mapping_File_Arg;
+            Comp_Args (Comp_Last) := new String'(Mapping_File_Arg.all);
          end if;
 
          Get_Name_String (S);
@@ -3885,44 +3879,10 @@ package body Make is
    procedure Delete_All_Temp_Files is
    begin
       if not Debug.Debug_Flag_N then
-         Delete_Mapping_Files;
          Delete_Temp_Config_Files;
-         Prj.Env.Delete_All_Path_Files (Project_Tree);
+         Prj.Delete_All_Temp_Files (Project_Tree);
       end if;
    end Delete_All_Temp_Files;
-
-   --------------------------
-   -- Delete_Mapping_Files --
-   --------------------------
-
-   procedure Delete_Mapping_Files is
-      Success : Boolean;
-      pragma Warnings (Off, Success);
-
-      Proj : Project_List;
-      Data : Project_Compilation_Access;
-
-   begin
-      --  The caller is responsible for ensuring that Debug_Flag_N is False
-
-      pragma Assert (not Debug.Debug_Flag_N);
-
-      Proj := Project_Tree.Projects;
-      while Proj /= null loop
-         Data := Project_Compilation_Htable.Get
-           (Project_Compilation, Proj.Project);
-
-         if Data /= null and then Data.Mapping_File_Names /= null then
-            for Index in 1 .. Data.Last_Mapping_File_Names loop
-               Delete_File
-                 (Name => Get_Name_String (Data.Mapping_File_Names (Index)),
-                  Success => Success);
-            end loop;
-         end if;
-
-         Proj := Proj.Next;
-      end loop;
-   end Delete_Mapping_Files;
 
    ------------------------------
    -- Delete_Temp_Config_Files --
@@ -3942,15 +3902,8 @@ package body Make is
          Proj := Project_Tree.Projects;
          while Proj /= null loop
             if Proj.Project.Config_File_Temp then
-               if Verbose_Mode then
-                  Write_Str ("Deleting temp configuration file """);
-                  Write_Str (Get_Name_String (Proj.Project.Config_File_Name));
-                  Write_Line ("""");
-               end if;
-
-               Delete_File
-                 (Name    => Get_Name_String (Proj.Project.Config_File_Name),
-                  Success => Success);
+               Delete_Temporary_File
+                 (Project_Tree, Proj.Project.Config_File_Name);
 
                --  Make sure that we don't have a config file for this project,
                --  in case there are several mains. In this case, we will
@@ -4379,7 +4332,7 @@ package body Make is
 
       begin
          Tempdir.Create_Temp_File (Mapping_FD, Mapping_Path);
-         Record_Temp_File (Mapping_Path);
+         Record_Temp_File (Project_Tree, Mapping_Path);
 
          if Mapping_FD /= Invalid_FD then
 
@@ -4450,8 +4403,8 @@ package body Make is
                              (ALI_Project.Object_Directory.Name);
                         end if;
 
-                        if Name_Buffer (Name_Len) /=
-                          Directory_Separator
+                        if not
+                          Is_Directory_Separator (Name_Buffer (Name_Len))
                         then
                            Add_Char_To_Name_Buffer (Directory_Separator);
                         end if;
@@ -5172,7 +5125,7 @@ package body Make is
 
             --  Add binder switches from the project file for the first main
 
-            if Do_Bind_Step and Binder_Package /= No_Package then
+            if Do_Bind_Step and then Binder_Package /= No_Package then
                if Verbose_Mode then
                   Write_Str ("Adding binder switches for """);
                   Write_Str (Main_Unit_File_Name);
@@ -5188,7 +5141,7 @@ package body Make is
 
             --  Add linker switches from the project file for the first main
 
-            if Do_Link_Step and Linker_Package /= No_Package then
+            if Do_Link_Step and then Linker_Package /= No_Package then
                if Verbose_Mode then
                   Write_Str ("Adding linker switches for""");
                   Write_Str (Main_Unit_File_Name);
@@ -5312,7 +5265,9 @@ package body Make is
                   if not Is_Absolute_Path (Exec_File_Name) then
                      Get_Name_String (Main_Project.Exec_Directory.Name);
 
-                     if Name_Buffer (Name_Len) /= Directory_Separator then
+                     if not
+                       Is_Directory_Separator (Name_Buffer (Name_Len))
+                     then
                         Add_Char_To_Name_Buffer (Directory_Separator);
                      end if;
 
@@ -5640,7 +5595,7 @@ package body Make is
                  and then (Do_Bind_Step
                              or Unique_Compile_All_Projects
                              or not Compile_Only)
-                 and then (Do_Link_Step or N_File = Osint.Number_Of_Files)
+                 and then (Do_Link_Step or else N_File = Osint.Number_Of_Files)
                then
                   Library_Projs.Init;
 
@@ -6051,9 +6006,10 @@ package body Make is
                if Main_Project /= No_Project then
 
                   --  Put all the source directories in ADA_INCLUDE_PATH,
-                  --  and all the object directories in ADA_OBJECTS_PATH.
+                  --  and all the object directories in ADA_OBJECTS_PATH,
+                  --  except those of library projects.
 
-                  Prj.Env.Set_Ada_Paths (Main_Project, Project_Tree, True);
+                  Prj.Env.Set_Ada_Paths (Main_Project, Project_Tree, False);
 
                   --  If switch -C was specified, create a binder mapping file
 
@@ -6070,13 +6026,10 @@ package body Make is
                exception
                   when others =>
 
-                     --  If -dn was not specified, delete the temporary mapping
-                     --  file, if one was created.
+                     --  Delete the temporary mapping file, if one was created.
 
-                     if not Debug.Debug_Flag_N
-                       and then Mapping_Path /= No_Path
-                     then
-                        Delete_File (Get_Name_String (Mapping_Path), Discard);
+                     if Mapping_Path /= No_Path then
+                        Delete_Temporary_File (Project_Tree, Mapping_Path);
                      end if;
 
                      --  And reraise the exception
@@ -6087,8 +6040,8 @@ package body Make is
                --  If -dn was not specified, delete the temporary mapping file,
                --  if one was created.
 
-               if not Debug.Debug_Flag_N and then Mapping_Path /= No_Path then
-                  Delete_File (Get_Name_String (Mapping_Path), Discard);
+               if Mapping_Path /= No_Path then
+                  Delete_Temporary_File (Project_Tree, Mapping_Path);
                end if;
             end Bind_Step;
          end if;
@@ -6190,7 +6143,7 @@ package body Make is
                      --  We do that only if Run_Path_Option is True
                      --  (not disabled by -R switch).
 
-                     if Run_Path_Option and Path_Option /= null then
+                     if Run_Path_Option and then Path_Option /= null then
                         declare
                            Option  : String_Access;
                            Length  : Natural := Path_Option'Length;
@@ -6359,7 +6312,9 @@ package body Make is
                         Successful_Links.Table (Successful_Links.Last) :=
                           Main_ALI_File;
 
-                     elsif Osint.Number_Of_Files = 1 or not Keep_Going then
+                     elsif Osint.Number_Of_Files = 1
+                       or else not Keep_Going
+                     then
                         Make_Failed ("*** link failed.");
 
                      else
@@ -6473,7 +6428,7 @@ package body Make is
                   --  Add binder switches from the project file for this main,
                   --  if any.
 
-                  if Do_Bind_Step and Binder_Package /= No_Package then
+                  if Do_Bind_Step and then Binder_Package /= No_Package then
                      if Verbose_Mode then
                         Write_Str ("Adding binder switches for """);
                         Write_Str (Main_Unit_File_Name);
@@ -6490,7 +6445,7 @@ package body Make is
                   --  Add linker switches from the project file for this main,
                   --  if any.
 
-                  if Do_Link_Step and Linker_Package /= No_Package then
+                  if Do_Link_Step and then Linker_Package /= No_Package then
                      if Verbose_Mode then
                         Write_Str ("Adding linker switches for""");
                         Write_Str (Main_Unit_File_Name);
@@ -6661,7 +6616,8 @@ package body Make is
 
          else
             Record_Temp_File
-              (Data.Mapping_File_Names (Data.Last_Mapping_File_Names));
+              (Project_Tree,
+               Data.Mapping_File_Names (Data.Last_Mapping_File_Names));
          end if;
 
          Close (FD, Status);
@@ -6699,8 +6655,6 @@ package body Make is
       --  Start of processing for Initialize
 
    begin
-      Prj.Set_Mode (Ada_Only);
-
       --  Override default initialization of Check_Object_Consistency since
       --  this is normally False for GNATBIND, but is True for GNATMAKE since
       --  we do not need to check source consistency again once GNATMAKE has
@@ -6867,7 +6821,7 @@ package body Make is
             In_Tree           => Project_Tree,
             Project_File_Name => Project_File_Name.all,
             Packages_To_Check => Packages_To_Check_By_Gnatmake,
-            Is_Config_File    => False);
+            Flags             => Gnatmake_Flags);
 
          --  The parsing of project files may have changed the current output
 
@@ -6968,7 +6922,7 @@ package body Make is
 
       function Check_Project (P : Project_Id) return Boolean is
       begin
-         if All_Projects or P = The_Project then
+         if All_Projects or else P = The_Project then
             return True;
 
          elsif Extending then
@@ -7610,8 +7564,7 @@ package body Make is
             --  separator.
 
             if Argv (Argv'Last) = Directory_Separator then
-               Object_Directory_Path :=
-                 new String'(Argv);
+               Object_Directory_Path := new String'(Argv);
             else
                Object_Directory_Path :=
                  new String'(Argv & Directory_Separator);
@@ -7784,8 +7737,8 @@ package body Make is
                      RTS_Src_Path_Name := Src_Path_Name;
                      RTS_Lib_Path_Name := Lib_Path_Name;
 
-                  elsif  Src_Path_Name = null
-                    and Lib_Path_Name = null
+                  elsif Src_Path_Name = null
+                    and then Lib_Path_Name = null
                   then
                      Make_Failed ("RTS path not valid: missing " &
                                   "adainclude and adalib directories");

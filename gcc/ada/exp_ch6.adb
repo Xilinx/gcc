@@ -1146,7 +1146,7 @@ package body Exp_Ch6 is
             --  resulting variable is a temporary which does not designate
             --  the proper out-parameter, which may not be addressable. In
             --  that case, generate an assignment to the original expression
-            --  (before expansion of the  packed reference) so that the proper
+            --  (before expansion of the packed reference) so that the proper
             --  expansion of assignment to a packed component can take place.
 
             declare
@@ -2612,12 +2612,14 @@ package body Exp_Ch6 is
 
             return;
 
-         --  Expansion of a dispatching call results in an indirect call, which
-         --  in turn causes current values to be killed (see Resolve_Call), so
-         --  on VM targets we do the call here to ensure consistent warnings
-         --  between VM and non-VM targets.
-
          else
+            Apply_Tag_Checks (N);
+
+            --  Expansion of a dispatching call results in an indirect call,
+            --  which in turn causes current values to be killed (see
+            --  Resolve_Call), so on VM targets we do the call here to ensure
+            --  consistent warnings between VM and non-VM targets.
+
             Kill_Current_Values;
          end if;
       end if;
@@ -3097,10 +3099,17 @@ package body Exp_Ch6 is
 
       --  Functions returning controlled objects need special attention:
       --  if the return type is limited, the context is an initialization
-      --  and different processing applies.
+      --  and different processing applies. If the call is to a protected
+      --  function, the expansion above will call Expand_Call recusively.
+      --  To prevent a double attachment, check that the current call is
+      --  not a rewriting of a protected function call.
 
       if Needs_Finalization (Etype (Subp))
         and then not Is_Inherently_Limited_Type (Etype (Subp))
+        and then
+          (No (First_Formal (Subp))
+            or else
+              not Is_Concurrent_Record_Type (Etype (First_Formal (Subp))))
       then
          Expand_Ctrl_Function_Call (N);
       end if;
@@ -3236,6 +3245,7 @@ package body Exp_Ch6 is
                        (Passoc, Next_Named_Actual (Parent (Temp)));
                   end loop;
                end;
+
             end if;
          end;
       end if;
@@ -4652,13 +4662,21 @@ package body Exp_Ch6 is
 
       end if;
 
-      Analyze (N);
-
       --  If it is a function call it can appear in elaboration code and
       --  the called entity must be frozen here.
 
       if Ekind (Subp) = E_Function then
          Freeze_Expression (Name (N));
+      end if;
+
+      --  Analyze and resolve the new call. The actuals have already been
+      --  resolved, but expansion of a function call will add extra actuals
+      --  if needed. Analysis of a procedure call already includes resolution.
+
+      Analyze (N);
+
+      if Ekind (Subp) = E_Function then
+         Resolve (N, Etype (Subp));
       end if;
    end Expand_Protected_Subprogram_Call;
 

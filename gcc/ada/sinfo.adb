@@ -229,7 +229,9 @@ package body Sinfo is
       (N : Node_Id) return List_Id is
    begin
       pragma Assert (False
-        or else NT (N).Nkind = N_Case_Statement);
+        or else NT (N).Nkind = N_Case_Statement
+        or else NT (N).Nkind = N_In
+        or else NT (N).Nkind = N_Not_In);
       return List4 (N);
    end Alternatives;
 
@@ -462,6 +464,14 @@ package body Sinfo is
       return Node1 (N);
    end Component_Name;
 
+   function Componentwise_Assignment
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Assignment_Statement);
+      return Flag14 (N);
+   end Componentwise_Assignment;
+
    function Condition
       (N : Node_Id) return Node_Id is
    begin
@@ -538,6 +548,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Compilation_Unit);
       return List1 (N);
    end Context_Items;
+
+   function Context_Pending
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Compilation_Unit);
+      return Flag16 (N);
+   end Context_Pending;
 
    function Controlling_Argument
       (N : Node_Id) return Node_Id is
@@ -3034,7 +3052,9 @@ package body Sinfo is
       (N : Node_Id; Val : List_Id) is
    begin
       pragma Assert (False
-        or else NT (N).Nkind = N_Case_Statement);
+        or else NT (N).Nkind = N_Case_Statement
+        or else NT (N).Nkind = N_In
+        or else NT (N).Nkind = N_Not_In);
       Set_List4_With_Parent (N, Val);
    end Set_Alternatives;
 
@@ -3267,6 +3287,14 @@ package body Sinfo is
       Set_Node1_With_Parent (N, Val);
    end Set_Component_Name;
 
+   procedure Set_Componentwise_Assignment
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Assignment_Statement);
+      Set_Flag14 (N, Val);
+   end Set_Componentwise_Assignment;
+
    procedure Set_Condition
       (N : Node_Id; Val : Node_Id) is
    begin
@@ -3343,6 +3371,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Compilation_Unit);
       Set_List1_With_Parent (N, Val);
    end Set_Context_Items;
+
+   procedure Set_Context_Pending
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Compilation_Unit);
+      Set_Flag16 (N, Val);
+   end Set_Context_Pending;
 
    procedure Set_Controlling_Argument
       (N : Node_Id; Val : Node_Id) is
@@ -5816,6 +5852,31 @@ package body Sinfo is
              T = V6 or else
              T = V7 or else
              T = V8;
+   end Nkind_In;
+
+
+   function Nkind_In
+     (T  : Node_Kind;
+      V1 : Node_Kind;
+      V2 : Node_Kind;
+      V3 : Node_Kind;
+      V4 : Node_Kind;
+      V5 : Node_Kind;
+      V6 : Node_Kind;
+      V7 : Node_Kind;
+      V8 : Node_Kind;
+      V9 : Node_Kind) return Boolean
+   is
+   begin
+      return T = V1 or else
+             T = V2 or else
+             T = V3 or else
+             T = V4 or else
+             T = V5 or else
+             T = V6 or else
+             T = V7 or else
+             T = V8 or else
+             T = V9;
    end Nkind_In;
 
    -----------------

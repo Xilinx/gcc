@@ -194,6 +194,8 @@ enum dwarf_tag
     DW_TAG_imported_unit = 0x3d,
     DW_TAG_condition = 0x3f,
     DW_TAG_shared_type = 0x40,
+    /* DWARF 4.  */
+    DW_TAG_type_unit = 0x41,
 
     DW_TAG_lo_user = 0x4080,
     DW_TAG_hi_user = 0xffff,
@@ -244,7 +246,12 @@ enum dwarf_form
     DW_FORM_ref4 = 0x13,
     DW_FORM_ref8 = 0x14,
     DW_FORM_ref_udata = 0x15,
-    DW_FORM_indirect = 0x16
+    DW_FORM_indirect = 0x16,
+    /* DWARF 4.  */
+    DW_FORM_sec_offset = 0x17,
+    DW_FORM_exprloc = 0x18,
+    DW_FORM_flag_present = 0x19,
+    DW_FORM_sig8 = 0x20
   };
 
 /* Attribute names and codes.  */
@@ -342,6 +349,8 @@ enum dwarf_attribute
     DW_AT_elemental     = 0x66,
     DW_AT_pure          = 0x67,
     DW_AT_recursive     = 0x68,
+    /* DWARF 4.  */
+    DW_AT_signature     = 0x69,
 
     DW_AT_lo_user = 0x2000,	/* Implementation-defined range start.  */
     DW_AT_hi_user = 0x3ff0,	/* Implementation-defined range end.  */
@@ -547,6 +556,10 @@ enum dwarf_location_atom
     DW_OP_form_tls_address = 0x9b,
     DW_OP_call_frame_cfa = 0x9c,
     DW_OP_bit_piece = 0x9d,
+
+    /* DWARF 4 extensions.  */
+    DW_OP_implicit_value = 0x9e,
+    DW_OP_stack_value = 0x9f,
 
     DW_OP_lo_user = 0xe0,	/* Implementation-defined range start.  */
     DW_OP_hi_user = 0xff,	/* Implementation-defined range end.  */

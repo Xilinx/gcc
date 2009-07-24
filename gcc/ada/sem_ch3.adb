@@ -229,21 +229,6 @@ package body Sem_Ch3 is
    --  Needs a more complete spec--what are the parameters exactly, and what
    --  exactly is the returned value, and how is Bound affected???
 
-   procedure Build_Itype_Reference
-     (Ityp : Entity_Id;
-      Nod  : Node_Id);
-   --  Create a reference to an internal type, for use by Gigi. The back-end
-   --  elaborates itypes on demand, i.e. when their first use is seen. This
-   --  can lead to scope anomalies if the first use is within a scope that is
-   --  nested within the scope that contains  the point of definition of the
-   --  itype. The Itype_Reference node forces the elaboration of the itype
-   --  in the proper scope. The node is inserted after Nod, which is the
-   --  enclosing declaration that generated Ityp.
-   --
-   --  A related mechanism is used during expansion, for itypes created in
-   --  branches of conditionals. See Ensure_Defined in exp_util.
-   --  Could both mechanisms be merged ???
-
    procedure Build_Underlying_Full_View
      (N   : Node_Id;
       Typ : Entity_Id;
@@ -590,8 +575,8 @@ package body Sem_Ch3 is
 
    function Is_Progenitor
      (Iface : Entity_Id;
-      Typ   :  Entity_Id) return Boolean;
-   --  Determine whether type Typ implements interface Iface. This requires
+      Typ   : Entity_Id) return Boolean;
+   --  Determine whether the interface Iface is implemented by Typ. It requires
    --  traversing the list of abstract interfaces of the type, as well as that
    --  of the ancestor types. The predicate is used to determine when a formal
    --  in the signature of an inherited operation must carry the derived type.
@@ -2345,13 +2330,13 @@ package body Sem_Ch3 is
       if Constant_Present (N) then
          Prev_Entity := Current_Entity_In_Scope (Id);
 
-         --  If the homograph is an implicit subprogram, it is overridden by
-         --  the current declaration.
-
          if Present (Prev_Entity)
            and then
+             --  If the homograph is an implicit subprogram, it is overridden
+             --  by the current declaration.
+
              ((Is_Overloadable (Prev_Entity)
-                 and then Is_Inherited_Operation (Prev_Entity))
+                and then Is_Inherited_Operation (Prev_Entity))
 
                --  The current object is a discriminal generated for an entry
                --  family index. Even though the index is a constant, in this
@@ -2361,7 +2346,17 @@ package body Sem_Ch3 is
                or else
                 (Is_Discriminal (Id)
                    and then Ekind (Discriminal_Link (Id)) =
-                              E_Entry_Index_Parameter))
+                              E_Entry_Index_Parameter)
+
+               --  The current object is the renaming for a generic declared
+               --  within the instance.
+
+               or else
+                (Ekind (Prev_Entity) = E_Package
+                  and then Nkind (Parent (Prev_Entity)) =
+                                         N_Package_Renaming_Declaration
+                  and then not Comes_From_Source (Prev_Entity)
+                  and then Is_Generic_Instance (Renamed_Entity (Prev_Entity))))
          then
             Prev_Entity := Empty;
          end if;
@@ -2623,17 +2618,13 @@ package body Sem_Ch3 is
             end if;
          end if;
 
-         --  Check incorrect use of dynamically tagged expressions. Note
-         --  the use of Is_Tagged_Type (T) which seems redundant but is in
-         --  fact important to avoid spurious errors due to expanded code
-         --  for dispatching functions over an anonymous access type
+         --  Check incorrect use of dynamically tagged expressions.
 
-         if (Is_Class_Wide_Type (Etype (E)) or else Is_Dynamically_Tagged (E))
-           and then Is_Tagged_Type (T)
-           and then not Is_Class_Wide_Type (T)
-           and then not Is_CPP_Constructor_Call (E)
-         then
-            Error_Msg_N ("dynamically tagged expression not allowed!", E);
+         if Is_Tagged_Type (T) then
+            Check_Dynamically_Tagged_Expression
+              (Expr        => E,
+               Typ         => T,
+               Related_Nod => N);
          end if;
 
          Apply_Scalar_Range_Check (E, T);
@@ -2725,6 +2716,13 @@ package body Sem_Ch3 is
               and then Nkind (Original_Node (E)) = N_Aggregate
             then
                Act_T := Etype (E);
+
+            --  In case of class-wide interface object declarations we delay
+            --  the generation of the equivalent record type declarations until
+            --  its expansion because there are cases in they are not required.
+
+            elsif Is_Interface (T) then
+               null;
 
             else
                Expand_Subtype_From_Expr (N, T, Object_Definition (N), E);
@@ -6987,13 +6985,13 @@ package body Sem_Ch3 is
       --  Fields inherited from the Parent_Type
 
       Set_Discard_Names
-        (Derived_Type, Einfo.Discard_Names      (Parent_Type));
+        (Derived_Type, Einfo.Discard_Names  (Parent_Type));
       Set_Has_Specified_Layout
-        (Derived_Type, Has_Specified_Layout     (Parent_Type));
+        (Derived_Type, Has_Specified_Layout (Parent_Type));
       Set_Is_Limited_Composite
-        (Derived_Type, Is_Limited_Composite     (Parent_Type));
+        (Derived_Type, Is_Limited_Composite (Parent_Type));
       Set_Is_Private_Composite
-        (Derived_Type, Is_Private_Composite     (Parent_Type));
+        (Derived_Type, Is_Private_Composite (Parent_Type));
 
       --  Fields inherited from the Parent_Base
 
@@ -7014,10 +7012,22 @@ package body Sem_Ch3 is
       --  Fields inherited from the Parent_Base for record types
 
       if Is_Record_Type (Derived_Type) then
-         Set_OK_To_Reorder_Components
-           (Derived_Type, OK_To_Reorder_Components (Parent_Base));
-         Set_Reverse_Bit_Order
-           (Derived_Type, Reverse_Bit_Order (Parent_Base));
+
+         --  Ekind (Parent_Base) is not necessarily E_Record_Type since
+         --  Parent_Base can be a private type or private extension.
+
+         if Present (Full_View (Parent_Base)) then
+            Set_OK_To_Reorder_Components
+              (Derived_Type,
+               OK_To_Reorder_Components (Full_View (Parent_Base)));
+            Set_Reverse_Bit_Order
+              (Derived_Type, Reverse_Bit_Order (Full_View (Parent_Base)));
+         else
+            Set_OK_To_Reorder_Components
+              (Derived_Type, OK_To_Reorder_Components (Parent_Base));
+            Set_Reverse_Bit_Order
+              (Derived_Type, Reverse_Bit_Order (Parent_Base));
+         end if;
       end if;
 
       --  Direct controlled types do not inherit Finalize_Storage_Only flag
@@ -7049,7 +7059,6 @@ package body Sem_Ch3 is
          else
             Set_Component_Alignment
               (Derived_Type, Component_Alignment (Parent_Base));
-
             Set_C_Pass_By_Copy
               (Derived_Type, C_Pass_By_Copy      (Parent_Base));
          end if;
@@ -7895,7 +7904,7 @@ package body Sem_Ch3 is
       --  declaration, all clauses are inherited.
 
       if No (First_Rep_Item (Def_Id)) then
-         Set_First_Rep_Item    (Def_Id, First_Rep_Item (T));
+         Set_First_Rep_Item (Def_Id, First_Rep_Item (T));
       end if;
 
       if Is_Tagged_Type (T) then
@@ -11132,6 +11141,7 @@ package body Sem_Ch3 is
       Set_Convention           (T1, Convention            (T2));
       Set_Is_Limited_Composite (T1, Is_Limited_Composite  (T2));
       Set_Is_Private_Composite (T1, Is_Private_Composite  (T2));
+      Set_Packed_Array_Type    (T1, Packed_Array_Type     (T2));
    end Copy_Array_Subtype_Attributes;
 
    -----------------------------------
@@ -13278,9 +13288,9 @@ package body Sem_Ch3 is
       Ev := Uint_0;
 
       --  Loop through literals of enumeration type setting pos and rep values
-      --  except that if the Ekind is already set, then it means that the
-      --  literal was already constructed (case of a derived type declaration
-      --  and we should not disturb the Pos and Rep values.
+      --  except that if the Ekind is already set, then it means the literal
+      --  was already constructed (case of a derived type declaration and we
+      --  should not disturb the Pos and Rep values.
 
       while Present (L) loop
          if Ekind (L) /= E_Enumeration_Literal then
@@ -16432,6 +16442,22 @@ package body Sem_Ch3 is
       if Is_CPP_Class (Priv_T) then
          Set_Is_CPP_Class (Full_T);
          Set_Convention   (Full_T, Convention_CPP);
+      end if;
+
+      --  If the private view has user specified stream attributes, then so has
+      --  the full view.
+
+      if Has_Specified_Stream_Read (Priv_T) then
+         Set_Has_Specified_Stream_Read (Full_T);
+      end if;
+      if Has_Specified_Stream_Write (Priv_T) then
+         Set_Has_Specified_Stream_Write (Full_T);
+      end if;
+      if Has_Specified_Stream_Input (Priv_T) then
+         Set_Has_Specified_Stream_Input (Full_T);
+      end if;
+      if Has_Specified_Stream_Output (Priv_T) then
+         Set_Has_Specified_Stream_Output (Full_T);
       end if;
    end Process_Full_View;
 

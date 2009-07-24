@@ -3399,6 +3399,8 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_IS_ENUM:
 	case RID_IS_POD:
 	case RID_IS_POLYMORPHIC:
+	case RID_IS_STD_LAYOUT:
+	case RID_IS_TRIVIAL:
 	case RID_IS_UNION:
 	  return cp_parser_trait_expr (parser, token->keyword);
 
@@ -6864,6 +6866,12 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
       break;
     case RID_IS_POLYMORPHIC:
       kind = CPTK_IS_POLYMORPHIC;
+      break;
+    case RID_IS_STD_LAYOUT:
+      kind = CPTK_IS_STD_LAYOUT;
+      break;
+    case RID_IS_TRIVIAL:
+      kind = CPTK_IS_TRIVIAL;
       break;
     case RID_IS_UNION:
       kind = CPTK_IS_UNION;
@@ -11591,6 +11599,7 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
   tree identifier;
   tree type = NULL_TREE;
   tree attributes = NULL_TREE;
+  tree globalscope;
   cp_token *token = NULL;
 
   /* See if we're looking at the `enum' keyword.  */
@@ -11622,9 +11631,6 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
       cp_lexer_consume_token (parser->lexer);
       /* Remember that it's a `typename' type.  */
       tag_type = typename_type;
-      /* The `typename' keyword is only allowed in templates.  */
-      if (!processing_template_decl)
-	permerror (input_location, "using %<typename%> outside of template");
     }
   /* Otherwise it must be a class-key.  */
   else
@@ -11637,10 +11643,10 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
     }
 
   /* Look for the `::' operator.  */
-  cp_parser_global_scope_opt (parser,
-			      /*current_scope_valid_p=*/false);
+  globalscope =  cp_parser_global_scope_opt (parser,
+					     /*current_scope_valid_p=*/false);
   /* Look for the nested-name-specifier.  */
-  if (tag_type == typename_type)
+  if (tag_type == typename_type && !globalscope)
     {
       if (!cp_parser_nested_name_specifier (parser,
 					   /*typename_keyword_p=*/true,

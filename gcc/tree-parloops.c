@@ -286,6 +286,7 @@ gather_scalar_reductions (loop_p loop, htab_t reduction_list)
       gimple phi = gsi_stmt (gsi);
       affine_iv iv;
       tree res = PHI_RESULT (phi);
+      bool dummy;
 
       if (!is_gimple_reg (res))
 	continue;
@@ -293,7 +294,8 @@ gather_scalar_reductions (loop_p loop, htab_t reduction_list)
       if (!simple_iv (loop, loop, res, &iv, true)
 	&& simple_loop_info)
 	{
-           gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi, true);
+           gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi,
+							 true, &dummy);
 	   if (reduc_stmt)
               build_new_reduction (reduction_list, reduc_stmt, phi);
         }

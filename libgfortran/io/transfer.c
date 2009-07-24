@@ -3103,7 +3103,11 @@ finalize_transfer (st_parameter_dt *dtp)
     }
 
   if ((dtp->common.flags & IOPARM_LIBRETURN_MASK) != IOPARM_LIBRETURN_OK)
-    return;
+    {
+      if (dtp->u.p.current_unit && current_mode (dtp) == UNFORMATTED_SEQUENTIAL)
+	dtp->u.p.current_unit->current_record = 0;
+      return;
+    }
 
   if ((dtp->u.p.ionml != NULL)
       && (cf & IOPARM_DT_HAS_NAMELIST_NAME) != 0)
@@ -3251,7 +3255,7 @@ void
 st_read_done (st_parameter_dt *dtp)
 {
   finalize_transfer (dtp);
-  if (is_internal_unit (dtp))
+  if (is_internal_unit (dtp) || dtp->u.p.format_not_saved)
     free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
@@ -3303,7 +3307,7 @@ st_write_done (st_parameter_dt *dtp)
 	break;
       }
 
-  if (is_internal_unit (dtp))
+  if (is_internal_unit (dtp) || dtp->u.p.format_not_saved)
     free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)

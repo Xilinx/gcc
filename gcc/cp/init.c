@@ -219,7 +219,8 @@ build_zero_init (tree type, tree nelts, bool static_storage_p)
 
       /* Iterate over the array elements, building initializations.  */
       if (nelts)
-	max_index = fold_build2 (MINUS_EXPR, TREE_TYPE (nelts),
+	max_index = fold_build2_loc (input_location,
+				 MINUS_EXPR, TREE_TYPE (nelts),
 				 nelts, integer_one_node);
       else
 	max_index = array_type_nelts (type);
@@ -965,7 +966,8 @@ expand_cleanup_for_base (tree binfo, tree flag)
 				    LOOKUP_NORMAL | LOOKUP_NONVIRTUAL,
                                     tf_warning_or_error);
   if (flag)
-    expr = fold_build3 (COND_EXPR, void_type_node,
+    expr = fold_build3_loc (input_location,
+			COND_EXPR, void_type_node,
 			c_common_truthvalue_conversion (input_location, flag),
 			expr, integer_zero_node);
 
@@ -1773,6 +1775,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
   /* The type of the new-expression.  (This type is always a pointer
      type.)  */
   tree pointer_type;
+  tree non_const_pointer_type;
   tree outer_nelts = NULL_TREE;
   tree alloc_call, alloc_expr;
   /* The address returned by the call to "operator new".  This node is
@@ -2047,7 +2050,8 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	 many elements to destroy later.  We use the last sizeof
 	 (size_t) bytes to store the number of elements.  */
       cookie_ptr = size_binop (MINUS_EXPR, cookie_size, size_in_bytes (sizetype));
-      cookie_ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (alloc_node),
+      cookie_ptr = fold_build2_loc (input_location,
+				POINTER_PLUS_EXPR, TREE_TYPE (alloc_node),
 				alloc_node, cookie_ptr);
       size_ptr_type = build_pointer_type (sizetype);
       cookie_ptr = fold_convert (size_ptr_type, cookie_ptr);
@@ -2059,7 +2063,8 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	{
 	  /* Also store the element size.  */
 	  cookie_ptr = build2 (POINTER_PLUS_EXPR, size_ptr_type, cookie_ptr,
-			       fold_build1 (NEGATE_EXPR, sizetype,
+			       fold_build1_loc (input_location,
+					    NEGATE_EXPR, sizetype,
 					    size_in_bytes (sizetype)));
 
 	  cookie = cp_build_indirect_ref (cookie_ptr, NULL, complain);
@@ -2076,9 +2081,15 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
     }
 
   /* Now use a pointer to the type we've actually allocated.  */
-  data_addr = fold_convert (pointer_type, data_addr);
+
+  /* But we want to operate on a non-const version to start with,
+     since we'll be modifying the elements.  */
+  non_const_pointer_type = build_pointer_type
+    (cp_build_qualified_type (type, TYPE_QUALS (type) & ~TYPE_QUAL_CONST));
+
+  data_addr = fold_convert (non_const_pointer_type, data_addr);
   /* Any further uses of alloc_node will want this type, too.  */
-  alloc_node = fold_convert (pointer_type, alloc_node);
+  alloc_node = fold_convert (non_const_pointer_type, alloc_node);
 
   /* Now initialize the allocated object.  Note that we preevaluate the
      initialization expression, apart from the actual constructor call or
@@ -2098,12 +2109,32 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 
       if (array_p)
 	{
-	  if (*init)
+	  tree vecinit = NULL_TREE;
+	  if (*init && VEC_length (tree, *init) == 1
+	      && BRACE_ENCLOSED_INITIALIZER_P (VEC_index (tree, *init, 0))
+	      && CONSTRUCTOR_IS_DIRECT_INIT (VEC_index (tree, *init, 0)))
+	    {
+	      tree arraytype, domain;
+	      vecinit = VEC_index (tree, *init, 0);
+	      if (TREE_CONSTANT (nelts))
+		domain = compute_array_index_type (NULL_TREE, nelts);
+	      else
+		{
+		  domain = NULL_TREE;
+		  if (CONSTRUCTOR_NELTS (vecinit) > 0)
+		    warning (0, "non-constant array size in new, unable to "
+			     "verify length of initializer-list");
+		}
+	      arraytype = build_cplus_array_type (type, domain);
+	      vecinit = digest_init (arraytype, vecinit);
+	    }
+	  else if (*init)
             {
               if (complain & tf_error)
                 permerror (input_location, "ISO C++ forbids initialization in array new");
               else
                 return error_mark_node;
+	      vecinit = build_tree_list_vec (*init);
             }
 	  init_expr
 	    = build_vec_init (data_addr,
@@ -2111,7 +2142,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 						  MINUS_EXPR, outer_nelts,
 						  integer_one_node,
 						  complain),
-			      build_tree_list_vec (*init),
+			      vecinit,
 			      explicit_value_init_p,
 			      /*from_array=*/0,
                               complain);
@@ -2185,8 +2216,14 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	  else if (stable)
 	    /* This is much simpler if we were able to preevaluate all of
 	       the arguments to the constructor call.  */
-	    init_expr = build2 (TRY_CATCH_EXPR, void_type_node,
-				init_expr, cleanup);
+	    {
+	      /* CLEANUP is compiler-generated, so no diagnostics.  */
+	      TREE_NO_WARNING (cleanup) = true;
+	      init_expr = build2 (TRY_CATCH_EXPR, void_type_node,
+				  init_expr, cleanup);
+	      /* Likewise, this try-catch is compiler-generated.  */
+	      TREE_NO_WARNING (init_expr) = true;
+	    }
 	  else
 	    /* Ack!  First we allocate the memory.  Then we set our sentry
 	       variable to true, and expand a cleanup that deletes the
@@ -2206,6 +2243,9 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 
 	      sentry = TARGET_EXPR_SLOT (begin);
 
+	      /* CLEANUP is compiler-generated, so no diagnostics.  */
+	      TREE_NO_WARNING (cleanup) = true;
+
 	      TARGET_EXPR_CLEANUP (begin)
 		= build3 (COND_EXPR, void_type_node, sentry,
 			  cleanup, void_zero_node);
@@ -2217,8 +2257,9 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 		= build2 (COMPOUND_EXPR, void_type_node, begin,
 			  build2 (COMPOUND_EXPR, void_type_node, init_expr,
 				  end));
+	      /* Likewise, this is compiler-generated.  */
+	      TREE_NO_WARNING (init_expr) = true;
 	    }
-
 	}
     }
   else
@@ -2260,7 +2301,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
   /* A new-expression is never an lvalue.  */
   gcc_assert (!lvalue_p (rval));
 
-  return rval;
+  return convert (pointer_type, rval);
 }
 
 /* Generate a representation for a C++ "new" expression.  *PLACEMENT
@@ -2461,11 +2502,11 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
 
   tbase = create_temporary_var (ptype);
   tbase_init = cp_build_modify_expr (tbase, NOP_EXPR,
-				     fold_build2 (POINTER_PLUS_EXPR, ptype,
+				     fold_build2_loc (input_location,
+						  POINTER_PLUS_EXPR, ptype,
 						  fold_convert (ptype, base),
 						  virtual_size),
 				     tf_warning_or_error);
-  DECL_REGISTER (tbase) = 1;
   controller = build3 (BIND_EXPR, void_type_node, tbase,
 		       NULL_TREE, NULL_TREE);
   TREE_SIDE_EFFECTS (controller) = 1;
@@ -2473,7 +2514,7 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
   body = build1 (EXIT_EXPR, void_type_node,
 		 build2 (EQ_EXPR, boolean_type_node, tbase,
 			 fold_convert (ptype, base)));
-  tmp = fold_build1 (NEGATE_EXPR, sizetype, size_exp);
+  tmp = fold_build1_loc (input_location, NEGATE_EXPR, sizetype, size_exp);
   body = build_compound_expr
     (input_location, 
      body, cp_build_modify_expr (tbase, NOP_EXPR,
@@ -2538,8 +2579,9 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
     body = integer_zero_node;
 
   /* Outermost wrapper: If pointer is null, punt.  */
-  body = fold_build3 (COND_EXPR, void_type_node,
-		      fold_build2 (NE_EXPR, boolean_type_node, base,
+  body = fold_build3_loc (input_location, COND_EXPR, void_type_node,
+		      fold_build2_loc (input_location,
+				   NE_EXPR, boolean_type_node, base,
 				   convert (TREE_TYPE (base),
 					    integer_zero_node)),
 		      body, integer_zero_node);
@@ -2654,6 +2696,7 @@ build_vec_init (tree base, tree maxindex, tree init,
 
   inner_elt_type = strip_array_types (type);
   if (init
+      && TREE_CODE (atype) == ARRAY_TYPE
       && (from_array == 2
 	  ? (!CLASS_TYPE_P (inner_elt_type)
 	     || !TYPE_HAS_COMPLEX_ASSIGN_REF (inner_elt_type))
@@ -2665,11 +2708,10 @@ build_vec_init (tree base, tree maxindex, tree init,
 	       || ! TYPE_HAS_NONTRIVIAL_DESTRUCTOR (inner_elt_type)))
 	  || from_array))
     {
-      /* Do non-default initialization of POD arrays resulting from
+      /* Do non-default initialization of trivial arrays resulting from
 	 brace-enclosed initializers.  In this case, digest_init and
 	 store_constructor will handle the semantics for us.  */
 
-      gcc_assert (TREE_CODE (atype) == ARRAY_TYPE);
       stmt_expr = build2 (INIT_EXPR, atype, base, init);
       return stmt_expr;
     }
@@ -2732,7 +2774,7 @@ build_vec_init (tree base, tree maxindex, tree init,
 
   if (init != NULL_TREE && TREE_CODE (init) == CONSTRUCTOR)
     {
-      /* Do non-default initialization of non-POD arrays resulting from
+      /* Do non-default initialization of non-trivial arrays resulting from
 	 brace-enclosed initializers.  */
       unsigned HOST_WIDE_INT idx;
       tree elt;
@@ -3242,7 +3284,8 @@ build_vec_delete (tree base, tree maxindex,
 	  base = TARGET_EXPR_SLOT (base_init);
 	}
       type = strip_array_types (TREE_TYPE (type));
-      cookie_addr = fold_build1 (NEGATE_EXPR, sizetype, TYPE_SIZE_UNIT (sizetype));
+      cookie_addr = fold_build1_loc (input_location, NEGATE_EXPR,
+				 sizetype, TYPE_SIZE_UNIT (sizetype));
       cookie_addr = build2 (POINTER_PLUS_EXPR,
 			    size_ptr_type,
 			    fold_convert (size_ptr_type, base),

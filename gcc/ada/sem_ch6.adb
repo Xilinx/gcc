@@ -641,6 +641,11 @@ package body Sem_Ch6 is
          then
             null;
 
+         elsif Etype (Base_Type (R_Type)) = R_Stm_Type
+           and then Is_Null_Extension (Base_Type (R_Type))
+         then
+            null;
+
          else
             Error_Msg_N
               ("wrong type for return_subtype_indication", Subtype_Ind);
@@ -744,12 +749,13 @@ package body Sem_Ch6 is
             end if;
          end if;
 
-         if (Is_Class_Wide_Type (Etype (Expr))
-              or else Is_Dynamically_Tagged (Expr))
-           and then not Is_Class_Wide_Type (R_Type)
-         then
-            Error_Msg_N
-              ("dynamically tagged expression not allowed!", Expr);
+         --  Check incorrect use of dynamically tagged expression
+
+         if Is_Tagged_Type (R_Type) then
+            Check_Dynamically_Tagged_Expression
+              (Expr => Expr,
+               Typ  => R_Type,
+               Related_Nod => N);
          end if;
 
          --  ??? A real run-time accessibility check is needed in cases
@@ -1322,9 +1328,32 @@ package body Sem_Ch6 is
             then
                Set_Etype  (Designator,
                  Create_Null_Excluding_Itype
-                   (T           => Typ,
-                    Related_Nod => N,
-                    Scope_Id    => Scope (Current_Scope)));
+                  (T           => Typ,
+                   Related_Nod => N,
+                   Scope_Id    => Scope (Current_Scope)));
+
+               --  The new subtype must be elaborated before use because
+               --  it is visible outside of the function. However its base
+               --  type may not be frozen yet, so the reference that will
+               --  force elaboration must be attached to the freezing of
+               --  the base type.
+
+               if Is_Frozen (Typ) then
+                  Build_Itype_Reference
+                    (Etype (Designator), Parent (N));
+               else
+                  Ensure_Freeze_Node (Typ);
+
+                  declare
+                     IR : constant Node_Id :=
+                             Make_Itype_Reference (Sloc (N));
+
+                  begin
+                     Set_Itype (IR, Etype (Designator));
+                     Append_Freeze_Actions (Typ, New_List (IR));
+                  end;
+               end if;
+
             else
                Set_Etype (Designator, Typ);
             end if;
@@ -2637,7 +2666,7 @@ package body Sem_Ch6 is
                Make_Handled_Sequence_Of_Statements (Loc,
                  Statements => New_List (Make_Null_Statement (Loc))));
 
-         --  Create new entities for body and formals.
+         --  Create new entities for body and formals
 
          Set_Defining_Unit_Name (Specification (Null_Body),
            Make_Defining_Identifier (Loc, Chars (Defining_Entity (N))));
@@ -5496,16 +5525,8 @@ package body Sem_Ch6 is
              (No (P_Formal)
                or else Present (Extra_Accessibility (P_Formal)))
          then
-            --  Temporary kludge: for now we avoid creating the extra formal
-            --  for access parameters of protected operations because of
-            --  problem with the case of internal protected calls. ???
-
-            if Nkind (Parent (Parent (Parent (E)))) /= N_Protected_Definition
-              and then Nkind (Parent (Parent (Parent (E)))) /= N_Protected_Body
-            then
-               Set_Extra_Accessibility
-                 (Formal, Add_Extra_Formal (Formal, Standard_Natural, E, "F"));
-            end if;
+            Set_Extra_Accessibility
+              (Formal, Add_Extra_Formal (Formal, Standard_Natural, E, "F"));
          end if;
 
          --  This label is required when skipping extra formal generation for
@@ -6083,7 +6104,7 @@ package body Sem_Ch6 is
                    and then FCE (Left_Opnd  (E1), Left_Opnd  (E2))
                    and then FCE (Right_Opnd (E1), Right_Opnd (E2));
 
-            when N_And_Then | N_Or_Else | N_Membership_Test =>
+            when N_Short_Circuit | N_Membership_Test =>
                return
                  FCE (Left_Opnd  (E1), Left_Opnd  (E2))
                    and then
@@ -7183,6 +7204,7 @@ package body Sem_Ch6 is
                  or else not Is_Overloadable (Subp)
                  or else not Is_Primitive (Subp)
                  or else not Is_Dispatching_Operation (Subp)
+                 or else not Present (Find_Dispatching_Type (Subp))
                  or else not Is_Interface (Find_Dispatching_Type (Subp))
                then
                   null;
@@ -8062,6 +8084,15 @@ package body Sem_Ch6 is
             then
                Error_Msg_N
                  ("access to class-wide expression not allowed here", Default);
+            end if;
+
+            --  Check incorrect use of dynamically tagged expressions
+
+            if Is_Tagged_Type (Formal_Type) then
+               Check_Dynamically_Tagged_Expression
+                 (Expr        => Default,
+                  Typ         => Formal_Type,
+                  Related_Nod => Default);
             end if;
          end if;
 

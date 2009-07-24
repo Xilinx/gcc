@@ -87,9 +87,6 @@ package body Sem_Ch13 is
    --  Attributes that do not specify a representation characteristic are
    --  operational attributes.
 
-   function Address_Aliased_Entity (N : Node_Id) return Entity_Id;
-   --  If expression N is of the form E'Address, return E
-
    procedure New_Stream_Subprogram
      (N    : Node_Id;
       Ent  : Entity_Id;
@@ -164,6 +161,9 @@ package body Sem_Ch13 is
 
       Y : Entity_Id;
       --  The entity of the object being overlaid
+
+      Off : Boolean;
+      --  Whether the address is offseted within Y
    end record;
 
    package Address_Clause_Checks is new Table.Table (
@@ -173,33 +173,6 @@ package body Sem_Ch13 is
      Table_Initial        => 20,
      Table_Increment      => 200,
      Table_Name           => "Address_Clause_Checks");
-
-   ----------------------------
-   -- Address_Aliased_Entity --
-   ----------------------------
-
-   function Address_Aliased_Entity (N : Node_Id) return Entity_Id is
-   begin
-      if Nkind (N) = N_Attribute_Reference
-        and then Attribute_Name (N) = Name_Address
-      then
-         declare
-            P : Node_Id;
-
-         begin
-            P := Prefix (N);
-            while Nkind_In (P, N_Selected_Component, N_Indexed_Component) loop
-               P := Prefix (P);
-            end loop;
-
-            if Is_Entity_Name (P) then
-               return Entity (P);
-            end if;
-         end;
-      end if;
-
-      return Empty;
-   end Address_Aliased_Entity;
 
    -----------------------------------------
    -- Adjust_Record_For_Reverse_Bit_Order --
@@ -702,8 +675,7 @@ package body Sem_Ch13 is
             --  affect legality (except possibly to be rejected because they
             --  are incompatible with the compilation target).
 
-            when Attribute_Address        |
-                 Attribute_Alignment      |
+            when Attribute_Alignment      |
                  Attribute_Bit_Order      |
                  Attribute_Component_Size |
                  Attribute_Machine_Radix  |
@@ -825,6 +797,20 @@ package body Sem_Ch13 is
 
             Analyze_And_Resolve (Expr, RTE (RE_Address));
 
+            --  Even when ignoring rep clauses we need to indicate that the
+            --  entity has an address clause and thus it is legal to declare
+            --  it imported.
+
+            if Ignore_Rep_Clauses then
+               if Ekind (U_Ent) = E_Variable
+                 or else Ekind (U_Ent) = E_Constant
+               then
+                  Record_Rep_Item (U_Ent, N);
+               end if;
+
+               return;
+            end if;
+
             if Present (Address_Clause (U_Ent)) then
                Error_Msg_N ("address already given for &", Nam);
 
@@ -906,24 +892,27 @@ package body Sem_Ch13 is
               Ekind (U_Ent) = E_Constant
             then
                declare
-                  Expr  : constant Node_Id   := Expression (N);
-                  Aent  : constant Entity_Id := Address_Aliased_Entity (Expr);
-                  Ent_Y : constant Entity_Id := Find_Overlaid_Object (N);
+                  Expr  : constant Node_Id := Expression (N);
+                  O_Ent : Entity_Id;
+                  Off   : Boolean;
 
                begin
-                  --  Exported variables cannot have an address clause,
-                  --  because this cancels the effect of the pragma Export
+                  --  Exported variables cannot have an address clause, because
+                  --  this cancels the effect of the pragma Export.
 
                   if Is_Exported (U_Ent) then
                      Error_Msg_N
                        ("cannot export object with address clause", Nam);
                      return;
+                  end if;
+
+                  Find_Overlaid_Entity (N, O_Ent, Off);
 
                   --  Overlaying controlled objects is erroneous
 
-                  elsif Present (Aent)
-                    and then (Has_Controlled_Component (Etype (Aent))
-                                or else Is_Controlled (Etype (Aent)))
+                  if Present (O_Ent)
+                    and then (Has_Controlled_Component (Etype (O_Ent))
+                                or else Is_Controlled (Etype (O_Ent)))
                   then
                      Error_Msg_N
                        ("?cannot overlay with controlled object", Expr);
@@ -934,9 +923,9 @@ package body Sem_Ch13 is
                          Reason => PE_Overlaid_Controlled_Object));
                      return;
 
-                  elsif Present (Aent)
+                  elsif Present (O_Ent)
                     and then Ekind (U_Ent) = E_Constant
-                    and then Ekind (Aent) /= E_Constant
+                    and then not Is_Constant_Object (O_Ent)
                   then
                      Error_Msg_N ("constant overlays a variable?", Expr);
 
@@ -964,10 +953,15 @@ package body Sem_Ch13 is
                   --  Here we are checking for explicit overlap of one variable
                   --  by another, and if we find this then mark the overlapped
                   --  variable as also being volatile to prevent unwanted
-                  --  optimizations.
+                  --  optimizations. This is a significant pessimization so
+                  --  avoid it when there is an offset, i.e. when the object
+                  --  is composite; they cannot be optimized easily anyway.
 
-                  if Present (Ent_Y) then
-                     Set_Treat_As_Volatile (Ent_Y);
+                  if Present (O_Ent)
+                    and then Is_Object (O_Ent)
+                    and then not Off
+                  then
+                     Set_Treat_As_Volatile (O_Ent);
                   end if;
 
                   --  Legality checks on the address clause for initialized
@@ -1015,53 +1009,42 @@ package body Sem_Ch13 is
                   --  the variable, it is somewhere else.
 
                   Kill_Size_Check_Code (U_Ent);
-               end;
 
-               --  If the address clause is of the form:
+                  --  If the address clause is of the form:
 
-               --    for Y'Address use X'Address
+                  --    for Y'Address use X'Address
 
-               --  or
+                  --  or
 
-               --    Const : constant Address := X'Address;
-               --    ...
-               --    for Y'Address use Const;
+                  --    Const : constant Address := X'Address;
+                  --    ...
+                  --    for Y'Address use Const;
 
-               --  then we make an entry in the table for checking the size and
-               --  alignment of the overlaying variable. We defer this check
-               --  till after code generation to take full advantage of the
-               --  annotation done by the back end. This entry is only made if
-               --  we have not already posted a warning about size/alignment
-               --  (some warnings of this type are posted in Checks), and if
-               --  the address clause comes from source.
+                  --  then we make an entry in the table for checking the size
+                  --  and alignment of the overlaying variable. We defer this
+                  --  check till after code generation to take full advantage
+                  --  of the annotation done by the back end. This entry is
+                  --  only made if the address clause comes from source.
 
-               if Address_Clause_Overlay_Warnings
-                 and then Comes_From_Source (N)
-               then
-                  declare
-                     Ent_X : Entity_Id := Empty;
-                     Ent_Y : Entity_Id := Empty;
+                  if Address_Clause_Overlay_Warnings
+                    and then Comes_From_Source (N)
+                    and then Present (O_Ent)
+                    and then Is_Object (O_Ent)
+                  then
+                     Address_Clause_Checks.Append ((N, U_Ent, O_Ent, Off));
 
-                  begin
-                     Ent_Y := Find_Overlaid_Object (N);
+                     --  If variable overlays a constant view, and we are
+                     --  warning on overlays, then mark the variable as
+                     --  overlaying a constant (we will give warnings later
+                     --  if this variable is assigned).
 
-                     if Present (Ent_Y) and then Is_Entity_Name (Name (N)) then
-                        Ent_X := Entity (Name (N));
-                        Address_Clause_Checks.Append ((N, Ent_X, Ent_Y));
-
-                        --  If variable overlays a constant view, and we are
-                        --  warning on overlays, then mark the variable as
-                        --  overlaying a constant (we will give warnings later
-                        --  if this variable is assigned).
-
-                        if Is_Constant_Object (Ent_Y)
-                          and then Ekind (Ent_X) = E_Variable
-                        then
-                           Set_Overlays_Constant (Ent_X);
-                        end if;
+                     if Is_Constant_Object (O_Ent)
+                       and then Ekind (U_Ent) = E_Variable
+                     then
+                        Set_Overlays_Constant (U_Ent);
                      end if;
-                  end;
-               end if;
+                  end if;
+               end;
 
             --  Not a valid entity for an address clause
 
@@ -1244,7 +1227,7 @@ package body Sem_Ch13 is
 
             if VM_Target = No_VM then
                Set_Has_External_Tag_Rep_Clause (U_Ent);
-            elsif not Inspector_Mode then
+            else
                Error_Msg_Name_1 := Attr;
                Error_Msg_N
                  ("% attribute unsupported in this configuration", Nam);
@@ -2221,12 +2204,26 @@ package body Sem_Ch13 is
       Hbit    : Uint := Uint_0;
       Comp    : Entity_Id;
       Ocomp   : Entity_Id;
+      Pcomp   : Entity_Id;
       Biased  : Boolean;
 
       Max_Bit_So_Far : Uint;
       --  Records the maximum bit position so far. If all field positions
       --  are monotonically increasing, then we can skip the circuit for
       --  checking for overlap, since no overlap is possible.
+
+      Tagged_Parent : Entity_Id := Empty;
+      --  This is set in the case of a derived tagged type for which we have
+      --  Is_Fully_Repped_Tagged_Type True (indicating that all components are
+      --  positioned by record representation clauses). In this case we must
+      --  check for overlap between components of this tagged type, and the
+      --  components of its parent. Tagged_Parent will point to this parent
+      --  type. For all other cases Tagged_Parent is left set to Empty.
+
+      Parent_Last_Bit : Uint;
+      --  Relevant only if Tagged_Parent is set, Parent_Last_Bit indicates the
+      --  last bit position for any field in the parent type. We only need to
+      --  check overlap for fields starting below this point.
 
       Overlap_Check_Required : Boolean;
       --  Used to keep track of whether or not an overlap check is required
@@ -2349,6 +2346,39 @@ package body Sem_Ch13 is
          end loop;
       end if;
 
+      --  See if we have a fully repped derived tagged type
+
+      declare
+         PS : constant Entity_Id := Parent_Subtype (Rectype);
+
+      begin
+         if Present (PS) and then Is_Fully_Repped_Tagged_Type (PS) then
+            Tagged_Parent := PS;
+
+            --  Find maximum bit of any component of the parent type
+
+            Parent_Last_Bit := UI_From_Int (System_Address_Size - 1);
+            Pcomp := First_Entity (Tagged_Parent);
+            while Present (Pcomp) loop
+               if Ekind (Pcomp) = E_Discriminant
+                    or else
+                  Ekind (Pcomp) = E_Component
+               then
+                  if Component_Bit_Offset (Pcomp) /= No_Uint
+                    and then Known_Static_Esize (Pcomp)
+                  then
+                     Parent_Last_Bit :=
+                       UI_Max
+                         (Parent_Last_Bit,
+                          Component_Bit_Offset (Pcomp) + Esize (Pcomp) - 1);
+                  end if;
+
+                  Next_Entity (Pcomp);
+               end if;
+            end loop;
+         end if;
+      end;
+
       --  All done if no component clauses
 
       CC := First (Component_Clauses (N));
@@ -2372,7 +2402,7 @@ package body Sem_Ch13 is
          Set_Normalized_Position_Max (Fent, Uint_0);
          Init_Esize                  (Fent, System_Address_Size);
 
-         Set_Component_Clause    (Fent,
+         Set_Component_Clause (Fent,
            Make_Component_Clause (Loc,
              Component_Name =>
                Make_Identifier (Loc,
@@ -2513,6 +2543,9 @@ package body Sem_Ch13 is
                         end;
                      end if;
 
+                  --  Normal case where this is the first component clause we
+                  --  have seen for this entity, so set it up properly.
+
                   else
                      --  Make reference for field in record rep clause and set
                      --  appropriate entity field in the field identifier.
@@ -2553,7 +2586,7 @@ package body Sem_Ch13 is
                         then
                            Error_Msg_NE
                              ("component overlaps tag field of&",
-                              CC, Rectype);
+                              Component_Name (CC), Rectype);
                         end if;
 
                         --  This information is also set in the corresponding
@@ -2597,6 +2630,27 @@ package body Sem_Ch13 is
                         if Esize (Comp) < 0 then
                            Error_Msg_N ("component size is negative", CC);
                         end if;
+                     end if;
+
+                     --  If OK component size, check parent type overlap if
+                     --  this component might overlap a parent field.
+
+                     if Present (Tagged_Parent)
+                       and then Fbit <= Parent_Last_Bit
+                     then
+                        Pcomp := First_Entity (Tagged_Parent);
+                        while Present (Pcomp) loop
+                           if (Ekind (Pcomp) = E_Discriminant
+                                or else
+                               Ekind (Pcomp) = E_Component)
+                             and then not Is_Tag (Pcomp)
+                             and then Chars (Pcomp) /= Name_uParent
+                           then
+                              Check_Component_Overlap (Comp, Pcomp);
+                           end if;
+
+                           Next_Entity (Pcomp);
+                        end loop;
                      end if;
                   end if;
                end if;
@@ -2643,16 +2697,26 @@ package body Sem_Ch13 is
 
             package Sorting is new GNAT.Heap_Sort_G (OC_Move, OC_Lt);
 
+            -----------
+            -- OC_Lt --
+            -----------
+
             function OC_Lt (Op1, Op2 : Natural) return Boolean is
             begin
                return OC_Fbit (Op1) < OC_Fbit (Op2);
             end OC_Lt;
+
+            -------------
+            -- OC_Move --
+            -------------
 
             procedure OC_Move (From : Natural; To : Natural) is
             begin
                OC_Fbit (To) := OC_Fbit (From);
                OC_Lbit (To) := OC_Lbit (From);
             end OC_Move;
+
+         --  Start of processing for Overlap_Check
 
          begin
             CC := First (Component_Clauses (N));
@@ -2751,7 +2815,6 @@ package body Sem_Ch13 is
                      if Has_Discriminants (Defining_Identifier (Clist)) then
                         C2_Ent :=
                           First_Discriminant (Defining_Identifier (Clist));
-
                         while Present (C2_Ent) loop
                            exit when C1_Ent = C2_Ent;
                            Check_Component_Overlap (C1_Ent, C2_Ent);
@@ -3225,7 +3288,7 @@ package body Sem_Ch13 is
             when N_Null =>
                return;
 
-            when N_Binary_Op | N_And_Then | N_Or_Else | N_Membership_Test =>
+            when N_Binary_Op | N_Short_Circuit | N_Membership_Test =>
                Check_Expr_Constants (Left_Opnd (Nod));
                Check_Expr_Constants (Right_Opnd (Nod));
 
@@ -4255,6 +4318,8 @@ package body Sem_Ch13 is
             ACCR : Address_Clause_Check_Record
                      renames Address_Clause_Checks.Table (J);
 
+            Expr : Node_Id;
+
             X_Alignment : Uint;
             Y_Alignment : Uint;
 
@@ -4266,35 +4331,17 @@ package body Sem_Ch13 is
 
             if not Address_Warning_Posted (ACCR.N) then
 
-               --  Get alignments. Really we should always have the alignment
-               --  of the objects properly back annotated, but right now the
-               --  back end fails to back annotate for address clauses???
+               Expr := Original_Node (Expression (ACCR.N));
 
-               if Known_Alignment (ACCR.X) then
-                  X_Alignment := Alignment (ACCR.X);
-               else
-                  X_Alignment := Alignment (Etype (ACCR.X));
-               end if;
+               --  Get alignments
 
-               if Known_Alignment (ACCR.Y) then
-                  Y_Alignment := Alignment (ACCR.Y);
-               else
-                  Y_Alignment := Alignment (Etype (ACCR.Y));
-               end if;
+               X_Alignment := Alignment (ACCR.X);
+               Y_Alignment := Alignment (ACCR.Y);
 
                --  Similarly obtain sizes
 
-               if Known_Esize (ACCR.X) then
-                  X_Size := Esize (ACCR.X);
-               else
-                  X_Size := Esize (Etype (ACCR.X));
-               end if;
-
-               if Known_Esize (ACCR.Y) then
-                  Y_Size := Esize (ACCR.Y);
-               else
-                  Y_Size := Esize (Etype (ACCR.Y));
-               end if;
+               X_Size := Esize (ACCR.X);
+               Y_Size := Esize (ACCR.Y);
 
                --  Check for large object overlaying smaller one
 
@@ -4302,8 +4349,10 @@ package body Sem_Ch13 is
                  and then X_Size > Uint_0
                  and then X_Size > Y_Size
                then
+                  Error_Msg_NE
+                    ("?& overlays smaller object", ACCR.N, ACCR.X);
                   Error_Msg_N
-                    ("?size for overlaid object is too small", ACCR.N);
+                    ("\?program execution may be erroneous", ACCR.N);
                   Error_Msg_Uint_1 := X_Size;
                   Error_Msg_NE
                     ("\?size of & is ^", ACCR.N, ACCR.X);
@@ -4311,16 +4360,23 @@ package body Sem_Ch13 is
                   Error_Msg_NE
                     ("\?size of & is ^", ACCR.N, ACCR.Y);
 
-                  --  Check for inadequate alignment. Again the defensive check
-                  --  on Y_Alignment should not be needed, but because of the
-                  --  failure in back end annotation, we can have an alignment
-                  --  of 0 here???
+               --  Check for inadequate alignment, both of the base object
+               --  and of the offset, if any.
 
-                  --  Note: we do not check alignments if we gave a size
-                  --  warning, since it would likely be redundant.
+               --  Note: we do not check the alignment if we gave a size
+               --  warning, since it would likely be redundant.
 
                elsif Y_Alignment /= Uint_0
-                 and then Y_Alignment < X_Alignment
+                 and then (Y_Alignment < X_Alignment
+                             or else (ACCR.Off
+                                        and then
+                                          Nkind (Expr) = N_Attribute_Reference
+                                        and then
+                                          Attribute_Name (Expr) = Name_Address
+                                        and then
+                                          Has_Compatible_Alignment
+                                            (ACCR.X, Prefix (Expr))
+                                             /= Known_Compatible))
                then
                   Error_Msg_NE
                     ("?specified address for& may be inconsistent "
@@ -4337,6 +4393,11 @@ package body Sem_Ch13 is
                   Error_Msg_NE
                     ("\?alignment of & is ^",
                      ACCR.N, ACCR.Y);
+                  if Y_Alignment >= X_Alignment then
+                     Error_Msg_N
+                      ("\?but offset is not multiple of alignment",
+                       ACCR.N);
+                  end if;
                end if;
             end if;
          end;

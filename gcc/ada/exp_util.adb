@@ -255,9 +255,8 @@ package body Exp_Util is
             --  to reset its type, since Standard.Boolean is just fine, and
             --  such operations always do Adjust_Condition on their operands.
 
-            elsif KP in N_Op_Boolean
-              or else KP = N_And_Then
-              or else KP = N_Or_Else
+            elsif     KP in N_Op_Boolean
+              or else KP in N_Short_Circuit
               or else KP = N_Op_Not
             then
                return;
@@ -914,6 +913,8 @@ package body Exp_Util is
    ----------------------------------
 
    function Component_May_Be_Bit_Aligned (Comp : Entity_Id) return Boolean is
+      UT : constant Entity_Id := Underlying_Type (Etype (Comp));
+
    begin
       --  If no component clause, then everything is fine, since the back end
       --  never bit-misaligns by default, even if there is a pragma Packed for
@@ -925,18 +926,18 @@ package body Exp_Util is
 
       --  It is only array and record types that cause trouble
 
-      if not Is_Record_Type (Etype (Comp))
-        and then not Is_Array_Type (Etype (Comp))
+      if not Is_Record_Type (UT)
+        and then not Is_Array_Type (UT)
       then
          return False;
 
-      --  If we know that we have a small (64 bits or less) record
-      --  or bit-packed array, then everything is fine, since the
-      --  back end can handle these cases correctly.
+      --  If we know that we have a small (64 bits or less) record or small
+      --  bit-packed array, then everything is fine, since the back end can
+      --  handle these cases correctly.
 
       elsif Esize (Comp) <= 64
-        and then (Is_Record_Type (Etype (Comp))
-                   or else Is_Bit_Packed_Array (Etype (Comp)))
+        and then (Is_Record_Type (UT)
+                   or else Is_Bit_Packed_Array (UT))
       then
          return False;
 
@@ -1351,7 +1352,18 @@ package body Exp_Util is
               Make_Subtype_From_Expr (Exp, Underlying_Record_View (Unc_Type)));
          end if;
 
-      --  In Ada95, Nothing to be done if the type of the expression is
+      --  Renamings of class-wide interface types require no equivalent
+      --  constrained type declarations because we only need to reference
+      --  the tag component associated with the interface.
+
+      elsif Present (N)
+        and then Nkind (N) = N_Object_Renaming_Declaration
+        and then Is_Interface (Unc_Type)
+      then
+         pragma Assert (Is_Class_Wide_Type (Unc_Type));
+         null;
+
+      --  In Ada95, nothing to be done if the type of the expression is
       --  limited, because in this case the expression cannot be copied,
       --  and its use can only be by reference.
 
@@ -1369,16 +1381,6 @@ package body Exp_Util is
            or else Is_Interface (Exp_Typ)
            or else not Has_Unknown_Discriminants (Exp_Typ)
            or else not Is_Composite_Type (Unc_Type))
-      then
-         null;
-
-      --  For limited interfaces, nothing to be done
-
-      --  This branch may be redundant once the limited interface issue is
-      --  sorted out???
-
-      elsif Is_Interface (Exp_Typ)
-        and then Is_Limited_Interface (Exp_Typ)
       then
          null;
 
@@ -1547,15 +1549,10 @@ package body Exp_Util is
          AI      : Node_Id;
 
       begin
-         --  Check if the interface is an immediate ancestor of the type and
-         --  therefore shares the main tag.
+         --  This routine does not handle the case in which the interface is an
+         --  ancestor of Typ. That case is handled by the enclosing subprogram.
 
-         if Typ = Iface then
-            pragma Assert (Etype (First_Tag_Component (Typ)) = RTE (RE_Tag));
-            AI_Tag := First_Tag_Component (Typ);
-            Found  := True;
-            return;
-         end if;
+         pragma Assert (Typ /= Iface);
 
          --  Climb to the root type handling private types
 
@@ -1600,28 +1597,24 @@ package body Exp_Util is
    begin
       pragma Assert (Is_Interface (Iface));
 
-      --  Handle private types
-
-      if Has_Private_Declaration (Typ)
-        and then Present (Full_View (Typ))
-      then
-         Typ := Full_View (Typ);
-      end if;
-
       --  Handle access types
 
       if Is_Access_Type (Typ) then
          Typ := Directly_Designated_Type (Typ);
       end if;
 
-      --  Handle task and protected types implementing interfaces
-
-      if Is_Concurrent_Type (Typ) then
-         Typ := Corresponding_Record_Type (Typ);
-      end if;
+      --  Handle class-wide types
 
       if Is_Class_Wide_Type (Typ) then
-         Typ := Etype (Typ);
+         Typ := Root_Type (Typ);
+      end if;
+
+      --  Handle private types
+
+      if Has_Private_Declaration (Typ)
+        and then Present (Full_View (Typ))
+      then
+         Typ := Full_View (Typ);
       end if;
 
       --  Handle entities from the limited view
@@ -1631,9 +1624,26 @@ package body Exp_Util is
          Typ := Non_Limited_View (Typ);
       end if;
 
-      Find_Tag (Typ);
-      pragma Assert (Found);
-      return AI_Tag;
+      --  Handle task and protected types implementing interfaces
+
+      if Is_Concurrent_Type (Typ) then
+         Typ := Corresponding_Record_Type (Typ);
+      end if;
+
+      --  If the interface is an ancestor of the type, then it shared the
+      --  primary dispatch table.
+
+      if Is_Ancestor (Iface, Typ) then
+         pragma Assert (Etype (First_Tag_Component (Typ)) = RTE (RE_Tag));
+         return First_Tag_Component (Typ);
+
+      --  Otherwise we need to search for its associated tag component
+
+      else
+         Find_Tag (Typ);
+         pragma Assert (Found);
+         return AI_Tag;
+      end if;
    end Find_Interface_Tag;
 
    ------------------
@@ -2303,7 +2313,7 @@ package body Exp_Util is
             --  Nothing special needs to be done for the left operand since
             --  in that case the actions are executed unconditionally.
 
-            when N_And_Then | N_Or_Else =>
+            when N_Short_Circuit =>
                if N = Right_Opnd (P) then
 
                   --  We are now going to either append the actions to the
@@ -2930,6 +2940,43 @@ package body Exp_Util is
       return True;
    end Is_All_Null_Statements;
 
+   ---------------------------------
+   -- Is_Fully_Repped_Tagged_Type --
+   ---------------------------------
+
+   function Is_Fully_Repped_Tagged_Type (T : Entity_Id) return Boolean is
+      U    : constant Entity_Id := Underlying_Type (T);
+      Comp : Entity_Id;
+
+   begin
+      if No (U) or else not Is_Tagged_Type (U) then
+         return False;
+      elsif Has_Discriminants (U) then
+         return False;
+      elsif not Has_Specified_Layout (U) then
+         return False;
+      end if;
+
+      --  Here we have a tagged type, see if it has any unlayed out fields
+      --  other than a possible tag and parent fields. If so, we return False.
+
+      Comp := First_Component (U);
+      while Present (Comp) loop
+         if not Is_Tag (Comp)
+           and then Chars (Comp) /= Name_uParent
+           and then No (Component_Clause (Comp))
+         then
+            return False;
+         else
+            Next_Component (Comp);
+         end if;
+      end loop;
+
+      --  All components are layed out
+
+      return True;
+   end Is_Fully_Repped_Tagged_Type;
+
    ----------------------------------
    -- Is_Library_Level_Tagged_Type --
    ----------------------------------
@@ -3294,16 +3341,11 @@ package body Exp_Util is
    function Is_Renamed_Object (N : Node_Id) return Boolean is
       Pnod : constant Node_Id   := Parent (N);
       Kind : constant Node_Kind := Nkind (Pnod);
-
    begin
       if Kind = N_Object_Renaming_Declaration then
          return True;
-
-      elsif Kind = N_Indexed_Component
-        or else Kind = N_Selected_Component
-      then
+      elsif Nkind_In (Kind, N_Indexed_Component, N_Selected_Component) then
          return Is_Renamed_Object (Pnod);
-
       else
          return False;
       end if;
@@ -3614,8 +3656,8 @@ package body Exp_Util is
    -- Make_CW_Equivalent_Type --
    -----------------------------
 
-   --  Create a record type used as an equivalent of any member
-   --  of the class which takes its size from exp.
+   --  Create a record type used as an equivalent of any member of the class
+   --  which takes its size from exp.
 
    --  Generate the following code:
 
@@ -3662,6 +3704,7 @@ package body Exp_Util is
       Range_Type := Make_Defining_Identifier (Loc, New_Internal_Name ('G'));
 
       if not Is_Interface (Root_Typ) then
+
          --  subtype rg__xx is
          --    Storage_Offset range 1 .. (Expr'size - typ'size) / Storage_Unit
 
@@ -4393,12 +4436,10 @@ package body Exp_Util is
             --  are side effect free. For this purpose binary operators
             --  include membership tests and short circuit forms
 
-            when N_Binary_Op       |
-                 N_Membership_Test |
-                 N_And_Then        |
-                 N_Or_Else         =>
+            when N_Binary_Op | N_Membership_Test | N_Short_Circuit =>
                return Side_Effect_Free (Left_Opnd  (N))
-                 and then Side_Effect_Free (Right_Opnd (N));
+                        and then
+                      Side_Effect_Free (Right_Opnd (N));
 
             --  An explicit dereference is side effect free only if it is
             --  a side effect free prefixed reference.
@@ -4582,7 +4623,7 @@ package body Exp_Util is
                    or else Nkind (Exp) in N_Op
                    or else (not Name_Req and then Is_Volatile_Reference (Exp)))
       then
-         Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Def_Id := Make_Temporary (Loc, 'R', Exp);
          Set_Etype (Def_Id, Exp_Type);
          Res := New_Reference_To (Def_Id, Loc);
 
@@ -4600,8 +4641,7 @@ package body Exp_Util is
       --  the pointer, and then do an explicit dereference on the result.
 
       elsif Nkind (Exp) = N_Explicit_Dereference then
-         Def_Id :=
-           Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Def_Id := Make_Temporary (Loc, 'R', Exp);
          Res :=
            Make_Explicit_Dereference (Loc, New_Reference_To (Def_Id, Loc));
 
@@ -4645,7 +4685,7 @@ package body Exp_Util is
             --  Use a renaming to capture the expression, rather than create
             --  a controlled temporary.
 
-            Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+            Def_Id := Make_Temporary (Loc, 'R', Exp);
             Res := New_Reference_To (Def_Id, Loc);
 
             Insert_Action (Exp,
@@ -4655,7 +4695,7 @@ package body Exp_Util is
                 Name                => Relocate_Node (Exp)));
 
          else
-            Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+            Def_Id := Make_Temporary (Loc, 'R', Exp);
             Set_Etype (Def_Id, Exp_Type);
             Res := New_Reference_To (Def_Id, Loc);
 
@@ -4678,7 +4718,7 @@ package body Exp_Util is
         and then Nkind (Exp) /= N_Function_Call
         and then (Name_Req or else not Is_Volatile_Reference (Exp))
       then
-         Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Def_Id := Make_Temporary (Loc, 'R', Exp);
 
          if Nkind (Exp) = N_Selected_Component
            and then Nkind (Prefix (Exp)) = N_Function_Call
@@ -4709,7 +4749,6 @@ package body Exp_Util is
                 Defining_Identifier => Def_Id,
                 Subtype_Mark        => New_Reference_To (Exp_Type, Loc),
                 Name                => Relocate_Node (Exp)));
-
          end if;
 
          --  If this is a packed reference, or a selected component with a
@@ -4732,21 +4771,21 @@ package body Exp_Util is
       --  Otherwise we generate a reference to the value
 
       else
-         --  Special processing for function calls that return a task. We need
-         --  to build a declaration that will enable build-in-place expansion
-         --  of the call.
+         --  Special processing for function calls that return a limited type.
+         --  We need to build a declaration that will enable build-in-place
+         --  expansion of the call. This is not done if the context is already
+         --  an object declaration, to prevent infinite recursion.
 
          --  This is relevant only in Ada 2005 mode. In Ada 95 programs we have
          --  to accommodate functions returning limited objects by reference.
 
          if Nkind (Exp) = N_Function_Call
-           and then Is_Task_Type (Etype (Exp))
+           and then Is_Inherently_Limited_Type (Etype (Exp))
+           and then Nkind (Parent (Exp)) /= N_Object_Declaration
            and then Ada_Version >= Ada_05
          then
             declare
-               Obj  : constant Entity_Id :=
-                        Make_Defining_Identifier (Loc,
-                          Chars => New_Internal_Name ('F'));
+               Obj  : constant Entity_Id := Make_Temporary (Loc, 'F', Exp);
                Decl : Node_Id;
 
             begin
@@ -4776,7 +4815,7 @@ package body Exp_Util is
          E := Exp;
          Insert_Action (Exp, Ptr_Typ_Decl);
 
-         Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Def_Id := Make_Temporary (Loc, 'R', Exp);
          Set_Etype (Def_Id, Exp_Type);
 
          Res :=

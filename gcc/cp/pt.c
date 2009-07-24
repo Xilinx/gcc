@@ -7143,7 +7143,7 @@ perform_typedefs_access_check (tree tmpl, tree targs)
   tree t;
 
   if (!tmpl
-      || (!RECORD_OR_UNION_CODE_P (TREE_CODE (tmpl))
+      || (!CLASS_TYPE_P (tmpl)
 	  && TREE_CODE (tmpl) != FUNCTION_DECL))
     return;
 
@@ -8306,8 +8306,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
     case TEMPLATE_DECL:
       {
 	/* We can get here when processing a member function template,
-	   member class template, and template template parameter of
-	   a template class.  */
+	   member class template, or template template parameter.  */
 	tree decl = DECL_TEMPLATE_RESULT (t);
 	tree spec;
 	tree tmpl_args;
@@ -8351,10 +8350,10 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	if (full_args == error_mark_node)
 	  return error_mark_node;
 
-	/* tsubst_template_args doesn't copy the vector if
-	   nothing changed.  But, *something* should have
-	   changed.  */
-	gcc_assert (full_args != tmpl_args);
+	/* If this is a default template template argument,
+	   tsubst might not have changed anything.  */
+	if (full_args == tmpl_args)
+	  return t;
 
 	hash = hash_tmpl_and_args (t, full_args);
 	spec = retrieve_specialization (t, full_args, hash);
@@ -9851,7 +9850,8 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	if (e1 == error_mark_node || e2 == error_mark_node)
 	  return error_mark_node;
 
-	return fold_build2 (TREE_CODE (t), TREE_TYPE (t), e1, e2);
+	return fold_build2_loc (input_location,
+			    TREE_CODE (t), TREE_TYPE (t), e1, e2);
       }
 
     case NEGATE_EXPR:
@@ -9861,7 +9861,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	if (e == error_mark_node)
 	  return error_mark_node;
 
-	return fold_build1 (TREE_CODE (t), TREE_TYPE (t), e);
+	return fold_build1_loc (input_location, TREE_CODE (t), TREE_TYPE (t), e);
       }
 
     case TYPENAME_TYPE:
@@ -12950,8 +12950,9 @@ type_unification_real (tree tparms,
 	     to explicitly check cxx_dialect here.  */
           if (TREE_PURPOSE (TREE_VEC_ELT (tparms, i)))
             {
-              tree arg = tsubst (TREE_PURPOSE (TREE_VEC_ELT (tparms, i)), 
-                                 targs, tf_none, NULL_TREE);
+              tree arg = tsubst_template_arg
+				(TREE_PURPOSE (TREE_VEC_ELT (tparms, i)),
+				 targs, tf_none, NULL_TREE);
               if (arg == error_mark_node)
                 return 1;
               else
@@ -14073,12 +14074,12 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
 	  /* If only one of the bounds used a MINUS_EXPR, compensate
 	     by adding one to the other bound.  */
 	  if (parm_cst && !arg_cst)
-	    parm_max = fold_build2 (PLUS_EXPR,
+	    parm_max = fold_build2_loc (input_location, PLUS_EXPR,
 				    integer_type_node,
 				    parm_max,
 				    integer_one_node);
 	  else if (arg_cst && !parm_cst)
-	    arg_max = fold_build2 (PLUS_EXPR,
+	    arg_max = fold_build2_loc (input_location, PLUS_EXPR,
 				   integer_type_node,
 				   arg_max,
 				   integer_one_node);
@@ -17513,7 +17514,7 @@ get_types_needing_access_check (tree t)
   if (!(ti = get_template_info (t)))
     return NULL_TREE;
 
-  if (RECORD_OR_UNION_CODE_P (TREE_CODE (t))
+  if (CLASS_TYPE_P (t)
       || TREE_CODE (t) == FUNCTION_DECL)
     {
       if (!TI_TEMPLATE (ti))
@@ -17546,7 +17547,7 @@ append_type_to_template_for_access_check_1 (tree t,
     return;
 
   gcc_assert ((TREE_CODE (t) == FUNCTION_DECL
-	       || RECORD_OR_UNION_CODE_P (TREE_CODE (t)))
+	       || CLASS_TYPE_P (t))
 	      && type_decl
 	      && TREE_CODE (type_decl) == TYPE_DECL
 	      && scope);

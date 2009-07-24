@@ -3278,13 +3278,13 @@ package Pkg_Root is
   function Get_Value (Obj : Root) return int;
   pragma Import (CPP, Get_Value);
 
-  function Constructor return Root'Class;
+  function Constructor return Root;
   pragma Cpp_Constructor (Constructor, "_ZN4RootC1Ev");
 
-  function Constructor (v : Integer) return Root'Class;
+  function Constructor (v : Integer) return Root;
   pragma Cpp_Constructor (Constructor, "_ZN4RootC1Ei");
 
-  function Constructor (v, w : Integer) return Root'Class;
+  function Constructor (v, w : Integer) return Root;
   pragma Cpp_Constructor (Constructor, "_ZN4RootC1Eii");
 end Pkg_Root;
 @end smallexample
@@ -3527,7 +3527,7 @@ package Animals is
   procedure Set_Owner (A : in out Dog; Name : Chars_Ptr);
   pragma Import (C_Plus_Plus, Set_Owner);
 
-  function New_Dog return Dog'Class;
+  function New_Dog return Dog;
   pragma CPP_Constructor (New_Dog);
   pragma Import (CPP, New_Dog, "_ZN3DogC2Ev");
 end Animals;
@@ -4084,11 +4084,20 @@ Generate brief messages to @file{stderr} even if verbose mode set.
 
 @item -gnatB
 @cindex @option{-gnatB} (@command{gcc})
-Assume no invalid (bad) values except for 'Valid attribute use.
+Assume no invalid (bad) values except for 'Valid attribute use
+(@pxref{Validity Checking}).
 
 @item -gnatc
 @cindex @option{-gnatc} (@command{gcc})
 Check syntax and semantics only (no code generation attempted).
+
+@item -gnatC
+@cindex @option{-gnatC} (@command{gcc})
+Generate CodePeer information (no code generation attempted).
+This switch will generate an intermediate representation suitable for
+use by CodePeer (@file{.scil} files). This switch is not compatible with
+code generation (it will, among other things, disable some switches such
+as -gnatn, and enable others such as -gnata).
 
 @item -gnatd
 @cindex @option{-gnatd} (@command{gcc})
@@ -4147,6 +4156,13 @@ Specify a preprocessing data file
 (the equal sign is optional)
 @end ifclear
 (@pxref{Integrated Preprocessing}).
+
+@item -gnateS
+@cindex @option{-gnateS} (@command{gcc})
+Generate SCO (Source Coverage Obligation) information in the ALI
+file. This information is used by advanced coverage tools. See
+unit @file{SCOs} in the compiler sources for details in files
+@file{scos.ads} and @file{scos.adb}.
 
 @item -gnatE
 @cindex @option{-gnatE} (@command{gcc})
@@ -4319,8 +4335,7 @@ Verbose mode. Full error output with source lines to @file{stdout}.
 
 @item -gnatV
 @cindex @option{-gnatV} (@command{gcc})
-Control level of validity checking. See separate section describing
-this feature.
+Control level of validity checking (@pxref{Validity Checking}).
 
 @item ^-gnatw@var{xxx}^/WARNINGS=(@var{option}@r{[},@dots{}@r{]})^
 @cindex @option{^-gnatw^/WARNINGS^} (@command{gcc})
@@ -4578,7 +4593,7 @@ as warning mode modifiers (see description of @option{-gnatw}).
 @item
 Once a ``V'' appears in the string (that is a use of the @option{-gnatV}
 switch), then all further characters in the switch are interpreted
-as validity checking options (see description of @option{-gnatV}).
+as validity checking options (@pxref{Validity Checking}).
 @end ifclear
 @end itemize
 
@@ -4783,8 +4798,6 @@ The @option{-gnatf} switch also generates additional information for
 some error messages.  Some examples are:
 
 @itemize @bullet
-@item
-Full details on entities not available in high integrity mode
 @item
 Details on possibly non-portable unchecked conversion
 @item
@@ -5347,6 +5360,20 @@ The default is that these warnings are not given.
 This switch disables warnings for variables that are assigned or
 initialized, but never read.
 
+@item -gnatw.m
+@emph{Activate warnings on suspicious modulus values.}
+@cindex @option{-gnatw.m} (@command{gcc})
+This switch activates warnings for modulus values that seem suspicious.
+The cases caught are where the size is the same as the modulus (e.g.
+a modulus of 7 with a size of 7 bits), and modulus values of 32 or 64
+with no size clause. The guess in both cases is that 2**x was intended
+rather than x. The default is that these warnings are given.
+
+@item -gnatw.M
+@emph{Disable warnings on suspicious modulus values.}
+@cindex @option{-gnatw.M} (@command{gcc})
+This switch disables warnings for suspicious modulus values.
+
 @item -gnatwn
 @emph{Set normal warnings mode.}
 @cindex @option{-gnatwn} (@command{gcc})
@@ -5834,35 +5861,52 @@ file. Note that this doesn't include traceback information.
 @findex Validity Checking
 
 @noindent
-The Ada Reference Manual has specific requirements for checking
-for invalid values. In particular, RM 13.9.1 requires that the
-evaluation of invalid values (for example from unchecked conversions),
-not result in erroneous execution. In GNAT, the result of such an
-evaluation in normal default mode is to either use the value
-unmodified, or to raise Constraint_Error in those cases where use
-of the unmodified value would cause erroneous execution. The cases
-where unmodified values might lead to erroneous execution are case
-statements (where a wild jump might result from an invalid value),
-and subscripts on the left hand side (where memory corruption could
-occur as a result of an invalid value).
+The Ada Reference Manual defines the concept of invalid values (see
+RM 13.9.1). The primary source of invalid values is uninitialized
+variables. A scalar variable that is left uninitialized may contain
+an invalid value; the concept of invalid does not apply to access or
+composite types.
+
+It is an error to read an invalid value, but the RM does not require
+run-time checks to detect such errors, except for some minimal
+checking to prevent erroneous execution (i.e. unpredictable
+behavior). This corresponds to the @option{-gnatVd} switch below,
+which is the default. For example, by default, if the expression of a
+case statement is invalid, it will raise Constraint_Error rather than
+causing a wild jump, and if an array index on the left-hand side of an
+assignment is invalid, it will raise Constraint_Error rather than
+overwriting an arbitrary memory location.
+
+The @option{-gnatVa} may be used to enable additional validity checks,
+which are not required by the RM. These checks are often very
+expensive (which is why the RM does not require them). These checks
+are useful in tracking down uninitialized variables, but they are
+not usually recommended for production builds.
+
+The other @option{-gnatV^@var{x}^^} switches below allow finer-grained
+control; you can enable whichever validity checks you desire. However,
+for most debugging purposes, @option{-gnatVa} is sufficient, and the
+default @option{-gnatVd} (i.e. standard Ada behavior) is usually
+sufficient for non-debugging use.
 
 The @option{-gnatB} switch tells the compiler to assume that all
 values are valid (that is, within their declared subtype range)
 except in the context of a use of the Valid attribute. This means
 the compiler can generate more efficient code, since the range
-of values is better known at compile time.
+of values is better known at compile time. However, an uninitialized
+variable can cause wild jumps and memory corruption in this mode.
 
-The @option{-gnatV^@var{x}^^} switch allows more control over the validity
-checking mode.
+The @option{-gnatV^@var{x}^^} switch allows control over the validity
+checking mode as described below.
 @ifclear vms
 The @code{x} argument is a string of letters that
 indicate validity checks that are performed or not performed in addition
-to the default checks described above.
+to the default checks required by Ada as described above.
 @end ifclear
 @ifset vms
 The options allowed for this qualifier
 indicate validity checks that are performed or not performed in addition
-to the default checks described above.
+to the default checks required by Ada as described above.
 @end ifset
 
 @table @option
@@ -6097,6 +6141,12 @@ and is required for multi-dimensional arrays.
 Trailing blanks are not allowed at the end of statements. The purpose of this
 rule, together with h (no horizontal tabs), is to enforce a canonical format
 for the use of blanks to separate source tokens.
+
+@item ^B^BOOLEAN_OPERATORS^
+@emph{Check Boolean operators.}
+The use of AND/OR operators is not permitted except in the cases of modular
+operands, array operands, and simple stand-alone boolean variables or
+boolean constants. In all other cases AND THEN/OR ELSE are required.
 
 @item ^c^COMMENTS^
 @emph{Check comments.}
@@ -6506,8 +6556,9 @@ following @command{gcc} switches refine this default behavior.
 @cindex Suppressing checks
 @cindex Checks, suppressing
 @findex Suppress
-Suppress all run-time checks as though @code{pragma Suppress (All_checks)}
-had been present in the source. Validity checks are also suppressed (in
+This switch causes the unit to be compiled
+as though @code{pragma Suppress (All_checks)}
+had been present in the source. Validity checks are also eliminated (in
 other words @option{-gnatp} also implies @option{-gnatVn}.
 Use this switch to improve the performance
 of the code at the expense of safety in the presence of invalid data or
@@ -6519,7 +6570,9 @@ checking code is zero or near-zero, the compiler will generate it even
 if checks are suppressed. In particular, if the compiler can prove
 that a certain check will necessarily fail, it will generate code to
 do an unconditional ``raise'', even if checks are suppressed. The
-compiler warns in this case.
+compiler warns in this case. Another case in which checks may not be
+eliminated is when they are embedded in certain run time routines such
+as math library routines.
 
 Of course, run-time checks are omitted whenever the compiler can prove
 that they will not fail, whether or not checks are suppressed.
@@ -6996,8 +7049,8 @@ This not normally required, but is used by separate analysis tools.
 Typically
 these tools do the necessary compilations automatically, so you should
 not have to specify this switch in normal operation.
-Note that the combination of switches @option{-gnatct} generates a tree
-in the form required by ASIS applications.
+Note that the combination of switches @option{-gnatct}
+generates a tree in the form required by ASIS applications.
 
 @item -gnatu
 @cindex @option{-gnatu} (@command{gcc})
@@ -11286,6 +11339,7 @@ recognized by GNAT:
    Ada_05
    Ada_2005
    Assertion_Policy
+   Assume_No_Invalid_Values
    C_Pass_By_Copy
    Check_Name
    Check_Policy
@@ -11293,12 +11347,14 @@ recognized by GNAT:
    Compile_Time_Warning
    Compiler_Unit
    Component_Alignment
+   Convention_Identifier
    Debug_Policy
    Detect_Blocking
    Discard_Names
    Elaboration_Checks
    Eliminate
    Extend_System
+   Extensions_Allowed
    External_Name_Casing
    Fast_Math
    Favor_Top_Level
@@ -12234,6 +12290,7 @@ is equivalent to the @command{gnatmake} invocation using the project file
 @node Importing Other Projects
 @subsection Importing Other Projects
 @cindex @code{ADA_PROJECT_PATH}
+@cindex @code{GPR_PROJECT_PATH}
 
 @noindent
 A compilation unit in a source file in one project may depend on compilation
@@ -12320,15 +12377,17 @@ if either
 The imported project file is in the same directory as the importing project
 file, or
 @item
-You have defined ^an environment variable^a logical name^
+You have defined one or two ^environment variables^logical names^
 that includes the directory containing
-the needed project file. The syntax of @code{ADA_PROJECT_PATH} is the same as
+the needed project file. The syntax of @code{GPR_PROJECT_PATH} and
+@code{ADA_PROJECT_PATH} is the same as
 the syntax of @code{ADA_INCLUDE_PATH} and @code{ADA_OBJECTS_PATH}: a list of
 directory names separated by colons (semicolons on Windows).
 @end itemize
 
 @noindent
-Thus, if we define @code{ADA_PROJECT_PATH} to include @file{^/gui^[GUI]^} and
+Thus, if we define @code{ADA_PROJECT_PATH} or @code{GPR_PROJECT_PATH}
+to include @file{^/gui^[GUI]^} and
 @file{^/comm^[COMM]^}, then our project file @file{app_proj.gpr} can be written
 as follows:
 
@@ -13307,7 +13366,7 @@ file. If the order of the source directories is not known statically, it is
 an error to have several files with the same source file name.
 
 Projects can be specified to have no Ada source
-files: the value of (@code{Source_Dirs} or @code{Source_Files} may be an empty
+files: the value of @code{Source_Dirs} or @code{Source_Files} may be an empty
 list, or the @code{"Ada"} may be absent from @code{Languages}:
 
 @smallexample @c projectfile
@@ -13330,6 +13389,7 @@ define a package @code{Naming} (@pxref{Naming Schemes}).
 @node  Importing Projects
 @section Importing Projects
 @cindex @code{ADA_PROJECT_PATH}
+@cindex @code{GPR_PROJECT_PATH}
 
 @noindent
 An immediate source of a project P may depend on source files that
@@ -13370,7 +13430,8 @@ files giving access to standard support libraries.
 
 @item
 In between, all the directories referenced in the
-^environment variable^logical name^ @env{ADA_PROJECT_PATH} if it exists.
+^environment variables^logical names^ @env{GPR_PROJECT_PATH}
+and @env{ADA_PROJECT_PATH} if they exist, and in that order.
 @end itemize
 
 @noindent
@@ -16279,6 +16340,11 @@ stops.
 Do not place the keyword @code{is} on a separate line in a subprogram body in
 case if the spec occupies more then one line.
 
+@cindex @option{^--separate-label^/SEPARATE_LABEL^} (@command{gnatpp})
+@item ^--separate-label^/SEPARATE_LABEL^
+Place statement label(s) on a separate line, with the following statement
+on the next line.
+
 @cindex @option{^--separate-loop-then^/SEPARATE_LOOP_THEN^} (@command{gnatpp})
 @item ^--separate-loop-then^/SEPARATE_LOOP_THEN^
 Place the keyword @code{loop} in FOR and WHILE loop statements and the
@@ -19034,6 +19100,7 @@ be accessed by the directive @option{-l@var{xxx}} at link time.
 @node Installing a library
 @subsection Installing a library
 @cindex @code{ADA_PROJECT_PATH}
+@cindex @code{GPR_PROJECT_PATH}
 
 @noindent
 If you use project files, library installation is part of the library build
@@ -19073,7 +19140,7 @@ responsibility of the library provider to install the necessary sources, ALI
 files and libraries in the directories mentioned in the project file. For
 convenience, the user's library project file should be installed in a location
 that will be searched automatically by the GNAT
-builder. These are the directories referenced in the @env{ADA_PROJECT_PATH}
+builder. These are the directories referenced in the @env{GPR_PROJECT_PATH}
 environment variable (@pxref{Importing Projects}), and also the default GNAT
 library location that can be queried with @command{gnatls -v} and is usually of
 the form $gnat_install_root/lib/gnat.
@@ -20824,8 +20891,8 @@ structure and semantics as the @code{string_LITERAL} parameter of GNAT pragma
 @code{Style_Checks} (for further information about this pragma,
 @pxref{Pragma Style_Checks,,, gnat_rm, GNAT Reference Manual}). For example,
 @code{+RStyle_Checks:O} rule option activates and adds to @command{gnatcheck}
-output the compiler style check that corresponds to @code{-gnatyO} style
-check option.
+output the compiler style check that corresponds to
+@code{-gnatyO} style check option.
 
 @item Warnings
 To record compiler warnings (@pxref{Warning Message Control}), use the rule
@@ -20919,9 +20986,17 @@ used as a parameter of the @option{+R} or @option{-R} options.
 @ignore
 * Ceiling_Violations::
 @end ignore
+* Complex_Inlined_Subprograms::
 * Controlled_Type_Declarations::
 * Declarations_In_Blocks::
+* Deep_Inheritance_Hierarchies::
+* Deeply_Nested_Generics::
+* Deeply_Nested_Inlining::
+@ignore
+* Deeply_Nested_Local_Inlining::
+@end ignore
 * Default_Parameters::
+* Direct_Calls_To_Primitives::
 * Discriminated_Records::
 * Enumeration_Ranges_In_CASE_Statements::
 * Exceptions_As_Control_Flow::
@@ -20930,6 +21005,7 @@ used as a parameter of the @option{+R} or @option{-R} options.
 * Expanded_Loop_Exit_Names::
 * Explicit_Full_Discrete_Ranges::
 * Float_Equality_Checks::
+* Forbidden_Attributes::
 * Forbidden_Pragmas::
 * Function_Style_Procedures::
 * Generics_In_Subprograms::
@@ -20944,6 +21020,7 @@ used as a parameter of the @option{+R} or @option{-R} options.
 * Improperly_Called_Protected_Entries::
 @end ignore
 * Metrics::
+* Misnamed_Controlling_Parameters::
 * Misnamed_Identifiers::
 * Multiple_Entries_In_Protected_Definitions::
 * Name_Clashes::
@@ -20974,6 +21051,7 @@ used as a parameter of the @option{+R} or @option{-R} options.
 * Side_Effect_Functions::
 @end ignore
 * Slices::
+* Too_Many_Parents::
 * Unassigned_OUT_Parameters::
 * Uncommented_BEGIN_In_Package_Bodies::
 * Unconditional_Exits::
@@ -20984,6 +21062,7 @@ used as a parameter of the @option{+R} or @option{-R} options.
 * Unused_Subprograms::
 @end ignore
 * USE_PACKAGE_Clauses::
+* Visible_Components::
 * Volatile_Objects_Without_Address_Clauses::
 @end menu
 
@@ -21071,7 +21150,7 @@ This rule has no parameters.
 
 @ignore
 @node Ceiling_Violations
-@subsection @code{Ceiling_Violations} (under construction, GLOBAL)
+@subsection @code{Ceiling5_Violations} (under construction, GLOBAL)
 @cindex @code{Ceiling_Violations} rule (for @command{gnatcheck})
 
 @noindent
@@ -21125,6 +21204,36 @@ component is not checked.
 This rule has no parameters.
 
 
+@node Complex_Inlined_Subprograms
+@subsection @code{Complex_Inlined_Subprograms}
+@cindex @code{Complex_Inlined_Subprograms} rule (for @command{gnatcheck})
+
+@noindent
+Flags a subprogram body if a pragma Inline is applied to the subprogram or
+generic subprogram and this subprogram is too complex to be inlined.
+
+A subprogram is considered as being too complex for inlining if at least one
+of the following conditions is met for its body:
+
+@itemize @bullet
+@item
+number of local declarations + number of statements in subprogram body is
+more that a value specified by the @option{N} rule parameter;
+
+@item
+the body statement sequence contains a loop, if or case statement;
+
+@end itemize
+
+@noindent
+This rule has the following (mandatory) parameters for the @option{+R} option:
+
+@table @emph
+@item N
+Positive integer specifying the maximal allowed total number of local
+declarations and statements in subprogram body.
+@end table
+
 
 @node Declarations_In_Blocks
 @subsection @code{Declarations_In_Blocks}
@@ -21138,6 +21247,108 @@ containing only pragmas and/or @code{use} clauses is not flagged.
 This rule has no parameters.
 
 
+@node Deep_Inheritance_Hierarchies
+@subsection @code{Deep_Inheritance_Hierarchies}
+@cindex @code{Deep_Inheritance_Hierarchies} rule (for @command{gnatcheck})
+
+@noindent
+Flags tagged derived type declarations and formal tagged derived type
+declarations if the corresponding inheritance hierarchy is deeper that
+a value specified by the @option{N} rule parameter.
+
+The depth of the inheritance hierarchy is the length of the longest
+path from the root to a leaf in the type inheritance tree.
+
+The rule does not flag interface types and private extension
+declarations (in case of a private extension, the correspondong full
+declaration is checked)
+
+This rule has the following parameter for +R option:
+
+This rule has the following (mandatory) parameters for the @option{+R} option:
+
+@table @emph
+@item N
+Positive integer specifying the maximal allowed depth of the inheritance tree.
+@end table
+
+
+@node Deeply_Nested_Generics
+@subsection @code{Deeply_Nested_Generics}
+@cindex @code{Deeply_Nested_Generics} rule (for @command{gnatcheck})
+
+@noindent
+Flags generic declarations nested in another generic declarations if
+the level of generics-in-generics nesting is higher that
+a value specified by the @option{N} rule parameter.
+The level of generics-in-generics
+nesting is the number of generic declaratons that enclose the given (generic)
+declaration. Formal packages are not flagged by this rule.
+
+This rule has the following (mandatory) parameters for the @option{+R} option:
+
+@table @emph
+@item N
+Positive integer specifying the maximal allowed level of
+generics-in-generics nesting.
+@end table
+
+@node Deeply_Nested_Inlining
+@subsection @code{Deeply_Nested_Inlining}
+@cindex @code{Deeply_Nested_Inlining} rule (for @command{gnatcheck})
+
+@noindent
+Flags a subprogram if a pragma @code{Inline} is applied to the corresponding
+subprogram (or generic subprogram in case if a flagged subprogram is a generic
+instantiation) and the subprogram body contains a call to another inlined
+subprogram that results in nested inlining with nesting depth more then
+a value specified by the @option{N} rule parameter. This rule
+assumes that calls to subprograms in with'ed units are inlided if
+at the place of the call the corresponding Inline pragma is visible. This
+rule may be usefull for the case when eiter @option{-gnatn} or @option{-gnatN}
+option is used when building the executable.
+
+If a subprogram should be flagged according to this rule, the body declaration
+is flagged only if it is not a completion of a subprogram declaration.
+
+This rule requires the global analysis of all the set of compilation units that
+are @command{gnatcheck} arguments, that may affect performance.
+
+This rule has the following (mandatory) parameters for the @option{+R} option:
+
+@table @emph
+@item N
+Positive integer specifying the maximal allowed level of nested inlining.
+@end table
+
+
+@ignore
+@node Deeply_Nested_Local_Inlining
+@subsection @code{Deeply_Nested_Local_Inlining}
+@cindex @code{Deeply_Nested_Local_Inlining} rule (for @command{gnatcheck})
+
+@noindent
+Flags a subprogram body if a pragma @code{Inline} is applied to the
+corresponding subprogram (or generic subprogram) and the body contains a call
+to another inlined subprogram that results in nested inlining with nesting
+depth more then a value specified by the @option{N} rule parameter.
+This rule is similar to @code{Deeply_Nested_Inlining} rule, but it
+assumes that calls to subprograms in
+with'ed units are not inlided, so all the analysis of the depth of inlining is
+limited by the compilation unit where the subprogram body is located and the
+units it depends semantically upon. Such analysis may be usefull for the case
+when neiter @option{-gnatn} nor @option{-gnatN} option is used when building
+the executable.
+
+This rule has the following (mandatory) parameters for the @option{+R} option:
+
+@table @emph
+@item N
+Positive integer specifying the maximal allowed level of nested inlining.
+@end table
+
+@end ignore
+
 @node Default_Parameters
 @subsection @code{Default_Parameters}
 @cindex @code{Default_Parameters} rule (for @command{gnatcheck})
@@ -21145,6 +21356,18 @@ This rule has no parameters.
 @noindent
 Flag all default expressions for subprogram parameters. Parameter
 declarations of formal and generic subprograms are also checked.
+
+This rule has no parameters.
+
+
+@node Direct_Calls_To_Primitives
+@subsection @code{Direct_Calls_To_Primitives}
+@cindex @code{Direct_Calls_To_Primitives} rule (for @command{gnatcheck})
+
+@noindent
+Flags any non-dispatching call to a dispatching primitive operation, except
+when a primitive of a tagged type calls directly the same primitive of the
+immediate ancestor.
 
 This rule has no parameters.
 
@@ -21247,6 +21470,79 @@ User-defined equality operations are not flagged, nor are ``@code{=}''
 and ``@code{/=}'' operations for fixed-point types.
 
 This rule has no parameters.
+
+
+@node Forbidden_Attributes
+@subsection @code{Forbidden_Attributes}
+@cindex @code{Forbidden_Attributes} rule (for @command{gnatcheck})
+
+@noindent
+Flag each use of the specified attributes. The attributes to be detected are
+named in the rule's parameters.
+
+This rule has the following parameters:
+
+@itemize @bullet
+@item For the @option{+R} option
+
+@table @asis
+@item @emph{Attribute_Designator}
+Adds the specified attribute to the set of attributes to be checked and sets
+the checks for all the specified attributes ON. If @emph{Attribute_Designator}
+does not correspond to any attribute designator defined in the Ada standard
+or to the designator of a GNAT-specific attribute defined in
+@ref{Implementation Defined Attributes,,, gnat_rm, GNAT Reference
+Manual}, it is treated as the name of unknown attribute.
+
+@item @code{GNAT}
+All the GNAT-specific attributes are detected; this sets
+the checks for all the specified attributes ON.
+
+@item @code{ALL}
+All attributes are detected; this sets the rule ON.
+@end table
+
+@item For the @option{-R} option
+@table @asis
+@item @emph{Attribute_Designator}
+Removes the specified attribute from the set of attributes to be
+checked without affecting checks for
+other attributes. If @emph{Attribute_Designator} does not correspond to any
+attribute designator defined in the Ada standard or to the designator
+of a GNAT-specific attribute defined in
+@ref{Implementation Defined Attributes,,, gnat_rm, GNAT Reference Manual},
+this option is treated as turning OFF detection of all unknown pragmas.
+
+@item GNAT
+Turn OFF detection of all GNAT-specific attributes
+
+@item ALL
+Clear the list of the attributes to be detected and
+turn the rule OFF.
+@end table
+@end itemize
+
+@noindent
+Parameters are not case sensitive. If @emph{Attribute_Designator} does not have
+the syntax of an Ada identifier and therefore can not be considered as a (part
+of an) attribute designator, a diagnostic message is generated and the
+corresponding parameter is ignored. (If an attribute allows a static
+expression to be a part of the attribute designator, this expression is
+ignored by this rule.
+
+When more then one parameter is given in the same rule option, the parameters
+must be separated by a comma.
+
+If more then one option for this rule is specified for the gnatcheck call, a
+new option overrides the previous one(s).
+
+The @option{+R} option with no parameters turns the rule ON with the set of
+attributes to be detected defined by the previous rule options.
+(By default this set is empty, so if the only option specified for the rule is
+@option{+RForbidden_Attributes} (with
+no parameter), then the rule is enabled, but it does not detect anything).
+The @option{-R} option with no parameter turns the rule OFF, but it does not
+affect the set of attributes to be detected.
 
 
 @node Forbidden_Pragmas
@@ -21509,6 +21805,25 @@ To turn OFF the check for cyclomatic complexity metric, use the following option
 @smallexample
 -RMetrics_Cyclomatic_Complexity
 @end smallexample
+
+
+@node Misnamed_Controlling_Parameters
+@subsection @code{Misnamed_Controlling_Parameters}
+@cindex @code{Misnamed_Controlling_Parameters} rule (for @command{gnatcheck})
+
+@noindent
+Flags a declaration of a dispatching operation, if the first parameter is
+not a controlling one and its name is not @code{This} (the check for
+parameter name is not case-sensitive). Declarations of dispatching functions
+with controlling result and no controlling parameter are never flagged.
+
+A subprogram body declaration, subprogram renaming declaration of subprogram
+body stub is flagged only if it is not a completion of a pripr subprogram
+declaration.
+
+This rule has no parameters.
+
+
 
 @node Misnamed_Identifiers
 @subsection @code{Misnamed_Identifiers}
@@ -22282,6 +22597,26 @@ Flag all uses of array slicing
 This rule has no parameters.
 
 
+@node Too_Many_Parents
+@subsection @code{Too_Many_Parents}
+@cindex @code{Too_Many_Parents} rule (for @command{gnatcheck})
+
+@noindent
+Flags any type declaration, single task declaration or single protected
+declaration that has more then  @option{N} parents,  @option{N} is a parameter
+of the rule.
+A parent here is either a (sub)type denoted by the subtype mark from the
+parent_subtype_indication (in case of a derived type declaration), or
+any of the progenitors from the interface list, if any.
+
+This rule has the following (mandatory) parameters for the @option{+R} option:
+
+@table @emph
+@item N
+Positive integer specifying the maximal allowed number of parents.
+@end table
+
+
 @node Unassigned_OUT_Parameters
 @subsection @code{Unassigned_OUT_Parameters}
 @cindex @code{Unassigned_OUT_Parameters} rule (for @command{gnatcheck})
@@ -22406,6 +22741,22 @@ not flagged.
 
 This rule has no parameters.
 
+
+@node Visible_Components
+@subsection @code{Visible_Components}
+@cindex @code{Visible_Components} rule (for @command{gnatcheck})
+
+@noindent
+Flags all the type declarations located in the visible part of a library
+package or a library generic package that can declare a visible component. A
+type is considered as declaring a visible component if it contains a record
+definition by its own or as a part of a record extension. Type declaration is
+flagged even if it contains a record definition that defines no components.
+
+Declarations located in private parts of local (generic) packages are not
+flagged. Declarations in private packages are not flagged.
+
+This rule has no parameters.
 
 
 @node Volatile_Objects_Without_Address_Clauses
@@ -22583,6 +22934,11 @@ Same as @option{^-gnatyM^/MAX_LINE_LENGTH=^@var{n}}
 @cindex @option{^--no-exception^/NO_EXCEPTION^} (@command{gnatstub})
 Avoind raising PROGRAM_ERROR in the generated bodies of program unit stubs.
 This is not always possible for function stubs.
+
+@item ^--no-local-header^/NO_LOCAL_HEADER^
+@cindex @option{^--no-local-header^/NO_LOCAL_HEADER^} (@command{gnatstub})
+Do not place local comment header with unit name before body stub for a
+unit.
 
 @item ^-o ^/BODY=^@var{body-name}
 @cindex @option{^-o^/BODY^} (@command{gnatstub})
@@ -22830,7 +23186,7 @@ The corresponding Ada code is generated:
       (this : access Dog; Name : Interfaces.C.Strings.chars_ptr);
     pragma Import (CPP, Set_Owner, "_ZN3Dog9Set_OwnerEPc");
 
-    function New_Dog return Dog'Class;
+    function New_Dog return Dog;
     pragma CPP_Constructor (New_Dog);
     pragma Import (CPP, New_Dog, "_ZN3DogC1Ev");
   end;
@@ -28245,7 +28601,7 @@ the @option{-gnatE} switch on the compiler (@command{gcc} or
 @command{gnatmake}) command, or by the use of the configuration pragma:
 
 @smallexample @c ada
-pragma Elaboration_Checks (RM);
+pragma Elaboration_Checks (DYNAMIC);
 @end smallexample
 
 @noindent

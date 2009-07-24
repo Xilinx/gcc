@@ -80,6 +80,11 @@ package body Exp_Disp is
    --  Returns true if Prim is not a predefined dispatching primitive but it is
    --  an alias of a predefined dispatching primitive (i.e. through a renaming)
 
+   function New_Value (From : Node_Id) return Node_Id;
+   --  From is the original Expression. New_Value is equivalent to a call
+   --  to Duplicate_Subexpr with an explicit dereference when From is an
+   --  access parameter.
+
    function Original_View_In_Visible_Part (Typ : Entity_Id) return Boolean;
    --  Check if the type has a private view or if the public view appears
    --  in the visible part of a package spec.
@@ -94,6 +99,182 @@ package body Exp_Disp is
    function Tagged_Kind (T : Entity_Id) return Node_Id;
    --  Ada 2005 (AI-345): Determine the tagged kind of T and return a reference
    --  to an RE_Tagged_Kind enumeration value.
+
+   ----------------------
+   -- Apply_Tag_Checks --
+   ----------------------
+
+   procedure Apply_Tag_Checks (Call_Node : Node_Id) is
+      Loc        : constant Source_Ptr := Sloc (Call_Node);
+      Ctrl_Arg   : constant Node_Id   := Controlling_Argument (Call_Node);
+      Ctrl_Typ   : constant Entity_Id := Base_Type (Etype (Ctrl_Arg));
+      Param_List : constant List_Id   := Parameter_Associations (Call_Node);
+
+      Subp            : Entity_Id;
+      CW_Typ          : Entity_Id;
+      Param           : Node_Id;
+      Typ             : Entity_Id;
+      Eq_Prim_Op      : Entity_Id := Empty;
+
+   begin
+      if No_Run_Time_Mode then
+         Error_Msg_CRT ("tagged types", Call_Node);
+         return;
+      end if;
+
+      --  Apply_Tag_Checks is called directly from the semantics, so we need
+      --  a check to see whether expansion is active before proceeding. In
+      --  addition, there is no need to expand the call when compiling under
+      --  restriction No_Dispatching_Calls; the semantic analyzer has
+      --  previously notified the violation of this restriction.
+
+      if not Expander_Active
+        or else Restriction_Active (No_Dispatching_Calls)
+      then
+         return;
+      end if;
+
+      --  Set subprogram. If this is an inherited operation that was
+      --  overridden, the body that is being called is its alias.
+
+      Subp := Entity (Name (Call_Node));
+
+      if Present (Alias (Subp))
+        and then Is_Inherited_Operation (Subp)
+        and then No (DTC_Entity (Subp))
+      then
+         Subp := Alias (Subp);
+      end if;
+
+      --  Definition of the class-wide type and the tagged type
+
+      --  If the controlling argument is itself a tag rather than a tagged
+      --  object, then use the class-wide type associated with the subprogram's
+      --  controlling type. This case can occur when a call to an inherited
+      --  primitive has an actual that originated from a default parameter
+      --  given by a tag-indeterminate call and when there is no other
+      --  controlling argument providing the tag (AI-239 requires dispatching).
+      --  This capability of dispatching directly by tag is also needed by the
+      --  implementation of AI-260 (for the generic dispatching constructors).
+
+      if Ctrl_Typ = RTE (RE_Tag)
+        or else (RTE_Available (RE_Interface_Tag)
+                  and then Ctrl_Typ = RTE (RE_Interface_Tag))
+      then
+         CW_Typ := Class_Wide_Type (Find_Dispatching_Type (Subp));
+
+      --  Class_Wide_Type is applied to the expressions used to initialize
+      --  CW_Typ, to ensure that CW_Typ always denotes a class-wide type, since
+      --  there are cases where the controlling type is resolved to a specific
+      --  type (such as for designated types of arguments such as CW'Access).
+
+      elsif Is_Access_Type (Ctrl_Typ) then
+         CW_Typ := Class_Wide_Type (Designated_Type (Ctrl_Typ));
+
+      else
+         CW_Typ := Class_Wide_Type (Ctrl_Typ);
+      end if;
+
+      Typ := Root_Type (CW_Typ);
+
+      if Ekind (Typ) = E_Incomplete_Type then
+         Typ := Non_Limited_View (Typ);
+      end if;
+
+      if not Is_Limited_Type (Typ) then
+         Eq_Prim_Op := Find_Prim_Op (Typ, Name_Op_Eq);
+      end if;
+
+      --  Dispatching call to C++ primitive
+
+      if Is_CPP_Class (Typ) then
+         null;
+
+      --  Dispatching call to Ada primitive
+
+      elsif Present (Param_List) then
+
+         --  Generate the Tag checks when appropriate
+
+         Param := First_Actual (Call_Node);
+         while Present (Param) loop
+
+            --  No tag check with itself
+
+            if Param = Ctrl_Arg then
+               null;
+
+            --  No tag check for parameter whose type is neither tagged nor
+            --  access to tagged (for access parameters)
+
+            elsif No (Find_Controlling_Arg (Param)) then
+               null;
+
+            --  No tag check for function dispatching on result if the
+            --  Tag given by the context is this one
+
+            elsif Find_Controlling_Arg (Param) = Ctrl_Arg then
+               null;
+
+            --  "=" is the only dispatching operation allowed to get
+            --  operands with incompatible tags (it just returns false).
+            --  We use Duplicate_Subexpr_Move_Checks instead of calling
+            --  Relocate_Node because the value will be duplicated to
+            --  check the tags.
+
+            elsif Subp = Eq_Prim_Op then
+               null;
+
+            --  No check in presence of suppress flags
+
+            elsif Tag_Checks_Suppressed (Etype (Param))
+              or else (Is_Access_Type (Etype (Param))
+                         and then Tag_Checks_Suppressed
+                                    (Designated_Type (Etype (Param))))
+            then
+               null;
+
+            --  Optimization: no tag checks if the parameters are identical
+
+            elsif Is_Entity_Name (Param)
+              and then Is_Entity_Name (Ctrl_Arg)
+              and then Entity (Param) = Entity (Ctrl_Arg)
+            then
+               null;
+
+            --  Now we need to generate the Tag check
+
+            else
+               --  Generate code for tag equality check
+               --  Perhaps should have Checks.Apply_Tag_Equality_Check???
+
+               Insert_Action (Ctrl_Arg,
+                 Make_Implicit_If_Statement (Call_Node,
+                   Condition =>
+                     Make_Op_Ne (Loc,
+                       Left_Opnd =>
+                         Make_Selected_Component (Loc,
+                           Prefix => New_Value (Ctrl_Arg),
+                           Selector_Name =>
+                             New_Reference_To
+                               (First_Tag_Component (Typ), Loc)),
+
+                       Right_Opnd =>
+                         Make_Selected_Component (Loc,
+                           Prefix =>
+                             Unchecked_Convert_To (Typ, New_Value (Param)),
+                           Selector_Name =>
+                             New_Reference_To
+                               (First_Tag_Component (Typ), Loc))),
+
+                   Then_Statements =>
+                     New_List (New_Constraint_Error (Loc))));
+            end if;
+
+            Next_Actual (Param);
+         end loop;
+      end if;
+   end Apply_Tag_Checks;
 
    ------------------------
    -- Building_Static_DT --
@@ -469,8 +650,9 @@ package body Exp_Disp is
       --  Dispatching call to C++ primitive. Create a new parameter list
       --  with no tag checks.
 
+      New_Params := New_List;
+
       if Is_CPP_Class (Typ) then
-         New_Params := New_List;
          Param := First_Actual (Call_Node);
          while Present (Param) loop
             Append_To (New_Params, Relocate_Node (Param));
@@ -480,86 +662,19 @@ package body Exp_Disp is
       --  Dispatching call to Ada primitive
 
       elsif Present (Param_List) then
+         Apply_Tag_Checks (Call_Node);
 
-         --  Generate the Tag checks when appropriate
-
-         New_Params := New_List;
          Param := First_Actual (Call_Node);
          while Present (Param) loop
+            --  Cases in which we may have generated runtime checks
 
-            --  No tag check with itself
-
-            if Param = Ctrl_Arg then
+            if Param = Ctrl_Arg
+              or else Subp = Eq_Prim_Op
+            then
                Append_To (New_Params,
                  Duplicate_Subexpr_Move_Checks (Param));
-
-            --  No tag check for parameter whose type is neither tagged nor
-            --  access to tagged (for access parameters)
-
-            elsif No (Find_Controlling_Arg (Param)) then
-               Append_To (New_Params, Relocate_Node (Param));
-
-            --  No tag check for function dispatching on result if the
-            --  Tag given by the context is this one
-
-            elsif Find_Controlling_Arg (Param) = Ctrl_Arg then
-               Append_To (New_Params, Relocate_Node (Param));
-
-            --  "=" is the only dispatching operation allowed to get
-            --  operands with incompatible tags (it just returns false).
-            --  We use Duplicate_Subexpr_Move_Checks instead of calling
-            --  Relocate_Node because the value will be duplicated to
-            --  check the tags.
-
-            elsif Subp = Eq_Prim_Op then
-               Append_To (New_Params,
-                 Duplicate_Subexpr_Move_Checks (Param));
-
-            --  No check in presence of suppress flags
-
-            elsif Tag_Checks_Suppressed (Etype (Param))
-              or else (Is_Access_Type (Etype (Param))
-                         and then Tag_Checks_Suppressed
-                                    (Designated_Type (Etype (Param))))
-            then
-               Append_To (New_Params, Relocate_Node (Param));
-
-            --  Optimization: no tag checks if the parameters are identical
-
-            elsif Is_Entity_Name (Param)
-              and then Is_Entity_Name (Ctrl_Arg)
-              and then Entity (Param) = Entity (Ctrl_Arg)
-            then
-               Append_To (New_Params, Relocate_Node (Param));
-
-            --  Now we need to generate the Tag check
 
             else
-               --  Generate code for tag equality check
-               --  Perhaps should have Checks.Apply_Tag_Equality_Check???
-
-               Insert_Action (Ctrl_Arg,
-                 Make_Implicit_If_Statement (Call_Node,
-                   Condition =>
-                     Make_Op_Ne (Loc,
-                       Left_Opnd =>
-                         Make_Selected_Component (Loc,
-                           Prefix => New_Value (Ctrl_Arg),
-                           Selector_Name =>
-                             New_Reference_To
-                               (First_Tag_Component (Typ), Loc)),
-
-                       Right_Opnd =>
-                         Make_Selected_Component (Loc,
-                           Prefix =>
-                             Unchecked_Convert_To (Typ, New_Value (Param)),
-                           Selector_Name =>
-                             New_Reference_To
-                               (First_Tag_Component (Typ), Loc))),
-
-                   Then_Statements =>
-                     New_List (New_Constraint_Error (Loc))));
-
                Append_To (New_Params, Relocate_Node (Param));
             end if;
 
@@ -1831,6 +1946,11 @@ package body Exp_Disp is
                       RTE (RE_Asynchronous_Call), Loc),
                     Make_Identifier (Loc, Name_uF))));    --  status flag
          end if;
+
+      else
+         --  Ensure that the statements list is non-empty
+
+         Append_To (Stmts, Make_Null_Statement (Loc));
       end if;
 
       return
@@ -2199,6 +2319,11 @@ package body Exp_Disp is
                       RTE (RE_Conditional_Call), Loc),
                     Make_Identifier (Loc, Name_uF))));    --  status flag
          end if;
+
+      else
+         --  Ensure that the statements list is non-empty
+
+         Append_To (Stmts, Make_Null_Statement (Loc));
       end if;
 
       return
@@ -3022,6 +3147,11 @@ package body Exp_Disp is
                     Make_Identifier (Loc, Name_uM),       --  delay mode
                     Make_Identifier (Loc, Name_uF))));    --  status flag
          end if;
+
+      else
+         --  Ensure that the statements list is non-empty
+
+         Append_To (Stmts, Make_Null_Statement (Loc));
       end if;
 
       return
@@ -4390,12 +4520,13 @@ package body Exp_Disp is
       --  specific tagged type, as opposed to one of its ancestors.
       --  If the type is an unconstrained type extension, we are building the
       --  dispatch table of its anonymous base type, so the external tag, if
-      --  any was specified, must be retrieved from the first subtype.
+      --  any was specified, must be retrieved from the first subtype. Go to
+      --  the full view in case the clause is in the private part.
 
       else
          declare
             Def : constant Node_Id := Get_Attribute_Definition_Clause
-                                        (First_Subtype (Typ),
+                                        (Underlying_Type (First_Subtype (Typ)),
                                          Attribute_External_Tag);
 
             Old_Val : String_Id;
@@ -6103,64 +6234,71 @@ package body Exp_Disp is
          end loop;
       end if;
 
-      --  3) At the end of Access_Disp_Table we add the entity of an access
-      --     type declaration. It is used by Build_Get_Prim_Op_Address to
-      --     expand dispatching calls through the primary dispatch table.
+      --  3) At the end of Access_Disp_Table, if the type has user-defined
+      --     primitives, we add the entity of an access type declaration that
+      --     is used by Build_Get_Prim_Op_Address to expand dispatching calls
+      --     through the primary dispatch table.
+
+      if UI_To_Int (DT_Entry_Count (First_Tag_Component (Typ))) = 0 then
+         Analyze_List (Result);
 
       --     Generate:
       --       type Typ_DT is array (1 .. Nb_Prims) of Prim_Ptr;
       --       type Typ_DT_Acc is access Typ_DT;
 
-      declare
-         Name_DT_Prims     : constant Name_Id :=
-                               New_External_Name (Tname, 'G');
-         Name_DT_Prims_Acc : constant Name_Id :=
-                               New_External_Name (Tname, 'H');
-         DT_Prims          : constant Entity_Id :=
-                               Make_Defining_Identifier (Loc, Name_DT_Prims);
-         DT_Prims_Acc      : constant Entity_Id :=
-                               Make_Defining_Identifier (Loc,
-                                 Name_DT_Prims_Acc);
-      begin
-         Append_To (Result,
-           Make_Full_Type_Declaration (Loc,
-             Defining_Identifier => DT_Prims,
-             Type_Definition =>
-               Make_Constrained_Array_Definition (Loc,
-                 Discrete_Subtype_Definitions => New_List (
-                   Make_Range (Loc,
-                     Low_Bound  => Make_Integer_Literal (Loc, 1),
-                     High_Bound => Make_Integer_Literal (Loc,
-                                    DT_Entry_Count
-                                      (First_Tag_Component (Typ))))),
-                 Component_Definition =>
-                   Make_Component_Definition (Loc,
+      else
+         declare
+            Name_DT_Prims     : constant Name_Id :=
+                                  New_External_Name (Tname, 'G');
+            Name_DT_Prims_Acc : constant Name_Id :=
+                                  New_External_Name (Tname, 'H');
+            DT_Prims          : constant Entity_Id :=
+                                  Make_Defining_Identifier (Loc,
+                                    Name_DT_Prims);
+            DT_Prims_Acc      : constant Entity_Id :=
+                                  Make_Defining_Identifier (Loc,
+                                    Name_DT_Prims_Acc);
+         begin
+            Append_To (Result,
+              Make_Full_Type_Declaration (Loc,
+                Defining_Identifier => DT_Prims,
+                Type_Definition =>
+                  Make_Constrained_Array_Definition (Loc,
+                    Discrete_Subtype_Definitions => New_List (
+                      Make_Range (Loc,
+                        Low_Bound  => Make_Integer_Literal (Loc, 1),
+                        High_Bound => Make_Integer_Literal (Loc,
+                                       DT_Entry_Count
+                                         (First_Tag_Component (Typ))))),
+                    Component_Definition =>
+                      Make_Component_Definition (Loc,
+                        Subtype_Indication =>
+                          New_Reference_To (RTE (RE_Prim_Ptr), Loc)))));
+
+            Append_To (Result,
+              Make_Full_Type_Declaration (Loc,
+                Defining_Identifier => DT_Prims_Acc,
+                Type_Definition =>
+                   Make_Access_To_Object_Definition (Loc,
                      Subtype_Indication =>
-                       New_Reference_To (RTE (RE_Prim_Ptr), Loc)))));
+                       New_Occurrence_Of (DT_Prims, Loc))));
 
-         Append_To (Result,
-           Make_Full_Type_Declaration (Loc,
-             Defining_Identifier => DT_Prims_Acc,
-             Type_Definition =>
-                Make_Access_To_Object_Definition (Loc,
-                  Subtype_Indication =>
-                    New_Occurrence_Of (DT_Prims, Loc))));
+            Append_Elmt (DT_Prims_Acc, Access_Disp_Table (Typ));
 
-         Append_Elmt (DT_Prims_Acc, Access_Disp_Table (Typ));
+            --  Analyze the resulting list and suppress the generation of the
+            --  Init_Proc associated with the above array declaration because
+            --  this type is never used in object declarations. It is only used
+            --  to simplify the expansion associated with dispatching calls.
 
-         --  Analyze the resulting list and suppress the generation of the
-         --  Init_Proc associated with the above array declaration because
-         --  we never use such type in object declarations; this type is only
-         --  used to simplify the expansion associated with dispatching calls.
+            Analyze_List (Result);
+            Set_Suppress_Init_Proc (Base_Type (DT_Prims));
 
-         Analyze_List (Result);
-         Set_Suppress_Init_Proc (Base_Type (DT_Prims));
+            --  Mark entity of dispatch table. Required by the back end to
+            --  handle them properly.
 
-         --  Mark entity of dispatch table. Required by the backend to handle
-         --  the properly.
-
-         Set_Is_Dispatch_Table_Entity (DT_Prims);
-      end;
+            Set_Is_Dispatch_Table_Entity (DT_Prims);
+         end;
+      end if;
 
       Set_Ekind        (DT_Ptr, E_Constant);
       Set_Is_Tag       (DT_Ptr);
@@ -6168,6 +6306,21 @@ package body Exp_Disp is
 
       return Result;
    end Make_Tags;
+
+   ---------------
+   -- New_Value --
+   ---------------
+
+   function New_Value (From : Node_Id) return Node_Id is
+      Res : constant Node_Id := Duplicate_Subexpr (From);
+   begin
+      if Is_Access_Type (Etype (From)) then
+         return Make_Explicit_Dereference (Sloc (From),
+                  Prefix => Res);
+      else
+         return Res;
+      end if;
+   end New_Value;
 
    -----------------------------------
    -- Original_View_In_Visible_Part --

@@ -1,3 +1,7 @@
+2009-07-24  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* Merge from mainline (r149350-149952)
+
 2009-07-18  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-poly.c (apply_poly_transforms): Move strip_mine
