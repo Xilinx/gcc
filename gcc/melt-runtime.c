@@ -5174,7 +5174,19 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
 	      c = (int) strtol (hbuf, (char **) 0, 16);
 	      if (c != (int) (md5src[i] & 0xff))
 		{
+		  char hexmd5src[40];
+		  int j;
+		  memset (hexmd5src, 0, sizeof (hexmd5src));
+		  for (j = 0; j < 16; j++) 
+		    {
+		      hexmd5src[2*j] = "0123456789abcdef" [(md5src[j]>>4)&0xf];
+		      hexmd5src[2*j+1] = "0123456789abcdef" [md5src[j]&0xf];
+		    }
+		  debugeprintf("mismatched md5src=%#x hexmd5src=%s",
+			       *(int*)md5src, hexmd5src);
 		  warning (0, "md5 source mismatch in MELT module %s", dypath);
+		  inform (UNKNOWN_LOCATION, "recomputed md5 of MELT C code is %s", hexmd5src);
+		  inform (UNKNOWN_LOCATION, "MELT module contains registered md5sum %s", dynmd5);
 		  goto bad;
 		}
 	    }

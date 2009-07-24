@@ -1398,6 +1398,8 @@
 	     ))
        ;; if no binding list, make an empty one
        (if (null nbindmatx) (setq nbindmatx (make_list discr_list)))
+       ;;
+       ;; loop on each case
        (foreach_in_multiple
 	(scases)
 	(curcas :long ix)
@@ -1434,16 +1436,25 @@
 	  (multiple_put_nth tupcstmap ix mapcst)
 	  (multiple_put_nth tupbindlist ix bindlist)
 	  (debug_msg curpat "normexp_match curpat before normal_pattern")
+	  ;; normalize the current pattern, with the handler storing its topmost tester
 	  (normal_pattern 
 	   curpat nmatx
 	   (lambda (tester) 
 	     (debug_msg tester "normexp_match.lambda tester")
+	     (shortbacktrace_dbg "normexp_match lambda tester" 12)
+	     (assert_msg "check empty ntestcont" 
+			 (null (unsafe_get_field :container_value ntestcont)))
 	     (put_fields ntestcont :container_value tester))
 	   pcn)
 	  (debug_msg ntestcont "normexp_match ntestcont after normal_pattern")
+	  ;; 
 	  (let ( (newenv (get_field :pctn_env pcn))
 		 (pvarlocmap (get_field :pctn_pvarlocmap pcn))
 		 (curtester (get_field :container_value ntestcont))
+		 ;; we need a success. For the last joker case, it
+		 ;; becomes the curtester; for the usual case it is
+		 ;; added as the last then. Anyway, it will contain
+		 ;; the action part of the current case.
 		 (newsuctester
 		  (instance class_normtester_success
 			    :nrep_loc curloc
@@ -1457,73 +1468,51 @@
 			    :ntsuccess_do ()
 			    ))
 		 )
-	    ;; we don't register the success test
 	    (debug_msg newenv "normexp_match newenv")
 	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
 	    (debug_msg curcas "normexp_match curcas after normal_pattern")
 	    (debug_msg curtester "normexp_match curtester after normal_pattern")
 	    (debug_msg oldtester "normexp_match oldtester after normal_pattern")
-	    (if (null curtester)
-		(progn
-		  (debug_msg curcas "normexp_match curcas for null curtester")
-		  ;; curtester is null if the whole case is a joker,
-		  ;; this should be the last case
-		  (if (<i ix (-i (multiple_length scases) 1))
-		      (warning_plain sloc "joker case in MATCH is not last"))
-		  ))
-	    (assert_msg "check curtester" (or (null curtester) (is_a curtester class_normtester_any)))
-	    ;; loop on the ntest_then chain to add the success test at
-	    ;; last, ensuring that there is no yet any success test
-	    ;; there...
-	    (forever
-	     lastesterloop
-	     (debug_msg curtester "normexp_match lastesterloop curtester")
-	     (if (null curtester)
-		 (exit lastesterloop))
-	     (if (is_a curtester class_normtester_success)
-		 (let ( (otherloc (get_field :nrep_loc curtester)) )
-		   (warning_plain curloc "unreachable match case")
-		   (inform_plain otherloc "this is the other successful case")
-		   (exit lastesterloop)
-		   ()))
-	     (let ( (nextester (get_field :ntest_then curtester)) )
-	       (if (is_a nextester class_normtester_any)
-		   (progn 
-		     (setq curtester nextester)
-		     (debug_msg curtester "normexp_match curtester becomes"))
-		 (exit lastesterloop)))
-	     )
-	    ;; no curtester for a last joker pattern ....
-	    (if (null curtester)
-		(progn
-		  (setq curtester newsuctester)
-		  (debug_msg curtester "normexp_match no curtester so success")
-		  ))
+	    ;; append the new success to the test list, so that it
+	    ;; will get its ntest_normatch later
+	    (list_append testlist newsuctester)
+	    (cond 
+	     ((null curtester)
+	      (debug_msg curcas "normexp_match curcas for null curtester")
+	      ;; curtester is null if the whole case is a joker,
+	      ;; this should be the last case
+	      (if (<i ix (-i (multiple_length scases) 1))
+		  (error_plain sloc "joker case in MATCH is not last"))
+	      ;; set the current tester to the success 
+	      (setq curtester newsuctester)
+	      (debug_msg curtester "normexp_match curestester set to success")
+	      )
+	     ;; else the curtester is not null; it cannot be a success
+	     (:else
+	      (assert_msg "check curtester not success" 
+			  (not (is_a curtester class_normtester_success)))
+;;; add the newsuctester as the last then of the curtester
+	      (let ( (curtestcont (make_instance class_container
+						 :container_value curtester)) )
+		(debug_msg curtestcont "normexp_match initial curtestcont")
+		(set_newtester_lastthen newsuctester curtestcont)
+		(debug_msg curtestcont "normexp_match final curtestcont")
+		)
+	      ) ;; end when null curtester
+	     )	;; end cond
+	    (debug_msg curtester "normexp_match final curtester")
+	    (assert_msg "check final curtester"  (is_a curtester class_normtester_any))
 	    ;; if there is an oldtester, add the curtester as its last else case
-	    (forever 
-	     oldtesterloop
-	     (if (null oldtester) (exit oldtesterloop))
-	     (assert_msg "check oldtester" (is_a oldtester class_normtester_any))
-	     (let ( (oldelse (unsafe_get_field :ntest_else oldtester)) )
-	       (if (null oldelse)
-		   (progn
-		     (compile_warning "the bug for simple4 in tmatch-4 test could be here" ())
-		     (put_fields oldtester :ntest_else curtester)
-		     (list_append (get_field :ntest_comefrom curtester) oldtester)
-		     (shortbacktrace_dbg "normexp_match updatelse" 16)
-		     (debug_msg oldtester "normexp_match updatelse oldtester")
-		     (exit oldtesterloop))
-		 (setq oldtester oldelse))
-	       ))
+	    (if oldtester
+		(let ( (oldtestcont (make_instance class_container
+						   :container_value oldtester)) 
+		       )
+		  (debug_msg oldtestcont "normexp_match initial oldtestcont")
+		  (set_newtester_lastelse curtester oldtestcont)
+		  (debug_msg oldtestcont "normexp_match final oldtestcont")
+		  ))
 	    ;; always set the oldtester to the curtester
 	    (setq oldtester curtester)
-	    ;; if the curtester is not the new success itself, put the
-	    ;; new success as its then case
-	    (if (!= curtester newsuctester)
-		(put_tester_then curtester newsuctester))
-	    ;;
-	    (list_append testlist newsuctester)
-	    (debug_msg curtester "normexp_match after lastesterloop curtester")
 	    (debug_msg pcn "normexp_match pcn after lastesterloop")
 	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
 	    (let ( (sortedvars (mapobject_sorted_attribute_tuple pvarlocmap)) 
@@ -1594,13 +1583,8 @@
 			   (inform_strv sloc "expected type of match case"
 					(get_field :named_name wholectype)))
 			 )
-		   )
-		 )
-		)
-	      )
-	    )
-	  )
-	)				;end foreach_in_multiple
+		   ))))))) ;;; end foreach_in_multiple
+       ;; end of loop on each case
        (debug_msg tupvarmap "normexp_match tupvarmap")
        (debug_msg tupcstmap "normexp_match tupcstmap")
        (debug_msg tupbindlist "normexp_match tupbindlist")

@@ -11,20 +11,17 @@
 (defun simple4 (data f :tree t)
   (match t
 ;;;
-         ( ?(tree_integer_cst 33)
-            (f data 1))
+         ( ?(tree_integer_cst ?_)
+            (f data 1000))
 ;;;
          (  ?(tree_of_type
-	      ?(as ?ty
-		   ?(tree_var_decl 
-		     ?(cstring_same "needle"))
-		   )
-	      )
-	     (f data 2))
-	 )
+                   ?(tree_var_decl 
+                     ?(cstring_same "needle"))
+              )
+             (f data 2000))
+         )
   )
 
-#|
 ;; from makegreen_transform in melt/ana-simple.melt
 (defun tmatch4 (grdata f :gimple g)
   (debug_msg grdata "tmatch4 start grdata")
@@ -63,6 +60,5 @@
   )
 
 (debug_msg tmatch4 "tmatch4")
-|#
 
 ;; eof tmatch-4.melt

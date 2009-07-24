@@ -1,4 +1,15 @@
 
+2009-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	[tmatch-4 seems to be compiled correctly]
+	* testsuite/melt/tmatch-4.melt: uncommented code.
+	* melt-runtime.c (load_checked_dynamic_module_index): when md5sum
+	mismatch, display the recomputed & the expected checksums.
+	* melt/warmelt-normatch.melt: the normexp_match function has been
+	simplified and more robust regarding then & else chaining of cases
+	& success tests, so tmatch-4 test passes.
+	* melt/ana-simple.melt: removed warning regarding miscompilation.
+	added comment referint to tmatch-4 test case.
+
 2009-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[function simple4 of testcase tmatch-4 is still compiled
 	erronously; some ntest_else is put incorrectly inside the second

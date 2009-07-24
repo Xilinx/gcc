@@ -40,8 +40,8 @@
 	   mkgreen_fprintf
 	   ))
 
-(compile_warning "makegreen_transform could be miscompiled; see tmatch-4 test" ())
 
+;; this inspired gcc/testsuite/melt/tmatch-4.melt 
 (defun makegreen_transform (grdata :tree decl :basicblock bb)
   (debug_msg grdata "makegreen_transform start grdata")
   (debugtree "makegreen_transform decl" decl)
