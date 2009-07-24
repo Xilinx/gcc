@@ -52,7 +52,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite-clast-to-gimple.h"
 #include "graphite-sese-to-poly.h"
 
-
 /* Check if VAR is used in a phi node, that is no loop header.  */
 
 static bool
@@ -1451,17 +1450,25 @@ build_scop_iteration_domain (scop_p scop)
    domain.  */
 
 static void
-pdr_add_alias_set (ppl_Polyhedron_t accesses, data_reference_p dr ATTRIBUTE_UNUSED,
+pdr_add_alias_set (ppl_Polyhedron_t accesses, data_reference_p dr,
 		   ppl_dimension_type accessp_nb_dims,
 		   ppl_dimension_type dom_nb_dims)
 {
   ppl_Linear_Expression_t alias;
   ppl_Constraint_t cstr;
+  int alias_set_num = 0;
+
+  if (dr->aux != NULL)
+    {
+      alias_set_num = *((int *)(dr->aux));
+      free (dr->aux);
+      dr->aux = NULL;
+    }
 
   ppl_new_Linear_Expression_with_dimension (&alias, accessp_nb_dims);
 
   ppl_set_coef (alias, dom_nb_dims, 1);
-  ppl_set_inhomogeneous (alias, -1);
+  ppl_set_inhomogeneous (alias, -alias_set_num);
   ppl_new_Constraint (&cstr, alias, PPL_CONSTRAINT_TYPE_EQUAL);
   ppl_Polyhedron_add_constraint (accesses, cstr);
 
@@ -1602,6 +1609,43 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
 	       DR_IS_READ (dr) ? PDR_READ : PDR_WRITE, dr);
 }
 
+/* Group each data reference in DRS with it's alias set num.  */
+
+static void
+build_alias_set_for_drs (VEC (data_reference_p, heap) **drs)
+{
+  int num_vertex = VEC_length (data_reference_p, *drs);
+  struct graph *g = new_graph (num_vertex);
+  data_reference_p dr1, dr2;
+  int i, j;
+  int num_component;
+  int *queue;
+
+  for (i = 0; VEC_iterate (data_reference_p, *drs, i, dr1); i++)
+    for (j = i+1; VEC_iterate (data_reference_p, *drs, j, dr2); j++)
+      if (dr_may_alias_p (dr1, dr2))
+	{
+	  add_edge (g, i, j);
+	  add_edge (g, j, i);
+	}
+
+  queue = XNEWVEC (int, num_vertex);
+  for (i = 0; i < num_vertex; i++)
+    queue[i] = i;
+
+  num_component = graphds_dfs (g, queue, num_vertex, NULL, true, NULL);
+
+  for (i = 0; i < g->n_vertices; i++)
+    {
+      data_reference_p dr = VEC_index (data_reference_p, *drs, i);
+      dr->aux = XNEW (int);
+      *((int *)(dr->aux)) = g->vertices[i].component + 1;
+    }
+
+  free (queue);
+  free_graph (g);
+}
+
 /* Build the data references for PBB.  */
 
 static void
@@ -1610,6 +1654,8 @@ build_pbb_drs (poly_bb_p pbb)
   int j;
   data_reference_p dr;
   VEC (data_reference_p, heap) *gbb_drs = GBB_DATA_REFS (PBB_BLACK_BOX (pbb));
+
+  build_alias_set_for_drs (&gbb_drs);
 
   for (j = 0; VEC_iterate (data_reference_p, gbb_drs, j, dr); j++)
     build_poly_dr (dr, pbb);

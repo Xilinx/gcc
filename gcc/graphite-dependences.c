@@ -554,6 +554,63 @@ graphite_legal_transform (scop_p scop)
   return true;
 }
 
+/* Remove all the dimensions except alias information at dimension
+   ALIAS_DIM.  */
+
+static void
+build_alias_set_powerset (ppl_Pointset_Powerset_C_Polyhedron_t alias_powerset,
+			  ppl_dimension_type alias_dim)
+{
+  ppl_dimension_type *ds;
+  ppl_dimension_type access_dim;
+  unsigned i, pos = 0;
+
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (alias_powerset, &access_dim);
+  ds = XNEWVEC (ppl_dimension_type, access_dim-1);
+  for (i = 0; i < access_dim; i++)
+    {
+      if (i == alias_dim)
+	continue;
+
+      ds[pos] = i;
+      pos++;
+    }
+
+  ppl_Pointset_Powerset_C_Polyhedron_remove_space_dimensions (alias_powerset, ds, (access_dim-1));
+  free (ds);
+}
+
+/* Return true when PDR1 and PDR2 may alias.  */
+
+static bool
+poly_drs_may_alias_p (poly_dr_p pdr1, poly_dr_p pdr2)
+{
+  ppl_Pointset_Powerset_C_Polyhedron_t alias_powerset1, alias_powerset2;
+  ppl_Pointset_Powerset_C_Polyhedron_t accesses1 = PDR_ACCESSES (pdr1);
+  ppl_Pointset_Powerset_C_Polyhedron_t accesses2 = PDR_ACCESSES (pdr2);
+  ppl_dimension_type alias_dim1 = pdr_alias_set_dim (pdr1);
+  ppl_dimension_type alias_dim2 = pdr_alias_set_dim (pdr2);
+  int empty_p;
+
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
+    (&alias_powerset1, accesses1);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
+    (&alias_powerset2, accesses2);
+
+  build_alias_set_powerset (alias_powerset1, alias_dim1);
+  build_alias_set_powerset (alias_powerset2, alias_dim2);
+
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign
+    (alias_powerset1, alias_powerset2);
+
+  empty_p =  ppl_Pointset_Powerset_C_Polyhedron_is_empty (alias_powerset1);
+
+  ppl_delete_Pointset_Powerset_C_Polyhedron (alias_powerset1);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (alias_powerset2);
+
+  return !empty_p;
+}
+
 /* Returns TRUE when the dependence polyhedron between PDR1 and
    PDR2 represents a loop carried dependence at level LEVEL. Otherwise
    return FALSE.  */
@@ -576,6 +633,10 @@ graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
   graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
   ppl_dimension_type dim;
   bool empty_p;
+
+  if ((PDR_TYPE (pdr1) == PDR_READ && PDR_TYPE (pdr2) == PDR_READ)
+      || !poly_drs_may_alias_p (pdr1, pdr2))
+    return false;
 
   if (sdim1 != sdim2)
     return true;
