@@ -1,4 +1,9 @@
 2009-07-24  Li Feng  <nemokingdom@gmail.com>
+
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-8.c:
+	Remove 2 XFAIL.
+
+2009-07-24  Li Feng  <nemokingdom@gmail.com>
 	Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-sese-to-poly.c (pdr_add_alias_set): Use data reference's
