@@ -1,5 +1,9 @@
 2009-07-24  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* Makefile.in (lambda-code.o): Fix formatting.
+
+2009-07-24  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* Merge from mainline (r149350-149952)
 
 2009-07-18  Tobias Grosser  <grosser@fim.uni-passau.de>
