@@ -1,4 +1,12 @@
 
+2009-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
 2009-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmatch-4 seems to be compiled correctly]
 	* testsuite/melt/tmatch-4.melt: uncommented code.
