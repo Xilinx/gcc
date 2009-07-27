@@ -19,8 +19,13 @@
                      ?(cstring_same "needle"))
               )
              (f data 2000))
+;;;
+         (  ?(tree_of_type
+	      ?_)
+             (f data 2500))
          )
   )
+
 
 ;; from makegreen_transform in melt/ana-simple.melt
 (defun tmatch4 (grdata f :gimple g)
@@ -60,5 +65,6 @@
   )
 
 (debug_msg tmatch4 "tmatch4")
+
 
 ;; eof tmatch-4.melt
