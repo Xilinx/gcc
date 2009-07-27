@@ -9036,7 +9036,7 @@ package body Sem_Prag is
             Arg   : Node_Id;
 
          begin
-            GNAT_Pragma;
+            Ada_2005_Pragma;
             Check_At_Least_N_Arguments (1);
 
             --  Loop through arguments of pragma
@@ -9508,10 +9508,23 @@ package body Sem_Prag is
 
                else
                   if not Rep_Item_Too_Late (Typ, N) then
-                     if VM_Target = No_VM then
+
+                     --  In the context of static code analysis, we do not need
+                     --  complex front-end expansions related to pragma Pack,
+                     --  so disable handling of pragma Pack in this case.
+
+                     if CodePeer_Mode then
+                        null;
+
+                     --  For normal non-VM target, do the packing
+
+                     elsif VM_Target = No_VM then
                         Set_Is_Packed            (Base_Type (Typ));
                         Set_Has_Pragma_Pack      (Base_Type (Typ));
-                        Set_Has_Non_Standard_Rep (Base_Type (Typ));
+                           Set_Has_Non_Standard_Rep (Base_Type (Typ));
+
+                     --  If we ignore the pack, then warn about this, except
+                     --  that we suppress the warning in GNAT mode.
 
                      elsif not GNAT_Mode then
                         Error_Pragma

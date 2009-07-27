@@ -86,6 +86,11 @@ package SCOs is
    --        a Source_Reference pragma was encountered (since all line number
    --        references will be with respect to the original file).
 
+   --        Note: the filename is redundant in that it could be deduced from
+   --        the corresponding D line, but it is convenient at least for human
+   --        reading of the SCO information, and means that the SCO information
+   --        can stand on its own without needing other parts of the ALI file.
+
    --  Statements
 
    --    For the purpose of SCO generation, the notion of statement includes
@@ -100,7 +105,7 @@ package SCOs is
    --  Statement lines
 
    --    These lines correspond to a sequence of one or more statements which
-   --    are always exeecuted in sequence, The first statement may be an entry
+   --    are always executed in sequence, The first statement may be an entry
    --    point (e.g. statement after a label), and the last statement may be
    --    an exit point (e.g. an exit statement), but no other entry or exit
    --    points may occur within the sequence of statements. The idea is that
@@ -253,15 +258,15 @@ package SCOs is
    --    Complex Decision
    --      C1   = 'I', 'E', 'W', 'X' (if/exit/while/expression)
    --      C2   = ' '
-   --      From = No_Location
-   --      To   = No_Location
+   --      From = No_Source_Location
+   --      To   = No_Source_Location
    --      Last = False
 
    --    Operator
    --      C1   = '!', '^', '&', '|'
    --      C2   = ' '
-   --      From = No_Location
-   --      To   = No_Location
+   --      From = No_Source_Location
+   --      To   = No_Source_Location
    --      Last = False
 
    --    Element

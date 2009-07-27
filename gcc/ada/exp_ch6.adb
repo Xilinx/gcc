@@ -1834,8 +1834,8 @@ package body Exp_Ch6 is
 
          else
             Indic :=
-              (Subtype_Indication
-                (Type_Definition (Original_Node (Parent (S)))));
+              Subtype_Indication
+                (Type_Definition (Original_Node (Parent (S))));
 
             if Nkind (Indic) = N_Subtype_Indication then
                Par := Entity (Subtype_Mark (Indic));
@@ -1850,7 +1850,6 @@ package body Exp_Ch6 is
            or else not In_Open_Scopes (Scope (Par))
          then
             return Empty;
-
          else
             Gen_Par := Generic_Parent_Type (Parent (Par));
          end if;
@@ -1919,7 +1918,7 @@ package body Exp_Ch6 is
       Scop          : Entity_Id;
       Subp          : Entity_Id;
 
-      Prev_Orig     : Node_Id;
+      Prev_Orig : Node_Id;
       --  Original node for an actual, which may have been rewritten. If the
       --  actual is a function call that has been transformed from a selected
       --  component, the original node is unanalyzed. Otherwise, it carries
@@ -2038,11 +2037,10 @@ package body Exp_Ch6 is
          end;
       end if;
 
-      --  First step, compute extra actuals, corresponding to any
-      --  Extra_Formals present. Note that we do not access Extra_Formals
-      --  directly, instead we simply note the presence of the extra
-      --  formals as we process the regular formals and collect the
-      --  corresponding actuals in Extra_Actuals.
+      --  First step, compute extra actuals, corresponding to any Extra_Formals
+      --  present. Note that we do not access Extra_Formals directly, instead
+      --  we simply note the presence of the extra formals as we process the
+      --  regular formals collecting corresponding actuals in Extra_Actuals.
 
       --  We also generate any required range checks for actuals for in formals
       --  as we go through the loop, since this is a convenient place to do it.
@@ -5557,9 +5555,15 @@ package body Exp_Ch6 is
       --  If the function's result subtype is unconstrained and the object is
       --  a return object of an enclosing build-in-place function, then the
       --  implicit build-in-place parameters of the enclosing function must be
-      --  passed along to the called function.
+      --  passed along to the called function. (Unfortunately, this won't cover
+      --  the case of extension aggregates where the ancestor part is a build-
+      --  in-place unconstrained function call that should be passed along the
+      --  caller's parameters. Currently those get mishandled by reassigning
+      --  the result of the call to the aggregate return object, when the call
+      --  result should really be directly built in place in the aggregate and
+      --  not built in a temporary. ???)
 
-      elsif Nkind (Parent (Object_Decl)) = N_Extended_Return_Statement then
+      elsif Is_Return_Object (Defining_Identifier (Object_Decl)) then
          Pass_Caller_Acc := True;
 
          Enclosing_Func := Enclosing_Subprogram (Obj_Def_Id);

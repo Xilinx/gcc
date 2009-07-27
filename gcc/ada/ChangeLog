@@ -1,3 +1,351 @@
+2009-07-16  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR bootstrap/40578
+	* adaint.h (FOPEN, STAT, FSTAT, LSTAT, STRUCT_STAT): Rename from these
+	(GNAT_FOPEN, GNAT_STAT, GNAT_FSTAT, GNAT_LSTAT, GNAT_STRUCT_STAT): ...
+	to these.
+	(__gnat_stat): Adjust reference to STAT in prototype.
+	* adaint.c (__gnat_try_lock, __gnat_fopen, __gnat_file_length,
+	__gnat_named_file_length, __gnat_file_time_name, __gnat_file_time_fd,
+	__gnat_get_libraries_from_registry, __gnat_stat, __gnat_file_exists,
+	__gnat_is_regular_file, __gnat_is_directory, __gnat_is_readable_file,
+	__gnat_is_writable_file, __gnat_is_executable_file,
+	__gnat_set_writable, __gnat_set_executable, __gnat_set_non_writable,
+	__gnat_set_readable, __gnat_set_non_readable, __gnat_is_symbolic_link,
+	__gnat_copy_attribs): Adjust all references to the above.
+	* cstreams.c (__gnat_is_regular_file_fd): Likewise.
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem.adb (Do_Unit_And_Dependents): Now that specs and bodies are not
+	done at the same time, guard against listing a body more than once.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch6.adb: Minor reformatting
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Analyze_Object_Declaration): A scalar constant with a
+	static expression is known valid.
+	* sem_eval.adb (Compile_Time_Compare): Handle properly non-static
+	operands of a subtype with a single value.
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem.adb (Do_Units_And_Dependents): Process bodies only for units that
+	are in the context of the main unit body.
+
+2009-07-23  Sergey Rybin  <rybin@adacore.com>
+
+	* gnat_ugn.texi (Misnamed_Controlling_Parameters gnatcheck rule): Fix
+	misprint in rule description.
+
+2009-07-23  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch6.adb (Make_Build_In_Place_Call_In_Object_Declaration): Replace
+	test that the object declaration is within an extended return statement
+	with direct test of whether the declared object associated with the
+	build-in-place call is a return object, since the enclosing function
+	might not even be a build-in-place function.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* freeze.adb, prj-nmsc.adb, errout.adb: Minor reformatting
+	Minor code reorganization
+
+2009-07-23  Arnaud Charlet  <charlet@adacore.com>
+
+	* sem_prag.adb (Analyze_Pragma): Do not ignore pragma Pack on records
+	for static analysis, only packed arrays are causing troubles.
+
+2009-07-23  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_aggr.adb (Resolve_Extension_Aggregate): Report an error when the
+	ancestor part is a call to a limited function with an unconstrained
+	result subtype unless the aggregate has a null extension type.
+	* sem_ch3.adb (Is_Null_Extension): Use the base type when retrieving
+	the parent type declaration to avoid blowups on subtype cases.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* par-ch4.adb (P_Aggregate_Or_Paren_Expr): Better message for missing
+	comma.
+
+	* sem_util.adb (Wrong_Type): Special message for cases like A and B = 0
+
+	* s-regexp.adb: Minor reformatting
+	* scos.ads: Minor reformatting.
+
+2009-07-23  Arnaud Charlet  <charlet@adacore.com>
+
+	* freeze.adb (Set_Small_Size): Remove extra space for consistency with
+	other similar messages.
+	* sem_prag.adb (Freeze_Record_Type, Freeze_Entity): Disable error
+	messages/implicit packing in CodePeer mode.
+	(Analyze_Pragma [case pragma Pack]): Ignore pragma in CodePeer mode.
+	* errout.adb (Special_Msg_Delete): Suppress 'size too small' message in
+	CodePeer mode.
+
+2009-07-23  Pascal Obry  <obry@adacore.com>
+
+	* prj-nmsc.adb: Fix spec/body naming extension on case insensitive
+	systems.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.ads, g-ssvety.ads, s-regexp.adb, g-sse.ads: Update comment.
+	Minor reformatting.
+
+2009-07-23  Yannick Moy  <moy@adacore.com>
+
+	* s-regexp.adb (Check_Well_Formed_Pattern): Called before compiling the
+	pattern.
+	(Raise_Exception_If_No_More_Chars): Remove extra blank in exception
+	string.
+	(Raise_Exception): Ditto.
+
+2009-07-23  Olivier Hainque  <hainque@adacore.com>
+
+	* g-sse.ads: Simplify comment.
+
+2009-07-23  Olivier Hainque  <hainque@adacore.com>
+
+	* g-ssinty.ads: New unit. GNAT.SSE.Internal_Types. Factorize
+	low level internal type definitions for distinct higher level
+	binding development activities (user type definitions and
+	operations).
+	* gnat_rm.texi: Document it.
+	* g-ssvety.ads: Use it.
+	* gcc-interface/Makefile.in: (x86 32/64 linux, cygwin32 sections): Add
+	g-ssinty.o to EXTRA_GNATRTL_NONTASKING_OBJS.
+	* gcc-interface/utils.c (gnat_internal_attribute_table): Add entry
+	for the "may_alias" attribute.
+
+2009-07-23  Thomas Quinot  <quinot@adacore.com>
+
+	* scos.ads: Minor typo fix
+	* gcc-interface/decl.c (validate_alignment): For the case of an
+	implicit array base type, look for alignment clause on first subtype.
+	Code clean up.
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem.adb (Walk_Library_Units): Handle properly the case where a unit
+	in the context depends on the spec of the main unit, by delaying
+	processing of the main unit body until all other units have been
+	processed.
+
+2009-07-23  Arnaud Charlet  <charlet@adacore.com>
+
+	* a-convec.adb: Add comments about suspicious/subtle code.
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* einfo.ads: Document use of Alias in private overriding
+
+2009-07-23  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch13.adb (Analyze_Attribute_Definition_Clause): For the case of
+	an array type, propagate alignment from first subtype to implicit base
+	type so that other subtypes (such as the itypes for aggregates of the
+	type) also receive the expected alignment.
+
+	* g-comlin.ads: Minor documentation clarification/rewording. 
+	* scos.ads: Minor comments update.
+	* lib-writ.ads: Minor reformatting
+
+2009-07-23  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch3.adb (Expand_N_Object_Declaration): For an initialized object
+	of a class-wide interface type that is a return object of a
+	build-in-place function, bypass the interface-related expansions into
+	renamings with displacement conversions, etc.
+	* exp_ch5.adb (Expand_N_Extended_Return_Statement): Add an assertion
+	for the case where a renaming occurs in a build-in-place context, to
+	assert that the bypassing of the build-in-place treatment only occurs
+	in the case of a renaming that is an expansion of a return expression
+	that is itself a build-in-place function call.
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch4.adb (Try_Primitive_Operation): A primitive operation is a
+	valid candidate interpretation in a prefixed view if it is hidden, but
+	overrides an inherited operation declared in the visible part.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Type_Conversion): Don't promote integer
+	division operands to 64-bit at all in any circumstances.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Analyze_N_Op_Rem): Assume operands are valid when
+	checking ranges for mod/rem to see if conditional jump will be
+	generated.
+	(Analyze_N_Op_Rem): Don't try to check actual lower bounds for
+	generating special -1 test for rem, generate it whenever both
+	operands can be negative (match circuit in Sem_Res).
+	(Analyze_N_Op_Rem): Don't go to base type, no longer needed and
+	destroys memory of positive range.
+	* sem_res.adb (Resolve_Arithmetic_Op): Assume operands are valid when
+	checking ranges for mod/rem to see if conditional jump will be generated
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch3.adb (Build_Equivalent_Record_Aggregate): If the type of a
+	scalar components has non-static bounds, the equivalent aggregate
+	cannot be built, even if the expression is static, because range checks
+	will be generated.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Type_Conversion): Don't promote integer
+	division operands to 64-bit inside a conversion if 64-bit division not
+	available.
+
+2009-07-23  Sergey Rybin  <rybin@adacore.com>
+
+	* gnat_ugn.texi: Update doc on Misnamed_Identifiers rule.
+
+2009-07-23  Javier Miranda  <miranda@adacore.com>
+
+	* sinfo.ads, sinfo.adb (SCIL_Entity/Set_SCIL_Entity): new subprograms
+	(Entity/Set_Entity): not available in N_Null_Statement nodes
+	(Is_Scil_Node): renamed as Is_SCIL_Node
+	(Scil_Nkind): renamed as SCIL_Nkind
+	(Scil_Related_Node): renamed as SCIL_Related_Node
+	(Scil_Target_Prim): renamed as SCIL_Target_Prim
+	(Set_Is_Scil_Node): Renamed as Set_Is_SCIL_Node
+	(Set_Scil_Related_Node): Renamed as Set_SCIL_Related_Node
+	(Set_Scil_Target_Prim): Renamed as Set_SCIL_Target_Prim
+	Update documentation
+	* exp_disp.ads (Scil_Node_Kind): Renamed as SCIL_Node_Kind
+	(Get_Scil_Node_Kind): Renamed as Get_SCIL_Node_Kind
+	(New_Scil_Node): Renamed as New_SCIL_Node
+	* exp_disp.adb Update all occurrences of New_Scil_Node to New_SCIL_Node.
+	(Get_Scil_Node_Kind): Renamed as Get_SCIL_Node_Kind
+	(New_Scil_Node): Renamed as New_SCIL_Node
+	* exp_ch3.adb Update occurrence of New_Scil_Node to New_SCIL_Node.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb: No_Return is an Ada 2005 pragma, not a GNAT pragma
+	* snames.ads-tmpl: No_Return is an Ada 2005 pragma, not a GNAT pragma
+	* einfo.adb: Minor reformatting
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* checks.adb (Apply_Arithmetic_Overflow_Check): Add comments
+	cross-referencing the new related code in
+	Exp_Ch4.Expand_N_Type_Conversion.
+	* exp_ch4.adb (Expand_N_Type_Conversion): Avoid unnecessary overflows
+
+	* exp_disp.adb, exp_disp.ads, sinfo.ads: Minor reformatting.
+	Add comment.
+
+2009-07-23  Javier Miranda  <miranda@adacore.com>
+
+	* sinfo.ads (Is_Scil_Node, Scil_Nkind, Scil_Related_Node,
+	Scil_Target_Prim, N_Has_Entity): Add missing documentation.
+	* exp_disp.ads (Scil_Node_Kind): Ditto.
+	* exp_disp.adb (Make_DT, Make_Tags): Ditto.
+	* exp_ch3.adb (Build_Init_Procedure): Ditto.
+
+2009-07-23  Javier Miranda  <miranda@adacore.com>
+
+	* einfo.adb (Component_Type): Add missing assertion.
+	* sem_res.adb (Resolve_Call): Ensure proper kind of entity before
+	reading attribute Component_Size.
+	* exp_ch4.adb (Is_Safe_In_Place_Array_Op): Ensure proper kind of entity
+	before reading attributes Component_Size and Component_Type.
+	* exp_ch3.adb (Build_Initialization_Call): Ensure proper kind of entity
+	before reading attribute Component_Type.
+
+2009-07-23  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat_rm.texi: Document the GNAT.SSE units.
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Return_Type): Do not create itype reference for
+	not null return if it appears on a subunit.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch5.adb (Expand_N_Assignment_Statement): Do left-side validity
+	check right away so it does not get skipped for early returns, e.g.
+	array assignments.
+	(Expand_N_Assignment_Statement): Don't propagate Is_Known_Valid to
+	left-side unless we really know the value is valid.
+
+	* errout.adb, exp_ch3.adb, exp_disp.ads, sinfo.ads, exp_disp.adb: Minor
+	reformatting. Minor code reorganization. Add comments.
+
+2009-07-23  Robert Dewar  <dewar@adacore.com>
+
+	* get_scos.adb (Skip_EOL): Fix error of mishandling end of line after
+	complex condition.
+
+2009-07-23  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_ch6.adb (Check_Return_Subtype_Indication): Replace type equality
+	with test of coverage, to allow specific type objects in extended
+	returns of class-wide functions. Remove now-unnecessary special-case
+	tests that allowed this in certain cases of expanded extended returns.
+
+2009-07-23  Javier Miranda  <miranda@adacore.com>
+
+	* sinfo.ads,sinfo.adb (Entity/Set_Entity): Attribute available in
+	N_Null_Statements (for SCIL nodes).
+	(Is_Scil_Node/Set_Is_Scil_Node): New attribute (for SCIL nodes).
+	(Scil_Nkind/Set_Scil_Nkind): New attribute (for SCIL nodes).
+	(Scil_Related_Node/Set_Scil_Related_Node): New attribute (for SCIL
+	nodes).
+	(Scil_Target_Prim/Set_Scil_Target_Prim): New attribute (for SCIL nodes).
+	* exp_disp.adb (Expand_Dispatching_Call): Add generation of SCIL node
+	associated with dispatching call.
+	(Get_Scil_Node_Kind): New function that returns the kind of SCIL node.
+	(Make_DT, Make_Tags): Add generation of SCIL nodes associated with
+	initialization of dispatch tables and initialization of tags.
+	(New_Scil_Node): New function that creates a new SCIL node.
+	(Build_Init_Procedure): Add generation of SCIL node associated with the
+	initialization of tags done in the IP subprogram.
+
+2009-07-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* errout.adb (Error_Msg_NEL): If the entity in the initial message has
+	Warnings_Off, do not emit continuation messages.
+
+	* sem_ch10.adb: Set Is_Compilation_Unit on generated child subprogram
+	spec.
+
+2009-07-23  Emmanuel Briot  <briot@adacore.com>
+
+	* ali.adb: Minor comment update
+
+2009-07-23  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* s-win32.ads (HANDLE): Define to be the same size as address type.
+	Fix copyright.
+
+2009-07-23  Olivier Hainque  <hainque@adacore.com>
+
+	* g-sse.ads: New file. Root of the SSE facilities trees, with
+	general description and common declarations.
+	* g-ssvety.ads: New file. Expose user level SSE vector types.
+	* impunit.adb (Non_Imp_File_Names_95): Register new units.
+	* gcc-interface/Makefile.in (x86 32/64 linux, win32): Add
+	EXTRA_GNATRTL_NONTASKING_OBJS entries for SSE units.
+
+2009-07-23  Ben Brosgol  <brosgol@adacore.com>
+
+	* gnat_ugn.texi: Wordsmithing.
+
+2009-07-23  Arnaud Charlet  <charlet@adacore.com>
+
+	* prj-conf.ads, prj-conf.adb: Switch to GPLv3.
+
 2009-07-22  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* exp_aggr.adb (Gen_Loop): Do not qualify the bounds of the range if

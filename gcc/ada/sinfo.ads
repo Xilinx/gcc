@@ -1251,6 +1251,15 @@ package Sinfo is
    --    handler to make sure that the associated protected object is unlocked
    --    when the subprogram completes.
 
+   --  Is_SCIL_Node (Flag4-Sem)
+   --    Present in N_Null_Statement nodes. Set to indicate that it is a SCIL
+   --    node. SCIL nodes are special nodes that help the CodePeer backend
+   --    locating nodes that require special processing. In order to minimize
+   --    the impact on the compiler and ASIS, and also to maximize flexibility
+   --    when adding SCIL nodes to the tree, instead of adding new kind of
+   --    nodes, SCIL nodes are added to the tree as N_Null_Statement nodes on
+   --    which this attribute is set.
+
    --  Is_Static_Coextension (Flag14-Sem)
    --    Present in N_Allocator nodes. Set if the allocator is a coextension
    --    of an object allocated on the stack rather than the heap.
@@ -1588,6 +1597,23 @@ package Sinfo is
    --    than truncated towards zero as usual. These rounded integer operations
    --    are the result of expansion of rounded fixed-point divide, conversion
    --    and multiplication operations.
+
+   --  SCIL_Entity (Node4-Sem)
+   --    Present in N_Null_Statement nodes that are SCIL nodes. Used to
+   --    reference the tagged type associated with the SCIL node.
+
+   --  SCIL_Nkind (Uint3-Sem)
+   --    Present in N_Null_Statement nodes that are SCIL nodes. Used to
+   --    indicate the kind of SCIL node (see SCIL node kinds in exp_disp.ads).
+
+   --  SCIL_Related_Node (Node1-Sem)
+   --    Present in N_Null_Statement nodes that are SCIL nodes. Used to
+   --    reference a tree node that requires special processing in the
+   --    CodePeer backend.
+
+   --  SCIL_Target_Prim (Node2-Sem)
+   --    Present in N_Null_Statement nodes. Used to reference the tagged type
+   --    primitive associated with the SCIL node.
 
    --  Scope (Node3-Sem)
    --    Present in defining identifiers, defining character literals and
@@ -3836,6 +3862,11 @@ package Sinfo is
 
       --  N_Null_Statement
       --  Sloc points to NULL
+      --  Is_SCIL_Node (Flag4-Sem)
+      --  SCIL_Nkind (Uint3-Sem)
+      --  SCIL_Related_Node (Node1-Sem)
+      --  SCIL_Entity (Node4-Sem)
+      --  SCIL_Target_Prim (Node2-Sem)
 
       ----------------
       -- 5.1  Label --
@@ -7399,6 +7430,12 @@ package Sinfo is
      N_Attribute_Reference;
    --  Nodes that have Entity fields
    --  Warning: DOES NOT INCLUDE N_Freeze_Entity!
+   --
+   --  Warning: DOES NOT INCLUDE N_Null_Assignment because it not always
+   --  available. The Entity attribute is only available in SCIL nodes
+   --  (that is, N_Null_Assignment nodes that have Is_Scil_Node set to true).
+   --  Processing such nodes never requires testing if the node is in
+   --  N_Has_Entity node kind.
 
    subtype N_Has_Etype is Node_Kind range
      N_Error ..
@@ -7415,14 +7452,13 @@ package Sinfo is
    subtype N_Later_Decl_Item is Node_Kind range
      N_Task_Type_Declaration ..
      N_Generic_Subprogram_Declaration;
-   --  Note: this is Ada 83 relevant only (see Ada 83 RM 3.9 (2)) and
-   --  includes only those items which can appear as later declarative
-   --  items. This also includes N_Implicit_Label_Declaration which is
-   --  not specifically in the grammar but may appear as a valid later
-   --  declarative items. It does NOT include N_Pragma which can also
-   --  appear among later declarative items. It does however include
-   --  N_Protected_Body, which is a bit peculiar, but harmless since
-   --  this cannot appear in Ada 83 mode anyway.
+   --  Note: this is Ada 83 relevant only (see Ada 83 RM 3.9 (2)) and includes
+   --  only those items which can appear as later declarative items. This also
+   --  includes N_Implicit_Label_Declaration which is not specifically in the
+   --  grammar but may appear as a valid later declarative items. It does NOT
+   --  include N_Pragma which can also appear among later declarative items.
+   --  It does however include N_Protected_Body, which is a bit peculiar, but
+   --  harmless since this cannot appear in Ada 83 mode anyway.
 
    subtype N_Membership_Test is Node_Kind range
       N_In ..
@@ -8052,6 +8088,9 @@ package Sinfo is
    function Is_Protected_Subprogram_Body
      (N : Node_Id) return Boolean;    -- Flag7
 
+   function Is_SCIL_Node
+     (N : Node_Id) return Boolean;    -- Flag4
+
    function Is_Static_Coextension
      (N : Node_Id) return Boolean;    -- Flag14
 
@@ -8306,6 +8345,18 @@ package Sinfo is
 
    function Rounded_Result
      (N : Node_Id) return Boolean;    -- Flag18
+
+   function SCIL_Entity
+     (N : Node_Id) return Node_Id;    -- Node4
+
+   function SCIL_Nkind
+      (N : Node_Id) return Uint;      -- Uint3
+
+   function SCIL_Related_Node
+     (N : Node_Id) return Node_Id;    -- Node1
+
+   function SCIL_Target_Prim
+     (N : Node_Id) return Node_Id;    -- Node2
 
    function Scope
      (N : Node_Id) return Node_Id;    -- Node3
@@ -8949,6 +9000,9 @@ package Sinfo is
    procedure Set_Is_Protected_Subprogram_Body
      (N : Node_Id; Val : Boolean := True);    -- Flag7
 
+   procedure Set_Is_SCIL_Node
+     (N : Node_Id; Val : Boolean := True);    -- Flag4
+
    procedure Set_Is_Static_Coextension
      (N : Node_Id; Val : Boolean := True);    -- Flag14
 
@@ -9203,6 +9257,18 @@ package Sinfo is
 
    procedure Set_Rounded_Result
      (N : Node_Id; Val : Boolean := True);    -- Flag18
+
+   procedure Set_SCIL_Entity
+     (N : Node_Id; Val : Node_Id);            -- Node4
+
+   procedure Set_SCIL_Nkind
+      (N : Node_Id; Val : Uint);              -- Uint3
+
+   procedure Set_SCIL_Related_Node
+     (N : Node_Id; Val : Node_Id);            -- Node1
+
+   procedure Set_SCIL_Target_Prim
+     (N : Node_Id; Val : Node_Id);            -- Node2
 
    procedure Set_Scope
      (N : Node_Id; Val : Node_Id);            -- Node3
@@ -11144,6 +11210,7 @@ package Sinfo is
    pragma Inline (Is_Overloaded);
    pragma Inline (Is_Power_Of_2_For_Shift);
    pragma Inline (Is_Protected_Subprogram_Body);
+   pragma Inline (Is_SCIL_Node);
    pragma Inline (Is_Static_Coextension);
    pragma Inline (Is_Static_Expression);
    pragma Inline (Is_Subprogram_Descriptor);
@@ -11229,6 +11296,10 @@ package Sinfo is
    pragma Inline (Reverse_Present);
    pragma Inline (Right_Opnd);
    pragma Inline (Rounded_Result);
+   pragma Inline (SCIL_Entity);
+   pragma Inline (SCIL_Nkind);
+   pragma Inline (SCIL_Related_Node);
+   pragma Inline (SCIL_Target_Prim);
    pragma Inline (Scope);
    pragma Inline (Select_Alternatives);
    pragma Inline (Selector_Name);
@@ -11439,6 +11510,7 @@ package Sinfo is
    pragma Inline (Set_Is_Overloaded);
    pragma Inline (Set_Is_Power_Of_2_For_Shift);
    pragma Inline (Set_Is_Protected_Subprogram_Body);
+   pragma Inline (Set_Is_SCIL_Node);
    pragma Inline (Set_Has_Self_Reference);
    pragma Inline (Set_Is_Static_Coextension);
    pragma Inline (Set_Is_Static_Expression);
@@ -11524,6 +11596,10 @@ package Sinfo is
    pragma Inline (Set_Reverse_Present);
    pragma Inline (Set_Right_Opnd);
    pragma Inline (Set_Rounded_Result);
+   pragma Inline (Set_SCIL_Entity);
+   pragma Inline (Set_SCIL_Nkind);
+   pragma Inline (Set_SCIL_Related_Node);
+   pragma Inline (Set_SCIL_Target_Prim);
    pragma Inline (Set_Scope);
    pragma Inline (Set_Select_Alternatives);
    pragma Inline (Set_Selector_Name);

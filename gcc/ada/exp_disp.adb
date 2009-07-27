@@ -643,6 +643,17 @@ package body Exp_Disp is
          Typ := Non_Limited_View (Typ);
       end if;
 
+      --  Generate the SCIL node for this dispatching call
+
+      if Generate_SCIL then
+         Insert_Action (Call_Node,
+           New_SCIL_Node
+             (SN_Kind      => Dispatching_Call,
+              Related_Node => Call_Node,
+              Entity       => Typ,
+              Target_Prim  => Subp));
+      end if;
+
       if not Is_Limited_Type (Typ) then
          Eq_Prim_Op := Find_Prim_Op (Typ, Name_Op_Eq);
       end if;
@@ -1595,6 +1606,17 @@ package body Exp_Disp is
                         Parameter_Associations => Actuals)))));
       end if;
    end Expand_Interface_Thunk;
+
+   ------------------------
+   -- Get_SCIL_Node_Kind --
+   ------------------------
+
+   function Get_SCIL_Node_Kind (Node : Node_Id) return SCIL_Node_Kind is
+   begin
+      pragma Assert
+        (Nkind (Node) = N_Null_Statement and then Is_SCIL_Node (Node));
+      return SCIL_Node_Kind'Val (UI_To_Int (SCIL_Nkind (Node)));
+   end Get_SCIL_Node_Kind;
 
    ------------
    -- Has_DT --
@@ -4221,6 +4243,17 @@ package body Exp_Disp is
                   New_Reference_To
                     (RTE (RE_No_Dispatch_Table_Wrapper), Loc)));
 
+            --  Generate a SCIL node for the previous object declaration
+            --  because it has a null dispatch table.
+
+            if Generate_SCIL then
+               Insert_Before (Last (Result),
+                 New_SCIL_Node
+                   (SN_Kind      => Dispatch_Table_Object_Init,
+                    Related_Node => Last (Result),
+                    Entity       => Typ));
+            end if;
+
             Append_To (Result,
               Make_Attribute_Definition_Clause (Loc,
                 Name       => New_Reference_To (DT, Loc),
@@ -4246,6 +4279,17 @@ package body Exp_Disp is
                           New_Occurrence_Of
                             (RTE_Record_Component (RE_NDT_Prims_Ptr), Loc)),
                       Attribute_Name => Name_Address))));
+
+            --  Generate the SCIL node for the previous object declaration
+            --  because it has a tag initialization.
+
+            if Generate_SCIL then
+               Insert_Before (Last (Result),
+                 New_SCIL_Node
+                   (SN_Kind      => Dispatch_Table_Tag_Init,
+                    Related_Node => Last (Result),
+                    Entity       => Typ));
+            end if;
 
          --  Generate:
          --    DT : Dispatch_Table_Wrapper (Nb_Prim);
@@ -4276,6 +4320,17 @@ package body Exp_Disp is
                     Constraint => Make_Index_Or_Discriminant_Constraint (Loc,
                                     Constraints => DT_Constr_List))));
 
+            --  Generate the SCIL node for the previous object declaration
+            --  because it contains a dispatch table.
+
+            if Generate_SCIL then
+               Insert_Before (Last (Result),
+                 New_SCIL_Node
+                   (SN_Kind      => Dispatch_Table_Object_Init,
+                    Related_Node => Last (Result),
+                    Entity       => Typ));
+            end if;
+
             Append_To (Result,
               Make_Attribute_Definition_Clause (Loc,
                 Name       => New_Reference_To (DT, Loc),
@@ -4301,6 +4356,17 @@ package body Exp_Disp is
                           New_Occurrence_Of
                             (RTE_Record_Component (RE_Prims_Ptr), Loc)),
                       Attribute_Name => Name_Address))));
+
+            --  Generate the SCIL node for the previous object declaration
+            --  because it has a tag initialization.
+
+            if Generate_SCIL then
+               Insert_Before (Last (Result),
+                 New_SCIL_Node
+                   (SN_Kind      => Dispatch_Table_Tag_Init,
+                    Related_Node => Last (Result),
+                    Entity       => Typ));
+            end if;
 
             Append_To (Result,
               Make_Object_Declaration (Loc,
@@ -5070,6 +5136,17 @@ package body Exp_Disp is
                 Expression => Make_Aggregate (Loc,
                   Expressions => DT_Aggr_List)));
 
+            --  Generate the SCIL node for the previous object declaration
+            --  because it has a null dispatch table.
+
+            if Generate_SCIL then
+               Insert_Before (Last (Result),
+                 New_SCIL_Node
+                   (SN_Kind      => Dispatch_Table_Object_Init,
+                    Related_Node => Last (Result),
+                    Entity       => Typ));
+            end if;
+
             Append_To (Result,
               Make_Attribute_Definition_Clause (Loc,
                 Name       => New_Reference_To (DT, Loc),
@@ -5375,6 +5452,17 @@ package body Exp_Disp is
                                       Constraints => DT_Constr_List)),
                 Expression => Make_Aggregate (Loc,
                   Expressions => DT_Aggr_List)));
+
+            --  Generate the SCIL node for the previous object declaration
+            --  because it contains a dispatch table.
+
+            if Generate_SCIL then
+               Insert_Before (Last (Result),
+                 New_SCIL_Node
+                   (SN_Kind      => Dispatch_Table_Object_Init,
+                    Related_Node => Last (Result),
+                    Entity       => Typ));
+            end if;
 
             Append_To (Result,
               Make_Attribute_Definition_Clause (Loc,
@@ -6066,6 +6154,17 @@ package body Exp_Disp is
                             (RTE_Record_Component (RE_Prims_Ptr), Loc)),
                       Attribute_Name => Name_Address))));
 
+            --  Generate the SCIL node for the previous object declaration
+            --  because it has a tag initialization.
+
+            if Generate_SCIL then
+               Insert_Before (Last (Result),
+                 New_SCIL_Node
+                   (SN_Kind      => Dispatch_Table_Tag_Init,
+                    Related_Node => Last (Result),
+                    Entity       => Typ));
+            end if;
+
             Append_To (Result,
               Make_Object_Declaration (Loc,
                 Defining_Identifier => Predef_Prims_Ptr,
@@ -6100,6 +6199,17 @@ package body Exp_Disp is
                           New_Occurrence_Of
                             (RTE_Record_Component (RE_NDT_Prims_Ptr), Loc)),
                       Attribute_Name => Name_Address))));
+
+            --  Generate the SCIL node for the previous object declaration
+            --  because it has a tag initialization.
+
+            if Generate_SCIL then
+               Insert_Before (Last (Result),
+                 New_SCIL_Node
+                   (SN_Kind      => Dispatch_Table_Tag_Init,
+                    Related_Node => Last (Result),
+                    Entity       => Typ));
+            end if;
          end if;
 
          Set_Is_True_Constant (DT_Ptr);
@@ -6315,12 +6425,36 @@ package body Exp_Disp is
       Res : constant Node_Id := Duplicate_Subexpr (From);
    begin
       if Is_Access_Type (Etype (From)) then
-         return Make_Explicit_Dereference (Sloc (From),
-                  Prefix => Res);
+         return
+           Make_Explicit_Dereference (Sloc (From),
+             Prefix => Res);
       else
          return Res;
       end if;
    end New_Value;
+
+   -------------------
+   -- New_SCIL_Node --
+   -------------------
+
+   function New_SCIL_Node
+     (SN_Kind      : SCIL_Node_Kind;
+      Related_Node : Node_Id;
+      Entity       : Entity_Id := Empty;
+      Target_Prim  : Entity_Id := Empty) return Node_Id
+   is
+      New_N : constant Node_Id :=
+                New_Node (N_Null_Statement, Sloc (Related_Node));
+   begin
+      Set_Is_SCIL_Node (New_N);
+
+      Set_SCIL_Nkind (New_N, UI_From_Int (SCIL_Node_Kind'Pos (SN_Kind)));
+      Set_SCIL_Related_Node (New_N, Related_Node);
+      Set_SCIL_Entity (New_N, Entity);
+      Set_SCIL_Target_Prim (New_N, Target_Prim);
+
+      return New_N;
+   end New_SCIL_Node;
 
    -----------------------------------
    -- Original_View_In_Visible_Part --
