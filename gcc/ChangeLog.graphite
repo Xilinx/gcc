@@ -1,5 +1,33 @@
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-sese-to-poly.c (loop_entry_phi_arg): New.
+	(remove_simple_copy_phi): New.
+	(remove_invariant_phi): New.
+	(simple_copy_phi_p): New.
+	(reduction_phi_p): New.
+	(gsi_for_ssa_name_def): New.
+	(insert_out_of_ssa_copy): New.
+	(insert_out_of_ssa_copy_on_edge): New.
+	(create_zero_dim_array): New.
+	(scalar_close_phi_node_p): New.
+	(rewrite_close_phi_out_of_ssa): New.
+	(rewrite_phi_out_of_ssa): New.
+	(rewrite_reductions_out_of_ssa): New.
+	(build_poly_scop): Call rewrite_reductions_out_of_ssa.
+	
+	* testsuite/gcc.dg/graphite/id-11.c: New.
+	* testsuite/gcc.dg/graphite/id-15.c: New.
+	* testsuite/gcc.dg/graphite/interchange-1.c: Un-XFAIL.
+	* testsuite/gcc.dg/graphite/interchange-2.c: Un-XFAIL.
+	* testsuite/gcc.dg/graphite/interchange-3.c: Un-XFAIL.
+	* testsuite/gcc.dg/graphite/interchange-4.c: Un-XFAIL.
+	* testsuite/gcc.dg/graphite/interchange-7.c: Un-XFAIL.
+	* testsuite/gcc.dg/graphite/scop-matmult.c: Un-XFAIL.
+	* testsuite/gfortran.dg/graphite/id-13.f: New.
+	* testsuite/gfortran.dg/graphite/id-5.f: New.
+
+2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (graphite_loop_normal_form): Do not
 	check that nb_reductions_in_loop is zero.
 	* graphite-scop-detection.c (harmful_stmt_in_bb): Don't filter out

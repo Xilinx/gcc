@@ -74,6 +74,144 @@ var_used_in_not_loop_header_phi_node (tree var)
   return result;
 }
 
+/* Returns the index of the phi argument corresponding to the initial
+   value in the loop.  */
+
+static size_t
+loop_entry_phi_arg (gimple phi)
+{
+  loop_p loop = gimple_bb (phi)->loop_father;
+  size_t i;
+
+  for (i = 0; i < gimple_phi_num_args (phi); i++)
+    if (!flow_bb_inside_loop_p (loop, gimple_phi_arg_edge (phi, i)->src))
+      return i;
+
+  gcc_unreachable ();
+  return 0;
+}
+
+/* Removes a simple copy phi node "RES = phi (INIT, RES)" at position
+   PSI by inserting on the loop ENTRY edge assignment "RES = INIT".  */
+
+static void
+remove_simple_copy_phi (gimple_stmt_iterator *psi)
+{
+  gimple phi = gsi_stmt (*psi);
+  tree res = gimple_phi_result (phi);
+  size_t entry = loop_entry_phi_arg (phi);
+  tree init = gimple_phi_arg_def (phi, entry);
+  gimple stmt = gimple_build_assign (res, init);
+  edge e = gimple_phi_arg_edge (phi, entry);
+
+  remove_phi_node (psi, false);
+  gsi_insert_on_edge_immediate (e, stmt);
+  SSA_NAME_DEF_STMT (res) = stmt;
+}
+
+/* Removes an invariant phi node at position PSI by inserting on the
+   loop ENTRY edge the assignment RES = INIT.  */
+
+static void
+remove_invariant_phi (sese region, gimple_stmt_iterator *psi)
+{
+  gimple phi = gsi_stmt (*psi);
+  loop_p loop = loop_containing_stmt (phi);
+  tree res = gimple_phi_result (phi);
+  tree scev = scalar_evolution_in_region (region, loop, res);
+  size_t entry = loop_entry_phi_arg (phi);
+  edge e = gimple_phi_arg_edge (phi, entry);
+  tree var;
+  gimple stmt;
+  gimple_seq stmts;
+  gimple_stmt_iterator gsi;
+
+  if (tree_contains_chrecs (scev, NULL))
+    scev = gimple_phi_arg_def (phi, entry);
+
+  var = force_gimple_operand (scev, &stmts, true, NULL_TREE);
+  stmt = gimple_build_assign (res, var);
+  remove_phi_node (psi, false);
+
+  if (!stmts)
+    stmts = gimple_seq_alloc ();
+
+  gsi = gsi_last (stmts);
+  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
+  gsi_insert_seq_on_edge (e, stmts);
+  gsi_commit_edge_inserts ();
+  SSA_NAME_DEF_STMT (res) = stmt;
+}
+
+/* Returns true when the phi node at PSI is of the form "a = phi (a, x)".  */
+
+static inline bool
+simple_copy_phi_p (gimple phi)
+{
+  tree res;
+
+  if (gimple_phi_num_args (phi) != 2)
+    return false;
+
+  res = gimple_phi_result (phi);
+  return (res == gimple_phi_arg_def (phi, 0)
+	  || res == gimple_phi_arg_def (phi, 1));
+}
+
+/* Returns true when the phi node at position PSI is a reduction phi
+   node in REGION.  Otherwise moves the pointer PSI to the next phi to
+   be considered.  */
+
+static bool
+reduction_phi_p (sese region, gimple_stmt_iterator *psi)
+{
+  loop_p loop;
+  tree scev;
+  affine_iv iv;
+  gimple phi = gsi_stmt (*psi);
+  tree res = gimple_phi_result (phi);
+
+  if (!is_gimple_reg (res))
+    {
+      gsi_next (psi);
+      return false;
+    }
+
+  loop = loop_containing_stmt (phi);
+
+  if (simple_copy_phi_p (phi))
+    {
+      /* FIXME: PRE introduces phi nodes like these, for an example,
+	 see id-5.f in the fortran graphite testsuite:
+
+	 # prephitmp.85_265 = PHI <prephitmp.85_258(33), prephitmp.85_265(18)>
+      */
+      remove_simple_copy_phi (psi);
+      return false;
+    }
+
+  /* Main induction variables with constant strides in LOOP are not
+     reductions.  */
+  if (simple_iv (loop, loop, res, &iv, true))
+    {
+      gsi_next (psi);
+      return false;
+    }
+
+  scev = scalar_evolution_in_region (region, loop, res);
+  if (chrec_contains_undetermined (scev))
+    return true;
+
+  if (evolution_function_is_invariant_p (scev, loop->num))
+    {
+      remove_invariant_phi (region, psi);
+      return false;
+    }
+
+  /* All the other cases are considered reductions.  */
+  return true;
+}
+
 /* Returns true when BB will be represented in graphite.  Return false
    for the basic blocks that contain code eliminated in the code
    generation pass: i.e. induction variables and exit conditions.  */
@@ -1656,6 +1794,238 @@ build_scop_drs (scop_p scop)
     build_pbb_drs (pbb);
 }
 
+/* Return a gsi at the position of the VAR definition.  */
+
+static gimple_stmt_iterator
+gsi_for_ssa_name_def (tree var)
+{
+  gimple stmt;
+  basic_block bb;
+  gimple_stmt_iterator gsi;
+  gimple_stmt_iterator psi;
+
+  gcc_assert (TREE_CODE (var) == SSA_NAME);
+
+  stmt = SSA_NAME_DEF_STMT (var);
+  bb = gimple_bb (stmt);
+
+  for (psi = gsi_start_phis (bb); !gsi_end_p (psi); gsi_next (&psi))
+    if (stmt == gsi_stmt (psi))
+      return gsi_after_labels (bb);
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    if (stmt == gsi_stmt (gsi))
+      {
+	gsi_next (&gsi);
+	return gsi;
+      }
+
+  gcc_unreachable ();
+  return gsi;
+}
+
+/* Insert the assignment "RES := VAR" just after the definition of VAR.  */
+
+static void
+insert_out_of_ssa_copy (tree res, tree var)
+{
+  gimple_stmt_iterator gsi = gsi_for_ssa_name_def (var);
+  gimple stmt;
+  gimple_seq stmts;
+  gimple_stmt_iterator si;
+
+  var = force_gimple_operand (var, &stmts, true, NULL_TREE);
+  stmt = gimple_build_assign (res, var);
+  if (!stmts)
+    stmts = gimple_seq_alloc ();
+  si = gsi_last (stmts);
+  gsi_insert_after (&si, stmt, GSI_NEW_STMT);
+  gsi_insert_seq_before (&gsi, stmts, GSI_NEW_STMT);
+}
+
+/* Insert on edge E the assignment "RES := EXPR".  */
+
+static void
+insert_out_of_ssa_copy_on_edge (edge e, tree res, tree expr)
+{
+  gimple_stmt_iterator gsi;
+  gimple_seq stmts;
+  tree var = force_gimple_operand (expr, &stmts, true, NULL_TREE);
+  gimple stmt = gimple_build_assign (res, var);
+
+  if (!stmts)
+    stmts = gimple_seq_alloc ();
+
+  gsi = gsi_last (stmts);
+  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
+  gsi_insert_seq_on_edge (e, stmts);
+  gsi_commit_edge_inserts ();
+}
+
+/* Creates a zero dimension array of the same type as VAR.  */
+
+static tree
+create_zero_dim_array (tree var)
+{
+  tree index_type = build_index_type (integer_zero_node);
+  tree elt_type = TREE_TYPE (var);
+  tree array_type = build_array_type (elt_type, index_type);
+  tree base = create_tmp_var (array_type, "Red");
+
+  add_referenced_var (base);
+
+  return build4 (ARRAY_REF, elt_type, base, integer_zero_node, NULL_TREE, NULL_TREE);
+}
+
+/* Returns true when PHI is a loop close phi node.  */
+
+static bool
+scalar_close_phi_node_p (gimple phi)
+{
+  gcc_assert (gimple_code (phi) == GIMPLE_PHI);
+
+  if (!is_gimple_reg (gimple_phi_result (phi)))
+    return false;
+
+  return (gimple_phi_num_args (phi) == 1);
+}
+
+/* Rewrite out of SSA the reduction phi node at PSI by creating a zero
+   dimension array for it.  */
+
+static void
+rewrite_close_phi_out_of_ssa (gimple_stmt_iterator *psi)
+{
+  gimple phi = gsi_stmt (*psi);
+  tree res = gimple_phi_result (phi);
+  tree var = SSA_NAME_VAR (res);
+  tree zero_dim_array = create_zero_dim_array (var);
+  gimple_stmt_iterator gsi = gsi_after_labels (gimple_bb (phi));
+  gimple stmt = gimple_build_assign (res, zero_dim_array);
+  tree arg = gimple_phi_arg_def (phi, 0);
+
+  insert_out_of_ssa_copy (zero_dim_array, arg);
+
+  remove_phi_node (psi, false);
+  gsi_insert_before (&gsi, stmt, GSI_NEW_STMT);
+  SSA_NAME_DEF_STMT (res) = stmt;
+}
+
+/* Rewrite out of SSA the reduction phi node at PSI by creating a zero
+   dimension array for it.  */
+
+static void
+rewrite_phi_out_of_ssa (gimple_stmt_iterator *psi)
+{
+  size_t i;
+  gimple phi = gsi_stmt (*psi);
+  basic_block bb = gimple_bb (phi);
+  tree res = gimple_phi_result (phi);
+  tree var = SSA_NAME_VAR (res);
+  tree zero_dim_array = create_zero_dim_array (var);
+  gimple_stmt_iterator gsi;
+  gimple stmt;
+  gimple_seq stmts;
+
+  for (i = 0; i < gimple_phi_num_args (phi); i++)
+    {
+      tree arg = gimple_phi_arg_def (phi, i);
+
+      /* Try to avoid the insertion on edges as much as possible: this
+	 would avoid the insertion of code on loop latch edges, making
+	 the pattern matching of the vectorizer happy, or it would
+	 avoid the insertion of useless basic blocks.  Note that it is
+	 incorrect to insert out of SSA copies close by their
+	 definition when they are more than two loop levels apart:
+	 for example, starting from a double nested loop
+
+	 | a = ...
+	 | loop_1
+	 |  loop_2
+	 |    b = phi (a, c)
+	 |    c = ...
+	 |  end_2
+	 | end_1
+
+	 the following transform is incorrect
+
+	 | a = ...
+	 | Red[0] = a
+	 | loop_1
+	 |  loop_2
+	 |    b = Red[0]
+	 |    c = ...
+	 |    Red[0] = c
+	 |  end_2
+	 | end_1
+
+	 whereas inserting the copy on the incomming edge is correct
+
+	 | a = ...
+	 | loop_1
+	 |  Red[0] = a
+	 |  loop_2
+	 |    b = Red[0]
+	 |    c = ...
+	 |    Red[0] = c
+	 |  end_2
+	 | end_1
+      */
+      if (TREE_CODE (arg) == SSA_NAME
+	  && is_gimple_reg (arg)
+	  && gimple_bb (SSA_NAME_DEF_STMT (arg))
+	  && (flow_bb_inside_loop_p (bb->loop_father,
+				     gimple_bb (SSA_NAME_DEF_STMT (arg)))
+	      || flow_bb_inside_loop_p (loop_outer (bb->loop_father),
+					gimple_bb (SSA_NAME_DEF_STMT (arg)))))
+	insert_out_of_ssa_copy (zero_dim_array, arg);
+      else
+	insert_out_of_ssa_copy_on_edge (gimple_phi_arg_edge (phi, i),
+					zero_dim_array, arg);
+    }
+
+  var = force_gimple_operand (zero_dim_array, &stmts, true, NULL_TREE);
+
+  if (!stmts)
+    stmts = gimple_seq_alloc ();
+
+  stmt = gimple_build_assign (res, var);
+  remove_phi_node (psi, false);
+  SSA_NAME_DEF_STMT (res) = stmt;
+
+  gsi = gsi_last (stmts);
+  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
+
+  gsi = gsi_after_labels (bb);
+  gsi_insert_seq_before (&gsi, stmts, GSI_NEW_STMT);
+}
+
+/* Rewrite out of SSA all the reduction phi nodes of SCOP.  */
+
+static void
+rewrite_reductions_out_of_ssa (scop_p scop)
+{
+  basic_block bb;
+  gimple_stmt_iterator psi;
+  sese region = SCOP_REGION (scop);
+
+  FOR_EACH_BB (bb)
+    if (bb_in_region (bb, SESE_ENTRY_BB (region), SESE_EXIT_BB (region)))
+      for (psi = gsi_start_phis (bb); !gsi_end_p (psi);)
+	{
+	  if (scalar_close_phi_node_p (gsi_stmt (psi)))
+	    rewrite_close_phi_out_of_ssa (&psi);
+	  else if (reduction_phi_p (region, &psi))
+	    rewrite_phi_out_of_ssa (&psi);
+	}
+
+  update_ssa (TODO_update_ssa);
+#ifdef ENABLE_CHECKING
+  verify_ssa (false);
+  verify_loop_closed_ssa ();
+#endif
+}
+
 /* Returns the number of pbbs that are in loops contained in SCOP.  */
 
 static int
@@ -1678,6 +2048,7 @@ bool
 build_poly_scop (scop_p scop)
 {
   sese region = SCOP_REGION (scop);
+  rewrite_reductions_out_of_ssa (scop);
   build_scop_bbs (scop);
 
   /* FIXME: This restriction is needed to avoid a problem in CLooG.
