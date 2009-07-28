@@ -3945,6 +3945,10 @@
      (assert_msg "check curotest" (is_a curotest class_normtester_any))
      (assert_msg "check curotest rank" (==i (get_int curotest) testix))
      ;; do we have both then & else?
+     (compile_warning 
+      ;; we probably don't need to test the curnthen & curntest; they
+      ;; probably are set...
+      "probably useless tests - the then & else parts are here!" ())
      (if (is_a curotest class_normtester_anytester)
 	 (let ( (curnthen (get_field :ntest_then curotest))
 		(curnelse (get_field :ntest_else curotest))

@@ -1,11 +1,21 @@
 
 2009-07-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-genobj.melt: added added compile warning about
+	useless tests on then & else...
+
+2009-07-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added class_normtester_anytester.
 	removed set_newtester_lastelse.
 	added set_newtester_allelses.
 	* melt/warmelt-genobj.melt: added test of curnthen & curntest into
 	compilobj_nrep_match.
-	
+
 2009-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	[ana-simple.melt still don't work on tgreenprint.c :-( ]
 	* melt/warmelt-genobj.melt: added tcx_nextest field to
