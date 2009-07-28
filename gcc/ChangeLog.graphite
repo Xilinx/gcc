@@ -1,5 +1,12 @@
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* sese.c (rename_variables_in_stmt): Pass in an extra parameter
+	insert_gsi.
+	(rename_variables): Keep inserting renames after the ones already
+	inserted.
+	
+2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (compare_bb_depths): New.
 	(graphite_sort_dominated_info): New.
 	(build_scop_bbs_1): Call graphite_sort_dominated_info.

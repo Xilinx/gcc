@@ -514,11 +514,10 @@ sese_adjust_liveout_phis (sese region, htab_t rename_map, basic_block bb,
 /* Rename the SSA_NAMEs used in STMT and that appear in MAP.  */
 
 static void 
-rename_variables_in_stmt (gimple stmt, htab_t map)
+rename_variables_in_stmt (gimple stmt, htab_t map, gimple_stmt_iterator *insert_gsi)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
-  gimple_stmt_iterator gsi = gsi_start_bb (gimple_bb (stmt));
 
   FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
     {
@@ -542,7 +541,7 @@ rename_variables_in_stmt (gimple stmt, htab_t map)
 
 	  expr = build2 (MODIFY_EXPR, type_use, var, expr);
 	  expr = force_gimple_operand (expr, &stmts, true, NULL);
-	  gsi_insert_seq_before (&gsi, stmts, GSI_NEW_STMT);
+	  gsi_insert_seq_before (insert_gsi, stmts, GSI_SAME_STMT);
 	}
 
       replace_exp (use_p, expr);
@@ -870,9 +869,10 @@ static void
 rename_variables (basic_block bb, htab_t map)
 {
   gimple_stmt_iterator gsi;
+  gimple_stmt_iterator insert_gsi = gsi_start_bb (bb);
   
   for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-    rename_variables_in_stmt (gsi_stmt (gsi), map);
+    rename_variables_in_stmt (gsi_stmt (gsi), map, &insert_gsi);
 }
 
 /* Remove condition from BB.  */
