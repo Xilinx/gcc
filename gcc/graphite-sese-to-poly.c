@@ -1045,6 +1045,7 @@ create_linear_expr_from_tree (poly_bb_p pbb, tree t)
   ppl_new_Linear_Expression_with_dimension (&res, dim);
 
   t = scalar_evolution_in_region (region, loop, t);
+  gcc_assert (!automatically_generated_chrec_p (t));
 
   value_init (one);
   value_set_si (one, 1);

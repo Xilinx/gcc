@@ -2175,7 +2175,9 @@ instantiate_scev_1 (basic_block instantiate_below,
 	  else
 	    res = chrec;
 
-	  if (res == NULL_TREE)
+	  if (res == NULL_TREE
+	      || !dominated_by_p (CDI_DOMINATORS, instantiate_below,
+				  gimple_bb (SSA_NAME_DEF_STMT (res))))
 	    res = chrec_dont_know;
 	}
 

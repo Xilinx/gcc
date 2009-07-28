@@ -569,7 +569,7 @@ static struct scopdet_info build_scops_1 (basic_block, loop_p,
 
 static struct scopdet_info 
 scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
-			VEC (sd_region, heap) **scops, gbb_type type)
+			  VEC (sd_region, heap) **scops, gbb_type type)
 {
   loop_p loop = bb->loop_father;
   struct scopdet_info result;

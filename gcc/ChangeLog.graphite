@@ -1,5 +1,15 @@
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* tree-scalar-evolution.c (instantiate_scev_1): Return
+	chrec_dont_know when the result is not above instantiate_below.
+	* graphite-scop-detection.c (scopdet_basic_block_info): Fix formatting.
+	* graphite-sese-to-poly.c (create_linear_expr_from_tree): Assert that the
+	tree has a known scalar evolution.
+	* testsuite/gfortran.dg/graphite/id-14.f: New.
+	* testsuite/gfortran.dg/graphite/id-15.f: New.
+
+2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* sese.c (rename_variables_in_stmt): Pass in an extra parameter
 	insert_gsi.
 	(rename_variables): Keep inserting renames after the ones already
