@@ -907,12 +907,17 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     {
-      /* Build new block.  */
-      CloogStatement *stmt = cloog_statement_alloc
-	(GBB_BB (PBB_BLACK_BOX (pbb))->index);
-      CloogBlock *block = cloog_block_alloc (stmt, 0, NULL,
-					     pbb_dim_iter_domain (pbb));
+      CloogStatement *stmt;
+      CloogBlock *block;
 
+      /* Dead code elimination: when the domain of a PBB is empty,
+	 don't generate code for the PBB.  */
+      if (ppl_Pointset_Powerset_C_Polyhedron_is_empty (PBB_DOMAIN (pbb)))
+	continue;
+
+      /* Build the new statement and its block.  */
+      stmt = cloog_statement_alloc (GBB_BB (PBB_BLACK_BOX (pbb))->index);
+      block = cloog_block_alloc (stmt, 0, NULL, pbb_dim_iter_domain (pbb));
       cloog_statement_set_usr (stmt, pbb);
 
       /* Build loop list.  */
