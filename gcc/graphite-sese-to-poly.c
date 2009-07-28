@@ -226,6 +226,37 @@ all_non_dominated_preds_marked_p (basic_block bb, sbitmap map)
   return true;
 }
 
+/* Compare the depth of two basic_block's P1 and P2.  */
+
+static int
+compare_bb_depths (const void *p1, const void *p2)
+{
+  const_basic_block const bb1 = *(const_basic_block const*)p1;
+  const_basic_block const bb2 = *(const_basic_block const*)p2;
+  int d1 = loop_depth (bb1->loop_father);
+  int d2 = loop_depth (bb2->loop_father);
+
+  if (d1 < d2)
+    return 1;
+
+  if (d1 > d2)
+    return -1;
+
+  return 0;
+}
+
+/* Sort the basic blocks from DOM such that the first are the ones at
+   a deepest loop level.  */
+
+static void
+graphite_sort_dominated_info (VEC (basic_block, heap) *dom)
+{
+  size_t len = VEC_length (basic_block, dom);
+
+  qsort (VEC_address (basic_block, dom), len, sizeof (basic_block),
+	 compare_bb_depths);
+}
+
 /* Recursive helper function for build_scops_bbs.  */
 
 static void
@@ -245,6 +276,8 @@ build_scop_bbs_1 (scop_p scop, sbitmap visited, basic_block bb)
 
   if (dom == NULL)
     return;
+
+  graphite_sort_dominated_info (dom);
   
   while (!VEC_empty (basic_block, dom))
     {
@@ -378,7 +411,10 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 
 /* Build for BB the static schedule.
 
-   The STATIC_SCHEDULE is defined like this:
+   The static schedule is a Dewey numbering of the abstract syntax
+   tree: http://en.wikipedia.org/wiki/Dewey_Decimal_Classification
+
+   The following example informally defines the static schedule:
 
    A
    for (i: ...)
