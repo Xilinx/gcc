@@ -1,3 +1,14 @@
+2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_finalize): Call print_loops instead of
+	dump_function_to_file.
+	* testsuite/gcc.dg/graphite/graphite.exp: Fix formatting.
+	* testsuite/gcc.dg/graphite/pr35356-1.c: New.  Look for the number of
+	loops generated in the graphite output file.
+	* testsuite/gcc.dg/graphite/pr35356-2.c: New.
+	* testsuite/gcc.dg/graphite/pr35356-3.c: New.  XFAILed for now.
+	* testsuite/gfortran.dg/graphite/id-12.f: New.
+
 2009-07-24  Li Feng  <nemokingdom@gmail.com>
 
 	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-8.c:

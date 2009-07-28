@@ -236,7 +236,7 @@ graphite_finalize (bool need_cfg_cleanup_p)
   free_aux_in_new_loops ();
 
   if (dump_file && dump_flags)
-    dump_function_to_file (current_function_decl, dump_file, dump_flags);
+    print_loops (dump_file, 3);
 }
 
 /* Perform a set of linear transforms on the loops of the current
