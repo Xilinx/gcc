@@ -1199,60 +1199,6 @@ add_conditions_to_domain (poly_bb_p pbb)
       }
 }
 
-/* Returns true when PHI defines an induction variable in the loop
-   containing the PHI node.  */
-
-static bool
-phi_node_is_iv (gimple phi)
-{
-  loop_p loop = gimple_bb (phi)->loop_father;
-  tree scev = analyze_scalar_evolution (loop, gimple_phi_result (phi));
-
-  return tree_contains_chrecs (scev, NULL);
-}
-
-/* Returns true when BB contains scalar phi nodes that are not an
-   induction variable of a loop.  */
-
-static bool
-bb_contains_non_iv_scalar_phi_nodes (basic_block bb)
-{
-  gimple phi = NULL;
-  gimple_stmt_iterator si;
-
-  for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
-    if (is_gimple_reg (gimple_phi_result (gsi_stmt (si))))
-      {
-	/* Store the unique scalar PHI node: at this point, loops
-	   should be in cannonical form, so we expect to see at most
-	   one scalar phi node in the loop header.  */
-	if (phi || bb != bb->loop_father->header)
-	  return true;
-
-	phi = gsi_stmt (si);
-      }
-
-  if (!phi || phi_node_is_iv (phi))
-    return false;
-
-  return true;
-}
-
-/* Check if SCOP contains non scalar phi nodes.  */
-
-static bool
-scop_contains_non_iv_scalar_phi_nodes (scop_p scop)
-{
-  basic_block bb;
-
-  FOR_EACH_BB (bb)
-    if (bb_in_sese_p (bb, SCOP_REGION (scop)))
-      if (bb_contains_non_iv_scalar_phi_nodes (bb))
-	return true;
-
-  return false;
-}
-
 /* Structure used to pass data to dom_walk.  */
 
 struct bsc
@@ -1742,10 +1688,6 @@ build_poly_scop (scop_p scop)
     return false;
 
   build_sese_loop_nests (region);
-
-  if (scop_contains_non_iv_scalar_phi_nodes (scop))
-    return false;
-
   build_sese_conditions (region);
   find_scop_parameters (scop);
 

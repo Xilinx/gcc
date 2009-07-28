@@ -470,19 +470,7 @@ stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
 static gimple
 harmful_stmt_in_bb (basic_block scop_entry, loop_p outer_loop, basic_block bb)
 {
-  gimple_stmt_iterator psi;
   gimple_stmt_iterator gsi;
-
-  if (single_pred_p (bb))
-    for (psi = gsi_start_phis (bb); !gsi_end_p (psi); gsi_next (&psi))
-      {
-	gimple phi = gsi_stmt (psi);
-
-	if (!is_gimple_reg (PHI_RESULT (phi)))
-	  continue;
-
-	return phi;
-      }
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     if (!stmt_simple_for_scop_p (scop_entry, outer_loop, gsi_stmt (gsi), bb))
@@ -491,35 +479,9 @@ harmful_stmt_in_bb (basic_block scop_entry, loop_p outer_loop, basic_block bb)
   return NULL;
 }
 
-/* Returns the number of reduction phi nodes in LOOP.  */
-
-int
-nb_reductions_in_loop (loop_p loop)
-{
-  int res = 0;
-  gimple_stmt_iterator gsi;
-
-  for (gsi = gsi_start_phis (loop->header); !gsi_end_p (gsi); gsi_next (&gsi))
-    {
-      gimple phi = gsi_stmt (gsi);
-      tree scev;
-      affine_iv iv;
-
-      if (!is_gimple_reg (PHI_RESULT (phi)))
-	continue;
-
-      scev = analyze_scalar_evolution (loop, PHI_RESULT (phi));
-      scev = instantiate_parameters (loop, scev);
-      if (!simple_iv (loop, loop, PHI_RESULT (phi), &iv, true))
-	res++;
-    }
-
-  return res;
-}
-
-/* Return true when it is possible to represent LOOP in the polyhedral
-   representation.  This is evaluated taking SCOP_ENTRY and OUTERMOST_LOOP into
-   account.  */
+/* Return true when it is not possible to represent LOOP in the
+   polyhedral representation.  This is evaluated taking SCOP_ENTRY and
+   OUTERMOST_LOOP in mind.  */
 
 static bool
 graphite_can_represent_loop (basic_block scop_entry, loop_p outermost_loop,
@@ -533,11 +495,6 @@ graphite_can_represent_loop (basic_block scop_entry, loop_p outermost_loop,
 
   /* Number of iterations not affine.  */
   if (!graphite_can_represent_expr (scop_entry, loop, outermost_loop, niter))
-    return false;
-
-  /* Code generation does not deal with scalar reductions.
-     TODO: This limitation should be removed.  */
-  if (nb_reductions_in_loop (loop) > 0)
     return false;
 
   return true;

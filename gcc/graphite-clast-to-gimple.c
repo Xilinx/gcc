@@ -1119,10 +1119,7 @@ graphite_loop_normal_form (loop_p loop)
   bool known_niter = number_of_iterations_exit (loop, exit, &niter, false);
 
   /* At this point we should know the number of iterations,  */
-  gcc_assert (known_niter
-	      /* and have eliminated loops with reductions, as code
-		 generation does not deal with scalar reductions.  */
-	      && nb_reductions_in_loop (loop) == 0);
+  gcc_assert (known_niter);
 
   nit = force_gimple_operand (unshare_expr (niter.niter), &stmts, true,
 			      NULL_TREE);
