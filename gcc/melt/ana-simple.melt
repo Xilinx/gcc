@@ -32,7 +32,7 @@
   pass
 )
 
-(defclass makegreen_data_class 
+(defclass class_makegreen_data 
   :super class_proped
   :fields (mkgreen_pass 
 	   mkgreen_data
@@ -44,6 +44,7 @@
 ;; this inspired gcc/testsuite/melt/tmatch-4.melt 
 (defun makegreen_transform (grdata :tree decl :basicblock bb)
   (debug_msg grdata "makegreen_transform start grdata")
+  (assert_msg "check grdata" (is_a grdata class_makegreen_data))
   (debugtree "makegreen_transform decl" decl)
   (debugbasicblock "makegreen_transform bb" bb)
   (eachgimple_in_basicblock 
@@ -85,7 +86,8 @@
 	    (let ( (gx (maptree_get  (get_field :mkgreen_stdout_ssa grdata) arg0)) )
 	      (cond ( gx
 		      (debug_msg gx "makegreen_transform found gx")
-		      (warning_at_gimple (gimple_content gx) "fprintf to stdout")
+		      (warning_at_gimple g "fprintf to stdout")
+		      (inform_at_gimple (gimple_content gx) "stdout was from here")
 		      )
 		    ))
 	    )
@@ -108,7 +110,7 @@
 	      }#) 
   (assert_msg "makegreenpass_exec check cfun has cfg" (cfun_has_cfg))
   (debugtree "makegreenpass_exec start cfundecl" (cfun_decl))
-  (let ( (grdata (instance makegreen_data_class 
+  (let ( (grdata (instance class_makegreen_data 
 			   :mkgreen_pass pass
 			   :mkgreen_stdout_ssa (make_maptree discr_maptrees 10)
 			   )) )

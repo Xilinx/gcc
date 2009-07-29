@@ -750,11 +750,11 @@
  
 ;; issue a notice or a warning at a gimple location
 (defprimitive inform_at_gimple (:gimple g :cstring msg) :void
-  #{ inform(($g ? gimple_location($g) : UNKNOWN_LOCATION, $msg); }#
+  #{ inform (($g ? gimple_location($g) : UNKNOWN_LOCATION), $msg); }#
 )
 
 (defprimitive warning_at_gimple (:gimple g :cstring msg) :void
-   #{ warning_at($g ? gimple_location($g) : UNKNOWN_LOCATION, 0, $msg); }#
+   #{ warning_at(($g ? gimple_location($g) : UNKNOWN_LOCATION), 0, $msg); }#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
