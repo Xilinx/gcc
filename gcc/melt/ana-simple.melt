@@ -36,7 +36,7 @@
   :super class_proped
   :fields (mkgreen_pass 
 	   mkgreen_data
-	   mkgreen_stdout
+	   mkgreen_stdout_ssa		;map of SSA tree assigned to stdout
 	   mkgreen_fprintf
 	   ))
 
@@ -63,10 +63,25 @@
 					  ?(cstring_same "stdout"))))
 	    (debugtree "makegreen_transform assign single stdout lhs" lhs)
 	    (debugtree "makegreen_transform assign single stdout rhs" rhs)
+	    (maptree_put (get_field :mkgreen_stdout_ssa	grdata) 
+			 lhs
+			 (make_gimple discr_gimple g))
 	    )
 	  (?(gimple_assign_single  ?lhs ?rhs)
 	    (debugtree "makegreen_transform assign single plain lhs" lhs)
 	    (debugtree "makegreen_transform assign single plain rhs" rhs)
+	    )
+	  (?(gimple_call_2_more ?lhs 
+				?(as ?callfndcl 
+				     ?(tree_function_decl 
+				      ?(cstring_same "fprintf")
+				      ?_)
+				     )
+				?arg0 ?arg1 ?nbargs)
+	    (debugtree "makegreen_transform call2morefprintf lhs" lhs)
+	    (debugtree "makegreen_transform call2morefprintf fndecl" callfndcl)
+	    (debugtree "makegreen_transform call2morefprintf arg0" arg0)
+	    (debugtree "makegreen_transform call2morefprintf arg1" arg1)
 	    )
 	  (?(gimple_call ?lhs ?callfndcl ?nbargs)
 	    (debugtree "makegreen_transform call lhs" lhs)
@@ -88,7 +103,9 @@
   (assert_msg "makegreenpass_exec check cfun has cfg" (cfun_has_cfg))
   (debugtree "makegreenpass_exec start cfundecl" (cfun_decl))
   (let ( (grdata (instance makegreen_data_class 
-			   :mkgreen_pass pass)) )
+			   :mkgreen_pass pass
+			   :mkgreen_stdout_ssa (make_maptree discr_maptrees 10)
+			   )) )
     ;; it is useless to do a each_cgraph_decl here...
     (debug_msg grdata "makegreenpass_exec grdata before eachbbcfun")
     ;; gimple ssa passes have a cfg..

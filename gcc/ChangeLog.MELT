@@ -1,4 +1,10 @@
 
+2009-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.melt: added gimple_call_1 .... gimple_call_4_more.
+	* melt/ana-simple.melt: use them.
+	changed field mkgreen_stdout to mkgreen_stdout_ssa and initialize
+	it.
+
 2009-07-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro-0.c: regenerated.
 	* melt/warmelt-outobj-0.c: regenerated.
@@ -4642,3 +4648,7 @@ MELT bootstrapped, ie the generated warm-basilys-0.c is selfgenerated from warm-
 	added our (forgotten) Makefile.in and most of 
 	my (Basile Starynkevitch's) files
 	Created MELT branch. This gcc/ChangeLog.melt added afterwards.
+
+/// Local Variables:
+/// mode: change-log
+/// End:

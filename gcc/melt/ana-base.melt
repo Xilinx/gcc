@@ -547,7 +547,7 @@
    $falselab = gimple_cond_false_label($gc);
    }# )
 
-;;; match a gimple call to a direct function
+;;; match a gimple call to a direct function of any matched arity
 (defcmatcher gimple_call
   (:gimple gc)
   (:tree lhs
@@ -556,13 +556,178 @@
    )
   gimpcall
   ;; test 
-  #{($gc && gimple_code($gc)==GIMPLE_CALL)}#
+  #{/*$gimpcall ?*/($gc && gimple_code($gc)==GIMPLE_CALL)}#
   ;; fill
-  #{
+  #{ /*$gimpcall !*/
    $lhs  = gimple_call_lhs($gc);
    $fndecl = gimple_call_fndecl($gc);
    $nbargs = gimple_call_num_args($gc);
   }# )
+
+;; match a gimple call to a direct function of arity 1 exactly
+(defcmatcher gimple_call_1
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0)
+  gimp1call
+  ;; test
+  #{/*$gimp1call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==1)}#
+  ;; fill
+  #{ /*$gimp1call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   }#)
+
+;; match a gimple call to a direct function of arity 1 or more
+(defcmatcher gimple_call_1_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+   :long nbargs)
+  gimp1calm
+  ;; test
+  #{/*$gimp1calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=1)}#
+  ;; fill
+  #{ /*$gimp1calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+
+;; match a gimple call to a direct function of arity 2 exactly
+(defcmatcher gimple_call_2
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1)
+  gimp2call
+  ;; test
+  #{/*$gimp2call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==2)}#
+  ;; fill
+  #{ /*$gimp2call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   }#)
+
+;; match a gimple call to a direct function of arity 2 or more
+(defcmatcher gimple_call_2_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+   :long nbargs)
+  gimp2calm
+  ;; test
+  #{/*$gimp2calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=2)}#
+  ;; fill
+  #{ /*$gimp2calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;; match a gimple call to a direct function of arity 3 exactly
+(defcmatcher gimple_call_3
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2)
+  gimp3call
+  ;; test
+  #{/*$gimp3call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==3)}#
+  ;; fill
+  #{ /*$gimp3call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   }#)
+
+;; match a gimple call to a direct function of arity 3 or more
+(defcmatcher gimple_call_3_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+   :long nbargs
+	 )
+  gimp3calm
+  ;; test
+  #{/*$gimp3calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=3)}#
+  ;; fill
+  #{ /*$gimp3calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;; match a gimple call to a direct function of arity 34exactly
+(defcmatcher gimple_call_4
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3)
+  gimp4call
+  ;; test
+  #{/*$gimp4call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==4)}#
+  ;; fill
+  #{ /*$gimp4call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   }#)
+
+;; match a gimple call to a direct function of arity 3 or more
+(defcmatcher gimple_call_4_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+   :long nbargs
+	 )
+  gimp4calm
+  ;; test
+  #{/*$gimp4calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=4)}#
+  ;; fill
+  #{ /*$gimp4calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
 
 ;;;; fetch the nth argument inside a call
 (defprimitive gimple_call_nth_arg (:gimple gc :long n) :tree
@@ -1614,6 +1779,14 @@
  gimple_assign_trunc_mod
  gimple_assign_unary_nop
  gimple_call
+ gimple_call_1
+ gimple_call_1_more
+ gimple_call_2
+ gimple_call_2_more
+ gimple_call_3
+ gimple_call_3_more
+ gimple_call_4
+ gimple_call_4_more
  gimple_call_nth_arg  
  gimple_cond_false
  gimple_cond_greater
