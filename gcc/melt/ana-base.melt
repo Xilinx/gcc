@@ -748,6 +748,15 @@
    $retval = gimple_return_retval($gr);
   }# )
  
+;; issue a notice or a warning at a gimple location
+(defprimitive inform_at_gimple (:gimple g :cstring msg) :void
+  #{ inform(($g ? gimple_location($g) : UNKNOWN_LOCATION, $msg); }#
+)
+
+(defprimitive warning_at_gimple (:gimple g :cstring msg) :void
+   #{ warning_at($g ? gimple_location($g) : UNKNOWN_LOCATION, 0, $msg); }#
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defprimitive is_gimpleseq (v) :long
   #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_GIMPLESEQ)}# )
@@ -776,8 +785,18 @@
   ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
   ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
   ;; otherwise no location
-  #{ inform((DECL_P($tr)? DECL_SOURCE_LOCATION($tr)
-	    : EXPR_P($tr) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
+  #{ inform((($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
+	    : ($tr && EXPR_P($tr)) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
+  $msg );
+  }# )
+
+(defprimitive warning_at_tree (:tree tr :cstring msg) :void
+  ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
+  ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
+  ;; otherwise no location
+  #{ warning_at((($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
+		 : ($tr && EXPR_P($tr)) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
+		0
   $msg );
   }# )
 
@@ -1799,6 +1818,7 @@
  gimpleseq_content 
  gimpleval
  has_cfun
+ inform_at_gimple
  inform_at_tree
  insert_ppl_constraint_in_boxed_system 
  install_melt_gcc_pass
@@ -1877,6 +1897,8 @@
  tree_type
  tree_var_decl
  tree_var_decl_named
+ warning_at_tree
+ warning_at_gimple
 )
 
 (export_class

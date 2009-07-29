@@ -82,6 +82,12 @@
 	    (debugtree "makegreen_transform call2morefprintf fndecl" callfndcl)
 	    (debugtree "makegreen_transform call2morefprintf arg0" arg0)
 	    (debugtree "makegreen_transform call2morefprintf arg1" arg1)
+	    (let ( (gx (maptree_get  (get_field :mkgreen_stdout_ssa grdata) arg0)) )
+	      (cond ( gx
+		      (debug_msg gx "makegreen_transform found gx")
+		      (warning_at_gimple (gimple_content gx) "fprintf to stdout")
+		      )
+		    ))
 	    )
 	  (?(gimple_call ?lhs ?callfndcl ?nbargs)
 	    (debugtree "makegreen_transform call lhs" lhs)

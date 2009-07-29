@@ -1,5 +1,10 @@
 
 2009-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.melt: added inform_at_gimple warning_at_gimple
+	inform_at_tree warning_at_tree.
+	* melt/ana-simple.melt: issue a warning when fprintf to stdout!
+
+2009-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.melt: added gimple_call_1 .... gimple_call_4_more.
 	* melt/ana-simple.melt: use them.
 	changed field mkgreen_stdout to mkgreen_stdout_ssa and initialize
