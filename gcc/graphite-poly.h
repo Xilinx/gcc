@@ -64,15 +64,15 @@ struct poly_dr
   /* The access polyhedron contains the polyhedral space this data
      reference will access.
 
-     The polyhedron contains these dimensions: 
+     The polyhedron contains these dimensions:
 
       - The alias set (a):
       Every memory access is classified in at least one alias set.
-    
+
       - The subscripts (s_0, ..., s_n):
       The memory is accessed using zero or more subscript dimensions.
 
-      - The iteration domain (variables and parameters) 
+      - The iteration domain (variables and parameters)
 
      Do not hardcode the dimensions.  Use the following accessor functions:
      - pdr_alias_set_dim
@@ -92,7 +92,7 @@ struct poly_dr
      |       p = A;
      |       ... = p[?][?];
      | 	   for j
-     |       A[i][j+b] = m; 
+     |       A[i][j+b] = m;
      |   }
 
      The data access A[i][j+k] in alias set "5" is described like this:
@@ -157,7 +157,8 @@ pdr_nb_subscripts (poly_dr_p pdr)
   poly_bb_p pbb = PDR_PBB (pdr);
   ppl_dimension_type dim;
 
-  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PDR_ACCESSES (pdr), &dim);
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PDR_ACCESSES (pdr),
+						      &dim);
   return dim - pbb_dim_iter_domain (pbb) - pbb_nb_params (pbb) - 1;
 }
 
@@ -196,7 +197,7 @@ pdr_alias_set_dim (poly_dr_p pdr)
   poly_bb_p pbb = PDR_PBB (pdr);
 
   return pbb_dim_iter_domain (pbb) + pbb_nb_params (pbb);
-} 
+}
 
 /* The dimension in PDR containing subscript S.  */
 
@@ -228,7 +229,7 @@ pdr_parameter_dim (poly_dr_p pdr, graphite_dim_t param)
 
 /* POLY_BB represents a blackbox in the polyhedral model.  */
 
-struct poly_bb 
+struct poly_bb
 {
   void *black_box;
 
@@ -242,14 +243,14 @@ struct poly_bb
          for (k = 0; k <= 5; k++)
            S (i,j,k)
 
-     Loop iterators: i, j, k 
+     Loop iterators: i, j, k
      Parameters: a, b
-      
+
      | i >=  a -  7b +  8
      | i <= 3a + 13b + 20
      | j >= 2
      | j <= 2i + 5
-     | k >= 0 
+     | k >= 0
      | k <= 5
 
      The number of variables in the DOMAIN may change and is not
@@ -339,7 +340,7 @@ pbb_dim_iter_domain (const struct poly_bb *pbb)
 static inline graphite_dim_t
 pbb_nb_params (const struct poly_bb *pbb)
 {
-  scop_p scop = PBB_SCOP (pbb); 
+  scop_p scop = PBB_SCOP (pbb);
 
   return scop_nb_params (scop);
 }
@@ -555,7 +556,7 @@ extern bool graphite_legal_transform (scop_p);
 
 /* Set the region of SCOP to REGION.  */
 
-static inline void 
+static inline void
 scop_set_region (scop_p scop, void *region)
 {
   scop->region = region;

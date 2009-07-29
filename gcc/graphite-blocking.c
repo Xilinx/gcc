@@ -61,7 +61,7 @@ along with GCC; see the file COPYING3.  If not see
    The strip mine of a loop with a tile of 64 can be obtained with a
    scattering function as follows:
 
-   $ cat ./albert_strip_mine.cloog 
+   $ cat ./albert_strip_mine.cloog
    # language: C
    c
 
@@ -97,7 +97,7 @@ along with GCC; see the file COPYING3.  If not see
    NEW  OLD
 
    #the output of CLooG is like this:
-   #$ cloog ./albert_strip_mine.cloog 
+   #$ cloog ./albert_strip_mine.cloog
    # for (NEW=0;NEW<=floord(n,64);NEW++) {
    #   for (OLD=max(64*NEW,0);OLD<=min(64*NEW+63,n);OLD++) {
    #     S1(i = OLD) ;

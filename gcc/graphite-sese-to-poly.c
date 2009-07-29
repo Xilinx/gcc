@@ -244,7 +244,7 @@ graphite_stmt_p (sese region, basic_block bb,
 	  {
 	    tree var = gimple_assign_lhs (stmt);
 
-	    /* We need these bbs to be able to construct the phi nodes.  */ 
+	    /* We need these bbs to be able to construct the phi nodes.  */
 	    if (var_used_in_not_loop_header_phi_node (var))
 	      return true;
 
@@ -277,7 +277,7 @@ new_gimple_bb (basic_block bb, VEC (data_reference_p, heap) *drs)
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_CLOOG_IV_TYPES (gbb) = NULL;
- 
+
   return gbb;
 }
 
@@ -347,14 +347,14 @@ try_generate_gimple_bb (scop_p scop, basic_block bb)
 }
 
 /* Returns true if all predecessors of BB, that are not dominated by BB, are
-   marked in MAP.  The predecessors dominated by BB are loop latches and will 
+   marked in MAP.  The predecessors dominated by BB are loop latches and will
    be handled after BB.  */
 
 static bool
 all_non_dominated_preds_marked_p (basic_block bb, sbitmap map)
 {
   edge e;
-  edge_iterator ei; 
+  edge_iterator ei;
 
   FOR_EACH_EDGE (e, ei, bb->preds)
     if (!TEST_BIT (map, e->src->index)
@@ -408,7 +408,7 @@ build_scop_bbs_1 (scop_p scop, sbitmap visited, basic_block bb)
     return;
 
   try_generate_gimple_bb (scop, bb);
-  SET_BIT (visited, bb->index); 
+  SET_BIT (visited, bb->index);
 
   dom = get_dominated_by (CDI_DOMINATORS, bb);
 
@@ -416,7 +416,7 @@ build_scop_bbs_1 (scop_p scop, sbitmap visited, basic_block bb)
     return;
 
   graphite_sort_dominated_info (dom);
-  
+
   while (!VEC_empty (basic_block, dom))
     {
       int i;
@@ -448,9 +448,9 @@ build_scop_bbs (scop_p scop)
   sbitmap_free (visited);
 }
 
-/* Converts the STATIC_SCHEDULE of PBB into a scattering polyhedron.  
+/* Converts the STATIC_SCHEDULE of PBB into a scattering polyhedron.
    We generate SCATTERING_DIMENSIONS scattering dimensions.
-   
+
    CLooG 0.15.0 and previous versions require, that all
    scattering functions of one CloogProgram have the same number of
    scattering dimensions, therefore we allow to specify it.  This
@@ -463,7 +463,7 @@ build_scop_bbs (scop_p scop)
 
    | scattering_dimensions = 5
    | used_scattering_dimensions = 3
-   | nb_iterators = 1 
+   | nb_iterators = 1
    | scop_nb_params = 2
    |
    | Schedule:
@@ -476,14 +476,14 @@ build_scop_bbs (scop_p scop)
    | loop_iterators: {i}
    | parameters: {p1, p2}
    |
-   | s1  s2  s3  s4  s5  i   p1  p2  1 
+   | s1  s2  s3  s4  s5  i   p1  p2  1
    | 1   0   0   0   0   0   0   0  -4  = 0
    | 0   1   0   0   0  -1   0   0   0  = 0
    | 0   0   1   0   0   0   0   0  -5  = 0  */
 
 static void
 build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
-				  poly_bb_p pbb, int scattering_dimensions) 
+				  poly_bb_p pbb, int scattering_dimensions)
 {
   int i;
   scop_p scop = PBB_SCOP (pbb);
@@ -533,7 +533,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 	  ppl_Linear_Expression_add_to_coefficient
 	    (expr, scattering_dimensions + loop, c);
 	}
-      
+
       ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
       ppl_Polyhedron_add_constraint (PBB_TRANSFORMED_SCATTERING (pbb), cstr);
       ppl_delete_Linear_Expression (expr);
@@ -560,13 +560,13 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
        for (j: ...)
          {
            B
-           C 
+           C
          }
 
        for (k: ...)
          {
            D
-           E 
+           E
          }
      }
    F
@@ -574,12 +574,12 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
    Static schedules for A to F:
 
      DEPTH
-     0 1 2 
+     0 1 2
    A 0
    B 1 0 0
    C 1 0 1
    D 1 1 0
-   E 1 1 1 
+   E 1 1 1
    F 2
 */
 
@@ -629,19 +629,19 @@ build_scop_scattering (scop_p scop)
 							   common);
 
       build_pbb_scattering_polyhedrons (common, pbb, nb_scat_dims);
-							
+
       ppl_delete_Linear_Expression (common);
     }
 
   value_clear (v);
   ppl_delete_Coefficient (c);
   ppl_delete_Linear_Expression (static_schedule);
-} 
+}
 
 /* Add the value K to the dimension D of the linear expression EXPR.  */
 
 static void
-add_value_to_dim (ppl_dimension_type d, ppl_Linear_Expression_t expr, 
+add_value_to_dim (ppl_dimension_type d, ppl_Linear_Expression_t expr,
 		  Value k)
 {
   Value val;
@@ -678,7 +678,7 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
       gcc_assert (sese_loop_depth (s, loop) > 0);
 
       /* We can not deal with parametric strides like:
- 
+
       | p = parameter;
       |
       | for i:
@@ -797,9 +797,8 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
   switch (TREE_CODE (e))
     {
     case POLYNOMIAL_CHREC:
-      scan_tree_for_params_right_scev (s, CHREC_RIGHT (e), CHREC_VARIABLE (e), 
-				       c);
-				       
+      scan_tree_for_params_right_scev (s, CHREC_RIGHT (e),
+				       CHREC_VARIABLE (e), c);
       scan_tree_for_params (s, CHREC_LEFT (e), c, k);
       break;
 
@@ -858,7 +857,8 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 
 	if (c)
 	  {
-	    ppl_subtract_Linear_Expression_from_Linear_Expression (c, tmp_expr);
+	    ppl_subtract_Linear_Expression_from_Linear_Expression (c,
+								   tmp_expr);
 	    ppl_delete_Linear_Expression (tmp_expr);
 	  }
 
@@ -880,7 +880,8 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 
 	if (c)
 	  {
-	    ppl_subtract_Linear_Expression_from_Linear_Expression (c, tmp_expr);
+	    ppl_subtract_Linear_Expression_from_Linear_Expression (c,
+								   tmp_expr);
 	    ppl_delete_Linear_Expression (tmp_expr);
 	  }
 
@@ -905,7 +906,8 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	    ppl_Coefficient_t coef;
 	    Value minus_one;
 
-	    ppl_subtract_Linear_Expression_from_Linear_Expression (c, tmp_expr);
+	    ppl_subtract_Linear_Expression_from_Linear_Expression (c,
+								   tmp_expr);
 	    ppl_delete_Linear_Expression (tmp_expr);
 	    value_init (minus_one);
 	    value_set_si (minus_one, -1);
@@ -917,7 +919,6 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 
 	break;
       }
-
 
     case SSA_NAME:
       {
@@ -1008,7 +1009,7 @@ find_params_in_bb (sese region, gimple_bb_p gbb)
       for_each_index (&dr->ref, idx_record_params, &irp);
     }
 
-  /* Find parameters in conditional statements.  */ 
+  /* Find parameters in conditional statements.  */
   for (i = 0; VEC_iterate (gimple, GBB_CONDITIONS (gbb), i, stmt); i++)
     {
       Value one;
@@ -1086,7 +1087,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 
   {
     ppl_const_Constraint_System_t pcs;
-    ppl_dimension_type *map 
+    ppl_dimension_type *map
       = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
 
     ppl_new_C_Polyhedron_from_space_dimension (&ph, dim, 0);
@@ -1190,7 +1191,7 @@ create_linear_expr_from_tree (poly_bb_p pbb, tree t)
   scan_tree_for_params (region, t, res, one);
   value_clear (one);
 
-  return res; 
+  return res;
 }
 
 /* Returns the ppl constraint type from the gimple tree code CODE.  */
@@ -1323,7 +1324,7 @@ add_conditions_to_domain (poly_bb_p pbb)
 	    /* The conditions for ELSE-branches are inverted.  */
 	    if (VEC_index (gimple, gbb->condition_cases, i) == NULL)
 	      code = invert_tree_comparison (code, false);
-	    
+
 	    add_condition_to_pbb (pbb, stmt, code);
 	    break;
 	  }
@@ -1375,7 +1376,7 @@ build_sese_conditions_before (struct dom_walk_data *dw_data,
   VEC (gimple, heap) **cases = data->cases;
   gimple_bb_p gbb = gbb_from_bb (bb);
   gimple stmt = single_pred_cond (bb);
-  
+
   if (!bb_in_sese_p (bb, data->region))
     return;
 
@@ -1387,7 +1388,7 @@ build_sese_conditions_before (struct dom_walk_data *dw_data,
 
       if (e->flags & EDGE_TRUE_VALUE)
 	VEC_safe_push (gimple, heap, *cases, stmt);
-      else 
+      else
 	VEC_safe_push (gimple, heap, *cases, NULL);
     }
 
@@ -1421,7 +1422,7 @@ build_sese_conditions_after (struct dom_walk_data *dw_data,
 
 /* Record all conditions in REGION.  */
 
-static void 
+static void
 build_sese_conditions (sese region)
 {
   struct dom_walk_data walk_data;
@@ -1530,7 +1531,7 @@ build_scop_context (scop_p scop)
    SCOP, and that vary for the execution of the current basic block.
    Returns false if there is no loop in SCOP.  */
 
-static void 
+static void
 build_scop_iteration_domain (scop_p scop)
 {
   struct loop *loop;
@@ -1542,7 +1543,7 @@ build_scop_iteration_domain (scop_p scop)
   ppl_new_C_Polyhedron_from_space_dimension (&ph, scop_nb_params (scop), 0);
 
   for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
-    if (!loop_in_sese_p (loop_outer (loop), region)) 
+    if (!loop_in_sese_p (loop_outer (loop), region))
       build_loop_iteration_domains (scop, loop, ph, 0);
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
@@ -1594,7 +1595,7 @@ pdr_add_alias_set (ppl_Polyhedron_t accesses, data_reference_p dr,
   ppl_Polyhedron_add_constraint (accesses, cstr);
 
   ppl_delete_Linear_Expression (alias);
-  ppl_delete_Constraint (cstr); 
+  ppl_delete_Constraint (cstr);
 }
 
 /* Add to ACCESSES polyhedron equalities defining the access functions
@@ -1635,7 +1636,7 @@ pdr_add_memory_accesses (ppl_Polyhedron_t accesses, data_reference_p dr,
 
       ppl_delete_Linear_Expression (fn);
       ppl_delete_Linear_Expression (access);
-      ppl_delete_Constraint (cstr); 
+      ppl_delete_Constraint (cstr);
     }
 
   value_clear (v);
@@ -1714,7 +1715,8 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
   accessp_nb_dims = dom_nb_dims + 1 + DR_NUM_DIMENSIONS (dr);
 
   ppl_new_C_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
-  ppl_new_C_Polyhedron_from_space_dimension (&data_container, accessp_nb_dims, 0);
+  ppl_new_C_Polyhedron_from_space_dimension (&data_container,
+					     accessp_nb_dims, 0);
 
   pdr_add_alias_set (accesses, dr, accessp_nb_dims, dom_nb_dims);
   pdr_add_memory_accesses (accesses, dr, accessp_nb_dims, dom_nb_dims, pbb);
@@ -1874,7 +1876,8 @@ create_zero_dim_array (tree var)
 
   add_referenced_var (base);
 
-  return build4 (ARRAY_REF, elt_type, base, integer_zero_node, NULL_TREE, NULL_TREE);
+  return build4 (ARRAY_REF, elt_type, base, integer_zero_node, NULL_TREE,
+		 NULL_TREE);
 }
 
 /* Returns true when PHI is a loop close phi node.  */

@@ -101,13 +101,16 @@ get_bb_type (basic_block bb, struct loop *last_loop)
   return GBB_COND_HEADER;
 }
 
-/* A SCoP detection region, defined using bbs as borders. 
-   All control flow touching this region, comes in passing basic_block ENTRY and
-   leaves passing basic_block EXIT.  By using bbs instead of edges for the
-   borders we are able to represent also regions that do not have a single
-   entry or exit edge.
-   But as they have a single entry basic_block and a single exit basic_block, we
-   are able to generate for every sd_region a single entry and exit edge.
+/* A SCoP detection region, defined using bbs as borders.
+
+   All control flow touching this region, comes in passing basic_block
+   ENTRY and leaves passing basic_block EXIT.  By using bbs instead of
+   edges for the borders we are able to represent also regions that do
+   not have a single entry or exit edge.
+
+   But as they have a single entry basic_block and a single exit
+   basic_block, we are able to generate for every sd_region a single
+   entry and exit edge.
 
    1   2
     \ /
@@ -124,11 +127,11 @@ get_bb_type (basic_block bb, struct loop *last_loop)
 
 typedef struct sd_region_p
 {
-  /* The entry bb dominates all bbs in the sd_region.  It is part of the
-     region.  */
+  /* The entry bb dominates all bbs in the sd_region.  It is part of
+     the region.  */
   basic_block entry;
 
-  /* The exit bb postdominates all bbs in the sd_region, but is not 
+  /* The exit bb postdominates all bbs in the sd_region, but is not
      part of the region.  */
   basic_block exit;
 } sd_region;
@@ -140,14 +143,15 @@ DEF_VEC_ALLOC_O(sd_region, heap);
 /* Moves the scops from SOURCE to TARGET and clean up SOURCE.  */
 
 static void
-move_sd_regions (VEC (sd_region, heap) **source, VEC (sd_region, heap) **target)
+move_sd_regions (VEC (sd_region, heap) **source,
+		 VEC (sd_region, heap) **target)
 {
   sd_region *s;
   int i;
 
   for (i = 0; VEC_iterate (sd_region, *source, i, s); i++)
     VEC_safe_push (sd_region, heap, *target, s);
-  
+
   VEC_free (sd_region, heap, *source);
 }
 
@@ -189,9 +193,9 @@ graphite_can_represent_init (tree e)
 
 /* Return true when SCEV can be represented in the polyhedral model.
 
-   An expression can be represented, if it can be expressed as an affine
-   expression.  For loops (i, j) and parameters (m, n) all affine expressions
-   are of the form:
+   An expression can be represented, if it can be expressed as an
+   affine expression.  For loops (i, j) and parameters (m, n) all
+   affine expressions are of the form:
 
    x1 * i + x2 * j + x3 * m + x4 * n + x5 * 1 where x1..x5 element of Z
 
@@ -226,7 +230,7 @@ graphite_can_represent_scev (tree scev, int outermost_loop)
 }
 
 
-/* Return true when EXPR can be represented in the polyhedral model.  
+/* Return true when EXPR can be represented in the polyhedral model.
 
    This means an expression can be represented, if it is linear with
    respect to the loops and the strides are non parametric.
@@ -249,25 +253,21 @@ graphite_can_represent_expr (basic_block scop_entry, loop_p loop,
    is component_ref.  */
 
 static bool
-exclude_component_ref (tree op) 
+exclude_component_ref (tree op)
 {
   int i;
   int len;
 
-  if (op)
-    {
-      if (TREE_CODE (op) == COMPONENT_REF)
-	return false;
-      else
-	{
-	  len = TREE_OPERAND_LENGTH (op);	  
-	  for (i = 0; i < len; ++i)
-	    {
-	      if (!exclude_component_ref (TREE_OPERAND (op, i)))
-		return false;
-	    }
-	}
-    }
+  if (!op)
+    return true;
+
+  if (TREE_CODE (op) == COMPONENT_REF)
+    return false;
+
+  len = TREE_OPERAND_LENGTH (op);
+  for (i = 0; i < len; ++i)
+    if (!exclude_component_ref (TREE_OPERAND (op, i)))
+      return false;
 
   return true;
 }
@@ -387,8 +387,9 @@ stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
 	ssa_op_iter op_iter;
         enum tree_code code = gimple_cond_code (stmt);
 
-	/* We can handle all binary comparisons. Inequalities are also supported
-	   as they can be represented with union of polyhedra.  */
+	/* We can handle all binary comparisons.  Inequalities are
+	   also supported as they can be represented with union of
+	   polyhedra.  */
         if (!(code == LT_EXPR
 	      || code == GT_EXPR
 	      || code == LE_EXPR
@@ -417,10 +418,8 @@ stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
 	  case GIMPLE_SINGLE_RHS:
 	    return (is_simple_operand (outermost_loop, stmt,
 				       gimple_assign_lhs (stmt))
-				       
 		    && is_simple_operand (outermost_loop, stmt,
 					  gimple_assign_rhs1 (stmt)));
-					  
 
 	  case GIMPLE_BINARY_RHS:
 	    return (is_simple_operand (outermost_loop, stmt,
@@ -511,10 +510,10 @@ struct scopdet_info
   basic_block next;
 
   /* The bb or one of its children contains open loop exits.  That means
-     loop exit nodes that are not surrounded by a loop dominated by bb.  */ 
+     loop exit nodes that are not surrounded by a loop dominated by bb.  */
   bool exits;
 
-  /* The bb or one of its children contains only structures we can handle.  */ 
+  /* The bb or one of its children contains only structures we can handle.  */
   bool difficult;
 };
 
@@ -524,7 +523,7 @@ static struct scopdet_info build_scops_1 (basic_block, loop_p,
 /* Calculates BB infos. If bb is difficult we add valid SCoPs dominated by BB
    to SCOPS.  TYPE is the gbb_type of BB.  */
 
-static struct scopdet_info 
+static struct scopdet_info
 scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 			  VEC (sd_region, heap) **scops, gbb_type type)
 {
@@ -547,7 +546,7 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
       /* Mark bbs terminating a SESE region difficult, if they start
 	 a condition.  */
       if (!single_succ_p (bb))
-	result.difficult = true; 
+	result.difficult = true;
       else
 	result.exit = single_succ (bb);
 
@@ -624,7 +623,7 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 
     case GBB_LOOP_MULT_EXIT_HEADER:
       {
-        /* XXX: For now we just do not join loops with multiple exits.  If the 
+        /* XXX: For now we just do not join loops with multiple exits.  If the
            exits lead to the same bb it may be possible to join the loop.  */
         VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap, 3);
         VEC (edge, heap) *exits = get_loop_exit_edges (loop);
@@ -634,13 +633,13 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 
 	/* Scan the code dominated by this loop.  This means all bbs, that are
 	   are dominated by a bb in this loop, but are not part of this loop.
-	   
+
 	   The easiest case:
-	     - The loop exit destination is dominated by the exit sources.  
-	 
+	     - The loop exit destination is dominated by the exit sources.
+
 	   TODO: We miss here the more complex cases:
-		  - The exit destinations are dominated by another bb inside the
-		    loop.
+		  - The exit destinations are dominated by another bb inside
+		    the loop.
 		  - The loop dominates bbs, that are not exit destinations.  */
         for (i = 0; VEC_iterate (edge, exits, i, e); i++)
           if (e->src->loop_father == loop
@@ -659,7 +658,7 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 			       e->dest->loop_father);
 	    }
 
-        result.next = NULL; 
+        result.next = NULL;
         result.exit = NULL;
         result.difficult = true;
         result.exits = false;
@@ -678,11 +677,12 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 	edge e;
 	result.exits = false;
 
-	/* First check the successors of BB, and check if it is possible to join
-	   the different branches.  */
+	/* First check the successors of BB, and check if it is
+	   possible to join the different branches.  */
 	for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
 	  {
-	    /* Ignore loop exits.  They will be handled after the loop body.  */
+	    /* Ignore loop exits.  They will be handled after the loop
+	       body.  */
 	    if (is_loop_exit (loop, e->dest))
 	      {
 		result.exits = true;
@@ -725,9 +725,9 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 	    sinfo = build_scops_1 (e->dest, outermost_loop, &regions, loop);
 
 	    result.exits |= sinfo.exits;
-	    result.difficult |= sinfo.difficult; 
+	    result.difficult |= sinfo.difficult;
 
-	    /* Checks, if all branches end at the same point. 
+	    /* Checks, if all branches end at the same point.
 	       If that is true, the condition stays joinable.
 	       Have a look at the example above.  */
 	    if (sinfo.exit)
@@ -749,12 +749,12 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 	if (!result.exits && !result.difficult)
 	  {
 	    /* Only return a next pointer if we dominate this pointer.
-	       Otherwise it will be handled by the bb dominating it.  */ 
+	       Otherwise it will be handled by the bb dominating it.  */
 	    if (dominated_by_p (CDI_DOMINATORS, last_exit, bb)
 		&& last_exit != bb)
 	      result.next = last_exit;
 	    else
-	      result.next = NULL; 
+	      result.next = NULL;
 
 	    result.exit = last_exit;
 
@@ -784,16 +784,15 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
 				     loop_outer (loop));
 	    else
 	      sinfo = build_scops_1 (dom_bb, outermost_loop, &regions, loop);
-                                           
-                                     
-	    result.exits |= sinfo.exits; 
+
+	    result.exits |= sinfo.exits;
 	    result.difficult = true;
 	    result.exit = NULL;
 	  }
 
 	VEC_free (basic_block, heap, dominated);
 
-	result.next = NULL; 
+	result.next = NULL;
 	move_sd_regions (&regions, scops);
 
 	break;
@@ -814,7 +813,7 @@ scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
    TODO: These functions got a little bit big. They definitely should be cleaned
 	 up.  */
 
-static struct scopdet_info 
+static struct scopdet_info
 build_scops_1 (basic_block current, loop_p outermost_loop,
 	       VEC (sd_region, heap) **scops, loop_p loop)
 {
@@ -822,7 +821,7 @@ build_scops_1 (basic_block current, loop_p outermost_loop,
   sd_region open_scop;
   struct scopdet_info sinfo;
 
-  /* Initialize result.  */ 
+  /* Initialize result.  */
   struct scopdet_info result;
   result.exits = false;
   result.difficult = false;
@@ -849,7 +848,7 @@ build_scops_1 (basic_block current, loop_p outermost_loop,
       else if (in_scop && (sinfo.exits || sinfo.difficult))
         {
 	  open_scop.exit = current;
-          VEC_safe_push (sd_region, heap, *scops, &open_scop); 
+          VEC_safe_push (sd_region, heap, *scops, &open_scop);
           in_scop = false;
         }
 
@@ -937,7 +936,7 @@ create_single_entry_edge (sd_region *region)
   if (find_single_entry_edge (region))
     return;
 
-  /* There are multiple predecessors for bb_3 
+  /* There are multiple predecessors for bb_3
 
   |  1  2
   |  | /
@@ -954,7 +953,7 @@ create_single_entry_edge (sd_region *region)
   and another one (5->3), a loop latch, lead to bb_3.
 
   We split bb_3.
-  
+
   |  1  2
   |  | /
   |  |/
@@ -963,7 +962,7 @@ create_single_entry_edge (sd_region *region)
   |3.1 |  	<- entry
   |  | |
   |  | |
-  |  4 ^ 
+  |  4 ^
   |  | |
   |  |/
   |  5
@@ -995,7 +994,7 @@ create_single_entry_edge (sd_region *region)
     /* This case is never executed, as the loop headers seem always to have a
        single edge pointing from outside into the loop.  */
     gcc_unreachable ();
-      
+
 #ifdef ENABLE_CHECKING
   gcc_assert (find_single_entry_edge (region));
 #endif
@@ -1023,7 +1022,7 @@ create_single_exit_edge (sd_region *region)
   edge_iterator ei;
   edge forwarder = NULL;
   basic_block exit;
-  
+
   if (find_single_exit_edge (region))
     return;
 
@@ -1043,22 +1042,22 @@ create_single_exit_edge (sd_region *region)
      changes to
 
      1 2 3 4   	1->6 no region, 			2->6 region->exit = 6,
-     | | \/	3->5 no region,				4->5 no region, 
+     | | \/	3->5 no region,				4->5 no region,
      | |  5
       \| /	5->6 region->exit = 6
-	6 
+	6
 
      Now there is only a single exit edge (5->6).  */
   exit = region->exit;
   region->exit = NULL;
   forwarder = make_forwarder_block (exit, &sd_region_without_exit, NULL);
-  
+
   /* Unmark the edges, that are no longer exit edges.  */
   FOR_EACH_EDGE (e, ei, forwarder->src->preds)
     if (e->aux)
       e->aux = NULL;
 
-  /* Mark the new exit edge.  */ 
+  /* Mark the new exit edge.  */
   single_succ_edge (forwarder->src)->aux = region;
 
   /* Update the exit bb of all regions, where exit edges lead to
@@ -1072,7 +1071,7 @@ create_single_exit_edge (sd_region *region)
 #endif
 }
 
-/* Unmark the exit edges of all REGIONS.  
+/* Unmark the exit edges of all REGIONS.
    See comment in "create_single_exit_edge". */
 
 static void
@@ -1089,7 +1088,7 @@ unmark_exit_edges (VEC (sd_region, heap) *regions)
 }
 
 
-/* Mark the exit edges of all REGIONS.  
+/* Mark the exit edges of all REGIONS.
    See comment in "create_single_exit_edge". */
 
 static void
@@ -1144,7 +1143,7 @@ build_graphite_scops (VEC (sd_region, heap) *regions,
 
   for (i = 0; VEC_iterate (sd_region, regions, i, s); i++)
     {
-      edge entry = find_single_entry_edge (s); 
+      edge entry = find_single_entry_edge (s);
       edge exit = find_single_exit_edge (s);
       scop_p scop = new_scop (new_sese (entry, exit));
       VEC_safe_push (scop_p, heap, *scops, scop);
@@ -1266,7 +1265,7 @@ free_scops_1 (VEC (scop_p, heap) **scops)
   free_scops (*scops);
 }
 
-/* We limit all SCoPs to SCoPs, that are completely surrounded by a loop. 
+/* We limit all SCoPs to SCoPs, that are completely surrounded by a loop.
 
    Example:
 
@@ -1281,8 +1280,8 @@ free_scops_1 (VEC (scop_p, heap) **scops)
    for (l      |  SCoP 2
 
    This is necessary as scalar evolution and parameter detection need a
-   outermost loop to initialize parameters correctly.  
-  
+   outermost loop to initialize parameters correctly.
+
    TODO: FIX scalar evolution and parameter detection to allow more flexible
          SCoP frontiers.  */
 
@@ -1302,7 +1301,7 @@ limit_scops (VEC (scop_p, heap) **scops)
       build_scop_bbs (scop);
       build_sese_loop_nests (region);
 
-      for (j = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), j, loop); j++) 
+      for (j = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), j, loop); j++)
         if (!loop_in_sese_p (loop_outer (loop), region)
 	    && single_exit (loop))
           {
@@ -1441,7 +1440,8 @@ build_scops (VEC (scop_p, heap) **scops)
   VEC_free (sd_region, heap, regions);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "\nnumber of SCoPs: %d\n", VEC_length (scop_p, *scops));
+    fprintf (dump_file, "\nnumber of SCoPs: %d\n",
+	     VEC_length (scop_p, *scops));
 }
 
 /* Pretty print all SCoPs in DOT format and mark them with different colors.
@@ -1546,7 +1546,7 @@ dot_all_scops_1 (FILE *file, VEC (scop_p, heap) *scops)
 	      fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"%s\">", color);
 
 	      if (!bb_in_sese_p (bb, region))
-		fprintf (file, " ("); 
+		fprintf (file, " (");
 
 	      if (bb == SESE_ENTRY_BB (region)
 		  && bb == SESE_EXIT_BB (region))
@@ -1558,14 +1558,14 @@ dot_all_scops_1 (FILE *file, VEC (scop_p, heap) *scops)
 	      else
 		fprintf (file, " %d ", bb->index);
 
-	      if (!bb_in_sese_p (bb,region)) 
+	      if (!bb_in_sese_p (bb,region))
 		fprintf (file, ")");
 
 	      fprintf (file, "</TD></TR>\n");
 	      part_of_scop  = true;
 	    }
 	}
- 
+
       if (!part_of_scop)
 	{
 	  fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");

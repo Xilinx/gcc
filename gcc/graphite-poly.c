@@ -61,12 +61,12 @@ scop_max_loop_depth (scop_p scop)
   poly_bb_p pbb;
   int max_nb_loops = 0;
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++) 
-    {    
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    {
       int nb_loops = pbb_dim_iter_domain (pbb);
       if (max_nb_loops < nb_loops)
         max_nb_loops = nb_loops;
-    }    
+    }
 
   return max_nb_loops;
 }
@@ -82,7 +82,7 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
   ppl_Coefficient_t coef;
   Value one;
 
-  nb_added_dims = max_scattering - pbb_nb_scattering_transform (pbb); 
+  nb_added_dims = max_scattering - pbb_nb_scattering_transform (pbb);
   value_init (one);
   value_set_si (one, 1);
   ppl_new_Coefficient (&coef);
@@ -128,7 +128,7 @@ unify_scattering_dimensions (scop_p scop)
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     max_scattering = MAX (pbb_nb_scattering_transform (pbb), max_scattering);
-  
+
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     extend_scattering (pbb, max_scattering);
 
@@ -243,7 +243,7 @@ graphite_write_transforms (scop_p scop)
 /* Read transforms from file_name.graphite and set the transforms on
    SCOP.  */
 
-static bool 
+static bool
 graphite_read_transforms (scop_p scop)
 {
   int i;
@@ -279,7 +279,7 @@ apply_poly_transforms (scop_p scop)
      This also allows to check the performance for the identity
      transformation: GIMPLE -> GRAPHITE -> GIMPLE
      Keep in mind that CLooG optimizes in control, so the loop structure
-     may change, even if we only use -fgraphite-identity.  */ 
+     may change, even if we only use -fgraphite-identity.  */
   if (flag_graphite_identity)
     transform_done = true;
 
@@ -362,7 +362,7 @@ free_poly_bb (poly_bb_p pbb)
 {
   int i;
   poly_dr_p pdr;
-  
+
   ppl_delete_Pointset_Powerset_C_Polyhedron (PBB_DOMAIN (pbb));
 
   if (PBB_TRANSFORMED_SCATTERING (pbb))
@@ -520,7 +520,7 @@ dump_gbb_cases (FILE *file, gimple_bb_p gbb)
   int i;
   gimple stmt;
   VEC (gimple, heap) *cases;
-  
+
   if (!gbb)
     return;
 
@@ -544,7 +544,7 @@ dump_gbb_conditions (FILE *file, gimple_bb_p gbb)
   int i;
   gimple stmt;
   VEC (gimple, heap) *conditions;
-  
+
   if (!gbb)
     return;
 
@@ -707,7 +707,7 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
   ppl_Polyhedron_get_constraints (ph, &pcs);
   ppl_new_Constraint_System_const_iterator (&cit);
   ppl_new_Constraint_System_const_iterator (&cend);
-      
+
   for (ppl_Constraint_System_begin (pcs, cit),
 	 ppl_Constraint_System_end (pcs, cend);
        !ppl_Constraint_System_const_iterator_equal_test (cit, cend);
@@ -751,7 +751,9 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
    depth LOOP_DEPTH.  */
 
 void
-pbb_number_of_iterations (poly_bb_p pbb, graphite_dim_t loop_depth, Value niter)
+pbb_number_of_iterations (poly_bb_p pbb,
+			  graphite_dim_t loop_depth,
+			  Value niter)
 {
   ppl_dimension_type loop_iter = pbb_iterator_dim (pbb, loop_depth);
   ppl_Linear_Expression_t le;

@@ -57,12 +57,12 @@ along with GCC; see the file COPYING3.  If not see
    define an edge in DDG (Data Dependence Graph).  */
 
 static poly_dr_pair_p
-new_poly_dr_pair (poly_dr_p source, 
+new_poly_dr_pair (poly_dr_p source,
                   poly_dr_p sink,
                   ppl_Pointset_Powerset_C_Polyhedron_t ddp)
 {
   poly_dr_pair_p pdrpp;
-  
+
   pdrpp = XNEW (struct poly_dr_pair);
   pdrpp->source = source;
   pdrpp->sink = sink;
@@ -76,21 +76,21 @@ new_poly_dr_pair (poly_dr_p source,
 int
 eq_poly_dr_pair_p (const void *pdrpp1, const void *pdrpp2)
 {
-  const struct poly_dr_pair *poly_dr_pair_p1 = (const struct poly_dr_pair *) pdrpp1;
-  const struct poly_dr_pair *poly_dr_pair_p2 = (const struct poly_dr_pair *) pdrpp2;
+  const struct poly_dr_pair *p1 = (const struct poly_dr_pair *) pdrpp1;
+  const struct poly_dr_pair *p2 = (const struct poly_dr_pair *) pdrpp2;
 
-  return (poly_dr_pair_p1->source == poly_dr_pair_p2->source
-          && poly_dr_pair_p1->sink == poly_dr_pair_p2->sink);
+  return (p1->source == p2->source
+          && p1->sink == p2->sink);
 }
 
 /* Hash function for poly_dr_pair hashtable.  */
 
-hashval_t 
+hashval_t
 hash_poly_dr_pair_p (const void *pdrpp)
 {
-  const struct poly_dr_pair *poly_dr_pair_p = (const struct poly_dr_pair *) pdrpp;
+  const struct poly_dr_pair *p = (const struct poly_dr_pair *) pdrpp;
 
-  return (hashval_t) ((long) poly_dr_pair_p->source + (long) poly_dr_pair_p->sink);
+  return (hashval_t) ((long) p->source + (long) p->sink);
 }
 
 /* Returns a polyhedron of dimension DIM.
@@ -106,9 +106,11 @@ map_into_dep_poly (graphite_dim_t dim, graphite_dim_t gdim,
 {
   ppl_Pointset_Powerset_C_Polyhedron_t res;
 
-  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron (&res, p);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
+    (&res, p);
   ppl_insert_dimensions_pointset (res, 0, offset);
-  ppl_insert_dimensions_pointset (res, offset + cut, dim - offset - cut - gdim);
+  ppl_insert_dimensions_pointset (res, offset + cut,
+				  dim - offset - cut - gdim);
 
   return res;
 }
@@ -118,8 +120,8 @@ map_into_dep_poly (graphite_dim_t dim, graphite_dim_t gdim,
 
    Add NB0 zeros before "a":  "00...0 a CUT0 c CUT1' b"
    Add NB1 zeros between "a" and "c":  "00...0 a 00...0 c CUT1' b"
-   Add DIM - NB0 - NB1 - PDIM zeros between "c" and "b":  "00...0 a 00...0 c 00...0 b"
-*/
+   Add DIM - NB0 - NB1 - PDIM zeros between "c" and "b":
+   "00...0 a 00...0 c 00...0 b".  */
 
 static ppl_Pointset_Powerset_C_Polyhedron_t
 map_dr_into_dep_poly (graphite_dim_t dim,
@@ -132,7 +134,8 @@ map_dr_into_dep_poly (graphite_dim_t dim,
   ppl_Pointset_Powerset_C_Polyhedron_t res;
   ppl_dimension_type i;
 
-  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron (&res, dr);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
+    (&res, dr);
   ppl_Pointset_Powerset_C_Polyhedron_space_dimension (res, &pdim);
 
   map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, pdim);
@@ -152,10 +155,11 @@ map_dr_into_dep_poly (graphite_dim_t dim,
 
   /* After swapping 's' and 'g' vectors, we have to update a new cut.  */
   cut1 = pdim - cut1 + cut0;
-  
+
   ppl_insert_dimensions_pointset (res, 0, nb0);
   ppl_insert_dimensions_pointset (res, nb0 + cut0, nb1);
-  ppl_insert_dimensions_pointset (res, nb0 + nb1 + cut1, dim - nb0 - nb1 - pdim);
+  ppl_insert_dimensions_pointset (res, nb0 + nb1 + cut1,
+				  dim - nb0 - nb1 - pdim);
 
   return res;
 }
@@ -175,14 +179,14 @@ build_pairwise_constraint (graphite_dim_t dim,
   value_init (v);
   value_init (v_op);
   value_init (v_c);
- 
+
   value_set_si (v, 1);
   value_set_si (v_op, -1);
   value_set_si (v_c, c);
 
   ppl_new_Coefficient (&coef);
   ppl_new_Linear_Expression_with_dimension (&expr, dim);
-  
+
   ppl_assign_Coefficient_from_mpz_t (coef, v);
   ppl_Linear_Expression_add_to_coefficient (expr, pos1, coef);
   ppl_assign_Coefficient_from_mpz_t (coef, v_op);
@@ -223,14 +227,15 @@ dr_equality_constraints (graphite_dim_t dim,
       ppl_Linear_Expression_t expr;
       ppl_Constraint_t cstr;
       ppl_Coefficient_t coef;
-      
+
       ppl_new_Coefficient (&coef);
       ppl_new_Linear_Expression_with_dimension (&expr, dim);
-      
+
       ppl_assign_Coefficient_from_mpz_t (coef, v);
       ppl_Linear_Expression_add_to_coefficient (expr, pos + i, coef);
       ppl_assign_Coefficient_from_mpz_t (coef, v_op);
-      ppl_Linear_Expression_add_to_coefficient (expr, pos + i + nb_subscripts, coef);
+      ppl_Linear_Expression_add_to_coefficient (expr, pos + i + nb_subscripts,
+						coef);
 
       ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
       ppl_Polyhedron_add_constraint (subscript_equalities, cstr);
@@ -240,7 +245,8 @@ dr_equality_constraints (graphite_dim_t dim,
       ppl_delete_Coefficient (coef);
     }
 
-  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&res, subscript_equalities);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
+    (&res, subscript_equalities);
   value_clear (v);
   value_clear (v_op);
   ppl_delete_Polyhedron (subscript_equalities);
@@ -260,7 +266,8 @@ build_pairwise_scheduling_equality (graphite_dim_t dim,
 
   ppl_new_C_Polyhedron_from_space_dimension (&equalities, dim, 0);
 
-  cstr = build_pairwise_constraint (dim, pos, pos + offset, 0, PPL_CONSTRAINT_TYPE_EQUAL); 
+  cstr = build_pairwise_constraint (dim, pos, pos + offset, 0,
+				    PPL_CONSTRAINT_TYPE_EQUAL);
   ppl_Polyhedron_add_constraint (equalities, cstr);
   ppl_delete_Constraint (cstr);
 
@@ -327,7 +334,8 @@ lexicographically_gt_p (ppl_Pointset_Powerset_C_Polyhedron_t res,
 static void
 build_lexicographically_gt_constraint (ppl_Pointset_Powerset_C_Polyhedron_t *res,
 				       graphite_dim_t dim,
-				       graphite_dim_t tdim1, graphite_dim_t offset,
+				       graphite_dim_t tdim1,
+				       graphite_dim_t offset,
 				       bool direction)
 {
   graphite_dim_t i;
@@ -396,7 +404,7 @@ dependence_polyhedron_1 (poly_bb_p pbb1, poly_bb_p pbb2,
 			       tdim1 + ddim1 + tdim2, sdim1);
 
   /* Now add the subscript equalities.  */
-  dreq = dr_equality_constraints (dim, tdim1 + ddim1 + tdim2 + ddim2, sdim1); 
+  dreq = dr_equality_constraints (dim, tdim1 + ddim1 + tdim2 + ddim2, sdim1);
 
   ppl_new_Pointset_Powerset_C_Polyhedron_from_space_dimension (&res, dim, 0);
   ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, id1);
@@ -422,7 +430,7 @@ dependence_polyhedron_1 (poly_bb_p pbb1, poly_bb_p pbb2,
   return res;
 }
 
-/* Build the dependence polyhedron for data references PDR1 and PDR2. 
+/* Build the dependence polyhedron for data references PDR1 and PDR2.
    If possible use already cached information.  */
 
 static ppl_Pointset_Powerset_C_Polyhedron_t
@@ -442,7 +450,7 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
     {
       tmp.source = pdr1;
       tmp.sink = pdr2;
-      x = htab_find_slot (SCOP_ORIGINAL_PDR_PAIRS (PBB_SCOP (pbb1)), 
+      x = htab_find_slot (SCOP_ORIGINAL_PDR_PAIRS (PBB_SCOP (pbb1)),
                           &tmp, INSERT);
 
       if (x && *x)
@@ -462,7 +470,7 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
     {
       gcc_assert (x && *x == NULL);
       *x = new_poly_dr_pair (pdr1, pdr2, res);
-      
+
       if (dump_file && (dump_flags & TDF_DETAILS))
         fprintf (dump_file, "\nddp cache: add element.\n");
     }
@@ -490,7 +498,8 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
   if (sdim1 != sdim2)
     return true;
 
-  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true, true);
+  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2,
+			      true, true);
 
   if (ppl_Pointset_Powerset_C_Polyhedron_is_empty (po))
     return true;
@@ -507,12 +516,13 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "\nloop carries dependency.\n");
+      pt = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, st1, st2,
+				  false, false);
 
-      pt = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, st1, st2, false, false);
-      
       /* Extend PO and PT to have the same dimensions.  */
       ppl_insert_dimensions_pointset (po, otdim1, ttdim1);
-      ppl_insert_dimensions_pointset (po, otdim1 + ttdim1 + ddim1 + otdim2, ttdim2);
+      ppl_insert_dimensions_pointset (po, otdim1 + ttdim1 + ddim1 + otdim2,
+				      ttdim2);
       ppl_insert_dimensions_pointset (pt, 0, otdim1);
       ppl_insert_dimensions_pointset (pt, otdim1 + ttdim1 + ddim1, otdim2);
 
@@ -565,7 +575,8 @@ build_alias_set_powerset (ppl_Pointset_Powerset_C_Polyhedron_t alias_powerset,
   ppl_dimension_type access_dim;
   unsigned i, pos = 0;
 
-  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (alias_powerset, &access_dim);
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (alias_powerset,
+						      &access_dim);
   ds = XNEWVEC (ppl_dimension_type, access_dim-1);
   for (i = 0; i < access_dim; i++)
     {
@@ -576,7 +587,9 @@ build_alias_set_powerset (ppl_Pointset_Powerset_C_Polyhedron_t alias_powerset,
       pos++;
     }
 
-  ppl_Pointset_Powerset_C_Polyhedron_remove_space_dimensions (alias_powerset, ds, (access_dim-1));
+  ppl_Pointset_Powerset_C_Polyhedron_remove_space_dimensions (alias_powerset,
+							      ds,
+							      access_dim - 1);
   free (ds);
 }
 
@@ -641,7 +654,8 @@ graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
   if (sdim1 != sdim2)
     return true;
 
-  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2, true, false);
+  po = dependence_polyhedron (pbb1, pbb2, d1, d2, pdr1, pdr2, so1, so2,
+			      true, false);
   if (ppl_Pointset_Powerset_C_Polyhedron_is_empty (po))
     {
       ppl_delete_Pointset_Powerset_C_Polyhedron (po);

@@ -209,12 +209,12 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 	       r, region, newivs, newivs_index);
 
 	  case clast_red_min:
-	    return clast_to_gcc_expression_red (type, MIN_EXPR, r, region, newivs,
-						newivs_index);
+	    return clast_to_gcc_expression_red (type, MIN_EXPR, r, region,
+						newivs, newivs_index);
 
 	  case clast_red_max:
-	    return clast_to_gcc_expression_red (type, MAX_EXPR, r, region, newivs,
-						newivs_index);
+	    return clast_to_gcc_expression_red (type, MAX_EXPR, r, region,
+						newivs, newivs_index);
 
 	  default:
 	    gcc_unreachable ();
@@ -283,13 +283,13 @@ gcc_type_for_clast_expr (struct clast_expr *e,
 	if (r->n == 1)
 	  return gcc_type_for_clast_expr (r->elts[0], region, newivs,
 					  newivs_index);
-	else 
+	else
 	  {
 	    int i;
 	    for (i = 0; i < r->n; i++)
 	      {
-		tree type = gcc_type_for_clast_expr (r->elts[i], region, newivs,
-						     newivs_index);
+		tree type = gcc_type_for_clast_expr (r->elts[i], region,
+						     newivs, newivs_index);
 		if (type)
 		  return type;
 	      }
@@ -357,7 +357,7 @@ graphite_translate_clast_equation (sese region,
 /* Creates the test for the condition in STMT.  */
 
 static tree
-graphite_create_guard_cond_expr (sese region, struct clast_guard *stmt, 
+graphite_create_guard_cond_expr (sese region, struct clast_guard *stmt,
 				 VEC (tree, heap) *newivs,
 				 htab_t newivs_index)
 {
@@ -366,8 +366,8 @@ graphite_create_guard_cond_expr (sese region, struct clast_guard *stmt,
 
   for (i = 0; i < stmt->n; i++)
     {
-      tree eq = graphite_translate_clast_equation (region, &stmt->eq[i], newivs,
-						   newivs_index);
+      tree eq = graphite_translate_clast_equation (region, &stmt->eq[i],
+						   newivs, newivs_index);
 
       if (cond)
 	cond = fold_build2 (TRUTH_AND_EXPR, TREE_TYPE (eq), cond, eq);
@@ -380,9 +380,9 @@ graphite_create_guard_cond_expr (sese region, struct clast_guard *stmt,
 
 /* Creates a new if region corresponding to Cloog's guard.  */
 
-static edge 
+static edge
 graphite_create_new_guard (sese region, edge entry_edge,
-			   struct clast_guard *stmt, 
+			   struct clast_guard *stmt,
 			   VEC (tree, heap) *newivs,
 			   htab_t newivs_index)
 {
@@ -439,9 +439,10 @@ gcc_type_for_cloog_iv (const char *cloog_iv, gimple_bb_p gbb)
 static tree
 gcc_type_for_iv_of_clast_loop (struct clast_for *stmt_for)
 {
-  struct clast_user_stmt *stmt = clast_get_body_of_loop ((struct clast_stmt *) stmt_for);
+  struct clast_stmt *stmt = (struct clast_stmt *) stmt_for;
+  struct clast_user_stmt *body = clast_get_body_of_loop (stmt);
   const char *cloog_iv = stmt_for->iterator;
-  CloogStatement *cs = stmt->statement;
+  CloogStatement *cs = body->statement;
   poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
 
   return gcc_type_for_cloog_iv (cloog_iv, PBB_BLACK_BOX (pbb));
@@ -496,7 +497,7 @@ build_iv_mapping (htab_t map, sese region,
 
   for (t = user_stmt->substitutions; t; t = t->next, index++)
     {
-      struct clast_expr *expr = (struct clast_expr *) 
+      struct clast_expr *expr = (struct clast_expr *)
        ((struct clast_assignment *)t)->RHS;
       tree type = gcc_type_for_clast_expr (expr, region, newivs,
 					   newivs_index);
@@ -622,7 +623,8 @@ translate_clast (sese region, struct loop *context_loop,
       update_ssa (TODO_update_ssa);
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, next_e,
-			      rename_map, newivs, newivs_index, bb_pbb_mapping);
+			      rename_map, newivs, newivs_index,
+			      bb_pbb_mapping);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_for))
@@ -643,9 +645,10 @@ translate_clast (sese region, struct loop *context_loop,
       last_e = single_succ_edge (split_edge (last_e));
 
       /* Translate the body of the loop.  */
-      next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
-				single_succ_edge (loop->header),
-				rename_map, newivs, newivs_index, bb_pbb_mapping);
+      next_e = translate_clast
+	(region, loop, ((struct clast_for *) stmt)->body,
+	 single_succ_edge (loop->header), rename_map, newivs,
+	 newivs_index, bb_pbb_mapping);
       redirect_edge_succ_nodup (next_e, after);
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
 
@@ -656,7 +659,8 @@ translate_clast (sese region, struct loop *context_loop,
       recompute_all_dominators ();
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, last_e,
-			      rename_map, newivs, newivs_index, bb_pbb_mapping);
+			      rename_map, newivs, newivs_index,
+			      bb_pbb_mapping);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_guard))
@@ -672,7 +676,7 @@ translate_clast (sese region, struct loop *context_loop,
 					 eq_rename_map_elts, free);
 
       htab_traverse (rename_map, copy_renames, before_guard);
-      next_e = translate_clast (region, context_loop, 
+      next_e = translate_clast (region, context_loop,
 				((struct clast_guard *) stmt)->then,
 				true_e, rename_map, newivs, newivs_index,
 				bb_pbb_mapping);
@@ -684,7 +688,8 @@ translate_clast (sese region, struct loop *context_loop,
       graphite_verify ();
 
       return translate_clast (region, context_loop, stmt->next, last_e,
-			      rename_map, newivs, newivs_index, bb_pbb_mapping);
+			      rename_map, newivs, newivs_index,
+			      bb_pbb_mapping);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_block))
@@ -975,11 +980,11 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
   /* Iterators corresponding to scalar dimensions have to be extracted.  */
   cloog_names_scalarize (cloog_program_names (prog), nbs,
 			 cloog_program_scaldims (prog));
-  
+
   /* Free blocklist.  */
   {
     CloogBlockList *next = cloog_program_blocklist (prog);
-	
+
     while (next)
       {
         CloogBlockList *toDelete = next;
@@ -1090,7 +1095,7 @@ print_generated_program (FILE *file, scop_p scop)
   fprintf (file, "       (clast: \n");
   pprint (file, pc.stmt, 0, options);
   fprintf (file, "       )\n");
-  
+
   cloog_options_free (options);
   cloog_clast_free (pc.stmt);
   cloog_program_free (pc.prog);

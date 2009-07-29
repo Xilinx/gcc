@@ -1,5 +1,18 @@
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* ChangeLog.graphite: Fix indenting, white spaces and 80 columns.
+	* graphite-blocking.c: Same.
+	* graphite-clast-to-gimple.c: Same.
+	* graphite-dependences.c: Same.
+	* graphite-poly.c: Same.
+	* graphite-poly.h: Same.
+	* graphite-ppl.c: Same.
+	* graphite-scop-detection.c: Same.
+	* graphite-sese-to-poly.c: Same.
+	* graphite.c: Same.
+
+2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (loop_entry_phi_arg): New.
 	(remove_simple_copy_phi): New.
 	(remove_invariant_phi): New.
@@ -14,7 +27,7 @@
 	(rewrite_phi_out_of_ssa): New.
 	(rewrite_reductions_out_of_ssa): New.
 	(build_poly_scop): Call rewrite_reductions_out_of_ssa.
-	
+
 	* testsuite/gcc.dg/graphite/id-11.c: New.
 	* testsuite/gcc.dg/graphite/id-15.c: New.
 	* testsuite/gcc.dg/graphite/interchange-1.c: Un-XFAIL.
@@ -50,8 +63,8 @@
 	* tree-scalar-evolution.c (instantiate_scev_1): Return
 	chrec_dont_know when the result is not above instantiate_below.
 	* graphite-scop-detection.c (scopdet_basic_block_info): Fix formatting.
-	* graphite-sese-to-poly.c (create_linear_expr_from_tree): Assert that the
-	tree has a known scalar evolution.
+	* graphite-sese-to-poly.c (create_linear_expr_from_tree): Assert that
+	the tree has a known scalar evolution.
 	* testsuite/gfortran.dg/graphite/id-14.f: New.
 	* testsuite/gfortran.dg/graphite/id-15.f: New.
 
@@ -61,7 +74,7 @@
 	insert_gsi.
 	(rename_variables): Keep inserting renames after the ones already
 	inserted.
-	
+
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-sese-to-poly.c (compare_bb_depths): New.
@@ -86,7 +99,7 @@
 	Remove 2 XFAIL.
 
 2009-07-24  Li Feng  <nemokingdom@gmail.com>
-	Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-sese-to-poly.c (pdr_add_alias_set): Use data reference's
 	alias set number build alias in ACCESSES polyhedron.
@@ -148,7 +161,7 @@
 	* graphite-sese-to-poly.c: Fix formatting.
 	* graphite.c (graphite_transform_loops): Create the hash table
 	after the early return.
-	
+
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* testsuite/gcc.dg/graphite/id-14.c: New.
@@ -163,7 +176,7 @@
 
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons): Avoid 
+	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons): Avoid
 	useless test "i % 2".
 	(build_pbb_scattering_polyhedrons): Fix formatting.
 	(build_poly_dr): Same.
@@ -254,7 +267,7 @@
 
 2009-07-13  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-6.c: 
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-6.c:
 	Expect to see the pattern twice.
 	* testsuite/gcc.dg/graphite/interchange-0.c: Un-XFAIL.
 	* testsuite/gcc.dg/graphite/interchange-5.c: Same.
@@ -287,8 +300,8 @@
 
 2009-07-10  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite-sese-to-poly.c (pdr_add_data_dimensions): Fix the computation
-	of array sizes.
+	* graphite-sese-to-poly.c (pdr_add_data_dimensions): Fix the
+	computation of array sizes.
 
 2009-07-10  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -386,11 +399,11 @@
 
 2009-07-08  Razya Ladelsky  <razya@il.ibm.com>
 
-	* tree-parloops.c (analyze_reduction_list): Change return 
+	* tree-parloops.c (analyze_reduction_list): Change return
 	value to void.
-	(try_create_reduction_list): Move the call to 
+	(try_create_reduction_list): Move the call to
 	analyze_reduction_list to the beginining.
-	Call reduction_phi with analyzed_reductions as argument 
+	Call reduction_phi with analyzed_reductions as argument
 	instead of reduction_list.
 
 2009-07-08  Tobias Grosser  <grosser@fim.uni-passau.de>
@@ -427,7 +440,7 @@
 	static anymore.
 	* tree-scalar-evolution.h (compute_overall_effect_of_inner_loop):
 	Declared.
-	
+
 2009-07-07  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Makefile.in: Replace dependences on tree-chrec.h with SCEV_H.
@@ -476,8 +489,8 @@
 
 2009-07-06  Li Feng  <nemokingdom@gmail.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: Added
-	flag -fno-loop-strip-mine for autopar testcase.
+	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp:
+	Added flag -fno-loop-strip-mine for autopar testcase.
 
 2009-07-04  Li Feng  <nemokingdom@gmail.com>
 
@@ -509,7 +522,8 @@
 
 2009-06-29  Li Feng  <nemokingdom@gmail.com>
 
-	* Makefile.in (graphite-clast-to-gimple.o): Added graphite-dependences.h.
+	* Makefile.in (graphite-clast-to-gimple.o): Added dependence on
+	graphite-dependences.h.
 	* graphite-clast-to-gimple.c (new_bb_pbb_def): New.
 	(mark_bb_with_pbb): New.
 	(get_stmtfor_depth): New.
@@ -517,9 +531,9 @@
 	(dependency_in_loop_p): New.
 	(mark_loops_parallel): New.
 	(free_aux_in_new_loops): New.
-	(translate_clast): Add parameter BB_PBB_MAPPING. Mark newly created
-	bb with it's relevant pbb. Mark newly created loops. Remove mark innermost
-	loop parallel without checking.
+	(translate_clast): Add parameter BB_PBB_MAPPING.  Mark newly created
+	bb with it's relevant pbb. Mark newly created loops.  Remove mark
+	innermost loop parallel without checking.
 	(gloog): Add parameter BB_PBB_MAPPING.
 	* graphite-clast-to-gimple.h (struct bb_pbb_def): New.
 	(gloog): Change declaration.
@@ -531,8 +545,8 @@
 	auto parallelization when flag_graphite_force_parallel is set.
 	(graphite_finalize): Added free_aux_in_new_loops.
 	* tree-parloops.c (parallelize_loops): Only generate parallel code for
-	the innermost loop that marked parallel. Use flag_graphite_force_parallel
-	instead of loop->can_be_parallel.
+	the innermost loop that marked parallel.  Use
+	flag_graphite_force_parallel instead of loop->can_be_parallel.
 	(loop_parallel_p): Move inner most checking out of function.
 
 2009-06-26  Sebastian Pop  <sebastian.pop@amd.com>
@@ -594,9 +608,10 @@
 
 	* graphite-dependences.c (graphite_carried_dependence_level_k): New.
 	(dependency_between_pbbs_p): New.
-	(lexicographically_gt_p): Assure !empty_p before polyhedron intersection
-	assign.
-	(build_lexicographically_gt_constraint): Correct lexicographically judging.
+	(lexicographically_gt_p): Assure !empty_p before polyhedron
+	intersection assign.
+	(build_lexicographically_gt_constraint): Correct lexicographically
+	judging.
 	* graphite-dependences.h: New.
 	* Makefile.in (graphite-dependences.o): Add graphite-dependences.h.
 
@@ -609,8 +624,8 @@
 
 2009-06-24  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite-poly.c (extend_scattering): Increment PBB_NB_LOCAL_VARIABLES by
-	the number of added dimensions.
+	* graphite-poly.c (extend_scattering): Increment
+	PBB_NB_LOCAL_VARIABLES by the number of added dimensions.
 
 2009-06-24  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -628,8 +643,8 @@
 
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* sese.c (expand_scalar_variables_stmt): Expand scalar variables only when
-	the use verifies is_gimple_reg.
+	* sese.c (expand_scalar_variables_stmt): Expand scalar variables
+	only when the use verifies is_gimple_reg.
 
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -690,11 +705,11 @@
 	(psct_scattering_dim_for_loop_depth): Declared.
 	(psct_local_var_dim): New.
 	(psco_iterator_dim, psco_parameter_dim): Add assert on parameters.
-	(psct_iterator_dim, psct_parameter_dim): Same.  To maintain the 
+	(psct_iterator_dim, psct_parameter_dim): Same.  To maintain the
 	correct layout, call pbb_nb_local_vars.
 	(psct_add_local_variable, psct_add_scattering_dimension): New.
-	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons): Initialize
-	PBB_NB_SCATTERING_TRANSFORM.
+	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons):
+	Initialize PBB_NB_SCATTERING_TRANSFORM.
 
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -730,7 +745,7 @@
 
 2009-06-19  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite-poly.c (new_poly_dr): Pass an extra argument for the 
+	* graphite-poly.c (new_poly_dr): Pass an extra argument for the
 	compiler's data reference.  Initialize PDR_CDR.
 	(print_pdr): Call dump_data_reference.
 	* graphite-poly.h (struct poly_dr): Rename black_box into pbb.
@@ -782,9 +797,10 @@
 	    Pranav Garg  <pranav.garg2107@gmail.com>
 
 	* graphite-interchange.c (interchange_profitable_p): Make static.
-	(pbb_interchange_loop_depths, pbb_do_interchange, scop_do_interchange): New.
-	* graphite-poly.c (apply_poly_transforms): Call scop_do_interchange for
-	flag_loop_interchange.
+	(pbb_interchange_loop_depths, pbb_do_interchange,
+	scop_do_interchange): New.
+	* graphite-poly.c (apply_poly_transforms): Call scop_do_interchange
+	for flag_loop_interchange.
 	* graphite-poly.h (scop_do_interchange): Declared.
 	* tree-ssa-loop.c (gate_graphite_transforms): Do not fail when
 	flag_loop_interchange is used.
@@ -1021,7 +1037,8 @@
 
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite-clast-to-gimple.c (graphite_create_new_loop): Pass newivs_index.
+	* graphite-clast-to-gimple.c (graphite_create_new_loop): Pass
+	newivs_index.
 	Call save_clast_name_index.
 	(translate_clast): Pass newivs_index.
 	(gloog): Create and free newivs_index.
@@ -1155,8 +1172,8 @@
 	(build_poly_scop): Add newline.
 	* testsuite/gcc.dg/graphite/id-8.c: New.
 
-2009-24-30  Li Feng  <nemokingdom@gmail.com>
-	
+2009-04-30  Li Feng  <nemokingdom@gmail.com>
+
 	* cfgloop.c (alloc_loop): Initialize can_be_parallel to false
 	when loop initialize.
 	* cfgloop.h (struct loop): Introduce flag can_be_parallel.
@@ -1169,7 +1186,7 @@
 	* toplev.c (process_options): ditto and replace a not correctly
 	encoded space.
 
-2009-24-30  Li Feng  <nemokingdom@gmail.com>
+2009-04-30  Li Feng  <nemokingdom@gmail.com>
 
 	* graphite-clast-to-gimple.c (loop_iv_stack_patch_for_consts):
 	Change the call of gbb_loop_at_index and/or gbb_loop_index due
@@ -1277,11 +1294,11 @@
 	add_condition_to_domain not GT_EXPR.
 
 2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
-	
+
 	* graphite-ppl.c (debug_ppl_powerset_matrix): New.
 	* graphite-ppl.h (debug_ppl_powerset_matrix): New.
-	* graphite-sese-to-poly.c (add_condition_to_pbb): Use upper_bound_assign
-	to calculate unions.
+	* graphite-sese-to-poly.c (add_condition_to_pbb): Use
+	upper_bound_assign to calculate unions.
 	* testsuite/gcc.dg/graphite/id-6.c: New.
 
 2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
@@ -1408,8 +1425,8 @@
 	* graphite-scop-detection.c (harmful_stmt_in_bb): Return the close
 	phi node of a reduction: when a loop contains a reduction used outside
 	the loop, there should be a scalar close phi node on the exit block.
-	* sese.c (new_sese): Do not initialize SESE_LIVEOUT, SESE_LIVEOUT_RENAMES, and
-	SESE_REDUCTION_LIST.
+	* sese.c (new_sese): Do not initialize SESE_LIVEOUT,
+	SESE_LIVEOUT_RENAMES, and SESE_REDUCTION_LIST.
 	(free_sese): Do not free them.
 	(sese_build_liveouts_use): Do not use them.
 	(sese_build_liveouts_bb): Same.
@@ -1439,8 +1456,8 @@
 	(insert_loop_close_phis): Pass a htab_t instead of a sese.
 	(insert_guard_phis): Same.
 	(rename_map_elt): Declare a VEC of them.
-	* tree-parloops.c (canonicalize_loop_ivs): reduction_list contains trees
-	not pointers to trees.
+	* tree-parloops.c (canonicalize_loop_ivs): reduction_list contains
+	trees not pointers to trees.
 
 	Rewrite in canonical close SSA form:
 	* graphite-scop-detection.c (contains_only_close_phi_nodes): New.
@@ -1484,7 +1501,7 @@
 	* tree-ssa-loop.c: Include forgotten toplev.h
 
 2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
-	
+
 	* graphite-poly.c: (apply_poly_transforms): sorry -> gcc_unreachable.
 	* testsuite/gcc.dg/graphite/pr37883.c: Remove -floop-*
 	* testsuite/gcc.dg/graphite/pr37928.c: Same
@@ -1579,7 +1596,7 @@
 	Reverted the patch from 2009-03-19.
 
 2009-03-19  Tobias Grosser  <grosser@fim.uni-passau.de>
-	
+
 	* graphite-poly.c (new_poly_bb, free_poly_bb): Initialize/free
 	poly_drs vector.
 	(print_scop): Style.
@@ -1633,11 +1650,13 @@
 2009-03-12  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* sese.c (expand_scalar_variables_stmt,
-	expand_scalar_variables_ssa_name): Add a gimple_stmt_iterator parameter.
+	expand_scalar_variables_ssa_name): Add a gimple_stmt_iterator
+	parameter.
 	(expand_scalar_variables_expr): Handle REALPART_EXPR and IMAGPART_EXPR.
 	(expand_scalar_variables): Pass to expand_scalar_variables_stmt
 	the gimple_stmt_iterator of the statement to be expanded.
-	* graphite-scop-detection.c (is_simple_operand): Do handle REALPART_EXPR.
+	* graphite-scop-detection.c (is_simple_operand): Do handle
+	REALPART_EXPR.
 
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -1654,7 +1673,7 @@
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-clast-to-gimple.c (loop_iv_stack_patch_for_consts,
-	build_iv_mapping, compute_cloog_iv_types_1, build_cloog_prog): 
+	build_iv_mapping, compute_cloog_iv_types_1, build_cloog_prog):
 	pbb_loop_at_index -> gbb_loop_at_index.
 	* graphite-poly.c (new_poly_bb, new_scop): New accessors.
 	(debug_loop_vec): Delete.
@@ -1670,7 +1689,7 @@
 	(build_poly_scop): Use scop_set_nb_params.
 	* sese.h (gimple_bb): Add LOOPS.
 	(GBB_LOOPS, gbb_loop_index, gbb_loop_at_index): New.
-	
+
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	Revert previous commit.
@@ -1693,7 +1712,7 @@
 
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	Remove forgotten line in revert. 
+	Remove forgotten line in revert.
 
 2009-03-11  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1786,8 +1805,8 @@
 	graphite_trans_bb_block, graphite_trans_loop_block,
 	graphite_trans_scop_block): Temporary removed.
 	(extend_scattering, unify_scattering_dimensions): New.
-	(print_scattering_function, graphite_read_transforms): PBB_SCATTERING ->
-	PBB_TRANSFORMED_SCATTERING.
+	(print_scattering_function, graphite_read_transforms):
+	PBB_SCATTERING -> PBB_TRANSFORMED_SCATTERING.
 	(graphite_generate_scattering_fns): Removed.
 	(apply_poly_transforms): Cleanup.
 	(free_poly_bb): Add PBB_SCATTERING -> PBB_TRANSFORMED_SCATTERING.
@@ -1802,7 +1821,7 @@
 	shift_poly.
 	(ppl_strip_loop): PBB_SCATTERING -> PBB_TRANSFORMED_SCATTERING.
 	* graphite-scop-detection.c (dot_all_scops_1):  PBB_SCATTERING
-	-> PBB_TRANSFORMED_SCATTERING. 
+	-> PBB_TRANSFORMED_SCATTERING.
 	* graphite-sese-to-poly.c (build_scop_bbs): Remove region.
 	(build_pbb_scattering_polyhedron): Moved from schedule_to_scattering.
 	(build_scop_scattering): Renamed from build_scop_canonical_schedules.
@@ -1864,7 +1883,7 @@
 	PHI_RESULT SSA_NAMEs: call gather_scalar_reductions.
 	(gen_parallel_loop): Call the analysis analyze_reduction_list.
 	(parallelize_loops): Now reduction_list is a htab_t of SSA_NAMEs.
-	* tree-flow.h (gather_scalar_reductions): Declared.	
+	* tree-flow.h (gather_scalar_reductions): Declared.
 
 2009-02-26  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1900,7 +1919,8 @@
 	GMP values, not integers!
 	(ppl_print_polyhedron_matrix, debug_ppl_polyhedron_matrix,
 	ppl_read_polyhedron_matrix): New.
-	* graphite-ppl.h (ppl_print_polyhedron_matrix, debug_ppl_polyhedron_matrix,
+	* graphite-ppl.h (ppl_print_polyhedron_matrix,
+	debug_ppl_polyhedron_matrix,
 	ppl_read_polyhedron_matrix): Declared.
 	* Makefile.in (graphite-poly.o): Depends on output.h.
 
@@ -1954,13 +1974,13 @@
 2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* graphite-sese-to-poly.c (scan_tree_for_params): Remove REAL_CST. The
-	SCoP detection fix is sufficient.
+	* graphite-sese-to-poly.c (scan_tree_for_params): Remove REAL_CST.
+	The SCoP detection fix is sufficient.
 
 2009-02-21  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/39260
-	* graphite-scop-detection.c (harmful_stmt_in_bb): Stop a SCoP when 
+	* graphite-scop-detection.c (harmful_stmt_in_bb): Stop a SCoP when
 	the basic block contains a condition with a real type.
 	* graphite-sese-to-poly.c (scan_tree_for_params): Handle REAL_CST.
 
@@ -2092,7 +2112,8 @@
 	* graphite-scop-detection.h: New.
 	* Makefile.in: Add new rule for graphite-scop-detection.o.
 
-	* sese.c: Include tree-chrec.h tree-data-ref.h tree-scalar-evolution.h.
+	* sese.c: Include tree-chrec.h, tree-data-ref.h, and
+	tree-scalar-evolution.h.
 	(nb_reductions_in_loop, graphite_loop_normal_form, sese_record_loop,
 	build_sese_loop_nests): Moved here from graphite.c.
 	(param_index): Renamed parameter_index_in_region.
@@ -2132,7 +2153,7 @@
 	* graphite-poly.c: New.
 	* Makefile.in (OBJS-common): Add graphite-poly.o.
 	(graphite-poly.o): New rule.
-	* tree-data-ref.h (struct data_reference): Remove unused now scop field.
+	* tree-data-ref.h (struct data_reference): Remove unused scop field.
 	(DR_SCOP): Removed.
 
 2009-02-18  Sebastian Pop  <sebastian.pop@amd.com>
@@ -2158,15 +2179,15 @@
 	find_scop_parameters, build_loop_iteration_domains,
 	add_conditions_to_domain, register_scop_liveout_renames,
 	copy_bb_and_scalar_dependences): Scop -> SESE.
-	
-	(add_conditions_to_domain): SCoP -> SESE and remove check 
+
+	(add_conditions_to_domain): SCoP -> SESE and remove check
 	(scop_contains_non_iv_scalar_phi_nodes): New.
 	(build_scop_conditions_1, build_scop_conditions): Remove check for
 	non iv scalar phi nodes.
 	(print_scop_statistics): New.
 	(graphite_transform_loops): Cleanup.
 
-	* graphite.h: Move to sese & cleanup. 
+	* graphite.h: Move to sese & cleanup.
 	* sese.c: New.
 	* sese.h: New.
 
@@ -2220,8 +2241,8 @@
 	* graphite.h (struct scop): Move params, old_ivs, loops, loop_nest,
 	liveout_renames, add_params fields...
 	(struct sese): ... here.
-	(SESE_PARAMS, SESE_LOOPS, SESE_LOOP_NEST, SESE_ADD_PARAMS, SESE_PARAMS,
-	SESE_OLDIVS, SESE_LIVEOUT_RENAMES): New.
+	(SESE_PARAMS, SESE_LOOPS, SESE_LOOP_NEST, SESE_ADD_PARAMS,
+	SESE_PARAMS, SESE_OLDIVS, SESE_LIVEOUT_RENAMES): New.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
@@ -2242,7 +2263,7 @@
 	(statement_precedes_p): Use schedule_same_p and schedule_precedes_p.
 	* graphite.c (gbb_compare, schedule_to_scattering, print_graphite_bb,
 	free_graphite_bb, build_scop_canonical_schedules,
-	graphite_trans_bb_strip_mine, graphite_trans_scop_block): Static 
+	graphite_trans_bb_strip_mine, graphite_trans_scop_block): Static
 	schedules are now represented using a ppl_Linear_Expression_t.
 	* graphite.h (struct graphite_bb): Same.
 	* graphite-ppl.c (ppl_lexico_compare_linear_expressions): New.
@@ -2352,8 +2373,9 @@
 2009-02-05  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/38953
-	* graphite.c (if_region_set_false_region): After moving a region 
-	in the false branch of a condition, remove the empty dummy basic block.
+	* graphite.c (if_region_set_false_region): After moving a region
+	in the false branch of a condition, remove the empty dummy
+	basic block.
 	(gloog): Remove wrong fix for PR38953.
 
 2009-02-03  Tobias Grosser  <grosser@fim.uni-passau.de>
@@ -2381,7 +2403,7 @@
 	detection.
 
 2009-01-30  Tobias Grosser  <grosser@fim.uni-passau.de>
-	
+
 	* graphite.c (new_loop_to_cloog_loop_str, hash_loop_to_cloog_loop,
 	eq_loop_to_cloog_loop): Remove.
 	(new_scop, free_scop): Remove SCOP_LOOP2CLOOG_LOOP.
@@ -2389,7 +2411,7 @@
 	(loop_domain_dim, loop_iteration_vector_dim): Remove.
 
 2009-01-30  Tobias Grosser  <grosser@fim.uni-passau.de>
-	
+
 	* opts.c (decode_options): Only add graphite options to O2
 	if we compile with graphite enabled.
 
@@ -2441,7 +2463,8 @@
 2009-01-15  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <tobi.grosser@amd.com>
 
-	* graphite.c (build_scop_canonical_schedules): Start schedules at zero.
+	* graphite.c (build_scop_canonical_schedules): Start schedules at
+	zero.
 
 2009-01-15  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <tobi.grosser@amd.com>
@@ -2454,7 +2477,7 @@
 2009-01-14  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <tobi.grosser@amd.com>
 
-	* graphite.c (add_conditions_to_domain): Add the loops to 
+	* graphite.c (add_conditions_to_domain): Add the loops to
 	the dimension of the iteration domain.  Do copy the domain
 	only when it exists.
 	(build_scop_conditions_1): Do not call add_conditions_to_domain.
@@ -2481,7 +2504,7 @@
 	* graphite.c (get_vdef_before_scop, scop_adjust_vphi): New.
 	(scop_adjust_phis_for_liveouts): Call scop_adjust_vphi.
 	(gloog): Do not call cleanup_tree_cfg.
-	(graphite_transform_loops): Call cleanup_tree_cfg after all 
+	(graphite_transform_loops): Call cleanup_tree_cfg after all
 	scops have been code generated.
 
 2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
@@ -2529,7 +2552,7 @@
 
 2009-01-08  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* libjava/classpath/lib/gnu/java/awt/peer/gtk/GtkMouseInfoPeer.class: 
+	* libjava/classpath/lib/gnu/java/awt/peer/gtk/GtkMouseInfoPeer.class:
 	Fix merge problem: replace with the file from trunk.
 
 2009-01-08  Sebastian Pop  <sebastian.pop@amd.com>
@@ -2578,7 +2601,8 @@
 	in trunk.
 	* testsuite/gcc.dg/graphite/block-0.c: Update test.
 	* testsuite/gcc.dg/graphite/block-1.c: Same.
-	* testsuite/gcc.dg/graphite/block-2.c: Remove xfail and test for blocking.
+	* testsuite/gcc.dg/graphite/block-2.c: Remove xfail and test for
+	blocking.
 	* testsuite/gcc.dg/graphite/block-4.c: Remove test for strip mine.
 	* testsuite/gcc.dg/graphite/block-3.c: New.
 	* testsuite/gcc.dg/graphite/pr38498.c: New.
@@ -2588,7 +2612,7 @@
 	PR tree-optimization/38510
 	* gcc.dg/graphite/pr38510.c: New.
 	* graphite.c (recompute_all_dominators): Call mark_irreducible_loops.
-	  (translate_clast): Call recompute_all_dominators before 
+	  (translate_clast): Call recompute_all_dominators before
 	  graphite_verify.
 	  (gloog): Call recompute_all_dominators before graphite_verify.
 
@@ -2596,9 +2620,9 @@
 
 	PR tree-optimization/38492
 	* graphite.c (rename_map_elt, debug_rename_elt,
-        debug_rename_map_1, debug_rename_map, new_rename_map_elt,
-        rename_map_elt_info, eq_rename_map_elts,
-        get_new_name_from_old_name, bb_in_sese_p): Moved around.
+	debug_rename_map_1, debug_rename_map, new_rename_map_elt,
+	rename_map_elt_info, eq_rename_map_elts,
+	get_new_name_from_old_name, bb_in_sese_p): Moved around.
 	(sese_find_uses_to_rename_use): Renamed sese_build_livein_liveouts_use.
 	(sese_find_uses_to_rename_bb): Renamed sese_build_livein_liveouts_bb.
 	(sese_build_livein_liveouts): New.
@@ -2618,7 +2642,7 @@
 	(gloog): Call scop_adjust_phis_for_liveouts.
 
 	* graphite.h (struct sese): Documented.  Added fields liveout,
-        num_ver and livein.
+	num_ver and livein.
 	(SESE_LIVEOUT, SESE_LIVEIN, SESE_LIVEIN_VER, SESE_NUM_VER): New.
 	(new_sese, free_sese, sese_build_livein_liveouts): Declared.
 	(struct scop): Added field liveout_renames.
@@ -2745,7 +2769,7 @@
 	(clast_to_gcc_expression): Be more careful to types of expressions.
 	Use max_precision_type and update use of gmp_cst_to_tree.
 	(graphite_translate_clast_equation): Use max_precision_type.
-	(graphite_create_guard_cond_expr): Do not use integer_type_node, 
+	(graphite_create_guard_cond_expr): Do not use integer_type_node,
 	use the type of the condition.
 	(graphite_create_new_loop): Do not use integer_type_node, use the
 	max_precision_type of lb and ub.
@@ -2766,7 +2790,7 @@
 
 2008-12-02  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
-            Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	PR middle-end/37852
 	PR middle-end/37883
@@ -2787,18 +2811,20 @@
 	* testsuite/gfortran.dg/graphite/pr37980.f90: New.
 
 	* testsuite/gcc.dg/graphite/scop-18.c: Remove reduction, test for
-	the number of detected scops.  Copy exact same test for loop blocking...
-	* testsuite/gcc.dg/graphite/block-1.c: Fix the number of expected loops
-	to be blocked as reductions are not handled.
+	the number of detected scops.  Copy exact same test for loop
+	blocking...
+	* testsuite/gcc.dg/graphite/block-1.c: Fix the number of expected
+	loops to be blocked as reductions are not handled.
 	* testsuite/gcc.dg/graphite/block-4.c: ...here.  New.
 
 	* tree-phinodes.c (remove_phi_nodes): New, extracted from...
-	* tree-cfg.c (remove_phi_nodes_and_edges_for_unreachable_block): ...here.
+	* tree-cfg.c (remove_phi_nodes_and_edges_for_unreachable_block):
+	...here.
 	* tree-flow.h (remove_phi_nodes, canonicalize_loop_ivs): Declared.
 	* Makefile.in (graphite.o): Depend on value-prof.h.
 	(graphite.o-warn): Removed -Wno-error.
-	* tree-parloops.c (canonicalize_loop_ivs): Allow reduction_list 
-	to be a NULL pointer.  Call update_stmt.  Return the newly created 
+	* tree-parloops.c (canonicalize_loop_ivs): Allow reduction_list
+	to be a NULL pointer.  Call update_stmt.  Return the newly created
 	cannonical induction variable.
 
 	* graphite.h (debug_rename_map): Declared.  Fix some comments.
@@ -2811,7 +2837,7 @@
 	(new_graphite_bb): Test for useful statements before building a
 	graphite statement for the basic block.
 	(free_graphite_bb): Do not free GBB_DATA_REFS: this is a bug
-	in free_data_ref that calls BITMAP_FREE (DR_VOPS (dr)) without 
+	in free_data_ref that calls BITMAP_FREE (DR_VOPS (dr)) without
 	reason.
 	(recompute_all_dominators, graphite_verify,
 	nb_reductions_in_loop, graphite_loop_normal_form): New.
@@ -2831,7 +2857,7 @@
 	(debug_rename_elt, debug_rename_map_1, debug_rename_map): New.
 	(remove_all_edges_1, remove_all_edges): Removed.
 	(get_new_name_from_old_name): New.
-	(graphite_rename_variables_in_stmt): Renamed 
+	(graphite_rename_variables_in_stmt): Renamed
 	rename_variables_in_stmt.  Call get_new_name_from_old_name.
 	Use replace_exp	and update_stmt.
 	(is_old_iv): Renamed is_iv.
@@ -2851,7 +2877,7 @@
 	copy_bb_and_scalar_dependences): New.
 	(translate_clast): Heavily reimplemented: copy basic blocks,
 	do not move them.  Finally, in call cleanup_tree_cfg in gloog.
-	At each translation step call graphite_verify ensuring the 
+	At each translation step call graphite_verify ensuring the
 	consistency of the SSA, loops and dominators information.
 	(collect_virtual_phis, find_vdef_for_var_in_bb,
 	find_vdef_for_var_1, find_vdef_for_var,
@@ -2862,18 +2888,18 @@
 	(remove_sese_region, ifsese, if_region_entry, if_region_exit,
 	if_region_get_condition_block, if_region_set_false_region,
 	create_if_region_on_edge, move_sese_in_condition, bb_in_sese_p,
-	sese_find_uses_to_rename_use, sese_find_uses_to_rename_bb, 
+	sese_find_uses_to_rename_use, sese_find_uses_to_rename_bb,
 	sese_add_exit_phis_edge, sese_add_exit_phis_var,
 	rewrite_into_sese_closed_ssa): New.
 	(gloog): Remove dead code.  Early return if code cannot be
 	generated.  Call cleanup_tree_cfg once the scop has been code
 	generated.
-	(graphite_trans_scop_block, graphite_trans_loop_block): Do not 
+	(graphite_trans_scop_block, graphite_trans_loop_block): Do not
 	block loops with less than two loops.
 	(graphite_apply_transformations): Remove the call to
 	scop_remove_ignoreable_gbbs.
-	(limit_scops): When build_scop_loop_nests fails, continue on next scop.
-	Fix open_scop.entry.
+	(limit_scops): When build_scop_loop_nests fails, continue on
+	the next scop.  Fix open_scop.entry.
 	(graphite_transform_loops): Call recompute_all_dominators: force the
 	recomputation of correct CDI_DOMINATORS and CDI_POST_DOMINATORS.
 	Call initialize_original_copy_tables and free_original_copy_tables
@@ -2903,7 +2929,7 @@
 2008-10-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	PR middle-end/37886
-	* graphite.c (gloog): Replace EXIT_BLOCK_PTR with scop exit. 
+	* graphite.c (gloog): Replace EXIT_BLOCK_PTR with scop exit.
 
 2008-10-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -2926,7 +2952,7 @@
 
 	* doc/invoke.texi: Add -fgraphite-identity.
 	* graphite.c (graphite_apply_transformations): Check for
-	-fgraphite-identity.	
+	-fgraphite-identity.
 	* toplev.c (process_options): Add flag_graphite_identity.
 	* tree-ssa-loop.c: Add flag_graphite_identity.
 
@@ -2968,7 +2994,7 @@
 	(is_simple_operand): Call exclude_component_ref.
 
 2008-10-02  Jan Sjodin  <jan.sjodin@amd.com>
-            Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	PR tree-optimization/37485
 	* gcc.dg/graphite/block-2.c: New
@@ -3025,7 +3051,7 @@
 	(graphite_dump_dependence_graph): Declared.
 	(graphite_build_rdg_all_levels): Declared.
 	(graphite_test_dependence): Declared.
-	* Makefile.in (graphite-data-ref.o): New target.                                           
+	* Makefile.in (graphite-data-ref.o): New target.
 
 2008-09-09  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -3034,7 +3060,7 @@
 2008-09-01  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (138275:139870).
-	* testsuite/gcc.dg/graphite/scop-matmult.c: XFailed as one of 
+	* testsuite/gcc.dg/graphite/scop-matmult.c: XFailed as one of
 	the commits from trunk broke the niter detection.
 
 2008-09-01  Sebastian Pop  <sebastian.pop@amd.com>
@@ -3064,7 +3090,7 @@
 	(expand_scalar_variables): New.
 	(move_phi_nodes): Create new phi instead of moving old one.
 	(translate_clast): Call expand_scalar_variables.
-	(find_vdef_for_var_in_bb): Also scan regular definitions. 
+	(find_vdef_for_var_in_bb): Also scan regular definitions.
 	(skip_phi_defs): New.
 	(collect_scop_exit_phi_args): New.
 	(patch_scop_exit_phi_args): New.
@@ -3152,7 +3178,7 @@
 2008-08-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (new_graphite_bb): Remove GBB_INDEX_TO_NUM_MAP
-        initialization.
+	initialization.
 	(free_graphite_bb): Remove GBB_INDEX_TO_NUM_MAP free.
 	(translate_clast): Correct formatting.
 	* graphite.h (struct num_map): Removed.
@@ -3405,7 +3431,7 @@
 2008-08-14  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c: Add some more documentation for the loop
-          mapping.
+	mapping.
 
 2008-08-14  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -3450,7 +3476,7 @@
 	* graphite.c: Include gimple.h.
 	(gimple_vec): Moved to...
 	(del_loop_to_cloog_loop): Removed.
-	(loop_affine_expr): Do not call create_data_ref when the 
+	(loop_affine_expr): Do not call create_data_ref when the
 	operand is a constant.
 	(new_scop): Use free instead of del_loop_to_cloog_loop.
 	* Makefile.in (graphite.o): Depend on GIMPLE_H.
@@ -3556,11 +3582,13 @@
 
 2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* toplev.c (process_options): Move the graphite loop optimization flags...
+	* toplev.c (process_options): Move the graphite loop optimization
+	flags...
 	* tree-ssa-loop.c (graphite_transforms): ... here.
-	When not configured with CLooG, print to dump_file that Graphite transforms
-	were not performed.
-	* testsuite/gcc.dg/graphite/graphite.exp (scan-graphite-dump-times): New.
+	When not configured with CLooG, print to dump_file that
+	Graphite transforms were not performed.
+	* testsuite/gcc.dg/graphite/graphite.exp (scan-graphite-dump-times):
+	New.
 	* testsuite/gcc.dg/graphite/*.c: Updated all testcases to use
 	scan-graphite-dump-times.
 
@@ -3579,13 +3607,13 @@
 	(PPLLIBS, PPLINC): Added.
 	* graphite.c: Replace unsigned with int wherever possible.
 	Don't access Cloog's data structures, but use accessor functions.
-	Clast's stmt->type is now implemented as a vtable: change the 
+	Clast's stmt->type is now implemented as a vtable: change the
 	switches of stmt->type into ifs.
 	(polylib/polylibgmp.h): Don't include.
 	(initialize_dependence_polyhedron,
 	initialize_data_dependence_polyhedron, is_empty_polyhedron,
 	statement_precedes_p, test_dependence, build_rdg_all_levels,
-	dump_dependence_graph): Removed until this code is cleaned up 
+	dump_dependence_graph): Removed until this code is cleaned up
 	or ported to Cloog.
 	* Makefile.in (POLYLIBLIBS): Renamed PPLLIBS.
 	(POLYLIBINC): Renamed PPLINC.
@@ -3617,17 +3645,17 @@
 
 2008-07-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* graphite.c (dump_gbb_conditions): Print also conditions like "if (a)".
-	Remove dublicated code and use print_generic_expr ().
+	* graphite.c (dump_gbb_conditions): Print also conditions like
+	"if (a)".  Remove dublicated code and use print_generic_expr ().
 	(stmt_simple_for_scop_p): Only allow conditions we can handle
 	{<, <=, >, >=}.
 
 2008-07-25  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* graphite.h (struct scop): Removed new_ivs field.
-        (SCOP_NEWIVS): Deleted.
-	* graphite.c (new_scop, free_scop, clast_name_to_gcc, 
-	clast_to_gcc_expression, graphite_create_new_loop): 
+	(SCOP_NEWIVS): Deleted.
+	* graphite.c (new_scop, free_scop, clast_name_to_gcc,
+	clast_to_gcc_expression, graphite_create_new_loop):
 	Removed use of new_ivs.
 
 2008-07-25  Jan Sjodin  <jan.sjodin@amd.com>
@@ -3683,22 +3711,22 @@
 	* tree-bounds.c: Removed.
 	* tree-bounds.h: Removed.
 
-	Reverted the Condate changes (from 2006-07-04, 2007-03-20) that are now
-	tracked in the condate branch.
+	Reverted the Condate changes (from 2006-07-04, 2007-03-20) that
+	are now tracked in the condate branch.
 	* tree-check.c: Removed.
 	* tree-match.c: Removed.
 	* condate.y: Removed.
 
 2008-07-24  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 
-	* common.opt: New user flag -floop-block, -floop-strip-mine 
+	* common.opt: New user flag -floop-block, -floop-strip-mine
 	and -floop-interchange.
-	* toplev.c (process_options): Enable -fgraphite pass if any one of the 
+	* toplev.c (process_options): Enable -fgraphite pass if any one of the
 	graphite loop optimization flags is turned on.
-	* graphite.c (graphite_apply_transformations): Add flag_loop_block, 
-	flag_loop_strip_mine and flag_loop_interchange checks before 
+	* graphite.c (graphite_apply_transformations): Add flag_loop_block,
+	flag_loop_strip_mine and flag_loop_interchange checks before
 	optimizations.
-	* doc/invoke.texi: Remove -fgraphite and add -floop-block, 
+	* doc/invoke.texi: Remove -fgraphite and add -floop-block,
 	-floop-strip-mine and -floop-interchange.
 	* testsuite/gcc.dg/graphite/block-0.c: Add -floop-block and remove
 	-fgraphite.
@@ -3713,7 +3741,8 @@
 	(create_empty_loop_on_edge): More fixes.
 	* tree-phinodes.c (resize_phi_node): Extern.
 	(unlink_phi_node, move_phi_node): New split from remove_phi_node.
-	* cfghooks.c (update_dominator_information): New split from split_edge.
+	* cfghooks.c (update_dominator_information): New split from
+	split_edge.
 	* tree-vectorizer.c (rename_variables_in_bb): Extern.
 	* tree-dfa.c (collect_dfa_stats): Start walking the CFG on the
 	successor of the function entry block.
@@ -3731,7 +3760,7 @@
 	(free_scop): Free SCOP_LOOPS_MAPPING.
 	(scop_record_loop): Record old ivs.
 	(create_var_name): Removed.
-	(initialize_cloog_names): Allocate double space in case strip mine 
+	(initialize_cloog_names): Allocate double space in case strip mine
 	applies to all loops once.
 	(clast_name_to_gcc): Look up in the map ivstack passed in parameter.
 	(clast_to_gcc_expression): Same.  Implement more clast to gimple
@@ -3769,7 +3798,7 @@
 	* tree-flow.h (remove_bb, resize_phi_node, move_phi_node,
 	rename_variables_in_bb): Declare.
 	* tree-cfg.c (remove_bb): Extern.
-	
+
 	* testsuite/gcc.dg/graphite/block-0.c: New.
 
 2008-07-21  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
@@ -3810,7 +3839,7 @@
 	(scopdet_bb_info): Rename from is_bb_addable. Cleanup, bugfixes.
 	(build_scops_1): Cleanup, bugfixes.
 	(build_scops): Cleanup.
-	
+
 	* testsuite/gcc.dg/graphite/scop-matmult.c: Remove duplicated code.
 	* testsuite/gcc.dg/graphite/scop-15.c: Add SCoP numbers.
 
@@ -3818,14 +3847,15 @@
 
 	* testsuite/gfortran.dg/graphite/scop-1.f: Update to reduced test case.
 
-	* testsuite/gfortran.dg/graphite/graphite.exp: Use DEFAULT_GRAPHITE_FLAGS.
+	* testsuite/gfortran.dg/graphite/graphite.exp: Use
+	DEFAULT_GRAPHITE_FLAGS.
 
 	* testsuite/gcc.dg/graphite/scop-15.c: Update to reduced test case.
 
 2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
 
-	* graphite.c (scan_tree_for_params): Do not assert any more if MULT_EXPR 
-	parameter is negative.
+	* graphite.c (scan_tree_for_params): Do not assert any more if
+	MULT_EXPR parameter is negative.
 
 	* testsuite/gfortran.dg/graphite/scop-1.f: New.
 
@@ -3845,20 +3875,23 @@
 	(graphite_trans_bb_strip_mine): Rename from graphite_strip_mine_loop.
 	(graphite_trans_bb_block): New.
 	(graphite_trans_loop_block): New.
-	(graphite_trans_scop_swap_1and2): Rename from graphite_trans_swap_1and2.
+	(graphite_trans_scop_swap_1and2): Rename from
+	graphite_trans_swap_1and2.
 	(graphite_trans_scop_strip): Rename from graphite_trans_strip.
 	(graphite_trans_scop_block): New.
-	(graphite_apply_transformations): Rename from graphite_transformations.
+	(graphite_apply_transformations): Rename from
+	graphite_transformations.
 
 	* testsuite/gcc.dg/graphite/scop-matmult.c: New.
-	
+
 2008-07-10  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (gbb_compare): New.
 	(graphite_sort_gbbs): New.
 	(gbb_can_be_ignored): New.
 	(scop_remove_ignoreable_gbbs): New.
-	(graphite_transformations): Cleanup and add scop_remove_ignoreable_gbbs.
+	(graphite_transformations): Cleanup and add
+	scop_remove_ignoreable_gbbs.
 	* lambda.h (lambda_vector_compare): New.
 
 2008-07-09  Tobias Grosser  <grosser@fim.uni-passau.de>
@@ -3895,36 +3928,37 @@
 
 2008-06-19  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
-        * graphite.c (new_scop): Memory allocation for SCOP_{NEWIVS, OLDIVS}.
-          (free_scop): Memory deallocation for SCOP_NEWIVS, SCOP_OLDIVS.
-          (create_var_name, save_var_name): Newly defined functions.
-          (initialize_cloog_names): Part of the code factored out to
-          save_var_name.
-          (clast_to_gcc_expression): Now handles the case of clast_red_sum
-          in clast_reduction statement.
-          (graphite_create_new_loop): Now takes a new parameter 
-          for outer_loop.
-          (translate_clast): Now also takes the context_loop and bb_exit 
-          parameters. Rewritten the code so that it creates a gimple code 
-          inside the given context.
-          (outermost_loop_layer, graphite_remove_iv, graphite_rename_ivs, 
-          remove_cond_expr, disconnect_cond_expr, 
-          disconnect_virtual_phi_nodes): Newly defined functions.
-        * graphite.h (struct scop): added old_ivs vector.
-          SCOP_OLDIVS: New macro.
+	* graphite.c (new_scop): Memory allocation for SCOP_{NEWIVS, OLDIVS}.
+	(free_scop): Memory deallocation for SCOP_NEWIVS, SCOP_OLDIVS.
+	(create_var_name, save_var_name): Newly defined functions.
+	(initialize_cloog_names): Part of the code factored out to
+	save_var_name.
+	(clast_to_gcc_expression): Now handles the case of clast_red_sum
+	in clast_reduction statement.
+	(graphite_create_new_loop): Now takes a new parameter
+	for outer_loop.
+	(translate_clast): Now also takes the context_loop and bb_exit
+	parameters. Rewritten the code so that it creates a gimple code
+	inside the given context.
+	(outermost_loop_layer, graphite_remove_iv, graphite_rename_ivs,
+	remove_cond_expr, disconnect_cond_expr,
+	disconnect_virtual_phi_nodes): Newly defined functions.
+	* graphite.h (struct scop): added old_ivs vector.
+	SCOP_OLDIVS: New macro.
 
 2008-06-19  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* cfgloopmanip.c: Add missing function comments, fix formatting.
-	
+
 2008-06-18  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
 	* cfgloopmanip.c (update_dominators_in_loop): Defined.
-           (create_empty_loop_on_edge): Defined.
-        * tree-parloops.c (canonicalize_loop_ivs): Returns tree instead of void.
-        * cfgloop.h (create_empty_loop_on_edge): Declared as extern.
-          (update_dominators_in_loop): Declared as extern
-        * tree-flow.h (canonicalize_loop_ivs): Declared as extern.
+	(create_empty_loop_on_edge): Defined.
+	* tree-parloops.c (canonicalize_loop_ivs): Returns tree
+	instead of void.
+	* cfgloop.h (create_empty_loop_on_edge): Declared as extern.
+	(update_dominators_in_loop): Declared as extern
+	* tree-flow.h (canonicalize_loop_ivs): Declared as extern.
 
 2008-06-16  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -3996,8 +4030,8 @@
 	unnecessary cloog data structures. Fix memory leaks. Remove insert
 	into SCOP_LOOP2CLOOG_LOOP as the inserted CloogLoops will never be
 	used.
-	(build_scop_iteration_domain): Remove unnecessary cloog data structures.
-	Fix memory leaks.
+	(build_scop_iteration_domain): Remove unnecessary cloog
+	data structures.  Fix memory leaks.
 	(graphite_transform_loops): Disable build_scop_dynamic_schedules as it
 	uses SCOP_LOOP2CLOOG_LOOP, that is at the moment not working.
 
@@ -4026,8 +4060,8 @@
 	in polyhedron/aermod.f90.
 
 2008-06-11  Tobias Grosser  <grosser@fim.uni-passau.de>
-            Dwarak Rajagopal  <dwarak.rajagopal@amd.com>
-            Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Dwarak Rajagopal  <dwarak.rajagopal@amd.com>
+	    Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	* graphite.c (is_bb_addable): Fix segfault.
 
@@ -4047,14 +4081,14 @@
 	(is_loop_exit): Fix memory leak.
 
 2008-06-05  Tobias Grosser  <grosser@fim.uni-passau.de>
-    
+
 	* graphite.c (first_loop_in_scop): Deleted.
 	(setup_cloog_loop): Only walk the loop chain for inner loops.
 	(build_scop_iteration_domain): Execute setup_cloog_loop for
 	all loops in the first layer.
 
 2008-06-05  Tobias Grosser  <grosser@fim.uni-passau.de>
-    
+
 	* graphite.c (scan_tree_for_params): Change the way params are
 	added to be indepenent of the number of loops.
 	(setup_cloog_loop): Revert to short matrix format. Fix parameter
@@ -4064,7 +4098,8 @@
 2008-06-05  Sebastian Pop  <sebastian.pop@amd.com>
 	    Dwarak Rajagopal <dwarak.rajagopal@amd.com>
 
-	* tree-loop-fusion.c (fuse_loops): Fix uninitialized variable warning.
+	* tree-loop-fusion.c (fuse_loops): Fix uninitialized variable
+	warning.
 
 2008-06-05  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -4076,7 +4111,7 @@
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
 	* graphite.c (loop_affine_expr, idx_record_params,
-	find_scop_parameters, setup_cloog_loop): Use instantiate_scev 
+	find_scop_parameters, setup_cloog_loop): Use instantiate_scev
 	instead of instantiate_parameters.
 
 2008-06-04  Tobias Grosser  <grosser@fim.uni-passau.de>
@@ -4103,21 +4138,21 @@
 
 2008-06-04  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite.c (get_bb_type): On function body, i.e. loop_0, 
+	* graphite.c (get_bb_type): On function body, i.e. loop_0,
 	don't mark blocks as GBB_LOOP_SING_EXIT_HEADER, mark them
 	as GBB_COND_HEADER.
 
 2008-06-04  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* graphite.c (graphite_transform_loops): Early return when 
+	* graphite.c (graphite_transform_loops): Early return when
 	there are no loops in the function.
 
 2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
-	* graphite.c (scan_tree_for_params, setup_cloog_loop): Compute the offset 
-	of the last loop.
+	* graphite.c (scan_tree_for_params, setup_cloog_loop): Compute the
+	offset of the last loop.
 	(setup_cloog_loop): Copy the entire outer constraint matrix.
 
 2008-05-31  Sebastian Pop  <sebastian.pop@amd.com>
@@ -4125,12 +4160,12 @@
 
 	* graphite.c (stmt_in_scop_p, function_parameter_p,
 	invariant_in_scop_p): Removed.
-	(scan_tree_for_params): Can be used with no constraint 
+	(scan_tree_for_params): Can be used with no constraint
 	matrix for gathering parameters.
-	(idx_record_params): Don't use idx_record_param, instead use 
+	(idx_record_params): Don't use idx_record_param, instead use
 	scan_tree_for_params.
 	(find_scop_parameters): Same.
-	(setup_cloog_loop, build_scop_iteration_domain, build_cloog_prog): 
+	(setup_cloog_loop, build_scop_iteration_domain, build_cloog_prog):
 	Fix the size of loop domains.
 	(schedule_to_scattering): Exit when the outer loop is not in scop.
 	(find_transform): Enable build_cloog_prog.
@@ -4166,7 +4201,7 @@
 	(print_scop, build_graphite_bb): Use SCOP_BBS.
 	(build_scop_bbs): Reimplemented.
 	(dfs_bb_in_scop_p): Removed.
-	(build_scop_loop_nests): Reorder loops inserted in 
+	(build_scop_loop_nests): Reorder loops inserted in
 	SCOP_LOOP_NEST: outer loops should come first.
 	(build_scop_canonical_schedules): Reinitialize at zero
 	the components of the SCOP_STATIC_SCHEDULE for the loops
@@ -4192,9 +4227,9 @@
 	(is_bb_addable): Rework condition handling, now support for case
 	case statements and loops with multiple exits.
 
-        * testsuite/gcc.dg/graphite/scop-11.c: New.
-        * testsuite/gcc.dg/graphite/scop-12.c: New.
-        * testsuite/gcc.dg/graphite/scop-13.c: New.
+	* testsuite/gcc.dg/graphite/scop-11.c: New.
+	* testsuite/gcc.dg/graphite/scop-12.c: New.
+	* testsuite/gcc.dg/graphite/scop-13.c: New.
 
 2008-05-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -4260,16 +4295,16 @@
 	more colors.
 
 2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
-	
+
 	* testsuite/gcc.dg/graphite/scop-1.c: Update.
 	* testsuite/gcc.dg/graphite/scop-2.c: Update.
 	* testsuite/gcc.dg/graphite/scop-4.c: Update.
-	* testsuite/gcc.dg/graphite/scop-5.c: Add. 
+	* testsuite/gcc.dg/graphite/scop-5.c: Add.
 	* testsuite/gcc.dg/graphite/scop-6.c: Add.
 
 2008-05-06  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/scop-0.c: Add. 
+	* testsuite/gcc.dg/graphite/scop-0.c: Add.
 	* testsuite/gcc.dg/graphite/scop-7.c: Add.
 	* testsuite/gcc.dg/graphite/scop-8.c: Add.
 	* testsuite/gcc.dg/graphite/scop-9.c: Add.
@@ -4277,8 +4312,9 @@
 
 2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* graphite.c (scop_affine_expr): Renamed to loop_affine_expr.  Check affine
-	expressions depending on the outermost loop instead of a scop.
+	* graphite.c (scop_affine_expr): Renamed to loop_affine_expr.
+	Check affine expressions depending on the outermost loop
+	instead of a scop.
 	(stmt_simple_for_scop_p): Same.
 	(harmfule_stmt_in_scop): Same.
 
@@ -4290,11 +4326,13 @@
 
 2008-04-25  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite.c (basic_block_simple_for_scop_p): Renamed harmful_stmt_in_bb.
+	* graphite.c (basic_block_simple_for_scop_p): Renamed
+	harmful_stmt_in_bb.
 	(save_scop, preds_at_same_depth, test_for_scop_bound): Removed.
 	(add_dominators_to_open_scops, build_scops_1): Reimplemented.
-	(all_preds_visited_p, all_succs_visited_p, start_new_scop_for_each_succ,
-	start_new_scop, stop_last_open_scop, scop_end_loop): New.
+	(all_preds_visited_p, all_succs_visited_p,
+	start_new_scop_for_each_succ, start_new_scop, stop_last_open_scop,
+	scop_end_loop): New.
 	(build_scops): Do not use dfs_enumerate_from.
 
 	* testsuite/gcc.dg/graphite/scop-{1,2,4}.c: Updated.
@@ -4334,7 +4372,7 @@
 	Inner loop bound can depend on outer loop induction variable.
 	(setup_cloog_loop): tmp variable is allocated on stack. Call
 	instantiate_parameters with respect to outermost_loop_in_scop.
-	(loop_domain_dim, ref_nb_loops, loop_iteration_vector_dim): moved to 
+	(loop_domain_dim, ref_nb_loops, loop_iteration_vector_dim): moved to
 	graphite.h.
 	(create_empty_loop): Function loopify should be given edge
 	probability, instead of edge frequency. Dominance relation from
@@ -4366,13 +4404,14 @@
 	(scop_nb_params): Use name_tree instead of tree.
 
 2008-04-05  Alexander Lamaison  <awl03@doc.ic.ac.uk>
-            Sebastian Pop  <sebastian.pop@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-bounds.c: New.
 	* tree-bounds.h: New.
 	* tree-pass.h: Declare pass_bounds_early and pass_bounds_late.
 	* passes.c: Schedule pass_bounds_early, pass_bounds_late.
-	* builtins.c (expand_builtin_alloca): Add flag_bounds as for flag_mudflap.
+	* builtins.c (expand_builtin_alloca): Add flag_bounds as for
+	flag_mudflap.
 	* gcc.c: Same.
 	* toplev.c: Same.
 	* c-cppbuiltin.c: Same.
@@ -4384,30 +4423,31 @@
 	* Makefile.in: Same.
 
 2008-03-15  Antoniu Pop  <antoniu.pop@gmail.com>
-            Sebastian Pop  <sebastian.pop@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-loop-distribution.c (remaining_stmts,
 	upstream_mem_writes): Removed static variables.
 	(copy_loop_before, create_bb_after_loop,
 	mark_nodes_having_upstream_mem_writes, free_rdg_components,
-	rdg_build_components, rdg_build_partitions, dump_rdg_partitions): Extern.
+	rdg_build_components, rdg_build_partitions,
+	dump_rdg_partitions): Extern.
 	(generate_loops_for_partition, generate_code_for_partition): Do not
 	return a bool.
 	(already_processed_vertex_p, predecessor_has_mem_write,
 	mark_nodes_having_upstream_mem_writes, has_upstream_mem_writes,
 	rdg_flag_all_uses, rdg_flag_uses, rdg_flag_vertex_and_dependent,
 	rdg_flag_loop_exits, rdg_flag_similar_memory_accesses,
-	build_rdg_partition_for_component, rdg_build_partitions, ldist_gen): 
+	build_rdg_partition_for_component, rdg_build_partitions, ldist_gen):
 	Pass remaining_stmts and upstream_mem_writes as parameters.
 	(rdg_component): Moved...
 	(build_rdg_partition_for_component): Do not aggregate components when
 	flag_streamize_loops is set.
 	(gen_sequential_loops): New.
 	(ldist_gen): Call gen_sequential_loops.
-	
+
 	* tree-pass.h (pass_loop_streamization): Declared.
 
-	* omp-low.c (expand_omp_sections): Call add_bb_to_loop on created 
+	* omp-low.c (expand_omp_sections): Call add_bb_to_loop on created
 	basic blocks when loops structures exist.
 
 	* builtin-types.def (BT_FN_VOID_PTR_PTR_INT): New.
@@ -4421,24 +4461,26 @@
 	of code delimited by two edges in the CFG.
 	(separate_decls_in_loop_name): Renamed separate_decls_in_region_name.
 	(separate_decls_in_loop_stmt): Renamed separate_decls_in_region_stmt.
-	(separate_decls_in_loop): Renamed separate_decls_in_region.  Isolate 
+	(separate_decls_in_loop): Renamed separate_decls_in_region.  Isolate
 	the case of parallelisation of reductions.
 	(create_loop_fn): Extern.
 	(create_omp_parallel_region): New.
 
-	* tree-data-ref.c (dump_data_dependence_relation): Don't call 
+	* tree-data-ref.c (dump_data_dependence_relation): Don't call
 	dump_data_reference for printing dra and drb.
-	(create_rdg_edge_for_ddr, create_rdg_edges_for_scalar): Initialise 
+	(create_rdg_edge_for_ddr, create_rdg_edges_for_scalar): Initialise
 	RDGE_RELATION.
 	(build_rdg): Don't call free_dependence_relations for the moment, as
-	we attach dependence relations on each edge of the RDG.  To be fixed later.
+	we attach dependence relations on each edge of the RDG.
+	To be fixed later.
 
 	* tree-data-ref.h (rdg_component): ...here.
 	(struct rdg_edge): New field ddr_p relation.
 	(RDGE_RELATION): New.
 	(create_bb_after_loop, copy_loop_before,
 	mark_nodes_having_upstream_mem_writes, rdg_build_components,
-	rdg_build_partitions, dump_rdg_partitions, free_rdg_components): Declared.
+	rdg_build_partitions, dump_rdg_partitions,
+	free_rdg_components): Declared.
 
 	* omp-builtins.def (BUILT_IN_GOMP_STREAM_ALIGN_PUSH,
 	BUILT_IN_GOMP_STREAM_ALIGN_POP): New.
@@ -4461,7 +4503,7 @@
 
 2008-03-07  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* graphite.c (dot_all_scops): Update formatting.  
+	* graphite.c (dot_all_scops): Update formatting.
 	Bbs can now be part of more than one SCoP.
 
 2008-03-04  Sebastian Pop  <sebastian.pop@amd.com>
@@ -4477,8 +4519,8 @@
 	loop_iteration_vector_dim): New.
 	(build_access_matrix_with_af, build_access_matrix,
 	initialize_dependence_polyhedron): Fixed for new matrix layout.
-        No longer assume that all iteration domains are of the same
-        dimensionality.
+	No longer assume that all iteration domains are of the same
+	dimensionality.
 
 2008-03-02  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -4505,7 +4547,8 @@
 	(add_dominators_to_open_scops): New.
 	(test_for_scop_bound): Call add_dominators_to_open_scops.
 	Add cases for opening and closing multiple scops.
-	(build_scops, build_scop_bbs): Iterate over basic blocks in depth first.
+	(build_scops, build_scop_bbs): Iterate over basic blocks in
+	depth first order.
 	(build_graphite_bb): Pass scop directly.
 	(dfs_bb_in_scop_p): New.
 	(scop_record_loop): Use SCOP_LOOPS for not recording the same loop
@@ -4521,7 +4564,7 @@
 	* testsuite/gcc.dg/graphite/scop-{1,...,7}.c: Updated.
 
 2008-02-27  Antoniu Pop  <antoniu.pop@gmail.com>
-            Sebastian Pop  <sebastian.pop@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
 
 	* builtin-types.def (BT_FN_PTR_SIZE_UINT, BT_FN_BOOL_PTR): New.
 	* common.opt (fstreamize-loops): New.
@@ -4532,10 +4575,10 @@
 
 2008-02-22  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
-        * tree-data-ref.c (build_empty_rdg): New.
+	* tree-data-ref.c (build_empty_rdg): New.
 	(build_rdg): Use it.
 	* tree-data-ref.h (build_empty_rdg): Declared.
-        * graphite.c (free_scop): Free SCOP_LOOP2CLOOG_LOOP.
+	* graphite.c (free_scop): Free SCOP_LOOP2CLOOG_LOOP.
 	(find_vertex_for_stmt): Removed.
 	(build_rdg_all_levels): Use build_empty_rdg and rdg_vertex_for_stmt.
 
@@ -4548,15 +4591,15 @@
 
 2008-02-15  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
-        * graphite.c (build_scop_alpha): Removed.
+	* graphite.c (build_scop_alpha): Removed.
 	(graphite_transform_loops): Add a dummy call to build_all_rdg_levels
-        and dump_dependence_graph to avoid compiler warnings.
+	and dump_dependence_graph to avoid compiler warnings.
 
 2008-02-14  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
-        * tree-data-ref.c (dr_may_alias_p, create_rdg_vertices): Extern.
+	* tree-data-ref.c (dr_may_alias_p, create_rdg_vertices): Extern.
 	* tree-data-ref.h (dr_may_alias_p, create_rdg_vertices): Declared.
-        * graphite.c (new_loop_to_cloog_loop_str, hash_loop_to_cloog_loop,
+	* graphite.c (new_loop_to_cloog_loop_str, hash_loop_to_cloog_loop,
 	eq_loop_to_cloog_loop, del_loop_to_cloog_loop): New.
 	(new_scop, setup_cloog_loop): Initialize SCOP_LOOP2CLOOG_LOOP.
 	(initialize_dependence_polyhedron, find_vertex_for_stmt,
@@ -4571,8 +4614,8 @@
 
 2008-02-10  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
-        * graphite.c (build_graphite_bb): Fix initialization
-        of the graphite basic block.
+	* graphite.c (build_graphite_bb): Fix initialization
+	of the graphite basic block.
 
 2008-02-05  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -4608,7 +4651,8 @@
 2008-01-27  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-loop-distribution.c (generate_memset_zero,
-	generate_builtin, generate_code_for_partition, rdg_flag_all_uses): New.
+	generate_builtin, generate_code_for_partition,
+	rdg_flag_all_uses): New.
 	(rdg_flag_uses): Gather in the same partition the statements defining
 	the VUSES of the current statement.
 	(rdg_flag_similar_stores): Renamed rdg_flag_similar_memory_accesses.
@@ -4617,14 +4661,14 @@
 	(ldist_generate_loops): Renamed ldist_gen.
 
 2008-01-24  Sebastian Pop  <sebastian.pop@amd.com>
-            Tobias Grosser  <grosser@fmi.uni-passau.de>
+	    Tobias Grosser  <grosser@fmi.uni-passau.de>
 
 	* graphite.c (setup_cloog_loop): Chain all cloog loops with the
 	next pointer, don't use the inner pointer.
 
 2008-01-20  Tobias Grosser  <grosser@fmi.uni-passau.de>
 
-        * graphite.c (dot_all_scops, dot_all_scops_1): New.
+	* graphite.c (dot_all_scops, dot_all_scops_1): New.
 	(find_transform): Call dot_all_1.
 	* graphite.h (dot_all_scops): Declared.
 
@@ -4644,7 +4688,8 @@
 
 2007-12-13  Tobias Grosser  <grosser@fmi.uni-passau.de>
 
-	* graphite.c (initialize_cloog_names): Initialize cloog iterator names.
+	* graphite.c (initialize_cloog_names): Initialize cloog
+	iterator names.
 
 2007-12-13  Tobias Grosser  <grosser@fmi.uni-passau.de>
 
@@ -4693,7 +4738,8 @@
 	(create_rdg_vertices): Initialize the htab of graph->indexes.
 	Initialize RDG_MEM_WRITE_STMT and RDG_MEM_READS_STMT.
 	(stmts_from_loop): Don't save LABEL_EXPR.
-	(hash_stmt_vertex_info, eq_stmt_vertex_info, hash_stmt_vertex_del): New.
+	(hash_stmt_vertex_info, eq_stmt_vertex_info,
+	hash_stmt_vertex_del): New.
 	(build_rdg): Initialize rdg->indexes.
 	(free_rdg, stores_from_loop, ref_base_address,
 	rdg_defs_used_in_other_loops_p, have_similar_memory_accesses,
@@ -4703,7 +4749,8 @@
 	* tree-data-ref.h: Include tree-chrec.h.
 	(debug_data_dependence_relations): Declared.
 	(same_access_functions): ...here.  Now static inline.
-	(ddr_is_anti_dependent, ddrs_have_anti_deps, ddr_dependence_level): New.
+	(ddr_is_anti_dependent, ddrs_have_anti_deps,
+	ddr_dependence_level): New.
 	(struct rdg_vertex): New fields has_mem_write, has_mem_reads.
 	(RDGV_HAS_MEM_WRITE, RDGV_HAS_MEM_READS, RDG_STMT, RDG_MEM_WRITE_STMT,
 	RDG_MEM_READS_STMT): New.
@@ -4713,7 +4760,8 @@
 	(struct rdg_edge): New field level.
 	(RDGE_LEVEL, free_rdg): New.
 	(stores_from_loop, remove_similar_memory_refs,
-	rdg_defs_used_in_other_loops_p, have_similar_memory_accesses): Declared.
+	rdg_defs_used_in_other_loops_p,
+	have_similar_memory_accesses): Declared.
 	(rdg_has_similar_memory_accesses): New.
 
 	* lambda.h (dependence_level): New.
@@ -4735,7 +4783,7 @@
 	for polylib format.
 	(nb_flat_iterator): New.
 	(setup_cloog_loop): Initialize to 1 the first column for inequalities.
-	(build_scop_iteration_domain): Correct the number of columns for 
+	(build_scop_iteration_domain): Correct the number of columns for
 	polylib format.
 
 2007-12-12  Sebastian Pop  <sebastian.pop@amd.com>
@@ -4754,7 +4802,7 @@
 
 2007-10-28  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite.c (affine_expr): Renamed scop_affine_expr.  Use an extra 
+	* graphite.c (affine_expr): Renamed scop_affine_expr.  Use an extra
 	parameter for the basic block that contains the expression.  Use
 	outermost_loop_in_scop for evolution_function_is_affine_multivariate_p.
 	(stmt_simple_for_scop_p): Pass to scop_affine_expr the basic block of
@@ -4787,7 +4835,7 @@
 
 2007-05-24  Sebastian Pop  <sebpop@gmail.com>
 
-	* tree-loop-distribution.c (struct rdg): Replace arrays by 
+	* tree-loop-distribution.c (struct rdg): Replace arrays by
 	VECs for edges and vertices.
 	(RDG_NBV, RDG_NBE, RDG_VERTEX, RDG_EDGE): Removed.
 	(RDGV_NB_PARTITIONS): New.
@@ -4797,20 +4845,20 @@
 	number_of_scalar_dependences, create_edges, build_rdg): Use VECs.
 
 2007-05-17  Georges-Andre Silber  <silber@cri.ensmp.fr>
-            Sebastian Pop  <sebpop@gmail.com>
+	    Sebastian Pop  <sebpop@gmail.com>
 
-        * doc/invoke.texi (-ftree-loop-distribution): Document.
-        * tree-loop-distribution.c: New file.
-        * tree-pass.h (pass_loop_distribution): Declared.
-        * timevar.def (TV_TREE_LOOP_DISTRIBUTION): New.
-        * tree-data-ref.c (initialize_data_dependence_relation): Initialize and
-	set reversed_p.
-        * tree-data-ref.h (data_dependence_relation): Add reversed_p.
+	* doc/invoke.texi (-ftree-loop-distribution): Document.
+	* tree-loop-distribution.c: New file.
+	* tree-pass.h (pass_loop_distribution): Declared.
+	* timevar.def (TV_TREE_LOOP_DISTRIBUTION): New.
+	* tree-data-ref.c (initialize_data_dependence_relation): Initialize
+	and set reversed_p.
+	* tree-data-ref.h (data_dependence_relation): Add reversed_p.
 	(DDR_REVERSED_P): New.
-        * common.opt (-ftree-loop-distribution): New.
-        * tree-flow.h (distribute_loops): Declared.
-        * Makefile.in (OBJS-common): Depend on tree-loop-distribution.o.
-        * passes.c (init_optimization_passes): Schedule loop distribution.
+	* common.opt (-ftree-loop-distribution): New.
+	* tree-flow.h (distribute_loops): Declared.
+	* Makefile.in (OBJS-common): Depend on tree-loop-distribution.o.
+	* passes.c (init_optimization_passes): Schedule loop distribution.
 
 2007-05-12  Sebastian Pop  <sebastian.pop@inria.fr>
 
@@ -4832,30 +4880,32 @@
 	(function_parameter_p): New.
 	(invariant_in_scop_p): Use function_parameter_p.
 	(new_scop, save_scop): New.
-	(end_scop, test_for_scop_bound, build_scops): Use new_scop, and 
+	(end_scop, test_for_scop_bound, build_scops): Use new_scop, and
 	save_scop.
 	(scan_tree_for_params): Directly build the constraint as CloogMatrix.
 	(loop_in_scop_p): New.
 	(scop_record_loop): Use loop_in_scop_p.
 	(build_scop_domain): Renamed build_scop_iteration_domain.
 	(setup_cloog_loop, initialize_cloog_names, find_scop_parameters,
-	nb_params_in_scop, build_scop_context, first_loop_in_scop, 
+	nb_params_in_scop, build_scop_context, first_loop_in_scop,
 	setup_cloog_loop, dot_scop_1, dot_scop): New.
 	* graphite.h (GBB_LOOP, SCOP_PROG, dot_scop): New.
 	(struct scop): Add a pointer to cloog's representation of a program.
 
 2007-04-14  Sebastian Pop  <sebastian.pop@inria.fr>
 
-	* doc/invoke.texi (-ftree-check-verbose): Renamed -ftree-checks-verbose.
-	* common.opt (flag_tree_check_verbose): Renamed flag_tree_checks_verbose.
+	* doc/invoke.texi (-ftree-check-verbose): Renamed
+	-ftree-checks-verbose.
+	* common.opt (flag_tree_check_verbose): Renamed
+	flag_tree_checks_verbose.
 	* tree-check.c (tree_check_warning): Use flag_tree_checks_verbose.
 
 2007-04-14  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* configure: Regenerated.
 	* config.in: Regenerated.
-	* tree-ssa-loop.c (graphite_transforms): Execute graphite_transform_loops
-	only when HAVE_cloog.
+	* tree-ssa-loop.c (graphite_transforms): Execute
+	graphite_transform_loops only when HAVE_cloog.
 	* configure.ac (HAVE_polylib, HAVE_cloog, GRAPHITE): Defined.
 	* graphite.c: Include polylibgmp.h and cloog.h.
 	(graphite_transform_loops): Removed loops parameter.
@@ -4876,8 +4926,8 @@
 	* testsuite/gcc.dg/tree-checker/tree-checks.exp: New.
 	* testsuite/gcc.dg/tree-checker/condates.crp: New.
 	* common.opt (ftree-checks-verbose): New.
-	* tree-check.c (tree_check_warning): Move extra stderr output under control
-	of flag_tree_check_verbose.
+	* tree-check.c (tree_check_warning): Move extra stderr output
+	under control of flag_tree_check_verbose.
 
 2007-04-12  Sebastian Pop  <sebastian.pop@inria.fr>
 
@@ -4901,36 +4951,39 @@
 	(struct condate_s): New field msg.
 	(normalize_condate, name_condate, add_condate): New.
 	(conds[], condate_parse): Made extern.
-	* tree-check.c (tree_check_warning): First arg changed to cond; warning reformatted.
+	* tree-check.c (tree_check_warning): First arg changed to cond;
+	warning reformatted.
 	(tree_check_init): Reset the TREE_VISITED bit on every CFG node.
 	(tree_scan): New.
 	(tree_check): Process trivial condates.
 	(read_delimited_string): Removed.
 	(print_cond): Print name and msg.
 	(conds[]): Made extern.
-	(parse_tree_check_file_once): Rewritten to use the parser in condate.y.
+	(parse_tree_check_file_once): Rewritten to use the parser in
+	condate.y.
 	Processing of option --tree_check_string moved to tree_scan().
 	* Makefile.in: Added condate.y
 
 2007-03-12  Sebastian Pop  <sebastian.pop@inria.fr>
 
-	* tree-pretty-print.c (dump_generic_bb_buff, lazy_dump_generic_node): 
+	* tree-pretty-print.c (dump_generic_bb_buff, lazy_dump_generic_node):
 	Use VECs instead of varrays.
 	* diagnostic.h (lazy_dump_generic_node): Update declaration.
 	* Makefile.in (pretty-print.o): Depend on vec.h.
 	* pretty-print.c: Include tree.h and vec.h.
-	(pp_clear_state, pp_write_list_to_stream, pp_base_format, 
+	(pp_clear_state, pp_write_list_to_stream, pp_base_format,
 	pp_base_format, pp_construct, pp_base_string, pp_lazy_mode,
 	new_tree_chunk, pp_add_tree, pp_add_string, pp_add_char, pp_write_list,
 	pp_free_list): Use VECs instead of varrays.
 	* pretty-print.h: Do not include varray.h.
 	(struct tree_chunk_s): Declaration moved before its use.
 	(output_buffer): Rename varray field to chunks.
-	* tree-match.c (tree_equal, chunk_1st_char, chunks_lookahead, 
-	tree_1st_char, match_chunks_pattinfo, match_tree_pattinfo, 
+	* tree-match.c (tree_equal, chunk_1st_char, chunks_lookahead,
+	tree_1st_char, match_chunks_pattinfo, match_tree_pattinfo,
 	save_global_holes): Use VECs instead of varrays.
 	* tree-match.h: Declare VECs of cfg_node, and hole_p.
-	* tree-check.c (scan_cfg_stmts, push_node, print_matching_stmt): Removed.
+	* tree-check.c (scan_cfg_stmts, push_node,
+	print_matching_stmt): Removed.
 	(tree_check_instance, push_global_holes_if_new, tree_check,
 	execute_tree_check): Use VECs instead of varrays.
 	(gate_tree_check): Don't execute the CFG check when basic_block_info
@@ -4948,23 +5001,23 @@
 
 	* tree-dump.c (dump_option_value_in): Add TDF_DEBUG.
 	* tree-pass.h (TDF_DEBUG, debug_p): New.
-	* tree-scalar-evolution.c (set_scalar_evolution, get_scalar_evolution, 
-	get_scalar_evolution, add_to_evolution, set_nb_iterations_in_loop, 
+	* tree-scalar-evolution.c (set_scalar_evolution, get_scalar_evolution,
+	get_scalar_evolution, add_to_evolution, set_nb_iterations_in_loop,
 	get_loop_exit_condition, analyze_evolution_in_loop,
 	analyze_initial_condition, analyze_scalar_evolution,
 	instantiate_parameters, number_of_latch_executions): Use debug_p.
 	* tree-chrec.c (chrec_apply): Use debug_p.
 	* tree-data-ref.c: Include graphite.h.
 	(dump_data_reference): Print also the access matrix.
-	(analyze_array, analyze_indirect_ref, init_data_ref, 
+	(analyze_array, analyze_indirect_ref, init_data_ref,
 	analyze_offset_expr, address_analysis, object_analysis,
-	create_data_ref, finalize_ddr_dependent, 
+	create_data_ref, finalize_ddr_dependent,
 	non_affine_dependence_relation, analyze_ziv_subscript,
-	analyze_siv_subscript_cst_affine, 
+	analyze_siv_subscript_cst_affine,
 	compute_overlap_steps_for_affine_1_2, analyze_subscript_affine_affine,
 	can_use_analyze_subscript_affine_affine, analyze_siv_subscript,
-	analyze_miv_subscript, analyze_overlapping_iterations, 
-	build_classic_dist_vector, subscript_dependence_tester, 
+	analyze_miv_subscript, analyze_overlapping_iterations,
+	build_classic_dist_vector, subscript_dependence_tester,
 	compute_affine_dependence, analyze_all_data_dependences): Use debug_p.
 	(build_access_matrix_with_af): No longer static.
 	* tree-data-ref.h (scop_p): ... declaration here.
@@ -5004,7 +5057,7 @@
 	* tree-chrec.c (for_each_scev_op): New.
 	* tree-chrec.h (for_each_scev_op): Declared.
 	* tree-ssa-loop.c (pass_graphite_trans): Don't dump the function.
-	* tree-data-ref.c (get_references_in_stmt, 
+	* tree-data-ref.c (get_references_in_stmt,
 	find_data_references_in_stmt): New, from trunk.
 	(find_data_references_in_loop): Use get_references_in_stmt
 	and find_data_references_in_loop, modified as in trunk.
@@ -5012,11 +5065,11 @@
 	* tree-data-ref.h (data_reference): Add a field access_matrix.
 	(data_ref_loc): New, as in trunk.
 	* graphite.c (print_graphite_bb, bb_in_scop_p, stmt_in_scop_p,
-	invariant_in_scop_p, param_index, scan_tree_for_params, 
+	invariant_in_scop_p, param_index, scan_tree_for_params,
 	scop_loop_index, build_scop_loop_nests, build_scop_domain, irp_data,
-	idx_record_param, idx_record_params, build_access_matrix, 
-	build_scop_data_accesses, build_scop_canonical_schedules, 
-	build_graphite_bb, build_scop_bbs, find_params_in_bb, 
+	idx_record_param, idx_record_params, build_access_matrix,
+	build_scop_data_accesses, build_scop_canonical_schedules,
+	build_graphite_bb, build_scop_bbs, find_params_in_bb,
 	build_scop_params): New.
 	* graphite.h (graphite_bb): New.
 	(scop): Add fields static_schedule, params, loop_nest,
@@ -5054,7 +5107,7 @@
 
 2006-07-04  Nic Volanschi <nic.volanschi@free.fr>
 
-	* tree-pattern.h: New. Tree pattern matching and checking using 
+	* tree-pattern.h: New. Tree pattern matching and checking using
 	concrete syntax.
 	* tree-check.c: New. Tree/CFG checking pass.
 	* tree-match.c: New. Library for tree pattern matching.
@@ -5062,15 +5115,15 @@
 	* toplev.c, flags.h: Add globals for tree-check pass.
 	* Makefile.in: Integrate the files in tree-check pass.
 	* timevar.def, tree-optimize.c, tree-pass.h: Register tree-check pass.
-	* pretty-print.c, pretty-print.h, tree-pretty-print.c, diagnostic.h: 
+	* pretty-print.c, pretty-print.h, tree-pretty-print.c, diagnostic.h:
 	Introduce a "lazy" pretty-print mode.
 	* tree.c, tree.h: Add tree_name.
 
 2006-07-04  Sebastian Pop  <pop@cri.ensmp.fr>
 
 	* doc/invoke.texi (-fgraphite): Correct typo.
-	* tree-scalar-evolution.c (number_of_iterations_for_all_loops): Update use
-	of print_loop_ir.
+	* tree-scalar-evolution.c (number_of_iterations_for_all_loops): Update
+	use of print_loop_ir.
 	* testsuite/gcc.dg/graphite/scop-1.c: New.
 	* testsuite/gcc.dg/graphite/scop-2.c: New.
 	* testsuite/gcc.dg/graphite/graphite.exp: New.
@@ -5086,7 +5139,7 @@
 	* graphite.h (debug_scop): Declared.
 	* tree-flow.h (debug_loop_ir, print_loop_ir): Update declarations.
 	* Makefile.in (graphite.o): Depend on domwalk.h.
-	* tree-cfg.c (print_loop, print_pred_bbs, print_succ_bbs): Remove 
+	* tree-cfg.c (print_loop, print_pred_bbs, print_succ_bbs): Remove
 	declarations for static functions.
 	(print_loop, print_loop_ir, debug_loop_ir): Use an extra parameter for
 	controlling output verbosity.

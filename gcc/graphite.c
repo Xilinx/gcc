@@ -20,12 +20,12 @@ along with GCC; see the file COPYING3.  If not see
 
 /* This pass converts GIMPLE to GRAPHITE, performs some loop
    transformations and then converts the resulting representation back
-   to GIMPLE.  
+   to GIMPLE.
 
    An early description of this pass can be found in the GCC Summit'06
    paper "GRAPHITE: Polyhedral Analyses and Optimizations for GCC".
    The wiki page http://gcc.gnu.org/wiki/Graphite contains pointers to
-   the related work.  
+   the related work.
 
    One important document to read is CLooG's internal manual:
    http://repo.or.cz/w/cloog-ppl.git?a=blob_plain;f=doc/cloog.texi;hb=HEAD

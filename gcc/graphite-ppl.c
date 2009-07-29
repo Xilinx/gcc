@@ -266,7 +266,7 @@ new_Cloog_Domain_from_ppl_Pointset_Powerset (
 
   ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (it);
   ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (end);
-  
+
   gcc_assert (res != NULL);
 
   return res;
@@ -322,15 +322,15 @@ ppl_set_coef_gmp (ppl_Linear_Expression_t e, ppl_dimension_type i, Value x)
   ppl_delete_Coefficient (c);
 }
 
-/* Insert after X NB_NEW_DIMS empty dimensions into PH. 
-   
+/* Insert after X NB_NEW_DIMS empty dimensions into PH.
+
    With x = 3 and nb_new_dims = 4
 
    |  d0 d1 d2 d3 d4
-   
+
    is transformed to
-   
-   |  d0 d1 d2 x0 x1 x2 x3 d3 d4 
+
+   |  d0 d1 d2 x0 x1 x2 x3 d3 d4
 
    | map = {0, 1, 2, 7, 8, 3, 4, 5, 6}
 */
@@ -364,15 +364,15 @@ ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_C_Polyhedron_t ph, int x,
   free (map);
 }
 
-/* Insert after X NB_NEW_DIMS empty dimensions into PH. 
-   
+/* Insert after X NB_NEW_DIMS empty dimensions into PH.
+
    With x = 3 and nb_new_dims = 4
 
    |  d0 d1 d2 d3 d4
-   
+
    is transformed to
-   
-   |  d0 d1 d2 x0 x1 x2 x3 d3 d4 
+
+   |  d0 d1 d2 x0 x1 x2 x3 d3 d4
 
    | map = {0, 1, 2, 7, 8, 3, 4, 5, 6}
 */
@@ -485,7 +485,7 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
 
   /* Upper bound of a tile stops at "stride * outer_iv + stride - 1",
      or at the old upper bound that is not modified.  */
-  {  
+  {
     ppl_Constraint_t new_cstr;
     ppl_new_Linear_Expression_with_dimension (&expr, dim + 1);
 
