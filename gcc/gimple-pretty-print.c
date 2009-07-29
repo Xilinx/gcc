@@ -1134,8 +1134,8 @@ dump_gimple_tm_atomic_subcode (pretty_printer *buffer, unsigned subcode)
     pp_string (buffer, "GTMA_HAVE_CALL_TM ");
   if (subcode & GTMA_MAY_ENTER_IRREVOKABLE)
     pp_string (buffer, "GTMA_MAY_ENTER_IRREVOKABLE ");
-  if (subcode & GTMA_MUST_CALL_IRREVOKABLE)
-    pp_string (buffer, "GTMA_MUST_CALL_IRREVOKABLE ");
+  if (subcode & GTMA_DOES_GO_IRREVOKABLE)
+    pp_string (buffer, "GTMA_DOES_GO_IRREVOKABLE ");
   if (subcode & GTMA_HAVE_UNCOMMITTED_THROW)
     pp_string (buffer, "GTMA_HAVE_UNCOMMITTED_THROW ");
   pp_string (buffer, "]");

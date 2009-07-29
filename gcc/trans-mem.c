@@ -731,7 +731,7 @@ tm_region_init_1 (gimple stmt, void *xdata)
   struct tm_region *region;
   basic_block bb = gimple_bb (stmt);
 
-  /* ??? Verify that the statement (and the block) havn't been deleted.  */
+  /* ??? Verify that the statement (and the block) haven't been deleted.  */
   gcc_assert (bb != NULL);
   gcc_assert (gimple_code (stmt) == GIMPLE_TM_ATOMIC);
 
@@ -1103,6 +1103,7 @@ expand_call_tm (struct tm_region *region,
   gimple stmt = gsi_stmt (*gsi);
   tree lhs = gimple_call_lhs (stmt);
   tree fn_decl;
+  struct cgraph_node *node;
 
   if (is_tm_pure_call (stmt))
     return false;
@@ -1111,7 +1112,22 @@ expand_call_tm (struct tm_region *region,
 
   /* For indirect calls, we already generated a call into the runtime.  */
   if (!fn_decl)
-    return false;
+    {
+      tree fn = gimple_call_fn (stmt);
+
+      /* We are guaranteed never to go irrevocable on a safe or pure
+	 call, and the pure call was handled above.  */
+      if (fn && is_tm_safe (TREE_TYPE (fn)))
+	return false;
+      else
+	tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
+      
+      return false;
+    }
+
+  node = cgraph_node (fn_decl);
+  if (node->local.tm_may_enter_irr)
+    tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
 
   if (is_tm_abort (fn_decl))
     {
@@ -1188,13 +1204,13 @@ execute_tm_mark (void)
 
 	/* Collect a new SUBCODE set, now that optimizations are done...  */
 	gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, 0);
-	/* ...but keep the bits that require IPA to collect.  Ideally
-	   we should do IPA again to make sure things like DCE didn't
-	   invalidate irrevocability, but we are certain not to
-	   introduce things that go irrevocable, so it's safe to keep
-	   the irrevocability bit.  */
-	gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
-				      subcode & GTMA_MAY_ENTER_IRREVOKABLE);
+	/* ...but keep the GTMA_DOES_GO_IRREVOKABLE bit, since we can
+	   almost be sure never to insert anything during optimization that
+	   will cause certain irrevocability to be reversed.  */
+	if (subcode & GTMA_DOES_GO_IRREVOKABLE)
+	  gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
+					GTMA_DOES_GO_IRREVOKABLE |
+					GTMA_MAY_ENTER_IRREVOKABLE);
 
 	VEC_quick_push (basic_block, queue, region->entry_block);
 	do
@@ -1309,11 +1325,14 @@ expand_tm_atomic (struct tm_region *region)
 
   /* ??? There are plenty of bits here we're not computing.  */
   subcode = gimple_tm_atomic_subcode (region->tm_atomic_stmt);
-  flags = PR_INSTRUMENTEDCODE;
+  if (subcode & GTMA_DOES_GO_IRREVOKABLE)
+    flags = PR_DOESGOIRREVOKABLE | PR_UNINSTRUMENTEDCODE;
+  else
+    flags = PR_INSTRUMENTEDCODE;
+  if ((subcode & GTMA_MAY_ENTER_IRREVOKABLE) == 0)
+    flags |= PR_HASNOIRREVOKABLE;
   if ((subcode & GTMA_HAVE_ABORT) == 0)
     flags |= PR_HASNOABORT;
-  if (subcode & GTMA_MUST_CALL_IRREVOKABLE)
-    flags |= PR_DOESGOIRREVOKABLE;
   t2 = build_int_cst (TREE_TYPE (status), flags);
   g = gimple_build_call (tm_start, 1, t2);
   gimple_call_set_lhs (g, status);
@@ -1531,7 +1550,7 @@ struct gimple_opt_pass pass_tm_memopt =
 
 	(d) Place tm_irrevokable calls at the beginning of the relevant
 	    blocks.  Special case here is the entry block for the entire
-	    tm_atomic region; there we mark it MUST_CALL_IRREVOKABLE for
+	    tm_atomic region; there we mark it GTMA_DOES_GO_IRREVOKABLE for
 	    the library to begin the region in serial mode.  Decrement
 	    the call count for all callees in the irrevokable region.
 
@@ -1621,6 +1640,7 @@ ipa_tm_scan_calls_tm_atomic (struct cgraph_node *node,
 			     cgraph_node_queue *callees_p)
 {
   struct cgraph_edge *e;
+  tree replacement;
 
   for (e = node->callees; e ; e = e->next_callee)
     if (gimple_call_in_tm_atomic_p (e->call_stmt))
@@ -1629,8 +1649,12 @@ ipa_tm_scan_calls_tm_atomic (struct cgraph_node *node,
 
 	if (is_tm_pure_call (e->call_stmt))
 	  continue;
-	if (find_tm_replacement_function (e->callee->decl))
-	  continue;
+	if ((replacement = find_tm_replacement_function (e->callee->decl)))
+	  {
+	    struct cgraph_local_info *local = cgraph_local_info (replacement);
+	    local->tm_may_enter_irr = true;
+	    continue;
+	  }
 	
 	d = get_cg_data (e->callee);
 	d->tm_callers_normal++;
@@ -1648,13 +1672,24 @@ ipa_tm_scan_calls_clone (struct cgraph_node *node,
   struct cgraph_edge *e;
 
   for (e = node->callees; e ; e = e->next_callee)
-    if (!is_tm_pure_call (e->call_stmt))
-      {
-	struct tm_ipa_cg_data *d = get_cg_data (e->callee);
+    {
+      tree replacement = find_tm_replacement_function (e->callee->decl);
 
-	d->tm_callers_clone++;
-	maybe_push_queue (e->callee, callees_p, &d->in_callee_queue);
-      }
+      if (replacement)
+	{
+	  struct cgraph_local_info *local = cgraph_local_info (replacement);
+	  local->tm_may_enter_irr = true;
+	  continue;
+	}
+
+      if (!is_tm_pure_call (e->call_stmt))
+	{
+	  struct tm_ipa_cg_data *d = get_cg_data (e->callee);
+
+	  d->tm_callers_clone++;
+	  maybe_push_queue (e->callee, callees_p, &d->in_callee_queue);
+	}
+    }
 }
 
 /* The function NODE has been detected to be irrevokable.  Push all
@@ -1972,6 +2007,8 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   if (!DECL_EXTERNAL (old_decl))
     tree_function_versioning (old_decl, new_decl, NULL, false, NULL);
 
+  /* ?? We should be able to remove DECL_IS_TM_CLONE.  We have enough
+     bits in cgraph to calculate all this.  */
   DECL_IS_TM_CLONE (new_decl) = 1;
 
   /* Determine if the symbol is already a valid C++ mangled name.  Do this
@@ -2211,10 +2248,18 @@ ipa_tm_transform_tm_atomic (struct cgraph_node *node)
   push_cfun (DECL_STRUCT_FUNCTION (node->decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
-  /* ??? Update the marks for the GIMPLE_TM_ATOMIC node, in particular
-     note the MUST_CALL_IRREVOKABLE and don't transform anything.  */
   for (region = d->all_tm_regions; region; region = region->next)
     {
+      /* If we're sure to go irrevocable, don't transform anything.  */
+      if (d->irrevokable_blocks_normal
+	  && bitmap_bit_p (d->irrevokable_blocks_normal,
+			   region->entry_block->index))
+	{
+	  tm_atomic_subcode_ior (region, GTMA_DOES_GO_IRREVOKABLE);
+	  tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
+	  break;
+	}
+
       need_ssa_rename |=
 	ipa_tm_transform_calls (node, region, region->entry_block,
 				d->irrevokable_blocks_normal);
@@ -2244,6 +2289,9 @@ ipa_tm_transform_clone (struct cgraph_node *node)
   current_function_decl = d->clone->decl;
   push_cfun (DECL_STRUCT_FUNCTION (current_function_decl));
   calculate_dominance_info (CDI_DOMINATORS);
+
+  if (!is_tm_safe (TREE_TYPE (current_function_decl)))
+    node->local.tm_may_enter_irr = true;
 
   need_ssa_rename =
     ipa_tm_transform_calls (d->clone, NULL, single_succ (ENTRY_BLOCK_PTR),
@@ -2333,8 +2381,17 @@ ipa_tm_execute (void)
 	  continue;
 	}
 
-      if (a >= AVAIL_OVERWRITABLE && !d->is_irrevokable)
-	ipa_tm_scan_calls_clone (node, &tm_callees);
+      if (a >= AVAIL_OVERWRITABLE)
+	{
+	  if (!d->is_irrevokable)
+	    ipa_tm_scan_calls_clone (node, &tm_callees);
+	}
+      else
+	{
+	  /* Non-local tm_callable may enter irrevocable mode.  */
+	  if (is_tm_callable (node->decl))
+	    node->local.tm_may_enter_irr = true;
+	}
     }
 
   /* Iterate scans until no more work to be done.  Prefer not to use
@@ -2387,14 +2444,6 @@ ipa_tm_execute (void)
     }
 
   /* Redirect calls to the new clones, and insert irrevokable marks.  */
-  for (node = cgraph_nodes; node; node = node->next)
-    if (node->reachable && node->lowered
-	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
-      {
-	d = get_cg_data (node);
-	if (d->all_tm_regions)
-	  ipa_tm_transform_tm_atomic (node);
-      }
   for (i = 0; i < VEC_length (cgraph_node_p, tm_callees); ++i)
     {
       node = VEC_index (cgraph_node_p, tm_callees, i);
@@ -2405,6 +2454,14 @@ ipa_tm_execute (void)
 	    ipa_tm_transform_clone (node);
 	}
     }
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->reachable && node->lowered
+	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
+      {
+	d = get_cg_data (node);
+	if (d->all_tm_regions)
+	  ipa_tm_transform_tm_atomic (node);
+      }
 
   /* Free and clear all data structures.  */
   VEC_free (cgraph_node_p, heap, tm_callees);

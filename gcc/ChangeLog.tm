@@ -1,3 +1,26 @@
+2009-07-24  Aldy Hernandez  <aldyh@redhat.com>
+
+	* cgraph.h (cgraph_local_info): Add tm_may_enter_irr.
+	* gimple-pretty-print.c (dump_gimple_tm_atomic_subcode): Rename
+	GTMA_MUST_CALL_IRREVOKABLE to GTMA_DOES_GO_IRREVOKABLE.
+	* trans-mem.c (expand_call_tm): Handle irrevocability.
+	(execute_tm_mark): Set GTMA_DOES_GO_IRREVOKABLE and
+	GTMA_MAY_ENTER_IRREVOKABLE.
+	(expand_tm_atomic): Set PR_DOESGOIRREVOKABLE,
+	PR_UNINSTRUMENTEDCODE, and PR_HASNOIRREVOKABLE appropriately.
+	(ipa_tm_scan_calls_tm_atomic): Set tm_may_enter_irr for
+	replacement functions.
+	(ipa_tm_scan_calls_clone): Same.
+	(ipa_tm_transform_tm_atomic): If the block goes irrevocable, don't
+	transform anything.
+	(ipa_tm_transform_clone): Set tm_may_enter_irr for non safe
+	functions.
+	(ipa_tm_execute): Set tm_may_enter_irr for non-local tm_callable
+	functions. Swap loops calling ipa_tm_transform_clone and
+	ipa_tm_transform_tm_atomic.
+	* gimple.h: Rename GTMA_MUST_CALL_IRREVOKABLE into
+	GTMA_DOES_GO_IRREVOKABLE.
+					 
 2009-07-23  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gimple-pretty-print.c (dump_gimple_tm_atomic_subcode): Add space

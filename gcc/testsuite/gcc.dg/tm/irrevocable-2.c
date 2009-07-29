@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-fgnu-tm -fdump-ipa-tmipa" } */
+/* { dg-options "-fgnu-tm -fdump-tree-tmedge" } */
 
 /* Test that a direct call to __builtin__ITM_changeTransactionMode()
    sets the irrevocable bit.  */
@@ -16,4 +16,5 @@ foo()
 	}
 }
 
-/* { dg-final { scan-ipa-dump-times "GTMA_MAY_ENTER_IRREVOKABLE" 1 "tmipa" } } */
+/* { dg-final { scan-tree-dump-times "doesGoIrrevocable" 1 "tmedge" } } */
+/* { dg-final { scan-tree-dump-times "hasNoIrrevocable" 0 "tmedge" } } */

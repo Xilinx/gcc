@@ -728,12 +728,14 @@ struct GTY(()) gimple_statement_omp_atomic_store {
 /* Atomic statement may enter serial irrevocable mode in its dynamic
    scope.  */
 #define GTMA_MAY_ENTER_IRREVOKABLE	(1u << 4)
-/* An irrevocable block post-dominates the entire transaction, such
+/* Atomic statement is sure to enter irrevocable mode.
+
+   An irrevocable block post-dominates the entire transaction, such
    that all invocations of the transaction will go serial-irrevocable.
    In such case, we don't bother instrumenting the transaction, and
    tell the runtime that it should begin the transaction in
    serial-irrevocable mode.  */
-#define GTMA_MUST_CALL_IRREVOKABLE	(1u << 5)
+#define GTMA_DOES_GO_IRREVOKABLE	(1u << 5)
 #define GTMA_HAVE_UNCOMMITTED_THROW	(1u << 6)
 
 struct GTY(()) gimple_statement_tm_atomic

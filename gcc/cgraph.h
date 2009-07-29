@@ -98,6 +98,9 @@ struct GTY(()) cgraph_local_info {
   /* True if the function is going to be emitted in some other translation
      unit, referenced from vtable.  */
   unsigned vtable_method : 1;
+
+  /* True if the function may enter serial irrevocable mode.  */
+  unsigned tm_may_enter_irr : 1;
 };
 
 /* Information about the function that needs to be computed globally
