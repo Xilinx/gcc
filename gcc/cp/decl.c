@@ -4403,13 +4403,6 @@ grok_reference_init (tree decl, tree type, tree init, tree *cleanup)
       return NULL_TREE;
     }
 
-  if (TREE_CODE (init) == CONSTRUCTOR)
-    {
-      error ("ISO C++ forbids use of initializer list to "
-	     "initialize reference %qD", decl);
-      return NULL_TREE;
-    }
-
   if (TREE_CODE (init) == TREE_LIST)
     init = build_x_compound_expr_from_list (init, "initializer");
 
@@ -4918,7 +4911,7 @@ reshape_init_class (tree type, reshape_iter *d, bool first_initializer_p)
    a CONSTRUCTOR). TYPE is the type of the variable being initialized, D is the
    iterator within the CONSTRUCTOR which points to the initializer to process.
    FIRST_INITIALIZER_P is true if this is the first initializer of the
-   CONSTRUCTOR node.  */
+   outermost CONSTRUCTOR node.  */
 
 static tree
 reshape_init_r (tree type, reshape_iter *d, bool first_initializer_p)
@@ -4963,6 +4956,10 @@ reshape_init_r (tree type, reshape_iter *d, bool first_initializer_p)
      initializer is considered for the initialization of the first
      member of the subaggregate.  */
   if (TREE_CODE (init) != CONSTRUCTOR
+      /* But don't try this for the first initializer, since that would be
+	 looking through the outermost braces; A a2 = { a1 }; is not a
+	 valid aggregate initialization.  */
+      && !first_initializer_p
       && can_convert_arg (type, TREE_TYPE (init), init, LOOKUP_NORMAL))
     {
       d->cur++;
@@ -7672,7 +7669,6 @@ grokdeclarator (const cp_declarator *declarator,
   bool unsigned_p, signed_p, short_p, long_p, thread_p;
   bool type_was_error_mark_node = false;
   bool parameter_pack_p = declarator? declarator->parameter_pack_p : false;
-  bool set_no_warning = false;
   bool template_type_arg = false;
   const char *errmsg;
 
@@ -8352,7 +8348,6 @@ grokdeclarator (const cp_declarator *declarator,
 		/* We now know that the TYPE_QUALS don't apply to the
 		   decl, but to its return type.  */
 		type_quals = TYPE_UNQUALIFIED;
-		set_no_warning = true;
 	      }
 	    errmsg = targetm.invalid_return_type (type);
 	    if (errmsg)
@@ -9573,9 +9568,6 @@ grokdeclarator (const cp_declarator *declarator,
        for the instantiated declaration based on the type of DECL.  */
     if (!processing_template_decl)
       cp_apply_type_quals_to_decl (type_quals, decl);
-
-    if (set_no_warning)
-        TREE_NO_WARNING (decl) = 1;
 
     return decl;
   }

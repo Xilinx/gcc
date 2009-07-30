@@ -625,6 +625,13 @@ proc check_effective_target_pe_aligned_commons {} {
     return 0
 }
 
+# Return 1 if the target supports -static
+proc check_effective_target_static {} {
+    return [check_no_compiler_messages static executable {
+	int main (void) { return 0; }
+    } "-static"]
+}
+
 # Return 1 if the target supports -fstack-protector
 proc check_effective_target_fstack_protector {} {
     return [check_runtime fstack_protector {
@@ -1399,8 +1406,10 @@ proc check_effective_target_vect_uintfloat_cvt { } {
         verbose "check_effective_target_vect_uintfloat_cvt: using cached result" 2
     } else {
         set et_vect_uintfloat_cvt_saved 0
-        if { ([istarget powerpc*-*-*]
-	      && ![istarget powerpc-*-linux*paired*]) } {
+        if { [istarget i?86-*-*]
+	      || ([istarget powerpc*-*-*]
+		  && ![istarget powerpc-*-linux*paired*])
+	      || [istarget x86_64-*-*] } {
            set et_vect_uintfloat_cvt_saved 1
         }
     }
@@ -2553,7 +2562,8 @@ proc check_effective_target_section_anchors { } {
         verbose "check_effective_target_section_anchors: using cached result" 2
     } else {
         set et_section_anchors_saved 0
-        if { [istarget powerpc*-*-*] } {
+        if { [istarget powerpc*-*-*] 
+	      || [istarget arm*-*-*] } {
            set et_section_anchors_saved 1
         }
     }

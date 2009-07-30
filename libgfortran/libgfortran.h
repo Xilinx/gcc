@@ -294,6 +294,36 @@ internal_proto(big_endian);
   (GFC_INTEGER_16)((((GFC_UINTEGER_16)1) << 127) - 1)
 #endif
 
+/* M{IN,AX}{LOC,VAL} need also infinities and NaNs if supported.  */
+
+#ifdef __FLT_HAS_INFINITY__
+# define GFC_REAL_4_INFINITY __builtin_inff ()
+#endif
+#ifdef __DBL_HAS_INFINITY__
+# define GFC_REAL_8_INFINITY __builtin_inf ()
+#endif
+#ifdef __LDBL_HAS_INFINITY__
+# ifdef HAVE_GFC_REAL_10
+#  define GFC_REAL_10_INFINITY __builtin_infl ()
+# endif
+# ifdef HAVE_GFC_REAL_16
+#  define GFC_REAL_16_INFINITY __builtin_infl ()
+# endif
+#endif
+#ifdef __FLT_HAS_QUIET_NAN__
+# define GFC_REAL_4_QUIET_NAN __builtin_nanf ("")
+#endif
+#ifdef __DBL_HAS_QUIET_NAN__
+# define GFC_REAL_8_QUIET_NAN __builtin_nan ("")
+#endif
+#ifdef __LDBL_HAS_QUIET_NAN__
+# ifdef HAVE_GFC_REAL_10
+#  define GFC_REAL_10_QUIET_NAN __builtin_nanl ("")
+# endif
+# ifdef HAVE_GFC_REAL_16
+#  define GFC_REAL_16_QUIET_NAN __builtin_nanl ("")
+# endif
+#endif
 
 typedef struct descriptor_dimension
 {
@@ -1241,6 +1271,23 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, void) array_t;
 
 extern index_type size0 (const array_t * array); 
 iexport_proto(size0);
+
+/* bounds.c */
+
+extern void bounds_equal_extents (array_t *, array_t *, const char *,
+				  const char *);
+internal_proto(bounds_equal_extents);
+
+extern void bounds_reduced_extents (array_t *, array_t *, int, const char *,
+			     const char *intrinsic);
+internal_proto(bounds_reduced_extents);
+
+extern void bounds_iforeach_return (array_t *, array_t *, const char *);
+internal_proto(bounds_iforeach_return);
+
+extern void bounds_ifunction_return (array_t *, const index_type *,
+				     const char *, const char *);
+internal_proto(bounds_ifunction_return);
 
 /* Internal auxiliary functions for cshift */
 
