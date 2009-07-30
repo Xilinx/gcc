@@ -72,6 +72,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "cfglayout.h"
 #include "tree-pass.h"
+#include "tree-flow.h"
 #include "timevar.h"
 #include "cgraph.h"
 #include "coverage.h"
@@ -213,7 +214,7 @@ static int asm_insn_count (rtx);
 #endif
 static void profile_function (FILE *);
 static void profile_after_prologue (FILE *);
-static bool notice_source_line (rtx);
+static bool notice_source_line (rtx, bool *);
 static rtx walk_alter_subreg (rtx *, bool *);
 static void output_asm_name (void);
 static void output_alternate_entry_point (FILE *, rtx);
@@ -2089,6 +2090,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	rtx body = PATTERN (insn);
 	int insn_code_number;
 	const char *templ;
+	bool is_stmt;
 
 #ifdef HAVE_conditional_execution
 	/* Reset this early so it is correct for ASM statements.  */
@@ -2190,11 +2192,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  }
 	/* Output this line note if it is the first or the last line
 	   note in a row.  */
-	if (notice_source_line (insn))
+	if (notice_source_line (insn, &is_stmt))
 	  {
 	    (*debug_hooks->source_line) (last_linenum,
 	                                 last_filename,
-	                                 last_discriminator);
+	                                 last_discriminator,
+	                                 is_stmt);
 	  }
 
 	if (GET_CODE (body) == ASM_INPUT)
@@ -2698,10 +2701,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
   return NEXT_INSN (insn);
 }
 
-/* Return whether a source line note needs to be emitted before INSN.  */
+/* Return whether a source line note needs to be emitted before INSN.
+   Sets IS_STMT to TRUE if the line should be marked as a possible
+   breakpoint location.  */
 
 static bool
-notice_source_line (rtx insn)
+notice_source_line (rtx insn, bool *is_stmt)
 {
   const char *filename;
   int linenum;
@@ -2717,20 +2722,33 @@ notice_source_line (rtx insn)
       linenum = insn_line (insn);
     }
 
-  if (filename
-      && (force_source_line
-	  || filename != last_filename
-	  || last_linenum != linenum
-	  || last_discriminator != discriminator))
+  if (filename == NULL)
+    return false;
+
+  if (force_source_line
+      || filename != last_filename
+      || last_linenum != linenum)
     {
       force_source_line = false;
       last_filename = filename;
       last_linenum = linenum;
       last_discriminator = discriminator;
+      *is_stmt = true;
       high_block_linenum = MAX (last_linenum, high_block_linenum);
       high_function_linenum = MAX (last_linenum, high_function_linenum);
       return true;
     }
+
+  if (SUPPORTS_DISCRIMINATOR && last_discriminator != discriminator)
+    {
+      /* If the discriminator changed, but the line number did not,
+         output the line table entry with is_stmt false so the
+         debugger does not treat this as a breakpoint location.  */
+      last_discriminator = discriminator;
+      *is_stmt = false;
+      return true;
+    }
+
   return false;
 }
 
@@ -3110,7 +3128,7 @@ get_mem_expr_from_op (rtx op, int *paddressp)
 	   && (expr = get_mem_expr_from_op (XEXP (op, 1), &inner_addressp)))
     return expr;
 
-  while (GET_RTX_CLASS (GET_CODE (op)) == RTX_UNARY
+  while (UNARY_P (op)
 	 || GET_RTX_CLASS (GET_CODE (op)) == RTX_BIN_ARITH)
     op = XEXP (op, 0);
 
@@ -3313,7 +3331,7 @@ output_asm_insn (const char *templ, rtx *operands)
 	      }
 	    else if (letter == 'n')
 	      {
-		if (GET_CODE (operands[opnum]) == CONST_INT)
+		if (CONST_INT_P (operands[opnum]))
 		  fprintf (asm_out_file, HOST_WIDE_INT_PRINT_DEC,
 			   - INTVAL (operands[opnum]));
 		else
@@ -3545,7 +3563,7 @@ output_addr_const (FILE *file, rtx x)
 
     case PLUS:
       /* Some assemblers need integer constants to appear last (eg masm).  */
-      if (GET_CODE (XEXP (x, 0)) == CONST_INT)
+      if (CONST_INT_P (XEXP (x, 0)))
 	{
 	  output_addr_const (file, XEXP (x, 1));
 	  if (INTVAL (XEXP (x, 0)) >= 0)
@@ -3555,7 +3573,7 @@ output_addr_const (FILE *file, rtx x)
       else
 	{
 	  output_addr_const (file, XEXP (x, 0));
-	  if (GET_CODE (XEXP (x, 1)) != CONST_INT
+	  if (!CONST_INT_P (XEXP (x, 1))
 	      || INTVAL (XEXP (x, 1)) >= 0)
 	    fprintf (file, "+");
 	  output_addr_const (file, XEXP (x, 1));
@@ -3571,7 +3589,7 @@ output_addr_const (FILE *file, rtx x)
 
       output_addr_const (file, XEXP (x, 0));
       fprintf (file, "-");
-      if ((GET_CODE (XEXP (x, 1)) == CONST_INT && INTVAL (XEXP (x, 1)) >= 0)
+      if ((CONST_INT_P (XEXP (x, 1)) && INTVAL (XEXP (x, 1)) >= 0)
 	  || GET_CODE (XEXP (x, 1)) == PC
 	  || GET_CODE (XEXP (x, 1)) == SYMBOL_REF)
 	output_addr_const (file, XEXP (x, 1));
@@ -3779,7 +3797,7 @@ asm_fprintf (FILE *file, const char *p, ...)
 void
 split_double (rtx value, rtx *first, rtx *second)
 {
-  if (GET_CODE (value) == CONST_INT)
+  if (CONST_INT_P (value))
     {
       if (HOST_BITS_PER_WIDE_INT >= (2 * BITS_PER_WORD))
 	{
@@ -4405,6 +4423,8 @@ rest_of_clean_state (void)
 
   free_bb_for_insn ();
 
+  delete_tree_ssa ();
+
   if (targetm.binds_local_p (current_function_decl))
     {
       unsigned int pref = crtl->preferred_stack_boundary;
@@ -4434,7 +4454,7 @@ struct rtl_opt_pass pass_clean_state =
 {
  {
   RTL_PASS,
-  NULL,                                 /* name */
+  "*clean_state",                       /* name */
   NULL,                                 /* gate */
   rest_of_clean_state,                  /* execute */
   NULL,                                 /* sub */

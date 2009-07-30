@@ -450,7 +450,8 @@ expand_start_catch_block (tree decl)
       exp = build_exc_ptr ();
       exp = build1 (NOP_EXPR, build_pointer_type (type), exp);
       exp = build2 (POINTER_PLUS_EXPR, TREE_TYPE (exp), exp,
-		    fold_build1 (NEGATE_EXPR, sizetype,
+		    fold_build1_loc (input_location,
+				 NEGATE_EXPR, sizetype,
 			 	 TYPE_SIZE_UNIT (TREE_TYPE (exp))));
       exp = cp_build_indirect_ref (exp, NULL, tf_warning_or_error);
       initialize_handler_parm (decl, exp);
@@ -998,10 +999,11 @@ check_handlers_1 (tree master, tree_stmt_iterator i)
       tree handler = tsi_stmt (i);
       if (TREE_TYPE (handler) && can_convert_eh (type, TREE_TYPE (handler)))
 	{
-	  warning (0, "%Hexception of type %qT will be caught",
-		   EXPR_LOCUS (handler), TREE_TYPE (handler));
-	  warning (0, "%H   by earlier handler for %qT",
-		   EXPR_LOCUS (master), type);
+	  warning_at (EXPR_LOCATION (handler), 0,
+		      "exception of type %qT will be caught",
+		      TREE_TYPE (handler));
+	  warning_at (EXPR_LOCATION (master), 0,
+		      "   by earlier handler for %qT", type);
 	  break;
 	}
     }
@@ -1030,8 +1032,8 @@ check_handlers (tree handlers)
 	if (tsi_end_p (i))
 	  break;
 	if (TREE_TYPE (handler) == NULL_TREE)
-	  permerror (input_location, "%H%<...%> handler must be the last handler for"
-		     " its try block", EXPR_LOCUS (handler));
+	  permerror (EXPR_LOCATION (handler), "%<...%>"
+		     " handler must be the last handler for its try block");
 	else
 	  check_handlers_1 (handler, i);
       }

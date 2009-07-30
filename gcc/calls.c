@@ -949,6 +949,7 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 				 int *must_preallocate, int *ecf_flags,
 				 bool *may_tailcall, bool call_from_thunk_p)
 {
+  location_t loc = EXPR_LOCATION (exp);
   /* 1 if scanning parms front to back, -1 if scanning back to front.  */
   int inc;
 
@@ -1062,7 +1063,8 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 	      if (!call_from_thunk_p && DECL_P (base) && !TREE_STATIC (base))
 		*may_tailcall = false;
 
-	      args[i].tree_value = build_fold_addr_expr (args[i].tree_value);
+	      args[i].tree_value = build_fold_addr_expr_loc (loc,
+							 args[i].tree_value);
 	      type = TREE_TYPE (args[i].tree_value);
 
 	      if (*ecf_flags & ECF_CONST)
@@ -1114,7 +1116,7 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 		*ecf_flags &= ~(ECF_PURE | ECF_LOOPING_CONST_OR_PURE);
 
 	      args[i].tree_value
-		= build_fold_addr_expr (make_tree (type, copy));
+		= build_fold_addr_expr_loc (loc, make_tree (type, copy));
 	      type = TREE_TYPE (args[i].tree_value);
 	      *may_tailcall = false;
 	    }
@@ -1431,7 +1433,7 @@ compute_argument_addresses (struct arg_data *args, rtx argblock, int num_actuals
 	      && args[i].partial == 0)
 	    continue;
 
-	  if (GET_CODE (offset) == CONST_INT)
+	  if (CONST_INT_P (offset))
 	    addr = plus_constant (arg_reg, INTVAL (offset));
 	  else
 	    addr = gen_rtx_PLUS (Pmode, arg_reg, offset);
@@ -1458,14 +1460,14 @@ compute_argument_addresses (struct arg_data *args, rtx argblock, int num_actuals
 	  boundary = args[i].locate.boundary;
 	  if (args[i].locate.where_pad != downward)
 	    align = boundary;
-	  else if (GET_CODE (offset) == CONST_INT)
+	  else if (CONST_INT_P (offset))
 	    {
 	      align = INTVAL (offset) * BITS_PER_UNIT | boundary;
 	      align = align & -align;
 	    }
 	  set_mem_align (args[i].stack, align);
 
-	  if (GET_CODE (slot_offset) == CONST_INT)
+	  if (CONST_INT_P (slot_offset))
 	    addr = plus_constant (arg_reg, INTVAL (slot_offset));
 	  else
 	    addr = gen_rtx_PLUS (Pmode, arg_reg, slot_offset);
@@ -1549,7 +1551,7 @@ mem_overlaps_already_clobbered_arg_p (rtx addr, unsigned HOST_WIDE_INT size)
     i = 0;
   else if (GET_CODE (addr) == PLUS
 	   && XEXP (addr, 0) == crtl->args.internal_arg_pointer
-	   && GET_CODE (XEXP (addr, 1)) == CONST_INT)
+	   && CONST_INT_P (XEXP (addr, 1)))
     i = INTVAL (XEXP (addr, 1));
   /* Return true for arg pointer based indexed addressing.  */
   else if (GET_CODE (addr) == PLUS
@@ -4264,7 +4266,7 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
 	      || (GET_CODE (XEXP (x, 0)) == PLUS
 		  && XEXP (XEXP (x, 0), 0) ==
 		     crtl->args.internal_arg_pointer
-		  && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT))
+		  && CONST_INT_P (XEXP (XEXP (x, 0), 1))))
 	    {
 	      if (XEXP (x, 0) != crtl->args.internal_arg_pointer)
 		i = INTVAL (XEXP (XEXP (x, 0), 1));
@@ -4272,7 +4274,7 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
 	      /* expand_call should ensure this.  */
 	      gcc_assert (!arg->locate.offset.var
 			  && arg->locate.size.var == 0
-			  && GET_CODE (size_rtx) == CONST_INT);
+			  && CONST_INT_P (size_rtx));
 
 	      if (arg->locate.offset.constant > i)
 		{

@@ -1119,7 +1119,7 @@ extern int find_class_or_string_constant (struct CPool *, int, tree);
 
 extern tree pushdecl_top_level (tree);
 extern tree pushdecl_function_level (tree);
-extern tree java_replace_reference (tree, bool);
+extern tree java_replace_references (tree *, int *, void *);
 extern int alloc_class_constant (tree);
 extern void init_expr_processing (void);
 extern void push_super_field (tree, tree);
@@ -1223,6 +1223,8 @@ extern int in_same_package (tree, tree);
 extern void java_read_sourcefilenames (const char *fsource_filename);
 
 extern void rewrite_reflection_indexes (void *);
+
+int cxx_keyword_p (const char *name, int length);
 
 #define DECL_FINAL(DECL) DECL_LANG_FLAG_3 (DECL)
 

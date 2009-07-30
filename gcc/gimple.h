@@ -979,7 +979,6 @@ extern gimple_predicate rhs_predicate_for (tree);
 extern tree canonicalize_cond_expr_cond (tree);
 
 /* In omp-low.c.  */
-extern void diagnose_omp_structured_block_errors (tree);
 extern tree omp_reduction_init (tree, tree);
 
 /* In tree-nested.c.  */
@@ -997,6 +996,7 @@ extern bool validate_gimple_arglist (const_gimple, ...);
 
 /* In tree-ssa.c  */
 extern bool tree_ssa_useless_type_conversion (tree);
+extern tree tree_ssa_strip_useless_type_conversions (tree);
 extern bool useless_type_conversion_p (tree, tree);
 extern bool types_compatible_p (tree, tree);
 
@@ -1883,7 +1883,7 @@ gimple_call_set_fndecl (gimple gs, tree decl)
 {
   GIMPLE_CHECK (gs, GIMPLE_CALL);
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
-  gimple_set_op (gs, 1, build_fold_addr_expr (decl));
+  gimple_set_op (gs, 1, build_fold_addr_expr_loc (gimple_location (gs), decl));
 }
 
 

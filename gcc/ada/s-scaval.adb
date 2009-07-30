@@ -59,7 +59,7 @@ package body System.Scalar_Values is
       --  Set True if we are on an x86 with 96-bit floats for extended
 
       AFloat : constant Boolean :=
-                 Long_Float'Size = 48 and Long_Long_Float'Size = 48;
+                 Long_Float'Size = 48 and then Long_Long_Float'Size = 48;
       --  Set True if we are on an AAMP with 48-bit extended floating point
 
       type ByteLF is array (0 .. 7 - 2 * Boolean'Pos (AFloat)) of Byte1;
@@ -270,17 +270,14 @@ package body System.Scalar_Values is
       else
          --  Convert the two hex digits (we know they are valid here)
 
-         if C1 in '0' .. '9' then
-            B := Character'Pos (C1) - Character'Pos ('0');
-         else
-            B := Character'Pos (C1) - (Character'Pos ('A') - 10);
-         end if;
-
-         if C2 in '0' .. '9' then
-            B := B * 16 + Character'Pos (C2) - Character'Pos ('0');
-         else
-            B := B * 16 + Character'Pos (C2) - (Character'Pos ('A') - 10);
-         end if;
+         B := 16 * (Character'Pos (C1)
+                     - (if C1 in '0' .. '9'
+                        then Character'Pos ('0')
+                        else Character'Pos ('A') - 10))
+                 + (Character'Pos (C2)
+                     - (if C2 in '0' .. '9'
+                        then Character'Pos ('0')
+                        else Character'Pos ('A') - 10));
 
          --  Initialize data values from the hex value
 

@@ -117,6 +117,19 @@ BUILD_SUBDIR = @build_subdir@
 # directories built for the build system.
 BUILD_CONFIGARGS = @build_configargs@ --with-build-subdir="$(BUILD_SUBDIR)"
 
+# Linker flags to use on the host, for stage1 or when not
+# bootstrapping.
+STAGE1_LDFLAGS = @stage1_ldflags@
+
+# Libraries to use on the host, for stage1 or when not bootstrapping.
+STAGE1_LIBS = @stage1_libs@
+
+# Linker flags to use for stage2 and later.
+POSTSTAGE1_LDFLAGS = @poststage1_ldflags@
+
+# Libraries to use for stage2 and later.
+POSTSTAGE1_LIBS = @poststage1_libs@
+
 # This is the list of variables to export in the environment when
 # configuring any subdirectory.  It must also be exported whenever
 # recursing into a build directory in case that directory's Makefile
@@ -182,7 +195,7 @@ HOST_EXPORTS = \
 	CC_FOR_BUILD="$(CC_FOR_BUILD)"; export CC_FOR_BUILD; \
 	DLLTOOL="$(DLLTOOL)"; export DLLTOOL; \
 	LD="$(LD)"; export LD; \
-	LDFLAGS="$(LDFLAGS)"; export LDFLAGS; \
+	LDFLAGS="$(STAGE1_LDFLAGS) $(LDFLAGS)"; export LDFLAGS; \
 	NM="$(NM)"; export NM; \
 	RANLIB="$(RANLIB)"; export RANLIB; \
 	WINDRES="$(WINDRES)"; export WINDRES; \
@@ -197,6 +210,7 @@ HOST_EXPORTS = \
 	OBJDUMP_FOR_TARGET="$(OBJDUMP_FOR_TARGET)"; export OBJDUMP_FOR_TARGET; \
 	RANLIB_FOR_TARGET="$(RANLIB_FOR_TARGET)"; export RANLIB_FOR_TARGET; \
 	TOPLEVEL_CONFIGURE_ARGUMENTS="$(TOPLEVEL_CONFIGURE_ARGUMENTS)"; export TOPLEVEL_CONFIGURE_ARGUMENTS; \
+	HOST_LIBS="$(STAGE1_LIBS)"; export HOST_LIBS; \
 	GMPLIBS="$(HOST_GMPLIBS)"; export GMPLIBS; \
 	GMPINC="$(HOST_GMPINC)"; export GMPINC; \
 	PPLLIBS="$(HOST_PPLLIBS)"; export PPLLIBS; \
@@ -215,8 +229,16 @@ POSTSTAGE1_HOST_EXPORTS = \
 	  -B$$r/$(HOST_SUBDIR)/prev-gcc/ -B$(build_tooldir)/bin/ \
 	  $(XGCC_FLAGS_FOR_TARGET) $$TFLAGS"; export CC; \
 	CC_FOR_BUILD="$$CC"; export CC_FOR_BUILD; \
-	GNATBIND="$$r/$(HOST_SUBDIR)/prev-gcc/gnatbind"; export GNATBIND \
-	LDFLAGS="$(BOOT_LDFLAGS)"; export LDFLAGS;
+	CXX="$(STAGE_CC_WRAPPER) $$r/$(HOST_SUBDIR)/prev-gcc/g++$(exeext) \
+	  -B$$r/$(HOST_SUBDIR)/prev-gcc/ -B$(build_tooldir)/bin/ -nostdinc++ \
+	  -I$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/include/$(TARGET_SUBDIR) \
+	  -I$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/include \
+	  -I$$r/$(srcdir)/libstdc++-v3/libsupc++ \
+	  -L$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/src/.libs"; export CXX; \
+	CXX_FOR_BUILD="$$CXX"; export CXX_FOR_BUILD; \
+	GNATBIND="$$r/$(HOST_SUBDIR)/prev-gcc/gnatbind"; export GNATBIND; \
+	LDFLAGS="$(POSTSTAGE1_LDFLAGS) $(BOOT_LDFLAGS)"; export LDFLAGS; \
+	HOST_LIBS="$(POSTSTAGE1_LIBS)"; export HOST_LIBS;
 
 # Target libraries are put under this directory:
 TARGET_SUBDIR = @target_subdir@
@@ -690,8 +712,11 @@ X11_FLAGS_TO_PASS = \
 # Flags to pass to stage2 and later makes.
 
 POSTSTAGE1_FLAGS_TO_PASS = \
-	CC="$${CC}" CC_FOR_BUILD="$${CC_FOR_BUILD}" GNATBIND="$${GNATBIND}" \
-	LDFLAGS="$(BOOT_LDFLAGS)" \
+	CC="$${CC}" CC_FOR_BUILD="$${CC_FOR_BUILD}" \
+	CXX="$${CXX}" CXX_FOR_BUILD="$${CXX_FOR_BUILD}" \
+	GNATBIND="$${GNATBIND}" \
+	LDFLAGS="$(POSTSTAGE1_LDFLAGS) $(BOOT_LDFLAGS)" \
+	HOST_LIBS="$(POSTSTAGE1_LIBS)" \
 	"`echo 'ADAFLAGS=$(BOOT_ADAFLAGS)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`"
 
 # Flags to pass down to makes which are built with the target environment.
@@ -758,6 +783,7 @@ configure-host:  \
     maybe-configure-bison \
     maybe-configure-byacc \
     maybe-configure-bzip2 \
+    maybe-configure-cgen \
     maybe-configure-dejagnu \
     maybe-configure-diff \
     maybe-configure-dosutils \
@@ -900,6 +926,7 @@ all-host: maybe-all-binutils
 all-host: maybe-all-bison
 all-host: maybe-all-byacc
 all-host: maybe-all-bzip2
+all-host: maybe-all-cgen
 all-host: maybe-all-dejagnu
 all-host: maybe-all-diff
 all-host: maybe-all-dosutils
@@ -996,7 +1023,9 @@ all-host: maybe-all-gnattools
 
 .PHONY: all-target
 
+@if target-libstdc++-v3-no-bootstrap
 all-target: maybe-all-target-libstdc++-v3
+@endif target-libstdc++-v3-no-bootstrap
 all-target: maybe-all-target-libmudflap
 all-target: maybe-all-target-libssp
 all-target: maybe-all-target-newlib
@@ -1046,6 +1075,7 @@ info-host: maybe-info-binutils
 info-host: maybe-info-bison
 info-host: maybe-info-byacc
 info-host: maybe-info-bzip2
+info-host: maybe-info-cgen
 info-host: maybe-info-dejagnu
 info-host: maybe-info-diff
 info-host: maybe-info-dosutils
@@ -1157,6 +1187,7 @@ dvi-host: maybe-dvi-binutils
 dvi-host: maybe-dvi-bison
 dvi-host: maybe-dvi-byacc
 dvi-host: maybe-dvi-bzip2
+dvi-host: maybe-dvi-cgen
 dvi-host: maybe-dvi-dejagnu
 dvi-host: maybe-dvi-diff
 dvi-host: maybe-dvi-dosutils
@@ -1268,6 +1299,7 @@ pdf-host: maybe-pdf-binutils
 pdf-host: maybe-pdf-bison
 pdf-host: maybe-pdf-byacc
 pdf-host: maybe-pdf-bzip2
+pdf-host: maybe-pdf-cgen
 pdf-host: maybe-pdf-dejagnu
 pdf-host: maybe-pdf-diff
 pdf-host: maybe-pdf-dosutils
@@ -1379,6 +1411,7 @@ html-host: maybe-html-binutils
 html-host: maybe-html-bison
 html-host: maybe-html-byacc
 html-host: maybe-html-bzip2
+html-host: maybe-html-cgen
 html-host: maybe-html-dejagnu
 html-host: maybe-html-diff
 html-host: maybe-html-dosutils
@@ -1490,6 +1523,7 @@ TAGS-host: maybe-TAGS-binutils
 TAGS-host: maybe-TAGS-bison
 TAGS-host: maybe-TAGS-byacc
 TAGS-host: maybe-TAGS-bzip2
+TAGS-host: maybe-TAGS-cgen
 TAGS-host: maybe-TAGS-dejagnu
 TAGS-host: maybe-TAGS-diff
 TAGS-host: maybe-TAGS-dosutils
@@ -1601,6 +1635,7 @@ install-info-host: maybe-install-info-binutils
 install-info-host: maybe-install-info-bison
 install-info-host: maybe-install-info-byacc
 install-info-host: maybe-install-info-bzip2
+install-info-host: maybe-install-info-cgen
 install-info-host: maybe-install-info-dejagnu
 install-info-host: maybe-install-info-diff
 install-info-host: maybe-install-info-dosutils
@@ -1712,6 +1747,7 @@ install-pdf-host: maybe-install-pdf-binutils
 install-pdf-host: maybe-install-pdf-bison
 install-pdf-host: maybe-install-pdf-byacc
 install-pdf-host: maybe-install-pdf-bzip2
+install-pdf-host: maybe-install-pdf-cgen
 install-pdf-host: maybe-install-pdf-dejagnu
 install-pdf-host: maybe-install-pdf-diff
 install-pdf-host: maybe-install-pdf-dosutils
@@ -1823,6 +1859,7 @@ install-html-host: maybe-install-html-binutils
 install-html-host: maybe-install-html-bison
 install-html-host: maybe-install-html-byacc
 install-html-host: maybe-install-html-bzip2
+install-html-host: maybe-install-html-cgen
 install-html-host: maybe-install-html-dejagnu
 install-html-host: maybe-install-html-diff
 install-html-host: maybe-install-html-dosutils
@@ -1934,6 +1971,7 @@ installcheck-host: maybe-installcheck-binutils
 installcheck-host: maybe-installcheck-bison
 installcheck-host: maybe-installcheck-byacc
 installcheck-host: maybe-installcheck-bzip2
+installcheck-host: maybe-installcheck-cgen
 installcheck-host: maybe-installcheck-dejagnu
 installcheck-host: maybe-installcheck-diff
 installcheck-host: maybe-installcheck-dosutils
@@ -2045,6 +2083,7 @@ mostlyclean-host: maybe-mostlyclean-binutils
 mostlyclean-host: maybe-mostlyclean-bison
 mostlyclean-host: maybe-mostlyclean-byacc
 mostlyclean-host: maybe-mostlyclean-bzip2
+mostlyclean-host: maybe-mostlyclean-cgen
 mostlyclean-host: maybe-mostlyclean-dejagnu
 mostlyclean-host: maybe-mostlyclean-diff
 mostlyclean-host: maybe-mostlyclean-dosutils
@@ -2156,6 +2195,7 @@ clean-host: maybe-clean-binutils
 clean-host: maybe-clean-bison
 clean-host: maybe-clean-byacc
 clean-host: maybe-clean-bzip2
+clean-host: maybe-clean-cgen
 clean-host: maybe-clean-dejagnu
 clean-host: maybe-clean-diff
 clean-host: maybe-clean-dosutils
@@ -2267,6 +2307,7 @@ distclean-host: maybe-distclean-binutils
 distclean-host: maybe-distclean-bison
 distclean-host: maybe-distclean-byacc
 distclean-host: maybe-distclean-bzip2
+distclean-host: maybe-distclean-cgen
 distclean-host: maybe-distclean-dejagnu
 distclean-host: maybe-distclean-diff
 distclean-host: maybe-distclean-dosutils
@@ -2378,6 +2419,7 @@ maintainer-clean-host: maybe-maintainer-clean-binutils
 maintainer-clean-host: maybe-maintainer-clean-bison
 maintainer-clean-host: maybe-maintainer-clean-byacc
 maintainer-clean-host: maybe-maintainer-clean-bzip2
+maintainer-clean-host: maybe-maintainer-clean-cgen
 maintainer-clean-host: maybe-maintainer-clean-dejagnu
 maintainer-clean-host: maybe-maintainer-clean-diff
 maintainer-clean-host: maybe-maintainer-clean-dosutils
@@ -2543,6 +2585,7 @@ check-host:  \
     maybe-check-bison \
     maybe-check-byacc \
     maybe-check-bzip2 \
+    maybe-check-cgen \
     maybe-check-dejagnu \
     maybe-check-diff \
     maybe-check-dosutils \
@@ -2681,6 +2724,7 @@ install-host-nogcc:  \
     maybe-install-bison \
     maybe-install-byacc \
     maybe-install-bzip2 \
+    maybe-install-cgen \
     maybe-install-dejagnu \
     maybe-install-diff \
     maybe-install-dosutils \
@@ -2758,6 +2802,7 @@ install-host:  \
     maybe-install-bison \
     maybe-install-byacc \
     maybe-install-bzip2 \
+    maybe-install-cgen \
     maybe-install-dejagnu \
     maybe-install-diff \
     maybe-install-dosutils \
@@ -8885,6 +8930,431 @@ maintainer-clean-bzip2:
 	  || exit 1
 
 @endif bzip2
+
+
+
+.PHONY: configure-cgen maybe-configure-cgen
+maybe-configure-cgen:
+@if gcc-bootstrap
+configure-cgen: stage_current
+@endif gcc-bootstrap
+@if cgen
+maybe-configure-cgen: configure-cgen
+configure-cgen: 
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/cgen/Makefile || exit 0; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cgen ; \
+	$(HOST_EXPORTS) \
+	echo Configuring in $(HOST_SUBDIR)/cgen; \
+	cd "$(HOST_SUBDIR)/cgen" || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/cgen/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/cgen"; \
+	libsrcdir="$$s/cgen"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption}  \
+	  || exit 1
+@endif cgen
+
+
+
+
+
+.PHONY: all-cgen maybe-all-cgen
+maybe-all-cgen:
+@if gcc-bootstrap
+all-cgen: stage_current
+@endif gcc-bootstrap
+@if cgen
+TARGET-cgen=all
+maybe-all-cgen: all-cgen
+all-cgen: configure-cgen
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_HOST_FLAGS)  \
+		$(TARGET-cgen))
+@endif cgen
+
+
+
+
+.PHONY: check-cgen maybe-check-cgen
+maybe-check-cgen:
+@if cgen
+maybe-check-cgen: check-cgen
+
+check-cgen:
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(FLAGS_TO_PASS)  check)
+
+@endif cgen
+
+.PHONY: install-cgen maybe-install-cgen
+maybe-install-cgen:
+@if cgen
+maybe-install-cgen: install-cgen
+
+install-cgen: installdirs
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(FLAGS_TO_PASS)  install)
+
+@endif cgen
+
+# Other targets (info, dvi, pdf, etc.)
+
+.PHONY: maybe-info-cgen info-cgen
+maybe-info-cgen:
+@if cgen
+maybe-info-cgen: info-cgen
+
+info-cgen: \
+    configure-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing info in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          info) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-dvi-cgen dvi-cgen
+maybe-dvi-cgen:
+@if cgen
+maybe-dvi-cgen: dvi-cgen
+
+dvi-cgen: \
+    configure-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing dvi in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          dvi) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-pdf-cgen pdf-cgen
+maybe-pdf-cgen:
+@if cgen
+maybe-pdf-cgen: pdf-cgen
+
+pdf-cgen: \
+    configure-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing pdf in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          pdf) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-html-cgen html-cgen
+maybe-html-cgen:
+@if cgen
+maybe-html-cgen: html-cgen
+
+html-cgen: \
+    configure-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing html in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          html) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-TAGS-cgen TAGS-cgen
+maybe-TAGS-cgen:
+@if cgen
+maybe-TAGS-cgen: TAGS-cgen
+
+TAGS-cgen: \
+    configure-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing TAGS in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          TAGS) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-install-info-cgen install-info-cgen
+maybe-install-info-cgen:
+@if cgen
+maybe-install-info-cgen: install-info-cgen
+
+install-info-cgen: \
+    configure-cgen \
+    info-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-info in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          install-info) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-install-pdf-cgen install-pdf-cgen
+maybe-install-pdf-cgen:
+@if cgen
+maybe-install-pdf-cgen: install-pdf-cgen
+
+install-pdf-cgen: \
+    configure-cgen \
+    pdf-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-pdf in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          install-pdf) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-install-html-cgen install-html-cgen
+maybe-install-html-cgen:
+@if cgen
+maybe-install-html-cgen: install-html-cgen
+
+install-html-cgen: \
+    configure-cgen \
+    html-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-html in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          install-html) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-installcheck-cgen installcheck-cgen
+maybe-installcheck-cgen:
+@if cgen
+maybe-installcheck-cgen: installcheck-cgen
+
+installcheck-cgen: \
+    configure-cgen 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing installcheck in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          installcheck) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-mostlyclean-cgen mostlyclean-cgen
+maybe-mostlyclean-cgen:
+@if cgen
+maybe-mostlyclean-cgen: mostlyclean-cgen
+
+mostlyclean-cgen: 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing mostlyclean in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          mostlyclean) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-clean-cgen clean-cgen
+maybe-clean-cgen:
+@if cgen
+maybe-clean-cgen: clean-cgen
+
+clean-cgen: 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing clean in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          clean) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-distclean-cgen distclean-cgen
+maybe-distclean-cgen:
+@if cgen
+maybe-distclean-cgen: distclean-cgen
+
+distclean-cgen: 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing distclean in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          distclean) \
+	  || exit 1
+
+@endif cgen
+
+.PHONY: maybe-maintainer-clean-cgen maintainer-clean-cgen
+maybe-maintainer-clean-cgen:
+@if cgen
+maybe-maintainer-clean-cgen: maintainer-clean-cgen
+
+maintainer-clean-cgen: 
+	@: $(MAKE); $(unstage)
+	@[ -f ./cgen/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing maintainer-clean in cgen" ; \
+	(cd $(HOST_SUBDIR)/cgen && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          maintainer-clean) \
+	  || exit 1
+
+@endif cgen
 
 
 
@@ -42509,7 +42979,6 @@ configure-target-libstdc++-v3: stage_current
 @if target-libstdc++-v3
 maybe-configure-target-libstdc++-v3: configure-target-libstdc++-v3
 configure-target-libstdc++-v3: 
-	@: $(MAKE); $(unstage)
 	@r=`${PWD_COMMAND}`; export r; \
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	echo "Checking multilib configuration for libstdc++-v3..."; \
@@ -42546,6 +43015,276 @@ configure-target-libstdc++-v3:
 
 
 
+.PHONY: configure-stage1-target-libstdc++-v3 maybe-configure-stage1-target-libstdc++-v3
+maybe-configure-stage1-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-configure-stage1-target-libstdc++-v3: configure-stage1-target-libstdc++-v3
+configure-stage1-target-libstdc++-v3:
+	@[ $(current_stage) = stage1 ] || $(MAKE) stage1-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGE1_TFLAGS)"; \
+	echo "Checking multilib configuration for libstdc++-v3..."; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile; \
+	    mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile || exit 0; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
+	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
+	LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)"; export LIBCFLAGS; \
+	echo Configuring stage 1 in $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libstdc++-v3/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libstdc++-v3"; \
+	libsrcdir="$$s/libstdc++-v3"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  $(STAGE1_CONFIGURE_FLAGS)
+@endif target-libstdc++-v3-bootstrap
+
+.PHONY: configure-stage2-target-libstdc++-v3 maybe-configure-stage2-target-libstdc++-v3
+maybe-configure-stage2-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-configure-stage2-target-libstdc++-v3: configure-stage2-target-libstdc++-v3
+configure-stage2-target-libstdc++-v3:
+	@[ $(current_stage) = stage2 ] || $(MAKE) stage2-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGE2_TFLAGS)"; \
+	echo "Checking multilib configuration for libstdc++-v3..."; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile; \
+	    mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile || exit 0; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
+	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
+	LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)"; export LIBCFLAGS; \
+	echo Configuring stage 2 in $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libstdc++-v3/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libstdc++-v3"; \
+	libsrcdir="$$s/libstdc++-v3"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  $(STAGE2_CONFIGURE_FLAGS)
+@endif target-libstdc++-v3-bootstrap
+
+.PHONY: configure-stage3-target-libstdc++-v3 maybe-configure-stage3-target-libstdc++-v3
+maybe-configure-stage3-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-configure-stage3-target-libstdc++-v3: configure-stage3-target-libstdc++-v3
+configure-stage3-target-libstdc++-v3:
+	@[ $(current_stage) = stage3 ] || $(MAKE) stage3-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGE3_TFLAGS)"; \
+	echo "Checking multilib configuration for libstdc++-v3..."; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile; \
+	    mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile || exit 0; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
+	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
+	LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)"; export LIBCFLAGS; \
+	echo Configuring stage 3 in $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libstdc++-v3/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libstdc++-v3"; \
+	libsrcdir="$$s/libstdc++-v3"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  $(STAGE3_CONFIGURE_FLAGS)
+@endif target-libstdc++-v3-bootstrap
+
+.PHONY: configure-stage4-target-libstdc++-v3 maybe-configure-stage4-target-libstdc++-v3
+maybe-configure-stage4-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-configure-stage4-target-libstdc++-v3: configure-stage4-target-libstdc++-v3
+configure-stage4-target-libstdc++-v3:
+	@[ $(current_stage) = stage4 ] || $(MAKE) stage4-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGE4_TFLAGS)"; \
+	echo "Checking multilib configuration for libstdc++-v3..."; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile; \
+	    mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile || exit 0; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
+	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
+	LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)"; export LIBCFLAGS; \
+	echo Configuring stage 4 in $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libstdc++-v3/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libstdc++-v3"; \
+	libsrcdir="$$s/libstdc++-v3"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  $(STAGE4_CONFIGURE_FLAGS)
+@endif target-libstdc++-v3-bootstrap
+
+.PHONY: configure-stageprofile-target-libstdc++-v3 maybe-configure-stageprofile-target-libstdc++-v3
+maybe-configure-stageprofile-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-configure-stageprofile-target-libstdc++-v3: configure-stageprofile-target-libstdc++-v3
+configure-stageprofile-target-libstdc++-v3:
+	@[ $(current_stage) = stageprofile ] || $(MAKE) stageprofile-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGEprofile_TFLAGS)"; \
+	echo "Checking multilib configuration for libstdc++-v3..."; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile; \
+	    mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile || exit 0; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
+	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
+	LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)"; export LIBCFLAGS; \
+	echo Configuring stage profile in $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libstdc++-v3/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libstdc++-v3"; \
+	libsrcdir="$$s/libstdc++-v3"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  $(STAGEprofile_CONFIGURE_FLAGS)
+@endif target-libstdc++-v3-bootstrap
+
+.PHONY: configure-stagefeedback-target-libstdc++-v3 maybe-configure-stagefeedback-target-libstdc++-v3
+maybe-configure-stagefeedback-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-configure-stagefeedback-target-libstdc++-v3: configure-stagefeedback-target-libstdc++-v3
+configure-stagefeedback-target-libstdc++-v3:
+	@[ $(current_stage) = stagefeedback ] || $(MAKE) stagefeedback-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGEfeedback_TFLAGS)"; \
+	echo "Checking multilib configuration for libstdc++-v3..."; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile; \
+	    mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libstdc++-v3/multilib.tmp $(TARGET_SUBDIR)/libstdc++-v3/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile || exit 0; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
+	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
+	LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)"; export LIBCFLAGS; \
+	echo Configuring stage feedback in $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libstdc++-v3 ; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libstdc++-v3/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libstdc++-v3"; \
+	libsrcdir="$$s/libstdc++-v3"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  $(STAGEfeedback_CONFIGURE_FLAGS)
+@endif target-libstdc++-v3-bootstrap
+
+
+
 
 
 .PHONY: all-target-libstdc++-v3 maybe-all-target-libstdc++-v3
@@ -42557,7 +43296,6 @@ all-target-libstdc++-v3: stage_current
 TARGET-target-libstdc++-v3=all
 maybe-all-target-libstdc++-v3: all-target-libstdc++-v3
 all-target-libstdc++-v3: configure-target-libstdc++-v3
-	@: $(MAKE); $(unstage)
 	@r=`${PWD_COMMAND}`; export r; \
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(RAW_CXX_TARGET_EXPORTS) \
@@ -42565,6 +43303,264 @@ all-target-libstdc++-v3: configure-target-libstdc++-v3
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'  \
 		$(TARGET-target-libstdc++-v3))
 @endif target-libstdc++-v3
+
+
+
+.PHONY: all-stage1-target-libstdc++-v3 maybe-all-stage1-target-libstdc++-v3
+.PHONY: clean-stage1-target-libstdc++-v3 maybe-clean-stage1-target-libstdc++-v3
+maybe-all-stage1-target-libstdc++-v3:
+maybe-clean-stage1-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-all-stage1-target-libstdc++-v3: all-stage1-target-libstdc++-v3
+all-stage1: all-stage1-target-libstdc++-v3
+TARGET-stage1-target-libstdc++-v3 = $(TARGET-target-libstdc++-v3)
+all-stage1-target-libstdc++-v3: configure-stage1-target-libstdc++-v3
+	@[ $(current_stage) = stage1 ] || $(MAKE) stage1-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGE1_TFLAGS)"; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)" \
+		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS_FOR_TARGET="$(LIBCFLAGS_FOR_TARGET)" \
+		$(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'   \
+		TFLAGS="$(STAGE1_TFLAGS)" \
+		$(TARGET-stage1-target-libstdc++-v3)
+
+maybe-clean-stage1-target-libstdc++-v3: clean-stage1-target-libstdc++-v3
+clean-stage1: clean-stage1-target-libstdc++-v3
+clean-stage1-target-libstdc++-v3:
+	@if [ $(current_stage) = stage1 ]; then \
+	  [ -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile ] || exit 0; \
+	else \
+	  [ -f $(TARGET_SUBDIR)/stage1-libstdc++-v3/Makefile ] || exit 0; \
+	  $(MAKE) stage1-start; \
+	fi; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'  \
+		 clean
+@endif target-libstdc++-v3-bootstrap
+
+
+.PHONY: all-stage2-target-libstdc++-v3 maybe-all-stage2-target-libstdc++-v3
+.PHONY: clean-stage2-target-libstdc++-v3 maybe-clean-stage2-target-libstdc++-v3
+maybe-all-stage2-target-libstdc++-v3:
+maybe-clean-stage2-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-all-stage2-target-libstdc++-v3: all-stage2-target-libstdc++-v3
+all-stage2: all-stage2-target-libstdc++-v3
+TARGET-stage2-target-libstdc++-v3 = $(TARGET-target-libstdc++-v3)
+all-stage2-target-libstdc++-v3: configure-stage2-target-libstdc++-v3
+	@[ $(current_stage) = stage2 ] || $(MAKE) stage2-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGE2_TFLAGS)"; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)" \
+		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS_FOR_TARGET="$(LIBCFLAGS_FOR_TARGET)" \
+		$(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'   \
+		TFLAGS="$(STAGE2_TFLAGS)" \
+		$(TARGET-stage2-target-libstdc++-v3)
+
+maybe-clean-stage2-target-libstdc++-v3: clean-stage2-target-libstdc++-v3
+clean-stage2: clean-stage2-target-libstdc++-v3
+clean-stage2-target-libstdc++-v3:
+	@if [ $(current_stage) = stage2 ]; then \
+	  [ -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile ] || exit 0; \
+	else \
+	  [ -f $(TARGET_SUBDIR)/stage2-libstdc++-v3/Makefile ] || exit 0; \
+	  $(MAKE) stage2-start; \
+	fi; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'  \
+		  \
+		 clean
+@endif target-libstdc++-v3-bootstrap
+
+
+.PHONY: all-stage3-target-libstdc++-v3 maybe-all-stage3-target-libstdc++-v3
+.PHONY: clean-stage3-target-libstdc++-v3 maybe-clean-stage3-target-libstdc++-v3
+maybe-all-stage3-target-libstdc++-v3:
+maybe-clean-stage3-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-all-stage3-target-libstdc++-v3: all-stage3-target-libstdc++-v3
+all-stage3: all-stage3-target-libstdc++-v3
+TARGET-stage3-target-libstdc++-v3 = $(TARGET-target-libstdc++-v3)
+all-stage3-target-libstdc++-v3: configure-stage3-target-libstdc++-v3
+	@[ $(current_stage) = stage3 ] || $(MAKE) stage3-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGE3_TFLAGS)"; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)" \
+		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS_FOR_TARGET="$(LIBCFLAGS_FOR_TARGET)" \
+		$(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'   \
+		TFLAGS="$(STAGE3_TFLAGS)" \
+		$(TARGET-stage3-target-libstdc++-v3)
+
+maybe-clean-stage3-target-libstdc++-v3: clean-stage3-target-libstdc++-v3
+clean-stage3: clean-stage3-target-libstdc++-v3
+clean-stage3-target-libstdc++-v3:
+	@if [ $(current_stage) = stage3 ]; then \
+	  [ -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile ] || exit 0; \
+	else \
+	  [ -f $(TARGET_SUBDIR)/stage3-libstdc++-v3/Makefile ] || exit 0; \
+	  $(MAKE) stage3-start; \
+	fi; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'  \
+		  \
+		 clean
+@endif target-libstdc++-v3-bootstrap
+
+
+.PHONY: all-stage4-target-libstdc++-v3 maybe-all-stage4-target-libstdc++-v3
+.PHONY: clean-stage4-target-libstdc++-v3 maybe-clean-stage4-target-libstdc++-v3
+maybe-all-stage4-target-libstdc++-v3:
+maybe-clean-stage4-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-all-stage4-target-libstdc++-v3: all-stage4-target-libstdc++-v3
+all-stage4: all-stage4-target-libstdc++-v3
+TARGET-stage4-target-libstdc++-v3 = $(TARGET-target-libstdc++-v3)
+all-stage4-target-libstdc++-v3: configure-stage4-target-libstdc++-v3
+	@[ $(current_stage) = stage4 ] || $(MAKE) stage4-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGE4_TFLAGS)"; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)" \
+		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS_FOR_TARGET="$(LIBCFLAGS_FOR_TARGET)" \
+		$(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'   \
+		TFLAGS="$(STAGE4_TFLAGS)" \
+		$(TARGET-stage4-target-libstdc++-v3)
+
+maybe-clean-stage4-target-libstdc++-v3: clean-stage4-target-libstdc++-v3
+clean-stage4: clean-stage4-target-libstdc++-v3
+clean-stage4-target-libstdc++-v3:
+	@if [ $(current_stage) = stage4 ]; then \
+	  [ -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile ] || exit 0; \
+	else \
+	  [ -f $(TARGET_SUBDIR)/stage4-libstdc++-v3/Makefile ] || exit 0; \
+	  $(MAKE) stage4-start; \
+	fi; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'  \
+		  \
+		 clean
+@endif target-libstdc++-v3-bootstrap
+
+
+.PHONY: all-stageprofile-target-libstdc++-v3 maybe-all-stageprofile-target-libstdc++-v3
+.PHONY: clean-stageprofile-target-libstdc++-v3 maybe-clean-stageprofile-target-libstdc++-v3
+maybe-all-stageprofile-target-libstdc++-v3:
+maybe-clean-stageprofile-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-all-stageprofile-target-libstdc++-v3: all-stageprofile-target-libstdc++-v3
+all-stageprofile: all-stageprofile-target-libstdc++-v3
+TARGET-stageprofile-target-libstdc++-v3 = $(TARGET-target-libstdc++-v3)
+all-stageprofile-target-libstdc++-v3: configure-stageprofile-target-libstdc++-v3
+	@[ $(current_stage) = stageprofile ] || $(MAKE) stageprofile-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGEprofile_TFLAGS)"; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)" \
+		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS_FOR_TARGET="$(LIBCFLAGS_FOR_TARGET)" \
+		$(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'   \
+		TFLAGS="$(STAGEprofile_TFLAGS)" \
+		$(TARGET-stageprofile-target-libstdc++-v3)
+
+maybe-clean-stageprofile-target-libstdc++-v3: clean-stageprofile-target-libstdc++-v3
+clean-stageprofile: clean-stageprofile-target-libstdc++-v3
+clean-stageprofile-target-libstdc++-v3:
+	@if [ $(current_stage) = stageprofile ]; then \
+	  [ -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile ] || exit 0; \
+	else \
+	  [ -f $(TARGET_SUBDIR)/stageprofile-libstdc++-v3/Makefile ] || exit 0; \
+	  $(MAKE) stageprofile-start; \
+	fi; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'  \
+		  \
+		 clean
+@endif target-libstdc++-v3-bootstrap
+
+
+.PHONY: all-stagefeedback-target-libstdc++-v3 maybe-all-stagefeedback-target-libstdc++-v3
+.PHONY: clean-stagefeedback-target-libstdc++-v3 maybe-clean-stagefeedback-target-libstdc++-v3
+maybe-all-stagefeedback-target-libstdc++-v3:
+maybe-clean-stagefeedback-target-libstdc++-v3:
+@if target-libstdc++-v3-bootstrap
+maybe-all-stagefeedback-target-libstdc++-v3: all-stagefeedback-target-libstdc++-v3
+all-stagefeedback: all-stagefeedback-target-libstdc++-v3
+TARGET-stagefeedback-target-libstdc++-v3 = $(TARGET-target-libstdc++-v3)
+all-stagefeedback-target-libstdc++-v3: configure-stagefeedback-target-libstdc++-v3
+	@[ $(current_stage) = stagefeedback ] || $(MAKE) stagefeedback-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	TFLAGS="$(STAGEfeedback_TFLAGS)"; \
+	$(RAW_CXX_TARGET_EXPORTS) \
+	 \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS="$(LIBCFLAGS_FOR_TARGET)" \
+		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+		LIBCFLAGS_FOR_TARGET="$(LIBCFLAGS_FOR_TARGET)" \
+		$(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'   \
+		TFLAGS="$(STAGEfeedback_TFLAGS)" \
+		$(TARGET-stagefeedback-target-libstdc++-v3)
+
+maybe-clean-stagefeedback-target-libstdc++-v3: clean-stagefeedback-target-libstdc++-v3
+clean-stagefeedback: clean-stagefeedback-target-libstdc++-v3
+clean-stagefeedback-target-libstdc++-v3:
+	@if [ $(current_stage) = stagefeedback ]; then \
+	  [ -f $(TARGET_SUBDIR)/libstdc++-v3/Makefile ] || exit 0; \
+	else \
+	  [ -f $(TARGET_SUBDIR)/stagefeedback-libstdc++-v3/Makefile ] || exit 0; \
+	  $(MAKE) stagefeedback-start; \
+	fi; \
+	cd $(TARGET_SUBDIR)/libstdc++-v3 && \
+	$(MAKE) $(EXTRA_TARGET_FLAGS) 'CXX=$$(RAW_CXX_FOR_TARGET)' 'CXX_FOR_TARGET=$$(RAW_CXX_FOR_TARGET)'  \
+		  \
+		 clean
+@endif target-libstdc++-v3-bootstrap
+
 
 
 
@@ -53145,7 +54141,7 @@ compare:
 	  $(do-compare) > /dev/null 2>&1; \
 	  if test $$? -eq 1; then \
 	    case $$file in \
-	      gcc/cc*-checksum$(objext) | ./libgcc/* | ./gcc/ada/*tools/*) \
+	      @compare_exclusions@) \
 	        echo warning: $$file differs ;; \
 	      *) \
 	        echo $$file differs >> .bad_compare ;; \
@@ -53483,7 +54479,7 @@ compare3:
 	  $(do-compare3) > /dev/null 2>&1; \
 	  if test $$? -eq 1; then \
 	    case $$file in \
-	      gcc/cc*-checksum$(objext) | ./libgcc/* | ./gcc/ada/*tools/*) \
+	      @compare_exclusions@) \
 	        echo warning: $$file differs ;; \
 	      *) \
 	        echo $$file differs >> .bad_compare ;; \
@@ -54124,7 +55120,12 @@ restrap:: all
 
 # Generic dependencies for target modules on host stuff, especially gcc
 @if gcc-bootstrap
-configure-target-libstdc++-v3: stage_last
+configure-stage1-target-libstdc++-v3: maybe-all-stage1-gcc
+configure-stage2-target-libstdc++-v3: maybe-all-stage2-gcc
+configure-stage3-target-libstdc++-v3: maybe-all-stage3-gcc
+configure-stage4-target-libstdc++-v3: maybe-all-stage4-gcc
+configure-stageprofile-target-libstdc++-v3: maybe-all-stageprofile-gcc
+configure-stagefeedback-target-libstdc++-v3: maybe-all-stagefeedback-gcc
 configure-target-libmudflap: stage_last
 configure-target-libssp: stage_last
 configure-target-newlib: stage_last
@@ -54877,6 +55878,12 @@ all-target-winsup: maybe-all-target-libtermcap
 
 
 @if gcc-bootstrap
+configure-stage1-target-libstdc++-v3: maybe-all-stage1-target-libgcc
+configure-stage2-target-libstdc++-v3: maybe-all-stage2-target-libgcc
+configure-stage3-target-libstdc++-v3: maybe-all-stage3-target-libgcc
+configure-stage4-target-libstdc++-v3: maybe-all-stage4-target-libgcc
+configure-stageprofile-target-libstdc++-v3: maybe-all-stageprofile-target-libgcc
+configure-stagefeedback-target-libstdc++-v3: maybe-all-stagefeedback-target-libgcc
 @endif gcc-bootstrap
 
 @if gcc-no-bootstrap

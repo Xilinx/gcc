@@ -802,10 +802,14 @@ arm-*-pe*)
 avr-*-rtems*)
 	tm_file="avr/avr.h dbxelf.h avr/rtems.h rtems.h newlib-stdint.h"
 	tmake_file="avr/t-avr t-rtems avr/t-rtems"
+	extra_gcc_objs="driver-avr.o avr-devices.o"
+	extra_objs="avr-devices.o"
 	;;
 avr-*-*)
 	tm_file="avr/avr.h dbxelf.h newlib-stdint.h"
 	use_gcc_stdint=wrap
+	extra_gcc_objs="driver-avr.o avr-devices.o"
+	extra_objs="avr-devices.o"
 	;;
 bfin*-elf*)
 	tm_file="${tm_file} dbxelf.h elfos.h newlib-stdint.h bfin/elf.h"
@@ -1558,6 +1562,18 @@ mcore-*-pe*)
 	inhibit_libc=true
 	use_gcc_stdint=wrap
 	;;
+mep-*-*)
+	tm_file="dbxelf.h elfos.h svr4.h ${tm_file}"
+	tmake_file=mep/t-mep
+	extra_parts="crtbegin.o crtend.o"
+	c_target_objs="mep-pragma.o"
+	cxx_target_objs="mep-pragma.o"
+	if test -d "${srcdir}/../newlib/libc/include" &&
+	   test "x$with_headers" = x; then
+		with_headers=yes
+	fi
+	use_gcc_stdint=wrap
+	;;
 mips-sgi-irix[56]*)
 	tm_file="elfos.h ${tm_file} mips/iris.h"
 	tmake_file="mips/t-iris mips/t-slibgcc-irix"
@@ -1725,6 +1741,7 @@ mips64-*-elf* | mips64el-*-elf*)
 mips64vr-*-elf* | mips64vrel-*-elf*)
         tm_file="elfos.h newlib-stdint.h ${tm_file} mips/vr.h mips/elf.h"
         tmake_file=mips/t-vr
+	tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_EABI"
         ;;
 mips64orion-*-elf* | mips64orionel-*-elf*)
 	tm_file="elfos.h newlib-stdint.h ${tm_file} mips/elforion.h mips/elf.h"
@@ -2423,6 +2440,7 @@ v850-*-*)
 	;;
 vax-*-linux*)
 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h linux.h vax/elf.h vax/linux.h"
+	tmake_file=vax/t-linux
 	;;
 vax-*-netbsdelf*)
 	tm_file="${tm_file} elfos.h netbsd.h netbsd-elf.h vax/elf.h vax/netbsd-elf.h"
@@ -2885,7 +2903,7 @@ case "${target}" in
 		;;
 
 	mips*-*-*)
-		supported_defaults="abi arch arch_32 arch_64 float tune tune_32 tune_64 divide llsc mips-plt"
+		supported_defaults="abi arch arch_32 arch_64 float tune tune_32 tune_64 divide llsc mips-plt synci"
 
 		case ${with_float} in
 		"" | soft | hard)
@@ -2944,6 +2962,20 @@ case "${target}" in
 			;;
 		*)
 			echo "Unknown --with-mips-plt argument: $with_mips_plt" 1>&2
+			exit 1
+			;;
+		esac
+
+		case ${with_synci} in
+		yes)
+			with_synci=synci
+			;;
+		"" | no)
+			# No is the default.
+			with_synci=no-synci
+			;;
+		*)
+			echo "Unknown synci type used in --with-synci" 1>&2
 			exit 1
 			;;
 		esac
@@ -3136,7 +3168,7 @@ case ${target} in
 	i[34567]86-*-linux* | x86_64-*-linux* | i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu)
 		tmake_file="${tmake_file} i386/t-fprules-softfp soft-fp/t-softfp i386/t-linux"
 		;;
-	i[34567]86-*-cygwin*)
+	i[34567]86-*-cygwin* | i[34567]86-*-mingw* | x86_64-*-mingw*)
 		tmake_file="${tmake_file} i386/t-fprules-softfp soft-fp/t-softfp"
 		;;
 	ia64*-*-linux*)
@@ -3213,7 +3245,7 @@ case ${target} in
 esac
 
 t=
-all_defaults="abi cpu cpu_32 cpu_64 arch arch_32 arch_64 tune tune_32 tune_64 schedule float mode fpu divide llsc mips-plt"
+all_defaults="abi cpu cpu_32 cpu_64 arch arch_32 arch_64 tune tune_32 tune_64 schedule float mode fpu divide llsc mips-plt synci"
 for option in $all_defaults
 do
 	eval "val=\$with_"`echo $option | sed s/-/_/g`

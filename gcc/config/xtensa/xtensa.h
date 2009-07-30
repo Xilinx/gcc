@@ -1,5 +1,5 @@
 /* Definitions of Tensilica's Xtensa target machine for GNU compiler.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
@@ -380,12 +380,6 @@ extern char xtensa_hard_regno_mode_ok[][FIRST_PSEUDO_REGISTER];
    either the stack pointer or the hard frame pointer.  */
 #define FRAME_POINTER_REGNUM (GP_REG_FIRST + 16)
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in 'reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED xtensa_frame_pointer_required ()
-
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM (GP_REG_FIRST + 17)
 
@@ -529,8 +523,6 @@ extern const enum reg_class xtensa_regno_to_class[FIRST_PSEUDO_REGISTER];
  { ARG_POINTER_REGNUM,		HARD_FRAME_POINTER_REGNUM},		\
  { FRAME_POINTER_REGNUM,	STACK_POINTER_REGNUM},			\
  { FRAME_POINTER_REGNUM,	HARD_FRAME_POINTER_REGNUM}}
-
-#define CAN_ELIMINATE(FROM, TO) 1
 
 /* Specify the initial difference between the specified pair of registers.  */
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\

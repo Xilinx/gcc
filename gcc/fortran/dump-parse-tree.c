@@ -402,13 +402,15 @@ show_expr (gfc_expr *p)
 	case BT_COMPLEX:
 	  fputs ("(complex ", dumpfile);
 
-	  mpfr_out_str (stdout, 10, 0, p->value.complex.r, GFC_RND_MODE);
+	  mpfr_out_str (stdout, 10, 0, mpc_realref (p->value.complex),
+			GFC_RND_MODE);
 	  if (p->ts.kind != gfc_default_complex_kind)
 	    fprintf (dumpfile, "_%d", p->ts.kind);
 
 	  fputc (' ', dumpfile);
 
-	  mpfr_out_str (stdout, 10, 0, p->value.complex.i, GFC_RND_MODE);
+	  mpfr_out_str (stdout, 10, 0, mpc_imagref (p->value.complex),
+			GFC_RND_MODE);
 	  if (p->ts.kind != gfc_default_complex_kind)
 	    fprintf (dumpfile, "_%d", p->ts.kind);
 
@@ -542,7 +544,7 @@ show_expr (gfc_expr *p)
       if (p->value.function.name == NULL)
 	{
 	  fprintf (dumpfile, "%s", p->symtree->n.sym->name);
-	  if (is_proc_ptr_comp (p, NULL))
+	  if (gfc_is_proc_ptr_comp (p, NULL))
 	    show_ref (p->ref);
 	  fputc ('[', dumpfile);
 	  show_actual_arglist (p->value.function.actual);
@@ -551,7 +553,7 @@ show_expr (gfc_expr *p)
       else
 	{
 	  fprintf (dumpfile, "%s", p->value.function.name);
-	  if (is_proc_ptr_comp (p, NULL))
+	  if (gfc_is_proc_ptr_comp (p, NULL))
 	    show_ref (p->ref);
 	  fputc ('[', dumpfile);
 	  fputc ('[', dumpfile);

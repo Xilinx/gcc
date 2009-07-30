@@ -966,6 +966,13 @@ GLIBCXX_3.4.12 {
 
 } GLIBCXX_3.4.11;
 
+GLIBCXX_3.4.13 {
+
+    # future
+    _ZSt15future_category;
+
+} GLIBCXX_3.4.12;
+
 # Symbols in the support library (libsupc++) have their own tag.
 CXXABI_1.3 {
 

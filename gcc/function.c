@@ -246,7 +246,8 @@ frame_offset_overflow (HOST_WIDE_INT offset, tree func)
 	       /* Leave room for the fixed part of the frame.  */
 	       - 64 * UNITS_PER_WORD)
     {
-      error ("%Jtotal size of local objects too large", func);
+      error_at (DECL_SOURCE_LOCATION (func),
+		"total size of local objects too large");
       return TRUE;
     }
 
@@ -654,7 +655,7 @@ find_temp_slot_from_address (rtx x)
   /* Last resort: Address is a virtual stack var address.  */
   if (GET_CODE (x) == PLUS
       && XEXP (x, 0) == virtual_stack_vars_rtx
-      && GET_CODE (XEXP (x, 1)) == CONST_INT)
+      && CONST_INT_P (XEXP (x, 1)))
     {
       int i;
       for (i = max_slot_level (); i >= 0; i--)
@@ -1457,7 +1458,7 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	  && recog_data.n_operands >= 3
 	  && recog_data.operand_loc[1] == &XEXP (SET_SRC (set), 0)
 	  && recog_data.operand_loc[2] == &XEXP (SET_SRC (set), 1)
-	  && GET_CODE (recog_data.operand[2]) == CONST_INT
+	  && CONST_INT_P (recog_data.operand[2])
 	  && (new_rtx = instantiate_new_reg (recog_data.operand[1], &offset)))
 	{
 	  offset += INTVAL (recog_data.operand[2]);
@@ -1783,7 +1784,7 @@ instantiate_virtual_regs (void)
 	for_each_rtx (&REG_NOTES (insn), instantiate_virtual_regs_in_rtx, NULL);
 
 	/* Instantiate any virtual registers in CALL_INSN_FUNCTION_USAGE.  */
-	if (GET_CODE (insn) == CALL_INSN)
+	if (CALL_P (insn))
 	  for_each_rtx (&CALL_INSN_FUNCTION_USAGE (insn),
 			instantiate_virtual_regs_in_rtx, NULL);
       }
@@ -2458,7 +2459,7 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
      up with a guess at the alignment based on OFFSET_RTX.  */
   if (data->locate.where_pad != downward || data->entry_parm)
     align = boundary;
-  else if (GET_CODE (offset_rtx) == CONST_INT)
+  else if (CONST_INT_P (offset_rtx))
     {
       align = INTVAL (offset_rtx) * BITS_PER_UNIT | boundary;
       align = align & -align;
@@ -2975,9 +2976,17 @@ assign_parm_setup_stack (struct assign_parm_data_all *all, tree parm,
 					  TYPE_UNSIGNED (TREE_TYPE (parm)));
 
       if (data->stack_parm)
-	/* ??? This may need a big-endian conversion on sparc64.  */
-	data->stack_parm
-	  = adjust_address (data->stack_parm, data->nominal_mode, 0);
+	{
+	  int offset = subreg_lowpart_offset (data->nominal_mode,
+					      GET_MODE (data->stack_parm));
+	  /* ??? This may need a big-endian conversion on sparc64.  */
+	  data->stack_parm
+	    = adjust_address (data->stack_parm, data->nominal_mode, 0);
+	  if (offset && MEM_OFFSET (data->stack_parm))
+	    set_mem_offset (data->stack_parm,
+			    plus_constant (MEM_OFFSET (data->stack_parm),
+					   offset));
+	}
     }
 
   if (data->entry_parm != data->stack_parm)
@@ -3137,8 +3146,12 @@ assign_parms (tree fndecl)
         {
           unsigned int align = FUNCTION_ARG_BOUNDARY (data.promoted_mode,
 						      data.passed_type);
+	  align = MINIMUM_ALIGNMENT (data.passed_type, data.promoted_mode,
+				     align);
 	  if (TYPE_ALIGN (data.nominal_type) > align)
-	    align = TYPE_ALIGN (data.passed_type);
+	    align = MINIMUM_ALIGNMENT (data.nominal_type,
+				       TYPE_MODE (data.nominal_type),
+				       TYPE_ALIGN (data.nominal_type));
 	  if (crtl->stack_alignment_estimated < align)
 	    {
 	      gcc_assert (!crtl->stack_realign_processed);
@@ -5283,15 +5296,12 @@ reposition_prologue_and_epilogue_notes (void)
 {
 #if defined (HAVE_prologue) || defined (HAVE_epilogue) \
     || defined (HAVE_sibcall_epilogue)
-  rtx insn, last, note;
-  basic_block bb;
-
   /* Since the hash table is created on demand, the fact that it is
      non-null is a signal that it is non-empty.  */
   if (prologue_insn_hash != NULL)
     {
       size_t len = htab_elements (prologue_insn_hash);
-      last = 0, note = 0;
+      rtx insn, last = NULL, note = NULL;
 
       /* Scan from the beginning until we reach the last prologue insn.  */
       /* ??? While we do have the CFG intact, there are two problems:
@@ -5342,12 +5352,10 @@ reposition_prologue_and_epilogue_notes (void)
 
       FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
 	{
-	  last = 0, note = 0;
-	  bb = e->src;
+	  rtx insn, first = NULL, note = NULL;
+	  basic_block bb = e->src;
 
-	  /* Scan from the beginning until we reach the first epilogue insn.
-	     Take the cue for whether this is a plain or sibcall epilogue
-	     from the kind of note we find first.  */
+	  /* Scan from the beginning until we reach the first epilogue insn. */
 	  FOR_BB_INSNS (bb, insn)
 	    {
 	      if (NOTE_P (insn))
@@ -5355,20 +5363,33 @@ reposition_prologue_and_epilogue_notes (void)
 		  if (NOTE_KIND (insn) == NOTE_INSN_EPILOGUE_BEG)
 		    {
 		      note = insn;
-		      if (last)
+		      if (first != NULL)
 			break;
 		    }
 		}
-	      else if (contains (insn, epilogue_insn_hash))
+	      else if (first == NULL && contains (insn, epilogue_insn_hash))
 		{
-		  last = insn;
+		  first = insn;
 		  if (note != NULL)
 		    break;
 		}
 	    }
-	     
-	  if (last && note && PREV_INSN (last) != note)
-	    reorder_insns (note, note, PREV_INSN (last));
+
+	  if (note)
+	    {
+	      /* If the function has a single basic block, and no real
+		 epilogue insns (e.g. sibcall with no cleanup), the 
+		 epilogue note can get scheduled before the prologue
+		 note.  If we have frame related prologue insns, having
+		 them scanned during the epilogue will result in a crash.
+		 In this case re-order the epilogue note to just before
+		 the last insn in the block.  */
+	      if (first == NULL)
+		first = BB_END (bb);
+
+	      if (PREV_INSN (first) != note)
+		reorder_insns (note, note, PREV_INSN (first));
+	    }
 	}
     }
 #endif /* HAVE_prologue or HAVE_epilogue */

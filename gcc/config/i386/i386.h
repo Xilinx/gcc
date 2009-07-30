@@ -831,6 +831,15 @@ enum target_cpu_default
 #define LOCAL_DECL_ALIGNMENT(DECL) \
   ix86_local_alignment ((DECL), VOIDmode, DECL_ALIGN (DECL))
 
+/* If defined, a C expression to compute the minimum required alignment
+   for dynamic stack realignment purposes for EXP (a TYPE or DECL),
+   MODE, assuming normal alignment ALIGN.
+
+   If this macro is not defined, then (ALIGN) will be used.  */
+
+#define MINIMUM_ALIGNMENT(EXP, MODE, ALIGN) \
+  ix86_minimum_alignment (EXP, MODE, ALIGN)
+
 
 /* If defined, a C expression that gives the alignment boundary, in
    bits, of an argument with the specified mode and type.  If it is
@@ -960,52 +969,7 @@ enum target_cpu_default
 #define OVERRIDE_ABI_FORMAT(FNDECL) ix86_call_abi_override (FNDECL)
 
 /* Macro to conditionally modify fixed_regs/call_used_regs.  */
-#define CONDITIONAL_REGISTER_USAGE					\
-do {									\
-    int i;								\
-    unsigned int j;							\
-    for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)				\
-      {									\
-	if (fixed_regs[i] > 1)						\
-	  fixed_regs[i] = (fixed_regs[i] == (TARGET_64BIT ? 3 : 2));	\
-	if (call_used_regs[i] > 1)					\
-	  call_used_regs[i] = (call_used_regs[i]			\
-			       == (TARGET_64BIT ? 3 : 2));		\
-      }									\
-    j = PIC_OFFSET_TABLE_REGNUM;					\
-    if (j != INVALID_REGNUM)						\
-      fixed_regs[j] = call_used_regs[j] = 1;				\
-    if (TARGET_64BIT							\
-	&& ((cfun && cfun->machine->call_abi == MS_ABI)			\
-	    || (!cfun && ix86_abi == MS_ABI)))				\
-      {									\
-	call_used_regs[SI_REG] = 0;					\
-	call_used_regs[DI_REG] = 0;					\
-	call_used_regs[XMM6_REG] = 0;					\
-	call_used_regs[XMM7_REG] = 0;					\
-	for (i = FIRST_REX_SSE_REG; i <= LAST_REX_SSE_REG; i++)		\
-	  call_used_regs[i] = 0;					\
-      }									\
-    if (! TARGET_MMX)							\
-      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-	if (TEST_HARD_REG_BIT (reg_class_contents[(int)MMX_REGS], i))	\
-	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-    if (! TARGET_SSE)							\
-      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-	if (TEST_HARD_REG_BIT (reg_class_contents[(int)SSE_REGS], i))	\
-	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-    if (! (TARGET_80387 || TARGET_FLOAT_RETURNS_IN_80387))		\
-      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-	if (TEST_HARD_REG_BIT (reg_class_contents[(int)FLOAT_REGS], i))	\
-	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-    if (! TARGET_64BIT)							\
-      {									\
-	for (i = FIRST_REX_INT_REG; i <= LAST_REX_INT_REG; i++)		\
-	  reg_names[i] = "";						\
-	for (i = FIRST_REX_SSE_REG; i <= LAST_REX_SSE_REG; i++)		\
-	  reg_names[i] = "";						\
-      }									\
-  } while (0)
+#define CONDITIONAL_REGISTER_USAGE  ix86_conditional_register_usage ()
 
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
@@ -1152,12 +1116,6 @@ do {									\
 #define FIRST_REX_SSE_REG  (LAST_REX_INT_REG + 1)
 #define LAST_REX_SSE_REG   (FIRST_REX_SSE_REG + 7)
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED  ix86_frame_pointer_required ()
-
 /* Override this in other tm.h files to cope with various OS lossage
    requiring a frame pointer.  */
 #ifndef SUBTARGET_FRAME_POINTER_REQUIRED
@@ -1231,6 +1189,7 @@ enum reg_class
   NO_REGS,
   AREG, DREG, CREG, BREG, SIREG, DIREG,
   AD_REGS,			/* %eax/%edx for DImode */
+  CLOBBERED_REGS,		/* call-clobbered integers */
   Q_REGS,			/* %eax %ebx %ecx %edx */
   NON_Q_REGS,			/* %esi %edi %ebp %esp */
   INDEX_REGS,			/* %eax %ebx %ecx %edx %esi %edi %ebp */
@@ -1279,6 +1238,7 @@ enum reg_class
    "AREG", "DREG", "CREG", "BREG",	\
    "SIREG", "DIREG",			\
    "AD_REGS",				\
+   "CLOBBERED_REGS",			\
    "Q_REGS", "NON_Q_REGS",		\
    "INDEX_REGS",			\
    "LEGACY_REGS",			\
@@ -1296,9 +1256,11 @@ enum reg_class
    "FLOAT_INT_SSE_REGS",		\
    "ALL_REGS" }
 
-/* Define which registers fit in which classes.
-   This is an initializer for a vector of HARD_REG_SET
-   of length N_REG_CLASSES.  */
+/* Define which registers fit in which classes.  This is an initializer
+   for a vector of HARD_REG_SET of length N_REG_CLASSES.
+
+   Note that the default setting of CLOBBERED_REGS is for 32-bit; this
+   is adjusted by CONDITIONAL_REGISTER_USAGE for the 64-bit ABI in effect.  */
 
 #define REG_CLASS_CONTENTS						\
 {     { 0x00,     0x0 },						\
@@ -1306,6 +1268,7 @@ enum reg_class
       { 0x04,     0x0 }, { 0x08, 0x0 },	/* CREG, BREG */		\
       { 0x10,     0x0 }, { 0x20, 0x0 },	/* SIREG, DIREG */		\
       { 0x03,     0x0 },		/* AD_REGS */			\
+      { 0x07,     0x0 },		/* CLOBBERED_REGS */		\
       { 0x0f,     0x0 },		/* Q_REGS */			\
   { 0x1100f0,  0x1fe0 },		/* NON_Q_REGS */		\
       { 0x7f,  0x1fe0 },		/* INDEX_REGS */		\
@@ -1323,19 +1286,6 @@ enum reg_class
 { 0x1fe100ff,0x1fffe0 },		/* INT_SSE_REGS */		\
 { 0x1fe1ffff,0x1fffe0 },		/* FLOAT_INT_SSE_REGS */	\
 { 0xffffffff,0x1fffff }							\
-}
-
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-
-#define IRA_COVER_CLASSES						     \
-{									     \
-  GENERAL_REGS, FLOAT_REGS, MMX_REGS, SSE_REGS, LIM_REG_CLASSES		     \
 }
 
 /* The same information, inverted:
@@ -1498,6 +1448,7 @@ enum reg_class
    || ((CLASS) == AD_REGS)						\
    || ((CLASS) == SIREG)						\
    || ((CLASS) == DIREG)						\
+   || ((CLASS) == SSE_FIRST_REG)					\
    || ((CLASS) == FP_TOP_REG)						\
    || ((CLASS) == FP_SECOND_REG))
 
@@ -2307,6 +2258,12 @@ extern enum reg_class const regclass_map[FIRST_PSEUDO_REGISTER];
 
 extern rtx ix86_compare_op0;	/* operand 0 for comparisons */
 extern rtx ix86_compare_op1;	/* operand 1 for comparisons */
+
+enum ix86_fpcmp_strategy {
+  IX86_FPCMP_SAHF,
+  IX86_FPCMP_COMI,
+  IX86_FPCMP_ARITH
+};
 
 /* To properly truncate FP values into integers, we need to set i387 control
    word.  We can't emit proper mode switching code before reload, as spills

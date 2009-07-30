@@ -215,12 +215,16 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 /* FPU is has the full VFPv3/NEON register file of 32 D registers.  */
 #define TARGET_VFPD32 (arm_fp_model == ARM_FP_MODEL_VFP \
 		       && (arm_fpu_arch == FPUTYPE_VFP3 \
-			   || arm_fpu_arch == FPUTYPE_NEON))
+			   || arm_fpu_arch == FPUTYPE_NEON \
+			   || arm_fpu_arch == FPUTYPE_NEON_FP16))
 
 /* FPU supports VFPv3 instructions.  */
 #define TARGET_VFP3 (arm_fp_model == ARM_FP_MODEL_VFP \
 		     && (arm_fpu_arch == FPUTYPE_VFP3D16 \
 			 || TARGET_VFPD32))
+
+/* FPU supports NEON/VFP half-precision floating-point.  */
+#define TARGET_NEON_FP16 (arm_fpu_arch == FPUTYPE_NEON_FP16)
 
 /* FPU supports Neon instructions.  The setting of this macro gets
    revealed via __ARM_NEON__ so we add extra guards upon TARGET_32BIT
@@ -228,7 +232,8 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
    available.  */
 #define TARGET_NEON (TARGET_32BIT && TARGET_HARD_FLOAT \
 		     && arm_fp_model == ARM_FP_MODEL_VFP \
-		     && arm_fpu_arch == FPUTYPE_NEON)
+		     && (arm_fpu_arch == FPUTYPE_NEON \
+			 || arm_fpu_arch == FPUTYPE_NEON_FP16))
 
 /* "DSP" multiply instructions, eg. SMULxy.  */
 #define TARGET_DSP_MULTIPLY \
@@ -308,7 +313,9 @@ enum fputype
   /* VFPv3.  */
   FPUTYPE_VFP3,
   /* Neon.  */
-  FPUTYPE_NEON
+  FPUTYPE_NEON,
+  /* Neon with half-precision float extensions.  */
+  FPUTYPE_NEON_FP16
 };
 
 /* Recast the floating point class to be the floating point attribute.  */
@@ -332,6 +339,21 @@ extern enum float_abi_type arm_float_abi;
 #ifndef TARGET_DEFAULT_FLOAT_ABI
 #define TARGET_DEFAULT_FLOAT_ABI ARM_FLOAT_ABI_SOFT
 #endif
+
+/* Which __fp16 format to use.
+   The enumeration values correspond to the numbering for the
+   Tag_ABI_FP_16bit_format attribute.
+ */
+enum arm_fp16_format_type
+{
+  ARM_FP16_FORMAT_NONE = 0,
+  ARM_FP16_FORMAT_IEEE = 1,
+  ARM_FP16_FORMAT_ALTERNATIVE = 2
+};
+
+extern enum arm_fp16_format_type arm_fp16_format;
+#define LARGEST_EXPONENT_IS_NORMAL(bits) \
+    ((bits) == 16 && arm_fp16_format == ARM_FP16_FORMAT_ALTERNATIVE)
 
 /* Which ABI to use.  */
 enum arm_abi_type
@@ -1022,11 +1044,6 @@ extern int arm_structure_size_boundary;
 #define SUBTARGET_FRAME_POINTER_REQUIRED 0
 #endif
 
-#define FRAME_POINTER_REQUIRED					\
-  (cfun->has_nonlocal_label				\
-   || SUBTARGET_FRAME_POINTER_REQUIRED				\
-   || (TARGET_ARM && TARGET_APCS_FRAME && ! leaf_function_p ()))
-
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
    This is ordinarily the length in words of a value of mode MODE
@@ -1411,13 +1428,17 @@ do {									      \
 /* If defined, gives a class of registers that cannot be used as the
    operand of a SUBREG that changes the mode of the object illegally.  */
 
-/* Moves between FPA_REGS and GENERAL_REGS are two memory insns.  */
+/* Moves between FPA_REGS and GENERAL_REGS are two memory insns.
+   Moves between VFP_REGS and GENERAL_REGS are a single insn, but
+   it is typically more expensive than a single memory access.  We set
+   the cost to less than two memory accesses so that floating
+   point to integer conversion does not go through memory.  */
 #define REGISTER_MOVE_COST(MODE, FROM, TO)		\
   (TARGET_32BIT ?						\
    ((FROM) == FPA_REGS && (TO) != FPA_REGS ? 20 :	\
     (FROM) != FPA_REGS && (TO) == FPA_REGS ? 20 :	\
-    IS_VFP_CLASS (FROM) && !IS_VFP_CLASS (TO) ? 10 :	\
-    !IS_VFP_CLASS (FROM) && IS_VFP_CLASS (TO) ? 10 :	\
+    IS_VFP_CLASS (FROM) && !IS_VFP_CLASS (TO) ? 15 :	\
+    !IS_VFP_CLASS (FROM) && IS_VFP_CLASS (TO) ? 15 :	\
     (FROM) == IWMMXT_REGS && (TO) != IWMMXT_REGS ? 4 :  \
     (FROM) != IWMMXT_REGS && (TO) == IWMMXT_REGS ? 4 :  \
     (FROM) == IWMMXT_GR_REGS || (TO) == IWMMXT_GR_REGS ? 20 :  \
@@ -2174,12 +2195,24 @@ typedef struct
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE Pmode
 
-#define CASE_VECTOR_PC_RELATIVE TARGET_THUMB2
+#define CASE_VECTOR_PC_RELATIVE (TARGET_THUMB2				\
+				 || (TARGET_THUMB			\
+				     && (optimize_size || flag_pic)))
 
-#define CASE_VECTOR_SHORTEN_MODE(min, max, body)		\
-   ((min < 0 || max >= 0x2000 || !TARGET_THUMB2) ? SImode	\
-   : (max >= 0x200) ? HImode					\
-   : QImode)
+#define CASE_VECTOR_SHORTEN_MODE(min, max, body)			\
+  (TARGET_THUMB								\
+   ? (min >= 0 && max < 512						\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 1, QImode)	\
+      : min >= -256 && max < 256					\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 0, QImode)	\
+      : min >= 0 && max < 8192						\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 1, HImode)	\
+      : min >= -4096 && max < 4096					\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 0, HImode)	\
+      : SImode)								\
+   : ((min < 0 || max >= 0x2000 || !TARGET_THUMB2) ? SImode		\
+      : (max >= 0x200) ? HImode						\
+      : QImode))
 
 /* signed 'char' is most compatible, but RISC OS wants it unsigned.
    unsigned is probably best, but may break some code.  */

@@ -46,6 +46,7 @@ with Sem_Disp; use Sem_Disp;
 with Sem_Elab; use Sem_Elab;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
@@ -549,7 +550,6 @@ package body Sem_Ch5 is
            or else (Is_Dynamically_Tagged (Rhs)
                      and then not Is_Access_Type (T1)))
         and then not Is_Class_Wide_Type (T1)
-        and then not Is_CPP_Constructor_Call (Rhs)
       then
          Error_Msg_N ("dynamically tagged expression not allowed!", Rhs);
 
@@ -1571,6 +1571,15 @@ package body Sem_Ch5 is
                 Name        => New_Occurrence_Of (Id, Loc),
                 Expression  => Relocate_Node (Original_Bound));
 
+            --  If the relocated node is a function call then check if some
+            --  SCIL node references it and needs readjustment.
+
+            if Generate_SCIL
+              and then Nkind (Original_Bound) = N_Function_Call
+            then
+               Adjust_SCIL_Node (Original_Bound, Expression (Assign));
+            end if;
+
             Insert_Before (Parent (N), Assign);
             Analyze (Assign);
 
@@ -1833,6 +1842,11 @@ package body Sem_Ch5 is
 
                   Set_Ekind          (Id, E_Loop_Parameter);
                   Set_Etype          (Id, Etype (DS));
+
+                  --  Treat a range as an implicit reference to the type, to
+                  --  inhibit spurious warnings.
+
+                  Generate_Reference (Base_Type (Etype (DS)), N, ' ');
                   Set_Is_Known_Valid (Id, True);
 
                   --  The loop is not a declarative part, so the only entity

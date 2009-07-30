@@ -1,3 +1,15 @@
+2009-07-14  Taras Glek  <tglek@mozilla.com>
+	    Rafael Espindola  <espindola@google.com>
+
+	* Make-lang.in (obj-c.install-plugin): New target for
+	installing plugin headers.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* objcp-decl.h (start_struct): Remove in_struct and struct_types
+	parameters.  Add struct_info parameter.
+	(finish_struct): Likewise.
+
 2009-06-13  Aldy Hernandez  <aldyh@redhat.com>
 
 	* objcp-decl.h (start_struct): Add location argument.

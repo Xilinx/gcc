@@ -498,6 +498,7 @@ proc check_profiling_available { test_what } {
 	     || [istarget m32c-*-elf]
 	     || [istarget m68k-*-elf]
 	     || [istarget m68k-*-uclinux*]
+	     || [istarget mep-*-elf]
 	     || [istarget mips*-*-elf*]
 	     || [istarget moxie-*-elf*]
 	     || [istarget xstormy16-*]
@@ -624,6 +625,13 @@ proc check_effective_target_pe_aligned_commons {} {
     return 0
 }
 
+# Return 1 if the target supports -static
+proc check_effective_target_static {} {
+    return [check_no_compiler_messages static executable {
+	int main (void) { return 0; }
+    } "-static"]
+}
+
 # Return 1 if the target supports -fstack-protector
 proc check_effective_target_fstack_protector {} {
     return [check_runtime fstack_protector {
@@ -731,6 +739,15 @@ proc check_effective_target_mips16_attribute { } {
 	#error FOO
 	#endif
     } [add_options_for_mips16_attribute ""]]
+}
+
+# Return 1 if the target supports long double larger than double when
+# using the new ABI, 0 otherwise.
+
+proc check_effective_target_mips_newabi_large_long_double { } {
+    return [check_no_compiler_messages mips_newabi_large_long_double object {
+	int dummy[sizeof(long double) > sizeof(double) ? 1 : -1];
+    } "-mabi=64"]
 }
 
 # Return 1 if the current multilib does not generate PIC by default.
@@ -1389,8 +1406,10 @@ proc check_effective_target_vect_uintfloat_cvt { } {
         verbose "check_effective_target_vect_uintfloat_cvt: using cached result" 2
     } else {
         set et_vect_uintfloat_cvt_saved 0
-        if { ([istarget powerpc*-*-*]
-	      && ![istarget powerpc-*-linux*paired*]) } {
+        if { [istarget i?86-*-*]
+	      || ([istarget powerpc*-*-*]
+		  && ![istarget powerpc-*-linux*paired*])
+	      || [istarget x86_64-*-*] } {
            set et_vect_uintfloat_cvt_saved 1
         }
     }
@@ -2543,7 +2562,8 @@ proc check_effective_target_section_anchors { } {
         verbose "check_effective_target_section_anchors: using cached result" 2
     } else {
         set et_section_anchors_saved 0
-        if { [istarget powerpc*-*-*] } {
+        if { [istarget powerpc*-*-*] 
+	      || [istarget arm*-*-*] } {
            set et_section_anchors_saved 1
         }
     }
@@ -2984,6 +3004,19 @@ proc check_effective_target_mpc { } {
 	int main ()
 	{
 	  if (__builtin_csin(0) != 0)
+	    link_error();
+	}
+    }]
+}
+
+# Return 1 if the MPC library with mpc_pow is integrated with GCC, 0 otherwise.
+
+proc check_effective_target_mpc_pow { } {
+    return [check_no_compiler_messages mpc executable {
+	extern void link_error(void);
+	int main ()
+	{
+	  if (__builtin_cpow(1,1) != 1)
 	    link_error();
 	}
     }]

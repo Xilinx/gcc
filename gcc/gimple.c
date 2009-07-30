@@ -357,6 +357,7 @@ gimple_build_call_from_tree (tree t)
   gimple_call_set_return_slot_opt (call, CALL_EXPR_RETURN_SLOT_OPT (t));
   gimple_call_set_from_thunk (call, CALL_FROM_THUNK_P (t));
   gimple_call_set_va_arg_pack (call, CALL_EXPR_VA_ARG_PACK (t));
+  gimple_set_no_warning (call, TREE_NO_WARNING (t));
 
   return call;
 }
@@ -486,6 +487,7 @@ void
 gimple_cond_get_ops_from_tree (tree cond, enum tree_code *code_p,
                                tree *lhs_p, tree *rhs_p)
 {
+  location_t loc = EXPR_LOCATION (cond);
   gcc_assert (TREE_CODE_CLASS (TREE_CODE (cond)) == tcc_comparison
 	      || TREE_CODE (cond) == TRUTH_NOT_EXPR
 	      || is_gimple_min_invariant (cond)
@@ -498,14 +500,14 @@ gimple_cond_get_ops_from_tree (tree cond, enum tree_code *code_p,
     {
       *code_p = EQ_EXPR;
       gcc_assert (*lhs_p && *rhs_p == NULL_TREE);
-      *rhs_p = fold_convert (TREE_TYPE (*lhs_p), integer_zero_node);
+      *rhs_p = fold_convert_loc (loc, TREE_TYPE (*lhs_p), integer_zero_node);
     }
   /* Canonicalize conditionals of the form 'if (VAL)'  */
   else if (TREE_CODE_CLASS (*code_p) != tcc_comparison)
     {
       *code_p = NE_EXPR;
       gcc_assert (*lhs_p && *rhs_p == NULL_TREE);
-      *rhs_p = fold_convert (TREE_TYPE (*lhs_p), integer_zero_node);
+      *rhs_p = fold_convert_loc (loc, TREE_TYPE (*lhs_p), integer_zero_node);
     }
 }
 
@@ -1896,10 +1898,11 @@ gimple_set_bb (gimple stmt, basic_block bb)
 tree
 gimple_fold (const_gimple stmt)
 {
+  location_t loc = gimple_location (stmt);
   switch (gimple_code (stmt))
     {
     case GIMPLE_COND:
-      return fold_binary (gimple_cond_code (stmt),
+      return fold_binary_loc (loc, gimple_cond_code (stmt),
 			  boolean_type_node,
 			  gimple_cond_lhs (stmt),
 			  gimple_cond_rhs (stmt));
@@ -1908,11 +1911,11 @@ gimple_fold (const_gimple stmt)
       switch (get_gimple_rhs_class (gimple_assign_rhs_code (stmt)))
 	{
 	case GIMPLE_UNARY_RHS:
-	  return fold_unary (gimple_assign_rhs_code (stmt),
+	  return fold_unary_loc (loc, gimple_assign_rhs_code (stmt),
 			     TREE_TYPE (gimple_assign_lhs (stmt)),
 			     gimple_assign_rhs1 (stmt));
 	case GIMPLE_BINARY_RHS:
-	  return fold_binary (gimple_assign_rhs_code (stmt),
+	  return fold_binary_loc (loc, gimple_assign_rhs_code (stmt),
 			      TREE_TYPE (gimple_assign_lhs (stmt)),
 			      gimple_assign_rhs1 (stmt),
 			      gimple_assign_rhs2 (stmt));

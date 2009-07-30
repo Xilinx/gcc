@@ -41,59 +41,36 @@ package Prj.Env is
 
    procedure Create_Mapping_File
      (Project  : Project_Id;
-      Language : Name_Id := No_Name;
+      Language : Name_Id;
       In_Tree  : Project_Tree_Ref;
       Name     : out Path_Name_Type);
    --  Create a temporary mapping file for project Project. For each source or
    --  template of Language in the Project, put the mapping of its file
    --  name and path name in this file.
    --
-   --  This function either looks at all the source files for the specified
-   --  language in the project, or if Language is set to No_Name, at all
-   --  units in the project.
-   --
    --  Implementation note: we pass a language name, not a language_index here,
    --  since the latter would have to match exactly the index of that language
    --  for the specified project, and that is not information available in
    --  buildgpr.adb.
-
-   procedure Set_Mapping_File_Initial_State_To_Empty
-     (In_Tree : Project_Tree_Ref);
-   --  When creating a mapping file, create an empty map. This case occurs when
-   --  run time source files are found in the project files. This only applies
-   --  to the Ada_Only mode.
+   --
+   --  See fmap for a description of the format of the mapping file
 
    procedure Create_Config_Pragmas_File
-     (For_Project          : Project_Id;
-      Main_Project         : Project_Id;
-      In_Tree              : Project_Tree_Ref;
-      Include_Config_Files : Boolean := True);
+     (For_Project : Project_Id;
+      In_Tree     : Project_Tree_Ref);
    --  If there needs to have SFN pragmas, either for non standard naming
-   --  schemes or for individual units, or (when Include_Config_Files is True)
-   --  if Global_Configuration_Pragmas has been specified in package gnatmake
-   --  of the main project, or if Local_Configuration_Pragmas has been
-   --  specified in package Compiler of the main project, build (if needed)
-   --  a temporary file that contains all configuration pragmas, and specify
-   --  the configuration pragmas file in the project data.
+   --  schemes or for individual units.
 
    procedure Create_New_Path_File
      (In_Tree   : Project_Tree_Ref;
       Path_FD   : out File_Descriptor;
       Path_Name : out Path_Name_Type);
    --  Create a new temporary path file. Get the file name in Path_Name.
-   --  The name is normally obtained by increasing the number in
-   --  Temp_Path_File_Name by 1.
-
-   function Ada_Include_Path
-     (Project : Project_Id;
-      In_Tree : Project_Tree_Ref) return String_Access;
-   --  Get the source search path of a Project file. For the first call,
-   --  compute it and cache it.
 
    function Ada_Include_Path
      (Project   : Project_Id;
       In_Tree   : Project_Tree_Ref;
-      Recursive : Boolean) return String;
+      Recursive : Boolean := False) return String;
    --  Get the source search path of a Project file. If Recursive it True, get
    --  all the source directories of the imported and modified project files
    --  (recursively). If Recursive is False, just get the path for the source
@@ -102,7 +79,6 @@ package Prj.Env is
 
    function Ada_Objects_Path
      (Project             : Project_Id;
-      In_Tree             : Project_Tree_Ref;
       Including_Libraries : Boolean := True) return String_Access;
    --  Get the ADA_OBJECTS_PATH of a Project file. For the first call, compute
    --  it and cache it. When Including_Libraries is False, do not include the
@@ -114,9 +90,6 @@ package Prj.Env is
       Including_Libraries : Boolean);
    --  Set the environment variables for additional project path files, after
    --  creating the path files if necessary.
-
-   procedure Delete_All_Path_Files (In_Tree : Project_Tree_Ref);
-   --  Delete all temporary path files that have been created by Set_Ada_Paths
 
    function File_Name_Of_Library_Unit_Body
      (Name              : String;

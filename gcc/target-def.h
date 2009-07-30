@@ -666,6 +666,10 @@
 #define TARGET_CASE_VALUES_THRESHOLD default_case_values_threshold
 #endif
 
+#ifndef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED hook_bool_void_false
+#endif
+
 /* C specific.  */
 #ifndef TARGET_C_MODE_FOR_SUFFIX
 #define TARGET_C_MODE_FOR_SUFFIX default_mode_for_suffix
@@ -823,8 +827,8 @@
 #define TARGET_OPTION_PRAGMA_PARSE default_target_option_pragma_parse
 #endif
 
-#ifndef TARGET_OPTION_CAN_INLINE_P
-#define TARGET_OPTION_CAN_INLINE_P default_target_option_can_inline_p
+#ifndef TARGET_CAN_INLINE_P
+#define TARGET_CAN_INLINE_P default_target_can_inline_p
 #endif
 
 #define TARGET_OPTION_HOOKS			\
@@ -834,7 +838,7 @@
     TARGET_OPTION_RESTORE,			\
     TARGET_OPTION_PRINT,			\
     TARGET_OPTION_PRAGMA_PARSE,			\
-    TARGET_OPTION_CAN_INLINE_P,			\
+    TARGET_CAN_INLINE_P,			\
   }
 
 /* The whole shebang.  */
@@ -938,6 +942,7 @@
   TARGET_INSTANTIATE_DECLS,			\
   TARGET_HARD_REGNO_SCRATCH_OK,			\
   TARGET_CASE_VALUES_THRESHOLD,			\
+  TARGET_FRAME_POINTER_REQUIRED,		\
   TARGET_C,					\
   TARGET_CXX,					\
   TARGET_EMUTLS,				\

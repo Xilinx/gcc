@@ -445,7 +445,7 @@ emutls_common_1 (void **loc, void *xstmts)
   args = tree_cons (NULL, x, args);
 
   x = built_in_decls[BUILT_IN_EMUTLS_REGISTER_COMMON];
-  x = build_function_call_expr (x, args);
+  x = build_function_call_expr (UNKNOWN_LOCATION, x, args);
 
   append_to_statement_list (x, pstmts);
   return 1;
@@ -2781,28 +2781,20 @@ decode_addr_const (tree exp, struct addr_const *value)
   value->offset = offset;
 }
 
-/* Uniquize all constants that appear in memory.
-   Each constant in memory thus far output is recorded
-   in `const_desc_table'.  */
-
-struct GTY(()) constant_descriptor_tree {
-  /* A MEM for the constant.  */
-  rtx rtl;
-
-  /* The value of the constant.  */
-  tree value;
-
-  /* Hash of value.  Computing the hash from value each time
-     hashfn is called can't work properly, as that means recursive
-     use of the hash table during hash table expansion.  */
-  hashval_t hash;
-};
 
 static GTY((param_is (struct constant_descriptor_tree)))
      htab_t const_desc_htab;
 
 static struct constant_descriptor_tree * build_constant_desc (tree);
 static void maybe_output_constant_def_contents (struct constant_descriptor_tree *, int);
+
+/* Constant pool accessor function.  */
+
+htab_t 
+constant_pool_htab (void)
+{
+  return const_desc_htab;
+}
 
 /* Compute a hash code for a constant expression.  */
 
@@ -3207,6 +3199,10 @@ build_constant_desc (tree exp)
   set_mem_alias_set (rtl, 0);
   set_mem_alias_set (rtl, const_alias_set);
 
+  /* We cannot share RTX'es in pool entries.
+     Mark this piece of RTL as required for unsharing.  */
+  RTX_FLAG (rtl, used) = 1;
+
   /* Set flags or add text to the name to record information, such as
      that it is a local symbol.  If the name is changed, the macro
      ASM_OUTPUT_LABELREF will have to know how to strip this
@@ -3444,7 +3440,7 @@ const_rtx_hash_1 (rtx *xp, void *data)
       hwi = INTVAL (x);
     fold_hwi:
       {
-	const int shift = sizeof (hashval_t) * CHAR_BIT;
+	int shift = sizeof (hashval_t) * CHAR_BIT;
 	const int n = sizeof (HOST_WIDE_INT) / sizeof (hashval_t);
 	int i;
 
@@ -5464,7 +5460,8 @@ do_assemble_alias (tree decl, tree target)
 #else
       if (!SUPPORTS_WEAK)
 	{
-	  error ("%Jweakref is not supported in this configuration", decl);
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "weakref is not supported in this configuration");
 	  return;
 	}
 #endif
@@ -5604,12 +5601,14 @@ assemble_alias (tree decl, tree target)
     {
 #if !defined (ASM_OUTPUT_DEF)
 # if !defined(ASM_OUTPUT_WEAK_ALIAS) && !defined (ASM_WEAKEN_DECL)
-      error ("%Jalias definitions not supported in this configuration", decl);
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"alias definitions not supported in this configuration");
       return;
 # else
       if (!DECL_WEAK (decl))
 	{
-	  error ("%Jonly weak aliases are supported in this configuration", decl);
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "only weak aliases are supported in this configuration");
 	  return;
 	}
 # endif

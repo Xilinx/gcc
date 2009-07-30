@@ -197,7 +197,6 @@ static mem_attrs *get_mem_attrs (alias_set_type, tree, rtx, rtx, unsigned int,
 static hashval_t reg_attrs_htab_hash (const void *);
 static int reg_attrs_htab_eq (const void *, const void *);
 static reg_attrs *get_reg_attrs (tree, int);
-static tree component_ref_for_mem_expr (tree);
 static rtx gen_const_vector (enum machine_mode, int);
 static void copy_rtx_if_shared_1 (rtx *orig);
 
@@ -869,7 +868,11 @@ gen_reg_rtx (enum machine_mode mode)
   if (SUPPORTS_STACK_ALIGNMENT 
       && crtl->stack_alignment_estimated < align
       && !crtl->stack_realign_processed)
-    crtl->stack_alignment_estimated = align;
+    {
+      unsigned int min_align = MINIMUM_ALIGNMENT (NULL, mode, align);
+      if (crtl->stack_alignment_estimated < min_align)
+	crtl->stack_alignment_estimated = min_align;
+    }
 
   if (generating_concat_p
       && (GET_MODE_CLASS (mode) == MODE_COMPLEX_FLOAT
@@ -975,7 +978,7 @@ set_reg_attrs_from_value (rtx reg, rtx x)
   offset = byte_lowpart_offset (GET_MODE (reg), GET_MODE (x));
   if (MEM_P (x))
     {
-      if (MEM_OFFSET (x) && GET_CODE (MEM_OFFSET (x)) == CONST_INT)
+      if (MEM_OFFSET (x) && CONST_INT_P (MEM_OFFSET (x)))
 	REG_ATTRS (reg)
 	  = get_reg_attrs (MEM_EXPR (x), INTVAL (MEM_OFFSET (x)) + offset);
       if (MEM_POINTER (x))
@@ -1181,7 +1184,7 @@ gen_lowpart_common (enum machine_mode mode, rtx x)
   /* Unfortunately, this routine doesn't take a parameter for the mode of X,
      so we have to make one up.  Yuk.  */
   innermode = GET_MODE (x);
-  if (GET_CODE (x) == CONST_INT
+  if (CONST_INT_P (x)
       && msize * BITS_PER_UNIT <= HOST_BITS_PER_WIDE_INT)
     innermode = mode_for_size (HOST_BITS_PER_WIDE_INT, MODE_INT, 0);
   else if (innermode == VOIDmode)
@@ -1226,7 +1229,7 @@ gen_lowpart_common (enum machine_mode mode, rtx x)
     }
   else if (GET_CODE (x) == SUBREG || REG_P (x)
 	   || GET_CODE (x) == CONCAT || GET_CODE (x) == CONST_VECTOR
-	   || GET_CODE (x) == CONST_DOUBLE || GET_CODE (x) == CONST_INT)
+	   || GET_CODE (x) == CONST_DOUBLE || CONST_INT_P (x))
     return simplify_gen_subreg (mode, x, innermode, offset);
 
   /* Otherwise, we can't do this.  */
@@ -1425,40 +1428,6 @@ operand_subword_force (rtx op, unsigned int offset, enum machine_mode mode)
   return result;
 }
 
-/* Within a MEM_EXPR, we care about either (1) a component ref of a decl,
-   or (2) a component ref of something variable.  Represent the later with
-   a NULL expression.  */
-
-static tree
-component_ref_for_mem_expr (tree ref)
-{
-  tree inner = TREE_OPERAND (ref, 0);
-
-  if (TREE_CODE (inner) == COMPONENT_REF)
-    inner = component_ref_for_mem_expr (inner);
-  else
-    {
-      /* Now remove any conversions: they don't change what the underlying
-	 object is.  Likewise for SAVE_EXPR.  */
-      while (CONVERT_EXPR_P (inner)
-	     || TREE_CODE (inner) == VIEW_CONVERT_EXPR
-	     || TREE_CODE (inner) == SAVE_EXPR)
-	inner = TREE_OPERAND (inner, 0);
-
-      if (! DECL_P (inner))
-	inner = NULL_TREE;
-    }
-
-  if (inner == TREE_OPERAND (ref, 0)
-      /* Don't leak SSA-names in the third operand.  */
-      && (!TREE_OPERAND (ref, 2)
-	  || TREE_CODE (TREE_OPERAND (ref, 2)) != SSA_NAME))
-    return ref;
-  else
-    return build3 (COMPONENT_REF, TREE_TYPE (ref), inner,
-		   TREE_OPERAND (ref, 1), NULL_TREE);
-}
-
 /* Returns 1 if both MEM_EXPR can be considered equal
    and 0 otherwise.  */
 
@@ -1474,23 +1443,7 @@ mem_expr_equal_p (const_tree expr1, const_tree expr2)
   if (TREE_CODE (expr1) != TREE_CODE (expr2))
     return 0;
 
-  if (TREE_CODE (expr1) == COMPONENT_REF)
-    return 
-      mem_expr_equal_p (TREE_OPERAND (expr1, 0),
-			TREE_OPERAND (expr2, 0))
-      && mem_expr_equal_p (TREE_OPERAND (expr1, 1), /* field decl */
-			   TREE_OPERAND (expr2, 1));
-  
-  if (INDIRECT_REF_P (expr1))
-    return mem_expr_equal_p (TREE_OPERAND (expr1, 0),
-			     TREE_OPERAND (expr2, 0));
-
-  /* ARRAY_REFs, ARRAY_RANGE_REFs and BIT_FIELD_REFs should already
-	      have been resolved here.  */
-  gcc_assert (DECL_P (expr1));
-  
-  /* Decls with different pointers can't be equal.  */
-  return 0;
+  return operand_equal_p (expr1, expr2, 0);
 }
 
 /* Return OFFSET if XEXP (MEM, 0) - OFFSET is known to be ALIGN
@@ -1728,7 +1681,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
       else if (TREE_CODE (t) == COMPONENT_REF
 	       && ! DECL_BIT_FIELD (TREE_OPERAND (t, 1)))
 	{
-	  expr = component_ref_for_mem_expr (t);
+	  expr = t;
 	  offset = const0_rtx;
 	  apply_bitpos = bitpos;
 	  /* ??? Any reason the field size would be different than
@@ -1785,7 +1738,8 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	    }
 	  else if (TREE_CODE (t2) == COMPONENT_REF)
 	    {
-	      expr = component_ref_for_mem_expr (t2);
+	      expr = t2;
+	      offset = NULL;
 	      if (host_integerp (off_tree, 1))
 		{
 		  offset = GEN_INT (tree_low_cst (off_tree, 1));
@@ -2281,7 +2235,7 @@ set_mem_attrs_for_spill (rtx mem)
   addr = XEXP (mem, 0);
   offset = const0_rtx;
   if (GET_CODE (addr) == PLUS
-      && GET_CODE (XEXP (addr, 1)) == CONST_INT)
+      && CONST_INT_P (XEXP (addr, 1)))
     offset = XEXP (addr, 1);
 
   MEM_ATTRS (mem) = get_mem_attrs (alias, expr, offset,
@@ -3039,6 +2993,25 @@ next_nonnote_insn (rtx insn)
       insn = NEXT_INSN (insn);
       if (insn == 0 || !NOTE_P (insn))
 	break;
+    }
+
+  return insn;
+}
+
+/* Return the next insn after INSN that is not a NOTE, but stop the
+   search before we enter another basic block.  This routine does not
+   look inside SEQUENCEs.  */
+
+rtx
+next_nonnote_insn_bb (rtx insn)
+{
+  while (insn)
+    {
+      insn = NEXT_INSN (insn);
+      if (insn == 0 || !NOTE_P (insn))
+	break;
+      if (NOTE_INSN_BASIC_BLOCK_P (insn))
+	return NULL_RTX;
     }
 
   return insn;

@@ -9,6 +9,8 @@
 #include "tree-pass.h"
 #include "intl.h"
 
+int plugin_is_GPL_compatible;
+
 static bool one_pass_gate (void)
 {
   return true;
@@ -22,6 +24,7 @@ static unsigned int one_pass_exec (void)
     printf ("Executed more than once \n");
  }
  counter++;
+ return 0;
 }
 
 struct gimple_opt_pass one_pass = 

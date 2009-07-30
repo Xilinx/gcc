@@ -93,7 +93,7 @@ static inline rtx force_mode (enum machine_mode, rtx);
 static void pa_reorg (void);
 static void pa_combine_instructions (void);
 static int pa_can_combine_p (rtx, rtx, rtx, int, rtx, rtx, rtx);
-static int forward_branch_p (rtx);
+static bool forward_branch_p (rtx);
 static void compute_zdepwi_operands (unsigned HOST_WIDE_INT, unsigned *);
 static int compute_movmem_length (rtx);
 static int compute_clrmem_length (rtx);
@@ -2213,9 +2213,9 @@ compute_zdepwi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
   else
     {
       /* Find the width of the bitstring in IMM.  */
-      for (len = 5; len < 32; len++)
+      for (len = 5; len < 32 - lsb; len++)
 	{
-	  if ((imm & (1 << len)) == 0)
+	  if ((imm & ((unsigned HOST_WIDE_INT) 1 << len)) == 0)
 	    break;
 	}
 
@@ -2234,10 +2234,12 @@ compute_zdepwi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 void
 compute_zdepdi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 {
-  HOST_WIDE_INT lsb, len;
+  int lsb, len, maxlen;
+
+  maxlen = MIN (HOST_BITS_PER_WIDE_INT, 64);
 
   /* Find the least significant set bit in IMM.  */
-  for (lsb = 0; lsb < HOST_BITS_PER_WIDE_INT; lsb++)
+  for (lsb = 0; lsb < maxlen; lsb++)
     {
       if ((imm & 1) != 0)
         break;
@@ -2246,16 +2248,19 @@ compute_zdepdi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 
   /* Choose variants based on *sign* of the 5-bit field.  */
   if ((imm & 0x10) == 0)
-    len = ((lsb <= HOST_BITS_PER_WIDE_INT - 4)
-	   ? 4 : HOST_BITS_PER_WIDE_INT - lsb);
+    len = (lsb <= maxlen - 4) ? 4 : maxlen - lsb;
   else
     {
       /* Find the width of the bitstring in IMM.  */
-      for (len = 5; len < HOST_BITS_PER_WIDE_INT; len++)
+      for (len = 5; len < maxlen - lsb; len++)
 	{
 	  if ((imm & ((unsigned HOST_WIDE_INT) 1 << len)) == 0)
 	    break;
 	}
+
+      /* Extend length if host is narrow and IMM is negative.  */
+      if (HOST_BITS_PER_WIDE_INT == 32 && len == maxlen - lsb)
+	len += 32;
 
       /* Sign extend IMM as a 5-bit value.  */
       imm = (imm & 0xf) - 0x10;
@@ -4751,6 +4756,7 @@ pa_adjust_insn_length (rtx insn, int length)
       /* Adjust a short backwards conditional with an unfilled delay slot.  */
       if (GET_CODE (pat) == SET
 	  && length == 4
+	  && JUMP_LABEL (insn) != NULL_RTX
 	  && ! forward_branch_p (insn))
 	return 4;
       else if (GET_CODE (pat) == PARALLEL
@@ -6086,6 +6092,38 @@ pa_scalar_mode_supported_p (enum machine_mode mode)
     }
 }
 
+/* Return TRUE if INSN, a jump insn, has an unfilled delay slot and
+   it branches to the next real instruction.  Otherwise, return FALSE.  */
+
+static bool
+branch_to_delay_slot_p (rtx insn)
+{
+  if (dbr_sequence_length ())
+    return FALSE;
+
+  return next_real_insn (JUMP_LABEL (insn)) == next_real_insn (insn);
+}
+
+/* Return TRUE if INSN, a jump insn, needs a nop in its delay slot.
+
+   This occurs when INSN has an unfilled delay slot and is followed
+   by an ASM_INPUT.  Disaster can occur if the ASM_INPUT is empty and
+   the jump branches into the delay slot.  So, we add a nop in the delay
+   slot just to be safe.  This messes up our instruction count, but we
+   don't know how big the ASM_INPUT insn is anyway.  */
+
+static bool
+branch_needs_nop_p (rtx insn)
+{
+  rtx next_insn;
+
+  if (dbr_sequence_length ())
+    return FALSE;
+
+  next_insn = next_real_insn (insn);
+  return GET_CODE (PATTERN (next_insn)) == ASM_INPUT;
+}
+
 /* This routine handles all the normal conditional branch sequences we
    might need to generate.  It handles compare immediate vs compare
    register, nullification of delay slots, varying length branches,
@@ -6111,7 +6149,7 @@ output_cbranch (rtx *operands, int negated, rtx insn)
      slot and the same branch target as this branch.  We could check
      for this but jump optimization should eliminate nop jumps.  It
      is always safe to emit a nop.  */
-  if (next_real_insn (JUMP_LABEL (insn)) == next_real_insn (insn))
+  if (branch_to_delay_slot_p (insn))
     return "nop";
 
   /* The doubleword form of the cmpib instruction doesn't have the LEU
@@ -6160,7 +6198,12 @@ output_cbranch (rtx *operands, int negated, rtx insn)
 	if (useskip)
 	  strcat (buf, " %2,%r1,%%r0");
 	else if (nullify)
-	  strcat (buf, ",n %2,%r1,%0");
+	  {
+	    if (branch_needs_nop_p (insn))
+	      strcat (buf, ",n %2,%r1,%0%#");
+	    else
+	      strcat (buf, ",n %2,%r1,%0");
+	  }
 	else
 	  strcat (buf, " %2,%r1,%0");
 	break;
@@ -6433,7 +6476,7 @@ output_bb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
      is only used when optimizing; jump optimization should eliminate the
      jump.  But be prepared just in case.  */
 
-  if (next_real_insn (JUMP_LABEL (insn)) == next_real_insn (insn))
+  if (branch_to_delay_slot_p (insn))
     return "nop";
 
   /* If this is a long branch with its delay slot unfilled, set `nullify'
@@ -6479,11 +6522,21 @@ output_bb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
 	if (useskip)
 	  strcat (buf, " %0,%1,1,%%r0");
 	else if (nullify && negated)
-	  strcat (buf, ",n %0,%1,%3");
+	  {
+	    if (branch_needs_nop_p (insn))
+	      strcat (buf, ",n %0,%1,%3%#");
+	    else
+	      strcat (buf, ",n %0,%1,%3");
+	  }
 	else if (nullify && ! negated)
-	  strcat (buf, ",n %0,%1,%2");
+	  {
+	    if (branch_needs_nop_p (insn))
+	      strcat (buf, ",n %0,%1,%2%#");
+	    else
+	      strcat (buf, ",n %0,%1,%2");
+	  }
 	else if (! nullify && negated)
-	  strcat (buf, "%0,%1,%3");
+	  strcat (buf, " %0,%1,%3");
 	else if (! nullify && ! negated)
 	  strcat (buf, " %0,%1,%2");
 	break;
@@ -6614,7 +6667,7 @@ output_bvb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
      is only used when optimizing; jump optimization should eliminate the
      jump.  But be prepared just in case.  */
 
-  if (next_real_insn (JUMP_LABEL (insn)) == next_real_insn (insn))
+  if (branch_to_delay_slot_p (insn))
     return "nop";
 
   /* If this is a long branch with its delay slot unfilled, set `nullify'
@@ -6660,11 +6713,21 @@ output_bvb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
 	if (useskip)
 	  strcat (buf, "{ %0,1,%%r0| %0,%%sar,1,%%r0}");
 	else if (nullify && negated)
-	  strcat (buf, "{,n %0,%3|,n %0,%%sar,%3}");
+	  {
+	    if (branch_needs_nop_p (insn))
+	      strcat (buf, "{,n %0,%3%#|,n %0,%%sar,%3%#}");
+	    else
+	      strcat (buf, "{,n %0,%3|,n %0,%%sar,%3}");
+	  }
 	else if (nullify && ! negated)
-	  strcat (buf, "{,n %0,%2|,n %0,%%sar,%2}");
+	  {
+	    if (branch_needs_nop_p (insn))
+	      strcat (buf, "{,n %0,%2%#|,n %0,%%sar,%2%#}");
+	    else
+	      strcat (buf, "{,n %0,%2|,n %0,%%sar,%2}");
+	  }
 	else if (! nullify && negated)
-	  strcat (buf, "{%0,%3|%0,%%sar,%3}");
+	  strcat (buf, "{ %0,%3| %0,%%sar,%3}");
 	else if (! nullify && ! negated)
 	  strcat (buf, "{ %0,%2| %0,%%sar,%2}");
 	break;
@@ -6786,7 +6849,7 @@ output_dbra (rtx *operands, rtx insn, int which_alternative)
   /* A conditional branch to the following instruction (e.g. the delay slot) is
      asking for a disaster.  Be prepared!  */
 
-  if (next_real_insn (JUMP_LABEL (insn)) == next_real_insn (insn))
+  if (branch_to_delay_slot_p (insn))
     {
       if (which_alternative == 0)
 	return "ldo %1(%0),%0";
@@ -6823,7 +6886,12 @@ output_dbra (rtx *operands, rtx insn, int which_alternative)
 	{
 	case 4:
 	  if (nullify)
-	    return "addib,%C2,n %1,%0,%3";
+	    {
+	      if (branch_needs_nop_p (insn))
+		return "addib,%C2,n %1,%0,%3%#";
+	      else
+		return "addib,%C2,n %1,%0,%3";
+	    }
 	  else
 	    return "addib,%C2 %1,%0,%3";
       
@@ -6931,7 +6999,7 @@ output_movb (rtx *operands, rtx insn, int which_alternative,
   /* A conditional branch to the following instruction (e.g. the delay slot) is
      asking for a disaster.  Be prepared!  */
 
-  if (next_real_insn (JUMP_LABEL (insn)) == next_real_insn (insn))
+  if (branch_to_delay_slot_p (insn))
     {
       if (which_alternative == 0)
 	return "copy %1,%0";
@@ -6969,7 +7037,12 @@ output_movb (rtx *operands, rtx insn, int which_alternative,
 	{
 	case 4:
 	  if (nullify)
-	    return "movb,%C2,n %1,%0,%3";
+	    {
+	      if (branch_needs_nop_p (insn))
+		return "movb,%C2,n %1,%0,%3%#";
+	      else
+		return "movb,%C2,n %1,%0,%3";
+	    }
 	  else
 	    return "movb,%C2 %1,%0,%3";
 
@@ -7701,12 +7774,15 @@ output_call (rtx insn, rtx call_dest, int sibcall)
   if (!delay_slot_filled && INSN_ADDRESSES_SET_P ())
     {
       /* See if the return address can be adjusted.  Use the containing
-         sequence insn's address.  */
+         sequence insn's address.  This would break the regular call/return@
+         relationship assumed by the table based eh unwinder, so only do that
+         if the call is not possibly throwing.  */
       rtx seq_insn = NEXT_INSN (PREV_INSN (XVECEXP (final_sequence, 0, 0)));
       int distance = (INSN_ADDRESSES (INSN_UID (JUMP_LABEL (NEXT_INSN (insn))))
 		      - INSN_ADDRESSES (INSN_UID (seq_insn)) - 8);
 
-      if (VAL_14_BITS_P (distance))
+      if (VAL_14_BITS_P (distance)
+	  && !(can_throw_internal (insn) || can_throw_external (insn)))
 	{
 	  xoperands[1] = gen_label_rtx ();
 	  output_asm_insn ("ldo %0-%1(%%r2),%%r2", xoperands);
@@ -8508,22 +8584,28 @@ non_hard_reg_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
   return ! (GET_CODE (op) == REG && REGNO (op) < FIRST_PSEUDO_REGISTER);
 }
 
-/* Return 1 if INSN branches forward.  Should be using insn_addresses
-   to avoid walking through all the insns...  */
-static int
+/* Return TRUE if INSN branches forward.  */
+
+static bool
 forward_branch_p (rtx insn)
 {
-  rtx label = JUMP_LABEL (insn);
+  rtx lab = JUMP_LABEL (insn);
+
+  /* The INSN must have a jump label.  */
+  gcc_assert (lab != NULL_RTX);
+
+  if (INSN_ADDRESSES_SET_P ())
+    return INSN_ADDRESSES (INSN_UID (lab)) > INSN_ADDRESSES (INSN_UID (insn));  
 
   while (insn)
     {
-      if (insn == label)
-	break;
+      if (insn == lab)
+	return true;
       else
 	insn = NEXT_INSN (insn);
     }
 
-  return (insn == label);
+  return false;
 }
 
 /* Return 1 if OP is an equality comparison, else return 0.  */

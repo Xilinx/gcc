@@ -165,7 +165,8 @@ dump_template_argument (tree arg, int flags)
 static int
 count_non_default_template_args (tree args, tree params)
 {
-  int n = TREE_VEC_LENGTH (args);
+  tree inner_args = INNERMOST_TEMPLATE_ARGS (args);
+  int n = TREE_VEC_LENGTH (inner_args);
   int last;
 
   if (params == NULL_TREE || !flag_pretty_templates)
@@ -184,7 +185,7 @@ count_non_default_template_args (tree args, tree params)
 	  def = tsubst_copy_and_build (def, args, tf_none, NULL_TREE, false, true);
 	  --processing_template_decl;
 	}
-      if (!cp_tree_equal (TREE_VEC_ELT (args, last), def))
+      if (!cp_tree_equal (TREE_VEC_ELT (inner_args, last), def))
         break;
     }
 
@@ -769,7 +770,8 @@ dump_type_suffix (tree t, int flags)
 	    dump_expr (TREE_OPERAND (max, 0),
 		       flags & ~TFF_EXPR_IN_PARENS);
 	  else
-	    dump_expr (fold_build2 (PLUS_EXPR, dtype, max,
+	    dump_expr (fold_build2_loc (input_location,
+				    PLUS_EXPR, dtype, max,
 				    build_int_cst (dtype, 1)),
 		       flags & ~TFF_EXPR_IN_PARENS);
 	}
@@ -862,7 +864,7 @@ dump_decl (tree t, int flags)
     {
     case TYPE_DECL:
       /* Don't say 'typedef class A' */
-      if (DECL_ARTIFICIAL (t))
+      if (DECL_ARTIFICIAL (t) && !DECL_SELF_REFERENCE_P (t))
 	{
 	  if ((flags & TFF_DECL_SPECIFIERS)
 	      && TREE_CODE (TREE_TYPE (t)) == TEMPLATE_TYPE_PARM)
@@ -1405,7 +1407,7 @@ dump_function_name (tree t, int flags)
       pp_cxx_ws_string (cxx_pp, "operator");
       dump_type (TREE_TYPE (TREE_TYPE (t)), flags);
     }
-  else if (IDENTIFIER_OPNAME_P (name))
+  else if (name && IDENTIFIER_OPNAME_P (name))
     pp_cxx_tree_identifier (cxx_pp, name);
   else
     dump_decl (name, flags);
@@ -1434,7 +1436,7 @@ dump_template_parms (tree info, int primary, int flags)
   pp_cxx_begin_template_argument_list (cxx_pp);
 
   /* Be careful only to print things when we have them, so as not
-	 to crash producing error messages.  */
+     to crash producing error messages.  */
   if (args && !primary)
     {
       int len, ix;
@@ -1443,11 +1445,9 @@ dump_template_parms (tree info, int primary, int flags)
 		     ? DECL_INNERMOST_TEMPLATE_PARMS (TI_TEMPLATE (info))
 		     : NULL_TREE);
 
-      if (TMPL_ARGS_HAVE_MULTIPLE_LEVELS (args))
-	args = TREE_VEC_ELT (args, TREE_VEC_LENGTH (args) - 1);
-
       len = count_non_default_template_args (args, params);
 
+      args = INNERMOST_TEMPLATE_ARGS (args);
       for (ix = 0; ix != len; ix++)
 	{
 	  tree arg = TREE_VEC_ELT (args, ix);
@@ -2604,7 +2604,7 @@ cp_print_error_function (diagnostic_context *context,
 		  while (block && TREE_CODE (block) == BLOCK)
 		    block = BLOCK_SUPERCONTEXT (block);
 
-		  if (TREE_CODE (block) == FUNCTION_DECL)
+		  if (block && TREE_CODE (block) == FUNCTION_DECL)
 		    fndecl = block;
 		  abstract_origin = NULL;
 		}
@@ -2647,7 +2647,11 @@ cp_print_error_function (diagnostic_context *context,
 static const char *
 function_category (tree fn)
 {
-  if (DECL_FUNCTION_MEMBER_P (fn))
+  /* We can get called from the middle-end for diagnostics of function
+     clones.  Make sure we have language specific information before
+     dereferencing it.  */
+  if (DECL_LANG_SPECIFIC (STRIP_TEMPLATE (fn))
+      && DECL_FUNCTION_MEMBER_P (fn))
     {
       if (DECL_STATIC_FUNCTION_P (fn))
 	return _("In static member function %qs");

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -64,6 +64,11 @@ package Sem_Ch3 is
    --  the signature of the implicit type works like the profile of a regular
    --  subprogram.
 
+   procedure Add_Internal_Interface_Entities (Tagged_Type : Entity_Id);
+   --  Add to the list of primitives of Tagged_Type the internal entities
+   --  associated with covered interface primitives. These entities link the
+   --  interface primitives with the tagged type primitives that cover them.
+
    procedure Analyze_Declarations (L : List_Id);
    --  Called to analyze a list of declarations (in what context ???). Also
    --  performs necessary freezing actions (more description needed ???)
@@ -78,6 +83,21 @@ package Sem_Ch3 is
 
    procedure Access_Type_Declaration (T : Entity_Id; Def : Node_Id);
    --  Process an access type declaration
+
+   procedure Build_Itype_Reference
+     (Ityp : Entity_Id;
+      Nod  : Node_Id);
+   --  Create a reference to an internal type, for use by Gigi. The back-end
+   --  elaborates itypes on demand, i.e. when their first use is seen. This
+   --  can lead to scope anomalies if the first use is within a scope that is
+   --  nested within the scope that contains  the point of definition of the
+   --  itype. The Itype_Reference node forces the elaboration of the itype
+   --  in the proper scope. The node is inserted after Nod, which is the
+   --  enclosing declaration that generated Ityp.
+   --
+   --  A related mechanism is used during expansion, for itypes created in
+   --  branches of conditionals. See Ensure_Defined in exp_util.
+   --  Could both mechanisms be merged ???
 
    procedure Check_Abstract_Overriding (T : Entity_Id);
    --  Check that all abstract subprograms inherited from T's parent type
@@ -182,18 +202,24 @@ package Sem_Ch3 is
    --  wide type is created at the same time, and therefore there is a private
    --  and a full declaration for the class-wide type as well.
 
-   function OK_For_Limited_Init_In_05 (Exp : Node_Id) return Boolean;
-   --  Presuming Exp is an expression of an inherently limited type, returns
-   --  True if the expression is allowed in an initialization context by the
-   --  rules of Ada 2005. We use the rule in RM-7.5(2.1/2), "...it is an
-   --  aggregate, a function_call, or a parenthesized expression or
-   --  qualified_expression whose operand is permitted...". Note that in Ada
-   --  95 mode, we sometimes wish to give warnings based on whether the
-   --  program _would_ be legal in Ada 2005. Note that Exp must already have
-   --  been resolved, so we can know whether it's a function call (as opposed
-   --  to an indexed component, for example).
+   function OK_For_Limited_Init_In_05
+     (Typ : Entity_Id;
+      Exp : Node_Id) return Boolean;
+   --  Presuming Exp is an expression of an inherently limited type Typ,
+   --  returns True if the expression is allowed in an initialization context
+   --  by the rules of Ada 2005. We use the rule in RM-7.5(2.1/2), "...it is an
+   --  aggregate, a function_call, or a parenthesized expression or qualified
+   --  expression whose operand is permitted...". Note that in Ada 95 mode,
+   --  we sometimes wish to give warnings based on whether the program _would_
+   --  be legal in Ada 2005. Note that Exp must already have been resolved,
+   --  so we can know whether it's a function call (as opposed to an indexed
+   --  component, for example). In the case where Typ is a limited interface's
+   --  class-wide type, then the expression is allowed to be of any kind if its
+   --  type is a nonlimited descendant of the interface.
 
-   function OK_For_Limited_Init (Exp : Node_Id) return Boolean;
+   function OK_For_Limited_Init
+     (Typ : Entity_Id;
+      Exp : Node_Id) return Boolean;
    --  Always False in Ada 95 mode. Equivalent to OK_For_Limited_Init_In_05 in
    --  Ada 2005 mode.
 

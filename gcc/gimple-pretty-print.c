@@ -508,7 +508,7 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 	  pp_space (buffer);
         }
-      print_call_name (buffer, gimple_call_fn (gs));
+      print_call_name (buffer, gimple_call_fn (gs), flags);
       pp_string (buffer, " (");
       dump_gimple_call_args (buffer, gs, flags);
       pp_character (buffer, ')');
@@ -1382,6 +1382,13 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
       pp_string (buffer, ":");
       pp_decimal_int (buffer, xloc.column);
       pp_string (buffer, "] ");
+    }
+
+  if (flags & TDF_EH)
+    {
+      int eh_region = lookup_stmt_eh_region_fn (cfun, gs);
+      if (eh_region >= 0)
+	pp_printf (buffer, "[EH #%d] ", eh_region);
     }
 
   if ((flags & (TDF_VOPS|TDF_MEMSYMS))

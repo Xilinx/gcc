@@ -8918,9 +8918,9 @@ mips_current_loadgp_style (void)
   return TARGET_NEWABI ? LOADGP_NEWABI : LOADGP_OLDABI;
 }
 
-/* Implement FRAME_POINTER_REQUIRED.  */
+/* Implement TARGET_FRAME_POINTER_REQUIRED.  */
 
-bool
+static bool
 mips_frame_pointer_required (void)
 {
   /* If the function contains dynamic stack allocations, we need to
@@ -14524,6 +14524,13 @@ mips_override_options (void)
           : !TARGET_BRANCHLIKELY))
     sorry ("%qs requires branch-likely instructions", "-mfix-r10000");
 
+  if (TARGET_SYNCI && !ISA_HAS_SYNCI)
+    {
+      warning (0, "the %qs architecture does not support the synci "
+	       "instruction", mips_arch_info->name);
+      target_flags &= ~MASK_SYNCI;
+    }
+
   /* Save base state of options.  */
   mips_base_target_flags = target_flags;
   mips_base_schedule_insns = flag_schedule_insns;
@@ -14930,6 +14937,9 @@ mips_final_postscan_insn (FILE *file, rtx insn, rtx *opvec, int noperands)
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	mips_legitimate_address_p
+
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED mips_frame_pointer_required
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

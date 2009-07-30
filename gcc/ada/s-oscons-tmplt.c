@@ -76,8 +76,12 @@ pragma Style_Checks ("M32766");
  **  $ DEFINE/USER SYS$OUTPUT s-oscons-tmplt.s
  **  $ RUN s-oscons-tmplt
  **  $ RUN xoscons
- **
  **/
+
+#if defined (__linux__) && !defined (_XOPEN_SOURCE)
+/* For Linux _XOPEN_SOURCE must be defined, otherwise IOV_MAX is not defined */
+#define _XOPEN_SOURCE 500
+#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -87,6 +91,16 @@ pragma Style_Checks ("M32766");
 #if ! (defined (__vxworks) || defined (__VMS) || defined (__MINGW32__) || \
        defined (__nucleus__))
 # define HAVE_TERMIOS
+#endif
+
+#if defined (__vxworks)
+
+/**
+ ** For VxWorks, always include vxWorks.h (gsocket.h provides it only for
+ ** the case of runtime libraries that support sockets).
+ **/
+
+# include <vxWorks.h>
 #endif
 
 #include "gsocket.h"

@@ -1170,6 +1170,14 @@ not provide them.
 On MIPS targets, make @option{-mno-llsc} the default when no
 @option{-mllsc} option is passed.
 
+@item --with-synci
+On MIPS targets, make @option{-msynci} the default when no
+@option{-mno-synci} option is passed.
+
+@item --without-synci 
+On MIPS targets, make @option{-mno-synci} the default when no
+@option{-msynci} option is passed.  This is the default.
+
 @item --with-mips-plt
 On MIPS targets, make use of copy relocations and PLTs.
 These features are extensions to the traditional
@@ -1203,6 +1211,10 @@ destructors.  Option @option{--disable-initfini-array} has the
 opposite effect.  If neither option is specified, the configure script
 will try to guess whether the @code{.init_array} and
 @code{.fini_array} sections are supported and, if they are, use them.
+
+@item --enable-build-with-cxx
+Build GCC using a C++ compiler rather than a C compiler.  This is an
+experimental option which may become the default in a later release.
 
 @item --enable-maintainer-mode
 The build rules that
@@ -1548,6 +1560,27 @@ internally by PPL.  Typical values of @var{linker-args} might be
 linking with a shared copy of PPL, you probably do not need this
 option; shared library dependencies will cause the linker to search
 for the standard C++ library automatically.
+
+@item --with-stage1-ldflags=@var{flags}
+This option may be used to set linker flags to be used when linking
+stage 1 of GCC.  These are also used when linking GCC if configured with
+@option{--disable-bootstrap}.  By default no special flags are used.
+
+@item --with-stage1-libs=@var{libs}
+This option may be used to set libraries to be used when linking stage 1
+of GCC.  These are also used when linking GCC if configured with
+@option{--disable-bootstrap}.  The default is the argument to
+@option{--with-host-libstdcxx}, if specified.
+
+@item --with-boot-ldflags=@var{flags}
+This option may be used to set linker flags to be used when linking
+stage 2 and later when bootstrapping GCC.  By default no special flags
+are used.
+
+@item --with-boot-libs=@var{libs}
+This option may be used to set libraries to be used when linking stage 2
+and later when bootstrapping GCC.  The default is the argument to
+@option{--with-host-libstdcxx}, if specified.
 
 @item --with-debug-prefix-map=@var{map}
 Convert source directory names using @option{-fdebug-prefix-map} when
@@ -2760,6 +2793,8 @@ information are.
 @item
 @uref{#m68k-uclinux,,m68k-uclinux}
 @item
+@uref{#mep-x-elf,,mep-*-elf}
+@item
 @uref{#mips-x-x,,mips-*-*}
 @item
 @uref{#mips-sgi-irix5,,mips-sgi-irix5}
@@ -3598,6 +3633,14 @@ It also added improved support for C++ and flat shared libraries,
 both of which were ABI changes.  However, you can still use the
 original ABI by configuring for @samp{m68k-uclinuxoldabi} or
 @samp{m68k-@var{vendor}-uclinuxoldabi}.
+
+
+@html
+<hr />
+@end html
+@heading @anchor{mep-x-elf}mep-*-elf
+Toshiba Media embedded Processor.
+This configuration is intended for embedded systems.
 
 @html
 <hr />

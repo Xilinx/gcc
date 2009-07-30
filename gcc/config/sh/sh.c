@@ -185,7 +185,6 @@ static void push_regs (HARD_REG_SET *, int);
 static int calc_live_regs (HARD_REG_SET *);
 static HOST_WIDE_INT rounded_frame_size (int);
 static rtx mark_constant_pool_use (rtx);
-EXPORTED_CONST struct attribute_spec sh_attribute_table[];
 static tree sh_handle_interrupt_handler_attribute (tree *, tree, tree, int, bool *);
 static tree sh_handle_resbank_handler_attribute (tree *, tree,
 						 tree, int, bool *);
@@ -268,7 +267,31 @@ static bool sh_scalar_mode_supported_p (enum machine_mode);
 static int sh_dwarf_calling_convention (const_tree);
 static void sh_encode_section_info (tree, rtx, int);
 static int sh2a_function_vector_p (tree);
+
+static const struct attribute_spec sh_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  { "interrupt_handler", 0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
+  { "sp_switch",         1, 1, true,  false, false, sh_handle_sp_switch_attribute },
+  { "trap_exit",         1, 1, true,  false, false, sh_handle_trap_exit_attribute },
+  { "renesas",           0, 0, false, true, false, sh_handle_renesas_attribute },
+  { "trapa_handler",     0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
+  { "nosave_low_regs",   0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
+  { "resbank",           0, 0, true,  false, false, sh_handle_resbank_handler_attribute },
+  { "function_vector",   1, 1, true,  false, false, sh2a_handle_function_vector_handler_attribute },
+#ifdef SYMBIAN
+  /* Symbian support adds three new attributes:
+     dllexport - for exporting a function/variable that will live in a dll
+     dllimport - for importing a function/variable from a dll
 
+     Microsoft allows multiple declspecs in one __declspec, separating
+     them with spaces.  We do NOT support this.  Instead, use __declspec
+     multiple times.  */
+  { "dllimport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
+  { "dllexport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
+#endif
+  { NULL,                0, 0, false, false, false, NULL }
+};
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ATTRIBUTE_TABLE
@@ -671,11 +694,7 @@ sh_override_options (void)
   if (TARGET_SH2E)
     sh_cpu = PROCESSOR_SH2E;
   if (TARGET_SH2A)
-    {
-      sh_cpu = PROCESSOR_SH2A;
-      if (TARGET_SH2A_DOUBLE)
-        target_flags |= MASK_FMOVD;
-    }
+    sh_cpu = PROCESSOR_SH2A;
   if (TARGET_SH3)
     sh_cpu = PROCESSOR_SH3;
   if (TARGET_SH3E)
@@ -4185,14 +4204,13 @@ broken_move (rtx insn)
 		&& GET_CODE (SET_SRC (pat)) == CONST_DOUBLE
 		&& (fp_zero_operand (SET_SRC (pat))
 		    || fp_one_operand (SET_SRC (pat)))
-		/* ??? If this is a -m4 or -m4-single compilation, in general
-		   we don't know the current setting of fpscr, so disable fldi.
+		/* In general we don't know the current setting of fpscr, so disable fldi.
 		   There is an exception if this was a register-register move
 		   before reload - and hence it was ascertained that we have
 		   single precision setting - and in a post-reload optimization
 		   we changed this to do a constant load.  In that case
 		   we don't have an r0 clobber, hence we must use fldi.  */
-		&& (! TARGET_SH4 || TARGET_FMOVD
+		&& (TARGET_FMOVD
 		    || (GET_CODE (XEXP (XVECEXP (PATTERN (insn), 0, 2), 0))
 			== SCRATCH))
 		&& REG_P (SET_DEST (pat))
@@ -7839,7 +7857,7 @@ sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
   if (result)
     {
       gimplify_assign (result, tmp, pre_p);
-
+      result = build1 (NOP_EXPR, TREE_TYPE (result), result);
       tmp = build1 (LABEL_EXPR, void_type_node, unshare_expr (lab_over));
       gimplify_and_add (tmp, pre_p);
     }
@@ -8532,31 +8550,6 @@ sh_insert_attributes (tree node, tree *attributes)
    R0-R14, MACH, MACL, GBR and PR.  This is useful only on SH2A targets.
 */
 
-const struct attribute_spec sh_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "interrupt_handler", 0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "sp_switch",         1, 1, true,  false, false, sh_handle_sp_switch_attribute },
-  { "trap_exit",         1, 1, true,  false, false, sh_handle_trap_exit_attribute },
-  { "renesas",           0, 0, false, true, false, sh_handle_renesas_attribute },
-  { "trapa_handler",     0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "nosave_low_regs",   0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "resbank",           0, 0, true,  false, false, sh_handle_resbank_handler_attribute },
-  { "function_vector",   1, 1, true,  false, false, sh2a_handle_function_vector_handler_attribute },
-#ifdef SYMBIAN
-  /* Symbian support adds three new attributes:
-     dllexport - for exporting a function/variable that will live in a dll
-     dllimport - for importing a function/variable from a dll
-
-     Microsoft allows multiple declspecs in one __declspec, separating
-     them with spaces.  We do NOT support this.  Instead, use __declspec
-     multiple times.  */
-  { "dllimport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
-  { "dllexport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
-#endif
-  { NULL,                0, 0, false, false, false, NULL }
-};
-
 /* Handle a 'resbank' attribute.  */
 static tree
 sh_handle_resbank_handler_attribute (tree * node, tree name,
@@ -8878,7 +8871,7 @@ fp_one_operand (rtx op)
   return REAL_VALUES_EQUAL (r, dconst1);
 }
 
-/* For -m4 and -m4-single-only, mode switching is used.  If we are
+/* In general mode switching is used.  If we are
    compiling without -mfmovd, movsf_ie isn't taken into account for
    mode switching.  We could check in machine_dependent_reorg for
    cases where we know we are in single precision mode, but there is
@@ -8888,7 +8881,7 @@ fp_one_operand (rtx op)
 int
 fldi_ok (void)
 {
-  return ! TARGET_SH4 || TARGET_FMOVD || reload_completed;
+  return 1;
 }
 
 int

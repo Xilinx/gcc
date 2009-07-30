@@ -1093,7 +1093,7 @@ expand_doubleword_shift (enum machine_mode op1_mode, optab binoptab,
   /* If we can compute the condition at compile time, pick the
      appropriate subroutine.  */
   tmp = simplify_relational_operation (cmp_code, SImode, op1_mode, cmp1, cmp2);
-  if (tmp != 0 && GET_CODE (tmp) == CONST_INT)
+  if (tmp != 0 && CONST_INT_P (tmp))
     {
       if (tmp == const0_rtx)
 	return expand_superword_shift (binoptab, outof_input, superword_op1,
@@ -1395,7 +1395,7 @@ avoid_expensive_constant (enum machine_mode mode, optab binoptab,
       && rtx_cost (x, binoptab->code, optimize_insn_for_speed_p ())
                    > COSTS_N_INSNS (1))
     {
-      if (GET_CODE (x) == CONST_INT)
+      if (CONST_INT_P (x))
 	{
 	  HOST_WIDE_INT intval = trunc_int_for_mode (INTVAL (x), mode);
 	  if (intval != INTVAL (x))
@@ -1562,7 +1562,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
   /* If subtracting an integer constant, convert this into an addition of
      the negated constant.  */
 
-  if (binoptab == sub_optab && GET_CODE (op1) == CONST_INT)
+  if (binoptab == sub_optab && CONST_INT_P (op1))
     {
       op1 = negate_rtx (mode, op1);
       binoptab = add_optab;
@@ -1594,7 +1594,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
       rtx newop1;
       unsigned int bits = GET_MODE_BITSIZE (mode);
 
-      if (GET_CODE (op1) == CONST_INT)
+      if (CONST_INT_P (op1))
 	newop1 = GEN_INT (bits - INTVAL (op1));
       else if (targetm.shift_truncation_mask (mode) == bits - 1)
 	newop1 = negate_rtx (mode, op1);
@@ -1765,7 +1765,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
   if ((binoptab == lshr_optab || binoptab == ashl_optab
        || binoptab == ashr_optab)
       && mclass == MODE_INT
-      && (GET_CODE (op1) == CONST_INT || optimize_insn_for_speed_p ())
+      && (CONST_INT_P (op1) || optimize_insn_for_speed_p ())
       && GET_MODE_SIZE (mode) == 2 * UNITS_PER_WORD
       && optab_handler (binoptab, word_mode)->insn_code != CODE_FOR_nothing
       && optab_handler (ashl_optab, word_mode)->insn_code != CODE_FOR_nothing
@@ -1779,7 +1779,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
       op1_mode = GET_MODE (op1) != VOIDmode ? GET_MODE (op1) : word_mode;
 
       /* Apply the truncation to constant shifts.  */
-      if (double_shift_mask > 0 && GET_CODE (op1) == CONST_INT)
+      if (double_shift_mask > 0 && CONST_INT_P (op1))
 	op1 = GEN_INT (INTVAL (op1) & double_shift_mask);
 
       if (op1 == CONST0_RTX (op1_mode))
@@ -1835,7 +1835,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
   /* Synthesize double word rotates from single word shifts.  */
   if ((binoptab == rotl_optab || binoptab == rotr_optab)
       && mclass == MODE_INT
-      && GET_CODE (op1) == CONST_INT
+      && CONST_INT_P (op1)
       && GET_MODE_SIZE (mode) == 2 * UNITS_PER_WORD
       && optab_handler (ashl_optab, word_mode)->insn_code != CODE_FOR_nothing
       && optab_handler (lshr_optab, word_mode)->insn_code != CODE_FOR_nothing)
@@ -4068,7 +4068,7 @@ prepare_cmp_insn (rtx x, rtx y, enum rtx_code comparison, rtx size,
 	    continue;
 
 	  /* Must make sure the size fits the insn's mode.  */
-	  if ((GET_CODE (size) == CONST_INT
+	  if ((CONST_INT_P (size)
 	       && INTVAL (size) >= (1 << GET_MODE_BITSIZE (cmp_mode)))
 	      || (GET_MODE_BITSIZE (GET_MODE (size))
 		  > GET_MODE_BITSIZE (cmp_mode)))
@@ -4280,18 +4280,18 @@ emit_cmp_and_jump_insns (rtx x, rtx y, enum rtx_code comparison, rtx size,
   rtx test;
 
   /* Swap operands and condition to ensure canonical RTL.  */
-  if (swap_commutative_operands_p (x, y))
+  if (swap_commutative_operands_p (x, y)
+      && can_compare_p (swap_condition (comparison), mode, ccp_jump))
     {
       op0 = y, op1 = x;
       comparison = swap_condition (comparison);
     }
 
-#ifdef HAVE_cc0
-  /* If OP0 is still a constant, then both X and Y must be constants.
-     Force X into a register to create canonical RTL.  */
+  /* If OP0 is still a constant, then both X and Y must be constants
+     or the opposite comparison is not supported.  Force X into a register
+     to create canonical RTL.  */
   if (CONSTANT_P (op0))
     op0 = force_reg (mode, op0);
-#endif
 
   if (unsignedp)
     comparison = unsigned_condition (comparison);
@@ -6271,6 +6271,7 @@ init_optabs (void)
   init_optab (expm1_optab, UNKNOWN);
   init_optab (ldexp_optab, UNKNOWN);
   init_optab (scalb_optab, UNKNOWN);
+  init_optab (significand_optab, UNKNOWN);
   init_optab (logb_optab, UNKNOWN);
   init_optab (ilogb_optab, UNKNOWN);
   init_optab (log_optab, UNKNOWN);

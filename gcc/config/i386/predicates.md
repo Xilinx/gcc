@@ -750,13 +750,12 @@
 {
   unsigned n_elts;
   op = maybe_get_pool_constant (op);
-  if (!op)
+
+  if (!(op && GET_CODE (op) == CONST_VECTOR))
     return 0;
-  if (GET_CODE (op) != CONST_VECTOR)
-    return 0;
-  n_elts =
-    (GET_MODE_SIZE (GET_MODE (op)) /
-     GET_MODE_SIZE (GET_MODE_INNER (GET_MODE (op))));
+
+  n_elts = CONST_VECTOR_NUNITS (op);
+
   for (n_elts--; n_elts > 0; n_elts--)
     {
       rtx elt = CONST_VECTOR_ELT (op, n_elts);
@@ -952,9 +951,7 @@
 
   if (inmode == CCFPmode || inmode == CCFPUmode)
     {
-      enum rtx_code second_code, bypass_code;
-      ix86_fp_comparison_codes (code, &bypass_code, &code, &second_code);
-      if (bypass_code != UNKNOWN || second_code != UNKNOWN)
+      if (!ix86_trivial_fp_comparison_operator (op, mode))
 	return 0;
       code = ix86_fp_compare_code_to_integer (code);
     }
@@ -1014,11 +1011,8 @@
   enum rtx_code code = GET_CODE (op);
 
   if (inmode == CCFPmode || inmode == CCFPUmode)
-    {
-      enum rtx_code second_code, bypass_code;
-      ix86_fp_comparison_codes (code, &bypass_code, &code, &second_code);
-      return (bypass_code == UNKNOWN && second_code == UNKNOWN);
-    }
+    return ix86_trivial_fp_comparison_operator (op, mode);
+
   switch (code)
     {
     case EQ: case NE:
@@ -1059,9 +1053,7 @@
 
   if (inmode == CCFPmode || inmode == CCFPUmode)
     {
-      enum rtx_code second_code, bypass_code;
-      ix86_fp_comparison_codes (code, &bypass_code, &code, &second_code);
-      if (bypass_code != UNKNOWN || second_code != UNKNOWN)
+      if (!ix86_trivial_fp_comparison_operator (op, mode))
 	return 0;
       code = ix86_fp_compare_code_to_integer (code);
     }
@@ -1072,6 +1064,19 @@
 
   return code == LTU;
 })
+
+;; Return 1 if this comparison only requires testing one flag bit.
+(define_predicate "ix86_trivial_fp_comparison_operator"
+  (match_code "gt,ge,unlt,unle,uneq,ltgt,ordered,unordered"))
+
+;; Return 1 if we know how to do this comparison.  Others require
+;; testing more than one flag bit, and we let the generic middle-end
+;; code do that.
+(define_predicate "ix86_fp_comparison_operator"
+  (if_then_else (match_test "ix86_fp_comparison_strategy (GET_CODE (op))
+                             == IX86_FPCMP_ARITH")
+               (match_operand 0 "comparison_operator")
+               (match_operand 0 "ix86_trivial_fp_comparison_operator")))
 
 ;; Nearly general operand, but accept any const_double, since we wish
 ;; to be able to drop them into memory rather than have them get pulled

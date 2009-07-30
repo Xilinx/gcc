@@ -476,11 +476,12 @@ fold_cond_expr_cond (void)
 
       if (stmt && gimple_code (stmt) == GIMPLE_COND)
 	{
+	  location_t loc = gimple_location (stmt);
 	  tree cond;
 	  bool zerop, onep;
 
 	  fold_defer_overflow_warnings ();
-	  cond = fold_binary (gimple_cond_code (stmt), boolean_type_node,
+	  cond = fold_binary_loc (loc, gimple_cond_code (stmt), boolean_type_node,
 			      gimple_cond_lhs (stmt), gimple_cond_rhs (stmt));
 	  if (cond)
 	    {
@@ -755,13 +756,15 @@ same_line_p (location_t locus1, location_t locus2)
 static void
 assign_discriminator (location_t locus, basic_block bb)
 {
-  gimple to_stmt;
+  gimple first_in_to_bb, last_in_to_bb;
 
   if (locus == 0 || bb->discriminator != 0)
     return;
 
-  to_stmt = first_non_label_stmt (bb);
-  if (to_stmt && same_line_p (locus, gimple_location (to_stmt)))
+  first_in_to_bb = first_non_label_stmt (bb);
+  last_in_to_bb = last_stmt (bb);
+  if ((first_in_to_bb && same_line_p (locus, gimple_location (first_in_to_bb)))
+      || (last_in_to_bb && same_line_p (locus, gimple_location (last_in_to_bb))))
     bb->discriminator = next_discriminator_for_locus (locus);
 }
 
@@ -1638,12 +1641,14 @@ remove_useless_stmts_warn_notreached (gimple_seq stmts)
     {
       gimple stmt = gsi_stmt (gsi);
 
+      if (gimple_no_warning_p (stmt)) return false;
+
       if (gimple_has_location (stmt))
         {
           location_t loc = gimple_location (stmt);
           if (LOCATION_LINE (loc) > 0)
 	    {
-              warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
+              warning_at (loc, OPT_Wunreachable_code, "will never be executed");
               return true;
             }
         }
@@ -2310,7 +2315,7 @@ remove_bb (basic_block bb)
      loop above, so the last statement we process is the first statement
      in the block.  */
   if (loc > BUILTINS_LOCATION && LOCATION_LINE (loc) > 0)
-    warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
+    warning_at (loc, OPT_Wunreachable_code, "will never be executed");
 
   remove_phi_nodes_and_edges_for_unreachable_block (bb);
   bb->il.gimple = NULL;
@@ -4947,7 +4952,7 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
   gsi = gsi_last_bb (bb);
   stmt = gsi_end_p (gsi) ? NULL : gsi_stmt (gsi);
 
-  switch (stmt ? gimple_code (stmt) : ERROR_MARK)
+  switch (stmt ? gimple_code (stmt) : GIMPLE_ERROR_MARK)
     {
     case GIMPLE_COND:
       /* For COND_EXPR, we only need to redirect the edge.  */
@@ -7194,8 +7199,9 @@ gimplify_build3 (gimple_stmt_iterator *gsi, enum tree_code code,
 		 tree type, tree a, tree b, tree c)
 {
   tree ret;
+  location_t loc = gimple_location (gsi_stmt (*gsi));
 
-  ret = fold_build3 (code, type, a, b, c);
+  ret = fold_build3_loc (loc, code, type, a, b, c);
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
@@ -7211,7 +7217,7 @@ gimplify_build2 (gimple_stmt_iterator *gsi, enum tree_code code,
 {
   tree ret;
 
-  ret = fold_build2 (code, type, a, b);
+  ret = fold_build2_loc (gimple_location (gsi_stmt (*gsi)), code, type, a, b);
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
@@ -7227,7 +7233,7 @@ gimplify_build1 (gimple_stmt_iterator *gsi, enum tree_code code, tree type,
 {
   tree ret;
 
-  ret = fold_build1 (code, type, a);
+  ret = fold_build1_loc (gimple_location (gsi_stmt (*gsi)), code, type, a);
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
@@ -7260,7 +7266,7 @@ execute_warn_function_return (void)
 	}
       if (location == UNKNOWN_LOCATION)
 	location = cfun->function_end_locus;
-      warning (0, "%H%<noreturn%> function does return", &location);
+      warning_at (location, 0, "%<noreturn%> function does return");
     }
 
   /* If we see "return;" in some basic block, then we do reach the end
@@ -7342,9 +7348,9 @@ execute_warn_function_noreturn (void)
       && !TREE_THIS_VOLATILE (cfun->decl)
       && EDGE_COUNT (EXIT_BLOCK_PTR->preds) == 0
       && !lang_hooks.missing_noreturn_ok_p (cfun->decl))
-    warning (OPT_Wmissing_noreturn, "%Jfunction might be possible candidate "
-	     "for attribute %<noreturn%>",
-	     cfun->decl);
+    warning_at (DECL_SOURCE_LOCATION (cfun->decl), OPT_Wmissing_noreturn,
+		"function might be possible candidate "
+		"for attribute %<noreturn%>");
   return 0;
 }
 
@@ -7366,3 +7372,100 @@ struct gimple_opt_pass pass_warn_function_noreturn =
   0					/* todo_flags_finish */
  }
 };
+
+
+/* Walk a gimplified function and warn for functions whose return value is
+   ignored and attribute((warn_unused_result)) is set.  This is done before
+   inlining, so we don't have to worry about that.  */
+
+static void
+do_warn_unused_result (gimple_seq seq)
+{
+  tree fdecl, ftype;
+  gimple_stmt_iterator i;
+
+  for (i = gsi_start (seq); !gsi_end_p (i); gsi_next (&i))
+    {
+      gimple g = gsi_stmt (i);
+
+      switch (gimple_code (g))
+	{
+	case GIMPLE_BIND:
+	  do_warn_unused_result (gimple_bind_body (g));
+	  break;
+	case GIMPLE_TRY:
+	  do_warn_unused_result (gimple_try_eval (g));
+	  do_warn_unused_result (gimple_try_cleanup (g));
+	  break;
+	case GIMPLE_CATCH:
+	  do_warn_unused_result (gimple_catch_handler (g));
+	  break;
+	case GIMPLE_EH_FILTER:
+	  do_warn_unused_result (gimple_eh_filter_failure (g));
+	  break;
+
+	case GIMPLE_CALL:
+	  if (gimple_call_lhs (g))
+	    break;
+
+	  /* This is a naked call, as opposed to a GIMPLE_CALL with an
+	     LHS.  All calls whose value is ignored should be
+	     represented like this.  Look for the attribute.  */
+	  fdecl = gimple_call_fndecl (g);
+	  ftype = TREE_TYPE (TREE_TYPE (gimple_call_fn (g)));
+
+	  if (lookup_attribute ("warn_unused_result", TYPE_ATTRIBUTES (ftype)))
+	    {
+	      location_t loc = gimple_location (g);
+
+	      if (fdecl)
+		warning_at (loc, OPT_Wunused_result,
+			    "ignoring return value of %qD, "
+			    "declared with attribute warn_unused_result",
+			    fdecl);
+	      else
+		warning_at (loc, OPT_Wunused_result,
+			    "ignoring return value of function "
+			    "declared with attribute warn_unused_result");
+	    }
+	  break;
+
+	default:
+	  /* Not a container, not a call, or a call whose value is used.  */
+	  break;
+	}
+    }
+}
+
+static unsigned int
+run_warn_unused_result (void)
+{
+  do_warn_unused_result (gimple_body (current_function_decl));
+  return 0;
+}
+
+static bool
+gate_warn_unused_result (void)
+{
+  return flag_warn_unused_result;
+}
+
+struct gimple_opt_pass pass_warn_unused_result =
+{
+  {
+    GIMPLE_PASS,
+    "warn_unused_result",		/* name */
+    gate_warn_unused_result,		/* gate */
+    run_warn_unused_result,		/* execute */
+    NULL,				/* sub */
+    NULL,				/* next */
+    0,					/* static_pass_number */
+    TV_NONE,				/* tv_id */
+    PROP_gimple_any,			/* properties_required */
+    0,					/* properties_provided */
+    0,					/* properties_destroyed */
+    0,					/* todo_flags_start */
+    0,					/* todo_flags_finish */
+  }
+};
+

@@ -593,8 +593,9 @@ ia64_handle_model_attribute (tree *node, tree name, tree args,
 	   == FUNCTION_DECL)
 	  && !TREE_STATIC (decl))
 	{
-	  error ("%Jan address area attribute cannot be specified for "
-		 "local variables", decl);
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "an address area attribute cannot be specified for "
+		    "local variables");
 	  *no_add_attrs = true;
 	}
       area = ia64_get_addr_area (decl);
@@ -607,8 +608,9 @@ ia64_handle_model_attribute (tree *node, tree name, tree args,
       break;
 
     case FUNCTION_DECL:
-      error ("%Jaddress area attribute cannot be specified for functions",
-	     decl);
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"address area attribute cannot be specified for "
+		"functions");
       *no_add_attrs = true;
       break;
 
@@ -9239,20 +9241,24 @@ ia64_reorg (void)
       insn = get_last_insn ();
       if (! INSN_P (insn))
         insn = prev_active_insn (insn);
-      /* Skip over insns that expand to nothing.  */
-      while (GET_CODE (insn) == INSN && get_attr_empty (insn) == EMPTY_YES)
-        {
-	  if (GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE
-	      && XINT (PATTERN (insn), 1) == UNSPECV_INSN_GROUP_BARRIER)
-	    saw_stop = 1;
-	  insn = prev_active_insn (insn);
-	}
-      if (GET_CODE (insn) == CALL_INSN)
+      if (insn)
 	{
-	  if (! saw_stop)
-	    emit_insn (gen_insn_group_barrier (GEN_INT (3)));
-	  emit_insn (gen_break_f ());
-	  emit_insn (gen_insn_group_barrier (GEN_INT (3)));
+	  /* Skip over insns that expand to nothing.  */
+	  while (GET_CODE (insn) == INSN
+		 && get_attr_empty (insn) == EMPTY_YES)
+	    {
+	      if (GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE
+		  && XINT (PATTERN (insn), 1) == UNSPECV_INSN_GROUP_BARRIER)
+		saw_stop = 1;
+	      insn = prev_active_insn (insn);
+	    }
+	  if (GET_CODE (insn) == CALL_INSN)
+	    {
+	      if (! saw_stop)
+		emit_insn (gen_insn_group_barrier (GEN_INT (3)));
+	      emit_insn (gen_break_f ());
+	      emit_insn (gen_insn_group_barrier (GEN_INT (3)));
+	    }
 	}
     }
 

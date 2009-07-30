@@ -156,8 +156,12 @@ free_expr0 (gfc_expr *e)
 	  break;
 
 	case BT_COMPLEX:
+#ifdef HAVE_mpc
+	  mpc_clear (e->value.complex);
+#else
 	  mpfr_clear (e->value.complex.r);
 	  mpfr_clear (e->value.complex.i);
+#endif
 	  break;
 
 	default:
@@ -439,10 +443,15 @@ gfc_copy_expr (gfc_expr *p)
 
 	case BT_COMPLEX:
 	  gfc_set_model_kind (q->ts.kind);
+#ifdef HAVE_mpc
+	  mpc_init2 (q->value.complex, mpfr_get_default_prec());
+	  mpc_set (q->value.complex, p->value.complex, GFC_MPC_RND_MODE);
+#else
 	  mpfr_init (q->value.complex.r);
 	  mpfr_init (q->value.complex.i);
 	  mpfr_set (q->value.complex.r, p->value.complex.r, GFC_RND_MODE);
 	  mpfr_set (q->value.complex.i, p->value.complex.i, GFC_RND_MODE);
+#endif
 	  break;
 
 	case BT_CHARACTER:
@@ -1672,9 +1681,7 @@ gfc_simplify_expr (gfc_expr *p, int type)
 	  gfc_free (p->value.character.string);
 	  p->value.character.string = s;
 	  p->value.character.length = end - start;
-	  p->ts.cl = gfc_get_charlen ();
-	  p->ts.cl->next = gfc_current_ns->cl_list;
-	  gfc_current_ns->cl_list = p->ts.cl;
+	  p->ts.cl = gfc_new_charlen (gfc_current_ns);
 	  p->ts.cl->length = gfc_int_expr (p->value.character.length);
 	  gfc_free_ref_list (p->ref);
 	  p->ref = NULL;
@@ -3177,13 +3184,43 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 			      rvalue->symtree->name, &rvalue->where) == FAILURE)
 	    return FAILURE;
 	}
-      /* TODO: Enable interface check for PPCs.  */
-      if (is_proc_ptr_comp (rvalue, NULL))
-	return SUCCESS;
+
+      /* Ensure that the calling convention is the same. As other attributes
+	 such as DLLEXPORT may differ, one explicitly only tests for the
+	 calling conventions.  */
       if (rvalue->expr_type == EXPR_VARIABLE
-	  && !gfc_compare_interfaces (lvalue->symtree->n.sym,
-				      rvalue->symtree->n.sym, 0, 1, err,
-				      sizeof(err)))
+	  && lvalue->symtree->n.sym->attr.ext_attr
+	       != rvalue->symtree->n.sym->attr.ext_attr)
+	{
+	  symbol_attribute cdecl, stdcall, fastcall;
+	  unsigned calls;
+
+	  gfc_add_ext_attribute (&cdecl, (unsigned) EXT_ATTR_CDECL, NULL);
+	  gfc_add_ext_attribute (&stdcall, (unsigned) EXT_ATTR_STDCALL, NULL);
+	  gfc_add_ext_attribute (&fastcall, (unsigned) EXT_ATTR_FASTCALL, NULL);
+	  calls = cdecl.ext_attr | stdcall.ext_attr | fastcall.ext_attr;
+
+	  if ((calls & lvalue->symtree->n.sym->attr.ext_attr)
+	      != (calls & rvalue->symtree->n.sym->attr.ext_attr))
+	    {
+	      gfc_error ("Mismatch in the procedure pointer assignment "
+			 "at %L: mismatch in the calling convention",
+			 &rvalue->where);
+	  return FAILURE;
+	    }
+	}
+
+      /* TODO: Enable interface check for PPCs.  */
+      if (gfc_is_proc_ptr_comp (rvalue, NULL))
+	return SUCCESS;
+      if ((rvalue->expr_type == EXPR_VARIABLE
+	   && !gfc_compare_interfaces (lvalue->symtree->n.sym,
+				       rvalue->symtree->n.sym, 0, 1, err,
+				       sizeof(err)))
+	  || (rvalue->expr_type == EXPR_FUNCTION
+	      && !gfc_compare_interfaces (lvalue->symtree->n.sym,
+					  rvalue->symtree->n.sym->result, 0, 1,
+					  err, sizeof(err))))
 	{
 	  gfc_error ("Interface mismatch in procedure pointer assignment "
 		     "at %L: %s", &rvalue->where, err);
@@ -3519,7 +3556,7 @@ gfc_expr_set_symbols_referenced (gfc_expr *expr)
    provided).  */
 
 bool
-is_proc_ptr_comp (gfc_expr *expr, gfc_component **comp)
+gfc_is_proc_ptr_comp (gfc_expr *expr, gfc_component **comp)
 {
   gfc_ref *ref;
   bool ppc = false;
@@ -3633,3 +3670,39 @@ gfc_expr_replace_symbols (gfc_expr *expr, gfc_symbol *dest)
 {
   gfc_traverse_expr (expr, dest, &replace_symbol, 0);
 }
+
+/* The following is analogous to 'replace_symbol', and needed for copying
+   interfaces for procedure pointer components. The argument 'sym' must formally
+   be a gfc_symbol, so that the function can be passed to gfc_traverse_expr.
+   However, it gets actually passed a gfc_component (i.e. the procedure pointer
+   component in whose formal_ns the arguments have to be).  */
+
+static bool
+replace_comp (gfc_expr *expr, gfc_symbol *sym, int *i ATTRIBUTE_UNUSED)
+{
+  gfc_component *comp;
+  comp = (gfc_component *)sym;
+  if ((expr->expr_type == EXPR_VARIABLE 
+       || (expr->expr_type == EXPR_FUNCTION
+	   && !gfc_is_intrinsic (expr->symtree->n.sym, 0, expr->where)))
+      && expr->symtree->n.sym->ns == comp->ts.interface->formal_ns)
+    {
+      gfc_symtree *stree;
+      gfc_namespace *ns = comp->formal_ns;
+      /* Don't use gfc_get_symtree as we prefer to fail badly if we don't find
+	 the symtree rather than create a new one (and probably fail later).  */
+      stree = gfc_find_symtree (ns ? ns->sym_root : gfc_current_ns->sym_root,
+		      		expr->symtree->n.sym->name);
+      gcc_assert (stree);
+      stree->n.sym->attr = expr->symtree->n.sym->attr;
+      expr->symtree = stree;
+    }
+  return false;
+}
+
+void
+gfc_expr_replace_comp (gfc_expr *expr, gfc_component *dest)
+{
+  gfc_traverse_expr (expr, (gfc_symbol *)dest, &replace_comp, 0);
+}
+

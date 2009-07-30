@@ -1509,7 +1509,7 @@ duplicate_class_warning (const char *filename)
   location_t warn_loc;
   linemap_add (line_table, LC_RENAME, 0, filename, 0);
   warn_loc = linemap_line_start (line_table, 0, 1);
-  warning (0, "%Hduplicate class will only be compiled once", &warn_loc);
+  warning_at (warn_loc, 0, "duplicate class will only be compiled once");
 }
 
 static void
@@ -1980,11 +1980,6 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
   /* Arrange for any necessary initialization to happen.  */
   java_emit_static_constructor ();
   gcc_assert (global_bindings_p ());
-
-  /* Only finalize the compilation unit after we've told cgraph which
-     functions have their addresses stored.  */
-  cgraph_finalize_compilation_unit ();
-  cgraph_optimize ();
 }
 
 

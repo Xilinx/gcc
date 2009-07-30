@@ -86,7 +86,7 @@ static int type_lists_compatible_p (const_tree, const_tree, bool *);
 static tree lookup_field (tree, tree);
 static int convert_arguments (tree, VEC(tree,gc) *, VEC(tree,gc) *, tree,
 			      tree);
-static tree pointer_diff (tree, tree);
+static tree pointer_diff (location_t, tree, tree);
 static tree convert_for_assignment (location_t, tree, tree, tree,
 				    enum impl_conv, bool, tree, tree, int);
 static tree valid_compound_expr_initializer (tree, tree);
@@ -1626,9 +1626,9 @@ c_size_in_bytes (const_tree type)
     }
 
   /* Convert in case a char is more than one unit.  */
-  return size_binop (CEIL_DIV_EXPR, TYPE_SIZE_UNIT (type),
-		     size_int (TYPE_PRECISION (char_type_node)
-			       / BITS_PER_UNIT));
+  return size_binop_loc (input_location, CEIL_DIV_EXPR, TYPE_SIZE_UNIT (type),
+			 size_int (TYPE_PRECISION (char_type_node)
+				   / BITS_PER_UNIT));
 }
 
 /* Return either DECL or its known constant value (if it has one).  */
@@ -2587,7 +2587,7 @@ build_function_call_vec (location_t loc, tree function, VEC(tree,gc) *params,
       if (VOID_TYPE_P (return_type))
 	{
 	  if (TYPE_QUALS (return_type) != TYPE_UNQUALIFIED)
-	    pedwarn (input_location, 0,
+	    pedwarn (loc, 0,
 		     "function with qualified void return type called");
 	  return trap;
 	}
@@ -2600,7 +2600,7 @@ build_function_call_vec (location_t loc, tree function, VEC(tree,gc) *params,
 					  build_constructor (return_type, 0),
 					  false);
 	  else
-	    rhs = fold_convert (return_type, integer_zero_node);
+	    rhs = fold_convert_loc (loc, return_type, integer_zero_node);
 
 	  return require_complete_type (build2 (COMPOUND_EXPR, return_type,
 						trap, rhs));
@@ -2624,23 +2624,24 @@ build_function_call_vec (location_t loc, tree function, VEC(tree,gc) *params,
       && !strncmp (IDENTIFIER_POINTER (name), "__builtin_", 10))
     {
       if (require_constant_value)
-	result = fold_build_call_array_initializer (TREE_TYPE (fntype),
-						    function, nargs, argarray);
+	result = 
+	  fold_build_call_array_initializer_loc (loc, TREE_TYPE (fntype),
+						 function, nargs, argarray);
       else
-	result = fold_build_call_array (TREE_TYPE (fntype),
-					function, nargs, argarray);
+	result = fold_build_call_array_loc (loc, TREE_TYPE (fntype),
+					    function, nargs, argarray);
       if (TREE_CODE (result) == NOP_EXPR
 	  && TREE_CODE (TREE_OPERAND (result, 0)) == INTEGER_CST)
 	STRIP_TYPE_NOPS (result);
     }
   else
-    result = build_call_array (TREE_TYPE (fntype),
-			       function, nargs, argarray);
+    result = build_call_array_loc (loc, TREE_TYPE (fntype),
+				   function, nargs, argarray);
 
   if (VOID_TYPE_P (TREE_TYPE (result)))
     {
       if (TYPE_QUALS (TREE_TYPE (result)) != TYPE_UNQUALIFIED)
-	pedwarn (input_location, 0,
+	pedwarn (loc, 0,
 		 "function with qualified void return type called");
       return result;
     }
@@ -3059,7 +3060,7 @@ parser_build_binary_op (location_t location, enum tree_code code,
    The resulting tree has type int.  */
 
 static tree
-pointer_diff (tree op0, tree op1)
+pointer_diff (location_t loc, tree op0, tree op1)
 {
   tree restype = ptrdiff_type_node;
 
@@ -3068,10 +3069,10 @@ pointer_diff (tree op0, tree op1)
   tree orig_op1 = op1;
 
   if (TREE_CODE (target_type) == VOID_TYPE)
-    pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+    pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	     "pointer of type %<void *%> used in subtraction");
   if (TREE_CODE (target_type) == FUNCTION_TYPE)
-    pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+    pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	     "pointer to a function used in subtraction");
 
   /* If the conversion to ptrdiff_type does anything like widening or
@@ -3123,18 +3124,19 @@ pointer_diff (tree op0, tree op1)
      Do not do default conversions on the minus operator
      in case restype is a short type.  */
 
-  op0 = build_binary_op (input_location,
+  op0 = build_binary_op (loc,
 			 MINUS_EXPR, convert (restype, op0),
 			 convert (restype, op1), 0);
   /* This generates an error if op1 is pointer to incomplete type.  */
   if (!COMPLETE_OR_VOID_TYPE_P (TREE_TYPE (TREE_TYPE (orig_op1))))
-    error ("arithmetic on pointer to an incomplete type");
+    error_at (loc, "arithmetic on pointer to an incomplete type");
 
   /* This generates an error if op0 is pointer to incomplete type.  */
   op1 = c_size_in_bytes (target_type);
 
   /* Divide by the size, in easiest possible way.  */
-  return fold_build2 (EXACT_DIV_EXPR, restype, op0, convert (restype, op1));
+  return fold_build2_loc (loc, EXACT_DIV_EXPR, restype,
+			  op0, convert (restype, op1));
 }
 
 /* Construct and perhaps optimize a tree representation
@@ -3204,7 +3206,7 @@ build_unary_op (location_t location,
 	}
       else if (!noconvert)
 	arg = default_conversion (arg);
-      arg = non_lvalue (arg);
+      arg = non_lvalue_loc (location, arg);
       break;
 
     case NEGATE_EXPR:
@@ -3275,7 +3277,7 @@ build_unary_op (location_t location,
 	  return error_mark_node;
 	}
       arg = c_objc_common_truthvalue_conversion (location, arg);
-      ret = invert_truthvalue (arg);
+      ret = invert_truthvalue_loc (location, arg);
       /* If the TRUTH_NOT_EXPR has been folded, reset the location.  */
       if (EXPR_P (ret) && EXPR_HAS_LOCATION (ret))
 	location = EXPR_LOCATION (ret);
@@ -3285,7 +3287,8 @@ build_unary_op (location_t location,
       if (TREE_CODE (arg) == COMPLEX_CST)
 	ret = TREE_REALPART (arg);
       else if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
-	ret = fold_build1 (REALPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
+	ret = fold_build1_loc (location,
+			       REALPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
       else
 	ret = arg;
       if (eptype && TREE_CODE (eptype) == COMPLEX_TYPE)
@@ -3296,9 +3299,11 @@ build_unary_op (location_t location,
       if (TREE_CODE (arg) == COMPLEX_CST)
 	ret = TREE_IMAGPART (arg);
       else if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
-	ret = fold_build1 (IMAGPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
+	ret = fold_build1_loc (location,
+			       IMAGPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
       else
-	ret = omit_one_operand (TREE_TYPE (arg), integer_zero_node, arg);
+	ret = omit_one_operand_loc (location, TREE_TYPE (arg),
+				integer_zero_node, arg);
       if (eptype && TREE_CODE (eptype) == COMPLEX_TYPE)
 	eptype = TREE_TYPE (eptype);
       goto return_build_unary_op;
@@ -3406,7 +3411,7 @@ build_unary_op (location_t location,
 	      }
 
 	    inc = c_size_in_bytes (TREE_TYPE (argtype));
-	    inc = fold_convert (sizetype, inc);
+	    inc = fold_convert_loc (location, sizetype, inc);
 	  }
 	else if (FRACT_MODE_P (TYPE_MODE (argtype)))
 	  {
@@ -3476,7 +3481,7 @@ build_unary_op (location_t location,
 	{
 	  /* Don't let this be an lvalue.  */
 	  if (lvalue_p (TREE_OPERAND (arg, 0)))
-	    return non_lvalue (TREE_OPERAND (arg, 0));
+	    return non_lvalue_loc (location, TREE_OPERAND (arg, 0));
 	  ret = TREE_OPERAND (arg, 0);
 	  goto return_build_unary_op;
 	}
@@ -3542,10 +3547,11 @@ build_unary_op (location_t location,
       if (val && TREE_CODE (val) == INDIRECT_REF
           && TREE_CONSTANT (TREE_OPERAND (val, 0)))
 	{
-	  tree op0 = fold_convert (sizetype, fold_offsetof (arg, val)), op1;
+	  tree op0 = fold_convert_loc (location, sizetype,
+				       fold_offsetof (arg, val)), op1;
 
-	  op1 = fold_convert (argtype, TREE_OPERAND (val, 0));
-	  ret = fold_build2 (POINTER_PLUS_EXPR, argtype, op1, op0);
+	  op1 = fold_convert_loc (location, argtype, TREE_OPERAND (val, 0));
+	  ret = fold_build2_loc (location, POINTER_PLUS_EXPR, argtype, op1, op0);
 	  goto return_build_unary_op;
 	}
 
@@ -3562,8 +3568,8 @@ build_unary_op (location_t location,
     argtype = TREE_TYPE (arg);
   if (TREE_CODE (arg) == INTEGER_CST)
     ret = (require_constant_value
-	   ? fold_build1_initializer (code, argtype, arg)
-	   : fold_build1 (code, argtype, arg));
+	   ? fold_build1_initializer_loc (location, code, argtype, arg)
+	   : fold_build1_loc (location, code, argtype, arg));
   else
     ret = build1 (code, argtype, arg);
  return_build_unary_op:
@@ -3771,7 +3777,8 @@ c_mark_addressable (tree exp)
 
 tree
 build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
-			tree op1, tree op2)
+			tree op1, tree op1_original_type, tree op2,
+			tree op2_original_type)
 {
   tree type1;
   tree type2;
@@ -3842,6 +3849,20 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
 	  type2 = TREE_TYPE (op2);
 	  gcc_assert (TREE_CODE (type2) == code2);
 	}
+    }
+
+  if (warn_cxx_compat)
+    {
+      tree t1 = op1_original_type ? op1_original_type : TREE_TYPE (orig_op1);
+      tree t2 = op2_original_type ? op2_original_type : TREE_TYPE (orig_op2);
+
+      if (TREE_CODE (t1) == ENUMERAL_TYPE
+	  && TREE_CODE (t2) == ENUMERAL_TYPE
+	  && TYPE_MAIN_VARIANT (t1) != TYPE_MAIN_VARIANT (t2))
+	warning_at (colon_loc, OPT_Wc___compat,
+		    ("different enum types in conditional is "
+		     "invalid in C++: %qT vs %qT"),
+		    t1, t2);
     }
 
   /* Quickly detect the usual case where op1 and op2 have the same type
@@ -4034,7 +4055,7 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
 		       && !TREE_OVERFLOW (orig_op2)));
     }
   if (int_const || (ifexp_bcp && TREE_CODE (ifexp) == INTEGER_CST))
-    ret = fold_build3 (COND_EXPR, result_type, ifexp, op1, op2);
+    ret = fold_build3_loc (colon_loc, COND_EXPR, result_type, ifexp, op1, op2);
   else
     {
       ret = build3 (COND_EXPR, result_type, ifexp, op1, op2);
@@ -4388,7 +4409,7 @@ build_c_cast (location_t loc, tree type, tree expr)
 
   /* Don't let a cast be an lvalue.  */
   if (value == expr)
-    value = non_lvalue (value);
+    value = non_lvalue_loc (loc, value);
 
   /* Don't allow the results of casting to floating-point or complex
      types be confused with actual constants, or casts involving
@@ -4925,7 +4946,7 @@ convert_for_assignment (location_t location, tree type, tree rhs,
 	    pedwarn (location, OPT_pedantic, 
 		     "ISO C prohibits argument conversion to union type");
 
-	  rhs = fold_convert (TREE_TYPE (memb), rhs);
+	  rhs = fold_convert_loc (location, TREE_TYPE (memb), rhs);
 	  return build_constructor_single (type, memb, rhs);
 	}
     }
@@ -5547,16 +5568,26 @@ digest_init (location_t init_loc, tree type, tree init, tree origtype,
 	  TREE_TYPE (inside_init) = type;
 	  if (TYPE_DOMAIN (type) != 0
 	      && TYPE_SIZE (type) != 0
-	      && TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST
+	      && TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST)
+	    {
+	      unsigned HOST_WIDE_INT len = TREE_STRING_LENGTH (inside_init);
+
 	      /* Subtract the size of a single (possibly wide) character
 		 because it's ok to ignore the terminating null char
 		 that is counted in the length of the constant.  */
-	      && 0 > compare_tree_int (TYPE_SIZE_UNIT (type),
-				       TREE_STRING_LENGTH (inside_init)
-				       - (TYPE_PRECISION (typ1)
-					  / BITS_PER_UNIT)))
-	    pedwarn_init (init_loc, 0, 
-			  "initializer-string for array of chars is too long");
+	      if (0 > compare_tree_int (TYPE_SIZE_UNIT (type),
+					(len
+					 - (TYPE_PRECISION (typ1)
+					    / BITS_PER_UNIT))))
+		pedwarn_init (init_loc, 0,
+			      ("initializer-string for array of chars "
+			       "is too long"));
+	      else if (warn_cxx_compat
+		       && 0 > compare_tree_int (TYPE_SIZE_UNIT (type), len))
+		warning_at (init_loc, OPT_Wc___compat,
+			    ("initializer-string for array chars "
+			     "is too long for C++"));
+	    }
 
 	  return inside_init;
 	}
@@ -7302,8 +7333,8 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
   /* Advance the variable that indicates sequential elements output.  */
   if (TREE_CODE (constructor_type) == ARRAY_TYPE)
     constructor_unfilled_index
-      = size_binop (PLUS_EXPR, constructor_unfilled_index,
-		    bitsize_one_node);
+      = size_binop_loc (input_location, PLUS_EXPR, constructor_unfilled_index,
+			bitsize_one_node);
   else if (TREE_CODE (constructor_type) == RECORD_TYPE)
     {
       constructor_unfilled_fields
@@ -7623,9 +7654,9 @@ process_init_element (struct c_expr value, bool implicit,
 	      /* For a record, keep track of end position of last field.  */
 	      if (DECL_SIZE (constructor_fields))
 		constructor_bit_index
-		  = size_binop (PLUS_EXPR,
-				bit_position (constructor_fields),
-				DECL_SIZE (constructor_fields));
+		  = size_binop_loc (input_location, PLUS_EXPR,
+				    bit_position (constructor_fields),
+				    DECL_SIZE (constructor_fields));
 
 	      /* If the current field was the first one not yet written out,
 		 it isn't now, so update.  */
@@ -7762,7 +7793,8 @@ process_init_element (struct c_expr value, bool implicit,
 	    }
 
 	  constructor_index
-	    = size_binop (PLUS_EXPR, constructor_index, bitsize_one_node);
+	    = size_binop_loc (input_location, PLUS_EXPR,
+			      constructor_index, bitsize_one_node);
 
 	  if (!value.value)
 	    /* If we are doing the bookkeeping for an element that was
@@ -7795,7 +7827,8 @@ process_init_element (struct c_expr value, bool implicit,
 	    }
 
 	  constructor_index
-	    = size_binop (PLUS_EXPR, constructor_index, bitsize_one_node);
+	    = size_binop_loc (input_location,
+			      PLUS_EXPR, constructor_index, bitsize_one_node);
 
 	  if (!value.value)
 	    /* If we are doing the bookkeeping for an element that was
@@ -7846,7 +7879,8 @@ process_init_element (struct c_expr value, bool implicit,
 				    true, braced_init_obstack);
 	    }
 
-	  p->index = size_binop (PLUS_EXPR, p->index, bitsize_one_node);
+	  p->index = size_binop_loc (input_location,
+				     PLUS_EXPR, p->index, bitsize_one_node);
 	  if (tree_int_cst_equal (p->index, p->range_end) && !p->prev)
 	    finish = 1;
 
@@ -8353,9 +8387,8 @@ c_finish_if_stmt (location_t if_locus, tree cond, tree then_block,
     found:
 
       if (COND_EXPR_ELSE (inner_if))
-	 warning (OPT_Wparentheses,
-		  "%Hsuggest explicit braces to avoid ambiguous %<else%>",
-		  &if_locus);
+	 warning_at (if_locus, OPT_Wparentheses,
+		     "suggest explicit braces to avoid ambiguous %<else%>");
     }
 
   stmt = build3 (COND_EXPR, void_type_node, cond, then_block, else_block);
@@ -8413,11 +8446,12 @@ c_finish_loop (location_t start_locus, tree cond, tree incr, tree body,
 	    }
 
 	  t = build_and_jump (&blab);
-	  exit = fold_build3 (COND_EXPR, void_type_node, cond, exit, t);
 	  if (cond_is_first)
-	    SET_EXPR_LOCATION (exit, start_locus);
+	    exit = fold_build3_loc (start_locus,
+				COND_EXPR, void_type_node, cond, exit, t);
 	  else
-	    SET_EXPR_LOCATION (exit, input_location);
+	    exit = fold_build3_loc (input_location,
+				COND_EXPR, void_type_node, cond, exit, t);
 	}
 
       add_stmt (top);
@@ -8671,7 +8705,7 @@ c_finish_stmt_expr (location_t loc, tree body)
     val = TREE_OPERAND (val, 0);
 
   *last_p = build2 (MODIFY_EXPR, void_type_node, tmp, val);
-  SET_EXPR_LOCUS (*last_p, EXPR_LOCUS (last));
+  SET_EXPR_LOCATION (*last_p, EXPR_LOCATION (last));
 
   {
     tree t = build4 (TARGET_EXPR, type, tmp, body, NULL_TREE, NULL_TREE);
@@ -8932,12 +8966,12 @@ build_binary_op (location_t location, enum tree_code code,
       /* Handle the pointer + int case.  */
       if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (PLUS_EXPR, op0, op1);
+	  ret = pointer_int_sum (location, PLUS_EXPR, op0, op1);
 	  goto return_build_binary_op;
 	}
       else if (code1 == POINTER_TYPE && code0 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (PLUS_EXPR, op1, op0);
+	  ret = pointer_int_sum (location, PLUS_EXPR, op1, op0);
 	  goto return_build_binary_op;
 	}
       else
@@ -8950,13 +8984,13 @@ build_binary_op (location_t location, enum tree_code code,
       if (code0 == POINTER_TYPE && code1 == POINTER_TYPE
 	  && comp_target_types (location, type0, type1))
 	{
-	  ret = pointer_diff (op0, op1);
+	  ret = pointer_diff (location, op0, op1);
 	  goto return_build_binary_op;
 	}
       /* Handle pointer minus int.  Just like pointer plus int.  */
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (MINUS_EXPR, op0, op1);
+	  ret = pointer_int_sum (location, MINUS_EXPR, op0, op1);
 	  goto return_build_binary_op;
 	}
       else
@@ -9569,8 +9603,9 @@ build_binary_op (location_t location, enum tree_code code,
   /* Treat expressions in initializers specially as they can't trap.  */
   if (int_const_or_overflow)
     ret = (require_constant_value
-	   ? fold_build2_initializer (resultcode, build_type, op0, op1)
-	   : fold_build2 (resultcode, build_type, op0, op1));
+	   ? fold_build2_initializer_loc (location, resultcode, build_type,
+					  op0, op1)
+	   : fold_build2_loc (location, resultcode, build_type, op0, op1));
   else
     ret = build2 (resultcode, build_type, op0, op1);
   if (final_type != 0)

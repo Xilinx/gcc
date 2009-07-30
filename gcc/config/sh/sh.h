@@ -91,6 +91,8 @@ do { \
     builtin_define ("__SH_FPU_DOUBLE__"); \
   if (TARGET_HITACHI) \
     builtin_define ("__HITACHI__"); \
+  if (TARGET_FMOVD) \
+    builtin_define ("__FMOVD_ENABLED__"); \
   builtin_define (TARGET_LITTLE_ENDIAN \
 		  ? "__LITTLE_ENDIAN__" : "__BIG_ENDIAN__"); \
 } while (0)
@@ -1030,11 +1032,6 @@ extern char sh_additional_register_names[ADDREGNAMES_SIZE] \
  { RETURN_ADDRESS_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM},	\
  { ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},			\
  { ARG_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM},}
-
-/* Given FROM and TO register numbers, say whether this elimination
-   is allowed.  */
-#define CAN_ELIMINATE(FROM, TO) \
-  (!((FROM) == HARD_FRAME_POINTER_REGNUM && FRAME_POINTER_REQUIRED))
 
 /* Define the offset between two registers, one to be eliminated, and the other
    its replacement, at the start of a routine.  */

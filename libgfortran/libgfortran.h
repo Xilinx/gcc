@@ -294,13 +294,44 @@ internal_proto(big_endian);
   (GFC_INTEGER_16)((((GFC_UINTEGER_16)1) << 127) - 1)
 #endif
 
+/* M{IN,AX}{LOC,VAL} need also infinities and NaNs if supported.  */
+
+#ifdef __FLT_HAS_INFINITY__
+# define GFC_REAL_4_INFINITY __builtin_inff ()
+#endif
+#ifdef __DBL_HAS_INFINITY__
+# define GFC_REAL_8_INFINITY __builtin_inf ()
+#endif
+#ifdef __LDBL_HAS_INFINITY__
+# ifdef HAVE_GFC_REAL_10
+#  define GFC_REAL_10_INFINITY __builtin_infl ()
+# endif
+# ifdef HAVE_GFC_REAL_16
+#  define GFC_REAL_16_INFINITY __builtin_infl ()
+# endif
+#endif
+#ifdef __FLT_HAS_QUIET_NAN__
+# define GFC_REAL_4_QUIET_NAN __builtin_nanf ("")
+#endif
+#ifdef __DBL_HAS_QUIET_NAN__
+# define GFC_REAL_8_QUIET_NAN __builtin_nan ("")
+#endif
+#ifdef __LDBL_HAS_QUIET_NAN__
+# ifdef HAVE_GFC_REAL_10
+#  define GFC_REAL_10_QUIET_NAN __builtin_nanl ("")
+# endif
+# ifdef HAVE_GFC_REAL_16
+#  define GFC_REAL_16_QUIET_NAN __builtin_nanl ("")
+# endif
+#endif
 
 typedef struct descriptor_dimension
 {
-  index_type stride;
-  index_type lbound;
-  index_type ubound;
+  index_type _stride;
+  index_type _lbound;
+  index_type _ubound;
 }
+
 descriptor_dimension;
 
 #define GFC_ARRAY_DESCRIPTOR(r, type) \
@@ -352,6 +383,30 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 #define GFC_DESCRIPTOR_SIZE(desc) ((desc)->dtype >> GFC_DTYPE_SIZE_SHIFT)
 #define GFC_DESCRIPTOR_DATA(desc) ((desc)->data)
 #define GFC_DESCRIPTOR_DTYPE(desc) ((desc)->dtype)
+
+#define GFC_DIMENSION_LBOUND(dim) ((dim)._lbound)
+#define GFC_DIMENSION_UBOUND(dim) ((dim)._ubound)
+#define GFC_DIMENSION_STRIDE(dim) ((dim)._stride)
+#define GFC_DIMENSION_EXTENT(dim) ((dim)._ubound + 1 - (dim)._lbound)
+#define GFC_DIMENSION_SET(dim,lb,ub,str) \
+  do \
+    { \
+      (dim)._lbound = lb;			\
+      (dim)._ubound = ub;			\
+      (dim)._stride = str;			\
+    } while (0)
+	    
+
+#define GFC_DESCRIPTOR_LBOUND(desc,i) ((desc)->dim[i]._lbound)
+#define GFC_DESCRIPTOR_UBOUND(desc,i) ((desc)->dim[i]._ubound)
+#define GFC_DESCRIPTOR_EXTENT(desc,i) ((desc)->dim[i]._ubound + 1 \
+				      - (desc)->dim[i]._lbound)
+#define GFC_DESCRIPTOR_EXTENT_BYTES(desc,i) \
+  (GFC_DESCRIPTOR_EXTENT(desc,i) * GFC_DESCRIPTOR_SIZE(desc))
+
+#define GFC_DESCRIPTOR_STRIDE(desc,i) ((desc)->dim[i]._stride)
+#define GFC_DESCRIPTOR_STRIDE_BYTES(desc,i) \
+  (GFC_DESCRIPTOR_STRIDE(desc,i) * GFC_DESCRIPTOR_SIZE(desc))
 
 /* Macros to get both the size and the type with a single masking operation  */
 
@@ -1216,6 +1271,23 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, void) array_t;
 
 extern index_type size0 (const array_t * array); 
 iexport_proto(size0);
+
+/* bounds.c */
+
+extern void bounds_equal_extents (array_t *, array_t *, const char *,
+				  const char *);
+internal_proto(bounds_equal_extents);
+
+extern void bounds_reduced_extents (array_t *, array_t *, int, const char *,
+			     const char *intrinsic);
+internal_proto(bounds_reduced_extents);
+
+extern void bounds_iforeach_return (array_t *, array_t *, const char *);
+internal_proto(bounds_iforeach_return);
+
+extern void bounds_ifunction_return (array_t *, const index_type *,
+				     const char *, const char *);
+internal_proto(bounds_ifunction_return);
 
 /* Internal auxiliary functions for cshift */
 

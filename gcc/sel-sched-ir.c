@@ -2527,7 +2527,7 @@ setup_id_lhs_rhs (idata_t id, insn_t insn, bool force_unique_p)
 {
   rtx pat = PATTERN (insn);
   
-  if (GET_CODE (insn) == INSN
+  if (NONJUMP_INSN_P (insn)
       && GET_CODE (pat) == SET 
       && !force_unique_p)
     {
@@ -5427,6 +5427,7 @@ static struct haifa_sched_info sched_sel_haifa_sched_info =
   NULL, /* rgn_rank */
   sel_print_insn, /* rgn_print_insn */
   contributes_to_priority,
+  NULL, /* insn_finishes_block_p */
 
   NULL, NULL,
   NULL, NULL,

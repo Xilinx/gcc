@@ -387,9 +387,7 @@ default_invalid_within_doloop (const_rtx insn)
   if (CALL_P (insn))
     return "Function call in loop.";
   
-  if (JUMP_P (insn)
-      && (GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC
-	  || GET_CODE (PATTERN (insn)) == ADDR_VEC))
+  if (JUMP_TABLE_DATA_P (insn))
     return "Computed branch in the loop.";
   
   return NULL;
@@ -773,7 +771,7 @@ default_target_option_pragma_parse (tree ARG_UNUSED (args),
 }
 
 bool
-default_target_option_can_inline_p (tree caller, tree callee)
+default_target_can_inline_p (tree caller, tree callee)
 {
   bool ret = false;
   tree callee_opts = DECL_FUNCTION_SPECIFIC_TARGET (callee);

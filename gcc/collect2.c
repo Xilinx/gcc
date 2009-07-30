@@ -1281,7 +1281,8 @@ main (int argc, char **argv)
   /* The AIX linker will discard static constructors in object files if
      nothing else in the file is referenced, so look at them first.  */
   {
-      const char **export_object_lst = (const char **)object_lst;
+      const char **export_object_lst 
+	= CONST_CAST2 (const char **, char **, object_lst);
 
       while (export_object_lst < object)
 	scan_prog_file (*export_object_lst++, PASS_OBJ);
@@ -2270,7 +2271,7 @@ scan_libraries (const char *prog_name)
   void (*quit_handler) (int);
 #endif
   char *real_ldd_argv[4];
-  const char **ldd_argv = (const char **) real_ldd_argv;
+  const char **ldd_argv = CONST_CAST2 (const char **, char **, real_ldd_argv);
   int argc = 0;
   struct pex_obj *pex;
   const char *errmsg;

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1991-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1991-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -261,11 +261,11 @@ package body Errutil is
             --  avoid junk extra messages from cascaded parsing errors
 
             if not (Errors.Table (Prev_Msg).Warn
-                      or
+                     or else
                     Errors.Table (Prev_Msg).Style)
               or else
                    (Errors.Table (Cur_Msg).Warn
-                      or
+                     or else
                     Errors.Table (Cur_Msg).Style)
             then
                --  All tests passed, delete the message by simply returning
@@ -296,8 +296,12 @@ package body Errutil is
 
       --  Bump appropriate statistics count
 
-      if Errors.Table (Cur_Msg).Warn or Errors.Table (Cur_Msg).Style then
+      if Errors.Table (Cur_Msg).Warn
+           or else
+         Errors.Table (Cur_Msg).Style
+      then
          Warnings_Detected := Warnings_Detected + 1;
+
       else
          Total_Errors_Detected := Total_Errors_Detected + 1;
 

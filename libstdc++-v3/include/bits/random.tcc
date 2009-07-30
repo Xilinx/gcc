@@ -45,7 +45,7 @@ namespace std
     //
     // Preconditions:  a > 0, m > 0.
     //
-    template<typename _Tp, _Tp __a, _Tp __c, _Tp __m, bool>
+    template<typename _Tp, _Tp __m, _Tp __a, _Tp __c, bool>
       struct _Mod
       {
 	static _Tp
@@ -80,8 +80,8 @@ namespace std
 
     // Special case for m == 0 -- use unsigned integer overflow as modulo
     // operator.
-    template<typename _Tp, _Tp __a, _Tp __c, _Tp __m>
-      struct _Mod<_Tp, __a, __c, __m, true>
+    template<typename _Tp, _Tp __m, _Tp __a, _Tp __c>
+      struct _Mod<_Tp, __m, __a, __c, true>
       {
 	static _Tp
 	__calc(_Tp __x)
@@ -98,11 +98,11 @@ namespace std
     linear_congruential_engine<_UIntType, __a, __c, __m>::
     seed(result_type __s)
     {
-      if ((__detail::__mod<_UIntType, 1U, 0U, __m>(__c) == 0U)
-	  && (__detail::__mod<_UIntType, 1U, 0U, __m>(__s) == 0U))
-	_M_x = __detail::__mod<_UIntType, 1U, 0U, __m>(1U);
+      if ((__detail::__mod<_UIntType, __m>(__c) == 0)
+	  && (__detail::__mod<_UIntType, __m>(__s) == 0))
+	_M_x = 1;
       else
-	_M_x = __detail::__mod<_UIntType, 1U, 0U, __m>(__s);
+	_M_x = __detail::__mod<_UIntType, __m>(__s);
     }
 
   /**
@@ -116,10 +116,10 @@ namespace std
       const _UIntType __k0 = __m == 0 ? std::numeric_limits<_UIntType>::digits
 	                              : std::__lg(__m);
       const _UIntType __k = (__k0 + 31) / 32;
-      _UIntType __arr[__k + 3];
+      uint_least32_t __arr[__k + 3];
       __q.generate(__arr + 0, __arr + __k + 3);
-      _UIntType __factor = 1U;
-      _UIntType __sum = 0U;
+      _UIntType __factor = 1u;
+      _UIntType __sum = 0u;
       for (size_t __j = 0; __j < __k; ++__j)
         {
           __sum += __arr[__j + 3] * __factor;
@@ -179,7 +179,7 @@ namespace std
 			    __s, __b, __t, __c, __l, __f>::
     seed(result_type __sd)
     {
-      _M_x[0] = __detail::__mod<_UIntType, 1, 0,
+      _M_x[0] = __detail::__mod<_UIntType,
 	__detail::_Shift<_UIntType, __w>::__value>(__sd);
 
       for (size_t __i = 1; __i < state_size; ++__i)
@@ -187,8 +187,8 @@ namespace std
 	  _UIntType __x = _M_x[__i - 1];
 	  __x ^= __x >> (__w - 2);
 	  __x *= __f;
-	  __x += __i;
-	  _M_x[__i] = __detail::__mod<_UIntType, 1, 0,
+	  __x += __detail::__mod<_UIntType, __n>(__i);
+	  _M_x[__i] = __detail::__mod<_UIntType,
 	    __detail::_Shift<_UIntType, __w>::__value>(__x);
 	}
       _M_p = state_size;
@@ -206,35 +206,35 @@ namespace std
     {
       const _UIntType __upper_mask = (~_UIntType()) << __r;
       const size_t __k = (__w + 31) / 32;
-      _UIntType __arr[__k * __n];
-      __q.generate(__arr + 0, __arr + __k * __n);
+      uint_least32_t __arr[__n * __k];
+      __q.generate(__arr + 0, __arr + __n * __k);
 
       bool __zero = true;
       for (size_t __i = 0; __i < state_size; ++__i)
         {
-          _UIntType __factor = 1U;
-          _UIntType __sum = 0U;
+          _UIntType __factor = 1u;
+          _UIntType __sum = 0u;
           for (size_t __j = 0; __j < __k; ++__j)
             {
-	      __sum += __arr[__i * __k + __j] * __factor;
+	      __sum += __arr[__k * __i + __j] * __factor;
 	      __factor *= __detail::_Shift<_UIntType, 32>::__value;
             }
-          _M_x[__i] = __detail::__mod<_UIntType, 1U, 0U,
-		      __detail::_Shift<_UIntType, __w>::__value>(__sum);
+          _M_x[__i] = __detail::__mod<_UIntType,
+	    __detail::_Shift<_UIntType, __w>::__value>(__sum);
 
           if (__zero)
             {
 	      if (__i == 0)
 	        {
-	          if ((_M_x[0] & __upper_mask) != 0U)
+	          if ((_M_x[0] & __upper_mask) != 0u)
 	            __zero = false;
 	        }
-	      else if (_M_x[__i] != 0U)
+	      else if (_M_x[__i] != 0u)
 	        __zero = false;
             }
         }
         if (__zero)
-          _M_x[0] = __detail::_Shift<_UIntType, __w - 1U>::__value;
+          _M_x[0] = __detail::_Shift<_UIntType, __w - 1>::__value;
     }
 
   template<typename _UIntType, size_t __w,
@@ -345,26 +345,23 @@ namespace std
     subtract_with_carry_engine<_UIntType, __w, __s, __r>::
     seed(result_type __value)
     {
-      if (__value == 0)
-	__value = default_seed;
+      std::linear_congruential_engine<result_type, 40014u, 0u, 2147483563u>
+	__lcg(__value == 0u ? default_seed : __value);
 
-      std::linear_congruential_engine<result_type, 40014U, 0U, 2147483563U>
-	__lcg(__value);
-
-      //  I hope this is right.  The "10000" tests work for the ranluxen.
-      const size_t __n = (word_size + 31) / 32;
+      const size_t __n = (__w + 31) / 32;
 
       for (size_t __i = 0; __i < long_lag; ++__i)
 	{
-	  _UIntType __sum = 0U;
-	  _UIntType __factor = 1U;
+	  _UIntType __sum = 0u;
+	  _UIntType __factor = 1u;
 	  for (size_t __j = 0; __j < __n; ++__j)
 	    {
-	      __sum += __detail::__mod<__detail::_UInt32Type, 1, 0, 0>
+	      __sum += __detail::__mod<uint_least32_t,
+		       __detail::_Shift<uint_least32_t, 32>::__value>
 			 (__lcg()) * __factor;
 	      __factor *= __detail::_Shift<_UIntType, 32>::__value;
 	    }
-	  _M_x[__i] = __detail::__mod<_UIntType, 1, 0,
+	  _M_x[__i] = __detail::__mod<_UIntType,
 	    __detail::_Shift<_UIntType, __w>::__value>(__sum);
 	}
       _M_carry = (_M_x[long_lag - 1] == 0) ? 1 : 0;
@@ -376,21 +373,20 @@ namespace std
     subtract_with_carry_engine<_UIntType, __w, __s, __r>::
     seed(seed_seq& __q)
     {
-      const size_t __n = (word_size + 31) / 32;
-      _UIntType __arr[long_lag + __n];
-      __q.generate(__arr + 0, __arr + long_lag + __n);
+      const size_t __k = (__w + 31) / 32;
+      uint_least32_t __arr[__r * __k];
+      __q.generate(__arr + 0, __arr + __r * __k);
 
       for (size_t __i = 0; __i < long_lag; ++__i)
         {
-          _UIntType __sum = 0U;
-          _UIntType __factor = 1U;
-          for (size_t __j = 0; __j < __n; ++__j)
+          _UIntType __sum = 0u;
+          _UIntType __factor = 1u;
+          for (size_t __j = 0; __j < __k; ++__j)
             {
-	      __sum += __detail::__mod<__detail::_UInt32Type, 1, 0, 0>
-		         (__arr[__i * __n + __j]) * __factor;
+	      __sum += __arr[__k * __i + __j] * __factor;
 	      __factor *= __detail::_Shift<_UIntType, 32>::__value;
             }
-          _M_x[__i] = __detail::__mod<_UIntType, 1, 0,
+          _M_x[__i] = __detail::__mod<_UIntType,
 	    __detail::_Shift<_UIntType, __w>::__value>(__sum);
         }
       _M_carry = (_M_x[long_lag - 1] == 0) ? 1 : 0;
@@ -644,13 +640,13 @@ namespace std
     template<typename _UniformRandomNumberGenerator>
       typename uniform_int_distribution<_IntType>::result_type
       uniform_int_distribution<_IntType>::
-      _M_call(_UniformRandomNumberGenerator& __urng,
-	      result_type __min, result_type __max, true_type)
+      operator()(_UniformRandomNumberGenerator& __urng,
+		 const param_type& __param)
       {
 	// XXX Must be fixed to work well for *arbitrary* __urng.max(),
-	// __urng.min(), __max, __min.  Currently works fine only in the
-	// most common case __urng.max() - __urng.min() >= __max - __min,
-	// with __urng.max() > __urng.min() >= 0.
+	// __urng.min(), __param.b(), __param.a().  Currently works fine only
+	// in the most common case __urng.max() - __urng.min() >=
+	// __param.b() - __param.a(), with __urng.max() > __urng.min() >= 0.
 	typedef typename __gnu_cxx::__add_unsigned<typename
 	  _UniformRandomNumberGenerator::result_type>::__type __urntype;
 	typedef typename __gnu_cxx::__add_unsigned<result_type>::__type
@@ -664,14 +660,14 @@ namespace std
 	const __urntype __urnmin = __urng.min();
 	const __urntype __urnmax = __urng.max();
 	const __urntype __urnrange = __urnmax - __urnmin;
-	const __uctype __urange = __max - __min;
+	const __uctype __urange = __param.b() - __param.a();
 	const __uctype __udenom = (__urnrange <= __urange
 				   ? 1 : __urnrange / (__urange + 1));
 	do
 	  __ret = (__urntype(__urng()) -  __urnmin) / __udenom;
-	while (__ret > __max - __min);
+	while (__ret > __param.b() - __param.a());
 
-	return __ret + __min;
+	return __ret + __param.a();
       }
 
   template<typename _IntType, typename _CharT, typename _Traits>
@@ -799,7 +795,7 @@ namespace std
 	// The largest _RealType convertible to _IntType.
 	const double __thr =
 	  std::numeric_limits<_IntType>::max() + __naf;
-	__detail::_Adaptor<_UniformRandomNumberGenerator, result_type>
+	__detail::_Adaptor<_UniformRandomNumberGenerator, double>
 	  __aurng(__urng);
 
 	double __cand;
@@ -1985,30 +1981,31 @@ namespace std
 	  return;
 	}
 
-      double __sum = std::accumulate(_M_prob.begin(), _M_prob.end(), 0.0);
-      //  Now normalize the densities.
+      const double __sum = std::accumulate(_M_prob.begin(),
+					   _M_prob.end(), 0.0);
+      // Now normalize the probabilites.
       std::transform(_M_prob.begin(), _M_prob.end(), _M_prob.begin(),
 		     std::bind2nd(std::divides<double>(), __sum));
-      //  Accumulate partial sums.
+      // Accumulate partial sums.
+      _M_cp.reserve(_M_prob.size());
       std::partial_sum(_M_prob.begin(), _M_prob.end(),
 		       std::back_inserter(_M_cp));
-      //  Make sure the last cumulative probablility is one.
+      // Make sure the last cumulative probability is one.
       _M_cp[_M_cp.size() - 1] = 1.0;
     }
 
   template<typename _IntType>
     template<typename _Func>
       discrete_distribution<_IntType>::param_type::
-      param_type(size_t __nw, double __xmin, double __xmax,
-		 _Func __fw)
+      param_type(size_t __nw, double __xmin, double __xmax, _Func __fw)
       : _M_prob(), _M_cp()
       {
-	for (size_t __i = 0; __i < __nw; ++__i)
-	  {
-	    const double __x = ((__nw - __i - 0.5) * __xmin
-				     + (__i + 0.5) * __xmax) / __nw;
-	    _M_prob.push_back(__fw(__x));
-	  }
+	const size_t __n = __nw == 0 ? 1 : __nw;
+	const double __delta = (__xmax - __xmin) / __n;
+
+	_M_prob.reserve(__n);
+	for (size_t __k = 0; __k < __nw; ++__k)
+	  _M_prob.push_back(__fw(__xmin + __k * __delta + 0.5 * __delta));
 
 	_M_initialize();
       }
@@ -2020,17 +2017,14 @@ namespace std
       operator()(_UniformRandomNumberGenerator& __urng,
 		 const param_type& __param)
       {
-	__detail::_Adaptor<_UniformRandomNumberGenerator, result_type>
+	__detail::_Adaptor<_UniformRandomNumberGenerator, double>
 	  __aurng(__urng);
 
 	const double __p = __aurng();
 	auto __pos = std::lower_bound(__param._M_cp.begin(),
 				      __param._M_cp.end(), __p);
-	if (__pos == __param._M_cp.end())
-	  return 0;
-	const size_t __i = __pos - __param._M_cp.begin();
 
-	return __i;
+	return __pos - __param._M_cp.begin();
       }
 
   template<typename _IntType, typename _CharT, typename _Traits>
@@ -2075,6 +2069,7 @@ namespace std
       __is >> __n;
 
       std::vector<double> __prob_vec;
+      __prob_vec.reserve(__n);
       for (; __n != 0; --__n)
 	{
 	  double __prob;
@@ -2098,6 +2093,7 @@ namespace std
       if (_M_int.size() < 2)
 	{
 	  _M_int.clear();
+	  _M_int.reserve(2);
 	  _M_int.push_back(_RealType(0));
 	  _M_int.push_back(_RealType(1));
 
@@ -2107,21 +2103,21 @@ namespace std
 	  return;
 	}
 
-      double __sum = 0.0;
-      for (size_t __i = 0; __i < _M_den.size(); ++__i)
-	{
-	  __sum += _M_den[__i] * (_M_int[__i + 1] - _M_int[__i]);
-	  _M_cp.push_back(__sum);
-	}
+      const double __sum = std::accumulate(_M_den.begin(),
+					   _M_den.end(), 0.0);
 
-      //  Now normalize the densities...
       std::transform(_M_den.begin(), _M_den.end(), _M_den.begin(),
 		     std::bind2nd(std::divides<double>(), __sum));
-      //  ... and partial sums.
-      std::transform(_M_cp.begin(), _M_cp.end(), _M_cp.begin(),
-		     std::bind2nd(std::divides<double>(), __sum));
-      //  Make sure the last cumulative probablility is one.
+
+      _M_cp.reserve(_M_den.size());
+      std::partial_sum(_M_den.begin(), _M_den.end(),
+		       std::back_inserter(_M_cp));
+
+      // Make sure the last cumulative probability is one.
       _M_cp[_M_cp.size() - 1] = 1.0;
+
+      for (size_t __k = 0; __k < _M_den.size(); ++__k)
+	_M_den[__k] /= _M_int[__k + 1] - _M_int[__k];
     }
 
   template<typename _RealType>
@@ -2132,17 +2128,19 @@ namespace std
 		 _InputIteratorW __wbegin)
       : _M_int(), _M_den(), _M_cp()
       {
-	do
+	if (__bbegin != __bend)
 	  {
-	    _M_int.push_back(*__bbegin);
-	    ++__bbegin;
-	    if (__bbegin != __bend)
+	    for (;;)
 	      {
+		_M_int.push_back(*__bbegin);
+		++__bbegin;
+		if (__bbegin == __bend)
+		  break;
+
 		_M_den.push_back(*__wbegin);
 		++__wbegin;
 	      }
 	  }
-	while (__bbegin != __bend);
 
 	_M_initialize();
       }
@@ -2150,17 +2148,16 @@ namespace std
   template<typename _RealType>
     template<typename _Func>
       piecewise_constant_distribution<_RealType>::param_type::
-      param_type(initializer_list<_RealType> __bil, _Func __fw)
+      param_type(initializer_list<_RealType> __bl, _Func __fw)
       : _M_int(), _M_den(), _M_cp()
       {
-	for (auto __biter = __bil.begin(); __biter != __bil.end(); ++__biter)
+	_M_int.reserve(__bl.size());
+	for (auto __biter = __bl.begin(); __biter != __bl.end(); ++__biter)
 	  _M_int.push_back(*__biter);
 
-	for (size_t __i = 0; __i < _M_int.size() - 1; ++__i)
-	  {
-	    _RealType __x = 0.5 * (_M_int[__i] + _M_int[__i + 1]);
-	    _M_den.push_back(__fw(__x));
-	  }
+	_M_den.reserve(_M_int.size() - 1);
+	for (size_t __k = 0; __k < _M_int.size() - 1; ++__k)
+	  _M_den.push_back(__fw(0.5 * (_M_int[__k + 1] + _M_int[__k])));
 
 	_M_initialize();
       }
@@ -2171,18 +2168,16 @@ namespace std
       param_type(size_t __nw, _RealType __xmin, _RealType __xmax, _Func __fw)
       : _M_int(), _M_den(), _M_cp()
       {
-	for (size_t __i = 0; __i <= __nw; ++__i)
-	  {
-	    const _RealType __x = ((__nw - __i) * __xmin
-					  + __i * __xmax) / __nw;
-	    _M_int.push_back(__x);
-	  }
-	for (size_t __i = 0; __i < __nw; ++__i)
-	  {
-	    const _RealType __x = ((__nw - __i - 0.5) * __xmin
-					+ (__i + 0.5) * __xmax) / __nw;
-	    _M_den.push_back(__fw(__x));
-	  }
+	const size_t __n = __nw == 0 ? 1 : __nw;
+	const _RealType __delta = (__xmax - __xmin) / __n;
+
+	_M_int.reserve(__n + 1);
+	for (size_t __k = 0; __k <= __nw; ++__k)
+	  _M_int.push_back(__xmin + __k * __delta);
+
+	_M_den.reserve(__n);
+	for (size_t __k = 0; __k < __nw; ++__k)
+	  _M_den.push_back(__fw(_M_int[__k] + 0.5 * __delta));
 
 	_M_initialize();
       }
@@ -2194,7 +2189,7 @@ namespace std
       operator()(_UniformRandomNumberGenerator& __urng,
 		 const param_type& __param)
       {
-	__detail::_Adaptor<_UniformRandomNumberGenerator, result_type>
+	__detail::_Adaptor<_UniformRandomNumberGenerator, double>
 	  __aurng(__urng);
 
 	const double __p = __aurng();
@@ -2202,8 +2197,9 @@ namespace std
 				      __param._M_cp.end(), __p);
 	const size_t __i = __pos - __param._M_cp.begin();
 
-	return __param._M_int[__i]
-	     + (__p - __param._M_cp[__i]) / __param._M_den[__i];
+	const double __pref = __i > 0 ? __param._M_cp[__i - 1] : 0.0;
+
+	return __param._M_int[__i] + (__p - __pref) / __param._M_den[__i];
       }
 
   template<typename _RealType, typename _CharT, typename _Traits>
@@ -2253,6 +2249,7 @@ namespace std
       __is >> __n;
 
       std::vector<_RealType> __int_vec;
+      __int_vec.reserve(__n + 1);
       for (size_t __i = 0; __i <= __n; ++__i)
 	{
 	  _RealType __int;
@@ -2261,6 +2258,7 @@ namespace std
 	}
 
       std::vector<double> __den_vec;
+      __den_vec.reserve(__n);
       for (size_t __i = 0; __i < __n; ++__i)
 	{
 	  double __den;
@@ -2284,10 +2282,12 @@ namespace std
       if (_M_int.size() < 2)
 	{
 	  _M_int.clear();
+	  _M_int.reserve(2);
 	  _M_int.push_back(_RealType(0));
 	  _M_int.push_back(_RealType(1));
 
 	  _M_den.clear();
+	  _M_den.reserve(2);
 	  _M_den.push_back(1.0);
 	  _M_den.push_back(1.0);
 
@@ -2295,17 +2295,19 @@ namespace std
 	}
 
       double __sum = 0.0;
-      for (size_t __i = 0; __i < _M_int.size() - 1; ++__i)
+      _M_cp.reserve(_M_int.size() - 1);
+      _M_m.reserve(_M_int.size() - 1);
+      for (size_t __k = 0; __k < _M_int.size() - 1; ++__k)
 	{
-	  const _RealType __delta = _M_int[__i + 1] - _M_int[__i];
-	  __sum += 0.5 * (_M_den[__i + 1] + _M_den[__i]) * __delta;
+	  const _RealType __delta = _M_int[__k + 1] - _M_int[__k];
+	  __sum += 0.5 * (_M_den[__k + 1] + _M_den[__k]) * __delta;
 	  _M_cp.push_back(__sum);
-	  _M_m.push_back((_M_den[__i + 1] - _M_den[__i]) / __delta);
+	  _M_m.push_back((_M_den[__k + 1] - _M_den[__k]) / __delta);
 	}
 
       //  Now normalize the densities...
       std::transform(_M_den.begin(), _M_den.end(), _M_den.begin(),
-		     std::bind2nd(std::divides<double>(),__sum));
+		     std::bind2nd(std::divides<double>(), __sum));
       //  ... and partial sums... 
       std::transform(_M_cp.begin(), _M_cp.end(), _M_cp.begin(),
 		     std::bind2nd(std::divides<double>(), __sum));
@@ -2314,13 +2316,7 @@ namespace std
 		     std::bind2nd(std::divides<double>(), __sum));
       //  Make sure the last cumulative probablility is one.
       _M_cp[_M_cp.size() - 1] = 1.0;
-    }
-
-  template<typename _RealType>
-    piecewise_linear_distribution<_RealType>::param_type::
-    param_type()
-    : _M_int(), _M_den(), _M_cp(), _M_m()
-    { _M_initialize(); }
+     }
 
   template<typename _RealType>
     template<typename _InputIteratorB, typename _InputIteratorW>
@@ -2342,10 +2338,12 @@ namespace std
   template<typename _RealType>
     template<typename _Func>
       piecewise_linear_distribution<_RealType>::param_type::
-      param_type(initializer_list<_RealType> __bil, _Func __fw)
+      param_type(initializer_list<_RealType> __bl, _Func __fw)
       : _M_int(), _M_den(), _M_cp(), _M_m()
       {
-	for (auto __biter = __bil.begin(); __biter != __bil.end(); ++__biter)
+	_M_int.reserve(__bl.size());
+	_M_den.reserve(__bl.size());
+	for (auto __biter = __bl.begin(); __biter != __bl.end(); ++__biter)
 	  {
 	    _M_int.push_back(*__biter);
 	    _M_den.push_back(__fw(*__biter));
@@ -2357,16 +2355,18 @@ namespace std
   template<typename _RealType>
     template<typename _Func>
       piecewise_linear_distribution<_RealType>::param_type::
-      param_type(size_t __nw, _RealType __xmin, _RealType __xmax,
-		 _Func __fw)
+      param_type(size_t __nw, _RealType __xmin, _RealType __xmax, _Func __fw)
       : _M_int(), _M_den(), _M_cp(), _M_m()
       {
-	for (size_t __i = 0; __i <= __nw; ++__i)
+	const size_t __n = __nw == 0 ? 1 : __nw;
+	const _RealType __delta = (__xmax - __xmin) / __n;
+
+	_M_int.reserve(__n + 1);
+	_M_den.reserve(__n + 1);
+	for (size_t __k = 0; __k <= __nw; ++__k)
 	  {
-	    const _RealType __x = ((__nw - __i) * __xmin
-					  + __i * __xmax) / __nw;
-	    _M_int.push_back(__x);
-	    _M_den.push_back(__fw(__x));
+	    _M_int.push_back(__xmin + __k * __delta);
+	    _M_den.push_back(__fw(_M_int[__k] + __delta));
 	  }
 
 	_M_initialize();
@@ -2379,31 +2379,30 @@ namespace std
       operator()(_UniformRandomNumberGenerator& __urng,
 		 const param_type& __param)
       {
-	result_type __x;
-	__detail::_Adaptor<_UniformRandomNumberGenerator, result_type>
+	__detail::_Adaptor<_UniformRandomNumberGenerator, double>
 	  __aurng(__urng);
 
 	const double __p = __aurng();
 	auto __pos = std::lower_bound(__param._M_cp.begin(),
 				      __param._M_cp.end(), __p);
 	const size_t __i = __pos - __param._M_cp.begin();
+
+	const double __pref = __i > 0 ? __param._M_cp[__i - 1] : 0.0;
+
 	const double __a = 0.5 * __param._M_m[__i];
 	const double __b = __param._M_den[__i];
-	const double __c = __param._M_cp[__i];
-	const double __q = -0.5 * (__b
-#if _GLIBCXX_USE_C99_MATH_TR1
-			 + std::copysign(std::sqrt(__b * __b
-						 - 4.0 * __a * __c), __b));
-#else
-			 + (__b < 0.0 ? -1.0 : 1.0)
-			 * std::sqrt(__b * __b - 4.0 * __a * __c));
-#endif
-	const double __x0 = __param._M_int[__i];
-	const double __x1 = __q / __a;
-	const double __x2 = __c / __q;
-	__x = std::max(__x0 + __x1, __x0 + __x2);
+	const double __cm = __p - __pref;
 
-	return __x;
+	_RealType __x = __param._M_int[__i];
+	if (__a == 0)
+	  __x += __cm / __b;
+	else
+	  {
+	    const double __d = __b * __b + 4.0 * __a * __cm;
+	    __x += 0.5 * (std::sqrt(__d) - __b) / __a;
+          }
+
+        return __x;
       }
 
   template<typename _RealType, typename _CharT, typename _Traits>
@@ -2453,6 +2452,7 @@ namespace std
       __is >> __n;
 
       std::vector<_RealType> __int_vec;
+      __int_vec.reserve(__n + 1);
       for (size_t __i = 0; __i <= __n; ++__i)
 	{
 	  _RealType __int;
@@ -2461,6 +2461,7 @@ namespace std
 	}
 
       std::vector<double> __den_vec;
+      __den_vec.reserve(__n + 1);
       for (size_t __i = 0; __i <= __n; ++__i)
 	{
 	  double __den;
@@ -2480,7 +2481,7 @@ namespace std
     seed_seq::seed_seq(std::initializer_list<_IntType> __il)
     {
       for (auto __iter = __il.begin(); __iter != __il.end(); ++__iter)
-	_M_v.push_back(__detail::__mod<result_type, 1, 0,
+	_M_v.push_back(__detail::__mod<result_type,
 		       __detail::_Shift<result_type, 32>::__value>(*__iter));
     }
 
@@ -2488,7 +2489,7 @@ namespace std
     seed_seq::seed_seq(_InputIterator __begin, _InputIterator __end)
     {
       for (_InputIterator __iter = __begin; __iter != __end; ++__iter)
-	_M_v.push_back(__detail::__mod<result_type, 1, 0,
+	_M_v.push_back(__detail::__mod<result_type,
 		       __detail::_Shift<result_type, 32>::__value>(*__iter));
     }
 
@@ -2503,7 +2504,7 @@ namespace std
       if (__begin == __end)
 	return;
 
-      std::fill(__begin, __end, _Type(0x8b8b8b8bU));
+      std::fill(__begin, __end, _Type(0x8b8b8b8bu));
 
       const size_t __n = __end - __begin;
       const size_t __s = _M_v.size();
@@ -2522,8 +2523,8 @@ namespace std
 			 ^ __begin[(__k + __p) % __n]
 			 ^ __begin[(__k - 1) % __n]);
 	  _Type __r1 = __arg ^ (__arg << 27);
-	  __r1 = __detail::__mod<_Type, 1664525U, 0U,
-		   __detail::_Shift<_Type, 32>::__value>(__r1);
+	  __r1 = __detail::__mod<_Type, __detail::_Shift<_Type, 32>::__value,
+	                         1664525u, 0u>(__r1);
 	  _Type __r2 = __r1;
 	  if (__k == 0)
 	    __r2 += __s;
@@ -2531,8 +2532,8 @@ namespace std
 	    __r2 += __k % __n + _M_v[__k - 1];
 	  else
 	    __r2 += __k % __n;
-	  __r2 = __detail::__mod<_Type, 1U, 0U,
-		   __detail::_Shift<_Type, 32>::__value>(__r2);
+	  __r2 = __detail::__mod<_Type,
+	           __detail::_Shift<_Type, 32>::__value>(__r2);
 	  __begin[(__k + __p) % __n] += __r1;
 	  __begin[(__k + __q) % __n] += __r2;
 	  __begin[__k % __n] = __r2;
@@ -2544,11 +2545,11 @@ namespace std
 			 + __begin[(__k + __p) % __n]
 			 + __begin[(__k - 1) % __n]);
 	  _Type __r3 = __arg ^ (__arg << 27);
-	  __r3 = __detail::__mod<_Type, 1566083941U, 0U,
-		   __detail::_Shift<_Type, 32>::__value>(__r3);
+	  __r3 = __detail::__mod<_Type, __detail::_Shift<_Type, 32>::__value,
+	                         1566083941u, 0u>(__r3);
 	  _Type __r4 = __r3 - __k % __n;
-	  __r4 = __detail::__mod<_Type, 1U, 0U,
-		   __detail::_Shift<_Type, 32>::__value>(__r4);
+	  __r4 = __detail::__mod<_Type,
+	           __detail::_Shift<_Type, 32>::__value>(__r4);
 	  __begin[(__k + __p) % __n] ^= __r4;
 	  __begin[(__k + __q) % __n] ^= __r3;
 	  __begin[__k % __n] = __r4;

@@ -619,6 +619,28 @@ CInteropKind_t;
    that the list is initialized.  */
 extern CInteropKind_t c_interop_kinds_table[];
 
+
+/* Structure and list of supported extension attributes.  */
+enum
+{
+  EXT_ATTR_DLLIMPORT = 0,
+  EXT_ATTR_DLLEXPORT,
+  EXT_ATTR_STDCALL,
+  EXT_ATTR_CDECL,
+  EXT_ATTR_FASTCALL,
+  EXT_ATTR_LAST, EXT_ATTR_NUM = EXT_ATTR_LAST
+};
+
+typedef struct
+{
+  const char *name;
+  unsigned id;
+  const char *middle_end_name;
+}
+ext_attr_t;
+
+extern const ext_attr_t ext_attr_list[];
+
 /* Symbol attribute structure.  */
 typedef struct
 {
@@ -703,6 +725,9 @@ typedef struct
      component at all.  */
   unsigned alloc_comp:1, pointer_comp:1, proc_pointer_comp:1,
 	   private_comp:1, zero_comp:1;
+
+  /* Attributes set by compiler extensions (!GCC$ ATTRIBUTES).  */
+  unsigned ext_attr:EXT_ATTR_NUM;
 
   /* The namespace where the VOLATILE attribute has been set.  */
   struct gfc_namespace *volatile_ns;
@@ -854,7 +879,10 @@ typedef struct gfc_component
   struct gfc_expr *initializer;
   struct gfc_component *next;
 
+  /* Needed for procedure pointer components.  */
   struct gfc_formal_arglist *formal;
+  struct gfc_namespace *formal_ns;
+  struct gfc_typebound_proc *tb;
 }
 gfc_component;
 
@@ -1038,7 +1066,7 @@ typedef struct gfc_typebound_proc
   u;
 
   gfc_access access;
-  char* pass_arg; /* Argument-name for PASS.  NULL if not specified.  */
+  const char* pass_arg; /* Argument-name for PASS.  NULL if not specified.  */
 
   /* The overridden type-bound proc (or GENERIC with this name in the
      parent-type) or NULL if non.  */
@@ -1055,6 +1083,7 @@ typedef struct gfc_typebound_proc
   unsigned is_generic:1;
   unsigned function:1, subroutine:1;
   unsigned error:1; /* Ignore it, when an error occurred during resolution.  */
+  unsigned ppc:1;
 }
 gfc_typebound_proc;
 
@@ -1555,6 +1584,15 @@ gfc_intrinsic_sym;
 
 #include <gmp.h>
 #include <mpfr.h>
+#ifdef HAVE_mpc
+#include <mpc.h>
+# if MPC_VERSION >= MPC_VERSION_NUM(0,6,1)
+#  define HAVE_mpc_pow
+# endif
+#else
+#define mpc_realref(X) ((X).r)
+#define mpc_imagref(X) ((X).i)
+#endif
 #define GFC_RND_MODE GMP_RNDN
 #define GFC_MPC_RND_MODE MPC_RNDNN
 
@@ -1613,10 +1651,14 @@ typedef struct gfc_expr
 
     mpfr_t real;
 
+#ifdef HAVE_mpc
+    mpc_t
+#else
     struct
     {
       mpfr_t r, i;
     }
+#endif
     complex;
 
     struct
@@ -1639,8 +1681,9 @@ typedef struct gfc_expr
     struct
     {
       gfc_actual_arglist* actual;
-      gfc_typebound_proc* tbp;
       const char* name;
+      void* padding;  /* Overlap gfc_typebound_proc with esym.  */
+      gfc_typebound_proc* tbp;
     }
     compcall;
 
@@ -2285,6 +2328,7 @@ gfc_try gfc_set_default_type (gfc_symbol *, int, gfc_namespace *);
 void gfc_set_sym_referenced (gfc_symbol *);
 
 gfc_try gfc_add_attribute (symbol_attribute *, locus *);
+gfc_try gfc_add_ext_attribute (symbol_attribute *, unsigned, locus *);
 gfc_try gfc_add_allocatable (symbol_attribute *, locus *);
 gfc_try gfc_add_dimension (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_external (symbol_attribute *, locus *);
@@ -2365,7 +2409,7 @@ gfc_try verify_bind_c_derived_type (gfc_symbol *);
 gfc_try verify_com_block_vars_c_interop (gfc_common_head *);
 void generate_isocbinding_symbol (const char *, iso_c_binding_symbol, const char *);
 gfc_symbol *get_iso_c_sym (gfc_symbol *, char *, char *, int);
-int gfc_get_sym_tree (const char *, gfc_namespace *, gfc_symtree **);
+int gfc_get_sym_tree (const char *, gfc_namespace *, gfc_symtree **, bool);
 int gfc_get_ha_symbol (const char *, gfc_symbol **);
 int gfc_get_ha_sym_tree (const char *, gfc_symtree **);
 
@@ -2374,6 +2418,7 @@ int gfc_symbols_could_alias (gfc_symbol *, gfc_symbol *);
 void gfc_undo_symbols (void);
 void gfc_commit_symbols (void);
 void gfc_commit_symbol (gfc_symbol *);
+gfc_charlen *gfc_new_charlen (gfc_namespace *);
 void gfc_free_charlen (gfc_charlen *, gfc_charlen *);
 void gfc_free_namespace (gfc_namespace *);
 
@@ -2399,6 +2444,7 @@ gfc_symtree* gfc_get_tbp_symtree (gfc_symtree**, const char*);
 
 void gfc_copy_formal_args (gfc_symbol *, gfc_symbol *);
 void gfc_copy_formal_args_intr (gfc_symbol *, gfc_intrinsic_sym *);
+void gfc_copy_formal_args_ppc (gfc_component *, gfc_symbol *);
 
 void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
 
@@ -2497,8 +2543,9 @@ bool gfc_traverse_expr (gfc_expr *, gfc_symbol *,
 void gfc_expr_set_symbols_referenced (gfc_expr *);
 gfc_try gfc_expr_check_typed (gfc_expr*, gfc_namespace*, bool);
 void gfc_expr_replace_symbols (gfc_expr *, gfc_symbol *);
+void gfc_expr_replace_comp (gfc_expr *, gfc_component *);
 
-bool is_proc_ptr_comp (gfc_expr *, gfc_component **);
+bool gfc_is_proc_ptr_comp (gfc_expr *, gfc_component **);
 
 /* st.c */
 extern gfc_code new_st;
@@ -2570,6 +2617,7 @@ int gfc_compare_types (gfc_typespec *, gfc_typespec *);
 int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, int, int, char *, int);
 void gfc_check_interfaces (gfc_namespace *);
 void gfc_procedure_use (gfc_symbol *, gfc_actual_arglist **, locus *);
+void gfc_ppc_use (gfc_component *, gfc_actual_arglist **, locus *);
 gfc_symbol *gfc_search_interface (gfc_interface *, int,
 				  gfc_actual_arglist **);
 gfc_try gfc_extend_expr (gfc_expr *);
@@ -2593,7 +2641,7 @@ gfc_try gfc_resolve_filepos (gfc_filepos *);
 void gfc_free_inquire (gfc_inquire *);
 gfc_try gfc_resolve_inquire (gfc_inquire *);
 void gfc_free_dt (gfc_dt *);
-gfc_try gfc_resolve_dt (gfc_dt *);
+gfc_try gfc_resolve_dt (gfc_dt *, locus *);
 void gfc_free_wait (gfc_wait *);
 gfc_try gfc_resolve_wait (gfc_wait *);
 

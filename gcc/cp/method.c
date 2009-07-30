@@ -221,7 +221,8 @@ thunk_adjust (tree ptr, bool this_adjusting,
 {
   if (this_adjusting)
     /* Adjust the pointer by the constant.  */
-    ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+    ptr = fold_build2_loc (input_location,
+		       POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
 		       size_int (fixed_offset));
 
   /* If there's a virtual offset, look up that value in the vtable and
@@ -239,18 +240,21 @@ thunk_adjust (tree ptr, bool this_adjusting,
       /* Form the vtable address.  */
       vtable = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (vtable)), vtable);
       /* Find the entry with the vcall offset.  */
-      vtable = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (vtable), vtable,
-		       fold_convert (sizetype, virtual_offset));
+      vtable = fold_build2_loc (input_location,
+			    POINTER_PLUS_EXPR, TREE_TYPE (vtable), vtable,
+			    fold_convert (sizetype, virtual_offset));
       /* Get the offset itself.  */
       vtable = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (vtable)), vtable);
       /* Adjust the `this' pointer.  */
-      ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+      ptr = fold_build2_loc (input_location,
+			 POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
 			 fold_convert (sizetype, vtable));
     }
 
   if (!this_adjusting)
     /* Adjust the pointer by the constant.  */
-    ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+    ptr = fold_build2_loc (input_location,
+		       POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
 		       size_int (fixed_offset));
 
   return ptr;
@@ -277,7 +281,6 @@ make_alias_for (tree function, tree newid)
   DECL_SAVED_FUNCTION_DATA (alias) = NULL;
   DECL_DESTRUCTOR_P (alias) = 0;
   DECL_CONSTRUCTOR_P (alias) = 0;
-  DECL_CLONED_FUNCTION (alias) = NULL_TREE;
   DECL_EXTERNAL (alias) = 0;
   DECL_ARTIFICIAL (alias) = 1;
   DECL_NO_STATIC_CHAIN (alias) = 1;

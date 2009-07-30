@@ -35,6 +35,7 @@ extensions, accepted by GCC in C89 mode and in C++.
 * Long Long::           Double-word integers---@code{long long int}.
 * Complex::             Data types for complex numbers.
 * Floating Types::      Additional Floating Types.
+* Half-Precision::      Half-Precision Floating Point.
 * Decimal Float::       Decimal Floating Types. 
 * Hex Floats::          Hexadecimal floating-point constants.
 * Fixed-Point::         Fixed-Point Types.
@@ -371,11 +372,12 @@ This is more friendly to code living in shared libraries, as it reduces
 the number of dynamic relocations that are needed, and by consequence,
 allows the data to be read-only.
 
-The @code{&&foo} expressions for the same label might have different values
-if the containing function is inlined or cloned.  If a program relies on
-them being always the same, @code{__attribute__((__noinline__))} should
-be used to prevent inlining.  If @code{&&foo} is used
-in a static variable initializer, inlining is forbidden.
+The @code{&&foo} expressions for the same label might have different
+values if the containing function is inlined or cloned.  If a program
+relies on them being always the same,
+@code{__attribute__((__noinline__,__noclone__))} should be used to
+prevent inlining and cloning.  If @code{&&foo} is used in a static
+variable initializer, inlining and cloning is forbidden.
 
 @node Nested Functions
 @section Nested Functions
@@ -450,10 +452,9 @@ does not refer to anything that has gone out of scope, you should be
 safe.
 
 GCC implements taking the address of a nested function using a technique
-called @dfn{trampolines}.  A paper describing them is available as
-
-@noindent
-@uref{http://people.debian.org/~aaronl/Usenix88-lexic.pdf}.
+called @dfn{trampolines}.  This technique was described in 
+@cite{Lexical Closures for C++} (Thomas M. Breuel, USENIX
+C++ Conference Proceedings, October 17-21, 1988).
 
 A nested function can jump to a label inherited from a containing
 function, provided the label was explicitly declared in the containing
@@ -918,8 +919,56 @@ typedef _Complex float __attribute__((mode(XC))) _Complex80;
 @end smallexample
 
 Not all targets support additional floating point types.  @code{__float80}
-is supported on i386, x86_64 and ia64 targets and target @code{__float128}
-is supported on x86_64 and ia64 targets.
+and @code{__float128} types are supported on i386, x86_64 and ia64 targets.
+
+@node Half-Precision
+@section Half-Precision Floating Point
+@cindex half-precision floating point
+@cindex @code{__fp16} data type
+
+On ARM targets, GCC supports half-precision (16-bit) floating point via
+the @code{__fp16} type.  You must enable this type explicitly 
+with the @option{-mfp16-format} command-line option in order to use it.
+
+ARM supports two incompatible representations for half-precision
+floating-point values.  You must choose one of the representations and
+use it consistently in your program.
+
+Specifying @option{-mfp16-format=ieee} selects the IEEE 754-2008 format.
+This format can represent normalized values in the range of @math{2^{-14}} to 65504.
+There are 11 bits of significand precision, approximately 3
+decimal digits.
+
+Specifying @option{-mfp16-format=alternative} selects the ARM
+alternative format.  This representation is similar to the IEEE
+format, but does not support infinities or NaNs.  Instead, the range
+of exponents is extended, so that this format can represent normalized
+values in the range of @math{2^{-14}} to 131008.
+
+The @code{__fp16} type is a storage format only.  For purposes
+of arithmetic and other operations, @code{__fp16} values in C or C++
+expressions are automatically promoted to @code{float}.  In addition,
+you cannot declare a function with a return value or parameters 
+of type @code{__fp16}.
+
+Note that conversions from @code{double} to @code{__fp16}
+involve an intermediate conversion to @code{float}.  Because
+of rounding, this can sometimes produce a different result than a
+direct conversion.
+
+ARM provides hardware support for conversions between 
+@code{__fp16} and @code{float} values
+as an extension to VFP and NEON (Advanced SIMD).  GCC generates
+code using the instructions provided by this extension if you compile
+with the options @option{-mfpu=neon-fp16 -mfloat-abi=softfp},
+in addition to the @option{-mfp16-format} option to select
+a half-precision format.  
+
+Language-level support for the @code{__fp16} data type is
+independent of whether GCC generates code using hardware floating-point
+instructions.  In cases where hardware support is not specified, GCC
+implements conversions between @code{__fp16} and @code{float} values
+as library calls.
 
 @node Decimal Float
 @section Decimal Floating Types
@@ -1833,19 +1882,18 @@ attributes when making a declaration.  This keyword is followed by an
 attribute specification inside double parentheses.  The following
 attributes are currently defined for functions on all targets:
 @code{aligned}, @code{alloc_size}, @code{noreturn},
-@code{returns_twice}, @code{noinline}, @code{always_inline},
-@code{flatten}, @code{pure}, @code{const}, @code{nothrow},
-@code{sentinel}, @code{format}, @code{format_arg},
+@code{returns_twice}, @code{noinline}, @code{noclone},
+@code{always_inline}, @code{flatten}, @code{pure}, @code{const},
+@code{nothrow}, @code{sentinel}, @code{format}, @code{format_arg},
 @code{no_instrument_function}, @code{section}, @code{constructor},
 @code{destructor}, @code{used}, @code{unused}, @code{deprecated},
 @code{weak}, @code{malloc}, @code{alias}, @code{warn_unused_result},
 @code{nonnull}, @code{gnu_inline}, @code{externally_visible},
-@code{hot}, @code{cold}, @code{artificial}, @code{error}
-and @code{warning}.
-Several other attributes are defined for functions on particular
-target systems.  Other attributes, including @code{section} are
-supported for variables declarations (@pxref{Variable Attributes}) and
-for types (@pxref{Type Attributes}).
+@code{hot}, @code{cold}, @code{artificial}, @code{error} and
+@code{warning}.  Several other attributes are defined for functions on
+particular target systems.  Other attributes, including @code{section}
+are supported for variables declarations (@pxref{Variable Attributes})
+and for types (@pxref{Type Attributes}).
 
 You may also specify attributes with @samp{__} preceding and following
 each keyword.  This allows you to use them in header files without
@@ -2088,6 +2136,12 @@ present.
 The @code{deprecated} attribute can also be used for variables and
 types (@pxref{Variable Attributes}, @pxref{Type Attributes}.)
 
+@item disinterrupt
+@cindex @code{disinterrupt} attribute
+On MeP targets, this attribute causes the compiler to emit
+instructions to disable interrupts for the duration of the given
+function.
+
 @item dllexport
 @cindex @code{__declspec(dllexport)}
 On Microsoft Windows targets and Symbian OS targets the
@@ -2213,6 +2267,10 @@ real function.  The board-specific routine simulates a @code{call}.
 At the end of a function, it will jump to a board-specific routine
 instead of using @code{rts}.  The board-specific return routine simulates
 the @code{rtc}.
+
+On MeP targets this causes the compiler to use a calling convention
+which assumes the called function is too far away for the built-in
+addressing modes.
 
 @item fastcall
 @cindex functions that pop the argument stack on the 386
@@ -2401,7 +2459,7 @@ This attribute is ignored for R8C target.
 
 @item interrupt
 @cindex interrupt handler functions
-Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k, MIPS
+Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k, MeP, MIPS
 and Xstormy16 ports to indicate that the specified function is an
 interrupt handler.  The compiler will generate function entry and exit
 sequences suitable for use in an interrupt handler when this attribute
@@ -2620,6 +2678,10 @@ use the normal calling convention based on @code{jsr} and @code{rts}.
 This attribute can be used to cancel the effect of the @option{-mlong-calls}
 option.
 
+On MeP targets this attribute causes the compiler to assume the called
+function is close enough to use the normal calling convention,
+overriding the @code{-mtf} command line option.
+
 @item nesting
 @cindex Allow nesting in an interrupt handler on the Blackfin processor.
 Use this attribute together with @code{interrupt_handler},
@@ -2655,6 +2717,13 @@ asm ("");
 @end smallexample
 (@pxref{Extended Asm}) in the called function, to serve as a special
 side-effect.
+
+@item noclone
+@cindex @code{noclone} function attribute
+This function attribute prevents a function from being considered for
+cloning - a mechanism which produces specialized copies of functions
+and which is (currently) performed by interprocedural constant
+propagation.
 
 @item nonnull (@var{arg-index}, @dots{})
 @cindex @code{nonnull} function attribute
@@ -3273,6 +3342,13 @@ visibility of their template.
 
 If both the template and enclosing class have explicit visibility, the
 visibility from the template is used.
+
+@item vliw
+@cindex @code{vliw} attribute
+On MeP, the @code{vliw} attribute tells the compiler to emit
+instructions in VLIW mode instead of core mode.  Note that this
+attribute is not allowed unless a VLIW coprocessor has been configured
+and enabled through command line options.
 
 @item warn_unused_result
 @cindex @code{warn_unused_result} attribute
@@ -4101,6 +4177,64 @@ Medium and large model objects may live anywhere in the 32-bit address space
 addresses).
 @end table
 
+@anchor{MeP Variable Attributes}
+@subsection MeP Variable Attributes
+
+The MeP target has a number of addressing modes and busses.  The
+@code{near} space spans the standard memory space's first 16 megabytes
+(24 bits).  The @code{far} space spans the entire 32-bit memory space.
+The @code{based} space is a 128 byte region in the memory space which
+is addressed relative to the @code{$tp} register.  The @code{tiny}
+space is a 65536 byte region relative to the @code{$gp} register.  In
+addition to these memory regions, the MeP target has a separate 16-bit
+control bus which is specified with @code{cb} attributes.
+
+@table @code
+
+@item based
+Any variable with the @code{based} attribute will be assigned to the
+@code{.based} section, and will be accessed with relative to the
+@code{$tp} register.
+
+@item tiny
+Likewise, the @code{tiny} attribute assigned variables to the
+@code{.tiny} section, relative to the @code{$gp} register.
+
+@item near
+Variables with the @code{near} attribute are assumed to have addresses
+that fit in a 24-bit addressing mode.  This is the default for large
+variables (@code{-mtiny=4} is the default) but this attribute can
+override @code{-mtiny=} for small variables, or override @code{-ml}.
+
+@item far
+Variables with the @code{far} attribute are addressed using a full
+32-bit address.  Since this covers the entire memory space, this
+allows modules to make no assumptions about where variables might be
+stored.
+
+@item io
+@item io (@var{addr})
+Variables with the @code{io} attribute are used to address
+memory-mapped peripherals.  If an address is specified, the variable
+is assigned that address, else it is not assigned an address (it is
+assumed some other module will assign an address).  Example:
+
+@example
+int timer_count __attribute__((io(0x123)));
+@end example
+
+@item cb
+@item cb (@var{addr})
+Variables with the @code{cb} attribute are used to access the control
+bus, using special instructions.  @code{addr} indicates the control bus
+address.  Example:
+
+@example
+int cpu_clock __attribute__((cb(0x123)));
+@end example
+
+@end table
+
 @anchor{i386 Variable Attributes}
 @subsection i386 Variable Attributes
 
@@ -4602,6 +4736,14 @@ In this code, @code{C::C} is exported from the current DLL, but the
 virtual table for @code{C} is not exported.  (You can use
 @code{__attribute__} instead of @code{__declspec} if you prefer, but
 most Symbian OS code uses @code{__declspec}.)
+
+@anchor{MeP Type Attributes}
+@subsection MeP Type Attributes
+
+Many of the MeP variable attributes may be applied to types as well.
+Specifically, the @code{based}, @code{tiny}, @code{near}, and
+@code{far} attributes may be applied to either.  The @code{io} and
+@code{cb} attributes may not be applied to types.
 
 @anchor{i386 Type Attributes}
 @subsection i386 Type Attributes
@@ -11654,6 +11796,7 @@ for further explanation.
 @menu
 * ARM Pragmas::
 * M32C Pragmas::
+* MeP Pragmas::
 * RS/6000 and PowerPC Pragmas::
 * Darwin Pragmas::
 * Solaris Pragmas::
@@ -11703,6 +11846,78 @@ performance-critical function uses a memreg for temporary values,
 as it may allow you to reduce the number of memregs used.
 
 @end table
+
+@node MeP Pragmas
+@subsection MeP Pragmas
+
+@table @code
+
+@item custom io_volatile (on|off)
+@cindex pragma, custom io_volatile
+Overrides the command line option @code{-mio-volatile} for the current
+file.  Note that for compatibility with future GCC releases, this
+option should only be used once before any @code{io} variables in each
+file.
+
+@item GCC coprocessor available @var{registers}
+@cindex pragma, coprocessor available
+Specifies which coprocessor registers are available to the register
+allocator.  @var{registers} may be a single register, register range
+separated by ellipses, or comma-separated list of those.  Example:
+
+@example
+#pragma GCC coprocessor available $c0...$c10, $c28
+@end example
+
+@item GCC coprocessor call_saved @var{registers}
+@cindex pragma, coprocessor call_saved
+Specifies which coprocessor registers are to be saved and restored by
+any function using them.  @var{registers} may be a single register,
+register range separated by ellipses, or comma-separated list of
+those.  Example:
+
+@example
+#pragma GCC coprocessor call_saved $c4...$c6, $c31
+@end example
+
+@item GCC coprocessor subclass '(A|B|C|D)' = @var{registers}
+@cindex pragma, coprocessor subclass
+Creates and defines a register class.  These register classes can be
+used by inline @code{asm} constructs.  @var{registers} may be a single
+register, register range separated by ellipses, or comma-separated
+list of those.  Example:
+
+@example
+#pragma GCC coprocessor subclass 'B' = $c2, $c4, $c6
+
+asm ("cpfoo %0" : "=B" (x));
+@end example
+
+@item GCC disinterrupt @var{name} , @var{name} @dots{}
+@cindex pragma, disinterrupt
+For the named functions, the compiler adds code to disable interrupts
+for the duration of those functions.  Any functions so named, which
+are not encountered in the source, cause a warning that the pragma was
+not used.  Examples:
+
+@example
+#pragma disinterrupt foo
+#pragma disinterrupt bar, grill
+int foo () @{ @dots{} @}
+@end example
+
+@item GCC call @var{name} , @var{name} @dots{}
+@cindex pragma, call
+For the named functions, the compiler always uses a register-indirect
+call model when calling the named functions.  Examples:
+
+@example
+extern int foo ();
+#pragma call foo
+@end example
+
+@end table
+
 
 @node RS/6000 and PowerPC Pragmas
 @subsection RS/6000 and PowerPC Pragmas

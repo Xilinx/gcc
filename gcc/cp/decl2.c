@@ -821,7 +821,9 @@ grokfield (const cp_declarator *declarator,
 	  cplus_decl_attributes (&value, attrlist, attrflags);
 	}
 
-      if (declspecs->specs[(int)ds_typedef])
+      if (declspecs->specs[(int)ds_typedef]
+          && TREE_TYPE (value) != error_mark_node
+          && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
 	set_underlying_type (value);
 
       return value;
@@ -1002,7 +1004,7 @@ grokbitfield (const cp_declarator *declarator,
       error ("static member %qD cannot be a bit-field", value);
       return NULL_TREE;
     }
-  finish_decl (value, NULL_TREE, NULL_TREE, NULL_TREE);
+  cp_finish_decl (value, NULL_TREE, false, NULL_TREE, 0);
 
   if (width != error_mark_node)
     {
@@ -2634,7 +2636,6 @@ start_objects (int method_type, int initp)
     DECL_GLOBAL_CTOR_P (current_function_decl) = 1;
   else
     DECL_GLOBAL_DTOR_P (current_function_decl) = 1;
-  DECL_LANG_SPECIFIC (current_function_decl)->decl_flags.u2sel = 1;
 
   body = begin_compound_stmt (BCS_FN_BODY);
 
@@ -3517,7 +3518,7 @@ cp_write_global_declarations (void)
 	      reconsider = true;
 	    }
 
-	  if (!gimple_body (decl))
+	  if (!DECL_SAVED_TREE (decl))
 	    continue;
 
 	  /* We lie to the back end, pretending that some functions
@@ -3639,7 +3640,6 @@ cp_write_global_declarations (void)
   pop_lang_context ();
 
   cgraph_finalize_compilation_unit ();
-  cgraph_optimize ();
 
   /* Now, issue warnings about static, but not defined, functions,
      etc., and emit debugging information.  */
@@ -3909,29 +3909,6 @@ mark_used (tree decl)
 		      /*expl_inst_class_mem_p=*/false);
 
   processing_template_decl = saved_processing_template_decl;
-}
-
-/* Given function PARM_DECL PARM, return its index in the function's list
-   of parameters, beginning with 1.  */
-
-int
-parm_index (tree parm)
-{
-  int index;
-  tree arg;
-
-  for (index = 1, arg = DECL_ARGUMENTS (DECL_CONTEXT (parm));
-       arg;
-       ++index, arg = TREE_CHAIN (arg))
-    {
-      if (DECL_NAME (parm) == DECL_NAME (arg))
-	break;
-      if (DECL_ARTIFICIAL (arg))
-	--index;
-    }
-
-  gcc_assert (arg);
-  return index;
 }
 
 #include "gt-cp-decl2.h"

@@ -212,9 +212,8 @@ package body Exp_Tss is
                if not Is_CPP_Class (Typ) then
                   return Node (Elmt);
 
-               --  In case of CPP classes we are searching here for the
-               --  default constructor and hence we must skip non-default
-               --  constructors (if any)
+               --  For CPP classes, we are looking for the default constructor,
+               --  and so we must skip any non-default constructor.
 
                elsif
                  No (Next
@@ -228,13 +227,13 @@ package body Exp_Tss is
             Next_Elmt (Elmt);
          end loop;
 
-      --  Non-default constructors are currently supported only in the
-      --  context of interfacing with C++
+      --  Non-default constructors are currently supported only in the context
+      --  of interfacing with C++.
 
       else pragma Assert (Is_CPP_Class (Typ));
 
-         --  Use the referenced function to locate the IP procedure that
-         --  corresponds with the C++ constructor
+         --  Use the referenced function to locate the init_proc matching
+         --  the C++ constructor.
 
          Elmt := First_Elmt (TSS_Elist (FN));
          while Present (Elmt) loop
@@ -244,7 +243,19 @@ package body Exp_Tss is
                while Present (E1) and then Present (E2) loop
                   if Chars (E1) /= Chars (E2)
                     or else Ekind (E1) /= Ekind (E2)
-                    or else Etype (E1) /= Etype (E2)
+                  then
+                     exit;
+
+                  elsif Ekind (Etype (E1)) /= E_Anonymous_Access_Type
+                    and then Ekind (Etype (E2)) /= E_Anonymous_Access_Type
+                    and then Etype (E1) /= Etype (E2)
+                  then
+                     exit;
+
+                  elsif Ekind (Etype (E1)) = E_Anonymous_Access_Type
+                    and then Ekind (Etype (E2)) = E_Anonymous_Access_Type
+                    and then Directly_Designated_Type (Etype (E1))
+                               /= Directly_Designated_Type (Etype (E2))
                   then
                      exit;
                   end if;

@@ -1827,9 +1827,12 @@ perform_koenig_lookup (tree fn, VEC(tree,gc) *args)
   tree identifier = NULL_TREE;
   tree functions = NULL_TREE;
   tree tmpl_args = NULL_TREE;
+  bool template_id = false;
 
   if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
     {
+      /* Use a separate flag to handle null args.  */
+      template_id = true;
       tmpl_args = TREE_OPERAND (fn, 1);
       fn = TREE_OPERAND (fn, 0);
     }
@@ -1861,8 +1864,8 @@ perform_koenig_lookup (tree fn, VEC(tree,gc) *args)
 	fn = unqualified_fn_lookup_error (identifier);
     }
 
-  if (fn && tmpl_args)
-    fn = build_nt (TEMPLATE_ID_EXPR, fn, tmpl_args);
+  if (fn && template_id)
+    fn = build2 (TEMPLATE_ID_EXPR, unknown_type_node, fn, tmpl_args);
   
   return fn;
 }
@@ -2563,20 +2566,21 @@ qualified_name_lookup_error (tree scope, tree name,
   else if (TYPE_P (scope))
     {
       if (!COMPLETE_TYPE_P (scope))
-	error ("%Hincomplete type %qT used in nested name specifier",
-	       &location, scope);
+	error_at (location, "incomplete type %qT used in nested name specifier",
+		  scope);
       else if (TREE_CODE (decl) == TREE_LIST)
 	{
-	  error ("%Hreference to %<%T::%D%> is ambiguous", &location, scope, name);
+	  error_at (location, "reference to %<%T::%D%> is ambiguous",
+		    scope, name);
 	  print_candidates (decl);
 	}
       else
-	error ("%H%qD is not a member of %qT", &location, name, scope);
+	error_at (location, "%qD is not a member of %qT", name, scope);
     }
   else if (scope != global_namespace)
-    error ("%H%qD is not a member of %qD", &location, name, scope);
+    error_at (location, "%qD is not a member of %qD", name, scope);
   else
-    error ("%H%<::%D%> has not been declared", &location, name);
+    error_at (location, "%<::%D%> has not been declared", name);
 }
 
 /* If FNS is a member function, a set of member functions, or a
@@ -3125,10 +3129,11 @@ simplify_aggr_init_expr (tree *tp)
       style = arg;
     }
 
-  call_expr = build_call_array (TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
-				fn,
-				aggr_init_expr_nargs (aggr_init_expr),
-				AGGR_INIT_EXPR_ARGP (aggr_init_expr));
+  call_expr = build_call_array_loc (input_location,
+				    TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
+				    fn,
+				    aggr_init_expr_nargs (aggr_init_expr),
+				    AGGR_INIT_EXPR_ARGP (aggr_init_expr));
 
   if (style == ctor)
     {
@@ -3225,7 +3230,7 @@ expand_or_defer_fn (tree fn)
       return;
     }
 
-  gcc_assert (gimple_body (fn));
+  gcc_assert (DECL_SAVED_TREE (fn));
 
   /* If this is a constructor or destructor body, we have to clone
      it.  */
@@ -3333,7 +3338,7 @@ finalize_nrv_r (tree* tp, int* walk_subtrees, void* data)
       else
 	init = build_empty_stmt (EXPR_LOCATION (*tp));
       DECL_INITIAL (dp->var) = NULL_TREE;
-      SET_EXPR_LOCUS (init, EXPR_LOCUS (*tp));
+      SET_EXPR_LOCATION (init, EXPR_LOCATION (*tp));
       *tp = init;
     }
   /* And replace all uses of the NRV with the RESULT_DECL.  */
@@ -3861,7 +3866,7 @@ finish_omp_threadprivate (tree vars)
 	      /* Make sure that DECL_DISCRIMINATOR_P continues to be true
 		 after the allocation of the lang_decl structure.  */
 	      if (DECL_DISCRIMINATOR_P (v))
-		DECL_LANG_SPECIFIC (v)->decl_flags.u2sel = 1;
+		DECL_LANG_SPECIFIC (v)->u.base.u2sel = 1;
 	    }
 
 	  if (! DECL_THREAD_LOCAL_P (v))
@@ -3984,7 +3989,7 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
     }
   if (cond == error_mark_node)
     {
-      error ("%Hinvalid controlling predicate", &elocus);
+      error_at (elocus, "invalid controlling predicate");
       return true;
     }
   diff = build_x_binary_op (MINUS_EXPR, TREE_OPERAND (cond, 1),
@@ -3994,8 +3999,8 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
     return true;
   if (TREE_CODE (TREE_TYPE (diff)) != INTEGER_TYPE)
     {
-      error ("%Hdifference between %qE and %qD does not have integer type",
-	     &elocus, TREE_OPERAND (cond, 1), iter);
+      error_at (elocus, "difference between %qE and %qD does not have integer type",
+		TREE_OPERAND (cond, 1), iter);
       return true;
     }
 
@@ -4089,7 +4094,7 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
 
   if (incr == error_mark_node)
     {
-      error ("%Hinvalid increment expression", &elocus);
+      error_at (elocus, "invalid increment expression");
       return true;
     }
 
@@ -4216,8 +4221,8 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 
 	  if (decl == NULL)
 	    {
-	      error ("%Hexpected iteration declaration or initialization",
-		     &locus);
+	      error_at (locus,
+			"expected iteration declaration or initialization");
 	      return NULL;
 	    }
 	}
@@ -4227,13 +4232,13 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 
       if (cond == NULL)
 	{
-	  error ("%Hmissing controlling predicate", &elocus);
+	  error_at (elocus, "missing controlling predicate");
 	  return NULL;
 	}
 
       if (incr == NULL)
 	{
-	  error ("%Hmissing increment expression", &elocus);
+	  error_at (elocus, "missing increment expression");
 	  return NULL;
 	}
 
@@ -4287,8 +4292,7 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 
       if (!DECL_P (decl))
 	{
-	  error ("%Hexpected iteration declaration or initialization",
-		 &elocus);
+	  error_at (elocus, "expected iteration declaration or initialization");
 	  return NULL;
 	}
 
@@ -4313,7 +4317,7 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
       if (!INTEGRAL_TYPE_P (TREE_TYPE (decl))
 	  && TREE_CODE (TREE_TYPE (decl)) != POINTER_TYPE)
 	{
-	  error ("%Hinvalid type for iteration variable %qE", &elocus, decl);
+	  error_at (elocus, "invalid type for iteration variable %qE", decl);
 	  return NULL;
 	}
 
@@ -4875,6 +4879,7 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
   switch (kind)
     {
     case CPTK_HAS_NOTHROW_ASSIGN:
+      type1 = strip_array_types (type1);
       return (!CP_TYPE_CONST_P (type1) && type_code1 != REFERENCE_TYPE
 	      && (trait_expr_value (CPTK_HAS_TRIVIAL_ASSIGN, type1, type2)
 		  || (CLASS_TYPE_P (type1)
@@ -4882,8 +4887,11 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
 								 true))));
 
     case CPTK_HAS_TRIVIAL_ASSIGN:
+      /* ??? The standard seems to be missing the "or array of such a class
+	 type" wording for this trait.  */
+      type1 = strip_array_types (type1);
       return (!CP_TYPE_CONST_P (type1) && type_code1 != REFERENCE_TYPE
-	      && (pod_type_p (type1)
+	      && (trivial_type_p (type1)
 		    || (CLASS_TYPE_P (type1)
 			&& TYPE_HAS_TRIVIAL_ASSIGN_REF (type1))));
 
@@ -4896,21 +4904,25 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
 
     case CPTK_HAS_TRIVIAL_CONSTRUCTOR:
       type1 = strip_array_types (type1);
-      return (pod_type_p (type1)
+      return (trivial_type_p (type1)
 	      || (CLASS_TYPE_P (type1) && TYPE_HAS_TRIVIAL_DFLT (type1)));
 
     case CPTK_HAS_NOTHROW_COPY:
+      type1 = strip_array_types (type1);
       return (trait_expr_value (CPTK_HAS_TRIVIAL_COPY, type1, type2)
 	      || (CLASS_TYPE_P (type1)
 		  && classtype_has_nothrow_assign_or_copy_p (type1, false)));
 
     case CPTK_HAS_TRIVIAL_COPY:
-      return (pod_type_p (type1) || type_code1 == REFERENCE_TYPE
+      /* ??? The standard seems to be missing the "or array of such a class
+	 type" wording for this trait.  */
+      type1 = strip_array_types (type1);
+      return (trivial_type_p (type1) || type_code1 == REFERENCE_TYPE
 	      || (CLASS_TYPE_P (type1) && TYPE_HAS_TRIVIAL_INIT_REF (type1)));
 
     case CPTK_HAS_TRIVIAL_DESTRUCTOR:
       type1 = strip_array_types (type1);
-      return (pod_type_p (type1) || type_code1 == REFERENCE_TYPE
+      return (trivial_type_p (type1) || type_code1 == REFERENCE_TYPE
 	      || (CLASS_TYPE_P (type1)
 		  && TYPE_HAS_TRIVIAL_DESTRUCTOR (type1)));
 
@@ -4943,6 +4955,12 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
 
     case CPTK_IS_POLYMORPHIC:
       return (CLASS_TYPE_P (type1) && TYPE_POLYMORPHIC_P (type1));
+
+    case CPTK_IS_STD_LAYOUT:
+      return (std_layout_type_p (type1));
+
+    case CPTK_IS_TRIVIAL:
+      return (trivial_type_p (type1));
 
     case CPTK_IS_UNION:
       return (type_code1 == UNION_TYPE);
@@ -4992,6 +5010,8 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
 	      || kind == CPTK_IS_ENUM
 	      || kind == CPTK_IS_POD
 	      || kind == CPTK_IS_POLYMORPHIC
+	      || kind == CPTK_IS_STD_LAYOUT
+	      || kind == CPTK_IS_TRIVIAL
 	      || kind == CPTK_IS_UNION);
 
   if (kind == CPTK_IS_CONVERTIBLE_TO)
@@ -5033,6 +5053,8 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
     case CPTK_IS_EMPTY:
     case CPTK_IS_POD:
     case CPTK_IS_POLYMORPHIC:
+    case CPTK_IS_STD_LAYOUT:
+    case CPTK_IS_TRIVIAL:
       if (!check_trait_type (type1))
 	{
 	  error ("incomplete type %qT not allowed", type1);

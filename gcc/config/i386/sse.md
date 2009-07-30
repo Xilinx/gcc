@@ -1594,6 +1594,24 @@
   [(set_attr "type" "sselog")
    (set_attr "mode" "<MODE>")])
 
+(define_expand "copysign<mode>3"
+  [(set (match_dup 4)
+	(and:SSEMODEF2P 
+	  (not:SSEMODEF2P (match_dup 3))
+	  (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "")))
+   (set (match_dup 5)
+	(and:SSEMODEF2P (match_dup 3)
+			(match_operand:SSEMODEF2P 2 "nonimmediate_operand" "")))
+   (set (match_operand:SSEMODEF2P 0 "register_operand" "")
+	(ior:SSEMODEF2P (match_dup 4) (match_dup 5)))]
+  "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
+{
+  operands[3] = ix86_build_signbit_mask (<ssescalarmode>mode, 1, 0);
+
+  operands[4] = gen_reg_rtx (<MODE>mode);
+  operands[5] = gen_reg_rtx (<MODE>mode);
+})
+
 ;; Also define scalar versions.  These are used for abs, neg, and
 ;; conditional move.  Using subregs into vector modes causes register
 ;; allocation lossage.  These patterns do not allow memory operands
@@ -2402,6 +2420,31 @@
   [(set_attr "type" "ssecvt")
    (set_attr "mode" "V4SF")])
 
+(define_expand "sse2_cvtudq2ps"
+  [(set (match_dup 5)
+	(float:V4SF (match_operand:V4SI 1 "nonimmediate_operand" "")))
+   (set (match_dup 6)
+	(lt:V4SF (match_dup 5) (match_dup 3)))
+   (set (match_dup 7)
+	(and:V4SF (match_dup 6) (match_dup 4)))
+   (set (match_operand:V4SF 0 "register_operand" "")
+	(plus:V4SF (match_dup 5) (match_dup 7)))]
+  "TARGET_SSE2"
+{
+  REAL_VALUE_TYPE TWO32r;
+  rtx x;
+  int i;
+
+  real_ldexp (&TWO32r, &dconst1, 32);
+  x = const_double_from_real_value (TWO32r, SFmode);
+
+  operands[3] = force_reg (V4SFmode, CONST0_RTX (V4SFmode));
+  operands[4] = force_reg (V4SFmode, ix86_build_const_vector (SFmode, 1, x));
+
+  for (i = 5; i < 8; i++)
+    operands[i] = gen_reg_rtx (V4SFmode);
+})
+
 (define_insn "avx_cvtps2dq<avxmodesuffix>"
   [(set (match_operand:AVXMODEDCVTPS2DQ 0 "register_operand" "=x")
 	(unspec:AVXMODEDCVTPS2DQ
@@ -2915,9 +2958,7 @@
 	  (match_dup 2)
 	    (parallel [(const_int 0) (const_int 1)]))))]
  "TARGET_SSE2"
-{
- operands[2] = gen_reg_rtx (V4SImode);
-})
+ "operands[2] = gen_reg_rtx (V4SImode);")
 
 (define_expand "vec_unpacks_float_lo_v4si"
   [(set (match_operand:V2DF 0 "register_operand" "")
@@ -2926,6 +2967,71 @@
 	    (match_operand:V4SI 1 "nonimmediate_operand" "")
 	    (parallel [(const_int 0) (const_int 1)]))))]
   "TARGET_SSE2")
+
+(define_expand "vec_unpacku_float_hi_v4si"
+  [(set (match_dup 5)
+	(vec_select:V4SI
+	  (match_operand:V4SI 1 "nonimmediate_operand" "")
+	  (parallel [(const_int 2)
+		     (const_int 3)
+		     (const_int 2)
+		     (const_int 3)])))
+   (set (match_dup 6)
+        (float:V2DF
+	  (vec_select:V2SI
+	  (match_dup 5)
+	    (parallel [(const_int 0) (const_int 1)]))))
+   (set (match_dup 7)
+	(lt:V2DF (match_dup 6) (match_dup 3)))
+   (set (match_dup 8)
+	(and:V2DF (match_dup 7) (match_dup 4)))
+   (set (match_operand:V2DF 0 "register_operand" "")
+	(plus:V2DF (match_dup 6) (match_dup 8)))]
+ "TARGET_SSE2"
+{
+  REAL_VALUE_TYPE TWO32r;
+  rtx x;
+  int i;
+
+  real_ldexp (&TWO32r, &dconst1, 32);
+  x = const_double_from_real_value (TWO32r, DFmode);
+
+  operands[3] = force_reg (V2DFmode, CONST0_RTX (V2DFmode));
+  operands[4] = force_reg (V2DFmode, ix86_build_const_vector (DFmode, 1, x));
+
+  operands[5] = gen_reg_rtx (V4SImode);
+ 
+  for (i = 6; i < 9; i++)
+    operands[i] = gen_reg_rtx (V2DFmode);
+})
+
+(define_expand "vec_unpacku_float_lo_v4si"
+  [(set (match_dup 5)
+	(float:V2DF
+	  (vec_select:V2SI
+	    (match_operand:V4SI 1 "nonimmediate_operand" "")
+	    (parallel [(const_int 0) (const_int 1)]))))
+   (set (match_dup 6)
+	(lt:V2DF (match_dup 5) (match_dup 3)))
+   (set (match_dup 7)
+	(and:V2DF (match_dup 6) (match_dup 4)))
+   (set (match_operand:V2DF 0 "register_operand" "")
+	(plus:V2DF (match_dup 5) (match_dup 7)))]
+  "TARGET_SSE2"
+{
+  REAL_VALUE_TYPE TWO32r;
+  rtx x;
+  int i;
+
+  real_ldexp (&TWO32r, &dconst1, 32);
+  x = const_double_from_real_value (TWO32r, DFmode);
+
+  operands[3] = force_reg (V2DFmode, CONST0_RTX (V2DFmode));
+  operands[4] = force_reg (V2DFmode, ix86_build_const_vector (DFmode, 1, x));
+
+  for (i = 5; i < 8; i++)
+    operands[i] = gen_reg_rtx (V2DFmode);
+})
 
 (define_expand "vec_pack_trunc_v2df"
   [(match_operand:V4SF 0 "register_operand" "")
@@ -4760,7 +4866,7 @@
 	(mult:V16QI (match_operand:V16QI 1 "register_operand" "")
 		    (match_operand:V16QI 2 "register_operand" "")))]
   "TARGET_SSE2
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -5218,7 +5324,7 @@
 	(mult:V4SI (match_operand:V4SI 1 "register_operand" "")
 		   (match_operand:V4SI 2 "register_operand" "")))]
   "TARGET_SSE2 && !TARGET_SSE4_1 && !TARGET_SSE5
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -5271,7 +5377,7 @@
 	(mult:V2DI (match_operand:V2DI 1 "register_operand" "")
 		   (match_operand:V2DI 2 "register_operand" "")))]
   "TARGET_SSE2
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -9842,7 +9948,7 @@
 	   (match_dup 6)]
 	  UNSPEC_PCMPESTR))]
   "TARGET_SSE4_2
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -9972,7 +10078,7 @@
 	   (match_dup 4)]
 	  UNSPEC_PCMPISTR))]
   "TARGET_SSE4_2
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]

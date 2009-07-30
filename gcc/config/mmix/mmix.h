@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler, for MMIX.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Hans-Peter Nilsson (hp@bitrange.com)
 
@@ -585,9 +585,6 @@ enum reg_class
 
 
 /* Node: Elimination */
-/* FIXME: Is this requirement built-in?  Anyway, we should try to get rid
-   of it; we can deduce the value.  */
-#define FRAME_POINTER_REQUIRED  cfun->has_nonlocal_label
 
 /* The frame-pointer is stored in a location that either counts to the
    offset of incoming parameters, or that counts to the offset of the
@@ -597,10 +594,6 @@ enum reg_class
  {{ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},	\
   {ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},	\
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
-
-/* We need not worry about when the frame-pointer is required for other
-   reasons; GCC takes care of those cases.  */
-#define CAN_ELIMINATE(FROM, TO) 1
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
  (OFFSET) = mmix_initial_elimination_offset (FROM, TO)

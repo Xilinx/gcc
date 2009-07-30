@@ -146,7 +146,7 @@ package Exp_Disp is
    --      Snames.adb.
 
    --      Categorize the new PPO name as predefined by adding an entry in
-   --      Is_Predefined_Dispatching_Operation in Exp_Util.adb.
+   --      Is_Predefined_Dispatching_Operation in Exp_Disp.
 
    --      Generate the specification of the new PPO in Make_Predefined_
    --      Primitive_Spec in Exp_Ch3.adb. The Is_Internal flag of the defining
@@ -169,6 +169,9 @@ package Exp_Disp is
    --    Ada.Tags.Max_Predef_Prims         - indirect use
    --    Exp_Disp.Default_Prim_Op_Position - indirect use
    --    Exp_Disp.Set_All_DT_Position      - direct   use
+
+   procedure Apply_Tag_Checks (Call_Node : Node_Id);
+   --  Generate checks required on dispatching calls
 
    function Building_Static_DT (Typ : Entity_Id) return Boolean;
    pragma Inline (Building_Static_DT);

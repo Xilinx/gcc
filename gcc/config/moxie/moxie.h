@@ -127,7 +127,7 @@ enum reg_class
   NO_REGS,
   GENERAL_REGS,
   SPECIAL_REGS,
-  CC_REG,
+  CC_REGS,
   ALL_REGS,
   LIM_REG_CLASSES
 };
@@ -156,7 +156,7 @@ enum reg_class
     "NO_REGS", \
     "GENERAL_REGS", \
     "SPECIAL_REGS", \
-    "CC_REG", \
+    "CC_REGS", \
     "ALL_REGS" }
 
 #define FIXED_REGISTERS     { 1, 1, 0, 0, \
@@ -183,7 +183,7 @@ enum reg_class
 /* A C expression whose value is a register class containing hard
    register REGNO.  */
 #define REGNO_REG_CLASS(R) ((R < MOXIE_PC) ? GENERAL_REGS : \
-                            (R == MOXIE_CC ? CC_REG : SPECIAL_REGS))
+                            (R == MOXIE_CC ? CC_REGS : SPECIAL_REGS))
 
 /* A C expression for the number of consecutive hard registers,
    starting at register number REGNO, required to hold a value of mode
@@ -460,14 +460,6 @@ do									      \
  { ARG_POINTER_REGNUM,   HARD_FRAME_POINTER_REGNUM }}			
 #endif
 
-/* A C expression that returns nonzero if the compiler is allowed to
-   try to replace register number FROM-REG with register number
-   TO-REG.  This macro need only be defined if `ELIMINABLE_REGS' is
-   defined, and will usually be the constant 1, since most of the
-   cases preventing register elimination are things that the compiler
-   already knows about.  */
-#define CAN_ELIMINATE(FROM, TO) 1
-
 /* This macro is similar to `INITIAL_FRAME_POINTER_OFFSET'.  It
    specifies the initial difference between the specified pair of
    registers.  This macro must be defined if `ELIMINABLE_REGS' is
@@ -518,13 +510,14 @@ do									      \
 #define MOVE_MAX 4
 #define TRULY_NOOP_TRUNCATION(op,ip) 1
 
+/* All load operations zero extend.  */
+#define LOAD_EXTEND_OP(MEM) ZERO_EXTEND
+
 #define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, STACK_SIZE) 0
 
 /* A C expression that is nonzero if X is a legitimate constant for
    an immediate operand on the target machine.  */
 #define LEGITIMATE_CONSTANT_P(X) 1
-
-#define FRAME_POINTER_REQUIRED 1
 
 /* A C expression that is 1 if the RTX X is a constant which is a
    valid address.  */

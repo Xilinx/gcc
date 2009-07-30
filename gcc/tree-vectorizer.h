@@ -61,6 +61,7 @@ enum vect_def_type {
   vect_internal_def,
   vect_induction_def,
   vect_reduction_def,
+  vect_double_reduction_def,
   vect_nested_cycle,
   vect_unknown_def_type
 };
@@ -785,7 +786,9 @@ extern bool vect_transform_stmt (gimple, gimple_stmt_iterator *,
                                  bool *, slp_tree, slp_instance);
 extern void vect_remove_stores (gimple);
 extern bool vect_analyze_stmt (gimple, bool *, slp_tree);
-
+extern bool vectorizable_condition (gimple, gimple_stmt_iterator *, gimple *, 
+                                    tree, int);
+                        
 /* In tree-vect-data-refs.c.  */
 extern bool vect_can_force_dr_alignment_p (const_tree, unsigned int);
 extern enum dr_alignment_support vect_supportable_dr_alignment
@@ -822,7 +825,7 @@ extern tree vect_create_addr_base_for_vector_ref (gimple, gimple_seq *,
 /* In tree-vect-loop.c.  */
 /* FORNOW: Used in tree-parloops.c.  */
 extern void destroy_loop_vec_info (loop_vec_info, bool);
-extern gimple vect_is_simple_reduction (loop_vec_info, gimple, bool);
+extern gimple vect_is_simple_reduction (loop_vec_info, gimple, bool, bool *);
 /* Drive for loop analysis stage.  */
 extern loop_vec_info vect_analyze_loop (struct loop *);
 /* Drive for loop transformation stage.  */
@@ -861,8 +864,9 @@ typedef gimple (* vect_recog_func_ptr) (gimple, tree *, tree *);
 #define NUM_PATTERNS 4
 void vect_pattern_recog (loop_vec_info);
 
-/*  Vectorization debug information - in tree-vectorizer.c.  */
+/* In tree-vectorizer.c.  */
+unsigned vectorize_loops (void);
+/* Vectorization debug information */
 extern bool vect_print_dump_info (enum verbosity_levels);
-extern void vect_set_verbosity_level (const char *);
 
 #endif  /* GCC_TREE_VECTORIZER_H  */

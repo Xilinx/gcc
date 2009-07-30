@@ -1227,6 +1227,14 @@ One use of this macro is to increase alignment of medium-size data to
 make it all fit in fewer cache lines.
 @end defmac
 
+@defmac MINIMUM_ALIGNMENT (@var{exp}, @var{mode}, @var{align})
+If defined, a C expression to compute the minimum required alignment
+for dynamic stack realignment purposes for @var{exp} (a type or decl),
+@var{mode}, assuming normal alignment @var{align}.
+
+If this macro is not defined, then @var{align} will be used.
+@end defmac
+
 @defmac EMPTY_FIELD_BOUNDARY
 Alignment in bits to be given to a structure bit-field that follows an
 empty field such as @code{int : 0;}.
@@ -2905,6 +2913,10 @@ purposes.  If a move between two registers in the same cover class is
 possible, it should be cheaper than a load or store of the registers.
 The array is terminated by a @code{LIM_REG_CLASSES} element.
 
+The order of cover classes in the array is important.  If two classes
+have the same cost of usage for a pseudo, the class occurred first in
+the array is chosen for the pseudo.
+
 This hook is called once at compiler startup, after the command-line
 options have been processed. It is then re-examined by every call to
 @code{target_reinit}.
@@ -3737,12 +3749,12 @@ return @code{@var{regno}}.
 @c prevent bad page break with this line
 This is about eliminating the frame pointer and arg pointer.
 
-@defmac FRAME_POINTER_REQUIRED
-A C expression which is @code{true} if a function must have and use a frame
-pointer.  This expression is evaluated  in the reload pass.  If its value is
-@code{true} the function will have a frame pointer.
+@deftypefn {Target Hook} bool TARGET_FRAME_POINTER_REQUIRED (void)
+This target hook should return @code{true} if a function must have and use
+a frame pointer.  This target hook is called in the reload pass.  If its return
+value is @code{true} the function will have a frame pointer.
 
-The expression can in principle examine the current function and decide
+This target hook can in principle examine the current function and decide
 according to the facts, but on most machines the constant @code{false} or the
 constant @code{true} suffices.  Use @code{false} when the machine allows code
 to be generated with no frame pointer, and doing so saves some time or space.
@@ -3752,15 +3764,15 @@ pointer.
 In certain cases, the compiler does not know how to produce valid code
 without a frame pointer.  The compiler recognizes those cases and
 automatically gives the function a frame pointer regardless of what
-@code{FRAME_POINTER_REQUIRED} says.  You don't need to worry about
+@code{TARGET_FRAME_POINTER_REQUIRED} returns.  You don't need to worry about
 them.
 
 In a function that does not require a frame pointer, the frame pointer
 register can be allocated for ordinary usage, unless you mark it as a
 fixed register.  See @code{FIXED_REGISTERS} for more information.
 
-Default value is @code{false}.
-@end defmac
+Default return value is @code{false}.
+@end deftypefn
 
 @findex get_frame_size
 @defmac INITIAL_FRAME_POINTER_OFFSET (@var{depth-var})
@@ -3772,7 +3784,7 @@ registers @code{regs_ever_live} and @code{call_used_regs}.
 
 If @code{ELIMINABLE_REGS} is defined, this macro will be not be used and
 need not be defined.  Otherwise, it must be defined even if
-@code{FRAME_POINTER_REQUIRED} is defined to always be true; in that
+@code{TARGET_FRAME_POINTER_REQUIRED} is always return true; in that
 case, you may set @var{depth-var} to anything.
 @end defmac
 
@@ -3804,12 +3816,14 @@ specified first since that is the preferred elimination.
 @end defmac
 
 @defmac CAN_ELIMINATE (@var{from-reg}, @var{to-reg})
-A C expression that returns nonzero if the compiler is allowed to try
+A C expression that returns @code{true} if the compiler is allowed to try
 to replace register number @var{from-reg} with register number
 @var{to-reg}.  This macro need only be defined if @code{ELIMINABLE_REGS}
-is defined, and will usually be the constant 1, since most of the cases
+is defined, and will usually be @code{true}, since most of the cases
 preventing register elimination are things that the compiler already
 knows about.
+
+Default value is @code{true}.
 @end defmac
 
 @defmac INITIAL_ELIMINATION_OFFSET (@var{from-reg}, @var{to-reg}, @var{offset-var})

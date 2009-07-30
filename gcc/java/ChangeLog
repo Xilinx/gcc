@@ -1,3 +1,45 @@
+2009-07-17  Richard Guenther  <rguenther@suse.de>
+
+	PR c/40401
+	* java-gimplify.c (java_genericize): Do not gimplify here.
+	But replace all local references.
+	(java_gimplify_expr): Do not replace local references here.
+	(java_gimplify_modify_expr): Likewise.
+	* jcf-parse.c (java_parse_file): Do not finalize the CU or
+	optimize the cgraph here.
+	* decl.c (java_replace_reference): Make static.
+	(java_replace_references): New function.
+	(end_java_method): Clear base_decl_map.
+	* java-tree.h (java_replace_references): Declare.
+	(java_replace_reference): Remove.
+
+2009-07-14  Taras Glek  <tglek@mozilla.com>
+	    Rafael Espindola  <espindola@google.com>
+
+	* Make-lang.in (java.install-plugin): New target for
+	installing plugin headers.
+
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* class.c: Replace %J by an explicit location. Update all calls.
+	
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* jcf-parse.c: Replace %H by an explicit location. Update all calls.
+
+2009-06-29  Andrew Haley  <aph@redhat.com>
+
+	PR java/40590
+	* java-tree.h (cxx_keyword_p): New declaration.
+	* mangle_name.c (utf8_cmp): Move here from mangle.c.
+	(cxx_keywords): Likewise.
+	(cxx_keyword_p): Likewise.
+	(MANGLE_CXX_KEYWORDS): New macro.
+	(append_gpp_mangled_name): Use MANGLE_CXX_KEYWORDS.
+	(append_gpp_mangled_name): Likewise.
+	* mangle.c: Move code to mangle_name.c. 
+	(mangle_member_name): Don't call cxx_keyword_p.
+
 2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
 
 	* java-gimplify.c (java_gimplify_block): New argument to

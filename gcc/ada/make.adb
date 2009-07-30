@@ -140,16 +140,16 @@ package body Make is
    --    Q   |   |  ........    |   |   |   | .......   |   |
    --        +---+--------------+---+---+---+-----------+---+--------
    --          ^                  ^                       ^
-   --       Q.First             Q_Front               Q.Last - 1
+   --       Q.First             Q_Front               Q.Last-1
    --
-   --  The elements comprised between Q.First and Q_Front - 1 are the elements
+   --  The elements comprised between Q.First and Q_Front-1 are the elements
    --  that have been enqueued and then dequeued, while the elements between
-   --  Q_Front and Q.Last - 1 are the elements currently in the Q. When the Q
+   --  Q_Front and Q.Last-1 are the elements currently in the Q. When the Q
    --  is initialized Q_Front = Q.First = Q.Last. After Compile_Sources has
    --  terminated its execution, Q_Front = Q.Last and the elements contained
-   --  between Q.Front and Q.Last-1 are those that were explored and thus
+   --  between Q.First and Q.Last-1 are those that were explored and thus
    --  marked by Compile_Sources. Whenever the Q is reinitialized, the elements
-   --  between Q.First and Q.Last - 1 are unmarked.
+   --  between Q.First and Q.Last-1 are unmarked.
 
    procedure Init_Q;
    --  Must be called to (re)initialize the Q
@@ -342,8 +342,6 @@ package body Make is
 
    Current_Verbosity : Prj.Verbosity  := Prj.Default;
    --  Verbosity to parse the project files
-
-   Project_Tree : constant Project_Tree_Ref := new Project_Tree_Data;
 
    Main_Project : Prj.Project_Id := No_Project;
    --  The project id of the main project file, if any
@@ -557,25 +555,6 @@ package body Make is
    procedure List_Bad_Compilations;
    --  Prints out the list of all files for which the compilation failed
 
-   procedure Verbose_Msg
-     (N1                : Name_Id;
-      S1                : String;
-      N2                : Name_Id := No_Name;
-      S2                : String  := "";
-      Prefix            : String  := "  -> ";
-      Minimum_Verbosity : Verbosity_Level_Type := Opt.Low);
-   procedure Verbose_Msg
-     (N1                : File_Name_Type;
-      S1                : String;
-      N2                : File_Name_Type := No_File;
-      S2                : String  := "";
-      Prefix            : String  := "  -> ";
-      Minimum_Verbosity : Verbosity_Level_Type := Opt.Low);
-   --  If the verbose flag (Verbose_Mode) is set and the verbosity level is
-   --  at least equal to Minimum_Verbosity, then print Prefix to standard
-   --  output followed by N1 and S1. If N2 /= No_Name then N2 is printed after
-   --  S1. S2 is printed last. Both N1 and N2 are printed in quotation marks.
-
    Usage_Needed : Boolean := True;
    --  Flag used to make sure Makeusg is call at most once
 
@@ -644,7 +623,7 @@ package body Make is
      (Source_File      : File_Name_Type;
       Source_File_Name : String;
       Source_Index     : Int;
-      Naming           : Naming_Data;
+      Project          : Project_Id;
       In_Package       : Package_Id;
       Allow_ALI        : Boolean) return Variable_Value;
    --  Return the switches for the source file in the specified package of a
@@ -834,10 +813,6 @@ package body Make is
 
    Gnatmake_Mapping_File : String_Access := null;
    --  The path name of a mapping file specified by switch -C=
-
-   procedure Delete_Mapping_Files;
-   --  Delete all temporary mapping files. Called only in Delete_All_Temp_Files
-   --  which ensures that Debug_Flag_N is False.
 
    procedure Init_Mapping_File
      (Project    : Project_Id;
@@ -1274,7 +1249,7 @@ package body Make is
              (Source_File      => Name_Find,
               Source_File_Name => File_Name,
               Source_Index     => Index,
-              Naming           => Main_Project.Naming,
+              Project          => Main_Project,
               In_Package       => The_Package,
               Allow_ALI        => Program = Binder or else Program = Linker);
 
@@ -1438,10 +1413,6 @@ package body Make is
       O_File         : out File_Name_Type;
       O_Stamp        : out Time_Stamp_Type)
    is
-      function File_Not_A_Source_Of
-        (Uname : Name_Id;
-         Sfile : File_Name_Type) return Boolean;
-
       function First_New_Spec (A : ALI_Id) return File_Name_Type;
       --  Looks in the with table entries of A and returns the spec file name
       --  of the first withed unit (subprogram) for which no spec existed when
@@ -1455,34 +1426,6 @@ package body Make is
       --  Note: This function should really be in ali.adb and use Uname
       --  services, but this causes the whole compiler to be dragged along
       --  for gnatbind and gnatmake.
-
-      --------------------------
-      -- File_Not_A_Source_Of --
-      --------------------------
-
-      function File_Not_A_Source_Of
-        (Uname : Name_Id;
-         Sfile : File_Name_Type) return Boolean
-      is
-         UID    : Prj.Unit_Index;
-         U_Data : Unit_Data;
-
-      begin
-         UID := Units_Htable.Get (Project_Tree.Units_HT, Uname);
-
-         if UID /= Prj.No_Unit_Index then
-            U_Data := Project_Tree.Units.Table (UID);
-
-            if U_Data.File_Names (Body_Part).Name /= Sfile
-              and then U_Data.File_Names (Specification).Name /= Sfile
-            then
-               Verbose_Msg (Uname, "sources do not include ", Name_Id (Sfile));
-               return True;
-            end if;
-         end if;
-
-         return False;
-      end File_Not_A_Source_Of;
 
       --------------------
       -- First_New_Spec --
@@ -1859,72 +1802,10 @@ package body Make is
 
             elsif not Read_Only and then Main_Project /= No_Project then
 
-               --  Check if a file name does not correspond to the mapping of
-               --  units to file names.
-
-               declare
-                  SD        : Sdep_Record;
-                  WR        : With_Record;
-                  Unit_Name : Name_Id;
-
-               begin
-                  U_Chk :
-                  for U in ALIs.Table (ALI).First_Unit ..
-                           ALIs.Table (ALI).Last_Unit
-                  loop
-                     --  Check if the file name is one of the source of the
-                     --  unit.
-
-                     Get_Name_String (Units.Table (U).Uname);
-                     Name_Len := Name_Len - 2;
-                     Unit_Name := Name_Find;
-
-                     if File_Not_A_Source_Of
-                          (Unit_Name, Units.Table (U).Sfile)
-                     then
-                        ALI := No_ALI_Id;
-                        return;
-                     end if;
-
-                     --  Do the same check for each of the withed units
-
-                     W_Check :
-                     for W in Units.Table (U).First_With
-                          ..
-                        Units.Table (U).Last_With
-                     loop
-                        WR := Withs.Table (W);
-
-                        if WR.Sfile /= No_File then
-                           Get_Name_String (WR.Uname);
-                           Name_Len := Name_Len - 2;
-                           Unit_Name := Name_Find;
-
-                           if File_Not_A_Source_Of (Unit_Name, WR.Sfile) then
-                              ALI := No_ALI_Id;
-                              return;
-                           end if;
-                        end if;
-                     end loop W_Check;
-                  end loop U_Chk;
-
-                  --  Check also the subunits
-
-                  D_Check :
-                  for D in ALIs.Table (ALI).First_Sdep ..
-                           ALIs.Table (ALI).Last_Sdep
-                  loop
-                     SD := Sdep.Table (D);
-                     Unit_Name := SD.Subunit_Name;
-
-                     if Unit_Name /= No_Name then
-                        if File_Not_A_Source_Of (Unit_Name, SD.Sfile) then
-                           ALI := No_ALI_Id;
-                           return;
-                        end if;
-                     end if;
-                  end loop D_Check;
-               end;
+               if not Check_Source_Info_In_ALI (ALI) then
+                  ALI := No_ALI_Id;
+                  return;
+               end if;
 
                --  Check that the ALI file is in the correct object directory.
                --  If it is in the object directory of a project that is
@@ -1939,23 +1820,25 @@ package body Make is
                ALI_Project := No_Project;
 
                declare
-                  Udata : Prj.Unit_Data;
+                  Udata : Prj.Unit_Index;
 
                begin
-                  for U in 1 .. Unit_Table.Last (Project_Tree.Units) loop
-                     Udata := Project_Tree.Units.Table (U);
-
-                     if Udata.File_Names (Body_Part).Name = Source_File then
-                        ALI_Project := Udata.File_Names (Body_Part).Project;
+                  Udata := Units_Htable.Get_First (Project_Tree.Units_HT);
+                  while Udata /= No_Unit_Index loop
+                     if Udata.File_Names (Impl) /= null
+                       and then Udata.File_Names (Impl).File = Source_File
+                     then
+                        ALI_Project := Udata.File_Names (Impl).Project;
                         exit;
 
-                     elsif
-                       Udata.File_Names (Specification).Name = Source_File
+                     elsif Udata.File_Names (Spec) /= null
+                       and then Udata.File_Names (Spec).File = Source_File
                      then
-                        ALI_Project :=
-                          Udata.File_Names (Specification).Project;
+                        ALI_Project := Udata.File_Names (Spec).Project;
                         exit;
                      end if;
+
+                     Udata := Units_Htable.Get_Next (Project_Tree.Units_HT);
                   end loop;
                end;
 
@@ -1976,12 +1859,8 @@ package body Make is
                   Name_Len := 0;
                   Add_Str_To_Name_Buffer (Res_Obj_Dir);
 
-                  if Name_Len > 1 and then
-                    (Name_Buffer (Name_Len) = '/'
-                       or else
-                     Name_Buffer (Name_Len) = Directory_Separator)
-                  then
-                     Name_Len := Name_Len - 1;
+                  if not Is_Directory_Separator (Name_Buffer (Name_Len)) then
+                     Add_Char_To_Name_Buffer (Directory_Separator);
                   end if;
 
                   Obj_Dir := Name_Find;
@@ -2029,6 +1908,7 @@ package body Make is
                      Projects : array (1 .. Num_Ext) of Project_Id;
                      Dep      : Sdep_Record;
                      OK       : Boolean := True;
+                     UID      : Unit_Index;
 
                   begin
                      Proj := ALI_Project;
@@ -2045,24 +1925,20 @@ package body Make is
                        ALIs.Table (ALI).Last_Sdep
                      loop
                         Dep := Sdep.Table (D);
-
+                        UID  := Units_Htable.Get_First (Project_Tree.Units_HT);
                         Proj := No_Project;
 
                         Unit_Loop :
-                        for
-                          UID in 1 .. Unit_Table.Last (Project_Tree.Units)
-                        loop
-                           if Project_Tree.Units.Table (UID).
-                             File_Names (Body_Part).Name = Dep.Sfile
+                        while UID /= null loop
+                           if UID.File_Names (Impl) /= null
+                             and then UID.File_Names (Impl).File = Dep.Sfile
                            then
-                              Proj := Project_Tree.Units.Table (UID).
-                                File_Names (Body_Part).Project;
+                              Proj := UID.File_Names (Impl).Project;
 
-                           elsif Project_Tree.Units.Table (UID).
-                             File_Names (Specification).Name = Dep.Sfile
+                           elsif UID.File_Names (Spec) /= null
+                             and then UID.File_Names (Spec).File = Dep.Sfile
                            then
-                              Proj := Project_Tree.Units.Table (UID).
-                                File_Names (Specification).Project;
+                              Proj := UID.File_Names (Spec).Project;
                            end if;
 
                            --  If a source is in a project, check if it is one
@@ -2078,6 +1954,9 @@ package body Make is
 
                               exit Unit_Loop;
                            end if;
+
+                           UID :=
+                             Units_Htable.Get_Next (Project_Tree.Units_HT);
                         end loop Unit_Loop;
                      end loop D_Chk;
 
@@ -2386,7 +2265,7 @@ package body Make is
                       (Source_File      => Source_File,
                        Source_File_Name => Source_File_Name,
                        Source_Index     => Source_Index,
-                       Naming           => Arguments_Project.Naming,
+                       Project          => Arguments_Project,
                        In_Package       => Compiler_Package,
                        Allow_ALI        => False);
 
@@ -2985,7 +2864,9 @@ package body Make is
          Comp_Next := Comp_Next + 1;
 
          --  Optimize the simple case where the gcc command line looks like
-         --     gcc -c -I. ... -I- file.adb  --into->  gcc -c ... file.adb
+         --     gcc -c -I. ... -I- file.adb
+         --  into
+         --     gcc -c ... file.adb
 
          if Args (Args'First).all = "-I" & Normalized_CWD
            and then Args (Args'Last).all = "-I-"
@@ -3088,9 +2969,9 @@ package body Make is
             end if;
          end if;
 
-         if Create_Mapping_File then
+         if Create_Mapping_File and then Mapping_File_Arg /= null then
             Comp_Last := Comp_Last + 1;
-            Comp_Args (Comp_Last) := Mapping_File_Arg;
+            Comp_Args (Comp_Last) := new String'(Mapping_File_Arg.all);
          end if;
 
          Get_Name_String (S);
@@ -3595,7 +3476,6 @@ package body Make is
                            declare
                               Unit_Name : Name_Id;
                               Uid       : Prj.Unit_Index;
-                              Udata     : Unit_Data;
 
                            begin
                               Get_Name_String (Uname);
@@ -3606,30 +3486,21 @@ package body Make is
                                   (Project_Tree.Units_HT, Unit_Name);
 
                               if Uid /= Prj.No_Unit_Index then
-                                 Udata := Project_Tree.Units.Table (Uid);
-
-                                 if
-                                    Udata.File_Names (Body_Part).Name /=
-                                                                       No_File
+                                 if Uid.File_Names (Impl) /= null
                                    and then
-                                     Udata.File_Names (Body_Part).Path.Name /=
-                                       Slash
+                                     not Uid.File_Names (Impl).Locally_Removed
                                  then
-                                    Sfile := Udata.File_Names (Body_Part).Name;
+                                    Sfile := Uid.File_Names (Impl).File;
                                     Source_Index :=
-                                      Udata.File_Names (Body_Part).Index;
+                                      Uid.File_Names (Impl).Index;
 
-                                 elsif
-                                    Udata.File_Names (Specification).Name /=
-                                                                        No_File
+                                 elsif Uid.File_Names (Spec) /= null
                                    and then
-                                     Udata.File_Names
-                                       (Specification).Path.Name /= Slash
+                                     not Uid.File_Names (Spec).Locally_Removed
                                  then
-                                    Sfile :=
-                                      Udata.File_Names (Specification).Name;
+                                    Sfile := Uid.File_Names (Spec).File;
                                     Source_Index :=
-                                      Udata.File_Names (Specification).Index;
+                                      Uid.File_Names (Spec).Index;
                                  end if;
                               end if;
                            end;
@@ -3758,7 +3629,7 @@ package body Make is
 
    begin
       Prj.Env.Create_Config_Pragmas_File
-        (For_Project, Main_Project, Project_Tree);
+        (For_Project, Project_Tree);
 
       if For_Project.Config_File_Name /= No_Path then
          Temporary_Config_File := For_Project.Config_File_Temp;
@@ -3893,44 +3764,10 @@ package body Make is
    procedure Delete_All_Temp_Files is
    begin
       if not Debug.Debug_Flag_N then
-         Delete_Mapping_Files;
          Delete_Temp_Config_Files;
-         Prj.Env.Delete_All_Path_Files (Project_Tree);
+         Prj.Delete_All_Temp_Files (Project_Tree);
       end if;
    end Delete_All_Temp_Files;
-
-   --------------------------
-   -- Delete_Mapping_Files --
-   --------------------------
-
-   procedure Delete_Mapping_Files is
-      Success : Boolean;
-      pragma Warnings (Off, Success);
-
-      Proj : Project_List;
-      Data : Project_Compilation_Access;
-
-   begin
-      --  The caller is responsible for ensuring that Debug_Flag_N is False
-
-      pragma Assert (not Debug.Debug_Flag_N);
-
-      Proj := Project_Tree.Projects;
-      while Proj /= null loop
-         Data := Project_Compilation_Htable.Get
-           (Project_Compilation, Proj.Project);
-
-         if Data /= null and then Data.Mapping_File_Names /= null then
-            for Index in 1 .. Data.Last_Mapping_File_Names loop
-               Delete_File
-                 (Name => Get_Name_String (Data.Mapping_File_Names (Index)),
-                  Success => Success);
-            end loop;
-         end if;
-
-         Proj := Proj.Next;
-      end loop;
-   end Delete_Mapping_Files;
 
    ------------------------------
    -- Delete_Temp_Config_Files --
@@ -3950,15 +3787,8 @@ package body Make is
          Proj := Project_Tree.Projects;
          while Proj /= null loop
             if Proj.Project.Config_File_Temp then
-               if Verbose_Mode then
-                  Write_Str ("Deleting temp configuration file """);
-                  Write_Str (Get_Name_String (Proj.Project.Config_File_Name));
-                  Write_Line ("""");
-               end if;
-
-               Delete_File
-                 (Name    => Get_Name_String (Proj.Project.Config_File_Name),
-                  Success => Success);
+               Delete_Temporary_File
+                 (Project_Tree, Proj.Project.Config_File_Name);
 
                --  Make sure that we don't have a config file for this project,
                --  in case there are several mains. In this case, we will
@@ -4243,6 +4073,8 @@ package body Make is
                File_Name : constant String := Base_Name (Main);
                --  The simple file name of the current main
 
+               Lang : Language_Ptr;
+
             begin
                exit when Main = "";
 
@@ -4264,18 +4096,18 @@ package body Make is
                   --  is the actual path of a source of a project.
 
                   if Main /= File_Name then
+                     Lang := Get_Language_From_Name (Main_Project, "ada");
+
                      Real_Path :=
                        Locate_Regular_File
-                         (Main &
-                          Body_Suffix_Of
-                            (Project_Tree, "ada", Main_Project.Naming),
+                         (Main & Get_Name_String
+                              (Lang.Config.Naming_Data.Body_Suffix),
                           "");
                      if Real_Path = null then
                         Real_Path :=
                           Locate_Regular_File
-                            (Main &
-                             Spec_Suffix_Of
-                               (Project_Tree, "ada", Main_Project.Naming),
+                            (Main & Get_Name_String
+                                 (Lang.Config.Naming_Data.Spec_Suffix),
                              "");
                      end if;
 
@@ -4378,151 +4210,148 @@ package body Make is
 
          Bytes : Integer;
          OK    : Boolean := True;
+         Unit  : Unit_Index;
 
          Status : Boolean;
          --  For call to Close
 
       begin
          Tempdir.Create_Temp_File (Mapping_FD, Mapping_Path);
-         Record_Temp_File (Mapping_Path);
+         Record_Temp_File (Project_Tree, Mapping_Path);
 
          if Mapping_FD /= Invalid_FD then
 
             --  Traverse all units
 
-            for J in Unit_Table.First ..
-                     Unit_Table.Last (Project_Tree.Units)
-            loop
-               declare
-                  Unit : constant Unit_Data := Project_Tree.Units.Table (J);
-               begin
-                  if Unit.Name /= No_Name then
+            Unit := Units_Htable.Get_First (Project_Tree.Units_HT);
 
-                     --  If there is a body, put it in the mapping
+            while Unit /= No_Unit_Index loop
+               if Unit.Name /= No_Name then
 
-                     if Unit.File_Names (Body_Part).Name /= No_File
-                       and then Unit.File_Names (Body_Part).Project /=
-                                                            No_Project
-                     then
-                        Get_Name_String (Unit.Name);
-                        Add_Str_To_Name_Buffer ("%b");
-                        ALI_Unit := Name_Find;
-                        ALI_Name :=
-                          Lib_File_Name
-                            (Unit.File_Names (Body_Part).Display_Name);
-                        ALI_Project := Unit.File_Names (Body_Part).Project;
+                  --  If there is a body, put it in the mapping
 
-                        --  Otherwise, if there is a spec, put it in the
-                        --  mapping.
+                  if Unit.File_Names (Impl) /= No_Source
+                    and then Unit.File_Names (Impl).Project /=
+                    No_Project
+                  then
+                     Get_Name_String (Unit.Name);
+                     Add_Str_To_Name_Buffer ("%b");
+                     ALI_Unit := Name_Find;
+                     ALI_Name :=
+                       Lib_File_Name
+                         (Unit.File_Names (Impl).Display_File);
+                     ALI_Project := Unit.File_Names (Impl).Project;
 
-                     elsif Unit.File_Names (Specification).Name /= No_File
-                       and then Unit.File_Names (Specification).Project /=
-                                                                No_Project
-                     then
-                        Get_Name_String (Unit.Name);
-                        Add_Str_To_Name_Buffer ("%s");
-                        ALI_Unit := Name_Find;
-                        ALI_Name :=
-                          Lib_File_Name
-                            (Unit.File_Names (Specification).Display_Name);
-                        ALI_Project := Unit.File_Names (Specification).Project;
+                     --  Otherwise, if there is a spec, put it in the
+                     --  mapping.
 
-                     else
-                        ALI_Name := No_File;
-                     end if;
+                  elsif Unit.File_Names (Spec) /= No_Source
+                    and then Unit.File_Names (Spec).Project /=
+                    No_Project
+                  then
+                     Get_Name_String (Unit.Name);
+                     Add_Str_To_Name_Buffer ("%s");
+                     ALI_Unit := Name_Find;
+                     ALI_Name :=
+                       Lib_File_Name
+                         (Unit.File_Names (Spec).Display_File);
+                     ALI_Project := Unit.File_Names (Spec).Project;
 
-                     --  If we have something to put in the mapping then do it
-                     --  now. However, if the project is extended, we don't put
-                     --  anything in the mapping file, because we do not know
-                     --  where the ALI file is: it might be in the extended
-                     --  project obj dir as well as in the extending project
-                     --  obj dir.
+                  else
+                     ALI_Name := No_File;
+                  end if;
 
-                     if ALI_Name /= No_File
-                       and then ALI_Project.Extended_By = No_Project
-                       and then ALI_Project.Extends = No_Project
-                     then
-                        --  First check if the ALI file exists. If it does not,
-                        --  do not put the unit in the mapping file.
+                  --  If we have something to put in the mapping then do it
+                  --  now. However, if the project is extended, we don't put
+                  --  anything in the mapping file, because we don't know where
+                  --  the ALI file is: it might be in the extended project obj
+                  --  dir as well as in the extending project obj dir.
+
+                  if ALI_Name /= No_File
+                    and then ALI_Project.Extended_By = No_Project
+                    and then ALI_Project.Extends = No_Project
+                  then
+                     --  First check if the ALI file exists. If it does not,
+                     --  do not put the unit in the mapping file.
+
+                     declare
+                        ALI : constant String := Get_Name_String (ALI_Name);
+
+                     begin
+                        --  For library projects, use the library directory,
+                        --  for other projects, use the object directory.
+
+                        if ALI_Project.Library then
+                           Get_Name_String (ALI_Project.Library_Dir.Name);
+                        else
+                           Get_Name_String
+                             (ALI_Project.Object_Directory.Name);
+                        end if;
+
+                        if not
+                          Is_Directory_Separator (Name_Buffer (Name_Len))
+                        then
+                           Add_Char_To_Name_Buffer (Directory_Separator);
+                        end if;
+
+                        Add_Str_To_Name_Buffer (ALI);
+                        Add_Char_To_Name_Buffer (ASCII.LF);
 
                         declare
-                           ALI : constant String := Get_Name_String (ALI_Name);
+                           ALI_Path_Name : constant String :=
+                                             Name_Buffer (1 .. Name_Len);
 
                         begin
-                           --  For library projects, use the library directory,
-                           --  for other projects, use the object directory.
-
-                           if ALI_Project.Library then
-                              Get_Name_String (ALI_Project.Library_Dir.Name);
-                           else
-                              Get_Name_String
-                                (ALI_Project.Object_Directory.Name);
-                           end if;
-
-                           if Name_Buffer (Name_Len) /=
-                                Directory_Separator
-                           then
-                              Add_Char_To_Name_Buffer (Directory_Separator);
-                           end if;
-
-                           Add_Str_To_Name_Buffer (ALI);
-                           Add_Char_To_Name_Buffer (ASCII.LF);
-
-                           declare
-                              ALI_Path_Name : constant String :=
-                                                Name_Buffer (1 .. Name_Len);
-
-                           begin
-                              if Is_Regular_File
+                           if Is_Regular_File
                                 (ALI_Path_Name (1 .. ALI_Path_Name'Last - 1))
-                              then
+                           then
+                              --  First line is the unit name
 
-                                 --  First line is the unit name
+                              Get_Name_String (ALI_Unit);
+                              Add_Char_To_Name_Buffer (ASCII.LF);
+                              Bytes :=
+                                Write
+                                  (Mapping_FD,
+                                   Name_Buffer (1)'Address,
+                                   Name_Len);
+                              OK := Bytes = Name_Len;
 
-                                 Get_Name_String (ALI_Unit);
-                                 Add_Char_To_Name_Buffer (ASCII.LF);
-                                 Bytes :=
-                                   Write
-                                     (Mapping_FD,
-                                      Name_Buffer (1)'Address,
-                                      Name_Len);
-                                 OK := Bytes = Name_Len;
+                              exit when not OK;
 
-                                 exit when not OK;
+                              --  Second line it the ALI file name
 
-                                 --  Second line it the ALI file name
+                              Get_Name_String (ALI_Name);
+                              Add_Char_To_Name_Buffer (ASCII.LF);
+                              Bytes :=
+                                Write
+                                  (Mapping_FD,
+                                   Name_Buffer (1)'Address,
+                                   Name_Len);
+                              OK := (Bytes = Name_Len);
 
-                                 Get_Name_String (ALI_Name);
-                                 Add_Char_To_Name_Buffer (ASCII.LF);
-                                 Bytes :=
-                                   Write
-                                     (Mapping_FD,
-                                      Name_Buffer (1)'Address,
-                                      Name_Len);
-                                 OK := Bytes = Name_Len;
+                              exit when not OK;
 
-                                 exit when not OK;
+                              --  Third line it the ALI path name
 
-                                 --  Third line it the ALI path name
+                              Bytes :=
+                                Write
+                                  (Mapping_FD,
+                                   ALI_Path_Name (1)'Address,
+                                   ALI_Path_Name'Length);
+                              OK := (Bytes = ALI_Path_Name'Length);
 
-                                 Bytes :=
-                                   Write
-                                     (Mapping_FD,
-                                      ALI_Path_Name (1)'Address,
-                                      ALI_Path_Name'Length);
-                                 OK := Bytes = ALI_Path_Name'Length;
+                              --  If OK is False, it means we were unable to
+                              --  write a line. No point in continuing with the
+                              --  other units.
 
-                                 --  If OK is False, it means we were unable
-                                 --  to write a line. No point in continuing
-                                 --  with the other units.
-
-                                 exit when not OK;
-                              end if;
-                           end;
+                              exit when not OK;
+                           end if;
                         end;
-                     end if;
+                     end;
                   end if;
-               end;
+               end if;
+
+               Unit := Units_Htable.Get_Next (Project_Tree.Units_HT);
             end loop;
 
             Close (Mapping_FD, Status);
@@ -4828,6 +4657,11 @@ package body Make is
             Exit_Program (E_Success);
 
          else
+            --  Call Get_Target_Parameters to ensure that VM_Target and
+            --  AAMP_On_Target get set before calling Usage.
+
+            Targparm.Get_Target_Parameters;
+
             --  Output usage information if no files to compile
 
             Usage;
@@ -5181,7 +5015,7 @@ package body Make is
 
             --  Add binder switches from the project file for the first main
 
-            if Do_Bind_Step and Binder_Package /= No_Package then
+            if Do_Bind_Step and then Binder_Package /= No_Package then
                if Verbose_Mode then
                   Write_Str ("Adding binder switches for """);
                   Write_Str (Main_Unit_File_Name);
@@ -5197,7 +5031,7 @@ package body Make is
 
             --  Add linker switches from the project file for the first main
 
-            if Do_Link_Step and Linker_Package /= No_Package then
+            if Do_Link_Step and then Linker_Package /= No_Package then
                if Verbose_Mode then
                   Write_Str ("Adding linker switches for""");
                   Write_Str (Main_Unit_File_Name);
@@ -5321,7 +5155,9 @@ package body Make is
                   if not Is_Absolute_Path (Exec_File_Name) then
                      Get_Name_String (Main_Project.Exec_Directory.Name);
 
-                     if Name_Buffer (Name_Len) /= Directory_Separator then
+                     if not
+                       Is_Directory_Separator (Name_Buffer (Name_Len))
+                     then
                         Add_Char_To_Name_Buffer (Directory_Separator);
                      end if;
 
@@ -5649,7 +5485,7 @@ package body Make is
                  and then (Do_Bind_Step
                              or Unique_Compile_All_Projects
                              or not Compile_Only)
-                 and then (Do_Link_Step or N_File = Osint.Number_Of_Files)
+                 and then (Do_Link_Step or else N_File = Osint.Number_Of_Files)
                then
                   Library_Projs.Init;
 
@@ -5881,6 +5717,38 @@ package body Make is
                      Executable_Obsolete := Youngest_Obj_File /= No_File;
                   end if;
 
+                  --  Check if any library file is more recent than the
+                  --  executable: there may be an externally built library
+                  --  file that has been modified.
+
+                  if not Executable_Obsolete
+                    and then Main_Project /= No_Project
+                  then
+                     declare
+                        Proj1 : Project_List;
+
+                     begin
+                        Proj1 := Project_Tree.Projects;
+                        while Proj1 /= null loop
+                           if Proj1.Project.Library
+                             and then
+                               Proj1.Project.Library_TS > Executable_Stamp
+                           then
+                              Executable_Obsolete := True;
+                              Youngest_Obj_Stamp := Proj1.Project.Library_TS;
+                              Name_Len := 0;
+                              Add_Str_To_Name_Buffer ("library ");
+                              Add_Str_To_Name_Buffer
+                                (Get_Name_String (Proj1.Project.Library_Name));
+                              Youngest_Obj_File := Name_Find;
+                              exit;
+                           end if;
+
+                           Proj1 := Proj1.Next;
+                        end loop;
+                     end;
+                  end if;
+
                   --  Return if the executable is up to date and otherwise
                   --  motivate the relink/rebind.
 
@@ -6028,9 +5896,10 @@ package body Make is
                if Main_Project /= No_Project then
 
                   --  Put all the source directories in ADA_INCLUDE_PATH,
-                  --  and all the object directories in ADA_OBJECTS_PATH.
+                  --  and all the object directories in ADA_OBJECTS_PATH,
+                  --  except those of library projects.
 
-                  Prj.Env.Set_Ada_Paths (Main_Project, Project_Tree, True);
+                  Prj.Env.Set_Ada_Paths (Main_Project, Project_Tree, False);
 
                   --  If switch -C was specified, create a binder mapping file
 
@@ -6047,13 +5916,10 @@ package body Make is
                exception
                   when others =>
 
-                     --  If -dn was not specified, delete the temporary mapping
-                     --  file, if one was created.
+                     --  Delete the temporary mapping file, if one was created.
 
-                     if not Debug.Debug_Flag_N
-                       and then Mapping_Path /= No_Path
-                     then
-                        Delete_File (Get_Name_String (Mapping_Path), Discard);
+                     if Mapping_Path /= No_Path then
+                        Delete_Temporary_File (Project_Tree, Mapping_Path);
                      end if;
 
                      --  And reraise the exception
@@ -6064,8 +5930,8 @@ package body Make is
                --  If -dn was not specified, delete the temporary mapping file,
                --  if one was created.
 
-               if not Debug.Debug_Flag_N and then Mapping_Path /= No_Path then
-                  Delete_File (Get_Name_String (Mapping_Path), Discard);
+               if Mapping_Path /= No_Path then
+                  Delete_Temporary_File (Project_Tree, Mapping_Path);
                end if;
             end Bind_Step;
          end if;
@@ -6167,7 +6033,7 @@ package body Make is
                      --  We do that only if Run_Path_Option is True
                      --  (not disabled by -R switch).
 
-                     if Run_Path_Option and Path_Option /= null then
+                     if Run_Path_Option and then Path_Option /= null then
                         declare
                            Option  : String_Access;
                            Length  : Natural := Path_Option'Length;
@@ -6336,7 +6202,9 @@ package body Make is
                         Successful_Links.Table (Successful_Links.Last) :=
                           Main_ALI_File;
 
-                     elsif Osint.Number_Of_Files = 1 or not Keep_Going then
+                     elsif Osint.Number_Of_Files = 1
+                       or else not Keep_Going
+                     then
                         Make_Failed ("*** link failed.");
 
                      else
@@ -6450,7 +6318,7 @@ package body Make is
                   --  Add binder switches from the project file for this main,
                   --  if any.
 
-                  if Do_Bind_Step and Binder_Package /= No_Package then
+                  if Do_Bind_Step and then Binder_Package /= No_Package then
                      if Verbose_Mode then
                         Write_Str ("Adding binder switches for """);
                         Write_Str (Main_Unit_File_Name);
@@ -6467,7 +6335,7 @@ package body Make is
                   --  Add linker switches from the project file for this main,
                   --  if any.
 
-                  if Do_Link_Step and Linker_Package /= No_Package then
+                  if Do_Link_Step and then Linker_Package /= No_Package then
                      if Verbose_Mode then
                         Write_Str ("Adding linker switches for""");
                         Write_Str (Main_Unit_File_Name);
@@ -6622,7 +6490,7 @@ package body Make is
          Prj.Env.Create_Mapping_File
            (Project,
             In_Tree  => Project_Tree,
-            Language => No_Name,
+            Language => Name_Ada,
             Name     => Data.Mapping_File_Names
                           (Data.Last_Mapping_File_Names));
 
@@ -6638,7 +6506,8 @@ package body Make is
 
          else
             Record_Temp_File
-              (Data.Mapping_File_Names (Data.Last_Mapping_File_Names));
+              (Project_Tree,
+               Data.Mapping_File_Names (Data.Last_Mapping_File_Names));
          end if;
 
          Close (FD, Status);
@@ -6676,8 +6545,6 @@ package body Make is
       --  Start of processing for Initialize
 
    begin
-      Prj.Set_Mode (Ada_Only);
-
       --  Override default initialization of Check_Object_Consistency since
       --  this is normally False for GNATBIND, but is True for GNATMAKE since
       --  we do not need to check source consistency again once GNATMAKE has
@@ -6844,7 +6711,7 @@ package body Make is
             In_Tree           => Project_Tree,
             Project_File_Name => Project_File_Name.all,
             Packages_To_Check => Packages_To_Check_By_Gnatmake,
-            Is_Config_File    => False);
+            Flags             => Gnatmake_Flags);
 
          --  The parsing of project files may have changed the current output
 
@@ -6930,7 +6797,7 @@ package body Make is
       Into_Q       : Boolean)
    is
       Put_In_Q : Boolean := Into_Q;
-      Unit     : Unit_Data;
+      Unit     : Unit_Index;
       Sfile    : File_Name_Type;
       Index    : Int;
 
@@ -6945,7 +6812,7 @@ package body Make is
 
       function Check_Project (P : Project_Id) return Boolean is
       begin
-         if All_Projects or P = The_Project then
+         if All_Projects or else P = The_Project then
             return True;
 
          elsif Extending then
@@ -6972,27 +6839,25 @@ package body Make is
    begin
       --  For all the sources in the project files,
 
-      for Id in Unit_Table.First ..
-                Unit_Table.Last (Project_Tree.Units)
-      loop
-         Unit  := Project_Tree.Units.Table (Id);
+      Unit := Units_Htable.Get_First (Project_Tree.Units_HT);
+      while Unit /= null loop
          Sfile := No_File;
          Index := 0;
 
          --  If there is a source for the body, and the body has not been
          --  locally removed.
 
-         if Unit.File_Names (Body_Part).Name /= No_File
-           and then Unit.File_Names (Body_Part).Path.Name /= Slash
+         if Unit.File_Names (Impl) /= null
+           and then not Unit.File_Names (Impl).Locally_Removed
          then
             --  And it is a source for the specified project
 
-            if Check_Project (Unit.File_Names (Body_Part).Project) then
+            if Check_Project (Unit.File_Names (Impl).Project) then
 
                --  If we don't have a spec, we cannot consider the source
                --  if it is a subunit.
 
-               if Unit.File_Names (Specification).Name = No_File then
+               if Unit.File_Names (Spec) = null then
                   declare
                      Src_Ind : Source_File_Index;
 
@@ -7010,7 +6875,7 @@ package body Make is
                   begin
                      Src_Ind := Sinput.P.Load_Project_File
                                   (Get_Name_String
-                                     (Unit.File_Names (Body_Part).Path.Name));
+                                     (Unit.File_Names (Impl).Path.Name));
 
                      --  If it is a subunit, discard it
 
@@ -7018,27 +6883,27 @@ package body Make is
                         Sfile := No_File;
                         Index := 0;
                      else
-                        Sfile := Unit.File_Names (Body_Part).Display_Name;
-                        Index := Unit.File_Names (Body_Part).Index;
+                        Sfile := Unit.File_Names (Impl).Display_File;
+                        Index := Unit.File_Names (Impl).Index;
                      end if;
                   end;
 
                else
-                  Sfile := Unit.File_Names (Body_Part).Display_Name;
-                  Index := Unit.File_Names (Body_Part).Index;
+                  Sfile := Unit.File_Names (Impl).Display_File;
+                  Index := Unit.File_Names (Impl).Index;
                end if;
             end if;
 
-         elsif Unit.File_Names (Specification).Name /= No_File
-           and then Unit.File_Names (Specification).Path.Name /= Slash
-           and then Check_Project (Unit.File_Names (Specification).Project)
+         elsif Unit.File_Names (Spec) /= null
+           and then not Unit.File_Names (Spec).Locally_Removed
+           and then Check_Project (Unit.File_Names (Spec).Project)
          then
             --  If there is no source for the body, but there is a source
             --  for the spec which has not been locally removed, then we take
             --  this one.
 
-            Sfile := Unit.File_Names (Specification).Display_Name;
-            Index := Unit.File_Names (Specification).Index;
+            Sfile := Unit.File_Names (Spec).Display_File;
+            Index := Unit.File_Names (Spec).Index;
          end if;
 
          --  If Put_In_Q is True, we insert into the Q
@@ -7088,6 +6953,8 @@ package body Make is
                Init_Q;
             end if;
          end if;
+
+         Unit := Units_Htable.Get_Next (Project_Tree.Units_HT);
       end loop;
    end Insert_Project_Sources;
 
@@ -7587,8 +7454,7 @@ package body Make is
             --  separator.
 
             if Argv (Argv'Last) = Directory_Separator then
-               Object_Directory_Path :=
-                 new String'(Argv);
+               Object_Directory_Path := new String'(Argv);
             else
                Object_Directory_Path :=
                  new String'(Argv & Directory_Separator);
@@ -7761,8 +7627,8 @@ package body Make is
                      RTS_Src_Path_Name := Src_Path_Name;
                      RTS_Lib_Path_Name := Lib_Path_Name;
 
-                  elsif  Src_Path_Name = null
-                    and Lib_Path_Name = null
+                  elsif Src_Path_Name = null
+                    and then Lib_Path_Name = null
                   then
                      Make_Failed ("RTS path not valid: missing " &
                                   "adainclude and adalib directories");
@@ -8101,10 +7967,12 @@ package body Make is
      (Source_File      : File_Name_Type;
       Source_File_Name : String;
       Source_Index     : Int;
-      Naming           : Naming_Data;
+      Project          : Project_Id;
       In_Package       : Package_Id;
       Allow_ALI        : Boolean) return Variable_Value
    is
+      Lang : constant Language_Ptr := Get_Language_From_Name (Project, "ada");
+
       Switches : Variable_Value;
 
       Defaults : constant Array_Element_Id :=
@@ -8135,14 +8003,17 @@ package body Make is
 
       --  Check also without the suffix
 
-      if Switches = Nil_Variable_Value then
+      if Switches = Nil_Variable_Value
+        and then Lang /= null
+      then
          declare
+            Naming      : Lang_Naming_Data renames Lang.Config.Naming_Data;
             Name        : String (1 .. Source_File_Name'Length + 3);
             Last        : Positive := Source_File_Name'Length;
             Spec_Suffix : constant String :=
-                            Spec_Suffix_Of (Project_Tree, "ada", Naming);
+                            Get_Name_String (Naming.Spec_Suffix);
             Body_Suffix : constant String :=
-                            Body_Suffix_Of (Project_Tree, "ada", Naming);
+                            Get_Name_String (Naming.Body_Suffix);
             Truncated   : Boolean := False;
 
          begin
@@ -8253,52 +8124,6 @@ package body Make is
          Makeusg;
       end if;
    end Usage;
-
-   -----------------
-   -- Verbose_Msg --
-   -----------------
-
-   procedure Verbose_Msg
-     (N1                : Name_Id;
-      S1                : String;
-      N2                : Name_Id := No_Name;
-      S2                : String  := "";
-      Prefix            : String := "  -> ";
-      Minimum_Verbosity : Verbosity_Level_Type := Opt.Low)
-   is
-   begin
-      if (not Verbose_Mode) or else (Minimum_Verbosity > Verbosity_Level) then
-         return;
-      end if;
-
-      Write_Str (Prefix);
-      Write_Str ("""");
-      Write_Name (N1);
-      Write_Str (""" ");
-      Write_Str (S1);
-
-      if N2 /= No_Name then
-         Write_Str (" """);
-         Write_Name (N2);
-         Write_Str (""" ");
-      end if;
-
-      Write_Str (S2);
-      Write_Eol;
-   end Verbose_Msg;
-
-   procedure Verbose_Msg
-     (N1                : File_Name_Type;
-      S1                : String;
-      N2                : File_Name_Type := No_File;
-      S2                : String  := "";
-      Prefix            : String := "  -> ";
-      Minimum_Verbosity : Verbosity_Level_Type := Opt.Low)
-   is
-   begin
-      Verbose_Msg
-        (Name_Id (N1), S1, Name_Id (N2), S2, Prefix, Minimum_Verbosity);
-   end Verbose_Msg;
 
 begin
    --  Make sure that in case of failure, the temp files will be deleted

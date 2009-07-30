@@ -1120,7 +1120,7 @@ do {									\
 } while (0)
 #define SUBREG_PROMOTED_UNSIGNED_P(RTX)	\
   ((RTL_FLAG_CHECK1("SUBREG_PROMOTED_UNSIGNED_P", (RTX), SUBREG)->volatil) \
-     ? -1 : (RTX)->unchanging)
+   ? -1 : (int) (RTX)->unchanging)
 
 /* Access various components of an ASM_OPERANDS rtx.  */
 
@@ -1626,6 +1626,7 @@ extern rtx previous_insn (rtx);
 extern rtx next_insn (rtx);
 extern rtx prev_nonnote_insn (rtx);
 extern rtx next_nonnote_insn (rtx);
+extern rtx next_nonnote_insn_bb (rtx);
 extern rtx prev_real_insn (rtx);
 extern rtx next_real_insn (rtx);
 extern rtx prev_active_insn (rtx);

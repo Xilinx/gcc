@@ -41,6 +41,7 @@ CXX_INSTALL_NAME := $(shell echo c++|sed '$(program_transform_name)')
 GXX_INSTALL_NAME := $(shell echo g++|sed '$(program_transform_name)')
 CXX_TARGET_INSTALL_NAME := $(target_noncanonical)-$(shell echo c++|sed '$(program_transform_name)')
 GXX_TARGET_INSTALL_NAME := $(target_noncanonical)-$(shell echo g++|sed '$(program_transform_name)')
+CP_PLUGIN_HEADERS := cp-tree.h cxx-pretty-print.h name-lookup.h
 
 #
 # Define the names for selecting c++ in LANGUAGES.
@@ -189,6 +190,19 @@ $(DESTDIR)$(man1dir)/$(GXX_INSTALL_NAME)$(man1ext): doc/g++.1 installdirs
 	-$(INSTALL_DATA) $< $@
 	-chmod a-x $@
 
+c++.install-plugin: installdirs
+# We keep the directory structure for files in config and .def files. All
+# other files are flattened to a single directory.
+	headers="$(CP_PLUGIN_HEADERS)"; \
+	for file in $$headers; do \
+	  path=$(srcdir)/cp/$$file; \
+	  dest=$(plugin_includedir)/cp/$$file; \
+	  echo $(INSTALL_DATA) $$path $(DESTDIR)$$dest; \
+	  dir=`dirname $$dest`; \
+	  $(mkinstalldirs) $(DESTDIR)$$dir; \
+	  $(INSTALL_DATA) $$path $(DESTDIR)$$dest; \
+	done
+
 c++.uninstall:
 	-rm -rf $(DESTDIR)$(bindir)/$(CXX_INSTALL_NAME)$(exeext)
 	-rm -rf $(DESTDIR)$(bindir)/$(GXX_INSTALL_NAME)$(exeext)
@@ -289,7 +303,7 @@ cp/semantics.o: cp/semantics.c $(CXX_TREE_H) $(TM_H) except.h toplev.h \
 cp/dump.o: cp/dump.c $(CXX_TREE_H) $(TM_H) $(TREE_DUMP_H)
 cp/optimize.o: cp/optimize.c $(CXX_TREE_H) $(TM_H) rtl.h $(INTEGRATE_H) \
   insn-config.h input.h $(PARAMS_H) debug.h $(TREE_INLINE_H) $(GIMPLE_H) \
-  $(TARGET_H)
+  $(TARGET_H) tree-iterator.h
 cp/mangle.o: cp/mangle.c $(CXX_TREE_H) $(TM_H) toplev.h $(REAL_H) \
   gt-cp-mangle.h $(TARGET_H) $(TM_P_H)
 cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_H) gt-cp-parser.h \

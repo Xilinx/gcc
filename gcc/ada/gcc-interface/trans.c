@@ -100,7 +100,7 @@ bool type_annotate_only;
 /* When not optimizing, we cache the 'First, 'Last and 'Length attributes
    of unconstrained array IN parameters to avoid emitting a great deal of
    redundant instructions to recompute them each time.  */
-struct GTY (()) parm_attr {
+struct GTY (()) parm_attr_d {
   int id; /* GTY doesn't like Entity_Id.  */
   int dim;
   tree first;
@@ -108,7 +108,7 @@ struct GTY (()) parm_attr {
   tree length;
 };
 
-typedef struct parm_attr *parm_attr;
+typedef struct parm_attr_d *parm_attr;
 
 DEF_VEC_P(parm_attr);
 DEF_VEC_ALLOC_P(parm_attr,gc);
@@ -627,6 +627,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
   for (info = elab_info_list; info; info = info->next)
     {
       tree gnu_body = DECL_SAVED_TREE (info->elab_proc);
+      tree gnu_stmts;
 
       /* Unshare SAVE_EXPRs between subprograms.  These are not unshared by
 	 the gimplifier for obvious reasons, but it turns out that we need to
@@ -638,14 +639,24 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
 	 an upstream bug for which we would not change the outcome.  */
       walk_tree_without_duplicates (&gnu_body, unshare_save_expr, NULL);
 
-      /* Process the function as others, but for indicating this is an
-	 elab proc, to be discarded if empty, then propagate the status
-	 up to the GNAT tree node.  */
-      begin_subprog_body (info->elab_proc);
-      end_subprog_body (gnu_body, true);
 
-      if (empty_body_p (gimple_body (info->elab_proc)))
-	Set_Has_No_Elaboration_Code (info->gnat_node, 1);
+      /* We should have a BIND_EXPR, but it may or may not have any statements
+	 in it.  If it doesn't have any, we have nothing to do.  */
+      gnu_stmts = gnu_body;
+      if (TREE_CODE (gnu_stmts) == BIND_EXPR)
+	gnu_stmts = BIND_EXPR_BODY (gnu_stmts);
+
+      /* If there are no statements, there is no elaboration code.  */
+      if (!gnu_stmts || !STATEMENT_LIST_HEAD (gnu_stmts))
+	{
+	  Set_Has_No_Elaboration_Code (info->gnat_node, 1);
+	}
+      else
+	{
+	  /* Process the function as others.  */
+	  begin_subprog_body (info->elab_proc);
+	  end_subprog_body (gnu_body);
+	}
     }
 
   /* We cannot track the location of errors past this point.  */
@@ -1464,7 +1475,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	int Dimension = (Present (Expressions (gnat_node))
 			 ? UI_To_Int (Intval (First (Expressions (gnat_node))))
 			 : 1), i;
-	struct parm_attr *pa = NULL;
+	struct parm_attr_d *pa = NULL;
 	Entity_Id gnat_param = Empty;
 
 	/* Make sure any implicit dereference gets done.  */
@@ -1552,43 +1563,38 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 		/* We used to compute the length as max (hb - lb + 1, 0),
 		   which could overflow for some cases of empty arrays, e.g.
 		   when lb == index_type'first.  We now compute the length as
-		   (hb < lb) ? 0 : hb - lb + 1, which would only overflow in
+		   (hb >= lb) ? hb - lb + 1 : 0, which would only overflow in
 		   much rarer cases, for extremely large arrays we expect
 		   never to encounter in practice.  In addition, the former
 		   computation required the use of potentially constraining
-		   signed arithmetic while the latter doesn't.  Note that the
-		   comparison must be done in the original index base type,
-		   otherwise the conversion of either bound to gnu_compute_type
-		   may overflow.  */
-		
-		tree gnu_compute_type = get_base_type (gnu_result_type);
-
-		tree index_type
-		  = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type));
-		tree lb
-		  = convert (gnu_compute_type, TYPE_MIN_VALUE (index_type));
-		tree hb
-		  = convert (gnu_compute_type, TYPE_MAX_VALUE (index_type));
-		
+		   signed arithmetic while the latter doesn't.  Note that
+		   the comparison must be done in the original index type,
+		   to avoid any overflow during the conversion.  */
+		tree comp_type = get_base_type (gnu_result_type);
+		tree index_type = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type));
+		tree lb = TYPE_MIN_VALUE (index_type);
+		tree hb = TYPE_MAX_VALUE (index_type);
 		gnu_result
-		  = build3
-		    (COND_EXPR, gnu_compute_type,
-		     build_binary_op (LT_EXPR, get_base_type (index_type),
-				      TYPE_MAX_VALUE (index_type),
-				      TYPE_MIN_VALUE (index_type)),
-		     convert (gnu_compute_type, integer_zero_node),
-		     build_binary_op
-		     (PLUS_EXPR, gnu_compute_type,
-		      build_binary_op (MINUS_EXPR, gnu_compute_type, hb, lb),
-		      convert (gnu_compute_type, integer_one_node)));
+		  = build_binary_op (PLUS_EXPR, comp_type,
+				     build_binary_op (MINUS_EXPR,
+						      comp_type,
+						      convert (comp_type, hb),
+						      convert (comp_type, lb)),
+				     convert (comp_type, integer_one_node));
+		gnu_result
+		  = build_cond_expr (comp_type,
+				     build_binary_op (GE_EXPR,
+						      integer_type_node,
+						      hb, lb),
+				     gnu_result,
+				     convert (comp_type, integer_zero_node));
 	      }
 	  }
 
 	/* If this has a PLACEHOLDER_EXPR, qualify it by the object we are
 	   handling.  Note that these attributes could not have been used on
 	   an unconstrained array type.  */
-	gnu_result = SUBSTITUTE_PLACEHOLDER_IN_EXPR (gnu_result,
-						     gnu_prefix);
+	gnu_result = SUBSTITUTE_PLACEHOLDER_IN_EXPR (gnu_result, gnu_prefix);
 
 	/* Cache the expression we have just computed.  Since we want to do it
 	   at runtime, we force the use of a SAVE_EXPR and let the gimplifier
@@ -2273,7 +2279,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
   cache = DECL_STRUCT_FUNCTION (gnu_subprog_decl)->language->parm_attr_cache;
   if (cache)
     {
-      struct parm_attr *pa;
+      struct parm_attr_d *pa;
       int i;
 
       start_stmt_group ();
@@ -2331,15 +2337,20 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
       : Sloc (gnat_node)),
      &DECL_STRUCT_FUNCTION (gnu_subprog_decl)->function_end_locus);
 
-  end_subprog_body (gnu_result, false);
+  end_subprog_body (gnu_result);
 
-  /* Disconnect the trees for parameters that we made variables for from the
-     GNAT entities since these are unusable after we end the function.  */
+  /* Finally annotate the parameters and disconnect the trees for parameters
+     that we have turned into variables since they are now unusable.  */
   for (gnat_param = First_Formal_With_Extras (gnat_subprog_id);
        Present (gnat_param);
        gnat_param = Next_Formal_With_Extras (gnat_param))
-    if (TREE_CODE (get_gnu_tree (gnat_param)) == VAR_DECL)
-      save_gnu_tree (gnat_param, NULL_TREE, false);
+    {
+      tree gnu_param = get_gnu_tree (gnat_param);
+      annotate_object (gnat_param, TREE_TYPE (gnu_param), NULL_TREE,
+		       DECL_BY_REF_P (gnu_param));
+      if (TREE_CODE (gnu_param) == VAR_DECL)
+	save_gnu_tree (gnat_param, NULL_TREE, false);
+    }
 
   if (DECL_FUNCTION_STUB (gnu_subprog_decl))
     build_function_stub (gnu_subprog_decl, gnat_subprog_id);
@@ -3076,7 +3087,9 @@ Handled_Sequence_Of_Statements_to_gnu (Node_Id gnat_node)
 	 defer abortion.  */
       gnu_expr = build_call_1_expr (raise_nodefer_decl,
 				    TREE_VALUE (gnu_except_ptr_stack));
-      set_expr_location_from_node (gnu_expr, gnat_node);
+      set_expr_location_from_node
+	(gnu_expr,
+	 Present (End_Label (gnat_node)) ? End_Label (gnat_node) : gnat_node);
 
       if (gnu_else_ptr)
 	*gnu_else_ptr = gnu_expr;
@@ -3481,7 +3494,11 @@ gnat_to_gnu (Node_Id gnat_node)
      If we are in the elaboration procedure, check if we are violating a
      No_Elaboration_Code restriction by having a statement there.  */
   if ((IN (Nkind (gnat_node), N_Statement_Other_Than_Procedure_Call)
-       && Nkind (gnat_node) != N_Null_Statement)
+       && Nkind (gnat_node) != N_Null_Statement
+       && Nkind (gnat_node) != N_SCIL_Dispatch_Table_Object_Init
+       && Nkind (gnat_node) != N_SCIL_Dispatch_Table_Tag_Init
+       && Nkind (gnat_node) != N_SCIL_Dispatching_Call
+       && Nkind (gnat_node) != N_SCIL_Tag_Init)
       || Nkind (gnat_node) == N_Procedure_Call_Statement
       || Nkind (gnat_node) == N_Label
       || Nkind (gnat_node) == N_Implicit_Label_Declaration
@@ -5277,6 +5294,15 @@ gnat_to_gnu (Node_Id gnat_node)
       gnu_result = alloc_stmt_list ();
       break;
 
+    /* SCIL nodes require no processing by this backend */
+
+    case N_SCIL_Dispatch_Table_Object_Init:
+    case N_SCIL_Dispatch_Table_Tag_Init:
+    case N_SCIL_Dispatching_Call:
+    case N_SCIL_Tag_Init:
+      gnu_result = alloc_stmt_list ();
+      break;
+
     case N_Raise_Statement:
     case N_Function_Specification:
     case N_Procedure_Specification:
@@ -5849,7 +5875,7 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
 
 	  stmt = gimplify_assign (new_var, op, pre_p);
 	  if (EXPR_HAS_LOCATION (op))
-	    gimple_set_location (stmt, *EXPR_LOCUS (op));
+	    gimple_set_location (stmt, EXPR_LOCATION (op));
 
 	  TREE_OPERAND (expr, 0) = new_var;
 	  recompute_tree_invariant_for_addr_expr (expr);
@@ -6610,10 +6636,7 @@ emit_check (tree gnu_cond, tree gnu_expr, int reason, Node_Id gnat_node)
      we don't need to evaluate it just for the check.  */
   TREE_SIDE_EFFECTS (gnu_result) = TREE_SIDE_EFFECTS (gnu_expr);
 
-  /* ??? Unfortunately, if we don't put a SAVE_EXPR around this whole thing,
-     we will repeatedly do the test and, at compile time, we will repeatedly
-     visit it during unsharing, which leads to an exponential explosion.  */
-  return save_expr (gnu_result);
+  return gnu_result;
 }
 
 /* Return an expression that converts GNU_EXPR to GNAT_TYPE, doing overflow
@@ -7229,8 +7252,15 @@ protect_multiple_eval (tree exp)
 {
   tree type = TREE_TYPE (exp);
 
-  /* If this has no side effects, we don't need to do anything.  */
-  if (!TREE_SIDE_EFFECTS (exp))
+  /* If EXP has no side effects, we theoritically don't need to do anything.
+     However, we may be recursively passed more and more complex expressions
+     involving checks which will be reused multiple times and eventually be
+     unshared for gimplification; in order to avoid a complexity explosion
+     at that point, we protect any expressions more complex than a simple
+     arithmetic expression.  */
+  if (!TREE_SIDE_EFFECTS (exp)
+      && (CONSTANT_CLASS_P (exp)
+	  || !EXPRESSION_CLASS_P (skip_simple_arithmetic (exp))))
     return exp;
 
   /* If this is a conversion, protect what's inside the conversion.
