@@ -28,9 +28,15 @@
 
 (defun makegreenpass_gate (pass)
   (debug_msg pass "makegreenpass_gate pass at start")
-  ;; always return true
-  pass
-)
+  ;; retrieve the data associated to the cfun in the pass. If it
+  ;; exists (i.e. is not null) we avoid running the pass again
+  (let ( (grdata (maptree_get (get_field :gccpass_data pass) (cfun_decl))) )
+    (debugtree "makegreenpass_gate cfundecl" (cfun_decl))
+    (debug_msg grdata "makegreenpass_gate grdata")
+    (if grdata 
+	() ;; return null, so avoid executing the pass
+      pass)
+    ))
 
 (defclass class_makegreen_data 
   :super class_proped
@@ -57,6 +63,10 @@
 	     ?rhs)
 	    (debugtree "makegreen_transform assign cast lhs" lhs)
 	    (debugtree "makegreen_transform assign cast rhs" rhs)
+	    (compile_warning "some casts should be caught" ())
+	    ;; we need to catch a cast like 
+	    ;;; stdout.5_3 = (struct FILE * restrict) stdout.4_2;
+	    ;; where stdout.4_2 has been set to stdout!
 	    )
 	  (?(gimple_assign_single  ?lhs 
 				   ?(as ?rhs
@@ -83,7 +93,7 @@
 	    (debugtree "makegreen_transform call2morefprintf fndecl" callfndcl)
 	    (debugtree "makegreen_transform call2morefprintf arg0" arg0)
 	    (debugtree "makegreen_transform call2morefprintf arg1" arg1)
-	    (let ( (gx (maptree_get  (get_field :mkgreen_stdout_ssa grdata) arg0)) )
+	    (let ( (gx (maptree_get (get_field :mkgreen_stdout_ssa grdata) arg0)) )
 	      (cond ( gx
 		      (debug_msg gx "makegreen_transform found gx")
 		      (warning_at_gimple g "fprintf to stdout")
@@ -105,8 +115,9 @@
 
 (defun makegreenpass_exec (pass)
   (debug_msg pass "makegreenpass_exec pass at start")
-  (code_chunk dbgcfun #{ debugeprintf("makegreenpass_exec start cfun=%p cfg=%p", 
-				      (void*)cfun, cfun?cfun->cfg:NULL) ; 
+  (code_chunk dbgcfun #{ /* $dbgcfun :: */
+	      debugeprintf("makegreenpass_exec start cfun=%p cfg=%p", 
+			   (void*)cfun, cfun?cfun->cfg:NULL) ; 
 	      }#) 
   (assert_msg "makegreenpass_exec check cfun has cfg" (cfun_has_cfg))
   (debugtree "makegreenpass_exec start cfundecl" (cfun_decl))
@@ -114,6 +125,9 @@
 			   :mkgreen_pass pass
 			   :mkgreen_stdout_ssa (make_maptree discr_maptrees 10)
 			   )) )
+    ;; add our grdata associated to the cfun_decl in the pass data,
+    ;; hence the gate will avoid running the pass twice
+    (maptree_put (get_field :gccpass_data pass) (cfun_decl) grdata)
     ;; it is useless to do a each_cgraph_decl here...
     (debug_msg grdata "makegreenpass_exec grdata before eachbbcfun")
     ;; gimple ssa passes have a cfg..
@@ -135,6 +149,7 @@
 		    :named_name (make_stringconst discr_string "melt_greenpass")
 		    :gccpass_gate makegreenpass_gate
 		    :gccpass_exec makegreenpass_exec
+		    :gccpass_data (make_maptree discr_maptrees 100)
 		    :gccpass_properties_required ()
 	      )
         ) )

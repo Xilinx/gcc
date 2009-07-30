@@ -1,4 +1,9 @@
 
+2009-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-simple.melt: the gate function should disable the pass
+	when it has already be run on the same cfun.
+	the matching should catch some casts.
+
 2009-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.melt: corrected typo in inform_at_gimple &
 	warning_at_gimple.
