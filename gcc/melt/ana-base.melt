@@ -681,7 +681,7 @@
    }#)
   
 
-;; match a gimple call to a direct function of arity 34exactly
+;; match a gimple call to a direct function of arity 4 exactly
 (defcmatcher gimple_call_4
   (:gimple gc)
   (:tree lhs 
@@ -703,7 +703,7 @@
    $arg3 = gimple_call_arg(($gc), 3);
    }#)
 
-;; match a gimple call to a direct function of arity 3 or more
+;; match a gimple call to a direct function of arity 4 or more
 (defcmatcher gimple_call_4_more
   (:gimple gc)
   (:tree lhs 
@@ -728,6 +728,176 @@
    $nbargs = gimple_call_num_args($gc);
    }#)
   
+;;;;
+;; match a gimple call to a direct function of arity 5 exactly
+(defcmatcher gimple_call_5
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4)
+  gimp5call
+  ;; test
+  #{/*$gimp5call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==5)}#
+  ;; fill
+  #{ /*$gimp5call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   }#)
+
+;; match a gimple call to a direct function of arity 5 or more
+(defcmatcher gimple_call_5_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+   :long nbargs
+	 )
+  gimp5calm
+  ;; test
+  #{/*$gimp5calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=5)}#
+  ;; fill
+  #{ /*$gimp5calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;;;;
+;; match a gimple call to a direct function of arity 6 exactly
+(defcmatcher gimple_call_6
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+	 arg5)
+  gimp6call
+  ;; test
+  #{/*$gimp6call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==6)}#
+  ;; fill
+  #{ /*$gimp6call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $arg5 = gimple_call_arg(($gc), 5);
+   }#)
+
+;; match a gimple call to a direct function of arity 6 or more
+(defcmatcher gimple_call_6_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+	 arg5
+   :long nbargs
+	 )
+  gimp6calm
+  ;; test
+  #{/*$gimp6calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=6)}#
+  ;; fill
+  #{ /*$gimp6calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $arg5 = gimple_call_arg(($gc), 5);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;;;;
+;; match a gimple call to a direct function of arity 7 exactly
+(defcmatcher gimple_call_7
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+	 arg5
+	 arg6)
+  gimp7call
+  ;; test
+  #{/*$gimp7call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==7)}#
+  ;; fill
+  #{ /*$gimp7call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $arg5 = gimple_call_arg(($gc), 5);
+   $arg6 = gimple_call_arg(($gc), 6);
+   }#)
+
+;; match a gimple call to a direct function of arity 7 or more
+(defcmatcher gimple_call_7_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+	 arg5
+	 arg6
+   :long nbargs
+	 )
+  gimp7calm
+  ;; test
+  #{/*$gimp7calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=7)}#
+  ;; fill
+  #{ /*$gimp7calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $arg5 = gimple_call_arg(($gc), 5);
+   $arg6 = gimple_call_arg(($gc), 6);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
 
 ;;;; fetch the nth argument inside a call
 (defprimitive gimple_call_nth_arg (:gimple gc :long n) :tree
@@ -735,6 +905,9 @@
       && ($n) < gimple_call_num_args($gc)) 
      ? gimple_call_arg(($gc), ($n)) : (tree)0)}# )
 
+
+
+;;;;;;;;;;;;;;;;
 ;;;;  match a gimple return
 (defcmatcher gimple_return
   (:gimple gr)
@@ -748,6 +921,120 @@
    $retval = gimple_return_retval($gr);
   }# )
  
+
+
+;;;;;;;;;;;;;;;;
+;;;; match a goto [to a label or var for indirect goto]
+(defcmatcher gimple_goto
+  (:gimple gr)
+  (:tree tlabeld)
+  gimpgoto
+  ;; test
+  #{ /* $gimpgoto ? */ ($gr && gimple_code($gr) == GIMPLE_GOTO) }#
+  ;; fill
+  #{ /* $gimpgoto ! */ 
+  $tlabeld = gimple_goto_dest($gr);
+  }# )
+
+;;; match a label
+(defcmatcher gimple_label
+  (:gimple gr)
+  (:tree tlabel)
+  gimplab
+  ;; test
+  #{ /* $gimplab ? */ ($gr && gimple_code($gr) == GIMPLE_LABEL) }#
+  ;; fill
+  #{ /* $gimplab ! */ 
+  $tlabel = gimple_label_label($gr);
+  }# )
+
+
+
+;;; match a nop
+(defcmatcher gimple_nop
+  (:gimple gr)
+  ()
+  gimpnop
+  ;; test
+  #{ /* $gimpnop ?*/ ($gr && gimple_code($gr) == GIMPLE_NOP) }#
+  ;; no fill
+  #{ /* $gimpnop ! */ }#)
+
+;;; match a gimple bind
+(defcmatcher gimple_bind
+  (:gimple gr)
+  (:tree tvars tblock
+  :gimpleseq gbody
+	 )
+  gimpbind
+  ;; test
+  #{ /* $gimpbind ? */ ($gr && gimple_code($gr) == GIMPLE_BIND) }#
+  ;; fill
+  #{ /* $gimpbind ! */
+   $tvars = gimple_bind_vars($gr);
+   $tblock = gimple_bind_block($gr);
+   $gbody = gimple_bind_body($gr);
+  }# )
+
+;;; match a gimple asm
+(defcmatcher gimple_asm
+  (:gimple gr)
+  (:cstring asmstr
+   :long ninputs noutputs nclobbers)
+  gimpasm
+  ;; test
+  #{ /* $gimpasm ? */ ($gr &&  gimple_code($gr) == GIMPLE_ASM) }#
+  ;; fill
+  #{ /* $gimpasm ! */
+  $asmstr = gimple_asm_string ($gr);
+  $ninputs = gimple_asm_ninputs ($gr);
+  $noutputs = gimple_asm_noutputs ($gr);
+  $nclobbers = gimple_asm_nclobbers ($gr);
+  }# )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple switch
+(defcmatcher gimple_switch
+  (:gimple gr)
+  (:tree tindex 
+   :long numlabels)
+  gimpswitch
+  ;; test
+  #{ /* $gimpswitch ? */ ($gr &&  gimple_code($gr) == GIMPLE_SWITCH) }#
+  ;; fill
+  #{ /* $gimpswitch ! */
+  $tindex = gimple_switch_index ($gr);
+  $numlabels = gimple_switch_num_labels ($gr);
+  }#
+)
+
+
+;;;;;;;;;;;;;;;;
+;;; match a phi node
+
+(defcmatcher gimple_phi
+  (:gimple gr)
+  (:tree lres				;left hand result
+   :long numargs)
+  gimphi
+  ;; test
+  #{ /* $gimphi ? */ ($gr && gimple_code ($gr) == GIMPLE_PHI) }#
+  ;; fill
+  #{ /* $gimphi ! */
+  $lres = gimple_phi_result ($gr);
+  $numargs = gimple_phi_num_args ($gr);
+  }# )
+
+;;; safely retrieve the N-th argdeftree of a gimple phinode
+(defprimitive gimple_phi_nth_arg_def (:gimple g :long n) :tree
+  #{ ( ($g && gimple_code($g) == GIMPLE_PHI && n >= 0 && n < gimple_phi_num_args ($g)) 
+       ? gimple_phi_arg_def($g, $n) : NULL) }#)
+;;; safely retrieve the N-th argedge of a gimple phinode
+(defprimitive gimple_phi_nth_arg_edge (:gimple g :long n) :edge
+  #{ ( ($g && gimple_code($g) == GIMPLE_PHI && n >= 0 && n < gimple_phi_num_args ($g)) 
+       ? gimple_phi_arg_edge($g, $n) : NULL) }#)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; issue a notice or a warning at a gimple location
 (defprimitive inform_at_gimple (:gimple g :cstring msg) :void
   #{ inform (($g ? gimple_location($g) : UNKNOWN_LOCATION), $msg); }#
@@ -1778,6 +2065,7 @@
  foreach_basicblock_succ_edge
  foreach_mapbasicblock
  foreach_maptree
+ gimple_asm
  gimple_assign_binaryop
  gimple_assign_cast
  gimple_assign_ceil_div
@@ -1797,6 +2085,7 @@
  gimple_assign_trunc_div
  gimple_assign_trunc_mod
  gimple_assign_unary_nop
+ gimple_bind
  gimple_call
  gimple_call_1
  gimple_call_1_more
@@ -1806,6 +2095,12 @@
  gimple_call_3_more
  gimple_call_4
  gimple_call_4_more
+ gimple_call_5
+ gimple_call_5_more
+ gimple_call_6
+ gimple_call_6_more
+ gimple_call_7
+ gimple_call_7_more
  gimple_call_nth_arg  
  gimple_cond_false
  gimple_cond_greater
@@ -1814,6 +2109,12 @@
  gimple_cond_notequal
  gimple_cond_true 
  gimple_content
+ gimple_goto
+ gimple_label
+ gimple_nop
+ gimple_phi
+ gimple_phi_nth_arg_edge
+ gimple_phi_nth_arg_def
  gimple_return
  gimpleseq_content 
  gimpleval
