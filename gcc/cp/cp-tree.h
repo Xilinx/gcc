@@ -3616,6 +3616,8 @@ enum tsubst_flags {
 				    conversion.  */
   tf_no_access_control = 1 << 7, /* Do not perform access checks, even
 				    when issuing other errors.   */
+  /* Do not instantiate classes (used by count_non_default_template_args). */
+  tf_no_class_instantiations = 1 << 8,
   /* Convenient substitution flags combinations.  */
   tf_warning_or_error = tf_warning | tf_error
 };
@@ -4346,6 +4348,7 @@ extern tree type_promotes_to			(tree);
 extern tree perform_qualification_conversions	(tree, tree);
 
 /* in name-lookup.c */
+extern tree get_anonymous_namespace_name	(void);
 extern tree pushdecl				(tree);
 extern tree pushdecl_maybe_friend		(tree, bool);
 extern void maybe_push_cleanup_level		(tree);
@@ -5098,7 +5101,7 @@ extern tree merge_exception_specifiers		(tree, tree);
 /* in mangle.c */
 extern void init_mangle				(void);
 extern void mangle_decl				(tree);
-extern const char *mangle_type_string		(tree);
+extern const char *mangle_type_string_for_rtti	(tree);
 extern tree mangle_typeinfo_for_type		(tree);
 extern tree mangle_typeinfo_string_for_type	(tree);
 extern tree mangle_vtbl_for_type		(tree);

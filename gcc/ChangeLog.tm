@@ -63,10 +63,6 @@
 	(examine_call_tm): Use is_tm_abort.
 	(expand_call_tm): Set GTMA_HAVE_ABORT.
 
-2009-07-17  Richard Henderson  <rth@redhat.com>
-
-	* Merge from mainline rev 149731.
-
 2009-07-16  Richard Henderson  <rth@redhat.com>
 
 	* except.c, except.h, tree-eh.c: Revert can_throw_internal_1
@@ -252,15 +248,7 @@
 
 2009-06-26  Richard Henderson  <rth@redhat.com>
 
-	* Merge from mainline rev 148984.
-
-2009-06-26  Richard Henderson  <rth@redhat.com>
-
 	* trans-mem.c (ipa_tm_execute): Check tree_versionable_function_p.
-
-2009-06-18  Richard Henderson  <rth@redhat.com>
-
-	* Merge from mainline rev 148549.
 
 2009-01-30  Richard Henderson  <rth@redhat.com>
 
@@ -498,10 +486,6 @@
 	for GIMPLE_TM_ATOMIC nodes.
 
 	* cp/gimplify.c: Likewise.
-
-2008-10-27  Richard Henderson  <rth@redhat.com>
-
-	Merge from mainline rev 141397.
 
 2008-10-24  Richard Henderson  <rth@redhat.com>
 

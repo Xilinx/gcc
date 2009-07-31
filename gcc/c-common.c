@@ -428,11 +428,11 @@ int flag_pretty_templates = 1;
 
 int warn_implicit = 1;
 
-/* Maximum template instantiation depth.  This limit is rather
-   arbitrary, but it exists to limit the time it takes to notice
-   infinite template instantiations.  */
+/* Maximum template instantiation depth.  This limit exists to limit the
+   time it takes to notice infinite template instantiations; the default
+   value of 1024 is likely to be in the next C++ standard.  */
 
-int max_tinst_depth = 500;
+int max_tinst_depth = 1024;
 
 
 
@@ -482,6 +482,7 @@ static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
 static tree handle_hot_attribute (tree *, tree, tree, int, bool *);
 static tree handle_cold_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noinline_attribute (tree *, tree, tree, int, bool *);
+static tree handle_noclone_attribute (tree *, tree, tree, int, bool *);
 static tree handle_always_inline_attribute (tree *, tree, tree, int,
 					    bool *);
 static tree handle_gnu_inline_attribute (tree *, tree, tree, int, bool *);
@@ -738,6 +739,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_noreturn_attribute },
   { "noinline",               0, 0, true,  false, false,
 			      handle_noinline_attribute },
+  { "noclone",                0, 0, true,  false, false,
+			      handle_noclone_attribute },
   { "always_inline",          0, 0, true,  false, false,
 			      handle_always_inline_attribute },
   { "gnu_inline",             0, 0, true,  false, false,
@@ -5934,6 +5937,23 @@ handle_noinline_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* Handle a "noclone" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_noclone_attribute (tree *node, tree name,
+			  tree ARG_UNUSED (args),
+			  int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle a "always_inline" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -8413,69 +8433,6 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
   return ret;
 }
 
-/* Walk a gimplified function and warn for functions whose return value is
-   ignored and attribute((warn_unused_result)) is set.  This is done before
-   inlining, so we don't have to worry about that.  */
-
-void
-c_warn_unused_result (gimple_seq seq)
-{
-  tree fdecl, ftype;
-  gimple_stmt_iterator i;
-
-  for (i = gsi_start (seq); !gsi_end_p (i); gsi_next (&i))
-    {
-      gimple g = gsi_stmt (i);
-
-      switch (gimple_code (g))
-	{
-	case GIMPLE_BIND:
-	  c_warn_unused_result (gimple_bind_body (g));
-	  break;
-	case GIMPLE_TRY:
-	  c_warn_unused_result (gimple_try_eval (g));
-	  c_warn_unused_result (gimple_try_cleanup (g));
-	  break;
-	case GIMPLE_CATCH:
-	  c_warn_unused_result (gimple_catch_handler (g));
-	  break;
-	case GIMPLE_EH_FILTER:
-	  c_warn_unused_result (gimple_eh_filter_failure (g));
-	  break;
-
-	case GIMPLE_CALL:
-	  if (gimple_call_lhs (g))
-	    break;
-
-	  /* This is a naked call, as opposed to a GIMPLE_CALL with an
-	     LHS.  All calls whose value is ignored should be
-	     represented like this.  Look for the attribute.  */
-	  fdecl = gimple_call_fndecl (g);
-	  ftype = TREE_TYPE (TREE_TYPE (gimple_call_fn (g)));
-
-	  if (lookup_attribute ("warn_unused_result", TYPE_ATTRIBUTES (ftype)))
-	    {
-	      location_t loc = gimple_location (g);
-
-	      if (fdecl)
-		warning_at (loc, OPT_Wunused_result, 
-			    "ignoring return value of %qD, "
-			    "declared with attribute warn_unused_result",
-			    fdecl);
-	      else
-		warning_at (loc, OPT_Wunused_result,
-			    "ignoring return value of function "
-			    "declared with attribute warn_unused_result");
-	    }
-	  break;
-
-	default:
-	  /* Not a container, not a call, or a call whose value is used.  */
-	  break;
-	}
-    }
-}
-
 /* Convert a character from the host to the target execution character
    set.  cpplib handles this, mostly.  */
 
@@ -9441,23 +9398,6 @@ make_tree_vector_copy (const VEC(tree,gc) *orig)
   for (ix = 0; VEC_iterate (tree, orig, ix, t); ++ix)
     VEC_quick_push (tree, ret, t);
   return ret;
-}
-
-/* Emit diagnostics that require gimple input for detection.  */
-
-void
-c_gimple_diagnostics (tree fndecl)
-{
-  /* Handle attribute((warn_unused_result)).  */
-  c_warn_unused_result (gimple_body (fndecl));
-
-  /* Notice when OpenMP structured block constraints are violated.  */
-  if (flag_openmp)
-    diagnose_omp_structured_block_errors (fndecl);
-
-  /* Notice when tm_safe constraints are violated.  */
-  if (flag_tm)
-    diagnose_tm_safe_errors (fndecl);
 }
 
 #include "gt-c-common.h"

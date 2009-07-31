@@ -1000,8 +1000,6 @@ extern void dump_time_statistics (void);
 
 extern bool c_dump_tree (void *, tree);
 
-extern void c_warn_unused_result (gimple_seq);
-
 extern void verify_sequence_points (tree);
 
 extern tree fold_offsetof (tree, tree);
@@ -1040,8 +1038,6 @@ extern VEC(tree,gc) *make_tree_vector (void);
 extern void release_tree_vector (VEC(tree,gc) *);
 extern VEC(tree,gc) *make_tree_vector_single (tree);
 extern VEC(tree,gc) *make_tree_vector_copy (const VEC(tree,gc) *);
-
-extern void c_gimple_diagnostics (tree);
 
 /* In c-gimplify.c  */
 extern void c_genericize (tree);

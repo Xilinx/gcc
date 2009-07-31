@@ -1,5 +1,5 @@
 /* Passes for transactional memory support.
-   Copyright (C) 2008 Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -282,7 +282,6 @@ is_tm_ending_fndecl (tree fndecl)
   return false;
 }
 
-
 /* Return true if FNDECL is BUILT_IN_TM_ABORT.  */
 
 static bool
@@ -306,6 +305,14 @@ build_tm_abort_call (location_t loc)
   SET_EXPR_LOCATION (x, loc);
 
   return x;
+}
+
+/* Common gateing function for several of the TM passes.  */
+
+static bool
+gate_tm (void)
+{
+  return flag_tm;
 }
 
 /* Map for aribtrary function replacement under TM, as created
@@ -421,27 +428,45 @@ diagnose_tm_safe_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
   return NULL_TREE;
 }
 
-void
-diagnose_tm_safe_errors (tree fndecl)
+static unsigned int
+diagnose_tm_blocks (void)
 {
-  tree save_current = current_function_decl;
-  struct function *save_cfun = cfun;
   struct walk_stmt_info wi;
 
   /* Only need to check tm_safe functions at the moment.  */
-  if (!is_tm_safe (TREE_TYPE (fndecl)))
-    return;
+  /* ??? A proposed Intel language spec change will have us
+     checking __tm_atomic block too, whereas a new __tm_critical
+     block will allow unsafe actions (but will not be abortable).
+     Waiting for the published document before doing any of that.  */
+  if (is_tm_safe (TREE_TYPE (current_function_decl)))
+    {
+      memset (&wi, 0, sizeof (wi));
+      wi.info = current_function_decl;
+      walk_gimple_seq (gimple_body (current_function_decl),
+		       diagnose_tm_safe_1, NULL, &wi);
+    }
 
-  current_function_decl = fndecl;
-  set_cfun (DECL_STRUCT_FUNCTION (fndecl));
-
-  memset (&wi, 0, sizeof (wi));
-  wi.info = fndecl;
-  walk_gimple_seq (gimple_body (fndecl), diagnose_tm_safe_1, NULL, &wi);
-
-  set_cfun (save_cfun);
-  current_function_decl = save_current;
+  return 0;
 }
+
+struct gimple_opt_pass pass_diagnose_tm_blocks =
+{
+  {
+    GIMPLE_PASS,
+    "diagnose_tm_blocks",		/* name */
+    gate_tm,				/* gate */
+    diagnose_tm_blocks,			/* execute */
+    NULL,				/* sub */
+    NULL,				/* next */
+    0,					/* static_pass_number */
+    TV_NONE,				/* tv_id */
+    PROP_gimple_any,			/* properties_required */
+    0,					/* properties_provided */
+    0,					/* properties_destroyed */
+    0,					/* todo_flags_start */
+    0,					/* todo_flags_finish */
+  }
+};
 
 static tree lower_sequence_tm (gimple_stmt_iterator *, bool *,
 			       struct walk_stmt_info *);
@@ -669,12 +694,6 @@ execute_lower_tm (void)
 		   lower_sequence_no_tm, NULL, &wi);
 
   return 0;
-}
-
-static bool
-gate_tm (void)
-{
-  return flag_tm;
 }
 
 struct gimple_opt_pass pass_lower_tm =
