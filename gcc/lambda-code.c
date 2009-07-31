@@ -2796,9 +2796,11 @@ av_for_af (tree access_fun, lambda_vector cy, struct access_matrix *am)
 
 static bool
 build_access_matrix (data_reference_p data_reference,
-		     VEC (tree, heap) *parameters, VEC (loop_p, heap) *nest)
+		     VEC (tree, heap) *parameters, VEC (loop_p, heap) *nest,
+		     struct obstack * lambda_obstack)
 {
-  struct access_matrix *am = GGC_NEW (struct access_matrix);
+  struct access_matrix *am = (struct access_matrix *)
+    obstack_alloc(lambda_obstack, sizeof (struct access_matrix));
   unsigned i, ndim = DR_NUM_DIMENSIONS (data_reference);
   unsigned nivs = VEC_length (loop_p, nest);
   unsigned lambda_nb_columns;
@@ -2830,13 +2832,14 @@ build_access_matrix (data_reference_p data_reference,
 bool
 lambda_compute_access_matrices (VEC (data_reference_p, heap) *datarefs,
 				VEC (tree, heap) *parameters,
-				VEC (loop_p, heap) *nest)
+				VEC (loop_p, heap) *nest,
+				struct obstack * lambda_obstack)
 {
   data_reference_p dataref;
   unsigned ix;
 
   for (ix = 0; VEC_iterate (data_reference_p, datarefs, ix, dataref); ix++)
-    if (!build_access_matrix (dataref, parameters, nest))
+    if (!build_access_matrix (dataref, parameters, nest, lambda_obstack))
       return false;
 
   return true;

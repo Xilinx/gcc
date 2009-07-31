@@ -1,3 +1,14 @@
+2009-07-31  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* tree-data-ref.h (lambda_compute_access_matrices): New argument
+	of type struct obstack *.
+	* lambda-code.c (build_access_matrix): New argument
+	lambda_obstack.  Allocate am from obstack instead of GC.
+	(lambda_compute_access_matrices): New argument lambda_obstack.
+	Pass it to build_access_matrix
+	* tree-loop-linear.c (linear_transform_loops): Pass lambda_obstack
+	to lambda_compute_access_matrices.
+
 2009-06-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* lambda.h (lambda_loop_new): Remove.

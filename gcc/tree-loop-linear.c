@@ -357,7 +357,8 @@ linear_transform_loops (void)
 	goto free_and_continue;
       
       lambda_collect_parameters (datarefs, &lambda_parameters);
-      if (!lambda_compute_access_matrices (datarefs, lambda_parameters, nest))
+      if (!lambda_compute_access_matrices (datarefs, lambda_parameters, nest,
+					   &lambda_obstack))
 	goto free_and_continue;
 
       if (dump_file && (dump_flags & TDF_DETAILS))
