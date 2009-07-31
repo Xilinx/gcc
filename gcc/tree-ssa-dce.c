@@ -828,9 +828,6 @@ mark_virtual_phi_result_for_renaming (gimple phi)
     }
   FOR_EACH_IMM_USE_STMT (stmt, iter, gimple_phi_result (phi))
     {
-      if (gimple_code (stmt) != GIMPLE_PHI
-	  && !gimple_plf (stmt, STMT_NECESSARY))
-        continue;
       FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
         SET_USE (use_p, SSA_NAME_VAR (gimple_phi_result (phi)));
       update_stmt (stmt);
@@ -954,6 +951,7 @@ forward_edge_to_pdom (edge e, basic_block post_dom_bb)
 	{
 	  gimple phi = gsi_stmt (gsi);
 	  tree op;
+	  source_location locus;
 
 	  /* Dead PHI do not imply control dependency.  */
           if (!gimple_plf (phi, STMT_NECESSARY)
@@ -978,10 +976,16 @@ forward_edge_to_pdom (edge e, basic_block post_dom_bb)
 	      continue;
 	    }
 	  if (!e2)
-	    op = gimple_phi_arg_def (phi, e->dest_idx == 0 ? 1 : 0);
+	    {
+	      op = gimple_phi_arg_def (phi, e->dest_idx == 0 ? 1 : 0);
+	      locus = gimple_phi_arg_location (phi, e->dest_idx == 0 ? 1 : 0);
+	    }
 	  else
-	    op = gimple_phi_arg_def (phi, e2->dest_idx);
-	  add_phi_arg (phi, op, e);
+	    {
+	      op = gimple_phi_arg_def (phi, e2->dest_idx);
+	      locus = gimple_phi_arg_location (phi, e2->dest_idx);
+	    }
+	  add_phi_arg (phi, op, e, locus);
 	  gcc_assert (e2 || degenerate_phi_p (phi));
 	  gsi_next (&gsi);
 	}

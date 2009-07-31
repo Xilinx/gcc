@@ -1,3 +1,60 @@
+2009-07-30  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR libstdc++/40919
+	* testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	xfail on darwin[3-9]*.
+
+2009-07-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40917
+	* testsuite/util/replacement_memory_operators.h: Add missing includes,
+	tweak qualifications.
+
+2009-07-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40916
+	* testsuite/23_containers/list/modifiers/swap/1.cc: Fix include order.
+	* testsuite/23_containers/list/modifiers/swap/2.cc: Likewise.
+	* testsuite/23_containers/list/modifiers/swap/2.cc: Likewise.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* acinclude.m4 (GLIBCXX_CONFIGURE): Use m4_rename_force.
+
+2009-07-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40915
+	* testsuite/18_support/headers/exception/synopsis.cc: Fix
+	std::terminate declaration.
+
+2009-07-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40908
+	* config/abi/pre/gnu.ver: Avoid exporting inadvertently std::mutex
+	symbols at GLIBCXX_3.4.
+
+2009-07-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/abi/pre/gnu.ver: Add GLIBCXX_3.4.13, move a symbol into it.
+	* testsuite/util/testsuite_abi.cc: Adjust.
+	* configure.ac: Bump libtool_VERSION to 6:13:0.
+	* configure: Regenerate.
+
+2009-07-28  Benjamin Kosnik  <bkoz@redhat.com>
+	    Tyler Earman  <rem.intellegare@gmail.com>
+
+	* doc/xml/manual/configure.xml: Consistent placement of
+	ABI-changing options, clarify --enable-clocale.
+
+2009-07-28  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* python/Makefile.in: Regenerate.
+
+2009-07-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* python/Makefile.am (install-data-local): Use DESTDIR
+	correctly.
+
 2009-07-24  Jason Merrill  <jason@redhat.com>
 
 	Core issue 901

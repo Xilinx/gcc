@@ -490,6 +490,7 @@ Verifying Properties Using gnatcheck
 * gnatcheck Rule Options::
 * Adding the Results of Compiler Checks to gnatcheck Output::
 * Project-Wide Checks::
+* Rule exemption::
 * Predefined Rules::
 
 Sample Bodies Using gnatstub
@@ -15590,6 +15591,13 @@ Do not look for sources in the system default directory.
 @cindex @option{-nostdlib} (@command{gnatfind})
 Do not look for library files in the system default directory.
 
+@item --ext=@var{extension}
+@cindex @option{--ext} (@command{gnatfind})
+Specify an alternate ali file extension. The default is @code{ali} and other
+extensions (e.g. @code{sli} for SPARK library files) may be specified via this
+switch. Note that if this switch overrides the default, which means that only
+the new extension will be considered.
+
 @item --RTS=@var{rts-path}
 @cindex @option{--RTS} (@command{gnatfind})
 Specifies the default location of the runtime library. Same meaning as the
@@ -20689,6 +20697,7 @@ Either a @file{@var{filename}} or an @file{@var{arg_list_filename}} must be supp
 * gnatcheck Rule Options::
 * Adding the Results of Compiler Checks to gnatcheck Output::
 * Project-Wide Checks::
+* Rule exemption::
 * Predefined Rules::
 @end menu
 
@@ -20705,14 +20714,13 @@ named named @file{^gnatcheck.out^GNATCHECK.OUT^} and it is located in the curren
 directory, @option{^-o^/OUTPUT^} option can be used to change the name and/or
 location of the report file. This report contains:
 @itemize @bullet
-@item a list of the Ada source files being checked,
-@item a list of enabled and disabled rules,
-@item a list of the diagnostic messages, ordered in three different ways
-and collected in three separate
-sections. Section 1 contains the raw list of diagnostic messages. It
-corresponds to the output going to @file{stdout}. Section 2 contains
-messages ordered by rules.
-Section 3 contains messages ordered by source files.
+@item date and time of @command{gnatcheck} run, the version of
+the tool that has generated this report and the full paarmeters
+of the  @command{gnatcheck} invocation;
+@item the list of enabled rules;
+@item the total number of detected violations;
+@item list of source files for that rule violations have been detected;
+@item list of source files with no violations detected;
 @end itemize
 
 @node General gnatcheck Switches
@@ -20938,6 +20946,108 @@ the @option{-U} option followed by the name of the main unit:
 @smallexample
    gnat check -Pproj -U main -rules -from=my_rules
 @end smallexample
+
+
+@node Rule exemption
+@section Rule exemption
+@cindex Rule exemption (for @command{gnatcheck})
+
+@noindent
+@command{gnatcheck} can be used to inforce a coding standard. It may be
+appropriate, in some circumstances, to accept violations of the coding
+standard. In such a case, it is a good idea to justify the violation within
+the sources themselves. It makes it possible to maintain the justification
+for such violations along with the sources containing them.
+@command{gnatcheck} supports such justified violations with the notion of
+``exemption'' covering a specific source code section. Usually,
+@command{gnatcheck} issues rule violation messages both on @file{stderr}
+and in a report file. Exempted violations are not reported at all on
+@file{stderr} so that users using @command{gnatcheck} in interactive mode
+(e.g. in its GPS interface) do not need to pay attention to known and
+justified violations. The @command{gnatcheck} report includes exempted
+violations in a special section along with their justification.
+
+@menu
+* Using pragma Annotate to Control Rule Exemption::
+* gnatcheck Annotations Rules::
+@end menu
+
+@node Using pragma Annotate to Control Rule Exemption
+@subsection Using pragma @code{Annotate} to Control Rule Exemption
+@cindex Using pragma Annotate to control rule exemption
+
+@noindent
+Rule exemption is controlled by pragma @code{Annotate} when its first parameter is
+``gnatcheck''. Here is the syntax of @command{gnatcheck} annotations:
+
+@smallexample @c ada
+pragma Annotate (gnatcheck, exemption_control, Rule_Name, [justification]);
+
+exemption_control ::= "Exempt_On" | "Exempt_Off"
+
+Rule_Name         ::= string_literal
+
+justification     ::= string_literal
+
+@end smallexample
+
+@noindent
+When a @command{gnatcheck} annotatation has more then four parameters,
+@command{gnatcheck} issues a warning and ignore additional parameters.
+If the additional parameters do not follow the syntax above,
+@command{gnatcheck} emits a warning and ignores the annotation.
+
+@code{Rule_Name} should be the name of some existing @command{gnatcheck} rule.
+If this is not the case, the warning message is generated and the pragma is
+ignored. If @code{Rule_Name} denotes a rule that is not activated by the given
+@command{gnatcheck} call, the pragma is ignored silently.
+
+A source code section where an exemption is active for a given rule starts with
+an extempt_on annotation and terminates with an exempt_off one:
+
+@smallexample @c ada
+pragma Annotate (gnatcheck, "Exempt_On", Rule_Name, "justification");
+-- source code section
+pragma Annotate (gnatcheck, "Exempt_Off", Rule_Name);
+@end smallexample
+
+
+@node gnatcheck Annotations Rules
+@subsection @command{gnatcheck} Annotations Rules
+@cindex @command{gnatcheck} annotations rules
+
+@itemize @bullet
+
+@item
+an ``Exempt_Off'' annotation can only appear after a corresponding
+``Exempt_On'' annotation in order to create a properly formed exempted source
+code section;
+
+@item
+exempted source code sections are only based on the source location of the
+annotations. Any source construct having a source location in between the two
+annotations is part of the exempted source code section;
+
+@item
+exempted source code sections for different rules are independent. They can
+be nested or intersect with one another without limitation. It is not allowed
+to create nested or intersecting source code sections for the same rule;
+
+@item
+malformed exempted source code sections are reported by a warning and
+the corresponding rule exemption is ignored;
+
+@item
+when an exempted source code section does not contain at least one violation
+of the exempted rule, a warning is emitted on @file{stderr}. This allow proper
+maintenance of exempted source code sections;
+
+@item
+if an exempted source code section reaches the end of the compilation unit
+source and there is no @code{Annotate} pragma closing this section, then the
+exemption for the given rule is turned off and a warning is issued.
+
+@end itemize
 
 
 @node Predefined Rules
@@ -21209,20 +21319,23 @@ This rule has no parameters.
 @cindex @code{Complex_Inlined_Subprograms} rule (for @command{gnatcheck})
 
 @noindent
-Flags the body of a subprogram (or generic subprogram) if
-pragma Inline has been applied to the subprogram but the body
-is too complex to be expanded inline.
-
-A subprogram (or generic subprogram) is considered too complex for inline
-expansion if its body meets at least one of the following conditions:
+Flags a subprogram (or generic subprogram) if
+pragma Inline is applied to the subprogram and at least one of the following
+conditions is met:
 
 @itemize @bullet
 @item
-The number of local declarations and statements exceeds
-a value specified by the @option{N} rule parameter;
+it contains at least one complex declaration such as a subprogram body,
+package, task, protected declaration, or a generic instantiation
+(except instantiation of @code{Ada.Unchecked_Conversion});
 
 @item
-The body contains a @code{loop}, @code{if} or @code{case} statement;
+it contains at least one complex statement such as a loop, a case
+or a if statement, or a short circuit control form;
+
+@item
+the number of statements exceeds
+a value specified by the @option{N} rule parameter;
 @end itemize
 
 @noindent
@@ -21230,8 +21343,8 @@ This rule has the following (mandatory) parameter for the @option{+R} option:
 
 @table @emph
 @item N
-Positive integer specifying the maximum allowed total number of local
-declarations and statements in the subprogram body.
+Positive integer specifying the maximum allowed total number of statements
+in the subprogram body.
 @end table
 
 
@@ -21252,15 +21365,15 @@ This rule has no parameters.
 @cindex @code{Deep_Inheritance_Hierarchies} rule (for @command{gnatcheck})
 
 @noindent
-Flags a tagged derived type declaration if its depth (in its inheritance
+Flags a tagged derived type declaration or an interface type declaration if
+its depth (in its inheritance
 hierarchy) exceeds the value specified by the @option{N} rule parameter.
 
-The depth of a root tagged type (ie, a tagged type that is not a derived type)
-is 0.
-If tagged type T2 derives directly from tagged type T1, then the depth of T2
-is one more than the depth of T1.
+The inheritance depth of a tagged type or interface type is defined as 0 for
+a type  with no parent and no progenitor, and otherwise as 1 + max of the
+depths of the immediate parent and immediate progenitors.
 
-This rule does not flag interface types or private extension
+This rule does not flag private extension
 declarations. In the case of a private extension, the correspondong full
 declaration is checked.
 
@@ -21268,8 +21381,9 @@ This rule has the following (mandatory) parameter for the @option{+R} option:
 
 @table @emph
 @item N
-Positive integer specifying the maximal allowed depth of any inheritance
-hierarchy.
+Integer not less then -1 specifying the maximal allowed depth of any inheritance
+hierarchy. If the rule parameter is set to -1, the rule flags all the declarations
+of tagged and interface types.
 @end table
 
 
@@ -21297,22 +21411,11 @@ for a generic declaration.
 @cindex @code{Deeply_Nested_Inlining} rule (for @command{gnatcheck})
 
 @noindent
-Flags the body of a subprogram (or generic subprogram) if
-pragma Inline has been applied to the subprogram but the body
-contains a call to another inlined subprogram that results in nested inlining
+Flags a subprogram (or generic subprogram) if
+pragma Inline has been applied to the subprogram but the subprogram
+calls to another inlined subprogram that results in nested inlining
 with nesting depth exceeding the value specified by the
 @option{N} rule parameter.
-
-This rule assumes that pragma Inline applies equally to calls on
-subprograms regardless of whether the subprogram declaration appears in the
-same compilation unit as the call, or in a separately compiled
-(e.g., @i{with}ed) unit.
-
-This rule may be useful when either the @option{-gnatn} or @option{-gnatN}
-option is used.
-
-If a subprogram should be flagged according to this rule, the body declaration
-is flagged only if it is not a completion of a subprogram declaration.
 
 This rule requires the global analysis of all the compilation units that
 are @command{gnatcheck} arguments; such analysis may affect the tool's
@@ -22679,8 +22782,13 @@ This rule has no parameters.
 Flag each function returning an unconstrained array. Function declarations,
 function bodies (and body stubs) having no separate specifications,
 and generic function instantiations are checked.
-Generic function declarations, function calls and function renamings are
+Function calls and function renamings are
 not checked.
+
+Generic function declarations, and function declarations in generic
+packages are not checked, instead this rule checks the results of
+generic instantiations (that is, expanded specification and expanded
+body corresponding to an instantiation).
 
 This rule has no parameters.
 
@@ -24852,7 +24960,7 @@ GNAT always follows the Alpha implementation.
 For GNAT running on other than VMS systems, all the HP Ada 83 pragmas and
 attributes are recognized, although only a subset of them can sensibly
 be implemented.  The description of pragmas in
-@xref{Implementation Defined Pragmas,,, gnat_rm, GNAT Reference Manual}
+@xref{Implementation Defined Pragmas,,, gnat_rm, GNAT Reference Manual},
 indicates whether or not they are applicable to non-VMS systems.
 
 @menu
@@ -25299,7 +25407,7 @@ pragma Extend_System (Aux_DEC);
 @noindent
 The pragma @code{Extend_System} is a configuration pragma that
 is most conveniently placed in the @file{gnat.adc} file. @xref{Pragma
-Extend_System,,, gnat_rm, GNAT Reference Manual} for further details.
+Extend_System,,, gnat_rm, GNAT Reference Manual}, for further details.
 
 HP Ada does not allow the recompilation of the package
 @code{SYSTEM}. Instead HP Ada provides several pragmas
@@ -25330,7 +25438,7 @@ are virtually identical to those provided by the HP Ada 83 package
 @code{TO_ADDRESS}
 function for type @code{UNSIGNED_LONGWORD} is changed to
 @code{TO_ADDRESS_LONG}.
-@xref{Address Clauses,,, gnat_rm, GNAT Reference Manual} for a
+@xref{Address Clauses,,, gnat_rm, GNAT Reference Manual}, for a
 discussion of why this change was necessary.
 
 @noindent

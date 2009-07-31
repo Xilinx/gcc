@@ -59,6 +59,7 @@ with Sem_Disp; use Sem_Disp;
 with Sem_Eval; use Sem_Eval;
 with Sem_Mech; use Sem_Mech;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
@@ -752,7 +753,11 @@ package body Exp_Ch3 is
          Set_Init_Proc (A_Type, Proc_Id);
 
          if List_Length (Body_Stmts) = 1
-           and then Nkind (First (Body_Stmts)) = N_Null_Statement
+
+           --  We must skip SCIL nodes because they may have been added to this
+           --  list by Insert_Actions.
+
+           and then Nkind (First_Non_SCIL_Node (Body_Stmts)) = N_Null_Statement
          then
             Set_Is_Null_Init_Proc (Proc_Id);
 
@@ -763,7 +768,7 @@ package body Exp_Ch3 is
 
             Set_Static_Initialization
               (Proc_Id,
-                Build_Equivalent_Array_Aggregate (First_Subtype (A_Type)));
+               Build_Equivalent_Array_Aggregate (First_Subtype (A_Type)));
          end if;
       end if;
    end Build_Array_Init_Proc;
@@ -1939,6 +1944,7 @@ package body Exp_Ch3 is
             D := First_Discriminant (Rec_Type);
 
             while Present (D) loop
+
                --  Don't generate the assignment for discriminants in derived
                --  tagged types if the discriminant is a renaming of some
                --  ancestor discriminant. This initialization will be done
@@ -2330,11 +2336,16 @@ package body Exp_Ch3 is
             --  the tag component.
 
             if Generate_SCIL then
-               Prepend_To (Init_Tags_List,
-                 New_SCIL_Node
-                   (SN_Kind      => IP_Tag_Init,
-                    Related_Node => First (Init_Tags_List),
-                    Entity       => Rec_Type));
+               declare
+                  New_Node : Node_Id;
+
+               begin
+                  New_Node :=
+                    Make_SCIL_Tag_Init (Sloc (First (Init_Tags_List)));
+                  Set_SCIL_Related_Node (New_Node, First (Init_Tags_List));
+                  Set_SCIL_Entity (New_Node, Rec_Type);
+                  Prepend_To (Init_Tags_List, New_Node);
+               end;
             end if;
 
             --  Ada 2005 (AI-251): Initialize the secondary tags components
@@ -2496,7 +2507,11 @@ package body Exp_Ch3 is
          Set_Init_Proc (Rec_Type, Proc_Id);
 
          if List_Length (Body_Stmts) = 1
-           and then Nkind (First (Body_Stmts)) = N_Null_Statement
+
+           --  We must skip SCIL nodes because they may have been added to this
+           --  list by Insert_Actions.
+
+           and then Nkind (First_Non_SCIL_Node (Body_Stmts)) = N_Null_Statement
            and then VM_Target = No_VM
          then
             --  Even though the init proc may be null at this time it might get
@@ -5602,105 +5617,6 @@ package body Exp_Ch3 is
    -------------------------------
 
    procedure Expand_Freeze_Record_Type (N : Node_Id) is
-
-      procedure Add_Internal_Interface_Entities (Tagged_Type : Entity_Id);
-      --  Add to the list of primitives of Tagged_Types the internal entities
-      --  associated with interface primitives that are located in secondary
-      --  dispatch tables.
-
-      -------------------------------------
-      -- Add_Internal_Interface_Entities --
-      -------------------------------------
-
-      procedure Add_Internal_Interface_Entities (Tagged_Type : Entity_Id) is
-         Elmt        : Elmt_Id;
-         Iface       : Entity_Id;
-         Iface_Elmt  : Elmt_Id;
-         Iface_Prim  : Entity_Id;
-         Ifaces_List : Elist_Id;
-         New_Subp    : Entity_Id := Empty;
-         Prim        : Entity_Id;
-
-      begin
-         pragma Assert (Ada_Version >= Ada_05
-           and then Is_Record_Type (Tagged_Type)
-           and then Is_Tagged_Type (Tagged_Type)
-           and then Has_Interfaces (Tagged_Type)
-           and then not Is_Interface (Tagged_Type));
-
-         Collect_Interfaces (Tagged_Type, Ifaces_List);
-
-         Iface_Elmt := First_Elmt (Ifaces_List);
-         while Present (Iface_Elmt) loop
-            Iface := Node (Iface_Elmt);
-
-            --  Exclude from this processing interfaces that are parents
-            --  of Tagged_Type because their primitives are located in the
-            --  primary dispatch table (and hence no auxiliary internal
-            --  entities are required to handle secondary dispatch tables
-            --  in such case).
-
-            if not Is_Ancestor (Iface, Tagged_Type) then
-               Elmt := First_Elmt (Primitive_Operations (Iface));
-               while Present (Elmt) loop
-                  Iface_Prim := Node (Elmt);
-
-                  if not Is_Predefined_Dispatching_Operation (Iface_Prim) then
-                     Prim :=
-                       Find_Primitive_Covering_Interface
-                         (Tagged_Type => Tagged_Type,
-                          Iface_Prim  => Iface_Prim);
-
-                     pragma Assert (Present (Prim));
-
-                     Derive_Subprogram
-                       (New_Subp     => New_Subp,
-                        Parent_Subp  => Iface_Prim,
-                        Derived_Type => Tagged_Type,
-                        Parent_Type  => Iface);
-
-                     --  Ada 2005 (AI-251): Decorate internal entity Iface_Subp
-                     --  associated with interface types. These entities are
-                     --  only registered in the list of primitives of its
-                     --  corresponding tagged type because they are only used
-                     --  to fill the contents of the secondary dispatch tables.
-                     --  Therefore they are removed from the homonym chains.
-
-                     Set_Is_Hidden (New_Subp);
-                     Set_Is_Internal (New_Subp);
-                     Set_Alias (New_Subp, Prim);
-                     Set_Is_Abstract_Subprogram (New_Subp,
-                       Is_Abstract_Subprogram (Prim));
-                     Set_Interface_Alias (New_Subp, Iface_Prim);
-
-                     --  Internal entities associated with interface types are
-                     --  only registered in the list of primitives of the
-                     --  tagged type. They are only used to fill the contents
-                     --  of the secondary dispatch tables. Therefore they are
-                     --  not needed in the homonym chains.
-
-                     Remove_Homonym (New_Subp);
-
-                     --  Hidden entities associated with interfaces must have
-                     --  set the Has_Delay_Freeze attribute to ensure that, in
-                     --  case of locally defined tagged types (or compiling
-                     --  with static dispatch tables generation disabled) the
-                     --  corresponding entry of the secondary dispatch table is
-                     --  filled when such entity is frozen.
-
-                     Set_Has_Delayed_Freeze (New_Subp);
-                  end if;
-
-                  Next_Elmt (Elmt);
-               end loop;
-            end if;
-
-            Next_Elmt (Iface_Elmt);
-         end loop;
-      end Add_Internal_Interface_Entities;
-
-      --  Local variables
-
       Def_Id        : constant Node_Id := Entity (N);
       Type_Decl     : constant Node_Id := Parent (Def_Id);
       Comp          : Entity_Id;
@@ -5931,17 +5847,6 @@ package body Exp_Ch3 is
             then
                Make_Null_Procedure_Specs (Def_Id, Null_Proc_Decl_List);
                Insert_Actions (N, Null_Proc_Decl_List);
-            end if;
-
-            --  Ada 2005 (AI-251): Add internal entities associated with
-            --  secondary dispatch tables to the list of primitives of tagged
-            --  types that are not interfaces
-
-            if Ada_Version >= Ada_05
-              and then not Is_Interface (Def_Id)
-              and then Has_Interfaces (Def_Id)
-            then
-               Add_Internal_Interface_Entities (Def_Id);
             end if;
 
             Set_Is_Frozen (Def_Id);

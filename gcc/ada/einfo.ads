@@ -491,7 +491,7 @@ package Einfo is
 --       Present in all entities. Set if a pragma Suppress or Unsuppress
 --       mentions the entity specifically in the second argument. If this
 --       flag is set the Global_Entity_Suppress and Local_Entity_Suppress
---       tables must be consulted to determine if the is actually an active
+--       tables must be consulted to determine if there actually is an active
 --       Suppress or Unsuppress pragma that applies to the entity.
 
 --    Class_Wide_Type (Node9)
@@ -3192,7 +3192,7 @@ package Einfo is
 --       the case of an appearance of a simple variable that is not a renaming
 --       as the left side of an assignment in which case Referenced_As_LHS is
 --       set instead, or a similar appearance as an out parameter actual, in
---       which case As_Out_Parameter_Parameter is set.
+--       which case Referenced_As_Out_Parameter is set.
 
 --    Referenced_As_LHS (Flag36):
 --       Present in all entities. This flag is set instead of Referenced if a

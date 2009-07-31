@@ -64,6 +64,7 @@ with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Mech; use Sem_Mech;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
@@ -1125,6 +1126,7 @@ package body Exp_Ch6 is
             --  created, since we just passed it as an OUT parameter.
 
             Kill_Current_Values (Temp);
+            Set_Is_Known_Valid (Temp, False);
 
             --  If type conversion, use reverse conversion on exit
 
@@ -2470,7 +2472,8 @@ package body Exp_Ch6 is
                --  For an OUT or IN OUT parameter that is an assignable entity,
                --  we do not want to clobber the Last_Assignment field, since
                --  if it is set, it was precisely because it is indeed an OUT
-               --  or IN OUT parameter!
+               --  or IN OUT parameter! We do reset the Is_Known_Valid flag
+               --  since the subprogram could have returned in invalid value.
 
                if (Ekind (Formal) = E_Out_Parameter
                      or else
@@ -2480,6 +2483,7 @@ package body Exp_Ch6 is
                   Sav := Last_Assignment (Ent);
                   Kill_Current_Values (Ent);
                   Set_Last_Assignment (Ent, Sav);
+                  Set_Is_Known_Valid (Ent, False);
 
                   --  For all other cases, just kill the current values
 
@@ -4969,10 +4973,13 @@ package body Exp_Ch6 is
                if Nkind (Orig_Bod) /= N_Subprogram_Body then
                   return False;
                else
+                  --  We must skip SCIL nodes because they are currently
+                  --  implemented as special N_Null_Statement nodes.
+
                   Stat :=
-                     First
+                     First_Non_SCIL_Node
                        (Statements (Handled_Statement_Sequence (Orig_Bod)));
-                  Stat2 := Next (Stat);
+                  Stat2 := Next_Non_SCIL_Node (Stat);
 
                   return
                      Is_Empty_List (Declarations (Orig_Bod))

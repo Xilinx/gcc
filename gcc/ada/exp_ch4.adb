@@ -58,6 +58,7 @@ with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
@@ -3964,6 +3965,16 @@ package body Exp_Ch4 is
                 Left,
                 Right,
                 New_Occurrence_Of (Standard_False, Loc))));
+
+         --  If the right part of the expression is a function call then it can
+         --  be part of the expansion of the predefined equality operator of a
+         --  tagged type and we may need to adjust its SCIL dispatching node.
+
+         if Generate_SCIL
+           and then Nkind (Right) = N_Function_Call
+         then
+            Adjust_SCIL_Node (N, Right);
+         end if;
 
          Set_Then_Actions (N, Actlist);
          Analyze_And_Resolve (N, Standard_Boolean);
