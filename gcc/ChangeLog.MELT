@@ -1,5 +1,9 @@
 
 2009-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gengtype.c: removed #define gcc_assert assert ...
+	and #warning.
+
+2009-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.melt: added more gimple patterns & primitives.
 
 2009-07-30  Basile Starynkevitch  <basile@starynkevitch.net>

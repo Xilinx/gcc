@@ -24,10 +24,6 @@
 #include "errors.h"	/* for fatal */
 #include "double-int.h"
 
-#warning assert temporarily added by Basile
-#include <assert.h>
-#undef gcc_assert
-#define gcc_assert assert
 
 /* Data types, macros, etc. used only in this file.  */
 
