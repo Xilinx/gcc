@@ -5024,10 +5024,10 @@ install-melt-dynlib: installdirs $(melt_default_modules_list).modlis $(WARMELT_B
 
 #### installing melt generated C files (at MELT 3rd stage)
 install-melt-cfiles: installdirs $(WARMELT_BASE3C) $(ANAMELT_BASEC)
-	$(mkinstalldirs) $(melt_generated_dir)
+	$(mkinstalldirs) $(melt_source_dir)
 	for cfile in  $(WARMELT_BASE3C) $(ANAMELT_BASEC); do \
-	  rm -f $(melt_generated_dir)/$$cfile; \
-	  $(INSTALL_DATA) $$cfile $(melt_generated_dir)/$$cfile ; \
+	  rm -f $(melt_source_dir)/$$cfile; \
+	  $(INSTALL_DATA) $$cfile $(melt_source_dir)/$$cfile ; \
 	done
 
 #### install the MELT source files (in Melt)
