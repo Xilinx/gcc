@@ -10333,7 +10333,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
   static const char*modstr;
   /* the plugin_pass can be local, since it is only locally used in
      plugin.c */
-  struct plugin_pass plugpass = { NULL, NULL, 0, 0 };
+  struct plugin_pass plugpass = { NULL, NULL, 0, PASS_POS_INSERT_AFTER };
   enum pass_positioning_ops posop = PASS_POS_INSERT_AFTER;
   unsigned long propreq=0, propprov=0, propdest=0, todostart=0, todofinish=0;
   MELT_ENTERFRAME (7, NULL);

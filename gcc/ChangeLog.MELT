@@ -1,5 +1,9 @@
 
 2009-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_register_pass): initialize plugpass
+	without C++ related warning on enum cast...
+
+2009-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: replaced melt_generated_dir by melt_source_dir
 
 2009-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
