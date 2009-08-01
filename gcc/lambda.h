@@ -189,13 +189,14 @@ void lambda_matrix_project_to_null (lambda_matrix, int, int, int,
 				    lambda_vector);
 void print_lambda_matrix (FILE *, lambda_matrix, int, int);
 
-lambda_trans_matrix lambda_trans_matrix_new (int, int);
+lambda_trans_matrix lambda_trans_matrix_new (int, int, struct obstack *);
 bool lambda_trans_matrix_nonsingular_p (lambda_trans_matrix);
 bool lambda_trans_matrix_fullrank_p (lambda_trans_matrix);
 int lambda_trans_matrix_rank (lambda_trans_matrix);
 lambda_trans_matrix lambda_trans_matrix_basis (lambda_trans_matrix);
 lambda_trans_matrix lambda_trans_matrix_padding (lambda_trans_matrix);
-lambda_trans_matrix lambda_trans_matrix_inverse (lambda_trans_matrix);
+lambda_trans_matrix lambda_trans_matrix_inverse (lambda_trans_matrix,
+						 struct obstack *);
 void print_lambda_trans_matrix (FILE *, lambda_trans_matrix);
 void lambda_matrix_vector_mult (lambda_matrix, int, int, lambda_vector, 
 				lambda_vector);

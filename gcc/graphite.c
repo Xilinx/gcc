@@ -5079,14 +5079,19 @@ if_region_set_false_region (ifsese if_region, sese region)
 }
 
 static ifsese
-create_if_region_on_edge (edge entry, tree condition)
+create_if_region_on_edge (edge entry, tree condition,
+			  struct obstack * graphite_obstack)
 {
   edge e;
   edge_iterator ei;
-  sese sese_region = GGC_NEW (struct sese_d);
-  sese true_region = GGC_NEW (struct sese_d);
-  sese false_region = GGC_NEW (struct sese_d);
-  ifsese if_region = GGC_NEW (struct ifsese_d);
+  sese sese_region = (sese) obstack_alloc (graphite_obstack,
+					   sizeof (struct sese_d));
+  sese true_region = (sese) obstack_alloc (graphite_obstack,
+					   sizeof (struct sese_d));
+  sese false_region = (sese) obstack_alloc (graphite_obstack,
+					   sizeof (struct sese_d));
+  sese if_region = (ifsese) obstack_alloc (graphite_obstack,
+					   sizeof (struct ifsese_d));
   edge exit = create_empty_if_region_on_edge (entry, condition);
 
   if_region->region = sese_region;
@@ -5120,13 +5125,14 @@ create_if_region_on_edge (edge entry, tree condition)
 */
 
 static ifsese
-move_sese_in_condition (sese region)
+move_sese_in_condition (sese region, struct obstack * graphite_obstack)
 {
   basic_block pred_block = split_edge (SESE_ENTRY (region));
   ifsese if_region = NULL;
 
   SESE_ENTRY (region) = single_succ_edge (pred_block);
-  if_region = create_if_region_on_edge (single_pred_edge (pred_block), integer_one_node);
+  if_region = create_if_region_on_edge (single_pred_edge (pred_block),
+					integer_one_node, graphite_obstack);
   if_region_set_false_region (if_region, region);
 
   return if_region;
@@ -5777,7 +5783,8 @@ strip_mine_profitable_p (graphite_bb_p gb, int stride,
    SCOP is legal.  DEPTH is the number of loops around.  */
 
 static bool
-is_interchange_valid (scop_p scop, int loop_a, int loop_b, int depth)
+is_interchange_valid (scop_p scop, int loop_a, int loop_b, int depth,
+		      struct obstack * graphite_obstack)
 {
   bool res;
   VEC (ddr_p, heap) *dependence_relations;
@@ -5798,7 +5805,7 @@ is_interchange_valid (scop_p scop, int loop_a, int loop_b, int depth)
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_ddrs (dump_file, dependence_relations);
 
-  trans = lambda_trans_matrix_new (depth, depth);
+  trans = lambda_trans_matrix_new (depth, depth, graphite_obstack);
   lambda_matrix_id (LTM_MATRIX (trans), depth);
 
   lambda_matrix_row_exchange (LTM_MATRIX (trans), 0, loop_b - loop_a);
@@ -5838,7 +5845,8 @@ is_interchange_valid (scop_p scop, int loop_a, int loop_b, int depth)
 */
 
 static bool
-graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
+graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops,
+			 struct obstack * graphite_obstack)
 {
   int i, j;
   int nb_loops = gbb_nb_loops (gb);
@@ -5849,7 +5857,7 @@ graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
 
   for (i = start ; i < nb_loops; i++)
     for (j = i + 1; j < nb_loops; j++)
-      if (!is_interchange_valid (scop, i, j, nb_loops))
+      if (!is_interchange_valid (scop, i, j, nb_loops, graphite_obstack))
 	{
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file,
@@ -5884,7 +5892,8 @@ graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
    basic blocks that belong to the loop nest to be blocked.  */
 
 static bool
-graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
+graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops,
+			   struct obstack * graphite_obstack)
 {
   graphite_bb_p gb;
   int i;
@@ -5894,7 +5903,8 @@ graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
   int stride_size = 51;
 
   for (i = 0; VEC_iterate (graphite_bb_p, bbs, i, gb); i++)
-    transform_done |= graphite_trans_bb_block (gb, stride_size, loops);
+    transform_done |= graphite_trans_bb_block (gb, stride_size, loops,
+					       graphite_obstack);
 
   return transform_done;
 }
@@ -5903,7 +5913,7 @@ graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
    transform is not performed.  */
 
 static bool
-graphite_trans_scop_block (scop_p scop)
+graphite_trans_scop_block (scop_p scop, struct obstack * graphite_obstack)
 {
   graphite_bb_p gb;
   int i, j;
@@ -5976,7 +5986,8 @@ graphite_trans_scop_block (scop_p scop)
 
       /* Found perfect loop nest.  */
       if (perfect && last_nb_loops - j >= 2)
-        transform_done |= graphite_trans_loop_block (bbs, last_nb_loops - j);
+	transform_done |= graphite_trans_loop_block (bbs, last_nb_loops - j,
+						     graphite_obstack);
  
       /* Check if we start with a new loop.
 
@@ -6016,7 +6027,8 @@ graphite_trans_scop_block (scop_p scop)
 
   /* Found perfect loop nest.  */
   if (last_nb_loops - j >= 2)
-    transform_done |= graphite_trans_loop_block (bbs, last_nb_loops - j);
+    transform_done |= graphite_trans_loop_block (bbs, last_nb_loops - j,
+						 graphite_obstack);
   VEC_free (graphite_bb_p, heap, bbs);
 
   return transform_done;
@@ -6025,7 +6037,7 @@ graphite_trans_scop_block (scop_p scop)
 /* Apply graphite transformations to all the basic blocks of SCOP.  */
 
 static bool
-graphite_apply_transformations (scop_p scop)
+graphite_apply_transformations (scop_p scop, struct obstack * graphite_obstack)
 {
   bool transform_done = false;
 
@@ -6033,7 +6045,7 @@ graphite_apply_transformations (scop_p scop)
   graphite_sort_gbbs (scop);
 
   if (flag_loop_block)
-    transform_done = graphite_trans_scop_block (scop);
+    transform_done = graphite_trans_scop_block (scop, graphite_obstack);
 
   /* Generate code even if we did not apply any real transformation.
      This also allows to check the performance for the identity
@@ -6110,10 +6122,12 @@ graphite_transform_loops (void)
   int i;
   scop_p scop;
   bool transform_done = false;
+  struct obstack graphite_obstack;
 
   if (number_of_loops () <= 1)
     return;
 
+  gcc_obstack_init (&graphite_obstack);
   current_scops = VEC_alloc (scop_p, heap, 3);
   recompute_all_dominators ();
 
@@ -6167,8 +6181,9 @@ graphite_transform_loops (void)
 	  fprintf (dump_file, "\nnumber of data refs: %d\n", nbrefs);
 	}
 
-      if (graphite_apply_transformations (scop))
-        transform_done = gloog (scop, find_transform (scop));
+      if (graphite_apply_transformations (scop, &graphite_obstack))
+	transform_done = gloog (scop, find_transform (scop),
+				&graphite_obstack);
 #ifdef ENABLE_CHECKING
       else
 	{
@@ -6185,6 +6200,7 @@ graphite_transform_loops (void)
   free_scops (current_scops);
   cloog_finalize ();
   free_original_copy_tables ();
+  obstack_free (&graphite_obstack, NULL);
 }
 
 #else /* If Cloog is not available: #ifndef HAVE_cloog.  */

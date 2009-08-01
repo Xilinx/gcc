@@ -1076,7 +1076,7 @@ lambda_loopnest_transform (lambda_loopnest nest, lambda_trans_matrix trans,
 
   /* Compute the lattice base.  */
   lattice = lambda_lattice_compute_base (nest, lambda_obstack);
-  trans1 = lambda_trans_matrix_new (depth, depth);
+  trans1 = lambda_trans_matrix_new (depth, depth, lambda_obstack);
 
   /* Multiply the transformation matrix by the lattice base.  */
 
@@ -1084,8 +1084,8 @@ lambda_loopnest_transform (lambda_loopnest nest, lambda_trans_matrix trans,
 		      LTM_MATRIX (trans1), depth, depth, depth);
 
   /* Compute the Hermite normal form for the new transformation matrix.  */
-  H = lambda_trans_matrix_new (depth, depth);
-  U = lambda_trans_matrix_new (depth, depth);
+  H = lambda_trans_matrix_new (depth, depth, lambda_obstack);
+  U = lambda_trans_matrix_new (depth, depth, lambda_obstack);
   lambda_matrix_hermite (LTM_MATRIX (trans1), depth, LTM_MATRIX (H),
 			 LTM_MATRIX (U));
 
@@ -1694,7 +1694,7 @@ remove_iv (gimple iv_stmt)
    TRANSFORM is the matrix transform that was applied to OLD_LOOPNEST to get 
    NEW_LOOPNEST.  */
 
-void
+void 
 lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
 				 VEC(tree,heap) *old_ivs,
 				 VEC(tree,heap) *invariants,
@@ -1711,7 +1711,7 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
   tree oldiv;
   gimple_stmt_iterator bsi;
 
-  transform = lambda_trans_matrix_inverse (transform);
+  transform = lambda_trans_matrix_inverse (transform, lambda_obstack);
 
   if (dump_file)
     {

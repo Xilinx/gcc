@@ -365,7 +365,7 @@ linear_transform_loops (void)
 	dump_ddrs (dump_file, dependence_relations);
 
       /* Build the transformation matrix.  */
-      trans = lambda_trans_matrix_new (depth, depth);
+      trans = lambda_trans_matrix_new (depth, depth, &lambda_obstack);
       lambda_matrix_id (LTM_MATRIX (trans), depth);
       trans = try_interchange_loops (trans, depth, dependence_relations,
 				     datarefs, loop_nest);
