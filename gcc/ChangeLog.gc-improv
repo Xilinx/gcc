@@ -1,5 +1,18 @@
 2009-08-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* Makefile.in (build/gengtype.o): Add $(HASHTAB_H) dependency.
+	* gengtype.c: Include hashtab.h.  Add comment for
+	GC_MAYBE_POINTED_TO.
+	(do_typedef): Initialize opt to NULL.
+	(dump_pair, dump_type, dump_type_list, INDENT, dump_typekind)
+	(dump_gc_used, dump_options, dump_fileloc, dump_type_u_s)
+	(dump_type_u_a, dump_type_u_param_struct, seen_types)
+	(dump_pair_list, dump_structures, dump_everything): New.
+	(main): New variable do_dump.  Check if first command line
+	argument is -d, invoke dump_everything.
+
+2009-08-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* tree-dfa.c (create_var_ann): Use typed GC allocation.
 	(create_tree_common_ann): Likewise.
 
