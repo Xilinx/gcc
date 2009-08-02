@@ -1,5 +1,13 @@
 2009-08-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* gengtype.c (USED_BY_TYPED_GC): New.
+	(write_enum_defn): Use it.  Do not output whitespace at the end of
+	line.
+	(USED_BY_GC): Remove.
+	(write_typed_alloc_defns): Use USED_BY_TYPED_GC.
+
+2009-08-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* ipa.c (hash_cgraph_node_set_element, eq_cgraph_node_set_element,
 	cgraph_node_set_new): Remove.
 

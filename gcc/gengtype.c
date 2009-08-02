@@ -2969,6 +2969,15 @@ write_local (type_p structures, type_p param_structs)
       }
 }
 
+#define USED_BY_TYPED_GC(s)						\
+  (UNION_OR_STRUCT_P (s) &&						\
+  (((s)->gc_used == GC_POINTED_TO)					\
+   || ((s)->gc_used == GC_MAYBE_POINTED_TO				\
+       && s->u.s.line.file != NULL)					\
+   || ((s)->gc_used == GC_USED						\
+       && strncmp(s->u.s.tag, "anonymous", strlen ("anonymous")))))
+
+
 /* Write out the 'enum' definition for gt_types_enum.  */
 
 static void
@@ -2976,28 +2985,23 @@ write_enum_defn (type_p structures, type_p param_structs)
 {
   type_p s;
 
-  if (!header_file) 
+  if (!header_file)
     return;
   oprintf (header_file, "\n/* Enumeration of types known.  */\n");
   oprintf (header_file, "enum gt_types_enum {\n");
   for (s = structures; s; s = s->next)
-    if (s->gc_used == GC_POINTED_TO
-	|| s->gc_used == GC_MAYBE_POINTED_TO)
+    if (USED_BY_TYPED_GC (s))
       {
-	if (s->gc_used == GC_MAYBE_POINTED_TO
-	    && s->u.s.line.file == NULL)
-	  continue;
-
 	oprintf (header_file, " gt_ggc_e_");
 	output_mangled_typename (header_file, s);
-	oprintf (header_file, ", \n");
+	oprintf (header_file, ",\n");
       }
   for (s = param_structs; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO)
       {
 	oprintf (header_file, " gt_e_");
 	output_mangled_typename (header_file, s);
-	oprintf (header_file, ", \n");
+	oprintf (header_file, ",\n");
       }
   oprintf (header_file, " gt_types_enum_last\n");
   oprintf (header_file, "};\n");
@@ -3688,9 +3692,6 @@ write_typed_typedef_alloc_def (const pair_p p,
   write_typed_alloc_end (s, allocator_type, is_vector);
 }
 
-#define USED_BY_GC(s) (((s)->gc_used == GC_POINTED_TO) ||	\
-  ((s)->gc_used == GC_MAYBE_POINTED_TO))
-
 static void
 write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
 {
@@ -3700,7 +3701,7 @@ write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
   oprintf (header_file, "\n/* Allocators for known structs and unions.  */\n");
   for (s = structures; s; s = s->next)
     {
-      if (!USED_BY_GC (s))
+      if (!USED_BY_TYPED_GC (s))
 	continue;
       write_typed_struct_alloc_def (s, "", false);
       write_typed_struct_alloc_def (s, "cleared_", false);
@@ -3712,8 +3713,7 @@ write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
   for (p = typedefs; p; p = p->next)
     {
       s = p->type;
-      if (!USED_BY_GC (s) || !UNION_OR_STRUCT_P (s)
-	  || (strcmp (p->name, s->u.s.tag) == 0))
+      if (!USED_BY_TYPED_GC (s) || (strcmp (p->name, s->u.s.tag) == 0))
 	continue;
       write_typed_typedef_alloc_def (p, "", false);
       write_typed_typedef_alloc_def (p, "cleared_", false);
