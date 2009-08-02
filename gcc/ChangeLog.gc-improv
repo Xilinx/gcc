@@ -1,5 +1,10 @@
 2009-08-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* tree-dfa.c (create_var_ann): Use typed GC allocation.
+	(create_tree_common_ann): Likewise.
+
+2009-08-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* gengtype.c (USED_BY_TYPED_GC): New.
 	(write_enum_defn): Use it.  Do not output whitespace at the end of
 	line.

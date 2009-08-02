@@ -131,7 +131,7 @@ create_var_ann (tree t)
   gcc_assert (DECL_P (t));
   gcc_assert (!t->base.ann || t->base.ann->common.type == VAR_ANN);
 
-  ann = GGC_CNEW (struct var_ann_d);
+  ann = ggc_alloc_cleared_var_ann_d ();
   ann->common.type = VAR_ANN;
   t->base.ann = (tree_ann_t) ann;
 
@@ -167,7 +167,7 @@ create_tree_common_ann (tree t)
   gcc_assert (t);
   gcc_assert (!t->base.ann || t->base.ann->common.type == TREE_ANN_COMMON);
 
-  ann = GGC_CNEW (struct tree_ann_common_d);
+  ann = ggc_alloc_cleared_tree_ann_common_d ();
 
   ann->type = TREE_ANN_COMMON;
   ann->rn = -1;
