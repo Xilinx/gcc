@@ -434,30 +434,10 @@ get_include_chains (cpp_dir **quotes, cpp_dir **brackets)
    after appending new paths.  */
 
 void
-resync_include_chains (void)
+clear_include_chains (void)
 {
-  cpp_dir *pdir, *ppdir = NULL;
-  /* First split quote and bracket chains */
-  pdir = heads[QUOTE];
-  while (pdir && pdir != heads[BRACKET])
-    {
-      ppdir = pdir;
-      pdir = pdir->next;
-    }
-  if (ppdir)
-    ppdir->next = NULL;
-  else
-    heads[0] = NULL;
-
-  /* Now sync tails.  */
-  tails[QUOTE] = heads[QUOTE];
-  if (tails[QUOTE])
-    while (tails[QUOTE]->next)
-      tails[QUOTE] = tails[QUOTE]->next;
-  tails[BRACKET] = heads[BRACKET];
-  if (tails[BRACKET])
-    while (tails[BRACKET]->next)
-      tails[BRACKET] = tails[BRACKET]->next;
+  heads[QUOTE] = tails[QUOTE] = NULL;
+  heads[BRACKET] = tails[BRACKET] = NULL;
   heads[SYSTEM] = tails[SYSTEM] = NULL;
   heads[AFTER] = tails[AFTER] = NULL;
 }

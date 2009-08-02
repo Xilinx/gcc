@@ -612,6 +612,7 @@ cp_restore_built_in_decl_pre_parsing (void)
           REAL_IDENTIFIER_TYPE_VALUE (bi->id) = bi->real_type_value;
         }
     }
+  DECL_NAMESPACE_USING (global_namespace) = NULL;
 }
 
 /* Save the tree (by making a copy) and binding values for

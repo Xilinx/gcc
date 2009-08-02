@@ -1087,8 +1087,6 @@ build_inc_path_array_value (tree string_type, tree inc_path_value,
       const char *path_raw_string;
       int path_string_length;
       tree path_string;
-      if (!pdir->user_supplied_p)
-        continue;
       path_raw_string = pdir->name;
       path_string_length = strlen (path_raw_string);
       path_string = build_string (path_string_length + 1, path_raw_string);
@@ -1226,14 +1224,12 @@ build_gcov_module_info_value (void)
   get_include_chains (&quote_paths, &bracket_paths);
   for (pdir = quote_paths; pdir; pdir = pdir->next)
     {
-      if (pdir->user_supplied_p)
-        num_quote_paths++;
+      if (pdir == bracket_paths)
+        break;
+      num_quote_paths++;
     }
   for (pdir = bracket_paths; pdir; pdir = pdir->next)
-    {
-      if (pdir->user_supplied_p)
-        num_bracket_paths++;
-    }
+    num_bracket_paths++;
 
   /* Num quote paths  */
   field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
@@ -1613,7 +1609,7 @@ set_lipo_c_parsing_context (struct cpp_reader *parse_in, int i, bool verbose)
       unsigned i, j;
 
       /* Setup include paths.  */
-      resync_include_chains ();
+      clear_include_chains ();
       for (i = 0; i < mod_info->num_quote_paths; i++)
         add_path (xstrdup (mod_info->string_array[i]),
                   QUOTE, 0, 1);
