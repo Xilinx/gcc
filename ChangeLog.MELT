@@ -1,4 +1,7 @@
 
+2009-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	added manually libstdc++-v3/src/chrono.cc from trunk.
+
 2009-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk rev 150307
 	added manually libstdc++-v3/include/std/chrono from trunk.
@@ -380,3 +383,7 @@
 
 2008-02-19   Basile Starynkevitch  <basile@starynkevitch.net>
 	Created MELT branch. See also gcc/ChangeLog.melt
+
+/// Local Variables:
+/// mode: change-log
+/// End:
