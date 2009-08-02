@@ -329,42 +329,6 @@ struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility =
 };
 
 
-/* Hash a cgraph node set element.  */
-
-static hashval_t
-hash_cgraph_node_set_element (const void *p)
-{
-  const_cgraph_node_set_element element = (const_cgraph_node_set_element) p;
-  return htab_hash_pointer (element->node);
-}
-
-/* Compare two cgraph node set elements.  */
-
-static int
-eq_cgraph_node_set_element (const void *p1, const void *p2)
-{
-  const_cgraph_node_set_element e1 = (const_cgraph_node_set_element) p1;
-  const_cgraph_node_set_element e2 = (const_cgraph_node_set_element) p2;
-
-  return e1->node == e2->node;
-}
-
-/* Create a new cgraph node set.  */
-
-cgraph_node_set
-cgraph_node_set_new (void)
-{
-  cgraph_node_set new_node_set;
-
-  new_node_set = GGC_NEW (struct cgraph_node_set_def);
-  new_node_set->hashtab = htab_create_ggc (10,
-					   hash_cgraph_node_set_element,
-					   eq_cgraph_node_set_element,
-					   NULL);
-  new_node_set->nodes = NULL;
-  return new_node_set;
-}
-
 /* Add cgraph_node NODE to cgraph_node_set SET.  */
 
 void

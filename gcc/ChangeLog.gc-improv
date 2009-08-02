@@ -1,3 +1,8 @@
+2009-08-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* ipa.c (hash_cgraph_node_set_element, eq_cgraph_node_set_element,
+	cgraph_node_set_new): Remove.
+
 2009-08-01  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* lambda.h (lambda_trans_matrix_new): New argument of type struct
