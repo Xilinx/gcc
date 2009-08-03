@@ -24,4 +24,3 @@ byte_register_info_type ()
 	(p) += 2;
       }
 }
-/* { dg-final { cleanup-tree-dump "graphite" } } */

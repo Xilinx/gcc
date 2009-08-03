@@ -14,4 +14,3 @@ matmul_c4 ()
         dest_y[x] += abase_n[x] * bbase_yn;
     }
 }
-/* { dg-final { cleanup-tree-dump "graphite" } } */

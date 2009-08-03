@@ -1411,7 +1411,7 @@ for_each_scev_op (tree *scev, bool (*cbck) (tree *, void *), void *data)
 
     case 2:
       for_each_scev_op (&TREE_OPERAND (*scev, 1), cbck, data);
-      
+
     case 1:
       for_each_scev_op (&TREE_OPERAND (*scev, 0), cbck, data);
 
@@ -1476,7 +1476,7 @@ scev_is_linear_expression (tree scev)
     case 2:
       return scev_is_linear_expression (TREE_OPERAND (scev, 0))
 	&& scev_is_linear_expression (TREE_OPERAND (scev, 1));
-      
+
     case 1:
       return scev_is_linear_expression (TREE_OPERAND (scev, 0));
 

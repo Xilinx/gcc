@@ -50,6 +50,7 @@ with Sem_Ch8;  use Sem_Ch8;
 with Sem_Disp; use Sem_Disp;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
@@ -5229,6 +5230,16 @@ package body Sem_Util is
 
    begin
       Save_Interps (N, New_Prefix);
+
+      --  Check if the node relocation requires readjustment of some SCIL
+      --  dispatching node.
+
+      if Generate_SCIL
+        and then Nkind (N) = N_Function_Call
+      then
+         Adjust_SCIL_Node (N, New_Prefix);
+      end if;
+
       Rewrite (N, Make_Explicit_Dereference (Sloc (N), Prefix => New_Prefix));
 
       Set_Etype (N, Designated_Type (Etype (New_Prefix)));
@@ -5333,6 +5344,19 @@ package body Sem_Util is
          and then Is_Floating_Point_Type (E)
          and then E = Base_Type (E);
    end Is_AAMP_Float;
+
+   -----------------------------
+   -- Is_Actual_Out_Parameter --
+   -----------------------------
+
+   function Is_Actual_Out_Parameter (N : Node_Id) return Boolean is
+      Formal : Entity_Id;
+      Call   : Node_Id;
+   begin
+      Find_Actual (N, Formal, Call);
+      return Present (Formal)
+        and then Ekind (Formal) = E_Out_Parameter;
+   end Is_Actual_Out_Parameter;
 
    -------------------------
    -- Is_Actual_Parameter --
@@ -6112,6 +6136,21 @@ package body Sem_Util is
          return False;
       end if;
    end Is_Fully_Initialized_Variant;
+
+   ------------
+   -- Is_LHS --
+   ------------
+
+   --  We seem to have a lot of overlapping functions that do similar things
+   --  (testing for left hand sides or lvalues???). Anyway, since this one is
+   --  purely syntactic, it should be in Sem_Aux I would think???
+
+   function Is_LHS (N : Node_Id) return Boolean is
+      P : constant Node_Id := Parent (N);
+   begin
+      return Nkind (P) = N_Assignment_Statement
+        and then Name (P) = N;
+   end Is_LHS;
 
    ----------------------------
    -- Is_Inherited_Operation --
@@ -7114,19 +7153,33 @@ package body Sem_Util is
       Last_Assignment_Only : Boolean := False)
    is
    begin
+      --  ??? do we have to worry about clearing cached checks?
+
       if Is_Assignable (Ent) then
          Set_Last_Assignment (Ent, Empty);
       end if;
 
-      if not Last_Assignment_Only and then Is_Object (Ent) then
-         Kill_Checks (Ent);
-         Set_Current_Value (Ent, Empty);
+      if Is_Object (Ent) then
+         if not Last_Assignment_Only then
+            Kill_Checks (Ent);
+            Set_Current_Value (Ent, Empty);
 
-         if not Can_Never_Be_Null (Ent) then
-            Set_Is_Known_Non_Null (Ent, False);
+            if not Can_Never_Be_Null (Ent) then
+               Set_Is_Known_Non_Null (Ent, False);
+            end if;
+
+            Set_Is_Known_Null (Ent, False);
+
+            --  Reset Is_Known_Valid unless type is always valid, or if we have
+            --  a loop parameter (loop parameters are always valid, since their
+            --  bounds are defined by the bounds given in the loop header).
+
+            if not Is_Known_Valid (Etype (Ent))
+              and then Ekind (Ent) /= E_Loop_Parameter
+            then
+               Set_Is_Known_Valid (Ent, False);
+            end if;
          end if;
-
-         Set_Is_Known_Null (Ent, False);
       end if;
    end Kill_Current_Values;
 
@@ -10396,10 +10449,7 @@ package body Sem_Util is
    begin
       --  Deal with indexed or selected component where prefix is modified
 
-      if Nkind (N) = N_Indexed_Component
-           or else
-         Nkind (N) = N_Selected_Component
-      then
+      if Nkind_In (N, N_Indexed_Component, N_Selected_Component) then
          Pref := Prefix (N);
 
          --  If prefix is access type, then it is the designated object that is
@@ -11076,6 +11126,30 @@ package body Sem_Util is
          else
             Error_Msg_NE ("\\found}!", Expr, Found_Type);
          end if;
+
+         --  A special check for cases like M1 and M2 = 0 where M1 and M2 are
+         --  of the same modular type, and (M1 and M2) = 0 was intended.
+
+         if Expec_Type = Standard_Boolean
+           and then Is_Modular_Integer_Type (Found_Type)
+           and then Nkind_In (Parent (Expr), N_Op_And, N_Op_Or, N_Op_Xor)
+           and then Nkind (Right_Opnd (Parent (Expr))) in N_Op_Compare
+         then
+            declare
+               Op : constant Node_Id := Right_Opnd (Parent (Expr));
+               L  : constant Node_Id := Left_Opnd (Op);
+               R  : constant Node_Id := Right_Opnd (Op);
+            begin
+               if Etype (L) = Found_Type
+                 and then Is_Integer_Type (Etype (R))
+               then
+                  Error_Msg_N
+                    ("\\possible missing parens for modular operation", Expr);
+               end if;
+            end;
+         end if;
+
+         --  Reset error message qualification indication
 
          Error_Msg_Qual_Level := 0;
       end if;

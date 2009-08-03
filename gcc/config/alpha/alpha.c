@@ -2062,10 +2062,21 @@ alpha_legitimate_constant_p (rtx x)
 
   switch (GET_CODE (x))
     {
-    case CONST:
     case LABEL_REF:
     case HIGH:
       return true;
+
+    case CONST:
+      if (GET_CODE (XEXP (x, 0)) == PLUS
+	  && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT)
+	x = XEXP (XEXP (x, 0), 0);
+      else
+	return true;
+
+      if (GET_CODE (x) != SYMBOL_REF)
+	return true;
+
+      /* FALLTHRU */
 
     case SYMBOL_REF:
       /* TLS symbols are never valid.  */
@@ -3548,7 +3559,7 @@ alpha_expand_unaligned_store (rtx dst, rtx src,
 	      emit_insn (gen_insll_le (insl, gen_lowpart (SImode, src), addr));
 	      break;
 	    case 8:
-	      emit_insn (gen_insql_le (insl, src, addr));
+	      emit_insn (gen_insql_le (insl, gen_lowpart (DImode, src), addr));
 	      break;
 	    }
 	}
@@ -7837,6 +7848,17 @@ alpha_start_function (FILE *file, const char *fnname,
       TREE_ASM_WRITTEN (name_tree) = 1;
     }
 
+#if TARGET_ABI_OPEN_VMS
+  if (vms_debug_main
+      && strncmp (vms_debug_main, fnname, strlen (vms_debug_main)) == 0)
+    {
+      targetm.asm_out.globalize_label (asm_out_file, VMS_DEBUG_MAIN_POINTER);
+      ASM_OUTPUT_DEF (asm_out_file, VMS_DEBUG_MAIN_POINTER, fnname);
+      switch_to_section (text_section);
+      vms_debug_main = NULL;
+    }
+#endif
+
   alpha_fnname = fnname;
   sa_size = alpha_sa_size ();
 
@@ -10807,10 +10829,8 @@ alpha_init_libfuncs (void)
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG alpha_reorg
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode_always_promote
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_false
 #undef TARGET_RETURN_IN_MEMORY

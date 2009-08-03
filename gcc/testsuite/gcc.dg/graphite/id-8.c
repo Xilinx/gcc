@@ -12,4 +12,3 @@ foo()
     }
   return blah;
 }
-/* { dg-final { cleanup-tree-dump "graphite" } } */

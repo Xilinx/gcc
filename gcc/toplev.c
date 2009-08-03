@@ -1036,8 +1036,7 @@ compile_file (void)
 
   ggc_protect_identifiers = false;
 
-  /* This must also call cgraph_finalize_compilation_unit and
-     cgraph_optimize.  */
+  /* This must also call cgraph_finalize_compilation_unit.  */
   lang_hooks.decls.final_write_globals ();
 
   if (errorcount || sorrycount)
@@ -1836,7 +1835,7 @@ process_options (void)
       || flag_loop_interchange
       || flag_loop_strip_mine
       || flag_graphite_identity
-      || flag_graphite_force_parallel)
+      || flag_loop_parallelize_all)
     sorry ("Graphite loop optimizations cannot be used");
 #endif
 

@@ -1,3 +1,73 @@
+2009-07-31  Jason Merrill  <jason@redhat.com>
+	    Douglas Gregor  <doug.gregor@gmail.com>
+
+	Remove implicit binding of lvalues to rvalue references (N2831)
+	* call.c (convert_class_to_reference): Binding an lvalue to an
+	rvalue reference is bad.  If the user-defined conversion is bad,
+	set bad_p before merging conversions.
+	(maybe_handle_ref_bind): Don't push down bad_p.
+	(reference_binding): Binding an lvalue to an rvalue reference is bad.
+	(convert_like_real): Give a helpful error about binding lvalue
+	to rvalue reference.
+	(reference_related_p): No longer static.
+	* typeck.c (build_typed_address): New.
+	(build_static_cast_1): Add static_cast from lvalue to &&.
+	* cp-tree.h: Adjust.
+
+2009-07-31  Jason Merrill  <jason@redhat.com>
+
+	* call.c (reference_binding): Rename lvalue_p to is_lvalue.
+	Do direct binding of "rvalues" in memory to rvalue references.
+	* tree.c (lvalue_p_1): Can't be both non-addressable lvalue and
+	"rvalue" in memory.
+	* typeck.c (build_static_cast_1): Do direct binding of memory
+	"rvalues" to rvalue references.
+	* cvt.c (cp_fold_convert): New.
+	* cp-tree.h: Declare it.
+
+2009-07-31  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (build_address): Do fold away ADDR_EXPR of INDIRECT_REF.
+	* tree.c (rvalue): Use cp_build_qualified_type, not TYPE_MAIN_VARIANT.
+
+2009-07-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/14912
+	* cp-tree.h (enum tsubst_flags): Add tf_no_class_instantiations.
+	* error.c (count_non_default_template_args): Pass it.
+	* pt.c (tsubst) [TYPENAME_TYPE]: Don't complete type if it's set.
+
+2009-07-29  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/40834
+	* cp-gimplify.c (cp_genericize_r): Properly walk the BIND_EXPR
+	vars.
+
+2009-07-26  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/40749
+	* decl.c (grokdeclarator): Do not set TREE_NO_WARNING for functions
+	with a qualified return type.
+
+2009-07-24  Jason Merrill  <jason@redhat.com>
+
+	Core issue 901
+	* call.c (build_op_delete_call): If this is for a new-expression
+	and the op delete is deleted, do nothing.
+
+	Core issue 702
+	* call.c (compare_ics): Give list-initialization of std::init_list
+	priority over conversion to scalar, too.
+
+2009-07-22  Jason Merrill  <jason@redhat.com>
+
+	* mangle.c (mangle_type_string_for_rtti): Rename to be clearer.
+	(needs_fake_anon): New.
+	(write_name): Check it.
+	(write_nested_name): Add a fake anonymous namespace scope if true.
+	* name-lookup.c (get_anonymous_namespace_name): No longer static.
+	* rtti.c, cp-tree.h: Adjust.
+
 2009-07-22  Richard Guenther  <rguenther@suse.de>
 
 	PR c++/40799

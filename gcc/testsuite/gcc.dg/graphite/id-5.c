@@ -13,5 +13,3 @@ void matmul_i1 ()
     }
 }
 
-/* { dg-final { cleanup-tree-dump "graphite" } } */
-

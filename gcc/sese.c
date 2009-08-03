@@ -299,8 +299,8 @@ sese_add_exit_phis_edge (basic_block exit, tree use, edge false_e, edge true_e)
 
   create_new_def_for (gimple_phi_result (phi), phi,
 		      gimple_phi_result_ptr (phi));
-  add_phi_arg (phi, use, false_e);
-  add_phi_arg (phi, use, true_e);
+  add_phi_arg (phi, use, false_e, UNKNOWN_LOCATION);
+  add_phi_arg (phi, use, true_e, UNKNOWN_LOCATION);
 }
 
 /* Insert in the block BB phi nodes for variables defined in REGION
@@ -1017,7 +1017,7 @@ add_loop_exit_phis (void **slot, void *data)
       tree new_res = create_new_def_for (gimple_phi_result (phi), phi,
 					 gimple_phi_result_ptr (phi));
 
-      add_phi_arg (phi, new_name, single_pred_edge (bb));
+      add_phi_arg (phi, new_name, single_pred_edge (bb), UNKNOWN_LOCATION);
       VEC_safe_push (rename_map_elt, heap, a->new_renames,
 		     new_rename_map_elt (gimple_phi_result (old_close_phi),
 					 new_res));
@@ -1125,8 +1125,8 @@ add_guard_exit_phis (void **slot, void *s)
   res = create_new_def_for (gimple_phi_result (phi), phi,
 			    gimple_phi_result_ptr (phi));
 
-  add_phi_arg (phi, name1, true_edge);
-  add_phi_arg (phi, name2, false_edge);
+  add_phi_arg (phi, name1, true_edge, UNKNOWN_LOCATION);
+  add_phi_arg (phi, name2, false_edge, UNKNOWN_LOCATION);
 
   entry->expr = res;
   *slot = entry;

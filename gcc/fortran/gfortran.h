@@ -879,8 +879,10 @@ typedef struct gfc_component
   struct gfc_expr *initializer;
   struct gfc_component *next;
 
+  /* Needed for procedure pointer components.  */
   struct gfc_formal_arglist *formal;
   struct gfc_namespace *formal_ns;
+  struct gfc_typebound_proc *tb;
 }
 gfc_component;
 
@@ -1064,7 +1066,7 @@ typedef struct gfc_typebound_proc
   u;
 
   gfc_access access;
-  char* pass_arg; /* Argument-name for PASS.  NULL if not specified.  */
+  const char* pass_arg; /* Argument-name for PASS.  NULL if not specified.  */
 
   /* The overridden type-bound proc (or GENERIC with this name in the
      parent-type) or NULL if non.  */
@@ -1081,6 +1083,7 @@ typedef struct gfc_typebound_proc
   unsigned is_generic:1;
   unsigned function:1, subroutine:1;
   unsigned error:1; /* Ignore it, when an error occurred during resolution.  */
+  unsigned ppc:1;
 }
 gfc_typebound_proc;
 
@@ -1326,6 +1329,8 @@ typedef struct gfc_namespace
 
   gfc_charlen *cl_list, *old_cl_list;
 
+  gfc_dt_list *derived_types;
+
   int save_all, seen_save, seen_implicit_none;
 
   /* Normally we don't need to refcount namespaces.  However when we read
@@ -1347,6 +1352,9 @@ typedef struct gfc_namespace
 
   /* Set to 1 if resolved has been called for this namespace.  */
   int resolved;
+
+  /* Set to 1 if code has been generated for this namespace.  */
+  int translated;
 }
 gfc_namespace;
 
@@ -2285,6 +2293,7 @@ void gfc_pop_error (gfc_error_buf *);
 void gfc_free_error (gfc_error_buf *);
 
 void gfc_get_errors (int *, int *);
+void gfc_errors_to_warnings (int);
 
 /* arith.c */
 void gfc_arith_init_1 (void);
@@ -2415,6 +2424,7 @@ int gfc_symbols_could_alias (gfc_symbol *, gfc_symbol *);
 void gfc_undo_symbols (void);
 void gfc_commit_symbols (void);
 void gfc_commit_symbol (gfc_symbol *);
+gfc_charlen *gfc_new_charlen (gfc_namespace *);
 void gfc_free_charlen (gfc_charlen *, gfc_charlen *);
 void gfc_free_namespace (gfc_namespace *);
 
@@ -2637,7 +2647,7 @@ gfc_try gfc_resolve_filepos (gfc_filepos *);
 void gfc_free_inquire (gfc_inquire *);
 gfc_try gfc_resolve_inquire (gfc_inquire *);
 void gfc_free_dt (gfc_dt *);
-gfc_try gfc_resolve_dt (gfc_dt *);
+gfc_try gfc_resolve_dt (gfc_dt *, locus *);
 void gfc_free_wait (gfc_wait *);
 gfc_try gfc_resolve_wait (gfc_wait *);
 

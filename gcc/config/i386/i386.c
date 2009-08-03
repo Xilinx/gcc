@@ -2562,7 +2562,7 @@ ix86_debug_options (void)
       free (opts);
     }
   else
-    fprintf (stderr, "<no options>\n\n");
+    fputs ("<no options>\n\n", stderr);
 
   return;
 }
@@ -4197,11 +4197,11 @@ x86_elf_aligned_common (FILE *file,
 {
   if ((ix86_cmodel == CM_MEDIUM || ix86_cmodel == CM_MEDIUM_PIC)
       && size > (unsigned int)ix86_section_threshold)
-    fprintf (file, ".largecomm\t");
+    fputs (".largecomm\t", file);
   else
-    fprintf (file, "%s", COMMON_ASM_OP);
+    fputs (COMMON_ASM_OP, file);
   assemble_name (file, name);
-  fprintf (file, ","HOST_WIDE_INT_PRINT_UNSIGNED",%u\n",
+  fprintf (file, "," HOST_WIDE_INT_PRINT_UNSIGNED ",%u\n",
 	   size, align / BITS_PER_UNIT);
 }
 #endif
@@ -7608,7 +7608,7 @@ ix86_file_end (void)
 	  (*targetm.asm_out.globalize_label) (asm_out_file, name);
 	  fputs ("\t.hidden\t", asm_out_file);
 	  assemble_name (asm_out_file, name);
-	  fputc ('\n', asm_out_file);
+	  putc ('\n', asm_out_file);
 	  ASM_DECLARE_FUNCTION_NAME (asm_out_file, name, decl);
 	}
       else
@@ -11731,7 +11731,7 @@ print_operand (FILE *file, rtx x, int code)
 #if TARGET_MACHO
 	  fputs (" ; ", file);
 #else
-	  fputc (' ', file);
+	  putc (' ', file);
 #endif
 	  return;
 
@@ -11809,7 +11809,7 @@ print_operand (FILE *file, rtx x, int code)
       char dstr[30];
 
       real_to_decimal (dstr, CONST_DOUBLE_REAL_VALUE (x), sizeof (dstr), 0, 1);
-      fprintf (file, "%s", dstr);
+      fputs (dstr, file);
     }
 
   else if (GET_CODE (x) == CONST_DOUBLE
@@ -11818,7 +11818,7 @@ print_operand (FILE *file, rtx x, int code)
       char dstr[30];
 
       real_to_decimal (dstr, CONST_DOUBLE_REAL_VALUE (x), sizeof (dstr), 0, 1);
-      fprintf (file, "%s", dstr);
+      fputs (dstr, file);
     }
 
   else
@@ -12537,16 +12537,18 @@ static const char *
 output_387_ffreep (rtx *operands ATTRIBUTE_UNUSED, int opno)
 {
   if (TARGET_USE_FFREEP)
-#if HAVE_AS_IX86_FFREEP
+#ifdef HAVE_AS_IX86_FFREEP
     return opno ? "ffreep\t%y1" : "ffreep\t%y0";
 #else
     {
-      static char retval[] = ".word\t0xc_df";
+      static char retval[32];
       int regno = REGNO (operands[opno]);
 
       gcc_assert (FP_REGNO_P (regno));
 
-      retval[9] = '0' + (regno - FIRST_STACK_REG);
+      regno -= FIRST_STACK_REG;
+
+      snprintf (retval, sizeof (retval), ASM_SHORT "0xc%ddf", regno);
       return retval;
     }
 #endif
@@ -12692,7 +12694,7 @@ ix86_output_addr_vec_elt (FILE *file, int value)
   gcc_assert (!TARGET_64BIT);
 #endif
 
-  fprintf (file, "%s%s%d\n", directive, LPREFIX, value);
+  fprintf (file, "%s" LPREFIX "%d\n", directive, value);
 }
 
 void
@@ -12708,21 +12710,21 @@ ix86_output_addr_diff_elt (FILE *file, int value, int rel)
 #endif
   /* We can't use @GOTOFF for text labels on VxWorks; see gotoff_operand.  */
   if (TARGET_64BIT || TARGET_VXWORKS_RTP)
-    fprintf (file, "%s%s%d-%s%d\n",
-	     directive, LPREFIX, value, LPREFIX, rel);
+    fprintf (file, "%s" LPREFIX "%d-" LPREFIX "%d\n",
+	     directive, value, rel);
   else if (HAVE_AS_GOTOFF_IN_DATA)
-    fprintf (file, "%s%s%d@GOTOFF\n", ASM_LONG, LPREFIX, value);
+    fprintf (file, ASM_LONG LPREFIX "%d@GOTOFF\n", value);
 #if TARGET_MACHO
   else if (TARGET_MACHO)
     {
-      fprintf (file, "%s%s%d-", ASM_LONG, LPREFIX, value);
+      fprintf (file, ASM_LONG LPREFIX "%d-", value);
       machopic_output_function_base_name (file);
-      fprintf(file, "\n");
+      putc ('\n', file);
     }
 #endif
   else
-    asm_fprintf (file, "%s%U%s+[.-%s%d]\n",
-		 ASM_LONG, GOT_SYMBOL_NAME, LPREFIX, value);
+    asm_fprintf (file, ASM_LONG "%U%s+[.-" LPREFIX "%d]\n",
+		 GOT_SYMBOL_NAME, value);
 }
 
 /* Generate either "mov $0, reg" or "xor reg, reg", as appropriate
@@ -14812,13 +14814,13 @@ ix86_expand_fp_compare (enum rtx_code code, rtx op0, rtx op1, rtx scratch)
 	  if (code == LT && TARGET_IEEE_FP)
 	    {
 	      emit_insn (gen_andqi_ext_0 (scratch, scratch, GEN_INT (0x45)));
-	      emit_insn (gen_cmpqi_ext_3 (scratch, GEN_INT (0x01)));
+	      emit_insn (gen_cmpqi_ext_3 (scratch, const1_rtx));
 	      intcmp_mode = CCmode;
 	      code = EQ;
 	    }
 	  else
 	    {
-	      emit_insn (gen_testqi_ext_ccno_0 (scratch, GEN_INT (0x01)));
+	      emit_insn (gen_testqi_ext_ccno_0 (scratch, const1_rtx));
 	      code = NE;
 	    }
 	  break;
@@ -14832,8 +14834,7 @@ ix86_expand_fp_compare (enum rtx_code code, rtx op0, rtx op1, rtx scratch)
 	  else
 	    {
 	      emit_insn (gen_andqi_ext_0 (scratch, scratch, GEN_INT (0x45)));
-	      emit_insn (gen_xorqi_cc_ext_1 (scratch, scratch,
-					     GEN_INT (0x01)));
+	      emit_insn (gen_xorqi_cc_ext_1 (scratch, scratch, const1_rtx));
 	      code = NE;
 	    }
 	  break;
@@ -14866,7 +14867,6 @@ ix86_expand_fp_compare (enum rtx_code code, rtx op0, rtx op1, rtx scratch)
 	    {
 	      emit_insn (gen_testqi_ext_ccno_0 (scratch, GEN_INT (0x40)));
 	      code = NE;
-	      break;
 	    }
 	  break;
 	case NE:
@@ -17026,14 +17026,15 @@ ix86_split_ashl (rtx *operands, rtx scratch, enum machine_mode mode)
 
 	  emit_insn ((mode == DImode
 		      ? gen_lshrsi3
-		      : gen_lshrdi3) (high[0], high[0], GEN_INT (mode == DImode ? 5 : 6)));
+		      : gen_lshrdi3) (high[0], high[0],
+				      GEN_INT (mode == DImode ? 5 : 6)));
 	  emit_insn ((mode == DImode
 		      ? gen_andsi3
-		      : gen_anddi3) (high[0], high[0], GEN_INT (1)));
+		      : gen_anddi3) (high[0], high[0], const1_rtx));
 	  emit_move_insn (low[0], high[0]);
 	  emit_insn ((mode == DImode
 		      ? gen_xorsi3
-		      : gen_xordi3) (low[0], low[0], GEN_INT (1)));
+		      : gen_xordi3) (low[0], low[0], const1_rtx));
 	}
 
       emit_insn ((mode == DImode
@@ -26132,6 +26133,22 @@ ix86_free_from_memory (enum machine_mode mode)
     }
 }
 
+/* Implement TARGET_IRA_COVER_CLASSES.  If -mfpmath=sse, we prefer
+   SSE_REGS to FLOAT_REGS if their costs for a pseudo are the
+   same.  */
+static const enum reg_class *
+i386_ira_cover_classes (void)
+{
+  static const enum reg_class sse_fpmath_classes[] = {
+    GENERAL_REGS, SSE_REGS, MMX_REGS, FLOAT_REGS, LIM_REG_CLASSES
+  };
+  static const enum reg_class no_sse_fpmath_classes[] = {
+    GENERAL_REGS, FLOAT_REGS, MMX_REGS, SSE_REGS, LIM_REG_CLASSES
+  };
+
+ return TARGET_SSE_MATH ? sse_fpmath_classes : no_sse_fpmath_classes;
+}
+
 /* Put float CONST_DOUBLE in the constant pool instead of fp regs.
    QImode must go into class Q_REGS.
    Narrow ALL_REGS to GENERAL_REGS.  This supports allowing movsf and
@@ -27087,17 +27104,17 @@ machopic_output_stub (FILE *file, const char *symb, const char *stub)
   if (MACHOPIC_PURE)
     {
       fprintf (file, "\tlea\t%s-LPC$%d(%%eax),%%eax\n", lazy_ptr_name, label);
-      fprintf (file, "\tpushl\t%%eax\n");
+      fputs ("\tpushl\t%eax\n", file);
     }
   else
     fprintf (file, "\tpushl\t$%s\n", lazy_ptr_name);
 
-  fprintf (file, "\tjmp\tdyld_stub_binding_helper\n");
+  fputs ("\tjmp\tdyld_stub_binding_helper\n", file);
 
   switch_to_section (darwin_sections[machopic_lazy_symbol_ptr_section]);
   fprintf (file, "%s:\n", lazy_ptr_name);
   fprintf (file, "\t.indirect_symbol %s\n", symbol_name);
-  fprintf (file, "\t.long %s\n", binder_name);
+  fprintf (file, ASM_LONG "%s\n", binder_name);
 }
 
 void
@@ -27494,29 +27511,29 @@ x86_function_profiler (FILE *file, int labelno ATTRIBUTE_UNUSED)
   if (TARGET_64BIT)
     {
 #ifndef NO_PROFILE_COUNTERS
-      fprintf (file, "\tleaq\t%sP%d@(%%rip),%%r11\n", LPREFIX, labelno);
+      fprintf (file, "\tleaq\t" LPREFIX "P%d@(%%rip),%%r11\n", labelno);
 #endif
 
       if (DEFAULT_ABI == SYSV_ABI && flag_pic)
-	fprintf (file, "\tcall\t*%s@GOTPCREL(%%rip)\n", MCOUNT_NAME);
+	fputs ("\tcall\t*" MCOUNT_NAME "@GOTPCREL(%rip)\n", file);
       else
-	fprintf (file, "\tcall\t%s\n", MCOUNT_NAME);
+	fputs ("\tcall\t" MCOUNT_NAME "\n", file);
     }
   else if (flag_pic)
     {
 #ifndef NO_PROFILE_COUNTERS
-      fprintf (file, "\tleal\t%sP%d@GOTOFF(%%ebx),%%%s\n",
-	       LPREFIX, labelno, PROFILE_COUNT_REGISTER);
+      fprintf (file, "\tleal\t" LPREFIX "P%d@GOTOFF(%%ebx),%%" PROFILE_COUNT_REGISTER "\n",
+	       labelno);
 #endif
-      fprintf (file, "\tcall\t*%s@GOT(%%ebx)\n", MCOUNT_NAME);
+      fputs ("\tcall\t*" MCOUNT_NAME "@GOT(%ebx)\n", file);
     }
   else
     {
 #ifndef NO_PROFILE_COUNTERS
-      fprintf (file, "\tmovl\t$%sP%d,%%%s\n", LPREFIX, labelno,
-	       PROFILE_COUNT_REGISTER);
+      fprintf (file, "\tmovl\t$" LPREFIX "P%d,%%" PROFILE_COUNT_REGISTER "\n",
+	       labelno);
 #endif
-      fprintf (file, "\tcall\t%s\n", MCOUNT_NAME);
+      fputs ("\tcall\t" MCOUNT_NAME "\n", file);
     }
 }
 
@@ -28087,7 +28104,7 @@ ix86_expand_vector_init_one_nonzero (bool mmx_ok, enum machine_mode mode,
 	  if (mode != V4SFmode && TARGET_SSE2)
 	    {
 	      emit_insn (gen_sse2_pshufd_1 (new_target, new_target,
-					    GEN_INT (1),
+					    const1_rtx,
 					    GEN_INT (one_var == 1 ? 0 : 1),
 					    GEN_INT (one_var == 2 ? 0 : 1),
 					    GEN_INT (one_var == 3 ? 0 : 1)));
@@ -28107,7 +28124,7 @@ ix86_expand_vector_init_one_nonzero (bool mmx_ok, enum machine_mode mode,
 	    tmp = new_target;
 
 	  emit_insn (gen_sse_shufps_v4sf (tmp, tmp, tmp,
-				       GEN_INT (1),
+				       const1_rtx,
 				       GEN_INT (one_var == 1 ? 0 : 1),
 				       GEN_INT (one_var == 2 ? 0+4 : 1+4),
 				       GEN_INT (one_var == 3 ? 0+4 : 1+4)));
@@ -28770,8 +28787,8 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  ix86_expand_vector_set (false, target, val, 0);
 	  /* target = A X C D  */
 	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
-				       GEN_INT (1), GEN_INT (0),
-				       GEN_INT (2+4), GEN_INT (3+4)));
+					  const1_rtx, const0_rtx,
+					  GEN_INT (2+4), GEN_INT (3+4)));
 	  return;
 
 	case 2:
@@ -28781,8 +28798,8 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  ix86_expand_vector_set (false, tmp, val, 0);
 	  /* target = A B X D */
 	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
-				       GEN_INT (0), GEN_INT (1),
-				       GEN_INT (0+4), GEN_INT (3+4)));
+					  const0_rtx, const1_rtx,
+					  GEN_INT (0+4), GEN_INT (3+4)));
 	  return;
 
 	case 3:
@@ -28792,8 +28809,8 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  ix86_expand_vector_set (false, tmp, val, 0);
 	  /* target = A B X D */
 	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
-				       GEN_INT (0), GEN_INT (1),
-				       GEN_INT (2+4), GEN_INT (0+4)));
+					  const0_rtx, const1_rtx,
+					  GEN_INT (2+4), GEN_INT (0+4)));
 	  return;
 
 	default:
@@ -29086,8 +29103,8 @@ ix86_expand_reduc_v4sf (rtx (*fn) (rtx, rtx, rtx), rtx dest, rtx in)
   emit_insn (fn (tmp2, tmp1, in));
 
   emit_insn (gen_sse_shufps_v4sf (tmp3, tmp2, tmp2,
-			       GEN_INT (1), GEN_INT (1),
-			       GEN_INT (1+4), GEN_INT (1+4)));
+				  const1_rtx, const1_rtx,
+				  GEN_INT (1+4), GEN_INT (1+4)));
   emit_insn (fn (dest, tmp2, tmp3));
 }
 
@@ -30473,6 +30490,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #undef TARGET_ASM_CLOSE_PAREN
 #define TARGET_ASM_CLOSE_PAREN ""
 
+#undef TARGET_ASM_BYTE_OP
+#define TARGET_ASM_BYTE_OP ASM_BYTE
+
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP ASM_SHORT
 #undef TARGET_ASM_ALIGNED_SI_OP
@@ -30651,6 +30671,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P ix86_legitimate_address_p
+
+#undef TARGET_IRA_COVER_CLASSES
+#define TARGET_IRA_COVER_CLASSES i386_ira_cover_classes
 
 #undef TARGET_FRAME_POINTER_REQUIRED
 #define TARGET_FRAME_POINTER_REQUIRED ix86_frame_pointer_required

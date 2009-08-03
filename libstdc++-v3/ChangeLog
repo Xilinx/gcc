@@ -1,3 +1,399 @@
+2009-08-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40912 (final)
+	* testsuite/26_numerics/random/mt19937.cc: dg-require-cstdint.
+	* testsuite/26_numerics/random/uniform_real_distribution/cons/
+	parms_neg.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_real_distribution/cons/
+	parms.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_real_distribution/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_real_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	cons/range.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	cons/num_xbound_fun.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	cons/initlist_fun.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/minstd_rand.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/cons/
+	parms.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/seed_seq/cons/
+	range.cc: Likewise.
+	* testsuite/26_numerics/random/seed_seq/cons/
+	initlist.cc: Likewise.
+	* testsuite/26_numerics/random/seed_seq/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/seed_seq/requirements/
+	typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/
+	cons/parms_neg.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/cons/
+	parms.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/ranlux24_base.cc: Likewise.
+	* testsuite/26_numerics/random/
+	default_random_engine.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/
+	cons/range.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/
+	cons/initlist.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/
+	cons/num_xbound_fun.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	cons/base_move.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	cons/seed1.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	cons/seed2.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	cons/base_copy.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	cons/seed_seq.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/ranlux48_base.cc: Likewise.
+	* testsuite/26_numerics/random/minstd_rand0.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/
+	cons/seed1.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/
+	cons/seed2.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/
+	base_move.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/
+	seed1.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/
+	seed2.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/
+	base_copy.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/
+	seed_seq.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/
+	cons/seed1.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/
+	cons/seed2.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/mt19937_64.cc: Likewise.
+	* testsuite/26_numerics/random/random_device/cons/
+	token.cc: Likewise.
+	* testsuite/26_numerics/random/random_device/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/random_device/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/ranlux24.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	cons/range.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	cons/num_xbound_fun.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	cons/initlist_fun.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/student_t_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/student_t_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/student_t_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	cons/seed1.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	cons/seed2.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	requirements/non_uint_neg.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/ranlux48.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/
+	base_move.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/
+	seed1.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/
+	seed2.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/
+	base_copy.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/
+	seed_seq.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/
+	cons/parms.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/
+	cons/default.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/
+	requirements/typedefs.cc: Likewise.
+	* testsuite/26_numerics/random/knuth_b.cc: Likewise.
+
+2009-07-31  Jason Merrill  <jason@redhat.com>
+	    Douglas Gregor  <doug.gregor@gmail.com>
+
+	* include/bits/move.h (forward): Implement as in N2835.
+	(move): Implement as in N2831.
+	* include/std/istream (rvalue stream operator>>): New.
+	* include/std/ostream (rvalue stream operator<<): New.
+	* testsuite/27_io/rvalue_streams.cc: New.
+
+2009-07-31  Jason Merrill  <jason@redhat.com>
+
+	* include/bits/forward_list.h (splice_after): Use forward.
+	(merge): Likewise.
+	* include/bits/stl_iterator.h (move_iterator::operator*): Use move.
+	(move_iterator::operator[]): Use move.
+	* include/bits/stl_list.h (insert): Use move.
+	* include/std/thread (_Callable constructor): Use forward.
+	* include/std/tuple: Don't specify explicit template args to move.
+
+	* testsuite/20_util/forward/requirements/explicit_instantiation.cc:
+	Adjust signature.
+	* testsuite/20_util/tuple/swap.cc: Swap takes lvalue reference.
+	* testsuite/30_threads/shared_future/cons/copy.cc: Return rvalue
+	reference.
+	* testsuite/20_util/shared_ptr/assign/auto_ptr.cc,
+	testsuite/20_util/shared_ptr/assign/auto_ptr_neg.cc,
+	testsuite/20_util/shared_ptr/cons/auto_ptr.cc,
+	testsuite/20_util/shared_ptr/cons/auto_ptr_neg.cc,
+	testsuite/23_containers/forward_list/ext_pointer/operations/1.cc,
+	testsuite/23_containers/forward_list/ext_pointer/operations/5.cc,
+	testsuite/23_containers/forward_list/operations/1.cc,
+	testsuite/23_containers/forward_list/operations/5.cc: Use move.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc,
+	testsuite/23_containers/list/requirements/dr438/constructor_1_neg.cc,
+	testsuite/23_containers/list/requirements/dr438/constructor_2_neg.cc,
+	testsuite/23_containers/list/requirements/dr438/insert_neg.cc,
+	testsuite/30_threads/thread/cons/assign_neg.cc: Adjust line numbers.
+
+2009-07-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40912 (partial)
+	* include/std/random: Disable the facility if <stdint.h> is not
+	available.
+
+2009-07-30  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR libstdc++/40919
+	* testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	xfail on darwin[3-9]*.
+
+2009-07-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40917
+	* testsuite/util/replacement_memory_operators.h: Add missing includes,
+	tweak qualifications.
+
+2009-07-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40916
+	* testsuite/23_containers/list/modifiers/swap/1.cc: Fix include order.
+	* testsuite/23_containers/list/modifiers/swap/2.cc: Likewise.
+	* testsuite/23_containers/list/modifiers/swap/2.cc: Likewise.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* acinclude.m4 (GLIBCXX_CONFIGURE): Use m4_rename_force.
+
+2009-07-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40915
+	* testsuite/18_support/headers/exception/synopsis.cc: Fix
+	std::terminate declaration.
+
+2009-07-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40908
+	* config/abi/pre/gnu.ver: Avoid exporting inadvertently std::mutex
+	symbols at GLIBCXX_3.4.
+
+2009-07-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/abi/pre/gnu.ver: Add GLIBCXX_3.4.13, move a symbol into it.
+	* testsuite/util/testsuite_abi.cc: Adjust.
+	* configure.ac: Bump libtool_VERSION to 6:13:0.
+	* configure: Regenerate.
+
+2009-07-28  Benjamin Kosnik  <bkoz@redhat.com>
+	    Tyler Earman  <rem.intellegare@gmail.com>
+
+	* doc/xml/manual/configure.xml: Consistent placement of
+	ABI-changing options, clarify --enable-clocale.
+
+2009-07-28  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* python/Makefile.in: Regenerate.
+
+2009-07-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* python/Makefile.am (install-data-local): Use DESTDIR
+	correctly.
+
+2009-07-24  Jason Merrill  <jason@redhat.com>
+
+	Core issue 901
+	* libsupc++/vec.cc (__cxa_vec_new2, __cxa_vec_new3): Handle NULL
+	dealloc.
+
+2009-07-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* include/c_global/cwchar (swprintf, vswprintf): Do not use if
+	_GLIBCXX_HAVE_BROKEN_VSWPRINTF.
+	* testsuite/lib/libstdc++.exp (check_v3_target_swprintf): New.
+	* testsuite/lib/dg-options.exp (dg-require-swprintf): New.
+	* testsuite/21_strings/headers/cwchar/functions_std.cc,
+	testsuite/27_io/basic_ostream/inserters_arithmetic/wchar_t/4402.cc,
+	testsuite/27_io/basic_ostream/inserters_other/wchar_t/error_code.cc:
+	Use dg-require-swprintf.
+
+2009-07-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/26_numerics/valarray/dr630-2.cc: Extend.
+
+2009-07-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_std/cmath (abs(_Tp)): Add.
+	* include/c_global/cmath (abs(_Tp)): Likewise.
+	* testsuite/26_numerics/headers/cmath/overloads.cc: Extend.
+
+2009-07-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* doc/html/ext/lwg-closed.html: Update to R65.
+	* doc/html/ext/lwg-defects.html: Likewise.
+	* doc/html/ext/lwg-active.html: Likewise.
+	* doc/xml/manual/intro.xml: Update DRs entries.
+
+2009-07-22  Jason Merrill  <jason@redhat.com>
+
+	* libsupc++/typeinfo (__GXX_MERGED_TYPEINFO_NAMES): Default to 0.
+
 2009-07-22  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/std/valarray (valarray<>::operator=(const valarray<>&),

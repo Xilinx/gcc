@@ -122,6 +122,7 @@ const struct attribute_spec gnat_internal_attribute_table[] =
   { "type generic", 0, 0,  false, true, true, handle_type_generic_attribute },
 
   { "vector_size",  1, 1,  false, true, false,  handle_vector_size_attribute },
+  { "may_alias",    0, 0, false, true, false, NULL },
 
   /* ??? format and format_arg are heavy and not supported, which actually
      prevents support for stdio builtins, which we however declare as part
@@ -2068,8 +2069,7 @@ gnat_genericize (tree fndecl)
   pointer_set_destroy (p_set);
 }
 
-/* Finish the definition of the current subprogram BODY and compile it all the
-   way to assembler language output.  */
+/* Finish the definition of the current subprogram BODY and finalize it.  */
 
 void
 end_subprog_body (tree body)
@@ -2108,8 +2108,7 @@ end_subprog_body (tree body)
   /* Dump functions before gimplification.  */
   dump_function (TDI_original, fndecl);
 
-  /* We do different things for nested and non-nested functions.
-     ??? This should be in cgraph.  */
+  /* ??? This special handling of nested functions is probably obsolete.  */
   if (!DECL_CONTEXT (fndecl))
     cgraph_finalize_function (fndecl, false);
   else

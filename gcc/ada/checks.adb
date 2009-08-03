@@ -760,6 +760,13 @@ package body Checks is
       --  off, since this is precisely about giving the "right" result and
       --  avoiding the need for an overflow check.
 
+      --  Note: this circuit is partially redundant with respect to the similar
+      --  processing in Exp_Ch4.Expand_N_Type_Conversion, but the latter deals
+      --  with cases that do not come through here. We still need the following
+      --  processing even with the Exp_Ch4 code in place, since we want to be
+      --  sure not to generate the arithmetic overflow check in these cases
+      --  (Exp_Ch4 would have a hard time removing them once generated).
+
       if Is_Signed_Integer_Type (Typ)
         and then Nkind (Parent (N)) = N_Type_Conversion
       then
@@ -4247,7 +4254,7 @@ package body Checks is
    --  Start of processing for Find_Check
 
    begin
-      --  Establish default, to avoid warnings from GCC
+      --  Establish default, in case no entry is found
 
       Check_Num := 0;
 
@@ -4318,7 +4325,6 @@ package body Checks is
 
       --  If we fall through entry was not found
 
-      Check_Num := 0;
       return;
    end Find_Check;
 

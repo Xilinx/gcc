@@ -14,4 +14,3 @@ int main ()
   foo (BM_tab);
   return 0;
 }
-/* { dg-final { cleanup-tree-dump "graphite" } } */

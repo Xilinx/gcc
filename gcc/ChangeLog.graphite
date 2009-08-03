@@ -1,3 +1,7 @@
+2009-08-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (r149952:150372).
+
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* ChangeLog.graphite: Fix indenting, white spaces and 80 columns.

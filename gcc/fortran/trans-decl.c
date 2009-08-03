@@ -1098,6 +1098,32 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   if (sym->backend_decl)
     return sym->backend_decl;
 
+  /* If use associated and whole file compilation, use the module
+     declaration.  This is only needed for intrinsic types because
+     they are substituted for one another during optimization.  */
+  if (gfc_option.flag_whole_file
+	&& sym->attr.flavor == FL_VARIABLE
+	&& sym->ts.type != BT_DERIVED
+	&& sym->attr.use_assoc
+	&& sym->module)
+    {
+      gfc_gsymbol *gsym;
+
+      gsym =  gfc_find_gsymbol (gfc_gsym_root, sym->module);
+      if (gsym && gsym->ns && gsym->type == GSYM_MODULE)
+	{
+	  gfc_symbol *s;
+	  s = NULL;
+	  gfc_find_symbol (sym->name, gsym->ns, 0, &s);
+	  if (s && s->backend_decl)
+	    {
+	      if (sym->ts.type == BT_CHARACTER)
+		sym->ts.cl->backend_decl = s->ts.cl->backend_decl;
+	      return s->backend_decl;
+	    }
+	}
+    }
+
   /* Catch function declarations.  Only used for actual parameters and
      procedure pointers.  */
   if (sym->attr.flavor == FL_PROCEDURE)
@@ -1341,6 +1367,7 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
   gsym =  gfc_find_gsymbol (gfc_gsym_root, sym->name);
 
   if (gfc_option.flag_whole_file
+	&& !sym->attr.use_assoc
 	&& !sym->backend_decl
 	&& gsym && gsym->ns
 	&& ((gsym->type == GSYM_SUBROUTINE) || (gsym->type == GSYM_FUNCTION))
@@ -1369,6 +1396,26 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
 
       if (sym->backend_decl)
 	return sym->backend_decl;
+    }
+
+  /* See if this is a module procedure from the same file.  If so,
+     return the backend_decl.  */
+  if (sym->module)
+    gsym =  gfc_find_gsymbol (gfc_gsym_root, sym->module);
+
+  if (gfc_option.flag_whole_file
+	&& gsym && gsym->ns
+	&& gsym->type == GSYM_MODULE)
+    {
+      gfc_symbol *s;
+
+      s = NULL;
+      gfc_find_symbol (sym->name, gsym->ns, 0, &s);
+      if (s && s->backend_decl)
+	{
+	  sym->backend_decl = s->backend_decl;
+	  return sym->backend_decl;
+	}
     }
 
   if (sym->attr.intrinsic)
@@ -1724,7 +1771,8 @@ create_function_arglist (gfc_symbol * sym)
 
       type = TREE_VALUE (typelist);
 
-      if (f->sym->ts.type == BT_CHARACTER)
+      if (f->sym->ts.type == BT_CHARACTER
+	  && (!sym->attr.is_bind_c || sym->attr.entry_master))
 	{
 	  tree len_type = TREE_VALUE (hidden_typelist);
 	  tree length = NULL_TREE;
@@ -2032,7 +2080,7 @@ build_entry_thunks (gfc_namespace * ns)
 
       current_function_decl = NULL_TREE;
 
-      cgraph_finalize_function (thunk_fndecl, false);
+      cgraph_finalize_function (thunk_fndecl, true);
 
       /* We share the symbols in the formal argument list with other entry
 	 points and the master function.  Clear them so that they are
@@ -2958,7 +3006,8 @@ init_intent_out_dt (gfc_symbol * proc_sym, tree body)
   gfc_init_block (&fnblock);
   for (f = proc_sym->formal; f; f = f->next)
     if (f->sym && f->sym->attr.intent == INTENT_OUT
-	  && f->sym->ts.type == BT_DERIVED)
+	&& !f->sym->attr.pointer
+	&& f->sym->ts.type == BT_DERIVED)
       {
 	if (f->sym->ts.derived->attr.alloc_comp)
 	  {
@@ -3708,6 +3757,7 @@ generate_local_decl (gfc_symbol * sym)
       if (!sym->attr.referenced
 	    && sym->ts.type == BT_DERIVED
 	    && sym->ts.derived->attr.alloc_comp
+	    && !sym->attr.pointer
 	    && ((sym->attr.dummy && sym->attr.intent == INTENT_OUT)
 		  ||
 		(sym->attr.result && sym != sym->result)))
@@ -4114,7 +4164,7 @@ create_main_function (tree fndecl)
   /* Output the GENERIC tree.  */
   dump_function (TDI_original, ftn_main);
 
-  cgraph_finalize_function (ftn_main, false);
+  cgraph_finalize_function (ftn_main, true);
 
   if (old_context)
     {
@@ -4385,7 +4435,7 @@ gfc_generate_function_code (gfc_namespace * ns)
        added to our parent's nested function list.  */
     (void) cgraph_node (fndecl);
   else
-    cgraph_finalize_function (fndecl, false);
+    cgraph_finalize_function (fndecl, true);
 
   gfc_trans_use_stmts (ns);
   gfc_traverse_ns (ns, gfc_emit_parameter_debug_info);

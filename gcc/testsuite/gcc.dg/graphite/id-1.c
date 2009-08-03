@@ -16,4 +16,3 @@ lambda_matrix_add_mc (lambda_matrix mat1, int const1,
   for (i = 0; i < m; i++)
     lambda_vector_add_mc (mat1[i], const1, mat2[i], const2, mat3[i], n);
 }
-/* { dg-final { cleanup-tree-dump "graphite" } } */

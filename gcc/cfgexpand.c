@@ -74,6 +74,9 @@ gimple_assign_rhs_to_tree (gimple stmt)
   else
     gcc_unreachable ();
 
+  if (gimple_has_location (stmt) && CAN_HAVE_LOCATION_P (t))
+    SET_EXPR_LOCATION (t, gimple_location (stmt));
+
   return t;
 }
 
@@ -1199,9 +1202,7 @@ expand_one_register_var (tree var)
 {
   tree decl = SSAVAR (var);
   tree type = TREE_TYPE (decl);
-  int unsignedp = TYPE_UNSIGNED (type);
-  enum machine_mode reg_mode
-    = promote_mode (type, DECL_MODE (decl), &unsignedp, 0);
+  enum machine_mode reg_mode = promote_decl_mode (decl, NULL);
   rtx x = gen_reg_rtx (reg_mode);
 
   set_rtl (var, x);
