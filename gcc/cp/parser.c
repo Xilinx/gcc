@@ -3310,11 +3310,11 @@ cp_parser_primary_expression (cp_parser *parser,
 
     case CPP_OBJC_STRING:
       if (c_dialect_objc ())
-      /* We have an Objective-C++ string literal. */
+	/* We have an Objective-C++ string literal. */
         return cp_parser_objc_expression (parser);
       cp_parser_error (parser, "expected primary-expression");
       return error_mark_node;
-  
+
     case CPP_KEYWORD:
       switch (token->keyword)
 	{
@@ -7047,119 +7047,118 @@ cp_parser_lambda_introducer (cp_parser* parser,
     LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_COPY;
 
   if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) != CPLD_NONE)
-  {
-    cp_lexer_consume_token (parser->lexer);
-    if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+    {
       cp_lexer_consume_token (parser->lexer);
-  }
+      if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	cp_lexer_consume_token (parser->lexer);
+    }
 
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
-  {
-
-    cp_token* capture_token;
-    tree capture_id;
-    tree capture_init_expr;
-    cp_id_kind idk = CP_ID_KIND_NONE;
-
-    enum capture_kind_type {
-      BY_COPY,
-      BY_REFERENCE,
-      BY_RVALUE_REFERENCE
-    };
-    enum capture_kind_type capture_kind = BY_COPY;
-
-    if (cp_lexer_next_token_is (parser->lexer, CPP_EOF))
     {
-      error ("expected end of capture-list");
-      return;
-    }
+      cp_token* capture_token;
+      tree capture_id;
+      tree capture_init_expr;
+      cp_id_kind idk = CP_ID_KIND_NONE;
 
-    if (first)
-      first = false;
-    else
-      cp_parser_require (parser, CPP_COMMA, "%<,%>");
+      enum capture_kind_type {
+	BY_COPY,
+	BY_REFERENCE,
+	BY_RVALUE_REFERENCE
+      };
+      enum capture_kind_type capture_kind = BY_COPY;
 
-    /* Possibly capture `this'. */
-    if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
-    {
-      cp_lexer_consume_token (parser->lexer);
+      if (cp_lexer_next_token_is (parser->lexer, CPP_EOF))
+	{
+	  error ("expected end of capture-list");
+	  return;
+	}
+
+      if (first)
+	first = false;
+      else
+	cp_parser_require (parser, CPP_COMMA, "%<,%>");
+
+      /* Possibly capture `this'. */
+      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
+	{
+	  cp_lexer_consume_token (parser->lexer);
+	  add_capture (
+		       lambda_expr,
+		       /*id=*/get_identifier ("__this"),
+		       /*initializer=*/finish_this_expr(),
+		       /*by_reference_p=*/false);
+	  continue;
+	}
+
+      /* Remember whether we want to capture as a reference or not. */
+      if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
+	capture_kind = BY_REFERENCE;
+      else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
+	capture_kind = BY_RVALUE_REFERENCE;
+
+      if (capture_kind != BY_COPY)
+	cp_lexer_consume_token (parser->lexer);
+
+      /* Get the identifier. */
+      capture_token = cp_lexer_peek_token (parser->lexer);
+      capture_id = cp_parser_identifier (parser);
+
+      if (capture_id == error_mark_node)
+	/* Would be nice to have a cp_parser_skip_to_closing_x for general
+	 * delimiters, but I modified this to stop on unnested ']' as well. It was
+	 * already changed to stop on unnested '}', so the "closing_parenthesis"
+	 * name is no more misleading with my change.  */
+	cp_parser_skip_to_closing_parenthesis (parser,
+					       /*recovering=*/true,
+					       /*or_comma=*/true,
+					       /*consume_paren=*/true);
+
+      /* Find the initializer for this capture.  */
+      if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
+	{
+	  /* An explicit expression exists. */
+	  cp_lexer_consume_token (parser->lexer);
+	  capture_init_expr = cp_parser_assignment_expression (parser,
+							       /*cast_p=*/true,
+							       &idk);
+	}
+      else
+	{
+	  const char* error_msg;
+
+	  /* Turn the identifier into an id-expression. */
+	  capture_init_expr = cp_parser_lookup_name (parser,
+						     capture_id,
+						     none_type,
+						     /*is_template=*/false,
+						     /*is_namespace=*/false,
+						     /*check_dependency=*/true,
+						     /*ambiguous_decls=*/NULL,
+						     capture_token->location);
+
+	  capture_init_expr = finish_id_expression (
+						    capture_id,
+						    capture_init_expr,
+						    parser->scope,
+						    &idk,
+						    /*integral_constant_expression_p=*/false,
+						    /*allow_non_integral_constant_expression_p=*/false,
+						    /*non_integral_constant_expression_p=*/NULL,
+						    /*template_p=*/false,
+						    /*done=*/true,
+						    /*address_p=*/false,
+						    /*template_arg_p=*/false,
+						    &error_msg,
+						    capture_token->location);
+	}
+
       add_capture (
-          lambda_expr,
-          /*id=*/get_identifier ("__this"),
-          /*initializer=*/finish_this_expr(),
-          /*by_reference_p=*/false);
-      continue;
+		   lambda_expr,
+		   capture_id,
+		   capture_init_expr,
+		   /*by_reference_p=*/capture_kind == BY_REFERENCE);
+
     }
-
-    /* Remember whether we want to capture as a reference or not. */
-    if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
-      capture_kind = BY_REFERENCE;
-    else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
-      capture_kind = BY_RVALUE_REFERENCE;
-
-    if (capture_kind != BY_COPY)
-      cp_lexer_consume_token (parser->lexer);
-
-    /* Get the identifier. */
-    capture_token = cp_lexer_peek_token (parser->lexer);
-    capture_id = cp_parser_identifier (parser);
-
-    if (capture_id == error_mark_node)
-      /* Would be nice to have a cp_parser_skip_to_closing_x for general
-       * delimiters, but I modified this to stop on unnested ']' as well. It was
-       * already changed to stop on unnested '}', so the "closing_parenthesis"
-       * name is no more misleading with my change.  */
-      cp_parser_skip_to_closing_parenthesis (parser,
-          /*recovering=*/true,
-          /*or_comma=*/true,
-          /*consume_paren=*/true);
-
-    /* Find the initializer for this capture.  */
-    if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
-    {
-      /* An explicit expression exists. */
-      cp_lexer_consume_token (parser->lexer);
-      capture_init_expr = cp_parser_assignment_expression (parser,
-							   /*cast_p=*/true,
-							   &idk);
-    }
-    else
-    {
-      const char* error_msg;
-
-      /* Turn the identifier into an id-expression. */
-      capture_init_expr = cp_parser_lookup_name (parser,
-          capture_id,
-          none_type,
-          /*is_template=*/false,
-          /*is_namespace=*/false,
-          /*check_dependency=*/true,
-          /*ambiguous_decls=*/NULL,
-          capture_token->location);
-
-      capture_init_expr = finish_id_expression (
-          capture_id,
-          capture_init_expr,
-          parser->scope,
-          &idk,
-          /*integral_constant_expression_p=*/false,
-          /*allow_non_integral_constant_expression_p=*/false,
-          /*non_integral_constant_expression_p=*/NULL,
-          /*template_p=*/false,
-          /*done=*/true,
-          /*address_p=*/false,
-          /*template_arg_p=*/false,
-          &error_msg,
-          capture_token->location);
-    }
-
-    add_capture (
-        lambda_expr,
-        capture_id,
-        capture_init_expr,
-        /*by_reference_p=*/capture_kind == BY_REFERENCE);
-
-  }
 
   cp_parser_require (parser, CPP_CLOSE_SQUARE, "%<]%>");
 
@@ -7331,9 +7330,9 @@ cp_parser_lambda_body (cp_parser* parser,
     /* Let the front end know that we are going to be defining this
        function. */
     start_preparsed_function (
-        fco,
-        NULL_TREE,
-        SF_PRE_PARSED | SF_INCLASS_INLINE);
+			      fco,
+			      NULL_TREE,
+			      SF_PRE_PARSED | SF_INCLASS_INLINE);
 
     body = begin_function_body ();
 
@@ -7349,34 +7348,35 @@ cp_parser_lambda_body (cp_parser* parser,
         && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE)
         && cp_lexer_peek_nth_token (parser->lexer, 2)->keyword == RID_RETURN
         && cp_lexer_peek_nth_token (parser->lexer, 3)->type != CPP_SEMICOLON)
-    {
-      tree compound_stmt;
-      tree expr = NULL_TREE;
-      cp_id_kind idk = CP_ID_KIND_NONE;
-     
-      cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
-      compound_stmt = begin_compound_stmt (0);
+      {
+	tree compound_stmt;
+	tree expr = NULL_TREE;
+	cp_id_kind idk = CP_ID_KIND_NONE;
 
-      cp_parser_require_keyword (parser, RID_RETURN, "%<return%>");
+	cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
+	compound_stmt = begin_compound_stmt (0);
 
-      expr = cp_parser_expression (parser, /*cast_p=*/false, &idk);
-      deduce_lambda_return_type (lambda_expr, expr);
-      /* Will get error here if type not deduced yet.  */
-      finish_return_stmt (expr);
+	cp_parser_require_keyword (parser, RID_RETURN, "%<return%>");
 
-      cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
+	expr = cp_parser_expression (parser, /*cast_p=*/false, &idk);
+	deduce_lambda_return_type (lambda_expr, expr);
+	/* Will get error here if type not deduced yet.  */
+	finish_return_stmt (expr);
 
-      cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
-      finish_compound_stmt (compound_stmt);
+	cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
 
-    } else {
-      /* TODO: does begin_compound_stmt want BCS_FN_BODY?
-       * cp_parser_compound_stmt does not pass it. */
-      cp_parser_function_body (parser);
-    }
+	cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
+	finish_compound_stmt (compound_stmt);
+
+      }
+    else
+      {
+	/* TODO: does begin_compound_stmt want BCS_FN_BODY?
+	 * cp_parser_compound_stmt does not pass it. */
+	cp_parser_function_body (parser);
+      }
 
     finish_lambda_function_body (lambda_expr, body);
-
   }
 
   /*set_cfun (saved_cfun);*/

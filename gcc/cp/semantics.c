@@ -5463,7 +5463,6 @@ lambda_expr_this_capture (tree lambda)
   }
 
   return result;
-
 }
 
 #include "gt-cp-semantics.h"
