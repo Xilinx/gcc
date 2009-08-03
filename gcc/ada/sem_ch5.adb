@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,6 +46,7 @@ with Sem_Disp; use Sem_Disp;
 with Sem_Elab; use Sem_Elab;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
@@ -436,9 +437,15 @@ package body Sem_Ch5 is
         and then not Assignment_OK (Original_Node (Lhs))
         and then not Is_Value_Type (T1)
       then
-         Error_Msg_N
-           ("left hand of assignment must not be limited type", Lhs);
-         Explain_Limited_Type (T1, Lhs);
+         --  CPP constructors can only be called in declarations
+
+         if Is_CPP_Constructor_Call (Rhs) then
+            Error_Msg_N ("invalid use of 'C'P'P constructor", Rhs);
+         else
+            Error_Msg_N
+              ("left hand of assignment must not be limited type", Lhs);
+            Explain_Limited_Type (T1, Lhs);
+         end if;
          return;
 
       --  Enforce RM 3.9.3 (8): left-hand side cannot be abstract
@@ -1201,6 +1208,13 @@ package body Sem_Ch5 is
          Analyze_And_Resolve (Cond, Any_Boolean);
          Check_Unset_Reference (Cond);
       end if;
+
+      --  Since the exit may take us out of a loop, any previous assignment
+      --  statement is not useless, so clear last assignment indications. It
+      --  is OK to keep other current values, since if the exit statement
+      --  does not exit, then the current values are still valid.
+
+      Kill_Current_Values (Last_Assignment_Only => True);
    end Analyze_Exit_Statement;
 
    ----------------------------
@@ -1557,6 +1571,15 @@ package body Sem_Ch5 is
                 Name        => New_Occurrence_Of (Id, Loc),
                 Expression  => Relocate_Node (Original_Bound));
 
+            --  If the relocated node is a function call then check if some
+            --  SCIL node references it and needs readjustment.
+
+            if Generate_SCIL
+              and then Nkind (Original_Bound) = N_Function_Call
+            then
+               Adjust_SCIL_Node (Original_Bound, Expression (Assign));
+            end if;
+
             Insert_Before (Parent (N), Assign);
             Analyze (Assign);
 
@@ -1819,6 +1842,11 @@ package body Sem_Ch5 is
 
                   Set_Ekind          (Id, E_Loop_Parameter);
                   Set_Etype          (Id, Etype (DS));
+
+                  --  Treat a range as an implicit reference to the type, to
+                  --  inhibit spurious warnings.
+
+                  Generate_Reference (Base_Type (Etype (DS)), N, ' ');
                   Set_Is_Known_Valid (Id, True);
 
                   --  The loop is not a declarative part, so the only entity

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -64,11 +64,11 @@ with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Mech; use Sem_Mech;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stand;    use Stand;
-with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 with Validsw;  use Validsw;
@@ -1126,6 +1126,7 @@ package body Exp_Ch6 is
             --  created, since we just passed it as an OUT parameter.
 
             Kill_Current_Values (Temp);
+            Set_Is_Known_Valid (Temp, False);
 
             --  If type conversion, use reverse conversion on exit
 
@@ -1147,7 +1148,7 @@ package body Exp_Ch6 is
             --  resulting variable is a temporary which does not designate
             --  the proper out-parameter, which may not be addressable. In
             --  that case, generate an assignment to the original expression
-            --  (before expansion of the  packed reference) so that the proper
+            --  (before expansion of the packed reference) so that the proper
             --  expansion of assignment to a packed component can take place.
 
             declare
@@ -1183,7 +1184,6 @@ package body Exp_Ch6 is
                    Expression => Expr));
             end;
          end if;
-
       end Add_Call_By_Copy_Code;
 
       ----------------------------------
@@ -1573,11 +1573,16 @@ package body Exp_Ch6 is
             --  treatment, whereas the formal is not volatile, then pass
             --  by copy unless it is a by-reference type.
 
+            --  Note: we use Is_Volatile here rather than Treat_As_Volatile,
+            --  because this is the enforcement of a language rule that applies
+            --  only to "real" volatile variables, not e.g. to the address
+            --  clause overlay case.
+
             elsif Is_Entity_Name (Actual)
-              and then Treat_As_Volatile (Entity (Actual))
+              and then Is_Volatile (Entity (Actual))
               and then not Is_By_Reference_Type (Etype (Actual))
               and then not Is_Scalar_Type (Etype (Entity (Actual)))
-              and then not Treat_As_Volatile (E_Formal)
+              and then not Is_Volatile (E_Formal)
             then
                Add_Call_By_Copy_Code;
 
@@ -1585,6 +1590,30 @@ package body Exp_Ch6 is
               and then Is_Entity_Name (Prefix (Actual))
               and then Has_Volatile_Components (Entity (Prefix (Actual)))
             then
+               Add_Call_By_Copy_Code;
+
+            --  Add call-by-copy code for the case of scalar out parameters
+            --  when it is not known at compile time that the subtype of the
+            --  formal is a subrange of the subtype of the actual (or vice
+            --  versa for in out parameters), in order to get range checks
+            --  on such actuals. (Maybe this case should be handled earlier
+            --  in the if statement???)
+
+            elsif Is_Scalar_Type (E_Formal)
+              and then
+                (not In_Subrange_Of (E_Formal, Etype (Actual))
+                  or else
+                    (Ekind (Formal) = E_In_Out_Parameter
+                      and then not In_Subrange_Of (Etype (Actual), E_Formal)))
+            then
+               --  Perhaps the setting back to False should be done within
+               --  Add_Call_By_Copy_Code, since it could get set on other
+               --  cases occurring above???
+
+               if Do_Range_Check (Actual) then
+                  Set_Do_Range_Check (Actual, False);
+               end if;
+
                Add_Call_By_Copy_Code;
             end if;
 
@@ -1605,8 +1634,8 @@ package body Exp_Ch6 is
                Reset_Packed_Prefix;
                Expand_Packed_Element_Reference (Actual);
 
-            --  If we have a reference to a bit packed array, we copy it,
-            --  since the actual must be byte aligned.
+            --  If we have a reference to a bit packed array, we copy it, since
+            --  the actual must be byte aligned.
 
             --  Is this really necessary in all cases???
 
@@ -1807,8 +1836,8 @@ package body Exp_Ch6 is
 
          else
             Indic :=
-              (Subtype_Indication
-                (Type_Definition (Original_Node (Parent (S)))));
+              Subtype_Indication
+                (Type_Definition (Original_Node (Parent (S))));
 
             if Nkind (Indic) = N_Subtype_Indication then
                Par := Entity (Subtype_Mark (Indic));
@@ -1823,7 +1852,6 @@ package body Exp_Ch6 is
            or else not In_Open_Scopes (Scope (Par))
          then
             return Empty;
-
          else
             Gen_Par := Generic_Parent_Type (Parent (Par));
          end if;
@@ -1892,7 +1920,7 @@ package body Exp_Ch6 is
       Scop          : Entity_Id;
       Subp          : Entity_Id;
 
-      Prev_Orig     : Node_Id;
+      Prev_Orig : Node_Id;
       --  Original node for an actual, which may have been rewritten. If the
       --  actual is a function call that has been transformed from a selected
       --  component, the original node is unanalyzed. Otherwise, it carries
@@ -2011,27 +2039,29 @@ package body Exp_Ch6 is
          end;
       end if;
 
-      --  First step, compute extra actuals, corresponding to any
-      --  Extra_Formals present. Note that we do not access Extra_Formals
-      --  directly, instead we simply note the presence of the extra
-      --  formals as we process the regular formals and collect the
-      --  corresponding actuals in Extra_Actuals.
+      --  First step, compute extra actuals, corresponding to any Extra_Formals
+      --  present. Note that we do not access Extra_Formals directly, instead
+      --  we simply note the presence of the extra formals as we process the
+      --  regular formals collecting corresponding actuals in Extra_Actuals.
 
-      --  We also generate any required range checks for actuals as we go
-      --  through the loop, since this is a convenient place to do this.
+      --  We also generate any required range checks for actuals for in formals
+      --  as we go through the loop, since this is a convenient place to do it.
+      --  (Though it seems that this would be better done in Expand_Actuals???)
 
       Formal      := First_Formal (Subp);
       Actual      := First_Actual (N);
       Param_Count := 1;
       while Present (Formal) loop
 
-         --  Generate range check if required (not activated yet ???)
+         --  Generate range check if required
 
---         if Do_Range_Check (Actual) then
---            Set_Do_Range_Check (Actual, False);
---            Generate_Range_Check
---              (Actual, Etype (Formal), CE_Range_Check_Failed);
---         end if;
+         if Do_Range_Check (Actual)
+           and then Ekind (Formal) = E_In_Parameter
+         then
+            Set_Do_Range_Check (Actual, False);
+            Generate_Range_Check
+              (Actual, Etype (Formal), CE_Range_Check_Failed);
+         end if;
 
          --  Prepare to examine current entry
 
@@ -2100,11 +2130,11 @@ package body Exp_Ch6 is
                      Act_Prev := Expression (Act_Prev);
                   end loop;
 
-                  --  If the expression is a conversion of a dereference,
-                  --  this is internally generated code that manipulates
-                  --  addresses, e.g. when building interface tables. No
-                  --  check should occur in this case, and the discriminated
-                  --  object is not directly a hand.
+                  --  If the expression is a conversion of a dereference, this
+                  --  is internally generated code that manipulates addresses,
+                  --  e.g. when building interface tables. No check should
+                  --  occur in this case, and the discriminated object is not
+                  --  directly a hand.
 
                   if not Comes_From_Source (Actual)
                     and then Nkind (Actual) = N_Unchecked_Type_Conversion
@@ -2442,7 +2472,8 @@ package body Exp_Ch6 is
                --  For an OUT or IN OUT parameter that is an assignable entity,
                --  we do not want to clobber the Last_Assignment field, since
                --  if it is set, it was precisely because it is indeed an OUT
-               --  or IN OUT parameter!
+               --  or IN OUT parameter! We do reset the Is_Known_Valid flag
+               --  since the subprogram could have returned in invalid value.
 
                if (Ekind (Formal) = E_Out_Parameter
                      or else
@@ -2452,6 +2483,7 @@ package body Exp_Ch6 is
                   Sav := Last_Assignment (Ent);
                   Kill_Current_Values (Ent);
                   Set_Last_Assignment (Ent, Sav);
+                  Set_Is_Known_Valid (Ent, False);
 
                   --  For all other cases, just kill the current values
 
@@ -2574,7 +2606,7 @@ package body Exp_Ch6 is
       if Nkind_In (N, N_Function_Call, N_Procedure_Call_Statement)
         and then Present (Controlling_Argument (N))
       then
-         if VM_Target = No_VM then
+         if Tagged_Type_Expansion then
             Expand_Dispatching_Call (N);
 
             --  The following return is worrisome. Is it really OK to
@@ -2582,12 +2614,14 @@ package body Exp_Ch6 is
 
             return;
 
-         --  Expansion of a dispatching call results in an indirect call, which
-         --  in turn causes current values to be killed (see Resolve_Call), so
-         --  on VM targets we do the call here to ensure consistent warnings
-         --  between VM and non-VM targets.
-
          else
+            Apply_Tag_Checks (N);
+
+            --  Expansion of a dispatching call results in an indirect call,
+            --  which in turn causes current values to be killed (see
+            --  Resolve_Call), so on VM targets we do the call here to ensure
+            --  consistent warnings between VM and non-VM targets.
+
             Kill_Current_Values;
          end if;
       end if;
@@ -2707,6 +2741,15 @@ package body Exp_Ch6 is
                   then
                      Convert (Actual, Parent_Typ);
                      Enable_Range_Check (Actual);
+
+                     --  If the actual has been marked as requiring a range
+                     --  check, then generate it here.
+
+                     if Do_Range_Check (Actual) then
+                        Set_Do_Range_Check (Actual, False);
+                        Generate_Range_Check
+                          (Actual, Etype (Formal), CE_Range_Check_Failed);
+                     end if;
 
                   --  For access types, the parent formal type and actual type
                   --  differ.
@@ -2893,9 +2936,9 @@ package body Exp_Ch6 is
       then
          --  We perform two simple optimization on calls:
 
-         --  a) replace calls to null procedures unconditionally,
+         --  a) replace calls to null procedures unconditionally;
 
-         --  b) For To_Address, just do an unchecked conversion. Not only is
+         --  b) for To_Address, just do an unchecked conversion. Not only is
          --  this efficient, but it also avoids order of elaboration problems
          --  when address clauses are inlined (address expression elaborated
          --  at the wrong point).
@@ -3058,11 +3101,17 @@ package body Exp_Ch6 is
 
       --  Functions returning controlled objects need special attention:
       --  if the return type is limited, the context is an initialization
-      --  and different processing applies.
+      --  and different processing applies. If the call is to a protected
+      --  function, the expansion above will call Expand_Call recusively.
+      --  To prevent a double attachment, check that the current call is
+      --  not a rewriting of a protected function call.
 
       if Needs_Finalization (Etype (Subp))
         and then not Is_Inherently_Limited_Type (Etype (Subp))
-        and then not Is_Limited_Interface (Etype (Subp))
+        and then
+          (No (First_Formal (Subp))
+            or else
+              not Is_Concurrent_Record_Type (Etype (First_Formal (Subp))))
       then
          Expand_Ctrl_Function_Call (N);
       end if;
@@ -3198,6 +3247,7 @@ package body Exp_Ch6 is
                        (Passoc, Next_Named_Actual (Parent (Temp)));
                   end loop;
                end;
+
             end if;
          end;
       end if;
@@ -4437,35 +4487,25 @@ package body Exp_Ch6 is
             Pop_Scope;
          end if;
 
-      --  Ada 2005 (AI-348): Generation of the null body
+      --  Ada 2005 (AI-348): Generate body for a null procedure.
+      --  In most cases this is superfluous because calls to it
+      --  will be automatically inlined, but we definitely need
+      --  the body if preconditions for the procedure are present.
 
       elsif Nkind (Specification (N)) = N_Procedure_Specification
         and then Null_Present (Specification (N))
       then
          declare
-            Bod : constant Node_Id :=
-                    Make_Subprogram_Body (Loc,
-                      Specification =>
-                        New_Copy_Tree (Specification (N)),
-                      Declarations => New_List,
-                     Handled_Statement_Sequence =>
-                        Make_Handled_Sequence_Of_Statements (Loc,
-                          Statements => New_List (Make_Null_Statement (Loc))));
+            Bod : constant Node_Id := Body_To_Inline (N);
+
          begin
-            Set_Body_To_Inline (N, Bod);
-            Insert_After (N, Bod);
-            Analyze (Bod);
+            Set_Has_Completion (Subp, False);
+            Append_Freeze_Action (Subp, Bod);
 
-            --  Corresponding_Spec isn't being set by Analyze_Subprogram_Body,
-            --  evidently because Set_Has_Completion is called earlier for null
-            --  procedures in Analyze_Subprogram_Declaration, so we force its
-            --  setting here. If the setting of Has_Completion is not set
-            --  earlier, then it can result in missing body errors if other
-            --  errors were already reported (since expansion is turned off).
+            --  The body now contains raise statements, so calls to it will
+            --  not be inlined.
 
-            --  Should creation of the empty body be moved to the analyzer???
-
-            Set_Corresponding_Spec (Bod, Defining_Entity (Specification (N)));
+            Set_Is_Inlined (Subp, False);
          end;
       end if;
    end Expand_N_Subprogram_Declaration;
@@ -4624,13 +4664,21 @@ package body Exp_Ch6 is
 
       end if;
 
-      Analyze (N);
-
       --  If it is a function call it can appear in elaboration code and
       --  the called entity must be frozen here.
 
       if Ekind (Subp) = E_Function then
          Freeze_Expression (Name (N));
+      end if;
+
+      --  Analyze and resolve the new call. The actuals have already been
+      --  resolved, but expansion of a function call will add extra actuals
+      --  if needed. Analysis of a procedure call already includes resolution.
+
+      Analyze (N);
+
+      if Ekind (Subp) = E_Function then
+         Resolve (N, Etype (Subp));
       end if;
    end Expand_Protected_Subprogram_Call;
 
@@ -4660,12 +4708,10 @@ package body Exp_Ch6 is
          then
             return False;
 
-         --  If the return type is a limited interface it has to be treated
-         --  as a return in place, even if the actual object is some non-
-         --  limited descendant.
-
-         elsif Is_Limited_Interface (Etype (E)) then
-            return True;
+         --  In Ada 2005 all functions with an inherently limited return type
+         --  must be handled using a build-in-place profile, including the case
+         --  of a function with a limited interface result, where the function
+         --  may return objects of nonlimited descendants.
 
          else
             return Is_Inherently_Limited_Type (Etype (E))
@@ -4820,7 +4866,7 @@ package body Exp_Ch6 is
         and then not Is_Abstract_Subprogram (Subp)
         and then Present (DTC_Entity (Subp))
         and then Present (Scope (DTC_Entity (Subp)))
-        and then VM_Target = No_VM
+        and then Tagged_Type_Expansion
         and then not Restriction_Active (No_Dispatching_Calls)
         and then RTE_Available (RE_Tag)
       then
@@ -4907,8 +4953,8 @@ package body Exp_Ch6 is
       --  Check if this is a declared null procedure
 
       elsif Nkind (Decl) = N_Subprogram_Declaration then
-         if Null_Present (Specification (Decl)) then
-            return True;
+         if not Null_Present (Specification (Decl)) then
+            return False;
 
          elsif No (Body_To_Inline (Decl)) then
             return False;
@@ -4927,14 +4973,18 @@ package body Exp_Ch6 is
                if Nkind (Orig_Bod) /= N_Subprogram_Body then
                   return False;
                else
+                  --  We must skip SCIL nodes because they are currently
+                  --  implemented as special N_Null_Statement nodes.
+
                   Stat :=
-                     First
+                     First_Non_SCIL_Node
                        (Statements (Handled_Statement_Sequence (Orig_Bod)));
-                  Stat2 := Next (Stat);
+                  Stat2 := Next_Non_SCIL_Node (Stat);
 
                   return
-                    Nkind (Stat) = N_Null_Statement
-                      and then
+                     Is_Empty_List (Declarations (Orig_Bod))
+                       and then Nkind (Stat) = N_Null_Statement
+                       and then
                         (No (Stat2)
                           or else
                             (Nkind (Stat2) = N_Simple_Return_Statement
@@ -5243,15 +5293,16 @@ package body Exp_Ch6 is
      (Assign        : Node_Id;
       Function_Call : Node_Id)
    is
-      Lhs             : constant Node_Id := Name (Assign);
-      Loc             : Source_Ptr;
-      Func_Call       : Node_Id := Function_Call;
-      Function_Id     : Entity_Id;
-      Result_Subt     : Entity_Id;
-      Ref_Type        : Entity_Id;
-      Ptr_Typ_Decl    : Node_Id;
-      Def_Id          : Entity_Id;
-      New_Expr        : Node_Id;
+      Lhs          : constant Node_Id := Name (Assign);
+      Func_Call    : Node_Id := Function_Call;
+      Func_Id      : Entity_Id;
+      Loc          : Source_Ptr;
+      Obj_Decl     : Node_Id;
+      Obj_Id       : Entity_Id;
+      Ptr_Typ      : Entity_Id;
+      Ptr_Typ_Decl : Node_Id;
+      Result_Subt  : Entity_Id;
+      Target       : Node_Id;
 
    begin
       --  Step past qualification or unchecked conversion (the latter can occur
@@ -5278,16 +5329,16 @@ package body Exp_Ch6 is
       Loc := Sloc (Function_Call);
 
       if Is_Entity_Name (Name (Func_Call)) then
-         Function_Id := Entity (Name (Func_Call));
+         Func_Id := Entity (Name (Func_Call));
 
       elsif Nkind (Name (Func_Call)) = N_Explicit_Dereference then
-         Function_Id := Etype (Name (Func_Call));
+         Func_Id := Etype (Name (Func_Call));
 
       else
          raise Program_Error;
       end if;
 
-      Result_Subt := Etype (Function_Id);
+      Result_Subt := Etype (Func_Id);
 
       --  When the result subtype is unconstrained, an additional actual must
       --  be passed to indicate that the caller is providing the return object.
@@ -5296,67 +5347,136 @@ package body Exp_Ch6 is
       --  to be treated effectively the same as calls to class-wide functions.
 
       Add_Alloc_Form_Actual_To_Build_In_Place_Call
-        (Func_Call, Function_Id, Alloc_Form => Caller_Allocation);
+        (Func_Call, Func_Id, Alloc_Form => Caller_Allocation);
 
       --  If Lhs is a selected component, then pass it along so that its prefix
       --  object will be used as the source of the finalization list.
 
       if Nkind (Lhs) = N_Selected_Component then
          Add_Final_List_Actual_To_Build_In_Place_Call
-           (Func_Call, Function_Id, Acc_Type => Empty, Sel_Comp => Lhs);
+           (Func_Call, Func_Id, Acc_Type => Empty, Sel_Comp => Lhs);
       else
          Add_Final_List_Actual_To_Build_In_Place_Call
-           (Func_Call, Function_Id, Acc_Type => Empty);
+           (Func_Call, Func_Id, Acc_Type => Empty);
       end if;
 
       Add_Task_Actuals_To_Build_In_Place_Call
-        (Func_Call, Function_Id, Make_Identifier (Loc, Name_uMaster));
+        (Func_Call, Func_Id, Make_Identifier (Loc, Name_uMaster));
 
       --  Add an implicit actual to the function call that provides access to
       --  the caller's return object.
 
       Add_Access_Actual_To_Build_In_Place_Call
         (Func_Call,
-         Function_Id,
+         Func_Id,
          Make_Unchecked_Type_Conversion (Loc,
            Subtype_Mark => New_Reference_To (Result_Subt, Loc),
            Expression   => Relocate_Node (Lhs)));
 
       --  Create an access type designating the function's result subtype
 
-      Ref_Type :=
+      Ptr_Typ :=
         Make_Defining_Identifier (Loc, New_Internal_Name ('A'));
 
       Ptr_Typ_Decl :=
         Make_Full_Type_Declaration (Loc,
-          Defining_Identifier => Ref_Type,
+          Defining_Identifier => Ptr_Typ,
           Type_Definition =>
             Make_Access_To_Object_Definition (Loc,
               All_Present => True,
               Subtype_Indication =>
                 New_Reference_To (Result_Subt, Loc)));
-
       Insert_After_And_Analyze (Assign, Ptr_Typ_Decl);
 
       --  Finally, create an access object initialized to a reference to the
       --  function call.
 
-      Def_Id :=
-        Make_Defining_Identifier (Loc,
-          Chars => New_Internal_Name ('R'));
-      Set_Etype (Def_Id, Ref_Type);
+      Obj_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+      Set_Etype (Obj_Id, Ptr_Typ);
 
-      New_Expr :=
-        Make_Reference (Loc,
-          Prefix => Relocate_Node (Func_Call));
-
-      Insert_After_And_Analyze (Ptr_Typ_Decl,
+      Obj_Decl :=
         Make_Object_Declaration (Loc,
-          Defining_Identifier => Def_Id,
-          Object_Definition   => New_Reference_To (Ref_Type, Loc),
-          Expression          => New_Expr));
+          Defining_Identifier => Obj_Id,
+          Object_Definition =>
+            New_Reference_To (Ptr_Typ, Loc),
+          Expression =>
+            Make_Reference (Loc,
+              Prefix => Relocate_Node (Func_Call)));
+      Insert_After_And_Analyze (Ptr_Typ_Decl, Obj_Decl);
 
       Rewrite (Assign, Make_Null_Statement (Loc));
+
+      --  Retrieve the target of the assignment
+
+      if Nkind (Lhs) = N_Selected_Component then
+         Target := Selector_Name (Lhs);
+      elsif Nkind (Lhs) = N_Type_Conversion then
+         Target := Expression (Lhs);
+      else
+         Target := Lhs;
+      end if;
+
+      --  If we are assigning to a return object or this is an expression of
+      --  an extension aggregate, the target should either be an identifier
+      --  or a simple expression. All other cases imply a different scenario.
+
+      if Nkind (Target) in N_Has_Entity then
+         Target := Entity (Target);
+      else
+         return;
+      end if;
+
+      --  When the target of the assignment is a return object of an enclosing
+      --  build-in-place function and also requires finalization, the list
+      --  generated for the assignment must be moved to that of the enclosing
+      --  function.
+
+      --    function Enclosing_BIP_Function return Ctrl_Typ is
+      --    begin
+      --       return (Ctrl_Parent_Part => BIP_Function with ...);
+      --    end Enclosing_BIP_Function;
+
+      if Is_Return_Object (Target)
+        and then Needs_Finalization (Etype (Target))
+        and then Needs_Finalization (Result_Subt)
+      then
+         declare
+            Obj_List  : constant Node_Id := Find_Final_List (Obj_Id);
+            Encl_List : Node_Id;
+            Encl_Scop : Entity_Id;
+
+         begin
+            Encl_Scop := Scope (Target);
+
+            --  Locate the scope of the extended return statement
+
+            while Present (Encl_Scop)
+              and then Ekind (Encl_Scop) /= E_Return_Statement
+            loop
+               Encl_Scop := Scope (Encl_Scop);
+            end loop;
+
+            --  A return object should always be enclosed by a return statement
+            --  scope at some level.
+
+            pragma Assert (Present (Encl_Scop));
+
+            Encl_List :=
+              Make_Attribute_Reference (Loc,
+                Prefix =>
+                  New_Reference_To (
+                    Finalization_Chain_Entity (Encl_Scop), Loc),
+                Attribute_Name => Name_Unrestricted_Access);
+
+            --  Generate a call to move final list
+
+            Insert_After_And_Analyze (Obj_Decl,
+              Make_Procedure_Call_Statement (Loc,
+                Name =>
+                  New_Reference_To (RTE (RE_Move_Final_List), Loc),
+                Parameter_Associations => New_List (Obj_List, Encl_List)));
+         end;
+      end if;
    end Make_Build_In_Place_Call_In_Assignment;
 
    ----------------------------------------------------
@@ -5442,9 +5562,15 @@ package body Exp_Ch6 is
       --  If the function's result subtype is unconstrained and the object is
       --  a return object of an enclosing build-in-place function, then the
       --  implicit build-in-place parameters of the enclosing function must be
-      --  passed along to the called function.
+      --  passed along to the called function. (Unfortunately, this won't cover
+      --  the case of extension aggregates where the ancestor part is a build-
+      --  in-place unconstrained function call that should be passed along the
+      --  caller's parameters. Currently those get mishandled by reassigning
+      --  the result of the call to the aggregate return object, when the call
+      --  result should really be directly built in place in the aggregate and
+      --  not built in a temporary. ???)
 
-      elsif Nkind (Parent (Object_Decl)) = N_Extended_Return_Statement then
+      elsif Is_Return_Object (Defining_Identifier (Object_Decl)) then
          Pass_Caller_Acc := True;
 
          Enclosing_Func := Enclosing_Subprogram (Obj_Def_Id);

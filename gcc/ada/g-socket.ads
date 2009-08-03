@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2001-2008, AdaCore                     --
+--                     Copyright (C) 2001-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -895,9 +895,10 @@ package GNAT.Sockets is
       Flags  : Request_Flag_Type := No_Request_Flag);
    --  Receive message from Socket. Last is the index value such that Item
    --  (Last) is the last character assigned. Note that Last is set to
-   --  Item'First - 1 when the socket has been closed by peer. This is not an
-   --  error and no exception is raised. Flags allows to control the
-   --  reception. Raise Socket_Error on error.
+   --  Item'First - 1 (or to Stream_Element_Array'Last if Item'First is
+   --  Stream_Element_Offset'First) when the socket has been closed by peer.
+   --  This is not an error and no exception is raised. Flags allows to
+   --  control the reception. Raise Socket_Error on error.
 
    procedure Receive_Socket
      (Socket : Socket_Type;
@@ -913,9 +914,11 @@ package GNAT.Sockets is
    procedure Receive_Vector
      (Socket : Socket_Type;
       Vector : Vector_Type;
-      Count  : out Ada.Streams.Stream_Element_Count);
+      Count  : out Ada.Streams.Stream_Element_Count;
+      Flags  : Request_Flag_Type := No_Request_Flag);
    --  Receive data from a socket and scatter it into the set of vector
    --  elements Vector. Count is set to the count of received stream elements.
+   --  Flags allow control over reception.
 
    function Resolve_Exception
      (Occurrence : Ada.Exceptions.Exception_Occurrence) return Error_Type;
@@ -931,11 +934,15 @@ package GNAT.Sockets is
       To     : access Sock_Addr_Type;
       Flags  : Request_Flag_Type := No_Request_Flag);
    pragma Inline (Send_Socket);
-   --  Transmit a message over a socket. For a datagram socket, the address is
-   --  given by To.all. For a stream socket, To must be null. Flags
-   --  allows to control the transmission. Raises Socket_Error on error.
-   --  Note: this subprogram is inlined because it is also used to implement
-   --  the two variants below.
+   --  Transmit a message over a socket. For a datagram socket, the address
+   --  is given by To.all. For a stream socket, To must be null. Last
+   --  is the index value such that Item (Last) is the last character
+   --  sent. Note that Last is set to Item'First - 1 (if Item'First is
+   --  Stream_Element_Offset'First, to Stream_Element_Array'Last) when the
+   --  socket has been closed by peer. This is not an error and no exception
+   --  is raised. Flags allows control of the transmission. Raises exception
+   --  Socket_Error on error. Note: this subprogram is inlined because it is
+   --  also used to implement the two variants below.
 
    procedure Send_Socket
      (Socket : Socket_Type;
@@ -959,9 +966,11 @@ package GNAT.Sockets is
    procedure Send_Vector
      (Socket : Socket_Type;
       Vector : Vector_Type;
-      Count  : out Ada.Streams.Stream_Element_Count);
+      Count  : out Ada.Streams.Stream_Element_Count;
+      Flags  : Request_Flag_Type := No_Request_Flag);
    --  Transmit data gathered from the set of vector elements Vector to a
    --  socket. Count is set to the count of transmitted stream elements.
+   --  Flags allow control over transmission.
 
    procedure Set_Socket_Option
      (Socket : Socket_Type;
@@ -1001,7 +1010,9 @@ package GNAT.Sockets is
 
    type Socket_Set_Type is limited private;
    --  This type allows to manipulate sets of sockets. It allows to wait for
-   --  events on multiple endpoints at one time.
+   --  events on multiple endpoints at one time. This type has default
+   --  initialization, and the default value is the empty set.
+   --
    --  Note: This type used to contain a pointer to dynamically allocated
    --  storage, but this is not the case anymore, and no special precautions
    --  are required to avoid memory leaks.
@@ -1009,10 +1020,10 @@ package GNAT.Sockets is
    procedure Clear (Item : in out Socket_Set_Type; Socket : Socket_Type);
    --  Remove Socket from Item
 
-   procedure Copy  (Source : Socket_Set_Type; Target : in out Socket_Set_Type);
+   procedure Copy (Source : Socket_Set_Type; Target : out Socket_Set_Type);
    --  Copy Source into Target as Socket_Set_Type is limited private
 
-   procedure Empty (Item : in out Socket_Set_Type);
+   procedure Empty (Item : out Socket_Set_Type);
    --  Remove all Sockets from Item
 
    procedure Get (Item : in out Socket_Set_Type; Socket : out Socket_Type);
@@ -1132,7 +1143,12 @@ private
 
    type Socket_Set_Type is record
       Last : Socket_Type := No_Socket;
-      Set  : aliased Fd_Set;
+      --  Highest socket in set. Last = No_Socket denotes an empty set (which
+      --  is the default initial value).
+
+      Set : aliased Fd_Set;
+      --  Underlying socket set. Note that the contents of this component is
+      --  undefined if Last = No_Socket.
    end record;
 
    subtype Inet_Addr_Comp_Type is Natural range 0 .. 255;
@@ -1179,9 +1195,7 @@ private
 
    subtype Name_Index is Natural range 1 .. Max_Name_Length;
 
-   type Name_Type
-     (Length : Name_Index := Max_Name_Length)
-   is record
+   type Name_Type (Length : Name_Index := Max_Name_Length) is record
       Name : String (1 .. Length);
    end record;
    --  We need fixed strings to avoid access types in host entry type

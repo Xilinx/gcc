@@ -423,8 +423,10 @@ package Sinput is
    -- Global Data --
    -----------------
 
-   Current_Source_File : Source_File_Index;
-   --  Source_File table index of source file currently being scanned
+   Current_Source_File : Source_File_Index := No_Source_File;
+   --  Source_File table index of source file currently being scanned.
+   --  Initialized so that some tools (such as gprbuild) can be built with
+   --  -gnatVa and pragma Initialized_Scalars without problems.
 
    Current_Source_Unit : Unit_Number_Type;
    --  Unit number of source file currently being scanned. The special value
@@ -561,12 +563,12 @@ package Sinput is
    procedure Skip_Line_Terminators
      (P        : in out Source_Ptr;
       Physical : out Boolean);
-   --  On entry, P points to a line terminator that has been encountered, which
-   --  is one of FF,LF,VT,CR or a wide character sequence whose value is in
-   --  category Separator,Line or Separator,Paragraph. P points just past the
-   --  character that was scanned. The purpose of this routine is to
-   --  distinguish physical and logical line endings. A physical line ending is
-   --  one of:
+   --  On entry, P points to a line terminator that has been encountered,
+   --  which is one of FF,LF,VT,CR or a wide character sequence whose value is
+   --  in category Separator,Line or Separator,Paragraph. P points just past
+   --  the character that was scanned. The purpose of this routine is to
+   --  distinguish physical and logical line endings. A physical line ending
+   --  is one of:
    --
    --     CR on its own (MAC System 7)
    --     LF on its own (Unix and unix-like systems)
@@ -592,6 +594,15 @@ package Sinput is
    --  physical end of line was encountered, in which case this routine also
    --  makes sure that the lines table for the current source file has an
    --  appropriate entry for the start of the new physical line.
+
+   procedure Sloc_Range (Expr : Node_Id; Min, Max : out Source_Ptr);
+   --  Given a node for a subexpression, returns the minimum and maximum source
+   --  locations of any node in the expression subtree. This is not quite the
+   --  same as the locations of the first and last token in the expresion
+   --  because parentheses at the outer level do not have a recorded Sloc.
+   --
+   --  Note: if the tree for the expression contains no "real" Sloc values,
+   --  i.e. values > No_Location, then both Min and Max are set to Sloc (Expr).
 
    function Source_Offset (S : Source_Ptr) return Nat;
    --  Returns the zero-origin offset of the given source location from the

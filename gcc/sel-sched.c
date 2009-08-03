@@ -448,7 +448,7 @@ struct code_motion_path_driver_info_def *code_motion_path_driver_info;
 
 /* Set of hooks for performing move_op and find_used_regs routines with
    code_motion_path_driver.  */
-struct code_motion_path_driver_info_def move_op_hooks, fur_hooks;
+extern struct code_motion_path_driver_info_def move_op_hooks, fur_hooks;
 
 /* True if/when we want to emulate Haifa scheduler in the common code.  
    This is used in sched_rgn_local_init and in various places in 
@@ -1169,7 +1169,7 @@ static void
 init_hard_regs_data (void)
 {
   int cur_reg = 0;
-  enum machine_mode cur_mode = 0;
+  int cur_mode = 0;
 
   CLEAR_HARD_REG_SET (sel_hrd.regs_ever_used);
   for (cur_reg = 0; cur_reg < FIRST_PSEUDO_REGISTER; cur_reg++)
@@ -4524,11 +4524,27 @@ find_seqno_for_bookkeeping (insn_t place_to_insert, insn_t join_point)
   if (INSN_P (next) 
       && JUMP_P (next)
       && BLOCK_FOR_INSN (next) == BLOCK_FOR_INSN (place_to_insert))
-    seqno = INSN_SEQNO (next);
+    {
+      gcc_assert (INSN_SCHED_TIMES (next) == 0);
+      seqno = INSN_SEQNO (next);
+    }
   else if (INSN_SEQNO (join_point) > 0)
     seqno = INSN_SEQNO (join_point);
   else
-    seqno = get_seqno_by_preds (place_to_insert);
+    {
+      seqno = get_seqno_by_preds (place_to_insert);
+
+      /* Sometimes the fences can move in such a way that there will be 
+         no instructions with positive seqno around this bookkeeping.  
+         This means that there will be no way to get to it by a regular
+         fence movement.  Never mind because we pick up such pieces for
+         rescheduling anyways, so any positive value will do for now.  */
+      if (seqno < 0)
+        {
+          gcc_assert (pipelining_p);
+          seqno = 1;
+        }
+    }
   
   gcc_assert (seqno > 0);
   return seqno;
@@ -6483,9 +6499,10 @@ setup_current_loop_nest (int rgn)
 static void
 purge_empty_blocks (void)
 {
-  int i ;
+  /* Do not attempt to delete preheader.  */
+  int i = sel_is_loop_preheader_p (BASIC_BLOCK (BB_TO_BLOCK (0))) ? 1 : 0;
 
-  for (i = 1; i < current_nr_blocks; )
+  while (i < current_nr_blocks)
     {
       basic_block b = BASIC_BLOCK (BB_TO_BLOCK (i));
 

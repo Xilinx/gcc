@@ -138,27 +138,6 @@ create_var_ann (tree t)
   return ann;
 }
 
-/* Create a new annotation for a FUNCTION_DECL node T.  */
-
-function_ann_t
-create_function_ann (tree t)
-{
-  function_ann_t ann;
-
-  gcc_assert (t);
-  gcc_assert (TREE_CODE (t) == FUNCTION_DECL);
-  gcc_assert (!t->base.ann || t->base.ann->common.type == FUNCTION_ANN);
-
-  ann = (function_ann_t) ggc_alloc (sizeof (*ann));
-  memset ((void *) ann, 0, sizeof (*ann));
-
-  ann->common.type = FUNCTION_ANN;
-
-  t->base.ann = (tree_ann_t) ann;
-
-  return ann;
-}
-
 /* Renumber all of the gimple stmt uids.  */
 
 void 
@@ -296,18 +275,24 @@ dump_variable (FILE *file, tree var)
   else if (is_call_used (var))
     fprintf (file, ", call used");
 
-  if (ann->noalias_state == NO_ALIAS)
+  if (ann && ann->noalias_state == NO_ALIAS)
     fprintf (file, ", NO_ALIAS (does not alias other NO_ALIAS symbols)");
-  else if (ann->noalias_state == NO_ALIAS_GLOBAL)
+  else if (ann && ann->noalias_state == NO_ALIAS_GLOBAL)
     fprintf (file, ", NO_ALIAS_GLOBAL (does not alias other NO_ALIAS symbols"
 	           " and global vars)");
-  else if (ann->noalias_state == NO_ALIAS_ANYTHING)
+  else if (ann && ann->noalias_state == NO_ALIAS_ANYTHING)
     fprintf (file, ", NO_ALIAS_ANYTHING (does not alias any other symbols)");
 
-  if (gimple_default_def (cfun, var))
+  if (cfun && gimple_default_def (cfun, var))
     {
       fprintf (file, ", default def: ");
       print_generic_expr (file, gimple_default_def (cfun, var), dump_flags);
+    }
+
+  if (DECL_INITIAL (var))
+    {
+      fprintf (file, ", initial: ");
+      print_generic_expr (file, DECL_INITIAL (var), dump_flags);
     }
 
   fprintf (file, "\n");
@@ -672,11 +657,7 @@ get_virtual_var (tree var)
   return var;
 }
 
-/* Mark all the naked symbols in STMT for SSA renaming.
-   
-   NOTE: This function should only be used for brand new statements.
-   If the caller is modifying an existing statement, it should use the
-   combination push_stmt_changes/pop_stmt_changes.  */
+/* Mark all the naked symbols in STMT for SSA renaming.  */
 
 void
 mark_symbols_for_renaming (gimple stmt)
@@ -748,7 +729,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
     size_tree = DECL_SIZE (TREE_OPERAND (exp, 1));
   else if (TREE_CODE (exp) == BIT_FIELD_REF)
     size_tree = TREE_OPERAND (exp, 1);
-  else
+  else if (!VOID_TYPE_P (TREE_TYPE (exp)))
     {
       enum machine_mode mode = TYPE_MODE (TREE_TYPE (exp));
       if (mode == BLKmode)
@@ -775,7 +756,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
       switch (TREE_CODE (exp))
 	{
 	case BIT_FIELD_REF:
-	  bit_offset += tree_low_cst (TREE_OPERAND (exp, 2), 0);
+	  bit_offset += TREE_INT_CST_LOW (TREE_OPERAND (exp, 2));
 	  break;
 
 	case COMPONENT_REF:
@@ -786,13 +767,14 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	    if (TREE_CODE (TREE_TYPE (TREE_OPERAND (exp, 0))) == UNION_TYPE)
 	      seen_union = true;
 
-	    if (this_offset && TREE_CODE (this_offset) == INTEGER_CST)
+	    if (this_offset
+		&& TREE_CODE (this_offset) == INTEGER_CST
+		&& host_integerp (this_offset, 0))
 	      {
-		HOST_WIDE_INT hthis_offset = tree_low_cst (this_offset, 0);
-
+		HOST_WIDE_INT hthis_offset = TREE_INT_CST_LOW (this_offset);
 		hthis_offset *= BITS_PER_UNIT;
 		bit_offset += hthis_offset;
-		bit_offset += tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 0);
+		bit_offset += TREE_INT_CST_LOW (DECL_FIELD_BIT_OFFSET (field));
 	      }
 	    else
 	      {
@@ -812,18 +794,20 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	case ARRAY_RANGE_REF:
 	  {
 	    tree index = TREE_OPERAND (exp, 1);
-	    tree low_bound = array_ref_low_bound (exp);
-	    tree unit_size = array_ref_element_size (exp);
+	    tree low_bound, unit_size;
 
 	    /* If the resulting bit-offset is constant, track it.  */
-	    if (host_integerp (index, 0)
-		&& host_integerp (low_bound, 0)
-		&& host_integerp (unit_size, 1))
+	    if (TREE_CODE (index) == INTEGER_CST
+		&& host_integerp (index, 0)
+		&& (low_bound = array_ref_low_bound (exp),
+		    host_integerp (low_bound, 0))
+		&& (unit_size = array_ref_element_size (exp),
+		    host_integerp (unit_size, 1)))
 	      {
-		HOST_WIDE_INT hindex = tree_low_cst (index, 0);
+		HOST_WIDE_INT hindex = TREE_INT_CST_LOW (index);
 
-		hindex -= tree_low_cst (low_bound, 0);
-		hindex *= tree_low_cst (unit_size, 1);
+		hindex -= TREE_INT_CST_LOW (low_bound);
+		hindex *= TREE_INT_CST_LOW (unit_size);
 		hindex *= BITS_PER_UNIT;
 		bit_offset += hindex;
 

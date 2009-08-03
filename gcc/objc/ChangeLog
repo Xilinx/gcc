@@ -1,3 +1,169 @@
+2009-07-17  Aldy Hernandez  <aldyh@redhat.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40435 
+	* objc-act.c: Add location argument to all calls to
+	build_fold_addr_expr.
+	
+2009-07-14  Taras Glek  <tglek@mozilla.com>
+	    Rafael Espindola  <espindola@google.com>
+
+	* Make-lang.in (objc.install-plugin): New target for
+	installing plugin headers.
+
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* objc-act.c (next_sjlj_build_catch_list): Replace EXPR_LOCUS by
+	EXPR_LOCATION.
+	
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* objc-act.c: Replace %J by an explicit location. Update all
+	calls.
+	
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* objc-act.c: Replace %H by an explicit location. Update all
+	calls.
+	
+2009-06-22  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR objc/28050
+	* objc-act.c (objc_build_message_args): Return if ARGS is the
+	error_mark_node.
+	
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_in_struct, objc_struct_types): Remove.
+	(objc_struct_info): New static variable.
+	(objc_start_struct): Pass &objc_struct_info, not &objc_in_struct
+	and &objc_struct_types, to start_struct.
+	(objc_finish_struct): Likewise for finish_struct.
+
+2009-06-15  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_start_function): Don't set
+	label_context_stack_se or label_context_stack_vm.
+
+2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
+	
+	* objc-act.c (finish_var_decl): Pass location to finish_decl.
+	(objc_get_parm_info): Same.
+	(get_super_receiver): Same.
+	* objc-act.c (objc_build_component_ref): Pass location to
+	build_compound_ref.
+	(build_module_initializer_routine): Pass location to
+	c_end_compound_stmt.
+	(objc_generate_static_init_call): Pass location to build_stmt.
+	(build_typed_selector_reference): New location argument.
+	(build_selector_reference): Same.
+	(objc_substitute_decl): Pass location to build_array_ref.
+	(next_sjlj_build_try_catch_finally): Pass location to build_stmt.
+	(objc_begin_catch_clause): Same.
+	(objc_finish_try_stmt): Same.
+	(objc_finish_catch_clause): Pass location to c_end_compound_stmt.
+	(objc_build_throw_stmt): New argument.
+	(generate_shared_structures): Pass location to build_c_cast.
+	(objc_build_message_expr): Use local location.
+	(objc_finish_message_expr): Use input_location.
+	(build_objc_method_call): New argument.
+	(objc_build_selector_expr): Same.
+	(get_super_receiver): Pass location to build_c_cast,
+	build_modify_expr, build_compound_expr.
+	* objc-act.c: Add location to all calls to start_struct, build_decl,
+	finish_struct.
+	
+2009-06-09  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_gimplify_expr): Change return type to int.
+	* objc-act.h: Update declaration.
+
+2009-06-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* objc-act.c (objc_init): Skip print_struct_values during
+	-fcompare-debug-second.
+
+2009-06-03  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (cc1obj-checksum.o): Depend upon $(CONFIG_H) and
+	$(SYSTEM_H).
+
+2009-05-27  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (cc1obj-dummy$(exeext)): Change $(COMPILER) to
+	$(LINKER).
+	(cc1obj$(exeext)): Likewise.
+
+2009-05-26  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (cc1obj-dummy$(exeext)): Use $(COMPILER).
+	(cc1obj$(exeext)): Likewise.
+
+2009-05-20  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_generate_cxx_ctor_or_dtor): Pass NULL rather
+	than NULL_TREE to build_special_member_call.
+
+2009-05-10  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_building_struct): New static variable.
+	(objc_in_struct, objc_struct_types): New static variables.
+	(objc_start_struct, objc_finish_struct): New static functions.
+	(generate_struct_by_value_array): Call objc_start_struct instead
+	of start_struct, and call objc_finish_struct instead of
+	finish_struct.
+	(objc_build_struct, build_objc_symtab_template): Likewise.
+	(build_module_descriptor): Likewise.
+	(build_next_objc_exception_stuff): Likewise.
+	(build_protocol_template): Likewise.
+	(build_method_prototype_list_template): Likewise.
+	(build_method_prototype_template): Likewise.
+	(build_category_template, build_selector_template): Likewise.
+	(build_class_template, build_super_template): Likewise.
+	(build_ivar_template, build_ivar_list_template): Likewise.
+	(build_method_list_template): Likewise.
+	(build_method_template): Likewise.
+
+2009-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* objc-act.c: Include intl.h.
+	(objc_lookup_protocol): Use complete sentences for diagnostics
+	with %qE for identifiers and translating results of
+	gen_type_name_0 to locale character set.
+	(objc_check_decl, check_protocol_recursively,
+	lookup_and_install_protocols, objc_build_string_object,
+	objc_get_class_reference, objc_declare_alias, objc_declare_class,
+	objc_get_class_ivars, error_with_ivar, check_duplicates,
+	objc_finish_message_expr, objc_build_protocol_expr,
+	objc_build_selector_expr, build_ivar_reference, objc_add_method,
+	add_category, add_instance_variable, objc_is_public,
+	check_methods, check_methods_accessible, check_protocol,
+	start_class, finish_class, start_protocol, really_start_method,
+	get_super_receiver, objc_lookup_ivar): Use %E and %qE for
+	identifiers in diagnostics.  Translate generated text to locale
+	character set as needed.
+	(check_protocol, check_protocols): Change name parameter to type
+	tree.
+	(lang_report_error_function): Remove.
+
+2009-04-27  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_gimplify_expr): Add casts to enum type.
+
+2009-04-24  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (get_super_receiver): Update calls to
+	build_modify_expr to pass new argument.
+
+2009-04-21  Taras Glek <tglek@mozilla.com>
+
+	* objc-act.c: Update GTY annotations to new syntax
+	* objc-act.h: Likewise
+
+2009-04-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* ChangeLog: Add copyright and license notices.
+
 2009-04-20  Ian Lance Taylor  <iant@google.com>
 
 	* objc-act.c (objc_rewrite_function_call): Change parameter from
@@ -1191,3 +1357,10 @@
 	LANG_HOOKS_INCOMPLETE_TYPE_ERROR, LANG_HOOKS_TYPE_PROMOTES_TO,
 	LANG_HOOKS_REGISTER_BUILTIN_TYPE, LANG_HOOKS_WRITE_GLOBALS):
 	Move to c-objc-common.h.
+
+
+Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

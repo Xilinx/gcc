@@ -816,13 +816,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       get() const // never throws
       { return _M_ptr; }
 
-      // Implicit conversion to "bool"
-    private:
-      typedef _Tp* __shared_ptr::*__unspecified_bool_type;
-
-    public:
-      operator __unspecified_bool_type() const // never throws
-      { return _M_ptr == 0 ? 0 : &__shared_ptr::_M_ptr; }
+      explicit operator bool() const // never throws
+      { return _M_ptr == 0 ? false : true; }
 
       bool
       unique() const // never throws
@@ -833,7 +828,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { return _M_refcount._M_get_use_count(); }
 
       void
-      swap(__shared_ptr<_Tp, _Lp>&& __other) // never throws
+      swap(__shared_ptr<_Tp, _Lp>& __other) // never throws
       {
 	std::swap(_M_ptr, __other._M_ptr);
 	_M_refcount._M_swap(__other._M_refcount);
@@ -941,16 +936,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Tp, _Lock_policy _Lp>
     inline void
     swap(__shared_ptr<_Tp, _Lp>& __a, __shared_ptr<_Tp, _Lp>& __b)
-    { __a.swap(__b); }
-
-  template<typename _Tp, _Lock_policy _Lp>
-    inline void
-    swap(__shared_ptr<_Tp, _Lp>&& __a, __shared_ptr<_Tp, _Lp>& __b)
-    { __a.swap(__b); }
-
-  template<typename _Tp, _Lock_policy _Lp>
-    inline void
-    swap(__shared_ptr<_Tp, _Lp>& __a, __shared_ptr<_Tp, _Lp>&& __b)
     { __a.swap(__b); }
 
   // 2.2.3.9 shared_ptr casts
@@ -1370,16 +1355,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Tp>
     inline void
     swap(shared_ptr<_Tp>& __a, shared_ptr<_Tp>& __b)
-    { __a.swap(__b); }
-
-  template<typename _Tp>
-    inline void
-    swap(shared_ptr<_Tp>&& __a, shared_ptr<_Tp>& __b)
-    { __a.swap(__b); }
-
-  template<typename _Tp>
-    inline void
-    swap(shared_ptr<_Tp>& __a, shared_ptr<_Tp>&& __b)
     { __a.swap(__b); }
 
   // 20.8.13.2.10 shared_ptr casts.

@@ -214,13 +214,13 @@ package Einfo is
 --     type x1 is range 0..5;                      8               3
 
 --     type x2 is range 0..5;
---     for x2'size use 12;                        12              12
+--     for x2'size use 12;                        16              12
 
---     subtype x3 is x2 range 0 .. 3;             12               2
+--     subtype x3 is x2 range 0 .. 3;             16               2
 
 --     subtype x4 is x2'base range 0 .. 10;        8               4
 
---     subtype x5 is x2 range 0 .. dynamic;       12              (7)
+--     subtype x5 is x2 range 0 .. dynamic;       16              (7)
 
 --     subtype x6 is x2'base range 0 .. dynamic;   8              (7)
 
@@ -239,9 +239,12 @@ package Einfo is
 --  The RM_Size field keeps track of the RM Size as needed in these
 --  three situations.
 
---  For types other than discrete and fixed-point types, the Object_Size
---  and Value_Size are the same (and equivalent to the RM attribute Size).
---  Only Size may be specified for such types.
+--  For elementary types other than discrete and fixed-point types, the
+--  Object_Size and Value_Size are the same (and equivalent to the RM
+--  attribute Size). Only Size may be specified for such types.
+
+--  For composite types, Object_Size and Value_Size are computed from their
+--  respective value for the type of each element as well as the layout.
 
 --  All size attributes are stored as Uint values. Negative values are used to
 --  reference GCC expressions for the case of non-static sizes, as explained
@@ -354,8 +357,12 @@ package Einfo is
 --       overloaded entities it points to the parent subprogram of a derived
 --       subprogram. In case of abstract interface subprograms it points to the
 --       subprogram that covers the abstract interface primitive. Also used for
---       a subprogram renaming, where it points to the renamed subprogram.
---       Always empty for entries.
+--       a subprogram renaming, where it points to the renamed subprogram. For
+--       an inherited operation (of a type extension) that is overridden in a
+--       private part, the Alias is the overriding operation. In this fashion a
+--       call from outside the package ends up executing the new body even if
+--       non-dispatching, and a call from inside calls the overriding operation
+--       because it hides the implicit one. Alias is always empty for entries.
 
 --    Alignment (Uint14)
 --       Present in entities for types and also in constants, variables
@@ -484,7 +491,7 @@ package Einfo is
 --       Present in all entities. Set if a pragma Suppress or Unsuppress
 --       mentions the entity specifically in the second argument. If this
 --       flag is set the Global_Entity_Suppress and Local_Entity_Suppress
---       tables must be consulted to determine if the is actually an active
+--       tables must be consulted to determine if there actually is an active
 --       Suppress or Unsuppress pragma that applies to the entity.
 
 --    Class_Wide_Type (Node9)
@@ -542,21 +549,18 @@ package Einfo is
 --       at run-time (this happens if fields of a record have variable
 --       lengths). See package Layout for details of these values.
 --
---       Note: this field is obsolescent, to be eventually replaced entirely
---       by Normalized_First_Bit and Normalized_Position, but for the moment,
---       gigi is still using (and back annotating) this field, and gigi does
---       not know about the new fields. For the front end layout case, the
---       Component_Bit_Offset field is only set if it is static, and otherwise
---       the new Normalized_First_Bit and Normalized_Position fields are used.
+--       Note: Component_Bit_Offset is redundant with respect to the fields
+--       Normalized_First_Bit and Normalized_Position, and could in principle
+--       be eliminated, but it is convenient in several situations, including
+--       use in Gigi, to have this redundant field.
 
 --    Component_Clause (Node13)
 --       Present in record components and discriminants. If a record
---       representation clause is present for the corresponding record
---       type a that specifies a position for the component, then the
---       Component_Clause field of the E_Component entity points to the
---       N_Component_Clause node. Set to Empty if no record representation
---       clause was present, or if there was no specification for this
---       component.
+--       representation clause is present for the corresponding record type a
+--       that specifies a position for the component, then the Component_Clause
+--       field of the E_Component entity points to the N_Component_Clause node.
+--       Set to Empty if no record representation clause was present, or if
+--       there was no specification for this component.
 
 --    Component_Size (Uint22) [implementation base type only]
 --       Present in array types. It contains the component size value for
@@ -2081,9 +2085,9 @@ package Einfo is
 --       (generic function, generic subprogram), False for all other entities.
 
 --    Is_Generic_Type (Flag13)
---       Present in all types and subtypes. Set for types which are generic
---       formal types. Such types have an Ekind that corresponds to their
---       classification, so the Ekind cannot be used to identify generic types.
+--       Present in all entities. Set for types which are generic formal types.
+--       Such types have an Ekind that corresponds to their classification, so
+--       the Ekind cannot be used to identify generic types.
 
 --    Is_Generic_Unit (synthesized)
 --       Applies to all entities. Yields True for a generic unit (generic
@@ -2615,16 +2619,6 @@ package Einfo is
 --       that the constant was not modified by generated code (e.g. to set a
 --       discriminant in an init proc). Assignments by user or generated code
 --       will reset this flag.
---
---       Note: there is one situation in which the back end does not permit
---       this flag to be set, even if no assignments are generated. This is
---       the case of an object of a record or array type which is initialized
---       with an aggregate, and is itself used as the expression initializing
---       an atomic object, or the right hand side of an assignment to an atomic
---       object. In this case the object must not have Is_True_Constant set,
---       even though no assignments are generated (the reason for this is that
---       the back end must not optimize the object away, because that would
---       violate the restriction on aggregates in these positions).
 
 --    Is_Type (synthesized)
 --       Applies to all entities, true for a type entity
@@ -3019,6 +3013,23 @@ package Einfo is
 --       Applies to subprograms and subprogram types. Yields the number of
 --       formals as a value of type Pos.
 
+--    OK_To_Rename (Flag247)
+--       Present only in entities for variables. If this flag is set, it
+--       means that if the entity is used as the initial value of an object
+--       declaration, the object declaration can be safely converted into a
+--       renaming to avoid an extra copy. This is set for variables which are
+--       generated by the expander to hold the result of evaluating some
+--       expression. Most notably, the local variables used to store the result
+--       of concatenations are so marked (see Exp_Ch4.Expand_Concatenate). It
+--       is only worth setting this flag for composites, since for primitive
+--       types, it is cheaper to do the copy.
+
+--    OK_To_Reorder_Components (Flag239) [base type only]
+--       Present in record types. Set if the back end is permitted to reorder
+--       the components. If not set, the record must be layed out in the order
+--       in which the components are declared textually. Currently this flag
+--       can only be set by debug switches.
+
 --    Optimize_Alignment_Space (Flag241)
 --       A flag present in type, subtype, variable, and constant entities. This
 --       flag records that the type or object is to be layed out in a manner
@@ -3041,12 +3052,6 @@ package Einfo is
 --       is the implementation type for a packed array, and in this case it
 --       points to the original array type for which this is the packed
 --       array implementation type.
-
---    OK_To_Reorder_Components (Flag239) [base type only]
---       Present in record types. Set if the back end is permitted to reorder
---       the components. If not set, the record must be layed out in the order
---       in which the components are declared textually. Currently this flag
---       can only be set by debug switches.
 
 --    Original_Record_Component (Node22)
 --       Present in components, including discriminants. The usage depends
@@ -3091,23 +3096,24 @@ package Einfo is
 --    Packed_Array_Type (Node23)
 --       Present in array types and subtypes, including the string literal
 --       subtype case, if the corresponding type is packed (either bit packed
---       or packed to eliminate holes in non-contiguous enumeration type
---       index types). References the type used to represent the packed array,
---       which is either a modular type for short static arrays, or an
---       array of System.Unsigned. Note that in some situations (internal
---       types, and references to fields of variant records), it is not
---       always possible to construct this type in advance of its use. If
---       Packed_Array_Type is empty, then the necessary type is declared
---       on the fly for each reference to the array.
+--       or packed to eliminate holes in non-contiguous enumeration type index
+--       types). References the type used to represent the packed array, which
+--       is either a modular type for short static arrays, or an array of
+--       System.Unsigned. Note that in some situations (internal types, and
+--       references to fields of variant records), it is not always possible
+--       to construct this type in advance of its use. If Packed_Array_Type
+--       is empty, then the necessary type is declared on the fly for each
+--       reference to the array.
 
 --    Parameter_Mode (synthesized)
 --       Applies to formal parameter entities. This is a synonym for Ekind,
 --       used when obtaining the formal kind of a formal parameter (the result
 --       is one of E_[In/Out/In_Out]_Parameter)
 
---    Parent_Subtype (Node19)
---       Present in E_Record_Type. Points to the subtype to use for a
---       field that references the parent record.
+--    Parent_Subtype (Node19) [base type only]
+--       Present in E_Record_Type. Set only for derived tagged types, in which
+--       case it points to the subtype of the parent type. This is the type
+--       that is used as the Etype of the _parent field.
 
 --    Postcondition_Proc (Node8)
 --       Present only in procedure entities, saves the entity of the generated
@@ -3132,13 +3138,13 @@ package Einfo is
 --       protected types. Set to the original private component.
 
 --    Private_Dependents (Elist18)
---       Present in private (sub)types. Records the subtypes of the
---       private type, derivations from it, and records and arrays
---       with components dependent on the type.
+--       Present in private (sub)types. Records the subtypes of the private
+--       type, derivations from it, and records and arrays with components
+--       dependent on the type.
 --
---       The subtypes are traversed when installing and deinstalling
---       (the full view of) a private type in order to ensure correct
---       view of the subtypes.
+--       The subtypes are traversed when installing and deinstalling (the full
+--       view of) a private type in order to ensure correct view of the
+--       subtypes.
 --
 --       Used in similar fashion for incomplete types: holds list of subtypes
 --       of these incomplete types that have discriminant constraints. The
@@ -3186,7 +3192,7 @@ package Einfo is
 --       the case of an appearance of a simple variable that is not a renaming
 --       as the left side of an assignment in which case Referenced_As_LHS is
 --       set instead, or a similar appearance as an out parameter actual, in
---       which case As_Out_Parameter_Parameter is set.
+--       which case Referenced_As_Out_Parameter is set.
 
 --    Referenced_As_LHS (Flag36):
 --       Present in all entities. This flag is set instead of Referenced if a
@@ -3221,6 +3227,11 @@ package Einfo is
 --       and subtype created for an anonymous array object. Set to point
 --       to the entity of the corresponding array object. Currently used
 --       only for type-related error messages.
+
+--    Related_Expression (Node24)
+--       Present in variables generated internally. Denotes the source
+--       expression whose elaboration created the variable declaration.
+--       Used for clearer messages from CodePeer.
 
 --    Related_Instance (Node15)
 --       Present in the wrapper packages created for subprogram instances.
@@ -3646,7 +3657,7 @@ package Einfo is
 
 --    Wrapped_Entity (Node27)
 --       Present in functions and procedures which have been classified as
---       Is_Primitive_Wrapper. Set to the entity being wrapper.
+--       Is_Primitive_Wrapper. Set to the entity being wrapped.
 
    ------------------
    -- Access Kinds --
@@ -4502,6 +4513,7 @@ package Einfo is
    --    Is_First_Subtype                    (Flag70)
    --    Is_Formal_Subprogram                (Flag111)
    --    Is_Generic_Instance                 (Flag130)
+   --    Is_Generic_Type                     (Flag13)
    --    Is_Hidden                           (Flag57)
    --    Is_Hidden_Open_Scope                (Flag171)
    --    Is_Immediately_Visible              (Flag7)
@@ -4608,7 +4620,6 @@ package Einfo is
    --    Is_Eliminated                       (Flag124)
    --    Is_Frozen                           (Flag4)
    --    Is_Generic_Actual_Type              (Flag94)
-   --    Is_Generic_Type                     (Flag13)
    --    Is_Protected_Interface              (Flag198)
    --    Is_RACW_Stub_Type                   (Flag244)
    --    Is_Synchronized_Interface           (Flag199)
@@ -5258,7 +5269,7 @@ package Einfo is
    --    Cloned_Subtype                      (Node16)   (subtype case only)
    --    First_Entity                        (Node17)
    --    Corresponding_Concurrent_Type       (Node18)
-   --    Parent_Subtype                      (Node19)
+   --    Parent_Subtype                      (Node19)   (base type only)
    --    Last_Entity                         (Node20)
    --    Discriminant_Constraint             (Elist21)
    --    Corresponding_Remote_Type           (Node22)
@@ -5392,6 +5403,7 @@ package Einfo is
    --    Interface_Name                      (Node21)
    --    Shared_Var_Procs_Instance           (Node22)
    --    Extra_Constrained                   (Node23)
+   --    Related_Expression                  (Node24)
    --    Debug_Renaming_Link                 (Node25)
    --    Last_Assignment                     (Node26)
    --    Has_Alignment_Clause                (Flag46)
@@ -5407,6 +5419,7 @@ package Einfo is
    --    Is_True_Constant                    (Flag163)
    --    Is_Volatile                         (Flag16)
    --    Is_Return_Object                    (Flag209)
+   --    OK_To_Rename                        (Flag247)
    --    Optimize_Alignment_Space            (Flag241)
    --    Optimize_Alignment_Time             (Flag242)
    --    Treat_As_Volatile                   (Flag41)
@@ -5937,6 +5950,7 @@ package Einfo is
    function Normalized_First_Bit                (Id : E) return U;
    function Normalized_Position                 (Id : E) return U;
    function Normalized_Position_Max             (Id : E) return U;
+   function OK_To_Rename                        (Id : E) return B;
    function OK_To_Reorder_Components            (Id : E) return B;
    function Optimize_Alignment_Space            (Id : E) return B;
    function Optimize_Alignment_Time             (Id : E) return B;
@@ -5964,6 +5978,7 @@ package Einfo is
    function Referenced_Object                   (Id : E) return N;
    function Register_Exception_Call             (Id : E) return N;
    function Related_Array_Object                (Id : E) return E;
+   function Related_Expression                  (Id : E) return N;
    function Related_Instance                    (Id : E) return E;
    function Related_Type                        (Id : E) return E;
    function Relative_Deadline_Variable          (Id : E) return E;
@@ -6490,6 +6505,7 @@ package Einfo is
    procedure Set_Normalized_First_Bit            (Id : E; V : U);
    procedure Set_Normalized_Position             (Id : E; V : U);
    procedure Set_Normalized_Position_Max         (Id : E; V : U);
+   procedure Set_OK_To_Rename                    (Id : E; V : B := True);
    procedure Set_OK_To_Reorder_Components        (Id : E; V : B := True);
    procedure Set_Optimize_Alignment_Space        (Id : E; V : B := True);
    procedure Set_Optimize_Alignment_Time         (Id : E; V : B := True);
@@ -6517,6 +6533,7 @@ package Einfo is
    procedure Set_Referenced_Object               (Id : E; V : N);
    procedure Set_Register_Exception_Call         (Id : E; V : N);
    procedure Set_Related_Array_Object            (Id : E; V : E);
+   procedure Set_Related_Expression              (Id : E; V : N);
    procedure Set_Related_Instance                (Id : E; V : E);
    procedure Set_Related_Type                    (Id : E; V : E);
    procedure Set_Relative_Deadline_Variable      (Id : E; V : E);
@@ -7183,6 +7200,7 @@ package Einfo is
    pragma Inline (Normalized_First_Bit);
    pragma Inline (Normalized_Position);
    pragma Inline (Normalized_Position_Max);
+   pragma Inline (OK_To_Rename);
    pragma Inline (OK_To_Reorder_Components);
    pragma Inline (Optimize_Alignment_Space);
    pragma Inline (Optimize_Alignment_Time);
@@ -7211,6 +7229,7 @@ package Einfo is
    pragma Inline (Referenced_Object);
    pragma Inline (Register_Exception_Call);
    pragma Inline (Related_Array_Object);
+   pragma Inline (Related_Expression);
    pragma Inline (Related_Instance);
    pragma Inline (Related_Type);
    pragma Inline (Relative_Deadline_Variable);
@@ -7572,6 +7591,7 @@ package Einfo is
    pragma Inline (Set_Normalized_Position);
    pragma Inline (Set_Normalized_Position_Max);
    pragma Inline (Set_OK_To_Reorder_Components);
+   pragma Inline (Set_OK_To_Rename);
    pragma Inline (Set_Optimize_Alignment_Space);
    pragma Inline (Set_Optimize_Alignment_Time);
    pragma Inline (Set_Original_Array_Type);
@@ -7598,6 +7618,7 @@ package Einfo is
    pragma Inline (Set_Referenced_Object);
    pragma Inline (Set_Register_Exception_Call);
    pragma Inline (Set_Related_Array_Object);
+   pragma Inline (Set_Related_Expression);
    pragma Inline (Set_Related_Instance);
    pragma Inline (Set_Related_Type);
    pragma Inline (Set_Renamed_Entity);

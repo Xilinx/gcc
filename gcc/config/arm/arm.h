@@ -124,10 +124,6 @@ extern arm_cc arm_current_cc;
 extern int arm_target_label;
 extern int arm_ccfsm_state;
 extern GTY(()) rtx arm_target_insn;
-/* Define the information needed to generate branch insns.  This is
-   stored from the compare operation.  */
-extern GTY(()) rtx arm_compare_op0;
-extern GTY(()) rtx arm_compare_op1;
 /* The label of the current constant pool.  */
 extern rtx pool_vector_label;
 /* Set to 1 when a return insn is output, this means that the epilogue
@@ -219,12 +215,16 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 /* FPU is has the full VFPv3/NEON register file of 32 D registers.  */
 #define TARGET_VFPD32 (arm_fp_model == ARM_FP_MODEL_VFP \
 		       && (arm_fpu_arch == FPUTYPE_VFP3 \
-			   || arm_fpu_arch == FPUTYPE_NEON))
+			   || arm_fpu_arch == FPUTYPE_NEON \
+			   || arm_fpu_arch == FPUTYPE_NEON_FP16))
 
 /* FPU supports VFPv3 instructions.  */
 #define TARGET_VFP3 (arm_fp_model == ARM_FP_MODEL_VFP \
 		     && (arm_fpu_arch == FPUTYPE_VFP3D16 \
 			 || TARGET_VFPD32))
+
+/* FPU supports NEON/VFP half-precision floating-point.  */
+#define TARGET_NEON_FP16 (arm_fpu_arch == FPUTYPE_NEON_FP16)
 
 /* FPU supports Neon instructions.  The setting of this macro gets
    revealed via __ARM_NEON__ so we add extra guards upon TARGET_32BIT
@@ -232,7 +232,8 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
    available.  */
 #define TARGET_NEON (TARGET_32BIT && TARGET_HARD_FLOAT \
 		     && arm_fp_model == ARM_FP_MODEL_VFP \
-		     && arm_fpu_arch == FPUTYPE_NEON)
+		     && (arm_fpu_arch == FPUTYPE_NEON \
+			 || arm_fpu_arch == FPUTYPE_NEON_FP16))
 
 /* "DSP" multiply instructions, eg. SMULxy.  */
 #define TARGET_DSP_MULTIPLY \
@@ -312,7 +313,9 @@ enum fputype
   /* VFPv3.  */
   FPUTYPE_VFP3,
   /* Neon.  */
-  FPUTYPE_NEON
+  FPUTYPE_NEON,
+  /* Neon with half-precision float extensions.  */
+  FPUTYPE_NEON_FP16
 };
 
 /* Recast the floating point class to be the floating point attribute.  */
@@ -336,6 +339,21 @@ extern enum float_abi_type arm_float_abi;
 #ifndef TARGET_DEFAULT_FLOAT_ABI
 #define TARGET_DEFAULT_FLOAT_ABI ARM_FLOAT_ABI_SOFT
 #endif
+
+/* Which __fp16 format to use.
+   The enumeration values correspond to the numbering for the
+   Tag_ABI_FP_16bit_format attribute.
+ */
+enum arm_fp16_format_type
+{
+  ARM_FP16_FORMAT_NONE = 0,
+  ARM_FP16_FORMAT_IEEE = 1,
+  ARM_FP16_FORMAT_ALTERNATIVE = 2
+};
+
+extern enum arm_fp16_format_type arm_fp16_format;
+#define LARGEST_EXPONENT_IS_NORMAL(bits) \
+    ((bits) == 16 && arm_fp16_format == ARM_FP16_FORMAT_ALTERNATIVE)
 
 /* Which ABI to use.  */
 enum arm_abi_type
@@ -483,12 +501,6 @@ extern int arm_arch_hwdiv;
       (MODE) = SImode;				\
     }
 
-#define PROMOTE_FUNCTION_MODE(MODE, UNSIGNEDP, TYPE)	\
-  if ((GET_MODE_CLASS (MODE) == MODE_INT		\
-       || GET_MODE_CLASS (MODE) == MODE_COMPLEX_INT)    \
-      && GET_MODE_SIZE (MODE) < 4)                      \
-    (MODE) = SImode;				        \
-
 /* Define this if most significant bit is lowest numbered
    in instructions that operate on numbered bit-fields.  */
 #define BITS_BIG_ENDIAN  0
@@ -537,7 +549,7 @@ extern int arm_arch_hwdiv;
 #define PREFERRED_STACK_BOUNDARY \
     (arm_abi == ARM_ABI_ATPCS ? 64 : STACK_BOUNDARY)
 
-#define FUNCTION_BOUNDARY  32
+#define FUNCTION_BOUNDARY  ((TARGET_THUMB && optimize_size) ? 16 : 32)
 
 /* The lowest bit is used to indicate Thumb-mode functions, so the
    vbit must go into the delta field of pointers to member
@@ -1027,11 +1039,6 @@ extern int arm_structure_size_boundary;
 #define SUBTARGET_FRAME_POINTER_REQUIRED 0
 #endif
 
-#define FRAME_POINTER_REQUIRED					\
-  (cfun->has_nonlocal_label				\
-   || SUBTARGET_FRAME_POINTER_REQUIRED				\
-   || (TARGET_ARM && TARGET_APCS_FRAME && ! leaf_function_p ()))
-
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
    This is ordinarily the length in words of a value of mode MODE
@@ -1416,13 +1423,17 @@ do {									      \
 /* If defined, gives a class of registers that cannot be used as the
    operand of a SUBREG that changes the mode of the object illegally.  */
 
-/* Moves between FPA_REGS and GENERAL_REGS are two memory insns.  */
+/* Moves between FPA_REGS and GENERAL_REGS are two memory insns.
+   Moves between VFP_REGS and GENERAL_REGS are a single insn, but
+   it is typically more expensive than a single memory access.  We set
+   the cost to less than two memory accesses so that floating
+   point to integer conversion does not go through memory.  */
 #define REGISTER_MOVE_COST(MODE, FROM, TO)		\
   (TARGET_32BIT ?						\
    ((FROM) == FPA_REGS && (TO) != FPA_REGS ? 20 :	\
     (FROM) != FPA_REGS && (TO) == FPA_REGS ? 20 :	\
-    IS_VFP_CLASS (FROM) && !IS_VFP_CLASS (TO) ? 10 :	\
-    !IS_VFP_CLASS (FROM) && IS_VFP_CLASS (TO) ? 10 :	\
+    IS_VFP_CLASS (FROM) && !IS_VFP_CLASS (TO) ? 15 :	\
+    !IS_VFP_CLASS (FROM) && IS_VFP_CLASS (TO) ? 15 :	\
     (FROM) == IWMMXT_REGS && (TO) != IWMMXT_REGS ? 4 :  \
     (FROM) != IWMMXT_REGS && (TO) == IWMMXT_REGS ? 4 :  \
     (FROM) == IWMMXT_GR_REGS || (TO) == IWMMXT_GR_REGS ? 20 :  \
@@ -1571,7 +1582,7 @@ do {									      \
    in the direction of stack growth.
    Only soft_frame is used in thumb mode.  */
 
-typedef struct arm_stack_offsets GTY(())
+typedef struct GTY(()) arm_stack_offsets
 {
   int saved_args;	/* ARG_POINTER_REGNUM.  */
   int frame;		/* ARM_HARD_FRAME_POINTER_REGNUM.  */
@@ -1585,7 +1596,7 @@ arm_stack_offsets;
 
 /* A C structure for machine-specific, per-function data.
    This is added to the cfun structure.  */
-typedef struct machine_function GTY(())
+typedef struct GTY(()) machine_function
 {
   /* Additional stack adjustment in __builtin_eh_throw.  */
   rtx eh_epilogue_sp_ofs;
@@ -2166,99 +2177,37 @@ typedef struct
 #define REG_MODE_OK_FOR_REG_BASE_P(X, MODE)	\
   REG_OK_FOR_INDEX_P (X)
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.  */
-
 #define ARM_BASE_REGISTER_RTX_P(X)  \
   (GET_CODE (X) == REG && ARM_REG_OK_FOR_BASE_P (X))
 
 #define ARM_INDEX_REGISTER_RTX_P(X)  \
   (GET_CODE (X) == REG && ARM_REG_OK_FOR_INDEX_P (X))
-
-#define ARM_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (arm_legitimate_address_p (MODE, X, SET, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define THUMB2_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (thumb2_legitimate_address_p (MODE, X, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define THUMB1_GO_IF_LEGITIMATE_ADDRESS(MODE,X,WIN)		\
-  {								\
-    if (thumb1_legitimate_address_p (MODE, X, REG_STRICT_P))	\
-      goto WIN;							\
-  }
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, WIN)				\
-  if (TARGET_ARM)							\
-    ARM_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)  			\
-  else if (TARGET_THUMB2)						\
-    THUMB2_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)  			\
-  else /* if (TARGET_THUMB1) */						\
-    THUMB1_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)
-
 
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.  */
-#define ARM_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-  X = arm_legitimize_address (X, OLDX, MODE);		\
-} while (0)
-
-/* ??? Implement LEGITIMIZE_ADDRESS for thumb2.  */
-#define THUMB2_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-} while (0)
-
-#define THUMB1_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-  X = thumb_legitimize_address (X, OLDX, MODE);		\
-} while (0)
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)		\
-do {							\
-  if (TARGET_ARM)					\
-    ARM_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-  else if (TARGET_THUMB2)				\
-    THUMB2_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-  else							\
-    THUMB1_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-							\
-  if (memory_address_p (MODE, X))			\
-    goto WIN;						\
-} while (0)
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-#define ARM_GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)  			\
-{									\
-  if (   GET_CODE (ADDR) == PRE_DEC || GET_CODE (ADDR) == POST_DEC	\
-      || GET_CODE (ADDR) == PRE_INC || GET_CODE (ADDR) == POST_INC)	\
-    goto LABEL;								\
-}
-
-/* Nothing helpful to do for the Thumb */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)	\
-  if (TARGET_32BIT)					\
-    ARM_GO_IF_MODE_DEPENDENT_ADDRESS (ADDR, LABEL)
-
+/* Define this for compatibility reasons. */
+#define HANDLE_PRAGMA_PACK_PUSH_POP
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE Pmode
 
-#define CASE_VECTOR_PC_RELATIVE TARGET_THUMB2
+#define CASE_VECTOR_PC_RELATIVE (TARGET_THUMB2				\
+				 || (TARGET_THUMB			\
+				     && (optimize_size || flag_pic)))
 
-#define CASE_VECTOR_SHORTEN_MODE(min, max, body)		\
-   ((min < 0 || max >= 0x2000 || !TARGET_THUMB2) ? SImode	\
-   : (max >= 0x200) ? HImode					\
-   : QImode)
+#define CASE_VECTOR_SHORTEN_MODE(min, max, body)			\
+  (TARGET_THUMB								\
+   ? (min >= 0 && max < 512						\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 1, QImode)	\
+      : min >= -256 && max < 256					\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 0, QImode)	\
+      : min >= 0 && max < 8192						\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 1, HImode)	\
+      : min >= -4096 && max < 4096					\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 0, HImode)	\
+      : SImode)								\
+   : ((min < 0 || max >= 0x2000 || !TARGET_THUMB2) ? SImode		\
+      : (max >= 0x200) ? HImode						\
+      : QImode))
 
 /* signed 'char' is most compatible, but RISC OS wants it unsigned.
    unsigned is probably best, but may break some code.  */

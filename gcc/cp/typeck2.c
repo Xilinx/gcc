@@ -112,8 +112,7 @@ readonly_error (tree arg, const char* string)
 /* Structure that holds information about declarations whose type was
    incomplete and we could not check whether it was abstract or not.  */
 
-struct pending_abstract_type GTY((chain_next ("%h.next")))
-{
+struct GTY((chain_next ("%h.next"))) pending_abstract_type {
   /* Declaration which we are checking for abstractness. It is either
      a DECL node, or an IDENTIFIER_NODE if we do not have a full
      declaration available.  */
@@ -313,8 +312,9 @@ abstract_virtuals_error (tree decl, tree type)
       unsigned ix;
       tree fn;
 
-      inform (input_location, "%J  because the following virtual functions are pure "
-	      "within %qT:", TYPE_MAIN_DECL (type), type);
+      inform (DECL_SOURCE_LOCATION (TYPE_MAIN_DECL (type)),
+	      "  because the following virtual functions are pure within %qT:",
+	      type);
 
       for (ix = 0; VEC_iterate (tree, pure, ix, fn); ix++)
 	inform (input_location, "\t%+#D", fn);
@@ -324,8 +324,9 @@ abstract_virtuals_error (tree decl, tree type)
       VEC_truncate (tree, pure, 0);
     }
   else
-    inform (input_location, "%J  since type %qT has pure virtual functions",
-	    TYPE_MAIN_DECL (type), type);
+    inform (DECL_SOURCE_LOCATION (TYPE_MAIN_DECL (type)),
+	    "  since type %qT has pure virtual functions",
+	    type);
 
   return 1;
 }
@@ -517,7 +518,7 @@ split_nonconstant_init_1 (tree dest, tree init)
 			      NULL_TREE);
 
 	      code = build2 (INIT_EXPR, inner_type, sub, value);
-	      code = build_stmt (EXPR_STMT, code);
+	      code = build_stmt (input_location, EXPR_STMT, code);
 	      add_stmt (code);
 	      continue;
 	    }
@@ -531,7 +532,7 @@ split_nonconstant_init_1 (tree dest, tree init)
 	  tree cons = copy_node (init);
 	  CONSTRUCTOR_ELTS (init) = NULL;
 	  code = build2 (MODIFY_EXPR, type, dest, cons);
-	  code = build_stmt (EXPR_STMT, code);
+	  code = build_stmt (input_location, EXPR_STMT, code);
 	  add_stmt (code);
 	}
       break;
@@ -587,7 +588,7 @@ split_nonconstant_init (tree dest, tree init)
    for static variable.  In that case, caller must emit the code.  */
 
 tree
-store_init_value (tree decl, tree init)
+store_init_value (tree decl, tree init, int flags)
 {
   tree value, type;
 
@@ -629,7 +630,7 @@ store_init_value (tree decl, tree init)
   /* End of special C++ code.  */
 
   /* Digest the specified initializer into an expression.  */
-  value = digest_init (type, init);
+  value = digest_init_flags (type, init, flags);
   /* If the initializer is not a constant, fill in DECL_INITIAL with
      the bits that are constant, and then return an expression that
      will perform the dynamic initialization.  */
@@ -718,7 +719,7 @@ check_narrowing (tree type, tree init)
    NESTED is true iff we are being called for an element of a CONSTRUCTOR.  */
 
 static tree
-digest_init_r (tree type, tree init, bool nested)
+digest_init_r (tree type, tree init, bool nested, int flags)
 {
   enum tree_code code = TREE_CODE (type);
 
@@ -797,9 +798,9 @@ digest_init_r (tree type, tree init, bool nested)
 
       if (cxx_dialect != cxx98 && nested)
 	check_narrowing (type, init);
-      init = convert_for_initialization (0, type, init, LOOKUP_NORMAL,
+      init = convert_for_initialization (0, type, init, flags,
 					 "initialization", NULL_TREE, 0,
-                                         tf_warning_or_error);
+					 tf_warning_or_error);
       exp = &init;
 
       /* Skip any conversions since we'll be outputting the underlying
@@ -843,7 +844,7 @@ digest_init_r (tree type, tree init, bool nested)
 	}
 
       return convert_for_initialization (NULL_TREE, type, init,
-					 LOOKUP_NORMAL | LOOKUP_ONLYCONVERTING,
+					 flags,
 					 "initialization", NULL_TREE, 0,
                                          tf_warning_or_error);
     }
@@ -852,7 +853,13 @@ digest_init_r (tree type, tree init, bool nested)
 tree
 digest_init (tree type, tree init)
 {
-  return digest_init_r (type, init, false);
+  return digest_init_r (type, init, false, LOOKUP_IMPLICIT);
+}
+
+tree
+digest_init_flags (tree type, tree init, int flags)
+{
+  return digest_init_r (type, init, false, flags);
 }
 
 /* Set of flags used within process_init_constructor to describe the
@@ -906,10 +913,9 @@ process_init_constructor_array (tree type, tree init)
     /* Vectors are like simple fixed-size arrays.  */
     len = TYPE_VECTOR_SUBPARTS (type);
 
-  /* There cannot be more initializers than needed as otherwise
-     reshape_init would have already rejected the initializer.  */
-  if (!unbounded)
-    gcc_assert (VEC_length (constructor_elt, v) <= len);
+  /* There must not be more initializers than needed.  */
+  if (!unbounded && VEC_length (constructor_elt, v)  > len)
+    error ("too many initializers for %qT", type);
 
   for (i = 0; VEC_iterate (constructor_elt, v, i, ce); ++i)
     {
@@ -925,7 +931,7 @@ process_init_constructor_array (tree type, tree init)
       else
 	ce->index = size_int (i);
       gcc_assert (ce->value);
-      ce->value = digest_init_r (TREE_TYPE (type), ce->value, true);
+      ce->value = digest_init_r (TREE_TYPE (type), ce->value, true, LOOKUP_IMPLICIT);
 
       if (ce->value != error_mark_node)
 	gcc_assert (same_type_ignoring_top_level_qualifiers_p
@@ -1032,7 +1038,7 @@ process_init_constructor_record (tree type, tree init)
 	    }
 
 	  gcc_assert (ce->value);
-	  next = digest_init_r (type, ce->value, true);
+	  next = digest_init_r (type, ce->value, true, LOOKUP_IMPLICIT);
 	  ++idx;
 	}
       else if (TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (field)))
@@ -1047,7 +1053,7 @@ process_init_constructor_record (tree type, tree init)
 	  else
 	    next = build_constructor (init_list_type_node, NULL);
 
-	  next = digest_init_r (TREE_TYPE (field), next, true);
+	  next = digest_init_r (TREE_TYPE (field), next, true, LOOKUP_IMPLICIT);
 
 	  /* Warn when some struct elements are implicitly initialized.  */
 	  warning (OPT_Wmissing_field_initializers,
@@ -1157,7 +1163,7 @@ process_init_constructor_union (tree type, tree init)
     }
 
   if (ce->value && ce->value != error_mark_node)
-    ce->value = digest_init_r (TREE_TYPE (ce->index), ce->value, true);
+    ce->value = digest_init_r (TREE_TYPE (ce->index), ce->value, true, LOOKUP_IMPLICIT);
 
   return picflag_from_initializer (ce->value);
 }
@@ -1437,6 +1443,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 
   /* The type to which we are casting.  */
   tree type;
+  VEC(tree,gc) *parmvec;
 
   if (exp == error_mark_node || parms == error_mark_node)
     return error_mark_node;
@@ -1507,8 +1514,12 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
     }
 
   /* Call the constructor.  */
-  exp = build_special_member_call (NULL_TREE, complete_ctor_identifier, parms,
-				   type, LOOKUP_NORMAL, complain);
+  parmvec = make_tree_vector ();
+  for (; parms != NULL_TREE; parms = TREE_CHAIN (parms))
+    VEC_safe_push (tree, gc, parmvec, TREE_VALUE (parms));
+  exp = build_special_member_call (NULL_TREE, complete_ctor_identifier,
+				   &parmvec, type, LOOKUP_NORMAL, complain);
+  release_tree_vector (parmvec);
 
   if (exp == error_mark_node)
     return error_mark_node;

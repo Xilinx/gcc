@@ -88,7 +88,7 @@ namespace std
 
       template<class _CharT, class _Traits>
 	friend basic_ostream<_CharT, _Traits>&
-	operator<<(basic_ostream<_CharT, _Traits>&& __out, thread::id __id);
+	operator<<(basic_ostream<_CharT, _Traits>& __out, thread::id __id);
     };
 
     // Simple base type that the templatized, derived class containing
@@ -126,7 +126,10 @@ namespace std
 
     template<typename _Callable>
       explicit thread(_Callable __f)
-      { _M_start_thread(_M_make_routine<_Callable>(__f)); }
+      {
+	_M_start_thread(_M_make_routine<_Callable>
+			(std::forward<_Callable>(__f)));
+      }
 
     template<typename _Callable, typename... _Args>
       thread(_Callable&& __f, _Args&&... __args)
@@ -135,7 +138,7 @@ namespace std
     ~thread()
     {
       if (joinable())
-	detach();
+	std::terminate();
     }
 
     thread& operator=(const thread&) = delete;
@@ -143,13 +146,13 @@ namespace std
     thread& operator=(thread&& __t)
     {
       if (joinable())
-	detach();
+	std::terminate();
       swap(__t);
       return *this;
     }
 
     void
-    swap(thread&& __t)
+    swap(thread& __t)
     { std::swap(_M_id, __t._M_id); }
 
     bool
@@ -194,14 +197,6 @@ namespace std
   swap(thread& __x, thread& __y)
   { __x.swap(__y); }
 
-  inline void
-  swap(thread&& __x, thread& __y)
-  { __x.swap(__y); }
-
-  inline void
-  swap(thread& __x, thread&& __y)
-  { __x.swap(__y); }
-
   inline bool
   operator!=(thread::id __x, thread::id __y)
   { return !(__x == __y); }
@@ -220,7 +215,7 @@ namespace std
 
   template<class _CharT, class _Traits>
     inline basic_ostream<_CharT, _Traits>&
-    operator<<(basic_ostream<_CharT, _Traits>&& __out, thread::id __id)
+    operator<<(basic_ostream<_CharT, _Traits>& __out, thread::id __id)
     {
       if (__id == thread::id())
 	return __out << "thread::id of a non-executing thread";

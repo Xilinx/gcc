@@ -71,7 +71,7 @@ typedef struct gfc_se
      are NULL.  Used by intrinsic size.  */
   unsigned data_not_needed:1;
 
-  /* If set, gfc_conv_function_call does not put byref calls into se->pre.  */
+  /* If set, gfc_conv_procedure_call does not put byref calls into se->pre.  */
   unsigned no_function_call:1;
 
   /* Scalarization parameters.  */
@@ -310,12 +310,10 @@ void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 /* Does an intrinsic map directly to an external library call.  */
 int gfc_is_intrinsic_libcall (gfc_expr *);
 
-/* Used to call the elemental subroutines used in operator assignments.  */
-tree gfc_conv_operator_assign (gfc_se *, gfc_se *, gfc_symbol *);
-
-/* Also used to CALL subroutines.  */
-int gfc_conv_function_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
-			    tree);
+/* Used to call ordinary functions/subroutines
+   and procedure pointer components.  */
+int gfc_conv_procedure_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
+			    gfc_expr *, tree);
 
 void gfc_conv_subref_array_arg (gfc_se *, gfc_expr *, int, sym_intent);
 
@@ -411,6 +409,10 @@ void gfc_shadow_sym (gfc_symbol *, tree, gfc_saved_var *);
 /* Restore the original variable.  */
 void gfc_restore_sym (gfc_symbol *, gfc_saved_var *);
 
+/* Setting a decl assembler name, mangling it according to target rules
+   (like Windows @NN decorations).  */
+void gfc_set_decl_assembler_name (tree, tree);
+
 /* Returns true if a variable of specified size should go on the stack.  */
 int gfc_can_put_var_on_stack (tree);
 
@@ -429,8 +431,7 @@ void gfc_generate_block_data (gfc_namespace *);
 /* Output a decl for a module variable.  */
 void gfc_generate_module_vars (gfc_namespace *);
 
-struct module_htab_entry GTY(())
-{
+struct GTY(()) module_htab_entry {
   const char *name;
   tree namespace_decl;
   htab_t GTY ((param_is (union tree_node))) decls;
@@ -543,8 +544,7 @@ extern GTY(()) tree gfor_fndecl_associated;
 /* Math functions.  Many other math functions are handled in
    trans-intrinsic.c.  */
 
-typedef struct gfc_powdecl_list GTY(())
-{
+typedef struct GTY(()) gfc_powdecl_list {
   tree integer;
   tree real;
   tree cmplx;
@@ -594,6 +594,8 @@ extern GTY(()) tree gfor_fndecl_convert_char4_to_char1;
 extern GTY(()) tree gfor_fndecl_size0;
 extern GTY(()) tree gfor_fndecl_size1;
 extern GTY(()) tree gfor_fndecl_iargc;
+extern GTY(()) tree gfor_fndecl_clz128;
+extern GTY(()) tree gfor_fndecl_ctz128;
 
 /* Implemented in Fortran.  */
 extern GTY(()) tree gfor_fndecl_sc_kind;
@@ -615,8 +617,7 @@ enum gfc_array_kind
 };
 
 /* Array types only.  */
-struct lang_type		GTY(())
-{
+struct GTY(())	lang_type	 {
   int rank;
   enum gfc_array_kind akind;
   tree lbound[GFC_MAX_DIMENSIONS];
@@ -627,10 +628,10 @@ struct lang_type		GTY(())
   tree dtype;
   tree dataptr_type;
   tree span;
+  tree base_decl[2];
 };
 
-struct lang_decl		GTY(())
-{
+struct GTY(()) lang_decl {
   /* Dummy variables.  */
   tree saved_descriptor;
   /* Assigned integer nodes.  Stringlength is the IO format string's length.
@@ -680,6 +681,8 @@ struct lang_decl		GTY(())
 #define GFC_TYPE_ARRAY_DATAPTR_TYPE(node) \
   (TYPE_LANG_SPECIFIC(node)->dataptr_type)
 #define GFC_TYPE_ARRAY_SPAN(node) (TYPE_LANG_SPECIFIC(node)->span)
+#define GFC_TYPE_ARRAY_BASE_DECL(node, internal) \
+  (TYPE_LANG_SPECIFIC(node)->base_decl[(internal)])
 
 /* Build an expression with void type.  */
 #define build1_v(code, arg) fold_build1(code, void_type_node, arg)

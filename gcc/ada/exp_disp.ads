@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -146,7 +146,7 @@ package Exp_Disp is
    --      Snames.adb.
 
    --      Categorize the new PPO name as predefined by adding an entry in
-   --      Is_Predefined_Dispatching_Operation in Exp_Util.adb.
+   --      Is_Predefined_Dispatching_Operation in Exp_Disp.
 
    --      Generate the specification of the new PPO in Make_Predefined_
    --      Primitive_Spec in Exp_Ch3.adb. The Is_Internal flag of the defining
@@ -169,6 +169,9 @@ package Exp_Disp is
    --    Ada.Tags.Max_Predef_Prims         - indirect use
    --    Exp_Disp.Default_Prim_Op_Position - indirect use
    --    Exp_Disp.Set_All_DT_Position      - direct   use
+
+   procedure Apply_Tag_Checks (Call_Node : Node_Id);
+   --  Generate checks required on dispatching calls
 
    function Building_Static_DT (Typ : Entity_Id) return Boolean;
    pragma Inline (Building_Static_DT);
@@ -328,10 +331,13 @@ package Exp_Disp is
    --  Class case check that no pragma CPP_Virtual is missing and that the
    --  DT_Position are coherent
 
-   procedure Set_Default_Constructor (Typ : Entity_Id);
-   --  Typ is a CPP_Class type. Create the Init procedure of that type to
-   --  be the default constructor (i.e. the function returning this type,
-   --  having a pragma CPP_Constructor and no parameter)
+   procedure Set_CPP_Constructors (Typ : Entity_Id);
+   --  Typ is a CPP_Class type. Create the Init procedures of that type
+   --  required to handle its default and non-default constructors. The
+   --  functions to which pragma CPP_Constructor is applied in the sources
+   --  are functions returning this type, and having an implicit access to the
+   --  target object in its first argument; such implicit argument is explicit
+   --  in the IP procedures built here.
 
    procedure Set_DTC_Entity_Value
      (Tagged_Type : Entity_Id;

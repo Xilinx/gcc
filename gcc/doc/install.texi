@@ -344,8 +344,19 @@ not installed in your default library search path.
 
 Necessary to build libgcj, the GCJ runtime.
 
-@end table
+@item MPC Library version 0.6.0 (or later)
 
+Optional when building GCC@.  Having this library will enable
+additional optimizations on complex numbers.  It can be downloaded
+from @uref{http://www.multiprecision.org/mpc/}.  The
+@option{--with-mpc} configure option should be used if your MPC
+Library is not installed in your default library search path.  See
+also @option{--with-mpc-lib} and @option{--with-mpc-include}.
+Alternatively, if an MPC source distribution is found in a
+subdirectory of your GCC sources named @file{mpc}, it will be built
+together with GCC@.
+
+@end table
 
 @heading Tools/packages necessary for modifying GCC
 @table @asis
@@ -464,7 +475,7 @@ the GCC-specific entry point.  You can download a suitable jar from
 @itemx antlr binary
 
 If you wish to build the @command{gjdoc} binary in libjava, you will
-need to have a @file{antlr.jar} library available. The library is
+need to have an @file{antlr.jar} library available. The library is
 searched in system locations but can be configured with
 @option{--with-antlr-jar=} instead.  When configuring with
 @option{--enable-java-maintainer-mode}, you will need to have one of
@@ -525,11 +536,11 @@ components of the binutils you intend to build alongside the compiler
 (@file{bfd}, @file{binutils}, @file{gas}, @file{gprof}, @file{ld},
 @file{opcodes}, @dots{}) to the directory containing the GCC sources.
 
-Likewise, the GMP and MPFR libraries can be automatically built together
-with GCC.  Unpack the GMP and/or MPFR source distributions in the
-directory containing the GCC sources and rename their directories to
-@file{gmp} and @file{mpfr}, respectively (or use symbolic links with the
-same name).
+Likewise the GMP, MPFR and MPC libraries can be automatically built
+together with GCC.  Unpack the GMP, MPFR and/or MPC source
+distributions in the directory containing the GCC sources and rename
+their directories to @file{gmp}, @file{mpfr} and @file{mpc},
+respectively (or use symbolic links with the same name).
 
 @html
 <hr />
@@ -1111,8 +1122,8 @@ Specify which cpu variant the compiler should generate code for by default.
 This option is only supported on some targets, including ARM, i386, M68k,
 PowerPC, and SPARC@.  The @option{--with-cpu-32} and
 @option{--with-cpu-64} options specify separate default CPUs for
-32-bit and 64-bit modes; these options are only supported for i386 and
-x86-64.
+32-bit and 64-bit modes; these options are only supported for i386,
+x86-64 and PowerPC.
 
 @item --with-schedule=@var{cpu}
 @itemx --with-arch=@var{cpu}
@@ -1159,6 +1170,14 @@ not provide them.
 On MIPS targets, make @option{-mno-llsc} the default when no
 @option{-mllsc} option is passed.
 
+@item --with-synci
+On MIPS targets, make @option{-msynci} the default when no
+@option{-mno-synci} option is passed.
+
+@item --without-synci 
+On MIPS targets, make @option{-mno-synci} the default when no
+@option{-msynci} option is passed.  This is the default.
+
 @item --with-mips-plt
 On MIPS targets, make use of copy relocations and PLTs.
 These features are extensions to the traditional
@@ -1192,6 +1211,10 @@ destructors.  Option @option{--disable-initfini-array} has the
 opposite effect.  If neither option is specified, the configure script
 will try to guess whether the @code{.init_array} and
 @code{.fini_array} sections are supported and, if they are, use them.
+
+@item --enable-build-with-cxx
+Build GCC using a C++ compiler rather than a C compiler.  This is an
+experimental option which may become the default in a later release.
 
 @item --enable-maintainer-mode
 The build rules that
@@ -1488,17 +1511,24 @@ When neither of these configure options are used, the default will be
 @itemx --with-mpfr=@var{pathname}
 @itemx --with-mpfr-include=@var{pathname}
 @itemx --with-mpfr-lib=@var{pathname}
-If you do not have GMP (the GNU Multiple Precision library) and the
-MPFR Libraries installed in a standard location and you want to build
-GCC, you can explicitly specify the directory where they are installed
-(@samp{--with-gmp=@var{gmpinstalldir}},
-@samp{--with-mpfr=@var{mpfrinstalldir}}).  The
+@itemx --with-mpc=@var{pathname}
+@itemx --with-mpc-include=@var{pathname}
+@itemx --with-mpc-lib=@var{pathname}
+If you do not have GMP (the GNU Multiple Precision library), the MPFR
+library and/or the MPC library installed in a standard location and
+you want to build GCC, you can explicitly specify the directory where
+they are installed (@samp{--with-gmp=@var{gmpinstalldir}},
+@samp{--with-mpfr=@var{mpfrinstalldir}},
+@samp{--with-mpc=@var{mpcinstalldir}}).  The
 @option{--with-gmp=@var{gmpinstalldir}} option is shorthand for
 @option{--with-gmp-lib=@var{gmpinstalldir}/lib} and
 @option{--with-gmp-include=@var{gmpinstalldir}/include}.  Likewise the
 @option{--with-mpfr=@var{mpfrinstalldir}} option is shorthand for
 @option{--with-mpfr-lib=@var{mpfrinstalldir}/lib} and
-@option{--with-mpfr-include=@var{mpfrinstalldir}/include}.  If these
+@option{--with-mpfr-include=@var{mpfrinstalldir}/include}, also the
+@option{--with-mpc=@var{mpcinstalldir}} option is shorthand for
+@option{--with-mpc-lib=@var{mpcinstalldir}/lib} and
+@option{--with-mpc-include=@var{mpcinstalldir}/include}.  If these
 shorthand assumptions are not correct, you can use the explicit
 include and lib options directly.
 
@@ -1531,10 +1561,39 @@ linking with a shared copy of PPL, you probably do not need this
 option; shared library dependencies will cause the linker to search
 for the standard C++ library automatically.
 
+@item --with-stage1-ldflags=@var{flags}
+This option may be used to set linker flags to be used when linking
+stage 1 of GCC.  These are also used when linking GCC if configured with
+@option{--disable-bootstrap}.  By default no special flags are used.
+
+@item --with-stage1-libs=@var{libs}
+This option may be used to set libraries to be used when linking stage 1
+of GCC.  These are also used when linking GCC if configured with
+@option{--disable-bootstrap}.  The default is the argument to
+@option{--with-host-libstdcxx}, if specified.
+
+@item --with-boot-ldflags=@var{flags}
+This option may be used to set linker flags to be used when linking
+stage 2 and later when bootstrapping GCC.  By default no special flags
+are used.
+
+@item --with-boot-libs=@var{libs}
+This option may be used to set libraries to be used when linking stage 2
+and later when bootstrapping GCC.  The default is the argument to
+@option{--with-host-libstdcxx}, if specified.
+
 @item --with-debug-prefix-map=@var{map}
 Convert source directory names using @option{-fdebug-prefix-map} when
 building runtime libraries.  @samp{@var{map}} is a space-separated
 list of maps of the form @samp{@var{old}=@var{new}}.
+
+@item --enable-linker-build-id
+Tells GCC to pass @option{--build-id} option to the linker for all final
+links (links performed without the @option{-r} or @option{--relocatable}
+option), if the linker supports it.  If you specify
+@option{--enable-linker-build-id}, but your linker does not
+support @option{--build-id} option, a warning is issued and the
+@option{--enable-linker-build-id} option is ignored.  The default is off.
 
 @end table
 
@@ -1605,7 +1664,7 @@ that will be used while building GCC itself.  This option can be useful
 if the directory layouts are different between the system you are building
 GCC on, and the system where you will deploy it.
 
-For example, on a @option{ia64-hp-hpux} system, you may have the GNU
+For example, on an @samp{ia64-hp-hpux} system, you may have the GNU
 assembler and linker in @file{/usr/bin}, and the native tools in a
 different path, and build a toolchain that expects to find the
 native tools in @file{/usr/bin}.
@@ -1974,7 +2033,7 @@ bootstrapped, you can use @code{CFLAGS_FOR_TARGET} to modify their
 compilation flags, as for non-bootstrapped target libraries.
 Again, if the native compiler miscompiles the stage1 compiler, you may
 need to work around this by avoiding non-working parts of the stage1
-compiler.  Use @code{STAGE1_LIBCFLAGS} to this end.
+compiler.  Use @code{STAGE1_TFLAGS} to this end.
 
 If you used the flag @option{--enable-languages=@dots{}} to restrict
 the compilers to be built, only those you've actually enabled will be
@@ -1998,6 +2057,26 @@ the one you are building on: for example, you could build a
 @code{powerpc64-unknown-linux-gnu} host.  In this case, pass
 @option{--enable-bootstrap} to the configure script.
 
+@code{BUILD_CONFIG} can be used to bring in additional customization to
+the build.  It can be set to a whitespace-separated list of names.  For
+each such @code{NAME}, top-level @file{config/@code{NAME}.mk} will be
+included by the top-level @file{Makefile}, bringing in any settings it
+contains.  Some examples are:
+
+@table @asis
+@item @samp{bootstrap-O1}
+Removes any @option{-O}-started option from @code{BOOT_CFLAGS}, and adds
+@option{-O1} to it.  @samp{BUILD_CONFIG=bootstrap-O1} is equivalent to
+@samp{BOOT_CFLAGS='-g -O1'}.
+
+@item @samp{bootstrap-O3}
+Analogous to @code{bootstrap-O1}.
+
+@item @samp{bootstrap-debug}
+Builds stage2 without debug information, and uses
+@file{contrib/compare-debug} to compare object files.
+
+@end table
 
 @section Building a cross compiler
 
@@ -2714,6 +2793,8 @@ information are.
 @item
 @uref{#m68k-uclinux,,m68k-uclinux}
 @item
+@uref{#mep-x-elf,,mep-*-elf}
+@item
 @uref{#mips-x-x,,mips-*-*}
 @item
 @uref{#mips-sgi-irix5,,mips-sgi-irix5}
@@ -3351,6 +3432,20 @@ Support for AIX version 4.2 and older was discontinued in GCC 4.5.
 process resource limits (ulimit).  Hard limits are configured in the
 @file{/etc/security/limits} system configuration file.
 
+GCC can bootstrap with recent versions of IBM XLC, but bootstrapping
+with an earlier release of GCC is recommended.  Bootstrapping with XLC
+requires a larger data segment, which can be enabled through the
+@var{LDR_CNTRL} environment variable, e.g.,
+
+@smallexample
+   % LDR_CNTRL=MAXDATA=0x50000000
+   % export LDR_CNTRL
+@end smallexample
+
+One can start with a pre-compiled version of GCC to build from
+sources.  One may delete GCC's ``fixed'' header files when starting
+with a version of GCC built for an earlier release of AIX.
+
 To speed up the configuration phases of bootstrapping and installing GCC,
 one may use GNU Bash instead of AIX @command{/bin/sh}, e.g.,
 
@@ -3380,16 +3475,14 @@ If this error occurs during stage2 or later, then the problem most likely
 is the version of Make (see above).
 
 The native @command{as} and @command{ld} are recommended for bootstrapping
-on AIX 4 and required for bootstrapping on AIX 5L@.  The GNU Assembler
-reports that it supports WEAK symbols on AIX 4, which causes GCC to try to
-utilize weak symbol functionality although it is not supported.  The GNU
-Assembler and Linker do not support AIX 5L sufficiently to bootstrap GCC@.
-The native AIX tools do interoperate with GCC@.
+on AIX@.  The GNU Assembler, GNU Linker, and GNU Binutils version 2.20
+is required to bootstrap on AIX 5@.  The native AIX tools do
+interoperate with GCC@.
 
 Building @file{libstdc++.a} requires a fix for an AIX Assembler bug
 APAR IY26685 (AIX 4.3) or APAR IY25528 (AIX 5.1).  It also requires a
 fix for another AIX Assembler bug and a co-dependent AIX Archiver fix
-referenced as APAR IY53606 (AIX 5.2) or a APAR IY54774 (AIX 5.1)
+referenced as APAR IY53606 (AIX 5.2) or as APAR IY54774 (AIX 5.1)
 
 @samp{libstdc++} in GCC 3.4 increments the major version number of the
 shared object and GCC installation places the @file{libstdc++.a}
@@ -3540,6 +3633,14 @@ It also added improved support for C++ and flat shared libraries,
 both of which were ABI changes.  However, you can still use the
 original ABI by configuring for @samp{m68k-uclinuxoldabi} or
 @samp{m68k-@var{vendor}-uclinuxoldabi}.
+
+
+@html
+<hr />
+@end html
+@heading @anchor{mep-x-elf}mep-*-elf
+Toshiba Media embedded Processor.
+This configuration is intended for embedded systems.
 
 @html
 <hr />
@@ -3712,6 +3813,13 @@ and in order to build GCC for such targets you need to configure with
 
 See @uref{http://freeware.sgi.com/} for more
 information about using GCC on IRIX platforms.
+
+@html
+<hr />
+@end html
+@heading @anchor{moxie-x-elf}moxie-*-elf
+The moxie processor.  See @uref{http://moxielogic.org/} for more
+information about this processor.
 
 @html
 <hr />
@@ -3944,7 +4052,7 @@ compiler.  This is Sun bug 4974440.  This is fixed with patch 112760-07.
 GCC 3.4 changed the default debugging format from STABS to DWARF-2 for
 32-bit code on Solaris 7 and later.  If you use the Sun assembler, this
 change apparently runs afoul of Sun bug 4910101 (which is referenced as
-a x86-only problem by Sun, probably because they do not use DWARF-2).
+an x86-only problem by Sun, probably because they do not use DWARF-2).
 A symptom of the problem is that you cannot compile C++ programs like
 @command{groff} 1.19.1 without getting messages similar to the following:
 

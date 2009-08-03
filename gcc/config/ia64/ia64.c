@@ -63,11 +63,6 @@ along with GCC; see the file COPYING3.  If not see
    ASM_OUTPUT_LABELREF.  */
 int ia64_asm_output_label = 0;
 
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  */
-struct rtx_def * ia64_compare_op0;
-struct rtx_def * ia64_compare_op1;
-
 /* Register names for ia64_expand_prologue.  */
 static const char * const ia64_reg_numbers[96] =
 { "r32", "r33", "r34", "r35", "r36", "r37", "r38", "r39",
@@ -464,14 +459,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 /* ??? ABI doesn't allow us to define this.  */
 #if 0
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_tree_true
-#endif
-
-/* ??? ABI doesn't allow us to define this.  */
-#if 0
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode_always_promote
 #endif
 
 /* ??? Investigate.  */
@@ -586,8 +575,8 @@ ia64_handle_model_attribute (tree *node, tree name, tree args,
     }
   else
     {
-      warning (OPT_Wattributes, "invalid argument of %qs attribute",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "invalid argument of %qE attribute",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -598,8 +587,9 @@ ia64_handle_model_attribute (tree *node, tree name, tree args,
 	   == FUNCTION_DECL)
 	  && !TREE_STATIC (decl))
 	{
-	  error ("%Jan address area attribute cannot be specified for "
-		 "local variables", decl);
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "an address area attribute cannot be specified for "
+		    "local variables");
 	  *no_add_attrs = true;
 	}
       area = ia64_get_addr_area (decl);
@@ -612,14 +602,15 @@ ia64_handle_model_attribute (tree *node, tree name, tree args,
       break;
 
     case FUNCTION_DECL:
-      error ("%Jaddress area attribute cannot be specified for functions",
-	     decl);
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"address area attribute cannot be specified for "
+		"functions");
       *no_add_attrs = true;
       break;
 
     default:
-      warning (OPT_Wattributes, "%qs attribute ignored",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute ignored",
+	       name);
       *no_add_attrs = true;
       break;
     }
@@ -737,7 +728,7 @@ ia64_depz_field_mask (rtx rop, rtx rshift)
 static enum tls_model
 tls_symbolic_operand_type (rtx addr)
 {
-  enum tls_model tls_kind = 0;
+  enum tls_model tls_kind = TLS_MODEL_NONE;
 
   if (GET_CODE (addr) == CONST)
     {
@@ -764,7 +755,8 @@ ia64_legitimate_constant_p (rtx x)
       return true;
 
     case CONST_DOUBLE:
-      if (GET_MODE (x) == VOIDmode)
+      if (GET_MODE (x) == VOIDmode || GET_MODE (x) == SFmode
+	  || GET_MODE (x) == DFmode)
 	return true;
       return satisfies_constraint_G (x);
 
@@ -1492,28 +1484,28 @@ ia64_expand_movxf_movrf (enum machine_mode mode, rtx operands[])
   return false;
 }
 
-/* Emit comparison instruction if necessary, returning the expression
-   that holds the compare result in the proper mode.  */
+/* Emit comparison instruction if necessary, replacing *EXPR, *OP0, *OP1
+   with the expression that holds the compare result (in VOIDmode).  */
 
 static GTY(()) rtx cmptf_libfunc;
 
-rtx
-ia64_expand_compare (enum rtx_code code, enum machine_mode mode)
+void
+ia64_expand_compare (rtx *expr, rtx *op0, rtx *op1)
 {
-  rtx op0 = ia64_compare_op0, op1 = ia64_compare_op1;
+  enum rtx_code code = GET_CODE (*expr);
   rtx cmp;
 
   /* If we have a BImode input, then we already have a compare result, and
      do not need to emit another comparison.  */
-  if (GET_MODE (op0) == BImode)
+  if (GET_MODE (*op0) == BImode)
     {
-      gcc_assert ((code == NE || code == EQ) && op1 == const0_rtx);
-      cmp = op0;
+      gcc_assert ((code == NE || code == EQ) && *op1 == const0_rtx);
+      cmp = *op0;
     }
   /* HPUX TFmode compare requires a library call to _U_Qfcmp, which takes a
      magic number as its third argument, that indicates what to do.
      The return value is an integer to be compared against zero.  */
-  else if (TARGET_HPUX && GET_MODE (op0) == TFmode)
+  else if (TARGET_HPUX && GET_MODE (*op0) == TFmode)
     {
       enum qfcmp_magic {
 	QCMP_INV = 1,	/* Raise FP_INVALID on SNaN as a side effect.  */
@@ -1521,11 +1513,12 @@ ia64_expand_compare (enum rtx_code code, enum machine_mode mode)
 	QCMP_EQ = 4,
 	QCMP_LT = 8,
 	QCMP_GT = 16
-      } magic;
+      };
+      int magic;
       enum rtx_code ncode;
       rtx ret, insns;
       
-      gcc_assert (cmptf_libfunc && GET_MODE (op1) == TFmode);
+      gcc_assert (cmptf_libfunc && GET_MODE (*op1) == TFmode);
       switch (code)
 	{
 	  /* 1 = equal, 0 = not equal.  Equality operators do
@@ -1550,7 +1543,7 @@ ia64_expand_compare (enum rtx_code code, enum machine_mode mode)
       start_sequence ();
 
       ret = emit_library_call_value (cmptf_libfunc, 0, LCT_CONST, DImode, 3,
-				     op0, TFmode, op1, TFmode,
+				     *op0, TFmode, *op1, TFmode,
 				     GEN_INT (magic), DImode);
       cmp = gen_reg_rtx (BImode);
       emit_insn (gen_rtx_SET (VOIDmode, cmp,
@@ -1561,18 +1554,20 @@ ia64_expand_compare (enum rtx_code code, enum machine_mode mode)
       end_sequence ();
 
       emit_libcall_block (insns, cmp, cmp,
-			  gen_rtx_fmt_ee (code, BImode, op0, op1));
+			  gen_rtx_fmt_ee (code, BImode, *op0, *op1));
       code = NE;
     }
   else
     {
       cmp = gen_reg_rtx (BImode);
       emit_insn (gen_rtx_SET (VOIDmode, cmp,
-			      gen_rtx_fmt_ee (code, BImode, op0, op1)));
+			      gen_rtx_fmt_ee (code, BImode, *op0, *op1)));
       code = NE;
     }
 
-  return gen_rtx_fmt_ee (code, mode, cmp, const0_rtx);
+  *expr = gen_rtx_fmt_ee (code, VOIDmode, cmp, const0_rtx);
+  *op0 = cmp;
+  *op1 = const0_rtx;
 }
 
 /* Generate an integral vector comparison.  Return true if the condition has
@@ -1944,7 +1939,7 @@ get_reg (enum ia64_frame_regs r)
 static bool
 is_emitted (int regno)
 {
-  enum ia64_frame_regs r;
+  unsigned int r;
 
   for (r = reg_fp; r < number_of_ia64_frame_regs; r++)
     if (emitted_frame_related_regs[r] == regno)
@@ -3658,7 +3653,7 @@ int
 ia64_hard_regno_rename_ok (int from, int to)
 {
   /* Don't clobber any of the registers we reserved for the prologue.  */
-  enum ia64_frame_regs r;
+  unsigned int r;
 
   for (r = reg_fp; r <= reg_save_ar_lc; r++)
     if (to == current_frame_info.r[r] 
@@ -4540,6 +4535,7 @@ ia64_print_operand_address (FILE * stream ATTRIBUTE_UNUSED,
    e    Print 64 - constant, for DImode rotates.
    F	A floating point constant 0.0 emitted as f0, or 1.0 emitted as f1, or
         a floating point register emitted normally.
+   G	A floating point constant.
    I	Invert a predicate register by adding 1.
    J    Select the proper predicate register for a condition.
    j    Select the inverse predicate register for a condition.
@@ -4625,6 +4621,24 @@ ia64_print_operand (FILE * file, rtx x, int code)
 	  str = reg_names [REGNO (x)];
 	}
       fputs (str, file);
+      return;
+
+    case 'G':
+      {
+	long val[4];
+	REAL_VALUE_TYPE rv;
+	REAL_VALUE_FROM_CONST_DOUBLE (rv, x);
+	real_to_target (val, &rv, GET_MODE (x));
+	if (GET_MODE (x) == SFmode)
+	  fprintf (file, "0x%08lx", val[0] & 0xffffffff);
+	else if (GET_MODE (x) == DFmode)
+	  fprintf (file, "0x%08lx%08lx", (WORDS_BIG_ENDIAN ? val[0] : val[1])
+					  & 0xffffffff,
+					 (WORDS_BIG_ENDIAN ? val[1] : val[0])
+					  & 0xffffffff);
+	else
+	  output_operand_lossage ("invalid %%G mode");
+      }
       return;
 
     case 'I':
@@ -5261,12 +5275,6 @@ ia64_override_options (void)
 {
   if (TARGET_AUTO_PIC)
     target_flags |= MASK_CONST_GP;
-
-  if (TARGET_INLINE_SQRT == INL_MIN_LAT)
-    {
-      warning (0, "not yet implemented: latency-optimized inline square root");
-      TARGET_INLINE_SQRT = INL_MAX_THR;
-    }
 
   ia64_flag_schedule_insns2 = flag_schedule_insns_after_reload;
   flag_schedule_insns_after_reload = 0;
@@ -9227,20 +9235,24 @@ ia64_reorg (void)
       insn = get_last_insn ();
       if (! INSN_P (insn))
         insn = prev_active_insn (insn);
-      /* Skip over insns that expand to nothing.  */
-      while (GET_CODE (insn) == INSN && get_attr_empty (insn) == EMPTY_YES)
-        {
-	  if (GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE
-	      && XINT (PATTERN (insn), 1) == UNSPECV_INSN_GROUP_BARRIER)
-	    saw_stop = 1;
-	  insn = prev_active_insn (insn);
-	}
-      if (GET_CODE (insn) == CALL_INSN)
+      if (insn)
 	{
-	  if (! saw_stop)
-	    emit_insn (gen_insn_group_barrier (GEN_INT (3)));
-	  emit_insn (gen_break_f ());
-	  emit_insn (gen_insn_group_barrier (GEN_INT (3)));
+	  /* Skip over insns that expand to nothing.  */
+	  while (GET_CODE (insn) == INSN
+		 && get_attr_empty (insn) == EMPTY_YES)
+	    {
+	      if (GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE
+		  && XINT (PATTERN (insn), 1) == UNSPECV_INSN_GROUP_BARRIER)
+		saw_stop = 1;
+	      insn = prev_active_insn (insn);
+	    }
+	  if (GET_CODE (insn) == CALL_INSN)
+	    {
+	      if (! saw_stop)
+		emit_insn (gen_insn_group_barrier (GEN_INT (3)));
+	      emit_insn (gen_break_f ());
+	      emit_insn (gen_insn_group_barrier (GEN_INT (3)));
+	    }
 	}
     }
 
@@ -9299,7 +9311,7 @@ ia64_epilogue_uses (int regno)
 int
 ia64_eh_uses (int regno)
 {
-  enum ia64_frame_regs r;
+  unsigned int r;
 
   if (! reload_completed)
     return 0;
@@ -10552,5 +10564,34 @@ ia64_c_mode_for_suffix (char suffix)
 
   return VOIDmode;
 }
+
+static GTY(()) rtx ia64_dconst_0_5_rtx;
+
+rtx
+ia64_dconst_0_5 (void)
+{
+  if (! ia64_dconst_0_5_rtx)
+    {
+      REAL_VALUE_TYPE rv;
+      real_from_string (&rv, "0.5");
+      ia64_dconst_0_5_rtx = const_double_from_real_value (rv, DFmode);
+    }
+  return ia64_dconst_0_5_rtx;
+}
+
+static GTY(()) rtx ia64_dconst_0_375_rtx;
+
+rtx
+ia64_dconst_0_375 (void)
+{
+  if (! ia64_dconst_0_375_rtx)
+    {
+      REAL_VALUE_TYPE rv;
+      real_from_string (&rv, "0.375");
+      ia64_dconst_0_375_rtx = const_double_from_real_value (rv, DFmode);
+    }
+  return ia64_dconst_0_375_rtx;
+}
+
 
 #include "gt-ia64.h"

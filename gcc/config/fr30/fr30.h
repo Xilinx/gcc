@@ -1,7 +1,7 @@
 /*{{{  Comment.  */ 
 
 /* Definitions of FR30 target. 
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2007, 2008
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Cygnus Solutions.
 
@@ -519,28 +519,6 @@ enum reg_class
 /*}}}*/ 
 /*{{{  Eliminating the Frame Pointer and the Arg Pointer.  */ 
 
-/* A C expression which is nonzero if a function must have and use a frame
-   pointer.  This expression is evaluated in the reload pass.  If its value is
-   nonzero the function will have a frame pointer.
-
-   The expression can in principle examine the current function and decide
-   according to the facts, but on most machines the constant 0 or the constant
-   1 suffices.  Use 0 when the machine allows code to be generated with no
-   frame pointer, and doing so saves some time or space.  Use 1 when there is
-   no possible advantage to avoiding a frame pointer.
-
-   In certain cases, the compiler does not know how to produce valid code
-   without a frame pointer.  The compiler recognizes those cases and
-   automatically gives the function a frame pointer regardless of what
-   `FRAME_POINTER_REQUIRED' says.  You don't need to worry about them.
-
-   In a function that does not require a frame pointer, the frame pointer
-   register can be allocated for ordinary usage, unless you mark it as a fixed
-   register.  See `FIXED_REGISTERS' for more information.  */
-/* #define FRAME_POINTER_REQUIRED 0 */
-#define FRAME_POINTER_REQUIRED \
-     (flag_omit_frame_pointer == 0 || crtl->args.pretend_args_size > 0)
-
 /* If defined, this macro specifies a table of register pairs used to eliminate
    unneeded registers that point into the stack frame.  If it is not defined,
    the only elimination attempted by the compiler is to replace references to
@@ -909,19 +887,6 @@ do										\
    will reload one or both registers only if neither labeling works.  */
 #define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
 
-/* A C statement or compound statement with a conditional `goto LABEL;'
-   executed if memory address X (an RTX) can have different meanings depending
-   on the machine mode of the memory reference it is used for or if the address
-   is valid for some modes but not others.
-
-   Autoincrement and autodecrement addresses typically have mode-dependent
-   effects because the amount of the increment or decrement is the size of the
-   operand being addressed.  Some machines have other mode-dependent addresses.
-   Many RISC machines have no mode-dependent addresses.
-
-   You may assume that ADDR is a valid address for the machine.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
-
 /* A C expression that is nonzero if X is a legitimate constant for an
    immediate operand on the target machine.  You can assume that X satisfies
    `CONSTANT_P', so you need not check this.  In fact, `1' is a suitable
@@ -1117,16 +1082,6 @@ fprintf (STREAM, "\t.word .L%d\n", VALUE)
 #if defined CROSS_DIRECTORY_STRUCTURE && ! defined inhibit_libc
 #define inhibit_libc
 #endif
-
-/*}}}*/ 
-/*{{{  Exported variables */ 
-
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  Note that we can't use "rtx" here
-   since it hasn't been defined!  */
-
-extern struct rtx_def * fr30_compare_op0;
-extern struct rtx_def * fr30_compare_op1;
 
 /*}}}*/ 
 

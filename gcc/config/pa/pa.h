@@ -1,6 +1,7 @@
 /* Definitions of target machine for GNU compiler, for the HP Spectrum.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) of Cygnus Support
    and Tim Moore (moore@defmacro.cs.utah.edu) of the Center for
    Software Science at the University of Utah.
@@ -20,14 +21,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
-
-enum cmp_type				/* comparison type */
-{
-  CMP_SI,				/* compare integers */
-  CMP_SF,				/* compare single precision floats */
-  CMP_DF,				/* compare double precision floats */
-  CMP_MAX				/* max comparison type */
-};
 
 /* For long call handling.  */
 extern unsigned long total_code_bytes;
@@ -249,7 +242,7 @@ do {								\
 #define CAN_DEBUG_WITHOUT_FP
 
 /* target machine storage layout */
-typedef struct machine_function GTY(())
+typedef struct GTY(()) machine_function
 {
   /* Flag indicating that a .NSUBSPA directive has been output for
      this function.  */
@@ -363,10 +356,6 @@ typedef struct machine_function GTY(())
 
 /* Base register for access to local variables of the function.  */
 #define FRAME_POINTER_REGNUM 3
-
-/* Value should be nonzero if functions must have frame pointers.  */
-#define FRAME_POINTER_REQUIRED \
-  (cfun->calls_alloca)
 
 /* Don't allow hard registers to be renamed into r2 unless r2
    is already live or already being saved (due to eh).  */
@@ -755,10 +744,6 @@ struct hppa_args {int words, nargs_prototype, incoming, indirect; };
    ? PARM_BOUNDARY : MAX_PARM_BOUNDARY)
 
 
-extern GTY(()) rtx hppa_compare_op0;
-extern GTY(()) rtx hppa_compare_op1;
-extern enum cmp_type hppa_branch_type;
-
 /* On HPPA, we emit profiling code as rtl via PROFILE_HOOK rather than
    as assembly via FUNCTION_PROFILER.  Just output a local label.
    We can't use the function label because the GAS SOM target can't
@@ -1421,31 +1406,6 @@ do { 									\
 } while (0)
 
 
-
-
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
-   It is always safe for this macro to do nothing.  It exists to recognize
-   opportunities to optimize the output.  */
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-{ rtx orig_x = (X);				\
-  (X) = hppa_legitimize_address (X, OLDX, MODE);	\
-  if ((X) != orig_x && memory_address_p (MODE, X)) \
-    goto WIN; }
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define TARGET_ASM_SELECT_SECTION  pa_select_section
 

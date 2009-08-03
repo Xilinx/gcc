@@ -71,6 +71,7 @@ convert (tree type, tree expr)
   enum tree_code code = TREE_CODE (type);
   const char *invalid_conv_diag;
   tree ret;
+  location_t loc = EXPR_LOCATION (expr);
 
   if (type == error_mark_node
       || expr == error_mark_node
@@ -86,11 +87,14 @@ convert (tree type, tree expr)
 
   if (type == TREE_TYPE (expr))
     return expr;
+  ret = targetm.convert_to_type (type, expr);
+  if (ret)
+      return ret;
 
   STRIP_TYPE_NOPS (e);
 
   if (TYPE_MAIN_VARIANT (type) == TYPE_MAIN_VARIANT (TREE_TYPE (expr)))
-    return fold_convert (type, expr);
+    return fold_convert_loc (loc, type, expr);
   if (TREE_CODE (TREE_TYPE (expr)) == ERROR_MARK)
     return error_mark_node;
   if (TREE_CODE (TREE_TYPE (expr)) == VOID_TYPE)
@@ -102,7 +106,7 @@ convert (tree type, tree expr)
   switch (code)
     {
     case VOID_TYPE:
-      return fold_convert (type, e);
+      return fold_convert_loc (loc, type, e);
 
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:
@@ -110,8 +114,8 @@ convert (tree type, tree expr)
       goto maybe_fold;
 
     case BOOLEAN_TYPE:
-      return fold_convert 
-	(type, c_objc_common_truthvalue_conversion (input_location, expr));
+      return fold_convert_loc
+	(loc, type, c_objc_common_truthvalue_conversion (input_location, expr));
 
     case POINTER_TYPE:
     case REFERENCE_TYPE:

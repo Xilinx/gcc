@@ -235,6 +235,7 @@ package body Exp_Attr is
       Agg     : Node_Id;
       Btyp    : constant Entity_Id := Base_Type (Typ);
       Sub     : Entity_Id;
+      Sub_Ref : Node_Id;
       E_T     : constant Entity_Id := Equivalent_Type (Btyp);
       Acc     : constant Entity_Id :=
                   Etype (Next_Component (First_Component (E_T)));
@@ -355,23 +356,27 @@ package body Exp_Attr is
                Attribute_Name => Name_Address);
       end if;
 
+      Sub_Ref :=
+        Make_Attribute_Reference (Loc,
+          Prefix         => Sub,
+          Attribute_Name => Name_Access);
+
+      --  We set the type of the access reference to the already generated
+      --  access_to_subprogram type, and declare the reference analyzed, to
+      --  prevent further expansion when the enclosing aggregate is analyzed.
+
+      Set_Etype (Sub_Ref, Acc);
+      Set_Analyzed (Sub_Ref);
+
       Agg :=
         Make_Aggregate (Loc,
-          Expressions =>
-            New_List (
-              Obj_Ref,
-              Unchecked_Convert_To (Acc,
-                Make_Attribute_Reference (Loc,
-                  Prefix => Sub,
-                  Attribute_Name => Name_Address))));
+          Expressions => New_List (Obj_Ref, Sub_Ref));
 
       Rewrite (N, Agg);
-
       Analyze_And_Resolve (N, E_T);
 
-      --  For subsequent analysis,  the node must retain its type.
-      --  The backend will replace it with the equivalent type where
-      --  needed.
+      --  For subsequent analysis, the node must retain its type. The backend
+      --  will replace it with the equivalent type where needed.
 
       Set_Etype (N, Typ);
    end Expand_Access_To_Protected_Op;
@@ -591,6 +596,14 @@ package body Exp_Attr is
             if Is_Untagged_Derivation (Etype (Expression (Item))) then
                Set_Assignment_OK (Item);
             end if;
+         end if;
+
+         --  The stream operation to call maybe a renaming created by
+         --  an attribute definition clause, and may not be frozen yet.
+         --  Ensure that it has the necessary extra formals.
+
+         if not Is_Frozen (Pname) then
+            Create_Extra_Formals (Pname);
          end if;
 
          --  And now rewrite the call
@@ -907,9 +920,19 @@ package body Exp_Attr is
             then
                if Nkind (Ref_Object) /= N_Explicit_Dereference then
 
-                  --  No implicit conversion required if types match
+                  --  No implicit conversion required if types match, or if
+                  --  the prefix is the class_wide_type of the interface. In
+                  --  either case passing an object of the interface type has
+                  --  already set the pointer correctly.
 
-                  if Btyp_DDT /= Etype (Ref_Object) then
+                  if Btyp_DDT = Etype (Ref_Object)
+                    or else (Is_Class_Wide_Type (Etype (Ref_Object))
+                              and then
+                               Class_Wide_Type (Btyp_DDT) = Etype (Ref_Object))
+                  then
+                     null;
+
+                  else
                      Rewrite (Prefix (N),
                        Convert_To (Btyp_DDT,
                          New_Copy_Tree (Prefix (N))));
@@ -1031,7 +1054,7 @@ package body Exp_Attr is
 
          elsif Is_Class_Wide_Type (Ptyp)
            and then Is_Interface (Ptyp)
-           and then VM_Target = No_VM
+           and then Tagged_Type_Expansion
            and then not (Nkind (Pref) in N_Has_Entity
                           and then Is_Subprogram (Entity (Pref)))
          then
@@ -1218,7 +1241,7 @@ package body Exp_Attr is
       --  A reference to P'Body_Version or P'Version is expanded to
 
       --     Vnn : Unsigned;
-      --     pragma Import (C, Vnn, "uuuuT";
+      --     pragma Import (C, Vnn, "uuuuT");
       --     ...
       --     Get_Version_String (Vnn)
 
@@ -3118,7 +3141,7 @@ package body Exp_Attr is
                   --  accessibility check on virtual machines, so we omit it.
 
                   if Ada_Version >= Ada_05
-                    and then VM_Target = No_VM
+                    and then Tagged_Type_Expansion
                   then
                      Insert_Action (N,
                        Make_Implicit_If_Statement (N,
@@ -3378,10 +3401,13 @@ package body Exp_Attr is
          elsif Is_Modular_Integer_Type (Ptyp) then
             null;
 
-         --  For other types, if range checking is enabled, we must generate
-         --  a check if overflow checking is enabled.
+         --  For other types, if argument is marked as needing a range check or
+         --  overflow checking is enabled, we must generate a check.
 
-         elsif not Overflow_Checks_Suppressed (Ptyp) then
+         elsif not Overflow_Checks_Suppressed (Ptyp)
+           or else Do_Range_Check (First (Exprs))
+         then
+            Set_Do_Range_Check (First (Exprs), False);
             Expand_Pred_Succ (N);
          end if;
       end Pred;
@@ -4309,10 +4335,13 @@ package body Exp_Attr is
          elsif Is_Modular_Integer_Type (Ptyp) then
             null;
 
-         --  For other types, if range checking is enabled, we must generate
-         --  a check if overflow checking is enabled.
+         --  For other types, if argument is marked as needing a range check or
+         --  overflow checking is enabled, we must generate a check.
 
-         elsif not Overflow_Checks_Suppressed (Ptyp) then
+         elsif not Overflow_Checks_Suppressed (Ptyp)
+           or else Do_Range_Check (First (Exprs))
+         then
+            Set_Do_Range_Check (First (Exprs), False);
             Expand_Pred_Succ (N);
          end if;
       end Succ;
@@ -4355,7 +4384,7 @@ package body Exp_Attr is
             --  For VMs we leave the type attribute unexpanded because
             --  there's not a dispatching table to reference.
 
-            if VM_Target = No_VM then
+            if Tagged_Type_Expansion then
                Rewrite (N,
                  Unchecked_Convert_To (RTE (RE_Tag),
                    New_Reference_To
@@ -4380,7 +4409,7 @@ package body Exp_Attr is
 
             --  Not needed for VM targets, since all handled by the VM
 
-            if VM_Target = No_VM then
+            if Tagged_Type_Expansion then
                Rewrite (N,
                  Make_Explicit_Dereference (Loc,
                    Unchecked_Convert_To (RTE (RE_Tag_Ptr),
@@ -4619,6 +4648,13 @@ package body Exp_Attr is
             end if;
 
             Analyze_And_Resolve (N, Typ);
+
+         --  If the argument is marked as requiring a range check then generate
+         --  it here.
+
+         elsif Do_Range_Check (First (Exprs)) then
+            Set_Do_Range_Check (First (Exprs), False);
+            Generate_Range_Check (First (Exprs), Etyp, CE_Range_Check_Failed);
          end if;
       end Val;
 
@@ -4651,13 +4687,23 @@ package body Exp_Attr is
          ---------------------
 
          function Make_Range_Test return Node_Id is
+            Temp : constant Node_Id := Duplicate_Subexpr (Pref);
+
          begin
+            --  The value whose validity is being checked has been captured in
+            --  an object declaration. We certainly don't want this object to
+            --  appear valid because the declaration initializes it!
+
+            if Is_Entity_Name (Temp) then
+               Set_Is_Known_Valid (Entity (Temp), False);
+            end if;
+
             return
               Make_And_Then (Loc,
                 Left_Opnd =>
                   Make_Op_Ge (Loc,
                     Left_Opnd =>
-                      Unchecked_Convert_To (Btyp, Duplicate_Subexpr (Pref)),
+                      Unchecked_Convert_To (Btyp, Temp),
 
                     Right_Opnd =>
                       Unchecked_Convert_To (Btyp,
@@ -4668,8 +4714,7 @@ package body Exp_Attr is
                 Right_Opnd =>
                   Make_Op_Le (Loc,
                     Left_Opnd =>
-                      Unchecked_Convert_To (Btyp,
-                        Duplicate_Subexpr_No_Checks (Pref)),
+                      Unchecked_Convert_To (Btyp, Temp),
 
                     Right_Opnd =>
                       Unchecked_Convert_To (Btyp,
@@ -5238,6 +5283,7 @@ package body Exp_Attr is
            Attribute_Address_Size                 |
            Attribute_Base                         |
            Attribute_Class                        |
+           Attribute_Compiler_Version             |
            Attribute_Default_Bit_Order            |
            Attribute_Delta                        |
            Attribute_Denorm                       |

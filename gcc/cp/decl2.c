@@ -132,7 +132,8 @@ build_memfn_type (tree fntype, tree ctype, cp_cv_quals quals)
 tree
 cp_build_parm_decl (tree name, tree type)
 {
-  tree parm = build_decl (PARM_DECL, name, type);
+  tree parm = build_decl (input_location,
+			  PARM_DECL, name, type);
   /* DECL_ARG_TYPE is only used by the back end and the back end never
      sees templates.  */
   if (!processing_template_decl)
@@ -354,7 +355,7 @@ grok_array_decl (tree array_expr, tree index_exp)
       if (array_expr == error_mark_node || index_exp == error_mark_node)
 	error ("ambiguous conversion for array subscript");
 
-      expr = build_array_ref (array_expr, index_exp, input_location);
+      expr = build_array_ref (input_location, array_expr, index_exp);
     }
   if (processing_template_decl && expr != error_mark_node)
     return build_min_non_dep (ARRAY_REF, expr, orig_array_expr, orig_index_exp,
@@ -820,7 +821,9 @@ grokfield (const cp_declarator *declarator,
 	  cplus_decl_attributes (&value, attrlist, attrflags);
 	}
 
-      if (declspecs->specs[(int)ds_typedef])
+      if (declspecs->specs[(int)ds_typedef]
+          && TREE_TYPE (value) != error_mark_node
+          && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
 	set_underlying_type (value);
 
       return value;
@@ -964,7 +967,7 @@ grokbitfield (const cp_declarator *declarator,
   if (TREE_CODE (value) == VOID_TYPE)
     return void_type_node;
 
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (value))
+  if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (value))
       && (POINTER_TYPE_P (value)
           || !dependent_type_p (TREE_TYPE (value))))
     {
@@ -1001,7 +1004,7 @@ grokbitfield (const cp_declarator *declarator,
       error ("static member %qD cannot be a bit-field", value);
       return NULL_TREE;
     }
-  finish_decl (value, NULL_TREE, NULL_TREE, NULL_TREE);
+  cp_finish_decl (value, NULL_TREE, false, NULL_TREE, 0);
 
   if (width != error_mark_node)
     {
@@ -1287,7 +1290,8 @@ build_anon_union_vars (tree type, tree object)
 	{
 	  tree base;
 
-	  decl = build_decl (VAR_DECL, DECL_NAME (field), TREE_TYPE (field));
+	  decl = build_decl (input_location,
+			     VAR_DECL, DECL_NAME (field), TREE_TYPE (field));
 	  DECL_ANON_UNION_VAR_P (decl) = 1;
 
 	  base = get_base_address (object);
@@ -1508,7 +1512,7 @@ void
 comdat_linkage (tree decl)
 {
   if (flag_weak)
-    make_decl_one_only (decl);
+    make_decl_one_only (decl, cxx_comdat_group (decl));
   else if (TREE_CODE (decl) == FUNCTION_DECL
 	   || (TREE_CODE (decl) == VAR_DECL && DECL_ARTIFICIAL (decl)))
     /* We can just emit function and compiler-generated variables
@@ -1580,7 +1584,7 @@ maybe_make_one_only (tree decl)
       || (! DECL_EXPLICIT_INSTANTIATION (decl)
 	  && ! DECL_TEMPLATE_SPECIALIZATION (decl)))
     {
-      make_decl_one_only (decl);
+      make_decl_one_only (decl, cxx_comdat_group (decl));
 
       if (TREE_CODE (decl) == VAR_DECL)
 	{
@@ -1707,6 +1711,10 @@ decl_needed_p (tree decl)
       || (DECL_ASSEMBLER_NAME_SET_P (decl)
 	  && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl))))
       return true;
+  /* Functions marked "dllexport" must be emitted so that they are
+     visible to other DLLs.  */
+  if (lookup_attribute ("dllexport", DECL_ATTRIBUTES (decl)))
+    return true;
   /* Otherwise, DECL does not need to be emitted -- yet.  A subsequent
      reference to DECL might cause it to be emitted later.  */
   return false;
@@ -1764,7 +1772,7 @@ maybe_emit_vtables (tree ctype)
 
       if (TREE_TYPE (DECL_INITIAL (vtbl)) == 0)
 	{
-	  tree expr = store_init_value (vtbl, DECL_INITIAL (vtbl));
+	  tree expr = store_init_value (vtbl, DECL_INITIAL (vtbl), LOOKUP_NORMAL);
 
 	  /* It had better be all done at compile-time.  */
 	  gcc_assert (!expr);
@@ -1839,7 +1847,7 @@ constrain_visibility (tree decl, int visibility)
       if (!DECL_EXTERN_C_P (decl))
 	{
 	  TREE_PUBLIC (decl) = 0;
-	  DECL_ONE_ONLY (decl) = 0;
+	  DECL_COMDAT_GROUP (decl) = NULL_TREE;
 	  DECL_INTERFACE_KNOWN (decl) = 1;
 	  if (DECL_LANG_SPECIFIC (decl))
 	    DECL_NOT_REALLY_EXTERN (decl) = 1;
@@ -1848,7 +1856,7 @@ constrain_visibility (tree decl, int visibility)
   else if (visibility > DECL_VISIBILITY (decl)
 	   && !DECL_VISIBILITY_SPECIFIED (decl))
     {
-      DECL_VISIBILITY (decl) = visibility;
+      DECL_VISIBILITY (decl) = (enum symbol_visibility) visibility;
       return true;
     }
   return false;
@@ -2491,13 +2499,14 @@ get_guard (tree decl)
       /* We use a type that is big enough to contain a mutex as well
 	 as an integer counter.  */
       guard_type = targetm.cxx.guard_type ();
-      guard = build_decl (VAR_DECL, sname, guard_type);
+      guard = build_decl (DECL_SOURCE_LOCATION (decl),
+			  VAR_DECL, sname, guard_type);
 
       /* The guard should have the same linkage as what it guards.  */
       TREE_PUBLIC (guard) = TREE_PUBLIC (decl);
       TREE_STATIC (guard) = TREE_STATIC (decl);
       DECL_COMMON (guard) = DECL_COMMON (decl);
-      DECL_ONE_ONLY (guard) = DECL_ONE_ONLY (decl);
+      DECL_COMDAT_GROUP (guard) = DECL_COMDAT_GROUP (decl);
       if (TREE_PUBLIC (decl))
 	DECL_WEAK (guard) = DECL_WEAK (decl);
       DECL_VISIBILITY (guard) = DECL_VISIBILITY (decl);
@@ -2627,7 +2636,6 @@ start_objects (int method_type, int initp)
     DECL_GLOBAL_CTOR_P (current_function_decl) = 1;
   else
     DECL_GLOBAL_DTOR_P (current_function_decl) = 1;
-  DECL_LANG_SPECIFIC (current_function_decl)->decl_flags.u2sel = 1;
 
   body = begin_compound_stmt (BCS_FN_BODY);
 
@@ -3250,11 +3258,11 @@ cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED)
     {
     case PTRMEM_CST:
       if (TYPE_PTRMEMFUNC_P (TREE_TYPE (t)))
-	cgraph_mark_needed_node (cgraph_node (PTRMEM_CST_MEMBER (t)));
+	cgraph_mark_address_taken_node (cgraph_node (PTRMEM_CST_MEMBER (t)));
       break;
     case BASELINK:
       if (TREE_CODE (BASELINK_FUNCTIONS (t)) == FUNCTION_DECL)
-	cgraph_mark_needed_node (cgraph_node (BASELINK_FUNCTIONS (t)));
+	cgraph_mark_address_taken_node (cgraph_node (BASELINK_FUNCTIONS (t)));
       break;
     case VAR_DECL:
       if (DECL_VTABLE_OR_VTT_P (t))
@@ -3510,7 +3518,7 @@ cp_write_global_declarations (void)
 	      reconsider = true;
 	    }
 
-	  if (!gimple_body (decl))
+	  if (!DECL_SAVED_TREE (decl))
 	    continue;
 
 	  /* We lie to the back end, pretending that some functions
@@ -3632,7 +3640,6 @@ cp_write_global_declarations (void)
   pop_lang_context ();
 
   cgraph_finalize_compilation_unit ();
-  cgraph_optimize ();
 
   /* Now, issue warnings about static, but not defined, functions,
      etc., and emit debugging information.  */
@@ -3680,18 +3687,18 @@ cp_write_global_declarations (void)
 /* FN is an OFFSET_REF, DOTSTAR_EXPR or MEMBER_REF indicating the
    function to call in parse-tree form; it has not yet been
    semantically analyzed.  ARGS are the arguments to the function.
-   They have already been semantically analyzed.  */
+   They have already been semantically analyzed.  This may change
+   ARGS.  */
 
 tree
-build_offset_ref_call_from_tree (tree fn, tree args)
+build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
 {
   tree orig_fn;
-  tree orig_args;
+  VEC(tree,gc) *orig_args = NULL;
   tree expr;
   tree object;
 
   orig_fn = fn;
-  orig_args = args;
   object = TREE_OPERAND (fn, 0);
 
   if (processing_template_decl)
@@ -3699,17 +3706,19 @@ build_offset_ref_call_from_tree (tree fn, tree args)
       gcc_assert (TREE_CODE (fn) == DOTSTAR_EXPR
 		  || TREE_CODE (fn) == MEMBER_REF);
       if (type_dependent_expression_p (fn)
-	  || any_type_dependent_arguments_p (args))
-	return build_nt_call_list (fn, args);
+	  || any_type_dependent_arguments_p (*args))
+	return build_nt_call_vec (fn, *args);
+
+      orig_args = make_tree_vector_copy (*args);
 
       /* Transform the arguments and add the implicit "this"
 	 parameter.  That must be done before the FN is transformed
 	 because we depend on the form of FN.  */
-      args = build_non_dependent_args (args);
+      make_args_non_dependent (*args);
       object = build_non_dependent_expr (object);
       if (TREE_CODE (fn) == DOTSTAR_EXPR)
 	object = cp_build_unary_op (ADDR_EXPR, object, 0, tf_warning_or_error);
-      args = tree_cons (NULL_TREE, object, args);
+      VEC_safe_insert (tree, gc, *args, 0, object);
       /* Now that the arguments are done, transform FN.  */
       fn = build_non_dependent_expr (fn);
     }
@@ -3726,12 +3735,16 @@ build_offset_ref_call_from_tree (tree fn, tree args)
                                          tf_warning_or_error);
       fn = TREE_OPERAND (fn, 1);
       fn = get_member_function_from_ptrfunc (&object_addr, fn);
-      args = tree_cons (NULL_TREE, object_addr, args);
+      VEC_safe_insert (tree, gc, *args, 0, object_addr);
     }
 
-  expr = cp_build_function_call (fn, args, tf_warning_or_error);
+  expr = cp_build_function_call_vec (fn, args, tf_warning_or_error);
   if (processing_template_decl && expr != error_mark_node)
-    return build_min_non_dep_call_list (expr, orig_fn, orig_args);
+    expr = build_min_non_dep_call_vec (expr, orig_fn, orig_args);
+
+  if (orig_args != NULL)
+    release_tree_vector (orig_args);
+
   return expr;
 }
 
@@ -3799,9 +3812,10 @@ mark_used (tree decl)
     {
       error ("deleted function %q+D", decl);
       error ("used here");
+      return;
     }
   /* If we don't need a value, then we don't need to synthesize DECL.  */
-  if (skip_evaluation)
+  if (cp_unevaluated_operand != 0)
     return;
 
   /* If within finish_function, defer the rest until that function
@@ -3895,29 +3909,6 @@ mark_used (tree decl)
 		      /*expl_inst_class_mem_p=*/false);
 
   processing_template_decl = saved_processing_template_decl;
-}
-
-/* Given function PARM_DECL PARM, return its index in the function's list
-   of parameters, beginning with 1.  */
-
-int
-parm_index (tree parm)
-{
-  int index;
-  tree arg;
-
-  for (index = 1, arg = DECL_ARGUMENTS (DECL_CONTEXT (parm));
-       arg;
-       ++index, arg = TREE_CHAIN (arg))
-    {
-      if (DECL_NAME (parm) == DECL_NAME (arg))
-	break;
-      if (DECL_ARTIFICIAL (arg))
-	--index;
-    }
-
-  gcc_assert (arg);
-  return index;
 }
 
 #include "gt-cp-decl2.h"

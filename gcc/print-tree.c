@@ -425,8 +425,6 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	    fputs (" virtual", file);
 	  if (DECL_PRESERVE_P (node))
 	    fputs (" preserve", file);
-	  if (DECL_NO_TBAA_P (node))
-	    fputs (" no-tbaa", file);
 	  if (DECL_LANG_FLAG_0 (node))
 	    fputs (" decl_0", file);
 	  if (DECL_LANG_FLAG_1 (node))
@@ -447,6 +445,10 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	  mode = DECL_MODE (node);
 	  fprintf (file, " %s", GET_MODE_NAME (mode));
 	}
+
+      if ((code == VAR_DECL || code == PARM_DECL || code == RESULT_DECL)
+	  && DECL_BY_REFERENCE (node))
+	fputs (" passed-by-reference", file);
 
       if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS)  && DECL_DEFER_OUTPUT (node))
 	fputs (" defer-output", file);
@@ -481,10 +483,6 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 			 built_in_class_names[(int) DECL_BUILT_IN_CLASS (node)],
 			 built_in_names[(int) DECL_FUNCTION_CODE (node)]);
 	    }
-	  
-	  if (DECL_POINTER_ALIAS_SET_KNOWN_P (node))
-	    fprintf (file, " alias set " HOST_WIDE_INT_PRINT_DEC,
-		     (HOST_WIDE_INT) DECL_POINTER_ALIAS_SET (node));
 	}
       if (code == FIELD_DECL)
 	{
@@ -896,14 +894,11 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	  if (SSA_NAME_IN_FREE_LIST (node))
 	    fprintf (file, " in-free-list");
 
-	  if (SSA_NAME_PTR_INFO (node)
-	      || SSA_NAME_VALUE (node))
+	  if (SSA_NAME_PTR_INFO (node))
 	    {
 	      indent_to (file, indent + 3);
 	      if (SSA_NAME_PTR_INFO (node))
 		dump_addr (file, " ptr-info ", SSA_NAME_PTR_INFO (node));
-	      if (SSA_NAME_VALUE (node))
-		dump_addr (file, " value ", SSA_NAME_VALUE (node));
 	    }
 	  break;
 

@@ -566,6 +566,34 @@ decode_omp_directive (void)
   return ST_NONE;
 }
 
+static gfc_statement
+decode_gcc_attribute (void)
+{
+  locus old_locus;
+
+#ifdef GFC_DEBUG
+  gfc_symbol_state ();
+#endif
+
+  gfc_clear_error ();	/* Clear any pending errors.  */
+  gfc_clear_warning ();	/* Clear any pending warnings.  */
+  old_locus = gfc_current_locus;
+
+  match ("attributes", gfc_match_gcc_attributes, ST_ATTR_DECL);
+
+  /* All else has failed, so give up.  See if any of the matchers has
+     stored an error message of some sort.  */
+
+  if (gfc_error_check () == 0)
+    gfc_error_now ("Unclassifiable GCC directive at %C");
+
+  reject_statement ();
+
+  gfc_error_recovery ();
+
+  return ST_NONE;
+}
+
 #undef match
 
 
@@ -637,21 +665,39 @@ next_free (void)
   else if (c == '!')
     {
       /* Comments have already been skipped by the time we get here,
-	 except for OpenMP directives.  */
-      if (gfc_option.flag_openmp)
+	 except for GCC attributes and OpenMP directives.  */
+
+      gfc_next_ascii_char (); /* Eat up the exclamation sign.  */
+      c = gfc_peek_ascii_char ();
+
+      if (c == 'g')
 	{
 	  int i;
 
 	  c = gfc_next_ascii_char ();
-	  for (i = 0; i < 5; i++, c = gfc_next_ascii_char ())
-	    gcc_assert (c == "!$omp"[i]);
+	  for (i = 0; i < 4; i++, c = gfc_next_ascii_char ())
+	    gcc_assert (c == "gcc$"[i]);
+
+	  gfc_gobble_whitespace ();
+	  return decode_gcc_attribute ();
+
+	}
+      else if (c == '$' && gfc_option.flag_openmp)
+	{
+	  int i;
+
+	  c = gfc_next_ascii_char ();
+	  for (i = 0; i < 4; i++, c = gfc_next_ascii_char ())
+	    gcc_assert (c == "$omp"[i]);
 
 	  gcc_assert (c == ' ' || c == '\t');
 	  gfc_gobble_whitespace ();
 	  return decode_omp_directive ();
 	}
-    }
 
+      gcc_unreachable (); 
+    }
+ 
   if (at_bol && c == ';')
     {
       gfc_error_now ("Semicolon at %C needs to be preceded by statement");
@@ -709,12 +755,22 @@ next_fixed (void)
 	  break;
 
 	  /* Comments have already been skipped by the time we get
-	     here, except for OpenMP directives.  */
+	     here, except for GCC attributes and OpenMP directives.  */
+
 	case '*':
-	  if (gfc_option.flag_openmp)
+	  c = gfc_next_char_literal (0);
+	  
+	  if (TOLOWER (c) == 'g')
 	    {
-	      for (i = 0; i < 5; i++, c = gfc_next_char_literal (0))
-		gcc_assert ((char) gfc_wide_tolower (c) == "*$omp"[i]);
+	      for (i = 0; i < 4; i++, c = gfc_next_char_literal (0))
+		gcc_assert (TOLOWER (c) == "gcc$"[i]);
+
+	      return decode_gcc_attribute ();
+	    }
+	  else if (c == '$' && gfc_option.flag_openmp)
+	    {
+	      for (i = 0; i < 4; i++, c = gfc_next_char_literal (0))
+		gcc_assert ((char) gfc_wide_tolower (c) == "$omp"[i]);
 
 	      if (c != ' ' && c != '0')
 		{
@@ -1496,6 +1552,11 @@ accept_statement (gfc_statement st)
 	  new_st.op = EXEC_RETURN;
 	  add_statement ();
 	}
+      else
+	{
+	  new_st.op = EXEC_END_PROCEDURE;
+	  add_statement ();
+	}
 
       break;
 
@@ -1580,13 +1641,20 @@ unexpected_statement (gfc_statement st)
 
 */
 
+enum state_order
+{
+  ORDER_START,
+  ORDER_USE,
+  ORDER_IMPORT,
+  ORDER_IMPLICIT_NONE,
+  ORDER_IMPLICIT,
+  ORDER_SPEC,
+  ORDER_EXEC
+};
+
 typedef struct
 {
-  enum
-  { ORDER_START, ORDER_USE, ORDER_IMPORT, ORDER_IMPLICIT_NONE,
-    ORDER_IMPLICIT, ORDER_SPEC, ORDER_EXEC
-  }
-  state;
+  enum state_order state;
   gfc_statement last_statement;
   locus where;
 }
@@ -1878,13 +1946,9 @@ parse_derived (void)
 	  unexpected_eof ();
 
 	case ST_DATA_DECL:
+	case ST_PROCEDURE:
 	  accept_statement (st);
 	  seen_component = 1;
-	  break;
-
-	case ST_PROCEDURE:
-	  gfc_error ("PROCEDURE binding at %C must be inside CONTAINS");
-	  error_flag = 1;
 	  break;
 
 	case ST_FINAL:
@@ -1992,6 +2056,12 @@ endType:
       if (c->attr.pointer
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.pointer_comp))
 	sym->attr.pointer_comp = 1;
+
+      /* Look for procedure pointer components.  */
+      if (c->attr.proc_pointer
+	  || (c->ts.type == BT_DERIVED
+	      && c->ts.derived->attr.proc_pointer_comp))
+	sym->attr.proc_pointer_comp = 1;
 
       /* Look for private components.  */
       if (sym->component_access == ACCESS_PRIVATE
@@ -2494,10 +2564,10 @@ parse_where_block (void)
   push_state (&s, COMP_WHERE, gfc_new_block);
 
   d = add_statement ();
-  d->expr = top->expr;
+  d->expr1 = top->expr1;
   d->op = EXEC_WHERE;
 
-  top->expr = NULL;
+  top->expr1 = NULL;
   top->block = d;
 
   seen_empty_else = 0;
@@ -2527,12 +2597,12 @@ parse_where_block (void)
 	      break;
 	    }
 
-	  if (new_st.expr == NULL)
+	  if (new_st.expr1 == NULL)
 	    seen_empty_else = 1;
 
 	  d = new_level (gfc_state_stack->head);
 	  d->op = EXEC_WHERE;
-	  d->expr = new_st.expr;
+	  d->expr1 = new_st.expr1;
 
 	  accept_statement (st);
 
@@ -2637,8 +2707,8 @@ parse_if_block (void)
   new_st.op = EXEC_IF;
   d = add_statement ();
 
-  d->expr = top->expr;
-  top->expr = NULL;
+  d->expr1 = top->expr1;
+  top->expr1 = NULL;
   top->block = d;
 
   do
@@ -2662,7 +2732,7 @@ parse_if_block (void)
 
 	  d = new_level (gfc_state_stack->head);
 	  d->op = EXEC_IF;
-	  d->expr = new_st.expr;
+	  d->expr1 = new_st.expr1;
 
 	  accept_statement (st);
 
@@ -2853,7 +2923,7 @@ parse_do_block (void)
   gfc_state_data s;
   gfc_symtree *stree;
 
-  s.ext.end_do_label = new_st.label;
+  s.ext.end_do_label = new_st.label1;
 
   if (new_st.ext.iterator != NULL)
     stree = new_st.ext.iterator->var->symtree;
@@ -3310,7 +3380,7 @@ gfc_fixup_sibling_symbols (gfc_symbol *sym, gfc_namespace *siblings)
   sym->attr.referenced = 1;
   for (ns = siblings; ns; ns = ns->sibling)
     {
-      gfc_find_sym_tree (sym->name, ns, 0, &st);
+      st = gfc_find_symtree (ns->sym_root, sym->name);
 
       if (!st || (st->n.sym->attr.dummy && ns == st->n.sym->ns))
 	goto fixup_contained;
@@ -3690,6 +3760,8 @@ loop:
       st = next_statement ();
       goto loop;
     }
+
+  s->ns = gfc_current_ns;
 }
 
 
@@ -3736,6 +3808,76 @@ add_global_program (void)
       s->defined = 1;
       s->ns = gfc_current_ns;
     }
+}
+
+
+/* Resolve all the program units when whole file scope option
+   is active. */
+static void
+resolve_all_program_units (gfc_namespace *gfc_global_ns_list)
+{
+  gfc_free_dt_list ();
+  gfc_current_ns = gfc_global_ns_list;
+  for (; gfc_current_ns; gfc_current_ns = gfc_current_ns->sibling)
+    {
+      gfc_current_locus = gfc_current_ns->proc_name->declared_at;
+      gfc_resolve (gfc_current_ns);
+      gfc_current_ns->derived_types = gfc_derived_types;
+      gfc_derived_types = NULL;
+    }
+}
+
+
+static void
+clean_up_modules (gfc_gsymbol *gsym)
+{
+  if (gsym == NULL)
+    return;
+
+  clean_up_modules (gsym->left);
+  clean_up_modules (gsym->right);
+
+  if (gsym->type != GSYM_MODULE || !gsym->ns)
+    return;
+
+  gfc_current_ns = gsym->ns;
+  gfc_derived_types = gfc_current_ns->derived_types;
+  gfc_done_2 ();
+  gsym->ns = NULL;
+  return;
+}
+
+
+/* Translate all the program units when whole file scope option
+   is active. This could be in a different order to resolution if
+   there are forward references in the file.  */
+static void
+translate_all_program_units (gfc_namespace *gfc_global_ns_list)
+{
+  int errors;
+
+  gfc_current_ns = gfc_global_ns_list;
+  gfc_get_errors (NULL, &errors);
+
+  for (; !errors && gfc_current_ns; gfc_current_ns = gfc_current_ns->sibling)
+    {
+      gfc_current_locus = gfc_current_ns->proc_name->declared_at;
+      gfc_derived_types = gfc_current_ns->derived_types;
+      gfc_generate_code (gfc_current_ns);
+      gfc_current_ns->translated = 1;
+    }
+
+  /* Clean up all the namespaces after translation.  */
+  gfc_current_ns = gfc_global_ns_list;
+  for (;gfc_current_ns;)
+    {
+      gfc_namespace *ns = gfc_current_ns->sibling;
+      gfc_derived_types = gfc_current_ns->derived_types;
+      gfc_done_2 ();
+      gfc_current_ns = ns;
+    }
+
+  clean_up_modules (gfc_gsym_root);
 }
 
 
@@ -3863,15 +4005,24 @@ loop:
       gfc_dump_module (s.sym->name, errors_before == errors);
       if (errors == 0)
 	gfc_generate_module_code (gfc_current_ns);
+      pop_state ();
+      if (!gfc_option.flag_whole_file)
+	gfc_done_2 ();
+      else
+	{
+	  gfc_current_ns->derived_types = gfc_derived_types;
+	  gfc_derived_types = NULL;
+	  gfc_current_ns = NULL;
+	}
     }
   else
     {
       if (errors == 0)
 	gfc_generate_code (gfc_current_ns);
+      pop_state ();
+      gfc_done_2 ();
     }
 
-  pop_state ();
-  gfc_done_2 ();
   goto loop;
 
 prog_units:
@@ -3894,35 +4045,23 @@ prog_units:
   if (!gfc_option.flag_whole_file)
     goto termination;
 
-  /* Do the resolution.  */ 
-  gfc_current_ns = gfc_global_ns_list;
-  for (; gfc_current_ns; gfc_current_ns = gfc_current_ns->sibling)
-    {
-      gfc_current_locus = gfc_current_ns->proc_name->declared_at;
-      gfc_resolve (gfc_current_ns);
-    }
+  /* Do the resolution.  */
+  resolve_all_program_units (gfc_global_ns_list);
 
   /* Do the parse tree dump.  */ 
-  gfc_current_ns = gfc_option.dump_parse_tree ? gfc_global_ns_list : NULL;
+  gfc_current_ns
+	= gfc_option.dump_parse_tree ? gfc_global_ns_list : NULL;
+
   for (; gfc_current_ns; gfc_current_ns = gfc_current_ns->sibling)
     {
       gfc_dump_parse_tree (gfc_current_ns, stdout);
-      fputs ("-----------------------------------------\n\n", stdout);
+      fputs ("------------------------------------------\n\n", stdout);
     }
 
-  gfc_current_ns = gfc_global_ns_list;
-  gfc_get_errors (NULL, &errors);
-
-  /* Do the translation.  This could be in a different order to
-     resolution if there are forward references in the file.  */
-  for (; !errors && gfc_current_ns; gfc_current_ns = gfc_current_ns->sibling)
-    {
-      gfc_current_locus = gfc_current_ns->proc_name->declared_at;
-      gfc_generate_code (gfc_current_ns);
-    }
+  /* Do the translation.  */
+  translate_all_program_units (gfc_global_ns_list);
 
 termination:
-  gfc_free_dt_list ();
 
   gfc_end_source_files ();
   return SUCCESS;

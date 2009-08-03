@@ -169,7 +169,7 @@ lower_function_body (void)
       tree disp_label, disp_var, arg;
 
       /* Build 'DISP_LABEL:' and insert.  */
-      disp_label = create_artificial_label ();
+      disp_label = create_artificial_label (cfun->function_end_locus);
       /* This mark will create forward edges from every call site.  */
       DECL_NONLOCAL (disp_label) = 1;
       cfun->has_nonlocal_label = 1;
@@ -368,7 +368,6 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
     case GIMPLE_PREDICT:
     case GIMPLE_LABEL:
     case GIMPLE_SWITCH:
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
     case GIMPLE_OMP_FOR:
     case GIMPLE_OMP_SECTIONS:
     case GIMPLE_OMP_SECTIONS_SWITCH:
@@ -728,7 +727,7 @@ lower_gimple_return (gimple_stmt_iterator *gsi, struct lower_data *data)
     }
 
   /* Not found.  Create a new label and record the return statement.  */
-  tmp_rs.label = create_artificial_label ();
+  tmp_rs.label = create_artificial_label (cfun->function_end_locus);
   tmp_rs.stmt = stmt;
   VEC_safe_push (return_statements_t, heap, data->return_statements, &tmp_rs);
 
@@ -798,8 +797,9 @@ static void
 lower_builtin_setjmp (gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
-  tree cont_label = create_artificial_label ();
-  tree next_label = create_artificial_label ();
+  location_t loc = gimple_location (stmt);
+  tree cont_label = create_artificial_label (loc);
+  tree next_label = create_artificial_label (loc);
   tree dest, t, arg;
   gimple g;
 
@@ -813,16 +813,16 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
   arg = build_addr (next_label, current_function_decl);
   t = implicit_built_in_decls[BUILT_IN_SETJMP_SETUP];
   g = gimple_build_call (t, 2, gimple_call_arg (stmt, 0), arg);
-  gimple_set_location (g, gimple_location (stmt));
+  gimple_set_location (g, loc);
   gimple_set_block (g, gimple_block (stmt));
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   /* Build 'DEST = 0' and insert.  */
   if (dest)
     {
-      g = gimple_build_assign (dest, fold_convert (TREE_TYPE (dest),
-						   integer_zero_node));
-      gimple_set_location (g, gimple_location (stmt));
+      g = gimple_build_assign (dest, fold_convert_loc (loc, TREE_TYPE (dest),
+						       integer_zero_node));
+      gimple_set_location (g, loc);
       gimple_set_block (g, gimple_block (stmt));
       gsi_insert_before (gsi, g, GSI_SAME_STMT);
     }
@@ -839,16 +839,16 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
   arg = build_addr (next_label, current_function_decl);
   t = implicit_built_in_decls[BUILT_IN_SETJMP_RECEIVER];
   g = gimple_build_call (t, 1, arg);
-  gimple_set_location (g, gimple_location (stmt));
+  gimple_set_location (g, loc);
   gimple_set_block (g, gimple_block (stmt));
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   /* Build 'DEST = 1' and insert.  */
   if (dest)
     {
-      g = gimple_build_assign (dest, fold_convert (TREE_TYPE (dest),
-						   integer_one_node));
-      gimple_set_location (g, gimple_location (stmt));
+      g = gimple_build_assign (dest, fold_convert_loc (loc, TREE_TYPE (dest),
+						       integer_one_node));
+      gimple_set_location (g, loc);
       gimple_set_block (g, gimple_block (stmt));
       gsi_insert_before (gsi, g, GSI_SAME_STMT);
     }
@@ -900,61 +900,3 @@ record_vars (tree vars)
 {
   record_vars_into (vars, current_function_decl);
 }
-
-
-/* Mark BLOCK used if it has a used variable in it, then recurse over its
-   subblocks.  */
-
-static void
-mark_blocks_with_used_vars (tree block)
-{
-  tree var;
-  tree subblock;
-
-  if (!TREE_USED (block))
-    {
-      for (var = BLOCK_VARS (block);
-	   var;
-	   var = TREE_CHAIN (var))
-	{
-	  if (TREE_USED (var))
-	    {
-	      TREE_USED (block) = true;
-	      break;
-	    }
-	}
-    }
-  for (subblock = BLOCK_SUBBLOCKS (block);
-       subblock;
-       subblock = BLOCK_CHAIN (subblock))
-    mark_blocks_with_used_vars (subblock);
-}
-
-/* Mark the used attribute on blocks correctly.  */
-  
-static unsigned int
-mark_used_blocks (void)
-{  
-  mark_blocks_with_used_vars (DECL_INITIAL (current_function_decl));
-  return 0;
-}
-
-
-struct gimple_opt_pass pass_mark_used_blocks = 
-{
- {
-  GIMPLE_PASS,
-  "blocks",				/* name */
-  NULL,					/* gate */
-  mark_used_blocks,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
-  0,					/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  TODO_dump_func			/* todo_flags_finish */
- }
-};

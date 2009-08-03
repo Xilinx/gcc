@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler,
    for Motorola M*CORE Processor.
    Copyright (C) 1993, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007,
-   2008  Free Software Foundation, Inc.
+   2008, 2009 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -303,11 +303,6 @@ extern int mcore_stack_increment;
 #define MODES_TIEABLE_P(MODE1, MODE2) \
   ((MODE1) == (MODE2) || GET_MODE_CLASS (MODE1) == GET_MODE_CLASS (MODE2))
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms may be accessed
-   via the stack pointer) in functions that seem suitable.  */
-#define FRAME_POINTER_REQUIRED	0
-
 /* Definitions for register eliminations.
 
    We have two registers that can be eliminated on the MCore.  First, the
@@ -329,11 +324,6 @@ extern int mcore_stack_increment;
 {{ FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM},	\
  { ARG_POINTER_REGNUM,   STACK_POINTER_REGNUM},	\
  { ARG_POINTER_REGNUM,   FRAME_POINTER_REGNUM},}
-
-/* Given FROM and TO register numbers, say whether this elimination
-   is allowed.  */
-#define CAN_ELIMINATE(FROM, TO) \
-  (!((FROM) == FRAME_POINTER_REGNUM && FRAME_POINTER_REQUIRED))
 
 /* Define the offset between two registers, one to be eliminated, and the other
    its replacement, at the start of a routine.  */
@@ -413,7 +403,7 @@ enum reg_class
    reg number REGNO.  This could be a conditional expression
    or could index an array.  */
 
-extern const int regno_reg_class[FIRST_PSEUDO_REGISTER];
+extern const enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
 #define REGNO_REG_CLASS(REGNO) regno_reg_class[REGNO]
 
 /* When defined, the compiler allows registers explicitly used in the
@@ -759,7 +749,8 @@ extern const enum reg_class reg_class_from_letter[];
         {								\
 	  if (GET_MODE_SIZE (MODE) >= 4					\
 	      && (((unsigned HOST_WIDE_INT) INTVAL (OP)) % 4) == 0	\
-	      &&  ((unsigned HOST_WIDE_INT) INTVAL (OP)) <= 64 - GET_MODE_SIZE (MODE))	\
+	      &&  ((unsigned HOST_WIDE_INT) INTVAL (OP))		\
+	      <= (unsigned HOST_WIDE_INT) 64 - GET_MODE_SIZE (MODE))	\
 	    goto LABEL;							\
 	  if (GET_MODE_SIZE (MODE) == 2 				\
 	      && (((unsigned HOST_WIDE_INT) INTVAL (OP)) % 2) == 0	\
@@ -786,10 +777,6 @@ extern const enum reg_class reg_class_from_letter[];
 	GO_IF_LEGITIMATE_INDEX (MODE, REGNO (xop1), xop0, LABEL); \
     }								  \
 }								   
-								   
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */

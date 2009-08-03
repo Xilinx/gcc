@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,6 +29,7 @@ with Checks;   use Checks;
 with Debug;    use Debug;
 with Errout;   use Errout;
 with Elists;   use Elists;
+with Exp_Ch11; use Exp_Ch11;
 with Exp_Disp; use Exp_Disp;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
@@ -46,8 +47,10 @@ with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Attr; use Sem_Attr;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_Disp; use Sem_Disp;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
@@ -267,6 +270,10 @@ package body Sem_Util is
 
       Set_Etype (N, Rtyp);
       Set_Raises_Constraint_Error (N);
+
+      --  Now deal with possible local raise handling
+
+      Possible_Local_Raise (N, Standard_Constraint_Error);
 
       --  If the original expression was marked as static, the result is
       --  still marked as static, but the Raises_Constraint_Error flag is
@@ -1026,6 +1033,33 @@ package body Sem_Util is
          end case;
       end if;
    end Cannot_Raise_Constraint_Error;
+
+   -----------------------------------------
+   -- Check_Dynamically_Tagged_Expression --
+   -----------------------------------------
+
+   procedure Check_Dynamically_Tagged_Expression
+     (Expr        : Node_Id;
+      Typ         : Entity_Id;
+      Related_Nod : Node_Id)
+   is
+   begin
+      pragma Assert (Is_Tagged_Type (Typ));
+
+      --  In order to avoid spurious errors when analyzing the expanded code,
+      --  this check is done only for nodes that come from source and for
+      --  actuals of generic instantiations.
+
+      if (Comes_From_Source (Related_Nod)
+           or else In_Generic_Actual (Expr))
+        and then (Is_Class_Wide_Type (Etype (Expr))
+                   or else Is_Dynamically_Tagged (Expr))
+        and then Is_Tagged_Type (Typ)
+        and then not Is_Class_Wide_Type (Typ)
+      then
+         Error_Msg_N ("dynamically tagged expression not allowed!", Expr);
+      end if;
+   end Check_Dynamically_Tagged_Expression;
 
    --------------------------
    -- Check_Fully_Declared --
@@ -2887,11 +2921,15 @@ package body Sem_Util is
    end Find_Corresponding_Discriminant;
 
    --------------------------
-   -- Find_Overlaid_Object --
+   -- Find_Overlaid_Entity --
    --------------------------
 
-   function Find_Overlaid_Object (N : Node_Id) return Entity_Id is
-      Expr  : Node_Id;
+   procedure Find_Overlaid_Entity
+     (N   : Node_Id;
+      Ent : out Entity_Id;
+      Off : out Boolean)
+   is
+      Expr : Node_Id;
 
    begin
       --  We are looking for one of the two following forms:
@@ -2907,24 +2945,25 @@ package body Sem_Util is
       --  In the second case, the expr is either Y'Address, or recursively a
       --  constant that eventually references Y'Address.
 
+      Ent := Empty;
+      Off := False;
+
       if Nkind (N) = N_Attribute_Definition_Clause
         and then Chars (N) = Name_Address
       then
-         --  This loop checks the form of the expression for Y'Address where Y
-         --  is an object entity name. The first loop checks the original
-         --  expression in the attribute definition clause. Subsequent loops
-         --  check referenced constants.
-
          Expr := Expression (N);
+
+         --  This loop checks the form of the expression for Y'Address,
+         --  using recursion to deal with intermediate constants.
+
          loop
-            --  Check for Y'Address where Y is an object entity
+            --  Check for Y'Address
 
             if Nkind (Expr) = N_Attribute_Reference
               and then Attribute_Name (Expr) = Name_Address
-              and then Is_Entity_Name (Prefix (Expr))
-              and then Is_Object (Entity (Prefix (Expr)))
             then
-               return Entity (Prefix (Expr));
+               Expr := Prefix (Expr);
+               exit;
 
                --  Check for Const where Const is a constant entity
 
@@ -2936,13 +2975,36 @@ package body Sem_Util is
             --  Anything else does not need checking
 
             else
-               exit;
+               return;
+            end if;
+         end loop;
+
+         --  This loop checks the form of the prefix for an entity,
+         --  using recursion to deal with intermediate components.
+
+         loop
+            --  Check for Y where Y is an entity
+
+            if Is_Entity_Name (Expr) then
+               Ent := Entity (Expr);
+               return;
+
+            --  Check for components
+
+            elsif
+               Nkind_In (Expr, N_Selected_Component, N_Indexed_Component) then
+
+               Expr := Prefix (Expr);
+               Off := True;
+
+            --  Anything else does not need checking
+
+            else
+               return;
             end if;
          end loop;
       end if;
-
-      return Empty;
-   end Find_Overlaid_Object;
+   end Find_Overlaid_Entity;
 
    -------------------------
    -- Find_Parameter_Type --
@@ -3824,16 +3886,16 @@ package body Sem_Util is
          Default : Alignment_Result) return Alignment_Result
       is
          Result : Alignment_Result := Known_Compatible;
-         --  Set to result if Problem_Prefix or Problem_Offset returns True.
-         --  Note that once a value of Known_Incompatible is set, it is sticky
-         --  and does not get changed to Unknown (the value in Result only gets
-         --  worse as we go along, never better).
+         --  Holds the current status of the result. Note that once a value of
+         --  Known_Incompatible is set, it is sticky and does not get changed
+         --  to Unknown (the value in Result only gets worse as we go along,
+         --  never better).
 
-         procedure Check_Offset (Offs : Uint);
-         --  Called when Expr is a selected or indexed component with Offs set
-         --  to resp Component_First_Bit or Component_Size. Checks that if the
-         --  offset is specified it is compatible with the object alignment
-         --  requirements. The value in Result is modified accordingly.
+         Offs : Uint := No_Uint;
+         --  Set to a factor of the offset from the base object when Expr is a
+         --  selected or indexed component, based on Component_Bit_Offset and
+         --  Component_Size respectively. A negative value is used to represent
+         --  a value which is not known at compile time.
 
          procedure Check_Prefix;
          --  Checks the prefix recursively in the case where the expression
@@ -3842,33 +3904,6 @@ package body Sem_Util is
          procedure Set_Result (R : Alignment_Result);
          --  If R represents a worse outcome (unknown instead of known
          --  compatible, or known incompatible), then set Result to R.
-
-         ------------------
-         -- Check_Offset --
-         ------------------
-
-         procedure Check_Offset (Offs : Uint) is
-         begin
-            --  Unspecified or zero offset is always OK
-
-            if Offs = No_Uint or else Offs = Uint_0 then
-               null;
-
-            --  If we do not know required alignment, any non-zero offset is
-            --  a potential problem (but certainly may be OK, so result is
-            --  unknown).
-
-            elsif Unknown_Alignment (Obj) then
-               Set_Result (Unknown);
-
-            --  If we know the required alignment, see if offset is compatible
-
-            else
-               if Offs mod (System_Storage_Unit * Alignment (Obj)) /= 0 then
-                  Set_Result (Known_Incompatible);
-               end if;
-            end if;
-         end Check_Offset;
 
          ------------------
          -- Check_Prefix --
@@ -3935,37 +3970,60 @@ package body Sem_Util is
                Set_Result (Unknown);
             end if;
 
-            --  Check possible bad component offset and check prefix
+            --  Check prefix and component offset
 
-            Check_Offset
-              (Component_Bit_Offset (Entity (Selector_Name (Expr))));
             Check_Prefix;
+            Offs := Component_Bit_Offset (Entity (Selector_Name (Expr)));
 
          --  If Expr is an indexed component, we must make sure there is no
          --  potentially troublesome Component_Size clause and that the array
          --  is not bit-packed.
 
          elsif Nkind (Expr) = N_Indexed_Component then
+            declare
+               Typ : constant Entity_Id := Etype (Prefix (Expr));
+               Ind : constant Node_Id   := First_Index (Typ);
 
-            --  Bit packed array always generates unknown alignment
+            begin
+               --  Bit packed array always generates unknown alignment
 
-            if Is_Bit_Packed_Array (Etype (Prefix (Expr))) then
-               Set_Result (Unknown);
-            end if;
+               if Is_Bit_Packed_Array (Typ) then
+                  Set_Result (Unknown);
+               end if;
 
-            --  Check possible bad component size and check prefix
+               --  Check prefix and component offset
 
-            Check_Offset (Component_Size (Etype (Prefix (Expr))));
-            Check_Prefix;
+               Check_Prefix;
+               Offs := Component_Size (Typ);
+
+               --  Small optimization: compute the full offset when possible
+
+               if Offs /= No_Uint
+                 and then Offs > Uint_0
+                 and then Present (Ind)
+                 and then Nkind (Ind) = N_Range
+                 and then Compile_Time_Known_Value (Low_Bound (Ind))
+                 and then Compile_Time_Known_Value (First (Expressions (Expr)))
+               then
+                  Offs := Offs * (Expr_Value (First (Expressions (Expr)))
+                                    - Expr_Value (Low_Bound ((Ind))));
+               end if;
+            end;
          end if;
+
+         --  If we have a null offset, the result is entirely determined by
+         --  the base object and has already been computed recursively.
+
+         if Offs = Uint_0 then
+            null;
 
          --  Case where we know the alignment of the object
 
-         if Known_Alignment (Obj) then
+         elsif Known_Alignment (Obj) then
             declare
                ObjA : constant Uint := Alignment (Obj);
-               ExpA : Uint := No_Uint;
-               SizA : Uint := No_Uint;
+               ExpA : Uint          := No_Uint;
+               SizA : Uint          := No_Uint;
 
             begin
                --  If alignment of Obj is 1, then we are always OK
@@ -3976,9 +4034,16 @@ package body Sem_Util is
                --  Alignment of Obj is greater than 1, so we need to check
 
                else
-                  --  See if Expr is an object with known alignment
+                  --  If we have an offset, see if it is compatible
 
-                  if Is_Entity_Name (Expr)
+                  if Offs /= No_Uint and Offs > Uint_0 then
+                     if Offs mod (System_Storage_Unit * ObjA) /= 0 then
+                        Set_Result (Known_Incompatible);
+                     end if;
+
+                     --  See if Expr is an object with known alignment
+
+                  elsif Is_Entity_Name (Expr)
                     and then Known_Alignment (Entity (Expr))
                   then
                      ExpA := Alignment (Entity (Expr));
@@ -3990,26 +4055,29 @@ package body Sem_Util is
 
                   elsif Known_Alignment (Etype (Expr)) then
                      ExpA := Alignment (Etype (Expr));
-                  end if;
 
-                  --  If we got an alignment, see if it is acceptable
-
-                  if ExpA /= No_Uint then
-                     if ExpA < ObjA then
-                        Set_Result (Known_Incompatible);
-                     end if;
-
-                     --  Case of Expr alignment unknown
+                     --  Otherwise the alignment is unknown
 
                   else
                      Set_Result (Default);
                   end if;
 
-                  --  See if size is given. If so, check that it is not too
-                  --  small for the required alignment.
-                  --  See if Expr is an object with known alignment
+                  --  If we got an alignment, see if it is acceptable
 
-                  if Is_Entity_Name (Expr)
+                  if ExpA /= No_Uint and then ExpA < ObjA then
+                     Set_Result (Known_Incompatible);
+                  end if;
+
+                  --  If Expr is not a piece of a larger object, see if size
+                  --  is given. If so, check that it is not too small for the
+                  --  required alignment.
+
+                  if Offs /= No_Uint then
+                     null;
+
+                     --  See if Expr is an object with known size
+
+                  elsif Is_Entity_Name (Expr)
                     and then Known_Static_Esize (Entity (Expr))
                   then
                      SizA := Esize (Entity (Expr));
@@ -4033,6 +4101,12 @@ package body Sem_Util is
                end if;
             end;
 
+         --  If we do not know required alignment, any non-zero offset is a
+         --  potential problem (but certainly may be OK, so result is unknown).
+
+         elsif Offs /= No_Uint then
+            Set_Result (Unknown);
+
          --  If we can't find the result by direct comparison of alignment
          --  values, then there is still one case that we can determine known
          --  result, and that is when we can determine that the types are the
@@ -4054,8 +4128,8 @@ package body Sem_Util is
 
                if Known_Alignment (Entity (Expr))
                  and then
-                   UI_To_Int (Alignment (Entity (Expr)))
-                                 < Ttypes.Maximum_Alignment
+                   UI_To_Int (Alignment (Entity (Expr))) <
+                                                    Ttypes.Maximum_Alignment
                then
                   Set_Result (Unknown);
 
@@ -4068,7 +4142,7 @@ package body Sem_Util is
                  and then
                    (UI_To_Int (Esize (Entity (Expr))) mod
                      (Ttypes.Maximum_Alignment * Ttypes.System_Storage_Unit))
-                         /= 0
+                                                                        /= 0
                then
                   Set_Result (Unknown);
 
@@ -4085,7 +4159,7 @@ package body Sem_Util is
          --  Unknown, since that result will be set in any case.
 
          elsif Default /= Unknown
-           and then (Has_Size_Clause (Etype (Expr))
+           and then (Has_Size_Clause      (Etype (Expr))
                       or else
                      Has_Alignment_Clause (Etype (Expr)))
          then
@@ -4124,17 +4198,16 @@ package body Sem_Util is
    ----------------------
 
    function Has_Declarations (N : Node_Id) return Boolean is
-      K : constant Node_Kind := Nkind (N);
    begin
-      return    K = N_Accept_Statement
-        or else K = N_Block_Statement
-        or else K = N_Compilation_Unit_Aux
-        or else K = N_Entry_Body
-        or else K = N_Package_Body
-        or else K = N_Protected_Body
-        or else K = N_Subprogram_Body
-        or else K = N_Task_Body
-        or else K = N_Package_Specification;
+      return Nkind_In (Nkind (N), N_Accept_Statement,
+                                  N_Block_Statement,
+                                  N_Compilation_Unit_Aux,
+                                  N_Entry_Body,
+                                  N_Package_Body,
+                                  N_Protected_Body,
+                                  N_Subprogram_Body,
+                                  N_Task_Body,
+                                  N_Package_Specification);
    end Has_Declarations;
 
    -------------------------------------------
@@ -4892,24 +4965,20 @@ package body Sem_Util is
    is
       Ifaces_List : Elist_Id;
       Elmt        : Elmt_Id;
-      Iface       : Entity_Id;
-      Typ         : Entity_Id;
+      Iface       : Entity_Id := Base_Type (Iface_Ent);
+      Typ         : Entity_Id := Base_Type (Typ_Ent);
 
    begin
-      if Is_Class_Wide_Type (Typ_Ent) then
-         Typ := Etype (Typ_Ent);
-      else
-         Typ := Typ_Ent;
-      end if;
-
-      if Is_Class_Wide_Type (Iface_Ent) then
-         Iface := Etype (Iface_Ent);
-      else
-         Iface := Iface_Ent;
+      if Is_Class_Wide_Type (Typ) then
+         Typ := Root_Type (Typ);
       end if;
 
       if not Has_Interfaces (Typ) then
          return False;
+      end if;
+
+      if Is_Class_Wide_Type (Iface) then
+         Iface := Root_Type (Iface);
       end if;
 
       Collect_Interfaces (Typ, Ifaces_List);
@@ -5161,16 +5230,24 @@ package body Sem_Util is
 
    begin
       Save_Interps (N, New_Prefix);
-      Rewrite (N,
-        Make_Explicit_Dereference (Sloc (N),
-          Prefix => New_Prefix));
+
+      --  Check if the node relocation requires readjustment of some SCIL
+      --  dispatching node.
+
+      if Generate_SCIL
+        and then Nkind (N) = N_Function_Call
+      then
+         Adjust_SCIL_Node (N, New_Prefix);
+      end if;
+
+      Rewrite (N, Make_Explicit_Dereference (Sloc (N), Prefix => New_Prefix));
 
       Set_Etype (N, Designated_Type (Etype (New_Prefix)));
 
       if Is_Overloaded (New_Prefix) then
 
-         --  The deference is also overloaded, and its interpretations are the
-         --  designated types of the interpretations of the original node.
+         --  The dereference is also overloaded, and its interpretations are
+         --  the designated types of the interpretations of the original node.
 
          Set_Etype (N, Any_Type);
 
@@ -5267,6 +5344,19 @@ package body Sem_Util is
          and then Is_Floating_Point_Type (E)
          and then E = Base_Type (E);
    end Is_AAMP_Float;
+
+   -----------------------------
+   -- Is_Actual_Out_Parameter --
+   -----------------------------
+
+   function Is_Actual_Out_Parameter (N : Node_Id) return Boolean is
+      Formal : Entity_Id;
+      Call   : Node_Id;
+   begin
+      Find_Actual (N, Formal, Call);
+      return Present (Formal)
+        and then Ekind (Formal) = E_Out_Parameter;
+   end Is_Actual_Out_Parameter;
 
    -------------------------
    -- Is_Actual_Parameter --
@@ -5519,6 +5609,18 @@ package body Sem_Util is
 
       return False;
    end Is_Controlling_Limited_Procedure;
+
+   -----------------------------
+   -- Is_CPP_Constructor_Call --
+   -----------------------------
+
+   function Is_CPP_Constructor_Call (N : Node_Id) return Boolean is
+   begin
+      return Nkind (N) = N_Function_Call
+        and then Is_CPP_Class (Etype (Etype (N)))
+        and then Is_Constructor (Entity (Name (N)))
+        and then Is_Imported (Entity (Name (N)));
+   end Is_CPP_Constructor_Call;
 
    ----------------------------------------------
    -- Is_Dependent_Component_Of_Mutable_Object --
@@ -5909,7 +6011,7 @@ package body Sem_Util is
                   --  uninitialized case. Note that this applies both to the
                   --  uTag entry and the main vtable pointer (CPP_Class case).
 
-                 and then (VM_Target = No_VM or else not Is_Tag (Ent))
+                 and then (Tagged_Type_Expansion or else not Is_Tag (Ent))
                then
                   return False;
                end if;
@@ -6034,6 +6136,21 @@ package body Sem_Util is
          return False;
       end if;
    end Is_Fully_Initialized_Variant;
+
+   ------------
+   -- Is_LHS --
+   ------------
+
+   --  We seem to have a lot of overlapping functions that do similar things
+   --  (testing for left hand sides or lvalues???). Anyway, since this one is
+   --  purely syntactic, it should be in Sem_Aux I would think???
+
+   function Is_LHS (N : Node_Id) return Boolean is
+      P : constant Node_Id := Parent (N);
+   begin
+      return Nkind (P) = N_Assignment_Statement
+        and then Name (P) = N;
+   end Is_LHS;
 
    ----------------------------
    -- Is_Inherited_Operation --
@@ -7036,19 +7153,33 @@ package body Sem_Util is
       Last_Assignment_Only : Boolean := False)
    is
    begin
+      --  ??? do we have to worry about clearing cached checks?
+
       if Is_Assignable (Ent) then
          Set_Last_Assignment (Ent, Empty);
       end if;
 
-      if not Last_Assignment_Only and then Is_Object (Ent) then
-         Kill_Checks (Ent);
-         Set_Current_Value (Ent, Empty);
+      if Is_Object (Ent) then
+         if not Last_Assignment_Only then
+            Kill_Checks (Ent);
+            Set_Current_Value (Ent, Empty);
 
-         if not Can_Never_Be_Null (Ent) then
-            Set_Is_Known_Non_Null (Ent, False);
+            if not Can_Never_Be_Null (Ent) then
+               Set_Is_Known_Non_Null (Ent, False);
+            end if;
+
+            Set_Is_Known_Null (Ent, False);
+
+            --  Reset Is_Known_Valid unless type is always valid, or if we have
+            --  a loop parameter (loop parameters are always valid, since their
+            --  bounds are defined by the bounds given in the loop header).
+
+            if not Is_Known_Valid (Etype (Ent))
+              and then Ekind (Ent) /= E_Loop_Parameter
+            then
+               Set_Is_Known_Valid (Ent, False);
+            end if;
          end if;
-
-         Set_Is_Known_Null (Ent, False);
       end if;
    end Kill_Current_Values;
 
@@ -7261,18 +7392,53 @@ package body Sem_Util is
             return N = Prefix (P)
               and then Name_Implies_Lvalue_Prefix (Attribute_Name (P));
 
-         when N_Expanded_Name        |
-              N_Indexed_Component    |
-              N_Selected_Component   |
-              N_Slice                =>
-            if Is_Access_Type (Etype (N)) then
-               return False;  --  P is an implicit dereference
+         --  For an expanded name, the name is an lvalue if the expanded name
+         --  is an lvalue, but the prefix is never an lvalue, since it is just
+         --  the scope where the name is found.
+
+         when N_Expanded_Name        =>
+            if N = Prefix (P) then
+               return May_Be_Lvalue (P);
             else
-               return N = Prefix (P);
+               return False;
             end if;
 
+         --  For a selected component A.B, A is certainly an lvalue if A.B is.
+         --  B is a little interesting, if we have A.B := 3, there is some
+         --  discussion as to whether B is an lvalue or not, we choose to say
+         --  it is. Note however that A is not an lvalue if it is of an access
+         --  type since this is an implicit dereference.
+
+         when N_Selected_Component   =>
+            if N = Prefix (P)
+              and then Present (Etype (N))
+              and then Is_Access_Type (Etype (N))
+            then
+               return False;
+            else
+               return May_Be_Lvalue (P);
+            end if;
+
+         --  For an indexed component or slice, the index or slice bounds is
+         --  never an lvalue. The prefix is an lvalue if the indexed component
+         --  or slice is an lvalue, except if it is an access type, where we
+         --  have an implicit dereference.
+
+         when N_Indexed_Component    =>
+            if N /= Prefix (P)
+              or else (Present (Etype (N)) and then Is_Access_Type (Etype (N)))
+            then
+               return False;
+            else
+               return May_Be_Lvalue (P);
+            end if;
+
+         --  Prefix of a reference is an lvalue if the reference is an lvalue
+
          when N_Reference            =>
-            return N = Prefix (P);
+            return May_Be_Lvalue (P);
+
+         --  Prefix of explicit dereference is never an lvalue
 
          when N_Explicit_Dereference =>
             return False;
@@ -7374,7 +7540,7 @@ package body Sem_Util is
          when N_Object_Renaming_Declaration =>
             return True;
 
-         --  All other references are definitely not Lvalues
+         --  All other references are definitely not lvalues
 
          when others =>
             return False;
@@ -9436,6 +9602,51 @@ package body Sem_Util is
       return Token_Node;
    end Real_Convert;
 
+   ------------------------------------
+   -- References_Generic_Formal_Type --
+   ------------------------------------
+
+   function References_Generic_Formal_Type (N : Node_Id) return Boolean is
+
+      function Process (N : Node_Id) return Traverse_Result;
+      --  Process one node in search for generic formal type
+
+      -------------
+      -- Process --
+      -------------
+
+      function Process (N : Node_Id) return Traverse_Result is
+      begin
+         if Nkind (N) in N_Has_Entity then
+            declare
+               E : constant Entity_Id := Entity (N);
+            begin
+               if Present (E) then
+                  if Is_Generic_Type (E) then
+                     return Abandon;
+                  elsif Present (Etype (E))
+                    and then Is_Generic_Type (Etype (E))
+                  then
+                     return Abandon;
+                  end if;
+               end if;
+            end;
+         end if;
+
+         return Atree.OK;
+      end Process;
+
+      function Traverse is new Traverse_Func (Process);
+      --  Traverse tree to look for generic type
+
+   begin
+      if Inside_A_Generic then
+         return Traverse (N) = Abandon;
+      else
+         return False;
+      end if;
+   end References_Generic_Formal_Type;
+
    --------------------
    -- Remove_Homonym --
    --------------------
@@ -9724,10 +9935,12 @@ package body Sem_Util is
 
          P := Parent (N);
          while Present (P) loop
-            if Nkind (P) = N_If_Statement
+            if         Nkind (P) = N_If_Statement
               or else  Nkind (P) = N_Case_Statement
-              or else (Nkind (P) = N_And_Then and then Desc = Right_Opnd (P))
-              or else (Nkind (P) = N_Or_Else and then Desc = Right_Opnd (P))
+              or else (Nkind (P) in N_Short_Circuit
+                         and then Desc = Right_Opnd (P))
+              or else (Nkind (P) = N_Conditional_Expression
+                         and then Desc /= First (Expressions (P)))
               or else  Nkind (P) = N_Exception_Handler
               or else  Nkind (P) = N_Selective_Accept
               or else  Nkind (P) = N_Conditional_Entry_Call
@@ -10236,10 +10449,7 @@ package body Sem_Util is
    begin
       --  Deal with indexed or selected component where prefix is modified
 
-      if Nkind (N) = N_Indexed_Component
-           or else
-         Nkind (N) = N_Selected_Component
-      then
+      if Nkind_In (N, N_Indexed_Component, N_Selected_Component) then
          Pref := Prefix (N);
 
          --  If prefix is access type, then it is the designated object that is
@@ -10916,6 +11126,30 @@ package body Sem_Util is
          else
             Error_Msg_NE ("\\found}!", Expr, Found_Type);
          end if;
+
+         --  A special check for cases like M1 and M2 = 0 where M1 and M2 are
+         --  of the same modular type, and (M1 and M2) = 0 was intended.
+
+         if Expec_Type = Standard_Boolean
+           and then Is_Modular_Integer_Type (Found_Type)
+           and then Nkind_In (Parent (Expr), N_Op_And, N_Op_Or, N_Op_Xor)
+           and then Nkind (Right_Opnd (Parent (Expr))) in N_Op_Compare
+         then
+            declare
+               Op : constant Node_Id := Right_Opnd (Parent (Expr));
+               L  : constant Node_Id := Left_Opnd (Op);
+               R  : constant Node_Id := Right_Opnd (Op);
+            begin
+               if Etype (L) = Found_Type
+                 and then Is_Integer_Type (Etype (R))
+               then
+                  Error_Msg_N
+                    ("\\possible missing parens for modular operation", Expr);
+               end if;
+            end;
+         end if;
+
+         --  Reset error message qualification indication
 
          Error_Msg_Qual_Level := 0;
       end if;

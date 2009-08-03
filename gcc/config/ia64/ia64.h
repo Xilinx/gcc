@@ -94,7 +94,7 @@ enum ia64_inline_type
 /* Default target_flags if no switches are specified  */
 
 #ifndef TARGET_DEFAULT
-#define TARGET_DEFAULT (MASK_DWARF2_ASM)
+#define TARGET_DEFAULT (MASK_DWARF2_ASM | MASK_FUSED_MADD)
 #endif
 
 #ifndef TARGET_CPU_DEFAULT
@@ -1005,11 +1005,6 @@ enum reg_class
 
 /* Eliminating the Frame Pointer and the Arg Pointer */
 
-/* A C expression which is nonzero if a function must have and use a frame
-   pointer.  This expression is evaluated in the reload pass.  If its value is
-   nonzero the function will have a frame pointer.  */
-#define FRAME_POINTER_REQUIRED 0
-
 /* Show we can debug even without a frame pointer.  */
 #define CAN_DEBUG_WITHOUT_FP
 
@@ -1343,13 +1338,6 @@ do {									\
    use as an index register.  This is needed for POST_MODIFY.  */
 
 #define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
-
-/* A C statement or compound statement with a conditional `goto LABEL;'
-   executed if memory address X (an RTX) can have different meanings depending
-   on the machine mode of the memory reference it is used for or if the address
-   is valid for some modes but not others.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 /* A C expression that is nonzero if X is a legitimate constant for an
    immediate operand on the target machine.  */
@@ -1938,7 +1926,7 @@ extern int ia64_final_schedule;
 #define EH_RETURN_DATA_REGNO(N) ((N) < 4 ? (N) + 15 : INVALID_REGNUM)
 
 /* This function contains machine specific function data.  */
-struct machine_function GTY(())
+struct GTY(()) machine_function
 {
   /* The new stack pointer when unwinding from EH.  */
   rtx ia64_eh_epilogue_sp;

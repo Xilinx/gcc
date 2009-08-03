@@ -103,14 +103,7 @@ c_genericize (tree fndecl)
       dump_end (TDI_original, dump_orig);
     }
 
-  /* Go ahead and gimplify for now.  */
-  gimplify_function_tree (fndecl);
-
-  dump_function (TDI_generic, fndecl);
-
-  /* Genericize all nested functions now.  We do things in this order so
-     that items like VLA sizes are expanded properly in the context of
-     the correct function.  */
+  /* Dump all nested functions now.  */
   cgn = cgraph_node (fndecl);
   for (cgn = cgn->nested; cgn ; cgn = cgn->next_nested)
     c_genericize (cgn->decl);
@@ -140,7 +133,7 @@ add_block_to_enclosing (tree block)
      genericized.  */
 
 tree
-c_build_bind_expr (tree block, tree body)
+c_build_bind_expr (location_t loc, tree block, tree body)
 {
   tree decls, bind;
 
@@ -162,11 +155,12 @@ c_build_bind_expr (tree block, tree body)
     }
 
   if (!body)
-    body = build_empty_stmt ();
+    body = build_empty_stmt (loc);
   if (decls || block)
     {
       bind = build3 (BIND_EXPR, void_type_node, decls, body, block);
       TREE_SIDE_EFFECTS (bind) = 1;
+      SET_EXPR_LOCATION (bind, loc);
     }
   else
     bind = body;
@@ -195,21 +189,6 @@ c_gimplify_expr (tree *expr_p, gimple_seq *pre_p ATTRIBUTE_UNUSED,
       && (DECL_INITIAL (DECL_EXPR_DECL (*expr_p)) == DECL_EXPR_DECL (*expr_p))
       && !warn_init_self)
     TREE_NO_WARNING (DECL_EXPR_DECL (*expr_p)) = 1;
-
-  /* The C frontend is the only one producing &ARRAY with pointer-to-element
-     type.  This is invalid in gimple, so produce a properly typed
-     ADDR_EXPR instead and wrap a conversion around it.  */
-  if (code == ADDR_EXPR
-      && TREE_CODE (TREE_TYPE (TREE_OPERAND (*expr_p, 0))) == ARRAY_TYPE
-      && !lang_hooks.types_compatible_p (TREE_TYPE (TREE_TYPE (*expr_p)),
-					 TREE_TYPE (TREE_OPERAND (*expr_p, 0))))
-    {
-      tree type = TREE_TYPE (*expr_p);
-      TREE_TYPE (*expr_p)
-	= build_pointer_type (TREE_TYPE (TREE_OPERAND (*expr_p, 0)));
-      *expr_p = build1 (NOP_EXPR, type, *expr_p);
-      return GS_OK;
-    }
 
   return GS_UNHANDLED;
 }

@@ -1023,6 +1023,193 @@ fix = {
 
 
 /*
+ * Darwin headers have a stdint.h that defines UINT8_C and UINT16_C to
+ * unsigned constants.
+ */
+fix = {
+    hackname  = darwin_stdint_1;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#define UINT8_C(v)\tv\n#define UINT16_C(v)\tv";
+    select    = "#define UINT8_C\\(v\\)[ \t]+\\(v ## U\\)\n"
+		"#define UINT16_C\\(v\\)[ \t]+\\(v ## U\\)";
+    test_text = "#define UINT8_C(v)   (v ## U)\n"
+		"#define UINT16_C(v)  (v ## U)";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines INTPTR_MIN and INTPTR_MAX
+ * with wrong types.
+ */
+fix = {
+    hackname  = darwin_stdint_2;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define INTPTR_MAX 9223372036854775807L\n"
+		"#define INTPTR_MIN (-INTPTR_MAX-1)\n"
+		"#else\n"
+		"#define INTPTR_MAX 2147483647L\n"
+		"#define INTPTR_MIN (-INTPTR_MAX-1)\n"
+		"#endif";
+    select    = "#if __WORDSIZE == 64\n"
+		"#define INTPTR_MIN[ \t]+INT64_MIN\n"
+		"#define INTPTR_MAX[ \t]+INT64_MAX\n"
+		"#else\n"
+		"#define INTPTR_MIN[ \t]+INT32_MIN\n"
+		"#define INTPTR_MAX[ \t]+INT32_MAX\n"
+		"#endif";
+    test_text = "#if __WORDSIZE == 64\n"
+		"#define INTPTR_MIN        INT64_MIN\n"
+		"#define INTPTR_MAX        INT64_MAX\n"
+		"#else\n"
+		"#define INTPTR_MIN        INT32_MIN\n"
+		"#define INTPTR_MAX        INT32_MAX\n"
+		"#endif";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines UINTPTR_MAX with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_3;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define UINTPTR_MAX 18446744073709551615UL\n"
+		"#else\n"
+		"#define UINTPTR_MAX 4294967295UL\n"
+		"#endif";
+    select    = "#if __WORDSIZE == 64\n"
+		"#define UINTPTR_MAX[ \t]+UINT64_MAX\n"
+		"#else\n"
+		"#define UINTPTR_MAX[ \t]+UINT32_MAX\n"
+		"#endif";
+    test_text = "#if __WORDSIZE == 64\n"
+		"#define UINTPTR_MAX       UINT64_MAX\n"
+		"#else\n"
+		"#define UINTPTR_MAX       UINT32_MAX\n"
+		"#endif";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines SIZE_MAX with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_4;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define SIZE_MAX 18446744073709551615UL\n"
+		"#else\n"
+		"#define SIZE_MAX 4294967295UL\n"
+		"#endif";
+    select    = "#if __WORDSIZE == 64\n"
+		"#define SIZE_MAX[ \t]+UINT64_MAX\n"
+		"#else\n"
+		"#define SIZE_MAX[ \t]+UINT32_MAX\n"
+		"#endif";
+    test_text = "#if __WORDSIZE == 64\n"
+		"#define SIZE_MAX          UINT64_MAX\n"
+		"#else\n"
+		"#define SIZE_MAX          UINT32_MAX\n"
+		"#endif";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines {U,}INTMAX_{MIN,MAX}
+ * with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_5;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define INTMAX_MIN   (-9223372036854775807L - 1)\n"
+		"#define INTMAX_MAX   9223372036854775807L\n"
+		"#define UINTMAX_MAX  18446744073709551615UL\n"
+		"#else\n"
+		"#define INTMAX_MIN   (-9223372036854775807LL - 1)\n"
+		"#define INTMAX_MAX   9223372036854775807LL\n"
+		"#define UINTMAX_MAX  18446744073709551615ULL\n"
+		"#endif";
+    select    = "#define INTMAX_MIN[ \t]+INT64_MIN\n"
+		"#define INTMAX_MAX[ \t]+INT64_MAX\n"
+		"\n"
+		"#define UINTMAX_MAX[ \t]+UINT64_MAX";
+    test_text = "#define INTMAX_MIN        INT64_MIN\n"
+		"#define INTMAX_MAX        INT64_MAX\n"
+		"\n"
+		"#define UINTMAX_MAX       UINT64_MAX";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines {U,}INTMAX_C
+ * with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_6;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define PTRDIFF_MIN (-9223372036854775807L - 1)\n"
+		"#define PTRDIFF_MAX 9223372036854775807L\n"
+		"#else\n"
+		"#define PTRDIFF_MIN (-2147483647 - 1)\n"
+		"#define PTRDIFF_MAX 2147483647\n"
+		"#endif";
+    select    = "#if __WORDSIZE == 64\n"
+		"#define PTRDIFF_MIN[ \t]+INT64_MIN\n"
+		"#define PTRDIFF_MAX[ \t]+INT64_MAX\n"
+		"#else\n"
+		"#define PTRDIFF_MIN[ \t]+INT32_MIN\n"
+		"#define PTRDIFF_MAX[ \t]+INT32_MAX\n"
+		"#endif";
+    test_text = "#if __WORDSIZE == 64\n"
+		"#define PTRDIFF_MIN       INT64_MIN\n"
+		"#define PTRDIFF_MAX       INT64_MAX\n"
+		"#else\n"
+		"#define PTRDIFF_MIN       INT32_MIN\n"
+		"#define PTRDIFF_MAX       INT32_MAX\n"
+		"#endif";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines {U,}INTMAX_C
+ * with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_7;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define INTMAX_C(v)  (v ## L)\n"
+		"#define UINTMAX_C(v) (v ## UL)\n"
+		"#else\n"
+		"#define INTMAX_C(v)  (v ## LL)\n"
+		"#define UINTMAX_C(v) (v ## ULL)\n"
+		"#endif";
+    select    = "#define INTMAX_C\\(v\\)[ \t]+\\(v ## LL\\)\n"
+		"#define UINTMAX_C\\(v\\)[ \t]+\\(v ## ULL\\)";
+    test_text = "#define INTMAX_C(v)  (v ## LL)\n"
+		"#define UINTMAX_C(v) (v ## ULL)";
+};
+
+
+/*
  *  Fix <c_asm.h> on Digital UNIX V4.0:
  *  It contains a prototype for a DEC C internal asm() function,
  *  clashing with gcc's asm keyword.  So protect this with __DECC.
@@ -1265,6 +1452,20 @@ fix = {
 };
 
 
+/* glibc versions before 2.5 have a version of stdint.h that defines
+   UINT8_C and UINT16_C to produce unsigned constants, as do uClibc
+   versions with stdint.h based on those glibc versions.  */
+fix = {
+    hackname  = glibc_stdint;
+    files     = stdint.h;
+    select    = "GNU C Library";
+    c_fix     = format;
+    c_fix_arg = "# define UINT8_C(c)\tc\n# define UINT16_C(c)\tc";
+    c_fix_arg = "# define UINT8_C\\(c\\)\tc ## U\n# define UINT16_C\\(c\\)\tc ## U";
+    test_text = "/* This file is part of the GNU C Library.  */\n# define UINT8_C(c)\tc ## U\n# define UINT16_C(c)\tc ## U";
+};
+
+
 /* glibc's tgmath.h relies on an expression that is not an integer
    constant expression being treated as it was by GCC 4.4 and
    earlier.  */
@@ -1272,7 +1473,7 @@ fix = {
     hackname  = glibc_tgmath;
     files     = tgmath.h;
     select    = '\(\(\(type\) 0.25\) && \(\(type\) 0.25 - 1\)\)';
-    bypass    = "__floating_type \\\\\n.*__builtin_classify_type";
+    bypass    = "__floating_type\\(type\\) \\\\\n.*__builtin_classify_type";
     c_fix     = format;
     c_fix_arg = "(__builtin_classify_type ((type) 0) == 8 || (__builtin_classify_type ((type) 0) == 9 && __builtin_classify_type (__real__ ((type) 0)) == 8))";
     test_text = "# define __floating_type(type) (((type) 0.25) && ((type) 0.25 - 1))";
@@ -1595,35 +1796,6 @@ fix = {
                 "extern int snprintf(char *, _hpux_size_t, char *, ...);";
 };
 
-
-/*
- * In inttypes.h on HPUX 11, the use of __CONCAT__ in the definition
- * of UINT32_C has undefined behavior according to ISO/ANSI:
- * the arguments to __CONCAT__ are not macro expanded before the
- * concatination happens so the trailing ')' in the first argument
- * is concatinated with the 'l' in the second argument creating an
- * invalid pp token.  The behavior of invalid pp tokens is undefined.
- * GCC does not handle these invalid tokens the way the HP compiler does.
- * This problem will potentially occur anytime macros are used in the
- * arguments to __CONCAT__.  A general solution to this problem would be to
- * insert another layer of macro between __CONCAT__ and its use
- * in UINT32_C.  An example of this solution can be found in the C standard.
- * A more specific solution, the one used here, is to change the UINT32_C
- * macro to not used macros in the arguments to __CONCAT__.
- */
-fix = {
-    hackname = hpux11_uint32_c;
-    files    = inttypes.h;
-    select   = "^#define UINT32_C\\(__c\\)[ \t]*"
-                         "__CONCAT__\\(__CONCAT_U__\\(__c\\),l\\)";
-    c_fix    = format;
-    c_fix_arg = '#define UINT32_C(__c) __CONCAT__(__c,ul)';
-    test_text =
-    "#define CONCAT_U__(__c)\t__CONCAT__(__c,u)\n"
-    "#define UINT32_C(__c)\t__CONCAT__(__CONCAT_U__(__c),l)";
-};
-
-
 /*
  *  Fix hpux 11.00 broken vsnprintf declaration
  */
@@ -1707,6 +1879,8 @@ fix = {
  */
 fix = {
     hackname  = hpux_long_double;
+    mach      = "*-*-hpux10*";
+    mach      = "*-*-hpux11.[012]*";
     files     = stdlib.h;
     select    = "extern[ \t]long_double[ \t]strtold";
     bypass    = "long_double_t";
@@ -1722,6 +1896,20 @@ fix = {
 		"extern long_double strtold(const char *, char **);\n";
 };
 
+ /*
+  * We cannot use the above rule on 11.31 because it removes the strtold
+  * definition.  ia64 is OK with no hack, PA needs some help.
+  */
+fix = {
+    hackname  = hpux_long_double_2;
+    mach      = "hppa*-*-hpux11.3*";
+    files     = stdlib.h;
+    select    = "#[ \t]*if[ \t]*!defined\\(__ia64\\) \\|\\| defined\\(_PROTOTYPES\\) \\|\\| defined\\(_LONG_DOUBLE_STRUCT\\)";
+    c_fix     = format;
+    c_fix_arg = "#  if !defined(_PROTOTYPES) || defined(_LONG_DOUBLE_STRUCT)";
+
+    test_text = "#  if !defined(__ia64) || !defined(_PROTOTYPES) || defined(_LONG_DOUBLE_STRUCT)\n";
+};
 
 /*
  *  Fix hpux10.20 <sys/time.h> to avoid invalid forward decl
@@ -1833,6 +2021,97 @@ fix = {
 		"\t0, __LWP_MTX_VALID, 0, 1, 1, 1, 1,\t\t\t\t\\\\\n"
 		"\t0, 0\t\t\t\t\t\t\t\t\\\\\n"
 		"}\n";
+};
+
+fix = {
+    hackname  = hpux_c99_intptr;
+    mach      = "*-hp-hpux11.3*";
+    files     = stdint.h;
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*PTRDIFF_MAX[ \t]*INT32_MAX[ \t]*$@#define PTRDIFF_MAX (2147483647l)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*PTRDIFF_MIN[ \t]*INT32_MIN[ \t]*$@#define PTRDIFF_MIN (-PTRDIFF_MAX - 1)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*INTPTR_MAX[ \t]*INT32_MAX[ \t]*$@#define INTPTR_MAX (2147483647l)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*INTPTR_MIN[ \t]*INT32_MIN[ \t]*$@#define INTPTR_MIN (-INTPTR_MAX - 1)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*UINTPTR_MAX[ \t]*UINT32_MAX[ \t]*$@#define UINTPTR_MAX (4294967295ul)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*SIZE_MAX[ \t]*UINT32_MAX[ \t]*$@#define SIZE_MAX (4294967295ul)@";
+    test_text = "#define PTRDIFF_MAX	INT32_MAX\n"
+		"#define PTRDIFF_MIN	INT32_MIN\n"
+		"#define INTPTR_MAX	INT32_MAX\n"
+		"#define INTPTR_MIN	INT32_MIN\n"
+		"#define UINTPTR_MAX	UINT32_MAX\n"
+		"#define SIZE_MAX	UINT32_MAX\n";
+};
+
+/*
+ * These hacks are need in inttypes.h on 11.23 and in stdint.h on 11.31.
+ */
+
+fix = {
+    hackname  = hpux_c99_inttypes;
+    mach      = "*-hp-hpux11.[23]*";
+    files     = inttypes.h;
+    files     = stdint.h;
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*UINT8_C(__c)[ \t]*__CONCAT_U__(__c)[ \t]*$@#define UINT8_C(__c) (__c)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*UINT16_C(__c)[ \t]*__CONCAT_U__(__c)[ \t]*$@#define UINT16_C(__c) (__c)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*INT32_C(__c)[ \t]*__CONCAT__(__c,l)[ \t]*$@#define INT32_C(__c) (__c)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*UINT32_C(__c)[ \t].*$@#define UINT32_C(__c) __CONCAT__(__c,u)@";
+    test_text = "#define UINT8_C(__c)     __CONCAT_U__(__c)\n"
+                "#define UINT16_C(__c)    __CONCAT_U__(__c)\n"
+		"#define INT32_C(__c)     __CONCAT__(__c,l)\n"
+		"#define UINT32_C(__c)     __CONCAT__(__c,ul)\n";
+};
+
+fix = {
+    hackname  = hpux_c99_inttypes2;
+    mach      = "*-hp-hpux11.2*";
+    files     = stdint.h;
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*INT8_C(__c)[ \t]*((signed char)(__c))[ \t]*$@#define INT8_C(__c) (__c)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*UINT8_C(__c)[ \t]*((unsigned char)(__c))[ \t]*$@#define UINT8_C(__c) (__c)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*INT16_C(__c)[ \t]*((short)(__c))[ \t]*$@#define INT16_C(__c) (__c)@";
+    sed       = "s@^[ \t]*#[ \t]*define[ \t]*UINT16_C(__c)[ \t]*((unsigned short)(__c))[ \t]*$@#define UINT16_C(__c) (__c)@";
+    test_text = "#  define	INT8_C(__c)	((signed char)(__c))\n"
+                "#  define      UINT8_C(__c)    ((unsigned char)(__c))\n"
+		"#  define      INT16_C(__c)    ((short)(__c))\n"
+		"#  define	UINT16_C(__c)	((unsigned short)(__c))\n";
+};
+
+fix = {
+    hackname  = hpux_stdint_least;
+    mach      = "*-hp-hpux11.2*";
+    files     = stdint.h;
+    select    = "^[ \t]*#[ \t]*define[ \t]*UINT_LEAST64_MAX[ \t]*ULLONG_MAX";
+    c_fix     = format;
+    c_fix_arg = "#ifdef __LP64__\n#  define	UINT_LEAST64_MAX	ULONG_MAX\n#else\n%0\n#endif\n";
+    test_text ="#  define       UINT_LEAST64_MAX        ULLONG_MAX\n";
+};
+
+fix = {
+    hackname  = hpux_stdint_fast;
+    mach      = "*-hp-hpux11.2*";
+    files     = stdint.h;
+    select    = "^[ \t]*#[ \t]*define[ \t]*UINT_FAST64_MAX[ \t]*ULLONG_MAX";
+    c_fix     = format;
+    c_fix_arg = "#ifdef __LP64__\n#  define	UINT_FAST64_MAX		ULONG_MAX\n#else\n%0\n#endif\n";
+    test_text ="#  define       UINT_FAST64_MAX        ULLONG_MAX\n";
+};
+
+fix = {
+    hackname  = hpux_inttype_int_least8_t;
+    mach      = "*-hp-hpux1[01].*";
+    files     = sys/_inttypes.h;
+    select    = "^[ \t]*typedef[ \t]*char[ \t]*int_least8_t.*";
+    c_fix     = format;
+    c_fix_arg = "typedef signed char int_least8_t;";
+    test_text ="typedef char int_least8_t;\n";
+};
+
+fix = {
+    hackname  = hpux_inttype_int8_t;
+    mach      = "*-hp-hpux1[01].*";
+    files     = sys/_inttypes.h;
+    select    = "^[ \t]*typedef[ \t]*char[ \t]*int8_t.*";
+    c_fix     = format;
+    c_fix_arg = "typedef signed char int8_t;";
+    test_text ="typedef char int8_t;\n";
 };
 
 /*
@@ -3075,7 +3354,91 @@ fix = {
 
 
 /*
- * Solaris 2.8 has what appears to be some gross workaround for 
+ * Sun Solaris 10 has a version of sys/int_const.h that defines
+ * UINT8_C and UINT16_C to unsigned constants.
+ */
+fix = {
+    hackname  = solaris_int_const;
+    select    = '@\(#\)int_const.h' "[ \t]+1.[0-9]+[ \t]+[0-9/]+ SMI";
+    files     = sys/int_const.h;
+    c_fix     = format;
+    c_fix_arg = "#define\tUINT8_C(c)\t(c)\n"
+                "%1\n"
+                "#define\tUINT16_C(c)\t(c)";
+    c_fix_arg = "^#define[ \t]+UINT8_C\\(c\\)[ \t]+__CONCAT__.*\n"
+                "(/\*.*\*/)\n"
+                "#define[ \t]+UINT16_C\\(c\\)[ \t]+__CONCAT__.*";
+    test_text =
+    '#pragma ident	"@(#)int_const.h	1.5	04/09/28 SMI"'"\n"
+    "#define	UINT8_C(c)	__CONCAT__(c,u)\n"
+    "/* CSTYLED */\n"
+    "#define	UINT16_C(c)	__CONCAT__(c,u)";
+};
+
+
+/*
+ * Sun Solaris 10 has a version of sys/int_limits.h that defines
+ * UINT8_MAX and UINT16_MAX to unsigned constants.
+ */
+fix = {
+    hackname  = solaris_int_limits_1;
+    select    = '@\(#\)int_limits.h' "[ \t]+1.[0-9]+[ \t]+[0-9/]+ SMI";
+    files     = sys/int_limits.h;
+    c_fix     = format;
+    c_fix_arg = "#define\tUINT8_MAX\t(255)\n"
+                "#define\tUINT16_MAX\t(65535)";
+    c_fix_arg = "^#define[ \t]+UINT8_MAX[ \t]+\\(255U\\)\n"
+                "#define[ \t]+UINT16_MAX[ \t]+\\(65535U\\)";
+    test_text =
+    '#pragma ident	"@(#)int_limits.h	1.9	04/09/28 SMI"'"\n"
+    "#define	UINT8_MAX	(255U)\n"
+    "#define	UINT16_MAX	(65535U)";
+};
+
+
+/*
+ * Sun Solaris 10 has a version of sys/int_limits.h that defines
+ * INT_FAST16 limits to wrong values for sys/int_types.h.
+ */
+fix = {
+    hackname  = solaris_int_limits_2;
+    select    = '@\(#\)int_limits.h' "[ \t]+1.[0-9]+[ \t]+[0-9/]+ SMI";
+    files     = sys/int_limits.h;
+    c_fix     = format;
+    c_fix_arg = "#define\t%1_FAST16_%2 %132_%2";
+    c_fix_arg = "^#define[ \t]+(INT|UINT)_FAST16_(MAX|MIN)[ \t](INT|UINT)16.*";
+    test_text =
+    '#pragma ident	"@(#)int_limits.h	1.9	04/09/28 SMI"'"\n"
+    "#define	INT_FAST16_MAX INT16_MAX\n"
+    "#define	UINT_FAST16_MAX UINT16_MAX\n"
+    "#define	INT_FAST16_MIN	INT16_MIN";
+};
+
+
+/*
+ * Sun Solaris up to 9 has a version of sys/int_types.h that forbids use
+ * of Standard C99 64-bit types in 32-bit mode.
+ */
+fix = {
+    hackname  = solaris_int_types;
+    select    = "__STDC__ - 0 == 0";
+    bypass    = "_LONGLONG_TYPE";
+    files     = sys/int_types.h;
+    c_fix     = format;
+    c_fix_arg =
+    "(defined(_STDC_C99) || !defined(_STRICT_STDC) || defined(__GNUC__))";
+    test_text =
+    "#if __STDC__ - 0 == 0 && !defined(_NO_LONGLONG)\n"
+    "typedef	long long		int64_t;\n"
+    "#endif\n\n"
+    "#if defined(_LP64) || (__STDC__ - 0 == 0 && !defined(_NO_LONGLONG))\n"
+    "typedef int64_t			intmax_t;\n"
+    "#endif";
+};
+
+
+/*
+ * Sun Solaris 8 has what appears to be some gross workaround for
  * some old version of their c++ compiler.  G++ doesn't want it
  * either, but doesn't want to be tied to SunPRO version numbers.
  */

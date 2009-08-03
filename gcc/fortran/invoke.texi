@@ -166,7 +166,7 @@ and warnings}.
 @gccoptlist{-fno-automatic  -ff2c  -fno-underscoring @gol
 -fwhole-file -fsecond-underscore @gol
 -fbounds-check -fcheck-array-temporaries  -fmax-array-constructor =@var{n} @gol
--fcheck=@var{<all|bounds|array-temps>}
+-fcheck=@var{<all|array-temps|bounds|do|pointer|recursion>}
 -fmax-stack-var-size=@var{n} @gol
 -fpack-derived  -frepack-arrays  -fshort-enums  -fexternal-blas @gol
 -fblas-matmul-limit=@var{n} -frecursive -finit-local-zero @gol
@@ -259,6 +259,7 @@ the default width of @code{DOUBLE PRECISION} to 16 bytes if possible, unless
 Allow @samp{$} as a valid non-first character in a symbol name. Symbols 
 that start with @samp{$} are rejected since it is unclear which rules to
 apply to implicit typing as different vendors implement different rules.
+Using @samp{$} in @code{IMPLICIT} statements is also rejected.
 
 @item -fbackslash
 @opindex @code{backslash}
@@ -1023,9 +1024,12 @@ really useful for use by the gfortran testsuite.
 
 @item -fsign-zero
 @opindex @code{fsign-zero}
-When writing zero values, show the negative sign if the sign bit is set.
-@code{fno-sign-zero} does not print the negative sign of zero values for
-compatibility with F77.  Default behavior is to show the negative sign.
+When enabled, floating point numbers of value zero with the sign bit set
+are written as negative number in formatted output and treated as
+negative in the @code{SIGN} intrinsic.  @code{fno-sign-zero} does not
+print the negative sign of zero values and regards zero as positive
+number in the @code{SIGN} intrinsic for compatibility with F77.
+Default behavior is to show the negative sign.
 @end table
 
 @node Code Gen Options
@@ -1202,6 +1206,7 @@ by use of the @option{-ff2c} option.
 @opindex @code{fcheck}
 @cindex array, bounds checking
 @cindex bounds checking
+@cindex pointer checking
 @cindex range checking
 @cindex subscript checking
 @cindex checking subscripts
@@ -1239,6 +1244,9 @@ checking substring references.
 @item @samp{do}
 Enable generation of run-time checks for invalid modification of loop
 iteration variables.
+
+@item @samp{pointer}
+Enable generation of run-time checks for pointers and allocatables.
 
 @item @samp{recursion}
 Enable generation of run-time checks for recursively called subroutines and

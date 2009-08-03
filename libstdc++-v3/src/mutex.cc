@@ -28,11 +28,11 @@
 #ifndef _GLIBCXX_HAVE_TLS
 namespace
 {
-  std::mutex&
-  get_once_mutex()
+  inline std::unique_lock<std::mutex>*&
+  __get_once_functor_lock_ptr()
   {
-    static std::mutex once_mutex;
-    return once_mutex;
+    static std::unique_lock<std::mutex>* __once_functor_lock_ptr = 0;
+    return __once_functor_lock_ptr;
   }
 }
 #endif
@@ -43,10 +43,6 @@ namespace std
   const try_to_lock_t try_to_lock = try_to_lock_t();
   const adopt_lock_t adopt_lock = adopt_lock_t();
 
-  const char*
-  lock_error::what() const throw()
-  { return "std::lock_error"; }
-
 #ifdef _GLIBCXX_HAVE_TLS
   __thread void* __once_callable;
   __thread void (*__once_call)();
@@ -55,10 +51,25 @@ namespace std
   template class function<void()>;
   function<void()> __once_functor;
 
+  mutex&
+  __get_once_mutex()
+  {
+    static mutex once_mutex;
+    return once_mutex;
+  }
+
+  // code linked against ABI 3.4.12 and later uses this
+  void
+  __set_once_functor_lock_ptr(unique_lock<mutex>* __ptr)
+  {
+    __get_once_functor_lock_ptr() = __ptr;
+  }
+
+  // unsafe - retained for compatibility with ABI 3.4.11
   unique_lock<mutex>&
   __get_once_functor_lock()
   {
-    static unique_lock<mutex> once_functor_lock(get_once_mutex(), defer_lock);
+    static unique_lock<mutex> once_functor_lock(__get_once_mutex(), defer_lock);
     return once_functor_lock;
   }
 #endif
@@ -69,7 +80,14 @@ namespace std
     {
 #ifndef _GLIBCXX_HAVE_TLS
       function<void()> __once_call = std::move(__once_functor);
-      __get_once_functor_lock().unlock();
+      if (unique_lock<mutex>* __lock = __get_once_functor_lock_ptr())
+      {
+        // caller is using new ABI and provided lock ptr
+        __get_once_functor_lock_ptr() = 0;
+        __lock->unlock();
+      }
+      else
+        __get_once_functor_lock().unlock();  // global lock
 #endif
       __once_call();
     }

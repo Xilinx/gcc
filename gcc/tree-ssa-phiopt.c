@@ -513,6 +513,8 @@ conditional_replacement (basic_block cond_bb, basic_block middle_bb,
 
   if (!useless_type_conversion_p (TREE_TYPE (result), TREE_TYPE (new_var)))
     {
+      source_location locus_0, locus_1;
+
       new_var2 = create_tmp_var (TREE_TYPE (result), NULL);
       add_referenced_var (new_var2);
       new_stmt = gimple_build_assign_with_ops (CONVERT_EXPR, new_var2,
@@ -521,6 +523,13 @@ conditional_replacement (basic_block cond_bb, basic_block middle_bb,
       gimple_assign_set_lhs (new_stmt, new_var2);
       gsi_insert_before (&gsi, new_stmt, GSI_SAME_STMT);
       new_var = new_var2;
+
+      /* Set the locus to the first argument, unless is doesn't have one.  */
+      locus_0 = gimple_phi_arg_location (phi, 0);
+      locus_1 = gimple_phi_arg_location (phi, 1);
+      if (locus_0 == UNKNOWN_LOCATION)
+        locus_0 = locus_1;
+      gimple_set_location (new_stmt, locus_0);
     }
 
   replace_phi_edge_with_variable (cond_bb, e1, phi, new_var);
@@ -1139,18 +1148,12 @@ get_non_trapping (void)
 
   /* Setup callbacks for the generic dominator tree walker.  */
   nontrap_set = nontrap;
-  walk_data.walk_stmts_backward = false;
   walk_data.dom_direction = CDI_DOMINATORS;
   walk_data.initialize_block_local_data = NULL;
-  walk_data.before_dom_children_before_stmts = nt_init_block;
-  walk_data.before_dom_children_walk_stmts = NULL;
-  walk_data.before_dom_children_after_stmts = NULL;
-  walk_data.after_dom_children_before_stmts = NULL;
-  walk_data.after_dom_children_walk_stmts = NULL;
-  walk_data.after_dom_children_after_stmts = nt_fini_block;
+  walk_data.before_dom_children = nt_init_block;
+  walk_data.after_dom_children = nt_fini_block;
   walk_data.global_data = NULL;
   walk_data.block_local_data_size = 0;
-  walk_data.interesting_blocks = NULL;
 
   init_walk_dominator_tree (&walk_data);
   walk_dominator_tree (&walk_data, ENTRY_BLOCK_PTR);
@@ -1183,6 +1186,7 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
   tree lhs, rhs, name;
   gimple newphi, new_stmt;
   gimple_stmt_iterator gsi;
+  source_location locus;
   enum tree_code code;
 
   /* Check if middle_bb contains of only one store.  */
@@ -1190,6 +1194,7 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
       || gimple_code (assign) != GIMPLE_ASSIGN)
     return false;
 
+  locus = gimple_location (assign);
   lhs = gimple_assign_lhs (assign);
   rhs = gimple_assign_rhs1 (assign);
   if (!INDIRECT_REF_P (lhs))
@@ -1230,6 +1235,7 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
   new_stmt = gimple_build_assign (condstoretemp, lhs);
   name = make_ssa_name (condstoretemp, new_stmt);
   gimple_assign_set_lhs (new_stmt, name);
+  gimple_set_location (new_stmt, locus);
   mark_symbols_for_renaming (new_stmt);
   gsi_insert_on_edge (e1, new_stmt);
 
@@ -1237,8 +1243,8 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
         holding the old RHS, and the other holding the temporary
         where we stored the old memory contents.  */
   newphi = create_phi_node (condstoretemp, join_bb);
-  add_phi_arg (newphi, rhs, e0);
-  add_phi_arg (newphi, name, e1);
+  add_phi_arg (newphi, rhs, e0, locus);
+  add_phi_arg (newphi, name, e1, locus);
 
   lhs = unshare_expr (lhs);
   new_stmt = gimple_build_assign (lhs, PHI_RESULT (newphi));
@@ -1276,7 +1282,7 @@ struct gimple_opt_pass pass_phiopt =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_PHIOPT,			/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
@@ -1305,7 +1311,7 @@ struct gimple_opt_pass pass_cselim =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_PHIOPT,			/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */

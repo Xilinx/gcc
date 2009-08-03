@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -44,10 +44,6 @@ package Prj is
    --  Name used to replace others as an index of an associative array
    --  attribute in situations where this is allowed.
 
-   Subdirs_Option : constant String := "--subdirs=";
-   --  Switch used to indicate that the real directories (object, exec,
-   --  library, ...) are subdirectories of those in the project file.
-
    Subdirs : String_Ptr := null;
    --  The value after the equal sign in switch --subdirs=...
    --  Contains the relative subdirectory.
@@ -63,14 +59,11 @@ package Prj is
    type Yes_No_Unknown is (Yes, No, Unknown);
    --  Tri-state to decide if -lgnarl is needed when linking
 
-   type Mode is (Multi_Language, Ada_Only);
-   --  Ada_Only: mode for gnatmake, gnatclean, gnatname, the GNAT driver
-   --  Multi_Language: mode for gprbuild, gprclean
-
    type Project_Qualifier is
      (Unspecified,
       Standard,
       Library,
+      Configuration,
       Dry,
       Aggregate,
       Aggregate_Library);
@@ -81,29 +74,7 @@ package Prj is
    --    Dry:                  abstract project is
    --    Aggregate:            aggregate project is
    --    Aggregate_Library:    aggregate library project is ...
-
-   function Get_Mode return Mode;
-   pragma Inline (Get_Mode);
-
-   procedure Set_Mode (New_Mode : Mode);
-   pragma Inline (Set_Mode);
-
-   Default_Language_Is_Ada : Boolean := True;
-   --  If no language was defined in the project or the configuration file, it
-   --  is an error, unless this variable is True, in which case it defaults to
-   --  Ada. Calling Set_Mode will reset this variable, default is for Ada_Only.
-
-   Must_Check_Configuration : Boolean := False;
-   --  True when the contents of the configuration file must be checked. This
-   --  is in general only needed by gprbuild itself, since other applications
-   --  can ignore such errors when they don't need to build directly. Calling
-   --  Set_Mode will reset this variable, default is for Ada_Only.
-
-   function In_Configuration return Boolean;
-   pragma Inline (In_Configuration);
-
-   procedure Set_In_Configuration (Value : Boolean);
-   pragma Inline (Set_In_Configuration);
+   --    Configuration:        configuration project is ...
 
    All_Packages : constant String_List_Access;
    --  Default value of parameter Packages of procedures Parse, in Prj.Pars and
@@ -119,35 +90,11 @@ package Prj is
    procedure Free (Tree : in out Project_Tree_Ref);
    --  Free memory associated with the tree
 
-   function Default_Ada_Spec_Suffix return File_Name_Type;
-   pragma Inline (Default_Ada_Spec_Suffix);
-   --  The name for the standard GNAT suffix for Ada spec source file name
-   --  ".ads". Initialized by Prj.Initialize.
-
-   function Default_Ada_Body_Suffix return File_Name_Type;
-   pragma Inline (Default_Ada_Body_Suffix);
-   --  The name for the standard GNAT suffix for Ada body source file name
-   --  ".adb". Initialized by Prj.Initialize.
-
-   function Slash return Path_Name_Type;
-   pragma Inline (Slash);
-   --  "/", used as the path of locally removed files
-
    Config_Project_File_Extension : String := ".cgpr";
    Project_File_Extension : String := ".gpr";
    --  The standard config and user project file name extensions. They are not
    --  constants, because Canonical_Case_File_Name is called on these variables
    --  in the body of Prj.
-
-   type Error_Warning is (Silent, Warning, Error);
-   --  Severity of some situations, such as: no Ada sources in a project where
-   --  Ada is one of the language.
-   --
-   --  When the situation occurs, the behaviour depends on the setting:
-   --
-   --    - Silent:  no action
-   --    - Warning: issue a warning, does not cause the tool to fail
-   --    - Error:   issue an error, causes the tool to fail
 
    function Empty_File   return File_Name_Type;
    function Empty_String return Name_Id;
@@ -157,11 +104,13 @@ package Prj is
       Name         : Path_Name_Type := No_Path;
       Display_Name : Path_Name_Type := No_Path;
    end record;
+   --  Directory names always end with a directory separator
 
    No_Path_Information : constant Path_Information := (No_Path, No_Path);
 
-   type Project_Id is new Nat;
-   No_Project : constant Project_Id := 0;
+   type Project_Data;
+   type Project_Id is access all Project_Data;
+   No_Project : constant Project_Id := null;
    --  Id of a Project File
 
    type String_List_Id is new Nat;
@@ -307,16 +256,18 @@ package Prj is
       Table_Increment      => 100);
    --  The table that contains all packages
 
-   type Language_Index is new Nat;
+   type Language_Data;
+   type Language_Ptr is access all Language_Data;
    --  Index of language data
 
-   No_Language_Index : constant Language_Index := 0;
+   No_Language_Index : constant Language_Ptr := null;
    --  Constant indicating that there is no language data
 
-   procedure Display_Language_Name
-     (In_Tree  : Project_Tree_Ref;
-      Language : Language_Index);
-   --  Output the name of a language
+   function Get_Language_From_Name
+     (Project : Project_Id;
+      Name    : String) return Language_Ptr;
+   --  Get a language from a project. This might return null if no such
+   --  language exists in the project
 
    Max_Header_Num : constant := 6150;
    type Header_Num is range 0 .. Max_Header_Num;
@@ -327,10 +278,8 @@ package Prj is
    function Hash (Name : Name_Id)        return Header_Num;
    function Hash (Name : File_Name_Type) return Header_Num;
    function Hash (Name : Path_Name_Type) return Header_Num;
-   --  Used for computing hash values for names put into above hash table
-
    function Hash (Project : Project_Id) return Header_Num;
-   --  Used for hash tables where Project_Id is the Key
+   --  Used for computing hash values for names put into above hash table
 
    type Language_Kind is (File_Based, Unit_Based);
    --  Type for the kind of language. All languages are file based, except Ada
@@ -402,9 +351,31 @@ package Prj is
                             Spec_Suffix     => No_File,
                             Body_Suffix     => No_File);
 
-   type Source_Id is new Nat;
+   function Is_Standard_GNAT_Naming (Naming : Lang_Naming_Data) return Boolean;
+   --  True if the naming scheme is GNAT's default naming scheme. This
+   --  is to take into account shortened names like "Ada." (a-), "System." (s-)
+   --  and so on.
 
-   No_Source : constant Source_Id := 0;
+   type Source_Data;
+   type Source_Id is access all Source_Data;
+
+   function Is_Compilable (Source : Source_Id) return Boolean;
+   pragma Inline (Is_Compilable);
+   --  Return True if we know how to compile Source (i.e. if a compiler is
+   --  defined). This doesn't indicate whether the source should be compiled.
+
+   function Object_To_Global_Archive (Source : Source_Id) return Boolean;
+   pragma Inline (Object_To_Global_Archive);
+   --  Return True if the object file should be put in the global archive.
+   --  This is for Ada, when only the closure of a main needs to be
+   --  (re)compiled.
+
+   function Other_Part (Source : Source_Id) return Source_Id;
+   pragma Inline (Other_Part);
+   --  Source ID for the other part, if any: for a spec, indicates its body;
+   --  for a body, indicates its spec.
+
+   No_Source : constant Source_Id := null;
 
    type Path_Syntax_Kind is
      (Canonical,
@@ -433,15 +404,25 @@ package Prj is
       Compiler_Driver_Path : String_Access := null;
       --  The path name of the executable for the compiler of the language
 
-      Compiler_Required_Switches : Name_List_Index := No_Name_List;
-      --  The list of switches that are required as a minimum to invoke the
-      --  compiler driver.
+      Compiler_Leading_Required_Switches : Name_List_Index := No_Name_List;
+      --  The list of initial switches that are required as a minimum to invoke
+      --  the compiler driver.
+
+      Compiler_Trailing_Required_Switches : Name_List_Index := No_Name_List;
+      --  The list of final switches that are required as a minimum to invoke
+      --  the compiler driver.
 
       Path_Syntax                  : Path_Syntax_Kind := Host;
       --  Value may be Canonical (Unix style) or Host (host syntax, for example
       --  on VMS for DEC C).
 
-      Object_File_Suffix : Name_Id := No_Name;
+      Object_File_Suffix                 : Name_Id := No_Name;
+      --  Optional alternate object file suffix
+
+      Object_File_Switches               : Name_List_Index := No_Name_List;
+      --  Optional object file switches. When this is defined, the switches
+      --  are used to specify the object file. The object file name is appended
+      --  to the last switch in the list. Example: ("-o", "").
 
       Compilation_PIC_Option : Name_List_Index := No_Name_List;
       --  The option(s) to compile a source in Position Independent Code for
@@ -557,9 +538,11 @@ package Prj is
                            Include_Compatible_Languages => No_Name_List,
                            Compiler_Driver              => No_File,
                            Compiler_Driver_Path         => null,
-                           Compiler_Required_Switches   => No_Name_List,
+                           Compiler_Leading_Required_Switches  => No_Name_List,
+                           Compiler_Trailing_Required_Switches => No_Name_List,
                            Path_Syntax                  => Canonical,
                            Object_File_Suffix           => No_Name,
+                           Object_File_Switches         => No_Name_List,
                            Compilation_PIC_Option       => No_Name_List,
                            Object_Generated             => True,
                            Objects_Linked               => True,
@@ -569,7 +552,7 @@ package Prj is
                            Mapping_Spec_Suffix          => No_File,
                            Mapping_Body_Suffix          => No_File,
                            Config_File_Switches         => No_Name_List,
-                           Dependency_Kind              => Makefile,
+                           Dependency_Kind              => None,
                            Dependency_Option            => No_Name_List,
                            Compute_Dependency           => No_Name_List,
                            Include_Option               => No_Name_List,
@@ -596,7 +579,7 @@ package Prj is
       First_Source  : Source_Id       := No_Source;
       Mapping_Files : Mapping_Files_Htable.Instance :=
                         Mapping_Files_Htable.Nil;
-      Next          : Language_Index  := No_Language_Index;
+      Next          : Language_Ptr  := No_Language_Index;
    end record;
 
    No_Language_Data : constant Language_Data :=
@@ -607,180 +590,147 @@ package Prj is
                          Mapping_Files => Mapping_Files_Htable.Nil,
                          Next          => No_Language_Index);
 
-   package Language_Data_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Language_Data,
-      Table_Index_Type     => Language_Index,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 10,
-      Table_Increment      => 100);
-   --  The table for lists of names used in package Language_Processing
-
-   type Alternate_Language_Id is new Nat;
-
-   No_Alternate_Language : constant Alternate_Language_Id := 0;
-
-   type Alternate_Language_Data is record
-      Language : Language_Index := No_Language_Index;
-      Next     : Alternate_Language_Id := No_Alternate_Language;
+   type Language_List_Element;
+   type Language_List is access all Language_List_Element;
+   type Language_List_Element is record
+      Language : Language_Ptr := No_Language_Index;
+      Next     : Language_List;
    end record;
 
-   package Alternate_Language_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Alternate_Language_Data,
-      Table_Index_Type     => Alternate_Language_Id,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 10,
-      Table_Increment      => 100);
-   --  The table for storing the alternate languages of a header file that
-   --  is used for several languages.
-
    type Source_Kind is (Spec, Impl, Sep);
+   subtype Spec_Or_Body is Source_Kind range Spec .. Impl;
+
+   --  The following declarations declare a structure used to store the Name
+   --  and File and Path names of a unit, with a reference to its GNAT Project
+   --  File(s). Some units might have neither Spec nor Impl when they were
+   --  created for a "separate".
+
+   type File_Names_Data is array (Spec_Or_Body) of Source_Id;
+
+   type Unit_Data is record
+      Name       : Name_Id := No_Name;
+      File_Names : File_Names_Data;
+   end record;
+
+   type Unit_Index is access all Unit_Data;
+
+   No_Unit_Index : constant Unit_Index := null;
+   --  Used to indicate a null entry for no unit
+
+   --  Structure to define source data
 
    type Source_Data is record
-      Project             : Project_Id            := No_Project;
+      Project                : Project_Id          := No_Project;
       --  Project of the source
 
-      Language_Name       : Name_Id               := No_Name;
-      --  Name of the language of the source
+      Language               : Language_Ptr        := No_Language_Index;
+      --  Index of the language. This is an index into
+      --  Project_Tree.Languages_Data.
 
-      Language            : Language_Index        := No_Language_Index;
-      --  Index of the language
-
-      Lang_Kind           : Language_Kind         := File_Based;
-      --  Kind of the language
-
-      Compiled            : Boolean               := True;
-      --  False when there is no compiler for the language
-
-      In_Interfaces       : Boolean               := True;
+      In_Interfaces          : Boolean             := True;
       --  False when the source is not included in interfaces, when attribute
       --  Interfaces is declared.
 
-      Declared_In_Interfaces : Boolean            := False;
+      Declared_In_Interfaces : Boolean             := False;
       --  True when source is declared in attribute Interfaces
 
-      Alternate_Languages : Alternate_Language_Id := No_Alternate_Language;
-      --  List of languages a header file may also be, in addition of
-      --  language Language_Name.
+      Alternate_Languages    : Language_List       := null;
+      --  List of languages a header file may also be, in addition of language
+      --  Language_Name.
 
-      Kind                : Source_Kind           := Spec;
+      Kind                   : Source_Kind         := Spec;
       --  Kind of the source: spec, body or subunit
 
-      Dependency          : Dependency_File_Kind  := None;
-      --  Kind of dependency: none, Makefile fragment or ALI file
+      Unit                   : Unit_Index          := No_Unit_Index;
+      --  Name of the unit, if language is unit based. This is only set for
+      --  those files that are part of the compilation set (for instance a
+      --  file in an extended project that is overridden will not have this
+      --  field set).
 
-      Other_Part          : Source_Id             := No_Source;
-      --  Source ID for the other part, if any: for a spec, indicates its body;
-      --  for a body, indicates its spec.
+      Index                  : Int                 := 0;
+      --  Index of the source in a multi unit source file (the same Source_Data
+      --  is duplicated several times when there are several units in the same
+      --  file). Index is 0 if there is either no unit or a single one, and
+      --  starts at 1 when there are multiple units
 
-      Unit                : Name_Id               := No_Name;
-      --  Name of the unit, if language is unit based
-
-      Index               : Int                   := 0;
-      --  Index of the source in a multi unit source file
-
-      Locally_Removed     : Boolean               := False;
+      Locally_Removed        : Boolean             := False;
       --  True if the source has been "excluded"
 
-      Get_Object          : Boolean               := False;
-      --  Indicates that the object of the source should be put in the global
-      --  archive. This is for Ada, when only the closure of a main needs to
-      --  be compiled/recompiled.
+      Replaced_By            : Source_Id           := No_Source;
 
-      Replaced_By         : Source_Id             := No_Source;
-
-      File                : File_Name_Type        := No_File;
+      File                   : File_Name_Type      := No_File;
       --  Canonical file name of the source
 
-      Display_File        : File_Name_Type        := No_File;
+      Display_File           : File_Name_Type      := No_File;
       --  File name of the source, for display purposes
 
-      Path                : Path_Information      := No_Path_Information;
+      Path                   : Path_Information    := No_Path_Information;
       --  Path name of the source
 
-      Source_TS           : Time_Stamp_Type       := Empty_Time_Stamp;
+      Source_TS              : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Time stamp of the source file
 
-      Object_Project      : Project_Id            := No_Project;
-      --  Project where the object file is
+      Object_Project         : Project_Id          := No_Project;
+      --  Project where the object file is. This might be different from
+      --  Project when using extending project files.
 
-      Object_Exists       : Boolean               := True;
-      --  True if an object file exists
-
-      Object_Linked          : Boolean            := True;
-      --  False if the object file is not use to link executables or included
-      --  in libraries.
-
-      Object              : File_Name_Type        := No_File;
+      Object                 : File_Name_Type      := No_File;
       --  File name of the object file
 
-      Current_Object_Path : Path_Name_Type        := No_Path;
+      Current_Object_Path    : Path_Name_Type      := No_Path;
       --  Object path of an existing object file
 
-      Object_Path         : Path_Name_Type        := No_Path;
+      Object_Path            : Path_Name_Type      := No_Path;
       --  Object path of the real object file
 
-      Object_TS           : Time_Stamp_Type       := Empty_Time_Stamp;
+      Object_TS              : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Object file time stamp
 
-      Dep_Name            : File_Name_Type        := No_File;
+      Dep_Name               : File_Name_Type      := No_File;
       --  Dependency file simple name
 
-      Current_Dep_Path    : Path_Name_Type        := No_Path;
+      Current_Dep_Path       : Path_Name_Type      := No_Path;
       --  Path name of an existing dependency file
 
-      Dep_Path            : Path_Name_Type        := No_Path;
+      Dep_Path               : Path_Name_Type      := No_Path;
       --  Path name of the real dependency file
 
-      Dep_TS              : Time_Stamp_Type       := Empty_Time_Stamp;
+      Dep_TS                 : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Dependency file time stamp
 
-      Switches            : File_Name_Type        := No_File;
+      Switches               : File_Name_Type      := No_File;
       --  File name of the switches file. For all languages, this is a file
       --  that ends with the .cswi extension.
 
-      Switches_Path       : Path_Name_Type        := No_Path;
+      Switches_Path          : Path_Name_Type      := No_Path;
       --  Path name of the switches file
 
-      Switches_TS         : Time_Stamp_Type       := Empty_Time_Stamp;
+      Switches_TS            : Time_Stamp_Type     := Empty_Time_Stamp;
       --  Switches file time stamp
 
-      Naming_Exception    : Boolean               := False;
+      Naming_Exception       : Boolean             := False;
       --  True if the source has an exceptional name
 
-      Next_In_Sources     : Source_Id             := No_Source;
-      --  Link to another source in the project tree
-
-      Next_In_Project     : Source_Id             := No_Source;
-      --  Link to another source in the project
-
-      Next_In_Lang        : Source_Id             := No_Source;
-      --  Link to another source of the same language
+      Next_In_Lang           : Source_Id           := No_Source;
+      --  Link to another source of the same language in the same project
    end record;
 
    No_Source_Data : constant Source_Data :=
                       (Project                => No_Project,
-                       Language_Name          => No_Name,
                        Language               => No_Language_Index,
-                       Lang_Kind              => File_Based,
-                       Compiled               => True,
                        In_Interfaces          => True,
                        Declared_In_Interfaces => False,
-                       Alternate_Languages    => No_Alternate_Language,
+                       Alternate_Languages    => null,
                        Kind                   => Spec,
-                       Dependency             => None,
-                       Other_Part             => No_Source,
-                       Unit                   => No_Name,
+                       Unit                   => No_Unit_Index,
                        Index                  => 0,
                        Locally_Removed        => False,
-                       Get_Object             => False,
                        Replaced_By            => No_Source,
                        File                   => No_File,
                        Display_File           => No_File,
                        Path                   => No_Path_Information,
                        Source_TS              => Empty_Time_Stamp,
                        Object_Project         => No_Project,
-                       Object_Exists          => True,
-                       Object_Linked          => True,
                        Object                 => No_File,
                        Current_Object_Path    => No_Path,
                        Object_Path            => No_Path,
@@ -793,17 +743,7 @@ package Prj is
                        Switches_Path          => No_Path,
                        Switches_TS            => Empty_Time_Stamp,
                        Naming_Exception       => False,
-                       Next_In_Sources        => No_Source,
-                       Next_In_Project        => No_Source,
                        Next_In_Lang           => No_Source);
-
-   package Source_Data_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Source_Data,
-      Table_Index_Type     => Source_Id,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 1000,
-      Table_Increment      => 100);
-   --  The table for the sources
 
    package Source_Paths_Htable is new Simple_HTable
      (Header_Num => Header_Num,
@@ -855,7 +795,7 @@ package Prj is
       Symbol_Policy => Autonomous);
    --  The default value of the symbol data
 
-   function Image (Casing : Casing_Type) return String;
+   function Image (The_Casing : Casing_Type) return String;
    --  Similar to 'Image (but avoid use of this attribute in compiler)
 
    function Value (Image : String) return Casing_Type;
@@ -864,130 +804,39 @@ package Prj is
 
    --  The following record contains data for a naming scheme
 
-   type Naming_Data is record
+   function Get_Object_Directory
+     (Project             : Project_Id;
+      Including_Libraries : Boolean;
+      Only_If_Ada         : Boolean := False) return Path_Name_Type;
+   --  Return the object directory to use for the project. This depends on
+   --  whether we have a library project or a standard project. This function
+   --  might return No_Name when no directory applies.
+   --  If we have a a library project file and Including_Libraries is True then
+   --  the library dir is returned instead of the object dir.
+   --  If Only_If_Ada is True, then No_Name will be returned when the project
+   --  doesn't Ada sources.
 
-      Dot_Replacement : File_Name_Type := No_File;
-      --  The string to replace '.' in the source file name (for Ada)
+   procedure Compute_All_Imported_Projects (Project : Project_Id);
+   --  Compute, the list of the projects imported directly or indirectly by
+   --  project Project. The result is stored in Project.All_Imported_Projects
 
-      Dot_Repl_Loc : Source_Ptr := No_Location;
+   function Ultimate_Extending_Project_Of
+     (Proj : Project_Id) return Project_Id;
+   --  Returns the ultimate extending project of project Proj. If project Proj
+   --  is not extended, returns Proj.
 
-      Casing : Casing_Type := All_Lower_Case;
-      --  The casing of the source file name (for Ada)
-
-      Spec_Suffix : Array_Element_Id := No_Array_Element;
-      --  The string to append to the unit name for the
-      --  source file name of a spec.
-      --  Indexed by the programming language.
-
-      Ada_Spec_Suffix_Loc : Source_Ptr := No_Location;
-
-      Body_Suffix : Array_Element_Id := No_Array_Element;
-      --  The string to append to the unit name for the
-      --  source file name of a body.
-      --  Indexed by the programming language.
-
-      Ada_Body_Suffix_Loc : Source_Ptr := No_Location;
-
-      Separate_Suffix : File_Name_Type := No_File;
-      --  String to append to unit name for source file name of an Ada subunit
-
-      Sep_Suffix_Loc : Source_Ptr := No_Location;
-      --  Position in the project file source where Separate_Suffix is defined
-
-      Specs : Array_Element_Id := No_Array_Element;
-      --  An associative array mapping individual specs to source file names
-      --  This is specific to Ada.
-
-      Bodies : Array_Element_Id := No_Array_Element;
-      --  An associative array mapping individual bodies to source file names
-      --  This is specific to Ada.
-
-      Specification_Exceptions : Array_Element_Id := No_Array_Element;
-      --  An associative array listing spec file names that do not have the
-      --  spec suffix. Not used by Ada. Indexed by programming language name.
-
-      Implementation_Exceptions : Array_Element_Id := No_Array_Element;
-      --  An associative array listing body file names that do not have the
-      --  body suffix. Not used by Ada. Indexed by programming language name.
-
-   end record;
-
-   function Spec_Suffix_Of
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : Naming_Data) return String;
-
-   function Spec_Suffix_Id_Of
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : Naming_Data) return File_Name_Type;
-
-   function Spec_Suffix_Id_Of
-     (In_Tree     : Project_Tree_Ref;
-      Language_Id : Name_Id;
-      Naming      : Naming_Data) return File_Name_Type;
-
-   procedure Set_Spec_Suffix
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : in out Naming_Data;
-      Suffix   : File_Name_Type);
-
-   function Body_Suffix_Id_Of
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : Naming_Data) return File_Name_Type;
-
-   function Body_Suffix_Id_Of
-     (In_Tree     : Project_Tree_Ref;
-      Language_Id : Name_Id;
-      Naming      : Naming_Data) return File_Name_Type;
-
-   function Body_Suffix_Of
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : Naming_Data) return String;
-
-   procedure Set_Body_Suffix
-     (In_Tree  : Project_Tree_Ref;
-      Language : String;
-      Naming   : in out Naming_Data;
-      Suffix   : File_Name_Type);
-
-   function Objects_Exist_For
-     (Language : String;
-      In_Tree  : Project_Tree_Ref) return Boolean;
-
-   function Standard_Naming_Data
-     (Tree : Project_Tree_Ref := No_Project_Tree) return Naming_Data;
-   pragma Inline (Standard_Naming_Data);
-   --  The standard GNAT naming scheme when Tree is No_Project_Tree.
-   --  Otherwise, return the default naming scheme for the project tree Tree,
-   --  which must have been Initialized.
-
-   function Same_Naming_Scheme
-     (Left, Right : Naming_Data) return Boolean;
-   --  Returns True if Left and Right are the same naming scheme
-   --  not considering Specs and Bodies.
-
-   type Project_List is new Nat;
-   Empty_Project_List : constant Project_List := 0;
-   --  A list of project files
-
-   type Project_Element is record
+   type Project_List_Element;
+   type Project_List is access all Project_List_Element;
+   type Project_List_Element is record
       Project : Project_Id   := No_Project;
-      Next    : Project_List := Empty_Project_List;
+      Next    : Project_List := null;
    end record;
-   --  Element in a list of project files. Next is the id of the next
-   --  project file in the list.
+   --  A list of projects
 
-   package Project_List_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Project_Element,
-      Table_Index_Type     => Project_List,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 100,
-      Table_Increment      => 100);
-   --  The table that contains the lists of project files
+   procedure Free_List
+     (List         : in out Project_List;
+      Free_Project : Boolean);
+   --  Free the list of projects, if Free_Project, each project is also freed
 
    type Response_File_Format is
      (None,
@@ -1003,6 +852,10 @@ package Prj is
       Run_Path_Option               : Name_List_Index := No_Name_List;
       --  The option to use when linking to specify the path where to look for
       --  libraries.
+
+      Separate_Run_Path_Options     : Boolean := False;
+      --  True if each directory needs to be specified in a separate run path
+      --  option.
 
       Executable_Suffix             : Name_Id         := No_Name;
       --  The suffix of executables, when specified in the configuration or in
@@ -1111,6 +964,7 @@ package Prj is
    Default_Project_Config : constant Project_Configuration :=
                               (Target                        => No_Name,
                                Run_Path_Option               => No_Name_List,
+                               Separate_Run_Path_Options     => False,
                                Executable_Suffix             => No_Name,
                                Linker                        => No_Path,
                                Map_File_Option               => No_Name,
@@ -1165,7 +1019,8 @@ package Prj is
       Config : Project_Configuration;
 
       Path : Path_Information := No_Path_Information;
-      --  The path name of the project file
+      --  The path name of the project file. This include base name of the
+      --  project file.
 
       Virtual : Boolean := False;
       --  True for virtual extending projects
@@ -1173,34 +1028,19 @@ package Prj is
       Location : Source_Ptr := No_Location;
       --  The location in the project file source of the reserved word project
 
-      Naming : Naming_Data := Standard_Naming_Data;
-      --  The naming scheme of this project file
-
       ---------------
       -- Languages --
       ---------------
 
-      Languages : Name_List_Index := No_Name_List;
-      --  The list of languages of the sources of this project
-
-      Include_Language : Language_Index := No_Language_Index;
-
-      First_Language_Processing : Language_Index := No_Language_Index;
-      --  First index of the language data in the project
-
-      Unit_Based_Language_Name  : Name_Id := No_Name;
-      Unit_Based_Language_Index : Language_Index := No_Language_Index;
-      --  The name and index, if any, of the unit-based language of some
-      --  sources of the project. There may be only one unit-based language
-      --  in one project.
+      Languages : Language_Ptr := No_Language_Index;
+      --  First index of the language data in the project.
+      --  This is an index into the project_tree_data.languages_data.
+      --  Traversing the list gives access to all the languages supported by
+      --  the project.
 
       --------------
       -- Projects --
       --------------
-
-      First_Referred_By : Project_Id := No_Project;
-      --  The project, if any, that was the first to be known as importing or
-      --  extending this project
 
       Mains : String_List_Id := Nil_String;
       --  List of mains specified by attribute Main
@@ -1217,11 +1057,12 @@ package Prj is
       --  The declarations (variables, attributes and packages) of this project
       --  file.
 
-      Imported_Projects : Project_List := Empty_Project_List;
+      Imported_Projects : Project_List;
       --  The list of all directly imported projects, if any
 
-      All_Imported_Projects : Project_List := Empty_Project_List;
-      --  The list of all projects imported directly or indirectly, if any
+      All_Imported_Projects : Project_List;
+      --  The list of all projects imported directly or indirectly, if any.
+      --  This does not include the project itself.
 
       -----------------
       -- Directories --
@@ -1229,9 +1070,6 @@ package Prj is
 
       Directory : Path_Information := No_Path_Information;
       --  Path name of the directory where the project file resides
-
-      Dir_Path : String_Access;
-      --  Same as Directory.Name, but as an access to String
 
       Object_Directory : Path_Information := No_Path_Information;
       --  The path name of the object directory of this project file
@@ -1295,27 +1133,12 @@ package Prj is
       -------------
       -- Sources --
       -------------
-
-      Ada_Sources_Present : Boolean := True;
-      --  True if there are Ada sources in the project
-
-      Other_Sources_Present : Boolean := True;
-      --  True if there are non-Ada sources in the project
-
-      Ada_Sources : String_List_Id := Nil_String;
-      --  The list of all the Ada source file names (gnatmake only)
-
-      First_Source : Source_Id := No_Source;
-      Last_Source  : Source_Id := No_Source;
-      --  Head and tail of the list of sources
+      --  The sources for all languages including Ada are accessible through
+      --  the Source_Iterator type
 
       Interfaces_Defined      : Boolean := False;
       --  True if attribute Interfaces is declared for the project or any
       --  project it extends.
-
-      Imported_Directories_Switches : Argument_List_Access := null;
-      --  List of the source search switches (-I<source dir>) to be used when
-      --  compiling.
 
       Include_Path : String_Access := null;
       --  The search source path for the project. Used as the value for an
@@ -1377,14 +1200,6 @@ package Prj is
       Config_Checked : Boolean := False;
       --  A flag to avoid checking repetitively the configuration pragmas file
 
-      Checked : Boolean := False;
-      --  A flag to avoid checking repetitively the naming scheme of this
-      --  project file.
-
-      Seen : Boolean := False;
-      --  A flag to mark a project as "visited" to avoid processing the same
-      --  project several time.
-
       Depth : Natural := 0;
       --  The maximum depth of a project in the project graph. Depth of main
       --  project is 0.
@@ -1395,64 +1210,19 @@ package Prj is
 
    end record;
 
-   function Empty_Project (Tree : Project_Tree_Ref) return Project_Data;
-   --  Return the representation of an empty project in project Tree tree.
-   --  The project tree Tree must have been Initialized and/or Reset.
+   function Empty_Project return Project_Data;
+   --  Return the representation of an empty project
 
    function Is_Extending
      (Extending : Project_Id;
-      Extended  : Project_Id;
-      In_Tree   : Project_Tree_Ref) return Boolean;
-   --  ??? needs comment
+      Extended  : Project_Id) return Boolean;
+   --  Return True if Extending is extending the Extended project
 
-   function Is_A_Language
-     (Tree          : Project_Tree_Ref;
-      Data          : Project_Data;
-      Language_Name : Name_Id) return Boolean;
-   --  Return True when Language_Name (which must be lower case) is one of the
-   --  languages used for the project.
+   function Has_Ada_Sources (Data : Project_Id) return Boolean;
+   --  Return True if the project has Ada sources
 
    Project_Error : exception;
    --  Raised by some subprograms in Prj.Attr
-
-   package Project_Table is new GNAT.Dynamic_Tables (
-     Table_Component_Type => Project_Data,
-     Table_Index_Type     => Project_Id,
-     Table_Low_Bound      => 1,
-     Table_Initial        => 100,
-     Table_Increment      => 100);
-   --  The set of all project files
-
-   type Spec_Or_Body is (Specification, Body_Part);
-
-   type File_Name_Data is record
-      Name         : File_Name_Type   := No_File;
-      Index        : Int              := 0;
-      Display_Name : File_Name_Type   := No_File;
-      Path         : Path_Information := No_Path_Information;
-      Project      : Project_Id       := No_Project;
-      Needs_Pragma : Boolean          := False;
-   end record;
-   --  File and Path name of a spec or body
-
-   type File_Names_Data is array (Spec_Or_Body) of File_Name_Data;
-
-   type Unit_Index is new Nat;
-   No_Unit_Index : constant Unit_Index := 0;
-   type Unit_Data is record
-      Name       : Name_Id    := No_Name;
-      File_Names : File_Names_Data;
-   end record;
-   --  Name and File and Path names of a unit, with a reference to its
-   --  GNAT Project File(s).
-
-   package Unit_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Unit_Data,
-      Table_Index_Type     => Unit_Index,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 100,
-      Table_Increment      => 100);
-   --  Table of all units in a project tree
 
    package Units_Htable is new Simple_HTable
      (Header_Num => Header_Num,
@@ -1463,65 +1233,62 @@ package Prj is
       Equal      => "=");
    --  Mapping of unit names to indexes in the Units table
 
-   type Unit_Project is record
-      Unit    : Unit_Index := No_Unit_Index;
-      Project : Project_Id := No_Project;
-   end record;
+   ---------------------
+   -- Source_Iterator --
+   ---------------------
 
-   No_Unit_Project : constant Unit_Project := (No_Unit_Index, No_Project);
+   type Source_Iterator is private;
 
-   package Files_Htable is new Simple_HTable
-     (Header_Num => Header_Num,
-      Element    => Unit_Project,
-      No_Element => No_Unit_Project,
-      Key        => File_Name_Type,
-      Hash       => Hash,
-      Equal      => "=");
-   --  Mapping of file names to indexes in the Units table
+   function For_Each_Source
+     (In_Tree  : Project_Tree_Ref;
+      Project  : Project_Id := No_Project;
+      Language : Name_Id := No_Name) return Source_Iterator;
+   --  Returns an iterator for all the sources of a project tree, or a specific
+   --  project, or a specific language.
+
+   function Element (Iter : Source_Iterator) return Source_Id;
+   --  Return the current source (or No_Source if there are no more sources)
+
+   procedure Next (Iter : in out Source_Iterator);
+   --  Move on to the next source
+
+   function Find_Source
+     (In_Tree          : Project_Tree_Ref;
+      Project          : Project_Id;
+      In_Imported_Only : Boolean := False;
+      In_Extended_Only : Boolean := False;
+      Base_Name        : File_Name_Type) return Source_Id;
+   --  Find the first source file with the given name either in the whole tree
+   --  (if In_Imported_Only is False) or in the projects imported or extended
+   --  by Project otherwise. In_Extended_Only implies In_Imported_Only, and
+   --  will only look in Project and the projects it extends
+
+   -----------------------
+   -- Project_Tree_Data --
+   -----------------------
 
    type Private_Project_Tree_Data is private;
    --  Data for a project tree that is used only by the Project Manager
 
    type Project_Tree_Data is
       record
-         --  Languages and sources of the project
-
-         First_Language : Language_Index  := No_Language_Index;
-         --
-
-         First_Source : Source_Id := No_Source;
-         --
-
-         --  Tables
-
-         Languages_Data    : Language_Data_Table.Instance;
          Name_Lists        : Name_List_Table.Instance;
          String_Elements   : String_Element_Table.Instance;
          Variable_Elements : Variable_Element_Table.Instance;
          Array_Elements    : Array_Element_Table.Instance;
          Arrays            : Array_Table.Instance;
          Packages          : Package_Table.Instance;
-         Project_Lists     : Project_List_Table.Instance;
-         Projects          : Project_Table.Instance;
-         Sources           : Source_Data_Table.Instance;
-         Alt_Langs         : Alternate_Language_Table.Instance;
-         Units             : Unit_Table.Instance;
+         Projects          : Project_List;
+
          Units_HT          : Units_Htable.Instance;
-         Files_HT          : Files_Htable.Instance;
+         --  Unit name to Unit_Index (and from there so Source_Id)
+
          Source_Paths_HT   : Source_Paths_Htable.Instance;
-         Unit_Sources_HT   : Unit_Sources_Htable.Instance;
+         --  Full path to Source_Id
 
-         --  Private part
-
-         Private_Part : Private_Project_Tree_Data;
+         Private_Part      : Private_Project_Tree_Data;
       end record;
    --  Data for a project tree
-
-   type Put_Line_Access is access procedure
-     (Line    : String;
-      Project : Project_Id;
-      In_Tree : Project_Tree_Ref);
-   --  Use to customize error reporting in Prj.Proc and Prj.Nmsc
 
    procedure Expect (The_Token : Token_Type; Token_Image : String);
    --  Check that the current token is The_Token. If it is not, then output
@@ -1535,17 +1302,15 @@ package Prj is
    --  This procedure resets all the tables that are used when processing a
    --  project file tree. Initialize must be called before the call to Reset.
 
-   procedure Register_Default_Naming_Scheme
-     (Language            : Name_Id;
-      Default_Spec_Suffix : File_Name_Type;
-      Default_Body_Suffix : File_Name_Type;
-      In_Tree             : Project_Tree_Ref);
-   --  Register the default suffixes for a given language. These extensions
-   --  will be ignored if the user has specified a new naming scheme in a
-   --  project file.
-   --
-   --  Otherwise, this information will be automatically added to Naming_Data
-   --  when a project is processed, in the lists Spec_Suffix and Body_Suffix.
+   package Project_Boolean_Htable is new Simple_HTable
+     (Header_Num => Header_Num,
+      Element    => Boolean,
+      No_Element => False,
+      Key        => Project_Id,
+      Hash       => Hash,
+      Equal      => "=");
+   --  A table that associates a project to a boolean. This is used to detect
+   --  whether a project was already processed for instance.
 
    generic
       type State is limited private;
@@ -1553,17 +1318,20 @@ package Prj is
         (Project    : Project_Id;
          With_State : in out State);
    procedure For_Every_Project_Imported
-     (By         : Project_Id;
-      In_Tree    : Project_Tree_Ref;
-      With_State : in out State);
+     (By             : Project_Id;
+      With_State     : in out State;
+      Imported_First : Boolean := False);
    --  Call Action for each project imported directly or indirectly by project
-   --  By. Action is called according to the order of importation: if A
+   --  By, as well as extended projects.
+   --  The order of processing depends on Imported_First:
+   --  If False, Action is called according to the order of importation: if A
    --  imports B, directly or indirectly, Action will be called for A before
    --  it is called for B. If two projects import each other directly or
    --  indirectly (using at least one "limited with"), it is not specified
-   --  for which of these two projects Action will be called first. Projects
-   --  that are extended by other projects are not considered. With_State may
-   --  be used by Action to choose a behavior or to report some global result.
+   --  for which of these two projects Action will be called first.
+   --  The order is reversed if Imported_First is True.
+   --  With_State may be used by Action to choose a behavior or to report some
+   --  global result.
 
    function Extend_Name
      (File        : File_Name_Type;
@@ -1584,16 +1352,91 @@ package Prj is
      (Source_File_Name : File_Name_Type) return File_Name_Type;
    --  Returns the switches file name corresponding to a source file name
 
+   -----------
+   -- Flags --
+   -----------
+
+   type Processing_Flags is private;
+   --  Flags used while parsing and processing a project tree to configure the
+   --  behavior of the parser, and indicate how to report error messages. This
+   --  structure does not allocate memory and never needs to be freed
+
+   type Error_Warning is (Silent, Warning, Error);
+   --  Severity of some situations, such as: no Ada sources in a project where
+   --  Ada is one of the language.
+   --
+   --  When the situation occurs, the behaviour depends on the setting:
+   --
+   --    - Silent:  no action
+   --    - Warning: issue a warning, does not cause the tool to fail
+   --    - Error:   issue an error, causes the tool to fail
+
+   type Error_Handler is access procedure
+     (Project    : Project_Id;
+      Is_Warning : Boolean);
+   --  This warngs when an error was found when parsing a project. The error
+   --  itself is handled through Prj.Err (and Prj.Err.Finalize should be called
+   --  to actually print the error). This ensures that duplicate error messages
+   --  are always correctly removed, that errors msgs are sorted, and that all
+   --  tools will report the same error to the user.
+
+   function Create_Flags
+     (Report_Error               : Error_Handler;
+      When_No_Sources            : Error_Warning;
+      Require_Sources_Other_Lang : Boolean := True;
+      Allow_Duplicate_Basenames  : Boolean := True;
+      Compiler_Driver_Mandatory  : Boolean := False;
+      Error_On_Unknown_Language  : Boolean := True) return Processing_Flags;
+   --  Function used to create Processing_Flags structure
+   --
+   --  If Allow_Duplicate_Basenames, then files with the same base names are
+   --  authorized within a project for source-based languages (never for unit
+   --  based languages).
+   --
+   --  If Compiler_Driver_Mandatory is true, then a Compiler.Driver attribute
+   --  for each language must be defined, or we will not look for its source
+   --  files.
+   --
+   --  When_No_Sources indicates what should be done when no sources of a
+   --  language are found in a project where this language is declared.
+   --  If Require_Sources_Other_Lang is true, then all languages must have at
+   --  least one source file, or an error is reported via When_No_Sources. If
+   --  it is false, this is only required for Ada (and only if it is a language
+   --  of the project). When this parameter is set to False, we do not check
+   --  that a proper naming scheme is defined for languages other than Ada.
+   --
+   --  If Report_Error is null, use the standard error reporting mechanism
+   --  (Errout). Otherwise, report errors using Report_Error.
+   --
+   --  If Error_On_Unknown_Language is true, an error is displayed if some of
+   --  the source files listed in the project do not match any naming scheme
+
+   Gprbuild_Flags : constant Processing_Flags;
+   Gnatmake_Flags : constant Processing_Flags;
+   --  Flags used by the various tools. They all display the error messages
+   --  through Prj.Err.
+
    ----------------
    -- Temp Files --
    ----------------
 
-   procedure Record_Temp_File (Path : Path_Name_Type);
+   procedure Record_Temp_File
+     (Tree : Project_Tree_Ref;
+      Path : Path_Name_Type);
    --  Record the path of a newly created temporary file, so that it can be
    --  deleted later.
 
-   procedure Delete_All_Temp_Files;
-   --  Delete all recorded temporary files
+   procedure Delete_All_Temp_Files (Tree : Project_Tree_Ref);
+   --  Delete all recorded temporary files.
+   --  Does nothing if Debug.Debug_Flag_N is set
+
+   procedure Delete_Temporary_File
+     (Tree : Project_Tree_Ref;
+      Path : Path_Name_Type);
+   --  Delete a temporary file from the disk. The file is also removed from the
+   --  list of temporary files to delete at the end of the program, in case
+   --  another program running on the same machine has recreated it.
+   --  Does nothing if Debug.Debug_Flag_N is set
 
 private
 
@@ -1613,13 +1456,21 @@ private
    --  The prefix for virtual extending projects. Because of the '$', which is
    --  normally forbidden for project names, there cannot be any name clash.
 
-   Empty_Name : Name_Id;
-   --  Name_Id for an empty name (no characters). Initialized in procedure
-   --  Initialize.
+   type Source_Iterator is record
+      In_Tree : Project_Tree_Ref;
 
-   Empty_File_Name : File_Name_Type;
-   --  Empty File_Name_Type (no characters). Initialized in procedure
-   --  Initialize.
+      Project      : Project_List;
+      All_Projects : Boolean;
+      --  Current project and whether we should move on to the next
+
+      Language : Language_Ptr;
+      --  Current language processed
+
+      Language_Name : Name_Id;
+      --  Only sources of this language will be returned (or all if No_Name)
+
+      Current : Source_Id;
+   end record;
 
    procedure Add_To_Buffer
      (S    : String;
@@ -1627,49 +1478,60 @@ private
       Last : in out Natural);
    --  Append a String to the Buffer
 
-   type Naming_Id is new Nat;
-
-   package Naming_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Naming_Data,
-      Table_Index_Type     => Naming_Id,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 5,
-      Table_Increment      => 100);
-   --  Table storing the naming data for gnatmake/gprmake
-
-   package Path_File_Table is new GNAT.Dynamic_Tables
+   package Temp_Files_Table is new GNAT.Dynamic_Tables
      (Table_Component_Type => Path_Name_Type,
-      Table_Index_Type     => Natural,
+      Table_Index_Type     => Integer,
       Table_Low_Bound      => 1,
-      Table_Initial        => 50,
-      Table_Increment      => 100);
-   --  Table storing all the temp path file names.
-   --  Used by Delete_All_Path_Files.
-
-   package Source_Path_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Name_Id,
-      Table_Index_Type     => Natural,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 50,
-      Table_Increment      => 100);
-   --  A table to store the source dirs before creating the source path file
-
-   package Object_Path_Table is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Path_Name_Type,
-      Table_Index_Type     => Natural,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 50,
-      Table_Increment      => 100);
-   --  A table to store the object dirs, before creating the object path file
+      Table_Initial        => 10,
+      Table_Increment      => 10);
+   --  Table to store the path name of all the created temporary files, so that
+   --  they can be deleted at the end, or when the program is interrupted.
 
    type Private_Project_Tree_Data is record
-      Namings        : Naming_Table.Instance;
-      Path_Files     : Path_File_Table.Instance;
-      Source_Paths   : Source_Path_Table.Instance;
-      Object_Paths   : Object_Path_Table.Instance;
-      Default_Naming : Naming_Data;
+      Temp_Files   : Temp_Files_Table.Instance;
+      --  Temporary files created as part of running tools (pragma files,
+      --  mapping files,...)
+
+      Current_Source_Path_File : Path_Name_Type := No_Path;
+      --  Current value of project source path file env var. Used to avoid
+      --  setting the env var to the same value. When different from No_Path,
+      --  this indicates that logical names (VMS) or environment variables were
+      --  created and should be deassigned to avoid polluting the environment
+      --  on VMS.
+      --  gnatmake only
+
+      Current_Object_Path_File : Path_Name_Type := No_Path;
+      --  Current value of project object path file env var. Used to avoid
+      --  setting the env var to the same value.
+      --  gnatmake only
+
    end record;
    --  Type to represent the part of a project tree which is private to the
    --  Project Manager.
+
+   type Processing_Flags is record
+      Require_Sources_Other_Lang : Boolean;
+      Report_Error               : Error_Handler;
+      When_No_Sources            : Error_Warning;
+      Allow_Duplicate_Basenames  : Boolean;
+      Compiler_Driver_Mandatory  : Boolean;
+      Error_On_Unknown_Language  : Boolean;
+   end record;
+
+   Gprbuild_Flags : constant Processing_Flags :=
+     (Report_Error               => null,
+      When_No_Sources            => Warning,
+      Require_Sources_Other_Lang => True,
+      Allow_Duplicate_Basenames  => False,
+      Compiler_Driver_Mandatory  => True,
+      Error_On_Unknown_Language  => True);
+
+   Gnatmake_Flags : constant Processing_Flags :=
+     (Report_Error               => null,
+      When_No_Sources            => Error,
+      Require_Sources_Other_Lang => False,
+      Allow_Duplicate_Basenames  => False,
+      Compiler_Driver_Mandatory  => False,
+      Error_On_Unknown_Language  => False);
 
 end Prj;

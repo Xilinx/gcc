@@ -188,6 +188,7 @@ struct vstring
 #endif
 
 #if defined (_WIN32)
+
 #include <dir.h>
 #include <windows.h>
 #include <accctrl.h>
@@ -520,7 +521,7 @@ __gnat_try_lock (char *dir, char *file)
 {
   char full_path[256];
   char temp_file[256];
-  struct stat stat_result;
+  GNAT_STRUCT_STAT stat_result;
   int fd;
 
   sprintf (full_path, "%s%c%s", dir, DIR_SEPARATOR, file);
@@ -747,6 +748,9 @@ __gnat_rmdir (char *path)
     S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
     return _trmdir (wpath);
   }
+#elif defined (VTHREADS)
+  /* rmdir not available */
+  return -1;
 #else
   return rmdir (path);
 #endif
@@ -772,7 +776,7 @@ __gnat_fopen (char *path, char *mode, int encoding ATTRIBUTE_UNUSED)
 #elif defined (VMS)
   return decc$fopen (path, mode);
 #else
-  return fopen (path, mode);
+  return GNAT_FOPEN (path, mode);
 #endif
 }
 
@@ -1016,11 +1020,15 @@ long
 __gnat_file_length (int fd)
 {
   int ret;
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  ret = fstat (fd, &statbuf);
+  ret = GNAT_FSTAT (fd, &statbuf);
   if (ret || !S_ISREG (statbuf.st_mode))
     return 0;
+
+  /* st_size may be 32 bits, or 64 bits which is converted to long. We
+     don't return a useful value for files larger than 2 gigabytes in
+     either case. */
 
   return (statbuf.st_size);
 }
@@ -1031,11 +1039,15 @@ long
 __gnat_named_file_length (char *name)
 {
   int ret;
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
   ret = __gnat_stat (name, &statbuf);
   if (ret || !S_ISREG (statbuf.st_mode))
     return 0;
+
+  /* st_size may be 32 bits, or 64 bits which is converted to long. We
+     don't return a useful value for files larger than 2 gigabytes in
+     either case. */
 
   return (statbuf.st_size);
 }
@@ -1258,7 +1270,7 @@ __gnat_file_time_name (char *name)
     }
   return (OS_Time) ret;
 #else
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
   if (__gnat_stat (name, &statbuf) != 0) {
      return (OS_Time)-1;
   } else {
@@ -1350,9 +1362,9 @@ __gnat_file_time_fd (int fd)
   return (OS_Time) ret;
 
 #else
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (fstat (fd, &statbuf) != 0) {
+  if (GNAT_FSTAT (fd, &statbuf) != 0) {
      return (OS_Time) -1;
   } else {
 #ifdef VMS
@@ -1640,14 +1652,18 @@ __gnat_get_libraries_from_registry (void)
 }
 
 int
-__gnat_stat (char *name, struct stat *statbuf)
+__gnat_stat (char *name, GNAT_STRUCT_STAT *statbuf)
 {
 #ifdef __MINGW32__
   /* Under Windows the directory name for the stat function must not be
-     terminated by a directory separator except if just after a drive name.  */
+     terminated by a directory separator except if just after a drive name
+     or with UNC path without directory (only the name of the shared
+     resource), for example: \\computer\share\  */
+
   TCHAR wname [GNAT_MAX_PATH_LEN + 2];
-  int name_len;
+  int name_len, k;
   TCHAR last_char;
+  int dirsep_count = 0;
 
   S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
   name_len = _tcslen (wname);
@@ -1664,15 +1680,23 @@ __gnat_stat (char *name, struct stat *statbuf)
       last_char = wname[name_len - 1];
     }
 
+  /* Count back-slashes.  */
+
+  for (k=0; k<name_len; k++)
+    if (wname[k] == _T('\\') || wname[k] == _T('/'))
+      dirsep_count++;
+
   /* Only a drive letter followed by ':', we must add a directory separator
      for the stat routine to work properly.  */
-  if (name_len == 2 && wname[1] == _T(':'))
+  if ((name_len == 2 && wname[1] == _T(':'))
+      || (name_len > 3 && wname[0] == _T('\\') && wname[1] == _T('\\')
+	  && dirsep_count == 3))
     _tcscat (wname, _T("\\"));
 
   return _tstat (wname, (struct _stat *)statbuf);
 
 #else
-  return stat (name, statbuf);
+  return GNAT_STAT (name, statbuf);
 #endif
 }
 
@@ -1688,7 +1712,7 @@ __gnat_file_exists (char *name)
   S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
   return GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES;
 #else
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
   return !__gnat_stat (name, &statbuf);
 #endif
@@ -1733,7 +1757,7 @@ int
 __gnat_is_regular_file (char *name)
 {
   int ret;
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
   ret = __gnat_stat (name, &statbuf);
   return (!ret && S_ISREG (statbuf.st_mode));
@@ -1743,7 +1767,7 @@ int
 __gnat_is_directory (char *name)
 {
   int ret;
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
   ret = __gnat_stat (name, &statbuf);
   return (!ret && S_ISDIR (statbuf.st_mode));
@@ -1886,9 +1910,9 @@ __gnat_set_OWNER_ACL
  DWORD AccessMode,
  DWORD AccessPermissions)
 {
-  ACL* pOldDACL = NULL;
-  ACL* pNewDACL = NULL;
-  SECURITY_DESCRIPTOR* pSD = NULL;
+  PACL pOldDACL = NULL;
+  PACL pNewDACL = NULL;
+  PSECURITY_DESCRIPTOR pSD = NULL;
   EXPLICIT_ACCESS ea;
   TCHAR username [100];
   DWORD unsize = 100;
@@ -1961,9 +1985,9 @@ __gnat_is_readable_file (char *name)
 #else
   int ret;
   int mode;
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  ret = stat (name, &statbuf);
+  ret = GNAT_STAT (name, &statbuf);
   mode = statbuf.st_mode & S_IRUSR;
   return (!ret && mode);
 #endif
@@ -1993,9 +2017,9 @@ __gnat_is_writable_file (char *name)
 #else
   int ret;
   int mode;
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  ret = stat (name, &statbuf);
+  ret = GNAT_STAT (name, &statbuf);
   mode = statbuf.st_mode & S_IWUSR;
   return (!ret && mode);
 #endif
@@ -2020,13 +2044,12 @@ __gnat_is_executable_file (char *name)
   else
     return GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES
       && _tcsstr (wname, _T(".exe")) - wname == (int) (_tcslen (wname) - 4);
-
 #else
   int ret;
   int mode;
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  ret = stat (name, &statbuf);
+  ret = GNAT_STAT (name, &statbuf);
   mode = statbuf.st_mode & S_IXUSR;
   return (!ret && mode);
 #endif
@@ -2046,9 +2069,9 @@ __gnat_set_writable (char *name)
   SetFileAttributes
     (wname, GetFileAttributes (wname) & ~FILE_ATTRIBUTE_READONLY);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode | S_IWUSR;
       chmod (name, statbuf.st_mode);
@@ -2068,9 +2091,9 @@ __gnat_set_executable (char *name)
     __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_EXECUTE);
 
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode | S_IXUSR;
       chmod (name, statbuf.st_mode);
@@ -2095,9 +2118,9 @@ __gnat_set_non_writable (char *name)
   SetFileAttributes
     (wname, GetFileAttributes (wname) | FILE_ATTRIBUTE_READONLY);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode & 07577;
       chmod (name, statbuf.st_mode);
@@ -2117,9 +2140,9 @@ __gnat_set_readable (char *name)
     __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_READ);
 
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       chmod (name, statbuf.st_mode | S_IREAD);
     }
@@ -2138,9 +2161,9 @@ __gnat_set_non_readable (char *name)
     __gnat_set_OWNER_ACL (wname, DENY_ACCESS, FILE_GENERIC_READ);
 
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       chmod (name, statbuf.st_mode & (~S_IREAD));
     }
@@ -2155,9 +2178,9 @@ __gnat_is_symbolic_link (char *name ATTRIBUTE_UNUSED)
 
 #elif defined (_AIX) || defined (__APPLE__) || defined (__unix__)
   int ret;
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  ret = lstat (name, &statbuf);
+  ret = GNAT_LSTAT (name, &statbuf);
   return (!ret && S_ISLNK (statbuf.st_mode));
 
 #else
@@ -2294,70 +2317,58 @@ extern void (*Unlock_Task) (void);
 
 #endif
 
-typedef struct _process_list
-{
-  HANDLE h;
-  struct _process_list *next;
-} Process_List;
-
-static Process_List *PLIST = NULL;
-
-static int plist_length = 0;
+static HANDLE *HANDLES_LIST = NULL;
+static int *PID_LIST = NULL, plist_length = 0, plist_max_length = 0;
 
 static void
 add_handle (HANDLE h)
 {
-  Process_List *pl;
-
-  pl = (Process_List *) xmalloc (sizeof (Process_List));
 
   /* -------------------- critical section -------------------- */
   (*Lock_Task) ();
 
-  pl->h = h;
-  pl->next = PLIST;
-  PLIST = pl;
+  if (plist_length == plist_max_length)
+    {
+      plist_max_length += 1000;
+      HANDLES_LIST =
+        xrealloc (HANDLES_LIST, sizeof (HANDLE) * plist_max_length);
+      PID_LIST =
+        xrealloc (PID_LIST, sizeof (int) * plist_max_length);
+    }
+
+  HANDLES_LIST[plist_length] = h;
+  PID_LIST[plist_length] = GetProcessId (h);
   ++plist_length;
 
   (*Unlock_Task) ();
   /* -------------------- critical section -------------------- */
 }
 
-static void
-remove_handle (HANDLE h)
+void
+__gnat_win32_remove_handle (HANDLE h, int pid)
 {
-  Process_List *pl;
-  Process_List *prev = NULL;
+  int j;
 
   /* -------------------- critical section -------------------- */
   (*Lock_Task) ();
 
-  pl = PLIST;
-  while (pl)
+  for (j = 0; j < plist_length; j++)
     {
-      if (pl->h == h)
+      if ((HANDLES_LIST[j] == h) || (PID_LIST[j] == pid))
         {
-          if (pl == PLIST)
-	    PLIST = pl->next;
-          else
-	    prev->next = pl->next;
-          free (pl);
+          CloseHandle (h);
+          --plist_length;
+          HANDLES_LIST[j] = HANDLES_LIST[plist_length];
+          PID_LIST[j] = PID_LIST[plist_length];
           break;
         }
-      else
-        {
-          prev = pl;
-          pl = pl->next;
-        }
     }
-
-  --plist_length;
 
   (*Unlock_Task) ();
   /* -------------------- critical section -------------------- */
 }
 
-static int
+static HANDLE
 win32_no_block_spawn (char *command, char *args[])
 {
   BOOL result;
@@ -2422,23 +2433,21 @@ win32_no_block_spawn (char *command, char *args[])
 
   if (result == TRUE)
     {
-      add_handle (PI.hProcess);
       CloseHandle (PI.hThread);
-      return (int) PI.hProcess;
+      return PI.hProcess;
     }
   else
-    return -1;
+    return NULL;
 }
 
 static int
 win32_wait (int *status)
 {
-  DWORD exitcode;
+  DWORD exitcode, pid;
   HANDLE *hl;
   HANDLE h;
   DWORD res;
   int k;
-  Process_List *pl;
   int hl_len;
 
   if (plist_length == 0)
@@ -2456,27 +2465,22 @@ win32_wait (int *status)
 
   hl = (HANDLE *) xmalloc (sizeof (HANDLE) * hl_len);
 
-  pl = PLIST;
-  while (pl)
-    {
-      hl[k++] = pl->h;
-      pl = pl->next;
-    }
+  memmove (hl, HANDLES_LIST, sizeof (HANDLE) * hl_len);
 
   (*Unlock_Task) ();
   /* -------------------- critical section -------------------- */
 
   res = WaitForMultipleObjects (hl_len, hl, FALSE, INFINITE);
   h = hl[res - WAIT_OBJECT_0];
-  free (hl);
-
-  remove_handle (h);
 
   GetExitCodeProcess (h, &exitcode);
-  CloseHandle (h);
+  pid = GetProcessId (h);
+  __gnat_win32_remove_handle (h, -1);
+
+  free (hl);
 
   *status = (int) exitcode;
-  return (int) h;
+  return (int) pid;
 }
 
 #endif
@@ -2484,7 +2488,6 @@ win32_wait (int *status)
 int
 __gnat_portable_no_block_spawn (char *args[])
 {
-  int pid = 0;
 
 #if defined (__vxworks) || defined (__nucleus__) || defined (RTX)
   return -1;
@@ -2504,11 +2507,20 @@ __gnat_portable_no_block_spawn (char *args[])
 
 #elif defined (_WIN32)
 
-  pid = win32_no_block_spawn (args[0], args);
-  return pid;
+  HANDLE h = NULL;
+
+  h = win32_no_block_spawn (args[0], args);
+  if (h != NULL)
+    {
+      add_handle (h);
+      return GetProcessId (h);
+    }
+  else
+    return -1;
 
 #else
-  pid = fork ();
+
+  int pid = fork ();
 
   if (pid == 0)
     {
@@ -2521,9 +2533,9 @@ __gnat_portable_no_block_spawn (char *args[])
 #endif
     }
 
-#endif
-
   return pid;
+
+  #endif
 }
 
 int
@@ -3234,7 +3246,8 @@ __gnat_to_canonical_file_list_init
 char *
 __gnat_to_canonical_file_list_next (void)
 {
-  return (char *) "";
+  static char *empty = "";
+  return empty;
 }
 
 void
@@ -3302,6 +3315,7 @@ _flush_cache()
       && ! (defined (linux) && defined (__ia64__)) \
       && ! (defined (linux) && defined (powerpc)) \
       && ! defined (__FreeBSD__) \
+      && ! defined (__Lynx__) \
       && ! defined (__hpux__) \
       && ! defined (__APPLE__) \
       && ! defined (_AIX) \
@@ -3366,11 +3380,68 @@ __gnat_copy_attribs (char *from, char *to, int mode)
 {
 #if defined (VMS) || defined (__vxworks) || defined (__nucleus__)
   return -1;
+
+#elif defined (_WIN32) && !defined (RTX)
+  TCHAR wfrom [GNAT_MAX_PATH_LEN + 2];
+  TCHAR wto [GNAT_MAX_PATH_LEN + 2];
+  BOOL res;
+  FILETIME fct, flat, flwt;
+  HANDLE hfrom, hto;
+
+  S2WSC (wfrom, from, GNAT_MAX_PATH_LEN + 2);
+  S2WSC (wto, to, GNAT_MAX_PATH_LEN + 2);
+
+  /* retrieve from times */
+
+  hfrom = CreateFile
+    (wfrom, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  if (hfrom == INVALID_HANDLE_VALUE)
+    return -1;
+
+  res = GetFileTime (hfrom, &fct, &flat, &flwt);
+
+  CloseHandle (hfrom);
+
+  if (res == 0)
+    return -1;
+
+  /* retrieve from times */
+
+  hto = CreateFile
+    (wto, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  if (hto == INVALID_HANDLE_VALUE)
+    return -1;
+
+  res = SetFileTime (hto, NULL, &flat, &flwt);
+
+  CloseHandle (hto);
+
+  if (res == 0)
+    return -1;
+
+  /* Set file attributes in full mode. */
+
+  if (mode == 1)
+    {
+      DWORD attribs = GetFileAttributes (wfrom);
+
+      if (attribs == INVALID_FILE_ATTRIBUTES)
+	return -1;
+
+      res = SetFileAttributes (wto, attribs);
+      if (res == 0)
+	return -1;
+    }
+
+  return 0;
+
 #else
-  struct stat fbuf;
+  GNAT_STRUCT_STAT fbuf;
   struct utimbuf tbuf;
 
-  if (stat (from, &fbuf) == -1)
+  if (GNAT_STAT (from, &fbuf) == -1)
     {
       return -1;
     }
@@ -3431,7 +3502,7 @@ __gnat_set_close_on_exec (int fd ATTRIBUTE_UNUSED,
     return -1;
   if (close_on_exec_p)
     return ! SetHandleInformation (h, HANDLE_FLAG_INHERIT, 0);
-  return ! SetHandleInformation (h, HANDLE_FLAG_INHERIT, 
+  return ! SetHandleInformation (h, HANDLE_FLAG_INHERIT,
     HANDLE_FLAG_INHERIT);
 #else
   /* TODO: Unimplemented. */
@@ -3442,7 +3513,7 @@ __gnat_set_close_on_exec (int fd ATTRIBUTE_UNUSED,
 /* Indicates if platforms supports automatic initialization through the
    constructor mechanism */
 int
-__gnat_binder_supports_auto_init ()
+__gnat_binder_supports_auto_init (void)
 {
 #ifdef VMS
    return 0;
@@ -3454,7 +3525,7 @@ __gnat_binder_supports_auto_init ()
 /* Indicates that Stand-Alone Libraries are automatically initialized through
    the constructor mechanism */
 int
-__gnat_sals_init_using_constructors ()
+__gnat_sals_init_using_constructors (void)
 {
 #if defined (__vxworks) || defined (__Lynx__) || defined (VMS)
    return 0;

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1907,11 +1907,14 @@ package body Sem_Ch7 is
 
       if Tagged_Present (Def) then
          Set_Ekind                (Id, E_Record_Type_With_Private);
-         Make_Class_Wide_Type     (Id);
          Set_Primitive_Operations (Id, New_Elmt_List);
          Set_Is_Abstract_Type     (Id, Abstract_Present (Def));
          Set_Is_Limited_Record    (Id, Limited_Present (Def));
          Set_Has_Delayed_Freeze   (Id, True);
+
+         --  Create a class-wide type with the same attributes
+
+         Make_Class_Wide_Type     (Id);
 
       elsif Abstract_Present (Def) then
          Error_Msg_N ("only a tagged type can be abstract", N);
@@ -2137,17 +2140,42 @@ package body Sem_Ch7 is
                  ("missing full declaration for private extension", Id);
             end if;
 
+         --  Case of constant, check for deferred constant declaration with
+         --  no full view. Likely just a matter of a missing expression, or
+         --  accidental use of the keyword constant.
+
          elsif Ekind (Id) = E_Constant
+
+           --  OK if constant value present
+
            and then No (Constant_Value (Id))
+
+           --  OK if full view present
+
            and then No (Full_View (Id))
+
+           --  OK if imported, since that provides the completion
+
            and then not Is_Imported (Id)
-           and then (Nkind (Parent (Id)) /= N_Object_Declaration
-                      or else not No_Initialization (Parent (Id)))
+
+           --  OK if object declaration replaced by renaming declaration as
+           --  a result of OK_To_Rename processing (e.g. for concatenation)
+
+           and then Nkind (Parent (Id)) /= N_Object_Renaming_Declaration
+
+           --  OK if object declaration with the No_Initialization flag set
+
+           and then not (Nkind (Parent (Id)) = N_Object_Declaration
+                           and then No_Initialization (Parent (Id)))
          then
+            --  If no private declaration is present, we assume the user did
+            --  not intend a deferred constant declaration and the problem
+            --  is simply that the initializing expression is missing.
+
             if not Has_Private_Declaration (Etype (Id)) then
 
-               --  We assume that the user did not intend a deferred
-               --  constant declaration, and the expression is just missing.
+               --  We assume that the user did not intend a deferred constant
+               --  declaration, and the expression is just missing.
 
                Error_Msg_N
                  ("constant declaration requires initialization expression",
@@ -2158,6 +2186,9 @@ package body Sem_Ch7 is
                     ("\if variable intended, remove CONSTANT from declaration",
                     Parent (Id));
                end if;
+
+            --  Otherwise if a private declaration is present, then we are
+            --  missing the full declaration for the deferred constant.
 
             else
                Error_Msg_N

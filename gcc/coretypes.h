@@ -37,7 +37,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #ifndef GCC_CORETYPES_H
 #define GCC_CORETYPES_H
 
+#ifndef GTY
 #define GTY(x)  /* nothing - marker for gengtype */
+#endif
 
 #ifndef USED_FOR_TARGET
 
@@ -95,6 +97,12 @@ enum tls_model {
   TLS_MODEL_LOCAL_EXEC
 };
 
+struct edge_def;
+typedef struct edge_def *edge;
+typedef const struct edge_def *const_edge;
+struct basic_block_def;
+typedef struct basic_block_def *basic_block;
+typedef const struct basic_block_def *const_basic_block;
 #else
 
 struct _dont_use_rtx_here_;

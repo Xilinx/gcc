@@ -1,3 +1,21 @@
+2009-06-02  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: Don't fail just because of .eh_frame differences.
+
+2009-04-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/39807
+	* dg-extract-results.sh: Close open files and use >> instead of >
+	to decrease number of concurrently open files from awk.  Avoid
+	= at the beginning of a regexp and redirect to a file determined
+	by curfile variable rather than concatenated strings to workaround
+	Solaris nawk bug.
+
+2009-04-25  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* test_summary: Only include LAST_UPDATED if it exists.
+	Complete copyright years.
+
 2009-04-16  Paolo Bonzini  <bonzini@gnu.org>
 
 	* compare-all-tests: New.

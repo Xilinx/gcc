@@ -111,11 +111,6 @@ extern int optimize;
 
 extern int optimize_size;
 
-/* Do print extra warnings (such as for uninitialized variables).
-   -W/-Wextra.  */
-
-extern bool extra_warnings;
-
 /* Used to set the level of -Wstrict-aliasing, when no level is specified.  
    The external way to set the default level is to use
    -Wstrict-aliasing=level.  
@@ -254,6 +249,9 @@ extern bool g_switch_set;
 
 /* Same for selective scheduling.  */
 extern bool sel_sched_switch_set;
+
+/* Whether to run the warn_unused_result attribute pass.  */
+extern bool flag_warn_unused_result;
 
 /* Values of the -falign-* flags: how much to align labels in code. 
    0 means `use default', 1 means `don't align'.  

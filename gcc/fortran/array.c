@@ -607,7 +607,8 @@ gfc_append_constructor (gfc_expr *base, gfc_expr *new_expr)
 
   c->expr = new_expr;
 
-  if (new_expr->ts.type != base->ts.type || new_expr->ts.kind != base->ts.kind)
+  if (new_expr
+      && (new_expr->ts.type != base->ts.type || new_expr->ts.kind != base->ts.kind))
     gfc_internal_error ("gfc_append_constructor(): New node has wrong kind");
 }
 
@@ -1598,9 +1599,7 @@ gfc_resolve_character_array_constructor (gfc_expr *expr)
 	    goto got_charlen;
 	  }
 
-      expr->ts.cl = gfc_get_charlen ();
-      expr->ts.cl->next = gfc_current_ns->cl_list;
-      gfc_current_ns->cl_list = expr->ts.cl;
+      expr->ts.cl = gfc_new_charlen (gfc_current_ns);
     }
 
 got_charlen:

@@ -98,7 +98,7 @@ print ""
 print "#if !defined(GCC_DRIVER) && !defined(IN_LIBGCC2) && !defined(IN_TARGET_LIBS)"
 print ""
 print "/* Structure to save/restore optimization and target specific options.  */";
-print "struct cl_optimization GTY(())";
+print "struct GTY(()) cl_optimization";
 print "{";
 
 n_opt_char = 2;
@@ -154,7 +154,7 @@ print "";
 
 # Target and optimization save/restore/print functions.
 print "/* Structure to save/restore selected target specific options.  */";
-print "struct cl_target_option GTY(())";
+print "struct GTY(()) cl_target_option";
 print "{";
 
 n_target_char = 0;
@@ -333,6 +333,8 @@ for (i = 0; i < n_opts; i++) {
 	enum = "OPT_" opts[i]
 	if (opts[i] == "finline-limit=" || opts[i] == "Wlarger-than=")
 		enum = enum "eq"
+	if (opts[i] == "gdwarf+")
+		enum = "OPT_gdwarfplus"
 	gsub ("[^A-Za-z0-9]", "_", enum)
 
 	# If this switch takes joined arguments, back-chain all
@@ -348,7 +350,7 @@ for (i = 0; i < n_opts; i++) {
 		}
 	}
 
-	s = substr("                                     ", length (opts[i]))
+	s = substr("                                         ", length (enum))
 	if (i + 1 == n_opts)
 		comma = ""
 

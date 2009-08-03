@@ -95,6 +95,7 @@ rtx picochip_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 bool picochip_rtx_costs (rtx x, int code, int outer_code, int* total);
 bool picochip_return_in_memory(const_tree type,
                               const_tree fntype ATTRIBUTE_UNUSED);
+bool picochip_legitimate_address_p (enum machine_mode, rtx, bool);
 
 rtx picochip_struct_value_rtx(tree fntype ATTRIBUTE_UNUSED, int incoming ATTRIBUTE_UNUSED);
 rtx picochip_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED,
@@ -253,10 +254,8 @@ static char picochip_get_vliw_alu_id (void);
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES picochip_arg_partial_bytes
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode_always_promote
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
@@ -274,6 +273,9 @@ static char picochip_get_vliw_alu_id (void);
 #undef TARGET_LIBGCC_CMP_RETURN_MODE
 #define TARGET_LIBGCC_CMP_RETURN_MODE picochip_libgcc_cmp_return_mode
 */
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P picochip_legitimate_address_p
 
 /* Loading and storing QImode values to and from memory
    usually requires a scratch register. */
@@ -311,9 +313,6 @@ picochip_override_options (void)
      PARAM_VALUE (PARAM_LARGE_STACK_FRAME) = 0;
      PARAM_VALUE (PARAM_STACK_FRAME_GROWTH) = 0;
    }
-   /* The function call overhead on picochip is not very high. Let the
-      inliner know so its heuristics become more reasonable. */
-   PARAM_VALUE (PARAM_INLINE_CALL_COST) = 2;
 
   /* Turn off the elimination of unused types. The elaborator
      generates various interesting types to represent constants,
@@ -1249,8 +1248,8 @@ picochip_const_ok_for_base (enum machine_mode mode, int regno, int offset)
 /* Determine whether a given rtx is a legitimate address for machine_mode
    MODE.  STRICT is non-zero if we're being strict - any pseudo that
    is not a hard register must be a memory reference.  */
-int
-picochip_legitimate_address_p (int mode, rtx x, unsigned strict)
+bool
+picochip_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   int valid = 0;
 
@@ -4143,7 +4142,7 @@ warn_of_byte_access (void)
 }
 
 rtx
-picochip_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED,
+picochip_function_value (const_tree valtype, const_tree func,
                          bool outgoing ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = TYPE_MODE (valtype);
@@ -4151,7 +4150,7 @@ picochip_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED,
 
   /* Since we define PROMOTE_FUNCTION_RETURN, we must promote the mode
      just as PROMOTE_MODE does.  */
-  mode = promote_mode (valtype, mode, &unsignedp, 1);
+  mode = promote_function_mode (valtype, mode, &unsignedp, func, 1);
 
   return gen_rtx_REG (mode, 0);
 

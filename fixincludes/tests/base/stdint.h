@@ -9,6 +9,125 @@
 
 
 
+#if defined( DARWIN_STDINT_1_CHECK )
+#define UINT8_C(c) __UINT8_C(c)
+#define UINT16_C(c) __UINT16_C(c)
+#endif  /* DARWIN_STDINT_1_CHECK */
+
+
+#if defined( DARWIN_STDINT_2_CHECK )
+#if __WORDSIZE == 64
+#define INTPTR_MAX 9223372036854775807L
+#define INTPTR_MIN (-INTPTR_MAX-1)
+#else
+#define INTPTR_MAX 2147483647L
+#define INTPTR_MIN (-INTPTR_MAX-1)
+#endif
+#endif  /* DARWIN_STDINT_2_CHECK */
+
+
+#if defined( DARWIN_STDINT_3_CHECK )
+#if __WORDSIZE == 64
+#define UINTPTR_MAX 18446744073709551615UL
+#else
+#define UINTPTR_MAX 4294967295UL
+#endif
+#endif  /* DARWIN_STDINT_3_CHECK */
+
+
+#if defined( DARWIN_STDINT_4_CHECK )
+#if __WORDSIZE == 64
+#define SIZE_MAX __SIZE_MAX__
+#else
+#define SIZE_MAX __SIZE_MAX__
+#endif
+#endif  /* DARWIN_STDINT_4_CHECK */
+
+
+#if defined( DARWIN_STDINT_5_CHECK )
+#if __WORDSIZE == 64
+#define INTMAX_MIN   (-9223372036854775807L - 1)
+#define INTMAX_MAX   9223372036854775807L
+#define UINTMAX_MAX  18446744073709551615UL
+#else
+#define INTMAX_MIN   (-9223372036854775807LL - 1)
+#define INTMAX_MAX   9223372036854775807LL
+#define UINTMAX_MAX  18446744073709551615ULL
+#endif
+#endif  /* DARWIN_STDINT_5_CHECK */
+
+
+#if defined( DARWIN_STDINT_6_CHECK )
+#if __WORDSIZE == 64
+#define PTRDIFF_MIN (-PTRDIFF_MAX - 1)
+#define PTRDIFF_MAX __PTRDIFF_MAX__
+#else
+#define PTRDIFF_MIN (-PTRDIFF_MAX - 1)
+#define PTRDIFF_MAX __PTRDIFF_MAX__
+#endif
+#endif  /* DARWIN_STDINT_6_CHECK */
+
+
+#if defined( DARWIN_STDINT_7_CHECK )
+#if __WORDSIZE == 64
+#define INTMAX_C(v)  (v ## L)
+#define UINTMAX_C(v) (v ## UL)
+#else
+#define INTMAX_C(v)  (v ## LL)
+#define UINTMAX_C(v) (v ## ULL)
+#endif
+#endif  /* DARWIN_STDINT_7_CHECK */
+
+
+#if defined( GLIBC_STDINT_CHECK )
+/* This file is part of the GNU C Library.  */
+# define UINT8_C(c)	c
+# define UINT16_C(c)	c
+#endif  /* GLIBC_STDINT_CHECK */
+
+
+#if defined( HPUX_C99_INTPTR_CHECK )
+#define PTRDIFF_MAX __PTRDIFF_MAX__
+#define PTRDIFF_MIN (-PTRDIFF_MAX - 1)
+#define INTPTR_MAX (2147483647l)
+#define INTPTR_MIN (-INTPTR_MAX - 1)
+#define UINTPTR_MAX (4294967295ul)
+#define SIZE_MAX __SIZE_MAX__
+
+#endif  /* HPUX_C99_INTPTR_CHECK */
+
+
+#if defined( HPUX_C99_INTTYPES2_CHECK )
+#define INT8_C(__c) (__c)
+#define UINT8_C(c) __UINT8_C(c)
+#define INT16_C(__c) (__c)
+#define UINT16_C(c) __UINT16_C(c)
+
+#endif  /* HPUX_C99_INTTYPES2_CHECK */
+
+
+#if defined( HPUX_STDINT_LEAST_CHECK )
+#ifdef __LP64__
+#  define	UINT_LEAST64_MAX	ULONG_MAX
+#else
+#  define       UINT_LEAST64_MAX        ULLONG_MAX
+#endif
+
+
+#endif  /* HPUX_STDINT_LEAST_CHECK */
+
+
+#if defined( HPUX_STDINT_FAST_CHECK )
+#ifdef __LP64__
+#  define	UINT_FAST64_MAX		ULONG_MAX
+#else
+#  define       UINT_FAST64_MAX        ULLONG_MAX
+#endif
+
+
+#endif  /* HPUX_STDINT_FAST_CHECK */
+
+
 #if defined( IRIX_STDINT_C99_CHECK )
 #if 0
 #error This header file is to be used only for c99 mode compilations

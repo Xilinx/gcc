@@ -50,9 +50,16 @@ static void optimize_reg_copy_2 (rtx, rtx, rtx);
 static void optimize_reg_copy_3 (rtx, rtx, rtx);
 static void copy_src_to_dest (rtx, rtx, rtx);
 
+enum match_use
+{
+  READ,
+  WRITE,
+  READWRITE
+};
+
 struct match {
   int with[MAX_RECOG_OPERANDS];
-  enum { READ, WRITE, READWRITE } use[MAX_RECOG_OPERANDS];
+  enum match_use use[MAX_RECOG_OPERANDS];
   int commutative[MAX_RECOG_OPERANDS];
   int early_clobber[MAX_RECOG_OPERANDS];
 };
@@ -98,7 +105,7 @@ find_use_as_address (rtx x, rtx reg, HOST_WIDE_INT plusconst)
 
   if (code == MEM && GET_CODE (XEXP (x, 0)) == PLUS
       && XEXP (XEXP (x, 0), 0) == reg
-      && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT
+      && CONST_INT_P (XEXP (XEXP (x, 0), 1))
       && INTVAL (XEXP (XEXP (x, 0), 1)) == plusconst)
     return x;
 
@@ -188,7 +195,7 @@ try_auto_increment (rtx insn, rtx inc_insn, rtx inc_insn_set, rtx reg,
 		     changed.  */
 		  rtx note = find_reg_note (insn, REG_DEAD, reg);
 		  if (note)
-		    PUT_MODE (note, REG_UNUSED);
+		    PUT_REG_NOTE_KIND (note, REG_UNUSED);
 
 		  add_reg_note (insn, REG_INC, reg);
 
@@ -767,7 +774,7 @@ fixup_match_2 (rtx insn, rtx dst, rtx src, rtx offset)
       if (pset && SET_DEST (pset) == dst
 	  && GET_CODE (SET_SRC (pset)) == PLUS
 	  && XEXP (SET_SRC (pset), 0) == src
-	  && GET_CODE (XEXP (SET_SRC (pset), 1)) == CONST_INT)
+	  && CONST_INT_P (XEXP (SET_SRC (pset), 1)))
 	{
 	  HOST_WIDE_INT newconst
 	    = INTVAL (offset) - INTVAL (XEXP (SET_SRC (pset), 1));
@@ -1008,7 +1015,7 @@ regmove_backward_pass (void)
 	      if (REGNO (src) < FIRST_PSEUDO_REGISTER)
 		{
 		  if (GET_CODE (SET_SRC (set)) == PLUS
-		      && GET_CODE (XEXP (SET_SRC (set), 1)) == CONST_INT
+		      && CONST_INT_P (XEXP (SET_SRC (set), 1))
 		      && XEXP (SET_SRC (set), 0) == src
 		      && fixup_match_2 (insn, dst, src,
 					XEXP (SET_SRC (set), 1)))

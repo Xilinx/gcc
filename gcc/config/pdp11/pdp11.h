@@ -246,14 +246,6 @@ extern const struct real_format pdp11_d_format;
 /* Base register for access to local variables of the function.  */
 #define FRAME_POINTER_REGNUM 5
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.
-  */
-
-#define FRAME_POINTER_REQUIRED 0
-
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM 5
 
@@ -379,7 +371,7 @@ enum reg_class { NO_REGS, MUL_REGS, GENERAL_REGS, LOAD_FPU_REGS, NO_LOAD_FPU_REG
 
 #define EXTRA_CONSTRAINT(OP,CODE)					\
   ((GET_CODE (OP) != MEM) ? 0						\
-   : !legitimate_address_p (GET_MODE (OP), XEXP (OP, 0)) ? 0		\
+   : !memory_address_p (GET_MODE (OP), XEXP (OP, 0)) ? 0		\
    : ((CODE) == 'Q')	  ? !simple_memory_operand (OP, GET_MODE (OP))	\
    : ((CODE) == 'R')	  ? simple_memory_operand (OP, GET_MODE (OP))	\
    : 0)
@@ -755,14 +747,6 @@ extern int may_call_alloca;
 }
 
 
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.
-   On the pdp this is for predec/postinc, and this is now treated
-   generically in recog.c.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
-
-
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE HImode
@@ -1047,6 +1031,9 @@ JMP	FUNCTION	0x0058  0x0000 <- FUNCTION
 
 #define OPTIMIZATION_OPTIONS(LEVEL,SIZE)				\
 {									\
+  flag_finite_math_only		= 0;					\
+  flag_trapping_math		= 0;					\
+  flag_signaling_nans		= 0;					\
   if (LEVEL >= 3)							\
     {									\
       flag_omit_frame_pointer		= 1;				\

@@ -1,5 +1,5 @@
 /* Deal with I/O statements & related stuff.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -38,8 +38,8 @@ typedef struct
 io_tag;
 
 static const io_tag
-	tag_file	= { "FILE", " file =", " %e", BT_CHARACTER },
-	tag_status	= { "STATUS", " status =", " %e", BT_CHARACTER},
+	tag_file	= {"FILE", " file =", " %e", BT_CHARACTER },
+	tag_status	= {"STATUS", " status =", " %e", BT_CHARACTER},
 	tag_e_access	= {"ACCESS", " access =", " %e", BT_CHARACTER},
 	tag_e_form	= {"FORM", " form =", " %e", BT_CHARACTER},
 	tag_e_recl	= {"RECL", " recl =", " %e", BT_INTEGER},
@@ -94,7 +94,8 @@ static const io_tag
 	tag_end		= {"END", " end =", " %l", BT_UNKNOWN},
 	tag_eor		= {"EOR", " eor =", " %l", BT_UNKNOWN},
 	tag_id		= {"ID", " id =", " %v", BT_INTEGER},
-	tag_pending	= {"PENDING", " pending =", " %v", BT_LOGICAL};
+	tag_pending	= {"PENDING", " pending =", " %v", BT_LOGICAL},
+	tag_newunit	= {"NEWUNIT", " newunit =", " %v", BT_INTEGER};
 
 static gfc_dt *current_dt;
 
@@ -1234,8 +1235,11 @@ resolve_tag_format (const gfc_expr *e)
   /* If e's rank is zero and e is not an element of an array, it should be
      of integer or character type.  The integer variable should be
      ASSIGNED.  */
-  if (e->symtree == NULL || e->symtree->n.sym->as == NULL
-      || e->symtree->n.sym->as->rank == 0)
+  if (e->rank == 0
+      && (e->expr_type != EXPR_VARIABLE
+	  || e->symtree == NULL
+	  || e->symtree->n.sym->as == NULL
+	  || e->symtree->n.sym->as->rank == 0))
     {
       if (e->ts.type != BT_CHARACTER && e->ts.type != BT_INTEGER)
 	{
@@ -1266,20 +1270,34 @@ resolve_tag_format (const gfc_expr *e)
       return SUCCESS;
     }
 
-  /* If rank is nonzero, we allow the type to be character under GFC_STD_GNU
-     and other type under GFC_STD_LEGACY. It may be assigned an Hollerith
-     constant.  */
-  if (e->ts.type == BT_CHARACTER)
-    {
-      if (gfc_notify_std (GFC_STD_GNU, "Extension: Character array "
-			  "in FORMAT tag at %L", &e->where) == FAILURE)
-	return FAILURE;
-    }
-  else
+  /* If rank is nonzero and type is not character, we allow it under GFC_STD_LEGACY.
+     It may be assigned an Hollerith constant.  */
+  if (e->ts.type != BT_CHARACTER)
     {
       if (gfc_notify_std (GFC_STD_LEGACY, "Extension: Non-character "
 			  "in FORMAT tag at %L", &e->where) == FAILURE)
 	return FAILURE;
+
+      if (e->rank == 0 && e->symtree->n.sym->as->type == AS_ASSUMED_SHAPE)
+	{
+	  gfc_error ("Non-character assumed shape array element in FORMAT"
+		     " tag at %L", &e->where);
+	  return FAILURE;
+	}
+
+      if (e->rank == 0 && e->symtree->n.sym->as->type == AS_ASSUMED_SIZE)
+	{
+	  gfc_error ("Non-character assumed size array element in FORMAT"
+		     " tag at %L", &e->where);
+	  return FAILURE;
+	}
+
+      if (e->rank == 0 && e->symtree->n.sym->attr.pointer)
+	{
+	  gfc_error ("Non-character pointer array element in FORMAT tag at %L",
+		     &e->where);
+	  return FAILURE;
+	}
     }
 
   return SUCCESS;
@@ -1407,6 +1425,9 @@ match_open_element (gfc_open *open)
   m = match_etag (&tag_convert, &open->convert);
   if (m != MATCH_NO)
     return m;
+  m = match_out_tag (&tag_newunit, &open->newunit);
+  if (m != MATCH_NO)
+    return m;
 
   return MATCH_NO;
 }
@@ -1439,6 +1460,7 @@ gfc_free_open (gfc_open *open)
   gfc_free_expr (open->sign);
   gfc_free_expr (open->convert);
   gfc_free_expr (open->asynchronous);
+  gfc_free_expr (open->newunit);
   gfc_free (open);
 }
 
@@ -1468,6 +1490,7 @@ gfc_resolve_open (gfc_open *open)
   RESOLVE_TAG (&tag_e_round, open->round);
   RESOLVE_TAG (&tag_e_sign, open->sign);
   RESOLVE_TAG (&tag_convert, open->convert);
+  RESOLVE_TAG (&tag_newunit, open->newunit);
 
   if (gfc_reference_st_label (open->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
@@ -1628,6 +1651,26 @@ gfc_match_open (void)
     }
 
   warn = (open->err || open->iostat) ? true : false;
+
+  /* Checks on NEWUNIT specifier.  */
+  if (open->newunit)
+    {
+      if (open->unit)
+	{
+	  gfc_error ("UNIT specifier not allowed with NEWUNIT at %C");
+	  goto cleanup;
+	}
+
+      if (!(open->file || (open->status
+          && gfc_wide_strncasecmp (open->status->value.character.string,
+				   "scratch", 7) == 0)))
+	{
+	  gfc_error ("NEWUNIT specifier must have FILE= "
+		     "or STATUS='scratch' at %C");
+	  goto cleanup;
+	}
+    }
+
   /* Checks on the ACCESS specifier.  */
   if (open->access && open->access->expr_type == EXPR_CONSTANT)
     {
@@ -2055,6 +2098,14 @@ gfc_resolve_close (gfc_close *close)
   if (gfc_reference_st_label (close->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
 
+  if (close->unit->expr_type == EXPR_CONSTANT
+      && close->unit->ts.type == BT_INTEGER
+      && mpz_sgn (close->unit->value.integer) < 0)
+    {
+      gfc_error ("UNIT number in CLOSE statement at %L must be non-negative",
+		 &close->unit->where);
+    }
+
   return SUCCESS;
 }
 
@@ -2176,6 +2227,14 @@ gfc_resolve_filepos (gfc_filepos *fp)
   RESOLVE_TAG (&tag_iomsg, fp->iomsg);
   if (gfc_reference_st_label (fp->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
+
+  if (fp->unit->expr_type == EXPR_CONSTANT
+      && fp->unit->ts.type == BT_INTEGER
+      && mpz_sgn (fp->unit->value.integer) < 0)
+    {
+      gfc_error ("UNIT number in statement at %L must be non-negative",
+		 &fp->unit->where);
+    }
 
   return SUCCESS;
 }
@@ -2496,7 +2555,7 @@ gfc_free_dt (gfc_dt *dt)
 /* Resolve everything in a gfc_dt structure.  */
 
 gfc_try
-gfc_resolve_dt (gfc_dt *dt)
+gfc_resolve_dt (gfc_dt *dt, locus *loc)
 {
   gfc_expr *e;
 
@@ -2517,6 +2576,12 @@ gfc_resolve_dt (gfc_dt *dt)
   RESOLVE_TAG (&tag_e_async, dt->asynchronous);
 
   e = dt->io_unit;
+  if (e == NULL)
+    {
+      gfc_error ("UNIT not specified at %L", loc);
+      return FAILURE;
+    }
+
   if (gfc_resolve_expr (e) == SUCCESS
       && (e->ts.type != BT_INTEGER
 	  && (e->ts.type != BT_CHARACTER || e->expr_type != EXPR_VARIABLE)))
@@ -2569,6 +2634,13 @@ gfc_resolve_dt (gfc_dt *dt)
   if (e->rank && e->ts.type != BT_CHARACTER)
     {
       gfc_error ("External IO UNIT cannot be an array at %L", &e->where);
+      return FAILURE;
+    }
+
+  if (e->expr_type == EXPR_CONSTANT && e->ts.type == BT_INTEGER
+      && mpz_sgn (e->value.integer) < 0)
+    {
+      gfc_error ("UNIT number in statement at %L must be non-negative", &e->where);
       return FAILURE;
     }
 
@@ -2792,6 +2864,7 @@ match_io_element (io_kind k, gfc_code **cpp)
 
 	if (gfc_pure (NULL)
 	    && gfc_impure_variable (expr->symtree->n.sym)
+	    && current_dt->io_unit
 	    && current_dt->io_unit->ts.type == BT_CHARACTER)
 	  {
 	    gfc_error ("Cannot read to variable '%s' in PURE procedure at %C",
@@ -2805,7 +2878,8 @@ match_io_element (io_kind k, gfc_code **cpp)
 	break;
 
       case M_WRITE:
-	if (current_dt->io_unit->ts.type == BT_CHARACTER
+	if (current_dt->io_unit
+	    && current_dt->io_unit->ts.type == BT_CHARACTER
 	    && gfc_pure (NULL)
 	    && current_dt->io_unit->expr_type == EXPR_VARIABLE
 	    && gfc_impure_variable (current_dt->io_unit->symtree->n.sym))
@@ -2830,7 +2904,7 @@ match_io_element (io_kind k, gfc_code **cpp)
 
   cp = gfc_get_code ();
   cp->op = EXEC_TRANSFER;
-  cp->expr = expr;
+  cp->expr1 = expr;
 
   *cpp = cp;
   return MATCH_YES;
@@ -3662,7 +3736,7 @@ gfc_match_inquire (void)
 	goto syntax;
 
       new_st.op = EXEC_IOLENGTH;
-      new_st.expr = inquire->iolength;
+      new_st.expr1 = inquire->iolength;
       new_st.ext.inquire = inquire;
 
       if (gfc_pure (NULL))

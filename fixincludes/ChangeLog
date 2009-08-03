@@ -1,3 +1,74 @@
+2009-08-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* inclhack.def (hpux_inttype_int_least8_t): Also apply on hpux10*.
+	(hpux_inttype_int8_t): Likewise.
+	* fixincl.x: Regenerate.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (AUTOCONF, AUTOHEADER, ACLOCAL, ACLOCAL_AMFLAGS):
+	New variables.
+	($(srcdir)/configure, $(srcdir)/config.h.in, $(srcdir)/aclocal.m4):
+	Use them.
+
+2009-07-04  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* inclhack.def (darwin_stdint_5, darwin_stdint_6,
+	darwin_stdint_7): New fixes.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: Adjust test for new fixes.
+
+2009-07-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* inclhack.def (solaris_int_types): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/int_types.h: New file.
+
+2009-06-09  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* inclhack.def (darwin_stdint_1, darwin_stdint_2, darwin_stdint_3,
+	darwin_stdint_4): New fixes.
+	* tests/base/stdint.h: Adjust test results for new fixes.
+	* fixincl.x: Regenerate.
+
+2009-05-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* inclhack.def (solaris_int_const): New fix.
+	(solaris_int_limits_1): Likewise.
+	(solaris_int_limits_2): Likewise.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/int_const.h: New file.
+	* tests/base/sys/int_limits.h: Likewise.
+
+2009-05-15  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (glibc_tgmath): Correct bypass.
+	* fixincl.x: Regenerate.
+
+2009-04-28  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux11_uint32_c): Remove.
+	(hpux_long_double): Disable on hpux11.3*.
+	(hpux_long_double_2): New.
+	(hpux_c99_intptr): New.
+	(hpux_c99_inttypes): New.
+	(hpux_c99_inttypes2): New.
+	(hpux_stdint_least): New.
+	(hpux_stdint_fast): New.
+	(hpux_inttype_int_least8_t): New.
+	(hpux_inttype_int8_t): New.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/_inttypes.h: New.
+	* tests/base/inttypes.h: Update.
+	* tests/base/stdlib.h: Update.
+	* tests/base/stdint.h: Update.
+
+2009-04-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (glibc_stdint): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: Update.
+
 2009-04-09  Jakub Jelinek  <jakub@redhat.com>
 
 	* Makefile.in: Change copyright header to refer to version

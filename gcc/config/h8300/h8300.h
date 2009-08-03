@@ -300,12 +300,6 @@ extern const char * const *h8_reg_names;
 /* Base register for access to local variables of the function.  */
 #define FRAME_POINTER_REGNUM FP_REG
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED 0
-
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM AP_REG
 
@@ -926,24 +920,6 @@ struct cum_arg
 #define EXTRA_MEMORY_CONSTRAINT(C, STR) \
   ((C) == 'W')
 
-
-#ifndef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)	\
-  do						\
-    {						\
-      if (h8300_legitimate_address_p ((MODE), (X), 0))	\
-	goto ADDR;				\
-    }						\
-  while (0)
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)	\
-  do						\
-    {						\
-      if (h8300_legitimate_address_p ((MODE), (X), 1))	\
-	goto ADDR;				\
-    }						\
-  while (0)
-#endif
 
 /* Go to LABEL if ADDR (a legitimate address expression)
    has an effect that depends on the machine mode it is used for.

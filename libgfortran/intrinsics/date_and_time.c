@@ -48,6 +48,31 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define abs(x) ((x)>=0 ? (x) : -(x))
 #endif
 
+
+/* If the re-entrant versions of localtime and gmtime are not
+   available, provide fallback implementations.  On some targets where
+   the _r versions are not available, localtime and gmtime use
+   thread-local storage so they are threadsafe.  */
+
+#ifndef HAVE_LOCALTIME_R
+static struct tm *
+localtime_r (const time_t * timep, struct tm * result)
+{
+  *result = *localtime (timep);
+  return result;
+}
+#endif
+
+#ifndef HAVE_GMTIME_R
+static struct tm *
+gmtime_r (const time_t * timep, struct tm * result)
+{
+  *result = *gmtime (timep);
+  return result;
+}
+#endif
+
+
 /* DATE_AND_TIME ([DATE, TIME, ZONE, VALUES])
 
    Description: Returns data on the real-time clock and date in a form
@@ -166,8 +191,8 @@ date_and_time (char *__date, char *__time, char *__zone,
 
   if (lt != (time_t) -1)
     {
-      local_time = *localtime (&lt);
-      UTC_time = *gmtime (&lt);
+      localtime_r (&lt, &local_time);
+      gmtime_r (&lt, &UTC_time);
 
       /* All arguments can be derived from VALUES.  */
       values[0] = 1900 + local_time.tm_year;
@@ -240,8 +265,8 @@ date_and_time (char *__date, char *__time, char *__zone,
       index_type len, delta, elt_size;
 
       elt_size = GFC_DESCRIPTOR_SIZE (__values);
-      len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
-      delta = __values->dim[0].stride;
+      len = GFC_DESCRIPTOR_EXTENT(__values,0);
+      delta = GFC_DESCRIPTOR_STRIDE(__values,0);
       if (delta == 0)
 	delta = 1;
 
@@ -326,9 +351,7 @@ secnds (GFC_REAL_4 *x)
 				        & GFC_DTYPE_TYPE_MASK) +
 				    (4 << GFC_DTYPE_SIZE_SHIFT);
 
-  avalues->dim[0].ubound = 7;
-  avalues->dim[0].lbound = 0;
-  avalues->dim[0].stride = 1;
+  GFC_DIMENSION_SET(avalues->dim[0], 0, 7, 1);
 
   date_and_time (NULL, NULL, NULL, avalues, 0, 0, 0);
 
@@ -361,7 +384,7 @@ itime0 (int x[3])
 
   if (lt != (time_t) -1)
     {
-      local_time = *localtime (&lt);
+      localtime_r (&lt, &local_time);
 
       x[0] = local_time.tm_hour;
       x[1] = local_time.tm_min;
@@ -386,9 +409,9 @@ itime_i4 (gfc_array_i4 *__values)
   itime0(x);
 
   /* Copy the value into the array.  */
-  len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
+  len = GFC_DESCRIPTOR_EXTENT(__values,0);
   assert (len >= 3);
-  delta = __values->dim[0].stride;
+  delta = GFC_DESCRIPTOR_STRIDE(__values,0);
   if (delta == 0)
     delta = 1;
 
@@ -412,9 +435,9 @@ itime_i8 (gfc_array_i8 *__values)
   itime0(x);
 
   /* Copy the value into the array.  */
-  len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
+  len = GFC_DESCRIPTOR_EXTENT(__values,0);
   assert (len >= 3);
-  delta = __values->dim[0].stride;
+  delta = GFC_DESCRIPTOR_STRIDE(__values,0);
   if (delta == 0)
     delta = 1;
 
@@ -443,7 +466,7 @@ idate0 (int x[3])
 
   if (lt != (time_t) -1)
     {
-      local_time = *localtime (&lt);
+      localtime_r (&lt, &local_time);
 
       x[0] = local_time.tm_mday;
       x[1] = 1 + local_time.tm_mon;
@@ -468,9 +491,9 @@ idate_i4 (gfc_array_i4 *__values)
   idate0(x);
 
   /* Copy the value into the array.  */
-  len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
+  len = GFC_DESCRIPTOR_EXTENT(__values,0);
   assert (len >= 3);
-  delta = __values->dim[0].stride;
+  delta = GFC_DESCRIPTOR_STRIDE(__values,0);
   if (delta == 0)
     delta = 1;
 
@@ -494,9 +517,9 @@ idate_i8 (gfc_array_i8 *__values)
   idate0(x);
 
   /* Copy the value into the array.  */
-  len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
+  len = GFC_DESCRIPTOR_EXTENT(__values,0);
   assert (len >= 3);
-  delta = __values->dim[0].stride;
+  delta = GFC_DESCRIPTOR_STRIDE(__values,0);
   if (delta == 0)
     delta = 1;
 
@@ -510,7 +533,7 @@ idate_i8 (gfc_array_i8 *__values)
 /* GMTIME(STIME, TARRAY) - Non-standard
 
    Description: Given a system time value STime, fills TArray with values
-   extracted from it appropriate to the GMT time zone using gmtime(3).
+   extracted from it appropriate to the GMT time zone using gmtime_r(3).
 
    The array elements are as follows:
 
@@ -530,7 +553,7 @@ gmtime_0 (const time_t * t, int x[9])
 {
   struct tm lt;
 
-  lt = *gmtime (t);
+  gmtime_r (t, &lt);
   x[0] = lt.tm_sec;
   x[1] = lt.tm_min;
   x[2] = lt.tm_hour;
@@ -558,9 +581,9 @@ gmtime_i4 (GFC_INTEGER_4 * t, gfc_array_i4 * tarray)
   gmtime_0(&tt, x);
 
   /* Copy the values into the array.  */
-  len = tarray->dim[0].ubound + 1 - tarray->dim[0].lbound;
+  len = GFC_DESCRIPTOR_EXTENT(tarray,0);
   assert (len >= 9);
-  delta = tarray->dim[0].stride;
+  delta = GFC_DESCRIPTOR_STRIDE(tarray,0);
   if (delta == 0)
     delta = 1;
 
@@ -585,9 +608,9 @@ gmtime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
   gmtime_0(&tt, x);
 
   /* Copy the values into the array.  */
-  len = tarray->dim[0].ubound + 1 - tarray->dim[0].lbound;
+  len = GFC_DESCRIPTOR_EXTENT(tarray,0);
   assert (len >= 9);
-  delta = tarray->dim[0].stride;
+  delta = GFC_DESCRIPTOR_STRIDE(tarray,0);
   if (delta == 0)
     delta = 1;
 
@@ -602,7 +625,7 @@ gmtime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
 /* LTIME(STIME, TARRAY) - Non-standard
 
    Description: Given a system time value STime, fills TArray with values
-   extracted from it appropriate to the local time zone using localtime(3).
+   extracted from it appropriate to the local time zone using localtime_r(3).
 
    The array elements are as follows:
 
@@ -622,7 +645,7 @@ ltime_0 (const time_t * t, int x[9])
 {
   struct tm lt;
 
-  lt = *localtime (t);
+  localtime_r (t, &lt);
   x[0] = lt.tm_sec;
   x[1] = lt.tm_min;
   x[2] = lt.tm_hour;
@@ -650,9 +673,9 @@ ltime_i4 (GFC_INTEGER_4 * t, gfc_array_i4 * tarray)
   ltime_0(&tt, x);
 
   /* Copy the values into the array.  */
-  len = tarray->dim[0].ubound + 1 - tarray->dim[0].lbound;
+  len = GFC_DESCRIPTOR_EXTENT(tarray,0);
   assert (len >= 9);
-  delta = tarray->dim[0].stride;
+  delta = GFC_DESCRIPTOR_STRIDE(tarray,0);
   if (delta == 0)
     delta = 1;
 
@@ -677,9 +700,9 @@ ltime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
   ltime_0(&tt, x);
 
   /* Copy the values into the array.  */
-  len = tarray->dim[0].ubound + 1 - tarray->dim[0].lbound;
+  len = GFC_DESCRIPTOR_EXTENT(tarray,0);
   assert (len >= 9);
-  delta = tarray->dim[0].stride;
+  delta = GFC_DESCRIPTOR_STRIDE(tarray,0);
   if (delta == 0)
     delta = 1;
 

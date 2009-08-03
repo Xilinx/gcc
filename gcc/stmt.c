@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "regs.h"
 #include "alloc-pool.h"
+#include "pretty-print.h"
 
 /* Functions and data structures for expanding case statements.  */
 
@@ -600,8 +601,8 @@ tree_conflicts_with_clobbers_p (tree t, HARD_REG_SET *clobbered_regs)
 
   if (overlap)
     {
-      error ("asm-specifier for variable %qs conflicts with asm clobber list",
-	     IDENTIFIER_POINTER (DECL_NAME (overlap)));
+      error ("asm-specifier for variable %qE conflicts with asm clobber list",
+	     DECL_NAME (overlap));
 
       /* Reset registerness to stop multiple errors emitted for a single
 	 variable.  */
@@ -1322,7 +1323,7 @@ resolve_operand_name_1 (char *p, tree outputs, tree inputs)
     }
 
   *q = '\0';
-  error ("undefined named operand %qs", p + 1);
+  error ("undefined named operand %qs", identifier_to_locale (p + 1));
   op = 0;
  found:
 
@@ -1418,6 +1419,7 @@ warn_if_unused_value (const_tree exp, location_t locus)
       goto restart;
 
     case SAVE_EXPR:
+    case NON_LVALUE_EXPR:
       exp = TREE_OPERAND (exp, 0);
       goto restart;
 
@@ -1466,7 +1468,7 @@ warn_if_unused_value (const_tree exp, location_t locus)
 	return 0;
 
     warn:
-      warning (OPT_Wunused_value, "%Hvalue computed is not used", &locus);
+      warning_at (locus, OPT_Wunused_value, "value computed is not used");
       return 1;
     }
 }
@@ -1512,23 +1514,22 @@ expand_value_return (rtx val)
   /* Copy the value to the return location
      unless it's already there.  */
 
-  rtx return_reg = DECL_RTL (DECL_RESULT (current_function_decl));
+  tree decl = DECL_RESULT (current_function_decl);
+  rtx return_reg = DECL_RTL (decl);
   if (return_reg != val)
     {
-      tree type = TREE_TYPE (DECL_RESULT (current_function_decl));
-      if (targetm.calls.promote_function_return (TREE_TYPE (current_function_decl)))
-      {
-	int unsignedp = TYPE_UNSIGNED (type);
-	enum machine_mode old_mode
-	  = DECL_MODE (DECL_RESULT (current_function_decl));
-	enum machine_mode mode
-	  = promote_mode (type, old_mode, &unsignedp, 1);
+      int unsignedp;
+      enum machine_mode old_mode = DECL_MODE (decl);
+      enum machine_mode mode = promote_decl_mode (decl, &unsignedp);
 
-	if (mode != old_mode)
-	  val = convert_modes (mode, old_mode, val, unsignedp);
-      }
+      if (mode != old_mode)
+	val = convert_modes (mode, old_mode, val, unsignedp);
+
       if (GET_CODE (return_reg) == PARALLEL)
-	emit_group_load (return_reg, val, type, int_size_in_bytes (type));
+	{
+          tree type = TREE_TYPE (decl);
+	  emit_group_load (return_reg, val, type, int_size_in_bytes (type));
+	}
       else
 	emit_move_insn (return_reg, val);
     }
@@ -1846,9 +1847,7 @@ expand_decl (tree decl)
   else if (use_register_for_decl (decl))
     {
       /* Automatic variable that can go in a register.  */
-      int unsignedp = TYPE_UNSIGNED (type);
-      enum machine_mode reg_mode
-	= promote_mode (type, DECL_MODE (decl), &unsignedp, 0);
+      enum machine_mode reg_mode = promote_decl_mode (decl, NULL);
 
       SET_DECL_RTL (decl, gen_reg_rtx (reg_mode));
 
@@ -2320,7 +2319,7 @@ expand_case (tree exp)
 	 If the switch-index is a constant, do it this way
 	 because we can optimize it.  */
 
-      else if (count < case_values_threshold ()
+      else if (count < targetm.case_values_threshold ()
 	       || compare_tree_int (range,
 				    (optimize_insn_for_size_p () ? 3 : 10) * count) > 0
 	       /* RANGE may be signed, and really large ranges will show up
@@ -2903,7 +2902,9 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      /* Neither node is bounded.  First distinguish the two sides;
 		 then emit the code for one side at a time.  */
 
-	      tree test_label = build_decl (LABEL_DECL, NULL_TREE, NULL_TREE);
+	      tree test_label
+		= build_decl (CURR_INSN_LOCATION,
+			      LABEL_DECL, NULL_TREE, NULL_TREE);
 
 	      /* See if the value is on the right.  */
 	      emit_cmp_and_jump_insns (index,
@@ -3026,7 +3027,8 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      /* Right hand node requires testing.
 		 Branch to a label where we will handle it later.  */
 
-	      test_label = build_decl (LABEL_DECL, NULL_TREE, NULL_TREE);
+	      test_label = build_decl (CURR_INSN_LOCATION,
+				       LABEL_DECL, NULL_TREE, NULL_TREE);
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,

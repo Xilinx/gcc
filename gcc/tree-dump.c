@@ -803,6 +803,7 @@ struct dump_option_value_info
 static const struct dump_option_value_info dump_options[] =
 {
   {"address", TDF_ADDRESS},
+  {"asmname", TDF_ASMNAME},
   {"slim", TDF_SLIM},
   {"raw", TDF_RAW},
   {"graph", TDF_GRAPH},
@@ -815,6 +816,7 @@ static const struct dump_option_value_info dump_options[] =
   {"stmtaddr", TDF_STMTADDR},
   {"memsyms", TDF_MEMSYMS},
   {"verbose", TDF_VERBOSE},
+  {"eh", TDF_EH},
   {"all", ~(TDF_RAW | TDF_SLIM | TDF_LINENO | TDF_TREE | TDF_RTL | TDF_IPA 
 	    | TDF_STMTADDR | TDF_GRAPH | TDF_DIAGNOSTIC | TDF_VERBOSE
 	    | TDF_RHS_ONLY)},

@@ -136,9 +136,6 @@ init_var_map (int size)
 
   map = (var_map) xmalloc (sizeof (struct _var_map));
   map->var_partition = partition_new (size);
-  map->partition_to_var 
-	      = (tree *)xmalloc (size * sizeof (tree));
-  memset (map->partition_to_var, 0, size * sizeof (tree));
 
   map->partition_to_view = NULL;
   map->view_to_partition = NULL;
@@ -157,7 +154,6 @@ void
 delete_var_map (var_map map)
 {
   var_map_base_fini (map);
-  free (map->partition_to_var);
   partition_delete (map->var_partition);
   if (map->partition_to_view)
     free (map->partition_to_view);
@@ -175,41 +171,16 @@ int
 var_union (var_map map, tree var1, tree var2)
 {
   int p1, p2, p3;
-  tree root_var = NULL_TREE;
-  tree other_var = NULL_TREE;
+
+  gcc_assert (TREE_CODE (var1) == SSA_NAME);
+  gcc_assert (TREE_CODE (var2) == SSA_NAME);
 
   /* This is independent of partition_to_view. If partition_to_view is 
      on, then whichever one of these partitions is absorbed will never have a
      dereference into the partition_to_view array any more.  */
 
-  if (TREE_CODE (var1) == SSA_NAME)
-    p1 = partition_find (map->var_partition, SSA_NAME_VERSION (var1));
-  else
-    {
-      p1 = var_to_partition (map, var1);
-      if (map->view_to_partition)
-        p1 = map->view_to_partition[p1];
-      root_var = var1;
-    }
-  
-  if (TREE_CODE (var2) == SSA_NAME)
-    p2 = partition_find (map->var_partition, SSA_NAME_VERSION (var2));
-  else
-    {
-      p2 = var_to_partition (map, var2);
-      if (map->view_to_partition)
-        p2 = map->view_to_partition[p2];
-
-      /* If there is no root_var set, or it's not a user variable, set the
-	 root_var to this one.  */
-      if (!root_var || (DECL_P (root_var) && DECL_IGNORED_P (root_var)))
-        {
-	  other_var = root_var;
-	  root_var = var2;
-	}
-      else 
-	other_var = var2;
-    }
+  p1 = partition_find (map->var_partition, SSA_NAME_VERSION (var1));
+  p2 = partition_find (map->var_partition, SSA_NAME_VERSION (var2));
 
   gcc_assert (p1 != NO_PARTITION);
   gcc_assert (p2 != NO_PARTITION);
@@ -221,11 +192,6 @@ var_union (var_map map, tree var1, tree var2)
 
   if (map->partition_to_view)
     p3 = map->partition_to_view[p3];
-
-  if (root_var)
-    change_partition_var (map, root_var, p3);
-  if (other_var)
-    change_partition_var (map, other_var, p3);
 
   return p3;
 }
@@ -278,7 +244,9 @@ partition_view_init (var_map map)
   for (x = 0; x < map->partition_size; x++)
     {
       tmp = partition_find (map->var_partition, x);
-      if (map->partition_to_var[tmp] != NULL_TREE && !bitmap_bit_p (used, tmp))
+      if (ssa_name (tmp) != NULL_TREE && is_gimple_reg (ssa_name (tmp))
+	  && (!has_zero_uses (ssa_name (tmp))
+	      || !SSA_NAME_IS_DEFAULT_DEF (ssa_name (tmp))))
 	bitmap_set_bit (used, tmp);
     }
 
@@ -297,7 +265,6 @@ partition_view_fini (var_map map, bitmap selected)
 {
   bitmap_iterator bi;
   unsigned count, i, x, limit;
-  tree var;
 
   gcc_assert (selected);
 
@@ -317,11 +284,6 @@ partition_view_fini (var_map map, bitmap selected)
 	{
 	  map->partition_to_view[x] = i;
 	  map->view_to_partition[i] = x;
-	  var = map->partition_to_var[x];
-	  /* If any one of the members of a partition is not an SSA_NAME, make
-	     sure it is the representative.  */
-	  if (TREE_CODE (var) != SSA_NAME)
-	    change_partition_var (map, var, i);
 	  i++;
 	}
       gcc_assert (i == count);
@@ -376,25 +338,6 @@ partition_view_bitmap (var_map map, bitmap only, bool want_bases)
     var_map_base_init (map);
   else
     var_map_base_fini (map);
-}
-
-
-/* This function is used to change the representative variable in MAP for VAR's 
-   partition to a regular non-ssa variable.  This allows partitions to be 
-   mapped back to real variables.  */
-  
-void 
-change_partition_var (var_map map, tree var, int part)
-{
-  var_ann_t ann;
-
-  gcc_assert (TREE_CODE (var) != SSA_NAME);
-
-  ann = var_ann (var);
-  ann->out_of_ssa_tag = 1;
-  VAR_ANN_PARTITION (ann) = part;
-  if (map->view_to_partition)
-    map->partition_to_var[map->view_to_partition[part]] = var;
 }
 
 
@@ -492,6 +435,17 @@ remove_unused_scope_block_p (tree scope)
 	 will be output to file.  */
       if (TREE_CODE (*t) == FUNCTION_DECL)
 	unused = false;
+
+      /* If a decl has a value expr, we need to instantiate it
+	 regardless of debug info generation, to avoid codegen
+	 differences in memory overlap tests.  update_equiv_regs() may
+	 indirectly call validate_equiv_mem() to test whether a
+	 SET_DEST overlaps with others, and if the value expr changes
+	 by virtual register instantiation, we may get end up with
+	 different results.  */
+      else if (TREE_CODE (*t) == VAR_DECL && DECL_HAS_VALUE_EXPR_P (*t))
+	unused = false;
+
       /* Remove everything we don't generate debug info for.  */
       else if (DECL_IGNORED_P (*t))
 	{
@@ -582,7 +536,25 @@ remove_unused_scope_block_p (tree scope)
    /* For terse debug info we can eliminate info on unused variables.  */
    else if (debug_info_level == DINFO_LEVEL_NONE
 	    || debug_info_level == DINFO_LEVEL_TERSE)
-     ;
+     {
+       /* Even for -g0/-g1 don't prune outer scopes from artificial
+	  functions, otherwise diagnostics using tree_nonartificial_location
+	  will not be emitted properly.  */
+       if (inlined_function_outer_scope_p (scope))
+	 {
+	   tree ao = scope;
+
+	   while (ao
+		  && TREE_CODE (ao) == BLOCK
+		  && BLOCK_ABSTRACT_ORIGIN (ao) != ao)
+	     ao = BLOCK_ABSTRACT_ORIGIN (ao);
+	   if (ao
+	       && TREE_CODE (ao) == FUNCTION_DECL
+	       && DECL_DECLARED_INLINE_P (ao)
+	       && lookup_attribute ("artificial", DECL_ATTRIBUTES (ao)))
+	     unused = false;
+	 }
+     }
    else if (BLOCK_VARS (scope) || BLOCK_NUM_NONLOCALIZED_VARS (scope))
      unused = false;
    /* See if this block is important for representation of inlined function.
@@ -609,7 +581,9 @@ mark_all_vars_used (tree *expr_p, void *data)
   walk_tree (expr_p, mark_all_vars_used_1, data, NULL);
 }
 
-/* Dump scope blocks.  */
+
+/* Dump scope blocks starting at SCOPE to FILE.  INDENT is the
+   indentation level and FLAGS is as in print_generic_expr.  */
 
 static void
 dump_scope_block (FILE *file, int indent, tree scope, int flags)
@@ -663,10 +637,24 @@ dump_scope_block (FILE *file, int indent, tree scope, int flags)
   fprintf (file, "\n%*s}\n",indent, "");
 }
 
+
+/* Dump the tree of lexical scopes of current_function_decl to FILE.
+   FLAGS is as in print_generic_expr.  */
+
 void
 dump_scope_blocks (FILE *file, int flags)
 {
   dump_scope_block (file, 0, DECL_INITIAL (current_function_decl), flags);
+}
+
+
+/* Dump the tree of lexical scopes of current_function_decl to stderr.
+   FLAGS is as in print_generic_expr.  */
+
+void
+debug_scope_blocks (int flags)
+{
+  dump_scope_blocks (stderr, flags);
 }
 
 /* Remove local variables that are not referenced in the IL.  */
@@ -679,6 +667,12 @@ remove_unused_locals (void)
   referenced_var_iterator rvi;
   var_ann_t ann;
   bitmap global_unused_vars = NULL;
+
+  /* Removing declarations from lexical blocks when not optimizing is
+     not only a waste of time, it actually causes differences in stack
+     layout.  */
+  if (!optimize)
+    return;
 
   mark_scope_block_unused (DECL_INITIAL (current_function_decl));
 
@@ -742,8 +736,7 @@ remove_unused_locals (void)
 
       if (TREE_CODE (var) != FUNCTION_DECL
 	  && (!(ann = var_ann (var))
-	      || !ann->used)
-	  && (optimize || DECL_ARTIFICIAL (var)))
+	      || !ann->used))
 	{
 	  if (is_global_var (var))
 	    {
@@ -802,8 +795,8 @@ remove_unused_locals (void)
 	&& TREE_CODE (t) != PARM_DECL
 	&& TREE_CODE (t) != RESULT_DECL
 	&& !(ann = var_ann (t))->used
-	&& !TREE_ADDRESSABLE (t)
-	&& (optimize || DECL_ARTIFICIAL (t)))
+	&& !ann->is_heapvar
+	&& !TREE_ADDRESSABLE (t))
       remove_referenced_var (t);
   remove_unused_scope_block_p (DECL_INITIAL (current_function_decl));
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -1105,7 +1098,7 @@ dump_var_map (FILE *f, var_map map)
       else
 	p = x;
 
-      if (map->partition_to_var[p] == NULL_TREE)
+      if (ssa_name (p) == NULL_TREE)
         continue;
 
       t = 0;

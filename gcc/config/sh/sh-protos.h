@@ -41,7 +41,6 @@ enum sh_function_kind {
 extern rtx sh_fsca_sf2int (void);
 extern rtx sh_fsca_df2int (void);
 extern rtx sh_fsca_int2sf (void);
-extern struct rtx_def *prepare_scc_operands (enum rtx_code);
 
 /* Declare functions defined in sh.c and used in templates.  */
 
@@ -59,6 +58,7 @@ extern int fp_zero_operand (rtx);
 extern int fp_one_operand (rtx);
 extern int fp_int_operand (rtx);
 extern rtx get_fpscr_rtx (void);
+extern bool sh_legitimate_index_p (enum machine_mode, rtx);
 extern rtx legitimize_pic_address (rtx, enum machine_mode, rtx);
 extern int nonpic_symbol_mentioned_p (rtx);
 extern void emit_sf_insn (rtx);
@@ -72,7 +72,10 @@ extern enum rtx_code prepare_cbranch_operands (rtx *, enum machine_mode mode,
 					       enum rtx_code comparison);
 extern void expand_cbranchsi4 (rtx *operands, enum rtx_code comparison, int);
 extern bool expand_cbranchdi4 (rtx *operands, enum rtx_code comparison);
-extern void from_compare (rtx *, int);
+extern void sh_emit_scc_to_t (enum rtx_code, rtx, rtx);
+extern rtx sh_emit_cheap_store_flag (enum machine_mode, enum rtx_code, rtx, rtx);
+extern void sh_emit_compare_and_branch (rtx *, enum machine_mode);
+extern void sh_emit_compare_and_set (rtx *, enum machine_mode);
 extern int shift_insns_rtx (rtx);
 extern void gen_ashift (int, int, rtx);
 extern void gen_ashift_hi (int, int, rtx);
@@ -93,7 +96,7 @@ extern void fixup_addr_diff_vecs (rtx);
 extern int get_dest_uid (rtx, int);
 extern void final_prescan_insn (rtx, rtx *, int);
 extern int symbol_ref_operand (rtx, enum machine_mode);
-extern int tls_symbolic_operand (rtx, enum machine_mode);
+extern enum tls_model tls_symbolic_operand (rtx, enum machine_mode);
 extern int system_reg_operand (rtx, enum machine_mode);
 extern int general_movsrc_operand (rtx, enum machine_mode);
 extern int general_movdst_operand (rtx, enum machine_mode);
@@ -117,11 +120,13 @@ extern int sh_insn_length_adjustment (rtx);
 extern int sh_can_redirect_branch (rtx, rtx);
 extern void sh_expand_unop_v2sf (enum rtx_code, rtx, rtx);
 extern void sh_expand_binop_v2sf (enum rtx_code, rtx, rtx, rtx);
-extern int sh_expand_t_scc (enum rtx_code code, rtx target);
+extern int sh_expand_t_scc (rtx *);
 extern rtx sh_gen_truncate (enum machine_mode, rtx, int);
 extern bool sh_vector_mode_supported_p (enum machine_mode);
 #endif /* RTX_CODE */
 
+extern void sh_optimization_options (int, int);
+extern void sh_override_options (void);
 extern const char *output_jump_label_table (void);
 extern int sh_handle_pragma (int (*)(void), void (*)(int), const char *);
 extern struct rtx_def *get_fpscr_rtx (void);

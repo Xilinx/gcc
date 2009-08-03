@@ -76,16 +76,30 @@
   (and (match_code "reg")
        (match_test "REGNO (op) == FLAGS_REG")))
 
+;; Return true if op is a QImode register operand other than
+;; %[abcd][hl].
+(define_predicate "ext_QIreg_operand"
+  (and (match_code "reg")
+       (match_test "TARGET_64BIT
+		    && GET_MODE (op) == QImode
+		    && REGNO (op) > BX_REG")))
+
+;; Similarly, but don't check mode of the operand.
+(define_predicate "ext_QIreg_nomode_operand"
+  (and (match_code "reg")
+       (match_test "TARGET_64BIT
+		    && REGNO (op) > BX_REG")))
+
 ;; Return true if op is not xmm0 register.
 (define_predicate "reg_not_xmm0_operand"
    (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
+	(match_test "!REG_P (op) 
 		     || REGNO (op) != FIRST_SSE_REG")))
 
 ;; As above, but allow nonimmediate operands.
 (define_predicate "nonimm_not_xmm0_operand"
    (and (match_operand 0 "nonimmediate_operand")
-	(match_test "GET_CODE (op) != REG
+	(match_test "!REG_P (op) 
 		     || REGNO (op) != FIRST_SSE_REG")))
 
 ;; Return 1 if VALUE can be stored in a sign extended immediate field.
@@ -574,6 +588,11 @@
   (and (match_code "const_int")
        (match_test "INTVAL (op) == 8")))
 
+;; Match exactly 128.
+(define_predicate "const128_operand"
+  (and (match_code "const_int")
+       (match_test "INTVAL (op) == 128")))
+
 ;; Match 2, 4, or 8.  Used for leal multiplicands.
 (define_predicate "const248_operand"
   (match_code "const_int")
@@ -702,7 +721,7 @@
 {
   /* On Pentium4, the inc and dec operations causes extra dependency on flag
      registers, since carry flag is not set.  */
-  if (!TARGET_USE_INCDEC && !optimize_size)
+  if (!TARGET_USE_INCDEC && !optimize_insn_for_size_p ())
     return 0;
   return op == const1_rtx || op == constm1_rtx;
 })
@@ -731,13 +750,12 @@
 {
   unsigned n_elts;
   op = maybe_get_pool_constant (op);
-  if (!op)
+
+  if (!(op && GET_CODE (op) == CONST_VECTOR))
     return 0;
-  if (GET_CODE (op) != CONST_VECTOR)
-    return 0;
-  n_elts =
-    (GET_MODE_SIZE (GET_MODE (op)) /
-     GET_MODE_SIZE (GET_MODE_INNER (GET_MODE (op))));
+
+  n_elts = CONST_VECTOR_NUNITS (op);
+
   for (n_elts--; n_elts > 0; n_elts--)
     {
       rtx elt = CONST_VECTOR_ELT (op, n_elts);
@@ -811,12 +829,12 @@
   int ok;
 
   /* Registers and immediate operands are always "aligned".  */
-  if (GET_CODE (op) != MEM)
+  if (!MEM_P (op))
     return 1;
 
   /* All patterns using aligned_operand on memory operands ends up
      in promoting memory operand to 64bit and thus causing memory mismatch.  */
-  if (TARGET_MEMORY_MISMATCH_STALL && !optimize_size)
+  if (TARGET_MEMORY_MISMATCH_STALL && !optimize_insn_for_size_p ())
     return 0;
 
   /* Don't even try to do any aligned optimizations with volatiles.  */
@@ -878,6 +896,9 @@
   struct ix86_address parts;
   int ok;
 
+  if (TARGET_64BIT)
+    return 0;
+
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);
 
@@ -930,9 +951,7 @@
 
   if (inmode == CCFPmode || inmode == CCFPUmode)
     {
-      enum rtx_code second_code, bypass_code;
-      ix86_fp_comparison_codes (code, &bypass_code, &code, &second_code);
-      if (bypass_code != UNKNOWN || second_code != UNKNOWN)
+      if (!ix86_trivial_fp_comparison_operator (op, mode))
 	return 0;
       code = ix86_fp_compare_code_to_integer (code);
     }
@@ -992,11 +1011,8 @@
   enum rtx_code code = GET_CODE (op);
 
   if (inmode == CCFPmode || inmode == CCFPUmode)
-    {
-      enum rtx_code second_code, bypass_code;
-      ix86_fp_comparison_codes (code, &bypass_code, &code, &second_code);
-      return (bypass_code == UNKNOWN && second_code == UNKNOWN);
-    }
+    return ix86_trivial_fp_comparison_operator (op, mode);
+
   switch (code)
     {
     case EQ: case NE:
@@ -1037,9 +1053,7 @@
 
   if (inmode == CCFPmode || inmode == CCFPUmode)
     {
-      enum rtx_code second_code, bypass_code;
-      ix86_fp_comparison_codes (code, &bypass_code, &code, &second_code);
-      if (bypass_code != UNKNOWN || second_code != UNKNOWN)
+      if (!ix86_trivial_fp_comparison_operator (op, mode))
 	return 0;
       code = ix86_fp_compare_code_to_integer (code);
     }
@@ -1050,6 +1064,19 @@
 
   return code == LTU;
 })
+
+;; Return 1 if this comparison only requires testing one flag bit.
+(define_predicate "ix86_trivial_fp_comparison_operator"
+  (match_code "gt,ge,unlt,unle,uneq,ltgt,ordered,unordered"))
+
+;; Return 1 if we know how to do this comparison.  Others require
+;; testing more than one flag bit, and we let the generic middle-end
+;; code do that.
+(define_predicate "ix86_fp_comparison_operator"
+  (if_then_else (match_test "ix86_fp_comparison_strategy (GET_CODE (op))
+                             == IX86_FPCMP_ARITH")
+               (match_operand 0 "comparison_operator")
+               (match_operand 0 "ix86_trivial_fp_comparison_operator")))
 
 ;; Nearly general operand, but accept any const_double, since we wish
 ;; to be able to drop them into memory rather than have them get pulled

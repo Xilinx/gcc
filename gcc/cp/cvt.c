@@ -1,6 +1,6 @@
 /* Language-level data type conversion for GNU C++.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -508,7 +508,7 @@ convert_from_reference (tree val)
 {
   if (TREE_CODE (TREE_TYPE (val)) == REFERENCE_TYPE)
     {
-      tree t = canonical_type_variant (TREE_TYPE (TREE_TYPE (val)));
+      tree t = TREE_TYPE (TREE_TYPE (val));
       tree ref = build1 (INDIRECT_REF, t, val);
 
        /* We *must* set TREE_READONLY when dereferencing a pointer to const,
@@ -539,7 +539,16 @@ force_rvalue (tree expr)
 
   return expr;
 }
+
 
+/* Fold away simple conversions, but make sure the result is an rvalue.  */
+
+tree
+cp_fold_convert (tree type, tree expr)
+{
+  return rvalue (fold_convert (type, expr));
+}
+
 /* C++ conversions, preference to static cast conversions.  */
 
 tree
@@ -565,7 +574,9 @@ cp_convert_and_check (tree type, tree expr)
   
   result = cp_convert (type, expr);
 
-  if (!skip_evaluation && !TREE_OVERFLOW_P (expr) && result != error_mark_node)
+  if (c_inhibit_evaluation_warnings == 0
+      && !TREE_OVERFLOW_P (expr)
+      && result != error_mark_node)
     warnings_for_convert_and_check (type, expr, result);
 
   return result;
@@ -581,6 +592,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
   tree e = expr;
   enum tree_code code = TREE_CODE (type);
   const char *invalid_conv_diag;
+  tree e1;
 
   if (error_operand_p (e) || type == error_mark_node)
     return error_mark_node;
@@ -628,6 +640,10 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
 	  return fold_if_not_in_template (build_nop (type, e));
 	}
     }
+
+  e1 = targetm.convert_to_type (type, e);
+  if (e1)
+    return e1;
 
   if (code == VOID_TYPE && (convtype & CONV_STATIC))
     {
@@ -750,18 +766,29 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
 	   the target with the temp (see [dcl.init]).  */
 	ctor = build_user_type_conversion (type, ctor, flags);
       else
-	ctor = build_special_member_call (NULL_TREE,
-					  complete_ctor_identifier,
-					  build_tree_list (NULL_TREE, ctor),
-					  type, flags,
-                                          tf_warning_or_error);
+	{
+	  VEC(tree,gc) *ctor_vec = make_tree_vector_single (ctor);
+	  ctor = build_special_member_call (NULL_TREE,
+					    complete_ctor_identifier,
+					    &ctor_vec,
+					    type, flags,
+					    tf_warning_or_error);
+	  release_tree_vector (ctor_vec);
+	}
       if (ctor)
 	return build_cplus_new (type, ctor);
     }
 
   if (flags & LOOKUP_COMPLAIN)
-    error ("conversion from %qT to non-scalar type %qT requested",
-	   TREE_TYPE (expr), type);
+    {
+      /* If the conversion failed and expr was an invalid use of pointer to
+	 member function, try to report a meaningful error.  */
+      if (invalid_nonstatic_memfn_p (expr, tf_warning_or_error))
+	/* We displayed the error message.  */;
+      else
+	error ("conversion from %qT to non-scalar type %qT requested",
+	       TREE_TYPE (expr), type);
+    }
   return error_mark_node;
 }
 
@@ -780,7 +807,10 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
    make it impossible to ignore the reference return value from functions. We
    issue warnings in the confusing cases.
 
-   IMPLICIT is tells us the context of an implicit void conversion.  */
+   IMPLICIT is non-NULL iff an expression is being implicitly converted; it
+   is NULL when the user is explicitly converting an expression to void via
+   a cast.  When non-NULL, IMPLICIT is a string indicating the context of
+   the implicit conversion.  */
 
 tree
 convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
@@ -807,11 +837,12 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 	/* The two parts of a cond expr might be separate lvalues.  */
 	tree op1 = TREE_OPERAND (expr,1);
 	tree op2 = TREE_OPERAND (expr,2);
+	bool side_effects = TREE_SIDE_EFFECTS (op1) || TREE_SIDE_EFFECTS (op2);
 	tree new_op1 = convert_to_void
-	  (op1, (implicit && !TREE_SIDE_EFFECTS (op2)
+	  (op1, (implicit && !side_effects
 		 ? "second operand of conditional" : NULL), complain);
 	tree new_op2 = convert_to_void
-	  (op2, (implicit && !TREE_SIDE_EFFECTS (op1)
+	  (op2, (implicit && !side_effects
 		 ? "third operand of conditional" : NULL), complain);
 
 	expr = build3 (COND_EXPR, TREE_TYPE (new_op1),
@@ -878,6 +909,7 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
                - automatic dereferencing of references, since the user cannot
                  control it. (See also warn_if_unused_value() in stmt.c.)  */
             if (warn_unused_value
+		&& implicit
                 && (complain & tf_warning)
                 && !TREE_NO_WARNING (expr)
                 && !is_reference)
@@ -913,10 +945,11 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 	      && !AGGR_INIT_VIA_CTOR_P (init))
 	    {
 	      tree fn = AGGR_INIT_EXPR_FN (init);
-	      expr = build_call_array (TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
-				       fn,
-				       aggr_init_expr_nargs (init),
-				       AGGR_INIT_EXPR_ARGP (init));
+	      expr = build_call_array_loc (input_location,
+					   TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
+					   fn,
+					   aggr_init_expr_nargs (init),
+					   AGGR_INIT_EXPR_ARGP (init));
 	    }
 	}
       break;
@@ -1170,6 +1203,9 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
       if (winner && winner == cand)
 	continue;
 
+      if (DECL_NONCONVERTING_P (cand))
+	continue;
+
       candidate = non_reference (TREE_TYPE (TREE_TYPE (cand)));
 
       switch (TREE_CODE (candidate))
@@ -1237,10 +1273,17 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
 tree
 type_promotes_to (tree type)
 {
+  tree promoted_type;
+
   if (type == error_mark_node)
     return error_mark_node;
 
   type = TYPE_MAIN_VARIANT (type);
+
+  /* Check for promotions of target-defined types first.  */
+  promoted_type = targetm.promoted_type (type);
+  if (promoted_type)
+    return promoted_type;
 
   /* bool always promotes to int (not unsigned), even if it's the same
      size.  */

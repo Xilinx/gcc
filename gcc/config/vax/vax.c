@@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "target-def.h"
 
+static bool vax_legitimate_address_p (enum machine_mode, rtx, bool);
 static void vax_output_function_prologue (FILE *, HOST_WIDE_INT);
 static void vax_file_start (void);
 static void vax_init_libfuncs (void);
@@ -94,6 +95,12 @@ static rtx vax_builtin_setjmp_frame_value (void);
 #undef TARGET_BUILTIN_SETJMP_FRAME_VALUE
 #define TARGET_BUILTIN_SETJMP_FRAME_VALUE vax_builtin_setjmp_frame_value
 
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P vax_legitimate_address_p
+
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED hook_bool_void_true
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 /* Set global variables as needed for the options enabled.  */
@@ -129,7 +136,7 @@ vax_output_function_prologue (FILE * file, HOST_WIDE_INT size)
 
   if (dwarf2out_do_frame ())
     {
-      const char *label = dwarf2out_cfi_label ();
+      const char *label = dwarf2out_cfi_label (false);
       int offset = 0;
 
       for (regno = FIRST_PSEUDO_REGISTER-1; regno >= 0; --regno)
@@ -168,8 +175,11 @@ vax_file_start (void)
 static void
 vax_init_libfuncs (void)
 {
-  set_optab_libfunc (udiv_optab, SImode, TARGET_ELF ? "*__udiv" : "*udiv");
-  set_optab_libfunc (umod_optab, SImode, TARGET_ELF ? "*__urem" : "*urem");
+  if (TARGET_BSD_DIVMOD)
+    {
+      set_optab_libfunc (udiv_optab, SImode, TARGET_ELF ? "*__udiv" : "*udiv");
+      set_optab_libfunc (umod_optab, SImode, TARGET_ELF ? "*__urem" : "*urem");
+    }
 }
 
 /* This is like nonimmediate_operand with a restriction on the type of MEM.  */
@@ -428,6 +438,8 @@ print_operand (FILE *file, rtx x, int code)
     fputc (ASM_DOUBLE_CHAR, file);
   else if (code == '|')
     fputs (REGISTER_PREFIX, file);
+  else if (code == 'c')
+    fputs (cond_name (x), file);
   else if (code == 'C')
     fputs (rev_cond_name (x), file);
   else if (code == 'D' && CONST_INT_P (x) && INTVAL (x) < 0)
@@ -479,6 +491,37 @@ print_operand (FILE *file, rtx x, int code)
     }
 }
 
+const char *
+cond_name (rtx op)
+{
+  switch (GET_CODE (op))
+    {
+    case NE:
+      return "neq";
+    case EQ:
+      return "eql";
+    case GE:
+      return "geq";
+    case GT:
+      return "gtr";
+    case LE:
+      return "leq";
+    case LT:
+      return "lss";
+    case GEU:
+      return "gequ";
+    case GTU:
+      return "gtru";
+    case LEU:
+      return "lequ";
+    case LTU:
+      return "lssu";
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
 const char *
 rev_cond_name (rtx op)
 {
@@ -1516,27 +1559,6 @@ vax_output_int_subtract (rtx insn, rtx *operands, enum machine_mode mode)
   }
 }
 
-/* Output a conditional branch.  */
-const char *
-vax_output_conditional_branch (enum rtx_code code)
-{
-  switch (code)
-    {
-      case EQ:  return "jeql %l0";
-      case NE:  return "jneq %l0";
-      case GT:  return "jgtr %l0";
-      case LT:  return "jlss %l0";
-      case GTU: return "jgtru %l0";
-      case LTU: return "jlssu %l0";
-      case GE:  return "jgeq %l0";
-      case LE:  return "jleq %l0";
-      case GEU: return "jgequ %l0";
-      case LEU: return "jlequ %l0";
-      default:
-	gcc_unreachable ();
-    }
-}
-
 /* True if X is an rtx for a constant that is a valid address.  */
 
 bool
@@ -1719,7 +1741,7 @@ indexable_address_p (rtx xfoo0, rtx xfoo1, enum machine_mode mode, bool strict)
    The MODE argument is the machine mode for the MEM expression
    that wants to use this address.  */
 bool
-legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
+vax_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   rtx xfoo0, xfoo1;
 

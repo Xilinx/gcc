@@ -1,3 +1,149 @@
+2009-07-27  Douglas B Rupp  <rupp@gnat.com>
+
+	* include/cpplib.h (INO_T_CPP): New macro.
+	(struct cpp_dir): Use it.
+
+2009-07-20  Jerry Quinn  <jlquinn@optonline.net>
+
+	PR regression/40800
+	* configure.ac: Use = instead of == for testing
+	ENABLE_BUILD_WITH_CXX.
+	* configure: Rebuild.
+
+2009-07-17  Jerry Quinn  <jlquinn@optonline.net>
+
+	* directives.c (do_linemarker, do_line): Use CPP_STRING for
+	ignored enum value.
+	* files.c (find_file_in_dir): Add cast from void* to char*.
+	* symtab.c (ht_lookup_with_hash): Add cast from void* to char*.
+	* Makefile.in: (WARN_CFLAGS): Use general and C-specific
+	warnings.
+	(CXX, CXXFLAGS, WARN_CXXFLAGS, ALL_CXXFLAGS,
+	ENABLE_BUILD_WITH_CXX, CCDEPMODE, CXXDEPMODE, COMPILER,
+	COMPILER_FLAGS): New.
+	(DEPMODE): Set from CCDEPMODE or CXXDEPMODE.
+	(COMPILE.base): Use COMPILER instead of CC.  Use COMPILER_FLAGS
+	instead of ALL_CFLAGS.
+	* configure.ac: Invoke AC_PROG_CXX.  Separate C-specific warnings
+	from other warnings.  Add -Wc++-compat to C-specific warnings.
+	Check for --enable-build-with-cxx.  Set and substitute
+	ENABLE_BUILD_WITH_CXX.  Invoke ZW_PROG_COMPILER_DEPENDENCIES
+	according to ENABLE_BUILD_WITH_CXX.  Invoke AC_LANG before
+	AC_CHECK_HEADERS.
+	* configure: Rebuild.
+	* include/cpp-id-data.h: Remove extern "C".
+	* include/line-map.h: Likewise.
+	* include/mkdeps.h: Likewise.
+	* include/symtab.h: Likewise.
+	* internal.h: Likewise.
+
+2009-06-23  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* directives.c (parse_include): Add location argument. Update all
+	calls.
+	(parse_answer): Likewise.
+	(do_include_common): Error with exact location.
+	(parse_assertion): Likewise.
+
+2009-06-18  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* expr.c (num_div_op): Take explicit location.
+
+2009-06-17  Ian Lance Taylor  <iant@google.com>
+
+	* include/cpplib.h (progname): Don't declare.
+
+2009-06-12  Ian Lance Taylor  <iant@google.com>
+
+	* include/cpplib.h (struct cpp_options): Add
+	warn_cxx_operator_names field.
+	(NODE_WARN_OPERATOR): Define.
+	(struct cpp_hashnode): Increase flags field to 10 bits, decrease
+	type to 6 bits.
+	* init.c (mark_named_operators): Add flags parameter.
+	(cpp_post_options): Pick flags value to pass to
+	mark_named_operators.
+	* lex.c (lex_identifier): If NODE_WARN_OPERATOR is set, warn that
+	identifier is an operator name in C++.
+
+2009-06-01  Aldy Hernandez  <aldyh@redhat.com>
+
+	* include/line-map.h (LAST_SOURCE_COLUMN): New.
+
+2009-06-01  Ian Lance Taylor  <iant@google.com>
+
+	* include/cpp-id-data.h: Add extern "C".
+	* include/line-map.h: Likewise.
+	* include/mkdeps.h: Likewise.
+	* include/symtab.h: Likewise.
+	* internal.h: Likewise.
+
+2009-05-15  Ian Lance Taylor  <iant@google.com>
+
+	* include/cpplib.h (enum cpp_builtin_type): Rename from enum
+	builtin_type.  Change all uses.
+
+2009-05-14  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR cpp/36674
+	* directives (do_linemarker): Compensate for the increment in
+	location that occurs when we reach the end of line.
+	* files (_cpp_stack_include): Mention _cpp_find_file in the
+	comment.
+
+2009-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* include/cpplib.h (enum cpp_token_fld_kind): Add
+	CPP_TOKEN_FLD_TOKEN_NO.
+	(struct cpp_macro_arg, struct cpp_identifier): Define.
+	(union cpp_token_u): Use struct cpp_identifier for identifiers.
+	Use struct cpp_macro_arg for macro arguments.  Add token_no for
+	CPP_PASTE token numbers.
+	* directives.c (_cpp_handle_directive, lex_macro_node, do_pragma,
+	do_pragma_poison, parse_assertion): Use val.node.node in place of
+	val.node.
+	* expr.c (parse_defined, eval_token): Use val.node.node in place
+	of val.node.
+	* lex.c (cpp_ideq, _cpp_lex_direct, cpp_token_len,
+	cpp_spell_token, cpp_output_token, _cpp_equiv_tokens,
+	cpp_token_val_index): Use val.macro_arg.arg_no or val.token_no in
+	place of val.arg_no.  Use val.node.node in place of val.node.
+	* macro.c (replace_args, cpp_get_token, parse_params,
+	lex_expansion_token, create_iso_definition, cpp_macro_definition):
+	Use val.macro_arg.arg_no or val.token_no in place of val.arg_no.
+	Use val.node.node in place of val.node.
+
+2009-05-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* charset.c (one_utf8_to_cppchar): Correct mask used for 5-byte
+	UTF-8 sequences.
+
+2009-04-25  Joseph Myers  <joseph@codesourcery.com>
+
+	PR preprocessor/39559
+	* expr.c (cpp_interpret_integer): Use a pedwarn for decimal
+	constants larger than intmax_t in C99 mode.
+
+2009-04-21  Taras Glek <tglek@mozilla.com>
+
+	* include/cpp-id-data.h: Update GTY annotations to new syntax.
+	* include/cpplib.h: Likewise.
+	* include/line-map.h: Likewise.
+	* include/symtab.h: Likewise.
+
+2009-04-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/14875
+	* lex.c (cpp_type2name): Take a flags parameter. Call
+	cpp_named_operator2name for named operators and cpp_digraph2name
+	for digraphs.
+	(cpp_digraph2name): New.
+	(cpp_spell_token): Use it.
+	(cpp_output_token): Likewise.
+	* include/cpplib.h (cpp_type2name): Update declaration.
+	* init.c (cpp_named_operator2name): New.
+	* internal.h (cpp_named_operator2name): Declare.
+
 2009-04-21  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR c++/13358

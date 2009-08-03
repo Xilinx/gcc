@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "tm_p.h"
 #include "obstack.h"
+#include "insn-attr.h"
 #include "insn-config.h"
 #include "cfglayout.h"
 #include "expr.h"
@@ -64,7 +65,6 @@ along with GCC; see the file COPYING3.  If not see
 
 static int can_delete_note_p (const_rtx);
 static int can_delete_label_p (const_rtx);
-static void commit_one_edge_insertion (edge);
 static basic_block rtl_split_edge (edge);
 static bool rtl_move_block_after (basic_block, basic_block);
 static int rtl_verify_flow_info (void);
@@ -86,8 +86,16 @@ static void rtl_make_forwarder_block (edge);
 static int
 can_delete_note_p (const_rtx note)
 {
-  return (NOTE_KIND (note) == NOTE_INSN_DELETED
-	  || NOTE_KIND (note) == NOTE_INSN_BASIC_BLOCK);
+  switch (NOTE_KIND (note))
+    {
+    case NOTE_INSN_DELETED:
+    case NOTE_INSN_BASIC_BLOCK:
+    case NOTE_INSN_EPILOGUE_BEG:
+      return true;
+
+    default:
+      return false;
+    }
 }
 
 /* True if a given label can be deleted.  */
@@ -162,9 +170,7 @@ delete_insn (rtx insn)
       remove_note (insn, note);
     }
 
-  if (JUMP_P (insn)
-      && (GET_CODE (PATTERN (insn)) == ADDR_VEC
-	  || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC))
+  if (JUMP_TABLE_DATA_P (insn))
     {
       rtx pat = PATTERN (insn);
       int diff_vec_p = GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC;
@@ -409,13 +415,27 @@ free_bb_for_insn (void)
   return 0;
 }
 
+static unsigned int
+rest_of_pass_free_cfg (void)
+{
+#ifdef DELAY_SLOTS
+  /* The resource.c machinery uses DF but the CFG isn't guaranteed to be
+     valid at that point so it would be too late to call df_analyze.  */
+  if (optimize > 0 && flag_delayed_branch)
+    df_analyze ();
+#endif
+
+  free_bb_for_insn ();
+  return 0;
+}
+
 struct rtl_opt_pass pass_free_cfg =
 {
  {
   RTL_PASS,
   NULL,                                 /* name */
   NULL,                                 /* gate */
-  free_bb_for_insn,                     /* execute */
+  rest_of_pass_free_cfg,                /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
@@ -856,31 +876,25 @@ try_redirect_by_replacing_jump (edge e, basic_block target, bool in_cfglayout)
   return e;
 }
 
-/* Redirect edge representing branch of (un)conditional jump or tablejump,
-   NULL on failure  */
-static edge
-redirect_branch_edge (edge e, basic_block target)
+/* Subroutine of redirect_branch_edge that tries to patch the jump
+   instruction INSN so that it reaches block NEW.  Do this
+   only when it originally reached block OLD.  Return true if this
+   worked or the original target wasn't OLD, return false if redirection
+   doesn't work.  */
+
+static bool
+patch_jump_insn (rtx insn, rtx old_label, basic_block new_bb)
 {
   rtx tmp;
-  rtx old_label = BB_HEAD (e->dest);
-  basic_block src = e->src;
-  rtx insn = BB_END (src);
-
-  /* We can only redirect non-fallthru edges of jump insn.  */
-  if (e->flags & EDGE_FALLTHRU)
-    return NULL;
-  else if (!JUMP_P (insn))
-    return NULL;
-
   /* Recognize a tablejump and adjust all matching cases.  */
   if (tablejump_p (insn, NULL, &tmp))
     {
       rtvec vec;
       int j;
-      rtx new_label = block_label (target);
+      rtx new_label = block_label (new_bb);
 
-      if (target == EXIT_BLOCK_PTR)
-	return NULL;
+      if (new_bb == EXIT_BLOCK_PTR)
+	return false;
       if (GET_CODE (PATTERN (tmp)) == ADDR_VEC)
 	vec = XVEC (PATTERN (tmp), 0);
       else
@@ -915,20 +929,55 @@ redirect_branch_edge (edge e, basic_block target)
       if (computed_jump_p (insn)
 	  /* A return instruction can't be redirected.  */
 	  || returnjump_p (insn))
-	return NULL;
+	return false;
 
-      /* If the insn doesn't go where we think, we're confused.  */
-      gcc_assert (JUMP_LABEL (insn) == old_label);
-
-      /* If the substitution doesn't succeed, die.  This can happen
-	 if the back end emitted unrecognizable instructions or if
-	 target is exit block on some arches.  */
-      if (!redirect_jump (insn, block_label (target), 0))
+      if (!currently_expanding_to_rtl || JUMP_LABEL (insn) == old_label)
 	{
-	  gcc_assert (target == EXIT_BLOCK_PTR);
-	  return NULL;
+	  /* If the insn doesn't go where we think, we're confused.  */
+	  gcc_assert (JUMP_LABEL (insn) == old_label);
+
+	  /* If the substitution doesn't succeed, die.  This can happen
+	     if the back end emitted unrecognizable instructions or if
+	     target is exit block on some arches.  */
+	  if (!redirect_jump (insn, block_label (new_bb), 0))
+	    {
+	      gcc_assert (new_bb == EXIT_BLOCK_PTR);
+	      return false;
+	    }
 	}
     }
+  return true;
+}
+
+
+/* Redirect edge representing branch of (un)conditional jump or tablejump,
+   NULL on failure  */
+static edge
+redirect_branch_edge (edge e, basic_block target)
+{
+  rtx old_label = BB_HEAD (e->dest);
+  basic_block src = e->src;
+  rtx insn = BB_END (src);
+
+  /* We can only redirect non-fallthru edges of jump insn.  */
+  if (e->flags & EDGE_FALLTHRU)
+    return NULL;
+  else if (!JUMP_P (insn) && !currently_expanding_to_rtl)
+    return NULL;
+
+  if (!currently_expanding_to_rtl)
+    {
+      if (!patch_jump_insn (insn, old_label, target))
+	return NULL;
+    }
+  else
+    /* When expanding this BB might actually contain multiple
+       jumps (i.e. not yet split by find_many_sub_basic_blocks).
+       Redirect all of those that match our label.  */
+    for (insn = BB_HEAD (src); insn != NEXT_INSN (BB_END (src));
+	 insn = NEXT_INSN (insn))
+      if (JUMP_P (insn) && !patch_jump_insn (insn, old_label, target))
+	return NULL;
 
   if (dump_file)
     fprintf (dump_file, "Edge %i->%i redirected to %i\n",
@@ -1313,7 +1362,7 @@ insert_insn_on_edge (rtx pattern, edge e)
 
 /* Update the CFG for the instructions queued on edge E.  */
 
-static void
+void
 commit_one_edge_insertion (edge e)
 {
   rtx before = NULL_RTX, after = NULL_RTX, insns, tmp, last;
@@ -1663,11 +1712,11 @@ get_last_bb_insn (basic_block bb)
     end = tmp;
 
   /* Include any barriers that may follow the basic block.  */
-  tmp = next_nonnote_insn (end);
+  tmp = next_nonnote_insn_bb (end);
   while (tmp && BARRIER_P (tmp))
     {
       end = tmp;
-      tmp = next_nonnote_insn (end);
+      tmp = next_nonnote_insn_bb (end);
     }
 
   return end;
@@ -1995,15 +2044,17 @@ rtl_verify_flow_info (void)
 	  rtx insn;
 
 	  /* Ensure existence of barrier in BB with no fallthru edges.  */
-	  for (insn = BB_END (bb); !insn || !BARRIER_P (insn);
-	       insn = NEXT_INSN (insn))
-	    if (!insn
-		|| NOTE_INSN_BASIC_BLOCK_P (insn))
+	  for (insn = NEXT_INSN (BB_END (bb)); ; insn = NEXT_INSN (insn))
+	    {
+	      if (!insn || NOTE_INSN_BASIC_BLOCK_P (insn))
 		{
 		  error ("missing barrier after block %i", bb->index);
 		  err = 1;
 		  break;
 		}
+	      if (BARRIER_P (insn))
+		break;
+	    }
 	}
       else if (e->src != ENTRY_BLOCK_PTR
 	       && e->dest != EXIT_BLOCK_PTR)
@@ -2071,9 +2122,7 @@ rtl_verify_flow_info (void)
 	    case CODE_LABEL:
 	      /* An addr_vec is placed outside any basic block.  */
 	      if (NEXT_INSN (x)
-		  && JUMP_P (NEXT_INSN (x))
-		  && (GET_CODE (PATTERN (NEXT_INSN (x))) == ADDR_DIFF_VEC
-		      || GET_CODE (PATTERN (NEXT_INSN (x))) == ADDR_VEC))
+		  && JUMP_TABLE_DATA_P (NEXT_INSN (x)))
 		x = NEXT_INSN (x);
 
 	      /* But in any case, non-deletable labels can appear anywhere.  */

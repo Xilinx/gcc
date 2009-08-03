@@ -1,6 +1,6 @@
 /* Common subexpression elimination library for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -236,7 +236,7 @@ entry_and_rtx_equal_p (const void *entry, const void *x_arg)
   rtx x = CONST_CAST_RTX ((const_rtx)x_arg);
   enum machine_mode mode = GET_MODE (x);
 
-  gcc_assert (GET_CODE (x) != CONST_INT && GET_CODE (x) != CONST_FIXED
+  gcc_assert (!CONST_INT_P (x) && GET_CODE (x) != CONST_FIXED
 	      && (mode != VOIDmode || GET_CODE (x) != CONST_DOUBLE));
   
   if (mode != GET_MODE (v->val_rtx))
@@ -244,7 +244,7 @@ entry_and_rtx_equal_p (const void *entry, const void *x_arg)
 
   /* Unwrap X if necessary.  */
   if (GET_CODE (x) == CONST
-      && (GET_CODE (XEXP (x, 0)) == CONST_INT
+      && (CONST_INT_P (XEXP (x, 0))
 	  || GET_CODE (XEXP (x, 0)) == CONST_FIXED
 	  || GET_CODE (XEXP (x, 0)) == CONST_DOUBLE))
     x = XEXP (x, 0);
@@ -555,7 +555,7 @@ rtx_equal_for_cselib_p (rtx x, rtx y)
 static rtx
 wrap_constant (enum machine_mode mode, rtx x)
 {
-  if (GET_CODE (x) != CONST_INT && GET_CODE (x) != CONST_FIXED
+  if (!CONST_INT_P (x) && GET_CODE (x) != CONST_FIXED
       && (GET_CODE (x) != CONST_DOUBLE || GET_MODE (x) != VOIDmode))
     return x;
   gcc_assert (mode != VOIDmode);
@@ -1483,7 +1483,7 @@ cselib_invalidate_mem (rtx mem_rtx)
 	    }
 	  if (num_mems < PARAM_VALUE (PARAM_MAX_CSELIB_MEMORY_LOCATIONS)
 	      && ! canon_true_dependence (mem_rtx, GET_MODE (mem_rtx), mem_addr,
-		      			  x, cselib_rtx_varies_p))
+		      			  x, NULL_RTX, cselib_rtx_varies_p))
 	    {
 	      has_mem = true;
 	      num_mems++;

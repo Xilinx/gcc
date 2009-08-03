@@ -125,16 +125,14 @@ enum plf_mask {
 };
 
 /* A node in a gimple_seq_d.  */
-struct gimple_seq_node_d GTY((chain_next ("%h.next"), chain_prev ("%h.prev")))
-{
+struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) gimple_seq_node_d {
   gimple stmt;
   struct gimple_seq_node_d *prev;
   struct gimple_seq_node_d *next;
 };
 
 /* A double-linked sequence of gimple statements.  */
-struct gimple_seq_d GTY ((chain_next ("%h.next_free")))
-{
+struct GTY ((chain_next ("%h.next_free"))) gimple_seq_d {
   /* First and last statements in the sequence.  */
   gimple_seq_node first;
   gimple_seq_node last;
@@ -262,8 +260,7 @@ typedef struct
 /* Data structure definitions for GIMPLE tuples.  NOTE: word markers
    are for 64 bit hosts.  */
 
-struct gimple_statement_base GTY(())
-{
+struct GTY(()) gimple_statement_base {
   /* [ WORD 1 ]
      Main identifying code for a tuple.  */
   ENUM_BITFIELD(gimple_code) code : 8;
@@ -325,7 +322,7 @@ struct gimple_statement_base GTY(())
 
 /* Base structure for tuples with operands.  */
 
-struct gimple_statement_with_ops_base GTY(())
+struct GTY(()) gimple_statement_with_ops_base
 {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
@@ -342,7 +339,7 @@ struct gimple_statement_with_ops_base GTY(())
 
 /* Statements that take register operands.  */
 
-struct gimple_statement_with_ops GTY(())
+struct GTY(()) gimple_statement_with_ops
 {
   /* [ WORD 1-6 ]  */
   struct gimple_statement_with_ops_base opbase;
@@ -357,7 +354,7 @@ struct gimple_statement_with_ops GTY(())
 
 /* Base for statements that take both memory and register operands.  */
 
-struct gimple_statement_with_memory_ops_base GTY(())
+struct GTY(()) gimple_statement_with_memory_ops_base
 {
   /* [ WORD 1-6 ]  */
   struct gimple_statement_with_ops_base opbase;
@@ -372,7 +369,7 @@ struct gimple_statement_with_memory_ops_base GTY(())
 
 /* Statements that take both memory and register operands.  */
 
-struct gimple_statement_with_memory_ops GTY(())
+struct GTY(()) gimple_statement_with_memory_ops
 {
   /* [ WORD 1-8 ]  */
   struct gimple_statement_with_memory_ops_base membase;
@@ -387,8 +384,7 @@ struct gimple_statement_with_memory_ops GTY(())
 
 /* OpenMP statements (#pragma omp).  */
 
-struct gimple_statement_omp GTY(())
-{
+struct GTY(()) gimple_statement_omp {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -399,8 +395,7 @@ struct gimple_statement_omp GTY(())
 
 /* GIMPLE_BIND */
 
-struct gimple_statement_bind GTY(())
-{
+struct GTY(()) gimple_statement_bind {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -423,8 +418,7 @@ struct gimple_statement_bind GTY(())
 
 /* GIMPLE_CATCH */
 
-struct gimple_statement_catch GTY(())
-{
+struct GTY(()) gimple_statement_catch {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -438,8 +432,7 @@ struct gimple_statement_catch GTY(())
 
 /* GIMPLE_EH_FILTER */
 
-struct gimple_statement_eh_filter GTY(())
-{
+struct GTY(()) gimple_statement_eh_filter {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -458,8 +451,7 @@ struct gimple_statement_eh_filter GTY(())
 
 /* GIMPLE_PHI */
 
-struct gimple_statement_phi GTY(())
-{
+struct GTY(()) gimple_statement_phi {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -477,8 +469,7 @@ struct gimple_statement_phi GTY(())
 
 /* GIMPLE_RESX */
 
-struct gimple_statement_resx GTY(())
-{
+struct GTY(()) gimple_statement_resx {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -490,8 +481,7 @@ struct gimple_statement_resx GTY(())
 
 /* GIMPLE_TRY */
 
-struct gimple_statement_try GTY(())
-{
+struct GTY(()) gimple_statement_try {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -520,8 +510,7 @@ enum gimple_try_flags
 
 /* GIMPLE_WITH_CLEANUP_EXPR */
 
-struct gimple_statement_wce GTY(())
-{
+struct GTY(()) gimple_statement_wce {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -538,7 +527,7 @@ struct gimple_statement_wce GTY(())
 
 /* GIMPLE_ASM  */
 
-struct gimple_statement_asm GTY(())
+struct GTY(()) gimple_statement_asm
 {
   /* [ WORD 1-8 ]  */
   struct gimple_statement_with_memory_ops_base membase;
@@ -562,8 +551,7 @@ struct gimple_statement_asm GTY(())
 
 /* GIMPLE_OMP_CRITICAL */
 
-struct gimple_statement_omp_critical GTY(())
-{
+struct GTY(()) gimple_statement_omp_critical {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -573,8 +561,7 @@ struct gimple_statement_omp_critical GTY(())
 };
 
 
-struct gimple_omp_for_iter GTY(())
-{
+struct GTY(()) gimple_omp_for_iter {
   /* Condition code.  */
   enum tree_code cond;
 
@@ -593,8 +580,7 @@ struct gimple_omp_for_iter GTY(())
 
 /* GIMPLE_OMP_FOR */
 
-struct gimple_statement_omp_for GTY(())
-{
+struct GTY(()) gimple_statement_omp_for {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -616,8 +602,7 @@ struct gimple_statement_omp_for GTY(())
 
 /* GIMPLE_OMP_PARALLEL */
 
-struct gimple_statement_omp_parallel GTY(())
-{
+struct GTY(()) gimple_statement_omp_parallel {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -637,8 +622,7 @@ struct gimple_statement_omp_parallel GTY(())
 
 /* GIMPLE_OMP_TASK */
 
-struct gimple_statement_omp_task GTY(())
-{
+struct GTY(()) gimple_statement_omp_task {
   /* [ WORD 1-8 ]  */
   struct gimple_statement_omp_parallel par;
 
@@ -659,8 +643,7 @@ struct gimple_statement_omp_task GTY(())
 
 /* GIMPLE_OMP_SECTIONS */
 
-struct gimple_statement_omp_sections GTY(())
-{
+struct GTY(()) gimple_statement_omp_sections {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -678,8 +661,7 @@ struct gimple_statement_omp_sections GTY(())
    Note: This does not inherit from gimple_statement_omp, because we
          do not need the body field.  */
 
-struct gimple_statement_omp_continue GTY(())
-{
+struct GTY(()) gimple_statement_omp_continue {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -692,8 +674,7 @@ struct gimple_statement_omp_continue GTY(())
 
 /* GIMPLE_OMP_SINGLE */
 
-struct gimple_statement_omp_single GTY(())
-{
+struct GTY(()) gimple_statement_omp_single {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -706,8 +687,7 @@ struct gimple_statement_omp_single GTY(())
    Note: This is based on gimple_statement_base, not g_s_omp, because g_s_omp
    contains a sequence, which we don't need here.  */
 
-struct gimple_statement_omp_atomic_load GTY(())
-{
+struct GTY(()) gimple_statement_omp_atomic_load {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -718,8 +698,7 @@ struct gimple_statement_omp_atomic_load GTY(())
 /* GIMPLE_OMP_ATOMIC_STORE.
    See note on GIMPLE_OMP_ATOMIC_LOAD.  */
 
-struct gimple_statement_omp_atomic_store GTY(())
-{
+struct GTY(()) gimple_statement_omp_atomic_store {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -738,8 +717,7 @@ enum gimple_statement_structure_enum {
 /* Define the overall contents of a gimple tuple.  It may be any of the
    structures declared above for various types of tuples.  */
 
-union gimple_statement_d GTY ((desc ("gimple_statement_structure (&%h)")))
-{
+union GTY ((desc ("gimple_statement_structure (&%h)"))) gimple_statement_d {
   struct gimple_statement_base GTY ((tag ("GSS_BASE"))) gsbase;
   struct gimple_statement_with_ops GTY ((tag ("GSS_WITH_OPS"))) gsops;
   struct gimple_statement_with_memory_ops GTY ((tag ("GSS_WITH_MEM_OPS"))) gsmem;
@@ -1001,7 +979,6 @@ extern gimple_predicate rhs_predicate_for (tree);
 extern tree canonicalize_cond_expr_cond (tree);
 
 /* In omp-low.c.  */
-extern void diagnose_omp_structured_block_errors (tree);
 extern tree omp_reduction_init (tree, tree);
 
 /* In tree-nested.c.  */
@@ -1019,6 +996,7 @@ extern bool validate_gimple_arglist (const_gimple, ...);
 
 /* In tree-ssa.c  */
 extern bool tree_ssa_useless_type_conversion (tree);
+extern tree tree_ssa_strip_useless_type_conversions (tree);
 extern bool useless_type_conversion_p (tree, tree);
 extern bool types_compatible_p (tree, tree);
 
@@ -1380,35 +1358,6 @@ static inline bool
 gimple_modified_p (const_gimple g)
 {
   return (gimple_has_ops (g)) ? (bool) g->gsbase.modified : false;
-}
-
-/* Return the type of the main expression computed by STMT.  Return
-   void_type_node if the statement computes nothing.  */
-
-static inline tree
-gimple_expr_type (const_gimple stmt)
-{
-  enum gimple_code code = gimple_code (stmt);
-
-  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
-    {
-      tree type = TREE_TYPE (gimple_get_lhs (stmt));
-      /* Integral sub-types are never the type of the expression,
-         but they still can be the type of the result as the base
-	 type (in which expressions are computed) is trivially
-	 convertible to one of its sub-types.  So always return
-	 the base type here.  */
-      if (INTEGRAL_TYPE_P (type)
-	  && TREE_TYPE (type)
-	  /* But only if they are trivially convertible.  */
-	  && useless_type_conversion_p (type, TREE_TYPE (type)))
-	type = TREE_TYPE (type);
-      return type;
-    }
-  else if (code == GIMPLE_COND)
-    return boolean_type_node;
-  else
-    return void_type_node;
 }
 
 
@@ -1934,7 +1883,7 @@ gimple_call_set_fndecl (gimple gs, tree decl)
 {
   GIMPLE_CHECK (gs, GIMPLE_CALL);
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
-  gimple_set_op (gs, 1, build_fold_addr_expr (decl));
+  gimple_set_op (gs, 1, build_fold_addr_expr_loc (gimple_location (gs), decl));
 }
 
 
@@ -2224,7 +2173,7 @@ static inline enum tree_code
 gimple_cond_code (const_gimple gs)
 {
   GIMPLE_CHECK (gs, GIMPLE_COND);
-  return gs->gsbase.subcode;
+  return (enum tree_code) gs->gsbase.subcode;
 }
 
 
@@ -4157,69 +4106,6 @@ gimple_nop_p (const_gimple g)
 }
 
 
-/* Return the new type set by GIMPLE_CHANGE_DYNAMIC_TYPE statement GS.  */
-
-static inline tree
-gimple_cdt_new_type (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  return gimple_op (gs, 1);
-}
-
-/* Return a pointer to the new type set by GIMPLE_CHANGE_DYNAMIC_TYPE
-   statement GS.  */
-
-static inline tree *
-gimple_cdt_new_type_ptr (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  return gimple_op_ptr (gs, 1);
-}
-
-/* Set NEW_TYPE to be the type returned by GIMPLE_CHANGE_DYNAMIC_TYPE
-   statement GS.  */
-
-static inline void
-gimple_cdt_set_new_type (gimple gs, tree new_type)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  gcc_assert (TREE_CODE_CLASS (TREE_CODE (new_type)) == tcc_type);
-  gimple_set_op (gs, 1, new_type);
-}
-
-
-/* Return the location affected by GIMPLE_CHANGE_DYNAMIC_TYPE statement GS.  */
-
-static inline tree
-gimple_cdt_location (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  return gimple_op (gs, 0);
-}
-
-
-/* Return a pointer to the location affected by GIMPLE_CHANGE_DYNAMIC_TYPE
-   statement GS.  */
-
-static inline tree *
-gimple_cdt_location_ptr (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  return gimple_op_ptr (gs, 0);
-}
-
-
-/* Set PTR to be the location affected by GIMPLE_CHANGE_DYNAMIC_TYPE
-   statement GS.  */
-
-static inline void
-gimple_cdt_set_location (gimple gs, tree ptr)
-{
-  GIMPLE_CHECK (gs, GIMPLE_CHANGE_DYNAMIC_TYPE);
-  gimple_set_op (gs, 0, ptr);
-}
-
-
 /* Return the predictor of GIMPLE_PREDICT statement GS.  */
 
 static inline enum br_predictor
@@ -4261,6 +4147,44 @@ gimple_predict_set_outcome (gimple gs, enum prediction outcome)
     gs->gsbase.subcode |= GF_PREDICT_TAKEN;
   else
     gs->gsbase.subcode &= ~GF_PREDICT_TAKEN;
+}
+
+
+/* Return the type of the main expression computed by STMT.  Return
+   void_type_node if the statement computes nothing.  */
+
+static inline tree
+gimple_expr_type (const_gimple stmt)
+{
+  enum gimple_code code = gimple_code (stmt);
+
+  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
+    {
+      tree type;
+      /* In general we want to pass out a type that can be substituted
+         for both the RHS and the LHS types if there is a possibly
+	 useless conversion involved.  That means returning the
+	 original RHS type as far as we can reconstruct it.  */
+      if (code == GIMPLE_CALL)
+	type = gimple_call_return_type (stmt);
+      else
+	switch (gimple_assign_rhs_code (stmt))
+	  {
+	  case POINTER_PLUS_EXPR:
+	    type = TREE_TYPE (gimple_assign_rhs1 (stmt));
+	    break;
+
+	  default:
+	    /* As fallback use the type of the LHS.  */
+	    type = TREE_TYPE (gimple_get_lhs (stmt));
+	    break;
+	  }
+      return type;
+    }
+  else if (code == GIMPLE_COND)
+    return boolean_type_node;
+  else
+    return void_type_node;
 }
 
 

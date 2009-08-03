@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 
 
 
-/* Prototypes of functions used for constraint evaluation in 
+/* Prototypes of functions used for constraint evaluation in
    constraints.c.  */
 
 extern int s390_mem_constraint (const char *str, rtx op);
@@ -72,9 +72,7 @@ extern bool preferred_la_operand_p (rtx, rtx);
 extern int legitimate_pic_operand_p (rtx);
 extern int legitimate_constant_p (rtx);
 extern bool legitimate_reload_constant_p (rtx);
-extern bool legitimate_address_p (enum machine_mode, rtx, int);
 extern rtx legitimize_pic_address (rtx, rtx);
-extern rtx legitimize_address (rtx, rtx, enum machine_mode);
 extern rtx legitimize_reload_address (rtx, enum machine_mode, int, int);
 extern enum reg_class s390_preferred_reload_class (rtx, enum reg_class);
 extern enum reg_class s390_secondary_input_reload_class (enum reg_class,
@@ -94,7 +92,7 @@ extern void s390_expand_cmpmem (rtx, rtx, rtx, rtx);
 extern bool s390_expand_addcc (enum rtx_code, rtx, rtx, rtx, rtx, rtx);
 extern bool s390_expand_insv (rtx, rtx, rtx, rtx);
 extern void s390_expand_cs_hqi (enum machine_mode, rtx, rtx, rtx, rtx);
-extern void s390_expand_atomic (enum machine_mode, enum rtx_code, 
+extern void s390_expand_atomic (enum machine_mode, enum rtx_code,
 				rtx, rtx, rtx, bool);
 extern rtx s390_return_addr_rtx (int, rtx);
 extern rtx s390_back_chain_rtx (void);
@@ -127,6 +125,6 @@ extern void s390_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				       tree, int);
 #ifdef RTX_CODE
 extern rtx s390_function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern rtx s390_function_value (const_tree, enum machine_mode);
+extern rtx s390_function_value (const_tree, const_tree, enum machine_mode);
 #endif /* RTX_CODE */
 #endif /* TREE_CODE */

@@ -159,7 +159,7 @@ CXXFLAGS="$CXXFLAGS -fno-builtin"
 AC_PROG_CC
 AC_PROG_CXX
 CXXFLAGS="$save_CXXFLAGS"
-m4_rename([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
+m4_rename_force([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 AC_SUBST(LDFLAGS)
@@ -244,7 +244,7 @@ AC_ARG_ENABLE(libgcj-debug,
   AS_HELP_STRING([--enable-libgcj-debug],
                  [enable runtime debugging code]),
   [if test "$enable_libgcj_debug" = yes; then
-    AC_DEFINE(DEBUG, 1, [Define this if you want runtime debugging enabled.])
+    AC_DEFINE(__GCJ_DEBUG, 1, [Define this if you want runtime debugging enabled.])
     LIBGCJDEBUG="enable"
   fi])
 
@@ -409,23 +409,33 @@ else
      which_gcj=path
   fi
 fi
+libgcjdir=`${PWDCMD-pwd}`
+case $GCJ in
+*" -B"*)
+  # Just in case there is a comma in the build dir, quote it for the
+  # sed command below.
+  case $libgcjdir in
+  *[[,\\]]*) qlibgcjdir=`echo "$libgcjdir" | sed 's:[[,\\]]:\\&:g'`;;
+  *) qlibgcjdir=$libgcjdir;;
+  esac
+  GCJ=`echo "$GCJ" | sed "s, -B, -B$qlibgcjdir/&,"`
+  ;;
+*)
+  GCJ=$GCJ" -B$libgcjdir/"
+  ;;
+esac
 case "${which_gcj}" in
    built)
-      GCJ="$built_gcc_dir/gcj -B`${PWDCMD-pwd}`/ -B$built_gcc_dir/"
       GCJH='$(top_builddir)/$(MULTIBUILDTOP)../../$(host_subdir)/gcc/gcjh'
    ;;
    cross)
       if test "x${with_newlib}" = "xyes"; then
          # FIXME (comment): Why is this needed?
          GCC_UNWIND_INCLUDE=
-         GCJ="${target_noncanonical}-gcj"
-      else
-         GCJ="${target_noncanonical}-gcj -B`${PWDCMD-pwd}`/"
       fi
       GCJH='$(target_noncanonical)-gcjh'
    ;;
    path)
-      GCJ="gcj -B`${PWDCMD-pwd}`/"
       GCJH=gcjh
    ;;
 esac
@@ -834,6 +844,8 @@ test -d gnu/java/nio/channels || mkdir gnu/java/nio/channels
 AC_CONFIG_LINKS(gnu/java/nio/channels/natFileChannelImpl.cc:gnu/java/nio/channels/natFileChannel${FILE-${PLATFORM}}.cc)
 
 # Likewise for natVMSecureRandom.cc
+test -d gnu/java/security || mkdir gnu/java/security
+test -d gnu/java/security/jce || mkdir gnu/java/security/jce
 test -d gnu/java/security/jce/prng || mkdir gnu/java/security/jce/prng
 AC_CONFIG_LINKS(gnu/java/security/jce/prng/natVMSecureRandom.cc:gnu/java/security/jce/prng/natVMSecureRandom${FILE-${PLATFORM}}.cc)
 
@@ -1921,6 +1933,7 @@ testsuite/Makefile
 contrib/aotcompile.py
 contrib/aot-compile
 contrib/aot-compile-rpm
+contrib/generate-cacerts.pl
 contrib/rebuild-gcj-db
 ])
 

@@ -1027,7 +1027,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       insert(iterator __position, size_type __n, const value_type& __x)
       {  
 	list __tmp(__n, __x, _M_get_Node_allocator());
-	splice(__position, __tmp);
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	  splice(__position, std::move(__tmp));
+#else
+	  splice(__position, __tmp);
+#endif
       }
 
       /**
@@ -1049,7 +1053,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 	       _InputIterator __last)
         {
 	  list __tmp(__first, __last, _M_get_Node_allocator());
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	  splice(__position, std::move(__tmp));
+#else
 	  splice(__position, __tmp);
+#endif
 	}
 
       /**
@@ -1106,11 +1114,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
        *  function.
        */
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(list&& __x)
-#else
       swap(list& __x)
-#endif
       {
 	_List_node_base::swap(this->_M_impl._M_node, __x._M_impl._M_node);
 
@@ -1515,18 +1519,6 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
     inline void
     swap(list<_Tp, _Alloc>& __x, list<_Tp, _Alloc>& __y)
     { __x.swap(__y); }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<typename _Tp, typename _Alloc>
-    inline void
-    swap(list<_Tp, _Alloc>&& __x, list<_Tp, _Alloc>& __y)
-    { __x.swap(__y); }
-
-  template<typename _Tp, typename _Alloc>
-    inline void
-    swap(list<_Tp, _Alloc>& __x, list<_Tp, _Alloc>&& __y)
-    { __x.swap(__y); }
-#endif
 
 _GLIBCXX_END_NESTED_NAMESPACE
 

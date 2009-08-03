@@ -1,6 +1,6 @@
 /* Output routines for Motorola MCore processor
-   Copyright (C) 1993, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1993, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
+   2009 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -57,14 +57,9 @@ long   mcore_current_compilation_timestamp = 0;
 
 /* Global variables for machine-dependent things.  */
 
-/* Saved operands from the last compare to use when we generate an scc
-  or bcc insn.  */
-rtx arch_compare_op0;
-rtx arch_compare_op1;
-
 /* Provides the class number of the smallest class containing
    reg number.  */
-const int regno_reg_class[FIRST_PSEUDO_REGISTER] =
+const enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER] =
 {
   GENERAL_REGS,	ONLYR1_REGS,  LRW_REGS,	    LRW_REGS,
   LRW_REGS,	LRW_REGS,     LRW_REGS,	    LRW_REGS,
@@ -132,7 +127,6 @@ static void       mcore_mark_dllexport          (tree);
 static void       mcore_mark_dllimport          (tree);
 static int        mcore_dllexport_p             (tree);
 static int        mcore_dllimport_p             (tree);
-const struct attribute_spec mcore_attribute_table[];
 static tree       mcore_handle_naked_attribute  (tree *, tree, tree, int, bool *);
 #ifdef OBJECT_FORMAT_ELF
 static void	  mcore_asm_named_section       (const char *,
@@ -151,6 +145,17 @@ static int        mcore_arg_partial_bytes       (CUMULATIVE_ARGS *,
 						 enum machine_mode,
 						 tree, bool);
 
+
+/* MCore specific attributes.  */
+
+static const struct attribute_spec mcore_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  { "dllexport", 0, 0, true,  false, false, NULL },
+  { "dllimport", 0, 0, true,  false, false, NULL },
+  { "naked",     0, 0, true,  false, false, mcore_handle_naked_attribute },
+  { NULL,        0, 0, false, false, false, NULL }
+};
 
 /* Initialize the GCC target structure.  */
 #undef  TARGET_ASM_EXTERNAL_LIBCALL
@@ -187,10 +192,8 @@ static int        mcore_arg_partial_bytes       (CUMULATIVE_ARGS *,
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG	mcore_reorg
 
-#undef  TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS	hook_bool_const_tree_true
-#undef  TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN	hook_bool_const_tree_true
+#undef  TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE	default_promote_function_mode_always_promote
 #undef  TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES	hook_bool_const_tree_true
 
@@ -486,7 +489,7 @@ mcore_rtx_costs (rtx x, int code, int outer_code, int * total,
   switch (code)
     {
     case CONST_INT:
-      *total = mcore_const_costs (x, outer_code);
+      *total = mcore_const_costs (x, (enum rtx_code) outer_code);
       return true;
     case CONST:
     case LABEL_REF:
@@ -519,26 +522,36 @@ mcore_rtx_costs (rtx x, int code, int outer_code, int * total,
     }
 }
 
-/* Check to see if a comparison against a constant can be made more efficient
-   by incrementing/decrementing the constant to get one that is more efficient
-   to load.  */
+/* Prepare the operands for a comparison.  Return whether the branch/setcc
+   should reverse the operands.  */
 
-int
-mcore_modify_comparison (enum rtx_code code)
+bool
+mcore_gen_compare (enum rtx_code code, rtx op0, rtx op1)
 {
-  rtx op1 = arch_compare_op1;
-  
+  rtx cc_reg = gen_rtx_REG (CCmode, CC_REG);
+  bool invert;
+
   if (GET_CODE (op1) == CONST_INT)
     {
       HOST_WIDE_INT val = INTVAL (op1);
       
       switch (code)
 	{
+	case GTU:
+	  /* Unsigned > 0 is the same as != 0; everything else is converted
+	     below to LEU (reversed cmphs).  */
+	  if (val == 0)
+	    code = NE;
+	  break;
+
+        /* Check whether (LE A imm) can become (LT A imm + 1),
+	   or (GT A imm) can become (GE A imm + 1).  */
+	case GT:
 	case LE:
 	  if (CONST_OK_FOR_J (val + 1))
 	    {
-	      arch_compare_op1 = GEN_INT (val + 1);
-	      return 1;
+	      op1 = GEN_INT (val + 1);
+	      code = code == LE ? LT : GE;
 	    }
 	  break;
 	  
@@ -546,28 +559,18 @@ mcore_modify_comparison (enum rtx_code code)
 	  break;
 	}
     }
-  
-  return 0;
-}
-
-/* Prepare the operands for a comparison.  */
-
-rtx
-mcore_gen_compare_reg (enum rtx_code code)
-{
-  rtx op0 = arch_compare_op0;
-  rtx op1 = arch_compare_op1;
-  rtx cc_reg = gen_rtx_REG (CCmode, CC_REG);
-
+ 
   if (CONSTANT_P (op1) && GET_CODE (op1) != CONST_INT)
     op1 = force_reg (SImode, op1);
 
   /* cmpnei: 0-31 (K immediate)
      cmplti: 1-32 (J immediate, 0 using btsti x,31).  */
+  invert = false;
   switch (code)
     {
     case EQ:	/* Use inverted condition, cmpne.  */
       code = NE;
+      invert = true;
       /* Drop through.  */
       
     case NE:	/* Use normal condition, cmpne.  */
@@ -577,6 +580,7 @@ mcore_gen_compare_reg (enum rtx_code code)
 
     case LE:	/* Use inverted condition, reversed cmplt.  */
       code = GT;
+      invert = true;
       /* Drop through.  */
       
     case GT:	/* Use normal condition, reversed cmplt.  */
@@ -586,6 +590,7 @@ mcore_gen_compare_reg (enum rtx_code code)
 
     case GE:	/* Use inverted condition, cmplt.  */
       code = LT;
+      invert = true;
       /* Drop through.  */
       
     case LT:	/* Use normal condition, cmplt.  */
@@ -597,13 +602,10 @@ mcore_gen_compare_reg (enum rtx_code code)
       break;
 
     case GTU:	/* Use inverted condition, cmple.  */
-      /* Unsigned > 0 is the same as != 0, but we need to invert the
-	 condition, so we want to set code = EQ.  This cannot be done
-	 however, as the mcore does not support such a test.  Instead
-	 we cope with this case in the "bgtu" pattern itself so we
-	 should never reach this point.  */
+      /* We coped with unsigned > 0 above.  */
       gcc_assert (GET_CODE (op1) != CONST_INT || INTVAL (op1) != 0);
       code = LEU;
+      invert = true;
       /* Drop through.  */
       
     case LEU:	/* Use normal condition, reversed cmphs.  */
@@ -613,6 +615,7 @@ mcore_gen_compare_reg (enum rtx_code code)
 
     case LTU:	/* Use inverted condition, cmphs.  */
       code = GEU;
+      invert = true;
       /* Drop through.  */
       
     case GEU:	/* Use normal condition, cmphs.  */
@@ -624,9 +627,10 @@ mcore_gen_compare_reg (enum rtx_code code)
       break;
     }
 
-  emit_insn (gen_rtx_SET (VOIDmode, cc_reg, gen_rtx_fmt_ee (code, CCmode, op0, op1)));
-  
-  return cc_reg;
+  emit_insn (gen_rtx_SET (VOIDmode,
+			  cc_reg,
+			  gen_rtx_fmt_ee (code, CCmode, op0, op1)));
+  return invert;
 }
 
 int
@@ -2724,14 +2728,15 @@ handle_structs_in_regs (enum machine_mode mode, const_tree type, int reg)
 }
 
 rtx
-mcore_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
+mcore_function_value (const_tree valtype, const_tree func)
 {
   enum machine_mode mode;
   int unsigned_p;
   
   mode = TYPE_MODE (valtype);
 
-  mode = promote_mode (valtype, mode, &unsigned_p, 1);
+  /* Since we promote return types, we must promote the mode here too.  */
+  mode = promote_function_mode (valtype, mode, &unsignedp, func, 1);
   
   return handle_structs_in_regs (mode, valtype, FIRST_RET_REG);
 }
@@ -2995,15 +3000,6 @@ mcore_strip_name_encoding (const char * str)
    dllimport - for importing a function/variable from a dll
    naked     - do not create a function prologue/epilogue.  */
 
-const struct attribute_spec mcore_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "dllexport", 0, 0, true,  false, false, NULL },
-  { "dllimport", 0, 0, true,  false, false, NULL },
-  { "naked",     0, 0, true,  false, false, mcore_handle_naked_attribute },
-  { NULL,        0, 0, false, false, false, NULL }
-};
-
 /* Handle a "naked" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -3031,8 +3027,8 @@ mcore_handle_naked_attribute (tree * node, tree name, tree args ATTRIBUTE_UNUSED
     }
   else
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
       *no_add_attrs = true;
     }
 

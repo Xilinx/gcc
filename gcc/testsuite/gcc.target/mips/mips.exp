@@ -234,6 +234,7 @@ foreach option {
     shared
     smartmips
     sym32
+    synci
 } {
     lappend mips_option_groups $option "-m(no-|)$option"
 }
@@ -243,6 +244,7 @@ foreach option {
     branch-cost
     code-readable
     r10k-cache-barrier
+    tune
 } {
     lappend mips_option_groups $option "-m$option=.*"
 }

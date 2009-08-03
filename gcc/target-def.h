@@ -1,5 +1,5 @@
 /* Default initializers for a generic GCC target.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
@@ -423,6 +423,7 @@
 
 /* In cse.c.  */
 #define TARGET_ADDRESS_COST default_address_cost
+#define TARGET_CONST_ANCHOR 0
 
 /* In builtins.c.  */
 #define TARGET_INIT_BUILTINS hook_void_void
@@ -480,12 +481,15 @@
 
 /* In hooks.c.  */
 #define TARGET_CANNOT_MODIFY_JUMPS_P hook_bool_void_false
-#define TARGET_BRANCH_TARGET_REGISTER_CLASS hook_int_void_no_regs
+#define TARGET_BRANCH_TARGET_REGISTER_CLASS \
+  default_branch_target_register_class
 #define TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED hook_bool_bool_false
 #define TARGET_CANNOT_FORCE_CONST_MEM hook_bool_rtx_false
 #define TARGET_CANNOT_COPY_INSN_P NULL
 #define TARGET_COMMUTATIVE_P hook_bool_const_rtx_commutative_p
+#define TARGET_LEGITIMIZE_ADDRESS default_legitimize_address
 #define TARGET_DELEGITIMIZE_ADDRESS hook_rtx_rtx_identity
+#define TARGET_LEGITIMATE_ADDRESS_P default_legitimate_address_p
 #define TARGET_USE_BLOCKS_FOR_CONSTANT_P hook_bool_mode_const_rtx_false
 #define TARGET_MIN_ANCHOR_OFFSET 0
 #define TARGET_MAX_ANCHOR_OFFSET 0
@@ -533,6 +537,10 @@
 #define TARGET_INVALID_CONVERSION hook_constcharptr_const_tree_const_tree_null
 #define TARGET_INVALID_UNARY_OP hook_constcharptr_int_const_tree_null
 #define TARGET_INVALID_BINARY_OP hook_constcharptr_int_const_tree_const_tree_null
+#define TARGET_INVALID_PARAMETER_TYPE hook_constcharptr_const_tree_null
+#define TARGET_INVALID_RETURN_TYPE hook_constcharptr_const_tree_null
+#define TARGET_PROMOTED_TYPE hook_tree_const_tree_null
+#define TARGET_CONVERT_TO_TYPE hook_tree_tree_tree_null
 
 #define TARGET_FIXED_CONDITION_CODE_REGS hook_bool_uintp_uintp_false
 
@@ -566,8 +574,7 @@
 
 #define TARGET_ARM_EABI_UNWINDER false
 
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_false
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_false
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_false
 
 #define TARGET_STRUCT_VALUE_RTX hook_rtx_tree_int_null
@@ -597,8 +604,7 @@
 #define TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS hook_bool_void_true
 
 #define TARGET_CALLS {						\
-   TARGET_PROMOTE_FUNCTION_ARGS,				\
-   TARGET_PROMOTE_FUNCTION_RETURN,				\
+   TARGET_PROMOTE_FUNCTION_MODE,				\
    TARGET_PROMOTE_PROTOTYPES,					\
    TARGET_STRUCT_VALUE_RTX,					\
    TARGET_RETURN_IN_MEMORY,					\
@@ -652,6 +658,14 @@
 
 #ifndef TARGET_HARD_REGNO_SCRATCH_OK
 #define TARGET_HARD_REGNO_SCRATCH_OK default_hard_regno_scratch_ok
+#endif
+
+#ifndef TARGET_CASE_VALUES_THRESHOLD
+#define TARGET_CASE_VALUES_THRESHOLD default_case_values_threshold
+#endif
+
+#ifndef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED hook_bool_void_false
 #endif
 
 /* C specific.  */
@@ -811,8 +825,8 @@
 #define TARGET_OPTION_PRAGMA_PARSE default_target_option_pragma_parse
 #endif
 
-#ifndef TARGET_OPTION_CAN_INLINE_P
-#define TARGET_OPTION_CAN_INLINE_P default_target_option_can_inline_p
+#ifndef TARGET_CAN_INLINE_P
+#define TARGET_CAN_INLINE_P default_target_can_inline_p
 #endif
 
 #define TARGET_OPTION_HOOKS			\
@@ -822,7 +836,7 @@
     TARGET_OPTION_RESTORE,			\
     TARGET_OPTION_PRINT,			\
     TARGET_OPTION_PRAGMA_PARSE,			\
-    TARGET_OPTION_CAN_INLINE_P,			\
+    TARGET_CAN_INLINE_P,			\
   }
 
 /* The whole shebang.  */
@@ -864,7 +878,9 @@
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
+  TARGET_LEGITIMIZE_ADDRESS,			\
   TARGET_DELEGITIMIZE_ADDRESS,			\
+  TARGET_LEGITIMATE_ADDRESS_P,			\
   TARGET_USE_BLOCKS_FOR_CONSTANT_P,		\
   TARGET_MIN_ANCHOR_OFFSET,			\
   TARGET_MAX_ANCHOR_OFFSET,			\
@@ -909,15 +925,22 @@
   TARGET_STACK_PROTECT_FAIL,			\
   TARGET_INVALID_WITHIN_DOLOOP,			\
   TARGET_VALID_DLLIMPORT_ATTRIBUTE_P,		\
+  TARGET_CONST_ANCHOR,				\
   TARGET_CALLS,					\
   TARGET_INVALID_CONVERSION,			\
   TARGET_INVALID_UNARY_OP,			\
   TARGET_INVALID_BINARY_OP,			\
+  TARGET_INVALID_PARAMETER_TYPE,		\
+  TARGET_INVALID_RETURN_TYPE,			\
+  TARGET_PROMOTED_TYPE,				\
+  TARGET_CONVERT_TO_TYPE,			\
   TARGET_IRA_COVER_CLASSES,			\
   TARGET_SECONDARY_RELOAD,			\
   TARGET_EXPAND_TO_RTL_HOOK,			\
   TARGET_INSTANTIATE_DECLS,			\
   TARGET_HARD_REGNO_SCRATCH_OK,			\
+  TARGET_CASE_VALUES_THRESHOLD,			\
+  TARGET_FRAME_POINTER_REQUIRED,		\
   TARGET_C,					\
   TARGET_CXX,					\
   TARGET_EMUTLS,				\

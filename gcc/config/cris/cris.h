@@ -1,6 +1,6 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
+   2009 Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
 This file is part of GCC.
@@ -352,23 +352,9 @@ extern int target_flags;
 
 #define UNITS_PER_WORD 4
 
-/* A combination of defining PROMOTE_FUNCTION_MODE,
-   TARGET_PROMOTE_FUNCTION_ARGS that always returns true
-   and *not* defining TARGET_PROMOTE_PROTOTYPES or PROMOTE_MODE gives the
-   best code size and speed for gcc, ipps and products in gcc-2.7.2.  */
 #define CRIS_PROMOTED_MODE(MODE, UNSIGNEDP, TYPE) \
  (GET_MODE_CLASS (MODE) == MODE_INT && GET_MODE_SIZE (MODE) < 4) \
   ? SImode : MODE
-
-#define PROMOTE_FUNCTION_MODE(MODE, UNSIGNEDP, TYPE)  \
-  (MODE) = CRIS_PROMOTED_MODE (MODE, UNSIGNEDP, TYPE)
-
-/* Defining PROMOTE_FUNCTION_RETURN in gcc-2.7.2 uncovers bug 981110 (even
-   if defining FUNCTION_VALUE with MODE as PROMOTED_MODE ;-)
-
-   FIXME: Report this when cris.h is part of GCC, so others can easily
-   see the problem.  Maybe check other systems that define
-   TARGET_PROMOTE_FUNCTION_RETURN that always returns true.  */
 
 /* We will be using prototype promotion, so they will be 32 bit.  */
 #define PARM_BOUNDARY 32
@@ -850,19 +836,10 @@ enum reg_class
 
 /* Node: Elimination */
 
-/* Really only needed if the stack frame has variable length (alloca
-   or variable sized local arguments (GNU C extension).  See PR39499 and
-   PR38609 for the reason this isn't just 0.  */
-#define FRAME_POINTER_REQUIRED (!current_function_sp_is_unchanging)
-
 #define ELIMINABLE_REGS				\
  {{ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},	\
   {ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},	\
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
-
-/* We need not worry about when the frame-pointer is required for other
-   reasons.  */
-#define CAN_ELIMINATE(FROM, TO) 1
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
  (OFFSET) = cris_initial_elimination_offset (FROM, TO)
@@ -1189,16 +1166,6 @@ struct cum_args {int regs;};
 # define REG_OK_FOR_INDEX_P(X) REGNO_OK_FOR_INDEX_P (REGNO (X))
 #endif
 
-/* For now, don't do anything.  GCC does a good job most often.
-
-    Maybe we could do something about gcc:s misbehavior when it
-   recalculates frame offsets for local variables, from fp+offs to
-   sp+offs.  The resulting address expression gets screwed up
-   sometimes, but I'm not sure that it may be fixed here, since it is
-   already split up in several instructions (Is this still true?).
-   FIXME: Check and adjust for gcc-2.9x.  */
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN) {}
-
 /* Fix reloads known to cause suboptimal spilling.  */
 #define LEGITIMIZE_RELOAD_ADDRESS(X, MODE, OPNUM, TYPE, INDL, WIN)	\
   do									\
@@ -1207,11 +1174,6 @@ struct cum_args {int regs;};
 	goto WIN;							\
     }									\
   while (0)
-
-/* In CRIS, only the postincrement address mode depends thus,
-   since the increment depends on the size of the operand.  This is now
-   treated generically within recog.c.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) 1
 

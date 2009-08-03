@@ -73,12 +73,13 @@ package body System.File_IO is
    --  Points to list of names of temporary files. Note that this global
    --  variable must be properly protected to provide thread safety.
 
-   type File_IO_Clean_Up_Type is new Controlled with null record;
+   type File_IO_Clean_Up_Type is new Limited_Controlled with null record;
    --  The closing of all open files and deletion of temporary files is an
-   --  action which takes place at the end of execution of the main program.
-   --  This action can be implemented using a library level object which
-   --  gets finalized at the end of the main program execution. The above is
-   --  a controlled type introduced for this purpose.
+   --  action that takes place at the end of execution of the main program.
+   --  This action is implemented using a library level object which gets
+   --  finalized at the end of program execution. Note that the type is
+   --  limited, in order to stop the compiler optimizing away the declaration
+   --  which would be allowed in the non-limited case.
 
    procedure Finalize (V : in out File_IO_Clean_Up_Type);
    --  This is the finalize operation that is used to do the cleanup
@@ -465,7 +466,7 @@ package body System.File_IO is
             end if;
 
          when Out_File =>
-            if Amethod = 'D' and not Creat then
+            if Amethod = 'D' and then not Creat then
                Fopstr (1) := 'r';
                Fopstr (2) := '+';
                Fptr := 3;

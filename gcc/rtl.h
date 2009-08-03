@@ -139,7 +139,7 @@ typedef struct
 /* ALIGN and SIZE are the alignment and size of the MEM itself,
    while EXPR can describe a larger underlying object, which might have a
    stricter alignment; OFFSET is the offset of the MEM within that object.  */
-typedef struct mem_attrs GTY(())
+typedef struct GTY(()) mem_attrs
 {
   tree expr;			/* expr corresponding to MEM.  */
   rtx offset;			/* Offset from start of DECL, as CONST_INT.  */
@@ -155,8 +155,7 @@ typedef struct mem_attrs GTY(())
    object in the low part of a 4-byte register, the OFFSET field
    will be -3 rather than 0.  */
 
-typedef struct reg_attrs GTY(())
-{
+typedef struct GTY(()) reg_attrs {
   tree decl;			/* decl corresponding to REG.  */
   HOST_WIDE_INT offset;		/* Offset from start of DECL.  */
 } reg_attrs;
@@ -185,7 +184,7 @@ typedef union rtunion_def rtunion;
 /* This structure remembers the position of a SYMBOL_REF within an
    object_block structure.  A SYMBOL_REF only provides this information
    if SYMBOL_REF_HAS_BLOCK_INFO_P is true.  */
-struct block_symbol GTY(()) {
+struct GTY(()) block_symbol {
   /* The usual SYMBOL_REF fields.  */
   rtunion GTY ((skip)) fld[3];
 
@@ -203,8 +202,7 @@ DEF_VEC_ALLOC_P(rtx,gc);
 
 /* Describes a group of objects that are to be placed together in such
    a way that their relative positions are known.  */
-struct object_block GTY(())
-{
+struct GTY(()) object_block {
   /* The section in which these objects should be placed.  */
   section *sect;
 
@@ -237,9 +235,8 @@ struct object_block GTY(())
 
 /* RTL expression ("rtx").  */
 
-struct rtx_def GTY((chain_next ("RTX_NEXT (&%h)"),
-		    chain_prev ("RTX_PREV (&%h)")))
-{
+struct GTY((chain_next ("RTX_NEXT (&%h)"),
+		    chain_prev ("RTX_PREV (&%h)"))) rtx_def {
   /* The kind of expression this is.  */
   ENUM_BITFIELD(rtx_code) code: 16;
 
@@ -357,7 +354,7 @@ struct rtx_def GTY((chain_next ("RTX_NEXT (&%h)"),
    for a variable number of things.  The principle use is inside
    PARALLEL expressions.  */
 
-struct rtvec_def GTY(()) {
+struct GTY(()) rtvec_def {
   int num_elem;		/* number of elements */
   rtx GTY ((length ("%h.num_elem"))) elem[1];
 };
@@ -753,6 +750,12 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 
 #define BLOCK_FOR_INSN(INSN) XBBDEF (INSN, 3)
 #define INSN_LOCATOR(INSN) XINT (INSN, 4)
+/* LOCATION of an RTX if relevant.  */
+#define RTL_LOCATION(X) (INSN_P (X) ? \
+			 locator_location (INSN_LOCATOR (x)) \
+			 : UNKNOWN_LOCATION)
+/* LOCATION of current INSN.  */
+#define CURR_INSN_LOCATION (locator_location (curr_insn_locator ()))
 /* The body of an insn.  */
 #define PATTERN(INSN)	XEXP (INSN, 5)
 
@@ -883,8 +886,8 @@ extern const char * const reg_note_name[];
 /* Initialization status of the variable in the location.  Status
    can be unknown, uninitialized or initialized.  See enumeration
    type below.  */
-#define NOTE_VAR_LOCATION_STATUS(INSN)  (XCINT (XCEXP (INSN, 4, NOTE), \
-						2, VAR_LOCATION))
+#define NOTE_VAR_LOCATION_STATUS(INSN) \
+  ((enum var_init_status) (XCINT (XCEXP (INSN, 4, NOTE), 2, VAR_LOCATION)))
 
 /* Possible initialization status of a variable.   When requested
    by the user, this information is tracked and recorded in the DWARF
@@ -1117,7 +1120,7 @@ do {									\
 } while (0)
 #define SUBREG_PROMOTED_UNSIGNED_P(RTX)	\
   ((RTL_FLAG_CHECK1("SUBREG_PROMOTED_UNSIGNED_P", (RTX), SUBREG)->volatil) \
-     ? -1 : (RTX)->unchanging)
+   ? -1 : (int) (RTX)->unchanging)
 
 /* Access various components of an ASM_OPERANDS rtx.  */
 
@@ -1494,6 +1497,7 @@ extern rtx gen_int_mode (HOST_WIDE_INT, enum machine_mode);
 extern rtx emit_copy_of_insn_after (rtx, rtx);
 extern void set_reg_attrs_from_value (rtx, rtx);
 extern void set_reg_attrs_for_parm (rtx, rtx);
+extern void set_reg_attrs_for_decl_rtl (tree t, rtx x);
 extern void adjust_reg_mode (rtx, enum machine_mode);
 extern int mem_expr_equal_p (const_tree, const_tree);
 
@@ -1622,6 +1626,7 @@ extern rtx previous_insn (rtx);
 extern rtx next_insn (rtx);
 extern rtx prev_nonnote_insn (rtx);
 extern rtx next_nonnote_insn (rtx);
+extern rtx next_nonnote_insn_bb (rtx);
 extern rtx prev_real_insn (rtx);
 extern rtx next_real_insn (rtx);
 extern rtx prev_active_insn (rtx);
@@ -2088,6 +2093,7 @@ extern rtx pc_set (const_rtx);
 extern rtx condjump_label (const_rtx);
 extern int simplejump_p (const_rtx);
 extern int returnjump_p (rtx);
+extern int eh_returnjump_p (rtx);
 extern int onlyjump_p (const_rtx);
 extern int only_sets_cc0_p (const_rtx);
 extern int sets_cc0_p (const_rtx);
@@ -2200,6 +2206,7 @@ extern int prologue_epilogue_contains (const_rtx);
 extern int sibcall_epilogue_contains (const_rtx);
 extern void mark_temp_addr_taken (rtx);
 extern void update_temp_slot_address (rtx, rtx);
+extern void maybe_copy_epilogue_insn (rtx, rtx);
 
 /* In stmt.c */
 extern void expand_null_return (void);
@@ -2224,6 +2231,7 @@ extern void expand_dec (rtx, rtx);
 
 /* In gcse.c */
 extern bool can_copy_p (enum machine_mode);
+extern bool can_assign_to_reg_without_clobbers_p (rtx);
 extern rtx fis_get_condition (rtx);
 
 /* In ira.c */
@@ -2293,7 +2301,7 @@ extern rtx canon_rtx (rtx);
 extern int true_dependence (const_rtx, enum machine_mode, const_rtx, bool (*)(const_rtx, bool));
 extern rtx get_addr (rtx);
 extern int canon_true_dependence (const_rtx, enum machine_mode, rtx, const_rtx,
-				  bool (*)(const_rtx, bool));
+				  rtx, bool (*)(const_rtx, bool));
 extern int read_dependence (const_rtx, const_rtx);
 extern int anti_dependence (const_rtx, const_rtx);
 extern int output_dependence (const_rtx, const_rtx);

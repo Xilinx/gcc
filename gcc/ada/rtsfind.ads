@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -60,6 +60,9 @@ package Rtsfind is
 
    --    Names of the form Ada_Streams_xxx are second level children
    --    of Ada.Streams.
+
+   --    Names of the form Ada_Strings_xxx are second level children
+   --    of Ada.Strings.
 
    --    Names of the form Ada_Text_IO_xxx are second level children of
    --    Ada.Text_IO.
@@ -120,6 +123,7 @@ package Rtsfind is
       Ada_Interrupts,
       Ada_Real_Time,
       Ada_Streams,
+      Ada_Strings,
       Ada_Tags,
       Ada_Task_Identification,
       Ada_Task_Termination,
@@ -148,6 +152,10 @@ package Rtsfind is
       --  Children of Ada.Streams
 
       Ada_Streams_Stream_IO,
+
+      --  Children of Ada.Strings
+
+      Ada_Strings_Unbounded,
 
       --  Children of Ada.Text_IO (for Text_IO_Kludge)
 
@@ -404,6 +412,11 @@ package Rtsfind is
 
    subtype Ada_Streams_Child is Ada_Child
      range Ada_Streams_Stream_IO .. Ada_Streams_Stream_IO;
+   --  Range of values for children of Ada.Streams
+
+   subtype Ada_Strings_Child is Ada_Child
+     range Ada_Strings_Unbounded .. Ada_Strings_Unbounded;
+   --  Range of values for children of Ada.Strings
 
    subtype Ada_Text_IO_Child is Ada_Child
      range Ada_Text_IO_Decimal_IO .. Ada_Text_IO_Modular_IO;
@@ -529,6 +542,8 @@ package Rtsfind is
      RE_Stream_Element,                  -- Ada.Streams
 
      RE_Stream_Access,                   -- Ada.Streams.Stream_IO
+
+     RE_Unbounded_String,                -- Ada.Strings.Unbounded
 
      RE_Access_Level,                    -- Ada.Tags
      RE_Address_Array,                   -- Ada.Tags
@@ -1178,7 +1193,6 @@ package Rtsfind is
      RE_Get_Reference,                   -- System.Partition_Interface
      RE_Asynchronous_P_To_Sync_Scope,    -- System.Partition_Interface
      RE_Buffer_Stream_Type,              -- System.Partition_Interface
-     RE_Allocate_Buffer,                 -- System.Partition_Interface
      RE_Release_Buffer,                  -- System.Partition_Interface
      RE_BS_To_Any,                       -- System.Partition_Interface
      RE_Any_To_BS,                       -- System.Partition_Interface
@@ -1226,6 +1240,7 @@ package Rtsfind is
      RE_TA_WWC,                          -- System.Partition_Interface
      RE_TA_String,                       -- System.Partition_Interface
      RE_TA_ObjRef,                       -- System.Partition_Interface
+     RE_TA_Std_String,                   -- System.Partition_Interface
      RE_TA_TC,                           -- System.Partition_Interface
 
      RE_TC_Alias,                        -- System.Partition_Interface
@@ -1692,6 +1707,8 @@ package Rtsfind is
      RE_Stream_Element                   => Ada_Streams,
 
      RE_Stream_Access                    => Ada_Streams_Stream_IO,
+
+     RE_Unbounded_String                 => Ada_Strings_Unbounded,
 
      RE_Access_Level                     => Ada_Tags,
      RE_Address_Array                    => Ada_Tags,
@@ -2332,7 +2349,6 @@ package Rtsfind is
      RE_Get_Reference                    => System_Partition_Interface,
      RE_Asynchronous_P_To_Sync_Scope     => System_Partition_Interface,
      RE_Buffer_Stream_Type               => System_Partition_Interface,
-     RE_Allocate_Buffer                  => System_Partition_Interface,
      RE_Release_Buffer                   => System_Partition_Interface,
      RE_BS_To_Any                        => System_Partition_Interface,
      RE_Any_To_BS                        => System_Partition_Interface,
@@ -2380,6 +2396,7 @@ package Rtsfind is
      RE_TA_WWC                           => System_Partition_Interface,
      RE_TA_String                        => System_Partition_Interface,
      RE_TA_ObjRef                        => System_Partition_Interface,
+     RE_TA_Std_String                    => System_Partition_Interface,
      RE_TA_TC                            => System_Partition_Interface,
 
      RE_TC_Alias                         => System_Partition_Interface,
@@ -2922,7 +2939,7 @@ package Rtsfind is
    --  Returns True if the given Nam is an Expanded Name, whose Prefix is Ada,
    --  and whose selector is either Text_IO.xxx or Wide_Text_IO.xxx or
    --  Wide_Wide_Text_IO.xxx, where xxx is one of the subpackages of Text_IO
-   --  that is specially handled as described above for Text_IO_Kludge.
+   --  that is specially handled as described below for Text_IO_Kludge.
 
    function RTE (E : RE_Id) return Entity_Id;
    --  Given the entity defined in the above tables, as identified by the

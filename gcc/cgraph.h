@@ -1,5 +1,5 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -48,18 +48,28 @@ enum availability
 
 extern const char * const cgraph_availability_names[];
 
+/* Function inlining information.  */
+
+struct GTY(()) inline_summary
+{
+  /* Estimated stack frame consumption by the function.  */
+  HOST_WIDE_INT estimated_self_stack_size;
+
+  /* Size of the function body.  */
+  int self_size;
+  /* How many instructions are likely going to disappear after inlining.  */
+  int size_inlining_benefit;
+  /* Estimated time spent executing the function body.  */
+  int self_time;
+  /* How much time is going to be saved by inlining.  */
+  int time_inlining_benefit;
+};
+
 /* Information about the function collected locally.
    Available after function is analyzed.  */
 
-struct cgraph_local_info GTY(())
-{
-  struct inline_summary {
-    /* Estimated stack frame consumption by the function.  */
-    HOST_WIDE_INT estimated_self_stack_size;
-
-    /* Size of the function before inlining.  */
-    int self_insns;
-  } inline_summary;
+struct GTY(()) cgraph_local_info {
+  struct inline_summary inline_summary;
 
   /* Set when function function is visible in current compilation unit only
      and its address is never taken.  */
@@ -93,8 +103,7 @@ struct cgraph_local_info GTY(())
 /* Information about the function that needs to be computed globally
    once compilation is finished.  Available only with -funit-at-a-time.  */
 
-struct cgraph_global_info GTY(())
-{
+struct GTY(()) cgraph_global_info {
   /* Estimated stack frame consumption by the function.  */
   HOST_WIDE_INT estimated_stack_size;
   /* Expected offset of the stack frame of inlined function.  */
@@ -105,7 +114,8 @@ struct cgraph_global_info GTY(())
   struct cgraph_node *inlined_to;
 
   /* Estimated size of the function after inlining.  */
-  int insns;
+  int time;
+  int size;
 
   /* Estimated growth after inlining.  INT_MIN if not computed.  */
   int estimated_growth;
@@ -117,16 +127,38 @@ struct cgraph_global_info GTY(())
 /* Information about the function that is propagated by the RTL backend.
    Available only for functions that has been already assembled.  */
 
-struct cgraph_rtl_info GTY(())
-{
+struct GTY(()) cgraph_rtl_info {
    unsigned int preferred_incoming_stack_boundary;
+};
+
+/* Represent which DECL tree (or reference to such tree)
+   will be replaced by another tree while versioning.  */
+struct GTY(()) ipa_replace_map
+{
+  /* The tree that will be replaced.  */
+  tree old_tree;
+  /* The new (replacing) tree.  */
+  tree new_tree;
+  /* True when a substitution should be done, false otherwise.  */
+  bool replace_p;
+  /* True when we replace a reference to old_tree.  */
+  bool ref_p;
+};
+typedef struct ipa_replace_map *ipa_replace_map_p;
+DEF_VEC_P(ipa_replace_map_p);
+DEF_VEC_ALLOC_P(ipa_replace_map_p,gc);
+
+struct GTY(()) cgraph_clone_info
+{
+  VEC(ipa_replace_map_p,gc)* tree_map;
+  bitmap args_to_skip;
+  bitmap combined_args_to_skip;
 };
 
 /* The cgraph data structure.
    Each function decl has assigned cgraph_node listing callees and callers.  */
 
-struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
-{
+struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   tree decl;
   struct cgraph_edge *callees;
   struct cgraph_edge *callers;
@@ -141,8 +173,10 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
   /* Pointer to the next function in cgraph_nodes_queue.  */
   struct cgraph_node *next_needed;
   /* Pointer to the next clone.  */
-  struct cgraph_node *next_clone;
-  struct cgraph_node *prev_clone;
+  struct cgraph_node *next_sibling_clone;
+  struct cgraph_node *prev_sibling_clone;
+  struct cgraph_node *clones;
+  struct cgraph_node *clone_of;
   /* For functions with many calls sites it holds map from call expression
      to the edge to speed up cgraph_edge function.  */
   htab_t GTY((param_is (struct cgraph_edge))) call_site_hash;
@@ -152,6 +186,7 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
   struct cgraph_local_info local;
   struct cgraph_global_info global;
   struct cgraph_rtl_info rtl;
+  struct cgraph_clone_info clone;
 
   /* Expected number of executions: calculated in profile.c.  */
   gcov_type count;
@@ -167,6 +202,8 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
   /* Set when function must be output - it is externally visible
      or its address is taken.  */
   unsigned needed : 1;
+  /* Set when function has address taken.  */
+  unsigned address_taken : 1;
   /* Set when decl is an abstract function pointed to by the
      ABSTRACT_DECL_ORIGIN of a reachable function.  */
   unsigned abstract_and_needed : 1;
@@ -182,11 +219,8 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
   unsigned process : 1;
   /* Set for aliases once they got through assemble_alias.  */
   unsigned alias : 1;
-
-  /* In non-unit-at-a-time mode the function body of inline candidates is saved
-     into clone before compiling so the function in original form can be
-     inlined later.  This pointer points to the clone.  */
-  tree inline_decl;
+  /* Set for nodes that was constructed and finalized by frontend.  */
+  unsigned finalized_by_frontend : 1;
 };
 
 typedef struct cgraph_node *cgraph_node_ptr;
@@ -197,7 +231,7 @@ DEF_VEC_ALLOC_P(cgraph_node_ptr,gc);
 
 /* A cgraph node set is a collection of cgraph nodes.  A cgraph node
    can appear in multiple sets.  */
-struct cgraph_node_set_def GTY(())
+struct GTY(()) cgraph_node_set_def
 {
   htab_t GTY((param_is (struct cgraph_node_set_element_def))) hashtab;
   VEC(cgraph_node_ptr, gc) *nodes;
@@ -212,7 +246,7 @@ DEF_VEC_ALLOC_P(cgraph_node_set,heap);
 
 /* A cgraph node set element contains an index in the vector of nodes in
    the set.  */
-struct cgraph_node_set_element_def GTY(())
+struct GTY(()) cgraph_node_set_element_def
 {
   struct cgraph_node *node;
   HOST_WIDE_INT index;
@@ -235,8 +269,7 @@ typedef enum {
   CIF_N_REASONS
 } cgraph_inline_failed_t;
 
-struct cgraph_edge GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller")))
-{
+struct GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller"))) cgraph_edge {
   struct cgraph_node *caller;
   struct cgraph_node *callee;
   struct cgraph_edge *prev_caller;
@@ -275,8 +308,7 @@ DEF_VEC_ALLOC_P(cgraph_edge_p,heap);
 /* The varpool data structure.
    Each static variable decl has assigned varpool_node.  */
 
-struct varpool_node GTY((chain_next ("%h.next")))
-{
+struct GTY((chain_next ("%h.next"))) varpool_node {
   tree decl;
   /* Pointer to the next function in varpool_nodes.  */
   struct varpool_node *next;
@@ -306,8 +338,7 @@ struct varpool_node GTY((chain_next ("%h.next")))
 
 /* Every top level asm statement is put into a cgraph_asm_node.  */
 
-struct cgraph_asm_node GTY(())
-{
+struct GTY(()) cgraph_asm_node {
   /* Next asm node.  */
   struct cgraph_asm_node *next;
   /* String for this asm node.  */
@@ -351,6 +382,7 @@ void debug_cgraph_node (struct cgraph_node *);
 void cgraph_insert_node_to_hashtable (struct cgraph_node *node);
 void cgraph_remove_edge (struct cgraph_edge *);
 void cgraph_remove_node (struct cgraph_node *);
+void cgraph_remove_node_and_inline_clones (struct cgraph_node *);
 void cgraph_release_function_body (struct cgraph_node *);
 void cgraph_node_remove_callees (struct cgraph_node *node);
 struct cgraph_edge *cgraph_create_edge (struct cgraph_node *,
@@ -360,7 +392,12 @@ struct cgraph_node *cgraph_node (tree);
 struct cgraph_node *cgraph_node_for_asm (tree asmname);
 struct cgraph_edge *cgraph_edge (struct cgraph_node *, gimple);
 void cgraph_set_call_stmt (struct cgraph_edge *, gimple);
-void cgraph_update_edges_for_call_stmt (gimple, gimple);
+void cgraph_set_call_stmt_including_clones (struct cgraph_node *, gimple, gimple);
+void cgraph_create_edge_including_clones (struct cgraph_node *,
+					  struct cgraph_node *,
+					  gimple, gcov_type, int, int,
+					  cgraph_inline_failed_t);
+void cgraph_update_edges_for_call_stmt (gimple, tree, gimple);
 struct cgraph_local_info *cgraph_local_info (tree);
 struct cgraph_global_info *cgraph_global_info (tree);
 struct cgraph_rtl_info *cgraph_rtl_info (tree);
@@ -381,13 +418,17 @@ void cgraph_unnest_node (struct cgraph_node *);
 enum availability cgraph_function_body_availability (struct cgraph_node *);
 void cgraph_add_new_function (tree, bool);
 const char* cgraph_inline_failed_string (cgraph_inline_failed_t);
+struct cgraph_node * cgraph_create_virtual_clone (struct cgraph_node *old_node,
+			                          VEC(cgraph_edge_p,heap)*,
+			                          VEC(ipa_replace_map_p,gc)* tree_map,
+			                          bitmap args_to_skip);
 
 /* In cgraphunit.c  */
 void cgraph_finalize_function (tree, bool);
 void cgraph_mark_if_needed (tree);
 void cgraph_finalize_compilation_unit (void);
-void cgraph_optimize (void);
 void cgraph_mark_needed_node (struct cgraph_node *);
+void cgraph_mark_address_taken_node (struct cgraph_node *);
 void cgraph_mark_reachable_node (struct cgraph_node *);
 bool cgraph_inline_p (struct cgraph_edge *, cgraph_inline_failed_t *reason);
 bool cgraph_preserve_function_body_p (tree);
@@ -398,9 +439,9 @@ void cgraph_reset_static_var_maps (void);
 void init_cgraph (void);
 struct cgraph_node *cgraph_function_versioning (struct cgraph_node *,
 						VEC(cgraph_edge_p,heap)*,
-						varray_type,
+						VEC(ipa_replace_map_p,gc)*,
 						bitmap);
-void cgraph_analyze_function (struct cgraph_node *);
+void tree_function_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*, bool, bitmap);
 struct cgraph_node *save_inline_function_body (struct cgraph_node *);
 void record_references_in_initializer (tree);
 bool cgraph_process_new_functions (void);
@@ -428,10 +469,11 @@ struct cgraph_2edge_hook_list *cgraph_add_edge_duplication_hook (cgraph_2edge_ho
 void cgraph_remove_edge_duplication_hook (struct cgraph_2edge_hook_list *);
 struct cgraph_2node_hook_list *cgraph_add_node_duplication_hook (cgraph_2node_hook, void *);
 void cgraph_remove_node_duplication_hook (struct cgraph_2node_hook_list *);
+void cgraph_materialize_all_clones (void);
 
 /* In cgraphbuild.c  */
 unsigned int rebuild_cgraph_edges (void);
-int compute_call_stmt_bb_frequency (basic_block bb);
+int compute_call_stmt_bb_frequency (tree, basic_block bb);
 
 /* In ipa.c  */
 bool cgraph_remove_unreachable_nodes (bool, FILE *);
@@ -462,6 +504,8 @@ void dump_varpool_node (FILE *, struct varpool_node *);
 void varpool_finalize_decl (tree);
 bool decide_is_variable_needed (struct varpool_node *, tree);
 enum availability cgraph_variable_initializer_availability (struct varpool_node *);
+void cgraph_make_node_local (struct cgraph_node *);
+bool cgraph_node_can_be_local_p (struct cgraph_node *);
 
 bool varpool_assemble_pending_decls (void);
 bool varpool_assemble_decl (struct varpool_node *node);
@@ -562,5 +606,24 @@ cgraph_node_set_size (cgraph_node_set set)
   return htab_elements (set->hashtab);
 }
 
+/* Uniquize all constants that appear in memory.
+   Each constant in memory thus far output is recorded
+   in `const_desc_table'.  */
+
+struct GTY(()) constant_descriptor_tree {
+  /* A MEM for the constant.  */
+  rtx rtl;
+  
+  /* The value of the constant.  */
+  tree value;
+
+  /* Hash of value.  Computing the hash from value each time
+     hashfn is called can't work properly, as that means recursive
+     use of the hash table during hash table expansion.  */
+  hashval_t hash;
+};
+
+/* Constant pool accessor function.  */
+htab_t constant_pool_htab (void);
 
 #endif  /* GCC_CGRAPH_H  */

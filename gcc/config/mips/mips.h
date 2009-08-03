@@ -668,6 +668,32 @@ enum mips_code_readable_setting {
 #  endif
 #endif
 
+#ifndef MIPS_ABI_DEFAULT
+#define MIPS_ABI_DEFAULT ABI_32
+#endif
+
+/* Use the most portable ABI flag for the ASM specs.  */
+
+#if MIPS_ABI_DEFAULT == ABI_32
+#define MULTILIB_ABI_DEFAULT "mabi=32"
+#endif
+
+#if MIPS_ABI_DEFAULT == ABI_O64
+#define MULTILIB_ABI_DEFAULT "mabi=o64"
+#endif
+
+#if MIPS_ABI_DEFAULT == ABI_N32
+#define MULTILIB_ABI_DEFAULT "mabi=n32"
+#endif
+
+#if MIPS_ABI_DEFAULT == ABI_64
+#define MULTILIB_ABI_DEFAULT "mabi=64"
+#endif
+
+#if MIPS_ABI_DEFAULT == ABI_EABI
+#define MULTILIB_ABI_DEFAULT "mabi=eabi"
+#endif
+
 #ifndef MULTILIB_DEFAULTS
 #define MULTILIB_DEFAULTS \
     { MULTILIB_ENDIAN_DEFAULT, MULTILIB_ISA_DEFAULT, MULTILIB_ABI_DEFAULT }
@@ -730,10 +756,21 @@ enum mips_code_readable_setting {
 #define MIPS_32BIT_OPTION_SPEC \
   "mips1|mips2|mips32*|mgp32"
 
+#if MIPS_ABI_DEFAULT == ABI_O64 \
+  || MIPS_ABI_DEFAULT == ABI_N32 \
+  || MIPS_ABI_DEFAULT == ABI_64
+#define OPT_ARCH64 "mabi=32|mgp32:;"
+#define OPT_ARCH32 "mabi=32|mgp32"
+#else
+#define OPT_ARCH64 "mabi=o64|mabi=n32|mabi=64|mgp64"
+#define OPT_ARCH32 "mabi=o64|mabi=n32|mabi=64|mgp64:;"
+#endif
+
 /* Support for a compile-time default CPU, et cetera.  The rules are:
    --with-arch is ignored if -march is specified or a -mips is specified
-     (other than -mips16).
-   --with-tune is ignored if -mtune is specified.
+     (other than -mips16); likewise --with-arch-32 and --with-arch-64.
+   --with-tune is ignored if -mtune is specified; likewise
+     --with-tune-32 and --with-tune-64.
    --with-abi is ignored if -mabi is specified.
    --with-float is ignored if -mhard-float or -msoft-float are
      specified.
@@ -741,12 +778,17 @@ enum mips_code_readable_setting {
      specified. */
 #define OPTION_DEFAULT_SPECS \
   {"arch", "%{" MIPS_ARCH_OPTION_SPEC ":;: -march=%(VALUE)}" }, \
+  {"arch_32", "%{" OPT_ARCH32 ":%{" MIPS_ARCH_OPTION_SPEC ":;: -march=%(VALUE)}}" }, \
+  {"arch_64", "%{" OPT_ARCH64 ":%{" MIPS_ARCH_OPTION_SPEC ":;: -march=%(VALUE)}}" }, \
   {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }, \
+  {"tune_32", "%{" OPT_ARCH32 ":%{!mtune=*:-mtune=%(VALUE)}}" }, \
+  {"tune_64", "%{" OPT_ARCH64 ":%{!mtune=*:-mtune=%(VALUE)}}" }, \
   {"abi", "%{!mabi=*:-mabi=%(VALUE)}" }, \
   {"float", "%{!msoft-float:%{!mhard-float:-m%(VALUE)-float}}" }, \
   {"divide", "%{!mdivide-traps:%{!mdivide-breaks:-mdivide-%(VALUE)}}" }, \
   {"llsc", "%{!mllsc:%{!mno-llsc:-m%(VALUE)}}" }, \
-  {"mips-plt", "%{!mplt:%{!mno-plt:-m%(VALUE)}}" }
+  {"mips-plt", "%{!mplt:%{!mno-plt:-m%(VALUE)}}" }, \
+  {"synci", "%{!msynci:%{!mno-synci:-m%(VALUE)}}" }
 
 
 /* A spec that infers the -mdsp setting from an -march argument.  */
@@ -1076,32 +1118,6 @@ enum mips_code_readable_setting {
 #endif
 
 
-#ifndef MIPS_ABI_DEFAULT
-#define MIPS_ABI_DEFAULT ABI_32
-#endif
-
-/* Use the most portable ABI flag for the ASM specs.  */
-
-#if MIPS_ABI_DEFAULT == ABI_32
-#define MULTILIB_ABI_DEFAULT "mabi=32"
-#endif
-
-#if MIPS_ABI_DEFAULT == ABI_O64
-#define MULTILIB_ABI_DEFAULT "mabi=o64"
-#endif
-
-#if MIPS_ABI_DEFAULT == ABI_N32
-#define MULTILIB_ABI_DEFAULT "mabi=n32"
-#endif
-
-#if MIPS_ABI_DEFAULT == ABI_64
-#define MULTILIB_ABI_DEFAULT "mabi=64"
-#endif
-
-#if MIPS_ABI_DEFAULT == ABI_EABI
-#define MULTILIB_ABI_DEFAULT "mabi=eabi"
-#endif
-
 /* SUBTARGET_ASM_OPTIMIZING_SPEC handles passing optimization options
    to the assembler.  It may be overridden by subtargets.  */
 #ifndef SUBTARGET_ASM_OPTIMIZING_SPEC
@@ -1752,8 +1768,6 @@ enum mips_code_readable_setting {
 #define HARD_FRAME_POINTER_REGNUM \
   (TARGET_MIPS16 ? GP_REG_FIRST + 17 : GP_REG_FIRST + 30)
 
-#define FRAME_POINTER_REQUIRED (mips_frame_pointer_required ())
-
 /* Register in which static-chain is passed to a function.  */
 #define STATIC_CHAIN_REGNUM (GP_REG_FIRST + 15)
 
@@ -2081,12 +2095,20 @@ enum reg_class
 
 #define STACK_GROWS_DOWNWARD
 
-/* The offset of the first local variable from the beginning of the frame.
-   See mips_compute_frame_info for details about the frame layout.  */
+#define FRAME_GROWS_DOWNWARD flag_stack_protect
 
-#define STARTING_FRAME_OFFSET						\
-  (crtl->outgoing_args_size					\
-   + (TARGET_CALL_CLOBBERED_GP ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0))
+/* Size of the area allocated in the frame to save the GP.  */
+
+#define MIPS_GP_SAVE_AREA_SIZE \
+  (TARGET_CALL_CLOBBERED_GP ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0)
+
+/* The offset of the first local variable from the frame pointer.  See
+   mips_compute_frame_info for details about the frame layout.  */
+
+#define STARTING_FRAME_OFFSET				\
+  (FRAME_GROWS_DOWNWARD					\
+   ? 0							\
+   : crtl->outgoing_args_size + MIPS_GP_SAVE_AREA_SIZE)
 
 #define RETURN_ADDR_RTX mips_return_addr
 
@@ -2182,10 +2204,10 @@ enum reg_class
 #define FP_ARG_LAST  (FP_ARG_FIRST + MAX_ARGS_IN_REGISTERS - 1)
 
 #define LIBCALL_VALUE(MODE) \
-  mips_function_value (NULL_TREE, MODE)
+  mips_function_value (NULL_TREE, NULL_TREE, MODE)
 
 #define FUNCTION_VALUE(VALTYPE, FUNC) \
-  mips_function_value (VALTYPE, VOIDmode)
+  mips_function_value (VALTYPE, FUNC, VOIDmode)
 
 /* 1 if N is a possible register number for a function value.
    On the MIPS, R2 R3 and F0 F2 are the only register thus used.
@@ -2496,49 +2518,13 @@ typedef struct mips_args {
 
 #define MAX_REGS_PER_ADDRESS 1
 
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)	\
-{						\
-  if (mips_legitimate_address_p (MODE, X, 1))	\
-    goto ADDR;					\
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)	\
-{						\
-  if (mips_legitimate_address_p (MODE, X, 0))	\
-    goto ADDR;					\
-}
-#endif
-
 /* Check for constness inline but use mips_legitimate_address_p
    to check whether a constant really is an address.  */
 
 #define CONSTANT_ADDRESS_P(X) \
-  (CONSTANT_P (X) && mips_legitimate_address_p (SImode, X, 0))
+  (CONSTANT_P (X) && memory_address_p (SImode, X))
 
 #define LEGITIMATE_CONSTANT_P(X) (mips_const_insns (X) > 0)
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)			\
-  do {								\
-    if (mips_legitimize_address (&(X), MODE))			\
-      goto WIN;							\
-  } while (0)
-
-
-/* A C statement or compound statement with a conditional `goto
-   LABEL;' executed if memory address X (an RTX) can have different
-   meanings depending on the machine mode of the memory reference it
-   is used for.
-
-   Autoincrement and autodecrement addresses typically have
-   mode-dependent effects because the amount of the increment or
-   decrement is the size of the operand being addressed.  Some
-   machines have other mode-dependent addresses.  Many RISC machines
-   have no mode-dependent addresses.
-
-   You may assume that ADDR is a valid address for the machine.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL) {}
 
 /* This handles the magic '..CURRENT_FUNCTION' symbol, which means
    'the start of the function that this code is output in'.  */
@@ -3446,7 +3432,6 @@ extern int mips_dbx_regno[];
 extern int mips_dwarf_regno[];
 extern bool mips_split_p[];
 extern bool mips_split_hi_p[];
-extern GTY(()) rtx cmp_operands[2];
 extern enum processor_type mips_arch;   /* which cpu to codegen for */
 extern enum processor_type mips_tune;   /* which cpu to schedule for */
 extern int mips_isa;			/* architectural level */

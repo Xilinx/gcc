@@ -77,7 +77,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Don't put any single quote (') in MOD_VERSION, 
    if yout want it to be recognized.  */
-#define MOD_VERSION "0"
+#define MOD_VERSION "2"
 
 
 /* Structure that describes a position within a module file.  */
@@ -119,6 +119,20 @@ fixup_t;
 
 /* Structure for holding extra info needed for pointers being read.  */
 
+enum gfc_rsym_state
+{
+  UNUSED,
+  NEEDED,
+  USED
+};
+
+enum gfc_wsym_state
+{
+  UNREFERENCED = 0,
+  NEEDS_WRITE,
+  WRITTEN
+};
+
 typedef struct pointer_info
 {
   BBT_HEADER (pointer_info);
@@ -138,9 +152,7 @@ typedef struct pointer_info
     {
       gfc_symbol *sym;
       char true_name[GFC_MAX_SYMBOL_LEN + 1], module[GFC_MAX_SYMBOL_LEN + 1];
-      enum
-      { UNUSED, NEEDED, USED }
-      state;
+      enum gfc_rsym_state state;
       int ns, referenced, renamed;
       module_locus where;
       fixup_t *stfixup;
@@ -152,9 +164,7 @@ typedef struct pointer_info
     struct
     {
       gfc_symbol *sym;
-      enum
-      { UNREFERENCED = 0, NEEDS_WRITE, WRITTEN }
-      state;
+      enum gfc_wsym_state state;
     }
     wsym;
   }
@@ -1709,7 +1719,12 @@ static const mstring binding_generic[] =
     minit ("GENERIC", 1),
     minit (NULL, -1)
 };
-
+static const mstring binding_ppc[] =
+{
+    minit ("NO_PPC", 0),
+    minit ("PPC", 1),
+    minit (NULL, -1)
+};
 
 /* Specialization of mio_name.  */
 DECL_MIO_NAME (ab_attribute)
@@ -1990,13 +2005,9 @@ mio_charlen (gfc_charlen **clp)
     {
       if (peek_atom () != ATOM_RPAREN)
 	{
-	  cl = gfc_get_charlen ();
+	  cl = gfc_new_charlen (gfc_current_ns);
 	  mio_expr (&cl->length);
-
 	  *clp = cl;
-
-	  cl->next = gfc_current_ns->cl_list;
-	  gfc_current_ns->cl_list = cl;
 	}
     }
 
@@ -2162,7 +2173,7 @@ mio_array_ref (gfc_array_ref *ar)
       for (i = 0; i < ar->dimen; i++)
 	{
 	  require_atom (ATOM_INTEGER);
-	  ar->dimen_type[i] = atom_int;
+	  ar->dimen_type[i] = (enum gfc_array_ref_dimen_type) atom_int;
 	}
     }
 
@@ -2252,11 +2263,16 @@ mio_component_ref (gfc_component **cp, gfc_symbol *sym)
 }
 
 
+static void mio_namespace_ref (gfc_namespace **nsp);
+static void mio_formal_arglist (gfc_formal_arglist **formal);
+static void mio_typebound_proc (gfc_typebound_proc** proc);
+
 static void
 mio_component (gfc_component *c)
 {
   pointer_info *p;
   int n;
+  gfc_formal_arglist *formal;
 
   mio_lparen ();
 
@@ -2283,6 +2299,35 @@ mio_component (gfc_component *c)
   c->attr.access = MIO_NAME (gfc_access) (c->attr.access, access_types); 
 
   mio_expr (&c->initializer);
+
+  if (c->attr.proc_pointer)
+    {
+      if (iomode == IO_OUTPUT)
+	{
+	  formal = c->formal;
+	  while (formal && !formal->sym)
+	    formal = formal->next;
+
+	  if (formal)
+	    mio_namespace_ref (&formal->sym->ns);
+	  else
+	    mio_namespace_ref (&c->formal_ns);
+	}
+      else
+	{
+	  mio_namespace_ref (&c->formal_ns);
+	  /* TODO: if (c->formal_ns)
+	    {
+	      c->formal_ns->proc_name = c;
+	      c->refs++;
+	    }*/
+	}
+
+      mio_formal_arglist (&c->formal);
+
+      mio_typebound_proc (&c->tb);
+    }
+
   mio_rparen ();
 }
 
@@ -2376,7 +2421,7 @@ mio_actual_arglist (gfc_actual_arglist **ap)
 /* Read and write formal argument lists.  */
 
 static void
-mio_formal_arglist (gfc_symbol *sym)
+mio_formal_arglist (gfc_formal_arglist **formal)
 {
   gfc_formal_arglist *f, *tail;
 
@@ -2384,20 +2429,20 @@ mio_formal_arglist (gfc_symbol *sym)
 
   if (iomode == IO_OUTPUT)
     {
-      for (f = sym->formal; f; f = f->next)
+      for (f = *formal; f; f = f->next)
 	mio_symbol_ref (&f->sym);
     }
   else
     {
-      sym->formal = tail = NULL;
+      *formal = tail = NULL;
 
       while (peek_atom () != ATOM_RPAREN)
 	{
 	  f = gfc_get_formal_arglist ();
 	  mio_symbol_ref (&f->sym);
 
-	  if (sym->formal == NULL)
-	    sym->formal = f;
+	  if (*formal == NULL)
+	    *formal = f;
 	  else
 	    tail->next = f;
 
@@ -3017,8 +3062,8 @@ mio_expr (gfc_expr **ep)
 
 	case BT_COMPLEX:
 	  gfc_set_model_kind (e->ts.kind);
-	  mio_gmp_real (&e->value.complex.r);
-	  mio_gmp_real (&e->value.complex.i);
+	  mio_gmp_real (&mpc_realref (e->value.complex));
+	  mio_gmp_real (&mpc_imagref (e->value.complex));
 	  break;
 
 	case BT_LOGICAL:
@@ -3043,6 +3088,7 @@ mio_expr (gfc_expr **ep)
       break;
 
     case EXPR_COMPCALL:
+    case EXPR_PPC:
       gcc_unreachable ();
       break;
     }
@@ -3229,9 +3275,9 @@ mio_typebound_proc (gfc_typebound_proc** proc)
 
   (*proc)->nopass = mio_name ((*proc)->nopass, binding_passing);
   (*proc)->is_generic = mio_name ((*proc)->is_generic, binding_generic);
+  (*proc)->ppc = mio_name((*proc)->ppc, binding_ppc);
 
-  if (iomode == IO_INPUT)
-    (*proc)->pass_arg = NULL;
+  mio_pool_string (&((*proc)->pass_arg));
 
   flag = (int) (*proc)->pass_arg_num;
   mio_integer (&flag);
@@ -3251,12 +3297,14 @@ mio_typebound_proc (gfc_typebound_proc** proc)
 	  (*proc)->u.generic = NULL;
 	  while (peek_atom () != ATOM_RPAREN)
 	    {
+	      gfc_symtree** sym_root;
+
 	      g = gfc_get_tbp_generic ();
 	      g->specific = NULL;
 
 	      require_atom (ATOM_STRING);
-	      gfc_get_sym_tree (atom_string, current_f2k_derived,
-				&g->specific_st);
+	      sym_root = &current_f2k_derived->tb_sym_root;
+	      g->specific_st = gfc_get_tbp_symtree (sym_root, atom_string);
 	      gfc_free (atom_string);
 
 	      g->next = (*proc)->u.generic;
@@ -3266,7 +3314,7 @@ mio_typebound_proc (gfc_typebound_proc** proc)
 
       mio_rparen ();
     }
-  else
+  else if (!(*proc)->ppc)
     mio_symtree_ref (&(*proc)->u.specific);
 
   mio_rparen ();
@@ -3275,7 +3323,7 @@ mio_typebound_proc (gfc_typebound_proc** proc)
 static void
 mio_typebound_symtree (gfc_symtree* st)
 {
-  if (iomode == IO_OUTPUT && !st->typebound)
+  if (iomode == IO_OUTPUT && !st->n.tb)
     return;
 
   if (iomode == IO_OUTPUT)
@@ -3285,7 +3333,7 @@ mio_typebound_symtree (gfc_symtree* st)
     }
   /* For IO_INPUT, the above is done in mio_f2k_derived.  */
 
-  mio_typebound_proc (&st->typebound);
+  mio_typebound_proc (&st->n.tb);
   mio_rparen ();
 }
 
@@ -3327,7 +3375,7 @@ mio_f2k_derived (gfc_namespace *f2k)
       f2k->finalizers = NULL;
       while (peek_atom () != ATOM_RPAREN)
 	{
-	  gfc_finalizer *cur;
+	  gfc_finalizer *cur = NULL;
 	  mio_finalizer (&cur);
 	  cur->next = f2k->finalizers;
 	  f2k->finalizers = cur;
@@ -3338,7 +3386,7 @@ mio_f2k_derived (gfc_namespace *f2k)
   /* Handle type-bound procedures.  */
   mio_lparen ();
   if (iomode == IO_OUTPUT)
-    gfc_traverse_symtree (f2k->sym_root, &mio_typebound_symtree);
+    gfc_traverse_symtree (f2k->tb_sym_root, &mio_typebound_symtree);
   else
     {
       while (peek_atom () == ATOM_LPAREN)
@@ -3348,7 +3396,7 @@ mio_f2k_derived (gfc_namespace *f2k)
 	  mio_lparen (); 
 
 	  require_atom (ATOM_STRING);
-	  gfc_get_sym_tree (atom_string, f2k, &st);
+	  st = gfc_get_tbp_symtree (&f2k->tb_sym_root, atom_string);
 	  gfc_free (atom_string);
 
 	  mio_typebound_symtree (st);
@@ -3390,26 +3438,13 @@ mio_symbol (gfc_symbol *sym)
 {
   int intmod = INTMOD_NONE;
   
-  gfc_formal_arglist *formal;
-
   mio_lparen ();
 
   mio_symbol_attribute (&sym->attr);
   mio_typespec (&sym->ts);
 
-  /* Contained procedures don't have formal namespaces.  Instead we output the
-     procedure namespace.  The will contain the formal arguments.  */
   if (iomode == IO_OUTPUT)
-    {
-      formal = sym->formal;
-      while (formal && !formal->sym)
-	formal = formal->next;
-
-      if (formal)
-	mio_namespace_ref (&formal->sym->ns);
-      else
-	mio_namespace_ref (&sym->formal_ns);
-    }
+    mio_namespace_ref (&sym->formal_ns);
   else
     {
       mio_namespace_ref (&sym->formal_ns);
@@ -3423,7 +3458,7 @@ mio_symbol (gfc_symbol *sym)
   /* Save/restore common block links.  */
   mio_symbol_ref (&sym->common_next);
 
-  mio_formal_arglist (sym);
+  mio_formal_arglist (&sym->formal);
 
   if (sym->attr.flavor == FL_PARAMETER)
     mio_expr (&sym->value);
@@ -3460,7 +3495,7 @@ mio_symbol (gfc_symbol *sym)
   else
     {
       mio_integer (&intmod);
-      sym->from_intmod = intmod;
+      sym->from_intmod = (intmod_id) intmod;
     }
   
   mio_integer (&(sym->intmod_sym_id));
@@ -4004,7 +4039,7 @@ read_module (void)
   module_locus operator_interfaces, user_operators;
   const char *p;
   char name[GFC_MAX_SYMBOL_LEN + 1];
-  gfc_intrinsic_op i;
+  int i;
   int ambiguous, j, nuse, symbol;
   pointer_info *info, *q;
   gfc_use_rename *u;
@@ -4212,7 +4247,7 @@ read_module (void)
 
       if (only_flag)
 	{
-	  u = find_use_operator (i);
+	  u = find_use_operator ((gfc_intrinsic_op) i);
 
 	  if (u == NULL)
 	    {
@@ -4664,7 +4699,7 @@ write_symtree (gfc_symtree *st)
 static void
 write_module (void)
 {
-  gfc_intrinsic_op i;
+  int i;
 
   /* Write the operator interfaces.  */
   mio_lparen ();
@@ -4746,7 +4781,7 @@ read_md5_from_module_file (const char * filename, unsigned char md5[16])
   if ((file = fopen (filename, "r")) == NULL)
     return -1;
 
-  /* Read two lines.  */
+  /* Read the first line.  */
   if (fgets (buf, sizeof (buf) - 1, file) == NULL)
     {
       fclose (file);
@@ -4756,8 +4791,12 @@ read_md5_from_module_file (const char * filename, unsigned char md5[16])
   /* The file also needs to be overwritten if the version number changed.  */
   n = strlen ("GFORTRAN module version '" MOD_VERSION "' created");
   if (strncmp (buf, "GFORTRAN module version '" MOD_VERSION "' created", n) != 0)
-    return -1;
+    {
+      fclose (file);
+      return -1;
+    }
  
+  /* Read a second line.  */
   if (fgets (buf, sizeof (buf) - 1, file) == NULL)
     {
       fclose (file);
@@ -4960,7 +4999,8 @@ import_iso_c_binding_module (void)
   if (mod_symtree == NULL)
     {
       /* symtree doesn't already exist in current namespace.  */
-      gfc_get_sym_tree (iso_c_module_name, gfc_current_ns, &mod_symtree);
+      gfc_get_sym_tree (iso_c_module_name, gfc_current_ns, &mod_symtree,
+			false);
       
       if (mod_symtree != NULL)
 	mod_sym = mod_symtree->n.sym;
@@ -5048,7 +5088,7 @@ create_int_parameter (const char *name, int value, const char *modname,
 	gfc_error ("Symbol '%s' already declared", name);
     }
 
-  gfc_get_sym_tree (name, gfc_current_ns, &tmp_symtree);
+  gfc_get_sym_tree (name, gfc_current_ns, &tmp_symtree, false);
   sym = tmp_symtree->n.sym;
 
   sym->module = gfc_get_string (modname);
@@ -5089,7 +5129,7 @@ use_iso_fortran_env_module (void)
   mod_symtree = gfc_find_symtree (gfc_current_ns->sym_root, mod);
   if (mod_symtree == NULL)
     {
-      gfc_get_sym_tree (mod, gfc_current_ns, &mod_symtree);
+      gfc_get_sym_tree (mod, gfc_current_ns, &mod_symtree, false);
       gcc_assert (mod_symtree);
       mod_sym = mod_symtree->n.sym;
 

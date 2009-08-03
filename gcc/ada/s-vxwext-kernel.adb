@@ -34,6 +34,8 @@
 
 package body System.VxWorks.Ext is
 
+   ERROR : constant := -1;
+
    --------------
    -- Int_Lock --
    --------------
@@ -51,5 +53,37 @@ package body System.VxWorks.Ext is
    pragma Import (C, intUnlock, "intUnlock");
 
    function Int_Unlock return int renames intUnlock;
+
+   ---------------
+   -- semDelete --
+   ---------------
+
+   function semDelete (Sem : SEM_ID) return int is
+      function Os_Sem_Delete (Sem : SEM_ID) return int;
+      pragma Import (C, Os_Sem_Delete, "semDelete");
+   begin
+      return Os_Sem_Delete (Sem);
+   end semDelete;
+
+   ------------------------
+   -- taskCpuAffinitySet --
+   ------------------------
+
+   function taskCpuAffinitySet (tid : t_id; CPU : int) return int is
+      pragma Unreferenced (tid, CPU);
+   begin
+      return ERROR;
+   end taskCpuAffinitySet;
+
+   --------------
+   -- taskStop --
+   --------------
+
+   function Task_Stop (tid : t_id) return int is
+      function taskStop (tid : t_id) return int;
+      pragma Import (C, taskStop, "taskStop");
+   begin
+      return taskStop (tid);
+   end Task_Stop;
 
 end System.VxWorks.Ext;

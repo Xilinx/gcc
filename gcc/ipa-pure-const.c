@@ -1,5 +1,5 @@
 /* Callgraph based analysis of static variables.
-   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "ggc.h"
 #include "ipa-utils.h"
-#include "c-common.h"
 #include "gimple.h"
 #include "cgraph.h"
 #include "output.h"
@@ -52,6 +51,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "langhooks.h"
 #include "target.h"
+#include "cfgloop.h"
+#include "tree-scalar-evolution.h"
 
 static struct pointer_set_t *visited_nodes;
 
@@ -72,7 +73,8 @@ struct funct_state_d
   /* See above.  */
   enum pure_const_state_e pure_const_state;
   /* What user set here; we can be always sure about this.  */
-  enum pure_const_state_e state_set_in_source; 
+  enum pure_const_state_e state_previously_known; 
+  bool looping_previously_known; 
 
   /* True if the function could possibly infinite loop.  There are a
      lot of ways that this could be determined.  We are pretty
@@ -211,11 +213,21 @@ check_decl (funct_state local,
 static inline void 
 check_op (funct_state local, tree t, bool checking_write)
 {
-  if (TREE_THIS_VOLATILE (t))
+  t = get_base_address (t);
+  if (t && TREE_THIS_VOLATILE (t))
     {
       local->pure_const_state = IPA_NEITHER;
       if (dump_file)
 	fprintf (dump_file, "    Volatile indirect ref is not const/pure\n");
+      return;
+    }
+  else if (t
+  	   && INDIRECT_REF_P (t)
+	   && TREE_CODE (TREE_OPERAND (t, 0)) == SSA_NAME
+	   && !ptr_deref_may_alias_global_p (TREE_OPERAND (t, 0)))
+    {
+      if (dump_file)
+	fprintf (dump_file, "    Indirect ref to local memory is OK\n");
       return;
     }
   else if (checking_write)
@@ -485,7 +497,8 @@ analyze_function (struct cgraph_node *fn, bool ipa)
 
   l = XCNEW (struct funct_state_d);
   l->pure_const_state = IPA_CONST;
-  l->state_set_in_source = IPA_NEITHER;
+  l->state_previously_known = IPA_NEITHER;
+  l->looping_previously_known = true;
   l->looping = false;
   l->can_throw = false;
 
@@ -521,24 +534,53 @@ end:
 	 indication of possible infinite loop side
 	 effect.  */
       if (mark_dfs_back_edges ())
-	l->looping = true;
-      
+        {
+	  /* Preheaders are needed for SCEV to work.
+	     Simple lateches and recorded exits improve chances that loop will
+	     proved to be finite in testcases such as in loop-15.c and loop-24.c  */
+	  loop_optimizer_init (LOOPS_NORMAL
+			       | LOOPS_HAVE_RECORDED_EXITS);
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    flow_loops_dump (dump_file, NULL, 0);
+	  if (mark_irreducible_loops ())
+	    {
+	      if (dump_file)
+	        fprintf (dump_file, "    has irreducible loops\n");
+	      l->looping = true;
+	    }
+	  else 
+	    {
+	      loop_iterator li;
+	      struct loop *loop;
+	      scev_initialize ();
+	      FOR_EACH_LOOP (li, loop, 0)
+		if (!finite_loop_p (loop))
+		  {
+		    if (dump_file)
+		      fprintf (dump_file, "    can not prove finiteness of loop %i\n", loop->num);
+		    l->looping =true;
+		    break;
+		  }
+	      scev_finalize ();
+	    }
+          loop_optimizer_finalize ();
+	}
     }
 
   if (TREE_READONLY (decl))
     {
       l->pure_const_state = IPA_CONST;
-      l->state_set_in_source = IPA_CONST;
+      l->state_previously_known = IPA_CONST;
       if (!DECL_LOOPING_CONST_OR_PURE_P (decl))
-        l->looping = false;
+        l->looping = false, l->looping_previously_known = false;
     }
   if (DECL_PURE_P (decl))
     {
       if (l->pure_const_state != IPA_CONST)
         l->pure_const_state = IPA_PURE;
-      l->state_set_in_source = IPA_PURE;
+      l->state_previously_known = IPA_PURE;
       if (!DECL_LOOPING_CONST_OR_PURE_P (decl))
-        l->looping = false;
+        l->looping = false, l->looping_previously_known = false;
     }
   if (TREE_NOTHROW (decl))
     l->can_throw = false;
@@ -728,12 +770,11 @@ propagate (void)
 	  enum pure_const_state_e this_state = pure_const_state;
 	  bool this_looping = looping;
 
-	  if (w_l->state_set_in_source != IPA_NEITHER)
-	    {
-	      if (this_state > w_l->state_set_in_source)
-	        this_state = w_l->state_set_in_source;
-	      this_looping = false;
-	    }
+	  if (w_l->state_previously_known != IPA_NEITHER
+	      && this_state > w_l->state_previously_known)
+            this_state = w_l->state_previously_known;
+	  if (!w_l->looping_previously_known)
+	    this_looping = false;
 
 	  /* All nodes within a cycle share the same info.  */
 	  w_l->pure_const_state = this_state;
@@ -876,7 +917,7 @@ gate_pure_const (void)
 	  && !(errorcount || sorrycount));
 }
 
-struct ipa_opt_pass pass_ipa_pure_const =
+struct ipa_opt_pass_d pass_ipa_pure_const =
 {
  {
   IPA_PASS,

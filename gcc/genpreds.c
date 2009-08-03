@@ -954,6 +954,7 @@ write_enum_constraint_num (void)
 {
   struct constraint_data *c;
 
+  fputs ("#define CONSTRAINT_NUM_DEFINED_P 1\n", stdout);
   fputs ("enum constraint_num\n"
 	 "{\n"
 	 "  CONSTRAINT__UNKNOWN = 0", stdout);
@@ -1114,7 +1115,7 @@ write_tm_constrs_h (void)
 	  puts ("  const REAL_VALUE_TYPE *rval = 0;");
 
 	if (needs_ival)
-	  puts ("  if (GET_CODE (op) == CONST_INT)\n"
+	  puts ("  if (CONST_INT_P (op))\n"
 		"    ival = INTVAL (op);");
 	if (needs_hval)
 	  puts ("  if (GET_CODE (op) == CONST_DOUBLE && mode == VOIDmode)"
@@ -1279,9 +1280,13 @@ write_tm_preds_h (void)
 	puts ("extern enum reg_class regclass_for_constraint "
 	      "(enum constraint_num);\n"
 	      "#define REG_CLASS_FROM_CONSTRAINT(c_,s_) \\\n"
-	      "    regclass_for_constraint (lookup_constraint (s_))\n");
+	      "    regclass_for_constraint (lookup_constraint (s_))\n"
+	      "#define REG_CLASS_FOR_CONSTRAINT(x_) \\\n"
+	      "    regclass_for_constraint (x_)\n");
       else
-	puts ("#define REG_CLASS_FROM_CONSTRAINT(c_,s_) NO_REGS");
+	puts ("#define REG_CLASS_FROM_CONSTRAINT(c_,s_) NO_REGS\n"
+	      "#define REG_CLASS_FOR_CONSTRAINT(x_) \\\n"
+	      "    NO_REGS\n");
       if (have_const_int_constraints)
 	puts ("extern bool insn_const_int_ok_for_constraint "
 	      "(HOST_WIDE_INT, enum constraint_num);\n"

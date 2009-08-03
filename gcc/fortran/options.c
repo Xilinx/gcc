@@ -137,7 +137,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   set_default_std_flags ();
 
   /* -fshort-enums can be default on some targets.  */
-  gfc_option.fshort_enums = targetm.default_short_enums ();
+  flag_short_enums = targetm.default_short_enums ();
 
   /* Initialize cpp-related options.  */
   gfc_cpp_init_options(argc, argv);
@@ -238,13 +238,16 @@ gfc_post_options (const char **pfilename)
     sorry ("-fexcess-precision=standard for Fortran");
   flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
 
-  /* Issue an error if -fwhole-program was used.  */
+  /* Whole program needs whole file mode.  */
   if (flag_whole_program)
-    gfc_fatal_error ("Option -fwhole-program is not supported for Fortran");
+    gfc_option.flag_whole_file = 1;
 
   /* -fbounds-check is equivalent to -fcheck=bounds */
   if (flag_bounds_check)
     gfc_option.rtcheck |= GFC_RTCHECK_BOUNDS;
+
+  if (flag_compare_debug)
+    gfc_option.dump_parse_tree = 0;
 
   /* Verify the input file name.  */
   if (!filename || strcmp (filename, "-") == 0)
@@ -368,6 +371,9 @@ gfc_post_options (const char **pfilename)
       gfc_option.warn_tabs = 0;
     }
 
+  if (pedantic && gfc_option.flag_whole_file)
+    gfc_option.flag_whole_file = 2;
+
   gfc_cpp_post_options ();
 
 /* FIXME: return gfc_cpp_preprocess_only ();
@@ -468,10 +474,11 @@ gfc_handle_runtime_check_option (const char *arg)
 {
   int result, pos = 0, n;
   static const char * const optname[] = { "all", "bounds", "array-temps",
-					  "recursion", "do", NULL };
+					  "recursion", "do", "pointer", NULL };
   static const int optmask[] = { GFC_RTCHECK_ALL, GFC_RTCHECK_BOUNDS,
 				 GFC_RTCHECK_ARRAY_TEMPS,
 				 GFC_RTCHECK_RECURSION, GFC_RTCHECK_DO,
+				 GFC_RTCHECK_POINTER,
 				 0 };
  
   while (*arg)
@@ -858,7 +865,7 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fshort_enums:
-      gfc_option.fshort_enums = 1;
+      flag_short_enums = 1;
       break;
 
     case OPT_fconvert_little_endian:

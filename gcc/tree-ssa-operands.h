@@ -53,14 +53,13 @@ typedef struct use_optype_d *use_optype_p;
    operand memory manager.  Operands are suballocated out of this block.  The
    MEM array varies in size.  */
    
-struct ssa_operand_memory_d GTY((chain_next("%h.next")))
-{
+struct GTY((chain_next("%h.next"))) ssa_operand_memory_d {
   struct ssa_operand_memory_d *next;
   char mem[1];
 };
 
 /* Per-function operand caches.  */
-struct ssa_operands GTY(()) {
+struct GTY(()) ssa_operands {
    struct ssa_operand_memory_d *operand_memory;
    unsigned operand_memory_index;
    /* Current size of the operand memory buffer.  */
@@ -114,10 +113,6 @@ extern void dump_decl_set (FILE *, bitmap);
 extern void debug_decl_set (bitmap);
 
 extern bool ssa_operands_active (void);
-
-extern void push_stmt_changes (gimple *);
-extern void pop_stmt_changes (gimple *);
-extern void discard_stmt_changes (gimple *);
 
 extern void unlink_stmt_vdef (gimple);
 

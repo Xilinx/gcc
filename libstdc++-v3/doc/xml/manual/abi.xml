@@ -26,7 +26,7 @@
 <para>
 </para>
 
-<sect2 id="abi.cxx_interface" xreflabel="abi.cxx_interface">
+<sect2 id="abi.cxx_interface">
 <title>The C++ Interface</title>
 
 <para>
@@ -104,7 +104,7 @@ given compiler ABI. In a nutshell:
 
 </sect2>
 
-<sect2 id="abi.versioning" xreflabel="abi.versioning">
+<sect2 id="abi.versioning">
 <title>Versioning</title>
 
 <para> The C++ interface has evolved throughout the history of the GNU
@@ -112,7 +112,7 @@ C++ toolchain. With each release, various details have been changed so
 as to give distinct versions to the C++ interface.
 </para>
   
-  <sect3 id="abi.versioning.goals" xreflabel="abi.versioning.goals">
+  <sect3 id="abi.versioning.goals">
     <title>Goals</title>
 
 <para>Extending existing, stable ABIs. Versioning gives subsequent
@@ -135,7 +135,7 @@ compatible.
 </para>
   </sect3>
 
-  <sect3 id="abi.versioning.history" xreflabel="abi.versioning.history">
+  <sect3 id="abi.versioning.history">
     <title>History</title>
 
 <para>
@@ -207,6 +207,7 @@ compatible.
     <listitem><para>gcc-4.1.0: GCC_4.1.0</para></listitem>
     <listitem><para>gcc-4.2.0: GCC_4.2.0</para></listitem>
     <listitem><para>gcc-4.3.0: GCC_4.3.0</para></listitem>
+    <listitem><para>gcc-4.4.0: GCC_4.4.0</para></listitem>
     </itemizedlist>
     </listitem>
 
@@ -264,6 +265,8 @@ compatible.
     <listitem><para>gcc-4.3.0: libstdc++.so.6.0.10</para></listitem>
     <listitem><para>gcc-4.3.1: libstdc++.so.6.0.10</para></listitem>
     <listitem><para>gcc-4.3.2: libstdc++.so.6.0.10</para></listitem>
+    <listitem><para>gcc-4.3.3: libstdc++.so.6.0.10</para></listitem>
+    <listitem><para>gcc-4.4.0: libstdc++.so.6.0.11</para></listitem>
     </itemizedlist>
     <para>
       Note 1: Error should be libstdc++.so.3.0.3.
@@ -320,6 +323,7 @@ compatible.
     <listitem><para>gcc-4.1.1: GLIBCXX_3.4.8</para></listitem>
     <listitem><para>gcc-4.2.0: GLIBCXX_3.4.9</para></listitem>
     <listitem><para>gcc-4.3.0: GLIBCXX_3.4.10, CXXABI_1.3.2</para></listitem>
+    <listitem><para>gcc-4.4.0: GLIBCXX_3.4.11, CXXABI_1.3.3</para></listitem>
     </itemizedlist>
     </listitem>
   
@@ -426,6 +430,8 @@ compatible.
     <listitem><para>gcc-4.3.0: 20080306</para></listitem>
     <listitem><para>gcc-4.3.1: 20080606</para></listitem>
     <listitem><para>gcc-4.3.2: 20080827</para></listitem>
+    <listitem><para>gcc-4.3.3: 20090124</para></listitem>
+    <listitem><para>gcc-4.4.0: 20090421</para></listitem>
     </itemizedlist>
     <para></para>
     </listitem>
@@ -524,7 +530,8 @@ compatible.
     <listitem><para>gcc-4.2.4: include/c++/4.2.4</para></listitem>
     <listitem><para>gcc-4.3.0: include/c++/4.3.0</para></listitem>
     <listitem><para>gcc-4.3.1: include/c++/4.3.1</para></listitem>
-    <listitem><para>gcc-4.3.2: include/c++/4.3.2</para></listitem>
+    <listitem><para>gcc-4.3.3: include/c++/4.3.3</para></listitem>
+    <listitem><para>gcc-4.4.0: include/c++/4.4.0</para></listitem>
     </itemizedlist>
     <para></para>
     </listitem>
@@ -541,7 +548,7 @@ compatible.
 
   </sect3>
 
-  <sect3 id="abi.versioning.prereq" xreflabel="abi.versioning.prereq">
+  <sect3 id="abi.versioning.prereq">
     <title>Prerequisites</title>
     <para>
       Minimum environment that supports a versioned ABI: A supported
@@ -564,7 +571,7 @@ compatible.
     </para>
   </sect3>
 
-  <sect3 id="abi.versioning.config" xreflabel="abi.versioning.config">
+  <sect3 id="abi.versioning.config">
     <title>Configuring</title>
 
     <para>
@@ -594,7 +601,7 @@ compatible.
     </para>
   </sect3>
 
-  <sect3 id="abi.versioning.active" xreflabel="abi.versioning.active">
+  <sect3 id="abi.versioning.active">
     <title>Checking Active</title>
 
     <para>
@@ -650,7 +657,7 @@ of the name, then the executable is versioned. Here's an example:
   </sect3>
 </sect2>
 
-<sect2 id="abi.changes_allowed" xreflabel="abi.changes_allowed">
+<sect2 id="abi.changes_allowed">
 <title>Allowed Changes</title>
 
 <para>
@@ -668,7 +675,7 @@ Other allowed changes are possible.
 
 </sect2>
 
-<sect2 id="abi.changes_no" xreflabel="abi.changes_no">
+<sect2 id="abi.changes_no">
 <title>Prohibited Changes</title>
 
 <para>
@@ -708,7 +715,7 @@ class in registers, the compiler will be forced to use memory. See <ulink url="h
 
 
 
-<sect2 id="abi.impl" xreflabel="abi.impl">
+<sect2 id="abi.impl">
 <title>Implementation</title>
 
 <orderedlist>
@@ -825,10 +832,10 @@ standard includes.</para>
 
 </sect2>
 
-<sect2 id="abi.testing" xreflabel="abi.testing">
+<sect2 id="abi.testing">
 <title>Testing</title>
 
-  <sect3 id="abi.testing.single" xreflabel="abi.testing.single">
+  <sect3 id="abi.testing.single">
     <title>Single ABI Testing</title>
 
     <para>
@@ -842,8 +849,7 @@ standard includes.</para>
     </para>
 
     <para>
-      One.  Intel ABI checker. More information can be obtained <ulink
-      url="http://developer.intel.com/software/products/opensource/">here.</ulink>
+      One.  Intel ABI checker. 
     </para>
 
 <para>
@@ -927,7 +933,7 @@ us. We'd like to know about them!
 </para>
 
   </sect3>
-  <sect3 id="abi.testing.multi" xreflabel="abi.testing.multi">
+  <sect3 id="abi.testing.multi">
     <title>Multiple ABI Testing</title>
 <para>
 A "C" application, dynamically linked to two shared libraries, liba,
@@ -1016,7 +1022,7 @@ gcc test.c -g -O2 -L. -lone -ltwo /usr/lib/libstdc++.so.5 /usr/lib/libstdc++.so.
   </sect3>
 </sect2>
 
-<sect2 id="abi.issues" xreflabel="abi.issues">
+<sect2 id="abi.issues">
 <title>Outstanding Issues</title>
 
 <para> 
@@ -1042,7 +1048,7 @@ gcc test.c -g -O2 -L. -lone -ltwo /usr/lib/libstdc++.so.5 /usr/lib/libstdc++.so.
 
 </sect2>
 
-<bibliography id="abi.biblio" xreflabel="abi.biblio">
+<bibliography id="abi.biblio">
 <title>Bibliography</title>
 
   <biblioentry>
@@ -1062,7 +1068,7 @@ gcc test.c -g -O2 -L. -lone -ltwo /usr/lib/libstdc++.so.5 /usr/lib/libstdc++.so.
     </title>
 
     <biblioid>
-      <ulink url="http://www.codesourcery.com/cxx-abi">
+      <ulink url="http://www.codesourcery.com/public/cxx-abi/">
       </ulink>
     </biblioid>
   </biblioentry> 
@@ -1073,18 +1079,7 @@ gcc test.c -g -O2 -L. -lone -ltwo /usr/lib/libstdc++.so.5 /usr/lib/libstdc++.so.
     </title>
 
     <biblioid>
-      <ulink url="http://developer.intel.com/software/products/compilers/techtopics/LinuxCompilersCompatibility.htm">
-      </ulink>
-    </biblioid>
-  </biblioentry> 
-
-  <biblioentry>
-    <title>
-      Intel® Compilers for Linux* -Compatibility with the GNU Compilers
-    </title>
-
-    <biblioid>
-      <ulink url="http://developer.intel.com/software/products/compilers/techtopics/LinuxCompilersCompatibility.htm">
+      <ulink url="http://www.intel.com/cd/software/products/asmo-na/eng/284736.htm">
       </ulink>
     </biblioid>
   </biblioentry> 
@@ -1095,7 +1090,7 @@ gcc test.c -g -O2 -L. -lone -ltwo /usr/lib/libstdc++.so.5 /usr/lib/libstdc++.so.
     </title>
 
     <biblioid>
-      <ulink url="http://docs.sun.com/?p=/doc/816-1386&amp;a=load">
+      <ulink url="http://docs.sun.com/app/docs/doc/817-1984">
       </ulink>
     </biblioid>
   </biblioentry> 
@@ -1107,14 +1102,14 @@ gcc test.c -g -O2 -L. -lone -ltwo /usr/lib/libstdc++.so.5 /usr/lib/libstdc++.so.
     </title>
 
     <biblioid>
-      <ulink url="http://docs.sun.com/db/prod/solaris.9">
+      <ulink url="http://docs.sun.com/app/docs/doc/819-5266">
       </ulink>
     </biblioid>
   </biblioentry> 
 
   <biblioentry>
     <title>
-      ELF Symbol Versioning
+      How to Write Shared Libraries
     </title>
 
     <author>
@@ -1123,7 +1118,7 @@ gcc test.c -g -O2 -L. -lone -ltwo /usr/lib/libstdc++.so.5 /usr/lib/libstdc++.so.
     </author>
  
     <biblioid>
-      <ulink url="http://people.redhat.com/drepper/symbol-versioning">
+      <ulink url="http://people.redhat.com/drepper/dsohowto.pdf">
       </ulink>
     </biblioid>
   </biblioentry> 
@@ -1173,6 +1168,31 @@ gcc test.c -g -O2 -L. -lone -ltwo /usr/lib/libstdc++.so.5 /usr/lib/libstdc++.so.
  
     <biblioid>
       <ulink url="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2013.html">
+      </ulink>
+    </biblioid>
+  </biblioentry> 
+
+  <biblioentry>
+    <title>
+      Binary Compatibility of Shared Libraries Implemented in C++ on GNU/Linux Systems
+    </title>
+
+    <subtitle>
+SYRCoSE 2009
+    </subtitle>
+
+    <author>
+      <firstname>Pavel</firstname>
+      <surname>Shved</surname>
+    </author>
+
+    <author>
+      <firstname>Denis</firstname>
+      <surname>Silakov</surname>
+    </author>
+ 
+    <biblioid>
+      <ulink url="http://syrcose.ispras.ru/2009/files/SYRCoSE2009-CfP.pdf">
       </ulink>
     </biblioid>
   </biblioentry> 

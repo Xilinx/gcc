@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, Argonaut ARC cpu.
    Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2004, 2005,
-   2007, 2008 Free Software Foundation, Inc.
+   2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -516,12 +516,6 @@ extern enum reg_class arc_regno_reg_class[FIRST_PSEUDO_REGISTER];
    not be a register used by the prologue.  */
 #define STATIC_CHAIN_REGNUM 24
 
-/* A C expression which is nonzero if a function must have and use a
-   frame pointer.  This expression is evaluated in the reload pass.
-   If its value is nonzero the function will have a frame pointer.  */
-#define FRAME_POINTER_REQUIRED \
-(cfun->calls_alloca)
-
 /* C statement to store the difference between the frame pointer
    and the stack pointer values immediately after the function prologue.  */
 #define INITIAL_FRAME_POINTER_OFFSET(VAR) \
@@ -795,10 +789,6 @@ do { \
       && RTX_OK_FOR_BASE_P (XEXP ((X), 0)))		\
     goto ADDR;						\
 }
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 /* Given a comparison code (EQ, NE, etc.) and the first operand of a COMPARE,
    return the mode to be used for the comparison.  */
@@ -1071,11 +1061,6 @@ do { if ((LOG) != 0) fprintf (FILE, "\t.align %d\n", 1 << (LOG)); } while (0)
 /* ??? Not defined in tm.texi.  */
 #define SETJMP_VIA_SAVE_AREA
 
-/* Define the information needed to generate branch and scc insns.  This is
-   stored from the compare operation.  Note that we can't use "rtx" here
-   since it hasn't been defined!  */
-extern struct rtx_def *arc_compare_op0, *arc_compare_op1;
-
 /* ARC function types.  */
 enum arc_function_type {
   ARC_FUNCTION_UNKNOWN, ARC_FUNCTION_NORMAL,

@@ -32,6 +32,7 @@
 pragma Style_Checks (All_Checks);
 --  Subprograms not all in alpha order
 
+with Atree;    use Atree;
 with Debug;    use Debug;
 with Opt;      use Opt;
 with Output;   use Output;
@@ -283,8 +284,7 @@ package body Sinput is
    -----------------------------
 
    function Get_Logical_Line_Number
-     (P    : Source_Ptr)
-      return Logical_Line_Number
+     (P : Source_Ptr) return Logical_Line_Number
    is
       SFR : Source_File_Record
               renames Source_File.Table (Get_Source_File_Index (P));
@@ -304,8 +304,7 @@ package body Sinput is
    ------------------------------
 
    function Get_Physical_Line_Number
-     (P    : Source_Ptr)
-      return Physical_Line_Number
+     (P : Source_Ptr) return Physical_Line_Number
    is
       Sfile : Source_File_Index;
       Table : Lines_Table_Ptr;
@@ -469,7 +468,6 @@ package body Sinput is
 
    begin
       S := P;
-
       while S > Sfirst
         and then Src (S - 1) /= CR
         and then Src (S - 1) /= LF
@@ -481,9 +479,8 @@ package body Sinput is
    end Line_Start;
 
    function Line_Start
-     (L    : Physical_Line_Number;
-      S    : Source_File_Index)
-      return Source_Ptr
+     (L : Physical_Line_Number;
+      S : Source_File_Index) return Source_Ptr
    is
    begin
       return Source_File.Table (S).Lines_Table (L);
@@ -552,8 +549,7 @@ package body Sinput is
 
    function Physical_To_Logical
      (Line : Physical_Line_Number;
-      S    : Source_File_Index)
-      return Logical_Line_Number
+      S    : Source_File_Index) return Logical_Line_Number
    is
       SFR : Source_File_Record renames Source_File.Table (S);
 
@@ -693,6 +689,44 @@ package body Sinput is
       end;
    end Skip_Line_Terminators;
 
+   ----------------
+   -- Sloc_Range --
+   ----------------
+
+   procedure Sloc_Range (Expr : Node_Id; Min, Max : out Source_Ptr) is
+
+      function Process (N : Node_Id) return Traverse_Result;
+      --  Process function for traversing the expression tree
+
+      procedure Traverse is new Traverse_Proc (Process);
+
+      -------------
+      -- Process --
+      -------------
+
+      function Process (N : Node_Id) return Traverse_Result is
+      begin
+         if Sloc (N) < Min then
+            if Sloc (N) > No_Location then
+               Min := Sloc (N);
+            end if;
+         elsif Sloc (N) > Max then
+            if Sloc (N) > No_Location then
+               Max := Sloc (N);
+            end if;
+         end if;
+
+         return OK;
+      end Process;
+
+   --  Start of processing for Sloc_Range
+
+   begin
+      Min := Sloc (Expr);
+      Max := Sloc (Expr);
+      Traverse (Expr);
+   end Sloc_Range;
+
    -------------------
    -- Source_Offset --
    -------------------
@@ -701,7 +735,6 @@ package body Sinput is
       Sindex : constant Source_File_Index := Get_Source_File_Index (S);
       Sfirst : constant Source_Ptr :=
                  Source_File.Table (Sindex).Source_First;
-
    begin
       return Nat (S - Sfirst);
    end Source_Offset;
@@ -1126,7 +1159,6 @@ package body Sinput is
       else
          return Source_File.Table (S).Source_Last;
       end if;
-
    end Source_Last;
 
    function Source_Text (S : SFI) return Source_Buffer_Ptr is
@@ -1136,7 +1168,6 @@ package body Sinput is
       else
          return Source_File.Table (S).Source_Text;
       end if;
-
    end Source_Text;
 
    function Template (S : SFI) return SFI is

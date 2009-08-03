@@ -25,14 +25,12 @@
 #include "function.h"
 #include "rtl.h"
 #include "expr.h"
-#include "errors.h"
 #include "tm_p.h"
 #include "langhooks.h"
 #include "insn-config.h"
 #include "insn-codes.h"
 #include "recog.h"
 #include "optabs.h"
-#include "spu-builtins.h"
 
 
 /* Keep the vector keywords handy for fast comparisons.  */
@@ -44,7 +42,7 @@ spu_categorize_keyword (const cpp_token *tok)
 {
   if (tok->type == CPP_NAME)
     {
-      cpp_hashnode *ident = tok->val.node;
+      cpp_hashnode *ident = tok->val.node.node;
 
       if (ident == C_CPP_HASHNODE (vector_keyword)
 	  || ident == C_CPP_HASHNODE (__vector_keyword))
@@ -62,7 +60,7 @@ spu_categorize_keyword (const cpp_token *tok)
 static cpp_hashnode *
 spu_macro_to_expand (cpp_reader *pfile, const cpp_token *tok)
 {
-  cpp_hashnode *expand_this = tok->val.node;
+  cpp_hashnode *expand_this = tok->val.node.node;
   cpp_hashnode *ident;
 
   ident = spu_categorize_keyword (tok);
@@ -96,15 +94,14 @@ spu_macro_to_expand (cpp_reader *pfile, const cpp_token *tok)
 /* target hook for resolve_overloaded_builtin(). Returns a function call
    RTX if we can resolve the overloaded builtin */
 tree
-spu_resolve_overloaded_builtin (tree fndecl, void *passed_args)
+spu_resolve_overloaded_builtin (location_t loc, tree fndecl, void *passed_args)
 {
 #define SCALAR_TYPE_P(t) (INTEGRAL_TYPE_P (t) \
 			  || SCALAR_FLOAT_TYPE_P (t) \
 			  || POINTER_TYPE_P (t))
   VEC(tree,gc) *fnargs = (VEC(tree,gc) *) passed_args;
   unsigned int nargs = VEC_length (tree, fnargs);
-  spu_function_code new_fcode, fcode =
-    DECL_FUNCTION_CODE (fndecl) - END_BUILTINS;
+  int new_fcode, fcode = DECL_FUNCTION_CODE (fndecl) - END_BUILTINS;
   struct spu_builtin_description *desc;
   tree match = NULL_TREE;
 
@@ -124,7 +121,14 @@ spu_resolve_overloaded_builtin (tree fndecl, void *passed_args)
       tree decl = spu_builtins[new_fcode].fndecl;
       tree params = TYPE_ARG_TYPES (TREE_TYPE (decl));
       tree param;
+      bool all_scalar;
       unsigned int p;
+
+      /* Check whether all parameters are scalar.  */
+      all_scalar = true;
+      for (param = params; param != void_list_node; param = TREE_CHAIN (param))
+      if (!SCALAR_TYPE_P (TREE_VALUE (param)))
+	all_scalar = false;
 
       for (param = params, p = 0;
 	   param != void_list_node;
@@ -132,7 +136,7 @@ spu_resolve_overloaded_builtin (tree fndecl, void *passed_args)
 	{
 	  tree var, arg_type, param_type = TREE_VALUE (param);
 
-	  if (p < nargs)
+	  if (p >= nargs)
 	    {
 	      error ("insufficient arguments to overloaded function %s",
 		     desc->name);
@@ -157,10 +161,7 @@ spu_resolve_overloaded_builtin (tree fndecl, void *passed_args)
 	     parameter. */
 	  if ((!SCALAR_TYPE_P (param_type)
 	       || !SCALAR_TYPE_P (arg_type)
-	       || ((fcode == SPU_SPLATS || fcode == SPU_PROMOTE
-		    || fcode == SPU_HCMPEQ || fcode == SPU_HCMPGT
-		    || fcode == SPU_MASKB || fcode == SPU_MASKH
-		    || fcode == SPU_MASKW) && p == 0))
+	       || (all_scalar && p == 0))
 	      && !comptypes (TYPE_MAIN_VARIANT (param_type),
 			     TYPE_MAIN_VARIANT (arg_type)))
 	    break;
@@ -186,7 +187,7 @@ spu_resolve_overloaded_builtin (tree fndecl, void *passed_args)
       return error_mark_node;
     }
 
-  return build_function_call_vec (match, fnargs, NULL);
+  return build_function_call_vec (loc, match, fnargs, NULL);
 #undef SCALAR_TYPE_P
 }
 

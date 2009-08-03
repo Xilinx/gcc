@@ -233,20 +233,6 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
       return false;
     }
 
-  /* Don't coalesce if the aliasing sets of the types are different.  */
-  if (POINTER_TYPE_P (TREE_TYPE (root1))
-      && POINTER_TYPE_P (TREE_TYPE (root2))
-      && ((get_alias_set (TREE_TYPE (TREE_TYPE (root1)))
-	   != get_alias_set (TREE_TYPE (TREE_TYPE (root2))))
-	  || (DECL_P (root1) && DECL_P (root2)
-	      && DECL_NO_TBAA_P (root1) != DECL_NO_TBAA_P (root2))))
-    {
-      if (debug)
-	fprintf (debug, " : 2 different aliasing sets. No coalesce.\n");
-      return false;
-    }
-
-
   /* Merge the two partitions.  */
   p3 = partition_union (map->var_partition, p1, p2);
 
@@ -291,7 +277,7 @@ rename_ssa_copies (void)
   else
     debug = NULL;
 
-  map = init_var_map (num_ssa_names + 1);
+  map = init_var_map (num_ssa_names);
 
   FOR_EACH_BB (bb)
     {
@@ -339,12 +325,12 @@ rename_ssa_copies (void)
   /* Now one more pass to make all elements of a partition share the same
      root variable.  */
   
-  for (x = 1; x <= num_ssa_names; x++)
+  for (x = 1; x < num_ssa_names; x++)
     {
       part_var = partition_to_var (map, x);
       if (!part_var)
         continue;
-      var = map->partition_to_var[x];
+      var = ssa_name (x);
       if (debug)
         {
 	  if (SSA_NAME_VAR (var) != SSA_NAME_VAR (part_var))

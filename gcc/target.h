@@ -91,6 +91,18 @@ struct _dep;
 /* This is defined in ddg.h .  */
 struct ddg;
 
+/* Assembler instructions for creating various kinds of integer object.  */
+
+struct asm_int_op
+{
+  const char *hi;
+  const char *si;
+  const char *di;
+  const char *ti;
+};
+
+/* The target structure.  This holds all the backend hooks.  */
+
 struct gcc_target
 {
   /* Functions that output assembler for the target.  */
@@ -101,13 +113,7 @@ struct gcc_target
 
     /* Assembler instructions for creating various kinds of integer object.  */
     const char *byte_op;
-    struct asm_int_op
-    {
-      const char *hi;
-      const char *si;
-      const char *di;
-      const char *ti;
-    } aligned_op, unaligned_op;
+    struct asm_int_op aligned_op, unaligned_op;
 
     /* Try to output the assembler code for an integer object whose
        value is given by X.  SIZE is the size of the object in bytes and
@@ -475,7 +481,7 @@ struct gcc_target
 
     /* Target builtin that implements vector permute.  */
     tree (* builtin_vec_perm) (tree, tree*);
-} vectorize;
+  } vectorize;
 
   /* The initial value of target_flags.  */
   int default_target_flags;
@@ -558,7 +564,8 @@ struct gcc_target
      complete expression that implements the operation.  PARAMS really
      has type VEC(tree,gc)*, but we don't want to include tree.h
      here.  */
-  tree (*resolve_overloaded_builtin) (tree decl, void *params);
+  tree (*resolve_overloaded_builtin) (unsigned int /*location_t*/,
+      				      tree decl, void *params);
 
   /* Fold a target-specific builtin.  */
   tree (* fold_builtin) (tree fndecl, tree arglist, bool ignore);
@@ -586,7 +593,7 @@ struct gcc_target
 
   /* Return a register class for which branch target register
      optimizations should be applied.  */
-  int (* branch_target_register_class) (void);
+  enum reg_class (* branch_target_register_class) (void);
 
   /* Return true if branch target register optimizations should include
      callee-saved registers that are not already live during the current
@@ -603,8 +610,15 @@ struct gcc_target
   /* True if X is considered to be commutative.  */
   bool (* commutative_p) (const_rtx, int);
 
+  /* Given an invalid address X for a given machine mode, try machine-specific
+     ways to make it legitimate.  Return X or an invalid address on failure.  */
+  rtx (* legitimize_address) (rtx, rtx, enum machine_mode);
+
   /* Given an address RTX, undo the effects of LEGITIMIZE_ADDRESS.  */
   rtx (* delegitimize_address) (rtx);
+
+  /* Given an address RTX, say whether it is valid.  */
+  bool (* legitimate_address_p) (enum machine_mode, rtx, bool);
 
   /* True if the given constant can be put into an object_block.  */
   bool (* use_blocks_for_constant_p) (enum machine_mode, const_rtx);
@@ -812,10 +826,17 @@ struct gcc_target
      checks to  handle_dll_attribute ().  */
   bool (* valid_dllimport_attribute_p) (const_tree decl);
 
+  /* If non-zero, align constant anchors in CSE to a multiple of this
+     value.  */
+  unsigned HOST_WIDE_INT const_anchor;
+
   /* Functions relating to calls - argument passing, returns, etc.  */
   struct calls {
-    bool (*promote_function_args) (const_tree fntype);
-    bool (*promote_function_return) (const_tree fntype);
+    enum machine_mode (*promote_function_mode) (const_tree type,
+						enum machine_mode mode,
+						int *punsignedp,
+						const_tree fntype,
+						int for_return);
     bool (*promote_prototypes) (const_tree fntype);
     rtx (*struct_value_rtx) (tree fndecl, int incoming);
     bool (*return_in_memory) (const_tree type, const_tree fndecl);
@@ -900,6 +921,24 @@ struct gcc_target
      is not permitted on TYPE1 and TYPE2, NULL otherwise.  */
   const char *(*invalid_binary_op) (int op, const_tree type1, const_tree type2);
 
+  /* Return the diagnostic message string if TYPE is not valid as a
+     function parameter type, NULL otherwise.  */
+  const char *(*invalid_parameter_type) (const_tree type);
+
+  /* Return the diagnostic message string if TYPE is not valid as a
+     function return type, NULL otherwise.  */
+  const char *(*invalid_return_type) (const_tree type);
+
+  /* If values of TYPE are promoted to some other type when used in
+     expressions (analogous to the integer promotions), return that type,
+     or NULL_TREE otherwise.  */
+  tree (*promoted_type) (const_tree type);
+
+  /* Convert EXPR to TYPE, if target-specific types with special conversion
+     rules are involved.  Return the converted expression, or NULL to apply
+     the standard conversion rules.  */
+  tree (*convert_to_type) (tree type, tree expr);
+
   /* Return the array of IRA cover classes for the current target.  */
   const enum reg_class *(*ira_cover_classes) (void);
 
@@ -920,6 +959,13 @@ struct gcc_target
   /* Return true if is OK to use a hard register REGNO as scratch register
      in peephole2.  */
   bool (* hard_regno_scratch_ok) (unsigned int regno);
+
+  /* Return the smallest number of different values for which it is best to
+     use a jump-table instead of a tree of conditional branches.  */
+  unsigned int (* case_values_threshold) (void);
+  
+  /* Retutn true if a function must have and use a frame pointer.  */
+  bool (* frame_pointer_required) (void);
 
   /* Functions specific to the C family of frontends.  */
   struct c {

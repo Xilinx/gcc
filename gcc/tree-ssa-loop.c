@@ -36,6 +36,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tree-inline.h"
 #include "tree-scalar-evolution.h"
+#include "toplev.h"
+#include "tree-vectorizer.h"
 
 /* The loop superpass.  */
 
@@ -306,8 +308,11 @@ gate_graphite_transforms (void)
   /* Enable -fgraphite pass if any one of the graphite optimization flags 
      is turned on.  */
   if (flag_loop_block || flag_loop_interchange || flag_loop_strip_mine
-      || flag_graphite_identity)
+      || flag_graphite_identity || flag_loop_parallelize_all)
     flag_graphite = 1;
+
+  if (flag_loop_block)
+    sorry ("loop blocking not implemented");
 
   return flag_graphite != 0;
 }
@@ -430,37 +435,6 @@ struct gimple_opt_pass pass_scev_cprop =
   TODO_dump_func | TODO_cleanup_cfg
     | TODO_update_ssa_only_virtuals
 					/* todo_flags_finish */
- }
-};
-
-/* Remove empty loops.  */
-
-static unsigned int
-tree_ssa_empty_loop (void)
-{
-  if (number_of_loops () <= 1)
-    return 0;
-
-  return remove_empty_loops ();
-}
-
-struct gimple_opt_pass pass_empty_loop =
-{
- {
-  GIMPLE_PASS,
-  "empty",				/* name */
-  NULL,					/* gate */
-  tree_ssa_empty_loop,		       	/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_COMPLETE_UNROLL,	  		/* tv_id */
-  PROP_cfg | PROP_ssa,			/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_loops 
-    | TODO_ggc_collect			/* todo_flags_finish */
  }
 };
 

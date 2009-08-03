@@ -1,5 +1,5 @@
 /* Callgraph based analysis of static variables.
-   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -57,10 +57,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "langhooks.h"
 #include "pointer-set.h"
+#include "splay-tree.h"
 #include "ggc.h"
 #include "ipa-utils.h"
 #include "ipa-reference.h"
-#include "c-common.h"
 #include "gimple.h"
 #include "cgraph.h"
 #include "output.h"
@@ -1250,7 +1250,7 @@ gate_reference (void)
 	  && !(errorcount || sorrycount));
 }
 
-struct ipa_opt_pass pass_ipa_reference =
+struct ipa_opt_pass_d pass_ipa_reference =
 {
  {
   IPA_PASS,

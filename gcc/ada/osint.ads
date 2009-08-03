@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -410,6 +410,12 @@ package Osint is
    --  Cache => True access to source file data does not incur a penalty if
    --  this data was previously retrieved.
 
+   procedure Dump_Source_File_Names;
+   --  Prints out the names of all source files that have been read by
+   --  Read_Source_File, except those that come from the run-time library
+   --  (i.e. Include_Dir_Default_Prefix). The text is sent to whatever Output
+   --  is currently using (e.g. standard output or standard error).
+
    -------------------------------------------
    -- Representation of Library Information --
    -------------------------------------------
@@ -565,10 +571,11 @@ package Osint is
    pragma Import (C, Len_Arg, "__gnat_len_arg");
    --  Get length of argument
 
-private
+   ALI_Default_Suffix : constant String_Ptr := new String'("ali");
+   ALI_Suffix         : String_Ptr          := ALI_Default_Suffix;
+   --  The suffixes used for the library files (also known as ALI files)
 
-   ALI_Suffix : constant String_Ptr := new String'("ali");
-   --  The suffix used for the library files (also known as ALI files)
+private
 
    Current_Main : File_Name_Type := No_File;
    --  Used to save a simple file name between calls to Next_Main_Source and

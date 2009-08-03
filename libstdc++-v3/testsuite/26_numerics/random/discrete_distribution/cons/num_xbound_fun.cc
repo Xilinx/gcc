@@ -1,4 +1,5 @@
 // { dg-options "-std=c++0x" }
+// { dg-require-cstdint "" }
 //
 // 2008-12-03  Edward M. Smith-Rowland <3dw4rd@verizon.net>
 //
@@ -40,7 +41,10 @@ struct cosine_distribution
       else if (x - _M_x0 > _M_lambda / 4)
         return 0.0;
       else
-        return std::cos(2 * M_PI * (x - _M_x0) / _M_lambda);
+	{
+	  const double pi = 3.14159265358979323846;
+	  return std::cos(2 * pi * (x - _M_x0) / _M_lambda);
+	}
     }
 
 private:

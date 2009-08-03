@@ -38,36 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 
    Be sure to add an entry to invoke.texi summarizing the parameter.  */
 
-/* The maximum structure size at which the scalar replacement of
-   aggregates (SRA) pass will perform block copies.  The default
-   value, 0, implies that GCC will select the most appropriate size
-   itself.  */
-DEFPARAM (PARAM_SRA_MAX_STRUCTURE_SIZE,
-	  "sra-max-structure-size",
-	  "The maximum structure size (in bytes) for which GCC will "
-	  "use by-element copies",
-	  0, 0, 0)
-
-/* The maximum number of structure fields which the SRA pass will
-   instantiate to avoid block copies.  The default value, 0, implies
-   that GCC will select the appropriate value itself.  */
-DEFPARAM (PARAM_SRA_MAX_STRUCTURE_COUNT,
-	  "sra-max-structure-count",
-	  "The maximum number of structure fields for which GCC will "
-	  "use by-element copies",
-	  0, 0, 0)
-
-/* The ratio between instantiated fields and the complete structure
-   size.  We say that if the ratio of the number of bytes in
-   instantiated fields to the number of bytes in the complete
-   structure exceeds this parameter, or if the number of instantiated
-   fields to the total number of fields exceeds this parameter, then
-   block copies are not used.  The default is 75%.  */
-DEFPARAM (PARAM_SRA_FIELD_STRUCTURE_RATIO,
-	  "sra-field-structure-ratio",
-	  "The threshold ratio between instantiated fields and the total structure size",
-	  75, 0, 100)
-
 /* The threshold ratio between current and hottest structure counts.
    We say that if the ratio of the current structure count, 
    calculated by profiling, to the hottest structure count 
@@ -100,7 +70,7 @@ DEFPARAM (PARAM_PREDICTABLE_BRANCH_OUTCOME,
 DEFPARAM (PARAM_MAX_INLINE_INSNS_SINGLE,
 	  "max-inline-insns-single",
 	  "The maximum number of instructions in a single function eligible for inlining",
-	  450, 0, 0)
+	  400, 0, 0)
 
 /* The single function inlining limit for functions that are
    inlined by virtue of -finline-functions (-O3).
@@ -112,7 +82,7 @@ DEFPARAM (PARAM_MAX_INLINE_INSNS_SINGLE,
 DEFPARAM (PARAM_MAX_INLINE_INSNS_AUTO,
 	  "max-inline-insns-auto",
 	  "The maximum number of instructions when automatically inlining",
-	  90, 0, 0)
+	  60, 0, 0)
 
 DEFPARAM (PARAM_MAX_INLINE_INSNS_RECURSIVE,
 	  "max-inline-insns-recursive",
@@ -137,6 +107,14 @@ DEFPARAM (PARAM_MAX_INLINE_RECURSIVE_DEPTH_AUTO,
 DEFPARAM (PARAM_MIN_INLINE_RECURSIVE_PROBABILITY,
 	  "min-inline-recursive-probability",
 	  "Inline recursively only when the probability of call being executed exceeds the parameter",
+	  10, 0, 0)
+
+/* Limit of iterations of early inliner.  This basically bounds number of
+   nested indirect calls early inliner can resolve.  Deeper chains are still
+   handled by late inlining.  */
+DEFPARAM (PARAM_EARLY_INLINER_MAX_ITERATIONS,
+	  "max-early-inliner-iterations",
+	  "The maximum number of nested indirect inlining performed by early inliner",
 	  10, 0, 0)
 
 /* Limit the number of expansions created by the variable expansion
@@ -204,9 +182,9 @@ DEFPARAM(PARAM_IPCP_UNIT_GROWTH,
 	 "ipcp-unit-growth",
 	 "how much can given compilation unit grow because of the interprocedural constant propagation (in percent)",
 	 10, 0, 0)
-DEFPARAM(PARAM_INLINE_CALL_COST,
-	 "inline-call-cost",
-	 "expense of call operation relative to ordinary arithmetic operations",
+DEFPARAM(PARAM_EARLY_INLINING_INSNS,
+	 "early-inlining-insns",
+	 "maximal estimated growth of function body caused by early inlining of single call",
 	 12, 0, 0)
 DEFPARAM(PARAM_LARGE_STACK_FRAME,
 	 "large-stack-frame",
@@ -756,6 +734,23 @@ DEFPARAM (PARAM_LOOP_INVARIANT_MAX_BBS_IN_LOOP,
 	  "loop-invariant-max-bbs-in-loop",
 	  "max basic blocks number in loop for loop invariant motion",
 	  10000, 0, 0)
+
+/* Avoid SLP vectorization of large basic blocks.  */
+DEFPARAM (PARAM_SLP_MAX_INSNS_IN_BB,
+          "slp-max-insns-in-bb",
+          "Maximum number of instructions in basic block to be considered for SLP vectorization",
+          1000, 0, 0)
+
+DEFPARAM (PARAM_MIN_INSN_TO_PREFETCH_RATIO,
+	  "min-insn-to-prefetch-ratio",
+	  "min. ratio of insns to prefetches to enable prefetching for "
+          "a loop with an unknown trip count",
+	  10, 0, 0)
+
+DEFPARAM (PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO,
+	  "prefetch-min-insn-to-mem-ratio",
+	  "min. ratio of insns to mem ops to enable prefetching in a loop",
+	  3, 0, 0)
 
 /*
 Local variables:

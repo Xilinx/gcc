@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on the Argonaut ARC cpu.
    Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "recog.h"
 #include "toplev.h"
+#include "df.h"
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
@@ -48,10 +49,6 @@ int arc_cpu_type;
 /* Name of mangle string to add to symbols to separate code compiled for each
    cpu (or NULL).  */
 const char *arc_mangle_cpu;
-
-/* Save the operands last given to a compare for use when we
-   generate a scc or bcc insn.  */
-rtx arc_compare_op0, arc_compare_op1;
 
 /* Name of text, data, and rodata sections used in varasm.c.  */
 const char *arc_text_section;
@@ -82,7 +79,6 @@ static bool arc_handle_option (size_t, const char *, int);
 static void record_cc_ref (rtx);
 static void arc_init_reg_tables (void);
 static int get_arc_condition_code (rtx);
-const struct attribute_spec arc_attribute_table[];
 static tree arc_handle_interrupt_attribute (tree *, tree, tree, int, bool *);
 static bool arc_assemble_integer (rtx, unsigned int, int);
 static void arc_output_function_prologue (FILE *, HOST_WIDE_INT);
@@ -98,6 +94,15 @@ static void arc_external_libcall (rtx);
 static bool arc_return_in_memory (const_tree, const_tree);
 static bool arc_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				   const_tree, bool);
+
+/* ARC specific attributs.  */
+
+static const struct attribute_spec arc_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  { "interrupt", 1, 1, true,  false, false, arc_handle_interrupt_attribute },
+  { NULL,        0, 0, false, false, false, NULL }
+};
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -128,10 +133,8 @@ static bool arc_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST arc_address_cost
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode_always_promote
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
@@ -368,13 +371,6 @@ arc_init_reg_tables (void)
    interrupt - for interrupt functions
 */
 
-const struct attribute_spec arc_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "interrupt", 1, 1, true,  false, false, arc_handle_interrupt_attribute },
-  { NULL,        0, 0, false, false, false, NULL }
-};
-
 /* Handle an "interrupt" attribute; arguments as in
    struct attribute_spec.handler.  */
 static tree
@@ -389,16 +385,16 @@ arc_handle_interrupt_attribute (tree *node ATTRIBUTE_UNUSED,
   if (TREE_CODE (value) != STRING_CST)
     {
       warning (OPT_Wattributes,
-	       "argument of %qs attribute is not a string constant",
-	       IDENTIFIER_POINTER (name));
+	       "argument of %qE attribute is not a string constant",
+	       name);
       *no_add_attrs = true;
     }
   else if (strcmp (TREE_STRING_POINTER (value), "ilink1")
 	   && strcmp (TREE_STRING_POINTER (value), "ilink2"))
     {
       warning (OPT_Wattributes,
-	       "argument of %qs attribute is not \"ilink1\" or \"ilink2\"",
-	       IDENTIFIER_POINTER (name));
+	       "argument of %qE attribute is not \"ilink1\" or \"ilink2\"",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -729,21 +725,14 @@ proper_comparison_operator (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
 
 /* Misc. utilities.  */
 
-/* X and Y are two things to compare using CODE.  Emit the compare insn and
-   return the rtx for the cc reg in the proper mode.  */
+/* X and Y are two things to compare using CODE.  Return the rtx
+   for the cc reg in the proper mode.  */
 
 rtx
 gen_compare_reg (enum rtx_code code, rtx x, rtx y)
 {
   enum machine_mode mode = SELECT_CC_MODE (code, x, y);
-  rtx cc_reg;
-
-  cc_reg = gen_rtx_REG (mode, 61);
-
-  emit_insn (gen_rtx_SET (VOIDmode, cc_reg,
-			  gen_rtx_COMPARE (mode, x, y)));
-
-  return cc_reg;
+  return gen_rtx_REG (mode, 61);
 }
 
 /* Return 1 if VALUE, a const_double, will fit in a limm (4 byte number).
@@ -908,7 +897,7 @@ arc_address_cost (rtx addr, bool speed ATTRIBUTE_UNUSED)
 	switch (GET_CODE (plus1))
 	  {
 	  case CONST_INT :
-	    return SMALL_INT (plus1) ? 1 : 2;
+	    return SMALL_INT (INTVAL (plus1)) ? 1 : 2;
 	  case CONST :
 	  case SYMBOL_REF :
 	  case LABEL_REF :
@@ -1513,9 +1502,10 @@ output_shift (rtx *operands)
     }
   else
     {
-      int n = INTVAL (operands[2]);
+      int n;
 
       /* If the count is negative, make it 0.  */
+      n = INTVAL (operands[2]);
       if (n < 0)
 	n = 0;
       /* If the count is too big, truncate it.

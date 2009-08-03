@@ -44,8 +44,8 @@ __attribute__ ((noinline)) int
 main1 (int n , float *pa)
 {
   int i;
-  float b[N] __attribute__ ((__aligned__(16)));
-  float c[N] __attribute__ ((__aligned__(16)));
+  float b[N] __attribute__ ((__aligned__(__BIGGEST_ALIGNMENT__)));
+  float c[N] __attribute__ ((__aligned__(__BIGGEST_ALIGNMENT__)));
   float *pb = b;
   float *pc = c;
 
@@ -65,7 +65,7 @@ int main (void)
 {
   int i;
   int n=N;
-  float a[N] __attribute__ ((__aligned__(16)));
+  float a[N] __attribute__ ((__aligned__(__BIGGEST_ALIGNMENT__)));
 
   check_vect ();
   main1 (n,a);
@@ -73,5 +73,5 @@ int main (void)
   return 0;
 }
 
-/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" } } */
+/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" { xfail vect_no_align } } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

@@ -134,7 +134,7 @@ static VEC(expr_hash_elt_t,heap) *avail_exprs_stack;
    expressions are removed from AVAIL_EXPRS.  Else we may change the
    hash code for an expression and be unable to find/remove it from
    AVAIL_EXPRS.  */
-static VEC(gimple_p,heap) *stmts_to_rescan;
+static VEC(gimple,heap) *stmts_to_rescan;
 
 /* Structure for entries in the expression hash table.  */
 
@@ -183,9 +183,7 @@ struct opt_stats_d
 static struct opt_stats_d opt_stats;
 
 /* Local functions.  */
-static void optimize_stmt (struct dom_walk_data *, 
-			   basic_block,
-			   gimple_stmt_iterator);
+static void optimize_stmt (basic_block, gimple_stmt_iterator);
 static tree lookup_avail_expr (gimple, bool);
 static hashval_t avail_expr_hash (const void *);
 static hashval_t real_avail_expr_hash (const void *);
@@ -199,9 +197,8 @@ static void record_equivalences_from_incoming_edge (basic_block);
 static bool eliminate_redundant_computations (gimple_stmt_iterator *);
 static void record_equivalences_from_stmt (gimple, int);
 static void dom_thread_across_edge (struct dom_walk_data *, edge);
-static void dom_opt_finalize_block (struct dom_walk_data *, basic_block);
-static void dom_opt_initialize_block (struct dom_walk_data *, basic_block);
-static void propagate_to_outgoing_edges (struct dom_walk_data *, basic_block);
+static void dom_opt_leave_block (struct dom_walk_data *, basic_block);
+static void dom_opt_enter_block (struct dom_walk_data *, basic_block);
 static void remove_local_expressions_from_table (void);
 static void restore_vars_to_original_value (void);
 static edge single_incoming_edge_ignoring_loop_edges (basic_block);
@@ -619,7 +616,6 @@ static unsigned int
 tree_ssa_dominator_optimize (void)
 {
   struct dom_walk_data walk_data;
-  unsigned int i;
 
   memset (&opt_stats, 0, sizeof (opt_stats));
 
@@ -627,25 +623,19 @@ tree_ssa_dominator_optimize (void)
   avail_exprs = htab_create (1024, real_avail_expr_hash, avail_expr_eq, free_expr_hash_elt);
   avail_exprs_stack = VEC_alloc (expr_hash_elt_t, heap, 20);
   const_and_copies_stack = VEC_alloc (tree, heap, 20);
-  stmts_to_rescan = VEC_alloc (gimple_p, heap, 20);
+  stmts_to_rescan = VEC_alloc (gimple, heap, 20);
   need_eh_cleanup = BITMAP_ALLOC (NULL);
 
   /* Setup callbacks for the generic dominator tree walker.  */
-  walk_data.walk_stmts_backward = false;
   walk_data.dom_direction = CDI_DOMINATORS;
   walk_data.initialize_block_local_data = NULL;
-  walk_data.before_dom_children_before_stmts = dom_opt_initialize_block;
-  walk_data.before_dom_children_walk_stmts = optimize_stmt;
-  walk_data.before_dom_children_after_stmts = propagate_to_outgoing_edges;
-  walk_data.after_dom_children_before_stmts = NULL;
-  walk_data.after_dom_children_walk_stmts = NULL;
-  walk_data.after_dom_children_after_stmts = dom_opt_finalize_block;
+  walk_data.before_dom_children = dom_opt_enter_block;
+  walk_data.after_dom_children = dom_opt_leave_block;
   /* Right now we only attach a dummy COND_EXPR to the global data pointer.
      When we attach more stuff we'll need to fill this out with a real
      structure.  */
   walk_data.global_data = NULL;
   walk_data.block_local_data_size = 0;
-  walk_data.interesting_blocks = NULL;
 
   /* Now initialize the dominator walker.  */
   init_walk_dominator_tree (&walk_data);
@@ -658,6 +648,9 @@ tree_ssa_dominator_optimize (void)
      headers to an exit edge, or through loop header to the loop body, assuming
      that we update the loop info.  */
   loop_optimizer_init (LOOPS_HAVE_SIMPLE_LATCHES);
+
+  /* Initialize the value-handle array.  */
+  threadedge_initialize_values ();
 
   /* We need accurate information regarding back edges in the CFG
      for jump threading; this may include back edges that are not part of
@@ -716,23 +709,6 @@ tree_ssa_dominator_optimize (void)
       bitmap_zero (need_eh_cleanup);
     }
 
-  /* Finally, remove everything except invariants in SSA_NAME_VALUE.
-
-     Long term we will be able to let everything in SSA_NAME_VALUE
-     persist.  However, for now, we know this is the safe thing to do.  */
-  for (i = 0; i < num_ssa_names; i++)
-   {
-      tree name = ssa_name (i);
-      tree value;
-
-      if (!name)
-        continue;
-
-      value = SSA_NAME_VALUE (name);
-      if (value && !is_gimple_min_invariant (value))
-	SSA_NAME_VALUE (name) = NULL;
-    }
-
   statistics_counter_event (cfun, "Redundant expressions eliminated",
 			    opt_stats.num_re);
   statistics_counter_event (cfun, "Constants propagated",
@@ -757,8 +733,12 @@ tree_ssa_dominator_optimize (void)
   
   VEC_free (expr_hash_elt_t, heap, avail_exprs_stack);
   VEC_free (tree, heap, const_and_copies_stack);
-  VEC_free (gimple_p, heap, stmts_to_rescan);
+  VEC_free (gimple, heap, stmts_to_rescan);
   
+  /* Free the value-handle array.  */
+  threadedge_finalize_values ();
+  ssa_name_values = NULL;
+
   return 0;
 }
 
@@ -779,7 +759,7 @@ struct gimple_opt_pass pass_dominator =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_SSA_DOMINATOR_OPTS,		/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
@@ -838,24 +818,6 @@ canonicalize_comparison (gimple condstmt)
    upon entry to BB.  Equivalences can come from the edge traversed to
    reach BB or they may come from PHI nodes at the start of BB.  */
 
-static void
-dom_opt_initialize_block (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
-			  basic_block bb)
-{
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "\n\nOptimizing block #%d\n\n", bb->index);
-
-  /* Push a marker on the stacks of local information so that we know how
-     far to unwind when we finalize this block.  */
-  VEC_safe_push (expr_hash_elt_t, heap, avail_exprs_stack, NULL);
-  VEC_safe_push (tree, heap, const_and_copies_stack, NULL_TREE);
-
-  record_equivalences_from_incoming_edge (bb);
-
-  /* PHI nodes can create equivalences too.  */
-  record_equivalences_from_phis (bb);
-}
-
 /* Remove all the expressions in LOCALS from TABLE, stopping when there are
    LIMIT entries left in LOCALs.  */
 
@@ -912,7 +874,7 @@ restore_vars_to_original_value (void)
 	}
 
       prev_value = VEC_pop (tree, const_and_copies_stack);
-      SSA_NAME_VALUE (dest) =  prev_value;
+      set_ssa_name_value (dest, prev_value);
     }
 }
 
@@ -944,132 +906,6 @@ dom_thread_across_edge (struct dom_walk_data *walk_data, edge e)
   thread_across_edge ((gimple) walk_data->global_data, e, false,
 		      &const_and_copies_stack,
 		      simplify_stmt_for_jump_threading);
-}
-
-/* We have finished processing the dominator children of BB, perform
-   any finalization actions in preparation for leaving this node in
-   the dominator tree.  */
-
-static void
-dom_opt_finalize_block (struct dom_walk_data *walk_data, basic_block bb)
-{
-  gimple last;
-
-  /* If we have an outgoing edge to a block with multiple incoming and
-     outgoing edges, then we may be able to thread the edge, i.e., we
-     may be able to statically determine which of the outgoing edges
-     will be traversed when the incoming edge from BB is traversed.  */
-  if (single_succ_p (bb)
-      && (single_succ_edge (bb)->flags & EDGE_ABNORMAL) == 0
-      && potentially_threadable_block (single_succ (bb)))
-    {
-      dom_thread_across_edge (walk_data, single_succ_edge (bb));
-    }
-  else if ((last = last_stmt (bb))
-	   && gimple_code (last) == GIMPLE_COND
-	   && EDGE_COUNT (bb->succs) == 2
-	   && (EDGE_SUCC (bb, 0)->flags & EDGE_ABNORMAL) == 0
-	   && (EDGE_SUCC (bb, 1)->flags & EDGE_ABNORMAL) == 0)
-    {
-      edge true_edge, false_edge;
-
-      extract_true_false_edges_from_block (bb, &true_edge, &false_edge);
-
-      /* Only try to thread the edge if it reaches a target block with
-	 more than one predecessor and more than one successor.  */
-      if (potentially_threadable_block (true_edge->dest))
-	{
-	  struct edge_info *edge_info;
-	  unsigned int i;
-
-	  /* Push a marker onto the available expression stack so that we
-	     unwind any expressions related to the TRUE arm before processing
-	     the false arm below.  */
-          VEC_safe_push (expr_hash_elt_t, heap, avail_exprs_stack, NULL);
-	  VEC_safe_push (tree, heap, const_and_copies_stack, NULL_TREE);
-
-	  edge_info = (struct edge_info *) true_edge->aux;
-
-	  /* If we have info associated with this edge, record it into
-	     our equivalence tables.  */
-	  if (edge_info)
-	    {
-	      struct cond_equivalence *cond_equivalences = edge_info->cond_equivalences;
-	      tree lhs = edge_info->lhs;
-	      tree rhs = edge_info->rhs;
-
-	      /* If we have a simple NAME = VALUE equivalence, record it.  */
-	      if (lhs && TREE_CODE (lhs) == SSA_NAME)
-		record_const_or_copy (lhs, rhs);
-
-	      /* If we have 0 = COND or 1 = COND equivalences, record them
-		 into our expression hash tables.  */
-	      if (cond_equivalences)
-		for (i = 0; i < edge_info->max_cond_equivalences; i++)
-                  record_cond (&cond_equivalences[i]);
-	    }
-
-	  dom_thread_across_edge (walk_data, true_edge);
-
-	  /* And restore the various tables to their state before
-	     we threaded this edge.  */
-	  remove_local_expressions_from_table ();
-	}
-
-      /* Similarly for the ELSE arm.  */
-      if (potentially_threadable_block (false_edge->dest))
-	{
-	  struct edge_info *edge_info;
-	  unsigned int i;
-
-	  VEC_safe_push (tree, heap, const_and_copies_stack, NULL_TREE);
-	  edge_info = (struct edge_info *) false_edge->aux;
-
-	  /* If we have info associated with this edge, record it into
-	     our equivalence tables.  */
-	  if (edge_info)
-	    {
-	      struct cond_equivalence *cond_equivalences = edge_info->cond_equivalences;
-	      tree lhs = edge_info->lhs;
-	      tree rhs = edge_info->rhs;
-
-	      /* If we have a simple NAME = VALUE equivalence, record it.  */
-	      if (lhs && TREE_CODE (lhs) == SSA_NAME)
-		record_const_or_copy (lhs, rhs);
-
-	      /* If we have 0 = COND or 1 = COND equivalences, record them
-		 into our expression hash tables.  */
-	      if (cond_equivalences)
-		for (i = 0; i < edge_info->max_cond_equivalences; i++)
-                  record_cond (&cond_equivalences[i]);
-	    }
-
-	  /* Now thread the edge.  */
-	  dom_thread_across_edge (walk_data, false_edge);
-
-	  /* No need to remove local expressions from our tables
-	     or restore vars to their original value as that will
-	     be done immediately below.  */
-	}
-    }
-
-  remove_local_expressions_from_table ();
-  restore_vars_to_original_value ();
-
-  /* If we queued any statements to rescan in this block, then
-     go ahead and rescan them now.  */
-  while (VEC_length (gimple_p, stmts_to_rescan) > 0)
-    {
-      gimple *stmt_p = VEC_last (gimple_p, stmts_to_rescan);
-      gimple stmt = *stmt_p;
-      basic_block stmt_bb = gimple_bb (stmt);
-
-      if (stmt_bb != bb)
-	break;
-
-      VEC_pop (gimple_p, stmts_to_rescan);
-      pop_stmt_changes (stmt_p);
-    }
 }
 
 /* PHI nodes can create equivalences too.
@@ -1124,7 +960,7 @@ record_equivalences_from_phis (basic_block bb)
 	 inferred from a comparison.  All uses of this ssa name are dominated
 	 by this assignment, so unwinding just costs time and space.  */
       if (i == gimple_phi_num_args (phi) && may_propagate_copy (lhs, rhs))
-	SSA_NAME_VALUE (lhs) = rhs;
+	set_ssa_name_value (lhs, rhs);
     }
 }
 
@@ -1437,7 +1273,7 @@ record_conditions (struct edge_info *edge_info, tree cond, tree inverted)
 static void
 record_const_or_copy_1 (tree x, tree y, tree prev_x)
 {
-  SSA_NAME_VALUE (x) = y;
+  set_ssa_name_value (x, y);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -1649,6 +1485,7 @@ record_edge_info (basic_block bb)
   if (! gsi_end_p (gsi))
     {
       gimple stmt = gsi_stmt (gsi);
+      location_t loc = gimple_location (stmt);
 
       if (gimple_code (stmt) == GIMPLE_SWITCH)
 	{
@@ -1681,7 +1518,8 @@ record_edge_info (basic_block bb)
 
 		  if (label != NULL && label != error_mark_node)
 		    {
-		      tree x = fold_convert (TREE_TYPE (index), CASE_LOW (label));
+		      tree x = fold_convert_loc (loc, TREE_TYPE (index),
+						 CASE_LOW (label));
 		      edge_info = allocate_edge_info (e);
 		      edge_info->lhs = index;
 		      edge_info->rhs = x;
@@ -1745,7 +1583,7 @@ record_edge_info (basic_block bb)
                        || is_gimple_min_invariant (op1)))
             {
               tree cond = build2 (code, boolean_type_node, op0, op1);
-              tree inverted = invert_truthvalue (cond);
+              tree inverted = invert_truthvalue_loc (loc, cond);
               struct edge_info *edge_info;
 
               edge_info = allocate_edge_info (true_edge);
@@ -1772,7 +1610,7 @@ record_edge_info (basic_block bb)
                        || TREE_CODE (op1) == SSA_NAME))
             {
               tree cond = build2 (code, boolean_type_node, op0, op1);
-              tree inverted = invert_truthvalue (cond);
+              tree inverted = invert_truthvalue_loc (loc, cond);
               struct edge_info *edge_info;
 
               edge_info = allocate_edge_info (true_edge);
@@ -1799,18 +1637,156 @@ record_edge_info (basic_block bb)
     }
 }
 
-/* Propagate information from BB to its outgoing edges.
-
-   This can include equivalence information implied by control statements
-   at the end of BB and const/copy propagation into PHIs in BB's
-   successor blocks.  */
-
 static void
-propagate_to_outgoing_edges (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
-			     basic_block bb)
+dom_opt_enter_block (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
+		     basic_block bb)
 {
+  gimple_stmt_iterator gsi;
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "\n\nOptimizing block #%d\n\n", bb->index);
+
+  /* Push a marker on the stacks of local information so that we know how
+     far to unwind when we finalize this block.  */
+  VEC_safe_push (expr_hash_elt_t, heap, avail_exprs_stack, NULL);
+  VEC_safe_push (tree, heap, const_and_copies_stack, NULL_TREE);
+
+  record_equivalences_from_incoming_edge (bb);
+
+  /* PHI nodes can create equivalences too.  */
+  record_equivalences_from_phis (bb);
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    optimize_stmt (bb, gsi);
+
+  /* Now prepare to process dominated blocks.  */
   record_edge_info (bb);
   cprop_into_successor_phis (bb);
+}
+
+/* We have finished processing the dominator children of BB, perform
+   any finalization actions in preparation for leaving this node in
+   the dominator tree.  */
+
+static void
+dom_opt_leave_block (struct dom_walk_data *walk_data, basic_block bb)
+{
+  gimple last;
+
+  /* If we have an outgoing edge to a block with multiple incoming and
+     outgoing edges, then we may be able to thread the edge, i.e., we
+     may be able to statically determine which of the outgoing edges
+     will be traversed when the incoming edge from BB is traversed.  */
+  if (single_succ_p (bb)
+      && (single_succ_edge (bb)->flags & EDGE_ABNORMAL) == 0
+      && potentially_threadable_block (single_succ (bb)))
+    {
+      dom_thread_across_edge (walk_data, single_succ_edge (bb));
+    }
+  else if ((last = last_stmt (bb))
+	   && gimple_code (last) == GIMPLE_COND
+	   && EDGE_COUNT (bb->succs) == 2
+	   && (EDGE_SUCC (bb, 0)->flags & EDGE_ABNORMAL) == 0
+	   && (EDGE_SUCC (bb, 1)->flags & EDGE_ABNORMAL) == 0)
+    {
+      edge true_edge, false_edge;
+
+      extract_true_false_edges_from_block (bb, &true_edge, &false_edge);
+
+      /* Only try to thread the edge if it reaches a target block with
+	 more than one predecessor and more than one successor.  */
+      if (potentially_threadable_block (true_edge->dest))
+	{
+	  struct edge_info *edge_info;
+	  unsigned int i;
+
+	  /* Push a marker onto the available expression stack so that we
+	     unwind any expressions related to the TRUE arm before processing
+	     the false arm below.  */
+          VEC_safe_push (expr_hash_elt_t, heap, avail_exprs_stack, NULL);
+	  VEC_safe_push (tree, heap, const_and_copies_stack, NULL_TREE);
+
+	  edge_info = (struct edge_info *) true_edge->aux;
+
+	  /* If we have info associated with this edge, record it into
+	     our equivalence tables.  */
+	  if (edge_info)
+	    {
+	      struct cond_equivalence *cond_equivalences = edge_info->cond_equivalences;
+	      tree lhs = edge_info->lhs;
+	      tree rhs = edge_info->rhs;
+
+	      /* If we have a simple NAME = VALUE equivalence, record it.  */
+	      if (lhs && TREE_CODE (lhs) == SSA_NAME)
+		record_const_or_copy (lhs, rhs);
+
+	      /* If we have 0 = COND or 1 = COND equivalences, record them
+		 into our expression hash tables.  */
+	      if (cond_equivalences)
+		for (i = 0; i < edge_info->max_cond_equivalences; i++)
+                  record_cond (&cond_equivalences[i]);
+	    }
+
+	  dom_thread_across_edge (walk_data, true_edge);
+
+	  /* And restore the various tables to their state before
+	     we threaded this edge.  */
+	  remove_local_expressions_from_table ();
+	}
+
+      /* Similarly for the ELSE arm.  */
+      if (potentially_threadable_block (false_edge->dest))
+	{
+	  struct edge_info *edge_info;
+	  unsigned int i;
+
+	  VEC_safe_push (tree, heap, const_and_copies_stack, NULL_TREE);
+	  edge_info = (struct edge_info *) false_edge->aux;
+
+	  /* If we have info associated with this edge, record it into
+	     our equivalence tables.  */
+	  if (edge_info)
+	    {
+	      struct cond_equivalence *cond_equivalences = edge_info->cond_equivalences;
+	      tree lhs = edge_info->lhs;
+	      tree rhs = edge_info->rhs;
+
+	      /* If we have a simple NAME = VALUE equivalence, record it.  */
+	      if (lhs && TREE_CODE (lhs) == SSA_NAME)
+		record_const_or_copy (lhs, rhs);
+
+	      /* If we have 0 = COND or 1 = COND equivalences, record them
+		 into our expression hash tables.  */
+	      if (cond_equivalences)
+		for (i = 0; i < edge_info->max_cond_equivalences; i++)
+                  record_cond (&cond_equivalences[i]);
+	    }
+
+	  /* Now thread the edge.  */
+	  dom_thread_across_edge (walk_data, false_edge);
+
+	  /* No need to remove local expressions from our tables
+	     or restore vars to their original value as that will
+	     be done immediately below.  */
+	}
+    }
+
+  remove_local_expressions_from_table ();
+  restore_vars_to_original_value ();
+
+  /* If we queued any statements to rescan in this block, then
+     go ahead and rescan them now.  */
+  while (VEC_length (gimple, stmts_to_rescan) > 0)
+    {
+      gimple stmt = VEC_last (gimple, stmts_to_rescan);
+      basic_block stmt_bb = gimple_bb (stmt);
+
+      if (stmt_bb != bb)
+	break;
+
+      VEC_pop (gimple, stmts_to_rescan);
+      update_stmt (stmt);
+    }
 }
 
 /* Search for redundant computations in STMT.  If any are found, then
@@ -1956,7 +1932,7 @@ record_equivalences_from_stmt (gimple stmt, int may_optimize_p)
 	    fprintf (dump_file, "\n");
 	  }
 
-	SSA_NAME_VALUE (lhs) = rhs;
+	set_ssa_name_value (lhs, rhs);
       }
     }
 
@@ -2126,8 +2102,7 @@ cprop_into_stmt (gimple stmt)
       the variable in the LHS in the CONST_AND_COPIES table.  */
 
 static void
-optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
-	       basic_block bb, gimple_stmt_iterator si)
+optimize_stmt (basic_block bb, gimple_stmt_iterator si)
 {
   gimple stmt, old_stmt;
   bool may_optimize_p;
@@ -2141,7 +2116,6 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
   
   update_stmt_if_modified (stmt);
   opt_stats.num_stmts++;
-  push_stmt_changes (gsi_stmt_ptr (&si));
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -2246,7 +2220,8 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
       tree val = NULL;
 
       if (gimple_code (stmt) == GIMPLE_COND)
-        val = fold_binary (gimple_cond_code (stmt), boolean_type_node,
+        val = fold_binary_loc (gimple_location (stmt),
+			   gimple_cond_code (stmt), boolean_type_node,
                            gimple_cond_lhs (stmt),  gimple_cond_rhs (stmt));
       else if (gimple_code (stmt) == GIMPLE_SWITCH)
 	val = gimple_switch_index (stmt);
@@ -2264,21 +2239,12 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
 	}
     }
 
+  /* Queue the statement to be re-scanned after all the
+     AVAIL_EXPRS have been processed.  The change buffer stack for
+     all the pushed statements will be processed when this queue
+     is emptied.  */
   if (may_have_exposed_new_symbols)
-    {
-      /* Queue the statement to be re-scanned after all the
-	 AVAIL_EXPRS have been processed.  The change buffer stack for
-	 all the pushed statements will be processed when this queue
-	 is emptied.  */
-      VEC_safe_push (gimple_p, heap, stmts_to_rescan, gsi_stmt_ptr (&si));
-    }
-  else
-    {
-      /* Otherwise, just discard the recently pushed change buffer.  If
-	 not, the STMTS_TO_RESCAN queue will get out of synch with the
-	 change buffer stack.  */
-      discard_stmt_changes (gsi_stmt_ptr (&si));
-    }
+    VEC_safe_push (gimple, heap, stmts_to_rescan, gsi_stmt (si));
 }
 
 /* Search for an existing instance of STMT in the AVAIL_EXPRS table.
@@ -2576,8 +2542,6 @@ propagate_rhs_into_lhs (gimple stmt, tree lhs, tree rhs, bitmap interesting_name
 	      print_gimple_stmt (dump_file, use_stmt, 0, dump_flags);
 	    }
 
-	  push_stmt_changes (&use_stmt);
-
 	  /* Propagate the RHS into this use of the LHS.  */
 	  FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
 	    propagate_value (use_p, rhs);
@@ -2612,7 +2576,6 @@ propagate_rhs_into_lhs (gimple stmt, tree lhs, tree rhs, bitmap interesting_name
 		  bitmap_set_bit (interesting_names, SSA_NAME_VERSION (result));
 		}
 
-	      discard_stmt_changes (&use_stmt);
 	      continue;
 	    }
 
@@ -2629,9 +2592,8 @@ propagate_rhs_into_lhs (gimple stmt, tree lhs, tree rhs, bitmap interesting_name
 	  fold_stmt_inplace (use_stmt);
 
 	  /* Sometimes propagation can expose new operands to the
-	     renamer.  Note this will call update_stmt at the 
-	     appropriate time.  */
-	  pop_stmt_changes (&use_stmt);
+	     renamer.  */
+	  update_stmt (use_stmt);
 
 	  /* Dump details.  */
 	  if (dump_file && (dump_flags & TDF_DETAILS))
@@ -2678,7 +2640,8 @@ propagate_rhs_into_lhs (gimple stmt, tree lhs, tree rhs, bitmap interesting_name
 	      tree val;
 
 	      if (gimple_code (use_stmt) == GIMPLE_COND)
-                val = fold_binary (gimple_cond_code (use_stmt),
+                val = fold_binary_loc (gimple_location (use_stmt),
+				   gimple_cond_code (use_stmt),
                                    boolean_type_node,
                                    gimple_cond_lhs (use_stmt),
                                    gimple_cond_rhs (use_stmt));
@@ -2934,7 +2897,7 @@ struct gimple_opt_pass pass_phi_only_cprop =
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
   TV_TREE_PHI_CPROP,                    /* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,     /* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,                                    /* properties_provided */
   0,		                        /* properties_destroyed */
   0,                                    /* todo_flags_start */

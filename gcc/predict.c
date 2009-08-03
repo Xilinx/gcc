@@ -168,8 +168,8 @@ cgraph_maybe_hot_edge_p (struct cgraph_edge *edge)
   if (lookup_attribute ("hot", DECL_ATTRIBUTES (edge->caller->decl)))
     return true;
   if (flag_guess_branch_prob
-      && edge->frequency < (CGRAPH_FREQ_MAX
-      			    / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION)))
+      && edge->frequency <= (CGRAPH_FREQ_BASE
+      			     / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION)))
     return false;
   return true;
 }
@@ -677,7 +677,8 @@ combine_predictions_for_insn (rtx insn, basic_block bb)
   for (note = REG_NOTES (insn); note; note = XEXP (note, 1))
     if (REG_NOTE_KIND (note) == REG_BR_PRED)
       {
-	enum br_predictor predictor = INTVAL (XEXP (XEXP (note, 0), 0));
+	enum br_predictor predictor = ((enum br_predictor)
+				       INTVAL (XEXP (XEXP (note, 0), 0)));
 	int probability = INTVAL (XEXP (XEXP (note, 0), 1));
 
 	found = true;
@@ -723,7 +724,8 @@ combine_predictions_for_insn (rtx insn, basic_block bb)
     {
       if (REG_NOTE_KIND (*pnote) == REG_BR_PRED)
 	{
-	  enum br_predictor predictor = INTVAL (XEXP (XEXP (*pnote, 0), 0));
+	  enum br_predictor predictor = ((enum br_predictor)
+					 INTVAL (XEXP (XEXP (*pnote, 0), 0)));
 	  int probability = INTVAL (XEXP (XEXP (*pnote, 0), 1));
 
 	  dump_prediction (dump_file, predictor, probability, bb,

@@ -68,6 +68,9 @@
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION            score_handle_option
 
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS	score_legitimize_address
+
 #undef  TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE         score_issue_rate
 
@@ -86,11 +89,8 @@
 #undef TARGET_ASM_OUTPUT_MI_THUNK
 #define TARGET_ASM_OUTPUT_MI_THUNK      score_output_mi_thunk
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS    hook_bool_tree_true
-
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN  hook_bool_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE    default_promote_function_mode_always_promote
 
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES       hook_bool_tree_true
@@ -113,8 +113,10 @@
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST             score_address_cost
 
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	score_legitimate_address_p
+
 struct extern_list *extern_head = 0;
-rtx cmp_op0, cmp_op1;
 
 /* default 0 = NO_REGS  */
 enum reg_class score_char_to_class[256];
@@ -528,28 +530,29 @@ score_regno_mode_ok_for_base_p (int regno, int strict)
   gcc_unreachable ();
 }
 
-/* Implement GO_IF_LEGITIMATE_ADDRESS macro.  */
-int
-score_address_p (enum machine_mode mode, rtx x, int strict)
+/* Implement TARGET_LEGITIMIZE_ADDRESS_P.  */
+bool
+score_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
-    return score7_address_p (mode, x, strict);
+    return score7_legitimate_address_p (mode, x, strict);
   else if (TARGET_SCORE3)
-    return score3_address_p (mode, x, strict);
+    return score3_legitimate_address_p (mode, x, strict);
 
   gcc_unreachable ();
 }
 
-/* This function is used to implement LEGITIMIZE_ADDRESS.  If *XLOC can
+/* This function is used to implement LEGITIMIZE_ADDRESS.  If X can
    be legitimized in a way that the generic machinery might not expect,
-   put the new address in *XLOC and return true.  */
-int
-score_legitimize_address (rtx *xloc)
+   return the new address, else return X.  */
+static rtx
+score_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+			  enum machine_mode mode ATTRIBUTE_UNUSED)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
-    return score7_legitimize_address (xloc);
+    return score7_legitimize_address (x);
   else if (TARGET_SCORE3)
-    return score3_legitimize_address (xloc);
+    return score3_legitimize_address (x);
 
   gcc_unreachable ();
 }
@@ -690,17 +693,6 @@ score_epilogue (int sibcall_p)
     return score7_epilogue (sibcall_p);
   else if (TARGET_SCORE3)
     return score3_epilogue (sibcall_p);
-
-  gcc_unreachable ();
-}
-
-void
-score_gen_cmp (enum machine_mode mode)
-{
-  if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
-    return score7_gen_cmp (mode);
-  else if (TARGET_SCORE3)
-    return score3_gen_cmp (mode);
 
   gcc_unreachable ();
 }
@@ -1114,7 +1106,7 @@ score_block_move_loop (rtx dst, rtx src, HOST_WIDE_INT length)
   HOST_WIDE_INT loop_mov_bytes;
   HOST_WIDE_INT iteration = 0;
   HOST_WIDE_INT head_length = 0, leftover;
-  rtx label, src_reg, dst_reg, final_dst;
+  rtx label, src_reg, dst_reg, final_dst, test;
 
   bool gen_loop_head = (src_align < BITS_PER_WORD
                         || dst_align < BITS_PER_WORD);
@@ -1154,8 +1146,8 @@ score_block_move_loop (rtx dst, rtx src, HOST_WIDE_INT length)
   score_block_move_loop_body (dst_reg, dst_align,
                             src_reg, src_align, loop_mov_bytes);
 
-  emit_insn (gen_cmpsi (dst_reg, final_dst));
-  emit_jump_insn (gen_bne (label));
+  test = gen_rtx_NE (VOIDmode, dst_reg, final_dst);
+  emit_jump_insn (gen_cbranchsi4 (test, dst_reg, final_dst, label));
 
   score_block_move_loop_foot (dst_reg, dst_align,
                             src_reg, src_align, leftover);

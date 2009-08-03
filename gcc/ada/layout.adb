@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -2501,6 +2501,29 @@ package body Layout is
       --  Non-elementary (composite) types
 
       else
+         --  For packed arrays, take size and alignment values from the packed
+         --  array type if a packed array type has been created and the fields
+         --  are not currently set.
+
+         if Is_Array_Type (E) and then Present (Packed_Array_Type (E)) then
+            declare
+               PAT : constant Entity_Id := Packed_Array_Type (E);
+
+            begin
+               if Unknown_Esize (E) then
+                  Set_Esize     (E, Esize     (PAT));
+               end if;
+
+               if Unknown_RM_Size (E) then
+                  Set_RM_Size   (E, RM_Size   (PAT));
+               end if;
+
+               if Unknown_Alignment (E) then
+                  Set_Alignment (E, Alignment (PAT));
+               end if;
+            end;
+         end if;
+
          --  If RM_Size is known, set Esize if not known
 
          if Known_RM_Size (E) and then Unknown_Esize (E) then
@@ -2678,7 +2701,6 @@ package body Layout is
    procedure Rewrite_Integer (N : Node_Id; V : Uint) is
       Loc : constant Source_Ptr := Sloc (N);
       Typ : constant Entity_Id  := Etype (N);
-
    begin
       Rewrite (N, Make_Integer_Literal (Loc, Intval => V));
       Set_Etype (N, Typ);
@@ -3033,15 +3055,37 @@ package body Layout is
       --  the type, or the maximum allowed alignment.
 
       declare
-         S : constant Int :=
-               UI_To_Int (Esize (E)) / SSU;
-         A : Nat;
+         S             : constant Int := UI_To_Int (Esize (E)) / SSU;
+         A             : Nat;
+         Max_Alignment : Nat;
 
       begin
+         --  If the default alignment of "double" floating-point types is
+         --  specifically capped, enforce the cap.
+
+         if Ttypes.Target_Double_Float_Alignment > 0
+           and then S = 8
+           and then Is_Floating_Point_Type (E)
+         then
+            Max_Alignment := Ttypes.Target_Double_Float_Alignment;
+
+         --  If the default alignment of "double" or larger scalar types is
+         --  specifically capped, enforce the cap.
+
+         elsif Ttypes.Target_Double_Scalar_Alignment > 0
+           and then S >= 8
+           and then Is_Scalar_Type (E)
+         then
+            Max_Alignment := Ttypes.Target_Double_Scalar_Alignment;
+
+         --  Otherwise enforce the overall alignment cap
+
+         else
+            Max_Alignment := Ttypes.Maximum_Alignment;
+         end if;
+
          A := 1;
-         while 2 * A <= Ttypes.Maximum_Alignment
-            and then 2 * A <= S
-         loop
+         while 2 * A <= Max_Alignment and then 2 * A <= S loop
             A := 2 * A;
          end loop;
 

@@ -248,12 +248,10 @@ get_dup_num (int op_num, bool use_commut_op_p)
 	    break;
 
 	  case 'p':
-	    GO_IF_LEGITIMATE_ADDRESS (VOIDmode, op, win_p);
+	    if (address_operand (op, VOIDmode))
+	      return -1;
 	    break;
-	    
-	  win_p:
-	    return -1;
-	  
+
 	  case 'g':
 	    return -1;
 	    
@@ -491,7 +489,7 @@ add_insn_allocno_copies (rtx insn)
 				? operand : SUBREG_REG (operand)) != NULL_RTX)
 	    {
 	      str = recog_data.constraints[i];
-	      while (*str == ' ' && *str == '\t')
+	      while (*str == ' ' || *str == '\t')
 		str++;
 	      bound_p = false;
 	      for (j = 0, commut_p = false; j < 2; j++, commut_p = true)
@@ -806,7 +804,7 @@ ira_build_conflicts (void)
       if ((! flag_caller_saves && ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
 	  /* For debugging purposes don't put user defined variables in
 	     callee-clobbered registers.  */
-	  || (optimize <= 1
+	  || (optimize == 0
 	      && (attrs = REG_ATTRS (regno_reg_rtx [ALLOCNO_REGNO (a)])) != NULL
 	      && (decl = attrs->decl) != NULL
 	      && VAR_OR_FUNCTION_DECL_P (decl)

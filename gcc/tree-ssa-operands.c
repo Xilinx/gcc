@@ -147,12 +147,6 @@ static void get_expr_operands (gimple, tree *, int);
 /* Number of functions with initialized ssa_operands.  */
 static int n_initialized = 0;
 
-/* Stack of statements to change.  Every call to
-   push_stmt_changes pushes the stmt onto the stack.  Calls to
-   pop_stmt_changes pop a stmt off of the stack and compute the set
-   of changes for the popped statement.  */
-static VEC(gimple_p,heap) *scb_stack;
-
 /* Return the DECL_UID of the base variable of T.  */
 
 static inline unsigned
@@ -191,7 +185,8 @@ create_vop_var (void)
 
   gcc_assert (cfun->gimple_df->vop == NULL_TREE);
 
-  global_var = build_decl (VAR_DECL, get_identifier (".MEM"),
+  global_var = build_decl (BUILTINS_LOCATION, VAR_DECL,
+			   get_identifier (".MEM"),
 			   void_type_node);
   DECL_ARTIFICIAL (global_var) = 1;
   TREE_READONLY (global_var) = 0;
@@ -231,7 +226,6 @@ init_ssa_operands (void)
       build_vuse = NULL_TREE;
       build_vdef = NULL_TREE;
       bitmap_obstack_initialize (&operands_bitmap_obstack);
-      scb_stack = VEC_alloc (gimple_p, heap, 20);
     }
 
   gcc_assert (gimple_ssa_operands (cfun)->operand_memory == NULL);
@@ -257,11 +251,6 @@ fini_ssa_operands (void)
       VEC_free (tree, heap, build_uses);
       build_vdef = NULL_TREE;
       build_vuse = NULL_TREE;
-
-      /* The change buffer stack had better be empty.  */
-      gcc_assert (VEC_length (gimple_p, scb_stack) == 0);
-      VEC_free (gimple_p, heap, scb_stack);
-      scb_stack = NULL;
     }
 
   gimple_ssa_operands (cfun)->free_defs = NULL;
@@ -916,18 +905,8 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
     case REALPART_EXPR:
     case IMAGPART_EXPR:
       {
-	tree ref;
-	HOST_WIDE_INT offset, size, maxsize;
-
 	if (TREE_THIS_VOLATILE (expr))
 	  gimple_set_has_volatile_ops (stmt, true);
-
-	ref = get_ref_base_and_extent (expr, &offset, &size, &maxsize);
-	if (TREE_CODE (ref) == INDIRECT_REF)
-	  {
-	    get_indirect_ref_operands (stmt, ref, flags, false);
-	    flags |= opf_no_vops;
-	  }
 
 	get_expr_operands (stmt, &TREE_OPERAND (expr, 0), flags);
 	
@@ -1008,9 +987,6 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
         get_expr_operands (stmt, &TREE_OPERAND (expr, 2), flags);
         return;
       }
-
-    case CHANGE_DYNAMIC_TYPE_EXPR:
-      gcc_unreachable ();
 
     case FUNCTION_DECL:
     case LABEL_DECL:
@@ -1331,62 +1307,6 @@ debug_immediate_uses_for (tree var)
   dump_immediate_uses_for (stderr, var);
 }
 
-
-/* Push *STMT_P on the SCB_STACK.  This function is deprecated, do not
-   introduce new uses of it.  */
-
-void
-push_stmt_changes (gimple *stmt_p)
-{
-  gimple stmt = *stmt_p;
-
-  /* It makes no sense to keep track of PHI nodes.  */
-  if (gimple_code (stmt) == GIMPLE_PHI)
-    return;
-
-  VEC_safe_push (gimple_p, heap, scb_stack, stmt_p);
-}
-
-/* Pop the top stmt from SCB_STACK and act on the differences between
-   what was recorded by push_stmt_changes and the current state of
-   the statement.  This function is deprecated, do not introduce
-   new uses of it.  */
-
-void
-pop_stmt_changes (gimple *stmt_p)
-{
-  gimple *stmt2_p, stmt = *stmt_p;
-
-  /* It makes no sense to keep track of PHI nodes.  */
-  if (gimple_code (stmt) == GIMPLE_PHI)
-    return;
-
-  stmt2_p = VEC_pop (gimple_p, scb_stack);
-  gcc_assert (stmt_p == stmt2_p);
-
-  /* Force an operand re-scan on the statement and mark any newly
-     exposed variables.  This also will mark the virtual operand
-     for renaming if necessary.  */
-  update_stmt (stmt);
-}
-
-/* Discard the topmost stmt from SCB_STACK.  This is useful
-   when the caller realized that it did not actually modified the
-   statement.  It avoids the expensive operand re-scan.
-   This function is deprecated, do not introduce new uses of it.  */
-
-void
-discard_stmt_changes (gimple *stmt_p)
-{
-  gimple *stmt2_p, stmt = *stmt_p;
-  
-  /* It makes no sense to keep track of PHI nodes.  */
-  if (gimple_code (stmt) == GIMPLE_PHI)
-    return;
-
-  stmt2_p = VEC_pop (gimple_p, scb_stack);
-  gcc_assert (stmt_p == stmt2_p);
-}
 
 /* Unlink STMTs virtual definition from the IL by propagating its use.  */
 

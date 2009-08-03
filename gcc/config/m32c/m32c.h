@@ -100,7 +100,7 @@ extern int target_memregs;
 
 /* Defining data structures for per-function information */
 
-typedef struct machine_function GTY (())
+typedef struct GTY (()) machine_function
 {
   /* How much we adjust the stack when returning from an exception
      handler.  */
@@ -488,17 +488,11 @@ enum reg_class
 
 /* Eliminating Frame Pointer and Arg Pointer */
 
-/* If the frame pointer isn't used, we detect it manually.  But the
-   stack pointer doesn't have as flexible addressing as the frame
-   pointer, so we always assume we have it.  */
-#define FRAME_POINTER_REQUIRED 1
-
 #define ELIMINABLE_REGS \
   {{AP_REGNO, SP_REGNO}, \
    {AP_REGNO, FB_REGNO}, \
    {FB_REGNO, SP_REGNO}}
 
-#define CAN_ELIMINATE(FROM,TO) 1
 #define INITIAL_ELIMINATION_OFFSET(FROM,TO,VAR) \
 	(VAR) = m32c_initial_elimination_offset(FROM,TO)
 
@@ -578,24 +572,14 @@ typedef struct m32c_cumulative_args
 #define REG_OK_STRICT_V 0
 #endif
 
-#define GO_IF_LEGITIMATE_ADDRESS(MODE,X,LABEL) \
-	if (m32c_legitimate_address_p (MODE, X, REG_OK_STRICT_V)) \
-	  goto LABEL;
-
 #define REG_OK_FOR_BASE_P(X) m32c_reg_ok_for_base_p (X, REG_OK_STRICT_V)
 #define REG_OK_FOR_INDEX_P(X) 0
 
 /* #define FIND_BASE_TERM(X) when we do unspecs for symrefs */
 
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN) \
-	if (m32c_legitimize_address(&(X),OLDX,MODE)) \
-	  goto WIN;
-
 #define LEGITIMIZE_RELOAD_ADDRESS(X,MODE,OPNUM,TYPE,IND_LEVELS,WIN) \
 	if (m32c_legitimize_reload_address(&(X),MODE,OPNUM,TYPE,IND_LEVELS)) \
 	  goto WIN;
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) m32c_legitimate_constant_p (X)
 

@@ -264,8 +264,8 @@ cb_def_pragma (cpp_reader *pfile, source_location loc)
 	    name = cpp_token_as_text (pfile, s);
 	}
 
-      warning (OPT_Wunknown_pragmas, "%Hignoring #pragma %s %s",
-	       &fe_loc, space, name);
+      warning_at (fe_loc, OPT_Wunknown_pragmas, "ignoring #pragma %s %s",
+		  space, name);
     }
 }
 
@@ -313,7 +313,7 @@ c_lex_with_flags (tree *value, location_t *loc, unsigned char *cpp_flags,
       goto retry;
 
     case CPP_NAME:
-      *value = HT_IDENT_TO_GCC_IDENT (HT_NODE (tok->val.node));
+      *value = HT_IDENT_TO_GCC_IDENT (HT_NODE (tok->val.node.node));
       break;
 
     case CPP_NUMBER:
@@ -369,7 +369,7 @@ c_lex_with_flags (tree *value, location_t *loc, unsigned char *cpp_flags,
 	      break;
 
 	    case CPP_NAME:
-	      *value = HT_IDENT_TO_GCC_IDENT (HT_NODE (tok->val.node));
+	      *value = HT_IDENT_TO_GCC_IDENT (HT_NODE (tok->val.node.node));
 	      if (objc_is_reserved_word (*value))
 		{
 		  type = CPP_AT_NAME;
@@ -379,7 +379,7 @@ c_lex_with_flags (tree *value, location_t *loc, unsigned char *cpp_flags,
 
 	    default:
 	      /* ... or not.  */
-	      error ("%Hstray %<@%> in program", &atloc);
+	      error_at (atloc, "stray %<@%> in program");
 	      *loc = newloc;
 	      goto retry_after_at;
 	    }
@@ -617,11 +617,21 @@ interpret_float (const cpp_token *token, unsigned int flags)
   char *copy;
   size_t copylen;
 
-  /* Default (no suffix) is double.  */
+  /* Default (no suffix) depends on whether the FLOAT_CONST_DECIMAL64
+     pragma has been used and is either double or _Decimal64.  Types
+     that are not allowed with decimal float default to double.  */
   if (flags & CPP_N_DEFAULT)
     {
       flags ^= CPP_N_DEFAULT;
       flags |= CPP_N_MEDIUM;
+
+      if (((flags & CPP_N_HEX) == 0) && ((flags & CPP_N_IMAGINARY) == 0))
+	{
+	  warning (OPT_Wunsuffixed_float_constants,
+		   "unsuffixed float constant");
+	  if (float_const_decimal64_p ())
+	    flags |= CPP_N_DFLOAT;
+	}
     }
 
   /* Decode _Fract and _Accum.  */

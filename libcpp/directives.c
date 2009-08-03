@@ -99,7 +99,8 @@ static void end_directive (cpp_reader *, int);
 static void directive_diagnostics (cpp_reader *, const directive *, int);
 static void run_directive (cpp_reader *, int, const char *, size_t);
 static char *glue_header_name (cpp_reader *);
-static const char *parse_include (cpp_reader *, int *, const cpp_token ***);
+static const char *parse_include (cpp_reader *, int *, const cpp_token ***,
+				  source_location *);
 static void push_conditional (cpp_reader *, int, int, const cpp_hashnode *);
 static unsigned int read_flag (cpp_reader *, unsigned int);
 static bool strtolinenum (const uchar *, size_t, linenum_type *, bool *);
@@ -121,7 +122,7 @@ static void do_linemarker (cpp_reader *);
 static const cpp_token *get_token_no_padding (cpp_reader *);
 static const cpp_token *get__Pragma_string (cpp_reader *);
 static void destringize_and_run (cpp_reader *, const cpp_string *);
-static int parse_answer (cpp_reader *, struct answer **, int);
+static int parse_answer (cpp_reader *, struct answer **, int, source_location);
 static cpp_hashnode *parse_assertion (cpp_reader *, struct answer **, int);
 static struct answer ** find_answer (cpp_hashnode *, const struct answer *);
 static void handle_assertion (cpp_reader *, const char *, int);
@@ -408,8 +409,8 @@ _cpp_handle_directive (cpp_reader *pfile, int indented)
 
   if (dname->type == CPP_NAME)
     {
-      if (dname->val.node->is_directive)
-	dir = &dtable[dname->val.node->directive_index];
+      if (dname->val.node.node->is_directive)
+	dir = &dtable[dname->val.node.node->directive_index];
     }
   /* We do not recognize the # followed by a number extension in
      assembler code.  */
@@ -538,7 +539,7 @@ lex_macro_node (cpp_reader *pfile, bool is_def_or_undef)
 
   if (token->type == CPP_NAME)
     {
-      cpp_hashnode *node = token->val.node;
+      cpp_hashnode *node = token->val.node.node;
 
       if (is_def_or_undef && node == pfile->spec_nodes.n_defined)
 	cpp_error (pfile, CPP_DL_ERROR,
@@ -549,7 +550,7 @@ lex_macro_node (cpp_reader *pfile, bool is_def_or_undef)
   else if (token->flags & NAMED_OP)
     cpp_error (pfile, CPP_DL_ERROR,
        "\"%s\" cannot be used as a macro name as it is an operator in C++",
-	       NODE_NAME (token->val.node));
+	       NODE_NAME (token->val.node.node));
   else if (token->type == CPP_EOF)
     cpp_error (pfile, CPP_DL_ERROR, "no macro name given in #%s directive",
 	       pfile->directive->name);
@@ -683,16 +684,19 @@ glue_header_name (cpp_reader *pfile)
 
 /* Returns the file name of #include, #include_next, #import and
    #pragma dependency.  The string is malloced and the caller should
-   free it.  Returns NULL on error.  */
+   free it.  Returns NULL on error.  LOCATION is the source location
+   of the file name.  */
+
 static const char *
 parse_include (cpp_reader *pfile, int *pangle_brackets,
-	       const cpp_token ***buf)
+	       const cpp_token ***buf, source_location *location)
 {
   char *fname;
   const cpp_token *header;
 
   /* Allow macro expansion.  */
   header = get_token_no_padding (pfile);
+  *location = header->src_loc;
   if (header->type == CPP_STRING || header->type == CPP_HEADER_NAME)
     {
       fname = XNEWVEC (char, header->val.str.len - 1);
@@ -742,12 +746,13 @@ do_include_common (cpp_reader *pfile, enum include_type type)
   const char *fname;
   int angle_brackets;
   const cpp_token **buf = NULL;
+  source_location location;
 
   /* Re-enable saving of comments if requested, so that the include
      callback can dump comments which follow #include.  */
   pfile->state.save_comments = ! CPP_OPTION (pfile, discard_comments);
 
-  fname = parse_include (pfile, &angle_brackets, &buf);
+  fname = parse_include (pfile, &angle_brackets, &buf, &location);
   if (!fname)
     {
       if (buf)
@@ -757,8 +762,9 @@ do_include_common (cpp_reader *pfile, enum include_type type)
 
   if (!*fname)
   {
-    cpp_error (pfile, CPP_DL_ERROR, "empty filename in #%s",
-               pfile->directive->name);
+    cpp_error_with_line (pfile, CPP_DL_ERROR, location, 0,
+			 "empty filename in #%s",
+			 pfile->directive->name);
     XDELETEVEC (fname);
     if (buf)
       XDELETEVEC (buf);
@@ -912,7 +918,7 @@ do_line (cpp_reader *pfile)
     {
       cpp_string s = { 0, 0 };
       if (cpp_interpret_string_notranslate (pfile, &token->val.str, 1,
-					    &s, false))
+					    &s, CPP_STRING))
 	new_file = (const char *)s.text;
       check_eol (pfile, true);
     }
@@ -968,7 +974,7 @@ do_linemarker (cpp_reader *pfile)
     {
       cpp_string s = { 0, 0 };
       if (cpp_interpret_string_notranslate (pfile, &token->val.str,
-					    1, &s, false))
+					    1, &s, CPP_STRING))
 	new_file = (const char *)s.text;
 
       new_sysp = 0;
@@ -1004,6 +1010,14 @@ do_linemarker (cpp_reader *pfile)
     }
 
   skip_rest_of_line (pfile);
+
+  /* Compensate for the increment in linemap_add that occurs in
+     _cpp_do_file_change.  We're currently at the start of the line
+     *following* the #line directive.  A separate source_location for this
+     location makes no sense (until we do the LC_LEAVE), and
+     complicates LAST_SOURCE_LINE_LOCATION.  */
+  pfile->line_table->highest_location--;
+
   _cpp_do_file_change (pfile, reason, new_file, new_lineno, new_sysp);
 }
 
@@ -1329,7 +1343,7 @@ do_pragma (cpp_reader *pfile)
   ns_token = *token;
   if (token->type == CPP_NAME)
     {
-      p = lookup_pragma_entry (pfile->pragmas, token->val.node);
+      p = lookup_pragma_entry (pfile->pragmas, token->val.node.node);
       if (p && p->is_nspace)
 	{
 	  bool allow_name_expansion = p->allow_expansion;
@@ -1337,7 +1351,7 @@ do_pragma (cpp_reader *pfile)
 	    pfile->state.prevent_expansion--;
 	  token = cpp_get_token (pfile);
 	  if (token->type == CPP_NAME)
-	    p = lookup_pragma_entry (p->u.space, token->val.node);
+	    p = lookup_pragma_entry (p->u.space, token->val.node.node);
 	  else
 	    p = NULL;
 	  if (allow_name_expansion)
@@ -1429,7 +1443,7 @@ do_pragma_poison (cpp_reader *pfile)
 	  break;
 	}
 
-      hp = tok->val.node;
+      hp = tok->val.node.node;
       if (hp->flags & NODE_POISONED)
 	continue;
 
@@ -1470,8 +1484,9 @@ do_pragma_dependency (cpp_reader *pfile)
 {
   const char *fname;
   int angle_brackets, ordering;
+  source_location location;
 
-  fname = parse_include (pfile, &angle_brackets, NULL);
+  fname = parse_include (pfile, &angle_brackets, NULL, &location);
   if (!fname)
     return;
 
@@ -1892,9 +1907,11 @@ push_conditional (cpp_reader *pfile, int skip, int type,
 /* Read the tokens of the answer into the macro pool, in a directive
    of type TYPE.  Only commit the memory if we intend it as permanent
    storage, i.e. the #assert case.  Returns 0 on success, and sets
-   ANSWERP to point to the answer.  */
+   ANSWERP to point to the answer.  PRED_LOC is the location of the
+   predicate.  */
 static int
-parse_answer (cpp_reader *pfile, struct answer **answerp, int type)
+parse_answer (cpp_reader *pfile, struct answer **answerp, int type,
+	      source_location pred_loc)
 {
   const cpp_token *paren;
   struct answer *answer;
@@ -1919,7 +1936,8 @@ parse_answer (cpp_reader *pfile, struct answer **answerp, int type)
       if (type == T_UNASSERT && paren->type == CPP_EOF)
 	return 0;
 
-      cpp_error (pfile, CPP_DL_ERROR, "missing '(' after predicate");
+      cpp_error_with_line (pfile, CPP_DL_ERROR, pred_loc, 0,
+			   "missing '(' after predicate");
       return 1;
     }
 
@@ -1983,15 +2001,16 @@ parse_assertion (cpp_reader *pfile, struct answer **answerp, int type)
   if (predicate->type == CPP_EOF)
     cpp_error (pfile, CPP_DL_ERROR, "assertion without predicate");
   else if (predicate->type != CPP_NAME)
-    cpp_error (pfile, CPP_DL_ERROR, "predicate must be an identifier");
-  else if (parse_answer (pfile, answerp, type) == 0)
+    cpp_error_with_line (pfile, CPP_DL_ERROR, predicate->src_loc, 0,
+			 "predicate must be an identifier");
+  else if (parse_answer (pfile, answerp, type, predicate->src_loc) == 0)
     {
-      unsigned int len = NODE_LEN (predicate->val.node);
+      unsigned int len = NODE_LEN (predicate->val.node.node);
       unsigned char *sym = (unsigned char *) alloca (len + 1);
 
       /* Prefix '#' to get it out of macro namespace.  */
       sym[0] = '#';
-      memcpy (sym + 1, NODE_NAME (predicate->val.node), len);
+      memcpy (sym + 1, NODE_NAME (predicate->val.node.node), len);
       result = cpp_lookup (pfile, sym, len + 1);
     }
 

@@ -84,7 +84,7 @@ extern Node_Id Get_Attribute_Definition_Clause (Entity_Id, char);
 
 extern void Error_Msg_N	          (Fat_Pointer, Node_Id);
 extern void Error_Msg_NE          (Fat_Pointer, Node_Id, Entity_Id);
-extern void Set_Identifier_Casing (Char *, Char *);
+extern void Set_Identifier_Casing (Char *, const Char *);
 
 /* err_vars: */
 
@@ -135,10 +135,18 @@ extern void Setup_Asm_Outputs		(Node_Id);
 /* exp_dbug:  */
 
 #define Get_Encoded_Name exp_dbug__get_encoded_name
+#define Get_External_Name exp_dbug__get_external_name
 #define Get_External_Name_With_Suffix exp_dbug__get_external_name_with_suffix
 
-extern void Get_Encoded_Name	(Entity_Id);
-extern void Get_External_Name_With_Suffix (Entity_Id, Fat_Pointer);
+extern void Get_Encoded_Name			(Entity_Id);
+extern void Get_External_Name			(Entity_Id, Boolean);
+extern void Get_External_Name_With_Suffix	(Entity_Id, Fat_Pointer);
+
+/* exp_util: */
+
+#define Is_Fully_Repped_Tagged_Type exp_util__is_fully_repped_tagged_type
+
+extern Boolean Is_Fully_Repped_Tagged_Type      (Entity_Id);
 
 /* lib: */
 

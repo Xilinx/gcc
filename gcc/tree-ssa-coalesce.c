@@ -71,11 +71,10 @@ typedef struct coalesce_list_d
 #define MUST_COALESCE_COST	INT_MAX
 
 
-/* Return cost of execution of copy instruction with FREQUENCY
-   possibly on CRITICAL edge and in HOT basic block.  */
+/* Return cost of execution of copy instruction with FREQUENCY.  */
 
 static inline int
-coalesce_cost (int frequency, bool optimize_for_size, bool critical)
+coalesce_cost (int frequency, bool optimize_for_size)
 {
   /* Base costs on BB frequencies bounded by 1.  */
   int cost = frequency;
@@ -86,9 +85,6 @@ coalesce_cost (int frequency, bool optimize_for_size, bool critical)
   if (optimize_for_size)
     cost = 1;
 
-  /* Inserting copy on critical edge costs more than inserting it elsewhere.  */
-  if (critical)
-    cost *= 2;
   return cost;
 }
 
@@ -98,7 +94,7 @@ coalesce_cost (int frequency, bool optimize_for_size, bool critical)
 static inline int 
 coalesce_cost_bb (basic_block bb)
 {
-  return coalesce_cost (bb->frequency, optimize_bb_for_size_p (bb), false);
+  return coalesce_cost (bb->frequency, optimize_bb_for_size_p (bb));
 }
 
 
@@ -107,12 +103,38 @@ coalesce_cost_bb (basic_block bb)
 static inline int 
 coalesce_cost_edge (edge e)
 {
+  int mult = 1;
+
+  /* Inserting copy on critical edge costs more than inserting it elsewhere.  */
+  if (EDGE_CRITICAL_P (e))
+    mult = 2;
   if (e->flags & EDGE_ABNORMAL)
     return MUST_COALESCE_COST;
+  if (e->flags & EDGE_EH)
+    {
+      edge e2;
+      edge_iterator ei;
+      FOR_EACH_EDGE (e2, ei, e->dest->preds)
+	if (e2 != e)
+	  {
+	    /* Putting code on EH edge that leads to BB
+	       with multiple predecestors imply splitting of
+	       edge too.  */
+	    if (mult < 2)
+	      mult = 2;
+	    /* If there are multiple EH predecestors, we
+	       also copy EH regions and produce separate
+	       landing pad.  This is expensive.  */
+	    if (e2->flags & EDGE_EH)
+	      {
+	        mult = 5;
+	        break;
+	      }
+	  }
+    }
 
   return coalesce_cost (EDGE_FREQUENCY (e), 
-			optimize_edge_for_size_p (e), 
-			EDGE_CRITICAL_P (e));
+			optimize_edge_for_size_p (e)) * mult;
 }
 
 
@@ -314,7 +336,7 @@ compare_pairs (const void *p1, const void *p2)
   const_coalesce_pair_p const *const pp2 = (const_coalesce_pair_p const *) p2;
   int result;
 
-  result = (* pp2)->cost - (* pp1)->cost;
+  result = (* pp1)->cost - (* pp2)->cost;
   /* Since qsort does not guarantee stability we use the elements
      as a secondary key.  This provides us with independence from
      the host's implementation of the sorting algorithm.  */
@@ -974,7 +996,7 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
   used_in_virtual_ops = BITMAP_ALLOC (NULL);
 #endif
 
-  map = init_var_map (num_ssa_names + 1);
+  map = init_var_map (num_ssa_names);
 
   FOR_EACH_BB (bb)
     {
@@ -1094,8 +1116,7 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 		    if (SSA_NAME_VAR (outputs[match]) == SSA_NAME_VAR (input))
 		      {
 			cost = coalesce_cost (REG_BR_PROB_BASE, 
-					      optimize_bb_for_size_p (bb),
-					      false);
+					      optimize_bb_for_size_p (bb));
 			add_coalesce (cl, v1, v2, cost);
 			bitmap_set_bit (used_in_copy, v1);
 			bitmap_set_bit (used_in_copy, v2);
@@ -1126,8 +1147,8 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
   first = NULL_TREE;
   for (i = 1; i < num_ssa_names; i++)
     {
-      var = map->partition_to_var[i];
-      if (var != NULL_TREE)
+      var = ssa_name (i);
+      if (var != NULL_TREE && is_gimple_reg (var))
         {
 	  /* Add coalesces between all the result decls.  */
 	  if (TREE_CODE (SSA_NAME_VAR (var)) == RESULT_DECL)
@@ -1148,7 +1169,8 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 	  /* Mark any default_def variables as being in the coalesce list
 	     since they will have to be coalesced with the base variable.  If
 	     not marked as present, they won't be in the coalesce view. */
-	  if (gimple_default_def (cfun, SSA_NAME_VAR (var)) == var)
+	  if (gimple_default_def (cfun, SSA_NAME_VAR (var)) == var
+	      && !has_zero_uses (var))
 	    bitmap_set_bit (used_in_copy, SSA_NAME_VERSION (var));
 	}
     }
@@ -1329,7 +1351,6 @@ eq_ssa_name_by_var (const void *p1, const void *p2)
 extern var_map
 coalesce_ssa_name (void)
 {
-  unsigned num, x;
   tree_live_info_p liveinfo;
   ssa_conflicts_p graph;
   coalesce_list_p cl;
@@ -1405,31 +1426,6 @@ coalesce_ssa_name (void)
 
   /* First, coalesce all live on entry variables to their base variable. 
      This will ensure the first use is coming from the correct location.  */
-
-  num = num_var_partitions (map);
-  for (x = 0 ; x < num; x++)
-    {
-      tree var = partition_to_var (map, x);
-      tree root;
-
-      if (TREE_CODE (var) != SSA_NAME)
-	continue;
-
-      root = SSA_NAME_VAR (var);
-      if (gimple_default_def (cfun, root) == var)
-        {
-	  /* This root variable should have not already been assigned
-	     to another partition which is not coalesced with this one.  */
-	  gcc_assert (!var_ann (root)->out_of_ssa_tag);
-
-	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    {
-	      print_exprs (dump_file, "Must coalesce ", var,
-			   " with the root variable ", root, ".\n");
-	    }
-	  change_partition_var (map, root, x);
-	}
-    }
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_var_map (dump_file, map);

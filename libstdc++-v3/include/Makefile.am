@@ -38,6 +38,7 @@ std_headers = \
 	${std_srcdir}/forward_list \
 	${std_srcdir}/fstream \
 	${std_srcdir}/functional \
+	${std_srcdir}/future \
 	${std_srcdir}/iomanip \
 	${std_srcdir}/ios \
 	${std_srcdir}/iosfwd \
@@ -852,7 +853,7 @@ pch_output_dirs = \
 	${pch1_output_builddir} ${pch2_output_builddir} ${pch3_output_builddir}
 pch_output_anchors = \
 	${pch1_output_anchor} ${pch2_output_anchor} ${pch3_output_anchor}
-PCHFLAGS=-Winvalid-pch -x c++-header $(CXXFLAGS)
+PCHFLAGS=-x c++-header $(CXXFLAGS)
 if GLIBCXX_BUILD_PCH
 pch_build = ${pch_output}
 else

@@ -1,5 +1,5 @@
 /* Definitions for the Blackfin port.
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
    This file is part of GCC.
@@ -312,13 +312,6 @@ extern const char *bfin_library_id_string;
    accumulated and pushed during the prologue.  The amount can be
    found in the variable crtl->outgoing_args_size. */ 
 #define ACCUMULATE_OUTGOING_ARGS 1
-
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  
-*/
-#define FRAME_POINTER_REQUIRED (bfin_frame_pointer_required ())
 
 /*#define DATA_ALIGNMENT(TYPE, BASIC-ALIGN) for arrays.. */
 
@@ -908,64 +901,12 @@ typedef struct {
 
 /*   A number, the maximum number of registers that can appear in a
      valid memory address.  Note that it is up to you to specify a
-     value equal to the maximum number that `GO_IF_LEGITIMATE_ADDRESS'
+     value equal to the maximum number that `TARGET_LEGITIMATE_ADDRESS_P'
      would ever accept. */
 #define MAX_REGS_PER_ADDRESS 1
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address. 
-
-   Blackfin addressing modes are as follows:
-
-      [preg]
-      [preg + imm16]
-
-      B [ Preg + uimm15 ]
-      W [ Preg + uimm16m2 ]
-      [ Preg + uimm17m4 ] 
-
-      [preg++]
-      [preg--]
-      [--sp]
-*/
-
 #define LEGITIMATE_MODE_FOR_AUTOINC_P(MODE) \
       (GET_MODE_SIZE (MODE) <= 4 || (MODE) == PDImode)
-
-#ifdef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, WIN)		\
-  do {							\
-    if (bfin_legitimate_address_p (MODE, X, 1))		\
-      goto WIN;						\
-  } while (0);
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, WIN)		\
-  do {							\
-    if (bfin_legitimate_address_p (MODE, X, 0))		\
-      goto WIN;						\
-  } while (0);
-#endif
-
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
-   It is always safe for this macro to do nothing.  It exists to recognize
-   opportunities to optimize the output.
- */
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)    \
-do {					       \
-   rtx _q = legitimize_address(X, OLDX, MODE); \
-   if (_q) { X = _q; goto WIN; }	       \
-} while (0)
 
 #define HAVE_POST_INCREMENT 1
 #define HAVE_POST_DECREMENT 1
@@ -985,23 +926,6 @@ do {					       \
 (GET_CODE (X) == SYMBOL_REF						\
  || GET_CODE (X) == LABEL_REF						\
  || (GET_CODE (X) == CONST && symbolic_reference_mentioned_p (X)))
-
-/*
-     A C statement or compound statement with a conditional `goto
-     LABEL;' executed if memory address X (an RTX) can have different
-     meanings depending on the machine mode of the memory reference it
-     is used for or if the address is valid for some modes but not
-     others.
-
-     Autoincrement and autodecrement addresses typically have
-     mode-dependent effects because the amount of the increment or
-     decrement is the size of the operand being addressed.  Some
-     machines have other mode-dependent addresses.  Many RISC machines
-     have no mode-dependent addresses.
-
-     You may assume that ADDR is a valid address for the machine.
-*/
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define NOTICE_UPDATE_CC(EXPR, INSN) 0
 
@@ -1328,7 +1252,6 @@ do { 						\
 #define ASM_OUTPUT_REG_PUSH(FILE, REGNO) fprintf (FILE, "[SP--] = %s;\n", reg_names[REGNO])
 #define ASM_OUTPUT_REG_POP(FILE, REGNO)  fprintf (FILE, "%s = [SP++];\n", reg_names[REGNO])
 
-extern struct rtx_def *bfin_compare_op0, *bfin_compare_op1;
 extern struct rtx_def *bfin_cc_rtx, *bfin_rets_rtx;
 
 /* This works for GAS and some other assemblers.  */
@@ -1339,7 +1262,7 @@ extern struct rtx_def *bfin_cc_rtx, *bfin_rets_rtx;
 
 #define SIZE_ASM_OP     "\t.size\t"
 
-extern int splitting_for_sched;
+extern int splitting_for_sched, splitting_loops;
 
 #define PRINT_OPERAND_PUNCT_VALID_P(CHAR) ((CHAR) == '!')
 

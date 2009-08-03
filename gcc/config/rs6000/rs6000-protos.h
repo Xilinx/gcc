@@ -64,9 +64,18 @@ extern int insvdi_rshift_rlwimi_p (rtx, rtx, rtx);
 extern int registers_ok_for_quad_peep (rtx, rtx);
 extern int mems_ok_for_quad_peep (rtx, rtx);
 extern bool gpr_or_gpr_p (rtx, rtx);
-extern enum reg_class rs6000_secondary_reload_class (enum reg_class,
-						     enum machine_mode, rtx);
-
+extern enum reg_class (*rs6000_preferred_reload_class_ptr) (rtx,
+							    enum reg_class);
+extern enum reg_class (*rs6000_secondary_reload_class_ptr) (enum reg_class,
+							    enum machine_mode,
+							    rtx);
+extern bool (*rs6000_secondary_memory_needed_ptr) (enum reg_class,
+						   enum reg_class,
+						   enum machine_mode);
+extern bool (*rs6000_cannot_change_mode_class_ptr) (enum machine_mode,
+						    enum machine_mode,
+						    enum reg_class);
+extern void rs6000_secondary_reload_inner (rtx, rtx, rtx, bool);
 extern int paired_emit_vector_cond_expr (rtx, rtx, rtx,
                                          rtx, rtx, rtx);
 extern void paired_expand_vector_move (rtx operands[]);
@@ -81,8 +90,8 @@ extern void print_operand_address (FILE *, rtx);
 extern bool rs6000_output_addr_const_extra (FILE *, rtx);
 extern enum rtx_code rs6000_reverse_condition (enum machine_mode,
 					       enum rtx_code);
-extern void rs6000_emit_sCOND (enum rtx_code, rtx);
-extern void rs6000_emit_cbranch (enum rtx_code, rtx);
+extern void rs6000_emit_sCOND (enum machine_mode, rtx[]);
+extern void rs6000_emit_cbranch (enum machine_mode, rtx[]);
 extern char * output_cbranch (rtx, const char *, int, rtx);
 extern char * output_e500_flip_gt_bit (rtx, rtx);
 extern rtx rs6000_emit_set_const (rtx, enum machine_mode, rtx, int);
@@ -107,12 +116,10 @@ extern rtx create_TOC_reference (rtx);
 extern void rs6000_split_multireg_move (rtx, rtx);
 extern void rs6000_emit_move (rtx, rtx, enum machine_mode);
 extern rtx rs6000_secondary_memory_needed_rtx (enum machine_mode);
-extern rtx rs6000_legitimize_address (rtx, rtx, enum machine_mode);
-extern rtx rs6000_legitimize_reload_address (rtx, enum machine_mode,
-					     int, int, int, int *);
-extern int rs6000_legitimate_address (enum machine_mode, rtx, int);
+extern rtx (*rs6000_legitimize_reload_address_ptr) (rtx, enum machine_mode,
+						    int, int, int, int *);
 extern bool rs6000_legitimate_offset_address_p (enum machine_mode, rtx, int);
-extern bool rs6000_mode_dependent_address (rtx);
+extern bool (*rs6000_mode_dependent_address_ptr) (rtx);
 extern rtx rs6000_find_base_term (rtx);
 extern bool rs6000_offsettable_memref_p (rtx);
 extern rtx rs6000_return_addr (int, rtx);
@@ -134,7 +141,7 @@ extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				  tree, int, int);
 extern int function_arg_boundary (enum machine_mode, tree);
 extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern tree altivec_resolve_overloaded_builtin (tree, void *);
+extern tree altivec_resolve_overloaded_builtin (location_t, tree, void *);
 extern rtx rs6000_function_value (const_tree, const_tree);
 extern rtx rs6000_libcall_value (enum machine_mode);
 extern rtx rs6000_va_arg (tree, tree);
@@ -170,7 +177,6 @@ extern int rs6000_register_move_cost (enum machine_mode,
 				      enum reg_class, enum reg_class);
 extern int rs6000_memory_move_cost (enum machine_mode, enum reg_class, int);
 extern bool rs6000_tls_referenced_p (rtx);
-extern int rs6000_hard_regno_nregs (int, enum machine_mode);
 extern void rs6000_conditional_register_usage (void);
 
 /* Declare functions in rs6000-c.c */
@@ -189,4 +195,6 @@ const char * rs6000_xcoff_strip_dollar (const char *);
 void rs6000_final_prescan_insn (rtx, rtx *operand, int num_operands);
 
 extern bool rs6000_hard_regno_mode_ok_p[][FIRST_PSEUDO_REGISTER];
+extern unsigned char rs6000_class_max_nregs[][LIM_REG_CLASSES];
+extern unsigned char rs6000_hard_regno_nregs[][FIRST_PSEUDO_REGISTER];
 #endif  /* rs6000-protos.h */

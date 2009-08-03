@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -634,8 +634,8 @@ package body Sem_Ch12 is
    --  loaded. In that case a missing body is acceptable.
 
    procedure Inherit_Context (Gen_Decl : Node_Id; Inst : Node_Id);
-   --  Add the context clause of the unit containing a generic unit to an
-   --  instantiation that is a compilation unit.
+   --  Add the context clause of the unit containing a generic unit to a
+   --  compilation unit that is, or contains, an instantiation.
 
    function Get_Associated_Node (N : Node_Id) return Node_Id;
    --  In order to propagate semantic information back from the analyzed copy
@@ -885,10 +885,13 @@ package body Sem_Ch12 is
       Formals : List_Id;
       F_Copy  : List_Id) return List_Id
    is
-      Actual_Types : constant Elist_Id  := New_Elmt_List;
-      Assoc        : constant List_Id   := New_List;
+
+      Actual_Types    : constant Elist_Id  := New_Elmt_List;
+      Assoc           : constant List_Id   := New_List;
       Default_Actuals : constant Elist_Id  := New_Elmt_List;
-      Gen_Unit     : constant Entity_Id := Defining_Entity (Parent (F_Copy));
+      Gen_Unit        : constant Entity_Id :=
+                          Defining_Entity (Parent (F_Copy));
+
       Actuals         : List_Id;
       Actual          : Node_Id;
       Formal          : Node_Id;
@@ -900,21 +903,21 @@ package body Sem_Ch12 is
       First_Named     : Node_Id := Empty;
 
       Default_Formals : constant List_Id := New_List;
-      --  If an Other_Choice is present, some of the formals may be defaulted.
+      --  If an Others_Choice is present, some of the formals may be defaulted.
       --  To simplify the treatment of visibility in an instance, we introduce
       --  individual defaults for each such formal. These defaults are
       --  appended to the list of associations and replace the Others_Choice.
 
-      Found_Assoc     : Node_Id;
+      Found_Assoc : Node_Id;
       --  Association for the current formal being match. Empty if there are
       --  no remaining actuals, or if there is no named association with the
       --  name of the formal.
 
-      Is_Named_Assoc  : Boolean;
-      Num_Matched     : Int := 0;
-      Num_Actuals     : Int := 0;
+      Is_Named_Assoc : Boolean;
+      Num_Matched    : Int := 0;
+      Num_Actuals    : Int := 0;
 
-      Others_Present  : Boolean := False;
+      Others_Present : Boolean := False;
       --  In Ada 2005, indicates partial parametrization of a formal
       --  package. As usual an other association must be last in the list.
 
@@ -967,9 +970,7 @@ package body Sem_Ch12 is
 
          --  End of list of purely positional parameters
 
-         if No (Actual)
-           or else Nkind (Actual) = N_Others_Choice
-         then
+         if No (Actual) or else Nkind (Actual) = N_Others_Choice then
             Found_Assoc := Empty;
             Act         := Empty;
 
@@ -1047,14 +1048,13 @@ package body Sem_Ch12 is
       procedure Process_Default (F : Entity_Id)  is
          Loc     : constant Source_Ptr := Sloc (I_Node);
          F_Id    : constant Entity_Id  := Defining_Entity (F);
-
          Decl    : Node_Id;
          Default : Node_Id;
          Id      : Entity_Id;
 
       begin
-         --  Append copy of formal declaration to associations, and create
-         --  new defining identifier for it.
+         --  Append copy of formal declaration to associations, and create new
+         --  defining identifier for it.
 
          Decl := New_Copy_Tree (F);
          Id := Make_Defining_Identifier (Sloc (F_Id), Chars => Chars (F_Id));
@@ -1132,7 +1132,7 @@ package body Sem_Ch12 is
 
       if Present (Actuals) then
 
-         --  check for an Others choice, indicating a partial parametrization
+         --  Check for an Others choice, indicating a partial parametrization
          --  for a formal package.
 
          Actual := First (Actuals);
@@ -1292,11 +1292,10 @@ package body Sem_Ch12 is
                       Defining_Unit_Name (Specification (Formal)),
                       Defining_Unit_Name (Specification (Analyzed_Formal)));
 
-                  --  If the formal subprogram has the same name as
-                  --  another formal subprogram of the generic, then
-                  --  a named association is illegal (12.3(9)). Exclude
-                  --  named associations that are generated for a nested
-                  --  instance.
+                  --  If the formal subprogram has the same name as another
+                  --  formal subprogram of the generic, then a named
+                  --  association is illegal (12.3(9)). Exclude named
+                  --  associations that are generated for a nested instance.
 
                   if Present (Match)
                     and then Is_Named_Assoc
@@ -1424,7 +1423,6 @@ package body Sem_Ch12 is
 
       declare
          Elmt : Elmt_Id := First_Elmt (Actual_Types);
-
       begin
          while Present (Elmt) loop
             Freeze_Before (I_Node, Node (Elmt));
@@ -1886,7 +1884,7 @@ package body Sem_Ch12 is
          if Present (E) then
             Preanalyze_Spec_Expression (E, T);
 
-            if Is_Limited_Type (T) and then not OK_For_Limited_Init (E) then
+            if Is_Limited_Type (T) and then not OK_For_Limited_Init (T, E) then
                Error_Msg_N
                  ("initialization not allowed for limited types", E);
                Explain_Limited_Type (T, E);
@@ -1934,7 +1932,6 @@ package body Sem_Ch12 is
               ("initialization not allowed for `IN OUT` formals", N);
          end if;
       end if;
-
    end Analyze_Formal_Object_Declaration;
 
    ----------------------------------------------
@@ -1984,7 +1981,7 @@ package body Sem_Ch12 is
 
    procedure Analyze_Formal_Package (N : Node_Id) is
       Loc              : constant Source_Ptr := Sloc (N);
-      Pack_Id          : constant Entity_Id := Defining_Identifier (N);
+      Pack_Id          : constant Entity_Id  := Defining_Identifier (N);
       Formal           : Entity_Id;
       Gen_Id           : constant Node_Id    := Name (N);
       Gen_Decl         : Node_Id;
@@ -2039,6 +2036,7 @@ package body Sem_Ch12 is
          --  create corresponding declarations for all entities in the formal
          --  part, so that names with the proper types are available in the
          --  specification of the formal package.
+
          --  On the other hand, if there are no associations, then all the
          --  formals must have defaults, and this will be checked by the
          --  call to Analyze_Associations.
@@ -4372,7 +4370,11 @@ package body Sem_Ch12 is
             Make_Compilation_Unit_Aux (Sloc (N)));
 
       Set_Parent_Spec   (Act_Decl, Parent_Spec (N));
-      Set_Body_Required (Decl_Cunit, True);
+
+      --  The new compilation unit is linked to its body, but both share the
+      --  same file, so we do not set Body_Required on the new unit so as not
+      --  to create a spurious dependency on a non-existent body in the ali.
+      --  This simplifies CodePeer unit traversal.
 
       --  We use the original instantiation compilation unit as the resulting
       --  compilation unit of the instance, since this is the main unit.
@@ -4389,10 +4391,11 @@ package body Sem_Ch12 is
 
       Set_Private_Present (Decl_Cunit, Private_Present (Body_Cunit));
 
-      --  If the instance is not the main unit, its context, categorization,
+      --  If the instance is not the main unit, its context, categorization
       --  and elaboration entity are not relevant to the compilation.
 
-      if Parent (N) /= Cunit (Main_Unit) then
+      if Body_Cunit /= Cunit (Main_Unit) then
+         Make_Instance_Unit (Body_Cunit, In_Main => False);
          return;
       end if;
 
@@ -4423,7 +4426,7 @@ package body Sem_Ch12 is
       --  Make entry in Units table, so that binder can generate call to
       --  elaboration procedure for body, if any.
 
-      Make_Instance_Unit (Body_Cunit);
+      Make_Instance_Unit (Body_Cunit, In_Main => True);
       Main_Unit_Entity := New_Main;
       Set_Cunit_Entity (Main_Unit, Main_Unit_Entity);
 
@@ -5737,9 +5740,9 @@ package body Sem_Ch12 is
       then
          if not Instantiating then
 
-            --  Link both nodes in order to assign subsequently the
-            --  entity of the copy to the original node, in case this
-            --  is a global reference.
+            --  Link both nodes in order to assign subsequently the entity of
+            --  the copy to the original node, in case this is a global
+            --  reference.
 
             Set_Associated_Node (N, New_N);
 
@@ -6932,9 +6935,19 @@ package body Sem_Ch12 is
          Item := First (Context_Items (Parent (Gen_Decl)));
          while Present (Item) loop
             if Nkind (Item) = N_With_Clause then
-               New_I := New_Copy (Item);
-               Set_Implicit_With (New_I, True);
-               Append (New_I, Current_Context);
+
+               --  Take care to prevent direct cyclic with's, which can happen
+               --  if the generic body with's the current unit. Such a case
+               --  would result in binder errors (or run-time errors if the
+               --  -gnatE switch is in effect), but we want to prevent it here,
+               --  because Sem.Walk_Library_Items doesn't like cycles. Note
+               --  that we don't bother to detect indirect cycles.
+
+               if Library_Unit (Item) /= Current_Unit then
+                  New_I := New_Copy (Item);
+                  Set_Implicit_With (New_I, True);
+                  Append (New_I, Current_Context);
+               end if;
             end if;
 
             Next (Item);
@@ -8421,7 +8434,7 @@ package body Sem_Ch12 is
                end if;
 
                if Is_Limited_Type (Typ)
-                 and then not OK_For_Limited_Init (Actual)
+                 and then not OK_For_Limited_Init (Typ, Actual)
                then
                   Error_Msg_N
                     ("initialization not allowed for limited types", Actual);
@@ -8549,6 +8562,9 @@ package body Sem_Ch12 is
       Parent_Installed : Boolean := False;
       Save_Style_Check : constant Boolean := Style_Check;
 
+      Par_Ent : Entity_Id := Empty;
+      Par_Vis : Boolean   := False;
+
    begin
       Gen_Body_Id := Corresponding_Body (Gen_Decl);
 
@@ -8624,11 +8640,15 @@ package body Sem_Ch12 is
          if Ekind (Scope (Gen_Unit)) = E_Generic_Package
            and then Nkind (Gen_Id) = N_Expanded_Name
          then
-            Install_Parent (Entity (Prefix (Gen_Id)), In_Body => True);
+            Par_Ent := Entity (Prefix (Gen_Id));
+            Par_Vis := Is_Immediately_Visible (Par_Ent);
+            Install_Parent (Par_Ent, In_Body => True);
             Parent_Installed := True;
 
          elsif Is_Child_Unit (Gen_Unit) then
-            Install_Parent (Scope (Gen_Unit), In_Body => True);
+            Par_Ent := Scope (Gen_Unit);
+            Par_Vis := Is_Immediately_Visible (Par_Ent);
+            Install_Parent (Par_Ent, In_Body => True);
             Parent_Installed := True;
          end if;
 
@@ -8699,6 +8719,10 @@ package body Sem_Ch12 is
 
          if Parent_Installed then
             Remove_Parent (In_Body => True);
+
+            --  Restore the previous visibility of the parent
+
+            Set_Is_Immediately_Visible (Par_Ent, Par_Vis);
          end if;
 
          Restore_Private_Views (Act_Decl_Id);
@@ -8774,12 +8798,12 @@ package body Sem_Ch12 is
       Act_Decl      : constant Node_Id    := Body_Info.Act_Decl;
       Inst_Node     : constant Node_Id    := Body_Info.Inst_Node;
       Loc           : constant Source_Ptr := Sloc (Inst_Node);
-      Gen_Id        : constant Node_Id   := Name (Inst_Node);
-      Gen_Unit      : constant Entity_Id := Get_Generic_Entity (Inst_Node);
-      Gen_Decl      : constant Node_Id   := Unit_Declaration_Node (Gen_Unit);
-      Anon_Id       : constant Entity_Id :=
+      Gen_Id        : constant Node_Id    := Name (Inst_Node);
+      Gen_Unit      : constant Entity_Id  := Get_Generic_Entity (Inst_Node);
+      Gen_Decl      : constant Node_Id    := Unit_Declaration_Node (Gen_Unit);
+      Anon_Id       : constant Entity_Id  :=
                         Defining_Unit_Name (Specification (Act_Decl));
-      Pack_Id       : constant Entity_Id :=
+      Pack_Id       : constant Entity_Id  :=
                         Defining_Unit_Name (Parent (Act_Decl));
       Decls         : List_Id;
       Gen_Body      : Node_Id;
@@ -8792,6 +8816,9 @@ package body Sem_Ch12 is
 
       Parent_Installed : Boolean := False;
       Save_Style_Check : constant Boolean := Style_Check;
+
+      Par_Ent : Entity_Id := Empty;
+      Par_Vis : Boolean   := False;
 
    begin
       Gen_Body_Id := Corresponding_Body (Gen_Decl);
@@ -8896,11 +8923,15 @@ package body Sem_Ch12 is
          if Ekind (Scope (Gen_Unit)) = E_Generic_Package
            and then Nkind (Gen_Id) = N_Expanded_Name
          then
-            Install_Parent (Entity (Prefix (Gen_Id)), In_Body => True);
+            Par_Ent := Entity (Prefix (Gen_Id));
+            Par_Vis := Is_Immediately_Visible (Par_Ent);
+            Install_Parent (Par_Ent, In_Body => True);
             Parent_Installed := True;
 
          elsif Is_Child_Unit (Gen_Unit) then
-            Install_Parent (Scope (Gen_Unit), In_Body => True);
+            Par_Ent := Scope (Gen_Unit);
+            Par_Vis := Is_Immediately_Visible (Par_Ent);
+            Install_Parent (Par_Ent, In_Body => True);
             Parent_Installed := True;
          end if;
 
@@ -8981,6 +9012,10 @@ package body Sem_Ch12 is
 
          if Parent_Installed then
             Remove_Parent (In_Body => True);
+
+            --  Restore the previous visibility of the parent
+
+            Set_Is_Immediately_Visible (Par_Ent, Par_Vis);
          end if;
 
          Restore_Env;
@@ -10430,15 +10465,16 @@ package body Sem_Ch12 is
             --  declared without a box (see Instantiate_Formal_Package). Such
             --  an instantiation does not generate any code (the actual code
             --  comes from actual) and thus does not need to be analyzed here.
+            --  If the instantiation appears with a generic package body it is
+            --  not analyzed here either.
 
             elsif Nkind (Decl) = N_Package_Instantiation
               and then not Is_Internal (Defining_Entity (Decl))
             then
                Append_Elmt (Decl, Previous_Instances);
 
-            --  For a subprogram instantiation, omit instantiations of
-            --  intrinsic operations (Unchecked_Conversions, etc.) that
-            --  have no bodies.
+            --  For a subprogram instantiation, omit instantiations intrinsic
+            --  operations (Unchecked_Conversions, etc.) that have no bodies.
 
             elsif Nkind_In (Decl, N_Function_Instantiation,
                                   N_Procedure_Instantiation)
@@ -10452,7 +10488,9 @@ package body Sem_Ch12 is
                Collect_Previous_Instances
                  (Private_Declarations (Specification (Decl)));
 
-            elsif Nkind (Decl) = N_Package_Body then
+            elsif Nkind (Decl) = N_Package_Body
+              and then Ekind (Corresponding_Spec (Decl)) /= E_Generic_Package
+            then
                Collect_Previous_Instances (Declarations (Decl));
             end if;
 
@@ -10485,8 +10523,8 @@ package body Sem_Ch12 is
            and then Nkind (True_Parent) /= N_Compilation_Unit
          loop
             if Nkind (True_Parent) = N_Package_Declaration
-              and then
-                Nkind (Original_Node (True_Parent)) = N_Package_Instantiation
+                 and then
+               Nkind (Original_Node (True_Parent)) = N_Package_Instantiation
             then
                --  Parent is a compilation unit that is an instantiation.
                --  Instantiation node has been replaced with package decl.
@@ -10537,9 +10575,9 @@ package body Sem_Ch12 is
                Set_Unit (Parent (True_Parent), Inst_Node);
             end if;
 
-            --  Now complete instantiation of enclosing body, if it appears
-            --  in some other unit. If it appears in the current unit, the
-            --  body will have been instantiated already.
+            --  Now complete instantiation of enclosing body, if it appears in
+            --  some other unit. If it appears in the current unit, the body
+            --  will have been instantiated already.
 
             if No (Corresponding_Body (Instance_Spec (Inst_Node))) then
 
@@ -10570,8 +10608,8 @@ package body Sem_Ch12 is
                      Scop := Scope (Scop);
                   end loop;
 
-                  --  Collect previous instantiations in the unit that
-                  --  contains the desired generic.
+                  --  Collect previous instantiations in the unit that contains
+                  --  the desired generic.
 
                   if Nkind (Parent (True_Parent)) /= N_Compilation_Unit
                     and then not Body_Optional
@@ -10600,7 +10638,7 @@ package body Sem_Ch12 is
                              (Private_Declarations (Specification (Par)));
 
                         else
-                           --  Enclosing unit is a subprogram body, In this
+                           --  Enclosing unit is a subprogram body. In this
                            --  case all instance bodies are processed in order
                            --  and there is no need to collect them separately.
 
@@ -10718,9 +10756,7 @@ package body Sem_Ch12 is
 
       E1 := First_Entity (Form);
       E2 := First_Entity (Act);
-      while Present (E1)
-        and then E1 /= First_Private_Entity (Form)
-      loop
+      while Present (E1) and then E1 /= First_Private_Entity (Form) loop
          --  Could this test be a single condition???
          --  Seems like it could, and isn't FPE (Form) a constant anyway???
 
@@ -10729,9 +10765,7 @@ package body Sem_Ch12 is
            and then not Is_Class_Wide_Type (E1)
            and then not Is_Internal_Name (Chars (E1))
          then
-            while Present (E2)
-              and then Chars (E2) /= Chars (E1)
-            loop
+            while Present (E2) and then Chars (E2) /= Chars (E1) loop
                Next_Entity (E2);
             end loop;
 
@@ -10740,21 +10774,15 @@ package body Sem_Ch12 is
             else
                Set_Instance_Of (E1, E2);
 
-               if Is_Type (E1)
-                 and then Is_Tagged_Type (E2)
-               then
-                  Set_Instance_Of
-                    (Class_Wide_Type (E1), Class_Wide_Type (E2));
+               if Is_Type (E1) and then Is_Tagged_Type (E2) then
+                  Set_Instance_Of (Class_Wide_Type (E1), Class_Wide_Type (E2));
                end if;
 
                if Is_Constrained (E1) then
-                  Set_Instance_Of
-                    (Base_Type (E1), Base_Type (E2));
+                  Set_Instance_Of (Base_Type (E1), Base_Type (E2));
                end if;
 
-               if Ekind (E1) = E_Package
-                 and then No (Renamed_Object (E1))
-               then
+               if Ekind (E1) = E_Package and then No (Renamed_Object (E1)) then
                   Map_Formal_Package_Entities (E1, E2);
                end if;
             end if;
@@ -10846,24 +10874,23 @@ package body Sem_Ch12 is
          --  recurse. Nested generic packages will have been processed from the
          --  inside out.
 
-         if Nkind (Decl) = N_Package_Declaration then
-            Spec := Specification (Decl);
+         case Nkind (Decl) is
+            when N_Package_Declaration =>
+               Spec := Specification (Decl);
 
-         elsif Nkind (Decl) = N_Task_Type_Declaration then
-            Spec := Task_Definition (Decl);
+            when N_Task_Type_Declaration =>
+               Spec := Task_Definition (Decl);
 
-         elsif Nkind (Decl) = N_Protected_Type_Declaration then
-            Spec := Protected_Definition (Decl);
+            when N_Protected_Type_Declaration =>
+               Spec := Protected_Definition (Decl);
 
-         else
-            Spec := Empty;
-         end if;
+            when others =>
+               Spec := Empty;
+         end case;
 
          if Present (Spec) then
-            Move_Freeze_Nodes (Out_Of, Next_Node,
-              Visible_Declarations (Spec));
-            Move_Freeze_Nodes (Out_Of, Next_Node,
-              Private_Declarations (Spec));
+            Move_Freeze_Nodes (Out_Of, Next_Node, Visible_Declarations (Spec));
+            Move_Freeze_Nodes (Out_Of, Next_Node, Private_Declarations (Spec));
          end if;
 
          Next (Decl);
@@ -11019,9 +11046,9 @@ package body Sem_Ch12 is
 
    procedure Remove_Parent (In_Body : Boolean := False) is
       S : Entity_Id := Current_Scope;
-      --  S is the scope containing the instantiation just completed. The
-      --  scope stack contains the parent instances of the instantiation,
-      --  followed by the original S.
+      --  S is the scope containing the instantiation just completed. The scope
+      --  stack contains the parent instances of the instantiation, followed by
+      --  the original S.
 
       E      : Entity_Id;
       P      : Entity_Id;
@@ -11049,19 +11076,18 @@ package body Sem_Ch12 is
                  and then P /= Current_Scope
                then
                   --  We are within an instance of some sibling. Retain
-                  --  visibility of parent, for proper subsequent cleanup,
-                  --  and reinstall private declarations as well.
+                  --  visibility of parent, for proper subsequent cleanup, and
+                  --  reinstall private declarations as well.
 
                   Set_In_Private_Part (P);
                   Install_Private_Declarations (P);
                end if;
 
             --  If the ultimate parent is a top-level unit recorded in
-            --  Instance_Parent_Unit, then reset its visibility to what
-            --  it was before instantiation. (It's not clear what the
-            --  purpose is of testing whether Scope (P) is In_Open_Scopes,
-            --  but that test was present before the ultimate parent test
-            --  was added.???)
+            --  Instance_Parent_Unit, then reset its visibility to what is was
+            --  before instantiation. (It's not clear what the purpose is of
+            --  testing whether Scope (P) is In_Open_Scopes, but that test was
+            --  present before the ultimate parent test was added.???)
 
             elsif not In_Open_Scopes (Scope (P))
               or else (P = Instance_Parent_Unit
@@ -11076,9 +11102,7 @@ package body Sem_Ch12 is
             --  subunit of a generic contains an instance of a child unit of
             --  its generic parent unit.
 
-            elsif S = Current_Scope
-              and then Is_Generic_Instance (S)
-            then
+            elsif S = Current_Scope and then Is_Generic_Instance (S) then
                declare
                   Par : constant Entity_Id :=
                           Generic_Parent
@@ -11106,9 +11130,9 @@ package body Sem_Ch12 is
          end loop;
 
       else
-         --  Each body is analyzed separately, and there is no context
-         --  that needs preserving from one body instance to the next,
-         --  so remove all parent scopes that have been installed.
+         --  Each body is analyzed separately, and there is no context that
+         --  needs preserving from one body instance to the next, so remove all
+         --  parent scopes that have been installed.
 
          while Present (S) loop
             End_Package_Scope (S);
@@ -11128,7 +11152,6 @@ package body Sem_Ch12 is
 
    begin
       if No (Current_Instantiated_Parent.Act_Id) then
-
          --  Restore environment after subprogram inlining
 
          Restore_Private_Views (Empty);
@@ -11161,8 +11184,8 @@ package body Sem_Ch12 is
       Dep_Typ  : Node_Id;
 
       procedure Restore_Nested_Formal (Formal : Entity_Id);
-      --  Hide the generic formals of formal packages declared with box
-      --  which were reachable in the current instantiation.
+      --  Hide the generic formals of formal packages declared with box which
+      --  were reachable in the current instantiation.
 
       ---------------------------
       -- Restore_Nested_Formal --
@@ -11206,9 +11229,9 @@ package body Sem_Ch12 is
 
          --  Subtypes of types whose views have been exchanged, and that
          --  are defined within the instance, were not on the list of
-         --  Private_Dependents on entry to the instance, so they have to
-         --  be exchanged explicitly now, in order to remain consistent with
-         --  the view of the parent type.
+         --  Private_Dependents on entry to the instance, so they have to be
+         --  exchanged explicitly now, in order to remain consistent with the
+         --  view of the parent type.
 
          if Ekind (Typ) = E_Private_Type
            or else Ekind (Typ) = E_Limited_Private_Type
@@ -11237,8 +11260,8 @@ package body Sem_Ch12 is
          return;
       end if;
 
-      --  Make the generic formal parameters private, and make the formal
-      --  types into subtypes of the actuals again.
+      --  Make the generic formal parameters private, and make the formal types
+      --  into subtypes of the actuals again.
 
       E := First_Entity (Pack_Id);
       while Present (E) loop
@@ -11358,8 +11381,8 @@ package body Sem_Ch12 is
       --  the time the instantiations will be analyzed.
 
       procedure Reset_Entity (N : Node_Id);
-      --  Save semantic information on global entity, so that it is not
-      --  resolved again at instantiation time.
+      --  Save semantic information on global entity so that it is not resolved
+      --  again at instantiation time.
 
       procedure Save_Entity_Descendants (N : Node_Id);
       --  Apply Save_Global_References to the two syntactic descendants of
@@ -11411,9 +11434,9 @@ package body Sem_Ch12 is
 
          function Is_Instance_Node (Decl : Node_Id) return Boolean is
          begin
-            return (Nkind (Decl) in N_Generic_Instantiation
-              or else
-                Nkind (Original_Node (Decl)) = N_Formal_Package_Declaration);
+            return Nkind (Decl) in N_Generic_Instantiation
+                     or else
+                   Nkind (Original_Node (Decl)) = N_Formal_Package_Declaration;
          end Is_Instance_Node;
 
       --  Start of processing for Is_Global
@@ -11455,15 +11478,15 @@ package body Sem_Ch12 is
       procedure Reset_Entity (N : Node_Id) is
 
          procedure Set_Global_Type (N : Node_Id; N2 : Node_Id);
-         --  If the type of N2 is global to the generic unit. Save
-         --  the type in the generic node.
+         --  If the type of N2 is global to the generic unit. Save the type in
+         --  the generic node.
+         --  What does this comment mean???
 
          function Top_Ancestor (E : Entity_Id) return Entity_Id;
-         --  Find the ultimate ancestor of the current unit. If it is
-         --  not a generic unit, then the name of the current unit
-         --  in the prefix of an expanded name must be replaced with
-         --  its generic homonym to ensure that it will be properly
-         --  resolved in an instance.
+         --  Find the ultimate ancestor of the current unit. If it is not a
+         --  generic unit, then the name of the current unit in the prefix of
+         --  an expanded name must be replaced with its generic homonym to
+         --  ensure that it will be properly resolved in an instance.
 
          ---------------------
          -- Set_Global_Type --
@@ -11478,10 +11501,10 @@ package body Sem_Ch12 is
             if Entity (N) /= N2
               and then Has_Private_View (Entity (N))
             then
-               --  If the entity of N is not the associated node, this is
-               --  a nested generic and it has an associated node as well,
-               --  whose type is already the full view (see below). Indicate
-               --  that the original node has a private view.
+               --  If the entity of N is not the associated node, this is a
+               --  nested generic and it has an associated node as well, whose
+               --  type is already the full view (see below). Indicate that the
+               --  original node has a private view.
 
                Set_Has_Private_View (N);
             end if;
@@ -11495,14 +11518,14 @@ package body Sem_Ch12 is
                   Set_Has_Private_View (N);
                end if;
 
-            --  If it is a derivation of a private type in a context where
-            --  no full view is needed, nothing to do either.
+            --  If it is a derivation of a private type in a context where no
+            --  full view is needed, nothing to do either.
 
             elsif No (Full_View (Typ)) and then Typ /= Etype (Typ) then
                null;
 
-            --  Otherwise mark the type for flipping and use the full_view
-            --  when available.
+            --  Otherwise mark the type for flipping and use the full view when
+            --  available.
 
             else
                Set_Has_Private_View (N);
@@ -11576,8 +11599,7 @@ package body Sem_Ch12 is
             --  is because in an instantiation Par.P.Q will not resolve to the
             --  name of the instance, whose enclosing scope is not necessarily
             --  Par. We use the generic homonym rather that the name of the
-            --  generic itself, because it may be hidden by a local
-            --  declaration.
+            --  generic itself because it may be hidden by a local declaration.
 
             elsif In_Open_Scopes (Entity (Parent (N2)))
               and then not
@@ -11604,7 +11626,7 @@ package body Sem_Ch12 is
 
          --  A selected component may denote a static constant that has been
          --  folded. If the static constant is global to the generic, capture
-         --  its value. Otherwise the folding will happen in any instantiation,
+         --  its value. Otherwise the folding will happen in any instantiation.
 
          elsif Nkind (Parent (N)) = N_Selected_Component
            and then Nkind_In (Parent (N2), N_Integer_Literal, N_Real_Literal)
@@ -11856,15 +11878,17 @@ package body Sem_Ch12 is
       -- Save_References --
       ---------------------
 
-      --  This is the recursive procedure that does the work, once the
-      --  enclosing generic scope has been established. We have to treat
-      --  specially a number of node rewritings that are required by semantic
-      --  processing and which change the kind of nodes in the generic copy:
-      --  typically constant-folding, replacing an operator node by a string
-      --  literal, or a selected component by an expanded name. In each of
-      --  those cases, the transformation is propagated to the generic unit.
+      --  This is the recursive procedure that does the work once the enclosing
+      --  generic scope has been established. We have to treat specially a
+      --  number of node rewritings that are required by semantic processing
+      --  and which change the kind of nodes in the generic copy: typically
+      --  constant-folding, replacing an operator node by a string literal, or
+      --  a selected component by an expanded name. In each of those cases, the
+      --  transformation is propagated to the generic unit.
 
       procedure Save_References (N : Node_Id) is
+         Loc : constant Source_Ptr := Sloc (N);
+
       begin
          if N = Empty then
             null;
@@ -11943,7 +11967,7 @@ package body Sem_Ch12 is
                  and then Ekind (Entity (N2)) = E_Enumeration_Literal
                then
                   --  Same if call was folded into a literal, but in this case
-                  --  retain the entity to avoid spurious ambiguities if id is
+                  --  retain the entity to avoid spurious ambiguities if it is
                   --  overloaded at the point of instantiation or inlining.
 
                   Rewrite (N, New_Copy (N2));
@@ -12006,10 +12030,8 @@ package body Sem_Ch12 is
 
                elsif Nkind (N2) = N_Explicit_Dereference then
 
-                  --  An identifier is rewritten as a dereference if it is
-                  --  the prefix in a selected component, and it denotes an
-                  --  access to a composite type, or a parameterless function
-                  --  call that returns an access type.
+                  --  An identifier is rewritten as a dereference if it is the
+                  --  prefix in an implicit dereference.
 
                   --  Check whether corresponding entity in prefix is global
 
@@ -12018,23 +12040,18 @@ package body Sem_Ch12 is
                     and then Is_Global (Entity (Prefix (N2)))
                   then
                      Rewrite (N,
-                       Make_Explicit_Dereference (Sloc (N),
-                          Prefix => Make_Identifier (Sloc (N),
-                            Chars => Chars (N))));
-                     Set_Associated_Node (Prefix (N), Prefix (N2));
-
+                       Make_Explicit_Dereference (Loc,
+                          Prefix =>
+                            New_Occurrence_Of (Entity (Prefix (N2)), Loc)));
                   elsif Nkind (Prefix (N2)) = N_Function_Call
                     and then Is_Global (Entity (Name (Prefix (N2))))
                   then
                      Rewrite (N,
-                       Make_Explicit_Dereference (Sloc (N),
-                          Prefix => Make_Function_Call (Sloc (N),
-                            Name  =>
-                              Make_Identifier (Sloc (N),
-                              Chars => Chars (N)))));
-
-                     Set_Associated_Node
-                      (Name (Prefix (N)), Name (Prefix (N2)));
+                       Make_Explicit_Dereference (Loc,
+                          Prefix => Make_Function_Call (Loc,
+                            Name =>
+                              New_Occurrence_Of (Entity (Name (Prefix (N2))),
+                                                 Loc))));
 
                   else
                      Set_Associated_Node (N, Empty);
@@ -12061,7 +12078,6 @@ package body Sem_Ch12 is
 
          else
             declare
-               Loc  : constant Source_Ptr := Sloc (N);
                Qual : Node_Id := Empty;
                Typ  : Entity_Id := Empty;
                Nam  : Node_Id;

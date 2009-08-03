@@ -58,8 +58,7 @@ typedef void *(*line_map_realloc) (void *, size_t);
    creation of this line map, SYSP is one for a system header, two for
    a C system header file that therefore needs to be extern "C"
    protected in C++, and zero otherwise.  */
-struct line_map GTY(())
-{
+struct GTY(()) line_map {
   const char *to_file;
   linenum_type to_line;
   source_location start_location;
@@ -72,8 +71,7 @@ struct line_map GTY(())
 };
 
 /* A set of chronological line_map structures.  */
-struct line_maps GTY(())
-{
+struct GTY(()) line_maps {
   struct line_map * GTY ((length ("%h.used"))) maps;
   unsigned int allocated;
   unsigned int used;
@@ -156,6 +154,8 @@ extern const struct line_map *linemap_lookup
    of the #include, or other directive, that caused a map change.  */
 #define LAST_SOURCE_LINE(MAP) \
   SOURCE_LINE (MAP, LAST_SOURCE_LINE_LOCATION (MAP))
+#define LAST_SOURCE_COLUMN(MAP) \
+  SOURCE_COLUMN (MAP, LAST_SOURCE_LINE_LOCATION (MAP))
 #define LAST_SOURCE_LINE_LOCATION(MAP) \
   ((((MAP)[1].start_location - 1 - (MAP)->start_location) \
     & ~((1 << (MAP)->column_bits) - 1))			  \
@@ -186,4 +186,5 @@ extern const struct line_map *linemap_lookup
 
 extern source_location
 linemap_position_for_column (struct line_maps *set, unsigned int to_column);
+
 #endif /* !LIBCPP_LINE_MAP_H  */

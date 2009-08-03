@@ -66,7 +66,7 @@ struct gimple_opt_pass pass_all_optimizations =
 {
  {
   GIMPLE_PASS,
-  NULL,					/* name */
+  "*all_optimizations",			/* name */
   gate_all_optimizations,		/* gate */
   NULL,					/* execute */
   NULL,					/* sub */
@@ -201,7 +201,7 @@ struct gimple_opt_pass pass_cleanup_cfg_post_optimizing =
 {
  {
   GIMPLE_PASS,
-  "final_cleanup",			/* name */
+  "optimized",			/* name */
   NULL,					/* gate */
   execute_cleanup_cfg_post_optimizing,	/* execute */
   NULL,					/* sub */
@@ -213,71 +213,24 @@ struct gimple_opt_pass pass_cleanup_cfg_post_optimizing =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func			/* todo_flags_finish */
+    | TODO_remove_unused_locals
  }
 };
 
 /* Pass: do the actions required to finish with tree-ssa optimization
    passes.  */
 
-static unsigned int
+unsigned int
 execute_free_datastructures (void)
 {
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);
 
-  /* Remove the ssa structures.  */
-  if (cfun->gimple_df)
-    delete_tree_ssa ();
-  return 0;
-}
-
-struct gimple_opt_pass pass_free_datastructures =
-{
- {
-  GIMPLE_PASS,
-  NULL,					/* name */
-  NULL,					/* gate */
-  execute_free_datastructures,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
-  PROP_cfg,				/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  0					/* todo_flags_finish */
- }
-};
-/* Pass: free cfg annotations.  */
-
-static unsigned int
-execute_free_cfg_annotations (void)
-{
   /* And get rid of annotations we no longer need.  */
   delete_tree_cfg_annotations ();
 
   return 0;
 }
-
-struct gimple_opt_pass pass_free_cfg_annotations =
-{
- {
-  GIMPLE_PASS,
-  NULL,					/* name */
-  NULL,					/* gate */
-  execute_free_cfg_annotations,		/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
-  PROP_cfg,				/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  0					/* todo_flags_finish */
- }
-};
 
 /* Pass: fixup_cfg.  IPA passes, compilation of earlier functions or inlining
    might have changed some properties, such as marked functions nothrow.

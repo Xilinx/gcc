@@ -53,7 +53,7 @@ static struct pointer_map_t *edge_var_maps;
 /* Add a mapping with PHI RESULT and PHI DEF associated with edge E.  */
 
 void
-redirect_edge_var_map_add (edge e, tree result, tree def)
+redirect_edge_var_map_add (edge e, tree result, tree def, source_location locus)
 {
   void **slot;
   edge_var_map_vector old_head, head;
@@ -71,6 +71,7 @@ redirect_edge_var_map_add (edge e, tree result, tree def)
     }
   new_node.def = def;
   new_node.result = result;
+  new_node.locus = locus;
 
   VEC_safe_push (edge_var_map, heap, head, &new_node);
   if (old_head != head)
@@ -193,14 +194,16 @@ ssa_redirect_edge (edge e, basic_block dest)
   for (gsi = gsi_start_phis (e->dest); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       tree def;
+      source_location locus ;
 
       phi = gsi_stmt (gsi);
       def = gimple_phi_arg_def (phi, e->dest_idx);
+      locus = gimple_phi_arg_location (phi, e->dest_idx);
 
       if (def == NULL_TREE)
 	continue;
 
-      redirect_edge_var_map_add (e, gimple_phi_result (phi), def);
+      redirect_edge_var_map_add (e, gimple_phi_result (phi), def, locus);
     }
 
   e = redirect_edge_succ_nodup (e, dest);
@@ -233,7 +236,7 @@ flush_pending_stmts (edge e)
 
       phi = gsi_stmt (gsi);
       def = redirect_edge_var_map_def (vm);
-      add_phi_arg (phi, def, e);
+      add_phi_arg (phi, def, e, redirect_edge_var_map_location (vm));
     }
 
   redirect_edge_var_map_clear (e);
@@ -802,50 +805,8 @@ init_tree_ssa (struct function *fn)
 void
 delete_tree_ssa (void)
 {
-  size_t i;
-  basic_block bb;
-  gimple_stmt_iterator gsi;
   referenced_var_iterator rvi;
   tree var;
-
-  /* Release any ssa_names still in use.  */
-  for (i = 0; i < num_ssa_names; i++)
-    {
-      tree var = ssa_name (i);
-      if (var && TREE_CODE (var) == SSA_NAME)
-        {
-	  SSA_NAME_IMM_USE_NODE (var).prev = &(SSA_NAME_IMM_USE_NODE (var));
-	  SSA_NAME_IMM_USE_NODE (var).next = &(SSA_NAME_IMM_USE_NODE (var));
-	}
-      release_ssa_name (var);
-    }
-
-  /* FIXME.  This may not be necessary.  We will release all this
-     memory en masse in free_ssa_operands.  This clearing used to be
-     necessary to avoid problems with the inliner, but it may not be
-     needed anymore.  */
-  FOR_EACH_BB (bb)
-    {
-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-	{
-	  gimple stmt = gsi_stmt (gsi);
-
-	  if (gimple_has_ops (stmt))
-	    {
-	      gimple_set_def_ops (stmt, NULL);
-	      gimple_set_use_ops (stmt, NULL);
-	    }
-
-	  if (gimple_has_mem_ops (stmt))
-	    {
-	      gimple_set_vdef (stmt, NULL_TREE);
-	      gimple_set_vuse (stmt, NULL_TREE);
-	    }
-
-	  gimple_set_modified (stmt, true);
-	}
-      set_phi_nodes (bb, NULL);
-    }
 
   /* Remove annotations from every referenced local variable.  */
   FOR_EACH_REFERENCED_VAR (var, rvi)
@@ -872,6 +833,9 @@ delete_tree_ssa (void)
   cfun->gimple_df->default_defs = NULL;
   pt_solution_reset (&cfun->gimple_df->escaped);
   pt_solution_reset (&cfun->gimple_df->callused);
+  if (cfun->gimple_df->decls_to_pointers != NULL)
+    pointer_map_destroy (cfun->gimple_df->decls_to_pointers);
+  cfun->gimple_df->decls_to_pointers = NULL;
   cfun->gimple_df->modified_noreturn_calls = NULL;
   cfun->gimple_df = NULL;
 
@@ -922,25 +886,20 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 	  || TYPE_PRECISION (inner_type) != TYPE_PRECISION (outer_type))
 	return false;
 
-      /* Conversions from a non-base to a base type are not useless.
-	 This way we preserve the invariant to do arithmetic in
-	 base types only.  */
-      if (TREE_TYPE (inner_type)
-	  && TREE_TYPE (inner_type) != inner_type
-	  && (TREE_TYPE (outer_type) == outer_type
-	      || TREE_TYPE (outer_type) == NULL_TREE))
-	return false;
-
       /* We don't need to preserve changes in the types minimum or
 	 maximum value in general as these do not generate code
 	 unless the types precisions are different.  */
-
       return true;
     }
 
   /* Scalar floating point types with the same mode are compatible.  */
   else if (SCALAR_FLOAT_TYPE_P (inner_type)
 	   && SCALAR_FLOAT_TYPE_P (outer_type))
+    return true;
+
+  /* Fixed point types with the same mode are compatible.  */
+  else if (FIXED_POINT_TYPE_P (inner_type)
+	   && FIXED_POINT_TYPE_P (outer_type))
     return true;
 
   /* We need to take special care recursing to pointed-to types.  */
@@ -960,12 +919,9 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 	  && TYPE_VOLATILE (TREE_TYPE (outer_type)))
 	return false;
 
-      /* Do not lose casts between pointers with different
-	 TYPE_REF_CAN_ALIAS_ALL setting or alias sets.  */
-      if ((TYPE_REF_CAN_ALIAS_ALL (inner_type)
-	   != TYPE_REF_CAN_ALIAS_ALL (outer_type))
-	  || (get_alias_set (TREE_TYPE (inner_type))
-	      != get_alias_set (TREE_TYPE (outer_type))))
+      /* Do not lose casts between pointers that when dereferenced access
+	 memory with different alias sets.  */
+      if (get_deref_alias_set (inner_type) != get_deref_alias_set (outer_type))
 	return false;
 
       /* We do not care for const qualification of the pointed-to types
@@ -999,6 +955,13 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
     {
       /* Different types of aggregates are incompatible.  */
       if (TREE_CODE (inner_type) != TREE_CODE (outer_type))
+	return false;
+
+      /* Conversions from array types with unknown extent to
+	 array types with known extent are not useless.  */
+      if (TREE_CODE (inner_type) == ARRAY_TYPE
+	  && !TYPE_DOMAIN (inner_type)
+	  && TYPE_DOMAIN (outer_type))
 	return false;
 
       /* ???  This seems to be necessary even for aggregates that don't
@@ -1042,12 +1005,17 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 bool
 useless_type_conversion_p (tree outer_type, tree inner_type)
 {
-  /* If the outer type is (void *), then the conversion is not
-     necessary.  We have to make sure to not apply this while
-     recursing though.  */
+  /* If the outer type is (void *) or a pointer to an incomplete record type,
+     then the conversion is not necessary.
+     We have to make sure to not apply this while recursing though.  */
   if (POINTER_TYPE_P (inner_type)
       && POINTER_TYPE_P (outer_type)
-      && TREE_CODE (TREE_TYPE (outer_type)) == VOID_TYPE)
+      && (VOID_TYPE_P (TREE_TYPE (outer_type))
+	  || (AGGREGATE_TYPE_P (TREE_TYPE (outer_type))
+	      && TREE_CODE (TREE_TYPE (outer_type)) != ARRAY_TYPE
+	      && (TREE_CODE (TREE_TYPE (outer_type))
+		  == TREE_CODE (TREE_TYPE (inner_type)))
+	      && !COMPLETE_TYPE_P (TREE_TYPE (outer_type)))))
     return true;
 
   return useless_type_conversion_p_1 (outer_type, inner_type);
@@ -1082,6 +1050,18 @@ tree_ssa_useless_type_conversion (tree expr)
        TREE_TYPE (TREE_OPERAND (expr, 0)));
 
   return false;
+}
+
+/* Strip conversions from EXP according to
+   tree_ssa_useless_type_conversion and return the resulting
+   expression.  */
+
+tree
+tree_ssa_strip_useless_type_conversions (tree exp)
+{
+  while (tree_ssa_useless_type_conversion (exp))
+    exp = TREE_OPERAND (exp, 0);
+  return exp;
 }
 
 
@@ -1263,7 +1243,7 @@ warn_uninit (tree t, const char *gmsgid, void *data)
       if (xloc.file != floc.file
 	  || xloc.line < floc.line
 	  || xloc.line > LOCATION_LINE (cfun->function_end_locus))
-	inform (input_location, "%J%qD was declared here", var, var);
+	inform (DECL_SOURCE_LOCATION (var), "%qD was declared here", var);
     }
 }
 
@@ -1513,14 +1493,20 @@ execute_update_addresses_taken (bool do_optimize)
 	     a local decl that requires not to be a gimple register.  */
 	  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
 	    {
-	      tree lhs = gimple_get_lhs (stmt);
-	      /* A plain decl does not need it set.  */
-	      if (lhs && handled_component_p (lhs))
-	        {
-		  var = get_base_address (lhs);
-		  if (DECL_P (var))
-		    bitmap_set_bit (not_reg_needs, DECL_UID (var));
-		}
+              tree lhs = gimple_get_lhs (stmt);
+              
+              /* We may not rewrite TMR_SYMBOL to SSA.  */
+              if (lhs && TREE_CODE (lhs) == TARGET_MEM_REF
+                  && TMR_SYMBOL (lhs))
+                bitmap_set_bit (not_reg_needs, DECL_UID (TMR_SYMBOL (lhs)));
+
+              /* A plain decl does not need it set.  */
+              else if (lhs && handled_component_p (lhs))
+                {
+                  var = get_base_address (lhs);
+                  if (DECL_P (var))
+                    bitmap_set_bit (not_reg_needs, DECL_UID (var));
+                }
 	    }
 	}
 
@@ -1572,7 +1558,9 @@ execute_update_addresses_taken (bool do_optimize)
 	if (!DECL_GIMPLE_REG_P (var)
 	    && !bitmap_bit_p (not_reg_needs, DECL_UID (var))
 	    && (TREE_CODE (TREE_TYPE (var)) == COMPLEX_TYPE
-		|| TREE_CODE (TREE_TYPE (var)) == VECTOR_TYPE))
+		|| TREE_CODE (TREE_TYPE (var)) == VECTOR_TYPE)
+	    && !TREE_THIS_VOLATILE (var)
+	    && (TREE_CODE (var) != VAR_DECL || !DECL_HARD_REGISTER (var)))
 	  {
 	    DECL_GIMPLE_REG_P (var) = 1;
 	    mark_sym_for_renaming (var);

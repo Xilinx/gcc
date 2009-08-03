@@ -232,6 +232,7 @@ c_common_init_options (unsigned int argc, const char **argv)
   flag_exceptions = c_dialect_cxx ();
   warn_pointer_arith = c_dialect_cxx ();
   warn_write_strings = c_dialect_cxx();
+  flag_warn_unused_result = true;
 
   /* By default, C99-like requirements for complex multiply and divide.  */
   flag_complex_method = 2;
@@ -395,16 +396,14 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	warn_strict_overflow = value;
       warn_array_bounds = value;
       warn_volatile_register_var = value;
+      if (warn_jump_misses_init == -1)
+	warn_jump_misses_init = value;
 
       /* Only warn about unknown pragmas that are not in system
 	 headers.  */
       warn_unknown_pragmas = value;
 
-      /* We save the value of warn_uninitialized, since if they put
-	 -Wuninitialized on the command line, we need to generate a
-	 warning about not using it without also specifying -O.  */
-      if (warn_uninitialized != 1)
-	warn_uninitialized = (value ? 2 : 0);
+      warn_uninitialized = value;
 
       if (!c_dialect_cxx ())
 	{
@@ -449,6 +448,11 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	 implies -Wenum-compare.  */
       if (warn_enum_compare == -1 && value)
 	warn_enum_compare = value;
+      /* Because C++ always warns about a goto which misses an
+	 initialization, -Wc++-compat turns on -Wgoto-misses-init.  */
+      if (warn_jump_misses_init == -1 && value)
+	warn_jump_misses_init = value;
+      cpp_opts->warn_cxx_operator_names = value;
       break;
 
     case OPT_Wdeprecated:
@@ -1057,11 +1061,8 @@ c_common_post_options (const char **pfilename)
   if (flag_objc_exceptions && !flag_objc_sjlj_exceptions)
     flag_exceptions = 1;
 
-  /* -Wextra implies -Wtype-limits, -Wclobbered, 
-     -Wempty-body, -Wsign-compare, 
-     -Wmissing-field-initializers, -Wmissing-parameter-type
-     -Wold-style-declaration, -Woverride-init and -Wignored-qualifiers
-     but not if explicitly overridden.  */
+  /* -Wextra implies the following flags
+     unless explicitly overridden.  */
   if (warn_type_limits == -1)
     warn_type_limits = extra_warnings;
   if (warn_clobbered == -1)
@@ -1080,8 +1081,6 @@ c_common_post_options (const char **pfilename)
     warn_override_init = extra_warnings;
   if (warn_ignored_qualifiers == -1)
     warn_ignored_qualifiers = extra_warnings;
-  if (warn_logical_op == -1)
-    warn_logical_op = extra_warnings;
 
   /* -Wpointer-sign is disabled by default, but it is enabled if any
      of -Wall or -pedantic are given.  */
@@ -1092,6 +1091,8 @@ c_common_post_options (const char **pfilename)
     warn_strict_aliasing = 0;
   if (warn_strict_overflow == -1)
     warn_strict_overflow = 0;
+  if (warn_jump_misses_init == -1)
+    warn_jump_misses_init = 0;
 
   /* -Woverlength-strings is off by default, but is enabled by -pedantic.
      It is never enabled in C++, as the minimum limit is not normative

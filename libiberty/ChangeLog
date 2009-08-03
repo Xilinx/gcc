@@ -1,3 +1,102 @@
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (AUTOCONF, configure_deps): New variables.
+	($(srcdir)/configure): New rule, active only in maintainer mode.
+
+2009-07-29  Douglas B Rupp  <rupp@gnat.com>
+
+	* make-temp-file.c (choose_tmpdir): Try standard temp logical on VMS.
+
+2009-07-27  Douglas B Rupp  <rupp@gnat.com>
+
+	* pex-unix.c (vfork): Remove VMS specific definition (get from header
+	file instead).
+	(to_ptr32): New function.
+	(pex_unix_exec_child): Use it.
+
+2009-07-24  Ian Lance Taylor  <iant@google.com>
+
+	PR bootstrap/40854
+	* crc32.c (xcrc32): Rename from crc32.
+
+2009-07-24  Ian Lance Taylor  <iant@google.com>
+
+	* crc32.c: New file.
+	* Makefile.in: Rebuild dependencies.
+	(CFILES): Add crc32.c.
+	(REQUIRED_OFILES): Add ./crc32.o.
+	* functions.texi: Rebuild.
+
+2009-07-17  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* cp-demangle.c (d_print_comp <DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS>)
+	(d_print_comp <DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS): New.
+	(d_make_comp <DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS>)
+	(d_make_comp <DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS): New.
+	(d_demangle_callback): The variable type is now declared as enum.
+	Replace parser of _GLOBAL_ symbols by a d_make_comp call.
+
+2009-06-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* hashtab.c (htab_traverse): Don't call htab_expand for
+	nearly empty hashtabs with sizes 7, 13 or 31.
+
+2009-06-16  Nick Clifton  <nickc@redhat.com>
+
+	PR 10197
+	* testsuite/test-demangle.c: Rename getline to get_line to avoid
+	conflicts with system function of the same name.
+
+2009-05-30  Eli Zaretskii  <eliz@gnu.org>
+
+	* snprintf.c: Doc fix.
+
+	* vsnprintf.c: Doc fix.
+
+2009-05-29  Kai Tietz  <kai.tietz@onevision.com>
+
+        * pex-win32.c (pex_win32_fdopenr): Set INHERIT to false.
+
+2009-05-29  Michael Matz  <matz@suse.de>
+
+	* fibheap.c (fibheap_replace_key_data): Make sure we don't early
+	out when forcing the minimum.
+	(fibheap_delete_node): Assert that we managed to force the minimum.
+
+2009-05-25  Tristan Gingold  <gingold@adacore.com>
+
+	* config.h-vms: Rewritten.  Define configure macros.
+	Use DEC-C builtin alloca.
+
+	* makefile.vms (OBJS): Update list.
+	(OPT): New variable.
+	(CFLAGS): Update compilation flags.
+	(libiberty.olb): Do not depend on alloca-conf.h anymore.
+
+2009-05-19  Ian Lance Taylor  <iant@google.com>
+	    Ben Elliston  <bje@au.ibm.com>
+
+	* cp-demangle.c (cplus_demangle_fill_ctor): Fix logic bug.
+	(cplus_demangle_fill_dtor): Likewise.
+
+2009-05-17  Julian Brown  <julian@codesourcery.com>
+
+	* pex-win32.c (pex_win32_exec_child): Fix logic to avoid closing
+	standard handles (stdin, stdout, stderr) in parent.
+
+2009-04-29  Julian Brown  <julian@codesourcery.com>
+
+	* pex-win32.c (pex_win32_pipe): Add _O_NOINHERIT.    
+	(pex_win32_exec_child): Ensure each process has only one handle open
+	on pipe endpoints. Close standard input after creating child for
+	symmetry with standard output/standard error.
+
+2009-04-25  Eli Zaretskii  <eliz@gnu.org>
+
+	* Makefile.in (needed-list): Target removed (not used in GCC
+	3.0 and later).  All references deleted.
+	(mostlyclean): Remove references to needed.awk and needed2.awk.
+
 2009-04-14  Eli Zaretskii  <eliz@gnu.org>
 
 	* configure.ac  (setobjs, msdosdjgpp): Move a-priori setting of
@@ -22,7 +121,7 @@
        * libiberty/configure.ac: Fix Linux/MIPS matching rule.
        * libiberty/configure: Regenerate.
 
-2008-03-27  Ian Lance Taylor  <iant@google.com>
+2009-03-27  Ian Lance Taylor  <iant@google.com>
 
 	* memmem.c: New file, from gnulib.
 	* configure.ac: Add memmem to list of functions provided if they

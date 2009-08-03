@@ -54,12 +54,8 @@ extern RTX_CODE arm_canonicalize_comparison (RTX_CODE, enum machine_mode,
 extern int legitimate_pic_operand_p (rtx);
 extern rtx legitimize_pic_address (rtx, enum machine_mode, rtx);
 extern rtx legitimize_tls_address (rtx, rtx);
-extern int arm_legitimate_address_p  (enum machine_mode, rtx, RTX_CODE, int);
-extern int thumb1_legitimate_address_p (enum machine_mode, rtx, int);
-extern int thumb2_legitimate_address_p  (enum machine_mode, rtx, int);
+extern int arm_legitimate_address_outer_p (enum machine_mode, rtx, RTX_CODE, int);
 extern int thumb_legitimate_offset_p (enum machine_mode, HOST_WIDE_INT);
-extern rtx arm_legitimize_address (rtx, rtx, enum machine_mode);
-extern rtx thumb_legitimize_address (rtx, rtx, enum machine_mode);
 extern rtx thumb_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					    int);
 extern int arm_const_double_rtx (rtx);
@@ -88,7 +84,7 @@ extern bool arm_cannot_force_const_mem (rtx);
 
 extern int cirrus_memory_offset (rtx);
 extern int arm_coproc_mem_operand (rtx, bool);
-extern int neon_vector_mem_operand (rtx, bool);
+extern int neon_vector_mem_operand (rtx, int);
 extern int neon_struct_mem_operand (rtx);
 extern int arm_no_early_store_addr_dep (rtx, rtx);
 extern int arm_no_early_alu_shift_dep (rtx, rtx);
@@ -144,6 +140,7 @@ extern void arm_final_prescan_insn (rtx);
 extern int arm_debugger_arg_offset (int, rtx);
 extern bool arm_is_long_call_p (tree);
 extern int    arm_emit_vector_const (FILE *, rtx);
+extern void arm_emit_fp16_const (rtx c);
 extern const char * arm_output_load_gr (rtx *);
 extern const char *vfp_output_fstmd (rtx *);
 extern void arm_set_return_address (rtx, rtx);
@@ -186,7 +183,8 @@ extern rtx arm_return_addr (int, rtx);
 extern void thumb_reload_out_hi (rtx *);
 extern void thumb_reload_in_hi (rtx *);
 extern void thumb_set_return_address (rtx, rtx);
-extern const char *thumb2_output_casesi(rtx *);
+extern const char *thumb1_output_casesi (rtx *);
+extern const char *thumb2_output_casesi (rtx *);
 #endif
 
 /* Defined in pe.c.  */

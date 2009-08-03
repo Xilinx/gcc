@@ -1,5 +1,5 @@
 /* Interprocedural analyses.
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -45,6 +45,24 @@ static struct cgraph_node_hook_list *node_removal_hook_holder;
 static struct cgraph_2edge_hook_list *edge_duplication_hook_holder;
 static struct cgraph_2node_hook_list *node_duplication_hook_holder;
 
+/* Add cgraph NODE described by INFO to the worklist WL regardless of whether
+   it is in one or not.  It should almost never be used directly, as opposed to
+   ipa_push_func_to_list.  */
+
+void
+ipa_push_func_to_list_1 (struct ipa_func_list **wl,
+			 struct cgraph_node *node,
+			 struct ipa_node_params *info)
+{
+  struct ipa_func_list *temp;
+
+  info->node_enqueued = 1;
+  temp = XCNEW (struct ipa_func_list);
+  temp->node = node;
+  temp->next = *wl;
+  *wl = temp;
+}
+
 /* Initialize worklist to contain all functions.  */
 
 struct ipa_func_list *
@@ -57,43 +75,33 @@ ipa_init_func_list (void)
   for (node = cgraph_nodes; node; node = node->next)
     if (node->analyzed)
       {
+	struct ipa_node_params *info = IPA_NODE_REF (node);
 	/* Unreachable nodes should have been eliminated before ipcp and
 	   inlining.  */
 	gcc_assert (node->needed || node->reachable);
-	ipa_push_func_to_list (&wl, node);
+	ipa_push_func_to_list_1 (&wl, node, info);
       }
 
   return wl;
 }
 
-/* Add cgraph node MT to the worklist. Set worklist element WL
-   to point to MT.  */
-
-void
-ipa_push_func_to_list (struct ipa_func_list **wl, struct cgraph_node *mt)
-{
-  struct ipa_func_list *temp;
-
-  temp = XCNEW (struct ipa_func_list);
-  temp->node = mt;
-  temp->next = *wl;
-  *wl = temp;
-}
-
-/* Remove a function from the worklist. WL points to the first
-   element in the list, which is removed.  */
+/* Remove a function from the worklist WL and return it.  */
 
 struct cgraph_node *
-ipa_pop_func_from_list (struct ipa_func_list ** wl)
+ipa_pop_func_from_list (struct ipa_func_list **wl)
 {
+  struct ipa_node_params *info;
   struct ipa_func_list *first;
-  struct cgraph_node *return_func;
+  struct cgraph_node *node;
 
   first = *wl;
   *wl = (*wl)->next;
-  return_func = first->node;
+  node = first->node;
   free (first);
-  return return_func;
+
+  info = IPA_NODE_REF (node);
+  info->node_enqueued = 0;
+  return node;
 }
 
 /* Return index of the formal whose tree is PTREE in function which corresponds
@@ -172,48 +180,30 @@ ipa_initialize_node_params (struct cgraph_node *node)
     }
 }
 
-/* Check STMT to detect whether a formal parameter is directly modified within
-   STMT, the appropriate entry is updated in the modified flags of INFO.
-   Directly means that this function does not check for modifications through
-   pointers or escaping addresses because all TREE_ADDRESSABLE parameters are
-   considered modified anyway.  */
+/* Callback of walk_stmt_load_store_addr_ops for the visit_store and visit_addr
+   parameters.  If OP is a parameter declaration, mark it as modified in the
+   info structure passed in DATA.  */
 
-static void
-ipa_check_stmt_modifications (struct ipa_node_params *info, gimple stmt)
+static bool
+visit_store_addr_for_mod_analysis (gimple stmt ATTRIBUTE_UNUSED,
+				   tree op, void *data)
 {
-  int j;
-  int index;
-  tree lhs;
+  struct ipa_node_params *info = (struct ipa_node_params *) data;
 
-  switch (gimple_code (stmt))
+  if (TREE_CODE (op) == PARM_DECL)
     {
-    case GIMPLE_ASSIGN:
-      lhs = gimple_assign_lhs (stmt);
-
-      while (handled_component_p (lhs))
-	lhs = TREE_OPERAND (lhs, 0);
-      if (TREE_CODE (lhs) == SSA_NAME)
-	lhs = SSA_NAME_VAR (lhs);
-      index = ipa_get_param_decl_index (info, lhs);
-      if (index >= 0)
-	info->params[index].modified = true;
-      break;
-
-    case GIMPLE_ASM:
-      /* Asm code could modify any of the parameters.  */
-      for (j = 0; j < ipa_get_param_count (info); j++)
-	info->params[j].modified = true;
-      break;
-
-    default:
-      break;
+      int index = ipa_get_param_decl_index (info, op);
+      gcc_assert (index >= 0);
+      info->params[index].modified = true;
     }
+
+  return false;
 }
 
 /* Compute which formal parameters of function associated with NODE are locally
-   modified.  Parameters may be modified in NODE if they are TREE_ADDRESSABLE,
-   if they appear on the left hand side of an assignment or if there is an
-   ASM_EXPR in the function.  */
+   modified or their address is taken.  Note that this does not apply on
+   parameters with SSA names but those can and should be analyzed
+   differently.  */
 
 void
 ipa_detect_param_modifications (struct cgraph_node *node)
@@ -222,27 +212,17 @@ ipa_detect_param_modifications (struct cgraph_node *node)
   basic_block bb;
   struct function *func;
   gimple_stmt_iterator gsi;
-  gimple stmt;
   struct ipa_node_params *info = IPA_NODE_REF (node);
-  int i, count;
 
   if (ipa_get_param_count (info) == 0 || info->modification_analysis_done)
     return;
 
   func = DECL_STRUCT_FUNCTION (decl);
   FOR_EACH_BB_FN (bb, func)
-    {
-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-	{
-	  stmt = gsi_stmt (gsi);
-	  ipa_check_stmt_modifications (info, stmt);
-	}
-    }
-
-  count = ipa_get_param_count (info);
-  for (i = 0; i < count; i++)
-    if (TREE_ADDRESSABLE (ipa_get_param (info, i)))
-      info->params[i].modified = true;
+    for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+      walk_stmt_load_store_addr_ops (gsi_stmt (gsi), info, NULL,
+				     visit_store_addr_for_mod_analysis,
+				     visit_store_addr_for_mod_analysis);
 
   info->modification_analysis_done = 1;
 }
@@ -456,6 +436,24 @@ fill_member_ptr_cst_jump_function (struct ipa_jump_func *jfunc,
   jfunc->value.member_cst.delta = delta;
 }
 
+/* If RHS is an SSA_NAMe and it is defined by a simple copy assign statement,
+   return the rhs of its defining statement.  */
+
+static inline tree
+get_ssa_def_if_simple_copy (tree rhs)
+{
+  while (TREE_CODE (rhs) == SSA_NAME && !SSA_NAME_IS_DEFAULT_DEF (rhs))
+    {
+      gimple def_stmt = SSA_NAME_DEF_STMT (rhs);
+
+      if (gimple_assign_single_p (def_stmt))
+	rhs = gimple_assign_rhs1 (def_stmt);
+      else
+	break;
+    }
+  return rhs;
+}
+
 /* Traverse statements from CALL backwards, scanning whether the argument ARG
    which is a member pointer is filled in with constant values.  If it is, fill
    the jump function JFUNC in appropriately.  METHOD_FIELD and DELTA_FIELD are
@@ -482,7 +480,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
       gimple stmt = gsi_stmt (gsi);
       tree lhs, rhs, fld;
 
-      if (!is_gimple_assign (stmt) || gimple_num_ops (stmt) != 2)
+      if (!gimple_assign_single_p (stmt))
 	return;
 
       lhs = gimple_assign_lhs (stmt);
@@ -495,6 +493,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
       fld = TREE_OPERAND (lhs, 1);
       if (!method && fld == method_field)
 	{
+	  rhs = get_ssa_def_if_simple_copy (rhs);
 	  if (TREE_CODE (rhs) == ADDR_EXPR
 	      && TREE_CODE (TREE_OPERAND (rhs, 0)) == FUNCTION_DECL
 	      && TREE_CODE (TREE_TYPE (TREE_OPERAND (rhs, 0))) == METHOD_TYPE)
@@ -512,6 +511,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
 
       if (!delta && fld == delta_field)
 	{
+	  rhs = get_ssa_def_if_simple_copy (rhs);
 	  if (TREE_CODE (rhs) == INTEGER_CST)
 	    {
 	      delta = rhs;
@@ -585,25 +585,28 @@ ipa_compute_jump_functions (struct cgraph_edge *cs)
   compute_cst_member_ptr_arguments (arguments->jump_functions, call);
 }
 
-/* If RHS looks like a rhs of a statement loading pfn from a member pointer
-   formal parameter, return the parameter, otherwise return NULL.  */
+/* If RHS looks like a rhs of a statement loading pfn from a member
+   pointer formal parameter, return the parameter, otherwise return
+   NULL.  If USE_DELTA, then we look for a use of the delta field
+   rather than the pfn.  */
 
 static tree
-ipa_get_member_ptr_load_param (tree rhs)
+ipa_get_member_ptr_load_param (tree rhs, bool use_delta)
 {
   tree rec, fld;
   tree ptr_field;
+  tree delta_field;
 
   if (TREE_CODE (rhs) != COMPONENT_REF)
     return NULL_TREE;
 
   rec = TREE_OPERAND (rhs, 0);
   if (TREE_CODE (rec) != PARM_DECL
-      || !type_like_member_ptr_p (TREE_TYPE (rec), &ptr_field, NULL))
+      || !type_like_member_ptr_p (TREE_TYPE (rec), &ptr_field, &delta_field))
     return NULL_TREE;
 
   fld = TREE_OPERAND (rhs, 1);
-  if (fld == ptr_field)
+  if (use_delta ? (fld == delta_field) : (fld == ptr_field))
     return rec;
   else
     return NULL_TREE;
@@ -613,15 +616,15 @@ ipa_get_member_ptr_load_param (tree rhs)
    parameter, this function returns that parameter.  */
 
 static tree
-ipa_get_stmt_member_ptr_load_param (gimple stmt)
+ipa_get_stmt_member_ptr_load_param (gimple stmt, bool use_delta)
 {
   tree rhs;
 
-  if (!is_gimple_assign (stmt) || gimple_num_ops (stmt) != 2)
+  if (!gimple_assign_single_p (stmt))
     return NULL_TREE;
 
   rhs = gimple_assign_rhs1 (stmt);
-  return ipa_get_member_ptr_load_param (rhs);
+  return ipa_get_member_ptr_load_param (rhs, use_delta);
 }
 
 /* Returns true iff T is an SSA_NAME defined by a statement.  */
@@ -653,7 +656,7 @@ ipa_note_param_call (struct ipa_node_params *info, int formal_id,
   note->formal_id = formal_id;
   note->stmt = stmt;
   note->count = bb->count;
-  note->frequency = compute_call_stmt_bb_frequency (bb);
+  note->frequency = compute_call_stmt_bb_frequency (current_function_decl, bb);
 
   note->next = info->param_calls;
   info->param_calls = note;
@@ -756,15 +759,15 @@ ipa_analyze_call_uses (struct ipa_node_params *info, gimple call)
   d1 = SSA_NAME_DEF_STMT (n1);
   d2 = SSA_NAME_DEF_STMT (n2);
 
-  if ((rec = ipa_get_stmt_member_ptr_load_param (d1)))
+  if ((rec = ipa_get_stmt_member_ptr_load_param (d1, false)))
     {
-      if (ipa_get_stmt_member_ptr_load_param (d2))
+      if (ipa_get_stmt_member_ptr_load_param (d2, false))
 	return;
 
       bb = gimple_bb (d1);
       virt_bb = gimple_bb (d2);
     }
-  else if ((rec = ipa_get_stmt_member_ptr_load_param (d2)))
+  else if ((rec = ipa_get_stmt_member_ptr_load_param (d2, false)))
     {
       bb = gimple_bb (d2);
       virt_bb = gimple_bb (d1);
@@ -797,7 +800,7 @@ ipa_analyze_call_uses (struct ipa_node_params *info, gimple call)
     return;
 
   def = SSA_NAME_DEF_STMT (cond);
-  if (!is_gimple_assign (def) || gimple_num_ops (def) != 3
+  if (!is_gimple_assign (def)
       || gimple_assign_rhs_code (def) != BIT_AND_EXPR
       || !integer_onep (gimple_assign_rhs2 (def)))
     return;
@@ -808,8 +811,8 @@ ipa_analyze_call_uses (struct ipa_node_params *info, gimple call)
 
   def = SSA_NAME_DEF_STMT (cond);
 
-  if (is_gimple_assign (def) && gimple_num_ops (def) == 2
-      && gimple_assign_rhs_code (def) == NOP_EXPR)
+  if (is_gimple_assign (def)
+      && CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def)))
     {
       cond = gimple_assign_rhs1 (def);
       if (!ipa_is_ssa_with_stmt_def (cond))
@@ -817,7 +820,10 @@ ipa_analyze_call_uses (struct ipa_node_params *info, gimple call)
       def = SSA_NAME_DEF_STMT (cond);
     }
 
-  rec2 = ipa_get_stmt_member_ptr_load_param (def);
+  rec2 = ipa_get_stmt_member_ptr_load_param (def,
+					     (TARGET_PTRMEMFUNC_VBIT_LOCATION
+					      == ptrmemfunc_vbit_in_delta));
+
   if (rec != rec2)
     return;
 
@@ -891,7 +897,7 @@ update_jump_functions_after_inlining (struct cgraph_edge *cs,
       /* We must check range due to calls with variable number of arguments:  */
       if (dst->value.formal_id >= (unsigned) ipa_get_cs_argument_count (top))
 	{
-	  dst->type = IPA_BOTTOM;
+	  dst->type = IPA_JF_UNKNOWN;
 	  continue;
 	}
 

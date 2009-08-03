@@ -221,9 +221,6 @@ static bool
 tree_forwarder_block_p (basic_block bb, bool phi_wanted)
 {
   gimple_stmt_iterator gsi;
-  edge_iterator ei;
-  edge e, succ;
-  basic_block dest;
 
   /* BB must have a single outgoing edge.  */
   if (single_succ_p (bb) != 1
@@ -274,23 +271,6 @@ tree_forwarder_block_p (basic_block bb, bool phi_wanted)
       if (dest->loop_father->header == dest)
 	return false;
     }
-
-  /* If we have an EH edge leaving this block, make sure that the
-     destination of this block has only one predecessor.  This ensures
-     that we don't get into the situation where we try to remove two
-     forwarders that go to the same basic block but are handlers for
-     different EH regions.  */
-  succ = single_succ_edge (bb);
-  dest = succ->dest;
-  FOR_EACH_EDGE (e, ei, bb->preds)
-    {
-      if (e->flags & EDGE_EH)
-        {
-	  if (!single_pred_p (dest))
-	    return false;
-	}
-    }
-
   return true;
 }
 
@@ -421,7 +401,8 @@ remove_forwarder_block (basic_block bb)
 	       gsi_next (&gsi))
 	    {
 	      gimple phi = gsi_stmt (gsi);
-	      add_phi_arg (phi, gimple_phi_arg_def (phi, succ->dest_idx), s);
+	      source_location l = gimple_phi_arg_location_from_edge (phi, succ);
+	      add_phi_arg (phi, gimple_phi_arg_def (phi, succ->dest_idx), s, l);
 	    }
 	}
     }
@@ -764,6 +745,7 @@ remove_forwarder_block_with_phi (basic_block bb)
 	{
 	  gimple phi = gsi_stmt (gsi);
 	  tree def = gimple_phi_arg_def (phi, succ->dest_idx);
+	  source_location locus = gimple_phi_arg_location_from_edge (phi, succ);
 
 	  if (TREE_CODE (def) == SSA_NAME)
 	    {
@@ -783,12 +765,13 @@ remove_forwarder_block_with_phi (basic_block bb)
 		  if (def == old_arg)
 		    {
 		      def = new_arg;
+		      locus = redirect_edge_var_map_location (vm);
 		      break;
 		    }
 		}
 	    }
 
-	  add_phi_arg (phi, def, s);
+	  add_phi_arg (phi, def, s, locus);
 	}
 
       redirect_edge_var_map_clear (e);

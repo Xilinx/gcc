@@ -68,19 +68,18 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfglayout.h"
 #include "tree-vectorizer.h"
 #include "tree-pass.h"
+#include "timevar.h"
 
 /* vect_dump will be set to stderr or dump_file if exist.  */
 FILE *vect_dump;
 
 /* vect_verbosity_level set to an invalid value 
    to mark that it's uninitialized.  */
-enum verbosity_levels vect_verbosity_level = MAX_VERBOSITY_LEVEL;
+static enum verbosity_levels vect_verbosity_level = MAX_VERBOSITY_LEVEL;
+static enum verbosity_levels user_vect_verbosity_level = MAX_VERBOSITY_LEVEL;
 
-/* Loop location.  */
-LOC vect_loop_location;
-
-/* Bitmap of virtual variables to be renamed.  */
-bitmap vect_memsyms_to_rename;
+/* Loop or bb location.  */
+LOC vect_location;
 
 /* Vector mapping GIMPLE stmt to stmt_vec_info. */
 VEC(vec_void_p,heap) *stmt_vec_info_vec;
@@ -89,7 +88,7 @@ VEC(vec_void_p,heap) *stmt_vec_info_vec;
 
 /* Function vect_set_verbosity_level.
 
-   Called from toplev.c upon detection of the
+   Called from opts.c upon detection of the
    -ftree-vectorizer-verbose=N option.  */
 
 void
@@ -99,9 +98,10 @@ vect_set_verbosity_level (const char *val)
 
    vl = atoi (val);
    if (vl < MAX_VERBOSITY_LEVEL)
-     vect_verbosity_level = vl;
+     user_vect_verbosity_level = (enum verbosity_levels) vl;
    else
-     vect_verbosity_level = MAX_VERBOSITY_LEVEL - 1;
+     user_vect_verbosity_level 
+      = (enum verbosity_levels) (MAX_VERBOSITY_LEVEL - 1);
 }
 
 
@@ -115,24 +115,40 @@ vect_set_verbosity_level (const char *val)
    print to stderr, otherwise print to the dump file.  */
 
 static void
-vect_set_dump_settings (void)
+vect_set_dump_settings (bool slp)
 {
   vect_dump = dump_file;
 
   /* Check if the verbosity level was defined by the user:  */
-  if (vect_verbosity_level != MAX_VERBOSITY_LEVEL)
+  if (user_vect_verbosity_level != MAX_VERBOSITY_LEVEL)
     {
-      /* If there is no dump file, print to stderr.  */
-      if (!dump_file)
-        vect_dump = stderr;
-      return;
+      vect_verbosity_level = user_vect_verbosity_level;
+      /* Ignore user defined verbosity if dump flags require higher level of
+         verbosity.  */
+      if (dump_file) 
+        {
+          if (((dump_flags & TDF_DETAILS) 
+                && vect_verbosity_level >= REPORT_DETAILS)
+  	       || ((dump_flags & TDF_STATS)
+	            && vect_verbosity_level >= REPORT_UNVECTORIZED_LOCATIONS))
+            return;
+        }
+      else
+        {
+          /* If there is no dump file, print to stderr in case of loop 
+             vectorization.  */ 
+          if (!slp)
+            vect_dump = stderr;
+
+          return;
+        }
     }
 
   /* User didn't specify verbosity level:  */
   if (dump_file && (dump_flags & TDF_DETAILS))
     vect_verbosity_level = REPORT_DETAILS;
   else if (dump_file && (dump_flags & TDF_STATS))
-    vect_verbosity_level = REPORT_UNVECTORIZED_LOOPS;
+    vect_verbosity_level = REPORT_UNVECTORIZED_LOCATIONS;
   else
     vect_verbosity_level = REPORT_NONE;
 
@@ -153,13 +169,13 @@ vect_print_dump_info (enum verbosity_levels vl)
   if (!current_function_decl || !vect_dump)
     return false;
 
-  if (vect_loop_location == UNKNOWN_LOC)
+  if (vect_location == UNKNOWN_LOC)
     fprintf (vect_dump, "\n%s:%d: note: ",
 	     DECL_SOURCE_FILE (current_function_decl),
 	     DECL_SOURCE_LINE (current_function_decl));
   else
     fprintf (vect_dump, "\n%s:%d: note: ", 
-	     LOC_FILE (vect_loop_location), LOC_LINE (vect_loop_location));
+	     LOC_FILE (vect_location), LOC_LINE (vect_location));
 
   return true;
 }
@@ -167,7 +183,7 @@ vect_print_dump_info (enum verbosity_levels vl)
 
 /* Function vectorize_loops.
    
-   Entry Point to loop vectorization phase.  */
+   Entry point to loop vectorization phase.  */
 
 unsigned
 vectorize_loops (void)
@@ -185,11 +201,7 @@ vectorize_loops (void)
     return 0;
 
   /* Fix the verbosity level if not defined explicitly by the user.  */
-  vect_set_dump_settings ();
-
-  /* Allocate the bitmap that records which virtual variables that 
-     need to be renamed.  */
-  vect_memsyms_to_rename = BITMAP_ALLOC (NULL);
+  vect_set_dump_settings (false);
 
   init_stmt_vec_info_vec ();
 
@@ -203,7 +215,7 @@ vectorize_loops (void)
       {
 	loop_vec_info loop_vinfo;
 
-	vect_loop_location = find_loop_location (loop);
+	vect_location = find_loop_location (loop);
 	loop_vinfo = vect_analyze_loop (loop);
 	loop->aux = loop_vinfo;
 
@@ -213,18 +225,19 @@ vectorize_loops (void)
 	vect_transform_loop (loop_vinfo);
 	num_vectorized_loops++;
       }
-  vect_loop_location = UNKNOWN_LOC;
+
+  vect_location = UNKNOWN_LOC;
 
   statistics_counter_event (cfun, "Vectorized loops", num_vectorized_loops);
-  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS)
-      || (vect_print_dump_info (REPORT_VECTORIZED_LOOPS)
+  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS)
+      || (vect_print_dump_info (REPORT_VECTORIZED_LOCATIONS)
 	  && num_vectorized_loops > 0))
     fprintf (vect_dump, "vectorized %u loops in function.\n",
 	     num_vectorized_loops);
 
   /*  ----------- Finalize. -----------  */
 
-  BITMAP_FREE (vect_memsyms_to_rename);
+  mark_sym_for_renaming (gimple_vop (cfun));
 
   for (i = 1; i < vect_loops_num; i++)
     {
@@ -244,6 +257,68 @@ vectorize_loops (void)
 }
  
 
+/*  Entry point to basic block SLP phase.  */
+
+static unsigned int
+execute_vect_slp (void)
+{
+  basic_block bb;
+
+  /* Fix the verbosity level if not defined explicitly by the user.  */
+  vect_set_dump_settings (true);
+
+  init_stmt_vec_info_vec ();
+
+  FOR_EACH_BB (bb)
+    {
+      vect_location = find_bb_location (bb);
+
+      if (vect_slp_analyze_bb (bb))
+        {
+          vect_slp_transform_bb (bb);
+
+          if (vect_print_dump_info (REPORT_VECTORIZED_LOCATIONS))
+            fprintf (vect_dump, "basic block vectorized using SLP\n");
+        }
+    }
+
+  free_stmt_vec_info_vec ();
+  return 0;
+}
+
+static bool
+gate_vect_slp (void)
+{
+  /* Apply SLP either if the vectorizer is on and the user didn't specify 
+     whether to run SLP or not, or if the SLP flag was set by the user.  */
+  return ((flag_tree_vectorize != 0 && flag_tree_slp_vectorize != 0) 
+          || flag_tree_slp_vectorize == 1);
+}
+
+struct gimple_opt_pass pass_slp_vectorize =
+{
+ {
+  GIMPLE_PASS,
+  "slp",                                /* name */
+  gate_vect_slp,                        /* gate */
+  execute_vect_slp,                     /* execute */
+  NULL,                                 /* sub */
+  NULL,                                 /* next */
+  0,                                    /* static_pass_number */
+  TV_TREE_SLP_VECTORIZATION,            /* tv_id */
+  PROP_ssa | PROP_cfg,                  /* properties_required */
+  0,                                    /* properties_provided */
+  0,                                    /* properties_destroyed */
+  0,                                    /* todo_flags_start */
+  TODO_ggc_collect
+    | TODO_verify_ssa
+    | TODO_dump_func
+    | TODO_update_ssa   
+    | TODO_verify_stmts                 /* todo_flags_finish */
+ }
+};
+
+
 /* Increase alignment of global arrays to improve vectorization potential.
    TODO:
    - Consider also structs that have an array field.
@@ -262,11 +337,13 @@ increase_alignment (void)
        vnode = vnode->next_needed)
     {
       tree vectype, decl = vnode->decl;
+      tree t;
       unsigned int alignment;
 
-      if (TREE_CODE (TREE_TYPE (decl)) != ARRAY_TYPE)
+      t = TREE_TYPE(decl);
+      if (TREE_CODE (t) != ARRAY_TYPE)
         continue;
-      vectype = get_vectype_for_scalar_type (TREE_TYPE (TREE_TYPE (decl)));
+      vectype = get_vectype_for_scalar_type (strip_array_types (t));
       if (!vectype)
         continue;
       alignment = TYPE_ALIGN (vectype);
@@ -281,6 +358,7 @@ increase_alignment (void)
             {
               fprintf (dump_file, "Increasing alignment of decl: ");
               print_generic_expr (dump_file, decl, TDF_SLIM);
+	      fprintf (dump_file, "\n");
             }
         }
     }

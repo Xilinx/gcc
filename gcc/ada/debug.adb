@@ -87,7 +87,7 @@ package body Debug is
    --  dU   Enable garbage collection of unreachable entities
    --  dV   Enable viewing of all symbols in debugger
    --  dW   Disable warnings on calls for IN OUT parameters
-   --  dX
+   --  dX   Display messages on reads of potentially uninitialized scalars
    --  dY   Enable configurable run-time mode
    --  dZ   Generate listing showing the contents of the dispatch tables
 
@@ -104,7 +104,7 @@ package body Debug is
    --  d.k
    --  d.l  Use Ada 95 semantics for limited function returns
    --  d.m  For -gnatl, print full source only for main unit
-   --  d.n
+   --  d.n  Print source file names
    --  d.o
    --  d.p
    --  d.q
@@ -126,13 +126,13 @@ package body Debug is
    --  d.F
    --  d.G
    --  d.H
-   --  d.I  Inspector mode
-   --  d.J
+   --  d.I  SCIL generation mode
+   --  d.J  Parallel SCIL generation mode
    --  d.K
    --  d.L
    --  d.M
    --  d.N
-   --  d.O
+   --  d.O  Dump internal SCO tables
    --  d.P
    --  d.Q
    --  d.R
@@ -523,6 +523,10 @@ package body Debug is
    --       main source (this corresponds to a previous behavior of -gnatl and
    --       is used for running the ACATS tests).
 
+   --  d.n  Print source file names as they are loaded. This is useful if the
+   --       compiler has a bug -- these are the files that need to be included
+   --       in a bug report.
+
    --  d.r  Forces the flag OK_To_Reorder_Components to be set in all record
    --       base types that have no discriminants.
 
@@ -551,9 +555,17 @@ package body Debug is
    --  d.C  Generate call to System.Concat_n.Str_Concat_n routines in cases
    --       where we would normally generate inline concatenation code.
 
-   --  d.I  Inspector mode. Relevant for VM_Target /= None. Try to generate
-   --       byte code, even in case of unsupported construct, for the sake
-   --       of static analysis tools.
+   --  d.I  Generate SCIL mode. Generate intermediate code for the sake of
+   --       of static analysis tools, and ensure additional tree consistency
+   --       between different compilations of specs.
+
+   --  d.J  Ensure the SCIL generated is compatible with parallel builds.
+   --       This means in particular not writing the same files under the
+   --       same directory.
+
+   --  d.O  Dump internal SCO tables. Before outputting the SCO information to
+   --       the ALI file, the internal SCO tables (SCO_Table/SCO_Unit_Table)
+   --       are dumped for debugging purposes.
 
    --  d.S  Force Optimize_Alignment (Space) mode as the default
 

@@ -64,7 +64,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       sentry __cerb(*this, true);
       if (__cerb && __n > 0)
 	{
-	  ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+	  ios_base::iostate __err = ios_base::goodbit;
 	  __try
 	    {
 	      const int_type __eof = traits_type::eof();
@@ -136,7 +136,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       sentry __cerb(*this, true);
       if (__cerb && __n > 0)
 	{
-	  ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+	  ios_base::iostate __err = ios_base::goodbit;
 	  __try
 	    {
 	      const int_type __eof = traits_type::eof();
@@ -502,17 +502,34 @@ extern void *_ZTVN10__cxxabiv119__pointer_type_infoE[];
 extern __attribute__((used, weak)) const char _ZTSe[2] = "e";
 extern __attribute__((used, weak)) const char _ZTSPe[3] = "Pe";
 extern __attribute__((used, weak)) const char _ZTSPKe[4] = "PKe";
-extern __attribute__((used, weak)) const void *_ZTIe[2]
+extern __attribute__((used, weak)) const void * const _ZTIe[2]
   = { (void *) &_ZTVN10__cxxabiv123__fundamental_type_infoE[2],
       (void *) _ZTSe };
-extern __attribute__((used, weak)) const void *_ZTIPe[4]
+extern __attribute__((used, weak)) const void * const _ZTIPe[4]
   = { (void *) &_ZTVN10__cxxabiv119__pointer_type_infoE[2],
       (void *) _ZTSPe, (void *) 0L, (void *) _ZTIe };
-extern __attribute__((used, weak)) const void *_ZTIPKe[4]
+extern __attribute__((used, weak)) const void * const _ZTIPKe[4]
   = { (void *) &_ZTVN10__cxxabiv119__pointer_type_infoE[2],
       (void *) _ZTSPKe, (void *) 1L, (void *) _ZTIe };
 #endif // _GLIBCXX_LONG_DOUBLE_COMPAT
 
+// gcc-4.4.0
+// <mutex> exported std::lock_error
+#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
+namespace std
+{
+  class lock_error : public exception
+  {
+  public:
+    virtual const char*
+    _GLIBCXX_CONST what() const throw();
+  };
+
+  const char*
+  lock_error::what() const throw()
+  { return "std::lock_error"; }
+}
+#endif
 
 
 #ifdef _GLIBCXX_SYMVER_DARWIN

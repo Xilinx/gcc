@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for NEC V850 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007, 2008 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
    This file is part of GCC.
@@ -58,7 +58,6 @@ static void substitute_ep_register   (rtx, rtx, int, int, rtx *, rtx *);
 static void v850_reorg		     (void);
 static int  ep_memory_offset         (enum machine_mode, int);
 static void v850_set_data_area       (tree, v850_data_area);
-const struct attribute_spec v850_attribute_table[];
 static tree v850_handle_interrupt_attribute (tree *, tree, tree, int, bool *);
 static tree v850_handle_data_area_attribute (tree *, tree, tree, int, bool *);
 static void v850_insert_attributes   (tree, tree *);
@@ -103,6 +102,20 @@ static GTY(()) section *rozdata_section;
 static GTY(()) section *tdata_section;
 static GTY(()) section *zdata_section;
 static GTY(()) section *zbss_section;
+
+/* V850 specific attributes.  */
+
+static const struct attribute_spec v850_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  { "interrupt_handler", 0, 0, true,  false, false, v850_handle_interrupt_attribute },
+  { "interrupt",         0, 0, true,  false, false, v850_handle_interrupt_attribute },
+  { "sda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
+  { "tda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
+  { "zda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
+  { NULL,                0, 0, false, false, false, NULL }
+};
+
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -420,10 +433,12 @@ const_costs (rtx r, enum rtx_code c)
 
 static bool
 v850_rtx_costs (rtx x,
-                int code,
+                int codearg,
                 int outer_code ATTRIBUTE_UNUSED,
                 int * total, bool speed)
 {
+  enum rtx_code code = (enum rtx_code) codearg;
+
   switch (code)
     {
     case CONST_INT:
@@ -463,6 +478,11 @@ v850_rtx_costs (rtx x,
       else
 	*total = 20;
       return true;
+
+    case ZERO_EXTRACT:
+      if (outer_code == COMPARE)
+	*total = 0;
+      return false;
 
     default:
       return false;
@@ -1857,7 +1877,7 @@ Saved %d bytes via epilogue function (%d vs. %d) in function %s\n",
 	init_stack_free = (signed) actual_fsize;
 
       /* Deallocate the rest of the stack if it is > 32K.  */
-      if (actual_fsize > init_stack_free)
+      if ((unsigned int) actual_fsize > init_stack_free)
 	{
 	  int diff;
 
@@ -1931,7 +1951,7 @@ Saved %d bytes via epilogue function (%d vs. %d) in function %s\n",
       else if (actual_fsize)
 	emit_jump_insn (gen_return_internal ());
       else
-	emit_jump_insn (gen_return ());
+	emit_jump_insn (gen_return_simple ());
     }
 
   v850_interrupt_cache_p = FALSE;
@@ -2023,17 +2043,6 @@ v850_set_data_area (tree decl, v850_data_area data_area)
     (name, NULL, DECL_ATTRIBUTES (decl));
 }
 
-const struct attribute_spec v850_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "interrupt_handler", 0, 0, true,  false, false, v850_handle_interrupt_attribute },
-  { "interrupt",         0, 0, true,  false, false, v850_handle_interrupt_attribute },
-  { "sda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
-  { "tda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
-  { "zda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
-  { NULL,                0, 0, false, false, false, NULL }
-};
-
 /* Handle an "interrupt" attribute; arguments as in
    struct attribute_spec.handler.  */
 static tree
@@ -2045,8 +2054,8 @@ v850_handle_interrupt_attribute (tree * node,
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -2081,8 +2090,9 @@ v850_handle_data_area_attribute (tree* node,
     case VAR_DECL:
       if (current_function_decl != NULL_TREE)
 	{
-          error ("%Jdata area attributes cannot be specified for "
-                 "local variables", decl);
+          error_at (DECL_SOURCE_LOCATION (decl),
+		    "data area attributes cannot be specified for "
+		    "local variables");
 	  *no_add_attrs = true;
 	}
 

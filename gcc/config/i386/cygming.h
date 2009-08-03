@@ -73,7 +73,8 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_OS_CPP_BUILTINS()					\
   do									\
     {									\
-	builtin_define ("_X86_=1");					\
+	if (!TARGET_64BIT)						\
+	  builtin_define ("_X86_=1");					\
 	builtin_assert ("system=winnt");				\
 	builtin_define ("__stdcall=__attribute__((__stdcall__))");	\
 	builtin_define ("__fastcall=__attribute__((__fastcall__))");	\
@@ -286,6 +287,10 @@ do {						\
 /* The logic of this #if must be kept synchronised with the logic
    for selecting the tmake_eh_file fragment in config.gcc.  */
 #define DWARF2_UNWIND_INFO 1
+/* If multilib is selected break build as sjlj is required.  */
+#if defined (TARGET_BI_ARCH)
+#error For 64-bit windows and 32-bit based multilib version of gcc just SJLJ exceptions are supported.
+#endif
 #else
 #define DWARF2_UNWIND_INFO 0
 #endif

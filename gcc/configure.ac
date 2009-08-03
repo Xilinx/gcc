@@ -276,6 +276,7 @@ rm -f a.out a.exe b.out
 # Find the native compiler
 AC_PROG_CC
 AM_PROG_CC_C_O
+AC_PROG_CXX
 ACX_PROG_GNAT([-I"$srcdir"/ada])
 
 # autoconf is lame and doesn't give us any substitution variable for this.
@@ -323,24 +324,30 @@ AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
 # So, we only use -pedantic if we can disable those warnings.
 
 ACX_PROG_CC_WARNING_OPTS(
-	m4_quote(m4_do([-W -Wall -Wwrite-strings -Wstrict-prototypes ],
-		       [-Wmissing-prototypes -Wcast-qual])), [loose_warn])
+	m4_quote(m4_do([-W -Wall -Wwrite-strings -Wcast-qual])), [loose_warn])
 ACX_PROG_CC_WARNING_OPTS(
-	m4_quote(m4_do([-Wold-style-definition -Wc++-compat ], 
-		       [-Wmissing-format-attribute])), [strict_warn])
+	m4_quote(m4_do([-Wstrict-prototypes -Wmissing-prototypes])),
+	[c_loose_warn])
+ACX_PROG_CC_WARNING_OPTS(
+	m4_quote(m4_do([-Wmissing-format-attribute])), [strict_warn])
+ACX_PROG_CC_WARNING_OPTS(
+	m4_quote(m4_do([-Wold-style-definition -Wc++-compat])), [c_strict_warn])
 ACX_PROG_CC_WARNING_ALMOST_PEDANTIC(
 	m4_quote(m4_do([-Wno-long-long -Wno-variadic-macros ], 
 		       [-Wno-overlength-strings])), [strict_warn])
 ACX_PROG_CC_WARNINGS_ARE_ERRORS([manual], [strict_warn])
 
 # The above macros do nothing if the compiler is not GCC.  However, the
-# Makefile has more goo to add other flags, so this variabl is used to
-# enables warnings only for GCC.
+# Makefile has more goo to add other flags, so these variables are used
+# to enable warnings only for GCC.
 warn_cflags=
+warn_cxxflags=
 if test "x$GCC" = "xyes"; then
   warn_cflags='$(GCC_WARN_CFLAGS)'
+  warn_cxxflags='$(GCC_WARN_CXXFLAGS)'
 fi
 AC_SUBST(warn_cflags)
+AC_SUBST(warn_cxxflags)
 
 # Enable expensive internal checks
 is_release=
@@ -572,6 +579,13 @@ fi
 # -------------------------------
 # Miscenalleous configure options
 # -------------------------------
+
+# See if we are building gcc with C++.
+AC_ARG_ENABLE(build-with-cxx,
+[  --enable-build-with-cxx build with C++ compiler instead of C compiler],
+ENABLE_BUILD_WITH_CXX=$enableval,
+ENABLE_BUILD_WITH_CXX=no)
+AC_SUBST(ENABLE_BUILD_WITH_CXX)
 
 # With stabs
 AC_ARG_WITH(stabs,
@@ -1495,6 +1509,32 @@ static const struct {
 EOF
 changequote([,])dnl
 
+changequote(,)dnl
+gcc_BASEVER=`cat $srcdir/BASE-VER`
+gcc_DEVPHASE=`cat $srcdir/DEV-PHASE`
+gcc_DATESTAMP=`cat $srcdir/DATESTAMP`
+if test -f $srcdir/REVISION ; then
+	gcc_REVISION=`cat $srcdir/REVISION`
+else
+        gcc_REVISION=""
+fi
+cat > plugin-version.h <<EOF
+#include "configargs.h"
+
+static char basever[] = "$gcc_BASEVER";
+static char datestamp[] = "$gcc_DATESTAMP";
+static char devphase[] = "$gcc_DEVPHASE";
+static char revision[] = "$gcc_REVISION";
+
+/* FIXME plugins: We should make the version information more precise.
+   One way to do is to add a checksum. */
+
+static struct plugin_gcc_version gcc_version = {basever, datestamp,
+						devphase, revision,
+						configuration_arguments};
+EOF
+changequote([,])dnl
+
 # Internationalization
 ZW_GNU_GETTEXT_SISTER_DIR
 
@@ -2382,6 +2422,15 @@ AC_DEFINE_UNQUOTED(HAVE_COMDAT_GROUP,
   [`if test $gcc_cv_as_comdat_group = yes || test $gcc_cv_as_comdat_group_percent = yes; then echo 1; else echo 0; fi`],
 [Define 0/1 if your assembler and linker support COMDAT groups.])
 
+gcc_GAS_CHECK_FEATURE([line table discriminator support],
+ gcc_cv_as_discriminator,
+ [2,19,51],,
+[	.text
+	.file 1 "conf.c"
+	.loc 1 1 0 discriminator 1],,
+[AC_DEFINE(HAVE_GAS_DISCRIMINATOR, 1,
+  [Define if your assembler supports the .loc discriminator sub-directive.])])
+
 # Thread-local storage - the check is heavily parameterized.
 conftest_s=
 tls_first_major=
@@ -2543,6 +2592,22 @@ x:
 	tls_first_major=2
 	tls_first_minor=16
 	tls_as_opt='-32 --fatal-warnings'
+	;;
+  m68k-*-*)
+    conftest_s='
+	.section .tdata,"awT",@progbits
+x:
+	.word 2
+	.text
+foo:
+	move.l x@TLSGD(%a5),%a0
+	move.l x@TLSLDM(%a5),%a0
+	move.l x@TLSLDO(%a5),%a0
+	move.l x@TLSIE(%a5),%a0
+	move.l x@TLSLE(%a5),%a0'
+	tls_first_major=2
+	tls_first_minor=19
+	tls_as_opt='--fatal-warnings'
 	;;
   powerpc-*-*)
     conftest_s='
@@ -2912,6 +2977,15 @@ changequote(,)dnl
 changequote([,])dnl
     case $target_os in
       cygwin* | pe | mingw32*)
+	# Recent binutils allows the three-operand form of ".comm" on PE.  This
+	# definition is used unconditionally to initialise the default state of
+	# the target option variable that governs usage of the feature.
+	gcc_GAS_CHECK_FEATURE([.comm with alignment], gcc_cv_as_comm_has_align,
+	 [2,19,52],,[.comm foo,1,32])
+	AC_DEFINE_UNQUOTED(HAVE_GAS_ALIGNED_COMM,
+	  [`if test $gcc_cv_as_comm_has_align = yes; then echo 1; else echo 0; fi`],
+	  [Define if your assembler supports specifying the alignment
+	   of objects allocated using the GAS .comm command.])
 	# Used for DWARF 2 in PE
 	gcc_GAS_CHECK_FEATURE([.secrel32 relocs],
 	  gcc_cv_as_ix86_pe_secrel32,
@@ -2931,10 +3005,16 @@ foo:	nop
     esac
 
     gcc_GAS_CHECK_FEATURE([filds and fists mnemonics],
-       gcc_cv_as_ix86_filds_fists,
-      [2,9,0],, [filds mem; fists mem],,
-      [AC_DEFINE(HAVE_GAS_FILDS_FISTS, 1,
-        [Define if your assembler uses the new HImode fild and fist notation.])])
+       gcc_cv_as_ix86_filds,,,
+       [filds mem; fists mem],,
+       [AC_DEFINE(HAVE_AS_IX86_FILDS, 1,
+         [Define if your assembler uses filds and fists mnemonics.])])
+
+    gcc_GAS_CHECK_FEATURE([fildq and fistpq mnemonics],
+       gcc_cv_as_ix86_fildq,,,
+       [fildq mem; fistpq mem],,
+       [AC_DEFINE(HAVE_AS_IX86_FILDQ, 1,
+         [Define if your assembler uses fildq and fistq mnemonics.])])
 
     gcc_GAS_CHECK_FEATURE([cmov syntax],
       gcc_cv_as_ix86_cmov_sun_syntax,,,
@@ -3059,7 +3139,7 @@ foo:	nop
     esac
 
     gcc_GAS_CHECK_FEATURE([move fp gpr support],
-      gcc_cv_as_powerpc_mfpgpr, [9,99,0],,
+      gcc_cv_as_powerpc_mfpgpr, [2,19,2],,
       [$conftest_s],,
       [AC_DEFINE(HAVE_AS_MFPGPR, 1,
 	  [Define if your assembler supports mffgpr and mftgpr.])])
@@ -3093,7 +3173,7 @@ LCF0:
     esac
 
     gcc_GAS_CHECK_FEATURE([compare bytes support],
-      gcc_cv_as_powerpc_cmpb, [9,99,0], -a32,
+      gcc_cv_as_powerpc_cmpb, [2,19,2], -a32,
       [$conftest_s],,
       [AC_DEFINE(HAVE_AS_CMPB, 1,
 	  [Define if your assembler supports cmpb.])])
@@ -3108,7 +3188,7 @@ LCF0:
     esac
 
     gcc_GAS_CHECK_FEATURE([decimal float support],
-      gcc_cv_as_powerpc_dfp, [9,99,0], -a32,
+      gcc_cv_as_powerpc_dfp, [2,19,2], -a32,
       [$conftest_s],,
       [AC_DEFINE(HAVE_AS_DFP, 1,
 	  [Define if your assembler supports DFP instructions.])])
@@ -3123,10 +3203,38 @@ LCF0:
     esac
 
     gcc_GAS_CHECK_FEATURE([vector-scalar support],
-      gcc_cv_as_powerpc_vsx, [9,99,0], -a32,
+      gcc_cv_as_powerpc_vsx, [2,19,2], -a32,
       [$conftest_s],,
       [AC_DEFINE(HAVE_AS_VSX, 1,
 	  [Define if your assembler supports VSX instructions.])])
+
+    case $target in
+      *-*-aix*) conftest_s='	.machine "pwr7"
+	.csect .text[[PR]]
+	popcntd 3,3';;
+      *) conftest_s='	.machine power7
+	.text
+	popcntd 3,3';;
+    esac
+
+    gcc_GAS_CHECK_FEATURE([popcntd support],
+      gcc_cv_as_powerpc_popcntd, [2,19,2], -a32,
+      [$conftest_s],,
+      [AC_DEFINE(HAVE_AS_POPCNTD, 1,
+	  [Define if your assembler supports POPCNTD instructions.])])
+
+    case $target in
+      *-*-aix*) conftest_s='	.csect .text[[PR]]
+	lwsync';;
+      *) conftest_s='	.text
+	lwsync';;
+    esac
+
+    gcc_GAS_CHECK_FEATURE([lwsync support],
+      gcc_cv_as_powerpc_lwsync, [2,19,2], -a32,
+      [$conftest_s],,
+      [AC_DEFINE(HAVE_AS_LWSYNC, 1,
+	  [Define if your assembler supports LWSYNC instructions.])])
 
     gcc_GAS_CHECK_FEATURE([.gnu_attribute support],
       gcc_cv_as_powerpc_gnu_attribute, [2,18,0],,
@@ -3478,6 +3586,41 @@ EOF
     ;;
 esac
 
+AC_CACHE_CHECK(linker --build-id support,
+  gcc_cv_ld_buildid,
+  [gcc_cv_ld_buildid=no
+  if test $in_tree_ld = yes ; then
+    if test "$gcc_cv_gld_major_version" -eq 2 -a \
+       "$gcc_cv_gld_minor_version" -ge 18 -o \
+       "$gcc_cv_gld_major_version" -gt 2 \
+       && test $in_tree_ld_is_elf = yes; then
+      gcc_cv_ld_buildid=yes
+    fi
+  elif test x$gcc_cv_ld != x; then
+    if $gcc_cv_ld --help 2>/dev/null | grep build-id > /dev/null; then
+      gcc_cv_ld_buildid=yes
+    fi
+  fi])
+if test x"$gcc_cv_ld_buildid" = xyes; then
+  AC_DEFINE(HAVE_LD_BUILDID, 1,
+  [Define if your linker supports --build-id.])
+fi
+
+AC_ARG_ENABLE(linker-build-id,
+[  --enable-linker-build-id
+                          compiler will always pass --build-id to linker],
+[],
+enable_linker_build_id=no)
+
+if test x"$enable_linker_build_id" = xyes; then
+  if test x"$gcc_cv_ld_buildid" = xyes; then
+    AC_DEFINE(ENABLE_LD_BUILDID, 1,
+    [Define if gcc should always pass --build-id to linker.])
+  else
+    AC_MSG_WARN(--build-id is not supported by your linker; --enable-linker-build-id ignored)
+  fi
+fi
+
 AC_CACHE_CHECK(linker --sysroot support,
   gcc_cv_ld_sysroot,
   [gcc_cv_ld_sysroot=no
@@ -3619,6 +3762,13 @@ esac],
 [GGC=ggc-page])
 AC_SUBST(GGC)
 echo "Using $GGC for garbage collection."
+
+# Libraries to use on the host.  This will normally be set by the top
+# level Makefile.  Here we simply capture the value for our Makefile.
+if test -z "${HOST_LIBS+set}"; then
+  HOST_LIBS=
+fi
+AC_SUBST(HOST_LIBS)
 
 # Use the system's zlib library.
 zlibdir=-L../zlib
@@ -3792,7 +3942,7 @@ touch Make-hooks
 target_list="all.cross start.encap rest.encap tags \
 	install-common install-man install-info install-pdf dvi pdf \
 	html uninstall info man srcextra srcman srcinfo \
-	mostlyclean clean distclean maintainer-clean"
+	mostlyclean clean distclean maintainer-clean install-plugin"
 
 for t in $target_list
 do
@@ -3947,6 +4097,10 @@ fi
 
 AC_ARG_VAR(GMPLIBS,[How to link GMP])
 AC_ARG_VAR(GMPINC,[How to find GMP include files])
+
+case "${GMPLIBS}" in
+  *-lmpc*) AC_DEFINE(HAVE_mpc, 1, [Define if mpc is in use.]) ;;
+esac
 
 AC_ARG_VAR(PPLLIBS,[How to link PPL])
 AC_ARG_VAR(PPLINC,[How to find PPL include files])

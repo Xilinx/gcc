@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -54,6 +54,7 @@ with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch7;  use Sem_Ch7;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Snames;   use Snames;
@@ -442,17 +443,32 @@ package body Exp_Ch7 is
             New_Reference_To
               (RTE (RE_List_Controller), Loc));
 
+      --  If the type is declared in a package declaration and designates a
+      --  Taft amendment type that requires finalization, place declaration
+      --  of finalization list in the body, because no client of the package
+      --  can create objects of the type and thus make use of this list. This
+      --  ensures the tree for the spec is identical whenever it is compiled.
+
+      if Has_Completion_In_Body (Directly_Designated_Type (Typ))
+        and then In_Package_Body (Current_Scope)
+        and then Nkind (Unit (Cunit (Current_Sem_Unit))) = N_Package_Body
+        and then
+          Nkind (Parent (Declaration_Node (Typ))) = N_Package_Specification
+      then
+         Insert_Action (Parent (Designated_Type (Typ)), Decl);
+
       --  The type may have been frozen already, and this is a late freezing
       --  action, in which case the declaration must be elaborated at once.
       --  If the call is for an allocator, the chain must also be created now,
       --  because the freezing of the type does not build one. Otherwise, the
       --  declaration is one of the freezing actions for a user-defined type.
 
-      if Is_Frozen (Typ)
+      elsif Is_Frozen (Typ)
         or else (Nkind (N) = N_Allocator
                   and then Ekind (Etype (N)) = E_Anonymous_Access_Type)
       then
          Insert_Action (N, Decl);
+
       else
          Append_Freeze_Action (Typ, Decl);
       end if;
@@ -3536,9 +3552,8 @@ package body Exp_Ch7 is
 
    procedure Wrap_Transient_Expression (N : Node_Id) is
       Loc  : constant Source_Ptr := Sloc (N);
-      E    : constant Entity_Id :=
-               Make_Defining_Identifier (Loc, New_Internal_Name ('E'));
-      Etyp : constant Entity_Id := Etype (N);
+      E    : constant Entity_Id  := Make_Temporary (Loc, 'E', N);
+      Etyp : constant Entity_Id  := Etype (N);
 
    begin
       Insert_Actions (N, New_List (
@@ -3588,6 +3603,15 @@ package body Exp_Ch7 is
       New_Statement : constant Node_Id := Relocate_Node (N);
 
    begin
+      --  If the relocated node is a procedure call then check if some SCIL
+      --  node references it and needs readjustment.
+
+      if Generate_SCIL
+        and then Nkind (New_Statement) = N_Procedure_Call_Statement
+      then
+         Adjust_SCIL_Node (N, New_Statement);
+      end if;
+
       Rewrite (N, Make_Transient_Block (Loc, New_Statement));
 
       --  With the scope stack back to normal, we can call analyze on the

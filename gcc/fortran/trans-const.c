@@ -176,7 +176,7 @@ gfc_conv_string_init (tree length, gfc_expr * expr)
 void
 gfc_conv_const_charlen (gfc_charlen * cl)
 {
-  if (cl->backend_decl)
+  if (!cl || cl->backend_decl)
     return;
 
   if (cl->length && cl->length->expr_type == EXPR_CONSTANT)
@@ -307,9 +307,9 @@ gfc_conv_constant_to_tree (gfc_expr * expr)
 						    expr->representation.string));
       else
 	{
-	  tree real = gfc_conv_mpfr_to_tree (expr->value.complex.r,
+	  tree real = gfc_conv_mpfr_to_tree (mpc_realref (expr->value.complex),
 					  expr->ts.kind, expr->is_snan);
-	  tree imag = gfc_conv_mpfr_to_tree (expr->value.complex.i,
+	  tree imag = gfc_conv_mpfr_to_tree (mpc_imagref (expr->value.complex),
 					  expr->ts.kind, expr->is_snan);
 
 	  return build_complex (gfc_typenode_for_spec (&expr->ts),

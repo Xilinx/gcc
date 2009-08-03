@@ -1,7 +1,7 @@
 /* Subroutines for insn-output.c for Windows NT.
    Contributed by Douglas Rupp (drupp@cs.washington.edu)
    Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -56,8 +56,8 @@ ix86_handle_shared_attribute (tree *node, tree name,
 {
   if (TREE_CODE (*node) != VAR_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to variables",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to variables",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -78,8 +78,8 @@ ix86_handle_selectany_attribute (tree *node, tree name,
      initialization later in encode_section_info.  */
   if (TREE_CODE (*node) != VAR_DECL || !TREE_PUBLIC (*node))
     {	
-      error ("%qs attribute applies only to initialized variables"
-       	     " with external linkage",  IDENTIFIER_POINTER (name));
+      error ("%qE attribute applies only to initialized variables"
+       	     " with external linkage", name);
       *no_add_attrs = true;
     }
 
@@ -105,6 +105,10 @@ i386_pe_determine_dllexport_p (tree decl)
   tree assoc;
 
   if (TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
+    return false;
+
+  /* Don't export local clones of dllexports.  */
+  if (!TREE_PUBLIC (decl))
     return false;
 
   if (lookup_attribute ("dllexport", DECL_ATTRIBUTES (decl)))
@@ -285,7 +289,7 @@ i386_pe_encode_section_info (tree decl, rtx rtl, int first)
 		 ctor is protected by a link-once guard variable, so that
 		 the object still has link-once semantics,  */
 	      || TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl)))
-	    make_decl_one_only (decl);
+	    make_decl_one_only (decl, DECL_ASSEMBLER_NAME (decl));
 	  else
 	    error ("%q+D:'selectany' attribute applies only to "
 		   "initialized objects", decl);
@@ -499,8 +503,11 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
 {
   HOST_WIDE_INT rounded;
 
-  /* Compute as in assemble_noswitch_variable, since we don't actually
-     support aligned common.  */
+  /* Compute as in assemble_noswitch_variable, since we don't have
+     support for aligned common on older binutils.  We must also
+     avoid emitting a common symbol of size zero, as this is the
+     overloaded representation that indicates an undefined external
+     symbol in the PE object file format.  */
   rounded = size ? size : 1;
   rounded += (BIGGEST_ALIGNMENT / BITS_PER_UNIT) - 1;
   rounded = (rounded / (BIGGEST_ALIGNMENT / BITS_PER_UNIT)
@@ -510,9 +517,13 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
 
   fprintf (stream, "\t.comm\t");
   assemble_name (stream, name);
-  fprintf (stream, ", " HOST_WIDE_INT_PRINT_DEC "\t" ASM_COMMENT_START
-	   " " HOST_WIDE_INT_PRINT_DEC "\n",
-	   rounded, size);
+  if (use_pe_aligned_common)
+    fprintf (stream, ", " HOST_WIDE_INT_PRINT_DEC ", %d\n",
+	   size ? size : (HOST_WIDE_INT) 1,
+	   exact_log2 (align) - exact_log2 (CHAR_BIT));
+  else
+    fprintf (stream, ", " HOST_WIDE_INT_PRINT_DEC "\t" ASM_COMMENT_START
+	   " " HOST_WIDE_INT_PRINT_DEC "\n", rounded, size);
 }
 
 /* The Microsoft linker requires that every function be marked as
@@ -539,7 +550,7 @@ i386_pe_declare_function_type (FILE *file, const char *name, int pub)
 
 /* Keep a list of external functions.  */
 
-struct extern_list GTY(())
+struct GTY(()) extern_list
 {
   struct extern_list *next;
   tree decl;
@@ -568,7 +579,7 @@ i386_pe_record_external_function (tree decl, const char *name)
 
 /* Keep a list of exported symbols.  */
 
-struct export_list GTY(())
+struct GTY(()) export_list
 {
   struct export_list *next;
   const char *name;
@@ -593,6 +604,8 @@ i386_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_data)
   gcc_assert (GET_CODE (symbol) == SYMBOL_REF);
   if (!SYMBOL_REF_DLLEXPORT_P (symbol))
     return;
+
+  gcc_assert (TREE_PUBLIC (decl));
 
   p = (struct export_list *) ggc_alloc (sizeof *p);
   p->next = export_head;

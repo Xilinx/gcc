@@ -78,7 +78,7 @@ myexeclibLTLIBRARIES_INSTALL = $(INSTALL)
 toolexeclibLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(myexeclib_LTLIBRARIES) $(toolexeclib_LTLIBRARIES)
 libgfortran_la_LIBADD =
-am__libgfortran_la_SOURCES_DIST = runtime/backtrace.c \
+am__libgfortran_la_SOURCES_DIST = runtime/backtrace.c runtime/bounds.c \
 	runtime/compile_options.c runtime/convert_char.c \
 	runtime/environ.c runtime/error.c runtime/fpu.c runtime/main.c \
 	runtime/memory.c runtime/pause.c runtime/stop.c \
@@ -416,9 +416,9 @@ am__libgfortran_la_SOURCES_DIST = runtime/backtrace.c \
 	io/size_from_kind.c io/transfer.c io/unit.c io/unix.c \
 	io/write.c io/fbuf.c intrinsics/associated.c \
 	intrinsics/abort.c intrinsics/access.c intrinsics/args.c \
-	intrinsics/c99_functions.c intrinsics/chdir.c \
-	intrinsics/chmod.c intrinsics/clock.c intrinsics/cpu_time.c \
-	intrinsics/cshift0.c intrinsics/ctime.c \
+	intrinsics/bit_intrinsics.c intrinsics/c99_functions.c \
+	intrinsics/chdir.c intrinsics/chmod.c intrinsics/clock.c \
+	intrinsics/cpu_time.c intrinsics/cshift0.c intrinsics/ctime.c \
 	intrinsics/date_and_time.c intrinsics/dtime.c intrinsics/env.c \
 	intrinsics/eoshift0.c intrinsics/eoshift2.c \
 	intrinsics/erfc_scaled.c intrinsics/etime.c intrinsics/exit.c \
@@ -580,9 +580,9 @@ am__libgfortran_la_SOURCES_DIST = runtime/backtrace.c \
 	$(srcdir)/generated/misc_specifics.F90 intrinsics/dprod_r8.f90 \
 	intrinsics/f2c_specifics.F90 libgfortran_c.c $(filter-out \
 	%.c,$(prereq_SRC))
-am__objects_1 = backtrace.lo compile_options.lo convert_char.lo \
-	environ.lo error.lo fpu.lo main.lo memory.lo pause.lo stop.lo \
-	string.lo select.lo
+am__objects_1 = backtrace.lo bounds.lo compile_options.lo \
+	convert_char.lo environ.lo error.lo fpu.lo main.lo memory.lo \
+	pause.lo stop.lo string.lo select.lo
 am__objects_2 = all_l1.lo all_l2.lo all_l4.lo all_l8.lo all_l16.lo
 am__objects_3 = any_l1.lo any_l2.lo any_l4.lo any_l8.lo any_l16.lo
 am__objects_4 = count_1_l.lo count_2_l.lo count_4_l.lo count_8_l.lo \
@@ -711,9 +711,9 @@ am__objects_35 = close.lo file_pos.lo format.lo inquire.lo \
 	intrinsics.lo list_read.lo lock.lo open.lo read.lo \
 	size_from_kind.lo transfer.lo unit.lo unix.lo write.lo fbuf.lo
 am__objects_36 = associated.lo abort.lo access.lo args.lo \
-	c99_functions.lo chdir.lo chmod.lo clock.lo cpu_time.lo \
-	cshift0.lo ctime.lo date_and_time.lo dtime.lo env.lo \
-	eoshift0.lo eoshift2.lo erfc_scaled.lo etime.lo exit.lo \
+	bit_intrinsics.lo c99_functions.lo chdir.lo chmod.lo clock.lo \
+	cpu_time.lo cshift0.lo ctime.lo date_and_time.lo dtime.lo \
+	env.lo eoshift0.lo eoshift2.lo erfc_scaled.lo etime.lo exit.lo \
 	fnum.lo gerror.lo getcwd.lo getlog.lo getXid.lo hostnm.lo \
 	ierrno.lo ishftc.lo iso_c_generated_procs.lo iso_c_binding.lo \
 	kill.lo link.lo malloc.lo mvbits.lo move_alloc.lo \
@@ -815,7 +815,12 @@ AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
 
 # Fortran rules for complex multiplication and division
-AM_CFLAGS = @AM_CFLAGS@ -fcx-fortran-rules $(SECTION_FLAGS)
+
+# Use -ffunction-sections -fdata-sections if supported by the compiler
+
+# Some targets require additional compiler options for IEEE compatibility.
+AM_CFLAGS = @AM_CFLAGS@ -fcx-fortran-rules $(SECTION_FLAGS) \
+	$(IEEE_FLAGS)
 AM_FCFLAGS = @AM_FCFLAGS@
 AR = @AR@
 AS = @AS@
@@ -843,6 +848,7 @@ FCFLAGS = @FCFLAGS@
 FGREP = @FGREP@
 FPU_HOST_HEADER = @FPU_HOST_HEADER@
 GREP = @GREP@
+IEEE_FLAGS = @IEEE_FLAGS@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -875,8 +881,6 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
-
-# Use -ffunction-sections -fdata-sections if supported by the compiler
 SECTION_FLAGS = @SECTION_FLAGS@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -990,6 +994,7 @@ intrinsics/associated.c \
 intrinsics/abort.c \
 intrinsics/access.c \
 intrinsics/args.c \
+intrinsics/bit_intrinsics.c \
 intrinsics/c99_functions.c \
 intrinsics/chdir.c \
 intrinsics/chmod.c \
@@ -1049,6 +1054,7 @@ runtime/in_unpack_generic.c
 
 gfor_src = \
 runtime/backtrace.c \
+runtime/bounds.c \
 runtime/compile_options.c \
 runtime/convert_char.c \
 runtime/environ.c \
@@ -1804,6 +1810,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/args.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/associated.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/backtrace.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bit_intrinsics.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bounds.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/c99_functions.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chdir.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chmod.Plo@am__quote@
@@ -2675,6 +2683,13 @@ backtrace.lo: runtime/backtrace.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/backtrace.c' object='backtrace.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o backtrace.lo `test -f 'runtime/backtrace.c' || echo '$(srcdir)/'`runtime/backtrace.c
+
+bounds.lo: runtime/bounds.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT bounds.lo -MD -MP -MF "$(DEPDIR)/bounds.Tpo" -c -o bounds.lo `test -f 'runtime/bounds.c' || echo '$(srcdir)/'`runtime/bounds.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/bounds.Tpo" "$(DEPDIR)/bounds.Plo"; else rm -f "$(DEPDIR)/bounds.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/bounds.c' object='bounds.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o bounds.lo `test -f 'runtime/bounds.c' || echo '$(srcdir)/'`runtime/bounds.c
 
 compile_options.lo: runtime/compile_options.c
 @am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT compile_options.lo -MD -MP -MF "$(DEPDIR)/compile_options.Tpo" -c -o compile_options.lo `test -f 'runtime/compile_options.c' || echo '$(srcdir)/'`runtime/compile_options.c; \
@@ -5321,6 +5336,13 @@ args.lo: intrinsics/args.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='intrinsics/args.c' object='args.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o args.lo `test -f 'intrinsics/args.c' || echo '$(srcdir)/'`intrinsics/args.c
+
+bit_intrinsics.lo: intrinsics/bit_intrinsics.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT bit_intrinsics.lo -MD -MP -MF "$(DEPDIR)/bit_intrinsics.Tpo" -c -o bit_intrinsics.lo `test -f 'intrinsics/bit_intrinsics.c' || echo '$(srcdir)/'`intrinsics/bit_intrinsics.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/bit_intrinsics.Tpo" "$(DEPDIR)/bit_intrinsics.Plo"; else rm -f "$(DEPDIR)/bit_intrinsics.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='intrinsics/bit_intrinsics.c' object='bit_intrinsics.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o bit_intrinsics.lo `test -f 'intrinsics/bit_intrinsics.c' || echo '$(srcdir)/'`intrinsics/bit_intrinsics.c
 
 c99_functions.lo: intrinsics/c99_functions.c
 @am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT c99_functions.lo -MD -MP -MF "$(DEPDIR)/c99_functions.Tpo" -c -o c99_functions.lo `test -f 'intrinsics/c99_functions.c' || echo '$(srcdir)/'`intrinsics/c99_functions.c; \

@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler.
    Matsushita MN10300 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2007, 2008 Free Software Foundation, Inc.
+   2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
 This file is part of GCC.
@@ -484,14 +484,11 @@ enum reg_class {
  { ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},	\
  { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
 
-#define CAN_ELIMINATE(FROM, TO) 1
-
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
   OFFSET = initial_offset (FROM, TO)
 
 /* We can debug without frame pointers on the mn10300, so eliminate
    them whenever possible.  */
-#define FRAME_POINTER_REQUIRED 0
 #define CAN_DEBUG_WITHOUT_FP
 
 /* Value is the number of bytes of arguments automatically
@@ -656,26 +653,6 @@ struct cum_arg {int nbytes; };
 
 #define HAVE_POST_INCREMENT (TARGET_AM33)
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.
-
-   The other macros defined here are used only in GO_IF_LEGITIMATE_ADDRESS,
-   except for CONSTANT_ADDRESS_P which is actually
-   machine-independent.
-
-   On the mn10300, the value in the address register must be
-   in the same memory space/segment as the effective address.
-
-   This is problematical for reload since it does not understand
-   that base+index != index+base in a memory reference.
-
-   Note it is still possible to use reg+reg addressing modes,
-   it's just much more difficult.  For a discussion of a possible
-   workaround and solution, see the comments in pa.c before the
-   function record_unscaled_index_insn_codes.  */
-
 /* Accept either REG or SUBREG where a register is valid.  */
 
 #define RTX_OK_FOR_BASE_P(X, strict)				\
@@ -685,38 +662,7 @@ struct cum_arg {int nbytes; };
        && REGNO_STRICT_OK_FOR_BASE_P (REGNO (SUBREG_REG (X)),	\
  				      (strict))))
 
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)    	\
-do							\
-  {							\
-    if (legitimate_address_p ((MODE), (X), REG_STRICT))	\
-      goto ADDR;					\
-  }							\
-while (0)
-
 
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
-   It is always safe for this macro to do nothing.  It exists to recognize
-   opportunities to optimize the output.  */
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)  \
-{ rtx orig_x = (X);				\
-  (X) = legitimize_address (X, OLDX, MODE);	\
-  if ((X) != orig_x && memory_address_p (MODE, X)) \
-    goto WIN; }
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 /* Nonzero if the constant value X is a legitimate general operand.
    It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.  */
@@ -814,14 +760,6 @@ while (0)
 /* Nonzero if access to memory by bytes or half words is no faster
    than accessing full words.  */
 #define SLOW_BYTE_ACCESS 1
-
-/* Dispatch tables on the mn10300 are extremely expensive in terms of code
-   and readonly data size.  So we crank up the case threshold value to
-   encourage a series of if/else comparisons to implement many small switch
-   statements.  In theory, this value could be increased much more if we
-   were solely optimizing for space, but we keep it "reasonable" to avoid
-   serious code efficiency lossage.  */
-#define CASE_VALUES_THRESHOLD 6
 
 #define NO_FUNCTION_CSE
 

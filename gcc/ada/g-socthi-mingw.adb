@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2001-2008, AdaCore                     --
+--                     Copyright (C) 2001-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,7 +47,9 @@ package body GNAT.Sockets.Thin is
 
    WSAData_Dummy : array (1 .. 512) of C.int;
 
-   WS_Version  : constant := 16#0202#;
+   WS_Version : constant := 16#0202#;
+   --  Winsock 2.2
+
    Initialized : Boolean := False;
 
    function Standard_Connect
@@ -247,38 +249,58 @@ package body GNAT.Sockets.Thin is
       return Res;
    end C_Connect;
 
-   -------------
-   -- C_Readv --
-   -------------
+   ------------------
+   -- Socket_Ioctl --
+   ------------------
 
-   function C_Readv
-     (Fd     : C.int;
-      Iov    : System.Address;
-      Iovcnt : C.int) return C.int
+   function Socket_Ioctl
+     (S   : C.int;
+      Req : C.int;
+      Arg : access C.int) return C.int
+   is
+   begin
+      return C_Ioctl (S, Req, Arg);
+   end Socket_Ioctl;
+
+   ---------------
+   -- C_Recvmsg --
+   ---------------
+
+   function C_Recvmsg
+     (S     : C.int;
+      Msg   : System.Address;
+      Flags : C.int) return ssize_t
    is
       Res   : C.int;
       Count : C.int := 0;
 
-      Iovec : array (0 .. Iovcnt - 1) of Vector_Element;
-      for Iovec'Address use Iov;
+      MH : Msghdr;
+      for MH'Address use Msg;
+
+      Iovec : array (0 .. MH.Msg_Iovlen - 1) of Vector_Element;
+      for Iovec'Address use MH.Msg_Iov;
       pragma Import (Ada, Iovec);
 
    begin
+      --  Windows does not provide an implementation of recvmsg(). The spec for
+      --  WSARecvMsg() is incompatible with the data types we define, and is
+      --  not available in all versions of Windows. So, we use C_Recv instead.
+
       for J in Iovec'Range loop
          Res := C_Recv
-           (Fd,
+           (S,
             Iovec (J).Base.all'Address,
             C.int (Iovec (J).Length),
-            0);
+            Flags);
 
          if Res < 0 then
-            return Res;
+            return ssize_t (Res);
          else
             Count := Count + Res;
          end if;
       end loop;
-      return Count;
-   end C_Readv;
+      return ssize_t (Count);
+   end C_Recvmsg;
 
    --------------
    -- C_Select --
@@ -348,7 +370,10 @@ package body GNAT.Sockets.Thin is
                --  Check out-of-band data
 
                Length := C_Recvfrom
-                 (S, Buffer'Address, 1, Flag, null, Fromlen'Unchecked_Access);
+                 (S, Buffer'Address, 1, Flag,
+                  From    => System.Null_Address,
+                  Fromlen => Fromlen'Unchecked_Access);
+               --  Is Fromlen necessary if From is Null_Address???
 
                --  If the signal is not an out-of-band data, then it
                --  is a connection failure notification.
@@ -372,40 +397,48 @@ package body GNAT.Sockets.Thin is
       return Res;
    end C_Select;
 
-   --------------
-   -- C_Writev --
-   --------------
+   ---------------
+   -- C_Sendmsg --
+   ---------------
 
-   function C_Writev
-     (Fd     : C.int;
-      Iov    : System.Address;
-      Iovcnt : C.int) return C.int
+   function C_Sendmsg
+     (S     : C.int;
+      Msg   : System.Address;
+      Flags : C.int) return ssize_t
    is
       Res   : C.int;
       Count : C.int := 0;
 
-      Iovec : array (0 .. Iovcnt - 1) of Vector_Element;
-      for Iovec'Address use Iov;
+      MH : Msghdr;
+      for MH'Address use Msg;
+
+      Iovec : array (0 .. MH.Msg_Iovlen - 1) of Vector_Element;
+      for Iovec'Address use MH.Msg_Iov;
       pragma Import (Ada, Iovec);
 
    begin
+      --  Windows does not provide an implementation of sendmsg(). The spec for
+      --  WSASendMsg() is incompatible with the data types we define, and is
+      --  not available in all versions of Windows. So, we'll use C_Sendto
+      --  instead.
+
       for J in Iovec'Range loop
          Res := C_Sendto
-           (Fd,
+           (S,
             Iovec (J).Base.all'Address,
             C.int (Iovec (J).Length),
-            Flags => 0,
-            To    => null,
-            Tolen => 0);
+            Flags => Flags,
+            To    => MH.Msg_Name,
+            Tolen => C.int (MH.Msg_Namelen));
 
          if Res < 0 then
-            return Res;
+            return ssize_t (Res);
          else
             Count := Count + Res;
          end if;
       end loop;
-      return Count;
-   end C_Writev;
+      return ssize_t (Count);
+   end C_Sendmsg;
 
    --------------
    -- Finalize --

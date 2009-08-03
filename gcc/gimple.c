@@ -25,10 +25,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "ggc.h"
-#include "errors.h"
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "gimple.h"
+#include "toplev.h"
 #include "diagnostic.h"
 #include "tree-flow.h"
 #include "value-prof.h"
@@ -45,7 +45,7 @@ const char *const gimple_code_name[] = {
    operands vector the size of the structure minus the size of the 1
    element tree array at the end (see gimple_ops).  */
 #define DEFGSCODE(SYM, NAME, STRUCT)	(sizeof (STRUCT) - sizeof (tree)),
-const size_t gimple_ops_offset_[] = {
+EXPORTED_CONST size_t gimple_ops_offset_[] = {
 #include "gimple.def"
 };
 #undef DEFGSCODE
@@ -102,7 +102,6 @@ gss_for_code (enum gimple_code code)
     case GIMPLE_COND:
     case GIMPLE_GOTO:
     case GIMPLE_LABEL:
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
     case GIMPLE_SWITCH:			return GSS_WITH_OPS;
     case GIMPLE_ASM:			return GSS_ASM;
     case GIMPLE_BIND:			return GSS_BIND;
@@ -190,8 +189,6 @@ gimple_size (enum gimple_code code)
       return sizeof (struct gimple_statement_omp_atomic_store);
     case GIMPLE_WITH_CLEANUP_EXPR:
       return sizeof (struct gimple_statement_wce);
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
-      return sizeof (struct gimple_statement_with_ops);
     case GIMPLE_PREDICT:
       return sizeof (struct gimple_statement_base);
     default:
@@ -360,6 +357,7 @@ gimple_build_call_from_tree (tree t)
   gimple_call_set_return_slot_opt (call, CALL_EXPR_RETURN_SLOT_OPT (t));
   gimple_call_set_from_thunk (call, CALL_FROM_THUNK_P (t));
   gimple_call_set_va_arg_pack (call, CALL_EXPR_VA_ARG_PACK (t));
+  gimple_set_no_warning (call, TREE_NO_WARNING (t));
 
   return call;
 }
@@ -451,7 +449,7 @@ gimple_build_assign_with_ops_stat (enum tree_code subcode, tree lhs, tree op1,
 
    This function returns the newly created GIMPLE_ASSIGN tuple.  */
 
-inline gimple
+gimple
 gimplify_assign (tree dst, tree src, gimple_seq *seq_p)
 { 
   tree t = build2 (MODIFY_EXPR, TREE_TYPE (dst), dst, src);
@@ -489,6 +487,7 @@ void
 gimple_cond_get_ops_from_tree (tree cond, enum tree_code *code_p,
                                tree *lhs_p, tree *rhs_p)
 {
+  location_t loc = EXPR_LOCATION (cond);
   gcc_assert (TREE_CODE_CLASS (TREE_CODE (cond)) == tcc_comparison
 	      || TREE_CODE (cond) == TRUTH_NOT_EXPR
 	      || is_gimple_min_invariant (cond)
@@ -501,14 +500,14 @@ gimple_cond_get_ops_from_tree (tree cond, enum tree_code *code_p,
     {
       *code_p = EQ_EXPR;
       gcc_assert (*lhs_p && *rhs_p == NULL_TREE);
-      *rhs_p = fold_convert (TREE_TYPE (*lhs_p), integer_zero_node);
+      *rhs_p = fold_convert_loc (loc, TREE_TYPE (*lhs_p), integer_zero_node);
     }
   /* Canonicalize conditionals of the form 'if (VAL)'  */
   else if (TREE_CODE_CLASS (*code_p) != tcc_comparison)
     {
       *code_p = NE_EXPR;
       gcc_assert (*lhs_p && *rhs_p == NULL_TREE);
-      *rhs_p = fold_convert (TREE_TYPE (*lhs_p), integer_zero_node);
+      *rhs_p = fold_convert_loc (loc, TREE_TYPE (*lhs_p), integer_zero_node);
     }
 }
 
@@ -1042,20 +1041,6 @@ gimple_build_omp_single (gimple_seq body, tree clauses)
 }
 
 
-/* Build a GIMPLE_CHANGE_DYNAMIC_TYPE statement.  TYPE is the new type
-   for the location PTR.  */
-
-gimple
-gimple_build_cdt (tree type, tree ptr)
-{
-  gimple p = gimple_build_with_ops (GIMPLE_CHANGE_DYNAMIC_TYPE, ERROR_MARK, 2);
-  gimple_cdt_set_new_type (p, type);
-  gimple_cdt_set_location (p, ptr);
-
-  return p;
-}
-
-
 /* Build a GIMPLE_OMP_ATOMIC_LOAD statement.  */
 
 gimple
@@ -1456,16 +1441,6 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
     case GIMPLE_EH_FILTER:
       ret = walk_tree (gimple_eh_filter_types_ptr (stmt), callback_op, wi,
 		       pset);
-      if (ret)
-	return ret;
-      break;
-
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
-      ret = walk_tree (gimple_cdt_location_ptr (stmt), callback_op, wi, pset);
-      if (ret)
-	return ret;
-
-      ret = walk_tree (gimple_cdt_new_type_ptr (stmt), callback_op, wi, pset);
       if (ret)
 	return ret;
       break;
@@ -1923,10 +1898,11 @@ gimple_set_bb (gimple stmt, basic_block bb)
 tree
 gimple_fold (const_gimple stmt)
 {
+  location_t loc = gimple_location (stmt);
   switch (gimple_code (stmt))
     {
     case GIMPLE_COND:
-      return fold_binary (gimple_cond_code (stmt),
+      return fold_binary_loc (loc, gimple_cond_code (stmt),
 			  boolean_type_node,
 			  gimple_cond_lhs (stmt),
 			  gimple_cond_rhs (stmt));
@@ -1935,11 +1911,11 @@ gimple_fold (const_gimple stmt)
       switch (get_gimple_rhs_class (gimple_assign_rhs_code (stmt)))
 	{
 	case GIMPLE_UNARY_RHS:
-	  return fold_unary (gimple_assign_rhs_code (stmt),
+	  return fold_unary_loc (loc, gimple_assign_rhs_code (stmt),
 			     TREE_TYPE (gimple_assign_lhs (stmt)),
 			     gimple_assign_rhs1 (stmt));
 	case GIMPLE_BINARY_RHS:
-	  return fold_binary (gimple_assign_rhs_code (stmt),
+	  return fold_binary_loc (loc, gimple_assign_rhs_code (stmt),
 			      TREE_TYPE (gimple_assign_lhs (stmt)),
 			      gimple_assign_rhs1 (stmt),
 			      gimple_assign_rhs2 (stmt));
@@ -2749,7 +2725,6 @@ is_gimple_stmt (tree t)
     case TRY_FINALLY_EXPR:
     case EH_FILTER_EXPR:
     case CATCH_EXPR:
-    case CHANGE_DYNAMIC_TYPE_EXPR:
     case ASM_EXPR:
     case RESX_EXPR:
     case STATEMENT_LIST:
@@ -2805,13 +2780,7 @@ is_gimple_id (tree t)
 bool
 is_gimple_reg_type (tree type)
 {
-  /* In addition to aggregate types, we also exclude complex types if not
-     optimizing because they can be subject to partial stores in GNU C by
-     means of the __real__ and __imag__ operators and we cannot promote
-     them to total stores (see gimplify_modify_expr_complex_part).  */
-  return !(AGGREGATE_TYPE_P (type)
-	   || (TREE_CODE (type) == COMPLEX_TYPE && !optimize));
-
+  return !AGGREGATE_TYPE_P (type);
 }
 
 /* Return true if T is a non-aggregate register variable.  */
@@ -2824,12 +2793,6 @@ is_gimple_reg (tree t)
 
   if (!is_gimple_variable (t))
     return false;
-
-  /* Complex and vector values must have been put into SSA-like form.
-     That is, no assignments to the individual components.  */
-  if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
-      || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
-    return DECL_GIMPLE_REG_P (t);
 
   if (!is_gimple_reg_type (TREE_TYPE (t)))
     return false;
@@ -2856,6 +2819,12 @@ is_gimple_reg (tree t)
      clean this up, as there we've got all the appropriate bits exposed.  */
   if (TREE_CODE (t) == VAR_DECL && DECL_HARD_REGISTER (t))
     return false;
+
+  /* Complex and vector values must have been put into SSA-like form.
+     That is, no assignments to the individual components.  */
+  if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
+      || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
+    return DECL_GIMPLE_REG_P (t);
 
   return true;
 }
@@ -3231,17 +3200,25 @@ walk_stmt_load_store_addr_ops (gimple stmt, void *data,
 	    ret |= visit_store (stmt, lhs, data);
 	}
       rhs = gimple_assign_rhs1 (stmt);
+      while (handled_component_p (rhs))
+	rhs = TREE_OPERAND (rhs, 0);
       if (visit_addr)
 	{
 	  if (TREE_CODE (rhs) == ADDR_EXPR)
 	    ret |= visit_addr (stmt, TREE_OPERAND (rhs, 0), data);
 	  else if (TREE_CODE (rhs) == TARGET_MEM_REF
+                   && TMR_BASE (rhs) != NULL_TREE
 		   && TREE_CODE (TMR_BASE (rhs)) == ADDR_EXPR)
 	    ret |= visit_addr (stmt, TREE_OPERAND (TMR_BASE (rhs), 0), data);
 	  else if (TREE_CODE (rhs) == OBJ_TYPE_REF
 		   && TREE_CODE (OBJ_TYPE_REF_OBJECT (rhs)) == ADDR_EXPR)
 	    ret |= visit_addr (stmt, TREE_OPERAND (OBJ_TYPE_REF_OBJECT (rhs),
 						   0), data);
+          lhs = gimple_assign_lhs (stmt);
+	  if (TREE_CODE (lhs) == TARGET_MEM_REF
+              && TMR_BASE (lhs) != NULL_TREE
+              && TREE_CODE (TMR_BASE (lhs)) == ADDR_EXPR)
+            ret |= visit_addr (stmt, TREE_OPERAND (TMR_BASE (lhs), 0), data);
 	}
       if (visit_load)
 	{
@@ -3252,8 +3229,7 @@ walk_stmt_load_store_addr_ops (gimple stmt, void *data,
     }
   else if (visit_addr
 	   && (is_gimple_assign (stmt)
-	       || gimple_code (stmt) == GIMPLE_COND
-	       || gimple_code (stmt) == GIMPLE_CHANGE_DYNAMIC_TYPE))
+	       || gimple_code (stmt) == GIMPLE_COND))
     {
       for (i = 0; i < gimple_num_ops (stmt); ++i)
 	if (gimple_op (stmt, i)
@@ -3291,6 +3267,11 @@ walk_stmt_load_store_addr_ops (gimple stmt, void *data,
 	  && TREE_CODE (gimple_call_chain (stmt)) == ADDR_EXPR)
 	ret |= visit_addr (stmt, TREE_OPERAND (gimple_call_chain (stmt), 0),
 			   data);
+      if (visit_addr
+	  && gimple_call_return_slot_opt_p (stmt)
+	  && gimple_call_lhs (stmt) != NULL_TREE
+	  && TREE_ADDRESSABLE (TREE_TYPE (gimple_call_lhs (stmt))))
+	ret |= visit_addr (stmt, gimple_call_lhs (stmt), data);
     }
   else if (gimple_code (stmt) == GIMPLE_ASM)
     {

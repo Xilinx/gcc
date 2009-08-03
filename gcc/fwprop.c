@@ -1,5 +1,5 @@
 /* RTL-based forward propagation pass for GNU compiler.
-   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Paolo Bonzini and Steven Bosscher.
 
 This file is part of GCC.
@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cfgloop.h"
 #include "tree-pass.h"
+#include "domwalk.h"
 
 
 /* This pass does simple forward propagation and simplification when an
@@ -100,10 +101,199 @@ along with GCC; see the file COPYING3.  If not see
      (set (reg:QI 121) (subreg:QI (reg:SI 119) 0))
      (set (reg:SI 122) (plus:SI (reg:SI 118) (reg:SI 119)))
 
-   where the first two insns are now dead.  */
+   where the first two insns are now dead.
+
+   We used to use reaching definitions to find which uses have a
+   single reaching definition (sounds obvious...), but this is too
+   complex a problem in nasty testcases like PR33928.  Now we use the
+   multiple definitions problem in df-problems.c.  The similarity
+   between that problem and SSA form creation is taken further, in
+   that fwprop does a dominator walk to create its chains; however,
+   instead of creating a PHI function where multiple definitions meet
+   I just punt and record only singleton use-def chains, which is
+   all that is needed by fwprop.  */
 
 
 static int num_changes;
+
+DEF_VEC_P(df_ref);
+DEF_VEC_ALLOC_P(df_ref,heap);
+VEC(df_ref,heap) *use_def_ref;
+VEC(df_ref,heap) *reg_defs;
+VEC(df_ref,heap) *reg_defs_stack;
+
+
+/* Return the only def in USE's use-def chain, or NULL if there is
+   more than one def in the chain.  */
+
+static inline df_ref
+get_def_for_use (df_ref use)
+{
+  return VEC_index (df_ref, use_def_ref, DF_REF_ID (use));
+}
+
+
+/* Update the reg_defs vector with non-partial definitions in DEF_REC.
+   TOP_FLAG says which artificials uses should be used, when DEF_REC
+   is an artificial def vector.  LOCAL_MD is modified as after a
+   df_md_simulate_* function; we do more or less the same processing
+   done there, so we do not use those functions.  */
+
+#define DF_MD_GEN_FLAGS \
+	(DF_REF_PARTIAL | DF_REF_CONDITIONAL | DF_REF_MAY_CLOBBER)
+
+static void
+process_defs (bitmap local_md, df_ref *def_rec, int top_flag)
+{
+  df_ref def;
+  while ((def = *def_rec++) != NULL)
+    {
+      df_ref curr_def = VEC_index (df_ref, reg_defs, DF_REF_REGNO (def));
+      unsigned int dregno;
+
+      if ((DF_REF_FLAGS (def) & DF_REF_AT_TOP) != top_flag)
+	continue;
+
+      dregno = DF_REF_REGNO (def);
+      if (curr_def)
+	VEC_safe_push (df_ref, heap, reg_defs_stack, curr_def);
+      else
+	{
+	  /* Do not store anything if "transitioning" from NULL to NULL.  But
+             otherwise, push a special entry on the stack to tell the
+	     leave_block callback that the entry in reg_defs was NULL.  */
+	  if (DF_REF_FLAGS (def) & DF_MD_GEN_FLAGS)
+	    ;
+	  else
+	    VEC_safe_push (df_ref, heap, reg_defs_stack, def);
+	}
+
+      if (DF_REF_FLAGS (def) & DF_MD_GEN_FLAGS)
+	{
+	  bitmap_set_bit (local_md, dregno);
+	  VEC_replace (df_ref, reg_defs, dregno, NULL);
+	}
+      else
+	{
+	  bitmap_clear_bit (local_md, dregno);
+	  VEC_replace (df_ref, reg_defs, dregno, def);
+	}
+    }
+}
+
+
+/* Fill the use_def_ref vector with values for the uses in USE_REC,
+   taking reaching definitions info from LOCAL_MD and REG_DEFS.
+   TOP_FLAG says which artificials uses should be used, when USE_REC
+   is an artificial use vector.  */
+
+static void
+process_uses (bitmap local_md, df_ref *use_rec, int top_flag)
+{
+  df_ref use;
+  while ((use = *use_rec++) != NULL)
+    if ((DF_REF_FLAGS (use) & DF_REF_AT_TOP) == top_flag)
+      {
+        unsigned int uregno = DF_REF_REGNO (use);
+        if (VEC_index (df_ref, reg_defs, uregno)
+	    && !bitmap_bit_p (local_md, uregno))
+	  VEC_replace (df_ref, use_def_ref, DF_REF_ID (use),
+		       VEC_index (df_ref, reg_defs, uregno));
+      }
+}
+
+
+static void
+single_def_use_enter_block (struct dom_walk_data *walk_data, basic_block bb)
+{
+  bitmap local_md = (bitmap) walk_data->global_data;
+  int bb_index = bb->index;
+  struct df_md_bb_info *bb_info = df_md_get_bb_info (bb_index);
+  rtx insn;
+
+  bitmap_copy (local_md, bb_info->in);
+
+  /* Push a marker for the leave_block callback.  */
+  VEC_safe_push (df_ref, heap, reg_defs_stack, NULL);
+
+  process_uses (local_md, df_get_artificial_uses (bb_index), DF_REF_AT_TOP);
+  process_defs (local_md, df_get_artificial_defs (bb_index), DF_REF_AT_TOP);
+
+  FOR_BB_INSNS (bb, insn)
+    if (INSN_P (insn))
+      {
+        unsigned int uid = INSN_UID (insn);
+        process_uses (local_md, DF_INSN_UID_USES (uid), 0);
+        process_uses (local_md, DF_INSN_UID_EQ_USES (uid), 0);
+        process_defs (local_md, DF_INSN_UID_DEFS (uid), 0);
+      }
+
+  process_uses (local_md, df_get_artificial_uses (bb_index), 0);
+  process_defs (local_md, df_get_artificial_defs (bb_index), 0);
+}
+
+/* Pop the definitions created in this basic block when leaving its
+   dominated parts.  */
+
+static void
+single_def_use_leave_block (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
+			    basic_block bb ATTRIBUTE_UNUSED)
+{
+  df_ref saved_def;
+  while ((saved_def = VEC_pop (df_ref, reg_defs_stack)) != NULL)
+    {
+      unsigned int dregno = DF_REF_REGNO (saved_def);
+
+      /* See also process_defs.  */
+      if (saved_def == VEC_index (df_ref, reg_defs, dregno))
+	VEC_replace (df_ref, reg_defs, dregno, NULL);
+      else
+	VEC_replace (df_ref, reg_defs, dregno, saved_def);
+    }
+}
+
+
+/* Build a vector holding the reaching definitions of uses reached by a
+   single dominating definition.  */
+
+static void
+build_single_def_use_links (void)
+{
+  struct dom_walk_data walk_data;
+  bitmap local_md;
+
+  /* We use the multiple definitions problem to compute our restricted
+     use-def chains.  */
+  df_set_flags (DF_EQ_NOTES);
+  df_md_add_problem ();
+  df_analyze ();
+  df_maybe_reorganize_use_refs (DF_REF_ORDER_BY_INSN_WITH_NOTES);
+
+  use_def_ref = VEC_alloc (df_ref, heap, DF_USES_TABLE_SIZE ());
+  VEC_safe_grow_cleared (df_ref, heap, use_def_ref, DF_USES_TABLE_SIZE ());
+
+  reg_defs = VEC_alloc (df_ref, heap, max_reg_num ());
+  VEC_safe_grow_cleared (df_ref, heap, reg_defs, max_reg_num ());
+
+  reg_defs_stack = VEC_alloc (df_ref, heap, n_basic_blocks * 10);
+  local_md = BITMAP_ALLOC (NULL);
+
+  /* Walk the dominator tree looking for single reaching definitions
+     dominating the uses.  This is similar to how SSA form is built.  */
+  walk_data.dom_direction = CDI_DOMINATORS;
+  walk_data.initialize_block_local_data = NULL;
+  walk_data.before_dom_children = single_def_use_enter_block;
+  walk_data.after_dom_children = single_def_use_leave_block;
+  walk_data.global_data = local_md;
+
+  init_walk_dominator_tree (&walk_data);
+  walk_dominator_tree (&walk_data, ENTRY_BLOCK_PTR);
+  fini_walk_dominator_tree (&walk_data);
+
+  BITMAP_FREE (local_md);
+  VEC_free (df_ref, heap, reg_defs);
+  VEC_free (df_ref, heap, reg_defs_stack);
+}
 
 
 /* Do not try to replace constant addresses or addresses of local and
@@ -149,7 +339,7 @@ canonicalize_address (rtx x)
     switch (GET_CODE (x))
       {
       case ASHIFT:
-        if (GET_CODE (XEXP (x, 1)) == CONST_INT
+        if (CONST_INT_P (XEXP (x, 1))
             && INTVAL (XEXP (x, 1)) < GET_MODE_BITSIZE (GET_MODE (x))
             && INTVAL (XEXP (x, 1)) >= 0)
 	  {
@@ -469,7 +659,7 @@ propagate_rtx (rtx x, enum machine_mode mode, rtx old_rtx, rtx new_rtx,
 
   /* gen_lowpart_common will not be able to process VOIDmode entities other
      than CONST_INTs.  */
-  if (GET_MODE (tem) == VOIDmode && GET_CODE (tem) != CONST_INT)
+  if (GET_MODE (tem) == VOIDmode && !CONST_INT_P (tem))
     return NULL_RTX;
 
   if (GET_MODE (tem) == VOIDmode)
@@ -524,12 +714,12 @@ use_killed_between (df_ref use, rtx def_insn, rtx target_insn)
   int regno;
   df_ref def;
 
-  /* In some obscure situations we can have a def reaching a use
-     that is _before_ the def.  In other words the def does not
-     dominate the use even though the use and def are in the same
-     basic block.  This can happen when a register may be used
-     uninitialized in a loop.  In such cases, we must assume that
-     DEF is not available.  */
+  /* We used to have a def reaching a use that is _before_ the def,
+     with the def not dominating the use even though the use and def
+     are in the same basic block, when a register may be used
+     uninitialized in a loop.  This should not happen anymore since
+     we do not use reaching definitions, but still we test for such
+     cases and assume that DEF is not available.  */
   if (def_bb == target_bb
       ? DF_INSN_LUID (def_insn) >= DF_INSN_LUID (target_insn)
       : !dominated_by_p (CDI_DOMINATORS, target_bb, def_bb))
@@ -694,7 +884,7 @@ update_df (rtx insn, rtx *loc, df_ref *use_rec, enum df_ref_type type,
       df_ref orig_use = use, new_use;
       int width = -1;
       int offset = -1;
-      enum machine_mode mode = 0;
+      enum machine_mode mode = VOIDmode;
       rtx *new_loc = find_occurrence (loc, DF_REF_REG (orig_use));
       use_rec++;
 
@@ -716,7 +906,8 @@ update_df (rtx insn, rtx *loc, df_ref *use_rec, enum df_ref_type type,
 			       width, offset, mode);
 
       /* Set up the use-def chain.  */
-      df_chain_copy (new_use, DF_REF_CHAIN (orig_use));
+      gcc_assert (DF_REF_ID (new_use) == (int) VEC_length (df_ref, use_def_ref));
+      VEC_safe_push (df_ref, heap, use_def_ref, get_def_for_use (orig_use));
       changed = true;
     }
   if (changed)
@@ -852,6 +1043,80 @@ forward_propagate_subreg (df_ref use, rtx def_insn, rtx def_set)
     return false;
 }
 
+/* Try to replace USE with SRC (defined in DEF_INSN) in __asm.  */
+
+static bool
+forward_propagate_asm (df_ref use, rtx def_insn, rtx def_set, rtx reg)
+{
+  rtx use_insn = DF_REF_INSN (use), src, use_pat, asm_operands, new_rtx, *loc;
+  int speed_p, i;
+  df_ref *use_vec;
+
+  gcc_assert ((DF_REF_FLAGS (use) & DF_REF_IN_NOTE) == 0);
+
+  src = SET_SRC (def_set);
+  use_pat = PATTERN (use_insn);
+
+  /* In __asm don't replace if src might need more registers than
+     reg, as that could increase register pressure on the __asm.  */
+  use_vec = DF_INSN_USES (def_insn);
+  if (use_vec[0] && use_vec[1])
+    return false;
+
+  speed_p = optimize_bb_for_speed_p (BLOCK_FOR_INSN (use_insn));
+  asm_operands = NULL_RTX;
+  switch (GET_CODE (use_pat))
+    {
+    case ASM_OPERANDS:
+      asm_operands = use_pat;
+      break;
+    case SET:
+      if (MEM_P (SET_DEST (use_pat)))
+	{
+	  loc = &SET_DEST (use_pat);
+	  new_rtx = propagate_rtx (*loc, GET_MODE (*loc), reg, src, speed_p);
+	  if (new_rtx)
+	    validate_unshare_change (use_insn, loc, new_rtx, true);
+	}
+      asm_operands = SET_SRC (use_pat);
+      break;
+    case PARALLEL:
+      for (i = 0; i < XVECLEN (use_pat, 0); i++)
+	if (GET_CODE (XVECEXP (use_pat, 0, i)) == SET)
+	  {
+	    if (MEM_P (SET_DEST (XVECEXP (use_pat, 0, i))))
+	      {
+		loc = &SET_DEST (XVECEXP (use_pat, 0, i));
+		new_rtx = propagate_rtx (*loc, GET_MODE (*loc), reg,
+					 src, speed_p);
+		if (new_rtx)
+		  validate_unshare_change (use_insn, loc, new_rtx, true);
+	      }
+	    asm_operands = SET_SRC (XVECEXP (use_pat, 0, i));
+	  }
+	else if (GET_CODE (XVECEXP (use_pat, 0, i)) == ASM_OPERANDS)
+	  asm_operands = XVECEXP (use_pat, 0, i);
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  gcc_assert (asm_operands && GET_CODE (asm_operands) == ASM_OPERANDS);
+  for (i = 0; i < ASM_OPERANDS_INPUT_LENGTH (asm_operands); i++)
+    {
+      loc = &ASM_OPERANDS_INPUT (asm_operands, i);
+      new_rtx = propagate_rtx (*loc, GET_MODE (*loc), reg, src, speed_p);
+      if (new_rtx)
+	validate_unshare_change (use_insn, loc, new_rtx, true);
+    }
+
+  if (num_changes_pending () == 0 || !apply_change_group ())
+    return false;
+
+  num_changes++;
+  return true;
+}
+
 /* Try to replace USE with SRC (defined in DEF_INSN) and simplify the
    result.  */
 
@@ -863,12 +1128,16 @@ forward_propagate_and_simplify (df_ref use, rtx def_insn, rtx def_set)
   rtx src, reg, new_rtx, *loc;
   bool set_reg_equal;
   enum machine_mode mode;
+  int asm_use = -1;
 
-  if (!use_set)
+  if (INSN_CODE (use_insn) < 0)
+    asm_use = asm_noperands (PATTERN (use_insn));
+
+  if (!use_set && asm_use < 0)
     return false;
 
   /* Do not propagate into PC, CC0, etc.  */
-  if (GET_MODE (SET_DEST (use_set)) == VOIDmode)
+  if (use_set && GET_MODE (SET_DEST (use_set)) == VOIDmode)
     return false;
 
   /* If def and use are subreg, check if they match.  */
@@ -900,7 +1169,7 @@ forward_propagate_and_simplify (df_ref use, rtx def_insn, rtx def_set)
   if (MEM_P (src) && MEM_READONLY_P (src))
     {
       rtx x = avoid_constant_pool_reference (src);
-      if (x != src)
+      if (x != src && use_set)
 	{
           rtx note = find_reg_note (use_insn, REG_EQUAL, NULL_RTX);
 	  rtx old_rtx = note ? XEXP (note, 0) : SET_SRC (use_set);
@@ -910,6 +1179,9 @@ forward_propagate_and_simplify (df_ref use, rtx def_insn, rtx def_set)
 	}
       return false;
     }
+
+  if (asm_use >= 0)
+    return forward_propagate_asm (use, def_insn, def_set, reg);
 
   /* Else try simplifying.  */
 
@@ -954,7 +1226,6 @@ forward_propagate_and_simplify (df_ref use, rtx def_insn, rtx def_set)
 static void
 forward_propagate_into (df_ref use)
 {
-  struct df_link *defs;
   df_ref def;
   rtx def_insn, def_set, use_insn;
   rtx parent;
@@ -965,11 +1236,9 @@ forward_propagate_into (df_ref use)
     return;
 
   /* Only consider uses that have a single definition.  */
-  defs = DF_REF_CHAIN (use);
-  if (!defs || defs->next)
+  def = get_def_for_use (use);
+  if (!def)
     return;
-
-  def = defs->ref;
   if (DF_REF_FLAGS (def) & DF_REF_READ_WRITE)
     return;
   if (DF_REF_IS_ARTIFICIAL (def))
@@ -1015,12 +1284,7 @@ fwprop_init (void)
      insns (sadly) if we are not working in cfglayout mode.  */
   loop_optimizer_init (0);
 
-  /* Now set up the dataflow problem (we only want use-def chains) and
-     put the dataflow solver to work.  */
-  df_set_flags (DF_EQ_NOTES);
-  df_chain_add_problem (DF_UD_CHAIN);
-  df_analyze ();
-  df_maybe_reorganize_use_refs (DF_REF_ORDER_BY_INSN_WITH_NOTES);
+  build_single_def_use_links ();
   df_set_flags (DF_DEFER_INSN_RESCAN);
 }
 
@@ -1029,6 +1293,7 @@ fwprop_done (void)
 {
   loop_optimizer_finalize ();
 
+  VEC_free (df_ref, heap, use_def_ref);
   free_dominance_info (CDI_DOMINATORS);
   cleanup_cfg (0);
   delete_trivially_dead_insns (get_insns (), max_reg_num ());
@@ -1106,8 +1371,6 @@ fwprop_addr (void)
 
   /* Go through all the uses.  update_df will create new ones at the
      end, and we'll go through them as well.  */
-  df_set_flags (DF_DEFER_INSN_RESCAN);
-
   for (i = 0; i < DF_USES_TABLE_SIZE (); i++)
     {
       df_ref use = DF_USES_GET (i);

@@ -70,7 +70,7 @@ Common Optimization
 Optimize for space rather than speed
 
 W
-Common RejectNegative
+Common RejectNegative Var(extra_warnings) Warning
 This switch is deprecated; use -Wextra instead
 
 Waggregate-return
@@ -106,7 +106,7 @@ Common Joined
 Treat specified warning as error
 
 Wextra
-Common Warning
+Common Var(extra_warnings) Warning
 Print extra (possibly unwanted) warnings
 
 Wfatal-errors
@@ -197,7 +197,7 @@ Common Var(warn_type_limits) Init(-1) Warning
 Warn if a comparison is always true or always false due to the limited range of the data type
 
 Wuninitialized
-Common Var(warn_uninitialized) Warning
+Common Var(warn_uninitialized) Init(-1) Warning
 Warn about uninitialized automatic variables
 
 Wunreachable-code
@@ -384,6 +384,14 @@ fconserve-stack
 Common Var(flag_conserve_stack) Optimization
 Do not perform optimizations increasing noticeably stack usage
 
+fcompare-debug=
+Common JoinedOrMissing RejectNegative Var(flag_compare_debug_opt)
+-fcompare-debug[=<opts>] Compile with and without e.g. -gtoggle, and compare the final-insns dump
+
+fcompare-debug-second
+Common RejectNegative Var(flag_compare_debug)
+Run only the second compilation of -fcompare-debug
+
 fcprop-registers
 Common Report Var(flag_cprop_registers) Optimization
 Perform a register copy-propagation optimization pass
@@ -397,8 +405,8 @@ Common Report Var(flag_cse_follow_jumps) Optimization
 When running CSE, follow jumps to their targets
 
 fcse-skip-blocks
-Common Report Var(flag_cse_skip_blocks) Optimization
-When running CSE, follow conditional jumps
+Common
+Does nothing.  Preserved for backward compatibility.
 
 fcx-limited-range
 Common Report Var(flag_cx_limited_range) Optimization
@@ -450,6 +458,10 @@ fdump-
 Common Joined RejectNegative
 -fdump-<type>	Dump various compiler internals to a file
 
+fdump-final-insns=
+Common RejectNegative Joined Var(flag_dump_final_insns)
+-fdump-final-insns=filename	Dump to filename the insns at the end of translation
+
 fdump-noaddr
 Common Report Var(flag_dump_noaddr)
 Suppress output of addresses in debugging dumps
@@ -461,6 +473,10 @@ Suppress output of instruction numbers, line number notes and addresses in debug
 fdwarf2-cfi-asm
 Common Report Var(flag_dwarf2_cfi_asm) Init(HAVE_GAS_CFI_DIRECTIVE)
 Enable CFI tables via GAS assembler directives.
+
+fdump-unnumbered-links
+Common Report Var(flag_dump_unnumbered_links) VarExists
+Suppress output of previous and next insn numbers in debugging dumps
 
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
@@ -555,6 +571,16 @@ fgraphite
 Common Report Var(flag_graphite)
 Enable in and out of Graphite representation
 
+; This option is not documented as it does not perform any useful optimization.
+fgraphite-identity
+Common Report Var(flag_graphite_identity) Optimization
+Enable Graphite Identity transformation
+
+; This option is not documented as it will be removed
+floop-parallelize-all
+Common Report Var(flag_loop_parallelize_all) Optimization
+Mark all loops as parallel
+
 floop-strip-mine
 Common Report Var(flag_loop_strip_mine) Optimization
 Enable Loop Strip Mining transformation
@@ -566,11 +592,6 @@ Enable Loop Interchange transformation
 floop-block
 Common Report Var(flag_loop_block) Optimization
 Enable Loop Blocking transformation
-
-; This option is not documented as it does not perform any useful optimization.
-fgraphite-identity
-Common Report Var(flag_graphite_identity) Optimization
-Enable Graphite Identity transformation
 
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization
@@ -1040,17 +1061,45 @@ fsched-stalled-insns-dep=
 Common RejectNegative Joined UInteger
 -fsched-stalled-insns-dep=<number>	Set dependence distance checking in premature scheduling of queued insns
 
+fsched-group-heuristic
+Common Report Var(flag_sched_group_heuristic) Init(1) Optimization
+Enable the group heuristic in the scheduler
+
+fsched-critical-path-heuristic
+Common Report Var(flag_sched_critical_path_heuristic) Init(1) Optimization
+Enable the critical path heuristic in the scheduler
+
+fsched-spec-insn-heuristic
+Common Report Var(flag_sched_spec_insn_heuristic) Init(1) Optimization
+Enable the speculative instruction heuristic in the scheduler
+
+fsched-reg-pressure-heuristic
+Common Report Var(flag_sched_reg_pressure_heuristic) Init(1) Optimization
+Enable the register pressure heuristic in the scheduler
+
+fsched-rank-heuristic
+Common Report Var(flag_sched_rank_heuristic) Init(1) Optimization
+Enable the rank heuristic in the scheduler
+
+fsched-last-insn-heuristic
+Common Report Var(flag_sched_last_insn_heuristic) Init(1) Optimization
+Enable the last instruction heuristic in the scheduler
+
+fsched-dep-count-heuristic
+Common Report Var(flag_sched_dep_count_heuristic) Init(1) Optimization
+Enable the dependent count heuristic in the scheduler
+
 fsection-anchors
 Common Report Var(flag_section_anchors) Optimization
 Access data in the same section from shared anchor points
 
 fsee
-Common Report Var(flag_see) Init(0)
-Eliminate redundant sign extensions using LCM.
+Common
+Does nothing.  Preserved for backward compatibility.
 
 fshow-column
-Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(0)
-Show column numbers in diagnostics, when available.  Default off
+Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(1)
+Show column numbers in diagnostics, when available.  Default on
 
 fsignaling-nans
 Common Report Var(flag_signaling_nans) Optimization
@@ -1202,6 +1251,10 @@ ftree-dse
 Common Report Var(flag_tree_dse) Optimization
 Enable dead store elimination
 
+ftree-forwprop
+Common Report Var(flag_tree_forwprop) Init(1) Optimization
+Enable forward propagation on trees
+
 ftree-fre
 Common Report Var(flag_tree_fre) Optimization
 Enable Full Redundancy Elimination (FRE) on trees
@@ -1230,9 +1283,17 @@ ftree-parallelize-loops=
 Common Report Joined UInteger Var(flag_tree_parallelize_loops) Init(1)
 Enable automatic parallelization of loops
 
+ftree-phiprop
+Common Report Var(flag_tree_phiprop) Init(1) Optimization
+Enable hoisting loads from conditional pointers.
+
 ftree-pre
 Common Report Var(flag_tree_pre) Optimization
 Enable SSA-PRE optimization on trees
+
+ftree-pta
+Common Report Var(flag_tree_pta) Init(1) Optimization
+Perform function-local points-to analysis on trees.
 
 ftree-reassoc
 Common Report Var(flag_tree_reassoc) Init(1) Optimization
@@ -1318,6 +1379,10 @@ ftree-vectorize
 Common Report Var(flag_tree_vectorize) Optimization
 Enable loop vectorization on trees
 
+ftree-slp-vectorize
+Common Report Var(flag_tree_slp_vectorize) Init(2) Optimization
+Enable basic block vectorization (SLP) on trees
+
 fvect-cost-model
 Common Report Var(flag_vect_cost_model) Optimization
 Enable use of cost model in vectorization
@@ -1378,12 +1443,12 @@ Common JoinedOrMissing
 Generate debug information in default format
 
 gcoff
-Common JoinedOrMissing Negative(gdwarf-2)
+Common JoinedOrMissing Negative(gdwarf-)
 Generate debug information in COFF format
 
-gdwarf-2
-Common JoinedOrMissing Negative(gstabs)
-Generate debug information in DWARF v2 format
+gdwarf-
+Common Joined UInteger Var(dwarf_version) Init(2) Negative(gstabs)
+Generate debug information in DWARF v2 (or later) format
 
 ggdb
 Common JoinedOrMissing
@@ -1396,6 +1461,10 @@ Generate debug information in STABS format
 gstabs+
 Common JoinedOrMissing Negative(gvms)
 Generate debug information in extended STABS format
+
+gtoggle
+Common Report Var(flag_gtoggle)
+Toggle debug information generation
 
 gvms
 Common JoinedOrMissing Negative(gxcoff)

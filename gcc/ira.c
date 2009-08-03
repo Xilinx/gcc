@@ -503,8 +503,7 @@ setup_alloc_regs (bool use_hard_frame_p)
 static void
 setup_class_subset_and_memory_move_costs (void)
 {
-  int cl, cl2;
-  enum machine_mode mode;
+  int cl, cl2, mode;
   HARD_REG_SET temp_hard_regset2;
 
   for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
@@ -516,9 +515,11 @@ setup_class_subset_and_memory_move_costs (void)
 	for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
 	  {
 	    ira_memory_move_cost[mode][cl][0] =
-	      MEMORY_MOVE_COST (mode, (enum reg_class) cl, 0);
+	      MEMORY_MOVE_COST ((enum machine_mode) mode,
+				(enum reg_class) cl, 0);
 	    ira_memory_move_cost[mode][cl][1] =
-	      MEMORY_MOVE_COST (mode, (enum reg_class) cl, 1);
+	      MEMORY_MOVE_COST ((enum machine_mode) mode,
+				(enum reg_class) cl, 1);
 	    /* Costs for NO_REGS are used in cost calculation on the
 	       1st pass when the preferred register classes are not
 	       known yet.  In this case we take the best scenario.  */
@@ -727,9 +728,8 @@ int ira_important_class_nums[N_REG_CLASSES];
 static void
 setup_cover_and_important_classes (void)
 {
-  int i, j, n;
-  bool set_p, eq_p;
-  enum reg_class cl;
+  int i, j, n, cl;
+  bool set_p;
   const enum reg_class *cover_classes;
   HARD_REG_SET temp_hard_regset2;
   static enum reg_class classes[LIM_REG_CLASSES + 1];
@@ -743,7 +743,7 @@ setup_cover_and_important_classes (void)
   else
     {
       for (i = 0; (cl = cover_classes[i]) != LIM_REG_CLASSES; i++)
-	classes[i] = cl;
+	classes[i] = (enum reg_class) cl;
       classes[i] = LIM_REG_CLASSES;
     }
 
@@ -754,13 +754,13 @@ setup_cover_and_important_classes (void)
 	{
 	  if (i == NO_REGS)
 	    continue;
-#ifdef CONSTRAINT__LIMIT
+#ifdef CONSTRAINT_NUM_DEFINED_P
 	  for (j = 0; j < CONSTRAINT__LIMIT; j++)
-	    if ((int) regclass_for_constraint (j) == i)
+	    if ((int) REG_CLASS_FOR_CONSTRAINT ((enum constraint_num) j) == i)
 	      break;
 	  if (j < CONSTRAINT__LIMIT)
 	    {
-	      classes[n++] = i;
+	      classes[n++] = (enum reg_class) i;
 	      continue;
 	    }
 #endif
@@ -778,7 +778,7 @@ setup_cover_and_important_classes (void)
 		    break;
 	    }
 	  if (j >= i)
-	    classes[n++] = i;
+	    classes[n++] = (enum reg_class) i;
 	}
       classes[n] = LIM_REG_CLASSES;
     }
@@ -788,12 +788,12 @@ setup_cover_and_important_classes (void)
     {
       for (j = 0; j < i; j++)
 	if (flag_ira_algorithm != IRA_ALGORITHM_PRIORITY
-	    && reg_classes_intersect_p (cl, classes[j]))
+	    && reg_classes_intersect_p ((enum reg_class) cl, classes[j]))
 	  gcc_unreachable ();
       COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
       AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
       if (! hard_reg_set_empty_p (temp_hard_regset))
-	ira_reg_class_cover[ira_reg_class_cover_size++] = cl;
+	ira_reg_class_cover[ira_reg_class_cover_size++] = (enum reg_class) cl;
     }
   ira_important_classes_num = 0;
   for (cl = 0; cl < N_REG_CLASSES; cl++)
@@ -802,7 +802,7 @@ setup_cover_and_important_classes (void)
       AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
       if (! hard_reg_set_empty_p (temp_hard_regset))
 	{
-	  set_p = eq_p = false;
+	  set_p = false;
 	  for (j = 0; j < ira_reg_class_cover_size; j++)
 	    {
 	      COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
@@ -810,26 +810,22 @@ setup_cover_and_important_classes (void)
 	      COPY_HARD_REG_SET (temp_hard_regset2,
 				 reg_class_contents[ira_reg_class_cover[j]]);
 	      AND_COMPL_HARD_REG_SET (temp_hard_regset2, no_unit_alloc_regs);
-	      if (cl == ira_reg_class_cover[j])
-		{
-		  eq_p = false;
-		  set_p = true;
-		  break;
-		}
-	      else if (hard_reg_set_equal_p (temp_hard_regset,
-					     temp_hard_regset2))
-		eq_p = true;
+	      if ((enum reg_class) cl == ira_reg_class_cover[j]
+		  || hard_reg_set_equal_p (temp_hard_regset,
+					   temp_hard_regset2))
+		break;
 	      else if (hard_reg_set_subset_p (temp_hard_regset,
 					      temp_hard_regset2))
 		set_p = true;
 	    }
-	  if (set_p && ! eq_p)
-	    {
-	      ira_important_class_nums[cl] = ira_important_classes_num;
-	      ira_important_classes[ira_important_classes_num++] = cl;
-	    }
+	  if (set_p && j >= ira_reg_class_cover_size)
+	    ira_important_classes[ira_important_classes_num++]
+	      = (enum reg_class) cl;
 	}
     }
+  for (j = 0; j < ira_reg_class_cover_size; j++)
+    ira_important_classes[ira_important_classes_num++]
+      = ira_reg_class_cover[j];
 }
 
 /* Map of all register classes to corresponding cover class containing
@@ -841,8 +837,8 @@ enum reg_class ira_class_translate[N_REG_CLASSES];
 static void
 setup_class_translate (void)
 {
-  enum reg_class cl, cover_class, best_class, *cl_ptr;
-  enum machine_mode mode;
+  int cl, mode;
+  enum reg_class cover_class, best_class, *cl_ptr;
   int i, cost, min_cost, best_cost;
 
   for (cl = 0; cl < N_REG_CLASSES; cl++)
@@ -922,6 +918,43 @@ setup_class_translate (void)
 	}
       ira_class_translate[cl] = best_class;
     }
+}
+
+/* Order numbers of cover classes in original target cover class
+   array, -1 for non-cover classes.  */ 
+static int cover_class_order[N_REG_CLASSES];
+
+/* The function used to sort the important classes.  */
+static int
+comp_reg_classes_func (const void *v1p, const void *v2p)
+{
+  enum reg_class cl1 = *(const enum reg_class *) v1p;
+  enum reg_class cl2 = *(const enum reg_class *) v2p;
+  int diff;
+
+  cl1 = ira_class_translate[cl1];
+  cl2 = ira_class_translate[cl2];
+  if (cl1 != NO_REGS && cl2 != NO_REGS
+      && (diff = cover_class_order[cl1] - cover_class_order[cl2]) != 0)
+    return diff;
+  return (int) cl1 - (int) cl2;
+}
+
+/* Reorder important classes according to the order of their cover
+   classes.  Set up array ira_important_class_nums too.  */
+static void
+reorder_important_classes (void)
+{
+  int i;
+
+  for (i = 0; i < N_REG_CLASSES; i++)
+    cover_class_order[i] = -1;
+  for (i = 0; i < ira_reg_class_cover_size; i++)
+    cover_class_order[ira_reg_class_cover[i]] = i;
+  qsort (ira_important_classes, ira_important_classes_num,
+	 sizeof (enum reg_class), comp_reg_classes_func);
+  for (i = 0; i < ira_important_classes_num; i++)
+    ira_important_class_nums[ira_important_classes[i]] = i;
 }
 
 /* The biggest important reg_class inside of intersection of the two
@@ -1088,6 +1121,7 @@ find_reg_class_closure (void)
   setup_reg_subclasses ();
   setup_cover_and_important_classes ();
   setup_class_translate ();
+  reorder_important_classes ();
   setup_reg_class_relations ();
 }
 
@@ -1225,7 +1259,7 @@ ira_init_register_move_cost (enum machine_mode mode)
 void
 ira_init_once (void)
 {
-  enum machine_mode mode;
+  int mode;
 
   for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
     {
@@ -1241,7 +1275,7 @@ ira_init_once (void)
 static void
 free_register_move_costs (void)
 {
-  enum machine_mode mode;
+  int mode;
 
   for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
     {
@@ -1311,9 +1345,9 @@ setup_prohibited_mode_move_regs (void)
 	  if (! HARD_REGNO_MODE_OK (j, (enum machine_mode) i))
 	    continue;
 	  SET_REGNO (test_reg1, j);
-	  PUT_MODE (test_reg1, i);
+	  PUT_MODE (test_reg1, (enum machine_mode) i);
 	  SET_REGNO (test_reg2, j);
-	  PUT_MODE (test_reg2, i);
+	  PUT_MODE (test_reg2, (enum machine_mode) i);
 	  INSN_CODE (move_insn) = -1;
 	  recog_memoized (move_insn);
 	  if (INSN_CODE (move_insn) < 0)
@@ -1410,7 +1444,7 @@ setup_eliminable_regset (void)
        || (cfun->calls_alloca && EXIT_IGNORE_STACK)
        || crtl->accesses_prior_frames
        || crtl->stack_realign_needed
-       || FRAME_POINTER_REQUIRED);
+       || targetm.frame_pointer_required ());
 
   frame_pointer_needed = need_fp;
 
@@ -2796,14 +2830,14 @@ build_insn_chain (void)
       CLEAR_REG_SET (live_relevant_regs);
       memset (live_subregs_used, 0, max_regno * sizeof (int));
       
-      EXECUTE_IF_SET_IN_BITMAP (df_get_live_out (bb), 0, i, bi)
+      EXECUTE_IF_SET_IN_BITMAP (DF_LR_OUT (bb), 0, i, bi)
 	{
 	  if (i >= FIRST_PSEUDO_REGISTER)
 	    break;
 	  bitmap_set_bit (live_relevant_regs, i);
 	}
 
-      EXECUTE_IF_SET_IN_BITMAP (df_get_live_out (bb),
+      EXECUTE_IF_SET_IN_BITMAP (DF_LR_OUT (bb),
 				FIRST_PSEUDO_REGISTER, i, bi)
 	{
 	  if (pseudo_for_reload_consideration_p (i))

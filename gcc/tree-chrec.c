@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-chrec.h"
 #include "tree-pass.h"
 #include "params.h"
+#include "flags.h"
 #include "tree-scalar-evolution.h"
 
 
@@ -220,16 +221,16 @@ chrec_fold_multiply_poly_poly (tree type,
   /* "a*c".  */
   t0 = chrec_fold_multiply (type, CHREC_LEFT (poly0), CHREC_LEFT (poly1));
 
-  /* "a*d + b*c + b*d".  */
+  /* "a*d + b*c".  */
   t1 = chrec_fold_multiply (type, CHREC_LEFT (poly0), CHREC_RIGHT (poly1));
   t1 = chrec_fold_plus (type, t1, chrec_fold_multiply (type,
 						       CHREC_RIGHT (poly0),
 						       CHREC_LEFT (poly1)));
-  t1 = chrec_fold_plus (type, t1, chrec_fold_multiply (type,
-						       CHREC_RIGHT (poly0),
-						       CHREC_RIGHT (poly1)));
-  /* "2*b*d".  */
+  /* "b*d".  */
   t2 = chrec_fold_multiply (type, CHREC_RIGHT (poly0), CHREC_RIGHT (poly1));
+  /* "a*d + b*c + b*d".  */
+  t1 = chrec_fold_plus (type, t1, t2);
+  /* "2*b*d".  */
   t2 = chrec_fold_multiply (type, SCALAR_FLOAT_TYPE_P (type)
 			    ? build_real (type, dconst2)
 			    : build_int_cst (type, 2), t2);
@@ -1100,21 +1101,6 @@ nb_vars_in_chrec (tree chrec)
     }
 }
 
-/* Returns true if TYPE is a type in that we cannot directly perform
-   arithmetics, even though it is a scalar type.  */
-
-static bool
-avoid_arithmetics_in_type_p (const_tree type)
-{
-  /* Ada frontend uses subtypes -- an arithmetic cannot be directly performed
-     in the subtype, but a base type must be used, and the result then can
-     be casted to the subtype.  */
-  if (TREE_CODE (type) == INTEGER_TYPE && TREE_TYPE (type) != NULL_TREE)
-    return true;
-
-  return false;
-}
-
 static tree chrec_convert_1 (tree, tree, gimple, bool);
 
 /* Converts BASE and STEP of affine scev to TYPE.  LOOP is the loop whose iv
@@ -1135,10 +1121,6 @@ convert_affine_scev (struct loop *loop, tree type,
   bool must_check_src_overflow, must_check_rslt_overflow;
   tree new_base, new_step;
   tree step_type = POINTER_TYPE_P (type) ? sizetype : type;
-
-  /* If we cannot perform arithmetic in TYPE, avoid creating an scev.  */
-  if (avoid_arithmetics_in_type_p (type))
-    return false;
 
   /* In general,
      (TYPE) (BASE + STEP * i) = (TYPE) BASE + (TYPE -- sign extend) STEP * i,
@@ -1305,7 +1287,19 @@ chrec_convert_1 (tree type, tree chrec, gimple at_stmt,
 
   /* If we cannot propagate the cast inside the chrec, just keep the cast.  */
 keep_cast:
-  res = fold_convert (type, chrec);
+  /* Fold will not canonicalize (long)(i - 1) to (long)i - 1 because that
+     may be more expensive.  We do want to perform this optimization here
+     though for canonicalization reasons.  */
+  if (use_overflow_semantics
+      && (TREE_CODE (chrec) == PLUS_EXPR
+	  || TREE_CODE (chrec) == MINUS_EXPR)
+      && TYPE_PRECISION (type) > TYPE_PRECISION (ct)
+      && TYPE_OVERFLOW_UNDEFINED (ct))
+    res = fold_build2 (TREE_CODE (chrec), type,
+		       fold_convert (type, TREE_OPERAND (chrec, 0)),
+		       fold_convert (type, TREE_OPERAND (chrec, 1)));
+  else
+    res = fold_convert (type, chrec);
 
   /* Don't propagate overflows.  */
   if (CONSTANT_CLASS_P (res))
@@ -1340,10 +1334,6 @@ chrec_convert_aggressive (tree type, tree chrec)
 
   inner_type = TREE_TYPE (chrec);
   if (TYPE_PRECISION (type) > TYPE_PRECISION (inner_type))
-    return NULL_TREE;
-
-  /* If we cannot perform arithmetic in TYPE, avoid creating an scev.  */
-  if (avoid_arithmetics_in_type_p (type))
     return NULL_TREE;
 
   rtype = POINTER_TYPE_P (type) ? sizetype : type;
@@ -1421,7 +1411,7 @@ for_each_scev_op (tree *scev, bool (*cbck) (tree *, void *), void *data)
 
     case 2:
       for_each_scev_op (&TREE_OPERAND (*scev, 1), cbck, data);
-      
+
     case 1:
       for_each_scev_op (&TREE_OPERAND (*scev, 0), cbck, data);
 
@@ -1448,6 +1438,7 @@ operator_is_linear (tree scev)
     case NEGATE_EXPR:
     case SSA_NAME:
     case NON_LVALUE_EXPR:
+    case BIT_NOT_EXPR:
     CASE_CONVERT:
       return true;
 
@@ -1471,6 +1462,10 @@ scev_is_linear_expression (tree scev)
     return !(tree_contains_chrecs (TREE_OPERAND (scev, 0), NULL)
 	     && tree_contains_chrecs (TREE_OPERAND (scev, 1), NULL));
 
+  if (TREE_CODE (scev) == POLYNOMIAL_CHREC
+      && !evolution_function_is_affine_multivariate_p (scev, CHREC_VARIABLE (scev)))
+    return false;
+
   switch (TREE_CODE_LENGTH (TREE_CODE (scev)))
     {
     case 3:
@@ -1481,7 +1476,7 @@ scev_is_linear_expression (tree scev)
     case 2:
       return scev_is_linear_expression (TREE_OPERAND (scev, 0))
 	&& scev_is_linear_expression (TREE_OPERAND (scev, 1));
-      
+
     case 1:
       return scev_is_linear_expression (TREE_OPERAND (scev, 0));
 
@@ -1492,3 +1487,33 @@ scev_is_linear_expression (tree scev)
       return false;
     }
 }
+
+/* Determines whether the expression CHREC contains only interger consts
+   in the right parts.  */
+
+bool
+evolution_function_right_is_integer_cst (const_tree chrec)
+{
+  if (chrec == NULL_TREE)
+    return false;
+
+  switch (TREE_CODE (chrec))
+    {
+    case INTEGER_CST:
+      return true;
+
+    case POLYNOMIAL_CHREC:
+      if (!evolution_function_right_is_integer_cst (CHREC_RIGHT (chrec)))
+	return false;
+
+      if (TREE_CODE (CHREC_LEFT (chrec)) == POLYNOMIAL_CHREC
+	&& !evolution_function_right_is_integer_cst (CHREC_LEFT (chrec)))
+	return false;
+
+      return true;
+
+    default:
+      return false;
+    }
+}
+

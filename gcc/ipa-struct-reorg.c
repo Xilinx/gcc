@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "pointer-set.h"
 #include "hashtab.h"
-#include "c-tree.h"
 #include "toplev.h"
 #include "flags.h"
 #include "debug.h"
@@ -53,7 +52,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "ipa-type-escape.h"
 #include "tree-dump.h"
-#include "c-common.h"
 #include "gimple.h"
 
 /* This optimization implements structure peeling.
@@ -660,7 +658,7 @@ make_edge_and_fix_phis_of_dest (basic_block bb, edge e)
     {
       gimple phi = gsi_stmt (si);
       arg = PHI_ARG_DEF_FROM_EDGE (phi, e);
-      add_phi_arg (phi, arg, new_e); 
+      add_phi_arg (phi, arg, new_e, gimple_phi_arg_location_from_edge (phi, e));
     }
 
   return new_e;
@@ -2180,7 +2178,8 @@ create_new_var_1 (tree orig_decl, d_str str, new_var node)
       type = gen_struct_type (orig_decl, type); 
 
       if (is_global_var (orig_decl))
-	new_decl = build_decl (VAR_DECL, new_name, type); 
+	new_decl = build_decl (DECL_SOURCE_LOCATION (orig_decl),
+			       VAR_DECL, new_name, type); 
       else
 	{
 	  const char *name = new_name ? IDENTIFIER_POINTER (new_name) : NULL;
@@ -3643,12 +3642,12 @@ do_reorg_1 (void)
   bitmap_obstack_initialize (NULL);
 
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->analyzed && node->decl && !node->next_clone)
+    if (node->analyzed && node->decl)
       {
 	push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	current_function_decl = node->decl;
 	if (dump_file)
-	  fprintf (dump_file, "\nFunction to do reorg is  %s: \n",
+	  fprintf (dump_file, "\nFunction to do reorg is %s: \n",
 		   (const char *) IDENTIFIER_POINTER (DECL_NAME (node->decl)));
 	do_reorg_for_func (node);
 	free_dominance_info (CDI_DOMINATORS);
@@ -3811,8 +3810,7 @@ collect_data_accesses (void)
 	{
 	  struct function *func = DECL_STRUCT_FUNCTION (c_node->decl);
 
-	  if (!c_node->next_clone)
-	    collect_accesses_in_func (func);
+	  collect_accesses_in_func (func);
 	  exclude_alloc_and_field_accs (c_node);
 	}
     }

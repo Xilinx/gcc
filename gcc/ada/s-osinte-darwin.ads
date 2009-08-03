@@ -7,7 +7,7 @@
 --                                  S p e c                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---          Copyright (C) 1995-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1995-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -236,10 +236,8 @@ package System.OS_Interface is
    ---------
 
    function lwp_self return System.Address;
-   pragma Import (C, lwp_self, "pthread_self");
-   --  lwp_self does not exist on this thread library, revert to pthread_self
-   --  which is the closest approximation (with getpid). This function is
-   --  needed to share 7staprop.adb across POSIX-like targets.
+   --  Return the mach thread bound to the current thread.  The value is not
+   --  used by the run-time library but made available to debuggers.
 
    -------------
    -- Threads --
@@ -287,7 +285,7 @@ package System.OS_Interface is
    pragma Import (C, Alternate_Stack, "__gnat_alternate_stack");
    --  The alternate signal stack for stack overflows
 
-   Alternate_Stack_Size : constant := 64 * 1024;
+   Alternate_Stack_Size : constant := 32 * 1024;
    --  This must be in keeping with init.c:__gnat_alternate_stack
 
    Stack_Base_Available : constant Boolean := False;

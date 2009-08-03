@@ -1,6 +1,6 @@
 /* Definitions for Intel 386 running Linux-based GNU systems with ELF format.
    Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2004, 2005,
-   2006, 2007, 2008 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Eric Youngdale.
    Modified for stabs-in-ELF by H.J. Lu.
 
@@ -153,8 +153,10 @@ along with GCC; see the file COPYING3.  If not see
 	fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP));	\
 	/* Make sure that we have at least 8 byte alignment if > 8 byte \
 	   alignment is preferred.  */					\
-	if ((LOG) > 3 && (1 << (LOG)) > ((MAX_SKIP) + 1))		\
-	  fprintf ((FILE), "\t.p2align 3\n");				\
+	if ((LOG) > 3							\
+	    && (1 << (LOG)) > ((MAX_SKIP) + 1)				\
+	    && (MAX_SKIP) >= 7)						\
+	  fputs ("\t.p2align 3\n", (FILE));				\
       }									\
     }									\
   } while (0)

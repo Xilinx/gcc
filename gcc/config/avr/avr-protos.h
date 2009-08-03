@@ -2,7 +2,7 @@
    
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
-   Contributed by Denis Chertykov (denisc@overta.ru)
+   Contributed by Denis Chertykov (chertykov@gmail.com)
 
    This file is part of GCC.
 
@@ -24,22 +24,22 @@
 extern int function_arg_regno_p (int r);
 extern void avr_init_once (void);
 extern void avr_override_options (void);
+extern void avr_cpu_cpp_builtins (struct cpp_reader * pfile);
 extern void avr_optimization_options (int level, int size);
 extern char *avr_change_section (char *sect_name);
 extern int avr_ret_register (void);
-extern enum reg_class class_likely_spilled_p (int c);
+extern bool class_likely_spilled_p (int c);
 extern enum reg_class avr_regno_reg_class (int r);
 extern enum reg_class avr_reg_class_from_letter (int c);
-extern int frame_pointer_required_p (void);
 extern void asm_globalize_label (FILE *file, const char *name);
 extern void avr_asm_declare_function_name (FILE *, const char *, tree);
 extern void order_regs_for_local_alloc (void);
-extern int initial_elimination_offset (int from, int to);
+extern bool avr_can_eliminate (int, int);
+extern int avr_initial_elimination_offset (int from, int to);
 extern int avr_simple_epilogue (void);
 extern void gas_output_limited_string (FILE *file, const char *str);
 extern void gas_output_ascii (FILE *file, const char *str, size_t length);
 extern int avr_hard_regno_rename_ok (unsigned int, unsigned int);
-extern unsigned int avr_case_values_threshold (void);
 
 #ifdef TREE_CODE
 extern void asm_output_external (FILE *file, tree decl, char *name);
@@ -61,7 +61,6 @@ extern void function_arg_advance (CUMULATIVE_ARGS *cum,
 
 #ifdef RTX_CODE
 extern void asm_output_external_libcall (FILE *file, rtx symref);
-extern int legitimate_address_p (enum machine_mode mode, rtx x,	int strict);
 extern int compare_diff_p (rtx insn);
 extern const char *output_movqi (rtx insn, rtx operands[], int *l);
 extern const char *output_movhi (rtx insn, rtx operands[], int *l);
@@ -72,8 +71,8 @@ extern const char *out_movhi_mr_r (rtx insn, rtx op[], int *l);
 extern const char *out_movsi_r_mr (rtx insn, rtx op[], int *l);
 extern const char *out_movsi_mr_r (rtx insn, rtx op[], int *l);
 extern const char *output_movsisf (rtx insn, rtx operands[], int *l);
-extern const char *out_tstsi (rtx insn, int *l);
-extern const char *out_tsthi (rtx insn, int *l);
+extern const char *out_tstsi (rtx insn, rtx src, int *l);
+extern const char *out_tsthi (rtx insn, rtx src, int *l);
 extern const char *ret_cond_branch (rtx x, int len, int reverse);
 
 extern const char *ashlqi3_out (rtx insn, rtx operands[], int *len);
@@ -98,7 +97,6 @@ extern const char *avr_out_sbxx_branch (rtx insn, rtx operands[]);
 
 extern enum reg_class preferred_reload_class (rtx x, enum reg_class rclass);
 extern int extra_constraint_Q (rtx x);
-extern rtx legitimize_address (rtx x, rtx oldx, enum machine_mode mode);
 extern int adjust_insn_length (rtx insn, int len);
 extern rtx avr_libcall_value (enum machine_mode mode);
 extern const char *output_reload_inhi (rtx insn, rtx *operands, int *len);

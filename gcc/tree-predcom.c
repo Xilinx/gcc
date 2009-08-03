@@ -1,5 +1,5 @@
 /* Predictive commoning.
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -210,7 +210,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Data references (or phi nodes that carry data reference values across
    loop iterations).  */
 
-typedef struct dref
+typedef struct dref_d
 {
   /* The reference itself.  */
   struct data_reference *ref;
@@ -775,7 +775,7 @@ split_data_refs_to_components (struct loop *loop,
 	  comps[ca] = comp;
 	}
 
-      dataref = XCNEW (struct dref);
+      dataref = XCNEW (struct dref_d);
       dataref->ref = dr;
       dataref->stmt = DR_STMT (dr);
       dataref->offset = double_int_zero;
@@ -1126,7 +1126,7 @@ find_looparound_phi (struct loop *loop, dref ref, dref root)
 static void
 insert_looparound_copy (chain_p chain, dref ref, gimple phi)
 {
-  dref nw = XCNEW (struct dref), aref;
+  dref nw = XCNEW (struct dref_d), aref;
   unsigned i;
 
   nw->stmt = phi;
@@ -1512,8 +1512,8 @@ initialize_root_vars (struct loop *loop, chain_p chain, bitmap tmp_vars)
 
       phi = create_phi_node (var, loop->header);
       SSA_NAME_DEF_STMT (var) = phi;
-      add_phi_arg (phi, init, entry);
-      add_phi_arg (phi, next, latch);
+      add_phi_arg (phi, init, entry, UNKNOWN_LOCATION);
+      add_phi_arg (phi, next, latch, UNKNOWN_LOCATION);
     }
 }
 
@@ -1576,8 +1576,8 @@ initialize_root_vars_lm (struct loop *loop, dref root, bool written,
       next = VEC_index (tree, *vars, 1);
       phi = create_phi_node (var, loop->header);
       SSA_NAME_DEF_STMT (var) = phi;
-      add_phi_arg (phi, init, entry);
-      add_phi_arg (phi, next, latch);
+      add_phi_arg (phi, init, entry, UNKNOWN_LOCATION);
+      add_phi_arg (phi, next, latch, UNKNOWN_LOCATION);
     }
   else
     {
@@ -1868,43 +1868,6 @@ execute_pred_commoning_cbck (struct loop *loop, void *data)
      tree_predictive_commoning_loop).  */
   replace_names_by_phis (dta->chains);
   execute_pred_commoning (loop, dta->chains, dta->tmp_vars);
-}
-
-/* Returns true if we can and should unroll LOOP FACTOR times.  Number
-   of iterations of the loop is returned in NITER.  */
-
-static bool
-should_unroll_loop_p (struct loop *loop, unsigned factor,
-		      struct tree_niter_desc *niter)
-{
-  edge exit;
-
-  if (factor == 1)
-    return false;
-
-  /* Check whether unrolling is possible.  We only want to unroll loops
-     for that we are able to determine number of iterations.  We also
-     want to split the extra iterations of the loop from its end,
-     therefore we require that the loop has precisely one
-     exit.  */
-
-  exit = single_dom_exit (loop);
-  if (!exit)
-    return false;
-
-  if (!number_of_iterations_exit (loop, exit, niter, false))
-    return false;
-
-  /* And of course, we must be able to duplicate the loop.  */
-  if (!can_duplicate_loop_p (loop))
-    return false;
-
-  /* The final loop should be small enough.  */
-  if (tree_num_loop_insns (loop, &eni_size_weights) * factor
-      > (unsigned) PARAM_VALUE (PARAM_MAX_UNROLLED_INSNS))
-    return false;
-
-  return true;
 }
 
 /* Base NAME and all the names in the chain of phi nodes that use it
@@ -2339,7 +2302,7 @@ combine_chains (chain_p ch1, chain_p ch2)
   for (i = 0; (VEC_iterate (dref, ch1->refs, i, r1)
 	       && VEC_iterate (dref, ch2->refs, i, r2)); i++)
     {
-      nw = XCNEW (struct dref);
+      nw = XCNEW (struct dref_d);
       nw->stmt = stmt_combining_refs (r1, r2);
       nw->distance = r1->distance;
 
@@ -2544,7 +2507,8 @@ tree_predictive_commoning_loop (struct loop *loop)
      that its number of iterations is divisible by the factor.  */
   unroll_factor = determine_unroll_factor (chains);
   scev_reset ();
-  unroll = should_unroll_loop_p (loop, unroll_factor, &desc);
+  unroll = (unroll_factor > 1
+	    && can_unroll_loop_p (loop, unroll_factor, &desc));
   exit = single_dom_exit (loop);
 
   /* Execute the predictive commoning transformations, and possibly unroll the

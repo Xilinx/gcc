@@ -101,6 +101,12 @@
 #endif
 
 
+/* Define if gcc should always pass --build-id to linker. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_LD_BUILDID
+#endif
+
+
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 #ifndef USED_FOR_TARGET
@@ -273,6 +279,18 @@
 #endif
 
 
+/* Define if your assembler uses fildq and fistq mnemonics. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_IX86_FILDQ
+#endif
+
+
+/* Define if your assembler uses filds and fists mnemonics. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_IX86_FILDS
+#endif
+
+
 /* Define if your assembler supports the sahf mnemonic. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_IX86_SAHF
@@ -333,9 +351,20 @@
 #endif
 
 
-/* Define if your assembler supports popcntb field. */
+/* Define if your assembler supports popcntb instruction. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_POPCNTB
+#endif
+
+
+/* Define if your assembler supports popcntd instruction. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_POPCNTD
+#endif
+
+/* Define if your assembler supports lwsync instruction. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_LWSYNC
 #endif
 
 
@@ -826,6 +855,13 @@
 #endif
 
 
+/* Define if your assembler supports specifying the alignment of objects
+   allocated using the GAS .comm command. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GAS_ALIGNED_COMM
+#endif
+
+
 /* Define if your assembler supports .balign and .p2align. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_GAS_BALIGN_AND_P2ALIGN
@@ -844,9 +880,9 @@
 #endif
 
 
-/* Define if your assembler uses the new HImode fild and fist notation. */
+/* Define if your assembler supports the .loc discriminator sub-directive. */
 #ifndef USED_FOR_TARGET
-#undef HAVE_GAS_FILDS_FISTS
+#undef HAVE_GAS_DISCRIMINATOR
 #endif
 
 
@@ -1016,6 +1052,12 @@
 /* Define if your linker supports --as-needed and --no-as-needed options. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_LD_AS_NEEDED
+#endif
+
+
+/* Define if your linker supports --build-id. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_LD_BUILDID
 #endif
 
 
@@ -1346,6 +1388,12 @@
 /* Define if cloog is in use. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_cloog
+#endif
+
+
+/* Define if mpc is in use. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_mpc
 #endif
 
 

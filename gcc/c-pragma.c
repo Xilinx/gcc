@@ -43,8 +43,7 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_BAD2(gmsgid, arg) \
   do { warning (OPT_Wpragmas, gmsgid, arg); return; } while (0)
 
-typedef struct align_stack GTY(())
-{
+typedef struct GTY(()) align_stack {
   int		       alignment;
   tree		       id;
   struct align_stack * prev;
@@ -113,8 +112,8 @@ pop_alignment (tree id)
 	  }
       if (entry == NULL)
 	warning (OPT_Wpragmas, "\
-#pragma pack(pop, %s) encountered without matching #pragma pack(push, %s)"
-		 , IDENTIFIER_POINTER (id), IDENTIFIER_POINTER (id));
+#pragma pack(pop, %E) encountered without matching #pragma pack(push, %E)"
+		 , id, id);
     }
 
   entry = alignment_stack->prev;
@@ -180,7 +179,7 @@ handle_pragma_pack (cpp_reader * ARG_UNUSED (dummy))
       else if (!strcmp (op, "pop"))
 	action = pop;
       else
-	GCC_BAD2 ("unknown action %qs for %<#pragma pack%> - ignored", op);
+	GCC_BAD2 ("unknown action %qE for %<#pragma pack%> - ignored", x);
 
       while ((token = pragma_lex (&x)) == CPP_COMMA)
 	{
@@ -244,14 +243,12 @@ handle_pragma_pack (cpp_reader * ARG_UNUSED (dummy))
 }
 #endif  /* HANDLE_PRAGMA_PACK */
 
-struct def_pragma_macro_value GTY(())
-{
+struct GTY(()) def_pragma_macro_value {
   struct def_pragma_macro_value *prev;
   cpp_macro *value;
 };
 
-struct def_pragma_macro GTY(())
-{
+struct GTY(()) def_pragma_macro {
   hashval_t hash;
   const char *name;
   struct def_pragma_macro_value value;
@@ -458,7 +455,8 @@ maybe_apply_pending_pragma_weaks (void)
       if (TREE_VALUE (t) == NULL)
 	continue;
 
-      decl = build_decl (FUNCTION_DECL, alias_id, default_function_type);
+      decl = build_decl (UNKNOWN_LOCATION,
+			 FUNCTION_DECL, alias_id, default_function_type);
 
       DECL_ARTIFICIAL (decl) = 1;
       TREE_PUBLIC (decl) = 1;
@@ -1009,8 +1007,7 @@ handle_pragma_optimize (cpp_reader *ARG_UNUSED(dummy))
 /* Stack of the #pragma GCC options created with #pragma GCC push_option.  Save
    both the binary representation of the options and the TREE_LIST of
    strings that will be added to the function's attribute list.  */
-typedef struct opt_stack GTY(())
-{
+typedef struct GTY(()) opt_stack {
   struct opt_stack *prev;
   tree target_binary;
   tree target_strings;
@@ -1164,6 +1161,116 @@ handle_pragma_message (cpp_reader *ARG_UNUSED(dummy))
 
   if (TREE_STRING_LENGTH (message) > 1)
     inform (input_location, "#pragma message: %s", TREE_STRING_POINTER (message));
+}
+
+/* Mark whether the current location is valid for a STDC pragma.  */
+
+static bool valid_location_for_stdc_pragma;
+
+void
+mark_valid_location_for_stdc_pragma (bool flag)
+{
+  valid_location_for_stdc_pragma = flag;
+}
+
+/* Return true if the current location is valid for a STDC pragma.  */
+
+bool
+valid_location_for_stdc_pragma_p (void)
+{
+  return valid_location_for_stdc_pragma;
+}
+
+enum pragma_switch_t { PRAGMA_ON, PRAGMA_OFF, PRAGMA_DEFAULT, PRAGMA_BAD };
+
+/* A STDC pragma must appear outside of external declarations or
+   preceding all explicit declarations and statements inside a compound
+   statement; its behavior is undefined if used in any other context.
+   It takes a switch of ON, OFF, or DEFAULT.  */
+
+static enum pragma_switch_t
+handle_stdc_pragma (const char *pname)
+{
+  const char *arg;
+  tree t;
+  enum pragma_switch_t ret;
+
+  if (!valid_location_for_stdc_pragma_p ())
+    {
+      warning (OPT_Wpragmas, "invalid location for %<pragma %s%>, ignored",
+	       pname);
+      return PRAGMA_BAD;
+    }
+
+  if (pragma_lex (&t) != CPP_NAME)
+    {
+      warning (OPT_Wpragmas, "malformed %<#pragma %s%>, ignored", pname);
+      return PRAGMA_BAD;
+    }
+
+  arg = IDENTIFIER_POINTER (t);
+
+  if (!strcmp (arg, "ON"))
+    ret = PRAGMA_ON;
+  else if (!strcmp (arg, "OFF"))
+    ret = PRAGMA_OFF;
+  else if (!strcmp (arg, "DEFAULT"))
+    ret = PRAGMA_DEFAULT;
+  else
+    {
+      warning (OPT_Wpragmas, "malformed %<#pragma %s%>, ignored", pname);
+      return PRAGMA_BAD;
+    }
+
+  if (pragma_lex (&t) != CPP_EOF)
+    {
+      warning (OPT_Wpragmas, "junk at end of %<#pragma %s%>", pname);
+      return PRAGMA_BAD;
+    }
+
+  return ret;
+}
+
+/* #pragma STDC FLOAT_CONST_DECIMAL64 ON
+   #pragma STDC FLOAT_CONST_DECIMAL64 OFF
+   #pragma STDC FLOAT_CONST_DECIMAL64 DEFAULT */
+
+static void
+handle_pragma_float_const_decimal64 (cpp_reader *ARG_UNUSED (dummy))
+{
+  if (c_dialect_cxx ())
+    {
+      if (warn_unknown_pragmas > in_system_header)
+	warning (OPT_Wunknown_pragmas,
+		 "%<#pragma STDC FLOAT_CONST_DECIMAL64%> is not supported"
+		 " for C++");
+      return;
+    }
+
+  if (!targetm.decimal_float_supported_p ())
+    {
+      if (warn_unknown_pragmas > in_system_header)
+	warning (OPT_Wunknown_pragmas,
+		 "%<#pragma STDC FLOAT_CONST_DECIMAL64%> is not supported"
+		 " on this target");
+      return;
+    }
+
+  pedwarn (input_location, OPT_pedantic,
+	   "ISO C does not support %<#pragma STDC FLOAT_CONST_DECIMAL64%>");
+
+  switch (handle_stdc_pragma ("STDC FLOAT_CONST_DECIMAL64"))
+    {
+    case PRAGMA_ON:
+      set_float_const_decimal64 ();
+      break;
+    case PRAGMA_OFF:
+    case PRAGMA_DEFAULT:
+      clear_float_const_decimal64 ();
+      break;
+    case PRAGMA_BAD:
+      break;
+    }
 }
 
 /* A vector of registered pragma callbacks.  */
@@ -1333,6 +1440,9 @@ init_pragma (void)
   c_register_pragma ("GCC", "push_options", handle_pragma_push_options);
   c_register_pragma ("GCC", "pop_options", handle_pragma_pop_options);
   c_register_pragma ("GCC", "reset_options", handle_pragma_reset_options);
+
+  c_register_pragma ("STDC", "FLOAT_CONST_DECIMAL64",
+		     handle_pragma_float_const_decimal64);
 
   c_register_pragma_with_expansion (0, "redefine_extname", handle_pragma_redefine_extname);
   c_register_pragma (0, "extern_prefix", handle_pragma_extern_prefix);

@@ -49,7 +49,7 @@ AC_DEFUN([GLIBCXX_CONFIGURE], [
   # Keep these sync'd with the list in Makefile.am.  The first provides an
   # expandable list at autoconf time; the second provides an expandable list
   # (i.e., shell variable) at configure time.
-  m4_define([glibcxx_SUBDIRS],[include libsupc++ src doc po testsuite])
+  m4_define([glibcxx_SUBDIRS],[include libsupc++ python src doc po testsuite])
   SUBDIRS='glibcxx_SUBDIRS'
 
   # These need to be absolute paths, yet at the same time need to
@@ -104,7 +104,7 @@ AC_DEFUN([GLIBCXX_CONFIGURE], [
   AC_PROG_CC
   AC_PROG_CXX
   CXXFLAGS="$save_CXXFLAGS"
-  m4_rename([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
+  m4_rename_force([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
   AC_SUBST(CFLAGS)
   AC_SUBST(CXXFLAGS)
 

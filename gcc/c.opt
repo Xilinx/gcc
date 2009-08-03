@@ -284,8 +284,12 @@ Winvalid-pch
 C ObjC C++ ObjC++ Warning
 Warn about PCH files that are found but not used
 
+Wjump-misses-init
+C Objc Var(warn_jump_misses_init) Init(-1) Warning
+Warn when a jump misses a variable initialization
+
 Wlogical-op
-C ObjC C++ ObjC++ Var(warn_logical_op) Init(-1) Warning 
+C ObjC C++ ObjC++ Var(warn_logical_op) Init(0) Warning 
 Warn when a logical operator is suspiciously always evaluating to true or false
 
 Wlong-long
@@ -476,9 +480,17 @@ Wunknown-pragmas
 C ObjC C++ ObjC++ Warning
 Warn about unrecognized pragmas
 
+Wunsuffixed-float-constants
+C ObjC Var(warn_unsuffixed_float_constants) Warning
+Warn about unsuffixed float constants
+
 Wunused-macros
 C ObjC C++ ObjC++ Warning
 Warn about macros defined in the main file that are not used
+
+Wunused-result
+C ObjC C++ ObjC++ Var(warn_unused_result) Init(1) Warning
+Warn if a caller of a function, marked with attribute warn_unused_result, does not use its return value
 
 Wvariadic-macros
 C ObjC C++ ObjC++ Warning

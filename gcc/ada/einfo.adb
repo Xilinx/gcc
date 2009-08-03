@@ -49,8 +49,8 @@ package body Einfo is
    -- Usage of Fields in Defining Entity Nodes --
    ----------------------------------------------
 
-   --  Four of these fields are defined in Sinfo, since they in are the
-   --  base part of the node. The access routines for these fields and the
+   --  Four of these fields are defined in Sinfo, since they in are the base
+   --  part of the node. The access routines for these four fields and the
    --  corresponding set procedures are defined in Sinfo. These fields are
    --  present in all entities. Note that Homonym is also in the base part of
    --  the node, but has access routines that are more properly part of Einfo,
@@ -205,6 +205,7 @@ package body Einfo is
    --    Protection_Object               Node23
    --    Stored_Constraint               Elist23
 
+   --    Related_Expression              Node24
    --    Spec_PPC_List                   Node24
    --    Underlying_Record_View          Node24
 
@@ -507,8 +508,7 @@ package body Einfo is
    --    Is_RACW_Stub_Type               Flag244
    --    Is_Private_Primitive            Flag245
    --    Is_Underlying_Record_View       Flag246
-
-   --    (unused)                        Flag247
+   --    OK_To_Rename                    Flag247
 
    -----------------------
    -- Local subprograms --
@@ -665,7 +665,8 @@ package body Einfo is
    begin
       pragma Assert
         (Ekind (Id) = E_Record_Subtype
-         or else Ekind (Id) = E_Class_Wide_Subtype);
+           or else
+         Ekind (Id) = E_Class_Wide_Subtype);
       return Node16 (Id);
    end Cloned_Subtype;
 
@@ -691,6 +692,7 @@ package body Einfo is
 
    function Component_Type (Id : E) return E is
    begin
+      pragma Assert (Is_Array_Type (Id) or else Is_String_Type (Id));
       return Node20 (Implementation_Base_Type (Id));
    end Component_Type;
 
@@ -808,6 +810,7 @@ package body Einfo is
 
    function Directly_Designated_Type (Id : E) return E is
    begin
+      pragma Assert (Is_Access_Type (Id));
       return Node20 (Id);
    end Directly_Designated_Type;
 
@@ -2292,6 +2295,12 @@ package body Einfo is
       return Uint10 (Id);
    end Normalized_Position_Max;
 
+   function OK_To_Rename (Id : E) return B is
+   begin
+      pragma Assert (Ekind (Id) = E_Variable);
+      return Flag247 (Id);
+   end OK_To_Rename;
+
    function OK_To_Reorder_Components (Id : E) return B is
    begin
       pragma Assert (Is_Record_Type (Id));
@@ -2358,8 +2367,8 @@ package body Einfo is
 
    function Parent_Subtype (Id : E) return E is
    begin
-      pragma Assert (Ekind (Id) = E_Record_Type);
-      return Node19 (Id);
+      pragma Assert (Is_Record_Type (Id));
+      return Node19 (Base_Type (Id));
    end Parent_Subtype;
 
    function Postcondition_Proc (Id : E) return E is
@@ -2457,6 +2466,12 @@ package body Einfo is
       pragma Assert (Is_Array_Type (Id));
       return Node19 (Id);
    end Related_Array_Object;
+
+   function Related_Expression (Id : E) return N is
+   begin
+      pragma Assert (Ekind (Id) = E_Constant or else Ekind (Id) = E_Variable);
+      return Node24 (Id);
+   end Related_Expression;
 
    function Related_Instance (Id : E) return E is
    begin
@@ -4777,6 +4792,12 @@ package body Einfo is
       Set_Uint10 (Id, V);
    end Set_Normalized_Position_Max;
 
+   procedure Set_OK_To_Rename (Id : E; V : B := True) is
+   begin
+      pragma Assert (Ekind (Id) = E_Variable);
+      Set_Flag247 (Id, V);
+   end Set_OK_To_Rename;
+
    procedure Set_OK_To_Reorder_Components (Id : E; V : B := True) is
    begin
       pragma Assert
@@ -4943,6 +4964,11 @@ package body Einfo is
       pragma Assert (Is_Array_Type (Id));
       Set_Node19 (Id, V);
    end Set_Related_Array_Object;
+
+   procedure Set_Related_Expression (Id : E; V : N) is
+   begin
+      Set_Node24 (Id, V);
+   end Set_Related_Expression;
 
    procedure Set_Related_Instance (Id : E; V : E) is
    begin
@@ -7008,6 +7034,7 @@ package body Einfo is
       W ("No_Strict_Aliasing",              Flag136 (Id));
       W ("Non_Binary_Modulus",              Flag58  (Id));
       W ("Nonzero_Is_True",                 Flag162 (Id));
+      W ("OK_To_Rename",                    Flag247 (Id));
       W ("OK_To_Reorder_Components",        Flag239 (Id));
       W ("Optimize_Alignment_Space",        Flag241 (Id));
       W ("Optimize_Alignment_Time",         Flag242 (Id));
@@ -7935,6 +7962,9 @@ package body Einfo is
 
          when E_Record_Type                                =>
             Write_Str ("Underlying record view");
+
+         when E_Variable | E_Constant                      =>
+            Write_Str ("Related expression");
 
          when others                                       =>
             Write_Str ("???");

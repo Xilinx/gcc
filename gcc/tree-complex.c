@@ -38,13 +38,17 @@ along with GCC; see the file COPYING3.  If not see
    out whether a complex number is degenerate in some way, having only real
    or only complex parts.  */
 
-typedef enum
+enum
 {
   UNINITIALIZED = 0,
   ONLY_REAL = 1,
   ONLY_IMAG = 2,
   VARYING = 3
-} complex_lattice_t;
+};
+
+/* The type complex_lattice_t holds combinations of the above
+   constants.  */
+typedef int complex_lattice_t;
 
 #define PAIR(a, b)  ((a) << 2 | (b))
 
@@ -95,7 +99,10 @@ some_nonzerop (tree t)
 {
   int zerop = false;
 
-  if (TREE_CODE (t) == REAL_CST)
+  /* Operations with real or imaginary part of a complex number zero
+     cannot be treated the same as operations with a real or imaginary
+     operand if we care about the signs of zeros in the result.  */
+  if (TREE_CODE (t) == REAL_CST && !flag_signed_zeros)
     zerop = REAL_VALUES_IDENTICAL (TREE_REAL_CST (t), dconst0);
   else if (TREE_CODE (t) == FIXED_CST)
     zerop = fixed_zerop (t);
@@ -597,6 +604,7 @@ extract_component (gimple_stmt_iterator *gsi, tree t, bool imagpart_p,
     case INDIRECT_REF:
     case COMPONENT_REF:
     case ARRAY_REF:
+    case VIEW_CONVERT_EXPR:
       {
 	tree inner_type = TREE_TYPE (TREE_TYPE (t));
 
@@ -945,9 +953,11 @@ expand_complex_libcall (gimple_stmt_iterator *gsi, tree ar, tree ai,
   gcc_assert (GET_MODE_CLASS (mode) == MODE_COMPLEX_FLOAT);
 
   if (code == MULT_EXPR)
-    bcode = BUILT_IN_COMPLEX_MUL_MIN + mode - MIN_MODE_COMPLEX_FLOAT;
+    bcode = ((enum built_in_function)
+	     (BUILT_IN_COMPLEX_MUL_MIN + mode - MIN_MODE_COMPLEX_FLOAT));
   else if (code == RDIV_EXPR)
-    bcode = BUILT_IN_COMPLEX_DIV_MIN + mode - MIN_MODE_COMPLEX_FLOAT;
+    bcode = ((enum built_in_function)
+	     (BUILT_IN_COMPLEX_DIV_MIN + mode - MIN_MODE_COMPLEX_FLOAT));
   else
     gcc_unreachable ();
   fn = built_in_decls[bcode];
@@ -1099,7 +1109,8 @@ expand_complex_div_wide (gimple_stmt_iterator *gsi, tree inner_type,
   /* Examine |br| < |bi|, and branch.  */
   t1 = gimplify_build1 (gsi, ABS_EXPR, inner_type, br);
   t2 = gimplify_build1 (gsi, ABS_EXPR, inner_type, bi);
-  compare = fold_build2 (LT_EXPR, boolean_type_node, t1, t2);
+  compare = fold_build2_loc (gimple_location (gsi_stmt (*gsi)),
+			 LT_EXPR, boolean_type_node, t1, t2);
   STRIP_NOPS (compare);
 
   bb_cond = bb_true = bb_false = bb_join = NULL;
@@ -1120,7 +1131,8 @@ expand_complex_div_wide (gimple_stmt_iterator *gsi, tree inner_type,
 
       gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 
-      cond = fold_build2 (EQ_EXPR, boolean_type_node, tmp, boolean_true_node);
+      cond = fold_build2_loc (gimple_location (stmt),
+			  EQ_EXPR, boolean_type_node, tmp, boolean_true_node);
       stmt = gimple_build_cond_from_tree (cond, NULL_TREE, NULL_TREE);
       gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 

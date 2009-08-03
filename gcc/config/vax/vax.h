@@ -63,6 +63,9 @@ along with GCC; see the file COPYING3.  If not see
 /* Nonzero if ELF.  Redefined by vax/elf.h.  */
 #define TARGET_ELF 0
 
+/* Use BSD names for udiv and umod libgcc calls.  */
+#define TARGET_BSD_DIVMOD 1
+
 /* Default target_flags if no switches specified.  */
 
 #ifndef TARGET_DEFAULT
@@ -174,12 +177,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Base register for access to local variables of the function.  */
 #define FRAME_POINTER_REGNUM VAX_FP_REGNUM
-
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED 1
 
 /* Offset from the frame pointer register value to the top of stack.  */
 #define FRAME_POINTER_CFA_OFFSET(FNDECL) 0
@@ -540,11 +537,6 @@ enum reg_class { NO_REGS, ALL_REGS, LIM_REG_CLASSES };
    or if it is a pseudo reg.  */
 #define REG_OK_FOR_BASE_P(X) 1
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.  */
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR) \
-  { if (legitimate_address_p ((MODE), (X), 0)) goto ADDR; }
-
 #else
 
 /* Nonzero if X is a hard reg that can be used as an index.  */
@@ -552,11 +544,6 @@ enum reg_class { NO_REGS, ALL_REGS, LIM_REG_CLASSES };
 
 /* Nonzero if X is a hard reg that can be used as a base reg.  */
 #define REG_OK_FOR_BASE_P(X) REGNO_OK_FOR_BASE_P (REGNO (X))
-
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.  */
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR) \
-  { if (legitimate_address_p ((MODE), (X), 1)) goto ADDR; }
 
 #endif
 
@@ -802,6 +789,7 @@ enum reg_class { NO_REGS, ALL_REGS, LIM_REG_CLASSES };
 VAX operand formatting codes:
 
  letter	   print
+   c	direct branch condition
    C	reverse branch condition
    D	64-bit immediate operand
    B	the low 8 bits of the complement of a constant operand

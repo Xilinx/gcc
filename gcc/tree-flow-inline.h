@@ -172,29 +172,6 @@ get_var_ann (tree var)
   return (ann) ? ann : create_var_ann (var);
 }
 
-/* Return the function annotation for T, which must be a FUNCTION_DECL node.
-   Return NULL if the function annotation doesn't already exist.  */
-static inline function_ann_t
-function_ann (const_tree t)
-{
-  gcc_assert (t);
-  gcc_assert (TREE_CODE (t) == FUNCTION_DECL);
-  gcc_assert (!t->base.ann
-	      || t->base.ann->common.type == FUNCTION_ANN);
-
-  return (function_ann_t) t->base.ann;
-}
-
-/* Return the function annotation for T, which must be a FUNCTION_DECL node.
-   Create the function annotation if it doesn't exist.  */
-static inline function_ann_t
-get_function_ann (tree var)
-{
-  function_ann_t ann = function_ann (var);
-  gcc_assert (!var->base.ann || var->base.ann->common.type == FUNCTION_ANN);
-  return (ann) ? ann : create_function_ann (var);
-}
-
 /* Get the number of the next statement uid to be allocated.  */
 static inline unsigned int
 gimple_stmt_max_uid (struct function *fn)
@@ -477,6 +454,39 @@ gimple_phi_arg_edge (gimple gs, size_t i)
 {
   return EDGE_PRED (gimple_bb (gs), i);
 }
+
+/* Return the source location of gimple argument I of phi node GS.  */
+
+static inline source_location
+gimple_phi_arg_location (gimple gs, size_t i)
+{
+  return gimple_phi_arg (gs, i)->locus;
+}
+
+/* Return the source location of the argument on edge E of phi node GS.  */
+
+static inline source_location
+gimple_phi_arg_location_from_edge (gimple gs, edge e)
+{
+  return gimple_phi_arg (gs, e->dest_idx)->locus;
+}
+
+/* Set the source location of gimple argument I of phi node GS to LOC.  */
+
+static inline void
+gimple_phi_arg_set_location (gimple gs, size_t i, source_location loc)
+{
+  gimple_phi_arg (gs, i)->locus = loc;
+}
+
+/* Return TRUE if argument I of phi node GS has a location record.  */
+
+static inline bool
+gimple_phi_arg_has_location (gimple gs, size_t i)
+{
+  return gimple_phi_arg_location (gs, i) != UNKNOWN_LOCATION;
+}
+
 
 /* Return the PHI nodes for basic block BB, or NULL if there are no
    PHI nodes.  */
@@ -1159,6 +1169,21 @@ ref_contains_array_ref (const_tree ref)
   return false;
 }
 
+/* Return true if REF has an VIEW_CONVERT_EXPR somewhere in it.  */
+
+static inline bool
+contains_view_convert_expr_p (const_tree ref)
+{
+  while (handled_component_p (ref))
+    {
+      if (TREE_CODE (ref) == VIEW_CONVERT_EXPR)
+	return true;
+      ref = TREE_OPERAND (ref, 0);
+    }
+
+  return false;
+}
+
 /* Return true, if the two ranges [POS1, SIZE1] and [POS2, SIZE2]
    overlap.  SIZE1 and/or SIZE2 can be (unsigned)-1 in which case the
    range is open-ended.  Otherwise return false.  */
@@ -1202,6 +1227,14 @@ static inline tree
 redirect_edge_var_map_result (edge_var_map *v)
 {
   return v->result;
+}
+
+/* Given an edge_var_map V, return the PHI arg location.  */
+
+static inline source_location
+redirect_edge_var_map_location (edge_var_map *v)
+{
+  return v->locus;
 }
 
 

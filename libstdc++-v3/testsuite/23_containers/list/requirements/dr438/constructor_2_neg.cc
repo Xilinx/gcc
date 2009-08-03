@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 
 // { dg-do compile }
-// { dg-error "no matching" "" { target *-*-* } 1352 }
+// { dg-error "no matching" "" { target *-*-* } 1356 }
 // { dg-excess-errors "" }
 
 #include <list>
@@ -26,5 +26,6 @@
 
 void f()
 {
-  std::list<std::list<std::pair<char, char> > > l('a', 'b');
+  typedef std::list<std::list<std::pair<char, char> > > list_type;
+  list_type l('a', 'b');
 }

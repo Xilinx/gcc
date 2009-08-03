@@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 
    There are (4) basic forms that are matched:
 
+      (1) FORM_PRE_ADD
            a <- b + c
            ...
            *a
@@ -55,6 +56,9 @@ along with GCC; see the file COPYING3.  If not see
            a <- b
            ...
            *(a += c) pre
+
+
+      (2) FORM_PRE_INC
            a += c
            ...
            *a
@@ -62,18 +66,24 @@ along with GCC; see the file COPYING3.  If not see
         becomes
 
            *(a += c) pre
+
+
+      (3) FORM_POST_ADD
            *a
            ...
            b <- a + c
 
-	   for this case to be true, b must not be assigned or used between 
-	   the *a and the assignment to b.  B must also be a Pmode reg.
+	   (For this case to be true, b must not be assigned or used between 
+	   the *a and the assignment to b.  B must also be a Pmode reg.)
 
         becomes
 
            b <- a
            ...
            *(b += c) post
+
+
+      (4) FORM_POST_INC
            *a
            ...
            a <- a + c
@@ -99,56 +109,8 @@ along with GCC; see the file COPYING3.  If not see
   The is one special case: if a already had an offset equal to it +-
   its width and that offset is equal to -c when the increment was
   before the ref or +c if the increment was after the ref, then if we
-  can do the combination but switch the pre/post bit.
+  can do the combination but switch the pre/post bit.  */
 
-        (1) FORM_PRE_ADD
-
-           a <- b + c
-           ...
-           *(a - c)
-
-        becomes
-
-           a <- b
-           ...
-           *(a += c) post
-
-        (2) FORM_PRE_INC
-
-           a += c
-           ...
-           *(a - c)
-
-        becomes
-
-           *(a += c) post
-
-        (3) FORM_POST_ADD
-
-           *(a + c)
-           ...
-           b <- a + c
-
-	   for this case to be true, b must not be assigned or used between 
-	   the *a and the assignment to b. B must also be a Pmode reg.
-
-        becomes
-
-           b <- a
-           ...
-           *(b += c) pre
-
-
-        (4) FORM_POST_INC
-
-           *(a + c)
-           ...
-           a <- a + c 
-
-        becomes
-
-           *(a += c) pre
-*/
 #ifdef AUTO_INC_DEC
 
 enum form
@@ -851,7 +813,7 @@ parse_add_or_inc (rtx insn, bool before_mem)
   else 
     inc_insn.form = before_mem ? FORM_PRE_ADD : FORM_POST_ADD;
 
-  if (GET_CODE (XEXP (SET_SRC (pat), 1)) == CONST_INT)
+  if (CONST_INT_P (XEXP (SET_SRC (pat), 1)))
     {
       /* Process a = b + c where c is a const.  */
       inc_insn.reg1_is_const = true;
@@ -929,7 +891,7 @@ find_address (rtx *address_of_x)
       mem_insn.reg0 = inc_insn.reg_res;
       mem_insn.reg1 = b;
       mem_insn.reg1_is_const = inc_insn.reg1_is_const;
-      if (GET_CODE (b) == CONST_INT)
+      if (CONST_INT_P (b))
 	{
 	  /* Match with *(reg0 + reg1) where reg1 is a const. */
 	  HOST_WIDE_INT val = INTVAL (b);
@@ -1317,7 +1279,7 @@ find_mem (rtx *address_of_x)
       mem_insn.mem_loc = address_of_x;
       mem_insn.reg0 = XEXP (XEXP (x, 0), 0);
       mem_insn.reg1 = reg1;
-      if (GET_CODE (reg1) == CONST_INT)
+      if (CONST_INT_P (reg1))
 	{
 	  mem_insn.reg1_is_const = true;
 	  /* Match with *(reg0 + c) where c is a const. */

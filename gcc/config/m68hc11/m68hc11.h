@@ -883,12 +883,6 @@ extern enum reg_class m68hc11_tmp_regs_class;
  {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM},		\
  {FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM}}
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms may be
-   accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED	0
-
 /* Given FROM and TO register numbers, say whether this elimination is allowed.
    Frame pointer elimination is automatically handled.
 
@@ -1138,7 +1132,7 @@ extern unsigned char m68hc11_reg_valid_for_index[FIRST_PSEUDO_REGISTER];
 /* Maximum number of registers that can appear in a valid memory address */
 #define MAX_REGS_PER_ADDRESS	2
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression that is a
+/* TARGET_LEGITIMATE_ADDRESS_P recognizes an RTL expression that is a
    valid memory address for an instruction. The MODE argument is the
    machine mode for the MEM expression that wants to use this address.  */
 
@@ -1175,19 +1169,6 @@ extern unsigned char m68hc11_reg_valid_for_index[FIRST_PSEUDO_REGISTER];
   (((GET_CODE (X) == PRE_DEC) || (GET_CODE (X) == POST_INC)) \
 	&& SP_REG_P (XEXP (X, 0)))
 
-/* Go to ADDR if X is a valid address.  */
-#ifndef REG_OK_STRICT
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR) \
-{ \
-  if (m68hc11_go_if_legitimate_address ((X), (MODE), 0)) goto ADDR; \
-}
-#else
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)		 \
-{							 \
-  if (m68hc11_go_if_legitimate_address ((X), (MODE), 1)) goto ADDR; \
-}
-#endif
-
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx and check its
    validity for a certain class.  We have two alternate definitions for each
    of them.  The usual definition accepts all pseudo regs; the other rejects
@@ -1210,32 +1191,6 @@ extern unsigned char m68hc11_reg_valid_for_index[FIRST_PSEUDO_REGISTER];
 #define REG_OK_FOR_INDEX_P(X)  REG_OK_FOR_INDEX_STRICT_P(X)
 #endif
 
-
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-  
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-  
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-  
-   It is always safe for this macro to do nothing.
-   It exists to recognize opportunities to optimize the output.  */
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)                     \
-{ rtx operand = (X);                                            \
-  if (m68hc11_legitimize_address (&operand, (OLDX), (MODE)))	\
-    {                                                           \
-      (X) = operand;                                            \
-      GO_IF_LEGITIMATE_ADDRESS (MODE,X,WIN);                    \
-    }                                                           \
-}
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 /* Nonzero if the constant value X is a legitimate general operand.
    It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.  */
@@ -1530,8 +1485,6 @@ extern int current_function_interrupt;
 extern int current_function_trap;
 extern int current_function_far;
 
-extern GTY(()) rtx m68hc11_compare_op0;
-extern GTY(()) rtx m68hc11_compare_op1;
 extern GTY(()) rtx m68hc11_soft_tmp_reg;
 extern GTY(()) rtx ix_reg;
 extern GTY(()) rtx iy_reg;

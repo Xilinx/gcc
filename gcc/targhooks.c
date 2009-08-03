@@ -1,5 +1,6 @@
 /* Default target hook functions.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -67,6 +68,22 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 
 
+bool
+default_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
+			      rtx addr ATTRIBUTE_UNUSED,
+			      bool strict ATTRIBUTE_UNUSED)
+{
+#ifdef GO_IF_LEGITIMATE_ADDRESS
+  /* Defer to the old implementation using a goto.  */
+  if (strict)
+    return strict_memory_address_p (mode, addr);
+  else
+    return memory_address_p (mode, addr);
+#else
+  gcc_unreachable ();
+#endif
+}
+
 void
 default_external_libcall (rtx fun ATTRIBUTE_UNUSED)
 {
@@ -96,6 +113,27 @@ default_unspec_may_trap_p (const_rtx x, unsigned flags)
 }
 
 enum machine_mode
+default_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+			       enum machine_mode mode,
+			       int *punsignedp ATTRIBUTE_UNUSED,
+			       const_tree funtype ATTRIBUTE_UNUSED,
+			       int for_return ATTRIBUTE_UNUSED)
+{
+  return mode;
+}
+
+enum machine_mode
+default_promote_function_mode_always_promote (const_tree type,
+					      enum machine_mode mode,
+					      int *punsignedp,
+					      const_tree funtype ATTRIBUTE_UNUSED,
+					      int for_return ATTRIBUTE_UNUSED)
+{
+  return promote_mode (type, mode, punsignedp);
+}
+
+
+enum machine_mode
 default_cc_modes_compatible (enum machine_mode m1, enum machine_mode m2)
 {
   if (m1 == m2)
@@ -108,6 +146,13 @@ default_return_in_memory (const_tree type,
 			  const_tree fntype ATTRIBUTE_UNUSED)
 {
   return (TYPE_MODE (type) == BLKmode);
+}
+
+rtx
+default_legitimize_address (rtx x, rtx orig_x ATTRIBUTE_UNUSED,
+			    enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return x;
 }
 
 rtx
@@ -363,9 +408,7 @@ default_invalid_within_doloop (const_rtx insn)
   if (CALL_P (insn))
     return "Function call in loop.";
   
-  if (JUMP_P (insn)
-      && (GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC
-	  || GET_CODE (PATTERN (insn)) == ADDR_VEC))
+  if (JUMP_TABLE_DATA_P (insn))
     return "Computed branch in the loop.";
   
   return NULL;
@@ -374,7 +417,7 @@ default_invalid_within_doloop (const_rtx insn)
 /* Mapping of builtin functions to vectorized variants.  */
 
 tree
-default_builtin_vectorized_function (enum built_in_function fn ATTRIBUTE_UNUSED,
+default_builtin_vectorized_function (unsigned int fn ATTRIBUTE_UNUSED,
 				     tree type_out ATTRIBUTE_UNUSED,
 				     tree type_in ATTRIBUTE_UNUSED)
 {
@@ -384,7 +427,7 @@ default_builtin_vectorized_function (enum built_in_function fn ATTRIBUTE_UNUSED,
 /* Vectorized conversion.  */
 
 tree
-default_builtin_vectorized_conversion (enum tree_code code ATTRIBUTE_UNUSED,
+default_builtin_vectorized_conversion (unsigned int code ATTRIBUTE_UNUSED,
 				       tree type ATTRIBUTE_UNUSED)
 {
   return NULL_TREE;
@@ -393,7 +436,7 @@ default_builtin_vectorized_conversion (enum tree_code code ATTRIBUTE_UNUSED,
 /* Reciprocal.  */
 
 tree
-default_builtin_reciprocal (enum built_in_function fn ATTRIBUTE_UNUSED,
+default_builtin_reciprocal (unsigned int fn ATTRIBUTE_UNUSED,
 			    bool md_fn ATTRIBUTE_UNUSED,
 			    bool sqrt ATTRIBUTE_UNUSED)
 {
@@ -453,7 +496,8 @@ default_stack_protect_guard (void)
 
   if (t == NULL)
     {
-      t = build_decl (VAR_DECL, get_identifier ("__stack_chk_guard"),
+      t = build_decl (UNKNOWN_LOCATION,
+		      VAR_DECL, get_identifier ("__stack_chk_guard"),
 		      ptr_type_node);
       TREE_STATIC (t) = 1;
       TREE_PUBLIC (t) = 1;
@@ -479,7 +523,8 @@ default_external_stack_protect_fail (void)
   if (t == NULL_TREE)
     {
       t = build_function_type_list (void_type_node, NULL_TREE);
-      t = build_decl (FUNCTION_DECL, get_identifier ("__stack_chk_fail"), t);
+      t = build_decl (UNKNOWN_LOCATION,
+		      FUNCTION_DECL, get_identifier ("__stack_chk_fail"), t);
       TREE_STATIC (t) = 1;
       TREE_PUBLIC (t) = 1;
       DECL_EXTERNAL (t) = 1;
@@ -511,7 +556,7 @@ default_hidden_stack_protect_fail (void)
   if (t == NULL_TREE)
     {
       t = build_function_type_list (void_type_node, NULL_TREE);
-      t = build_decl (FUNCTION_DECL,
+      t = build_decl (UNKNOWN_LOCATION, FUNCTION_DECL,
 		      get_identifier ("__stack_chk_fail_local"), t);
       TREE_STATIC (t) = 1;
       TREE_PUBLIC (t) = 1;
@@ -573,6 +618,12 @@ default_internal_arg_pointer (void)
     return copy_to_reg (virtual_incoming_args_rtx);
   else
     return virtual_incoming_args_rtx;
+}
+
+enum reg_class
+default_branch_target_register_class (void)
+{
+  return NO_REGS;
 }
 
 #ifdef IRA_COVER_CLASSES
@@ -741,7 +792,7 @@ default_target_option_pragma_parse (tree ARG_UNUSED (args),
 }
 
 bool
-default_target_option_can_inline_p (tree caller, tree callee)
+default_target_can_inline_p (tree caller, tree callee)
 {
   bool ret = false;
   tree callee_opts = DECL_FUNCTION_SPECIFIC_TARGET (callee);
@@ -763,6 +814,19 @@ default_target_option_can_inline_p (tree caller, tree callee)
     ret = (callee_opts == caller_opts);
 
   return ret;
+}
+
+#ifndef HAVE_casesi
+# define HAVE_casesi 0
+#endif
+
+/* If the machine does not have a case insn that compares the bounds,
+   this means extra overhead for dispatch tables, which raises the
+   threshold for using them.  */
+
+unsigned int default_case_values_threshold (void)
+{
+  return (HAVE_casesi ? 4 : 5);
 }
 
 #include "gt-targhooks.h"

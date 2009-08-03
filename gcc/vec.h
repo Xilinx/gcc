@@ -1,5 +1,5 @@
 /* Vector API for GNU compiler.
-   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Nathan Sidwell <nathan@codesourcery.com>
 
 This file is part of GCC.
@@ -471,7 +471,7 @@ typedef struct VEC(T,B) 				 		  \
 } VEC(T,B)
 
 #define VEC_T_GTY(T,B)							  \
-typedef struct VEC(T,B) GTY(())				 		  \
+typedef struct GTY(()) VEC(T,B)				 		  \
 {									  \
   unsigned num;								  \
   unsigned alloc;							  \
@@ -480,7 +480,7 @@ typedef struct VEC(T,B) GTY(())				 		  \
 
 /* Derived vector type, user visible.  */
 #define VEC_TA_GTY(T,B,A,GTY)						  \
-typedef struct VEC(T,A) GTY						  \
+typedef struct GTY VEC(T,A)						  \
 {									  \
   VEC(T,B) base;							  \
 } VEC(T,A)
@@ -508,6 +508,7 @@ struct vec_swallow_trailing_semi
 #define DEF_VEC_ALLOC_I(T,A)						  \
 VEC_TA(T,base,A);							  \
 DEF_VEC_ALLOC_FUNC_I(T,A)						  \
+DEF_VEC_NONALLOC_FUNCS_I(T,A)						  \
 struct vec_swallow_trailing_semi
 
 /* Vector of pointer to object.  */
@@ -524,6 +525,7 @@ struct vec_swallow_trailing_semi
 #define DEF_VEC_ALLOC_P(T,A)						  \
 VEC_TA(T,base,A);							  \
 DEF_VEC_ALLOC_FUNC_P(T,A)						  \
+DEF_VEC_NONALLOC_FUNCS_P(T,A)						  \
 struct vec_swallow_trailing_semi
 
 #define DEF_VEC_FUNC_P(T)						  \
@@ -558,7 +560,7 @@ static inline int VEC_OP (T,base,iterate)			  	  \
     }									  \
   else									  \
     {									  \
-      *ptr = 0;								  \
+      *ptr = (T) 0;							  \
       return 0;								  \
     }									  \
 }									  \
@@ -716,8 +718,10 @@ static inline VEC(T,A) *VEC_OP (T,A,alloc)				  \
 {									  \
   return (VEC(T,A) *) vec_##A##_p_reserve_exact (NULL, alloc_		  \
 						 PASS_MEM_STAT);	  \
-}									  \
-									  \
+}
+
+
+#define DEF_VEC_NONALLOC_FUNCS_P(T,A)					  \
 static inline void VEC_OP (T,A,free)					  \
      (VEC(T,A) **vec_)							  \
 {									  \
@@ -814,6 +818,7 @@ struct vec_swallow_trailing_semi
 #define DEF_VEC_ALLOC_O(T,A)						  \
 VEC_TA(T,base,A);							  \
 DEF_VEC_ALLOC_FUNC_O(T,A)						  \
+DEF_VEC_NONALLOC_FUNCS_O(T,A)						  \
 struct vec_swallow_trailing_semi
 
 #define DEF_VEC_FUNC_O(T)						  \
@@ -995,8 +1000,9 @@ static inline VEC(T,A) *VEC_OP (T,A,alloc)      			  \
 						 offsetof (VEC(T,A),base.vec), \
 						 sizeof (T)		  \
 						 PASS_MEM_STAT);	  \
-}									  \
-									  \
+}
+
+#define DEF_VEC_NONALLOC_FUNCS_O(T,A)					  \
 static inline VEC(T,A) *VEC_OP (T,A,copy) (VEC(T,base) *vec_ MEM_STAT_DECL) \
 {									  \
   size_t len_ = vec_ ? vec_->num : 0;					  \
@@ -1099,8 +1105,9 @@ static inline VEC(T,A) *VEC_OP (T,A,alloc)      			  \
   return (VEC(T,A) *) vec_##A##_o_reserve_exact				  \
 		      (NULL, alloc_, offsetof (VEC(T,A),base.vec),	  \
 		       sizeof (T) PASS_MEM_STAT);			  \
-}									  \
-									  \
+}
+
+#define DEF_VEC_NONALLOC_FUNCS_I(T,A)					  \
 static inline VEC(T,A) *VEC_OP (T,A,copy) (VEC(T,base) *vec_ MEM_STAT_DECL) \
 {									  \
   size_t len_ = vec_ ? vec_->num : 0;					  \
@@ -1193,6 +1200,82 @@ static inline T *VEC_OP (T,A,safe_insert)		     	  	  \
 									  \
   return VEC_OP (T,base,quick_insert) (VEC_BASE(*vec_), ix_, obj_	  \
 				       VEC_CHECK_PASS);			  \
+}
+
+/* We support a vector which starts out with space on the stack and
+   switches to heap space when forced to reallocate.  This works a
+   little differently.  Instead of DEF_VEC_ALLOC_P(TYPE, heap|gc), use
+   DEF_VEC_ALLOC_P_STACK(TYPE).  This uses alloca to get the initial
+   space; because alloca can not be usefully called in an inline
+   function, and because a macro can not define a macro, you must then
+   write a #define for each type:
+
+   #define VEC_{TYPE}_stack_alloc(alloc)                          \
+     VEC_stack_alloc({TYPE}, alloc)
+
+   This is really a hack and perhaps can be made better.  Note that
+   this macro will wind up evaluating the ALLOC parameter twice.
+
+   Only the initial allocation will be made using alloca, so pass a
+   reasonable estimate that doesn't use too much stack space; don't
+   pass zero.  Don't return a VEC(TYPE,stack) vector from the function
+   which allocated it.  */
+
+extern void *vec_stack_p_reserve (void *, int MEM_STAT_DECL);
+extern void *vec_stack_p_reserve_exact (void *, int MEM_STAT_DECL);
+extern void *vec_stack_p_reserve_exact_1 (int, void *);
+extern void *vec_stack_o_reserve (void *, int, size_t, size_t MEM_STAT_DECL);
+extern void *vec_stack_o_reserve_exact (void *, int, size_t, size_t
+					 MEM_STAT_DECL);
+extern void vec_stack_free (void *);
+
+#ifdef GATHER_STATISTICS
+#define VEC_stack_alloc(T,alloc,name,line,function)			  \
+  (VEC_OP (T,stack,alloc1)						  \
+   (alloc, XALLOCAVAR (VEC(T,stack), VEC_embedded_size (T, alloc))))
+#else
+#define VEC_stack_alloc(T,alloc)					  \
+  (VEC_OP (T,stack,alloc1)						  \
+   (alloc, XALLOCAVAR (VEC(T,stack), VEC_embedded_size (T, alloc))))
+#endif
+
+#define DEF_VEC_ALLOC_P_STACK(T)					  \
+VEC_TA(T,base,stack);							  \
+DEF_VEC_ALLOC_FUNC_P_STACK(T)						  \
+DEF_VEC_NONALLOC_FUNCS_P(T,stack)					  \
+struct vec_swallow_trailing_semi
+
+#define DEF_VEC_ALLOC_FUNC_P_STACK(T)					  \
+static inline VEC(T,stack) *VEC_OP (T,stack,alloc1)			  \
+     (int alloc_, VEC(T,stack)* space)					  \
+{									  \
+  return (VEC(T,stack) *) vec_stack_p_reserve_exact_1 (alloc_, space);	  \
+}
+
+#define DEF_VEC_ALLOC_O_STACK(T)					  \
+VEC_TA(T,base,stack);							  \
+DEF_VEC_ALLOC_FUNC_O_STACK(T)						  \
+DEF_VEC_NONALLOC_FUNCS_O(T,stack)					  \
+struct vec_swallow_trailing_semi
+
+#define DEF_VEC_ALLOC_FUNC_O_STACK(T)					  \
+static inline VEC(T,stack) *VEC_OP (T,stack,alloc1)			  \
+     (int alloc_, VEC(T,stack)* space)					  \
+{									  \
+  return ((VEC(T,stack) *) vec_stack_p_reserve_exact_1 (alloc_, space);	  \
+}
+
+#define DEF_VEC_ALLOC_I_STACK(T)					  \
+VEC_TA(T,base,stack);							  \
+DEF_VEC_ALLOC_FUNC_I_STACK(T)						  \
+DEF_VEC_NONALLOC_FUNCS_I(T,stack)					  \
+struct vec_swallow_trailing_semi
+
+#define DEF_VEC_ALLOC_FUNC_I_STACK(T)					  \
+static inline VEC(T,stack) *VEC_OP (T,stack,alloc1)			  \
+     (int alloc_, VEC(T,stack)* space)					  \
+{									  \
+  return ((VEC(T,stack) *) vec_stack_p_reserve_exact_1 (alloc_, space);   \
 }
 
 #endif /* GCC_VEC_H */

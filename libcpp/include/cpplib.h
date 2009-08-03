@@ -28,10 +28,6 @@ along with this program; see the file COPYING3.  If not see
 #include "symtab.h"
 #include "line-map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct cpp_reader cpp_reader;
 typedef struct cpp_buffer cpp_buffer;
 typedef struct cpp_options cpp_options;
@@ -162,8 +158,7 @@ enum c_lang {CLK_GNUC89 = 0, CLK_GNUC99, CLK_STDC89, CLK_STDC94, CLK_STDC99,
 	     CLK_GNUCXX, CLK_CXX98, CLK_GNUCXX0X, CLK_CXX0X, CLK_ASM};
 
 /* Payload of a NUMBER, STRING, CHAR or COMMENT token.  */
-struct cpp_string GTY(())
-{
+struct GTY(()) cpp_string {
   unsigned int len;
   const unsigned char *text;
 };
@@ -190,14 +185,30 @@ enum cpp_token_fld_kind {
   CPP_TOKEN_FLD_SOURCE,
   CPP_TOKEN_FLD_STR,
   CPP_TOKEN_FLD_ARG_NO,
+  CPP_TOKEN_FLD_TOKEN_NO,
   CPP_TOKEN_FLD_PRAGMA,
   CPP_TOKEN_FLD_NONE
 };
 
+/* A macro argument in the cpp_token union.  */
+struct GTY(()) cpp_macro_arg {
+  /* Argument number.  */
+  unsigned int arg_no;
+};
+
+/* An identifier in the cpp_token union.  */
+struct GTY(()) cpp_identifier {
+  /* The canonical (UTF-8) spelling of the identifier.  */
+  cpp_hashnode *
+    GTY ((nested_ptr (union tree_node,
+		"%h ? CPP_HASHNODE (GCC_IDENT_TO_HT_IDENT (%h)) : NULL",
+			"%h ? HT_IDENT_TO_GCC_IDENT (HT_NODE (%h)) : NULL")))
+       node;
+};
+
 /* A preprocessing token.  This has been carefully packed and should
    occupy 16 bytes on 32-bit hosts and 24 bytes on 64-bit hosts.  */
-struct cpp_token GTY(())
-{
+struct GTY(()) cpp_token {
   source_location src_loc;	/* Location of first char of token.  */
   ENUM_BITFIELD(cpp_ttype) type : CHAR_BIT;  /* token type */
   unsigned short flags;		/* flags - see above */
@@ -205,12 +216,7 @@ struct cpp_token GTY(())
   union cpp_token_u
   {
     /* An identifier.  */
-    cpp_hashnode *
-      GTY ((nested_ptr (union tree_node,
-		"%h ? CPP_HASHNODE (GCC_IDENT_TO_HT_IDENT (%h)) : NULL",
-			"%h ? HT_IDENT_TO_GCC_IDENT (HT_NODE (%h)) : NULL"),
-	    tag ("CPP_TOKEN_FLD_NODE")))
-	 node;
+    struct cpp_identifier GTY ((tag ("CPP_TOKEN_FLD_NODE"))) node;
 	 
     /* Inherit padding from this token.  */
     cpp_token * GTY ((tag ("CPP_TOKEN_FLD_SOURCE"))) source;
@@ -219,7 +225,11 @@ struct cpp_token GTY(())
     struct cpp_string GTY ((tag ("CPP_TOKEN_FLD_STR"))) str;
 
     /* Argument no. for a CPP_MACRO_ARG.  */
-    unsigned int GTY ((tag ("CPP_TOKEN_FLD_ARG_NO"))) arg_no;
+    struct cpp_macro_arg GTY ((tag ("CPP_TOKEN_FLD_ARG_NO"))) macro_arg;
+
+    /* Original token no. for a CPP_PASTE (from a sequence of
+       consecutive paste tokens in a macro expansion).  */
+    unsigned int GTY ((tag ("CPP_TOKEN_FLD_TOKEN_NO"))) token_no;
 
     /* Caller-supplied identifier for a CPP_PRAGMA.  */
     unsigned int GTY ((tag ("CPP_TOKEN_FLD_PRAGMA"))) pragma;
@@ -383,6 +393,9 @@ struct cpp_options
   /* Nonzero means handle C++ alternate operator names.  */
   unsigned char operator_names;
 
+  /* Nonzero means warn about use of C++ alternate operator names.  */
+  unsigned char warn_cxx_operator_names;
+
   /* True for traditional preprocessing.  */
   unsigned char traditional;
 
@@ -492,6 +505,12 @@ struct cpp_callbacks
   void (*before_define) (cpp_reader *);
 };
 
+#ifdef VMS
+#define INO_T_CPP ino_t ino[3]
+#else
+#define INO_T_CPP ino_t ino
+#endif
+
 /* Chain of directories to look for include files in.  */
 struct cpp_dir
 {
@@ -525,12 +544,9 @@ struct cpp_dir
 
   /* The C front end uses these to recognize duplicated
      directories in the search path.  */
-  ino_t ino;
+  INO_T_CPP;
   dev_t dev;
 };
-
-/* Name under which this program was invoked.  */
-extern const char *progname;
 
 /* The structure of a node in the hash table.  The hash table has
    entries for all identifiers: either macros defined by #define
@@ -541,7 +557,8 @@ extern const char *progname;
    identifier that behaves like an operator such as "xor".
    NODE_DIAGNOSTIC is for speed in lex_token: it indicates a
    diagnostic may be required for this node.  Currently this only
-   applies to __VA_ARGS__ and poisoned identifiers.  */
+   applies to __VA_ARGS__, poisoned identifiers, and -Wc++-compat
+   warnings about NODE_OPERATOR.  */
 
 /* Hash node flags.  */
 #define NODE_OPERATOR	(1 << 0)	/* C++ named operator.  */
@@ -553,6 +570,7 @@ extern const char *progname;
 #define NODE_MACRO_ARG	(1 << 6)	/* Used during #define processing.  */
 #define NODE_USED	(1 << 7)	/* Dumped with -dU.  */
 #define NODE_CONDITIONAL (1 << 8)	/* Conditional macro */
+#define NODE_WARN_OPERATOR (1 << 9)	/* Warn about C++ named operator.  */
 
 /* Different flavors of hash node.  */
 enum node_type
@@ -564,7 +582,7 @@ enum node_type
 
 /* Different flavors of builtin macro.  _Pragma is an operator, but we
    handle it with the builtin code for efficiency reasons.  */
-enum builtin_type
+enum cpp_builtin_type
 {
   BT_SPECLINE = 0,		/* `__LINE__' */
   BT_DATE,			/* `__DATE__' */
@@ -604,28 +622,26 @@ enum {
    ends.  Also used to store CPP identifiers, which are a superset of
    identifiers in the grammatical sense.  */
 
-union _cpp_hashnode_value GTY(())
-{
+union GTY(()) _cpp_hashnode_value {
   /* If a macro.  */
   cpp_macro * GTY((tag ("NTV_MACRO"))) macro;
   /* Answers to an assertion.  */
   struct answer * GTY ((tag ("NTV_ANSWER"))) answers;
   /* Code for a builtin macro.  */
-  enum builtin_type GTY ((tag ("NTV_BUILTIN"))) builtin;
+  enum cpp_builtin_type GTY ((tag ("NTV_BUILTIN"))) builtin;
   /* Macro argument index.  */
   unsigned short GTY ((tag ("NTV_ARGUMENT"))) arg_index;
 };
 
-struct cpp_hashnode GTY(())
-{
+struct GTY(()) cpp_hashnode {
   struct ht_identifier ident;
   unsigned int is_directive : 1;
   unsigned int directive_index : 7;	/* If is_directive,
 					   then index into directive table.
 					   Otherwise, a NODE_OPERATOR.  */
   unsigned char rid_code;		/* Rid code - for front ends.  */
-  ENUM_BITFIELD(node_type) type : 7;	/* CPP node type.  */
-  unsigned int flags : 9;		/* CPP flags.  */
+  ENUM_BITFIELD(node_type) type : 6;	/* CPP node type.  */
+  unsigned int flags : 10;		/* CPP flags.  */
 
   union _cpp_hashnode_value GTY ((desc ("CPP_HASHNODE_VALUE_IDX (%1)"))) value;
 };
@@ -841,7 +857,7 @@ extern void cpp_output_line (cpp_reader *, FILE *);
 extern unsigned char *cpp_output_line_to_string (cpp_reader *,
 						 const unsigned char *);
 extern void cpp_output_token (const cpp_token *, FILE *);
-extern const char *cpp_type2name (enum cpp_ttype);
+extern const char *cpp_type2name (enum cpp_ttype, unsigned char flags);
 /* Returns the value of an escape sequence, truncated to the correct
    target precision.  PSTR points to the input pointer, which is just
    after the backslash.  LIMIT is how much text we have.  WIDE is true
@@ -918,9 +934,5 @@ extern int cpp_valid_state (cpp_reader *, const char *, int);
 extern void cpp_prepare_state (cpp_reader *, struct save_macro_data **);
 extern int cpp_read_state (cpp_reader *, const char *, FILE *,
 			   struct save_macro_data *);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* ! LIBCPP_CPPLIB_H */

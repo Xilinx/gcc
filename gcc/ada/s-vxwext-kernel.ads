@@ -6,7 +6,7 @@
 --                                                                          --
 --                                   S p e c                                --
 --                                                                          --
---            Copyright (C) 2009, Free Software Foundation, Inc.            --
+--            Copyright (C) 2008-2009, Free Software Foundation, Inc.       --
 --                                                                          --
 -- GNARL is free software;  you can redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,6 +36,9 @@ with Interfaces.C;
 package System.VxWorks.Ext is
    pragma Preelaborate;
 
+   subtype SEM_ID is Long_Integer;
+   --  typedef struct semaphore *SEM_ID;
+
    type t_id is new Long_Integer;
    subtype int is Interfaces.C.int;
 
@@ -60,11 +63,14 @@ package System.VxWorks.Ext is
      (intNum : int) return Interrupt_Vector;
    pragma Import (C, Interrupt_Number_To_Vector, "__gnat_inum_to_ivec");
 
+   function semDelete (Sem : SEM_ID) return int;
+   pragma Convention (C, semDelete);
+
    function Task_Cont (tid : t_id) return int;
    pragma Import (C, Task_Cont, "taskCont");
 
    function Task_Stop (tid : t_id) return int;
-   pragma Import (C, Task_Stop, "taskStop");
+   pragma Convention (C, Task_Stop);
 
    function kill (pid : t_id; sig : int) return int;
    pragma Import (C, kill, "kill");
@@ -80,5 +86,14 @@ package System.VxWorks.Ext is
    function tickGet return UINT64;
    --  Needed for ravenscar-cert
    pragma Import (C, tickGet, "tick64Get");
+
+   --------------------------------
+   -- Processor Affinity for SMP --
+   --------------------------------
+
+   function taskCpuAffinitySet (tid : t_id; CPU : int) return int;
+   pragma Convention (C, taskCpuAffinitySet);
+   --  For SMP run-times set the CPU affinity.
+   --  For uniprocessor systems return ERROR status.
 
 end System.VxWorks.Ext;

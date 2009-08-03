@@ -274,6 +274,8 @@ crisv32-*)
 	;;
 frv*)	cpu_type=frv
 	;;
+moxie*)	cpu_type=moxie
+	;;
 fido-*-*)
 	cpu_type=m68k
 	extra_headers=math-68881.h
@@ -286,7 +288,7 @@ i[34567]86-*-*)
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h mmintrin-common.h
 		       wmmintrin.h immintrin.h x86intrin.h avxintrin.h 
-		       cross-stdarg.h"
+		       ia32intrin.h cross-stdarg.h"
 	;;
 x86_64-*-*)
 	cpu_type=i386
@@ -296,7 +298,7 @@ x86_64-*-*)
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h mmintrin-common.h
 		       wmmintrin.h immintrin.h x86intrin.h avxintrin.h 
-		       cross-stdarg.h"
+		       ia32intrin.h cross-stdarg.h"
 	need_64bit_hwint=yes
 	;;
 ia64-*-*)
@@ -371,16 +373,24 @@ then
 fi
 
 case ${target} in
+i[34567]86-w64-*)
+	tm_file="i386/biarch32.h ${tm_file}"
+	;;
+esac
+
+case ${target} in
 i[34567]86-*-*)
 	if test "x$enable_cld" = xyes; then
 		tm_defines="${tm_defines} USE_IX86_CLD=1"
 	fi
+	tm_file="vxworks-dummy.h ${tm_file}"
 	;;
 x86_64-*-*)
 	tm_file="i386/biarch64.h ${tm_file}"
 	if test "x$enable_cld" = xyes; then
 		tm_defines="${tm_defines} USE_IX86_CLD=1"
 	fi
+	tm_file="vxworks-dummy.h ${tm_file}"
 	;;
 esac
 
@@ -411,6 +421,7 @@ case ${target} in
   extra_objs="darwin.o"
   extra_gcc_objs="darwin-driver.o"
   default_use_cxa_atexit=yes
+  use_gcc_stdint=wrap
   case ${enable_threads} in
     "" | yes | posix) thread_file='posix' ;;
   esac
@@ -466,7 +477,8 @@ case ${target} in
       exit 1
       ;;
   esac
-  fbsd_tm_file="${fbsd_tm_file} freebsd-spec.h freebsd.h"
+  fbsd_tm_file="${fbsd_tm_file} freebsd-spec.h freebsd.h freebsd-stdint.h"
+  use_gcc_stdint=wrap
   ;;
 *-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu)
   extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
@@ -790,10 +802,14 @@ arm-*-pe*)
 avr-*-rtems*)
 	tm_file="avr/avr.h dbxelf.h avr/rtems.h rtems.h newlib-stdint.h"
 	tmake_file="avr/t-avr t-rtems avr/t-rtems"
+	extra_gcc_objs="driver-avr.o avr-devices.o"
+	extra_objs="avr-devices.o"
 	;;
 avr-*-*)
 	tm_file="avr/avr.h dbxelf.h newlib-stdint.h"
 	use_gcc_stdint=wrap
+	extra_gcc_objs="driver-avr.o avr-devices.o"
+	extra_objs="avr-devices.o"
 	;;
 bfin*-elf*)
 	tm_file="${tm_file} dbxelf.h elfos.h newlib-stdint.h bfin/elf.h"
@@ -871,6 +887,22 @@ frv-*-*linux*)
 	         linux.h glibc-stdint.h frv/linux.h frv/frv-abi.h"
 	tmake_file="${tmake_file} frv/t-frv frv/t-linux"
 	;;
+moxie-*-elf)
+	gas=yes
+	gnu_ld=yes
+	tm_file="dbxelf.h elfos.h svr4.h ${tm_file}"
+	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
+	tmake_file="${tmake_file} moxie/t-moxie moxie/t-moxie-softfp soft-fp/t-softfp"
+	;;
+moxie-*-uclinux*)
+	gas=yes
+	gnu_ld=yes
+	tm_file="dbxelf.h elfos.h svr4.h ${tm_file} linux.h glibc-stdint.h moxie/uclinux.h"
+	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
+	tmake_file="${tmake_file} moxie/t-moxie moxie/t-moxie-softfp soft-fp/t-softfp"
+	tm_defines="${tm_defines} UCLIBC_DEFAULT=1"
+	extra_options="${extra_options} linux.opt"
+	;;
 h8300-*-rtems*)
 	tmake_file="h8300/t-h8300 h8300/t-elf t-rtems h8300/t-rtems"
 	tm_file="h8300/h8300.h dbxelf.h elfos.h h8300/elf.h h8300/rtems.h rtems.h newlib-stdint.h"
@@ -919,6 +951,8 @@ hppa[12]*-*-hpux10*)
 		extra_options="${extra_options} pa/pa-hpux1010.opt"
 		;;
 	esac
+	use_gcc_stdint=provide
+	tm_file="${tm_file} hpux-stdint.h"
 	tmake_file="pa/t-pa-hpux10 pa/t-pa-hpux pa/t-hpux-shlib"
 	case ${enable_threads} in
 	  "")
@@ -975,6 +1009,16 @@ hppa*64*-*-hpux11*)
 		;;
 	esac
 	gas=yes
+	case ${target} in
+	  *-*-hpux11.[01]*)
+		use_gcc_stdint=provide
+		tm_file="${tm_file} hpux-stdint.h"
+		;;
+	  *-*-hpux11.[23]*)
+		use_gcc_stdint=wrap
+		tm_file="${tm_file} hpux-stdint.h"
+		;;
+	esac
 	;;
 hppa[12]*-*-hpux11*)
 	case ${target} in
@@ -1005,6 +1049,16 @@ hppa[12]*-*-hpux11*)
 	esac
 	use_collect2=yes
 	gas=yes
+	case ${target} in
+	  *-*-hpux11.[01]*)
+		use_gcc_stdint=provide
+		tm_file="${tm_file} hpux-stdint.h"
+		;;
+	  *-*-hpux11.[23]*)
+		use_gcc_stdint=wrap
+		tm_file="${tm_file} hpux-stdint.h"
+		;;
+	esac
 	;;
 i[34567]86-*-darwin*)
 	need_64bit_hwint=yes
@@ -1251,25 +1305,42 @@ i[34567]86-*-pe | i[34567]86-*-cygwin*)
 	use_gcc_stdint=wrap
 	;;
 i[34567]86-*-mingw* | x86_64-*-mingw*)
-	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h i386/mingw32.h i386/mingw-stdint.h"
+	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h i386/mingw32.h"
 	xm_file=i386/xm-mingw32.h
+	# This makes the logic if mingw's or the w64 feature set has to be used
+	case ${target} in
+		*-w64-*)
+			tm_file="${tm_file} i386/mingw-w64.h"
+			tmake_file="${tmake_file} i386/t-mingw-w64"
+			;;
+		*)
+			tmake_file="${tmake_file} i386/t-mingw32"
+			;;
+	esac
+	tm_file="${tm_file} i386/mingw-stdint.h"
 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
 	if test x$sjlj = x0; then
 		tmake_eh_file="i386/t-dw2-eh"
 	else
 		tmake_eh_file="i386/t-sjlj-eh"
 	fi
-	tmake_file="${tmake_file} ${tmake_eh_file} i386/t-cygming i386/t-mingw32"
+	tmake_file="${tmake_file} ${tmake_eh_file} i386/t-cygming"
 	target_gtfiles="\$(srcdir)/config/i386/winnt.c"
 	extra_options="${extra_options} i386/cygming.opt i386/mingw.opt"
+	case ${target} in
+		*-w64-*)
+			extra_options="${extra_options} i386/mingw-w64.opt"
+			;;
+		*)
+			;;
+	esac
 	extra_objs="winnt.o winnt-stubs.o"
 	c_target_objs="${c_target_objs} msformat-c.o"
 	cxx_target_objs="${cxx_target_objs} winnt-cxx.o msformat-c.o"
 	default_use_cxa_atexit=yes
 	use_gcc_stdint=wrap
 	case ${enable_threads} in
-	  "" | yes | win32)
-	  thread_file='win32'
+	  "" | yes | win32)	  thread_file='win32'
 	  tmake_file="${tmake_file} i386/t-gthr-win32"
 	  ;;
 	esac
@@ -1342,6 +1413,8 @@ ia64*-*-hpux*)
 	c_target_objs="ia64-c.o"
 	cxx_target_objs="ia64-c.o"
 	extra_options="${extra_options} ia64/ilp32.opt"
+	use_gcc_stdint=wrap
+	tm_file="${tm_file} hpux-stdint.h"
 	;;
 iq2000*-*-elf*)
         tm_file="svr4.h elfos.h newlib-stdint.h iq2000/iq2000.h"
@@ -1498,6 +1571,18 @@ mcore-*-pe*)
 	tm_file="svr3.h dbxcoff.h newlib-stdint.h ${tm_file} mcore/mcore-pe.h"
 	tmake_file=mcore/t-mcore-pe
 	inhibit_libc=true
+	use_gcc_stdint=wrap
+	;;
+mep-*-*)
+	tm_file="dbxelf.h elfos.h svr4.h ${tm_file}"
+	tmake_file=mep/t-mep
+	extra_parts="crtbegin.o crtend.o"
+	c_target_objs="mep-pragma.o"
+	cxx_target_objs="mep-pragma.o"
+	if test -d "${srcdir}/../newlib/libc/include" &&
+	   test "x$with_headers" = x; then
+		with_headers=yes
+	fi
 	use_gcc_stdint=wrap
 	;;
 mips-sgi-irix[56]*)
@@ -1667,6 +1752,7 @@ mips64-*-elf* | mips64el-*-elf*)
 mips64vr-*-elf* | mips64vrel-*-elf*)
         tm_file="elfos.h newlib-stdint.h ${tm_file} mips/vr.h mips/elf.h"
         tmake_file=mips/t-vr
+	tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_EABI"
         ;;
 mips64orion-*-elf* | mips64orionel-*-elf*)
 	tm_file="elfos.h newlib-stdint.h ${tm_file} mips/elforion.h mips/elf.h"
@@ -1777,7 +1863,7 @@ powerpc-*-eabialtivec*)
 powerpc-xilinx-eabi*)
 	tm_file="${tm_file} dbxelf.h elfos.h usegas.h svr4.h freebsd-spec.h newlib-stdint.h rs6000/sysv4.h rs6000/eabi.h rs6000/singlefp.h rs6000/xfpu.h rs6000/xilinx.h"
 	extra_options="${extra_options} rs6000/sysv4.opt"
-	tmake_file="rs6000/t-fprules rs6000/t-fprules-fpbit rs6000/t-ppcgas rs6000/t-ppccomm"
+	tmake_file="rs6000/t-fprules rs6000/t-fprules-fpbit rs6000/t-ppcgas rs6000/t-ppccomm rs6000/t-xilinx"
 	use_gcc_stdint=wrap
 	;;
 powerpc-*-eabi*)
@@ -2012,7 +2098,7 @@ sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
 	sh*-*-linux*)	tmake_file="${tmake_file} sh/t-linux"
 			tm_file="${tm_file} linux.h glibc-stdint.h sh/linux.h" ;;
 	sh*-*-netbsd*)	tm_file="${tm_file} netbsd.h netbsd-elf.h sh/netbsd-elf.h" ;;
-	sh*-superh-elf)	if test x$with_libgloss != xno; then
+	sh*-*-elf)	if test x$with_libgloss != xno; then
 				with_libgloss=yes
 				tm_file="${tm_file} sh/newlib.h"
 			fi
@@ -2365,6 +2451,7 @@ v850-*-*)
 	;;
 vax-*-linux*)
 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h linux.h vax/elf.h vax/linux.h"
+	tmake_file=vax/t-linux
 	;;
 vax-*-netbsdelf*)
 	tm_file="${tm_file} elfos.h netbsd.h netbsd-elf.h vax/elf.h vax/netbsd-elf.h"
@@ -2428,6 +2515,8 @@ i[34567]86-*-linux* | x86_64-*-linux*)
 i[34567]86-*-* | x86_64-*-*)
 	tmake_file="${tmake_file} i386/t-gmm_malloc i386/t-i386"
 	;;
+powerpc*-*-* | rs6000-*-*)
+	tm_file="${tm_file} rs6000/option-defaults.h"
 esac
 
 # Support for --with-cpu and related options (and a few unrelated options,
@@ -2825,7 +2914,7 @@ case "${target}" in
 		;;
 
 	mips*-*-*)
-		supported_defaults="abi arch float tune divide llsc mips-plt"
+		supported_defaults="abi arch arch_32 arch_64 float tune tune_32 tune_64 divide llsc mips-plt synci"
 
 		case ${with_float} in
 		"" | soft | hard)
@@ -2887,15 +2976,37 @@ case "${target}" in
 			exit 1
 			;;
 		esac
+
+		case ${with_synci} in
+		yes)
+			with_synci=synci
+			;;
+		"" | no)
+			# No is the default.
+			with_synci=no-synci
+			;;
+		*)
+			echo "Unknown synci type used in --with-synci" 1>&2
+			exit 1
+			;;
+		esac
 		;;
 
 	powerpc*-*-* | rs6000-*-*)
-		supported_defaults="cpu float tune"
+		supported_defaults="cpu cpu_32 cpu_64 float tune tune_32 tune_64"
 
-		for which in cpu tune; do
+		for which in cpu cpu_32 cpu_64 tune tune_32 tune_64; do
 			eval "val=\$with_$which"
 			case ${val} in
 			default32 | default64)
+				case $which in
+				cpu | tune)
+					;;
+				*)
+					echo "$val only valid for --with-cpu and --with-tune." 1>&2
+					exit 1
+					;;
+				esac
 				with_which="with_$which"
 				eval $with_which=
 				;;
@@ -3068,6 +3179,9 @@ case ${target} in
 	i[34567]86-*-linux* | x86_64-*-linux* | i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu)
 		tmake_file="${tmake_file} i386/t-fprules-softfp soft-fp/t-softfp i386/t-linux"
 		;;
+	i[34567]86-*-cygwin* | i[34567]86-*-mingw* | x86_64-*-mingw*)
+		tmake_file="${tmake_file} i386/t-fprules-softfp soft-fp/t-softfp"
+		;;
 	ia64*-*-linux*)
 		tmake_file="${tmake_file} ia64/t-fprules-softfp soft-fp/t-softfp"
 		;;
@@ -3142,7 +3256,7 @@ case ${target} in
 esac
 
 t=
-all_defaults="abi cpu cpu_32 cpu_64 arch arch_32 arch_64 tune tune_32 tune_64 schedule float mode fpu divide llsc mips-plt"
+all_defaults="abi cpu cpu_32 cpu_64 arch arch_32 arch_64 tune tune_32 tune_64 schedule float mode fpu divide llsc mips-plt synci"
 for option in $all_defaults
 do
 	eval "val=\$with_"`echo $option | sed s/-/_/g`

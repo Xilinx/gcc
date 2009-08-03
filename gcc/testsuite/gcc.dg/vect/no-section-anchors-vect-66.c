@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include "tree-vect.h"
 
-#define N 8
+#define N 16
 
 int ia[8][5][N+2];
 int ic[16][16][5][N+2];
@@ -78,6 +78,7 @@ int main (void)
 }
 
 /* { dg-final { scan-tree-dump-times "vectorized 3 loops" 1 "vect" } } */
-/* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 0 "vect" } } */
-/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 1 "vect" } } */
+/* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 0 "vect" { xfail vect_hw_misalign } } } */
+/* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 1 "vect" { target vect_hw_misalign } } } */
+/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 1 "vect" { xfail vect_hw_misalign } } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

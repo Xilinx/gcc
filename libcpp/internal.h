@@ -33,6 +33,10 @@ along with this program; see the file COPYING3.  If not see
 typedef int iconv_t;  /* dummy */
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct directive;		/* Deliberately incomplete.  */
 struct pending_option;
 struct op;
@@ -570,6 +574,7 @@ extern void _cpp_init_tokenrun (tokenrun *, unsigned int);
 
 /* In init.c.  */
 extern void _cpp_maybe_push_include_file (cpp_reader *);
+extern const char *cpp_named_operator2name (enum cpp_ttype type);
 
 /* In directives.c */
 extern int _cpp_test_assertion (cpp_reader *, unsigned int *);
@@ -700,5 +705,9 @@ ufputs (const unsigned char *s, FILE *f)
 {
   return fputs ((const char *)s, f);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ! LIBCPP_INTERNAL_H */

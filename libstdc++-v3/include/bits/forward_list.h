@@ -983,7 +983,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  function.
        */
       void
-      swap(forward_list&& __list)
+      swap(forward_list& __list)
       { _Node_base::swap(this->_M_impl._M_head, __list._M_impl._M_head); }
 
       /**
@@ -1057,7 +1057,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       void
       splice_after(const_iterator __pos, forward_list&& __list,
                    const_iterator __it)
-      { this->splice_after(__pos, __list, __it, __it._M_next()); }
+      {
+	this->splice_after(__pos, std::forward<forward_list>(__list),
+			   __it, __it._M_next());
+      }
 
       /**
        *  @brief  Insert range from another %forward_list.
@@ -1146,7 +1149,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       void
       merge(forward_list&& __list)
-      { this->merge(__list, std::less<_Tp>()); }
+      { this->merge(std::forward<forward_list>(__list), std::less<_Tp>()); }
 
       /**
        *  @brief  Merge sorted lists according to comparison function.
@@ -1283,20 +1286,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     inline void
     swap(forward_list<_Tp, _Alloc>& __lx,
          forward_list<_Tp, _Alloc>& __ly)
-    { __lx.swap(__ly); }
-
-  /// See std::forward_list::swap().
-  template<typename _Tp, typename _Alloc>
-    inline void
-    swap(forward_list<_Tp, _Alloc>&& __lx,
-         forward_list<_Tp, _Alloc>& __ly)
-    { __lx.swap(__ly); }
-
-  /// See std::forward_list::swap().
-  template<typename _Tp, typename _Alloc>
-    inline void 
-    swap(forward_list<_Tp, _Alloc>& __lx,
-	 forward_list<_Tp, _Alloc>&& __ly)
     { __lx.swap(__ly); }
 
 _GLIBCXX_END_NAMESPACE // namespace std

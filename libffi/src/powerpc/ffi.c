@@ -1,6 +1,7 @@
 /* -----------------------------------------------------------------------
    ffi.c - Copyright (c) 1998 Geoffrey Keating
    Copyright (C) 2007, 2008 Free Software Foundation, Inc
+   Copyright (C) 2008 Red Hat, Inc
 
    PowerPC Foreign Function Interface
 
@@ -42,11 +43,12 @@ enum {
   FLAG_RETURNS_64BITS   = 1 << (31-28),
 
   FLAG_RETURNS_128BITS  = 1 << (31-27), /* cr6  */
+  FLAG_SYSV_SMST_R4     = 1 << (31-26), /* use r4 for FFI_SYSV 8 byte
+					   structs.  */
+  FLAG_SYSV_SMST_R3     = 1 << (31-25), /* use r3 for FFI_SYSV 4 byte
+					   structs.  */
+  /* Bits (31-24) through (31-19) store shift value for SMST */
 
-  FLAG_SYSV_SMST_R4     = 1 << (31-16), /* cr4, use r4 for FFI_SYSV 8 byte
-					   structs.  */
-  FLAG_SYSV_SMST_R3     = 1 << (31-15), /* cr3, use r3 for FFI_SYSV 4 byte
-					   structs.  */
   FLAG_ARG_NEEDS_COPY   = 1 << (31- 7),
   FLAG_FP_ARGUMENTS     = 1 << (31- 6), /* cr1.eq; specified by ABI */
   FLAG_4_GPR_ARGUMENTS  = 1 << (31- 5),
@@ -684,14 +686,14 @@ ffi_prep_cif_machdep (ffi_cif *cif)
 	      if (size <= 4)
 		{
 		  flags |= FLAG_SYSV_SMST_R3;
-		  flags |= 8 * (4 - size) << 4;
+		  flags |= 8 * (4 - size) << 8;
 		  break;
 		}
 	      /* These structs are returned in r3 and r4. See above.   */
 	      if  (size <= 8)
 		{
-		  flags |= FLAG_SYSV_SMST_R4;
-		  flags |= 8 * (8 - size) << 4;
+		  flags |= FLAG_SYSV_SMST_R3 | FLAG_SYSV_SMST_R4;
+		  flags |= 8 * (8 - size) << 8;
 		  break;
 		}
 	    }
@@ -875,13 +877,13 @@ ffi_prep_cif_machdep (ffi_cif *cif)
 }
 
 extern void ffi_call_SYSV(extended_cif *, unsigned, unsigned, unsigned *,
-			  void (*fn)());
+			  void (*fn)(void));
 extern void FFI_HIDDEN ffi_call_LINUX64(extended_cif *, unsigned long,
 					unsigned long, unsigned long *,
-					void (*fn)());
+					void (*fn)(void));
 
 void
-ffi_call(ffi_cif *cif, void (*fn)(), void *rvalue, void **avalue)
+ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 {
   extended_cif ecif;
 
