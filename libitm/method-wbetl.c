@@ -45,7 +45,6 @@ typedef struct w_entry
 {
   volatile word *addr;
   word value;
-  word mask;
   word version;
   volatile word *lock;
   struct w_entry *next;
@@ -160,8 +159,8 @@ wbetl_extend(struct gtm_method *m)
 
 /* Store a word-sized value.  */
 
-static void
-wbetl_write(volatile word *addr, word value, word mask)
+static word *
+wbetl_write(word *addr)
 {
   volatile word *lock;
   word l, version;
@@ -197,14 +196,7 @@ wbetl_write(volatile word *addr, word value, word mask)
 	  while (1)
 	    {
 	      if (addr == prev->addr)
-		{
-		  /* Found a previous write; store a new value.  */
-		  if (mask != ~(word)0)
-		    value = (prev->value & ~mask) | (value & mask);
-		  prev->value = value;
-		  prev->mask |= mask;
-		  return;
-		}
+		return &prev->value;
 	      if (prev->next == NULL)
 		break;
 	      prev = prev->next;
@@ -256,22 +248,21 @@ wbetl_write(volatile word *addr, word value, word mask)
 
  do_write:
   w->addr = addr;
-  w->mask = mask;
   w->lock = lock;
-  if (mask != ~(word)0)
-    value = (*addr & ~mask) | (value & mask);
-  w->value = value;
+  w->value = *addr;
   w->version = version;
   w->next = NULL;
   if (prev != NULL)
     prev->next = w;
   m->w_set.nb_entries++;
+
+  return &w->value;
 }
 
 /* Load a word sized value.  */
 
-word
-wbetl_load(volatile word *addr)
+static word *
+wbetl_load(word *addr)
 {
   volatile word *lock;
   word l, l2, value, version;
@@ -297,9 +288,9 @@ wbetl_load(volatile word *addr)
 	  while (1)
 	    {
 	      if (addr == w->addr)
-		return w->value;
+		return &w->value;
 	      if (w->next == NULL)
-		return *addr;
+		return addr;
 	      w = w->next;
 	    }
 	}
@@ -352,7 +343,7 @@ wbetl_load(volatile word *addr)
       r->lock = lock;
     }
 
-  return value;
+  return addr;
 }
 
 /* Commit the transaction.  */
@@ -477,7 +468,7 @@ wbetl_memcpyRtWn(void *w, const void *r, size_t n)
       word *ra = (word *)r8;
 
       for (; n >= sizeof (word); n -= sizeof(word), wu++, ra++)
-	wu->w = wbetl_load (ra);
+	wu->w = *wbetl_load (ra);
 
       w8 = (uint8_t *)wu;
       r8 = (uint8_t *)ra;
@@ -505,7 +496,7 @@ wbetl_memcpyRnWt(void *w, const void *r, size_t n)
       struct unaligned_word *ru = (struct unaligned_word *) r8;
 
       for (; n >= sizeof (word); n -= sizeof(word), wa++, ru++)
-	wbetl_write (wa, ru->w, -1);
+	*wbetl_write (wa) = ru->w;
 
       w8 = (uint8_t *)wa;
       r8 = (uint8_t *)ru;
@@ -575,7 +566,7 @@ wbetl_memset (void *w, int val, size_t n)
       valw = c.w;
 
       for (; n >= sizeof (word); n -= sizeof(word), wa++)
-	wbetl_write (wa, valw, -1);
+	*wbetl_write (wa) = valw;
 
       w8 = (uint8_t *)wa;
     }
@@ -590,21 +581,24 @@ wbetl_memset (void *w, int val, size_t n)
 static _ITM_TYPE_##T REGPARM _ITM_TYPE_ATTR(T)				\
 wbetl_R##T (const _ITM_TYPE_##T *addr)					\
 {									\
-  union { word w; _ITM_TYPE_##T t[S(*addr)]; } c;			\
+  void *addr1;								\
   if (sizeof(*addr) == sizeof(word))					\
     {									\
-      c.w = wbetl_load((word *)addr);					\
-      return c.t[0];							\
+      addr1 = wbetl_load((word *)addr);					\
+      return *(_ITM_TYPE_##T *)addr1;					\
     }									\
   else if (sizeof(*addr) <= sizeof(word))				\
     {									\
-      c.w = wbetl_load((word *)((uintptr_t)addr & -sizeof(word)));	\
-      return c.t[(uintptr_t)addr & (sizeof(word) - 1)];			\
+      word ofs;								\
+      addr1 = wbetl_load ((word *)((uintptr_t)addr & -sizeof(word)));	\
+      ofs = (uintptr_t)addr & (sizeof(word) - 1);			\
+      return *(_ITM_TYPE_##T *)(addr1 + ofs);				\
     }									\
   else									\
     {									\
-      wbetl_memcpyRtWn (&c.t, addr, sizeof (*addr));			\
-      return c.t[0];							\
+      _ITM_TYPE_##T t;							\
+      wbetl_memcpyRtWn (&t, addr, sizeof (*addr));			\
+      return t;								\
     }									\
 }
 
@@ -612,23 +606,15 @@ wbetl_R##T (const _ITM_TYPE_##T *addr)					\
 static void REGPARM _ITM_TYPE_ATTR(T)					\
 wbetl_W##T (_ITM_TYPE_##T *addr, _ITM_TYPE_##T val)			\
 {									\
-  union { word w; _ITM_TYPE_##T t[S(val)]; } c;				\
+  void *addr1;								\
   if (sizeof(val) == sizeof(word))					\
-    {									\
-      c.t[0] = val;							\
-      wbetl_write ((word *)addr, c.w, -1);				\
-    }									\
+    *(_ITM_TYPE_##T *)wbetl_write ((word *)addr) = val;			\
   else if (sizeof(val) <= sizeof(word))					\
     {									\
-      word mask, ofs = (uintptr_t)addr & (sizeof(word) - 1);		\
-      c.w = 0;								\
-      c.t[ofs] = val;							\
-      mask = sizeof(val) * 8, mask = (1ul << mask) - 1;			\
-      if (__BYTE_ORDER == __LITTLE_ENDIAN)				\
-	mask <<= ofs * 8;						\
-      else								\
-	mask <<= (sizeof (word) - sizeof (val) - ofs) * 8;		\
-      wbetl_write ((word *)((uintptr_t)addr & -sizeof(word)), c.w, mask); \
+      word ofs;								\
+      addr1 = wbetl_write ((word *)((uintptr_t)addr & -sizeof(word)));	\
+      ofs = (uintptr_t)addr & (sizeof(word) - 1);			\
+      *(_ITM_TYPE_##T *)(addr1 + ofs) = val;				\
     }									\
   else									\
     wbetl_memcpyRnWt (addr, &val, sizeof(val));				\

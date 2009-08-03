@@ -6,6 +6,7 @@ LIBITM_1.0 {
 	_ITM_beginTransaction;
 	_ITM_changeTransactionMode;
 	_ITM_commitTransaction;
+	_ITM_commitTransactionEH;
 	_ITM_error;
 	_ITM_getThreadnum;
 	_ITM_getTransactionId;
@@ -176,6 +177,11 @@ LIBITM_1.0 {
 	_ZGTtnamRKSt9nothrow_t;
 	_ZGTtdlPvRKSt9nothrow_t;
 	_ZGTtdaPvRKSt9nothrow_t;
+
+	_ITM_cxa_allocate_exception;
+	_ITM_cxa_begin_catch;
+	_ITM_cxa_end_catch;
+	_ITM_cxa_throw;
 
   local:
 	*;
