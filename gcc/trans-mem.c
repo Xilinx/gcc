@@ -453,7 +453,7 @@ struct gimple_opt_pass pass_diagnose_tm_blocks =
 {
   {
     GIMPLE_PASS,
-    "diagnose_tm_blocks",		/* name */
+    "*diagnose_tm_blocks",		/* name */
     gate_tm,				/* gate */
     diagnose_tm_blocks,			/* execute */
     NULL,				/* sub */
@@ -879,7 +879,7 @@ struct gimple_opt_pass pass_tm_init =
 {
  {
   GIMPLE_PASS,
-  "tminit",				/* name */
+  "*tminit",				/* name */
   gate_tm_init,				/* gate */
   NULL,					/* execute */
   NULL,					/* sub */

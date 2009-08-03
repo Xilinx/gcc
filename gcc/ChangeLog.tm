@@ -1,3 +1,8 @@
+2007-08-03  Richard Henderson  <rth@redhat.com>
+
+	* trans-mem.c (pass_diagnose_tm_blocks): Prefix pass name with *.
+	(pass_tm_init): Likewise.
+
 2009-07-24  Aldy Hernandez  <aldyh@redhat.com>
 
 	* cgraph.h (cgraph_local_info): Add tm_may_enter_irr.
