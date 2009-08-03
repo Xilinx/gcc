@@ -1,5 +1,10 @@
 2007-08-03  Richard Henderson  <rth@redhat.com>
 
+	* varasm.c (record_tm_clone_pair): Allow entries to be
+	optimized away by cgraph.
+
+2007-08-03  Richard Henderson  <rth@redhat.com>
+
 	* trans-mem.c (pass_diagnose_tm_blocks): Prefix pass name with *.
 	(pass_tm_init): Likewise.
 

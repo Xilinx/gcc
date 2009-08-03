@@ -5665,19 +5665,33 @@ record_tm_clone_pair (tree o, tree n)
 void
 finish_tm_clone_pairs (void)
 {
-  unsigned i;
-  tree t;
+  unsigned i, n;
+  bool switched = false;
 
   if (tm_clone_pairs == NULL)
     return;
 
-  switch_to_section (get_named_section (NULL, ".tm_clone_table", 3));
-  assemble_align (POINTER_SIZE);
-
-  for (i = 0; VEC_iterate (tree, tm_clone_pairs, i, t); ++i)
+  n = VEC_length (tree, tm_clone_pairs);
+  for (i = 0; i < n; i += 2)
     {
-      rtx sym = XEXP (DECL_RTL (t), 0);
-      assemble_integer (sym, POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
+      tree src = VEC_index (tree, tm_clone_pairs, i);
+      tree dst = VEC_index (tree, tm_clone_pairs, i + 1);
+      struct cgraph_node *src_n = cgraph_node (src);
+
+      if (!src_n->needed)
+	continue;
+
+      if (!switched)
+	{
+	  switch_to_section (get_named_section (NULL, ".tm_clone_table", 3));
+	  assemble_align (POINTER_SIZE);
+	  switched = true;
+	}
+
+      assemble_integer (XEXP (DECL_RTL (src), 0),
+			POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
+      assemble_integer (XEXP (DECL_RTL (dst), 0),
+			POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
     }
 
   tm_clone_pairs = NULL;
