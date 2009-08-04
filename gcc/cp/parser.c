@@ -7313,7 +7313,8 @@ cp_parser_lambda_body (cp_parser* parser,
   /*struct function* saved_cfun = cfun;*/
   /* TODO: do we need these? from function.h */
   tree saved_function_decl = current_function_decl;
-  int saved_skip_evaluation = skip_evaluation;
+  int saved_unevaluated_operand = cp_unevaluated_operand;
+  int saved_inhibit_evaluation_warnings = c_inhibit_evaluation_warnings;
   push_function_context();
 
   /********************************************
@@ -7382,8 +7383,8 @@ cp_parser_lambda_body (cp_parser* parser,
   /*set_cfun (saved_cfun);*/
   pop_function_context();
   current_function_decl = saved_function_decl;
-  skip_evaluation = saved_skip_evaluation;
-
+  cp_unevaluated_operand = saved_unevaluated_operand;
+  c_inhibit_evaluation_warnings = saved_inhibit_evaluation_warnings;
 }
 
 

@@ -567,7 +567,7 @@ enum cp_lambda_default_capture_mode_type {
 #define LAMBDA_EXPR_FUNCTION(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->function)
 
-struct tree_lambda_expr GTY (())
+struct GTY (()) tree_lambda_expr
 {
   struct tree_common common;
   enum cp_lambda_default_capture_mode_type default_capture_mode;

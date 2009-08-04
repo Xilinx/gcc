@@ -5271,10 +5271,8 @@ deduce_lambda_return_type (tree lambda, tree expr)
    * - start_preparsed_function
    * + allocate_struct_function
    ********************************************/
-  result = build_lang_decl (
-      RESULT_DECL,
-      /*name=*/0,
-      TYPE_MAIN_VARIANT (return_type));
+  result = build_decl (input_location, RESULT_DECL, NULL_TREE,
+		       TYPE_MAIN_VARIANT (return_type));
   /* TODO: are these necessary? */
   DECL_ARTIFICIAL (result) = 1;
   DECL_IGNORED_P (result) = 1;
