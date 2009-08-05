@@ -6985,7 +6985,7 @@ cp_parser_lambda_expression (cp_parser* parser)
     type = finish_struct (type, /*attributes=*/NULL_TREE);
 
     /* We want access to private members from anywhere within a member function,
-     * even in lambda expressions.  */
+       even in lambda expressions.  */
     if (current_class_type)
       make_friend_class (current_class_type, type, /*complain=*/false);
 
@@ -7000,25 +7000,24 @@ cp_parser_lambda_expression (cp_parser* parser)
 
   {
     /* Build aggregate constructor.
-     * - cp_parser_braced_list
-     * - cp_parser_functional_cast  */
+       - cp_parser_braced_list
+       - cp_parser_functional_cast  */
     VEC(constructor_elt,gc) *elts = NULL;
     tree node;
     for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
          node;
          node = TREE_CHAIN (node))
-    {
-      CONSTRUCTOR_APPEND_ELT (
-          elts,
-          /*identifier=*/NULL_TREE,
-          TREE_VALUE (node));
-    }
+      {
+        CONSTRUCTOR_APPEND_ELT (elts,
+                                /*identifier=*/NULL_TREE,
+                                TREE_VALUE (node));
+      }
 
     expr = build_constructor (init_list_type_node, elts);
     CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
   }
 
-  /* TREE_TYPE to remove TYPE_DECL wrapping  */
+  /* TREE_TYPE to remove TYPE_DECL wrapping.  */
   return finish_compound_literal (TREE_TYPE (type), expr);
 }
 
@@ -7031,15 +7030,15 @@ cp_parser_lambda_expression (cp_parser* parser)
 
 static void
 cp_parser_lambda_introducer (cp_parser* parser,
-    tree lambda_expr)
+                             tree lambda_expr)
 {
   /* Need commas after the first capture.  */
   bool first = true;
 
-  /* Eat the leading `['. */
+  /* Eat the leading `['.  */
   cp_parser_require (parser, CPP_OPEN_SQUARE, "%<[%>");
 
-  /* Record default capture mode. */
+  /* Record default capture mode.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_AND)
       && cp_lexer_peek_nth_token (parser->lexer, 2)->type != CPP_NAME)
     LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_REFERENCE;
@@ -7078,19 +7077,18 @@ cp_parser_lambda_introducer (cp_parser* parser,
       else
 	cp_parser_require (parser, CPP_COMMA, "%<,%>");
 
-      /* Possibly capture `this'. */
+      /* Possibly capture `this'.  */
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
 	{
 	  cp_lexer_consume_token (parser->lexer);
-	  add_capture (
-		       lambda_expr,
+	  add_capture (lambda_expr,
 		       /*id=*/get_identifier ("__this"),
 		       /*initializer=*/finish_this_expr(),
 		       /*by_reference_p=*/false);
 	  continue;
 	}
 
-      /* Remember whether we want to capture as a reference or not. */
+      /* Remember whether we want to capture as a reference or not.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
 	capture_kind = BY_REFERENCE;
       else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
@@ -7099,15 +7097,15 @@ cp_parser_lambda_introducer (cp_parser* parser,
       if (capture_kind != BY_COPY)
 	cp_lexer_consume_token (parser->lexer);
 
-      /* Get the identifier. */
+      /* Get the identifier.  */
       capture_token = cp_lexer_peek_token (parser->lexer);
       capture_id = cp_parser_identifier (parser);
 
       if (capture_id == error_mark_node)
 	/* Would be nice to have a cp_parser_skip_to_closing_x for general
-	 * delimiters, but I modified this to stop on unnested ']' as well. It was
-	 * already changed to stop on unnested '}', so the "closing_parenthesis"
-	 * name is no more misleading with my change.  */
+           delimiters, but I modified this to stop on unnested ']' as well.  It
+           was already changed to stop on unnested '}', so the
+           "closing_parenthesis" name is no more misleading with my change.  */
 	cp_parser_skip_to_closing_parenthesis (parser,
 					       /*recovering=*/true,
 					       /*or_comma=*/true,
@@ -7116,7 +7114,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
       /* Find the initializer for this capture.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
 	{
-	  /* An explicit expression exists. */
+	  /* An explicit expression exists.  */
 	  cp_lexer_consume_token (parser->lexer);
 	  capture_init_expr = cp_parser_assignment_expression (parser,
 							       /*cast_p=*/true,
@@ -7126,7 +7124,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
 	{
 	  const char* error_msg;
 
-	  /* Turn the identifier into an id-expression. */
+	  /* Turn the identifier into an id-expression.  */
 	  capture_init_expr = cp_parser_lookup_name (parser,
 						     capture_id,
 						     none_type,
@@ -7136,8 +7134,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
 						     /*ambiguous_decls=*/NULL,
 						     capture_token->location);
 
-	  capture_init_expr = finish_id_expression (
-						    capture_id,
+	  capture_init_expr = finish_id_expression (capture_id,
 						    capture_init_expr,
 						    parser->scope,
 						    &idk,
@@ -7152,8 +7149,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
 						    capture_token->location);
 	}
 
-      add_capture (
-		   lambda_expr,
+      add_capture (lambda_expr,
 		   capture_id,
 		   capture_init_expr,
 		   /*by_reference_p=*/capture_kind == BY_REFERENCE);
@@ -7174,62 +7170,60 @@ cp_parser_lambda_introducer (cp_parser* parser,
 
 static void
 cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
-    tree lambda_expr)
+                                            tree lambda_expr)
 {
   tree param_list = NULL_TREE;
   tree exception_spec = NULL_TREE;
 
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
-  {
-    cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
-
-    /* Parse optional parameters.  */
-    if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
     {
-      bool is_error = false;
+      cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
 
-      begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
+      /* Parse optional parameters.  */
+      if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+        {
+          bool is_error = false;
 
-      param_list = cp_parser_parameter_declaration_list (parser, &is_error);
-      /* TODO: better way to handle this error?  */
-      if (is_error)
-        param_list = NULL_TREE;
+          begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
 
-      /* Remove the function parms from scope.  */
-      {
-        tree t;
-        for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
-          pop_binding (DECL_NAME (t), t);
-        leave_scope();
-      }
+          param_list = cp_parser_parameter_declaration_list (parser, &is_error);
+          /* TODO: better way to handle this error?  */
+          if (is_error)
+            param_list = NULL_TREE;
 
+          /* Remove the function parms from scope.  */
+          {
+            tree t;
+            for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+              pop_binding (DECL_NAME (t), t);
+            leave_scope();
+          }
+
+        }
+
+      cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
+
+      /* Parse optional mutable specification.  */
+      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_MUTABLE))
+        {
+          cp_lexer_consume_token (parser->lexer);
+          LAMBDA_EXPR_MUTABLE_P (lambda_expr) = 1;
+        }
+
+      /* Parse optional exception specification.  */
+      exception_spec = cp_parser_exception_specification_opt (parser);
+
+      /* Parse optional return type clause.  */
+      if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
+        {
+          cp_lexer_consume_token (parser->lexer);
+          LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
+        }
     }
 
-    cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
-
-    /* Parse optional mutable specification.  */
-    if (cp_lexer_next_token_is_keyword (parser->lexer, RID_MUTABLE))
-    {
-      cp_lexer_consume_token (parser->lexer);
-      LAMBDA_EXPR_MUTABLE_P (lambda_expr) = 1;
-    }
-
-    /* Parse optional exception specification.  */
-    exception_spec = cp_parser_exception_specification_opt (parser);
-
-    /* Parse optional return type clause.  */
-    if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
-    {
-      cp_lexer_consume_token (parser->lexer);
-      LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
-    }
-  }
-
-  /********************************************
-   * Start the function call operator
-   * - member_specification_opt
-   * + member_declaration
-   ********************************************/
+  /* Start the function call operator
+     - member_specification_opt
+     + member_declaration  */
   {
     bool saved_in_declarator_p = parser->in_declarator_p;
     bool saved_default_arg_ok_p = parser->default_arg_ok_p;
@@ -7243,49 +7237,46 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
 
     clear_decl_specs (&return_type_specs);
     if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
-    {
-      return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
-      /* TODO: is this necessary?  */
-      return_type_specs.any_specifiers_p = true;
-      /* TODO: do we need cp_parser_set_decl_spec_type()?  */
-    }
+      {
+        return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
+        /* TODO: is this necessary?  */
+        return_type_specs.any_specifiers_p = true;
+        /* TODO: do we need cp_parser_set_decl_spec_type()?  */
+      }
     else
-    {
-      /* 5.1.1.9.2 of the standard says:
-       *   for a lambda expression that does not contain a
-       *   lambda-return-type-clause, the return type is void, unless the
-       *   compound-statement is of the form { return expression ; }  */
-      /* Will find out later what the form is, but can use void as a placeholder
-       * return type anyways.  */
-      return_type_specs.type = void_type_node;
-    }
+      {
+        /* 5.1.1.9.2 of the standard says:
+             for a lambda expression that does not contain a
+             lambda-return-type-clause, the return type is void, unless the
+             compound-statement is of the form { return expression ; }  */
+        /* Will find out later what the form is, but can use void as a placeholder
+           return type anyways.  */
+        return_type_specs.type = void_type_node;
+      }
 
-    declarator = make_id_declarator (
-        parser->scope,
-        ansi_opname (CALL_EXPR),
-        sfk_none);
+    declarator = make_id_declarator (parser->scope,
+                                     ansi_opname (CALL_EXPR),
+                                     sfk_none);
 
-    declarator = make_call_declarator (
-        declarator,
-        param_list,
-        /*cv_qualifiers=*/(LAMBDA_EXPR_MUTABLE_P (lambda_expr) ?
-           (TYPE_UNQUALIFIED) :
-           (TYPE_QUAL_CONST)),
-        exception_spec,
-        /*late_return_type=*/NULL_TREE);
+    declarator = make_call_declarator (declarator,
+                                       param_list,
+                                       /*cv_qualifiers=*/(
+                                         LAMBDA_EXPR_MUTABLE_P (lambda_expr)
+                                         ? (TYPE_UNQUALIFIED)
+                                         : (TYPE_QUAL_CONST)),
+                                       exception_spec,
+                                       /*late_return_type=*/NULL_TREE);
 
     parser->in_declarator_p = saved_in_declarator_p;
     parser->default_arg_ok_p = saved_default_arg_ok_p;
 
-    /* operator() is public */
+    /* The function call operator (fco) is public.  */
     current_access_specifier = access_public_node;
 
-    /* fco = function call operator */
-    /* TODO: look into start_function  */
-    fco = start_method (
-        &return_type_specs,
-        declarator,
-        /*attributes=*/NULL_TREE);
+    /* TODO: Look into start_function.  */
+    fco = start_method (&return_type_specs,
+                        declarator,
+                        /*attributes=*/NULL_TREE);
     DECL_INITIALIZED_IN_CLASS_P (fco) = 1;
     finish_method (fco);
 
@@ -7306,45 +7297,43 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
 
 static void
 cp_parser_lambda_body (cp_parser* parser,
-    tree lambda_expr)
+                       tree lambda_expr)
 {
   /* start_* / finish_* functions don't do any state preservation
-   * (finish_function sets current_function_decl to NULL), so we have to.  */
+     (finish_function sets current_function_decl to NULL), so we have to.  */
   /*struct function* saved_cfun = cfun;*/
-  /* TODO: do we need these? from function.h */
+  /* TODO: Do we need these? (from function.h)  */
   tree saved_function_decl = current_function_decl;
   int saved_unevaluated_operand = cp_unevaluated_operand;
   int saved_inhibit_evaluation_warnings = c_inhibit_evaluation_warnings;
-  push_function_context();
 
-  /********************************************
-   * Finish the function call operator
-   * - class_specifier
-   * + late_parsing_for_member
-   * + function_definition_after_declarator
-   * + ctor_initializer_opt_and_function_body
-   ********************************************/
+  push_function_context ();
+
+  /* Finish the function call operator
+     - class_specifier
+     + late_parsing_for_member
+     + function_definition_after_declarator
+     + ctor_initializer_opt_and_function_body  */
   {
     tree fco = LAMBDA_EXPR_FUNCTION (lambda_expr);
     tree body;
 
     /* Let the front end know that we are going to be defining this
-       function. */
-    start_preparsed_function (
-			      fco,
+       function.  */
+    start_preparsed_function (fco,
 			      NULL_TREE,
 			      SF_PRE_PARSED | SF_INCLASS_INLINE);
 
     body = begin_function_body ();
 
     /* 5.1.1.9.2 of the standard says:
-     *   for a lambda expression that does not contain a
-     *   lambda-return-type-clause, the return type is void, unless the
-     *   compound-statement is of the form { return expression ; }  */
+         for a lambda expression that does not contain a
+         lambda-return-type-clause, the return type is void, unless the
+         compound-statement is of the form { return expression ; }  */
     /* In a lambda that has neither a lambda-return-type-clause
-     * nor a deducible form, errors should be reported for return statements
-     * in the body.  Since we used void as the placeholder return type, parsing
-     * the body as usual will give such desired behavior.  */
+       nor a deducible form, errors should be reported for return statements
+       in the body.  Since we used void as the placeholder return type, parsing
+       the body as usual will give such desired behavior.  */
     if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr)
         && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE)
         && cp_lexer_peek_nth_token (parser->lexer, 2)->keyword == RID_RETURN
@@ -7373,7 +7362,7 @@ cp_parser_lambda_body (cp_parser* parser,
     else
       {
 	/* TODO: does begin_compound_stmt want BCS_FN_BODY?
-	 * cp_parser_compound_stmt does not pass it. */
+	   cp_parser_compound_stmt does not pass it.  */
 	cp_parser_function_body (parser);
       }
 
