@@ -1,3 +1,60 @@
+2009-08-04  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/39987
+	* pt.c (tsubst_default_argument): Let access checks of the
+	default argument happen in the context of the current function.
+
+2009-08-04  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/16696
+	* call.c (build_new_op): Only try prefix operator if -fpermissive,
+	otherwise just error.
+
+2009-08-04  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/39706
+	* error.c (lang_decl_name): Print qualified names for decls
+	in  namespace scope.
+
+2009-08-03  Jason Merrill  <jason@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/40948
+	* init.c (build_vec_init): Look through a TARGET_EXPR around a
+	CONSTRUCTOR.
+
+2009-07-31  Jason Merrill  <jason@redhat.com>
+	    Douglas Gregor  <doug.gregor@gmail.com>
+
+	Remove implicit binding of lvalues to rvalue references (N2831)
+	* call.c (convert_class_to_reference): Binding an lvalue to an
+	rvalue reference is bad.  If the user-defined conversion is bad,
+	set bad_p before merging conversions.
+	(maybe_handle_ref_bind): Don't push down bad_p.
+	(reference_binding): Binding an lvalue to an rvalue reference is bad.
+	(convert_like_real): Give a helpful error about binding lvalue
+	to rvalue reference.
+	(reference_related_p): No longer static.
+	* typeck.c (build_typed_address): New.
+	(build_static_cast_1): Add static_cast from lvalue to &&.
+	* cp-tree.h: Adjust.
+
+2009-07-31  Jason Merrill  <jason@redhat.com>
+
+	* call.c (reference_binding): Rename lvalue_p to is_lvalue.
+	Do direct binding of "rvalues" in memory to rvalue references.
+	* tree.c (lvalue_p_1): Can't be both non-addressable lvalue and
+	"rvalue" in memory.
+	* typeck.c (build_static_cast_1): Do direct binding of memory
+	"rvalues" to rvalue references.
+	* cvt.c (cp_fold_convert): New.
+	* cp-tree.h: Declare it.
+
+2009-07-31  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (build_address): Do fold away ADDR_EXPR of INDIRECT_REF.
+	* tree.c (rvalue): Use cp_build_qualified_type, not TYPE_MAIN_VARIANT.
+
 2009-07-29  Jason Merrill  <jason@redhat.com>
 
 	PR c++/14912

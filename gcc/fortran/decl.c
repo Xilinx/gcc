@@ -655,6 +655,9 @@ match_char_length (gfc_expr **expr)
 
   if (m == MATCH_YES)
     {
+      if (gfc_notify_std (GFC_STD_F95_OBS, "Obsolescent feature: "
+			  "Old-style character length at %C") == FAILURE)
+	return MATCH_ERROR;
       *expr = gfc_int_expr (length);
       return m;
     }
@@ -1250,9 +1253,13 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 	  && gfc_check_assign_symbol (sym, init) == FAILURE)
 	return FAILURE;
 
-      if (sym->ts.type == BT_CHARACTER && sym->ts.cl)
+      if (sym->ts.type == BT_CHARACTER && sym->ts.cl
+	    && init->ts.type == BT_CHARACTER)
 	{
 	  /* Update symbol character length according initializer.  */
+	  if (gfc_check_assign_symbol (sym, init) == FAILURE)
+	    return FAILURE;
+
 	  if (sym->ts.cl->length == NULL)
 	    {
 	      int clen;

@@ -2062,10 +2062,21 @@ alpha_legitimate_constant_p (rtx x)
 
   switch (GET_CODE (x))
     {
-    case CONST:
     case LABEL_REF:
     case HIGH:
       return true;
+
+    case CONST:
+      if (GET_CODE (XEXP (x, 0)) == PLUS
+	  && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT)
+	x = XEXP (XEXP (x, 0), 0);
+      else
+	return true;
+
+      if (GET_CODE (x) != SYMBOL_REF)
+	return true;
+
+      /* FALLTHRU */
 
     case SYMBOL_REF:
       /* TLS symbols are never valid.  */
@@ -10818,10 +10829,8 @@ alpha_init_libfuncs (void)
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG alpha_reorg
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode_always_promote
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_false
 #undef TARGET_RETURN_IN_MEMORY

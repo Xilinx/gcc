@@ -4276,21 +4276,31 @@ condition_conversion (tree expr)
   return t;
 }
 
-/* Return an ADDR_EXPR giving the address of T.  This function
-   attempts no optimizations or simplifications; it is a low-level
-   primitive.  */
+/* Returns the address of T.  This function will fold away
+   ADDR_EXPR of INDIRECT_REF.  */
 
 tree
 build_address (tree t)
 {
-  tree addr;
-
   if (error_operand_p (t) || !cxx_mark_addressable (t))
     return error_mark_node;
+  t = build_fold_addr_expr (t);
+  if (TREE_CODE (t) != ADDR_EXPR)
+    t = rvalue (t);
+  return t;
+}
 
-  addr = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (t)), t);
+/* Returns the address of T with type TYPE.  */
 
-  return addr;
+tree
+build_typed_address (tree t, tree type)
+{
+  if (error_operand_p (t) || !cxx_mark_addressable (t))
+    return error_mark_node;
+  t = build_fold_addr_expr_with_type (t, type);
+  if (TREE_CODE (t) != ADDR_EXPR)
+    t = rvalue (t);
+  return t;
 }
 
 /* Return a NOP_EXPR converting EXPR to TYPE.  */
@@ -5309,7 +5319,7 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
   if (TREE_CODE (type) == REFERENCE_TYPE
       && CLASS_TYPE_P (TREE_TYPE (type))
       && CLASS_TYPE_P (intype)
-      && real_lvalue_p (expr)
+      && (TYPE_REF_IS_RVALUE (type) || real_lvalue_p (expr))
       && DERIVED_FROM_P (intype, TREE_TYPE (type))
       && can_convert (build_pointer_type (TYPE_MAIN_VARIANT (intype)),
 		      build_pointer_type (TYPE_MAIN_VARIANT
@@ -5335,7 +5345,19 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 			      base, /*nonnull=*/false);
       /* Convert the pointer to a reference -- but then remember that
 	 there are no expressions with reference type in C++.  */
-      return convert_from_reference (build_nop (type, expr));
+      return convert_from_reference (cp_fold_convert (type, expr));
+    }
+
+  /* "An lvalue of type cv1 T1 can be cast to type rvalue reference to
+     cv2 T2 if cv2 T2 is reference-compatible with cv1 T1 (8.5.3)."  */
+  if (TREE_CODE (type) == REFERENCE_TYPE
+      && TYPE_REF_IS_RVALUE (type)
+      && real_lvalue_p (expr)
+      && reference_related_p (TREE_TYPE (type), intype)
+      && (c_cast_p || at_least_as_qualified_p (TREE_TYPE (type), intype)))
+    {
+      expr = build_typed_address (expr, type);
+      return convert_from_reference (expr);
     }
 
   orig = expr;

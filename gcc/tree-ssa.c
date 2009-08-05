@@ -53,7 +53,7 @@ static struct pointer_map_t *edge_var_maps;
 /* Add a mapping with PHI RESULT and PHI DEF associated with edge E.  */
 
 void
-redirect_edge_var_map_add (edge e, tree result, tree def)
+redirect_edge_var_map_add (edge e, tree result, tree def, source_location locus)
 {
   void **slot;
   edge_var_map_vector old_head, head;
@@ -71,6 +71,7 @@ redirect_edge_var_map_add (edge e, tree result, tree def)
     }
   new_node.def = def;
   new_node.result = result;
+  new_node.locus = locus;
 
   VEC_safe_push (edge_var_map, heap, head, &new_node);
   if (old_head != head)
@@ -193,14 +194,16 @@ ssa_redirect_edge (edge e, basic_block dest)
   for (gsi = gsi_start_phis (e->dest); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       tree def;
+      source_location locus ;
 
       phi = gsi_stmt (gsi);
       def = gimple_phi_arg_def (phi, e->dest_idx);
+      locus = gimple_phi_arg_location (phi, e->dest_idx);
 
       if (def == NULL_TREE)
 	continue;
 
-      redirect_edge_var_map_add (e, gimple_phi_result (phi), def);
+      redirect_edge_var_map_add (e, gimple_phi_result (phi), def, locus);
     }
 
   e = redirect_edge_succ_nodup (e, dest);
@@ -233,7 +236,7 @@ flush_pending_stmts (edge e)
 
       phi = gsi_stmt (gsi);
       def = redirect_edge_var_map_def (vm);
-      add_phi_arg (phi, def, e);
+      add_phi_arg (phi, def, e, redirect_edge_var_map_location (vm));
     }
 
   redirect_edge_var_map_clear (e);
@@ -894,6 +897,11 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 	   && SCALAR_FLOAT_TYPE_P (outer_type))
     return true;
 
+  /* Fixed point types with the same mode are compatible.  */
+  else if (FIXED_POINT_TYPE_P (inner_type)
+	   && FIXED_POINT_TYPE_P (outer_type))
+    return true;
+
   /* We need to take special care recursing to pointed-to types.  */
   else if (POINTER_TYPE_P (inner_type)
 	   && POINTER_TYPE_P (outer_type))
@@ -997,12 +1005,17 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 bool
 useless_type_conversion_p (tree outer_type, tree inner_type)
 {
-  /* If the outer type is (void *), then the conversion is not
-     necessary.  We have to make sure to not apply this while
-     recursing though.  */
+  /* If the outer type is (void *) or a pointer to an incomplete record type,
+     then the conversion is not necessary.
+     We have to make sure to not apply this while recursing though.  */
   if (POINTER_TYPE_P (inner_type)
       && POINTER_TYPE_P (outer_type)
-      && TREE_CODE (TREE_TYPE (outer_type)) == VOID_TYPE)
+      && (VOID_TYPE_P (TREE_TYPE (outer_type))
+	  || (AGGREGATE_TYPE_P (TREE_TYPE (outer_type))
+	      && TREE_CODE (TREE_TYPE (outer_type)) != ARRAY_TYPE
+	      && (TREE_CODE (TREE_TYPE (outer_type))
+		  == TREE_CODE (TREE_TYPE (inner_type)))
+	      && !COMPLETE_TYPE_P (TREE_TYPE (outer_type)))))
     return true;
 
   return useless_type_conversion_p_1 (outer_type, inner_type);
@@ -1252,7 +1265,12 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
 
   /* We do not care about LHS.  */
   if (wi->is_lhs)
-    return NULL_TREE;
+    {
+      /* Except for operands of INDIRECT_REF.  */
+      if (!INDIRECT_REF_P (t))
+	return NULL_TREE;
+      t = TREE_OPERAND (t, 0);
+    }
 
   switch (TREE_CODE (t))
     {

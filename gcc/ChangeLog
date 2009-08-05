@@ -1,3 +1,684 @@
+2009-08-03  Janis Johnson  <janis187@us.ibm.com>
+
+	PR c/39902
+	* simplify-rtx.c (simplify_binary_operation_1): Disable
+	simplifications for decimal float operations.
+
+2009-08-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/40943
+	* tree-ssa.c (warn_uninitialized_var): Even on LHS warn for
+	operand of INDIRECT_REF.
+
+2009-08-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_legitimate_constant_p): Reject CONST
+	constants referencing TLS symbols.
+
+2009-08-03  SUGIOKA Toshinobu  <sugioka@itonet.co.jp>
+
+	* config/sh/linux-atomic.asm (ATOMIC_COMPARE_AND_SWAP): Rename
+	__sync_compare_and_swap_* to __sync_val_compare_and_swap_*.
+
+2009-08-03  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (make_vector_type): Build a main variant first,
+	get the canonical one and then build the variant.
+	* tree-ssa.c (useless_type_conversion_p_1): Handle
+	fixed-point types.
+	(useless_type_conversion_p): Conversions to pointers to
+	incomplete record types are useless.
+
+2009-08-03  Richard Guenther  <rguenther@suse.de>
+
+	* tree-cfg.c (pass_warn_unused_result): Mark name that no dump
+	file will be created.
+	* omp-low.c (pass_diagnose_omp_blocks): Likewise.
+	* toplev.c (compile_file): Adjust comment.
+
+2009-08-03  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (sh_promote_function_mode): Remove.
+	* config/sh/sh.c (sh_promote_function_mode): Wrap long lines.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_ARGS): Remove.
+	(sh_promote_function_mode): Fix typo.
+
+2009-08-03  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* explow.c (promote_mode): Mark TYPE and PUNSIGNEDP as possibly unused.
+
+2009-08-02  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa.c (pa_promote_function_mode): Remove ATTRIBUTE_UNUSED from
+	declaration arguments.
+
+2009-08-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_expand_fp_compare): Use const0_rtx instead
+	of GEN_INT (0x00) and const1_rtx instead of GEN_INT (0x01).
+	(ix86_split_ashl): Ditto.
+	(ix86_expand_vector_init_one_nonzero): Ditto.
+	(ix86_expand_vector_set): Ditto.
+	(ix86_expand_reduc_v4sf): Ditto.
+
+2009-08-02  Paolo Bonzini  <bonzini@gnu.org>
+
+	* explow.c (promote_function_mode): Remove assert.
+	* config/sh/sh.c (sh_promote_function_mode): Declare.
+
+2009-08-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa.c (pa_promote_function_mode): Declare.
+	Change to static.  Fix promote_mode call.
+
+	* gthr-dce.h (CONST_CAST2): Define if not defined.
+	(__gthread_setspecific): Use CONST_CAST2 to fix warning.
+
+	* config.gcc (hppa[12]*-*-hpux10*): Add stdint support.
+
+2009-08-01  Paolo Bonzini  <bonzini@gnu.org>
+
+	* expr.c (store_constructor): Use promote_decl_mode.  Remove
+	now write-only variable unsignedp.
+	(expand_expr_real_1): Use promote_decl_mode.
+	* expr.h (promote_function_mode, promote_decl_mode): New.
+	(promote_mode): Remove last argument.
+	* function.c (assign_temp): Drop last argument of promote_mode.
+	(assign_parm_find_data_types): Use promote_function_mode.
+	(assign_parm_setup_reg): Likewise.
+	(expand_function_end): Use promote_function_mode.
+	* calls.c (initialize_argument_information): Use promote_function_mode.
+	(precompute_arguments): Use promote_mode instead of checking if
+	only PROMOTE_FUNCTION_MODE is defined.
+	(expand_call): When making sibcall decisions, use promote_function_mode.
+	Below, remove an if for targetm.calls.promote_function_return and
+	and use promote_function_mode.
+	(emit_library_call_value_1): Use promote_function_mode, fix bug
+	where promote_mode was passed FOR_CALL == 0 for a return value in an
+	assertion.
+	* cfgexpand.c (expand_one_register_var): Use promote_decl_mode.
+	* explow.c (promote_function_mode, promote_decl_mode): New.
+	(promote_mode): Keep only the FOR_CALL == 0 case.
+	* combine.c (setup_incoming_promotion): Remove test of
+	promote_function_args.  Use promote_function_mode.
+	* stmt.c (expand_value_return): Use promote_decl_mode.
+	(expand_decl): Use promote_decl_mode.
+
+	* expr.c (store_constructor): Use promote_decl_mode.  Remove
+	now write-only variable unsignedp.
+	(expand_expr_real_1): Use promote_decl_mode.
+	* expr.h (promote_function_mode, promote_decl_mode): New.
+	(promote_mode): Remove last argument.
+	* function.c (assign_temp): Drop last argument of promote_mode.
+	(assign_parm_find_data_types): Use promote_function_mode.
+	(assign_parm_setup_reg): Likewise.
+	(expand_function_end): Use promote_function_mode.
+	* calls.c (initialize_argument_information): Use promote_function_mode.
+	(precompute_arguments): Use promote_mode instead of checking if
+	only PROMOTE_FUNCTION_MODE is defined.
+	(expand_call): When making sibcall decisions, use promote_function_mode.
+	Below, remove an if for targetm.calls.promote_function_return and
+	and use promote_function_mode.
+	(emit_library_call_value_1): Use promote_function_mode, fix bug
+	where promote_mode was passed FOR_CALL == 0 for a return value in an
+	assertion.
+	* cfgexpand.c (expand_one_register_var): Use promote_decl_mode.
+	* explow.c (promote_function_mode, promote_decl_mode): New.
+	(promote_mode): Keep only the FOR_CALL == 0 case.
+	* combine.c (setup_incoming_promotion): Remove test of
+	promote_function_args.  Use promote_function_mode.
+	* stmt.c (expand_value_return): Use promote_decl_mode.
+	(expand_decl): Use promote_decl_mode.
+
+	* explow.c (promote_function_mode): Just call the target hook.
+	* targhooks.c (default_promote_function_mode,
+	default_promote_function_mode_always_promote): New.
+	* targhooks.h (default_promote_function_mode,
+	default_promote_function_mode_always_promote): Declare.
+	* target.h (promote_function_args, promote_function_return): Remove.
+	(promote_function_mode): New.
+	* target-def.h (TARGET_PROMOTE_FUNCTION_ARGS,
+	TARGET_PROMOTE_FUNCTION_RETURN): Remove.
+	(TARGET_PROMOTE_FUNCTION_MODE): New.
+	(TARGET_CALLS): Adjust.
+	* system.h (TARGET_PROMOTE_FUNCTION_ARGS,
+	TARGET_PROMOTE_FUNCTION_RETURN, PROMOTE_FUNCTION_MODE): Poison.
+
+	* config/s390/s390.h (PROMOTE_FUNCTION_MODE): Move...
+	* config/s390/s390.c (s390_promote_function_mode): ... here,
+	with pointer handling.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_ARGS, TARGET_PROMOTE_FUNCTION_RETURN): Remove.
+
+	* config/sparc/sparc.h (PROMOTE_FUNCTION_MODE): Move...
+	* config/sparc/sparc.c (sparc_promote_function_mode): ... here,
+	with pointer handling.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_ARGS, TARGET_PROMOTE_FUNCTION_RETURN): Remove.
+	
+	* config/sh/sh-protos.h (sh_promote_function_mode): New.
+	* config/sh/sh.c (sh_promote_function_mode): New.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_ARGS, TARGET_PROMOTE_FUNCTION_RETURN): Remove.
+
+	* config/cris/cris.h (PROMOTE_FUNCTION_MODE): Move...
+	* config/cris/cris.c (cris_promote_function_mode): ... here.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_ARGS): Remove.
+
+	* config/mmix/mmix.h (PROMOTE_FUNCTION_MODE): Move...
+	* config/mmix/mmix.c (mmix_promote_function_mode): ... here.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_ARGS): Remove.
+
+	* config/arm/arm.h (PROMOTE_FUNCTION_MODE): Move...
+	* config/arm/arm.c (arm_promote_function_mode): ... here, without
+	complex type handling.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_ARGS, TARGET_PROMOTE_FUNCTION_RETURN): Remove.
+
+	* config/pa/pa.c (pa_promote_function_mode): New.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_RETURN): Remove.
+
+	* config/alpha/alpha.c (TARGET_PROMOTE_FUNCTION_ARGS,
+	TARGET_PROMOTE_FUNCTION_RETURN): Remove.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define equivalently.
+	* config/xtensa/xtensa.c: Likewise.
+	* config/stormy16/stormy16.c: Likewise.
+	* config/iq2000/iq2000.c: Likewise.
+	* config/rs6000/rs6000.c: Likewise.
+	* config/picochip/picochip.c: Likewise.
+	* config/arc/arc.c: Likewise.
+	* config/mcore/mcore.c: Likewise.
+	* config/score/score.c: Likewise.
+	* config/mips/mips.c: Likewise.
+	* config/bfin/bfin.c: Likewise.
+	* config/ia64/ia64.c: Likewise (disabled though).
+
+	* config/frv/frv.h: Remove pointless remark.
+
+	* doc/tm.texi (PROMOTE_FUNCTION_MODE,
+	TARGET_PROMOTE_FUNCTION_ARGS,
+	TARGET_PROMOTE_FUNCTION_RETURN): Consolidate into...
+	(TARGET_PROMOTE_FUNCTION_MODE): ... this.
+
+2009-08-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/invoke.texi (-fgraphite-force-parallel): Renamed
+	-floop-parallelize-all.
+	* toplev.c (process_options): Rename flag_graphite_force_parallel to
+	flag_loop_parallelize_all.
+	* tree-ssa-loop.c (gate_graphite_transforms): Same.
+	* graphite.c (graphite_transform_loops): Same.
+	* common.opt: Same.
+	* graphite-poly.c (apply_poly_transforms): Same.
+
+2009-07-31  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR tree-optimization/40914
+	* ipa-prop.c (ipa_get_ptr_load_param): New argument use_delta,
+	if set, then check the delta field of the PMF record.
+	(ipa_get_stmt_member_ptr_load_param): Propagate new param use_delta.
+	(ipa_analyze_call_uses): Handle machines where the vbit for a PMF
+	call is stored in the delta.
+
+2009-07-31  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.md (*clear_upper32_dext): New pattern.
+
+2009-07-31  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/bsd.h (ASM_BYTE): New define.
+	* config/i386/darwin.h (ASM_BYTE): Rename from ASM_BYTE_OP.
+	* config/i386/att.h (ASM_BYTE): New define. Use ASM_BYTE instead of
+	.byte.  Use fputs or putc instead of fprintf where appropriate.
+	* config/i386/i386-interix.h: Use ASM_BYTE instead of .byte.  Use
+	fputs or putc instead of fprintf where appropriate.
+	* config/i386/i386elf.h: Ditto.
+	* config/i386/sysv4.h: Ditto.
+	
+	* config/i386/i386.c (TARGET_ASM_BYTE_OP): New define.
+	* config/i386/i386.md (x86_sahf_1): Use ASM_BYTE instead of .byte.
+	(*tls_global_dynamic_64): Ditto.
+
+2009-07-31  Christian Bruel  <christian.bruel@st.com>	
+
+	* gcc/config.gcc (sh*-*-elf): test with_libgloss.
+	
+2009-07-31  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (arm_arm_address_cost): Fix typo. 
+	Remove dead code for MINUS.
+
+2009-07-31  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/moxie.c (moxie_expand_prologue): Use $r5 instead of
+	$r12 in prologue.
+	(moxie_expand_epilogue): Ditto for epilogue.
+	(moxie_setup_incoming_varargs): ABI change.  Use 5 registers for
+	incoming arguments.
+	(moxie_function_arg): Ditto.
+	(moxie_pass_by_reference): Ditto.
+	(moxie_arg_partial_bytes): Ditto.
+	* config/moxie/moxie.h (CALL_USED_REGISTERS): Ditto.
+	(FUNCTION_ARG_ADVANCE) Ditto.
+	(REG_PARM_STACK_SPACE) Ditto.
+	(FUNCTION_ARG_REGNO_P) Dito.
+
+	* config.gcc: Add moxie linux config support.
+	* gcc/config/moxie/uclinux.h: New file.
+
+2009-07-31  DJ Delorie  <dj@redhat.com>
+
+	* config/sh/sh.md (UNSPECV_SP_SWITCH_B): New.
+	(UNSPECV_SP_SWITCH_E): New.
+	(sp_switch_1): Change to an unspec.
+	(sp_switch_2): Change to an unspec.  Don't use post-inc when we
+	replace $r15.
+	* config/sh/sh.c (sh_expand_prologue): Use the constant pool to
+	reference the new stack's address
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Makefile.in (OBJS-common): Added dependence on graphite-blocking.o,
+	graphite-clast-to-gimple.o, graphite-dependences.o,
+	graphite-interchange.o, graphite-poly.o, graphite-ppl.o,
+	graphite-scop-detection.o, graphite-sese-to-poly.o, and sese.o.
+	(graphite-blocking.o,
+	graphite-clast-to-gimple.o, graphite-dependences.o,
+	graphite-interchange.o, graphite-poly.o, graphite-ppl.o,
+	graphite-scop-detection.o, graphite-sese-to-poly.o, and sese.o): New.
+	* cfgloop.c (alloc_loop): Set loop->can_be_parallel to false.
+	* cfgloop.h (struct loop): Add can_be_parallel field.
+	* common.opt (fgraphite-identity): Moved up.
+	(fgraphite-force-parallel): New flag.
+	* graphite.c: Rewrite.
+	* graphite.h: Rewrite.
+	* passes.c (init_optimization_passes): Schedule a pass of DCE and LIM
+	after Graphite.
+	* toplev.c (graphite_out_file): New file descriptor.
+	(graphite_in_file): New.
+	(process_options): flag_graphite_force_parallel cannot be used without
+	Graphite.
+	* tree-ssa-loop.c: Include toplev.h.
+	(gate_graphite_transforms): Enable flag_graphite for
+	flag_graphite_force_parallel.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* ChangeLog.graphite: New.
+	* graphite-blocking.c: New.
+	* graphite-clast-to-gimple.c: New.
+	* graphite-clast-to-gimple.h: New.
+	* graphite-dependences.c: New.
+	* graphite-dependences.h: New.
+	* graphite-interchange.c: New.
+	* graphite-poly.c: New.
+	* graphite-poly.h: New.
+	* graphite-ppl.c: New.
+	* graphite-ppl.h: New.
+	* graphite-scop-detection.c: New.
+	* graphite-scop-detection.h: New.
+	* graphite-sese-to-poly.c: New.
+	* graphite-sese-to-poly.h: New.
+	* sese.c: New.
+	* sese.h: New.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-chrec.c (evolution_function_right_is_integer_cst): New.
+	* tree-chrec.h (evolution_function_right_is_integer_cst): Declared.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-chrec.c (operator_is_linear): Handle BIT_NOT_EXPR.
+	(scev_is_linear_expression): Return false if the evolution is not
+	affine multivariate.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-data-ref.c (graphite_find_data_references_in_stmt): New.
+	* tree-data-ref.h (graphite_find_data_references_in_stmt): Declared.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-data-ref.c (debug_data_references): New.
+	(debug_data_reference): New.
+	* tree-data-ref.h (debug_data_references): Declared.
+	(debug_data_reference): Declared.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-data-ref.c (stmt_simple_memref_p: Removed.
+	* tree-data-ref.h (scop_p): Removed.
+	(struct data_reference): Remove field scop.
+	(DR_SCOP): Removed.
+	(stmt_simple_memref_p): Removed.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* cfgloop.h (create_empty_loop_on_edge): Pass an extra argument.
+	* cfgloopmanip.c (create_empty_loop_on_edge): Leave the loop_latch
+	basic block empty.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/invoke.texi (-fgraphite-force-parallel): Documented.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/invoke.texi (-fgraphite-identity): Documented.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-scalar-evolution.c: Fix comment.
+	(instantiate_scev_1): Return unknow from scev instantiation if the
+	result is not above instantiate_below.
+
+2009-07-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-scalar-evolution.c (compute_overall_effect_of_inner_loop): Not
+	static anymore.  Instantiate the symbols that may have been introduced
+	by chrec_apply.
+	* tree-scalar-evolution.h (compute_overall_effect_of_inner_loop):
+	Declared.
+
+2009-07-30  DJ Delorie  <dj@redhat.com>
+
+	* config/mep/mep.c (mep_asm_init_sections): Add section flags and
+	.vliw directive to VLIW sections.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (AUTOCONF, ACLOCAL, ACLOCAL_AMFLAGS, aclocal_deps):
+	New variables.
+	($(srcdir)/configure, $(srcdir)/aclocal.m4): New rules.
+	(AUTOHEADER): New variable.
+	($(srcdir)/cstamp-h.in): Use it.
+
+2009-07-30  Michael Meissner  <meissner@linux.vnet.ibm.com>
+	    Pat Haugen  <pthaugen@us.ibm.com>
+	    Revital Eres <ERES@il.ibm.com>
+
+	* config/rs6000/vector.md (VEC_F): Add VSX support.
+	(VEC_A): Ditto.
+	(VEC_N): Ditto.
+	(mov<mode>): Ditto.
+	(vector_load_<mode>): Ditto.
+	(vector_store_<mode>): Ditto.
+	(vector GPR move split): Ditto.
+	(vec_reload_and_plus_<mptrsize>): Ditto.
+	(vec_reload_and_reg_<mptrsize>): Ditto.
+	(add<mode>3): Ditto.
+	(sub<mode>3): Ditto.
+	(mul<mode>3): Ditto.
+	(neg<mode>2): Ditto.
+	(abs<mode>2): Ditto.
+	(smin<mode>3): Ditto.
+	(smax<mode>3): Ditto.
+	(vector_eq<mode>): Ditto.
+	(vector_gt<mode>): Ditto.
+	(vector_ge<mode>): Ditto.
+	(vector_gtu<mode>): Ditto.
+	(vector_select_<mode>_uns): Ditto.
+	(vector_eq_<mode>_p): Ditto.
+	(vector_gt_<mode>_p): Ditto.
+	(vector_ge_<mode>_p): Ditto.
+	(vector_gtu_<mode>_p): Ditto.
+	(cr6_test_for_zero): Ditto.
+	(cr6_test_for_zero_reverse): Ditto.
+	(cr6_test_for_lt): Ditto.
+	(cr6_test_for_lt_reverse): Ditto.
+	(xor<mode>3): Ditto.
+	(ior<mode>3): Ditto.
+	(and<mode>3): Ditto.
+	(one_cmpl<mode>2): Ditto.
+	(nor<mode>2): Ditto.
+	(andc<mode>2): Ditto.
+	(float<VEC_int<mode>2): Ditto.
+	(unsigned_float<VEC_int><mode>2): Ditto.
+	(fix_trunc<mode><VEC_int>2): Ditto.
+	(fixuns_trunc<mode><VEC_int>2): Ditto.
+	(vec_init<mode>):
+	(vec_set<mode>): Ditto.
+	(vec_extract<mode>): Ditto.
+	(vec_interleave_highv4sf): Ditto.
+	(vec_interleave_lowv4sf): Ditto.
+	(vec_realign_load_<mode>): Ditto.
+	(vec_shl_<mode>): Ditto.
+	(vec_shr_<mode>): Ditto.
+	(div<mode>3): New patterns for VSX.
+	(vec_interleave_highv2df): Ditto.
+	(vec_interleave_lowv2df): Ditto.
+	(vec_pack_trunc_v2df): Ditto.
+	(vec_pack_sfix_trunc_v2df): Ditto.
+	(vec_pack_ufix_trunc_v2df): Ditto.
+	(vec_unpacks_hi_v4sf): Ditto.
+	(vec_unpacks_lo_v4sf): Ditto.
+	(vec_unpacks_float_hi_v4si): Ditto.
+	(vec_unpacku_float_lo_v4si): Ditto.
+	(vec_unpacku_float_hi_v4si): Ditto.
+	(vec_unpacks_float_lo_v4si): Ditto.
+	(movmisalign<mode>): Ditto.
+	(vector_ceil<mode>2): New patterns for vectorizing math library.
+	(vector_floor<mode>2): Ditto.
+	(vector_btrunc<mode>2): Ditto.
+	(vector_copysign<mode>3): Ditto.
+
+	* config/rs6000/predicates.md (easy_vector_constant_msb): New
+	predicate for setting the high bit in each word, used for copysign.
+
+	* config/rs6000/ppc-asm.h (f19): Whitespace.
+	(f32-f63): Define if VSX.
+	(v0-v31): Define if Altivec.
+	(vs0-vs63): Define if VSX.
+
+	* config/rs6000/t-rs6000 (MD_INCLUDES): Add power7.md and vsx.md.
+
+	* config/rs6000/power7.md: New file, provide tuning parameters for
+	-mcpu=power7.
+
+	* config/rs6000/rs6000-c.c (rs6000_macro_to_expand): Add VSX support.
+	(rs6000_cpu_cpp_builtins): Ditto.
+	(altivec_overloaded_builtins): Ditto.
+	(altivec_resolve_overloaded_builtin): Ditto.
+
+	* config/rs6000/rs6000.opt (-mno-vectorize-builtins): Add new
+	debug switch to disable vectorizing simple math builtin
+	functions.
+
+	* config/rs6000/rs6000.c (rs6000_builtin_vectorized_function):
+	Vectorize simple math builtin functions.
+	(TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION): Define target
+	hook to vectorize math builtins.
+	(rs6000_override_options): Enable -mvsx on -mcpu=power7.
+	(rs6000_builtin_conversion): Add VSX/power7 support.
+	(rs6000_builtin_vec_perm): Ditto.
+	(vsplits_constant): Add support for loading up a vector constant
+	with just the high bit set in each part.
+	(rs6000_expand_vector_init): Add VSX/power7 support.
+	(rs6000_expand_vector_set): Ditto.
+	(rs6000_expand_vector_extract): Ditto.
+	(rs6000_emit_move): Ditto.
+	(bdesc_3arg): Ditto.
+	(bdesc_2arg): Ditto.
+	(bdesc_1arg): Ditto.
+	(rs6000_expand_ternop_builtin): Ditto.
+	(altivec_expand_builtin): Ditto.
+	(rs6000_expand_unop_builtin): Ditto.
+	(rs6000_init_builtins): Ditto.
+	(altivec_init_builtins): Ditto.
+	(builtin_function_type): Ditto.
+	(rs6000_common_init_builtins): Ditto.
+	(rs6000_handle_altivec_attribute); Ditto.
+	(rs6000_mangle_type): Ditto.
+	(rs6000_vector_mode_supported_p): Ditto.
+	(rs6000_mode_dependent_address): Altivec addresses with AND -16
+	are mode dependent.
+
+	* config/rs6000/vsx.md: New file for VSX support.
+
+	* config/rs6000/rs6000.h (EASY_VECTOR_MSB): New macro for
+	identifing values with just the most significant bit set.
+	(enum rs6000_builtins): Add builtins for VSX.  Add simple math
+	vectorized builtins.
+
+	* config/rs6000/altivec.md (UNSPEC_VRFIP): Delete.
+	(UNSPEC_VRFIM): Delete.
+	(splitter for loading up vector with most significant bit): New
+	splitter for vectorizing copysign.
+	(altivec_vrfiz): Rename from altivec_fturncv4sf2.  Add support for
+	vectorizing simple math functions.
+	(altivec_vrfip): Add support for vectorizing simple math functions.
+	(altivec_vrfim): Ditto.
+	(altivec_copysign_v4sf3): New insn for Altivec copysign support.
+
+	* config/rs6000/rs6000.md (UNSPEC_BPERM): New constant.
+	(power7.md, vsx.md): Include for power7 support.
+	(copysigndf3): Use VSX instructions if -mvsx.
+	(negdf2_fpr): Ditto.
+	(absdf2_fpr): Ditto.
+	(nabsdf2_fpr): Ditto.
+	(adddf3_fpr): Ditto.
+	(subdf3_fpr): Ditto.
+	(muldf3_fpr): Ditto.
+	(divdf3_fpr): Ditto.
+	(fix_truncdfdi2_fpr): Ditto.
+	(cmpdf_internal1): Ditto.
+	(fred, fred_fpr): Convert into expander/insn to add VSX support.
+	(btruncdf2, btruncdf2_fpr): Ditto.
+	(ceildf2, ceildf2_fpr): Ditto.
+	(floordf2, floordf2_fpr): Ditto.
+	(floatdidf2, floatdidf2_fpr): Ditto.
+	(fmadddf4_fpr): Name insn.  Use VSX instructions if -mvsx.
+	(fmsubdf4_fpr): Ditto.
+	(fnmadddf4_fpr_1): Ditto.
+	(fnmadddf4_fpr_2): Ditto.
+	(fnmsubdf4_fpr_1): Ditto.
+	(fnmsubdf4_fpr_2): Ditto.
+	(fixuns_truncdfdi2): Add expander for VSX support.
+	(fix_truncdfdi2): Ditto.
+	(fix_truncdfsi2): Ditto.
+	(ftruncdf2): Ditto.
+	(btruncsf2): Whitespace.
+	(movdf_hardfloat32): Add support for VSX registers.
+	(movdf_softfloat32): Ditto.
+	(movdf_hardfloat64): Ditto.
+	(movdf_hardfloat64_mfpgpr): Ditto.
+	(movdf_softfloat64): Ditto.
+	(movti splitters): Add check for vector registers supporting
+	TImode in the future.
+	(bpermd): Add power7 bpermd instruction.
+
+	* config/rs6000/altivec.h (vec_div): Define if VSX.
+	(vec_mul): Ditto.
+	(vec_msub): Ditto.
+	(vec_nmadd): Ditto.
+	(vec_nearbyint): Ditto.
+	(vec_rint): Ditto.
+	(vec_sqrt): Ditto.
+	(all predicates): Use the generic builtin function, and not the V4SF
+	specific function so that the predicates will work with VSX's V2DF.
+	(vec_all_*): Ditto.
+	(vec_any_*): Ditto.
+
+	* doc/extend.texi (PowerPC Altivec/VSX Built-in Functions):
+	Document new VSX functions and types.
+
+	* doc/invoke.texi (PowerPc options): Document -mpopcntd, -mvsx
+	switches.
+
+	* doc/md.texi (PowerPC constraints): Document "wd", "wf", "ws",
+	"wa", and "j" constraints.  Modify "v" to talk about Altivec
+	instead of just vector.
+
+2009-07-30  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR debug/26475
+	* tree-into-ssa.c (insert_phi_nodes_for, rewrite_add_phi_arguments): Set
+	location for phi arguments.
+	(rewrite_update_phi_arguments): Find locations for reaching defs.
+	* tree-ssa-threadupdate.c (create_edge_and_update_destination_phis):
+	Add location to add_phi_arg calls.
+	* tree-loop-districbution.c (update_phis_for_loop_copy): Add locations.
+	* tree-ssa-loop-manip.c (create_iv, add_exit_phis_edge,
+	split_loop_exit_edge, tree_transform_and_unroll_loop): Add locations.
+	* tree-tailcall.c (add_successor_phi_arg, eliminate_tail_call,
+	create_tailcall_accumulator, tree_optimize_tail_calls_1): Add locations.
+	* tree.h (struct phi_arg_d): Add location_t to PHI arguments.
+	* tree-phinodes.c (make_phi_node): Initialize location.
+	(resize_phi_node): Initialize location to UNKNOWN_LOCATION.
+	(add_phi_arg): Add location parameter.
+	(remove_phi_arg_num): Move location when moving phi argument.
+	* omp-low.c (expand_parallel_call, expand_omp_for_static_chunk): Set 
+	location.
+	* tree-vect-loop-manip.c (slpeel_update_phis_for_duplicate_loop,
+	slpeel_update_phi_nodes_for_guard1,
+	slpeel_update_phi_nodes_for_guard2,
+	slpeel_tree_duplicate_loop_to_edge_cfg, set_prologue_iterations,
+	vect_loop_versioning): Set locations.
+	* tree-parloops.c (create_phi_for_local_result,
+	transform_to_exit_first_loop, create_parallel_loop): Add locations.
+	* gimple-pretty-print.c (dump_gimple_phi): Dump lineno's if present.
+	* tree-vect-loop.c (get_initial_def_for_induction,
+	vect_create_epilog_for_reduction, vect_finalize_reduction): Add
+	locations.
+	* tree-flow-inline.h (gimple_phi_arg_location): New.  Return locus.
+	(gimple_phi_arg_location_from_edge): New.  Return locus from an edge.
+	(gimple_phi_arg_set_location): New.  Set locus.
+	(gimple_phi_arg_has_location): New.  Check for locus.
+	(redirect_edge_var_map_location): New.  Return locus from var_map.
+	* tree-vect-data-refs.c (vect_setup_realignment): Set location.
+	* tree-ssa-phiopt.c (conditional_replacement): Set locus when
+	combining PHI arguments.
+	(cond_store_replacement): Set location.
+	* cfgexpand.c (gimple_assign_rhs_to_tree): Transfer locus if possible.
+	* grpahite.c (add_loop_exit_phis, add_guard_exit_phis,
+	scop_add_exit_phis_edge): Add locations.
+	* tree-cfgcleanup.c (remove_forwarder_block,
+	remove_forwarder_block_with_phi): Add locations.
+	* tree-ssa-pre.c (insert_into_preds_of_block): Add locations.
+	* tree-predcom.c (initialize_root_vars, initialize_root_vars_lm): Add
+	locations.
+	* tree-ssa-dce.c (forward_edge_to_pdom): Add locations.
+	* tree-ssa.c (redirect_edge_var_map_add, ssa_redirect_edge,
+	flush_pending_stmts): Add source location.
+	* lambda-code.c (perfect_nestify): Maintain location stack with argument
+	stack to preserve locations.
+	* tree-vect-stmts.c (vectorizable_load): Add location.
+	* tree-inline.c (copy_phis_for_bb): Copy locus.
+	(setup_one_parameter): Add call locus to inlined parameter stmts.
+	(initialize_inlined_parameters): Pass in call location as parameter
+	assignment locus.
+	(tree_function_versioning): Pass location to setup_one_parameter.
+	* tree-ssa-phiprop.c (phiprop_insert_phi): Set locations.
+	* tree-outof-ssa.c (struct _elim_graph): Add source_location vecs for
+	copy and edge lists.
+	(insert_partition_copy_on_edge, insert_value_copy_on_edge,
+	insert_rtx_to_part_on_edge, insert_part_to_rtx_on_edge): Provide a 
+	locus parameter and override the stmt default if provided.
+	(new_elim_graph, clear_elim_graph, delete_elim_graph,
+	elim_graph_add_edge, elim_graph_remove_succ_edge,
+	FOR_EACH_ELIM_GRAPH_SUCC, FOR_EACH_ELIM_GRAPH_PRED, eliminate_build,
+	elim_forward, elim_unvisited_predecessor, elim_backward, elim_create,
+	eliminate_phi):  Add locus info in elimination graph for each edge and
+	value copy.
+	(insert_backedge_copies): Copy locus if present.
+	* tree-flow.h (struct _edge_var_map): Add locus field.
+	* tree-switch_conversions.c (fix_phi_nodes): Add locations.
+	* tree-cfg.c (reinstall_phi_args, gimple_make_forwarder_block,
+	add_phi_args_after_copy_edge, gimple_lv_adjust_loop_header_phi): Add 
+	locations.
+	* ipa-struct-reorg.c (make_edge_and_fix_phis_of_dest): Add locations.
+	
+2009-07-30  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/40570
+	* ipa-inline.c (cgraph_decide_inlining): Watch out for dead single
+	use inlining loops.
+
 2009-07-30  Razya Ladelsky <razya@il.ibm.com>
 
 	* ssa-loop-manip.c: Include langhooks.h.
