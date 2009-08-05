@@ -1245,6 +1245,10 @@ duplicate_eh_regions_1 (eh_region old, eh_region outer, int eh_offset)
   n->region_number += eh_offset;
   VEC_replace (eh_region, cfun->eh->region_array, n->region_number, n);
 
+  /* This will have to get re-filled in by whoever's making the copy.  */
+  if (n->type == ERT_TRANSACTION)
+    n->u.transaction.tm_atomic_stmt = NULL;
+
   if (old->inner)
     {
       old = old->inner;

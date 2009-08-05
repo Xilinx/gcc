@@ -2688,15 +2688,33 @@ stmt_can_throw_internal (gimple stmt)
   bool is_resx = false;
   bool inlinable_call = false;
 
-  if (gimple_code (stmt) == GIMPLE_RESX)
+  switch (gimple_code (stmt))
     {
+    case GIMPLE_TM_ATOMIC:
+      return false;
+
+    case GIMPLE_RESX:
       region_nr = gimple_resx_region (stmt);
       is_resx = true;
-    }
-  else
-    {
+      break;
+
+    case GIMPLE_CALL:
+      /* Irritatingly, is_transactional_stmt also includes DECL_TM_CLONE
+	 functions, which can in fact throw.  So use a more exact test
+	 for the builtins.  */
+      {
+	tree fndecl = gimple_call_fndecl (stmt);
+	if (fndecl
+	    && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+	    && flags_from_decl_or_type (fndecl) & ECF_TM_OPS)
+	  return false;
+      }
+      /* FALLTHRU */
+
+    default:
       region_nr = lookup_stmt_eh_region (stmt);
       inlinable_call = inlinable_call_p (stmt);
+      break;
     }
 
   if (region_nr < 0)

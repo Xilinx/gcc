@@ -1,3 +1,12 @@
+2007-08-05  Richard Henderson  <rth@redhat.com>
+
+	* except.c (duplicate_eh_regions_1): Zero tm_atomic_stmt.
+	* tree-eh.c (stmt_can_throw_internal): Exclude __tm_atomic
+	and the tm builtins.
+	* tree-inline.c (remap_gimple_stmt): Update the tm_atomic_stmt
+	of the ERT_TRANSACTION when copying __tm_atomic.
+	(copy_bb): Tidy eh region updates.
+
 2007-08-03  Richard Henderson  <rth@redhat.com>
 
 	* varasm.c (record_tm_clone_pair): Allow entries to be

@@ -1262,9 +1262,28 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	  break;
 
 	case GIMPLE_TM_ATOMIC:
-	  s1 = remap_gimple_seq (gimple_tm_atomic_body (stmt), id);
-	  copy = gimple_build_tm_atomic (s1, gimple_tm_atomic_label (stmt));
-	  gimple_tm_atomic_set_subcode (copy, gimple_tm_atomic_subcode (stmt));
+	  {
+	    struct eh_region_d *region;
+	    int region_id;
+
+	    s1 = remap_gimple_seq (gimple_tm_atomic_body (stmt), id);
+	    copy = gimple_build_tm_atomic (s1, gimple_tm_atomic_label (stmt));
+	    gimple_tm_atomic_set_subcode
+	      (copy, gimple_tm_atomic_subcode (stmt));
+
+	    /* ??? There needs to be a 1-1 correspondence between atomic
+	       statements and ERT_TRANSACTION regions.  So we better have
+	       some sort of offset here.  */
+	    region_id = lookup_stmt_eh_region_fn (id->src_cfun, stmt);
+	    gcc_assert (id->eh_region_offset);
+	    gcc_assert (region_id > 0);
+
+	    region_id += id->eh_region_offset;
+	    region = get_eh_region_from_number (region_id);
+	    gcc_assert (region->type == ERT_TRANSACTION);
+
+	    region->u.transaction.tm_atomic_stmt = copy;
+	  }
 	  break;
 
 	default:
@@ -1299,6 +1318,12 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 
       /* Create a new deep copy of the statement.  */
       copy = gimple_copy (stmt);
+
+      /* We have to handle EH region remapping of GIMPLE_RESX specially
+	 because the region number is not an operand.  */
+      if (gimple_code (stmt) == GIMPLE_RESX && id->eh_region_offset)
+	gimple_resx_set_region (copy, (gimple_resx_region (stmt)
+				       + id->eh_region_offset));
     }
 
   /* If STMT has a block defined, map it to the newly constructed
@@ -1331,12 +1356,6 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
       gimple_set_vuse (copy, NULL_TREE);
     }
 
-  /* We have to handle EH region remapping of GIMPLE_RESX specially because
-     the region number is not an operand.  */
-  if (gimple_code (stmt) == GIMPLE_RESX && id->eh_region_offset)
-    {
-      gimple_resx_set_region (copy, gimple_resx_region (stmt) + id->eh_region_offset);
-    }
   return copy;
 }
 
@@ -1413,6 +1432,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
       do
 	{
 	  tree fn;
+	  int eh_region;
 
 	  stmt = gsi_stmt (copy_gsi);
 	  if (is_gimple_call (stmt)
@@ -1573,41 +1593,26 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 
 	  /* If you think we can abort here, you are wrong.
 	     There is no region 0 in gimple.  */
-	  gcc_assert (lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt) != 0);
+	  eh_region = lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt);
+	  gcc_assert (eh_region != 0);
 
-	  if (stmt_could_throw_p (stmt)
-	      /* When we are cloning for inlining, we are supposed to
-		 construct a clone that calls precisely the same functions
-		 as original.  However IPA optimizers might've proved
-		 earlier some function calls as non-trapping that might
-		 render some basic blocks dead that might become
-		 unreachable.
+	  /* If the statement was already in an EH region, remap it.  */
+	  if (eh_region > 0)
+	    eh_region += id->eh_region_offset;
 
-		 We can't update SSA with unreachable blocks in CFG and thus
-		 we prevent the scenario by preserving even the "dead" eh
-		 edges until the point they are later removed by
-		 fixup_cfg pass.  */
-	      || (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES
-		  && lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt) > 0))
-	    {
-	      int region = lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt);
+	  /* If there was no EH region within the inlined function, and
+	     the statement can throw, then use the EH region into which
+	     we are inlining.  */
+	  else if (stmt_could_throw_p (stmt))
+	    eh_region = id->eh_region;
 
-	      /* Add an entry for the copied tree in the EH hashtable.
-		 When cloning or versioning, use the hashtable in
-		 cfun, and just copy the EH number.  When inlining, use the
-		 hashtable in the caller, and adjust the region number.  */
-	      if (region > 0)
-		add_stmt_to_eh_region (stmt, region + id->eh_region_offset);
+	  /* Transactional statements should have eh_region set already.  */
+	  else
+	    gcc_assert (!is_transactional_stmt (stmt));
 
-	      /* If this tree doesn't have a region associated with it,
-		 and there is a "current region,"
-		 then associate this tree with the current region
-		 and add edges associated with this region.  */
-	      if (lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt) <= 0
-		  && id->eh_region > 0
-		  && stmt_could_throw_p (stmt))
-		add_stmt_to_eh_region (stmt, id->eh_region);
-	    }
+	  /* Record the resulting region.  */
+	  if (eh_region > 0)
+	    add_stmt_to_eh_region (stmt, eh_region);
 
 	  if (gimple_in_ssa_p (cfun))
 	    {
