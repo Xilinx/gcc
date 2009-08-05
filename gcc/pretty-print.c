@@ -942,7 +942,7 @@ identifier_to_locale (const char *ident)
      outside printable ASCII.  */
   if (!valid_printable_utf8)
     {
-      char *ret = GGC_NEWVEC (char, 4 * idlen + 1);
+      char *ret = (char *) ggc_alloc_atomic (4 * idlen + 1);
       char *p = ret;
       for (i = 0; i < idlen; i++)
 	{
@@ -985,7 +985,7 @@ identifier_to_locale (const char *ident)
 	      size_t outbytesleft = ret_alloc - 1;
 	      size_t iconv_ret;
 
-	      ret = GGC_NEWVEC (char, ret_alloc);
+	      ret = (char *) ggc_alloc_atomic (ret_alloc);
 	      outbuf = ret;
 
 	      if (iconv (cd, 0, 0, 0, 0) == (size_t) -1)
@@ -1044,7 +1044,7 @@ identifier_to_locale (const char *ident)
 
   /* Otherwise, convert non-ASCII characters in IDENT to UCNs.  */
   {
-    char *ret = GGC_NEWVEC (char, 10 * idlen + 1);
+    char *ret = (char *) ggc_alloc_atomic (10 * idlen + 1);
     char *p = ret;
     for (i = 0; i < idlen;)
       {

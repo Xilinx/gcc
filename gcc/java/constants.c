@@ -44,8 +44,9 @@ set_constant_entry (CPool *cpool, int index, int tag, jword value)
   if (cpool->data == NULL)
     {
       cpool->capacity = 100;
-      cpool->tags = GGC_CNEWVEC (uint8, cpool->capacity);
-      cpool->data = GGC_CNEWVEC (union cpool_entry, cpool->capacity);
+      cpool->tags = (uint8 *) ggc_alloc_cleared_atomic (sizeof (uint8)
+						* cpool->capacity);
+      cpool->data = ggc_alloc_cleared_vec_cpool_entry (cpool->capacity);
       cpool->count = 1;
     }
   if (index >= cpool->capacity)

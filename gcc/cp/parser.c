@@ -283,7 +283,7 @@ cp_lexer_new_main (void)
 
   /* Create the buffer.  */
   alloc = CP_LEXER_BUFFER_SIZE;
-  buffer = GGC_NEWVEC (cp_token, alloc);
+  buffer = ggc_alloc_vec_cp_token(alloc);
 
   /* Put the first token in the buffer.  */
   space = alloc;

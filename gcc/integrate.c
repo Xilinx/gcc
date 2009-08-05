@@ -241,7 +241,7 @@ get_hard_reg_initial_val (enum machine_mode mode, unsigned int regno)
       ivs = ggc_alloc_initial_value_struct();
       ivs->num_entries = 0;
       ivs->max_entries = 5;
-      ivs->entries = GGC_NEWVEC (initial_value_pair, 5);
+      ivs->entries = ggc_alloc_vec_initial_value_pair (5);
       crtl->hard_reg_initial_vals = ivs;
     }
 

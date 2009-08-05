@@ -2976,12 +2976,14 @@ write_local (type_p structures, type_p param_structs)
 }
 
 #define USED_BY_TYPED_GC(s)						\
-  (UNION_OR_STRUCT_P (s) &&						\
-  (((s)->gc_used == GC_POINTED_TO)					\
-   || ((s)->gc_used == GC_MAYBE_POINTED_TO				\
-       && s->u.s.line.file != NULL)					\
-   || ((s)->gc_used == GC_USED						\
-       && strncmp(s->u.s.tag, "anonymous", strlen ("anonymous")))))
+  (((s->kind == TYPE_POINTER)						\
+    && ((s->gc_used == GC_POINTED_TO) || (s->gc_used == GC_USED)))	\
+   || (UNION_OR_STRUCT_P (s) &&						\
+       (((s)->gc_used == GC_POINTED_TO)					\
+	|| ((s)->gc_used == GC_MAYBE_POINTED_TO				\
+	    && s->u.s.line.file != NULL)				\
+	|| ((s)->gc_used == GC_USED					\
+	    && strncmp(s->u.s.tag, "anonymous", strlen ("anonymous"))))))
 
 
 /* Write out the 'enum' definition for gt_types_enum.  */
@@ -3692,10 +3694,14 @@ write_typed_typedef_alloc_def (const pair_p p,
 			       const char * const allocator_type,
 			       bool is_vector)
 {
-  const type_p s = p->type;
   oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, p->name);
   oprintf (header_file, "(%s) ", is_vector ? "n" : "");
-  write_typed_alloc_end (s, allocator_type, is_vector);
+  /*  FIXME: merge oprintfs below with write_typed_alloc_end or not? */
+  oprintf (header_file, "((%s *)", p->name);
+  oprintf (header_file, "(ggc_internal_%salloc (", allocator_type);
+  oprintf (header_file, "%s", p->name);
+  oprintf (header_file, "%s", is_vector ? ", n" : "");
+  oprintf (header_file, ")))\n");
 }
 
 static void
@@ -3711,6 +3717,8 @@ write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
 	continue;
       write_typed_struct_alloc_def (s, "", false);
       write_typed_struct_alloc_def (s, "cleared_", false);
+      write_typed_struct_alloc_def (s, "vec_", true);
+      write_typed_struct_alloc_def (s, "cleared_vec_", true);
       write_typed_struct_alloc_def (s, "vec_", true);
       write_typed_struct_alloc_def (s, "cleared_vec_", true);
     }

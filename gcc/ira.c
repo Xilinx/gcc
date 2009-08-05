@@ -2308,7 +2308,7 @@ update_equiv_regs (void)
   recorded_label_ref = 0;
 
   reg_equiv = XCNEWVEC (struct equivalence, max_regno);
-  reg_equiv_init = GGC_CNEWVEC (rtx, max_regno);
+  reg_equiv_init = ggc_alloc_cleared_vec_rtx (max_regno);
   reg_equiv_init_size = max_regno;
 
   init_alias_analysis ();

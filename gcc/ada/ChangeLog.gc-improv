@@ -1,3 +1,10 @@
+2009-08-05  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* gcc-interface/trans.c (Attribute_to_gnu): Fix typo.
+	* gcc-interface/trans.c (extract_encoding): Use atomic GC
+	allocation instead of GGC_NEWVEC.
+	(decode_name): Likewise.
+
 2009-05-21  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* gcc-interface/utils.c (gnat_pushlevel): Use typed GC allocation.

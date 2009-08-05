@@ -139,7 +139,7 @@ binding_table_construct (binding_table table, size_t chain_count)
 {
   table->chain_count = chain_count;
   table->entry_count = 0;
-  table->chain = GGC_CNEWVEC (binding_entry, table->chain_count);
+  table->chain = ggc_alloc_cleared_vec_binding_entry (table->chain_count);
 }
 
 /* Make TABLE's entries ready for reuse.  */

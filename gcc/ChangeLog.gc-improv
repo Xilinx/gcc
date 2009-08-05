@@ -1,3 +1,38 @@
+-08-05  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* ggc.h (GGC_CNEWVEC): Remove.
+	(GGC_NEWVECVAR): Remove.
+	(GGC_CNEWVECVAR): Remove.
+	(ggc_internal_cleared_vec_alloc): Redefine.
+	(ggc_internal_vec_sized_alloc): Redefine.
+	(ggc_internal_cleared_vec_sized_alloc): Redefine.
+	(ggc_alloc_cleared_atomic): Redefine.
+	(ggc_alloc_rtvec): Unconditionally undefine before definition.
+	* gengtype.c (USED_BY_TYPED_GC): Include TYPE_POINTER kind of
+	types too.
+	(write_typed_typedef_alloc_def): Remove local variable s, do not
+	cal write_typed_alloc_end, output a typed allocator for a typedef
+	using its tag.
+	* pretty-print.c (identifier_to_locale): Use atomic GC allocation
+	instead of GGC_NEWVEC.
+	* lambda.h (lambda_vector_new): Likewise.
+	* dwarf2out.c (add_const_value_attribute): Likewise.
+	(add_comp_dir_attribute): Likewise.
+	(tree_add_const_value_attribute): Use atomic GC allocation instead
+	of GGC_CNEWVEC.
+	(dwarf2out_init): Use typed GC allocation instead of GGC_CNEWVEC.
+	* alias.c (init_alias_analysis): Likewise.
+	* c-parser.c (c_parse_init): Likewise.
+	* dbxout.c (dbxout_init): Likewise.
+	* ira.c (update_equiv_regs): Likewise.
+	* integrate.c (get_hard_reg_initial_val): Use typed GC allocation
+	instead of GGC_NEWVEC.
+	* passes.c (do_per_function_toporder): Likewise.
+	* emit-rtl.c (init_emit): Likewise.
+	* gimple.c (gimple_copy): Likewise.
+	(gimple_build_omp_for): Use typed GC allocation instead of
+	GGC_CNEWVEC.
+
 2009-08-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* Makefile.in (build/gengtype.o): Add $(HASHTAB_H) dependency.

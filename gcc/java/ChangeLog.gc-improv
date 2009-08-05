@@ -1,3 +1,8 @@
+2009-08-05  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* constants.c (set_constant_entry): Use typed and atomic GC
+	allocation instead of GCC_CNEWVEC.
+
 2009-05-10  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* expr.c (add_type_assertion): Use typed GC alloation.

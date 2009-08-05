@@ -1519,7 +1519,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 
 	    if (!pa)
 	      {
-		pa = ggc_alloc_cleared_parm_attr();
+		pa = ggc_alloc_cleared_parm_attr_d();
 		pa->id = gnat_param;
 		pa->dim = Dimension;
 		VEC_safe_push (parm_attr, gc, f_parm_attr_cache, pa);
@@ -7560,7 +7560,7 @@ set_expr_location_from_node (tree node, Node_Id gnat_node)
 static const char *
 extract_encoding (const char *name)
 {
-  char *encoding = GGC_NEWVEC (char, strlen (name));
+  char *encoding = (char *) ggc_alloc_atomic (strlen (name));
   get_encoding (name, encoding);
   return encoding;
 }
@@ -7570,7 +7570,7 @@ extract_encoding (const char *name)
 static const char *
 decode_name (const char *name)
 {
-  char *decoded = GGC_NEWVEC (char, strlen (name) * 2 + 60);
+  char *decoded = (char *) ggc_alloc_atomic (strlen (name) * 2 + 60);
   __gnat_decode (name, decoded, 0);
   return decoded;
 }

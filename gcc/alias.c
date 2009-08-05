@@ -2515,7 +2515,7 @@ init_alias_analysis (void)
   timevar_push (TV_ALIAS_ANALYSIS);
 
   reg_known_value_size = maxreg - FIRST_PSEUDO_REGISTER;
-  reg_known_value = GGC_CNEWVEC (rtx, reg_known_value_size);
+  reg_known_value = ggc_alloc_cleared_vec_rtx (reg_known_value_size);
   reg_known_equiv_p = XCNEWVEC (bool, reg_known_value_size);
 
   /* If we have memory allocated from the previous run, use it.  */
