@@ -7059,7 +7059,6 @@ cp_parser_lambda_introducer (cp_parser* parser,
       enum capture_kind_type {
 	BY_COPY,
 	BY_REFERENCE,
-	BY_RVALUE_REFERENCE
       };
       enum capture_kind_type capture_kind = BY_COPY;
 
@@ -7088,8 +7087,6 @@ cp_parser_lambda_introducer (cp_parser* parser,
       /* Remember whether we want to capture as a reference or not.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
 	capture_kind = BY_REFERENCE;
-      else if (cp_lexer_next_token_is (parser->lexer, CPP_AND_AND))
-	capture_kind = BY_RVALUE_REFERENCE;
 
       if (capture_kind != BY_COPY)
 	cp_lexer_consume_token (parser->lexer);
