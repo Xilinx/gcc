@@ -17,7 +17,12 @@ int main() {
   i = [] () { return 3; } ();
   assert(i == 3);
 
+  int k = [&] () { return i; } ();
+
   []{ return; };
+
+  int array[] = { 1, 2, 3 };
+  int* p = [&] () { return array; } ();
 
   return 0;
 }
