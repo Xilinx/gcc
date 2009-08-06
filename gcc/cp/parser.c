@@ -6979,15 +6979,12 @@ cp_parser_lambda_expression (cp_parser* parser)
     ++parser->num_classes_being_defined;
 
     type = begin_lambda_type (lambda_expr);
+    /* By virtue of defining a local class, a lambda expression has access to
+       the private variables of enclosing classes.  */
 
     cp_parser_lambda_parameter_declaration_opt (parser, lambda_expr);
 
     type = finish_struct (type, /*attributes=*/NULL_TREE);
-
-    /* We want access to private members from anywhere within a member function,
-       even in lambda expressions.  */
-    if (current_class_type)
-      make_friend_class (current_class_type, type, /*complain=*/false);
 
     cp_parser_lambda_body (parser, lambda_expr);
 
