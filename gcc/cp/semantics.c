@@ -5272,8 +5272,7 @@ deduce_lambda_return_type (tree lambda, tree expr)
   tree return_type;
   tree result;
 
-  return_type = finish_decltype_type
-                 (expr, /*id_expression_or_member_access_p=*/false);
+  return_type = type_decays_to (unlowered_expr_type (expr));
 
   /* Set the DECL_RESULT.
      - start_preparsed_function

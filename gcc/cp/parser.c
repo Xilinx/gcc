@@ -6975,8 +6975,6 @@ cp_parser_lambda_expression (cp_parser* parser)
 
     parser->num_template_parameter_lists = 0;
     parser->in_function_body = false;
-    /* Remember that we are defining one more class.  */
-    ++parser->num_classes_being_defined;
 
     type = begin_lambda_type (lambda_expr);
     /* By virtue of defining a local class, a lambda expression has access to
@@ -6990,7 +6988,6 @@ cp_parser_lambda_expression (cp_parser* parser)
 
     parser->in_function_body = saved_in_function_body;
     parser->num_template_parameter_lists = saved_num_template_parameter_lists;
-    --parser->num_classes_being_defined;
   }
 
   type = TREE_CHAIN (type);
@@ -7045,8 +7042,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
   if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) != CPLD_NONE)
     {
       cp_lexer_consume_token (parser->lexer);
-      if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
-	cp_lexer_consume_token (parser->lexer);
+      first = false;
     }
 
   while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_SQUARE))
@@ -7058,7 +7054,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
 
       enum capture_kind_type {
 	BY_COPY,
-	BY_REFERENCE,
+	BY_REFERENCE
       };
       enum capture_kind_type capture_kind = BY_COPY;
 
@@ -7110,6 +7106,9 @@ cp_parser_lambda_introducer (cp_parser* parser,
 	{
 	  /* An explicit expression exists.  */
 	  cp_lexer_consume_token (parser->lexer);
+          pedwarn (input_location, OPT_pedantic,
+                   "ISO C++ does not allow initializers "
+                   "in lambda expression capture lists");
 	  capture_init_expr = cp_parser_assignment_expression (parser,
 							       /*cast_p=*/true,
 							       &idk);
@@ -7119,28 +7118,32 @@ cp_parser_lambda_introducer (cp_parser* parser,
 	  const char* error_msg;
 
 	  /* Turn the identifier into an id-expression.  */
-	  capture_init_expr = cp_parser_lookup_name (parser,
-						     capture_id,
-						     none_type,
-						     /*is_template=*/false,
-						     /*is_namespace=*/false,
-						     /*check_dependency=*/true,
-						     /*ambiguous_decls=*/NULL,
-						     capture_token->location);
+	  capture_init_expr
+            = cp_parser_lookup_name
+                (parser,
+		 capture_id,
+                 none_type,
+                 /*is_template=*/false,
+                 /*is_namespace=*/false,
+                 /*check_dependency=*/true,
+                 /*ambiguous_decls=*/NULL,
+                 capture_token->location);
 
-	  capture_init_expr = finish_id_expression (capture_id,
-						    capture_init_expr,
-						    parser->scope,
-						    &idk,
-						    /*integral_constant_expression_p=*/false,
-						    /*allow_non_integral_constant_expression_p=*/false,
-						    /*non_integral_constant_expression_p=*/NULL,
-						    /*template_p=*/false,
-						    /*done=*/true,
-						    /*address_p=*/false,
-						    /*template_arg_p=*/false,
-						    &error_msg,
-						    capture_token->location);
+	  capture_init_expr
+            = finish_id_expression
+                (capture_id,
+		 capture_init_expr,
+                 parser->scope,
+                 &idk,
+                 /*integral_constant_expression_p=*/false,
+                 /*allow_non_integral_constant_expression_p=*/false,
+                 /*non_integral_constant_expression_p=*/NULL,
+                 /*template_p=*/false,
+                 /*done=*/true,
+                 /*address_p=*/false,
+                 /*template_arg_p=*/false,
+                 &error_msg,
+                 capture_token->location);
 	}
 
       add_capture (lambda_expr,
@@ -7173,26 +7176,16 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
     {
       cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
 
+      begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
+
       /* Parse optional parameters.  */
       if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
         {
           bool is_error = false;
-
-          begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
-
           param_list = cp_parser_parameter_declaration_list (parser, &is_error);
           /* TODO: better way to handle this error?  */
           if (is_error)
             param_list = NULL_TREE;
-
-          /* Remove the function parms from scope.  */
-          {
-            tree t;
-            for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
-              pop_binding (DECL_NAME (t), t);
-            leave_scope();
-          }
-
         }
 
       cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
@@ -7213,6 +7206,18 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
           cp_lexer_consume_token (parser->lexer);
           LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
         }
+
+      /* Remove the function parms from scope.  Must wait until after return
+         type clause in case of decltype.  */
+      /* TODO: Do we need to remove them from scope in between the parameter
+         list and the return type clause?  */
+      {
+        tree t;
+        for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+          pop_binding (DECL_NAME (t), t);
+        leave_scope();
+      }
+
     }
 
   /* Start the function call operator
@@ -7263,9 +7268,6 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
 
     parser->in_declarator_p = saved_in_declarator_p;
     parser->default_arg_ok_p = saved_default_arg_ok_p;
-
-    /* The function call operator (fco) is public.  */
-    current_access_specifier = access_public_node;
 
     /* TODO: Look into start_function.  */
     fco = start_method (&return_type_specs,

@@ -4823,7 +4823,7 @@ include_empty_classes (record_layout_info rli)
    BINFO_OFFSETs for all of the base-classes.  Position the vtable
    pointer.  Accumulate declared virtual functions on VIRTUALS_P.  */
 
-void
+static void
 layout_class_type (tree t, tree *virtuals_p)
 {
   tree non_static_data_members;

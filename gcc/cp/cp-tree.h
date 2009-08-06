@@ -4370,7 +4370,6 @@ extern bool currently_open_class		(tree);
 extern tree currently_open_derived_class	(tree);
 extern tree finish_struct			(tree, tree);
 extern void finish_struct_1			(tree);
-extern void layout_class_type                   (tree, tree *);
 extern int resolves_to_fixed_type_p		(tree, int *);
 extern void init_class_processing		(void);
 extern int is_empty_class			(tree);
