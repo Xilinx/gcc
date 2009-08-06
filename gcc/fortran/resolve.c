@@ -1652,6 +1652,47 @@ find_noncopying_intrinsics (gfc_symbol *fnsym, gfc_actual_arglist *actual)
    The namespace of the gsymbol is resolved and then, once this is
    done the interface is checked.  */
 
+
+static bool
+not_in_recursive (gfc_symbol *sym, gfc_namespace *gsym_ns)
+{
+  if (!gsym_ns->proc_name->attr.recursive)
+    return true;
+
+  if (sym->ns == gsym_ns)
+    return false;
+
+  if (sym->ns->parent && sym->ns->parent == gsym_ns)
+    return false;
+
+  return true;
+}
+
+static bool
+not_entry_self_reference  (gfc_symbol *sym, gfc_namespace *gsym_ns)
+{
+  if (gsym_ns->entries)
+    {
+      gfc_entry_list *entry = gsym_ns->entries;
+
+      for (; entry; entry = entry->next)
+	{
+	  if (strcmp (sym->name, entry->sym->name) == 0)
+	    {
+	      if (strcmp (gsym_ns->proc_name->name,
+			  sym->ns->proc_name->name) == 0)
+		return false;
+
+	      if (sym->ns->parent
+		  && strcmp (gsym_ns->proc_name->name,
+			     sym->ns->parent->proc_name->name) == 0)
+		return false;
+	    }
+	}
+    }
+  return true;
+}
+
 static void
 resolve_global_procedure (gfc_symbol *sym, locus *where,
 			  gfc_actual_arglist **actual, int sub)
@@ -1668,9 +1709,13 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
     gfc_global_used (gsym, where);
 
   if (gfc_option.flag_whole_file
+	&& sym->attr.if_source == IFSRC_UNKNOWN
 	&& gsym->type != GSYM_UNKNOWN
 	&& gsym->ns
-	&& gsym->ns->proc_name)
+	&& gsym->ns->resolved != -1
+	&& gsym->ns->proc_name
+	&& not_in_recursive (sym, gsym->ns)
+	&& not_entry_self_reference (sym, gsym->ns))
     {
       /* Make sure that translation for the gsymbol occurs before
 	 the procedure currently being resolved.  */
@@ -1687,9 +1732,41 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 	}
 
       if (!gsym->ns->resolved)
-	gfc_resolve (gsym->ns);
+	{
+	  gfc_dt_list *old_dt_list;
+
+	  /* Stash away derived types so that the backend_decls do not
+	     get mixed up.  */
+	  old_dt_list = gfc_derived_types;
+	  gfc_derived_types = NULL;
+
+	  gfc_resolve (gsym->ns);
+
+	  /* Store the new derived types with the global namespace.  */
+	  if (gfc_derived_types)
+	    gsym->ns->derived_types = gfc_derived_types;
+
+	  /* Restore the derived types of this namespace.  */
+	  gfc_derived_types = old_dt_list;
+	}
+
+      if (gsym->ns->proc_name->attr.function
+	    && gsym->ns->proc_name->as
+	    && gsym->ns->proc_name->as->rank
+	    && (!sym->as || sym->as->rank != gsym->ns->proc_name->as->rank))
+	gfc_error ("The reference to function '%s' at %L either needs an "
+		   "explicit INTERFACE or the rank is incorrect", sym->name,
+		   where);
+
+      if (gfc_option.flag_whole_file == 1
+	    || ((gfc_option.warn_std & GFC_STD_LEGACY)
+		  &&
+	       !(gfc_option.warn_std & GFC_STD_GNU)))
+	gfc_errors_to_warnings (1);
 
       gfc_procedure_use (gsym->ns->proc_name, actual, where);
+
+      gfc_errors_to_warnings (0);
     }
 
   if (gsym->type == GSYM_UNKNOWN)
@@ -4012,11 +4089,7 @@ gfc_resolve_substring_charlen (gfc_expr *e)
   e->ts.kind = gfc_default_character_kind;
 
   if (!e->ts.cl)
-    {
-      e->ts.cl = gfc_get_charlen ();
-      e->ts.cl->next = gfc_current_ns->cl_list;
-      gfc_current_ns->cl_list = e->ts.cl;
-    }
+    e->ts.cl = gfc_new_charlen (gfc_current_ns);
 
   if (char_ref->u.ss.start)
     start = gfc_copy_expr (char_ref->u.ss.start);
@@ -4489,9 +4562,7 @@ gfc_resolve_character_operator (gfc_expr *e)
   else if (op2->expr_type == EXPR_CONSTANT)
     e2 = gfc_int_expr (op2->value.character.length);
 
-  e->ts.cl = gfc_get_charlen ();
-  e->ts.cl->next = gfc_current_ns->cl_list;
-  gfc_current_ns->cl_list = e->ts.cl;
+  e->ts.cl = gfc_new_charlen (gfc_current_ns);
 
   if (!e1 || !e2)
     return;
@@ -4530,11 +4601,7 @@ fixup_charlen (gfc_expr *e)
 
     default:
       if (!e->ts.cl)
-	{
-	  e->ts.cl = gfc_get_charlen ();
-	  e->ts.cl->next = gfc_current_ns->cl_list;
-	  gfc_current_ns->cl_list = e->ts.cl;
-	}
+	e->ts.cl = gfc_new_charlen (gfc_current_ns);
 
       break;
     }
@@ -4545,7 +4612,8 @@ fixup_charlen (gfc_expr *e)
    procedures at the right position.  */
 
 static gfc_actual_arglist*
-update_arglist_pass (gfc_actual_arglist* lst, gfc_expr* po, unsigned argpos)
+update_arglist_pass (gfc_actual_arglist* lst, gfc_expr* po, unsigned argpos,
+		     const char *name)
 {
   gcc_assert (argpos > 0);
 
@@ -4556,14 +4624,16 @@ update_arglist_pass (gfc_actual_arglist* lst, gfc_expr* po, unsigned argpos)
       result = gfc_get_actual_arglist ();
       result->expr = po;
       result->next = lst;
+      if (name)
+        result->name = name;
 
       return result;
     }
 
-  gcc_assert (lst);
-  gcc_assert (argpos > 1);
-
-  lst->next = update_arglist_pass (lst->next, po, argpos - 1);
+  if (lst)
+    lst->next = update_arglist_pass (lst->next, po, argpos - 1, name);
+  else
+    lst = update_arglist_pass (NULL, po, argpos - 1, name);
   return lst;
 }
 
@@ -4621,7 +4691,74 @@ update_compcall_arglist (gfc_expr* e)
 
   gcc_assert (tbp->pass_arg_num > 0);
   e->value.compcall.actual = update_arglist_pass (e->value.compcall.actual, po,
-						  tbp->pass_arg_num);
+						  tbp->pass_arg_num,
+						  tbp->pass_arg);
+
+  return SUCCESS;
+}
+
+
+/* Extract the passed object from a PPC call (a copy of it).  */
+
+static gfc_expr*
+extract_ppc_passed_object (gfc_expr *e)
+{
+  gfc_expr *po;
+  gfc_ref **ref;
+
+  po = gfc_get_expr ();
+  po->expr_type = EXPR_VARIABLE;
+  po->symtree = e->symtree;
+  po->ref = gfc_copy_ref (e->ref);
+
+  /* Remove PPC reference.  */
+  ref = &po->ref;
+  while ((*ref)->next)
+    (*ref) = (*ref)->next;
+  gfc_free_ref_list (*ref);
+  *ref = NULL;
+
+  if (gfc_resolve_expr (po) == FAILURE)
+    return NULL;
+
+  return po;
+}
+
+
+/* Update the actual arglist of a procedure pointer component to include the
+   passed-object.  */
+
+static gfc_try
+update_ppc_arglist (gfc_expr* e)
+{
+  gfc_expr* po;
+  gfc_component *ppc;
+  gfc_typebound_proc* tb;
+
+  if (!gfc_is_proc_ptr_comp (e, &ppc))
+    return FAILURE;
+
+  tb = ppc->tb;
+
+  if (tb->error)
+    return FAILURE;
+  else if (tb->nopass)
+    return SUCCESS;
+
+  po = extract_ppc_passed_object (e);
+  if (!po)
+    return FAILURE;
+
+  if (po->rank > 0)
+    {
+      gfc_error ("Passed-object at %L must be scalar", &e->where);
+      return FAILURE;
+    }
+
+  gcc_assert (tb->pass_arg_num > 0);
+  e->value.compcall.actual = update_arglist_pass (e->value.compcall.actual, po,
+						  tb->pass_arg_num,
+						  tb->pass_arg);
 
   return SUCCESS;
 }
@@ -4724,7 +4861,8 @@ resolve_typebound_generic_call (gfc_expr* e)
 
 	      gcc_assert (g->specific->pass_arg_num > 0);
 	      gcc_assert (!g->specific->error);
-	      args = update_arglist_pass (args, po, g->specific->pass_arg_num);
+	      args = update_arglist_pass (args, po, g->specific->pass_arg_num,
+					  g->specific->pass_arg);
 	    }
 	  resolve_actual_arglist (args, target->attr.proc,
 				  is_external_proc (target) && !target->formal);
@@ -4846,13 +4984,17 @@ resolve_ppc_call (gfc_code* c)
 
   c->resolved_sym = c->expr1->symtree->n.sym;
   c->expr1->expr_type = EXPR_VARIABLE;
-  c->ext.actual = c->expr1->value.compcall.actual;
 
   if (!comp->attr.subroutine)
     gfc_add_subroutine (&comp->attr, comp->name, &c->expr1->where);
 
   if (resolve_ref (c->expr1) == FAILURE)
     return FAILURE;
+
+  if (update_ppc_arglist (c->expr1) == FAILURE)
+    return FAILURE;
+
+  c->ext.actual = c->expr1->value.compcall.actual;
 
   if (resolve_actual_arglist (c->ext.actual, comp->attr.proc,
 			      comp->formal == NULL) == FAILURE)
@@ -4888,6 +5030,9 @@ resolve_expr_ppc (gfc_expr* e)
 
   if (resolve_actual_arglist (e->value.function.actual, comp->attr.proc,
 			      comp->formal == NULL) == FAILURE)
+    return FAILURE;
+
+  if (update_ppc_arglist (e) == FAILURE)
     return FAILURE;
 
   gfc_ppc_use (comp, &e->value.compcall.actual, &e->where);
@@ -7119,7 +7264,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 
 	case EXEC_READ:
 	case EXEC_WRITE:
-	  if (gfc_resolve_dt (code->ext.dt) == FAILURE)
+	  if (gfc_resolve_dt (code->ext.dt, &code->loc) == FAILURE)
 	    break;
 
 	  resolve_branch (code->ext.dt->err, code);
@@ -8144,8 +8289,8 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
       /* Appendix B.2 of the standard.  Contained functions give an
 	 error anyway.  Fixed-form is likely to be F77/legacy.  */
       if (!sym->attr.contained && gfc_current_form != FORM_FIXED)
-	gfc_notify_std (GFC_STD_F95_OBS, "CHARACTER(*) function "
-			"'%s' at %L is obsolescent in fortran 95",
+	gfc_notify_std (GFC_STD_F95_OBS, "Obsolescent feature: "
+			"CHARACTER(*) function '%s' at %L",
 			sym->name, &sym->declared_at);
     }
 
@@ -9085,16 +9230,10 @@ resolve_fl_derived (gfc_symbol *sym)
 	      /* Copy char length.  */
 	      if (ifc->ts.cl)
 		{
-		  c->ts.cl = gfc_get_charlen();
+		  c->ts.cl = gfc_new_charlen (sym->ns);
 	          c->ts.cl->resolved = ifc->ts.cl->resolved;
 		  c->ts.cl->length = gfc_copy_expr (ifc->ts.cl->length);
 		  /* TODO: gfc_expr_replace_symbols (c->ts.cl->length, c);*/
-		  /* Add charlen to namespace.  */
-		  /*if (c->formal_ns)
-		    {
-		      c->ts.cl->next = c->formal_ns->cl_list;
-		      c->formal_ns->cl_list = c->ts.cl;
-		    }*/
 		}
 	    }
 	  else if (c->ts.interface->name[0] != '\0')
@@ -9109,6 +9248,103 @@ resolve_fl_derived (gfc_symbol *sym)
 	{
 	  c->ts = *gfc_get_default_type (c->name, NULL);
 	  c->attr.implicit_type = 1;
+	}
+
+      /* Procedure pointer components: Check PASS arg.  */
+      if (c->attr.proc_pointer && !c->tb->nopass && c->tb->pass_arg_num == 0)
+	{
+	  gfc_symbol* me_arg;
+
+	  if (c->tb->pass_arg)
+	    {
+	      gfc_formal_arglist* i;
+
+	      /* If an explicit passing argument name is given, walk the arg-list
+		and look for it.  */
+
+	      me_arg = NULL;
+	      c->tb->pass_arg_num = 1;
+	      for (i = c->formal; i; i = i->next)
+		{
+		  if (!strcmp (i->sym->name, c->tb->pass_arg))
+		    {
+		      me_arg = i->sym;
+		      break;
+		    }
+		  c->tb->pass_arg_num++;
+		}
+
+	      if (!me_arg)
+		{
+		  gfc_error ("Procedure pointer component '%s' with PASS(%s) "
+			     "at %L has no argument '%s'", c->name,
+			     c->tb->pass_arg, &c->loc, c->tb->pass_arg);
+		  c->tb->error = 1;
+		  return FAILURE;
+		}
+	    }
+	  else
+	    {
+	      /* Otherwise, take the first one; there should in fact be at least
+		one.  */
+	      c->tb->pass_arg_num = 1;
+	      if (!c->formal)
+		{
+		  gfc_error ("Procedure pointer component '%s' with PASS at %L "
+			     "must have at least one argument",
+			     c->name, &c->loc);
+		  c->tb->error = 1;
+		  return FAILURE;
+		}
+	      me_arg = c->formal->sym;
+	    }
+
+	  /* Now check that the argument-type matches.  */
+	  gcc_assert (me_arg);
+	  if (me_arg->ts.type != BT_DERIVED
+	      || me_arg->ts.derived != sym)
+	    {
+	      gfc_error ("Argument '%s' of '%s' with PASS(%s) at %L must be of"
+			 " the derived type '%s'", me_arg->name, c->name,
+			 me_arg->name, &c->loc, sym->name);
+	      c->tb->error = 1;
+	      return FAILURE;
+	    }
+
+	  /* Check for C453.  */
+	  if (me_arg->attr.dimension)
+	    {
+	      gfc_error ("Argument '%s' of '%s' with PASS(%s) at %L "
+			 "must be scalar", me_arg->name, c->name, me_arg->name,
+			 &c->loc);
+	      c->tb->error = 1;
+	      return FAILURE;
+	    }
+
+	  if (me_arg->attr.pointer)
+	    {
+	      gfc_error ("Argument '%s' of '%s' with PASS(%s) at %L "
+			 "may not have the POINTER attribute", me_arg->name,
+			 c->name, me_arg->name, &c->loc);
+	      c->tb->error = 1;
+	      return FAILURE;
+	    }
+
+	  if (me_arg->attr.allocatable)
+	    {
+	      gfc_error ("Argument '%s' of '%s' with PASS(%s) at %L "
+			 "may not be ALLOCATABLE", me_arg->name, c->name,
+			 me_arg->name, &c->loc);
+	      c->tb->error = 1;
+	      return FAILURE;
+	    }
+
+	  /* TODO: Make this an error once CLASS is implemented.  */
+	  if (!sym->attr.sequence)
+	    gfc_warning ("Polymorphic entities are not yet implemented,"
+			 " non-polymorphic passed-object dummy argument of '%s'"
+			 " at %L accepted", c->name, &c->loc);
+
 	}
 
       /* Check type-spec if this is not the parent-type component.  */
@@ -9490,16 +9726,10 @@ resolve_symbol (gfc_symbol *sym)
 	  /* Copy char length.  */
 	  if (ifc->ts.cl)
 	    {
-	      sym->ts.cl = gfc_get_charlen();
+	      sym->ts.cl = gfc_new_charlen (sym->ns);
 	      sym->ts.cl->resolved = ifc->ts.cl->resolved;
 	      sym->ts.cl->length = gfc_copy_expr (ifc->ts.cl->length);
 	      gfc_expr_replace_symbols (sym->ts.cl->length, sym);
-	      /* Add charlen to namespace.  */
-	      if (sym->formal_ns)
-		{
-		  sym->ts.cl->next = sym->formal_ns->cl_list;
-		  sym->formal_ns->cl_list = sym->ts.cl;
-		}
 	    }
 	}
       else if (sym->ts.interface->name[0] != '\0')
@@ -9883,7 +10113,7 @@ resolve_symbol (gfc_symbol *sym)
       if ((!a->save && !a->dummy && !a->pointer
 	   && !a->in_common && !a->use_assoc
 	   && !(a->function && sym != sym->result))
-	  || (a->dummy && a->intent == INTENT_OUT))
+	  || (a->dummy && a->intent == INTENT_OUT && !a->pointer))
 	apply_default_init (sym);
     }
 
@@ -10981,15 +11211,19 @@ void
 gfc_resolve (gfc_namespace *ns)
 {
   gfc_namespace *old_ns;
+  code_stack *old_cs_base;
 
   if (ns->resolved)
     return;
 
+  ns->resolved = -1;
   old_ns = gfc_current_ns;
+  old_cs_base = cs_base;
 
   resolve_types (ns);
   resolve_codes (ns);
 
   gfc_current_ns = old_ns;
+  cs_base = old_cs_base;
   ns->resolved = 1;
 }

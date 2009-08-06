@@ -50,6 +50,7 @@ with Prepcomp;
 with Repinfo;  use Repinfo;
 with Restrict;
 with Rtsfind;
+with SCOs;
 with Sem;
 with Sem_Ch8;
 with Sem_Ch12;
@@ -111,9 +112,12 @@ procedure Gnat1drv is
 
    procedure Adjust_Global_Switches is
    begin
-      --  Debug flag -gnatd.I is a synonym of Generate_SCIL
+      --  Debug flag -gnatd.I is a synonym for Generate_SCIL and requires code
+      --  generation.
 
-      if Debug_Flag_Dot_II then
+      if Debug_Flag_Dot_II
+        and then Operating_Mode = Generate_Code
+      then
          Generate_SCIL := True;
       end if;
 
@@ -158,19 +162,24 @@ procedure Gnat1drv is
 
          ASIS_Mode := False;
 
-         --  Suppress overflow checks and access checks since they are handled
-         --  implicitely by CodePeer.
+         --  Suppress overflow, division by zero and access checks since they
+         --  are handled implicitly by CodePeer.
 
          --  Turn off dynamic elaboration checks: generates inconsistencies in
          --  trees between specs compiled as part of a main unit or as part of
          --  a with-clause.
 
+         --  Turn off alignment checks: these cannot be proved statically by
+         --  CodePeer and generate false positives.
+
          --  Enable all other language checks
 
          Suppress_Options :=
-           (Overflow_Check    => True,
-            Access_Check      => True,
+           (Access_Check      => True,
+            Alignment_Check   => True,
+            Division_Check    => True,
             Elaboration_Check => True,
+            Overflow_Check    => True,
             others            => False);
          Enable_Overflow_Checks := False;
          Dynamic_Elaboration_Checks := False;
@@ -454,25 +463,6 @@ procedure Gnat1drv is
       end if;
    end Check_Bad_Body;
 
-   --------------------
-   -- Check_Rep_Info --
-   --------------------
-
-   procedure Check_Rep_Info is
-   begin
-      if List_Representation_Info /= 0
-        or else List_Representation_Info_Mechanisms
-      then
-         Set_Standard_Error;
-         Write_Eol;
-         Write_Str
-           ("cannot generate representation information, no code generated");
-         Write_Eol;
-         Write_Eol;
-         Set_Standard_Output;
-      end if;
-   end Check_Rep_Info;
-
    -------------------------
    -- Check_Library_Items --
    -------------------------
@@ -501,6 +491,25 @@ procedure Gnat1drv is
    begin
       Walk;
    end Check_Library_Items;
+
+   --------------------
+   -- Check_Rep_Info --
+   --------------------
+
+   procedure Check_Rep_Info is
+   begin
+      if List_Representation_Info /= 0
+        or else List_Representation_Info_Mechanisms
+      then
+         Set_Standard_Error;
+         Write_Eol;
+         Write_Str
+           ("cannot generate representation information, no code generated");
+         Write_Eol;
+         Write_Eol;
+         Set_Standard_Output;
+      end if;
+   end Check_Rep_Info;
 
 --  Start of processing for Gnat1drv
 
@@ -532,6 +541,7 @@ begin
       Urealp.Initialize;
       Errout.Initialize;
       Namet.Initialize;
+      SCOs.Initialize;
       Snames.Initialize;
       Stringt.Initialize;
       Inline.Initialize;

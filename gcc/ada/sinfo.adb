@@ -549,6 +549,14 @@ package body Sinfo is
       return List1 (N);
    end Context_Items;
 
+   function Context_Pending
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Compilation_Unit);
+      return Flag16 (N);
+   end Context_Pending;
+
    function Controlling_Argument
       (N : Node_Id) return Node_Id is
    begin
@@ -2525,6 +2533,44 @@ package body Sinfo is
       return Flag18 (N);
    end Rounded_Result;
 
+   function SCIL_Controlling_Tag
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Dispatching_Call);
+      return Node5 (N);
+   end SCIL_Controlling_Tag;
+
+   function SCIL_Entity
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Dispatch_Table_Object_Init
+        or else NT (N).Nkind = N_SCIL_Dispatch_Table_Tag_Init
+        or else NT (N).Nkind = N_SCIL_Dispatching_Call
+        or else NT (N).Nkind = N_SCIL_Tag_Init);
+      return Node4 (N);
+   end SCIL_Entity;
+
+   function SCIL_Related_Node
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Dispatch_Table_Object_Init
+        or else NT (N).Nkind = N_SCIL_Dispatch_Table_Tag_Init
+        or else NT (N).Nkind = N_SCIL_Dispatching_Call
+        or else NT (N).Nkind = N_SCIL_Tag_Init);
+      return Node1 (N);
+   end SCIL_Related_Node;
+
+   function SCIL_Target_Prim
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Dispatching_Call);
+      return Node2 (N);
+   end SCIL_Target_Prim;
+
    function Scope
       (N : Node_Id) return Node_Id is
    begin
@@ -3363,6 +3409,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Compilation_Unit);
       Set_List1_With_Parent (N, Val);
    end Set_Context_Items;
+
+   procedure Set_Context_Pending
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Compilation_Unit);
+      Set_Flag16 (N, Val);
+   end Set_Context_Pending;
 
    procedure Set_Controlling_Argument
       (N : Node_Id; Val : Node_Id) is
@@ -5330,6 +5384,44 @@ package body Sinfo is
         or else NT (N).Nkind = N_Type_Conversion);
       Set_Flag18 (N, Val);
    end Set_Rounded_Result;
+
+   procedure Set_SCIL_Controlling_Tag
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Dispatching_Call);
+      Set_Node5 (N, Val); -- semantic field, no parent set
+   end Set_SCIL_Controlling_Tag;
+
+   procedure Set_SCIL_Entity
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Dispatch_Table_Object_Init
+        or else NT (N).Nkind = N_SCIL_Dispatch_Table_Tag_Init
+        or else NT (N).Nkind = N_SCIL_Dispatching_Call
+        or else NT (N).Nkind = N_SCIL_Tag_Init);
+      Set_Node4 (N, Val); -- semantic field, no parent set
+   end Set_SCIL_Entity;
+
+   procedure Set_SCIL_Related_Node
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Dispatch_Table_Object_Init
+        or else NT (N).Nkind = N_SCIL_Dispatch_Table_Tag_Init
+        or else NT (N).Nkind = N_SCIL_Dispatching_Call
+        or else NT (N).Nkind = N_SCIL_Tag_Init);
+      Set_Node1 (N, Val); -- semantic field, no parent set
+   end Set_SCIL_Related_Node;
+
+   procedure Set_SCIL_Target_Prim
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Dispatching_Call);
+      Set_Node2 (N, Val); -- semantic field, no parent set
+   end Set_SCIL_Target_Prim;
 
    procedure Set_Scope
       (N : Node_Id; Val : Node_Id) is

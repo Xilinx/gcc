@@ -122,7 +122,8 @@ package body Sem_Res is
    procedure Check_No_Direct_Boolean_Operators (N : Node_Id);
    --  N is the node for a logical operator. If the operator is predefined, and
    --  the root type of the operands is Standard.Boolean, then a check is made
-   --  for restriction No_Direct_Boolean_Operators.
+   --  for restriction No_Direct_Boolean_Operators. This procedure also handles
+   --  the style check for Style_Check_Boolean_And_Or.
 
    function Is_Definite_Access_Type (E : Entity_Id) return Boolean;
    --  Determine whether E is an access type declared by an access
@@ -947,6 +948,10 @@ package body Sem_Res is
             Check_Restriction (No_Direct_Boolean_Operators, N);
          end if;
       end if;
+
+      if Style_Check then
+         Check_Boolean_Operator (N);
+      end if;
    end Check_No_Direct_Boolean_Operators;
 
    ------------------------------
@@ -1031,7 +1036,7 @@ package body Sem_Res is
             and then (Ekind (Entity (N)) /= E_Enumeration_Literal
                         or else Is_Overloaded (N)))
 
-      --  Rewrite as call if it is an explicit deference of an expression of
+      --  Rewrite as call if it is an explicit dereference of an expression of
       --  a subprogram access type, and the subprogram type is not that of a
       --  procedure or entry.
 
@@ -4669,11 +4674,24 @@ package body Sem_Res is
                --  Set if corresponding operand might be negative
 
             begin
-               Determine_Range (Left_Opnd (N), OK, Lo, Hi);
+               Determine_Range
+                 (Left_Opnd (N), OK, Lo, Hi, Assume_Valid => True);
                LNeg := (not OK) or else Lo < 0;
 
-               Determine_Range (Right_Opnd (N), OK, Lo, Hi);
+               Determine_Range
+                 (Right_Opnd (N), OK, Lo, Hi, Assume_Valid => True);
                RNeg := (not OK) or else Lo < 0;
+
+               --  Check if we will be generating conditionals. There are two
+               --  cases where that can happen, first for REM, the only case
+               --  is largest negative integer mod -1, where the division can
+               --  overflow, but we still have to give the right result. The
+               --  front end generates a test for this annoying case. Here we
+               --  just test if both operands can be negative (that's what the
+               --  expander does, so we match its logic here).
+
+               --  The second case is mod where either operand can be negative.
+               --  In this case, the back end has to generate additonal tests.
 
                if (Nkind (N) = N_Op_Rem and then (LNeg and RNeg))
                     or else
@@ -4953,7 +4971,13 @@ package body Sem_Res is
                New_Subp := Relocate_Node (Subp);
                Set_Entity (Subp, Nam);
 
-               if Component_Type (Ret_Type) /= Any_Type then
+               if (Is_Array_Type (Ret_Type)
+                    and then Component_Type (Ret_Type) /= Any_Type)
+                 or else
+                  (Is_Access_Type (Ret_Type)
+                    and then
+                      Component_Type (Designated_Type (Ret_Type)) /= Any_Type)
+               then
                   if Needs_No_Actuals (Nam) then
 
                      --  Indexed call to a parameterless function
@@ -6406,9 +6430,8 @@ package body Sem_Res is
          Set_Etype (N, Get_Actual_Subtype (N));
       end if;
 
-      --  Note: there is no Eval processing required for an explicit deference,
-      --  because the type is known to be an allocators, and allocator
-      --  expressions can never be static.
+      --  Note: No Eval processing is required for an explicit dereference,
+      --  because such a name can never be static.
 
    end Resolve_Explicit_Dereference;
 

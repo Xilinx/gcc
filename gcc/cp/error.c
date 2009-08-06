@@ -182,7 +182,10 @@ count_non_default_template_args (tree args, tree params)
       if (uses_template_parms (def))
 	{
 	  ++processing_template_decl;
-	  def = tsubst_copy_and_build (def, args, tf_none, NULL_TREE, false, true);
+	  /* This speculative substitution must not cause any classes to be
+	     instantiated that otherwise wouldn't be.  */
+	  def = tsubst_copy_and_build (def, args, tf_no_class_instantiations,
+				       NULL_TREE, false, true);
 	  --processing_template_decl;
 	}
       if (!cp_tree_equal (TREE_VEC_ELT (inner_args, last), def))
@@ -2328,7 +2331,10 @@ lang_decl_name (tree decl, int v, bool translate)
 
   reinit_cxx_pp ();
   pp_translate_identifiers (cxx_pp) = translate;
-  if (v == 1 && DECL_CLASS_SCOPE_P (decl))
+  if (v == 1
+      && (DECL_CLASS_SCOPE_P (decl)
+	  || (DECL_NAMESPACE_SCOPE_P (decl)
+	      && CP_DECL_CONTEXT (decl) != global_namespace)))
     {
       dump_type (CP_DECL_CONTEXT (decl), TFF_PLAIN_IDENTIFIER);
       pp_cxx_colon_colon (cxx_pp);

@@ -698,6 +698,13 @@ package Sinfo is
    --    package Exp_Util, and also the expansion routines for the relevant
    --    nodes.
 
+   --  Context_Pending (Flag16-Sem)
+   --    This field appears in Compilation_Unit nodes, to indicate that the
+   --    context of the unit is being compiled. Used to detect circularities
+   --    that are not otherwise detected by the loading mechanism. Such
+   --    circularities can occur in the presence of limited and non-limited
+   --    with_clauses that mention the same units.
+
    --  Controlling_Argument (Node1-Sem)
    --    This field is set in procedure and function call nodes if the call
    --    is a dispatching call (it is Empty for a non-dispatching call). It
@@ -1581,6 +1588,22 @@ package Sinfo is
    --    than truncated towards zero as usual. These rounded integer operations
    --    are the result of expansion of rounded fixed-point divide, conversion
    --    and multiplication operations.
+
+   --  SCIL_Entity (Node4-Sem)
+   --    Present in SCIL nodes. Used to reference the tagged type associated
+   --    with the SCIL node.
+
+   --  SCIL_Related_Node (Node1-Sem)
+   --    Present in SCIL nodes. Used to reference a tree node that requires
+   --    special processing in the CodePeer backend.
+
+   --  SCIL_Controlling_Tag (Node5-Sem)
+   --    Present in N_SCIL_Dispatching_Call nodes. Used to reference the
+   --    controlling tag of a dispatching call.
+
+   --  SCIL_Target_Prim (Node2-Sem)
+   --    Present in N_SCIL_Dispatching_Call nodes. Used to reference the tagged
+   --    type primitive associated with the SCIL node.
 
    --  Scope (Node3-Sem)
    --    Present in defining identifiers, defining character literals and
@@ -5393,6 +5416,7 @@ package Sinfo is
       --  Has_No_Elaboration_Code (Flag17-Sem)
       --  Body_Required (Flag13-Sem) set for spec if body is required
       --  Acts_As_Spec (Flag4-Sem) flag for subprogram body with no spec
+      --  Context_Pending (Flag16-Sem)
       --  First_Inlined_Subprogram (Node3-Sem)
 
       --  N_Compilation_Unit_Aux
@@ -6822,6 +6846,43 @@ package Sinfo is
       --  Note: in the case where a debug source file is generated, the Sloc
       --  for this node points to the quote in the Sprint file output.
 
+      -----------------
+      --  SCIL Nodes --
+      -----------------
+
+      --  SCIL nodes are special nodes added to the tree when the CodePeer
+      --  mode is active. They help the CodePeer backend to locate nodes that
+      --  require special processing.
+
+      --  Major documentation on the general design of the SCIL interface, and
+      --  in particular detailed description of these nodes is missing and is
+      --  to be supplied in the future, when the design has finalized ???
+
+      --  Meanwhile these nodes should be considered in experimental form, and
+      --  should be ignored by all code generating back ends. ???
+
+      --  N_SCIL_Dispatch_Table_Object_Init
+      --  Sloc references a declaration node containing a dispatch table
+      --  SCIL_Related_Node (Node1-Sem)
+      --  SCIL_Entity (Node4-Sem)
+
+      --  N_SCIL_Dispatch_Table_Tag_Init
+      --  Sloc references a node for a tag initialization
+      --  SCIL_Related_Node (Node1-Sem)
+      --  SCIL_Entity (Node4-Sem)
+
+      --  N_SCIL_Dispatching_Call
+      --  Sloc references the node of a dispatching call
+      --  SCIL_Related_Node (Node1-Sem)
+      --  SCIL_Target_Prim (Node2-Sem)
+      --  SCIL_Entity (Node4-Sem)
+      --  SCIL_Controlling_Tag (Node5-Sem)
+
+      --  N_SCIL_Tag_Init
+      --  Sloc references the node of a tag component initialization
+      --  SCIL_Related_Node (Node1-Sem)
+      --  SCIL_Entity (Node4-Sem)
+
       ---------------------
       -- Subprogram_Info --
       ---------------------
@@ -7259,6 +7320,13 @@ package Sinfo is
       N_Pop_Program_Error_Label,
       N_Pop_Storage_Error_Label,
 
+      --  SCIL nodes
+
+      N_SCIL_Dispatch_Table_Object_Init,
+      N_SCIL_Dispatch_Table_Tag_Init,
+      N_SCIL_Dispatching_Call,
+      N_SCIL_Tag_Init,
+
       --  Other nodes (not part of any subtype class)
 
       N_Abortable_Part,
@@ -7407,14 +7475,13 @@ package Sinfo is
    subtype N_Later_Decl_Item is Node_Kind range
      N_Task_Type_Declaration ..
      N_Generic_Subprogram_Declaration;
-   --  Note: this is Ada 83 relevant only (see Ada 83 RM 3.9 (2)) and
-   --  includes only those items which can appear as later declarative
-   --  items. This also includes N_Implicit_Label_Declaration which is
-   --  not specifically in the grammar but may appear as a valid later
-   --  declarative items. It does NOT include N_Pragma which can also
-   --  appear among later declarative items. It does however include
-   --  N_Protected_Body, which is a bit peculiar, but harmless since
-   --  this cannot appear in Ada 83 mode anyway.
+   --  Note: this is Ada 83 relevant only (see Ada 83 RM 3.9 (2)) and includes
+   --  only those items which can appear as later declarative items. This also
+   --  includes N_Implicit_Label_Declaration which is not specifically in the
+   --  grammar but may appear as a valid later declarative items. It does NOT
+   --  include N_Pragma which can also appear among later declarative items.
+   --  It does however include N_Protected_Body, which is a bit peculiar, but
+   --  harmless since this cannot appear in Ada 83 mode anyway.
 
    subtype N_Membership_Test is Node_Kind range
       N_In ..
@@ -7467,8 +7534,12 @@ package Sinfo is
      N_Attribute_Definition_Clause;
 
    subtype N_Short_Circuit is Node_Kind range
-      N_And_Then ..
-      N_Or_Else;
+     N_And_Then ..
+     N_Or_Else;
+
+   subtype N_SCIL_Node is Node_Kind range
+     N_SCIL_Dispatch_Table_Object_Init ..
+     N_SCIL_Tag_Init;
 
    subtype N_Statement_Other_Than_Procedure_Call is Node_Kind range
      N_Abort_Statement ..
@@ -7677,6 +7748,9 @@ package Sinfo is
 
    function Context_Installed
      (N : Node_Id) return Boolean;    -- Flag13
+
+   function Context_Pending
+     (N : Node_Id) return Boolean;    -- Flag16
 
    function Context_Items
      (N : Node_Id) return List_Id;    -- List1
@@ -8296,6 +8370,18 @@ package Sinfo is
    function Rounded_Result
      (N : Node_Id) return Boolean;    -- Flag18
 
+   function SCIL_Controlling_Tag
+     (N : Node_Id) return Node_Id;    -- Node5
+
+   function SCIL_Entity
+     (N : Node_Id) return Node_Id;    -- Node4
+
+   function SCIL_Related_Node
+     (N : Node_Id) return Node_Id;    -- Node1
+
+   function SCIL_Target_Prim
+     (N : Node_Id) return Node_Id;    -- Node2
+
    function Scope
      (N : Node_Id) return Node_Id;    -- Node3
 
@@ -8577,6 +8663,9 @@ package Sinfo is
 
    procedure Set_Context_Items
      (N : Node_Id; Val : List_Id);            -- List1
+
+   procedure Set_Context_Pending
+     (N : Node_Id; Val : Boolean := True);    -- Flag16
 
    procedure Set_Controlling_Argument
      (N : Node_Id; Val : Node_Id);            -- Node1
@@ -9189,6 +9278,18 @@ package Sinfo is
 
    procedure Set_Rounded_Result
      (N : Node_Id; Val : Boolean := True);    -- Flag18
+
+   procedure Set_SCIL_Controlling_Tag
+     (N : Node_Id; Val : Node_Id);            -- Node5
+
+   procedure Set_SCIL_Entity
+     (N : Node_Id; Val : Node_Id);            -- Node4
+
+   procedure Set_SCIL_Related_Node
+     (N : Node_Id; Val : Node_Id);            -- Node1
+
+   procedure Set_SCIL_Target_Prim
+     (N : Node_Id; Val : Node_Id);            -- Node2
 
    procedure Set_Scope
      (N : Node_Id; Val : Node_Id);            -- Node3
@@ -10918,6 +11019,36 @@ package Sinfo is
 
    --  End of inserted output from makeisf program
 
+   --  Entries for SCIL nodes
+
+     N_SCIL_Dispatch_Table_Object_Init =>
+       (1 => False,   --  SCIL_Related_Node (Node1-Sem)
+        2 => False,   --  unused
+        3 => False,   --  unused
+        4 => False,   --  SCIL_Entity (Node4-Sem)
+        5 => False),  --  unused
+
+     N_SCIL_Dispatch_Table_Tag_Init =>
+       (1 => False,   --  SCIL_Related_Node (Node1-Sem)
+        2 => False,   --  unused
+        3 => False,   --  unused
+        4 => False,   --  SCIL_Entity (Node4-Sem)
+        5 => False),  --  unused
+
+     N_SCIL_Dispatching_Call =>
+       (1 => False,   --  SCIL_Related_Node (Node1-Sem)
+        2 => False,   --  SCIL_Target_Prim (Node2-Sem)
+        3 => False,   --  unused
+        4 => False,   --  SCIL_Entity (Node4-Sem)
+        5 => False),  --  SCIL_Controlling_Tag (Node5-Sem)
+
+     N_SCIL_Tag_Init =>
+       (1 => False,   --  SCIL_Related_Node (Node1-Sem)
+        2 => False,   --  unused
+        3 => False,   --  unused
+        4 => False,   --  SCIL_Entity (Node4-Sem)
+        5 => False),  --  unused
+
    --  Entries for Empty, Error and Unused. Even thought these have a Chars
    --  field for debugging purposes, they are not really syntactic fields, so
    --  we mark all fields as unused.
@@ -11009,6 +11140,7 @@ package Sinfo is
    pragma Inline (Constraints);
    pragma Inline (Context_Installed);
    pragma Inline (Context_Items);
+   pragma Inline (Context_Pending);
    pragma Inline (Controlling_Argument);
    pragma Inline (Conversion_OK);
    pragma Inline (Corresponding_Body);
@@ -11214,6 +11346,10 @@ package Sinfo is
    pragma Inline (Reverse_Present);
    pragma Inline (Right_Opnd);
    pragma Inline (Rounded_Result);
+   pragma Inline (SCIL_Controlling_Tag);
+   pragma Inline (SCIL_Entity);
+   pragma Inline (SCIL_Related_Node);
+   pragma Inline (SCIL_Target_Prim);
    pragma Inline (Scope);
    pragma Inline (Select_Alternatives);
    pragma Inline (Selector_Name);
@@ -11305,6 +11441,7 @@ package Sinfo is
    pragma Inline (Set_Constraints);
    pragma Inline (Set_Context_Installed);
    pragma Inline (Set_Context_Items);
+   pragma Inline (Set_Context_Pending);
    pragma Inline (Set_Controlling_Argument);
    pragma Inline (Set_Conversion_OK);
    pragma Inline (Set_Corresponding_Body);
@@ -11508,6 +11645,10 @@ package Sinfo is
    pragma Inline (Set_Reverse_Present);
    pragma Inline (Set_Right_Opnd);
    pragma Inline (Set_Rounded_Result);
+   pragma Inline (Set_SCIL_Controlling_Tag);
+   pragma Inline (Set_SCIL_Entity);
+   pragma Inline (Set_SCIL_Related_Node);
+   pragma Inline (Set_SCIL_Target_Prim);
    pragma Inline (Set_Scope);
    pragma Inline (Set_Select_Alternatives);
    pragma Inline (Set_Selector_Name);

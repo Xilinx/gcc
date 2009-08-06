@@ -40,6 +40,7 @@ with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
+with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
@@ -675,8 +676,7 @@ package body Sem_Ch13 is
             --  affect legality (except possibly to be rejected because they
             --  are incompatible with the compilation target).
 
-            when Attribute_Address        |
-                 Attribute_Alignment      |
+            when Attribute_Alignment      |
                  Attribute_Bit_Order      |
                  Attribute_Component_Size |
                  Attribute_Machine_Radix  |
@@ -797,6 +797,20 @@ package body Sem_Ch13 is
             --  Not that special case, carry on with analysis of expression
 
             Analyze_And_Resolve (Expr, RTE (RE_Address));
+
+            --  Even when ignoring rep clauses we need to indicate that the
+            --  entity has an address clause and thus it is legal to declare
+            --  it imported.
+
+            if Ignore_Rep_Clauses then
+               if Ekind (U_Ent) = E_Variable
+                 or else Ekind (U_Ent) = E_Constant
+               then
+                  Record_Rep_Item (U_Ent, N);
+               end if;
+
+               return;
+            end if;
 
             if Present (Address_Clause (U_Ent)) then
                Error_Msg_N ("address already given for &", Nam);
@@ -1046,7 +1060,7 @@ package body Sem_Ch13 is
 
          --  Alignment attribute definition clause
 
-         when Attribute_Alignment => Alignment_Block : declare
+         when Attribute_Alignment => Alignment : declare
             Align : constant Uint := Get_Alignment_Value (Expr);
 
          begin
@@ -1065,8 +1079,17 @@ package body Sem_Ch13 is
             elsif Align /= No_Uint then
                Set_Has_Alignment_Clause (U_Ent);
                Set_Alignment            (U_Ent, Align);
+
+               --  For an array type, U_Ent is the first subtype. In that case,
+               --  also set the alignment of the anonymous base type so that
+               --  other subtypes (such as the itypes for aggregates of the
+               --  type) also receive the expected alignment.
+
+               if Is_Array_Type (U_Ent) then
+                  Set_Alignment (Base_Type (U_Ent), Align);
+               end if;
             end if;
-         end Alignment_Block;
+         end Alignment;
 
          ---------------
          -- Bit_Order --
@@ -2174,6 +2197,38 @@ package body Sem_Ch13 is
    begin
       Analyze (Expression (N));
    end Analyze_Free_Statement;
+
+   ---------------------------
+   -- Analyze_Freeze_Entity --
+   ---------------------------
+
+   --  This does not belong in sem_ch13, and I don't like the big new
+   --  dependency on sem_ch3, I would in fact move this to sem_ch3 or
+   --  somewhere else, and then Add_Internal_Interface_Entitites can be
+   --  private to sem_ch3.adb. ???
+
+   procedure Analyze_Freeze_Entity (N : Node_Id) is
+      E : constant Entity_Id := Entity (N);
+
+   begin
+      --  For tagged types covering interfaces add internal entities that link
+      --  the primitives of the interfaces with the primitives that cover them.
+
+      --  Note: These entities were originally generated only when generating
+      --  code because their main purpose was to provide support to initialize
+      --  the secondary dispatch tables. They are now generated also when
+      --  compiling with no code generation to provide ASIS the relationship
+      --  between interface primitives and tagged type primitives.
+
+      if Ada_Version >= Ada_05
+        and then Ekind (E) = E_Record_Type
+        and then Is_Tagged_Type (E)
+        and then not Is_Interface (E)
+        and then Has_Interfaces (E)
+      then
+         Add_Internal_Interface_Entities (E);
+      end if;
+   end Analyze_Freeze_Entity;
 
    ------------------------------------------
    -- Analyze_Record_Representation_Clause --

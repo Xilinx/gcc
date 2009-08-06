@@ -357,8 +357,12 @@ package Einfo is
 --       overloaded entities it points to the parent subprogram of a derived
 --       subprogram. In case of abstract interface subprograms it points to the
 --       subprogram that covers the abstract interface primitive. Also used for
---       a subprogram renaming, where it points to the renamed subprogram.
---       Always empty for entries.
+--       a subprogram renaming, where it points to the renamed subprogram. For
+--       an inherited operation (of a type extension) that is overridden in a
+--       private part, the Alias is the overriding operation. In this fashion a
+--       call from outside the package ends up executing the new body even if
+--       non-dispatching, and a call from inside calls the overriding operation
+--       because it hides the implicit one. Alias is always empty for entries.
 
 --    Alignment (Uint14)
 --       Present in entities for types and also in constants, variables
@@ -487,7 +491,7 @@ package Einfo is
 --       Present in all entities. Set if a pragma Suppress or Unsuppress
 --       mentions the entity specifically in the second argument. If this
 --       flag is set the Global_Entity_Suppress and Local_Entity_Suppress
---       tables must be consulted to determine if the is actually an active
+--       tables must be consulted to determine if there actually is an active
 --       Suppress or Unsuppress pragma that applies to the entity.
 
 --    Class_Wide_Type (Node9)
@@ -3188,7 +3192,7 @@ package Einfo is
 --       the case of an appearance of a simple variable that is not a renaming
 --       as the left side of an assignment in which case Referenced_As_LHS is
 --       set instead, or a similar appearance as an out parameter actual, in
---       which case As_Out_Parameter_Parameter is set.
+--       which case Referenced_As_Out_Parameter is set.
 
 --    Referenced_As_LHS (Flag36):
 --       Present in all entities. This flag is set instead of Referenced if a

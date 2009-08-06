@@ -159,6 +159,9 @@ static enum reg_class pa_secondary_reload (bool, rtx, enum reg_class,
 					   enum machine_mode,
 					   secondary_reload_info *);
 static void pa_extra_live_on_entry (bitmap);
+static enum machine_mode pa_promote_function_mode (const_tree,
+						   enum machine_mode, int *,
+						   const_tree, int);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -285,8 +288,8 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_INIT_LIBFUNCS pa_hpux_init_libfuncs
 #endif
 
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE pa_promote_function_mode
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
@@ -2213,9 +2216,9 @@ compute_zdepwi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
   else
     {
       /* Find the width of the bitstring in IMM.  */
-      for (len = 5; len < 32; len++)
+      for (len = 5; len < 32 - lsb; len++)
 	{
-	  if ((imm & (1 << len)) == 0)
+	  if ((imm & ((unsigned HOST_WIDE_INT) 1 << len)) == 0)
 	    break;
 	}
 
@@ -2234,10 +2237,12 @@ compute_zdepwi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 void
 compute_zdepdi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 {
-  HOST_WIDE_INT lsb, len;
+  int lsb, len, maxlen;
+
+  maxlen = MIN (HOST_BITS_PER_WIDE_INT, 64);
 
   /* Find the least significant set bit in IMM.  */
-  for (lsb = 0; lsb < HOST_BITS_PER_WIDE_INT; lsb++)
+  for (lsb = 0; lsb < maxlen; lsb++)
     {
       if ((imm & 1) != 0)
         break;
@@ -2246,16 +2251,19 @@ compute_zdepdi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 
   /* Choose variants based on *sign* of the 5-bit field.  */
   if ((imm & 0x10) == 0)
-    len = ((lsb <= HOST_BITS_PER_WIDE_INT - 4)
-	   ? 4 : HOST_BITS_PER_WIDE_INT - lsb);
+    len = (lsb <= maxlen - 4) ? 4 : maxlen - lsb;
   else
     {
       /* Find the width of the bitstring in IMM.  */
-      for (len = 5; len < HOST_BITS_PER_WIDE_INT; len++)
+      for (len = 5; len < maxlen - lsb; len++)
 	{
 	  if ((imm & ((unsigned HOST_WIDE_INT) 1 << len)) == 0)
 	    break;
 	}
+
+      /* Extend length if host is narrow and IMM is negative.  */
+      if (HOST_BITS_PER_WIDE_INT == 32 && len == maxlen - lsb)
+	len += 32;
 
       /* Sign extend IMM as a 5-bit value.  */
       imm = (imm & 0xf) - 0x10;
@@ -9182,11 +9190,25 @@ insn_refs_are_delayed (rtx insn)
 	   && get_attr_type (insn) == TYPE_MILLI));
 }
 
+/* Promote the return value, but not the arguments.  */
+
+static enum machine_mode
+pa_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+                          enum machine_mode mode,
+                          int *punsignedp ATTRIBUTE_UNUSED,
+                          const_tree fntype ATTRIBUTE_UNUSED,
+                          int for_return)
+{
+  if (!for_return)
+    return mode;
+  return promote_mode (type, mode, punsignedp);
+}
+
 /* On the HP-PA the value is found in register(s) 28(-29), unless
    the mode is SF or DF. Then the value is returned in fr4 (32).
 
-   This must perform the same promotions as PROMOTE_MODE, else
-   TARGET_PROMOTE_FUNCTION_RETURN will not work correctly.
+   This must perform the same promotions as PROMOTE_MODE, else promoting
+   return values in TARGET_PROMOTE_FUNCTION_MODE will not work correctly.
 
    Small structures must be returned in a PARALLEL on PA64 in order
    to match the HP Compiler ABI.  */

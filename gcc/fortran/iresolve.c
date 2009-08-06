@@ -63,11 +63,7 @@ static void
 check_charlen_present (gfc_expr *source)
 {
   if (source->ts.cl == NULL)
-    {
-      source->ts.cl = gfc_get_charlen ();
-      source->ts.cl->next = gfc_current_ns->cl_list;
-      gfc_current_ns->cl_list = source->ts.cl;
-    }
+    source->ts.cl = gfc_new_charlen (gfc_current_ns);
 
   if (source->expr_type == EXPR_CONSTANT)
     {
@@ -165,9 +161,7 @@ gfc_resolve_char_achar (gfc_expr *f, gfc_expr *x, gfc_expr *kind,
   f->ts.type = BT_CHARACTER;
   f->ts.kind = (kind == NULL)
 	     ? gfc_default_character_kind : mpz_get_si (kind->value.integer);
-  f->ts.cl = gfc_get_charlen ();
-  f->ts.cl->next = gfc_current_ns->cl_list;
-  gfc_current_ns->cl_list = f->ts.cl;
+  f->ts.cl = gfc_new_charlen (gfc_current_ns);
   f->ts.cl->length = gfc_int_expr (1);
 
   f->value.function.name = gfc_get_string (name, f->ts.kind,
@@ -2346,9 +2340,19 @@ gfc_resolve_transfer (gfc_expr *f, gfc_expr *source ATTRIBUTE_UNUSED,
   /* TODO: Make this do something meaningful.  */
   static char transfer0[] = "__transfer0", transfer1[] = "__transfer1";
 
-  if (mold->ts.type == BT_CHARACTER && !mold->ts.cl->length
-	&& !(mold->expr_type == EXPR_VARIABLE && mold->symtree->n.sym->attr.dummy))
-    mold->ts.cl->length = gfc_int_expr (mold->value.character.length);
+  if (mold->ts.type == BT_CHARACTER
+	&& !mold->ts.cl->length
+	&& gfc_is_constant_expr (mold))
+    {
+      int len;
+      if (mold->expr_type == EXPR_CONSTANT)
+	mold->ts.cl->length = gfc_int_expr (mold->value.character.length);
+      else
+	{
+	  len = mold->value.constructor->expr->value.character.length;
+	  mold->ts.cl->length = gfc_int_expr (len);
+	}
+    }
 
   f->ts = mold->ts;
 
