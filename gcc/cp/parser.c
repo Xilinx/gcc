@@ -7038,7 +7038,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
   /* Eat the leading `['.  */
   cp_parser_require (parser, CPP_OPEN_SQUARE, "%<[%>");
 
-  /* Record default capture mode.  */
+  /* Record default capture mode.  "[&" "[=" "[&," "[=,"  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_AND)
       && cp_lexer_peek_nth_token (parser->lexer, 2)->type != CPP_NAME)
     LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) = CPLD_REFERENCE;

@@ -5238,10 +5238,18 @@ begin_lambda_type (tree lambda)
 void
 finish_lambda_function_body (tree lambda, tree body)
 {
-  /* Recalculate offsets in case we had default captures.  */
-  tree dummy = NULL_TREE;
-  layout_class_type (TREE_TYPE (lambda), /*virtuals_p=*/&dummy);
-  gcc_assert (dummy == NULL_TREE);
+  tree type = TREE_TYPE (lambda);
+
+  /* Layout again to allow for members to have been added to the
+     capture if it was an implicit capture.  Note that this would
+     not be necessary for 'complete reference capture' ([&]) if the
+     stack-pointer variant was implemented, since the layout would
+     be fixed.  It is still required in the general case to handle
+     'implicit value capture' ([=]) and mixed cases.  */
+  /* This probably does more than is necessary, but layout_class_type does not
+     do enough.  */
+  TYPE_SIZE (type) = NULL_TREE;
+  finish_struct_1 (type);
 
   finish_function_body (body);
 

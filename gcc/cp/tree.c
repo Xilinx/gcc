@@ -1523,6 +1523,7 @@ no_linkage_check (tree t, bool relaxed_p)
   switch (TREE_CODE (t))
     {
       /*
+      TODO: fix no linkage check on lambda functions properly
       tree fn;
       */
 
@@ -1538,6 +1539,7 @@ no_linkage_check (tree t, bool relaxed_p)
       if (TYPE_ANONYMOUS_P (t))
 	return t;
       /*
+      TODO: fix no linkage check on lambda functions properly
       fn = decl_function_context (TYPE_MAIN_DECL (t));
       if (fn && (!relaxed_p || !TREE_PUBLIC (fn)))
 	return t;
