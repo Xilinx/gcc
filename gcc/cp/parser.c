@@ -7215,8 +7215,9 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
         tree t;
         for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
           pop_binding (DECL_NAME (t), t);
-        leave_scope();
       }
+
+      leave_scope ();
 
     }
 
