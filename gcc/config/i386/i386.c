@@ -7357,28 +7357,8 @@ standard_80387_constant_rtx (int idx)
 				       XFmode);
 }
 
-/* Return 1 if mode is a valid mode for sse.  */
-static int
-standard_sse_mode_p (enum machine_mode mode)
-{
-  switch (mode)
-    {
-    case V16QImode:
-    case V8HImode:
-    case V4SImode:
-    case V2DImode:
-    case V4SFmode:
-    case V2DFmode:
-      return 1;
-
-    default:
-      return 0;
-    }
-}
-
-/* Return 1 if X is all 0s.  For all 1s, return 2 if X is in 128bit
-   SSE modes and SSE2 is enabled,  return 3 if X is in 256bit AVX
-   modes and AVX is enabled.  */
+/* Return 1 if X is all 0s and 2 if x is all 1s
+   in supported SSE vector mode.  */
 
 int
 standard_sse_constant_p (rtx x)
@@ -7388,12 +7368,17 @@ standard_sse_constant_p (rtx x)
   if (x == const0_rtx || x == CONST0_RTX (GET_MODE (x)))
     return 1;
   if (vector_all_ones_operand (x, mode))
-    {
-      if (standard_sse_mode_p (mode))
-	return TARGET_SSE2 ? 2 : -2;
-      else if (VALID_AVX256_REG_MODE (mode))
-	return TARGET_AVX ? 3 : -3;
-    }
+    switch (mode)
+      {
+      case V16QImode:
+      case V8HImode:
+      case V4SImode:
+      case V2DImode:
+	if (TARGET_SSE2)
+	  return 2;
+      default:
+	break;
+      }
 
   return 0;
 }
@@ -7422,22 +7407,12 @@ standard_sse_constant_opcode (rtx insn, rtx x)
 	case MODE_OI:
 	  return "vpxor\t%x0, %x0, %x0";
 	default:
-	  gcc_unreachable ();
+	  break;
 	}
     case 2:
-      if (TARGET_AVX)
-	switch (get_attr_mode (insn))
-	  {
-	  case MODE_V4SF:
-	  case MODE_V2DF:
-	  case MODE_TI:
-	    return "vpcmpeqd\t%0, %0, %0";
-	    break;
-	  default:
-	    gcc_unreachable ();
-	}
-      else
-	return "pcmpeqd\t%0, %0";
+      return TARGET_AVX ? "vpcmpeqd\t%0, %0, %0" : "pcmpeqd\t%0, %0";
+    default:
+      break;
     }
   gcc_unreachable ();
 }
@@ -12908,7 +12883,7 @@ ix86_expand_vector_move (enum machine_mode mode, rtx operands[])
       && (CONSTANT_P (op1)
 	  || (GET_CODE (op1) == SUBREG
 	      && CONSTANT_P (SUBREG_REG (op1))))
-      && standard_sse_constant_p (op1) <= 0)
+      && !standard_sse_constant_p (op1))
     op1 = validize_mem (force_const_mem (mode, op1));
 
   /* We need to check memory alignment for SSE mode since attribute
@@ -16764,10 +16739,20 @@ ix86_split_long_move (rtx operands[])
   /* When emitting push, take care for source operands on the stack.  */
   if (push && MEM_P (operands[1])
       && reg_overlap_mentioned_p (stack_pointer_rtx, operands[1]))
-    for (i = 0; i < nparts - 1; i++)
-      part[1][i] = change_address (part[1][i],
-				   GET_MODE (part[1][i]),
-				   XEXP (part[1][i + 1], 0));
+    {
+      rtx src_base = XEXP (part[1][nparts - 1], 0);
+
+      /* Compensate for the stack decrement by 4.  */
+      if (!TARGET_64BIT && nparts == 3
+	  && mode == XFmode && TARGET_128BIT_LONG_DOUBLE)
+	src_base = plus_constant (src_base, 4);
+
+      /* src_base refers to the stack pointer and is
+	 automatically decreased by emitted push.  */
+      for (i = 0; i < nparts; i++)
+	part[1][i] = change_address (part[1][i],
+				     GET_MODE (part[1][i]), src_base);
+    }
 
   /* We need to do copy in the right order in case an address register
      of the source overlaps the destination.  */
@@ -16837,7 +16822,8 @@ ix86_split_long_move (rtx operands[])
 	  if (nparts == 3)
 	    {
 	      if (TARGET_128BIT_LONG_DOUBLE && mode == XFmode)
-                emit_insn (gen_addsi3 (stack_pointer_rtx, stack_pointer_rtx, GEN_INT (-4)));
+                emit_insn (gen_addsi3 (stack_pointer_rtx,
+				       stack_pointer_rtx, GEN_INT (-4)));
 	      emit_move_insn (part[0][2], part[1][2]);
 	    }
 	  else if (nparts == 4)

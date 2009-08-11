@@ -621,7 +621,7 @@ extern CInteropKind_t c_interop_kinds_table[];
 
 
 /* Structure and list of supported extension attributes.  */
-enum
+typedef enum
 {
   EXT_ATTR_DLLIMPORT = 0,
   EXT_ATTR_DLLEXPORT,
@@ -629,7 +629,8 @@ enum
   EXT_ATTR_CDECL,
   EXT_ATTR_FASTCALL,
   EXT_ATTR_LAST, EXT_ATTR_NUM = EXT_ATTR_LAST
-};
+}
+ext_attr_id_t;
 
 typedef struct
 {
@@ -840,6 +841,7 @@ typedef struct
   struct gfc_symbol *derived;
   gfc_charlen *cl;	/* For character types only.  */
   struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
+  unsigned int is_class:1;
   int is_c_interop;
   int is_iso_c;
   bt f90_type; 
@@ -1285,6 +1287,10 @@ typedef struct gfc_namespace
 
   /* Tree containing type-bound procedures.  */
   gfc_symtree *tb_sym_root;
+  /* Type-bound user operators.  */
+  gfc_symtree *tb_uop_root;
+  /* For derived-types, store type-bound intrinsic operators here.  */
+  gfc_typebound_proc *tb_op[GFC_INTRINSIC_OPS];
   /* Linked list of finalizer procedures.  */
   struct gfc_finalizer *finalizers;
 
@@ -2334,7 +2340,7 @@ gfc_try gfc_set_default_type (gfc_symbol *, int, gfc_namespace *);
 void gfc_set_sym_referenced (gfc_symbol *);
 
 gfc_try gfc_add_attribute (symbol_attribute *, locus *);
-gfc_try gfc_add_ext_attribute (symbol_attribute *, unsigned, locus *);
+gfc_try gfc_add_ext_attribute (symbol_attribute *, ext_attr_id_t, locus *);
 gfc_try gfc_add_allocatable (symbol_attribute *, locus *);
 gfc_try gfc_add_dimension (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_external (symbol_attribute *, locus *);
@@ -2446,6 +2452,10 @@ gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 gfc_typebound_proc* gfc_get_typebound_proc (void);
 gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
 gfc_symtree* gfc_find_typebound_proc (gfc_symbol*, gfc_try*, const char*, bool);
+gfc_symtree* gfc_find_typebound_user_op (gfc_symbol*, gfc_try*,
+					 const char*, bool);
+gfc_typebound_proc* gfc_find_typebound_intrinsic_op (gfc_symbol*, gfc_try*,
+						     gfc_intrinsic_op, bool);
 gfc_symtree* gfc_get_tbp_symtree (gfc_symtree**, const char*);
 
 void gfc_copy_formal_args (gfc_symbol *, gfc_symbol *);
@@ -2634,6 +2644,7 @@ gfc_interface *gfc_current_interface_head (void);
 void gfc_set_current_interface_head (gfc_interface *);
 gfc_symtree* gfc_find_sym_in_symtree (gfc_symbol*);
 bool gfc_arglist_matches_symbol (gfc_actual_arglist**, gfc_symbol*);
+bool gfc_check_operator_interface (gfc_symbol*, gfc_intrinsic_op, locus);
 
 /* io.c */
 extern gfc_st_label format_asterisk;

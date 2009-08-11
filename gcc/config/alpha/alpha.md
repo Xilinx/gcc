@@ -1,6 +1,6 @@
 ;; Machine description for DEC Alpha for GNU C compiler
 ;; Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-;; 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+;; 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
 ;; Free Software Foundation, Inc.
 ;; Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 ;;
@@ -4976,6 +4976,24 @@
     return "call_pal 0x9f";
 }
   [(set_attr "type" "callpal")])
+
+;; Special builtins for establishing and reverting VMS condition handlers.
+
+(define_expand "builtin_establish_vms_condition_handler"
+  [(set (reg:DI 0) (match_operand:DI 0 "register_operand" ""))
+   (use (match_operand:DI 1 "address_operand" ""))]
+  "TARGET_ABI_OPEN_VMS"
+{
+  alpha_expand_builtin_establish_vms_condition_handler (operands[0],
+                                                        operands[1]);
+})
+
+(define_expand "builtin_revert_vms_condition_handler"
+  [(set (reg:DI 0) (match_operand:DI 0 "register_operand" ""))]
+  "TARGET_ABI_OPEN_VMS"
+{
+  alpha_expand_builtin_revert_vms_condition_handler (operands[0]);
+})
 
 ;; Finally, we have the basic data motion insns.  The byte and word insns
 ;; are done via define_expand.  Start with the floating-point insns, since
@@ -6460,8 +6478,7 @@
 	      (clobber (reg:DI 27))])]
   "TARGET_ABI_OPEN_VMS"
 {
-  operands[4] = gen_rtx_SYMBOL_REF (Pmode, "OTS$MOVE");
-  alpha_need_linkage (XSTR (operands[4], 0), 0);
+  operands[4] = alpha_need_linkage ("OTS$MOVE", 0);
 })
 
 (define_insn "*movmemdi_1"
@@ -6528,8 +6545,7 @@
   if (operands[2] != const0_rtx)
     FAIL;
 
-  operands[4] = gen_rtx_SYMBOL_REF (Pmode, "OTS$ZERO");
-  alpha_need_linkage (XSTR (operands[4], 0), 0);
+  operands[4] = alpha_need_linkage ("OTS$ZERO", 0);
 })
 
 (define_insn "*clrmemdi_1"

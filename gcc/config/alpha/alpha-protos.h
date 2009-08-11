@@ -1,5 +1,5 @@
 /* Prototypes for alpha.c functions used in the md file & elsewhere.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -67,6 +67,9 @@ extern rtx alpha_expand_zap_mask (HOST_WIDE_INT);
 extern void alpha_expand_builtin_vector_binop (rtx (*)(rtx, rtx, rtx),
 					       enum machine_mode,
 					       rtx, rtx, rtx);
+extern void alpha_expand_builtin_establish_vms_condition_handler (rtx, rtx);
+extern void alpha_expand_builtin_revert_vms_condition_handler (rtx);
+
 extern rtx alpha_return_addr (int, rtx);
 extern rtx alpha_gp_save_rtx (void);
 extern void print_operand (FILE *, rtx, int);
@@ -109,6 +112,7 @@ extern rtx alpha_use_linkage (rtx, tree, int, int);
 #if TARGET_ABI_OPEN_VMS
 extern enum avms_arg_type alpha_arg_type (enum machine_mode);
 extern rtx alpha_arg_info_reg_val (CUMULATIVE_ARGS);
+extern void avms_asm_output_external (FILE *, tree, const char *);
 #endif
 
 extern rtx unicosmk_add_call_info_word (rtx);

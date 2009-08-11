@@ -22,6 +22,10 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_OBJECT_SUFFIX ".obj"
 #define TARGET_EXECUTABLE_SUFFIX ".exe"
 
+/* Alpha/VMS object format is not really Elf, but this makes compiling
+   crtstuff.c and dealing with shared library initialization much easier.  */
+#define OBJECT_FORMAT_ELF
+
 /* This enables certain macros in alpha.h, which will make an indirect
    reference to an external symbol an invalid address.  This needs to be
    defined before we include alpha.h, since it determines which macros
@@ -65,7 +69,13 @@ along with GCC; see the file COPYING3.  If not see
 #define POINTER_SIZE 32
 #define POINTERS_EXTEND_UNSIGNED 0
 
+#define HANDLE_SYSV_PRAGMA 1
+
 #define MAX_OFILE_ALIGNMENT 524288  /* 8 x 2^16 by DEC Ada Test CD40VRA */
+
+/* The maximum alignment 'malloc' honors.  */
+#undef  MALLOC_ALIGNMENT
+#define MALLOC_ALIGNMENT ((TARGET_MALLOC64 ? 16 : 8) * BITS_PER_UNIT)
 
 #undef FIXED_REGISTERS
 #define FIXED_REGISTERS  \
@@ -200,9 +210,17 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
 #undef STACK_CHECK_BUILTIN
 #define STACK_CHECK_BUILTIN 0
 
+#undef  ASM_WEAKEN_LABEL
+#define ASM_WEAKEN_LABEL(FILE, NAME)                            \
+   do { fputs ("\t.weak\t", FILE); assemble_name (FILE, NAME);  \
+        fputc ('\n', FILE); } while (0)
+
 #define READONLY_DATA_SECTION_ASM_OP "\t.rdata"
 #define CTORS_SECTION_ASM_OP "\t.ctors"
 #define DTORS_SECTION_ASM_OP "\t.dtors"
+#define SDATA_SECTION_ASM_OP "\t.sdata"
+#define CRT_CALL_STATIC_FUNCTION(SECTION_OP, FUNC)              \
+   asm (SECTION_OP "\n\t.long " #FUNC"\n");
 
 #undef ASM_OUTPUT_ADDR_DIFF_ELT
 #define ASM_OUTPUT_ADDR_DIFF_ELT(FILE, BODY, VALUE, REL) gcc_unreachable ()
@@ -233,21 +251,7 @@ do {									\
 } while (0)
 
 
-/* Output assembler code for a block containing the constant parts
-   of a trampoline, leaving space for the variable parts.
-
-   The trampoline should set the static chain pointer to value placed
-   into the trampoline and should branch to the specified routine.  
-   Note that $27 has been set to the address of the trampoline, so we can
-   use it for addressability of the two data items.  */
-
 #undef TRAMPOLINE_TEMPLATE
-#define TRAMPOLINE_TEMPLATE(FILE)		\
-{						\
-  fprintf (FILE, "\t.quad 0\n");		\
-  fprintf (FILE, "\t.linkage __tramp\n");	\
-  fprintf (FILE, "\t.quad 0\n");		\
-}
 
 /* Length in units of the trampoline for entering a nested function.  */
 
@@ -285,8 +289,64 @@ do {									\
   gen_rtx_MEM (Pmode, plus_constant (stack_pointer_rtx, 8))
 
 #define LINK_EH_SPEC "vms-dwarf2eh.o%s "
+#define LINK_GCC_C_SEQUENCE_SPEC "%G"
+
+#ifdef IN_LIBGCC2
+/* Get the definition for MD_FALLBACK_FRAME_STATE_FOR from a separate
+   file. This avoids having to recompile the world instead of libgcc only
+   when changes to this macro are exercised.  */
 
 #define MD_UNWIND_SUPPORT "config/alpha/vms-unwind.h"
+#endif
+
+#define ASM_OUTPUT_EXTERNAL(FILE, DECL, NAME) \
+  avms_asm_output_external (FILE, DECL, NAME)
+
+typedef struct crtl_name_spec
+{
+  const char *const name;
+  const char *deccname;
+  int referenced;
+} crtl_name_spec;
+
+#include "config/vms/vms-crtl.h"
+
+/* Alias CRTL names to 32/64bit DECCRTL functions. 
+   Fixme: This should do a binary search.  */
+#define DO_CRTL_NAMES                                                      \
+  do                                                                       \
+    {                                                                      \
+      int i;                                                               \
+      static crtl_name_spec vms_crtl_names[] = CRTL_NAMES;                 \
+      static int malloc64_init = 0;                                        \
+                                                                           \
+      if ((malloc64_init == 0) && TARGET_MALLOC64)          		   \
+	{                                                                  \
+          for (i=0; vms_crtl_names [i].name; i++)                          \
+            {                                                              \
+	      if (strcmp ("calloc", vms_crtl_names [i].name) == 0)         \
+                vms_crtl_names [i].deccname = "decc$_calloc64";            \
+              else                                                         \
+	      if (strcmp ("malloc", vms_crtl_names [i].name) == 0)         \
+                vms_crtl_names [i].deccname = "decc$_malloc64";            \
+              else                                                         \
+	      if (strcmp ("realloc", vms_crtl_names [i].name) == 0)        \
+                vms_crtl_names [i].deccname = "decc$_realloc64";           \
+              else                                                         \
+	      if (strcmp ("strdup", vms_crtl_names [i].name) == 0)         \
+                vms_crtl_names [i].deccname = "decc$_strdup64";            \
+	    }                                                              \
+            malloc64_init = 1;                                             \
+        }                                                                  \
+      for (i=0; vms_crtl_names [i].name; i++)                              \
+	if (!vms_crtl_names [i].referenced &&                              \
+	    (strcmp (name, vms_crtl_names [i].name) == 0))                 \
+	  {                                                                \
+	    fprintf (file, "\t%s=%s\n",                        \
+		     name, vms_crtl_names [i].deccname);                   \
+	    vms_crtl_names [i].referenced = 1;                             \
+	  }                                                                \
+    } while (0)
 
 /* This is how to output an assembler line
    that says to advance the location counter
@@ -346,26 +406,17 @@ do {									\
 %{g2:-g2 vms-dwarf2.o%s} %{g3:-g3 vms-dwarf2.o%s} %{shared} %{v} %{map}"
 
 #undef STARTFILE_SPEC
-#define STARTFILE_SPEC "%{!shared:%{mvms-return-codes:vcrt0.o%s} \
-%{!mvms-return-codes:pcrt0.o%s}}"
+#define STARTFILE_SPEC \
+"%{!shared:%{mvms-return-codes:vcrt0.o%s} %{!mvms-return-codes:pcrt0.o%s} \
+    crtbegin.o%s} \
+ %{!static:%{shared:crtbeginS.o%s}}"
 
-#undef LIB_SPEC
-#define LIB_SPEC "-lc"
+#define ENDFILE_SPEC \
+"%{!shared:crtend.o%s} %{!static:%{shared:crtendS.o%s}}"
 
 #define NAME__MAIN "__gccmain"
 #define SYMBOL__MAIN __gccmain
 
-#define MD_EXEC_PREFIX "/gnu/lib/gcc-lib/"
-#define MD_STARTFILE_PREFIX "/gnu/lib/gcc-lib/"
-
-/* Specify the list of include file directories.  */
-#define INCLUDE_DEFAULTS		   \
-{					   \
-  { "/gnu/lib/gcc-lib/include", 0, 0, 0 }, \
-  { "/gnu_gxx_include", 0, 1, 1 },	   \
-  { "/gnu_cc_include", 0, 0, 0 },	   \
-  { "/gnu/include", 0, 0, 0 },	           \
-  { 0, 0, 0, 0 }			   \
-}
+#define INIT_SECTION_ASM_OP "\t.section LIB$INITIALIZE,GBL,NOWRT"
 
 #define LONGLONG_STANDALONE 1
