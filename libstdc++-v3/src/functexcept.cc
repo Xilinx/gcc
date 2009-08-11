@@ -100,9 +100,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   __throw_system_error(int __i)
   { throw system_error(error_code(__i, generic_category())); }
 
-  //void
-  //__throw_future_error(int __i)
-  //{ throw future_error(future_errc(__i)); }
+  void
+  __throw_future_error(int __i)
+  { throw future_error(future_errc(__i)); }
 
 #else
   void
