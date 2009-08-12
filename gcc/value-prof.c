@@ -508,8 +508,8 @@ check_ic_counter (gimple stmt, gcov_type *count1, gcov_type *count2,
               ? gimple_location (stmt)
               : DECL_SOURCE_LOCATION (current_function_decl);
       inform (locus, "Correcting inconsistent value profile: "
-              "ic (topn) profiler top target count (%lld) exceeds "
-	      "BB count (%lld)", *count1, all);
+              "ic (topn) profiler top target count (%ld) exceeds "
+	      "BB count (%ld)", (long)*count1, (long)all);
       *count1 = all;
     }
   if (*count2 > all && flag_profile_correction)
@@ -518,8 +518,8 @@ check_ic_counter (gimple stmt, gcov_type *count1, gcov_type *count2,
               ? gimple_location (stmt)
               : DECL_SOURCE_LOCATION (current_function_decl);
       inform (locus, "Correcting inconsistent value profile: "
-              "ic (topn) profiler second target count (%lld) exceeds "
-	      "BB count (%lld)", *count2, all);
+              "ic (topn) profiler second target count (%ld) exceeds "
+	      "BB count (%ld)", (long)*count2, (long)all);
       *count2 = all;
     }
   
@@ -529,8 +529,8 @@ check_ic_counter (gimple stmt, gcov_type *count1, gcov_type *count2,
               ? gimple_location (stmt)
               : DECL_SOURCE_LOCATION (current_function_decl);
       inform (locus, "Corrupted topn ic value profile: "
-	      "first target count (%lld) is less than the second "
-	      "target count (%lld)", *count1, *count2);
+	      "first target count (%ld) is less than the second "
+	      "target count (%ld)", (long)*count1, (long)*count2);
       return true;
     }
 
@@ -546,8 +546,8 @@ check_ic_counter (gimple stmt, gcov_type *count1, gcov_type *count2,
 	    ? gimple_location (stmt)
 	    : DECL_SOURCE_LOCATION (current_function_decl);
 	  inform (locus, "Corrupted topn ic value profile: top two targets's"
-		  " total count (%lld) exceeds bb count (%lld)",
-		  *count1 + *count2, all);
+		  " total count (%ld) exceeds bb count (%ld)",
+		  (long)(*count1 + *count2), (long)all);
 	  return true;
 	}
     }

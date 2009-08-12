@@ -485,7 +485,7 @@ type_addr_hash (const void *ent)
 {
   const struct type_ent *const entry
       = (const struct type_ent *) ent;
-  return (hashval_t) entry->type;
+  return (hashval_t) (long) entry->type;
 }
 
 /* Address equality function for type_ent.  */
