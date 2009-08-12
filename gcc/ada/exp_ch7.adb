@@ -3555,7 +3555,19 @@ package body Exp_Ch7 is
       E    : constant Entity_Id  := Make_Temporary (Loc, 'E', N);
       Etyp : constant Entity_Id  := Etype (N);
 
+      Expr : constant Node_Id := Relocate_Node (N);
+      --  Capture this node because the call to Adjust_SCIL_Node can ???
+
    begin
+      --  If the relocated node is a function call then check if some SCIL
+      --  node references it and needs readjustment.
+
+      if Generate_SCIL
+        and then Nkind (N) = N_Function_Call
+      then
+         Adjust_SCIL_Node (N, Expr);
+      end if;
+
       Insert_Actions (N, New_List (
         Make_Object_Declaration (Loc,
           Defining_Identifier => E,
@@ -3565,7 +3577,7 @@ package body Exp_Ch7 is
           Action =>
             Make_Assignment_Statement (Loc,
               Name       => New_Reference_To (E, Loc),
-              Expression => Relocate_Node (N)))));
+              Expression => Expr))));
 
       Rewrite (N, New_Reference_To (E, Loc));
       Analyze_And_Resolve (N, Etyp);

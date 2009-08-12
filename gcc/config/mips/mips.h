@@ -337,7 +337,15 @@ enum mips_code_readable_setting {
    in use.  */
 #define TARGET_HARD_FLOAT (TARGET_HARD_FLOAT_ABI && !TARGET_MIPS16)
 #define TARGET_SOFT_FLOAT (TARGET_SOFT_FLOAT_ABI || TARGET_MIPS16)
-  
+
+/* False if SC acts as a memory barrier with respect to itself,
+   otherwise a SYNC will be emitted after SC for atomic operations
+   that require ordering between the SC and following loads and
+   stores.  It does not tell anything about ordering of loads and
+   stores prior to and following the SC, only about the SC itself and
+   those loads and stores follow it.  */
+#define TARGET_SYNC_AFTER_SC (!TARGET_OCTEON)
+
 /* IRIX specific stuff.  */
 #define TARGET_IRIX	   0
 #define TARGET_IRIX6	   0
@@ -734,7 +742,7 @@ enum mips_code_readable_setting {
        |march=r10000|march=r12000|march=r14000|march=r16000:-mips4} \
      %{march=mips32|march=4kc|march=4km|march=4kp|march=4ksc:-mips32} \
      %{march=mips32r2|march=m4k|march=4ke*|march=4ksd|march=24k* \
-       |march=34k*|march=74k*: -mips32r2} \
+       |march=34k*|march=74k*|march=1004k*: -mips32r2} \
      %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000 \
        |march=xlr: -mips64} \
      %{march=mips64r2|march=octeon: -mips64r2} \
@@ -747,7 +755,8 @@ enum mips_code_readable_setting {
 #define MIPS_ARCH_FLOAT_SPEC \
   "%{mhard-float|msoft-float|march=mips*:; \
      march=vr41*|march=m4k|march=4k*|march=24kc|march=24kec \
-     |march=34kc|march=74kc|march=5kc|march=octeon|march=xlr: -msoft-float; \
+     |march=34kc|march=74kc|march=1004kc|march=5kc \
+     |march=octeon|march=xlr: -msoft-float;		  \
      march=*: -mhard-float}"
 
 /* A spec condition that matches 32-bit options.  It only works if
@@ -793,7 +802,7 @@ enum mips_code_readable_setting {
 
 /* A spec that infers the -mdsp setting from an -march argument.  */
 #define BASE_DRIVER_SELF_SPECS \
-  "%{!mno-dsp:%{march=24ke*|march=34k*|march=74k*: -mdsp}}"
+  "%{!mno-dsp:%{march=24ke*|march=34k*|march=74k*|march=1004k*: -mdsp}}"
 
 #define DRIVER_SELF_SPECS BASE_DRIVER_SELF_SPECS
 
@@ -3143,14 +3152,12 @@ while (0)
    and OP is the instruction that should be used to load %3 into a
    register.  */
 #define MIPS_COMPARE_AND_SWAP(SUFFIX, OP)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
   "\tbne\t%0,%z2,2f\n"				\
   "\t" OP "\t%@,%3\n"				\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)\n"				\
+  "\tnop%-%]%>%)\n"				\
   "2:\n"
 
 /* Return an asm string that atomically:
@@ -3166,16 +3173,14 @@ while (0)
 
     OPS are the instructions needed to OR %5 with %@.  */
 #define MIPS_COMPARE_AND_SWAP_12(OPS)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll\t%0,%1\n"				\
+  "%(%<%[%|1:\tll\t%0,%1\n"			\
   "\tand\t%@,%0,%2\n"				\
   "\tbne\t%@,%z4,2f\n"				\
   "\tand\t%@,%0,%3\n"				\
   OPS						\
   "\tsc\t%@,%1\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)\n"				\
+  "\tnop%-%]%>%)\n"				\
   "2:\n"
 
 #define MIPS_COMPARE_AND_SWAP_12_ZERO_OP ""
@@ -3189,13 +3194,11 @@ while (0)
    SUFFIX is the suffix that should be added to "ll" and "sc"
    instructions.  */
 #define MIPS_SYNC_OP(SUFFIX, INSN)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%@,%0\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%@,%0\n"		\
   "\t" INSN "\t%@,%@,%1\n"			\
   "\tsc" SUFFIX "\t%@,%0\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3212,16 +3215,14 @@ while (0)
     INSN is already correctly masked -- it instead performs a bitwise
     not.  */
 #define MIPS_SYNC_OP_12(INSN, AND_OP)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll\t%4,%0\n"				\
+  "%(%<%[%|1:\tll\t%4,%0\n"			\
   "\tand\t%@,%4,%2\n"				\
   "\t" INSN "\t%4,%4,%z3\n"			\
   AND_OP					\
   "\tor\t%@,%@,%4\n"				\
   "\tsc\t%@,%0\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 #define MIPS_SYNC_OP_12_AND "\tand\t%4,%4,%1\n"
 #define MIPS_SYNC_OP_12_XOR "\txor\t%4,%4,%1\n"
@@ -3243,16 +3244,14 @@ while (0)
     INSN is already correctly masked -- it instead performs a bitwise
     not.  */
 #define MIPS_SYNC_OLD_OP_12(INSN, AND_OP)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll\t%0,%1\n"				\
+  "%(%<%[%|1:\tll\t%0,%1\n"			\
   "\tand\t%@,%0,%3\n"				\
   "\t" INSN "\t%5,%0,%z4\n"			\
   AND_OP					\
   "\tor\t%@,%@,%5\n"				\
   "\tsc\t%@,%1\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 #define MIPS_SYNC_OLD_OP_12_AND "\tand\t%5,%5,%2\n"
 #define MIPS_SYNC_OLD_OP_12_XOR "\txor\t%5,%5,%2\n"
@@ -3272,16 +3271,14 @@ while (0)
     INSN is already correctly masked -- it instead performs a bitwise
     not.  */
 #define MIPS_SYNC_NEW_OP_12(INSN, AND_OP)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll\t%0,%1\n"				\
+  "%(%<%[%|1:\tll\t%0,%1\n"				\
   "\tand\t%@,%0,%3\n"				\
   "\t" INSN "\t%0,%0,%z4\n"			\
   AND_OP					\
   "\tor\t%@,%@,%0\n"				\
   "\tsc\t%@,%1\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 #define MIPS_SYNC_NEW_OP_12_AND "\tand\t%0,%0,%2\n"
 #define MIPS_SYNC_NEW_OP_12_XOR "\txor\t%0,%0,%2\n"
@@ -3295,13 +3292,11 @@ while (0)
    SUFFIX is the suffix that should be added to "ll" and "sc"
    instructions.  */
 #define MIPS_SYNC_OLD_OP(SUFFIX, INSN)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
   "\t" INSN "\t%@,%0,%2\n"			\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3312,13 +3307,11 @@ while (0)
    SUFFIX is the suffix that should be added to "ll" and "sc"
    instructions.  */
 #define MIPS_SYNC_NEW_OP(SUFFIX, INSN)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
   "\t" INSN "\t%@,%0,%2\n"			\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b%~\n"			\
-  "\t" INSN "\t%0,%0,%2\n"			\
-  "\tsync%-%]%>%)"
+  "\t" INSN "\t%0,%0,%2%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3328,14 +3321,12 @@ while (0)
    instructions.  INSN is the and instruction needed to and a register
    with %2.  */
 #define MIPS_SYNC_NAND(SUFFIX, INSN)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%@,%0\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%@,%0\n"		\
   "\t" INSN "\t%@,%@,%1\n"			\
   "\tnor\t%@,%@,%.\n"				\
   "\tsc" SUFFIX "\t%@,%0\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3347,14 +3338,12 @@ while (0)
    instructions.  INSN is the and instruction needed to and a register
    with %2.  */
 #define MIPS_SYNC_OLD_NAND(SUFFIX, INSN)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"			\
   "\t" INSN "\t%@,%0,%2\n"			\
   "\tnor\t%@,%@,%.\n"				\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3366,14 +3355,12 @@ while (0)
    instructions.  INSN is the and instruction needed to and a register
    with %2.  */
 #define MIPS_SYNC_NEW_NAND(SUFFIX, INSN)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"			\
   "\t" INSN "\t%0,%0,%2\n"			\
   "\tnor\t%@,%0,%.\n"				\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b%~\n"			\
-  "\tnor\t%0,%0,%.\n"				\
-  "\tsync%-%]%>%)"
+  "\tnor\t%0,%0,%.%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3390,8 +3377,7 @@ while (0)
   "\t" OP "\t%@,%2\n"				\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3414,8 +3400,7 @@ while (0)
   OPS						\
   "\tsc\t%@,%1\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 #define MIPS_SYNC_EXCHANGE_12_ZERO_OP ""
 #define MIPS_SYNC_EXCHANGE_12_NONZERO_OP "\tor\t%@,%@,%4\n"

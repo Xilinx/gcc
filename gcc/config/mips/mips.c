@@ -686,6 +686,11 @@ static const struct mips_cpu_info mips_cpu_info_table[] = {
   { "74kx", PROCESSOR_74KF1_1, 33, 0 },
   { "74kf3_2", PROCESSOR_74KF3_2, 33, 0 },
 
+  { "1004kc", PROCESSOR_24KC, 33, 0 }, /* 1004K with MT/DSP.  */
+  { "1004kf2_1", PROCESSOR_24KF2_1, 33, 0 },
+  { "1004kf", PROCESSOR_24KF2_1, 33, 0 },
+  { "1004kf1_1", PROCESSOR_24KF1_1, 33, 0 },
+
   /* MIPS64 processors.  */
   { "5kc", PROCESSOR_5KC, 64, 0 },
   { "5kf", PROCESSOR_5KF, 64, 0 },
@@ -6781,6 +6786,18 @@ mask_low_and_shift_p (enum machine_mode mode, rtx mask, rtx shift, int maxlen)
   return IN_RANGE (mask_low_and_shift_len (mode, mask, shift), 1, maxlen);
 }
 
+/* Return true iff OP1 and OP2 are valid operands together for the
+   *and<MODE>3 and *and<MODE>3_mips16 patterns.  For the cases to consider,
+   see the table in the comment before the pattern.  */
+
+bool
+and_operands_ok (enum machine_mode mode, rtx op1, rtx op2)
+{
+  return (memory_operand (op1, mode)
+	  ? and_load_operand (op2, mode)
+	  : and_reg_operand (op2, mode));
+}
+
 /* The canonical form of a mask-low-and-shift-left operation is
    (and (ashift X SHIFT) MASK) where MASK has the lower SHIFT number of bits
    cleared.  Thus we need to shift MASK to the right before checking if it
@@ -10745,14 +10762,30 @@ mips_output_order_conditional_branch (rtx insn, rtx *operands, bool inverted_p)
   return mips_output_conditional_branch (insn, operands, branch[1], branch[0]);
 }
 
-/* Return the assembly code for __sync_*() loop LOOP.  The loop should support
-   both normal and likely branches, using %? and %~ where appropriate.  */
+/* Return or emit the assembly code for __sync_*() loop LOOP.  The
+   loop should support both normal and likely branches, using %? and
+   %~ where appropriate.  If BARRIER_BEFORE is true a sync sequence is
+   emitted before the loop.  A sync is always emitted after the loop.
+   OPERANDS are the insn operands.  */
 
 const char *
-mips_output_sync_loop (const char *loop)
+mips_output_sync_loop (bool barrier_before,
+		       const char *loop, rtx *operands)
 {
+  if (barrier_before)
+    output_asm_insn ("sync", NULL);
   /* Use branch-likely instructions to work around the LL/SC R10000 errata.  */
   mips_branch_likely = TARGET_FIX_R10000;
+
+  /* If the target needs a sync after the loop, emit the loop now and
+     return the sync.  */
+
+  if (TARGET_SYNC_AFTER_SC)
+    {
+      output_asm_insn (loop, operands);
+      loop = "sync";
+    }
+ 
   return loop;
 }
 

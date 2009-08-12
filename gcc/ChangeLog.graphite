@@ -1,3 +1,7 @@
+2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (r150372:150672).
+
 2009-08-11  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/40980

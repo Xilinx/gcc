@@ -298,7 +298,7 @@ extern const char *mips_output_load_label (void);
 extern const char *mips_output_conditional_branch (rtx, rtx *, const char *,
 						   const char *);
 extern const char *mips_output_order_conditional_branch (rtx, rtx *, bool);
-extern const char *mips_output_sync_loop (const char *);
+extern const char *mips_output_sync_loop (bool, const char *, rtx *);
 extern const char *mips_output_division (const char *, rtx *);
 extern unsigned int mips_hard_regno_nregs (int, enum machine_mode);
 extern bool mips_linked_madd_p (rtx, rtx);
@@ -316,6 +316,7 @@ extern bool mips16e_save_restore_pattern_p (rtx, HOST_WIDE_INT,
 
 extern bool mask_low_and_shift_p (enum machine_mode, rtx, rtx, int);
 extern int mask_low_and_shift_len (enum machine_mode, rtx, rtx);
+extern bool and_operands_ok (enum machine_mode, rtx, rtx);
 
 union mips_gen_fn_ptrs
 {

@@ -1600,6 +1600,9 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		else if (!opresult)
 		  break;
 	      }
+	    /* We can't possibly insert these.  */
+	    else if (op1 && !is_gimple_min_invariant (op1))
+	      break;
 	    changed |= op1 != oldop1;
 	    if (op2 && TREE_CODE (op2) == SSA_NAME)
 	      {
@@ -1617,6 +1620,9 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		else if (!opresult)
 		  break;
 	      }
+	    /* We can't possibly insert these.  */
+	    else if (op2 && !is_gimple_min_invariant (op2))
+	      break;
 	    changed |= op2 != oldop2;
 
 	    if (!newoperands)
@@ -2742,7 +2748,8 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	pre_expr op1expr;
 	tree genop2 = currop->op1;
 	pre_expr op2expr;
-	tree genop3;
+	tree genop3 = currop->op2;
+	pre_expr op3expr;
 	genop0 = create_component_ref_by_pieces_1 (block, ref, operand,
 						   stmts, domstmt);
 	if (!genop0)
@@ -2759,8 +2766,17 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	    if (!genop2)
 	      return NULL_TREE;
 	  }
-
-	genop3 = currop->op2;
+	if (genop3)
+	  {
+	    tree elmt_type = TREE_TYPE (TREE_TYPE (genop0));
+	    genop3 = size_binop (EXACT_DIV_EXPR, genop3,
+				 size_int (TYPE_ALIGN_UNIT (elmt_type)));
+	    op3expr = get_or_alloc_expr_for (genop3);
+	    genop3 = find_or_generate_expression (block, op3expr, stmts,
+						  domstmt);
+	    if (!genop3)
+	      return NULL_TREE;
+	  }
 	return build4 (currop->opcode, currop->type, genop0, genop1,
 		       genop2, genop3);
       }
@@ -4217,7 +4233,12 @@ eliminate (void)
 		  gimple_call_set_fn (stmt, fn);
 		  update_stmt (stmt);
 		  if (maybe_clean_or_replace_eh_stmt (stmt, stmt))
-		    gimple_purge_dead_eh_edges (b);
+		    {
+		      bitmap_set_bit (need_eh_cleanup,
+				      gimple_bb (stmt)->index);
+		      if (dump_file && (dump_flags & TDF_DETAILS))
+			fprintf (dump_file, "  Removed EH side effects.\n");
+		    }
 
 		  /* Changing an indirect call to a direct call may
 		     have exposed different semantics.  This may
