@@ -160,7 +160,6 @@ memory_stride_in_loop (Value stride, graphite_dim_t depth, poly_dr_p pdr)
   ppl_delete_Linear_Expression (le);
 }
 
-
 /* Returns true when it is profitable to interchange loop at DEPTH1
    and loop at DEPTH2 with DEPTH1 < DEPTH2 for PBB.
 
