@@ -622,15 +622,15 @@ ppl_max_for_le (ppl_Pointset_Powerset_C_Polyhedron_t ps,
 {
   ppl_Coefficient_t num, denom;
   Value dv, nv;
-  int maximum;
+  int maximum, err;
 
   value_init (nv);
   value_init (dv);
   ppl_new_Coefficient (&num);
   ppl_new_Coefficient (&denom);
-  ppl_Pointset_Powerset_C_Polyhedron_maximize (ps, le, num, denom, &maximum);
+  err = ppl_Pointset_Powerset_C_Polyhedron_maximize (ps, le, num, denom, &maximum);
 
-  if (maximum)
+  if (err > 0)
     {
       ppl_Coefficient_to_mpz_t (num, nv);
       ppl_Coefficient_to_mpz_t (denom, dv);

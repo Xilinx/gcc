@@ -1,3 +1,9 @@
+2009-08-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/40981
+	* graphite-ppl.c (ppl_max_for_le): Correct the use of
+	ppl_Pointset_Powerset_C_Polyhedron_maximize.
+
 2009-08-13  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-poly.c (print_pbb): Print PBB index.
