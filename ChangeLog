@@ -1,3 +1,7 @@
+2009-08-17  Michael Eager <eager@eagercon.com>
+
+	* config.sub, config.guess: Add microblaze.  
+
 2007-02-13  Release Manager
 
 	* GCC 4.1.2 released.
