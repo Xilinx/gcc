@@ -1,0 +1,39 @@
+# Other functions
+LIB2FUNCS_EXTRA = $(srcdir)/config/microblaze/divsi3_table.c \
+		  $(srcdir)/config/microblaze/stack_overflow_exit.asm \
+		  $(srcdir)/config/microblaze/mulsi3.asm \
+		  $(srcdir)/config/microblaze/modsi3.asm \
+		  $(srcdir)/config/microblaze/umodsi3.asm \
+		  $(srcdir)/config/microblaze/divsi3.asm \
+		  $(srcdir)/config/microblaze/udivsi3.asm 
+
+# For C++ crtstuff
+EXTRA_MULTILIB_PARTS = crtbegin$(objext) crtend$(objext) crti$(objext) crtn$(objext) 
+
+# Build multiple copies of ?crt{i,n}.o, one for each target switch.
+$(T)crti$(objext): $(srcdir)/config/microblaze/crti.s
+	$(GCC_FOR_TARGET) $(GCC_CFLAGS) $(INCLUDES) $(MULTILIB_CFLAGS) -c $(srcdir)/config/microblaze/crti.s -o $(T)crti$(objext)
+
+$(T)crtn$(objext): $(srcdir)/config/microblaze/crtn.s
+	$(GCC_FOR_TARGET) $(GCC_CFLAGS) $(INCLUDES) $(MULTILIB_CFLAGS) -c $(srcdir)/config/microblaze/crtn.s -o $(T)crtn$(objext)
+
+# We want fine grained libraries, so use the new code
+# to build the floating point emulation libraries.
+FPBIT = fp-bit.c
+DPBIT = dp-bit.c
+
+fp-bit.c: $(srcdir)/config/fp-bit.c
+	echo '#define FLOAT' > fp-bit.c
+	cat $(srcdir)/config/fp-bit.c >> fp-bit.c
+
+dp-bit.c: $(srcdir)/config/fp-bit.c
+	cat $(srcdir)/config/fp-bit.c > dp-bit.c
+
+MULTILIB_OPTIONS = mxl-barrel-shift mno-xl-soft-mul mxl-multiply-high
+MULTILIB_DIRNAMES = bs m mh
+MULTILIB_EXCEPTIONS = *mxl-barrel-shift/mxl-multiply-high mxl-multiply-high
+
+## Unfortunately, this does not work. We have to find a way to do this. 
+## Otherwise, -xl-blazeit will cause only the base libgcc to be picked up always.
+## MULTILIB_MATCHES = Zxl-blazeit=mxl-barrel-shift Zxl-blazeit=mno-xl-soft-mul
+

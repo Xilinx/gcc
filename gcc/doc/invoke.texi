@@ -576,6 +576,12 @@ Objective-C and Objective-C++ Dialects}.
 -mno-callgraph-data  -mslow-bytes  -mno-slow-bytes  -mno-lsim @gol
 -mlittle-endian  -mbig-endian  -m210  -m340  -mstack-increment}
 
+@emph{MicroBlaze Options}
+@gccoptlist{-mxl-soft-mul -mxl-soft-div -mxl-barrel-shift -msoft-float @gol
+-mhard-float -mxl-pattern-compare -msmall-divides -mxl-stack-check @gol
+-mxl-gp-opt -mno-clearbss -mxl-multiply-high -mxl-float-convert @gol
+-mmemcpy -mxl-float-sqrt -mcpu=@var{cpu-type} -mtune=@var{cpu-type}}
+
 @emph{MIPS Options}
 @gccoptlist{-EL  -EB  -march=@var{arch}  -mtune=@var{arch} @gol
 -mips1  -mips2  -mips3  -mips4  -mips32  -mips32r2  -mips64 @gol
@@ -7131,6 +7137,7 @@ platform.
 * M680x0 Options::
 * M68hc1x Options::
 * MCore Options::
+* MicroBlaze Options::
 * MIPS Options::
 * MMIX Options::
 * MN10300 Options::
@@ -10070,6 +10077,77 @@ Generate code for a little endian target.
 @opindex m210
 @opindex m340
 Generate code for the 210 processor.
+@end table
+
+@node MicroBlaze Options
+@subsection MicroBlaze Options
+@cindex MicroBlaze Options
+
+@table @gcctabopt
+
+@item -mxl-soft-mul
+@opindex mxl-soft-mul
+Use software multiply emulation (default).
+
+@item -mxl-soft-div
+@opindex mxl-soft-div
+Use software emulation for divides (default).
+
+@item -mxl-barrel-shift
+@opindex mxl-barrel-shift
+Use the hardware barrel shifter.
+
+@item -msoft-float
+@opindex msoft-float
+Use software emulation for floating point (default).
+
+@item -mhard-float
+@opindex mhard-float
+Use hardware floating point instructions.
+
+@item -mxl-pattern-compare
+@opindex mxl-pattern-compare
+Use pattern compare instructions.
+
+@item -msmall-divides
+@opindex msmall-divides
+Use table lookup optimization for small signed integer divisions.
+
+@item -mxl-stack-check
+@opindex mxl-stack-check
+Check for stack overflow at runtime.
+
+@item -mxl-gp-opt
+@opindex mxl-gp-opt
+se GP relative sdata/sbss sections.
+
+@item -mno-clearbss
+@opindex mno-clearbss
+Clear the BSS to zero and place zero initialized in BSS.
+
+@item -mxl-multiply-high
+@opindex mxl-multiply-high
+Use multiply high instructions for high part of 32x32 multiply.
+
+@item -mxl-float-convert
+@opindex mxl-float-convert
+Use hardware floating point converstion instructions.
+
+@item -mmemcpy
+@opindex mmemcpy
+Don't optimize block moves, use memcpy.
+
+@item -mxl-float-sqrt
+@opindex mxl-float-sqrt
+Use hardware floating point square root instruction.
+
+@item -mcpu=@var{cpu-type}
+@opindex mcpu=
+Use features of and schedule code for given CPU.
+Supported values are in the format vX.YY.Z, where X is a major version, YY 
+is the minor version, and Z is compatiblity code.  Example values are 
+@samp{v3.00.a}, @samp{v4.00.b}, @samp{v5.00.a}, @samp{v5.00.b}, 
+@samp{v5.00.b}, @samp{v6.00.a}. 
 @end table
 
 @node MIPS Options

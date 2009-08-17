@@ -1,3 +1,17 @@
+2009-08-17  Michael Eager <eager@eagercon.com>
+
+	* configure.ac, configure: Add MicroBlaze target.
+	* rtl.h [MICROBLAZE]: Define VAR_SECTION, SHIFT_TYPE macros.
+	* doc/invoke.texi: Describe MicroBlaze options.
+	* testsuite/gcc.target/microblaze: NEW: Add MicroBlaze test cases.
+	* config/microblaze: New architecture.
+	* config/microblaze/{predicates.md,microblaze.md,microblaze.opt,
+	t-microblaze,linux.h,microblaze-protos.h,microblaze.c}: NEW Target 
+	support for MicroBlaze architecture.  
+	* config/microblaze/{divsi3.asm,divsi3_table.c,mulsi3.asm,
+	stack_overflow_exit.asm,umodsi3.asm,crti.s,udivsi3.asm,crtn.s,
+	muldi3_hard.asm,modsi3.asm}: NEW MicroBlaze target routines.  
+
 2007-02-13  Release Manager
 
 	* GCC 4.1.2 released.
