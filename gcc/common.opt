@@ -152,6 +152,10 @@ Wpadded
 Common Var(warn_padded) Warning
 Warn when padding is required to align structure members
 
+Wripa-opt-mismatch
+Common Var(warn_ripa_opt_mismatch) Warning
+Warn if primary and auxiliary modules have mismatched command line options
+
 Wshadow
 Common Var(warn_shadow) Warning
 Warn when one local variable shadows another
@@ -481,6 +485,10 @@ Perform Dynamic Inter-Procedural Analysis.
 fdump-unnumbered-links
 Common Report Var(flag_dump_unnumbered_links) VarExists
 Suppress output of previous and next insn numbers in debugging dumps
+
+fripa-disallow-opt-mismatch
+Common Report Var(flag_ripa_disallow_opt_mismatch)
+Don't import an auxiliary module if the command line options mismatch with the primary module
 
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization

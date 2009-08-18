@@ -253,7 +253,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wparentheses  -Wpedantic-ms-format -Wno-pedantic-ms-format @gol
 -Wpointer-arith  -Wno-pointer-to-int-cast @gol
 -Wredundant-decls @gol
--Wreturn-type  -Wsequence-point  -Wshadow @gol
+-Wreturn-type  -Wripa-opt-mismatch  -Wsequence-point  -Wshadow @gol
 -Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
 -Wstrict-aliasing -Wstrict-aliasing=n @gol
 -Wstrict-overflow -Wstrict-overflow=@var{n} @gol
@@ -333,7 +333,7 @@ Objective-C and Objective-C++ Dialects}.
 -fcheck-data-deps -fconserve-stack -fcprop-registers -fcrossjumping @gol
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules -fcx-limited-range @gol
 -fdata-sections -fdce -fdce @gol
--fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse -fripa @gol
+-fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
 -fearly-inlining -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fexcess-precision=@var{style} @gol
 -fforward-propagate -ffunction-sections @gol
@@ -363,7 +363,7 @@ Objective-C and Objective-C++ Dialects}.
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
--frounding-math -fsched2-use-superblocks @gol
+-fripa -fripa-disallow-opt-mismatch -frounding-math -fsched2-use-superblocks @gol
 -fsched2-use-traces -fsched-spec-load -fsched-spec-load-dangerous @gol
 -fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
 -fsched-group-heuristic -fsched-critical-path-heuristic @gol
@@ -2803,6 +2803,7 @@ Options} and @ref{Objective-C and Objective-C++ Dialect Options}.
 -Wpointer-sign  @gol
 -Wreorder   @gol
 -Wreturn-type  @gol
+-Wripa-opt-mismatch @gol
 -Wsequence-point  @gol
 -Wsign-compare @r{(only in C++)}  @gol
 -Wstrict-aliasing  @gol
@@ -3204,6 +3205,16 @@ expression in a function whose return-type is @code{void}.
 For C++, a function without return type always produces a diagnostic
 message, even when @option{-Wno-return-type} is specified.  The only
 exceptions are @samp{main} and functions defined in system headers.
+
+This warning is enabled by @option{-Wall}.
+
+@item -Wripa-opt-mismatch
+@opindex Wripa-opt-mismatch
+@opindex Wno-ripa-opt-mismatch
+When doing an FDO build with @option{-fprofile-use} and @option{-fripa},
+warn if importing an axuiliary module that was built with a different
+GCC command line during the profile-generate phase than the primary
+module.
 
 This warning is enabled by @option{-Wall}.
 
@@ -7103,6 +7114,13 @@ During the @option{-fprofile-generate} phase, this flag turns on some additional
 instrumentation code that enables dynamic call-graph analysis.
 During the @option{-fprofile-use} phase, this flag enables cross-module
 optimizations such as inlining.
+
+@item -fripa-disallow-opt-mismatch
+@opindex fripa-disallow-opt-mismatch
+Don't import an auxiliary module, if the GCC command line options used for this
+auxiliary module during the profile-generate stage were different from those used
+for the primary module. Note that any mismatches in warning-related options are
+ignored for this comparison.
 @end table
 
 The following options control compiler behavior regarding floating

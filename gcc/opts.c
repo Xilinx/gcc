@@ -731,6 +731,37 @@ flag_instrument_functions_exclude_p (tree fndecl)
   return false;
 }
 
+/* GCC command-line options saved to the LIPO profile data file.
+   See detailed comment in opts.h.  */
+const char **lipo_cl_args;
+unsigned num_lipo_cl_args;
+
+/* Inspect the given GCC command-line arguments, which are part of one GCC
+   switch, and decide whether or not to store these to the LIPO profile data
+   file.  */
+static void
+lipo_save_cl_args (unsigned int argc, const char **argv)
+{
+  unsigned int i;
+  const char *opt = argv[0];
+  /* Store the following command-line flags to the lipo profile data file:
+     (1) -f... (except -frandom-seed...)
+     (2) -m...
+     (3) -W...
+     (4) -O...
+     (5) --param...
+  */
+  if (opt[0] == '-'
+      && (opt[1] == 'f' || opt[1] == 'm' || opt[1] == 'W' || opt[1] == 'O'
+	  || (strstr (opt, "--param") == opt))
+      && !strstr(opt, "-frandom-seed"))
+    {
+      num_lipo_cl_args += argc;
+      lipo_cl_args = XRESIZEVEC (const char *, lipo_cl_args, num_lipo_cl_args);
+      for (i = 0; i < argc; i++)
+	lipo_cl_args[num_lipo_cl_args - argc + i] = argv[i];
+    }
+}
 
 /* Decode and handle the vector of command line options.  LANG_MASK
    contains has a single bit set representing the current
@@ -765,6 +796,8 @@ handle_options (unsigned int argc, const char **argv, unsigned int lang_mask)
 	}
 
       n = handle_option (argv + i, lang_mask);
+
+      lipo_save_cl_args (n, argv + i);
 
       if (!n)
 	{

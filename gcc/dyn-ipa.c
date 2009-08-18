@@ -1011,7 +1011,7 @@ gcov_write_module_info (const struct gcov_info *mod_info,
   len += 2; /* each name string is led by a length.  */
 
   num_strings = module_info->num_quote_paths + module_info->num_bracket_paths +
-    module_info->num_cpp_defines;
+    module_info->num_cpp_defines + module_info->num_cl_args;
   for (i = 0; i < num_strings; i++)
     {
       gcov_unsigned_t string_len
@@ -1021,7 +1021,7 @@ gcov_write_module_info (const struct gcov_info *mod_info,
       len += 1; /* Each string is lead by a length.  */
     }
 
-  len += 7; /* 7 more fields */
+  len += 8; /* 8 more fields */
 
   gcov_write_tag_length (GCOV_TAG_MODULE_INFO, len);
   gcov_write_unsigned (module_info->ident);
@@ -1031,6 +1031,7 @@ gcov_write_module_info (const struct gcov_info *mod_info,
   gcov_write_unsigned (module_info->num_quote_paths);
   gcov_write_unsigned (module_info->num_bracket_paths);
   gcov_write_unsigned (module_info->num_cpp_defines);
+  gcov_write_unsigned (module_info->num_cl_args);
 
   /* Now write the filenames */
   aligned_fname = (gcov_unsigned_t *) alloca ((filename_len + src_filename_len + 2) *

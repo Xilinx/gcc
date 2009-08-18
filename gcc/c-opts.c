@@ -388,6 +388,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       warn_missing_braces = value;
       warn_parentheses = value;
       warn_return_type = value;
+      warn_ripa_opt_mismatch = value;
       warn_sequence_point = value;	/* Was C only.  */
       warn_switch = value;
       if (warn_strict_aliasing == -1)

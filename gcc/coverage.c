@@ -149,7 +149,7 @@ static tree build_ctr_info_type (void);
 static tree build_ctr_info_value (unsigned, tree);
 static tree build_gcov_info (void);
 static void create_coverage (void);
-static void get_da_file_name (const char *);
+static char * get_da_file_name (const char *);
 
 /* Return the type node for gcov_type.  */
 
@@ -203,6 +203,70 @@ int
 is_last_module (unsigned mod_id)
 {
   return (mod_id == module_infos[num_in_fnames - 1]->ident);
+}
+
+/* Returns true if the command-line arguments stored in the given module-infos
+   are incompatible.  */
+static bool
+incompatible_cl_args (struct gcov_module_info* mod_info1,
+		      struct gcov_module_info* mod_info2)
+{
+  char **warning_opts1 = XNEWVEC (char *, mod_info1->num_cl_args);
+  char **warning_opts2 = XNEWVEC (char *, mod_info2->num_cl_args);
+  char **non_warning_opts1 = XNEWVEC (char *, mod_info1->num_cl_args);
+  char **non_warning_opts2 = XNEWVEC (char *, mod_info2->num_cl_args);
+  unsigned int i, num_warning_opts1 = 0, num_warning_opts2 = 0;
+  unsigned int num_non_warning_opts1 = 0, num_non_warning_opts2 = 0;
+  bool warning_mismatch = false;
+  bool non_warning_mismatch = false;
+  unsigned int start_index1 = mod_info1->num_quote_paths +
+    mod_info1->num_bracket_paths + mod_info1->num_cpp_defines;
+  unsigned int start_index2 = mod_info2->num_quote_paths +
+    mod_info2->num_bracket_paths + mod_info2->num_cpp_defines;
+
+  /* First, separate the warning and non-warning options.  */
+  for (i = 0; i < mod_info1->num_cl_args; i++)
+    if (mod_info1->string_array[start_index1 + i][1] == 'W')
+      warning_opts1[num_warning_opts1++] =
+	mod_info1->string_array[start_index1 + i];
+    else
+      non_warning_opts1[num_non_warning_opts1++] =
+	mod_info1->string_array[start_index1 + i];
+
+  for (i = 0; i < mod_info2->num_cl_args; i++)
+    if (mod_info2->string_array[start_index2 + i][1] == 'W')
+      warning_opts2[num_warning_opts2++] =
+	mod_info2->string_array[start_index2 + i];
+    else
+      non_warning_opts2[num_non_warning_opts2++] =
+	mod_info2->string_array[start_index2 + i];
+
+  /* Compare warning options. If these mismatch, we emit a warning.  */
+  if (num_warning_opts1 != num_warning_opts2)
+    warning_mismatch = true;
+  else
+    for (i = 0; i < num_warning_opts1 && !warning_mismatch; i++)
+      warning_mismatch = strcmp (warning_opts1[i], warning_opts2[i]) != 0;
+
+  /* Compare non-warning options. If these mismatch, we emit a warning, and if
+     -fripa-disallow-opt-mismatch is supplied, the two modules are also
+     incompatible.  */
+  if (num_non_warning_opts1 != num_non_warning_opts2)
+    non_warning_mismatch = true;
+  else
+    for (i = 0; i < num_non_warning_opts1 && !non_warning_mismatch; i++)
+      non_warning_mismatch =
+	strcmp (non_warning_opts1[i], non_warning_opts2[i]) != 0;
+
+  if (warn_ripa_opt_mismatch && (warning_mismatch || non_warning_mismatch))
+    warning (OPT_Wripa_opt_mismatch, "command line arguments mismatch for %s "
+	     "and %s", mod_info1->source_filename, mod_info2->source_filename);
+
+  XDELETEVEC (warning_opts1);
+  XDELETEVEC (warning_opts2);
+  XDELETEVEC (non_warning_opts1);
+  XDELETEVEC (non_warning_opts2);
+  return flag_ripa_disallow_opt_mismatch && non_warning_mismatch;
 }
 
 /* Read in the counts file, if available. DA_FILE_NAME is the
@@ -377,16 +441,16 @@ read_counts_file (const char *da_file_name, unsigned module_id)
               = (struct gcov_module_info *) alloca ((length + 2)
                                                     * sizeof (gcov_unsigned_t));
 	  gcov_read_module_info (mod_info, length);
-	  module_infos_read++;
-
           info_sz = (sizeof (struct gcov_module_info) +
 		     sizeof (void *) * (mod_info->num_quote_paths +
 					mod_info->num_bracket_paths +
-					mod_info->num_cpp_defines));
+					mod_info->num_cpp_defines +
+					mod_info->num_cl_args));
 	  /* The first MODULE_INFO record must be for the primary module.  */
-	  if (module_infos_read == 1)
+	  if (module_infos_read == 0)
 	    {
 	      gcc_assert (mod_info->is_primary && !modset);
+	      module_infos_read++;
               modset = pointer_set_create ();
               pointer_set_insert (modset, (void *)(size_t)mod_info->ident);
 	      primary_module_id = mod_info->ident;
@@ -396,33 +460,49 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 	    }
 	  else
             {
+	      int fd;
+	      char *aux_da_filename = get_da_file_name (mod_info->da_filename);
               gcc_assert (!mod_info->is_primary);
-              if (!pointer_set_insert (modset, (void *)(size_t)mod_info->ident)
-                  /* Forbid mixed language LIPO for now.  */
-                  && module_infos[0]->lang == mod_info->lang
-                  /* Debugging support.  */
-                  && module_infos_read <= max_group)
+	      if (pointer_set_insert (modset, (void *)(size_t)mod_info->ident))
+		inform (input_location, "Not importing %s: already imported",
+			mod_info->source_filename);
+	      else if (module_infos[0]->lang != mod_info->lang)
+		inform (input_location, "Not importing %s: source language"
+			" different from primary module's source language",
+			mod_info->source_filename);
+	      else if (module_infos_read == max_group)
+		inform (input_location, "Not importing %s: maximum group size"
+			" reached", mod_info->source_filename);
+	      else if (incompatible_cl_args (module_infos[0], mod_info))
+		inform (input_location, "Not importing %s: command-line"
+			" arguments not compatible with primary module",
+			mod_info->source_filename);
+	      else if ((fd = open (aux_da_filename, O_RDONLY)) < 0)
+		inform (input_location, "Not importing %s: couldn't open %s",
+			mod_info->source_filename, aux_da_filename);
+	      else
 		{
+		  close (fd);
+		  module_infos_read++;
 		  add_input_filename (mod_info->source_filename);
-                  module_infos = XRESIZEVEC (struct gcov_module_info *, module_infos,
-                                             num_in_fnames);
-                  gcc_assert (num_in_fnames == module_infos_read);
-                  module_infos[module_infos_read - 1]
-                      = XCNEWVAR (struct gcov_module_info, info_sz);
-                  memcpy (module_infos[module_infos_read - 1], mod_info, info_sz);
+		  module_infos = XRESIZEVEC (struct gcov_module_info *,
+					     module_infos, num_in_fnames);
+		  gcc_assert (num_in_fnames == module_infos_read);
+		  module_infos[module_infos_read - 1]
+		    = XCNEWVAR (struct gcov_module_info, info_sz);
+		  memcpy (module_infos[module_infos_read - 1], mod_info,
+			  info_sz);
 		}
-              else
-                module_infos_read--;
             }
 
 	  /* Debugging */
           {
-            fprintf (stderr,
-                     "MODULE Id=%d, Is_Primary=%s,"
-                     " Is_Exported=%s, Name=%s (%s)\n",
-                     mod_info->ident, mod_info->is_primary?"yes":"no",
-                     mod_info->is_exported?"yes":"no", mod_info->source_filename,
-                     mod_info->da_filename);
+            inform (input_location,
+		    "MODULE Id=%d, Is_Primary=%s,"
+		    " Is_Exported=%s, Name=%s (%s)",
+		    mod_info->ident, mod_info->is_primary?"yes":"no",
+		    mod_info->is_exported?"yes":"no", mod_info->source_filename,
+		    mod_info->da_filename);
           }
         }
       gcov_sync (offset, length);
@@ -1129,6 +1209,29 @@ build_cpp_def_array_value (tree string_type, tree cpp_def_value,
   return cpp_def_value;
 }
 
+/* Returns an array (tree) of command-line argument strings. STRING_TYPE is
+   the string type, CL_ARGS_VALUE is the initial value of the command-line
+   args array. */
+
+static tree
+build_cl_args_array_value (tree string_type, tree cl_args_value)
+{
+  unsigned int i;
+  for (i = 0; i < num_lipo_cl_args; i++)
+    {
+      int arg_length = strlen (lipo_cl_args[i]);
+      tree arg_string = build_string (arg_length + 1, lipo_cl_args[i]);
+      TREE_TYPE (arg_string) =
+	build_array_type (char_type_node,
+			  build_index_type (build_int_cst (NULL_TREE,
+							   arg_length)));
+      cl_args_value = tree_cons (NULL_TREE,
+				 build1 (ADDR_EXPR, string_type, arg_string),
+				 cl_args_value);
+    }
+  return cl_args_value;
+}
+
 /* Returns the value of the module info associated with the
    current source module being compiled.  */
 
@@ -1254,11 +1357,20 @@ build_gcov_module_info_value (void)
   value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
                                             num_cpp_defines), value);
 
+  /* Num command-line args.  */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+		      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            num_lipo_cl_args), value);
+
   /* string array  */
   index_type = build_index_type (build_int_cst (NULL_TREE,
 						num_quote_paths	+
 						num_bracket_paths +
-						num_cpp_defines));
+						num_cpp_defines +
+						num_lipo_cl_args));
   string_array_type = build_array_type (string_type, index_type);
   string_array = build_inc_path_array_value (string_type, string_array,
 					     quote_paths, num_quote_paths);
@@ -1266,6 +1378,7 @@ build_gcov_module_info_value (void)
 					     bracket_paths, num_bracket_paths);
   string_array = build_cpp_def_array_value (string_type, string_array,
 					    cpp_defines_head);
+  string_array = build_cl_args_array_value (string_type, string_array);
   string_array = build_constructor_from_list (string_array_type,
 					      nreverse (string_array));
   field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
@@ -1500,9 +1613,10 @@ create_coverage (void)
 
 /* Get the da file name, given base file name.  */
 
-void
+static char *
 get_da_file_name (const char *base_file_name)
 {
+  char *da_file_name;
   int len = strlen (base_file_name);
   const char *prefix = profile_data_prefix;
   /* + 1 for extra '/', in case prefix doesn't end with /.  */
@@ -1516,7 +1630,6 @@ get_da_file_name (const char *base_file_name)
   /* Name of da file.  */
   da_file_name = XNEWVEC (char, len + strlen (GCOV_DATA_SUFFIX)
 			  + prefix_len + 1);
-  da_base_file_name = XNEWVEC (char, len + 1);
 
   if (prefix)
     {
@@ -1528,7 +1641,7 @@ get_da_file_name (const char *base_file_name)
     da_file_name[0] = 0;
   strcat (da_file_name, base_file_name);
   strcat (da_file_name, GCOV_DATA_SUFFIX);
-  strcpy (da_base_file_name, base_file_name);
+  return da_file_name;
 }
 
 /* Rebuild counts_hash already built the primary module. This hashtable
@@ -1640,7 +1753,9 @@ coverage_init (const char *filename, const char* source_name)
   int src_name_prefix_len = 0;
   int len = strlen (filename);
 
-  get_da_file_name (filename);
+  da_file_name = get_da_file_name (filename);
+  da_base_file_name = XNEWVEC (char, strlen (filename) + 1);
+  strcpy (da_base_file_name, filename);
 
   /* Name of bbg file.  */
   bbg_file_name = XNEWVEC (char, len + strlen (GCOV_NOTE_SUFFIX) + 1);
@@ -1670,17 +1785,11 @@ coverage_init (const char *filename, const char* source_name)
   if (flag_profile_use && L_IPO_COMP_MODE)
     {
       unsigned i;
-      char *da_file_name_p = da_file_name;
-      char *da_base_file_name_p = da_base_file_name;
       gcc_assert (flag_dyn_ipa);
       rebuild_counts_hash ();
       for (i = 1; i < num_in_fnames; i++)
-        {
-          get_da_file_name (module_infos[i]->da_filename);
-          read_counts_file (da_file_name, module_infos[i]->ident);
-        }
-      da_file_name = da_file_name_p;
-      da_base_file_name = da_base_file_name_p;
+	read_counts_file (get_da_file_name (module_infos[i]->da_filename),
+			  module_infos[i]->ident);
     }
 }
 

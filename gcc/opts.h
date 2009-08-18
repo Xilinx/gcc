@@ -98,6 +98,15 @@ extern const char **in_fnames;
 
 extern unsigned num_in_fnames;
 
+/* GCC command-line arguments used during profile-gen, that are saved to the
+   profile data file. During profile-use, these can be compared to make sure
+   only those auxiliary modules are actually imported that use a compatible
+   set of GCC flags as the primary module.  */
+extern const char **lipo_cl_args;
+
+/* The size of the above mentioned mentioned array.  */
+extern unsigned num_lipo_cl_args;
+
 size_t find_opt (const char *input, int lang_mask);
 extern void prune_options (int *argcp, char ***argvp);
 extern void decode_options (unsigned int argc, const char **argv);
