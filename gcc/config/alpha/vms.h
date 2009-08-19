@@ -144,27 +144,12 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef CAN_ELIMINATE
 #define CAN_ELIMINATE(FROM, TO)  \
-((TO) != STACK_POINTER_REGNUM || ! alpha_using_fp ())
+  (alpha_vms_can_eliminate ((FROM), (TO)))
 
 #undef INITIAL_ELIMINATION_OFFSET
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
-{ switch (FROM)								\
-    {									\
-    case FRAME_POINTER_REGNUM:						\
-      (OFFSET) = alpha_sa_size () + alpha_pv_save_size ();		\
-      break;								\
-    case ARG_POINTER_REGNUM:						\
-      (OFFSET) = (ALPHA_ROUND (alpha_sa_size () + alpha_pv_save_size ()	\
-			       + get_frame_size ()			\
-			       + crtl->args.pretend_args_size)	\
-		  - crtl->args.pretend_args_size);		\
-      break;								\
-    default:								\
-      gcc_unreachable ();						\
-    }									\
-  if ((TO) == STACK_POINTER_REGNUM)					\
-    (OFFSET) += ALPHA_ROUND (crtl->outgoing_args_size);	\
-}
+  ((OFFSET) = alpha_vms_initial_elimination_offset(FROM, TO))
+
 
 /* Define a data type for recording info about an argument list
    during the scan of that argument list.  This data type should
@@ -206,9 +191,7 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
      (CUM).num_args += ALPHA_ARG_SIZE (MODE, TYPE, NAMED);		\
     }
 
-/* ABI has stack checking, but it's broken.  */
-#undef STACK_CHECK_BUILTIN
-#define STACK_CHECK_BUILTIN 0
+#define DEFAULT_PCC_STRUCT_RETURN 0
 
 #undef  ASM_WEAKEN_LABEL
 #define ASM_WEAKEN_LABEL(FILE, NAME)                            \
@@ -242,14 +225,9 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
 
 #define COMMON_ASM_OP "\t.comm\t"
 
-#undef ASM_OUTPUT_ALIGNED_COMMON
-#define ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
-do {									\
-  fprintf ((FILE), "%s", COMMON_ASM_OP);				\
-  assemble_name ((FILE), (NAME));					\
-  fprintf ((FILE), "," HOST_WIDE_INT_PRINT_UNSIGNED ",%u\n", (SIZE), (ALIGN) / BITS_PER_UNIT);	\
-} while (0)
-
+#undef ASM_OUTPUT_ALIGNED_DECL_COMMON
+#define ASM_OUTPUT_ALIGNED_DECL_COMMON(FILE, DECL, NAME, SIZE, ALIGN) \
+  vms_output_aligned_decl_common (FILE, DECL, NAME, SIZE, ALIGN)
 
 #undef TRAMPOLINE_TEMPLATE
 
@@ -381,22 +359,18 @@ typedef struct crtl_name_spec
 #undef ASM_FINAL_SPEC
 
 /* The VMS convention is to always provide minimal debug info
-   for a traceback unless specifically overridden.  Defaulting this here
-   is a kludge.  */
+   for a traceback unless specifically overridden.  */
 
-#define OPTIMIZATION_OPTIONS(OPTIMIZE, OPTIMIZE_SIZE) \
-{                                                  \
-   write_symbols = VMS_DEBUG;                      \
-   debug_info_level = (enum debug_info_level) 1;   \
-}
-
-/* Override traceback debug info on -g0.  */
 #undef OVERRIDE_OPTIONS
-#define OVERRIDE_OPTIONS                           \
-{                                                  \
-   if (write_symbols == NO_DEBUG)                  \
-     debug_info_level = (enum debug_info_level) 0; \
-   override_options ();                            \
+#define OVERRIDE_OPTIONS                            \
+{                                                   \
+  if (write_symbols == NO_DEBUG                     \
+      && debug_info_level == DINFO_LEVEL_NONE)      \
+    {                                               \
+      write_symbols = VMS_DEBUG;                    \
+      debug_info_level = DINFO_LEVEL_TERSE;         \
+    }                                               \
+   override_options ();                             \
 }
 
 /* Link with vms-dwarf2.o if -g (except -g0). This causes the
@@ -420,3 +394,6 @@ typedef struct crtl_name_spec
 #define INIT_SECTION_ASM_OP "\t.section LIB$INITIALIZE,GBL,NOWRT"
 
 #define LONGLONG_STANDALONE 1
+
+#undef TARGET_VALID_POINTER_MODE
+#define TARGET_VALID_POINTER_MODE vms_valid_pointer_mode

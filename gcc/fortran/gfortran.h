@@ -833,13 +833,19 @@ gfc_charlen;
 
 #define gfc_get_charlen() XCNEW (gfc_charlen)
 
-/* Type specification structure.  FIXME: derived and cl could be union???  */
+/* Type specification structure.  */
 typedef struct
 {
   bt type;
   int kind;
-  struct gfc_symbol *derived;
-  gfc_charlen *cl;	/* For character types only.  */
+
+  union
+  {
+    struct gfc_symbol *derived;	/* For derived types only.  */
+    gfc_charlen *cl;		/* For character types only.  */
+  }
+  u;
+
   struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
   unsigned int is_class:1;
   int is_c_interop;
@@ -2430,7 +2436,7 @@ int gfc_symbols_could_alias (gfc_symbol *, gfc_symbol *);
 void gfc_undo_symbols (void);
 void gfc_commit_symbols (void);
 void gfc_commit_symbol (gfc_symbol *);
-gfc_charlen *gfc_new_charlen (gfc_namespace *);
+gfc_charlen *gfc_new_charlen (gfc_namespace *, gfc_charlen *);
 void gfc_free_charlen (gfc_charlen *, gfc_charlen *);
 void gfc_free_namespace (gfc_namespace *);
 

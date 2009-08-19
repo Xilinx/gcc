@@ -874,6 +874,16 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
   if (POINTER_TYPE_P (inner_type)
       && POINTER_TYPE_P (outer_type))
     {
+      /* If the outer type is (void *) or a pointer to an incomplete
+	 record type, then the conversion is not necessary.  */
+      if (VOID_TYPE_P (TREE_TYPE (outer_type))
+	  || (AGGREGATE_TYPE_P (TREE_TYPE (outer_type))
+	      && TREE_CODE (TREE_TYPE (outer_type)) != ARRAY_TYPE
+	      && (TREE_CODE (TREE_TYPE (outer_type))
+		  == TREE_CODE (TREE_TYPE (inner_type)))
+	      && !COMPLETE_TYPE_P (TREE_TYPE (outer_type))))
+	return true;
+
       /* Do not lose casts to restrict qualified pointers.  */
       if ((TYPE_RESTRICT (outer_type)
 	   != TYPE_RESTRICT (inner_type))
@@ -930,16 +940,6 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
   else if (POINTER_TYPE_P (inner_type)
 	   && POINTER_TYPE_P (outer_type))
     {
-      /* If the outer type is (void *) or a pointer to an incomplete
-	 record type, then the conversion is not necessary.  */
-      if (VOID_TYPE_P (TREE_TYPE (outer_type))
-	  || (AGGREGATE_TYPE_P (TREE_TYPE (outer_type))
-	      && TREE_CODE (TREE_TYPE (outer_type)) != ARRAY_TYPE
-	      && (TREE_CODE (TREE_TYPE (outer_type))
-		  == TREE_CODE (TREE_TYPE (inner_type)))
-	      && !COMPLETE_TYPE_P (TREE_TYPE (outer_type))))
-	return true;
-
       /* Don't lose casts between pointers to volatile and non-volatile
 	 qualified types.  Doing so would result in changing the semantics
 	 of later accesses.  For function types the volatile qualifier
@@ -1102,17 +1102,12 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
       return true;
     }
 
-  /* For aggregates we may need to fall back to structural equality
-     checks.  */
+  /* For aggregates we rely on TYPE_CANONICAL exclusively and require
+     explicit conversions for types involving to be structurally
+     compared types.  */
   else if (AGGREGATE_TYPE_P (inner_type)
 	   && TREE_CODE (inner_type) == TREE_CODE (outer_type))
-    {
-      if (TYPE_STRUCTURAL_EQUALITY_P (outer_type)
-	  || TYPE_STRUCTURAL_EQUALITY_P (inner_type))
-	return lang_hooks.types_compatible_p (inner_type, outer_type);
-
-      return false;
-    }
+    return false;
   
   return false;
 }

@@ -1,3 +1,32 @@
+2009-08-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* method.c (use_thunk): Call free_after_compilation after
+	assemble_end_function.
+
+2009-08-17  Richard Guenther  <rguenther@suse.de>
+
+	* decl.c (build_ptrmemfunc_type): Keep variant chain intact.
+	Avoid useless copy.
+	(finish_enum): Keep variant chain intact.
+	* tree.c (cp_build_reference_type): Likewise.
+
+2009-08-16  Jason Merrill  <jason@redhat.com>
+
+	Make TREE_USED match the [basic.def.odr] concept for FUNCTION_DECL
+	and VAR_DECL, so mark_used only has effect the first time.
+	* decl2.c (mark_used): Just return if TREE_USED is already set.
+	Don't set TREE_USED if cp_unevaluated_operand is set.
+	(tree_used_ok): New fn.
+	* init.c (build_offset_ref): Check it instead of TREE_USED.
+	* call.c (build_call_a): Likewise.
+	* cp-tree.h: Declare it.
+	(DECL_NO_LINKAGE_CHECKED): No longer needed.
+	(struct lang_decl_base): Remove no_linkage_checked bitfield.
+
+	* decl2.c (finish_static_data_member_decl): Don't set TREE_USED.
+
+	* decl2.c (mark_used): It's ok to synthesize for default args now.
+
 2009-08-10  Jason Merrill  <jason@redhat.com>
 
 	Implement DR 757: It's OK for a decl to use a type without linkage

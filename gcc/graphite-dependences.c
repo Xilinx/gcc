@@ -380,7 +380,7 @@ dependence_polyhedron_1 (poly_bb_p pbb1, poly_bb_p pbb2,
     pbb_nb_scattering_orig (pbb2) : pbb_nb_scattering_transform (pbb2);
   graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
   graphite_dim_t ddim2 = pbb_dim_iter_domain (pbb2);
-  graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
+  graphite_dim_t sdim1 = PDR_NB_SUBSCRIPTS (pdr1) + 1;
   graphite_dim_t gdim = scop_nb_params (scop);
   graphite_dim_t dim1 = pdr_dim (pdr1);
   graphite_dim_t dim2 = pdr_dim (pdr2);
@@ -492,8 +492,8 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
   ppl_Polyhedron_t so2 = PBB_ORIGINAL_SCATTERING (pbb2);
   ppl_Pointset_Powerset_C_Polyhedron_t po;
 
-  graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
-  graphite_dim_t sdim2 = pdr_nb_subscripts (pdr2) + 1;
+  graphite_dim_t sdim1 = PDR_NB_SUBSCRIPTS (pdr1) + 1;
+  graphite_dim_t sdim2 = PDR_NB_SUBSCRIPTS (pdr2) + 1;
 
   if (sdim1 != sdim2)
     return true;
@@ -513,6 +513,17 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
       graphite_dim_t otdim2 = pbb_nb_scattering_orig (pbb2);
       graphite_dim_t ttdim1 = pbb_nb_scattering_transform (pbb1);
       graphite_dim_t ttdim2 = pbb_nb_scattering_transform (pbb2);
+      ppl_Pointset_Powerset_C_Polyhedron_t temp;
+      ppl_dimension_type pdim;
+      bool is_empty_p;
+
+      /* Copy the PO polyhedron into the TEMP, so it is not destroyed.
+         Keep in mind, that PO polyhedron might be restored from the cache
+         and should not be modified!  */
+      ppl_Pointset_Powerset_C_Polyhedron_space_dimension (po, &pdim);
+      ppl_new_Pointset_Powerset_C_Polyhedron_from_space_dimension (&temp,
+								   pdim, 0);
+      ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (temp, po);
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "\nloop carries dependency.\n");
@@ -520,14 +531,18 @@ graphite_legal_transform_dr (poly_bb_p pbb1, poly_bb_p pbb2,
 				  false, false);
 
       /* Extend PO and PT to have the same dimensions.  */
-      ppl_insert_dimensions_pointset (po, otdim1, ttdim1);
-      ppl_insert_dimensions_pointset (po, otdim1 + ttdim1 + ddim1 + otdim2,
+      ppl_insert_dimensions_pointset (temp, otdim1, ttdim1);
+      ppl_insert_dimensions_pointset (temp, otdim1 + ttdim1 + ddim1 + otdim2,
 				      ttdim2);
       ppl_insert_dimensions_pointset (pt, 0, otdim1);
       ppl_insert_dimensions_pointset (pt, otdim1 + ttdim1 + ddim1, otdim2);
 
-      ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (po, pt);
-      return ppl_Pointset_Powerset_C_Polyhedron_is_empty (po);
+      ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (temp, pt);
+      is_empty_p = ppl_Pointset_Powerset_C_Polyhedron_is_empty (temp);
+
+      ppl_delete_Pointset_Powerset_C_Polyhedron (temp);
+      ppl_delete_Pointset_Powerset_C_Polyhedron (pt);
+      return is_empty_p;
     }
 }
 
@@ -556,11 +571,17 @@ graphite_legal_transform (scop_p scop)
   int i, j;
   poly_bb_p pbb1, pbb2;
 
+  timevar_push (TV_GRAPHITE_DATA_DEPS);
+
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb1); i++)
     for (j = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), j, pbb2); j++)
       if (!graphite_legal_transform_bb (pbb1, pbb2))
-	return false;
+	{
+	  timevar_pop (TV_GRAPHITE_DATA_DEPS);
+	  return false;
+	}
 
+  timevar_pop (TV_GRAPHITE_DATA_DEPS);
   return true;
 }
 
@@ -640,8 +661,8 @@ graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
   ppl_Polyhedron_t so2 = PBB_TRANSFORMED_SCATTERING (pbb2);
   ppl_Pointset_Powerset_C_Polyhedron_t po;
   ppl_Pointset_Powerset_C_Polyhedron_t eqpp;
-  graphite_dim_t sdim1 = pdr_nb_subscripts (pdr1) + 1;
-  graphite_dim_t sdim2 = pdr_nb_subscripts (pdr2) + 1;
+  graphite_dim_t sdim1 = PDR_NB_SUBSCRIPTS (pdr1) + 1;
+  graphite_dim_t sdim2 = PDR_NB_SUBSCRIPTS (pdr2) + 1;
   graphite_dim_t tdim1 = pbb_nb_scattering_transform (pbb1);
   graphite_dim_t ddim1 = pbb_dim_iter_domain (pbb1);
   ppl_dimension_type dim;
@@ -668,7 +689,6 @@ graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
   ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (eqpp, po);
   empty_p = ppl_Pointset_Powerset_C_Polyhedron_is_empty (eqpp);
 
-  ppl_delete_Pointset_Powerset_C_Polyhedron (po);
   ppl_delete_Pointset_Powerset_C_Polyhedron (eqpp);
   return !empty_p;
 }
@@ -681,11 +701,17 @@ dependency_between_pbbs_p (poly_bb_p pbb1, poly_bb_p pbb2, int level)
   int i, j;
   poly_dr_p pdr1, pdr2;
 
+  timevar_push (TV_GRAPHITE_DATA_DEPS);
+
   for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb1), i, pdr1); i++)
     for (j = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb2), j, pdr2); j++)
       if (graphite_carried_dependence_level_k (pdr1, pdr2, level))
-	return true;
+	{
+	  timevar_pop (TV_GRAPHITE_DATA_DEPS);
+	  return true;
+	}
 
+  timevar_pop (TV_GRAPHITE_DATA_DEPS);
   return false;
 }
 

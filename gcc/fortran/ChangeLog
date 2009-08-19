@@ -1,3 +1,171 @@
+2009-08-18  Michael Matz  <matz@suse.de>
+
+	* trans-expr.c (gfc_conv_substring): Don't evaluate casted decl early,
+	change order of length calculation to (end - start) + 1.
+	(gfc_get_interface_mapping_array): Adjust call to
+	gfc_get_nodesc_array_type.
+	* trans-array.c (gfc_trans_create_temp_array,
+	gfc_build_constant_array_constructor, gfc_conv_expr_descriptor): Ditto.
+	* trans-stmt.c (gfc_trans_pointer_assign_need_temp): Ditto.
+	* trans.c (gfc_add_modify): Assignment between base type and nontarget
+	type are equal enough.
+	(gfc_call_malloc): Use prvoid_type_node for return value of
+	__builtin_malloc.
+	(gfc_allocate_with_status): Ditto.
+	* trans-types.c (gfc_array_descriptor_base): Double size of this array.
+	(gfc_init_types): Build prvoid_type_node.
+	(gfc_build_array_type): New bool parameter "restricted".
+	(gfc_get_nodesc_array_type): Ditto, build restrict qualified pointers,
+	if it's true.
+	(gfc_get_array_descriptor_base): Ditto.
+	(gfc_get_array_type_bounds): Ditto.
+	(gfc_sym_type): Use symbol attributes to feed calls to above functions.
+	(gfc_get_derived_type): Ditto.
+	* trans.h (struct lang_type): Add nontarget_type member.
+	* trans-types.h (prvoid_type_node): Declare.
+	(gfc_get_array_type_bounds, gfc_get_nodesc_array_type): Declare new
+	parameter.
+	* trans-decl.c (gfc_finish_var_decl): Give scalars that can't be
+	aliased a type with a different alias set than the base type.
+	(gfc_build_dummy_array_decl): Adjust call to gfc_get_nodesc_array_type.
+
+2009-08-18  Janus Weil  <janus@gcc.gnu.org>
+	    Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40870
+	* trans-types.c (gfc_get_ppc_type): Include formal args in backend_decl
+	using the interface symbol. Character types are returned by reference.
+	(gfc_get_derived_type): Prevent infinite recursion loop
+	if a PPC has a derived-type formal arg.
+
+2008-08-17  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41062
+	* trans-decl.c (gfc_trans_use_stmts):  Keep going through use
+	list if symbol is not use associated.
+
+2009-08-17  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37425
+	* resolve.c (get_checked_tb_operator_target): New routine to do checks
+	on type-bound operators in common between intrinsic and user operators.
+	(resolve_typebound_intrinsic_op): Call it.
+	(resolve_typebound_user_op): Ditto.
+
+2009-08-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41075
+	* scanner.c (gfc_next_char_literal): Add comment to improve 
+	readability.
+	* io.c (enum format_token): Add FMT_STAR. (format_lex): Add case
+	for '*'. (check_format): Check for left paren after '*'.  Change
+	format checks to use %L to improve format string error locus.
+
+2009-08-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40877
+	* array.c (gfc_resolve_character_array_constructor): Add NULL argument
+	to gfc_new_charlen.
+	* decl.c (add_init_expr_to_sym,variable_decl,match_char_spec,
+	gfc_match_implicit): Ditto.
+	* expr.c (simplify_const_ref): Fix memory leak.
+	(gfc_simplify_expr): Add NULL argument to gfc_new_charlen.
+	* gfortran.h (gfc_new_charlen): Modified prototype.
+	* iresolve.c (check_charlen_present,gfc_resolve_char_achar): Add NULL
+	argument to gfc_new_charlen.
+	* module.c (mio_charlen): Ditto.
+	* resolve.c (gfc_resolve_substring_charlen,
+	gfc_resolve_character_operator,fixup_charlen): Ditto.
+	(resolve_fl_derived,resolve_symbol): Add argument to gfc_charlen.
+	* symbol.c (gfc_new_charlen): Add argument 'old_cl' (to make a copy of
+	an existing charlen).
+	(gfc_set_default_type,generate_isocbinding_symbol): Fix memory leak.
+	(gfc_copy_formal_args_intr): Add NULL argument to gfc_new_charlen.
+	* trans-decl.c (create_function_arglist): Fix memory leak.
+
+2009-08-17  Richard Guenther  <rguenther@suse.de>
+
+	* trans-expr.c (gfc_trans_scalar_assign): Replace hack with
+	more proper hack.
+
+2009-08-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41080
+	* gfortranspec.c (lookup_option): Remove gfortran-specific
+	version of -dumpversion.
+
+2009-08-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41070
+	* resolve.c (resolve_structure_cons): Make sure that ts.u.derived is
+	only used if type is BT_DERIVED.
+
+2009-08-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40941
+	* gfortran.h (gfc_typespec): Put 'derived' and 'cl' into union.
+	* decl.c (build_struct): Make sure 'cl' is only used
+	if type is BT_CHARACTER.
+	* symbol.c (gfc_set_default_type): Ditto.
+	* resolve.c (resolve_symbol, resolve_fl_derived): Ditto.
+	(resolve_equivalence,resolve_equivalence_derived): Make sure 'derived'
+	is only used if type is BT_DERIVED.
+	* trans-io.c (transfer_expr): Make sure 'derived' is only used if type
+	is BT_DERIVED or BT_INTEGER (special case: C_PTR/C_FUNPTR).
+	* array.c: Mechanical replacements to accomodate union in gfc_typespec.
+	* check.c: Ditto.
+	* data.c: Ditto.
+	* decl.c: Ditto.
+	* dump-parse-tree.c: Ditto.
+	* expr.c: Ditto.
+	* interface.c: Ditto.
+	* iresolve.c: Ditto.
+	* match.c: Ditto.
+	* misc.c: Ditto.
+	* module.c: Ditto.
+	* openmp.c: Ditto.
+	* parse.c: Ditto.
+	* primary.c: Ditto.
+	* resolve.c: Ditto.
+	* simplify.c: Ditto.
+	* symbol.c: Ditto.
+	* target-memory.c: Ditto.
+	* trans-array.c: Ditto.
+	* trans-common.c: Ditto.
+	* trans-const.c: Ditto.
+	* trans-decl.c: Ditto.
+	* trans-expr.c: Ditto.
+	* trans-intrinsic.c: Ditto.
+	* trans-io.c: Ditto.
+	* trans-stmt.c: Ditto.
+	* trans-types.c: Ditto.
+
+2009-08-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40995
+	* resolve.c (resolve_symbol): Move some checking code to
+	resolve_intrinsic, and call this from here.
+	(resolve_intrinsic): Some checking code moved here from resolve_symbol.
+	Make sure each intrinsic is only resolved once.
+
+2009-08-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41034
+	* symbol.c (gfc_copy_attr): Merge bits instead of replace
+	bits in gfc_copy_attr.
+	* gfc_check_pointer_assign (gfc_check_pointer_assign):
+	Initialize ext_attr bits by zero.
+
+2009-08-11  Richard Guenther  <rguenther@suse.de>
+
+	* trans-types.c (gfc_get_derived_type): Do not clear TYPE_CANONICAL.
+
+2009-08-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41022
+	* trans-expr.c (gfc_conv_procedure_call): Handle procedure pointer
+	components as actual arguments.
+
 2009-08-10  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/37425

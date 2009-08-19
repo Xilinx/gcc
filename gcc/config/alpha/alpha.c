@@ -200,6 +200,7 @@ static rtx alpha_emit_xfloating_compare (enum rtx_code *, rtx, rtx);
 
 #if TARGET_ABI_OPEN_VMS
 static void alpha_write_linkage (FILE *, const char *, tree);
+static bool vms_valid_pointer_mode (enum machine_mode);
 #endif
 
 static void unicosmk_output_deferred_case_vectors (FILE *);
@@ -773,6 +774,12 @@ alpha_in_small_data_p (const_tree exp)
 }
 
 #if TARGET_ABI_OPEN_VMS
+static bool
+vms_valid_pointer_mode (enum machine_mode mode)
+{
+  return (mode == SImode || mode == DImode);
+}
+
 static bool
 alpha_linkage_symbol_p (const char *symname)
 {
@@ -2665,6 +2672,13 @@ alpha_emit_conditional_move (rtx cmp, enum machine_mode mode)
   enum machine_mode cmov_mode = VOIDmode;
   int local_fast_math = flag_unsafe_math_optimizations;
   rtx tem;
+
+  if (cmp_mode == TFmode)
+    {
+      op0 = alpha_emit_xfloating_compare (&code, op0, op1);
+      op1 = const0_rtx;
+      cmp_mode = DImode;
+    }
 
   gcc_assert (cmp_mode == DFmode || cmp_mode == DImode);
 
@@ -5771,7 +5785,14 @@ alpha_return_in_memory (const_tree type, const_tree fndecl ATTRIBUTE_UNUSED)
     {
       mode = TYPE_MODE (type);
 
-      /* All aggregates are returned in memory.  */
+      /* All aggregates are returned in memory, except on OpenVMS where
+	 records that fit 64 bits should be returned by immediate value
+	 as required by section 3.8.7.1 of the OpenVMS Calling Standard.  */
+      if (TARGET_ABI_OPEN_VMS
+	  && TREE_CODE (type) != ARRAY_TYPE
+	  && (unsigned HOST_WIDE_INT) int_size_in_bytes(type) <= 8)
+	return false;
+
       if (AGGREGATE_TYPE_P (type))
 	return true;
     }
@@ -5842,7 +5863,10 @@ function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED,
   switch (mclass)
     {
     case MODE_INT:
-      PROMOTE_MODE (mode, dummy, valtype);
+      /* Do the same thing as PROMOTE_MODE except for libcalls on VMS,
+	 where we have them returning both SImode and DImode.  */
+      if (!(TARGET_ABI_OPEN_VMS && valtype && AGGREGATE_TYPE_P (valtype)))
+        PROMOTE_MODE (mode, dummy, valtype);
       /* FALLTHRU */
 
     case MODE_COMPLEX_INT:
@@ -5866,6 +5890,12 @@ function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED,
 		      gen_rtx_EXPR_LIST (VOIDmode, gen_rtx_REG (cmode, 33),
 				         GEN_INT (GET_MODE_SIZE (cmode)))));
       }
+
+    case MODE_RANDOM:
+      /* We should only reach here for BLKmode on VMS.  */
+      gcc_assert (TARGET_ABI_OPEN_VMS && mode == BLKmode);
+      regnum = 0;
+      break;
 
     default:
       gcc_unreachable ();
@@ -6260,12 +6290,11 @@ alpha_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 
   if (TARGET_ABI_OPEN_VMS)
     {
-      nextarg = plus_constant (nextarg, offset);
-      nextarg = plus_constant (nextarg, NUM_ARGS * UNITS_PER_WORD);
-      t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist,
-		  make_tree (ptr_type_node, nextarg));
+      t = make_tree (ptr_type_node, virtual_incoming_args_rtx);
+      t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t,
+		 size_int (offset + NUM_ARGS * UNITS_PER_WORD));
+      t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist, t);
       TREE_SIDE_EFFECTS (t) = 1;
-
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
     }
   else
@@ -6617,6 +6646,12 @@ alpha_init_builtins (void)
   tree ftype, decl;
 
   dimode_integer_type_node = lang_hooks.types.type_for_mode (DImode, 0);
+
+  /* Fwrite on VMS is non-standard.  */
+#if TARGET_ABI_OPEN_VMS
+  implicit_built_in_decls[(int) BUILT_IN_FWRITE] = NULL_TREE;
+  implicit_built_in_decls[(int) BUILT_IN_FWRITE_UNLOCKED] = NULL_TREE;
+#endif
 
   ftype = build_function_type (dimode_integer_type_node, void_list_node);
   alpha_add_builtins (zero_arg_builtins, ARRAY_SIZE (zero_arg_builtins),
@@ -7353,10 +7388,10 @@ alpha_sa_size (void)
     }
   else if (TARGET_ABI_OPEN_VMS)
     {
-      /* Start by assuming we can use a register procedure if we don't
-	 make any calls (REG_RA not used) or need to save any
-	 registers and a stack procedure if we do.  */
-      if ((mask[0] >> REG_RA) & 1)
+      /* Start with a stack procedure if we make any calls (REG_RA used), or
+	 need a frame pointer, with a register procedure if we otherwise need
+	 at least a slot, and with a null procedure in other cases.  */
+      if ((mask[0] >> REG_RA) & 1 || frame_pointer_needed)
 	alpha_procedure_type = PT_STACK;
       else if (get_frame_size() != 0)
 	alpha_procedure_type = PT_REGISTER;
@@ -7446,30 +7481,139 @@ alpha_initial_elimination_offset (unsigned int from,
   return ret;
 }
 
-int
-alpha_pv_save_size (void)
-{
-  alpha_sa_size ();
-  return alpha_procedure_type == PT_STACK ? 8 : 0;
-}
-
-int
-alpha_using_fp (void)
-{
-  alpha_sa_size ();
-  return vms_unwind_regno == HARD_FRAME_POINTER_REGNUM;
-}
-
 #if TARGET_ABI_OPEN_VMS
+
+int
+alpha_vms_can_eliminate (unsigned int from ATTRIBUTE_UNUSED, unsigned int to)
+{
+  /* We need the alpha_procedure_type to decide. Evaluate it now.  */
+  alpha_sa_size ();
+
+  switch (alpha_procedure_type)
+    {
+    case PT_NULL:
+      /* NULL procedures have no frame of their own and we only
+	 know how to resolve from the current stack pointer.  */
+      return to == STACK_POINTER_REGNUM;
+
+    case PT_REGISTER:
+    case PT_STACK:
+      /* We always eliminate except to the stack pointer if there is no
+	 usable frame pointer at hand.  */
+      return (to != STACK_POINTER_REGNUM
+	      || vms_unwind_regno != HARD_FRAME_POINTER_REGNUM);
+    }
+
+  gcc_unreachable ();
+}
+
+/* FROM is to be eliminated for TO. Return the offset so that TO+offset
+   designates the same location as FROM.  */
+
+HOST_WIDE_INT
+alpha_vms_initial_elimination_offset (unsigned int from, unsigned int to)
+{ 
+  /* The only possible attempts we ever expect are ARG or FRAME_PTR to
+     HARD_FRAME or STACK_PTR.  We need the alpha_procedure_type to decide
+     on the proper computations and will need the register save area size
+     in most cases.  */
+
+  HOST_WIDE_INT sa_size = alpha_sa_size ();
+
+  /* PT_NULL procedures have no frame of their own and we only allow
+     elimination to the stack pointer. This is the argument pointer and we
+     resolve the soft frame pointer to that as well.  */
+     
+  if (alpha_procedure_type == PT_NULL)
+    return 0;
+
+  /* For a PT_STACK procedure the frame layout looks as follows
+
+                      -----> decreasing addresses
+
+		   <             size rounded up to 16       |   likewise   >
+     --------------#------------------------------+++--------------+++-------#
+     incoming args # pretended args | "frame" | regs sa | PV | outgoing args #
+     --------------#---------------------------------------------------------#
+                                   ^         ^              ^               ^
+			      ARG_PTR FRAME_PTR HARD_FRAME_PTR       STACK_PTR
+
+			      
+     PT_REGISTER procedures are similar in that they may have a frame of their
+     own. They have no regs-sa/pv/outgoing-args area.
+
+     We first compute offset to HARD_FRAME_PTR, then add what we need to get
+     to STACK_PTR if need be.  */
+  
+  {
+    HOST_WIDE_INT offset;
+    HOST_WIDE_INT pv_save_size = alpha_procedure_type == PT_STACK ? 8 : 0;
+
+    switch (from)
+      {
+      case FRAME_POINTER_REGNUM:
+	offset = ALPHA_ROUND (sa_size + pv_save_size);
+	break;
+      case ARG_POINTER_REGNUM:
+	offset = (ALPHA_ROUND (sa_size + pv_save_size
+			       + get_frame_size ()
+			       + crtl->args.pretend_args_size)
+		  - crtl->args.pretend_args_size);
+	break;
+      default:
+	gcc_unreachable ();
+      }
+    
+    if (to == STACK_POINTER_REGNUM)
+      offset += ALPHA_ROUND (crtl->outgoing_args_size);
+    
+    return offset;
+  }
+}
+
+#define COMMON_OBJECT "common_object"
+
+static tree
+common_object_handler (tree *node, tree name ATTRIBUTE_UNUSED,
+		       tree args ATTRIBUTE_UNUSED, int flags ATTRIBUTE_UNUSED,
+		       bool *no_add_attrs ATTRIBUTE_UNUSED)
+{
+  tree decl = *node;
+  gcc_assert (DECL_P (decl));
+
+  DECL_COMMON (decl) = 1;
+  return NULL_TREE;
+}
 
 static const struct attribute_spec vms_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "overlaid",   0, 0, true,  false, false, NULL },
-  { "global",     0, 0, true,  false, false, NULL },
-  { "initialize", 0, 0, true,  false, false, NULL },
-  { NULL,         0, 0, false, false, false, NULL }
+  { COMMON_OBJECT,   0, 1, true,  false, false, common_object_handler },
+  { NULL,            0, 0, false, false, false, NULL }
 };
+
+void
+vms_output_aligned_decl_common(FILE *file, tree decl, const char *name,
+			       unsigned HOST_WIDE_INT size,
+			       unsigned int align)
+{
+  tree attr = DECL_ATTRIBUTES (decl);
+  fprintf (file, "%s", COMMON_ASM_OP);
+  assemble_name (file, name);
+  fprintf (file, "," HOST_WIDE_INT_PRINT_UNSIGNED, size);
+  /* ??? Unlike on OSF/1, the alignment factor is not in log units.  */
+  fprintf (file, ",%u", align / BITS_PER_UNIT);
+  if (attr)
+    {
+      attr = lookup_attribute (COMMON_OBJECT, attr);
+      if (attr)
+        fprintf (file, ",%s",
+		 IDENTIFIER_POINTER (TREE_VALUE (TREE_VALUE (attr))));
+    }
+  fputc ('\n', file);
+}
+
+#undef COMMON_OBJECT
 
 #endif
 
@@ -8466,12 +8610,15 @@ alpha_end_function (FILE *file, const char *fnname, tree decl ATTRIBUTE_UNUSED)
   insn = get_last_insn ();
   if (!INSN_P (insn))
     insn = prev_active_insn (insn);
-  if (CALL_P (insn))
+  if (insn && CALL_P (insn))
     output_asm_insn (get_insn_template (CODE_FOR_nop, NULL), NULL);
 
 #if TARGET_ABI_OSF
   if (cfun->is_thunk)
-    free_after_compilation (cfun);
+    {
+      memset (&crtl->emit, 0, sizeof (struct emit_status));
+      insn_locators_free ();
+    }
 #endif
 
 #if TARGET_ABI_OPEN_VMS
@@ -8522,7 +8669,7 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   HOST_WIDE_INT hi, lo;
   rtx this_rtx, insn, funexp;
 
-  gcc_assert (cfun->is_thunk);
+  insn_locators_alloc ();
 
   /* We always require a valid GP.  */
   emit_insn (gen_prologue_ldgp ());
@@ -8600,7 +8747,6 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
      instruction scheduling worth while.  Note that use_thunk calls
      assemble_start_function and assemble_end_function.  */
   insn = get_insns ();
-  insn_locators_alloc ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
   final (insn, file, 1);
@@ -9971,31 +10117,6 @@ alpha_write_linkage (FILE *stream, const char *funname, tree fundecl)
     }
 }
 
-/* Given a decl, a section name, and whether the decl initializer
-   has relocs, choose attributes for the section.  */
-
-#define SECTION_VMS_OVERLAY	SECTION_FORGET
-#define SECTION_VMS_GLOBAL SECTION_MACH_DEP
-#define SECTION_VMS_INITIALIZE (SECTION_VMS_GLOBAL << 1)
-
-static unsigned int
-vms_section_type_flags (tree decl, const char *name, int reloc)
-{
-  unsigned int flags = default_section_type_flags (decl, name, reloc);
-
-  if (decl && DECL_ATTRIBUTES (decl)
-      && lookup_attribute ("overlaid", DECL_ATTRIBUTES (decl)))
-    flags |= SECTION_VMS_OVERLAY;
-  if (decl && DECL_ATTRIBUTES (decl)
-      && lookup_attribute ("global", DECL_ATTRIBUTES (decl)))
-    flags |= SECTION_VMS_GLOBAL;
-  if (decl && DECL_ATTRIBUTES (decl)
-      && lookup_attribute ("initialize", DECL_ATTRIBUTES (decl)))
-    flags |= SECTION_VMS_INITIALIZE;
-
-  return flags;
-}
-
 /* Switch to an arbitrary section NAME with attributes as specified
    by FLAGS.  ALIGN specifies any known alignment requirements for
    the section; 0 if the default should be used.  */
@@ -10007,12 +10128,6 @@ vms_asm_named_section (const char *name, unsigned int flags,
   fputc ('\n', asm_out_file);
   fprintf (asm_out_file, ".section\t%s", name);
 
-  if (flags & SECTION_VMS_OVERLAY)
-    fprintf (asm_out_file, ",OVR");
-  if (flags & SECTION_VMS_GLOBAL)
-    fprintf (asm_out_file, ",GBL");
-  if (flags & SECTION_VMS_INITIALIZE)
-    fprintf (asm_out_file, ",NOMOD");
   if (flags & SECTION_DEBUG)
     fprintf (asm_out_file, ",NOWRT");
 
@@ -10876,8 +10991,6 @@ alpha_init_libfuncs (void)
 #if TARGET_ABI_OPEN_VMS
 # undef TARGET_ATTRIBUTE_TABLE
 # define TARGET_ATTRIBUTE_TABLE vms_attribute_table
-# undef TARGET_SECTION_TYPE_FLAGS
-# define TARGET_SECTION_TYPE_FLAGS vms_section_type_flags
 #endif
 
 #undef TARGET_IN_SMALL_DATA_P
