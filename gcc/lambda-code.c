@@ -166,7 +166,7 @@ lambda_body_vector_new (int size, struct obstack * lambda_obstack)
 {
   lambda_body_vector ret;
 
-  ret = (lambda_body_vector)obstack_alloc (lambda_obstack, sizeof (*ret));
+  ret = (lambda_body_vector) obstack_alloc (lambda_obstack, sizeof (*ret));
   LBV_COEFFICIENTS (ret) = lambda_vector_new (size);
   LBV_SIZE (ret) = size;
   LBV_DENOMINATOR (ret) = 1;
@@ -376,9 +376,10 @@ lambda_lattice_new (int depth, int invariants, struct obstack * lambda_obstack)
 {
   lambda_lattice ret
       = (lambda_lattice)obstack_alloc (lambda_obstack, sizeof (*ret));
-  LATTICE_BASE (ret) = lambda_matrix_new (depth, depth);
+  LATTICE_BASE (ret) = lambda_matrix_new (depth, depth, lambda_obstack);
   LATTICE_ORIGIN (ret) = lambda_vector_new (depth);
-  LATTICE_ORIGIN_INVARIANTS (ret) = lambda_matrix_new (depth, invariants);
+  LATTICE_ORIGIN_INVARIANTS (ret) = lambda_matrix_new (depth, invariants,
+						       lambda_obstack);
   LATTICE_DIMENSION (ret) = depth;
   LATTICE_INVARIANTS (ret) = invariants;
   return ret;
@@ -509,8 +510,8 @@ compute_nest_using_fourier_motzkin (int size,
   lambda_vector swapvector, a1;
   int newsize;
 
-  A1 = lambda_matrix_new (128, depth);
-  B1 = lambda_matrix_new (128, invariants);
+  A1 = lambda_matrix_new (128, depth, lambda_obstack);
+  B1 = lambda_matrix_new (128, invariants, lambda_obstack);
   a1 = lambda_vector_new (128);
 
   auxillary_nest = lambda_loopnest_new (depth, invariants, lambda_obstack);
@@ -663,12 +664,12 @@ lambda_compute_auxillary_space (lambda_loopnest nest,
   /* Unfortunately, we can't know the number of constraints we'll have
      ahead of time, but this should be enough even in ridiculous loop nest
      cases. We must not go over this limit.  */
-  A = lambda_matrix_new (128, depth);
-  B = lambda_matrix_new (128, invariants);
+  A = lambda_matrix_new (128, depth, lambda_obstack);
+  B = lambda_matrix_new (128, invariants, lambda_obstack);
   a = lambda_vector_new (128);
 
-  A1 = lambda_matrix_new (128, depth);
-  B1 = lambda_matrix_new (128, invariants);
+  A1 = lambda_matrix_new (128, depth, lambda_obstack);
+  B1 = lambda_matrix_new (128, invariants, lambda_obstack);
   a1 = lambda_vector_new (128);
 
   /* Store the bounds in the equation matrix A, constant vector a, and
@@ -763,11 +764,11 @@ lambda_compute_auxillary_space (lambda_loopnest nest,
   /* Now compute the auxiliary space bounds by first inverting U, multiplying
      it by A1, then performing Fourier-Motzkin.  */
 
-  invertedtrans = lambda_matrix_new (depth, depth);
+  invertedtrans = lambda_matrix_new (depth, depth, lambda_obstack);
 
   /* Compute the inverse of U.  */
   lambda_matrix_inverse (LTM_MATRIX (trans),
-			 invertedtrans, depth);
+			 invertedtrans, depth, lambda_obstack);
 
   /* A = A1 inv(U).  */
   lambda_matrix_mult (A1, invertedtrans, A, size, depth, depth);
@@ -804,18 +805,19 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
   depth = LN_DEPTH (auxillary_nest);
   invariants = LN_INVARIANTS (auxillary_nest);
 
-  inverse = lambda_matrix_new (depth, depth);
-  determinant = lambda_matrix_inverse (LTM_MATRIX (H), inverse, depth);
+  inverse = lambda_matrix_new (depth, depth, lambda_obstack);
+  determinant = lambda_matrix_inverse (LTM_MATRIX (H), inverse, depth,
+				       lambda_obstack);
 
   /* H1 is H excluding its diagonal.  */
-  H1 = lambda_matrix_new (depth, depth);
+  H1 = lambda_matrix_new (depth, depth, lambda_obstack);
   lambda_matrix_copy (LTM_MATRIX (H), H1, depth, depth);
 
   for (i = 0; i < depth; i++)
     H1[i][i] = 0;
 
   /* Computes the linear offsets of the loop bounds.  */
-  target = lambda_matrix_new (depth, depth);
+  target = lambda_matrix_new (depth, depth, lambda_obstack);
   lambda_matrix_mult (H1, inverse, target, depth, depth, depth);
 
   target_nest = lambda_loopnest_new (depth, invariants, lambda_obstack);
@@ -991,7 +993,8 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
    result.  */
 
 static lambda_vector
-lambda_compute_step_signs (lambda_trans_matrix trans, lambda_vector stepsigns)
+lambda_compute_step_signs (lambda_trans_matrix trans, lambda_vector stepsigns,
+			   struct obstack * lambda_obstack)
 {
   lambda_matrix matrix, H;
   int size;
@@ -1001,7 +1004,7 @@ lambda_compute_step_signs (lambda_trans_matrix trans, lambda_vector stepsigns)
 
   matrix = LTM_MATRIX (trans);
   size = LTM_ROWSIZE (trans);
-  H = lambda_matrix_new (size, size);
+  H = lambda_matrix_new (size, size, lambda_obstack);
 
   newsteps = lambda_vector_new (size);
   lambda_vector_copy (stepsigns, newsteps, size);
@@ -1095,14 +1098,14 @@ lambda_loopnest_transform (lambda_loopnest nest, lambda_trans_matrix trans,
 
   /* Compute the loop step signs from the old step signs and the
      transformation matrix.  */
-  stepsigns = lambda_compute_step_signs (trans1, stepsigns);
+  stepsigns = lambda_compute_step_signs (trans1, stepsigns, lambda_obstack);
 
   /* Compute the target loop nest space from the auxiliary nest and
      the lower triangular matrix H.  */
   target_nest = lambda_compute_target_space (auxillary_nest, H, stepsigns,
                                              lambda_obstack);
   origin = lambda_vector_new (depth);
-  origin_invariants = lambda_matrix_new (depth, invariants);
+  origin_invariants = lambda_matrix_new (depth, invariants, lambda_obstack);
   lambda_matrix_vector_mult (LTM_MATRIX (trans), depth, depth,
 			     LATTICE_ORIGIN (lattice), origin);
   lambda_matrix_mult (LTM_MATRIX (trans), LATTICE_ORIGIN_INVARIANTS (lattice),
@@ -2630,7 +2633,7 @@ lambda_transform_legal_p (lambda_trans_matrix trans,
       /* Conservatively answer: "this transformation is not valid".  */
       if (DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
 	return false;
-	  
+
       /* If the dependence could not be captured by a distance vector,
 	 conservatively answer that the transform is not valid.  */
       if (DDR_NUM_DIST_VECTS (ddr) == 0)
