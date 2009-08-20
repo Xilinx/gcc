@@ -72,6 +72,7 @@ struct dyn_cgraph_edge
 struct dyn_module_info
 {
   struct dyn_pointer_set *imported_modules;
+  gcov_unsigned_t max_func_ident;
 };
 
 struct dyn_cgraph
@@ -156,7 +157,17 @@ get_cgraph_node (gcov_type func_guid)
   gcov_unsigned_t mod_id, func_id;
 
   mod_id = get_module_idx_from_func_glob_uid (func_guid);
+
+  /* This is to workaround: calls in __static_initialization_and_destruction
+     should not be instrumented as the module id context for the callees have
+     not setup yet -- this leads to mod_id == (unsigned) (0 - 1). Multithreaded
+     programs may also produce insane func_guid in the profile counter.  */
+  if (mod_id >= the_dyn_call_graph.num_modules)
+    return 0;
+
   func_id = get_intra_module_func_id (func_guid);
+  if (func_id > the_dyn_call_graph.sup_modules[mod_id].max_func_ident)
+    return 0;
 
   return &the_dyn_call_graph.call_graph_nodes[mod_id][func_id];
 }
@@ -241,6 +252,8 @@ init_dyn_call_graph (void)
 
       the_dyn_call_graph.call_graph_nodes[mod_id]
           = XNEWVEC (struct dyn_cgraph_node, max_func_ident + 1);
+
+      the_dyn_call_graph.sup_modules[mod_id].max_func_ident = max_func_ident;
 
       for (j = 0; j < max_func_ident + 1; j++)
         init_dyn_cgraph_node (&the_dyn_call_graph.call_graph_nodes[mod_id][j], 0);
@@ -366,16 +379,14 @@ gcov_build_callgraph_dc_fn (struct dyn_cgraph_node *caller,
     {
       struct dyn_cgraph_node *callee;
       gcov_type count;
-      gcov_type callee_guid =  dir_call_counters[i];
+      gcov_type callee_guid = dir_call_counters[i];
+
       count = dir_call_counters[i + 1];
       if (count == 0)
         continue;
-      /* This is to workaround: calls in __static_initialization_and_destruction
-         should not be instrumented as the module id context for the calles have
-         not setup yet.  */
-      if (EXTRACT_MODULE_ID_FROM_GLOBAL_ID (callee_guid) == 0)
-        continue;
       callee = get_cgraph_node (callee_guid);
+      if (!callee)
+        continue;
       gcov_add_cgraph_edge (caller, callee, count);
     }
 }
@@ -398,15 +409,13 @@ gcov_build_callgraph_ic_fn (struct dyn_cgraph_node *caller,
           struct dyn_cgraph_node *callee;
           gcov_type count;
           gcov_type callee_guid = value_array[j];
+
           count = value_array[j + 1];
           if (count == 0)
             continue;
-          /* This is to workaround: calls in __static_initialization_and_destruction
-             should not be instrumented as the module id context for the calles have
-             not setup yet.  */
-          if (EXTRACT_MODULE_ID_FROM_GLOBAL_ID (callee_guid) == 0)
-            continue;
           callee = get_cgraph_node (callee_guid);
+          if (!callee)
+            continue;
           gcov_add_cgraph_edge (caller, callee, count);
         }
     }
