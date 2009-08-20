@@ -597,7 +597,7 @@ aggr_has_equiv_id (tree t1, tree t2)
 
 /* Return the canonical type of the type's main variant.  */
 static inline tree
-get_norm_type (tree type)
+get_norm_type (const_tree type)
 {
   tree cano_type = TYPE_MAIN_VARIANT (type);
   if (TYPE_CANONICAL (cano_type))
@@ -717,6 +717,7 @@ find_struct_types (tree *tp,
           {
             tree cano_type, name;
             tree context;
+            tree field;
 
             cano_type = get_norm_type (*tp);
             name = TYPE_NAME (cano_type);
@@ -736,10 +737,30 @@ find_struct_types (tree *tp,
 
             if (!pointer_set_insert (type_set, cano_type))
               VEC_safe_push (tree, heap, pending_types, cano_type);
+            else
+              return NULL_TREE; /* Or use walk tree without dups.  */
 
             context = TYPE_CONTEXT (cano_type);
             if (context && TYPE_P (context))
-              find_struct_types (&context, NULL, NULL);
+              walk_tree (&context, find_struct_types, NULL, NULL);
+
+            /* Instantiate a nested work as the tree walker does not
+               get to the fields.  */
+            if (TYPE_BINFO (cano_type))
+	      {
+                int i;
+                tree binfo, base_binfo;
+
+                for (binfo = TYPE_BINFO (cano_type), i = 0;
+                     BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
+                  walk_tree (&BINFO_TYPE (base_binfo), find_struct_types,
+                             NULL, NULL);
+              }
+            for (field = TYPE_FIELDS (cano_type);
+                 field != 0;
+                 field = TREE_CHAIN (field))
+              walk_tree (&TREE_TYPE (field), find_struct_types,
+                         NULL, NULL);
             return NULL_TREE;
           }
         default:
@@ -747,6 +768,7 @@ find_struct_types (tree *tp,
         }
     }
   else if (DECL_P (*tp))
+    /* walk tree does not walk down decls, so do a nested walk here.  */
     walk_tree (&(TREE_TYPE (*tp)), find_struct_types, NULL, NULL);
 
   return NULL_TREE;
@@ -776,21 +798,24 @@ cgraph_collect_type_referenced (void)
    for tbaa; return 0 if not. -1 is returned if it is unknown.  */
 
 int
-equivalent_struct_types_for_tbaa (tree t1, tree t2)
+equivalent_struct_types_for_tbaa (const_tree t1, const_tree t2)
 {
   struct type_ent key, *tent1, *tent2,  **slot;
+
+  if (!l_ipo_type_tab)
+    return -1;
 
   t1 = get_norm_type (t1);
   t2 = get_norm_type (t2);
 
-  key.type = t1;
+  key.type = (tree) (long) t1;
   slot = (struct type_ent **)
       htab_find_slot (l_ipo_type_tab, &key, NO_INSERT);
   if (!slot || !*slot)
     return -1;
   tent1 = *slot;
 
-  key.type = t2;
+  key.type = (tree) (long) t2;
   slot = (struct type_ent **)
       htab_find_slot (l_ipo_type_tab, &key, NO_INSERT);
   if (!slot || !*slot)
@@ -1002,7 +1027,7 @@ cgraph_unify_type_alias_sets (void)
   struct cgraph_node *node;
   struct varpool_node *pv;
 
-  if (!L_IPO_COMP_MODE || !flag_strict_aliasing)
+  if (!L_IPO_COMP_MODE)
     return;
   type_set = pointer_set_create ();
   type_hash_tab = htab_create (10, type_hash_hash,
@@ -1350,6 +1375,7 @@ cgraph_lipo_get_resolved_node (tree decl)
       || DECL_BUILT_IN (decl))
     return cgraph_node (decl);
 
+  /* if (gimple_has_body_p (decl)) */
   if (TREE_STATIC (decl))
     return cgraph_node (decl);
 
@@ -1417,8 +1443,10 @@ resolve_cgraph_node (struct cgraph_sym **slot, struct cgraph_node *node)
   decl1 = (*slot)->rep_decl;
   decl2 = node->decl;
 
-  decl1_defined = gimple_has_body_p (decl1);
-  decl2_defined = gimple_has_body_p (decl2);
+  /* Can not use gimple_has_body_p because there is no
+     guarantee functions are gimplified at this point.  */
+  decl1_defined = TREE_STATIC (decl1);
+  decl2_defined = TREE_STATIC (decl2);
 
   if (decl1_defined && !decl2_defined)
     return;

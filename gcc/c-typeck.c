@@ -1268,12 +1268,7 @@ tagged_types_tu_compatible_p (const_tree t1, const_tree t2,
 
   if (L_IPO_COMP_MODE)
     {
-      if ((TYPE_NAME (t1) != NULL)
-          && (TYPE_NAME (t2) != NULL)
-          && ((DECL_P (TYPE_NAME (t1)) && DECL_P (TYPE_NAME (t2))
-               && DECL_NAME (TYPE_NAME (t1)) == DECL_NAME (TYPE_NAME (t2)))
-              || (!DECL_P (TYPE_NAME (t1)) && !DECL_P (TYPE_NAME (t2))
-                  && TYPE_NAME (t1) == TYPE_NAME (t2))))
+      if (equivalent_struct_types_for_tbaa (t1, t2) == 1)
         return 1;
       else
         return 0;
@@ -3945,10 +3940,19 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
 		     that folding in this case even without
 		     warn_sign_compare to avoid warning options
 		     possibly affecting code generation.  */
+		  c_inhibit_evaluation_warnings
+		    += (ifexp == truthvalue_false_node);
 		  op1 = c_fully_fold (op1, require_constant_value,
 				      &op1_maybe_const);
+		  c_inhibit_evaluation_warnings
+		    -= (ifexp == truthvalue_false_node);
+
+		  c_inhibit_evaluation_warnings
+		    += (ifexp == truthvalue_true_node);
 		  op2 = c_fully_fold (op2, require_constant_value,
 				      &op2_maybe_const);
+		  c_inhibit_evaluation_warnings
+		    -= (ifexp == truthvalue_true_node);
 
 		  if (warn_sign_compare)
 		    {
@@ -9542,10 +9546,12 @@ build_binary_op (location_t location, enum tree_code code,
 		     build_conditional_expr.  This requires the
 		     "original" values to be folded, not just op0 and
 		     op1.  */
+		  c_inhibit_evaluation_warnings++;
 		  op0 = c_fully_fold (op0, require_constant_value,
 				      &op0_maybe_const);
 		  op1 = c_fully_fold (op1, require_constant_value,
 				      &op1_maybe_const);
+		  c_inhibit_evaluation_warnings--;
 		  orig_op0_folded = c_fully_fold (orig_op0,
 						  require_constant_value,
 						  NULL);

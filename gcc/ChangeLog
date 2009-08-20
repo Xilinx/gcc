@@ -1,3 +1,660 @@
+2009-08-11  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/predicates.md (qi_mask_operand, hi_mask_operand,
+	si_mask_operand, and_load_operand, low_bitmask_operand,
+	and_reg_operand, and_operand): New predicates.
+	* config/mips/constraints.md (Yb, Yh, Yw, Yz): New constraints.
+	* config/mips/mips.c (and_operands_ok): New function.
+	* config/mips/mips-protos.h (and_operands_ok): Declare it.
+	* config/mips/mips.md (move_type): Add ext_ins and logical.
+	(type): Handle them.
+	(and<mode>3): Use and_reg_operand as the second operand's
+	predicate.
+	(*and<mode>3): Add alternatives for lbu, lhu, lwu, <d>ext and
+	shift_shift.  Remove commutative constraint modifier.
+	(*and<mode>3_mips16): Add alternatives for lbu, lhu, lwu and
+	shift_shift.
+	(*clear_upper32_dext): Remove define_insn_and_split.
+	(*clear_upper32): Turn this define_insn_and_split ...
+	(splitter for ANDing register with 0xffff_ffff): .. into this.
+
+2009-08-11  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* combine.c (try_widen_shift_mode): Factor out code to check if an
+        integer constant is a low-order bitmask from here ...
+	* rtlanal.c (low_bitmask_len): ... to here.
+	* rtl.h (low_bitmask_len): Declare.
+
+2009-08-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/8603
+	* config/alpha/alpha.md (addsi3): Remove expander.
+	(addsi3): Rename from *addsi3_internal insn pattern.
+	(subsi3): Remove expander.
+	(subsi3): Rename from *subsi3_internal insn pattern.
+
+2009-08-11  Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c (alpha_init_builtins): Nullify FWRITE and
+	FWRITE_UNLOCKED.
+
+2009-08-11  Vasiliy Fofanov  <fofanov@adacore.com>
+	    Eric Botcazou  <botcazou@adacore.com>
+	    Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c (alpha_return_in_memory): On VMS, ensure
+	that records that fit in 64 bits are returned by immediate value,
+	as required by OpenVMS Calling Standard.
+	(function_value): Adjust for above modification.
+	(alpha_va_start) <TARGET_ABI_OPEN_VMS>: Use
+	virtual_incoming_args_rtx as base object, not next_arg.
+	* config/alpha/vms.h: (DEFAULT_PCC_STRUCT_RETURN): Define as 0.
+
+2009-08-11  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* reload.c (find_reloads_subreg_address): Check the original
+	req_equiv_mem address to detect the case where an address is
+	not valid in the outer mode.
+
+2009-08-11  Richard Guenther  <rguenther@suse.de>
+	
+	PR bootstrap/40788
+	* builtins.c (gimplify_va_arg_expr): Do not call SET_EXPR_LOCATION.
+
+2009-08-10  Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/vms.h (OPTIMIZATION_OPTIONS): Remove
+	(OVERRIDE_OPTIONS): Incorporate removed OPTIMIZATION_OPTIONS.
+
+2009-08-10  Olivier Hainque  <hainqueu@adacore.com>
+	    Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c (alpha_sa_size): Force procedure type to
+	PT_STACK when frame_pointer_needed on OpenVMS.
+	(alpha_pv_save_size, alpha_using_fp): Remove.
+	(alpha_vms_can_eliminate): New function. Support for CAN_ELIMINATE
+	with proper processing for PT_NULL.
+	(alpha_vms_initial_elimination_offset): New function. Support for
+	INITIAL_ELIMINATION_OFFSET with proper processing for PT_NULL.
+	(alpha_sa_size): Force procedure type to PT_STACK when
+	frame_pointer_needed on OpenVMS.
+	* config/alpha/alpha-protos.h (alpha_pv_save_size): Remove prototype.
+	(alpha_using_fp): Likewise.
+	(alpha_vms_can_eliminate): Add prototype.
+	(alpha_vms_initial_elimination_offset): Likewise.
+	* config/alpha/vms.h (CAN_ELIMINATE, INITIAL_ELIMINATION_OFFSET):
+	Call alpha_vms_can_eliminate and alpha_vms_initial_elimination_offset.
+
+2009-08-10  Eric Botcazou  <botcazou@adacore.com>
+	    Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c (common_object_handler): New function.
+	(vms_attribute_table): Declare a single attribute "common_object".
+	(vms_output_aligned_decl_common): New global function.
+	(SECTION_VMS_OVERLAY): Delete.
+	(SECTION_VMS_GLOBAL): Likewise.
+	(SECTION_VMS_INITIALIZE): Likewise.
+	(vms_asm_named_section): Remove support for above flags.
+	(vms_section_type_flags): Delete.
+	(TARGET_SECTION_TYPE_FLAGS): Likewise.
+	* config/alpha/alpha-protos.h (vms_output_aligned_decl_common): New.
+	* config/alpha/vms.h (ASM_OUTPUT_ALIGNED_COMMON): Delete.
+	(ASM_OUTPUT_ALIGNED_DECL_COMMON): New macro.
+
+2009-08-10  SUGIOKA Toshinobu  <sugioka@itonet.co.jp>
+
+	PR target/41015
+	* longlong.h [__sh__] (udiv_qrnnd): Add T register to clobber list.
+	(sub_ddmmss): Likewise.
+
+2009-08-10  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR bootstrap/41018
+	* config/rs6000/freebsd.h: Define SVR4_ASM_SPEC. Adjust copyright
+	year.
+
+2009-08-10  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR target/37053
+	* reload1.c (reload_as_needed): Use cancel_changes to completely
+	undo a failed replacement attempt.
+
+2009-08-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41006
+	* tree-ssa.c (useless_type_conversion_p_1): Fold into ...
+	(useless_type_conversion_p): ... here.  Require pointer targets
+	to be compatible.
+
+2009-08-10  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/40866
+	* tree-inline.c (copy_statement_list): The resulting copy shouldn't
+	loose the original type of the statement list.
+
+2009-08-09  Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c: Include libfuncs.h
+	(avms_asm_output_extern): New function.
+	(alpha_init_libfuncs): Init some decc libfuncs.
+	* config/alpha/alpha-protos.h (avms_asm_output_external): Declare.
+	* config/alpha/vms.h (ASM_OUTPUT_EXTERNAL): Define.
+	(DO_CRTL_NAMES): Define.
+	(LIB_SPEC): Remove.
+	* config/alpha/vms64.h: (POINTERS_EXTEND_UNSIGNED): Remove undef.
+	(LONG_TYPE_SIZE): Define.
+	(TARGET_OS_CPP_BUILTINS): Define with __LONG_POINTERS=1
+	(SUBTARGET_SWITCHES): Define malloc64 switch.
+	(TARGET_DEFAULT): Default MASK_MALLOC64 set.
+	(MASK_RETURN_ADDR): Define.
+	doc/invoke.texi (mmalloc64): Document switch.
+
+2009-08-09  Olivier Hainque  <hainque@adacore.com>
+	    Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c (struct machine_function): New flag for VMS,
+	uses_condition_handler.
+	(alpha_expand_builtin_establish_vms_condition_handler): New expander.
+	(alpha_expand_builtin_revert_vms_condition_handler): New expander.
+	(enum alpha_builtin): New ALPHA_BUILTIN_REVERT_VMS_CONDITION_HANDLER
+	and ALPHA_BUILTIN_ESTABLISH_VMS_CONDITION_HANDLER values.
+	(code_for_builtin): New insn codes for the new alpha_builtins.
+	(alpha_init_builtins): Register the new functions as BUILT_IN_MD.
+	(alpha_sa_size): Account for uses_condition_handler.
+	(alpha_expand_prologue): Likewise.
+	(alpha_start_function): Likewise.
+	(alpha_expand_epilogue): Likewise.
+	* config/alpha/alpha-protos.h: Prototype the new alpha.c builtin
+	establish/revert expanders.
+	* config/alpha/alpha.h (DWARF_FRAME_REGNUM): Define.
+	* config/alpha/alpha.md	(builtin_establish_vms_condition_handler):
+	New expander, resorting to the alpha.c associated function.
+	(builtin_revert_vms_condition_handler): Likewise.
+	* config/alpha/vms-gcc_shell_handler.c: New file. Implements
+	__gcc_shell_handler, the static VMS condition handler used as
+	an indirection wrapper to the current dynamically established
+	handler.
+	* config/alpha/vms-unwind.h: Complete rewrite.
+	* config/alpha/t-vms (LIB2FUNCS_EXTRA): Add vms-gcc_shell_handler.c
+	* config/alpha/vms.h (MD_UNWIND_SUPPORT):
+	
+2009-08-09  Eric Botcazou  <botcazou@adacore.com>
+	    Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c (alpha_links): Add 'target' field.
+	(alpha_need_linkage): Handle aliases.  Return function symbol.
+	(alpha_use_linkage): Rename 'linkage' argument to 'func'.
+	Use ultimate alias target for the linkage name.
+	* config/alpha/alpha.md (movmemdi): Use the symbol returned
+	by alpha_need_linkage for the function symbol.
+	(setmemdi): Likewise.
+
+2009-08-09  Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c (TARGET_ASM_UNALIGNED_*_OP): Define if on VMS.
+	* config/alpha/vms.h (OBJECT_FORMAT_ELF): Define.
+	(ASM_WEAKEN_LABEL): Define.
+	(CRT_CALL_STATIC_FUNCTION): Define.
+	(STARTFILE_SPEC): Add crtbegin.o crtbeginS.o.
+	(ENDFILE_SPEC): Define.
+	(INIT_SECTION_ASM_OP): Define.
+	* config/alpha/vms-dwarf2eh.asm (__EH_FRAME_BEGIN__): Remove.
+	* config/alpha/t-vms (EXTRA_PARTS): Add crtbegin.o crtbeginS.o
+	crtend.o crtendS.o.
+	(MULTILIB_OSDIRNAMES): Define.
+	(shlib_version): Define.
+	(SHLIB_EXT): Define.
+	(SHLIB_OBJS): Define.
+	(SHLIB_NAME): Define.
+	(SHLIB_MULTILIB): Define.
+	(SHLIB_INSTALL): Define.
+	(SHLIB_SYMVEC): Define.
+	(SHLIB_SYMVECX2): Define.
+	(SHLIB_LINK): Define.
+
+2009-08-09  Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/alpha.c (alpha_initialize_trampoline):
+	Initialize VMS trampoline IAW ABI for bounded procedure calls.
+	(alpha_start_function): Emit transfer address on nested functions
+	for VMS trampoline call.
+	* config/alpha/t-vms (LIB2FUNCS_EXTRA): Remove vms_tramp.asm
+	since no longer used.
+	* config/alpha/vms-tramp.asm: Remove.
+	* config/alpha/vms.h (TRAMPOLINE_TEMPLATE): Leave undefined
+	since now only data initialized at runtime.
+
+2009-08-09  Douglas B Rupp  <rupp@gnat.com>
+
+	* config/alpha/vms.h (HANDLE_SYSV_PRAGMA): Define.
+	(LINK_GCC_C_SEQUENCE_SPEC): Define.
+	(MD_EXEC_PREFIX): Remove, no longer used.
+	(MD_STARTFILE_PREFIX): Likewise.
+	(INCLUDE_DEFAULTS): Likewise.
+	* config/alpha/t-vms:
+	(vms-dwarf2.o, vms-dwarf2eh.o): Use GCC_FOR_TARGET to compile.
+
+2009-08-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41016
+	* tree-ssa-ifcombine.c (get_name_for_bit_test): Fix tuplification bug.
+	(operand_precision): Remove.
+	(integral_operand_p): Likewise.
+	(recognize_single_bit_test): Adjust.
+
+2009-08-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* c-common.c (c_fully_fold_internal): Issue a warning if a binary
+	operation overflows.  Likewise non-cast unary arithmetic.
+	If one arm of a conditional expression is always taken,
+	inhibit evaluation warnings for the other arm.  Likewise inhibit
+	evaluation warnings for the second && or || operand if the first
+	operand is enough to determine the result.
+	* c-typeck.c (build_conditional_expr): Apply the same inhibition
+	rules here.
+	(build_binary_op): Prevent duplicate evaluation warnings.
+
+2009-08-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* tree-out-of-ssa.c (insert_value_copy_on_edge): If the source
+	and destination have different modes, Use promote_mode to
+	determine the signedness of the conversion.  Assert that the
+	promoted source mode matches the destination mode.  Don't pass
+	the destination and destination mode to expand_expr if the source
+	mode is different.  Simplify conversion logic.
+
+2009-08-09  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/41008
+	* tree-vect-loop.c (vect_is_simple_reduction): Get operands
+	from condition only in case it's a comparison. Adjust checks.	
+
+2009-08-09  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* tree-dfa.c (renumber_gimple_stmt_uids_in_blocks): New function.
+	* tree-flow.h (renumber_gimple_stmt_uids_in_blocks): Declare it.
+	* tree-ssa-loop-ivopts.c (comp_cost): Make COST an integer.
+	(enum iv_position): Add IP_AFTER_USE and IP_BEFORE_USE.
+	(dump_cand): Handle them.
+	(struct iv_cand): New members COST_STEP and AINC_USE.
+	(stmt_after_increment): Likewise.
+	(stmt_after_inc_pos): Renamed from stmt_after_ip_original_pos.  All
+	callers changed.  Use gimple_uid comparison instead of scanning.
+	(add_candidate_1): When looking for identical candidates, take
+	AINC_USE into account.  Set it for new candidates.
+	(force_expr_to_var_cost): Cast target_spill_cost to int.
+	(get_address_cost): New arguments STMT_AFTER_INC and MAY_AUTOINC.
+	All callers changed.  Check for availability of autoinc addressing
+	modes, both in general for a given mode, and in the specific use case.
+	(get_computation_cost_at): New argument CAN_AUTOINC.  All callers
+	changed.
+	(get_computation_cost): Likewise.
+	(autoinc_possible_for_pair, set_autoinc_for_original_candidates,
+	add_autoinc_candidates): New static functions.
+	(add_candidate): Call add_autoinc_candidates for candidates based on
+	a USE_ADDRESS use.
+	(find_iv_candidates): Call set_autoinc_for_original_candidates.
+	(determine_use_iv_cost_address): If we have an autoinc candidate at
+	the matching use, verify autoinc is possible and subtract the cost
+	of the candidate's step from the cost.
+	(determine_iv_cost): Record the cost of the increment in the COST_STEP
+	member of the candidate.
+	(tree_ssa_iv_optimize_loop): Swap the calls to determine_iv_costs and
+	determine_use_iv_costs.  Call renumber_gimple_stmt_uids_in_blocks.
+
+2009-08-09  Douglas B Rupp  <rupp@gnat.com>
+
+	* config.build (ia64-hp-*vms*): New target.
+	(alpha64-dec-*vms*,alpha*-dec-*vms*): Fix for config/vms and unify
+	with ia64-hp-*vms*.
+	* config.gcc (ia64-hp-*vms*): New target.
+	(alpha64-dec-*vms*,alpha*-dec-*vms*): Fix for config/vms and unify
+	with ia64-hp-*vms*.
+	* config.host (ia64-hp-*vms*): New target.
+	(alpha64-dec-*vms*,alpha*-dec-*vms*): Fix for config/vms and unify
+	with ia64-hp-*vms*.
+
+2009-08-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40991
+	* tree-ssa-pre.c (eliminate): Delay purging EH edges.
+
+2009-08-08  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* combine.c (gen_lowpart_or_truncate): Exclude CONST_INTs from
+	mode check.  Do truncations in an integer mode.
+	(force_to_mode): Handle subregs for all mode types.  Only do
+	arithmetic simplifications on integer modes.
+
+2009-08-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40999
+	* tree-ssa-ccp.c (get_symbol_constant_value): Handle CONST_DECLs.
+	(maybe_fold_reference): Lookup constant initializers.
+	(fold_gimple_assign): Likewise.
+
+2009-08-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa.c (useless_type_conversion_p_1): Only for types
+	that require structural equality defer to the langhook.
+
+2009-08-07  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-prop.h (enum jump_func_type): New value IPA_JF_ANCESTOR, changed
+	comments.
+	(struct ipa_pass_through_data): New type.
+	(struct ipa_ancestor_jf_data): New type.
+	(union jump_func_value): Removed field formal_id, added fields
+	pass_through and ancestor.
+	(struct ipa_param_call_note): Changed type of formal_id to int from
+	unsigned.
+	* ipa-prop.c (ipa_print_node_jump_functions): Print pass through with
+	operations jump functions and ancestor jump functions.
+	(compute_complex_pass_through): New function.
+	(compute_scalar_jump_functions): Call compute_complex_pass_through,
+	reflect changes in the jump function strucutre.
+	(update_jump_functions_after_inlining): Ignore complex pass-through
+	and ancestor jump functions.
+	* ipa-cp.c (ipcp_lattice_from_jfunc): Added support for ancestor and
+	polynomial pass-through with operation jump functions.
+
+2009-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (output_fde): When doing hot/cold partitioning, use
+	fde->dw_fde_begin as begin label instead of hot/cold label.
+	Use LLSDAC label instead of LLSDA for second section lsda.
+	(dwarf2out_do_cfi_startproc): Add SECOND argument.  Use LLSDAC
+	label instead of LLSDA if it is true.
+	(dwarf2out_begin_prologue, dwarf2out_switch_text_section): Adjust
+	callers.
+	* except.c (add_call_site, dw2_size_of_call_site_table): Add
+	SECTION argument.  Use it as index into crtl->eh.call_site_record
+	array.
+	(dw2_output_call_site_table): Likewise.  Add CS_FORMAT argument,
+	use it to determine how to print table entries instead of using
+	#ifdef HAVE_AS_LEB128.  For SECTION > 0 use hot resp. cold
+	label instead of normal begin label as base.
+	(sjlj_assign_call_site_values): Adjust add_call_site caller.
+	(convert_to_eh_region_ranges): When doing hot/cold partitioning,
+	ensure no EH range spans between sections and that landing pads
+	are always in the corresponding section.
+	(sjlj_size_of_call_site_table, sjlj_output_call_site_table): Adjust
+	for crtl->eh.call_site_record being an array rather than scalar.
+	(output_one_function_exception_table): New function, copied
+	from output_function_exception_table.  Adjust
+	dw2_size_of_call_site_table, dw2_output_call_site_table
+	callers.  For SECOND section use *C suffixed labels.
+	(output_function_exception_table): Call
+	output_one_function_exception_table and, when doing hot/cold
+	partitioning, also another time for the second section.
+	* opts.c: Include except.h.
+	(decode_options): Allow -freorder-blocks-and-partition with
+	exceptions, unless SJLJ or TARGET_UNWIND_INFO.
+	* Makefile.in (opts.o): Depend on $(EXCEPT_H).
+	* function.h (struct rtl_eh): Change call_site_record from
+	scalar into array of 2 elements.
+
+2009-08-07  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-prop.c (count_formal_params_1): New function.
+	(ipa_get_vector_of_formal_parms): New function.
+	(get_vector_of_formal_parm_types): New function.
+	(ipa_modify_formal_parameters): New function.
+	(ipa_modify_call_arguments): New function.
+	(index_in_adjustments_multiple_times_p): New function.
+	(ipa_combine_adjustments): New function.
+	(ipa_dump_param_adjustments): New function.
+	* ipa-prop.h (struct ipa_parm_adjustment): New type.
+	(ipa_get_vector_of_formal_parms): Declare.
+	(ipa_modify_formal_parameters): Declare.
+	(ipa_modify_call_arguments): Declare.
+	(ipa_combine_adjustments): Declare.
+	(ipa_dump_param_adjustments): Declare.
+	(build_ref_for_offset): Declare.
+	* Makefile.in (tree-sra.o): Add ipa-prop.h to dependencies.
+	* tree-sra.c: Include ipa-prop.c.
+	(build_ref_for_offset): Make public. 
+
+2009-08-06  Neil Vachharajani  <nvachhar@gmail.com>
+
+	* value-prof.c (init_pid_map): Replace xmalloc with XCNEWVEC.
+	
+2009-08-06  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* gcc/doc/extend.texi (__builtin_extract_return_address)
+	(__builtin_frob_return_address): Document.
+
+2009-08-06  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/lib1funcs.asm (ARM_DIV_BODY): Add Thumb-2 implementation.
+	(udivsi3, aeabi_uidivmod, divsi3, aeabi_idivmod): Only use Thumb-1
+	implementation on ARMv6-M.
+
+2009-08-06  Richard Earnshaw  <rearnsha@arm.com>
+
+	* doc/extend.texi (pcs): Document new attribute for ARM.
+
+2009-08-06  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (pcs_attribute_args): Comment out unsupported attribute
+	variants.
+
+2009-08-06  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (arm_handle_pcs_attribute): Pass the entire name object to
+	warning ().
+
+2009-08-06  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (arm_handle_pcs_attribute): Use %qE in warning.
+
+2009-08-06  Richard Earnshaw  <rearnsha@arm.com>
+
+	Merge ARM/hard_vfp_branch to trunk.
+
+	2009-08-04  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (libcall_eq): New function.
+	(libcall_hash): New function.
+	(add_libcall): New function.
+	(arm_libcall_uses_aapcs_base): New function.
+	(arm_libcall_value): Use arm_libcall_uses_aapcs_base to check for
+	libcalls using the base PCS.
+	(arm_init_cumulative_args): Likewise.
+
+	2009-07-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (arm_libcall_value, arm_init_cumulative_args):
+	Use base ABI for conversion libfuncs between HFmode and SFmode.
+
+	2009-05-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (aapcs_vfp_sub_candidate): Use V2SImode and
+	V4SImode as representatives of all 64-bit and 128-bit vector
+	types.  Allow vector types without vector modes.
+	(aapcs_vfp_is_call_or_return_candidate): Handle vector types
+	without vector modes like BLKmode.
+	(aapcs_vfp_allocate): Handle TImode for non-TARGET_NEON like
+	BLKmode.  Avoid unsupported vector modes or TImode moves for
+	non-TARGET_NEON.
+	(aapcs_vfp_allocate_return_reg): Likewise.
+	(arm_vector_mode_supported_p): Only support V2SImode, V4HImode and
+	V8QImode if TARGET_NEON || TARGET_IWMMXT.
+
+	2009-05-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (arm_handle_pcs_attribute): New.
+	(arm_get_pcs_model): Pass attribute arguments to
+	arm_pcs_from_attribute.
+	(arm_init_cumulative_args): Use base AAPCS for conversions from
+	floating-point types to DImode.
+	(arm_attribute_table): Add pcs attribute.
+	(arm_handle_pcs_attribute): New.
+	* config/arm/bpabi.h (DECLARE_LIBRARY_RENAMES): When renaming
+	conversions from floating-point types to DImode, also declare them
+	to use base AAPCS and declare functions they call to use base
+	AAPCS and their RTABI names.
+
+	2009-05-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/invoke.texi (-mfloat-abi=@var{name}): Remove statement about
+	-mfloat-abi=hard not being supported for VFP.
+
+	2009-05-11  Kazu Hirata  <kazu@codesourcery.com>
+
+	* config/sparc/sparc.c (sparc_emit_float_lib_cmp): Pass a libcall
+	SYMBOL_REF to hard_libcall_value.
+
+	2009-03-05  Joseph Myers  <joseph@codesourcery.com>
+	    Richard Earnshaw  <rearnsha@arm.com>
+
+	* config/arm/arm.c (aapcs_layout_arg): Once a co-processor argument
+	has been put on the stack, all remaining co-processory arguments for
+	that co-processor also go on the stack.
+
+	2009-03-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (arm_return_in_memory): Handle returning
+	vectors of suitable size in registers also for AAPCS case.
+
+	2009-01-13  Richard Earnshaw <rearnsha@arm.com>
+
+	* doc/tm.texi (TARGET_LIBCALL_VALUE): Add missing end statement.
+
+	2008-12-09  Richard Earnshaw <rearnsha@arm.com>
+
+	ARM Hard-VFP calling convention
+	* target-def.h (TARGET_LIBCALL_VALUE): New hook.
+	* target.h (gcc_target): Add libcall_value to table of call hooks.
+	* targhooks.h (default_libcall_value): Default implementation.
+	* targhooks.c (default_libcall_value): Likewise.
+	* doc/tm.texi (TARGET_LIBCALL_VALUE): Document it.
+	* optabs.c (expand_unop): Use it.
+	* expr.h (hard_libcall_value): Pass the function RTX through.
+	* calls.c (emit_library_call_value_1): Update call to 
+	hard_libcall_value.
+	* explow.c (hard_libcall_value): Use new target hook.
+	* testsuite/lib/target-supports.exp
+	(check_effective_target_arm_hard_vfp_ok): New hook.
+	(check_effective_target_arm_neon_ok): Improve test for neon
+	availability.
+	* testsuite/gcc.target/arm/eabi1.c: Only run test in base variant.
+	* config/arm/arm.c: Include cgraph.h
+	(TARGET_FUNCTION_VALUE): Override default hook.
+	(arm_pcs_default): New variable.
+	(arm_override_options): Don't fault hard calling convention with VFP.
+	Add support for AAPCS variants.
+	(arm_function_value): Make static.  Handle AAPCS variants.
+	(arm_libcall_value): New function.
+	(arm_apply_result_size): Handle VFP registers in results.
+	(arm_return_in_memory): Rework all AAPCS variants; handle hard-vfp
+	conventions.
+	(pcs_attribute_args): New variable.
+	(arm_pcs_from_attribute): New function.
+	(arm_get_pcs_model): New function.
+	(aapcs_vfp_cum_init): New function.
+	(aapcs_vfp_sub_candidate): New function.
+	(aapcs_vfp_is_return_candidate): New function.
+	(aapcs_vfp_is_call_candidate): New function.
+	(aapcs_vfp_allocate): New function.
+	(aapcs_vfp_allocate_return_reg): New function.
+	(aapcs_vfp_advance): New function.
+	(aapcs_cp_arg_layout): New variable.
+	(aapcs_select_call_coproc): New function.
+	(aapcs_select_return_coproc): New function.
+	(aapcs_allocate_return_reg): New function.
+	(aapcs_libcall_value): New function.
+	(aapcs_layout_arg): New function.
+	(arm_init_cumulative_args): Initialize AAPCS args data.
+	(arm_function_arg): Handle AAPCS variants using new interface.
+	(arm_arg_parital_bytes): Likewise.
+	(arm_function_arg_advance): New function.
+	(arm_function_ok_for_sibcall): Ensure that sibling calls agree on
+	calling conventions.
+	(arm_setup_incoming_varargs): Handle new AAPCS args data.
+	* arm.h (NUM_VFP_ARG_REGS): Define.
+	(LIBCALL_VALUE): Update.
+	(FUNCTION_VALUE): Delete.
+	(FUNCTION_VALUE_REGNO_P): Add VFP regs.
+	(arm_pcs): New enum.
+	(CUMULATIVE_ARGS): New data to support AAPCS argument marshalling.
+	(FUNCTION_ARG_ADVANCE): Call arm_function_arg_advance.
+	(FUNCTION_ARG_REGNO_P): Add VFP regs.
+	* arm-protos.h (arm_function_arg_advance): Add.
+	(aapcs_libcall_value): Add.
+	(arm_function_value): Delete.
+
+2009-08-06  Uros Bizjak  <ubizjak@gmail.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/40957
+	* config/i386/i386.c (standard_sse_mode_p): Remove.
+	(standard_sse_constant_p): Return 2 for integer mode
+	vector_all_ones_operand when SSE2 is enabled.
+	(standard_sse_constant_opcode)<case 2>: Always return [v]pcmpeqd.
+	(ix86_expand_vector_move): Do not check for negative values from
+	standard_sse_constant_p.
+
+2009-08-06  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa.c (useless_type_conversion_p_1): Make function and
+	array type comparisons frontend independent.
+	* Makefile.in (tree-ssa.o): Add $(TARGET_H) dependency.
+	* tree-ssa-sccvn.c (copy_reference_ops_from_ref): Always fill
+	out array reference lower bound and element size operands.
+	(ao_ref_init_from_vn_reference): Properly compute the offset
+	for ARRAY_RANGE_REF.
+	(vn_reference_fold_indirect): Fill out array reference lower
+	bound and element size operands.
+	* tree-ssa-pre.c (phi_translate_1): Fail if we have to translate
+	a non gimple valued reference operand which can happen for
+	array reference lower bound or element size.
+	(create_component_ref_by_pieces_1): Properly generate the
+	element size operand for array references.
+
+2009-08-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40964
+	* tree.c (iterative_hash_host_wide_int): Export.
+	* tree.h (iterative_hash_host_wide_int): Declare.
+	* tree-ssa-structalias.c (heapvar_map): New struct.
+	(heapvar_map_eq): New function.
+	(heapvar_map_hash): Likewise.
+	(heapvar_lookup): Adjust.
+	(heapvar_insert): Likewise.
+	(make_constraint_from_heapvar): Allow multiple heap variables
+	per decl at different offsets.
+	(init_alias_heapvars): Adjust.
+
+2009-08-04  David Daney  <ddaney@caviumnetworks.com>
+
+	* config/mips/mips.h (TARGET_SYNC_AFTER_SC): New macro.
+	* mips_output_sync_loop (mips_output_sync_loop): Only emit
+	trailing sync if TARGET_SYNC_AFTER_SC.
+
+2009-08-05  David Daney  <ddaney@caviumnetworks.com>
+
+	* gcc/config/mips/sync.md (sync_compare_and_swap<mode>,
+	compare_and_swap_12, sync_add<mode>, sync_<optab>_12,
+	sync_old_<optab>_12, sync_new_<optab>_12, sync_nand_12,
+	sync_old_nand_12, sync_new_nand_12, sync_sub<mode>,
+	sync_old_add<mode>, sync_old_sub<mode>, sync_new_add<mode>,
+	sync_new_sub<mode>, sync_<optab><mode>, sync_old_<optab><mode>,
+	sync_new_<optab><mode>, sync_nand<mode>, sync_old_nand<mode>,
+	sync_new_nand<mode>, sync_lock_test_and_set<mode>,
+	test_and_set_12): Rewrite calls to mips_output_sync_loop.
+	* gcc/config/mips/mips-protos.h (mips_output_sync_loop): Make
+	the prototype declaration match the definition.
+	* gcc/config/mips/mips.c (mips_output_sync_loop):  Emit sync
+	instructions explicitly.  Add barrier_before and operands
+	parameters.
+	* gcc/config/mips/mips.h (MIPS_COMPARE_AND_SWAP,
+	MIPS_COMPARE_AND_SWAP_12, MIPS_SYNC_OP, MIPS_SYNC_OP_12,
+	MIPS_SYNC_OLD_OP_12, MIPS_SYNC_NEW_OP_12, MIPS_SYNC_OLD_OP,
+	MIPS_SYNC_NEW_OP, MIPS_SYNC_NAND, MIPS_SYNC_OLD_NAND,
+	MIPS_SYNC_NEW_NAND, MIPS_SYNC_EXCHANGE,
+	MIPS_SYNC_EXCHANGE_12): Remove sync instructions.
+
 2009-08-05  Andrew Pinski  <pinskia@gmail.com>
 
 	* tree-ssa-alias.c: Fix intervals to use [) syntax.

@@ -1,3 +1,73 @@
+2009-08-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41022
+	* trans-expr.c (gfc_conv_procedure_call): Handle procedure pointer
+	components as actual arguments.
+
+2009-08-10  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37425
+	* gfortran.h (struct gfc_namespace): New fields tb_uop_root and tb_op.
+	(gfc_find_typebound_user_op): New routine.
+	(gfc_find_typebound_intrinsic_op): Ditto.
+	(gfc_check_operator_interface): Now public routine.
+	* decl.c (gfc_match_generic): Match OPERATOR(X) or ASSIGNMENT(=).
+	* interface.c (check_operator_interface): Made public, renamed to
+	`gfc_check_operator_interface' accordingly and hand in the interface
+	as gfc_symbol rather than gfc_interface so it is useful for type-bound
+	operators, too.  Return boolean result.
+	(gfc_check_interfaces): Adapt call to `check_operator_interface'.
+	* symbol.c (gfc_get_namespace): Initialize new field `tb_op'.
+	(gfc_free_namespace): Free `tb_uop_root'-based tree.
+	(find_typebound_proc_uop): New helper function.
+	(gfc_find_typebound_proc): Use it.
+	(gfc_find_typebound_user_op): New method.
+	(gfc_find_typebound_intrinsic_op): Ditto.
+	* resolve.c (resolve_tb_generic_targets): New helper function.
+	(resolve_typebound_generic): Use it.
+	(resolve_typebound_intrinsic_op), (resolve_typebound_user_op): New.
+	(resolve_typebound_procedures): Resolve operators, too.
+	(check_uop_procedure): New, code from gfc_resolve_uops.
+	(gfc_resolve_uops): Moved main code to new `check_uop_procedure'.
+
+2009-08-10  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40940
+	* decl.c (gfc_match_type_spec): Match CLASS statement and warn about
+	missing polymorphism.
+	* gfortran.h (gfc_typespec): Add field 'is_class'.
+	* misc.c (gfc_clear_ts): Initialize 'is_class' to zero.
+	* resolve.c (type_is_extensible): New function to check if a derived
+	type is extensible.
+	(resolve_fl_variable_derived): Add error checks for CLASS variables.
+	(resolve_typebound_procedure): Disallow non-polymorphic passed-object
+	dummy arguments, turning warning into error.
+	(resolve_fl_derived): Use 'type_is_extensible'. Disallow non-polymorphic
+	passed-object dummy arguments for procedure pointer components,
+	turning warning into error. Add error check for CLASS components.
+
+2009-08-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40955
+	* gfortran.h (ext_attr_id_t): Add typedef for this enum.
+	(gfc_add_ext_attribute): Use it.
+	* decl.c (gfc_match_gcc_attributes): Ditto.
+	* expr.c (gfc_check_pointer_assign): Ditto.
+	* symbol.c (gfc_add_ext_attribute): Ditto.
+	(gfc_copy_attr): Copy also ext_attr.
+	* resolve.c (resolve_fl_derived,resolve_symbol): Ditto.
+	* module.c (mio_symbol_attribute): Save ext_attr in the mod file.
+
+2009-08-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40969
+	Revert:
+	2009-08-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40949
+	* trans-types.c (gfc_get_function_type): Fix typelist of
+	functions without argument.
+
 2009-08-05  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/40847

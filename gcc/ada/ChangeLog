@@ -1,3 +1,107 @@
+2009-08-10  Laurent GUERBY  <laurent@guerby.net>
+
+        * make.adb: Handle multilib
+	
+2009-08-10  Vincent Celier  <celier@adacore.com>
+
+	* prj-env.adb (Create_Config_Pragmas_File.Write_Temp_File): Do not use
+	the temporary file name in the error message when the temporary file
+	cannot be created.
+
+2009-08-10  Yannick Moy  <moy@adacore.com>
+
+	* gnat_ugn.texi: Fix typo
+
+2009-08-10  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch7.adb: Add ??? comment for last change
+
+2009-08-10  Vincent Celier  <celier@adacore.com>
+
+	* prj-env.adb (Add_To_Buffer): New procedure
+	(Create_Config_Pragmas_File): Write to temporary file in one shot
+	(Create_Mapping_File): Ditto
+	(Set_Ada_Paths): Ditto
+
+2009-08-10  Vincent Celier  <celier@adacore.com>
+
+	PR ada/17566
+	* xref_lib.adb (Print_Xref): Make sure that there is at least one space
+	between a declaration name and its type.
+
+2009-08-07  Javier Miranda  <miranda@adacore.com>
+
+	* exp_ch7.adb (Wrap_Transient_Expression): Add missing adjustment of
+	SCIL node.
+
+2009-08-07  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.adb (Warn_On_Unreferenced_Entity): Fix obvious typo.
+
+2009-08-07  Vincent Celier  <celier@adacore.com>
+
+	* gnatcmd.adb (GNATCmd): If -U is not used, one and only one main is
+	specified on the command line and there are switches in the Compiler
+	package of the project file, use these compilation switches to invoke
+	the tool.
+
+2009-08-07  Ben Brosgol  <brosgol@adacore.com>
+
+	* gnat_ugn.texi: Wordsmithing edits at beginning of gnatcheck chapter.
+
+2009-08-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch10.adb (Analyze_Proper_Body): Indicate name of missing subunit
+	even if not in main unit, to simplify debugging.
+
+2009-08-07  Arnaud Charlet  <charlet@adacore.com>
+
+	* gcc-interface/Makefile.in: Fix handling of GCC_FOR_TARGET.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2009-08-07  Robert Dewar  <dewar@adacore.com>
+
+	* types.ads: Minor reformatting
+	* sem_ch12.ads (Check_Generic_Child_Unit): Add missing documentation.
+	* frontend.adb, sem_warn.adb, sem_warn.ads: Fix spelling of
+	Output_Non_Modified_In_Out_Warnings.
+	* sem_ch13.adb: Remove ??? comment.
+
+2009-08-07  Vincent Celier  <celier@adacore.com>
+
+	* mlib-prj.adb (Build_Library): Include binder generate object file
+	for SAL when library name is only one character.
+
+2009-08-07  Thomas Quinot  <quinot@adacore.com>
+
+	* targparm.adb: Minor reformatting
+	* sem.adb: Minor reformatting
+	* exp_ch4.adb (Expand_N_Conditional_Expression): Add comment.
+
+2009-08-07  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-conf.adb: Remove duplicate directory separator in the output when
+	an object directory does not exist.
+
+2009-08-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_util.adb: Minor reformatting
+
+2009-08-07  Vincent Celier  <celier@adacore.com>
+
+	* mlib-prj.adb (Build_Library): Fixed bug in name of ALI file (wrong
+	length used).
+
+2009-08-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch9.adb (Expand_N_Protected_Type_Declaration): In Ravenscar mode,
+	detect non-static private components that will violate restriction
+	No_Implicit_Heap_Allocation.
+
+2009-08-07  Ben Brosgol  <brosgol@adacore.com>
+
+	* gnat_ugn.texi: Edited Rule Exemption section of gnatcheck chapter.
+
 2009-08-02  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/gigi.h (end_subprog_body): Tweak comment.
