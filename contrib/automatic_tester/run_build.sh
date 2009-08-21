@@ -13,6 +13,7 @@ INSTALL_DIR_CURRENT=${INSTALL_DIR}/${DATE}
 BUILD_DIR_CURRENT=${BUILD_DIR}/${DATE}
 OBJ_DIR_CURRENT=${OBJ_DIR}/${DATE}
 SRC_DIR_CURRENT=${SRC_DIR}
+EXTRA_TESTS_OUTPUT=${LOG_DIR_CURRENT}/extra_tests_output
 
 if [  -z "${IGNORE_RUNNING}" -a -e ${LOG_DIR}/running ]; then
 	exit 0
@@ -68,7 +69,8 @@ echo 'LD_LIBRARY_PATH='${INSTALL_DIR_CURRENT}'/lib64:${LD_LIBRARY_PATH}' \
 
 mail_success () {
   ATTACHMENTS=""
-  for file in `ls ${LOG_DIR_CURRENT}/*.compare`; do
+  for file in `ls ${LOG_DIR_CURRENT}/*.compare \
+      ${EXTRA_TESTS_OUTPUT}`; do
     if [ -s ${file} ] ; then
       ATTACHMENTS="${ATTACHMENTS} -a ${file}"
     fi
@@ -102,7 +104,8 @@ mail_status () {
 mail_failure () {
   ATTACHMENTS=""
   for file in `ls ${LOG_DIR_CURRENT}/*.compare \
-  	       ${LOG_DIR_CURRENT}/build_single_thread.log` ; do
+      ${LOG_DIR_CURRENT}/build_single_thread.log \
+      ${EXTRA_TESTS_OUTPUT}` ; do
     ATTACHMENTS="${ATTACHMENTS} -a ${file}"
   done
   echo "BUILD FAILED" >> ${LOG_DIR_CURRENT}/info.log
@@ -267,7 +270,8 @@ if [ ${RUN_EXTRA_TESTS} -ne 0 ]; then
     mail_status
     if [ -e ${EXTRA_TEST_DIR}/go.sh ]; then
 	. ${LOG_DIR_CURRENT}/gcc_env.sh
-	${EXTRA_TEST_DIR}/go.sh ${DATE} > ${LOG_DIR_CURRENT}/extra_test.log 2>&1 
+	mkdir -p ${EXTRA_TESTS_OUTPUT}
+	${EXTRA_TEST_DIR}/go.sh ${DATE} ${EXTRA_TESTS_OUTPUT} > ${LOG_DIR_CURRENT}/extra_test.log 2>&1
     fi
 fi
 
