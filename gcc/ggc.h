@@ -236,7 +236,6 @@ extern void dump_ggc_loc_statistics (bool);
 /* Type-safe, C++-friendly versions of ggc_alloc() and gcc_calloc().  */
 #define GGC_NEW(T)		((T *) ggc_alloc (sizeof (T)))
 #define GGC_CNEW(T)		((T *) ggc_alloc_cleared (sizeof (T)))
-#define GGC_NEWVEC(T, N)	((T *) ggc_alloc ((N) * sizeof(T)))
 #define GGC_RESIZEVEC(T, P, N)  ((T *) ggc_realloc ((P), (N) * sizeof (T)))
 #define GGC_NEWVAR(T, S)	((T *) ggc_alloc ((S)))
 #define GGC_CNEWVAR(T, S)	((T *) ggc_alloc_cleared ((S)))
@@ -244,7 +243,8 @@ extern void dump_ggc_loc_statistics (bool);
 
 #define ggc_internal_alloc(T)       GGC_NEW(T)
 #define ggc_internal_cleared_alloc(T) GGC_CNEW(T)
-#define ggc_internal_vec_alloc(T, C)  GGC_NEWVEC(T, C)
+#define ggc_internal_vec_alloc(T, C)  \
+  ((T *) ggc_alloc ((C) * sizeof(T)))
 #define ggc_internal_cleared_vec_alloc(T, C)	\
   ((T *) ggc_alloc_cleared ((C) * sizeof(T)))
 

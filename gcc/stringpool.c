@@ -215,7 +215,7 @@ gt_pch_n_S (const void *x)
    to restore the string pool.  */
 
 struct GTY(()) string_pool_data {
-  struct ht_identifier * * 
+  ht_identifier_ptr *
     GTY((length ("%h.nslots"),
 	 nested_ptr (union tree_node, "%h ? GCC_IDENT_TO_HT_IDENT (%h) : NULL",
 		     "%h ? HT_IDENT_TO_GCC_IDENT (%h) : NULL")))
@@ -234,7 +234,7 @@ gt_pch_save_stringpool (void)
   spd = ggc_alloc_string_pool_data ();
   spd->nslots = ident_hash->nslots;
   spd->nelements = ident_hash->nelements;
-  spd->entries = GGC_NEWVEC (struct ht_identifier *, spd->nslots);
+  spd->entries = ggc_alloc_vec_ht_identifier_ptr (spd->nslots);
   memcpy (spd->entries, ident_hash->entries,
 	  spd->nslots * sizeof (spd->entries[0]));
 }

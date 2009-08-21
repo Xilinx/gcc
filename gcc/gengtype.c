@@ -2977,7 +2977,8 @@ write_local (type_p structures, type_p param_structs)
 
 #define USED_BY_TYPED_GC(s)						\
   (((s->kind == TYPE_POINTER)						\
-    && ((s->gc_used == GC_POINTED_TO) || (s->gc_used == GC_USED)))	\
+    && ((s->u.p->gc_used == GC_POINTED_TO)				\
+	|| (s->u.p->gc_used == GC_USED)))				\
    || (UNION_OR_STRUCT_P (s) &&						\
        (((s)->gc_used == GC_POINTED_TO)					\
 	|| ((s)->gc_used == GC_MAYBE_POINTED_TO				\
@@ -3717,8 +3718,6 @@ write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
 	continue;
       write_typed_struct_alloc_def (s, "", false);
       write_typed_struct_alloc_def (s, "cleared_", false);
-      write_typed_struct_alloc_def (s, "vec_", true);
-      write_typed_struct_alloc_def (s, "cleared_vec_", true);
       write_typed_struct_alloc_def (s, "vec_", true);
       write_typed_struct_alloc_def (s, "cleared_vec_", true);
     }

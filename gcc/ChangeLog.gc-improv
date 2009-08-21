@@ -1,3 +1,16 @@
+2009-08-21  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* ggc.h (GGC_NEWVEC): Remove.
+	(ggc_internal_vec_alloc): Redefine.
+	* gengtype.c (USED_BY_TYPED_GC): Adjust definition for pointer
+	types.
+	(write_typed_alloc_defns): Remove extraneous
+	write_typed_struct_alloc_def calls.
+	* stringpool.c (struct string_pool_data): use ht_identifier_ptr *
+	instead of ht_identifier * *.
+	(gt_pch_save_stringpool): Use typed GC allocation instead of
+	GGC_NEWVEC.
+
 2009-08-20  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* lambda.h (lambda_matrix_new, lambda_matrix_inverse): New
