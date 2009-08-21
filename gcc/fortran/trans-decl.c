@@ -578,6 +578,29 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
   if (sym->attr.threadprivate
       && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)))
     DECL_TLS_MODEL (decl) = decl_default_tls_model (decl);
+
+  if (!sym->attr.target
+      && !sym->attr.pointer
+      && !sym->attr.proc_pointer
+      /* For now, don't bother with aggregate types.  We would need
+         to adjust DECL_CONTEXT of all field decls.  */
+      && !AGGREGATE_TYPE_P (TREE_TYPE (decl)))
+    {
+      tree type = TREE_TYPE (decl);
+      if (!TYPE_LANG_SPECIFIC (type))
+	TYPE_LANG_SPECIFIC (type) = (struct lang_type *)
+	  ggc_alloc_cleared (sizeof (struct lang_type));
+      if (!TYPE_LANG_SPECIFIC (type)->nontarget_type)
+	{
+	  alias_set_type set = new_alias_set ();
+	  type = build_distinct_type_copy (type);
+	  TYPE_ALIAS_SET (type) = set;
+	  TYPE_LANG_SPECIFIC (type)->nontarget_type = type;
+	}
+      else
+	type = TYPE_LANG_SPECIFIC (type)->nontarget_type;
+      TREE_TYPE (decl) = type;
+    }
 }
 
 
@@ -840,7 +863,8 @@ gfc_build_dummy_array_decl (gfc_symbol * sym, tree dummy)
 	}
 
       type = gfc_typenode_for_spec (&sym->ts);
-      type = gfc_get_nodesc_array_type (type, sym->as, packed);
+      type = gfc_get_nodesc_array_type (type, sym->as, packed,
+					!sym->attr.target);
     }
   else
     {
@@ -1796,16 +1820,7 @@ create_function_arglist (gfc_symbol * sym)
 	      /* This can happen if the same type is used for multiple
 		 arguments. We need to copy cl as otherwise
 		 cl->passed_length gets overwritten.  */
-	      gfc_charlen *cl, *cl2;
-	      cl = f->sym->ts.u.cl;
-	      f->sym->ts.u.cl = gfc_get_charlen();
-	      f->sym->ts.u.cl->length = cl->length;
-	      f->sym->ts.u.cl->backend_decl = cl->backend_decl;
-	      f->sym->ts.u.cl->length_from_typespec = cl->length_from_typespec;
-	      f->sym->ts.u.cl->resolved = cl->resolved;
-	      cl2 = f->sym->ts.u.cl->next;
-	      f->sym->ts.u.cl->next = cl;
-              cl->next = cl2;
+	      f->sym->ts.u.cl = gfc_new_charlen (f->sym->ns, f->sym->ts.u.cl);
             }
 	  f->sym->ts.u.cl->passed_length = length;
 
@@ -3435,7 +3450,13 @@ gfc_trans_use_stmts (gfc_namespace * ns)
 	      st = gfc_find_symtree (ns->sym_root,
 				     rent->local_name[0]
 				     ? rent->local_name : rent->use_name);
-	      gcc_assert (st && st->n.sym->attr.use_assoc);
+	      gcc_assert (st);
+
+	      /* Sometimes, generic interfaces wind up being over-ruled by a
+		 local symbol (see PR41062).  */
+	      if (!st->n.sym->attr.use_assoc)
+		continue;
+
 	      if (st->n.sym->backend_decl
 		  && DECL_P (st->n.sym->backend_decl)
 		  && st->n.sym->module

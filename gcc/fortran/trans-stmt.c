@@ -1017,8 +1017,8 @@ gfc_trans_do (gfc_code * code)
       tmp = fold_convert (utype, tmp);
       tmp = fold_build2 (TRUNC_DIV_EXPR, utype, tmp,
 			 fold_convert (utype, step));
-      tmp = build2 (MODIFY_EXPR, void_type_node, countm1, tmp);
-      pos = build2 (COMPOUND_EXPR, void_type_node, pos, tmp);
+      tmp = fold_build2 (MODIFY_EXPR, void_type_node, countm1, tmp);
+      pos = fold_build2 (COMPOUND_EXPR, void_type_node, pos, tmp);
 
       tmp = fold_build2 (GT_EXPR, boolean_type_node, to, from);
       neg = fold_build3 (COND_EXPR, void_type_node, tmp,
@@ -1029,8 +1029,8 @@ gfc_trans_do (gfc_code * code)
       tmp = fold_build2 (TRUNC_DIV_EXPR, utype, tmp,
 			 fold_convert (utype, fold_build1 (NEGATE_EXPR,
 							   type, step)));
-      tmp = build2 (MODIFY_EXPR, void_type_node, countm1, tmp);
-      neg = build2 (COMPOUND_EXPR, void_type_node, neg, tmp);
+      tmp = fold_build2 (MODIFY_EXPR, void_type_node, countm1, tmp);
+      neg = fold_build2 (COMPOUND_EXPR, void_type_node, neg, tmp);
 
       tmp = fold_build3 (COND_EXPR, void_type_node, pos_step, pos, neg);
       gfc_add_expr_to_block (&block, tmp);
@@ -2694,7 +2694,7 @@ gfc_trans_pointer_assign_need_temp (gfc_expr * expr1, gfc_expr * expr2,
       parmtype = gfc_get_element_type (TREE_TYPE (desc));
       parmtype = gfc_get_array_type_bounds (parmtype, loop.dimen,
                                             loop.from, loop.to, 1,
-					    GFC_ARRAY_UNKNOWN);
+					    GFC_ARRAY_UNKNOWN, true);
 
       /* Allocate temporary for nested forall construct.  */
       tmp1 = allocate_temp_for_forall_nest (nested_forall_info, parmtype,

@@ -519,10 +519,6 @@ package body Make is
    Last_Argument : Natural := 0;
    --  Last index of arguments in Arguments above
 
-   Arguments_Collected : Boolean := False;
-   --  Set to True when the arguments for the next invocation of the compiler
-   --  have been collected.
-
    Arguments_Project : Project_Id;
    --  Project id, if any, of the source to be compiled
 
@@ -645,7 +641,7 @@ package body Make is
    --  the fact that this ALI file is read-only.
 
    procedure Process_Multilib;
-   --  Add appropriate --RTS argument to handle multilib.
+   --  Add appropriate --RTS argument to handle multilib
 
    ----------------------------------------------------
    -- Compiler, Binder & Linker Data and Subprograms --
@@ -1359,32 +1355,24 @@ package body Make is
    --------------------------------
 
    procedure Change_To_Object_Directory (Project : Project_Id) is
-      Actual_Project   : Project_Id;
       Object_Directory : Path_Name_Type;
 
    begin
-      --  For sources outside of any project, compilation occurs in the object
-      --  directory of the main project, otherwise we use the project given.
-
-      if Project = No_Project then
-         Actual_Project := Main_Project;
-      else
-         Actual_Project := Project;
-      end if;
+      pragma Assert (Project /= No_Project);
 
       --  Nothing to do if the current working directory is already the correct
       --  object directory.
 
-      if Project_Of_Current_Object_Directory /= Actual_Project then
-         Project_Of_Current_Object_Directory := Actual_Project;
-         Object_Directory := Actual_Project.Object_Directory.Name;
+      if Project_Of_Current_Object_Directory /= Project then
+         Project_Of_Current_Object_Directory := Project;
+         Object_Directory := Project.Object_Directory.Name;
 
          --  Set the working directory to the object directory of the actual
          --  project.
 
          if Verbose_Mode then
             Write_Str  ("Changing to object directory of """);
-            Write_Name (Actual_Project.Display_Name);
+            Write_Name (Project.Display_Name);
             Write_Str  (""": """);
             Write_Name (Object_Directory);
             Write_Line ("""");
@@ -1399,9 +1387,9 @@ package body Make is
       when Directory_Error =>
          Make_Failed ("unable to change to object directory """ &
                       Path_Or_File_Name
-                        (Actual_Project.Object_Directory.Name) &
+                        (Project.Object_Directory.Name) &
                       """ of project " &
-                      Get_Name_String (Actual_Project.Display_Name));
+                      Get_Name_String (Project.Display_Name));
    end Change_To_Object_Directory;
 
    -----------
@@ -2201,7 +2189,6 @@ package body Make is
       Args           : Argument_List)
    is
    begin
-      Arguments_Collected := True;
       Arguments_Project := No_Project;
       Last_Argument := 0;
       Add_Arguments (Args);
@@ -2502,13 +2489,12 @@ package body Make is
       procedure Check_Standard_Library;
       --  Check if s-stalib.adb needs to be compiled
 
-      procedure Collect_Arguments_And_Compile
-        (Source_File  : File_Name_Type;
-         Source_Index : Int);
+      procedure Collect_Arguments_And_Compile (Source_Index : Int);
       --  Collect arguments from project file (if any) and compile
 
       function Compile
-        (S            : File_Name_Type;
+        (Project      : Project_Id;
+         S            : File_Name_Type;
          L            : File_Name_Type;
          Source_Index : Int;
          Args         : Argument_List) return Process_Id;
@@ -2709,22 +2695,12 @@ package body Make is
       -- Collect_Arguments_And_Compile --
       -----------------------------------
 
-      procedure Collect_Arguments_And_Compile
-        (Source_File  : File_Name_Type;
-         Source_Index : Int)
-      is
+      procedure Collect_Arguments_And_Compile (Source_Index : Int) is
       begin
          --  Process_Created will be set True if an attempt is made to compile
          --  the source, that is if it is not in an externally built project.
 
          Process_Created := False;
-
-         --  If arguments not yet collected (in Check), collect them now
-
-         if not Arguments_Collected then
-            Collect_Arguments
-              (Source_File, Source_Index, Source_File = Main_Source, Args);
-         end if;
 
          --  If we use mapping file (-P or -C switches), then get one
 
@@ -2769,13 +2745,10 @@ package body Make is
                   end;
                end if;
 
-               --  Change to object directory of the project file, if necessary
-
-               Change_To_Object_Directory (Arguments_Project);
-
                Pid :=
                  Compile
-                   (File_Name_Type (Arguments_Path_Name),
+                   (Arguments_Project,
+                    File_Name_Type (Arguments_Path_Name),
                     Lib_File,
                     Source_Index,
                     Arguments (1 .. Last_Argument));
@@ -2786,12 +2759,13 @@ package body Make is
             --  If this is a source outside of any project file, make sure it
             --  will be compiled in object directory of the main project file.
 
-            if Main_Project /= No_Project then
-               Change_To_Object_Directory (Arguments_Project);
-            end if;
-
-            Pid := Compile (Full_Source_File, Lib_File, Source_Index,
-                            Arguments (1 .. Last_Argument));
+            Pid :=
+              Compile
+                (Main_Project,
+                 Full_Source_File,
+                 Lib_File,
+                 Source_Index,
+                 Arguments (1 .. Last_Argument));
             Process_Created := True;
          end if;
       end Collect_Arguments_And_Compile;
@@ -2801,7 +2775,8 @@ package body Make is
       -------------
 
       function Compile
-        (S            : File_Name_Type;
+        (Project      : Project_Id;
+         S            : File_Name_Type;
          L            : File_Name_Type;
          Source_Index : Int;
          Args         : Argument_List) return Process_Id
@@ -2984,6 +2959,12 @@ package body Make is
 
          Comp_Last := Comp_Last + 1;
          Comp_Args (Comp_Last) := new String'(Name_Buffer (1 .. Name_Len));
+
+         --  Change to object directory of the project file, if necessary
+
+         if Project /= No_Project then
+            Change_To_Object_Directory (Project);
+         end if;
 
          GNAT.OS_Lib.Normalize_Arguments (Comp_Args (Args'First .. Comp_Last));
 
@@ -3225,8 +3206,6 @@ package body Make is
                --  The source file that we are checking can be located
 
                else
-                  Arguments_Collected := False;
-
                   Collect_Arguments (Source_File, Source_Index,
                                      Source_File = Main_Source, Args);
 
@@ -3314,8 +3293,7 @@ package body Make is
                         --  Start the compilation and record it. We can do
                         --  this because there is at least one free process.
 
-                        Collect_Arguments_And_Compile
-                          (Source_File, Source_Index);
+                        Collect_Arguments_And_Compile (Source_Index);
 
                         --  Make sure we could successfully start
                         --  the Compilation.
@@ -7304,7 +7282,6 @@ package body Make is
    ----------------------
 
    procedure Process_Multilib is
-
       Output_FD         : File_Descriptor;
       Output_Name       : String_Access;
       Arg_Index         : Natural := 0;
@@ -7319,6 +7296,9 @@ package body Make is
    begin
       pragma Assert (N_M_Switch > 0 and RTS_Specified = null);
 
+      --  This loop needs commenting ??? In fact this entire body is
+      --  under-commented ??? And the spec is not much help :-(
+
       for Next_Arg in 1 .. Argument_Count loop
          declare
             Argv : constant String := Argument (Next_Arg);
@@ -7327,11 +7307,14 @@ package body Make is
               and then Argv (1) = '-'
               and then Argv (2) = 'm'
               and then Argv /= "-margs"
+
+              --  Ignore -mieee to avoid spawning an extra gcc in this case
+
+              and then Argv /= "-mieee"
             then
                Arg_Index := Arg_Index + 1;
                Args (Arg_Index) := new String'(Argv);
             end if;
-
          end;
       end loop;
 
@@ -7345,22 +7328,24 @@ package body Make is
          Multilib_Gcc := Gcc;
       end if;
 
-      Multilib_Gcc_Path :=
-        GNAT.OS_Lib.Locate_Exec_On_Path (Multilib_Gcc.all);
+      Multilib_Gcc_Path := GNAT.OS_Lib.Locate_Exec_On_Path (Multilib_Gcc.all);
 
       Create_Temp_File (Output_FD, Output_Name);
+
       if Output_FD = Invalid_FD then
          return;
       end if;
 
-      GNAT.OS_Lib.Spawn (Multilib_Gcc_Path.all, Args, Output_FD,
-                         Return_Code, False);
+      GNAT.OS_Lib.Spawn
+        (Multilib_Gcc_Path.all, Args, Output_FD, Return_Code, False);
       Close (Output_FD);
+
       if Return_Code /= 0 then
          return;
       end if;
 
       Output_FD := Open_Read (Output_Name.all, Binary);
+
       if Output_FD = Invalid_FD then
          return;
       end if;
@@ -7369,8 +7354,8 @@ package body Make is
       Close (Output_FD);
       Delete_File (Output_Name.all, Success);
 
-      for I in reverse 1 .. N_Read loop
-         if Line (I) = ASCII.CR or Line (I) = ASCII.LF then
+      for J in reverse 1 .. N_Read loop
+         if Line (J) = ASCII.CR or else Line (J) = ASCII.LF then
             N_Read := N_Read - 1;
          else
             exit;
@@ -7382,9 +7367,7 @@ package body Make is
       end if;
 
       Scan_Make_Arg ("-margs", And_Save => True);
-      Scan_Make_Arg ("--RTS=" & Line (1 .. N_Read),
-                     And_Save => True);
-
+      Scan_Make_Arg ("--RTS=" & Line (1 .. N_Read), And_Save => True);
    end Process_Multilib;
 
    -----------------------------
@@ -7396,6 +7379,7 @@ package body Make is
       Seen : Project_Boolean_Htable.Instance := Project_Boolean_Htable.Nil;
 
       procedure Recurse (Prj : Project_Id; Depth : Natural);
+      --  Recursive procedure that does the work, keeping track of the depth
 
       -------------
       -- Recurse --
@@ -7861,7 +7845,9 @@ package body Make is
             Add_Switch (Argv, Compiler, And_Save => And_Save);
             Add_Switch (Argv, Linker, And_Save => And_Save);
 
-            if Argv (2) = 'm' then
+            if Argv (2) = 'm'
+              and then Argv /= "-mieee"
+            then
                N_M_Switch := N_M_Switch + 1;
             end if;
 

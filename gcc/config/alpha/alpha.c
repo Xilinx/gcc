@@ -200,6 +200,7 @@ static rtx alpha_emit_xfloating_compare (enum rtx_code *, rtx, rtx);
 
 #if TARGET_ABI_OPEN_VMS
 static void alpha_write_linkage (FILE *, const char *, tree);
+static bool vms_valid_pointer_mode (enum machine_mode);
 #endif
 
 static void unicosmk_output_deferred_case_vectors (FILE *);
@@ -773,6 +774,12 @@ alpha_in_small_data_p (const_tree exp)
 }
 
 #if TARGET_ABI_OPEN_VMS
+static bool
+vms_valid_pointer_mode (enum machine_mode mode)
+{
+  return (mode == SImode || mode == DImode);
+}
+
 static bool
 alpha_linkage_symbol_p (const char *symname)
 {
@@ -2665,6 +2672,13 @@ alpha_emit_conditional_move (rtx cmp, enum machine_mode mode)
   enum machine_mode cmov_mode = VOIDmode;
   int local_fast_math = flag_unsafe_math_optimizations;
   rtx tem;
+
+  if (cmp_mode == TFmode)
+    {
+      op0 = alpha_emit_xfloating_compare (&code, op0, op1);
+      op1 = const0_rtx;
+      cmp_mode = DImode;
+    }
 
   gcc_assert (cmp_mode == DFmode || cmp_mode == DImode);
 
@@ -8596,13 +8610,8 @@ alpha_end_function (FILE *file, const char *fnname, tree decl ATTRIBUTE_UNUSED)
   insn = get_last_insn ();
   if (!INSN_P (insn))
     insn = prev_active_insn (insn);
-  if (CALL_P (insn))
+  if (insn && CALL_P (insn))
     output_asm_insn (get_insn_template (CODE_FOR_nop, NULL), NULL);
-
-#if TARGET_ABI_OSF
-  if (cfun->is_thunk)
-    free_after_compilation (cfun);
-#endif
 
 #if TARGET_ABI_OPEN_VMS
   alpha_write_linkage (file, fnname, decl);
@@ -8652,7 +8661,7 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   HOST_WIDE_INT hi, lo;
   rtx this_rtx, insn, funexp;
 
-  gcc_assert (cfun->is_thunk);
+  insn_locators_alloc ();
 
   /* We always require a valid GP.  */
   emit_insn (gen_prologue_ldgp ());
@@ -8730,7 +8739,6 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
      instruction scheduling worth while.  Note that use_thunk calls
      assemble_start_function and assemble_end_function.  */
   insn = get_insns ();
-  insn_locators_alloc ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
   final (insn, file, 1);

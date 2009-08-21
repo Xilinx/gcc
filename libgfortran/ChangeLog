@@ -1,3 +1,39 @@
+2009-08-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/40962
+	* iso_c_binding.c (c_f_pointer_u0):  Multiply stride by
+	previous stride.
+
+2009-08-20  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.am (LTLDFLAGS): Add -bindir flag.
+	* Makefile.in: Regenerate.
+
+2009-08-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41075
+	* io/io.h (enum format_token): Add FMT_STAR.
+	* io/format.c (format_lex): Add case for FMT_STAR.
+	(parse_format_list): Parse FMT_STAR and check for left paren
+	after. (next_format0): Modify helper function to check for
+	unimited format and return the repeated format node.  Update
+	comments to clarify.
+	
+2009-08-15  Kai Tietz  <kai.tietz@onevision.com>
+
+	* intrinsics/string_intrinsics_inc.c (string_len_trim): Use
+	__INTPTR_TYPE__ to cast from pointer to scalar integer, if
+	__INTPTR_TYPE is defined.
+
+2009-08-14  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* fmain.c: Add comment saying file is deprecated.
+
+2009-08-14  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/40863
+	* gfortran.map: Move new symbols to GFORTRAN_C99_1.1 version node.
+
 2009-08-09 Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
 
 	PR libfortran/40549

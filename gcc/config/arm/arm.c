@@ -3696,7 +3696,7 @@ aapcs_vfp_sub_candidate (const_tree type, enum machine_mode *modep)
 
 static bool
 aapcs_vfp_is_call_or_return_candidate (enum machine_mode mode, const_tree type,
-				       int *base_mode,
+				       enum machine_mode *base_mode,
 				       int *count)
 {
   if (GET_MODE_CLASS (mode) == MODE_FLOAT
@@ -3733,7 +3733,7 @@ aapcs_vfp_is_return_candidate (enum arm_pcs pcs_variant,
 			       enum machine_mode mode, const_tree type)
 {
   int count ATTRIBUTE_UNUSED;
-  int ag_mode ATTRIBUTE_UNUSED;
+  enum machine_mode ag_mode ATTRIBUTE_UNUSED;
 
   if (!(pcs_variant == ARM_PCS_AAPCS_VFP
 	|| (pcs_variant == ARM_PCS_AAPCS_LOCAL
@@ -3818,7 +3818,7 @@ aapcs_vfp_allocate_return_reg (enum arm_pcs pcs_variant ATTRIBUTE_UNUSED,
   if (mode == BLKmode || (mode == TImode && !TARGET_NEON))
     {
       int count;
-      int ag_mode;
+      enum machine_mode ag_mode;
       int i;
       rtx par;
       int shift;
@@ -11558,14 +11558,23 @@ output_mov_long_double_arm_from_arm (rtx *operands)
   return "";
 }
 
-
-/* Emit a MOVW/MOVT pair.  */
-void arm_emit_movpair (rtx dest, rtx src)
-{
-  emit_set_insn (dest, gen_rtx_HIGH (SImode, src));
-  emit_set_insn (dest, gen_rtx_LO_SUM (SImode, dest, src));
-}
-
+void
+arm_emit_movpair (rtx dest, rtx src)
+ {
+  /* If the src is an immediate, simplify it.  */
+  if (CONST_INT_P (src))
+    {
+      HOST_WIDE_INT val = INTVAL (src);
+      emit_set_insn (dest, GEN_INT (val & 0x0000ffff));
+      if ((val >> 16) & 0x0000ffff)
+        emit_set_insn (gen_rtx_ZERO_EXTRACT (SImode, dest, GEN_INT (16),
+                                             GEN_INT (16)),
+                       GEN_INT ((val >> 16) & 0x0000ffff));
+      return;
+    }
+   emit_set_insn (dest, gen_rtx_HIGH (SImode, src));
+   emit_set_insn (dest, gen_rtx_LO_SUM (SImode, dest, src));
+ }
 
 /* Output a move from arm registers to an fpa registers.
    OPERANDS[0] is an fpa register.

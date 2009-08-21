@@ -1,3 +1,7 @@
+2009-08-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (150764:150992).
+
 2009-08-18  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* cfgloopmanip.c (create_empty_loop_on_edge): Generate upper

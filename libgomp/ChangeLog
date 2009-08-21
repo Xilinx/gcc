@@ -1,3 +1,14 @@
+2009-08-20  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.am (libgomp_la_LDFLAGS): Add -bindir flag.
+	* Makefile.in: Regenerate.
+
+2009-08-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41102
+	omp_lib.h.in: Fix -std=f95 errors.
+
+
 2009-08-14  David Edelsohn  <edelsohn@gnu.org>
 
 	* testsuite/libgomp.graphite: Move from gcc.dg/graphite.

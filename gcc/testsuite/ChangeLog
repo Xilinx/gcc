@@ -1,3 +1,178 @@
+2009-08-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gfortran.dg/boz_9.f90: Do not generate denormal floating
+	point numbers.  Remove -mieee option for alpha*-*-* targets.
+
+2009-08-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41106
+	* gfortran.dg/proc_ptr_23.f90: New.
+	* gfortran.dg/proc_ptr_comp_15.f90: New.
+	* gfortran.dg/proc_ptr_comp_16.f90: New.
+	* gfortran.dg/proc_ptr_comp_17.f90: New.
+
+2009-08-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41131
+	* g++.dg/expr/unary3.C: New test.
+
+2009-08-21  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gfortran.dg/common_5.f: Add -mdalign for sh.
+	* gfortran.dg/common_align_2.f90: Likewise.
+
+2009-08-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/40962
+	* c_f_pointer_tests_4.f90:  New test.
+
+2009-08-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/slice6.adb: New test.
+	* gnat.dg/slice6_pkg.ads: New helper.
+
+2009-08-20  Michael Matz  <matz@suse.de>
+
+	PR fortran/41126
+	* gfortran.dg/pr41126.f90: New test.
+
+2009-08-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/dynamic_bound.adb: New test.
+
+2009-08-20  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41121
+	* gfortran.dg/intrinsic_5.f90: New.
+
+2009-08-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+	    Richard Earnshaw  <richard.earnshaw@arm.com>
+
+	* testsuite/gcc.target/arm/20090811-1.c: New test.
+
+2009-08-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/41123
+	* gcc.dg/pr41123.c: New test.
+
+2009-08-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41120
+	* g++.dg/other/gc4.C: New.
+
+2009-08-18  Michael Matz  <matz@suse.de>
+
+	* gfortran.dg/vect/vect-gems.f90: New test.
+	* gcc.dg/tree-ssa/alias-1.c: Remove, it checks something broken.
+
+2009-08-18  DJ Delorie  <dj@redhat.com>
+
+	* lib/wrapper.exp: Move load of target-libpath.exp from here...
+	* lib/gcc-defs.exp: ... to here.
+
+	* lib/wrapper.exp (${tool}_maybe_build_wrapper): Set up
+	GCC_EXEC_PREFIX before building the wrapper.
+
+2009-08-18  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.dg/vect/vect.exp: Add new stanza for aligned-section-anchors-*
+	tests.
+	* gcc.dg/vect/section-anchors-nest-1.c: Rename to...
+	* gcc.dg/vect/aligned-section-anchors-nest-1.c: ...this.  Remove
+	dg-options.  Fix dg-final clause.
+
+2009-08-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/cdce3.C: Add -mieee for alpha*-*-* targets.
+
+2009-08-18  Janus Weil  <janus@gcc.gnu.org>
+	    Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40870
+	* gfortran.dg/proc_ptr_comp_13.f90: Extended.
+
+2009-08-18  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41094
+	* gcc.dg/torture/pr41094.c: New testcase.
+	* gcc.dg/torture/builtin-power-1.c: Adjust.
+	* gcc.dg/builtins-10.c: Likewise.
+
+2009-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/40971
+	* gcc.dg/pr40971.c: New test.
+
+2008-08-17  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41062
+	* gfortran.dg/use_only_4.f90: New test.
+
+2009-08-17  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37425
+	* gfortran.dg/typebound_operator_2.f03: Test for error with illegal
+	NOPASS bindings as operators.
+
+2009-08-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_vect_cmdline_needed): Add alpha to the list
+	of targets that do not need command line argument to enable SIMD.
+
+2009-08-17  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* lib/target-supports.exp (check_effective_target_mpc_pow): Fix
+	typo in cache name.
+
+2009-08-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41075
+	* gfortran.dg/unlimited_fmt_1.f90: New test.
+
+2009-08-17  Dodji Seketeli  <dodji@redhat.com>
+
+	* gcc.dg.debug/dwarf2/inline2.c: Add -dA to compile options.
+
+2009-08-17  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/itype.ad[sb]: New test.
+
+2009-08-16  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp: Add terminology section to comment
+	at the top of the file.  Fix typos.
+
+2009-08-16  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/debug/dwarf2/inline1.C: New.
+
+2009-08-16  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/38599
+	* gcc.target/mips/smartmips-lwxs.c: Remove -mlong32.
+
+2009-08-16  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/37801
+	* gcc/testsuite/gcc.dg/debug/20020224-1.c: Adjust the comment.
+	Make sure to trigger inlining optimizations.
+	* gcc/testsuite/gcc.dg/debug/dwarf2/inline2.c: New test.
+
+2009-08-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41070
+	* gfortran.dg/structure_constructor_10.f90: New.
+
+2009-08-14  Olatunji Ruwase <tjruwase@google.com>
+
+	* gcc.dg/pragma-re-1.c: Supported on all platforms.
+	* gcc.dg/pragma-re-2.c: Likewise.
+	* gcc.dg/pragma-re-3.c: Likewise.
+	* gcc.dg/pragma-re-4.c: Likewise.
+	* g++.dg/other/pragma-re-1.C: Likewise.
+	* g++.dg/other/pragma-re-2.C: Likewise.
+
 2009-08-14  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	* gcc.dg/torture/builtin-math-7.c: New.
@@ -243,7 +418,7 @@
 	    H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/40957
-	* gcc.target/i386/pr40957: New test.
+	* gcc.target/i386/pr40957.c: New test.
 
 2009-08-06  Richard Guenther  <rguenther@suse.de>
 
