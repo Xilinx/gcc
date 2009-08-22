@@ -1,3 +1,218 @@
+2009-08-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/30_threads/packaged_task/requirements/typedefs.cc: Add
+	missing dg-require directives.
+
+2009-08-20  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/tr1/gamma.tcc: Change include guard from _TR1_GAMMA_TCC
+	to _GLIBCXX_TR1_GAMMA_TCC to match the rest of the headers in tr1.
+	* include/tr1/exp_integral.tcc: Replace _TR1_GAMMA_TCC with
+	__numeric_constants<_Tp>::__gamma_e().
+
+2009-08-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/30_threads/packaged_task/requirements/typedefs.cc: New.
+
+2009-08-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Move guarded checks for CC and CXX ...
+	* acinclude.m4 (GLIBCXX_CONFIGURE): ... from here.
+	* configure: Regenerate.
+
+2009-08-14  Edward Smith-Rowland  <3dw4rd@verizon.net>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/41061
+	* include/bits/random.h (operator<<(std::basic_ostream<>&,
+	const std::lognormal_distribution<>&), 
+	operator>>(std::basic_istream<>&, std::lognormal_distribution<>&),
+	operator<<(std::basic_ostream<>&, const std::gamma_distribution<>&),
+	operator>>(std::basic_istream<>&, std::gamma_distribution<>&),
+	operator<<(std::basic_ostream<>&,
+	const std::chi_squared_distribution<>&),
+	operator>>(std::basic_istream<>&, std::chi_squared_distribution<>&),
+	operator<<(std::basic_ostream<>&,
+	const std::fisher_f_distribution<>&),
+	operator>>(std::basic_istream<>&, std::fisher_f_distribution<>&),
+	operator<<(std::basic_ostream<>&,
+	const std::student_t_distribution<>&),
+	operator>>(std::basic_istream<>&, std::student_t_distribution<>&),
+	operator<<(std::basic_ostream<>&,
+	const std::negative_binomial_distribution<>&)): Declare friend.
+	* testsuite/26_numerics/random/uniform_real_distribution/operators/
+	serialize.cc: New.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	operators/serialize.cc
+	* testsuite/26_numerics/random/student_t_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/operators/
+	serialize.cc: Likewise.
+
+2009-08-14  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/bits/stl_tree.h: In C++0x mode make erase return
+	an iterator as per DR 130.
+	* include/bits/stl_set.h: Same.
+	* include/bits/stl_multiset.h: Same.
+	* include/bits/stl_map.h: Same.
+	* include/bits/stl_multimap.h: Same.
+	* doc/xml/manual/intro.xml: Document.
+	* testsuite/23_containers/set/dr130.cc: New.
+	* testsuite/23_containers/multiset/dr130.cc: New.
+	* testsuite/23_containers/map/dr130.cc: New.
+	* testsuite/23_containers/multimap/dr130.cc: New.
+
+2009-08-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pointer.h: Add pragma system_header, use
+	_GLIBCXX_USE_LONG_LONG, macro cleanup.
+
+2009-08-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* src/compatibility-ldbl.cc: Include cmath.
+
+2009-08-13  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/compatibility-ldbl.cc: Include tr1/functional.
+
+2009-08-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/compatibility-ldbl.cc: Add explicit namespace scope.
+
+2009-08-11  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/precompiled/extc++.h: Don't include TR1 if C++0x.
+	* include/precompiled/stdc++.h: Don't include cassert if
+	_GLIBCXX_NO_ASSERT defined.
+	* include/ext/cast.h (_GLIBCXX_BEGIN_NAMESPACE): Remove extra
+	semi-colon.
+	* include/ext/pointer.h (_GCC_CXX_POINTER_COMPARISON_OPERATION_SET):
+	Same.
+
+	* testsuite/17_intro/headers/all.cc: Move into dialect-specific
+	directory.
+	* testsuite/17_intro/headers/all_pedantic_errors.cc: Same.
+	* testsuite/17_intro/headers/all_assert_neg.cc: Same.
+	* testsuite/17_intro/headers/all_c++200x_compatibility.cc: Same.
+
+	* testsuite/17_intro/headers/c++1998/all.cc: Use extc++.h include.
+	* testsuite/17_intro/headers/c++1998/stdc++.cc: Converted all.cc,
+	use stdc++.h include.
+	* testsuite/17_intro/headers/c++1998/all_pedantic_errors.cc: Same.
+	* testsuite/17_intro/headers/c++1998/stdc++_assert_neg.cc: Same.
+	* testsuite/17_intro/headers/c++1998/all_c++200x_compatibility.cc: Same.
+	* testsuite/17_intro/headers/c++1998/all_no_exceptions.cc: New.
+	* testsuite/17_intro/headers/c++1998/all_multiple_inclusion.cc: To...
+	* testsuite/17_intro/headers/c++1998/stdc++_multiple_inclusion.cc
+	...this.
+	* testsuite/17_intro/headers/c++200x/all.cc: To...
+	* testsuite/17_intro/headers/c++200x/stdc++.cc: ..this.
+	* testsuite/17_intro/headers/c++200x/all_multiple_inclusion.cc: To...
+	* testsuite/17_intro/headers/c++200x/stdc++_multiple_inclusion.cc:
+	...this.
+	* testsuite/17_intro/headers/c++200x/all_no_exceptions.cc: New.
+	* testsuite/17_intro/headers/c++200x/all_pedantic_errors.cc: New.
+
+2009-08-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/future: Move error handling bits outside macro guard.
+	* src/future.cc: Adjust.
+
+	* include/precompiled/stdc++.h: Add future.
+	* doc/xml/manual/using.xml: Same.
+
+2009-08-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/hashtable.cc: Just definitions.
+	* src/hashtable_c++0x.cc: Compile C++0x versions.
+	* src/hash.cc: Same.
+	* src/hash_c++0x.cc: Same.
+	src/hash_tr1.cc: Compile TR1 versions.
+	src/hashtable_tr1.cc: Same.
+
+	* src/limits_c++0x.cc: Sync build error handling.
+
+	* src/Makefile.am (sources): Change hash.cc to hash_tr1.cc,
+	hashtable.cc to hashtable_tr1.cc.
+	* src/Makefile.in: Regenerate.
+
+2009-08-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/tr1_impl/functional: Doxygen markup.
+
+	* doc/html/*: Regenerate.
+
+2009-08-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/future: Fixes for -fno-exceptions.
+	* include/bits/functexcept.h: Same.
+	* libsupc++/exception_ptr.h: Same.
+	* src/pool_allocator.cc: Same.
+	* src/future.cc: Same.
+	* src/functexcept.cc: Same.
+	* config/abi/pre/gnu.ver: New exports.
+	* testsuite/30_threads/packaged_task/cons/assign_neg.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/unique_future/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/unique_future/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/shared_future/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/promise/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/promise/cons/copy_neg.cc: Same.
+
+	* testsuite/23_containers/deque/operators/1.cc: Separate in two...
+	* testsuite/23_containers/deque/operators/2.cc: New.
+
+2009-08-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash.cc (hash<string>::operator()(string),
+	hash<wstring>::operator()(wstring)): Do not decorate as throwing
+	nothing.
+	* include/bits/functional_hash.h (hash<error_code>::
+	operator()(error_code)): Likewise.
+
+2009-08-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/compatibility.cc: Make C++0x safe, add in explicit casts to
+        bool for stream sentry objects.
+        * include/bits/istream.tcc: Same.
+        * include/bits/ostream.tcc: Same.
+        * include/bits/basic_string.tcc: Same.
+	* include/bits/ostream_insert.h: Same.
+        * src/istream.cc: Same.
+
 2009-08-04  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/15523

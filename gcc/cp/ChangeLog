@@ -1,3 +1,74 @@
+2009-08-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41131
+	* tree.c (lvalue_p_1) <case CONST_DECL>: Return clk_none if
+	not TREE_STATIC.
+
+2009-08-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41119
+	PR c++/41120
+	* decl2.c (mark_used): Increment function_depth during synthesis.
+	* parser.c (cp_parser_default_argument): Not here.
+
+2009-08-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* method.c (use_thunk): Call free_after_compilation after
+	assemble_end_function.
+
+2009-08-17  Richard Guenther  <rguenther@suse.de>
+
+	* decl.c (build_ptrmemfunc_type): Keep variant chain intact.
+	Avoid useless copy.
+	(finish_enum): Keep variant chain intact.
+	* tree.c (cp_build_reference_type): Likewise.
+
+2009-08-16  Jason Merrill  <jason@redhat.com>
+
+	Make TREE_USED match the [basic.def.odr] concept for FUNCTION_DECL
+	and VAR_DECL, so mark_used only has effect the first time.
+	* decl2.c (mark_used): Just return if TREE_USED is already set.
+	Don't set TREE_USED if cp_unevaluated_operand is set.
+	(tree_used_ok): New fn.
+	* init.c (build_offset_ref): Check it instead of TREE_USED.
+	* call.c (build_call_a): Likewise.
+	* cp-tree.h: Declare it.
+	(DECL_NO_LINKAGE_CHECKED): No longer needed.
+	(struct lang_decl_base): Remove no_linkage_checked bitfield.
+
+	* decl2.c (finish_static_data_member_decl): Don't set TREE_USED.
+
+	* decl2.c (mark_used): It's ok to synthesize for default args now.
+
+2009-08-10  Jason Merrill  <jason@redhat.com>
+
+	Implement DR 757: It's OK for a decl to use a type without linkage
+	so long as the decl is defined in the current translation unit.
+	* decl2.c (no_linkage_decls): New vector.
+	(mark_used): Add decls that use types with no linkage.
+	(cp_write_global_declarations): Check that they are defined.
+	(decl_defined_p, no_linkage_error): New fns.
+	* cp-tree.h (DECL_NO_LINKAGE_CHECKED): New macro.
+	(struct lang_decl_base): Add flag.
+	* decl.c (grokfndecl): Don't check type linkage.
+	(grokvardecl): If the type has no linkage, just make sure
+	DECL_LANG_SPECIFIC is set.
+	* pt.c (check_instantiated_arg): Don't check type linkage.
+	* name-lookup.c (is_local_extern): New fn.
+	* name-lookup.h: Declare it.
+
+2009-08-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40948
+	* init.c (build_vec_init): Evaluate the initializer before
+	starting the initialization try block.
+
+2009-08-05  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/36069
+	* typeck.c (convert_for_assignment): Do not warn for any boolean
+	variant. Use explicit location.
+
 2009-08-04  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/39987

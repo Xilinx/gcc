@@ -142,7 +142,7 @@ print_scattering_function (FILE *file, poly_bb_p pbb)
 {
   graphite_dim_t i;
 
-  if (!PBB_TRANSFORMED_SCATTERING (pbb))
+  if (!PBB_TRANSFORMED (pbb))
     return;
 
   fprintf (file, "scattering bb_%d (\n", GBB_BB (PBB_BLACK_BOX (pbb))->index);
@@ -255,36 +255,30 @@ apply_poly_transforms (scop_p scop)
     gcc_unreachable (); /* Not yet supported.  */
 
   if (flag_loop_strip_mine)
-    {
-      transform_done |= scop_do_strip_mine (scop);
-      gcc_assert (graphite_legal_transform (scop));
-    }
+    transform_done |= scop_do_strip_mine (scop);
 
   if (flag_loop_interchange)
-    {
-      transform_done |= scop_do_interchange (scop);
-      gcc_assert (graphite_legal_transform (scop));
-    }
+    transform_done |= scop_do_interchange (scop);
 
   return transform_done;
 }
 
-/* Create a new polyhedral data reference and add it to PBB. It is defined by
-   its ACCESSES, its TYPE*/
+/* Create a new polyhedral data reference and add it to PBB.  It is
+   defined by its ACCESSES, its TYPE, and the number of subscripts
+   NB_SUBSCRIPTS.  */
 
 void
 new_poly_dr (poly_bb_p pbb,
 	     ppl_Pointset_Powerset_C_Polyhedron_t accesses,
-	     ppl_Pointset_Powerset_C_Polyhedron_t data_container,
-	     enum POLY_DR_TYPE type, void *cdr)
+	     enum POLY_DR_TYPE type, void *cdr, int nb_subscripts)
 {
   poly_dr_p pdr = XNEW (struct poly_dr);
 
   PDR_PBB (pdr) = pbb;
   PDR_ACCESSES (pdr) = accesses;
-  PDR_DATA_CONTAINER (pdr) = data_container;
   PDR_TYPE (pdr) = type;
   PDR_CDR (pdr) = cdr;
+  PDR_NB_SUBSCRIPTS (pdr) = nb_subscripts;
   VEC_safe_push (poly_dr_p, heap, PBB_DRS (pbb), pdr);
 }
 
@@ -294,8 +288,6 @@ void
 free_poly_dr (poly_dr_p pdr)
 {
   ppl_delete_Pointset_Powerset_C_Polyhedron (PDR_ACCESSES (pdr));
-  ppl_delete_Pointset_Powerset_C_Polyhedron (PDR_DATA_CONTAINER (pdr));
-
   XDELETE (pdr);
 }
 
@@ -309,11 +301,10 @@ new_poly_bb (scop_p scop, void *black_box)
   PBB_DOMAIN (pbb) = NULL;
   PBB_SCOP (pbb) = scop;
   pbb_set_black_box (pbb, black_box);
-  PBB_TRANSFORMED_SCATTERING (pbb) = NULL;
-  PBB_ORIGINAL_SCATTERING (pbb) = NULL;
+  PBB_TRANSFORMED (pbb) = NULL;
+  PBB_SAVED (pbb) = NULL;
+  PBB_ORIGINAL (pbb) = NULL;
   PBB_DRS (pbb) = VEC_alloc (poly_dr_p, heap, 3);
-  PBB_NB_SCATTERING_TRANSFORM (pbb) = 0;
-  PBB_NB_LOCAL_VARIABLES (pbb) = 0;
   VEC_safe_push (poly_bb_p, heap, SCOP_BBS (scop), pbb);
 }
 
@@ -327,11 +318,14 @@ free_poly_bb (poly_bb_p pbb)
 
   ppl_delete_Pointset_Powerset_C_Polyhedron (PBB_DOMAIN (pbb));
 
-  if (PBB_TRANSFORMED_SCATTERING (pbb))
-    ppl_delete_Polyhedron (PBB_TRANSFORMED_SCATTERING (pbb));
+  if (PBB_TRANSFORMED (pbb))
+    poly_scattering_free (PBB_TRANSFORMED (pbb));
 
-  if (PBB_ORIGINAL_SCATTERING (pbb))
-    ppl_delete_Polyhedron (PBB_ORIGINAL_SCATTERING (pbb));
+  if (PBB_SAVED (pbb))
+    poly_scattering_free (PBB_SAVED (pbb));
+
+  if (PBB_ORIGINAL (pbb))
+    poly_scattering_free (PBB_ORIGINAL (pbb));
 
   if (PBB_DRS (pbb))
     for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr); i++)
@@ -356,7 +350,7 @@ print_pdr_access_layout (FILE *file, poly_dr_p pdr)
 
   fprintf (file, "  alias");
 
-  for (i = 0; i < pdr_nb_subscripts (pdr); i++)
+  for (i = 0; i < PDR_NB_SUBSCRIPTS (pdr); i++)
     fprintf (file, "   sub%d", (int) i);
 
   fprintf (file, "    cst\n");
@@ -392,11 +386,6 @@ print_pdr (FILE *file, poly_dr_p pdr)
   fprintf (file, "data accesses (\n");
   print_pdr_access_layout (file, pdr);
   ppl_print_powerset_matrix (file, PDR_ACCESSES (pdr));
-  fprintf (file, ")\n");
-
-  fprintf (file, "data container (\n");
-  print_pdr_access_layout (file, pdr);
-  ppl_print_powerset_matrix (file, PDR_DATA_CONTAINER (pdr));
   fprintf (file, ")\n");
 
   fprintf (file, ")\n");
@@ -547,11 +536,13 @@ debug_pdrs (poly_bb_p pbb)
 void
 print_pbb (FILE *file, poly_bb_p pbb)
 {
+  fprintf (file, "pbb_%d (\n", GBB_BB (PBB_BLACK_BOX (pbb))->index);
   dump_gbb_conditions (file, PBB_BLACK_BOX (pbb));
   dump_gbb_cases (file, PBB_BLACK_BOX (pbb));
   print_pdrs (file, pbb);
   print_pbb_domain (file, pbb);
   print_scattering_function (file, pbb);
+  fprintf (file, ")\n");
 }
 
 /* Print to FILE the parameters of SCOP.  */
@@ -600,11 +591,14 @@ print_scop (FILE *file, scop_p scop)
   int i;
   poly_bb_p pbb;
 
+  fprintf (file, "scop (\n");
   print_scop_params (file, scop);
   print_scop_context (file, scop);
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     print_pbb (file, pbb);
+
+  fprintf (file, ")\n");
 }
 
 /* Print to STDERR the domain of PBB.  */
@@ -717,35 +711,15 @@ pbb_number_of_iterations (poly_bb_p pbb,
 			  graphite_dim_t loop_depth,
 			  Value niter)
 {
-  ppl_dimension_type loop_iter = pbb_iterator_dim (pbb, loop_depth);
   ppl_Linear_Expression_t le;
-  ppl_Coefficient_t num, denom;
-  Value dv;
-  int maximum;
   ppl_dimension_type dim;
 
-  value_init (dv);
-  ppl_new_Coefficient (&num);
-  ppl_new_Coefficient (&denom);
   ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
   ppl_new_Linear_Expression_with_dimension (&le, dim);
-  ppl_set_coef (le, loop_iter, 1);
-  ppl_Pointset_Powerset_C_Polyhedron_maximize (PBB_DOMAIN (pbb), le,
-					       num, denom, &maximum);
-
-  if (maximum == 1)
-    {
-      ppl_Coefficient_to_mpz_t (num, niter);
-      ppl_Coefficient_to_mpz_t (denom, dv);
-      value_division (niter, niter, dv);
-    }
-  else
-    value_set_si (niter, -1);
-
-  value_clear (dv);
+  ppl_set_coef (le, pbb_iterator_dim (pbb, loop_depth), 1);
+  value_set_si (niter, -1);
+  ppl_max_for_le (PBB_DOMAIN (pbb), le, niter);
   ppl_delete_Linear_Expression (le);
-  ppl_delete_Coefficient (num);
-  ppl_delete_Coefficient (denom);
 }
 
 #endif

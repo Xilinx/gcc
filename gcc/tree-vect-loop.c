@@ -1705,8 +1705,13 @@ vect_is_simple_reduction (loop_vec_info loop_info, gimple phi,
           return NULL;
         }
 
-      op3 = TREE_OPERAND (TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 0), 0);
-      op4 = TREE_OPERAND (TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 0), 1);
+      op3 = TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 0);
+      if (COMPARISON_CLASS_P (op3))
+        {
+          op4 = TREE_OPERAND (op3, 1);
+          op3 = TREE_OPERAND (op3, 0);
+        }  
+       
       op1 = TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 1);
       op2 = TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 2);
 
@@ -1734,13 +1739,13 @@ vect_is_simple_reduction (loop_vec_info loop_info, gimple phi,
 
   type = TREE_TYPE (gimple_assign_lhs (def_stmt));
   if ((TREE_CODE (op1) == SSA_NAME
-       && TYPE_MAIN_VARIANT (type) != TYPE_MAIN_VARIANT (TREE_TYPE (op1)))
+       && !types_compatible_p (type,TREE_TYPE (op1)))
       || (TREE_CODE (op2) == SSA_NAME
-          && TYPE_MAIN_VARIANT (type) != TYPE_MAIN_VARIANT (TREE_TYPE (op2)))
+          && !types_compatible_p (type, TREE_TYPE (op2)))
       || (op3 && TREE_CODE (op3) == SSA_NAME
-          && TYPE_MAIN_VARIANT (type) != TYPE_MAIN_VARIANT (TREE_TYPE (op3)))
+          && !types_compatible_p (type, TREE_TYPE (op3)))
       || (op4 && TREE_CODE (op4) == SSA_NAME
-          && TYPE_MAIN_VARIANT (type) != TYPE_MAIN_VARIANT (TREE_TYPE (op4))))
+          && !types_compatible_p (type, TREE_TYPE (op4))))
     {
       if (vect_print_dump_info (REPORT_DETAILS))
         {
@@ -1750,10 +1755,14 @@ vect_is_simple_reduction (loop_vec_info loop_info, gimple phi,
           print_generic_expr (vect_dump, TREE_TYPE (op1), TDF_SLIM);
           fprintf (vect_dump, ",");
           print_generic_expr (vect_dump, TREE_TYPE (op2), TDF_SLIM);
-          if (op3 && op4)
+          if (op3)
             {
               fprintf (vect_dump, ",");
               print_generic_expr (vect_dump, TREE_TYPE (op3), TDF_SLIM);
+            }
+
+          if (op4)
+            {
               fprintf (vect_dump, ",");
               print_generic_expr (vect_dump, TREE_TYPE (op4), TDF_SLIM);
             }

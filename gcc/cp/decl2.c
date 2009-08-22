@@ -84,6 +84,7 @@ static void write_out_vars (tree);
 static void import_export_class (tree);
 static tree get_guard_bits (tree);
 static void determine_visibility_from_class (tree, tree);
+static bool decl_defined_p (tree);
 
 /* A list of static class variables.  This is needed, because a
    static class variable can be declared inside the class without
@@ -93,6 +94,10 @@ static GTY(()) VEC(tree,gc) *pending_statics;
 /* A list of functions which were declared inline, but which we
    may need to emit outline anyway.  */
 static GTY(()) VEC(tree,gc) *deferred_fns;
+
+/* A list of decls that use types with no linkage, which we need to make
+   sure are defined.  */
+static GTY(()) VEC(tree,gc) *no_linkage_decls;
 
 /* Nonzero if we're done parsing and into end-of-file activities.  */
 
@@ -741,10 +746,7 @@ finish_static_data_member_decl (tree decl,
 	}
       init = NULL_TREE;
     }
-  /* Force the compiler to know when an uninitialized static const
-     member is being used.  */
-  if (CP_TYPE_CONST_P (TREE_TYPE (decl)) && init == 0)
-    TREE_USED (decl) = 1;
+
   DECL_INITIAL (decl) = init;
   DECL_IN_AGGR_P (decl) = 1;
 
@@ -3332,6 +3334,40 @@ build_java_method_aliases (void)
     }
 }
 
+/* Returns true iff there is a definition available for variable or
+   function DECL.  */
+
+static bool
+decl_defined_p (tree decl)
+{
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    return (DECL_INITIAL (decl) != NULL_TREE);
+  else
+    {
+      gcc_assert (TREE_CODE (decl) == VAR_DECL);
+      return !DECL_EXTERNAL (decl);
+    }
+}
+
+/* Complain that DECL uses a type with no linkage but is never defined.  */
+
+static void
+no_linkage_error (tree decl)
+{
+  tree t = no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false);
+  if (TYPE_ANONYMOUS_P (t))
+    {
+      permerror (0, "%q+#D, declared using anonymous type, "
+		 "is used but never defined", decl);
+      if (is_typedef_decl (TYPE_NAME (t)))
+	permerror (0, "%q+#D does not refer to the unqualified type, "
+		   "so it is not used for linkage", TYPE_NAME (t));
+    }
+  else
+    permerror (0, "%q+#D, declared using local type %qT, "
+	       "is used but never defined", decl, t);
+}
+
 /* This routine is called at the end of compilation.
    Its job is to create all the code needed to initialize and
    destroy the global aggregates.  We do the destruction
@@ -3613,6 +3649,11 @@ cp_write_global_declarations (void)
 	}
     }
 
+  /* So must decls that use a type with no linkage.  */
+  for (i = 0; VEC_iterate (tree, no_linkage_decls, i, decl); ++i)
+    if (!decl_defined_p (decl))
+      no_linkage_error (decl);
+
   /* We give C linkage to static constructors and destructors.  */
   push_lang_context (lang_name_c);
 
@@ -3804,18 +3845,22 @@ mark_used (tree decl)
       decl = OVL_CURRENT (decl);
     }
 
-  TREE_USED (decl) = 1;
-  if (DECL_CLONED_FUNCTION_P (decl))
-    TREE_USED (DECL_CLONED_FUNCTION (decl)) = 1;
   if (TREE_CODE (decl) == FUNCTION_DECL
       && DECL_DELETED_FN (decl))
     {
       error ("deleted function %q+D", decl);
       error ("used here");
+      TREE_USED (decl) = 1;
       return;
     }
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)
+    return;
+
+  /* We only want to do this processing once.  We don't need to keep trying
+     to instantiate inline templates, because unit-at-a-time will make sure
+     we get them compiled before functions that want to inline them.  */
+  if (TREE_USED (decl))
     return;
 
   /* If within finish_function, defer the rest until that function
@@ -3851,6 +3896,34 @@ mark_used (tree decl)
   if (processing_template_decl)
     return;
 
+  TREE_USED (decl) = 1;
+  if (DECL_CLONED_FUNCTION_P (decl))
+    TREE_USED (DECL_CLONED_FUNCTION (decl)) = 1;
+
+  /* DR 757: A type without linkage shall not be used as the type of a
+     variable or function with linkage, unless
+   o the variable or function has extern "C" linkage (7.5 [dcl.link]), or
+   o the variable or function is not used (3.2 [basic.def.odr]) or is
+   defined in the same translation unit.  */
+  if (TREE_PUBLIC (decl)
+      && (TREE_CODE (decl) == FUNCTION_DECL
+	  || TREE_CODE (decl) == VAR_DECL)
+      && DECL_LANG_SPECIFIC (decl))
+    {
+      if (!DECL_EXTERN_C_P (decl)
+	  && !DECL_ARTIFICIAL (decl)
+	  && !decl_defined_p (decl)
+	  && no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false))
+	{
+	  if (is_local_extern (decl))
+	    /* There's no way to define a local extern, and adding it to
+	       the vector interferes with GC, so give an error now.  */
+	    no_linkage_error (decl);
+	  else
+	    VEC_safe_push (tree, gc, no_linkage_decls, decl);
+	}
+    }
+
   if (TREE_CODE (decl) == FUNCTION_DECL && DECL_DECLARED_INLINE_P (decl)
       && !TREE_ASM_WRITTEN (decl))
     /* Remember it, so we can check it was defined.  */
@@ -3873,29 +3946,26 @@ mark_used (tree decl)
       && DECL_NONSTATIC_MEMBER_FUNCTION_P (decl)
       && DECL_DEFAULTED_FN (decl)
       && !DECL_THUNK_P (decl)
-      && ! DECL_INITIAL (decl)
-      /* Kludge: don't synthesize for default args.  Unfortunately this
-	 rules out initializers of namespace-scoped objects too, but
-	 it's sort-of ok if the implicit ctor or dtor decl keeps
-	 pointing to the class location.  */
-      && current_function_decl)
+      && ! DECL_INITIAL (decl))
     {
+      /* Synthesizing an implicitly defined member function will result in
+	 garbage collection.  We must treat this situation as if we were
+	 within the body of a function so as to avoid collecting live data
+	 on the stack (such as overload resolution candidates).
+
+         We could just let cp_write_global_declarations handle synthesizing
+         this function, since we just added it to deferred_fns, but doing
+         it at the use site produces better error messages.  */
+      ++function_depth;
       synthesize_method (decl);
-      /* If we've already synthesized the method we don't need to
+      --function_depth;
+      /* If this is a synthesized method we don't need to
 	 do the instantiation test below.  */
     }
   else if ((DECL_NON_THUNK_FUNCTION_P (decl) || TREE_CODE (decl) == VAR_DECL)
 	   && DECL_LANG_SPECIFIC (decl) && DECL_TEMPLATE_INFO (decl)
 	   && (!DECL_EXPLICIT_INSTANTIATION (decl)
-	       || (TREE_CODE (decl) == FUNCTION_DECL
-		   && possibly_inlined_p
-		       (DECL_TEMPLATE_RESULT (
-		         template_for_substitution (decl))))
-	       /* We need to instantiate static data members so that there
-		  initializers are available in integral constant
-		  expressions.  */
-	       || (TREE_CODE (decl) == VAR_DECL
-		   && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl))))
+	       || always_instantiate_p (decl)))
     /* If this is a function or variable that is an instance of some
        template, we now know that we will need to actually do the
        instantiation. We check that DECL is not an explicit
@@ -3909,6 +3979,17 @@ mark_used (tree decl)
 		      /*expl_inst_class_mem_p=*/false);
 
   processing_template_decl = saved_processing_template_decl;
+}
+
+/* Use this function to verify that mark_used has been called
+   previously.  That is, either TREE_USED is set, or we're in a
+   context that doesn't set it.  */
+
+bool
+tree_used_ok (tree decl)
+{
+  return (TREE_USED (decl) || cp_unevaluated_operand
+	  || defer_mark_used_calls || processing_template_decl);
 }
 
 #include "gt-cp-decl2.h"

@@ -1752,6 +1752,7 @@ static void
 mio_symbol_attribute (symbol_attribute *attr)
 {
   atom_type t;
+  unsigned ext_attr;
 
   mio_lparen ();
 
@@ -1760,6 +1761,9 @@ mio_symbol_attribute (symbol_attribute *attr)
   attr->proc = MIO_NAME (procedure_type) (attr->proc, procedures);
   attr->if_source = MIO_NAME (ifsrc) (attr->if_source, ifsrc_types);
   attr->save = MIO_NAME (save_state) (attr->save, save_status);
+  ext_attr = attr->ext_attr;
+  mio_integer ((int *) &ext_attr);
+  attr->ext_attr = ext_attr;
 
   if (iomode == IO_OUTPUT)
     {
@@ -2005,7 +2009,7 @@ mio_charlen (gfc_charlen **clp)
     {
       if (peek_atom () != ATOM_RPAREN)
 	{
-	  cl = gfc_new_charlen (gfc_current_ns);
+	  cl = gfc_new_charlen (gfc_current_ns, NULL);
 	  mio_expr (&cl->length);
 	  *clp = cl;
 	}
@@ -2034,7 +2038,7 @@ mio_typespec (gfc_typespec *ts)
   if (ts->type != BT_DERIVED)
     mio_integer (&ts->kind);
   else
-    mio_symbol_ref (&ts->derived);
+    mio_symbol_ref (&ts->u.derived);
 
   /* Add info for C interop and is_iso_c.  */
   mio_integer (&ts->is_c_interop);
@@ -2050,12 +2054,12 @@ mio_typespec (gfc_typespec *ts)
 
   if (ts->type != BT_CHARACTER)
     {
-      /* ts->cl is only valid for BT_CHARACTER.  */
+      /* ts->u.cl is only valid for BT_CHARACTER.  */
       mio_lparen ();
       mio_rparen ();
     }
   else
-    mio_charlen (&ts->cl);
+    mio_charlen (&ts->u.cl);
 
   mio_rparen ();
 }

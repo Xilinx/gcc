@@ -119,6 +119,8 @@ default_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 			       const_tree funtype ATTRIBUTE_UNUSED,
 			       int for_return ATTRIBUTE_UNUSED)
 {
+  if (for_return == 2)
+    return promote_mode (type, mode, punsignedp);
   return mode;
 }
 
@@ -603,6 +605,12 @@ default_function_value (const_tree ret_type ATTRIBUTE_UNUSED,
 #else
   return NULL_RTX;
 #endif
+}
+
+rtx
+default_libcall_value (enum machine_mode mode, rtx fun ATTRIBUTE_UNUSED)
+{
+  return LIBCALL_VALUE (mode);
 }
 
 rtx

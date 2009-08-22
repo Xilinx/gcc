@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "rtl.h"
 #include "tm_p.h"
+#include "target.h"
 #include "ggc.h"
 #include "langhooks.h"
 #include "hard-reg-set.h"
@@ -843,15 +844,46 @@ delete_tree_ssa (void)
   redirect_edge_var_map_destroy ();
 }
 
-/* Helper function for useless_type_conversion_p.  */
+/* Return true if the conversion from INNER_TYPE to OUTER_TYPE is a
+   useless type conversion, otherwise return false.
 
-static bool
-useless_type_conversion_p_1 (tree outer_type, tree inner_type)
+   This function implicitly defines the middle-end type system.  With
+   the notion of 'a < b' meaning that useless_type_conversion_p (a, b)
+   holds and 'a > b' meaning that useless_type_conversion_p (b, a) holds,
+   the following invariants shall be fulfilled:
+
+     1) useless_type_conversion_p is transitive.
+	If a < b and b < c then a < c.
+
+     2) useless_type_conversion_p is not symmetric.
+	From a < b does not follow a > b.
+
+     3) Types define the available set of operations applicable to values.
+	A type conversion is useless if the operations for the target type
+	is a subset of the operations for the source type.  For example
+	casts to void* are useless, casts from void* are not (void* can't
+	be dereferenced or offsetted, but copied, hence its set of operations
+	is a strict subset of that of all other data pointer types).  Casts
+	to const T* are useless (can't be written to), casts from const T*
+	to T* are not.  */
+
+bool
+useless_type_conversion_p (tree outer_type, tree inner_type)
 {
   /* Do the following before stripping toplevel qualifiers.  */
   if (POINTER_TYPE_P (inner_type)
       && POINTER_TYPE_P (outer_type))
     {
+      /* If the outer type is (void *) or a pointer to an incomplete
+	 record type, then the conversion is not necessary.  */
+      if (VOID_TYPE_P (TREE_TYPE (outer_type))
+	  || (AGGREGATE_TYPE_P (TREE_TYPE (outer_type))
+	      && TREE_CODE (TREE_TYPE (outer_type)) != ARRAY_TYPE
+	      && (TREE_CODE (TREE_TYPE (outer_type))
+		  == TREE_CODE (TREE_TYPE (inner_type)))
+	      && !COMPLETE_TYPE_P (TREE_TYPE (outer_type))))
+	return true;
+
       /* Do not lose casts to restrict qualified pointers.  */
       if ((TYPE_RESTRICT (outer_type)
 	   != TYPE_RESTRICT (inner_type))
@@ -871,8 +903,10 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
       && TYPE_CANONICAL (inner_type) == TYPE_CANONICAL (outer_type))
     return true;
 
-  /* Changes in machine mode are never useless conversions.  */
-  if (TYPE_MODE (inner_type) != TYPE_MODE (outer_type))
+  /* Changes in machine mode are never useless conversions unless we
+     deal with aggregate types in which case we defer to later checks.  */
+  if (TYPE_MODE (inner_type) != TYPE_MODE (outer_type)
+      && !AGGREGATE_TYPE_P (inner_type))
     return false;
 
   /* If both the inner and outer types are integral types, then the
@@ -919,6 +953,11 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 	  && TYPE_VOLATILE (TREE_TYPE (outer_type)))
 	return false;
 
+      /* We require explicit conversions from incomplete target types.  */
+      if (!COMPLETE_TYPE_P (TREE_TYPE (inner_type))
+	  && COMPLETE_TYPE_P (TREE_TYPE (outer_type)))
+	return false;
+
       /* Do not lose casts between pointers that when dereferenced access
 	 memory with different alias sets.  */
       if (get_deref_alias_set (inner_type) != get_deref_alias_set (outer_type))
@@ -930,9 +969,12 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
       /* Otherwise pointers/references are equivalent if their pointed
 	 to types are effectively the same.  We can strip qualifiers
 	 on pointed-to types for further comparison, which is done in
-	 the callee.  */
-      return useless_type_conversion_p_1 (TREE_TYPE (outer_type),
-				          TREE_TYPE (inner_type));
+	 the callee.  Note we have to use true compatibility here
+	 because addresses are subject to propagation into dereferences
+	 and thus might get the original type exposed which is equivalent
+	 to a reverse conversion.  */
+      return types_compatible_p (TREE_TYPE (outer_type),
+				 TREE_TYPE (inner_type));
     }
 
   /* Recurse for complex types.  */
@@ -948,77 +990,126 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
     return useless_type_conversion_p (TREE_TYPE (outer_type),
 				      TREE_TYPE (inner_type));
 
-  /* For aggregates we may need to fall back to structural equality
-     checks.  */
-  else if (AGGREGATE_TYPE_P (inner_type)
-	   && AGGREGATE_TYPE_P (outer_type))
+  else if (TREE_CODE (inner_type) == ARRAY_TYPE
+	   && TREE_CODE (outer_type) == ARRAY_TYPE)
     {
-      /* Different types of aggregates are incompatible.  */
-      if (TREE_CODE (inner_type) != TREE_CODE (outer_type))
+      /* Preserve string attributes.  */
+      if (TYPE_STRING_FLAG (inner_type) != TYPE_STRING_FLAG (outer_type))
 	return false;
 
       /* Conversions from array types with unknown extent to
 	 array types with known extent are not useless.  */
-      if (TREE_CODE (inner_type) == ARRAY_TYPE
-	  && !TYPE_DOMAIN (inner_type)
+      if (!TYPE_DOMAIN (inner_type)
 	  && TYPE_DOMAIN (outer_type))
 	return false;
 
-      /* ???  This seems to be necessary even for aggregates that don't
-	 have TYPE_STRUCTURAL_EQUALITY_P set.  */
+      /* Nor are conversions from array types with non-constant size to
+         array types with constant size or to different size.  */
+      if (TYPE_SIZE (outer_type)
+	  && TREE_CODE (TYPE_SIZE (outer_type)) == INTEGER_CST
+	  && (!TYPE_SIZE (inner_type)
+	      || TREE_CODE (TYPE_SIZE (inner_type)) != INTEGER_CST
+	      || !tree_int_cst_equal (TYPE_SIZE (outer_type),
+				      TYPE_SIZE (inner_type))))
+	return false;
 
-      /* ???  This should eventually just return false.  */
-      return lang_hooks.types_compatible_p (inner_type, outer_type);
+      /* Check conversions between arrays with partially known extents.
+	 If the array min/max values are constant they have to match.
+	 Otherwise allow conversions to unknown and variable extents.
+	 In particular this declares conversions that may change the
+	 mode to BLKmode as useless.  */
+      if (TYPE_DOMAIN (inner_type)
+	  && TYPE_DOMAIN (outer_type)
+	  && TYPE_DOMAIN (inner_type) != TYPE_DOMAIN (outer_type))
+	{
+	  tree inner_min = TYPE_MIN_VALUE (TYPE_DOMAIN (inner_type));
+	  tree outer_min = TYPE_MIN_VALUE (TYPE_DOMAIN (outer_type));
+	  tree inner_max = TYPE_MAX_VALUE (TYPE_DOMAIN (inner_type));
+	  tree outer_max = TYPE_MAX_VALUE (TYPE_DOMAIN (outer_type));
+
+	  /* After gimplification a variable min/max value carries no
+	     additional information compared to a NULL value.  All that
+	     matters has been lowered to be part of the IL.  */
+	  if (inner_min && TREE_CODE (inner_min) != INTEGER_CST)
+	    inner_min = NULL_TREE;
+	  if (outer_min && TREE_CODE (outer_min) != INTEGER_CST)
+	    outer_min = NULL_TREE;
+	  if (inner_max && TREE_CODE (inner_max) != INTEGER_CST)
+	    inner_max = NULL_TREE;
+	  if (outer_max && TREE_CODE (outer_max) != INTEGER_CST)
+	    outer_max = NULL_TREE;
+
+	  /* Conversions NULL / variable <- cst are useless, but not
+	     the other way around.  */
+	  if (outer_min
+	      && (!inner_min
+		  || !tree_int_cst_equal (inner_min, outer_min)))
+	    return false;
+	  if (outer_max
+	      && (!inner_max
+		  || !tree_int_cst_equal (inner_max, outer_max)))
+	    return false;
+	}
+
+      /* Recurse on the element check.  */
+      return useless_type_conversion_p (TREE_TYPE (outer_type),
+					TREE_TYPE (inner_type));
     }
-  /* Also for functions and possibly other types with
-     TYPE_STRUCTURAL_EQUALITY_P set.  */
-  else if (TYPE_STRUCTURAL_EQUALITY_P (inner_type)
-	   && TYPE_STRUCTURAL_EQUALITY_P (outer_type))
-    return lang_hooks.types_compatible_p (inner_type, outer_type);
+
+  else if ((TREE_CODE (inner_type) == FUNCTION_TYPE
+	    || TREE_CODE (inner_type) == METHOD_TYPE)
+	   && TREE_CODE (inner_type) == TREE_CODE (outer_type))
+    {
+      tree outer_parm, inner_parm;
+
+      /* If the return types are not compatible bail out.  */
+      if (!useless_type_conversion_p (TREE_TYPE (outer_type),
+				      TREE_TYPE (inner_type)))
+	return false;
+
+      /* Method types should belong to a compatible base class.  */
+      if (TREE_CODE (inner_type) == METHOD_TYPE
+	  && !useless_type_conversion_p (TYPE_METHOD_BASETYPE (outer_type),
+					 TYPE_METHOD_BASETYPE (inner_type)))
+	return false;
+
+      /* A conversion to an unprototyped argument list is ok.  */
+      if (!TYPE_ARG_TYPES (outer_type))
+	return true;
+
+      /* If the argument types are compatible the conversion is useless.  */
+      if (TYPE_ARG_TYPES (outer_type) == TYPE_ARG_TYPES (inner_type))
+	return true;
+
+      for (outer_parm = TYPE_ARG_TYPES (outer_type),
+	   inner_parm = TYPE_ARG_TYPES (inner_type);
+	   outer_parm && inner_parm;
+	   outer_parm = TREE_CHAIN (outer_parm),
+	   inner_parm = TREE_CHAIN (inner_parm))
+	if (!useless_type_conversion_p (TREE_VALUE (outer_parm),
+					TREE_VALUE (inner_parm)))
+	  return false;
+
+      /* If there is a mismatch in the number of arguments the functions
+	 are not compatible.  */
+      if (outer_parm || inner_parm)
+	return false;
+
+      /* Defer to the target if necessary.  */
+      if (TYPE_ATTRIBUTES (inner_type) || TYPE_ATTRIBUTES (outer_type))
+	return targetm.comp_type_attributes (outer_type, inner_type) != 0;
+
+      return true;
+    }
+
+  /* For aggregates we rely on TYPE_CANONICAL exclusively and require
+     explicit conversions for types involving to be structurally
+     compared types.  */
+  else if (AGGREGATE_TYPE_P (inner_type)
+	   && TREE_CODE (inner_type) == TREE_CODE (outer_type))
+    return false;
   
   return false;
-}
-
-/* Return true if the conversion from INNER_TYPE to OUTER_TYPE is a
-   useless type conversion, otherwise return false.
-
-   This function implicitly defines the middle-end type system.  With
-   the notion of 'a < b' meaning that useless_type_conversion_p (a, b)
-   holds and 'a > b' meaning that useless_type_conversion_p (b, a) holds,
-   the following invariants shall be fulfilled:
-
-     1) useless_type_conversion_p is transitive.
-	If a < b and b < c then a < c.
-
-     2) useless_type_conversion_p is not symmetric.
-	From a < b does not follow a > b.
-
-     3) Types define the available set of operations applicable to values.
-	A type conversion is useless if the operations for the target type
-	is a subset of the operations for the source type.  For example
-	casts to void* are useless, casts from void* are not (void* can't
-	be dereferenced or offsetted, but copied, hence its set of operations
-	is a strict subset of that of all other data pointer types).  Casts
-	to const T* are useless (can't be written to), casts from const T*
-	to T* are not.  */
-
-bool
-useless_type_conversion_p (tree outer_type, tree inner_type)
-{
-  /* If the outer type is (void *) or a pointer to an incomplete record type,
-     then the conversion is not necessary.
-     We have to make sure to not apply this while recursing though.  */
-  if (POINTER_TYPE_P (inner_type)
-      && POINTER_TYPE_P (outer_type)
-      && (VOID_TYPE_P (TREE_TYPE (outer_type))
-	  || (AGGREGATE_TYPE_P (TREE_TYPE (outer_type))
-	      && TREE_CODE (TREE_TYPE (outer_type)) != ARRAY_TYPE
-	      && (TREE_CODE (TREE_TYPE (outer_type))
-		  == TREE_CODE (TREE_TYPE (inner_type)))
-	      && !COMPLETE_TYPE_P (TREE_TYPE (outer_type)))))
-    return true;
-
-  return useless_type_conversion_p_1 (outer_type, inner_type);
 }
 
 /* Return true if a conversion from either type of TYPE1 and TYPE2

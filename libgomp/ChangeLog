@@ -1,3 +1,25 @@
+2009-08-20  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.am (libgomp_la_LDFLAGS): Add -bindir flag.
+	* Makefile.in: Regenerate.
+
+2009-08-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41102
+	omp_lib.h.in: Fix -std=f95 errors.
+
+
+2009-08-14  David Edelsohn  <edelsohn@gnu.org>
+
+	* testsuite/libgomp.graphite: Move from gcc.dg/graphite.
+	* testsuite/libgomp.graphite/graphite_autopar.exp: Delete.
+	* testsuite/libgomp.graphite/graphite.exp: New.
+
+2009-08-05  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* testsuite/libgomp.fortran/fortran.exp: Add flags in case of shared
+	only build.
+
 2009-08-04  David Daney  <ddaney@caviumnetworks.com>
 
 	* config/linux/mutex.h (gomp_mutex_unlock): Add comment about

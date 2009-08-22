@@ -2353,9 +2353,9 @@ expand_call (tree exp, rtx target, int ignore)
 				 &caller_unsignedp,
 				 TREE_TYPE (current_function_decl), 1);
       callee_promoted_mode
-	= promote_function_mode (TREE_TYPE (caller_res), callee_mode,
+	= promote_function_mode (TREE_TYPE (funtype), callee_mode,
 				 &callee_unsignedp,
-				 TREE_TYPE (funtype), 1);
+				 funtype, 1);
       if (caller_mode != VOIDmode
 	  && (caller_promoted_mode != callee_promoted_mode
 	      || ((caller_mode != caller_promoted_mode
@@ -3805,7 +3805,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
      cse'ing of library calls could delete a call and leave the pop.  */
   NO_DEFER_POP;
   valreg = (mem_value == 0 && outmode != VOIDmode
-	    ? hard_libcall_value (outmode) : NULL_RTX);
+	    ? hard_libcall_value (outmode, orgfun) : NULL_RTX);
 
   /* Stack must be properly aligned now.  */
   gcc_assert (!(stack_pointer_delta

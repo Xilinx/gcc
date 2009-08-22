@@ -1925,11 +1925,11 @@ c-decl.o : c-decl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
     opts.h $(C_PRAGMA_H) gt-c-decl.h $(CGRAPH_H) $(HASHTAB_H) libfuncs.h \
     $(EXCEPT_H) $(LANGHOOKS_DEF_H) $(TREE_DUMP_H) $(C_COMMON_H) $(CPPLIB_H) \
     $(DIAGNOSTIC_H) $(INPUT_H) langhooks.h $(GIMPLE_H) tree-mudflap.h  \
-    pointer-set.h $(BASIC_BLOCK_H) $(GIMPLE_H) tree-iterator.h
+    pointer-set.h $(BASIC_BLOCK_H) $(GIMPLE_H) tree-iterator.h c-lang.h
 c-typeck.o : c-typeck.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
     $(TREE_H) $(C_TREE_H) $(TARGET_H) $(FLAGS_H) intl.h output.h $(EXPR_H) \
     $(RTL_H) $(TOPLEV_H) $(TM_P_H) langhooks.h $(GGC_H) $(TREE_FLOW_H) \
-    $(GIMPLE_H) tree-iterator.h
+    $(GIMPLE_H) tree-iterator.h c-lang.h
 c-lang.o : c-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
     $(C_TREE_H) $(DIAGNOSTIC_H) \
     $(GGC_H) langhooks.h $(LANGHOOKS_DEF_H) $(C_COMMON_H) gtype-c.h \
@@ -2193,7 +2193,7 @@ tree-ssa.o : tree-ssa.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(TOPLEV_H) $(FUNCTION_H) $(TIMEVAR_H) $(TM_H) coretypes.h \
    $(TREE_DUMP_H) langhooks.h $(TREE_PASS_H) $(BASIC_BLOCK_H) $(BITMAP_H) \
    $(FLAGS_H) $(GGC_H) hard-reg-set.h $(HASHTAB_H) pointer-set.h \
-   $(GIMPLE_H) $(TREE_INLINE_H) $(VARRAY_H)
+   $(GIMPLE_H) $(TREE_INLINE_H) $(VARRAY_H) $(TARGET_H)
 tree-into-ssa.o : tree-into-ssa.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(RTL_H) $(TREE_H) $(TM_P_H) $(EXPR_H) output.h $(DIAGNOSTIC_H) \
    $(FUNCTION_H) $(TIMEVAR_H) $(TM_H) coretypes.h $(TREE_DUMP_H) \
@@ -2466,7 +2466,7 @@ sese.o: sese.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 graphite.o: graphite.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
    $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) \
-   $(TREE_DATA_REF_H) tree-pass.h graphite.h \
+   $(PREDICT_H) $(TREE_DATA_REF_H) tree-pass.h graphite.h \
    pointer-set.h value-prof.h graphite-ppl.h sese.h \
    graphite-scop-detection.h graphite-clast-to-gimple.h \
    graphite-poly.h graphite-sese-to-poly.h
@@ -2595,7 +2595,7 @@ opts.o : opts.c opts.h options.h $(TOPLEV_H) $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h $(TREE_H) $(TM_H) langhooks.h $(GGC_H) $(EXPR_H) $(RTL_H) \
    output.h $(DIAGNOSTIC_H) $(TM_P_H) $(INSN_ATTR_H) intl.h $(TARGET_H) \
    $(FLAGS_H) $(PARAMS_H) $(TREE_PASS_H) $(DBGCNT_H) debug.h varray.h \
-   $(PLUGIN_H)
+   $(PLUGIN_H) $(EXCEPT_H)
 opts-common.o : opts-common.c opts.h $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h intl.h
 targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
@@ -2887,8 +2887,8 @@ tree-ssa-ccp.o : tree-ssa-ccp.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(TREE_DUMP_H) $(BASIC_BLOCK_H) $(TREE_PASS_H) langhooks.h \
    tree-ssa-propagate.h value-prof.h $(FLAGS_H) $(TARGET_H) $(TOPLEV_H)
 tree-sra.o : tree-sra.c $(CONFIG_H) $(SYSTEM_H) coretypes.h alloc-pool.h \
-   $(TM_H) $(TREE_H) $(GIMPLE_H) $(TREE_FLOW_H) $(DIAGNOSTIC_H) statistics.h \
-   $(TREE_DUMP_H) $(TIMEVAR_H) $(PARAMS_H) $(TARGET_H) $(FLAGS_H)
+   $(TM_H) $(TREE_H) $(GIMPLE_H) $(TREE_FLOW_H) $(IPA_PROP_H) $(DIAGNOSTIC_H) \
+   statistics.h $(TREE_DUMP_H) $(TIMEVAR_H) $(PARAMS_H) $(TARGET_H) $(FLAGS_H)
 tree-switch-conversion.o : tree-switch-conversion.c $(CONFIG_H) $(SYSTEM_H) \
     $(TREE_H) $(TM_P_H) $(TREE_FLOW_H) $(DIAGNOSTIC_H) $(TREE_INLINE_H) \
     $(TIMEVAR_H) $(TM_H) coretypes.h $(TREE_DUMP_H) $(GIMPLE_H) \
@@ -4167,7 +4167,8 @@ PLUGIN_HEADERS = $(TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(tm_file_list) $(tm_include_list) $(tm_p_file_list) $(tm_p_include_list) \
   $(host_xm_file_list) $(host_xm_include_list) $(xm_include_list) \
   intl.h $(PLUGIN_VERSION_H) $(DIAGNOSTIC_H) $(C_COMMON_H) $(C_PRETTY_PRINT_H) \
-  tree-iterator.h $(PLUGIN_H) $(TREE_FLOW_H) langhooks.h
+  tree-iterator.h $(PLUGIN_H) $(TREE_FLOW_H) langhooks.h incpath.h \
+  tree-ssa-sccvn.h
 
 # Install the headers needed to build a plugin.
 install-plugin: installdirs lang.install-plugin

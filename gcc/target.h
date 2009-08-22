@@ -892,6 +892,10 @@ struct gcc_target
     rtx (*function_value) (const_tree ret_type, const_tree fn_decl_or_type,
 			   bool outgoing);
 
+    /* Return the rtx for the result of a libcall of mode MODE,
+       calling the function FN_NAME.  */
+    rtx (*libcall_value) (enum machine_mode, rtx);
+
     /* Return an rtx for the argument pointer incoming to the
        current function.  */
     rtx (*internal_arg_pointer) (void);
@@ -1119,9 +1123,6 @@ struct gcc_target
   /* True if output_file_directive should be called for main_input_filename
      at the beginning of assembly output.  */
   bool file_start_file_directive;
-
-  /* True if #pragma redefine_extname is to be supported.  */
-  bool handle_pragma_redefine_extname;
 
   /* True if #pragma extern_prefix is to be supported.  */
   bool handle_pragma_extern_prefix;

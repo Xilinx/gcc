@@ -276,7 +276,8 @@ tree
 get_symbol_constant_value (tree sym)
 {
   if (TREE_STATIC (sym)
-      && TREE_READONLY (sym))
+      && (TREE_READONLY (sym)
+	  || TREE_CODE (sym) == CONST_DECL))
     {
       tree val = DECL_INITIAL (sym);
       if (val)
@@ -288,7 +289,11 @@ get_symbol_constant_value (tree sym)
 		{
 		  tree base = get_base_address (TREE_OPERAND (val, 0));
 		  if (base && TREE_CODE (base) == VAR_DECL)
-		    add_referenced_var (base);
+		    {
+		      TREE_ADDRESSABLE (base) = 1;
+		      if (gimple_referenced_vars (cfun))
+			add_referenced_var (base);
+		    }
 		}
 	      return val;
 	    }
@@ -1088,9 +1093,8 @@ ccp_fold (gimple stmt)
 		  && TREE_CODE (op0) == ADDR_EXPR
 		  && TREE_CODE (op1) == INTEGER_CST)
 		{
-		  tree lhs = gimple_assign_lhs (stmt);
 		  tree tem = maybe_fold_offset_to_address
-		    (loc, op0, op1, TREE_TYPE (lhs));
+		    (loc, op0, op1, TREE_TYPE (op0));
 		  if (tem != NULL_TREE)
 		    return tem;
 		}
@@ -2337,6 +2341,19 @@ maybe_fold_reference (tree expr, bool is_lhs)
 	  return expr;
 	}
     }
+  else if (!is_lhs
+	   && DECL_P (*t))
+    {
+      tree tem = get_symbol_constant_value (*t);
+      if (tem)
+	{
+	  *t = tem;
+	  tem = maybe_fold_reference (expr, is_lhs);
+	  if (tem)
+	    return tem;
+	  return expr;
+	}
+    }
 
   return NULL_TREE;
 }
@@ -2738,6 +2755,9 @@ fold_gimple_assign (gimple_stmt_iterator *si)
 	    return build_vector_from_ctor (TREE_TYPE (rhs),
 					   CONSTRUCTOR_ELTS (rhs));
 	  }
+
+	else if (DECL_P (rhs))
+	  return get_symbol_constant_value (rhs);
 
         /* If we couldn't fold the RHS, hand over to the generic
            fold routines.  */

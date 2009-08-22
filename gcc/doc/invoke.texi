@@ -535,7 +535,7 @@ Objective-C and Objective-C++ Dialects}.
 -mmemory-latency=@var{time}}
 
 @emph{DEC Alpha/VMS Options}
-@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix}}
+@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
 
 @emph{FR30 Options}
 @gccoptlist{-msmall-model -mno-lsim}
@@ -623,6 +623,9 @@ Objective-C and Objective-C++ Dialects}.
 -msched-stop-bits-after-every-cycle -msched-count-spec-in-critical-path @gol
 -msel-sched-dont-check-control-spec -msched-fp-mem-deps-zero-cost @gol
 -msched-max-memory-insns-hard-limit -msched-max-memory-insns=@var{max-insns}}
+
+@emph{IA-64/VMS Options}
+@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
 
 @emph{M32R/D Options}
 @gccoptlist{-m32r2 -m32rx -m32r @gol
@@ -1921,7 +1924,8 @@ This information is generally only useful to the G++ development team.
 Set the maximum instantiation depth for template classes to @var{n}.
 A limit on the template instantiation depth is needed to detect
 endless recursions during template class instantiation.  ANSI/ISO C++
-conforming programs must not rely on a maximum depth greater than 17.
+conforming programs must not rely on a maximum depth greater than 17
+(changed to 1024 in C++0x).
 
 @item -fno-threadsafe-statics
 @opindex fno-threadsafe-statics
@@ -9160,6 +9164,7 @@ platform.
 * i386 and x86-64 Options::
 * i386 and x86-64 Windows Options::
 * IA-64 Options::
+* IA-64/VMS Options::
 * M32C Options::
 * M32R/D Options::
 * M680x0 Options::
@@ -9321,11 +9326,6 @@ library calls for floating-point operations.
 instructions, but still uses the soft-float calling conventions.
 @samp{hard} allows generation of floating-point instructions
 and uses FPU-specific calling conventions.
-
-Using @option{-mfloat-abi=hard} with VFP coprocessors is not supported.
-Use @option{-mfloat-abi=softfp} with the appropriate @option{-mfpu} option
-to allow the compiler to generate code that makes use of the hardware
-floating-point capabilities for these CPUs.
 
 The default depends on the specific target configuration.  Note that
 the hard-float and soft-float ABIs are not link-compatible; you must
@@ -10606,6 +10606,10 @@ style condition (e.g.@: error) codes.
 @opindex mdebug-main=@var{prefix}
 Flag the first routine whose name starts with @var{prefix} as the main
 routine for the debugger.
+
+@item -mmalloc64
+@opindex mmalloc64
+Default to 64bit memory allocation routines.
 @end table
 
 @node FR30 Options
@@ -12176,6 +12180,27 @@ when limit is reached but may still schedule memory operations.
 
 @end table
 
+@node IA-64/VMS Options
+@subsection IA-64/VMS Options
+
+These @samp{-m} options are defined for the IA-64/VMS implementations:
+
+@table @gcctabopt
+@item -mvms-return-codes
+@opindex mvms-return-codes
+Return VMS condition codes from main. The default is to return POSIX
+style condition (e.g.@ error) codes.
+
+@item -mdebug-main=@var{prefix}
+@opindex mdebug-main=@var{prefix}
+Flag the first routine whose name starts with @var{prefix} as the main
+routine for the debugger.
+
+@item -mmalloc64
+@opindex mmalloc64
+Default to 64bit memory allocation routines.
+@end table
+
 @node M32C Options
 @subsection M32C Options
 @cindex M32C options
@@ -13050,6 +13075,7 @@ The processor names are:
 @samp{24kec}, @samp{24kef2_1}, @samp{24kef1_1},
 @samp{34kc}, @samp{34kf2_1}, @samp{34kf1_1},
 @samp{74kc}, @samp{74kf2_1}, @samp{74kf1_1}, @samp{74kf3_2},
+@samp{1004kc}, @samp{1004kf2_1}, @samp{1004kf1_1},
 @samp{loongson2e}, @samp{loongson2f},
 @samp{m4k},
 @samp{octeon},
