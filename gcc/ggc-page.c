@@ -419,9 +419,9 @@ static struct globals
 #ifdef GATHER_STATISTICS
   struct
   {
-    /* Total memory allocated with ggc_alloc.  */
+    /* Total GC-allocated memory.  */
     unsigned long long total_allocated;
-    /* Total overhead for memory to be allocated with ggc_alloc.  */
+    /* Total overhead for GC-allocated memory.  */
     unsigned long long total_overhead;
 
     /* Total allocations and overhead for sizes less than 32, 64 and 128.

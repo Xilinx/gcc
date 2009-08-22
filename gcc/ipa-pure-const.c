@@ -935,7 +935,6 @@ struct ipa_opt_pass_d pass_ipa_pure_const =
   0                                     /* todo_flags_finish */
  },
  generate_summary,		        /* generate_summary */
- NULL,					/* write_summary */
  NULL,					/* read_summary */
  NULL,					/* function_read_summary */
  0,					/* TODOs */

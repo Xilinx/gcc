@@ -1,3 +1,46 @@
+2009-08-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* cgraph.h (cgraph_node_ptr, cgraph_node_set): Remove vector
+	definitions.
+	(struct cgraph_node_set_def, cgraph_node_set): Remove.
+	(struct cgraph_node_set_element_def): Remove.
+	(cgraph_node_set_element, const_cgraph_node_set_element): Remove.
+	(cgraph_node_set_iterator, cgraph_node_set_new): Remove.
+	(cgraph_node_set_find, cgraph_node_set_add): Remove.
+	(cgraph_node_set_remove, dump_cgraph_node_set): Remove.
+	(debug_cgraph_node_set, csi_end_p, csi_next, csi_start): Remove.
+	(cgraph_node_in_set_p, cgraph_node_set_size): Remove.
+	* tree-pass.h (cgraph_node_set_def): Remove forward declaration.
+	(ipa_opt_pass_d): Remove write_summary member.
+	* passes.c (order): use cgraph_node_ptr * instead of struct
+	cgraph_node **.
+	* c-common.h (struct sorted_fields_type): add GTY option
+	variable_size.
+	* ggc-page.c: Do not mention ggc_alloc in comments.
+	* ggc-zone.c: Likewise.
+	* graphite.c (build_access_matrix): New argument
+	graphite_obstack.  Use obstack allocation instead of GC.
+	(build_scop_data_accesses): New argument graphite_obstack.  Pass
+	it down.
+	* ipa.c (cgraph_node_set_add): Remove.
+	(cgraph_node_set_remove): Remove.
+	(cgraph_node_set_find): Remove.
+	(dump_cgraph_node_set): Remove.
+	(debug_cgraph_node_set): Remove.
+	* c-decl.c (make_label): Use typed GC allocation.
+	(lookup_label_for_goto): Likewise.
+	(finish_struct): Likewise.
+	* dwarf2out.c (add_name_and_src_coords_attributes): Likewise.
+	* ipa-reference.c (pass_ipa_reference): Remove write_summary
+	member initialization.
+	* ipa-pure-const.c (pass_ipa_pure_const): Likewise.
+	* ipa-inline.c (pass_ipa_inline): Likewise.
+	* ipa-cp.c (ipcp_create_replace_map): Use typed GC allocation.
+	(pass_ipa_cp): Remove write_summary member initialization.
+	* gengtype.c (dump_type_u_s_lang_struct): New.
+	(dump_type_u_s): Do not dump lang_struct member.
+	(dump_type): Adjust for TYPE_LANG_STRUCT.
+
 2009-08-21  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* ggc.h (GGC_NEWVEC): Remove.

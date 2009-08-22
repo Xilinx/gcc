@@ -863,7 +863,7 @@ do_per_function (void (*callback) (void *data), void *data)
    keep the array visible to garbage collector to avoid reading collected
    out nodes.  */
 static int nnodes;
-static GTY ((length ("nnodes"))) struct cgraph_node **order;
+static GTY ((length ("nnodes"))) cgraph_node_ptr *order;
 
 /* If we are in IPA mode (i.e., current_function_decl is NULL), call
    function CALLBACK for every function in the call graph.  Otherwise,

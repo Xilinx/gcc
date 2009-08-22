@@ -13330,7 +13330,7 @@ add_name_and_src_coords_attributes (dw_die_ref die, tree decl)
 	    {
 	      limbo_die_node *asm_name;
 
-	      asm_name = GGC_CNEW (limbo_die_node);
+	      asm_name = ggc_alloc_cleared_limbo_die_node();
 	      asm_name->die = die;
 	      asm_name->created_for = decl;
 	      asm_name->next = deferred_asm_name;

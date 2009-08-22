@@ -788,7 +788,7 @@ ipcp_create_replace_map (tree parm_tree, struct ipcp_lattice *lat)
   struct ipa_replace_map *replace_map;
   tree const_val;
 
-  replace_map = GGC_NEW (struct ipa_replace_map);
+  replace_map = ggc_alloc_ipa_replace_map ();
   const_val = build_const_val (lat, TREE_TYPE (parm_tree));
   if (dump_file)
     {
@@ -1256,7 +1256,6 @@ struct ipa_opt_pass_d pass_ipa_cp =
   TODO_remove_functions /* todo_flags_finish */
  },
  ipcp_generate_summary,			/* generate_summary */
- NULL,					/* write_summary */
  NULL,					/* read_summary */
  NULL,					/* function_read_summary */
  0,					/* TODOs */

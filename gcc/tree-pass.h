@@ -165,7 +165,6 @@ struct rtl_opt_pass
 
 struct varpool_node;
 struct cgraph_node;
-struct cgraph_node_set_def;
 
 /* Description of IPA pass with generate summary, write, execute, read and
    transform stages.  */
@@ -176,9 +175,6 @@ struct ipa_opt_pass_d
   /* IPA passes can analyze function body and variable initializers
       using this hook and produce summary.  */
   void (*generate_summary) (void);
-
-  /* This hook is used to serialize IPA summaries on disk.  */
-  void (*write_summary) (struct cgraph_node_set_def *);
 
   /* For most ipa passes, the information can only be deserialized in
      one chunk.  However, function bodies are read function at a time

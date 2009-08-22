@@ -3885,6 +3885,13 @@ dump_type_u_s (int indent, type_p t)
   printf ("%*cend of fields of type %p\n", indent, ' ', (void *) t);
   dump_options (indent, t->u.s.opt);
   printf ("%*cu.s.bitmap = %X\n", indent, ' ', t->u.s.bitmap);
+}
+
+static void
+dump_type_u_s_lang_struct (int indent, type_p t)
+{
+  gcc_assert (t->kind == TYPE_LANG_STRUCT);
+
   printf ("%*cu.s.lang_struct:\n", indent, ' ');
   dump_type_list (indent + INDENT, t->u.s.lang_struct);
 }
@@ -3955,8 +3962,11 @@ dump_type (int indent, type_p t)
       break;
     case TYPE_STRUCT:
     case TYPE_UNION:
-    case TYPE_LANG_STRUCT: /* FIXME LANG_STRUCT */
       dump_type_u_s (indent + INDENT, t);
+      break;
+    case TYPE_LANG_STRUCT:
+      dump_type_u_s (indent + INDENT, t);
+      dump_type_u_s_lang_struct (indent + INDENT, t);
       break;
     case TYPE_POINTER:
       printf ("%*cp:\n", indent + INDENT, ' ');

@@ -863,7 +863,7 @@ maybe_process_partial_specialization (tree type)
 
 		  slot = (spec_entry **)
 		    htab_find_slot (type_specializations, &elt, INSERT);
-		  *slot = GGC_NEW (spec_entry);
+		  *slot = ggc_alloc_spec_entry ();
 		  **slot = elt;
 		}
 	      else if (COMPLETE_TYPE_P (inst) || TYPE_BEING_DEFINED (inst))
@@ -1372,7 +1372,7 @@ register_specialization (tree spec, tree tmpl, tree args, bool is_friend,
   if (!optimize_specialization_lookup_p (tmpl))
     {
       gcc_assert (tmpl && args && spec);
-      *slot = GGC_NEW (spec_entry);
+      *slot = ggc_alloc_spec_entry ();
       **slot = elt;
       if (TREE_CODE (spec) == FUNCTION_DECL && DECL_NAMESPACE_SCOPE_P (spec)
 	  && PRIMARY_TEMPLATE_P (tmpl)
@@ -6213,7 +6213,7 @@ lookup_template_class (tree d1,
       elt.spec = t;
       slot = (spec_entry **) htab_find_slot_with_hash (type_specializations,
 						       &elt, hash, INSERT);
-      *slot = GGC_NEW (spec_entry);
+      *slot = ggc_alloc_spec_entry ();
       **slot = elt;
 
       /* Note this use of the partial instantiation so we can check it

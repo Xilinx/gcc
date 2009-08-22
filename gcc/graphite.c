@@ -3710,10 +3710,12 @@ build_access_matrix_with_af (tree af, lambda_vector cy,
    succeeded.  */
 
 static bool
-build_access_matrix (data_reference_p ref, graphite_bb_p gb)
+build_access_matrix (data_reference_p ref, graphite_bb_p gb,
+		     struct obstack * graphite_obstack)
 {
   int i, ndim = DR_NUM_DIMENSIONS (ref);
-  struct access_matrix *am = GGC_NEW (struct access_matrix);
+  struct access_matrix *am = (struct access_matrix *) obstack_alloc
+    (graphite_obstack, sizeof (struct access_matrix));
 
   AM_MATRIX (am) = VEC_alloc (lambda_vector, gc, ndim);
   DR_SCOP (ref) = GBB_SCOP (gb);
@@ -3737,7 +3739,7 @@ build_access_matrix (data_reference_p ref, graphite_bb_p gb)
 /* Build the access matrices for the data references in the SCOP.  */
 
 static void
-build_scop_data_accesses (scop_p scop)
+build_scop_data_accesses (scop_p scop, struct obstack * graphite_obstack)
 {
   int i;
   graphite_bb_p gb;
@@ -3757,7 +3759,7 @@ build_scop_data_accesses (scop_p scop)
 	   VEC_iterate (data_reference_p, GBB_DATA_REFS (gb), j, dr);
 	   j++)
 	{
-	  bool res = build_access_matrix (dr, gb);
+	  bool res = build_access_matrix (dr, gb, graphite_obstack);
 
 	  /* FIXME: At this point the DRs should always have an affine
 	     form.  For the moment this fails as build_access_matrix
@@ -6172,7 +6174,7 @@ graphite_transform_loops (void)
       add_conditions_to_constraints (scop);
       build_scop_canonical_schedules (scop);
 
-      build_scop_data_accesses (scop);
+      build_scop_data_accesses (scop, &graphite_obstack);
       build_scop_dynamic_schedules (scop);
 
       if (dump_file && (dump_flags & TDF_DETAILS))

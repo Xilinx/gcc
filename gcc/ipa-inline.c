@@ -2006,7 +2006,6 @@ struct ipa_opt_pass_d pass_ipa_inline =
   | TODO_remove_functions		/* todo_flags_finish */
  },
  inline_generate_summary,		/* generate_summary */
- NULL,					/* write_summary */
  NULL,					/* read_summary */
  NULL,					/* function_read_summary */
  0,					/* TODOs */

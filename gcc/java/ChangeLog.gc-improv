@@ -1,3 +1,10 @@
+2009-08-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* jcf.h (union cpool_entry): add GTY option variable_size.
+	* constants.c (set_constant_entry): Pass size parameter to typed
+	GC allocator.
+	* jcf-reader.c (jcf_parse_constant_pool): Use typed GC allocation.
+
 2009-08-05  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* constants.c (set_constant_entry): Use typed and atomic GC

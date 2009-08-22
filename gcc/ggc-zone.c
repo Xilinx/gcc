@@ -418,9 +418,9 @@ struct alloc_zone
 #ifdef GATHER_STATISTICS
   struct
   {
-    /* Total memory allocated with ggc_alloc.  */
+    /* Total GC-allocated memory.  */
     unsigned long long total_allocated;
-    /* Total overhead for memory to be allocated with ggc_alloc.  */
+    /* Total overhead for GC-allocated memory.  */
     unsigned long long total_overhead;
 
     /* Total allocations and overhead for sizes less than 32, 64 and 128.
@@ -1376,7 +1376,7 @@ ggc_alloc_typed_stat (enum gt_types_enum gte, size_t size
     }
 }
 
-/* Normal ggc_alloc simply allocates into the main zone.  */
+/* Normal GC allocation simply allocates into the main zone.  */
 
 void *
 ggc_alloc_stat (size_t size MEM_STAT_DECL)

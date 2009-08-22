@@ -2949,7 +2949,7 @@ make_label (location_t location, tree name, bool defining,
   DECL_CONTEXT (label) = current_function_decl;
   DECL_MODE (label) = VOIDmode;
 
-  label_vars = GGC_NEW (struct c_label_vars);
+  label_vars = ggc_alloc_c_label_vars ();
   label_vars->shadowed = NULL;
   set_spot_bindings (&label_vars->label_bindings, defining);
   label_vars->decls_in_scope = make_tree_vector ();
@@ -3047,7 +3047,7 @@ lookup_label_for_goto (location_t loc, tree name)
     {
       struct c_goto_bindings *g;
 
-      g = GGC_NEW (struct c_goto_bindings);
+      g = ggc_alloc_c_goto_bindings ();
       g->loc = loc;
       set_spot_bindings (&g->goto_bindings, true);
       VEC_safe_push (c_goto_bindings_p, gc, label_vars->gotos, g);
@@ -6815,8 +6815,8 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
 	  All decls in an inline function need to be saved.  */
 
 	space = ggc_alloc_cleared_lang_type();
-	space2 = GGC_NEWVAR (struct sorted_fields_type,
-			     sizeof (struct sorted_fields_type) + len * sizeof (tree));
+	space2 = ggc_alloc_sorted_fields_type
+	  (sizeof (struct sorted_fields_type) + len * sizeof (tree));
 
 	len = 0;
 	space->s = space2;
