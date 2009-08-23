@@ -758,7 +758,8 @@ union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
 #define MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC(T)			\
   if (DECL_LANG_SPECIFIC (T) == NULL)				\
     {								\
-      DECL_LANG_SPECIFIC ((T)) = ggc_alloc_cleared_lang_decl(); \
+      DECL_LANG_SPECIFIC ((T))					\
+	= ggc_alloc_cleared_lang_decl(sizeof (struct lang_decl));	\
       DECL_LANG_SPECIFIC (T)->desc = LANG_DECL_VAR;		\
     }
 
@@ -865,7 +866,7 @@ struct GTY(()) lang_decl_var {
 
 enum lang_decl_desc {LANG_DECL_FUNC, LANG_DECL_VAR};
 
-struct GTY(()) lang_decl {
+struct GTY((variable_size)) lang_decl {
   enum lang_decl_desc desc;
   union lang_decl_u
     {
@@ -883,7 +884,7 @@ struct GTY(()) lang_decl {
 #define MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC(T) \
   if (TYPE_LANG_SPECIFIC ((T)) == NULL)		\
      TYPE_LANG_SPECIFIC ((T))			\
-       = ggc_alloc_cleared_lang_type();
+       = ggc_alloc_cleared_lang_type(sizeof (struct lang_type));
 
 #define TYPE_DUMMY(T)		(TYPE_LANG_SPECIFIC(T)->dummy_class)
 
@@ -920,7 +921,7 @@ struct GTY(()) lang_decl {
 #define TYPE_REFLECTION_DATASIZE(T)					\
 				(TYPE_LANG_SPECIFIC (T)->reflection_datasize)
 
-struct GTY(()) lang_type {
+struct GTY((variable_size)) lang_type {
   tree signature;
   struct JCF *jcf;
   struct CPool *cpool;

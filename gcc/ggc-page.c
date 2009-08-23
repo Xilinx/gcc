@@ -671,7 +671,7 @@ alloc_anon (char *pref ATTRIBUTE_UNUSED, size_t size)
   G.bytes_mapped += size;
 
   /* Pretend we don't have access to the allocated pages.  We'll enable
-     access to smaller pieces of the area in ggc_alloc.  Discard the
+     access to smaller pieces of the area in ggc_internal_alloc.  Discard the
      handle to avoid handle leak.  */
   VALGRIND_DISCARD (VALGRIND_MAKE_MEM_NOACCESS (page, size));
 
@@ -1056,13 +1056,13 @@ void *
 ggc_alloc_typed_stat (enum gt_types_enum type ATTRIBUTE_UNUSED, size_t size
 		      MEM_STAT_DECL)
 {
-  return ggc_alloc_stat (size PASS_MEM_STAT);
+  return ggc_internal_alloc_stat (size PASS_MEM_STAT);
 }
 
 /* Allocate a chunk of memory of SIZE bytes.  Its contents are undefined.  */
 
 void *
-ggc_alloc_stat (size_t size MEM_STAT_DECL)
+ggc_internal_alloc_stat (size_t size MEM_STAT_DECL)
 {
   size_t order, word, bit, object_offset, object_size;
   struct page_entry *entry;

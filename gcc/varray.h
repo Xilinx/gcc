@@ -110,7 +110,7 @@ typedef union GTY (()) varray_data_tag {
 } varray_data;
 
 /* Virtual array of pointers header.  */
-struct GTY(()) varray_head_tag {
+struct GTY((variable_size)) varray_head_tag {
   size_t	num_elements;	/* Maximum element number allocated.  */
   size_t        elements_used;  /* The number of elements used, if
 				   using VARRAY_PUSH/VARRAY_POP.  */

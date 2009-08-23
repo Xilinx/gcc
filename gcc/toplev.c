@@ -1622,7 +1622,7 @@ default_tree_printer (pretty_printer * pp, text_info *text, const char *spec,
 static void *
 realloc_for_line_map (void *ptr, size_t len)
 {
-  return ggc_realloc (ptr, len);
+  return GGC_RESIZEVAR (void, ptr, len);
 }
 
 /* Initialization of the front end environment, before command line

@@ -33,8 +33,8 @@ union GTY((desc ("0"),
 };
 
 /* Ada uses the lang_decl and lang_type fields to hold a tree.  */
-struct GTY(()) lang_type { tree t; };
-struct GTY(()) lang_decl { tree t; };
+struct GTY((variable_size)) lang_type { tree t; };
+struct GTY((variable_size)) lang_decl { tree t; };
 
 /* Macros to get and set the tree in TYPE_LANG_SPECIFIC.  */
 #define GET_TYPE_LANG_SPECIFIC(NODE) \
@@ -44,7 +44,8 @@ struct GTY(()) lang_decl { tree t; };
 do {						       \
   tree tmp = (X);				       \
   if (!TYPE_LANG_SPECIFIC (NODE))		       \
-    TYPE_LANG_SPECIFIC (NODE) = ggc_alloc_lang_type(); \
+    TYPE_LANG_SPECIFIC (NODE) = ggc_alloc_lang_type    \
+      (sizeof (struct lang_type));		       \
   TYPE_LANG_SPECIFIC (NODE)->t = tmp;		       \
 } while (0)
 
@@ -56,7 +57,8 @@ do {						       \
 do {						       \
   tree tmp = (X);				       \
   if (!DECL_LANG_SPECIFIC (NODE))		       \
-    DECL_LANG_SPECIFIC (NODE) = ggc_alloc_lang_decl(); \
+    DECL_LANG_SPECIFIC (NODE) = ggc_alloc_lang_decl    \
+      (sizeof (struct lang_decl));		       \
   DECL_LANG_SPECIFIC (NODE)->t = tmp;		       \
 } while (0)
 

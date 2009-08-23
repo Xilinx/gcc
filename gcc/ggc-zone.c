@@ -861,7 +861,7 @@ alloc_anon (char *pref ATTRIBUTE_UNUSED, size_t size, struct alloc_zone *zone)
   zone->bytes_mapped += size;
 
   /* Pretend we don't have access to the allocated pages.  We'll enable
-     access to smaller pieces of the area in ggc_alloc.  Discard the
+     access to smaller pieces of the area in ggc_internal_alloc.  Discard the
      handle to avoid handle leak.  */
   VALGRIND_DISCARD (VALGRIND_MAKE_MEM_NOACCESS (page, size));
 
@@ -1090,8 +1090,8 @@ free_chunk (char *ptr, size_t size, struct alloc_zone *zone)
 /* Allocate a chunk of memory of at least ORIG_SIZE bytes, in ZONE.  */
 
 void *
-ggc_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
-		     MEM_STAT_DECL)
+ggc_internal_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
+			      MEM_STAT_DECL)
 {
   size_t bin;
   size_t csize;
@@ -1353,6 +1353,19 @@ ggc_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
   return result;
 }
 
+void *
+ggc_internal_cleared_alloc_zone_stat (size_t orig_size,
+				      struct alloc_zone *zone MEM_STAT_DECL)
+{
+  void * result = ggc_internal_alloc_zone_stat (orig_size, zone);
+  memset (result, 0, orig_size);
+  return result;
+}
+
+
+#define ggc_internal_alloc_zone_pass_stat(s,z)			\
+  ggc_internal_alloc_zone_stat (s,z PASS_MEM_STAT)
+
 /* Allocate a SIZE of chunk memory of GTE type, into an appropriate zone
    for that type.  */
 
@@ -1363,25 +1376,25 @@ ggc_alloc_typed_stat (enum gt_types_enum gte, size_t size
   switch (gte)
     {
     case gt_ggc_e_14lang_tree_node:
-      return ggc_alloc_zone_pass_stat (size, &tree_zone);
+      return ggc_internal_alloc_zone_pass_stat (size, &tree_zone);
 
     case gt_ggc_e_7rtx_def:
-      return ggc_alloc_zone_pass_stat (size, &rtl_zone);
+      return ggc_internal_alloc_zone_pass_stat (size, &rtl_zone);
 
     case gt_ggc_e_9rtvec_def:
-      return ggc_alloc_zone_pass_stat (size, &rtl_zone);
+      return ggc_internal_alloc_zone_pass_stat (size, &rtl_zone);
 
     default:
-      return ggc_alloc_zone_pass_stat (size, &main_zone);
+      return ggc_internal_alloc_zone_pass_stat (size, &main_zone);
     }
 }
 
 /* Normal GC allocation simply allocates into the main zone.  */
 
 void *
-ggc_alloc_stat (size_t size MEM_STAT_DECL)
+ggc_internal_alloc_stat (size_t size MEM_STAT_DECL)
 {
-  return ggc_alloc_zone_pass_stat (size, &main_zone);
+  return ggc_internal_alloc_zone_pass_stat (size, &main_zone);
 }
 
 /* Poison the chunk.  */
@@ -2350,7 +2363,7 @@ ggc_pch_count_object (struct ggc_pch_data *d, void *x ATTRIBUTE_UNUSED,
 size_t
 ggc_pch_total_size (struct ggc_pch_data *d)
 {
-  enum gt_types_enum i;
+  int i;
   size_t alloc_size, total_size;
 
   total_size = 0;

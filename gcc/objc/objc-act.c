@@ -6845,10 +6845,8 @@ hash_func (tree sel_name)
 static void
 hash_init (void)
 {
-  nst_method_hash_list
-    = (hash *) ggc_alloc_cleared (SIZEHASHTABLE * sizeof (hash));
-  cls_method_hash_list
-    = (hash *) ggc_alloc_cleared (SIZEHASHTABLE * sizeof (hash));
+  nst_method_hash_list = ggc_alloc_cleared_vec_hash (SIZEHASHTABLE);
+  cls_method_hash_list = ggc_alloc_cleared_vec_hash (SIZEHASHTABLE);
 
   /* Initialize the hash table used to hold the constant string objects.  */
   string_htab = htab_create_ggc (31, string_hash,

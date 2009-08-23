@@ -174,9 +174,9 @@ ggc_mark_roots (void)
 
 /* Allocate a block of memory, then clear it.  */
 void *
-ggc_alloc_cleared_stat (size_t size MEM_STAT_DECL)
+ggc_internal_cleared_alloc_stat (size_t size MEM_STAT_DECL)
 {
-  void *buf = ggc_alloc_stat (size PASS_MEM_STAT);
+  void *buf = ggc_internal_alloc_stat (size PASS_MEM_STAT);
   memset (buf, 0, size);
   return buf;
 }
@@ -189,7 +189,7 @@ ggc_realloc_stat (void *x, size_t size MEM_STAT_DECL)
   size_t old_size;
 
   if (x == NULL)
-    return ggc_alloc_stat (size PASS_MEM_STAT);
+    return ggc_internal_alloc_stat (size PASS_MEM_STAT);
 
   old_size = ggc_get_size (x);
 
@@ -211,7 +211,7 @@ ggc_realloc_stat (void *x, size_t size MEM_STAT_DECL)
       return x;
     }
 
-  r = ggc_alloc_stat (size PASS_MEM_STAT);
+  r = ggc_internal_alloc_stat (size PASS_MEM_STAT);
 
   /* Since ggc_get_size returns the size of the pool, not the size of the
      individually allocated object, we'd access parts of the old object
@@ -227,11 +227,10 @@ ggc_realloc_stat (void *x, size_t size MEM_STAT_DECL)
   return r;
 }
 
-/* Like ggc_alloc_cleared, but performs a multiplication.  */
 void *
 ggc_calloc (size_t s1, size_t s2)
 {
-  return ggc_alloc_cleared (s1 * s2);
+  return ggc_internal_cleared_alloc (s1 * s2);
 }
 
 /* These are for splay_tree_new_ggc.  */
@@ -240,7 +239,7 @@ ggc_splay_alloc (enum gt_types_enum obj_type ATTRIBUTE_UNUSED, int sz,
 		 void *nl)
 {
   gcc_assert (!nl);
-  return ggc_alloc (sz);
+  return ggc_internal_alloc (sz);
 }
 
 void

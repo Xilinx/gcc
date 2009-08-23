@@ -586,7 +586,8 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
 void
 gfc_allocate_lang_decl (tree decl)
 {
-  DECL_LANG_SPECIFIC (decl) = ggc_alloc_cleared_lang_decl();
+  DECL_LANG_SPECIFIC (decl) = ggc_alloc_cleared_lang_decl(sizeof
+							  (struct lang_decl));
 }
 
 /* Remember a symbol to generate initialization/cleanup code at function

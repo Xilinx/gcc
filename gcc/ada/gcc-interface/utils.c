@@ -215,8 +215,7 @@ static bool potential_alignment_gap (tree, tree, tree);
 void
 init_gnat_to_gnu (void)
 {
-  associate_gnat_to_gnu
-    = (tree *) ggc_alloc_cleared (max_gnat_nodes * sizeof (tree));
+  associate_gnat_to_gnu = ggc_alloc_cleared_vec_tree (max_gnat_nodes);
 }
 
 /* GNAT_ENTITY is a GNAT tree node for an entity.   GNU_DECL is the GCC tree
@@ -266,8 +265,7 @@ present_gnu_tree (Entity_Id gnat_entity)
 void
 init_dummy_type (void)
 {
-  dummy_node_table
-    = (tree *) ggc_alloc_cleared (max_gnat_nodes * sizeof (tree));
+  dummy_node_table = ggc_alloc_cleared_vec_tree (max_gnat_nodes);
 }
 
 /* Make a dummy type corresponding to GNAT_TYPE.  */

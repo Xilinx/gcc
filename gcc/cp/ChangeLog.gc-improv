@@ -1,7 +1,17 @@
+2009-08-23  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* cp-tree.h (struct lang_type): add variable_size GTY option.
+	(struct lang_decl): Likewise.
+	(TYPE_SET_PTRMEMFUNC_TYPE): Pass size to GC allocator.
+	* lex.c (retrofit_lang_decl): Convert to typed GC allocation.
+	(cxx_dup_lang_specific_decl): Likewise.
+	(copy_lang_type): Likewise.
+	(cxx_make_type): Likewise.
+
 2009-08-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
-	* cp/class.c (finish_struct_1): Use typed GC allocation.
-	* cp/pt.c (maybe_process_partial_specialization): Likewise.
+	* class.c (finish_struct_1): Use typed GC allocation.
+	* pt.c (maybe_process_partial_specialization): Likewise.
 	(register_specialization): Likewise.
 	(lookup_template_class): Likewise.
 

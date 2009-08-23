@@ -545,7 +545,7 @@ retrofit_lang_decl (tree t)
   else
     gcc_unreachable ();
 
-  ld = GGC_CNEWVAR (struct lang_decl, size);
+  ld = ggc_alloc_cleared_lang_decl (size);
 
   ld->u.base.selector = sel;
 
@@ -586,7 +586,7 @@ cxx_dup_lang_specific_decl (tree node)
   else
     gcc_unreachable ();
 
-  ld = GGC_NEWVAR (struct lang_decl, size);
+  ld = ggc_alloc_lang_decl (size);
   memcpy (ld, DECL_LANG_SPECIFIC (node), size);
   DECL_LANG_SPECIFIC (node) = ld;
 
@@ -623,7 +623,7 @@ copy_lang_type (tree node)
     size = sizeof (struct lang_type);
   else
     size = sizeof (struct lang_type_ptrmem);
-  lt = GGC_NEWVAR (struct lang_type, size);
+  lt = ggc_alloc_lang_type (size);
   memcpy (lt, TYPE_LANG_SPECIFIC (node), size);
   TYPE_LANG_SPECIFIC (node) = lt;
 
@@ -654,7 +654,8 @@ cxx_make_type (enum tree_code code)
   if (RECORD_OR_UNION_CODE_P (code)
       || code == BOUND_TEMPLATE_TEMPLATE_PARM)
     {
-      struct lang_type *pi = ggc_alloc_cleared_lang_type();
+      struct lang_type *pi
+	= ggc_alloc_cleared_lang_type(sizeof (struct lang_type));
 
       TYPE_LANG_SPECIFIC (t) = pi;
       pi->u.c.h.is_lang_type_class = 1;

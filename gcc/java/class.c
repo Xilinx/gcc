@@ -764,7 +764,7 @@ add_method_1 (tree this_class, int access_flags, tree name, tree function_type)
   DECL_CONTEXT (fndecl) = this_class;
 
   DECL_LANG_SPECIFIC (fndecl)
-    = ggc_alloc_cleared_lang_decl();
+    = ggc_alloc_cleared_lang_decl(sizeof (struct lang_decl));
   DECL_LANG_SPECIFIC (fndecl)->desc = LANG_DECL_FUNC;
 
   /* Initialize the static initializer test table.  */

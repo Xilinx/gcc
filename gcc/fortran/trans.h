@@ -617,7 +617,7 @@ enum gfc_array_kind
 };
 
 /* Array types only.  */
-struct GTY(())	lang_type	 {
+struct GTY((variable_size))	lang_type	 {
   int rank;
   enum gfc_array_kind akind;
   tree lbound[GFC_MAX_DIMENSIONS];
@@ -631,7 +631,7 @@ struct GTY(())	lang_type	 {
   tree base_decl[2];
 };
 
-struct GTY(()) lang_decl {
+struct GTY((variable_size)) lang_decl {
   /* Dummy variables.  */
   tree saved_descriptor;
   /* Assigned integer nodes.  Stringlength is the IO format string's length.

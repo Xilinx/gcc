@@ -126,7 +126,7 @@ varray_init (size_t num_elements, enum varray_data_enum element_kind,
   desc->allocated += data_size + VARRAY_HDR_SIZE;
 #endif
   if (element[element_kind].uses_ggc)
-    ptr = GGC_CNEWVAR (struct varray_head_tag, VARRAY_HDR_SIZE + data_size);
+    ptr = ggc_alloc_cleared_varray_head_tag (VARRAY_HDR_SIZE + data_size);
   else
     ptr = XCNEWVAR (struct varray_head_tag, VARRAY_HDR_SIZE + data_size);
 

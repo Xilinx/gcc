@@ -1,3 +1,69 @@
+2009-08-23  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* ggc.h (ggc_alloc_stat): Rename to ggc_internal_alloc_stat.
+	(ggc_internal_alloc, ggc_alloc): Redefine.
+	(ggc_alloc_cleared_stat): Rename to
+	ggc_internal_cleared_alloc_stat.
+	(ggc_internal_cleared_alloc, ggc_alloc_cleared): Redefine.
+	(GGC_NEW, GGC_CNEW, GGC_RESIZEVEC, GGC_RESIZEVAR): Redefine.
+	(GGC_NEWVAR, GGC_CNEWVAR): Remove.
+	(ggc_internal_vec_alloc, ggc_internal_cleared_vec_alloc): Redefine.
+	(ggc_internal_sized_alloc): Remove.
+	(ggc_internal_cleared_sized_alloc): Remove.
+	(ggc_internal_vec_sized_alloc): Remove.
+	(ggc_internal_cleared_vec_sized_alloc): Remove.
+	(ggc_alloc_atomic, ggc_alloc_cleared_atomic): Redefine.
+	(ggc_alloc_rtvec): Rename to ggc_alloc_rtvec_sized and redefine.
+	(ggc_alloc_zone_stat): Rename to ggc_internal_alloc_zone_stat.
+	(ggc_alloc_zone, ggc_alloc_zone_pass_stat): Remove.
+	(ggc_internal_cleared_alloc_zone_stat): New.
+	(ggc_internal_zone_stat_alloc): Define.
+	(ggc_internal_zone_cleared_stat_alloc): Define.
+	(ggc_internal_zone_vec_alloc): Define.
+	* ggc-none.c (ggc_alloc_stat): Rename to ggc_internal_alloc_stat.
+	(ggc_alloc_cleared_stat): Rename to
+	ggc_internal_cleared_alloc_stat.
+	* ggc-page.c (ggc_alloc_typed_stat): Use ggc_internal_alloc_stat.
+	(ggc_alloc_stat): Rename to ggc_internal_alloc_stat.
+	* ggc-zone.c (ggc_alloc_zone_stat): Rename to
+	ggc_internal_alloc_zone_stat.
+	(ggc_internal_cleared_alloc_zone_stat): New.
+	(ggc_internal_alloc_zone_pass_stat): Define.
+	(ggc_alloc_typed_stat): Use ggc_internal_alloc_zone_pass_stat.
+	(ggc_alloc_stat): Rename to ggc_internal_alloc_stat.  Use
+	ggc_internal_alloc_zone_pass_stat.
+	(ggc_pch_total_size): Change type of i to int.
+	* ggc-common.c (ggc_internal_alloc_stat): Rename to
+	ggc_internal_cleared_alloc_stat, use ggc_internal_alloc_stat.
+	(ggc_realloc_stat): Use ggc_internal_alloc_stat.
+	(ggc_calloc): Use ggc_internal_cleared_alloc.
+	(ggc_splay_alloc): Use ggc_internal_alloc.
+	* gengtype.c (alloc_quantity, alloc_zone): new enumerations.
+	(write_typed_alloc_end): Replace argument `is_vector' with
+	`quantity'.  Rewrite to support zone allocators.
+	(write_typed_struct_alloc_def): Likewise.
+	(write_typed_typedef_alloc_def): Likewise.
+	(write_typed_alloc_defns): Output zone allocators.
+	(write_typed_alloc_defns): Likewise.
+	* varray.h (struct varray_head_tag): Add variable_size GTY option.
+	* varray.c (varray_init): Use typed GC allocation.
+	* rtl.h (struct rtvec_def): add variable_size GTY option.
+	* rtl.c (rtvec_alloc): Use ggc_alloc_rtvec_sized.
+	* ira.c (fix_reg_equiv_init): Use GGC_RESIZEVEC.
+	* c-tree.h (struct lang_type): add variable_size GTY option.
+	(struct lang_decl): Likewise.
+	* c-decl.c (finish_struct): Pass size to GC allocator.
+	(finish_enum): Likewise.
+	(c_dup_lang_specific_decl): Likewise.
+	* toplev.c (realloc_for_line_map): Use GGC_RESIZEVAR.
+	* tree.c (make_node_stat): Convert to typed GC allocation.
+	(copy_node_stat): Likewise.
+	(make_tree_binfo_stat): Likewise.
+	(make_tree_vec_stat): Likewise.
+	(tree_cons_stat): Likewise.
+	(build1_stat): Likewise.
+	(build_vl_exp_stat): Likewise.
+
 2009-08-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* cgraph.h (cgraph_node_ptr, cgraph_node_set): Remove vector

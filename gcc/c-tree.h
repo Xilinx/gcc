@@ -33,7 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Language-specific declaration information.  */
 
-struct GTY(()) lang_decl {
+struct GTY((variable_size)) lang_decl {
   char dummy;
 };
 
@@ -56,7 +56,7 @@ struct GTY(()) lang_decl {
    and C_RID_YYCODE is the token number wanted by Yacc.  */
 #define C_IS_RESERVED_WORD(ID) TREE_LANG_FLAG_0 (ID)
 
-struct GTY(()) lang_type {
+struct GTY((variable_size)) lang_type {
   /* In a RECORD_TYPE, a sorted array of the fields of the type.  */
   struct sorted_fields_type * GTY ((reorder ("resort_sorted_fields"))) s;
   /* In an ENUMERAL_TYPE, the min and max values.  */

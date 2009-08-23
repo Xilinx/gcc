@@ -40,13 +40,13 @@ ggc_alloc_typed_stat (enum gt_types_enum ARG_UNUSED (gte), size_t size
 }
 
 void *
-ggc_alloc_stat (size_t size MEM_STAT_DECL)
+ggc_internal_alloc_stat (size_t size MEM_STAT_DECL)
 {
   return xmalloc (size);
 }
 
 void *
-ggc_alloc_cleared_stat (size_t size MEM_STAT_DECL)
+ggc_internal_cleared_alloc_stat (size_t size MEM_STAT_DECL)
 {
   return xcalloc (size, 1);
 }

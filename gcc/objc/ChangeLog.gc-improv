@@ -1,3 +1,9 @@
+2009-08-23  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* objc-act.h (ALLOC_OBJC_TYPE_LANG_SPECIFIC): Pass size to GC
+	allocator.
+	* objc-act.c (hash_init): Convert to typed GC allocation.
+
 2009-05-21  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* objc-act.c (objc_volatilize_decl): Use typed GC allocation.

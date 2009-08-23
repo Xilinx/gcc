@@ -1,3 +1,14 @@
+2009-08-23  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* java-tree.h (MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC): Pass
+	size to GC allocator.
+	(struct lang_dec): add variable_size GTY option.
+	(MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC): Pass size to GC
+	allocator.
+	(struct lang_type): add variable_size GTY option.
+	* decl.c (java_dup_lang_specific_decl): Pass size to GC allocator.
+	* class.c (add_method_1): Likewise.
+
 2009-08-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* jcf.h (union cpool_entry): add GTY option variable_size.

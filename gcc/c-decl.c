@@ -6814,7 +6814,7 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
 	  ensure that this lives as long as the rest of the struct decl.
 	  All decls in an inline function need to be saved.  */
 
-	space = ggc_alloc_cleared_lang_type();
+	space = ggc_alloc_cleared_lang_type(sizeof (struct lang_type));
 	space2 = ggc_alloc_sorted_fields_type
 	  (sizeof (struct sorted_fields_type) + len * sizeof (tree));
 
@@ -7092,7 +7092,7 @@ finish_enum (tree enumtype, tree values, tree attributes)
 
   /* Record the min/max values so that we can warn about bit-field
      enumerations that are too small for the values.  */
-  lt = ggc_alloc_cleared_lang_type();
+  lt = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
   lt->enum_min = minnode;
   lt->enum_max = maxnode;
   TYPE_LANG_SPECIFIC (enumtype) = lt;
@@ -8146,7 +8146,7 @@ c_dup_lang_specific_decl (tree decl)
   if (!DECL_LANG_SPECIFIC (decl))
     return;
 
-  ld = ggc_alloc_lang_decl();
+  ld = ggc_alloc_lang_decl (sizeof (struct lang_decl));
   memcpy (ld, DECL_LANG_SPECIFIC (decl), sizeof (struct lang_decl));
   DECL_LANG_SPECIFIC (decl) = ld;
 }

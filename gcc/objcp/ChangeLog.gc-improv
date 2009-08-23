@@ -1,0 +1,4 @@
+2009-08-23  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* objcp/objcp-decl.h (ALLOC_OBJC_TYPE_LANG_SPECIFIC): Pass size to
+	GC allocator.
