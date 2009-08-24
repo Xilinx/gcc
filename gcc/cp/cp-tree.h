@@ -3616,6 +3616,8 @@ enum tsubst_flags {
 				    conversion.  */
   tf_no_access_control = 1 << 7, /* Do not perform access checks, even
 				    when issuing other errors.   */
+  /* Do not instantiate classes (used by count_non_default_template_args). */
+  tf_no_class_instantiations = 1 << 8,
   /* Convenient substitution flags combinations.  */
   tf_warning_or_error = tf_warning | tf_error
 };
@@ -4264,6 +4266,7 @@ extern tree set_up_extended_ref_temp		(tree, tree, tree *, tree *);
 extern tree initialize_reference		(tree, tree, tree, tree *);
 extern tree make_temporary_var_for_ref_to_temp	(tree, tree);
 extern tree strip_top_quals			(tree);
+extern bool reference_related_p			(tree, tree);
 extern tree perform_implicit_conversion		(tree, tree, tsubst_flags_t);
 extern tree perform_implicit_conversion_flags	(tree, tree, tsubst_flags_t, int);
 extern tree perform_direct_initialization_if_possible (tree, tree, bool,
@@ -4337,6 +4340,7 @@ extern tree force_rvalue			(tree);
 extern tree ocp_convert				(tree, tree, int, int);
 extern tree cp_convert				(tree, tree);
 extern tree cp_convert_and_check                (tree, tree);
+extern tree cp_fold_convert			(tree, tree);
 extern tree convert_to_void	(tree, const char */*implicit context*/,
                                  tsubst_flags_t);
 extern tree convert_force			(tree, tree, int);
@@ -4473,6 +4477,7 @@ extern tree build_cleanup			(tree);
 extern tree build_offset_ref_call_from_tree	(tree, VEC(tree,gc) **);
 extern void check_default_args			(tree);
 extern void mark_used				(tree);
+extern bool tree_used_ok			(tree);
 extern void finish_static_data_member_decl	(tree, tree, bool, tree, int);
 extern tree cp_build_parm_decl			(tree, tree);
 extern tree get_guard				(tree);
@@ -4625,6 +4630,7 @@ extern void mark_decl_instantiated		(tree, int);
 extern int more_specialized_fn			(tree, tree, int);
 extern void do_decl_instantiation		(tree, tree);
 extern void do_type_instantiation		(tree, tree, tsubst_flags_t);
+extern bool always_instantiate_p		(tree);
 extern tree instantiate_decl			(tree, int, bool);
 extern int comp_template_parms			(const_tree, const_tree);
 extern bool uses_parameter_packs                (tree);
@@ -5059,6 +5065,7 @@ extern tree cp_build_binary_op                  (location_t,
 #define cxx_sizeof(T)  cxx_sizeof_or_alignof_type (T, SIZEOF_EXPR, true)
 extern tree build_ptrmemfunc_access_expr	(tree, tree);
 extern tree build_address			(tree);
+extern tree build_typed_address			(tree, tree);
 extern tree build_nop				(tree, tree);
 extern tree non_reference			(tree);
 extern tree lookup_anon_field			(tree, tree);

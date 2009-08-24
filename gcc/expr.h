@@ -719,8 +719,17 @@ extern rtx force_reg (enum machine_mode, rtx);
 /* Return given rtx, copied into a new temp reg if it was in memory.  */
 extern rtx force_not_mem (rtx);
 
+/* Return mode and signedness to use when an argument or result in the
+   given mode is promoted.  */
+extern enum machine_mode promote_function_mode (const_tree, enum machine_mode, int *,
+					        const_tree, int);
+
+/* Return mode and signedness to use when an object in the given mode
+   is promoted.  */
+extern enum machine_mode promote_mode (const_tree, enum machine_mode, int *);
+
 /* Return mode and signedness to use when object is promoted.  */
-extern enum machine_mode promote_mode (const_tree, enum machine_mode, int *, int);
+enum machine_mode promote_decl_mode (const_tree, int *);
 
 /* Remove some bytes from the stack.  An rtx says how many.  */
 extern void adjust_stack (rtx);
@@ -753,7 +762,7 @@ extern void probe_stack_range (HOST_WIDE_INT, rtx);
 
 /* Return an rtx that refers to the value returned by a library call
    in its original home.  This becomes invalid if any more code is emitted.  */
-extern rtx hard_libcall_value (enum machine_mode);
+extern rtx hard_libcall_value (enum machine_mode, rtx);
 
 /* Return the mode desired by operand N of a particular bitfield
    insert/extract insn, or MAX_MACHINE_MODE if no such insn is

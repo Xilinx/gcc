@@ -626,8 +626,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
   /* Finally see if we have any elaboration procedures to deal with.  */
   for (info = elab_info_list; info; info = info->next)
     {
-      tree gnu_body = DECL_SAVED_TREE (info->elab_proc);
-      tree gnu_stmts;
+      tree gnu_body = DECL_SAVED_TREE (info->elab_proc), gnu_stmts;
 
       /* Unshare SAVE_EXPRs between subprograms.  These are not unshared by
 	 the gimplifier for obvious reasons, but it turns out that we need to
@@ -639,21 +638,16 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
 	 an upstream bug for which we would not change the outcome.  */
       walk_tree_without_duplicates (&gnu_body, unshare_save_expr, NULL);
 
-
-      /* We should have a BIND_EXPR, but it may or may not have any statements
-	 in it.  If it doesn't have any, we have nothing to do.  */
+      /* We should have a BIND_EXPR but it may not have any statements in it.
+	 If it doesn't have any, we have nothing to do except for setting the
+	 flag on the GNAT node.  Otherwise, process the function as others.  */
       gnu_stmts = gnu_body;
       if (TREE_CODE (gnu_stmts) == BIND_EXPR)
 	gnu_stmts = BIND_EXPR_BODY (gnu_stmts);
-
-      /* If there are no statements, there is no elaboration code.  */
       if (!gnu_stmts || !STATEMENT_LIST_HEAD (gnu_stmts))
-	{
-	  Set_Has_No_Elaboration_Code (info->gnat_node, 1);
-	}
+	Set_Has_No_Elaboration_Code (info->gnat_node, 1);
       else
 	{
-	  /* Process the function as others.  */
 	  begin_subprog_body (info->elab_proc);
 	  end_subprog_body (gnu_body);
 	}
@@ -5294,12 +5288,11 @@ gnat_to_gnu (Node_Id gnat_node)
       gnu_result = alloc_stmt_list ();
       break;
 
-    /* SCIL nodes require no processing by this backend */
-
     case N_SCIL_Dispatch_Table_Object_Init:
     case N_SCIL_Dispatch_Table_Tag_Init:
     case N_SCIL_Dispatching_Call:
     case N_SCIL_Tag_Init:
+      /* SCIL nodes require no processing for GCC.  */
       gnu_result = alloc_stmt_list ();
       break;
 
@@ -5564,31 +5557,6 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
 	  mark_visited (&DECL_SIZE_UNIT (gnu_decl));
 	  mark_visited (&DECL_INITIAL (gnu_decl));
 	}
-
-      /* In any case, we have to deal with our own fields.  */
-      else if (TREE_CODE (gnu_decl) == TYPE_DECL)
-	switch (TREE_CODE (type))
-	  {
-	  case RECORD_TYPE:
-	  case UNION_TYPE:
-	  case QUAL_UNION_TYPE:
-	    if ((t = TYPE_ADA_SIZE (type)))
-	      mark_visited (&t);
-	    break;
-
-	  case INTEGER_TYPE:
-	  case ENUMERAL_TYPE:
-	  case BOOLEAN_TYPE:
-	  case REAL_TYPE:
-	    if ((t = TYPE_RM_MIN_VALUE (type)))
-	      mark_visited (&t);
-	    if ((t = TYPE_RM_MAX_VALUE (type)))
-	      mark_visited (&t);
-	    break;
-
-	  default:
-	    break;
-	  }
     }
   else
     add_stmt_with_node (gnu_stmt, gnat_entity);
@@ -5880,6 +5848,47 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
 	  TREE_OPERAND (expr, 0) = new_var;
 	  recompute_tree_invariant_for_addr_expr (expr);
 	  return GS_ALL_DONE;
+	}
+
+      return GS_UNHANDLED;
+
+    case DECL_EXPR:
+      op = DECL_EXPR_DECL (expr);
+
+      /* The expressions for the RM bounds must be gimplified to ensure that
+	 they are properly elaborated.  See gimplify_decl_expr.  */
+      if ((TREE_CODE (op) == TYPE_DECL || TREE_CODE (op) == VAR_DECL)
+	  && !TYPE_SIZES_GIMPLIFIED (TREE_TYPE (op)))
+	switch (TREE_CODE (TREE_TYPE (op)))
+	{
+	  case INTEGER_TYPE:
+	  case ENUMERAL_TYPE:
+	  case BOOLEAN_TYPE:
+	  case REAL_TYPE:
+	    {
+	      tree type = TYPE_MAIN_VARIANT (TREE_TYPE (op)), t, val;
+
+	      val = TYPE_RM_MIN_VALUE (type);
+	      if (val)
+		{
+		  gimplify_one_sizepos (&val, pre_p);
+		  for (t = type; t; t = TYPE_NEXT_VARIANT (t))
+		    SET_TYPE_RM_MIN_VALUE (t, val);
+		}
+
+	      val = TYPE_RM_MAX_VALUE (type);
+	      if (val)
+		{
+		  gimplify_one_sizepos (&val, pre_p);
+		  for (t = type; t; t = TYPE_NEXT_VARIANT (t))
+		    SET_TYPE_RM_MAX_VALUE (t, val);
+		}
+
+	    }
+	    break;
+
+	  default:
+	    break;
 	}
 
       /* ... fall through ... */

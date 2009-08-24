@@ -346,7 +346,8 @@ Objective-C and Objective-C++ Dialects}.
 -fira-region=@var{region} -fira-coalesce -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
--floop-block -floop-interchange -floop-strip-mine @gol
+-floop-block -floop-interchange -floop-strip-mine -fgraphite-identity @gol
+-floop-parallelize-all @gol
 -fmerge-all-constants -fmerge-constants -fmodulo-sched @gol
 -fmodulo-sched-allow-regmoves -fmove-loop-invariants -fmudflap @gol
 -fmudflapir -fmudflapth -fno-branch-count-reg -fno-default-inline @gol
@@ -534,7 +535,7 @@ Objective-C and Objective-C++ Dialects}.
 -mmemory-latency=@var{time}}
 
 @emph{DEC Alpha/VMS Options}
-@gccoptlist{-mvms-return-codes}
+@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
 
 @emph{FR30 Options}
 @gccoptlist{-msmall-model -mno-lsim}
@@ -622,6 +623,9 @@ Objective-C and Objective-C++ Dialects}.
 -msched-stop-bits-after-every-cycle -msched-count-spec-in-critical-path @gol
 -msel-sched-dont-check-control-spec -msched-fp-mem-deps-zero-cost @gol
 -msched-max-memory-insns-hard-limit -msched-max-memory-insns=@var{max-insns}}
+
+@emph{IA-64/VMS Options}
+@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
 
 @emph{M32R/D Options}
 @gccoptlist{-m32r2 -m32rx -m32r @gol
@@ -738,7 +742,8 @@ See RS/6000 and PowerPC Options.
 -maltivec  -mno-altivec @gol
 -mpowerpc-gpopt  -mno-powerpc-gpopt @gol
 -mpowerpc-gfxopt  -mno-powerpc-gfxopt @gol
--mmfcrf  -mno-mfcrf  -mpopcntb  -mno-popcntb  -mfprnd  -mno-fprnd @gol
+-mmfcrf  -mno-mfcrf  -mpopcntb  -mno-popcntb -mpopcntd -mno-popcntd @gol
+-mfprnd  -mno-fprnd @gol
 -mcmpb -mno-cmpb -mmfpgpr -mno-mfpgpr -mhard-dfp -mno-hard-dfp @gol
 -mnew-mnemonics  -mold-mnemonics @gol
 -mfull-toc   -mminimal-toc  -mno-fp-in-toc  -mno-sum-in-toc @gol
@@ -752,7 +757,7 @@ See RS/6000 and PowerPC Options.
 -mstrict-align  -mno-strict-align  -mrelocatable @gol
 -mno-relocatable  -mrelocatable-lib  -mno-relocatable-lib @gol
 -mtoc  -mno-toc  -mlittle  -mlittle-endian  -mbig  -mbig-endian @gol
--mdynamic-no-pic  -maltivec  -mswdiv @gol
+-mdynamic-no-pic  -maltivec -mswdiv @gol
 -mprioritize-restricted-insns=@var{priority} @gol
 -msched-costly-dep=@var{dependence_type} @gol
 -minsert-sched-nops=@var{scheme} @gol
@@ -1919,7 +1924,8 @@ This information is generally only useful to the G++ development team.
 Set the maximum instantiation depth for template classes to @var{n}.
 A limit on the template instantiation depth is needed to detect
 endless recursions during template class instantiation.  ANSI/ISO C++
-conforming programs must not rely on a maximum depth greater than 17.
+conforming programs must not rely on a maximum depth greater than 17
+(changed to 1024 in C++0x).
 
 @item -fno-threadsafe-statics
 @opindex fno-threadsafe-statics
@@ -6591,6 +6597,21 @@ code transformation, GCC has to be configured with @option{--with-ppl}
 and @option{--with-cloog} to enable the Graphite loop transformation
 infrastructure.
 
+@item -fgraphite-identity
+@opindex fgraphite-identity
+Enable the identity transformation for graphite.  For every SCoP we generate
+the polyhedral representation and transform it back to gimple.  Using
+@option{-fgraphite-identity} we can check the costs or benefits of the
+GIMPLE -> GRAPHITE -> GIMPLE transformation.  Some minimal optimizations
+are also performed by the code generator CLooG, like index splitting and
+dead code elimination in loops.
+
+@item -floop-parallelize-all
+Use the Graphite data dependence analysis to identify loops that can
+be parallelized.  Parallelize all the loops that can be analyzed to
+not contain loop carried dependences without checking that it is
+profitable to parallelize the loops.
+
 @item -fcheck-data-deps
 @opindex fcheck-data-deps
 Compare the results of several data dependence analyzers.  This option
@@ -9143,6 +9164,7 @@ platform.
 * i386 and x86-64 Options::
 * i386 and x86-64 Windows Options::
 * IA-64 Options::
+* IA-64/VMS Options::
 * M32C Options::
 * M32R/D Options::
 * M680x0 Options::
@@ -9304,11 +9326,6 @@ library calls for floating-point operations.
 instructions, but still uses the soft-float calling conventions.
 @samp{hard} allows generation of floating-point instructions
 and uses FPU-specific calling conventions.
-
-Using @option{-mfloat-abi=hard} with VFP coprocessors is not supported.
-Use @option{-mfloat-abi=softfp} with the appropriate @option{-mfpu} option
-to allow the compiler to generate code that makes use of the hardware
-floating-point capabilities for these CPUs.
 
 The default depends on the specific target configuration.  Note that
 the hard-float and soft-float ABIs are not link-compatible; you must
@@ -10582,8 +10599,17 @@ These @samp{-m} options are defined for the DEC Alpha/VMS implementations:
 @table @gcctabopt
 @item -mvms-return-codes
 @opindex mvms-return-codes
-Return VMS condition codes from main.  The default is to return POSIX
+Return VMS condition codes from main. The default is to return POSIX
 style condition (e.g.@: error) codes.
+
+@item -mdebug-main=@var{prefix}
+@opindex mdebug-main=@var{prefix}
+Flag the first routine whose name starts with @var{prefix} as the main
+routine for the debugger.
+
+@item -mmalloc64
+@opindex mmalloc64
+Default to 64bit memory allocation routines.
 @end table
 
 @node FR30 Options
@@ -12154,6 +12180,27 @@ when limit is reached but may still schedule memory operations.
 
 @end table
 
+@node IA-64/VMS Options
+@subsection IA-64/VMS Options
+
+These @samp{-m} options are defined for the IA-64/VMS implementations:
+
+@table @gcctabopt
+@item -mvms-return-codes
+@opindex mvms-return-codes
+Return VMS condition codes from main. The default is to return POSIX
+style condition (e.g.@ error) codes.
+
+@item -mdebug-main=@var{prefix}
+@opindex mdebug-main=@var{prefix}
+Flag the first routine whose name starts with @var{prefix} as the main
+routine for the debugger.
+
+@item -mmalloc64
+@opindex mmalloc64
+Default to 64bit memory allocation routines.
+@end table
+
 @node M32C Options
 @subsection M32C Options
 @cindex M32C options
@@ -13028,6 +13075,7 @@ The processor names are:
 @samp{24kec}, @samp{24kef2_1}, @samp{24kef1_1},
 @samp{34kc}, @samp{34kf2_1}, @samp{34kf1_1},
 @samp{74kc}, @samp{74kf2_1}, @samp{74kf1_1}, @samp{74kf3_2},
+@samp{1004kc}, @samp{1004kf2_1}, @samp{1004kf1_1},
 @samp{loongson2e}, @samp{loongson2f},
 @samp{m4k},
 @samp{octeon},
@@ -14111,6 +14159,8 @@ These @samp{-m} options are defined for the IBM RS/6000 and PowerPC:
 @itemx -mno-mfcrf
 @itemx -mpopcntb
 @itemx -mno-popcntb
+@itemx -mpopcntd
+@itemx -mno-popcntd
 @itemx -mfprnd
 @itemx -mno-fprnd
 @itemx -mcmpb
@@ -14135,6 +14185,8 @@ These @samp{-m} options are defined for the IBM RS/6000 and PowerPC:
 @opindex mno-mfcrf
 @opindex mpopcntb
 @opindex mno-popcntb
+@opindex mpopcntd
+@opindex mno-popcntd
 @opindex mfprnd
 @opindex mno-fprnd
 @opindex mcmpb
@@ -14184,6 +14236,9 @@ The @option{-mpopcntb} option allows GCC to generate the popcount and
 double precision FP reciprocal estimate instruction implemented on the
 POWER5 processor and other processors that support the PowerPC V2.02
 architecture.
+The @option{-mpopcntd} option allows GCC to generate the popcount
+instruction implemented on the POWER7 processor and other processors
+that support the PowerPC V2.06 architecture.
 The @option{-mfprnd} option allows GCC to generate the FP round to
 integer instructions implemented on the POWER5+ processor and other
 processors that support the PowerPC V2.03 architecture.
@@ -14262,9 +14317,9 @@ The @option{-mcpu} options automatically enable or disable the
 following options:
 
 @gccoptlist{-maltivec  -mfprnd  -mhard-float  -mmfcrf  -mmultiple @gol
--mnew-mnemonics  -mpopcntb  -mpower  -mpower2  -mpowerpc64 @gol
+-mnew-mnemonics  -mpopcntb -mpopcntd  -mpower  -mpower2  -mpowerpc64 @gol
 -mpowerpc-gpopt  -mpowerpc-gfxopt  -msingle-float -mdouble-float @gol
--msimple-fpu -mstring  -mmulhw  -mdlmzb  -mmfpgpr}
+-msimple-fpu -mstring  -mmulhw  -mdlmzb  -mmfpgpr -mvsx}
 
 The particular options set for any particular CPU will vary between
 compiler versions, depending on what setting seems to produce optimal
@@ -14364,6 +14419,14 @@ instructions.
 @item -mspe=@var{yes/no}
 This option has been deprecated.  Use @option{-mspe} and
 @option{-mno-spe} instead.
+
+@item -mvsx
+@itemx -mno-vsx
+@opindex mvsx
+@opindex mno-vsx
+Generate code that uses (does not use) vector/scalar (VSX)
+instructions, and also enable the use of built-in functions that allow
+more direct access to the VSX instruction set.
 
 @item -mfloat-gprs=@var{yes/single/double/no}
 @itemx -mfloat-gprs

@@ -7357,28 +7357,8 @@ standard_80387_constant_rtx (int idx)
 				       XFmode);
 }
 
-/* Return 1 if mode is a valid mode for sse.  */
-static int
-standard_sse_mode_p (enum machine_mode mode)
-{
-  switch (mode)
-    {
-    case V16QImode:
-    case V8HImode:
-    case V4SImode:
-    case V2DImode:
-    case V4SFmode:
-    case V2DFmode:
-      return 1;
-
-    default:
-      return 0;
-    }
-}
-
-/* Return 1 if X is all 0s.  For all 1s, return 2 if X is in 128bit
-   SSE modes and SSE2 is enabled,  return 3 if X is in 256bit AVX
-   modes and AVX is enabled.  */
+/* Return 1 if X is all 0s and 2 if x is all 1s
+   in supported SSE vector mode.  */
 
 int
 standard_sse_constant_p (rtx x)
@@ -7388,12 +7368,17 @@ standard_sse_constant_p (rtx x)
   if (x == const0_rtx || x == CONST0_RTX (GET_MODE (x)))
     return 1;
   if (vector_all_ones_operand (x, mode))
-    {
-      if (standard_sse_mode_p (mode))
-	return TARGET_SSE2 ? 2 : -2;
-      else if (VALID_AVX256_REG_MODE (mode))
-	return TARGET_AVX ? 3 : -3;
-    }
+    switch (mode)
+      {
+      case V16QImode:
+      case V8HImode:
+      case V4SImode:
+      case V2DImode:
+	if (TARGET_SSE2)
+	  return 2;
+      default:
+	break;
+      }
 
   return 0;
 }
@@ -7422,22 +7407,12 @@ standard_sse_constant_opcode (rtx insn, rtx x)
 	case MODE_OI:
 	  return "vpxor\t%x0, %x0, %x0";
 	default:
-	  gcc_unreachable ();
+	  break;
 	}
     case 2:
-      if (TARGET_AVX)
-	switch (get_attr_mode (insn))
-	  {
-	  case MODE_V4SF:
-	  case MODE_V2DF:
-	  case MODE_TI:
-	    return "vpcmpeqd\t%0, %0, %0";
-	    break;
-	  default:
-	    gcc_unreachable ();
-	}
-      else
-	return "pcmpeqd\t%0, %0";
+      return TARGET_AVX ? "vpcmpeqd\t%0, %0, %0" : "pcmpeqd\t%0, %0";
+    default:
+      break;
     }
   gcc_unreachable ();
 }
@@ -12908,7 +12883,7 @@ ix86_expand_vector_move (enum machine_mode mode, rtx operands[])
       && (CONSTANT_P (op1)
 	  || (GET_CODE (op1) == SUBREG
 	      && CONSTANT_P (SUBREG_REG (op1))))
-      && standard_sse_constant_p (op1) <= 0)
+      && !standard_sse_constant_p (op1))
     op1 = validize_mem (force_const_mem (mode, op1));
 
   /* We need to check memory alignment for SSE mode since attribute
@@ -14619,7 +14594,7 @@ ix86_fp_comparison_strategy (enum rtx_code code ATTRIBUTE_UNUSED)
   if (TARGET_CMOVE)
     return IX86_FPCMP_COMI;
 
-  if (TARGET_SAHF && (TARGET_USE_SAHF || optimize_insn_for_size_p ()))
+  if (TARGET_SAHF && (TARGET_USE_SAHF || optimize_function_for_size_p (cfun)))
     return IX86_FPCMP_SAHF;
 
   return IX86_FPCMP_ARITH;
@@ -14814,13 +14789,13 @@ ix86_expand_fp_compare (enum rtx_code code, rtx op0, rtx op1, rtx scratch)
 	  if (code == LT && TARGET_IEEE_FP)
 	    {
 	      emit_insn (gen_andqi_ext_0 (scratch, scratch, GEN_INT (0x45)));
-	      emit_insn (gen_cmpqi_ext_3 (scratch, GEN_INT (0x01)));
+	      emit_insn (gen_cmpqi_ext_3 (scratch, const1_rtx));
 	      intcmp_mode = CCmode;
 	      code = EQ;
 	    }
 	  else
 	    {
-	      emit_insn (gen_testqi_ext_ccno_0 (scratch, GEN_INT (0x01)));
+	      emit_insn (gen_testqi_ext_ccno_0 (scratch, const1_rtx));
 	      code = NE;
 	    }
 	  break;
@@ -14834,8 +14809,7 @@ ix86_expand_fp_compare (enum rtx_code code, rtx op0, rtx op1, rtx scratch)
 	  else
 	    {
 	      emit_insn (gen_andqi_ext_0 (scratch, scratch, GEN_INT (0x45)));
-	      emit_insn (gen_xorqi_cc_ext_1 (scratch, scratch,
-					     GEN_INT (0x01)));
+	      emit_insn (gen_xorqi_cc_ext_1 (scratch, scratch, const1_rtx));
 	      code = NE;
 	    }
 	  break;
@@ -14868,7 +14842,6 @@ ix86_expand_fp_compare (enum rtx_code code, rtx op0, rtx op1, rtx scratch)
 	    {
 	      emit_insn (gen_testqi_ext_ccno_0 (scratch, GEN_INT (0x40)));
 	      code = NE;
-	      break;
 	    }
 	  break;
 	case NE:
@@ -16766,10 +16739,20 @@ ix86_split_long_move (rtx operands[])
   /* When emitting push, take care for source operands on the stack.  */
   if (push && MEM_P (operands[1])
       && reg_overlap_mentioned_p (stack_pointer_rtx, operands[1]))
-    for (i = 0; i < nparts - 1; i++)
-      part[1][i] = change_address (part[1][i],
-				   GET_MODE (part[1][i]),
-				   XEXP (part[1][i + 1], 0));
+    {
+      rtx src_base = XEXP (part[1][nparts - 1], 0);
+
+      /* Compensate for the stack decrement by 4.  */
+      if (!TARGET_64BIT && nparts == 3
+	  && mode == XFmode && TARGET_128BIT_LONG_DOUBLE)
+	src_base = plus_constant (src_base, 4);
+
+      /* src_base refers to the stack pointer and is
+	 automatically decreased by emitted push.  */
+      for (i = 0; i < nparts; i++)
+	part[1][i] = change_address (part[1][i],
+				     GET_MODE (part[1][i]), src_base);
+    }
 
   /* We need to do copy in the right order in case an address register
      of the source overlaps the destination.  */
@@ -16839,7 +16822,8 @@ ix86_split_long_move (rtx operands[])
 	  if (nparts == 3)
 	    {
 	      if (TARGET_128BIT_LONG_DOUBLE && mode == XFmode)
-                emit_insn (gen_addsi3 (stack_pointer_rtx, stack_pointer_rtx, GEN_INT (-4)));
+                emit_insn (gen_addsi3 (stack_pointer_rtx,
+				       stack_pointer_rtx, GEN_INT (-4)));
 	      emit_move_insn (part[0][2], part[1][2]);
 	    }
 	  else if (nparts == 4)
@@ -17028,14 +17012,15 @@ ix86_split_ashl (rtx *operands, rtx scratch, enum machine_mode mode)
 
 	  emit_insn ((mode == DImode
 		      ? gen_lshrsi3
-		      : gen_lshrdi3) (high[0], high[0], GEN_INT (mode == DImode ? 5 : 6)));
+		      : gen_lshrdi3) (high[0], high[0],
+				      GEN_INT (mode == DImode ? 5 : 6)));
 	  emit_insn ((mode == DImode
 		      ? gen_andsi3
-		      : gen_anddi3) (high[0], high[0], GEN_INT (1)));
+		      : gen_anddi3) (high[0], high[0], const1_rtx));
 	  emit_move_insn (low[0], high[0]);
 	  emit_insn ((mode == DImode
 		      ? gen_xorsi3
-		      : gen_xordi3) (low[0], low[0], GEN_INT (1)));
+		      : gen_xordi3) (low[0], low[0], const1_rtx));
 	}
 
       emit_insn ((mode == DImode
@@ -28104,7 +28089,7 @@ ix86_expand_vector_init_one_nonzero (bool mmx_ok, enum machine_mode mode,
 	  if (mode != V4SFmode && TARGET_SSE2)
 	    {
 	      emit_insn (gen_sse2_pshufd_1 (new_target, new_target,
-					    GEN_INT (1),
+					    const1_rtx,
 					    GEN_INT (one_var == 1 ? 0 : 1),
 					    GEN_INT (one_var == 2 ? 0 : 1),
 					    GEN_INT (one_var == 3 ? 0 : 1)));
@@ -28124,7 +28109,7 @@ ix86_expand_vector_init_one_nonzero (bool mmx_ok, enum machine_mode mode,
 	    tmp = new_target;
 
 	  emit_insn (gen_sse_shufps_v4sf (tmp, tmp, tmp,
-				       GEN_INT (1),
+				       const1_rtx,
 				       GEN_INT (one_var == 1 ? 0 : 1),
 				       GEN_INT (one_var == 2 ? 0+4 : 1+4),
 				       GEN_INT (one_var == 3 ? 0+4 : 1+4)));
@@ -28787,8 +28772,8 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  ix86_expand_vector_set (false, target, val, 0);
 	  /* target = A X C D  */
 	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
-				       GEN_INT (1), GEN_INT (0),
-				       GEN_INT (2+4), GEN_INT (3+4)));
+					  const1_rtx, const0_rtx,
+					  GEN_INT (2+4), GEN_INT (3+4)));
 	  return;
 
 	case 2:
@@ -28798,8 +28783,8 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  ix86_expand_vector_set (false, tmp, val, 0);
 	  /* target = A B X D */
 	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
-				       GEN_INT (0), GEN_INT (1),
-				       GEN_INT (0+4), GEN_INT (3+4)));
+					  const0_rtx, const1_rtx,
+					  GEN_INT (0+4), GEN_INT (3+4)));
 	  return;
 
 	case 3:
@@ -28809,8 +28794,8 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  ix86_expand_vector_set (false, tmp, val, 0);
 	  /* target = A B X D */
 	  emit_insn (gen_sse_shufps_v4sf (target, target, tmp,
-				       GEN_INT (0), GEN_INT (1),
-				       GEN_INT (2+4), GEN_INT (0+4)));
+					  const0_rtx, const1_rtx,
+					  GEN_INT (2+4), GEN_INT (0+4)));
 	  return;
 
 	default:
@@ -29103,8 +29088,8 @@ ix86_expand_reduc_v4sf (rtx (*fn) (rtx, rtx, rtx), rtx dest, rtx in)
   emit_insn (fn (tmp2, tmp1, in));
 
   emit_insn (gen_sse_shufps_v4sf (tmp3, tmp2, tmp2,
-			       GEN_INT (1), GEN_INT (1),
-			       GEN_INT (1+4), GEN_INT (1+4)));
+				  const1_rtx, const1_rtx,
+				  GEN_INT (1+4), GEN_INT (1+4)));
   emit_insn (fn (dest, tmp2, tmp3));
 }
 
@@ -30489,6 +30474,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #define TARGET_ASM_OPEN_PAREN ""
 #undef TARGET_ASM_CLOSE_PAREN
 #define TARGET_ASM_CLOSE_PAREN ""
+
+#undef TARGET_ASM_BYTE_OP
+#define TARGET_ASM_BYTE_OP ASM_BYTE
 
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP ASM_SHORT

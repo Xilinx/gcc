@@ -599,6 +599,7 @@ copy_statement_list (tree *tp)
   new_tree = alloc_stmt_list ();
   ni = tsi_start (new_tree);
   oi = tsi_start (*tp);
+  TREE_TYPE (new_tree) = TREE_TYPE (*tp);
   *tp = new_tree;
 
   for (; !tsi_end_p (oi); tsi_next (&oi))
@@ -1495,67 +1496,69 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	     callgraph edges and update or duplicate them.  */
 	  if (is_gimple_call (stmt))
 	    {
-	      struct cgraph_edge *edge = cgraph_edge (id->src_node, orig_stmt);
+	      struct cgraph_edge *edge;
 	      int flags;
 
 	      switch (id->transform_call_graph_edges)
 		{
-	      case CB_CGE_DUPLICATE:
-	        if (edge)
-		  cgraph_clone_edge (edge, id->dst_node, stmt,
-					   REG_BR_PROB_BASE, 1,
-					   edge->frequency, true);
-		break;
+		case CB_CGE_DUPLICATE:
+		  edge = cgraph_edge (id->src_node, orig_stmt);
+		  if (edge)
+		    edge = cgraph_clone_edge (edge, id->dst_node, stmt,
+					      REG_BR_PROB_BASE, 1,
+					      edge->frequency, true);
+		  break;
 
-	      case CB_CGE_MOVE_CLONES:
-		cgraph_set_call_stmt_including_clones (id->dst_node, orig_stmt, stmt);
-		break;
+		case CB_CGE_MOVE_CLONES:
+		  cgraph_set_call_stmt_including_clones (id->dst_node,
+							 orig_stmt, stmt);
+		  edge = cgraph_edge (id->dst_node, stmt);
+		  break;
 
-	      case CB_CGE_MOVE:
-	        if (edge)
-		  cgraph_set_call_stmt (edge, stmt);
-		break;
+		case CB_CGE_MOVE:
+		  edge = cgraph_edge (id->dst_node, orig_stmt);
+		  if (edge)
+		    cgraph_set_call_stmt (edge, stmt);
+		  break;
 
-	      default:
-		gcc_unreachable ();
+		default:
+		  gcc_unreachable ();
 		}
 
-	    edge = cgraph_edge (id->src_node, orig_stmt);
-	    /* Constant propagation on argument done during inlining
-	       may create new direct call.  Produce an edge for it.  */
-	    if ((!edge 
-		 || (edge->indirect_call
-		     && id->transform_call_graph_edges == CB_CGE_MOVE_CLONES))
-		&& is_gimple_call (stmt)
-		&& (fn = gimple_call_fndecl (stmt)) != NULL)
-	      {
-		struct cgraph_node *dest = cgraph_node (fn);
+	      /* Constant propagation on argument done during inlining
+		 may create new direct call.  Produce an edge for it.  */
+	      if ((!edge 
+		   || (edge->indirect_call
+		       && id->transform_call_graph_edges == CB_CGE_MOVE_CLONES))
+		  && is_gimple_call (stmt)
+		  && (fn = gimple_call_fndecl (stmt)) != NULL)
+		{
+		  struct cgraph_node *dest = cgraph_node (fn);
 
-		/* We have missing edge in the callgraph.  This can happen in one case
-		   where previous inlining turned indirect call into direct call by
-		   constant propagating arguments.  In all other cases we hit a bug
-		   (incorrect node sharing is most common reason for missing edges.  */
-		gcc_assert (dest->needed || !dest->analyzed);
-		if (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES)
-		  cgraph_create_edge_including_clones (id->dst_node, dest, stmt,
-						       bb->count,
-						       compute_call_stmt_bb_frequency (id->dst_node->decl, bb),
-						       bb->loop_depth,
-						       CIF_ORIGINALLY_INDIRECT_CALL);
-		else
-		  cgraph_create_edge (id->dst_node, dest, stmt,
-				      bb->count, CGRAPH_FREQ_BASE,
-				      bb->loop_depth)->inline_failed
-		    = CIF_ORIGINALLY_INDIRECT_CALL;
-		if (dump_file)
-		  {
-		     fprintf (dump_file, "Created new direct edge to %s",
-			      cgraph_node_name (dest));
-		  }
-	      }
+		  /* We have missing edge in the callgraph.  This can happen
+		     when previous inlining turned an indirect call into a
+		     direct call by constant propagating arguments.  In all
+		     other cases we hit a bug (incorrect node sharing is the
+		     most common reason for missing edges).  */
+		  gcc_assert (dest->needed || !dest->analyzed);
+		  if (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES)
+		    cgraph_create_edge_including_clones
+		      (id->dst_node, dest, stmt, bb->count,
+		       compute_call_stmt_bb_frequency (id->dst_node->decl, bb),
+		       bb->loop_depth, CIF_ORIGINALLY_INDIRECT_CALL);
+		  else
+		    cgraph_create_edge (id->dst_node, dest, stmt,
+					bb->count, CGRAPH_FREQ_BASE,
+					bb->loop_depth)->inline_failed
+		      = CIF_ORIGINALLY_INDIRECT_CALL;
+		  if (dump_file)
+		    {
+		      fprintf (dump_file, "Created new direct edge to %s",
+			       cgraph_node_name (dest));
+		    }
+		}
 
 	      flags = gimple_call_flags (stmt);
-
 	      if (flags & ECF_MAY_BE_ALLOCA)
 		cfun->calls_alloca = true;
 	      if (flags & ECF_RETURNS_TWICE)
@@ -1825,7 +1828,8 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
 		  new_arg = force_gimple_operand (new_arg, &stmts, true, NULL);
 		  gsi_insert_seq_on_edge_immediate (new_edge, stmts);
 		}
-	      add_phi_arg (new_phi, new_arg, new_edge);
+	      add_phi_arg (new_phi, new_arg, new_edge, 
+			   gimple_phi_arg_location_from_edge (phi, old_edge));
 	    }
 	}
     }
@@ -4749,9 +4753,10 @@ build_duplicate_type (tree type)
 }
 
 /* Return whether it is safe to inline a function because it used different
-   target specific options or different optimization options.  */
+   target specific options or call site actual types mismatch parameter types.
+   E is the call edge to be checked.  */
 bool
-tree_can_inline_p (tree caller, tree callee)
+tree_can_inline_p (struct cgraph_edge *e)
 {
 #if 0
   /* This causes a regression in SPEC in that it prevents a cold function from
@@ -4780,7 +4785,25 @@ tree_can_inline_p (tree caller, tree callee)
 	return false;
     }
 #endif
+  tree caller, callee;
+
+  caller = e->caller->decl;
+  callee = e->callee->decl;
 
   /* Allow the backend to decide if inlining is ok.  */
-  return targetm.target_option.can_inline_p (caller, callee);
+  if (!targetm.target_option.can_inline_p (caller, callee))
+    {
+      e->inline_failed = CIF_TARGET_OPTION_MISMATCH;
+      gimple_call_set_cannot_inline (e->call_stmt, true);
+      return false;
+    }
+
+  if (!gimple_check_call_args (e->call_stmt))
+    {
+      e->inline_failed = CIF_MISMATCHED_ARGUMENTS;
+      gimple_call_set_cannot_inline (e->call_stmt, true);
+      return false;
+    }
+
+  return true;
 }

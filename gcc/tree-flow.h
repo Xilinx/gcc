@@ -554,6 +554,7 @@ extern const char *op_symbol_code (enum tree_code);
 /* In tree-dfa.c  */
 extern var_ann_t create_var_ann (tree);
 extern void renumber_gimple_stmt_uids (void);
+extern void renumber_gimple_stmt_uids_in_blocks (basic_block *, int);
 extern tree_ann_common_t create_tree_common_ann (tree);
 extern void dump_dfa_stats (FILE *);
 extern void debug_dfa_stats (void);
@@ -579,7 +580,7 @@ extern void reserve_phi_args_for_new_edge (basic_block);
 extern void add_phi_node_to_bb (gimple phi, basic_block bb);
 extern gimple make_phi_node (tree var, int len);
 extern gimple create_phi_node (tree, basic_block);
-extern void add_phi_arg (gimple, tree, edge);
+extern void add_phi_arg (gimple, tree, edge, source_location);
 extern void remove_phi_args (edge);
 extern void remove_phi_node (gimple_stmt_iterator *, bool);
 extern void remove_phi_nodes (basic_block);
@@ -596,6 +597,7 @@ extern void record_vars (tree);
 extern bool block_may_fallthru (const_tree);
 extern bool gimple_seq_may_fallthru (gimple_seq);
 extern bool gimple_stmt_may_fallthru (gimple);
+extern bool gimple_check_call_args (gimple);
 
 
 /* In tree-ssa.c  */
@@ -604,6 +606,7 @@ extern bool gimple_stmt_may_fallthru (gimple);
 struct GTY(()) _edge_var_map {
   tree result;			/* PHI result.  */
   tree def;			/* PHI arg definition.  */
+  source_location locus;        /* PHI arg location.  */
 };
 typedef struct _edge_var_map edge_var_map;
 
@@ -614,7 +617,7 @@ DEF_VEC_ALLOC_O(edge_var_map, heap);
 typedef VEC(edge_var_map, heap) *edge_var_map_vector;
 
 extern void init_tree_ssa (struct function *);
-extern void redirect_edge_var_map_add (edge, tree, tree);
+extern void redirect_edge_var_map_add (edge, tree, tree, source_location);
 extern void redirect_edge_var_map_clear (edge);
 extern void redirect_edge_var_map_dup (edge, edge);
 extern edge_var_map_vector redirect_edge_var_map_vector (edge);
@@ -746,7 +749,7 @@ unsigned int tree_unroll_loops_completely (bool, bool);
 unsigned int tree_ssa_prefetch_arrays (void);
 void tree_ssa_iv_optimize (void);
 unsigned tree_predictive_commoning (void);
-tree canonicalize_loop_ivs (struct loop *, htab_t, tree *);
+tree canonicalize_loop_ivs (struct loop *, tree *);
 bool parallelize_loops (void);
 
 bool loop_only_exit_p (const struct loop *, const_edge);

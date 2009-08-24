@@ -1,3 +1,20 @@
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (install-html, install-pdf): Remove.
+	* Makefile.in: Regenerate.
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* fficonfig.h.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* man/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (_AC_ARG_VAR_PRECIOUS): Use m4_rename_force.
+
 2009-07-24  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	PR libffi/40807

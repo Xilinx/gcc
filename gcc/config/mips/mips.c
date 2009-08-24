@@ -440,9 +440,9 @@ int mips_dbx_regno[FIRST_PSEUDO_REGISTER];
 int mips_dwarf_regno[FIRST_PSEUDO_REGISTER];
 
 /* The nesting depth of the PRINT_OPERAND '%(', '%<' and '%[' constructs.  */
-int set_noreorder;
-int set_nomacro;
-static int set_noat;
+struct mips_asm_switch mips_noreorder = { "reorder", 0 };
+struct mips_asm_switch mips_nomacro = { "macro", 0 };
+struct mips_asm_switch mips_noat = { "at", 0 };
 
 /* True if we're writing out a branch-likely instruction rather than a
    normal branch.  */
@@ -685,6 +685,11 @@ static const struct mips_cpu_info mips_cpu_info_table[] = {
   { "74kfx", PROCESSOR_74KF1_1, 33, 0 },
   { "74kx", PROCESSOR_74KF1_1, 33, 0 },
   { "74kf3_2", PROCESSOR_74KF3_2, 33, 0 },
+
+  { "1004kc", PROCESSOR_24KC, 33, 0 }, /* 1004K with MT/DSP.  */
+  { "1004kf2_1", PROCESSOR_24KF2_1, 33, 0 },
+  { "1004kf", PROCESSOR_24KF2_1, 33, 0 },
+  { "1004kf1_1", PROCESSOR_24KF1_1, 33, 0 },
 
   /* MIPS64 processors.  */
   { "5kc", PROCESSOR_5KC, 64, 0 },
@@ -4976,7 +4981,7 @@ mips_return_fpr_pair (enum machine_mode mode,
    VALTYPE is null and MODE is the mode of the return value.  */
 
 rtx
-mips_function_value (const_tree valtype, enum machine_mode mode)
+mips_function_value (const_tree valtype, const_tree func, enum machine_mode mode)
 {
   if (valtype)
     {
@@ -4986,9 +4991,9 @@ mips_function_value (const_tree valtype, enum machine_mode mode)
       mode = TYPE_MODE (valtype);
       unsigned_p = TYPE_UNSIGNED (valtype);
 
-      /* Since TARGET_PROMOTE_FUNCTION_RETURN unconditionally returns true,
-	 we must promote the mode just as PROMOTE_MODE does.  */
-      mode = promote_mode (valtype, mode, &unsigned_p, 1);
+      /* Since TARGET_PROMOTE_FUNCTION_MODE unconditionally promotes,
+	 return values, promote the mode here too.  */
+      mode = promote_function_mode (valtype, mode, &unsigned_p, func, 1);
 
       /* Handle structures whose fields are returned in $f0/$f2.  */
       switch (mips_fpr_return_fields (valtype, fields))
@@ -6781,6 +6786,18 @@ mask_low_and_shift_p (enum machine_mode mode, rtx mask, rtx shift, int maxlen)
   return IN_RANGE (mask_low_and_shift_len (mode, mask, shift), 1, maxlen);
 }
 
+/* Return true iff OP1 and OP2 are valid operands together for the
+   *and<MODE>3 and *and<MODE>3_mips16 patterns.  For the cases to consider,
+   see the table in the comment before the pattern.  */
+
+bool
+and_operands_ok (enum machine_mode mode, rtx op1, rtx op2)
+{
+  return (memory_operand (op1, mode)
+	  ? and_load_operand (op2, mode)
+	  : and_reg_operand (op2, mode));
+}
+
 /* The canonical form of a mask-low-and-shift-left operation is
    (and (ashift X SHIFT) MASK) where MASK has the lower SHIFT number of bits
    cleared.  Thus we need to shift MASK to the right before checking if it
@@ -6972,6 +6989,45 @@ mips_print_operand_reloc (FILE *file, rtx op, enum mips_symbol_context context,
       fputc (')', file);
 }
 
+/* Start a new block with the given asm switch enabled.  If we need
+   to print a directive, emit PREFIX before it and SUFFIX after it.  */
+
+static void
+mips_push_asm_switch_1 (struct mips_asm_switch *asm_switch,
+			const char *prefix, const char *suffix)
+{
+  if (asm_switch->nesting_level == 0)
+    fprintf (asm_out_file, "%s.set\tno%s%s", prefix, asm_switch->name, suffix);
+  asm_switch->nesting_level++;
+}
+
+/* Likewise, but end a block.  */
+
+static void
+mips_pop_asm_switch_1 (struct mips_asm_switch *asm_switch,
+		       const char *prefix, const char *suffix)
+{
+  gcc_assert (asm_switch->nesting_level);
+  asm_switch->nesting_level--;
+  if (asm_switch->nesting_level == 0)
+    fprintf (asm_out_file, "%s.set\t%s%s", prefix, asm_switch->name, suffix);
+}
+
+/* Wrappers around mips_push_asm_switch_1 and mips_pop_asm_switch_1
+   that either print a complete line or print nothing.  */
+
+void
+mips_push_asm_switch (struct mips_asm_switch *asm_switch)
+{
+  mips_push_asm_switch_1 (asm_switch, "\t", "\n");
+}
+
+void
+mips_pop_asm_switch (struct mips_asm_switch *asm_switch)
+{
+  mips_pop_asm_switch_1 (asm_switch, "\t", "\n");
+}
+
 /* Print the text for PRINT_OPERAND punctation character CH to FILE.
    The punctuation characters are:
 
@@ -7002,36 +7058,27 @@ mips_print_operand_punctuation (FILE *file, int ch)
   switch (ch)
     {
     case '(':
-      if (set_noreorder++ == 0)
-	fputs (".set\tnoreorder\n\t", file);
+      mips_push_asm_switch_1 (&mips_noreorder, "", "\n\t");
       break;
 
     case ')':
-      gcc_assert (set_noreorder > 0);
-      if (--set_noreorder == 0)
-	fputs ("\n\t.set\treorder", file);
+      mips_pop_asm_switch_1 (&mips_noreorder, "\n\t", "");
       break;
 
     case '[':
-      if (set_noat++ == 0)
-	fputs (".set\tnoat\n\t", file);
+      mips_push_asm_switch_1 (&mips_noat, "", "\n\t");
       break;
 
     case ']':
-      gcc_assert (set_noat > 0);
-      if (--set_noat == 0)
-	fputs ("\n\t.set\tat", file);
+      mips_pop_asm_switch_1 (&mips_noat, "\n\t", "");
       break;
 
     case '<':
-      if (set_nomacro++ == 0)
-	fputs (".set\tnomacro\n\t", file);
+      mips_push_asm_switch_1 (&mips_nomacro, "", "\n\t");
       break;
 
     case '>':
-      gcc_assert (set_nomacro > 0);
-      if (--set_nomacro == 0)
-	fputs ("\n\t.set\tmacro", file);
+      mips_pop_asm_switch_1 (&mips_nomacro, "\n\t", "");
       break;
 
     case '*':
@@ -7043,7 +7090,7 @@ mips_print_operand_punctuation (FILE *file, int ch)
       break;
 
     case '#':
-      if (set_noreorder != 0)
+      if (mips_noreorder.nesting_level > 0)
 	fputs ("\n\tnop", file);
       break;
 
@@ -7051,7 +7098,7 @@ mips_print_operand_punctuation (FILE *file, int ch)
       /* Print an extra newline so that the delayed insn is separated
 	 from the following ones.  This looks neater and is consistent
 	 with non-nop delayed sequences.  */
-      if (set_noreorder != 0 && final_sequence == 0)
+      if (mips_noreorder.nesting_level > 0 && final_sequence == 0)
 	fputs ("\n\tnop\n", file);
       break;
 
@@ -9250,14 +9297,23 @@ mips_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 	  output_asm_insn ("sll\t$2,16", 0);
 	  output_asm_insn ("addu\t$2,$3", 0);
 	}
-      /* .cpload must be in a .set noreorder but not a .set nomacro block.  */
-      else if (!cfun->machine->all_noreorder_p)
-	output_asm_insn ("%(.cpload\t%^%)", 0);
       else
-	output_asm_insn ("%(.cpload\t%^\n\t%<", 0);
+	{
+	  /* .cpload must be in a .set noreorder but not a
+	     .set nomacro block.  */
+	  mips_push_asm_switch (&mips_noreorder);
+	  output_asm_insn (".cpload\t%^", 0);
+	  if (!cfun->machine->all_noreorder_p)
+	    mips_pop_asm_switch (&mips_noreorder);
+	  else
+	    mips_push_asm_switch (&mips_nomacro);
+	}
     }
   else if (cfun->machine->all_noreorder_p)
-    output_asm_insn ("%(%<", 0);
+    {
+      mips_push_asm_switch (&mips_noreorder);
+      mips_push_asm_switch (&mips_nomacro);
+    }
 
   /* Tell the assembler which register we're using as the global
      pointer.  This is needed for thunks, since they can use either
@@ -9279,10 +9335,8 @@ mips_output_function_epilogue (FILE *file ATTRIBUTE_UNUSED,
 
   if (cfun->machine->all_noreorder_p)
     {
-      /* Avoid using %>%) since it adds excess whitespace.  */
-      output_asm_insn (".set\tmacro", 0);
-      output_asm_insn (".set\treorder", 0);
-      set_noreorder = set_nomacro = 0;
+      mips_pop_asm_switch (&mips_nomacro);
+      mips_pop_asm_switch (&mips_noreorder);
     }
 
   /* Get the function name the same way that toplev.c does before calling
@@ -10745,14 +10799,30 @@ mips_output_order_conditional_branch (rtx insn, rtx *operands, bool inverted_p)
   return mips_output_conditional_branch (insn, operands, branch[1], branch[0]);
 }
 
-/* Return the assembly code for __sync_*() loop LOOP.  The loop should support
-   both normal and likely branches, using %? and %~ where appropriate.  */
+/* Return or emit the assembly code for __sync_*() loop LOOP.  The
+   loop should support both normal and likely branches, using %? and
+   %~ where appropriate.  If BARRIER_BEFORE is true a sync sequence is
+   emitted before the loop.  A sync is always emitted after the loop.
+   OPERANDS are the insn operands.  */
 
 const char *
-mips_output_sync_loop (const char *loop)
+mips_output_sync_loop (bool barrier_before,
+		       const char *loop, rtx *operands)
 {
+  if (barrier_before)
+    output_asm_insn ("sync", NULL);
   /* Use branch-likely instructions to work around the LL/SC R10000 errata.  */
   mips_branch_likely = TARGET_FIX_R10000;
+
+  /* If the target needs a sync after the loop, emit the loop now and
+     return the sync.  */
+
+  if (TARGET_SYNC_AFTER_SC)
+    {
+      output_asm_insn (loop, operands);
+      loop = "sync";
+    }
+ 
   return loop;
 }
 
@@ -13872,7 +13942,6 @@ mips_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   final_start_function (insn, file, 1);
   final (insn, file, 1);
   final_end_function ();
-  free_after_compilation (cfun);
 
   /* Clean up the vars set above.  Note that final_end_function resets
      the global pointer for us.  */
@@ -14730,36 +14799,38 @@ mips_at_reg_p (rtx *x, void *data ATTRIBUTE_UNUSED)
   return REG_P (*x) && REGNO (*x) == AT_REGNUM;
 }
 
+/* Return true if INSN needs to be wrapped in ".set noat".
+   INSN has NOPERANDS operands, stored in OPVEC.  */
+
+static bool
+mips_need_noat_wrapper_p (rtx insn, rtx *opvec, int noperands)
+{
+  int i;
+
+  if (recog_memoized (insn) >= 0)
+    for (i = 0; i < noperands; i++)
+      if (for_each_rtx (&opvec[i], mips_at_reg_p, NULL))
+	return true;
+  return false;
+}
 
 /* Implement FINAL_PRESCAN_INSN.  */
 
 void
 mips_final_prescan_insn (rtx insn, rtx *opvec, int noperands)
 {
-  int i;
-
-  /* We need to emit ".set noat" before an instruction that accesses
-     $1 (AT).  */
-  if (recog_memoized (insn) >= 0)
-    for (i = 0; i < noperands; i++)
-      if (for_each_rtx (&opvec[i], mips_at_reg_p, NULL))
-	if (set_noat++ == 0)
-	  fprintf (asm_out_file, "\t.set\tnoat\n");
+  if (mips_need_noat_wrapper_p (insn, opvec, noperands))
+    mips_push_asm_switch (&mips_noat);
 }
 
 /* Implement TARGET_ASM_FINAL_POSTSCAN_INSN.  */
 
 static void
-mips_final_postscan_insn (FILE *file, rtx insn, rtx *opvec, int noperands)
+mips_final_postscan_insn (FILE *file ATTRIBUTE_UNUSED, rtx insn,
+			  rtx *opvec, int noperands)
 {
-  int i;
-
-  /* Close any ".set noat" block opened by mips_final_prescan_insn.  */
-  if (recog_memoized (insn) >= 0)
-    for (i = 0; i < noperands; i++)
-      if (for_each_rtx (&opvec[i], mips_at_reg_p, NULL))
-	if (--set_noat == 0)
-	  fprintf (file, "\t.set\tat\n");
+  if (mips_need_noat_wrapper_p (insn, opvec, noperands))
+    mips_pop_asm_switch (&mips_noat);
 }
 
 /* Initialize the GCC target structure.  */
@@ -14851,10 +14922,8 @@ mips_final_postscan_insn (FILE *file, rtx insn, rtx *opvec, int noperands)
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR mips_gimplify_va_arg_expr
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
+#undef  TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode_always_promote
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 

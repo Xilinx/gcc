@@ -1705,8 +1705,13 @@ vect_is_simple_reduction (loop_vec_info loop_info, gimple phi,
           return NULL;
         }
 
-      op3 = TREE_OPERAND (TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 0), 0);
-      op4 = TREE_OPERAND (TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 0), 1);
+      op3 = TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 0);
+      if (COMPARISON_CLASS_P (op3))
+        {
+          op4 = TREE_OPERAND (op3, 1);
+          op3 = TREE_OPERAND (op3, 0);
+        }  
+       
       op1 = TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 1);
       op2 = TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 2);
 
@@ -1734,13 +1739,13 @@ vect_is_simple_reduction (loop_vec_info loop_info, gimple phi,
 
   type = TREE_TYPE (gimple_assign_lhs (def_stmt));
   if ((TREE_CODE (op1) == SSA_NAME
-       && TYPE_MAIN_VARIANT (type) != TYPE_MAIN_VARIANT (TREE_TYPE (op1)))
+       && !types_compatible_p (type,TREE_TYPE (op1)))
       || (TREE_CODE (op2) == SSA_NAME
-          && TYPE_MAIN_VARIANT (type) != TYPE_MAIN_VARIANT (TREE_TYPE (op2)))
+          && !types_compatible_p (type, TREE_TYPE (op2)))
       || (op3 && TREE_CODE (op3) == SSA_NAME
-          && TYPE_MAIN_VARIANT (type) != TYPE_MAIN_VARIANT (TREE_TYPE (op3)))
+          && !types_compatible_p (type, TREE_TYPE (op3)))
       || (op4 && TREE_CODE (op4) == SSA_NAME
-          && TYPE_MAIN_VARIANT (type) != TYPE_MAIN_VARIANT (TREE_TYPE (op4))))
+          && !types_compatible_p (type, TREE_TYPE (op4))))
     {
       if (vect_print_dump_info (REPORT_DETAILS))
         {
@@ -1750,10 +1755,14 @@ vect_is_simple_reduction (loop_vec_info loop_info, gimple phi,
           print_generic_expr (vect_dump, TREE_TYPE (op1), TDF_SLIM);
           fprintf (vect_dump, ",");
           print_generic_expr (vect_dump, TREE_TYPE (op2), TDF_SLIM);
-          if (op3 && op4)
+          if (op3)
             {
               fprintf (vect_dump, ",");
               print_generic_expr (vect_dump, TREE_TYPE (op3), TDF_SLIM);
+            }
+
+          if (op4)
+            {
               fprintf (vect_dump, ",");
               print_generic_expr (vect_dump, TREE_TYPE (op4), TDF_SLIM);
             }
@@ -2524,8 +2533,9 @@ get_initial_def_for_induction (gimple iv_phi)
                                                    NULL));
 
   /* Set the arguments of the phi node:  */
-  add_phi_arg (induction_phi, vec_init, pe);
-  add_phi_arg (induction_phi, vec_def, loop_latch_edge (iv_loop));
+  add_phi_arg (induction_phi, vec_init, pe, UNKNOWN_LOCATION);
+  add_phi_arg (induction_phi, vec_def, loop_latch_edge (iv_loop), 
+	       UNKNOWN_LOCATION);
 
 
   /* In case that vectorization factor (VF) is bigger than the number
@@ -2934,12 +2944,13 @@ vect_create_epilog_for_reduction (tree vect_def, gimple stmt,
   for (j = 0; j < ncopies; j++)
     {
       /* 1.1 set the loop-entry arg of the reduction-phi:  */
-      add_phi_arg (phi, vec_initial_def, loop_preheader_edge (loop));
+      add_phi_arg (phi, vec_initial_def, loop_preheader_edge (loop), 
+		   UNKNOWN_LOCATION);
 
       /* 1.2 set the loop-latch arg for the reduction-phi:  */
       if (j > 0)
         def = vect_get_vec_def_for_stmt_copy (dt, def);
-      add_phi_arg (phi, def, loop_latch_edge (loop));
+      add_phi_arg (phi, def, loop_latch_edge (loop), UNKNOWN_LOCATION);
 
       if (vect_print_dump_info (REPORT_DETAILS))
 	{
@@ -3350,9 +3361,9 @@ vect_finalize_reduction:
                
               /* Update phi node arguments with vs0 and vs2.  */
               add_phi_arg (vect_phi, vect_phi_init, 
-                           loop_preheader_edge (outer_loop));
+                           loop_preheader_edge (outer_loop), UNKNOWN_LOCATION);
               add_phi_arg (vect_phi, PHI_RESULT (epilog_stmt), 
-                           loop_latch_edge (outer_loop));
+                           loop_latch_edge (outer_loop), UNKNOWN_LOCATION);
               if (vect_print_dump_info (REPORT_DETAILS))
                 {
                   fprintf (vect_dump, "created double reduction phi node: ");

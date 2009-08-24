@@ -337,7 +337,15 @@ enum mips_code_readable_setting {
    in use.  */
 #define TARGET_HARD_FLOAT (TARGET_HARD_FLOAT_ABI && !TARGET_MIPS16)
 #define TARGET_SOFT_FLOAT (TARGET_SOFT_FLOAT_ABI || TARGET_MIPS16)
-  
+
+/* False if SC acts as a memory barrier with respect to itself,
+   otherwise a SYNC will be emitted after SC for atomic operations
+   that require ordering between the SC and following loads and
+   stores.  It does not tell anything about ordering of loads and
+   stores prior to and following the SC, only about the SC itself and
+   those loads and stores follow it.  */
+#define TARGET_SYNC_AFTER_SC (!TARGET_OCTEON)
+
 /* IRIX specific stuff.  */
 #define TARGET_IRIX	   0
 #define TARGET_IRIX6	   0
@@ -734,7 +742,7 @@ enum mips_code_readable_setting {
        |march=r10000|march=r12000|march=r14000|march=r16000:-mips4} \
      %{march=mips32|march=4kc|march=4km|march=4kp|march=4ksc:-mips32} \
      %{march=mips32r2|march=m4k|march=4ke*|march=4ksd|march=24k* \
-       |march=34k*|march=74k*: -mips32r2} \
+       |march=34k*|march=74k*|march=1004k*: -mips32r2} \
      %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000 \
        |march=xlr: -mips64} \
      %{march=mips64r2|march=octeon: -mips64r2} \
@@ -747,7 +755,8 @@ enum mips_code_readable_setting {
 #define MIPS_ARCH_FLOAT_SPEC \
   "%{mhard-float|msoft-float|march=mips*:; \
      march=vr41*|march=m4k|march=4k*|march=24kc|march=24kec \
-     |march=34kc|march=74kc|march=5kc|march=octeon|march=xlr: -msoft-float; \
+     |march=34kc|march=74kc|march=1004kc|march=5kc \
+     |march=octeon|march=xlr: -msoft-float;		  \
      march=*: -mhard-float}"
 
 /* A spec condition that matches 32-bit options.  It only works if
@@ -793,7 +802,7 @@ enum mips_code_readable_setting {
 
 /* A spec that infers the -mdsp setting from an -march argument.  */
 #define BASE_DRIVER_SELF_SPECS \
-  "%{!mno-dsp:%{march=24ke*|march=34k*|march=74k*: -mdsp}}"
+  "%{!mno-dsp:%{march=24ke*|march=34k*|march=74k*|march=1004k*: -mdsp}}"
 
 #define DRIVER_SELF_SPECS BASE_DRIVER_SELF_SPECS
 
@@ -2204,10 +2213,10 @@ enum reg_class
 #define FP_ARG_LAST  (FP_ARG_FIRST + MAX_ARGS_IN_REGISTERS - 1)
 
 #define LIBCALL_VALUE(MODE) \
-  mips_function_value (NULL_TREE, MODE)
+  mips_function_value (NULL_TREE, NULL_TREE, MODE)
 
 #define FUNCTION_VALUE(VALTYPE, FUNC) \
-  mips_function_value (VALTYPE, VOIDmode)
+  mips_function_value (VALTYPE, FUNC, VOIDmode)
 
 /* 1 if N is a possible register number for a function value.
    On the MIPS, R2 R3 and F0 F2 are the only register thus used.
@@ -2355,7 +2364,7 @@ typedef struct mips_args {
       else								\
 	fprintf (FILE, "\tla\t%s,_mcount\n", reg_names[GP_REG_FIRST + 3]); \
     }									\
-  fprintf (FILE, "\t.set\tnoat\n");					\
+  mips_push_asm_switch (&mips_noat);					\
   fprintf (FILE, "\tmove\t%s,%s\t\t# save current return address\n",	\
 	   reg_names[GP_REG_FIRST + 1], reg_names[GP_REG_FIRST + 31]);	\
   /* _mcount treats $2 as the static chain register.  */		\
@@ -2375,7 +2384,7 @@ typedef struct mips_args {
     fprintf (FILE, "\tjalr\t%s\n", reg_names[GP_REG_FIRST + 3]);	\
   else									\
     fprintf (FILE, "\tjal\t_mcount\n");					\
-  fprintf (FILE, "\t.set\tat\n");					\
+  mips_pop_asm_switch (&mips_noat);					\
   /* _mcount treats $2 as the static chain register.  */		\
   if (cfun->static_chain_decl != NULL)					\
     fprintf (FILE, "\tmove\t%s,%s\n", reg_names[STATIC_CHAIN_REGNUM],	\
@@ -2769,32 +2778,13 @@ typedef struct mips_args {
 #define PRINT_OPERAND_PUNCT_VALID_P(CODE) mips_print_operand_punct[CODE]
 #define PRINT_OPERAND_ADDRESS mips_print_operand_address
 
-/* A C statement, to be executed after all slot-filler instructions
-   have been output.  If necessary, call `dbr_sequence_length' to
-   determine the number of slots filled in a sequence (zero if not
-   currently outputting a sequence), to decide how many no-ops to
-   output, or whatever.
-
-   Don't define this macro if it has nothing to do, but it is
-   helpful in reading assembly output if the extent of the delay
-   sequence is made explicit (e.g. with white space).
-
-   Note that output routines for instructions with delay slots must
-   be prepared to deal with not being output as part of a sequence
-   (i.e.  when the scheduling pass is not run, or when no slot
-   fillers could be found.)  The variable `final_sequence' is null
-   when not processing a sequence, otherwise it contains the
-   `sequence' rtx being output.  */
-
 #define DBR_OUTPUT_SEQEND(STREAM)					\
 do									\
   {									\
-    if (set_nomacro > 0 && --set_nomacro == 0)				\
-      fputs ("\t.set\tmacro\n", STREAM);				\
-									\
-    if (set_noreorder > 0 && --set_noreorder == 0)			\
-      fputs ("\t.set\treorder\n", STREAM);				\
-									\
+    /* Undo the effect of '%*'.  */					\
+    mips_pop_asm_switch (&mips_nomacro);				\
+    mips_pop_asm_switch (&mips_noreorder);				\
+    /* Emit a blank line after the delay slot for emphasis.  */		\
     fputs ("\n", STREAM);						\
   }									\
 while (0)
@@ -2987,9 +2977,7 @@ while (0)
 #define ASM_OUTPUT_REG_POP(STREAM,REGNO)				\
 do									\
   {									\
-    if (! set_noreorder)						\
-      fprintf (STREAM, "\t.set\tnoreorder\n");				\
-									\
+    mips_push_asm_switch (&mips_noreorder);				\
     fprintf (STREAM, "\t%s\t%s,0(%s)\n\t%s\t%s,%s,8\n",			\
 	     TARGET_64BIT ? "ld" : "lw",				\
 	     reg_names[REGNO],						\
@@ -2997,9 +2985,7 @@ do									\
 	     TARGET_64BIT ? "daddu" : "addu",				\
 	     reg_names[STACK_POINTER_REGNUM],				\
 	     reg_names[STACK_POINTER_REGNUM]);				\
-									\
-    if (! set_noreorder)						\
-      fprintf (STREAM, "\t.set\treorder\n");				\
+    mips_pop_asm_switch (&mips_noreorder);				\
   }									\
 while (0)
 
@@ -3143,14 +3129,12 @@ while (0)
    and OP is the instruction that should be used to load %3 into a
    register.  */
 #define MIPS_COMPARE_AND_SWAP(SUFFIX, OP)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
   "\tbne\t%0,%z2,2f\n"				\
   "\t" OP "\t%@,%3\n"				\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)\n"				\
+  "\tnop%-%]%>%)\n"				\
   "2:\n"
 
 /* Return an asm string that atomically:
@@ -3166,16 +3150,14 @@ while (0)
 
     OPS are the instructions needed to OR %5 with %@.  */
 #define MIPS_COMPARE_AND_SWAP_12(OPS)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll\t%0,%1\n"				\
+  "%(%<%[%|1:\tll\t%0,%1\n"			\
   "\tand\t%@,%0,%2\n"				\
   "\tbne\t%@,%z4,2f\n"				\
   "\tand\t%@,%0,%3\n"				\
   OPS						\
   "\tsc\t%@,%1\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)\n"				\
+  "\tnop%-%]%>%)\n"				\
   "2:\n"
 
 #define MIPS_COMPARE_AND_SWAP_12_ZERO_OP ""
@@ -3189,13 +3171,11 @@ while (0)
    SUFFIX is the suffix that should be added to "ll" and "sc"
    instructions.  */
 #define MIPS_SYNC_OP(SUFFIX, INSN)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%@,%0\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%@,%0\n"		\
   "\t" INSN "\t%@,%@,%1\n"			\
   "\tsc" SUFFIX "\t%@,%0\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3212,16 +3192,14 @@ while (0)
     INSN is already correctly masked -- it instead performs a bitwise
     not.  */
 #define MIPS_SYNC_OP_12(INSN, AND_OP)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll\t%4,%0\n"				\
+  "%(%<%[%|1:\tll\t%4,%0\n"			\
   "\tand\t%@,%4,%2\n"				\
   "\t" INSN "\t%4,%4,%z3\n"			\
   AND_OP					\
   "\tor\t%@,%@,%4\n"				\
   "\tsc\t%@,%0\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 #define MIPS_SYNC_OP_12_AND "\tand\t%4,%4,%1\n"
 #define MIPS_SYNC_OP_12_XOR "\txor\t%4,%4,%1\n"
@@ -3243,16 +3221,14 @@ while (0)
     INSN is already correctly masked -- it instead performs a bitwise
     not.  */
 #define MIPS_SYNC_OLD_OP_12(INSN, AND_OP)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll\t%0,%1\n"				\
+  "%(%<%[%|1:\tll\t%0,%1\n"			\
   "\tand\t%@,%0,%3\n"				\
   "\t" INSN "\t%5,%0,%z4\n"			\
   AND_OP					\
   "\tor\t%@,%@,%5\n"				\
   "\tsc\t%@,%1\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 #define MIPS_SYNC_OLD_OP_12_AND "\tand\t%5,%5,%2\n"
 #define MIPS_SYNC_OLD_OP_12_XOR "\txor\t%5,%5,%2\n"
@@ -3272,16 +3248,14 @@ while (0)
     INSN is already correctly masked -- it instead performs a bitwise
     not.  */
 #define MIPS_SYNC_NEW_OP_12(INSN, AND_OP)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll\t%0,%1\n"				\
+  "%(%<%[%|1:\tll\t%0,%1\n"				\
   "\tand\t%@,%0,%3\n"				\
   "\t" INSN "\t%0,%0,%z4\n"			\
   AND_OP					\
   "\tor\t%@,%@,%0\n"				\
   "\tsc\t%@,%1\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 #define MIPS_SYNC_NEW_OP_12_AND "\tand\t%0,%0,%2\n"
 #define MIPS_SYNC_NEW_OP_12_XOR "\txor\t%0,%0,%2\n"
@@ -3295,13 +3269,11 @@ while (0)
    SUFFIX is the suffix that should be added to "ll" and "sc"
    instructions.  */
 #define MIPS_SYNC_OLD_OP(SUFFIX, INSN)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
   "\t" INSN "\t%@,%0,%2\n"			\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3312,13 +3284,11 @@ while (0)
    SUFFIX is the suffix that should be added to "ll" and "sc"
    instructions.  */
 #define MIPS_SYNC_NEW_OP(SUFFIX, INSN)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
   "\t" INSN "\t%@,%0,%2\n"			\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b%~\n"			\
-  "\t" INSN "\t%0,%0,%2\n"			\
-  "\tsync%-%]%>%)"
+  "\t" INSN "\t%0,%0,%2%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3328,14 +3298,12 @@ while (0)
    instructions.  INSN is the and instruction needed to and a register
    with %2.  */
 #define MIPS_SYNC_NAND(SUFFIX, INSN)		\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%@,%0\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%@,%0\n"		\
   "\t" INSN "\t%@,%@,%1\n"			\
   "\tnor\t%@,%@,%.\n"				\
   "\tsc" SUFFIX "\t%@,%0\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3347,14 +3315,12 @@ while (0)
    instructions.  INSN is the and instruction needed to and a register
    with %2.  */
 #define MIPS_SYNC_OLD_NAND(SUFFIX, INSN)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"			\
   "\t" INSN "\t%@,%0,%2\n"			\
   "\tnor\t%@,%@,%.\n"				\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3366,14 +3332,12 @@ while (0)
    instructions.  INSN is the and instruction needed to and a register
    with %2.  */
 #define MIPS_SYNC_NEW_NAND(SUFFIX, INSN)	\
-  "%(%<%[%|sync\n"				\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
+  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"			\
   "\t" INSN "\t%0,%0,%2\n"			\
   "\tnor\t%@,%0,%.\n"				\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b%~\n"			\
-  "\tnor\t%0,%0,%.\n"				\
-  "\tsync%-%]%>%)"
+  "\tnor\t%0,%0,%.%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3390,8 +3354,7 @@ while (0)
   "\t" OP "\t%@,%2\n"				\
   "\tsc" SUFFIX "\t%@,%1\n"			\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 /* Return an asm string that atomically:
 
@@ -3414,20 +3377,29 @@ while (0)
   OPS						\
   "\tsc\t%@,%1\n"				\
   "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop\n"					\
-  "\tsync%-%]%>%)"
+  "\tnop%-%]%>%)"
 
 #define MIPS_SYNC_EXCHANGE_12_ZERO_OP ""
 #define MIPS_SYNC_EXCHANGE_12_NONZERO_OP "\tor\t%@,%@,%4\n"
 
 #ifndef USED_FOR_TARGET
+/* Information about ".set noFOO; ...; .set FOO" blocks.  */
+struct mips_asm_switch {
+  /* The FOO in the description above.  */
+  const char *name;
+
+  /* The current block nesting level, or 0 if we aren't in a block.  */
+  int nesting_level;
+};
+
 extern const enum reg_class mips_regno_to_class[];
 extern bool mips_hard_regno_mode_ok[][FIRST_PSEUDO_REGISTER];
 extern bool mips_print_operand_punct[256];
 extern const char *current_function_file; /* filename current function is in */
 extern int num_source_filenames;	/* current .file # */
-extern int set_noreorder;		/* # of nested .set noreorder's  */
-extern int set_nomacro;			/* # of nested .set nomacro's  */
+extern struct mips_asm_switch mips_noreorder;
+extern struct mips_asm_switch mips_nomacro;
+extern struct mips_asm_switch mips_noat;
 extern int mips_dbx_regno[];
 extern int mips_dwarf_regno[];
 extern bool mips_split_p[];

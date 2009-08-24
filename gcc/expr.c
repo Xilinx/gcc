@@ -5434,13 +5434,11 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 	    enum machine_mode mode;
 	    HOST_WIDE_INT bitsize;
 	    HOST_WIDE_INT bitpos;
-	    int unsignedp;
 	    rtx xtarget = target;
 
 	    if (cleared && initializer_zerop (value))
 	      continue;
 
-	    unsignedp = TYPE_UNSIGNED (elttype);
 	    mode = TYPE_MODE (elttype);
 	    if (mode == BLKmode)
 	      bitsize = (host_integerp (TYPE_SIZE (elttype), 1)
@@ -5496,14 +5494,10 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 		    tree exit_cond;
 
 		    expand_normal (hi_index);
-		    unsignedp = TYPE_UNSIGNED (domain);
 
 		    index = build_decl (EXPR_LOCATION (exp),
 					VAR_DECL, NULL_TREE, domain);
-
-		    index_r
-		      = gen_reg_rtx (promote_mode (domain, DECL_MODE (index),
-						   &unsignedp, 0));
+		    index_r = gen_reg_rtx (promote_decl_mode (index, NULL));
 		    SET_DECL_RTL (index, index_r);
 		    store_expr (lo_index, index_r, 0, false);
 
@@ -7428,9 +7422,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
 	  /* Get the signedness used for this variable.  Ensure we get the
 	     same mode we got when the variable was declared.  */
-	  pmode = promote_mode (type, DECL_MODE (exp), &unsignedp,
-				(TREE_CODE (exp) == RESULT_DECL
-				 || TREE_CODE (exp) == PARM_DECL) ? 1 : 0);
+	  pmode = promote_decl_mode (exp, &unsignedp);
 	  gcc_assert (GET_MODE (decl_rtl) == pmode);
 
 	  temp = gen_lowpart_SUBREG (mode, decl_rtl);
@@ -7878,6 +7870,33 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 			  || mode1 == BLKmode
 			  || bitpos + bitsize > GET_MODE_BITSIZE (mode2));
 
+	/* Handle CONCAT first.  */
+	if (GET_CODE (op0) == CONCAT && !must_force_mem)
+	  {
+	    if (bitpos == 0
+		&& bitsize == GET_MODE_BITSIZE (GET_MODE (op0)))
+	      return op0;
+	    if (bitpos == 0
+		&& bitsize == GET_MODE_BITSIZE (GET_MODE (XEXP (op0, 0)))
+		&& bitsize)
+	      {
+		op0 = XEXP (op0, 0);
+		mode2 = GET_MODE (op0);
+	      }
+	    else if (bitpos == GET_MODE_BITSIZE (GET_MODE (XEXP (op0, 0)))
+		     && bitsize == GET_MODE_BITSIZE (GET_MODE (XEXP (op0, 1)))
+		     && bitpos
+		     && bitsize)
+	      {
+		op0 = XEXP (op0, 1);
+		bitpos = 0;
+		mode2 = GET_MODE (op0);
+	      }
+	    else
+	      /* Otherwise force into memory.  */
+	      must_force_mem = 1;
+	  }
+
 	/* If this is a constant, put it in a register if it is a legitimate
 	   constant and we don't need a memory reference.  */
 	if (CONSTANT_P (op0)
@@ -7949,16 +7968,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	      op0 = copy_rtx (op0);
 
 	    MEM_VOLATILE_P (op0) = 1;
-	  }
-
-	/* The following code doesn't handle CONCAT.
-	   Assume only bitpos == 0 can be used for CONCAT, due to
-	   one element arrays having the same mode as its element.  */
-	if (GET_CODE (op0) == CONCAT)
-	  {
-	    gcc_assert (bitpos == 0
-			&& bitsize == GET_MODE_BITSIZE (GET_MODE (op0)));
-	    return op0;
 	  }
 
 	/* In cases where an aligned union has an unaligned object
