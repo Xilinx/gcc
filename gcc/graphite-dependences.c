@@ -589,16 +589,6 @@ graphite_legal_transform_bb (poly_bb_p pbb1, poly_bb_p pbb2)
   int i, j;
   poly_dr_p pdr1, pdr2;
 
-  if (pbb1 == pbb2)
-    {
-      for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb1), i, pdr1); i++)
-	for (j = i; VEC_iterate (poly_dr_p, PBB_DRS (pbb2), j, pdr2); j++)
-	  if (!graphite_legal_transform_dr (pbb1, pbb2, pdr1, pdr2))
-	    return false;
-
-      return true;
-    }
-
   for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb1), i, pdr1); i++)
     for (j = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb2), j, pdr2); j++)
       if (!graphite_legal_transform_dr (pbb1, pbb2, pdr1, pdr2))
@@ -744,20 +734,6 @@ dependency_between_pbbs_p (poly_bb_p pbb1, poly_bb_p pbb2, int level)
   poly_dr_p pdr1, pdr2;
 
   timevar_push (TV_GRAPHITE_DATA_DEPS);
-
-  if (pbb1 == pbb2)
-    {
-      for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb1), i, pdr1); i++)
-	for (j = i; VEC_iterate (poly_dr_p, PBB_DRS (pbb2), j, pdr2); j++)
-	  if (graphite_carried_dependence_level_k (pdr1, pdr2, level))
-	    {
-	      timevar_pop (TV_GRAPHITE_DATA_DEPS);
-	      return true;
-	    }
-
-      timevar_pop (TV_GRAPHITE_DATA_DEPS);
-      return false;
-    }
 
   for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb1), i, pdr1); i++)
     for (j = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb2), j, pdr2); j++)

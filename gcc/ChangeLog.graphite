@@ -1,5 +1,12 @@
 2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 
+	Revert one of the previous commits:
+	* graphite-dependences.c (graphite_legal_transform_bb): Avoid
+	the computation of symmetric data dependence relations.
+	(dependency_between_pbbs_p): Same.
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
 	PR middle-end/40965
 	* graphite-poly.c (apply_poly_transforms): Remove legality test before
 	any transform.
