@@ -70,7 +70,7 @@ echo 'LD_LIBRARY_PATH='${INSTALL_DIR_CURRENT}'/lib64:${LD_LIBRARY_PATH}' \
 mail_success () {
   ATTACHMENTS=""
   for file in `ls ${LOG_DIR_CURRENT}/*.compare \
-      ${EXTRA_TESTS_OUTPUT}`; do
+      ${EXTRA_TESTS_OUTPUT}/*`; do
     if [ -s ${file} ] ; then
       ATTACHMENTS="${ATTACHMENTS} -a ${file}"
     fi
@@ -86,7 +86,6 @@ mail_success () {
 build_git_tag () {
 	for file in `ls ${LOG_DIR_CURRENT}/info.log \
 		     ${LOG_DIR_CURRENT}/*.compare` ; do
-		
 		echo ${file} >> ${LOG_DIR_CURRENT}/git.tag
 		cat ${file} >> ${LOG_DIR_CURRENT}/git.tag
 	done
@@ -104,8 +103,7 @@ mail_status () {
 mail_failure () {
   ATTACHMENTS=""
   for file in `ls ${LOG_DIR_CURRENT}/*.compare \
-      ${LOG_DIR_CURRENT}/build_single_thread.log \
-      ${EXTRA_TESTS_OUTPUT}` ; do
+      ${LOG_DIR_CURRENT}/build_single_thread.log` ; do
     ATTACHMENTS="${ATTACHMENTS} -a ${file}"
   done
   echo "BUILD FAILED" >> ${LOG_DIR_CURRENT}/info.log
