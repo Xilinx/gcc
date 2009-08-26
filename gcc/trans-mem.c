@@ -171,15 +171,15 @@ is_tm_pure (tree x)
   return false;
 }
 
-/* Return true if X has been marked TM_IRREVOKABLE.  */
+/* Return true if X has been marked TM_IRREVOCABLE.  */
 
 bool
-is_tm_irrevokable (tree x)
+is_tm_irrevocable (tree x)
 {
   tree attrs = get_attrs_for (x);
 
   if (attrs)
-    return lookup_attribute ("tm_irrevokable", attrs) != NULL;
+    return lookup_attribute ("tm_irrevocable", attrs) != NULL;
 
   /* A call to the irrevocable builtin is by definition,
      irrevocable.  */
@@ -187,7 +187,7 @@ is_tm_irrevokable (tree x)
     x = TREE_OPERAND (x, 0);
   if (TREE_CODE (x) == FUNCTION_DECL
       && DECL_BUILT_IN_CLASS (x) == BUILT_IN_NORMAL
-      && DECL_FUNCTION_CODE (x) == BUILT_IN_TM_IRREVOKABLE)
+      && DECL_FUNCTION_CODE (x) == BUILT_IN_TM_IRREVOCABLE)
     return true;
 
   return false;
@@ -273,7 +273,7 @@ is_tm_ending_fndecl (tree fndecl)
       case BUILT_IN_TM_COMMIT:
       case BUILT_IN_TM_COMMIT_EH:
       case BUILT_IN_TM_ABORT:
-      case BUILT_IN_TM_IRREVOKABLE:
+      case BUILT_IN_TM_IRREVOCABLE:
 	return true;
       default:
 	break;
@@ -489,7 +489,7 @@ requires_barrier (tree x)
 
     case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
-      /* ??? Insert an irrevokable when it comes to vectorized loops,
+      /* ??? Insert an irrevocable when it comes to vectorized loops,
 	 or handle these somehow.  */
       gcc_unreachable ();
 
@@ -641,7 +641,7 @@ lower_sequence_tm (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       break;
 
     case GIMPLE_ASM:
-      *state |= GTMA_MAY_ENTER_IRREVOKABLE;
+      *state |= GTMA_MAY_ENTER_IRREVOCABLE;
       break;
 
     case GIMPLE_TM_ATOMIC:
@@ -1112,7 +1112,7 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 /* Expand a call statement as appropriate for a transaction.  That is,
    either verify that the call does not affect the transaction, or
    redirect the call to a clone that handles transactions, or change
-   the transaction state to IRREVOKABLE.  Return true if the call is
+   the transaction state to IRREVOCABLE.  Return true if the call is
    one of the builtins that end a transaction.  */
 
 static bool
@@ -1139,14 +1139,14 @@ expand_call_tm (struct tm_region *region,
       if (fn && is_tm_safe (TREE_TYPE (fn)))
 	return false;
       else
-	tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
+	tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
       
       return false;
     }
 
   node = cgraph_node (fn_decl);
   if (node->local.tm_may_enter_irr)
-    tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
+    tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
   if (is_tm_abort (fn_decl))
     {
@@ -1163,7 +1163,7 @@ expand_call_tm (struct tm_region *region,
 
 /* Expand all statements in BB as appropriate for being inside
    a transaction.  Return true if we reach the end of the transaction,
-   or reach an irrevokable state.  */
+   or reach an irrevocable state.  */
 
 static bool
 expand_block_tm (struct tm_region *region, basic_block bb)
@@ -1223,13 +1223,13 @@ execute_tm_mark (void)
 
 	/* Collect a new SUBCODE set, now that optimizations are done...  */
 	gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, 0);
-	/* ...but keep the GTMA_DOES_GO_IRREVOKABLE bit, since we can
+	/* ...but keep the GTMA_DOES_GO_IRREVOCABLE bit, since we can
 	   almost be sure never to insert anything during optimization that
 	   will cause certain irrevocability to be reversed.  */
-	if (subcode & GTMA_DOES_GO_IRREVOKABLE)
+	if (subcode & GTMA_DOES_GO_IRREVOCABLE)
 	  gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
-					GTMA_DOES_GO_IRREVOKABLE |
-					GTMA_MAY_ENTER_IRREVOKABLE);
+					GTMA_DOES_GO_IRREVOCABLE |
+					GTMA_MAY_ENTER_IRREVOCABLE);
 
 	VEC_quick_push (basic_block, queue, region->entry_block);
 	do
@@ -1344,12 +1344,12 @@ expand_tm_atomic (struct tm_region *region)
 
   /* ??? There are plenty of bits here we're not computing.  */
   subcode = gimple_tm_atomic_subcode (region->tm_atomic_stmt);
-  if (subcode & GTMA_DOES_GO_IRREVOKABLE)
-    flags = PR_DOESGOIRREVOKABLE | PR_UNINSTRUMENTEDCODE;
+  if (subcode & GTMA_DOES_GO_IRREVOCABLE)
+    flags = PR_DOESGOIRREVOCABLE | PR_UNINSTRUMENTEDCODE;
   else
     flags = PR_INSTRUMENTEDCODE;
-  if ((subcode & GTMA_MAY_ENTER_IRREVOKABLE) == 0)
-    flags |= PR_HASNOIRREVOKABLE;
+  if ((subcode & GTMA_MAY_ENTER_IRREVOCABLE) == 0)
+    flags |= PR_HASNOIRREVOCABLE;
   if ((subcode & GTMA_HAVE_ABORT) == 0)
     flags |= PR_HASNOABORT;
   t2 = build_int_cst (TREE_TYPE (status), flags);
@@ -1533,7 +1533,7 @@ struct gimple_opt_pass pass_tm_memopt =
 
 /* Interprocedual analysis for the creation of transactional clones.
    The aim of this pass is to find which functions are referenced in
-   a non-irrevokable transaction context, and for those over which
+   a non-irrevocable transaction context, and for those over which
    we have control (or user directive), create a version of the 
    function which uses only the transactional interface to reference
    protected memories.  This analysis proceeds in several steps:
@@ -1552,26 +1552,26 @@ struct gimple_opt_pass pass_tm_memopt =
 	    callee queues; count the number of clone callers separately
 	    to the number of original callers.
 
-     (2) Propagate irrevokable status up the dominator tree:
+     (2) Propagate irrevocable status up the dominator tree:
 
 	(a) Any external function on the callee list that is not marked
-	    tm_callable is irrevokable.  Push all callers of such onto
+	    tm_callable is irrevocable.  Push all callers of such onto
 	    a worklist.
 
 	(b) For each function on the worklist, mark each block that
-	    contains an irrevokable call.  Use the AND operator to
+	    contains an irrevocable call.  Use the AND operator to
 	    propagate that mark up the dominator tree.
 
 	(c) If we reach the entry block for a possible transactional
-	    clone, then the transactional clone is irrevokable, and
+	    clone, then the transactional clone is irrevocable, and
 	    we should not create the clone after all.  Push all 
 	    callers onto the worklist.
 
-	(d) Place tm_irrevokable calls at the beginning of the relevant
+	(d) Place tm_irrevocable calls at the beginning of the relevant
 	    blocks.  Special case here is the entry block for the entire
-	    tm_atomic region; there we mark it GTMA_DOES_GO_IRREVOKABLE for
+	    tm_atomic region; there we mark it GTMA_DOES_GO_IRREVOCABLE for
 	    the library to begin the region in serial mode.  Decrement
-	    the call count for all callees in the irrevokable region.
+	    the call count for all callees in the irrevocable region.
 
      (3) Create the transactional clones:
 
@@ -1587,10 +1587,10 @@ struct tm_ipa_cg_data
   /* The tm regions in the normal function.  */
   struct tm_region *all_tm_regions;
 
-  /* The blocks of the normal/clone functions that contain irrevokable 
-     calls, or blocks that are post-dominated by irrevokable calls.  */
-  bitmap irrevokable_blocks_normal;
-  bitmap irrevokable_blocks_clone;
+  /* The blocks of the normal/clone functions that contain irrevocable 
+     calls, or blocks that are post-dominated by irrevocable calls.  */
+  bitmap irrevocable_blocks_normal;
+  bitmap irrevocable_blocks_clone;
 
   /* The number of callers to the transactional clone of this function
      from normal and transactional clones respectively.  */
@@ -1598,9 +1598,9 @@ struct tm_ipa_cg_data
   unsigned tm_callers_clone;
 
   /* True if all calls to this function's transactional clone
-     are irrevokable.  Also automatically true if the function
+     are irrevocable.  Also automatically true if the function
      has no transactional clone.  */
-  bool is_irrevokable;
+  bool is_irrevocable;
 
   /* Flags indicating the presence of this function in various queues.  */
   bool in_callee_queue;
@@ -1711,17 +1711,17 @@ ipa_tm_scan_calls_clone (struct cgraph_node *node,
     }
 }
 
-/* The function NODE has been detected to be irrevokable.  Push all
+/* The function NODE has been detected to be irrevocable.  Push all
    of its callers onto WORKLIST for the purpose of re-scanning them.  */
 
 static void
-ipa_tm_note_irrevokable (struct cgraph_node *node,
+ipa_tm_note_irrevocable (struct cgraph_node *node,
 			 cgraph_node_queue *worklist_p)
 {
   struct tm_ipa_cg_data *d = get_cg_data (node);
   struct cgraph_edge *e;
 
-  d->is_irrevokable = true;
+  d->is_irrevocable = true;
 
   for (e = node->callers; e ; e = e->next_caller)
     {
@@ -1737,7 +1737,7 @@ ipa_tm_note_irrevokable (struct cgraph_node *node,
 }
 
 /* A subroutine of ipa_tm_scan_irr_blocks; return true iff any statement
-   within the block is irrevokable.  */
+   within the block is irrevocable.  */
 
 static bool
 ipa_tm_scan_irr_block (basic_block bb)
@@ -1756,12 +1756,12 @@ ipa_tm_scan_irr_block (basic_block bb)
 
 	  fn = gimple_call_fn (stmt);
 
-	  /* Functions with the attribute are by definition irrevokable.  */
-	  if (is_tm_irrevokable (fn))
+	  /* Functions with the attribute are by definition irrevocable.  */
+	  if (is_tm_irrevocable (fn))
 	    return true;
 
 	  /* For direct function calls, go ahead and check for replacement
-	     functions, or transitive irrevokable functions.  For indirect
+	     functions, or transitive irrevocable functions.  For indirect
 	     functions, we'll ask the runtime.  */
 	  if (TREE_CODE (fn) == ADDR_EXPR)
 	    {
@@ -1774,7 +1774,7 @@ ipa_tm_scan_irr_block (basic_block bb)
 		break;
 
 	      d = get_cg_data (cgraph_node (fn));
-	      if (d->is_irrevokable)
+	      if (d->is_irrevocable)
 		return true;
 	    }
 	  break;
@@ -1795,7 +1795,7 @@ ipa_tm_scan_irr_block (basic_block bb)
 }
 
 /* For each of the blocks seeded witin PQUEUE, walk its dominator tree
-   looking for new irrevokable blocks, marking them in NEW_IRR.  Don't
+   looking for new irrevocable blocks, marking them in NEW_IRR.  Don't
    bother scanning past OLD_IRR or EXIT_BLOCKS.  */
 
 static bool
@@ -1808,7 +1808,7 @@ ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
     {
       basic_block bb = VEC_pop (basic_block, *pqueue);
 
-      /* Don't re-scan blocks we know already are irrevokable.  */
+      /* Don't re-scan blocks we know already are irrevocable.  */
       if (old_irr && bitmap_bit_p (old_irr, bb->index))
 	continue;
 
@@ -1827,11 +1827,11 @@ ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
   return any_new_irr;
 }
 
-/* Propagate the irrevokable property both up and down the dominator tree.
+/* Propagate the irrevocable property both up and down the dominator tree.
    BB is the current block being scanned; EXIT_BLOCKS are the edges of the
    TM regions; OLD_IRR is the results of a previous scan of the dominator
    tree which has been fully propagated; NEW_IRR is the set of new blocks
-   which are gaining the irrevokable property during the current scan.  */
+   which are gaining the irrevocable property during the current scan.  */
 
 static bool
 ipa_tm_propagate_irr (basic_block bb, bitmap new_irr, bitmap old_irr,
@@ -1844,9 +1844,9 @@ ipa_tm_propagate_irr (basic_block bb, bitmap new_irr, bitmap old_irr,
   if (old_irr && bitmap_bit_p (old_irr, index))
     return true;
 
-  /* For downward propagation, the block is irrevokable if either 
-     the parent block is irrevokable or a scan of the the block
-     revealed an irrevokable statement.  */
+  /* For downward propagation, the block is irrevocable if either 
+     the parent block is irrevocable or a scan of the the block
+     revealed an irrevocable statement.  */
   this_irr = (parent_irr || bitmap_bit_p (new_irr, index));
 
   if (!bitmap_bit_p (exit_blocks, index))
@@ -1865,8 +1865,8 @@ ipa_tm_propagate_irr (basic_block bb, bitmap new_irr, bitmap old_irr,
 	    }
 	  while (son);
 
-	  /* For upward propagation, the block is irrevokable if
-	     all dominated blocks are irrevokable.  */
+	  /* For upward propagation, the block is irrevocable if
+	     all dominated blocks are irrevocable.  */
 	  this_irr |= all_son_irr;
 	}
     }
@@ -1909,11 +1909,11 @@ ipa_tm_decrement_clone_counts (basic_block bb, bool for_clone)
     }
 }
 
-/* (Re-)Scan the tm_atomic blocks in NODE for calls to irrevokable functions,
-   as well as other irrevokable actions such as inline assembly.  Mark all
-   such blocks as irrevokable and decrement the number of calls to
+/* (Re-)Scan the tm_atomic blocks in NODE for calls to irrevocable functions,
+   as well as other irrevocable actions such as inline assembly.  Mark all
+   such blocks as irrevocable and decrement the number of calls to
    transactional clones.  Return true if, for the transactional clone, the
-   entire function is irrevokable.  */
+   entire function is irrevocable.  */
 
 static bool
 ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
@@ -1931,10 +1931,10 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
   queue = VEC_alloc (basic_block, heap, 10);
   new_irr = BITMAP_ALLOC (&tm_obstack);
 
-  /* Scan each tm region, propagating irrevokable status through the tree.  */
+  /* Scan each tm region, propagating irrevocable status through the tree.  */
   if (for_clone)
     {
-      old_irr = d->irrevokable_blocks_clone;
+      old_irr = d->irrevocable_blocks_clone;
       VEC_quick_push (basic_block, queue, single_succ (ENTRY_BLOCK_PTR));
       if (ipa_tm_scan_irr_blocks (&queue, new_irr, old_irr, NULL))
 	ret = ipa_tm_propagate_irr (single_succ (ENTRY_BLOCK_PTR), new_irr,
@@ -1944,7 +1944,7 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
     {
       struct tm_region *region;
 
-      old_irr = d->irrevokable_blocks_normal;
+      old_irr = d->irrevocable_blocks_normal;
       for (region = d->all_tm_regions; region; region = region->next)
 	{
 	  VEC_quick_push (basic_block, queue, region->entry_block);
@@ -1955,9 +1955,9 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
 	}
     }
 
-  /* If we found any new irrevokable blocks, reduce the call count for
-     transactional clones within the irrevokable blocks.  Save the new
-     set of irrevokable blocks for next time.  */
+  /* If we found any new irrevocable blocks, reduce the call count for
+     transactional clones within the irrevocable blocks.  Save the new
+     set of irrevocable blocks for next time.  */
   if (!bitmap_empty_p (new_irr))
     {
       bitmap_iterator bmi;
@@ -1972,9 +1972,9 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
 	  BITMAP_FREE (new_irr);
 	}
       else if (for_clone)
-	d->irrevokable_blocks_clone = new_irr;
+	d->irrevocable_blocks_clone = new_irr;
       else
-	d->irrevokable_blocks_normal = new_irr;
+	d->irrevocable_blocks_normal = new_irr;
     }
   else
     BITMAP_FREE (new_irr);
@@ -2084,7 +2084,7 @@ ipa_tm_create_version (struct cgraph_node *old_node)
     cgraph_mark_needed_node (new_node);
 }
 
-/* Construct a call to TM_IRREVOKABLE and insert it at the beginning of BB.  */
+/* Construct a call to TM_IRREVOCABLE and insert it at the beginning of BB.  */
 
 static void
 ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
@@ -2094,9 +2094,9 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
   gimple g;
   edge e;
 
-  tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
+  tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
-  g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOKABLE], 0);
+  g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOCABLE], 0);
   add_stmt_to_tm_region (region, g);
 
   e = split_block_after_labels (bb);
@@ -2104,7 +2104,7 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
 
   cgraph_create_edge (node,
-		      cgraph_node (built_in_decls[BUILT_IN_TM_IRREVOKABLE]),
+		      cgraph_node (built_in_decls[BUILT_IN_TM_IRREVOCABLE]),
 		      g, 0, 0, bb->loop_depth);
 }
 
@@ -2128,7 +2128,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   add_referenced_var (ret);
 
   if (!safe)
-    tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
+    tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
   /* Discard OBJ_TYPE_REF, since we weren't able to fold it.  */
   if (TREE_CODE (old_fn) == OBJ_TYPE_REF)
@@ -2138,7 +2138,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   ret = make_ssa_name (ret, g);
   gimple_call_set_lhs (g, ret);
 
-  /* ??? If we need to go irrevokable, we can fail the intermediate
+  /* ??? If we need to go irrevocable, we can fail the intermediate
      commit and restart the transaction.  But representing that means
      splitting this basic block, which means busting all of the bitmaps
      we've put together, as well as the dominator tree.  Perhaps we
@@ -2173,7 +2173,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 }
 
 /* Walk the dominator tree for REGION, beginning at BB.  Install calls to
-   tm_irrevokable when IRR_BLOCKS are reached, redirect other calls to the
+   tm_irrevocable when IRR_BLOCKS are reached, redirect other calls to the
    generated transactional clone.  */
 
 static bool
@@ -2226,7 +2226,7 @@ ipa_tm_transform_calls (struct cgraph_node *node, struct tm_region *region,
 	  new_node = d->clone;
 
 	  /* As we've already skipped pure calls and appropriate builtins,
-	     and we've already marked irrevokable blocks, if we can't come
+	     and we've already marked irrevocable blocks, if we can't come
 	     up with a static replacement, then ask the runtime.  */
 	  if (new_node == NULL)
 	    {
@@ -2270,18 +2270,18 @@ ipa_tm_transform_tm_atomic (struct cgraph_node *node)
   for (region = d->all_tm_regions; region; region = region->next)
     {
       /* If we're sure to go irrevocable, don't transform anything.  */
-      if (d->irrevokable_blocks_normal
-	  && bitmap_bit_p (d->irrevokable_blocks_normal,
+      if (d->irrevocable_blocks_normal
+	  && bitmap_bit_p (d->irrevocable_blocks_normal,
 			   region->entry_block->index))
 	{
-	  tm_atomic_subcode_ior (region, GTMA_DOES_GO_IRREVOKABLE);
-	  tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOKABLE);
+	  tm_atomic_subcode_ior (region, GTMA_DOES_GO_IRREVOCABLE);
+	  tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 	  break;
 	}
 
       need_ssa_rename |=
 	ipa_tm_transform_calls (node, region, region->entry_block,
-				d->irrevokable_blocks_normal);
+				d->irrevocable_blocks_normal);
     }
 
   if (need_ssa_rename)
@@ -2299,10 +2299,10 @@ ipa_tm_transform_clone (struct cgraph_node *node)
   struct tm_ipa_cg_data *d = get_cg_data (node);
   bool need_ssa_rename;
 
-  /* If this function makes no calls and has no irrevokable blocks,
+  /* If this function makes no calls and has no irrevocable blocks,
      then there's nothing to do.  */
   /* ??? Remove non-aborting top-level transactions.  */
-  if (!node->callees && !d->irrevokable_blocks_clone)
+  if (!node->callees && !d->irrevocable_blocks_clone)
     return;
 
   current_function_decl = d->clone->decl;
@@ -2314,7 +2314,7 @@ ipa_tm_transform_clone (struct cgraph_node *node)
 
   need_ssa_rename =
     ipa_tm_transform_calls (d->clone, NULL, single_succ (ENTRY_BLOCK_PTR),
-			    d->irrevokable_blocks_clone);
+			    d->irrevocable_blocks_clone);
 
   if (need_ssa_rename)
     update_ssa (TODO_update_ssa_only_virtuals);
@@ -2391,18 +2391,18 @@ ipa_tm_execute (void)
       d = get_cg_data (node);
 
       /* Some callees cannot be arbitrarily cloned.  These will always be
-	 irrevokable.  Mark these now, so that we need not scan them.  */
-      if (is_tm_irrevokable (node->decl)
+	 irrevocable.  Mark these now, so that we need not scan them.  */
+      if (is_tm_irrevocable (node->decl)
 	  || (a >= AVAIL_OVERWRITABLE
 	      && !tree_versionable_function_p (node->decl)))
 	{
-	  ipa_tm_note_irrevokable (node, &worklist);
+	  ipa_tm_note_irrevocable (node, &worklist);
 	  continue;
 	}
 
       if (a >= AVAIL_OVERWRITABLE)
 	{
-	  if (!d->is_irrevokable)
+	  if (!d->is_irrevocable)
 	    ipa_tm_scan_calls_clone (node, &tm_callees);
 	}
       else
@@ -2436,10 +2436,10 @@ ipa_tm_execute (void)
 	  ipa_tm_scan_irr_function (node, false);
 	}
       if (d->in_callee_queue && ipa_tm_scan_irr_function (node, true))
-	ipa_tm_note_irrevokable (node, &worklist);
+	ipa_tm_note_irrevocable (node, &worklist);
     }
 
-  /* Create clones.  Do those that are not irrevokable and have a
+  /* Create clones.  Do those that are not irrevocable and have a
      positive call count.  Do those publicly visible functions that
      the user directed us to clone.  */
   for (i = 0; i < VEC_length (cgraph_node_p, tm_callees); ++i)
@@ -2454,7 +2454,7 @@ ipa_tm_execute (void)
 	doit = is_tm_callable (node->decl);
       else if (a <= AVAIL_AVAILABLE && is_tm_callable (node->decl))
 	doit = true;
-      else if (!d->is_irrevokable
+      else if (!d->is_irrevocable
 	       && d->tm_callers_normal + d->tm_callers_clone > 0)
 	doit = true;
 
@@ -2462,7 +2462,7 @@ ipa_tm_execute (void)
 	ipa_tm_create_version (node);
     }
 
-  /* Redirect calls to the new clones, and insert irrevokable marks.  */
+  /* Redirect calls to the new clones, and insert irrevocable marks.  */
   for (i = 0; i < VEC_length (cgraph_node_p, tm_callees); ++i)
     {
       node = VEC_index (cgraph_node_p, tm_callees, i);

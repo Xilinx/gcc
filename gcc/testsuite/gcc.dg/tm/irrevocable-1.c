@@ -4,7 +4,7 @@
 int global;
 int george;
 
-extern crap() __attribute__((tm_irrevokable));
+extern crap() __attribute__((tm_irrevocable));
 
 foo()
 {

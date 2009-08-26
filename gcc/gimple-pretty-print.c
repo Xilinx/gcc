@@ -566,9 +566,9 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 	pp_string (buffer, "hasNoXMMUpdate ");
       if (props & PR_HASNOABORT)
 	pp_string (buffer, "hasNoAbort ");
-      if (props & PR_HASNOIRREVOKABLE)
+      if (props & PR_HASNOIRREVOCABLE)
 	pp_string (buffer, "hasNoIrrevocable ");
-      if (props & PR_DOESGOIRREVOKABLE)
+      if (props & PR_DOESGOIRREVOCABLE)
 	pp_string (buffer, "doesGoIrrevocable ");
       if (props & PR_HASNOSIMPLEREADS)
 	pp_string (buffer, "hasNoSimpleReads ");
@@ -1132,10 +1132,10 @@ dump_gimple_tm_atomic_subcode (pretty_printer *buffer, unsigned subcode)
     pp_string (buffer, "GTMA_HAVE_STORE ");
   if (subcode & GTMA_HAVE_CALL_TM)
     pp_string (buffer, "GTMA_HAVE_CALL_TM ");
-  if (subcode & GTMA_MAY_ENTER_IRREVOKABLE)
-    pp_string (buffer, "GTMA_MAY_ENTER_IRREVOKABLE ");
-  if (subcode & GTMA_DOES_GO_IRREVOKABLE)
-    pp_string (buffer, "GTMA_DOES_GO_IRREVOKABLE ");
+  if (subcode & GTMA_MAY_ENTER_IRREVOCABLE)
+    pp_string (buffer, "GTMA_MAY_ENTER_IRREVOCABLE ");
+  if (subcode & GTMA_DOES_GO_IRREVOCABLE)
+    pp_string (buffer, "GTMA_DOES_GO_IRREVOCABLE ");
   if (subcode & GTMA_HAVE_UNCOMMITTED_THROW)
     pp_string (buffer, "GTMA_HAVE_UNCOMMITTED_THROW ");
   pp_string (buffer, "]");

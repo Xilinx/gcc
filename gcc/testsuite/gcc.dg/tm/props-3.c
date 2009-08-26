@@ -5,7 +5,7 @@
 
 void (indirect)(void);
 
-extern crap() __attribute__((tm_irrevokable));
+extern crap() __attribute__((tm_irrevocable));
 
 foo(){
     __tm_atomic {
@@ -13,4 +13,4 @@ foo(){
     }
 }
 
-/* { dg-final { scan-ipa-dump-times "GTMA_MAY_ENTER_IRREVOKABLE" 1 "tmipa" } } */
+/* { dg-final { scan-ipa-dump-times "GTMA_MAY_ENTER_IRREVOCABLE" 1 "tmipa" } } */

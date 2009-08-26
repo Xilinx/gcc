@@ -4,7 +4,7 @@
 void ts(void) __attribute__((tm_safe));
 void tp(void) __attribute__((tm_pure));
 void tc(void) __attribute__((tm_callable));
-void ti(void) __attribute__((tm_irrevokable));
+void ti(void) __attribute__((tm_irrevocable));
 void tu(void);
 int fc(int) __attribute__((const));
 

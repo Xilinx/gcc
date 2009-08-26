@@ -1,3 +1,9 @@
+2009-08-26  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree.h, gimple-pretty-print.c, trans-mem.c, trans-mem.h,
+	calls.c, c-common.c, c-common.h, gtm-builtins.def, gimple.h:
+	Replace all instances of "irrevok*" with "irrevoc*".
+
 2007-08-05  Richard Henderson  <rth@redhat.com>
 
 	* except.c (duplicate_eh_regions_1): Zero tm_atomic_stmt.

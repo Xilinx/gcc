@@ -952,7 +952,7 @@ extern tree finish_label_address_expr (tree, location_t);
 #define TM_ATTR_SAFE		1
 #define TM_ATTR_CALLABLE	2
 #define TM_ATTR_PURE		4
-#define TM_ATTR_IRREVOKABLE	8
+#define TM_ATTR_IRREVOCABLE	8
 #define TM_ATTR_UNKNOWN		16
 
 extern int tm_attr_to_mask (tree);

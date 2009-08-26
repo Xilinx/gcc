@@ -788,7 +788,7 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_pure_attribute },
   { "tm_callable",            0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_irrevokable",         0, 0, false, true,  false,
+  { "tm_irrevocable",         0, 0, false, true,  false,
                               handle_tm_attribute },
   { "tm_pure",                0, 0, false, true,  false,
                               handle_tm_attribute },
@@ -7148,8 +7148,8 @@ tm_attr_to_mask (tree attr)
     return TM_ATTR_CALLABLE;
   if (is_attribute_p ("tm_pure", attr))
     return TM_ATTR_PURE;
-  if (is_attribute_p ("tm_irrevokable", attr))
-    return TM_ATTR_IRREVOKABLE;
+  if (is_attribute_p ("tm_irrevocable", attr))
+    return TM_ATTR_IRREVOCABLE;
   if (is_attribute_p ("tm_unknown", attr))
     return TM_ATTR_UNKNOWN;
   return 0;
@@ -7164,7 +7164,7 @@ tm_mask_to_attr (int mask)
     case TM_ATTR_SAFE:		str = "tm_safe";	break;
     case TM_ATTR_CALLABLE:	str = "tm_callable";	break;
     case TM_ATTR_PURE:		str = "tm_pure";	break;
-    case TM_ATTR_IRREVOKABLE:	str = "tm_irrevokable";	break;
+    case TM_ATTR_IRREVOCABLE:	str = "tm_irrevocable";	break;
     case TM_ATTR_UNKNOWN:	str = "tm_unknown";	break;
     default:
       gcc_unreachable ();

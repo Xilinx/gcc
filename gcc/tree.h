@@ -5239,7 +5239,7 @@ extern tree build_tm_abort_call (location_t);
 extern bool is_tm_safe (tree);
 extern bool is_tm_pure (tree);
 extern bool is_tm_callable (tree);
-extern bool is_tm_irrevokable (tree);
+extern bool is_tm_irrevocable (tree);
 extern void record_tm_replacement (tree, tree);
 
 /* In tree-inline.c.  */
