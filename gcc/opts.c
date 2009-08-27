@@ -901,6 +901,7 @@ decode_options (unsigned int argc, const char **argv)
 #ifdef HAVE_cloog
   flag_graphite_identity = opt2;
   flag_loop_strip_mine = opt2;
+  flag_loop_interchange = opt2;
 #endif
 
   /* Track fields in field-sensitive alias analysis.  */
