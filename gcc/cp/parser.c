@@ -7169,24 +7169,25 @@ static void
 cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
                                             tree lambda_expr)
 {
-  tree param_list = NULL_TREE;
+  /* 5.1.1.4 of the standard says:
+       If a lambda-expression does not include a lambda-declarator, it is as if
+       the lambda-declarator were ().
+     This means an empty parameter list and no exception specification.  */
+  tree param_list = void_list_node;
   tree exception_spec = NULL_TREE;
 
+  /* The lambda-declarator is optional, but must begin with an opening
+     parenthesis if present.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
     {
       cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
 
       begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
 
-      /* Parse optional parameters.  */
-      if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
-        {
-          bool is_error = false;
-          param_list = cp_parser_parameter_declaration_list (parser, &is_error);
-          /* TODO: better way to handle this error?  */
-          if (is_error)
-            param_list = NULL_TREE;
-        }
+      /* Parse parameters.  */
+      /* TODO: Disallow default arguments in a lambda's
+         parameter-declaration-clause.  */
+      param_list = cp_parser_parameter_declaration_clause (parser);
 
       cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
@@ -7207,8 +7208,8 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
           LAMBDA_EXPR_RETURN_TYPE (lambda_expr) = cp_parser_type_id (parser);
         }
 
-      /* Remove the function parms from scope.  Must wait until after return
-         type clause in case of decltype.  */
+      /* The function parameters must be in scope all the way until after the
+       * trailing-return-type in case of decltype.  */
       {
         tree t;
         for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
@@ -7222,6 +7223,8 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
   /* Start the function call operator
      - member_specification_opt
      + member_declaration  */
+  /* TODO: Find a better way to do this that does not involve
+     cp_decl_specifier_seq or cp_declarator and put it into semantics.c.  */
   {
     bool saved_in_declarator_p = parser->in_declarator_p;
     bool saved_default_arg_ok_p = parser->default_arg_ok_p;
@@ -7243,10 +7246,16 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
       }
     else
       {
-        /* 5.1.1.9.2 of the standard says:
-             for a lambda expression that does not contain a
-             lambda-return-type-clause, the return type is void, unless the
-             compound-statement is of the form { return expression ; }  */
+        /* 5.1.1.4 of the standard says:
+             If a lambda-expression does not include a trailing-return-type, it
+             is as if the trailing-return-type denotes the following type: 
+               — if the compound-statement is of the form 
+                   { return attribute-specifieropt expression ; } 
+                 the type of the returned expression after lvalue-to-rvalue
+                 conversion (_conv.lval_ 4.1), array-to-pointer conversion
+                 (_conv.array_ 4.2), and function-to-pointer conversion
+                 (_conv.func_ 4.3); 
+             — otherwise, void.  */
         /* Will find out later what the form is, but can use void as a placeholder
            return type anyways.  */
         return_type_specs.type = void_type_node;
@@ -7321,10 +7330,16 @@ cp_parser_lambda_body (cp_parser* parser,
 
     body = begin_function_body ();
 
-    /* 5.1.1.9.2 of the standard says:
-         for a lambda expression that does not contain a
-         lambda-return-type-clause, the return type is void, unless the
-         compound-statement is of the form { return expression ; }  */
+    /* 5.1.1.4 of the standard says:
+         If a lambda-expression does not include a trailing-return-type, it
+         is as if the trailing-return-type denotes the following type: 
+           — if the compound-statement is of the form 
+               { return attribute-specifieropt expression ; } 
+             the type of the returned expression after lvalue-to-rvalue
+             conversion (_conv.lval_ 4.1), array-to-pointer conversion
+             (_conv.array_ 4.2), and function-to-pointer conversion
+             (_conv.func_ 4.3); 
+         — otherwise, void.  */
     /* In a lambda that has neither a lambda-return-type-clause
        nor a deducible form, errors should be reported for return statements
        in the body.  Since we used void as the placeholder return type, parsing
