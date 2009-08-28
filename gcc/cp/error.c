@@ -590,6 +590,14 @@ dump_aggr_type (tree t, int flags)
       else
 	pp_printf (pp_base (cxx_pp), M_("<anonymous %s>"), variety);
     }
+  else if (LAMBDANAME_P (name))
+    {
+      /* A lambda's "type" is essentially its signature.  */
+      pp_string (cxx_pp, M_("<lambda>"));
+      dump_parameters (FUNCTION_FIRST_USER_PARMTYPE
+                         (LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (t))),
+                       flags);
+    }
   else
     pp_cxx_tree_identifier (cxx_pp, name);
   if (tmplate)
@@ -1214,6 +1222,14 @@ dump_function_decl (tree t, int flags)
   int do_outer_scope = ! (flags & TFF_UNQUALIFIED_NAME);
   tree exceptions;
   VEC(tree,gc) *typenames = NULL;
+
+  if (LAMBDA_FUNCTION_P (t))
+    {
+      /* A lambda's signature is essentially its "type", so defer.  */
+      gcc_assert (LAMBDA_TYPE_P (DECL_CONTEXT (t)));
+      dump_type (DECL_CONTEXT (t), flags);
+      return;
+    }
 
   flags &= ~TFF_UNQUALIFIED_NAME;
   if (TREE_CODE (t) == TEMPLATE_DECL)
@@ -2667,6 +2683,8 @@ function_category (tree fn)
 	return _("In constructor %qs");
       else if (DECL_DESTRUCTOR_P (fn))
 	return _("In destructor %qs");
+      else if (LAMBDA_FUNCTION_P (fn))
+	return _("In lambda function");
       else
 	return _("In member function %qs");
     }
