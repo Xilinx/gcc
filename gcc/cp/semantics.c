@@ -5183,22 +5183,23 @@ build_lambda_expr (void)
 tree
 begin_lambda_type (tree lambda)
 {
-  tree name;
   tree type;
-  tree node;
 
   /* TODO: necessary?  */
   push_deferring_access_checks (dk_no_deferred);
 
-  /* Unique name.  This is just like an unnamed class, but we cannot use
-     make_anon_name because of certain checks against TYPE_ANONYMOUS_P.  */
-  name = make_lambda_name ();
+  {
+    /* Unique name.  This is just like an unnamed class, but we cannot use
+       make_anon_name because of certain checks against TYPE_ANONYMOUS_P.  */
+    tree name;
+    name = make_lambda_name ();
 
-  /* Create the new RECORD_TYPE for this lambda.  */
-  type = xref_tag (/*tag_code=*/record_type,
-                   /*name=*/name,
-                   /*scope=*/ts_current,
-                   /*template_header_p=*/false);
+    /* Create the new RECORD_TYPE for this lambda.  */
+    type = xref_tag (/*tag_code=*/record_type,
+                     name,
+                     /*scope=*/ts_current,
+                     /*template_header_p=*/false);
+  }
 
   /* Designate it as a struct so that we can use aggregate initialization.  */
   CLASSTYPE_DECLARED_CLASS (type) = false;
@@ -5218,15 +5219,18 @@ begin_lambda_type (tree lambda)
   current_access_specifier = access_public_node;
 
   /* For each capture, we need to add the member to the class.  */
-  for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda);
-       node;
-       node = TREE_CHAIN (node))
-    {
-      tree member = TREE_PURPOSE (node);
+  {
+    tree node;
+    for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda);
+         node;
+         node = TREE_CHAIN (node))
+      {
+        tree member = TREE_PURPOSE (node);
 
-      /* Add to class.  */
-      finish_member_declaration (member);
-    }
+        /* Add to class.  */
+        finish_member_declaration (member);
+      }
+  }
 
   return type;
 }
