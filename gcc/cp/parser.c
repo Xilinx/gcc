@@ -1630,7 +1630,7 @@ static tree cp_parser_lambda_expression
   (cp_parser *);
 static void cp_parser_lambda_introducer
   (cp_parser *, tree);
-static void cp_parser_lambda_parameter_declaration_opt
+static void cp_parser_lambda_declarator_opt
   (cp_parser *, tree);
 static void cp_parser_lambda_body
   (cp_parser *, tree);
@@ -6953,7 +6953,7 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
 /* Parse a lambda expression.
 
    lambda-expression:
-     lambda-introducer lambda-parameter-declaration [opt] compound-statement
+     lambda-introducer lambda-declarator [opt] compound-statement
 
    Returns a representation of the expression.  */
 
@@ -6980,7 +6980,7 @@ cp_parser_lambda_expression (cp_parser* parser)
     /* By virtue of defining a local class, a lambda expression has access to
        the private variables of enclosing classes.  */
 
-    cp_parser_lambda_parameter_declaration_opt (parser, lambda_expr);
+    cp_parser_lambda_declarator_opt (parser, lambda_expr);
 
     type = finish_struct (type, /*attributes=*/NULL_TREE);
 
@@ -7159,14 +7159,17 @@ cp_parser_lambda_introducer (cp_parser* parser,
 
 /* Parse the (optional) middle of a lambda expression.
 
-   lambda-parameter-declaration:
-     ( lambda-parameter-declaration-list [opt] ) exception-specification [opt]
+   lambda-declarator:
+     ( parameter-declaration-clause [opt] )
+       attribute-specifier [opt]
+       mutable [opt]
+       exception-specification [opt]
        lambda-return-type-clause [opt]
 
    LAMBDA_EXPR is the current representation of the lambda expression.  */
 
 static void
-cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
+cp_parser_lambda_declarator_opt (cp_parser* parser,
                                             tree lambda_expr)
 {
   /* 5.1.1.4 of the standard says:
@@ -7191,7 +7194,9 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
 
       cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
-      /* Parse optional mutable specification.  */
+      /* TODO: Parse optional attribute specifier.  */
+
+      /* Parse optional `mutable' keyword.  */
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_MUTABLE))
         {
           cp_lexer_consume_token (parser->lexer);
@@ -7201,7 +7206,7 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
       /* Parse optional exception specification.  */
       exception_spec = cp_parser_exception_specification_opt (parser);
 
-      /* Parse optional return type clause.  */
+      /* Parse optional trailing return type.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_DEREF))
         {
           cp_lexer_consume_token (parser->lexer);
@@ -7209,7 +7214,7 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
         }
 
       /* The function parameters must be in scope all the way until after the
-       * trailing-return-type in case of decltype.  */
+         trailing-return-type in case of decltype.  */
       {
         tree t;
         for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
