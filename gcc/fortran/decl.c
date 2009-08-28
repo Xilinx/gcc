@@ -2104,11 +2104,12 @@ no_match:
   return m;
 }
 
+
 /* Match the various kind/length specifications in a CHARACTER
    declaration.  We don't return MATCH_NO.  */
 
-static match
-match_char_spec (gfc_typespec *ts)
+match
+gfc_match_char_spec (gfc_typespec *ts)
 {
   int kind, seen_length, is_iso_c;
   gfc_charlen *cl;
@@ -2324,7 +2325,7 @@ gfc_match_type_spec (gfc_typespec *ts, int implicit_flag)
     {
       ts->type = BT_CHARACTER;
       if (implicit_flag == 0)
-	return match_char_spec (ts);
+	return gfc_match_char_spec (ts);
       else
 	return MATCH_YES;
     }
@@ -2636,7 +2637,7 @@ gfc_match_implicit (void)
 
       /* Last chance -- check <TYPE> <SELECTOR> (<RANGE>).  */
       if (ts.type == BT_CHARACTER)
-	m = match_char_spec (&ts);
+	m = gfc_match_char_spec (&ts);
       else
 	{
 	  m = gfc_match_kind_spec (&ts, false);
@@ -4447,6 +4448,10 @@ match_ppc_decl (void)
       gfc_error("NOPASS or explicit interface required at %C");
       return MATCH_ERROR;
     }
+
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Procedure pointer "
+                     "component at %C") == FAILURE)
+    return MATCH_ERROR;
 
   /* Match PPC names.  */
   ts = current_ts;

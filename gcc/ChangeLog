@@ -1,3 +1,1014 @@
+2009-08-28  Jan Beulich  <jbeulich@novell.com>
+
+	* config/i386/netware.c: Include langhooks.h.
+	(i386_nlm_encode_section_info): Simplify.
+	(netware_override_options): Delete.
+	* config/i386/netware.h (netware_override_options): Delete
+	declaration.
+	(OVERRIDE_OPTIONS): Delete definition.
+	(SUBTARGET_OVERRIDE_OPTIONS): Define.
+	(ASM_COMMENT_START): Define.
+	* config/i386/nwld.h (SUBSUBTARGET_OVERRIDE_OPTIONS): Define.
+
+2009-08-28  Jan Beulich  <jbeulich@novell.com>
+
+	* configure.ac: For in-tree ld, do a plain version check to
+	determine whether comdat groups are supported.
+	* configure: Regenerate.
+
+2009-08-28  Olivier Hainque  <hainque@adacore.com>
+
+	* collect2.c (DO_COLLECT_EXPORT_LIST): New internal macro,
+	always defined.  Reflect definition or absence of such for
+	COLLECT_EXPORT_LIST.  Readability helper.
+	(scanfilter): New enum, to help control what symbols
+	are to be considered or ignored by scan_prog_file.
+	(enum pass): Rename as "scanpass", moved together with scanfilter
+	prior to scan_prog_file's prototype.
+	(scan_prog_file): Accept and honor scanpass and scanfilter arguments.
+	Group prototype with the scanpass/scanfilter definitions, factorize
+	head comments for the several implementations at the prototype.
+	(main): Reorganize the first pass link control to let AIX
+	drag only the needed frame tables in executables.  Prevent
+	frame tables collection during the scan aimed at static ctors.
+	Pre-link and scan for frame tables later to compensate.
+	* doc/tm.texi (ASM_OUTPUT_DWARF_TABLE_REF): New macro.
+	A C statement to issue assembly directives that create a reference
+	to the given DWARF table identifier label from the current function
+	section.
+	* dwarf2out.c (switch_to_eh_frame_section): Add a BACK argument
+	to differentiate first time section entry.  Only emit a .data
+	tables start identifier label the first time around.
+	(switch_to_frame_table_section): New function.  Helper for
+	output_call_frame_info to switch possibly BACK into the eh_frame
+	or the debug_frame section depending on FOR_EH.
+	(output_call_frame_info): Use helper to first enter the proper
+	frame section.
+	(output_fde): Use ASM_OUTPUT_DWARF_TABLE_REF when defined to
+	emit a link to the frame table start label from each function
+	section.
+	* config/rs6000/rs6000.c (rs6000_aix_asm_output_dwarf_table_ref):
+	New function.  Implementation of ASM_OUTPUT_DWARF_TABLE_REF.
+	* config/rs6000/rs6000-protos.h: Declare it.
+	* config/rs6000/aix.h (ASM_OUTPUT_DWARF_TABLE_REF): Define.
+
+2009-08-27  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (split_branches): Check the result of
+	next_active_insn.
+
+2009-08-27  Steve Ellcey  <sje@cup.hp.com>
+
+	* config/ia64/hpux.h (LIB_SPEC): Add -lrt for when
+	using -pthread -fopenmp
+
+2009-08-27  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/service.texi (service directory): Update URL.
+
+2009-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR rtl-optimization/40861
+	* simplify-rtx.c (simplify_subreg): Do not call simplify_gen_subreg to
+	extract word from a multi-word subreg for negative byte positions.
+
+2009-08-27  Tristan Gingold  <gingold@adacore.com>
+	    Douglas B Rupp  <rupp@gnat.com>
+
+	* config/ia64/ia64.c (ia64_attribute_table): Add "common_object" entry.
+	(SECTION_VMS_OVERLAY): Define.
+	(ia64_vms_common_object_attribute): Added.  Handle the "common_object"
+	attribute.
+	(ia64_vms_elf_asm_named_section): Added.  Generate .section pseudo-op
+	for common_object.
+	(ia64_vms_output_aligned_decl_common): Added.  Generate pseudo-op for
+	common_object declarations.
+	(ia64_section_type_flags): Set section flag for common_object.
+	* config/ia64/ia64-protos.h
+	(ia64_vms_output_aligned_decl_common): Declare.
+	(ia64_vms_elf_asm_named_section): Declare.
+
+2009-08-27  Michael Matz  <matz@suse.de>
+
+	* expr.c (expand_expr_real_2): New function taking exploded
+	unary or binary expression, split out from ...
+	(expand_expr_real_1): ... here.  Move over all unary/binary
+	switch parts to above function, in particular these codes:
+	PAREN_EXPR, NOP_EXPR, CONVERT_EXPR, POINTER_PLUS_EXPR, PLUS_EXPR,
+	MINUS_EXPR, MULT_EXPR, TRUNC_DIV_EXPR, FLOOR_DIV_EXPR, CEIL_DIV_EXPR,
+	ROUND_DIV_EXPR, EXACT_DIV_EXPR, RDIV_EXPR, TRUNC_MOD_EXPR,
+	FLOOR_MOD_EXPR, CEIL_MOD_EXPR, ROUND_MOD_EXPR, FIXED_CONVERT_EXPR,
+	FIX_TRUNC_EXPR, FLOAT_EXPR, NEGATE_EXPR, ABS_EXPR, MAX_EXPR, MIN_EXPR,
+	BIT_NOT_EXPR, TRUTH_AND_EXPR, BIT_AND_EXPR, TRUTH_OR_EXPR,
+	BIT_IOR_EXPR, TRUTH_XOR_EXPR, BIT_XOR_EXPR, LROTATE_EXPR, RROTATE_EXPR,
+	LSHIFT_EXPR, RSHIFT_EXPR, LT_EXPR, LE_EXPR, GT_EXPR, GE_EXPR, EQ_EXPR,
+	NE_EXPR, UNORDERED_EXPR, ORDERED_EXPR, UNLT_EXPR, UNLE_EXPR, UNGT_EXPR,
+	UNGE_EXPR, UNEQ_EXPR, LTGT_EXPR, TRUTH_NOT_EXPR, COMPLEX_EXPR,
+	WIDEN_SUM_EXPR, REDUC_MAX_EXPR, REDUC_MIN_EXPR, REDUC_PLUS_EXPR,
+	VEC_EXTRACT_EVEN_EXPR, VEC_EXTRACT_ODD_EXPR, VEC_INTERLEAVE_HIGH_EXPR,
+	VEC_INTERLEAVE_LOW_EXPR, VEC_LSHIFT_EXPR, VEC_RSHIFT_EXPR,
+	VEC_UNPACK_HI_EXPR, VEC_UNPACK_LO_EXPR, VEC_UNPACK_FLOAT_HI_EXPR,
+	VEC_UNPACK_FLOAT_LO_EXPR, VEC_WIDEN_MULT_HI_EXPR,
+	VEC_WIDEN_MULT_LO_EXPR, VEC_PACK_TRUNC_EXPR, VEC_PACK_SAT_EXPR,
+	VEC_PACK_FIX_TRUNC_EXPR.
+	(<case PAREN_EXPR>): Call set_mem_attributes() with type, not the
+	full expression.
+
+2009-08-27  Richard Guenther  <rguenther@suse.de>
+
+	* gengtype.c (main): Handle uint64_t.
+	* ipa-utils.c (get_base_var): Indent properly.
+	* tree-ssa-live.c (debug_scope_block): New function.
+	* tree-flow.h (debug_scope_block): Declare.
+	* tree-ssa-copy.c (replace_exp_1): Add vertical space.
+	* basic-block.h (enum profile_status): Rename to
+	enum profile_status_d.
+	(x_profile_status): Adjust type.
+
+2009-08-27  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/41770
+	* dwarf2out.c (get_context_die): Declare this static function.
+	(gen_type_die_with_usage): Make sure a DIE is a generated for
+	the context of a typedef.
+
+2009-08-26  Anatoly Sokolov  <aesok@post.ru>
+
+	* doc/invoke.texi (AVR Options): Remove documentation of -minit-stack
+	switch.
+
+2009-08-26  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips-protos.h (mips_output_sync): Declare.
+	(mips_sync_loop_insns): Likewise.
+	(mips_output_sync_loop): Replace first two parameters with an rtx.
+	* config/mips/mips.c (mips_multi_member): New structure.
+	(mips_multi_members): New variable.
+	(mips_multi_start): New function.
+	(mips_multi_add): Likewise.
+	(mips_multi_add_insn): Likewise.
+	(mips_multi_add_label): Likewise.
+	(mips_multi_last_index): Likewise.
+	(mips_multi_copy_insn): Likewise.
+	(mips_multi_set_operand): Likewise.
+	(mips_multi_write): Likewise.
+	(mips_print_operand_punctuation): Remove '%|' and '%-'.
+	(mips_init_print_operand_punct): Update accordingly.
+	(mips_start_ll_sc_sync_block): New function.
+	(mips_end_ll_sc_sync_block): Likewise.
+	(mips_output_sync): Likewise.
+	(mips_sync_insn1_template): Likewise.
+	(mips_sync_insn2_template): Likewise.
+	(mips_get_sync_operand): Likewise.
+	(mips_process_sync_loop): Likewise.
+	(mips_output_sync_loop): Use mips_process_sync_loop.
+	(mips_sync_loop_insns): New function.
+	* config/mips/mips.h (MIPS_COMPARE_AND_SWAP): Delete.
+	(MIPS_COMPARE_AND_SWAP_12): Likewise.
+	(MIPS_COMPARE_AND_SWAP_12_ZERO_OP): Likewise.
+	(MIPS_COMPARE_AND_SWAP_12_NONZERO_OP): Likewise.
+	(MIPS_SYNC_OP, MIPS_SYNC_OP_12): Likewise.
+	(MIPS_SYNC_OP_12_AND, MIPS_SYNC_OP_12_XOR): Likewise.
+	(MIPS_SYNC_OLD_OP_12): Likewise.
+	(MIPS_SYNC_OLD_OP_12_AND, MIPS_SYNC_OLD_OP_12_XOR): Likewise.
+	(MIPS_SYNC_NEW_OP_12): Likewise.
+	(MIPS_SYNC_NEW_OP_12_AND, MIPS_SYNC_NEW_OP_12_XOR): Likewise.
+	(MIPS_SYNC_OLD_OP, MIPS_SYNC_NEW_OP): Likewise.
+	(MIPS_SYNC_NAND, MIPS_SYNC_OLD_NAND, MIPS_SYNC_NEW_NAND): Likewise.
+	(MIPS_SYNC_EXCHANGE, MIPS_SYNC_EXCHANGE_12): Likewise.
+	(MIPS_SYNC_EXCHANGE_12_ZERO_OP): Likewise.
+	(MIPS_SYNC_EXCHANGE_12_NONZER_OP): Likewise.
+	* config/mips/mips.md (sync_mem): New attribute.
+	(sync_oldval, sync_newval, sync_inclusive_mask): Likewise.
+	(sync_exclusive_mask, sync_required_oldval): Likewise.
+	(sync_insn1_op2, sync_insn1, sync_insn2): Likewise.
+	(sync_release_barrier): Likewise.
+	(length): Handle sync loops.
+	(sync): Use mips_output_sync.
+	* config/mips/sync.md (*memory_barrier): Use mips_output_sync.
+	(sync_compare_and_swap<mode>): Set the new sync_* attributes
+	and use mips_output_sync_loop.
+	(compare_and_swap_12, sync_add<mode>, sync_<optab>_12): Likewise.
+	(sync_old_<optab>_12, sync_new_<optab>_12, sync_nand_12): Likewise.
+	(sync_old_nand_12, sync_new_nand_12, sync_sub<mode>): Likewise.
+	(sync_old_add<mode>, sync_old_sub<mode>): Likewise.
+	(sync_new_add<mode>, sync_new_sub<mode>): Likewise.
+	(sync_<optab><mode>, sync_old_<optab><mode>): Likewise.
+	(sync_new_<optab><mode>, sync_nand<mode>): Likewise.
+	(sync_old_nand<mode>, sync_new_nand<mode>): Likewise.
+	(sync_lock_test_and_set<mode>, test_and_set_12): Likewise.
+
+2009-08-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41163
+	* gimplify.c (gimplify_addr_expr): Canonicalize ADDR_EXPRs if
+	the types to not match.
+	* tree-cfg.c (verify_gimple_assign_single): Adjust ADDR_EXPR
+	verification.
+	* tree-ssa.c (useless_type_conversion_p): Conversions to
+	pointers to unprototyped functions are useless.
+
+2009-08-26  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (create_variable_info_for): Remove
+	strange whole-program condition, prepare to be called for non-globals.
+	(intra_create_variable_infos): For restrict qualified DECL_BY_REFERENCE
+	params build a representative with known type and track its fields.
+
+2009-08-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/sync.md: Update comment about unpredictable LL/SC lock
+	clearing by a taken branch.
+	(sync_<fetchop_name><mode>): Split when epilogue_completed is set,
+	effectively after bbro pass.
+	(sync_nand<mode>): Ditto.
+	(sync_old_<fetchop_name><mode>): Ditto.
+	(sync_old_nand<mode>): Ditto.
+	(sync_new_<fetchop_name><mode>): Dito.
+	(sync_new_nand<mode>): Ditto.
+	(sync_compare_and_swap<mode>_1): Ditto.
+	(*sync_compare_and_swap<mode>): Ditto.
+	(sync_lock_test_and_set<mode>_1): Ditto.
+	("sync_lock_test_and_set<mode>): Ditto.
+
+2009-08-25  Douglas B Rupp  <rupp@gnat.com>
+
+	* hwint.h (HOST_LONG_FORMAT): New macro
+	* bitmap.c, c-decl.c, mips-tfile.c, print-rtl.c, print-tree.c:
+	Use HOST_PTR_PRINTF.
+	* system.h (HOST_PTR_PRINTF): Resurrect old macro
+	* doc/hostconfig.texi (HOST_LONG_FORMAT): Document.
+	(HOST_PTR_PRINTF): Document.
+
+2009-08-25 Jan Hubicka  <jh@suse.cz>
+
+	* config/i386/bmmintrin.h: Replace by #error.
+
+	Revert:
+	Michael Meissner  <michael.meissner@amd.com>
+	Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+	Tony Linthicum  <tony.linthicum@amd.com>
+
+	* config/i386/i386.h (TARGET_SSE5): New macro for SSE5.
+	(TARGET_ROUND): New macro for the round/ptest instructions which
+	are shared between SSE4.1 and SSE5.
+	(OPTION_MASK_ISA_ROUND): Ditto.
+	(OPTION_ISA_ROUND): Ditto.
+	(TARGET_FUSED_MADD): New macro for -mfused-madd swtich.
+	(TARGET_CPU_CPP_BUILTINS): Add SSE5 support.
+
+	* config/i386/i386.opt (-msse5): New switch for SSE5 support.
+	(-mfused-madd): New switch to give users control over whether the
+	compiler optimizes to use the multiply/add SSE5 instructions.
+
+	* config/i386/i386.c (enum pta_flags): Add PTA_SSE5.
+	(ix86_handle_option): Turn off 3dnow if -msse5.
+	(override_options): Add SSE5 support.
+	(print_operand): %Y prints comparison codes for SSE5 com/pcom
+	instructions.
+	(ix86_expand_sse_movcc): Add SSE5 support.
+	(ix86_expand_sse5_unpack): New function to use pperm to unpack a
+	vector type to the next largest size.
+	(ix86_expand_sse5_pack): New function to use pperm to pack a
+	vector type to the next smallest size.
+	(IX86_BUILTIN_FMADDSS): New for SSE5 intrinsic.
+	(IX86_BUILTIN_FMADDSD): Ditto.
+	(IX86_BUILTIN_FMADDPS): Ditto.
+	(IX86_BUILTIN_FMADDPD): Ditto.
+	(IX86_BUILTIN_FMSUBSS): Ditto.
+	(IX86_BUILTIN_FMSUBSD): Ditto.
+	(IX86_BUILTIN_FMSUBPS): Ditto.
+	(IX86_BUILTIN_FMSUBPD): Ditto.
+	(IX86_BUILTIN_FNMADDSS): Ditto.
+	(IX86_BUILTIN_FNMADDSD): Ditto.
+	(IX86_BUILTIN_FNMADDPS): Ditto.
+	(IX86_BUILTIN_FNMADDPD): Ditto.
+	(IX86_BUILTIN_FNMSUBSS): Ditto.
+	(IX86_BUILTIN_FNMSUBSD): Ditto.
+	(IX86_BUILTIN_FNMSUBPS): Ditto.
+	(IX86_BUILTIN_FNMSUBPD): Ditto.
+	(IX86_BUILTIN_PCMOV_V2DI): Ditto.
+	(IX86_BUILTIN_PCMOV_V4SI): Ditto.
+	(IX86_BUILTIN_PCMOV_V8HI): Ditto.
+	(IX86_BUILTIN_PCMOV_V16QI): Ditto.
+	(IX86_BUILTIN_PCMOV_V4SF): Ditto.
+	(IX86_BUILTIN_PCMOV_V2DF): Ditto.
+	(IX86_BUILTIN_PPERM): Ditto.
+	(IX86_BUILTIN_PERMPS): Ditto.
+	(IX86_BUILTIN_PERMPD): Ditto.
+	(IX86_BUILTIN_PMACSSWW): Ditto.
+	(IX86_BUILTIN_PMACSWW): Ditto.
+	(IX86_BUILTIN_PMACSSWD): Ditto.
+	(IX86_BUILTIN_PMACSWD): Ditto.
+	(IX86_BUILTIN_PMACSSDD): Ditto.
+	(IX86_BUILTIN_PMACSDD): Ditto.
+	(IX86_BUILTIN_PMACSSDQL): Ditto.
+	(IX86_BUILTIN_PMACSSDQH): Ditto.
+	(IX86_BUILTIN_PMACSDQL): Ditto.
+	(IX86_BUILTIN_PMACSDQH): Ditto.
+	(IX86_BUILTIN_PMADCSSWD): Ditto.
+	(IX86_BUILTIN_PMADCSWD): Ditto.
+	(IX86_BUILTIN_PHADDBW): Ditto.
+	(IX86_BUILTIN_PHADDBD): Ditto.
+	(IX86_BUILTIN_PHADDBQ): Ditto.
+	(IX86_BUILTIN_PHADDWD): Ditto.
+	(IX86_BUILTIN_PHADDWQ): Ditto.
+	(IX86_BUILTIN_PHADDDQ): Ditto.
+	(IX86_BUILTIN_PHADDUBW): Ditto.
+	(IX86_BUILTIN_PHADDUBD): Ditto.
+	(IX86_BUILTIN_PHADDUBQ): Ditto.
+	(IX86_BUILTIN_PHADDUWD): Ditto.
+	(IX86_BUILTIN_PHADDUWQ): Ditto.
+	(IX86_BUILTIN_PHADDUDQ): Ditto.
+	(IX86_BUILTIN_PHSUBBW): Ditto.
+	(IX86_BUILTIN_PHSUBWD): Ditto.
+	(IX86_BUILTIN_PHSUBDQ): Ditto.
+	(IX86_BUILTIN_PROTB): Ditto.
+	(IX86_BUILTIN_PROTW): Ditto.
+	(IX86_BUILTIN_PROTD): Ditto.
+	(IX86_BUILTIN_PROTQ): Ditto.
+	(IX86_BUILTIN_PROTB_IMM): Ditto.
+	(IX86_BUILTIN_PROTW_IMM): Ditto.
+	(IX86_BUILTIN_PROTD_IMM): Ditto.
+	(IX86_BUILTIN_PROTQ_IMM): Ditto.
+	(IX86_BUILTIN_PSHLB): Ditto.
+	(IX86_BUILTIN_PSHLW): Ditto.
+	(IX86_BUILTIN_PSHLD): Ditto.
+	(IX86_BUILTIN_PSHLQ): Ditto.
+	(IX86_BUILTIN_PSHAB): Ditto.
+	(IX86_BUILTIN_PSHAW): Ditto.
+	(IX86_BUILTIN_PSHAD): Ditto.
+	(IX86_BUILTIN_PSHAQ): Ditto.
+	(IX86_BUILTIN_FRCZSS): Ditto.
+	(IX86_BUILTIN_FRCZSD): Ditto.
+	(IX86_BUILTIN_FRCZPS): Ditto.
+	(IX86_BUILTIN_FRCZPD): Ditto.
+	(IX86_BUILTIN_CVTPH2PS): Ditto.
+	(IX86_BUILTIN_CVTPS2PH): Ditto.
+	(IX86_BUILTIN_COMEQSS): Ditto.
+	(IX86_BUILTIN_COMNESS): Ditto.
+	(IX86_BUILTIN_COMLTSS): Ditto.
+	(IX86_BUILTIN_COMLESS): Ditto.
+	(IX86_BUILTIN_COMGTSS): Ditto.
+	(IX86_BUILTIN_COMGESS): Ditto.
+	(IX86_BUILTIN_COMUEQSS): Ditto.
+	(IX86_BUILTIN_COMUNESS): Ditto.
+	(IX86_BUILTIN_COMULTSS): Ditto.
+	(IX86_BUILTIN_COMULESS): Ditto.
+	(IX86_BUILTIN_COMUGTSS): Ditto.
+	(IX86_BUILTIN_COMUGESS): Ditto.
+	(IX86_BUILTIN_COMORDSS): Ditto.
+	(IX86_BUILTIN_COMUNORDSS): Ditto.
+	(IX86_BUILTIN_COMFALSESS): Ditto.
+	(IX86_BUILTIN_COMTRUESS): Ditto.
+	(IX86_BUILTIN_COMEQSD): Ditto.
+	(IX86_BUILTIN_COMNESD): Ditto.
+	(IX86_BUILTIN_COMLTSD): Ditto.
+	(IX86_BUILTIN_COMLESD): Ditto.
+	(IX86_BUILTIN_COMGTSD): Ditto.
+	(IX86_BUILTIN_COMGESD): Ditto.
+	(IX86_BUILTIN_COMUEQSD): Ditto.
+	(IX86_BUILTIN_COMUNESD): Ditto.
+	(IX86_BUILTIN_COMULTSD): Ditto.
+	(IX86_BUILTIN_COMULESD): Ditto.
+	(IX86_BUILTIN_COMUGTSD): Ditto.
+	(IX86_BUILTIN_COMUGESD): Ditto.
+	(IX86_BUILTIN_COMORDSD): Ditto.
+	(IX86_BUILTIN_COMUNORDSD): Ditto.
+	(IX86_BUILTIN_COMFALSESD): Ditto.
+	(IX86_BUILTIN_COMTRUESD): Ditto.
+	(IX86_BUILTIN_COMEQPS): Ditto.
+	(IX86_BUILTIN_COMNEPS): Ditto.
+	(IX86_BUILTIN_COMLTPS): Ditto.
+	(IX86_BUILTIN_COMLEPS): Ditto.
+	(IX86_BUILTIN_COMGTPS): Ditto.
+	(IX86_BUILTIN_COMGEPS): Ditto.
+	(IX86_BUILTIN_COMUEQPS): Ditto.
+	(IX86_BUILTIN_COMUNEPS): Ditto.
+	(IX86_BUILTIN_COMULTPS): Ditto.
+	(IX86_BUILTIN_COMULEPS): Ditto.
+	(IX86_BUILTIN_COMUGTPS): Ditto.
+	(IX86_BUILTIN_COMUGEPS): Ditto.
+	(IX86_BUILTIN_COMORDPS): Ditto.
+	(IX86_BUILTIN_COMUNORDPS): Ditto.
+	(IX86_BUILTIN_COMFALSEPS): Ditto.
+	(IX86_BUILTIN_COMTRUEPS): Ditto.
+	(IX86_BUILTIN_COMEQPD): Ditto.
+	(IX86_BUILTIN_COMNEPD): Ditto.
+	(IX86_BUILTIN_COMLTPD): Ditto.
+	(IX86_BUILTIN_COMLEPD): Ditto.
+	(IX86_BUILTIN_COMGTPD): Ditto.
+	(IX86_BUILTIN_COMGEPD): Ditto.
+	(IX86_BUILTIN_COMUEQPD): Ditto.
+	(IX86_BUILTIN_COMUNEPD): Ditto.
+	(IX86_BUILTIN_COMULTPD): Ditto.
+	(IX86_BUILTIN_COMULEPD): Ditto.
+	(IX86_BUILTIN_COMUGTPD): Ditto.
+	(IX86_BUILTIN_COMUGEPD): Ditto.
+	(IX86_BUILTIN_COMORDPD): Ditto.
+	(IX86_BUILTIN_COMUNORDPD): Ditto.
+	(IX86_BUILTIN_COMFALSEPD): Ditto.
+	(IX86_BUILTIN_COMTRUEPD): Ditto.
+	(IX86_BUILTIN_PCOMEQUB): Ditto.
+	(IX86_BUILTIN_PCOMNEUB): Ditto.
+	(IX86_BUILTIN_PCOMLTUB): Ditto.
+	(IX86_BUILTIN_PCOMLEUB): Ditto.
+	(IX86_BUILTIN_PCOMGTUB): Ditto.
+	(IX86_BUILTIN_PCOMGEUB): Ditto.
+	(IX86_BUILTIN_PCOMFALSEUB): Ditto.
+	(IX86_BUILTIN_PCOMTRUEUB): Ditto.
+	(IX86_BUILTIN_PCOMEQUW): Ditto.
+	(IX86_BUILTIN_PCOMNEUW): Ditto.
+	(IX86_BUILTIN_PCOMLTUW): Ditto.
+	(IX86_BUILTIN_PCOMLEUW): Ditto.
+	(IX86_BUILTIN_PCOMGTUW): Ditto.
+	(IX86_BUILTIN_PCOMGEUW): Ditto.
+	(IX86_BUILTIN_PCOMFALSEUW): Ditto.
+	(IX86_BUILTIN_PCOMTRUEUW): Ditto.
+	(IX86_BUILTIN_PCOMEQUD): Ditto.
+	(IX86_BUILTIN_PCOMNEUD): Ditto.
+	(IX86_BUILTIN_PCOMLTUD): Ditto.
+	(IX86_BUILTIN_PCOMLEUD): Ditto.
+	(IX86_BUILTIN_PCOMGTUD): Ditto.
+	(IX86_BUILTIN_PCOMGEUD): Ditto.
+	(IX86_BUILTIN_PCOMFALSEUD): Ditto.
+	(IX86_BUILTIN_PCOMTRUEUD): Ditto.
+	(IX86_BUILTIN_PCOMEQUQ): Ditto.
+	(IX86_BUILTIN_PCOMNEUQ): Ditto.
+	(IX86_BUILTIN_PCOMLTUQ): Ditto.
+	(IX86_BUILTIN_PCOMLEUQ): Ditto.
+	(IX86_BUILTIN_PCOMGTUQ): Ditto.
+	(IX86_BUILTIN_PCOMGEUQ): Ditto.
+	(IX86_BUILTIN_PCOMFALSEUQ): Ditto.
+	(IX86_BUILTIN_PCOMTRUEUQ): Ditto.
+	(IX86_BUILTIN_PCOMEQB): Ditto.
+	(IX86_BUILTIN_PCOMNEB): Ditto.
+	(IX86_BUILTIN_PCOMLTB): Ditto.
+	(IX86_BUILTIN_PCOMLEB): Ditto.
+	(IX86_BUILTIN_PCOMGTB): Ditto.
+	(IX86_BUILTIN_PCOMGEB): Ditto.
+	(IX86_BUILTIN_PCOMFALSEB): Ditto.
+	(IX86_BUILTIN_PCOMTRUEB): Ditto.
+	(IX86_BUILTIN_PCOMEQW): Ditto.
+	(IX86_BUILTIN_PCOMNEW): Ditto.
+	(IX86_BUILTIN_PCOMLTW): Ditto.
+	(IX86_BUILTIN_PCOMLEW): Ditto.
+	(IX86_BUILTIN_PCOMGTW): Ditto.
+	(IX86_BUILTIN_PCOMGEW): Ditto.
+	(IX86_BUILTIN_PCOMFALSEW): Ditto.
+	(IX86_BUILTIN_PCOMTRUEW): Ditto.
+	(IX86_BUILTIN_PCOMEQD): Ditto.
+	(IX86_BUILTIN_PCOMNED): Ditto.
+	(IX86_BUILTIN_PCOMLTD): Ditto.
+	(IX86_BUILTIN_PCOMLED): Ditto.
+	(IX86_BUILTIN_PCOMGTD): Ditto.
+	(IX86_BUILTIN_PCOMGED): Ditto.
+	(IX86_BUILTIN_PCOMFALSED): Ditto.
+	(IX86_BUILTIN_PCOMTRUED): Ditto.
+	(IX86_BUILTIN_PCOMEQQ): Ditto.
+	(IX86_BUILTIN_PCOMNEQ): Ditto.
+	(IX86_BUILTIN_PCOMLTQ): Ditto.
+	(IX86_BUILTIN_PCOMLEQ): Ditto.
+	(IX86_BUILTIN_PCOMGTQ): Ditto.
+	(IX86_BUILTIN_PCOMGEQ): Ditto.
+	(IX86_BUILTIN_PCOMFALSEQ): Ditto.
+	(IX86_BUILTIN_PCOMTRUEQ): Ditto.
+	(enum multi_arg_type): New enum for describing the various SSE5
+	intrinsic argument types.
+	(bdesc_multi_arg): New table for SSE5 intrinsics.
+	(ix86_init_mmx_sse_builtins): Add SSE5 intrinsic support.
+	(ix86_expand_multi_arg_builtin): New function for creating SSE5
+	intrinsics.
+	(ix86_expand_builtin): Add SSE5 intrinsic support.
+	(ix86_sse5_valid_op_p): New function to validate SSE5 3 and 4
+	operand instructions.
+	(ix86_expand_sse5_multiple_memory): New function to split the
+	second memory reference from SSE5 instructions.
+	(type_has_variadic_args_p): Delete in favor of stdarg_p.
+	(ix86_return_pops_args): Use stdarg_p to determine if the function
+	has variable arguments.
+	(ix86_setup_incoming_varargs): Ditto.
+	(x86_this_parameter): Ditto.
+
+	* config/i386/i386-protos.h (ix86_expand_sse5_unpack): Add
+	declaration.
+	(ix86_expand_sse5_pack): Ditto.
+	(ix86_sse5_valid_op_p): Ditto.
+	(ix86_expand_sse5_multiple_memory): Ditto.
+
+	* config/i386/i386.md (UNSPEC_SSE5_INTRINSIC): Add new UNSPEC
+	constant for SSE5 support.
+	(UNSPEC_SSE5_UNSIGNED_CMP): Ditto.
+	(UNSPEC_SSE5_TRUEFALSE): Ditto.
+	(UNSPEC_SSE5_PERMUTE): Ditto.
+	(UNSPEC_SSE5_ASHIFT): Ditto.
+	(UNSPEC_SSE5_LSHIFT): Ditto.
+	(UNSPEC_FRCZ): Ditto.
+	(UNSPEC_CVTPH2PS): Ditto.
+	(UNSPEC_CVTPS2PH): Ditto.
+	(PCOM_FALSE): Add new constant for true/false SSE5 comparisons.
+	(PCOM_TRUE): Ditto.
+	(COM_FALSE_S): Ditto.
+	(COM_FALSE_P): Ditto.
+	(COM_TRUE_S): Ditto.
+	(COM_TRUE_P): Ditto.
+	(type attribute): Add ssemuladd, sseiadd1, ssecvt1, sse4arg types.
+	(unit attribute): Add support for ssemuladd, ssecvt1, sseiadd1 sse4arg
+	types.
+	(memory attribute): Ditto.
+	(sse4_1_round<mode>2): Use TARGET_ROUND instead of TARGET_SSE4_1.
+	Use SSE4_1_ROUND_* constants instead of hard coded numbers.
+	(rint<mode>2): Use TARGET_ROUND instead of TARGET_SSE4_1.
+	(floor<mode>2): Ditto.
+	(ceil<mode>2): Ditto.
+	(btrunc<mode>2): Ditto.
+	(nearbyintdf2): Ditto.
+	(nearbyintsf2): Ditto.
+	(sse_setccsf): Disable if SSE5.
+	(sse_setccdf): Ditto.
+	(sse5_setcc<mode>): New support for SSE5 conditional move.
+	(sse5_pcmov_<mode>): Ditto.
+
+	* config/i386/sse.md (SSEMODE1248): New mode iterator for SSE5.
+	(SSEMODEF4): Ditto.
+	(SSEMODEF2P): Ditto.
+	(ssemodesuffixf4): New mode attribute for SSE5.
+	(ssemodesuffixf2s): Ditto.
+	(ssemodesuffixf2c): Ditto.
+	(sserotatemax): Ditto.
+	(ssescalarmode): Ditto.
+	(sse_maskcmpv4sf3): Disable if SSE5.
+	(sse_maskcmpv2df3): Ditto.
+	(sse_vmmaskcmpv4sf3): Ditto.
+	(sse5_fmadd<mode>4): Add SSE5 floating point multiply/add instructions.
+	(sse5_vmfmadd<mode>4): Ditto.
+	(sse5_fmsub<mode>4): Ditto.
+	(sse5_vmfmsub<mode>4): Ditto.
+	(sse5_fnmadd<mode>4): Ditto.
+	(sse5_vmfnmadd<mode>4): Ditto.
+	(sse5_fnmsub<mode>4): Ditto.
+	(sse5_vmfnmsub<mode>4): Ditto.
+	(sse5i_fmadd<mode>4): Ditto.
+	(sse5i_fmsub<mode>4): Ditto.
+	(sse5i_fnmadd<mode>4): Ditto.
+	(sse5i_fnmsub<mode>4): Ditto.
+	(sse5i_vmfmadd<mode>4): Ditto.
+	(sse5i_vmfmsub<mode>4): Ditto.
+	(sse5i_vmfnmadd<mode>4): Ditto.
+	(sse5i_vmfnmsub<mode>4): Ditto.
+	(mulv16qi3): Add SSE5 support.
+	(mulv4si3): Ditto.
+	(sse5_mulv4si3): New insn for 32-bit multiply support on SSE5.
+	(sse2_mulv4si3): Disable if SSE5.
+	(sse4_1_roundpd): Use TARGET_ROUND instead of TARGET_SSE4_1.
+	(sse4_1_roundps): Ditto.
+	(sse4_1_roundsd): Ditto.
+	(sse4_1_roundss): Ditto.
+	(sse_maskcmpv4sf3): Disable if SSE5 so the SSE5 instruction will
+	be generated.
+	(sse_maskcmpsf3): Ditto.
+	(sse_vmmaskcmpv4sf3): Ditto.
+	(sse2_maskcmpv2df3): Ditto.
+	(sse2_maskcmpdf3): Ditto.
+	(sse2_vmmaskcmpv2df3): Ditto.
+	(sse2_eq<mode>3): Ditto.
+	(sse2_gt<mode>3): Ditto.
+	(sse5_pcmov_<mode>): Add SSE5 support.
+	(vec_unpacku_hi_v16qi): Ditto.
+	(vec_unpacks_hi_v16qi): Ditto.
+	(vec_unpacku_lo_v16qi): Ditto.
+	(vec_unpacks_lo_v16qi): Ditto.
+	(vec_unpacku_hi_v8hi): Ditto.
+	(vec_unpacks_hi_v8hi): Ditto.
+	(vec_unpacku_lo_v8hi): Ditto.
+	(vec_unpacks_lo_v8hi): Ditto.
+	(vec_unpacku_hi_v4si): Ditto.
+	(vec_unpacks_hi_v4si): Ditto.
+	(vec_unpacku_lo_v4si): Ditto.
+	(vec_unpacks_lo_v4si): Ditto.
+	(sse5_pmacsww): New SSE5 intrinsic insn.
+	(sse5_pmacssww): Ditto.
+	(sse5_pmacsdd): Ditto.
+	(sse5_pmacssdd): Ditto.
+	(sse5_pmacssdql): Ditto.
+	(sse5_pmacssdqh): Ditto.
+	(sse5_pmacsdqh): Ditto.
+	(sse5_pmacsswd): Ditto.
+	(sse5_pmacswd): Ditto.
+	(sse5_pmadcsswd): Ditto.
+	(sse5_pmadcswd): Ditto.
+	(sse5_pcmov_<move>): Conditional move support on SSE5.
+	(sse5_phaddbw): New SSE5 intrinsic insn.
+	(sse5_phaddbd): Ditto.
+	(sse5_phaddbq): Ditto.
+	(sse5_phaddwd): Ditto.
+	(sse5_phaddwq): Ditto.
+	(sse5_phadddq): Ditto.
+	(sse5_phaddubw): Ditto.
+	(sse5_phaddubd): Ditto.
+	(sse5_phaddubq): Ditto.
+	(sse5_phadduwd): Ditto.
+	(sse5_phadduwq): Ditto.
+	(sse5_phaddudq): Ditto.
+	(sse5_phsubbw): Ditto.
+	(sse5_phsubwd): Ditto.
+	(sse5_phsubdq): Ditto.
+	(sse5_pperm): Ditto.
+	(sse5_pperm_sign_v16qi_v8hi): New insns for pack/unpack with SSE5.
+	(sse5_pperm_zero_v16qi_v8hi): Ditto.
+	(sse5_pperm_sign_v8hi_v4si): Ditto.
+	(sse5_pperm_zero_v8hi_v4si): Ditto.
+	(sse5_pperm_sign_v4si_v2di): Ditto.
+	(sse5_pperm_sign_v4si_v2di): Ditto.
+	(sse5_pperm_pack_v2di_v4si): Ditto.
+	(sse5_pperm_pack_v4si_v8hi): Ditto.
+	(sse5_pperm_pack_v8hi_v16qi): Ditto.
+	(sse5_perm<mode>): New SSE5 intrinsic insn.
+	(rotl<mode>3): Ditto.
+	(sse5_rotl<mode>3): Ditto.
+	(sse5_ashl<mode>3): Ditto.
+	(sse5_lshl<mode>3): Ditto.
+	(sse5_frcz<mode>2): Ditto.
+	(sse5s_frcz<mode>2): Ditto.
+	(sse5_cvtph2ps): Ditto.
+	(sse5_cvtps2ph): Ditto.
+	(sse5_vmmaskcmp<mode>3): Ditto.
+	(sse5_com_tf<mode>3): Ditto.
+	(sse5_maskcmp<mode>3): Ditto.
+	(sse5_maskcmp_uns<mode>3): Ditto.
+	(sse5_maskcmp_uns2<mode>3): Ditto.
+	(sse5_pcom_tf<mode>3): Ditto.
+
+	* config/i386/predicates.md (sse5_comparison_float_operator):
+	New predicate to match the comparison operators supported by
+	the SSE5 com instruction.
+	(ix86_comparison_int_operator): New predicate to match just the
+	signed int comparisons.
+	(ix86_comparison_uns_operator): New predicate to match just the
+	unsigned int comparisons.
+
+	* doc/invoke.texi (-msse5): Add documentation.
+	(-mfused-madd): Ditto.
+
+	* doc/extend.texi (x86 intrinsics): Document new SSE5 intrinsics.
+
+	* config.gcc (i[34567]86-*-*): Include bmmintrin.h and
+	mmintrin-common.h.
+	(x86_64-*-*): Ditto.
+
+	* config/i386/cpuid.h (bit_SSE5): Define SSE5 bit.
+
+	* config/i386/bmmintrin.h: New file, provide common x86 compiler
+	intrinisics for SSE5.
+
+	* config/i386/smmintrin.h: Move instructions shared with SSE5 to
+	mmintrin-common.h.
+
+	* config/i386/mmintrin-common.h: New file, to contain common
+	instructions between SSE4.1 and SSE5.
+
+	* config/i386/netware.c (gen_stdcall_or_fastcall_decoration): Use
+	FOREACH_FUNCTION_ARGS to iterate over the argument list.
+	(gen_regparm_prefix): Ditto.
+
+	* config/i386/winnt.c (gen_stdcall_or_fastcall_suffix): Use
+	FOREACH_FUNCTION_ARGS to iterate over the argument list.  Use
+	prototype_p to determine if a function is prototyped.
+
+2009-08-25 Ville Voutilainen <ville.voutilainen@gmail.com>
+
+	* c-common.c (c_common_reswords) add the alignof keyword,
+	with same RID as __alignof and __alignof__
+
+2009-08-25  Anatoly Sokolov  <aesok@post.ru>
+
+	* hooks.h (hook_bool_const_int_const_int_true): Declare.
+	* hooks.c (hook_bool_const_int_const_int_true): New function.
+	* target.h (struct gcc_target): Add can_eliminate field.
+	* target-def.h (TARGET_CAN_ELIMINATE): Define.
+	(TARGET_INITIALIZER): Use TARGET_CAN_ELIMINATE.
+	* ira.c (setup_eliminable_regset): Use can_eliminate target hook.
+	* reload1.c (update_eliminables, init_elim_table): (Ditto.).
+	(elim_table): Revise comment.
+	* system.h (CAN_ELIMINATE): Poison.
+	* defaults.h (CAN_ELIMINATE): Remove.
+	* doc/tm.texi (CAN_ELIMINATE): Revise documentation.
+
+	* config/alpha/vms.h (CAN_ELIMINATE): Remove macro.
+	* config/alpha/alpha.c (TARGET_CAN_ELIMINATE) [TARGET_ABI_OPEN_VMS]:
+	Define macro.
+	(alpha_vms_can_eliminate): Declare as static, change return type to
+	bool.
+	* config/alpha/alpha-protos.h (alpha_vms_can_eliminate): Remove.
+
+	* config/arm/arm.h (CAN_ELIMINATE): Remove macro.
+	* config/arm/arm.c (TARGET_CAN_ELIMINATE): Define macro.
+	(arm_can_eliminate): New function.
+
+	* config/avr/avr.h (CAN_ELIMINATE): Remove macro.
+	* config/avr/avr.c (TARGET_CAN_ELIMINATE): Define macro.
+	(avr_can_eliminate): Declare as static.
+	* config/avr/avr-protos.h (avr_can_eliminate): Remove.
+
+	* config/bfin/bfin.h (CAN_ELIMINATE): Remove macro.
+	* config/bfin/bfin.c (TARGET_CAN_ELIMINATE): Define macro.
+	(bfin_can_eliminate): New function.
+
+	* config/crx/crx.h (CAN_ELIMINATE): Remove macro.
+	* config/crx/crx.c (TARGET_CAN_ELIMINATE): Define macro.
+	(crx_can_eliminate): New function.
+
+	* config/fr30/fr30.h (CAN_ELIMINATE): Remove macro.
+	* config/fr30/fr30.c (TARGET_CAN_ELIMINATE): Define macro.
+	(fr30_can_eliminate): New function.
+
+	* config/frv/frv.h (CAN_ELIMINATE): Remove macro.
+	* config/frv/frv.c (TARGET_CAN_ELIMINATE): Define macro.
+	(frv_can_eliminate): New function.
+
+	* config/h8300/h8300.h (CAN_ELIMINATE): Remove macro.
+	* config/h8300/h8300.c (TARGET_CAN_ELIMINATE): Define macro.
+	(h8300_can_eliminate): New function.
+
+	* config/i386/i386.h (CAN_ELIMINATE): Remove macro.
+	* config/i386/i386.c (TARGET_CAN_ELIMINATE): Define macro.
+	(i386_can_eliminate): Declare as static, change return type to bool.
+	* config/i386/i386-protos.h (i386_can_eliminate): Remove.
+
+	* config/ia64/ia64.h (CAN_ELIMINATE): Remove macro.
+	* config/ia64/ia64.c (TARGET_CAN_ELIMINATE): Define macro.
+	(ia64_can_eliminate): New function.
+
+	* config/iq2000/iq2000.h (CAN_ELIMINATE): Remove macro.
+	* config/iq2000/iq2000.c (TARGET_CAN_ELIMINATE): Define macro.
+	(iq2000_can_eliminate): New function.
+
+	* config/m32r/m32r.h (CAN_ELIMINATE): Remove macro.
+	* config/m32r/m32r.c (TARGET_CAN_ELIMINATE): Define macro.
+	(m32r_can_eliminate): New function.
+
+	* config/m68hc11/m68hc11.h (CAN_ELIMINATE): Remove macro.
+	* config/m68hc11/m68hc11.c (TARGET_CAN_ELIMINATE): Define macro.
+	(m68hc11_can_eliminate): New function.
+
+	* config/m68k/m68k.h (CAN_ELIMINATE): Remove macro.
+	* config/m68k/m68k.c (TARGET_CAN_ELIMINATE): Define macro.
+	(m68k_can_eliminate): New function.
+
+	* config/mep/mep.h (CAN_ELIMINATE): Remove macro.
+	* config/mep/mep.c (TARGET_CAN_ELIMINATE): Define macro.
+	(mep_can_eliminate): New function.
+
+	* config/mips/mips.h (CAN_ELIMINATE): Remove macro.
+	* config/mips/mips.c (TARGET_CAN_ELIMINATE): Define macro.
+	(mips_can_eliminate): New function.
+
+	* config/rs6000/rs6000.h (CAN_ELIMINATE): Remove macro.
+	* config/rs6000/rs6000.c (TARGET_CAN_ELIMINATE): Define macro.
+	(rs6000_can_eliminate): New function.
+
+	* config/s390/s390.h (CAN_ELIMINATE): Remove macro.
+	* config/s390/s390.c (TARGET_CAN_ELIMINATE): Define macro.
+	(s390_can_eliminate): Declare as static.
+	* config/s390/s390-protos.h (sparc_can_eliminate): Remove.
+
+	* config/score/score.h (CAN_ELIMINATE): Remove macro.
+	* config/score/score.c (TARGET_CAN_ELIMINATE): Define macro.
+	(score_can_eliminate): New function.
+
+	* config/sparc/sparc.h (CAN_ELIMINATE): Remove macro.
+	* config/sparc/sparc.c (TARGET_CAN_ELIMINATE): Define macro.
+	(sparc_can_eliminate): Declare as static.
+	* config/sparc/sparc-protos.h (sparc_can_eliminate): Remove.
+
+	* config/stormy16/stormy16.h (CAN_ELIMINATE): Remove macro.
+	* config/stormy16/stormy16.c (TARGET_CAN_ELIMINATE): Define macro.
+	(xstormy16_can_eliminate): New function.
+
+	* config/v850/v850.h (CAN_ELIMINATE): Remove macro.
+	* config/v850/v850.c (TARGET_CAN_ELIMINATE): Define macro.
+	(v850_can_eliminate): New function.
+
+2009-08-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.md (*cmpdf_ieee_ext[123]): Remove.
+	(*cmpdf_internal): Enable for all ALPHA_FPTM levels.
+	(*movdfcc_ext[1234]): Disable for IEEE mode.
+
+2009-08-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimplify.c (prepare_gimple_addressable): New static function.
+	(gimplify_modify_expr_to_memcpy): Invoke it on the RHS before marking
+	it addressable.
+	(gimplify_addr_expr): Invoke it similarly on the operand instead of
+	manually fiddling with it.
+
+2009-08-25  Michael Matz  <matz@suse.de>
+
+	* expr.h (jumpifnot_1, jumpif_1, do_jump_1): Declare.
+	* dojump.c (do_jump_by_parts_greater): Take two operands instead of
+	full expression.
+	(do_jump_by_parts_equality, do_compare_and_jump): Ditto.
+	(jumpifnot_1, jumpif_1): New wrappers for do_jump_1.
+	(do_jump): Split out code for simple binary comparisons into ...
+	(do_jump_1): ... this, taking the individual operands and code.
+	Change callers to helper function above accordingly.
+	* expr.c (expand_expr_real_1): Use jumpifnot_1 for simple binary
+	comparisons.
+
+2009-08-25  Michael Matz  <matz@suse.de>
+
+	* expr.h (struct separate_ops, sepops): New type for passing
+	around an exploded simple expression.
+	* optabs.c (expand_widen_pattern_expr, expand_vec_shift_expr):
+	Use this structure instead of expression tree.
+	(get_vcond_icode, expand_vec_cond_expr_p): Don't take whole
+	expression, only its type.
+	(expand_vec_cond_expr): Take type and individual operands instead
+	of full expression.
+	* optabs.h (expand_widen_pattern_expr, expand_vec_cond_expr,
+	expand_vec_shift_expr): Change prototype accordingly.
+	* tree-vect-stmts.c (vectorizable_condition): Change call of
+	expand_vec_cond_expr_p to pass only type.
+	* expr.c (do_store_flags): Change prototype and implementation
+	to take an exploded expression.
+	(expand_expr_real_1): New local ops initialized with details
+	of the full expression.  Use it instead of full
+	expression in calls to do_store_flags, expand_vec_cond_expr,
+	expand_widen_pattern_expr and expand_vec_shift_expr.
+
+2009-08-25  Michael Matz  <matz@suse.de>
+
+	* expr.c (expand_expr_real_1): New local treeop0, treeop1,
+	treeop2 initialized with first three operands of the full expression.
+	Substitute all TREE_OPERAND (exp, [012]) calls with them.
+
+2009-08-25  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc/gthr-win32.h (__UNUSED_PARAM): Define, if not already present.
+	(__gthread_objc_condition_allocate): Mark arguments as unused.
+	(__gthread_objc_condition_deallocate): Likewise.
+	(__gthread_objc_condition_wait): Likewise.
+	(__gthread_objc_condition_broadcast): Likewise.
+	(__gthread_objc_condition_signal): Likewise.
+	(__gthread_objc_thread_detach): Cast via INT_PTR to pointer.
+	(__gthread_objc_thread_id): Likewise.
+
+2009-08-25  Janus Weil  <janus@gcc.gnu.org>
+
+	PR middle-end/41149
+	* tree-pretty-print.c (print_call_name): Print the correct call name
+	for procedure pointer components.
+
+2009-08-24  Steve Ellcey  <sje@cup.hp.com>
+
+	* config/ia64/ia64.c (ia64_promote_function_mode): Call
+	default_promote_function_mode when not VMS.
+
+2009-08-24  Olivier Hainque  <hainque@adacore.com>
+
+	* convert.c (convert_to_integer): Don't assume an input pointer is
+	POINTER_SIZE wide.  Fetch from the type instead.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-24  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gcc.c (standard_exec_prefix_1,standard_exec_prefix_2): Remove.
+	(process_command): Don't search standard_exec_prefix_1 and
+	standard_exec_prefix_2.
+
+2009-08-24  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (output_return_instruction): Handle for
+	unified syntax.
+
+2009-08-24  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (arm_select_cc_mode): Handle subreg.
+
+2009-08-24  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/vfp.md (*arm_movdi_vfp): Mark as predicable.
+	(*arm_movdf_vfp): Likewise.
+
+2009-08-24  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/neon.md (vashl<mode>3): Rename from ashl<mode>3.
+	(vashr<mode>3): Rename from ashr<mode>3.
+	(vlshr<mode>3): Rename from lshr<mode>3.
+
+2009-08-24  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR/40786
+	* c-format.c (format_wanted_type):  Add new member scalar_identity_flag.
+	(check_format_info_main): Use scalar_identify_flag.
+	(check_format_types): Check for scalar size identity if
+	scalar_identify_flag is set.
+	(printf_length_specs): Extend by new field.
+	(asm_fprintf_length_specs): Likewise.
+	(gcc_diag_length_specs): Likewise.
+	(scanf_length_specs): Likewise.
+	(strfmon_length_specs): Likewise.
+	(gcc_gfc_length_specs): Likewise.
+	* config/i386/msformat-c.c (ms_printf_length_specs): Likewise.
+	(ms_printf_flag_specs): Likewise.
+	* c-format.h (format_length_info): Add new member scalar_identity_flag.
+
+2009-08-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/40718
+	* config/i386/i386.c (*call_pop_1): Disable for sibling calls.
+	(*call_value_pop_1): Ditto.
+	(*sibcall_pop_1): New insn pattern.
+	(*sibcall_value_pop_1): Ditto.
+
+2009-08-23  Alan Modra  <amodra@bigpond.net.au>
+
+	PR target/41081
+	* config/rs6000/rs6000.md (rotlsi3_64, ashlsi3_64, lshrsi3_64,
+	ashrsi3_64): New.
+
+2009-08-23  Alan Modra  <amodra@bigpond.net.au>
+
+	PR target/41081
+	* fwprop.c (try_fwprop_subst): Allow multiple sets.
+	(get_reg_use_in): New function.
+	(forward_propagate_subreg): Propagate through subreg of zero_extend
+	or sign_extend.
+
+2009-08-22  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/t-sh (TARGET_LIBGCC2_CFLAGS): Define.
+	* config/sh/t-netbsd (TARGET_LIBGCC2_CFLAGS): Add -mieee.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Remove --with-datarootdir, --with-docdir,
+	--with-htmldir switches.  No need to call AC_SUBST for
+	datarootdir, docdir, htmldir any more.
+	* configure: Regenerate.
+	* doc/install.texi (Configuration): Document --datarootdir,
+	--docdir, --htmldir, --pdfdir; update documentation for
+	--infodir, --mandir.
+	(Prerequisites): Bump Autoconf version to 2.64, Automake to 1.11,
+	M4 to 1.4.6.
+
+	* aclocal.m4: Regenerate.
+	* config.in: Regenerate.
+	* configure: Regenerate.
+
+2009-08-21  Douglas B Rupp  <rupp@gnat.com>
+	    Olivier Hainque  <hainque@adacore.com>
+
+	* config/ia64/ia64.c: Include libfuncs.h.
+	(TARGET_PROMOTE_FUNCITON_MODE): Define target macro.
+	(ia64_expand_call): Use reg 25 on VMS.
+	(ia64_initialize_trampoline): Fix for VMS ABI.
+	(ia64_function_arg_offset): Always returns 0 when TARGET_ABI_OPEN_VMS.
+	(ia64_function_arg): Initialize reg 25 on VMS.
+	Fix OpenVMS ABI issues for varargs.
+	For OpenVMS, emit the Argument Information register set in the
+	incoming/sibcall case as well.
+	(ia64_arg_type): New function.
+	(ia64_function_arg_advance): Keep track of cum->words.
+	Fix OpenVMS ABI issues for varargs.
+	(ia64_function_value): On VMS, promote mode of non-aggregate types.
+	(ia64_override_options): Set flag_no_common on VMS.
+	(ia64_init_builtins): Disable FWRITE builtin.
+	(ia64_asm_output_external): Call DO_CRTL_NAMES.
+	(ia64_vms_init_libfuncs): Add decc$ routines.
+	(ia64_vms_valid_pointer_mode): New function.
+	(ia64_struct_value_rtx): Allways NULL_RTX on VMS.
+	(ia64_promote_function_mode): New function
+	* config/ia64/ia64.h (TARGET_ABI_OPEN_VMS): Define as 0 for default.
+	(LONG_DOUBLE_TYPE_SIZE): Force to 64 on VMS.
+	(LIBCGC2_LONG_DOUBLE_TYPE_SIZE): Likewise.
+	(INIT_CUMULATIVE_ARGS): Add atypes for VMS.
+	(INIT_CUMULATIVE_INCOMING_ARGS): Likewise.
+	(ASM_OUTPUT_DEF): Use ISDIGIT instead of isdigit.
+	Suppress trailing '#' if VALUE is numeric.
+	* config/ia64/vms.h (PROMOTE_FUNCTION_MODE): Remove, code moved to
+	ia64_promote_function_mode.
+	(TARGET_VALID_POINTER_MODE): Define.
+
+2009-08-21  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/40671
+	* config/rs6000/rs6000.c (rs6000_override_options): Use
+	TARGET_64BIT instead of TARGET_POWERPC64 to set the size of pointers.
+
+	PR target/41145
+	* config/rs6000/rs6000.c (rs6000_handle_altivec_attribute): Fix
+	reporting of vector + decimal/boolean/complex error.
+
+2009-08-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/rs6000/rs6000.c (rs6000_init_builtins): Fix type of
+	__vector double TYPE_DECL.
+
 2009-08-21  Richard Earnshaw  <rearnsha@arm.com>
 
 	* arm.h (MACHMODE): New define.  Include insn-modes.h if available.
@@ -20,8 +1031,7 @@
 
 2009-08-20  Richard Guenther  <rguenther@suse.de>
 
-	* c-objc-common.h (LANG_HOOKS_DUP_LANG_SPECIFIC_DECL): Do not
-	define.
+	* c-objc-common.h (LANG_HOOKS_DUP_LANG_SPECIFIC_DECL): Do not define.
 	* c-tree.h (c_dup_lang_specific_decl): Remove.
 	(struct lang_decl, struct lang_type): Move definitions ...
 	* c-lang.h: ... here.  New file.
@@ -168,8 +1178,7 @@
 
 2009-08-16  Douglas B Rupp  <rupp@gnat.com>
 
-	* doc/invoke.texi (Target options):
-	Add new option list for IA-64/VMS.
+	* doc/invoke.texi (Target options): Add new option list for IA-64/VMS.
 	(menu): Add IA-64/VMS Options.
 	(IA-64/VMS Options): Likewise.
 
@@ -252,15 +1261,12 @@
 
 	* doc/extend.texi (Symbol-Renaming Pragmas): redefine_extname is
 	supported on all platforms.
-	* target.h (struct gcc_target): Remove
-	handle_pragma_redefine_extname.
-	* c-cppbuiltin.c: Remove use of
-	targetm.handle_pragma_redefine_extname.
+	* target.h (struct gcc_target): Remove handle_pragma_redefine_extname.
+	* c-cppbuiltin.c: Remove use of targetm.handle_pragma_redefine_extname.
 	* c-pragma.c: Likewise.
 	* target-def.h (TARGET_INITIALIZER): Remove
 	TARGET_HANDLE_PRAGMA_REDEFINE_EXTNAME.
-	* config/sol2.h: Remove use of
-	TARGET_HANDLE_PRAGMA_REDEFINE_EXTNAME.
+	* config/sol2.h: Remove use of TARGET_HANDLE_PRAGMA_REDEFINE_EXTNAME.
 
 2009-08-14  Douglas B Rupp  <rupp@gnat.com>
 
@@ -315,8 +1321,8 @@
 2009-08-14  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	PR middle-end/30789
-	* builtins.c (do_mpc_arg2): Make extern, define for any MPC
-	version.  Move declaration...
+	* builtins.c (do_mpc_arg2): Make extern, define for any MPC version.
+	Move declaration...
 	* real.h (do_mpc_arg2): ... here.
 	* fold-const.c (const_binop): Use MPC for complex MULT_EXPR
 	and RDIV_EXPR.

@@ -1,3 +1,7 @@
+2009-08-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (150992:151171).
+
 2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* opts.c (decode_options): Enable flag_loop_interchange at -O2.

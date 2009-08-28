@@ -1,3 +1,143 @@
+2009-08-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40869
+	* expr.c (gfc_check_pointer_assign): Enable interface check for
+	pointer assignments involving procedure pointer components.
+	* gfortran.h (gfc_compare_interfaces): Modified prototype.
+	* interface.c (gfc_compare_interfaces): Add argument 'name2', to be
+	used instead of s2->name. Don't rely on the proc_pointer attribute,
+	but instead on the flags handed to this function.
+	(check_interface1,compare_parameter): Add argument for
+	gfc_compare_interfaces.
+	* resolve.c (check_generic_tbp_ambiguity): Ditto.
+
+2009-08-27  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37425
+	* gfortran.h (gfc_expr): Optionally store base-object in compcall value
+	and add a new flag to distinguish assign-calls generated.
+	(gfc_find_typebound_proc): Add locus argument.
+	(gfc_find_typebound_user_op), (gfc_find_typebound_intrinsic_op): Ditto.
+	(gfc_extend_expr): Return if failure was by a real error.
+	* interface.c (matching_typebound_op): New routine.
+	(build_compcall_for_operator): New routine.
+	(gfc_extend_expr): Handle type-bound operators, some clean-up and
+	return if failure was by a real error or just by not finding an
+	appropriate operator definition.
+	(gfc_extend_assign): Handle type-bound assignments.
+	* module.c (MOD_VERSION): Incremented.
+	(mio_intrinsic_op): New routine.
+	(mio_full_typebound_tree): New routine to make typebound-procedures IO
+	code reusable for type-bound user operators.
+	(mio_f2k_derived): IO of type-bound operators.
+	* primary.c (gfc_match_varspec): Initialize new fields in gfc_expr and
+	pass locus to gfc_find_typebound_proc.
+	* resolve.c (resolve_operator): Only output error about no matching
+	interface if gfc_extend_expr did not already fail with an error.
+	(extract_compcall_passed_object): Use specified base-object if present.
+	(update_compcall_arglist): Handle ignore_pass field.
+	(resolve_ordinary_assign): Update to handle extended code for
+	type-bound assignments, too.
+	(resolve_code): Handle EXEC_ASSIGN_CALL statement code.
+	(resolve_tb_generic_targets): Pass locus to gfc_find_typebound_proc.
+	(resolve_typebound_generic), (resolve_typebound_procedure): Ditto.
+	(resolve_typebound_intrinsic_op), (resolve_typebound_user_op): Ditto.
+	(ensure_not_abstract_walker), (resolve_fl_derived): Ditto.
+	(resolve_typebound_procedures): Remove not-implemented error.
+	(resolve_typebound_call): Handle assign-call flag.
+	* symbol.c (find_typebound_proc_uop): New argument to pass locus for
+	error message about PRIVATE, verify that a found procedure is not marked
+	as erraneous.
+	(gfc_find_typebound_intrinsic_op): Ditto.
+	(gfc_find_typebound_proc), (gfc_find_typebound_user_op): New locus arg.
+
+2009-08-22      Bud Davis <bdavis9659@sbcglobal.net>
+
+	PR fortran/28093
+	* io.c: reverted previous patch
+
+2009-08-25  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* gfortran.texi: Fix ENCODE example.
+
+2009-08-25  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41139
+	* primary.c (gfc_match_varspec): Make sure EXPR_PPC is only used for
+	calls to procedure pointer components, other references to procedure
+	pointer components are EXPR_VARIABLE.
+	* resolve.c (resolve_actual_arglist): Bugfix (there can be calls without
+	actual arglist).
+	* trans-expr.c (gfc_get_proc_ptr_comp): Renamed to 'get_proc_ptr_comp',
+	removed argument 'se' and made static. Avoid inserting a temporary
+	variable for calling the PPC.
+	(conv_function_val): Renamed gfc_get_proc_ptr_comp.
+	(gfc_conv_procedure_call): Distinguish functions returning a procedure
+	pointer from calls to a procedure pointer. Distinguish calls to
+	procedure pointer components from procedure pointer components as
+	actual arguments.
+	* trans-stmt.h (gfc_get_proc_ptr_comp): Make it static.
+
+2009-08-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41162
+	* io.c (check_format): Fix to not error on slash after P. Fix some
+	error loci.
+	
+2009-08-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41154
+	* io.c (check_format): Fix to not error on right paren after P.
+
+2009-08-24  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR fortran/40660
+	* trans-io.c (build_dt): Pass UNKNOWN_LOCATION to build_call_expr_loc.
+	(transfer_array_desc): Same.
+
+2009-08-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35754
+	* io.c (check_format): Add checks for comma and the allowed
+	format specifiers after the 'P' specifier. Fix typo in error message
+	and adjust locus.
+
+2009-08-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/37446
+	* io.c (enum format_token): Change FMT_EXT to FMT_EN and FMT_ES.
+	(format_lex): Likewise.
+	(token_to_string): New function.
+	(check_format): Use the new tokens and the new function. Add
+	check for positive width.
+
+2009-08-22  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* fortran/decl.c: Disallow procedure pointers with -std=f95.
+
+2009-08-22 Steven K. kargl  <kargl@gcc.gnu.org>
+	   Paul Thomas  <pault@gcc.gnu.org>
+
+	* fortran/decl.c (match_char_spec): Rename to gfc_match_char_spec,
+	and remove static.
+	* fortran/gfortran.h: Add *expr3 entity to gfc_code.  Add prototype
+	for gfc_match_char_spec.
+	* fortran/trans-stmt.c (gfc_trans_allocate): Translate the SOURCE=
+	tag.
+	* fortran/match.c (match_intrinsic_typespec): New function to match
+	F2003 intrinsic-type-spec.
+	(conformable_arrays): New function. Check SOURCE= and
+	allocation-object are conformable.
+	(gfc_match_allocate): Use new functions.  Match SOURCE= tag.
+
+2009-08-22	Bud Davis <bdavis9659@sbcglobal.net>
+
+	PR fortran/28093
+	* io.c : added variable to store original len of fmt
+	* io.c (check_format): Consume H items using next_char
+	in both modes to handle consecutive single quotes.
+	Test for extra characters in fmt, issue warning.
+
 2009-08-21  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/41106

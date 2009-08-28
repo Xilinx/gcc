@@ -1,3 +1,45 @@
+2009-08-27  Richard Guenther  <rguenther@suse.de>
+
+	* class.c (build_vtbl_ref_1): Remove excess vertical space.
+	* Make-lang.in (CXX_TREE_H): Remove c-common.def dependency
+	tracked by $(TREE_H).
+	* semantics.c (expand_or_defer_fn): Zero DECL_SAVED_TREE.
+
+2009-08-26  Jason Merrill  <jason@redhat.com>
+
+	* call.c (build_builtin_candidate): Don't set LOOKUP_ONLYCONVERTING
+	if we're contextually converting to bool.
+	(build_conditional_expr): Likewise.
+	* typeck.c (condition_conversion): Likewise.
+
+	* call.c (build_conditional_expr): Fix logic errors.
+	(build_new_op): Remove dead COND_EXPR handling.
+
+2009-08-24  Jason Merrill  <jason@redhat.com>
+
+	* cp-tree.h (DECL_DEFERRED_FN): Remove.
+	(struct lang_decl_fn): Remove deferred flag.
+	* class.c (build_clone): Don't set it.
+	* decl2.c (note_vague_linkage_fn): Don't check or set it.
+	(mark_used): Don't check it.
+	* method.c (make_thunk, make_alias_for): Don't set it.
+
+	* decl2.c (mark_used): Streamline logic.
+
+	PR c++/41109
+	PR c++/41110
+	PR c++/41134
+	* cp-tree.h (DECL_ODR_USED): New macro.
+	(struct lang_decl_base): Add odr_used flag.
+	* decl.c (duplicate_decls): Propagate it.  Use it for error.
+	* pt.c (register_specialization): Use it for error.
+	* decl2.c (mark_used): Use it as gating flag rather than TREE_USED.
+	(cp_write_global_declarations): Use it for error.
+	(tree_used_ok): Remove.
+	* cp-tree.h: Remove tree_used_ok.
+	* call.c (build_call_a): Don't call it.
+	* init.c (build_offset_ref): Likewise.
+
 2009-08-21  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/41131
