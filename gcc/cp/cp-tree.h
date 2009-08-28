@@ -519,7 +519,7 @@ struct GTY (()) tree_trait_expr {
   enum cp_trait_kind kind;
 };
 
-/* Based off of ANON_AGGR_TYPE_P.  */
+/* Based off of TYPE_ANONYMOUS_P.  */
 #define LAMBDA_TYPE_P(NODE) \
   (CLASS_TYPE_P (NODE) && LAMBDANAME_P (TYPE_LINKAGE_IDENTIFIER (NODE)))
 
