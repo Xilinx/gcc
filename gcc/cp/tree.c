@@ -1521,10 +1521,7 @@ no_linkage_check (tree t, bool relaxed_p)
 
   switch (TREE_CODE (t))
     {
-      /*
-      TODO: fix no linkage check on lambda functions properly
       tree fn;
-      */
 
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (t))
@@ -1537,12 +1534,9 @@ no_linkage_check (tree t, bool relaxed_p)
     case ENUMERAL_TYPE:
       if (TYPE_ANONYMOUS_P (t))
 	return t;
-      /*
-      TODO: fix no linkage check on lambda functions properly
       fn = decl_function_context (TYPE_MAIN_DECL (t));
       if (fn && (!relaxed_p || !TREE_PUBLIC (fn)))
 	return t;
-      */
       return NULL_TREE;
 
     case ARRAY_TYPE:

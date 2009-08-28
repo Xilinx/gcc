@@ -7209,8 +7209,6 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
 
       /* Remove the function parms from scope.  Must wait until after return
          type clause in case of decltype.  */
-      /* TODO: Do we need to remove them from scope in between the parameter
-         list and the return type clause?  */
       {
         tree t;
         for (t = current_binding_level->names; t; t = TREE_CHAIN (t))

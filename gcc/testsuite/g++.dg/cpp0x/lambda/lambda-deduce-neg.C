@@ -1,4 +1,3 @@
-// { dg-do "run" }
 // { dg-options "-std=c++0x" }
 #include <cassert>
 
