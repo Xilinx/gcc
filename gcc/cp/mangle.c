@@ -182,6 +182,8 @@ static void write_template_prefix (const tree);
 static void write_unqualified_name (const tree);
 static void write_conversion_operator_name (const tree);
 static void write_source_name (tree);
+static void write_unnamed_type_name (const tree);
+static void write_closure_type_name (const tree);
 static int hwint_to_ascii (unsigned HOST_WIDE_INT, const unsigned int, char *,
 			   const unsigned int);
 static void write_number (unsigned HOST_WIDE_INT, const int,
@@ -955,11 +957,11 @@ write_prefix (const tree node)
   /* Non-NULL if NODE represents a template-id.  */
   tree template_info = NULL;
 
-  MANGLE_TRACE_TREE ("prefix", node);
-
   if (node == NULL
       || node == global_namespace)
     return;
+
+  MANGLE_TRACE_TREE ("prefix", node);
 
   if (find_substitution (node))
     return;
@@ -1107,6 +1109,7 @@ write_template_prefix (const tree node)
     <unqualified-name>  ::= <operator-name>
 			::= <special-name>
 			::= <source-name>
+			::= <unnamed-type-name>
 			::= <local-source-name> 
 
     <local-source-name>	::= L <source-name> <discriminator> */
@@ -1172,7 +1175,19 @@ write_unqualified_name (const tree decl)
 	 so there's no code to output one here.  */
     }
   else
-    write_source_name (DECL_NAME (decl));
+    {
+      tree type = TREE_TYPE (decl);
+
+      if (TREE_CODE (decl) == TYPE_DECL
+          && TYPE_ANONYMOUS_P (type)
+          && !ANON_UNION_TYPE_P (type))
+        write_unnamed_type_name (type);
+      else if (TREE_CODE (decl) == TYPE_DECL
+               && LAMBDA_TYPE_P (type))
+        write_closure_type_name (type);
+      else
+        write_source_name (DECL_NAME (decl));
+    }
 }
 
 /* Write the unqualified-name for a conversion operator to TYPE.  */
@@ -1200,6 +1215,56 @@ write_source_name (tree identifier)
 
   write_unsigned_number (IDENTIFIER_LENGTH (identifier));
   write_identifier (IDENTIFIER_POINTER (identifier));
+}
+
+static void
+write_unnamed_type_name (const tree type)
+{
+  MANGLE_TRACE_TREE ("unnamed-type-name", type);
+
+  write_string ("Ut");
+  /* TODO: Implement discriminators for unnamed-types.  */
+  write_char ('_');
+}
+
+static void
+write_closure_type_name (const tree type)
+{
+  MANGLE_TRACE_TREE ("closure-type-name", type);
+
+  tree fn = LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (type));
+  tree parms = TYPE_ARG_TYPES (TREE_TYPE (fn));
+
+  write_string ("Ul");
+  write_method_parms (parms, /*method_p=*/1, fn);
+  write_char ('E');
+  /* TODO: Better way of doing this?  */
+  /* TODO: Option: merge this back with discriminator_for_local_entity and
+     don't write_discriminator in write_local_name when the entity is an
+     unnamed-type.  */
+  {
+    /* Assume this is the first lambda.  */
+    int discriminator = 0;
+
+      {
+        int ix;
+
+        /* Scan the list of local classes.  */
+        for (ix = 0; ; ix++)
+          {
+            tree other_type = VEC_index (tree, local_classes, ix);
+            if (other_type == type)
+              break;
+            if (LAMBDA_TYPE_P (other_type)
+                && TYPE_CONTEXT (other_type) == TYPE_CONTEXT (type))
+              ++discriminator;
+          }
+      }
+
+      if (discriminator > 0)
+        write_unsigned_number (discriminator - 1);
+  }
+  write_char ('_');
 }
 
 /* Convert NUMBER to ascii using base BASE and generating at least
@@ -1484,7 +1549,7 @@ discriminator_for_local_entity (tree entity)
 	  tree type = VEC_index (tree, local_classes, ix);
 	  if (type == entity)
 	    break;
-	  if (TYPE_IDENTIFIER (type) == TYPE_IDENTIFIER (entity)
+          if (TYPE_IDENTIFIER (type) == TYPE_IDENTIFIER (entity)
 	      && TYPE_CONTEXT (type) == TYPE_CONTEXT (entity))
 	    ++discriminator;
 	}
@@ -1510,7 +1575,7 @@ discriminator_for_string_literal (tree function ATTRIBUTE_UNUSED,
    The discriminator is used only for the second and later occurrences
    of the same name within a single function. In this case <number> is
    n - 2, if this is the nth occurrence, in lexical order.  */
-
+   
 static void
 write_discriminator (const int discriminator)
 {
