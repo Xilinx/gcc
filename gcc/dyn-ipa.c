@@ -83,6 +83,7 @@ struct dyn_cgraph
   struct dyn_module_info *sup_modules;
   const struct gcov_fn_info ***functions;
   unsigned num_modules;
+  unsigned num_nodes_executed;
 };
 
 struct dyn_pointer_set
@@ -113,6 +114,8 @@ static void
 pointer_set_destroy (struct dyn_pointer_set *pset);
 
 static struct dyn_cgraph the_dyn_call_graph;
+static int total_zero_count = 0;
+static int total_insane_count = 0;
 
 static void
 init_dyn_cgraph_node (struct dyn_cgraph_node *node, gcov_type guid)
@@ -193,6 +196,7 @@ init_dyn_call_graph (void)
   the_dyn_call_graph.call_graph_nodes = 0;
   the_dyn_call_graph.modules = 0;
   the_dyn_call_graph.functions = 0;
+  the_dyn_call_graph.num_nodes_executed = 0;
 
   gi_ptr = __gcov_list;
 
@@ -383,10 +387,16 @@ gcov_build_callgraph_dc_fn (struct dyn_cgraph_node *caller,
 
       count = dir_call_counters[i + 1];
       if (count == 0)
-        continue;
+        {
+          total_zero_count++;
+          continue;
+        }
       callee = get_cgraph_node (callee_guid);
       if (!callee)
-        continue;
+        {
+          total_insane_count++;
+          continue;
+        }
       gcov_add_cgraph_edge (caller, callee, count);
     }
 }
@@ -411,11 +421,16 @@ gcov_build_callgraph_ic_fn (struct dyn_cgraph_node *caller,
           gcov_type callee_guid = value_array[j];
 
           count = value_array[j + 1];
+	  /* Do not update zero count edge count
+	   * as it means there is no target in this entry.  */
           if (count == 0)
             continue;
           callee = get_cgraph_node (callee_guid);
           if (!callee)
-            continue;
+	    {
+              total_insane_count++;
+              continue;
+	    }
           gcov_add_cgraph_edge (caller, callee, count);
         }
     }
@@ -436,6 +451,7 @@ gcov_build_callgraph (void)
       const struct gcov_fn_info *fi_ptr;
       unsigned c_ix, f_ix, n_counts, dp_cix = 0, ip_cix = 0;
       gcov_type *dcall_profile_values, *icall_profile_values;
+      gcov_type *arcs_values = 0; unsigned arcs_cix;
 
       gi_ptr = the_dyn_call_graph.modules[m_ix];
 
@@ -455,6 +471,11 @@ gcov_build_callgraph (void)
 		icall_profile_values = gi_ptr->counts[c_ix].values;
 		ip_cix = c_ix;
 	      }
+	    if (t_ix == GCOV_COUNTER_ARCS)
+	      {
+		arcs_values = gi_ptr->counts[c_ix].values;
+		arcs_cix = c_ix;
+              }
 	    c_ix++;
 	  }
 
@@ -477,6 +498,17 @@ gcov_build_callgraph (void)
               n_counts = fi_ptr->n_ctrs[ip_cix];
               gcov_build_callgraph_ic_fn (caller, icall_profile_values, n_counts);
               icall_profile_values += n_counts;
+            }
+          if (arcs_values && 0)
+            {
+              gcov_type total_arc_count = 0;
+              unsigned arc;
+              n_counts = fi_ptr->n_ctrs[arcs_cix];
+              for (arc = 0; arc < n_counts; arc++)
+                total_arc_count += arcs_values[arc];
+              if (total_arc_count != 0)
+                the_dyn_call_graph.num_nodes_executed++;
+              arcs_values += n_counts;
             }
         }
     }
@@ -718,10 +750,13 @@ gcov_compute_cutoff_count (void)
     }
 
   if (do_dump)
-    fprintf (stderr, "//total = %.0f cum = %.0f cum/total = %.0f%%"
-             " cutoff_count = %lld [total edges: %d hot edges: %d perc: %d%%]\n",
+    fprintf (stderr, "// total = %.0f cum = %.0f cum/total = %.0f%%"
+             " cutoff_count = %lld [total edges: %d hot edges: %d perc: %d%%]\n"
+	     " total_zero_count_edges = %d total_insane_count_edgess = %d\n"
+             " total_nodes_executed = %d\n",
              total, cum, (cum * 100)/total, (long long) cutoff_count,
-             num_edges, i, (i * 100)/num_edges);
+             num_edges, i, (i * 100)/num_edges, total_zero_count,
+             total_insane_count, the_dyn_call_graph.num_nodes_executed);
 
   XDELETEVEC (edges);
   return cutoff_count;

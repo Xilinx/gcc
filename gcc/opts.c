@@ -755,7 +755,9 @@ lipo_save_cl_args (unsigned int argc, const char **argv)
   if (opt[0] == '-'
       && (opt[1] == 'f' || opt[1] == 'm' || opt[1] == 'W' || opt[1] == 'O'
 	  || (strstr (opt, "--param") == opt))
-      && !strstr(opt, "-frandom-seed"))
+      && !strstr(opt, "-frandom-seed")
+      && !strstr(opt, "-fripa-disallow-opt-mismatch")
+      && !strstr(opt, "-Wripa-opt-mismatch"))
     {
       num_lipo_cl_args += argc;
       lipo_cl_args = XRESIZEVEC (const char *, lipo_cl_args, num_lipo_cl_args);
