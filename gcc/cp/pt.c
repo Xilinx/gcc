@@ -1296,7 +1296,7 @@ register_specialization (tree spec, tree tmpl, tree args, bool is_friend,
     {
       if (DECL_TEMPLATE_INSTANTIATION (fn))
 	{
-	  if (TREE_USED (fn)
+	  if (DECL_ODR_USED (fn)
 	      || DECL_EXPLICIT_INSTANTIATION (fn))
 	    {
 	      error ("specialization of %qD after instantiation",
@@ -8253,10 +8253,10 @@ tsubst_default_argument (tree fn, tree type, tree arg)
       cp_function_chain->x_current_class_ref = saved_class_ref;
     }
 
-  pop_access_scope (fn);
-
   /* Make sure the default argument is reasonable.  */
   arg = check_default_argument (type, arg);
+
+  pop_access_scope (fn);
 
   return arg;
 }
@@ -12215,7 +12215,7 @@ tsubst_copy_and_build (tree t,
 }
 
 /* Verify that the instantiated ARGS are valid. For type arguments,
-   make sure that the type's linkage is ok. For non-type arguments,
+   make sure that the type is not variably modified. For non-type arguments,
    make sure they are constants if they are integral or enumerations.
    Emit an error under control of COMPLAIN, and return TRUE on error.  */
 
@@ -12236,30 +12236,7 @@ check_instantiated_arg (tree tmpl, tree t, tsubst_flags_t complain)
     }
   else if (TYPE_P (t))
     {
-      /* [basic.link]: A name with no linkage (notably, the name
-	 of a class or enumeration declared in a local scope)
-	 shall not be used to declare an entity with linkage.
-	 This implies that names with no linkage cannot be used as
-	 template arguments.  */
-      tree nt = no_linkage_check (t, /*relaxed_p=*/false);
-
-      if (nt)
-	{
-	  /* DR 488 makes use of a type with no linkage cause
-	     type deduction to fail.  */
-	  if (complain & tf_error)
-	    {
-	      if (TYPE_ANONYMOUS_P (nt))
-		error ("%qT is/uses anonymous type", t);
-	      else
-		error ("template argument for %qD uses local type %qT",
-		       tmpl, t);
-	    }
-	  return true;
-	}
-      /* In order to avoid all sorts of complications, we do not
-	 allow variably-modified types as template arguments.  */
-      else if (variably_modified_type_p (t, NULL_TREE))
+      if (variably_modified_type_p (t, NULL_TREE))
 	{
 	  if (complain & tf_error)
 	    error ("%qT is a variably modified type", t);
@@ -15658,6 +15635,27 @@ template_for_substitution (tree decl)
   return tmpl;
 }
 
+/* Returns true if we need to instantiate this template instance even if we
+   know we aren't going to emit it..  */
+
+bool
+always_instantiate_p (tree decl)
+{
+  /* We always instantiate inline functions so that we can inline them.  An
+     explicit instantiation declaration prohibits implicit instantiation of
+     non-inline functions.  With high levels of optimization, we would
+     normally inline non-inline functions -- but we're not allowed to do
+     that for "extern template" functions.  Therefore, we check
+     DECL_DECLARED_INLINE_P, rather than possibly_inlined_p.  */
+  return ((TREE_CODE (decl) == FUNCTION_DECL
+	   && DECL_DECLARED_INLINE_P (decl))
+	  /* And we need to instantiate static data members so that
+	     their initializers are available in integral constant
+	     expressions.  */
+	  || (TREE_CODE (decl) == VAR_DECL
+	      && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl)));
+}
+
 /* Produce the definition of D, a _DECL generated from a template.  If
    DEFER_OK is nonzero, then we don't have to actually do the
    instantiation now; we just have to do it sometime.  Normally it is
@@ -15709,6 +15707,15 @@ instantiate_decl (tree d, int defer_ok,
        instantiation is deferred until the end of the compilation,
        DECL_EXPLICIT_INSTANTIATION is set, even though we still need to do
        the instantiation.  */
+    return d;
+
+  /* Check to see whether we know that this template will be
+     instantiated in some other file, as with "extern template"
+     extension.  */
+  external_p = (DECL_INTERFACE_KNOWN (d) && DECL_REALLY_EXTERN (d));
+
+  /* In general, we do not instantiate such templates.  */
+  if (external_p && !always_instantiate_p (d))
     return d;
 
   gen_tmpl = most_general_template (tmpl);
@@ -15804,26 +15811,6 @@ instantiate_decl (tree d, int defer_ok,
       pop_access_scope (d);
     }
 
-  /* Check to see whether we know that this template will be
-     instantiated in some other file, as with "extern template"
-     extension.  */
-  external_p = (DECL_INTERFACE_KNOWN (d) && DECL_REALLY_EXTERN (d));
-  /* In general, we do not instantiate such templates...  */
-  if (external_p
-      /* ... but we instantiate inline functions so that we can inline
-	 them.  An explicit instantiation declaration prohibits implicit
-	 instantiation of non-inline functions.  With high levels of
-	 optimization, we would normally inline non-inline functions
-	 -- but we're not allowed to do that for "extern template" functions.
-	 Therefore, we check DECL_DECLARED_INLINE_P, rather than
-	 possibly_inlined_p.  And ...  */
-      && ! (TREE_CODE (d) == FUNCTION_DECL
-	    && DECL_DECLARED_INLINE_P (d))
-      /* ... we instantiate static data members whose values are
-	 needed in integral constant expressions.  */
-      && ! (TREE_CODE (d) == VAR_DECL
-	    && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (d)))
-    goto out;
   /* Defer all other templates, unless we have been explicitly
      forbidden from doing so.  */
   if (/* If there is no definition, we cannot instantiate the

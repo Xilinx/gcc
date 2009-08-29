@@ -554,6 +554,7 @@ extern const char *op_symbol_code (enum tree_code);
 /* In tree-dfa.c  */
 extern var_ann_t create_var_ann (tree);
 extern void renumber_gimple_stmt_uids (void);
+extern void renumber_gimple_stmt_uids_in_blocks (basic_block *, int);
 extern tree_ann_common_t create_tree_common_ann (tree);
 extern void dump_dfa_stats (FILE *);
 extern void debug_dfa_stats (void);
@@ -596,6 +597,7 @@ extern void record_vars (tree);
 extern bool block_may_fallthru (const_tree);
 extern bool gimple_seq_may_fallthru (gimple_seq);
 extern bool gimple_stmt_may_fallthru (gimple);
+extern bool gimple_check_call_args (gimple);
 
 
 /* In tree-ssa.c  */
@@ -894,6 +896,7 @@ void mark_addressable (tree);
 extern void remove_unused_locals (void);
 extern void dump_scope_blocks (FILE *, int);
 extern void debug_scope_blocks (int);
+extern void debug_scope_block (tree, int);
 
 /* In tree-ssa-address.c  */
 

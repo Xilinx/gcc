@@ -1356,7 +1356,8 @@ proc check_effective_target_vect_cmdline_needed { } {
 	verbose "check_effective_target_vect_cmdline_needed: using cached result" 2
     } else {
 	set et_vect_cmdline_needed_saved 1
-	if { [istarget ia64-*-*]
+	if { [istarget alpha*-*-*]
+	     || [istarget ia64-*-*]
 	     || (([istarget x86_64-*-*] || [istarget i?86-*-*])
 		 && [check_effective_target_lp64])
 	     || ([istarget powerpc*-*-*]
@@ -1511,6 +1512,20 @@ proc check_effective_target_arm_vfp_ok { } {
     }
 }
 
+# Return 1 if this is an ARM target supporting -mfpu=vfp
+# -mfloat-abi=hard.  Some multilibs may be incompatible with these
+# options.
+
+proc check_effective_target_arm_hard_vfp_ok { } {
+    if { [check_effective_target_arm32] } {
+	return [check_no_compiler_messages arm_hard_vfp_ok executable {
+	    int main() { return 0;}
+	} "-mfpu=vfp -mfloat-abi=hard"]
+    } else {
+	return 0
+    }
+}
+
 # Return 1 if this is an ARM target supporting -mfpu=neon
 # -mfloat-abi=softfp.  Some multilibs may be incompatible with these
 # options.
@@ -1518,6 +1533,7 @@ proc check_effective_target_arm_vfp_ok { } {
 proc check_effective_target_arm_neon_ok { } {
     if { [check_effective_target_arm32] } {
         return [check_no_compiler_messages arm_neon_ok object {
+	    #include "arm_neon.h"
             int dummy;
         } "-mfpu=neon -mfloat-abi=softfp"]
     } else {
@@ -1602,6 +1618,19 @@ proc check_effective_target_arm_eabi { } {
 	int dummy;
 	#endif
     }]
+}
+
+# Return 1 if this is an ARM target supporting -mcpu=iwmmxt.
+# Some multilibs may be incompatible with this option.
+
+proc check_effective_target_arm_iwmmxt_ok { } {
+    if { [check_effective_target_arm32] } {
+	return [check_no_compiler_messages arm_iwmmxt_ok object {
+	    int dummy;
+	} "-mcpu=iwmmxt"]
+    } else {
+	return 0
+    }
 }
 
 # Return 1 if this is a PowerPC target with floating-point registers.
@@ -3066,7 +3095,7 @@ proc check_effective_target_mpc { } {
 # Return 1 if the MPC library with mpc_pow is integrated with GCC, 0 otherwise.
 
 proc check_effective_target_mpc_pow { } {
-    return [check_no_compiler_messages mpc executable {
+    return [check_no_compiler_messages mpc_pow executable {
 	extern void link_error(void);
 	int main ()
 	{
@@ -3074,4 +3103,24 @@ proc check_effective_target_mpc_pow { } {
 	    link_error();
 	}
     }]
+}
+
+# Return 1 if the language for the compiler under test is C.
+
+proc check_effective_target_c { } {
+ global tool
+    if [string match $tool "gcc"] {
+   return 1
+    }
+ return 0
+}
+
+# Return 1 if the language for the compiler under test is C++.
+
+proc check_effective_target_c++ { } {
+ global tool
+    if [string match $tool "g++"] {
+   return 1
+    }
+ return 0
 }

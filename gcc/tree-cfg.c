@@ -3889,12 +3889,13 @@ verify_gimple_assign_single (gimple stmt)
 	    return true;
 	  }
 
-	if (!one_pointer_to_useless_type_conversion_p (lhs_type,
-						       TREE_TYPE (op)))
+	if (!types_compatible_p (TREE_TYPE (op), TREE_TYPE (TREE_TYPE (rhs1)))
+	    && !one_pointer_to_useless_type_conversion_p (TREE_TYPE (rhs1),
+							  TREE_TYPE (op)))
 	  {
 	    error ("type mismatch in address expression");
-	    debug_generic_stmt (lhs_type);
-	    debug_generic_stmt (TYPE_POINTER_TO (TREE_TYPE (op)));
+	    debug_generic_stmt (TREE_TYPE (rhs1));
+	    debug_generic_stmt (TREE_TYPE (op));
 	    return true;
 	  }
 
@@ -7456,7 +7457,7 @@ struct gimple_opt_pass pass_warn_unused_result =
 {
   {
     GIMPLE_PASS,
-    "warn_unused_result",		/* name */
+    "*warn_unused_result",		/* name */
     gate_warn_unused_result,		/* gate */
     run_warn_unused_result,		/* execute */
     NULL,				/* sub */

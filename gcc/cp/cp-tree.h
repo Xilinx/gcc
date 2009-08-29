@@ -1579,8 +1579,9 @@ struct GTY(()) lang_decl_base {
   unsigned anticipated_p : 1;		   /* fn or type */
   unsigned friend_attr : 1;		   /* fn or type */
   unsigned template_conv_p : 1;		   /* template only? */
+  unsigned odr_used : 1;		   /* var or fn */
   unsigned u2sel : 1;
-  /* 2 spare bits */
+  /* 1 spare bit */
 };
 
 /* True for DECL codes which have template info and access.  */
@@ -1641,8 +1642,7 @@ struct GTY(()) lang_decl_fn {
   unsigned thunk_p : 1;
   unsigned this_thunk_p : 1;
   unsigned hidden_friend_p : 1;
-  unsigned deferred : 1;
-  /* No spare bits; consider adding to lang_decl_base instead.  */
+  /* 1 spare bit.  */
 
   /* For a non-thunk function decl, this is a tree list of
      friendly classes. For a thunk function decl, it is the
@@ -1982,6 +1982,12 @@ struct GTY(()) lang_decl {
   (DECL_LANG_SPECIFIC (VAR_OR_FUNCTION_DECL_CHECK (DECL)) \
    ->u.base.initialized_in_class)
 
+/* Nonzero if the DECL is used in the sense of 3.2 [basic.def.odr].
+   Only available for decls with DECL_LANG_SPECIFIC.  */
+#define DECL_ODR_USED(DECL) \
+  (DECL_LANG_SPECIFIC (VAR_OR_FUNCTION_DECL_CHECK (DECL)) \
+   ->u.base.odr_used)
+
 /* Nonzero for DECL means that this decl is just a friend declaration,
    and should not be added to the list of members for this class.  */
 #define DECL_FRIEND_P(NODE) (DECL_LANG_SPECIFIC (NODE)->u.base.friend_attr)
@@ -2227,10 +2233,6 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    and put them into a TREE_VEC.  */
 #define CLASSTYPE_SORTED_FIELDS(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->sorted_fields)
-
-/* True if on the deferred_fns (see decl2.c) list.  */
-#define DECL_DEFERRED_FN(DECL) \
-  (LANG_DECL_FN_CHECK (DECL)->deferred)
 
 /* If non-NULL for a VAR_DECL, FUNCTION_DECL, TYPE_DECL or
    TEMPLATE_DECL, the entity is either a template specialization (if
@@ -4266,6 +4268,7 @@ extern tree set_up_extended_ref_temp		(tree, tree, tree *, tree *);
 extern tree initialize_reference		(tree, tree, tree, tree *);
 extern tree make_temporary_var_for_ref_to_temp	(tree, tree);
 extern tree strip_top_quals			(tree);
+extern bool reference_related_p			(tree, tree);
 extern tree perform_implicit_conversion		(tree, tree, tsubst_flags_t);
 extern tree perform_implicit_conversion_flags	(tree, tree, tsubst_flags_t, int);
 extern tree perform_direct_initialization_if_possible (tree, tree, bool,
@@ -4339,6 +4342,7 @@ extern tree force_rvalue			(tree);
 extern tree ocp_convert				(tree, tree, int, int);
 extern tree cp_convert				(tree, tree);
 extern tree cp_convert_and_check                (tree, tree);
+extern tree cp_fold_convert			(tree, tree);
 extern tree convert_to_void	(tree, const char */*implicit context*/,
                                  tsubst_flags_t);
 extern tree convert_force			(tree, tree, int);
@@ -4627,6 +4631,7 @@ extern void mark_decl_instantiated		(tree, int);
 extern int more_specialized_fn			(tree, tree, int);
 extern void do_decl_instantiation		(tree, tree);
 extern void do_type_instantiation		(tree, tree, tsubst_flags_t);
+extern bool always_instantiate_p		(tree);
 extern tree instantiate_decl			(tree, int, bool);
 extern int comp_template_parms			(const_tree, const_tree);
 extern bool uses_parameter_packs                (tree);
@@ -5061,6 +5066,7 @@ extern tree cp_build_binary_op                  (location_t,
 #define cxx_sizeof(T)  cxx_sizeof_or_alignof_type (T, SIZEOF_EXPR, true)
 extern tree build_ptrmemfunc_access_expr	(tree, tree);
 extern tree build_address			(tree);
+extern tree build_typed_address			(tree, tree);
 extern tree build_nop				(tree, tree);
 extern tree non_reference			(tree);
 extern tree lookup_anon_field			(tree, tree);

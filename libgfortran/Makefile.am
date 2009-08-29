@@ -13,10 +13,11 @@ else
 version_arg =
 endif
 
-LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
+LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS)) \
+	    -no-undefined -bindir "$(bindir)"
 
 toolexeclib_LTLIBRARIES = libgfortran.la
-libgfortran_la_LINK = $(LINK)
+libgfortran_la_LINK = $(LINK) $(libgfortran_la_LDFLAGS)
 libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(LTLDFLAGS) -lm $(extra_ldflags_libgfortran) $(version_arg)
 
 myexeclib_LTLIBRARIES = libgfortranbegin.la
@@ -34,11 +35,9 @@ AM_CPPFLAGS = -iquote$(srcdir)/io -I$(srcdir)/$(MULTISRCTOP)../gcc \
 AM_CFLAGS += -fcx-fortran-rules
 
 # Use -ffunction-sections -fdata-sections if supported by the compiler
-SECTION_FLAGS = @SECTION_FLAGS@
 AM_CFLAGS += $(SECTION_FLAGS)
 
 # Some targets require additional compiler options for IEEE compatibility.
-IEEE_FLAGS = @IEEE_FLAGS@
 AM_CFLAGS += $(IEEE_FLAGS)
 
 gfor_io_src= \
@@ -722,11 +721,6 @@ $(gfor_built_specific2_src) \
 $(gfor_misc_specifics) \
 intrinsics/dprod_r8.f90 \
 intrinsics/f2c_specifics.F90
-
-# No install-html or install-pdf support in automake yet
-.PHONY: install-html install-pdf
-install-html:
-install-pdf:
 
 # Turn on vectorization and loop unrolling for matmul.
 $(patsubst %.c,%.lo,$(notdir $(i_matmul_c))): AM_CFLAGS += -ftree-vectorize -funroll-loops

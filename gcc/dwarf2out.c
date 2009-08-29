@@ -2932,12 +2932,12 @@ dw_cfi_oprnd2_desc (enum dwarf_call_frame_info cfi)
 
 #if defined (DWARF2_DEBUGGING_INFO) || defined (DWARF2_UNWIND_INFO)
 
-/* Switch to eh_frame_section.  If we don't have an eh_frame_section,
-   switch to the data section instead, and write out a synthetic label
-   for collect2.  */
+/* Switch [BACK] to eh_frame_section.  If we don't have an eh_frame_section,
+   switch to the data section instead, and write out a synthetic start label
+   for collect2 the first time around.  */
 
 static void
-switch_to_eh_frame_section (void)
+switch_to_eh_frame_section (bool back)
 {
   tree label;
 
@@ -2980,11 +2980,15 @@ switch_to_eh_frame_section (void)
       /* We have no special eh_frame section.  Put the information in
 	 the data section and emit special labels to guide collect2.  */
       switch_to_section (data_section);
-      label = get_file_function_name ("F");
-      ASM_OUTPUT_ALIGN (asm_out_file, floor_log2 (PTR_SIZE));
-      targetm.asm_out.globalize_label (asm_out_file,
-				       IDENTIFIER_POINTER (label));
-      ASM_OUTPUT_LABEL (asm_out_file, IDENTIFIER_POINTER (label));
+
+      if (!back)
+	{
+	  label = get_file_function_name ("F");
+	  ASM_OUTPUT_ALIGN (asm_out_file, floor_log2 (PTR_SIZE));
+	  targetm.asm_out.globalize_label (asm_out_file,
+					   IDENTIFIER_POINTER (label));
+	  ASM_OUTPUT_LABEL (asm_out_file, IDENTIFIER_POINTER (label));
+	}
     }
 }
 
@@ -3429,15 +3433,22 @@ output_fde (dw_fde_ref fde, bool for_eh, bool second,
       begin = fde->dw_fde_begin;
       end = fde->dw_fde_end;
     }
-  else if (second ^ fde->dw_fde_switched_cold_to_hot)
-    {
-      begin = fde->dw_fde_unlikely_section_label;
-      end = fde->dw_fde_unlikely_section_end_label;
-    }
   else
     {
-      begin = fde->dw_fde_hot_section_label;
-      end = fde->dw_fde_hot_section_end_label;
+      /* For the first section, prefer dw_fde_begin over
+	 dw_fde_{hot,cold}_section_label, as the latter
+	 might be separated from the real start of the
+	 function by alignment padding.  */
+      if (!second)
+	begin = fde->dw_fde_begin;
+      else if (fde->dw_fde_switched_cold_to_hot)
+	begin = fde->dw_fde_hot_section_label;
+      else
+	begin = fde->dw_fde_unlikely_section_label;
+      if (second ^ fde->dw_fde_switched_cold_to_hot)
+	end = fde->dw_fde_unlikely_section_end_label;
+      else
+	end = fde->dw_fde_hot_section_end_label;
     }
 
   if (for_eh)
@@ -3477,7 +3488,8 @@ output_fde (dw_fde_ref fde, bool for_eh, bool second,
 
 	  if (fde->uses_eh_lsda)
 	    {
-	      ASM_GENERATE_INTERNAL_LABEL (l1, "LLSDA", fde->funcdef_number);
+	      ASM_GENERATE_INTERNAL_LABEL (l1, second ? "LLSDAC" : "LLSDA",
+					   fde->funcdef_number);
 	      dw2_asm_output_encoded_addr_rtx (lsda_encoding,
 					       gen_rtx_SYMBOL_REF (Pmode, l1),
 					       false,
@@ -3526,6 +3538,20 @@ output_fde (dw_fde_ref fde, bool for_eh, bool second,
 	output_cfi (cfi, fde, for_eh);
     }
 
+  /* If we are to emit a ref/link from function bodies to their frame tables,
+     do it now.  This is typically performed to make sure that tables
+     associated with functions are dragged with them and not discarded in
+     garbage collecting links. We need to do this on a per function basis to
+     cope with -ffunction-sections.  */
+
+#ifdef ASM_OUTPUT_DWARF_TABLE_REF
+  /* Switch to the function section, emit the ref to the tables, and
+     switch *back* into the table section.  */
+  switch_to_section (function_section (fde->decl));
+  ASM_OUTPUT_DWARF_TABLE_REF (section_start_label);
+  switch_to_frame_table_section (for_eh, true);
+#endif
+
   /* Pad the FDE out to an address sized boundary.  */
   ASM_OUTPUT_ALIGN (asm_out_file,
 		    floor_log2 ((for_eh ? PTR_SIZE : DWARF2_ADDR_SIZE)));
@@ -3534,6 +3560,22 @@ output_fde (dw_fde_ref fde, bool for_eh, bool second,
   j += 2;
 }
 
+
+/* Switch [BACK] to the eh or debug frame table section, depending on
+   FOR_EH.  */
+static void
+switch_to_frame_table_section (int for_eh, bool back)
+{
+  if (for_eh)
+    switch_to_eh_frame_section (back);
+  else
+    {
+      if (!debug_frame_section)
+	debug_frame_section = get_section (DEBUG_FRAME_SECTION,
+					   SECTION_DEBUG, NULL);
+      switch_to_section (debug_frame_section);
+    }
+}
 
 /* Output the call frame information used to record information
    that relates to calculating the frame pointer, and records the
@@ -3605,15 +3647,8 @@ output_call_frame_info (int for_eh)
   if (flag_debug_asm)
     app_enable ();
 
-  if (for_eh)
-    switch_to_eh_frame_section ();
-  else
-    {
-      if (!debug_frame_section)
-	debug_frame_section = get_section (DEBUG_FRAME_SECTION,
-					   SECTION_DEBUG, NULL);
-      switch_to_section (debug_frame_section);
-    }
+  /* Switch to the proper frame section, first time.  */
+  switch_to_frame_table_section (for_eh, false);
 
   ASM_GENERATE_INTERNAL_LABEL (section_start_label, FRAME_BEGIN_LABEL, for_eh);
   ASM_OUTPUT_LABEL (asm_out_file, section_start_label);
@@ -3781,7 +3816,7 @@ output_call_frame_info (int for_eh)
 /* Emit .cfi_startproc and .cfi_personality/.cfi_lsda if needed.  */
 
 static void
-dwarf2out_do_cfi_startproc (void)
+dwarf2out_do_cfi_startproc (bool second)
 {
   int enc;
   rtx ref;
@@ -3810,7 +3845,7 @@ dwarf2out_do_cfi_startproc (void)
       char lab[20];
 
       enc = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/0, /*global=*/0);
-      ASM_GENERATE_INTERNAL_LABEL (lab, "LLSDA",
+      ASM_GENERATE_INTERNAL_LABEL (lab, second ? "LLSDAC" : "LLSDA",
 				   current_function_funcdef_no);
       ref = gen_rtx_SYMBOL_REF (Pmode, lab);
       SYMBOL_REF_FLAGS (ref) = SYMBOL_FLAG_LOCAL;
@@ -3929,7 +3964,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
 #endif
 
   if (dwarf2out_do_cfi_asm ())
-    dwarf2out_do_cfi_startproc ();
+    dwarf2out_do_cfi_startproc (false);
 }
 
 /* Output a marker (i.e. a label) for the absolute end of the generated code
@@ -4038,7 +4073,7 @@ dwarf2out_switch_text_section (void)
 
   if (dwarf2out_do_cfi_asm ())
     {
-      dwarf2out_do_cfi_startproc ();
+      dwarf2out_do_cfi_startproc (true);
       /* As this is a different FDE, insert all current CFI instructions
 	 again.  */
       output_cfis (fde->dw_fde_cfi, true, fde, true);
@@ -5879,6 +5914,7 @@ static void gen_type_die (tree, dw_die_ref);
 static void gen_block_die (tree, dw_die_ref, int);
 static void decls_for_scope (tree, dw_die_ref, int);
 static int is_redundant_typedef (const_tree);
+static inline dw_die_ref get_context_die (tree);
 static void gen_namespace_die (tree, dw_die_ref);
 static void gen_decl_die (tree, tree, dw_die_ref);
 static dw_die_ref force_decl_die (tree);
@@ -14995,7 +15031,13 @@ gen_lexical_block_die (tree stmt, dw_die_ref context_die, int depth)
 static void
 gen_inlined_subroutine_die (tree stmt, dw_die_ref context_die, int depth)
 {
-  tree decl = block_ultimate_origin (stmt);
+  tree decl;
+
+  /* The instance of function that is effectively being inlined shall not
+     be abstract.  */
+  gcc_assert (! BLOCK_ABSTRACT (stmt));
+
+  decl = block_ultimate_origin (stmt);
 
   /* Emit info for the abstract instance first, if we haven't yet.  We
      must emit this even if the block is abstract, otherwise when we
@@ -15016,20 +15058,6 @@ gen_inlined_subroutine_die (tree stmt, dw_die_ref context_die, int depth)
       decls_for_scope (stmt, subr_die, depth);
       current_function_has_inlines = 1;
     }
-  else
-    /* We may get here if we're the outer block of function A that was
-       inlined into function B that was inlined into function C.  When
-       generating debugging info for C, dwarf2out_abstract_function(B)
-       would mark all inlined blocks as abstract, including this one.
-       So, we wouldn't (and shouldn't) expect labels to be generated
-       for this one.  Instead, just emit debugging info for
-       declarations within the block.  This is particularly important
-       in the case of initializers of arguments passed from B to us:
-       if they're statement expressions containing declarations, we
-       wouldn't generate dies for their abstract variables, and then,
-       when generating dies for the real variables, we'd die (pun
-       intended :-)  */
-    gen_lexical_block_die (stmt, context_die, depth);
 }
 
 /* Generate a DIE for a field in a record, or structure.  */
@@ -15436,7 +15464,7 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
          the type description DIE we want to generate.  */
       if (DECL_CONTEXT (TYPE_NAME (type))
 	  && TREE_CODE (DECL_CONTEXT (TYPE_NAME (type))) == NAMESPACE_DECL)
-	context_die = lookup_decl_die (DECL_CONTEXT (TYPE_NAME (type)));
+	context_die = get_context_die (DECL_CONTEXT (TYPE_NAME (type)));
 
       TREE_ASM_WRITTEN (type) = 1;
       gen_decl_die (TYPE_NAME (type), NULL, context_die);
@@ -15544,6 +15572,15 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
 	  push_decl_scope (TYPE_CONTEXT (type));
 	  context_die = lookup_type_die (TYPE_CONTEXT (type));
 	  need_pop = 1;
+	}
+      else if (TYPE_CONTEXT (type) != NULL_TREE
+	       && (TREE_CODE (TYPE_CONTEXT (type)) == FUNCTION_DECL))
+	{
+	  /* If this type is local to a function that hasn't been written
+	     out yet, use a NULL context for now; it will be fixed up in
+	     decls_for_scope.  */
+	  context_die = lookup_decl_die (TYPE_CONTEXT (type));
+	  need_pop = 0;
 	}
       else
 	{
@@ -15658,7 +15695,23 @@ gen_block_die (tree stmt, dw_die_ref context_die, int depth)
   if (must_output_die)
     {
       if (inlined_func)
-	gen_inlined_subroutine_die (stmt, context_die, depth);
+	{
+	  /* If STMT block is abstract, that means we have been called
+	     indirectly from dwarf2out_abstract_function.
+	     That function rightfully marks the descendent blocks (of
+	     the abstract function it is dealing with) as being abstract,
+	     precisely to prevent us from emitting any
+	     DW_TAG_inlined_subroutine DIE as a descendent
+	     of an abstract function instance. So in that case, we should
+	     not call gen_inlined_subroutine_die.
+
+	     Later though, when cgraph asks dwarf2out to emit info
+	     for the concrete instance of the function decl into which
+	     the concrete instance of STMT got inlined, the later will lead
+	     to the generation of a DW_TAG_inlined_subroutine DIE.  */
+	  if (! BLOCK_ABSTRACT (stmt))
+	    gen_inlined_subroutine_die (stmt, context_die, depth);
+	}
       else
 	gen_lexical_block_die (stmt, context_die, depth);
     }

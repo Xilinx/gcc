@@ -347,7 +347,7 @@ Objective-C and Objective-C++ Dialects}.
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
 -floop-block -floop-interchange -floop-strip-mine -fgraphite-identity @gol
--fgraphite-force-parallel @gol
+-floop-parallelize-all @gol
 -fmerge-all-constants -fmerge-constants -fmodulo-sched @gol
 -fmodulo-sched-allow-regmoves -fmove-loop-invariants -fmudflap @gol
 -fmudflapir -fmudflapth -fno-branch-count-reg -fno-default-inline @gol
@@ -470,7 +470,7 @@ Objective-C and Objective-C++ Dialects}.
 -mfix-cortex-m3-ldrd}
 
 @emph{AVR Options}
-@gccoptlist{-mmcu=@var{mcu}  -msize  -minit-stack=@var{n}  -mno-interrupts @gol
+@gccoptlist{-mmcu=@var{mcu}  -msize  -mno-interrupts @gol
 -mcall-prologues  -mtiny-stack  -mint8}
 
 @emph{Blackfin Options}
@@ -536,7 +536,7 @@ Objective-C and Objective-C++ Dialects}.
 -mmemory-latency=@var{time}}
 
 @emph{DEC Alpha/VMS Options}
-@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix}}
+@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
 
 @emph{FR30 Options}
 @gccoptlist{-msmall-model -mno-lsim}
@@ -591,7 +591,7 @@ Objective-C and Objective-C++ Dialects}.
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul @gol
--msse4a -m3dnow -mpopcnt -mabm -msse5 @gol
+-msse4a -m3dnow -mpopcnt -mabm @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
@@ -600,7 +600,7 @@ Objective-C and Objective-C++ Dialects}.
 -momit-leaf-frame-pointer  -mno-red-zone -mno-tls-direct-seg-refs @gol
 -mcmodel=@var{code-model} -mabi=@var{name} @gol
 -m32  -m64 -mlarge-data-threshold=@var{num} @gol
--mfused-madd -mno-fused-madd -msse2avx}
+-msse2avx}
 
 @emph{IA-64 Options}
 @gccoptlist{-mbig-endian  -mlittle-endian  -mgnu-as  -mgnu-ld  -mno-pic @gol
@@ -624,6 +624,9 @@ Objective-C and Objective-C++ Dialects}.
 -msched-stop-bits-after-every-cycle -msched-count-spec-in-critical-path @gol
 -msel-sched-dont-check-control-spec -msched-fp-mem-deps-zero-cost @gol
 -msched-max-memory-insns-hard-limit -msched-max-memory-insns=@var{max-insns}}
+
+@emph{IA-64/VMS Options}
+@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
 
 @emph{M32R/D Options}
 @gccoptlist{-m32r2 -m32rx -m32r @gol
@@ -1922,7 +1925,8 @@ This information is generally only useful to the G++ development team.
 Set the maximum instantiation depth for template classes to @var{n}.
 A limit on the template instantiation depth is needed to detect
 endless recursions during template class instantiation.  ANSI/ISO C++
-conforming programs must not rely on a maximum depth greater than 17.
+conforming programs must not rely on a maximum depth greater than 17
+(changed to 1024 in C++0x).
 
 @item -fno-threadsafe-statics
 @opindex fno-threadsafe-statics
@@ -6607,7 +6611,7 @@ GIMPLE -> GRAPHITE -> GIMPLE transformation.  Some minimal optimizations
 are also performed by the code generator CLooG, like index splitting and
 dead code elimination in loops.
 
-@item -fgraphite-force-parallel
+@item -floop-parallelize-all
 Use the Graphite data dependence analysis to identify loops that can
 be parallelized.  Parallelize all the loops that can be analyzed to
 not contain loop carried dependences without checking that it is
@@ -9165,6 +9169,7 @@ platform.
 * i386 and x86-64 Options::
 * i386 and x86-64 Windows Options::
 * IA-64 Options::
+* IA-64/VMS Options::
 * M32C Options::
 * M32R/D Options::
 * M680x0 Options::
@@ -9326,11 +9331,6 @@ library calls for floating-point operations.
 instructions, but still uses the soft-float calling conventions.
 @samp{hard} allows generation of floating-point instructions
 and uses FPU-specific calling conventions.
-
-Using @option{-mfloat-abi=hard} with VFP coprocessors is not supported.
-Use @option{-mfloat-abi=softfp} with the appropriate @option{-mfpu} option
-to allow the compiler to generate code that makes use of the hardware
-floating-point capabilities for these CPUs.
 
 The default depends on the specific target configuration.  Note that
 the hard-float and soft-float ABIs are not link-compatible; you must
@@ -9624,11 +9624,6 @@ atmega64, atmega128, at43usb355, at94k).
 @item -msize
 @opindex msize
 Output instruction sizes to the asm file.
-
-@item -minit-stack=@var{N}
-@opindex minit-stack
-Specify the initial stack address, which may be a symbol or numeric value,
-@samp{__stack} is the default.
 
 @item -mno-interrupts
 @opindex mno-interrupts
@@ -10611,6 +10606,10 @@ style condition (e.g.@: error) codes.
 @opindex mdebug-main=@var{prefix}
 Flag the first routine whose name starts with @var{prefix} as the main
 routine for the debugger.
+
+@item -mmalloc64
+@opindex mmalloc64
+Default to 64bit memory allocation routines.
 @end table
 
 @node FR30 Options
@@ -11642,8 +11641,6 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-pclmul
 @itemx -msse4a
 @itemx -mno-sse4a
-@itemx -msse5
-@itemx -mno-sse5
 @itemx -m3dnow
 @itemx -mno-3dnow
 @itemx -mpopcnt
@@ -11657,7 +11654,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, SSE5, ABM or
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, ABM or
 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
@@ -11834,14 +11831,6 @@ is legal depends on the operating system, and whether it maps the
 segment to cover the entire TLS area.
 
 For systems that use GNU libc, the default is on.
-
-@item -mfused-madd
-@itemx -mno-fused-madd
-@opindex mfused-madd
-Enable automatic generation of fused floating point multiply-add instructions
-if the ISA supports such instructions.  The -mfused-madd option is on by
-default.  The fused multiply-add instructions have a different
-rounding behavior compared to executing a multiply followed by an add.
 
 @item -msse2avx
 @itemx -mno-sse2avx
@@ -12179,6 +12168,27 @@ Disallow more than `msched-max-memory-insns' in instruction group.
 Otherwise, limit is `soft' meaning that we would prefer non-memory operations
 when limit is reached but may still schedule memory operations.
 
+@end table
+
+@node IA-64/VMS Options
+@subsection IA-64/VMS Options
+
+These @samp{-m} options are defined for the IA-64/VMS implementations:
+
+@table @gcctabopt
+@item -mvms-return-codes
+@opindex mvms-return-codes
+Return VMS condition codes from main. The default is to return POSIX
+style condition (e.g.@ error) codes.
+
+@item -mdebug-main=@var{prefix}
+@opindex mdebug-main=@var{prefix}
+Flag the first routine whose name starts with @var{prefix} as the main
+routine for the debugger.
+
+@item -mmalloc64
+@opindex mmalloc64
+Default to 64bit memory allocation routines.
 @end table
 
 @node M32C Options
@@ -13055,6 +13065,7 @@ The processor names are:
 @samp{24kec}, @samp{24kef2_1}, @samp{24kef1_1},
 @samp{34kc}, @samp{34kf2_1}, @samp{34kf1_1},
 @samp{74kc}, @samp{74kf2_1}, @samp{74kf1_1}, @samp{74kf3_2},
+@samp{1004kc}, @samp{1004kf2_1}, @samp{1004kf1_1},
 @samp{loongson2e}, @samp{loongson2f},
 @samp{m4k},
 @samp{octeon},

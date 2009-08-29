@@ -267,6 +267,17 @@ do {								\
 #define STACK_CHECK_MAX_VAR_SIZE (STACK_CHECK_MAX_FRAME_SIZE / 100)
 #endif
 
+/* This structure is used to pass around information about exploded
+   unary, binary and trinary expressions between expand_expr_real_1 and
+   friends.  */
+typedef struct separate_ops
+{
+  enum tree_code code;
+  tree type;
+  tree op0, op1, op2;
+  location_t location;
+} *sepops;
+
 /* Functions from optabs.c, commonly used, and without need for the optabs
    tables:  */
 
@@ -568,13 +579,16 @@ extern tree string_constant (tree, tree *);
 
 /* Generate code to evaluate EXP and jump to LABEL if the value is zero.  */
 extern void jumpifnot (tree, rtx);
+extern void jumpifnot_1 (enum tree_code, tree, tree, rtx);
 
 /* Generate code to evaluate EXP and jump to LABEL if the value is nonzero.  */
 extern void jumpif (tree, rtx);
+extern void jumpif_1 (enum tree_code, tree, tree, rtx);
 
 /* Generate code to evaluate EXP and jump to IF_FALSE_LABEL if
    the result is zero, or IF_TRUE_LABEL if the result is one.  */
 extern void do_jump (tree, rtx, rtx);
+extern void do_jump_1 (enum tree_code, tree, tree, rtx, rtx);
 
 extern void do_compare_rtx_and_jump (rtx, rtx, enum rtx_code, int,
 				     enum machine_mode, rtx, rtx, rtx);
@@ -719,8 +733,17 @@ extern rtx force_reg (enum machine_mode, rtx);
 /* Return given rtx, copied into a new temp reg if it was in memory.  */
 extern rtx force_not_mem (rtx);
 
+/* Return mode and signedness to use when an argument or result in the
+   given mode is promoted.  */
+extern enum machine_mode promote_function_mode (const_tree, enum machine_mode, int *,
+					        const_tree, int);
+
+/* Return mode and signedness to use when an object in the given mode
+   is promoted.  */
+extern enum machine_mode promote_mode (const_tree, enum machine_mode, int *);
+
 /* Return mode and signedness to use when object is promoted.  */
-extern enum machine_mode promote_mode (const_tree, enum machine_mode, int *, int);
+enum machine_mode promote_decl_mode (const_tree, int *);
 
 /* Remove some bytes from the stack.  An rtx says how many.  */
 extern void adjust_stack (rtx);
@@ -753,7 +776,7 @@ extern void probe_stack_range (HOST_WIDE_INT, rtx);
 
 /* Return an rtx that refers to the value returned by a library call
    in its original home.  This becomes invalid if any more code is emitted.  */
-extern rtx hard_libcall_value (enum machine_mode);
+extern rtx hard_libcall_value (enum machine_mode, rtx);
 
 /* Return the mode desired by operand N of a particular bitfield
    insert/extract insn, or MAX_MACHINE_MODE if no such insn is

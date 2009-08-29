@@ -176,9 +176,9 @@ static const char * get_file_langdir (const char *);
 
 
 /* Nonzero iff an error has occurred.  */
-bool hit_error = false;
+bool hit_error = FALSE;
 /* Flag set when parsing a plugin file */
-bool is_plugin_file = false;
+bool is_plugin_file = FALSE;
 
 
 static void gen_rtx_next (void);
@@ -678,7 +678,6 @@ new_structure (const char *name, int isunion, struct fileloc *pos,
 		     isunion ? "union" : "struct", s->u.s.tag);
       error_at_line (&s->u.s.line, "previous definition here");
     }
-
   
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
   s->inplugin = is_plugin_file;
@@ -1788,6 +1787,8 @@ get_output_file_with_visibility (const char *input_file)
      headers with source files (and their special purpose gt-*.h headers).  */
   else if (strcmp (base_name, "c-common.h") == 0)
     output_name = "gt-c-common.h", for_name = "c-common.c";
+  else if (strcmp (base_name, "c-lang.h") == 0)
+    output_name = "gt-c-decl.h", for_name = "c-decl.c";
   else if (strcmp (base_name, "c-tree.h") == 0)
     output_name = "gt-c-decl.h", for_name = "c-decl.c";
   else if (strncmp (base_name, "cp", 2) == 0 && IS_DIR_SEPARATOR (base_name[2])
@@ -3854,6 +3855,7 @@ main (int argc, char **argv)
   do_scalar_typedef ("REAL_VALUE_TYPE", &pos); pos.line++;
   do_scalar_typedef ("FIXED_VALUE_TYPE", &pos); pos.line++;
   do_scalar_typedef ("double_int", &pos); pos.line++;
+  do_scalar_typedef ("uint64_t", &pos); pos.line++;
   do_scalar_typedef ("uint8", &pos); pos.line++;
   do_scalar_typedef ("jword", &pos); pos.line++;
   do_scalar_typedef ("JCF_u2", &pos); pos.line++;

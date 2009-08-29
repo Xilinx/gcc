@@ -858,6 +858,14 @@ TR 15581:
 @end itemize
 
 @item
+@cindex @code{ALLOCATE}
+The @code{ERRMSG=} tag is now supported in @code{ALLOCATE} and
+@code{DEALLOCATE} statements.  The @code{SOURCE=} tag is supported
+in an @code{ALLOCATE} statement.  An @emph{intrinsic-type-spec}
+can be used as the @emph{type-spec} in an @code{ALLOCATE} statement;
+while the use of a @emph{derived-type-name} is currently unsupported.
+
+@item
 @cindex @code{STREAM} I/O
 @cindex @code{ACCESS='STREAM'} I/O
 The @code{OPEN} statement supports the @code{ACCESS='STREAM'} specifier,
@@ -1789,7 +1797,7 @@ c     ... Code that sets A, B and C
 with the following:
 
 @smallexample
-      INTEGER*1 LINE(80)
+      CHARACTER(LEN=80) LINE
       REAL A, B, C
 c     ... Code that sets A, B and C
       WRITE (UNIT=LINE, FMT=9000) A, B, C

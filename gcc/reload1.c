@@ -318,8 +318,9 @@ struct elim_table
   int to;			/* Register number used as replacement.  */
   HOST_WIDE_INT initial_offset;	/* Initial difference between values.  */
   int can_eliminate;		/* Nonzero if this elimination can be done.  */
-  int can_eliminate_previous;	/* Value of CAN_ELIMINATE in previous scan over
-				   insns made by reload.  */
+  int can_eliminate_previous;	/* Value returned by TARGET_CAN_ELIMINATE
+				   target hook in previous scan over insns
+				   made by reload.  */
   HOST_WIDE_INT offset;		/* Current offset between the two regs.  */
   HOST_WIDE_INT previous_offset;/* Offset at end of previous insn.  */
   int ref_outside_mem;		/* "to" has been referenced outside a MEM.  */
@@ -3705,7 +3706,7 @@ update_eliminables (HARD_REG_SET *pset)
     if ((ep->from == HARD_FRAME_POINTER_REGNUM 
          && targetm.frame_pointer_required ())
 #ifdef ELIMINABLE_REGS
-	|| ! CAN_ELIMINATE (ep->from, ep->to)
+	|| ! targetm.can_eliminate (ep->from, ep->to)
 #endif
 	)
       ep->can_eliminate = 0;
@@ -3811,7 +3812,7 @@ init_elim_table (void)
       ep->from = ep1->from;
       ep->to = ep1->to;
       ep->can_eliminate = ep->can_eliminate_previous
-	= (CAN_ELIMINATE (ep->from, ep->to)
+	= (targetm.can_eliminate (ep->from, ep->to)
 	   && ! (ep->to == STACK_POINTER_REGNUM
 		 && frame_pointer_needed 
 		 && (! SUPPORTS_STACK_ALIGNMENT
@@ -4304,31 +4305,30 @@ reload_as_needed (int live_known)
 			    continue;
 			  if (n == 1)
 			    {
-			      n = validate_replace_rtx (reload_reg,
-							gen_rtx_fmt_e (code,
-								       mode,
-								       reload_reg),
-							p);
+			      rtx replace_reg
+				= gen_rtx_fmt_e (code, mode, reload_reg);
+
+			      validate_replace_rtx_group (reload_reg,
+							  replace_reg, p);
+			      n = verify_changes (0);
 
 			      /* We must also verify that the constraints
-				 are met after the replacement.  */
-			      extract_insn (p);
+				 are met after the replacement.  Make sure
+				 extract_insn is only called for an insn
+				 where the replacements were found to be
+				 valid so far. */
 			      if (n)
-				n = constrain_operands (1);
-			      else
-				break;
-
-			      /* If the constraints were not met, then
-				 undo the replacement.  */
-			      if (!n)
 				{
-				  validate_replace_rtx (gen_rtx_fmt_e (code,
-								       mode,
-								       reload_reg),
-							reload_reg, p);
-				  break;
+				  extract_insn (p);
+				  n = constrain_operands (1);
 				}
 
+			      /* If the constraints were not met, then
+				 undo the replacement, else confirm it.  */
+			      if (!n)
+				cancel_changes (0);
+			      else
+				confirm_change_group ();
 			    }
 			  break;
 			}
