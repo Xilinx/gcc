@@ -6990,8 +6990,6 @@ cp_parser_lambda_expression (cp_parser* parser)
     parser->num_template_parameter_lists = saved_num_template_parameter_lists;
   }
 
-  type = TREE_CHAIN (type);
-
   {
     /* Build aggregate constructor.
        - cp_parser_braced_list
@@ -7011,8 +7009,7 @@ cp_parser_lambda_expression (cp_parser* parser)
     CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
   }
 
-  /* TREE_TYPE to remove TYPE_DECL wrapping.  */
-  return finish_compound_literal (TREE_TYPE (type), expr);
+  return finish_compound_literal (type, expr);
 }
 
 /* Parse the beginning of a lambda expression.
