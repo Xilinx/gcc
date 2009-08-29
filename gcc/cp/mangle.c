@@ -1218,7 +1218,7 @@ write_source_name (tree identifier)
 }
 
 static void
-write_unnamed_type_name (const tree type)
+write_unnamed_type_name (const tree type __attribute__ ((__unused__)))
 {
   MANGLE_TRACE_TREE ("unnamed-type-name", type);
 
@@ -1230,10 +1230,10 @@ write_unnamed_type_name (const tree type)
 static void
 write_closure_type_name (const tree type)
 {
-  MANGLE_TRACE_TREE ("closure-type-name", type);
-
   tree fn = LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (type));
   tree parms = TYPE_ARG_TYPES (TREE_TYPE (fn));
+
+  MANGLE_TRACE_TREE ("closure-type-name", type);
 
   write_string ("Ul");
   write_method_parms (parms, /*method_p=*/1, fn);
@@ -1242,27 +1242,29 @@ write_closure_type_name (const tree type)
   /* TODO: Option: merge this back with discriminator_for_local_entity and
      don't write_discriminator in write_local_name when the entity is an
      unnamed-type.  */
+  /* TODO: Option: mark the TYPE_DECL for a lambda with its discriminator when
+     we create it.  */
   {
     /* Assume this is the first lambda.  */
     int discriminator = 0;
+    int ix;
 
+    /* Scan the list of local classes.  */
+    for (ix = 0; ; ix++)
       {
-        int ix;
-
-        /* Scan the list of local classes.  */
-        for (ix = 0; ; ix++)
-          {
-            tree other_type = VEC_index (tree, local_classes, ix);
-            if (other_type == type)
-              break;
-            if (LAMBDA_TYPE_P (other_type)
-                && TYPE_CONTEXT (other_type) == TYPE_CONTEXT (type))
-              ++discriminator;
-          }
+        tree other_type;
+        if (ix == VEC_length (tree, local_classes))
+          break;
+        other_type = VEC_index (tree, local_classes, ix);
+        if (other_type == type)
+          break;
+        if (LAMBDA_TYPE_P (other_type)
+            && TYPE_CONTEXT (other_type) == TYPE_CONTEXT (type))
+          ++discriminator;
       }
 
-      if (discriminator > 0)
-        write_unsigned_number (discriminator - 1);
+    if (discriminator > 0)
+      write_unsigned_number (discriminator - 1);
   }
   write_char ('_');
 }
