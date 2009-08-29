@@ -6991,7 +6991,7 @@ cp_parser_lambda_expression (cp_parser* parser)
   }
 
   {
-    /* Build aggregate constructor.
+    /* Build aggregate constructor call.
        - cp_parser_braced_list
        - cp_parser_functional_cast  */
     VEC(constructor_elt,gc) *elts = NULL;
@@ -7020,8 +7020,7 @@ cp_parser_lambda_expression (cp_parser* parser)
    LAMBDA_EXPR is the current representation of the lambda expression.  */
 
 static void
-cp_parser_lambda_introducer (cp_parser* parser,
-                             tree lambda_expr)
+cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 {
   /* Need commas after the first capture.  */
   bool first = true;
@@ -7166,14 +7165,15 @@ cp_parser_lambda_introducer (cp_parser* parser,
    LAMBDA_EXPR is the current representation of the lambda expression.  */
 
 static void
-cp_parser_lambda_declarator_opt (cp_parser* parser,
-                                            tree lambda_expr)
+cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 {
   /* 5.1.1.4 of the standard says:
        If a lambda-expression does not include a lambda-declarator, it is as if
        the lambda-declarator were ().
-     This means an empty parameter list and no exception specification.  */
+     This means an empty parameter list, no attributes, and no exception
+     specification.  */
   tree param_list = void_list_node;
+  tree attributes = NULL_TREE;
   tree exception_spec = NULL_TREE;
 
   /* The lambda-declarator is optional, but must begin with an opening
@@ -7191,7 +7191,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser,
 
       cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
-      /* TODO: Parse optional attribute specifier.  */
+      attributes = cp_parser_attributes_opt (parser);
 
       /* Parse optional `mutable' keyword.  */
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_MUTABLE))
@@ -7252,7 +7252,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser,
              If a lambda-expression does not include a trailing-return-type, it
              is as if the trailing-return-type denotes the following type: 
                — if the compound-statement is of the form 
-                   { return attribute-specifieropt expression ; } 
+                   { return attribute-specifier [opt] expression ; } 
                  the type of the returned expression after lvalue-to-rvalue
                  conversion (_conv.lval_ 4.1), array-to-pointer conversion
                  (_conv.array_ 4.2), and function-to-pointer conversion
@@ -7282,7 +7282,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser,
     /* TODO: Look into start_function.  */
     fco = start_method (&return_type_specs,
                         declarator,
-                        /*attributes=*/NULL_TREE);
+                        attributes);
     DECL_INITIALIZED_IN_CLASS_P (fco) = 1;
     finish_method (fco);
 
@@ -7302,8 +7302,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser,
    LAMBDA_EXPR is the current representation of the lambda expression.  */
 
 static void
-cp_parser_lambda_body (cp_parser* parser,
-                       tree lambda_expr)
+cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 {
   /* start_* / finish_* functions don't do any state preservation
      (finish_function sets current_function_decl to NULL), so we have to.  */
@@ -7336,7 +7335,7 @@ cp_parser_lambda_body (cp_parser* parser,
          If a lambda-expression does not include a trailing-return-type, it
          is as if the trailing-return-type denotes the following type: 
            — if the compound-statement is of the form 
-               { return attribute-specifieropt expression ; } 
+               { return attribute-specifier [opt] expression ; } 
              the type of the returned expression after lvalue-to-rvalue
              conversion (_conv.lval_ 4.1), array-to-pointer conversion
              (_conv.array_ 4.2), and function-to-pointer conversion
