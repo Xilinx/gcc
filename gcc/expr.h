@@ -267,6 +267,17 @@ do {								\
 #define STACK_CHECK_MAX_VAR_SIZE (STACK_CHECK_MAX_FRAME_SIZE / 100)
 #endif
 
+/* This structure is used to pass around information about exploded
+   unary, binary and trinary expressions between expand_expr_real_1 and
+   friends.  */
+typedef struct separate_ops
+{
+  enum tree_code code;
+  tree type;
+  tree op0, op1, op2;
+  location_t location;
+} *sepops;
+
 /* Functions from optabs.c, commonly used, and without need for the optabs
    tables:  */
 
@@ -568,13 +579,16 @@ extern tree string_constant (tree, tree *);
 
 /* Generate code to evaluate EXP and jump to LABEL if the value is zero.  */
 extern void jumpifnot (tree, rtx);
+extern void jumpifnot_1 (enum tree_code, tree, tree, rtx);
 
 /* Generate code to evaluate EXP and jump to LABEL if the value is nonzero.  */
 extern void jumpif (tree, rtx);
+extern void jumpif_1 (enum tree_code, tree, tree, rtx);
 
 /* Generate code to evaluate EXP and jump to IF_FALSE_LABEL if
    the result is zero, or IF_TRUE_LABEL if the result is one.  */
 extern void do_jump (tree, rtx, rtx);
+extern void do_jump_1 (enum tree_code, tree, tree, rtx, rtx);
 
 extern void do_compare_rtx_and_jump (rtx, rtx, enum rtx_code, int,
 				     enum machine_mode, rtx, rtx, rtx);

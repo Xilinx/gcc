@@ -42,24 +42,30 @@ static inline graphite_dim_t scop_nb_params (scop_p);
 
 /* A data reference can write or read some memory or we
    just know it may write some memory.  */
-enum POLY_DR_TYPE
+enum poly_dr_type
 {
   PDR_READ,
-  /* PDR_MAY_READs are represented using PDR_READS. This does not limit the
-     expressiveness.  */
+  /* PDR_MAY_READs are represented using PDR_READS.  This does not
+     limit the expressiveness.  */
   PDR_WRITE,
   PDR_MAY_WRITE
 };
 
 struct poly_dr
 {
+  /* An identifier for this PDR.  */
+  int id;
+
+  /* The number of data refs identical to this one in the PBB.  */
+  int nb_refs;
+
   /* A pointer to compiler's data reference description.  */
   void *compiler_dr;
 
   /* A pointer to the PBB that contains this data reference.  */
   poly_bb_p pbb;
 
-  enum POLY_DR_TYPE type;
+  enum poly_dr_type type;
 
   /* The access polyhedron contains the polyhedral space this data
      reference will access.
@@ -130,9 +136,11 @@ struct poly_dr
   ppl_Pointset_Powerset_C_Polyhedron_t accesses;
 
   /* The number of subscripts.  */
-  graphite_dim_t nb_subscripts; 
+  graphite_dim_t nb_subscripts;
 };
 
+#define PDR_ID(PDR) (PDR->id)
+#define PDR_NB_REFS(PDR) (PDR->nb_refs)
 #define PDR_CDR(PDR) (PDR->compiler_dr)
 #define PDR_PBB(PDR) (PDR->pbb)
 #define PDR_TYPE(PDR) (PDR->type)
@@ -140,7 +148,7 @@ struct poly_dr
 #define PDR_NB_SUBSCRIPTS(PDR) (PDR->nb_subscripts)
 
 void new_poly_dr (poly_bb_p, ppl_Pointset_Powerset_C_Polyhedron_t,
-		  enum POLY_DR_TYPE, void *, int);
+		  enum poly_dr_type, void *, graphite_dim_t);
 void free_poly_dr (poly_dr_p);
 void debug_pdr (poly_dr_p);
 void print_pdr (FILE *, poly_dr_p);
@@ -211,6 +219,30 @@ pdr_parameter_dim (poly_dr_p pdr, graphite_dim_t param)
   return pbb_dim_iter_domain (pbb) + param;
 }
 
+/* Returns true when PDR is a "read".  */
+
+static inline bool
+pdr_read_p (poly_dr_p pdr)
+{
+  return PDR_TYPE (pdr) == PDR_READ;
+}
+
+/* Returns true when PDR is a "write".  */
+
+static inline bool
+pdr_write_p (poly_dr_p pdr)
+{
+  return PDR_TYPE (pdr) == PDR_WRITE;
+}
+
+/* Returns true when PDR is a "may write".  */
+
+static inline bool
+pdr_may_write_p (poly_dr_p pdr)
+{
+  return PDR_TYPE (pdr) == PDR_MAY_WRITE;
+}
+
 typedef struct poly_scattering *poly_scattering_p;
 
 struct poly_scattering
@@ -266,6 +298,9 @@ struct poly_bb
 
   /* A copy of the transformed scattering.  */
   poly_scattering_p saved;
+
+  /* True when the PDR duplicates have already been removed.  */
+  bool pdr_duplicates_removed;
 };
 
 #define PBB_BLACK_BOX(PBB) ((gimple_bb_p) PBB->black_box)
@@ -279,6 +314,7 @@ struct poly_bb
 #define PBB_SAVED(PBB) (PBB->saved)
 #define PBB_NB_LOCAL_VARIABLES(PBB) (PBB->transformed->nb_local_variables)
 #define PBB_NB_SCATTERING_TRANSFORM(PBB) (PBB->transformed->nb_scattering)
+#define PBB_PDR_DUPLICATES_REMOVED(PBB) (PBB->pdr_duplicates_removed)
 
 extern void new_poly_bb (scop_p, void *);
 extern void free_poly_bb (poly_bb_p);
@@ -303,10 +339,21 @@ extern void debug_iteration_domains (scop_p);
 extern bool scop_do_interchange (scop_p);
 extern bool scop_do_strip_mine (scop_p);
 extern void pbb_number_of_iterations (poly_bb_p, graphite_dim_t, Value);
+extern void pbb_number_of_iterations_at_time (poly_bb_p, graphite_dim_t, Value);
+extern void pbb_remove_duplicate_pdrs (poly_bb_p);
+
+/* The index of the PBB.  */
+
+static inline int
+pbb_index (poly_bb_p pbb)
+{
+  return GBB_BB (PBB_BLACK_BOX (pbb))->index;
+}
 
 /* The scop that contains the PDR.  */
 
-static inline scop_p pdr_scop (poly_dr_p pdr)
+static inline scop_p
+pdr_scop (poly_dr_p pdr)
 {
   return PBB_SCOP (PDR_PBB (pdr));
 }
@@ -357,6 +404,17 @@ static inline graphite_dim_t
 pbb_nb_scattering_transform (const struct poly_bb *pbb)
 {
   return PBB_NB_SCATTERING_TRANSFORM (pbb);
+}
+
+/* The number of dynamic scattering dimensions in PBB.  */
+
+static inline graphite_dim_t
+pbb_nb_dynamic_scattering_transform (const struct poly_bb *pbb)
+{
+  /* This function requires the 2d + 1 scattering format to be
+     invariant during all transformations.  */
+  gcc_assert (PBB_NB_SCATTERING_TRANSFORM (pbb) % 2);
+  return PBB_NB_SCATTERING_TRANSFORM (pbb) / 2;
 }
 
 /* Returns the number of local variables used in the transformed
@@ -467,6 +525,19 @@ psct_parameter_dim (poly_bb_p pbb, graphite_dim_t param)
     + pbb_dim_iter_domain (pbb);
 }
 
+/* The scattering dimension of PBB corresponding to the dynamic level
+   LEVEL.  */
+
+static inline ppl_dimension_type
+psct_dynamic_dim (poly_bb_p pbb, graphite_dim_t level)
+{
+  graphite_dim_t result;
+  result = 1 + 2 * level;
+
+  gcc_assert (result < pbb_nb_scattering_transform (pbb));
+  return result;
+}
+
 /* Adds to the transformed scattering polyhedron of PBB a new local
    variable and returns its index.  */
 
@@ -525,17 +596,16 @@ struct scop
      c = 2a + b  */
   ppl_Pointset_Powerset_C_Polyhedron_t context;
 
-  /* A hashtable of the original pairs of dependent data references.
-     For each pair of dependent data references, the dependence
-     polyhedron is stored also.  */
-  htab_t original_pdr_pairs;
+  /* A hashtable of the data dependence relations for the original
+     scattering.  */
+  htab_t original_pddrs;
 };
 
 #define SCOP_BBS(S) (S->bbs)
 #define SCOP_REGION(S) ((sese) S->region)
 #define SCOP_DEP_GRAPH(S) (S->dep_graph)
 #define SCOP_CONTEXT(S) (S->context)
-#define SCOP_ORIGINAL_PDR_PAIRS(S) (S->original_pdr_pairs)
+#define SCOP_ORIGINAL_PDDRS(S) (S->original_pddrs)
 
 extern scop_p new_scop (void *);
 extern void free_scop (scop_p);

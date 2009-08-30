@@ -1,3 +1,47 @@
+2009-08-25  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* runtime/bounds.c (count_0):  New function.
+	* intrinsics/unpack_generic (unpack_bounds):  New function.
+	(unpack_internal):  Remove zero stride checks.
+	(unpack1):  Use unpack_bounds.
+	(unpack1_char):  Likeweise.
+	(unpack1_char4):  Likewise
+	(unpack0):  Likewise.
+	(unpack0_char):  Likewise.
+	(unpack0_char4):  Likewise.
+
+2009-08-24  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/41157
+	* dtime.c (dtime_sub): Fix computing time increment.
+	* time_1.h: Add <sys/types.h> header.  Use RUSAGE_SELF macro instead
+	of a hardcoded 0.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-23  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* intrinsics/cshift0.c: Update license to GPL3+exception.
+	* runtime/fpu.c: Add a GPL3+exception statement.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (install-html, install-pdf): Remove.
+	* Makefile.in: Regenerate.
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (libgfortran_la_LINK): Add $(libgfortran_la_LDFLAGS).
+	* Makefile.in: Regenerate.
+
 2009-08-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR libfortran/40962
