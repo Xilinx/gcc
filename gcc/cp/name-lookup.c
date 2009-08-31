@@ -3762,6 +3762,10 @@ qualify_lookup (tree val, int flags)
     return true;
   if (flags & (LOOKUP_PREFER_NAMESPACES | LOOKUP_PREFER_TYPES))
     return false;
+  /* In unevaluated context, look past capture fields.  */
+  if (cp_unevaluated_operand && TREE_CODE (val) == FIELD_DECL
+      && LAMBDA_TYPE_P (DECL_CONTEXT (val)))
+    return false;
   return true;
 }
 

@@ -55,6 +55,7 @@ along with GCC; see the file COPYING3.  If not see
 
 static tree maybe_convert_cond (tree);
 static tree finalize_nrv_r (tree *, int *, void *);
+static tree capture_type (tree);
 
 
 /* Deferred Access Checking Overview
@@ -2635,6 +2636,18 @@ baselink_for_fns (tree fns)
   return build_baselink (cl, cl, fns, /*optype=*/NULL_TREE);
 }
 
+/* Returns true iff DECL is an automatic variable from a function outside
+   the current one.  */
+
+static bool
+outer_automatic_var_p (tree decl)
+{
+  return ((TREE_CODE (decl) == VAR_DECL || TREE_CODE (decl) == PARM_DECL)
+	  && DECL_FUNCTION_SCOPE_P (decl)
+	  && !TREE_STATIC (decl)
+	  && DECL_CONTEXT (decl) != current_function_decl);
+}
+
 /* ID_EXPRESSION is a representation of parsed, but unprocessed,
    id-expression.  (See cp_parser_id_expression for details.)  SCOPE,
    if non-NULL, is the type or namespace used to explicitly qualify
@@ -2738,56 +2751,53 @@ finish_id_expression (tree id_expression,
 
       /* Disallow uses of local variables from containing functions, except
 	 within lambda-expressions.  */
-      if ((TREE_CODE (decl) == VAR_DECL || TREE_CODE (decl) == PARM_DECL)
+      if (outer_automatic_var_p (decl)
+	  /* It's not a use (3.2) if we're in an unevaluated context.  */
 	  && !cp_unevaluated_operand)
 	{
-	  tree context = decl_function_context (decl);
-	  if (context && context != current_function_decl
-	      && ! TREE_STATIC (decl))
+	  tree context = DECL_CONTEXT (decl);
+	  tree containing_function = current_function_decl;
+	  tree lambda_stack = NULL_TREE;
+
+	  /* FIXME update for final resolution of core issue 696.  */
+	  if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
+	    return integral_constant_value (decl);
+
+	  /* If we are in a lambda function, we can move out until we hit
+	     1. the context,
+	     2. a non-lambda function, or
+	     3. a non-default capturing lambda function.  */
+	  while (context != containing_function
+		 && LAMBDA_FUNCTION_P (containing_function))
 	    {
-              tree containing_function = current_function_decl;
-              tree lambda_stack = NULL_TREE;
+	      tree lambda_expr = CLASSTYPE_LAMBDA_EXPR
+		(DECL_CONTEXT (containing_function));
 
-	      /* FIXME update for final resolution of core issue 696.  */
-	      if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
-		return integral_constant_value (decl);
+	      if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr)
+		  == CPLD_NONE)
+		break;
 
-              /* If we are in a lambda function, we can move out until we hit
-                   1. the context,
-                   2. a non-lambda function, or
-                   3. a non-default capturing lambda function.  */
-              while (context != containing_function
-                     && LAMBDA_FUNCTION_P (containing_function))
-                {
-                  tree lambda_expr = CLASSTYPE_LAMBDA_EXPR
-                                       (DECL_CONTEXT (containing_function));
+	      lambda_stack = tree_cons (NULL_TREE,
+					lambda_expr,
+					lambda_stack);
 
-                  if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr)
-                      == CPLD_NONE)
-                    break;
+	      containing_function
+		= decl_function_context (containing_function);
+	    }
 
-                  lambda_stack = tree_cons (NULL_TREE,
-                                            lambda_expr,
-                                            lambda_stack);
-
-                  containing_function
-                    = decl_function_context (containing_function);
-                }
-
-              if (context == containing_function)
-                {
-                  decl = add_default_capture (lambda_stack,
-                                              /*id=*/DECL_NAME (decl),
-                                              /*initializer=*/decl);
-                }
-              else
-                {
-                  error (TREE_CODE (decl) == VAR_DECL
-                         ? "use of %<auto%> variable from containing function"
-                         : "use of parameter from containing function");
-                  error ("  %q+#D declared here", decl);
-                  return error_mark_node;
-                }
+	  if (context == containing_function)
+	    {
+	      decl = add_default_capture (lambda_stack,
+					  /*id=*/DECL_NAME (decl),
+					  /*initializer=*/decl);
+	    }
+	  else
+	    {
+	      error (TREE_CODE (decl) == VAR_DECL
+		     ? "use of %<auto%> variable from containing function"
+		     : "use of parameter from containing function");
+	      error ("  %q+#D declared here", decl);
+	      return error_mark_node;
 	    }
 	}
     }
@@ -4851,6 +4861,17 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
               if (real_lvalue_p (expr))
                 type = build_reference_type (type);
             }
+	  /* Within a lambda-expression:
+
+	     Every occurrence of decltype((x)) where x is a possibly
+	     parenthesized id-expression that names an entity of
+	     automatic storage duration is treated as if x were
+	     transformed into an access to a corresponding data member
+	     of the closure type that would have been declared if x
+	     were a use of the denoted entity.  */
+	  else if (outer_automatic_var_p (expr)
+		   && LAMBDA_FUNCTION_P (current_function_decl))
+	    type = capture_type (expr);
           else
             {
               /* Otherwise, where T is the type of e, if e is an lvalue,
@@ -5308,6 +5329,53 @@ deduce_lambda_return_type (tree lambda, tree expr)
       cfun->returns_struct = 1;
     }
 
+}
+
+/* DECL is a local variable or parameter from the surrounding scope of a
+   lambda-expression.  Returns the decltype for a use of the capture field
+   for DECL even if it hasn't been captured yet.  */
+
+static tree
+capture_type (tree decl)
+{
+  tree lam = CLASSTYPE_LAMBDA_EXPR (DECL_CONTEXT (current_function_decl));
+  tree cap = value_member (decl, LAMBDA_EXPR_CAPTURE_LIST (lam));
+  tree type;
+
+  if (cap)
+    type = TREE_TYPE (TREE_PURPOSE (cap));
+  else
+    switch (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lam))
+      {
+      case CPLD_NONE:
+	error ("%qD is not captured", decl);
+	return error_mark_node;
+
+      case CPLD_COPY:
+	type = TREE_TYPE (decl);
+	if (TREE_CODE (type) == REFERENCE_TYPE
+	    && TREE_CODE (TREE_TYPE (type)) != FUNCTION_TYPE)
+	  type = TREE_TYPE (type);
+	break;
+
+      case CPLD_REFERENCE:
+	type = TREE_TYPE (decl);
+	if (TREE_CODE (type) != REFERENCE_TYPE)
+	  type = build_reference_type (TREE_TYPE (decl));
+	break;
+
+      default:
+	gcc_unreachable ();
+      }
+
+  if (TREE_CODE (type) != REFERENCE_TYPE)
+    {
+      if (!LAMBDA_EXPR_MUTABLE_P (lam))
+	type = cp_build_qualified_type (type, (TYPE_QUALS (type)
+					       |TYPE_QUAL_CONST));
+      type = build_reference_type (type);
+    }
+  return type;
 }
 
 /* From an ID and INITIALIZER, create a capture (by reference if
