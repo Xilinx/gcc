@@ -2736,15 +2736,21 @@ finish_id_expression (tree id_expression,
       if (!scope && decl != error_mark_node)
 	maybe_note_name_used_in_class (id_expression, decl);
 
-      /* Disallow uses of local variables from containing functions.  */
-      if (TREE_CODE (decl) == VAR_DECL || TREE_CODE (decl) == PARM_DECL)
+      /* Disallow uses of local variables from containing functions, except
+	 within lambda-expressions.  */
+      if ((TREE_CODE (decl) == VAR_DECL || TREE_CODE (decl) == PARM_DECL)
+	  && !cp_unevaluated_operand)
 	{
 	  tree context = decl_function_context (decl);
-	  if (context != NULL_TREE && context != current_function_decl
+	  if (context && context != current_function_decl
 	      && ! TREE_STATIC (decl))
 	    {
               tree containing_function = current_function_decl;
               tree lambda_stack = NULL_TREE;
+
+	      /* FIXME update for final resolution of core issue 696.  */
+	      if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
+		return integral_constant_value (decl);
 
               /* If we are in a lambda function, we can move out until we hit
                    1. the context,
