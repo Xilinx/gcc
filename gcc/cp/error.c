@@ -594,9 +594,11 @@ dump_aggr_type (tree t, int flags)
     {
       /* A lambda's "type" is essentially its signature.  */
       pp_string (cxx_pp, M_("<lambda>"));
-      dump_parameters (FUNCTION_FIRST_USER_PARMTYPE
+      if (CLASSTYPE_LAMBDA_EXPR (t)
+	  && LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (t)))
+	dump_parameters (FUNCTION_FIRST_USER_PARMTYPE
                          (LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (t))),
-                       flags);
+			 flags);
     }
   else
     pp_cxx_tree_identifier (cxx_pp, name);
