@@ -2499,7 +2499,8 @@ cp_parser_skip_to_closing_parenthesis (cp_parser *parser,
 	  break;
 
 	case CPP_COMMA:
-	  if (recovering && or_comma && !brace_depth && !paren_depth && !square_depth)
+	  if (recovering && or_comma && !brace_depth && !paren_depth
+	      && !square_depth)
 	    return -1;
 	  break;
 
@@ -7170,6 +7171,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 
       /* Default arguments shall not be specified in the
 	 parameter-declaration-clause of a lambda-declarator.  */
+      /* FIXME this seems like an unnecessary restriction.  */
       for (t = param_list; t; t = TREE_CHAIN (t))
 	if (TREE_PURPOSE (t))
 	  {
@@ -7235,14 +7237,14 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
       {
         /* 5.1.1.4 of the standard says:
              If a lambda-expression does not include a trailing-return-type, it
-             is as if the trailing-return-type denotes the following type: 
-               — if the compound-statement is of the form 
-                   { return attribute-specifier [opt] expression ; } 
+             is as if the trailing-return-type denotes the following type:
+               — if the compound-statement is of the form
+                   { return attribute-specifier [opt] expression ; }
                  the type of the returned expression after lvalue-to-rvalue
                  conversion (_conv.lval_ 4.1), array-to-pointer conversion
                  (_conv.array_ 4.2), and function-to-pointer conversion
-                 (_conv.func_ 4.3); 
-             — otherwise, void.  */
+                 (_conv.func_ 4.3);
+               — otherwise, void.  */
         /* Will find out later what the form is, but can use void as a placeholder
            return type anyways.  */
         return_type_specs.type = void_type_node;
@@ -7316,14 +7318,15 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 
     /* 5.1.1.4 of the standard says:
          If a lambda-expression does not include a trailing-return-type, it
-         is as if the trailing-return-type denotes the following type: 
-           — if the compound-statement is of the form 
-               { return attribute-specifier [opt] expression ; } 
+         is as if the trailing-return-type denotes the following type:
+           — if the compound-statement is of the form
+               { return attribute-specifier [opt] expression ; }
              the type of the returned expression after lvalue-to-rvalue
              conversion (_conv.lval_ 4.1), array-to-pointer conversion
              (_conv.array_ 4.2), and function-to-pointer conversion
-             (_conv.func_ 4.3); 
-         — otherwise, void.  */
+             (_conv.func_ 4.3);
+           — otherwise, void.  */
+
     /* In a lambda that has neither a lambda-return-type-clause
        nor a deducible form, errors should be reported for return statements
        in the body.  Since we used void as the placeholder return type, parsing

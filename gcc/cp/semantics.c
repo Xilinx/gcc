@@ -1446,15 +1446,14 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
       return error_mark_node;
     }
 
-  /* If decl is a field, object has a lambda type, and decl is not a member of
-     that type, then we must get to decl through the 'this' capture of the
-     object.  If decl is not a member of that object, either, then its access
-     will still fail later.  */
+  /* If decl is a field, object has a lambda type, and decl is not a member
+     of that type, then we have a reference to a member of 'this' from a
+     lambda inside a non-static member function, and we must get to decl
+     through the 'this' capture.  If decl is not a member of that object,
+     either, then its access will still fail later.  */
   if (LAMBDA_TYPE_P (TREE_TYPE (object))
       && !same_type_ignoring_top_level_qualifiers_p (DECL_CONTEXT (decl),
                                                      TREE_TYPE (object)))
-    /* TODO: if the lambda does not capture 'this', but has default capture,
-       then we need to add it late.  */
     object = cp_build_indirect_ref (lambda_expr_this_capture (
                                       CLASSTYPE_LAMBDA_EXPR (
                                         TREE_TYPE (object))),
@@ -2759,7 +2758,13 @@ finish_id_expression (tree id_expression,
 	  tree containing_function = current_function_decl;
 	  tree lambda_stack = NULL_TREE;
 
-	  /* FIXME update for final resolution of core issue 696.  */
+	  /* Core issue 696: "[At the July 2009 meeting] the CWG expressed
+	     support for an approach in which a reference to a local
+	     [constant] automatic variable in a nested class or lambda body
+	     would enter the expression as an rvalue, which would reduce
+	     the complexity of the problem"
+
+	     FIXME update for final resolution of core issue 696.  */
 	  if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
 	    return integral_constant_value (decl);
 
@@ -5231,6 +5236,7 @@ build_lambda_object (tree lambda_expr)
   expr = build_constructor (init_list_type_node, elts);
   CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
 
+  /* FIXME N2927: "[The closure] class type is not an aggregate."  */
   return finish_compound_literal (TREE_TYPE (lambda_expr), expr);
 }
 
@@ -5416,6 +5422,7 @@ static tree
 capture_decltype (tree decl)
 {
   tree lam = CLASSTYPE_LAMBDA_EXPR (DECL_CONTEXT (current_function_decl));
+  /* FIXME do lookup instead of list walk? */
   tree cap = value_member (decl, LAMBDA_EXPR_CAPTURE_LIST (lam));
   tree type;
 

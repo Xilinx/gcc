@@ -544,7 +544,6 @@ enum cp_lambda_default_capture_mode_type {
    TREE_LIST:
      TREE_PURPOSE: The FIELD_DECL for this capture.
      TREE_VALUE: The initializer. This is part of a GNU extension.  */
-/* FIXME change to hash table?  Hang off identifier?  */
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->capture_list)
 
@@ -1224,6 +1223,7 @@ struct GTY(()) lang_type_class {
      to resort it if pointers get rearranged.  */
   struct sorted_fields_type * GTY ((reorder ("resort_sorted_fields")))
     sorted_fields;
+  /* FIXME reuse another field?  */
   tree lambda_expr;
 };
 

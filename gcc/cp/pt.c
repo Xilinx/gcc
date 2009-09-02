@@ -12210,7 +12210,8 @@ tsubst_copy_and_build (tree t,
 	tree type = tsubst (TREE_TYPE (t), args, complain, NULL_TREE);
 	TREE_TYPE (r) = type;
 	CLASSTYPE_LAMBDA_EXPR (type) = r;
-	/* Instantiate the type so we have a declaration of the op().  */
+	/* Instantiate the type here so we have a declaration of the op()
+	   before we recur into LAMBDA_EXPR_FUNCTION.  */
 	complete_type (type);
 
 	LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (r)
@@ -12223,8 +12224,8 @@ tsubst_copy_and_build (tree t,
 	LAMBDA_EXPR_THIS_CAPTURE (r)
 	  = RECUR (LAMBDA_EXPR_THIS_CAPTURE (t));
 
-	/* This needs to happen after we set LAMBDA_EXPR_FUNCTION.  */
 	type = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
+	/* This needs to happen after we set LAMBDA_EXPR_FUNCTION.  */
 	apply_lambda_return_type (r, type);
 
 	return build_lambda_object (r);

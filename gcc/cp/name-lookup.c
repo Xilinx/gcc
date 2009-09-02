@@ -1847,6 +1847,7 @@ make_anon_name (void)
    anonymous names, but is just used for lambdas instead.  This is necessary
    because anonymous names are recognized and cannot be passed to template
    functions.  */
+/* FIXME is this still necessary? */
 
 static GTY(()) int lambda_cnt = 0;
 
@@ -3763,6 +3764,7 @@ qualify_lookup (tree val, int flags)
   if (flags & (LOOKUP_PREFER_NAMESPACES | LOOKUP_PREFER_TYPES))
     return false;
   /* In unevaluated context, look past capture fields.  */
+  /* FIXME this will cause trouble with the initializer extension.  */
   if (cp_unevaluated_operand && TREE_CODE (val) == FIELD_DECL
       && LAMBDA_TYPE_P (DECL_CONTEXT (val)))
     return false;
