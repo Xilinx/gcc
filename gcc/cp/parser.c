@@ -7155,6 +7155,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
   tree param_list = void_list_node;
   tree attributes = NULL_TREE;
   tree exception_spec = NULL_TREE;
+  tree t;
 
   /* The lambda-declarator is optional, but must begin with an opening
      parenthesis if present.  */
@@ -7165,9 +7166,16 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
       begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
 
       /* Parse parameters.  */
-      /* TODO: Disallow default arguments in a lambda's
-         parameter-declaration-clause.  */
       param_list = cp_parser_parameter_declaration_clause (parser);
+
+      /* Default arguments shall not be specified in the
+	 parameter-declaration-clause of a lambda-declarator.  */
+      for (t = param_list; t; t = TREE_CHAIN (t))
+	if (TREE_PURPOSE (t))
+	  {
+	    error ("default argument specified for lambda parameter");
+	    TREE_PURPOSE (t) = NULL_TREE;
+	  }
 
       cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
@@ -7192,21 +7200,18 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 
       /* The function parameters must be in scope all the way until after the
          trailing-return-type in case of decltype.  */
-      {
-        tree t;
-        for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
-          pop_binding (DECL_NAME (t), t);
-      }
+      for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+	pop_binding (DECL_NAME (t), t);
 
       leave_scope ();
-
     }
 
   /* Start the function call operator
      - member_specification_opt
      + member_declaration  */
   /* TODO: Find a better way to do this that does not involve
-     cp_decl_specifier_seq or cp_declarator and put it into semantics.c.  */
+     cp_decl_specifier_seq or cp_declarator and put it into semantics.c.
+     see implicitly_declare_fn.  */
   {
     bool saved_in_declarator_p = parser->in_declarator_p;
     bool saved_default_arg_ok_p = parser->default_arg_ok_p;
