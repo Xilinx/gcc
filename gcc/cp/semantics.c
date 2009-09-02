@@ -55,7 +55,7 @@ along with GCC; see the file COPYING3.  If not see
 
 static tree maybe_convert_cond (tree);
 static tree finalize_nrv_r (tree *, int *, void *);
-static tree capture_type (tree);
+static tree capture_decltype (tree);
 
 
 /* Deferred Access Checking Overview
@@ -4870,8 +4870,9 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
 	     of the closure type that would have been declared if x
 	     were a use of the denoted entity.  */
 	  else if (outer_automatic_var_p (expr)
+		   && current_function_decl
 		   && LAMBDA_FUNCTION_P (current_function_decl))
-	    type = capture_type (expr);
+	    type = capture_decltype (expr);
           else
             {
               /* Otherwise, where T is the type of e, if e is an lvalue,
@@ -5204,6 +5205,35 @@ build_lambda_expr (void)
   return lambda;
 }
 
+/* Create the closure object for a LAMBDA_EXPR.  */
+
+tree
+build_lambda_object (tree lambda_expr)
+{
+  /* Build aggregate constructor call.
+     - cp_parser_braced_list
+     - cp_parser_functional_cast  */
+  VEC(constructor_elt,gc) *elts = NULL;
+  tree node, expr;
+
+  if (processing_template_decl)
+    return lambda_expr;
+
+  for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
+       node;
+       node = TREE_CHAIN (node))
+    {
+      CONSTRUCTOR_APPEND_ELT (elts,
+			      /*identifier=*/NULL_TREE,
+			      TREE_VALUE (node));
+    }
+
+  expr = build_constructor (init_list_type_node, elts);
+  CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
+
+  return finish_compound_literal (TREE_TYPE (lambda_expr), expr);
+}
+
 /* Return an initialized RECORD_TYPE for LAMBDA.
    LAMBDA must have its explicit captures already.  */
 
@@ -5293,33 +5323,80 @@ finish_lambda_function_body (tree lambda, tree body)
 
 }
 
+/* Returns the type to use for the return type of the operator() of a
+   closure class.  */
+
+tree
+lambda_return_type (tree expr)
+{
+  tree type;
+  if (type_dependent_expression_p (expr))
+    {
+      type = cxx_make_type (DECLTYPE_TYPE);
+      DECLTYPE_TYPE_EXPR (type) = expr;
+      DECLTYPE_FOR_LAMBDA_RETURN (type) = true;
+      SET_TYPE_STRUCTURAL_EQUALITY (type);
+    }
+  else
+    type = type_decays_to (unlowered_expr_type (expr));
+  return type;
+}
+
+/* Returns the type to use for the FIELD_DECL corresponding to the
+   capture of EXPR.
+   The caller should add REFERENCE_TYPE for capture by reference.  */
+
+tree
+lambda_capture_field_type (tree expr)
+{
+  tree type;
+  if (type_dependent_expression_p (expr))
+    {
+      type = cxx_make_type (DECLTYPE_TYPE);
+      DECLTYPE_TYPE_EXPR (type) = expr;
+      DECLTYPE_FOR_LAMBDA_CAPTURE (type) = true;
+      SET_TYPE_STRUCTURAL_EQUALITY (type);
+    }
+  else
+    type = non_reference (unlowered_expr_type (expr));
+  return type;
+}
+
 /* Recompute the return type for LAMBDA with body of the form:
      { return EXPR ; }  */
 
 void
-deduce_lambda_return_type (tree lambda, tree expr)
+apply_lambda_return_type (tree lambda, tree return_type)
 {
   tree fco = LAMBDA_EXPR_FUNCTION (lambda);
-  tree return_type;
   tree result;
 
-  return_type = type_decays_to (unlowered_expr_type (expr));
+  LAMBDA_EXPR_RETURN_TYPE (lambda) = return_type;
 
-  /* Set the DECL_RESULT.
-     - start_preparsed_function
-     + allocate_struct_function  */
+  /* If we got a DECLTYPE_TYPE, don't stick it in the function yet,
+     it would interfere with instantiating the closure type.  */
+  if (dependent_type_p (return_type))
+    return;
+
+  /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
+     TREE_TYPE (METHOD_TYPE)   == return-type  */
+  TREE_TYPE (TREE_TYPE (fco)) = return_type;
+
+  result = DECL_RESULT (fco);
+  if (result == NULL_TREE)
+    return;
+
+  /* We already have a DECL_RESULT from start_preparsed_function.
+     Now we need to redo the work it and allocate_struct_function
+     did to reflect the new type.  */
   result = build_decl (input_location, RESULT_DECL, NULL_TREE,
 		       TYPE_MAIN_VARIANT (return_type));
-  /* TODO: are these necessary?  */
   DECL_ARTIFICIAL (result) = 1;
   DECL_IGNORED_P (result) = 1;
   cp_apply_type_quals_to_decl (cp_type_quals (return_type),
                                result);
 
   DECL_RESULT (fco) = result;
-  /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
-     TREE_TYPE (METHOD_TYPE)   == return-type  */
-  TREE_TYPE (TREE_TYPE (fco)) = return_type;
 
   if (!processing_template_decl && aggregate_value_p (result, fco))
     {
@@ -5336,7 +5413,7 @@ deduce_lambda_return_type (tree lambda, tree expr)
    for DECL even if it hasn't been captured yet.  */
 
 static tree
-capture_type (tree decl)
+capture_decltype (tree decl)
 {
   tree lam = CLASSTYPE_LAMBDA_EXPR (DECL_CONTEXT (current_function_decl));
   tree cap = value_member (decl, LAMBDA_EXPR_CAPTURE_LIST (lam));
@@ -5388,18 +5465,12 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
   tree type;
   tree member;
 
-  type = finish_decltype_type
-           (initializer, /*id_expression_or_member_access_p=*/false);
-
+  type = lambda_capture_field_type (initializer);
   if (by_reference_p)
     {
-      if (TREE_CODE (type) != REFERENCE_TYPE)
-        error ("cannot capture %qE by reference", initializer);
-    }
-  else
-    {
-      /* May come as a reference, so strip it down if desired.  */
-      type = non_reference (type);
+      type = build_reference_type (type);
+      if (!real_lvalue_p (initializer))
+	error ("cannot capture %qE by reference", initializer);
     }
 
   /* Make member variable.  */
@@ -5416,7 +5487,6 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
     }
 
   return member;
-
 }
 
 /* Similar to add_capture, except this works on a stack of nested lambdas.
@@ -5462,7 +5532,6 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
       TYPE_BEING_DEFINED (current_class_type) = 0;
 
       initializer = member;
-
     }
 
   current_class_type = saved_class_type;

@@ -6962,7 +6962,6 @@ cp_parser_lambda_expression (cp_parser* parser)
 {
   tree lambda_expr = build_lambda_expr ();
   tree type;
-  tree expr;
 
   cp_parser_lambda_introducer (parser, lambda_expr);
 
@@ -6990,26 +6989,7 @@ cp_parser_lambda_expression (cp_parser* parser)
     parser->num_template_parameter_lists = saved_num_template_parameter_lists;
   }
 
-  {
-    /* Build aggregate constructor call.
-       - cp_parser_braced_list
-       - cp_parser_functional_cast  */
-    VEC(constructor_elt,gc) *elts = NULL;
-    tree node;
-    for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
-         node;
-         node = TREE_CHAIN (node))
-      {
-        CONSTRUCTOR_APPEND_ELT (elts,
-                                /*identifier=*/NULL_TREE,
-                                TREE_VALUE (node));
-      }
-
-    expr = build_constructor (init_list_type_node, elts);
-    CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
-  }
-
-  return finish_compound_literal (type, expr);
+  return build_lambda_object (lambda_expr);
 }
 
 /* Parse the beginning of a lambda expression.
@@ -7289,9 +7269,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
     finish_member_declaration (fco);
 
     LAMBDA_EXPR_FUNCTION (lambda_expr) = fco;
-
   }
-
 }
 
 /* Parse the body of a lambda expression, which is simply
@@ -7360,7 +7338,7 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 	cp_parser_require_keyword (parser, RID_RETURN, "%<return%>");
 
 	expr = cp_parser_expression (parser, /*cast_p=*/false, &idk);
-	deduce_lambda_return_type (lambda_expr, expr);
+	apply_lambda_return_type (lambda_expr, lambda_return_type (expr));
 	/* Will get error here if type not deduced yet.  */
 	finish_return_stmt (expr);
 

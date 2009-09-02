@@ -430,7 +430,9 @@ DEFTREECODE (LAMBDA_EXPR, "lambda_expr", tcc_exceptional, 0)
    DECLTYPE_TYPE_EXPR is the expression whose type we are computing.
    DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P states whether the
    expression was parsed as an id-expression or a member access
-   expression. When false, it was parsed as a full expression.  */
+   expression. When false, it was parsed as a full expression.
+   DECLTYPE_FOR_LAMBDA_CAPTURE is set if we want lambda capture semantics.
+   DECLTYPE_FOR_LAMBDA_RETURN is set if we want lambda return deduction.  */
 DEFTREECODE (DECLTYPE_TYPE, "decltype_type", tcc_type, 0)
 
 /*

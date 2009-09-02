@@ -9994,9 +9994,13 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	--cp_unevaluated_operand;
 	--c_inhibit_evaluation_warnings;
 
-	type =
-          finish_decltype_type (type,
-                                DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t));
+	if (DECLTYPE_FOR_LAMBDA_CAPTURE (t))
+	  type = lambda_capture_field_type (type);
+	else if (DECLTYPE_FOR_LAMBDA_RETURN (t))
+	  type = lambda_return_type (type);
+	else
+	  type = finish_decltype_type
+	    (type, DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t));
 	return cp_build_qualified_type_real (type,
 					     cp_type_quals (t)
 					     | cp_type_quals (type),
@@ -12198,6 +12202,33 @@ tsubst_copy_and_build (tree t,
 	  return DECL_INITIAL (t);
 	}
       return t;
+
+    case LAMBDA_EXPR:
+      {
+	tree r = build_lambda_expr ();
+
+	tree type = tsubst (TREE_TYPE (t), args, complain, NULL_TREE);
+	TREE_TYPE (r) = type;
+	CLASSTYPE_LAMBDA_EXPR (type) = r;
+	/* Instantiate the type so we have a declaration of the op().  */
+	complete_type (type);
+
+	LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (r)
+	  = LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (t);
+	LAMBDA_EXPR_MUTABLE_P (r) = LAMBDA_EXPR_MUTABLE_P (t);
+	LAMBDA_EXPR_FUNCTION (r)
+	  = RECUR (LAMBDA_EXPR_FUNCTION (t));
+	LAMBDA_EXPR_CAPTURE_LIST (r)
+	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
+	LAMBDA_EXPR_THIS_CAPTURE (r)
+	  = RECUR (LAMBDA_EXPR_THIS_CAPTURE (t));
+
+	/* This needs to happen after we set LAMBDA_EXPR_FUNCTION.  */
+	type = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
+	apply_lambda_return_type (r, type);
+
+	return build_lambda_object (r);
+      }
 
     default:
       /* Handle Objective-C++ constructs, if appropriate.  */

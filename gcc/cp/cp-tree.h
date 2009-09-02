@@ -78,6 +78,7 @@ framework extensions, you must include this file before toplev.h, not after.
       ATTR_IS_DEPENDENT (in the TREE_LIST for an attribute)
       CONSTRUCTOR_IS_DIRECT_INIT (in CONSTRUCTOR)
       LAMBDA_EXPR_CAPTURES_THIS_P (in LAMBDA_EXPR)
+      DECLTYPE_FOR_LAMBDA_CAPTURE (in DECLTYPE_TYPE)
    1: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       TI_PENDING_TEMPLATE_FLAG.
       TEMPLATE_PARMS_FOR_INLINE.
@@ -89,6 +90,7 @@ framework extensions, you must include this file before toplev.h, not after.
       STMT_IS_FULL_EXPR_P (in _STMT)
       TARGET_EXPR_LIST_INIT_P (in TARGET_EXPR)
       LAMBDA_EXPR_MUTABLE_P (in LAMBDA_EXPR)
+      DECLTYPE_FOR_LAMBDA_RETURN (in DECLTYPE_TYPE)
    2: IDENTIFIER_OPNAME_P (in IDENTIFIER_NODE)
       ICS_THIS_FLAG (in _CONV)
       DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (in VAR_DECL)
@@ -3122,6 +3124,14 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P(NODE) \
   (DECLTYPE_TYPE_CHECK (NODE))->type.string_flag
 
+/* These flags indicate that we want different semantics from normal
+   decltype: lambda capture just drops references, lambda return also does
+   type decay.  */
+#define DECLTYPE_FOR_LAMBDA_CAPTURE(NODE) \
+  TREE_LANG_FLAG_0 (DECLTYPE_TYPE_CHECK (NODE))
+#define DECLTYPE_FOR_LAMBDA_RETURN(NODE) \
+  TREE_LANG_FLAG_1 (DECLTYPE_TYPE_CHECK (NODE))
+
 /* Nonzero for VAR_DECL and FUNCTION_DECL node means that `extern' was
    specified in its declaration.  This can also be set for an
    erroneously declared PARM_DECL.  */
@@ -4959,9 +4969,12 @@ extern tree describable_type			(tree);
 extern tree finish_decltype_type                (tree, bool);
 extern tree finish_trait_expr			(enum cp_trait_kind, tree, tree);
 extern tree build_lambda_expr                   (void);
+extern tree build_lambda_object			(tree);
 extern tree begin_lambda_type                   (tree);
+extern tree lambda_capture_field_type		(tree);
+extern tree lambda_return_type			(tree);
 extern void finish_lambda_function_body         (tree, tree);
-extern void deduce_lambda_return_type           (tree, tree);
+extern void apply_lambda_return_type            (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern tree lambda_expr_this_capture            (tree);
