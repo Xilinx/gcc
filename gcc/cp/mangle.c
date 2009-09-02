@@ -1247,7 +1247,7 @@ write_closure_type_name (const tree type)
   {
     /* Assume this is the first lambda.  */
     int discriminator = 0;
-    int ix;
+    unsigned int ix;
 
     /* Scan the list of local classes.  */
     for (ix = 0; ; ix++)
