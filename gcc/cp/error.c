@@ -590,12 +590,11 @@ dump_aggr_type (tree t, int flags)
       else
 	pp_printf (pp_base (cxx_pp), M_("<anonymous %s>"), variety);
     }
-  else if (LAMBDANAME_P (name))
+  else if (LAMBDA_TYPE_P (t))
     {
       /* A lambda's "type" is essentially its signature.  */
       pp_string (cxx_pp, M_("<lambda>"));
-      if (CLASSTYPE_LAMBDA_EXPR (t)
-	  && LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (t)))
+      if (LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (t)))
 	dump_parameters (FUNCTION_FIRST_USER_PARMTYPE
                          (LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (t))),
 			 flags);
