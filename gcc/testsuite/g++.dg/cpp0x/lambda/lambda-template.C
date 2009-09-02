@@ -23,6 +23,16 @@ T f(T t)
     abort ();
   if (t != apply([=]{return t;}))
     abort ();
+
+  int i;
+  [&] (int a)                    { return a+i+t; } (0);
+  [&] (int a) -> decltype(a)     { return a+i+t; } (0);
+  [&] (int a) -> decltype(i)     { return a+i+t; } (0);
+  [&] (int a) -> decltype(t)     { return a+i+t; } (0);
+  [&] (int a) -> decltype(a+i)   { return a+i+t; } (0);
+  [&] (int a) -> decltype(a+t)   { return a+i+t; } (0);
+  [&] (int a) -> decltype(i+t)   { return a+i+t; } (0);
+  [&] (int a) -> decltype(a+i+t) { return a+i+t; } (0);
 }
 
 int main()

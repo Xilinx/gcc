@@ -15815,10 +15815,11 @@ instantiate_decl (tree d, int defer_ok,
       SET_DECL_IMPLICIT_INSTANTIATION (d);
     }
 
-  if (!defer_ok)
+  /* Recheck the substitutions to obtain any warning messages
+     about ignoring cv qualifiers.  Don't do this for artificial decls,
+     as it breaks the context-sensitive substitution for lambda op(). */
+  if (!defer_ok && !DECL_ARTIFICIAL (d))
     {
-      /* Recheck the substitutions to obtain any warning messages
-	 about ignoring cv qualifiers.  */
       tree gen = DECL_TEMPLATE_RESULT (gen_tmpl);
       tree type = TREE_TYPE (gen);
 
