@@ -5277,10 +5277,6 @@ begin_lambda_type (tree lambda)
   TREE_TYPE (lambda) = type;
   CLASSTYPE_LAMBDA_EXPR (type) = lambda;
 
-  /* Members are public (for finish_member_declaration) so that we can use
-     aggregate initialization.  */
-  current_access_specifier = access_public_node;
-
   /* For each capture, we need to add the member to the class.  */
   {
     tree node;
