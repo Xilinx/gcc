@@ -1,3 +1,45 @@
+2009-09-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac (--with-build-config): New.  Set BUILD_CONFIG.
+	Default to bootstrap-debug only if compare-debug works.
+	* configure: Rebuilt.
+	* Makefile.tpl: Make BUILD_CONFIG configure-configurable.
+	* Makefile.in: Rebuilt.
+
+2009-09-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* MAINTAINERS (OS Port Maintainers): Update my email address.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* Makefile.tpl (BUILD_CONFIG): Default to bootstrap-debug.
+	* Makefile.in: Rebuilt.
+
+2009-09-01  Chris Demetriou  <cgd@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-08-31  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/30161
+	* include/dwarf2.h (enum dwarf_tag): Added
+	DW_TAG_GNU_template_template_param
+	(enum dwarf_attribute): Added DW_AT_GNU_template_name.
+
+2009-08-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.tpl (AWK): Fix typo.
+	* Makefile.in: Regenerate.
+
+2009-08-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Detect awk and sed.
+	* Makefile.def (flags_to_pass): Add AWK and SED.
+	* Makefile.tpl (AWK, SED): New.
+	(BASE_FLAGS_TO_PASS): Add AWK and SED.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
 2009-08-26  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	* ltmain.sh (removedotparts): Don't use comma as 's' separator.

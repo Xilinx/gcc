@@ -129,8 +129,6 @@ struct GTY(()) language_function {
 #define LANG_HOOKS_POST_OPTIONS java_post_options
 #undef LANG_HOOKS_PARSE_FILE
 #define LANG_HOOKS_PARSE_FILE java_parse_file
-#undef LANG_HOOKS_MARK_ADDRESSABLE
-#define LANG_HOOKS_MARK_ADDRESSABLE java_mark_addressable
 #undef LANG_HOOKS_DUP_LANG_SPECIFIC_DECL
 #define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL java_dup_lang_specific_decl
 #undef LANG_HOOKS_DECL_PRINTABLE_NAME
@@ -161,7 +159,7 @@ struct GTY(()) language_function {
 #define LANG_HOOKS_ATTRIBUTE_TABLE java_attribute_table
 
 /* Each front end provides its own.  */
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 /*
  * process java-specific compiler command-line options

@@ -1,3 +1,169 @@
+2009-09-02  David Daney  <ddaney@caviumnetworks.com>
+
+	* gcc.c-torture/compile/builtin_unreachable-1.c: New testcase.
+
+2009-09-03  Diego Novillo  <dnovillo@google.com>
+
+	* gcc.dg/gomp/combined-1.c: Adjust expected pattern.
+	* g++.dg/tree-prof/inline_mismatch_args.C: Likewise.
+	* g++.dg/warn/unit-1.C: Likewise.
+	* g++.dg/ipa/iinline-1.C: Likewise.
+	* g++.dg/template/cond2.C: Adjust expected line location for the
+	error.
+	* g++.dg/template/pr35240.C: Likewise.
+
+2009-09-02  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/tree-ssa/inline-3.c: Add -fpie when pic.
+	* gcc.dg/tree-ssa/local-pure-const.c: Likewise.
+
+2009-09-02  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-8.c: New testcase.
+	* gcc.dg/memcpy-1.c: Add . to match pattern.
+	* gcc.dg/uninit-I.c: XFAIL warning test.
+	* g++.dg/warn/unit-1.C: XFAIL warning test.
+	
+2009-09-02  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/20090902-1.c: New test.
+
+2009-09-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/builtin-object-size-9.c: New test.
+
+2009-09-02  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/array7.ad[bs]: Add check for Signed_Integer_Type_Definition.
+	
+2009-09-02  Eric Botcazou  <ebotcazou@adacore.com>
+            Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/misaligned_param.adb: New test.
+	* gnat.dg/misaligned_param_pkg.ad[sb]: New helper.
+	* gnat.dg/slice7.adb: Add 1 more related case.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* gcc.dg/guality/guality.c: Expect to fail for now.
+	* gcc.dg/guality/example.c: Likewise.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* gcc.dg/guality/guality.c: New.
+	* gcc.dg/guality/guality.h: New.
+	* gcc.dg/guality/guality.exp: New.
+	* gcc.dg/guality/example.c: New.
+	* lib/gcc-dg.exp (cleanup-dump): Remove .gk files.
+	(cleanup-saved-temps): Likewise, .gkd files too.
+
+2009-09-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/39229
+	* gfortran.dg/line_length_3.f: New test.
+	* gfortran.dg/line_length_4.f90: New test.
+
+2009-09-01  Loren J. Rittle  <ljrittle@acm.org>
+
+	* lib/target-supports.exp (check_gc_sections_available):
+	Add proper pattern quote.
+
+2009-08-31  Uros Bizjak  <ubizjak@gmail.com>
+	    Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* lib/target-supports.exp (add_options_for_ieee): New procedure.
+	* g++.dg/cdce3.C: Use dg-add-options ieee.
+	* g++.dg/torture/type-generic-1.C: Likewise.
+	* gcc.c-torture/compile/fix-trunc-mem-1.c: Likewise.
+	* gcc.dg/pr28796-2.c: Likewise.
+	* gcc.dg/torture/builtin-math-7.c: Likewise.
+	* gcc.dg/torture/type-generic-1.c: Likewise.
+	* gfortran.dg/boz_14.f90: Likewise.
+	* gfortran.dg/erf_2.F90: Likewise.
+	* gfortran.dg/init_flag_3.f90: Likewise.
+	* gfortran.dg/init_flag_4.f90: Likewise.
+	* gfortran.dg/init_flag_5.f90: Likewise.
+	* gfortran.dg/integer_exponentiation_1.f90: Likewise.
+	* gfortran.dg/integer_exponentiation_5.F90: Likewise.
+	* gfortran.dg/isnan_1.f90: Likewise.
+	* gfortran.dg/isnan_2.f90: Likewise.
+	* gfortran.dg/maxlocval_2.f90: Likewise.
+	* gfortran.dg/maxlocval_4.f90: Likewise.
+	* gfortran.dg/minlocval_1.f90: Likewise.
+	* gfortran.dg/minlocval_4.f90: Likewise.
+	* gfortran.dg/module_nan.f90: Likewise.
+	* gfortran.dg/namelist_42.f90: Likewise.
+	* gfortran.dg/namelist_43.f90: Likewise.
+	* gfortran.dg/nan_1.f90: Likewise.
+	* gfortran.dg/nan_2.f90: Likewise.
+	* gfortran.dg/nan_3.f90: Likewise.
+	* gfortran.dg/nan_4.f90: Likewise.
+	* gfortran.dg/nan_5.f90: Likewise.
+	* gfortran.dg/nearest_1.f90: Likewise.
+	* gfortran.dg/nearest_2.f90: Likewise.
+	* gfortran.dg/nearest_3.f90: Likewise.
+	* gfortran.dg/pr37243.f: Likewise.
+	* gfortran.dg/real_const_3.f90: Likewise.
+	* gfortran.dg/transfer_simplify_2.f90: Likewise.
+
+2009-08-31  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/30161
+	* g++.dg/debug/dwarf2/template-params-1.C: New test.
+	* g++.dg/debug/dwarf2/template-params-2.C: Likewise.
+	* g++.dg/debug/dwarf2/template-params-3.C: Likewise.
+	* g++.dg/debug/dwarf2/template-params-4.C: Likewise.
+	* g++.dg/debug/dwarf2/template-params-5.C: Likewise.
+	* g++.dg/debug/dwarf2/template-params-6.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-1.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-2.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-3.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-4.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-5.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-6.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-7.C: Likewise.
+
+2009-08-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41127
+	* g++.dg/parse/enum5.C: New.
+	* g++.dg/cpp0x/enum1.C: Adjust expected error.
+
+2009-08-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40940
+	* gfortran.dg/allocate_derived_1.f90: New.
+	* gfortran.dg/class_3.f03: New.
+
+2009-08-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40996
+	* gfortran.dg/allocatable_scalar_1.f90: New.
+	* gfortran.dg/allocatable_scalar_2.f90: Renamed from finalize_9.f03.
+	* gfortran.dg/finalize_9.f03: Renamed to allocatable_scalar_2.f90.
+	* gfortran.dg/proc_ptr_comp_pass_4.f90: Modified.
+
+2009-08-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41186
+	* g++.dg/torture/pr41186.C: New testcase.
+	* g++.dg/tree-ssa/pr41186.C: Likewise.
+
+2009-08-30  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/41187
+	* g++.dg/debug/dwarf2/namespace-1.C: Use a loosier regexp to
+	take ia64 assembly comments syntax in account.
+
+2009-08-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/funcspec-5.c: Remove fused-add test.
+
+2009-08-29  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gfortran.dg/whole_file_5.f90: Add -fpie when pic, fix scan pattern.
+	* gfortran.dg/whole_file_6.f90: Likewise.
+
 2009-08-28  Cary Coutant  <ccoutant@google.com>
 
 	PR debug/41063
@@ -47,7 +213,7 @@
 
 2009-08-27  Dodji Seketeli  <dodji@redhat.com>
 
-	PR debug/41770
+	PR debug/41170
 	* debug/dwarf2/namespace-1.C: New test.
 
 2009-08-26  H.J. Lu  <hongjiu.lu@intel.com>
@@ -268,7 +434,7 @@
 2009-08-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
 	    Richard Earnshaw  <richard.earnshaw@arm.com>
 
-	* testsuite/gcc.target/arm/20090811-1.c: New test.
+	* gcc.target/arm/20090811-1.c: New test.
 
 2009-08-19  Jakub Jelinek  <jakub@redhat.com>
 
@@ -375,9 +541,9 @@
 2009-08-16  Dodji Seketeli  <dodji@redhat.com>
 
 	PR debug/37801
-	* gcc/testsuite/gcc.dg/debug/20020224-1.c: Adjust the comment.
+	* gcc.dg/debug/20020224-1.c: Adjust the comment.
 	Make sure to trigger inlining optimizations.
-	* gcc/testsuite/gcc.dg/debug/dwarf2/inline2.c: New test.
+	* gcc.dg/debug/dwarf2/inline2.c: New test.
 
 2009-08-14  Janus Weil  <janus@gcc.gnu.org>
 
@@ -444,16 +610,16 @@
 2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/40980
-	* testsuite/gfortran.dg/graphite/id-17.f: New.
+	* gfortran.dg/graphite/id-17.f: New.
 
 2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/interchange-6.c: Un-XFAIL.
+	* gcc.dg/graphite/interchange-6.c: Un-XFAIL.
 
 2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
 	    Pranav Garg  <pranav.garg2107@gmail.com>
 
-	* testsuite/gcc.dg/graphite/interchange-6.c: XFAILed.
+	* gcc.dg/graphite/interchange-6.c: XFAILed.
 
 2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1078,48 +1244,48 @@
 	    Pat Haugen  <pthaugen@us.ibm.com>
 	    Revital Eres <ERES@il.ibm.com>
 
-	* testsuite/gcc.target/powerpc/altivec-32.c: New file to test
+	* gcc.target/powerpc/altivec-32.c: New file to test
 	Altivec simple math function vectorization.
 
-	* testsuite/gcc.target/powerpc/bswap-run.c: New file to test swap
+	* gcc.target/powerpc/bswap-run.c: New file to test swap
 	builtins.
-	* testsuite/gcc.target/powerpc/bswap16.c: Ditto.
-	* testsuite/gcc.target/powerpc/bswap32.c: Ditto.
-	* testsuite/gcc.target/powerpc/bswap64-1.c: Ditto.
-	* testsuite/gcc.target/powerpc/bswap64-2.c: Ditto.
-	* testsuite/gcc.target/powerpc/bswap64-3.c: Ditto.
-	* testsuite/gcc.target/powerpc/optimize-bswapdi-2.c: Ditto.
-	* testsuite/gcc.target/powerpc/optimize-bswapdi-3.c: Ditto.
-	* testsuite/gcc.target/powerpc/optimize-bswapsi-2.c: Ditto.
+	* gcc.target/powerpc/bswap16.c: Ditto.
+	* gcc.target/powerpc/bswap32.c: Ditto.
+	* gcc.target/powerpc/bswap64-1.c: Ditto.
+	* gcc.target/powerpc/bswap64-2.c: Ditto.
+	* gcc.target/powerpc/bswap64-3.c: Ditto.
+	* gcc.target/powerpc/optimize-bswapdi-2.c: Ditto.
+	* gcc.target/powerpc/optimize-bswapdi-3.c: Ditto.
+	* gcc.target/powerpc/optimize-bswapsi-2.c: Ditto.
 
-	* testsuite/gcc.target/powerpc/popcount-2.c: New file to test
+	* gcc.target/powerpc/popcount-2.c: New file to test
 	power7 popcntd instructions.
-	* testsuite/gcc.target/powerpc/popcount-3.c: Ditto.
+	* gcc.target/powerpc/popcount-3.c: Ditto.
 
-	* testsuite/gcc.target/powerpc/pr39457.c: New VSX test.
-	* testsuite/gcc.target/powerpc/vsx-builtin-1.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-builtin-2.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-builtin-3.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-builtin-4.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-builtin-5.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-builtin-6.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-vector-1.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-vector-2.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-vector-3.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-vector-4.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-vector-5.c: Ditto.
-	* testsuite/gcc.target/powerpc/vsx-vector-6.c: Ditto.
+	* gcc.target/powerpc/pr39457.c: New VSX test.
+	* gcc.target/powerpc/vsx-builtin-1.c: Ditto.
+	* gcc.target/powerpc/vsx-builtin-2.c: Ditto.
+	* gcc.target/powerpc/vsx-builtin-3.c: Ditto.
+	* gcc.target/powerpc/vsx-builtin-4.c: Ditto.
+	* gcc.target/powerpc/vsx-builtin-5.c: Ditto.
+	* gcc.target/powerpc/vsx-builtin-6.c: Ditto.
+	* gcc.target/powerpc/vsx-vector-1.c: Ditto.
+	* gcc.target/powerpc/vsx-vector-2.c: Ditto.
+	* gcc.target/powerpc/vsx-vector-3.c: Ditto.
+	* gcc.target/powerpc/vsx-vector-4.c: Ditto.
+	* gcc.target/powerpc/vsx-vector-5.c: Ditto.
+	* gcc.target/powerpc/vsx-vector-6.c: Ditto.
 
-	* testsuite/gcc.target/powerpc/altivec-6.c: Store the result of
+	* gcc.target/powerpc/altivec-6.c: Store the result of
 	vec_add, so the optimizer doesn't remove it.
 
-	* testsuite/gcc.dg/optimize-bswapdi-1.c: Add powerpc 64-bit to
+	* gcc.dg/optimize-bswapdi-1.c: Add powerpc 64-bit to
 	systems that support bswap64.
 
-	* testsuite/gcc.dg/vmx/vmx.exp: Explicitly add -mno-vsx to
+	* gcc.dg/vmx/vmx.exp: Explicitly add -mno-vsx to
 	prevent VSX code generation.
 
-	* testsuite/lib/target-supports.exp (check_vsx_hw_available): New
+	* lib/target-supports.exp (check_vsx_hw_available): New
 	function to test if VSX available.
 	(check_effective_target_powerpc_vsx_ok): Ditto.
 	(check_vmx_hw_available): Add explicit -mno-vsx.
@@ -1596,7 +1762,7 @@
 
 2009-07-14  Jack Howarth  <howarth@bromo.med.uc.edu>
 
-	* testsuite/gcc.c-torture/compile/20000804-1.c: skip for ilp32 on
+	* gcc.c-torture/compile/20000804-1.c: skip for ilp32 on
 	both i?86-*-darwin* and x86_64-*-darwin*.
 
 2009-07-14  Joseph Myers  <joseph@codesourcery.com>
@@ -1708,7 +1874,7 @@
 2009-07-10  David Daney  <ddaney@caviumnetworks.com>
 
 	PR target/39079
-	* testsuite/gcc.target/mips/mips.exp: Make -msynci a known option.
+	* gcc.target/mips/mips.exp: Make -msynci a known option.
 	* gcc.target/mips/clear-cache-1.c (dg-options): Add -msynci.
 
 2009-07-10  Jakub Jelinek  <jakub@redhat.com>

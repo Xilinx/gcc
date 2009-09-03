@@ -1,5 +1,8 @@
 
 2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk rev 151367
+
+2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	[painfully cleaned autoconf-ry so that MELT is enabled by default]
 	* configure.ac: added more from trunk & testing for GDBM.
 	* Makefile.def: added more from trunk, awk & sed...
