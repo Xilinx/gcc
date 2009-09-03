@@ -7162,22 +7162,20 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
      parenthesis if present.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
     {
+      bool saved_default_arg_ok_p;
+
       cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
 
       begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
 
       /* Parse parameters.  */
-      param_list = cp_parser_parameter_declaration_clause (parser);
-
+      saved_default_arg_ok_p = parser->default_arg_ok_p;
       /* Default arguments shall not be specified in the
 	 parameter-declaration-clause of a lambda-declarator.  */
       /* FIXME this seems like an unnecessary restriction.  */
-      for (t = param_list; t; t = TREE_CHAIN (t))
-	if (TREE_PURPOSE (t))
-	  {
-	    error ("default argument specified for lambda parameter");
-	    TREE_PURPOSE (t) = NULL_TREE;
-	  }
+      parser->default_arg_ok_p = false;
+      param_list = cp_parser_parameter_declaration_clause (parser);
+      parser->default_arg_ok_p = saved_default_arg_ok_p;
 
       cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
