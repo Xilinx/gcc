@@ -1081,10 +1081,10 @@
   ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
   ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
   ;; otherwise no location
-  #{ warning_at((($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
+  #{ warning_at( (($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
 		 : ($tr && EXPR_P($tr)) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
-		0
-  $msg );
+		 0,
+		 $msg);
   }# )
 
 (defprimitive tree_type (:tree tr) :tree
@@ -2074,6 +2074,7 @@
  gimple_assign_exact_div
  gimple_assign_floor_div
  gimple_assign_floor_mod
+ gimple_assign_minus 
  gimple_assign_mult 
  gimple_assign_plus 
  gimple_assign_pointerplus

@@ -1,5 +1,10 @@
 
 2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.melt: minor corrections on warning_at_tree &
+	gimple_assign_minus.
+	* melt/ana-simple.melt: adding justscan pass.
+
+2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	[painfully cleaned autoconf-ry so that MELT is enabled by default;
 	improved gengtype.]
 	* configure.ac: MELT is always enabled.  better GDBM
