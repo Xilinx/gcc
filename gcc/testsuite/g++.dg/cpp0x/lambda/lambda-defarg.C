@@ -1,6 +1,6 @@
-// { dg-options "-std=c++0x" }
+// { dg-options "-std=c++0x -pedantic-errors" }
 
 int main()
 {
-  [](int a = 1) { return a; }(); // { dg-message "" }
+  [](int a = 1) { return a; }(); // { dg-error "" }
 }

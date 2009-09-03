@@ -7162,20 +7162,19 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
      parenthesis if present.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
     {
-      bool saved_default_arg_ok_p;
-
       cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
 
       begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
 
       /* Parse parameters.  */
-      saved_default_arg_ok_p = parser->default_arg_ok_p;
+      param_list = cp_parser_parameter_declaration_clause (parser);
+
       /* Default arguments shall not be specified in the
 	 parameter-declaration-clause of a lambda-declarator.  */
-      /* FIXME this seems like an unnecessary restriction.  */
-      parser->default_arg_ok_p = false;
-      param_list = cp_parser_parameter_declaration_clause (parser);
-      parser->default_arg_ok_p = saved_default_arg_ok_p;
+      for (t = param_list; t; t = TREE_CHAIN (t))
+	if (TREE_PURPOSE (t))
+	  pedwarn (DECL_SOURCE_LOCATION (TREE_VALUE (t)), OPT_pedantic,
+		   "default argument specified for lambda parameter");
 
       cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
@@ -14830,7 +14829,8 @@ cp_parser_parameter_declaration (cp_parser *parser,
       /* If we are defining a class, then the tokens that make up the
 	 default argument must be saved and processed later.  */
       if (!template_parm_p && at_class_scope_p ()
-	  && TYPE_BEING_DEFINED (current_class_type))
+	  && TYPE_BEING_DEFINED (current_class_type)
+	  && !LAMBDA_TYPE_P (current_class_type))
 	{
 	  unsigned depth = 0;
 	  int maybe_template_id = 0;
