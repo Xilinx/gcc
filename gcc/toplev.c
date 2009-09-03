@@ -111,10 +111,10 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 /* we don't include melt.h but declare its initializer & finalizer here */
-#if ENABLE_MELT
+
 extern void melt_initialize(void); /* in melt.c */
 extern void melt_finalize(void); /* in melt.c */
-#endif
+
 
 static void general_init (const char *);
 static void do_compile (void);
@@ -2401,11 +2401,9 @@ toplev_main (int argc, char **argv)
 
   initialize_plugins ();
 
-#if ENABLE_MELT
   /* initialize melt if needed */
   if (melt_mode_string && melt_mode_string[0])
     melt_initialize();
-#endif
 
   if (version_flag)
     print_version (stderr, "");
@@ -2418,11 +2416,9 @@ toplev_main (int argc, char **argv)
     do_compile ();
 
 
-#if ENABLE_MELT
   /* finalize melt if needed */
   if (melt_mode_string && melt_mode_string[0])
     melt_finalize();
-#endif
 
   if (warningcount || errorcount) 
     print_ignored_options ();

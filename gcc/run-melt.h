@@ -66,19 +66,9 @@ Boston, MA 02110-1301, USA.  */
 /* MELT specific includes */
 
 
-
-#if HAVE_PARMAPOLY || defined (MELT_IS_PLUGIN)
-#include <ppl_c.h>
-#else
-#error required parma polyedral library PPL
-#endif /*HAVE_PARMAPOLY */
-
-
-#if ENABLE_MELT || defined (MELT_IS_PLUGIN)
+#include "ppl_c.h"
 #include "melt-runtime.h"
-#else
-#error required MELT enabling
-#endif
+
 
 #define curfptr curfram__.varptr
 #define curfnum curfram__.varnum

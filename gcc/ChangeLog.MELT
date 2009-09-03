@@ -1,4 +1,22 @@
 
+2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	[painfully cleaned autoconf-ry so that MELT is enabled by default;
+	improved gengtype.]
+	* configure.ac: MELT is always enabled.  better GDBM
+	support. Improved PPL stuff.  Added more from trunk.
+	* Makefile.in: added gtyp-real-input.list.  Merged make
+	dependencies from trunk.
+	* gengtype.h: removed is_plugin_file & dbgprintf.
+	* gengtype.c: minor fixes. See
+	http://gcc.gnu.org/ml/gcc-patches/2009-09/msg00047.html
+	* melt-runtime.h: removed some #ifdef because MELT is always
+	enabled.
+	* run-melt.h: likewise.
+	* common.opt: Removed Condition from every MELT option.
+	* toplevel.c: removed some #ifdef because MELT is always
+	enabled.
+	(toplev_main): always initialize MELT.
+
 2009-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_register_pass): initialize plugpass
 	without C++ related warning on enum cast...

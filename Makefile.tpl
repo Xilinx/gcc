@@ -143,6 +143,8 @@ BASE_EXPORTS = \
 	BISON="$(BISON)"; export BISON; \
 	YACC="$(YACC)"; export YACC; \
 	M4="$(M4)"; export M4; \
+	SED="$(SED)"; export SED; \
+	AWK="$(AWK)"; export AWK; \
 	MAKEINFO="$(MAKEINFO)"; export MAKEINFO;
 
 # This is the list of variables to export in the environment when
@@ -220,6 +222,8 @@ HOST_EXPORTS = \
 	PPLINC="$(HOST_PPLINC)"; export PPLINC; \
 	CLOOGLIBS="$(HOST_CLOOGLIBS)"; export CLOOGLIBS; \
 	CLOOGINC="$(HOST_CLOOGINC)"; export CLOOGINC; \
+	GDBMLIBS="$(HOST_GDBMLIBS)"; export GDBMLIBS; \
+	GDBMINC="$(HOST_GDBMINC)"; export GDBMINC; \
 @if gcc-bootstrap
 	$(RPATH_ENVVAR)=`echo "$(TARGET_LIB_PATH)$$$(RPATH_ENVVAR)" | sed 's,::*,:,g;s,^:*,,;s,:*$$,,'`; export $(RPATH_ENVVAR); \
 @endif gcc-bootstrap
@@ -294,6 +298,10 @@ HOST_PPLINC = @pplinc@
 HOST_CLOOGLIBS = @clooglibs@
 HOST_CLOOGINC = @clooginc@
 
+# Where to find GDBM
+HOST_GDBMLIBS = @gdbmlibs@
+HOST_GDBMINC = @gdbminc@
+
 # ----------------------------------------------
 # Programs producing files for the BUILD machine
 # ----------------------------------------------
@@ -337,6 +345,8 @@ BOOT_CFLAGS= -g -O2
 BOOT_LDFLAGS=
 BOOT_ADAFLAGS=-gnatpg -gnata
 
+AWK = @AWK@
+SED = @SED@
 BISON = @BISON@
 YACC = @YACC@
 FLEX = @FLEX@
@@ -615,7 +625,7 @@ EXTRA_GCC_FLAGS = \
 GCC_FLAGS_TO_PASS = $(BASE_FLAGS_TO_PASS) $(EXTRA_HOST_FLAGS) $(EXTRA_GCC_FLAGS)
 
 @if gcc
-BUILD_CONFIG =
+BUILD_CONFIG = bootstrap-debug
 ifneq ($(BUILD_CONFIG),)
 include $(foreach CONFIG, $(BUILD_CONFIG), $(srcdir)/config/$(CONFIG).mk)
 endif

@@ -79,6 +79,8 @@ m4_pattern_allow([^AS_FOR_BUILD$])dnl
 AC_PROG_INSTALL
 ACX_PROG_LN
 AC_PROG_LN_S
+AC_PROG_SED
+AC_PROG_AWK
 
 ### we might need to use some other shell than /bin/sh for running subshells
 ### If we are on Windows, search for the shell.  This will permit people
@@ -159,7 +161,7 @@ build_tools="build-texinfo build-byacc build-flex build-bison build-m4 build-fix
 
 # these libraries are used by various programs built for the host environment
 #
-host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr mpc ppl cloog libiconv"
+host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr mpc ppl gdbm cloog libiconv"
 
 # these tools are built for the host environment
 # Note, the powerpc-eabi build depends on sim occurring before gdb in order to
@@ -1538,6 +1540,7 @@ if test "${ENABLE_PPL_CHECK}" = "yes"; then
   #if PPL_VERSION_MAJOR != $ppl_major_version || PPL_VERSION_MINOR < $ppl_minor_version
   choke me
   #endif
+  if (ppl_io_asprint_Constraint((void*)0, (void*)0)) return 0;
   ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ])
   CFLAGS="$saved_CFLAGS"
 fi
@@ -1601,6 +1604,31 @@ fi
 # Flags needed for CLOOG
 AC_SUBST(clooglibs)
 AC_SUBST(clooginc)
+
+
+# Check for GDBM needed for MELT
+gdbmlibs="-lgdbm"
+gdbminc=""
+
+AC_ARG_WITH(gdbm_include, [  --with-gdbm-include=PATH Specify directory for installed GDBM include files])
+AC_ARG_WITH(gdbm_lib, [  --with-gdbm-lib=PATH   Specify the directory for the installed GDBM library])
+
+if test "x$with_gdbm_include" != x; then
+  gdbminc="-I$with_gdbm_include "
+fi
+if test "x$with_gdbm_lib" != x; then
+  gdbmlibs="-L$with_gdbm_lib -lgdbm"
+fi
+LIBS="$gdbmlibs $LIBS"
+
+AC_MSG_CHECKING([for GDBM])
+AC_TRY_LINK([#include "gdbm.h"],[GDBM_FILE gf = gdbm_open("testdbm",0,GDBM_WRITER,0,0);],
+    [AC_MSG_RESULT([yes]); have_gdbm=yes],
+    [AC_MSG_RESULT([no]); have_gdbm=no])
+
+# Flags needed for GDBM
+AC_SUBST(gdbmlibs)
+AC_SUBST(gdbminc)
 
 
 # By default, C is the only stage 1 language.

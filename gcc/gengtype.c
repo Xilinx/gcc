@@ -24,7 +24,6 @@
 #include "errors.h"	/* for fatal */
 #include "double-int.h"
 
-
 /* Data types, macros, etc. used only in this file.  */
 
 /* Kinds of types we can understand.  */
@@ -65,7 +64,7 @@ struct pair
   type_p type;
   struct fileloc line;
   options_p opt;
-  bool inplugin;		/* flag set if appearing inside a plugin */
+  bool in_plugin;		/* flag set if appearing inside a plugin */
 };
 
 #define NUM_PARAM 10
@@ -85,7 +84,7 @@ struct type
   type_p next;
   type_p pointer_to;
   enum gc_used_enum gc_used;
-  bool inplugin;
+  bool in_plugin;
   union {
     type_p p;
     struct {
@@ -154,9 +153,8 @@ static int first_plugin_file_ix= -1;
 static char* plugin_output_filename;
 static outf_p plugin_output;
 
-
 /* The output header file that is included into pretty much every
-   source file.  */
+   source file.  It is not generated in plugin mode! */
 static outf_p header_file;
 
 /* Source directory.  */
@@ -176,10 +174,10 @@ static const char * get_file_langdir (const char *);
 
 
 /* Nonzero iff an error has occurred.  */
-bool hit_error = FALSE;
-/* Flag set when parsing a plugin file */
-bool is_plugin_file = FALSE;
+bool hit_error = false;
 
+/* Flag set when parsing a plugin file */
+static bool is_plugin_file = false;
 
 static void gen_rtx_next (void);
 static void write_rtx_next (void);
@@ -480,7 +478,17 @@ read_input_list (const char *listname)
 	  int i;
 	  first_plugin_file_ix = nfiles;
 	  for (i = 0; i < nb_plugin_files; i++)
-	    gt_files[nfiles++] = plugin_files[i];
+	    {
+	      /* Place an all zero lang_bitmap before the plugin file
+		 name.  */
+	      int plugfilen = strlen (plugin_files[i]);
+	      char* plugent =
+		(char*) xcalloc (1, plugfilen + 1 + sizeof (lang_bitmap));
+	      plugent += sizeof (lang_bitmap);
+	      strcpy (plugent, plugin_files[i]);
+	      gt_files[nfiles++] = plugent;
+	      /* We don't bother freeing plugent! */
+	    }
 	}
       num_gt_files = nfiles;
     }
@@ -678,9 +686,9 @@ new_structure (const char *name, int isunion, struct fileloc *pos,
 		     isunion ? "union" : "struct", s->u.s.tag);
       error_at_line (&s->u.s.line, "previous definition here");
     }
-  
+
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
-  s->inplugin = is_plugin_file;
+  s->in_plugin = is_plugin_file;
   s->u.s.tag = name;
   s->u.s.line = *pos;
   s->u.s.fields = fields;
@@ -725,7 +733,7 @@ find_structure (const char *name, int isunion)
   s->next = structures;
   structures = s;
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
-  s->inplugin = is_plugin_file;
+  s->in_plugin = is_plugin_file;
   s->u.s.tag = name;
   structures = s;
   return s;
@@ -749,7 +757,7 @@ find_param_structure (type_p t, type_p param[NUM_PARAM])
     {
       res = XCNEW (struct type);
       res->kind = TYPE_PARAM_STRUCT;
-      res->inplugin = is_plugin_file;
+      res->in_plugin = is_plugin_file;
       res->next = param_structs;
       param_structs = res;
       res->u.param_struct.stru = t;
@@ -778,7 +786,7 @@ create_pointer (type_p t)
     {
       type_p r = XCNEW (struct type);
       r->kind = TYPE_POINTER;
-      r->inplugin = is_plugin_file;
+      r->in_plugin = is_plugin_file;
       r->u.p = t;
       t->pointer_to = r;
     }
@@ -794,7 +802,7 @@ create_array (type_p t, const char *len)
 
   v = XCNEW (struct type);
   v->kind = TYPE_ARRAY;
-  v->inplugin = is_plugin_file;
+  v->in_plugin = is_plugin_file;
   v->u.a.p = t;
   v->u.a.len = len;
   return v;
@@ -839,7 +847,7 @@ note_variable (const char *s, type_p t, options_p o, struct fileloc *pos)
   n->line = *pos;
   n->opt = o;
   n->next = variables;
-  n->inplugin = is_plugin_file;
+  n->in_plugin = is_plugin_file;
   variables = n;
 }
 
@@ -1584,11 +1592,8 @@ open_base_files (void)
 
   if (nb_plugin_files > 0 && plugin_files) 
     return;
-  
-  /* header file should be generated even in plugin mode */
-  header_file = create_file ("GCC", "gtype-desc.h");
-  
 
+  header_file = create_file ("GCC", "gtype-desc.h");
 
   base_files = XNEWVEC (outf_p, num_lang_dirs);
 
@@ -1606,10 +1611,8 @@ open_base_files (void)
       "hard-reg-set.h", "basic-block.h", "cselib.h", "insn-addr.h",
       "optabs.h", "libfuncs.h", "debug.h", "ggc.h", "cgraph.h",
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
-      "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h", 
-#if ENABLE_MELT
+      "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h",
       "melt-runtime.h",
-#endif
       NULL
     };
     const char *const *ifp;
@@ -1744,7 +1747,7 @@ get_output_file_with_visibility (const char *input_file)
 {
   outf_p r;
   size_t len;
-  const char *base_name;
+  const char *basename;
   const char *for_name;
   const char *output_name;
 
@@ -1755,7 +1758,7 @@ get_output_file_with_visibility (const char *input_file)
     input_file = "system.h";
 
   /* In plugin mode, return NULL unless the input_file is one of the
-     plugin_files or is the specified plugin_output_filename  */
+     plugin_files or is the specified plugin_output_filename.  */
   if (plugin_files && nb_plugin_files > 0) 
     { 
       int ix= -1, i;
@@ -1763,53 +1766,52 @@ get_output_file_with_visibility (const char *input_file)
 	if (strcmp (input_file, plugin_files[i]) == 0) 
 	  ix = i;
       if (ix < 0
-	  && plugin_output_filename && strcmp (input_file, plugin_output_filename)) 
+	  && plugin_output_filename
+	  && strcmp (input_file, plugin_output_filename)) 
 	return NULL;
       if (plugin_output_filename)
 	return plugin_output;
     }
 
   /* Determine the output file name.  */
-  base_name = get_file_basename (input_file);
+  basename = get_file_basename (input_file);
 
-  len = strlen (base_name);
-  if ((len > 2 && memcmp (base_name+len-2, ".c", 2) == 0)
-      || (len > 2 && memcmp (base_name+len-2, ".y", 2) == 0)
-      || (len > 3 && memcmp (base_name+len-3, ".in", 3) == 0))
+  len = strlen (basename);
+  if ((len > 2 && memcmp (basename+len-2, ".c", 2) == 0)
+      || (len > 2 && memcmp (basename+len-2, ".y", 2) == 0)
+      || (len > 3 && memcmp (basename+len-3, ".in", 3) == 0))
     {
       output_name = get_file_gtfilename (input_file); 
-      for_name = base_name;
+      for_name = basename;
     }
   /* Some headers get used by more than one front-end; hence, it
      would be inappropriate to spew them out to a single gtype-<lang>.h
      (and gengtype doesn't know how to direct spewage into multiple
      gtype-<lang>.h headers at this time).  Instead, we pair up these
      headers with source files (and their special purpose gt-*.h headers).  */
-  else if (strcmp (base_name, "c-common.h") == 0)
+  else if (strcmp (basename, "c-common.h") == 0)
     output_name = "gt-c-common.h", for_name = "c-common.c";
-  else if (strcmp (base_name, "c-lang.h") == 0)
+  else if (strcmp (basename, "c-lang.h") == 0)
     output_name = "gt-c-decl.h", for_name = "c-decl.c";
-  else if (strcmp (base_name, "c-tree.h") == 0)
+  else if (strcmp (basename, "c-tree.h") == 0)
     output_name = "gt-c-decl.h", for_name = "c-decl.c";
-  else if (strncmp (base_name, "cp", 2) == 0 && IS_DIR_SEPARATOR (base_name[2])
-	   && strcmp (base_name + 3, "cp-tree.h") == 0)
+  else if (strncmp (basename, "cp", 2) == 0 && IS_DIR_SEPARATOR (basename[2])
+	   && strcmp (basename + 3, "cp-tree.h") == 0)
     output_name = "gt-cp-tree.h", for_name = "cp/tree.c";
-  else if (strncmp (base_name, "cp", 2) == 0 && IS_DIR_SEPARATOR (base_name[2])
-	   && strcmp (base_name + 3, "decl.h") == 0)
+  else if (strncmp (basename, "cp", 2) == 0 && IS_DIR_SEPARATOR (basename[2])
+	   && strcmp (basename + 3, "decl.h") == 0)
     output_name = "gt-cp-decl.h", for_name = "cp/decl.c";
-  else if (strncmp (base_name, "cp", 2) == 0 && IS_DIR_SEPARATOR (base_name[2])
-	   && strcmp (base_name + 3, "name-lookup.h") == 0)
+  else if (strncmp (basename, "cp", 2) == 0 && IS_DIR_SEPARATOR (basename[2])
+	   && strcmp (basename + 3, "name-lookup.h") == 0)
     output_name = "gt-cp-name-lookup.h", for_name = "cp/name-lookup.c";
-  else if (strncmp (base_name, "objc", 4) == 0 && IS_DIR_SEPARATOR (base_name[4])
-	   && strcmp (base_name + 5, "objc-act.h") == 0)
+  else if (strncmp (basename, "objc", 4) == 0 && IS_DIR_SEPARATOR (basename[4])
+	   && strcmp (basename + 5, "objc-act.h") == 0)
     output_name = "gt-objc-objc-act.h", for_name = "objc/objc-act.c";
   else 
     {
-      int lang_index = get_prefix_langdir_index (base_name);
-
+      int lang_index = get_prefix_langdir_index (basename);
       if (lang_index >= 0)
 	return base_files[lang_index];
-      
       output_name = "gtype-desc.c";
       for_name = "GCC";
     }
@@ -1923,6 +1925,7 @@ static void walk_type (type_p t, struct walk_type_data *d);
 static void write_func_for_structure
      (type_p orig_s, type_p s, type_p * param,
       const struct write_types_data *wtd);
+/* Marks the function for later output in plugin mode. */
 static void delay_func_for_structure (type_p s, const struct write_types_data* wtd);
 static void write_types_process_field
      (type_p f, const struct walk_type_data *d);
@@ -3037,7 +3040,8 @@ write_local (type_p structures, type_p param_structs)
       }
 }
 
-/* Write out only to header_file the 'enum' definition for gt_types_enum.  */
+/* Write out (to header_file, unless in plugin mode) the 'enum'
+   definition for gt_types_enum.  */
 
 static void
 write_enum_defn (type_p structures, type_p param_structs)
@@ -3053,7 +3057,7 @@ write_enum_defn (type_p structures, type_p param_structs)
       
       for (s = structures; s; s = s->next)
 	{
-	  if (!s->inplugin)
+	  if (!s->in_plugin)
 	    continue;
 	  if (s->gc_used == GC_POINTED_TO
 	      || s->gc_used == GC_MAYBE_POINTED_TO)
@@ -3070,7 +3074,7 @@ write_enum_defn (type_p structures, type_p param_structs)
 	    }
 	}
       for (s = param_structs; s; s = s->next)
-	if (s->gc_used == GC_POINTED_TO && s->inplugin)
+	if (s->gc_used == GC_POINTED_TO && s->in_plugin)
 	  {
 	    oprintf (plugin_output, "#define gt_e_");
 	    output_mangled_typename (plugin_output, s);
@@ -3447,7 +3451,7 @@ write_roots (pair_p variables)
       const char *length = NULL;
       int deletable_p = 0;
       options_p o;
-      if (nb_plugin_files > 0 && plugin_output_filename && v->inplugin)
+      if (nb_plugin_files > 0 && plugin_output_filename && v->in_plugin)
 	f = plugin_output;
       else
 	f = get_output_file_with_visibility (v->line.file);
@@ -3734,17 +3738,17 @@ void
 note_def_vec_alloc (const char *type, const char *astrat, struct fileloc *pos)
 {
   const char *astratname = concat ("VEC_", type, "_", astrat, (char *)0);
-  const char *base_name = concat ("VEC_", type, "_base", (char *)0);
+  const char *basename = concat ("VEC_", type, "_base", (char *)0);
 
-  pair_p field = create_field_at (0, resolve_typedef (base_name, pos),
+  pair_p field = create_field_at (0, resolve_typedef (basename, pos),
 				  "base", 0, pos);
 
   do_typedef (astratname, new_structure (astratname, 0, pos, field, 0), pos);
 }
 
 
-/* in plugin mode, the write of functions for structure is delayed to
-   the end; we keep a vector of these */
+/* In plugin mode, the writing of functions for structure is delayed
+   to the end; we keep a vector of these. */
 struct delayedstructfunc_st 
 {
   type_p dly_s;
@@ -3756,7 +3760,8 @@ static int dlystructcnt;
 
 
 
-
+/* In plugin mode, we delay the output of functions by appending them
+   to the above array. */ 
 static void
 delay_func_for_structure (type_p s, const struct write_types_data* wtd)
 {
@@ -3786,6 +3791,8 @@ delay_func_for_structure (type_p s, const struct write_types_data* wtd)
 }
 
 
+/* In plugin mode, output at last the functions which have been
+   kept. */
 static void
 output_delayed_functions(void)
 {

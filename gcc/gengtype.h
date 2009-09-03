@@ -76,13 +76,6 @@ extern void yyend (void);
 extern void parse_file (const char *name);
 extern bool hit_error;
 
-/* flag set when parsing a plugin file */
-extern bool is_plugin_file;
-
-#define dbgprintf(Fmt,...) do { fprintf(stderr,			\
-	"%s:%d: " Fmt "\n", basename(__FILE__), __LINE__,	\
-	##__VA_ARGS__); } while(0)
-
 /* Token codes.  */
 enum {
   EOF_TOKEN = 0,
