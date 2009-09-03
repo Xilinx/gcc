@@ -7206,65 +7206,37 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
       leave_scope ();
     }
 
-  /* Start the function call operator
-     - member_specification_opt
-     + member_declaration  */
-  /* TODO: Find a better way to do this that does not involve
-     cp_decl_specifier_seq or cp_declarator and put it into semantics.c.
-     see implicitly_declare_fn.  */
-  {
-    bool saved_in_declarator_p = parser->in_declarator_p;
-    bool saved_default_arg_ok_p = parser->default_arg_ok_p;
+  /* Create the function call operator.
 
+     Messing with declarators like this is no uglier than building up the
+     FUNCTION_DECL by hand, and this is less likely to get out of sync with
+     other code.  */
+  {
     cp_decl_specifier_seq return_type_specs;
     cp_declarator* declarator;
     tree fco;
-
-    parser->in_declarator_p = true;
-    parser->default_arg_ok_p = true;
+    int quals;
+    void *p;
 
     clear_decl_specs (&return_type_specs);
     if (LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
-      {
-        return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
-        /* TODO: is this necessary?  */
-        return_type_specs.any_specifiers_p = true;
-        /* TODO: do we need cp_parser_set_decl_spec_type()?  */
-      }
+      return_type_specs.type = LAMBDA_EXPR_RETURN_TYPE (lambda_expr);
     else
-      {
-        /* 5.1.1.4 of the standard says:
-             If a lambda-expression does not include a trailing-return-type, it
-             is as if the trailing-return-type denotes the following type:
-               — if the compound-statement is of the form
-                   { return attribute-specifier [opt] expression ; }
-                 the type of the returned expression after lvalue-to-rvalue
-                 conversion (_conv.lval_ 4.1), array-to-pointer conversion
-                 (_conv.array_ 4.2), and function-to-pointer conversion
-                 (_conv.func_ 4.3);
-               — otherwise, void.  */
-        /* Will find out later what the form is, but can use void as a placeholder
-           return type anyways.  */
-        return_type_specs.type = void_type_node;
-      }
+      /* Maybe we will deduce the return type later, but we can use void
+	 as a placeholder return type anyways.  */
+      return_type_specs.type = void_type_node;
 
-    declarator = make_id_declarator (parser->scope,
-                                     ansi_opname (CALL_EXPR),
-                                     sfk_none);
+    p = obstack_alloc (&declarator_obstack, 0);
 
-    declarator = make_call_declarator (declarator,
-                                       param_list,
-                                       /*cv_qualifiers=*/(
-                                         LAMBDA_EXPR_MUTABLE_P (lambda_expr)
-                                         ? (TYPE_UNQUALIFIED)
-                                         : (TYPE_QUAL_CONST)),
-                                       exception_spec,
+    declarator = make_id_declarator (NULL_TREE, ansi_opname (CALL_EXPR),
+				     sfk_none);
+
+    quals = (LAMBDA_EXPR_MUTABLE_P (lambda_expr)
+	     ? TYPE_UNQUALIFIED : TYPE_QUAL_CONST);
+    declarator = make_call_declarator (declarator, param_list, quals,
+				       exception_spec,
                                        /*late_return_type=*/NULL_TREE);
 
-    parser->in_declarator_p = saved_in_declarator_p;
-    parser->default_arg_ok_p = saved_default_arg_ok_p;
-
-    /* TODO: Look into start_function.  */
     fco = start_method (&return_type_specs,
                         declarator,
                         attributes);
@@ -7273,6 +7245,8 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
     finish_method (fco);
 
     finish_member_declaration (fco);
+
+    obstack_free (&declarator_obstack, p);
 
     LAMBDA_EXPR_FUNCTION (lambda_expr) = fco;
   }
