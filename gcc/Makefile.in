@@ -5101,7 +5101,7 @@ built-melt-cc-script: melt-cc-script.proto  run-melt-deps
 	sed -e s/^.:!.*// -e '1,30s|:GCCMELT_CC:|$(CC)|' \
 	    -e '1,30s|:GCCMELT_CFLAGS:|$(MELT_CFLAGS)|' \
 	    -e '1,30s|:GCCMELT_SCRIPT:|$(melt_compile_script)|' \
-	    -e '1,30s|:GCCMELT_HEADERDIR:|$(melt_build_include_dir)|' \
+	    -e '1,30s|:GCCMELT_HEADERDIR:|$(realpath $(melt_build_include_dir))|' \
 	< $< > tmp-built-melt-cc-script
 	$(SHELL) $(srcdir)/../move-if-change  tmp-built-melt-cc-script built-melt-cc-script
 	chmod u+x built-melt-cc-script

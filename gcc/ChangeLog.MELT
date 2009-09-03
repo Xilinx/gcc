@@ -1,5 +1,10 @@
 
 2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_really_initialize): Fixed typo in debug message.
+	* Makefile.in (built-melt-cc-script): using real path of Melt
+	build include dir.
+
+2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.melt: minor corrections on warning_at_tree &
 	gimple_assign_minus.
 	* melt/ana-simple.melt: adding justscan pass.

@@ -7826,7 +7826,7 @@ melt_really_initialize (const char* pluginame)
   if (ppl_set_error_handler(melt_ppl_error_handler))
     fatal_error ("failed to set PPL handler");
   load_melt_modules_and_do_command ();
-  debugeprintf ("melt_ireally_nitialize ended init=%s command=%s",
+  debugeprintf ("melt_really_initialize ended init=%s command=%s",
 		inistr, modstr);
 }
 
