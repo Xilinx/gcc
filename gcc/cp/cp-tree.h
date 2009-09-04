@@ -96,6 +96,7 @@ framework extensions, you must include this file before toplev.h, not after.
       DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (in VAR_DECL)
       STATEMENT_LIST_TRY_BLOCK (in STATEMENT_LIST)
       TYPENAME_IS_RESOLVING_P (in TYPE_NAME_TYPE)
+      LAMBDA_EXPR_DEDUCE_RETURN_TYPE (in LAMBDA_EXPR)
    3: (TREE_REFERENCE_EXPR) (in NON_LVALUE_EXPR) (commented-out).
       ICS_BAD_FLAG (in _CONV)
       FN_TRY_BLOCK_P (in TRY_BLOCK)
@@ -558,6 +559,11 @@ enum cp_lambda_default_capture_mode_type {
 /* Predicate tracking whether the lambda was declared 'mutable'.  */
 #define LAMBDA_EXPR_MUTABLE_P(NODE) \
   TREE_LANG_FLAG_1 (LAMBDA_EXPR_CHECK (NODE))
+
+/* True iff we should try to deduce the lambda return type from any return
+   statement.  */
+#define LAMBDA_EXPR_DEDUCE_RETURN_TYPE(NODE) \
+  TREE_LANG_FLAG_2 (LAMBDA_EXPR_CHECK (NODE))
 
 /* The return type in the expression.
  * NULL_TREE indicates that none was specified.  */

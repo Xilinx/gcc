@@ -7001,6 +7001,31 @@ check_return_expr (tree retval, bool *no_warning)
       return NULL_TREE;
     }
 
+  /* As an extension, deduce lambda return type from a return statement
+     anywhere in the body.  */
+  if (retval && current_class_type && LAMBDA_TYPE_P (current_class_type))
+    {
+      tree lambda = CLASSTYPE_LAMBDA_EXPR (current_class_type);
+      if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE (lambda))
+	{
+	  tree type = lambda_return_type (retval);
+	  tree oldtype = LAMBDA_EXPR_RETURN_TYPE (lambda);
+
+	  if (VOID_TYPE_P (type))
+	    { /* Nothing.  */ }
+	  else if (oldtype == NULL_TREE)
+	    {
+	      pedwarn (input_location, OPT_pedantic, "lambda return type "
+		       "can only be deduced when the return statement is "
+		       "the only statement in the function body");
+	      apply_lambda_return_type (lambda, type);
+	    }
+	  else if (!same_type_p (type, oldtype))
+	    error ("inconsistent types %qT and %qT deduced for "
+		   "lambda return type", type, oldtype);
+	}
+    }
+
   if (processing_template_decl)
     {
       current_function_returns_value = 1;

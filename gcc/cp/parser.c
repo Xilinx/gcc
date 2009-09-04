@@ -7278,6 +7278,7 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
   {
     tree fco = LAMBDA_EXPR_FUNCTION (lambda_expr);
     tree body;
+    bool done = false;
 
     /* Let the front end know that we are going to be defining this
        function.  */
@@ -7311,27 +7312,39 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 	tree expr = NULL_TREE;
 	cp_id_kind idk = CP_ID_KIND_NONE;
 
-	cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
-	compound_stmt = begin_compound_stmt (0);
+	/* Parse tentatively in case there's more after the initial return
+	   statement.  */
+	cp_parser_parse_tentatively (parser);
 
+	cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
 	cp_parser_require_keyword (parser, RID_RETURN, "%<return%>");
 
 	expr = cp_parser_expression (parser, /*cast_p=*/false, &idk);
-	apply_lambda_return_type (lambda_expr, lambda_return_type (expr));
-	/* Will get error here if type not deduced yet.  */
-	finish_return_stmt (expr);
 
 	cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
-
 	cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
-	finish_compound_stmt (compound_stmt);
 
+	if (cp_parser_parse_definitely (parser))
+	  {
+	    apply_lambda_return_type (lambda_expr, lambda_return_type (expr));
+
+	    compound_stmt = begin_compound_stmt (0);
+	    /* Will get error here if type not deduced yet.  */
+	    finish_return_stmt (expr);
+	    finish_compound_stmt (compound_stmt);
+
+	    done = true;
+	  }
       }
-    else
+
+    if (!done)
       {
+	if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
+	  LAMBDA_EXPR_DEDUCE_RETURN_TYPE (lambda_expr) = true;
 	/* TODO: does begin_compound_stmt want BCS_FN_BODY?
 	   cp_parser_compound_stmt does not pass it.  */
 	cp_parser_function_body (parser);
+	LAMBDA_EXPR_DEDUCE_RETURN_TYPE (lambda_expr) = false;
       }
 
     finish_lambda_function_body (lambda_expr, body);

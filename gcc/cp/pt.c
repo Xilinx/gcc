@@ -9003,6 +9003,22 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	    DECL_TEMPLATE_INFO (r) = tree_cons (tmpl, argvec, NULL_TREE);
 	    SET_DECL_IMPLICIT_INSTANTIATION (r);
 	  }
+	else if (cp_unevaluated_operand)
+	  {
+	    /* We're substituting this var in a decltype outside of its
+	       scope, such as for a lambda return type.  Don't add it to
+	       local_specializations, do perform auto deduction.  */
+	    tree auto_node = type_uses_auto (type);
+	    tree init
+	      = tsubst_expr (DECL_INITIAL (t), args, complain, in_decl,
+			     /*constant_expression_p=*/false);
+
+	    if (auto_node && init && describable_type (init))
+	      {
+		type = do_auto_deduction (type, init, auto_node);
+		TREE_TYPE (r) = type;
+	      }
+	  }
 	else
 	  register_local_specialization (r, t);
 
@@ -12226,7 +12242,8 @@ tsubst_copy_and_build (tree t,
 
 	type = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
 	/* This needs to happen after we set LAMBDA_EXPR_FUNCTION.  */
-	apply_lambda_return_type (r, type);
+	if (type)
+	  apply_lambda_return_type (r, type);
 
 	return build_lambda_object (r);
       }
