@@ -1551,7 +1551,7 @@ discriminator_for_local_entity (tree entity)
 	  tree type = VEC_index (tree, local_classes, ix);
 	  if (type == entity)
 	    break;
-          if (TYPE_IDENTIFIER (type) == TYPE_IDENTIFIER (entity)
+	  if (TYPE_IDENTIFIER (type) == TYPE_IDENTIFIER (entity)
 	      && TYPE_CONTEXT (type) == TYPE_CONTEXT (entity))
 	    ++discriminator;
 	}
@@ -1577,7 +1577,7 @@ discriminator_for_string_literal (tree function ATTRIBUTE_UNUSED,
    The discriminator is used only for the second and later occurrences
    of the same name within a single function. In this case <number> is
    n - 2, if this is the nth occurrence, in lexical order.  */
-   
+
 static void
 write_discriminator (const int discriminator)
 {
