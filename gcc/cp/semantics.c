@@ -5602,6 +5602,12 @@ lambda_expr_this_capture (tree lambda)
       result = finish_non_static_data_member (this_capture,
                                               current_class_ref,
                                               /*qualifying_scope=*/NULL_TREE);
+
+      /* If 'this' is captured, each use of 'this' is transformed into an
+	 access to the corresponding unnamed data member of the closure
+	 type cast (_expr.cast_ 5.4) to the type of 'this'. [ The cast
+	 ensures that the transformed expression is an rvalue. ] */
+      result = rvalue (result);
     }
 
   return result;
