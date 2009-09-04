@@ -1,3 +1,126 @@
+2009-09-03  Daniel Gutson  <dgutson@codesourcery.com>
+
+	* config/arm/arm.md (UNSPEC_RBIT): New constant.
+	(rbitsi2): New insn.
+	(ctzsi2): New expand.
+	* config/arm/arm.h (CTZ_DEFINED_VALUE_AT_ZERO): New macro.
+
+	testsuite/
+	* gcc.target/arm/ctz.c: New test case.
+
+2009-09-03  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (duplicate_expr_for_different_base): Removed.
+	(create_artificial_child_access): Use build_ref_for_offset instead
+	of duplicate_expr_for_different_base.
+	(propagate_subacesses_accross_link): Likewise.
+	
+2009-09-03  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (USEFUL_INSN_P): Use NONDEBUG_INSN_P instead
+	of INSN_P.
+	(mips16e_collect_argument_saves): Skip debug instructions.
+	(mips_74k_agen_init): Use CALL_P || JUMP_P instead of !NONJUMP_INSN_P.
+	(mips16_lay_out_constants): Use USEFUL_INSN_P instead of INSN_P.
+	(r10k_insert_cache_barriers): Likewise.
+	(mips_reorg_process_insns): Likewise.
+
+2009-09-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR bootstrap/41241
+	* ira.c (update_equiv_reg): Remove check on class likely spill.
+
+2009-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/41236
+	* dwarf2out.c (loc_descriptor): Don't use SUBREG_REG macro on
+	SIGN_EXTEND or ZERO_EXTEND.  Don't assume there is a REG inside of
+	it or SUBREG.
+
+	PR debug/41238
+	* function.c (assign_parm_find_stack_rtl): Don't set mem attributes on
+	the stack slot if it is passed by invisible reference.
+	* var-tracking.c (vt_add_function_parameters): Handle arguments passed
+	by invisible reference.
+
+2009-09-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/linux.h (TARGET_SUPPORTS_SYNC_CALLS): Define to 1.
+	* config/bfin/uclinux.h (TARGET_SUPPORTS_SYNC_CALLS): Define to 1.
+	* config/bfin/bfin.h (TARGET_SUPPORTS_SYNC_CALLS): Provide default of
+	0.
+	* config/bfin/sync.md: New file.
+	* config/bfin/bfin.md: Include it.
+	(UNSPEC_ATOMIC): New.
+	(UNSPEC_ONES): Provide a unique number.
+
+	From Jie Zhang <jie.zhang@analog.com>:
+	* config/bfin/bfin.c (ret_regs): New.
+	(must_save_fp_p): Don't return true because of frame_pointer_needed.
+	(must_save_rets_p): New.
+	(n_regs_saved_by_prologue): Use must_save_rets_p instead of
+	current_function_is_leaf.
+	(do_link): Likewise.
+	(do_unlink): Likewise.
+	(expand_interrupt_handler_prologue): Use ret_regs array.
+	(expand_interrupt_handler_epilogue): Use ret_regs array and
+	pass return register to gen_return_internal.
+	(bfin_expand_epilogue): Pass return register to
+	gen_return_internal.
+	(bfin_expand_call): Explicitly clobber RETS.
+	* config/bfin/bfin.h (FUNCTION_RETURN_REGISTERS): Define.
+	* config/bfin/bfin.md (call_symbol_fdpic, call_value_symbol_fdpic,
+	call_insn_fdpic, call_value_insn_fdpic, call_symbol,
+	call_value_symbol, call_insn, call_value_insn): Explicitly clobber
+	RETS.
+	(return_internal): Take a reg rtx rather than the register number.
+
+2009-09-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* tree-parloops.c (parallelize_loops): Cast to HOST_WIDE_INT
+	when comparing against estimated_loop_iterations_int return.
+
+2009-09-03  Richard Guenther  <rguenther@suse.de>
+
+	* dwarf2out.c (dwarf2out_do_cfi_asm): Remove check of
+	eh_personality_libfunc.
+
+2009-09-03  Razya Ladelsky  <razya@il.ibm.com>
+
+	* tree-parloops.c (separate_decls_in_region): Add space.
+		
+2009-09-03  Razya Ladelsky  <razya@il.ibm.com>
+
+	* tree-parloops.c (separate_decls_in_region): Change the condition 
+	checking if there are reductions in the loop.
+
+2009-09-03  Razya Ladelsky  <razya@il.ibm.com>
+
+	PR tree-optimization/38275
+	
+	* tree-parloops.c (parallelize_loops): Replace profitability condition 
+	for expected number of iterations.
+
+2009-09-03  Alon Dayan  <alond@il.ibm.com>
+	
+	PR tree-optimization/38275
+	
+	* testsuite/gcc.dg/autopar/reduc-1char.c: Increase number 
+	of iterations. Adjust the logic accordingly.
+	* testsuite/gcc.dg/autopar/reduc-2char.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-1.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-2.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-3.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-6.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-7.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-8.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-9.c: Ditto.
+	* testsuite/gcc.dg/autopar/pr39500-1.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-1short.c: Ditto.
+	* testsuite/gcc.dg/autopar/reduc-2short.c: Ditto.
+	* testsuite/gcc.dg/autopar/parallelization-1.c: Ditto.
+
+
 2009-09-03  Alexandre Oliva  <aoliva@redhat.com>
 
 	* doc/invoke.texi (BUILD_CONFIG): Document --with-build-config.
