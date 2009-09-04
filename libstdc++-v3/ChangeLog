@@ -1,3 +1,310 @@
+2009-08-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_construct.h: Include <bits/move.h>.
+
+2009-08-29  Chris Jefferson  <chris@bubblescope.net>
+
+	* include/bits/move.h (_GLIBCXX_FORWARD): Add.
+	* include/bits/stl_uninitialized.h (__uninitialized_construct_range):
+	Add.
+	* include/bits/stl_tempbuf.h (_Temporary_buffer::
+	_Temporary_buffer(_ForwardIterator, _ForwardIterator)): Use the latter.
+	* include/bits/stl_construct.h (_Construct(_T1*, _T2&&)): Add in
+	C++0x mode.
+	* testsuite/util/testsuite_hooks.h (operator<(const copy_tracker&,
+    	const copy_tracker&)): Add.
+	* testsuite/25_algorithms/stable_partition/mem_check.cc: New.
+	* testsuite/25_algorithms/stable_sort/mem_check.cc: Likewise.
+
+2009-08-26  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* config/abi/pre/gnu.ver: Fixups for string member functions.
+
+2009-08-26  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/41005
+	* configure.ac: Bump libtool_VERSION to 6:14:0.
+	* configure: Regenerate.
+	* src/Makefile.am: Compile fstream-inst.cc as C++0x.
+	* src/Makefile.in: Regenerate.
+	* config/abi/pre/gnu.ver: Add new symbols and disambiguate old ones,
+	move <future> symbols to 3.4.14 version.
+	* testsuite/util/testsuite_abi.cc: Add GLIBCXX_3.4.14 version.
+
+2009-08-25  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/basic_string.h (basic_string): Add cbegin(),
+	cend(), crbegin(), crend() in C++0x mode.
+	* config/abi/pre/gnu.ver: Add exports.
+
+	* testsuite/util/testsuite_containers.h: New.
+	* testsuite/util/testsuite_container_traits.h: New.
+	* testsuite/21_strings/basic_string/requirements/citerators.cc: New.
+	* testsuite/21_strings/basic_string/requirements/typedefs.cc: New.
+	* testsuite/ext/vstring/requirements/citerators.cc: Edit.
+	* testsuite/ext/vstring/requirements/typedefs.cc: New.
+	* testsuite/23_containers/unordered_map/requirements/
+	cliterators.cc: Edit.
+	* testsuite/23_containers/unordered_map/requirements/
+	citerators.cc: Edit.
+	* testsuite/23_containers/unordered_map/requirements/
+	explicit_instantiation/1.cc: New.
+	* testsuite/23_containers/unordered_map/requirements/
+	explicit_instantiation/2.cc: New.
+	* testsuite/23_containers/unordered_map/requirements/
+	explicit_instantiation/3.cc: New.
+	* testsuite/23_containers/unordered_map/requirements/typedefs.cc: Edit.
+	* testsuite/23_containers/unordered_map/requirements/
+	explicit_instantiation.cc: Move to nested directory.
+	* testsuite/23_containers/queue/requirements/typedefs.cc: New.
+	* testsuite/23_containers/priority_queue/requirements/typedefs.cc: New.
+	* testsuite/23_containers/multimap/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/multimap/requirements/typedefs.cc: New.
+	* testsuite/23_containers/set/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/set/requirements/typedefs.cc: New.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	cliterators.cc: Edit.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	citerators.cc: Edit.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	explicit_instantiation/1.cc: New.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	explicit_instantiation/2.cc: Edit.: New.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	explicit_instantiation/3.cc: New.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	typedefs.cc: Edit.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	explicit_instantiation.cc: Move to nested.
+	* testsuite/23_containers/forward_list/requirements/citerators.cc: New.
+	* testsuite/23_containers/forward_list/requirements/1.cc: Remove.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: New.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: New.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: New.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: New.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor.cc: New.
+	* testsuite/23_containers/forward_list/requirements/typedefs.cc: New.
+	* testsuite/23_containers/unordered_set/requirements/
+	cliterators.cc: Edit.
+	* testsuite/23_containers/unordered_set/requirements/
+	citerators.cc: Edit.
+	* testsuite/23_containers/unordered_set/requirements/
+	explicit_instantiation/1.cc: New.
+	* testsuite/23_containers/unordered_set/requirements/
+	explicit_instantiation/2.cc: New.
+	* testsuite/23_containers/unordered_set/requirements/
+	explicit_instantiation/3.cc: New.
+	* testsuite/23_containers/unordered_set/requirements/typedefs.cc: Edit.
+	* testsuite/23_containers/unordered_set/requirements/
+	explicit_instantiation.cc: Move to nested.
+	* testsuite/23_containers/vector/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/vector/requirements/dr438/bool/
+	constructor.cc: Move.
+	* testsuite/23_containers/vector/requirements/typedefs.cc: New.
+	* testsuite/23_containers/vector/bool/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/vector/bool/requirements/dr438/
+	constructor.cc: New.
+	* testsuite/23_containers/deque/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/deque/requirements/typedefs.cc
+	* testsuite/23_containers/stack/requirements/typedefs.cc
+	* testsuite/23_containers/multiset/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/multiset/requirements/typedefs.cc: New.
+	* testsuite/23_containers/list/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/list/requirements/typedefs.cc: New.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	cliterators.cc: Edit.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	citerators.cc: Edit.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	explicit_instantiation.cc: Move.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	explicit_instantiation/1.cc: New.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	explicit_instantiation/2.cc: New.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	explicit_instantiation/3.cc: New.
+	* testsuite/23_containers/unordered_multiset/requirements/typedefs.cc
+	* testsuite/23_containers/map/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/map/requirements/typedefs.cc: New.
+	* testsuite/23_containers/array/requirements/citerators.cc: Edit.
+	* testsuite/23_containers/array/requirements/explicit_instantiation.cc:
+	Move.
+	* testsuite/23_containers/array/requirements/
+	explicit_instantiation/1.cc: New.
+	* testsuite/23_containers/array/requirements/
+	explicit_instantiation/2.cc: New.
+	* testsuite/23_containers/array/requirements/typedefs.cc: New.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-24  Chris Jefferson  <chris@bubblescope.net>
+
+	* include/stl_algo.h (__unguarded_partition_pivot,
+	__move_median_first): New.
+	(__insertion_sort, __unguarded_insertion_sort): Adjust for move-only
+	types.
+	(__unguarded_linear_insert): Assume always inserting value at __last.
+	(__unguarded_partition): Take pivot by reference.
+	(__introsort_loop, __introselect): Use __unguarded_partition_pivot.
+	* testsuite/25_algorithms/nth_element/moveable.cc: Enable.
+
+2009-08-23  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* libsupc++/Makefile.am (LTCOMPILE): Expand $(LIBTOOLFLAGS)
+	before --mode argument.
+	* libsupc++/Makefile.in: Regenerate.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/xml/manual/build_hacking.xml: Use tools from Autoconf
+	2.64 and Automake 1.11 in examples; update link to Autoconf
+	manual page about quadrigraphs.
+	* Makefile.am (install-html, install-pdf): Remove.
+	* Makefile.in: Regenerate.
+
+	* Makefile.in: Regenerate.
+	* acinclude.m4: Regenerate.
+	* aclocal.m4: Regenerate.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* doc/Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* libsupc++/Makefile.in: Regenerate.
+	* po/Makefile.in: Regenerate.
+	* python/Makefile.in: Regenerate.
+	* src/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* libsupc++/Makefile.am (LTCOMPILE, LTCXXCOMPILE, CXXLINK): Add
+	$(LIBTOOLFLAGS).
+	* libsupc++/Makefile.in: Regenerate.
+	* src/Makefile.am (LTCXXCOMPILE, CXXLINK): Add $(AM_LIBTOOLFLAGS)
+	and $(LIBTOOLFLAGS).
+	* src/Makefile.in: Regenerate.
+
+2009-08-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/30_threads/packaged_task/requirements/typedefs.cc: Add
+	missing dg-require directives.
+
+2009-08-20  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/tr1/gamma.tcc: Change include guard from _TR1_GAMMA_TCC
+	to _GLIBCXX_TR1_GAMMA_TCC to match the rest of the headers in tr1.
+	* include/tr1/exp_integral.tcc: Replace _TR1_GAMMA_TCC with
+	__numeric_constants<_Tp>::__gamma_e().
+
+2009-08-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/30_threads/packaged_task/requirements/typedefs.cc: New.
+
+2009-08-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Move guarded checks for CC and CXX ...
+	* acinclude.m4 (GLIBCXX_CONFIGURE): ... from here.
+	* configure: Regenerate.
+
+2009-08-14  Edward Smith-Rowland  <3dw4rd@verizon.net>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/41061
+	* include/bits/random.h (operator<<(std::basic_ostream<>&,
+	const std::lognormal_distribution<>&),
+	operator>>(std::basic_istream<>&, std::lognormal_distribution<>&),
+	operator<<(std::basic_ostream<>&, const std::gamma_distribution<>&),
+	operator>>(std::basic_istream<>&, std::gamma_distribution<>&),
+	operator<<(std::basic_ostream<>&,
+	const std::chi_squared_distribution<>&),
+	operator>>(std::basic_istream<>&, std::chi_squared_distribution<>&),
+	operator<<(std::basic_ostream<>&,
+	const std::fisher_f_distribution<>&),
+	operator>>(std::basic_istream<>&, std::fisher_f_distribution<>&),
+	operator<<(std::basic_ostream<>&,
+	const std::student_t_distribution<>&),
+	operator>>(std::basic_istream<>&, std::student_t_distribution<>&),
+	operator<<(std::basic_ostream<>&,
+	const std::negative_binomial_distribution<>&)): Declare friend.
+	* testsuite/26_numerics/random/uniform_real_distribution/operators/
+	serialize.cc: New.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	operators/serialize.cc
+	* testsuite/26_numerics/random/student_t_distribution/operators/
+	serialize.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/operators/
+	serialize.cc: Likewise.
+
+2009-08-14  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/bits/stl_tree.h: In C++0x mode make erase return
+	an iterator as per DR 130.
+	* include/bits/stl_set.h: Same.
+	* include/bits/stl_multiset.h: Same.
+	* include/bits/stl_map.h: Same.
+	* include/bits/stl_multimap.h: Same.
+	* doc/xml/manual/intro.xml: Document.
+	* testsuite/23_containers/set/dr130.cc: New.
+	* testsuite/23_containers/multiset/dr130.cc: New.
+	* testsuite/23_containers/map/dr130.cc: New.
+	* testsuite/23_containers/multimap/dr130.cc: New.
+
+2009-08-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pointer.h: Add pragma system_header, use
+	_GLIBCXX_USE_LONG_LONG, macro cleanup.
+
+2009-08-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* src/compatibility-ldbl.cc: Include cmath.
+
+2009-08-13  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/compatibility-ldbl.cc: Include tr1/functional.
+
+2009-08-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/compatibility-ldbl.cc: Add explicit namespace scope.
+
 2009-08-11  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/precompiled/extc++.h: Don't include TR1 if C++0x.
@@ -92,12 +399,12 @@
 2009-08-06  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* src/compatibility.cc: Make C++0x safe, add in explicit casts to
-        bool for stream sentry objects.
-        * include/bits/istream.tcc: Same.
-        * include/bits/ostream.tcc: Same.
-        * include/bits/basic_string.tcc: Same.
+	bool for stream sentry objects.
+	* include/bits/istream.tcc: Same.
+	* include/bits/ostream.tcc: Same.
+	* include/bits/basic_string.tcc: Same.
 	* include/bits/ostream_insert.h: Same.
-        * src/istream.cc: Same.
+	* src/istream.cc: Same.
 
 2009-08-04  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -940,7 +1247,7 @@
 	const param_type&): Define here.
 	(geometric_distribution<>::operator()(_UniformRandomNumberGenerator&,
 	const param_type&), discrete_distribution<>::operator()
-	(_UniformRandomNumberGenerator&, const param_type&), 
+	(_UniformRandomNumberGenerator&, const param_type&),
 	piecewise_constant_distribution<>::operator()
 	(_UniformRandomNumberGenerator&, const param_type&),
 	piecewise_linear_distribution<>::operator()

@@ -1,3 +1,143 @@
+2009-08-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (call_to_gnu): Tidy.
+	(gnat_to_gnu) <N_Slice>: Set TYPE_ARRAY_MAX_SIZE if the slice has
+	non-constant size but the array itself has constant size.
+	* gcc-interface/utils.c (convert_vms_descriptor64): Fix type
+	consistency error.
+	(convert_vms_descriptor32): Likewise.
+
+2009-08-22  Aurelien Jarno  <aurelien@aurel32.net>
+
+	* gcc-interface/Makefile.in: Add Ada support for 
+	GNU/kFreeBSD x86_64.
+	* system-freebsd-x86_64.ads: New file based on 
+	system-freebsd-x86.ads.
+
+2009-08-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (convert): In the padded case, do the final
+	conversion as an unchecked conversion if the underlying types are
+	array types with variable size.
+
+2009-08-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.h (SET_TYPE_RM_VALUE): Mark the expression
+	as visited.
+	* gcc-interface/misc.c (gnat_get_subrange_bounds): Always return the
+	bounds.
+	* gcc-interface/trans.c (add_decl_expr): Do not mark gigi-specific
+	fields.
+	(gnat_gimplify_expr) <DECL_EXPR>: New case.
+
+2009-08-17  Aurelien Jarno  <aurelien@aurel32.net>
+
+	* s-osinte-kfreebsd-gnu.ads (SA_ONSTACK): New constant.
+	(stack_t): New record type.
+	(sigaltstack): New imported function.
+	(Alternate_Stack): New imported variable.
+	(Alternate_Stack_Size): New constant.
+
+2009-08-17  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* a-calend-vms.adb: Fix typo.
+
+2009-08-17  Tristan Gingold  <gingold@adacore.com>
+
+	* s-taprop-posix.adb: Round up the stack size to avoid failure on
+	Darwin.
+
+2009-08-17  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_cat.adb (Validate_Static_Object_Name): Update comment.
+
+2009-08-17  Vincent Celier  <celier@adacore.com>
+
+	* make.adb (Arguments_Collected): Unneeded, removed
+	(Change_To_Object_Directory): Use Project directly. Add pragma Assert to
+	ensure caller does not pass in No_Project.
+	(Compile): Add new parameter Project. Let procedure
+	Collect_Arguments_And_Compile provide the proper value.
+
+	* switch-c.adb: Add documentation for -gnatea and -gnatez
+
+2009-08-17  Ben Brosgol  <brosgol@adacore.com>
+
+	* gnat_ugn.texi: Changed name of package in SAL example, to avoid
+	clash with Ada 2005 reserved word (interface).
+
+2009-08-17  Robert Dewar  <dewar@adacore.com>
+
+	* a-crbtgk.adb, a-crdlli.adb, a-direct.adb, a-caldel-vms.adb,
+	a-calend-vms.adb, a-calfor.adb, a-cdlili.adb, a-chahan.adb,
+	a-cidlli.adb, a-coinve.adb, a-comlin.adb: Minor code reorganization
+	(use conditional expressions).
+
+2009-08-17  Robert Dewar  <dewar@adacore.com>
+
+	* make.adb: Add ??? comment
+	* tbuild.adb: Minor reformatting
+
+2009-08-17  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch4.adb (Exp_Ch4.Expand_N_Slice.Make_Temporary): Rename to
+	Make_Temporary_For_Slice to avoid confusion with Tbuild.Make_Temporary.
+	Use Tbuild.Make_Temporary to create entity for the temporary.
+
+2009-08-17  Arnaud Charlet  <charlet@adacore.com>
+
+	* make.adb (Process_Multilib, Scan_Make_Arg): Refine previous change
+	and ignore -mieee switch to avoid spawning an extra gcc in this case.
+
+2009-08-17  Thomas Quinot  <quinot@adacore.com>
+
+	* tbuild.adb: Minor reformatting
+
+2009-08-17  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch3.adb (Build_Discriminant_Formals): If the discriminals already
+	exist, as is the case for synchronized types, use the type of the
+	discriminal in the parameter specification, to prevent a spurious
+	subtype mismatch in gigi.
+
+2009-08-17  Robert Dewar  <dewar@adacore.com>
+
+	* prj-env.adb: Minor reformatting
+	* make.adb: Minor reformatting
+	Comment updates
+
+2009-08-17  Javier Miranda  <miranda@adacore.com>
+
+	* exp_ch7.adb (Wrap_Transient_Expression): Update comments.
+
+2009-08-17  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-part.adb, prj.adb, prj.ads, prj-nmsc.adb, prj-conf.adb
+	(Processing_Flags.Require_Obj_Dirs): new field, which controls whether
+	object directories must be present. In the case of gprclean at least,
+	these are optional (if they do not exist there is nothing to clean)
+
+2009-08-17  Robert Dewar  <dewar@adacore.com>
+
+	* prj-env.adb: Minor reformatting
+	* sem_ch3.adb: Minor reformatting
+
+2009-08-17  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sysdep.c (__gnat_localtime_tzoff): VxWorks case - Flip the sign of
+	the time zone since VxWorks chose positive values to represent west
+	time zones and negative for east zones.
+
+2009-08-17  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Access_Definition): Do not create an Itype reference for
+	an anonymous access type whose designated type is generic.
+
+2009-08-17  Arnaud Charlet  <charlet@adacore.com>
+
+	* comperr.adb (Compiler_Abort): Do not generate a bug box when in
+	codepeer mode, friendlier.
+
 2009-08-10  Laurent GUERBY  <laurent@guerby.net>
 
         * make.adb: Handle multilib

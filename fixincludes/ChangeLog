@@ -1,3 +1,54 @@
+2009-08-28   Bruce Korb <bkorb@gnu.org>
+	     Steve Ellcey  <sje@cup.hp.com>
+
+	* README (files): Describe files entry.
+	* inclhack.def (hpux_stdint_least): Remove.
+	(hpux_stdint_fast): Remove.
+	(hpux_stdint_fast): Remove.
+	(hpux_stdint_least_fast): New.
+	(hpux_inttype_int_least8_t): Remove.
+	(hpux_inttype_int8_t): Modify.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: Update.
+	* tests/base/sys/_inttypes.h: Update.
+
+2009-08-28  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux_imaginary_i): Remove spaces.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: Update AIX fixes. 
+	* tests/base/complex.h: Change HPUX_IMAGINARY_I_CHECK fix.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+
+2009-08-17  David Edelsohn  <edelsohn@gnu.org>
+
+	* inclhack.def (aix_complex): Redefine _Complex_I.  Do not
+	redefine I.
+	* (aix_stdint_[12345]): New fixes.
+	* fixincl.x: Regenerate.
+	* tests/base/complex.h: Update check.
+	* tests/base/stdint.h: Add AIX stdint.h checks.
+
+2009-08-14  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux_imaginary_i): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/complex.h: New file.
+
+2009-08-12  David Edelsohn  <edelsohn@gnu.org>
+
+	* inclhack.def (aix_complex): New fix.
+	* fixincl.x: Regenerate.
+	
 2009-08-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	* inclhack.def (hpux_inttype_int_least8_t): Also apply on hpux10*.

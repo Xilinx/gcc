@@ -1059,6 +1059,10 @@ c_common_post_options (const char **pfilename)
   else if (!flag_gnu89_inline && !flag_isoc99)
     error ("-fno-gnu89-inline is only supported in GNU99 or C99 mode");
 
+  if (flag_dyn_ipa && cpp_opts->preprocessed)
+    error ("-fpreprocessed/-save-temps are not supported with -fripa");
+
+
   /* Default to ObjC sjlj exception handling if NeXT runtime.  */
   if (flag_objc_sjlj_exceptions < 0)
     flag_objc_sjlj_exceptions = flag_next_runtime;

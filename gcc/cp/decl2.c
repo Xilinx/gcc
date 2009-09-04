@@ -699,12 +699,8 @@ check_classfn (tree ctype, tree function, tree template_parms)
 void
 note_vague_linkage_fn (tree decl)
 {
-  if (!DECL_DEFERRED_FN (decl))
-    {
-      DECL_DEFERRED_FN (decl) = 1;
-      DECL_DEFER_OUTPUT (decl) = 1;
-      VEC_safe_push (tree, gc, deferred_fns, decl);
-    }
+  DECL_DEFER_OUTPUT (decl) = 1;
+  VEC_safe_push (tree, gc, deferred_fns, decl);
 }
 
 /* We have just processed the DECL, which is a static data member.
@@ -742,10 +738,7 @@ finish_static_data_member_decl (tree decl,
 	}
       init = NULL_TREE;
     }
-  /* Force the compiler to know when an uninitialized static const
-     member is being used.  */
-  if (CP_TYPE_CONST_P (TREE_TYPE (decl)) && init == 0)
-    TREE_USED (decl) = 1;
+
   DECL_INITIAL (decl) = init;
   DECL_IN_AGGR_P (decl) = 1;
 
@@ -3627,7 +3620,7 @@ cp_process_pending_declarations (location_t locus)
   for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
     {
       if (/* Check online inline functions that were actually used.  */
-	  TREE_USED (decl) && DECL_DECLARED_INLINE_P (decl)
+	  DECL_ODR_USED (decl) && DECL_DECLARED_INLINE_P (decl)
 	  /* If the definition actually was available here, then the
 	     fact that the function was not defined merely represents
 	     that for some reason (use of a template repository,
@@ -3896,9 +3889,11 @@ mark_used (tree decl)
       decl = OVL_CURRENT (decl);
     }
 
+  /* Set TREE_USED for the benefit of -Wunused.  */
   TREE_USED (decl) = 1;
   if (DECL_CLONED_FUNCTION_P (decl))
     TREE_USED (DECL_CLONED_FUNCTION (decl)) = 1;
+
   if (TREE_CODE (decl) == FUNCTION_DECL
       && DECL_DELETED_FN (decl))
     {
@@ -3908,6 +3903,20 @@ mark_used (tree decl)
     }
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)
+    return;
+
+  /* We can only check DECL_ODR_USED on variables or functions with
+     DECL_LANG_SPECIFIC set, and these are also the only decls that we
+     might need special handling for.  */
+  if ((TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
+      || DECL_LANG_SPECIFIC (decl) == NULL
+      || DECL_THUNK_P (decl))
+    return;
+
+  /* We only want to do this processing once.  We don't need to keep trying
+     to instantiate inline templates, because unit-at-a-time will make sure
+     we get them compiled before functions that want to inline them.  */
+  if (DECL_ODR_USED (decl))
     return;
 
   /* If within finish_function, defer the rest until that function
@@ -3943,77 +3952,63 @@ mark_used (tree decl)
   if (processing_template_decl)
     return;
 
+  DECL_ODR_USED (decl) = 1;
+  if (DECL_CLONED_FUNCTION_P (decl))
+    DECL_ODR_USED (DECL_CLONED_FUNCTION (decl)) = 1;
+
   /* DR 757: A type without linkage shall not be used as the type of a
      variable or function with linkage, unless
    o the variable or function has extern "C" linkage (7.5 [dcl.link]), or
    o the variable or function is not used (3.2 [basic.def.odr]) or is
    defined in the same translation unit.  */
   if (TREE_PUBLIC (decl)
-      && (TREE_CODE (decl) == FUNCTION_DECL
-	  || TREE_CODE (decl) == VAR_DECL)
-      && DECL_LANG_SPECIFIC (decl)
-      && !DECL_NO_LINKAGE_CHECKED (decl))
+      && !DECL_EXTERN_C_P (decl)
+      && !DECL_ARTIFICIAL (decl)
+      && !decl_defined_p (decl)
+      && no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false))
     {
-      DECL_NO_LINKAGE_CHECKED (decl) = true;
-      if (!DECL_EXTERN_C_P (decl)
-	  && !DECL_ARTIFICIAL (decl)
-	  && !decl_defined_p (decl)
-	  && no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false))
-	{
-	  if (is_local_extern (decl))
-	    /* There's no way to define a local extern, and adding it to
-	       the vector interferes with GC, so give an error now.  */
-	    no_linkage_error (decl);
-	  else
-	    VEC_safe_push (tree, gc, no_linkage_decls, decl);
-	}
+      if (is_local_extern (decl))
+	/* There's no way to define a local extern, and adding it to
+	   the vector interferes with GC, so give an error now.  */
+	no_linkage_error (decl);
+      else
+	VEC_safe_push (tree, gc, no_linkage_decls, decl);
     }
 
   if (TREE_CODE (decl) == FUNCTION_DECL && DECL_DECLARED_INLINE_P (decl)
-      && !TREE_ASM_WRITTEN (decl))
+      && !DECL_INITIAL (decl) && !DECL_ARTIFICIAL (decl))
     /* Remember it, so we can check it was defined.  */
-    {
-      if (DECL_DEFERRED_FN (decl))
-	return;
-
-      /* Remember the current location for a function we will end up
-	 synthesizing.  Then we can inform the user where it was
-	 required in the case of error.  */
-      if (DECL_ARTIFICIAL (decl) && DECL_NONSTATIC_MEMBER_FUNCTION_P (decl)
-	  && !DECL_THUNK_P (decl))
-	DECL_SOURCE_LOCATION (decl) = input_location;
-
-      note_vague_linkage_fn (decl);
-    }
+    note_vague_linkage_fn (decl);
 
   /* Is it a synthesized method that needs to be synthesized?  */
   if (TREE_CODE (decl) == FUNCTION_DECL
       && DECL_NONSTATIC_MEMBER_FUNCTION_P (decl)
       && DECL_DEFAULTED_FN (decl)
-      && !DECL_THUNK_P (decl)
-      && ! DECL_INITIAL (decl)
-      /* Kludge: don't synthesize for default args.  Unfortunately this
-	 rules out initializers of namespace-scoped objects too, but
-	 it's sort-of ok if the implicit ctor or dtor decl keeps
-	 pointing to the class location.  */
-      && current_function_decl)
+      && ! DECL_INITIAL (decl))
     {
+      /* Remember the current location for a function we will end up
+	 synthesizing.  Then we can inform the user where it was
+	 required in the case of error.  */
+      DECL_SOURCE_LOCATION (decl) = input_location;
+
+      /* Synthesizing an implicitly defined member function will result in
+	 garbage collection.  We must treat this situation as if we were
+	 within the body of a function so as to avoid collecting live data
+	 on the stack (such as overload resolution candidates).
+
+         We could just let cp_write_global_declarations handle synthesizing
+         this function, since we just added it to deferred_fns, but doing
+         it at the use site produces better error messages.  */
+      ++function_depth;
       synthesize_method (decl);
-      /* If we've already synthesized the method we don't need to
+      --function_depth;
+      /* If this is a synthesized method we don't need to
 	 do the instantiation test below.  */
     }
-  else if ((DECL_NON_THUNK_FUNCTION_P (decl) || TREE_CODE (decl) == VAR_DECL)
-	   && DECL_LANG_SPECIFIC (decl) && DECL_TEMPLATE_INFO (decl)
+  else if ((TREE_CODE (decl) == FUNCTION_DECL || TREE_CODE (decl) == VAR_DECL)
+	   && DECL_TEMPLATE_INFO (decl)
 	   && (!DECL_EXPLICIT_INSTANTIATION (decl)
-	       || (TREE_CODE (decl) == FUNCTION_DECL
-		   && possibly_inlined_p
-		       (DECL_TEMPLATE_RESULT (
-		         template_for_substitution (decl))))
-	       /* We need to instantiate static data members so that there
-		  initializers are available in integral constant
-		  expressions.  */
-	       || (TREE_CODE (decl) == VAR_DECL
-		   && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl))))
+	       || always_instantiate_p (decl)))
     /* If this is a function or variable that is an instance of some
        template, we now know that we will need to actually do the
        instantiation. We check that DECL is not an explicit

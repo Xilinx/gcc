@@ -269,11 +269,8 @@ gfc_set_default_type (gfc_symbol *sym, int error_flag, gfc_namespace *ns)
   sym->ts = *ts;
   sym->attr.implicit_type = 1;
 
-  if (ts->cl)
-    {
-      sym->ts.cl = gfc_get_charlen ();
-      *sym->ts.cl = *ts->cl;
-    }
+  if (ts->type == BT_CHARACTER && ts->u.cl)
+    sym->ts.u.cl = gfc_new_charlen (sym->ns, ts->u.cl);
 
   if (sym->attr.is_bind_c == 1)
     {
@@ -1641,7 +1638,9 @@ gfc_copy_attr (symbol_attribute *dest, symbol_attribute *src, locus *where)
 {
   int is_proc_lang_bind_spec;
   
-  dest->ext_attr = src->ext_attr;
+  /* In line with the other attributes, we only add bits but do not remove
+     them; cf. also PR 41034.  */
+  dest->ext_attr |= src->ext_attr;
 
   if (src->allocatable && gfc_add_allocatable (dest, where) == FAILURE)
     goto fail;
@@ -1712,7 +1711,7 @@ gfc_copy_attr (symbol_attribute *dest, symbol_attribute *src, locus *where)
   if (src->cray_pointer && gfc_add_cray_pointer (dest, where) == FAILURE)
     goto fail;
   if (src->cray_pointee && gfc_add_cray_pointee (dest, where) == FAILURE)
-    goto fail;    
+    goto fail;
 
   is_proc_lang_bind_spec = (src->flavor == FL_PROCEDURE ? 1 : 0);
   if (src->is_bind_c
@@ -1772,10 +1771,10 @@ gfc_add_component (gfc_symbol *sym, const char *name,
     }
 
   if (sym->attr.extension
-	&& gfc_find_component (sym->components->ts.derived, name, true, true))
+	&& gfc_find_component (sym->components->ts.u.derived, name, true, true))
     {
       gfc_error ("Component '%s' at %C already in the parent type "
-		 "at %L", name, &sym->components->ts.derived->declared_at);
+		 "at %L", name, &sym->components->ts.u.derived->declared_at);
       return FAILURE;
     }
 
@@ -1808,8 +1807,8 @@ switch_types (gfc_symtree *st, gfc_symbol *from, gfc_symbol *to)
     return;
 
   sym = st->n.sym;
-  if (sym->ts.type == BT_DERIVED && sym->ts.derived == from)
-    sym->ts.derived = to;
+  if (sym->ts.type == BT_DERIVED && sym->ts.u.derived == from)
+    sym->ts.u.derived = to;
 
   switch_types (st->left, from, to);
   switch_types (st->right, from, to);
@@ -1861,8 +1860,8 @@ gfc_use_derived (gfc_symbol *sym)
   for (i = 0; i < GFC_LETTERS; i++)
     {
       t = &sym->ns->default_type[i];
-      if (t->derived == sym)
-	t->derived = s;
+      if (t->u.derived == sym)
+	t->u.derived = s;
     }
 
   st = gfc_find_symtree (sym->ns->sym_root, sym->name);
@@ -1915,7 +1914,7 @@ gfc_find_component (gfc_symbol *sym, const char *name,
 	&& sym->attr.extension
 	&& sym->components->ts.type == BT_DERIVED)
     {
-      p = gfc_find_component (sym->components->ts.derived, name,
+      p = gfc_find_component (sym->components->ts.u.derived, name,
 			      noaccess, silent);
       /* Do not overwrite the error.  */
       if (p == NULL)
@@ -3074,15 +3073,29 @@ gfc_free_finalizer_list (gfc_finalizer* list)
 }
 
 
-/* Create a new gfc_charlen structure and add it to a namespace.  */
+/* Create a new gfc_charlen structure and add it to a namespace.
+   If 'old_cl' is given, the newly created charlen will be a copy of it.  */
 
 gfc_charlen*
-gfc_new_charlen (gfc_namespace *ns)
+gfc_new_charlen (gfc_namespace *ns, gfc_charlen *old_cl)
 {
   gfc_charlen *cl;
   cl = gfc_get_charlen ();
+
+  /* Put into namespace.  */
   cl->next = ns->cl_list;
   ns->cl_list = cl;
+
+  /* Copy old_cl.  */
+  if (old_cl)
+    {
+      cl->length = gfc_copy_expr (old_cl->length);
+      cl->length_from_typespec = old_cl->length_from_typespec;
+      cl->backend_decl = old_cl->backend_decl;
+      cl->passed_length = old_cl->passed_length;
+      cl->resolved = old_cl->resolved;
+    }
+
   return cl;
 }
 
@@ -3261,8 +3274,8 @@ gfc_is_var_automatic (gfc_symbol *sym)
     return true;
   /* Check for non-constant length character variables.  */
   if (sym->ts.type == BT_CHARACTER
-      && sym->ts.cl
-      && !gfc_is_constant_expr (sym->ts.cl->length))
+      && sym->ts.u.cl
+      && !gfc_is_constant_expr (sym->ts.u.cl->length))
     return true;
   return false;
 }
@@ -3479,14 +3492,14 @@ verify_bind_c_derived_type (gfc_symbol *derived_sym)
       
       /* BIND(C) derived types must have interoperable components.  */
       if (curr_comp->ts.type == BT_DERIVED
-	  && curr_comp->ts.derived->ts.is_iso_c != 1 
-          && curr_comp->ts.derived != derived_sym)
+	  && curr_comp->ts.u.derived->ts.is_iso_c != 1 
+          && curr_comp->ts.u.derived != derived_sym)
         {
           /* This should be allowed; the draft says a derived-type can not
              have type parameters if it is has the BIND attribute.  Type
              parameters seem to be for making parameterized derived types.
              There's no need to verify the type if it is c_ptr/c_funptr.  */
-          retval = verify_bind_c_derived_type (curr_comp->ts.derived);
+          retval = verify_bind_c_derived_type (curr_comp->ts.u.derived);
 	}
       else
 	{
@@ -3585,10 +3598,10 @@ gen_special_c_interop_ptr (int ptr_id, const char *ptr_name,
   /* The c_ptr and c_funptr derived types will provide the
      definition for c_null_ptr and c_null_funptr, respectively.  */
   if (ptr_id == ISOCBINDING_NULL_PTR)
-    tmp_sym->ts.derived = get_iso_c_binding_dt (ISOCBINDING_PTR);
+    tmp_sym->ts.u.derived = get_iso_c_binding_dt (ISOCBINDING_PTR);
   else
-    tmp_sym->ts.derived = get_iso_c_binding_dt (ISOCBINDING_FUNPTR);
-  if (tmp_sym->ts.derived == NULL)
+    tmp_sym->ts.u.derived = get_iso_c_binding_dt (ISOCBINDING_FUNPTR);
+  if (tmp_sym->ts.u.derived == NULL)
     {
       /* This can occur if the user forgot to declare c_ptr or
          c_funptr and they're trying to use one of the procedures
@@ -3601,7 +3614,7 @@ gen_special_c_interop_ptr (int ptr_id, const char *ptr_name,
 				   ? "_gfortran_iso_c_binding_c_ptr"
 				   : "_gfortran_iso_c_binding_c_funptr"));
 
-      tmp_sym->ts.derived =
+      tmp_sym->ts.u.derived =
         get_iso_c_binding_dt (ptr_id == ISOCBINDING_NULL_PTR
                               ? ISOCBINDING_PTR : ISOCBINDING_FUNPTR);
     }
@@ -3622,7 +3635,7 @@ gen_special_c_interop_ptr (int ptr_id, const char *ptr_name,
   tmp_sym->value = gfc_get_expr ();
   tmp_sym->value->expr_type = EXPR_STRUCTURE;
   tmp_sym->value->ts.type = BT_DERIVED;
-  tmp_sym->value->ts.derived = tmp_sym->ts.derived;
+  tmp_sym->value->ts.u.derived = tmp_sym->ts.u.derived;
   /* Create a constructor with no expr, that way we can recognize if the user
      tries to call the structure constructor for one of the iso_c_binding
      derived types during resolution (resolve_structure_cons).  */
@@ -3726,7 +3739,7 @@ gen_cptr_param (gfc_formal_arglist **head,
       gfc_get_ha_symbol (c_ptr_type, &(c_ptr_sym));
     }
 
-  param_sym->ts.derived = c_ptr_sym;
+  param_sym->ts.u.derived = c_ptr_sym;
   param_sym->module = gfc_get_string (module_name);
 
   /* Make new formal arg.  */
@@ -3954,7 +3967,7 @@ gfc_copy_formal_args_intr (gfc_symbol *dest, gfc_intrinsic_sym *src)
       formal_arg->sym->attr.dummy = 1;
 
       if (formal_arg->sym->ts.type == BT_CHARACTER)
-	formal_arg->sym->ts.cl = gfc_new_charlen (gfc_current_ns);
+	formal_arg->sym->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
 
       /* If this isn't the first arg, set up the next ptr.  For the
         last arg built, the formal_arg->next will never get set to
@@ -4217,8 +4230,8 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
 	tmp_sym->value->value.character.string[0]
 	  = (gfc_char_t) c_interop_kinds_table[s].value;
 	tmp_sym->value->value.character.string[1] = '\0';
-	tmp_sym->ts.cl = gfc_get_charlen ();
-	tmp_sym->ts.cl->length = gfc_int_expr (1);
+	tmp_sym->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
+	tmp_sym->ts.u.cl->length = gfc_int_expr (1);
 
 	/* May not need this in both attr and ts, but do need in
 	   attr for writing module file.  */
@@ -4262,7 +4275,7 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
 
 	tmp_sym->attr.referenced = 1;
 
-	tmp_sym->ts.derived = tmp_sym;
+	tmp_sym->ts.u.derived = tmp_sym;
 
         /* Add the symbol created for the derived type to the current ns.  */
         dt_list_ptr = &(gfc_derived_types);
@@ -4347,13 +4360,13 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
                   C address of.  */
 		tmp_sym->ts.type = BT_DERIVED;
                 if (s == ISOCBINDING_LOC)
-                  tmp_sym->ts.derived =
+                  tmp_sym->ts.u.derived =
                     get_iso_c_binding_dt (ISOCBINDING_PTR);
                 else
-                  tmp_sym->ts.derived =
+                  tmp_sym->ts.u.derived =
                     get_iso_c_binding_dt (ISOCBINDING_FUNPTR);
 
-                if (tmp_sym->ts.derived == NULL)
+                if (tmp_sym->ts.u.derived == NULL)
                   {
                     /* Create the necessary derived type so we can continue
                        processing the file.  */
@@ -4363,7 +4376,7 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
 		       (const char *)(s == ISOCBINDING_FUNLOC
                                 ? "_gfortran_iso_c_binding_c_funptr"
 				: "_gfortran_iso_c_binding_c_ptr"));
-                    tmp_sym->ts.derived =
+                    tmp_sym->ts.u.derived =
                       get_iso_c_binding_dt (s == ISOCBINDING_FUNLOC
                                             ? ISOCBINDING_FUNPTR
                                             : ISOCBINDING_PTR);
@@ -4515,9 +4528,9 @@ gfc_get_derived_super_type (gfc_symbol* derived)
 
   gcc_assert (derived->components);
   gcc_assert (derived->components->ts.type == BT_DERIVED);
-  gcc_assert (derived->components->ts.derived);
+  gcc_assert (derived->components->ts.u.derived);
 
-  return derived->components->ts.derived;
+  return derived->components->ts.u.derived;
 }
 
 
@@ -4526,7 +4539,8 @@ gfc_get_derived_super_type (gfc_symbol* derived)
 
 static gfc_symtree*
 find_typebound_proc_uop (gfc_symbol* derived, gfc_try* t,
-			 const char* name, bool noaccess, bool uop)
+			 const char* name, bool noaccess, bool uop,
+			 locus* where)
 {
   gfc_symtree* res;
   gfc_symtree* root;
@@ -4542,7 +4556,7 @@ find_typebound_proc_uop (gfc_symbol* derived, gfc_try* t,
 
   /* Try to find it in the current type's namespace.  */
   res = gfc_find_symtree (root, name);
-  if (res && res->n.tb)
+  if (res && res->n.tb && !res->n.tb->error)
     {
       /* We found one.  */
       if (t)
@@ -4551,7 +4565,9 @@ find_typebound_proc_uop (gfc_symbol* derived, gfc_try* t,
       if (!noaccess && derived->attr.use_assoc
 	  && res->n.tb->access == ACCESS_PRIVATE)
 	{
-	  gfc_error ("'%s' of '%s' is PRIVATE at %C", name, derived->name);
+	  if (where)
+	    gfc_error ("'%s' of '%s' is PRIVATE at %L",
+		       name, derived->name, where);
 	  if (t)
 	    *t = FAILURE;
 	}
@@ -4566,7 +4582,8 @@ find_typebound_proc_uop (gfc_symbol* derived, gfc_try* t,
       super_type = gfc_get_derived_super_type (derived);
       gcc_assert (super_type);
 
-      return find_typebound_proc_uop (super_type, t, name, noaccess, uop);
+      return find_typebound_proc_uop (super_type, t, name,
+				      noaccess, uop, where);
     }
 
   /* Nothing found.  */
@@ -4579,16 +4596,16 @@ find_typebound_proc_uop (gfc_symbol* derived, gfc_try* t,
 
 gfc_symtree*
 gfc_find_typebound_proc (gfc_symbol* derived, gfc_try* t,
-			 const char* name, bool noaccess)
+			 const char* name, bool noaccess, locus* where)
 {
-  return find_typebound_proc_uop (derived, t, name, noaccess, false);
+  return find_typebound_proc_uop (derived, t, name, noaccess, false, where);
 }
 
 gfc_symtree*
 gfc_find_typebound_user_op (gfc_symbol* derived, gfc_try* t,
-			    const char* name, bool noaccess)
+			    const char* name, bool noaccess, locus* where)
 {
-  return find_typebound_proc_uop (derived, t, name, noaccess, true);
+  return find_typebound_proc_uop (derived, t, name, noaccess, true, where);
 }
 
 
@@ -4597,7 +4614,8 @@ gfc_find_typebound_user_op (gfc_symbol* derived, gfc_try* t,
 
 gfc_typebound_proc*
 gfc_find_typebound_intrinsic_op (gfc_symbol* derived, gfc_try* t,
-				 gfc_intrinsic_op op, bool noaccess)
+				 gfc_intrinsic_op op, bool noaccess,
+				 locus* where)
 {
   gfc_typebound_proc* res;
 
@@ -4612,7 +4630,7 @@ gfc_find_typebound_intrinsic_op (gfc_symbol* derived, gfc_try* t,
     res = NULL;
 
   /* Check access.  */
-  if (res)
+  if (res && !res->error)
     {
       /* We found one.  */
       if (t)
@@ -4621,8 +4639,9 @@ gfc_find_typebound_intrinsic_op (gfc_symbol* derived, gfc_try* t,
       if (!noaccess && derived->attr.use_assoc
 	  && res->access == ACCESS_PRIVATE)
 	{
-	  gfc_error ("'%s' of '%s' is PRIVATE at %C",
-		     gfc_op2string (op), derived->name);
+	  if (where)
+	    gfc_error ("'%s' of '%s' is PRIVATE at %L",
+		       gfc_op2string (op), derived->name, where);
 	  if (t)
 	    *t = FAILURE;
 	}
@@ -4637,7 +4656,8 @@ gfc_find_typebound_intrinsic_op (gfc_symbol* derived, gfc_try* t,
       super_type = gfc_get_derived_super_type (derived);
       gcc_assert (super_type);
 
-      return gfc_find_typebound_intrinsic_op (super_type, t, op, noaccess);
+      return gfc_find_typebound_intrinsic_op (super_type, t, op,
+					      noaccess, where);
     }
 
   /* Nothing found.  */

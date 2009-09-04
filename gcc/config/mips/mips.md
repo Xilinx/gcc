@@ -449,6 +449,49 @@
 		(const_string "yes")
 		(const_string "no")))
 
+;; Attributes describing a sync loop.  These loops have the form:
+;;
+;;       if (RELEASE_BARRIER == YES) sync
+;;    1: OLDVAL = *MEM
+;;       if ((OLDVAL & INCLUSIVE_MASK) != REQUIRED_OLDVAL) goto 2
+;;       $TMP1 = OLDVAL & EXCLUSIVE_MASK
+;;       $TMP2 = INSN1 (OLDVAL, INSN1_OP2)
+;;       $TMP3 = INSN2 ($TMP2, INCLUSIVE_MASK)
+;;       $AT |= $TMP1 | $TMP3
+;;       if (!commit (*MEM = $AT)) goto 1.
+;;         if (INSN1 != MOVE && INSN1 != LI) NEWVAL = $TMP3 [delay slot]
+;;       sync
+;;    2:
+;;
+;; where "$" values are temporaries and where the other values are
+;; specified by the attributes below.  Values are specified as operand
+;; numbers and insns are specified as enums.  If no operand number is
+;; specified, the following values are used instead:
+;;
+;;    - OLDVAL: $AT
+;;    - NEWVAL: $AT
+;;    - INCLUSIVE_MASK: -1
+;;    - REQUIRED_OLDVAL: OLDVAL & INCLUSIVE_MASK
+;;    - EXCLUSIVE_MASK: 0
+;;
+;; MEM and INSN1_OP2 are required.
+;;
+;; Ideally, the operand attributes would be integers, with -1 meaning "none",
+;; but the gen* programs don't yet support that.
+(define_attr "sync_mem" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_oldval" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_newval" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_inclusive_mask" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_exclusive_mask" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_required_oldval" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_insn1_op2" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_insn1" "move,li,addu,addiu,subu,and,andi,or,ori,xor,xori"
+  (const_string "move"))
+(define_attr "sync_insn2" "nop,and,xor,not"
+  (const_string "nop"))
+(define_attr "sync_release_barrier" "yes,no"
+  (const_string "yes"))
+
 ;; Length of instruction in bytes.
 (define_attr "length" ""
    (cond [(and (eq_attr "extended_mips16" "yes")
@@ -572,6 +615,9 @@
 
 	  (eq_attr "type" "idiv,idiv3")
 	  (symbol_ref "mips_idiv_insns () * 4")
+
+	  (not (eq_attr "sync_mem" "none"))
+	  (symbol_ref "mips_sync_loop_insns (insn, operands) * 4")
 	  ] (const_int 4)))
 
 ;; Attribute describing the processor.  This attribute must match exactly
@@ -3204,7 +3250,7 @@
    (clobber (match_scratch:DF 2 "=d"))]
   "TARGET_HARD_FLOAT && TARGET_DOUBLE_FLOAT && !ISA_HAS_TRUNC_W"
 {
-  if (set_nomacro)
+  if (mips_nomacro.nesting_level > 0)
     return ".set\tmacro\;trunc.w.d %0,%1,%2\;.set\tnomacro";
   else
     return "trunc.w.d %0,%1,%2";
@@ -3241,7 +3287,7 @@
    (clobber (match_scratch:SF 2 "=d"))]
   "TARGET_HARD_FLOAT && !ISA_HAS_TRUNC_W"
 {
-  if (set_nomacro)
+  if (mips_nomacro.nesting_level > 0)
     return ".set\tmacro\;trunc.w.s %0,%1,%2\;.set\tnomacro";
   else
     return "trunc.w.s %0,%1,%2";
@@ -4217,9 +4263,9 @@
 (define_insn "*lwxs"
   [(set (match_operand:IMOVE32 0 "register_operand" "=d")
 	(mem:IMOVE32
-	  (plus:SI (mult:SI (match_operand:SI 1 "register_operand" "d")
-			    (const_int 4))
-		   (match_operand:SI 2 "register_operand" "d"))))]
+	  (plus:P (mult:P (match_operand:P 1 "register_operand" "d")
+			  (const_int 4))
+		  (match_operand:P 2 "register_operand" "d"))))]
   "ISA_HAS_LWXS"
   "lwxs\t%0,%1(%2)"
   [(set_attr "type"	"load")
@@ -4790,7 +4836,7 @@
 		    UNSPEC_CPRESTORE)]
   ""
 {
-  if (set_nomacro && which_alternative == 1)
+  if (mips_nomacro.nesting_level > 0 && which_alternative == 1)
     return ".set\tmacro\;.cprestore\t%0\;.set\tnomacro";
   else
     return ".cprestore\t%0";
@@ -4826,7 +4872,7 @@
 (define_insn "sync"
   [(unspec_volatile [(const_int 0)] UNSPEC_SYNC)]
   "GENERATE_SYNC"
-  "%|sync%-")
+  { return mips_output_sync (); })
 
 (define_insn "synci"
   [(unspec_volatile [(match_operand 0 "pmode_register_operand" "d")]
@@ -6259,7 +6305,7 @@
   [(const_int 1)]
   ""
   {
-    if (set_noreorder)
+    if (mips_noreorder.nesting_level > 0)
       return "nop";
     else
       return "#nop";

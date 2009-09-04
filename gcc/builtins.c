@@ -60,9 +60,6 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 #ifdef HAVE_mpc
 static tree do_mpc_arg1 (tree, tree, int (*)(mpc_ptr, mpc_srcptr, mpc_rnd_t));
-#ifdef HAVE_mpc_pow
-static tree do_mpc_arg2 (tree, tree, tree, int (*)(mpc_ptr, mpc_srcptr, mpc_srcptr, mpc_rnd_t));
-#endif
 #endif
 
 /* Define the names of the builtin function types and codes.  */
@@ -8740,15 +8737,18 @@ fold_builtin_pow (location_t loc, tree fndecl, tree arg0, tree arg1, tree type)
 	    }
 	}
 
-      /* Optimize pow(pow(x,y),z) = pow(x,y*z).  */
+      /* Optimize pow(pow(x,y),z) = pow(x,y*z) iff x is nonnegative.  */
       if (fcode == BUILT_IN_POW
 	  || fcode == BUILT_IN_POWF
 	  || fcode == BUILT_IN_POWL)
 	{
 	  tree arg00 = CALL_EXPR_ARG (arg0, 0);
-	  tree arg01 = CALL_EXPR_ARG (arg0, 1);
-	  tree narg1 = fold_build2_loc (loc, MULT_EXPR, type, arg01, arg1);
-	  return build_call_expr_loc (loc, fndecl, 2, arg00, narg1);
+	  if (tree_expr_nonnegative_p (arg00))
+	    {
+	      tree arg01 = CALL_EXPR_ARG (arg0, 1);
+	      tree narg1 = fold_build2_loc (loc, MULT_EXPR, type, arg01, arg1);
+	      return build_call_expr_loc (loc, fndecl, 2, arg00, narg1);
+	    }
 	}
     }
 
@@ -13824,8 +13824,8 @@ do_mpc_arg1 (tree arg, tree type, int (*func)(mpc_ptr, mpc_srcptr, mpc_rnd_t))
    TYPE.  We assume that function FUNC returns zero if the result
    could be calculated exactly within the requested precision.  */
 
-#ifdef HAVE_mpc_pow
-static tree
+#ifdef HAVE_mpc
+tree
 do_mpc_arg2 (tree arg0, tree arg1, tree type,
 	     int (*func)(mpc_ptr, mpc_srcptr, mpc_srcptr, mpc_rnd_t))
 {

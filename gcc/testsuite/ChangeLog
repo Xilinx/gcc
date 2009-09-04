@@ -1,3 +1,490 @@
+2009-08-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41186
+	* g++.dg/torture/pr41186.C: New testcase.
+	* g++.dg/tree-ssa/pr41186.C: Likewise.
+
+2009-08-30  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/41187
+	* g++.dg/debug/dwarf2/namespace-1.C: Use a loosier regexp to
+	take ia64 assembly comments syntax in account.
+
+2009-08-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/funcspec-5.c: Remove fused-add test.
+
+2009-08-29  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gfortran.dg/whole_file_5.f90: Add -fpie when pic, fix scan pattern.
+	* gfortran.dg/whole_file_6.f90: Likewise.
+
+2009-08-28  Cary Coutant  <ccoutant@google.com>
+
+	PR debug/41063
+	* g++.dg/debug/dwarf2/pr41063.C: New test.
+
+2009-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR rtl-optimization/40861
+	* gcc.dg/pr40861.c: New test.
+
+2009-08-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40869
+	* gfortran.dg/proc_ptr_comp_20.f90: New.
+
+2009-08-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/39667
+	* gfortran.dg/f2003_io_4.f03: Don't require target fd_truncate,
+	open temp file with status="scratch".
+	* gfortran.dg/fmt_cache_1.f: Likewise.
+	* gfortran.dg/fmt_exhaust.f90: Likewise.
+	* gfortran.dg/fmt_t_4.f90: Likewise.
+	* gfortran.dg/fseek.f90: Likewise.
+	* gfortran.dg/list_read_5.f90: Likewise.
+	* gfortran.dg/namelist_39.f90: Likewise.
+	* gfortran.dg/namelist_56.f90: Likewise.
+	* gfortran.dg/read_bad_advance.f90: Likewise.
+	* gfortran.dg/read_repeat.f90: Likewise.
+	* gfortran.dg/read_size_noadvance.f90: Likewise.
+	* gfortran.dg/read_x_past.f: Likewise.
+
+2009-08-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/28039
+	* gfortran.dg/fmt_with_extra.f: xfail testcase as patch was reverted.
+
+2009-08-27  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37425
+	* gfortran.dg/impure_assignment_1.f90: Change expected error message.
+	* gfortran.dg/typebound_operator_1.f03: Remove check for not-implemented
+	error and fix problem with recursive assignment.
+	* gfortran.dg/typebound_operator_2.f03: No not-implemented check.
+	* gfortran.dg/typebound_operator_3.f03: New test.
+	* gfortran.dg/typebound_operator_4.f03: New test.
+
+2009-08-27  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/41170
+	* debug/dwarf2/namespace-1.C: New test.
+
+2009-08-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR fortran/41162
+	* gfortran.dg/pr41162.f: New.
+
+2009-08-26  Adam Nemet  <anemet@caviumnetworks.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp: Replace isa(_rev)=...!... mechanism
+	with "forbid_cpu".
+	* gcc.target/mips/branch-1.c: Update accordingly.
+	* gcc.target/mips/extend-1.c: Likewise.
+	* gcc.target/mips/dmult-1.c: Likewise.  Remove redundant isa=64.
+
+2009-08-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41163
+	* gcc.c-torture/compile/pr41163.c: New testcase.
+	* gcc.dg/pr35899.c: Adjust.
+
+2009-08-26  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/restrict-4.c: New testcase.
+
+2009-08-26  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/explicit3.C: New.
+	* g++.dg/overload/cond2.C: New.
+
+2009-08-25  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.dg/torture/builtin-math-7.c: Add -mieee for sh*-*-* targets.
+
+2009-08-25  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/sse5-shift1-vector.c
+	* gcc.target/i386/isa-12.c
+	* gcc.target/i386/isa-12.cgcc.target/i386/isa-12.c
+	* gcc.target/i386/sse5-pcmov2.c
+	* gcc.target/i386/isa-3.c
+	* gcc.target/i386/sse5-shift2-vector.c
+	* gcc.target/i386/isa-7.c
+	* gcc.target/i386/funcspec-2.c
+	* gcc.target/i386/sse5-haddX.c
+	* gcc.target/i386/sse5-hadduX.c
+	* gcc.target/i386/isa-9.c
+	* gcc.target/i386/sse5-maccXX.c
+	* gcc.target/i386/sse5-shift3-vector.c
+	* gcc.target/i386/sse5-msubXX.c
+	* gcc.target/i386/sse5-permpX.c
+	* gcc.target/i386/sse5-check.h
+	* gcc.target/i386/sse-12.c
+	* gcc.target/i386/sse-11.c
+	* gcc.target/i386/sse-10.c
+	* gcc.target/i386/sse-13.c
+	* gcc.target/i386/sse-14.c
+	* gcc.target/i386/sse-22.c
+	* gcc.target/i386/sse-2.c
+	* gcc.target/i386/sse-13.c
+	* gcc.target/i386/avx-2.c
+	* gcc.target/i386/sse5-rotate1-vector.c
+	* gcc.target/i386/isa-4.c
+	* gcc.target/i386/sse5-hsubX.c
+	* gcc.target/i386/sse5-pcmov.c
+	* gcc.target/i386/sse5-fma.c
+	* gcc.target/i386/isa-8.c
+	* gcc.target/i386/sse5-rotate2-vector.c
+	* gcc.target/i386/sse5-nmaccXX.c
+	* gcc.target/i386/sse5-imul64-vector.c
+	* gcc.target/i386/sse5-nmsubXX.c
+	* gcc.target/i386/sse5-rotate3-vector.c
+	* gcc.target/i386/sse5-fma-vector.c
+	* gcc.target/i386/sse5-imul32widen-vector.c
+	* gcc.target/i386/sse5-ima-vector.c: Remove SSE5 related testcases.
+
+	* gcc.target/i386/funcspec-8.c: Replace SSE5 by SSE4.
+	* gcc.target/i386/funcspec-5.c: Remove SSE5.
+	* gcc.target/i386/funcspec-6.c: Remove fused-add test.
+	* gcc.target/i386/avx-1.c: Remove SSE5.
+	* gcc.target/i386/avx-2.c: Remove SSE5.
+	* g++.dg/other/i386-2.C: Replace SSE5 by SSE4A.
+	* g++.dg/other/i386-3.C: Replace SSE5 by SSE4A.
+	* g++.dg/other/i386-6.C: Replace SSE5 by SSE4A.
+	* g++.dg/other/i386-5.C: Replace SSE5 by SSE4A.
+
+2009-08-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.c-torture/compile/limits-fndefn.c: Add dg-timeout-factor.
+
+2009-08-25 Ville Voutilainen <ville.voutilainen@gmail.com>
+
+	* g++.dg/cpp0x/alignof.C: New. Tests that the alignof
+	keyword works in the same manner as __alignof.
+
+2009-08-25  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* gfortran.dg/unpack_bounds_1.f90:  New test.
+	* gfortran.dg/unpack_bounds_2.f90:  New test.
+	* gfortran.dg/unpack_bounds_3.f90:  New test.
+
+2009-08-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/slice7.adb: New test.
+	* gnat.dg/slice7_pkg.ads: New helper.
+
+2009-08-25  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41139
+	* gfortran.dg/proc_ptr_25.f90: New.
+	* gfortran.dg/proc_ptr_comp_18.f90: New.
+	* gfortran.dg/proc_ptr_comp_19.f90: New.
+
+2009-08-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41154
+	* gfortran.dg/fmt_error_8.f: New test.
+
+2009-08-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-6.c (link_error): Accept a value
+	number, update all callers and synchronize results for latest MPC.
+
+2009-08-21  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/warn/Wunused-17.C: New.
+
+2009-08-11  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+       * gcc.target/arm/combine-cmp-shift.c: New test.
+
+2009-08-24  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/format/ms-format1.c: Add new cases for I32 width specifier.
+	* gcc.dg/format/ms-format2.c: New test about illegal use of I32/I64
+	width specifier.
+
+2009-08-23  Jerry DeLisle   <jvdelisle@gcc.gnu.org>
+
+	* gfortran.dg/fmt_error_7.f: New test.
+
+2009-08-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/40718
+	* gcc.target/i386/pr40718.c: New test.
+
+2009-08-22  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* gfortran.dg/proc_ptr_24.f90: New test.
+
+2009-08-22 Steven K. kargl  <kargl@gcc.gnu.org>
+
+	* gfortran.dg/allocate_alloc_opt_4.f90: New test.
+	* gfortran.dg/allocate_alloc_opt_5.f90: New test.
+	* gfortran.dg/allocate_alloc_opt_6.f90: New test.
+
+2009-08-22  Bud Davis  <bdavis9659@sbcglobal.net>
+
+	PR fortran/28039
+	* gfortran.dg/fmt_with_extra.f: new file.
+
+2009-08-21  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_arm_iwmmxt_ok): New procedure.
+	* gcc.target/arm/mmx-1.c: Only run if arm_iwmmxt_ok.  Remove the
+	exclusions for -mfloat-abi=softfp and -mfloat-abi=hard.
+
+2009-08-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gfortran.dg/boz_9.f90: Do not load denormal floating
+	point constants.  Remove -mieee option for alpha*-*-* targets.
+
+2009-08-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41106
+	* gfortran.dg/proc_ptr_23.f90: New.
+	* gfortran.dg/proc_ptr_comp_15.f90: New.
+	* gfortran.dg/proc_ptr_comp_16.f90: New.
+	* gfortran.dg/proc_ptr_comp_17.f90: New.
+
+2009-08-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41131
+	* g++.dg/expr/unary3.C: New test.
+
+2009-08-21  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gfortran.dg/common_5.f: Add -mdalign for sh.
+	* gfortran.dg/common_align_2.f90: Likewise.
+
+2009-08-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/40962
+	* c_f_pointer_tests_4.f90:  New test.
+
+2009-08-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/slice6.adb: New test.
+	* gnat.dg/slice6_pkg.ads: New helper.
+
+2009-08-20  Michael Matz  <matz@suse.de>
+
+	PR fortran/41126
+	* gfortran.dg/pr41126.f90: New test.
+
+2009-08-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/dynamic_bound.adb: New test.
+
+2009-08-20  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41121
+	* gfortran.dg/intrinsic_5.f90: New.
+
+2009-08-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+	    Richard Earnshaw  <richard.earnshaw@arm.com>
+
+	* testsuite/gcc.target/arm/20090811-1.c: New test.
+
+2009-08-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/41123
+	* gcc.dg/pr41123.c: New test.
+
+2009-08-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41120
+	* g++.dg/other/gc4.C: New.
+
+2009-08-18  Michael Matz  <matz@suse.de>
+
+	* gfortran.dg/vect/vect-gems.f90: New test.
+	* gcc.dg/tree-ssa/alias-1.c: Remove, it checks something broken.
+
+2009-08-18  DJ Delorie  <dj@redhat.com>
+
+	* lib/wrapper.exp: Move load of target-libpath.exp from here...
+	* lib/gcc-defs.exp: ... to here.
+
+	* lib/wrapper.exp (${tool}_maybe_build_wrapper): Set up
+	GCC_EXEC_PREFIX before building the wrapper.
+
+2009-08-18  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.dg/vect/vect.exp: Add new stanza for aligned-section-anchors-*
+	tests.
+	* gcc.dg/vect/section-anchors-nest-1.c: Rename to...
+	* gcc.dg/vect/aligned-section-anchors-nest-1.c: ...this.  Remove
+	dg-options.  Fix dg-final clause.
+
+2009-08-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/cdce3.C: Add -mieee for alpha*-*-* targets.
+
+2009-08-18  Janus Weil  <janus@gcc.gnu.org>
+	    Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40870
+	* gfortran.dg/proc_ptr_comp_13.f90: Extended.
+
+2009-08-18  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41094
+	* gcc.dg/torture/pr41094.c: New testcase.
+	* gcc.dg/torture/builtin-power-1.c: Adjust.
+	* gcc.dg/builtins-10.c: Likewise.
+
+2009-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/40971
+	* gcc.dg/pr40971.c: New test.
+
+2008-08-17  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41062
+	* gfortran.dg/use_only_4.f90: New test.
+
+2009-08-17  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37425
+	* gfortran.dg/typebound_operator_2.f03: Test for error with illegal
+	NOPASS bindings as operators.
+
+2009-08-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_vect_cmdline_needed): Add alpha to the list
+	of targets that do not need command line argument to enable SIMD.
+
+2009-08-17  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* lib/target-supports.exp (check_effective_target_mpc_pow): Fix
+	typo in cache name.
+
+2009-08-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41075
+	* gfortran.dg/unlimited_fmt_1.f90: New test.
+
+2009-08-17  Dodji Seketeli  <dodji@redhat.com>
+
+	* gcc.dg.debug/dwarf2/inline2.c: Add -dA to compile options.
+
+2009-08-17  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/itype.ad[sb]: New test.
+
+2009-08-16  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp: Add terminology section to comment
+	at the top of the file.  Fix typos.
+
+2009-08-16  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/debug/dwarf2/inline1.C: New.
+
+2009-08-16  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/38599
+	* gcc.target/mips/smartmips-lwxs.c: Remove -mlong32.
+
+2009-08-16  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/37801
+	* gcc/testsuite/gcc.dg/debug/20020224-1.c: Adjust the comment.
+	Make sure to trigger inlining optimizations.
+	* gcc/testsuite/gcc.dg/debug/dwarf2/inline2.c: New test.
+
+2009-08-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41070
+	* gfortran.dg/structure_constructor_10.f90: New.
+
+2009-08-14  Olatunji Ruwase <tjruwase@google.com>
+
+	* gcc.dg/pragma-re-1.c: Supported on all platforms.
+	* gcc.dg/pragma-re-2.c: Likewise.
+	* gcc.dg/pragma-re-3.c: Likewise.
+	* gcc.dg/pragma-re-4.c: Likewise.
+	* g++.dg/other/pragma-re-1.C: Likewise.
+	* g++.dg/other/pragma-re-2.C: Likewise.
+
+2009-08-14  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-7.c: New.
+
+2009-08-14  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/20090814-1.c: New testcase.
+
+2009-08-14  David Edelsohn  <edelsohn@gnu.org>
+
+	* gcc.dg/graphite/graphite_autopar: Move to libgomp testsuite.
+
+2009-08-14  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/40934
+	* gcc.target/i386/pr40934.c: New.
+
+2009-08-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/41019
+	* gcc.target/i386/pr41019.c: New test.
+
+2009-08-13  Jerry DeLisle <jvdelisle@gcc.gnu.org>
+
+	PR fortran/40955
+	* gfortran.dg/winapi.f90: New test.
+
+2009-08-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40995
+	* gfortran.dg/intrinsic_4.f90: New.
+	* gfortran.dg/intrinsic_subroutine.f90: An error message moved to a
+	different line.
+
+2009-08-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41047
+	* gcc.dg/tree-ssa/ssa-ccp-27.c: New testcase.
+
+2009-08-12  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41011
+	* gfortran.dg/pr41011.f: New testcase.
+
+2009-08-11  Andrew Haley  <aph@redhat.com>
+
+	* gcc.target/arm/synchronize.c: New file.
+
+2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/40980
+	* testsuite/gfortran.dg/graphite/id-17.f: New.
+
+2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* testsuite/gcc.dg/graphite/interchange-6.c: Un-XFAIL.
+
+2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
+	    Pranav Garg  <pranav.garg2107@gmail.com>
+
+	* testsuite/gcc.dg/graphite/interchange-6.c: XFAILed.
+
+2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/interchange-9.c: New.
+
+2009-08-12  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/41033
+	* gcc.dg/pr41033.c: New test.
+
 2009-08-11  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/41022
@@ -28,14 +515,14 @@
 
 2009-08-10  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
-       * gcc.dg/dg.exp: Test also c-c++-common dir.
-       * g++.dg/dg.exp: Likewise.
-       * g++.dg/warn/Wconversion-real.C: Delete.
-       * gcc.dg/Wconversion-real.c: Move to ...
-       * c-c++-common/Wconversion-real.c: ... here.
-       * lib/target-supports.exp
-       (check_effective_target_c,check_effective_target_c++): New.
-	
+	* gcc.dg/dg.exp: Test also c-c++-common dir.
+	* g++.dg/dg.exp: Likewise.
+	* g++.dg/warn/Wconversion-real.C: Delete.
+	* gcc.dg/Wconversion-real.c: Move to ...
+	* c-c++-common/Wconversion-real.c: ... here.
+	* lib/target-supports.exp
+	(check_effective_target_c,check_effective_target_c++): New.
+
 2009-08-10  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/37425
@@ -172,7 +659,7 @@
 	    H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/40957
-	* gcc.target/i386/pr40957: New test.
+	* gcc.target/i386/pr40957.c: New test.
 
 2009-08-06  Richard Guenther  <rguenther@suse.de>
 
@@ -662,7 +1149,7 @@
 
 	PR c/39902
 	* gcc.dg/dfp/pr39902.c: Fix typos in constant suffixes.
-	
+
 2009-07-30  Martin Jambor  <mjambor@suse.cz>
 
 	PR tree-optimization/40570
@@ -931,8 +1418,8 @@
 
 2009-07-20  Jakub Jelinek  <jakub@redhat.com>
 
-	* gcc.dg/builtin-object-size-6.c: Adjust expected values. 
-	* gcc.dg/builtin-object-size-8.c: New test. 
+	* gcc.dg/builtin-object-size-6.c: Adjust expected values.
+	* gcc.dg/builtin-object-size-8.c: New test.
 	* g++.dg/ext/builtin-object-size1.C: Adjust expected values.
 	* g++.dg/ext/builtin-object-size2.C: Likewise.
 
@@ -946,9 +1433,9 @@
 	gcc.dg/vect/vect-cond-5.c, gcc.dg/vect/vect-cond-6.c: New tests.
 
 2009-07-20  Christian Bruel  <christian.bruel@st.com>
-	
+
 	* gcc.target/sh/mfmovd.c: New test.
-	
+
 2009-07-19  Janne Blomqvist  <jb@gcc.gnu.org>
 	    Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
@@ -1038,7 +1525,7 @@
 2009-07-17  Aldy Hernandez  <aldyh@redhat.com>
 	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
-	PR 40435 
+	PR 40435
 	* gcc.dg/pr36902.c: Add column info.
 	* g++.dg/gcov/gcov-2.C: Change count for definition.
 
@@ -1393,7 +1880,7 @@
 	* gcc.dg/plugin/selfassign.c: Replace %H by an explicit
 	location. Update all calls.
 	* g++.dg/plugin/selfassign.c: Likewise.
-	
+
 2009-07-06  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/rtti/dyncast[34].C: New.
@@ -1437,7 +1924,7 @@
 
 	PR target/40587
 	* gfortran.dg/pr40587.f: New test.
-	
+
 2009-07-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/40638
@@ -1860,7 +2347,7 @@
 
 	PR target/40482
 	* gcc.target/arm/pr40482.c: New test.
-	
+
 2009-06-19  Ian Lance Taylor  <iant@google.com>
 
 	* gcc.dg/Wcxx-compat-18.c: New testcase.
@@ -1916,7 +2403,7 @@
 2009-06-18  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	* gcc.dg/cpp/arith-3.c: Add column info.
-	
+
 2009-06-18  Sandra Loosemore  <sandra@codesourcery.com>
 
 	* gcc.target/arm/fp16-compile-none-2.c: New.
@@ -2188,7 +2675,7 @@
 	* gcc.dg/pr20368-1.c: Same.
 	* gcc.dg/dremf-type-compat-3.c: Same.
 	* gcc.dg/builtins-30.c: Same.  Test for columns.
-	
+
 2009-06-12  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/40176
@@ -2821,15 +3308,15 @@
 2009-05-24  Ira Rosen  <irar@il.ibm.com>
 
 	* gcc.dg/vect/bb-slp-1.c: New test.
-	* gcc.dg/vect/bb-slp-2.c, gcc.dg/vect/bb-slp-3.c, 
-	gcc.dg/vect/bb-slp-4.c, gcc.dg/vect/bb-slp-5.c, 
+	* gcc.dg/vect/bb-slp-2.c, gcc.dg/vect/bb-slp-3.c,
+	gcc.dg/vect/bb-slp-4.c, gcc.dg/vect/bb-slp-5.c,
 	gcc.dg/vect/bb-slp-6.c, gcc.dg/vect/bb-slp-7.c,
-	gcc.dg/vect/bb-slp-8.c, gcc.dg/vect/bb-slp-9.c, 
-	gcc.dg/vect/bb-slp-10.c, gcc.dg/vect/bb-slp-11.c, 
-	gcc.dg/vect/no-tree-reassoc-bb-slp-12.c, gcc.dg/vect/bb-slp-13.c, 
-	gcc.dg/vect/bb-slp-14.c, gcc.dg/vect/bb-slp-15.c, 
-	gcc.dg/vect/bb-slp-16.c, gcc.dg/vect/bb-slp-17.c, 
-	gcc.dg/vect/bb-slp-18.c, gcc.dg/vect/bb-slp-19.c, 
+	gcc.dg/vect/bb-slp-8.c, gcc.dg/vect/bb-slp-9.c,
+	gcc.dg/vect/bb-slp-10.c, gcc.dg/vect/bb-slp-11.c,
+	gcc.dg/vect/no-tree-reassoc-bb-slp-12.c, gcc.dg/vect/bb-slp-13.c,
+	gcc.dg/vect/bb-slp-14.c, gcc.dg/vect/bb-slp-15.c,
+	gcc.dg/vect/bb-slp-16.c, gcc.dg/vect/bb-slp-17.c,
+	gcc.dg/vect/bb-slp-18.c, gcc.dg/vect/bb-slp-19.c,
 	gcc.dg/vect/bb-slp-20.c, gcc.dg/vect/bb-slp-21.c,
 	gcc.dg/vect/bb-slp-22.c: Likewise.
 	* gcc.dg/vect/vect.exp: Run basic block SLP tests.
@@ -2939,7 +3426,7 @@
 
 	PR c/40172
 	* gcc.dg/pr40172.c: Add -Wlogical-op to dg-options.
-	
+
 2009-05-19  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/loop_optimization6.ad[sb]: New test.
@@ -3110,10 +3597,10 @@
 	* gfortran.dg/duplicate_type_3.f90: New.
 
 2009-05-14  Laurent GUERBY  <laurent@guerby.net>
-	
+
 	* ada/acats/tests/c3/c38202a.ada: Use Impdef.
 	* ada/acats/tests/c5/c59002c.ada: Likewise.
-	
+
 2009-05-13  Taras Glek  <tglek@mozilla.com>
 
 	* g++.dg/plugin/attribute_plugin-test-1.C: Testcase input for custom
@@ -3139,7 +3626,7 @@
 	* gcc.dg/cpp/pr36674.i: New.
 
 2009-05-14  Ben Elliston  <bje@au.ibm.com>
-	 
+
 	PR middle-end/40035
 	* gcc.c-torture/compile/pr40035.c: New test.
 
@@ -3164,7 +3651,7 @@
 
 2009-05-12  David Billinghurst <billingd@gcc.gnu.org>
 
-	* gfortran.dg/default_format_1.f90: XFAIL on cygwin. 
+	* gfortran.dg/default_format_1.f90: XFAIL on cygwin.
 
 2009-05-12  David Billinghurst <billingd@gcc.gnu.org>
 
@@ -3730,7 +4217,7 @@
 	* gfortran.dg/write_check3.f90: Likewise
 	* gfortran.dg/write_rewind_2.f: Likewise
 	* gfortran.dg/x_slash_2.f: Likewise
-	
+
 2009-04-29  Richard Guenther  <rguenther@suse.de>
 
 	PR target/39943
@@ -3795,7 +4282,7 @@
 	* g++.dg/template/repo7.C: Likewise.
 	* g++.dg/template/repo8.C: Likewise.
 	* g++.dg/template/repo9.C: Likewise.
-	* g++.dg/rtti/repo1.C: Likewise.	
+	* g++.dg/rtti/repo1.C: Likewise.
 	* gcc.dg/cpp/_Pragma6.c: Skip for vxworks.
 	* g++.dg/cpp/_Pragma1.C: Skip for vxworks.
 	* gcc.dg/pthread-init-1.c: Xfail for vxworks rtp.
@@ -4160,7 +4647,7 @@
 	PR testsuite/39623
 	* gcc.dg/vect/no-vfa-vect-57.c: XFAIL when vect_no_align.
 	* gcc.dg/vect/no-vfa-vect-61.c: Ditto.
-	
+
 2009-04-23  Rafael Avila de Espindola  <espindola@google.com>
 
 	* gcc.dg/format/gcc_diag-1.c (foo): Don't check that %E produces a
@@ -4199,7 +4686,7 @@
 
 	PR testsuite/39623
 	* gcc.dg/vect/no-vfa-vect-43.c Fix vect_no_align check.
-	
+
 2009-04-22  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/39824
@@ -4841,7 +5328,7 @@
 2009-04-06  Laurent GUERBY  <laurent@guerby.net>
 
 	* lib/gnat.exp: Handle multilib.
-	
+
 2009-04-06  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/38863
@@ -5376,7 +5863,7 @@
 
 	PR objc/27377
 	* objc.dg/conditional-1.m: New tests.
-	
+
 2009-03-28  Adam Nemet  <anemet@caviumnetworks.com>
 
 	* gcc.dg/winline-10.c: New test.
@@ -5637,7 +6124,7 @@
 2009-03-23  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/auto12.C: Add variadic test.
-	
+
 	PR c++/39526
 	* g++.dg/warn/Wshadow-4.C: New test.
 
@@ -5972,8 +6459,8 @@
 	* gcc.dg/vect/vect-complex-1.c: Add attribute aligned to the arrays.
 	* gcc.dg/vect/vect-iv-6.c: Don't expect to fail to vectorize
 	on targets without vector misalignment support.
-	* lib/target-supports.exp 
-	(check_effective_target_vect_short_mult): Add 
+	* lib/target-supports.exp
+	(check_effective_target_vect_short_mult): Add
 	check_effective_target_arm32.
 
 2009-03-02  Sebastian Pop  <sebastian.pop@amd.com>
@@ -6319,7 +6806,7 @@
 2009-02-15  Uros Bizjak  <ubizjak@gmail.com>
 
 	* gcc.dg/struct/w_prof_single_str_global.c: Mask return value.
-	
+
 2009-02-13  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* gcc.target/spu/intrinsics-sr.c: New test.
@@ -6659,7 +7146,7 @@
 	PR middle-end/35854
 	* gcc.dg/lower-subreg-1.c: Renamed dump pass from "subreg"
 	to "subreg1".
-	
+
 2009-01-29  Steve Ellcey  <sje@cup.hp.com>
 
 	PR middle-end/38857
@@ -7133,7 +7620,7 @@
 	* g++.dg/eh/check-vect.h (sig_ill_handler): Remove AltiVec runtime
 	check.
 	* g++.dg/ext/altivec_check.h: Delete.
-	
+
 2009-01-13  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* gcc.target/powerpc/altivec-macros.c: Require a powerpc_altivec_ok
@@ -7528,7 +8015,7 @@
 	dg-timeout-factor.
 	* gcc.dg/20020425-1.c: Likewise.
 	* gcc.dg/pch/pch.exp: Likewise.
-	
+
 2009-01-05  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/38657
@@ -7543,7 +8030,7 @@
 
 	PR fortran/38669
 	PR fortran/38726
-	* gfortran.dg/elemental_subroutine_7.f90: 
+	* gfortran.dg/elemental_subroutine_7.f90:
 	Fix p values so that it can be used as vector subscript.
 
 2009-01-05  Jason Merrill  <jason@redhat.com>

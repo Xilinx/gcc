@@ -1890,6 +1890,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	}
       DECL_TEMPLATE_INSTANTIATED (newdecl)
 	|= DECL_TEMPLATE_INSTANTIATED (olddecl);
+      DECL_ODR_USED (newdecl) |= DECL_ODR_USED (olddecl);
 
       /* If the OLDDECL is an instantiation and/or specialization,
 	 then the NEWDECL must be too.  But, it may not yet be marked
@@ -1955,7 +1956,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	     should have exited above, returning 0.  */
 	  gcc_assert (DECL_TEMPLATE_SPECIALIZATION (newdecl));
 
-	  if (TREE_USED (olddecl))
+	  if (DECL_ODR_USED (olddecl))
 	    /* From [temp.expl.spec]:
 
 	       If a template, a member template or the member of a class
@@ -7082,10 +7083,14 @@ build_ptrmemfunc_type (tree type)
   /* If this is not the unqualified form of this pointer-to-member
      type, set the TYPE_MAIN_VARIANT for this type to be the
      unqualified type.  Since they are actually RECORD_TYPEs that are
-     not variants of each other, we must do this manually.  */
+     not variants of each other, we must do this manually.
+     As we just built a new type there is no need to do yet another copy.  */
   if (cp_type_quals (type) != TYPE_UNQUALIFIED)
     {
-      t = build_qualified_type (t, cp_type_quals (type));
+      int type_quals = cp_type_quals (type);
+      TYPE_READONLY (t) = (type_quals & TYPE_QUAL_CONST) != 0;
+      TYPE_VOLATILE (t) = (type_quals & TYPE_QUAL_VOLATILE) != 0;
+      TYPE_RESTRICT (t) = (type_quals & TYPE_QUAL_RESTRICT) != 0;
       TYPE_MAIN_VARIANT (t) = unqualified_variant;
       TYPE_NEXT_VARIANT (t) = TYPE_NEXT_VARIANT (unqualified_variant);
       TYPE_NEXT_VARIANT (unqualified_variant) = t;
@@ -11190,7 +11195,8 @@ finish_enum (tree enumtype)
       /* Set the underlying type of the enumeration type to the
          computed enumeration type, restricted to the enumerator
          values. */
-      ENUM_UNDERLYING_TYPE (enumtype) = copy_node (underlying_type);
+      ENUM_UNDERLYING_TYPE (enumtype)
+	= build_distinct_type_copy (underlying_type);
       set_min_and_max_values_for_integral_type 
         (ENUM_UNDERLYING_TYPE (enumtype), precision, unsignedp);
     }

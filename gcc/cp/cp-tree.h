@@ -1580,7 +1580,7 @@ struct GTY(()) lang_decl_base {
   unsigned anticipated_p : 1;		   /* fn or type */
   unsigned friend_attr : 1;		   /* fn or type */
   unsigned template_conv_p : 1;		   /* template only? */
-  unsigned no_linkage_checked : 1;         /* var or fn */
+  unsigned odr_used : 1;		   /* var or fn */
   unsigned u2sel : 1;
   /* 1 spare bit */
 };
@@ -1643,8 +1643,7 @@ struct GTY(()) lang_decl_fn {
   unsigned thunk_p : 1;
   unsigned this_thunk_p : 1;
   unsigned hidden_friend_p : 1;
-  unsigned deferred : 1;
-  /* No spare bits; consider adding to lang_decl_base instead.  */
+  /* 1 spare bit.  */
 
   /* For a non-thunk function decl, this is a tree list of
      friendly classes. For a thunk function decl, it is the
@@ -1984,13 +1983,11 @@ struct GTY(()) lang_decl {
   (DECL_LANG_SPECIFIC (VAR_OR_FUNCTION_DECL_CHECK (DECL)) \
    ->u.base.initialized_in_class)
 
-/* Nonzero if we've checked whether DECL uses types without linkage in a
-   potentially invalid way.
-   ??? Instead, should fix mark_used to only set TREE_USED when we're
-   really using something, and just return if it's already set.  */
-#define DECL_NO_LINKAGE_CHECKED(DECL) \
+/* Nonzero if the DECL is used in the sense of 3.2 [basic.def.odr].
+   Only available for decls with DECL_LANG_SPECIFIC.  */
+#define DECL_ODR_USED(DECL) \
   (DECL_LANG_SPECIFIC (VAR_OR_FUNCTION_DECL_CHECK (DECL)) \
-   ->u.base.no_linkage_checked)
+   ->u.base.odr_used)
 
 /* Nonzero for DECL means that this decl is just a friend declaration,
    and should not be added to the list of members for this class.  */
@@ -2237,10 +2234,6 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    and put them into a TREE_VEC.  */
 #define CLASSTYPE_SORTED_FIELDS(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->sorted_fields)
-
-/* True if on the deferred_fns (see decl2.c) list.  */
-#define DECL_DEFERRED_FN(DECL) \
-  (LANG_DECL_FN_CHECK (DECL)->deferred)
 
 /* If non-NULL for a VAR_DECL, FUNCTION_DECL, TYPE_DECL or
    TEMPLATE_DECL, the entity is either a template specialization (if
@@ -4642,6 +4635,7 @@ extern void mark_decl_instantiated		(tree, int);
 extern int more_specialized_fn			(tree, tree, int);
 extern void do_decl_instantiation		(tree, tree);
 extern void do_type_instantiation		(tree, tree, tsubst_flags_t);
+extern bool always_instantiate_p		(tree);
 extern tree instantiate_decl			(tree, int, bool);
 extern int comp_template_parms			(const_tree, const_tree);
 extern bool uses_parameter_packs                (tree);

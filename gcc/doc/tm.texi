@@ -1046,13 +1046,17 @@ and possibly change @code{*@var{punsignedp}} if the promotion should
 change signedness.  This function is called only for scalar @emph{or
 pointer} types.
 
+@var{for_return} allows to distinguish the promotion of arguments and
+return values.  If it is @code{1}, a return value is being promoted and
+@code{TARGET_FUNCTION_VALUE} must perform the same promotions done here.
+If it is @code{2}, the returned mode should be that of the register in
+which an incoming parameter is copied, or the outgoing result is computed;
+then the hook should return the same mode as @code{promote_mode}, though
+the signedness may be different.
+
 The default is to not promote arguments and return values.  You can
 also define the hook to @code{default_promote_function_mode_always_promote}
 if you would like to apply the same rules given by @code{PROMOTE_MODE}.
-
-@var{for_return} allows to distinguish the promotion of arguments and
-return values.  If this target hook promotes return values,
-@code{TARGET_FUNCTION_VALUE} must perform the same promotions done here.
 @end deftypefn
 
 @defmac PARM_BOUNDARY
@@ -3808,16 +3812,16 @@ Note that the elimination of the argument pointer with the stack pointer is
 specified first since that is the preferred elimination.
 @end defmac
 
-@defmac CAN_ELIMINATE (@var{from-reg}, @var{to-reg})
-A C expression that returns @code{true} if the compiler is allowed to try
-to replace register number @var{from-reg} with register number
-@var{to-reg}.  This macro need only be defined if @code{ELIMINABLE_REGS}
+@deftypefn {Target Hook} bool TARGET_CAN_ELIMINATE (const int @var{from-reg}, const int @var{to-reg})
+This target hook should returns @code{true} if the compiler is allowed to
+try to replace register number @var{from-reg} with register number
+@var{to-reg}.  This target hook need only be defined if @code{ELIMINABLE_REGS}
 is defined, and will usually be @code{true}, since most of the cases
 preventing register elimination are things that the compiler already
 knows about.
 
-Default value is @code{true}.
-@end defmac
+Default return value is @code{true}.
+@end deftypefn
 
 @defmac INITIAL_ELIMINATION_OFFSET (@var{from-reg}, @var{to-reg}, @var{offset-var})
 This macro is similar to @code{INITIAL_FRAME_POINTER_OFFSET}.  It
@@ -9153,6 +9157,13 @@ given @var{size}.  The label is known to be defined in the given @var{section}.
 @defmac ASM_OUTPUT_DWARF_PCREL (@var{stream}, @var{size}, @var{label})
 A C statement to issue assembly directives that create a self-relative
 reference to the given @var{label}, using an integer of the given @var{size}.
+@end defmac
+
+@defmac ASM_OUTPUT_DWARF_TABLE_REF (@var{label})
+A C statement to issue assembly directives that create a reference to
+the DWARF table identifier @var{label} from the current section.  This
+is used on some systems to avoid garbage collecting a DWARF table which
+is referenced by a function.
 @end defmac
 
 @deftypefn {Target Hook} void TARGET_ASM_OUTPUT_DWARF_DTPREL (FILE *@var{FILE}, int @var{size}, rtx @var{x})

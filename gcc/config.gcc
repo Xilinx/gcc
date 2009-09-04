@@ -1172,6 +1172,7 @@ i[34567]86-pc-msdosdjgpp*)
 	extra_options="${extra_options} i386/djgpp.opt"
 	gnu_ld=yes
 	gas=yes
+	use_gcc_stdint=wrap
 	;;
 i[34567]86-*-lynxos*)
 	xm_defines=POSIX
@@ -1423,7 +1424,7 @@ ia64*-*-hpux*)
 ia64-hp-*vms*)
 	tm_file="${tm_file} elfos.h ia64/sysv4.h ia64/elf.h ia64/vms.h ia64/vms64.h"
 	xm_file="vms/xm-vms.h vms/xm-vms64.h"
-	tmake_file="vms/t-vms vms/t-vms64 ia64/t-vms"
+	tmake_file="vms/t-vms vms/t-vms64 ia64/t-ia64 ia64/t-vms"
 	xmake_file=vms/x-vms
 	target_cpu_default="0"
 	if test x$gas = xyes
@@ -2120,9 +2121,13 @@ sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
 				with_libgloss=yes
 				tm_file="${tm_file} sh/newlib.h"
 			fi
-			tm_file="${tm_file} sh/embed-elf.h sh/superh.h"
-			tmake_file="${tmake_file} sh/t-superh"
-			extra_options="${extra_options} sh/superh.opt" ;;
+			tm_file="${tm_file} sh/embed-elf.h"
+			case ${target} in
+			sh*-superh-elf)	tm_file="${tm_file} sh/superh.h"
+					tmake_file="${tmake_file} sh/t-superh"
+					extra_options="${extra_options} sh/superh.opt" ;;
+			esac
+			;;
 	*)		if test x$with_newlib = xyes \
 			   && test x$with_libgloss = xyes; then
 				tm_file="${tm_file} sh/newlib.h"

@@ -2506,7 +2506,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  && (gnu_name_type = gnat_to_gnu_type (Etype (gnat_name)))
 	  && !addressable_p (gnu_name, gnu_name_type))
 	{
-	  tree gnu_copy = gnu_name, gnu_temp;
+	  tree gnu_copy = gnu_name;
 
 	  /* If the type is by_reference, a copy is not allowed.  */
 	  if (Is_By_Reference_Type (Etype (gnat_formal)))
@@ -2569,10 +2569,10 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  /* Set up to move the copy back to the original.  */
 	  if (Ekind (gnat_formal) != E_In_Parameter)
 	    {
-	      gnu_temp = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_copy,
-					  gnu_name);
-	      set_expr_location_from_node (gnu_temp, gnat_node);
-	      append_to_statement_list (gnu_temp, &gnu_after_list);
+	      tree stmt = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_copy,
+					   gnu_name);
+	      set_expr_location_from_node (stmt, gnat_node);
+	      append_to_statement_list (stmt, &gnu_after_list);
 	    }
 	}
 
@@ -3889,8 +3889,8 @@ gnat_to_gnu (Node_Id gnat_node)
 
     case N_Slice:
       {
-	tree gnu_type;
 	Node_Id gnat_range_node = Discrete_Range (gnat_node);
+	tree gnu_type;
 
 	gnu_result = gnat_to_gnu (Prefix (gnat_node));
 	gnu_result_type = get_unpadded_type (Etype (gnat_node));
@@ -3962,6 +3962,12 @@ gnat_to_gnu (Node_Id gnat_node)
 	else
 	  /* Simply return the naked low bound.  */
 	  gnu_expr = TYPE_MIN_VALUE (TYPE_DOMAIN (gnu_result_type));
+
+	/* If this is a slice with non-constant size of an array with constant
+	   size, set the maximum size for the allocation of temporaries.  */
+	if (!TREE_CONSTANT (TYPE_SIZE_UNIT (gnu_result_type))
+	    && TREE_CONSTANT (TYPE_SIZE_UNIT (gnu_type)))
+	  TYPE_ARRAY_MAX_SIZE (gnu_result_type) = TYPE_SIZE_UNIT (gnu_type);
 
 	gnu_result = build_binary_op (ARRAY_RANGE_REF, gnu_result_type,
 				      gnu_result, gnu_expr);
@@ -5557,31 +5563,6 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
 	  mark_visited (&DECL_SIZE_UNIT (gnu_decl));
 	  mark_visited (&DECL_INITIAL (gnu_decl));
 	}
-
-      /* In any case, we have to deal with our own fields.  */
-      else if (TREE_CODE (gnu_decl) == TYPE_DECL)
-	switch (TREE_CODE (type))
-	  {
-	  case RECORD_TYPE:
-	  case UNION_TYPE:
-	  case QUAL_UNION_TYPE:
-	    if ((t = TYPE_ADA_SIZE (type)))
-	      mark_visited (&t);
-	    break;
-
-	  case INTEGER_TYPE:
-	  case ENUMERAL_TYPE:
-	  case BOOLEAN_TYPE:
-	  case REAL_TYPE:
-	    if ((t = TYPE_RM_MIN_VALUE (type)))
-	      mark_visited (&t);
-	    if ((t = TYPE_RM_MAX_VALUE (type)))
-	      mark_visited (&t);
-	    break;
-
-	  default:
-	    break;
-	  }
     }
   else
     add_stmt_with_node (gnu_stmt, gnat_entity);
@@ -5873,6 +5854,47 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
 	  TREE_OPERAND (expr, 0) = new_var;
 	  recompute_tree_invariant_for_addr_expr (expr);
 	  return GS_ALL_DONE;
+	}
+
+      return GS_UNHANDLED;
+
+    case DECL_EXPR:
+      op = DECL_EXPR_DECL (expr);
+
+      /* The expressions for the RM bounds must be gimplified to ensure that
+	 they are properly elaborated.  See gimplify_decl_expr.  */
+      if ((TREE_CODE (op) == TYPE_DECL || TREE_CODE (op) == VAR_DECL)
+	  && !TYPE_SIZES_GIMPLIFIED (TREE_TYPE (op)))
+	switch (TREE_CODE (TREE_TYPE (op)))
+	{
+	  case INTEGER_TYPE:
+	  case ENUMERAL_TYPE:
+	  case BOOLEAN_TYPE:
+	  case REAL_TYPE:
+	    {
+	      tree type = TYPE_MAIN_VARIANT (TREE_TYPE (op)), t, val;
+
+	      val = TYPE_RM_MIN_VALUE (type);
+	      if (val)
+		{
+		  gimplify_one_sizepos (&val, pre_p);
+		  for (t = type; t; t = TYPE_NEXT_VARIANT (t))
+		    SET_TYPE_RM_MIN_VALUE (t, val);
+		}
+
+	      val = TYPE_RM_MAX_VALUE (type);
+	      if (val)
+		{
+		  gimplify_one_sizepos (&val, pre_p);
+		  for (t = type; t; t = TYPE_NEXT_VARIANT (t))
+		    SET_TYPE_RM_MAX_VALUE (t, val);
+		}
+
+	    }
+	    break;
+
+	  default:
+	    break;
 	}
 
       /* ... fall through ... */

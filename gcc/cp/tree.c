@@ -132,6 +132,12 @@ lvalue_p_1 (const_tree ref)
       return clk_ordinary;
 
     case CONST_DECL:
+      /* CONST_DECL without TREE_STATIC are enumeration values and
+	 thus not lvalues.  With TREE_STATIC they are used by ObjC++
+	 in objc_build_string_object and need to be considered as
+	 lvalues.  */
+      if (! TREE_STATIC (ref))
+	return clk_none;
     case VAR_DECL:
       if (TREE_READONLY (ref) && ! TREE_STATIC (ref)
 	  && DECL_LANG_SPECIFIC (ref)
@@ -700,12 +706,11 @@ cp_build_reference_type (tree to_type, bool rval)
     if (TYPE_REF_IS_RVALUE (t))
       return t;
 
-  t = copy_node (lvalue_ref);
+  t = build_distinct_type_copy (lvalue_ref);
 
   TYPE_REF_IS_RVALUE (t) = true;
   TYPE_NEXT_REF_TO (t) = TYPE_NEXT_REF_TO (lvalue_ref);
   TYPE_NEXT_REF_TO (lvalue_ref) = t;
-  TYPE_MAIN_VARIANT (t) = t;
 
   if (TYPE_STRUCTURAL_EQUALITY_P (to_type))
     SET_TYPE_STRUCTURAL_EQUALITY (t);

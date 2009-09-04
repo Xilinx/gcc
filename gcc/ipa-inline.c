@@ -1070,10 +1070,8 @@ cgraph_decide_inlining_of_small_functions (void)
 	    }
 	  continue;
 	}
-      if (!tree_can_inline_p (edge->caller->decl, edge->callee->decl))
+      if (!tree_can_inline_p (edge))
 	{
-	  gimple_call_set_cannot_inline (edge->call_stmt, true);
-	  edge->inline_failed = CIF_TARGET_OPTION_MISMATCH;
 	  if (dump_file)
 	    fprintf (dump_file, " inline_failed:%s.\n",
 		     cgraph_inline_failed_string (edge->inline_failed));
@@ -1252,11 +1250,8 @@ cgraph_decide_inlining (void)
 	      if (cgraph_recursive_inlining_p (e->caller, e->callee,
 					       &e->inline_failed))
 		continue;
-	      if (!tree_can_inline_p (e->caller->decl, e->callee->decl))
-		{
-		  gimple_call_set_cannot_inline (e->call_stmt, true);
-		  continue;
-		}
+	      if (!tree_can_inline_p (e))
+                continue;
               if (dbg_cnt (inl))
                 continue;
 
@@ -1515,14 +1510,14 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	      }
 	    continue;
 	  }
-	if (!tree_can_inline_p (node->decl, e->callee->decl))
+	if (!tree_can_inline_p (e))
 	  {
-	    gimple_call_set_cannot_inline (e->call_stmt, true);
 	    if (dump_file)
 	      {
 		indent_to (dump_file, depth);
 		fprintf (dump_file,
-			 "Not inlining: Target specific option mismatch.\n");
+			 "Not inlining: %s",
+                         cgraph_inline_failed_string (e->inline_failed));
 	      }
 	    continue;
 	  }
@@ -1654,14 +1649,14 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	      }
 	    continue;
 	  }
-	if (!tree_can_inline_p (node->decl, e->callee->decl))
+	if (!tree_can_inline_p (e))
 	  {
-	    gimple_call_set_cannot_inline (e->call_stmt, true);
 	    if (dump_file)
 	      {
 		indent_to (dump_file, depth);
 		fprintf (dump_file,
-			 "Not inlining: Target specific option mismatch.\n");
+			 "Not inlining: %s.",
+                         cgraph_inline_failed_string (e->inline_failed));
 	      }
 	    continue;
 	  }
