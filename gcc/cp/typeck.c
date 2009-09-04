@@ -1161,6 +1161,10 @@ structural_comptypes (tree t1, tree t2, int strict)
     case DECLTYPE_TYPE:
       if (DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t1)
           != DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t2)
+	  || (DECLTYPE_FOR_LAMBDA_CAPTURE (t1)
+	      != DECLTYPE_FOR_LAMBDA_CAPTURE (t2))
+	  || (DECLTYPE_FOR_LAMBDA_RETURN (t1)
+	      != DECLTYPE_FOR_LAMBDA_RETURN (t2))
           || !cp_tree_equal (DECLTYPE_TYPE_EXPR (t1), 
                              DECLTYPE_TYPE_EXPR (t2)))
         return false;

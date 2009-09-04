@@ -1785,6 +1785,10 @@ write_type (tree type)
               break;
 
             case DECLTYPE_TYPE:
+	      /* These shouldn't make it into mangling.  */
+	      gcc_assert (!DECLTYPE_FOR_LAMBDA_CAPTURE (type)
+			  && !DECLTYPE_FOR_LAMBDA_RETURN (type));
+
               write_char ('D');
               if (DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (type))
                 write_char ('t');
