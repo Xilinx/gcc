@@ -5504,11 +5504,8 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
   tree member = NULL_TREE;
 
   tree saved_class_type = current_class_type;
-  tree saved_access_specifier = current_access_specifier;
 
   tree node;
-
-  current_access_specifier = access_public_node;
 
   for (node = lambda_stack;
        node;
@@ -5538,7 +5535,6 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
     }
 
   current_class_type = saved_class_type;
-  current_access_specifier = saved_access_specifier;
 
   return member;
 
