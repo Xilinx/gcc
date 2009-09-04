@@ -7260,15 +7260,9 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 static void
 cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 {
-  /* start_* / finish_* functions don't do any state preservation
-     (finish_function sets current_function_decl to NULL), so we have to.  */
-  /*struct function* saved_cfun = cfun;*/
-  /* TODO: Do we need these? (from function.h)  */
-  tree saved_function_decl = current_function_decl;
-  int saved_unevaluated_operand = cp_unevaluated_operand;
-  int saved_inhibit_evaluation_warnings = c_inhibit_evaluation_warnings;
-
-  push_function_context ();
+  bool nested = (current_function_decl != NULL_TREE);
+  if (nested)
+    push_function_context ();
 
   /* Finish the function call operator
      - class_specifier
@@ -7337,11 +7331,8 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
     finish_lambda_function_body (lambda_expr, body);
   }
 
-  /*set_cfun (saved_cfun);*/
-  pop_function_context();
-  current_function_decl = saved_function_decl;
-  cp_unevaluated_operand = saved_unevaluated_operand;
-  c_inhibit_evaluation_warnings = saved_inhibit_evaluation_warnings;
+  if (nested)
+    pop_function_context();
 }
 
 
