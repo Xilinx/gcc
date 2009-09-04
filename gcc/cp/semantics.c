@@ -1454,9 +1454,9 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
   if (LAMBDA_TYPE_P (TREE_TYPE (object))
       && !same_type_ignoring_top_level_qualifiers_p (DECL_CONTEXT (decl),
                                                      TREE_TYPE (object)))
-    object = cp_build_indirect_ref (lambda_expr_this_capture (
-                                      CLASSTYPE_LAMBDA_EXPR (
-                                        TREE_TYPE (object))),
+    object = cp_build_indirect_ref (lambda_expr_this_capture
+				    (CLASSTYPE_LAMBDA_EXPR
+				     (TREE_TYPE (object))),
                                     /*errorstring=*/"",
                                     /*complain=*/tf_warning_or_error);
 
@@ -5519,10 +5519,10 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
       member = add_capture (lambda,
                             id,
                             initializer,
-                            /*by_reference_p=*/(
-                              !this_capture_p
-                              && LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda)
-                                == CPLD_REFERENCE));
+                            /*by_reference_p=*/
+			    (!this_capture_p
+			     && (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda)
+				 == CPLD_REFERENCE)));
 
       /* Push class being defined.  */
       current_class_type = TREE_TYPE (lambda);

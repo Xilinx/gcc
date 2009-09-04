@@ -7029,7 +7029,8 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
       tree capture_init_expr;
       cp_id_kind idk = CP_ID_KIND_NONE;
 
-      enum capture_kind_type {
+      enum capture_kind_type
+      {
 	BY_COPY,
 	BY_REFERENCE
       };
@@ -7059,10 +7060,10 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 
       /* Remember whether we want to capture as a reference or not.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_AND))
-	capture_kind = BY_REFERENCE;
-
-      if (capture_kind != BY_COPY)
-	cp_lexer_consume_token (parser->lexer);
+	{
+	  capture_kind = BY_REFERENCE;
+	  cp_lexer_consume_token (parser->lexer);
+	}
 
       /* Get the identifier.  */
       capture_token = cp_lexer_peek_token (parser->lexer);
@@ -7127,11 +7128,9 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 		   capture_id,
 		   capture_init_expr,
 		   /*by_reference_p=*/capture_kind == BY_REFERENCE);
-
     }
 
   cp_parser_require (parser, CPP_CLOSE_SQUARE, "%<]%>");
-
 }
 
 /* Parse the (optional) middle of a lambda expression.
@@ -7162,7 +7161,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
      parenthesis if present.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
     {
-      cp_parser_require (parser, CPP_OPEN_PAREN, "%<(%>");
+      cp_lexer_consume_token (parser->lexer);
 
       begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
 
