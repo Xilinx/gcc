@@ -5248,9 +5248,6 @@ begin_lambda_type (tree lambda)
 {
   tree type;
 
-  /* TODO: necessary?  */
-  push_deferring_access_checks (dk_no_deferred);
-
   {
     /* Unique name.  This is just like an unnamed class, but we cannot use
        make_anon_name because of certain checks against TYPE_ANONYMOUS_P.  */

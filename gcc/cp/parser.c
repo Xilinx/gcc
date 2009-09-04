@@ -6964,6 +6964,10 @@ cp_parser_lambda_expression (cp_parser* parser)
   tree lambda_expr = build_lambda_expr ();
   tree type;
 
+  /* We may be in the middle of deferred access check.  Disable
+     it now.  */
+  push_deferring_access_checks (dk_no_deferred);
+
   cp_parser_lambda_introducer (parser, lambda_expr);
 
   {
@@ -6989,6 +6993,8 @@ cp_parser_lambda_expression (cp_parser* parser)
     parser->in_function_body = saved_in_function_body;
     parser->num_template_parameter_lists = saved_num_template_parameter_lists;
   }
+
+  pop_deferring_access_checks ();
 
   return build_lambda_object (lambda_expr);
 }
