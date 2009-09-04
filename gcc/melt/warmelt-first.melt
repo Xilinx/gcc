@@ -217,6 +217,10 @@
 	   sysdata_stdout		;raw file for stdout
 	   sysdata_stderr		;raw file for stderr
 	   sysdata_dumpfile		;raw file for dump_file
+	   sysdata_unit_starter		;closure to be called at
+					;compilation unit start
+	   sysdata_unit_finisher	;closure to be called at
+					;compilation unit end
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -2058,23 +2062,25 @@
       (return)
       )))
 
-(defclass class_finalization
+(defclass class_delayedqueue
   :super class_named
-  :fields (final_first
-	   final_last
-	   final_data
+  :fields (delqu_first
+	   delqu_last
+	   delqu_data
 	   ))
 
-(definstance system_finalization class_finalization
-  :named_name (make_stringconst discr_string "system_finalization")
-  :final_first (make_list discr_list)
-  :final_last (make_list discr_list)
+(definstance final_delayedqueue class_delayedqueue
+  :named_name (make_stringconst discr_string "final_delayedqueue")
+  :delqu_first (make_list discr_list)
+  :delqu_last (make_list discr_list)
   )
 
+
+;;;;;; the queue for full exit
 (defun init_exitfinalizer ()
-  (debug_msg system_finalization "init_exitfinalizer system_finalization at start")
-  (let ( (firstlist (unsafe_get_field :final_first system_finalization))
-	 (lastlist (unsafe_get_field :final_last system_finalization))
+  (debug_msg final_delayedqueue "init_exitfinalizer final_delayedqueue at start")
+  (let ( (firstlist (unsafe_get_field :delqu_first final_delayedqueue))
+	 (lastlist (unsafe_get_field :delqu_last final_delayedqueue))
 	 (revlastlist (make_list discr_list))
 	 (rescont (instance class_container))
 	 )
@@ -2083,7 +2089,7 @@
      firstlist
      (lambda (firstproc)
        (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (firstproc prevres system_finalization))
+	      (nextres (firstproc prevres final_delayedqueue))
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
@@ -2097,7 +2103,7 @@
      revlastlist
      (lambda (lastproc)
        (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (lastproc prevres system_finalization))
+	      (nextres (lastproc prevres final_delayedqueue))
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
@@ -2106,13 +2112,121 @@
 
 
 (defun at_exit_first (fun)
-  (let ( (firstlist (unsafe_get_field :final_first system_finalization))
+  (let ( (firstlist (unsafe_get_field :delqu_first final_delayedqueue))
 	 )
     (if (is_closure fun) (list_append firstlist fun)))
   )  
 
 (defun at_exit_last (fun)
-  (let ( (lastlist (unsafe_get_field :final_last system_finalization))
+  (let ( (lastlist (unsafe_get_field :delqu_last final_delayedqueue))
+	 )
+    (if (is_closure fun) (list_append lastlist fun)))
+  )
+
+;;;;;; the queue for start of compilation unit
+(definstance startunit_delayedqueue class_delayedqueue
+  :named_name (make_stringconst discr_string "startunit_delayedqueue")
+  :delqu_first (make_list discr_list)
+  :delqu_last (make_list discr_list)
+  )
+
+
+(defun init_unitstarter ()
+  (debug_msg startunit_delayedqueue "init_unitstarter startunit_delayedqueue at start")
+  (let ( (firstlist (unsafe_get_field :delqu_first startunit_delayedqueue))
+	 (lastlist (unsafe_get_field :delqu_last startunit_delayedqueue))
+	 (revlastlist (make_list discr_list))
+	 (rescont (instance class_container))
+	 )
+;;; call the first routines in natural order
+    (list_every 
+     firstlist
+     (lambda (firstproc)
+       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	      (nextres (firstproc prevres startunit_delayedqueue))
+	      )
+	 (unsafe_put_fields rescont :container_value nextres)
+	 )))
+;;; reverse the last list
+    (list_every 
+     lastlist 
+     (lambda (lastproc)
+       (if (is_closure lastproc) (list_prepend revlastlist lastproc))))
+;;; call the last routines in reverse order
+    (list_every
+     revlastlist
+     (lambda (lastproc)
+       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	      (nextres (lastproc prevres startunit_delayedqueue))
+	      )
+	 (unsafe_put_fields rescont :container_value nextres)
+	 )))
+    (debug_msg rescont "init_unitstarter ending rescont")
+    ))
+
+
+(defun at_start_unit_first (fun)
+  (let ( (firstlist (unsafe_get_field :delqu_first startunit_delayedqueue))
+	 )
+    (if (is_closure fun) (list_append firstlist fun)))
+  )  
+
+(defun at_start_unit_last (fun)
+  (let ( (lastlist (unsafe_get_field :delqu_last startunit_delayedqueue))
+	 )
+    (if (is_closure fun) (list_append lastlist fun)))
+  )
+
+
+;;;; the queue for compilation unit finish
+(definstance finishunit_delayedqueue class_delayedqueue
+  :named_name (make_stringconst discr_string "finishunit_delayedqueue")
+  :delqu_first (make_list discr_list)
+  :delqu_last (make_list discr_list)
+  )
+
+(defun init_unitfinisher ()
+  (debug_msg finishunit_delayedqueue "init_unitfinisher finishunit_delayedqueue at start")
+  (let ( (firstlist (unsafe_get_field :delqu_first finishunit_delayedqueue))
+	 (lastlist (unsafe_get_field :delqu_last finishunit_delayedqueue))
+	 (revlastlist (make_list discr_list))
+	 (rescont (instance class_container))
+	 )
+;;; call the first routines in natural order
+    (list_every 
+     firstlist
+     (lambda (firstproc)
+       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	      (nextres (firstproc prevres finishunit_delayedqueue))
+	      )
+	 (unsafe_put_fields rescont :container_value nextres)
+	 )))
+;;; reverse the last list
+    (list_every 
+     lastlist 
+     (lambda (lastproc)
+       (if (is_closure lastproc) (list_prepend revlastlist lastproc))))
+;;; call the last routines in reverse order
+    (list_every
+     revlastlist
+     (lambda (lastproc)
+       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	      (nextres (lastproc prevres finishunit_delayedqueue))
+	      )
+	 (unsafe_put_fields rescont :container_value nextres)
+	 )))
+    (debug_msg rescont "init_unitfinisher ending rescont")
+    ))
+
+
+(defun at_finish_unit_first (fun)
+  (let ( (firstlist (unsafe_get_field :delqu_first finishunit_delayedqueue))
+	 )
+    (if (is_closure fun) (list_append firstlist fun)))
+  )  
+
+(defun at_finish_unit_last (fun)
+  (let ( (lastlist (unsafe_get_field :delqu_last finishunit_delayedqueue))
 	 )
     (if (is_closure fun) (list_append lastlist fun)))
   )
@@ -2186,7 +2300,9 @@
   :sysdata_debugmsg debugmsg
   :sysdata_stdout ()			;initialized later
   :sysdata_stderr ()			;initialized later
-  :sysdata_dumpfile ()			;initialized later
+  :sysdata_dumpfile ()			;initialized late
+  :sysdata_unit_starter init_unitstarter
+  :sysdata_unit_finisher init_unitfinisher
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3952,7 +4068,7 @@
  class_exported_binding
  class_field
  class_field_binding
- class_finalization
+ class_delayedqueue
  class_fixed_binding
  class_formal_binding
  class_function_binding
@@ -4266,7 +4382,6 @@
  get_value
  initial_environment                  
  initial_system_data
- system_finalization
  ) ;;;end export discriminants, instances, selectors
 
 
@@ -4276,6 +4391,10 @@
  add_new_symbol_token	
  at_exit_first
  at_exit_last
+ at_finish_unit_first
+ at_finish_unit_last
+ at_start_unit_first
+ at_start_unit_last
  boxval					
  clone_symbol
  closure_every

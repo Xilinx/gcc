@@ -2885,6 +2885,8 @@ enum
   FSYSDAT_STDOUT,		/* raw boxed file for stdout */
   FSYSDAT_STDERR,		/* raw boxed file for stderr */
   FSYSDAT_DUMPFILE,		/* raw boxed file for dump_file */
+  FSYSDAT_UNIT_STARTER,		/* closure for start of compilation unit */
+  FSYSDAT_UNIT_FINISHER,        /* closure for start of compilation unit */
   FSYSDAT__LAST
 };
 

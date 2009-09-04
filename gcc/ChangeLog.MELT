@@ -1,4 +1,30 @@
 
+2009-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h: added FSYSDAT_UNIT_STARTER &
+	FSYSDAT_UNIT_FINISHER.
+	* melt-runtime.c (melt_startunit_callback)
+	(melt_finishunit_callback, melt_finishall_callback): Added new
+	functions.
+	(melt_really_initialize): register callbacks for
+	PLUGIN_START_UNIT, PLUGIN_FINISH_UNIT, PLUGIN_FINISH.
+	(do_finalize_melt): return early if executed more than once.
+	call only minor MELT GC.
+	* melt/warmelt-first.melt: renamed class_finalization as
+	class_delayedqueue. added sysdata_unit_starter &
+	sysdata_unit_finisher to class_system_data. Added
+	at_finish_unit_first, at_finish_unit_first, at_start_unit_first,
+	at_start_unit_last functions.
+	* melt/ana-base.melt: added null_tree null_gimple null_gimpleseq
+	isnull_basicblock primitives. better warning_at* primitives. 
+	* melt/ana-simple.melt: justscan pass is more robust, ignoring
+	null trees, gimples, ... and fails assertion when unhandled stuff.
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
 2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_really_initialize): Fixed typo in debug message.
 	* Makefile.in (built-melt-cc-script): using real path of Melt

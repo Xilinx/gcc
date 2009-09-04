@@ -70,6 +70,8 @@
 (defprimitive ==g (:gimple g1 g2) :long
   #{(($g1) == ($g2))}#)
 
+(defprimitive null_gimple () :gimple #{((gimple)0)}#)
+
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
   (gv)					;match & no ins
@@ -1068,6 +1070,8 @@
 (defprimitive ==t (:tree t1 t2) :long
   #{(($t1) == ($t2))}# )
 
+(defprimitive null_tree () :tree #{((tree)0)}#)
+
 (defprimitive inform_at_tree (:tree tr :cstring msg) :void
   ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
   ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
@@ -1282,11 +1286,13 @@
 (defprimitive is_basicblock (v) :long
  #{ (melt_magic_discr((melt_ptr_t)($v)) == OBMAG_BASICBLOCK)}# )
 
-(defprimitive null_basicblock (:basicblock bb) :long
+(defprimitive isnull_basicblock (:basicblock bb) :long
  #{($bb == (basic_block)0)}# )
 
 (defprimitive notnull_basicblock (:basicblock bb) :long
  #{($bb != (basic_block)0)}# )
+
+(defprimitive null_basicblock () :basicblock #{((basic_block)0)}#)
 
 (defprimitive make_basicblock (discr :basicblock bb) :value
  #{(meltgc_new_basicblock((meltobject_ptr_t)($discr),($bb)))}# )
@@ -1326,6 +1332,8 @@
 (defprimitive basicblock_nth_succ_edge  (:basicblock bb :long ix) :edge
   #{(($bb && $ix>=0 && $ix<EDGE_COUNT($bb->succs))?EDGE_SUCC($bb,$ix):NULL)}#)
 
+;;;;
+(defprimitive null_gimpleseq () :gimpleseq #{((gimple_seq)0)}#)
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_mapbasicblock (map) :long
@@ -2114,8 +2122,8 @@
  gimple_label
  gimple_nop
  gimple_phi
- gimple_phi_nth_arg_edge
  gimple_phi_nth_arg_def
+ gimple_phi_nth_arg_edge
  gimple_return
  gimpleseq_content 
  gimpleval
@@ -2130,6 +2138,7 @@
  is_mapbasicblock 
  is_maptree
  is_tree  
+ isnull_basicblock
  make_basicblock
  make_gimple
  make_gimpleseq
@@ -2156,6 +2165,9 @@
  maptree_size
  notnull_basicblock
  null_basicblock
+ null_gimple
+ null_gimpleseq
+ null_tree
  pop_cfun
  ppl_Constraint_System_insert_Constraint
  ppl_Linear_Expression_add_to_coefficient
@@ -2199,8 +2211,8 @@
  tree_type
  tree_var_decl
  tree_var_decl_named
- warning_at_tree
  warning_at_gimple
+ warning_at_tree
 )
 
 (export_class

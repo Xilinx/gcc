@@ -7731,6 +7731,63 @@ melt_attribute_callback(void *gcc_data ATTRIBUTE_UNUSED,
 }
 
 
+/* the plugin callback when starting a compilation unit */
+static void
+melt_startunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
+			void* user_data ATTRIBUTE_UNUSED) 
+{
+  MELT_ENTERFRAME (1, NULL);
+#define staclosv curfram__.varptr[0]
+  staclosv = melt_get_inisysdata (FSYSDAT_UNIT_STARTER);
+  if (melt_magic_discr ((melt_ptr_t) staclosv) == OBMAG_CLOSURE)
+    {
+      MELT_LOCATION_HERE
+	("melt_startunit_callback before applying start unit closure");
+      (void) melt_apply ((meltclosure_ptr_t) staclosv,
+			 (melt_ptr_t) NULL, "", NULL, "", NULL);
+      /* force a minor GC to be sure nothing stays in young region */
+      melt_garbcoll (0, MELT_ONLY_MINOR);
+    }
+  MELT_EXITFRAME ();
+#undef staclosv
+}
+
+
+/* the plugin callback when finishing a compilation unit */
+static void
+melt_finishunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
+			void* user_data ATTRIBUTE_UNUSED) 
+{
+  MELT_ENTERFRAME (1, NULL);
+#define finclosv curfram__.varptr[0]
+  finclosv = melt_get_inisysdata (FSYSDAT_UNIT_FINISHER);
+  if (melt_magic_discr ((melt_ptr_t) finclosv) == OBMAG_CLOSURE)
+    {
+      MELT_LOCATION_HERE
+	("melt_finishunit_callback before applying finish unit closure");
+      (void) melt_apply ((meltclosure_ptr_t) finclosv,
+			 (melt_ptr_t) NULL, "", NULL, "", NULL);
+      /* force a minor GC to be sure nothing stays in young region */
+      melt_garbcoll (0, MELT_ONLY_MINOR);
+    }
+  MELT_EXITFRAME ();
+#undef finclosv
+}
+
+
+
+static void do_finalize_melt (void);
+
+
+/* the plugin callback when finishing all */
+static void
+melt_finishall_callback(void *gcc_data ATTRIBUTE_UNUSED,
+			void* user_data ATTRIBUTE_UNUSED) 
+{
+  do_finalize_melt ();
+}
+
+
 /****
  * Initialize melt.  Called from toplevel.c before pass management.
  * Should become the MELT plugin initializer.
@@ -7807,13 +7864,21 @@ melt_really_initialize (const char* pluginame)
     debugeprintf ("melt_really_initialize alloczon %p - %p (%ld Kw)",
 		  melt_startalz, melt_endalz, (long) wantedwords >> 10);
   }
-  /* we are using register_callback here, even if MELT is not yet a
-     plugin; we hope that MELT would become a plugin. */
+  /* we are using register_callback here, even if MELT is not compiled as a plugin. */
   register_callback (melt_plugin_name, PLUGIN_GGC_MARKING, 
 		     melt_marking_callback,
 		     NULL);
   register_callback (melt_plugin_name, PLUGIN_ATTRIBUTES,
 		     melt_attribute_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_START_UNIT,
+		     melt_startunit_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_FINISH_UNIT,
+		     melt_finishunit_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_FINISH,
+		     melt_finishall_callback,
 		     NULL);
   debugeprintf ("melt_really_initialize cpp_PREFIX=%s", cpp_PREFIX);
   debugeprintf ("melt_really_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
@@ -7840,7 +7905,10 @@ DEF_VEC_ALLOC_P (char_p, heap);
 static void
 do_finalize_melt (void)
 {
+  static int didfinal;
   MELT_ENTERFRAME (1, NULL);
+  if (didfinal++>0)
+    goto end;
 #define finclosv curfram__.varptr[0]
   finclosv = melt_get_inisysdata (FSYSDAT_EXIT_FINALIZER);
   if (melt_magic_discr ((melt_ptr_t) finclosv) == OBMAG_CLOSURE)
@@ -7849,7 +7917,8 @@ do_finalize_melt (void)
 	("do_finalize_melt before applying final closure");
       (void) melt_apply ((meltclosure_ptr_t) finclosv,
 			    (melt_ptr_t) NULL, "", NULL, "", NULL);
-      melt_garbcoll (0, MELT_NEED_FULL);
+      /* force a minor GC to be sure nothing stays in young region */
+      melt_garbcoll (0, MELT_ONLY_MINOR);
     }
   if (gdbm_melt)
     {
@@ -7890,6 +7959,7 @@ do_finalize_melt (void)
 	warning (0, "failed to rmdir melt tempdir %s (%s)",
 		 tempdir_melt, strerror (errno));
     }
+ end:
   MELT_EXITFRAME ();
 #undef finclosv
 }
