@@ -7439,6 +7439,12 @@ do_initial_command (melt_ptr_t modata_p)
   debugeprintf ("do_initial_command argstr %s", argstr);
   debugeprintf ("do_initial_command argliststr %s", argliststr);
   debugeprintf ("do_initial_command secondargstr %s", secondargstr);
+  if (!modstr || !modstr[0]) 
+    {
+      debugeprintf("do_initial_command do nothing without mode modata %p",
+		   modatav);
+      goto end;
+    }
   if (!MELT_PREDEF (INITIAL_SYSTEM_DATA)) 
     {
       error("MELT cannot execute initial command mode %s without INITIAL_SYSTEM_DATA", modstr);
@@ -7563,6 +7569,12 @@ load_melt_modules_and_do_command (void)
   inistr = melt_argument ("init");
   debugeprintf ("load_melt_modules_and_do_command start init=%s command=%s",
 		inistr, modstr);
+  if (!modstr || !modstr[0])
+    {
+      debugeprintf ("load_melt_modules_and_do_command do nothing without mode (inistr=%s)",
+		    inistr);
+      goto end;
+    }
   /* if there is no -fmelt-init use the default list of modules */
   if (!inistr || !inistr[0])
   {
@@ -7684,6 +7696,7 @@ load_melt_modules_and_do_command (void)
   debugeprintf
     ("load_melt_modules_and_do_command done modules %s command %s",
      inistr, modstr);
+ end:
   MELT_EXITFRAME ();
 #undef modatv
 #undef dumpv
@@ -7817,6 +7830,12 @@ melt_really_initialize (const char* pluginame)
       flag_melt_debug = 1;
   }
 #endif
+  if (!modstr || *modstr=='\0')
+    {
+      debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
+		    inistr);
+      return;
+    }
   if (melt_minorsizekilow == 0)
     {
       const char* minzstr = melt_argument ("minor-zone");
@@ -7906,8 +7925,12 @@ static void
 do_finalize_melt (void)
 {
   static int didfinal;
+  const char* modstr = NULL;
   MELT_ENTERFRAME (1, NULL);
   if (didfinal++>0)
+    goto end;
+  modstr = melt_argument ("mode");
+  if (!modstr)
     goto end;
 #define finclosv curfram__.varptr[0]
   finclosv = melt_get_inisysdata (FSYSDAT_EXIT_FINALIZER);
@@ -7986,7 +8009,7 @@ plugin_init(struct plugin_name_args* plugin_info,
 void
 melt_initialize (void)
 {
-  melt_really_initialize ("__MELT/buitin");
+  melt_really_initialize ("/_MELT/_buitin");
   debugeprintf ("end of melt_initialize [builtin MELT] meltruntime %s", __DATE__);
 }
 #endif
