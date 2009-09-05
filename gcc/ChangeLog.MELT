@@ -1,5 +1,11 @@
 
 2009-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (do_initial_command): return eearly if no mode
+	string.
+	(load_melt_modules_and_do_command): likewise.
+	(melt_really_initialize): likewise.
+
+2009-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	[Ensure that MELT generated C code is not compiled with -O2 or
 	-O3, only -O1 at most]
 	* Makefile.in: added MELT_RAW_CFLAGS and using sed to remove -O2
