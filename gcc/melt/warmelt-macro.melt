@@ -150,6 +150,7 @@
 (defclass class_srcdef
   :super class_src
   :fields (sdef_name			;defined name
+	   sdef_doc			;documentation string or list
 	   ))
 
 ;;; superclass for all definitions with formal arglist
@@ -206,7 +207,6 @@
 (defclass class_src_defobjcommon
   :super class_srcdef
   :fields (sobj_predef			;the predefined rank
-	   sobj_docstr			;documentation string
 	   ))
 
 ;; define a class 
@@ -1446,6 +1446,8 @@
      ))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; macro expansers
+
+;;; (defprimitive name bindings :type [:doc documentation] expansion...)
 ;; the defprimitive expander
 (defun mexpand_defprimitive (sexpr env mexpander)
   (debug_msg sexpr "mexpand_defprimitive sexpr")
@@ -1455,9 +1457,10 @@
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
 	 (symb (pair_head curpair))
+	 (docv ())
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for (DEFPRIMITIVE symb args type expansion...)"_))
+	(error_plain loc "missing symbol for (DEFPRIMITIVE symb args type  [:doc documentation] expansion...)"_))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
     (let ( (btup (lambda_arg_bindings (pair_head curpair) (the_null))) )
@@ -1465,7 +1468,7 @@
       ;; parse the type keyword
       (let ( (typkw  (pair_head curpair)) )
 	(if (is_not_a typkw class_keyword)
-	    (error_plain loc "missing type keyword for (DEFPRIMITIVE symb args type expansion...)"_))
+	    (error_plain loc "missing type keyword for (DEFPRIMITIVE symb args type [:doc documentation] expansion...)"_))
 	(let ( (cty (unsafe_get_field :symb_data typkw)) )
 	  (if (is_not_a cty class_ctype)
 	      (progn
@@ -1477,12 +1480,19 @@
 	  (if (!= (unsafe_get_field :ctype_keyword cty) typkw)
 	      (progn
 		(debug_msg typkw "mexpand_defprimitive strange typkw")
-		(error_strv loc "invalid type keyword for defprimitive"_
+		(error_strv loc "invalid type keyword for DEFPRIMITIVE"_
 			    (unsafe_get_field :named_name typkw)) 
 		(return (the_null))   
 		))
 	  ;; parse the rest as to be expanded
 	  (setq curpair (pair_tail curpair))
+	  (if (== (pair_head curpair) ':doc)
+	      (progn
+		(setq curpair (pair_tail curpair))
+		(if docv (error_plain loc "duplicate :doc in DEFPRIMITIVE"))
+		(setq docv (pair_head curpair))
+		(setq curpair (pair_tail curpair))
+	      ))
 	  (let (
 		(etuple (parse_pairlist_c_code_expansion loc curpair))
 		(substmap (make_mapobject discr_mapobjects
@@ -1491,6 +1501,7 @@
 		 (instance class_src_defprimitive
 			   :src_loc loc
 			   :sdef_name symb
+			   :sdef_doc docv
 			   :sformal_args btup
 			   :sprim_type cty
 			   :sprim_expansion etuple))
@@ -1528,7 +1539,7 @@
 
 
 ;; the defciterator expander
-;;(DEFCITERATOR symb startformals statesymb varformals expbefore expafter)
+;;(DEFCITERATOR symb startformals statesymb varformals [:doc documentation] expbefore expafter)
 (defun mexpand_defciterator (sexpr env mexpander)
   (debug_msg sexpr "mexpand_defciterator sexpr")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -1541,6 +1552,7 @@
 	 (bstartup ())		     ;the start formals tuple
 	 (statsymb ())		     ;the state symbol
 	 (blocvtup ())		     ;the local var formals tuple
+	 (docv ())
 	 (expbef ())		     ;the tuple expansion before tuple
 	 (expaft ())		     ;the tuple expansion after tuple
 	 )
@@ -1563,6 +1575,14 @@
     (setq curpair (pair_tail curpair))
     (setq blocvtup  (lambda_arg_bindings (pair_head curpair)))
     (setq curpair (pair_tail curpair))
+    ;; parse the documentation, if any
+    (if (== (pair_head curpair) ':doc)
+	(progn
+	  (setq curpair (pair_tail curpair))
+	  (if docv (error_plain loc
+				"duplicate documentation in DEFCITERATOR"))
+	  (setq docv (pair_head curpair))
+	  (setq curpair (pair_tail curpair))))
     ;; parse the before expansion
     (let ( (sexpbef (pair_head curpair)) )
       (if (is_not_a sexpbef class_sexpr)
@@ -1597,6 +1617,7 @@
 	   (srcit (instance class_src_defciterator
 			    :src_loc loc
 			    :sdef_name symb
+			    :sdef_doc docv
 			    :sformal_args bstartup
 			    :sciterdef_citerator citer))
 	   (substmap (make_mapobject 
@@ -1634,7 +1655,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the defcmatcher expander
-;;(DEFCMATCHER  symb match&in-formals out-formals state-sym 
+;;(DEFCMATCHER  symb match&in-formals out-formals state-sym [:doc documentation]
 ;;              test-expansion fill-expansion oper-expansion)
 (defun mexpand_defcmatcher (sexpr env mexpander)
   (debug_msg sexpr "mexpand_defcmatcher sexpr")
@@ -1653,6 +1674,7 @@
 	 (exptest ())			;test expansion tuple
 	 (expfill ())			;fill expansion tuple
 	 (expoper ())			;operand expansion tuple
+	 (docv ())
 	 )
     ;; check the symb
     (debug_msg symb "mexpand_defcmatcher symb")
@@ -1698,8 +1720,16 @@
 	  (error_plain loc "bad statesym for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	  (return)))
     (debug_msg statesym "mexpand_defcmatcher statesym")
-    ;; parse the test expansion
     (setq curpair (pair_tail curpair))
+    ;; parse the documentation if any
+    (if (== (pair_head curpair) ':doc)
+	(progn
+	  (setq curpair (pair_tail curpair))
+	  (if docv (error_plain loc "duplicate documentation in DEFCMATCHER"))
+	  (setq docv (pair_head curpair))
+	  (setq curpair (pair_tail curpair))
+	  ))
+    ;; parse the test expansion
     (let ( (sexptest (pair_head curpair)) )
       (if (and sexptest (is_not_a sexptest class_sexpr))
 	  (progn
@@ -1758,6 +1788,7 @@
 	  (sdefcmatch (instance  class_src_defcmatcher
 				 :src_loc loc
 				 :sdef_name symb
+				 :sdef_doc docv
 				 :sformal_args sformals
 				 :scmatdef_cmatcher cmatch)) 
 	  (cmbind (instance class_cmatcher_binding
@@ -1794,7 +1825,7 @@
 (install_initial_macro 'defcmatcher mexpand_defcmatcher)
 (export_macro defcmatcher mexpand_defcmatcher)
 
-;;; probably (DEFUNMATCHER <symb> <informals> <outformals> <matchfun> <applyfun> [<data>])
+;;; probably (DEFUNMATCHER <symb> <informals> <outformals> [:doc documentation] <matchfun> <applyfun> [<data>])
 (defun mexpand_defunmatcher (sexpr env mexpander)
   (debug_msg sexpr "mexpand_defunmatcher sexpr")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -1811,6 +1842,7 @@
 	 (matchfunx ())			;the matcher function expr
 	 (applyfunx ())			;the apply function expr
 	 (datax ())			;extra data expr
+	 (docv ())
 	 )
     ;; check symb
     (debug_msg symb "mexpand_defunmatcher symb")
@@ -1818,7 +1850,7 @@
 	(progn 
 	  (error_plain
 	   loc 
-	   "symbol expected for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_)
+	   "symbol expected for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"_)
 	  (return)))
     (setq curpair (pair_tail curpair))
     ;; parse the match & in formals 
@@ -1827,7 +1859,7 @@
 	   )
       (if (<i nbmatinformals 1)
 	  (progn 
-	    (error_plain loc "empty ins for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_)
+	    (error_plain loc "empty ins for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"_)
 	    (return)))
       (setq sformals matinformals)
       (setq matchformal (multiple_nth matinformals 0))
@@ -1843,10 +1875,18 @@
     (setq outformals (lambda_arg_bindings (pair_head curpair)))
     (if (not (is_multiple outformals))
 	(progn
-	  (error_plain loc "bad outs for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_)
+	  (error_plain loc "bad outs for (DEFUNMATCHER <symb> <ins> <outs>[:doc docum]  <matchfun> <applyfun> [<data>])"_)
 	  (return)))
-    ;; parse & macroexpand the matchfun expr
     (setq curpair (pair_tail curpair))
+    ;; parse the documentation if any
+    (if (== (pair_head curpair) ':doc)
+	(progn
+	  (setq curpair (pair_tail curpair))
+	  (if docv (error_plain loc "duplicate documentation for DEFUNMATCHER"))
+	  (setq docv (pair_head curpair))
+	  (setq curpair (pair_tail curpair))
+	  ))
+    ;; parse & macroexpand the matchfun expr
     (let ( (mfa (pair_head curpair)) )
       (if mfa
 	  (setq matchfunx (macroexpand_1 mfa env mexpander))
@@ -1880,6 +1920,7 @@
 	  (sdfum (instance class_src_defunmatcher
 			   :src_loc loc
 			   :sdef_name symb
+			   :sdef_doc docv
 			   :sformal_args sformals
 			   :sfumatdef_ins informals
 			   :sfumatdef_outs outformals
@@ -1914,7 +1955,7 @@
 (export_macro defunmatcher mexpand_defunmatcher)
 
 ;;;;;;;;;;;;;;;;;; the defun expander
-;;;(DEFUN funame formals body...)
+;;;(DEFUN funame formals [:doc documentation] body...)
 (defun mexpand_defun (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -1924,6 +1965,7 @@
 	 (curpair (pair_tail (list_first cont)))
 	 (symb (pair_head curpair))
 	 (newenv (fresh_env env))
+	 (docv ())
 	 )
     (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for DEFUN"_))
@@ -1947,11 +1989,21 @@
 	    (error_plain loc "missing formal arguments for DEFUN"_)))
       (multiple_every btup (lambda (fb) (put_env newenv fb)))
       (setq curpair (pair_tail curpair))
+      ;; handle the optional :doc documentationvalue
+      (if (== (pair_head curpair) ':doc)
+	  (progn
+	    (setq curpair (pair_tail curpair)) ;; consume :doc
+	    ;; the documentation is NOT macro-expanded
+	    (setq docv (pair_head curpair))    ;; get the docv
+	    (setq curpair (pair_tail curpair))  ;; consume it
+	    ))
+      ;; handle the body
       (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
 	     (sdefun
 	      (instance class_src_defun
 			:src_loc loc
 			:sdef_name symb
+			:sdef_doc docv
 			:sformal_args btup
 			:sfun_body bodytup
 			))
@@ -1978,7 +2030,7 @@
 	 (superbind ())
 	 (superclass ())
 	 (fieldnams ())
-	 (docstr ())
+	 (docv ())
 	 (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (fieldsloc ())
@@ -2068,11 +2120,10 @@
 		      )
 		     )
 		    )
-		  ( (== curkw ':docstr)
-		    (if docstr (error_plain loc "duplicate docstr in DEFCLASS"_))
-		    (setq docstr (macroexpand_1 curval env mexpander))
-		    (if (not (is_string docstr))
-			(error_plain loc "bad docstr in DEFCLASS"_))
+		  ( (== curkw ':doc)
+		    (if docv (error_plain loc "duplicate doc in DEFCLASS"_))
+		    ;; the documentation is NOT macro-expanded!
+		    (setq docv curval)
 		    )
 		  (:else
 		   (error_strv loc "invalid keyword in DEFCLASS"_ 
@@ -2087,9 +2138,9 @@
     (debug_msg predef "scan_defclass returns predef")
     (debug_msg fieldnams "scan_defclass returns fieldnams")
     (debug_msg fieldsloc "scan_defclass returns fieldsloc")
-    (debug_msg docstr "scan_defclass returns docstr")
+    (debug_msg docv "scan_defclass returns docv")
     (warn_if_redefined symb env loc)
-    (return symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
+    (return symb loc supernam superbind superclass predef fieldnams fieldsloc docv)
     ))
 
 
@@ -2098,7 +2149,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (debug_msg  sexpr "mexp.defclass sexpr")
   (multicall 
-   (symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
+   (symb loc supernam superbind superclass predef fieldnams fieldsloc docv)
    (scan_defclass sexpr env mexpander)
    (debug_msg symb "mexp.defclass scanned symb")
    (debug_msg loc "mexp.defclass scanned loc")
@@ -2108,7 +2159,7 @@
    (debug_msg predef "mexp.defclass scanned predef")
    (debug_msg fieldnams "mexp.defclass scanned fieldnams")
    (debug_msg fieldsloc "mexp.defclass scanned fieldsloc")
-   (debug_msg docstr "mexp.defclass scanned docstr")
+   (debug_msg docv "mexp.defclass scanned docv")
    (assert_msg "check symb" (is_a symb class_symbol))
    (and (null predef)
 	(null superclass)
@@ -2197,8 +2248,8 @@
      (instance class_src_defclass
 	       :src_loc loc
 	       :sdef_name symb
+	       :sdef_doc docv
 	       :sobj_predef predef
-	       :sobj_docstr docstr
 	       :sclass_clabind clabind
 	       :sclass_superbind superbind
 	       :sclass_fldbinds ownfieldbindings
@@ -2277,6 +2328,7 @@
 	 (claname ())
 	 (cla ())
 	 (clabind ())
+	 (docv ())
 	 )
     (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for DEFINSTANCE"_))
@@ -2324,6 +2376,10 @@
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
 			      )
+			    ( (== curfkw ':doc)
+			      (if docv (error_plain loc "duplicate :doc in DEFINSTANCE"))
+			      (setq docv curexp)
+			      )
 			    (:else 
 			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
 			       (if flda 
@@ -2337,6 +2393,7 @@
 		(instance class_src_definstance
 			  :src_loc loc
 			  :sdef_name symb
+			  :sdef_doc docv
 			  :sobj_predef predef
 			  :sinst_class cla
 			  :sinst_clabind clabind
@@ -2358,7 +2415,7 @@
 (export_macro definstance mexpand_definstance)
 
 
-;; the definstance expanser
+;; the defselector expanser
 (defun mexpand_defselector (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -2373,6 +2430,7 @@
 	 (symb (pair_head curpair))
 	 (claname ())
 	 (cla ())
+	 (docv ())
 	 (clabind ())
 	 )
     (if (is_not_a symb class_symbol)
@@ -2420,6 +2478,10 @@
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
+			      )
+			    ( (== curfkw ':doc)
+			      (if docv (error_plain loc "duplicate :doc in DEFINSTANCE"))
+			      (setq docv curexp)
 			      )
 			    (:else 
 			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )

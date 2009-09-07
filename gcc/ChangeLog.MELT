@@ -1,4 +1,19 @@
 
+2009-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	[Adding minimal support for documentation]
+	* melt/warmelt-macro.melt: added sdef_doc field to class_srcdef.
+	removed sobj_docstr field from class_src_defobjcommon.
+	Added parsing of documentation in every defining mexpander.
+
+	* melt/warmelt-normal.melt: replaced sobj_docstr by sdef_doc in normexp_definstance...
+
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
 2009-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (do_initial_command): return eearly if no mode
 	string.
