@@ -2823,23 +2823,22 @@ enum
 /* fields inside every discriminant */
 enum
 {
-  FDISCR_METHODICT = FNAMED__LAST,	/* a mapobjects for method mapping
+  FDISC_METHODICT = FNAMED__LAST,	/* a mapobjects for method mapping
 					   selectors to closures */
-  FDISCR_SENDER,		/* the closure doing the send if a
+  FDISC_SENDER,		/* the closure doing the send if a
 				   selector is not in the method
 				   dict */
-  FDISCR_SUPER,			/* the "superclass" or "parent discrim" */
-  FDISCR__LAST
+  FDISC_SUPER,			/* the "superclass" or "parent discrim" */
+  FDISC__LAST
 };
 
 /* fields inside every class */
 enum
 {
-  FCLASS_ANCESTORS = FDISCR__LAST,	/* a multiple for the class ancestors
+  FCLASS_ANCESTORS = FDISC__LAST,	/* a multiple for the class ancestors
 					   (first being the CLASS:ROOT last
 					   being the immediate superclass) */
   FCLASS_FIELDS,		/* a multiple for the class fields */
-  FCLASS_OBJNUMDESCR,		/* a description of the objnum */
   FCLASS_DATA,			/* class variables */
   FCLASS__LAST
 };

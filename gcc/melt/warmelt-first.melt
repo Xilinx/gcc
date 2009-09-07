@@ -40,52 +40,84 @@
 
 ;; root class
 (defclass class_root 
-  :predef CLASS_ROOT)
+  :predef CLASS_ROOT
+  :doc #{The $CLASS_ROOT is the topmost root of all classes. Every class
+should be some indirect subclass of $CLASS_ROOT. And $CLASS_ROOT
+should be the only class without superclass.}# )
 
 ;; class of everything with a property table
 (defclass class_proped 
   :super class_root 
   :fields (prop_table)
-  :predef CLASS_PROPED)
+  :predef CLASS_PROPED
+  :doc #{The $CLASS_PROPED is the common super-class for objects with a
+property table $PROP_TABLE (an object map associating property naming
+symbols to arbitrary value.}# )
 
 
 ;; arbitrary container as class
 (defclass class_container
   :super class_root
   :predef CLASS_CONTAINER
-  :fields (container_value))
+  :fields (container_value)
+  :doc #{The $CLASS_CONTAINER is a class for mutable containers (that is
+references). The contained value is $CONTAINER_VALUE.}#)
 
 ;; class of named objects
 (defclass class_named 
   :super class_proped 
   :fields (named_name) 
-  :predef CLASS_NAMED)
+  :predef CLASS_NAMED
+  :doc #{The $CLASS_NAMED is the super-class of every named object. The
+$NAMED_NAME field is conventionally a string.}# )
 
 ;; class of discriminants
 (defclass class_discr 
   :super class_named 
   :fields (disc_methodict 
-	   disc_sender 
+	   disc_sender
 	   disc_super)
-  :predef CLASS_DISCR)
+  :predef CLASS_DISCR
+  :doc #{The $CLASS_DISCR is the class of every discriminant. It has the
+method dictionnary $DISCR_METHODICT and the super-discriminant
+$DISC_SUPER. The $DISC_SENDER can hold a closure doing the send if the
+selector is not found. Otherwise, the default is to send thru the
+super-discriminant.}# )
 
 ;; class of classes
 (defclass class_class
   :super class_discr
-  :fields (class_ancestors class_fields class_objnumdescr class_data)
-  :predef CLASS_CLASS)
+  :fields (class_ancestors class_fields class_data)
+  :doc #{The $CLASS_CLASS is the class of all classes - which are
+therefore discriminants.  The $CLASS_ANCESTORS field holds the
+sequence of ancestors. The $CLASS_FIELDS gives the sequence of
+inherited and own fields. The $CLASS_DATA is for class
+variables. Instances of $CLASS_CLASS are automagically created by the
+$DEFCLASS macro.}#
+  :predef CLASS_CLASS
+)
 
 ;; class of fields
 (defclass class_field
   ;; the fields' objnum is its offset
   :super class_named
-  :fields (fld_ownclass fld_typinfo)
+  :fields (fld_ownclass fld_data)
+  :doc #{The $CLASS_FIELD is the class of every field. Its objnum is its
+offset. Its $FLD_OWNCLASS is the class owning that field. The
+$FLD_DATA is for additional data. Instances of $CLASS_FIELD are
+automagically created by the $DEFCLASS macro.}#
   :predef CLASS_FIELD)
 
 ;; class of primitive
 (defclass class_primitive
   :super class_named
   :fields (prim_formals prim_type prim_expansion)
+  :doc #{The $CLASS_PRIMITIVE is the class of descriptors of
+primitives. The $PRIM_FORMALS field is the sequence of formal
+arguments, the $PRIM_TYPE field is the type of the primitive, and its
+expansion is described by $PRIM_EXPANSION. Instances of
+$CLASS_PRIMITIVE are automagically created by the $DEFPRIMITIVE
+macro.}#
   :predef CLASS_PRIMITIVE)
 
 ;; class of C iterators
@@ -97,6 +129,13 @@
 	   citer_expbefore		;expansion before body
 	   citer_expafter		;expansion after body
 	   )
+  :doc #{The $CLASS_CITERATOR is the class describing c-iterators. The
+formal start arguments are in the $CITER_START_FORMALS field, the
+$CITER_STATE field gives the state symbol, the $CITER_BODY_FORMALS
+gives the formal body arguments, and the before and after expansions
+are $CITER_EXPBEFORE and $CITER_EXPAFTER. Instances of
+$CLASS_CITERATOR are automagically created by the $DEFCITERATOR
+macro.}#
   :predef CLASS_CITERATOR)
 
 (defclass class_any_matcher
@@ -104,7 +143,13 @@
   :fields (amatch_in		;the formal input arguments
 	   amatch_matchbind		;the matched formal binding
 	   amatch_out			;the formal output arguments
-	   ))
+	   )
+  :doc #{The $CLASS_ANY_MATCHER is the common super-class for matcher
+descriptors. The $AMATCH_IN gives the formal input arguments, the
+$AMATCH_MATCHBIND is the formal binding of the matched stuff, and
+$AMATCH_OUT is the formal output arguments. Instances of sub-classes
+of $CLASS_ANY_MATCHER are automagically created by macros like
+$DEFCMATCHER and $DEFUNMATCHER.}# )
 
 					; class of C matchers (in patterns)
 (defclass class_cmatcher
@@ -117,6 +162,12 @@
 	   cmatch_expoper		;expansion for operator use
 					;[in expressions] using outs
 	   )
+  :doc #{The $CLASS_CMATCHER is the class for c-matcher
+descriptors. $CMATCH_STATE is the state symbol, $CMATCH_EXPTEST gives
+the expansion for testing in patterns, $CMATCH_EXPFILL is the
+expansion for filling a matched pattern. $CMATCH_EXPOPER is the
+expansion for operator uses. Instances of $CLASS_CMATCHER are
+automagically created by the $DEFCMATCHER macro.}#
   :predef CLASS_CMATCHER)
 
 					; class of function matcher (in patterns)
@@ -133,6 +184,11 @@
 	   ;; next arguments are from the expression
 	   fmatch_data			;client data
 	   )
+  :doc #{The $CLASS_FUNMATCHER describes fun-matchers. $FMATCH_MATCHF is
+the matching function -for patterns. $FMATCH_APPLYF is the applying
+function -for expressions. $FMATCH_DATA is some additional client
+data. Instances of $CLASS_FUNMATCHER are automagically created by the
+$DEFUNMATCHER macro.  }#
   :predef CLASS_FUNMATCHER
   )
 
@@ -140,6 +196,8 @@
 (defclass class_located
   :super class_proped
   :fields (loca_location)
+  :doc #{The $CLASS_LOCATED is the super-class for located stuff, have a
+  source file location given by the $LOCA_LOCATION field.}#
   :predef CLASS_LOCATED)
 
 ;; class of source expressions
@@ -148,12 +206,16 @@
   :super class_located
   :fields (sexp_contents		;list of contents
 	   )
-  )
+  :doc #{The $CLASS_SEXPR is the class of source expressions, as parsed by
+the reader. The $SEXP_CONTENTS field is a list of contents.  }# )
 
 ;; class of message selectors
 (defclass class_selector
   :super class_named
   :fields (sel_signature sel_data)
+  :doc #{The $CLASS_SELECTOR is the class of message selectors, created by
+the $DEFSELECTOR macro. The $SEL_SIGNATURE could give a signature (as
+a formal argument list) and the $SEL_DATA is for additional data.}#
   :predef CLASS_SELECTOR)
 
 
@@ -161,18 +223,28 @@
 (defclass class_symbol
   :predef CLASS_SYMBOL
   :super class_named
+  :doc #{The $CLASS_SYMBOL is the class of symbols. The $SYMB_DATA is a
+  field for some additional data. The reader may create instances of
+  $CLASS_SYMBOL when encoutering new symbols.}#
   :fields (symb_data))
 
 ;; class of generated (ie cloned) symbols - like lisp gensym-ed
 (defclass class_clonedsymbol
   :super class_symbol
   :fields (csym_urank			;unique rank as a boxed integer
-	   ))
+	   )
+  :doc #{The $CLASS_CLONEDSYMBOL is the sub-class of cloned symbols,
+e.g. like GENSYM-ed symbols is many Lisps.  Cloned symbols are
+internally generated inside the MELT translator. Their $CSYM_URANK
+field gives their unique rank as a boxed integer.}#)
 
 ;; class of keyword symbols
 (defclass class_keyword
   :predef CLASS_KEYWORD
   :super class_symbol
+  :doc #{The $CLASS_KEYWORD is the sub-class of keywords, handled
+specially. The reader parses as keyword any symbol starting with a
+colon.}#
   :fields ())
 
 ;; class of C types keywords - it is predefined to ensure
@@ -190,7 +262,15 @@
 	   ctype_marker	  ;the name of the marker routine
 	   ctype_descr	  ;descriptive string
 	   )
-  )
+  :doc #{The $CLASS_CTYPE is for predefined descriptors of C
+types (like long or tree). $CTYPE_KEYWORD gives the associated
+keywords (for formal argument lists, etc...), $CTYPE_CNAME gives the C
+identifier of the type. Parameter passing is described by
+$CTYPE_PARCHAR (for the character) and $CTYPE_PARSTRING (for the
+corresponding C string). Argument member in union is given by
+$CTYPE_ARGFIELD, and by $CTYPE_RESFIELD for results.  The marking
+routine is $CTYPE_MARKER and $CTYPE_DESCR is some descriptive string
+or data.}# )
 
 
 ;; class of system data -- be careful to keep the FSYSDAT_*
@@ -198,6 +278,10 @@
 (defclass class_system_data
   :predef CLASS_SYSTEM_DATA
   :super class_named
+  :doc #{The $CLASS_SYSTEM_DATA has a singleton instance, the
+$INITIAL_SYSTEM_DATA. It contains lots of fields, starting by
+SYSDATA_, for various system facilities.  It is very magical, and
+should be kept in sync with the MELT runtime. Only for gurus!}#
   :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
 	   sysdata_cont_fresh_env			;closure to make a fresh environment
 	   sysdata_value_exporter		;closure to export a value
@@ -236,7 +320,10 @@
 	   dbgi_occmap ;the occurrence map (to avoid outputing twice the same object)
 	   dbgi_maxdepth ;the boxed integer maximal depth
 	   )
-  )
+  :doc #{The $CLASS_DEBUGINFO is for debug information output,
+e.g. $DEBUG_MSG macro.  The produced output or buffer is $DBGI_OUT,
+the occurrence map is $DBGI_OCCMAP, used to avoid outputting twice the
+same object. The boxed maximal depth is $DBGI_MAXDEPTH.}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ classes for environments & bindings
@@ -245,6 +332,11 @@
 (defclass class_environment
   :predef CLASS_ENVIRONMENT
   :super class_root
+  :doc #{The $CLASS_ENVIRONMENT reifies environments. The binding map
+is $ENV_BIND, the previous environment is $ENV_PREV, and the procedure
+if any of this environment is $ENV_PROC. It is heavily used within the
+MELT translator. Module initialization produces fresh instances of
+it.}#
   :fields (env_bind			;the map of bindings
 	   env_prev			;the previous environment
 	   env_proc			;the procedure of this environment

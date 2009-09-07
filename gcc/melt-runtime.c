@@ -4809,13 +4809,13 @@ meltgc_send (melt_ptr_t recv_p,
     {
       gcc_assert (melt_magic_discr ((melt_ptr_t) discrv) ==
 		  OBMAG_OBJECT);
-      gcc_assert (obj_discrv->obj_len >= FDISCR__LAST);
+      gcc_assert (obj_discrv->obj_len >= FDISC__LAST);
 #if 0 && ENABLE_CHECKING
       debugeprintf ("send #%ld discrv %p <%s>",
 		    sendnum, discrv,
 		    melt_string_str (obj_discrv->obj_vartab[FNAMED_NAME]));
 #endif
-      mapv = obj_discrv->obj_vartab[FDISCR_METHODICT];
+      mapv = obj_discrv->obj_vartab[FDISC_METHODICT];
       if (melt_magic_discr ((melt_ptr_t) mapv) == OBMAG_MAPOBJECTS)
 	{
 	  closv =
@@ -4826,7 +4826,7 @@ meltgc_send (melt_ptr_t recv_p,
 	}
       else
 	{
-	  closv = obj_discrv->obj_vartab[FDISCR_SENDER];
+	  closv = obj_discrv->obj_vartab[FDISC_SENDER];
 	  if (melt_magic_discr ((melt_ptr_t) closv) == OBMAG_CLOSURE)
 	    {
 	      union meltparam_un pararg[1];
@@ -4850,7 +4850,7 @@ meltgc_send (melt_ptr_t recv_p,
 	  ***/
 	  goto end;
 	}
-      discrv = obj_discrv->obj_vartab[FDISCR_SUPER];
+      discrv = obj_discrv->obj_vartab[FDISC_SUPER];
     }				/* end while discrv */
   resv = NULL;
 end:

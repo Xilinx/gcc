@@ -1,5 +1,15 @@
 
 2009-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (FDISCR_METHODICT) renamed as
+	(FDISC_METHODICT). (FDISCR_SENDER) renamed
+	as (FDISC_SENDER).  (FDISCR_SUPER) renamed as (FDISC_SUPER).
+	(FCLASS_OBJNUMDESCR) removed.
+	* melt-runtime.c (meltgc_send): same renamings.
+	* melt/warmelt-first.melt: Added some documentation strings.
+	Removed class_objnumdescr field from class_class. Removed
+	fld_typinfo and added fld_data.
+
+2009-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	[Adding minimal support for documentation]
 	* melt/warmelt-macro.melt: added sdef_doc field to class_srcdef.
 	removed sobj_docstr field from class_src_defobjcommon.
