@@ -1,3 +1,63 @@
+2009-09-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR bootstrap/41241
+	* combine-stack-adj.c (try_apply_stack_adjustment): Handle stores.
+	(combine_stack_adjustments_for_block): Allow insns between stack
+	adjustments and stores with corresponding with pre-(dec|inc)rement
+	or pre-modify.
+
+2009-09-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/41241
+	* combine-stack-adj.c (struct csa_memlist): Rename to...
+	(struct csa_reflist): ... this.  Rename mem field to ref.
+	(free_csa_memlist): Rename to...
+	(free_csa_reflist): ... this.
+	(record_one_stack_memref): Rename to...
+	(record_one_stack_ref): ... this.  Handle also REG_P.
+	(try_apply_stack_adjustment): Handle also REG_P.
+	(struct record_stack_memrefs_data): Rename to...
+	(struct record_stack_refs_data): ... this.  Rename memlist field to
+	reflist.
+	(record_stack_memrefs): Rename to...
+	(record_stack_refs): ... this.  For DEBUG_INSNs keep traversing
+	subexpressions instead of failing when a MEM contains SP references.
+	For SP itself in DEBUG_INSNs queue it also onto reflist chain.
+	(combine_stack_adjustments_for_block): Adjust for mem to ref renaming.
+
+2009-09-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41144
+	* tree.c (build_array_type): Do not record types marked
+	with structural equality in the canonical type hashtable.
+
+2009-09-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41261
+	* tree-ssa-alias.c (refs_may_alias_p_1): Bail out for function decls.
+
+2009-09-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41181
+	* tree-ssa-ccp.c (maybe_fold_stmt_addition): Use the correct type.
+
+2009-09-05  Richard Guenther  <rguenther@suse.de>
+
+	PR debug/41273
+	* tree-ssa-operands.c (get_tmr_operands): Pass through opf_no_vops.
+
+2009-09-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41271
+	* tree-ssa.c (useless_type_conversion_p): Drop qualifiers
+	before comparing function argument types.
+
+2009-09-05  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR target/41024
+	* config/i386/mingw-w64.h (ASM_SPEC): Pass -v instead of -V to
+	the assembler.
+
 2009-09-04  Uros Bizjak  <ubizjak@gmail.com>
 
 	Revert:
