@@ -6284,7 +6284,7 @@ gimplify_tm_atomic (tree *expr_p, gimple_seq *pre_p)
   push_gimplify_context (&gctx);
 
   g = gimplify_and_return_first (TM_ATOMIC_BODY (expr), &body);
-  if (gimple_code (g) == GIMPLE_BIND)
+  if (g && gimple_code (g) == GIMPLE_BIND)
     pop_gimplify_context (g);
   else
     pop_gimplify_context (NULL);

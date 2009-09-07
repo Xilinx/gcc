@@ -1,3 +1,18 @@
+2009-09-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* builtin-attrs.def: (ATTR_TM_PURE): New.
+	(ATTR_TM_TMPURE_NOTHROW_LIST): New.
+	(ATTR_TM_PURE_TMPURE_NOTHROW_LIST): New.
+	(ATTR_TM_PURE_NOTHROW_LIST): Remove.
+
+	* gtm-builtins.def (BUILT_IN_TM_LOAD_*): Use
+	ATTR_TM_PURE_TMPURE_NOTHROW_LIST instead.
+
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle TM builtins.
+	(call_may_clobber_ref_p_1): Same.
+	* tree-ssa-structalias.c (find_func_aliases): Same.
+	Fix function comment to reflect reality.
+
 2009-08-26  Aldy Hernandez  <aldyh@redhat.com>
 
 	* tree.h, gimple-pretty-print.c, trans-mem.c, trans-mem.h,

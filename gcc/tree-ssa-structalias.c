@@ -3589,13 +3589,11 @@ handle_pure_call (gimple stmt, VEC(ce_s, heap) **results)
 
 /* Walk statement T setting up aliasing constraints according to the
    references found in T.  This function is the main part of the
-   constraint builder.  AI points to auxiliary alias information used
-   when building alias sets and computing alias grouping heuristics.  */
+   constraint builder.  */
 
 static void
-find_func_aliases (gimple origt)
+find_func_aliases (gimple t)
 {
-  gimple t = origt;
   VEC(ce_s, heap) *lhsc = NULL;
   VEC(ce_s, heap) *rhsc = NULL;
   struct constraint_expr *c;
@@ -3668,6 +3666,8 @@ find_func_aliases (gimple origt)
 	  case BUILT_IN_STPNCPY:
 	  case BUILT_IN_STRCAT:
 	  case BUILT_IN_STRNCAT:
+	  case BUILT_IN_TM_MEMCPY:
+	  case BUILT_IN_TM_MEMMOVE:
 	    {
 	      tree res = gimple_call_lhs (t);
 	      tree dest = gimple_call_arg (t, 0);
@@ -3726,6 +3726,44 @@ find_func_aliases (gimple origt)
 	      for (i = 0; VEC_iterate (ce_s, lhsc, i, lhsp); ++i)
 		process_constraint (new_constraint (*lhsp, ac));
 	      VEC_free (ce_s, heap, lhsc);
+	      return;
+	    }
+	  case BUILT_IN_TM_STORE_1:
+	  case BUILT_IN_TM_STORE_2:
+	  case BUILT_IN_TM_STORE_4:
+	  case BUILT_IN_TM_STORE_8:
+	  case BUILT_IN_TM_STORE_FLOAT:
+	  case BUILT_IN_TM_STORE_DOUBLE:
+	  case BUILT_IN_TM_STORE_LDOUBLE:
+	    {
+	      tree addr = gimple_call_arg (t, 0);
+	      tree src = gimple_call_arg (t, 1);
+
+	      get_constraint_for (addr, &lhsc);
+	      do_deref (&lhsc);
+	      get_constraint_for (src, &rhsc);
+	      process_all_all_constraints (lhsc, rhsc);
+	      VEC_free (ce_s, heap, lhsc);
+	      VEC_free (ce_s, heap, rhsc);
+	      return;
+	    }
+	  case BUILT_IN_TM_LOAD_1:
+	  case BUILT_IN_TM_LOAD_2:
+	  case BUILT_IN_TM_LOAD_4:
+	  case BUILT_IN_TM_LOAD_8:
+	  case BUILT_IN_TM_LOAD_FLOAT:
+	  case BUILT_IN_TM_LOAD_DOUBLE:
+	  case BUILT_IN_TM_LOAD_LDOUBLE:
+	    {
+	      tree dest = gimple_call_lhs (t);
+	      tree addr = gimple_call_arg (t, 0);
+
+	      get_constraint_for (dest, &lhsc);
+	      get_constraint_for (addr, &rhsc);
+	      do_deref (&rhsc);
+	      process_all_all_constraints (lhsc, rhsc);
+	      VEC_free (ce_s, heap, lhsc);
+	      VEC_free (ce_s, heap, rhsc);
 	      return;
 	    }
 	  /* All the following functions do not return pointers, do not

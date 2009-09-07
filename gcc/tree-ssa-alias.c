@@ -886,8 +886,8 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
       && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
     switch (DECL_FUNCTION_CODE (callee))
       {
-	/* All the following functions clobber memory pointed to by
-	   their first argument.  */
+	/* All the following functions read memory pointed to by
+	   their second argument.  */
 	case BUILT_IN_STRCPY:
 	case BUILT_IN_STRNCPY:
 	case BUILT_IN_BCOPY:
@@ -898,10 +898,22 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
 	case BUILT_IN_STPNCPY:
 	case BUILT_IN_STRCAT:
 	case BUILT_IN_STRNCAT:
+        case BUILT_IN_TM_MEMCPY:
+        case BUILT_IN_TM_MEMMOVE:
 	  {
 	    tree src = gimple_call_arg (call, 1);
 	    return ptr_deref_may_alias_ref_p (src, ref);
 	  }
+        /* The following functions read memory pointed to by their
+	   first argument.  */
+        case BUILT_IN_TM_LOAD_1:
+        case BUILT_IN_TM_LOAD_2:
+        case BUILT_IN_TM_LOAD_4:
+        case BUILT_IN_TM_LOAD_8:
+        case BUILT_IN_TM_LOAD_FLOAT:
+        case BUILT_IN_TM_LOAD_DOUBLE:
+        case BUILT_IN_TM_LOAD_LDOUBLE:
+	  return ptr_deref_may_alias_ref_p (gimple_call_arg (call, 0), ref);
 	/* The following builtins do not read from memory.  */
 	case BUILT_IN_FREE:
 	case BUILT_IN_MEMSET:
@@ -1106,6 +1118,15 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_STPNCPY:
 	case BUILT_IN_STRCAT:
 	case BUILT_IN_STRNCAT:
+        case BUILT_IN_TM_STORE_1:
+        case BUILT_IN_TM_STORE_2:
+        case BUILT_IN_TM_STORE_4:
+        case BUILT_IN_TM_STORE_8:
+        case BUILT_IN_TM_STORE_FLOAT:
+        case BUILT_IN_TM_STORE_DOUBLE:
+        case BUILT_IN_TM_STORE_LDOUBLE:
+        case BUILT_IN_TM_MEMCPY:
+        case BUILT_IN_TM_MEMMOVE:
 	  {
 	    tree dest = gimple_call_arg (call, 0);
 	    return ptr_deref_may_alias_ref_p_1 (dest, ref);
