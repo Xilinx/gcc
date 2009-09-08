@@ -1,5 +1,22 @@
 
 2009-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (readstring): issue a warning for a string
+	starting at end of line, to help catching mismatched
+	double-quotes...
+	(readhashescape): gives line number in error messages.
+	* melt/warmelt-first.melt: Use quoted strings. Copyright comment
+	does not start at end of line!
+	* melt/warmelt-macro.melt: Copyright comment does not start at end
+	of line!
+	* melt/warmelt-normal.melt: likewise.
+	* melt/warmelt-normatch.melt: likewise.
+	* melt/warmelt-genobj.melt: likewise.
+	* melt/warmelt-outobj.melt: likewise.
+	* melt/ana-simple.melt: Use quoted strings. Copyright comment
+	does not start at end of line!
+	* melt/ana-base.melt: likewise.
+
+2009-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[should accept '"a string" & '123]
 	* doc/melt.texi: updated documention a bit.
 	* melt-runtime.c (melt_argument): handle "output" with

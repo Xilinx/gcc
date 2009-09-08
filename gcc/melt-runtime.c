@@ -6387,13 +6387,22 @@ readstring (struct reading_st *rd)
   MELT_ENTERFRAME (1, NULL);
 #define strv   curfram__.varptr[0]
 #define str_strv  ((struct meltstring_st*)(strv))
+  obstack_init (&bstring_obstack);
   while ((c = rdcurc ()) != '"' && !rdeof ())
     {
       if (c != '\\')
 	{
 	  obstack_1grow (&bstring_obstack, (char) c);
-	  if (c == '\n')
-	    c = skipspace_getc (rd, COMMENT_NO);
+	  if (c == '\n') 
+	    {
+	      /* It is suspicious when a double-quote is parsed as the
+		 last character of a line; issue a warning in that
+		 case.  This helps to catch missing, mismatched or
+		 extra double-quotes! */
+	      if (obstack_object_size (&bstring_obstack) <= 1)
+		warning_at(rd->rsrcloc, 0, "suspicious MELT string starting at end of line");
+	      c = skipspace_getc (rd, COMMENT_NO);
+	    }
 	  else
 	    rdnext ();
 	}
@@ -6668,6 +6677,7 @@ readhashescape (struct reading_st *rd)
 {
   int c = 0;
   char *nam = NULL;
+  int lineno = rd->rlineno;
   MELT_ENTERFRAME (4, NULL);
 #define readv  curfram__.varptr[0]
 #define compv  curfram__.varptr[1]
@@ -6676,7 +6686,7 @@ readhashescape (struct reading_st *rd)
   readv = NULL;
   c = rdcurc ();
   if (!c || rdeof ())
-    READ_ERROR ("MELT: eof in hashescape %.20s", &rdcurc ());
+    READ_ERROR ("MELT: eof in hashescape %.20s starting line %d", &rdcurc (), lineno);
   if (c == '\\')
     {
       rdnext ();
@@ -6708,7 +6718,7 @@ readhashescape (struct reading_st *rd)
 	  else if (!strcmp (nam, "esc"))
 	    c = 0x1b;
 	  else
-	    READ_ERROR ("MELT: invalid char escape %s", nam);
+	    READ_ERROR ("MELT: invalid char escape %s starting line %d", nam, lineno);
 	  obstack_free (&bname_obstack, nam);
 	char_escape:
 	  readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARINTEGER), c);
@@ -6719,8 +6729,8 @@ readhashescape (struct reading_st *rd)
 	  rdnext ();
 	  c = strtol (&rdcurc (), &endc, 16);
 	  if (c == 0 && endc <= &rdcurc ())
-	    READ_ERROR ("MELT: illigal hex #\\x escape in char %.20s",
-			&rdcurc ());
+	    READ_ERROR ("MELT: illigal hex #\\x escape in char %.20s starting line %d",
+			&rdcurc (), lineno);
 	  rd->rcol += endc - &rdcurc ();
 	  goto char_escape;
 	}
@@ -6731,7 +6741,8 @@ readhashescape (struct reading_st *rd)
 	  goto char_escape;
 	}
       else
-	READ_ERROR ("MELT: unrecognized char escape #\\%s", &rdcurc ());
+	READ_ERROR ("MELT: unrecognized char escape #\\%s starting line %d",
+		    &rdcurc (), lineno);
     }
   else if (c == '(')
     {
@@ -6762,7 +6773,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       n = strtol (&rdcurc (), &endc, 2);
       if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("MELT: bad binary number %s", endc);
+	READ_ERROR ("MELT: bad binary number %s starting line %d", endc, lineno);
       readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
     }
   else if ((c == 'o' || c == 'O') && ISDIGIT (rdfollowc (1)))
@@ -6773,7 +6784,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       n = strtol (&rdcurc (), &endc, 8);
       if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("MELT: bad octal number %s", endc);
+	READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
       readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
     }
   else if ((c == 'd' || c == 'D') && ISDIGIT (rdfollowc (1)))
@@ -6784,7 +6795,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       n = strtol (&rdcurc (), &endc, 10);
       if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("MELT: bad decimal number %s", endc);
+	READ_ERROR ("MELT: bad decimal number %s starting line %d", endc, lineno);
       readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
     }
   else if ((c == 'x' || c == 'x') && ISDIGIT (rdfollowc (1)))
@@ -6795,7 +6806,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       n = strtol (&rdcurc (), &endc, 16);
       if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("MELT: bad octal number %s", endc);
+	READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
       readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
     }
   else if (c == '+' && ISALPHA (rdfollowc (1)))
@@ -6818,7 +6829,7 @@ readhashescape (struct reading_st *rd)
       readv = readmacrostringsequence(rd);
   }
   else
-    READ_ERROR ("MELT: invalid escape %.20s", &rdcurc ());
+    READ_ERROR ("MELT: invalid escape %.20s starting line %d", &rdcurc (), lineno);
   MELT_EXITFRAME ();
   return (melt_ptr_t) readv;
 #undef readv

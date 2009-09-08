@@ -1,7 +1,7 @@
 ;; -*- Lisp -*-
 ;; file ana-simple.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(comment "
+(comment "***
     Copyright 2009 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with GCC; see the file COPYING3.  If not see
     <http://www.gnu.org/licenses/>.
-")
+***")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; green transformation
@@ -146,7 +146,6 @@
 (defun makegreen_command (dispatcher arg secarg moduldata)
   (let ( (greenpass
 	  (instance class_gcc_gimple_pass
-		    ;;:named_name (make_stringconst discr_string "melt_greenpass")
 		    :named_name '"melt_greenpass"
 		    :gccpass_gate makegreenpass_gate
 		    :gccpass_exec makegreenpass_exec
@@ -1263,7 +1262,7 @@
 (defun justscan_command (dispatcher arg secarg moduldata)
   (let ( (justscanpass
 	  (instance class_gcc_gimple_pass
-		    :named_name (make_stringconst discr_string "melt_justscanpass")
+		    :named_name '"melt_justscanpass"
 		    :gccpass_gate justscanpass_gate
 		    :gccpass_exec justscanpass_exec
 		    :gccpass_data (make_maptree discr_maptrees 100)

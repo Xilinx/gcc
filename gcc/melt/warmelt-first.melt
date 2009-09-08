@@ -1,7 +1,7 @@
 ;; -*- Lisp -*-
 ;; file warmelt-first.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(comment "
+(comment "***
     Copyright 2008, 2009 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with GCC; see the file COPYING3.  If not see
     <http://www.gnu.org/licenses/>.
-")
+***")
 
 ;; the copyright notice above apply both to warmelt-first.melt and 
 ;; to the generated file  warmelt-first*.c
@@ -188,7 +188,7 @@ automagically created by the $DEFCMATCHER macro.}#
 the matching function -for patterns. $FMATCH_APPLYF is the applying
 function -for expressions. $FMATCH_DATA is some additional client
 data. Instances of $CLASS_FUNMATCHER are automagically created by the
-$DEFUNMATCHER macro.  }#
+$DEFUNMATCHER macro.}#
   :predef CLASS_FUNMATCHER
   )
 
@@ -1418,7 +1418,7 @@ it.}#
 (definstance discr_namestring class_discr
   :predef DISCR_NAMESTRING
   :obj_num OBMAG_STRING
-;;; :named_name (stringconst2val discr_namestring "DISCR_NAMESTRING")
+;;; :named_name '"DISCR_NAMESTRING"
 ;;; :disc_super discr_string   ;; forward reference not allowed
   )
 
@@ -1426,22 +1426,22 @@ it.}#
 (definstance discr_string class_discr
   :predef DISCR_STRING
   :obj_num OBMAG_STRING
-  :named_name (stringconst2val discr_namestring "DISCR_STRING"))
+  :named_name '"DISCR_STRING")
 
 (unsafe_put_fields discr_namestring :disc_super discr_string)
 (unsafe_put_fields discr_namestring :named_name
-		   (stringconst2val discr_namestring "DISCR_NAMESTRING"))
+		   '"DISCR_NAMESTRING")
 ;;; the discriminant for verbatim strings (used for defprimitive)
 (definstance discr_verbatimstring class_discr
   :obj_num OBMAG_STRING
   :predef DISCR_VERBATIMSTRING
-  :named_name (stringconst2val discr_namestring "DISCR_VERBATIMSTRING")
+  :named_name '"DISCR_VERBATIMSTRING"
   :disc_super discr_string
   )
 
 ;;; the discriminant for any reciever (used for sending to everything)
 (definstance discr_anyrecv class_discr
-  :named_name (stringconst2val discr_namestring "DISCR_ANYRECV")
+  :named_name '"DISCR_ANYRECV"
   )
 
 (unsafe_put_fields discr_string :disc_super discr_anyrecv)
@@ -1450,48 +1450,48 @@ it.}#
 (definstance discr_nullrecv class_discr
   :predef DISCR_NULLRECV
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_NULLRECV"))
+  :named_name '"DISCR_NULLRECV")
 
 ;;; the discriminant for strbuf
 (definstance discr_strbuf class_discr
   :predef DISCR_STRBUF
   :obj_num OBMAG_STRBUF  
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_STRBUF"))
+  :named_name '"DISCR_STRBUF")
 
 ;;; the discriminant for integers
 (definstance discr_integer class_discr
   :predef DISCR_INTEGER
   :obj_num OBMAG_INT 
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_INTEGER"))
+  :named_name '"DISCR_INTEGER")
 
 ;;; the discriminant for lists
 (definstance discr_list class_discr
   :predef DISCR_LIST
   :obj_num OBMAG_LIST 
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_LIST"))
+  :named_name '"DISCR_LIST")
 
 ;;; the discriminant for pairs
 (definstance discr_pair class_discr
   :predef DISCR_PAIR
   :obj_num OBMAG_PAIR 
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_PAIR"))
+  :named_name '"DISCR_PAIR")
 
 ;;; the discriminant for multiples
 (definstance discr_multiple class_discr
   :predef DISCR_MULTIPLE
   :obj_num OBMAG_MULTIPLE
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MULTIPLE"))
+  :named_name '"DISCR_MULTIPLE")
 
 ;;; the discriminant for sequence of fields
 (definstance discr_seqfield class_discr
   :predef DISCR_SEQFIELD
   :obj_num OBMAG_MULTIPLE
-  :named_name (stringconst2val discr_namestring "DISCR_SEQFIELD")
+  :named_name '"DISCR_SEQFIELD"
   :disc_super discr_multiple
   )
 
@@ -1500,104 +1500,104 @@ it.}#
   :predef DISCR_BOX
   :obj_num OBMAG_BOX
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_BOX"))
+  :named_name '"DISCR_BOX")
 
 ;;; the discriminant for trees
 (definstance discr_tree class_discr
   :predef DISCR_TREE
   :obj_num OBMAG_TREE
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_TREE"))
+  :named_name '"DISCR_TREE")
 
 ;;; the discriminant for gimples
 (definstance discr_gimple class_discr
   :predef DISCR_GIMPLE
   :obj_num OBMAG_GIMPLE
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_GIMPLE"))
+  :named_name '"DISCR_GIMPLE")
 
 ;;; the discriminant for gimpleseqs
 (definstance discr_gimpleseq class_discr
   :predef DISCR_GIMPLESEQ
   :obj_num OBMAG_GIMPLESEQ
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_GIMPLESEQ"))
+  :named_name '"DISCR_GIMPLESEQ")
 
 ;;; the discriminant for edges
 (definstance discr_edge class_discr
   :predef DISCR_EDGE
   :obj_num OBMAG_EDGE
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_EDGE"))
+  :named_name '"DISCR_EDGE")
 
 (definstance discr_basicblock class_discr
   :predef DISCR_BASICBLOCK
   :obj_num OBMAG_BASICBLOCK
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_BASICBLOCK"))
+  :named_name '"DISCR_BASICBLOCK")
 
 ;;; the discriminant for maps of objects
 (definstance discr_mapobjects class_discr
   :predef DISCR_MAPOBJECTS
   :obj_num OBMAG_MAPOBJECTS
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MAPOBJECTS"))
+  :named_name '"DISCR_MAPOBJECTS")
 
 ;;; the discriminant for maps of strings
 (definstance discr_mapstrings class_discr
   :predef DISCR_MAPSTRINGS
   :obj_num OBMAG_MAPSTRINGS
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MAPSTRINGS"))
+  :named_name '"DISCR_MAPSTRINGS")
 
 ;;; the discriminant for maps of trees
 (definstance discr_maptrees class_discr
   :predef DISCR_MAPTREES
   :obj_num OBMAG_MAPTREES
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MAPTREES"))
+  :named_name '"DISCR_MAPTREES")
 
 ;;; the discriminant for maps of gimples
 (definstance discr_mapgimples class_discr
   :predef DISCR_MAPGIMPLES
   :obj_num OBMAG_MAPGIMPLES
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MAPGIMPLES"))
+  :named_name '"DISCR_MAPGIMPLES")
 
 ;;; the discriminant for maps of gimpleseqs
 (definstance discr_mapgimpleseqs class_discr
   :predef DISCR_MAPGIMPLESEQS
   :obj_num OBMAG_MAPGIMPLESEQS
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MAPGIMPLESEQS"))
+  :named_name '"DISCR_MAPGIMPLESEQS")
 
 ;;; the discriminant for maps of edges
 (definstance discr_mapedges class_discr
   :predef DISCR_MAPEDGES
   :obj_num OBMAG_MAPEDGES
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MAPEDGES"))
+  :named_name '"DISCR_MAPEDGES")
 
 ;;; the discriminant for maps of basicblocks
 (definstance discr_mapbasicblocks class_discr
   :predef DISCR_MAPBASICBLOCKS
   :obj_num OBMAG_MAPBASICBLOCKS
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MAPBASICBLOCKS"))
+  :named_name '"DISCR_MAPBASICBLOCKS")
 
 
 ;;; the discriminant for PPL constraint system (not predefined)
 (definstance discr_ppl_constraint_system class_discr
   :obj_num OBMAG_SPECPPL_CONSTRAINT_SYSTEM
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_PPL_CONSTRAINT_SYSTEM")
+  :named_name '"DISCR_PPL_CONSTRAINT_SYSTEM"
   )
 
 ;;; the discriminant for PPL polyhedron
 (definstance discr_ppl_polyhedron class_discr
   :obj_num OBMAG_SPECPPL_POLYHEDRON
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_PPL_POLYHEDRON")
+  :named_name '"DISCR_PPL_POLYHEDRON"
   )
 
 ;;; the discriminant for files [closed by the garbage collector] (not
@@ -1605,7 +1605,7 @@ it.}#
 (definstance discr_file class_discr
   :obj_num OBMAG_SPEC_FILE
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_FILE")
+  :named_name '"DISCR_FILE"
   )
 
 ;; the discrimiant for raw files [not closed implicitly] (not
@@ -1613,7 +1613,7 @@ it.}#
 (definstance discr_rawfile class_discr
   :obj_num OBMAG_SPEC_RAWFILE
   :disc_super discr_file
-  :named_name (stringconst2val discr_namestring "DISCR_RAWFILE")
+  :named_name '"DISCR_RAWFILE"
   )
 
 
@@ -1621,7 +1621,7 @@ it.}#
 (definstance discr_seqclass class_discr
   :predef DISCR_SEQCLASS
   :obj_num OBMAG_MULTIPLE
-  :named_name (stringconst2val discr_namestring "DISCR_SEQCLASS")
+  :named_name '"DISCR_SEQCLASS"
   :disc_super discr_multiple
   )
 
@@ -1631,13 +1631,13 @@ it.}#
   :predef DISCR_METHODMAP
   :obj_num OBMAG_MAPOBJECTS
   :disc_super discr_mapobjects
-  :named_name (stringconst2val discr_namestring "DISCR_METHODMAP"))
+  :named_name '"DISCR_METHODMAP")
 
 ;;; the discriminant for charcode integers
 (definstance discr_charinteger class_discr
   :predef DISCR_CHARINTEGER
   :obj_num OBMAG_INT
-  :named_name (stringconst2val discr_namestring "DISCR_CHARINTEGER")
+  :named_name '"DISCR_CHARINTEGER"
   :disc_super discr_integer
   )
 
@@ -1647,7 +1647,7 @@ it.}#
   :predef DISCR_MIXEDINT
   :obj_num OBMAG_MIXINT
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MIXEDINT"))
+  :named_name '"DISCR_MIXEDINT")
 
 
 ;;; the discriminant for mixedintegers
@@ -1655,7 +1655,7 @@ it.}#
   :predef DISCR_MIXBIGINT
   :obj_num OBMAG_MIXBIGINT
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MIXBIGINT"))
+  :named_name '"DISCR_MIXBIGINT")
 
 
 
@@ -1664,7 +1664,7 @@ it.}#
   :predef DISCR_MIXEDLOC
   :obj_num OBMAG_MIXLOC
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_MIXEDLOC"))
+  :named_name '"DISCR_MIXEDLOC")
 
 
 ;;; the discriminant for closures
@@ -1672,14 +1672,14 @@ it.}#
   :predef DISCR_CLOSURE
   :obj_num OBMAG_CLOSURE
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_CLOSURE"))
+  :named_name '"DISCR_CLOSURE")
 
 ;;; the discriminant for routines
 (definstance discr_routine class_discr
   :predef DISCR_ROUTINE
   :obj_num OBMAG_ROUTINE
   :disc_super discr_anyrecv
-  :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
+  :named_name '"DISCR_ROUTINE")
 
 
 ;;; by having the install_ctype_descr called inside each ctype
@@ -1706,163 +1706,163 @@ it.}#
 ;; the C type for values
 (definstance ctype_value class_ctype
   :predef CTYPE_VALUE
-  :named_name  (stringconst2val discr_namestring "CTYPE_VALUE")
-  :ctype_keyword (quote :value)
-  :ctype_cname  (stringconst2val discr_namestring "melt_ptr_t")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_PTR")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PTR")
+  :named_name  '"CTYPE_VALUE"
+  :ctype_keyword ':value
+  :ctype_cname  '"melt_ptr_t"
+  :ctype_parchar '"BPAR_PTR"
+  :ctype_parstring '"BPARSTR_PTR"
   ;; value have to be passed specially, we need to pass the address of the pointer
-  :ctype_argfield (stringconst2val discr_namestring "bp_aptr")
-  :ctype_resfield (stringconst2val discr_namestring "bp_aptr")
-  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_melt_un")
+  :ctype_argfield '"bp_aptr"
+  :ctype_resfield '"bp_aptr"
+  :ctype_marker '"gt_ggc_mx_melt_un"
   )
 (install_ctype_descr ctype_value "any melt value pointer")
 
 ;; the C type for long
 (definstance ctype_long class_ctype
   :predef CTYPE_LONG
-  :named_name  (stringconst2val discr_namestring "CTYPE_LONG")
-  :ctype_keyword (quote :long)
-  :ctype_cname  (stringconst2val discr_namestring "long")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_LONG")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_LONG")
-  :ctype_argfield (stringconst2val discr_namestring "bp_long")
-  :ctype_resfield (stringconst2val discr_namestring "bp_longptr")
+  :named_name  '"CTYPE_LONG"
+  :ctype_keyword ':long
+  :ctype_cname  '"long"
+  :ctype_parchar '"BPAR_LONG"
+  :ctype_parstring '"BPARSTR_LONG"
+  :ctype_argfield '"bp_long"
+  :ctype_resfield '"bp_longptr"
   )
 (install_ctype_descr ctype_long "C long unboxed integer")
 
 ;; the C type for gcc trees
 (definstance ctype_tree class_ctype
   :predef CTYPE_TREE
-  :named_name  (stringconst2val discr_namestring "CTYPE_TREE")
+  :named_name  '"CTYPE_TREE"
   :ctype_keyword ':tree
-  :ctype_cname  (stringconst2val discr_namestring "tree")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_TREE")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_TREE")
-  :ctype_argfield (stringconst2val discr_namestring "bp_tree")
-  :ctype_resfield (stringconst2val discr_namestring "bp_treeptr")
-  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_tree_node")
+  :ctype_cname  '"tree"
+  :ctype_parchar '"BPAR_TREE"
+  :ctype_parstring '"BPARSTR_TREE"
+  :ctype_argfield '"bp_tree"
+  :ctype_resfield '"bp_treeptr"
+  :ctype_marker '"gt_ggc_mx_tree_node"
   )
 (install_ctype_descr ctype_tree "GCC tree pointer")
 
 ;; the C type for gcc gimples
 (definstance ctype_gimple class_ctype
   :predef CTYPE_GIMPLE
-  :named_name  (stringconst2val discr_namestring "CTYPE_GIMPLE")
+  :named_name  '"CTYPE_GIMPLE"
   :ctype_keyword ':gimple
-  :ctype_cname  (stringconst2val discr_namestring "gimple")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_GIMPLE")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_GIMPLE")
-  :ctype_argfield (stringconst2val discr_namestring "bp_gimple")
-  :ctype_resfield (stringconst2val discr_namestring "bp_gimpleptr")
-  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_gimple_statement_d")
+  :ctype_cname '"gimple"
+  :ctype_parchar '"BPAR_GIMPLE"
+  :ctype_parstring '"BPARSTR_GIMPLE"
+  :ctype_argfield '"bp_gimple"
+  :ctype_resfield '"bp_gimpleptr"
+  :ctype_marker '"gt_ggc_mx_gimple_statement_d"
   )
 (install_ctype_descr ctype_gimple "GCC gimple pointer")
 
 ;; the C type for gcc gimpleseqs
 (definstance ctype_gimpleseq class_ctype
   :predef CTYPE_GIMPLESEQ
-  :named_name  (stringconst2val discr_namestring "CTYPE_GIMPLESEQ")
+  :named_name  '"CTYPE_GIMPLESEQ"
   :ctype_keyword ':gimpleseq
-  :ctype_cname  (stringconst2val discr_namestring "gimple_seq")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_GIMPLESEQ")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_GIMPLESEQ")
-  :ctype_argfield (stringconst2val discr_namestring "bp_gimpleseq")
-  :ctype_resfield (stringconst2val discr_namestring "bp_gimpleseqptr")
-  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_gimple_seq_d")
+  :ctype_cname  '"gimple_seq"
+  :ctype_parchar '"BPAR_GIMPLESEQ"
+  :ctype_parstring '"BPARSTR_GIMPLESEQ"
+  :ctype_argfield '"bp_gimpleseq"
+  :ctype_resfield '"bp_gimpleseqptr"
+  :ctype_marker '"gt_ggc_mx_gimple_seq_d"
   )
 (install_ctype_descr ctype_gimpleseq "GCC gimpleseq pointer")
 
 ;; the C type for gcc basicblocks
 (definstance ctype_basicblock class_ctype
   :predef CTYPE_BASICBLOCK
-  :named_name  (stringconst2val discr_namestring "CTYPE_BASICBLOCK")
+  :named_name  '"CTYPE_BASICBLOCK"
   :ctype_keyword ':basicblock
-  :ctype_cname  (stringconst2val discr_namestring "basic_block")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_BB")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_BB")
-  :ctype_argfield (stringconst2val discr_namestring "bp_bb")
-  :ctype_resfield (stringconst2val discr_namestring "bp_bbptr")
-  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_basic_block_def")
+  :ctype_cname  '"basic_block"
+  :ctype_parchar '"BPAR_BB"
+  :ctype_parstring '"BPARSTR_BB"
+  :ctype_argfield '"bp_bb"
+  :ctype_resfield '"bp_bbptr"
+  :ctype_marker '"gt_ggc_mx_basic_block_def"
   )
 (install_ctype_descr ctype_basicblock "GCC basicblock")
 
 ;; the C type for gcc edges
 (definstance ctype_edge class_ctype
   :predef CTYPE_EDGE
-  :named_name  (stringconst2val discr_namestring "CTYPE_EDGE")
+  :named_name  '"CTYPE_EDGE"
   :ctype_keyword ':edge
-  :ctype_cname  (stringconst2val discr_namestring "edge")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_EDGE")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_EDGE")
-  :ctype_argfield (stringconst2val discr_namestring "bp_edge")
-  :ctype_resfield (stringconst2val discr_namestring "bp_edgeptr")
-  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_edge_def")
+  :ctype_cname '"edge"
+  :ctype_parchar '"BPAR_EDGE"
+  :ctype_parstring '"BPARSTR_EDGE"
+  :ctype_argfield '"bp_edge"
+  :ctype_resfield '"bp_edgeptr"
+  :ctype_marker '"gt_ggc_mx_edge_def"
   )
 (install_ctype_descr ctype_edge "GCC edge")
 
 ;;; the ctype for PPL coefficients
 (definstance ctype_ppl_coefficient class_ctype
   :predef CTYPE_PPL_COEFFICIENT
-  :named_name (stringconst2val discr_namestring "CTYPE_PPL_COEFFICIENT")
+  :named_name '"CTYPE_PPL_COEFFICIENT"
   :ctype_keyword ':ppl_coefficient
-  :ctype_cname  (stringconst2val discr_namestring "ppl_Coefficient_t")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_COEFFICIENT")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_COEFFICIENT")
-  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_coefficient")
-  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_coefficientptr")
+  :ctype_cname  '"ppl_Coefficient_t"
+  :ctype_parchar '"BPAR_PPL_COEFFICIENT"
+  :ctype_parstring '"BPARSTR_PPL_COEFFICIENT"
+  :ctype_argfield '"bp_ppl_coefficient"
+  :ctype_resfield '"bp_ppl_coefficientptr"
 )
 (install_ctype_descr ctype_ppl_coefficient "PPL coefficient")
 
 ;;;; PPL linear expressions
 (definstance ctype_ppl_linear_expression class_ctype
   :predef CTYPE_PPL_LINEAR_EXPRESSION
-  :named_name (stringconst2val discr_namestring "CTYPE_PPL_LINEAR_EXPRESSION")
+  :named_name '"CTYPE_PPL_LINEAR_EXPRESSION"
   :ctype_keyword ':ppl_linear_expression
-  :ctype_cname  (stringconst2val discr_namestring "ppl_Linear_Expression_t")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_LINEAR_EXPRESSION")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_LINEAR_EXPRESSION")
-  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_linear_expression")
-  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_linear_expressionptr")
+  :ctype_cname  '"ppl_Linear_Expression_t"
+  :ctype_parchar '"BPAR_PPL_LINEAR_EXPRESSION"
+  :ctype_parstring '"BPARSTR_PPL_LINEAR_EXPRESSION"
+  :ctype_argfield '"bp_ppl_linear_expression"
+  :ctype_resfield '"bp_ppl_linear_expressionptr"
 )
 (install_ctype_descr ctype_ppl_linear_expression "PPL linear expression")
 
 ;;; the ctype for PPL constraints
 (definstance ctype_ppl_constraint class_ctype
   :predef CTYPE_PPL_CONSTRAINT
-  :named_name (stringconst2val discr_namestring "CTYPE_PPL_CONSTRAINT")
+  :named_name '"CTYPE_PPL_CONSTRAINT"
   :ctype_keyword ':ppl_constraint
-  :ctype_cname  (stringconst2val discr_namestring "ppl_Constraint_t")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_CONSTRAINT")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_CONSTRAINT")
-  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_constraint")
-  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_constraintptr")
+  :ctype_cname  '"ppl_Constraint_t"
+  :ctype_parchar '"BPAR_PPL_CONSTRAINT"
+  :ctype_parstring '"BPARSTR_PPL_CONSTRAINT"
+  :ctype_argfield '"bp_ppl_constraint"
+  :ctype_resfield '"bp_ppl_constraintptr"
 )
 (install_ctype_descr ctype_ppl_constraint "PPL constraint")
 
 ;;; the ctype for PPL constraint_systems
 (definstance ctype_ppl_constraint_system class_ctype
   :predef CTYPE_PPL_CONSTRAINT_SYSTEM
-  :named_name (stringconst2val discr_namestring "CTYPE_PPL_CONSTRAINT_SYSTEM")
+  :named_name '"CTYPE_PPL_CONSTRAINT_SYSTEM"
   :ctype_keyword ':ppl_constraint_system
-  :ctype_cname  (stringconst2val discr_namestring "ppl_Constraint_System_t")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_CONSTRAINT_SYSTEM")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_CONSTRAINT_SYSTEM")
-  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_constraint_system")
-  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_constraint_systemptr")
+  :ctype_cname  '"ppl_Constraint_System_t"
+  :ctype_parchar '"BPAR_PPL_CONSTRAINT_SYSTEM"
+  :ctype_parstring '"BPARSTR_PPL_CONSTRAINT_SYSTEM"
+  :ctype_argfield '"bp_ppl_constraint_system"
+  :ctype_resfield '"bp_ppl_constraint_systemptr"
 )
 (install_ctype_descr ctype_ppl_constraint_system "PPL constraint_system")
 
 ;;; the ctype for PPL polyhedra (=polyhedrons)
 (definstance ctype_ppl_polyhedron class_ctype
   :predef CTYPE_PPL_POLYHEDRON
-  :named_name (stringconst2val discr_namestring "CTYPE_PPL_POLYHEDRON")
+  :named_name '"CTYPE_PPL_POLYHEDRON"
   :ctype_keyword ':ppl_polyhedron
-  :ctype_cname  (stringconst2val discr_namestring "ppl_Polyhedron_t")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_POLYHEDRON")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_POLYHEDRON")
-  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_polyhedron")
-  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_polyhedronptr")
+  :ctype_cname  '"ppl_Polyhedron_t"
+  :ctype_parchar '"BPAR_PPL_POLYHEDRON"
+  :ctype_parstring '"BPARSTR_PPL_POLYHEDRON"
+  :ctype_argfield '"bp_ppl_polyhedron"
+  :ctype_resfield '"bp_ppl_polyhedronptr"
 )
 (install_ctype_descr ctype_ppl_polyhedron "PPL polyhedron")
 
@@ -1870,9 +1870,9 @@ it.}#
 ;; the C type for void
 (definstance ctype_void class_ctype
   :predef CTYPE_VOID
-  :named_name  (stringconst2val discr_namestring "CTYPE_VOID")
+  :named_name  '"CTYPE_VOID"
   :ctype_keyword ':void
-  :ctype_cname  (stringconst2val discr_namestring "void")
+  :ctype_cname  '"void"
   ;; void is never passed as argument or as extra result
   )
 (install_ctype_descr ctype_void "void type for side-effecting primitives without results")
@@ -1880,12 +1880,12 @@ it.}#
 ;; the C type for constant C strings
 (definstance ctype_cstring class_ctype
   :predef CTYPE_CSTRING
-  :named_name  (stringconst2val discr_namestring "CTYPE_CSTRING")
+  :named_name  '"CTYPE_CSTRING"
   :ctype_keyword ':cstring
   :ctype_cname  (stringconst2val discr_namestring "const char*")
-  :ctype_parchar (stringconst2val discr_namestring "BPAR_CSTRING")
-  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_CSTRING")
-  :ctype_argfield (stringconst2val discr_namestring "bp_cstring")
+  :ctype_parchar '"BPAR_CSTRING"
+  :ctype_parstring '"BPARSTR_CSTRING"
+  :ctype_argfield '"bp_cstring"
   )
 (install_ctype_descr ctype_cstring "C constant strings (statically allocated outside of any heap)")
 
@@ -2162,7 +2162,7 @@ it.}#
 	   ))
 
 (definstance final_delayedqueue class_delayedqueue
-  :named_name (make_stringconst discr_string "final_delayedqueue")
+  :named_name '"final_delayedqueue"
   :delqu_first (make_list discr_list)
   :delqu_last (make_list discr_list)
   )
@@ -2217,7 +2217,7 @@ it.}#
 
 ;;;;;; the queue for start of compilation unit
 (definstance startunit_delayedqueue class_delayedqueue
-  :named_name (make_stringconst discr_string "startunit_delayedqueue")
+  :named_name '"startunit_delayedqueue"
   :delqu_first (make_list discr_list)
   :delqu_last (make_list discr_list)
   )
@@ -2272,7 +2272,7 @@ it.}#
 
 ;;;; the queue for compilation unit finish
 (definstance finishunit_delayedqueue class_delayedqueue
-  :named_name (make_stringconst discr_string "finishunit_delayedqueue")
+  :named_name '"finishunit_delayedqueue"
   :delqu_first (make_list discr_list)
   :delqu_last (make_list discr_list)
   )
@@ -2326,7 +2326,9 @@ it.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
 (defprimitive the_dbgcounter () :long "melt_dbgcounter")
-(defprimitive increment_dbgcounter () :void "(void) ++melt_dbgcounter")
+(defprimitive increment_dbgcounter () :void 
+  #{(void) ++melt_dbgcounter;}#
+)
 
 
 ;; this is a rarely used function
@@ -2340,7 +2342,7 @@ it.}#
 			 :dbgi_occmap occmap
 			 :dbgi_maxdepth boxedmaxdepth))
 	 )
-    (outnum_err "!*#" dbgcounter "/")
+    (outnum_err "!*!#" dbgcounter "/")
     (outnum_err "" (-i (the_framedepth) 1) ":")
     (outcstring_err msgstr)
     (if (>i count 0) (outnum_err " !" count ": "))
@@ -2374,7 +2376,7 @@ it.}#
 ;;;;;;;;;;;;;;;;;;;; initial system data 
 (definstance initial_system_data class_system_data
   :predef INITIAL_SYSTEM_DATA
-  :named_name (stringconst2val discr_namestring "INITIAL_SYSTEM_DATA")
+  :named_name '"INITIAL_SYSTEM_DATA"
   :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40) ;stringmap for commands
   :sysdata_cont_fresh_env initfresh_contenvmaker	;fresh environment maker in module
   :sysdata_value_exporter initvalue_exporter ;value exporter in module
@@ -3873,7 +3875,7 @@ it.}#
 ;; the initial environment
 (definstance initial_environment class_described_environment
   :env_bind  (make_mapobject discr_mapobjects 500)
-  :denv_descr (make_stringconst discr_string "Initial Environment")
+  :denv_descr '"Initial Environment"
   )
 
 ;; find a binding inside an environment

@@ -1,6 +1,6 @@
 ;; file warmelt-outobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(comment "
+(comment "***
     Copyright 2008, 2009 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with GCC; see the file COPYING3.  If not see
     <http://www.gnu.org/licenses/>.
-")
+***")
 
 ;; the copyright notice above apply both to warmelt-outobj.melt and 
 ;; to the generated file  warmelt-outobj*.c
@@ -895,7 +895,7 @@
 	 )
     ;(debug_msg prou "outpucod_procroutine prou")
     (if (not (is_string ofunam)) 
-	(setq ofunam (make_stringconst discr_string "**")))
+	(setq ofunam '"**"))
     ;; output the declaration
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
@@ -2951,7 +2951,7 @@
 	   ;; make an update_current_module_environment at the very beginning
 	   (ucmeb1 (instance class_src_update_current_module_environment_container
 			     :src_loc firstloc
-			     :sucme_comment (make_stringconst discr_string "at very start")
+			     :sucme_comment '"at very start"
 			     ))
 	   )
       (if (== inienv initial_environment)
@@ -3253,14 +3253,6 @@
 		      (list_append2list rlist curead)))))
      )
     (debug_msg rlist "after read compileinit_command rlist")
-    ;;- (list_append 
-    ;;-  rlist 
-    ;;-  (instance
-    ;;-   class_sexpr
-    ;;-   :loca_location (make_mixint discr_mixedint
-    ;;- 				  (make_stringconst discr_string "**builtin post_initialization**")
-    ;;- 				  0)
-    ;;-   :sexp_contents (list3 'post_initialization (the_null) basnam)))
     (compile_list_sexpr rlist initial_environment basnam)
     (return)
     ))
