@@ -387,6 +387,11 @@ fmelt-secondarg=
 Common Report Var(melt_secondargument_string) RejectNegative Joined
 Second argument for melt analysis 
 
+; output string for melt
+fmelt-output=
+Common Report Var(melt_output_string) RejectNegative Joined
+Output argument for MELT
+
 ; temporary directory for melt
 fmelt-tempdir=
 Common Report Var(melt_tempdir_string) RejectNegative Joined

@@ -315,6 +315,12 @@
   :fields ( nstr_string		    ;the string
 	    ))
 
+;; normal "static" boxed integer
+(defclass class_nrep_databoxedinteger
+  :super class_nrep_data
+  :fields ( nboxint_num			;the numerical integer
+	    ))
+
 ;; normal "static" tuple
 (defclass class_nrep_datatuple
   :super class_nrep_data
@@ -468,6 +474,7 @@
  class_nrep_constocc
  class_nrep_cppif
  class_nrep_data
+ class_nrep_databoxedinteger
  class_nrep_dataclosure
  class_nrep_datainstance
  class_nrep_datakeyword
@@ -3128,7 +3135,7 @@
     (multiple_put_nth slots fix val)
     ))
 
-;;;;;; normalize a QUOTE-d symbol
+;;;;;; normalize a QUOTE-d symbol, string or integer
 
 (defun normexp_quote (recv env ncx psloc)
   (assert_msg "check quote recv" (is_a recv class_src_quote))
@@ -3137,26 +3144,52 @@
 					;(debug_msg ncx "normexp_quote ncx")
   (debug_msg recv "normexp_quote recv")
   (let ( (sloc   (unsafe_get_field :src_loc recv))
-	 (quotedsy (unsafe_get_field :squoted recv)) )
-    (assert_msg "check quotedsy" (== (discrim quotedsy) class_symbol))
-    (let ( (sdata (normal_symbol_data quotedsy ncx psloc))
-	   (curproc (unsafe_get_field :nctx_curproc ncx))
-	   )
-      (if (is_a curproc class_nrep_routproc)
-	  (let ( 
-		(nconst (instance class_nrep_constant
-				  :nrep_loc sloc
-				  :nconst_sval quotedsy
-				  :nconst_data sdata
-				  :nconst_proc curproc
-				  )) )
-	    (list_append (unsafe_get_field :nrpro_const curproc) sdata)
-	    (debug_msg nconst "normexp_quote in routine nconst")
-	    (return nconst))
-	(progn
-	  (debug_msg sdata "normexp_quote in init sdata")
-	  (return sdata)
-	  )))))
+	 (quoted (unsafe_get_field :squoted recv)) 
+	 (curproc (unsafe_get_field :nctx_curproc ncx))
+	 (ndata 
+	  (cond
+	   ( (== (discrim quoted) class_symbol)
+	     (normal_symbol_data quoted ncx psloc))
+	   ( (is_integerbox quoted)
+	     (let (
+		   (nintdata (instance class_nrep_databoxedinteger
+				       :ndata_discrx (normal_predef discr_integer ncx sloc "discr_integer") 
+				       :nboxint_num quoted))
+		   )
+	       (add_nctx_data ncx nintdata)
+	       nintdata
+	       ))
+	   ( (is_string quoted)
+	     (let ( (nstrdata 
+		     (instance class_nrep_datastring
+			       :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+			       :nstr_string quoted))
+		    )
+	       (add_nctx_data ncx nstrdata)
+	       nstrdata))
+	   (:else
+	    ;; this should not happen, because it is checked at
+	    ;; macroexpansion time.
+	    (assert_msg "unexpected quoted stuff" ()))
+
+	   ))
+	 )
+    (debug_msg ndata "normexp_quote ndata")
+    (if (is_a curproc class_nrep_routproc)
+	(let ( 
+	      (nconst (instance class_nrep_constant
+				:nrep_loc sloc
+				:nconst_sval quoted
+				:nconst_data ndata
+				:nconst_proc curproc
+				)) )
+	  (list_append (unsafe_get_field :nrpro_const curproc) ndata)
+	  (debug_msg nconst "normexp_quote in routine nconst")
+	  (return nconst))
+      (progn
+	(debug_msg ndata "normexp_quote in init ndata")
+	(return ndata)
+	))))
 (install_method class_src_quote normal_exp normexp_quote)
 
 ;;;;;; normalize a COMMENT

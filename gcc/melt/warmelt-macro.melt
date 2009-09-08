@@ -3675,7 +3675,7 @@
 (export_macro multicall mexpand_multicall)
 
 
-;;;;;;;; for QUOTE (only of symbols or keywords)
+;;;;;;;; for QUOTE (only of symbols or keywords, strings, or integers)
 (defun mexpand_quote (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -3685,9 +3685,19 @@
 	 (quoted (pair_head curpair))
 	 )
     (if (pair_tail curpair)
-	(error_plain loc "QUOTE should have only one symbol argument"_))
-    (if (not (is_a quoted class_symbol))
-	(error_plain loc "QUOTE should have a symbol argument - composite quotations unsupported"_))
+	(error_plain loc "QUOTE should have only one argument"_))
+    (cond ( (is_a quoted class_symbol) 
+	    ()
+	    )
+	  ( (is_string quoted)
+	    ()
+	    )
+	  ( (is_integerbox quoted)
+	    ()
+	    )
+	  (:else
+	   (error_plain loc "QUOTE should have a symbol, string, or integer argument"_))
+	  )
     (if (is_a quoted class_keyword)
 	(return quoted))
     (let ( (squ (instance class_src_quote

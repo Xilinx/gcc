@@ -23,7 +23,8 @@ See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 @menu
 * MELT Prerequisites and Deficiencies::       Prerequisites and topics not yet covered in this MELT chapter.
 * MELT overview::                             An overview of MELT.
-* Building the MELT branch::                  configuration and building requirements and instructions for MELT.
+* Building the MELT branch::                  Configuration and building requirements and instructions for MELT.
+* MELT as a plugin::                          Building and using MELT as a plugin.
 * Invoking MELT::                             Invoking MELT.
 * Tutorial about MELT::                       Tutorial describing MELT.
 * Reference on MELT::                         MELT language reference.
@@ -107,17 +108,14 @@ the installation procedure.
  
 @end enumerate
 
-MELT can also be used as a plugin for GCC.
+MELT can also be used as a plugin for GCC. It uses some of the plugin
+machinery, even inside the MELT branch.
 
 @c =======================================================================
 @node Building the MELT branch
 @section Building the MELT branch
 @cindex Building the MELT branch
 
-The MELT branch has to be configured appropriately to enable MELT. If
-MELT is disabled at configure time, the MELT branch is essentially the
-GCC trunk. Enabling MELT means passing the @code{-with-ppl
---enable-melt} flags to the toplevel @code{configure}.
 
 
 To compile the MELT branch, you need the Parma Polyhedra Library. The
@@ -131,6 +129,21 @@ version at least).
 
 Note that currently MELT is only compiled on Linux machines.
 
+MELT can also be used as a plugin to GCC (trunk, i.e. future gcc-4.5).
+
+@c =======================================================================
+@node MELT as a plugin
+@section MELT as a plugin
+@cindex MELT as a plugin
+
+MELT can be used as a plugin to a GCC trunk binary (i.e. future gcc
+4.5) build with plugin enabled.  You'll need both the source and build
+trees of your GCC to build MELT. 
+
+Detailed instructions about building and using MELT as a plugin are
+available at @uref{http://gcc.gnu.org/wiki/MELT%20tutorial,,MELT wiki
+tutorial page}.
+
 @c =======================================================================
 @node Invoking MELT
 @section Invoking MELT
@@ -143,18 +156,19 @@ some special flags. Most of these flags are starting with
 every source language (ie @code{gcc}, @code{g++} @dots{} commands) and
 target.
 
-MELT is usually invoked while compiling a (C, C++, @dots{}) source file
-but may occasionnally be invoked without compiling any source input to
-perform tasks which are not related to a particular GCC input source
-file. In particular, the translation of a MELT file @code{foo.melt}
-into C code @code{foo.c} is done with a special invocation like
-@code{gcc -fmelt=translatefile -fmelt-arg=foo.melt
+MELT is usually invoked while compiling a (C, C++, @dots{}) source
+file but may occasionnally be invoked without compiling any source
+input to perform tasks which are not related to a particular GCC input
+source file. In practice, you should pass an empty C file to
+@code{gcc} for that purpose. In particular, the translation of a MELT
+file @code{foo.melt} into C code @code{foo.c} is done with a special
+invocation like @code{gcc -fmelt=translatefile -fmelt-arg=foo.melt
 -fmelt-secondarg=foo.c} (possibly with other options like some
 appropriate @code{-fmelt-init=}). It is possible but deprecated to
 invoke with @code{-fmelt=compilefile} instead of
-@code{-fmelt=translatefile}. In other words, the MELT translator to
-C @emph{is not} a GCC front-end, like e.g. @code{g++} is a C++
-front-end of GCC.
+@code{-fmelt=translatefile}. In other words, the MELT translator to C
+@emph{is not} a GCC front-end, like e.g. @code{g++} is a C++ front-end
+of GCC.
 
 The table below lists all MELT specific options, in alphabetical order.
 
@@ -162,16 +176,17 @@ The table below lists all MELT specific options, in alphabetical order.
 @item -fmelt=
 @gccoptlist{-fmelt=}
 @opindex fmelt
-This flag is required for every MELT enabled compilation. If it is not
-given, no MELT specific processing is done.  If given, this gives the
-command to be executed before any MELT passes. It uses the
-@code{:sysdata_cmd_fundict} field of @code{INITIAL_SYSTEM_DATA}
-internal object of MELT to determine the MELT function applied to
-execute the command. If this application returns nil, no GCC
-compilation occur (i.e. no @code{*.c} or @code{*.cc} etc@dots{} source
-file is read). Hence, some commands may be used for their
-side-effects. In particular, the compilation of MELT lisp source file
-@code{*.melt} into C code @code{*.c} is done this way.
+This flag (called the MELT mode flag) is required for every MELT
+enabled compilation. If it is not given, no MELT specific processing
+is done.  If given, this gives the command to be executed before any
+MELT passes. It uses the @code{:sysdata_cmd_fundict} field of
+@code{INITIAL_SYSTEM_DATA} internal object of MELT to determine the
+MELT function applied to execute the command. If this application
+returns nil, no GCC compilation occur (i.e. no @code{*.c} or
+@code{*.cc} etc@dots{} source file is read). Hence, some commands may
+be used for their side-effects. In particular, the compilation of MELT
+lisp source file @code{*.melt} into C code @code{*.c} is done this
+way.
 
 @item -fmelt-arg=
 @gccoptlist{-fmelt-arg=}
@@ -387,7 +402,7 @@ iterative loops (like the @code{for} in C). As a trivial example, to
 iterate on positive integers till a limit, define
 
 @lisp
-(defiterator each-posint-till     @r{; define each-posint-till citerator}
+(defciterator each-posint-till     @r{; define each-posint-till citerator}
  (:long lim)                      @r{; start formal argument is lim}
  eachposint                       @r{; state symbol - uniquely substituted}
  (:long cur)                      @r{; local formals}
@@ -1920,45 +1935,6 @@ evolve@footnote{using the @code{upgrade-warmelt} make target.}.
 [For experts, knowing about GCC passes in general]
 
 GCC passes can be written in MELT. See the @file{ana-*.melt} files.
-Currently, GCC pass manager @file{gcc/passes.c} has been extended by
-providing some hooks for some few additional passes, which are reified
-as MELT instances of @code{CLASS_GCC_PASS}. Each of these instances
-have a fixed @code{:named_name} field (the name of the pass, see
-below), a @code{:gccpass_gate} field containing the gate of the pass
-(as a MELT function to decide if the pass will be executed), a
-@code{:gccpass_exec} field containing the executor of the pass (as a
-MELT function which really does the pass work), and an extra
-@code{:gccpass_data} field (to be used at will).
-
-The currently available passes (defined in @file{ana-base.melt} and
-used in @file{gcc/melt.c}) are:
-
-@itemize
-
-@item pass @code{melt-lowering}
-@footnote{It is the name in the @code{opt_pass} structure and the
-@code{:named_name} field} instance @code{melt_lowering_gccpass}
-@footnote{The exported name in @file{ana-base.melt}}; is the last
-lowering pass in GCC. Here, the CFG is available, but the tree is not
-in SSA form.
-
-@item pass @code{melt-earlyopt} 
-instance @code{melt_earlyopt_gccpass} is the last early
-optimisation pass in GCC (not run in @code{-O0}). Here code in in SSA. 
-
-@item pass @code{melt-ipa}
-instance @code{melt_ipa_gccpass} is the last IPA [non-optimizing]
-pass. Here CFF is available, code is in SSA.
-
-@item pass @code{melt-lateopt}
-instance @code{melt_lateopt_gccpass} is the last late optimisation
-pass (not run in @code{-O0}). Here code is in SSA.
-
-@item pass @code{melt-latessa}
-instance @code{melt_latessa_gccpass} is the last late SSA
-pass. Here code is still SSA but will soon be removed.
-
-@end itemize
 
 @node Writing C code for MELT
 @section Writing C code for MELT

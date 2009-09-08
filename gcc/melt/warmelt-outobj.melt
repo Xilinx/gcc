@@ -483,6 +483,8 @@
     ))
 (install_method class_objinitroutine output_c_initfill outcinitfill_objinitroutine)
 
+
+;;;; strings
 (defun outdeclinit_objinitstring (recv sbuf)
   (add2sbuf_strconst sbuf " struct MELT_STRING_STRUCT(")
   (add2sbuf_longdec sbuf (get_int recv))
@@ -528,6 +530,52 @@
     ))
 (install_method class_objinitstring output_c_initfill outcinitfill_objinitstring)
 
+
+;;;; boxed integers
+(defun outdeclinit_objinitboxedinteger (recv sbuf)
+  (add2sbuf_strconst sbuf " struct meltint_st ")
+  (add2sbuf_string sbuf (unsafe_get_field :named_name recv))
+  (add2sbuf_strconst sbuf ";")
+  )
+(install_method class_objinitboxinteger output_c_declinit outdeclinit_objinitboxedinteger)
+
+
+(defun outcinitfill_objinitboxedinteger (recv sbuf)
+  (assert_msg "outcinitfill_objinitboxedinteger check recv" (is_a recv class_objinitboxinteger))
+  (debug_msg recv "outcinitfill_objinitboxedinteger recv")
+  (let ( (cnam (unsafe_get_field :oie_cname recv)) 
+	 (olocvar (unsafe_get_field :oie_locvar recv))
+	 (odata (unsafe_get_field :oie_data recv))
+	 )
+    (add2sbuf_strconst sbuf "/*iniboxint ")
+    (add2sbuf_string sbuf cnam)
+    (add2sbuf_strconst sbuf "*/")
+    (add2sbuf_indentnl sbuf 1)
+    (if olocvar
+	(progn
+	  (output_c_code olocvar (the_null) sbuf 1)
+	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
+	  (add2sbuf_string sbuf cnam)
+	  (add2sbuf_strconst sbuf ";")
+	  (add2sbuf_indentnl sbuf 1)
+	  ))
+    (add2sbuf_strconst sbuf " cdat->")
+    (add2sbuf_string sbuf cnam)
+    (add2sbuf_strconst sbuf ".discr = (meltobject_ptr_t)(")
+    (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
+    (add2sbuf_strconst sbuf ");")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf " cdat->val = ")
+    (add2sbuf_longdec sbuf (get_int odata))
+    (add2sbuf_strconst sbuf ";")
+    (add2sbuf_indentnl sbuf 1)
+    ))
+(install_method class_objinitboxinteger output_c_initfill outcinitfill_objinitboxedinteger)
+
+
+
+
+;;;;;;;;;;;;;;;;
 
 (defun outpucod_anydiscr (any declbuf implbuf :long depth)
   ;(debug_msg any "outpucod_anydiscr any")

@@ -124,6 +124,12 @@
   :fields (
 	   ))
 
+;;; initial boxed int - see struct meltint_st in melt-runtime.h
+(defclass class_objinitboxinteger
+  :super class_objinitelem
+  :fields (
+	   ))
+
 
 ;; expanded value
 (defclass class_objexpv
@@ -476,6 +482,7 @@
  class_objgetnamedsymbol
  class_objgetslot
  class_objgotoinstr
+ class_objinitboxinteger
  class_objinitclosure
  class_objinitelem
  class_objinitmultiple
@@ -3423,6 +3430,53 @@
       )
     ))
 (install_method class_nrep_datastring compile_obj compilobj_datastring)
+
+;;;;;;;;;;;;;;;; compile a data boxed integer
+(defun compilobj_databoxedinteger (ndi gcx)
+  (assert_msg "check ndi" (is_a ndi class_nrep_databoxedinteger))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+					; (debug_msg gcx "compilobj_datastring gcx")
+  (debug_msg ndi "compilobj_databoxedinteger ndi")
+  (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
+	 (inirout (unsafe_get_field :gncx_objrout gcx))
+	 (chobj (mapobject_get compicache ndi))
+	 )
+    ;; datastring compiled only in initial routines
+    (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
+    (if chobj
+	(progn
+	  (debug_msg chobj "compilobj_databoxedinteger found chobj")
+	  (return chobj)))
+    (let (
+	  (nambuf (make_strbuf discr_strbuf))
+	  (ndisx (unsafe_get_field :ndata_discrx ndi))
+	  (odiscr (compile_obj ndisx gcx))
+	  (odata (unsafe_get_field :nboxint_num ndi))
+	  (drank (unsafe_get_field :ndata_rank ndi))
+	  (nam (unsafe_get_field :ndata_name ndi))
+	  (locvar (get_free_objlocptr gcx '_valbxint_))
+	  (:long drk (get_int drank))
+	  (oint (instance class_objinitboxinteger
+			  :oie_data odata
+			  :oie_discr odiscr
+			  :oie_locvar locvar
+			  )) 
+	  )
+      (mapobject_put compicache ndi oint)
+      (add2sbuf_strconst nambuf "dint_")
+      (add2sbuf_longdec nambuf drk)
+      (add2sbuf_strconst nambuf "__")
+      (add2sbuf_cidentprefix nambuf odata 16)
+      (if nam 
+	  (progn
+	    (add2sbuf_strconst nambuf "__")
+	    (add2sbuf_cident nambuf (unsafe_get_field :named_name nam))))
+      (unsafe_put_fields oint :oie_cname (strbuf2string discr_string nambuf))
+      (debug_msg oint "compilobj_databoxedinteger oint")
+      oint
+      )
+    ))
+(install_method class_nrep_databoxedinteger compile_obj compilobj_databoxedinteger)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compile a data closure

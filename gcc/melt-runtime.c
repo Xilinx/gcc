@@ -274,6 +274,8 @@ melt_argument (const char* argname)
     return melt_srcpath_string;
   else if (!strcmp (argname, "init"))
     return melt_init_string;
+  else if (!strcmp (argname, "output"))
+    return melt_output_string;
   else if (!strcmp (argname, "secondarg"))
     return melt_secondargument_string;
   else if (!strcmp (argname, "tempdir"))

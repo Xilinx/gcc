@@ -1,4 +1,26 @@
 
+2009-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	[should accept '"a string" & '123]
+	* doc/melt.texi: updated documention a bit.
+	* melt-runtime.c (melt_argument): handle "output" with
+	melt_output_string.
+	* common.opt: added -fmelt-output & melt_output_string.
+	* melt/warmelt-macro.melt: mexpand_quote accepts quotation of
+	strings & integers.
+	* melt/warmelt-normal.melt: added class_nrep_databoxedinteger &
+	handle quotation of strings & integers.
+	* melt/warmelt-genobj.melt: added class_objinitboxinteger &
+	compilation of class_nrep_databoxedinteger.
+	* melt/warmel-outobj.melt: added output methods for
+	objinitboxinteger.
+	* melt/ana-simple.melt: added quoted string for name of greenpass.
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
 2009-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (FDISCR_METHODICT) renamed as
 	(FDISC_METHODICT). (FDISCR_SENDER) renamed
