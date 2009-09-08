@@ -1,10 +1,123 @@
+2009-09-07  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.md (UNSPEC_VOLATILE_STALL): New constant.
+	(attr "addrtype"): New member "spreg".
+	Use it if mem_spfp_address_operand is true for the address.
+	(attr "type"): New entry "stall".
+	(cpu_unit "load"): New.
+	(insn_reservations "load32", "loadp", "loadi"): Add reservation of
+	"load".
+	(insn_reservation "loadsp"): New.
+	(insn_reservation "load_stall1"): New.
+	(insn_reservation "load_stall3"): New.
+	(stall): New insn.	
+	* config/bfin/predicates.md (const1_operand, const3_operand): New.
+	(mem_p_address_operand): Exclude stack and frame pointer based
+	addresses.
+	(mem_spfp_address_operand): New; match them here.
+	* config/bfin/bfin.c (add_sched_insns_for_speculation): New function.
+	(bfin_reorg): Call it if scheduling insns.
+	(bfin_gen_bundles): Remove dummy insns created by
+	add_sched_insns_for_speculation.
+
+	From Jie Zhang <jie.zhang@analog.com>:
+	* config/bfin/bfin-protos.h (enum bfin_cpu_type, bfin_cpu_type,
+	bfin_si_revision, bfin_workarounds): Move these ...
+	* config/bfin/bfin.h: ... here.
+
+	From Mike Frysinger  <michael.frysinger@analog.com>
+	* config/bfin/bfin-protos.h (bfin_cpu_type): Add BFIN_CPU_BF542M,
+	BFIN_CPU_BF544M, BFIN_CPU_BF547M, BFIN_CPU_BF548M, and BFIN_CPU_BF549M.
+	* config/bfin/bfin.c (bfin_cpus[]): Add 0.3 for bf542m, bf544m, bf547m,
+	bf548m, and bf549m.
+	* config/bfin/bfin.h (TARGET_CPU_CPP_BUILTINS): Define __ADSPBF542M__
+	for BFIN_CPU_BF542M, __ADSPBF544M__ for BFIN_CPU_BF544M, __ADSPBF547M__
+	for BFIN_CPU_BF547M, __ADSPBF548M__ for BFIN_CPU_BF548M, and
+	__ADSPBF549M__ for BFIN_CPU_BF549M.
+	* config/bfin/t-bfin-elf (MULTILIB_MATCHES): Select bf532-none for
+	bf542m-none, bf544m-none, bf547m-none, bf548m-none, and bf549m-none.
+	* config/bfin/t-bfin-linux (MULTILIB_MATCHES): Likewise.
+	* config/bfin/t-bfin-uclinux (MULTILIB_MATCHES): Likewise.
+	* doc/invoke.texi (Blackfin Options): Document that -mcpu now accepts
+	bf542m, bf544m, bf547m, bf548m, and bf549m.
+
+	From Jie Zhang <jie.zhang@analog.com>:
+	* config/bfin/predicates.md (p_register_operand): New
+	predicate.
+	(dp_register_operand): New predicate.
+	* config/bfin/bfin-protos.h (WA_05000074): Define.
+	(ENABLE_WA_05000074): Define.
+	* config/bfin/bfin.c (bfin_cpus[]): Add WA_05000074 for
+	all cpus.
+	(bfin_gen_bundles): Put dsp32shiftimm instruction in slot[0].
+	* config/bfin/bfin.md (define_attr type): Add dsp32shiftimm.
+	(define_attr addrtype): Allow load/store register to be
+	P register.
+	(define_attr storereg): New.
+	(define_cpu_unit anomaly_05000074): New.
+	(define_insn_reservation dsp32shiftimm): New.
+	(define_insn_reservation dsp32shiftimm_anomaly_05000074): New.
+	(define_insn_reservation loadp): Cannot use slot2.
+	(define_insn_reservation loadsp): Cannot use slot2.
+	(define_insn_reservation storep): Cannot use slot2. Does not
+	apply when working around 05000074.
+	(define_insn_reservation storep_anomaly_05000074): New.
+	(define_insn_reservation storei): Does not apply when working
+	around 05000074.
+	(define_insn_reservation storei_anomaly_05000074): New.
+	(define_attr length): Add dsp32shiftimm case.
+	(define_insn movsi_insn32, movsi_insv, ashlsi3_insn, ashrsi3,
+	ror_one, rol_one, lshrsi3, lshrpdi3, ashrpdi3, movhiv2hi_low,
+	movhiv2hi_high, composev2hi, packv2hi, movv2hi_hi,
+	ssashiftv2hi3, ssashifthi3, ssashiftsi3, lshiftv2hi3, lshifthi3):
+	Set type as dsp32shiftimm for dsp32shiftimm alternatives.
+
+2009-09-07  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/41282
+	* tree-sra.c (create_artificial_child_access): Return NULL if
+	build_ref_for_offset fails.
+	(propagate_subacesses_accross_link): Allow build_ref_for_offset
+	and create_artificial_child_access to fail.
+
+2009-09-06  Dmitry Gorbachev  <d.g.gorbachev@gmail.com>
+
+	PR c++/41214
+        * unwind-dw2.c (uw_init_context_1): Mark noinline.
+	* config/ia64/unwind-ia64.c (uw_init_context_1): Likewise.
+	* config/xtensa/unwind-dw2-xtensa.c (uw_init_context_1): Likewise.
+
+2009-09-07  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.c (bfin_optimize_loop): When creating a new basic
+	block, ensure it has an exit edge.  Emit a barrier after a jump.
+
+2009-09-07  Nick Clifton  <nickc@redhat.com>
+
+	* gcc.c (this_is_linker_script): New variable.  Like
+	this_is_library_file but for the %T constructor.
+	(end_going_arg): If this_is_linker_script is set then locate the
+	script and insert a --script switch before it
+        (do_spec_2): Initialise this_is_linker_script.
+        (do_spec_1): Likewise.  Handle %T construct.
+        (eval_spec_function): Preserve this_is_linker_script.
+	* doc/invoke.texi: Document %T construct in spec files.
+	* config/m32c/m32c.h (LIB_SPEC): Use it.
+
+2009-09-07  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* rtl.h (PREFETCH_SCHEDULE_BARRIER_P): New macro.	
+	* sched-deps.c (sched_analyze_2): Make prefetches a hard barrier
+	when volatile flag is set.
+	* doc/rtl.texi (PREFETCH_SCHEDULE_BARRIER_P): Add documentation pieces.
+
 2009-09-06  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR bootstrap/41241
 	* combine-stack-adj.c (try_apply_stack_adjustment): Handle stores.
 	(combine_stack_adjustments_for_block): Allow insns between stack
-	adjustments and stores with corresponding with pre-(dec|inc)rement
-	or pre-modify.
+	adjustments and stores with corresponding pre-(dec|inc)rement or
+	pre-modify operation.
 
 2009-09-06  Jakub Jelinek  <jakub@redhat.com>
 
@@ -1531,7 +1644,6 @@
 	(mep_pass_by_reference): Make logic more readable.
 	(mep_return_in_memory): Zero-sized objects are passed in memory.
 	(mep_reorg_noframe): Make sure we have accurate REG_DEAD notes.
-
 
 2009-08-31  Richard Guenther  <rguenther@suse.de>
 
