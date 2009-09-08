@@ -4598,9 +4598,11 @@ end:
 #undef str_strv
 }
 
+
+
 melt_ptr_t
-meltgc_new_string_nakedbasename (meltobject_ptr_t
-				    discr_p, const char *str)
+meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
+				 const char *str)
 {
   int slen = 0;
   char tinybuf[120];
@@ -4699,6 +4701,60 @@ end:
 #undef str_strv
 }
 
+
+melt_ptr_t
+meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
+{
+  char* dupstr = 0;
+  char *cursep = 0;
+  char *pc = 0;
+  MELT_ENTERFRAME (4, NULL);
+#define discrv     curfram__.varptr[0]
+#define strv       curfram__.varptr[1]
+#define lisv       curfram__.varptr[2]
+#define obj_discrv  ((struct meltobject_st*)(discrv))
+#define str_strv  ((struct meltstring_st*)(strv))
+  discrv = discr_p;
+  if (!str)
+    goto end;
+  if (!discrv)
+    discrv = MELT_PREDEF (DISCR_STRING);
+  if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (obj_discrv->object_magic != OBMAG_STRING)
+    goto end;
+  dupstr = xstrdup (str);
+  if (sep<0)
+    sep=',';
+  else if (sep==0)
+    sep=' ';
+  if (sep<0 || sep>CHAR_MAX)
+    goto end;
+  lisv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+  for (pc = dupstr; pc && *pc; pc = cursep?(cursep+1):0)
+    {
+      cursep = NULL;
+      strv = NULL;
+      if (ISSPACE (sep)) 
+	  for (cursep=pc; *cursep && !ISSPACE (*cursep); cursep++);
+      else
+	  for (cursep=pc; *cursep && *cursep != sep; cursep++);
+      if (cursep && cursep>pc)
+	strv = meltgc_new_string_raw_len (obj_discrv, pc, cursep-pc);
+      else 
+	strv = meltgc_new_string_raw_len (obj_discrv, pc, strlen (pc));
+      meltgc_append_list ((melt_ptr_t) lisv, (melt_ptr_t) strv);
+    }
+ end:
+  MELT_EXITFRAME ();
+  free (dupstr);
+  return (melt_ptr_t)lisv;
+#undef discrv
+#undef strv
+#undef lisv
+#undef str_strv
+#undef obj_discrv
+}
 
 
 
@@ -7429,11 +7485,11 @@ end:
 static void
 do_initial_command (melt_ptr_t modata_p)
 {
+#if 0 && uselesscode
+  int oldmode = 0;
+#endif
   const char* modstr = NULL;
-  const char* argstr = NULL;
-  const char* argliststr = NULL;
-  const char* secondargstr = NULL;
-  MELT_ENTERFRAME (8, NULL);
+  MELT_ENTERFRAME (10, NULL);
 #define dictv     curfram__.varptr[0]
 #define closv     curfram__.varptr[1]
 #define cstrv     curfram__.varptr[2]
@@ -7442,16 +7498,11 @@ do_initial_command (melt_ptr_t modata_p)
 #define modatav   curfram__.varptr[5]
 #define curargv   curfram__.varptr[6]
 #define resv      curfram__.varptr[7]
+#define cmdv      curfram__.varptr[8]
   modatav = modata_p;
   modstr = melt_argument ("mode");
-  argstr = melt_argument ("arg");
-  argliststr = melt_argument ("arglist");
-  secondargstr = melt_argument ("secondarg");
   debugeprintf ("do_initial_command mode_string %s modatav %p",
 		modstr, (void *) modatav);
-  debugeprintf ("do_initial_command argstr %s", argstr);
-  debugeprintf ("do_initial_command argliststr %s", argliststr);
-  debugeprintf ("do_initial_command secondargstr %s", secondargstr);
   if (!modstr || !modstr[0]) 
     {
       debugeprintf("do_initial_command do nothing without mode modata %p",
@@ -7463,91 +7514,99 @@ do_initial_command (melt_ptr_t modata_p)
       error("MELT cannot execute initial command mode %s without INITIAL_SYSTEM_DATA", modstr);
       goto end;
     }
-  dictv = melt_get_inisysdata(FSYSDAT_CMD_FUNDICT);
+  dictv = melt_get_inisysdata(FSYSDAT_COMMAND_DICT);
   debugeprintf ("do_initial_command dictv=%p", dictv);
   debugeprintvalue ("do_initial_command dictv", dictv);
   if (melt_magic_discr ((melt_ptr_t) dictv) != OBMAG_MAPSTRINGS)
-    goto end;
-  closv =
+    {
+      debugeprintf("do_initial_command invalid dictv %p", dictv);
+      goto end;
+    };
+  cmdv =
     melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
-			    modstr);
-  debugeprintf ("do_initial_command closv=%p", closv);
+			 modstr);
+  debugeprintf ("do_initial_command cmdv=%p", cmdv);
+#if 0 && uselesscode
+  /* this is a temporary hack to maintain compatibility with old stuff */
+  if (melt_magic_discr ((melt_ptr_t) cmdv) == OBMAG_CLOSURE)
+    {
+      closv = cmdv;
+      cmdv = NULL;
+      oldmode = 1;
+      warning (0, "MELT command %s is associated with a closure, not a command object",
+	       modstr);
+      goto got_closure;
+    }
+#endif
+  if (!melt_is_instance_of ((melt_ptr_t) cmdv,
+			    (melt_ptr_t) MELT_PREDEF (CLASS_MELT_COMMAND)))
+    {
+      debugeprintf ("do_initial_command invalid cmdv %p", cmdv);
+      error ("unknown MELT command %s", modstr);
+      goto end;
+    };
+  closv = melt_object_nth_field ((melt_ptr_t) cmdv, FMELTCMD_FUN);
+#if 0 && uselesscode
+ got_closure:
+#endif
   if (melt_magic_discr ((melt_ptr_t) closv) != OBMAG_CLOSURE)
     {
+      debugeprintf ("do_initial_command invalid closv %p", closv);
       error ("no closure for melt command %s", modstr);
       goto end;
     };
-  debugeprintf ("do_initial_command argument_string %s",
-		argstr);
-  debugeprintf ("do_initial_command arglist_string %s",
-		argliststr);
-  debugeprintf ("do_initial_command secondargument_string %s",
-		secondargstr);
-  if (argstr && argstr[0]
-      && argliststr && argliststr[0])
-    {
-      error
-	("cannot have both -fmelt-arg=%s & -fmelt-arglist=%s given as program arguments",
-	 argstr, argliststr);
-      goto end;
-    }
   {
-    union meltparam_un pararg[3];
+    union meltparam_un pararg[4];
     memset (pararg, 0, sizeof (pararg));
-    if (argstr && argstr[0])
+#if 0 && uselesscode
+    if (oldmode)
       {
-	cstrv =
-	  meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING),
-				argstr);
-	pararg[0].bp_aptr = (melt_ptr_t *) & cstrv;
-      }
-    else if (argliststr && argliststr[0])
-      {
-	char *comma = 0;
-	char *pc = 0;
-	arglv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-	for (pc = CONST_CAST(char *, argliststr); pc;
-	     pc = comma ? (comma + 1) : 0)
-	  {
-	    comma = strchr (pc, ',');
-	    if (comma)
-	      *comma = (char) 0;
-	    curargv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), pc);
-	    if (comma)
-	      *comma = ',';
-	    meltgc_append_list ((melt_ptr_t) arglv,
-				   (melt_ptr_t) curargv);
-	  }
-	pararg[0].bp_aptr = (melt_ptr_t *) & arglv;
-      };
-    if (secondargstr && secondargstr[0])
-      {
-	csecstrv =
-	  meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING),
-				secondargstr);
-	pararg[1].bp_aptr = (melt_ptr_t *) & csecstrv;
+	/* oldmode: apply the closure to the system data, the first
+	   argument, the output argument */
+	const char * argstr = melt_argument ("arg");
+	const char * outstr = melt_argument ("output");
+	cstrv = NULL;
+	csecstrv = NULL;
+	if (argstr && argstr[0])
+	  cstrv = meltgc_new_stringdup
+	    ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING),
+	     argstr);
+	if (outstr && outstr[0])
+	  csecstrv =
+	    meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING),
+			       outstr);
+	pararg[0].bp_aptr = (melt_ptr_t *) &cstrv;
+	pararg[1].bp_aptr = (melt_ptr_t *) &csecstrv;
+	pararg[2].bp_aptr = (melt_ptr_t *) &modatav;
+	debugeprintf ("do_initial_command before old apply closv %p", closv);
+	MELT_LOCATION_HERE ("do_initial_command before apply");
+	resv = melt_apply ((meltclosure_ptr_t) closv,
+			   (melt_ptr_t) MELT_PREDEF  (INITIAL_SYSTEM_DATA),
+			   BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR, pararg, "",
+			   NULL);
+	debugeprintf ("do_initial_command after old apply closv %p resv %p",
+		      closv, resv);
       }
     else
+#endif
       {
-	debugeprintf ("do_initial_command no second argument %p",
-		      secondargstr);
-	csecstrv = NULL;
-	pararg[1].bp_aptr = (melt_ptr_t *) 0;
+	/* apply the closure to the command & the module data */
+	pararg[0].bp_aptr = (melt_ptr_t *) & modatav;
+	debugeprintf ("do_initial_command before apply closv %p", closv);
+	MELT_LOCATION_HERE ("do_initial_command before apply");
+	resv = melt_apply ((meltclosure_ptr_t) closv,
+			   (melt_ptr_t) cmdv,
+			   BPARSTR_PTR, pararg, "",
+			   NULL);
+	debugeprintf ("do_initial_command after apply closv %p resv %p",
+		      closv, resv);
       }
-    pararg[2].bp_aptr = (melt_ptr_t *) & modatav;
-    debugeprintf ("do_initial_command before apply closv %p", closv);
-    MELT_LOCATION_HERE ("do_initial_command before apply");
-    resv = melt_apply ((meltclosure_ptr_t) closv,
-			  (melt_ptr_t) MELT_PREDEF
-			  (INITIAL_SYSTEM_DATA),
-			  BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR, pararg, "",
-			  NULL);
-    debugeprintf ("do_initial_command after apply closv %p resv %p", closv,
-		  resv);
     exit_after_options = (resv == NULL);
+    /* force a minor GC to be sure nothing stays in young region */
+    melt_garbcoll (0, MELT_ONLY_MINOR);
   }
-end:
-  debugeprintf ("do_initial_command end %s", argstr);
+ end:
+  debugeprintf ("do_initial_command end %s", modstr);
   MELT_EXITFRAME ();
 #undef dictv
 #undef closv
@@ -7670,7 +7729,7 @@ load_melt_modules_and_do_command (void)
   if (modstr && !strcmp (modstr, "exit"))
     exit_after_options = true;
   /* other commands */
-  else if (melt_get_inisysdata (FSYSDAT_CMD_FUNDICT) && modstr
+  else if (melt_get_inisysdata (FSYSDAT_COMMAND_DICT) && modstr
 	   && modstr[0])
     {
       debugeprintf
@@ -10660,4 +10719,5 @@ end:
 
 
 #include "gt-melt-runtime.h"
+
 /* eof melt-runtime.c */

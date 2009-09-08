@@ -1,5 +1,36 @@
 
 2009-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	[the command infrastucture is improved thru the
+	CLASS_MELT_COMMAND]
+	* melt-make.mk: using melt_output instead of melt_secarg...
+	* melt-runtime.h: renamed FSYSDAT_CMD_FUNDICT as
+	FSYSDAT_COMMAND_DICT.
+	(FMELCMD_HELP, FMELTCMD_FUN, FMELTCMD_DATA): Added enum values.
+	(meltgc_new_split_string): added declaration.
+	* melt-runtime.c (meltgc_new_split_string): Added new function.
+	(do_initial_command) Added new command processing, and commented
+	the old one...
+	[during the transition, I had to temporarily add
+	fieldoff__SYSDAT_CMD_FUNDICT]
+	* melt/warmelt-first.melt: Added CLASS_MELT_COMMAND. Added
+	primitives split_string_colon split_string_comma
+	split_string_space. Renamed field :sysdata_cmd_fundict as
+	:sysdata_command_dict
+	* melt/warmelt-outobj.melt: added install_melt_command &
+	melt_argument. Revamped all the commands. Removed old
+	showvar_command help_command showmdata_command noop_command
+	readseq_command install_initial_command.
+	* melt-predef.list: added CLASS_MELT_COMMAND.
+
+	[regenerated files since the command API has evolved]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (readstring): issue a warning for a string
 	starting at end of line, to help catching mismatched
 	double-quotes...

@@ -3052,32 +3052,19 @@
   )
 
 
+(defprimitive melt_argument (:cstring nam) :cstring
+  :doc #{Retrieve a MELT program argument as a string}#
+  #{melt_argument($nam)}#)
 
-(defun install_initial_command (nam fun)
-  (debug_msg fun "install_initial_command fun")
-  (if (is_closure fun)
-      (if (is_string nam)
-	  (mapstring_putstr (unsafe_get_field :sysdata_cmd_fundict initial_system_data) 
-			    nam fun))))
+(defun install_melt_command (cmd)
+  (debug_msg cmd "install_melt_command cmd")
+  (assert_msg "check cmd" (is_a cmd class_melt_command))
+  (let ( (cmdict (get_field :sysdata_command_dict initial_system_data))
+	 (cnam (get_field :named_name cmd))
+	 )
+    (mapstring_putstr cmdict cnam cmd)
+))
 
-(defun initial_command_install (fun :cstring namstr)
-  (and (is_closure fun)
-       namstr
-       (let ( (nam (stringconst2val discr_string namstr)) )
-	 (install_initial_command nam fun)))
-)
-
-;;;;
-(defun readseq_command (dispatcher arg secarg modata)
-  (message_dbg "starting readseq")
-  (debug_msg arg "start readseq_command")
-  (let ( (rlist (read_file arg)) )
-    (message_dbg "ending readseq")
-    (debug_msg rlist "done readseq_command")
-    (return)
-    ))
-
-(install_initial_command  (stringconst2val discr_string "readseq") readseq_command)
 
 ;;;;
 
@@ -3115,43 +3102,52 @@
 
 ;;;;;;;;;;;;;;;;
 ;;;;;
-(defun compilefile_command (dispatcher arg secarg moduldata)
-  (message_dbg "starting compilefile_command")
-  (debug_msg arg "start compilefile_command arg")
-  (debug_msg secarg "start compilefile_command secarg")
-  (debug_msg moduldata "start compilefile_command moduldata")
+(defun translatefile_docmd (cmd moduldata)
+  (message_dbg "starting translatefile_docmd")
+  (debug_msg cmd "start translatefile_docmd cmd")
+  (debug_msg moduldata "start translatefile_docmd moduldata")
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(outarg (make_stringconst discr_string (melt_argument "output")))
 	)
-    (debug_msg parmodenv "before read compilefile_command parmodenv")
-    (debug_msg initial_environment "before read compilefile_command initial_environment")
+    (debug_msg inarg "translatefile_docmd inarg")
+    (debug_msg outarg "translatefile_docmd outarg")
+    (debug_msg parmodenv "before read translatefile_docmd parmodenv")
+    (debug_msg initial_environment "before read translatefile_docmd initial_environment")
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
-		    ( (is_string secarg) secarg)
-		    ( (is_string arg) (make_string_nakedbasename discr_string arg))
+		    ( (is_string outarg) outarg)
+		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
 		    (:else
-		     (errormsg_plain "explicit -fmelt-secondarg should be specified with -fmelt-arglist")
+		     (errormsg_plain "invalid translatefile mode")
 		     (return)
 		     )))
 	   )
-      (compile_one_or_more_files arg basnam curenv)
+      (compile_one_or_more_files inarg basnam curenv)
       )))
 
-(install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
-(install_initial_command  (stringconst2val discr_string "translatefile") compilefile_command)
+(definstance translatefile_command
+  class_melt_command
+  :named_name '"translatefile"
+  :meltcmd_help '"MELT 'translatefile' command: ARGUMENT= input file; OUTPUT= generated file"
+  :meltcmd_fun translatefile_docmd
+)
+(install_melt_command translatefile_command)
+
 
 
 ;;;;;;;;;;;;;;;;
 ;;;;;
-(defun runfile_command (dispatcher arg secarg moduldata)
-  (message_dbg "starting runfile_command")
-  (debug_msg arg "start runfile_command arg")
-  (debug_msg secarg "start runfile_command secarg")
-  (debug_msg moduldata "start runfile_command moduldata")
+(defun runfile_docmd (cmd moduldata)
+  (debug_msg cmd "start runfile_docmd cmd")
+  (debug_msg moduldata "start runfile_docmd moduldata")
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(outarg (make_stringconst discr_string (melt_argument "output")))
 	)
     (debug_msg parmodenv "before read runfile_command parmodenv")
     (debug_msg initial_environment "before read runfile_command initial_environment")
@@ -3159,151 +3155,84 @@
     (let ( (modulnam ()) 
 	   (modsrcname
 	    (cond
-	     ( (is_string secarg) 
-	       (setq modulnam (make_string_nakedbasename discr_string secarg))
-	       secarg)
-	     ( (is_string arg) 
-	       (setq modulnam (make_string_nakedbasename discr_string arg))
-	       (make_string_tempname_suffixed discr_string arg ".c"))
+	     ( (is_string outarg) 
+	       (setq modulnam (make_string_nakedbasename discr_string outarg))
+	       outarg)
+	     ( (is_string inarg) 
+	       (setq modulnam (make_string_nakedbasename discr_string inarg))
+	       (make_string_tempname_suffixed discr_string inarg ".c"))
 	     (:else
-	      (errormsg_plain "explicit -fmelt-secondarg should be specified with -fmelt-arglist")
+	      (errormsg_plain "invalid runfile mode")
 	      (return)
 	      )))
 	   )
-      (compile_one_or_more_files arg modsrcname curenv)
+      (compile_one_or_more_files inarg modsrcname curenv)
       (debug_msg modsrcname "after compilation runfile_command modsrcname")
       (debug_msg modulnam "after compilation runfile_command modulnam")
       ;; the new environment is silently discarded
       (ignore (load_melt_module curenv modulnam))
       )))
-(install_initial_command  (stringconst2val discr_string "runfile") runfile_command)
-
-;;;;;;;;;;;;;;;;
-;;;;;
-(defun genmod_command (dispatcher arg secarg moduldata)
-  (message_dbg "starting genmod_command")
-  (debug_msg arg "start genmod_command arg")
-  (debug_msg secarg "start genmod_command secarg")
-  (debug_msg moduldata "start genmod_command moduldata")
-  (let ( 
-	(parmodenv (parent_module_environment))
-	(curenv (if moduldata moduldata initial_environment))
-	)
-    (debug_msg parmodenv "before read genmod_command parmodenv")
-    (debug_msg initial_environment "before read genmod_command initial_environment")
-    (assert_msg "check curenv" (is_a curenv class_environment))
-    (let ( (modulnam ()) 
-	   (modsrcname
-	    (cond
-	     ( (is_string secarg) 
-	       (setq modulnam secarg)
-	       (make_string_tempname_suffixed discr_string secarg ".c"))
-	     ( (is_string arg) 
-	       (setq modulnam (make_string_nakedbasename discr_string arg))
-	       (make_string_tempname_suffixed discr_string arg ".c"))
-	     (:else
-	      (errormsg_plain "explicit -fmelt-secondarg should be specified with -fmelt-arglist")
-	      (return)
-	      )))
-	   )
-      (compile_one_or_more_files arg modsrcname curenv)
-      (debug_msg modsrcname "after compilation genmod_command modsrcname")
-      (debug_msg modulnam "after compilation genmod_command modulnam")
-      (generate_melt_module modsrcname modulnam)
-      )))
-
-(initial_command_install genmod_command "genmod")
-
-;;;;;;;;;;;;;;;;
-;;;;;
-(defun noop_command (dispatcher arg secarg moduldata)
-  (message_dbg  "starting noop_command")
-)
-(initial_command_install noop_command "noop")
-
 ;;;;
+(definstance runfile_command
+  class_melt_command
+  :named_name '"runfile"
+  :meltcmd_help '"MELT 'runfile' command: ARGUMENT= input file; [OUTPUT=generated C]"
+  :meltcmd_fun runfile_docmd
+)
+(install_melt_command runfile_command)
+
+
 ;;;;;;;;;;;;;;;;
-(defun compileinit_command (dispatcher arg secarg moduldata)
-  (message_dbg "starting compileinit_command")
-  (debug_msg arg "start compileinit_command arg")
-  (debug_msg secarg "start compileinit_command secarg")
-  (debug_msg moduldata "start compileinit_command moduldata")
-  (debug_msg initial_environment "before read compileinit_command initial_environment")
+(defun translateinit_docmd (cmd moduldata)
+  (debug_msg cmd "start translateinit_command arg")
+  (debug_msg moduldata "start translateinit_command moduldata")
+  (debug_msg initial_environment "before read translateinit_command initial_environment")
   (let ( (rlist (make_list discr_list))
+	 (inarg (make_stringconst discr_string (melt_argument "arg")))
+	 (outarg (make_stringconst discr_string (melt_argument "output")))
 	 (basnam (cond
-		  ( (is_string secarg) secarg)
-		  ( (is_string arg) (make_string_nakedbasename discr_string arg))
+		  ( (is_string outarg) outarg)
+		  ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
 		  (:else
-		   (errormsg_plain "explicit -fmelt-secondarg should be specified with -fmelt-arglist")
+		   (errormsg_plain "invalid translateinit mode")
 		   (return)
 		   )))
 	 )
     (cond 
-     ((is_string arg) 
-      (list_append2list rlist (read_file arg)))
-     ((is_list arg)
-      (list_every arg 
+     ((is_string inarg) 
+      (list_append2list rlist (read_file inarg)))
+     ((is_list inarg)
+      (list_every inarg 
 		  (lambda (curarg)
 		    (informsg_strv "reading from file" curarg)
 		    (let ( (curead (read_file curarg))
 			   )
 		      (assert_msg "check rlist" (is_list rlist))
 		      (assert_msg "check curead" (is_list_or_null curead))
-		      (debug_msg curead "compileinit_command curead")
+		      (debug_msg curead "translateinit_command curead")
 		      (list_append2list rlist curead)))))
      )
-    (debug_msg rlist "after read compileinit_command rlist")
+    (debug_msg rlist "after read translateinit_command rlist")
     (compile_list_sexpr rlist initial_environment basnam)
     (return)
     ))
 
+;;;
+(definstance translateinit_command
+  class_melt_command
+  :named_name '"translateinit"
+  :meltcmd_help '"MELT 'translateinit' command: ARGUMENT= input file; OUTPUT= generated file"
+  :meltcmd_fun translateinit_docmd
+)
+(install_melt_command translateinit_command)
 
-(install_initial_command  (stringconst2val discr_string "compileinit") compileinit_command)
-(install_initial_command  (stringconst2val discr_string "translateinit") compileinit_command)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun showmdata_command (dispatcher arg secarg moduldata)
-  (message_dbg "starting showmdata_command")
-  (debug_msg moduldata "showmdata moduldata")
-  (message_dbg "ending showmdata_command")
-  (return)
-  )
-
-(install_initial_command 
- (stringconst2val discr_string "showmdata") showmdata_command)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun showvar_command (dispatcher arg secarg moduldata)
-  (let ( (sym (get_symbolstr arg)) 
-	 (bind (find_env moduldata sym))
-	 (val (if (is_a bind class_value_binding) 
-		  (unsafe_get_field :vbind_value bind)))
-	 )
-    (debug_msg sym "showvar symbol")
-    (debug_msg bind "showvar binding")
-    (debug_msg val "showvar val")
-    (return)
-    )
-  )
-
-(install_initial_command 
- (stringconst2val discr_string "showvar") showvar_command)
-
-;;;;;;;;;;;;;;;;
-(defun help_command (dispatcher arg secarg moduldata)
-  (debug_msg  (unsafe_get_field :sysdata_cmd_fundict initial_system_data) "command function dict")
-  (assert_msg "unimplemented help command" ())
-  )
-
-(install_initial_command
- (stringconst2val discr_string "help") help_command)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
- initial_command_install
- install_initial_command
  compile_list_sexpr
+ install_melt_command
+ melt_argument
  )
 ;;;;;;;;;;;;;;;;
 

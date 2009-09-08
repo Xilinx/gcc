@@ -281,8 +281,8 @@ or data.}# )
   :doc #{The $CLASS_SYSTEM_DATA has a singleton instance, the
 $INITIAL_SYSTEM_DATA. It contains lots of fields, starting by
 SYSDATA_, for various system facilities.  It is very magical, and
-should be kept in sync with the MELT runtime. Only for gurus!}#
-  :fields (sysdata_cmd_fundict			;stringmap for closures for command dispatching
+should be kept in sync with the MELT runtime.  Only for gurus!}#
+  :fields (sysdata_command_dict			;stringmap for commands
 	   sysdata_cont_fresh_env			;closure to make a fresh environment
 	   sysdata_value_exporter		;closure to export a value
 	   sysdata_macro_exporter		;closure to export a macro
@@ -516,6 +516,17 @@ it.}#
   :super class_gcc_pass
   :fields (
 ))
+
+
+;;;; commands 
+(defclass class_melt_command
+  :super class_named
+  :predef CLASS_MELT_COMMAND
+  :fields (meltcmd_help
+	   meltcmd_fun
+	   meltcmd_data
+	   ))
+	   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
 
@@ -999,6 +1010,21 @@ it.}#
 (defprimitive string< (s1 s2) :long "melt_string_less((melt_ptr_t)(" s1 "), (melt_ptr_t)(" s2 "))")
 (defprimitive string> (s1 s2) :long "melt_string_less((melt_ptr_t)(" s2 "), (melt_ptr_t)(" s1 "))")
 
+(defprimitive split_string_space (dis :cstring cs) :value
+  :doc #{Split a cstring $CS into a list of space separated strings of
+discriminant $DIS.}#
+#{meltgc_new_split_string($cs, ' ', (melt_ptr_t) $dis)}#)
+
+(defprimitive split_string_comma (dis :cstring cs) :value
+  :doc #{Split a cstring $CS into a list of comma separated strings of
+discriminant $DIS.}#
+#{meltgc_new_split_string($cs, ',', (melt_ptr_t) $dis)}#)
+
+(defprimitive split_string_colon (dis :cstring cs) :value
+  :doc #{Split a cstring $CS into a list of colon separated strings of
+discriminant $DIS.}#
+#{meltgc_new_split_string($cs, ':', (melt_ptr_t)$dis)}#)
+
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
   "(meltgc_new_stringdup((meltobject_ptr_t)(" dis 
@@ -1010,8 +1036,9 @@ it.}#
   "(meltgc_new_string_nakedbasename((meltobject_ptr_t)(" dis "), melt_string_str((melt_ptr_t)(" str "))))")
 ;;; compute the naked temporary path for a basename with a suffix
 (defprimitive make_string_tempname_suffixed (dis str :cstring suff) :value
-  "(meltgc_new_string_tempname_suffixed((meltobject_ptr_t)(" dis "), melt_string_str((melt_ptr_t)(" str ")), (" suff ")))")
-
+  #{(meltgc_new_string_tempname_suffixed((meltobject_ptr_t)($dis), 
+					 melt_string_str((melt_ptr_t)($str)), 
+					 ($suff)))}#)
 ;;;; compile a C code file as module and load it. First argument is an
 ;;;; environment, second argument is the string containing the C file
 ;;;; path. Return value is the new environment provided by the loaded
@@ -2377,7 +2404,7 @@ it.}#
 (definstance initial_system_data class_system_data
   :predef INITIAL_SYSTEM_DATA
   :named_name '"INITIAL_SYSTEM_DATA"
-  :sysdata_cmd_fundict  (make_mapstring discr_mapstrings 40) ;stringmap for commands
+  :sysdata_command_dict  (make_mapstring discr_mapstrings 40) ;stringmap for commands
   :sysdata_cont_fresh_env initfresh_contenvmaker	;fresh environment maker in module
   :sysdata_value_exporter initvalue_exporter ;value exporter in module
   :sysdata_macro_exporter initmacro_exporter ;macro exporter in module
@@ -4180,6 +4207,7 @@ it.}#
  class_let_binding
  class_located
  class_macro_binding
+ class_melt_command
  class_modulcontext
  class_named
  class_normcontext
@@ -4199,6 +4227,9 @@ it.}#
  class_value_binding 
  )					;end of export class
 
+
+
+;;;;;;;;;;;;;;;;
 ;;;; export the above primitives
 (export_values				;in alphanumerical order
  !=
@@ -4401,6 +4432,9 @@ it.}#
  routine_nth
  routine_size
  shortbacktrace_dbg
+ split_string_colon
+ split_string_comma
+ split_string_space
  strbuf2string
  strbuf_usedlength
  string<

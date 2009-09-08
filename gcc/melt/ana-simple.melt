@@ -143,7 +143,7 @@
 		}#) 
     ))
 
-(defun makegreen_command (dispatcher arg secarg moduldata)
+(defun makegreen_docmd (cmd moduldata)
   (let ( (greenpass
 	  (instance class_gcc_gimple_pass
 		    :named_name '"melt_greenpass"
@@ -161,7 +161,16 @@
 ;; return the greenpass to accept the command
   (return greenpass)
 ))
-(initial_command_install makegreen_command "makegreen")
+;;;
+
+(definstance makegreen_command
+  class_melt_command
+  :named_name '"makegreen"
+  :meltcmd_help '"MELT 'makegreen' command; enable a pass finding
+  fprintf to stdout..."
+  :meltcmd_fun makegreen_docmd
+)
+(install_melt_command makegreen_command)
 
 
 
@@ -1064,7 +1073,7 @@
     ))
 
 ;;; our small analysis command -fmelt=smallana
-(defun smallana_command (dispatcher arg secarg moduldata)
+(defun smallana_docmd (cmd moduldata)
   (let ( (smallana_ipa_gccpass 
 	  (compile_warning "should create and register a simple ipa pass" ())) )
   ;; fill the ipa pass
@@ -1073,12 +1082,18 @@
   :gccpass_exec smallanapass_exec)
   (debug_msg smallana_ipa_gccpass "smallana_ipa_gccpass")
   (assert_msg "$@$incomplete smallana_command" ())
-  (return dispatcher)			;return non-nil to continue compilation
+  (return cmd)			;return non-nil to continue compilation
   ))
 
-(initial_command_install smallana_command "smallana")
 
-
+;;;
+(definstance smallana_command
+  class_melt_command
+  :named_name '"smallana"
+  :meltcmd_help '"MELT 'smallana' command; install a small analysis pass"
+  :meltcmd_fun smallana_docmd
+)
+(install_melt_command smallana_command)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; a pass to test that all relevant cmatcher-s are eough to scan a source program
@@ -1259,7 +1274,7 @@
 
 ;;;;;;;;;;;;;;;;
 ;;; our just scan command -fmelt=justscan
-(defun justscan_command (dispatcher arg secarg moduldata)
+(defun justscan_docmd (cmd moduldata)
   (let ( (justscanpass
 	  (instance class_gcc_gimple_pass
 		    :named_name '"melt_justscanpass"
@@ -1271,9 +1286,17 @@
         )
   (install_melt_gcc_pass justscanpass "after" "phiopt" 0)
   (debug_msg justscanpass "justscan_command installed pass")
-  (return dispatcher)			;return non-nil to continue compilation
+  (return cmd)			;return non-nil to continue compilation
   ))
 
-(initial_command_install justscan_command "justscan")
+
+
+(definstance justscan_command
+  class_melt_command
+  :named_name '"justscan"
+  :meltcmd_help '"MELT 'justscan' command - install a pass scanning all the code"
+  :meltcmd_fun justscan_docmd
+)
+(install_melt_command justscan_command "justscan")
 
 ;; eof ana-simple.melt

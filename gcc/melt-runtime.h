@@ -1918,6 +1918,9 @@ melt_ptr_t meltgc_new_string_nakedbasename (meltobject_ptr_t discr,
 melt_ptr_t meltgc_new_string_tempname_suffixed (meltobject_ptr_t discr,
 						      const char *namstr, const char*suffix);
 
+/* split a [raw] string into a list of strings using a seperator. */
+melt_ptr_t meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr);
+
 
 static inline const char *
 melt_string_str (melt_ptr_t v)
@@ -2865,7 +2868,7 @@ enum
    varying objects or non objects */
 enum
 {
-  FSYSDAT_CMD_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
+  FSYSDAT_COMMAND_DICT = FNAMED__LAST,	/* the stringdict of commands */
   FSYSDAT_BOX_FRESH_ENV,			/* closure to make a fresh environment box */
   FSYSDAT_VALUE_EXPORTER,	       /* closure to export a value */
   FSYSDAT_MACRO_EXPORTER,	       /* closure to export a macro */
@@ -2903,6 +2906,13 @@ enum {
   FGCCPASS__LAST
 };
 
+/* fields inside MELT commands */
+enum {
+    FMELTCMD_HELP = FNAMED__LAST, /* the help string */
+    FMELTCMD_FUN,		 /* the command closure */
+    FMELTCMD_DATA,		 /* client data of command */
+    FMELTCMD__LAST
+};
 
 /* currently each predefined is a GC root (so we have about two
    hundreds of them), scanned at every minor garbage collection. We

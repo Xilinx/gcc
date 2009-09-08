@@ -43,7 +43,7 @@ meltarg_source_path=$(if $(melt_is_plugin),-fplugin-arg-melt-source-path,-fmelt-
 meltarg_tempdir=$(if $(melt_is_plugin),-fplugin-arg-melt-tempdir,-fmelt-tempdir)
 meltarg_compile_script=$(if $(melt_is_plugin),-fplugin-arg-melt-compile-script,-fmelt-compile-script)
 meltarg_arg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-arg)
-meltarg_secondarg=$(if $(melt_is_plugin),-fplugin-arg-melt-secondarg,-fmelt-secondarg)
+meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
 
 ## MELT_DEBUG could be set to -fmelt-debug or -fplugin-arg-melt-debug
 ## the invocation to translate the very first initial MELT file
@@ -172,7 +172,7 @@ empty-file-for-melt.c:
 warmelt-first-1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 warmelt-macro-1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \
@@ -185,7 +185,7 @@ warmelt-macro-1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-0.d:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 warmelt-normal-1.c: $(melt_make_source_dir)/warmelt-normal.melt $(melt_cc1) \
@@ -199,7 +199,7 @@ warmelt-normal-1.c: $(melt_make_source_dir)/warmelt-normal.melt $(melt_cc1) \
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 warmelt-normatch-1.c: $(melt_make_source_dir)/warmelt-normatch.melt $(melt_cc1) \
@@ -212,7 +212,7 @@ warmelt-normatch-1.c: $(melt_make_source_dir)/warmelt-normatch.melt $(melt_cc1) 
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 warmelt-genobj-1.c: $(melt_make_source_dir)/warmelt-genobj.melt $(melt_cc1) \
 	 warmelt-first-1.so  \
@@ -224,7 +224,7 @@ warmelt-genobj-1.c: $(melt_make_source_dir)/warmelt-genobj.melt $(melt_cc1) \
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-0.d:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 warmelt-outobj-1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
 	 warmelt-first-1.so  \
@@ -236,7 +236,7 @@ warmelt-outobj-1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-1:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 ####
 warmelt2.modlis: $(WARMELT_BASE2SO)
@@ -247,7 +247,7 @@ warmelt2.modlis: $(WARMELT_BASE2SO)
 warmelt-first-2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) $(melt_cc1)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt1" \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@
+	      $(meltarg_output)=$@
 
 
 
@@ -255,7 +255,7 @@ warmelt-%-2.c: $(melt_make_source_dir)/warmelt-%.melt warmelt1.modlis $(WARMELT_
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt1" \
 	        -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 warmelt-normal-2.c: warmelt-predef.melt
 warmelt-normal-3.c: warmelt-predef.melt
@@ -276,7 +276,7 @@ warmelt-%-3.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 	ls -l $@
 warmelt3.modlis: $(WARMELT_BASE2SO)
 	date +"#$@ generated %c" > $@-tmp
@@ -288,7 +288,7 @@ warmelt-first-3.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt2" \
 	      $(meltarg_arg)=$< \
-	      $(meltarg_secondarg)=$@  empty-file-for-melt.c
+	      $(meltarg_output)=$@  empty-file-for-melt.c
 	ls -l $@
 
 
@@ -306,7 +306,7 @@ ana-base.c: $(melt_make_source_dir)/ana-base.melt  warmelt2.modlis $(WARMELT_BAS
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_secondarg)=$@   empty-file-for-melt.c
+	      $(meltarg_output)=$@   empty-file-for-melt.c
 	ls -l $@
 
 ana-simple.c:  $(melt_make_source_dir)/ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  ana-base.so   $(melt_cc1) 
@@ -314,7 +314,7 @@ ana-simple.c:  $(melt_make_source_dir)/ana-simple.melt  warmelt2.modlis $(WARMEL
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:ana-base" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_secondarg)=$@   empty-file-for-melt.c
+	      $(meltarg_output)=$@   empty-file-for-melt.c
 	ls -l $@
 
 ####
