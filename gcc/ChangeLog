@@ -1,3 +1,98 @@
+2009-09-09  Michael Matz  <matz@suse.de>
+
+	PR middle-end/41268
+	* cfgexpand.c (expand_gimple_stmt_1): Use an int for storing
+	SUBREG_PROMOTED_UNSIGNED_P, instead of a bool.
+	* rtl.h (struct rtx, SUBREG_PROMOTED_UNSIGNED_P): Update comments
+	to reflect reality.
+
+2009-09-08  DJ Delorie  <dj@redhat.com>
+
+	* config/mep/mep.c (conversions[]): Add "ml" pattern.
+
+2009-09-04  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (tree_find_value): Remove.
+	* tree.h: Remove prototype.
+	* varasm.c (assemble_external): Use value_member instead.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* toplev.c (process_options): Choose default debugging type when
+	gtoggle enables debug info and type is unset.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41276
+	PR debug/41307
+	* cselib.c (cselib_expand_value_rtx_1): Don't return copy of
+	invalid subreg.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure: Rebuilt with modified libtool.m4.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41229
+	PR debug/41291
+	PR debug/41300
+	* tree-ssa.c (execute_update_addresses_taken): Update debug insns.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* tree-ssa-loop-ivopts.c (get_phi_with_result): Remove.
+	(remove_statement): Likewise.
+	(rewrite_use_nonlinear_expr): Adjust.
+	(remove_unused_ivs): Collect SSA NAMEs to remove and call...
+	* tree-ssa.c (release_defs_bitset): ... this.  New.
+	* tree-flow.h (release_defs_bitset): Declare.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41232
+	* tree-ssa-phiopt.c (minmax_replacement): Skip debug stmts
+	in the middle block.
+
+2009-09-08  Kai Tietz  <kai.tietz@onevision.com>
+
+	* tree-ssa-reassoc.c (find_operand_rank): Cast pointer
+	via intptr_t to long type.
+	(insert_operand_rank): Cast long type via intptr_t to
+	pointer type.
+	* genattrtab.c (RTL_HASH): Use intptr_t to cast from
+	pointer to scalar.
+	* c-pretty-print.c (pp_c_tree_decl_identifier): Cast
+	from pointer to unsigned via uintptr_t.
+
+	* configure.ac (GCC_STDINT_TYPES): Initialize intptr_t,
+	uintptr_t, HAVE_INTTYPES_H, HAVE_STDINT_H, HAVE_UINTPTR_T,
+	and HAVE_INTPTR_T.
+	* configure: Regenerated.
+	* config.in: Regenerated
+	* system.h (stdint.h): Add include.
+	(inttypes.h): Likewise.
+	* Makefile.in (aclocal): Add config/stdint.m4.
+	* aclocal.m4: Regenerated.
+
+2009-09-08  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.c (np_check_regno, np_after_branch): New static
+	variables.
+	(note_np_check_stores): New function.
+	(harmless_null_pointer_p): New function.
+	(trapping_loads_p): New args NP_REG and AFTER_NP_BRANCH.  Callers
+	changed.  Take into account whether we're in the shadow of a condjump
+	that tested NP_REG for NULL.
+	Lose all code that tested for SEQUENCEs.
+	(workaround_speculation): Avoid inserting NOPs for loads that are
+	either always executed or a NULL pointer.
+
+2009-09-08  Jan Hubicka  <jh@suse.cz>
+
+	* doc/invoke.texi (early-inlining-insns): Reduce from 12 to 8.
+	* params.def (early-inlining-insns): Likewise.
+
 2009-09-08  Jakub Jelinek  <jakub@redhat.com>
 
 	PR rtl-optimization/41239
@@ -11,6 +106,11 @@
 	(init_deps): Initialize it.
 	(remove_from_deps): Also remove calls from
 	last_function_call_may_noreturn list.
+
+2009-09-07  Richard Henderson  <rth@redhat.com>
+
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Don't assume there are
+	more VR->OPERANDS than LHS operands.  Free LHS before returning.
 
 2009-09-07  Bernd Schmidt  <bernd.schmidt@analog.com>
 

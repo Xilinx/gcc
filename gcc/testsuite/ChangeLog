@@ -1,3 +1,67 @@
+2009-09-08  Dodji Seketeli  <dodji@redhat.com>
+
+	Fix some test breakages on Darwin
+	* g++.dg/debug/dwarf2/namespace-1.C: Use -fno-merge-debug-string
+	and adjust.
+	* g++.dg/debug/dwarf2/template-func-params-6.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-7.C: Likewise.
+	* g++.dg/debug/dwarf2/template-params-6.C: Likewise.
+	* g++.dg/debug/dwarf2/pubnames-1.C: Likewise. Also, adjust to
+	take darwin specifics in account.
+
+2009-09-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/profile-dir-1.c, gcc.dg/profile-dir-2.c,
+	gcc.dg/profile-dir-3.c: Disable for remote-host testing.
+
+2009-09-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/39923
+	* g++.dg/cpp0x/initlist24.C: New.
+
+2009-09-08  Ozkan Sezer  <sezeroz@gmail.com>
+
+	* gcc.dg/large-size-array-2.c: Fix target requirement.
+	* gcc.dg/large-size-array-4.c: Likewise.
+	* gcc.dg/c90-const-expr-2.c: Define ZERO as 0LL for _WIN64.
+	* gcc.dg/c99-const-expr-2.c: Likewise.
+	* gcc.dg/c90-const-expr-6.c: Typedef ptrdiff_t with __extension__.
+	* gcc.dg/c90-const-expr-9.c: Typedef size_t with __extension__.
+	* gcc.dg/c90-const-expr-10.c: Likewise.
+	* gcc.dg/torture/pr39074.c: Use intptr_t typedef'ed as __PTRDIFF_TYPE__
+	instead of long.
+	* gcc.dg/tree-ssa/pr33920.c: Likewise.
+	* gcc.dg/vect/pr33846.c: Likewise.
+	* gcc.dg/vect/pr33833.c: Use uintptr_t, typedef'ed as unsigned
+	__PTRDIFF_TYPE__, instead of unsigned long.
+	* gcc.dg/vect/O1-pr33854.c: Use __SIZE_TYPE__ instead of unsigned long.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41229
+	PR debug/41291
+	PR debug/41300
+	* gfortran.dg/pr41229.f90: New.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41232
+	* gcc.dg/pr41232.c: New.
+
+2009-09-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.misc-tests/i386-prefetch.exp: Skip tests when multilib flags
+	contain -march.
+	* gcc.dg/tree-ssa/prefetch-7.c, gcc.target/i386/387-1.c,
+	gcc.target/i386/387-5.c, gcc.target/i386/cmov7.c,
+	gcc.target/i386/funcspec-1.c, gcc.target/i386/funcspec-8.c,
+	gcc.target/i386/gcc-have-sync-compare-and-swap-1.c,
+	gcc.target/i386/gcc-have-sync-compare-and-swap-2.c,
+	gcc.target/i386/isa-6.c, gcc.target/i386/lea.c,
+	gcc.target/i386/pentium4-not-mull.c, gcc.target/i386/sse-5.c,
+	gcc.target/i386/ssefn-1.c: Skip when multilib flags contain -march
+	options other than that used in dg-options.
+
 2009-09-07  Jakub Jelinek  <jakub@redhat.com>
 
 	PR rtl-optimization/41239
