@@ -3009,7 +3009,7 @@ tree_empty_eh_handler_p (basic_block bb)
   region = gimple_resx_region (gsi_stmt (gsi));
 
   /* filter_object set.  */
-  gsi_prev (&gsi);
+  gsi_prev_nondebug (&gsi);
   if (gsi_end_p (gsi))
     return 0;
   if (gimple_code (gsi_stmt (gsi)) == GIMPLE_ASSIGN)
@@ -3022,7 +3022,7 @@ tree_empty_eh_handler_p (basic_block bb)
       filter_tmp = gimple_assign_rhs1 (gsi_stmt (gsi));
 
       /* filter_object set.  */
-      gsi_prev (&gsi);
+      gsi_prev_nondebug (&gsi);
       if (gsi_end_p (gsi))
 	return 0;
       if (gimple_code (gsi_stmt (gsi)) != GIMPLE_ASSIGN)
@@ -3034,7 +3034,7 @@ tree_empty_eh_handler_p (basic_block bb)
       /* exc_ptr get.  */
       if (TREE_CODE (exc_ptr_tmp) != EXC_PTR_EXPR)
 	{
-	  gsi_prev (&gsi);
+	  gsi_prev_nondebug (&gsi);
 	  if (gsi_end_p (gsi))
 	    return 0;
 	  if (gimple_code (gsi_stmt (gsi)) != GIMPLE_ASSIGN)
@@ -3050,7 +3050,7 @@ tree_empty_eh_handler_p (basic_block bb)
       /* filter_object get.  */
       if (TREE_CODE (filter_tmp) != FILTER_EXPR)
 	{
-	  gsi_prev (&gsi);
+	  gsi_prev_nondebug (&gsi);
 	  if (gsi_end_p (gsi))
 	    return 0;
 	  if (gimple_code (gsi_stmt (gsi)) != GIMPLE_ASSIGN)
@@ -3064,7 +3064,7 @@ tree_empty_eh_handler_p (basic_block bb)
 	}
 
       /* label.  */
-      gsi_prev (&gsi);
+      gsi_prev_nondebug (&gsi);
       if (gsi_end_p (gsi))
 	return 0;
     }

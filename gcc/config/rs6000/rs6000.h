@@ -1786,22 +1786,6 @@ typedef struct rs6000_args
  { ARG_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM},	\
  { RS6000_PIC_OFFSET_TABLE_REGNUM, RS6000_PIC_OFFSET_TABLE_REGNUM } }
 
-/* Given FROM and TO register numbers, say whether this elimination is allowed.
-   Frame pointer elimination is automatically handled.
-
-   For the RS/6000, if frame pointer elimination is being done, we would like
-   to convert ap into fp, not sp.
-
-   We need r30 if -mminimal-toc was specified, and there are constant pool
-   references.  */
-
-#define CAN_ELIMINATE(FROM, TO)						\
- ((FROM) == ARG_POINTER_REGNUM && (TO) == STACK_POINTER_REGNUM		\
-  ? ! frame_pointer_needed						\
-  : (FROM) == RS6000_PIC_OFFSET_TABLE_REGNUM 				\
-  ? ! TARGET_MINIMAL_TOC || TARGET_NO_TOC || get_pool_size () == 0	\
-  : 1)
-
 /* Define the offset between two registers, one to be eliminated, and the other
    its replacement, at the start of a routine.  */
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
@@ -1882,6 +1866,10 @@ typedef struct rs6000_args
 #define EASY_VECTOR_15_ADD_SELF(n) (!EASY_VECTOR_15((n))	\
 				    && EASY_VECTOR_15((n) >> 1) \
 				    && ((n) & 1) == 0)
+
+#define EASY_VECTOR_MSB(n,mode)						\
+  (((unsigned HOST_WIDE_INT)n) ==					\
+   ((((unsigned HOST_WIDE_INT)GET_MODE_MASK (mode)) + 1) >> 1))
 
 
 /* Try a machine-dependent way of reloading an illegitimate address
@@ -2678,6 +2666,7 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_EXT_V8HI,
   ALTIVEC_BUILTIN_VEC_EXT_V16QI,
   ALTIVEC_BUILTIN_VEC_EXT_V4SF,
+  ALTIVEC_BUILTIN_COPYSIGN_V4SF,
 
   /* Altivec overloaded builtins.  */
   ALTIVEC_BUILTIN_VCMPEQ_P,
@@ -2703,6 +2692,7 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_CMPGT,
   ALTIVEC_BUILTIN_VEC_CMPLE,
   ALTIVEC_BUILTIN_VEC_CMPLT,
+  ALTIVEC_BUILTIN_VEC_COPYSIGN,
   ALTIVEC_BUILTIN_VEC_CTF,
   ALTIVEC_BUILTIN_VEC_CTS,
   ALTIVEC_BUILTIN_VEC_CTU,
@@ -2745,6 +2735,7 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_MTVSCR,
   ALTIVEC_BUILTIN_VEC_MULE,
   ALTIVEC_BUILTIN_VEC_MULO,
+  ALTIVEC_BUILTIN_VEC_NEARBYINT,
   ALTIVEC_BUILTIN_VEC_NMSUB,
   ALTIVEC_BUILTIN_VEC_NOR,
   ALTIVEC_BUILTIN_VEC_OR,
@@ -2755,6 +2746,7 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_PERM,
   ALTIVEC_BUILTIN_VEC_RE,
   ALTIVEC_BUILTIN_VEC_RL,
+  ALTIVEC_BUILTIN_VEC_RINT,
   ALTIVEC_BUILTIN_VEC_ROUND,
   ALTIVEC_BUILTIN_VEC_RSQRTE,
   ALTIVEC_BUILTIN_VEC_SEL,
@@ -2772,6 +2764,7 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_SPLTB,
   ALTIVEC_BUILTIN_VEC_SPLTH,
   ALTIVEC_BUILTIN_VEC_SPLTW,
+  ALTIVEC_BUILTIN_VEC_SQRT,
   ALTIVEC_BUILTIN_VEC_SR,
   ALTIVEC_BUILTIN_VEC_SRA,
   ALTIVEC_BUILTIN_VEC_SRL,
@@ -3228,6 +3221,8 @@ enum rs6000_builtins
   VSX_BUILTIN_XSRSQRTEDP,
   VSX_BUILTIN_XSSQRTDP,
   VSX_BUILTIN_XSSUBDP,
+  VSX_BUILTIN_CPSGNDP,
+  VSX_BUILTIN_CPSGNSP,
   VSX_BUILTIN_XSTDIVDP_FE,
   VSX_BUILTIN_XSTDIVDP_FG,
   VSX_BUILTIN_XSTSQRTDP_FE,

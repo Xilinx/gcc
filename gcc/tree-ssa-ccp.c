@@ -276,7 +276,8 @@ tree
 get_symbol_constant_value (tree sym)
 {
   if (TREE_STATIC (sym)
-      && TREE_READONLY (sym))
+      && (TREE_READONLY (sym)
+	  || TREE_CODE (sym) == CONST_DECL))
     {
       tree val = DECL_INITIAL (sym);
       if (val)
@@ -288,7 +289,11 @@ get_symbol_constant_value (tree sym)
 		{
 		  tree base = get_base_address (TREE_OPERAND (val, 0));
 		  if (base && TREE_CODE (base) == VAR_DECL)
-		    add_referenced_var (base);
+		    {
+		      TREE_ADDRESSABLE (base) = 1;
+		      if (gimple_referenced_vars (cfun))
+			add_referenced_var (base);
+		    }
 		}
 	      return val;
 	    }
@@ -645,7 +650,15 @@ ccp_initialize (void)
       for (i = gsi_start_bb (bb); !gsi_end_p (i); gsi_next (&i))
         {
 	  gimple stmt = gsi_stmt (i);
-	  bool is_varying = surely_varying_stmt_p (stmt);
+	  bool is_varying;
+
+	  /* If the statement is a control insn, then we do not
+	     want to avoid simulating the statement once.  Failure
+	     to do so means that those edges will never get added.  */
+	  if (stmt_ends_bb_p (stmt))
+	    is_varying = false;
+	  else
+	    is_varying = surely_varying_stmt_p (stmt);
 
 	  if (is_varying)
 	    {
@@ -1088,9 +1101,8 @@ ccp_fold (gimple stmt)
 		  && TREE_CODE (op0) == ADDR_EXPR
 		  && TREE_CODE (op1) == INTEGER_CST)
 		{
-		  tree lhs = gimple_assign_lhs (stmt);
 		  tree tem = maybe_fold_offset_to_address
-		    (loc, op0, op1, TREE_TYPE (lhs));
+		    (loc, op0, op1, TREE_TYPE (op0));
 		  if (tem != NULL_TREE)
 		    return tem;
 		}
@@ -2202,16 +2214,16 @@ maybe_fold_stmt_addition (location_t loc, tree res_type, tree op0, tree op1)
 	      && TREE_CODE (gimple_assign_rhs2 (offset_def)) == INTEGER_CST
 	      && tree_int_cst_equal (gimple_assign_rhs2 (offset_def),
 				     TYPE_SIZE_UNIT (TREE_TYPE (op0))))
-	    return build1 (ADDR_EXPR, res_type,
-			   build4 (ARRAY_REF, TREE_TYPE (op0),
+	    return build_fold_addr_expr
+			  (build4 (ARRAY_REF, TREE_TYPE (op0),
 				   TREE_OPERAND (op0, 0),
 				   gimple_assign_rhs1 (offset_def),
 				   TREE_OPERAND (op0, 2),
 				   TREE_OPERAND (op0, 3)));
 	  else if (integer_onep (TYPE_SIZE_UNIT (TREE_TYPE (op0)))
 		   && gimple_assign_rhs_code (offset_def) != MULT_EXPR)
-	    return build1 (ADDR_EXPR, res_type,
-			   build4 (ARRAY_REF, TREE_TYPE (op0),
+	    return build_fold_addr_expr
+			  (build4 (ARRAY_REF, TREE_TYPE (op0),
 				   TREE_OPERAND (op0, 0),
 				   op1,
 				   TREE_OPERAND (op0, 2),
@@ -2328,6 +2340,19 @@ maybe_fold_reference (tree expr, bool is_lhs)
 	   make sure we end up with valid gimple.  See PR34989.  */
 	tem = TREE_OPERAND (TREE_OPERAND (*t, 0), 0);
 
+      if (tem)
+	{
+	  *t = tem;
+	  tem = maybe_fold_reference (expr, is_lhs);
+	  if (tem)
+	    return tem;
+	  return expr;
+	}
+    }
+  else if (!is_lhs
+	   && DECL_P (*t))
+    {
+      tree tem = get_symbol_constant_value (*t);
       if (tem)
 	{
 	  *t = tem;
@@ -2738,6 +2763,9 @@ fold_gimple_assign (gimple_stmt_iterator *si)
 	    return build_vector_from_ctor (TREE_TYPE (rhs),
 					   CONSTRUCTOR_ELTS (rhs));
 	  }
+
+	else if (DECL_P (rhs))
+	  return get_symbol_constant_value (rhs);
 
         /* If we couldn't fold the RHS, hand over to the generic
            fold routines.  */

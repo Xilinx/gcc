@@ -252,6 +252,11 @@ tree_forwarder_block_p (basic_block bb, bool phi_wanted)
 	    return false;
 	  break;
 
+	  /* ??? For now, hope there's a corresponding debug
+	     assignment at the destination.  */
+	case GIMPLE_DEBUG:
+	  break;
+
 	default:
 	  return false;
 	}
@@ -401,7 +406,8 @@ remove_forwarder_block (basic_block bb)
 	       gsi_next (&gsi))
 	    {
 	      gimple phi = gsi_stmt (gsi);
-	      add_phi_arg (phi, gimple_phi_arg_def (phi, succ->dest_idx), s);
+	      source_location l = gimple_phi_arg_location_from_edge (phi, succ);
+	      add_phi_arg (phi, gimple_phi_arg_def (phi, succ->dest_idx), s, l);
 	    }
 	}
     }
@@ -414,9 +420,10 @@ remove_forwarder_block (basic_block bb)
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
 	{
 	  label = gsi_stmt (gsi);
-	  gcc_assert (gimple_code (label) == GIMPLE_LABEL);
+	  gcc_assert (gimple_code (label) == GIMPLE_LABEL
+		      || is_gimple_debug (label));
 	  gsi_remove (&gsi, false);
-	  gsi_insert_before (&gsi_to, label, GSI_CONTINUE_LINKING);
+	  gsi_insert_before (&gsi_to, label, GSI_SAME_STMT);
 	}
     }
 
@@ -744,6 +751,7 @@ remove_forwarder_block_with_phi (basic_block bb)
 	{
 	  gimple phi = gsi_stmt (gsi);
 	  tree def = gimple_phi_arg_def (phi, succ->dest_idx);
+	  source_location locus = gimple_phi_arg_location_from_edge (phi, succ);
 
 	  if (TREE_CODE (def) == SSA_NAME)
 	    {
@@ -763,12 +771,13 @@ remove_forwarder_block_with_phi (basic_block bb)
 		  if (def == old_arg)
 		    {
 		      def = new_arg;
+		      locus = redirect_edge_var_map_location (vm);
 		      break;
 		    }
 		}
 	    }
 
-	  add_phi_arg (phi, def, s);
+	  add_phi_arg (phi, def, s, locus);
 	}
 
       redirect_edge_var_map_clear (e);

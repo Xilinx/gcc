@@ -24,7 +24,8 @@ m4_include(config/override.m4)
 m4_include(config/proginstall.m4)
 
 AC_INIT(move-if-change)
-AC_PREREQ(2.59)
+AC_PREREQ(2.64)
+AC_DISABLE_OPTION_CHECKING
 
 progname=$0
 # if PWD already has a value, it is probably wrong.
@@ -78,6 +79,8 @@ m4_pattern_allow([^AS_FOR_BUILD$])dnl
 AC_PROG_INSTALL
 ACX_PROG_LN
 AC_PROG_LN_S
+AC_PROG_SED
+AC_PROG_AWK
 
 ### we might need to use some other shell than /bin/sh for running subshells
 ### If we are on Windows, search for the shell.  This will permit people
@@ -469,7 +472,11 @@ case "${target}" in
     noconfigdirs="$noconfigdirs ld gas gdb gprof"
     noconfigdirs="$noconfigdirs sim target-rda"
     ;;
-  i[[3456789]]86-*-darwin* | x86_64-*-darwin[[912]]*)
+  i[[3456789]]86-*-darwin*)
+    noconfigdirs="$noconfigdirs ld gprof"
+    noconfigdirs="$noconfigdirs sim target-rda"
+    ;;
+  x86_64-*-darwin[[912]]*)
     noconfigdirs="$noconfigdirs ld gas gprof"
     noconfigdirs="$noconfigdirs sim target-rda"
     ;;
@@ -855,6 +862,9 @@ case "${target}" in
   m68k-apollo-*)
     noconfigdirs="$noconfigdirs ld binutils gprof target-libgloss ${libgcj}"
     ;;
+  microblaze*)
+    noconfigdirs="$noconfigdirs gprof ${libgcj}"
+    ;;
   mips*-sde-elf*)
     skipdirs="$skipdirs target-libiberty"
     noconfigdirs="$noconfigdirs ${libgcj}"
@@ -893,7 +903,12 @@ case "${target}" in
       i[[3456789]]86-*-msdosdjgpp*) ;; # don't add gprof back in
       *) skipdirs=`echo " ${skipdirs} " | sed -e 's/ gprof / /'` ;;
     esac
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
+    case "${target}" in
+      sh*-*-elf)
+         noconfigdirs="$noconfigdirs ${libgcj}" ;;
+      *)
+         noconfigdirs="$noconfigdirs target-libgloss ${libgcj}" ;;
+    esac
     ;;
   sparclet-*-aout* | sparc86x-*-*)
     libgloss_dir=sparc
@@ -2463,12 +2478,48 @@ case "$have_compiler:$host:$target:$enable_bootstrap" in
 esac
 
 # Adjust the toplevel makefile according to whether bootstrap was selected.
-case "$enable_bootstrap" in
+case $enable_bootstrap in
   yes)
-    bootstrap_suffix=bootstrap ;;
+    bootstrap_suffix=bootstrap
+    BUILD_CONFIG=bootstrap-debug
+    ;;
   no)
-    bootstrap_suffix=no-bootstrap ;;
+    bootstrap_suffix=no-bootstrap
+    BUILD_CONFIG=
+    ;;
 esac
+
+AC_MSG_CHECKING(for default BUILD_CONFIG)
+
+AC_ARG_WITH([build-config],
+  [--with-build-config='NAME NAME2...'
+                          Use config/NAME.mk build configuration],
+  [case $with_build_config in
+   yes) with_build_config= ;;
+   no) with_build_config= BUILD_CONFIG= ;;
+   esac])
+
+if test "x${with_build_config}" != x; then
+  BUILD_CONFIG=$with_build_config
+else
+  case $BUILD_CONFIG in
+  bootstrap-debug)
+    if echo "int f (void) { return 0; }" > conftest.c &&
+       ${CC} -c conftest.c &&
+       mv conftest.o conftest.o.g0 &&
+       ${CC} -c -g conftest.c &&
+       mv conftest.o conftest.o.g &&
+       ${srcdir}/contrib/compare-debug conftest.o.g0 conftest.o.g; then
+      :
+    else
+      BUILD_CONFIG=
+    fi
+    rm -f conftest.c conftest.o conftest.o.g0 conftest.o.g
+    ;;
+  esac
+fi
+AC_MSG_RESULT($BUILD_CONFIG)
+AC_SUBST(BUILD_CONFIG)
 
 for module in ${build_configdirs} ; do
   if test -z "${no_recursion}" \
@@ -2669,6 +2720,7 @@ baseargs="$baseargs --program-transform-name='${gcc_transform_name}'"
 if test "$silent" = yes; then
   baseargs="$baseargs --silent"
 fi
+baseargs="$baseargs --disable-option-checking"
 
 # For the build-side libraries, we just need to pretend we're native,
 # and not use the same cache file.  Multilibs are neither needed nor
@@ -3124,32 +3176,6 @@ case ${enable_werror} in
   *) stage2_werror_flag="" ;;
 esac
 AC_SUBST(stage2_werror_flag)
-
-# Flags needed to enable html installing and building
-AC_ARG_WITH(datarootdir,
-[  --with-datarootdir      use datarootdir as the data root directory.],
-[datarootdir="\${prefix}/${withval}"],
-[datarootdir="\${prefix}/share"])
-
-AC_ARG_WITH(docdir,
-[  --with-docdir           install documentation in this directory.],
-[docdir="\${prefix}/${withval}"],
-[docdir="\${datarootdir}/doc"])
-
-AC_ARG_WITH(pdfdir,
-[  --with-pdfdir           install pdf in this directory.],
-[pdfdir="\${prefix}/${withval}"],
-[pdfdir="\${docdir}"])
-
-AC_ARG_WITH(htmldir,
-[  --with-htmldir          install html in this directory.],
-[htmldir="\${prefix}/${withval}"],
-[htmldir="\${docdir}"])
-
-AC_SUBST(datarootdir)
-AC_SUBST(docdir)
-AC_SUBST(pdfdir)
-AC_SUBST(htmldir)
 
 # Specify what files to not compare during bootstrap.
 

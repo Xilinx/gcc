@@ -1428,6 +1428,49 @@ gimple_can_merge_blocks_p (basic_block a, basic_block b)
   return true;
 }
 
+/* Return true if the var whose chain of uses starts at PTR has no
+   nondebug uses.  */
+bool
+has_zero_uses_1 (const ssa_use_operand_t *head)
+{
+  const ssa_use_operand_t *ptr;
+
+  for (ptr = head->next; ptr != head; ptr = ptr->next)
+    if (!is_gimple_debug (USE_STMT (ptr)))
+      return false;
+
+  return true;
+}
+
+/* Return true if the var whose chain of uses starts at PTR has a
+   single nondebug use.  Set USE_P and STMT to that single nondebug
+   use, if so, or to NULL otherwise.  */
+bool
+single_imm_use_1 (const ssa_use_operand_t *head,
+		  use_operand_p *use_p, gimple *stmt)
+{
+  ssa_use_operand_t *ptr, *single_use = 0;
+
+  for (ptr = head->next; ptr != head; ptr = ptr->next)
+    if (!is_gimple_debug (USE_STMT (ptr)))
+      {
+	if (single_use)
+	  {
+	    single_use = NULL;
+	    break;
+	  }
+	single_use = ptr;
+      }
+
+  if (use_p)
+    *use_p = single_use;
+
+  if (stmt)
+    *stmt = single_use ? single_use->loc.stmt : NULL;
+
+  return !!single_use;
+}
+
 /* Replaces all uses of NAME by VAL.  */
 
 void
@@ -2296,7 +2339,11 @@ remove_bb (basic_block bb)
   /* Remove all the instructions in the block.  */
   if (bb_seq (bb) != NULL)
     {
-      for (i = gsi_start_bb (bb); !gsi_end_p (i);)
+      /* Walk backwards so as to get a chance to substitute all
+	 released DEFs into debug stmts.  See
+	 eliminate_unnecessary_stmts() in tree-ssa-dce.c for more
+	 details.  */
+      for (i = gsi_last_bb (bb); !gsi_end_p (i);)
 	{
 	  gimple stmt = gsi_stmt (i);
 	  if (gimple_code (stmt) == GIMPLE_LABEL
@@ -2332,13 +2379,17 @@ remove_bb (basic_block bb)
 	      gsi_remove (&i, true);
 	    }
 
+	  if (gsi_end_p (i))
+	    i = gsi_last_bb (bb);
+	  else
+	    gsi_prev (&i);
+
 	  /* Don't warn for removed gotos.  Gotos are often removed due to
 	     jump threading, thus resulting in bogus warnings.  Not great,
 	     since this way we lose warnings for gotos in the original
 	     program that are indeed unreachable.  */
 	  if (gimple_code (stmt) != GIMPLE_GOTO
-	      && gimple_has_location (stmt)
-	      && !loc)
+	      && gimple_has_location (stmt))
 	    loc = gimple_location (stmt);
 	}
     }
@@ -2868,7 +2919,14 @@ gimple
 first_stmt (basic_block bb)
 {
   gimple_stmt_iterator i = gsi_start_bb (bb);
-  return !gsi_end_p (i) ? gsi_stmt (i) : NULL;
+  gimple stmt = NULL;
+
+  while (!gsi_end_p (i) && is_gimple_debug ((stmt = gsi_stmt (i))))
+    {
+      gsi_next (&i);
+      stmt = NULL;
+    }
+  return stmt;
 }
 
 /* Return the first non-label statement in basic block BB.  */
@@ -2887,8 +2945,15 @@ first_non_label_stmt (basic_block bb)
 gimple
 last_stmt (basic_block bb)
 {
-  gimple_stmt_iterator b = gsi_last_bb (bb);
-  return !gsi_end_p (b) ? gsi_stmt (b) : NULL;
+  gimple_stmt_iterator i = gsi_last_bb (bb);
+  gimple stmt = NULL;
+
+  while (!gsi_end_p (i) && is_gimple_debug ((stmt = gsi_stmt (i))))
+    {
+      gsi_prev (&i);
+      stmt = NULL;
+    }
+  return stmt;
 }
 
 /* Return the last statement of an otherwise empty block.  Return NULL
@@ -2898,14 +2963,14 @@ last_stmt (basic_block bb)
 gimple
 last_and_only_stmt (basic_block bb)
 {
-  gimple_stmt_iterator i = gsi_last_bb (bb);
+  gimple_stmt_iterator i = gsi_last_nondebug_bb (bb);
   gimple last, prev;
 
   if (gsi_end_p (i))
     return NULL;
 
   last = gsi_stmt (i);
-  gsi_prev (&i);
+  gsi_prev_nondebug (&i);
   if (gsi_end_p (i))
     return last;
 
@@ -2947,7 +3012,7 @@ reinstall_phi_args (edge new_edge, edge old_edge)
  
       gcc_assert (result == gimple_phi_result (phi));
   
-      add_phi_arg (phi, arg, new_edge);
+      add_phi_arg (phi, arg, new_edge, redirect_edge_var_map_location (vm));
     }
   
   redirect_edge_var_map_clear (old_edge);
@@ -3950,12 +4015,13 @@ verify_gimple_assign_single (gimple stmt)
 	    return true;
 	  }
 
-	if (!one_pointer_to_useless_type_conversion_p (lhs_type,
-						       TREE_TYPE (op)))
+	if (!types_compatible_p (TREE_TYPE (op), TREE_TYPE (TREE_TYPE (rhs1)))
+	    && !one_pointer_to_useless_type_conversion_p (TREE_TYPE (rhs1),
+							  TREE_TYPE (op)))
 	  {
 	    error ("type mismatch in address expression");
-	    debug_generic_stmt (lhs_type);
-	    debug_generic_stmt (TYPE_POINTER_TO (TREE_TYPE (op)));
+	    debug_generic_stmt (TREE_TYPE (rhs1));
+	    debug_generic_stmt (TREE_TYPE (op));
 	    return true;
 	  }
 
@@ -4180,6 +4246,22 @@ verify_gimple_phi (gimple stmt)
 }
 
 
+/* Verify a gimple debug statement STMT.
+   Returns true if anything is wrong.  */
+
+static bool
+verify_gimple_debug (gimple stmt ATTRIBUTE_UNUSED)
+{
+  /* There isn't much that could be wrong in a gimple debug stmt.  A
+     gimple debug bind stmt, for example, maps a tree, that's usually
+     a VAR_DECL or a PARM_DECL, but that could also be some scalarized
+     component or member of an aggregate type, to another tree, that
+     can be an arbitrary expression.  These stmts expand into debug
+     insns, and are converted to debug notes by var-tracking.c.  */
+  return false;
+}
+
+
 /* Verify the GIMPLE statement STMT.  Returns true if there is an
    error, otherwise false.  */
 
@@ -4236,6 +4318,9 @@ verify_types_in_gimple_stmt (gimple stmt)
     case GIMPLE_RESX:
     case GIMPLE_PREDICT:
       return false;
+
+    case GIMPLE_DEBUG:
+      return verify_gimple_debug (stmt);
 
     default:
       gcc_unreachable ();
@@ -4346,6 +4431,9 @@ verify_stmt (gimple_stmt_iterator *gsi)
 	  return true;
 	}
     }
+
+  if (is_gimple_debug (stmt))
+    return false;
 
   memset (&wi, 0, sizeof (wi));
   addr = walk_gimple_op (gsi_stmt (*gsi), verify_expr, &wi);
@@ -4923,7 +5011,8 @@ gimple_make_forwarder_block (edge fallthru)
       new_phi = create_phi_node (var, bb);
       SSA_NAME_DEF_STMT (var) = new_phi;
       gimple_phi_set_result (phi, make_ssa_name (SSA_NAME_VAR (var), phi));
-      add_phi_arg (new_phi, gimple_phi_result (phi), fallthru);
+      add_phi_arg (new_phi, gimple_phi_result (phi), fallthru, 
+		   UNKNOWN_LOCATION);
     }
 
   /* Add the arguments we have stored on edges.  */
@@ -5330,7 +5419,8 @@ add_phi_args_after_copy_edge (edge e_copy)
       phi = gsi_stmt (psi);
       phi_copy = gsi_stmt (psi_copy);
       def = PHI_ARG_DEF_FROM_EDGE (phi, e);
-      add_phi_arg (phi_copy, def, e_copy);
+      add_phi_arg (phi_copy, def, e_copy, 
+		   gimple_phi_arg_location_from_edge (phi, e));
     }
 }
 
@@ -6706,7 +6796,7 @@ debug_loop_num (unsigned num, int verbosity)
 static bool
 gimple_block_ends_with_call_p (basic_block bb)
 {
-  gimple_stmt_iterator gsi = gsi_last_bb (bb);
+  gimple_stmt_iterator gsi = gsi_last_nondebug_bb (bb);
   return is_gimple_call (gsi_stmt (gsi));
 }
 
@@ -7012,8 +7102,12 @@ remove_edge_and_dominated_blocks (edge e)
     remove_edge (e);
   else
     {
-      for (i = 0; VEC_iterate (basic_block, bbs_to_remove, i, bb); i++)
-	delete_basic_block (bb);
+      /* Walk backwards so as to get a chance to substitute all
+	 released DEFs into debug stmts.  See
+	 eliminate_unnecessary_stmts() in tree-ssa-dce.c for more
+	 details.  */
+      for (i = VEC_length (basic_block, bbs_to_remove); i-- > 0; )
+	delete_basic_block (VEC_index (basic_block, bbs_to_remove, i));
     }
 
   /* Update the dominance information.  The immediate dominator may change only
@@ -7149,7 +7243,7 @@ gimple_lv_adjust_loop_header_phi (basic_block first, basic_block second,
       phi1 = gsi_stmt (psi1);
       phi2 = gsi_stmt (psi2);
       def = PHI_ARG_DEF (phi2, e2->dest_idx);
-      add_phi_arg (phi1, def, e);
+      add_phi_arg (phi1, def, e, gimple_phi_arg_location_from_edge (phi2, e2));
     }
 }
 
@@ -7545,7 +7639,7 @@ struct gimple_opt_pass pass_warn_unused_result =
 {
   {
     GIMPLE_PASS,
-    "warn_unused_result",		/* name */
+    "*warn_unused_result",		/* name */
     gate_warn_unused_result,		/* gate */
     run_warn_unused_result,		/* execute */
     NULL,				/* sub */

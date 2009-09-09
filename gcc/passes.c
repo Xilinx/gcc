@@ -537,6 +537,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_inline_parameters);
       NEXT_PASS (pass_rebuild_cgraph_edges);
     }
+  NEXT_PASS (pass_ipa_free_lang_data);
   NEXT_PASS (pass_early_local_passes);
     {
       struct opt_pass **p = &pass_early_local_passes.pass.sub;
@@ -661,6 +662,11 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_loop_distribution);
 	  NEXT_PASS (pass_linear_transform);
 	  NEXT_PASS (pass_graphite_transforms);
+	    {
+	      struct opt_pass **p = &pass_graphite_transforms.pass.sub;
+	      NEXT_PASS (pass_dce_loop);
+	      NEXT_PASS (pass_lim);
+	    }
 	  NEXT_PASS (pass_iv_canon);
 	  NEXT_PASS (pass_if_conversion);
 	  NEXT_PASS (pass_vectorize);
@@ -781,8 +787,8 @@ init_optimization_passes (void)
       NEXT_PASS (pass_mode_switching);
       NEXT_PASS (pass_match_asm_constraints);
       NEXT_PASS (pass_sms);
-      NEXT_PASS (pass_sched);
       NEXT_PASS (pass_subregs_of_mode_init);
+      NEXT_PASS (pass_sched);
       NEXT_PASS (pass_ira);
       NEXT_PASS (pass_subregs_of_mode_finish);
       NEXT_PASS (pass_postreload);

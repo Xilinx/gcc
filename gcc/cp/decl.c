@@ -1890,6 +1890,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	}
       DECL_TEMPLATE_INSTANTIATED (newdecl)
 	|= DECL_TEMPLATE_INSTANTIATED (olddecl);
+      DECL_ODR_USED (newdecl) |= DECL_ODR_USED (olddecl);
 
       /* If the OLDDECL is an instantiation and/or specialization,
 	 then the NEWDECL must be too.  But, it may not yet be marked
@@ -1955,7 +1956,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	     should have exited above, returning 0.  */
 	  gcc_assert (DECL_TEMPLATE_SPECIALIZATION (newdecl));
 
-	  if (TREE_USED (olddecl))
+	  if (DECL_ODR_USED (olddecl))
 	    /* From [temp.expl.spec]:
 
 	       If a template, a member template or the member of a class
@@ -6747,36 +6748,6 @@ grokfndecl (tree ctype,
 		|| decl_function_context (TYPE_MAIN_DECL (ctype))))
     publicp = 0;
 
-  if (publicp)
-    {
-      /* [basic.link]: A name with no linkage (notably, the name of a class
-	 or enumeration declared in a local scope) shall not be used to
-	 declare an entity with linkage.
-
-	 Only check this for public decls for now.  See core 319, 389.  */
-      t = no_linkage_check (TREE_TYPE (decl),
-			    /*relaxed_p=*/false);
-      if (t)
-	{
-	  if (TYPE_ANONYMOUS_P (t))
-	    {
-	      if (DECL_EXTERN_C_P (decl))
-		/* Allow this; it's pretty common in C.  */;
-	      else
-		{
-		  permerror (input_location, "non-local function %q#D uses anonymous type",
-			      decl);
-		  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
-		    permerror (input_location, "%q+#D does not refer to the unqualified "
-			       "type, so it is not used for linkage",
-			       TYPE_NAME (t));
-		}
-	    }
-	  else
-	    permerror (input_location, "non-local function %q#D uses local type %qT", decl, t);
-	}
-    }
-
   TREE_PUBLIC (decl) = publicp;
   if (! publicp)
     {
@@ -7021,36 +6992,13 @@ grokvardecl (tree type,
 
   if (TREE_PUBLIC (decl))
     {
-      /* [basic.link]: A name with no linkage (notably, the name of a class
-	 or enumeration declared in a local scope) shall not be used to
-	 declare an entity with linkage.
-
-	 Only check this for public decls for now.  */
-      tree t = no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false);
-      if (t)
-	{
-	  if (TYPE_ANONYMOUS_P (t))
-	    {
-	      if (DECL_EXTERN_C_P (decl))
-		/* Allow this; it's pretty common in C.  */
-		  ;
-	      else
-		{
-		  /* DRs 132, 319 and 389 seem to indicate types with
-		     no linkage can only be used to declare extern "C"
-		     entities.  Since it's not always an error in the
-		     ISO C++ 90 Standard, we only issue a warning.  */
-		  warning (0, "non-local variable %q#D uses anonymous type",
-			   decl);
-		  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
-		    warning (0, "%q+#D does not refer to the unqualified "
-			     "type, so it is not used for linkage",
-			     TYPE_NAME (t));
-		}
-	    }
-	  else
-	    warning (0, "non-local variable %q#D uses local type %qT", decl, t);
-	}
+      /* If the type of the decl has no linkage, make sure that we'll
+	 notice that in mark_used.  */
+      if (DECL_LANG_SPECIFIC (decl) == NULL
+	  && TREE_PUBLIC (decl)
+	  && !DECL_EXTERN_C_P (decl)
+	  && no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false))
+	retrofit_lang_decl (decl);
     }
   else
     DECL_INTERFACE_KNOWN (decl) = 1;
@@ -7109,10 +7057,14 @@ build_ptrmemfunc_type (tree type)
   /* If this is not the unqualified form of this pointer-to-member
      type, set the TYPE_MAIN_VARIANT for this type to be the
      unqualified type.  Since they are actually RECORD_TYPEs that are
-     not variants of each other, we must do this manually.  */
+     not variants of each other, we must do this manually.
+     As we just built a new type there is no need to do yet another copy.  */
   if (cp_type_quals (type) != TYPE_UNQUALIFIED)
     {
-      t = build_qualified_type (t, cp_type_quals (type));
+      int type_quals = cp_type_quals (type);
+      TYPE_READONLY (t) = (type_quals & TYPE_QUAL_CONST) != 0;
+      TYPE_VOLATILE (t) = (type_quals & TYPE_QUAL_VOLATILE) != 0;
+      TYPE_RESTRICT (t) = (type_quals & TYPE_QUAL_RESTRICT) != 0;
       TYPE_MAIN_VARIANT (t) = unqualified_variant;
       TYPE_NEXT_VARIANT (t) = TYPE_NEXT_VARIANT (unqualified_variant);
       TYPE_NEXT_VARIANT (unqualified_variant) = t;
@@ -11217,7 +11169,8 @@ finish_enum (tree enumtype)
       /* Set the underlying type of the enumeration type to the
          computed enumeration type, restricted to the enumerator
          values. */
-      ENUM_UNDERLYING_TYPE (enumtype) = copy_node (underlying_type);
+      ENUM_UNDERLYING_TYPE (enumtype)
+	= build_distinct_type_copy (underlying_type);
       set_min_and_max_values_for_integral_type 
         (ENUM_UNDERLYING_TYPE (enumtype), precision, unsignedp);
     }

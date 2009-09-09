@@ -319,10 +319,22 @@ int flag_dump_rtl_in_asm = 0;
    the support provided depends on the backend.  */
 rtx stack_limit_rtx;
 
-/* Nonzero if we should track variables.  When
-   flag_var_tracking == AUTODETECT_VALUE it will be set according
-   to optimize, debug_info_level and debug_hooks in process_options ().  */
+/* Positive if we should track variables, negative if we should run
+   the var-tracking pass only to discard debug annotations, zero if
+   we're not to run it.  When flag_var_tracking == AUTODETECT_VALUE it
+   will be set according to optimize, debug_info_level and debug_hooks
+   in process_options ().  */
 int flag_var_tracking = AUTODETECT_VALUE;
+
+/* Positive if we should track variables at assignments, negative if
+   we should run the var-tracking pass only to discard debug
+   annotations.  When flag_var_tracking_assignments ==
+   AUTODETECT_VALUE it will be set according to flag_var_tracking.  */
+int flag_var_tracking_assignments = AUTODETECT_VALUE;
+
+/* Nonzero if we should toggle flag_var_tracking_assignments after
+   processing options and computing its default.  */
+int flag_var_tracking_assignments_toggle = 0;
 
 /* Type of stack check.  */
 enum stack_check_type flag_stack_check = NO_STACK_CHECK;
@@ -1034,8 +1046,7 @@ compile_file (void)
 
   ggc_protect_identifiers = false;
 
-  /* This must also call cgraph_finalize_compilation_unit and
-     cgraph_optimize.  */
+  /* This must also call cgraph_finalize_compilation_unit.  */
   lang_hooks.decls.final_write_globals ();
 
   if (errorcount || sorrycount)
@@ -1566,8 +1577,8 @@ default_pch_valid_p (const void *data_p, size_t len)
 }
 
 /* Default tree printer.   Handles declarations only.  */
-static bool
-default_tree_printer (pretty_printer * pp, text_info *text, const char *spec,
+bool
+default_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
 		      int precision, bool wide, bool set_locus, bool hash)
 {
   tree t;
@@ -1802,7 +1813,8 @@ process_options (void)
       || flag_loop_block
       || flag_loop_interchange
       || flag_loop_strip_mine
-      || flag_graphite_identity)
+      || flag_graphite_identity
+      || flag_loop_parallelize_all)
     sorry ("Graphite loop optimizations cannot be used");
 #endif
 
@@ -1877,7 +1889,7 @@ process_options (void)
 	debug_info_level = DINFO_LEVEL_NONE;
     }
 
-  if (flag_dump_final_insns)
+  if (flag_dump_final_insns && !flag_syntax_only && !no_backend)
     {
       FILE *final_output = fopen (flag_dump_final_insns, "w");
       if (!final_output)
@@ -1971,12 +1983,32 @@ process_options (void)
       flag_var_tracking_uninit = 0;
     }
 
-  if (flag_rename_registers == AUTODETECT_VALUE)
-    flag_rename_registers = default_debug_hooks->var_location
-	    		    != do_nothing_debug_hooks.var_location;
+  /* If the user specifically requested variable tracking with tagging
+     uninitialized variables, we need to turn on variable tracking.
+     (We already determined above that variable tracking is feasible.)  */
+  if (flag_var_tracking_uninit)
+    flag_var_tracking = 1;
 
   if (flag_var_tracking == AUTODETECT_VALUE)
     flag_var_tracking = optimize >= 1;
+
+  if (flag_var_tracking_assignments == AUTODETECT_VALUE)
+    flag_var_tracking_assignments = flag_var_tracking
+      && !(flag_selective_scheduling || flag_selective_scheduling2);
+
+  if (flag_var_tracking_assignments_toggle)
+    flag_var_tracking_assignments = !flag_var_tracking_assignments;
+
+  if (flag_var_tracking_assignments && !flag_var_tracking)
+    flag_var_tracking = flag_var_tracking_assignments = -1;
+
+  if (flag_var_tracking_assignments
+      && (flag_selective_scheduling || flag_selective_scheduling2))
+    warning (0, "var-tracking-assignments changes selective scheduling");
+
+  if (flag_rename_registers == AUTODETECT_VALUE)
+    flag_rename_registers = default_debug_hooks->var_location
+	    		    != do_nothing_debug_hooks.var_location;
 
   if (flag_tree_cselim == AUTODETECT_VALUE)
 #ifdef HAVE_conditional_move
@@ -1984,12 +2016,6 @@ process_options (void)
 #else
     flag_tree_cselim = 0;
 #endif
-
-  /* If the user specifically requested variable tracking with tagging
-     uninitialized variables, we need to turn on variable tracking.
-     (We already determined above that variable tracking is feasible.)  */
-  if (flag_var_tracking_uninit)
-    flag_var_tracking = 1;
 
   /* If auxiliary info generation is desired, open the output file.
      This goes in the same directory as the source file--unlike
@@ -2047,7 +2073,7 @@ process_options (void)
   if (flag_signaling_nans)
     flag_trapping_math = 1;
 
-  /* We cannot reassociate if we want traps or signed zeros.  */
+  /* We cannot reassociate if we want traps or signed zeros.  */
   if (flag_associative_math && (flag_trapping_math || flag_signed_zeros))
     {
       warning (0, "-fassociative-math disabled; other options take precedence");
