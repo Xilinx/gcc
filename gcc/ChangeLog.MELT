@@ -1,5 +1,11 @@
 
-2009-09-00  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy; reduced tmatch-5.melt to an even simpler example]
+	* melt/warmelt-first.melt: added integerbox_of cmatcher.
+	* melt/warmelt-normatch.melt: added more debug ..
+	* gcc/testsuite/melt/tmatch-5.melt: even simpler test.
+
+2009-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[while adding makedoc command, found a bug in matcher translation,
 	so added testcase tmatch-5.melt]
 	* doc/melt.texi: Improved documentation about quote, and example

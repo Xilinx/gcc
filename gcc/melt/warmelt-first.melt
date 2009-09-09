@@ -1253,6 +1253,17 @@ discriminant $DIS.}#
 (defprimitive make_integerbox (discr :long n) :value
   "(meltgc_new_int((meltobject_ptr_t)(" discr "), (" n ")))")
 
+;;; pattern
+(defcmatcher integerbox_of 
+  (:value bx)
+  (:long ict)
+  iboxof
+  ;; test
+  #{ /* $iboxof ?*/ $bx && melt_magic_discr($bx) == OBMAG_INT }#
+  ;; fill
+  #{ /* $iboxof !*/ $ict = ((struct meltint_st*)$bx)->val; }#
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; BOX primitives (boxed values)
 ;; test
@@ -4579,11 +4590,12 @@ discriminant $DIS.}#
  )
 
 
-;; export the citerators defined above
+;; export the citerators & cmatchers defined above
 (export_values
  foreach_in_list
  foreach_in_multiple
  foreach_long_upto
+ integerbox_of 
  )
 
 ;; eof warmelt-first.melt
