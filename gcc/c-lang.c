@@ -67,7 +67,7 @@ enum c_language_kind c_language = clk_c;
 
 
 /* Each front end provides its own lang hook initializer.  */
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 /* Final processing of file-scope data.  The Objective-C version of
    this function still does something.  */

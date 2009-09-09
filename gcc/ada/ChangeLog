@@ -1,3 +1,36 @@
+2009-09-03  Diego Novillo  <dnovillo@google.com>
+
+	* gcc-interface/misc.c (lang_hooks): Remove const qualifier.
+
+2009-09-02  Richard Henderson  <rth@redhat.com>
+
+	* tb-gcc.c (__gnat_backtrace): Mark all arguments unused.
+
+2009-09-02  Olivier Hainque  <hainque@adacore.com>
+
+	* init.c (__gnat_error_handler, AIX): Add ATTRIBUTE_UNUSED on si
+	and uc arguments.
+	
+2009-09-02  Olivier Hainque  <hainque@adacore.com>
+
+	* gcc-interface/decl.c (cannot_be_superflat_p): Handle
+	Signed_Integer_Type_Definition Scalar_Ranges.
+
+2009-09-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (gnat_gimplify_expr) <ADDR_EXPR>: Gimplify the
+	SAVE_EXPR built for misaligned arguments.  Remove redundant stuff.
+	(addressable_p): Return true for more rvalues.
+
+2009-09-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc-interface/utils2.c (maybe_wrap_malloc, maybe_wrap_free): Cast
+	POINTER_SIZE to HOST_WIDE_INT.
+
+2009-09-01  Richard Guenther  <rguenther@suse.de>
+
+	* gcc-interface/misc.c (LANG_HOOKS_MARK_ADDRESSABLE): Remove.
+
 2009-08-25  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/trans.c (call_to_gnu): Tidy.

@@ -1,5 +1,5 @@
 /* Language-dependent hooks for C++.
-   Copyright 2001, 2002, 2004, 2007, 2008 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2004, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Alexandre Oliva  <aoliva@redhat.com>
 
 This file is part of GCC.
@@ -50,6 +50,20 @@ static bool cp_user_conv_function_p (tree);
 #define LANG_HOOKS_CLASSIFY_RECORD cp_classify_record
 #undef LANG_HOOKS_GENERIC_TYPE_P
 #define LANG_HOOKS_GENERIC_TYPE_P class_tmpl_impl_spec_p
+
+#undef LANG_HOOKS_GET_INNERMOST_GENERIC_PARMS
+#define LANG_HOOKS_GET_INNERMOST_GENERIC_PARMS \
+	get_primary_template_innermost_parameters
+#undef LANG_HOOKS_GET_INNERMOST_GENERIC_ARGS
+#define LANG_HOOKS_GET_INNERMOST_GENERIC_ARGS \
+	get_template_innermost_arguments
+#undef LANG_HOOKS_GET_ARGUMENT_PACK_ELEMS
+#define LANG_HOOKS_GET_ARGUMENT_PACK_ELEMS \
+	get_template_argument_pack_elems
+#undef LANG_HOOKS_GENERIC_GENERIC_PARAMETER_DECL_P
+#define LANG_HOOKS_GENERIC_GENERIC_PARAMETER_DECL_P \
+	template_template_parameter_p
+
 #undef LANG_HOOKS_DECL_PRINTABLE_NAME
 #define LANG_HOOKS_DECL_PRINTABLE_NAME	cxx_printable_name
 #undef LANG_HOOKS_DWARF_NAME
@@ -93,7 +107,7 @@ static bool cp_user_conv_function_p (tree);
 #define LANG_HOOKS_CMP_LANG_TYPE cp_cmp_lang_type
 
 /* Each front end provides its own lang hook initializer.  */
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 /* Lang hook routines common to C++ and ObjC++ appear in cp/cp-objcp-common.c;
    there should be very few routines below.  */
@@ -144,7 +158,9 @@ cxx_dwarf_name (tree t, int verbosity)
   gcc_assert (DECL_P (t));
 
   if (verbosity >= 2)
-    return decl_as_string (t, TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME);
+    return decl_as_string (t,
+			   TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME
+			   | TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS);
 
   return cxx_printable_name (t, verbosity);
 }

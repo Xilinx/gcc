@@ -1422,8 +1422,8 @@ compute_regs_asm_clobbered (char *regs_asm_clobbered)
 
 
 /* Set up ELIMINABLE_REGSET, IRA_NO_ALLOC_REGS, and REGS_EVER_LIVE.  */
-static void
-setup_eliminable_regset (void)
+void
+ira_setup_eliminable_regset (void)
 {
   /* Like regs_ever_live, but 1 if a reg is set or clobbered from an
      asm.  Unlike regs_ever_live, elements of this array corresponding
@@ -1827,7 +1827,8 @@ setup_preferred_alternate_classes_for_new_pseudos (int start)
       old_regno = ORIGINAL_REGNO (regno_reg_rtx[i]);
       ira_assert (i != old_regno); 
       setup_reg_classes (i, reg_preferred_class (old_regno),
-			 reg_alternate_class (old_regno));
+			 reg_alternate_class (old_regno),
+			 reg_cover_class (old_regno));
       if (internal_flag_ira_verbose > 2 && ira_dump_file != NULL)
 	fprintf (ira_dump_file,
 		 "    New r%d: setting preferred %s, alternative %s\n",
@@ -1848,10 +1849,7 @@ expand_reg_info (int old_size)
 
   resize_reg_info ();
   for (i = old_size; i < size; i++)
-    {
-      reg_renumber[i] = -1;
-      setup_reg_classes (i, GENERAL_REGS, ALL_REGS);
-    }
+    setup_reg_classes (i, GENERAL_REGS, ALL_REGS, GENERAL_REGS);
 }
 
 /* Return TRUE if there is too high register pressure in the function.
@@ -2234,7 +2232,7 @@ memref_used_between_p (rtx memref, rtx start, rtx end)
   for (insn = NEXT_INSN (start); insn != NEXT_INSN (end);
        insn = NEXT_INSN (insn))
     {
-      if (!INSN_P (insn))
+      if (!NONDEBUG_INSN_P (insn))
 	continue;
       
       if (memref_referenced_p (memref, PATTERN (insn)))
@@ -2386,21 +2384,9 @@ update_equiv_regs (void)
 
 	  /* We only handle the case of a pseudo register being set
 	     once, or always to the same value.  */
-	  /* ??? The mn10200 port breaks if we add equivalences for
-	     values that need an ADDRESS_REGS register and set them equivalent
-	     to a MEM of a pseudo.  The actual problem is in the over-conservative
-	     handling of INPADDR_ADDRESS / INPUT_ADDRESS / INPUT triples in
-	     calculate_needs, but we traditionally work around this problem
-	     here by rejecting equivalences when the destination is in a register
-	     that's likely spilled.  This is fragile, of course, since the
-	     preferred class of a pseudo depends on all instructions that set
-	     or use it.  */
-
 	  if (!REG_P (dest)
 	      || (regno = REGNO (dest)) < FIRST_PSEUDO_REGISTER
-	      || reg_equiv[regno].init_insns == const0_rtx
-	      || (CLASS_LIKELY_SPILLED_P (reg_preferred_class (regno))
-		  && MEM_P (src) && ! reg_equiv[regno].is_arg_equivalence))
+	      || reg_equiv[regno].init_insns == const0_rtx)
 	    {
 	      /* This might be setting a SUBREG of a pseudo, a pseudo that is
 		 also set somewhere else to a constant.  */
@@ -2678,7 +2664,7 @@ update_equiv_regs (void)
 		    }
 		  /* Move the initialization of the register to just before
 		     INSN.  Update the flow information.  */
-		  else if (PREV_INSN (insn) != equiv_insn)
+		  else if (prev_nondebug_insn (insn) != equiv_insn)
 		    {
 		      rtx new_insn;
 
@@ -3160,8 +3146,8 @@ ira (FILE *f)
     }
 
   max_regno_before_ira = allocated_reg_info_size = max_reg_num ();
-  allocate_reg_info ();
-  setup_eliminable_regset ();
+  resize_reg_info ();
+  ira_setup_eliminable_regset ();
       
   ira_overall_cost = ira_reg_cost = ira_mem_cost = 0;
   ira_load_cost = ira_store_cost = ira_shuffle_cost = 0;
