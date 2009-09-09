@@ -1,3 +1,8 @@
+2009-09-09  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (find_tm_replacement_function): Check tm_wrap_map
+	before checking for builtins.
+
 2009-09-07  Aldy Hernandez  <aldyh@redhat.com>
 
 	* builtin-attrs.def: (ATTR_TM_PURE): New.

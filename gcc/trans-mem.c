@@ -343,6 +343,17 @@ record_tm_replacement (tree from, tree to)
 static tree
 find_tm_replacement_function (tree fndecl)
 {
+  if (tm_wrap_map)
+    {
+      struct tree_map *h, in;
+
+      in.base.from = fndecl;
+      in.hash = htab_hash_pointer (fndecl);
+      h = (struct tree_map *) htab_find_with_hash (tm_wrap_map, &in, in.hash);
+      if (h)
+	return h->to;
+    }
+
   /* ??? We may well want TM versions of most of the common <string.h>
      functions.  For now, we've already these two defined.  */
   if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
@@ -355,17 +366,6 @@ find_tm_replacement_function (tree fndecl)
       default:
 	return NULL;
       }
-
-  if (tm_wrap_map)
-    {
-      struct tree_map *h, in;
-
-      in.base.from = fndecl;
-      in.hash = htab_hash_pointer (fndecl);
-      h = (struct tree_map *) htab_find_with_hash (tm_wrap_map, &in, in.hash);
-      if (h)
-	return h->to;
-    }
 
   return NULL;
 }
