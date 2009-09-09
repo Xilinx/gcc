@@ -43,6 +43,7 @@ meltarg_source_path=$(if $(melt_is_plugin),-fplugin-arg-melt-source-path,-fmelt-
 meltarg_tempdir=$(if $(melt_is_plugin),-fplugin-arg-melt-tempdir,-fmelt-tempdir)
 meltarg_compile_script=$(if $(melt_is_plugin),-fplugin-arg-melt-compile-script,-fmelt-compile-script)
 meltarg_arg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-arg)
+meltarg_arglist=$(if $(melt_is_plugin),-fplugin-arg-melt-arglist,-fmelt-arglist)
 meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
 
 ## MELT_DEBUG could be set to -fmelt-debug or -fplugin-arg-melt-debug
@@ -324,5 +325,17 @@ $(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
 	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
 	for f in  $(ANAMELT_BASE); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
+
+### generated melt documentation
+meltgendoc.texi: $(melt_default_modules_list).modlis $(WARMELT_SRCFILES) empty-file-for-melt.c
+	$(melt_cc1) $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=makedoc  \
+	      $(meltarg_module_path)=.:$(melt_make_module_dir) \
+	      $(meltarg_source_path)=.:$(melt_make_source_dir):$(melt_source_dir) \
+	      $(meltarg_compile_script)=$(melt_make_compile_script) \
+	      $(meltarg_tempdir)=.  $(MELT_DEBUG) \
+	      $(meltarg_init)="@$(melt_default_modules_list)" \
+	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST)  \
+	      $(meltarg_output)=$@   empty-file-for-melt.c
+
 
 #eof melt-make.mk

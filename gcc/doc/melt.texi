@@ -1673,10 +1673,16 @@ field named @var{:field-name1} to the value of @var{val1} etc@dots{}
 @item quote
 @cindex @code{quote} MELT syntax
 @code{(quote x)} is the same as @code{'x} and returns the symbol
-@code{x} itself (as an instance of
-@code{CLASS_SYMBOL}). [Expert]Currently, only symbols can be
-quoted. But @code{'1} and @code{'"string"} should be a way to express
-static boxed values [unimplemented].
+@code{x} itself (as an instance of @code{CLASS_SYMBOL}). When applied
+to an integer, like @code{'1}, it gives a constant boxed integer value
+(of @code{DISCR_INTEGER}). When applied to a string, like
+@code{'"string"}, it gives a constant boxed string value (of
+@code{DISCR_STRING}). Therefore, when passed as an actual argument (to
+a primitive, a function, ...) @code{'1} (a boxed integer value) is not
+the same as @code{1} (a raw integer stuff), and likewise @code{'"abc"}
+is a boxed string value, different of @code{"abc"} (a raw string
+stuff).  This is very different from other Lisps!  Only symbols,
+strings, integers can be quoted.
 
 
 @item return
@@ -1956,7 +1962,7 @@ code have to use the @code{make_integerbox} defined in
 @file{warmelt-first.melt} as
 @lisp
 (defprimitive make_integerbox (discr :long n) :value
-  "(meltgc_new_int((meltobject_ptr_t)(" discr "), (" n ")))")
+  #@{(meltgc_new_int((meltobject_ptr_t)(" discr "), (" n ")))@}#
 @end lisp
 If the passed @code{discr} is not a discriminant for boxed integers,
 @code{make_integerbox} gives nil.
@@ -2011,9 +2017,9 @@ object. We could have tested that it is indeed an instance of
 test that the discriminant's magic is indeed
 @code{OBMAG_INT}@footnote{It is essential to ensure that every MELT
 value has the good magic numer in its discriminant. Violating that
-would crash GCC.}. If either test fail, we return nil by @code{goto
-end}. We cannot code a direct @code{return} statement, because that
-would not pop the topmost MELT frame.
+would crash GCC MELT.}. If either test fail, we return nil by
+@code{goto end}. We cannot code a direct @code{return} statement,
+because that would not pop the topmost MELT frame.
 
 @verbatim
   newintv = meltgc_allocate (sizeof (struct meltint_st), 0);

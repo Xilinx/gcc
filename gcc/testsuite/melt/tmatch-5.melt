@@ -1,0 +1,23 @@
+; -*- lisp -*-
+;; file tmatch-5.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:...melt-source \
+    -fmelt-compile-script=./built-melt-cc-script \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=.../tmatch-5.melt -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun tmatch5 (curexp)
+  (match 
+   curexp 
+   (?(instance class_srcdef 
+	       :sdef_name ?dnam
+	       :sdef_doc ?(as ?doc ?(instance class_sexpr :loca_location ?loc :sexp_contents ?docl)))
+     (debug_msg dnam "makedoc_docmd dnam")
+     (debug_msg doc "makedoc_docmd doc")
+     )
+   )
+  )
+
+;; eof tmatch-5.melt

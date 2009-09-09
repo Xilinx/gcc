@@ -1,4 +1,14 @@
 
+2009-09-00  Basile Starynkevitch  <basile@starynkevitch.net>
+	[while adding makedoc command, found a bug in matcher translation,
+	so added testcase tmatch-5.melt]
+	* doc/melt.texi: Improved documentation about quote, and example
+	of primitive.
+	* melt-make.mk (meltarg_arglis): Added variable.
+	(meltgendoc.texi): Added new target.
+	* testsuite/melt/tmatch-5.melt: Added new file.
+	* melt/warmelt-outobj.melt: Start adding makedoc command.
+
 2009-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the command infrastucture is improved thru the
 	CLASS_MELT_COMMAND]
