@@ -325,6 +325,14 @@ record_tm_replacement (tree from, tree to)
 {
   struct tree_map **slot, *h;
 
+  /* Do not inline wrapper functions that will get replaced in the TM
+     pass.
+
+     Suppose you have foo() that will get replaced into tmfoo().  Make
+     sure the inliner doesn't try to outsmart us and inline foo()
+     before we get a chance to do the TM replacement.  */
+  DECL_UNINLINABLE (from) = 1;
+
   if (tm_wrap_map == NULL)
     tm_wrap_map = htab_create_ggc (32, tree_map_hash, tree_map_eq, 0);
 

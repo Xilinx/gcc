@@ -1,3 +1,7 @@
+2009-09-10  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (record_tm_replacement): Set DECL_UNINLINABLE.
+
 2009-09-09  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (find_tm_replacement_function): Check tm_wrap_map
@@ -9,10 +13,8 @@
 	(ATTR_TM_TMPURE_NOTHROW_LIST): New.
 	(ATTR_TM_PURE_TMPURE_NOTHROW_LIST): New.
 	(ATTR_TM_PURE_NOTHROW_LIST): Remove.
-
 	* gtm-builtins.def (BUILT_IN_TM_LOAD_*): Use
 	ATTR_TM_PURE_TMPURE_NOTHROW_LIST instead.
-
 	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle TM builtins.
 	(call_may_clobber_ref_p_1): Same.
 	* tree-ssa-structalias.c (find_func_aliases): Same.
