@@ -27,23 +27,8 @@
 /* Define to 1 if you have the `getloadavg' function. */
 #undef HAVE_GETLOADAVG
 
-/* Define to 1 if the system has the type `intmax_t'. */
-#undef HAVE_INTMAX_T
-
-/* Define to 1 if the system has the type `intptr_t'. */
-#undef HAVE_INTPTR_T
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
-
-/* Define to 1 if the system has the type `int_fast32_t'. */
-#undef HAVE_INT_FAST32_T
-
-/* Define to 1 if the system has the type `int_least32_t'. */
-#undef HAVE_INT_LEAST32_T
-
-/* Define to 1 if the system has the type `long long int'. */
-#undef HAVE_LONG_LONG_INT
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -87,17 +72,8 @@
 /* Define to 1 if the target supports thread-local storage. */
 #undef HAVE_TLS
 
-/* Define to 1 if the system has the type `uintmax_t'. */
-#undef HAVE_UINTMAX_T
-
-/* Define to 1 if the system has the type `uintptr_t'. */
-#undef HAVE_UINTPTR_T
-
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
-
-/* Define to 1 if the system has the type `unsigned long long int'. */
-#undef HAVE_UNSIGNED_LONG_LONG_INT
 
 /* Define to 1 if GNU symbol versioning is used for libgomp. */
 #undef LIBGOMP_GNU_SYMBOL_VERSIONING
@@ -127,6 +103,21 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* The size of `char', as computed by sizeof. */
+#undef SIZEOF_CHAR
+
+/* The size of `int', as computed by sizeof. */
+#undef SIZEOF_INT
+
+/* The size of `long', as computed by sizeof. */
+#undef SIZEOF_LONG
+
+/* The size of `short', as computed by sizeof. */
+#undef SIZEOF_SHORT
+
+/* The size of `void *', as computed by sizeof. */
+#undef SIZEOF_VOID_P
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
@@ -138,66 +129,3 @@
 
 /* Version number of package */
 #undef VERSION
-
-/* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
-   #define below would cause a syntax error. */
-#undef _UINT32_T
-
-/* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
-   #define below would cause a syntax error. */
-#undef _UINT64_T
-
-/* Define for Solaris 2.5.1 so the uint8_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
-   #define below would cause a syntax error. */
-#undef _UINT8_T
-
-/* Define to the type of a signed integer type of width exactly 16 bits if
-   such a type exists and the standard includes do not define it. */
-#undef int16_t
-
-/* Define to the type of a signed integer type of width exactly 32 bits if
-   such a type exists and the standard includes do not define it. */
-#undef int32_t
-
-/* Define to the type of a signed integer type of width exactly 64 bits if
-   such a type exists and the standard includes do not define it. */
-#undef int64_t
-
-/* Define to the type of a signed integer type of width exactly 8 bits if such
-   a type exists and the standard includes do not define it. */
-#undef int8_t
-
-/* Define to the widest signed integer type if <stdint.h> and <inttypes.h> do
-   not define. */
-#undef intmax_t
-
-/* Define to the type of a signed integer type wide enough to hold a pointer,
-   if such a type exists, and if the system does not define it. */
-#undef intptr_t
-
-/* Define to the type of an unsigned integer type of width exactly 16 bits if
-   such a type exists and the standard includes do not define it. */
-#undef uint16_t
-
-/* Define to the type of an unsigned integer type of width exactly 32 bits if
-   such a type exists and the standard includes do not define it. */
-#undef uint32_t
-
-/* Define to the type of an unsigned integer type of width exactly 64 bits if
-   such a type exists and the standard includes do not define it. */
-#undef uint64_t
-
-/* Define to the type of an unsigned integer type of width exactly 8 bits if
-   such a type exists and the standard includes do not define it. */
-#undef uint8_t
-
-/* Define to the widest unsigned integer type if <stdint.h> and <inttypes.h>
-   do not define. */
-#undef uintmax_t
-
-/* Define to the type of an unsigned integer type wide enough to hold a
-   pointer, if such a type exists, and if the system does not define it. */
-#undef uintptr_t

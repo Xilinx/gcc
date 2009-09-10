@@ -1,3 +1,99 @@
+2009-09-09  Jason Merrill  <jason@redhat.com>
+
+	* configure.ac: Check glibc version even if we have an in-tree
+	assembler.
+
+2009-09-09  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/moxie.md (*movsi, *movhi, *movqi): Use xor to load
+	the constant 0 when appropriate.
+	* config/moxie/constraints.md: Add constraint O.
+
+	* config/moxie/moxie.c (moxie_setup_incoming_varargs): Adjust
+	to pass up to 6 32-bit argument values in registers.
+	(moxie_function_arg): Ditto.
+	(moxie_arg_partial_bytes): Ditto.
+	* config/moxie/moxie.h (FUNCTION_ARG_ADVANCE): Ditto.
+	(REG_PARM_STACK_SPACE): Ditto.
+	(FUNCTION_ARG_REGNO_P): Ditto.
+
+	* config/moxie/moxie.c (moxie_expand_prologue): Use dec
+	instruction to allocate stack space.
+
+2009-09-09  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* config/rs6000/rs6000.md (bswapdi2_64bit): Fix
+	unnecessarily stringent constraints.  Fix address
+	calculation in the splitters.
+
+2009-09-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR rtl-optimization/39779
+	* expr.c (convert_modes): Return when mode == oldmode after
+	CONST_INTs are processed.
+
+2009-09-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR/41315
+	* config/i386.c (ix86_can_use_return_insn_p): Check for padding0, too.
+	(ix86_expand_prologue): Take frame.padding0 into logic of
+	to_allocate checks.
+	(ix86_expand_epilogue): Likewise.
+
+2009-09-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/t-slibgcc-elf-ver (SHLIB_MAKE_SOLINK, SHLIB_INSTALL_SOLINK):
+	New variables.
+	(SHLIB_LINK, SHLIB_INSTALL): Use them.
+	* config/t-slibgcc-libgcc: New file.
+	* config.gcc (powerpc*-*-linux*, powerpc*-*-gnu*): Use it.
+
+2009-09-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/41089
+	* tree-sra.c (find_var_candidates): Do not consider va_lists in
+	early SRA.
+
+2009-09-09  Richard Henderson  <rth@redhat.com>
+
+	* gimple.h (CASE_GIMPLE_OMP): New.
+	(is_gimple_omp): Use it.
+	* tree-cfg.c (is_ctrl_altering_stmt): Likewise.
+	(verify_gimple_debug): Likewise.
+
+2009-09-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41101
+	* tree-ssa-pre.c (maximal_set): Remove.
+	(compute_antic_aux): Treat the maximal set as implicitly all ones.
+	Defer all blocks we didn't visit at least one successor.
+	(add_to_exp_gen): Do not add to the maximal set.
+	(make_values_for_phi): Likewise.
+	(compute_avail): Likewise.
+	(init_pre): Do not allocate the maximal set.
+	(execute_pre): Do not dump it.
+
+2009-09-09  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-cfg.c (verify_gimple_phi): Check that gimple_phi_result is
+	an SSA_NAME rather than a is_gimple_variable.
+
+2009-09-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41317
+	* tree-ssa-ccp.c (maybe_fold_offset_to_component_ref): Remove
+	code dealing with plain pointer bases.
+	(maybe_fold_offset_to_reference): Likewise.
+	(maybe_fold_stmt_addition): Adjust.
+
+2009-09-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (free_lang_data_in_type): Do not free the type variant
+	chains.
+	(free_lang_data): Merge char_type_node with its properly signed
+	variant.
+	(pass_ipa_free): Collect after freeing language specific data.
+
 2009-09-09  Michael Matz  <matz@suse.de>
 
 	PR middle-end/41268
@@ -124,7 +220,7 @@
 	(insn_reservation "loadsp"): New.
 	(insn_reservation "load_stall1"): New.
 	(insn_reservation "load_stall3"): New.
-	(stall): New insn.	
+	(stall): New insn.
 	* config/bfin/predicates.md (const1_operand, const3_operand): New.
 	(mem_p_address_operand): Exclude stack and frame pointer based
 	addresses.
@@ -142,12 +238,12 @@
 	From Mike Frysinger  <michael.frysinger@analog.com>
 	* config/bfin/bfin-protos.h (bfin_cpu_type): Add BFIN_CPU_BF542M,
 	BFIN_CPU_BF544M, BFIN_CPU_BF547M, BFIN_CPU_BF548M, and BFIN_CPU_BF549M.
-	* config/bfin/bfin.c (bfin_cpus[]): Add 0.3 for bf542m, bf544m, bf547m,
-	bf548m, and bf549m.
+	* config/bfin/bfin.c (bfin_cpus[]): Add 0.3 for bf542m, bf544m,
+	bf547m, bf548m, and bf549m.
 	* config/bfin/bfin.h (TARGET_CPU_CPP_BUILTINS): Define __ADSPBF542M__
-	for BFIN_CPU_BF542M, __ADSPBF544M__ for BFIN_CPU_BF544M, __ADSPBF547M__
-	for BFIN_CPU_BF547M, __ADSPBF548M__ for BFIN_CPU_BF548M, and
-	__ADSPBF549M__ for BFIN_CPU_BF549M.
+	for BFIN_CPU_BF542M, __ADSPBF544M__ for BFIN_CPU_BF544M,
+	__ADSPBF547M__ for BFIN_CPU_BF547M, __ADSPBF548M__ for
+	BFIN_CPU_BF548M, and __ADSPBF549M__ for BFIN_CPU_BF549M.
 	* config/bfin/t-bfin-elf (MULTILIB_MATCHES): Select bf532-none for
 	bf542m-none, bf544m-none, bf547m-none, bf548m-none, and bf549m-none.
 	* config/bfin/t-bfin-linux (MULTILIB_MATCHES): Likewise.
@@ -156,17 +252,14 @@
 	bf542m, bf544m, bf547m, bf548m, and bf549m.
 
 	From Jie Zhang <jie.zhang@analog.com>:
-	* config/bfin/predicates.md (p_register_operand): New
-	predicate.
+	* config/bfin/predicates.md (p_register_operand): New predicate.
 	(dp_register_operand): New predicate.
 	* config/bfin/bfin-protos.h (WA_05000074): Define.
 	(ENABLE_WA_05000074): Define.
-	* config/bfin/bfin.c (bfin_cpus[]): Add WA_05000074 for
-	all cpus.
+	* config/bfin/bfin.c (bfin_cpus[]): Add WA_05000074 for all cpus.
 	(bfin_gen_bundles): Put dsp32shiftimm instruction in slot[0].
 	* config/bfin/bfin.md (define_attr type): Add dsp32shiftimm.
-	(define_attr addrtype): Allow load/store register to be
-	P register.
+	(define_attr addrtype): Allow load/store register to be P register.
 	(define_attr storereg): New.
 	(define_cpu_unit anomaly_05000074): New.
 	(define_insn_reservation dsp32shiftimm): New.
@@ -220,7 +313,7 @@
 
 2009-09-07  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 
-	* rtl.h (PREFETCH_SCHEDULE_BARRIER_P): New macro.	
+	* rtl.h (PREFETCH_SCHEDULE_BARRIER_P): New macro.
 	* sched-deps.c (sched_analyze_2): Make prefetches a hard barrier
 	when volatile flag is set.
 	* doc/rtl.texi (PREFETCH_SCHEDULE_BARRIER_P): Add documentation pieces.
@@ -607,8 +700,7 @@
 	expand_expr_real_2): Declare.
 	* expr.c (emit_storent_insn, expand_expr_real_1,
 	expand_expr_real_2): Export.
-	(store_expr): Setting and evaluating dont_return_target is
-	useless.
+	(store_expr): Setting and evaluating dont_return_target is useless.
 	(expand_expr_real_1, <case GOTO_EXPR, RETURN_EXPR, SWITCH_EXPR,
 	LABEL_EXPR and ASM_EXPR>): Move to gcc_unreachable.
 	* except.c (expand_resx_expr): Rename to ...
@@ -665,8 +757,7 @@
 	(update_register_pressure, setup_insn_max_reg_pressure,
 	update_reg_and_insn_max_reg_pressure,
 	sched_setup_bb_reg_pressure_info): New functions.
-	(schedule_insn): Add code for printing and updating reg pressure
-	info.
+	(schedule_insn): Add code for printing and updating reg pressure info.
 	(find_set_reg_weight, find_insn_reg_weight): Remove.
 	(ok_for_early_queue_removal): Do nothing if pressure_only_p.
 	(debug_ready_list): Print reg pressure info.
@@ -732,8 +823,7 @@
 	(common_classes): Rename to regno_cover_class.
 	(COST_INDEX): New.
 	(record_reg_classes): Set allocno attributes only if allocno_p.
-	(record_address_regs): Ditto.  Use COST_INDEX instead of
-	ALLOCNO_NUM.
+	(record_address_regs): Ditto.  Use COST_INDEX instead of ALLOCNO_NUM.
 	(scan_one_insn): Use COST_INDEX and COSTS instead of ALLOCNO_NUM
 	and COSTS_OF_ALLOCNO.
 	(print_costs): Rename to print_allocno_costs.
@@ -759,8 +849,7 @@
 	(setup_reg_classes): Add new parameter.
 
 	* sched-int.h (struct deps_reg): New member implicit_sets.
-	(sched_pressure_p, sched_regno_cover_class): New external
-	definitions.
+	(sched_pressure_p, sched_regno_cover_class): New external definitions.
 	(INCREASE_BITS): New macro.
 	(struct reg_pressure_data, struct reg_use_data): New.
 	(struct _haifa_insn_data): Remove reg_weight.  Add members
@@ -772,8 +861,7 @@
 	(struct reg_pressure_data, struct reg_use_data): New.
 	(INSN_REG_WEIGHT): Remove.
 	(INSN_REG_PRESSURE, INSN_MAX_REG_PRESSURE, INSN_REG_USE_LIST,
-	INSN_REG_SET_LIST, INSN_REG_PRESSURE_EXCESS_COST_CHANGE): New
-	macros.
+	INSN_REG_SET_LIST, INSN_REG_PRESSURE_EXCESS_COST_CHANGE): New macros.
 	(sched_init_region_reg_pressure_info,
 	sched_setup_bb_reg_pressure_info): New prototypes.
 
@@ -785,8 +873,8 @@
 	(resize_reg_info): Use reg_info_size.  Return flag of resizing.
 	(setup_reg_classes): Add a new parameter.  Setup cover class too.
 
-	* Makefile.in (reload.o, haifa-sched.o, sched-deps.o): Add ira.h to the
-	dependencies.
+	* Makefile.in (reload.o, haifa-sched.o, sched-deps.o): Add ira.h to
+	the dependencies.
 
 	* sched-rgn.c (deps_join): Set up implicit_sets.
 	(schedule_region): Set up region and basic blocks pressure
@@ -841,8 +929,7 @@
 	* regrename.c (regrename_optimize): Drop last.  Don't count debug
 	insns as uses.  Don't reject change because of debug insn.
 	(do_replace): Reject DEBUG_INSN as chain starter.  Take base_regno
-	from the chain starter, and check for inexact matches in
-	DEBUG_INSNS.
+	from the chain starter, and check for inexact matches in DEBUG_INSNS.
 	(scan_rtx_reg): Accept inexact matches in DEBUG_INSNs.
 	(build_def_use): Simplify and fix the marking of DEBUG_INSNs.
 	* sched-ebb.c (schedule_ebbs): Skip boundary debug insns.
@@ -989,8 +1076,7 @@
 	(fur_orig_expr_not_found): Skip debug insns.
 	* rtl.def (VALUE): Move up.
 	(DEBUG_INSN): New.
-	* tree-ssa-sink.c (all_immediate_uses_same_place): Skip debug
-	stmts.
+	* tree-ssa-sink.c (all_immediate_uses_same_place): Skip debug stmts.
 	(nearest_common_dominator_of_uses): Take debug_stmts argument.
 	Set it if debug stmts are found.
 	(statement_sink_location): Skip debug stmts.  Propagate
@@ -1060,8 +1146,7 @@
 	in its expression.
 	* cfgbuild.c (inside_basic_block_p): Handle debug insns.
 	(control_flow_insn_p): Likewise.
-	* tree-parloops.c (eliminate_local_variables_stmt): Handle debug
-	stmt.
+	* tree-parloops.c (eliminate_local_variables_stmt): Handle debug stmt.
 	(separate_decls_in_region_debug_bind): New.
 	(separate_decls_in_region): Process debug bind stmts afterwards.
 	* recog.c (verify_changes): Handle debug insns.
@@ -1094,8 +1179,7 @@
 	* function.c (instantiate_virtual_regs): Handle debug insns.
 	* function.h (struct emit_status): Add x_cur_debug_insn_uid.
 	* print-rtl.h: Include cselib.h.
-	(print_rtx): Print VALUEs.  Split out and recurse for
-	VAR_LOCATIONs.
+	(print_rtx): Print VALUEs.  Split out and recurse for VAR_LOCATIONs.
 	* df.h (df_inns_rescan_debug_internal): Declare.
 	* gcse.c (alloc_hash_table): Estimate n_insns.
 	(cprop_insn): Don't regard debug insns as changes.
@@ -1196,8 +1280,7 @@
 	(cselib_subst_to_values): Adjust.
 	(cselib_log_lookup): New.
 	(cselib_lookup): Call it.
-	(cselib_invalidate_regno): Don't count preserved values as
-	useless.
+	(cselib_invalidate_regno): Don't count preserved values as useless.
 	(cselib_invalidate_mem): Likewise.
 	(cselib_record_set): Likewise.
 	(struct set): Renamed to cselib_set, moved to cselib.h.
@@ -1316,8 +1399,7 @@
 	(copy_body): Copy debug stmts at the end.
 	(insert_init_debug_bind): New.
 	(insert_init_stmt): Take id.  Skip and emit debug stmts.
-	(setup_one_parameter): Remap variable earlier, register debug
-	mapping.
+	(setup_one_parameter): Remap variable earlier, register debug mapping.
 	(estimate_num_insns): Skip debug stmts.
 	(expand_call_inline): Preserve debug_map.
 	(optimize_inline_calls): Check for no debug_stmts left-overs.
@@ -1426,8 +1508,7 @@
 	(dataflow_set_clear_at_call): New.
 	(onepart_variable_different_p): New.
 	(variable_different_p): Use it.
-	(dataflow_set_different_1): Adjust.  Make detailed dump
-	more verbose.
+	(dataflow_set_different_1): Adjust.  Make detailed dump more verbose.
 	(track_expr_p): Add need_rtl parameter.  Don't generate rtl
 	if not needed.
 	(track_loc_p): Pass it true.
@@ -1475,8 +1556,8 @@
 	(emit_notes_for_differences_1): Adjust.  Handle values.
 	(emit_notes_for_differences_2): Likewise.
 	(emit_notes_for_differences): Adjust.
-	(emit_notes_in_bb): Take pointer to set.  Emit AFTER_CALL_INSN
-	notes.  Adjust.  Handle new micro-ops.
+	(emit_notes_in_bb): Take pointer to set.  Emit AFTER_CALL_INSN notes.
+	Adjust.  Handle new micro-ops.
 	(vt_add_function_parameters): Adjust.  Create and bind values.
 	(vt_initialize): Adjust.  Initialize scratch_regs and
 	valvar_pool, flooded and perm..  Initialize and use cselib.  Log
@@ -1526,8 +1607,7 @@
 	empty.  Traverse changed_variables with check_changed_vars_1,
 	call check_changed_vars_2 on each changed_variables_stack entry.
 	(emit_notes_in_bb): Add SET argument.  Just clear it at the
-	beginning, use it instead of local &set, don't destroy it at the
-	end.
+	beginning, use it instead of local &set, don't destroy it at the end.
 	(vt_emit_notes): Call dataflow_set_clear early on all
 	VTI(bb)->out sets, never use them, instead use emit_notes_in_bb
 	computed set, dataflow_set_clear also VTI(bb)->in when we are
@@ -1554,12 +1634,10 @@
 	(print-rtl.o): Depend on cselib.h.
 	(cselib.o): Depend on TREE_PASS_H.
 	(var-tracking.o): Depend on cselib.h and TARGET_H.
-	* sched-rgn.c (rgn_estimate_number_of_insns): Discount
-	debug insns.
+	* sched-rgn.c (rgn_estimate_number_of_insns): Discount debug insns.
 	(init_ready_list): Skip boundary debug insns.
 	(add_branch_dependences): Skip debug insns.
-	(free_block_dependencies): Check for blocks with only debug
-	insns.
+	(free_block_dependencies): Check for blocks with only debug insns.
 	(compute_priorities): Likewise.
 	* gimple.c (gss_for_code): Handle GIMPLE_DEBUG.
 	(gimple_build_with_ops_stat): Take subcode as unsigned.  Adjust
@@ -1599,13 +1677,11 @@
 	(verify_stmt): Likewise.
 	(debug_loop_num): Skip debug stmts.
 	(remove_edge_and_dominated_blocks): Remove dominators last.
-	* tree-ssa-reasssoc.c (rewrite_expr_tree): Propagate into
-	debug stmts.
+	* tree-ssa-reasssoc.c (rewrite_expr_tree): Propagate into debug stmts.
 	(linearize_expr): Likewise.
 	* config/i386/i386.c (ix86_delegitimize_address): Call
 	default implementation.
-	* config/ia64/ia64.c (ia64_safe_itanium_class): Handle debug
-	insns.
+	* config/ia64/ia64.c (ia64_safe_itanium_class): Handle debug insns.
 	(group_barrier_needed): Skip debug insns.
 	(emit_insn_group_barriers): Likewise.
 	(emit_all_insn_group_barriers): Likewise.
@@ -1633,8 +1709,7 @@
 	* dce.c (deletable_insn_p): Handle VAR_LOCATION.
 	(mark_reg_dependencies): Skip debug insns.
 	* params.def (PARAM_MIN_NONDEBUG_INSN_UID): New.
-	* tree-ssanames.c (release_ssa_name): Propagate def into
-	debug stmts.
+	* tree-ssanames.c (release_ssa_name): Propagate def into debug stmts.
 	* tree-ssa-threadedge.c
 	(record_temporary_equivalences_from_stmts): Skip debug stmts.
 	* regcprop.c (replace_oldest_value_addr): Skip debug insns.
