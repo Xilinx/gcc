@@ -1,5 +1,9 @@
 
 2009-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: adding more for makedoc, in particular
+	the internal class_makedoc_info 
+
+2009-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	[test tmatch-5.melt now translated ok]
 	* testsuite/melt/tmatch-5.melt: uncommented full test..
 	* melt/warmelt-normatch.melt: in normpat_instancepat the

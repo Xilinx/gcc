@@ -3228,6 +3228,22 @@
 
 
 ;;;;;;;;;;;;;;;;
+(defclass class_makedoc_info
+  :super class_proped
+  :fields (
+	   ;; lists
+	   mkdoc_primitives
+	   mkdoc_functions
+	   mkdoc_citerators
+	   mkdoc_cmatchers
+	   mkdoc_selectors
+	   mkdoc_fields
+	   mkdoc_classes
+	   mkdoc_instances
+	   ;; map from formal symbols to lists ...
+	   mkdoc_formaloccmap
+	   )
+)
 ;;;;;
 (defun makedoc_docmd (cmd moduldata)
   (debug_msg cmd "start makedoc_docmd cmd")
@@ -3239,6 +3255,18 @@
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	(rlist (make_list discr_list))
 	(:long nbfil (list_length arglist))
+	(mdinfo 
+	 (instance class_makedoc_info
+		   :mkdoc_primitives (make_list discr_list)
+		   :mkdoc_functions (make_list discr_list) 
+		   :mkdoc_citerators (make_list discr_list)
+		   :mkdoc_cmatchers (make_list discr_list)
+		   :mkdoc_selectors (make_list discr_list)
+		   :mkdoc_fields (make_list discr_list)
+		   :mkdoc_classes (make_list discr_list) 
+		   :mkdoc_instances (make_list discr_list)
+		   :mkdoc_formaloccmap (make_mapobject discr_mapobjects 1000)
+		   ))
 	)
     (debug_msg arglist "makedoc_docmd arglist")
     (debug_msg outarg "makedoc_docmd outarg")
@@ -3263,20 +3291,24 @@
 		  "MELT makedoc [#%ld]: read and expanded %ld expressions from %ld files",
 		  melt_dbgcounter, $xlistlen, $nbfil) ; 
        }#)
-       (list_every
-	xlist
-	(lambda (curexp)
-	  (debug_msg curexp "makedoc_docmd curexp")
-	  (match 
-	   curexp 
-	   (?(instance class_srcdef 
-		       :sdef_name ?dnam
-		       :sdef_doc ?(as ?doc ?(instance class_sexpr :loca_location ?loc :sexp_contents ?docl)))
-	     (debug_msg dnam "makedoc_docmd dnam")
-	     (debug_msg doc "makedoc_docmd doc")
-	     )
-	   )
-	  )))))
+      (list_every
+       xlist
+       (lambda (curexp)
+	 (debug_msg curexp "makedoc_docmd curexp")
+	 (match 
+	  curexp 
+	  (?(instance class_srcdef 
+		      :sdef_name ?dnam
+		      :sdef_doc 
+		      ?(as ?doc 
+			   ?(instance class_sexpr :loca_location ?loc :sexp_contents ?docl)))
+	    (debug_msg dnam "makedoc_docmd dnam")
+	    (debug_msg doc "makedoc_docmd doc")
+	    (inform_strv loc "makedoc: got documented " (get_field :named_name dnam))
+	    (inform_strv loc "makedoc: of class " (get_field :named_name (discrim curexp)))
+	    )
+	  )
+	 )))))
       
 
 ;;;
