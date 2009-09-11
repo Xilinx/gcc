@@ -20,34 +20,24 @@
       )
    ))
 
-;;  (defun tmatch5 (curexp)
-;;    (match 
-;;     curexp 
-;;     (?(instance 
-;;        class_srcdef 
-;;        :sdef_name ?dnam
-;;        :sdef_doc 
-;;        ?(as ?doc 
-;;  	   ;; what crashes the test is the below pattern;
-;;  	   ;; it passes if replaced by either of
-;;  	   ;;;; a joker,  
-;;  	   ;;;; a pattern-variable.
-;;  	   ;; 
-;;  	   ;; and the original test was the crash with the below instance
-;;  	   #|
-;;  	   ?(instance class_sexpr 
-;;  		      ; :loca_location ?loc 
-;;  		      ; :sexp_contents ?docl
-;;  		      )
-;;  	   |#
-;;  	   ;; but this simple cmatcher is enough
-;;  	   ?(integerbox_of ?_)
-;;  	   )
-;;        )
-;;       (debug_msg dnam "makedoc_docmd dnam")
-;;       (debug_msg doc "makedoc_docmd doc")
-;;       )
-;;     )
-;;    )
-;;  
+  (defun tmatch5 (curexp)
+    (match 
+     curexp 
+     (?(instance 
+        class_srcdef 
+        :sdef_name ?dnam
+        :sdef_doc 
+        ?(as ?doc 
+  	   ?(instance class_sexpr 
+  		      ; :loca_location ?loc 
+  		      ; :sexp_contents ?docl
+  		      )
+  	   )
+        )
+       (debug_msg dnam "makedoc_docmd dnam")
+       (debug_msg doc "makedoc_docmd doc")
+       )
+     )
+    )
+  
 ;; eof tmatch-5.melt

@@ -3267,8 +3267,6 @@
 	xlist
 	(lambda (curexp)
 	  (debug_msg curexp "makedoc_docmd curexp")
-	  ;; this exposes a bug in the translator
-#|
 	  (match 
 	   curexp 
 	   (?(instance class_srcdef 
@@ -3278,7 +3276,6 @@
 	     (debug_msg doc "makedoc_docmd doc")
 	     )
 	   )
-|#
 	  )))))
       
 

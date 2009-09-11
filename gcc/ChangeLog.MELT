@@ -1,9 +1,28 @@
 
+2009-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	[test tmatch-5.melt now translated ok]
+	* testsuite/melt/tmatch-5.melt: uncommented full test..
+	* melt/warmelt-normatch.melt: in normpat_instancepat the
+	testercont is common to all subpatterns and initialized with the
+	instance test.. Also added more debug...
+	* melt/warmelt-outobj.melt: uncommented previously code which
+	crashed the translator.
+
+	[regenerated translator because of corrected bug in translation
+	of match ?(instance...) ..]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+
 2009-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy; reduced tmatch-5.melt to an even simpler example]
 	* melt/warmelt-first.melt: added integerbox_of cmatcher.
 	* melt/warmelt-normatch.melt: added more debug ..
-	* gcc/testsuite/melt/tmatch-5.melt: even simpler test.
+	* testsuite/melt/tmatch-5.melt: even simpler test.
 
 2009-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[while adding makedoc command, found a bug in matcher translation,
