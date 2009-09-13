@@ -4974,7 +4974,6 @@ extern tree build_lambda_object			(tree);
 extern tree begin_lambda_type                   (tree);
 extern tree lambda_capture_field_type		(tree);
 extern tree lambda_return_type			(tree);
-extern void finish_lambda_function_body         (tree, tree);
 extern void apply_lambda_return_type            (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool);
 extern tree add_default_capture                 (tree, tree, tree);

@@ -6968,7 +6968,7 @@ cp_parser_lambda_expression (cp_parser* parser)
      it now.  */
   push_deferring_access_checks (dk_no_deferred);
 
-  cp_parser_lambda_introducer (parser, lambda_expr);
+  type = begin_lambda_type (lambda_expr);
 
   {
     /* Inside the class, surrounding template-parameter-lists do not apply.  */
@@ -6980,15 +6980,20 @@ cp_parser_lambda_expression (cp_parser* parser)
     parser->num_template_parameter_lists = 0;
     parser->in_function_body = false;
 
-    type = begin_lambda_type (lambda_expr);
+    cp_parser_lambda_introducer (parser, lambda_expr);
+
     /* By virtue of defining a local class, a lambda expression has access to
        the private variables of enclosing classes.  */
 
     cp_parser_lambda_declarator_opt (parser, lambda_expr);
 
+    cp_parser_lambda_body (parser, lambda_expr);
+
     type = finish_struct (type, /*attributes=*/NULL_TREE);
 
-    cp_parser_lambda_body (parser, lambda_expr);
+    /* The capture list was built up in reverse order; fix that now.  */
+    LAMBDA_EXPR_CAPTURE_LIST (lambda_expr)
+      = nreverse (LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
 
     parser->in_function_body = saved_in_function_body;
     parser->num_template_parameter_lists = saved_num_template_parameter_lists;
@@ -7347,7 +7352,10 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 	LAMBDA_EXPR_DEDUCE_RETURN_TYPE (lambda_expr) = false;
       }
 
-    finish_lambda_function_body (lambda_expr, body);
+    finish_function_body (body);
+
+    /* Finish the function and generate code for it if necessary.  */
+    expand_or_defer_fn (finish_function (/*inline*/2));
   }
 
   if (nested)
