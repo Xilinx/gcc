@@ -3228,6 +3228,16 @@
 
 
 ;;;;;;;;;;;;;;;;
+(defclass class_makedoc_classdata
+  :super class_proped
+  :fields (
+	   docla_class
+	   docla_defsrc
+	   docla_subclasses
+	   )
+)
+
+
 (defclass class_makedoc_info
   :super class_proped
   :fields (
@@ -3242,6 +3252,8 @@
 	   mkdoc_instances
 	   ;; map from formal symbols to lists ...
 	   mkdoc_formaloccmap
+	   ;; map from predefined symbol to definition
+	   mkdoc_predefmap
 	   )
 )
 ;;;;;
@@ -3266,6 +3278,7 @@
 		   :mkdoc_classes (make_list discr_list) 
 		   :mkdoc_instances (make_list discr_list)
 		   :mkdoc_formaloccmap (make_mapobject discr_mapobjects 1000)
+		   :mkdoc_predefmap (make_mapobject discr_mapobjects 200)
 		   ))
 	)
     (debug_msg arglist "makedoc_docmd arglist")
@@ -3297,6 +3310,68 @@
 	 (debug_msg curexp "makedoc_docmd curexp")
 	 (match 
 	  curexp 
+	  ;;;;;;;;;;;
+	  ;;; handle defclass
+	  (?(instance
+	     class_src_defclass
+	     :sdef_name ?dnam
+	     :sdef_doc 
+	     ?(instance class_sexpr 
+			:loca_location ?docloc
+			:sexp_contents ?docont)
+	     :sobj_predef ?predef
+	     :sclass_clabind ?(instance class_class_binding :cbind_class ?clas)
+	     )
+	    (debug_msg clas "makedoc_docmd defclass clas")
+	    (assert_msg "check clas" (is_a clas class_class))
+	    (let ( (cldata (instance class_makedoc_classdata
+				     :docla_class clas
+				     :docla_defsrc curexp
+				     :docla_subclasses (make_list discr_list)
+				     ))
+		  )
+	    (if predef 
+		(mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
+	    (list_append (get_field :mkdoc_classes mdinfo) curexp)
+	    ;;; add into :mkdoc_fields each own field
+	    (foreach_in_multiple 
+	     ((get_field :class_fields clas))
+	     (curfld :long fldix)
+	     (if (== (get_field :fld_ownclass curfld) clas)
+		 (list_append (get_field :mkdoc_fields mdinfo) curfld))
+	     )
+	    )
+	    )
+
+	  ;;; handle defselector
+	  (?(instance
+	     class_src_defselector
+	     :sdef_name ?dnam
+	     :sdef_doc 
+	     ?(instance class_sexpr 
+			:loca_location ?docloc
+			:sexp_contents ?docont)
+	     :sobj_predef ?predef
+	     :sinst_class ?icla
+	     )
+	    (if predef 
+		(mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
+	    )
+	  ;;; handle definstance
+	  (?(instance
+	     class_src_definstance
+	     :sdef_name ?dnam
+	     :sdef_doc 
+	     ?(instance class_sexpr 
+			:loca_location ?docloc
+			:sexp_contents ?docont)
+	     :sobj_predef ?predef
+	     :sinst_class ?icla
+	     )
+	    (if predef 
+		(mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
+	    )
+	  ;;;
 	  (?(instance class_srcdef 
 		      :sdef_name ?dnam
 		      :sdef_doc 

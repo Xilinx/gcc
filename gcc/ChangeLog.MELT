@@ -1,4 +1,7 @@
 
+2009-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: makedoc probably needs more own data..
+
 2009-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: adding more for makedoc, in particular
 	the internal class_makedoc_info 
