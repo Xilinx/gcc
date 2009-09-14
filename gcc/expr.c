@@ -761,6 +761,9 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
   if (GET_MODE (x) != VOIDmode)
     oldmode = GET_MODE (x);
 
+  if (mode == oldmode)
+    return x;
+
   /* There is one case that we must handle specially: If we are converting
      a CONST_INT into a mode whose size is twice HOST_BITS_PER_WIDE_INT and
      we are to interpret the constant as unsigned, gen_lowpart will do
@@ -825,9 +828,6 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
 
       return gen_lowpart (mode, x);
     }
-
-  if (mode == oldmode)
-    return x;
 
   /* Converting from integer constant into mode is always equivalent to an
      subreg operation.  */
@@ -10214,4 +10214,52 @@ const_vector_from_tree (tree exp)
 
   return gen_rtx_CONST_VECTOR (mode, v);
 }
+
+
+/* Build a decl for a EH personality function named NAME. */
+
+tree
+build_personality_function (const char *name)
+{
+  tree decl, type;
+
+  type = build_function_type_list (integer_type_node, integer_type_node,
+				   long_long_unsigned_type_node,
+				   ptr_type_node, ptr_type_node, NULL_TREE);
+  decl = build_decl (UNKNOWN_LOCATION, FUNCTION_DECL,
+		     get_identifier (name), type);
+  DECL_ARTIFICIAL (decl) = 1;
+  DECL_EXTERNAL (decl) = 1;
+  TREE_PUBLIC (decl) = 1;
+
+  /* Zap the nonsensical SYMBOL_REF_DECL for this.  What we're left with
+     are the flags assigned by targetm.encode_section_info.  */
+  SET_SYMBOL_REF_DECL (XEXP (DECL_RTL (decl), 0), NULL);
+
+  return decl;
+}
+
+/* Extracts the personality function of DECL and returns the corresponding
+   libfunc.  */
+
+rtx
+get_personality_function (tree decl)
+{
+  tree personality = DECL_FUNCTION_PERSONALITY (decl);
+  enum eh_personality_kind pk;
+
+  pk = function_needs_eh_personality (DECL_STRUCT_FUNCTION (decl));
+  if (pk == eh_personality_none)
+    return NULL;
+
+  if (!personality
+      && pk == eh_personality_any)
+    personality = lang_hooks.eh_personality ();
+
+  if (pk == eh_personality_lang)
+    gcc_assert (personality != NULL_TREE);
+
+  return XEXP (DECL_RTL (personality), 0);
+}
+
 #include "gt-expr.h"

@@ -536,6 +536,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
       if (can_be_nonlocal (old_var, id))
 	{
 	  if (TREE_CODE (old_var) == VAR_DECL
+	      && ! DECL_EXTERNAL (old_var)
 	      && (var_ann (old_var) || !gimple_in_ssa_p (cfun)))
 	    cfun->local_decls = tree_cons (NULL_TREE, old_var,
 						   cfun->local_decls);
@@ -3504,6 +3505,13 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 
   cg_edge = cgraph_edge (id->dst_node, stmt);
 
+  /* Don't inline functions with different EH personalities.  */
+  if (DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
+      && DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl)
+      && (DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
+	  != DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl)))
+    goto egress;
+
   /* Don't try to inline functions that are not well-suited to
      inlining.  */
   if (!cgraph_inline_p (cg_edge, &reason))
@@ -3544,6 +3552,11 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 
   /* We will be inlining this callee.  */
   id->eh_region = lookup_stmt_eh_region (stmt);
+
+  /* Update the callers EH personality.  */
+  if (DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl))
+    DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
+      = DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl);
 
   /* Split the block holding the GIMPLE_CALL.  */
   e = split_block (bb, stmt);
@@ -4729,6 +4742,7 @@ tree_function_versioning (tree old_decl, tree new_decl,
 
   DECL_ARTIFICIAL (new_decl) = 1;
   DECL_ABSTRACT_ORIGIN (new_decl) = DECL_ORIGIN (old_decl);
+  DECL_FUNCTION_PERSONALITY (new_decl) = DECL_FUNCTION_PERSONALITY (old_decl);
 
   /* Prepare the data structures for the tree copy.  */
   memset (&id, 0, sizeof (id));
@@ -4998,6 +5012,18 @@ tree_can_inline_p (struct cgraph_edge *e)
 
   caller = e->caller->decl;
   callee = e->callee->decl;
+
+  /* We cannot inline a function that uses a different EH personality
+     than the caller.  */
+  if (DECL_FUNCTION_PERSONALITY (caller)
+      && DECL_FUNCTION_PERSONALITY (callee)
+      && (DECL_FUNCTION_PERSONALITY (caller)
+	  != DECL_FUNCTION_PERSONALITY (callee)))
+    {
+      e->inline_failed = CIF_UNSPECIFIED;
+      gimple_call_set_cannot_inline (e->call_stmt, true);
+      return false;
+    }
 
   /* Allow the backend to decide if inlining is ok.  */
   if (!targetm.target_option.can_inline_p (caller, callee))

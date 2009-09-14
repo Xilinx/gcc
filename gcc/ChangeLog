@@ -1,3 +1,281 @@
+2009-09-13  Richard Guenther  <rguenther@suse.de>
+	Rafael Avila de Espindola  <espindola@google.com>
+
+	* langhooks-def.h (LANG_HOOKS_EH_RUNTIME_TYPE): Define.
+	(LANG_HOOKS_EH_PERSONALITY): Likewise.
+	(LANG_HOOKS_INITIALIZER): Adjust.
+	(lhd_pass_through_t): Declare.
+	* langhooks.h (struct lang_hooks): Add eh_runtime_type and
+	eh_personality.
+	* langhooks.c (lhd_pass_through_t): New function.
+        * dwarf2out.c (output_call_frame_info, dwarf2out_do_cfi_startproc,
+	dwarf2out_begin_prologue): Use personality from current_function_decl.
+        * expr.h (get_personality_function): Declare.
+	* expr.c (get_personality_function): New function.
+	(build_personality_function): Likewise.
+        * libfuncs.h (libfunc_index): Remove LTI_eh_personality.
+        (eh_personality_libfunc): Remove.
+        * optabs.c (build_libfunc_function): New function split out from ...
+	(init_one_libfunc): ... here.
+        * tree.h (DECL_FUNCTION_PERSONALITY): New.
+        (tree_function_decl): Add personality.
+	(lhd_gcc_personality): Declare.
+	(build_personality_function): Likewise.
+	* tree.c (gcc_eh_personality_decl): New.
+	(lhd_gcc_personality): New function.
+	* except.h (lang_eh_runtime_type): Remove.
+	(enum eh_personality_kind): New.
+	(build_personality_function): Declare.
+	(function_needs_eh_personality): Declare.
+        * except.c (lang_eh_runtime_type): Remove.
+	(function_needs_eh_personality): New function.
+	(add_type_for_runtime): Call lang_hooks.type_for_runtime instead.
+        (sjlj_emit_function_enter, output_function_exception_table):
+        Use personality from current_function_decl.
+	* tree-eh.c (lower_eh_constructs): Set DECL_FUNCTION_PERSONALITY.
+	* tree-inline.c (tree_can_inline_p): Do not inline across different
+	EH personalities.
+	(expand_call_inline): Likewise.  Adjust the callers EH personality.
+	(tree_function_versioning): Copy DECL_FUNCTION_PERSONALITY.
+	* cgraph.c (cgraph_add_new_function): Set DECL_FUNCTION_PERSONALITY.
+	* Makefile.in (cgraph.o): Add $(EXCEPT_H) dependency.
+	(c-parser.o): Likewise
+	* c-tree.h (c_eh_initialized_p): Remove.
+	(c_maybe_initialize_eh): Likewise.
+	* c-decl.c (finish_decl): Don't call c_maybe_initialize_eh.
+	(finish_decl): Don't call c_maybe_initialize_eh.
+	(c_eh_initialized_p): Remove.
+	(c_maybe_initialize_eh): Likewise.
+        * c-parser.c (c_parser_omp_construct): Likewise.
+	(c_parse_file): Initialize exception handling.
+
+2009-09-13  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config.gcc (tm_file): Remove i386/biarch32.h
+	for i?86-w64-mingw* case.
+	(i?86-*-mingw* andx86_64-*-mingw*): Add multilib
+	support.
+	* config.host: Set for x64 mingw the option
+	use_long_long_for_widest_fast_int to yes.
+
+2009-09-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.h (DECL_IGNORED_P): Document further effect for FUNCTION_DECL.
+	* dbxout.c (dbxout_function_end): Do not test DECL_IGNORED_P.
+	(dbxout_begin_function): Likewise.
+	* final.c (dwarf2_debug_info_emitted_p): New predicate.
+	(final_start_function): Do not emit debug info if DECL_IGNORED_P is
+	set on the function.
+	(final_end_function): Likewise.
+	(final_scan_insn): Likewise.
+	(rest_of_handle_final): Likewise.
+	* varasm.c (assemble_start_function): Likewise.
+	* config/rs6000/xcoff.h (ASM_DECLARE_FUNCTION_NAME): Likewise.
+
+2009-09-12  Jason Merrill  <jason@redhat.com>
+
+	* dbgcnt.c (dbg_cnt_process_single_pair): constify.
+	* opts.c (common_handle_option): constify.
+
+2009-09-12  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/install.texi (avr): Remove obsolete reference site.
+
+2009-09-12  Gerald Pfeifer  <gerald@pfeifer.com>
+	
+	* doc/install.texi (Binaries): Adjust AIX link.
+
+2009-09-12  Akim Demaille  <demaille@gostai.com>
+
+	* doc/invoke.texi (-fstrict-aliasing): Correct two examples.
+	Use an imperative sentence.
+
+2009-09-11  Richard Henderson  <rth@redhat.com>
+
+	* gsstruct.def (DEFGSSTRUCT): Remove printable-name argument; add
+	structure-name and has-tree-operands arguments; update all entries.
+	* gimple.def (DEFGSCODE): Replace 3rd argument with GSS_symbol;
+	update all entries.
+	* gimple.c (gimple_ops_offset_): Use HAS_TREE_OP argument.
+	(gsstruct_code_size): New.
+	(gss_for_code_): New.
+	(gss_for_code): Remove.
+	(gimple_size): Rewrite using gsstruct_code_size.
+	(gimple_statement_structure): Move to gimple.h.
+	* gimple.h (gimple_ops_offset_, gss_for_code_): Declare.
+	(gss_for_code, gimple_statement_structure): New.
+	(gimple_ops): Use new arrays; tidy.
+
+2009-09-11  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/predicates.md (symbolic_operand): Require a CONST symbolic
+	operand to be a PLUS expression.
+	* config/pa/pa.c (pa_secondary_reload): Likewise.
+
+2009-09-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* combine.c (propagate_for_debug_subst): Call wrap_constant on top.
+
+	* print-rtl.c (print_rtx): Use JUMP_LABEL (in_rtx) instead of
+	XEXP (in_rtx, 8).
+
+2009-09-11  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	From Jie Zhang <jie.zhang@analog.com>:
+	* doc/extend.texi (node Function Attributes): Document l2
+	function attribute.
+	(node Blackfin Variable Attributes): Document l2 variable attributes.
+
+2009-09-11  Loren J. Rittle  <ljrittle@acm.org>
+
+	* config.gcc (*-*-freebsd*): Enable default_use_cxa_atexit
+	to match the system compiler's configuration at inflection point.
+	Add comment to remark a remaining difference with system compiler.
+
+	* configure.ac (*-*-freebsd*): Enable check for __stack_chk_fail.
+	* configure: Regenerate.
+
+2009-09-11  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	From Jie Zhang <jie.zhang@analog.com>:
+	* config/bfin/bfin.c (bfin_expand_call): Handle L2 functions.
+	(bfin_handle_l2_attribute): New.
+	(bfin_attribute_table): Add l2 attribute.
+
+2009-09-11  Michael Matz  <matz@suse.de>
+
+	PR middle-end/41275
+	* tree-inline.c (remap_decls): Don't put DECL_EXTERNAL decls
+	on the local_decls list.
+
+2009-09-11  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41276
+	PR debug/41307
+	* cselib.c (cselib_expand_value_rtx_cb): Document callback
+	interface.
+	(cselib_expand_value_rtx_1): Use callback for SUBREGs.  Adjust
+	for VALUEs, to implement the documented interface.
+	* var-tracking.c (vt_expand_loc_callback): Handle SUBREGs.
+	Adjust for VALUEs and anything else, to implement the
+	documented interface.
+
+2009-09-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.h (DATA_ALIGNMENT): Check that we are dealing
+	with actual SPE/paired vector modes before using 64-bit alignment.
+	Check that TYPE is a REAL_TYPE for TARGET_E500_DOUBLE.
+
+2009-09-10  DJ Delorie  <dj@redhat.com>
+
+	* config/mep/mep.md (eh_epilogue): Defer until after epilogue is
+	emitted.
+
+	* config/mep/mep.h (LEGITIMATE_CONSTANT_P): New.
+	* config/mep/mep.c (mep_legitimate_constant_p): New.
+	* config/mep/mep-protos.h: Prototype it.
+
+2009-09-10  Richard Henderson  <rth@redhat.com>
+
+	* print-rtl.c (print_rtx): Fix JUMP_LABEL index.
+
+2009-09-10  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (chain_index): New fn.
+	* tree.h: Declare it.
+
+2009-09-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sol2-c.c (cmn_err_length_specs): Initialize
+	scalar_identity_flag.
+
+2009-09-10  Richard Henderson  <rth@redhat.com>
+
+	* tree.h (struct tree_decl_common): Move align member earlier;
+	move label_decl_uid member ...
+	(struct tree_label_decl): ... here.
+	(LABEL_DECL_UID): Update to match.
+
+	* tree-cfg.c (dump_function_to_file): Dump eh tree with TDF_EH,
+	not TDF_DETAILS.
+
+	* tree-cfg.c (gimple_redirect_edge_and_branch): Do
+	gimple_try_redirect_by_replacing_jump test after no-op and EH tests.
+
+	* tree-cfg.c (split_edge_bb_loc): Don't disallow placement at
+	dest_prev if the edge is complex.
+
+	* tree-cfg.c (is_ctrl_stmt): Use a switch.
+
+	* tree-cfg.c (gimple_can_merge_blocks_p): Move label and
+	loop latch tests earlier.
+
+	* gimple-iterator.c (gimple_find_edge_insert_loc): Insert
+	before GIMPLE_RETURN, not after its predecessor; insert
+	before GIMPLE_RESX.
+
+	* gimple-iterator.c (gimple_find_edge_insert_loc): Use
+	gimple_seq_empty_p to test for no PHI nodes.
+	* tree-cfg.c (split_critical_edges): Likewise.
+
+	* c-common.h (c_dialect_cxx, c_dialect_objc): Boolify.
+
+2009-09-10  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* final.c (shorten_branches) : Ignore DEBUG_INSN_P instructions
+        introduced by the VTA branch merge.
+
+2009-09-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* ira-conflicts.c: Use fputs or putc instead of fprintf
+	where appropriate.
+	* cfg.c: Ditto.
+	* toplev.c: Ditto.
+	* tree-switch-conversion.c: Ditto.
+
+2009-09-10  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.c : Ignore DEBUG_INSN_P instructions
+        introduced by the VTA branch merge.
+
+2009-09-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	Revert:
+	2009-09-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR rtl-optimization/39779
+	* expr.c (convert_modes): Return when mode == oldmode after
+	CONST_INTs are processed.
+
+2009-09-10  Nick Clifton  <nickc@redhat.com>
+
+	* config/mep/mep.c (mep_encode_section_info): Copy weakness
+	attribute and referring decl when creating renamed symbol.
+
+2009-09-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41257
+	* cgraphunit.c (cgraph_emit_thunks): Emit thunks only for
+	reachable nodes.
+	(cgraph_finalize_compilation_unit): Compute reachability
+	before emitting thunks.  Properly process aliases before
+	possibly removing unreachable nodes.
+
+2009-09-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41254
+	* tree.c (struct free_lang_data_d): Add worklist member.
+	(find_decls_types_r): Push onto the worklist instead of recursing.
+	Handle TREE_BINFOs properly.
+	(find_decls_types): New function wrapped around find_decls_types_r
+	to process the worklist.
+	(find_decls_types_in_eh_region): Use it.
+	(find_decls_types_in_node): Likewise.
+	(find_decls_types_in_var): Likewise.
+	(free_lang_data_in_cgraph): Likewise.  Free the worklist.
+	* tree.h (RECORD_OR_UNION_TYPE_P): New.
+	(AGGREGATE_TYPE_P): Adjust.
+
 2009-09-09  Jason Merrill  <jason@redhat.com>
 
 	* configure.ac: Check glibc version even if we have an in-tree

@@ -1,3 +1,28 @@
+2009-09-13  Richard Guenther  <rguenther@suse.de>
+	Rafael Avila de Espindola  <espindola@google.com>
+
+	* except.c (init_exception_processing): Do not set
+	lang_eh_runtime_type.
+	(choose_personality_routine): Do not set eh_personality_decl,
+	set pragma_java_exceptions.
+	* cp-lang.c (LANG_HOOKS_EH_RUNTIME_TYPE): Define.
+	(LANG_HOOKS_EH_PERSONALITY): Likewise.
+	(cp_eh_personality_decl): New.
+	(cp_eh_personality): Likewise.
+	* Make-lang.in (cp-lang.o): Add $(EXPR_H) and $(EXCEPT_H)
+	dependencies.
+
+2009-09-13  Wei Guozhi  <carrot@google.com>
+
+	PR c++/3187
+	* cp/optimize.c (build_delete_destructor_body): New function.
+	(maybe_clone_body): Call build_delete_destructor_body for
+	deleting destructor.
+
+2009-09-10  Jason Merrill  <jason@redhat.com>
+
+	* repo.c (extract_string, get_base_filename, init_repo): constify.
+
 2009-09-09  Jason Merrill  <jason@redhat.com>
 
 	* error.c (find_typenames_r): Also add decltypes.
