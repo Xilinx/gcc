@@ -89,8 +89,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-dump.h"
 #include "timevar.h"
 #include "cfgloop.h"
-#include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
+#include "tree-data-ref.h"
 #include "tree-pass.h"
 #include "langhooks.h"
 

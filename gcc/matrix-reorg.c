@@ -137,9 +137,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-iterator.h"
 #include "tree-pass.h"
 #include "opts.h"
-#include "tree-data-ref.h"
 #include "tree-chrec.h"
 #include "tree-scalar-evolution.h"
+#include "tree-data-ref.h"
 #include "tree-ssa-sccvn.h"
 
 /* We need to collect a lot of data from the original malloc,
