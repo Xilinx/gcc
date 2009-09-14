@@ -1396,7 +1396,7 @@ bfin_expand_prologue (void)
     }
   expand_prologue_reg_save (spreg, all, false);
 
-  do_link (spreg, frame_size, false);
+  do_link (spreg, frame_size, all);
 
   if (TARGET_ID_SHARED_LIBRARY
       && !TARGET_SEP_DATA
@@ -1425,7 +1425,7 @@ bfin_expand_epilogue (int need_return, int eh_return, bool sibcall_p)
       return;
     }
 
-  do_unlink (spreg, get_frame_size (), false, e);
+  do_unlink (spreg, get_frame_size (), all, e);
 
   expand_epilogue_reg_restore (spreg, all, false);
 
@@ -2219,6 +2219,8 @@ bool
 bfin_longcall_p (rtx op, int call_cookie)
 {
   gcc_assert (GET_CODE (op) == SYMBOL_REF);
+  if (SYMBOL_REF_WEAK (op))
+    return 1;
   if (call_cookie & CALL_SHORT)
     return 0;
   if (call_cookie & CALL_LONG)
@@ -6340,6 +6342,10 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
       if (! target
 	  || !register_operand (target, SImode))
 	target = gen_reg_rtx (SImode);
+      if (! register_operand (op0, SImode))
+	op0 = copy_to_mode_reg (SImode, op0);
+      if (! register_operand (op1, SImode))
+	op1 = copy_to_mode_reg (SImode, op1);
 
       a1reg = gen_rtx_REG (PDImode, REG_A1);
       a0reg = gen_rtx_REG (PDImode, REG_A0);
@@ -6393,6 +6399,7 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
       op0 = expand_expr (arg0, NULL_RTX, VOIDmode, 0);
       op1 = expand_expr (arg1, NULL_RTX, VOIDmode, 0);
       accvec = gen_reg_rtx (V2PDImode);
+      icode = CODE_FOR_flag_macv2hi_parts;
 
       if (! target
 	  || GET_MODE (target) != V2HImode
@@ -6429,6 +6436,7 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
       op1 = expand_expr (arg1, NULL_RTX, VOIDmode, 0);
       op2 = expand_expr (arg2, NULL_RTX, VOIDmode, 0);
       accvec = gen_reg_rtx (V2PDImode);
+      icode = CODE_FOR_flag_macv2hi_parts;
 
       if (! target
 	  || GET_MODE (target) != V2HImode

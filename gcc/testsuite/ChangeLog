@@ -1,3 +1,56 @@
+2009-09-14  Richard Henderson  <rth@redhat.com>
+
+	* c-c++-common/asmgoto-1.c, c-c++-common/asmgoto-2.c,
+	c-c++-common/asmgoto-3.c, gcc.c-torture/compile/asmgoto-1.c,
+	gcc.dg/tree-ssa/asmgoto-1.c: New files.
+
+2009-09-14  Richard Henderson  <rth@redhat.com>
+
+	* g++.dg/eh/builtin1.C: Update resx pattern match.
+	* g++.dg/eh/builtin2.C, g++.dg/eh/builtin3.C: Likewise.
+
+2009-09-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/branch-helper.h: New file.
+	* gcc.target/mips/branch-2.c,
+	* gcc.target/mips/branch-3.c,
+	* gcc.target/mips/branch-4.c,
+	* gcc.target/mips/branch-5.c,
+	* gcc.target/mips/branch-6.c,
+	* gcc.target/mips/branch-7.c,
+	* gcc.target/mips/branch-8.c,
+	* gcc.target/mips/branch-9.c,
+	* gcc.target/mips/branch-10.c,
+	* gcc.target/mips/branch-11.c,
+	* gcc.target/mips/branch-12.c,
+	* gcc.target/mips/branch-13.c,
+	* gcc.target/mips/branch-14.c,
+	* gcc.target/mips/branch-15.c: New tests.
+
+2009-09-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/41331
+	* gcc.target/powerpc/bswap64-4.c: New file to test bswap64 on a
+	-m32 -mpowerpc64 system.
+
+2009-09-14  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	From Jie Zhang <jie.zhang@analog.com>:
+	* gcc.target/bfin/saveall.c: New test.
+	* gcc.target/bfin/20090914-1.c: New test.
+	* gcc.target/bfin/20090914-2.c: New test.
+
+	* gcc.target/bfin/20090914-3.c: New test.
+
+2009-09-14  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.target/sh/20080410-1.c: Remove obsolete -fira option.
+
+2009-09-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41350
+	* g++.dg/debug/dwarf-eh-personality-1.C: New testcase.
+
 2009-09-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libgfortran/41328
