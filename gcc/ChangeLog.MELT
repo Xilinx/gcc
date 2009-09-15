@@ -1,12 +1,17 @@
 
 2009-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: added call to makedoc_outclassdef
+	which should be written.
+
+2009-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[compilation of quoted integers was buggy; adding more makedoc]
 	* melt-runtime.h (melt_output_strbuf_to_file): added declaration.
 	* melt-runtime.c (melt_output_strbuf_to_file): added function.
 	(melt_assert_failed) icreased the size of the static buffer.
 	* melt/warmelt-first.melt: added output_sbuf_strconst &
 	output_sbuf_strval.
-	* melt/warmelt-outobj.melt: more of makedoc.
+	* melt/warmelt-outobj.melt: more of makedoc. Corrected generation
+	of static boxed integers.
 	* Makefile.in (TEXI_GCCINT_FILES): added meltgendoc.texi.
 	[regenerated translator because of corrected bug in translation
 	of quoted integers ..]
