@@ -1,10 +1,17 @@
 
+2009-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt: removed compile_warning from
+	compiltst_normtester_instance.
+	* melt/warmelt-outobj.melt: added more makedoc handling. Removed
+	class_makedoc_classdata. added mkdoc_docsymap mkdoc_subclassmap
+	fields.
+
 2009-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: makedoc probably needs more own data..
 
 2009-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: adding more for makedoc, in particular
-	the internal class_makedoc_info 
+	the internal class_makedoc_info.
 
 2009-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	[test tmatch-5.melt now translated ok]

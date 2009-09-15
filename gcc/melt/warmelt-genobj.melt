@@ -4466,8 +4466,6 @@
     (debug_msg gotoelse "compiltst_normtester_instance gotoelse")
     (assert_msg "check gotoelse" (is_object gotoelse))
     (list_append oelselist gotoelse)
-    (warning_plain nloc "not fully implemented compiltst_normtester_instance")
-    (shortbacktrace_dbg "compiltst_normtester_instance" 15)
     (debug_msg olist "compiltst_normtester_instance final olist")
     (return olist)
     )
