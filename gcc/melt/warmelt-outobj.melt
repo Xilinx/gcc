@@ -565,7 +565,9 @@
     (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
-    (add2sbuf_strconst sbuf " cdat->val = ")
+    (add2sbuf_strconst sbuf " cdat->")
+    (add2sbuf_string sbuf cnam)
+    (add2sbuf_strconst sbuf ".val = ")
     (add2sbuf_longdec sbuf (get_int odata))
     (add2sbuf_strconst sbuf ";")
     (add2sbuf_indentnl sbuf 1)
@@ -3252,6 +3254,294 @@
 	   )
 )
 
+
+(defun makedoc_scaninput (mdinfo arglist xlist)
+  (let (
+	(:long nbfil (list_length arglist))
+	(:long xlistlen (list_length xlist))
+	(docsymap (get_field :mkdoc_docsymap mdinfo))
+	(formaloccmap (get_field :mkdoc_formaloccmap mdinfo))
+	(add_docsym
+	 (lambda (nam data)
+	   (cond 
+	    ( (and (!= (discrim nam) class_symbol)
+		   (is_a nam class_named))
+	      (setq nam (get_symbolstr (get_field :named_name nam))))
+	    ( (is_string nam)
+	      (setq nam (get_symbolstr nam)))
+	    )
+	   (assert_msg "check nam" (is_a nam class_symbol))
+	   (mapobject_put docsymap
+			  nam
+			  data)))
+	(fetch_docsym
+	 (lambda (nam)
+	   (cond 
+	    ( (and (!= (discrim nam) class_symbol)
+		   (is_a nam class_named))
+	      (setq nam (get_symbolstr (get_field :named_name nam))))
+	    ( (is_string nam)
+	      (setq nam (get_symbolstr nam)))
+	    )
+	   (mapobject_get docsymap nam)))
+	(add_formal_occ
+	 (lambda (formbind def)
+	   (assert_msg "check formbind" (is_a formbind class_formal_binding))
+	   (assert_msg "check def" (is_a def class_srcdef))
+	   (let ( (formsym (get_field :binder formbind)) 
+		  (formocclist (mapobject_get formaloccmap formsym))
+		  )
+	     (if (null formocclist)
+		 (progn
+		   (setq formocclist (make_list discr_list))
+		   (mapobject_put formaloccmap formsym formocclist)))
+	     (list_append formocclist def)
+	     )
+	   ))
+	)
+    (code_chunk 
+     informxlist
+     #{ inform (UNKNOWN_LOCATION,
+		"MELT makedoc [#%ld]: read and expanded %ld expressions from %ld files",
+		melt_dbgcounter, $xlistlen, $nbfil) ; 
+     }#)
+    (list_every
+     xlist
+     (lambda (curexp)
+       (debug_msg curexp "makedoc_docmd curexp")
+       (match 
+	curexp 
+;;;;;;;;;;;
+;;; handle defclass
+	(?(instance
+	   class_src_defclass
+	   :sdef_name ?dnam
+	   :sdef_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   :sobj_predef ?predef
+	   :sclass_clabind ?(instance class_class_binding :cbind_class ?clas)
+	   )
+	  (debug_msg clas "makedoc_docmd defclass clas")
+	  (assert_msg "check clas" (is_a clas class_class))
+	  (if predef 
+	      (mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
+	  (add_docsym dnam curexp)
+	  (list_append (get_field :mkdoc_classes mdinfo) curexp)
+	  (mapobject_put (get_field :mkdoc_subclassmap mdinfo) clas (make_list discr_list))
+;;; add into :mkdoc_fields each own field
+	  (foreach_in_multiple 
+	   ((get_field :class_fields clas))
+	   (curfld :long fldix)
+	   (if (== (get_field :fld_ownclass curfld) clas)
+	       (progn
+		 (add_docsym (get_field :named_name curfld) curfld)
+		 (list_append (get_field :mkdoc_fields mdinfo) curfld)))
+	   )
+;;; add into :mkdoc_subclassmap this class as subclass of each
+;;; documented ancestor
+	  (let ( (subclmap (get_field :mkdoc_subclassmap mdinfo)) )
+	    (foreach_in_multiple 
+	     ((get_field :class_ancestors clas))
+	     (curanc :long ancix)
+	     (let ( (curancsubcl (mapobject_get  (get_field :mkdoc_subclassmap mdinfo) curanc)) )
+	       (if (is_list curancsubcl)
+		   (list_append curancsubcl clas))
+	       )
+	     )))
+;;;;
+;;; handle defselector
+	(?(instance
+	   class_src_defselector
+	   :sdef_name ?dnam
+	   :sdef_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   :sobj_predef ?predef
+	   :sinst_class ?icla
+	   )
+	  (list_append (get_field :mkdoc_selectors mdinfo) curexp)
+	  (add_docsym dnam curexp)
+	  (if predef 
+	      (mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
+	  )
+;;; handle definstance
+	(?(instance
+	   class_src_definstance
+	   :sdef_name ?dnam
+	   :sdef_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   :sobj_predef ?predef
+	   :sinst_class ?icla
+	   )
+	  (add_docsym dnam curexp)
+	  (list_append (get_field :mkdoc_instances mdinfo) curexp)
+	  (if predef 
+	      (mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
+	  )
+;;;;;;;
+;;; handle defprimitive
+	(?(instance
+	   class_src_defprimitive
+	   :sdef_name ?dnam
+	   :sdef_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   :sformal_args ?formargs
+	   )
+	  (add_docsym dnam curexp)
+	  (list_append (get_field :mkdoc_primitives mdinfo) curexp)
+	  (foreach_in_multiple 
+	   (formargs)
+	   (curformb :long formix)
+	   (add_formal_occ curformb curexp) ) 
+	  )
+;;;;;;;
+;;; handle defun
+	(?(instance
+	   class_src_defun
+	   :sdef_name ?dnam
+	   :sdef_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   :sformal_args ?formargs
+	   )
+	  (add_docsym dnam curexp)
+	  (list_append (get_field :mkdoc_functions mdinfo) curexp)
+	  (foreach_in_multiple 
+	   (formargs)
+	   (curformb :long formix)
+	   (add_formal_occ curformb curexp) ) 
+	  )
+	     
+;;;;;;;
+;;; catchall with warning
+	(?(instance class_srcdef 
+		    :sdef_name ?dnam
+		    :sdef_doc 
+		    ?(as ?doc 
+			 ?(instance class_sexpr :loca_location ?loc :sexp_contents ?docl)))
+	  (debug_msg dnam "makedoc_docmd dnam")
+	  (debug_msg doc "makedoc_docmd doc")
+	  (inform_strv loc "makedoc: got documented " (get_field :named_name dnam))
+	  (warning_strv loc "makedoc: unimplemented for class " (get_field :named_name (discrim curexp)))
+	  )
+	)
+       )))
+  )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;;;; generate the class documentation
+(defun makedoc_genclass (mdinfo outb)
+  (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
+  (assert_msg "check outb" (is_strbuf outb))
+  (add2sbuf_strconst outb "@node classes")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_strconst outb "@section classes")
+  (add2sbuf_indentnl outb 0)
+  (let ( 
+	(quotedone '1)
+	(quotedzero '0)
+	(quotedminusone '-1)
+	(unsortedclassestuple 
+	 (list_to_multiple (get_field :mkdoc_classes mdinfo)
+			   discr_multiple
+			   (lambda (cldef)
+			     (assert_msg "check cldef" (is_a cldef class_src_defclass))
+			     (get_field :cbind_class (get_field :sclass_clabind cldef)))
+			     ))
+	(cmpclassdepthname
+	 (lambda (cl0 cl1)
+	   (assert_msg "check cl0" (is_a cl0 class_class))
+	   (assert_msg "check cl1" (is_a cl1 class_class))
+	   (let ( (cl0anc (unsafe_get_field :class_ancestors cl0))
+		  (cl1anc (unsafe_get_field :class_ancestors cl1))
+		  (:long nbcl0anc (multiple_length cl0anc))
+		  (:long nbcl1anc (multiple_length cl1anc))
+		  (cl0nam (unsafe_get_field :named_name cl0))
+		  (cl1nam (unsafe_get_field :named_name cl1))
+		  )
+	     (cond 
+	      ( (== cl0 cl1) 
+		quotedzero)
+	      ( (<i nbcl0anc nbcl1anc) 
+		quotedminusone)
+	      ( (>i nbcl0anc nbcl1anc) 
+		quotedone)
+	      ( (string< cl0nam cl1nam)
+		quotedminusone)
+	      ( (string> cl0nam cl1nam)
+		quotedone)
+	      (:else
+;;; this should not happen
+	       (assert_msg "cmpclassdepthname same name different classes!" ())
+	       ())
+	      )
+	     )
+	   )
+	 )
+	(depthsortedclassestuple
+	 (multiple_sort unsortedclassestuple cmpclassdepthname discr_multiple)
+	 )
+	(:long depthix -1)
+	)
+    (foreach_in_multiple
+     (depthsortedclassestuple)
+     (curcla :long claix)
+     (compile_warning "makedoc_genclass should generate a table of
+     classes name sorted by depth" ())
+ ) ) )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; makedoc - generate the output file
+
+(defun makedoc_genoutput (mdinfo outarg)
+  (debug_msg mdinfo "makedoc_genoutput mdinfo")
+  (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
+  (assert_msg "check outarg" (is_string outarg))
+  (let ( (outb (make_strbuf discr_strbuf)) 
+	 )
+	 (add2sbuf_strconst outb "@c **** makedoc generated file ")
+	 (add2sbuf_string outb outarg)
+	 (add2sbuf_indentnl outb 0)
+	 (code_chunk 
+	  outdat
+	  #{time_t now = 0;
+	  time (&now);
+	  meltgc_add_out_raw ($outb, "@c **** generated ");
+	  meltgc_add_out_raw ($outb, ctime (&now));
+	  }#
+	  )
+	 (add2sbuf_strconst outb "@node programming reference")
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "@chapter programming reference")
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "@menu")
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "* classes:: The public classes.")
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "@end menu")
+	 (add2sbuf_indentnl outb 0)
+	 ;;
+	 (makedoc_genclass mdinfo outb)
+	 ;;
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "@c **** end of makedoc file ")
+	 (add2sbuf_string outb outarg)
+	 (add2sbuf_indentnl outb 0)	   
+	 (output_sbuf_strval outb outarg)
+    )
+)
+
+;;;;;;;;;;;;;;;;
 ;;;;;
 (defun makedoc_docmd (cmd moduldata)
   (debug_msg cmd "start makedoc_docmd cmd")
@@ -3262,7 +3552,6 @@
 	(arglist (split_string_comma discr_string (melt_argument "arglist")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	(rlist (make_list discr_list))
-	(:long nbfil (list_length arglist))
 	(mdinfo 
 	 (instance class_makedoc_info
 		   :mkdoc_primitives (make_list discr_list)
@@ -3294,183 +3583,13 @@
 	 (list_append2list rlist curead))))
     ;; macro expand it
     (let ( (xlist (macroexpand_toplevel_list rlist curenv)) 
-	   (:long xlistlen (list_length xlist))
-	   (docsymap (get_field :mkdoc_docsymap mdinfo))
-	   (formaloccmap (get_field :mkdoc_formaloccmap mdinfo))
-	   (add_docsym
-	    (lambda (nam data)
-	      (cond 
-	       ( (and (!= (discrim nam) class_symbol)
-		      (is_a nam class_named))
-		 (setq nam (get_symbolstr (get_field :named_name nam))))
-	       ( (is_string nam)
-		 (setq nam (get_symbolstr nam)))
-	       )
-	      (assert_msg "check nam" (is_a nam class_symbol))
-	      (mapobject_put docsymap
-			     nam
-			     data)))
-	   (fetch_docsym
-	    (lambda (nam)
-	      (cond 
-	       ( (and (!= (discrim nam) class_symbol)
-		      (is_a nam class_named))
-		 (setq nam (get_symbolstr (get_field :named_name nam))))
-	       ( (is_string nam)
-		 (setq nam (get_symbolstr nam)))
-	       )
-	      (mapobject_get docsymap nam)))
-	   (add_formal_occ
-	    (lambda (formbind def)
-	      (assert_msg "check formbind" (is_a formbind class_formal_binding))
-	      (assert_msg "check def" (is_a def class_srcdef))
-	      (let ( (formsym (get_field :binder formbind)) 
-		     (formocclist (mapobject_get formaloccmap formsym))
-		     )
-		(if (null formocclist)
-		    (progn
-		      (setq formocclist (make_list discr_list))
-		      (mapobject_put formaloccmap formsym formocclist)))
-		(list_append formocclist def)
-		)
-	      ))
 	   )
-      (code_chunk 
-       informxlist
-       #{ inform (UNKNOWN_LOCATION,
-		  "MELT makedoc [#%ld]: read and expanded %ld expressions from %ld files",
-		  melt_dbgcounter, $xlistlen, $nbfil) ; 
-       }#)
-      (list_every
-       xlist
-       (lambda (curexp)
-	 (debug_msg curexp "makedoc_docmd curexp")
-	 (match 
-	  curexp 
-;;;;;;;;;;;
-;;; handle defclass
-	  (?(instance
-	     class_src_defclass
-	     :sdef_name ?dnam
-	     :sdef_doc 
-	     ?(instance class_sexpr 
-			:loca_location ?docloc
-			:sexp_contents ?docont)
-	     :sobj_predef ?predef
-	     :sclass_clabind ?(instance class_class_binding :cbind_class ?clas)
-	     )
-	    (debug_msg clas "makedoc_docmd defclass clas")
-	    (assert_msg "check clas" (is_a clas class_class))
-	    (if predef 
-		(mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
-	    (add_docsym dnam curexp)
-	    (list_append (get_field :mkdoc_classes mdinfo) curexp)
-	    (mapobject_put (get_field :mkdoc_subclassmap mdinfo) clas (make_list discr_list))
-;;; add into :mkdoc_fields each own field
-	    (foreach_in_multiple 
-	     ((get_field :class_fields clas))
-	     (curfld :long fldix)
-	     (if (== (get_field :fld_ownclass curfld) clas)
-		 (progn
-		   (add_docsym (get_field :named_name curfld) curfld)
-		   (list_append (get_field :mkdoc_fields mdinfo) curfld)))
-	     )
-;;; add into :mkdoc_subclassmap this class as subclass of each
-;;; documented ancestor
-	    (let ( (subclmap (get_field :mkdoc_subclassmap mdinfo)) )
-	      (foreach_in_multiple 
-	       ((get_field :class_ancestors clas))
-	       (curanc :long ancix)
-	       (let ( (curancsubcl (mapobject_get  (get_field :mkdoc_subclassmap mdinfo) curanc)) )
-		 (if (is_list curancsubcl)
-		     (list_append curancsubcl clas))
-		 )
-	       )))
-;;;;
-;;; handle defselector
-	  (?(instance
-	     class_src_defselector
-	     :sdef_name ?dnam
-	     :sdef_doc 
-	     ?(instance class_sexpr 
-			:loca_location ?docloc
-			:sexp_contents ?docont)
-	     :sobj_predef ?predef
-	     :sinst_class ?icla
-	     )
-	    (list_append (get_field :mkdoc_selectors mdinfo) curexp)
-	    (add_docsym dnam curexp)
-	    (if predef 
-		(mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
-	    )
-;;; handle definstance
-	  (?(instance
-	     class_src_definstance
-	     :sdef_name ?dnam
-	     :sdef_doc 
-	     ?(instance class_sexpr 
-			:loca_location ?docloc
-			:sexp_contents ?docont)
-	     :sobj_predef ?predef
-	     :sinst_class ?icla
-	     )
-	    (add_docsym dnam curexp)
-	    (list_append (get_field :mkdoc_instances mdinfo) curexp)
-	    (if predef 
-		(mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
-	    )
-;;;;;;;
-;;; handle defprimitive
-	  (?(instance
-	     class_src_defprimitive
-	     :sdef_name ?dnam
-	     :sdef_doc 
-	     ?(instance class_sexpr 
-			:loca_location ?docloc
-			:sexp_contents ?docont)
-	     :sformal_args ?formargs
-	     )
-	    (add_docsym dnam curexp)
-	    (list_append (get_field :mkdoc_primitives mdinfo) curexp)
-	    (foreach_in_multiple 
-	     (formargs)
-	     (curformb :long formix)
-	     (add_formal_occ curformb curexp) ) 
-	    )
-;;;;;;;
-;;; handle defun
-	  (?(instance
-	     class_src_defun
-	     :sdef_name ?dnam
-	     :sdef_doc 
-	     ?(instance class_sexpr 
-			:loca_location ?docloc
-			:sexp_contents ?docont)
-	     :sformal_args ?formargs
-	     )
-	    (add_docsym dnam curexp)
-	    (list_append (get_field :mkdoc_functions mdinfo) curexp)
-	    (foreach_in_multiple 
-	     (formargs)
-	     (curformb :long formix)
-	     (add_formal_occ curformb curexp) ) 
-	    )
-	     
-;;;;;;;
-;;; catchall with warning
-	  (?(instance class_srcdef 
-		      :sdef_name ?dnam
-		      :sdef_doc 
-		      ?(as ?doc 
-			   ?(instance class_sexpr :loca_location ?loc :sexp_contents ?docl)))
-	    (debug_msg dnam "makedoc_docmd dnam")
-	    (debug_msg doc "makedoc_docmd doc")
-	    (inform_strv loc "makedoc: got documented " (get_field :named_name dnam))
-	    (inform_strv loc "makedoc: of class " (get_field :named_name (discrim curexp)))
-	    )
-	  )
-	 )))))
-      
+      ;; scan the expanded input, and fill mdinfo appropriately.
+      (makedoc_scaninput mdinfo arglist xlist)
+      ;; generate the output
+      (makedoc_genoutput mdinfo outarg)
+      ))
+  )
 
 ;;;
 (definstance makedoc_command

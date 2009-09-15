@@ -1,5 +1,24 @@
 
 2009-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	[compilation of quoted integers was buggy; adding more makedoc]
+	* melt-runtime.h (melt_output_strbuf_to_file): added declaration.
+	* melt-runtime.c (melt_output_strbuf_to_file): added function.
+	(melt_assert_failed) icreased the size of the static buffer.
+	* melt/warmelt-first.melt: added output_sbuf_strconst &
+	output_sbuf_strval.
+	* melt/warmelt-outobj.melt: more of makedoc.
+	* Makefile.in (TEXI_GCCINT_FILES): added meltgendoc.texi.
+	[regenerated translator because of corrected bug in translation
+	of quoted integers ..]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+
+2009-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt: removed compile_warning from
 	compiltst_normtester_instance.
 	* melt/warmelt-outobj.melt: added more makedoc handling. Removed

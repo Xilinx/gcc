@@ -2497,6 +2497,37 @@ end:
 }
 
 
+void
+melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam)
+{
+  FILE* fil=0;
+  char* namdot=0;
+  /* we don't have any MELT garbage collection roots, because no
+     allocation is done! */
+  if (!sbuf || melt_magic_discr (sbuf) != OBMAG_STRBUF) return;
+  if (!filnam || !filnam[0]) return;
+  namdot = concat(filnam, "..out", NULL);
+  /* remove if it existed the temporary namdot file without any
+     checks */
+  (void) remove (namdot);
+  fil = fopen(namdot, "w");
+  if (!fil)
+    fatal_error ("failed to open MELT output file %s [%s]",
+			namdot, strerror(errno));
+  if (fwrite (melt_strbuf_str (sbuf), (size_t) melt_strbuf_usedlength (sbuf),
+	      (size_t) 1, fil) <= 0)
+    fatal_error ("failed to write %d bytes into MELT output file %s [%s]",
+		 melt_strbuf_usedlength (sbuf), namdot, strerror(errno));
+  if (fclose (fil)) 
+    fatal_error ("failed to close MELT output file %s [%s]",
+		 namdot, strerror(errno));
+  fil = NULL;
+  if (rename (namdot, filnam))
+    fatal_error ("failed to rename MELT output file from %s to %s [%s]",
+		 namdot, filnam, strerror(errno));
+  free (namdot);
+}
+
 
 
 /***************/
@@ -9837,7 +9868,7 @@ void
 melt_assert_failed (const char *msg, const char *filnam,
 		       int lineno, const char *fun)
 {
-  static char msgbuf[500];
+  static char msgbuf[600];
   if (!msg)
     msg = "??no-msg??";
   if (!filnam)

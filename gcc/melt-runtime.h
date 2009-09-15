@@ -1994,6 +1994,10 @@ melt_strbuf_usedlength(melt_ptr_t v)
 }
 
 
+/* output an strbuf into a file */
+void melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam);
+
+
 /* allocate a pair of given head and tail */
 melt_ptr_t meltgc_new_pair (meltobject_ptr_t discr,
 				  void *head, void *tail);

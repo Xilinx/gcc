@@ -914,6 +914,13 @@ it.}#
 (defprimitive add2sbuf_routinedescr (sbuf rout) :void
   "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), melt_routine_descrstr((melt_ptr_t)(" rout ")))")
 
+;;; primitive to output a strbuf into a file named by a cstring
+(defprimitive output_sbuf_strconst (sbuf :cstring nam) :void
+#{ melt_output_strbuf_to_file(($sbuf), ($nam)) }#)
+;;; primitive to output a strbuf into a file named by a stringval
+(defprimitive output_sbuf_strval (sbuf vnam) :void
+#{ melt_output_strbuf_to_file(($sbuf), melt_string_str($vnam)) }#)
+
 ;;;;;;;;;;;;;;;; variant for outbuf
 
 ;; primitive to add a string const into a outbuf
@@ -4428,6 +4435,8 @@ discriminant $DIS.}#
  outnum_dbg
  outnum_err
  output_cfile_decl_impl
+ output_sbuf_strconst
+ output_sbuf_strval
  outstr_dbg
  outstr_err
  outstrbuf_dbg
