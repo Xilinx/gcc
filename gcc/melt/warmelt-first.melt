@@ -854,6 +854,12 @@ it.}#
   " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"{%s:%d}\", "
   "LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl ")), "
   "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
+;; primitive to add the short location info of a mixedloc into a strbuf
+(defprimitive add2sbuf_short_mixloc (sbuf mixl) :void
+  "/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
+  " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"{%s:%d}\", "
+  "lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl "))), "
+  "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
@@ -1124,6 +1130,26 @@ discriminant $DIS.}#
 (defprimitive multiple_sort (mul cmp discrm) :value
   " meltgc_sort_multiple((melt_ptr_t)(" mul "), (melt_ptr_t)(" cmp "), (melt_ptr_t)( " discrm "))")
 
+;; public comparator for named instances
+(defun compare_named_alpha (n1 n2)
+  :doc #{Alphanumerical compare of named instances $N1 and $N2. 
+Returns a boxed integer.}#
+  (cond 
+   ( (== n1 n2) '0)
+   ( (is_not_a n1 class_named) 
+     '1)
+   ( (is_not_a n2 class_named)
+     '-1)
+   (:else
+    (let ( (sn1 (unsafe_get_field :named_name n1))
+	   (sn2 (unsafe_get_field :named_name n2)) )
+      (cond
+       ( (string< sn1 sn2) 
+	 '-1)
+       ( (string> sn1 sn2)
+	 '1)
+       (:else
+	'0))))))
 
 ;; cmatcher for the tuple nth argument
 (defcmatcher tuple_nth 
@@ -4296,6 +4322,7 @@ discriminant $DIS.}#
  add2sbuf_mixloc
  add2sbuf_routinedescr
  add2sbuf_sbuf
+ add2sbuf_short_mixloc
  add2sbuf_strconst
  add2sbuf_string
  andi
@@ -4546,6 +4573,7 @@ discriminant $DIS.}#
  boxval					
  clone_symbol
  closure_every
+ compare_named_alpha
  compare_obj_ranked
  cstring_same
  dbg_out				

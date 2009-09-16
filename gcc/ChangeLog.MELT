@@ -1,4 +1,10 @@
 
+2009-09-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/gccint.texi: Added node & include for meltgendoc.texi.
+	* melt/warmelt-first.melt: added add2sbuf_short_mixloc &
+	compare_named_alpha.
+	* melt/warmelt-outobj.melt: added more makedoc generation.
+
 2009-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: added call to makedoc_outclassdef
 	which should be written.

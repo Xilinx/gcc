@@ -115,6 +115,7 @@ Additional tutorial information is linked to from
 * RTL::             Machine-dependent low-level intermediate representation.
 * Control Flow::    Maintaining and manipulating the control flow graph.
 * MELT::            the Middle End Lisp Translator.
+* MELT Programming Reference:: the MELT Programming Reference (generated).
 * Loop Analysis and Representation:: Analysis and representation of loops
 * Machine Desc::    How to write machine description instruction patterns.
 * Target Macros::   How to write the machine description C macros and functions.
@@ -151,6 +152,7 @@ Additional tutorial information is linked to from
 @include gimple.texi
 @include tree-ssa.texi
 @include melt.texi
+@include meltgendoc.texi
 @include loop.texi
 @include cfg.texi
 @include md.texi
