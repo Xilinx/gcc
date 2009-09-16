@@ -1,3 +1,32 @@
+2009-09-16  Michael Matz  <matz@suse.de>
+
+	PR fortran/41212
+	* gfortran.dg/pr41212.f90: New test.
+
+2009-09-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/alignment9.adb: New test.
+
+2009-09-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr20.ad[sb]: New test.
+
+2009-09-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34011
+	* gcc.dg/tree-ssa/ssa-lim-7.c: New testcase.
+
+2009-09-16  DJ Delorie  <dj@redhat.com>
+	    Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.target/sh/struct-arg-dw2.c: New test.
+
+2009-09-15  Nathan Froyd  <froydnj@codesourcery.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/41175
+	* gcc.target/powerpc/pr41175.c: New test.
+
 2009-09-14  Richard Henderson  <rth@redhat.com>
 
 	* c-c++-common/asmgoto-1.c, c-c++-common/asmgoto-2.c,

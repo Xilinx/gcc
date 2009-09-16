@@ -1,3 +1,116 @@
+2009-09-16  Richard Henderson  <rth@redhat.com>
+
+	PR target/41246
+	* tree-cfg.c (verify_gimple_call): Validate that gimple_call_chain
+	is set only if DECL_NO_STATIC_CHAIN is unset.
+	* tree-nested.c (iter_nestinfo_start, iter_nestinfo_next): New.
+	(FOR_EACH_NEST_INFO): New.
+	(walk_all_functions): Use it.
+	(finalize_nesting_tree): Likewise.
+	(unnest_nesting_tree): Likewise.
+	(free_nesting_tree): Use iter_nestinfo_start, iter_nestinfo_next.
+	(get_chain_decl, get_chain_field): Reset DECL_NO_STATIC_CHAIN.
+	(convert_gimple_call): Early out if gimple_call_chain already set.
+	(convert_all_function_calls): Iterate until no new functions
+	require a static chain.
+	(finalize_nesting_tree_1): Assert DECL_NO_STATIC_CHAIN is unset
+	when building a trampoline.  Use dump_function_to_file instead
+	of dump_function.
+	(lower_nested_functions): Open dump_file.  Validate that decls
+	that have DECL_NO_STATIC_CHAIN from the front end don't have that
+	bit reset by this pass.
+
+2009-09-16  Michael Matz  <matz@suse.de>
+
+	PR fortran/41212
+	* tree.h (struct tree_decl_common): Add decl_restricted_flag,
+	shorten decl_common_unused.
+	(DECL_RESTRICTED_P): New accessor.
+	* tree-ssa-alias.c (ptr_deref_may_alias_decl_p): Use it
+	to disambiguate marked decls and restrict pointers.
+
+2009-09-16  Richard Henderson  <rth@redhat.com>
+
+	PR middle-end/41360
+	* cfgbuild.c (find_bb_boundaries): Re-instate 2009-09-02 barrier fix.
+
+2009-09-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* integrate.c (set_block_abstract_flags): Call
+	set_decl_abstract_flags also on BLOCK_NONLOCALIZED_VARs.
+
+2009-09-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34011
+	* tree-flow-inline.h (may_be_aliased): Compute readonly variables
+	as non-aliased.
+
+2009-09-16  DJ Delorie  <dj@redhat.com>
+	    Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (output_stack_adjust): Add new argument frame_p.
+	(sh_expand_prologue): Update calls to output_stack_adjust.
+	(sh_expand_epilogue): Likewise.	
+
+2009-09-15  Adam Nemet  <anemet@caviumnetworks.com>
+
+	PR bootstrap/41349
+	* reorg.c (redundant_insn): Don't count notes or DEBUG_INSNs when
+	trying to limit the extent of searches in the insn stream.
+
+2009-09-15  Nathan Froyd  <froydnj@codesourcery.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/41175
+	PR target/40677
+	* config/rs6000/rs6000.c (no_global_regs_above): Fix precedence
+	problem.
+	(SAVRES_NOINLINE_GPRS_SAVES_LR, SAVRES_NOINLINE_FPRS_SAVES_LR,
+	SAVRES_NOINLINE_FPRS_DOESNT_RESTORE_LR): New strategy bits.
+	(rs6000_savres_strategy): Always save FP registers inline if the
+	target doesn't support hardware double-precision.  Set the above
+	bits in return value when needed.
+	(rs6000_savres_routine_sym): Fix computation for cache selector.
+	Mark the generated symbol as a function.  Rename exitp argument to
+	lr.  Move code for determining the name of the symbol...
+	(rs6000_savres_routine_name): ...here.  New function.  Add cases for
+	getting the names right on AIX and 64-bit Linux.
+	(savres_routine_name): New variable.
+	(rs6000_make_savres_rtx): Rename exitp argument to lr.  Don't assert
+	lr isn't set when savep.  Use r12 resp. r1 instead of r11 depending
+	on what the target routine uses as a base register.  If savep && lr
+	describe saving of r0 into memory slot.
+	(rs6000_emit_prologue): Correct use of call_used_regs.  Fix out of
+	line calls for AIX ABI.
+	(rs6000_output_function_prologue): Use rs6000_savres_routine_name to
+	determine FP save/restore functions.
+	(rs6000_emit_stack_reset): Handle savres if sp_offset != 0 and
+	frame_reg_rtx != sp_reg_rtx.  Use gen_add3_insn instead of
+	gen_addsi3.
+	(rs6000_emit_epilogue): Adjust computation of restore_lr.
+	Duplicate restoration of LR and execute the appropriate one
+	depending on whether GPRs are being restored inline.  Set r11 from
+	offsetted frame_reg_rtx instead of sp_reg_rtx; if frame_reg_rtx is
+	r11, adjust sp_offset.  Use gen_add3_insn instead of gen_addsi3.
+	Fix out of line calls for AIX ABI.
+	* config/rs6000/rs6000.md (*return_and_restore_fpregs_aix_<mode>):
+	New insn.
+	* config/rs6000/spe.md (*save_gpregs_spe): Use explicit match for
+	register 11.
+	(*restore_gpregs_spe): Likewise.
+	(*return_and_restore_gpregs_spe): Likewise.
+	* config/rs6000/linux64.h (SAVE_FP_SUFFIX, RESTORE_FP_SUFFIX):
+	Define to empty string unconditionally.
+	* config/rs6000/sysv4.h (SAVE_FP_SUFFIX, RESTORE_FP_SUFFIX):
+	Define to empty string unconditionally.
+	(GP_SAVE_INLINE, FP_SAVE_INLINE): Handle TARGET_64BIT the same as
+	!TARGET_64BIT.
+
+2009-09-15  Jan Hubicka  <jh@suse.cz>
+
+	* doc/invoke.texi (inline-insns-auto): Drop from 60 to 50.
+	* params.def (inline-insns-auto): Likewise.
+
 2009-09-15  Martin Jambor  <mjambor@suse.cz>
 
 	* ipa-inline.c (estimate_function_body_sizes): Dump info about

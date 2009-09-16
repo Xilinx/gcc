@@ -496,6 +496,7 @@ package body Exp_Ch6 is
       declare
          Activation_Chain_Actual : Node_Id;
          Activation_Chain_Formal : Node_Id;
+
       begin
          --  Locate implicit activation chain parameter in the called function
 
@@ -1807,6 +1808,10 @@ package body Exp_Ch6 is
                Make_Identifier (Loc, Chars (EF))));
 
          Analyze_And_Resolve (Expr, Etype (EF));
+
+         if Nkind (N) = N_Function_Call then
+            Set_Is_Accessibility_Actual (Parent (Expr));
+         end if;
       end Add_Extra_Actual;
 
       ---------------------------
@@ -2287,9 +2292,10 @@ package body Exp_Ch6 is
                         when Attribute_Access =>
                            Add_Extra_Actual
                              (Make_Integer_Literal (Loc,
-                                Intval =>
-                                  Object_Access_Level (Prefix (Prev_Orig))),
-                              Extra_Accessibility (Formal));
+                               Intval =>
+                                 Object_Access_Level
+                                   (Prefix (Prev_Orig))),
+                                    Extra_Accessibility (Formal));
 
                         --  Treat the unchecked attributes as library-level
 
@@ -2328,7 +2334,6 @@ package body Exp_Ch6 is
                        (Make_Integer_Literal (Loc,
                           Intval => Type_Access_Level (Etype (Prev))),
                         Extra_Accessibility (Formal));
-
                end case;
             end if;
          end if;

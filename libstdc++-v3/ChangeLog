@@ -1,3 +1,108 @@
+2009-09-16  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/base.h: Correct some comments accidentally changed
+        during uglification.
+        * include/parallel/find.h: Likewise.
+        * include/parallel/find_selectors.h: Likewise.
+        * include/parallel/multiway_merge.h: Likewise.
+        * include/parallel/multiway_mergesort.h: Likewise.
+        * include/parallel/partial_sum.h: Likewise.
+        * include/parallel/partition.h: Likewise.
+        * include/parallel/queue.h: Likewise.
+        * include/parallel/random_shuffle.h: Likewise.
+        * include/parallel/settings.h: Likewise.
+        * include/parallel/sort.h: Likewise.
+        * include/parallel/tags.h: Likewise.
+        * include/parallel/workstealing.h: Likewise.
+
+2009-09-16  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/base.h (_EqualFromLess):
+        Correct uglification of member variables and method arguments.
+        * include/parallel/balanced_quicksort.h (_QSBThreadLocal): Likewise.
+        * include/parallel/find_selectors.h (__find_first_of_selector):
+        Likewise.
+        * include/parallel/iterator.h (_IteratorTriple): Likewise.
+        * include/parallel/multiseq_selection.h
+        (_Lexicographic, _LexicographicReverse): Likewise.
+        * include/parallel/multiway_mergesort.h (_Piece, _PMWMSSortingData):
+        Likewise.
+        * include/parallel/random_number.h (_RandomNumber): Likewise.
+        * include/parallel/random_shuffle.h (_DRandomShufflingGlobalData):
+        Likewise.
+        * include/parallel/set_operations.h (__symmetric_difference_func,
+        __difference_func, __intersection_func, __union_func,
+        parallel_set_union, parallel_set_intersection, parallel_set_difference,
+        parallel_set_symmetric_difference): Likewise.
+        * include/parallel/tags.h (parallel_tag): Likewise.
+        * include/parallel/workstealing.h (_Job): Likewise.
+        * include/parallel/multiway_merge.h
+        (__multiway_merge_k_variant_sentinel_switch:operator())
+        correct uglification of _*LoserTree*.
+        * include/parallel/losertree.h (_*LoserTree*): Likewise; correct
+        uglification of member variables and method arguments.
+        * include/parallel/par_loop.h: Correct uglification of finish_iterator.
+        * include/parallel/for_each_selectors.h: Likewise.
+        * include/parallel/omp_loop.h: Likewise.
+        * include/parallel/algo.h: Likewise; uglify c_rand_number.
+
+2009-09-16  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/base.h (_PseudoSequenceIterator, _PseudoSequence):
+        Replace redundant _Self.
+        * include/parallel/iterator.h (_IteratorPair, _IteratorTriple):
+        Replace redundant _Self.
+        * include/parallel/algo.h: Correct accidental _Self in comments.
+        * include/parallel/losertree.h: Likewise.
+        * include/parallel/multiway_merge.h: Likewise.
+        * include/parallel/random_shuffle.h: Likewise.
+
+2009-09-16  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/algobase.h: Uglify internal identifiers.
+        * include/parallel/algo.h: Likewise.
+        * include/parallel/algorithm: Likewise.
+        * include/parallel/algorithmfwd.h: Likewise.
+        * include/parallel/balanced_quicksort.h: Likewise.
+        * include/parallel/base.h: Likewise.
+        * include/parallel/basic_iterator.h: Likewise.
+        * include/parallel/checkers.h: Likewise.
+        * include/parallel/compatibility.h: Likewise.
+        * include/parallel/compiletime_settings.: Likewise.
+        * include/parallel/equally_split.h: Likewise.
+        * include/parallel/features.h: Likewise.
+        * include/parallel/find.h: Likewise.
+        * include/parallel/find_selectors.h: Likewise.
+        * include/parallel/for_each.h: Likewise.
+        * include/parallel/for_each_selectors.h: Likewise.
+        * include/parallel/iterator.h: Likewise.
+        * include/parallel/list_partition.h: Likewise.
+        * include/parallel/losertree.h: Likewise.
+        * include/parallel/merge.h: Likewise.
+        * include/parallel/multiseq_selection.h: Likewise.
+        * include/parallel/multiway_merge.h: Likewise.
+        * include/parallel/multiway_mergesort.h: Likewise.
+        * include/parallel/numeric: Likewise.
+        * include/parallel/numericfwd.h: Likewise.
+        * include/parallel/omp_loop.h: Likewise.
+        * include/parallel/omp_loop_static.h: Likewise.
+        * include/parallel/parallel.h: Likewise.
+        * include/parallel/par_loop.h: Likewise.
+        * include/parallel/partial_sum.h: Likewise.
+        * include/parallel/partition.h: Likewise.
+        * include/parallel/queue.h: Likewise.
+        * include/parallel/quicksort.h: Likewise.
+        * include/parallel/random_number.h: Likewise.
+        * include/parallel/random_shuffle.h: Likewise.
+        * include/parallel/search.h: Likewise.
+        * include/parallel/set_operations.h: Likewise.
+        * include/parallel/settings.h: Likewise.
+        * include/parallel/sort.h: Likewise.
+        * include/parallel/tags.h: Likewise.
+        * include/parallel/types.h: Likewise.
+        * include/parallel/unique_copy.h: Likewise.
+        * include/parallel/workstealing.h: Likewise.
+
 2009-09-14  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/41037
