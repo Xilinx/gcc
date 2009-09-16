@@ -64,7 +64,7 @@ struct pair
   type_p type;
   struct fileloc line;
   options_p opt;
-  bool in_plugin;		/* flag set if appearing inside a plugin */
+  bool inplugin;		/* flag set if appearing inside a plugin */
 };
 
 #define NUM_PARAM 10
@@ -84,7 +84,7 @@ struct type
   type_p next;
   type_p pointer_to;
   enum gc_used_enum gc_used;
-  bool in_plugin;
+  bool inplugin;
   union {
     type_p p;
     struct {
@@ -153,8 +153,9 @@ static int first_plugin_file_ix= -1;
 static char* plugin_output_filename;
 static outf_p plugin_output;
 
+
 /* The output header file that is included into pretty much every
-   source file.  It is not generated in plugin mode! */
+   source file.  */
 static outf_p header_file;
 
 /* Source directory.  */
@@ -178,6 +179,7 @@ bool hit_error = false;
 
 /* Flag set when parsing a plugin file */
 static bool is_plugin_file = false;
+
 
 static void gen_rtx_next (void);
 static void write_rtx_next (void);
@@ -543,7 +545,6 @@ static struct type string_type = {
 static struct type scalar_nonchar = {
   TYPE_SCALAR, 0, 0, GC_USED, false, {0}
 };
-
 static struct type scalar_char = {
   TYPE_SCALAR, 0, 0, GC_USED, false, {0}
 };
@@ -688,7 +689,7 @@ new_structure (const char *name, int isunion, struct fileloc *pos,
     }
 
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
-  s->in_plugin = is_plugin_file;
+  s->inplugin = is_plugin_file;
   s->u.s.tag = name;
   s->u.s.line = *pos;
   s->u.s.fields = fields;
@@ -733,7 +734,7 @@ find_structure (const char *name, int isunion)
   s->next = structures;
   structures = s;
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
-  s->in_plugin = is_plugin_file;
+  s->inplugin = is_plugin_file;
   s->u.s.tag = name;
   structures = s;
   return s;
@@ -757,7 +758,7 @@ find_param_structure (type_p t, type_p param[NUM_PARAM])
     {
       res = XCNEW (struct type);
       res->kind = TYPE_PARAM_STRUCT;
-      res->in_plugin = is_plugin_file;
+      res->inplugin = is_plugin_file;
       res->next = param_structs;
       param_structs = res;
       res->u.param_struct.stru = t;
@@ -786,7 +787,7 @@ create_pointer (type_p t)
     {
       type_p r = XCNEW (struct type);
       r->kind = TYPE_POINTER;
-      r->in_plugin = is_plugin_file;
+      r->inplugin = is_plugin_file;
       r->u.p = t;
       t->pointer_to = r;
     }
@@ -802,7 +803,7 @@ create_array (type_p t, const char *len)
 
   v = XCNEW (struct type);
   v->kind = TYPE_ARRAY;
-  v->in_plugin = is_plugin_file;
+  v->inplugin = is_plugin_file;
   v->u.a.p = t;
   v->u.a.len = len;
   return v;
@@ -847,7 +848,7 @@ note_variable (const char *s, type_p t, options_p o, struct fileloc *pos)
   n->line = *pos;
   n->opt = o;
   n->next = variables;
-  n->in_plugin = is_plugin_file;
+  n->inplugin = is_plugin_file;
   variables = n;
 }
 
@@ -1548,11 +1549,7 @@ oprintf (outf_p o, const char *format, ...)
      in that case.  */
   if (!o) 
     return;
-  
-  gcc_assert (o->buf != NULL);
-  
-  gcc_assert (o->bufused <= o->buflength);
-  
+
   va_start (ap, format);
   slength = vasprintf (&s, format, ap);
   if (s == NULL || (int)slength < 0)
@@ -1562,24 +1559,16 @@ oprintf (outf_p o, const char *format, ...)
   if (o->bufused + slength > o->buflength)
     {
       size_t new_len = o->buflength;
-      char *oldbuf = o->buf;
       if (new_len == 0)
 	new_len = 1024;
       do {
 	new_len *= 2;
       } while (o->bufused + slength >= new_len);
-      o->buf = XNEWVEC (char, new_len);
-      if (oldbuf) 
-	{
-	  memcpy(o->buf, oldbuf, o->bufused);
-	  oldbuf[0] = 0;
-	}
-      free (oldbuf);
+      o->buf = XRESIZEVEC (char, o->buf, new_len);
       o->buflength = new_len;
     }
   memcpy (o->buf + o->bufused, s, slength);
   o->bufused += slength;
-  gcc_assert (o->bufused <= o->buflength);
   free (s);
 }
 
@@ -1590,7 +1579,7 @@ open_base_files (void)
 {
   size_t i;
 
-  if (nb_plugin_files > 0 && plugin_files) 
+  if (nb_plugin_files > 0 && plugin_files)
     return;
 
   header_file = create_file ("GCC", "gtype-desc.h");
@@ -1612,7 +1601,7 @@ open_base_files (void)
       "optabs.h", "libfuncs.h", "debug.h", "ggc.h", "cgraph.h",
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
       "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h",
-      "target.h", 
+      "target.h",
       "melt-runtime.h",
       NULL
     };
@@ -1759,7 +1748,7 @@ get_output_file_with_visibility (const char *input_file)
     input_file = "system.h";
 
   /* In plugin mode, return NULL unless the input_file is one of the
-     plugin_files or is the specified plugin_output_filename.  */
+     plugin_files or is the specified plugin_output_filename  */
   if (plugin_files && nb_plugin_files > 0) 
     { 
       int ix= -1, i;
@@ -1767,8 +1756,7 @@ get_output_file_with_visibility (const char *input_file)
 	if (strcmp (input_file, plugin_files[i]) == 0) 
 	  ix = i;
       if (ix < 0
-	  && plugin_output_filename
-	  && strcmp (input_file, plugin_output_filename)) 
+	  && plugin_output_filename && strcmp (input_file, plugin_output_filename)) 
 	return NULL;
       if (plugin_output_filename)
 	return plugin_output;
@@ -1811,10 +1799,12 @@ get_output_file_with_visibility (const char *input_file)
   else 
     {
       int lang_index = get_prefix_langdir_index (basename);
+
       if (lang_index >= 0)
 	return base_files[lang_index];
+
       output_name = "gtype-desc.c";
-      for_name = "GCC";
+      for_name = NULL;
     }
 
   /* Look through to see if we've ever seen this output filename before.  */
@@ -1926,7 +1916,6 @@ static void walk_type (type_p t, struct walk_type_data *d);
 static void write_func_for_structure
      (type_p orig_s, type_p s, type_p * param,
       const struct write_types_data *wtd);
-/* Marks the function for later output in plugin mode. */
 static void delay_func_for_structure (type_p s, const struct write_types_data* wtd);
 static void write_types_process_field
      (type_p f, const struct walk_type_data *d);
@@ -2761,7 +2750,7 @@ write_types (type_p structures, type_p param_structs,
 {
   type_p s;
   outf_p outheadf = plugin_output_filename ? plugin_output : header_file;
-  
+
   oprintf (outheadf, "\n/* %s*/\n", wtd->comment);
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
@@ -3041,8 +3030,7 @@ write_local (type_p structures, type_p param_structs)
       }
 }
 
-/* Write out (to header_file, unless in plugin mode) the 'enum'
-   definition for gt_types_enum.  */
+/* Write out the 'enum' definition for gt_types_enum.  */
 
 static void
 write_enum_defn (type_p structures, type_p param_structs)
@@ -3058,7 +3046,7 @@ write_enum_defn (type_p structures, type_p param_structs)
       
       for (s = structures; s; s = s->next)
 	{
-	  if (!s->in_plugin)
+	  if (!s->inplugin)
 	    continue;
 	  if (s->gc_used == GC_POINTED_TO
 	      || s->gc_used == GC_MAYBE_POINTED_TO)
@@ -3075,7 +3063,7 @@ write_enum_defn (type_p structures, type_p param_structs)
 	    }
 	}
       for (s = param_structs; s; s = s->next)
-	if (s->gc_used == GC_POINTED_TO && s->in_plugin)
+	if (s->gc_used == GC_POINTED_TO && s->inplugin)
 	  {
 	    oprintf (plugin_output, "#define gt_e_");
 	    output_mangled_typename (plugin_output, s);
@@ -3089,11 +3077,10 @@ write_enum_defn (type_p structures, type_p param_structs)
       oprintf (plugin_output, "/* end ifdef GCC_PLUGIN_HAVE_PCH */\n#endif\n");
       return;
     }
-  
-  /* write only to header_file */
+
   if (!header_file) 
     return;
-  oprintf (header_file, "\n/* Enumeration of known types.  */\n");
+  oprintf (header_file, "\n/* Enumeration of types known.  */\n");
   oprintf (header_file, "enum gt_types_enum {\n");
   oprintf (header_file, "  gt_types_enum_firstempty,\n");
   for (s = structures; s; s = s->next)
@@ -3452,7 +3439,7 @@ write_roots (pair_p variables)
       const char *length = NULL;
       int deletable_p = 0;
       options_p o;
-      if (nb_plugin_files > 0 && plugin_output_filename && v->in_plugin)
+      if (nb_plugin_files > 0 && plugin_output_filename && v->inplugin)
 	f = plugin_output;
       else
 	f = get_output_file_with_visibility (v->line.file);
@@ -3503,12 +3490,17 @@ write_roots (pair_p variables)
 
   for (v = variables; v; v = v->next)
     {
-      outf_p f = get_output_file_with_visibility (v->line.file);
+      outf_p f = NULL;
       struct flist *fli;
       int skip_p = 0;
       int length_p = 0;
       options_p o;
 
+      if (nb_plugin_files > 0 && plugin_output_filename && v->inplugin)
+	f = plugin_output;
+      else
+	f = get_output_file_with_visibility (v->line.file);
+ 
       for (o = v->opt; o; o = o->next)
 	if (strcmp (o->name, "length") == 0)
 	  length_p = 1;
@@ -3748,8 +3740,8 @@ note_def_vec_alloc (const char *type, const char *astrat, struct fileloc *pos)
 }
 
 
-/* In plugin mode, the writing of functions for structure is delayed
-   to the end; we keep a vector of these. */
+/* in plugin mode, the write of functions for structure is delayed to
+   the end; we keep a vector of these */
 struct delayedstructfunc_st 
 {
   type_p dly_s;
@@ -3761,8 +3753,7 @@ static int dlystructcnt;
 
 
 
-/* In plugin mode, we delay the output of functions by appending them
-   to the above array. */ 
+
 static void
 delay_func_for_structure (type_p s, const struct write_types_data* wtd)
 {
@@ -3792,8 +3783,6 @@ delay_func_for_structure (type_p s, const struct write_types_data* wtd)
 }
 
 
-/* In plugin mode, output at last the functions which have been
-   kept. */
 static void
 output_delayed_functions(void)
 {
@@ -3837,7 +3826,6 @@ main (int argc, char **argv)
       plugin_files = argv + 5;
       nb_plugin_files = argc - 5;
     }
-  
   else if (argc == 3) 
     {
       srcdir = argv[1];
@@ -3870,14 +3858,14 @@ main (int argc, char **argv)
   do_scalar_typedef ("void", &pos); pos.line++;
   do_typedef ("PTR", create_pointer (resolve_typedef ("void", &pos)), &pos);
 
-  for (i = 0; i < num_gt_files; i++) 
+  for (i = 0; i < num_gt_files; i++)
     {
       is_plugin_file = first_plugin_file_ix >= 0
 	&& (int)i >= first_plugin_file_ix;
-      parse_file (gt_files[i]);
+    parse_file (gt_files[i]);
       is_plugin_file = false;
     }
-  
+
   if (hit_error)
     return 1;
 
