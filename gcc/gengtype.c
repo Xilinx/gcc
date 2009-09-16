@@ -64,7 +64,7 @@ struct pair
   type_p type;
   struct fileloc line;
   options_p opt;
-  bool inplugin;		/* flag set if appearing inside a plugin */
+  bool in_plugin;		/* flag set if appearing inside a plugin */
 };
 
 #define NUM_PARAM 10
@@ -84,7 +84,7 @@ struct type
   type_p next;
   type_p pointer_to;
   enum gc_used_enum gc_used;
-  bool inplugin;
+  bool in_plugin;
   union {
     type_p p;
     struct {
@@ -689,7 +689,7 @@ new_structure (const char *name, int isunion, struct fileloc *pos,
     }
 
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
-  s->inplugin = is_plugin_file;
+  s->in_plugin = is_plugin_file;
   s->u.s.tag = name;
   s->u.s.line = *pos;
   s->u.s.fields = fields;
@@ -734,7 +734,7 @@ find_structure (const char *name, int isunion)
   s->next = structures;
   structures = s;
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
-  s->inplugin = is_plugin_file;
+  s->in_plugin = is_plugin_file;
   s->u.s.tag = name;
   structures = s;
   return s;
@@ -758,7 +758,7 @@ find_param_structure (type_p t, type_p param[NUM_PARAM])
     {
       res = XCNEW (struct type);
       res->kind = TYPE_PARAM_STRUCT;
-      res->inplugin = is_plugin_file;
+      res->in_plugin = is_plugin_file;
       res->next = param_structs;
       param_structs = res;
       res->u.param_struct.stru = t;
@@ -787,7 +787,7 @@ create_pointer (type_p t)
     {
       type_p r = XCNEW (struct type);
       r->kind = TYPE_POINTER;
-      r->inplugin = is_plugin_file;
+      r->in_plugin = is_plugin_file;
       r->u.p = t;
       t->pointer_to = r;
     }
@@ -803,7 +803,7 @@ create_array (type_p t, const char *len)
 
   v = XCNEW (struct type);
   v->kind = TYPE_ARRAY;
-  v->inplugin = is_plugin_file;
+  v->in_plugin = is_plugin_file;
   v->u.a.p = t;
   v->u.a.len = len;
   return v;
@@ -848,7 +848,7 @@ note_variable (const char *s, type_p t, options_p o, struct fileloc *pos)
   n->line = *pos;
   n->opt = o;
   n->next = variables;
-  n->inplugin = is_plugin_file;
+  n->in_plugin = is_plugin_file;
   variables = n;
 }
 
@@ -3046,7 +3046,7 @@ write_enum_defn (type_p structures, type_p param_structs)
       
       for (s = structures; s; s = s->next)
 	{
-	  if (!s->inplugin)
+	  if (!s->in_plugin)
 	    continue;
 	  if (s->gc_used == GC_POINTED_TO
 	      || s->gc_used == GC_MAYBE_POINTED_TO)
@@ -3063,7 +3063,7 @@ write_enum_defn (type_p structures, type_p param_structs)
 	    }
 	}
       for (s = param_structs; s; s = s->next)
-	if (s->gc_used == GC_POINTED_TO && s->inplugin)
+	if (s->gc_used == GC_POINTED_TO && s->in_plugin)
 	  {
 	    oprintf (plugin_output, "#define gt_e_");
 	    output_mangled_typename (plugin_output, s);
@@ -3439,7 +3439,7 @@ write_roots (pair_p variables)
       const char *length = NULL;
       int deletable_p = 0;
       options_p o;
-      if (nb_plugin_files > 0 && plugin_output_filename && v->inplugin)
+      if (nb_plugin_files > 0 && plugin_output_filename && v->in_plugin)
 	f = plugin_output;
       else
 	f = get_output_file_with_visibility (v->line.file);
@@ -3496,7 +3496,7 @@ write_roots (pair_p variables)
       int length_p = 0;
       options_p o;
 
-      if (nb_plugin_files > 0 && plugin_output_filename && v->inplugin)
+      if (nb_plugin_files > 0 && plugin_output_filename && v->in_plugin)
 	f = plugin_output;
       else
 	f = get_output_file_with_visibility (v->line.file);
