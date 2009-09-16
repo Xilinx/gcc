@@ -1,3 +1,7 @@
+2009-09-16  Alexander Monakov  <amonakov@ispras.ru>
+
+	* testsuite/libgomp.graphite/bounds.c: New.
+
 2008-07-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	Reverted all the changes.  They are now tracked in the
