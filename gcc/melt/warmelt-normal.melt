@@ -649,7 +649,7 @@
   (debug_msg recv "normexp_src_catchall recv" )
   (let ( (myclass (discrim recv))
 	 (myclassname (unsafe_get_field :named_name myclass)) )
-    (error_strv (unsafe_get_field :src_loc recv) 
+    (error_strv (unsafe_get_field :loca_location recv) 
 		"unimplemented normalization for " myclassname)
     (assert_msg "normexp_src_catchall unimplemented normexp for src" ())
     ))
@@ -1083,7 +1083,7 @@
   (assert_msg "check prim recv" (is_a recv class_src_primitive))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (soper (unsafe_get_field :sprim_oper recv))
 	 (sargs (unsafe_get_field :sprim_args recv)) 
 	 )
@@ -1210,7 +1210,7 @@
   (assert_msg "check code_chunk recv" (is_a recv class_src_codechunk))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (schk (unsafe_get_field :sch_chunks recv))
 	 (gsym (unsafe_get_field :sch_gensym recv))
 	 (csym (clone_symbol gsym))
@@ -1261,7 +1261,7 @@
   (assert_msg "check recv" (is_a recv class_src_cmatchexpr))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (scmat (unsafe_get_field :scmatx_cmatcher recv))
 	 (sargs (unsafe_get_field :scmatx_args recv)) 
 	 )
@@ -1393,7 +1393,7 @@
   (assert_msg "check recv" (is_a recv class_src_funmatchexpr))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (sfmat (unsafe_get_field :sfmatx_fmatcher recv))
 	 (sfbind (unsafe_get_field :sfmatx_fmatbind recv))
 	 (sargs (unsafe_get_field :sfmatx_args recv)) 
@@ -1423,7 +1423,7 @@
   (assert_msg "check apply recv" (is_a recv class_src_apply))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (sfun (unsafe_get_field :sapp_fun recv))
 	 (sargs (unsafe_get_field :sapp_args recv))
 	 (sfusymb (if (is_a sfun class_symbol) sfun '_fun_))
@@ -1475,7 +1475,7 @@
 	 (msargs (unsafe_get_field :msend_args msnd))
 	 (selnam (unsafe_get_field :msend_selsymb msnd))
 	 (curproc (unsafe_get_field :nctx_curproc ncx))
-	 (sloc (unsafe_get_field :src_loc msnd))
+	 (sloc (unsafe_get_field :loca_location msnd))
 	 (nsel (normexp_symbol selnam env ncx sloc))
 	 )
     (debug_msg curproc "normexp_msend curproc")
@@ -1532,7 +1532,7 @@
   (assert_msg "check return recv" (is_a recv class_src_return))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (srets (unsafe_get_field :sreturn_body recv))
 	 (:long nbrets (multiple_length srets))
 	 (csym (clone_symbol 'return_)) 
@@ -1603,7 +1603,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_if recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (stest (unsafe_get_field :sif_test recv))
 	 (ctypif ctype_void)
 	 (sthen (unsafe_get_field :sif_then recv))
@@ -1667,7 +1667,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_ifelse recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (stest (unsafe_get_field :sif_test recv))
 	 (ctypif ctype_void)
 	 (sthen (unsafe_get_field :sif_then recv))
@@ -1767,7 +1767,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_cppif recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (scond (unsafe_get_field :sifp_cond recv))
 	 (ctypif ctype_void)
 	 (sthen (unsafe_get_field :sifp_then recv))
@@ -1844,7 +1844,7 @@
   (debug_msg recv "normexp_or recv")
   (let ( 
 	(boxorcount (make_integerbox discr_integer (the_callcount)))
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(sdisj (unsafe_get_field :sor_disj recv))
 	(:long nbdisj (multiple_length sdisj))
 	(:long ix (-i nbdisj 1))
@@ -1926,7 +1926,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_progn recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sbody (unsafe_get_field :sprogn_body recv))
 	 (:long lnbody (multiple_length sbody)) 
 	 (boxlnbody (make_integerbox discr_integer lnbody))
@@ -1987,7 +1987,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_let recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sbindings (unsafe_get_field :slet_bindings recv))
 	 (sbody (unsafe_get_field :slet_body recv)) 
 	 (newenv (fresh_env env))
@@ -1997,7 +1997,7 @@
      sbindings
      (lambda (sb :long sbix)
        (assert_msg "check sb" (is_a sb class_src_letbinding))
-       (let ( (sbloc (unsafe_get_field :src_loc sb))
+       (let ( (sbloc (unsafe_get_field :loca_location sb))
 	      (sbtyp (unsafe_get_field :sletb_type sb))
 	      (sbinder (unsafe_get_field :sletb_binder sb))
 	      (sbexpr (unsafe_get_field :sletb_expr sb)) 
@@ -2113,7 +2113,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp unsafeget recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sobj   (unsafe_get_field :suget_obj recv))
 	 (sfld   (unsafe_get_field :suget_field recv)) 
 	 ) 
@@ -2152,7 +2152,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_get_field recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sobj   (unsafe_get_field :suget_obj recv))
 	 (sfld   (unsafe_get_field :suget_field recv)) 
 	 ) 
@@ -2204,7 +2204,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_unsafe_put_fields recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sobj   (unsafe_get_field :suput_obj recv))
 	 (sfields (unsafe_get_field :suput_fields recv))
 	 (:long nbfields (multiple_length sfields))
@@ -2264,7 +2264,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_put_fields recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sobj   (unsafe_get_field :suput_obj recv))
 	 (sfields (unsafe_get_field :suput_fields recv))
 	 (:long nbfields (multiple_length sfields))
@@ -2360,7 +2360,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp setq recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (svar   (unsafe_get_field :sstq_var recv))
 	 (sexp   (unsafe_get_field :sstq_expr recv)) ) 
     (assert_msg "check svar" (is_a svar class_symbol))
@@ -2419,7 +2419,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_make_instance recv" )
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sclass (unsafe_get_field :smins_class recv))
 	 (sclabind (unsafe_get_field :smins_clabind recv))
 	 (sfields (unsafe_get_field :smins_fields recv))
@@ -2437,7 +2437,7 @@
 	     sfields 
 	     (lambda (curflda :long curk)
 	       (assert_msg "check curflda" (is_a curflda class_src_fieldassign))
-	       (let ( (curfloc (unsafe_get_field :src_loc curflda))
+	       (let ( (curfloc (unsafe_get_field :loca_location curflda))
 		      (curfield (unsafe_get_field :sfla_field curflda))
 		      (curexp (unsafe_get_field :sfla_expr curflda)) )
 		 (if (null curfloc) (setq curfloc sloc))
@@ -2488,7 +2488,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_forever recv" )
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (sbody (unsafe_get_field :sfrv_body recv))
 	 (newenv (fresh_env env))
@@ -2552,7 +2552,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_exit recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (sbody (unsafe_get_field :sexi_body recv))
 	 (newenv (fresh_env env))
@@ -2595,7 +2595,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_compile_warning recv")
-  (let ((sloc   (unsafe_get_field :src_loc recv)) 
+  (let ((sloc   (unsafe_get_field :loca_location recv)) 
 	(swmsg (unsafe_get_field :scwarn_msg recv))
 	(swexp (unsafe_get_field :scwarn_expr recv))
 	)
@@ -2710,7 +2710,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_defun recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (snam (unsafe_get_field :sdef_name recv))
 	 (sformals (unsafe_get_field :sformal_args recv))
 	 (sbody (unsafe_get_field :sfun_body recv))
@@ -2806,7 +2806,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_lambda recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :slam_argbind recv))
 	 (sbody (unsafe_get_field :slam_body recv))
 	 (savedcachemap (unsafe_get_field :nctx_symbcachemap ncx))
@@ -2914,7 +2914,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_multicall recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sresbind (unsafe_get_field :smulc_resbind recv))
 	 (scall (unsafe_get_field :smulc_call recv))
 	 (sbody (unsafe_get_field :smulc_body recv))
@@ -3143,7 +3143,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
 					;(debug_msg ncx "normexp_quote ncx")
   (debug_msg recv "normexp_quote recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (quoted (unsafe_get_field :squoted recv)) 
 	 (curproc (unsafe_get_field :nctx_curproc ncx))
 	 (ndata 
@@ -3198,7 +3198,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_comment start recv")
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (scomm (unsafe_get_field :scomm_str recv))
 	 (ncomm (instance class_nrep_comment
 			  :nrep_loc sloc
@@ -3327,7 +3327,7 @@
   (assert_msg "check defprimitive recv" (is_a recv class_src_defprimitive))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (sargs  (unsafe_get_field :sformal_args recv))
 	 (stype  (unsafe_get_field :sprim_type recv))
@@ -3396,7 +3396,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(sname (unsafe_get_field :sdef_name recv))
 	(sciter (let ( (sc (unsafe_get_field :sciterdef_citerator recv)) )
 		  (assert_msg "check sciter" (is_a sc class_citerator))
@@ -3505,7 +3505,7 @@
   (assert_msg "check citeration recv" (is_a recv class_src_citeration))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (soper (unsafe_get_field :sciter_oper recv))
 	 (sargs (unsafe_get_field :sciter_args recv))
 	 (svbind (unsafe_get_field :sciter_varbind recv))
@@ -3724,7 +3724,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_defcmatcher recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (sformals (unsafe_get_field :sformal_args recv))
 	 (cmatcher (let ( (cm (unsafe_get_field :scmatdef_cmatcher recv)) )
@@ -3862,7 +3862,7 @@
   (assert_msg "normexp_defunmatcher check recv" (is_a recv class_src_defunmatcher))
   (assert_msg "normexp_defunmatcher check env" (is_a env class_environment))
   (assert_msg "normexp_defunmatcher check ncx" (is_a ncx class_normcontext))
-  (let ( (sloc (unsafe_get_field :src_loc recv))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sname (unsafe_get_field :sdef_name recv))
 	 (smatched (multiple_nth (get_field :sformal_args recv) 0))
 	 (sins (unsafe_get_field :sfumatdef_ins recv))
@@ -3983,7 +3983,7 @@
   (assert_msg "check defclass recv" (is_a recv class_src_defclass))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (spredef (unsafe_get_field :sobj_predef recv))
 	 (sclabind (unsafe_get_field :sclass_clabind recv))
@@ -4143,7 +4143,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_definstance recv")
-  (let ( (sloc   (unsafe_get_field :src_loc recv))
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (spredef (unsafe_get_field :sobj_predef recv))
 	 (sdocstr (unsafe_get_field :sdef_doc recv))
@@ -4238,7 +4238,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp defselector recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(sname (unsafe_get_field :sdef_name recv))
 	(spredef (unsafe_get_field :sobj_predef recv))
 	(sdocstr (unsafe_get_field :sdef_doc recv))
@@ -4398,7 +4398,7 @@
 		  (add2sbuf_string sb (unsafe_get_field :named_name sym))
 		  sb))
 	 (scurenvbox (instance class_src_current_module_environment_container
-			       :src_loc psloc
+			       :loca_location psloc
 			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
     (debug_msg scurenvbox "normal_exported_value scurenvbox")
@@ -4445,7 +4445,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_export_values recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
 	(bindslist (make_list discr_list))
 	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
@@ -4486,7 +4486,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp export_class recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
 	(bindslist (make_list discr_list))
 	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
@@ -4641,7 +4641,7 @@
 		  (add2sbuf_string sb (unsafe_get_field :named_name sym))
 		  sb))
 	 (scurenvbox (instance class_src_current_module_environment_container
-			       :src_loc psloc
+			       :loca_location psloc
 			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
     (debug_msg scurenvbox "normal_exported_macro sgetcurenvbox")
@@ -4680,7 +4680,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp export_macro recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(mname (unsafe_get_field :sexpmac_mname recv))
 	(mvalexp (unsafe_get_field :sexpmac_mval recv))
 	(bindslist (make_list discr_list))
@@ -4729,7 +4729,7 @@
 		  (add2sbuf_string sb (unsafe_get_field :named_name sym))
 		  sb))
 	 (scurenvbox (instance class_src_current_module_environment_container
-			       :src_loc psloc
+			       :loca_location psloc
 			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
     (debug_msg scurenvbox "normal_exported_patmacro sgetcurenvbox")
@@ -4768,7 +4768,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp export_patmacro recv")
   (let (
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(mname (unsafe_get_field :sexpmac_mname recv))
 	(mvalexp (unsafe_get_field :sexpmac_mval recv))
 	(mpatexp (unsafe_get_field :sexppat_pval recv))
@@ -4807,7 +4807,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_current_module_environment_container recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(scomm (unsafe_get_field :cmec_comment recv))
 	(ncurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
@@ -4839,7 +4839,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_parent_module_environment  recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
 	(qdatpar (unsafe_get_field :nctx_qdatparmodenv ncx))
 	(nquasi (instance class_nrep_quasiconst_parent_module_environment
@@ -4865,7 +4865,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_update_current_module_environment_container recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(scomm (unsafe_get_field :sucme_comment recv))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
 	(iniproc (unsafe_get_field :nctx_initproc ncx))
@@ -4900,32 +4900,32 @@
 		    (add2sbuf_string sb scomm)
 		    sb))
 	   (scurenvbox (instance class_src_current_module_environment_container
-				 :src_loc sloc
+				 :loca_location sloc
 				 :cmec_comment (strbuf2string discr_string csbuf)))
 	   (sgetcurenvbox
 	    (instance 
 	     class_src_or
-	     :src_loc psloc
+	     :loca_location psloc
 	     :sor_disj 
 	     (make_tuple2
 	      discr_multiple
 	      scurenvbox
 	      (instance 
 	       class_src_apply
-	       :src_loc psloc
+	       :loca_location psloc
 	       :sapp_fun (instance
 			  class_src_unsafe_get_field
-			  :src_loc psloc
+			  :loca_location psloc
 			  :suget_obj (instance
 				      class_src_fetch_predefined
-				      :src_loc psloc
+				      :loca_location psloc
 				      :sfepd_predef 'initial_system_data
 				      )
 			  :suget_field sysdata_cont_fresh_env
 			  )
 	       :sapp_args (make_tuple2 discr_multiple
 				       (instance class_src_parent_module_environment
-						 :src_loc psloc)
+						 :loca_location psloc)
 				       modnam
 				       )))))
 	   )
@@ -4950,7 +4950,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_fetch_predefined recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(spred (unsafe_get_field :sfepd_predef recv))
 	(predefmap (unsafe_get_field :nctx_predefmap ncx))
 	)
@@ -4996,7 +4996,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_store_predefined recv")
   (let ( 
-	(sloc (unsafe_get_field :src_loc recv))
+	(sloc (unsafe_get_field :loca_location recv))
 	(spred (unsafe_get_field :sstpd_predef recv))
 	(sval (unsafe_get_field :sstpd_value recv))
 	(predefmap (unsafe_get_field :nctx_predefmap ncx))

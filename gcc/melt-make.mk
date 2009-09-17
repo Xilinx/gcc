@@ -71,6 +71,10 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 ##
 warmelt-%-0.d.so: warmelt-%-0.c 
 	$(melt_make_compile_script) -d $< $@
+warmelt-%-h.d.so: warmelt-%-h.c 
+	$(melt_make_compile_script) -d $< $@
+warmelt-%-h2.d.so: warmelt-%-h2.c 
+	$(melt_make_compile_script) -d $< $@
 warm%.n.so: warm%.c 
 	$(melt_make_compile_script) -n $< $@
 warm%.so: warm%.c 
@@ -105,6 +109,20 @@ WARMELT_BASE0SO= $(patsubst %, %-0.so, $(WARMELT_BASE))
 WARMELT_BASE0DSO= $(patsubst %, %-0.d.so, $(WARMELT_BASE))
 WARMELT_BASE0ROW:=$(shell echo $(WARMELT_BASE0)|sed 's/ /:/g')
 WARMELT_BASE0DROW:=$(shell echo $(patsubst %, %-0.d, $(WARMELT_BASE))|sed 's/ /:/g')
+##
+WARMELT_BASEH= $(patsubst %, %-h, $(WARMELT_BASE))
+WARMELT_BASEHSO= $(patsubst %, %-h.so, $(WARMELT_BASE))
+WARMELT_BASEHDSO= $(patsubst %, %-h.d.so, $(WARMELT_BASE))
+WARMELT_BASEHC= $(patsubst %, %-h.c, $(WARMELT_BASE))
+WARMELT_BASEHROW:=$(shell echo $(WARMELT_BASEH)|sed 's/ /:/g')
+WARMELT_BASEHDROW:=$(shell echo $(patsubst %, %-h.d, $(WARMELT_BASE))|sed 's/ /:/g')
+##
+##
+WARMELT_BASEH2= $(patsubst %, %-h2, $(WARMELT_BASE))
+WARMELT_BASEH2SO= $(patsubst %, %-h2.so, $(WARMELT_BASE))
+WARMELT_BASEH2DSO= $(patsubst %, %-h2.d.so, $(WARMELT_BASE))
+WARMELT_BASEH2C= $(patsubst %, %-h2.c, $(WARMELT_BASE))
+WARMELT_BASEH2ROW:=$(shell echo $(WARMELT_BASEH2)|sed 's/ /:/g')
 ##
 WARMELT_BASE1= $(patsubst %, %-1, $(WARMELT_BASE))
 WARMELT_BASE1SO= $(patsubst %, %-1.so, $(WARMELT_BASE))
@@ -144,7 +162,7 @@ ANAMELT_BASEC= $(patsubst %, %.c, $(ANAMELT_BASE))
 ANAMELT_BASEROW:=$(shell echo $(ANAMELT_BASE)|sed 's/ /:/g')
 
 ## keep the generated warm*.c files!
-.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(ANAMELT_BASEC)
+.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(ANAMELT_BASEC) $(WARMELT_BASEHC) $(WARMELT_BASEH2C)
 
 warmelt0.modlis: $(WARMELT_BASE0DSO)
 	date +"#$@ generated %F" > $@-tmp
@@ -174,6 +192,48 @@ warmelt-first-1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+
+
+warmelt-first-h.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c
+	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
+	      $(meltarg_arg)=$< \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+
+warmelt-%-h.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_cc1) \
+	 $(WARMELT_BASE0DSO) warmelt-first-h.d.so  empty-file-for-melt.c
+	$(MELTCCFILE1) \
+	$(meltarg_init)=$(patsubst warmelt-first-%.d,warmelt-first-h.d,$(WARMELT_BASE0DROW)) \
+	      $(meltarg_arg)=$< \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+
+warmelth.modlis: $(WARMELT_BASE0DSO) $(WARMELT_BASEHDSO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASEH); do echo $$f.d >> $@-tmp; done
+	$(melt_make_move) $@-tmp $@
+
+
+
+warmelt-first-h2.c: $(melt_make_source_dir)/warmelt-first.melt warmelth.modlis $(melt_cc1)  $(WARMELT_BASEHSO) empty-file-for-melt.c
+	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASEHROW) \
+	      $(meltarg_arg)=$< \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+
+warmelt-%-h2.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_cc1) \
+	 $(WARMELT_BASEHDSO)  empty-file-for-melt.c
+	$(MELTCCFILE1) \
+	$(meltarg_init)=$(WARMELT_BASEHDROW) \
+	      $(meltarg_arg)=$< \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+
+warmelth2.modlis: $(WARMELT_BASEH2SO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASEH2); do echo $$f.d >> $@-tmp; done
+	$(melt_make_move) $@-tmp $@
 
 
 warmelt-macro-1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \

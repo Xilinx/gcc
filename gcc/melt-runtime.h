@@ -1727,6 +1727,7 @@ int* melt_dynobjstruct_classlength_at(const char*clanam, const char* fil, int li
 static inline melt_ptr_t
 melt_dynobjstruct_getfield_object_at (melt_ptr_t ob, unsigned off, const char*fldnam, const char*fil, int lin, int**poff)
 {
+  unsigned origoff = off;
   if (poff && !*poff) 
     *poff = melt_dynobjstruct_fieldoffset_at(fldnam, fil, lin);
   if (melt_magic_discr (ob) == OBMAG_OBJECT)
@@ -1735,10 +1736,10 @@ melt_dynobjstruct_getfield_object_at (melt_ptr_t ob, unsigned off, const char*fl
       if (poff && *poff) off = **poff;
       if (off < pob->obj_len)
 	return pob->obj_vartab[off];
-      fatal_error("checked dynamic field access failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, fldnam?fldnam:"...");
+      error ("checked dynamic field access failed (bad offset %d/%d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, (int)origoff, fil, lin, fldnam?fldnam:"...");
       return NULL;
     }
-  fatal_error("checked dynamic field access failed (not object [%s:%d]) - %s", fil, lin, fldnam?fldnam:"...");
+  error ("checked dynamic field access failed (not object [%s:%d]) - %s", fil, lin, fldnam?fldnam:"...");
   return NULL;
 }
 
@@ -1762,6 +1763,7 @@ melt_dynobjstruct_getfield_object_at (melt_ptr_t ob, unsigned off, const char*fl
 static inline void 
 melt_dynobjstruct_putfield_object_at(melt_ptr_t ob, unsigned off, melt_ptr_t val, const char*fldnam, const char*fil, int lin, int**poff)
 {
+  unsigned origoff = off;
   if (poff && !*poff) 
     *poff = melt_dynobjstruct_fieldoffset_at(fldnam, fil, lin);
   if (melt_magic_discr (ob) == OBMAG_OBJECT)
@@ -1772,9 +1774,11 @@ melt_dynobjstruct_putfield_object_at(melt_ptr_t ob, unsigned off, melt_ptr_t val
 	pob->obj_vartab[off] = val;
 	return;
       }
-      fatal_error("checked dynamic field put failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, fldnam?fldnam:"...");
+      error ("checked dynamic field put failed (bad offset %d/%d/%d [%s:%d]) - %s",
+	     (int)off, (int)pob->obj_len, (int)origoff, fil, lin, fldnam?fldnam:"...");
+      return;
     }
-  fatal_error("checked dynamic field put failed (not object [%s:%d]) - %s", fil, lin, fldnam?fldnam:"...");
+  error ("checked dynamic field put failed (not object [%s:%d]) - %s", fil, lin, fldnam?fldnam:"...");
 }
 
 #define melt_putfield_object_at(Obj,Off,Val,Fldnam,Fil,Lin) do {	\
@@ -1817,15 +1821,16 @@ melt_dynobjstruct_make_raw_object(melt_ptr_t klas, int len,
 static inline melt_ptr_t
 melt_getfield_object_at (melt_ptr_t ob, unsigned off, const char*msg, const char*fil, int lin)
 {
+  unsigned origoff = off;
   if (melt_magic_discr (ob) == OBMAG_OBJECT)
     {
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       if (off < pob->obj_len)
 	return pob->obj_vartab[off];
-      fatal_error("checked field access failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, msg?msg:"...");
+      error ("checked field access failed (bad offset %d/%d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, (int)origoff, fil, lin, msg?msg:"...");
       return NULL;
     }
-  fatal_error("checked field access failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
+  error ("checked field access failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
   return NULL;
 }
 

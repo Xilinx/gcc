@@ -2504,6 +2504,8 @@
     ))
 (install_method class_objgetslot output_c_code outpucod_objgetslot)
 
+
+
 ;;; output a put slot (mostly used in initial data content filling)
 (defun outpucod_objputslot (opslo declbuf implbuf :long depth)
   (assert_msg "check opslo" (is_a opslo class_objputslot))
@@ -2523,17 +2525,14 @@
 	(progn
 	  (add2sbuf_strconst implbuf " ")
 	  (add2sbuf_string implbuf (unsafe_get_field :named_name odata))))
+    (if (is_a ofield class_named)
+	(progn
+	  (add2sbuf_strconst implbuf " @")
+	  (add2sbuf_string implbuf (unsafe_get_field :named_name ofield))))
     (add2sbuf_strconst implbuf "\", melt_magic_discr((melt_ptr_t)(")
     (output_c_code odata declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")) == OBMAG_OBJECT);")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "melt_assertmsg(\"putslot checkoff\", (")
-    (output_c_code ooff declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ">=0 && ")
-    (output_c_code ooff declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "< melt_object_length((melt_ptr_t)(")
-    (output_c_code odata declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "))));")
     (if (is_a ofield class_field)
 	(progn
 	  (add2sbuf_strconst implbuf "melt_putfield_object((")
@@ -2547,7 +2546,24 @@
 	  (add2sbuf_strconst implbuf "\");")
 	  )
       (progn
-					; this only happens for initialization of instances
+;;; this only happens for initialization of instances
+	(add2sbuf_indentnl implbuf depth)
+	(add2sbuf_strconst implbuf "melt_assertmsg(\"putslot checkoff")
+	(if (is_a odata class_named)
+	    (progn
+	      (add2sbuf_strconst implbuf " ")
+	      (add2sbuf_string implbuf (unsafe_get_field :named_name odata))))
+	(if (is_a ofield class_named)
+	    (progn
+	      (add2sbuf_strconst implbuf " @")
+	      (add2sbuf_string implbuf (unsafe_get_field :named_name ofield))))
+	(add2sbuf_strconst implbuf "\", (")
+	(output_c_code ooff declbuf implbuf depth)
+	(add2sbuf_strconst implbuf ">=0 && ")
+	(output_c_code ooff declbuf implbuf depth)
+	(add2sbuf_strconst implbuf "< melt_object_length((melt_ptr_t)(")
+	(output_c_code odata declbuf implbuf depth)
+	(add2sbuf_strconst implbuf "))));")
 	(add2sbuf_indentnl implbuf depth)
 	(add2sbuf_strconst implbuf "((meltobject_ptr_t)(")
 	(output_c_code odata declbuf implbuf depth)
@@ -2936,13 +2952,13 @@
     (assert_msg "check ncx" (is_a ncx class_normcontext))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
 	   (firstx (pair_head (list_first xlist)))
-	   (firstloc (if (is_a firstx class_src) (unsafe_get_field :src_loc firstx)))
+	   (firstloc (if (is_a firstx class_src) (unsafe_get_field :loca_location firstx)))
 	   (iniproc (unsafe_get_field :nctx_initproc ncx))
 	   (declbuf (make_strbuf discr_strbuf))
 	   (implbuf (make_strbuf discr_strbuf)) 
 	   ;; make an update_current_module_environment at the very beginning
 	   (ucmeb1 (instance class_src_update_current_module_environment_container
-			     :src_loc firstloc
+			     :loca_location firstloc
 			     :sucme_comment '"at very start"
 			     ))
 	   )
@@ -2966,7 +2982,7 @@
 	   ;; special hack to handle toplevel comment specially; the generated comment goes into the declbuf
 	   ;; practically useful to copy a copyright notice into the generated C code
 	   (if (is_a sexp class_src_comment)
-	       (let ( (sloc (unsafe_get_field :src_loc sexp))
+	       (let ( (sloc (unsafe_get_field :loca_location sexp))
 		      (scomm (unsafe_get_field :scomm_str sexp)) 
 		      )
 		 (add2sbuf_indentnl declbuf 0)
@@ -3436,7 +3452,7 @@
 (defun makedoc_outdefloc (outb def :cstring prefstr)
   (assert_msg "check outb" (is_strbuf outb))
   (assert_msg "check def" (is_a def class_srcdef))
-  (let ( (loc (get_field :src_loc def)) 
+  (let ( (loc (get_field :loca_location def)) 
 	 )
     (if (null loc) (return))
     (add2sbuf_strconst outb prefstr)

@@ -531,11 +531,17 @@ it.}#
 ;;;; ================  source program elements
 
 ;; common superclass of source elements
+(compile_warning "the src_loc field is obsolete" ())
 (defclass class_src 
-  :super class_root
-  :fields (src_loc			;the source location (if any)
+  :super class_located
+  :fields ( 
+	   src_loc
 	   )
+  :doc #{The $class_src is the common super-class of source elements,
+i.e. of abstract syntax tree elements after macro-expansion.}#
   )
+
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2024,7 +2030,8 @@ Returns a boxed integer.}#
 		   symb)
 		 (:else 
 		  (debug_msg symb "clone_symbol bad symb")
-		  (assert_msg "invalid symb in clone_symbol" ())
+		  (messageval_dbg "clone_symbol symn not named or string" symb)
+		  (assert_msg "invalid symbol in clone_symbol, not named or string" ())
 		  (the_null))))
 	 (boxi (mapstring_getstr mapstr synam)) )
     (assert_msg "check synam" (is_string synam))
@@ -4190,29 +4197,66 @@ Returns a boxed integer.}#
 
 (put_fields
  initial_system_data
-  :sysdata_stdout (let ( (f ())
-			 (d discr_rawfile) 
-			 )
-		    (code_chunk makestdout 
-				#{ $f = meltgc_new_file($d, stdout); }#
-				)
-		    f)
-  :sysdata_stderr (let ( (f ())
-			 (d discr_rawfile) 
-			 )
-		    (code_chunk makestdout 
-				#{ $f = meltgc_new_file($d, stderr); }#
-				)
-		    f)
-  :sysdata_dumpfile (let ( (f ())
-			 (d discr_rawfile) 
-			 )
-;; the FILE* of dumpfile is also set in pass executions.
-		    (code_chunk makestdout 
-				#{ $f = meltgc_new_file($d, dump_file); }#
-				)
-		    f)
-)
+ :sysdata_stdout (let ( (f ())
+			(d discr_rawfile) 
+			)
+		   (code_chunk makestdout 
+			       #{ $f = meltgc_new_file($d, stdout) ; }#
+			       )
+		   f)
+ :sysdata_stderr (let ( (f ())
+			(d discr_rawfile) 
+			)
+		   (code_chunk makestdout 
+			       #{ $f = meltgc_new_file($d, stderr) ; }#
+			       )
+		   f)
+ :sysdata_dumpfile (let ( (f ())
+			  (d discr_rawfile) 
+			  )
+		     ;; the FILE* of dumpfile is also set in pass executions.
+		     (code_chunk makestdout 
+				 #{ $f = meltgc_new_file($d, dump_file)	; }#
+				 )
+		     f)
+ )
+
+
+
+;;; I tried in many ways to remove entirely the src_loc field from the
+;;; class_src; it seems that the only proper way is to code something
+;;; to remove it and to run it. This is an HUGLY TRICK
+(compile_warning "temporary disgusting hack to remove src_loc" ())
+(defun shameful_hack_to_remove_src_loc ()
+  (let ( (:long srclocoff (get_int src_loc)) 
+	 (classsrcfields (get_field :class_fields class_src))
+	 )
+    (assert_msg "check srclocoff>0" (>i srclocoff 0))
+    (assert_msg "check classsrcfields length" 
+		(==i (multiple_length classsrcfields) (+i srclocoff 1)))
+    (assert_msg "check classsrcfields last"
+		(== (multiple_nth classsrcfields srclocoff) src_loc))
+    ;; we clear the field slot manually
+    (multiple_put_nth classsrcfields srclocoff ())
+    (code_chunk 
+     shameful 
+     ;; we shrink the tuple length by dirty unsafe C code.
+     #{
+     /* $shameful */
+     #warning unsafe ugly code to remove src_loc field
+     ((meltmultiple_ptr_t)$classsrcfields)->tabval[$srclocoff] = NULL ;
+     ((meltmultiple_ptr_t)$classsrcfields)->nbval = $srclocoff	  ;
+     warning (0, "ugly MELT removal of src_loc in shameful_hack_to_remove_src_loc") ;
+     }#
+     ))
+  )
+
+#|
+(compile_warning 
+ "we run horrible code to remove the SRC_LOC field entirely!"
+(shameful_hack_to_remove_src_loc))
+|#
+
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
  class_any_binding
@@ -4634,5 +4678,6 @@ Returns a boxed integer.}#
  foreach_long_upto
  integerbox_of 
  )
+
 
 ;; eof warmelt-first.melt

@@ -1,5 +1,30 @@
 
 2009-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	[The src_loc field should be removed, but removing a field from a
+	superclass inside warmelt-first.melt is a nightmare. We add some
+	ugly code to forcibly remove it, and we regenerate C code for MELT
+	more than once]
+	* melt-runtime.h (melt_dynobjstruct_getfield_object_at) replaced
+	fatal_error by error!
+	(melt_dynobjstruct_putfield_object_at): Likewise.
+	(melt_getfield_object_at): Likewise.
+	* melt/warmelt-first.melt: removed src_loc, since class_src is now
+	a subclass of class_located. Added ugly function
+	shameful_hack_to_remove_src_loc to dynamically remove src_loc.
+	* melt/warmelt-macro.melt: Replaced all src_loc by
+	loca_location.
+	* melt/warmelt-normal.melt: Likewise.
+	* melt/warmelt-normatch.melt: Likewise.
+	* melt/warmelt-outobj.melt: Likewise. Also more specific error
+	strings in putfield compilation.
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: makedoc uses more @multitable.
 
 2009-09-16  Basile Starynkevitch  <basile@starynkevitch.net>

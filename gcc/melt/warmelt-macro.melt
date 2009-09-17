@@ -181,7 +181,7 @@
 ;;; define a cmatcher
 (defclass class_src_defcmatcher
   :super class_srcdeformal
-  :fields (;;src_loc is the location
+  :fields (;;loca_location is the location
 	   ;;sdef_name is the new cmatcher name
 	   ;;sformal_args is for the matched formal & input arguments
 	   ;;;;the first formal is for the matched stuff. The rest is for input
@@ -191,7 +191,7 @@
 ;;; define a funmatcher
 (defclass class_src_defunmatcher
   :super class_srcdeformal
-  :fields (;;src_loc is the location
+  :fields (;;loca_location is the location
 	   ;;sdef_name is the new cmatcher name
 	   ;;sformal_args is for matched formal & input arguments
 	   ;;;;the first formal is for the matched stuff. The rest is for input
@@ -601,7 +601,7 @@
 		  soper))
 	 )
     (instance class_src_apply
-	      :src_loc sloc
+	      :loca_location sloc
 	      :sapp_fun xoper
 	      :sapp_args xargtup)))
 
@@ -622,7 +622,7 @@
     (let ( (xrecv (pair_head spair))
 	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) 
 	   (res (instance class_src_msend
-			  :src_loc sloc
+			  :loca_location sloc
 			  :msend_selsymb opnam
 			  :msend_recv (if (is_a xrecv class_sexpr)
 					  (macroexpand_1 xrecv env mexpander)
@@ -683,7 +683,7 @@
     (setq bodytup (expand_pairlist_as_tuple spair env mexpander))
     ;; build & return the result
     (let ( (sciter (instance class_src_citeration
-			     :src_loc sloc
+			     :loca_location sloc
 			     :sciter_oper citer
 			     :sciter_args stargs
 			     :sciter_varbind varformals
@@ -724,7 +724,7 @@
     ;; should build a class_src_cmatchexpr
     (let ( (res
 	    (instance class_src_cmatchexpr
-		      :src_loc sloc
+		      :loca_location sloc
 		      :scmatx_cmatcher cmat
 		      :scmatx_args xargtup)
 	    ) )
@@ -755,7 +755,7 @@
     ;; we need to build a specific funmatchexpr, because it is handled
     ;; differently from a simple application
     (let ( (res (instance class_src_funmatchexpr
-			  :src_loc sloc
+			  :loca_location sloc
 			  :sfmatx_fmatcher fmat
 			  :sfmatx_fmatbind opbind
 			  :sfmatx_args xargtup)) )
@@ -904,7 +904,7 @@
 	 (xargtup (expand_restlist_as_tuple scont env mexpander))
 	 )
     (instance class_src_primitive
-	      :src_loc sloc
+	      :loca_location sloc
 	      :sprim_oper sprim
 	      :sprim_args xargtup)))
 
@@ -1004,7 +1004,7 @@
 	    (debug_msg args "patternexpand_expr cmatcher args")
 	    (debug_msg pats "patternexpand_expr cmatcher pats")
 	    (let ( (pcomp (instance class_srcpattern_cmatch
-				    :src_loc sloc
+				    :loca_location sloc
 				    :spac_operator cmat
 				    :spac_operbind opbind
 				    :spac_inargs args
@@ -1029,7 +1029,7 @@
 	    (debug_msg args "patternexpand_expr funmatcher args")
 	    (debug_msg pats "patternexpand_expr funmatcher pats")
 	    (let ( (pcomp (instance class_srcpattern_funmatch
-				    :src_loc sloc
+				    :loca_location sloc
 				    :spac_operator fmat
 				    :spac_operbind opbind
 				    :spac_inargs args
@@ -1049,7 +1049,7 @@
 	       (debug_msg args "patternexpand_expr imported cmatcher args")
 	       (debug_msg pats "patternexpand_expr imported cmatcher pats")
 	       (let ( (pcomp (instance class_srcpattern_cmatch
-				       :src_loc sloc
+				       :loca_location sloc
 				       :spac_operator opval
 				       :spac_operbind opbind
 				       :spac_inargs args
@@ -1067,7 +1067,7 @@
 	       (debug_msg args "patternexpand_expr imported funmatcher args")
 	       (debug_msg pats "patternexpand_expr imported funmatcher pats")
 	       (let ( (pcomp (instance class_srcpattern_funmatch
-				       :src_loc sloc
+				       :loca_location sloc
 				       :spac_operator opval
 				       :spac_operbind opbind
 				       :spac_inargs args
@@ -1107,7 +1107,7 @@
 	   (let ( (mexpander (unsafe_get_field :pctx_mexpander pctx)) 
 		  (exp (macroexpand_1 sexpr env mexpander))
 		  (pat (instance class_srcpattern_constant
-				 :src_loc sloc
+				 :loca_location sloc
 				 :spat_constx exp))
 		  )
 	     (debug_msg pat "patternexpand_1 return const pat")
@@ -1120,7 +1120,7 @@
 	   (cond
 	    ((== parg1 '_)		;  ?_ is a joker
 	     (let ( (jokp (instance class_srcpattern_jokervar
-				    :src_loc sloc
+				    :loca_location sloc
 				    :spat_var parg1)) )
 	       (debug_msg jokp "patternexpand_1 return jokervar")
 	       (return jokp)
@@ -1137,7 +1137,7 @@
 		     (return pavr)
 		     )
 		 (let ( (newpavr (instance class_srcpattern_variable
-					   :src_loc sloc
+					   :loca_location sloc
 					   :spat_var parg1)) 
 			)
 		   (mapobject_put vamp parg1 newpavr)
@@ -1160,7 +1160,7 @@
     ;; not an s-expr, return the constant pattern with...
     (let ( (mexpander (unsafe_get_field :pctx_mexpander pctx)) 
 	   (pat (instance class_srcpattern_constant
-			  :src_loc psloc
+			  :loca_location psloc
 			  :spat_constx sexpr))
 	   )
       (debug_msg pat "patternexpand_1 return const pat as source")
@@ -1499,7 +1499,7 @@
 					  (+i 5 (*i 2 (multiple_length btup)))))
 		(sdefpri
 		 (instance class_src_defprimitive
-			   :src_loc loc
+			   :loca_location loc
 			   :sdef_name symb
 			   :sdef_doc docv
 			   :sformal_args btup
@@ -1615,7 +1615,7 @@
 			      :cbind_citerator citer
 			      ))
 	   (srcit (instance class_src_defciterator
-			    :src_loc loc
+			    :loca_location loc
 			    :sdef_name symb
 			    :sdef_doc docv
 			    :sformal_args bstartup
@@ -1786,7 +1786,7 @@
 			    :cmatch_expoper expoper
 			    ))
 	  (sdefcmatch (instance  class_src_defcmatcher
-				 :src_loc loc
+				 :loca_location loc
 				 :sdef_name symb
 				 :sdef_doc docv
 				 :sformal_args sformals
@@ -1914,11 +1914,11 @@
     (if curpair 
 	(error_plain loc "extra for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_))
     (let (
-	  ;; make a class_src_defunmatcher with :src_loc :sdef_name
+	  ;; make a class_src_defunmatcher with :loca_location :sdef_name
 	  ;; :sformal_args :sfumatdef_matchf :sfumatdef_applyf
 	  ;; :sfumatdef_data
 	  (sdfum (instance class_src_defunmatcher
-			   :src_loc loc
+			   :loca_location loc
 			   :sdef_name symb
 			   :sdef_doc docv
 			   :sformal_args sformals
@@ -2001,7 +2001,7 @@
       (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
 	     (sdefun
 	      (instance class_src_defun
-			:src_loc loc
+			:loca_location loc
 			:sdef_name symb
 			:sdef_doc docv
 			:sformal_args btup
@@ -2246,7 +2246,7 @@
      (put_int newclass (object_magic_object))
      (debug_msg newclass "mexp.defclass newclass" )
      (instance class_src_defclass
-	       :src_loc loc
+	       :loca_location loc
 	       :sdef_name symb
 	       :sdef_doc docv
 	       :sobj_predef predef
@@ -2304,7 +2304,7 @@
       (if (is_a fld class_field)
 	  (let ( (xex (macroexpand_1 expr env mexpander)) )
 	    (instance class_src_fieldassign 
-		      :src_loc loc
+		      :loca_location loc
 		      :sfla_field fld
 		      :sfla_expr xex
 		      ))
@@ -2391,7 +2391,7 @@
 	(let ( (fastup (list_to_multiple fldlist discr_multiple)) 
 	       (sinst 
 		(instance class_src_definstance
-			  :src_loc loc
+			  :loca_location loc
 			  :sdef_name symb
 			  :sdef_doc docv
 			  :sobj_predef predef
@@ -2493,7 +2493,7 @@
 		   ))
 	(let ( ( fastup (list_to_multiple fldlist discr_multiple)) 
 	       (res (instance class_src_defselector
-			      :src_loc loc
+			      :loca_location loc
 			      :sdef_name symb
 			      :sobj_predef predef
 			      :sinst_class cla
@@ -2569,7 +2569,7 @@
 	       )
       (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
 	(instance class_src_make_instance
-		  :src_loc loc
+		  :loca_location loc
 		  :smins_class cla
 		  :smins_clabind clabind
 		  :smins_fields fastup)
@@ -2650,7 +2650,7 @@
 	    (return)))
       (let (
 	    (patf (instance class_srcfieldpattern
-			    :src_loc psloc
+			    :loca_location psloc
 			    :spaf_field fld
 			    :spaf_pattern flpat
 			    ))
@@ -2715,7 +2715,7 @@
        (setq curpair (pair_tail curpair))
        )
       (let ( (spati (instance class_srcpattern_instance
-			      :src_loc loc
+			      :loca_location loc
 			      :spat_class cla
 			      :spat_fields (list_to_multiple fldlist discr_multiple)))
 	     )
@@ -2782,7 +2782,7 @@
        (setq curpair (pair_tail curpair))
        )
       (let ( (spati (instance class_srcpattern_object
-			      :src_loc loc
+			      :loca_location loc
 			      :spat_class cla
 			      :spat_fields (list_to_multiple fldlist discr_multiple)))
 	     )
@@ -2842,7 +2842,7 @@
 	      (error_plain loc "bad content in CODE_CHUNK - expecting string or symbol")))
        )
       (let ( (mres (instance class_src_codechunk
-			     :src_loc (or loc sloc)
+			     :loca_location (or loc sloc)
 			     :sch_gensym gsym
 			     :sch_chunks (list_to_multiple chklist discr_multiple)
 			     )) )
@@ -2887,7 +2887,7 @@
 	       )
       (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
 	(instance class_src_unsafe_put_fields
-		  :src_loc loc
+		  :loca_location loc
 		  :suput_obj objexp
 		  :suput_fields fastup)
 	))))
@@ -2927,7 +2927,7 @@
 	       )
       (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
 	(instance class_src_put_fields
-		  :src_loc loc
+		  :loca_location loc
 		  :suput_obj objexp
 		  :suput_fields fastup)
 	))))
@@ -2961,7 +2961,7 @@
 	(let ( (fld (unsafe_get_field :sfla_field flda))
 	       (exp (unsafe_get_field :sfla_expr flda)) )
 	  (instance class_src_unsafe_get_field
-		    :src_loc loc
+		    :loca_location loc
 		    :suget_obj exp
 		    :suget_field fld
 		    ))))))
@@ -2995,7 +2995,7 @@
 	(let ( (fld (unsafe_get_field :sfla_field flda))
 	       (exp (unsafe_get_field :sfla_expr flda)) )
 	  (instance class_src_get_field
-		    :src_loc loc
+		    :loca_location loc
 		    :suget_obj exp
 		    :suget_field fld
 		    ))))))
@@ -3021,7 +3021,7 @@
       (setq curpair (pair_tail curpair))
       (if curpair (error_plain loc "SETQ with more than two sons"_))
       (instance class_src_setq 
-		:src_loc loc
+		:loca_location loc
 		:sstq_var cursym
 		:sstq_expr  (macroexpand_1 curexp env mexpander)
 		)
@@ -3059,7 +3059,7 @@
 		    (error_plain loc "IF with more than three sons"_))
 		(let ( (rese
 			(instance class_src_ifelse
-				  :src_loc loc
+				  :loca_location loc
 				  :sif_test xcond
 				  :sif_then xthen
 				  :sif_else xelse
@@ -3067,7 +3067,7 @@
 		  (debug_msg rese "mexpand_if with else return rese")
 		  (return rese)))
 	    (let ( (resp (instance class_src_if
-				   :src_loc loc
+				   :loca_location loc
 				   :sif_test xcond
 				   :sif_then xthen)) )
 	      (debug_msg resp "mexpand_if plain return resp")
@@ -3114,7 +3114,7 @@
 		(if (is_pair curpair)
 		    (error_plain loc "CPPIF with more than three sons"_))))
 	  (let ( (resp (instance class_src_cppif
-				 :src_loc loc
+				 :loca_location loc
 				 :sifp_cond xcond
 				 :sifp_then xthen
 				 :sifp_else xelse
@@ -3178,7 +3178,7 @@
 			 )
 		    (cond ( (null curcondrestpairs)
 			    (setq res (instance class_src_or
-						:src_loc curcondloc
+						:loca_location curcondloc
 						:sor_disj (make_tuple2 discr_multiple 
 								       (macroexpand_1 curcondtest env mexpander)
 								       res)))
@@ -3186,7 +3186,7 @@
 			    )
 			  ( (null (pair_tail curcondrestpairs))
 			    (setq res (instance class_src_ifelse
-						:src_loc curcondloc
+						:loca_location curcondloc
 						:sif_test (macroexpand_1 curcondtest env mexpander)
 						:sif_then (macroexpand_1 (pair_head curcondrestpairs) env mexpander)
 						:sif_else res
@@ -3195,7 +3195,7 @@
 			    )
 			  (:else 
 			   (setq res (instance class_src_ifelse
-					       :src_loc curcondloc
+					       :loca_location curcondloc
 					       :sif_test (macroexpand_1 curcondtest env mexpander)
 					       :sif_then (pairlist_to_progn curcondrestpairs curcondloc env mexpander)
 					       :sif_else res))
@@ -3204,7 +3204,7 @@
 		    ))
 		(:else ;curcond is not a sexpr 
 		 (setq res (instance class_src_or
-				     :src_loc loc
+				     :loca_location loc
 				     :sor_disj (make_tuple2 discr_multiple curcond res)))
 		 (debug_msg res "mexpand_cond res for nonsexp cond")
 		 )
@@ -3251,7 +3251,7 @@
 		 (let ( (curc (multiple_nth cxtup ix)) )
 		   (setq res 
 			 (instance class_src_if
-				   :src_loc loc
+				   :loca_location loc
 				   :sif_test curc
 				   :sif_then res))
 		   )
@@ -3290,7 +3290,7 @@
 	    (return)))
       (let (
 	    (res (instance class_srcpattern_as
-			   :src_loc loc
+			   :loca_location loc
 			   :aspat_varpat argvar
 			   :aspat_subpat argsub))
 	    )
@@ -3324,7 +3324,7 @@
 	(curpair (pair_tail (list_first cont)))
 	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
 	(res (instance class_srcpattern_and
-		       :src_loc loc
+		       :loca_location loc
 		       :andpat_conj argsp))
 	)
     (debug_msg res "patexpand_and res")
@@ -3356,7 +3356,7 @@
 	  (return (the_null)))
       (let ( (res 
 	      (instance class_src_or
-			:src_loc loc
+			:loca_location loc
 			:sor_disj cxtup)) )
 	(debug_msg res "mexpand_or res")
 	(return res)
@@ -3374,7 +3374,7 @@
 	(curpair (pair_tail (list_first cont)))
 	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
 	(res (instance class_srcpattern_or
-		       :src_loc loc
+		       :loca_location loc
 		       :orpat_disj argsp))
 	)
     (debug_msg res "patexpand_or res")
@@ -3436,7 +3436,7 @@
 					      :pctx_varmap (make_mapobject discr_mapobjects 13)))
 			 (curpat (patternexpand_1 swhenpat env curpatctx curmatch))
 			 (curcase (instance class_src_casewhenmatch
-					    :src_loc curmatchloc
+					    :loca_location curmatchloc
 					    :scam_patt curpat
 					    :scwm_when whencondx
 					    :scam_body whenbody))
@@ -3461,7 +3461,7 @@
 					cp))
 			 (curbody (expand_pairlist_as_tuple curmatchrestpairs env mexpander))
 			 (curcase (instance class_src_casematch
-					    :src_loc curmatchloc
+					    :loca_location curmatchloc
 					    :scam_patt curpat
 					    :scam_body curbody))
 			 )
@@ -3475,7 +3475,7 @@
 	     (setq ix (-i ix 1)))
     (debug_msg caselist "mexpand_match caselist")
     (let ( (smat (instance class_src_match
-			   :src_loc loc
+			   :loca_location loc
 			   :smat_matchedx matsx
 			   :smat_cases (list_to_multiple caselist discr_multiple)) 
 		 ))
@@ -3551,7 +3551,7 @@
        ))
     (let ( (letb
 	    (instance class_src_letbinding
-		      :src_loc loc
+		      :loca_location loc
 		      :sletb_type ctyp
 		      :sletb_binder var
 		      :sletb_expr expr)) )
@@ -3601,7 +3601,7 @@
 					(lambda (e) (macroexpand_1 e newenv mexpander))))
     (let ( (letr
 	    (instance class_src_let
-		      :src_loc loc
+		      :loca_location loc
 		      :slet_bindings bindtup
 		      :slet_body bodytup)) )
       (return letr)
@@ -3630,7 +3630,7 @@
 					    (lambda (e) (macroexpand_1 e newenv mexpander)))) 
 	     (lambr 
 	      (instance class_src_lambda
-			:src_loc loc
+			:loca_location loc
 			:slam_argbind argtup
 			:slam_body bodytup))
 	     ) 
@@ -3663,7 +3663,7 @@
 						(lambda (e) (macroexpand_1 e newenv mexpander)))) 
 		 (mulcr
 		  (instance class_src_multicall
-			    :src_loc loc
+			    :loca_location loc
 			    :smulc_resbind restup
 			    :smulc_call curcall
 			    :smulc_body bodytup
@@ -3701,7 +3701,7 @@
     (if (is_a quoted class_keyword)
 	(return quoted))
     (let ( (squ (instance class_src_quote
-			  :src_loc loc
+			  :loca_location loc
 			  :squoted quoted)) )
       (return squ)
       )))
@@ -3725,7 +3725,7 @@
 	  (setq comstr ()))
       )
     (let ( (scom (instance class_src_comment
-			   :src_loc loc
+			   :loca_location loc
 			   :scomm_str comstr)) )
       (return scom)
       )))
@@ -3744,7 +3744,7 @@
 		   (lambda (e) (macroexpand_1 e env mexpander)))) 
 	 (sprogn
 	  (instance class_src_progn
-		    :src_loc loc
+		    :loca_location loc
 		    :sprogn_body bodytup
 		    )) )
     (debug_msg sprogn "pairlist_to_progn sprogn")
@@ -3759,7 +3759,7 @@
 		   discr_multiple
 		   (lambda (e) (macroexpand_1 e env mexpander)))) )
     (instance class_src_return
-	      :src_loc loc
+	      :loca_location loc
 	      :sreturn_body bodytup
 	      )
     ))
@@ -3825,7 +3825,7 @@
 		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
 	     (forr
 	      (instance class_src_forever
-			:src_loc loc
+			:loca_location loc
 			:slabel_bind labind
 			:sfrv_body bodytup)) 
 	     )
@@ -3861,7 +3861,7 @@
 		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
 	     (exr
 	      (instance class_src_exit
-			:src_loc loc
+			:loca_location loc
 			:slabel_bind labind
 			:sexi_body bodytup)) 
 	     )
@@ -3894,7 +3894,7 @@
       (if (notnull curpair)
 	  (error_plain loc "too many arguments in (COMPILE_WARNING <msg> <exp>)"_))
       (let ( (res (instance  class_src_compilewarning
-			     :src_loc loc
+			     :loca_location loc
 			     :scwarn_msg xmsg
 			     :scwarn_expr xexp
 			     ))
@@ -3960,7 +3960,7 @@
 		   ((is_mixloc loc) (mixloc_val loc))))
 	  (aprim (instance 
 		  class_src_primitive
-		  :src_loc loc
+		  :loca_location loc
 		  :sprim_oper afprim
 		  :sprim_args (make_tuple3 discr_multiple
 					   xmsg
@@ -3968,12 +3968,12 @@
 					   (make_integerbox discr_integer (get_int loc)))))
 	  (atest (instance
 		  class_src_ifelse
-		  :src_loc loc
+		  :loca_location loc
 		  :sif_test xtest
 		  :sif_then ()
 		  :sif_else aprim))
 	  (acppif (instance class_src_cppif
-			    :src_loc loc
+			    :loca_location loc
 			    :sifp_cond 'ENABLE_CHECKING
 			    :sifp_then atest
 			    :sifp_else ()
@@ -4030,7 +4030,7 @@
 		    ((is_mixloc loc) (mixloc_val loc))))
 	  (dcall (instance 
 		  class_src_apply
-		  :src_loc loc
+		  :loca_location loc
 		  :sapp_fun 'debug_msg_fun
 		  :sapp_args (make_tuple5 discr_multiple
 					  xval
@@ -4039,7 +4039,7 @@
 					  dfilnam
 					  (make_integerbox discr_integer (get_int loc)))))
 	  (dcppif (instance class_src_cppif
-			    :src_loc loc
+			    :loca_location loc
 			    :sifp_cond 'ENABLE_CHECKING
 			    :sifp_then dcall
 			    :sifp_else ()
@@ -4072,7 +4072,7 @@
 		      sym
 		      ))))
 	(res (instance class_src_export_values
-		       :src_loc loc
+		       :loca_location loc
 		       :sexport_names symbtup))
 	)
     (debug_msg res "mexpand_export_values result res")
@@ -4101,7 +4101,7 @@
       (if (null expv)
 	  (error_plain loc  "(EXPORT_MACRO <sym> <expander>) expecting expander"_))
       (let ( (res (instance class_src_export_macro
-			    :src_loc loc
+			    :loca_location loc
 			    :sexpmac_mname symb
 			    :sexpmac_mval expv
 			    ))
@@ -4137,7 +4137,7 @@
     (if (null macexpv)
 	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander>) expecting macexpander"_))
     (let ( (res (instance class_src_export_patmacro
-			  :src_loc loc
+			  :loca_location loc
 			  :sexpmac_mname symb
 			  :sexppat_pval patexpv
 			  :sexpmac_mval macexpv
@@ -4168,7 +4168,7 @@
 		      sym
 		      ))))
 	(res (instance class_src_export_class
-		       :src_loc loc
+		       :loca_location loc
 		       :sexport_names symbtup))
 	)
     (debug_msg res "mexpand_export_class result res")
@@ -4188,7 +4188,7 @@
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
 	(res (instance class_src_current_module_environment_container
-		       :src_loc loc))
+		       :loca_location loc))
 	)
     (if (notnull curpair)
 	(error_plain loc "(CURRENT_MODULE_ENVIRONMENT_CONTAINER) should not have any argument"_))
@@ -4213,7 +4213,7 @@
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
 	(res (instance class_src_parent_module_environment
-		       :src_loc loc))
+		       :loca_location loc))
 	)
     (if (notnull curpair)
 	(error_plain loc "(PARENT_MODULE_ENVIRONMENT) should not have any argument"_))
@@ -4236,7 +4236,7 @@
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(curpair (pair_tail (list_first cont)))
 	(res (instance class_src_update_current_module_environment_container
-		       :src_loc loc))
+		       :loca_location loc))
 	)
     (if (notnull curpair)
 	(error_plain loc "(UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER) should not have any argument"_))
@@ -4271,7 +4271,7 @@
     (if (not (or (is_a spredef class_symbol) (is_integerbox spredef)))
 	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) invalid argument"_))
     (let ( (res (instance class_src_fetch_predefined
-			  :src_loc loc
+			  :loca_location loc
 			  :sfepd_predef spredef)) )
       (debug_msg res "mexpand_fetch_predefined result")
       (return res)
@@ -4302,7 +4302,7 @@
     (if (not (or (is_a spredef class_symbol) (is_integerbox spredef)))
 	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) invalid predef"_))
     (let ( (res (instance class_src_store_predefined
-			  :src_loc loc
+			  :loca_location loc
 			  :sstpd_predef spredef
 			  :sstpd_value sval
 			  )) )
