@@ -3,6 +3,7 @@ LIB2FUNCS_EXTRA = $(srcdir)/config/microblaze/divsi3_table.c \
 		  $(srcdir)/config/microblaze/stack_overflow_exit.asm \
 		  $(srcdir)/config/microblaze/mulsi3.asm \
 		  $(srcdir)/config/microblaze/modsi3.asm \
+		  $(srcdir)/config/microblaze/moddi3.asm \
 		  $(srcdir)/config/microblaze/umodsi3.asm \
 		  $(srcdir)/config/microblaze/divsi3.asm \
 		  $(srcdir)/config/microblaze/udivsi3.asm 

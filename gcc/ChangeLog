@@ -1,5 +1,10 @@
 2009-09-17  Michael Eager  <eager@eagercon.com>
 
+	* config/microblaze/t-microblaze: Add moddi3.asm.
+	* config/microblaze/moddi3.asm: New.
+
+2009-09-17  Michael Eager  <eager@eagercon.com>
+
 	* config/microblaze/microblaze.h: MICROBLAZE_AS_ASM_SPEC, 
 	SUBTARGET_MICROBLAZE_AS_ASM_SPEC, GAS_ASM_SPEC,
 	SUBTARGET_ASM_OPTIMIZING_SPEC, SUBTARGET_ASM_SPEC,
