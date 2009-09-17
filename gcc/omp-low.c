@@ -1214,7 +1214,7 @@ new_omp_context (gimple stmt, omp_context *outer_ctx)
       ctx->cb.dst_node = ctx->cb.src_node;
       ctx->cb.src_cfun = cfun;
       ctx->cb.copy_decl = omp_copy_decl;
-      ctx->cb.eh_lp_nr = 0;
+      ctx->cb.eh_region = -1;
       ctx->cb.transform_call_graph_edges = CB_CGE_MOVE;
       ctx->depth = 1;
     }
@@ -3114,22 +3114,23 @@ expand_task_call (basic_block bb, gimple entry_stmt)
 static gimple_seq
 maybe_catch_exception (gimple_seq body)
 {
-  gimple g;
-  tree decl;
+  gimple f, t;
 
   if (!flag_exceptions)
     return body;
 
   if (lang_protect_cleanup_actions)
-    decl = lang_protect_cleanup_actions ();
+    t = lang_protect_cleanup_actions ();
   else
-    decl = built_in_decls[BUILT_IN_TRAP];
+    t = gimple_build_call (built_in_decls[BUILT_IN_TRAP], 0);
 
-  g = gimple_build_eh_must_not_throw (decl);
-  g = gimple_build_try (body, gimple_seq_alloc_with_stmt (g),
+  f = gimple_build_eh_filter (NULL, gimple_seq_alloc_with_stmt (t));
+  gimple_eh_filter_set_must_not_throw (f, true);
+
+  t = gimple_build_try (body, gimple_seq_alloc_with_stmt (f),
       			GIMPLE_TRY_CATCH);
 
- return gimple_seq_alloc_with_stmt (g);
+ return gimple_seq_alloc_with_stmt (t);
 }
 
 /* Chain all the DECLs in LIST by their TREE_CHAIN fields.  */
@@ -6243,7 +6244,7 @@ create_task_copyfn (gimple task_stmt, omp_context *ctx)
       tcctx.cb.dst_node = tcctx.cb.src_node;
       tcctx.cb.src_cfun = ctx->cb.src_cfun;
       tcctx.cb.copy_decl = task_copyfn_copy_decl;
-      tcctx.cb.eh_lp_nr = 0;
+      tcctx.cb.eh_region = -1;
       tcctx.cb.transform_call_graph_edges = CB_CGE_MOVE;
       tcctx.cb.decl_map = pointer_map_create ();
       tcctx.ctx = ctx;

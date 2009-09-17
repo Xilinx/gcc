@@ -168,8 +168,7 @@ test x\$exitcode = x0 || exit 1"
   as_suggested="  as_lineno_1=";as_suggested=$as_suggested$LINENO;as_suggested=$as_suggested" as_lineno_1a=\$LINENO
   as_lineno_2=";as_suggested=$as_suggested$LINENO;as_suggested=$as_suggested" as_lineno_2a=\$LINENO
   eval 'test \"x\$as_lineno_1'\$as_run'\" != \"x\$as_lineno_2'\$as_run'\" &&
-  test \"x\`expr \$as_lineno_1'\$as_run' + 1\`\" = \"x\$as_lineno_2'\$as_run'\"' || exit 1
-test \$(( 1 + 1 )) = 2 || exit 1"
+  test \"x\`expr \$as_lineno_1'\$as_run' + 1\`\" = \"x\$as_lineno_2'\$as_run'\"' || exit 1"
   if (eval "$as_required") 2>/dev/null; then :
   as_have_required=yes
 else
@@ -631,7 +630,6 @@ build_tooldir
 tooldir
 GCC_SHLIB_SUBDIR
 RPATH_ENVVAR
-BUILD_CONFIG
 CXXFLAGS_FOR_TARGET
 CFLAGS_FOR_TARGET
 DEBUG_PREFIX_CFLAGS_FOR_TARGET
@@ -667,8 +665,6 @@ target_subdir
 host_subdir
 build_subdir
 build_libsubdir
-AWK
-SED
 LN_S
 LN
 INSTALL_DATA
@@ -769,7 +765,6 @@ enable_objc_gc
 with_build_sysroot
 with_debug_prefix_map
 enable_bootstrap
-with_build_config
 enable_serial_configure
 with_build_time_tools
 enable_maintainer_mode
@@ -1499,8 +1494,6 @@ Optional Packages:
                           use sysroot as the system root during the build
   --with-debug-prefix-map='A=B C=D ...'
                              map A to B, C to D ... in debug information
---with-build-config='NAME NAME2...'
-                          Use config/NAME.mk build configuration
   --with-build-time-tools=PATH
                           use given path to find target tools during the build
 
@@ -2451,117 +2444,6 @@ else
 $as_echo "no, using $LN_S" >&6; }
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a sed that does not truncate output" >&5
-$as_echo_n "checking for a sed that does not truncate output... " >&6; }
-if test "${ac_cv_path_SED+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-            ac_script=s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/
-     for ac_i in 1 2 3 4 5 6 7; do
-       ac_script="$ac_script$as_nl$ac_script"
-     done
-     echo "$ac_script" 2>/dev/null | sed 99q >conftest.sed
-     { ac_script=; unset ac_script;}
-     if test -z "$SED"; then
-  ac_path_SED_found=false
-  # Loop through the user's path and test for each of PROGNAME-LIST
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_prog in sed gsed; do
-    for ac_exec_ext in '' $ac_executable_extensions; do
-      ac_path_SED="$as_dir/$ac_prog$ac_exec_ext"
-      { test -f "$ac_path_SED" && $as_test_x "$ac_path_SED"; } || continue
-# Check for GNU ac_path_SED and select it if it is found.
-  # Check for GNU $ac_path_SED
-case `"$ac_path_SED" --version 2>&1` in
-*GNU*)
-  ac_cv_path_SED="$ac_path_SED" ac_path_SED_found=:;;
-*)
-  ac_count=0
-  $as_echo_n 0123456789 >"conftest.in"
-  while :
-  do
-    cat "conftest.in" "conftest.in" >"conftest.tmp"
-    mv "conftest.tmp" "conftest.in"
-    cp "conftest.in" "conftest.nl"
-    $as_echo '' >> "conftest.nl"
-    "$ac_path_SED" -f conftest.sed < "conftest.nl" >"conftest.out" 2>/dev/null || break
-    diff "conftest.out" "conftest.nl" >/dev/null 2>&1 || break
-    as_fn_arith $ac_count + 1 && ac_count=$as_val
-    if test $ac_count -gt ${ac_path_SED_max-0}; then
-      # Best one so far, save it but keep looking for a better one
-      ac_cv_path_SED="$ac_path_SED"
-      ac_path_SED_max=$ac_count
-    fi
-    # 10*(2^10) chars as input seems more than enough
-    test $ac_count -gt 10 && break
-  done
-  rm -f conftest.in conftest.tmp conftest.nl conftest.out;;
-esac
-
-      $ac_path_SED_found && break 3
-    done
-  done
-  done
-IFS=$as_save_IFS
-  if test -z "$ac_cv_path_SED"; then
-    as_fn_error "no acceptable sed could be found in \$PATH" "$LINENO" 5
-  fi
-else
-  ac_cv_path_SED=$SED
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_SED" >&5
-$as_echo "$ac_cv_path_SED" >&6; }
- SED="$ac_cv_path_SED"
-  rm -f conftest.sed
-
-for ac_prog in gawk mawk nawk awk
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_prog_AWK+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$AWK"; then
-  ac_cv_prog_AWK="$AWK" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_prog_AWK="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-AWK=$ac_cv_prog_AWK
-if test -n "$AWK"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AWK" >&5
-$as_echo "$AWK" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$AWK" && break
-done
-
 
 ### we might need to use some other shell than /bin/sh for running subshells
 ### If we are on Windows, search for the shell.  This will permit people
@@ -3120,8 +3002,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-libiberty target-libstdc++-v3 ${libgcj} target-libssp"
     ;;
   bfin-*-*)
-    unsupported_languages="$unsupported_languages java"
-    noconfigdirs="$noconfigdirs target-boehm-gc gdb"
+    noconfigdirs="$noconfigdirs gdb"
     if test x${is_cross_compiler} != xno ; then
       target_configdirs="${target_configdirs} target-bsp target-cygmon"
     fi
@@ -6520,13 +6401,12 @@ INSTALL_GDB_TK=`echo ${GDB_TK} | sed s/-all-/-install-/g`
 # configuration, so that the top-level Makefile reconfigures them,
 # like we used to do when configure itself was recursive.
 
-# Loop over modules.  We used to use the "$extrasub" feature from Autoconf
-# but now we're fixing up the Makefile ourselves with the additional
-# commands passed to AC_CONFIG_FILES.  Use separate variables
-# extrasub-{build,host,target} not because there is any reason to split
-# the substitutions up that way, but only to remain below the limit of
-# 99 commands in a script, for HP-UX sed.
-# Do not nest @if/@endif pairs, because configure will not warn you at all.
+# Loop over modules.  $extrasub must be used with care, limiting as
+# much as possible the usage of range addresses.  That's because autoconf
+# splits the sed script to overcome limits in the number of commands,
+# and relying on carefully-timed sed passes may turn out to be very hard
+# to maintain later.  In this particular case, you just have to be careful
+# not to nest @if/@endif pairs, because configure will not warn you at all.
 
 # Check whether --enable-bootstrap was given.
 if test "${enable_bootstrap+set}" = set; then :
@@ -6575,67 +6455,25 @@ $as_echo "$as_me: WARNING: trying to bootstrap a cross compiler" >&2;}
 esac
 
 # Adjust the toplevel makefile according to whether bootstrap was selected.
-case $enable_bootstrap in
+case "$enable_bootstrap" in
   yes)
-    bootstrap_suffix=bootstrap
-    BUILD_CONFIG=bootstrap-debug
-    ;;
+    bootstrap_suffix=bootstrap ;;
   no)
-    bootstrap_suffix=no-bootstrap
-    BUILD_CONFIG=
-    ;;
+    bootstrap_suffix=no-bootstrap ;;
 esac
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for default BUILD_CONFIG" >&5
-$as_echo_n "checking for default BUILD_CONFIG... " >&6; }
-
-
-# Check whether --with-build-config was given.
-if test "${with_build_config+set}" = set; then :
-  withval=$with_build_config; case $with_build_config in
-   yes) with_build_config= ;;
-   no) with_build_config= BUILD_CONFIG= ;;
-   esac
-fi
-
-
-if test "x${with_build_config}" != x; then
-  BUILD_CONFIG=$with_build_config
-else
-  case $BUILD_CONFIG in
-  bootstrap-debug)
-    if echo "int f (void) { return 0; }" > conftest.c &&
-       ${CC} -c conftest.c &&
-       mv conftest.o conftest.o.g0 &&
-       ${CC} -c -g conftest.c &&
-       mv conftest.o conftest.o.g &&
-       ${srcdir}/contrib/compare-debug conftest.o.g0 conftest.o.g; then
-      :
-    else
-      BUILD_CONFIG=
-    fi
-    rm -f conftest.c conftest.o conftest.o.g0 conftest.o.g
-    ;;
-  esac
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $BUILD_CONFIG" >&5
-$as_echo "$BUILD_CONFIG" >&6; }
-
-
-extrasub_build=
 for module in ${build_configdirs} ; do
   if test -z "${no_recursion}" \
      && test -f ${build_subdir}/${module}/Makefile; then
     echo 1>&2 "*** removing ${build_subdir}/${module}/Makefile to force reconfigure"
     rm -f ${build_subdir}/${module}/Makefile
   fi
-  extrasub_build="$extrasub_build
+  extrasub="$extrasub
 /^@if build-$module\$/d
 /^@endif build-$module\$/d
 /^@if build-$module-$bootstrap_suffix\$/d
 /^@endif build-$module-$bootstrap_suffix\$/d"
 done
-extrasub_host=
 for module in ${configdirs} ; do
   if test -z "${no_recursion}"; then
     for file in stage*-${module}/Makefile prev-${module}/Makefile ${module}/Makefile; do
@@ -6645,13 +6483,12 @@ for module in ${configdirs} ; do
       fi
     done
   fi
-  extrasub_host="$extrasub_host
+  extrasub="$extrasub
 /^@if $module\$/d
 /^@endif $module\$/d
 /^@if $module-$bootstrap_suffix\$/d
 /^@endif $module-$bootstrap_suffix\$/d"
 done
-extrasub_target=
 for module in ${target_configdirs} ; do
   if test -z "${no_recursion}" \
      && test -f ${target_subdir}/${module}/Makefile; then
@@ -6665,15 +6502,14 @@ for module in ${target_configdirs} ; do
     *) target_bootstrap_suffix=no-bootstrap ;;
   esac
 
-  extrasub_target="$extrasub_target
+  extrasub="$extrasub
 /^@if target-$module\$/d
 /^@endif target-$module\$/d
 /^@if target-$module-$target_bootstrap_suffix\$/d
 /^@endif target-$module-$target_bootstrap_suffix\$/d"
 done
 
-# Do the final fixup along with target modules.
-extrasub_target="$extrasub_target
+extrasub="$extrasub
 /^@if /,/^@endif /d"
 
 # Create the serialization dependencies.  This uses a temporary file.
@@ -13957,7 +13793,6 @@ gives unlimited permission to copy, distribute and modify it."
 ac_pwd='$ac_pwd'
 srcdir='$srcdir'
 INSTALL='$INSTALL'
-AWK='$AWK'
 test -n "\$AWK" || AWK=awk
 _ACEOF
 
@@ -14042,13 +13877,6 @@ _ASBOX
 
 _ACEOF
 cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
-#
-# INIT-COMMANDS
-#
-extrasub_build="$extrasub_build"
-   extrasub_host="$extrasub_host"
-   extrasub_target="$extrasub_target"
-
 _ACEOF
 
 cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
@@ -14504,14 +14332,6 @@ which seems to be undefined.  Please make sure it is defined." >&2;}
 
   esac
 
-
-  case $ac_file$ac_mode in
-    "Makefile":F) sed "$extrasub_build" Makefile |
-   sed "$extrasub_host" |
-   sed "$extrasub_target" > mf$$
-   mv -f mf$$ Makefile ;;
-
-  esac
 done # for ac_tag
 
 

@@ -1,9 +1,19 @@
-/* { dg-options "-O0" } */
+/* { dg-options "-std=gnu99 -O0" } */
 
 /* C99 6.5.17: Comma operator.
    Test with decimal float operands.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+static int failcnt = 0;
+                                                                                
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 volatile _Decimal32 d32a, d32b, d32c;
 volatile _Decimal64 d64a, d64b, d64c;
@@ -43,5 +53,5 @@ main ()
   if (d64a != 12.0dd)
     FAILURE;
 
-  FINISH
+  return 0;
 }

@@ -3,7 +3,17 @@
 /* N1150 5.3 Conversions between decimal floating and complex.
    C99 6.3.1.7 Conversions, arithmetic operands, real and complex.  */
 
-#include "dfp-dbg.h"
+extern void abort(void);
+static int failcnt;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 int
 main ()
@@ -114,5 +124,8 @@ main ()
   if (d128 != 0.0625DL)
     FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

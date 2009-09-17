@@ -1,6 +1,8 @@
+/* { dg-options "-std=gnu99" } */
+
 /* Cast to union is a GNU C extension.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
 
 union u
 {
@@ -28,10 +30,10 @@ int main ()
   double d;
   
   if (u1.d128 != 0.0dl)
-    FAILURE
+    abort ();
 
   if (u2.d128 != 4.2dl)
-    FAILURE
+    abort ();
 
   /* cast decimal floating point to union type.  */
   d128 = 1.23dl;
@@ -40,19 +42,19 @@ int main ()
 
   u4 = (union u) d128;
   if (u4.d128 != 1.23dl)
-    FAILURE
+    abort ();
   
   u4 = (union u) d;
   if (u4.d != 3.25)
-    FAILURE
+    abort ();
 
   n1 = (union n) d64;
   if (n1.d64 != 4.56dd)
-    FAILURE
+    abort ();
   
   n1 = (union n)d;
   if (n1.d != 3.25)
-    FAILURE
+    abort ();
 
-  FINISH
+  return 0;
 }

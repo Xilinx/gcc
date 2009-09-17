@@ -1,6 +1,5 @@
 ! { dg-do "compile" }
 ! { dg-options "-O3 -fwhole-file -fdump-tree-optimized" }
-! { dg-options "-O3 -fwhole-file -fdump-tree-optimized -fpie" { target { ! nonpic } } }
 !
 ! Check that inlining of functions declared BEFORE usage works.
 ! If yes, then the dump does not contain a call to F().
@@ -16,5 +15,5 @@ PROGRAM main
   print *, a
 END PROGRAM
 
-! { dg-final { scan-tree-dump-times "= f \\(\\)" 0 "optimized" } }
+! { dg-final { scan-tree-dump-times "= f\(\)" 0 "optimized" } }
 ! { dg-final { cleanup-tree-dump "optimized" } }

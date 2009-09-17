@@ -1630,14 +1630,13 @@ redundant_insn (rtx insn, rtx target, rtx delay_list)
   for (trial = PREV_INSN (target),
 	 insns_to_search = MAX_DELAY_SLOT_INSN_SEARCH;
        trial && insns_to_search > 0;
-       trial = PREV_INSN (trial))
+       trial = PREV_INSN (trial), --insns_to_search)
     {
       if (LABEL_P (trial))
 	return 0;
 
-      if (!NONDEBUG_INSN_P (trial))
+      if (! INSN_P (trial))
 	continue;
-      --insns_to_search;
 
       pat = PATTERN (trial);
       if (GET_CODE (pat) == USE || GET_CODE (pat) == CLOBBER)
@@ -1736,11 +1735,10 @@ redundant_insn (rtx insn, rtx target, rtx delay_list)
   for (trial = PREV_INSN (target),
 	 insns_to_search = MAX_DELAY_SLOT_INSN_SEARCH;
        trial && !LABEL_P (trial) && insns_to_search > 0;
-       trial = PREV_INSN (trial))
+       trial = PREV_INSN (trial), --insns_to_search)
     {
-      if (!NONDEBUG_INSN_P (trial))
+      if (!INSN_P (trial))
 	continue;
-      --insns_to_search;
 
       pat = PATTERN (trial);
       if (GET_CODE (pat) == USE || GET_CODE (pat) == CLOBBER)

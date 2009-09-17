@@ -3858,31 +3858,32 @@ emit_libcall_block (rtx insns, rtx target, rtx result, rtx equiv)
 
   /* If we're using non-call exceptions, a libcall corresponding to an
      operation that may trap may also trap.  */
-  /* ??? See the comment in front of make_reg_eh_region_note.  */
   if (flag_non_call_exceptions && may_trap_p (equiv))
     {
       for (insn = insns; insn; insn = NEXT_INSN (insn))
 	if (CALL_P (insn))
 	  {
 	    rtx note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
-	    if (note)
-	      {
-		int lp_nr = INTVAL (XEXP (note, 0));
-		if (lp_nr == 0 || lp_nr == INT_MIN)
-		  remove_note (insn, note);
-	      }
+
+	    if (note != 0 && INTVAL (XEXP (note, 0)) <= 0)
+	      remove_note (insn, note);
 	  }
     }
   else
-    {
-      /* Look for any CALL_INSNs in this sequence, and attach a REG_EH_REGION
-	 reg note to indicate that this call cannot throw or execute a nonlocal
-	 goto (unless there is already a REG_EH_REGION note, in which case
-	 we update it).  */
-      for (insn = insns; insn; insn = NEXT_INSN (insn))
-	if (CALL_P (insn))
-	  make_reg_eh_region_note_nothrow_nononlocal (insn);
-    }
+  /* look for any CALL_INSNs in this sequence, and attach a REG_EH_REGION
+     reg note to indicate that this call cannot throw or execute a nonlocal
+     goto (unless there is already a REG_EH_REGION note, in which case
+     we update it).  */
+    for (insn = insns; insn; insn = NEXT_INSN (insn))
+      if (CALL_P (insn))
+	{
+	  rtx note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
+
+	  if (note != 0)
+	    XEXP (note, 0) = constm1_rtx;
+	  else
+	    add_reg_note (insn, REG_EH_REGION, constm1_rtx);
+	}
 
   /* First emit all insns that set pseudos.  Remove them from the list as
      we go.  Avoid insns that set pseudos which were referenced in previous
@@ -6022,28 +6023,6 @@ libfunc_decl_eq (const void *entry1, const void *entry2)
   return DECL_NAME ((const_tree) entry1) == (const_tree) entry2;
 }
 
-/* Build a decl for a libfunc named NAME. */
-
-tree
-build_libfunc_function (const char *name)
-{
-  tree decl = build_decl (UNKNOWN_LOCATION, FUNCTION_DECL,
-			  get_identifier (name),
-                          build_function_type (integer_type_node, NULL_TREE));
-  /* ??? We don't have any type information except for this is
-     a function.  Pretend this is "int foo()".  */
-  DECL_ARTIFICIAL (decl) = 1;
-  DECL_EXTERNAL (decl) = 1;
-  TREE_PUBLIC (decl) = 1;
-  gcc_assert (DECL_ASSEMBLER_NAME (decl));
-
-  /* Zap the nonsensical SYMBOL_REF_DECL for this.  What we're left with
-     are the flags assigned by targetm.encode_section_info.  */
-  SET_SYMBOL_REF_DECL (XEXP (DECL_RTL (decl), 0), NULL);
-
-  return decl;
-}
-
 rtx
 init_one_libfunc (const char *name)
 {
@@ -6064,7 +6043,19 @@ init_one_libfunc (const char *name)
     {
       /* Create a new decl, so that it can be passed to
 	 targetm.encode_section_info.  */
-      decl = build_libfunc_function (name);
+      /* ??? We don't have any type information except for this is
+	 a function.  Pretend this is "int foo()".  */
+      decl = build_decl (UNKNOWN_LOCATION,
+			 FUNCTION_DECL, get_identifier (name),
+			 build_function_type (integer_type_node, NULL_TREE));
+      DECL_ARTIFICIAL (decl) = 1;
+      DECL_EXTERNAL (decl) = 1;
+      TREE_PUBLIC (decl) = 1;
+
+      /* Zap the nonsensical SYMBOL_REF_DECL for this.  What we're left with
+	 are the flags assigned by targetm.encode_section_info.  */
+      SET_SYMBOL_REF_DECL (XEXP (DECL_RTL (decl), 0), NULL);
+
       *slot = decl;
     }
   return XEXP (DECL_RTL (decl), 0);

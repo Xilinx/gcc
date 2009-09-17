@@ -1,8 +1,21 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 6.5.2.2 Function calls.
    Test passing varargs of the decimal float types.  */
 
 #include <stdarg.h>
-#include "dfp-dbg.h"
+
+extern void abort (void);
+static int failcnt = 0;
+                                                                                
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 static _Decimal32
 vararg32 (unsigned arg, ...)
@@ -91,5 +104,7 @@ int main()
   if (vararg128 (5, 0.0dl, 1.0dl, 2.0dl, 3.0dl, 4.0dl, 5.0dl) != 5.0dl)
     FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+  return 0;
 }

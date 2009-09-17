@@ -1,10 +1,20 @@
-/* { dg-options "-Wall" } */
+/* { dg-options "-std=gnu99 -Wall" } */
 
 /* C99 6.5.2.2 Function calls.
    Test scalar passing and return values involving decimal floating
    point types.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+static int failcnt;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 /* A handful of functions that return their Nth _Decimal32
    argument with mixed types in parameter list.  */
@@ -170,5 +180,8 @@ main ()
   if (arg4_128 (0, -1, 2.0f, 3.0, 4.0dl, 5.0l) != 4.0dl) FAILURE
   if (arg5_128 (0, -1, 2.0f, 3.0, 4.0l, 5.0dl) != 5.0dl) FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

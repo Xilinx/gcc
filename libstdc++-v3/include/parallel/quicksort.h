@@ -38,141 +38,140 @@
 namespace __gnu_parallel
 {
   /** @brief Unbalanced quicksort divide step.
-   *  @param __begin Begin iterator of subsequence.
-   *  @param __end End iterator of subsequence.
-   *  @param __comp Comparator.
-   *  @param __pivot_rank Desired __rank of the pivot.
-   *  @param __num_samples Choose pivot from that many samples.
-   *  @param __num_threads Number of threads that are allowed to work on
+   *  @param begin Begin iterator of subsequence.
+   *  @param end End iterator of subsequence.
+   *  @param comp Comparator.
+   *  @param pivot_rank Desired rank of the pivot.
+   *  @param num_samples Choose pivot from that many samples.
+   *  @param num_threads Number of threads that are allowed to work on
    *  this part.
    */
-  template<typename _RAIter, typename _Compare>
-    typename std::iterator_traits<_RAIter>::difference_type
-    __parallel_sort_qs_divide(_RAIter __begin,
-                            _RAIter __end,
-                            _Compare __comp, typename std::iterator_traits
-                            <_RAIter>::difference_type __pivot_rank,
-                            typename std::iterator_traits
-                            <_RAIter>::difference_type
-                            __num_samples, _ThreadIndex __num_threads)
+  template<typename RandomAccessIterator, typename Comparator>
+    typename std::iterator_traits<RandomAccessIterator>::difference_type
+    parallel_sort_qs_divide(RandomAccessIterator begin,
+			    RandomAccessIterator end,
+			    Comparator comp, typename std::iterator_traits
+			    <RandomAccessIterator>::difference_type pivot_rank,
+			    typename std::iterator_traits
+			    <RandomAccessIterator>::difference_type
+			    num_samples, thread_index_t num_threads)
     {
-      typedef std::iterator_traits<_RAIter> _TraitsType;
-      typedef typename _TraitsType::value_type _ValueType;
-      typedef typename _TraitsType::difference_type _DifferenceType;
+      typedef std::iterator_traits<RandomAccessIterator> traits_type;
+      typedef typename traits_type::value_type value_type;
+      typedef typename traits_type::difference_type difference_type;
 
-      _DifferenceType __n = __end - __begin;
-      __num_samples = std::min(__num_samples, __n);
+      difference_type n = end - begin;
+      num_samples = std::min(num_samples, n);
 
       // Allocate uninitialized, to avoid default constructor.
-      _ValueType* __samples =
-        static_cast<_ValueType*>(::operator new(__num_samples
-                                                * sizeof(_ValueType)));
+      value_type* samples =
+	static_cast<value_type*>(::operator new(num_samples
+						* sizeof(value_type)));
 
-      for (_DifferenceType __s = 0; __s < __num_samples; ++__s)
-        {
-          const unsigned long long __index
-            = static_cast<unsigned long long>(__s) * __n / __num_samples;
-          ::new(&(__samples[__s])) _ValueType(__begin[__index]);
-        }
+      for (difference_type s = 0; s < num_samples; ++s)
+	{
+	  const unsigned long long index = static_cast<unsigned long long>(s)
+	    * n / num_samples;
+	  ::new(&(samples[s])) value_type(begin[index]);
+	}
 
-      __gnu_sequential::sort(__samples, __samples + __num_samples, __comp);
+      __gnu_sequential::sort(samples, samples + num_samples, comp);
 
-      _ValueType& pivot = __samples[__pivot_rank * __num_samples / __n];
+      value_type& pivot = samples[pivot_rank * num_samples / n];
 
-      __gnu_parallel::binder2nd<_Compare, _ValueType, _ValueType, bool>
-        __pred(__comp, pivot);
-      _DifferenceType __split =
-          __parallel_partition(__begin, __end, __pred, __num_threads);
+      __gnu_parallel::binder2nd<Comparator, value_type, value_type, bool>
+        pred(comp, pivot);
+      difference_type split =
+          parallel_partition(begin, end, pred, num_threads);
 
-      ::operator delete(__samples);
+      ::operator delete(samples);
 
-      return __split;
+      return split;
     }
 
   /** @brief Unbalanced quicksort conquer step.
-   *  @param __begin Begin iterator of subsequence.
-   *  @param __end End iterator of subsequence.
-   *  @param __comp Comparator.
-   *  @param __num_threads Number of threads that are allowed to work on
+   *  @param begin Begin iterator of subsequence.
+   *  @param end End iterator of subsequence.
+   *  @param comp Comparator.
+   *  @param num_threads Number of threads that are allowed to work on
    *  this part.
    */
-  template<typename _RAIter, typename _Compare>
+  template<typename RandomAccessIterator, typename Comparator>
     void
-    __parallel_sort_qs_conquer(_RAIter __begin,
-                             _RAIter __end,
-                             _Compare __comp,
-                             _ThreadIndex __num_threads)
+    parallel_sort_qs_conquer(RandomAccessIterator begin,
+			     RandomAccessIterator end,
+			     Comparator comp,
+			     thread_index_t num_threads)
     {
-      typedef std::iterator_traits<_RAIter> _TraitsType;
-      typedef typename _TraitsType::value_type _ValueType;
-      typedef typename _TraitsType::difference_type _DifferenceType;
+      typedef std::iterator_traits<RandomAccessIterator> traits_type;
+      typedef typename traits_type::value_type value_type;
+      typedef typename traits_type::difference_type difference_type;
 
-      if (__num_threads <= 1)
-        {
-          __gnu_sequential::sort(__begin, __end, __comp);
-          return;
-        }
+      if (num_threads <= 1)
+	{
+	  __gnu_sequential::sort(begin, end, comp);
+	  return;
+	}
 
-      _DifferenceType __n = __end - __begin, __pivot_rank;
+      difference_type n = end - begin, pivot_rank;
 
-      if (__n <= 1)
-        return;
+      if (n <= 1)
+	return;
 
-      _ThreadIndex __num_threads_left;
+      thread_index_t num_threads_left;
 
-      if ((__num_threads % 2) == 1)
-        __num_threads_left = __num_threads / 2 + 1;
+      if ((num_threads % 2) == 1)
+	num_threads_left = num_threads / 2 + 1;
       else
-        __num_threads_left = __num_threads / 2;
+	num_threads_left = num_threads / 2;
 
-      __pivot_rank = __n * __num_threads_left / __num_threads;
+      pivot_rank = n * num_threads_left / num_threads;
 
-      _DifferenceType __split =
-        __parallel_sort_qs_divide(__begin, __end, __comp, __pivot_rank,
-                                _Settings::get().sort_qs_num_samples_preset,
-                                __num_threads);
+      difference_type split =
+	parallel_sort_qs_divide(begin, end, comp, pivot_rank,
+				_Settings::get().sort_qs_num_samples_preset,
+				num_threads);
 
 #pragma omp parallel sections num_threads(2)
       {
 #pragma omp section
-        __parallel_sort_qs_conquer(__begin, __begin + __split,
-                                 __comp, __num_threads_left);
+	parallel_sort_qs_conquer(begin, begin + split,
+				 comp, num_threads_left);
 #pragma omp section
-        __parallel_sort_qs_conquer(__begin + __split, __end,
-                                 __comp, __num_threads - __num_threads_left);
+	parallel_sort_qs_conquer(begin + split, end,
+				 comp, num_threads - num_threads_left);
       }
     }
 
 
 
   /** @brief Unbalanced quicksort main call.
-   *  @param __begin Begin iterator of input sequence.
-   *  @param __end End iterator input sequence, ignored.
-   *  @param __comp Comparator.
-   *  @param __num_threads Number of threads that are allowed to work on
+   *  @param begin Begin iterator of input sequence.
+   *  @param end End iterator input sequence, ignored.
+   *  @param comp Comparator.
+   *  @param num_threads Number of threads that are allowed to work on
    *  this part.
    */
-  template<typename _RAIter, typename _Compare>
+  template<typename RandomAccessIterator, typename Comparator>
     void
-    __parallel_sort_qs(_RAIter __begin,
-                     _RAIter __end,
-                     _Compare __comp,
-                     _ThreadIndex __num_threads)
+    parallel_sort_qs(RandomAccessIterator begin,
+		     RandomAccessIterator end,
+		     Comparator comp,
+		     thread_index_t num_threads)
     {
-      _GLIBCXX_CALL(__n)
+      _GLIBCXX_CALL(n)
 
-      typedef std::iterator_traits<_RAIter> _TraitsType;
-      typedef typename _TraitsType::value_type _ValueType;
-      typedef typename _TraitsType::difference_type _DifferenceType;
+      typedef std::iterator_traits<RandomAccessIterator> traits_type;
+      typedef typename traits_type::value_type value_type;
+      typedef typename traits_type::difference_type difference_type;
 
-      _DifferenceType __n = __end - __begin;
+      difference_type n = end - begin;
 
       // At least one element per processor.
-      if (__num_threads > __n)
-        __num_threads = static_cast<_ThreadIndex>(__n);
+      if (num_threads > n)
+        num_threads = static_cast<thread_index_t>(n);
 
-      __parallel_sort_qs_conquer(
-        __begin, __begin + __n, __comp, __num_threads);
+      parallel_sort_qs_conquer(begin, begin + n, comp, num_threads);
     }
 
 } //namespace __gnu_parallel

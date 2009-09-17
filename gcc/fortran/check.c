@@ -546,6 +546,9 @@ gfc_check_allocated (gfc_expr *array)
       return FAILURE;
     }
 
+  if (array_check (array, 0) == FAILURE)
+    return FAILURE;
+
   return SUCCESS;
 }
 

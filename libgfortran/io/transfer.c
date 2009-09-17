@@ -232,28 +232,21 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
 
       if (q == '\n' || q == '\r')
 	{
-	  /* Unexpected end of line. Set the position.  */
-	  fbuf_seek (dtp->u.p.current_unit, n + 1 ,SEEK_CUR);
-	  dtp->u.p.sf_seen_eor = 1;
+	  /* Unexpected end of line.  */
 
 	  /* If we see an EOR during non-advancing I/O, we need to skip
 	     the rest of the I/O statement.  Set the corresponding flag.  */
 	  if (dtp->u.p.advance_status == ADVANCE_NO || dtp->u.p.seen_dollar)
 	    dtp->u.p.eor_condition = 1;
-	    
+
 	  /* If we encounter a CR, it might be a CRLF.  */
 	  if (q == '\r') /* Probably a CRLF */
 	    {
-	      /* See if there is an LF. Use fbuf_read rather then fbuf_getc so
-		 the position is not advanced unless it really is an LF.  */
-	      int readlen = 1;
-	      p = fbuf_read (dtp->u.p.current_unit, &readlen);
-	      if (*p == '\n' && readlen == 1)
-	        {
-		  dtp->u.p.sf_seen_eor = 2;
-		  fbuf_seek (dtp->u.p.current_unit, 1 ,SEEK_CUR);
-		}
+	      if (n < *length && *(p + 1) == '\n')
+		dtp->u.p.sf_seen_eor = 2;
 	    }
+          else
+            dtp->u.p.sf_seen_eor = 1;
 
 	  /* Without padding, terminate the I/O statement without assigning
 	     the value.  With padding, the value still needs to be assigned,
@@ -267,7 +260,7 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
 	    }
 
 	  *length = n;
-	  goto done;
+	  break;
 	}
       /*  Short circuit the read if a comma is found during numeric input.
 	  The flag is set to zero during character reads so that commas in
@@ -281,11 +274,13 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
 	    *length = n;
 	    break;
 	  }
+
       n++;
       p++;
     } 
 
-  fbuf_seek (dtp->u.p.current_unit, n + seen_comma, SEEK_CUR);
+  fbuf_seek (dtp->u.p.current_unit, n + dtp->u.p.sf_seen_eor + seen_comma, 
+             SEEK_CUR);
 
   /* A short read implies we hit EOF, unless we hit EOR, a comma, or
      some other stuff. Set the relevant flags.  */

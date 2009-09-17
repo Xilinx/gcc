@@ -875,7 +875,7 @@ do_switchconv (void)
 		     "SWITCH statement (%s:%d) : ------- \n",
 		     loc.file, loc.line);
 	    print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
-	    putc ('\n', dump_file);
+	    fprintf (dump_file, "\n");
 	  }
 
 	info.reason = NULL;
@@ -883,8 +883,8 @@ do_switchconv (void)
 	  {
 	    if (dump_file)
 	      {
-		fputs ("Switch converted\n", dump_file);
-		fputs ("--------------------------------\n", dump_file);
+		fprintf (dump_file, "Switch converted\n");
+		fprintf (dump_file, "--------------------------------\n");
 	      }
 	  }
 	else
@@ -892,9 +892,9 @@ do_switchconv (void)
 	    if (dump_file)
 	      {
 		gcc_assert (info.reason);
-		fputs ("Bailing out - ", dump_file);
-		fputs (info.reason, dump_file);
-		fputs ("--------------------------------\n", dump_file);
+		fprintf (dump_file, "Bailing out - ");
+		fprintf (dump_file, info.reason);
+		fprintf (dump_file, "--------------------------------\n");
 	      }
 	  }
       }

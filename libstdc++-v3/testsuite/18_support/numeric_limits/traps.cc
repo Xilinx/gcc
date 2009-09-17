@@ -1,4 +1,5 @@
-// { dg-add-options ieee }
+// { dg-options "-mieee" { target alpha*-*-* } }
+// { dg-options "-mieee" { target sh*-*-* } }
 
 // Copyright (C) 2005, 2009 Free Software Foundation
 //

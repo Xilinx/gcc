@@ -1,3 +1,4 @@
+/* { dg-options "-std=gnu99" } */
 /* { dg-skip-if "test is for emulation" { hard_dfp } { "*" } { "" } } */
 
 /* Touch tests that check for raising appropriate exceptions for binary
@@ -101,5 +102,7 @@ main ()
   binop_501 ();
   binop_502 ();
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+  return 0;
 }

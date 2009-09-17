@@ -1186,6 +1186,7 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
     {
       def_operand_p def_p;
       ssa_op_iter op_iter;
+      int region;
       gimple stmt = gsi_stmt (gsi);
       gimple copy;
 
@@ -1198,7 +1199,9 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
       gsi_insert_after (&gsi_tgt, copy, GSI_NEW_STMT);
       mark_sym_for_renaming (gimple_vop (cfun));
 
-      maybe_duplicate_eh_stmt (copy, stmt);
+      region = lookup_stmt_eh_region (stmt);
+      if (region >= 0)
+	add_stmt_to_eh_region (copy, region);
       gimple_duplicate_stmt_histograms (cfun, copy, cfun, stmt);
 
       /* Create new names for all the definitions created by COPY and

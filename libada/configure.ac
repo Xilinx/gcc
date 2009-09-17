@@ -117,8 +117,7 @@ esac
 ], [enable_shared=yes])
 AC_SUBST([enable_shared])
 
-# These must be passed down, or are needed by gcc/libgcc.mvars
-AC_PROG_AWK
+# Need to pass this down for now :-P
 AC_PROG_LN_S
 
 # Determine what to build for 'gnatlib'
@@ -131,6 +130,7 @@ else
 fi
 AC_SUBST([default_gnatlib_target])
 
+AC_PROG_CC
 warn_cflags=
 if test "x$GCC" = "xyes"; then
   warn_cflags='$(GCC_WARN_CFLAGS)'

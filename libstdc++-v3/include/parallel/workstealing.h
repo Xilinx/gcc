@@ -49,260 +49,257 @@ namespace __gnu_parallel
 
 #define _GLIBCXX_JOB_VOLATILE volatile
 
-/** @brief One __job for a certain thread. */
+/** @brief One job for a certain thread. */
 template<typename _DifferenceTp>
-  struct _Job
+  struct Job
   {
-    typedef _DifferenceTp _DifferenceType;
+    typedef _DifferenceTp difference_type;
 
     /** @brief First element.
      *
      *  Changed by owning and stealing thread. By stealing thread,
      *  always incremented. */
-    _GLIBCXX_JOB_VOLATILE _DifferenceType _M_first;
+    _GLIBCXX_JOB_VOLATILE difference_type first;
 
     /** @brief Last element.
      *
      *  Changed by owning thread only. */
-    _GLIBCXX_JOB_VOLATILE _DifferenceType _M_last;
+    _GLIBCXX_JOB_VOLATILE difference_type last;
 
-    /** @brief Number of elements, i.e. @__c _M_last-_M_first+1.
+    /** @brief Number of elements, i. e. @c last-first+1.
      *
      *  Changed by owning thread only. */
-    _GLIBCXX_JOB_VOLATILE _DifferenceType _M_load;
+    _GLIBCXX_JOB_VOLATILE difference_type load;
   };
 
 /** @brief Work stealing algorithm for random access iterators.
   *
-  *  Uses O(1) additional memory. Synchronization at __job lists is
+  *  Uses O(1) additional memory. Synchronization at job lists is
   *  done with atomic operations.
-  *  @param __begin Begin iterator of element __sequence.
-  *  @param __end End iterator of element __sequence.
-  *  @param __op User-supplied functor (comparator, predicate, adding
+  *  @param begin Begin iterator of element sequence.
+  *  @param end End iterator of element sequence.
+  *  @param op User-supplied functor (comparator, predicate, adding
   *  functor, ...).
-  *  @param __f Functor to "process" an element with __op (depends on
+  *  @param f Functor to "process" an element with op (depends on
   *  desired functionality, e. g. for std::for_each(), ...).
-  *  @param __r Functor to "add" a single __result to the already
-  *  processed __elements (depends on functionality).
-  *  @param __base Base value for reduction.
-  *  @param __output Pointer to position where final result is written to
-  *  @param __bound Maximum number of elements processed (e. g. for
+  *  @param r Functor to "add" a single result to the already
+  *  processed elements (depends on functionality).
+  *  @param base Base value for reduction.
+  *  @param output Pointer to position where final result is written to
+  *  @param bound Maximum number of elements processed (e. g. for
   *  std::count_n()).
   *  @return User-supplied functor (that may contain a part of the result).
   */
-template<typename _RAIter,
-         typename _Op,
-         typename _Fu,
-         typename _Red,
-         typename _Result>
-  _Op
-  for_each_template_random_access_workstealing(
-    _RAIter __begin, _RAIter __end, _Op __op, _Fu& __f, _Red __r,
-    _Result __base, _Result& __output,
-    typename std::iterator_traits<_RAIter>::difference_type __bound)
+template<typename RandomAccessIterator,
+	 typename Op,
+	 typename Fu,
+	 typename Red,
+	 typename Result>
+  Op
+  for_each_template_random_access_workstealing(RandomAccessIterator begin,
+					       RandomAccessIterator end,
+					       Op op, Fu& f, Red r,
+					       Result base, Result& output,
+					       typename std::iterator_traits
+					       <RandomAccessIterator>::
+					       difference_type bound)
   {
-    _GLIBCXX_CALL(__end - __begin)
+    _GLIBCXX_CALL(end - begin)
 
-    typedef std::iterator_traits<_RAIter> _TraitsType;
-    typedef typename _TraitsType::difference_type _DifferenceType;
+    typedef std::iterator_traits<RandomAccessIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
     
     const _Settings& __s = _Settings::get();
 
-    _DifferenceType __chunk_size =
-        static_cast<_DifferenceType>(__s.workstealing_chunk_size);
+    difference_type chunk_size = static_cast<difference_type>(__s.workstealing_chunk_size);
 
     // How many jobs?
-    _DifferenceType __length = (__bound < 0) ? (__end - __begin) : __bound;
+    difference_type length = (bound < 0) ? (end - begin) : bound;
 
     // To avoid false sharing in a cache line.
-    const int __stride =
-                __s.cache_line_size * 10 / sizeof(_Job<_DifferenceType>) + 1;
+    const int stride = __s.cache_line_size * 10 / sizeof(Job<difference_type>) + 1;
 
     // Total number of threads currently working.
-    _ThreadIndex __busy = 0;
+    thread_index_t busy = 0;
 
-    _Job<_DifferenceType> *__job;
+    Job<difference_type> *job;
 
-    omp_lock_t __output_lock;
-    omp_init_lock(&__output_lock);
+    omp_lock_t output_lock;
+    omp_init_lock(&output_lock);
 
     // Write base value to output.
-    __output = __base;
+    output = base;
 
     // No more threads than jobs, at least one thread.
-    _ThreadIndex __num_threads =
-      __gnu_parallel::max<_ThreadIndex>(1,
-        __gnu_parallel::min<_DifferenceType>(__length, __get_max_threads()));
+    thread_index_t num_threads =
+        __gnu_parallel::max<thread_index_t>(1,
+            __gnu_parallel::min<difference_type>(length, get_max_threads()));
 
-#   pragma omp parallel shared(__busy) num_threads(__num_threads)
+#   pragma omp parallel shared(busy) num_threads(num_threads)
       {
 
 #       pragma omp single
           {
-            __num_threads = omp_get_num_threads();
+            num_threads = omp_get_num_threads();
 
             // Create job description array.
-            __job = new _Job<_DifferenceType>[__num_threads * __stride];
+            job = new Job<difference_type>[num_threads * stride];
           }
 
         // Initialization phase.
 
         // Flags for every thread if it is doing productive work.
-        bool __iam_working = false;
+        bool iam_working = false;
 
         // Thread id.
-        _ThreadIndex __iam = omp_get_thread_num();
+        thread_index_t iam = omp_get_thread_num();
 
         // This job.
-        _Job<_DifferenceType>& __my_job = __job[__iam * __stride];
+        Job<difference_type>& my_job = job[iam * stride];
 
         // Random number (for work stealing).
-        _ThreadIndex __victim;
+        thread_index_t victim;
 
         // Local value for reduction.
-        _Result __result = _Result();
+        Result result = Result();
 
         // Number of elements to steal in one attempt.
-        _DifferenceType __steal;
+        difference_type steal;
 
         // Every thread has its own random number generator
-        // (modulo __num_threads).
-        _RandomNumber rand_gen(__iam, __num_threads);
+        // (modulo num_threads).
+        random_number rand_gen(iam, num_threads);
 
         // This thread is currently working.
 #       pragma omp atomic
-          ++__busy;
+          ++busy;
 
-        __iam_working = true;
+        iam_working = true;
 
         // How many jobs per thread? last thread gets the rest.
-        __my_job._M_first =
-            static_cast<_DifferenceType>(__iam * (__length / __num_threads));
+        my_job.first =
+            static_cast<difference_type>(iam * (length / num_threads));
 
-        __my_job._M_last = (__iam == (__num_threads - 1)) ?
-            (__length - 1) : ((__iam + 1) * (__length / __num_threads) - 1);
-        __my_job._M_load = __my_job._M_last - __my_job._M_first + 1;
+        my_job.last = (iam == (num_threads - 1)) ?
+            (length - 1) : ((iam + 1) * (length / num_threads) - 1);
+        my_job.load = my_job.last - my_job.first + 1;
 
-        // Init result with _M_first value (to have a base value for reduction)
-        if (__my_job._M_first <= __my_job._M_last)
+        // Init result with first value (to have a base value for reduction).
+        if (my_job.first <= my_job.last)
           {
             // Cannot use volatile variable directly.
-            _DifferenceType __my_first = __my_job._M_first;
-            __result = __f(__op, __begin + __my_first);
-            ++__my_job._M_first;
-            --__my_job._M_load;
+            difference_type my_first = my_job.first;
+            result = f(op, begin + my_first);
+            ++my_job.first;
+            --my_job.load;
           }
 
-        _RAIter __current;
+        RandomAccessIterator current;
 
 #       pragma omp barrier
 
         // Actual work phase
-        // Work on own or stolen current start
-        while (__busy > 0)
+        // Work on own or stolen start
+        while (busy > 0)
           {
             // Work until no productive thread left.
-#           pragma omp flush(__busy)
+#           pragma omp flush(busy)
 
             // Thread has own work to do
-            while (__my_job._M_first <= __my_job._M_last)
+            while (my_job.first <= my_job.last)
               {
                 // fetch-and-add call
-                // Reserve current job block (size __chunk_size) in my queue.
-                _DifferenceType current_job =
-                  __fetch_and_add<_DifferenceType>(
-                    &(__my_job._M_first), __chunk_size);
+                // Reserve current job block (size chunk_size) in my queue.
+                difference_type current_job =
+                  fetch_and_add<difference_type>(&(my_job.first), chunk_size);
 
-                // Update _M_load, to make the three values consistent,
-                // _M_first might have been changed in the meantime
-                __my_job._M_load = __my_job._M_last - __my_job._M_first + 1;
-                for (_DifferenceType job_counter = 0;
-                     job_counter < __chunk_size
-                       && current_job <= __my_job._M_last;
+                // Update load, to make the three values consistent,
+                // first might have been changed in the meantime
+                my_job.load = my_job.last - my_job.first + 1;
+                for (difference_type job_counter = 0;
+                     job_counter < chunk_size && current_job <= my_job.last;
                      ++job_counter)
                   {
                     // Yes: process it!
-                    __current = __begin + current_job;
+                    current = begin + current_job;
                     ++current_job;
 
                     // Do actual work.
-                    __result = __r(__result, __f(__op, __current));
+                    result = r(result, f(op, current));
                   }
 
-#               pragma omp flush(__busy)
+#               pragma omp flush(busy)
               }
 
-            // After reaching this point, a thread's __job list is empty.
-            if (__iam_working)
+            // After reaching this point, a thread's job list is empty.
+            if (iam_working)
               {
                 // This thread no longer has work.
 #               pragma omp atomic
-                --__busy;
+                --busy;
 
-                __iam_working = false;
+                iam_working = false;
               }
 
-            _DifferenceType __supposed_first, __supposed_last, __supposed_load;
+            difference_type supposed_first, supposed_last, supposed_load;
             do
               {
                 // Find random nonempty deque (not own), do consistency check.
-                __yield();
-#               pragma omp flush(__busy)
-                __victim = rand_gen();
-                __supposed_first = __job[__victim * __stride]._M_first;
-                __supposed_last = __job[__victim * __stride]._M_last;
-                __supposed_load = __job[__victim * __stride]._M_load;
+                yield();
+#               pragma omp flush(busy)
+                victim = rand_gen();
+                supposed_first = job[victim * stride].first;
+                supposed_last = job[victim * stride].last;
+                supposed_load = job[victim * stride].load;
               }
-            while (__busy > 0
-              && ((__supposed_load <= 0)
-                || ((__supposed_first + __supposed_load - 1)
-                                                         != __supposed_last)));
+            while (busy > 0
+              && ((supposed_load <= 0)
+                || ((supposed_first + supposed_load - 1) != supposed_last)));
 
-            if (__busy == 0)
+            if (busy == 0)
               break;
 
-            if (__supposed_load > 0)
+            if (supposed_load > 0)
               {
                 // Has work and work to do.
                 // Number of elements to steal (at least one).
-                __steal = (__supposed_load < 2) ? 1 : __supposed_load / 2;
+                steal = (supposed_load < 2) ? 1 : supposed_load / 2;
 
-                // Push __victim's current start forward.
-                _DifferenceType __stolen_first =
-                    __fetch_and_add<_DifferenceType>(
-                        &(__job[__victim * __stride]._M_first), __steal);
-                _DifferenceType stolen_try =
-                    __stolen_first + __steal - _DifferenceType(1);
+                // Push victim's start forward.
+                difference_type stolen_first =
+                    fetch_and_add<difference_type>(
+                        &(job[victim * stride].first), steal);
+                difference_type stolen_try =
+                    stolen_first + steal - difference_type(1);
 
-                __my_job._M_first = __stolen_first;
-                __my_job._M_last =
-                  __gnu_parallel::min(stolen_try, __supposed_last);
-                __my_job._M_load = __my_job._M_last - __my_job._M_first + 1;
+                my_job.first = stolen_first;
+                my_job.last = __gnu_parallel::min(stolen_try, supposed_last);
+                my_job.load = my_job.last - my_job.first + 1;
 
                 // Has potential work again.
 #               pragma omp atomic
-                  ++__busy;
-                __iam_working = true;
+                  ++busy;
+                iam_working = true;
 
-#               pragma omp flush(__busy)
+#               pragma omp flush(busy)
               }
-#           pragma omp flush(__busy)
-          } // end while __busy > 0
+#           pragma omp flush(busy)
+          } // end while busy > 0
             // Add accumulated result to output.
-        omp_set_lock(&__output_lock);
-        __output = __r(__output, __result);
-        omp_unset_lock(&__output_lock);
+        omp_set_lock(&output_lock);
+        output = r(output, result);
+        omp_unset_lock(&output_lock);
       }
 
-    delete[] __job;
+    delete[] job;
 
     // Points to last element processed (needed as return value for
     // some algorithms like transform)
-    __f._M_finish_iterator = __begin + __length;
+    f.finish_iterator = begin + length;
 
-    omp_destroy_lock(&__output_lock);
+    omp_destroy_lock(&output_lock);
 
-    return __op;
+    return op;
   }
 } // end namespace
 

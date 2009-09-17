@@ -45,22 +45,18 @@ package body Prj.Pars is
       Project_File_Name : String;
       Packages_To_Check : String_List_Access := All_Packages;
       Flags             : Processing_Flags;
-      Reset_Tree        : Boolean := True;
-      In_Node_Tree      : Prj.Tree.Project_Node_Tree_Ref := null)
+      Reset_Tree        : Boolean := True)
    is
-      Project_Node            : Project_Node_Id := Empty_Node;
-      The_Project             : Project_Id      := No_Project;
-      Success                 : Boolean         := True;
-      Current_Dir             : constant String := Get_Current_Dir;
-      Project_Node_Tree       : Prj.Tree.Project_Node_Tree_Ref := In_Node_Tree;
+      Project_Node      : Project_Node_Id := Empty_Node;
+      The_Project       : Project_Id      := No_Project;
+      Success           : Boolean         := True;
+      Current_Dir       : constant String := Get_Current_Dir;
+      Project_Node_Tree : Prj.Tree.Project_Node_Tree_Ref;
       Automatically_Generated : Boolean;
       Config_File_Path        : String_Access;
-
    begin
-      if Project_Node_Tree = null then
-         Project_Node_Tree := new Project_Node_Tree_Data;
-         Prj.Tree.Initialize (Project_Node_Tree);
-      end if;
+      Project_Node_Tree := new Project_Node_Tree_Data;
+      Prj.Tree.Initialize (Project_Node_Tree);
 
       --  Parse the main project file into a tree
 

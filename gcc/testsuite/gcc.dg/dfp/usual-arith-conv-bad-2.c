@@ -1,4 +1,5 @@
 /* { dg-do compile } */
+/* { dg-options "-std=gnu99" } */
 
 /* This used to result in an ICE.  */
 

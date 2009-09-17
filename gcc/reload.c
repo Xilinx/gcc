@@ -112,7 +112,6 @@ a register with any other reload.  */
 #include "params.h"
 #include "target.h"
 #include "df.h"
-#include "ira.h"
 
 /* True if X is a constant that can be forced into the constant pool.  */
 #define CONST_POOL_OK_P(X)			\
@@ -2590,7 +2589,6 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
   char goal_alternative_earlyclobber[MAX_RECOG_OPERANDS];
   int goal_alternative_swapped;
   int best;
-  int best_small_class_operands_num;
   int commutative;
   char operands_match[MAX_RECOG_OPERANDS][MAX_RECOG_OPERANDS];
   rtx substed_operand[MAX_RECOG_OPERANDS];
@@ -2916,7 +2914,6 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
      all the operands together against the register constraints.  */
 
   best = MAX_RECOG_OPERANDS * 2 + 600;
-  best_small_class_operands_num = 0;
 
   swapped = 0;
   goal_alternative_swapped = 0;
@@ -3700,48 +3697,22 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
       /* If this alternative can be made to work by reloading,
 	 and it needs less reloading than the others checked so far,
 	 record it as the chosen goal for reloading.  */
-      if (! bad)
+      if (! bad && best > losers)
 	{
-	  bool change_p = false;
-	  int small_class_operands_num = 0;
-
-	  if (best >= losers)
+	  for (i = 0; i < noperands; i++)
 	    {
-	      for (i = 0; i < noperands; i++)
-		small_class_operands_num
-		  += SMALL_REGISTER_CLASS_P (this_alternative[i]) ? 1 : 0;
-	      if (best > losers
-		  || (best == losers
-		      /* If the cost of the reloads is the same,
-			 prefer alternative which requires minimal
-			 number of small register classes for the
-			 operands.  This improves chances of reloads
-			 for insn requiring small register
-			 classes.  */
-		      && (small_class_operands_num
-			  < best_small_class_operands_num)))
-		change_p = true;
+	      goal_alternative[i] = this_alternative[i];
+	      goal_alternative_win[i] = this_alternative_win[i];
+	      goal_alternative_match_win[i] = this_alternative_match_win[i];
+	      goal_alternative_offmemok[i] = this_alternative_offmemok[i];
+	      goal_alternative_matches[i] = this_alternative_matches[i];
+	      goal_alternative_earlyclobber[i]
+		= this_alternative_earlyclobber[i];
 	    }
-	  if (change_p)
-	    {
-	      for (i = 0; i < noperands; i++)
-		{
-		  goal_alternative[i] = this_alternative[i];
-		  goal_alternative_win[i] = this_alternative_win[i];
-		  goal_alternative_match_win[i]
-		    = this_alternative_match_win[i];
-		  goal_alternative_offmemok[i]
-		    = this_alternative_offmemok[i];
-		  goal_alternative_matches[i] = this_alternative_matches[i];
-		  goal_alternative_earlyclobber[i]
-		    = this_alternative_earlyclobber[i];
-		}
-	      goal_alternative_swapped = swapped;
-	      best = losers;
-	      best_small_class_operands_num = small_class_operands_num;
-	      goal_alternative_number = this_alternative_number;
-	      goal_earlyclobber = this_earlyclobber;
-	    }
+	  goal_alternative_swapped = swapped;
+	  best = losers;
+	  goal_alternative_number = this_alternative_number;
+	  goal_earlyclobber = this_earlyclobber;
 	}
     }
 
@@ -6765,8 +6736,6 @@ find_equiv_reg (rtx goal, rtx insn, enum reg_class rclass, int other,
   while (1)
     {
       p = PREV_INSN (p);
-      if (p && DEBUG_INSN_P (p))
-	continue;
       num++;
       if (p == 0 || LABEL_P (p)
 	  || num > PARAM_VALUE (PARAM_MAX_RELOAD_SEARCH_INSNS))

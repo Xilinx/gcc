@@ -1,4 +1,5 @@
 /* { dg-do compile } */
+/* { dg-options "-std=gnu99" } */
 
 /* Constant float values of type double in <float.h> are suffixed with L
    and cast to double so they can be used within code that uses pragma

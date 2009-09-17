@@ -1,3 +1,5 @@
+/* { dg-options "-std=gnu99" } */
+
 /* Check that appropriate exceptions are raised for int to DFP conversions.  */
 
 #include "fe-check.h"
@@ -41,5 +43,7 @@ main ()
   convert_210 ();
   convert_211 ();
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+  return 0;
 }

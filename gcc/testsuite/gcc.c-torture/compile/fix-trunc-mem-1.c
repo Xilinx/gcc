@@ -1,6 +1,6 @@
 /* PR target/14201  */
 /* Excercise float -> integer in memory patterns.  */
-/* { dg-add-options ieee } */
+/* { dg-options "-mieee" { target alpha*-*-* } }  */
 
 void f1 (float v,  int *p)			{ *p = v; }
 void f2 (float v,  unsigned int*p)		{ *p = v; }

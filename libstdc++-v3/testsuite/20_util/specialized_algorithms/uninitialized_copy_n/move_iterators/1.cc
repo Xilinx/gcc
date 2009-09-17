@@ -20,6 +20,7 @@
 // <http://www.gnu.org/licenses/>.
 
 #undef _GLIBCXX_CONCEPT_CHECKS
+#define  _GLIBCXX_TESTSUITE_ALLOW_RVALREF_ALIASING
 
 #include <algorithm>
 #include <iterator>

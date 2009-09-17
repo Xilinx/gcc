@@ -287,10 +287,10 @@ static void
 eat_line (st_parameter_dt *dtp)
 {
   char c;
-
-  do
-    c = next_char (dtp);
-  while (c != '\n');
+  if (!is_internal_unit (dtp))
+    do
+      c = next_char (dtp);
+    while (c != '\n');
 }
 
 
@@ -2374,10 +2374,10 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	  if (dtp->u.p.input_complete)
 	    return SUCCESS;
 
-	  /* BT_NULL (equivalent to GFC_DTYPE_UNKNOWN) falls through
-	     for nulls and is detected at default: of switch block.  */
+	  /* GFC_TYPE_UNKNOWN through for nulls and is detected
+	     after the switch block.  */
 
-	  dtp->u.p.saved_type = BT_NULL;
+	  dtp->u.p.saved_type = GFC_DTYPE_UNKNOWN;
 	  free_saved (dtp);
 
           switch (nl->type)
@@ -2467,7 +2467,7 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	  return SUCCESS;
 	}
 
-      if (dtp->u.p.saved_type == BT_NULL)
+      if (dtp->u.p.saved_type == GFC_DTYPE_UNKNOWN)
 	{
 	  dtp->u.p.expanded_read = 0;
 	  goto incr_idx;

@@ -1,8 +1,9 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 6.8.5.2: The for statement.  */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "dfp-dbg.h"
 
 void
 f32 (void)
@@ -14,7 +15,7 @@ f32 (void)
     i++;
 
   if (i != 5)
-    FAILURE
+    abort();
 }
 
 void
@@ -27,7 +28,7 @@ f64 (void)
     i++;
 
   if (i != 5)
-    FAILURE
+    abort();
 }
 
 void
@@ -40,7 +41,7 @@ f128 (void)
     i++;
 
   if (i != 5)
-    FAILURE
+    abort();
 }
 
 int
@@ -52,6 +53,5 @@ main ()
   f64 ();
   f128 ();
   
-  FINISH
   return (0);
 }

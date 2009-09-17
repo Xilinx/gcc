@@ -58,7 +58,6 @@
 #define _STL_CONSTRUCT_H 1
 
 #include <new>
-#include <bits/move.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
@@ -68,16 +67,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    */
   template<typename _T1, typename _T2>
     inline void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-    // Allow perfect forwarding
-    _Construct(_T1* __p, _T2&& __value)
-#else
     _Construct(_T1* __p, const _T2& __value)
-#endif
     {
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // 402. wrong new expression in [some_]allocator::construct
-      ::new(static_cast<void*>(__p)) _T1(_GLIBCXX_FORWARD(_T2, __value));
+      ::new(static_cast<void*>(__p)) _T1(__value);
     }
 
   /**

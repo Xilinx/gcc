@@ -531,32 +531,28 @@ resolve_subreg_use (rtx *px, void *data)
   return 0;
 }
 
-/* This is called via for_each_rtx.  Look for SUBREGs which can be
-   decomposed and decomposed REGs that need copying.  */
+/* We are deleting INSN.  Move any EH_REGION notes to INSNS.  */
 
-static int
-adjust_decomposed_uses (rtx *px, void *data ATTRIBUTE_UNUSED)
+static void
+move_eh_region_note (rtx insn, rtx insns)
 {
-  rtx x = *px;
+  rtx note, p;
 
-  if (x == NULL_RTX)
-    return 0;
+  note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
+  if (note == NULL_RTX)
+    return;
 
-  if (resolve_subreg_p (x))
+  gcc_assert (CALL_P (insn)
+	      || (flag_non_call_exceptions && may_trap_p (PATTERN (insn))));
+
+  for (p = insns; p != NULL_RTX; p = NEXT_INSN (p))
     {
-      x = simplify_subreg_concatn (GET_MODE (x), SUBREG_REG (x),
-				   SUBREG_BYTE (x));
-
-      if (x)
-	*px = x;
-      else
-	x = copy_rtx (*px);
+      if (CALL_P (p)
+	  || (flag_non_call_exceptions
+	      && INSN_P (p)
+	      && may_trap_p (PATTERN (p))))
+	add_reg_note (p, REG_EH_REGION, XEXP (note, 0));
     }
-
-  if (resolve_reg_p (x))
-    *px = copy_rtx (x);
-
-  return 0;
 }
 
 /* Resolve any decomposed registers which appear in register notes on
@@ -823,7 +819,7 @@ resolve_simple_move (rtx set, rtx insn)
   insns = get_insns ();
   end_sequence ();
 
-  copy_reg_eh_region_note_forward (insn, insns, NULL_RTX);
+  move_eh_region_note (insn, insns);
 
   emit_insn_before (insns, insn);
 
@@ -888,18 +884,6 @@ resolve_use (rtx pat, rtx insn)
   resolve_reg_notes (insn);
 
   return false;
-}
-
-/* A VAR_LOCATION can be simplified.  */
-
-static void
-resolve_debug (rtx insn)
-{
-  for_each_rtx (&PATTERN (insn), adjust_decomposed_uses, NULL_RTX);
-
-  df_insn_rescan (insn);
-
-  resolve_reg_notes (insn);
 }
 
 /* Checks if INSN is a decomposable multiword-shift or zero-extend and
@@ -1186,8 +1170,6 @@ decompose_multiword_subregs (void)
 		resolve_clobber (pat, insn);
 	      else if (GET_CODE (pat) == USE)
 		resolve_use (pat, insn);
-	      else if (DEBUG_INSN_P (insn))
-		resolve_debug (insn);
 	      else
 		{
 		  rtx set;

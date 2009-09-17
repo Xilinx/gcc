@@ -39,118 +39,115 @@
 namespace __gnu_parallel
 {
   /**
-   * @brief Check whether @__c [__begin, @__c __end) is sorted according
-   * to @__c __comp.
-   * @param __begin Begin iterator of sequence.
-   * @param __end End iterator of sequence.
-   * @param __comp Comparator.
-   * @return @__c true if sorted, @__c false otherwise.
+   * @brief Check whether @c [begin, @c end) is sorted according to @c comp.
+   * @param begin Begin iterator of sequence.
+   * @param end End iterator of sequence.
+   * @param comp Comparator.
+   * @return @c true if sorted, @c false otherwise.
    */
-  // XXX Compare default template argument
-  template<typename _IIter, typename _Compare>
+  // XXX Comparator default template argument
+  template<typename InputIterator, typename Comparator>
     bool
-    __is_sorted(_IIter __begin, _IIter __end,
-              _Compare __comp
-              = std::less<typename std::iterator_traits<_IIter>::
-              _ValueType>())
+    is_sorted(InputIterator begin, InputIterator end,
+	      Comparator comp
+	      = std::less<typename std::iterator_traits<InputIterator>::
+	      value_type>())
     {
-      if (__begin == __end)
-        return true;
+      if (begin == end)
+	return true;
 
-      _IIter __current(__begin), __recent(__begin);
+      InputIterator current(begin), recent(begin);
 
-      unsigned long long __position = 1;
-      for (__current++; __current != __end; __current++)
-        {
-          if (__comp(*__current, *__recent))
-            {
-              printf("__is_sorted: check failed before position %__i.\n",
-                     __position);
-              return false;
-            }
-          __recent = __current;
-          __position++;
-        }
+      unsigned long long position = 1;
+      for (current++; current != end; current++)
+	{
+	  if (comp(*current, *recent))
+	    {
+	      printf("is_sorted: check failed before position %i.\n",
+		     position);
+	      return false;
+	    }
+	  recent = current;
+	  position++;
+	}
 
       return true;
     }
 
   /**
-   * @brief Check whether @__c [__begin, @__c __end) is sorted according to
-   * @__c __comp.
+   * @brief Check whether @c [begin, @c end) is sorted according to @c comp.
    * Prints the position in case an unordered pair is found.
-   * @param __begin Begin iterator of sequence.
-   * @param __end End iterator of sequence.
-   * @param __first_failure The first failure is returned in this variable.
-   * @param __comp Comparator.
-   * @return @__c true if sorted, @__c false otherwise.
+   * @param begin Begin iterator of sequence.
+   * @param end End iterator of sequence.
+   * @param first_failure The first failure is returned in this variable.
+   * @param comp Comparator.
+   * @return @c true if sorted, @c false otherwise.
    */
-  // XXX Compare default template argument
-  template<typename _IIter, typename _Compare>
+  // XXX Comparator default template argument
+  template<typename InputIterator, typename Comparator>
     bool
-    is_sorted_failure(_IIter __begin, _IIter __end,
-                      _IIter& __first_failure,
-                      _Compare __comp
-                      = std::less<typename std::iterator_traits<_IIter>::
-                      _ValueType>())
+    is_sorted_failure(InputIterator begin, InputIterator end,
+		      InputIterator& first_failure,
+		      Comparator comp
+		      = std::less<typename std::iterator_traits<InputIterator>::
+		      value_type>())
     {
-      if (__begin == __end)
-        return true;
+      if (begin == end)
+	return true;
 
-      _IIter __current(__begin), __recent(__begin);
+      InputIterator current(begin), recent(begin);
 
-      unsigned long long __position = 1;
-      for (__current++; __current != __end; __current++)
-        {
-          if (__comp(*__current, *__recent))
-            {
-              __first_failure = __current;
-              printf("__is_sorted: check failed before position %lld.\n",
-                     __position);
-              return false;
-            }
-          __recent = __current;
-          __position++;
-        }
+      unsigned long long position = 1;
+      for (current++; current != end; current++)
+	{
+	  if (comp(*current, *recent))
+	    {
+	      first_failure = current;
+	      printf("is_sorted: check failed before position %lld.\n",
+		     position);
+	      return false;
+	    }
+	  recent = current;
+	  position++;
+	}
 
-      __first_failure = __end;
+      first_failure = end;
       return true;
     }
 
   /**
-   * @brief Check whether @__c [__begin, @__c __end) is sorted according to
-   * @__c __comp.
+   * @brief Check whether @c [begin, @c end) is sorted according to @c comp.
    * Prints all unordered pair, including the surrounding two elements.
-   * @param __begin Begin iterator of sequence.
-   * @param __end End iterator of sequence.
-   * @param __comp Comparator.
-   * @return @__c true if sorted, @__c false otherwise.
+   * @param begin Begin iterator of sequence.
+   * @param end End iterator of sequence.
+   * @param comp Comparator.
+   * @return @c true if sorted, @c false otherwise.
    */
-  template<typename _IIter, typename _Compare>
+  template<typename InputIterator, typename Comparator>
     bool
-    // XXX Compare default template argument
-    is_sorted_print_failures(_IIter __begin, _IIter __end,
-                             _Compare __comp
-                             = std::less<typename std::iterator_traits
-                             <_IIter>::value_type>())
+    // XXX Comparator default template argument
+    is_sorted_print_failures(InputIterator begin, InputIterator end,
+			     Comparator comp
+			     = std::less<typename std::iterator_traits
+			     <InputIterator>::value_type>())
     {
-      if (__begin == __end)
-        return true;
+      if (begin == end)
+	return true;
 
-      _IIter __recent(__begin);
-      bool __ok = true;
+      InputIterator recent(begin);
+      bool ok = true;
 
-      for (_IIter __pos(__begin + 1); __pos != __end; __pos++)
-        {
-          if (__comp(*__pos, *__recent))
-            {
-              printf("%ld: %d %d %d %d\n", __pos - __begin, *(__pos - 2),
-                     *(__pos- 1), *__pos, *(__pos + 1));
-              __ok = false;
-            }
-          __recent = __pos;
-        }
-      return __ok;
+      for (InputIterator pos(begin + 1); pos != end; pos++)
+	{
+	  if (comp(*pos, *recent))
+	    {
+	      printf("%ld: %d %d %d %d\n", pos - begin, *(pos - 2),
+		     *(pos- 1), *pos, *(pos + 1));
+	      ok = false;
+	    }
+	  recent = pos;
+	}
+      return ok;
     }
 }
 

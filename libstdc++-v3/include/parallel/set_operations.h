@@ -41,488 +41,482 @@
 
 namespace __gnu_parallel
 {
-template<typename _IIter, typename _OutputIterator>
-  _OutputIterator
-  copy_tail(std::pair<_IIter, _IIter> __b,
-            std::pair<_IIter, _IIter> __e, _OutputIterator __r)
+template<typename InputIterator, typename OutputIterator>
+  OutputIterator
+  copy_tail(std::pair<InputIterator, InputIterator> b,
+            std::pair<InputIterator, InputIterator> e, OutputIterator r)
   {
-    if (__b.first != __e.first)
+    if (b.first != e.first)
       {
         do
           {
-            *__r++ = *__b.first++;
+            *r++ = *b.first++;
           }
-        while (__b.first != __e.first);
+        while (b.first != e.first);
       }
     else
       {
-        while (__b.second != __e.second)
-          *__r++ = *__b.second++;
+        while (b.second != e.second)
+          *r++ = *b.second++;
       }
-    return __r;
+    return r;
   }
 
-template<typename _IIter,
-         typename _OutputIterator,
-         typename _Compare>
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
   struct symmetric_difference_func
   {
-    typedef std::iterator_traits<_IIter> _TraitsType;
-    typedef typename _TraitsType::difference_type _DifferenceType;
-    typedef typename std::pair<_IIter, _IIter> _IteratorPair;
+    typedef std::iterator_traits<InputIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
+    typedef typename std::pair<InputIterator, InputIterator> iterator_pair;
 
-    symmetric_difference_func(_Compare __comp) : _M_comp(__comp) {}
+    symmetric_difference_func(Comparator c) : comp(c) {}
 
-    _Compare _M_comp;
+    Comparator comp;
 
-    _OutputIterator
-    _M_invoke(_IIter __a, _IIter __b,
-           _IIter __c, _IIter d,
-           _OutputIterator __r) const
+    OutputIterator
+    invoke(InputIterator a, InputIterator b,
+	   InputIterator c, InputIterator d,
+	   OutputIterator r) const
     {
-      while (__a != __b && __c != d)
+      while (a != b && c != d)
         {
-          if (_M_comp(*__a, *__c))
+          if (comp(*a, *c))
             {
-              *__r = *__a;
-              ++__a;
-              ++__r;
+              *r = *a;
+              ++a;
+              ++r;
             }
-          else if (_M_comp(*__c, *__a))
+          else if (comp(*c, *a))
             {
-              *__r = *__c;
-              ++__c;
-              ++__r;
+              *r = *c;
+              ++c;
+              ++r;
             }
           else
             {
-              ++__a;
-              ++__c;
+              ++a;
+              ++c;
             }
         }
-      return std::copy(__c, d, std::copy(__a, __b, __r));
+      return std::copy(c, d, std::copy(a, b, r));
     }
 
-    _DifferenceType
-    __count(_IIter __a, _IIter __b,
-          _IIter __c, _IIter d) const
+    difference_type
+    count(InputIterator a, InputIterator b,
+	  InputIterator c, InputIterator d) const
     {
-      _DifferenceType __counter = 0;
+      difference_type counter = 0;
 
-      while (__a != __b && __c != d)
+      while (a != b && c != d)
         {
-          if (_M_comp(*__a, *__c))
+          if (comp(*a, *c))
             {
-              ++__a;
-              ++__counter;
+              ++a;
+              ++counter;
             }
-          else if (_M_comp(*__c, *__a))
+          else if (comp(*c, *a))
             {
-              ++__c;
-              ++__counter;
+              ++c;
+              ++counter;
             }
           else
             {
-              ++__a;
-              ++__c;
+              ++a;
+              ++c;
             }
         }
 
-      return __counter + (__b - __a) + (d - __c);
+      return counter + (b - a) + (d - c);
     }
 
-    _OutputIterator
-    __first_empty(_IIter __c, _IIter d, _OutputIterator __out) const
-    { return std::copy(__c, d, __out); }
+    OutputIterator
+    first_empty(InputIterator c, InputIterator d, OutputIterator out) const
+    { return std::copy(c, d, out); }
 
-    _OutputIterator
-    __second_empty(_IIter __a, _IIter __b, _OutputIterator __out) const
-    { return std::copy(__a, __b, __out); }
+    OutputIterator
+    second_empty(InputIterator a, InputIterator b, OutputIterator out) const
+    { return std::copy(a, b, out); }
   };
 
 
-template<typename _IIter,
-         typename _OutputIterator,
-         typename _Compare>
-  struct __difference_func
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  struct difference_func
   {
-    typedef std::iterator_traits<_IIter> _TraitsType;
-    typedef typename _TraitsType::difference_type _DifferenceType;
-    typedef typename std::pair<_IIter, _IIter> _IteratorPair;
+    typedef std::iterator_traits<InputIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
+    typedef typename std::pair<InputIterator, InputIterator> iterator_pair;
 
-    __difference_func(_Compare __comp) : _M_comp(__comp) {}
+    difference_func(Comparator c) : comp(c) {}
 
-    _Compare _M_comp;
+    Comparator comp;
 
-    _OutputIterator
-    _M_invoke(_IIter __a, _IIter __b, _IIter __c, _IIter d,
-          _OutputIterator __r) const
+    OutputIterator
+    invoke(InputIterator a, InputIterator b, InputIterator c, InputIterator d,
+          OutputIterator r) const
     {
-      while (__a != __b && __c != d)
+      while (a != b && c != d)
         {
-          if (_M_comp(*__a, *__c))
+          if (comp(*a, *c))
             {
-              *__r = *__a;
-              ++__a;
-              ++__r;
+              *r = *a;
+              ++a;
+              ++r;
             }
-          else if (_M_comp(*__c, *__a))
-            { ++__c; }
+          else if (comp(*c, *a))
+            { ++c; }
           else
             {
-              ++__a;
-              ++__c;
+              ++a;
+              ++c;
             }
         }
-      return std::copy(__a, __b, __r);
+      return std::copy(a, b, r);
     }
 
-    _DifferenceType
-    __count(_IIter __a, _IIter __b,
-          _IIter __c, _IIter d) const
+    difference_type
+    count(InputIterator a, InputIterator b,
+	  InputIterator c, InputIterator d) const
     {
-      _DifferenceType __counter = 0;
+      difference_type counter = 0;
 
-      while (__a != __b && __c != d)
+      while (a != b && c != d)
         {
-          if (_M_comp(*__a, *__c))
+          if (comp(*a, *c))
             {
-              ++__a;
-              ++__counter;
+              ++a;
+              ++counter;
             }
-          else if (_M_comp(*__c, *__a))
-            { ++__c; }
+          else if (comp(*c, *a))
+            { ++c; }
           else
-            { ++__a; ++__c; }
+            { ++a; ++c; }
         }
 
-      return __counter + (__b - __a);
+      return counter + (b - a);
     }
 
-    inline _OutputIterator
-    __first_empty(_IIter __c, _IIter d, _OutputIterator __out) const
-    { return __out; }
+    inline OutputIterator
+    first_empty(InputIterator c, InputIterator d, OutputIterator out) const
+    { return out; }
 
-    inline _OutputIterator
-    __second_empty(_IIter __a, _IIter __b, _OutputIterator __out) const
-    { return std::copy(__a, __b, __out); }
+    inline OutputIterator
+    second_empty(InputIterator a, InputIterator b, OutputIterator out) const
+    { return std::copy(a, b, out); }
   };
 
 
-template<typename _IIter,
-         typename _OutputIterator,
-         typename _Compare>
-  struct __intersection_func
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  struct intersection_func
   {
-    typedef std::iterator_traits<_IIter> _TraitsType;
-    typedef typename _TraitsType::difference_type _DifferenceType;
-    typedef typename std::pair<_IIter, _IIter> _IteratorPair;
+    typedef std::iterator_traits<InputIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
+    typedef typename std::pair<InputIterator, InputIterator> iterator_pair;
 
-    __intersection_func(_Compare __comp) : _M_comp(__comp) {}
+    intersection_func(Comparator c) : comp(c) {}
 
-    _Compare _M_comp;
+    Comparator comp;
 
-    _OutputIterator
-    _M_invoke(_IIter __a, _IIter __b, _IIter __c, _IIter d,
-          _OutputIterator __r) const
+    OutputIterator
+    invoke(InputIterator a, InputIterator b, InputIterator c, InputIterator d,
+          OutputIterator r) const
     {
-      while (__a != __b && __c != d)
+      while (a != b && c != d)
         {
-          if (_M_comp(*__a, *__c))
-            { ++__a; }
-          else if (_M_comp(*__c, *__a))
-            { ++__c; }
+          if (comp(*a, *c))
+            { ++a; }
+          else if (comp(*c, *a))
+            { ++c; }
           else
             {
-              *__r = *__a;
-              ++__a;
-              ++__c;
-              ++__r;
+              *r = *a;
+              ++a;
+              ++c;
+              ++r;
             }
         }
 
-      return __r;
+      return r;
     }
 
-    _DifferenceType
-    __count(_IIter __a, _IIter __b,
-          _IIter __c, _IIter d) const
+    difference_type
+    count(InputIterator a, InputIterator b,
+	  InputIterator c, InputIterator d) const
     {
-      _DifferenceType __counter = 0;
+      difference_type counter = 0;
 
-      while (__a != __b && __c != d)
+      while (a != b && c != d)
         {
-          if (_M_comp(*__a, *__c))
-            { ++__a; }
-          else if (_M_comp(*__c, *__a))
-            { ++__c; }
+          if (comp(*a, *c))
+            { ++a; }
+          else if (comp(*c, *a))
+            { ++c; }
           else
             {
-              ++__a;
-              ++__c;
-              ++__counter;
+              ++a;
+              ++c;
+              ++counter;
             }
         }
 
-      return __counter;
+      return counter;
     }
 
-    inline _OutputIterator
-    __first_empty(_IIter __c, _IIter d, _OutputIterator __out) const
-    { return __out; }
+    inline OutputIterator
+    first_empty(InputIterator c, InputIterator d, OutputIterator out) const
+    { return out; }
 
-    inline _OutputIterator
-    __second_empty(_IIter __a, _IIter __b, _OutputIterator __out) const
-    { return __out; }
+    inline OutputIterator
+    second_empty(InputIterator a, InputIterator b, OutputIterator out) const
+    { return out; }
   };
 
-template<class _IIter, class _OutputIterator, class _Compare>
-  struct __union_func
+template<class InputIterator, class OutputIterator, class Comparator>
+  struct union_func
   {
-    typedef typename std::iterator_traits<_IIter>::difference_type
-    _DifferenceType;
+    typedef typename std::iterator_traits<InputIterator>::difference_type
+    difference_type;
 
-    __union_func(_Compare __comp) : _M_comp(__comp) {}
+    union_func(Comparator c) : comp(c) {}
 
-    _Compare _M_comp;
+    Comparator comp;
 
-    _OutputIterator
-    _M_invoke(_IIter __a, const _IIter __b, _IIter __c,
-          const _IIter d, _OutputIterator __r) const
+    OutputIterator
+    invoke(InputIterator a, const InputIterator b, InputIterator c,
+          const InputIterator d, OutputIterator r) const
     {
-      while (__a != __b && __c != d)
+      while (a != b && c != d)
         {
-          if (_M_comp(*__a, *__c))
+          if (comp(*a, *c))
             {
-              *__r = *__a;
-              ++__a;
+              *r = *a;
+              ++a;
             }
-          else if (_M_comp(*__c, *__a))
+          else if (comp(*c, *a))
             {
-              *__r = *__c;
-              ++__c;
+              *r = *c;
+              ++c;
             }
           else
             {
-              *__r = *__a;
-              ++__a;
-              ++__c;
+              *r = *a;
+              ++a;
+              ++c;
             }
-          ++__r;
+          ++r;
         }
-      return std::copy(__c, d, std::copy(__a, __b, __r));
+      return std::copy(c, d, std::copy(a, b, r));
     }
 
-    _DifferenceType
-    __count(_IIter __a, _IIter __b,
-          _IIter __c, _IIter d) const
+    difference_type
+    count(InputIterator a, InputIterator b,
+	  InputIterator c, InputIterator d) const
     {
-      _DifferenceType __counter = 0;
+      difference_type counter = 0;
 
-      while (__a != __b && __c != d)
+      while (a != b && c != d)
         {
-          if (_M_comp(*__a, *__c))
-            { ++__a; }
-          else if (_M_comp(*__c, *__a))
-            { ++__c; }
+          if (comp(*a, *c))
+            { ++a; }
+          else if (comp(*c, *a))
+            { ++c; }
           else
             {
-              ++__a;
-              ++__c;
+              ++a;
+              ++c;
             }
-          ++__counter;
+          ++counter;
         }
 
-      __counter += (__b - __a);
-      __counter += (d - __c);
-      return __counter;
+      counter += (b - a);
+      counter += (d - c);
+      return counter;
     }
 
-    inline _OutputIterator
-    __first_empty(_IIter __c, _IIter d, _OutputIterator __out) const
-    { return std::copy(__c, d, __out); }
+    inline OutputIterator
+    first_empty(InputIterator c, InputIterator d, OutputIterator out) const
+    { return std::copy(c, d, out); }
 
-    inline _OutputIterator
-    __second_empty(_IIter __a, _IIter __b, _OutputIterator __out) const
-    { return std::copy(__a, __b, __out); }
+    inline OutputIterator
+    second_empty(InputIterator a, InputIterator b, OutputIterator out) const
+    { return std::copy(a, b, out); }
   };
 
-template<typename _IIter,
-         typename _OutputIterator,
-         typename Operation>
-  _OutputIterator
-  __parallel_set_operation(_IIter __begin1, _IIter __end1,
-                         _IIter __begin2, _IIter __end2,
-                         _OutputIterator __result, Operation __op)
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Operation>
+  OutputIterator
+  parallel_set_operation(InputIterator begin1, InputIterator end1,
+                         InputIterator begin2, InputIterator end2,
+                         OutputIterator result, Operation op)
   {
-    _GLIBCXX_CALL((__end1 - __begin1) + (__end2 - __begin2))
+    _GLIBCXX_CALL((end1 - begin1) + (end2 - begin2))
 
-    typedef std::iterator_traits<_IIter> _TraitsType;
-    typedef typename _TraitsType::difference_type _DifferenceType;
-    typedef typename std::pair<_IIter, _IIter> _IteratorPair;
+    typedef std::iterator_traits<InputIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
+    typedef typename std::pair<InputIterator, InputIterator> iterator_pair;
 
-    if (__begin1 == __end1)
-      return __op.__first_empty(__begin2, __end2, __result);
+    if (begin1 == end1)
+      return op.first_empty(begin2, end2, result);
 
-    if (__begin2 == __end2)
-      return __op.__second_empty(__begin1, __end1, __result);
+    if (begin2 == end2)
+      return op.second_empty(begin1, end1, result);
 
-    const _DifferenceType size = (__end1 - __begin1) + (__end2 - __begin2);
+    const difference_type size = (end1 - begin1) + (end2 - begin2);
 
-    const _IteratorPair __sequence[ 2 ] =
-      { std::make_pair(__begin1, __end1), std::make_pair(__begin2, __end2) };
-    _OutputIterator return_value = __result;
-    _DifferenceType *__borders;
-    _IteratorPair *__block_begins;
-    _DifferenceType* __lengths;
+    const iterator_pair sequence[ 2 ] =
+        { std::make_pair(begin1, end1), std::make_pair(begin2, end2) } ;
+    OutputIterator return_value = result;
+    difference_type *borders;
+    iterator_pair *block_begins;
+    difference_type* lengths;
 
-    _ThreadIndex __num_threads =
-        std::min<_DifferenceType>(__get_max_threads(),
-            std::min(__end1 - __begin1, __end2 - __begin2));
+    thread_index_t num_threads =
+        std::min<difference_type>(get_max_threads(),
+            std::min(end1 - begin1, end2 - begin2));
 
-#   pragma omp parallel num_threads(__num_threads)
+#   pragma omp parallel num_threads(num_threads)
       {
 #       pragma omp single
           {
-            __num_threads = omp_get_num_threads();
+            num_threads = omp_get_num_threads();
 
-            __borders = new _DifferenceType[__num_threads + 2];
-            equally_split(size, __num_threads + 1, __borders);
-            __block_begins = new _IteratorPair[__num_threads + 1];
-            // Very __start.
-            __block_begins[0] = std::make_pair(__begin1, __begin2);
-            __lengths = new _DifferenceType[__num_threads];
+            borders = new difference_type[num_threads + 2];
+            equally_split(size, num_threads + 1, borders);
+            block_begins = new iterator_pair[num_threads + 1];
+            // Very start.
+            block_begins[0] = std::make_pair(begin1, begin2);
+            lengths = new difference_type[num_threads];
           } //single
 
-        _ThreadIndex __iam = omp_get_thread_num();
+        thread_index_t iam = omp_get_thread_num();
 
-        // _Result from multiseq_partition.
-        _IIter __offset[2];
-        const _DifferenceType __rank = __borders[__iam + 1];
+        // Result from multiseq_partition.
+        InputIterator offset[2];
+        const difference_type rank = borders[iam + 1];
 
-        multiseq_partition(__sequence, __sequence + 2,
-                           __rank, __offset, __op._M_comp);
+        multiseq_partition(sequence, sequence + 2, rank, offset, op.comp);
 
         // allowed to read?
         // together
-        // *(__offset[ 0 ] - 1) == *__offset[ 1 ]
-        if (__offset[ 0 ] != __begin1 && __offset[ 1 ] != __end2
-            && !__op._M_comp(*(__offset[ 0 ] - 1), *__offset[ 1 ])
-            && !__op._M_comp(*__offset[ 1 ], *(__offset[ 0 ] - 1)))
+        // *(offset[ 0 ] - 1) == *offset[ 1 ]
+        if (offset[ 0 ] != begin1 && offset[ 1 ] != end2
+            && !op.comp(*(offset[ 0 ] - 1), *offset[ 1 ])
+            && !op.comp(*offset[ 1 ], *(offset[ 0 ] - 1)))
           {
             // Avoid split between globally equal elements: move one to
             // front in first sequence.
-            --__offset[ 0 ];
+            --offset[ 0 ];
           }
 
-        _IteratorPair block_end = __block_begins[ __iam + 1 ] =
-            _IteratorPair(__offset[ 0 ], __offset[ 1 ]);
+        iterator_pair block_end = block_begins[ iam + 1 ] =
+            iterator_pair(offset[ 0 ], offset[ 1 ]);
 
         // Make sure all threads have their block_begin result written out.
 #       pragma omp barrier
 
-        _IteratorPair __block_begin = __block_begins[ __iam ];
+        iterator_pair block_begin = block_begins[ iam ];
 
         // Begin working for the first block, while the others except
         // the last start to count.
-        if (__iam == 0)
+        if (iam == 0)
           {
             // The first thread can copy already.
-            __lengths[ __iam ] =
-              __op._M_invoke(__block_begin.first, block_end.first,
-                             __block_begin.second, block_end.second, __result)
-                              - __result;
+            lengths[ iam ] = op.invoke(block_begin.first, block_end.first,
+                                       block_begin.second, block_end.second,
+                                       result)
+                              - result;
           }
         else
           {
-            __lengths[ __iam ] =
-              __op.__count(__block_begin.first, block_end.first,
-                           __block_begin.second, block_end.second);
+            lengths[ iam ] = op.count(block_begin.first, block_end.first,
+                        block_begin.second, block_end.second);
           }
 
         // Make sure everyone wrote their lengths.
 #       pragma omp barrier
 
-        _OutputIterator __r = __result;
+        OutputIterator r = result;
 
-        if (__iam == 0)
+        if (iam == 0)
           {
             // Do the last block.
-            for (int __i = 0; __i < __num_threads; ++__i)
-              __r += __lengths[__i];
+            for (int i = 0; i < num_threads; ++i)
+              r += lengths[i];
 
-            __block_begin = __block_begins[__num_threads];
+            block_begin = block_begins[num_threads];
 
             // Return the result iterator of the last block.
-            return_value = __op._M_invoke(
-              __block_begin.first, __end1, __block_begin.second, __end2, __r);
+            return_value = op.invoke(
+                block_begin.first, end1, block_begin.second, end2, r);
 
           }
         else
           {
-            for (int __i = 0; __i < __iam; ++__i)
-              __r += __lengths[ __i ];
+            for (int i = 0; i < iam; ++i)
+              r += lengths[ i ];
 
             // Reset begins for copy pass.
-            __op._M_invoke(__block_begin.first, block_end.first,
-                  __block_begin.second, block_end.second, __r);
+            op.invoke(block_begin.first, block_end.first,
+                  block_begin.second, block_end.second, r);
           }
       }
     return return_value;
   }
 
 
-template<typename _IIter,
-         typename _OutputIterator,
-         typename _Compare>
-  inline _OutputIterator
-  __parallel_set_union(_IIter __begin1, _IIter __end1,
-                     _IIter __begin2, _IIter __end2,
-                     _OutputIterator __result, _Compare _M_comp)
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  inline OutputIterator
+  parallel_set_union(InputIterator begin1, InputIterator end1,
+                     InputIterator begin2, InputIterator end2,
+                     OutputIterator result, Comparator comp)
   {
-    return __parallel_set_operation(__begin1, __end1, __begin2, __end2,
-        __result, __union_func< _IIter, _OutputIterator, _Compare>(_M_comp));
+    return parallel_set_operation(begin1, end1, begin2, end2, result,
+        union_func< InputIterator, OutputIterator, Comparator>(comp));
   }
 
-template<typename _IIter,
-         typename _OutputIterator,
-         typename _Compare>
-  inline _OutputIterator
-  __parallel_set_intersection(_IIter __begin1, _IIter __end1,
-                              _IIter __begin2, _IIter __end2,
-                              _OutputIterator __result, _Compare _M_comp)
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  inline OutputIterator
+  parallel_set_intersection(InputIterator begin1, InputIterator end1,
+                            InputIterator begin2, InputIterator end2,
+                            OutputIterator result, Comparator comp)
   {
-    return __parallel_set_operation(
-             __begin1, __end1, __begin2, __end2, __result,
-             __intersection_func<_IIter, _OutputIterator, _Compare>(_M_comp));
+    return parallel_set_operation(begin1, end1, begin2, end2, result,
+        intersection_func<InputIterator, OutputIterator, Comparator>(comp));
   }
 
-template<typename _IIter,
-         typename _OutputIterator,
-         typename _Compare>
-  inline _OutputIterator
-  __parallel_set_difference(_IIter __begin1, _IIter __end1,
-                            _IIter __begin2, _IIter __end2,
-                            _OutputIterator __result, _Compare _M_comp)
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  inline OutputIterator
+  parallel_set_difference(InputIterator begin1, InputIterator end1,
+                          InputIterator begin2, InputIterator end2,
+                          OutputIterator result, Comparator comp)
   {
-    return __parallel_set_operation(
-             __begin1, __end1, __begin2, __end2, __result,
-             __difference_func<_IIter, _OutputIterator, _Compare>(_M_comp));
+    return parallel_set_operation(begin1, end1, begin2, end2, result,
+        difference_func<InputIterator, OutputIterator, Comparator>(comp));
   }
 
-template<typename _IIter,
-         typename _OutputIterator,
-         typename _Compare>
-  inline _OutputIterator
-  __parallel_set_symmetric_difference(_IIter __begin1, _IIter __end1,
-                                      _IIter __begin2, _IIter __end2,
-                                      _OutputIterator __result,
-                                      _Compare _M_comp)
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  inline OutputIterator
+  parallel_set_symmetric_difference(InputIterator begin1, InputIterator end1,
+                                    InputIterator begin2, InputIterator end2,
+                                    OutputIterator result, Comparator comp)
   {
-    return __parallel_set_operation(
-             __begin1, __end1, __begin2, __end2, __result,
-            symmetric_difference_func<_IIter, _OutputIterator, _Compare>
-              (_M_comp));
+    return parallel_set_operation(begin1, end1, begin2, end2, result,
+        symmetric_difference_func<InputIterator, OutputIterator, Comparator>
+            (comp));
   }
 
 }

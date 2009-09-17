@@ -230,7 +230,7 @@ regrename_optimize (void)
 	  int new_reg, best_new_reg;
 	  int n_uses;
 	  struct du_chain *this_du = all_chains;
-	  struct du_chain *tmp;
+	  struct du_chain *tmp, *last;
 	  HARD_REG_SET this_unavailable;
 	  int reg = REGNO (*this_du->loc);
 	  int i;
@@ -259,20 +259,21 @@ regrename_optimize (void)
 
 	  COPY_HARD_REG_SET (this_unavailable, unavailable);
 
-	  /* Count number of uses, and narrow the set of registers we can
+	  /* Find last entry on chain (which has the need_caller_save bit),
+	     count number of uses, and narrow the set of registers we can
 	     use for renaming.  */
 	  n_uses = 0;
-	  for (tmp = this_du; tmp; tmp = tmp->next_use)
+	  for (last = this_du; last->next_use; last = last->next_use)
 	    {
-	      if (DEBUG_INSN_P (tmp->insn))
-		continue;
 	      n_uses++;
 	      IOR_COMPL_HARD_REG_SET (this_unavailable,
-				      reg_class_contents[tmp->cl]);
+				      reg_class_contents[last->cl]);
 	    }
-
-	  if (n_uses < 2)
+	  if (n_uses < 1)
 	    continue;
+
+	  IOR_COMPL_HARD_REG_SET (this_unavailable,
+				  reg_class_contents[last->cl]);
 
 	  if (this_du->need_caller_save_reg)
 	    IOR_HARD_REG_SET (this_unavailable, call_used_reg_set);
@@ -309,8 +310,7 @@ regrename_optimize (void)
 	      /* See whether it accepts all modes that occur in
 		 definition and uses.  */
 	      for (tmp = this_du; tmp; tmp = tmp->next_use)
-		if ((! HARD_REGNO_MODE_OK (new_reg, GET_MODE (*tmp->loc))
-		     && ! DEBUG_INSN_P (tmp->insn))
+		if (! HARD_REGNO_MODE_OK (new_reg, GET_MODE (*tmp->loc))
 		    || (tmp->need_caller_save_reg
 			&& ! (HARD_REGNO_CALL_PART_CLOBBERED
 			      (reg, GET_MODE (*tmp->loc)))
@@ -327,8 +327,8 @@ regrename_optimize (void)
 	  if (dump_file)
 	    {
 	      fprintf (dump_file, "Register %s in insn %d",
-		       reg_names[reg], INSN_UID (this_du->insn));
-	      if (this_du->need_caller_save_reg)
+		       reg_names[reg], INSN_UID (last->insn));
+	      if (last->need_caller_save_reg)
 		fprintf (dump_file, " crosses a call");
 	    }
 
@@ -362,42 +362,17 @@ regrename_optimize (void)
 static void
 do_replace (struct du_chain *chain, int reg)
 {
-  unsigned int base_regno = REGNO (*chain->loc);
-
-  gcc_assert (! DEBUG_INSN_P (chain->insn));
-
   while (chain)
     {
       unsigned int regno = ORIGINAL_REGNO (*chain->loc);
       struct reg_attrs * attr = REG_ATTRS (*chain->loc);
       int reg_ptr = REG_POINTER (*chain->loc);
 
-      if (DEBUG_INSN_P (chain->insn) && REGNO (*chain->loc) != base_regno)
-	INSN_VAR_LOCATION_LOC (chain->insn) = gen_rtx_UNKNOWN_VAR_LOC ();
-      else
-	{
-	  rtx note;
-
-	  *chain->loc = gen_raw_REG (GET_MODE (*chain->loc), reg);
-	  if (regno >= FIRST_PSEUDO_REGISTER)
-	    ORIGINAL_REGNO (*chain->loc) = regno;
-	  REG_ATTRS (*chain->loc) = attr;
-	  REG_POINTER (*chain->loc) = reg_ptr;
-
-	  for (note = REG_NOTES (chain->insn); note; note = XEXP (note, 1))
-	    {
-	      if (REG_NOTE_KIND (note) == REG_DEAD 
-		  || REG_NOTE_KIND (note) == REG_UNUSED)
-		{
-		  rtx reg = XEXP (note, 0);
-		  gcc_assert (HARD_REGISTER_P (reg));
-		  
-		  if (REGNO (reg) == base_regno) 
-		    XEXP (note, 0) = *chain->loc;
-		}
-	    }
-	}
-
+      *chain->loc = gen_raw_REG (GET_MODE (*chain->loc), reg);
+      if (regno >= FIRST_PSEUDO_REGISTER)
+	ORIGINAL_REGNO (*chain->loc) = regno;
+      REG_ATTRS (*chain->loc) = attr;
+      REG_POINTER (*chain->loc) = reg_ptr;
       df_insn_rescan (chain->insn);
       chain = chain->next_use;
     }
@@ -465,7 +440,7 @@ scan_rtx_reg (rtx insn, rtx *loc, enum reg_class cl,
 
 	  if (action == mark_read || action == mark_access)
 	    {
-	      gcc_assert (exact_match || DEBUG_INSN_P (insn));
+	      gcc_assert (exact_match);
 
 	      /* ??? Class NO_REGS can happen if the md file makes use of
 		 EXTRA_CONSTRAINTS to match registers.  Which is arguably
@@ -769,7 +744,7 @@ build_def_use (basic_block bb)
 
   for (insn = BB_HEAD (bb); ; insn = NEXT_INSN (insn))
     {
-      if (NONDEBUG_INSN_P (insn))
+      if (INSN_P (insn))
 	{
 	  int n_ops;
 	  rtx note;
@@ -994,12 +969,6 @@ build_def_use (basic_block bb)
 	    if (REG_NOTE_KIND (note) == REG_UNUSED)
 	      scan_rtx (insn, &XEXP (note, 0), NO_REGS, terminate_dead,
 			OP_IN, 0);
-	}
-      else if (DEBUG_INSN_P (insn)
-	       && !VAR_LOC_UNKNOWN_P (INSN_VAR_LOCATION_LOC (insn)))
-	{
-	  scan_rtx (insn, &INSN_VAR_LOCATION_LOC (insn),
-		    ALL_REGS, mark_read, OP_IN, 0);
 	}
       if (insn == BB_END (bb))
 	break;

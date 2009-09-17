@@ -1,6 +1,6 @@
 ! { dg-do run }
 ! { dg-options "-finit-integer=-1 -finit-logical=false -finit-real=nan" }
-! { dg-add-options ieee }
+! { dg-options "-finit-integer=-1 -finit-logical=false -finit-real=nan -mieee" { target alpha*-*-* sh*-*-* } }
 ! { dg-skip-if "NaN not supported" { spu-*-* } { "*" } { "" } }
 
 program init_flag_3

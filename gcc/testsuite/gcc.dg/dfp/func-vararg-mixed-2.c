@@ -1,12 +1,23 @@
 /* { dg-do run { target { { i?86-*-* x86_64-*-* } && ilp32 } } } */
-/* { dg-options "-mpreferred-stack-boundary=2" } */
+/* { dg-options "-std=gnu99 -mpreferred-stack-boundary=2" } */
 
 /* C99 6.5.2.2 Function calls.
    Test passing varargs of the combination of decimal float types and
    other types.  */
 
 #include <stdarg.h>
-#include "dfp-dbg.h"
+
+extern void abort (void);
+static int failcnt = 0;
+                                                                                
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 /* Supposing the list of varying number of arguments is:
    unsigned int, _Decimal128, double, _Decimal32, _Decimal64.  */
@@ -101,5 +112,7 @@ main ()
   if (vararg_int (0, 0, 1.0dl, 2.0, 3.0df, 4.0dd) != 0) FAILURE
   if (vararg_double (2, 0, 1.0dl, 2.0, 3.0df, 4.0dd) != 2.0) FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+  return 0;
 }

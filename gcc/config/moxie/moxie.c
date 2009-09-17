@@ -273,22 +273,25 @@ moxie_expand_prologue (void)
 
   if (cfun->machine->size_for_adjusting_sp > 0)
     {
-      int i = cfun->machine->size_for_adjusting_sp;
-      while (i > 255)
+      if (cfun->machine->size_for_adjusting_sp <= 255)
 	{
 	  insn = emit_insn (gen_subsi3 (stack_pointer_rtx, 
 					stack_pointer_rtx, 
-					GEN_INT (255)));
+					GEN_INT (cfun->machine->size_for_adjusting_sp)));
 	  RTX_FRAME_RELATED_P (insn) = 1;
-	  i -= 255;
 	}
-      if (i > 0)
+      else
 	{
-	  insn = emit_insn (gen_subsi3 (stack_pointer_rtx, 
-					stack_pointer_rtx, 
-					GEN_INT (i)));
+	  insn = 
+	    emit_insn (gen_movsi 
+		       (gen_rtx_REG (Pmode, MOXIE_R5), 
+			GEN_INT (-cfun->machine->size_for_adjusting_sp)));
 	  RTX_FRAME_RELATED_P (insn) = 1;
-	}
+	  insn = emit_insn (gen_addsi3 (stack_pointer_rtx, 
+					stack_pointer_rtx, 
+					gen_rtx_REG (Pmode, MOXIE_R5)));
+	  RTX_FRAME_RELATED_P (insn) = 1;
+	}	
     }
 }
 
@@ -356,14 +359,14 @@ moxie_setup_incoming_varargs (CUMULATIVE_ARGS *cum,
 			      int *pretend_size, int no_rtl)
 {
   int regno;
-  int regs = 8 - *cum;
+  int regs = 7 - *cum;
   
   *pretend_size = regs < 0 ? 0 : GET_MODE_SIZE (SImode) * regs;
   
   if (no_rtl)
     return;
   
-  for (regno = *cum; regno < 8; regno++)
+  for (regno = *cum; regno < 7; regno++)
     {
       rtx reg = gen_rtx_REG (SImode, regno);
       rtx slot = gen_rtx_PLUS (Pmode,
@@ -392,7 +395,7 @@ rtx
 moxie_function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode,
 		    tree type ATTRIBUTE_UNUSED, int named ATTRIBUTE_UNUSED)
 {
-  if (cum < 8)
+  if (cum < 7)
     return gen_rtx_REG (mode, cum);
   else 
     return NULL_RTX;
@@ -417,7 +420,7 @@ moxie_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
   else
     size = GET_MODE_SIZE (mode);
 
-  return size > 4*6;
+  return size > 4*5;
 }
 
 /* Some function arguments will only partially fit in the registers
@@ -431,7 +434,7 @@ moxie_arg_partial_bytes (CUMULATIVE_ARGS *cum,
 {
   int bytes_left, size;
 
-  if (*cum >= 8)
+  if (*cum >= 7)
     return 0;
 
   if (moxie_pass_by_reference (cum, mode, type, named))
@@ -445,7 +448,7 @@ moxie_arg_partial_bytes (CUMULATIVE_ARGS *cum,
   else
     size = GET_MODE_SIZE (mode);
 
-  bytes_left = (4 * 6) - ((*cum - 2) * 4);
+  bytes_left = (4 * 5) - ((*cum - 2) * 4);
 
   if (size > bytes_left)
     return bytes_left;

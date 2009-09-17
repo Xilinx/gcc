@@ -14,9 +14,6 @@ int main ()
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS MAP_ANON
 #endif
-#ifndef MAP_FAILED
-#define MAP_FAILED ((void *)-1)
-#endif
 #ifdef HAVE_MMAP
   volatile unsigned char *p;
   unsigned num = getpagesize ();
@@ -26,8 +23,8 @@ int main ()
   /* Get a bit of usable address space.  We really want an 2**N+1-sized object,
      so the low/high addresses wrap when hashed into the lookup cache.  So we
      will manually unregister the entire mmap, then re-register a slice.  */
-  p = mmap (NULL, num, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-  if (p == MAP_FAILED)
+  p = mmap (NULL, num, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, 0, 0);
+  if (p == NULL)
     return 1;
   /* Now unregister it, as if munmap was called.  But don't actually munmap, so
      we can write into the memory.  */

@@ -1422,8 +1422,8 @@ compute_regs_asm_clobbered (char *regs_asm_clobbered)
 
 
 /* Set up ELIMINABLE_REGSET, IRA_NO_ALLOC_REGS, and REGS_EVER_LIVE.  */
-void
-ira_setup_eliminable_regset (void)
+static void
+setup_eliminable_regset (void)
 {
   /* Like regs_ever_live, but 1 if a reg is set or clobbered from an
      asm.  Unlike regs_ever_live, elements of this array corresponding
@@ -1827,8 +1827,7 @@ setup_preferred_alternate_classes_for_new_pseudos (int start)
       old_regno = ORIGINAL_REGNO (regno_reg_rtx[i]);
       ira_assert (i != old_regno); 
       setup_reg_classes (i, reg_preferred_class (old_regno),
-			 reg_alternate_class (old_regno),
-			 reg_cover_class (old_regno));
+			 reg_alternate_class (old_regno));
       if (internal_flag_ira_verbose > 2 && ira_dump_file != NULL)
 	fprintf (ira_dump_file,
 		 "    New r%d: setting preferred %s, alternative %s\n",
@@ -1849,7 +1848,10 @@ expand_reg_info (int old_size)
 
   resize_reg_info ();
   for (i = old_size; i < size; i++)
-    setup_reg_classes (i, GENERAL_REGS, ALL_REGS, GENERAL_REGS);
+    {
+      reg_renumber[i] = -1;
+      setup_reg_classes (i, GENERAL_REGS, ALL_REGS);
+    }
 }
 
 /* Return TRUE if there is too high register pressure in the function.
@@ -2232,7 +2234,7 @@ memref_used_between_p (rtx memref, rtx start, rtx end)
   for (insn = NEXT_INSN (start); insn != NEXT_INSN (end);
        insn = NEXT_INSN (insn))
     {
-      if (!NONDEBUG_INSN_P (insn))
+      if (!INSN_P (insn))
 	continue;
       
       if (memref_referenced_p (memref, PATTERN (insn)))
@@ -2676,7 +2678,7 @@ update_equiv_regs (void)
 		    }
 		  /* Move the initialization of the register to just before
 		     INSN.  Update the flow information.  */
-		  else if (prev_nondebug_insn (insn) != equiv_insn)
+		  else if (PREV_INSN (insn) != equiv_insn)
 		    {
 		      rtx new_insn;
 
@@ -3158,8 +3160,8 @@ ira (FILE *f)
     }
 
   max_regno_before_ira = allocated_reg_info_size = max_reg_num ();
-  resize_reg_info ();
-  ira_setup_eliminable_regset ();
+  allocate_reg_info ();
+  setup_eliminable_regset ();
       
   ira_overall_cost = ira_reg_cost = ira_mem_cost = 0;
   ira_load_cost = ira_store_cost = ira_shuffle_cost = 0;

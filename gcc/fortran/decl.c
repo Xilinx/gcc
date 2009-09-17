@@ -2267,8 +2267,8 @@ done:
 }
 
 
-/* Matches a declaration-type-spec (F03:R502).  If successful, sets the ts
-   structure to the matched specification.  This is necessary for FUNCTION and
+/* Matches a type specification.  If successful, sets the ts structure
+   to the matched specification.  This is necessary for FUNCTION and
    IMPLICIT statements.
 
    If implicit_flag is nonzero, then we don't check for the optional
@@ -2276,7 +2276,7 @@ done:
    statement correctly.  */
 
 match
-gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
+gfc_match_type_spec (gfc_typespec *ts, int implicit_flag)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
   gfc_symbol *sym;
@@ -2376,10 +2376,6 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
       if (m != MATCH_YES)
 	return m;
       ts->is_class = 1;
-
-      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: CLASS statement at %C")
-			  == FAILURE)
-	return MATCH_ERROR;
 
       /* TODO: Implement Polymorphism.  */
       gfc_warning ("Polymorphic entities are not yet implemented. "
@@ -2603,7 +2599,7 @@ gfc_match_implicit (void)
       gfc_clear_new_implicit ();
 
       /* A basic type is mandatory here.  */
-      m = gfc_match_decl_type_spec (&ts, 1);
+      m = gfc_match_type_spec (&ts, 1);
       if (m == MATCH_ERROR)
 	goto error;
       if (m == MATCH_NO)
@@ -3679,7 +3675,7 @@ gfc_match_data_decl (void)
 
   num_idents_on_line = 0;
   
-  m = gfc_match_decl_type_spec (&current_ts, 0);
+  m = gfc_match_type_spec (&current_ts, 0);
   if (m != MATCH_YES)
     return m;
 
@@ -3784,7 +3780,7 @@ gfc_match_prefix (gfc_typespec *ts)
 
 loop:
   if (!seen_type && ts != NULL
-      && gfc_match_decl_type_spec (ts, 0) == MATCH_YES
+      && gfc_match_type_spec (ts, 0) == MATCH_YES
       && gfc_match_space () == MATCH_YES)
     {
 
@@ -4182,7 +4178,7 @@ match_procedure_interface (gfc_symbol **proc_if)
 
   /* Get the type spec. for the procedure interface.  */
   old_loc = gfc_current_locus;
-  m = gfc_match_decl_type_spec (&current_ts, 0);
+  m = gfc_match_type_spec (&current_ts, 0);
   gfc_gobble_whitespace ();
   if (m == MATCH_YES || (m == MATCH_NO && gfc_peek_ascii_char () == ')'))
     goto got_ts;
@@ -6485,10 +6481,7 @@ gfc_match_modproc (void)
 
   module_ns = gfc_current_ns->parent;
   for (; module_ns; module_ns = module_ns->parent)
-    if (module_ns->proc_name->attr.flavor == FL_MODULE
-	|| module_ns->proc_name->attr.flavor == FL_PROGRAM
-	|| (module_ns->proc_name->attr.flavor == FL_PROCEDURE
-	    && !module_ns->proc_name->attr.contained))
+    if (module_ns->proc_name->attr.flavor == FL_MODULE)
       break;
 
   if (module_ns == NULL)
@@ -6500,7 +6493,6 @@ gfc_match_modproc (void)
 
   for (;;)
     {
-      locus old_locus = gfc_current_locus;
       bool last = false;
 
       m = gfc_match_name (name);
@@ -6521,13 +6513,6 @@ gfc_match_modproc (void)
       if (gfc_get_symbol (name, module_ns, &sym))
 	return MATCH_ERROR;
 
-      if (sym->attr.intrinsic)
-	{
-	  gfc_error ("Intrinsic procedure at %L cannot be a MODULE "
-		     "PROCEDURE", &old_locus);
-	  return MATCH_ERROR;
-	}
-
       if (sym->attr.proc != PROC_MODULE
 	  && gfc_add_procedure (&sym->attr, PROC_MODULE,
 				sym->name, NULL) == FAILURE)
@@ -6537,7 +6522,6 @@ gfc_match_modproc (void)
 	return MATCH_ERROR;
 
       sym->attr.mod_proc = 1;
-      sym->declared_at = old_locus;
 
       if (last)
 	break;

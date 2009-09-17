@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2" } */
+/* { dg-options "-std=gnu99 -O2" } */
 
 typedef _Decimal32 fp_t;
 

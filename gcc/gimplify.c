@@ -4765,14 +4765,13 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
   VEC(tree, gc) *inputs;
   VEC(tree, gc) *outputs;
   VEC(tree, gc) *clobbers;
-  VEC(tree, gc) *labels;
   tree link_next;
   
   expr = *expr_p;
   noutputs = list_length (ASM_OUTPUTS (expr));
   oconstraints = (const char **) alloca ((noutputs) * sizeof (const char *));
 
-  inputs = outputs = clobbers = labels = NULL;
+  inputs = outputs = clobbers = NULL;
 
   ret = GS_ALL_DONE;
   link_next = NULL_TREE;
@@ -4954,16 +4953,13 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
     }
   
   for (link = ASM_CLOBBERS (expr); link; ++i, link = TREE_CHAIN (link))
-    VEC_safe_push (tree, gc, clobbers, link);
-
-  for (link = ASM_LABELS (expr); link; ++i, link = TREE_CHAIN (link))
-    VEC_safe_push (tree, gc, labels, link);
+      VEC_safe_push (tree, gc, clobbers, link);
 
   /* Do not add ASMs with errors to the gimple IL stream.  */
   if (ret != GS_ERROR)
     {
       stmt = gimple_build_asm_vec (TREE_STRING_POINTER (ASM_STRING (expr)),
-				   inputs, outputs, clobbers, labels);
+				   inputs, outputs, clobbers);
 
       gimple_asm_set_volatile (stmt, ASM_VOLATILE_P (expr));
       gimple_asm_set_input (stmt, ASM_INPUT_P (expr));
@@ -6649,6 +6645,11 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = gimplify_decl_expr (expr_p, pre_p);
 	  break;
 
+	case EXC_PTR_EXPR:
+	  /* FIXME make this a decl.  */
+	  ret = GS_ALL_DONE;
+	  break;
+
 	case BIND_EXPR:
 	  ret = gimplify_bind_expr (expr_p, pre_p);
 	  break;
@@ -6840,6 +6841,8 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    gimplify_and_add (EH_FILTER_FAILURE (*expr_p), &failure);
 	    ehf = gimple_build_eh_filter (EH_FILTER_TYPES (*expr_p), failure);
 	    gimple_set_no_warning (ehf, TREE_NO_WARNING (*expr_p));
+	    gimple_eh_filter_set_must_not_throw
+	      (ehf, EH_FILTER_MUST_NOT_THROW (*expr_p));
 	    gimplify_seq_add_stmt (pre_p, ehf);
 	    ret = GS_ALL_DONE;
 	    break;
@@ -7175,6 +7178,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		  && code != GOTO_EXPR
 		  && code != LABEL_EXPR
 		  && code != LOOP_EXPR
+		  && code != RESX_EXPR
 		  && code != SWITCH_EXPR
 		  && code != TRY_FINALLY_EXPR
 		  && code != OMP_CRITICAL

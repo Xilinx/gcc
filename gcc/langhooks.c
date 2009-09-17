@@ -53,13 +53,6 @@ lhd_do_nothing_t (tree ARG_UNUSED (t))
 {
 }
 
-/* Pass through (tree).  */
-tree
-lhd_pass_through_t (tree t)
-{
-  return t;
-}
-
 /* Do nothing (int).  */
 
 void
@@ -265,6 +258,19 @@ int
 lhd_tree_dump_type_quals (const_tree t)
 {
   return TYPE_QUALS (t);
+}
+
+/* lang_hooks.expr_size: Determine the size of the value of an expression T
+   in a language-specific way.  Returns a tree for the size in bytes.  */
+
+tree
+lhd_expr_size (const_tree exp)
+{
+  if (DECL_P (exp)
+      && DECL_SIZE_UNIT (exp) != 0)
+    return DECL_SIZE_UNIT (exp);
+  else
+    return size_in_bytes (TREE_TYPE (exp));
 }
 
 /* lang_hooks.gimplify_expr re-writes *EXPR_P into GIMPLE form.  */

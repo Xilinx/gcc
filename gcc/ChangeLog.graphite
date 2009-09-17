@@ -1,5 +1,9 @@
 2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Revert the last commit.
+
+2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Merge from mainline (151171:151819).
 
 2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
@@ -142,6 +146,10 @@
 2009-08-28  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (150992:151171).
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* opts.c (decode_options): Enable flag_loop_interchange at -O2.
 
 2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 

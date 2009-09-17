@@ -35,7 +35,6 @@ with Prj;      use Prj;
 with Prj.Env;
 with Prj.Ext;
 with Prj.Pars;
-with Prj.Tree; use Prj.Tree;
 with Prj.Util; use Prj.Util;
 with Snames;
 with Switch;   use Switch;
@@ -91,7 +90,7 @@ package body Clean is
 
    Project_File_Name : String_Access := null;
 
-   Project_Node_Tree : Project_Node_Tree_Ref;
+   Project_Tree : constant Prj.Project_Tree_Ref := new Prj.Project_Tree_Data;
 
    Main_Project : Prj.Project_Id := Prj.No_Project;
 
@@ -1403,7 +1402,6 @@ package body Clean is
          Prj.Pars.Parse
            (Project           => Main_Project,
             In_Tree           => Project_Tree,
-            In_Node_Tree      => Project_Node_Tree,
             Project_File_Name => Project_File_Name.all,
             Flags             => Gnatmake_Flags,
             Packages_To_Check => Packages_To_Check_By_Gnatmake);
@@ -1558,10 +1556,6 @@ package body Clean is
          Csets.Initialize;
          Namet.Initialize;
          Snames.Initialize;
-
-         Project_Node_Tree := new Project_Node_Tree_Data;
-         Prj.Tree.Initialize (Project_Node_Tree);
-
          Prj.Initialize (Project_Tree);
 
          --  Check if the platform is VMS and, if it is, change some variables
@@ -1691,7 +1685,7 @@ package body Clean is
 
                         elsif Arg (3) = 'P' then
                            Prj.Ext.Add_Search_Project_Directory
-                             (Project_Node_Tree, Arg (4 .. Arg'Last));
+                             (Arg (4 .. Arg'Last));
 
                         else
                            Bad_Argument;
@@ -1879,8 +1873,7 @@ package body Clean is
 
                            if OK then
                               Prj.Ext.Add
-                                (Project_Node_Tree,
-                                 External_Name =>
+                                (External_Name =>
                                    Ext_Asgn (Start .. Equal_Pos - 1),
                                  Value         =>
                                    Ext_Asgn (Equal_Pos + 1 .. Stop));

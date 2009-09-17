@@ -1,7 +1,9 @@
 /* Test for bug where fold changed binary operation to decimal
    depending on typedefs.  */
+/* { dg-options "-std=gnu99" } */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+extern void exit (int);
 
 volatile double d = 1.2345675;
 
@@ -13,6 +15,6 @@ main (void)
   _Decimal32 a = (d * d);
   d32 b = (d * d);
   if (a != b)
-    FAILURE
-  FINISH
+    abort ();
+  exit (0);
 }

@@ -1,4 +1,5 @@
 /* { dg-do compile } */
+/* { dg-options "-std=gnu99" } */
 
 /* C99 6.5.4 Cast operators.
    Test invalid casts involving decimal float.  */

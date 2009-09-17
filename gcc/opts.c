@@ -873,11 +873,6 @@ decode_options (unsigned int argc, const char **argv)
 
   /* -O2 optimizations.  */
   opt2 = (optimize >= 2);
-#ifdef HAVE_cloog
-  flag_graphite_identity = opt2;
-  flag_loop_strip_mine = opt2;
-  flag_loop_interchange = opt2;
-#endif
   flag_inline_small_functions = opt2;
   flag_indirect_inlining = opt2;
   flag_thread_jumps = opt2;
@@ -903,7 +898,11 @@ decode_options (unsigned int argc, const char **argv)
   flag_tree_pre = opt2;
   flag_tree_switch_conversion = 1;
   flag_ipa_cp = opt2;
-  flag_ipa_sra = opt2;
+#ifdef HAVE_cloog
+  flag_graphite_identity = opt2;
+  flag_loop_strip_mine = opt2;
+  flag_loop_interchange = opt2;
+#endif
 
   /* Track fields in field-sensitive alias analysis.  */
   set_param_value ("max-fields-for-field-sensitive",
@@ -1518,7 +1517,7 @@ common_handle_option (size_t scode, const char *arg, int value,
 	      { NULL, 0 }
 	    };
 	    unsigned int * pflags;
-	    const char * comma;
+	    char * comma;
 	    unsigned int lang_flag, specific_flag;
 	    unsigned int len;
 	    unsigned int i;
@@ -2060,7 +2059,7 @@ common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_gdwarf_:
-      if (value < 2 || value > 4)
+      if (value < 2 || value > 3)
 	error ("dwarf version %d is not supported", value);
       else
 	dwarf_version = value;

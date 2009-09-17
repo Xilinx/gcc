@@ -1,12 +1,8 @@
-/* { dg-options "-O2" } */
+/* { dg-options "-std=gnu99 -O2" } */
 
 /* N1150 5.1 Conversion between decimal floating integer.
    C99 6.3.1.4(1a) New.
    These should all be folded at compile time.  */
-
-#include "dfp-dbg.h"
-
-#define BOOL _Bool
 
 extern void link_error (void);
 
@@ -22,11 +18,11 @@ main ()
   int si;
   long sl;
   long long sll;
-  BOOL b;
+  _Bool b;
 
   /* C99 Section 6.7.2 Type specifiers.  Type _Bool is 
      mentioned in this section.  Conversions between 
-     BOOL and DFP types.  */
+     _Bool and DFP types.  */
 
   /* Decimal float to unsigned integer.  */
   d32 = 456.789df;
@@ -65,7 +61,7 @@ main ()
 
   /* Decimal float to signed integer.  */
 
-  /* Decimal float to BOOL.  */
+  /* Decimal float to _Bool.  */
   d32 = 1.23df;
   d64 = -3.4dd;
   d128 = 0.00003dl;
@@ -150,7 +146,7 @@ main ()
   if (d128 != -1234567.dl)
     link_error ();
 
-  /* BOOL to decimal float.  */
+  /* _Bool to decimal float.  */
   d32 = 0.0DF;
   d64 = 0.0DD;
   d128 = 0.0DL;

@@ -1,6 +1,6 @@
 ! { dg-do run }
 ! { dg-options "-finit-real=-inf" }
-! { dg-add-options ieee }
+! { dg-options "-finit-real=-inf -mieee" { target alpha*-*-* } } */
 
 program init_flag_5
   call real_test

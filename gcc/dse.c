@@ -2387,11 +2387,6 @@ scan_insn (bb_info_t bb_info, rtx insn)
   insn_info->insn = insn;
   bb_info->last_insn = insn_info;
   
-  if (DEBUG_INSN_P (insn))
-    {
-      insn_info->cannot_delete = true;
-      return;
-    }
 
   /* Cselib clears the table for this case, so we have to essentially
      do the same.  */
@@ -2531,7 +2526,7 @@ scan_insn (bb_info_t bb_info, rtx insn)
      them.  */
   if ((GET_CODE (PATTERN (insn)) == CLOBBER)
       || volatile_refs_p (PATTERN (insn))
-      || insn_could_throw_p (insn)
+      || (flag_non_call_exceptions && may_trap_p (PATTERN (insn)))
       || (RTX_FRAME_RELATED_P (insn))
       || find_reg_note (insn, REG_FRAME_RELATED_EXPR, NULL_RTX))
     insn_info->cannot_delete = true;

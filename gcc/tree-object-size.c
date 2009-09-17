@@ -171,9 +171,9 @@ addr_object_size (struct object_size_info *osi, const_tree ptr,
     {
       unsigned HOST_WIDE_INT sz;
 
-      if (!osi || (object_size_type & 1) != 0)
+      if (!osi)
 	sz = compute_builtin_object_size (TREE_OPERAND (pt_var, 0),
-					  object_size_type & ~1);
+					  object_size_type);
       else
 	{
 	  tree var = TREE_OPERAND (pt_var, 0);

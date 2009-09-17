@@ -88,16 +88,6 @@ namespace __gnu_test
 	ptr(ptr_in), SharedInfo(SharedInfo_in)
       { }
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      template<class U>
-      void
-      operator=(U&& new_val)
-      {
-	ITERATOR_VERIFY(SharedInfo->writtento[ptr - SharedInfo->first] == 0);
-	SharedInfo->writtento[ptr - SharedInfo->first] = 1;
-	*ptr = std::forward<U>(new_val);
-      }
-#else
       template<class U>
       void
       operator=(const U& new_val)
@@ -105,6 +95,16 @@ namespace __gnu_test
 	ITERATOR_VERIFY(SharedInfo->writtento[ptr - SharedInfo->first] == 0);
 	SharedInfo->writtento[ptr - SharedInfo->first] = 1;
 	*ptr = new_val;
+      }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class U>
+      void
+      operator=(U&& new_val)
+      {
+	ITERATOR_VERIFY(SharedInfo->writtento[ptr - SharedInfo->first] == 0);
+	SharedInfo->writtento[ptr - SharedInfo->first] = 1;
+	*ptr = std::move(new_val);
       }
 #endif
     };

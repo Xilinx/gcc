@@ -293,7 +293,7 @@ rtx_addr_can_trap_p_1 (const_rtx x, HOST_WIDE_INT offset, HOST_WIDE_INT size,
 	  decl = SYMBOL_REF_DECL (x);
 
 	  /* Else check that the access is in bounds.  TODO: restructure
-	     expr_size/tree_expr_size/int_expr_size and just use the latter.  */
+	     expr_size/lhd_expr_size/int_expr_size and just use the latter.  */
 	  if (!decl)
 	    decl_size = -1;
 	  else if (DECL_P (decl) && DECL_SIZE_UNIT (decl))
@@ -741,7 +741,7 @@ reg_used_between_p (const_rtx reg, const_rtx from_insn, const_rtx to_insn)
     return 0;
 
   for (insn = NEXT_INSN (from_insn); insn != to_insn; insn = NEXT_INSN (insn))
-    if (NONDEBUG_INSN_P (insn)
+    if (INSN_P (insn)
 	&& (reg_overlap_mentioned_p (reg, PATTERN (insn))
 	   || (CALL_P (insn) && find_reg_fusage (insn, USE, reg))))
       return 1;
@@ -2148,7 +2148,6 @@ side_effects_p (const_rtx x)
     case SCRATCH:
     case ADDR_VEC:
     case ADDR_DIFF_VEC:
-    case VAR_LOCATION:
       return 0;
 
     case CLOBBER:
@@ -4726,11 +4725,7 @@ canonicalize_condition (rtx insn, rtx cond, int reverse, rtx *earliest,
 	 stop if it isn't a single set or if it has a REG_INC note because
 	 we don't want to bother dealing with it.  */
 
-      do
-	prev = prev_nonnote_insn (prev);
-      while (prev && DEBUG_INSN_P (prev));
-
-      if (prev == 0
+      if ((prev = prev_nonnote_insn (prev)) == 0
 	  || !NONJUMP_INSN_P (prev)
 	  || FIND_REG_INC_NOTE (prev, NULL_RTX)
 	  /* In cfglayout mode, there do not have to be labels at the

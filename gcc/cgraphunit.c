@@ -1018,49 +1018,15 @@ cgraph_analyze_functions (void)
   ggc_collect ();
 }
 
-
-/* Emit thunks for every node in the cgraph.
-   FIXME: We really ought to emit thunks only for functions that are needed.  */
-
-static void
-cgraph_emit_thunks (void)
-{
-  struct cgraph_node *n;
-
-  for (n = cgraph_nodes; n; n = n->next)
-    {
-      /* Only emit thunks on functions defined in this TU.
-	 Note that this may emit more thunks than strictly necessary.
-	 During optimization some nodes may disappear.  It would be
-	 nice to only emit thunks only for the functions that will be
-	 emitted, but we cannot know that until the inliner and other
-	 IPA passes have run (see the sequencing of the call to
-	 cgraph_mark_functions_to_output in cgraph_optimize).  */
-      if (n->reachable
-	  && !DECL_EXTERNAL (n->decl))
-	lang_hooks.callgraph.emit_associated_thunks (n->decl);
-    }
-}
-
-
 /* Analyze the whole compilation unit once it is parsed completely.  */
 
 void
 cgraph_finalize_compilation_unit (void)
 {
-  timevar_push (TV_CGRAPH);
-
   /* Do not skip analyzing the functions if there were errors, we
      miss diagnostics for following functions otherwise.  */
 
-  /* Emit size functions we didn't inline.  */
   finalize_size_functions ();
-
-  /* Call functions declared with the "constructor" or "destructor"
-     attribute.  */
-  cgraph_build_cdtor_fns ();
-
-  /* Mark alias targets necessary and emit diagnostics.  */
   finish_aliases_1 ();
 
   if (!quiet_flag)
@@ -1069,24 +1035,11 @@ cgraph_finalize_compilation_unit (void)
       fflush (stderr);
     }
 
-  /* Gimplify and lower all functions, compute reachability and
-     remove unreachable nodes.  */
+  timevar_push (TV_CGRAPH);
   cgraph_analyze_functions ();
-
-  /* Emit thunks for reachable nodes, if needed.  */
-  if (lang_hooks.callgraph.emit_associated_thunks)
-    cgraph_emit_thunks ();
-
-  /* Mark alias targets necessary and emit diagnostics.  */
-  finish_aliases_1 ();
-
-  /* Gimplify and lower thunks.  */
-  cgraph_analyze_functions ();
-
-  /* Finally drive the pass manager.  */
-  cgraph_optimize ();
-
   timevar_pop (TV_CGRAPH);
+
+  cgraph_optimize ();
 }
 
 
@@ -1155,6 +1108,9 @@ cgraph_expand_function (struct cgraph_node *node)
   gcc_assert (node->lowered);
 
   /* Generate RTL for the body of DECL.  */
+  if (lang_hooks.callgraph.emit_associated_thunks
+      && node->finalized_by_frontend)
+    lang_hooks.callgraph.emit_associated_thunks (decl);
   tree_rest_of_compilation (decl);
 
   /* Make sure that BE didn't give up on compiling.  */
@@ -1368,7 +1324,6 @@ ipa_passes (void)
   bitmap_obstack_release (NULL);
 }
 
-
 /* Perform simple optimizations based on callgraph.  */
 
 static void
@@ -1381,9 +1336,14 @@ cgraph_optimize (void)
   verify_cgraph ();
 #endif
 
+  /* Call functions declared with the "constructor" or "destructor"
+     attribute.  */
+  cgraph_build_cdtor_fns ();
+
   /* Frontend may output common variables after the unit has been finalized.
      It is safe to deal with them here as they are always zero initialized.  */
   varpool_analyze_pending_decls ();
+  cgraph_analyze_functions ();
 
   timevar_push (TV_CGRAPHOPT);
   if (pre_ipa_mem_report)
@@ -1398,10 +1358,6 @@ cgraph_optimize (void)
   /* Don't run the IPA passes if there was any error or sorry messages.  */
   if (errorcount == 0 && sorrycount == 0)
     ipa_passes ();
-
-  /* Do nothing else if any IPA pass found errors.  */
-  if (errorcount || sorrycount)
-    return;
 
   /* This pass remove bodies of extern inline functions we never inlined.
      Do this later so other IPA passes see what is really going on.  */
@@ -1472,8 +1428,6 @@ cgraph_optimize (void)
     }
 #endif
 }
-
-
 /* Generate and emit a static constructor or destructor.  WHICH must
    be one of 'I' (for a constructor) or 'D' (for a destructor).  BODY
    is a STATEMENT_LIST containing GENERIC statements.  PRIORITY is the
@@ -1561,7 +1515,10 @@ update_call_expr (struct cgraph_node *new_version)
     {
       struct function *inner_function = DECL_STRUCT_FUNCTION (e->caller->decl);
       gimple_call_set_fndecl (e->call_stmt, new_version->decl);
-      maybe_clean_eh_stmt_fn (inner_function, e->call_stmt);
+      /* Update EH information too, just in case.  */
+      if (!stmt_could_throw_p (e->call_stmt)
+          && lookup_stmt_eh_region_fn (inner_function, e->call_stmt))
+        remove_stmt_from_eh_region_fn (inner_function, e->call_stmt);
     }
 }
 
@@ -1906,7 +1863,9 @@ cgraph_materialize_all_clones (void)
 		gsi_replace (&gsi, new_stmt, true);
 
 		/* Update EH information too, just in case.  */
-		maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
+		if (!stmt_could_throw_p (new_stmt)
+		    && lookup_stmt_eh_region (new_stmt))
+		  remove_stmt_from_eh_region (new_stmt);
 
 		cgraph_set_call_stmt_including_clones (node, e->call_stmt, new_stmt);
 

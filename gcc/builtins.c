@@ -6235,8 +6235,7 @@ expand_builtin_lock_test_and_set (enum machine_mode mode, tree exp,
 static void
 expand_builtin_synchronize (void)
 {
-  gimple x;
-  VEC (tree, gc) *v_clobbers;
+  tree x;
 
 #ifdef HAVE_memory_barrier
   if (HAVE_memory_barrier)
@@ -6254,12 +6253,10 @@ expand_builtin_synchronize (void)
 
   /* If no explicit memory barrier instruction is available, create an
      empty asm stmt with a memory clobber.  */
-  v_clobbers = VEC_alloc (tree, gc, 1);
-  VEC_quick_push (tree, v_clobbers,
-		  tree_cons (NULL, build_string (6, "memory"), NULL));
-  x = gimple_build_asm_vec ("", NULL, NULL, v_clobbers, NULL);
-  gimple_asm_set_volatile (x, true);
-  expand_asm_stmt (x);
+  x = build4 (ASM_EXPR, void_type_node, build_string (0, ""), NULL, NULL,
+	      tree_cons (NULL, build_string (6, "memory"), NULL));
+  ASM_VOLATILE_P (x) = 1;
+  expand_asm_expr (x);
 }
 
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
@@ -6943,12 +6940,6 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 #endif
     case BUILT_IN_EXTEND_POINTER:
       return expand_builtin_extend_pointer (CALL_EXPR_ARG (exp, 0));
-    case BUILT_IN_EH_POINTER:
-      return expand_builtin_eh_pointer (exp);
-    case BUILT_IN_EH_FILTER:
-      return expand_builtin_eh_filter (exp);
-    case BUILT_IN_EH_COPY_VALUES:
-      return expand_builtin_eh_copy_values (exp);
 
     case BUILT_IN_VA_START:
       return expand_builtin_va_start (exp);
@@ -9145,7 +9136,7 @@ fold_builtin_memory_op (location_t loc, tree dest, tree src,
 	  srcvar = build_fold_indirect_ref_loc (loc, src);
 	  if (TREE_THIS_VOLATILE (srcvar))
 	    return NULL_TREE;
-	  else if (!tree_int_cst_equal (tree_expr_size (srcvar), len))
+	  else if (!tree_int_cst_equal (lang_hooks.expr_size (srcvar), len))
 	    srcvar = NULL_TREE;
 	  /* With memcpy, it is possible to bypass aliasing rules, so without
 	     this check i.e. execute/20060930-2.c would be misoptimized,
@@ -9163,7 +9154,7 @@ fold_builtin_memory_op (location_t loc, tree dest, tree src,
 	  destvar = build_fold_indirect_ref_loc (loc, dest);
 	  if (TREE_THIS_VOLATILE (destvar))
 	    return NULL_TREE;
-	  else if (!tree_int_cst_equal (tree_expr_size (destvar), len))
+	  else if (!tree_int_cst_equal (lang_hooks.expr_size (destvar), len))
 	    destvar = NULL_TREE;
 	  else if (!var_decl_component_p (destvar))
 	    destvar = NULL_TREE;

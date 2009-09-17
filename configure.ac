@@ -79,8 +79,6 @@ m4_pattern_allow([^AS_FOR_BUILD$])dnl
 AC_PROG_INSTALL
 ACX_PROG_LN
 AC_PROG_LN_S
-AC_PROG_SED
-AC_PROG_AWK
 
 ### we might need to use some other shell than /bin/sh for running subshells
 ### If we are on Windows, search for the shell.  This will permit people
@@ -603,8 +601,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-libiberty target-libstdc++-v3 ${libgcj} target-libssp"
     ;;
   bfin-*-*)
-    unsupported_languages="$unsupported_languages java"
-    noconfigdirs="$noconfigdirs target-boehm-gc gdb"
+    noconfigdirs="$noconfigdirs gdb"
     if test x${is_cross_compiler} != xno ; then
       target_configdirs="${target_configdirs} target-bsp target-cygmon"
     fi
@@ -2411,13 +2408,12 @@ INSTALL_GDB_TK=`echo ${GDB_TK} | sed s/-all-/-install-/g`
 # configuration, so that the top-level Makefile reconfigures them,
 # like we used to do when configure itself was recursive.
 
-# Loop over modules.  We used to use the "$extrasub" feature from Autoconf
-# but now we're fixing up the Makefile ourselves with the additional
-# commands passed to AC_CONFIG_FILES.  Use separate variables
-# extrasub-{build,host,target} not because there is any reason to split
-# the substitutions up that way, but only to remain below the limit of
-# 99 commands in a script, for HP-UX sed.
-# Do not nest @if/@endif pairs, because configure will not warn you at all.
+# Loop over modules.  $extrasub must be used with care, limiting as
+# much as possible the usage of range addresses.  That's because autoconf
+# splits the sed script to overcome limits in the number of commands,
+# and relying on carefully-timed sed passes may turn out to be very hard
+# to maintain later.  In this particular case, you just have to be careful
+# not to nest @if/@endif pairs, because configure will not warn you at all.
 
 AC_ARG_ENABLE([bootstrap],
 [  --enable-bootstrap      enable bootstrapping @<:@yes if native build@:>@],,
@@ -2461,63 +2457,25 @@ case "$have_compiler:$host:$target:$enable_bootstrap" in
 esac
 
 # Adjust the toplevel makefile according to whether bootstrap was selected.
-case $enable_bootstrap in
+case "$enable_bootstrap" in
   yes)
-    bootstrap_suffix=bootstrap
-    BUILD_CONFIG=bootstrap-debug
-    ;;
+    bootstrap_suffix=bootstrap ;;
   no)
-    bootstrap_suffix=no-bootstrap
-    BUILD_CONFIG=
-    ;;
+    bootstrap_suffix=no-bootstrap ;;
 esac
 
-AC_MSG_CHECKING(for default BUILD_CONFIG)
-
-AC_ARG_WITH([build-config],
-  [--with-build-config='NAME NAME2...'
-                          Use config/NAME.mk build configuration],
-  [case $with_build_config in
-   yes) with_build_config= ;;
-   no) with_build_config= BUILD_CONFIG= ;;
-   esac])
-
-if test "x${with_build_config}" != x; then
-  BUILD_CONFIG=$with_build_config
-else
-  case $BUILD_CONFIG in
-  bootstrap-debug)
-    if echo "int f (void) { return 0; }" > conftest.c &&
-       ${CC} -c conftest.c &&
-       mv conftest.o conftest.o.g0 &&
-       ${CC} -c -g conftest.c &&
-       mv conftest.o conftest.o.g &&
-       ${srcdir}/contrib/compare-debug conftest.o.g0 conftest.o.g; then
-      :
-    else
-      BUILD_CONFIG=
-    fi
-    rm -f conftest.c conftest.o conftest.o.g0 conftest.o.g
-    ;;
-  esac
-fi
-AC_MSG_RESULT($BUILD_CONFIG)
-AC_SUBST(BUILD_CONFIG)
-
-extrasub_build=
 for module in ${build_configdirs} ; do
   if test -z "${no_recursion}" \
      && test -f ${build_subdir}/${module}/Makefile; then
     echo 1>&2 "*** removing ${build_subdir}/${module}/Makefile to force reconfigure"
     rm -f ${build_subdir}/${module}/Makefile
   fi
-  extrasub_build="$extrasub_build
+  extrasub="$extrasub
 /^@if build-$module\$/d
 /^@endif build-$module\$/d
 /^@if build-$module-$bootstrap_suffix\$/d
 /^@endif build-$module-$bootstrap_suffix\$/d"
 done
-extrasub_host=
 for module in ${configdirs} ; do
   if test -z "${no_recursion}"; then
     for file in stage*-${module}/Makefile prev-${module}/Makefile ${module}/Makefile; do
@@ -2527,13 +2485,12 @@ for module in ${configdirs} ; do
       fi
     done
   fi
-  extrasub_host="$extrasub_host
+  extrasub="$extrasub
 /^@if $module\$/d
 /^@endif $module\$/d
 /^@if $module-$bootstrap_suffix\$/d
 /^@endif $module-$bootstrap_suffix\$/d"
 done
-extrasub_target=
 for module in ${target_configdirs} ; do
   if test -z "${no_recursion}" \
      && test -f ${target_subdir}/${module}/Makefile; then
@@ -2547,15 +2504,14 @@ for module in ${target_configdirs} ; do
     *) target_bootstrap_suffix=no-bootstrap ;;
   esac
 
-  extrasub_target="$extrasub_target
+  extrasub="$extrasub
 /^@if target-$module\$/d
 /^@endif target-$module\$/d
 /^@if target-$module-$target_bootstrap_suffix\$/d
 /^@endif target-$module-$target_bootstrap_suffix\$/d"
 done
 
-# Do the final fixup along with target modules.
-extrasub_target="$extrasub_target
+extrasub="$extrasub
 /^@if /,/^@endif /d"
 
 # Create the serialization dependencies.  This uses a temporary file.
@@ -3173,12 +3129,4 @@ case "$target" in
 esac
 AC_SUBST(compare_exclusions)
 
-AC_CONFIG_FILES([Makefile],
-  [sed "$extrasub_build" Makefile |
-   sed "$extrasub_host" |
-   sed "$extrasub_target" > mf$$
-   mv -f mf$$ Makefile],
-  [extrasub_build="$extrasub_build"
-   extrasub_host="$extrasub_host"
-   extrasub_target="$extrasub_target"])
-AC_OUTPUT
+AC_OUTPUT(Makefile)

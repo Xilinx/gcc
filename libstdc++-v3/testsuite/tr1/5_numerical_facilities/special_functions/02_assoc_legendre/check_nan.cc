@@ -1,5 +1,5 @@
 // { dg-require-c-std "" }
-// { dg-add-options ieee }
+// { dg-options "-mieee" { target sh*-*-* } }
 
 // 2007-01-10  Edward Smith-Rowland <3dw4rd@verizon.net>
 //

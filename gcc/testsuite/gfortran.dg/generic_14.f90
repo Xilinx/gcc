@@ -85,18 +85,18 @@ end module f
 
 module g
   implicit none
-  external wrong_b
+  external wrong_b            ! { dg-error "has no explicit interface" }
   interface gen_wrong_5
-    module procedure wrong_b  ! { dg-error "has no explicit interface" }
+    module procedure wrong_b  ! wrong, see above
   end interface gen_wrong_5
 end module g
 
 module h
   implicit none
-  external wrong_c
+  external wrong_c            ! { dg-error "has no explicit interface" }
   real wrong_c
   interface gen_wrong_6
-    module procedure wrong_c  ! { dg-error "has no explicit interface" }
+    module procedure wrong_c  ! wrong, see above
   end interface gen_wrong_6
 end module h
 

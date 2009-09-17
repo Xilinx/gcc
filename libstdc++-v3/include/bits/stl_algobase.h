@@ -375,10 +375,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         static _Tp*
         __copy_m(const _Tp* __first, const _Tp* __last, _Tp* __result)
         {
-	  const ptrdiff_t _Num = __last - __first;
-	  if (_Num)
-	    __builtin_memmove(__result, __first, sizeof(_Tp) * _Num);
-	  return __result + _Num;
+	  __builtin_memmove(__result, __first,
+			    sizeof(_Tp) * (__last - __first));
+	  return __result + (__last - __first);
 	}
     };
 
@@ -573,8 +572,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         __copy_move_b(const _Tp* __first, const _Tp* __last, _Tp* __result)
         {
 	  const ptrdiff_t _Num = __last - __first;
-	  if (_Num)
-	    __builtin_memmove(__result - _Num, __first, sizeof(_Tp) * _Num);
+	  __builtin_memmove(__result - _Num, __first, sizeof(_Tp) * _Num);
 	  return __result - _Num;
 	}
     };

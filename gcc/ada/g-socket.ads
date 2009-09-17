@@ -1072,8 +1072,7 @@ package GNAT.Sockets is
    --  Close Selector and all internal descriptors associated; deallocate any
    --  associated resources. This subprogram may be called only when there is
    --  no other task still using Selector (i.e. still executing Check_Selector
-   --  or Abort_Selector on this Selector). Has no effect if Selector is
-   --  already closed.
+   --  or Abort_Selector on this Selector).
 
    procedure Check_Selector
      (Selector     : in out Selector_Type;

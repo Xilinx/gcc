@@ -1,9 +1,11 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 6.9.1(9) Function definitions; parameter has automatic storage.
 
    Test that actual parameters are passed by value and that modifications
    made within functions are lost on function return.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
 
 int foo32 (_Decimal32 z)
 {
@@ -29,15 +31,15 @@ main ()
 
   foo32 (d32);
   if (d32 != 1.1df)
-    FAILURE
+    abort ();
 
   foo64 (d64);
   if (d64 != 1.2dd)
-    FAILURE
+    abort ();
 
   foo128 (d128);
   if (d128 != 1.3dl)
-    FAILURE
+    abort ();
 
-  FINISH
+  return 0;
 }
