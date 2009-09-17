@@ -1,4 +1,7 @@
 
+2009-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: makedoc uses more @multitable.
+
 2009-09-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[cleaned up gengtype.c]
 	* gengtype.c: renamed inplugin as in_plugin everywhere.
