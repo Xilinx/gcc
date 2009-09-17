@@ -205,7 +205,6 @@ extern char *microblaze_no_clearbss;
   { "-xl-blazeit", "-Zxl-blazeit" },    \
   { "-xl-no-libxil", "-Zxl-no-libxil" }
 
-
 /* Default target_flags if no switches are specified  */
 #define TARGET_DEFAULT      (MASK_SOFT_MUL | MASK_SOFT_DIV | MASK_SOFT_FLOAT)
 
@@ -221,8 +220,6 @@ extern char *microblaze_no_clearbss;
    we are actually ahead. This is safest version that has generate code 
    compatible for the original ISA */
 #define MICROBLAZE_DEFAULT_CPU      "v4.00.a"
-
-#define LINKER_ENDIAN_SPEC ""
 
 /* Macros to decide whether certain features are available or not,
    depending on the instruction set architecture level.  */
@@ -285,70 +282,11 @@ while (0)
 
 /* Assembler specs.  */
 
-/* MICROBLAZE_AS_ASM_SPEC is passed when using the MICROBLAZE assembler rather
-   than gas.  */
-
-#define MICROBLAZE_AS_ASM_SPEC "\
-%{!.s:-nocpp} %{.s: %{cpp} %{nocpp}} \
-%{pipe: %e-pipe is not supported.} \
-%{K} %(subtarget_microblaze_as_asm_spec)"
-
-/* SUBTARGET_MICROBLAZE_AS_ASM_SPEC is passed when using the MICROBLAZE 
-   assembler rather than gas.  It may be overridden by subtargets.  */
-
-#ifndef SUBTARGET_MICROBLAZE_AS_ASM_SPEC
-#define SUBTARGET_MICROBLAZE_AS_ASM_SPEC "%{v}"
-#endif
-
-/* GAS_ASM_SPEC is passed when using gas, rather than the MICROBLAZE
-   assembler.  */
-
-#define GAS_ASM_SPEC "%{v}"
-
-/* TARGET_ASM_SPEC is used to select either MICROBLAZE_AS_ASM_SPEC or
-   GAS_ASM_SPEC as the default, depending upon the value of
-   TARGET_DEFAULT.  */
-
-#if ((TARGET_CPU_DEFAULT | TARGET_DEFAULT) & MASK_GAS) != 0
-/* GAS */
-
-#define TARGET_ASM_SPEC "\
-%{mmicroblaze-as: %(microblaze_as_asm_spec)} \
-%{!mmicroblaze-as: %(gas_asm_spec)}"
-
-#else /* not GAS */
-
-#define TARGET_ASM_SPEC ""
-/*#define TARGET_ASM_SPEC "\
-  %{!mgas: %(microblaze_as_asm_spec)} \
-  %{mgas: %(gas_asm_spec)}"
-*/
-#endif /* not GAS */
-
-/* SUBTARGET_ASM_OPTIMIZING_SPEC handles passing optimization options
-   to the assembler.  It may be overridden by subtargets.  */
-#ifndef SUBTARGET_ASM_OPTIMIZING_SPEC
-#define SUBTARGET_ASM_OPTIMIZING_SPEC " "
-#endif
-
-/* SUBTARGET_ASM_DEBUGGING_SPEC handles passing debugging options to
-   the assembler.  It may be overridden by subtargets.  */
-#ifndef SUBTARGET_ASM_DEBUGGING_SPEC
-#define SUBTARGET_ASM_DEBUGGING_SPEC "\
-%{g} %{g0} %{g1} %{g2} %{g3} \
-%{ggdb:-g} %{ggdb0:-g0} %{ggdb1:-g1} %{ggdb2:-g2} %{ggdb3:-g3} \
-%{gstabs:-g} %{gstabs0:-g0} %{gstabs1:-g1} %{gstabs2:-g2} %{gstabs3:-g3} \
-%{gstabs+:-g} %{gstabs+0:-g0} %{gstabs+1:-g1} %{gstabs+2:-g2} %{gstabs+3:-g3}"
-#endif
-
-#ifndef SUBTARGET_ASM_SPEC
-#define SUBTARGET_ASM_SPEC ""
-#endif
+#define TARGET_ASM_SPEC "%{v}"
 
 #define ASM_SPEC "\
 %{microblaze1} \
-%(target_asm_spec) \
-%(subtarget_asm_spec)"
+%(target_asm_spec)"
 
 /* Specify to run a post-processor, microblaze-tfile after the assembler
    has run to stuff the microblaze debug information into the object file.
@@ -419,14 +357,7 @@ while (0)
   { "subtarget_cc1_spec", SUBTARGET_CC1_SPEC },				\
   { "subtarget_cpp_spec", SUBTARGET_CPP_SPEC },				\
   { "subtarget_cpp_size_spec", SUBTARGET_CPP_SIZE_SPEC },		\
-  { "microblaze_as_asm_spec", MICROBLAZE_AS_ASM_SPEC },				\
-  { "gas_asm_spec", GAS_ASM_SPEC },					\
   { "target_asm_spec", TARGET_ASM_SPEC },				\
-  { "subtarget_microblaze_as_asm_spec", SUBTARGET_MICROBLAZE_AS_ASM_SPEC }, 	\
-  { "subtarget_asm_optimizing_spec", SUBTARGET_ASM_OPTIMIZING_SPEC },	\
-  { "subtarget_asm_debugging_spec", SUBTARGET_ASM_DEBUGGING_SPEC },	\
-  { "subtarget_asm_spec", SUBTARGET_ASM_SPEC },				\
-  { "linker_endian_spec", LINKER_ENDIAN_SPEC },				\
   SUBTARGET_EXTRA_SPECS
 
 #ifndef MD_EXEC_PREFIX
@@ -1135,8 +1066,7 @@ typedef struct microblaze_args
 #define LEGITIMATE_PIC_OPERAND_P(X)  (!pic_address_needs_scratch (X))
 
 /* At present, GAS doesn't understand li.[sd], so don't allow it
-   to be generated at present.  Also, the MICROBLAZE assembler does not
-   grok li.d Infinity.  */
+   to be generated at present.  */
 #define LEGITIMATE_CONSTANT_P(X)				\
   (GET_CODE (X) != CONST_DOUBLE					\
     || microblaze_const_double_ok (X, GET_MODE (X)))
@@ -1717,7 +1647,7 @@ void FN (void)								\
 /* Don't set the target flags, this is done by the linker script */
 #undef LIB_SPEC
 #define LIB_SPEC "%{!pg:%{!nostdlib:%{!Zxl-no-libxil:-start-group -lgloss -lxil \
--lc -lm -end-group }}} %{pg:%{!nostdlib:-start-group -lxilprofile -lgloss -lxil \ 
+-lc -lm -end-group }}} %{pg:%{!nostdlib:-start-group -lxilprofile -lgloss -lxil \
 -lc -lm -end-group }} 		\
 %{Zxl-no-libxil: %{!nostdlib: -start-group -lc -lm -end-group }}"
 /* Xilinx: We need to group -lm as well, since some Newlib math functions 

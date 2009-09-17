@@ -1,3 +1,12 @@
+2009-09-17  Michael Eager  <eager@eagercon.com>
+
+	* config/microblaze/microblaze.h: MICROBLAZE_AS_ASM_SPEC, 
+	SUBTARGET_MICROBLAZE_AS_ASM_SPEC, GAS_ASM_SPEC,
+	SUBTARGET_ASM_OPTIMIZING_SPEC, SUBTARGET_ASM_SPEC,
+	SUBTARGET_ASM_DEBUGGING_SPEC, microblaze_as_asm_spec, gas_asm_spec,
+	subtarget_microblaze_as_asm_spec, subtarget_asm_optimizing_spec,
+	subtarget_asm_debugging_spec, linker_endian_spec: Remove.
+
 2009-08-17  Michael Eager <eager@eagercon.com>
 
 	* configure.ac, configure: Add MicroBlaze target.
