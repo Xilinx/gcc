@@ -388,6 +388,9 @@
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE \
   default_builtin_vector_alignment_reachable
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM 0
+#define TARGET_SUPPORT_VECTOR_MISALIGNMENT \
+  default_builtin_support_vector_misalignment 
+   
 
 #define TARGET_VECTORIZE                                                \
   {									\
@@ -398,7 +401,8 @@
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD,				\
     TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST,			\
     TARGET_VECTOR_ALIGNMENT_REACHABLE,                                  \
-    TARGET_VECTORIZE_BUILTIN_VEC_PERM                                   \
+    TARGET_VECTORIZE_BUILTIN_VEC_PERM,					\
+    TARGET_SUPPORT_VECTOR_MISALIGNMENT				\
   }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
@@ -488,7 +492,7 @@
 #define TARGET_CANNOT_COPY_INSN_P NULL
 #define TARGET_COMMUTATIVE_P hook_bool_const_rtx_commutative_p
 #define TARGET_LEGITIMIZE_ADDRESS default_legitimize_address
-#define TARGET_DELEGITIMIZE_ADDRESS hook_rtx_rtx_identity
+#define TARGET_DELEGITIMIZE_ADDRESS delegitimize_mem_from_attrs
 #define TARGET_LEGITIMATE_ADDRESS_P default_legitimate_address_p
 #define TARGET_USE_BLOCKS_FOR_CONSTANT_P hook_bool_mode_const_rtx_false
 #define TARGET_MIN_ANCHOR_OFFSET 0

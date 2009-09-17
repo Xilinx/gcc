@@ -494,9 +494,6 @@ dependence_polyhedron (poly_bb_p pbb1, poly_bb_p pbb2,
   return res;
 }
 
-static bool
-poly_drs_may_alias_p (poly_dr_p pdr1, poly_dr_p pdr2);
-
 /* Returns the PDDR corresponding to the original schedule, or NULL if
    the dependence relation is empty or unknown (Can't judge dependency
    under polyhedral model.  */

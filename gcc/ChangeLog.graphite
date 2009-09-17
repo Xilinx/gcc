@@ -1,5 +1,9 @@
 2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Merge from mainline (151171:151819).
+
+2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-scop-detection.c (stmt_simple_memref_p): Removed.
 	(is_simple_operand): Remove call to stmt_simple_memref_p.
 	(stmt_simple_for_scop_p): Update call to is_simple_operand.
@@ -138,10 +142,6 @@
 2009-08-28  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (150992:151171).
-
-2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
-
-	* opts.c (decode_options): Enable flag_loop_interchange at -O2.
 
 2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 

@@ -79,6 +79,7 @@ static void gnat_parse_file		(int);
 static void internal_error_function	(const char *, va_list *);
 static tree gnat_type_max_size		(const_tree);
 static void gnat_get_subrange_bounds	(const_tree, tree *, tree *);
+static tree gnat_eh_personality		(void);
 
 /* Definitions for our language-specific hooks.  */
 
@@ -106,8 +107,6 @@ static void gnat_get_subrange_bounds	(const_tree, tree *, tree *);
 #define LANG_HOOKS_WRITE_GLOBALS	gnat_write_global_declarations
 #undef  LANG_HOOKS_GET_ALIAS_SET
 #define LANG_HOOKS_GET_ALIAS_SET	gnat_get_alias_set
-#undef  LANG_HOOKS_MARK_ADDRESSABLE
-#define LANG_HOOKS_MARK_ADDRESSABLE	gnat_mark_addressable
 #undef  LANG_HOOKS_PRINT_DECL
 #define LANG_HOOKS_PRINT_DECL		gnat_print_decl
 #undef  LANG_HOOKS_PRINT_TYPE
@@ -131,9 +130,11 @@ static void gnat_get_subrange_bounds	(const_tree, tree *, tree *);
 #undef  LANG_HOOKS_ATTRIBUTE_TABLE
 #define LANG_HOOKS_ATTRIBUTE_TABLE	gnat_internal_attribute_table
 #undef  LANG_HOOKS_BUILTIN_FUNCTION
-#define LANG_HOOKS_BUILTIN_FUNCTION        gnat_builtin_function
+#define LANG_HOOKS_BUILTIN_FUNCTION	gnat_builtin_function
+#undef  LANG_HOOKS_EH_PERSONALITY
+#define LANG_HOOKS_EH_PERSONALITY	gnat_eh_personality
 
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 /* How much we want of our DWARF extensions.  Some of our dwarf+ extensions
    are incompatible with regular GDB versions, so we must make sure to only
@@ -433,12 +434,7 @@ gnat_init_gcc_eh (void)
      right exception regions.  */
   using_eh_for_cleanups ();
 
-  eh_personality_libfunc = init_one_libfunc (USING_SJLJ_EXCEPTIONS
-					     ? "__gnat_eh_personality_sj"
-					     : "__gnat_eh_personality");
   lang_eh_type_covers = gnat_eh_type_covers;
-  lang_eh_runtime_type = gnat_return_tree;
-  default_init_unwind_resume_libfunc ();
 
   /* Turn on -fexceptions and -fnon-call-exceptions. The first one triggers
      the generation of the necessary exception runtime tables. The second one
@@ -813,3 +809,19 @@ fp_size_to_prec (int size)
 
   gcc_unreachable ();
 }
+
+static GTY(()) tree gnat_eh_personality_decl;
+
+static tree
+gnat_eh_personality (void)
+{
+  if (!gnat_eh_personality_decl)
+    gnat_eh_personality_decl
+      = build_personality_function (USING_SJLJ_EXCEPTIONS
+				    ? "__gnat_eh_personality_sj"
+				    : "__gnat_eh_personality");
+
+  return gnat_eh_personality_decl;
+}
+
+#include "gt-ada-misc.h"

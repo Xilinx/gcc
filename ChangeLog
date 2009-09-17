@@ -1,3 +1,79 @@
+2009-09-15  Jie Zhang  <jie.zhang@analog.com>
+
+	* configure.ac: Disable java and boehm-gc for bfin-*-*.
+	* configure: Regenerate.
+
+2009-09-12  Joern Rennecke <joern.rennecke@embecosm.com>
+
+	* MAINTAINERS (Write After Approval): Update my e-mail address,
+	and move from from here...
+	(Waiting for paperwork): To here.
+
+2009-09-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (Reviewers): Add self as driver reviewer.
+
+2009-09-08  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Do not use $extrasub for replacing @if/@endif
+	parts in Makefile; instead, use additional arguments to
+	AC_CONFIG_COMMANDS to do the replacement manually, with several
+	sed invocations, to avoid HP-UX sed command limits.
+	* configure: Regenerate.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* libtool.m4 (output_verbose_link_cmd): Require leading blank, and
+	blank before -L.
+
+2009-09-04  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac (with-build-config): Document.  Handle without.
+	Handle missing argument.
+	* configure: Rebuilt.
+
+2009-09-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac (--with-build-config): New.  Set BUILD_CONFIG.
+	Default to bootstrap-debug only if compare-debug works.
+	* configure: Rebuilt.
+	* Makefile.tpl: Make BUILD_CONFIG configure-configurable.
+	* Makefile.in: Rebuilt.
+
+2009-09-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* MAINTAINERS (OS Port Maintainers): Update my email address.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* Makefile.tpl (BUILD_CONFIG): Default to bootstrap-debug.
+	* Makefile.in: Rebuilt.
+
+2009-09-01  Chris Demetriou  <cgd@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-08-31  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/30161
+	* include/dwarf2.h (enum dwarf_tag): Added
+	DW_TAG_GNU_template_template_param
+	(enum dwarf_attribute): Added DW_AT_GNU_template_name.
+
+2009-08-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.tpl (AWK): Fix typo.
+	* Makefile.in: Regenerate.
+
+2009-08-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Detect awk and sed.
+	* Makefile.def (flags_to_pass): Add AWK and SED.
+	* Makefile.tpl (AWK, SED): New.
+	(BASE_FLAGS_TO_PASS): Add AWK and SED.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
 2009-08-26  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	* ltmain.sh (removedotparts): Don't use comma as 's' separator.

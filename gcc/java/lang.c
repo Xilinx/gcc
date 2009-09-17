@@ -45,6 +45,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "tree-dump.h"
 #include "opts.h"
 #include "options.h"
+#include "except.h"
 
 static bool java_init (void);
 static void java_finish (void);
@@ -63,6 +64,8 @@ static void dump_compound_expr (dump_info_p, tree);
 static bool java_decl_ok_for_sibcall (const_tree);
 
 static enum classify_record java_classify_record (tree type);
+
+static tree java_eh_personality (void);
 
 #ifndef TARGET_OBJECT_SUFFIX
 # define TARGET_OBJECT_SUFFIX ".o"
@@ -129,8 +132,6 @@ struct GTY(()) language_function {
 #define LANG_HOOKS_POST_OPTIONS java_post_options
 #undef LANG_HOOKS_PARSE_FILE
 #define LANG_HOOKS_PARSE_FILE java_parse_file
-#undef LANG_HOOKS_MARK_ADDRESSABLE
-#define LANG_HOOKS_MARK_ADDRESSABLE java_mark_addressable
 #undef LANG_HOOKS_DUP_LANG_SPECIFIC_DECL
 #define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL java_dup_lang_specific_decl
 #undef LANG_HOOKS_DECL_PRINTABLE_NAME
@@ -160,8 +161,11 @@ struct GTY(()) language_function {
 #undef LANG_HOOKS_ATTRIBUTE_TABLE
 #define LANG_HOOKS_ATTRIBUTE_TABLE java_attribute_table
 
+#undef LANG_HOOKS_EH_PERSONALITY
+#define LANG_HOOKS_EH_PERSONALITY java_eh_personality
+
 /* Each front end provides its own.  */
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 /*
  * process java-specific compiler command-line options
@@ -880,6 +884,20 @@ java_classify_record (tree type)
     return RECORD_IS_INTERFACE;
 
   return RECORD_IS_CLASS;
+}
+
+static GTY(()) tree java_eh_personality_decl;
+
+static tree
+java_eh_personality (void)
+{
+  if (!java_eh_personality_decl)
+    java_eh_personality_decl
+      = build_personality_function (USING_SJLJ_EXCEPTIONS
+				    ? "__gcj_personality_sj0"
+				    : "__gcj_personality_v0");
+
+  return java_eh_personality_decl;
 }
 
 #include "gt-java-lang.h"

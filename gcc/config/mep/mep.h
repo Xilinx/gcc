@@ -531,7 +531,9 @@ typedef struct
 
 #define FUNCTION_ARG_REGNO_P(REGNO) \
 	(((REGNO) >= 1 && (REGNO) <= 4) \
-	 || ((REGNO) >= FIRST_CR_REGNO + 1 && (REGNO) <= FIRST_CR_REGNO + 4))
+	 || ((REGNO) >= FIRST_CR_REGNO + 1 \
+	     && (REGNO) <= FIRST_CR_REGNO + 4 \
+	     && TARGET_COP))
 
 #define RETURN_VALUE_REGNUM	 0
 
@@ -597,7 +599,8 @@ typedef struct
 
 #define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
-#define LEGITIMATE_CONSTANT_P(X) 1
+#define LEGITIMATE_CONSTANT_P(X) \
+  mep_legitimate_constant_p(X)
 
 #define SELECT_CC_MODE(OP, X, Y)  CCmode
 
@@ -617,6 +620,8 @@ typedef struct
 #define BSS_SECTION_ASM_OP  ".bss"
 
 #define USE_SELECT_SECTION_FOR_FUNCTIONS 1
+
+#define JUMP_TABLES_IN_TEXT_SECTION 1
 
 #define TARGET_ASM_FILE_END mep_file_cleanups
 
