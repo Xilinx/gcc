@@ -23,6 +23,7 @@
 	* melt/warmelt-normatch-0.c: regenerated.
 	* melt/warmelt-normal-0.c: regenerated.
 	* melt/warmelt-first-0.c: regenerated.
+	* melt-make.mk: added warmelt*h stuff.
 
 2009-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: makedoc uses more @multitable.
