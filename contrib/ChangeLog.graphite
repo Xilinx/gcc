@@ -1,3 +1,11 @@
+2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* automatic_tester/run_build.sh (UPDATE_CONTAINS_MERGE): New.
+	(update_src): Initialize OLD_REV.  Run svn log with
+	-r${OLD_REV}:${CURRENT_REV}.  Initialize UPDATE_CONTAINS_MERGE.
+	Call ${EXTRA_TEST_DIR}/go.sh with an extra argument
+	UPDATE_CONTAINS_MERGE.
+
 2009-08-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* automatic_tester/run_build.sh (mail_success): Print the full

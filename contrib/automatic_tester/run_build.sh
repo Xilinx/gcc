@@ -14,6 +14,7 @@ BUILD_DIR_CURRENT=${BUILD_DIR}/${DATE}
 OBJ_DIR_CURRENT=${OBJ_DIR}/${DATE}
 SRC_DIR_CURRENT=${SRC_DIR}
 EXTRA_TESTS_OUTPUT=${LOG_DIR_CURRENT}/extra_tests_output
+UPDATE_CONTAINS_MERGE=no
 
 if [  -z "${IGNORE_RUNNING}" -a -e ${LOG_DIR}/running ]; then
 	exit 0
@@ -142,10 +143,10 @@ git_get_last_hash () {
 }
 
 update_src () {
-	
 	if [ "${GIT_SRC}x" = "x" ]; then
 		log "SVN update"
 
+		OLD_REV=`cd ${SRC_DIR_CURRENT} && svn info | grep "Last Changed Rev:" | cut -d " " -f 4`
 		cd ${SRC_DIR_CURRENT} && svn update 2>&1 > ${LOG_DIR_CURRENT}/update.log 
 
 		if [ -z "${FORCE_BUILD}" -a -z "`grep 'Updated to' ${LOG_DIR_CURRENT}/update.log`" ] ; then
@@ -157,8 +158,10 @@ update_src () {
 		log "Updated to:"
 		CURRENT_REV=`cd ${SRC_DIR_CURRENT} && svn info | grep "Last Changed Rev:" | cut -d " " -f 4`
 		echo "http://gcc.gnu.org/viewcvs?root=gcc&view=rev&rev=${CURRENT_REV}" >> ${LOG_DIR_CURRENT}/info.log
-		cd ${SRC_DIR_CURRENT} && svn log -r ${CURRENT_REV} >> ${LOG_DIR_CURRENT}/info.log
-		     
+		cd ${SRC_DIR_CURRENT} && svn log -r${OLD_REV}:${CURRENT_REV} >> ${LOG_DIR_CURRENT}/info.log
+		if cat ${LOG_DIR_CURRENT}/info.log | grep -q "Merge from mainline"; then
+		    UPDATE_CONTAINS_MERGE=yes
+		fi
 	else
 		log "GIT build"
 		git_get_last_hash
@@ -168,7 +171,6 @@ update_src () {
 		| sed -e 's/\(.*\)\(git-svn-id.*@\)\([0-9]*\)/\1http:\/\/gcc.gnu.org\/viewcvs?root=gcc\&view=rev\&rev=\3\
 \1\2\3/g'  \
 		| sed -e "s/commit \([0-9a-f]*\)/commit \1\n${GIT_WEB_REPOSITORY}\1/" >> ${LOG_DIR_CURRENT}/info.log
-		
 	fi
 }
 
@@ -269,7 +271,7 @@ if [ ${RUN_EXTRA_TESTS} -ne 0 ]; then
     if [ -e ${EXTRA_TEST_DIR}/go.sh ]; then
 	. ${LOG_DIR_CURRENT}/gcc_env.sh
 	mkdir -p ${EXTRA_TESTS_OUTPUT}
-	${EXTRA_TEST_DIR}/go.sh ${DATE} ${EXTRA_TESTS_OUTPUT} > ${LOG_DIR_CURRENT}/extra_test.log 2>&1
+	${EXTRA_TEST_DIR}/go.sh ${DATE} ${EXTRA_TESTS_OUTPUT} ${UPDATE_CONTAINS_MERGE} > ${LOG_DIR_CURRENT}/extra_test.log 2>&1
     fi
 fi
 
