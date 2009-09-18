@@ -1775,11 +1775,8 @@ instantiate_virtual_regs (void)
 	    || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC
 	    || GET_CODE (PATTERN (insn)) == ASM_INPUT)
 	  continue;
-	else if (DEBUG_INSN_P (insn))
-	  for_each_rtx (&INSN_VAR_LOCATION (insn),
-			instantiate_virtual_regs_in_rtx, NULL);
-	else
-	  instantiate_virtual_regs_in_insn (insn);
+
+	instantiate_virtual_regs_in_insn (insn);
 
 	if (INSN_DELETED_P (insn))
 	  continue;
@@ -2433,25 +2430,20 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
     stack_parm = gen_rtx_PLUS (Pmode, stack_parm, offset_rtx);
   stack_parm = gen_rtx_MEM (data->promoted_mode, stack_parm);
 
-  if (!data->passed_pointer)
+  set_mem_attributes (stack_parm, parm, 1);
+  /* set_mem_attributes could set MEM_SIZE to the passed mode's size,
+     while promoted mode's size is needed.  */
+  if (data->promoted_mode != BLKmode
+      && data->promoted_mode != DECL_MODE (parm))
     {
-      set_mem_attributes (stack_parm, parm, 1);
-      /* set_mem_attributes could set MEM_SIZE to the passed mode's size,
-	 while promoted mode's size is needed.  */
-      if (data->promoted_mode != BLKmode
-	  && data->promoted_mode != DECL_MODE (parm))
+      set_mem_size (stack_parm, GEN_INT (GET_MODE_SIZE (data->promoted_mode)));
+      if (MEM_EXPR (stack_parm) && MEM_OFFSET (stack_parm))
 	{
-	  set_mem_size (stack_parm,
-			GEN_INT (GET_MODE_SIZE (data->promoted_mode)));
-	  if (MEM_EXPR (stack_parm) && MEM_OFFSET (stack_parm))
-	    {
-	      int offset = subreg_lowpart_offset (DECL_MODE (parm),
-						  data->promoted_mode);
-	      if (offset)
-		set_mem_offset (stack_parm,
-				plus_constant (MEM_OFFSET (stack_parm),
-					       -offset));
-	    }
+	  int offset = subreg_lowpart_offset (DECL_MODE (parm),
+					      data->promoted_mode);
+	  if (offset)
+	    set_mem_offset (stack_parm,
+			    plus_constant (MEM_OFFSET (stack_parm), -offset));
 	}
     }
 

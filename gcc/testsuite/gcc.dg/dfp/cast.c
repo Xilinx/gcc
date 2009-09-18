@@ -1,7 +1,17 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 6.5.4 Cast operators.
    Test valid casts involving decimal float.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+int failcnt;
+                                                                                
+#ifdef DBG
+extern int printf (const char *, ...);
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 _Decimal32 d32;
 _Decimal64 d64;
@@ -71,5 +81,8 @@ main (void)
   if (d128 != (_Decimal128) d)
     FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

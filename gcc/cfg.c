@@ -546,10 +546,10 @@ dump_bb_info (basic_block bb, bool header, bool footer, int flags,
       /* Both maybe_hot_bb_p & probably_never_executed_bb_p functions
 	 crash without cfun. */ 
       if (cfun && maybe_hot_bb_p (bb))
-	fputs (", maybe hot", file);
+	fprintf (file, ", maybe hot");
       if (cfun && probably_never_executed_bb_p (bb))
-	fputs (", probably never executed", file);
-      fputs (".\n", file);
+	fprintf (file, ", probably never executed");
+      fprintf (file, ".\n");
 
       fprintf (file, "%sPredecessors: ", prefix);
       FOR_EACH_EDGE (e, ei, bb->preds)
@@ -559,7 +559,7 @@ dump_bb_info (basic_block bb, bool header, bool footer, int flags,
 	  && (bb->flags & BB_RTL)
 	  && df)
 	{
-	  putc ('\n', file);
+	  fprintf (file, "\n");
 	  df_dump_top (bb, file);
 	}
    }
@@ -574,7 +574,7 @@ dump_bb_info (basic_block bb, bool header, bool footer, int flags,
 	  && (bb->flags & BB_RTL)
 	  && df)
 	{
-	  putc ('\n', file);
+	  fprintf (file, "\n");
 	  df_dump_bottom (bb, file);
 	}
    }
@@ -615,11 +615,11 @@ dump_reg_info (FILE *file)
 	fprintf (file, "; set %d time%s", DF_REG_DEF_COUNT (i),
 		 (DF_REG_DEF_COUNT (i) == 1) ? "" : "s");
       if (regno_reg_rtx[i] != NULL && REG_USERVAR_P (regno_reg_rtx[i]))
-	fputs ("; user var", file);
+	fprintf (file, "; user var");
       if (REG_N_DEATHS (i) != 1)
 	fprintf (file, "; dies in %d places", REG_N_DEATHS (i));
       if (REG_N_CALLS_CROSSED (i) == 1)
-	fputs ("; crosses 1 call", file);
+	fprintf (file, "; crosses 1 call");
       else if (REG_N_CALLS_CROSSED (i))
 	fprintf (file, "; crosses %d calls", REG_N_CALLS_CROSSED (i));
       if (REG_FREQ_CALLS_CROSSED (i))
@@ -643,8 +643,8 @@ dump_reg_info (FILE *file)
 	}
       
       if (regno_reg_rtx[i] != NULL && REG_POINTER (regno_reg_rtx[i]))
-	fputs ("; pointer", file);
-      fputs (".\n", file);
+	fprintf (file, "; pointer");
+      fprintf (file, ".\n");
     }
 }
 
@@ -691,7 +691,7 @@ dump_edge_info (FILE *file, edge e, int do_succ)
 
   if (e->count)
     {
-      fputs (" count:", file);
+      fprintf (file, " count:");
       fprintf (file, HOST_WIDEST_INT_PRINT_DEC, e->count);
     }
 
@@ -904,24 +904,24 @@ dump_cfg_bb_info (FILE *file, basic_block bb)
     if (bb->flags & (1 << i))
       {
 	if (first)
-	  fputs (" (", file);
+	  fprintf (file, " (");
 	else
-	  fputs (", ", file);
+	  fprintf (file, ", ");
 	first = false;
-	fputs (bb_bitnames[i], file);
+	fprintf (file, bb_bitnames[i]);
       }
   if (!first)
-    putc (')', file);
-  putc ('\n', file);
+    fprintf (file, ")");
+  fprintf (file, "\n");
 
-  fputs ("Predecessors: ", file);
+  fprintf (file, "Predecessors: ");
   FOR_EACH_EDGE (e, ei, bb->preds)
     dump_edge_info (file, e, 0);
 
   fprintf (file, "\nSuccessors: ");
   FOR_EACH_EDGE (e, ei, bb->succs)
     dump_edge_info (file, e, 1);
-  fputs ("\n\n", file);
+  fprintf (file, "\n\n");
 }
 
 /* Dumps a brief description of cfg to FILE.  */

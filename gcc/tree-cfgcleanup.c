@@ -239,16 +239,6 @@ tree_forwarder_block_p (basic_block bb, bool phi_wanted)
   gcc_assert (bb != ENTRY_BLOCK_PTR);
 #endif
 
-  /* There should not be an edge coming from entry, or an EH edge.  */
-  {
-    edge_iterator ei;
-    edge e;
-
-    FOR_EACH_EDGE (e, ei, bb->preds)
-      if (e->src == ENTRY_BLOCK_PTR || (e->flags & EDGE_EH))
-	return false;
-  }
-
   /* Now walk through the statements backward.  We can ignore labels,
      anything else means this is not a forwarder block.  */
   for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
@@ -262,15 +252,13 @@ tree_forwarder_block_p (basic_block bb, bool phi_wanted)
 	    return false;
 	  break;
 
-	  /* ??? For now, hope there's a corresponding debug
-	     assignment at the destination.  */
-	case GIMPLE_DEBUG:
-	  break;
-
 	default:
 	  return false;
 	}
     }
+
+  if (find_edge (ENTRY_BLOCK_PTR, bb))
+    return false;
 
   if (current_loops)
     {
@@ -427,10 +415,9 @@ remove_forwarder_block (basic_block bb)
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
 	{
 	  label = gsi_stmt (gsi);
-	  gcc_assert (gimple_code (label) == GIMPLE_LABEL
-		      || is_gimple_debug (label));
+	  gcc_assert (gimple_code (label) == GIMPLE_LABEL);
 	  gsi_remove (&gsi, false);
-	  gsi_insert_before (&gsi_to, label, GSI_SAME_STMT);
+	  gsi_insert_before (&gsi_to, label, GSI_CONTINUE_LINKING);
 	}
     }
 

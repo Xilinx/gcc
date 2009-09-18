@@ -7441,8 +7441,7 @@ ix86_can_use_return_insn_p (void)
     return 0;
 
   ix86_compute_frame_layout (&frame);
-  return frame.to_allocate == 0 && frame.padding0 == 0
-         && (frame.nregs + frame.nsseregs) == 0;
+  return frame.to_allocate == 0 && (frame.nregs + frame.nsseregs) == 0;
 }
 
 /* Value should be nonzero if functions must have frame pointers.
@@ -8483,7 +8482,7 @@ ix86_expand_prologue (void)
          && (! TARGET_STACK_PROBE || allocate < CHECK_STACK_LIMIT)))
     {
       if (!frame_pointer_needed
-	  || !(frame.to_allocate + frame.padding0)
+	  || !frame.to_allocate
 	  || crtl->stack_realign_needed)
         ix86_emit_save_regs_using_mov (stack_pointer_rtx,
 				       frame.to_allocate
@@ -8493,7 +8492,7 @@ ix86_expand_prologue (void)
 				       -frame.nregs * UNITS_PER_WORD);
     }
   if (!frame_pointer_needed
-      || !(frame.to_allocate + frame.padding0)
+      || !frame.to_allocate
       || crtl->stack_realign_needed)
     ix86_emit_save_sse_regs_using_mov (stack_pointer_rtx,
 				       frame.to_allocate);
@@ -8805,10 +8804,9 @@ ix86_expand_epilogue (int style)
   if ((!sp_valid && (frame.nregs + frame.nsseregs) <= 1)
       || (TARGET_EPILOGUE_USING_MOVE
 	  && cfun->machine->use_fast_prologue_epilogue
-	  && ((frame.nregs + frame.nsseregs) > 1
-	      || (frame.to_allocate + frame.padding0) != 0))
+	  && ((frame.nregs + frame.nsseregs) > 1 || frame.to_allocate))
       || (frame_pointer_needed && !(frame.nregs + frame.nsseregs)
-	  && (frame.to_allocate + frame.padding0) != 0)
+	  && frame.to_allocate)
       || (frame_pointer_needed && TARGET_USE_LEAVE
 	  && cfun->machine->use_fast_prologue_epilogue
 	  && (frame.nregs + frame.nsseregs) == 1)
@@ -8824,7 +8822,7 @@ ix86_expand_epilogue (int style)
 	 be addressed by bp. sp must be used instead.  */
 
       if (!frame_pointer_needed
-	  || (sp_valid && !(frame.to_allocate + frame.padding0)) 
+	  || (sp_valid && !frame.to_allocate) 
 	  || stack_realign_fp)
 	{
 	  ix86_emit_restore_sse_regs_using_mov (stack_pointer_rtx,
@@ -8954,7 +8952,7 @@ ix86_expand_epilogue (int style)
 				     GEN_INT (frame.nsseregs * 16 + frame.padding0),
 				     style, false);
 	}
-      else if (frame.to_allocate || frame.padding0 || frame.nsseregs)
+      else if (frame.to_allocate || frame.nsseregs)
 	{
           ix86_emit_restore_sse_regs_using_mov (stack_pointer_rtx,
 						frame.to_allocate, red_offset,
@@ -10754,17 +10752,15 @@ ix86_pic_register_p (rtx x)
    the DWARF output code.  */
 
 static rtx
-ix86_delegitimize_address (rtx x)
+ix86_delegitimize_address (rtx orig_x)
 {
-  rtx orig_x = delegitimize_mem_from_attrs (x);
+  rtx x = orig_x;
   /* reg_addend is NULL or a multiple of some register.  */
   rtx reg_addend = NULL_RTX;
   /* const_addend is NULL or a const_int.  */
   rtx const_addend = NULL_RTX;
   /* This is the result, or NULL.  */
   rtx result = NULL_RTX;
-
-  x = orig_x;
 
   if (MEM_P (x))
     x = XEXP (x, 0);

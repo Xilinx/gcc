@@ -177,7 +177,7 @@ static rtx find_barrier (int, rtx, rtx);
 static int noncall_uses_reg (rtx, rtx, rtx *);
 static rtx gen_block_redirect (rtx, int, int);
 static void sh_reorg (void);
-static void output_stack_adjust (int, rtx, int, HARD_REG_SET *, bool);
+static void output_stack_adjust (int, rtx, int, HARD_REG_SET *);
 static rtx frame_insn (rtx);
 static rtx push (int);
 static void pop (int);
@@ -6037,9 +6037,9 @@ output_jump_label_table (void)
 
 static void
 output_stack_adjust (int size, rtx reg, int epilogue_p,
-		     HARD_REG_SET *live_regs_mask, bool frame_p)
+		     HARD_REG_SET *live_regs_mask)
 {
-  rtx (*emit_fn) (rtx) = frame_p ? &frame_insn : &emit_insn;
+  rtx (*emit_fn) (rtx) = epilogue_p ? &emit_insn : &frame_insn;
   if (size)
     {
       HOST_WIDE_INT align = STACK_BOUNDARY / BITS_PER_UNIT;
@@ -6701,10 +6701,9 @@ sh_expand_prologue (void)
       && (NPARM_REGS(SImode)
 	  > crtl->args.info.arg_count[(int) SH_ARG_INT]))
     pretend_args = 0;
-  /* Dwarf2 module doesn't expect frame related insns here.  */
   output_stack_adjust (-pretend_args
 		       - crtl->args.info.stack_regs * 8,
-		       stack_pointer_rtx, 0, NULL, false);
+		       stack_pointer_rtx, 0, NULL);
 
   if (TARGET_SHCOMPACT && flag_pic && crtl->args.info.call_cookie)
     /* We're going to use the PIC register to load the address of the
@@ -6835,7 +6834,7 @@ sh_expand_prologue (void)
       offset_base = d + d_rounding;
 
       output_stack_adjust (-(save_size + d_rounding), stack_pointer_rtx,
-			   0, NULL, true);
+			   0, NULL);
 
       sh5_schedule_saves (&live_regs_mask, &schedule, offset_base);
       tmp_pnt = schedule.temps;
@@ -7010,7 +7009,7 @@ sh_expand_prologue (void)
   target_flags = save_flags;
 
   output_stack_adjust (-rounded_frame_size (d) + d_rounding,
-		       stack_pointer_rtx, 0, NULL, true);
+		       stack_pointer_rtx, 0, NULL);
 
   if (frame_pointer_needed)
     frame_insn (GEN_MOV (hard_frame_pointer_rtx, stack_pointer_rtx));
@@ -7075,7 +7074,7 @@ sh_expand_epilogue (bool sibcall_p)
 	 See PR/18032 and PR/40313.  */
       emit_insn (gen_blockage ());
       output_stack_adjust (frame_size, hard_frame_pointer_rtx, e,
-			   &live_regs_mask, false);
+			   &live_regs_mask);
 
       /* We must avoid moving the stack pointer adjustment past code
 	 which reads from the local frame, else an interrupt could
@@ -7091,8 +7090,7 @@ sh_expand_epilogue (bool sibcall_p)
 	 occur after the SP adjustment and clobber data in the local
 	 frame.  */
       emit_insn (gen_blockage ());
-      output_stack_adjust (frame_size, stack_pointer_rtx, e,
-			   &live_regs_mask, false);
+      output_stack_adjust (frame_size, stack_pointer_rtx, e, &live_regs_mask);
     }
 
   if (SHMEDIA_REGS_STACK_ADJUST ())
@@ -7279,7 +7277,7 @@ sh_expand_epilogue (bool sibcall_p)
   output_stack_adjust (crtl->args.pretend_args_size
 		       + save_size + d_rounding
 		       + crtl->args.info.stack_regs * 8,
-		       stack_pointer_rtx, e, NULL, false);
+		       stack_pointer_rtx, e, NULL);
 
   if (crtl->calls_eh_return)
     emit_insn (GEN_ADD3 (stack_pointer_rtx, stack_pointer_rtx,

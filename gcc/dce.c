@@ -79,7 +79,13 @@ deletable_insn_p_1 (rtx body)
       return false;
 
     default:
-      return !volatile_refs_p (body);
+      if (volatile_refs_p (body))
+	return false;
+
+      if (flag_non_call_exceptions && may_trap_p (body))
+	return false;
+
+      return true;
     }
 }
 
@@ -92,14 +98,6 @@ deletable_insn_p (rtx insn, bool fast, bitmap arg_stores)
 {
   rtx body, x;
   int i;
-
-  /* Don't delete jumps, notes and the like.  */
-  if (!NONJUMP_INSN_P (insn))
-    return false;
-
-  /* Don't delete insns that can throw.  */
-  if (!insn_nothrow_p (insn))
-    return false;
 
   if (CALL_P (insn)
       /* We cannot delete calls inside of the recursive dce because
@@ -115,11 +113,17 @@ deletable_insn_p (rtx insn, bool fast, bitmap arg_stores)
 	  && !RTL_LOOPING_CONST_OR_PURE_CALL_P (insn)))
     return find_call_stack_args (insn, false, fast, arg_stores);
 
+  if (!NONJUMP_INSN_P (insn))
+    return false;
+
+  /* Similarly, we cannot delete other insns that can throw either.  */
+  if (df_in_progress && flag_non_call_exceptions && can_throw_internal (insn))
+    return false;
+
   body = PATTERN (insn);
   switch (GET_CODE (body))
     {
     case USE:
-    case VAR_LOCATION:
       return false;
 
     case CLOBBER:
@@ -638,9 +642,6 @@ mark_reg_dependencies (rtx insn)
 {
   struct df_link *defs;
   df_ref *use_rec;
-
-  if (DEBUG_INSN_P (insn))
-    return;
 
   for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
     {

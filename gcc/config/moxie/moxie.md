@@ -223,12 +223,11 @@
 }")
 
 (define_insn "*movsi"
-  [(set (match_operand:SI 0 "general_operand" "=r,r,r,W,A,r,r,B,r")
-	(match_operand:SI 1 "moxie_general_movsrc_operand" "O,r,i,r,r,W,A,r,B"))]
+  [(set (match_operand:SI 0 "general_operand" "=r,r,W,A,r,r,B,r")
+	(match_operand:SI 1 "moxie_general_movsrc_operand" "r,i,r,r,W,A,r,B"))]
   "register_operand (operands[0], SImode)
    || register_operand (operands[1], SImode)"
   "@
-   xor    %0, %0
    mov    %0, %1
    ldi.l  %0, %1
    st.l   %0, %1
@@ -237,7 +236,7 @@
    lda.l  %0, %1
    sto.l  %0, %1
    ldo.l  %0, %1"
-  [(set_attr "length"	"2,2,6,2,6,2,6,6,6")])
+  [(set_attr "length"	"2,6,2,6,2,6,6,6")])
 
 (define_expand "movqi"
   [(set (match_operand:QI 0 "general_operand" "")
@@ -251,12 +250,11 @@
 }")
 
 (define_insn "*movqi"
-  [(set (match_operand:QI 0 "general_operand" "=r,r,r,W,A,r,r,B,r")
-	(match_operand:QI 1 "moxie_general_movsrc_operand" "O,r,i,r,r,W,A,r,B"))]
+  [(set (match_operand:QI 0 "general_operand" "=r,r,W,A,r,r,B,r")
+	(match_operand:QI 1 "moxie_general_movsrc_operand" "r,i,r,r,W,A,r,B"))]
   "register_operand (operands[0], QImode)
    || register_operand (operands[1], QImode)"
   "@
-   xor    %0, %0
    mov    %0, %1
    ldi.b  %0, %1
    st.b   %0, %1
@@ -265,7 +263,7 @@
    lda.b  %0, %1
    sto.b  %0, %1
    ldo.b  %0, %1"
-  [(set_attr "length"	"2,2,6,2,6,2,6,6,6")])
+  [(set_attr "length"	"2,6,2,6,2,6,6,6")])
 
 (define_expand "movhi"
   [(set (match_operand:HI 0 "general_operand" "")
@@ -279,12 +277,11 @@
 }")
 
 (define_insn "*movhi"
-  [(set (match_operand:HI 0 "general_operand" "=r,r,r,W,A,r,r,B,r")
-	(match_operand:HI 1 "moxie_general_movsrc_operand" "O,r,i,r,r,W,A,r,B"))]
+  [(set (match_operand:HI 0 "general_operand" "=r,r,W,A,r,r,B,r")
+	(match_operand:HI 1 "moxie_general_movsrc_operand" "r,i,r,r,W,A,r,B"))]
   "(register_operand (operands[0], HImode)
     || register_operand (operands[1], HImode))"
   "@
-   xor    %0, %0
    mov    %0, %1
    ldi.s  %0, %1
    st.s   %0, %1
@@ -293,7 +290,7 @@
    lda.s  %0, %1
    sto.s  %0, %1
    ldo.s  %0, %1"
-  [(set_attr "length"	"2,2,6,2,6,2,6,6,6")])
+  [(set_attr "length"	"2,6,2,6,2,6,6,6")])
 
 ;; -------------------------------------------------------------------------
 ;; Compare instructions

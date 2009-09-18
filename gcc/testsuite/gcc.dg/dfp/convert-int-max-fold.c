@@ -1,4 +1,4 @@
-/* { dg-options "-O2 -w" } */
+/* { dg-options "-std=gnu99 -O2" } */
 
 /* N1150 5.1 Conversions from decimal float to integer.  */
 

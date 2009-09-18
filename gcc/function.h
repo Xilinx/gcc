@@ -24,7 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "tree.h"
 #include "hashtab.h"
-#include "vecprim.h"
+#include "varray.h"
 
 /* Stack of pending (incomplete) sequences saved by `start_sequence'.
    Each element describes one pending sequence.
@@ -63,10 +63,6 @@ struct GTY(()) emit_status {
   /* INSN_UID for next insn emitted.
      Reset to 1 for each function compiled.  */
   int x_cur_insn_uid;
-
-  /* INSN_UID for next debug insn emitted.  Only used if
-     --param min-nondebug-insn-uid=<value> is given with nonzero value.  */
-  int x_cur_debug_insn_uid;
 
   /* Location the last line-number NOTE emitted.
      This is used to avoid generating duplicates.  */
@@ -144,6 +140,11 @@ DEF_VEC_ALLOC_P(call_site_record, gc);
 
 /* RTL representation of exception handling.  */
 struct GTY(()) rtl_eh {
+  rtx filter;
+  rtx exc_ptr;
+
+  int built_landing_pads;
+
   rtx ehr_stackadj;
   rtx ehr_handler;
   rtx ehr_label;
@@ -151,7 +152,9 @@ struct GTY(()) rtl_eh {
   rtx sjlj_fc;
   rtx sjlj_exit_after;
 
-  VEC(uchar,gc) *action_record_data;
+  VEC(tree,gc) *ttype_data;
+  varray_type ehspec_data;
+  varray_type action_record_data;
 
   VEC(call_site_record,gc) *call_site_record[2];
 };

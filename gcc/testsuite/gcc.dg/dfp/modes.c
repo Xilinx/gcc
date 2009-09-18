@@ -1,4 +1,5 @@
 /* { dg-do compile } */
+/* { dg-options "-std=gnu99" } */
 
 typedef float decimal32  __attribute__ ((mode (SD)));
 typedef float decimal64  __attribute__ ((mode (DD)));

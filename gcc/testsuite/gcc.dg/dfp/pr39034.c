@@ -1,10 +1,19 @@
 /* { dg-do run } */
-/* { dg-options "-O" } */
+/* { dg-options "-std=gnu99 -O" } */
 
 /* DFP TR 24732 == WG14 / N1176, N1312 */
 /* Based on a test from Fred Tydeman.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+int failures = 0;
+
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE(MSG) { printf ("line %d: %s\n", __LINE__, MSG); failures++; }
+#else
+#define FAILURE(MSG) failures++;
+#endif
+
 
 /* Test runtime computations.  */
 
@@ -16,9 +25,9 @@ runtime32 (void)
   _Decimal32 d32 = (float)((v1/v2-v3) - (v4/v5-v6));
 
   if (b32)
-    FAILURE
+    FAILURE ("runtime: b32 should be zero")
   if (d32)
-    FAILURE
+    FAILURE ("runtime: d32 should be zero")
 }
 
 void
@@ -29,9 +38,9 @@ runtime64 (void)
   _Decimal64 d64 = (double)((v1/v2-v3) - (v4/v5-v6));
 
   if (b64)
-    FAILURE
+    FAILURE ("runtime: b64 should be zero")
   if (d64)
-    FAILURE
+    FAILURE ("runtime: d64 should be zero")
 }
 
 void
@@ -43,9 +52,9 @@ runtime128 (void)
   _Decimal128 d128 = (long double)((v1/v2-v3) - (v4/v5-v6));
 
   if (b128)
-    FAILURE
+    FAILURE ("runtime: b128 should be zero")
   if (d128)
-    FAILURE
+    FAILURE ("runtime: d128 should be zero")
 }
 
 /* Test constant folding.  */
@@ -57,9 +66,9 @@ fold32 (void)
   _Decimal32 b32 = (float)((28.f/3.f-9.f) - (31.f/3.f-10.f));
 
   if (b32)
-    FAILURE
+    FAILURE ("fold: b32 should be zero")
   if (d32)
-    FAILURE
+    FAILURE ("fold: d32 should be zero")
 }
 
 void
@@ -69,9 +78,9 @@ fold64 (void)
   _Decimal64 d64 = (double)((28./3.-9.) - (31./3.-10.));
 
   if (b64)
-    FAILURE
+    FAILURE ("fold: b64 should be zero")
   if (d64)
-    FAILURE
+    FAILURE ("fold: d64 should be zero")
 }
 
 void
@@ -81,9 +90,9 @@ fold128 (void)
   _Decimal128 d128 = (long double)((28./3.-9.) - (31./3.-10.));
 
   if (b128)
-    FAILURE
+    FAILURE ("fold: b128 should be zero")
   if (d128)
-    FAILURE
+    FAILURE ("fold: d128 should be zero")
 }
 
 int
@@ -96,5 +105,7 @@ main ()
   fold64 ();
   fold128 ();
 
-  FINISH
+  if (failures != 0)
+    abort ();
+  return 0;
 }

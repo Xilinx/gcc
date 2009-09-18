@@ -1,12 +1,23 @@
+/* { dg-options "-std=gnu99" } */
+
 /* N1150 5.2 Conversions among decimal floating types and between
    decimal floating types and generic floating types.
    C99 6.3.1.5(4) Conversions, arithmetic operands, real floating types.  */
 
 /* Long double isn't supported yet at runtime, so disable those checks.  */
 
-#include "dfp-dbg.h"
-
+extern void abort (void);
+static int failcnt;
 static int skip_long_double;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 volatile _Decimal32 d32;
 volatile _Decimal64 d64;
@@ -127,5 +138,8 @@ main ()
       || df > (2.9802322387695312e-08 + 0.00000000001))
     FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

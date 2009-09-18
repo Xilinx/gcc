@@ -902,7 +902,7 @@ dbxout_finish_complex_stabs (tree sym, stab_code_type code,
 #if defined (DBX_DEBUGGING_INFO)
 
 static void
-dbxout_function_end (tree decl ATTRIBUTE_UNUSED)
+dbxout_function_end (tree decl)
 {
   char lscope_label_name[100];
 
@@ -921,7 +921,8 @@ dbxout_function_end (tree decl ATTRIBUTE_UNUSED)
      named sections.  */
   if (!use_gnu_debug_info_extensions
       || NO_DBX_FUNCTION_END
-      || !targetm.have_named_sections)
+      || !targetm.have_named_sections
+      || DECL_IGNORED_P (decl))
     return;
 
   /* By convention, GCC will mark the end of a function with an N_FUN
@@ -3681,6 +3682,9 @@ static void
 dbxout_begin_function (tree decl)
 {
   int saved_tree_used1;
+
+  if (DECL_IGNORED_P (decl))
+    return;
 
   saved_tree_used1 = TREE_USED (decl);
   TREE_USED (decl) = 1;

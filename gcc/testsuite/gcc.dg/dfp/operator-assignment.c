@@ -1,9 +1,21 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 6.5.16 Assignment operators.
    Verify the compound assignment operator for decimal float types,
    using it with other decimal float types, integers, and other binary
    float types cast to decimal float types.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+static int failcnt;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 #define OPERATE(OPRD1,OPRT,OPRD2,RLT)		\
   if (( OPRD1 OPRT OPRD2 )!= RLT)		\
@@ -52,5 +64,8 @@ main ()
   DECIMAL_COMPOUND_ASSIGNMENT(64, d64);
   DECIMAL_COMPOUND_ASSIGNMENT(128, d128);
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

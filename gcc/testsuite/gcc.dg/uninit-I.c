@@ -3,6 +3,6 @@
 
 int sys_msgctl (void)
 {
-  struct { int mode; } setbuf;  /* { dg-warning "'setbuf\.mode' is used" "" { xfail *-*-* } } */
+  struct { int mode; } setbuf;  /* { dg-warning "'setbuf\.mode' is used" } */
   return setbuf.mode;
 }

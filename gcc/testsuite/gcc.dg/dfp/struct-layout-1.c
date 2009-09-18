@@ -1,5 +1,8 @@
+/* { dg-options "-std=gnu99" } */
+
 #include <stdarg.h>
-#include "dfp-dbg.h"
+
+extern void abort (void);
 
 struct S1
 {
@@ -36,6 +39,20 @@ struct S5
   } a;
 };
 
+static int failcnt = 0;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE do                             \
+{ printf ("failed at line %d\n", __LINE__);    \
+  failcnt++;                                   \
+}while(0)
+#else
+#define FAILURE abort ()
+#endif
+
 int check_var (int z, ...)
 {
   long long result;
@@ -67,5 +84,8 @@ int main ()
   if (check_var (2, s5, 2LL) == 0)
     FAILURE;
 
-  FINISH
+  if (failcnt)
+    abort ();
+
+  return 0;
 }

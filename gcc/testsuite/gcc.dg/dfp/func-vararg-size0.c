@@ -1,7 +1,10 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 6.5.2.2 Function calls.  */
 
 #include <stdarg.h>
-#include "dfp-dbg.h"
+
+extern void abort (void);
 
 struct S1
 {
@@ -35,7 +38,7 @@ main ()
   struct S1 a1[5];
 
   if (check_var(5, 1.0, s1, 2LL, a1[2], a1[2]) == 0)
-    FAILURE
+    abort ();
 
-  FINISH
+  return 0;
 }

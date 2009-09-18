@@ -1,4 +1,4 @@
-/* { dg-options "-O0" } */
+/* { dg-options "-std=gnu99 -O0" } */
 
 /* N1150 5.2 Conversions among decimal floating types and between
    decimal floating types and generic floating types.
@@ -10,8 +10,19 @@
 #define __STDC_WANT_DEC_FP__ 1
 #endif
 
-#include "dfp-dbg.h"
 #include <float.h>
+
+extern void abort (void);
+static int failcnt;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 volatile _Decimal32 d32;
 volatile _Decimal64 d64;
@@ -90,5 +101,8 @@ main ()
   if (d64 != __builtin_infd64())
     FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

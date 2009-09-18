@@ -1,14 +1,16 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 Logical AND operator.
    C99 Logical OR operator.
    Test with decimal float operands.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
 
 #define OPERATE(OPRD1,OPRT,OPRD2,RLT)	\
 do					\
 {					\
   if (( (OPRD1) OPRT (OPRD2) )!= RLT)	\
-    __builtin_abort ();			\
+    abort ();				\
 } while (0)
 
 #define DECIMAL_LOGICAL_OR(OPRD)	\

@@ -40,158 +40,160 @@ namespace __gnu_parallel
   /** @brief A pair of iterators. The usual iterator operations are
    *  applied to both child iterators.
    */
-  template<typename _Iterator1, typename _Iterator2,
-           typename _IteratorCategory>
-    class _IteratorPair : public std::pair<_Iterator1, _Iterator2>
+  template<typename Iterator1, typename Iterator2, typename IteratorCategory>
+    class iterator_pair : public std::pair<Iterator1, Iterator2>
     {
     private:
-      typedef std::pair<_Iterator1, _Iterator2> _Base;
+      typedef iterator_pair<Iterator1, Iterator2, IteratorCategory> type;
+      typedef std::pair<Iterator1, Iterator2> base_type;
 
     public:
-      typedef _IteratorCategory iterator_category;
+      typedef IteratorCategory iterator_category;
       typedef void value_type;
 
-      typedef std::iterator_traits<_Iterator1> _TraitsType;
-      typedef typename _TraitsType::difference_type difference_type;
-      typedef _IteratorPair* pointer;
-      typedef _IteratorPair& reference;
+      typedef std::iterator_traits<Iterator1> traits_type;
+      typedef typename traits_type::difference_type difference_type;
+      typedef type* pointer;
+      typedef type& reference;
 
-      _IteratorPair() { }
+      iterator_pair() { }
 
-      _IteratorPair(const _Iterator1& __first, const _Iterator2& __second)
-      : _Base(__first, __second) { }
+      iterator_pair(const Iterator1& first, const Iterator2& second) 
+      : base_type(first, second) { }
 
       // Pre-increment operator.
-      _IteratorPair&
+      type&
       operator++()
       {
-        ++_Base::first;
-        ++_Base::second;
-        return *this;
+	++base_type::first;
+	++base_type::second;
+	return *this;
       }
 
       // Post-increment operator.
-      const _IteratorPair
+      const type
       operator++(int)
-      { return _IteratorPair(_Base::first++, _Base::second++); }
+      { return type(base_type::first++, base_type::second++); }
 
       // Pre-decrement operator.
-      _IteratorPair&
+      type&
       operator--()
       {
-        --_Base::first;
-        --_Base::second;
-        return *this;
+	--base_type::first;
+	--base_type::second;
+	return *this;
       }
 
       // Post-decrement operator.
-      const _IteratorPair
+      const type
       operator--(int)
-      { return _IteratorPair(_Base::first--, _Base::second--); }
+      { return type(base_type::first--, base_type::second--); }
 
       // Type conversion.
-      operator _Iterator2() const
-      { return _Base::second; }
+      operator Iterator2() const
+      { return base_type::second; }
 
-      _IteratorPair&
-      operator=(const _IteratorPair& __other)
+      type&
+      operator=(const type& other)
       {
-        _Base::first = __other.first;
-        _Base::second = __other.second;
-        return *this;
+	base_type::first = other.first;
+	base_type::second = other.second;
+	return *this;
       }
 
-      _IteratorPair
-      operator+(difference_type __delta) const
-      { return _IteratorPair(_Base::first + __delta, _Base::second + __delta);
-        }
+      type
+      operator+(difference_type delta) const
+      { return type(base_type::first + delta, base_type::second + delta); }
 
       difference_type
-      operator-(const _IteratorPair& __other) const
-      { return _Base::first - __other.first; }
+      operator-(const type& other) const
+      { return base_type::first - other.first; }
   };
 
 
   /** @brief A triple of iterators. The usual iterator operations are
       applied to all three child iterators.
    */
-  template<typename _Iterator1, typename _Iterator2, typename _Iterator3,
-           typename _IteratorCategory>
-    class _IteratorTriple
+  template<typename Iterator1, typename Iterator2, typename Iterator3,
+	   typename IteratorCategory>
+    class iterator_triple
     {
+    private:
+      typedef iterator_triple<Iterator1, Iterator2, Iterator3,
+			      IteratorCategory> type;
+
     public:
-      typedef _IteratorCategory iterator_category;
+      typedef IteratorCategory iterator_category;
       typedef void value_type;
-      typedef typename std::iterator_traits<_Iterator1>::difference_type
+      typedef typename std::iterator_traits<Iterator1>::difference_type
                                                             difference_type;
-      typedef _IteratorTriple* pointer;
-      typedef _IteratorTriple& reference;
+      typedef type* pointer;
+      typedef type& reference;
 
-      _Iterator1 _M_first;
-      _Iterator2 _M_second;
-      _Iterator3 _M_third;
+      Iterator1 first;
+      Iterator2 second;
+      Iterator3 third;
 
-      _IteratorTriple() { }
+      iterator_triple() { }
 
-      _IteratorTriple(const _Iterator1& __first, const _Iterator2& __second,
-                      const _Iterator3& __third)
+      iterator_triple(const Iterator1& _first, const Iterator2& _second,
+		      const Iterator3& _third)
       {
-        _M_first = __first;
-        _M_second = __second;
-        _M_third = __third;
+	first = _first;
+	second = _second;
+	third = _third;
       }
 
       // Pre-increment operator.
-      _IteratorTriple&
+      type&
       operator++()
       {
-        ++_M_first;
-        ++_M_second;
-        ++_M_third;
-        return *this;
+	++first;
+	++second;
+	++third;
+	return *this;
       }
 
       // Post-increment operator.
-      const _IteratorTriple
+      const type
       operator++(int)
-      { return _IteratorTriple(_M_first++, _M_second++, _M_third++); }
+      { return type(first++, second++, third++); }
 
       // Pre-decrement operator.
-      _IteratorTriple&
+      type&
       operator--()
       {
-        --_M_first;
-        --_M_second;
-        --_M_third;
-        return *this;
+	--first;
+	--second;
+	--third;
+	return *this;
       }
 
       // Post-decrement operator.
-      const _IteratorTriple
+      const type
       operator--(int)
-      { return _IteratorTriple(_M_first--, _M_second--, _M_third--); }
+      { return type(first--, second--, third--); }
 
       // Type conversion.
-      operator _Iterator3() const
-      { return _M_third; }
+      operator Iterator3() const
+      { return third; }
 
-      _IteratorTriple&
-      operator=(const _IteratorTriple& __other)
+      type&
+      operator=(const type& other)
       {
-        _M_first = __other._M_first;
-        _M_second = __other._M_second;
-        _M_third = __other._M_third;
-        return *this;
+	first = other.first;
+	second = other.second;
+	third = other.third;
+	return *this;
       }
 
-      _IteratorTriple
-      operator+(difference_type __delta) const
-      { return _IteratorTriple(_M_first + __delta, _M_second + __delta,
-                               _M_third + __delta); }
+      type
+      operator+(difference_type delta) const
+      { return type(first + delta, second + delta, third + delta); }
 
       difference_type
-      operator-(const _IteratorTriple& __other) const
-      { return _M_first - __other._M_first; }
+      operator-(const type& other) const
+      { return first - other.first; }
   };
 }
 

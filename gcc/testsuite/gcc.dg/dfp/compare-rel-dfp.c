@@ -1,9 +1,19 @@
-/* { dg-options "-O0" } */
+/* { dg-options "-std=gnu99 -O0" } */
 
 /* C99 6.5.8 Relational operators.
    Compare decimal float values against variables of different types.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+static int failcnt;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 _Decimal32 d32;
 _Decimal64 d64;
@@ -49,5 +59,7 @@ main ()
 
   compare_dfp ();
 
-  FINISH
+  if (failcnt)
+    abort ();
+  return 0;
 }

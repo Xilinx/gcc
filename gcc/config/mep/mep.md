@@ -2192,7 +2192,7 @@
    (use (reg:SI LP_REGNO))]
   ""
   "#"
-  "epilogue_completed"
+  "reload_completed"
   [(const_int 1)]
   "mep_emit_eh_epilogue (operands); DONE;"
   [(set_attr "slot" "multi")])

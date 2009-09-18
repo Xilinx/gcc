@@ -53,13 +53,6 @@ lhd_do_nothing_t (tree ARG_UNUSED (t))
 {
 }
 
-/* Pass through (tree).  */
-tree
-lhd_pass_through_t (tree t)
-{
-  return t;
-}
-
 /* Do nothing (int).  */
 
 void

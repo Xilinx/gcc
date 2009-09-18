@@ -154,7 +154,7 @@ static void gfc_init_ts (void);
 #define LANG_HOOKS_BUILTIN_FUNCTION          gfc_builtin_function
 #define LANG_HOOKS_GET_ARRAY_DESCR_INFO	     gfc_get_array_descr_info
 
-struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 #define NULL_BINDING_LEVEL (struct binding_level *) NULL
 
@@ -1131,7 +1131,7 @@ gfc_init_builtin_functions (void)
 		      BUILT_IN_EMUTLS_REGISTER_COMMON,
 		      "__emutls_register_common", false);
 
-  build_common_builtin_nodes (false);
+  build_common_builtin_nodes ();
   targetm.init_builtins ();
 }
 
@@ -1155,6 +1155,11 @@ gfc_maybe_initialize_eh (void)
     return;
 
   gfc_eh_initialized_p = true;
+  eh_personality_libfunc
+    = init_one_libfunc (USING_SJLJ_EXCEPTIONS
+                       ? "__gcc_personality_sj0"
+                       : "__gcc_personality_v0");
+  default_init_unwind_resume_libfunc ();
   using_eh_for_cleanups ();
 }
 

@@ -1,4 +1,4 @@
-/* { dg-options "-w" } */
+/* { dg-options "-std=gnu99 -w" } */
 
 /* This test assumes IEEE float and double.  */
 
@@ -79,5 +79,7 @@ main ()
   convert_351 ();
   convert_352 ();
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+  return 0;
 }

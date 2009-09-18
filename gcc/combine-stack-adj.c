@@ -71,26 +71,25 @@ along with GCC; see the file COPYING3.  If not see
 #define STACK_GROWS_DOWNWARD 0
 #endif
 
-/* This structure records two kinds of stack references between stack
-   adjusting instructions: stack references in memory addresses for
-   regular insns and all stack references for debug insns.  */
+/* This structure records stack memory references between stack adjusting
+   instructions.  */
 
-struct csa_reflist
+struct csa_memlist
 {
   HOST_WIDE_INT sp_offset;
-  rtx insn, *ref;
-  struct csa_reflist *next;
+  rtx insn, *mem;
+  struct csa_memlist *next;
 };
 
 static int stack_memref_p (rtx);
 static rtx single_set_for_csa (rtx);
-static void free_csa_reflist (struct csa_reflist *);
-static struct csa_reflist *record_one_stack_ref (rtx, rtx *,
-						 struct csa_reflist *);
-static int try_apply_stack_adjustment (rtx, struct csa_reflist *,
+static void free_csa_memlist (struct csa_memlist *);
+static struct csa_memlist *record_one_stack_memref (rtx, rtx *,
+						    struct csa_memlist *);
+static int try_apply_stack_adjustment (rtx, struct csa_memlist *,
 				       HOST_WIDE_INT, HOST_WIDE_INT);
 static void combine_stack_adjustments_for_block (basic_block);
-static int record_stack_refs (rtx *, void *);
+static int record_stack_memrefs (rtx *, void *);
 
 
 /* Main entry point for stack adjustment combination.  */
@@ -158,80 +157,65 @@ single_set_for_csa (rtx insn)
   return XVECEXP (tmp, 0, 0);
 }
 
-/* Free the list of csa_reflist nodes.  */
+/* Free the list of csa_memlist nodes.  */
 
 static void
-free_csa_reflist (struct csa_reflist *reflist)
+free_csa_memlist (struct csa_memlist *memlist)
 {
-  struct csa_reflist *next;
-  for (; reflist ; reflist = next)
+  struct csa_memlist *next;
+  for (; memlist ; memlist = next)
     {
-      next = reflist->next;
-      free (reflist);
+      next = memlist->next;
+      free (memlist);
     }
 }
 
-/* Create a new csa_reflist node from the given stack reference.
-   It is already known that the reference is either a MEM satisfying the
-   predicate stack_memref_p or a REG representing the stack pointer.  */
+/* Create a new csa_memlist node from the given memory reference.
+   It is already known that the memory is stack_memref_p.  */
 
-static struct csa_reflist *
-record_one_stack_ref (rtx insn, rtx *ref, struct csa_reflist *next_reflist)
+static struct csa_memlist *
+record_one_stack_memref (rtx insn, rtx *mem, struct csa_memlist *next_memlist)
 {
-  struct csa_reflist *ml;
+  struct csa_memlist *ml;
 
-  ml = XNEW (struct csa_reflist);
+  ml = XNEW (struct csa_memlist);
 
-  if (REG_P (*ref) || XEXP (*ref, 0) == stack_pointer_rtx)
+  if (XEXP (*mem, 0) == stack_pointer_rtx)
     ml->sp_offset = 0;
   else
-    ml->sp_offset = INTVAL (XEXP (XEXP (*ref, 0), 1));
+    ml->sp_offset = INTVAL (XEXP (XEXP (*mem, 0), 1));
 
   ml->insn = insn;
-  ml->ref = ref;
-  ml->next = next_reflist;
+  ml->mem = mem;
+  ml->next = next_memlist;
 
   return ml;
 }
 
 /* Attempt to apply ADJUST to the stack adjusting insn INSN, as well
-   as each of the memories and stack references in REFLIST.  Return true
-   on success.  */
+   as each of the memories in MEMLIST.  Return true on success.  */
 
 static int
-try_apply_stack_adjustment (rtx insn, struct csa_reflist *reflist,
-			    HOST_WIDE_INT new_adjust, HOST_WIDE_INT delta)
+try_apply_stack_adjustment (rtx insn, struct csa_memlist *memlist, HOST_WIDE_INT new_adjust,
+			    HOST_WIDE_INT delta)
 {
-  struct csa_reflist *ml;
+  struct csa_memlist *ml;
   rtx set;
 
   set = single_set_for_csa (insn);
-  if (MEM_P (SET_DEST (set)))
-    validate_change (insn, &SET_DEST (set),
-		     replace_equiv_address (SET_DEST (set), stack_pointer_rtx),
-		     1);
-  else
-    validate_change (insn, &XEXP (SET_SRC (set), 1), GEN_INT (new_adjust), 1);
+  validate_change (insn, &XEXP (SET_SRC (set), 1), GEN_INT (new_adjust), 1);
 
-  for (ml = reflist; ml ; ml = ml->next)
-    {
-      rtx new_addr = plus_constant (stack_pointer_rtx, ml->sp_offset - delta);
-      rtx new_val;
-
-      if (MEM_P (*ml->ref))
-	new_val = replace_equiv_address_nv (*ml->ref, new_addr);
-      else if (GET_MODE (*ml->ref) == GET_MODE (stack_pointer_rtx))
-	new_val = new_addr;
-      else
-	new_val = lowpart_subreg (GET_MODE (*ml->ref), new_addr,
-				  GET_MODE (new_addr));
-      validate_change (ml->insn, ml->ref, new_val, 1);
-    }
+  for (ml = memlist; ml ; ml = ml->next)
+    validate_change
+      (ml->insn, ml->mem,
+       replace_equiv_address_nv (*ml->mem,
+				 plus_constant (stack_pointer_rtx,
+						ml->sp_offset - delta)), 1);
 
   if (apply_change_group ())
     {
-      /* Succeeded.  Update our knowledge of the stack references.  */
-      for (ml = reflist; ml ; ml = ml->next)
+      /* Succeeded.  Update our knowledge of the memory references.  */
+      for (ml = memlist; ml ; ml = ml->next)
 	ml->sp_offset -= delta;
 
       return 1;
@@ -240,20 +224,20 @@ try_apply_stack_adjustment (rtx insn, struct csa_reflist *reflist,
     return 0;
 }
 
-/* Called via for_each_rtx and used to record all stack memory and other
-   references in the insn and discard all other stack pointer references.  */
-struct record_stack_refs_data
+/* Called via for_each_rtx and used to record all stack memory references in
+   the insn and discard all other stack pointer references.  */
+struct record_stack_memrefs_data
 {
   rtx insn;
-  struct csa_reflist *reflist;
+  struct csa_memlist *memlist;
 };
 
 static int
-record_stack_refs (rtx *xp, void *data)
+record_stack_memrefs (rtx *xp, void *data)
 {
   rtx x = *xp;
-  struct record_stack_refs_data *d =
-    (struct record_stack_refs_data *) data;
+  struct record_stack_memrefs_data *d =
+    (struct record_stack_memrefs_data *) data;
   if (!x)
     return 0;
   switch (GET_CODE (x))
@@ -265,11 +249,10 @@ record_stack_refs (rtx *xp, void *data)
          stack pointer, so this check is necessary.  */
       if (stack_memref_p (x))
 	{
-	  d->reflist = record_one_stack_ref (d->insn, xp, d->reflist);
+	  d->memlist = record_one_stack_memref (d->insn, xp, d->memlist);
 	  return -1;
 	}
-      /* Try harder for DEBUG_INSNs, handle e.g. (mem (mem (sp + 16) + 4).  */
-      return !DEBUG_INSN_P (d->insn);
+      return 1;
     case REG:
       /* ??? We want be able to handle non-memory stack pointer
 	 references later.  For now just discard all insns referring to
@@ -279,17 +262,9 @@ record_stack_refs (rtx *xp, void *data)
 	 We can't just compare with STACK_POINTER_RTX because the
 	 reference to the stack pointer might be in some other mode.
 	 In particular, an explicit clobber in an asm statement will
-	 result in a QImode clobber.
-
-	 In DEBUG_INSNs, we want to replace all occurrences, otherwise
-	 they will cause -fcompare-debug failures.  */
+	 result in a QImode clobber.  */
       if (REGNO (x) == STACK_POINTER_REGNUM)
-	{
-	  if (!DEBUG_INSN_P (d->insn))
-	    return 1;
-	  d->reflist = record_one_stack_ref (d->insn, xp, d->reflist);
-	  return -1;
-	}
+	return 1;
       break;
     default:
       break;
@@ -368,9 +343,9 @@ combine_stack_adjustments_for_block (basic_block bb)
 {
   HOST_WIDE_INT last_sp_adjust = 0;
   rtx last_sp_set = NULL_RTX;
-  struct csa_reflist *reflist = NULL;
+  struct csa_memlist *memlist = NULL;
   rtx insn, next, set;
-  struct record_stack_refs_data data;
+  struct record_stack_memrefs_data data;
   bool end_of_block = false;
 
   for (insn = BB_HEAD (bb); !end_of_block ; insn = next)
@@ -404,7 +379,7 @@ combine_stack_adjustments_for_block (basic_block bb)
 		  continue;
 		}
 
-	      /* If not all recorded refs can be adjusted, or the
+	      /* If not all recorded memrefs can be adjusted, or the
 		 adjustment is now too large for a constant addition,
 		 we cannot merge the two stack adjustments.
 
@@ -428,7 +403,7 @@ combine_stack_adjustments_for_block (basic_block bb)
 	      /* Combine an allocation into the first instruction.  */
 	      if (STACK_GROWS_DOWNWARD ? this_adjust <= 0 : this_adjust >= 0)
 		{
-		  if (try_apply_stack_adjustment (last_sp_set, reflist,
+		  if (try_apply_stack_adjustment (last_sp_set, memlist,
 						  last_sp_adjust + this_adjust,
 						  this_adjust))
 		    {
@@ -447,7 +422,7 @@ combine_stack_adjustments_for_block (basic_block bb)
 	      else if (STACK_GROWS_DOWNWARD
 		       ? last_sp_adjust >= 0 : last_sp_adjust <= 0)
 		{
-		  if (try_apply_stack_adjustment (insn, reflist,
+		  if (try_apply_stack_adjustment (insn, memlist,
 						  last_sp_adjust + this_adjust,
 						  -last_sp_adjust))
 		    {
@@ -455,8 +430,8 @@ combine_stack_adjustments_for_block (basic_block bb)
 		      delete_insn (last_sp_set);
 		      last_sp_set = insn;
 		      last_sp_adjust += this_adjust;
-		      free_csa_reflist (reflist);
-		      reflist = NULL;
+		      free_csa_memlist (memlist);
+		      memlist = NULL;
 		      continue;
 		    }
 		}
@@ -466,44 +441,39 @@ combine_stack_adjustments_for_block (basic_block bb)
 		 delete the old deallocation insn.  */
 	      if (last_sp_set && last_sp_adjust == 0)
 		delete_insn (last_sp_set);
-	      free_csa_reflist (reflist);
-	      reflist = NULL;
+	      free_csa_memlist (memlist);
+	      memlist = NULL;
 	      last_sp_set = insn;
 	      last_sp_adjust = this_adjust;
 	      continue;
 	    }
 
-	  /* Find a store with pre-(dec|inc)rement or pre-modify of exactly
-	     the previous adjustment and turn it into a simple store.  This
-	     is equivalent to anticipating the stack adjustment so this must
-	     be an allocation.  */
-	  if (MEM_P (dest)
-	      && ((STACK_GROWS_DOWNWARD
-		   ? (GET_CODE (XEXP (dest, 0)) == PRE_DEC
-		      && last_sp_adjust
-			 == (HOST_WIDE_INT) GET_MODE_SIZE (GET_MODE (dest)))
-		   : (GET_CODE (XEXP (dest, 0)) == PRE_INC
-		      && last_sp_adjust
-		         == -(HOST_WIDE_INT) GET_MODE_SIZE (GET_MODE (dest))))
-		  || ((STACK_GROWS_DOWNWARD
-		       ? last_sp_adjust >= 0 : last_sp_adjust <= 0)
-		      && GET_CODE (XEXP (dest, 0)) == PRE_MODIFY
+	  /* Find a predecrement of exactly the previous adjustment and
+	     turn it into a direct store.  Obviously we can't do this if
+	     there were any intervening uses of the stack pointer.  */
+	  if (memlist == NULL
+	      && MEM_P (dest)
+	      && ((GET_CODE (XEXP (dest, 0)) == PRE_DEC
+		   && (last_sp_adjust
+		       == (HOST_WIDE_INT) GET_MODE_SIZE (GET_MODE (dest))))
+		  || (GET_CODE (XEXP (dest, 0)) == PRE_MODIFY
 		      && GET_CODE (XEXP (XEXP (dest, 0), 1)) == PLUS
-		      && XEXP (XEXP (XEXP (dest, 0), 1), 0)
-			 == stack_pointer_rtx
-		      && GET_CODE (XEXP (XEXP (XEXP (dest, 0), 1), 1))
-		         == CONST_INT
-		      && INTVAL (XEXP (XEXP (XEXP (dest, 0), 1), 1))
-		         == -last_sp_adjust))
+		      && XEXP (XEXP (XEXP (dest, 0), 1), 0) == stack_pointer_rtx
+		      && (GET_CODE (XEXP (XEXP (XEXP (dest, 0), 1), 1))
+		          == CONST_INT)
+		      && (INTVAL (XEXP (XEXP (XEXP (dest, 0), 1), 1))
+		          == -last_sp_adjust)))
 	      && XEXP (XEXP (dest, 0), 0) == stack_pointer_rtx
-	      && !reg_mentioned_p (stack_pointer_rtx, src)
+	      && ! reg_mentioned_p (stack_pointer_rtx, src)
 	      && memory_address_p (GET_MODE (dest), stack_pointer_rtx)
-	      && try_apply_stack_adjustment (insn, reflist, 0,
-					     -last_sp_adjust))
+	      && validate_change (insn, &SET_DEST (set),
+				  replace_equiv_address (dest,
+							 stack_pointer_rtx),
+				  0))
 	    {
 	      delete_insn (last_sp_set);
-	      free_csa_reflist (reflist);
-	      reflist = NULL;
+	      free_csa_memlist (memlist);
+	      memlist = NULL;
 	      last_sp_set = NULL_RTX;
 	      last_sp_adjust = 0;
 	      continue;
@@ -511,14 +481,14 @@ combine_stack_adjustments_for_block (basic_block bb)
 	}
 
       data.insn = insn;
-      data.reflist = reflist;
+      data.memlist = memlist;
       if (!CALL_P (insn) && last_sp_set
-	  && !for_each_rtx (&PATTERN (insn), record_stack_refs, &data))
+	  && !for_each_rtx (&PATTERN (insn), record_stack_memrefs, &data))
 	{
-	   reflist = data.reflist;
+	   memlist = data.memlist;
 	   continue;
 	}
-      reflist = data.reflist;
+      memlist = data.memlist;
 
       /* Otherwise, we were not able to process the instruction.
 	 Do not continue collecting data across such a one.  */
@@ -528,8 +498,8 @@ combine_stack_adjustments_for_block (basic_block bb)
 	{
 	  if (last_sp_set && last_sp_adjust == 0)
 	    delete_insn (last_sp_set);
-	  free_csa_reflist (reflist);
-	  reflist = NULL;
+	  free_csa_memlist (memlist);
+	  memlist = NULL;
 	  last_sp_set = NULL_RTX;
 	  last_sp_adjust = 0;
 	}
@@ -538,8 +508,8 @@ combine_stack_adjustments_for_block (basic_block bb)
   if (last_sp_set && last_sp_adjust == 0)
     delete_insn (last_sp_set);
 
-  if (reflist)
-    free_csa_reflist (reflist);
+  if (memlist)
+    free_csa_memlist (memlist);
 }
 
 

@@ -2,19 +2,20 @@
    are not affected by rounding.  */
 
 #include <stdlib.h>
-#include "dfp-dbg.h"
 
-#undef FAILURE
-#ifdef DBG
-#define FAILURE(OP,KIND) \
-  { printf ("failed at line %d: %s for %s values\n", __LINE__, OP, KIND); \
-    failures++; }
-#else
-#define FAILURE(OP,KIND) __builtin_abort ();
-#endif
+static int failcnt;
 
 #define PASTE2(A,B) A ## B
 #define PASTE(A,B) PASTE2(A,B)
+
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE(OP,KIND) \
+  { printf ("failed at line %d: %s for %s values\n", __LINE__, OP, KIND); \
+    failcnt++; }
+#else
+#define FAILURE(OP,KIND) abort ();
+#endif
 
 #ifndef WIDTH
 #error define WIDTH as decimal float size in bytes
@@ -129,4 +130,7 @@ test_compares (void)
   if (y > one)        FAILURE (">", "greater")
   if (z > zero)       FAILURE (">", "greater")
   if (z > one)        FAILURE (">", "greater")
+
+  if (failcnt)
+    abort ();
 }

@@ -49,6 +49,3 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    %{static}} -init __init -fini __fini"
 
 #define MD_UNWIND_SUPPORT "config/bfin/linux-unwind.h"
-
-#undef TARGET_SUPPORTS_SYNC_CALLS
-#define TARGET_SUPPORTS_SYNC_CALLS 1

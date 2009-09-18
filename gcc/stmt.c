@@ -48,7 +48,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "predict.h"
 #include "optabs.h"
 #include "target.h"
-#include "gimple.h"
 #include "regs.h"
 #include "alloc-pool.h"
 #include "pretty-print.h"
@@ -110,8 +109,8 @@ static int n_occurrences (int, const char *);
 static bool tree_conflicts_with_clobbers_p (tree, HARD_REG_SET *);
 static void expand_nl_goto_receiver (void);
 static bool check_operand_nalternatives (tree, tree);
-static bool check_unique_operand_names (tree, tree, tree);
-static char *resolve_operand_name_1 (char *, tree, tree, tree);
+static bool check_unique_operand_names (tree, tree);
+static char *resolve_operand_name_1 (char *, tree, tree);
 static void expand_null_return_1 (void);
 static void expand_value_return (rtx);
 static int estimate_case_costs (case_node_ptr);
@@ -633,13 +632,12 @@ tree_conflicts_with_clobbers_p (tree t, HARD_REG_SET *clobbered_regs)
 
 static void
 expand_asm_operands (tree string, tree outputs, tree inputs,
-		     tree clobbers, tree labels, int vol, location_t locus)
+		     tree clobbers, int vol, location_t locus)
 {
-  rtvec argvec, constraintvec, labelvec;
+  rtvec argvec, constraintvec;
   rtx body;
   int ninputs = list_length (inputs);
   int noutputs = list_length (outputs);
-  int nlabels = list_length (labels);
   int ninout;
   int nclobbers;
   HARD_REG_SET clobbered_regs;
@@ -662,7 +660,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
   if (! check_operand_nalternatives (outputs, inputs))
     return;
 
-  string = resolve_asm_operand_names (string, outputs, inputs, labels);
+  string = resolve_asm_operand_names (string, outputs, inputs);
 
   /* Collect constraints.  */
   i = 0;
@@ -846,13 +844,12 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 
   argvec = rtvec_alloc (ninputs);
   constraintvec = rtvec_alloc (ninputs);
-  labelvec = rtvec_alloc (nlabels);
 
   body = gen_rtx_ASM_OPERANDS ((noutputs == 0 ? VOIDmode
 				: GET_MODE (output_rtx[0])),
 			       ggc_strdup (TREE_STRING_POINTER (string)),
 			       empty_string, 0, argvec, constraintvec,
-			       labelvec, locus);
+			       locus);
 
   MEM_VOLATILE_P (body) = vol;
 
@@ -961,11 +958,6 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 	= gen_rtx_ASM_INPUT (inout_mode[i], ggc_strdup (buffer));
     }
 
-  /* Copy labels to the vector.  */
-  for (i = 0, tail = labels; i < nlabels; ++i, tail = TREE_CHAIN (tail))
-    ASM_OPERANDS_LABEL (body, i)
-      = gen_rtx_LABEL_REF (Pmode, label_rtx (TREE_VALUE (tail)));
-
   generating_concat_p = old_generating_concat_p;
 
   /* Now, for each output, construct an rtx
@@ -973,21 +965,18 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 			       ARGVEC CONSTRAINTS OPNAMES))
      If there is more than one, put them inside a PARALLEL.  */
 
-  if (nlabels > 0 && nclobbers == 0)
+  if (noutputs == 1 && nclobbers == 0)
     {
-      gcc_assert (noutputs == 0);
-      emit_jump_insn (body);
+      ASM_OPERANDS_OUTPUT_CONSTRAINT (body) = ggc_strdup (constraints[0]);
+      emit_insn (gen_rtx_SET (VOIDmode, output_rtx[0], body));
     }
+
   else if (noutputs == 0 && nclobbers == 0)
     {
       /* No output operands: put in a raw ASM_OPERANDS rtx.  */
       emit_insn (body);
     }
-  else if (noutputs == 1 && nclobbers == 0)
-    {
-      ASM_OPERANDS_OUTPUT_CONSTRAINT (body) = ggc_strdup (constraints[0]);
-      emit_insn (gen_rtx_SET (VOIDmode, output_rtx[0], body));
-    }
+
   else
     {
       rtx obody = body;
@@ -1008,7 +997,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 			   (GET_MODE (output_rtx[i]),
 			    ggc_strdup (TREE_STRING_POINTER (string)),
 			    ggc_strdup (constraints[i]),
-			    i, argvec, constraintvec, labelvec, locus));
+			    i, argvec, constraintvec, locus));
 
 	  MEM_VOLATILE_P (SET_SRC (XVECEXP (body, 0, i))) = vol;
 	}
@@ -1072,10 +1061,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 	    = gen_rtx_CLOBBER (VOIDmode, clobbered_reg);
 	}
 
-      if (nlabels > 0)
-	emit_jump_insn (body);
-      else
-	emit_insn (body);
+      emit_insn (body);
     }
 
   /* For any outputs that needed reloading into registers, spill them
@@ -1089,65 +1075,20 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 }
 
 void
-expand_asm_stmt (gimple stmt)
+expand_asm_expr (tree exp)
 {
-  int noutputs;
-  tree outputs, tail, t;
+  int noutputs, i;
+  tree outputs, tail;
   tree *o;
-  size_t i, n;
-  const char *s;
-  tree str, out, in, cl, labels;
 
-  /* Meh... convert the gimple asm operands into real tree lists.
-     Eventually we should make all routines work on the vectors instead
-     of relying on TREE_CHAIN.  */
-  out = NULL_TREE;
-  n = gimple_asm_noutputs (stmt);
-  if (n > 0)
+  if (ASM_INPUT_P (exp))
     {
-      t = out = gimple_asm_output_op (stmt, 0);
-      for (i = 1; i < n; i++)
-	t = TREE_CHAIN (t) = gimple_asm_output_op (stmt, i);
-    }
-
-  in = NULL_TREE;
-  n = gimple_asm_ninputs (stmt);
-  if (n > 0)
-    {
-      t = in = gimple_asm_input_op (stmt, 0);
-      for (i = 1; i < n; i++)
-	t = TREE_CHAIN (t) = gimple_asm_input_op (stmt, i);
-    }
-
-  cl = NULL_TREE;
-  n = gimple_asm_nclobbers (stmt);
-  if (n > 0)
-    {
-      t = cl = gimple_asm_clobber_op (stmt, 0);
-      for (i = 1; i < n; i++)
-	t = TREE_CHAIN (t) = gimple_asm_clobber_op (stmt, i);
-    }
-
-  labels = NULL_TREE;
-  n = gimple_asm_nlabels (stmt);
-  if (n > 0)
-    {
-      t = labels = gimple_asm_label_op (stmt, 0);
-      for (i = 1; i < n; i++)
-	t = TREE_CHAIN (t) = gimple_asm_label_op (stmt, i);
-    }
-
-  s = gimple_asm_string (stmt);
-  str = build_string (strlen (s), s);
-
-  if (gimple_asm_input_p (stmt))
-    {
-      expand_asm_loc (str, gimple_asm_volatile_p (stmt), input_location);
+      expand_asm_loc (ASM_STRING (exp), ASM_VOLATILE_P (exp), input_location);
       return;
     }
 
-  outputs = out;
-  noutputs = gimple_asm_noutputs (stmt);
+  outputs = ASM_OUTPUTS (exp);
+  noutputs = list_length (outputs);
   /* o[I] is the place that output number I should be written.  */
   o = (tree *) alloca (noutputs * sizeof (tree));
 
@@ -1157,8 +1098,9 @@ expand_asm_stmt (gimple stmt)
 
   /* Generate the ASM_OPERANDS insn; store into the TREE_VALUEs of
      OUTPUTS some trees for where the values were actually stored.  */
-  expand_asm_operands (str, outputs, in, cl, labels,
-		       gimple_asm_volatile_p (stmt), input_location);
+  expand_asm_operands (ASM_STRING (exp), outputs, ASM_INPUTS (exp),
+		       ASM_CLOBBERS (exp), ASM_VOLATILE_P (exp),
+		       input_location);
 
   /* Copy all the intermediate outputs into the specified outputs.  */
   for (i = 0, tail = outputs; tail; tail = TREE_CHAIN (tail), i++)
@@ -1223,7 +1165,7 @@ check_operand_nalternatives (tree outputs, tree inputs)
    so all we need are pointer comparisons.  */
 
 static bool
-check_unique_operand_names (tree outputs, tree inputs, tree labels)
+check_unique_operand_names (tree outputs, tree inputs)
 {
   tree i, j;
 
@@ -1252,20 +1194,6 @@ check_unique_operand_names (tree outputs, tree inputs, tree labels)
 	  goto failure;
     }
 
-  for (i = labels; i ; i = TREE_CHAIN (i))
-    {
-      tree i_name = TREE_PURPOSE (i);
-      if (! i_name)
-	continue;
-
-      for (j = TREE_CHAIN (i); j ; j = TREE_CHAIN (j))
-	if (simple_cst_equal (i_name, TREE_PURPOSE (j)))
-	  goto failure;
-      for (j = inputs; j ; j = TREE_CHAIN (j))
-	if (simple_cst_equal (i_name, TREE_PURPOSE (TREE_PURPOSE (j))))
-	  goto failure;
-    }
-
   return true;
 
  failure:
@@ -1279,14 +1207,14 @@ check_unique_operand_names (tree outputs, tree inputs, tree labels)
    STRING and in the constraints to those numbers.  */
 
 tree
-resolve_asm_operand_names (tree string, tree outputs, tree inputs, tree labels)
+resolve_asm_operand_names (tree string, tree outputs, tree inputs)
 {
   char *buffer;
   char *p;
   const char *c;
   tree t;
 
-  check_unique_operand_names (outputs, inputs, labels);
+  check_unique_operand_names (outputs, inputs);
 
   /* Substitute [<name>] in input constraint strings.  There should be no
      named operands in output constraints.  */
@@ -1297,7 +1225,7 @@ resolve_asm_operand_names (tree string, tree outputs, tree inputs, tree labels)
 	{
 	  p = buffer = xstrdup (c);
 	  while ((p = strchr (p, '[')) != NULL)
-	    p = resolve_operand_name_1 (p, outputs, inputs, NULL);
+	    p = resolve_operand_name_1 (p, outputs, inputs);
 	  TREE_VALUE (TREE_PURPOSE (t))
 	    = build_string (strlen (buffer), buffer);
 	  free (buffer);
@@ -1340,7 +1268,7 @@ resolve_asm_operand_names (tree string, tree outputs, tree inputs, tree labels)
 	      continue;
 	    }
 
-	  p = resolve_operand_name_1 (p, outputs, inputs, labels);
+	  p = resolve_operand_name_1 (p, outputs, inputs);
 	}
 
       string = build_string (strlen (buffer), buffer);
@@ -1356,49 +1284,53 @@ resolve_asm_operand_names (tree string, tree outputs, tree inputs, tree labels)
    balance of the string after substitution.  */
 
 static char *
-resolve_operand_name_1 (char *p, tree outputs, tree inputs, tree labels)
+resolve_operand_name_1 (char *p, tree outputs, tree inputs)
 {
   char *q;
   int op;
   tree t;
+  size_t len;
 
   /* Collect the operand name.  */
-  q = strchr (++p, ']');
+  q = strchr (p, ']');
   if (!q)
     {
       error ("missing close brace for named operand");
       return strchr (p, '\0');
     }
-  *q = '\0';
+  len = q - p - 1;
 
   /* Resolve the name to a number.  */
   for (op = 0, t = outputs; t ; t = TREE_CHAIN (t), op++)
     {
       tree name = TREE_PURPOSE (TREE_PURPOSE (t));
-      if (name && strcmp (TREE_STRING_POINTER (name), p) == 0)
-	goto found;
+      if (name)
+	{
+	  const char *c = TREE_STRING_POINTER (name);
+	  if (strncmp (c, p + 1, len) == 0 && c[len] == '\0')
+	    goto found;
+	}
     }
   for (t = inputs; t ; t = TREE_CHAIN (t), op++)
     {
       tree name = TREE_PURPOSE (TREE_PURPOSE (t));
-      if (name && strcmp (TREE_STRING_POINTER (name), p) == 0)
-	goto found;
-    }
-  for (t = labels; t ; t = TREE_CHAIN (t), op++)
-    {
-      tree name = TREE_PURPOSE (t);
-      if (name && strcmp (TREE_STRING_POINTER (name), p) == 0)
-	goto found;
+      if (name)
+	{
+	  const char *c = TREE_STRING_POINTER (name);
+	  if (strncmp (c, p + 1, len) == 0 && c[len] == '\0')
+	    goto found;
+	}
     }
 
-  error ("undefined named operand %qs", identifier_to_locale (p));
+  *q = '\0';
+  error ("undefined named operand %qs", identifier_to_locale (p + 1));
   op = 0;
-
  found:
+
   /* Replace the name with the number.  Unfortunately, not all libraries
      get the return value of sprintf correct, so search for the end of the
      generated string by hand.  */
-  sprintf (--p, "%d", op);
+  sprintf (p, "%d", op);
   p = strchr (p, '\0');
 
   /* Verify the no extra buffer space assumption.  */
@@ -2222,7 +2154,7 @@ emit_case_bit_tests (tree index_type, tree index_expr, tree minval,
    Generate the code to test it and jump to the right place.  */
 
 void
-expand_case (gimple stmt)
+expand_case (tree exp)
 {
   tree minval = NULL_TREE, maxval = NULL_TREE, range = NULL_TREE;
   rtx default_label = 0;
@@ -2235,7 +2167,9 @@ expand_case (gimple stmt)
   int i;
   rtx before_case, end, lab;
 
-  tree index_expr = gimple_switch_index (stmt);
+  tree vec = SWITCH_LABELS (exp);
+  tree orig_type = TREE_TYPE (exp);
+  tree index_expr = SWITCH_COND (exp);
   tree index_type = TREE_TYPE (index_expr);
   int unsignedp = TYPE_UNSIGNED (index_type);
 
@@ -2254,6 +2188,11 @@ expand_case (gimple stmt)
                                                  sizeof (struct case_node),
                                                  100);
 
+  /* The switch body is lowered in gimplify.c, we should never have
+     switches with a non-NULL SWITCH_BODY here.  */
+  gcc_assert (!SWITCH_BODY (exp));
+  gcc_assert (SWITCH_LABELS (exp));
+
   do_pending_stack_adjust ();
 
   /* An ERROR_MARK occurs for various reasons including invalid data type.  */
@@ -2261,24 +2200,24 @@ expand_case (gimple stmt)
     {
       tree elt;
       bitmap label_bitmap;
-      int stopi = 0;
+      int vl = TREE_VEC_LENGTH (vec);
 
       /* cleanup_tree_cfg removes all SWITCH_EXPR with their index
 	 expressions being INTEGER_CST.  */
       gcc_assert (TREE_CODE (index_expr) != INTEGER_CST);
 
-      /* The default case, if ever taken, is the first element.  */
-      elt = gimple_switch_label (stmt, 0);
+      /* The default case, if ever taken, is at the end of TREE_VEC.  */
+      elt = TREE_VEC_ELT (vec, vl - 1);
       if (!CASE_LOW (elt) && !CASE_HIGH (elt))
 	{
 	  default_label_decl = CASE_LABEL (elt);
-	  stopi = 1;
+	  --vl;
 	}
 
-      for (i = gimple_switch_num_labels (stmt) - 1; i >= stopi; --i)
+      for (i = vl - 1; i >= 0; --i)
 	{
 	  tree low, high;
-	  elt = gimple_switch_label (stmt, i);
+	  elt = TREE_VEC_ELT (vec, i);
 
 	  low = CASE_LOW (elt);
 	  gcc_assert (low);
@@ -2432,7 +2371,9 @@ expand_case (gimple stmt)
 	     decision tree an unconditional jump to the
 	     default code is emitted.  */
 
-	  use_cost_table = estimate_case_costs (case_list);
+	  use_cost_table
+	    = (TREE_CODE (orig_type) != ENUMERAL_TYPE
+	       && estimate_case_costs (case_list));
 	  balance_case_nodes (&case_list, NULL);
 	  emit_case_nodes (index, case_list, default_label, index_type);
 	  if (default_label)

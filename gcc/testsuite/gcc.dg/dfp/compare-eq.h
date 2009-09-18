@@ -2,18 +2,19 @@
    are not affected by rounding.  */
 
 #include <stdlib.h>
-#include "dfp-dbg.h"
+
+static int failcnt;
 
 #define PASTE2(A,B) A ## B
 #define PASTE(A,B) PASTE2(A,B)
 
-#undef FAILURE
 #ifdef DBG
+#include <stdio.h>
 #define FAILURE(OP,KIND) \
   { printf ("failed at line %d: %s for %s values\n", __LINE__, OP, KIND); \
-    failures++; }
+    failcnt++; }
 #else
-#define FAILURE(OP,KIND) __builtin_abort ();
+#define FAILURE(OP,KIND) abort ();
 #endif
 
 #ifndef WIDTH
@@ -89,4 +90,7 @@ test_compares (void)
   if (! (x != zero))  FAILURE ("!=", "greater")
   if (! (y != m_one)) FAILURE ("!=", "greater")
   if (! (z != m_two)) FAILURE ("!=", "greater")
+
+  if (failcnt)
+    abort ();
 }

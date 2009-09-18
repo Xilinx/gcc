@@ -1,3 +1,5 @@
+/* { dg-options "-std=gnu99" } */
+
 /* N1150 5.1 Conversion between decimal floating integer.
    C99 6.3.1.4(1a) New.
    Test integer saturation.  */
@@ -6,9 +8,10 @@
 #define __STDC_WANT_DEC_FP__ 1
 #endif
 
-#include "dfp-dbg.h"
 #include <float.h>
 #include <limits.h>
+
+extern void abort (void);
 
 volatile _Decimal32 d32;
 volatile _Decimal64 d64;
@@ -25,40 +28,40 @@ main ()
   /* Unsigned.  */
   usi = DEC32_MAX;  /* { dg-warning "overflow in implicit constant conversion" } */
   if (usi != UINT_MAX)
-    FAILURE
+    abort ();
 
   usi = DEC64_MAX;  /* { dg-warning "overflow in implicit constant conversion" } */
   if (usi != UINT_MAX)
-    FAILURE
+    abort ();
 
   usi = DEC128_MAX; /* { dg-warning "overflow in implicit constant conversion" } */
   if (usi != UINT_MAX)
-    FAILURE
+    abort ();
 
   /* Signed.  */
   si = DEC32_MAX;	/* { dg-warning "overflow in implicit constant conversion" } */
   if (si != INT_MAX)
-    FAILURE
+    abort ();
 
   si = DEC64_MAX;   /* { dg-warning "overflow in implicit constant conversion" } */
   if (si != INT_MAX)
-    FAILURE
+    abort ();
 
   si = DEC128_MAX;  /* { dg-warning "overflow in implicit constant conversion" } */
   if (si != INT_MAX)
-    FAILURE
+    abort ();
 
   si = - DEC32_MAX; /* { dg-warning "overflow in implicit constant conversion" } */
   if (si != INT_MIN)
-    FAILURE
+    abort ();
 
   si = - DEC64_MAX; /* { dg-warning "overflow in implicit constant conversion" } */
   if (si != INT_MIN)
-    FAILURE
+    abort ();
 
   si = - DEC128_MAX; /* { dg-warning "overflow in implicit constant conversion" } */
   if (si != INT_MIN)
-    FAILURE
+    abort ();
 
-  FINISH
+  return 0;
 }

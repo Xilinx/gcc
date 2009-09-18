@@ -5732,10 +5732,9 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 	gfc_error ("Illegal stat-variable at %L for a PURE procedure",
 		   &stat->where);
 
-      if ((stat->ts.type != BT_INTEGER
-	   && !(stat->ref && (stat->ref->type == REF_ARRAY
-			      || stat->ref->type == REF_COMPONENT)))
-	  || stat->rank > 0)
+      if (stat->ts.type != BT_INTEGER
+	  && !(stat->ref && (stat->ref->type == REF_ARRAY
+	       || stat->ref->type == REF_COMPONENT)))
 	gfc_error ("Stat-variable at %L must be a scalar INTEGER "
 		   "variable", &stat->where);
 
@@ -5760,11 +5759,10 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 	gfc_error ("Illegal errmsg-variable at %L for a PURE procedure",
 		   &errmsg->where);
 
-      if ((errmsg->ts.type != BT_CHARACTER
-	   && !(errmsg->ref
-		&& (errmsg->ref->type == REF_ARRAY
-		    || errmsg->ref->type == REF_COMPONENT)))
-	  || errmsg->rank > 0 )
+      if (errmsg->ts.type != BT_CHARACTER
+	  && !(errmsg->ref
+	       && (errmsg->ref->type == REF_ARRAY
+	  	   || errmsg->ref->type == REF_COMPONENT)))
 	gfc_error ("Errmsg-variable at %L must be a scalar CHARACTER "
 		   "variable", &errmsg->where);
 
@@ -6958,6 +6956,7 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 	    && (lhs->symtree->n.sym == (*rhsptr)->symtree->n.sym))
 	*rhsptr = gfc_get_parentheses (*rhsptr);
 
+      resolve_code (code, ns);
       return true;
     }
 
@@ -7189,12 +7188,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	    break;
 
 	  if (resolve_ordinary_assign (code, ns))
-	    {
-	      if (code->op == EXEC_COMPCALL)
-		goto compcall;
-	      else
-		goto call;
-	    }
+	    goto call;
 
 	  break;
 
@@ -7245,7 +7239,6 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  break;
 
 	case EXEC_COMPCALL:
-	compcall:
 	  resolve_typebound_call (code);
 	  break;
 

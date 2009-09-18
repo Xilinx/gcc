@@ -319,22 +319,10 @@ int flag_dump_rtl_in_asm = 0;
    the support provided depends on the backend.  */
 rtx stack_limit_rtx;
 
-/* Positive if we should track variables, negative if we should run
-   the var-tracking pass only to discard debug annotations, zero if
-   we're not to run it.  When flag_var_tracking == AUTODETECT_VALUE it
-   will be set according to optimize, debug_info_level and debug_hooks
-   in process_options ().  */
+/* Nonzero if we should track variables.  When
+   flag_var_tracking == AUTODETECT_VALUE it will be set according
+   to optimize, debug_info_level and debug_hooks in process_options ().  */
 int flag_var_tracking = AUTODETECT_VALUE;
-
-/* Positive if we should track variables at assignments, negative if
-   we should run the var-tracking pass only to discard debug
-   annotations.  When flag_var_tracking_assignments ==
-   AUTODETECT_VALUE it will be set according to flag_var_tracking.  */
-int flag_var_tracking_assignments = AUTODETECT_VALUE;
-
-/* Nonzero if we should toggle flag_var_tracking_assignments after
-   processing options and computing its default.  */
-int flag_var_tracking_assignments_toggle = 0;
 
 /* Type of stack check.  */
 enum stack_check_type flag_stack_check = NO_STACK_CHECK;
@@ -713,7 +701,7 @@ output_file_directive (FILE *asm_file, const char *input_name)
 #else
   fprintf (asm_file, "\t.file\t");
   output_quoted_string (asm_file, na);
-  putc ('\n', asm_file);
+  fputc ('\n', asm_file);
 #endif
 }
 
@@ -1273,7 +1261,7 @@ print_to_asm_out_file (print_switch_type type, const char * text)
     case SWITCH_TYPE_ENABLED:
       if (prepend_sep)
 	fputc (' ', asm_out_file);
-      fputs (text, asm_out_file);
+      fprintf (asm_out_file, text);
       /* No need to return the length here as
 	 print_single_switch has already done it.  */
       return 0;
@@ -1302,7 +1290,7 @@ print_to_stderr (print_switch_type type, const char * text)
       /* Drop through.  */
 
     case SWITCH_TYPE_DESCRIPTIVE:
-      fputs (text, stderr);
+      fprintf (stderr, text);
       /* No need to return the length here as
 	 print_single_switch has already done it.  */
       return 0;
@@ -1494,7 +1482,7 @@ init_asm_output (const char *name)
 	     into the assembler file as comments.  */
 	  print_version (asm_out_file, ASM_COMMENT_START);
 	  print_switch_values (print_to_asm_out_file);
-	  putc ('\n', asm_out_file);
+	  fprintf (asm_out_file, "\n");
 	}
 #endif
     }
@@ -1610,8 +1598,8 @@ default_pch_valid_p (const void *data_p, size_t len)
 }
 
 /* Default tree printer.   Handles declarations only.  */
-bool
-default_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
+static bool
+default_tree_printer (pretty_printer * pp, text_info *text, const char *spec,
 		      int precision, bool wide, bool set_locus, bool hash)
 {
   tree t;
@@ -1917,17 +1905,12 @@ process_options (void)
   if (flag_gtoggle)
     {
       if (debug_info_level == DINFO_LEVEL_NONE)
-	{
-	  debug_info_level = DINFO_LEVEL_NORMAL;
-
-	  if (write_symbols == NO_DEBUG)
-	    write_symbols = PREFERRED_DEBUGGING_TYPE;
-	}
+	debug_info_level = DINFO_LEVEL_NORMAL;
       else
 	debug_info_level = DINFO_LEVEL_NONE;
     }
 
-  if (flag_dump_final_insns && !flag_syntax_only && !no_backend)
+  if (flag_dump_final_insns)
     {
       FILE *final_output = fopen (flag_dump_final_insns, "w");
       if (!final_output)
@@ -2021,32 +2004,12 @@ process_options (void)
       flag_var_tracking_uninit = 0;
     }
 
-  /* If the user specifically requested variable tracking with tagging
-     uninitialized variables, we need to turn on variable tracking.
-     (We already determined above that variable tracking is feasible.)  */
-  if (flag_var_tracking_uninit)
-    flag_var_tracking = 1;
-
-  if (flag_var_tracking == AUTODETECT_VALUE)
-    flag_var_tracking = optimize >= 1;
-
-  if (flag_var_tracking_assignments == AUTODETECT_VALUE)
-    flag_var_tracking_assignments = flag_var_tracking
-      && !(flag_selective_scheduling || flag_selective_scheduling2);
-
-  if (flag_var_tracking_assignments_toggle)
-    flag_var_tracking_assignments = !flag_var_tracking_assignments;
-
-  if (flag_var_tracking_assignments && !flag_var_tracking)
-    flag_var_tracking = flag_var_tracking_assignments = -1;
-
-  if (flag_var_tracking_assignments
-      && (flag_selective_scheduling || flag_selective_scheduling2))
-    warning (0, "var-tracking-assignments changes selective scheduling");
-
   if (flag_rename_registers == AUTODETECT_VALUE)
     flag_rename_registers = default_debug_hooks->var_location
 	    		    != do_nothing_debug_hooks.var_location;
+
+  if (flag_var_tracking == AUTODETECT_VALUE)
+    flag_var_tracking = optimize >= 1;
 
   if (flag_tree_cselim == AUTODETECT_VALUE)
 #ifdef HAVE_conditional_move
@@ -2054,6 +2017,12 @@ process_options (void)
 #else
     flag_tree_cselim = 0;
 #endif
+
+  /* If the user specifically requested variable tracking with tagging
+     uninitialized variables, we need to turn on variable tracking.
+     (We already determined above that variable tracking is feasible.)  */
+  if (flag_var_tracking_uninit)
+    flag_var_tracking = 1;
 
   /* If auxiliary info generation is desired, open the output file.
      This goes in the same directory as the source file--unlike

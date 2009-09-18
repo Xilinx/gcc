@@ -346,8 +346,8 @@ check_call (funct_state local, gimple call, bool ipa)
         {
 	  if (dump_file)
 	    {
-	      fprintf (dump_file, "    can throw externally to lp %i\n",
-	      	       lookup_stmt_eh_lp (call));
+	      fprintf (dump_file, "    can throw externally in region %i\n",
+	      	       lookup_stmt_eh_region (call));
 	      if (callee_t)
 		fprintf (dump_file, "     callee:%s\n",
 			 IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (callee_t)));
@@ -410,9 +410,6 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
 {
   gimple stmt = gsi_stmt (*gsip);
   unsigned int i = 0;
-
-  if (is_gimple_debug (stmt))
-    return;
 
   if (dump_file)
     {

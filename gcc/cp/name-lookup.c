@@ -1257,6 +1257,7 @@ check_for_out_of_scope_variable (tree decl)
 static bool keep_next_level_flag;
 
 static int binding_depth = 0;
+static int is_class_level = 0;
 
 static void
 indent (int depth)
@@ -1338,6 +1339,7 @@ push_binding_level (struct cp_binding_level *scope)
       scope->binding_depth = binding_depth;
       indent (binding_depth);
       cxx_scope_debug (scope, input_line, "push");
+      is_class_level = 0;
       binding_depth++;
     }
 }
@@ -1425,6 +1427,12 @@ leave_scope (void)
     {
       indent (--binding_depth);
       cxx_scope_debug (scope, input_line, "leave");
+      if (is_class_level != (scope == class_binding_level))
+	{
+	  indent (binding_depth);
+	  verbatim ("XXX is_class_level != (current_scope == class_scope)\n");
+	}
+      is_class_level = 0;
     }
 
   /* Move one nesting level up.  */
@@ -1474,6 +1482,7 @@ resume_scope (struct cp_binding_level* b)
       b->binding_depth = binding_depth;
       indent (binding_depth);
       cxx_scope_debug (b, input_line, "resume");
+      is_class_level = 0;
       binding_depth++;
     }
 }
@@ -2553,6 +2562,9 @@ pop_inner_scope (tree outer, tree inner)
 void
 pushlevel_class (void)
 {
+  if (ENABLE_SCOPE_CHECKING)
+    is_class_level = 1;
+
   class_binding_level = begin_scope (sk_class, current_class_type);
 }
 
@@ -2590,7 +2602,9 @@ poplevel_class (void)
 
   /* Now, pop out of the binding level which we created up in the
      `pushlevel_class' routine.  */
-  gcc_assert (current_binding_level == level);
+  if (ENABLE_SCOPE_CHECKING)
+    is_class_level = 1;
+
   leave_scope ();
   timevar_pop (TV_NAME_LOOKUP);
 }

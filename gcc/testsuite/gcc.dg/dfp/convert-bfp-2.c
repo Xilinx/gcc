@@ -1,3 +1,5 @@
+/* { dg-options "-std=gnu99" } */
+
 /* This test assumes IEEE float and double.  It also tests long double
    but makes no assumption about its size or range of values.  */
 
@@ -29,5 +31,7 @@ main ()
   CALL_VALID_ALL (t6)
   CALL_VALID_ALL (t7)
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+  return 0;
 }

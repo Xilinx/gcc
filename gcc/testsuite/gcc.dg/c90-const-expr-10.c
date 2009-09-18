@@ -5,26 +5,24 @@
 /* { dg-do compile } */
 /* { dg-options "-std=iso9899:1990 -pedantic-errors" } */
 
-__extension__ typedef __SIZE_TYPE__ size_t;
-
-void *p = (size_t)(void *)0; /* { dg-error "without a cast" } */
-struct s { void *a; } q = { (size_t)(void *)0 }; /* { dg-error "without a cast" } */
+void *p = (__SIZE_TYPE__)(void *)0; /* { dg-error "without a cast" } */
+struct s { void *a; } q = { (__SIZE_TYPE__)(void *)0 }; /* { dg-error "without a cast" } */
 void *
 f (void)
 {
   void *r;
-  r = (size_t)(void *)0; /* { dg-error "without a cast" } */
-  return (size_t)(void *)0; /* { dg-error "without a cast" } */
+  r = (__SIZE_TYPE__)(void *)0; /* { dg-error "without a cast" } */
+  return (__SIZE_TYPE__)(void *)0; /* { dg-error "without a cast" } */
 }
 void g (void *); /* { dg-message "but argument is of type" } */
 void
 h (void)
 {
-  g ((size_t)(void *)0); /* { dg-error "without a cast" } */
+  g ((__SIZE_TYPE__)(void *)0); /* { dg-error "without a cast" } */
 }
 void g2 (int, void *); /* { dg-message "but argument is of type" } */
 void
 h2 (void)
 {
-  g2 (0, (size_t)(void *)0); /* { dg-error "without a cast" } */
+  g2 (0, (__SIZE_TYPE__)(void *)0); /* { dg-error "without a cast" } */
 }

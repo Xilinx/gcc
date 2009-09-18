@@ -217,9 +217,7 @@ nanosleep (struct timestruc_t *Rqtp, struct timestruc_t *Rmtp)
 static void __gnat_error_handler (int sig, siginfo_t * si, void * uc);
 
 static void
-__gnat_error_handler (int sig,
-		      siginfo_t * si ATTRIBUTE_UNUSED,
-		      void * uc ATTRIBUTE_UNUSED)
+__gnat_error_handler (int sig, siginfo_t * si, void * uc)
 {
   struct Exception_Data *exception;
   const char *msg;

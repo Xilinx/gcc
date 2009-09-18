@@ -1,4 +1,5 @@
 /* { dg-do compile } */
+/* { dg-options "-std=gnu99" } */
 
 /* Check that the compiler generates the correct decimal float constants.  */
 

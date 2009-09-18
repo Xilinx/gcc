@@ -1,11 +1,17 @@
-/* { dg-options "-O0" } */
+/* { dg-options "-std=gnu99 -O0" } */
 
 /* N1150 5.1 Conversion between decimal floating types and integer.
    C99 6.3.1.4(1a) New.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+int failcnt;
 
-#define BOOL _Bool
+#ifdef DBG
+extern int printf (const char *, ...);
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 _Decimal32 d32;
 _Decimal64 d64;
@@ -16,7 +22,7 @@ unsigned long long ull;
 int si;
 long sl;
 long long sll;
-BOOL b;
+_Bool b;
 
 void
 init_dfp_1 (void)
@@ -62,7 +68,7 @@ main ()
 {
   /* C99 Section 6.7.2 Type specifiers.  Type _Bool is 
      mentioned in this section.  Conversions between 
-     BOOL and DFP types.  */
+     _Bool and DFP types.  */
 
   /* Decimal float to unsigned integer.  */
   init_dfp_1 ();
@@ -99,7 +105,7 @@ main ()
 
   /* Decimal float to signed integer.  */
 
-  /* Decimal float to BOOL.  */
+  /* Decimal float to _Bool.  */
   init_dfp_2 ();
 
   b = d32;
@@ -178,7 +184,7 @@ main ()
   if (d128 != -1234567.dl)
     FAILURE
 
-  /* BOOL to decimal float.  */
+  /* _Bool to decimal float.  */
   init_dfp_3 ();
   
   b = d32;
@@ -191,5 +197,8 @@ main ()
   if (b)
     FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

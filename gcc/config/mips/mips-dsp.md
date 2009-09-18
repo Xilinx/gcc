@@ -1102,10 +1102,11 @@
 (define_insn "mips_bposge"
   [(set (pc)
 	(if_then_else (ge (reg:CCDSP CCDSP_PO_REGNUM)
-			  (match_operand:SI 1 "immediate_operand" "I"))
-		      (label_ref (match_operand 0 "" ""))
+			  (match_operand:SI 0 "immediate_operand" "I"))
+		      (label_ref (match_operand 1 "" ""))
 		      (pc)))]
   "ISA_HAS_DSP"
-  "%*bposge%1\t%0%/"
-  [(set_attr "type"	"branch")])
+  "%*bposge%0\t%1%/"
+  [(set_attr "type"	"branch")
+   (set_attr "mode"	"none")])
 

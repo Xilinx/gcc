@@ -1,7 +1,19 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 6.5.2.2 Function calls.
    Test passing array elements involving decimal floating point types. */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+static int failcnt;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 /* A handful of functions that return the Nth _Decimal32 argument of
    an incoming array.  */
@@ -153,5 +165,8 @@ int main()
   if (arg4_128 (d128) != 4.0dl) FAILURE
   if (arg5_128 (d128) != 5.0dl) FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

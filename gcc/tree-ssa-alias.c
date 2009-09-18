@@ -168,12 +168,9 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
 {
   struct ptr_info_def *pi;
 
-  gcc_assert ((TREE_CODE (ptr) == SSA_NAME
-	       || TREE_CODE (ptr) == ADDR_EXPR
-	       || TREE_CODE (ptr) == INTEGER_CST)
-	      && (TREE_CODE (decl) == VAR_DECL
-		  || TREE_CODE (decl) == PARM_DECL
-		  || TREE_CODE (decl) == RESULT_DECL));
+  gcc_assert (TREE_CODE (decl) == VAR_DECL
+	      || TREE_CODE (decl) == PARM_DECL
+	      || TREE_CODE (decl) == RESULT_DECL);
 
   /* Non-aliased variables can not be pointed to.  */
   if (!may_be_aliased (decl))
@@ -197,9 +194,9 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
 	return true;
     }
 
-  /* We can end up with dereferencing constant pointers.
+  /* We can end up with dereferencing non-SSA name pointers.
      Just bail out in this case.  */
-  if (TREE_CODE (ptr) == INTEGER_CST)
+  if (TREE_CODE (ptr) != SSA_NAME)
     return true;
 
   /* If we do not have useful points-to information for this pointer
@@ -207,14 +204,6 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
   pi = SSA_NAME_PTR_INFO (ptr);
   if (!pi)
     return true;
-
-  /* If the decl can be used as a restrict tag and we have a restrict
-     pointer and that pointers points-to set doesn't contain this decl
-     then they can't alias.  */
-  if (DECL_RESTRICTED_P (decl)
-      && TYPE_RESTRICT (TREE_TYPE (ptr))
-      && pi->pt.vars_contains_restrict)
-    return bitmap_bit_p (pi->pt.vars, DECL_UID (decl));
 
   return pt_solution_includes (&pi->pt, decl);
 }
@@ -227,13 +216,6 @@ static bool
 ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
 {
   struct ptr_info_def *pi1, *pi2;
-
-  gcc_assert ((TREE_CODE (ptr1) == SSA_NAME
-	       || TREE_CODE (ptr1) == ADDR_EXPR
-	       || TREE_CODE (ptr1) == INTEGER_CST)
-	      && (TREE_CODE (ptr2) == SSA_NAME
-		  || TREE_CODE (ptr2) == ADDR_EXPR
-		  || TREE_CODE (ptr2) == INTEGER_CST));
 
   /* ADDR_EXPR pointers either just offset another pointer or directly
      specify the pointed-to set.  */
@@ -262,10 +244,10 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
 	return true;
     }
 
-  /* We can end up with dereferencing constant pointers.
+  /* We can end up with dereferencing non-SSA name pointers.
      Just bail out in this case.  */
-  if (TREE_CODE (ptr1) == INTEGER_CST
-      || TREE_CODE (ptr2) == INTEGER_CST)
+  if (TREE_CODE (ptr1) != SSA_NAME 
+      || TREE_CODE (ptr2) != SSA_NAME)
     return true;
 
   /* We may end up with two empty points-to solutions for two same pointers.
@@ -789,14 +771,10 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
   if (TREE_CODE (base1) == SSA_NAME
       || TREE_CODE (base2) == SSA_NAME
       || is_gimple_min_invariant (base1)
-      || is_gimple_min_invariant (base2))
+      || is_gimple_min_invariant (base2)
+      || TREE_CODE (base1) == CONSTRUCTOR
+      || TREE_CODE (base2) == CONSTRUCTOR)
     return false;
-
-  /* We can end up refering to code via function decls.  As we likely
-     do not properly track code aliases conservatively bail out.  */
-  if (TREE_CODE (base1) == FUNCTION_DECL
-      || TREE_CODE (base2) == FUNCTION_DECL)
-    return true;
 
   /* Defer to simple offset based disambiguation if we have
      references based on two decls.  Do this before defering to
@@ -1035,6 +1013,10 @@ process_args:
   for (i = 0; i < gimple_call_num_args (call); ++i)
     {
       tree op = gimple_call_arg (call, i);
+
+      if (TREE_CODE (op) == EXC_PTR_EXPR
+	  || TREE_CODE (op) == FILTER_EXPR)
+	continue;
 
       if (TREE_CODE (op) == WITH_SIZE_EXPR)
 	op = TREE_OPERAND (op, 0);

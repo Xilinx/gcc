@@ -1,4 +1,4 @@
-/* { dg-options "-O0 -w" } */
+/* { dg-options "-std=gnu99 -O0" } */
 
 /* N1150 5.1 Conversions from decimal float to integer.  */
 
@@ -6,7 +6,15 @@
    what will fit into the destination type.  This assumes 32-bit int and
    64-bit long long (there's a check for that below).  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+int failcnt;
+
+#ifdef DBG
+extern int printf (const char *, ...);
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 volatile _Decimal32 d32;
 volatile _Decimal64 d64;
@@ -142,5 +150,7 @@ main ()
 
   doit ();
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+  return 0;
 }

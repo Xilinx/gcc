@@ -316,8 +316,6 @@ extern struct gimple_opt_pass pass_remove_useless_stmts;
 extern struct gimple_opt_pass pass_lower_cf;
 extern struct gimple_opt_pass pass_refactor_eh;
 extern struct gimple_opt_pass pass_lower_eh;
-extern struct gimple_opt_pass pass_lower_eh_dispatch;
-extern struct gimple_opt_pass pass_lower_resx;
 extern struct gimple_opt_pass pass_build_cfg;
 extern struct gimple_opt_pass pass_tree_profile;
 extern struct gimple_opt_pass pass_early_tree_profile;
@@ -327,7 +325,6 @@ extern struct gimple_opt_pass pass_cleanup_eh;
 extern struct gimple_opt_pass pass_fixup_cfg;
 extern struct gimple_opt_pass pass_sra;
 extern struct gimple_opt_pass pass_sra_early;
-extern struct gimple_opt_pass pass_early_ipa_sra;
 extern struct gimple_opt_pass pass_tail_recursion;
 extern struct gimple_opt_pass pass_tail_calls;
 extern struct gimple_opt_pass pass_tree_loop;
@@ -412,7 +409,6 @@ extern struct gimple_opt_pass pass_warn_unused_result;
 
 /* IPA Passes */
 extern struct ipa_opt_pass_d pass_ipa_inline;
-extern struct simple_ipa_opt_pass pass_ipa_free_lang_data;
 extern struct ipa_opt_pass_d pass_ipa_cp;
 extern struct ipa_opt_pass_d pass_ipa_reference;
 extern struct ipa_opt_pass_d pass_ipa_pure_const;

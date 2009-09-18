@@ -1,8 +1,20 @@
+/* { dg-options "-std=gnu99" } */
+
 /* C99 6.5.2.2 Function calls.
    Test structure passing and return values involving decimal floating
    point types.  */
 
-#include "dfp-dbg.h"
+extern void abort (void);
+static int failcnt;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 struct example
 {
@@ -89,5 +101,8 @@ main ()
   if (ptr_dummy1_field (&nums) != 'a') FAILURE
   if (ptr_dummy2_field (&nums) != 'b') FAILURE
 
-  FINISH
+  if (failcnt != 0)
+    abort ();
+
+  return 0;
 }

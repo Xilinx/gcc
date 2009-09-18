@@ -84,7 +84,6 @@ The callgraph:
 #include "tree-dump.h"
 #include "tree-flow.h"
 #include "value-prof.h"
-#include "except.h"
 
 static void cgraph_node_remove_callers (struct cgraph_node *node);
 static inline void cgraph_edge_remove_caller (struct cgraph_edge *e);
@@ -404,33 +403,6 @@ hash_node (const void *p)
   const struct cgraph_node *n = (const struct cgraph_node *) p;
   return (hashval_t) DECL_UID (n->decl);
 }
-
-
-/* Return the cgraph node associated with function DECL.  If none
-   exists, return NULL.  */
-
-struct cgraph_node *
-cgraph_node_for_decl (tree decl)
-{
-  struct cgraph_node *node;
-  void **slot;
-
-  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
-
-  node = NULL;
-  if (cgraph_hash)
-    {
-      struct cgraph_node key;
-
-      key.decl = decl;
-      slot = htab_find_slot (cgraph_hash, &key, NO_INSERT);
-      if (slot && *slot)
-	node = (struct cgraph_node *) *slot;
-    }
-
-  return node;
-}
-
 
 /* Returns nonzero if P1 and P2 are equal.  */
 
@@ -1921,6 +1893,9 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	    push_cfun (DECL_STRUCT_FUNCTION (fndecl));
 	    current_function_decl = fndecl;
 	    gimple_register_cfg_hooks ();
+	    /* C++ Thunks are emitted late via this function, gimplify them.  */
+	    if (!gimple_body (fndecl))
+	      gimplify_function_tree (fndecl);
 	    tree_lowering_passes (fndecl);
 	    bitmap_obstack_initialize (NULL);
 	    if (!gimple_in_ssa_p (DECL_STRUCT_FUNCTION (fndecl)))
@@ -1954,12 +1929,6 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	current_function_decl = NULL;
 	break;
     }
-
-  /* Set a personality if required and we already passed EH lowering.  */
-  if (lowered
-      && (function_needs_eh_personality (DECL_STRUCT_FUNCTION (fndecl))
-	  == eh_personality_lang))
-    DECL_FUNCTION_PERSONALITY (fndecl) = lang_hooks.eh_personality ();
 }
 
 /* Return true if NODE can be made local for API change.

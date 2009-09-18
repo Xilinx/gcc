@@ -190,7 +190,7 @@
   putc ('.', FILE);						\
   RS6000_OUTPUT_BASENAME (FILE, buffer);			\
   fputs (":\n", FILE);						\
-  if (write_symbols != NO_DEBUG && !DECL_IGNORED_P (DECL))	\
+  if (write_symbols != NO_DEBUG)				\
     xcoffout_declare_function (FILE, DECL, buffer);		\
 }
 

@@ -52,7 +52,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-dump.h"
 #include "intl.h"
 #include "gimple.h"
-#include "pointer-set.h"
 
 extern cpp_reader *parse_in;
 
@@ -254,7 +253,7 @@ maybe_retrofit_in_chrg (tree fn)
    FUNCTION is a FUNCTION_DECL.  It was created by `grokdeclarator'.
 
    FLAGS contains bits saying what's special about today's
-   arguments.  DTOR_FLAG == DESTRUCTOR.
+   arguments.  1 == DESTRUCTOR.  2 == OPERATOR.
 
    If FUNCTION is a destructor, then we must add the `auto-delete' field
    as a second parameter.  There is some hair associated with the fact
@@ -764,7 +763,6 @@ grokfield (const cp_declarator *declarator,
   tree value;
   const char *asmspec = 0;
   int flags = LOOKUP_ONLYCONVERTING;
-  tree name;
 
   if (init
       && TREE_CODE (init) == TREE_LIST
@@ -793,21 +791,11 @@ grokfield (const cp_declarator *declarator,
       && DECL_CONTEXT (value) != current_class_type)
     return value;
 
-  name = DECL_NAME (value);
-
-  if (name != NULL_TREE)
-    {
-      if (TREE_CODE (name) == TEMPLATE_ID_EXPR)
-	{
-	  error ("explicit template argument list not allowed");
-	  return error_mark_node;
-	}
-
-      if (IDENTIFIER_POINTER (name)[0] == '_'
-	  && ! strcmp (IDENTIFIER_POINTER (name), "_vptr"))
-	error ("member %qD conflicts with virtual function table field name",
-	       value);
-    }
+  if (DECL_NAME (value) != NULL_TREE
+      && IDENTIFIER_POINTER (DECL_NAME (value))[0] == '_'
+      && ! strcmp (IDENTIFIER_POINTER (DECL_NAME (value)), "_vptr"))
+    error ("member %qD conflicts with virtual function table field name",
+	   value);
 
   /* Stash away type declarations.  */
   if (TREE_CODE (value) == TYPE_DECL)
@@ -3300,46 +3288,10 @@ cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED)
 
 /* Java requires that we be able to reference a local address for a
    method, and not be confused by PLT entries.  If hidden aliases are
-   supported, collect and return all the functions for which we should
-   emit a hidden alias.  */
-
-static struct pointer_set_t *
-collect_candidates_for_java_method_aliases (void)
-{
-  struct cgraph_node *node;
-  struct pointer_set_t *candidates = NULL;
-
-#ifndef HAVE_GAS_HIDDEN
-  return candidates;
-#endif
-
-  for (node = cgraph_nodes; node ; node = node->next)
-    {
-      tree fndecl = node->decl;
-
-      if (DECL_CONTEXT (fndecl)
-	  && TYPE_P (DECL_CONTEXT (fndecl))
-	  && TYPE_FOR_JAVA (DECL_CONTEXT (fndecl))
-	  && TARGET_USE_LOCAL_THUNK_ALIAS_P (fndecl))
-	{
-	  if (candidates == NULL)
-	    candidates = pointer_set_create ();
-	  pointer_set_insert (candidates, fndecl);
-	}
-    }
-
-  return candidates;
-}
-
-
-/* Java requires that we be able to reference a local address for a
-   method, and not be confused by PLT entries.  If hidden aliases are
-   supported, emit one for each java function that we've emitted.
-   CANDIDATES is the set of FUNCTION_DECLs that were gathered
-   by collect_candidates_for_java_method_aliases.  */
+   supported, emit one for each java function that we've emitted.  */
 
 static void
-build_java_method_aliases (struct pointer_set_t *candidates)
+build_java_method_aliases (void)
 {
   struct cgraph_node *node;
 
@@ -3352,7 +3304,10 @@ build_java_method_aliases (struct pointer_set_t *candidates)
       tree fndecl = node->decl;
 
       if (TREE_ASM_WRITTEN (fndecl)
-	  && pointer_set_contains (candidates, fndecl))
+	  && DECL_CONTEXT (fndecl)
+	  && TYPE_P (DECL_CONTEXT (fndecl))
+	  && TYPE_FOR_JAVA (DECL_CONTEXT (fndecl))
+	  && TARGET_USE_LOCAL_THUNK_ALIAS_P (fndecl))
 	{
 	  /* Mangle the name in a predictable way; we need to reference
 	     this from a java compiled object file.  */
@@ -3424,7 +3379,6 @@ cp_write_global_declarations (void)
   unsigned ssdf_count = 0;
   int retries = 0;
   tree decl;
-  struct pointer_set_t *candidates;
 
   locus = input_location;
   at_eof = 1;
@@ -3722,9 +3676,6 @@ cp_write_global_declarations (void)
      linkage now.  */
   pop_lang_context ();
 
-  /* Collect candidates for Java hidden aliases.  */
-  candidates = collect_candidates_for_java_method_aliases ();
-
   cgraph_finalize_compilation_unit ();
 
   /* Now, issue warnings about static, but not defined, functions,
@@ -3739,11 +3690,7 @@ cp_write_global_declarations (void)
     }
 
   /* Generate hidden aliases for Java.  */
-  if (candidates)
-    {
-      build_java_method_aliases (candidates);
-      pointer_set_destroy (candidates);
-    }
+  build_java_method_aliases ();
 
   finish_repo ();
 
