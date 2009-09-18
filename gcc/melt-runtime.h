@@ -51,9 +51,8 @@ along with GCC; see the file COPYING3.   If not see
 
 #include "gcc-plugin.h"
 
-/* declared in toplev.h which we want to avoid #include-ing */
-extern void fatal_error (const char *, ...);
-
+/* we include toplev.h for the error routines */
+#include "toplev.h"
 
 #define dbgprintf_raw(Fmt,...) do{if (dump_file) \
       {fprintf(dump_file, Fmt, ##__VA_ARGS__); fflush(dump_file);}}while(0)

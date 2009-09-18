@@ -2635,7 +2635,7 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
 ## we pass the MELT_PRIVATE_INCLUDE_DIR 
 $(MELT_OBJ):  $(MELT_C)  \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
-   tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H)
+   tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H)
 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
 	  -DMELT_PRIVATE_INCLUDE_DIR=\"$(melt_private_include_dir)\" \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
@@ -4963,7 +4963,7 @@ MELT_CFLAGS= $(shell echo $(MELT_RAW_CFLAGS) | sed 's/ -O[2-9]/ -O1/')
 # there is also a dependency on tm.h (in objdir) which contains stuff like #include "config/i386/x86-64.h"
 run-melt.d: run-melt.h \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
-   tree-pass.h melt-runtime.h gt-melt-runtime.h
+   tree-pass.h melt-runtime.h gt-melt-runtime.h $(TOPLEV_H)
 ## perhaps this should really use depcomp, because this works only if
 ## CC is some gcc 4.x since it use the precompiled headers feature
 	$(CC) -MT run-melt-deps -MMD -MF $@ $(ALL_CFLAGS) $(ALL_CPPFLAGS) $< -o run-melt.h.gch

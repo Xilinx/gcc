@@ -1,5 +1,9 @@
 
 2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h: added include of "toplev.h".
+	* Makefile.in (run-melt.d, melt-run.o): added dependency.
+
+2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make.mk: warmeltallbig generates warmelt*0.c files in the
 	build directory.
 	* melt/warmelt-first.melt: renamed class_modulcontext as
