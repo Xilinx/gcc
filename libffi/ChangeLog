@@ -1,3 +1,70 @@
+2009-09-17  Loren J. Rittle  <ljrittle@acm.org>
+
+	PR testsuite/32843 (strikes again)
+	* src/x86/ffi.c (ffi_prep_cif_machdep): Add X86_FREEBSD to
+	enable proper extension on char and short.
+
+2009-09-15  David Daney  <ddaney@caviumnetworks.com>
+
+	* src/java_raw_api.c (ffi_java_raw_to_rvalue): Remove special
+	handling for FFI_TYPE_POINTER.
+	* src/mips/ffitarget.h (FFI_TYPE_STRUCT_D_SOFT,
+	FFI_TYPE_STRUCT_F_SOFT, FFI_TYPE_STRUCT_DD_SOFT,
+	FFI_TYPE_STRUCT_FF_SOFT, FFI_TYPE_STRUCT_FD_SOFT,
+	FFI_TYPE_STRUCT_DF_SOFT, FFI_TYPE_STRUCT_SOFT): New defines.
+	(FFI_N32_SOFT_FLOAT, FFI_N64_SOFT_FLOAT): New ffi_abi enumerations.
+	(enum ffi_abi): Set FFI_DEFAULT_ABI for soft-float.
+	* src/mips/n32.S (ffi_call_N32): Add handling for soft-float
+	structure and pointer returns.
+	(ffi_closure_N32): Add handling for pointer returns.
+	* src/mips/ffi.c (ffi_prep_args, calc_n32_struct_flags,
+	calc_n32_return_struct_flags): Handle soft-float.
+	(ffi_prep_cif_machdep):  Handle soft-float, fix pointer handling.
+	(ffi_call_N32): Declare proper argument types.
+	(ffi_call, copy_struct_N32, ffi_closure_mips_inner_N32): Handle
+	soft-float.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (install-html, install-pdf): Remove.
+	* Makefile.in: Regenerate.
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* fficonfig.h.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* man/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (_AC_ARG_VAR_PRECIOUS): Use m4_rename_force.
+
+2009-07-24  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR libffi/40807
+	* src/x86/ffi.c (ffi_prep_cif_machdep): Also use sign/zero-extending
+	return types for X86_WIN32.
+	* src/x86/win32.S (_ffi_call_SYSV): Handle omitted return types.
+	(_ffi_call_STDCALL, _ffi_closure_SYSV, _ffi_closure_raw_SYSV,
+	_ffi_closure_STDCALL): Likewise.
+
+	* src/closures.c (is_selinux_enabled): Define to const 0 for Cygwin.
+	(dlmmap, dlmunmap): Also use these functions on Cygwin.
+
+2009-07-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR testsuite/40699
+	PR testsuite/40707
+	PR testsuite/40709
+	* testsuite/lib/libffi-dg.exp: Revert 2009-07-02, 2009-07-01 and
+	2009-06-30 commits.
+
 2009-07-01  Richard Sandiford  <r.sandiford@uk.ibm.com>
 
 	* testsuite/lib/libffi-dg.exp (libffi-init): Set ld_library_path

@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,14 +26,17 @@
 with Ada.Directories;  use Ada.Directories;
 with GNAT.HTable;      use GNAT.HTable;
 with Makeutl;          use Makeutl;
+with MLib.Tgt;
 with Opt;              use Opt;
 with Output;           use Output;
+with Prj.Env;
+with Prj.Err;
 with Prj.Part;
+with Prj.PP;
 with Prj.Proc;         use Prj.Proc;
 with Prj.Tree;         use Prj.Tree;
 with Prj.Util;         use Prj.Util;
 with Prj;              use Prj;
-with Sinput.P;
 with Snames;           use Snames;
 with System.Case_Util; use System.Case_Util;
 with System;
@@ -350,7 +352,7 @@ package body Prj.Conf is
       end if;
 
       if Target = "" then
-         OK := not Autoconf_Specified or Tgt_Name = No_Name;
+         OK := not Autoconf_Specified or else Tgt_Name = No_Name;
       else
          OK := Tgt_Name /= No_Name
                  and then Target = Get_Name_String (Tgt_Name);
@@ -397,6 +399,7 @@ package body Prj.Conf is
       Config                     : out Prj.Project_Id;
       Config_File_Path           : out String_Access;
       Automatically_Generated    : out Boolean;
+      Flags                      : Processing_Flags;
       On_Load_Config             : Config_File_Hook := null)
    is
       function Default_File_Name return String;
@@ -674,7 +677,6 @@ package body Prj.Conf is
                Name_Len := 0;
                Add_Str_To_Name_Buffer
                  (Get_Name_String (Project.Directory.Name));
-               Add_Char_To_Name_Buffer (Directory_Separator);
                Add_Str_To_Name_Buffer (Get_Name_String (Obj_Dir.Value));
             end if;
          end if;
@@ -696,6 +698,8 @@ package body Prj.Conf is
             Args     : Argument_List (1 .. 5);
             Arg_Last : Positive;
 
+            Obj_Dir_Exists : Boolean := True;
+
          begin
             --  Check if the object directory exists. If Setup_Projects is True
             --  (-p) and directory does not exist, attempt to create it.
@@ -703,7 +707,7 @@ package body Prj.Conf is
             --  gprconfig.
 
             if not Is_Directory (Obj_Dir)
-              and then (Setup_Projects or Subdirs /= null)
+              and then (Setup_Projects or else Subdirs /= null)
             then
                begin
                   Create_Path (Obj_Dir);
@@ -722,8 +726,18 @@ package body Prj.Conf is
             end if;
 
             if not Is_Directory (Obj_Dir) then
-               raise Invalid_Config
-                 with "object directory " & Obj_Dir & " does not exist";
+               case Flags.Require_Obj_Dirs is
+                  when Error =>
+                     raise Invalid_Config
+                       with "object directory " & Obj_Dir & " does not exist";
+                  when Warning =>
+                     Prj.Err.Error_Msg
+                       (Flags,
+                        "?object directory " & Obj_Dir & " does not exist");
+                     Obj_Dir_Exists := False;
+                  when Silent =>
+                     null;
+               end case;
             end if;
 
             --  Invoke gprconfig
@@ -734,8 +748,35 @@ package body Prj.Conf is
             --  If no config file was specified, set the auto.cgpr one
 
             if Config_File_Name = "" then
-               Args (3) := new String'
-                 (Obj_Dir & Directory_Separator & Auto_Cgpr);
+               if Obj_Dir_Exists then
+                  Args (3) :=
+                    new String'(Obj_Dir & Directory_Separator & Auto_Cgpr);
+
+               else
+                  declare
+                     Path_FD   : File_Descriptor;
+                     Path_Name : Path_Name_Type;
+
+                  begin
+                     Prj.Env.Create_Temp_File
+                       (In_Tree   => Project_Tree,
+                        Path_FD   => Path_FD,
+                        Path_Name => Path_Name,
+                        File_Use  => "configuration file");
+
+                     if Path_FD /= Invalid_FD then
+                        Args (3) := new String'(Get_Name_String (Path_Name));
+                        GNAT.OS_Lib.Close (Path_FD);
+
+                     else
+                        --  We'll have an error message later on
+
+                        Args (3) :=
+                          new String'
+                            (Obj_Dir & Directory_Separator & Auto_Cgpr);
+                     end if;
+                  end;
+               end if;
             else
                Args (3) := new String'(Config_File_Name);
             end if;
@@ -773,9 +814,16 @@ package body Prj.Conf is
                Write_Eol;
 
             elsif not Quiet_Output then
-               Write_Str ("creating ");
-               Write_Str (Simple_Name (Args (3).all));
-               Write_Eol;
+               --  Display no message if we are creating auto.cgpr, unless in
+               --  verbose mode
+
+               if Config_File_Name /= ""
+                 or else Verbose_Mode
+               then
+                  Write_Str ("creating ");
+                  Write_Str (Simple_Name (Args (3).all));
+                  Write_Eol;
+               end if;
             end if;
 
             Spawn (Gprconfig_Path.all, Args (1 .. Arg_Last) & Switches.all,
@@ -844,7 +892,8 @@ package body Prj.Conf is
             Always_Errout_Finalize => False,
             Packages_To_Check      => Packages_To_Check,
             Current_Directory      => Current_Directory,
-            Is_Config_File         => True);
+            Is_Config_File         => True,
+            Flags                  => Flags);
       else
          --  Maybe the user will want to create his own configuration file
          Config_Project_Node := Empty_Node;
@@ -863,7 +912,7 @@ package body Prj.Conf is
             Success                => Success,
             From_Project_Node      => Config_Project_Node,
             From_Project_Node_Tree => Project_Node_Tree,
-            Report_Error           => null,
+            Flags                  => Flags,
             Reset_Tree             => False);
       end if;
 
@@ -880,8 +929,8 @@ package body Prj.Conf is
       --  auto-conf mode, since the appropriate target was passed to gprconfig.
 
       if not Automatically_Generated
-        and not Check_Target
-          (Config, Autoconf_Specified, Project_Tree, Target_Name)
+        and then not
+          Check_Target (Config, Autoconf_Specified, Project_Tree, Target_Name)
       then
          Automatically_Generated := True;
          goto Process_Config_File;
@@ -905,10 +954,9 @@ package body Prj.Conf is
       Config_File_Path           : out String_Access;
       Target_Name                : String := "";
       Normalized_Hostname        : String;
-      Report_Error               : Put_Line_Access := null;
+      Flags                      : Processing_Flags;
       On_Load_Config             : Config_File_Hook := null;
-      Compiler_Driver_Mandatory  : Boolean := True;
-      Allow_Duplicate_Basenames  : Boolean := False)
+      Reset_Tree                 : Boolean := True)
    is
       Main_Config_Project : Project_Id;
       Success : Boolean;
@@ -923,7 +971,8 @@ package body Prj.Conf is
          Success                => Success,
          From_Project_Node      => User_Project_Node,
          From_Project_Node_Tree => Project_Node_Tree,
-         Report_Error           => Report_Error);
+         Flags                  => Flags,
+         Reset_Tree             => Reset_Tree);
 
       if not Success then
          Main_Project := No_Project;
@@ -945,26 +994,20 @@ package body Prj.Conf is
          Packages_To_Check          => Packages_To_Check,
          Config_File_Path           => Config_File_Path,
          Automatically_Generated    => Automatically_Generated,
+         Flags                      => Flags,
          On_Load_Config             => On_Load_Config);
 
       Apply_Config_File (Main_Config_Project, Project_Tree);
 
       --  Finish processing the user's project
 
-      Sinput.P.Reset_First;
-
       Prj.Proc.Process_Project_Tree_Phase_2
-        (In_Tree                   => Project_Tree,
-         Project                   => Main_Project,
-         Success                   => Success,
-         From_Project_Node         => User_Project_Node,
-         From_Project_Node_Tree    => Project_Node_Tree,
-         Report_Error              => Report_Error,
-         Current_Dir               => Current_Directory,
-         When_No_Sources           => Warning,
-         Compiler_Driver_Mandatory => Compiler_Driver_Mandatory,
-         Allow_Duplicate_Basenames => Allow_Duplicate_Basenames,
-         Is_Config_File            => False);
+        (In_Tree                    => Project_Tree,
+         Project                    => Main_Project,
+         Success                    => Success,
+         From_Project_Node          => User_Project_Node,
+         From_Project_Node_Tree     => Project_Node_Tree,
+         Flags                      => Flags);
 
       if not Success then
          Main_Project := No_Project;
@@ -989,13 +1032,12 @@ package body Prj.Conf is
       Config_File_Path           : out String_Access;
       Target_Name                : String := "";
       Normalized_Hostname        : String;
-      Report_Error               : Put_Line_Access := null;
+      Flags                      : Processing_Flags;
       On_Load_Config             : Config_File_Hook := null)
    is
    begin
       --  Parse the user project tree
 
-      Prj.Tree.Initialize (Project_Node_Tree);
       Prj.Initialize (Project_Tree);
 
       Main_Project      := No_Project;
@@ -1008,7 +1050,8 @@ package body Prj.Conf is
          Always_Errout_Finalize => False,
          Packages_To_Check      => Packages_To_Check,
          Current_Directory      => Current_Directory,
-         Is_Config_File         => False);
+         Is_Config_File         => False,
+         Flags                  => Flags);
 
       if User_Project_Node = Empty_Node then
          User_Project_Node := Empty_Node;
@@ -1028,7 +1071,7 @@ package body Prj.Conf is
          Config_File_Path           => Config_File_Path,
          Target_Name                => Target_Name,
          Normalized_Hostname        => Normalized_Hostname,
-         Report_Error               => Report_Error,
+         Flags                      => Flags,
          On_Load_Config             => On_Load_Config);
    end Parse_Project_And_Apply_Config;
 
@@ -1120,5 +1163,129 @@ package body Prj.Conf is
          return "";
       end if;
    end Runtime_Name_For;
+
+   ------------------------------------
+   -- Add_Default_GNAT_Naming_Scheme --
+   ------------------------------------
+
+   procedure Add_Default_GNAT_Naming_Scheme
+     (Config_File  : in out Project_Node_Id;
+      Project_Tree : Project_Node_Tree_Ref)
+   is
+      procedure Create_Attribute
+        (Name  : Name_Id;
+         Value : String;
+         Index : String := "";
+         Pkg   : Project_Node_Id := Empty_Node);
+
+      ----------------------
+      -- Create_Attribute --
+      ----------------------
+
+      procedure Create_Attribute
+        (Name  : Name_Id;
+         Value : String;
+         Index : String := "";
+         Pkg   : Project_Node_Id := Empty_Node)
+      is
+         Attr : Project_Node_Id;
+         Val  : Name_Id := No_Name;
+         Parent : Project_Node_Id := Config_File;
+      begin
+         if Index /= "" then
+            Name_Len := Index'Length;
+            Name_Buffer (1 .. Name_Len) := Index;
+            Val := Name_Find;
+         end if;
+
+         if Pkg /= Empty_Node then
+            Parent := Pkg;
+         end if;
+
+         Attr := Create_Attribute
+           (Tree       => Project_Tree,
+            Prj_Or_Pkg => Parent,
+            Name       => Name,
+            Index_Name => Val,
+            Kind       => Prj.Single);
+
+         Name_Len := Value'Length;
+         Name_Buffer (1 .. Name_Len) := Value;
+         Val := Name_Find;
+
+         Set_Expression_Of
+           (Attr, Project_Tree,
+            Enclose_In_Expression
+              (Create_Literal_String (Val, Project_Tree),
+               Project_Tree));
+      end Create_Attribute;
+
+      Name   : Name_Id;
+      Naming : Project_Node_Id;
+
+   --  Start of processing for Add_Default_GNAT_Naming_Scheme
+
+   begin
+      if Config_File = Empty_Node then
+
+         --  Create a dummy config file is none was found
+
+         Name_Len := Auto_Cgpr'Length;
+         Name_Buffer (1 .. Name_Len) := Auto_Cgpr;
+         Name := Name_Find;
+
+         --  An invalid project name to avoid conflicts with user-created ones
+
+         Name_Len := 5;
+         Name_Buffer (1 .. Name_Len) := "_auto";
+
+         Config_File :=
+           Create_Project
+             (In_Tree        => Project_Tree,
+              Name           => Name_Find,
+              Full_Path      => Path_Name_Type (Name),
+              Is_Config_File => True);
+
+         --  Setup library support
+
+         case MLib.Tgt.Support_For_Libraries is
+            when None =>
+               null;
+
+            when Static_Only =>
+               Create_Attribute (Name_Library_Support, "static_only");
+
+            when Full =>
+               Create_Attribute (Name_Library_Support, "full");
+         end case;
+
+         if MLib.Tgt.Standalone_Library_Auto_Init_Is_Supported then
+            Create_Attribute (Name_Library_Auto_Init_Supported, "true");
+         else
+            Create_Attribute (Name_Library_Auto_Init_Supported, "false");
+         end if;
+
+         --  Setup Ada support (Ada is the default language here, since this
+         --  is only called when no config file existed initially, ie for
+         --  gnatmake).
+
+         Create_Attribute (Name_Default_Language, "ada");
+
+         Naming := Create_Package (Project_Tree, Config_File, "naming");
+         Create_Attribute (Name_Spec_Suffix, ".ads", "ada",     Pkg => Naming);
+         Create_Attribute (Name_Separate_Suffix, ".adb", "ada", Pkg => Naming);
+         Create_Attribute (Name_Body_Suffix, ".adb", "ada",     Pkg => Naming);
+         Create_Attribute (Name_Dot_Replacement, "-",           Pkg => Naming);
+         Create_Attribute (Name_Casing,          "lowercase",   Pkg => Naming);
+
+         if Current_Verbosity = High then
+            Write_Line ("Automatically generated (in-memory) config file");
+            Prj.PP.Pretty_Print
+              (Project                => Config_File,
+               In_Tree                => Project_Tree,
+               Backward_Compatibility => False);
+         end if;
+      end if;
+   end Add_Default_GNAT_Naming_Scheme;
 
 end Prj.Conf;

@@ -52,6 +52,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #else
 #include "c-tree.h"
+#include "c-lang.h"
 #endif
 
 #include "c-common.h"
@@ -2582,13 +2583,13 @@ build_selector_translation_table (void)
           }
         if (!found)
 	  {
-	    location_t *loc;
+	    location_t loc;
 	    if (flag_next_runtime && TREE_PURPOSE (chain))
-	      loc = &DECL_SOURCE_LOCATION (TREE_PURPOSE (chain));
+	      loc = DECL_SOURCE_LOCATION (TREE_PURPOSE (chain));
 	    else
-	      loc = &input_location;
-	    warning (0, "%Hcreating selector for nonexistent method %qE",
-		     loc, TREE_VALUE (chain));
+	      loc = input_location;
+	    warning_at (loc, 0, "creating selector for nonexistent method %qE",
+			TREE_VALUE (chain));
 	  }
       }
 
@@ -3474,7 +3475,7 @@ struct objc_try_context
   /* The CATCH_EXPR of an open @catch clause.  */
   tree current_catch;
 
-  /* The VAR_DECL holding the Darwin equivalent of EXC_PTR_EXPR.  */
+  /* The VAR_DECL holding the Darwin equivalent of __builtin_eh_pointer.  */
   tree caught_decl;
   tree stack_decl;
   tree rethrow_decl;
@@ -3482,54 +3483,36 @@ struct objc_try_context
 
 static struct objc_try_context *cur_try_context;
 
+static GTY(()) tree objc_eh_personality_decl;
+
 /* This hook, called via lang_eh_runtime_type, generates a runtime object
    that represents TYPE.  For Objective-C, this is just the class name.  */
 /* ??? Isn't there a class object or some such?  Is it easy to get?  */
 
 #ifndef OBJCPLUS
-static tree
+tree
 objc_eh_runtime_type (tree type)
 {
   return add_objc_string (OBJC_TYPE_NAME (TREE_TYPE (type)), class_names);
 }
-#endif
 
-/* Initialize exception handling.  */
-
-static void
-objc_init_exceptions (void)
+tree
+objc_eh_personality (void)
 {
-  static bool done = false;
-  if (done)
-    return;
-  done = true;
+  if (!flag_objc_sjlj_exceptions
+      && !objc_eh_personality_decl)
+    objc_eh_personality_decl
+      = build_personality_function (USING_SJLJ_EXCEPTIONS
+				    ? "__gnu_objc_personality_sj0"
+				    : "__gnu_objc_personality_v0");
 
-  if (flag_objc_sjlj_exceptions)
-    {
-      /* On Darwin, ObjC exceptions require a sufficiently recent
-	 version of the runtime, so the user must ask for them explicitly.  */
-      if (!flag_objc_exceptions)
-	warning (0, "use %<-fobjc-exceptions%> to enable Objective-C "
-		 "exception syntax");
-    }
-#ifndef OBJCPLUS
-  else
-    {
-      c_eh_initialized_p = true;
-      eh_personality_libfunc
-	= init_one_libfunc (USING_SJLJ_EXCEPTIONS
-			    ? "__gnu_objc_personality_sj0"
-			    : "__gnu_objc_personality_v0");
-      default_init_unwind_resume_libfunc ();
-      using_eh_for_cleanups ();
-      lang_eh_runtime_type = objc_eh_runtime_type;
-    }
-#endif
+  return objc_eh_personality_decl;
 }
+#endif
 
-/* Build an EXC_PTR_EXPR, or the moral equivalent.  In the case of Darwin,
-   we'll arrange for it to be initialized (and associated with a binding)
-   later.  */
+/* Build __builtin_eh_pointer, or the moral equivalent.  In the case
+   of Darwin, we'll arrange for it to be initialized (and associated
+   with a binding) later.  */
 
 static tree
 objc_build_exc_ptr (void)
@@ -3545,7 +3528,12 @@ objc_build_exc_ptr (void)
       return var;
     }
   else
-    return build0 (EXC_PTR_EXPR, objc_object_type);
+    {
+      tree t;
+      t = built_in_decls[BUILT_IN_EH_POINTER];
+      t = build_call_expr (t, 1, integer_zero_node);
+      return fold_convert (objc_object_type, t);
+    }
 }
 
 /* Build "objc_exception_try_exit(&_stack)".  */
@@ -3554,7 +3542,7 @@ static tree
 next_sjlj_build_try_exit (void)
 {
   tree t;
-  t = build_fold_addr_expr (cur_try_context->stack_decl);
+  t = build_fold_addr_expr_loc (input_location, cur_try_context->stack_decl);
   t = tree_cons (NULL, t, NULL);
   t = build_function_call (input_location,
 			   objc_exception_try_exit_decl, t);
@@ -3575,14 +3563,14 @@ next_sjlj_build_enter_and_setjmp (void)
 {
   tree t, enter, sj, cond;
 
-  t = build_fold_addr_expr (cur_try_context->stack_decl);
+  t = build_fold_addr_expr_loc (input_location, cur_try_context->stack_decl);
   t = tree_cons (NULL, t, NULL);
   enter = build_function_call (input_location,
 			       objc_exception_try_enter_decl, t);
 
   t = objc_build_component_ref (cur_try_context->stack_decl,
 				get_identifier ("buf"));
-  t = build_fold_addr_expr (t);
+  t = build_fold_addr_expr_loc (input_location, t);
 #ifdef OBJCPLUS
   /* Convert _setjmp argument to type that is expected.  */
   if (TYPE_ARG_TYPES (TREE_TYPE (objc_setjmp_decl)))
@@ -3611,7 +3599,7 @@ next_sjlj_build_exc_extract (tree decl)
 {
   tree t;
 
-  t = build_fold_addr_expr (cur_try_context->stack_decl);
+  t = build_fold_addr_expr_loc (input_location, cur_try_context->stack_decl);
   t = tree_cons (NULL, t, NULL);
   t = build_function_call (input_location,
 			   objc_exception_extract_decl, t);
@@ -3669,7 +3657,7 @@ next_sjlj_build_catch_list (void)
 	      cond = c_common_truthvalue_conversion (input_location, t);
 	    }
 	  t = build3 (COND_EXPR, void_type_node, cond, body, NULL);
-	  SET_EXPR_LOCUS (t, EXPR_LOCUS (stmt));
+	  SET_EXPR_LOCATION (t, EXPR_LOCATION (stmt));
 
 	  *last = t;
 	  last = &COND_EXPR_ELSE (t);
@@ -3823,7 +3811,14 @@ objc_begin_try_stmt (location_t try_locus, tree body)
   c->end_try_locus = input_location;
   cur_try_context = c;
 
-  objc_init_exceptions ();
+  if (flag_objc_sjlj_exceptions)
+    {
+      /* On Darwin, ObjC exceptions require a sufficiently recent
+	 version of the runtime, so the user must ask for them explicitly.  */
+      if (!flag_objc_exceptions)
+	warning (0, "use %<-fobjc-exceptions%> to enable Objective-C "
+		 "exception syntax");
+    }
 
   if (flag_objc_sjlj_exceptions)
     objc_mark_locals_volatile (NULL);
@@ -3877,8 +3872,8 @@ objc_begin_catch_clause (tree decl)
 	    {
 	      warning (0, "exception of type %<%T%> will be caught",
 		       TREE_TYPE (type));
-	      warning (0, "%H   by earlier handler for %<%T%>",
-		       EXPR_LOCUS (stmt), TREE_TYPE (t ? t : objc_object_type));
+	      warning_at  (EXPR_LOCATION (stmt), 0, "   by earlier handler for %<%T%>",
+			   TREE_TYPE (t ? t : objc_object_type));
 	      break;
 	    }
 	}
@@ -3972,7 +3967,14 @@ objc_build_throw_stmt (location_t loc, tree throw_expr)
 {
   tree args;
 
-  objc_init_exceptions ();
+  if (flag_objc_sjlj_exceptions)
+    {
+      /* On Darwin, ObjC exceptions require a sufficiently recent
+	 version of the runtime, so the user must ask for them explicitly.  */
+      if (!flag_objc_exceptions)
+	warning (0, "use %<-fobjc-exceptions%> to enable Objective-C "
+		 "exception syntax");
+    }
 
   if (throw_expr == NULL)
     {
@@ -5015,8 +5017,8 @@ synth_forward_declarations (void)
 static void
 error_with_ivar (const char *message, tree decl)
 {
-  error ("%J%s %qs", decl,
-         message, identifier_to_locale (gen_declaration (decl)));
+  error_at (DECL_SOURCE_LOCATION (decl), "%s %qs",
+	    message, identifier_to_locale (gen_declaration (decl)));
 
 }
 
@@ -6150,10 +6152,11 @@ check_duplicates (hash hsh, int methods, int is_class)
 	    {
 	      bool type = TREE_CODE (meth) == INSTANCE_METHOD_DECL;
 
-	      warning (0, "multiple methods named %<%c%E%> found",
-		       (is_class ? '+' : '-'),
-		       METHOD_SEL_NAME (meth));
-	      inform (0, "%Jusing %<%c%s%>", meth,
+	      warning_at (input_location, 0,
+			  "multiple methods named %<%c%E%> found",
+			  (is_class ? '+' : '-'),
+			  METHOD_SEL_NAME (meth));
+	      inform (DECL_SOURCE_LOCATION (meth), "using %<%c%s%>",
 		      (type ? '-' : '+'),
 		      identifier_to_locale (gen_method_decl (meth)));
 	    }
@@ -6161,10 +6164,11 @@ check_duplicates (hash hsh, int methods, int is_class)
 	    {
 	      bool type = TREE_CODE (meth) == INSTANCE_METHOD_DECL;
 
-	      warning (0, "multiple selectors named %<%c%E%> found",
-		       (is_class ? '+' : '-'),
-		       METHOD_SEL_NAME (meth));
-	      inform (0, "%Jfound %<%c%s%>", meth,
+	      warning_at (input_location, 0,
+			  "multiple selectors named %<%c%E%> found",
+			  (is_class ? '+' : '-'),
+			  METHOD_SEL_NAME (meth));
+	      inform (DECL_SOURCE_LOCATION (meth), "found %<%c%s%>",
 		      (type ? '-' : '+'),
 		      identifier_to_locale (gen_method_decl (meth)));
 	    }
@@ -6173,7 +6177,7 @@ check_duplicates (hash hsh, int methods, int is_class)
 	    {
 	      bool type = TREE_CODE (loop->value) == INSTANCE_METHOD_DECL;
 
-	      inform (0, "%Jalso found %<%c%s%>", loop->value, 
+	      inform (DECL_SOURCE_LOCATION (loop->value), "also found %<%c%s%>",
 		      (type ? '-' : '+'),
 		      identifier_to_locale (gen_method_decl (loop->value)));
 	    }
@@ -6621,7 +6625,7 @@ build_objc_method_call (location_t loc, int super_flag, tree method_prototype,
       method_params = tree_cons (NULL_TREE, lookup_object,
 				 tree_cons (NULL_TREE, selector,
 					    method_params));
-      method = build_fold_addr_expr (sender);
+      method = build_fold_addr_expr_loc (input_location, sender);
     }
   else
     {
@@ -6635,8 +6639,7 @@ build_objc_method_call (location_t loc, int super_flag, tree method_prototype,
 
       t = tree_cons (NULL_TREE, selector, NULL_TREE);
       t = tree_cons (NULL_TREE, lookup_object, t);
-      method = build_function_call (loc,
-				    sender, t);
+      method = build_function_call (loc, sender, t);
 
       /* Pass the object to the method.  */
       method_params = tree_cons (NULL_TREE, object,
@@ -8733,10 +8736,12 @@ really_start_method (tree method,
 	    {
 	      bool type = TREE_CODE (method) == INSTANCE_METHOD_DECL;
 
-	      warning (0, "%Jconflicting types for %<%c%s%>", method,
-		       (type ? '-' : '+'),
-		       identifier_to_locale (gen_method_decl (method)));
-	      inform (0, "%Jprevious declaration of %<%c%s%>", proto,
+	      warning_at (DECL_SOURCE_LOCATION (method), 0,
+			  "conflicting types for %<%c%s%>",
+			  (type ? '-' : '+'),
+			  identifier_to_locale (gen_method_decl (method)));
+	      inform (DECL_SOURCE_LOCATION (proto),
+		      "previous declaration of %<%c%s%>",
 		      (type ? '-' : '+'),
 		      identifier_to_locale (gen_method_decl (proto)));
 	    }

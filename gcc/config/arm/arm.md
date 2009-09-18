@@ -100,6 +100,7 @@
    (UNSPEC_GOTSYM_OFF 24) ; The offset of the start of the the GOT from a
 			  ; a given symbolic address.
    (UNSPEC_THUMB1_CASESI 25) ; A Thumb1 compressed dispatch-table call.
+   (UNSPEC_RBIT 26)       ; rbit operation.
   ]
 )
 
@@ -981,9 +982,9 @@
   if (TARGET_THUMB1)
     {
       if (GET_CODE (operands[1]) != REG)
-        operands[1] = force_reg (SImode, operands[1]);
+        operands[1] = force_reg (DImode, operands[1]);
       if (GET_CODE (operands[2]) != REG)
-        operands[2] = force_reg (SImode, operands[2]);
+        operands[2] = force_reg (DImode, operands[2]);
      }	
   "
 )
@@ -3507,7 +3508,7 @@
   if (TARGET_THUMB1)
     {
       if (GET_CODE (operands[1]) != REG)
-        operands[1] = force_reg (SImode, operands[1]);
+        operands[1] = force_reg (DImode, operands[1]);
      }
   "
 )
@@ -4205,6 +4206,28 @@
   [(set (match_dup 2) (match_dup 1))
    (set (match_dup 0) (and:SI (match_dup 2) (const_int 255)))]
   ""
+)
+
+(define_code_iterator ior_xor [ior xor])
+
+(define_split
+  [(set (match_operand:SI 0 "s_register_operand" "")
+	(ior_xor:SI (and:SI (ashift:SI
+			     (match_operand:SI 1 "s_register_operand" "")
+			     (match_operand:SI 2 "const_int_operand" ""))
+			    (match_operand:SI 3 "const_int_operand" ""))
+		    (zero_extend:SI
+		     (match_operator 5 "subreg_lowpart_operator"
+		      [(match_operand:SI 4 "s_register_operand" "")]))))]
+  "TARGET_32BIT
+   && ((unsigned HOST_WIDE_INT) INTVAL (operands[3])
+       == (GET_MODE_MASK (GET_MODE (operands[5]))
+           & (GET_MODE_MASK (GET_MODE (operands[5]))
+	      << (INTVAL (operands[2])))))"
+  [(set (match_dup 0) (ior_xor:SI (ashift:SI (match_dup 1) (match_dup 2))
+				  (match_dup 4)))
+   (set (match_dup 0) (zero_extend:SI (match_dup 5)))]
+  "operands[5] = gen_lowpart (GET_MODE (operands[5]), operands[0]);"
 )
 
 (define_insn "*compareqi_eq0"
@@ -10933,6 +10956,28 @@
   [(set_attr "predicable" "yes")
    (set_attr "insn" "clz")])
 
+(define_insn "rbitsi2"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(unspec:SI [(match_operand:SI 1 "s_register_operand" "r")] UNSPEC_RBIT))]
+  "TARGET_32BIT && arm_arch_thumb2"
+  "rbit%?\\t%0, %1"
+  [(set_attr "predicable" "yes")
+   (set_attr "insn" "clz")])
+
+(define_expand "ctzsi2"
+ [(set (match_operand:SI           0 "s_register_operand" "")
+       (ctz:SI (match_operand:SI  1 "s_register_operand" "")))]
+  "TARGET_32BIT && arm_arch_thumb2"
+  "
+   {
+     rtx tmp = gen_reg_rtx (SImode); 
+     emit_insn (gen_rbitsi2 (tmp, operands[1]));
+     emit_insn (gen_clzsi2 (operands[0], tmp));
+   }
+   DONE;
+  "
+)
+
 ;; V5E instructions.
 
 (define_insn "prefetch"
@@ -11026,6 +11071,17 @@
   "TARGET_SOFT_TP"
   "bl\\t__aeabi_read_tp\\t@ load_tp_soft"
   [(set_attr "conds" "clob")]
+)
+
+(define_insn "*arm_movtas_ze" 
+  [(set (zero_extract:SI (match_operand:SI 0 "s_register_operand" "+r")
+                   (const_int 16)
+                   (const_int 16))
+        (match_operand:SI 1 "const_int_operand" ""))]
+  "TARGET_32BIT"
+  "movt%?\t%0, %c1"
+ [(set_attr "predicable" "yes")
+   (set_attr "length" "4")]
 )
 
 ;; Load the FPA co-processor patterns

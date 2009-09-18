@@ -217,7 +217,9 @@ nanosleep (struct timestruc_t *Rqtp, struct timestruc_t *Rmtp)
 static void __gnat_error_handler (int sig, siginfo_t * si, void * uc);
 
 static void
-__gnat_error_handler (int sig, siginfo_t * si, void * uc)
+__gnat_error_handler (int sig,
+		      siginfo_t * si ATTRIBUTE_UNUSED,
+		      void * uc ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   const char *msg;
@@ -1932,8 +1934,18 @@ __gnat_init_float (void)
      overflow settings are an OS configuration issue.  The instructions
      below have no effect.  */
 #if defined (_ARCH_PPC) && !defined (_SOFT_FLOAT) && !defined (VTHREADS)
+#if defined (__SPE__)
+  {
+     const unsigned long spefscr_mask = 0xfffffff3;
+     unsigned long spefscr;
+     asm ("mfspr  %0, 512" : "=r" (spefscr));
+     spefscr = spefscr & spefscr_mask;
+     asm ("mtspr 512, %0\n\tisync" : : "r" (spefscr));
+  }
+#else
   asm ("mtfsb0 25");
   asm ("mtfsb0 26");
+#endif
 #endif
 
 #if (defined (__i386__) || defined (i386)) && !defined (VTHREADS)

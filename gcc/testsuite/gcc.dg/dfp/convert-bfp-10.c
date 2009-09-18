@@ -1,9 +1,4 @@
-/* { dg-options "-std=gnu99" } */
-
 /* This test assumes IEEE float and double.  */
-
-#define __STDC_WANT_DEC_FP__
-#include <float.h>
 
 #include "convert.h"
 
@@ -108,7 +103,5 @@ main ()
   convert_246 ();
   convert_247 ();
 
-  if (failcnt != 0)
-    abort ();
-  return 0;
+  FINISH
 }

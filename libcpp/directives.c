@@ -918,7 +918,7 @@ do_line (cpp_reader *pfile)
     {
       cpp_string s = { 0, 0 };
       if (cpp_interpret_string_notranslate (pfile, &token->val.str, 1,
-					    &s, false))
+					    &s, CPP_STRING))
 	new_file = (const char *)s.text;
       check_eol (pfile, true);
     }
@@ -974,7 +974,7 @@ do_linemarker (cpp_reader *pfile)
     {
       cpp_string s = { 0, 0 };
       if (cpp_interpret_string_notranslate (pfile, &token->val.str,
-					    1, &s, false))
+					    1, &s, CPP_STRING))
 	new_file = (const char *)s.text;
 
       new_sysp = 0;
@@ -2156,7 +2156,8 @@ do_unassert (cpp_reader *pfile)
 void
 cpp_define (cpp_reader *pfile, const char *str)
 {
-  char *buf, *p;
+  char *buf;
+  const char *p;
   size_t count;
 
   /* Copy the entire option so we can modify it.

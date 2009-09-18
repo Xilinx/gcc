@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1774,12 +1774,12 @@ package body Sem_Cat is
 
       --  Check RCI or RT unit type declaration. It may not contain the
       --  declaration of an access-to-object type unless it is a general access
-      --  type that designates a class-wide limited private type. There are
-      --  also constraints on the primitive subprograms of the class-wide type
-      --  (RM E.2.2(14), see Validate_RACW_Primitives).
+      --  type that designates a class-wide limited private type or subtype.
+      --  There are also constraints on the primitive subprograms of the
+      --  class-wide type (RM E.2.2(14), see Validate_RACW_Primitives).
 
       if Ekind (T) /= E_General_Access_Type
-        or else Ekind (Designated_Type (T)) /= E_Class_Wide_Type
+        or else not Is_Class_Wide_Type (Designated_Type (T))
       then
          if In_RCI_Declaration (Parent (T)) then
             Error_Msg_N
@@ -2191,10 +2191,8 @@ package body Sem_Cat is
             Flag_Non_Static_Expr
               ("non-static object name in preelaborated unit", N);
 
-         --  We take the view that a constant defined in another preelaborated
-         --  unit is preelaborable, even though it may have a private type and
-         --  thus appear non-static in a client. This must be the intent of
-         --  the language, but currently is an RM gap ???
+         --  Give an error for a reference to a nonstatic constant, unless the
+         --  constant is in another GNAT library unit that is preelaborable.
 
          elsif Ekind (Entity (N)) = E_Constant
            and then not Is_Static_Expression (N)

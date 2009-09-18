@@ -33,6 +33,7 @@ extern bool mep_allow_clip (rtx, rtx, int);
 extern bool mep_bit_position_p (rtx, bool);
 extern bool mep_split_mov (rtx *, int);
 extern bool mep_vliw_mode_match (rtx);
+extern bool mep_vliw_jmp_match (rtx);
 extern bool mep_multi_slot (rtx);
 extern bool mep_legitimate_address (enum machine_mode, rtx, int);
 extern int mep_legitimize_address (rtx *, rtx, enum machine_mode);
@@ -47,6 +48,7 @@ extern void mep_split_wide_move (rtx *, enum machine_mode);
 #ifdef RTX_CODE
 extern bool mep_expand_setcc (rtx *);
 extern rtx mep_expand_cbranch (rtx *);
+extern bool mep_legitimate_constant_p (rtx);
 #endif
 extern const char *mep_emit_cbranch (rtx *, int);
 extern void mep_expand_call (rtx *, int);

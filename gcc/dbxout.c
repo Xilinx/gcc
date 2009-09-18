@@ -902,7 +902,7 @@ dbxout_finish_complex_stabs (tree sym, stab_code_type code,
 #if defined (DBX_DEBUGGING_INFO)
 
 static void
-dbxout_function_end (tree decl)
+dbxout_function_end (tree decl ATTRIBUTE_UNUSED)
 {
   char lscope_label_name[100];
 
@@ -921,8 +921,7 @@ dbxout_function_end (tree decl)
      named sections.  */
   if (!use_gnu_debug_info_extensions
       || NO_DBX_FUNCTION_END
-      || !targetm.have_named_sections
-      || DECL_IGNORED_P (decl))
+      || !targetm.have_named_sections)
     return;
 
   /* By convention, GCC will mark the end of a function with an N_FUN
@@ -2778,9 +2777,15 @@ dbxout_symbol (tree decl, int local ATTRIBUTE_UNUSED)
       }
 
     case PARM_DECL:
-      /* Parm decls go in their own separate chains
-	 and are output by dbxout_reg_parms and dbxout_parms.  */
-      gcc_unreachable ();
+      if (DECL_HAS_VALUE_EXPR_P (decl))
+	decl = DECL_VALUE_EXPR (decl);
+
+      /* PARM_DECLs go in their own separate chain and are output by
+	 dbxout_reg_parms and dbxout_parms, except for those that are
+	 disguised VAR_DECLs like Out parameters in Ada.  */
+      gcc_assert (TREE_CODE (decl) == VAR_DECL);
+
+      /* ... fall through ...  */
 
     case RESULT_DECL:
     case VAR_DECL:
@@ -3676,9 +3681,6 @@ static void
 dbxout_begin_function (tree decl)
 {
   int saved_tree_used1;
-
-  if (DECL_IGNORED_P (decl))
-    return;
 
   saved_tree_used1 = TREE_USED (decl);
   TREE_USED (decl) = 1;

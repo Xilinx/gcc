@@ -16,10 +16,11 @@
 # <http://www.gnu.org/licenses/>.
 
 sinclude(../config/acx.m4)
+sinclude(../config/multi.m4)
 sinclude(../config/override.m4)
 
 AC_INIT
-AC_PREREQ([2.59])
+AC_PREREQ([2.64])
 
 AC_CONFIG_SRCDIR([Makefile.in])
 
@@ -27,6 +28,7 @@ AC_CONFIG_SRCDIR([Makefile.in])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
+target_alias=${target_alias-$host_alias}
 
 # Determine the noncanonical target name, for directory use.
 ACX_NONCANONICAL_TARGET
@@ -48,9 +50,6 @@ AC_ARG_ENABLE([maintainer-mode],
    maintainer_mode=${enableval}],
   [MAINT='#'])
 AC_SUBST([MAINT])dnl
-
-AC_CANONICAL_SYSTEM
-target_alias=${target_alias-$host_alias}
 
 AM_ENABLE_MULTILIB(, ..)
 # Calculate toolexeclibdir
@@ -93,7 +92,7 @@ AC_SUBST(toolexeclibdir)
 m4_rename([_AC_ARG_VAR_PRECIOUS],[real_PRECIOUS])
 m4_define([_AC_ARG_VAR_PRECIOUS],[])
 AC_PROG_CC
-m4_rename([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
+m4_rename_force([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
 
 AC_SUBST(CFLAGS)
 
@@ -118,7 +117,8 @@ esac
 ], [enable_shared=yes])
 AC_SUBST([enable_shared])
 
-# Need to pass this down for now :-P
+# These must be passed down, or are needed by gcc/libgcc.mvars
+AC_PROG_AWK
 AC_PROG_LN_S
 
 # Determine what to build for 'gnatlib'
@@ -131,7 +131,6 @@ else
 fi
 AC_SUBST([default_gnatlib_target])
 
-AC_PROG_CC
 warn_cflags=
 if test "x$GCC" = "xyes"; then
   warn_cflags='$(GCC_WARN_CFLAGS)'

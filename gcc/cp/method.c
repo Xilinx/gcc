@@ -157,8 +157,6 @@ make_thunk (tree function, bool this_adjusting,
   /* The THUNK is not a pending inline, even if the FUNCTION is.  */
   DECL_PENDING_INLINE_P (thunk) = 0;
   DECL_DECLARED_INLINE_P (thunk) = 0;
-  /* Nor has it been deferred.  */
-  DECL_DEFERRED_FN (thunk) = 0;
   /* Nor is it a template instantiation.  */
   DECL_USE_TEMPLATE (thunk) = 0;
   DECL_TEMPLATE_INFO (thunk) = NULL;
@@ -221,7 +219,8 @@ thunk_adjust (tree ptr, bool this_adjusting,
 {
   if (this_adjusting)
     /* Adjust the pointer by the constant.  */
-    ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+    ptr = fold_build2_loc (input_location,
+		       POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
 		       size_int (fixed_offset));
 
   /* If there's a virtual offset, look up that value in the vtable and
@@ -239,18 +238,21 @@ thunk_adjust (tree ptr, bool this_adjusting,
       /* Form the vtable address.  */
       vtable = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (vtable)), vtable);
       /* Find the entry with the vcall offset.  */
-      vtable = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (vtable), vtable,
-		       fold_convert (sizetype, virtual_offset));
+      vtable = fold_build2_loc (input_location,
+			    POINTER_PLUS_EXPR, TREE_TYPE (vtable), vtable,
+			    fold_convert (sizetype, virtual_offset));
       /* Get the offset itself.  */
       vtable = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (vtable)), vtable);
       /* Adjust the `this' pointer.  */
-      ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+      ptr = fold_build2_loc (input_location,
+			 POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
 			 fold_convert (sizetype, vtable));
     }
 
   if (!this_adjusting)
     /* Adjust the pointer by the constant.  */
-    ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+    ptr = fold_build2_loc (input_location,
+		       POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
 		       size_int (fixed_offset));
 
   return ptr;
@@ -282,7 +284,6 @@ make_alias_for (tree function, tree newid)
   DECL_NO_STATIC_CHAIN (alias) = 1;
   DECL_PENDING_INLINE_P (alias) = 0;
   DECL_DECLARED_INLINE_P (alias) = 0;
-  DECL_DEFERRED_FN (alias) = 0;
   DECL_USE_TEMPLATE (alias) = 0;
   DECL_TEMPLATE_INSTANTIATED (alias) = 0;
   DECL_TEMPLATE_INFO (alias) = NULL;
@@ -446,6 +447,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
 
       assemble_end_function (thunk_fndecl, fnname);
       init_insn_lengths ();
+      free_after_compilation (cfun);
       current_function_decl = 0;
       set_cfun (NULL);
       TREE_ASM_WRITTEN (thunk_fndecl) = 1;
@@ -1159,7 +1161,7 @@ lazily_declare_fn (special_function_kind sfk, tree type)
       /* G++ 3.2 put the implicit destructor at the *beginning* of the
 	 TYPE_METHODS list, which cause the destructor to be emitted
 	 in an incorrect location in the vtable.  */
-      if (warn_abi && DECL_VIRTUAL_P (fn))
+      if (warn_abi && sfk == sfk_destructor && DECL_VIRTUAL_P (fn))
 	warning (OPT_Wabi, "vtable layout for class %qT may not be ABI-compliant"
 		 "and may change in a future version of GCC due to "
 		 "implicit virtual destructor",

@@ -729,7 +729,7 @@ static void
 setup_cover_and_important_classes (void)
 {
   int i, j, n, cl;
-  bool set_p, eq_p;
+  bool set_p;
   const enum reg_class *cover_classes;
   HARD_REG_SET temp_hard_regset2;
   static enum reg_class classes[LIM_REG_CLASSES + 1];
@@ -802,7 +802,7 @@ setup_cover_and_important_classes (void)
       AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
       if (! hard_reg_set_empty_p (temp_hard_regset))
 	{
-	  set_p = eq_p = false;
+	  set_p = false;
 	  for (j = 0; j < ira_reg_class_cover_size; j++)
 	    {
 	      COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
@@ -810,27 +810,22 @@ setup_cover_and_important_classes (void)
 	      COPY_HARD_REG_SET (temp_hard_regset2,
 				 reg_class_contents[ira_reg_class_cover[j]]);
 	      AND_COMPL_HARD_REG_SET (temp_hard_regset2, no_unit_alloc_regs);
-	      if ((enum reg_class) cl == ira_reg_class_cover[j])
-		{
-		  eq_p = false;
-		  set_p = true;
-		  break;
-		}
-	      else if (hard_reg_set_equal_p (temp_hard_regset,
-					     temp_hard_regset2))
-		eq_p = true;
+	      if ((enum reg_class) cl == ira_reg_class_cover[j]
+		  || hard_reg_set_equal_p (temp_hard_regset,
+					   temp_hard_regset2))
+		break;
 	      else if (hard_reg_set_subset_p (temp_hard_regset,
 					      temp_hard_regset2))
 		set_p = true;
 	    }
-	  if (set_p && ! eq_p)
-	    {
-	      ira_important_class_nums[cl] = ira_important_classes_num;
-	      ira_important_classes[ira_important_classes_num++] =
-		(enum reg_class) cl;
-	    }
+	  if (set_p && j >= ira_reg_class_cover_size)
+	    ira_important_classes[ira_important_classes_num++]
+	      = (enum reg_class) cl;
 	}
     }
+  for (j = 0; j < ira_reg_class_cover_size; j++)
+    ira_important_classes[ira_important_classes_num++]
+      = ira_reg_class_cover[j];
 }
 
 /* Map of all register classes to corresponding cover class containing
@@ -923,6 +918,43 @@ setup_class_translate (void)
 	}
       ira_class_translate[cl] = best_class;
     }
+}
+
+/* Order numbers of cover classes in original target cover class
+   array, -1 for non-cover classes.  */ 
+static int cover_class_order[N_REG_CLASSES];
+
+/* The function used to sort the important classes.  */
+static int
+comp_reg_classes_func (const void *v1p, const void *v2p)
+{
+  enum reg_class cl1 = *(const enum reg_class *) v1p;
+  enum reg_class cl2 = *(const enum reg_class *) v2p;
+  int diff;
+
+  cl1 = ira_class_translate[cl1];
+  cl2 = ira_class_translate[cl2];
+  if (cl1 != NO_REGS && cl2 != NO_REGS
+      && (diff = cover_class_order[cl1] - cover_class_order[cl2]) != 0)
+    return diff;
+  return (int) cl1 - (int) cl2;
+}
+
+/* Reorder important classes according to the order of their cover
+   classes.  Set up array ira_important_class_nums too.  */
+static void
+reorder_important_classes (void)
+{
+  int i;
+
+  for (i = 0; i < N_REG_CLASSES; i++)
+    cover_class_order[i] = -1;
+  for (i = 0; i < ira_reg_class_cover_size; i++)
+    cover_class_order[ira_reg_class_cover[i]] = i;
+  qsort (ira_important_classes, ira_important_classes_num,
+	 sizeof (enum reg_class), comp_reg_classes_func);
+  for (i = 0; i < ira_important_classes_num; i++)
+    ira_important_class_nums[ira_important_classes[i]] = i;
 }
 
 /* The biggest important reg_class inside of intersection of the two
@@ -1089,6 +1121,7 @@ find_reg_class_closure (void)
   setup_reg_subclasses ();
   setup_cover_and_important_classes ();
   setup_class_translate ();
+  reorder_important_classes ();
   setup_reg_class_relations ();
 }
 
@@ -1389,8 +1422,8 @@ compute_regs_asm_clobbered (char *regs_asm_clobbered)
 
 
 /* Set up ELIMINABLE_REGSET, IRA_NO_ALLOC_REGS, and REGS_EVER_LIVE.  */
-static void
-setup_eliminable_regset (void)
+void
+ira_setup_eliminable_regset (void)
 {
   /* Like regs_ever_live, but 1 if a reg is set or clobbered from an
      asm.  Unlike regs_ever_live, elements of this array corresponding
@@ -1425,7 +1458,7 @@ setup_eliminable_regset (void)
   for (i = 0; i < (int) ARRAY_SIZE (eliminables); i++)
     {
       bool cannot_elim
-	= (! CAN_ELIMINATE (eliminables[i].from, eliminables[i].to)
+	= (! targetm.can_eliminate (eliminables[i].from, eliminables[i].to)
 	   || (eliminables[i].to == STACK_POINTER_REGNUM && need_fp));
 
       if (! regs_asm_clobbered[eliminables[i].from])
@@ -1794,7 +1827,8 @@ setup_preferred_alternate_classes_for_new_pseudos (int start)
       old_regno = ORIGINAL_REGNO (regno_reg_rtx[i]);
       ira_assert (i != old_regno); 
       setup_reg_classes (i, reg_preferred_class (old_regno),
-			 reg_alternate_class (old_regno));
+			 reg_alternate_class (old_regno),
+			 reg_cover_class (old_regno));
       if (internal_flag_ira_verbose > 2 && ira_dump_file != NULL)
 	fprintf (ira_dump_file,
 		 "    New r%d: setting preferred %s, alternative %s\n",
@@ -1815,10 +1849,7 @@ expand_reg_info (int old_size)
 
   resize_reg_info ();
   for (i = old_size; i < size; i++)
-    {
-      reg_renumber[i] = -1;
-      setup_reg_classes (i, GENERAL_REGS, ALL_REGS);
-    }
+    setup_reg_classes (i, GENERAL_REGS, ALL_REGS, GENERAL_REGS);
 }
 
 /* Return TRUE if there is too high register pressure in the function.
@@ -2201,7 +2232,7 @@ memref_used_between_p (rtx memref, rtx start, rtx end)
   for (insn = NEXT_INSN (start); insn != NEXT_INSN (end);
        insn = NEXT_INSN (insn))
     {
-      if (!INSN_P (insn))
+      if (!NONDEBUG_INSN_P (insn))
 	continue;
       
       if (memref_referenced_p (memref, PATTERN (insn)))
@@ -2645,7 +2676,7 @@ update_equiv_regs (void)
 		    }
 		  /* Move the initialization of the register to just before
 		     INSN.  Update the flow information.  */
-		  else if (PREV_INSN (insn) != equiv_insn)
+		  else if (prev_nondebug_insn (insn) != equiv_insn)
 		    {
 		      rtx new_insn;
 
@@ -3127,8 +3158,8 @@ ira (FILE *f)
     }
 
   max_regno_before_ira = allocated_reg_info_size = max_reg_num ();
-  allocate_reg_info ();
-  setup_eliminable_regset ();
+  resize_reg_info ();
+  ira_setup_eliminable_regset ();
       
   ira_overall_cost = ira_reg_cost = ira_mem_cost = 0;
   ira_load_cost = ira_store_cost = ira_shuffle_cost = 0;

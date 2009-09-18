@@ -4651,6 +4651,9 @@ find_assert_locations_1 (basic_block bb, sbitmap live)
 
       stmt = gsi_stmt (si);
 
+      if (is_gimple_debug (stmt))
+	continue;
+
       /* See if we can derive an assertion for any of STMT's operands.  */
       FOR_EACH_SSA_TREE_OPERAND (op, stmt, i, SSA_OP_USE)
 	{
@@ -5317,7 +5320,12 @@ vrp_initialize (void)
         {
 	  gimple stmt = gsi_stmt (si);
 
-	  if (!stmt_interesting_for_vrp (stmt))
+ 	  /* If the statement is a control insn, then we do not
+ 	     want to avoid simulating the statement once.  Failure
+ 	     to do so means that those edges will never get added.  */
+	  if (stmt_ends_bb_p (stmt))
+	    prop_set_simulate_again (stmt, true);
+	  else if (!stmt_interesting_for_vrp (stmt))
 	    {
 	      ssa_op_iter i;
 	      tree def;
@@ -5326,9 +5334,7 @@ vrp_initialize (void)
 	      prop_set_simulate_again (stmt, false);
 	    }
 	  else
-	    {
-	      prop_set_simulate_again (stmt, true);
-	    }
+	    prop_set_simulate_again (stmt, true);
 	}
     }
 }
@@ -5717,7 +5723,7 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 	    location = input_location;
 	  else
 	    location = gimple_location (stmt);
-	  warning (OPT_Wstrict_overflow, "%H%s", &location, warnmsg);
+	  warning_at (location, OPT_Wstrict_overflow, "%s", warnmsg);
 	}
     }
 
@@ -5731,7 +5737,6 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 	 the natural range of OP0's type, then the predicate will
 	 always fold regardless of the value of OP0.  If -Wtype-limits
 	 was specified, emit a warning.  */
-      const char *warnmsg = NULL;
       tree type = TREE_TYPE (op0);
       value_range_t *vr0 = get_value_range (op0);
 
@@ -5741,16 +5746,6 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 	  && vrp_val_is_max (vr0->max)
 	  && is_gimple_min_invariant (op1))
 	{
-	  if (integer_zerop (ret))
-	    warnmsg = G_("comparison always false due to limited range of "
-		         "data type");
-	  else
-	    warnmsg = G_("comparison always true due to limited range of "
-			 "data type");
-	}
-
-      if (warnmsg)
-	{
 	  location_t location;
 
 	  if (!gimple_has_location (stmt))
@@ -5758,7 +5753,12 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 	  else
 	    location = gimple_location (stmt);
 
-	  warning (OPT_Wtype_limits, "%H%s", &location, warnmsg);
+	  warning_at (location, OPT_Wtype_limits, 
+		      integer_zerop (ret)
+		      ? G_("comparison always false "
+                           "due to limited range of data type")
+		      : G_("comparison always true "
+                           "due to limited range of data type"));
 	}
     }
 
@@ -6093,7 +6093,9 @@ vrp_visit_stmt (gimple stmt, edge *taken_edge_p, tree *output_p)
       fprintf (dump_file, "\n");
     }
 
-  if (is_gimple_assign (stmt) || is_gimple_call (stmt))
+  if (!stmt_interesting_for_vrp (stmt))
+    gcc_assert (stmt_ends_bb_p (stmt));
+  else if (is_gimple_assign (stmt) || is_gimple_call (stmt))
     {
       /* In general, assignments with virtual operands are not useful
 	 for deriving ranges, with the obvious exception of calls to
@@ -6596,10 +6598,9 @@ simplify_div_or_mod_using_ranges (gimple stmt)
 	    location = input_location;
 	  else
 	    location = gimple_location (stmt);
-	  warning (OPT_Wstrict_overflow,
-		   ("%Hassuming signed overflow does not occur when "
-		    "simplifying / or %% to >> or &"),
-		   &location);
+	  warning_at (location, OPT_Wstrict_overflow,
+		      "assuming signed overflow does not occur when "
+		      "simplifying %</%> or %<%%%> to %<>>%> or %<&%>");
 	}
     }
 
@@ -6679,10 +6680,9 @@ simplify_abs_using_ranges (gimple stmt)
 		location = input_location;
 	      else
 		location = gimple_location (stmt);
-	      warning (OPT_Wstrict_overflow,
-		       ("%Hassuming signed overflow does not occur when "
-			"simplifying abs (X) to X or -X"),
-		       &location);
+	      warning_at (location, OPT_Wstrict_overflow,
+			  "assuming signed overflow does not occur when "
+			  "simplifying %<abs (X)%> to %<X%> or %<-X%>");
 	    }
 
 	  gimple_assign_set_rhs1 (stmt, op);

@@ -1,5 +1,6 @@
 /* { dg-do compile } */
-/* { dg-options "-std=gnu99" } */
+
+#include "dfp-dbg.h"
 
 /* Check that the compiler generates the correct decimal float constants.  */
 

@@ -27,7 +27,7 @@
 #include "tsystem.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "elf/dwarf2.h"
+#include "dwarf2.h"
 #include "unwind.h"
 #ifdef __USING_SJLJ_EXCEPTIONS__
 # define NO_SIZE_OF_ENCODED_VALUE
@@ -1431,7 +1431,7 @@ init_dwarf_reg_size_table (void)
   __builtin_init_dwarf_reg_size_table (dwarf_reg_size_table);
 }
 
-static void
+static void __attribute__((noinline))
 uw_init_context_1 (struct _Unwind_Context *context,
 		   void *outer_cfa, void *outer_ra)
 {

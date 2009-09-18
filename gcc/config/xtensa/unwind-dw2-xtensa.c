@@ -28,7 +28,7 @@
 #include "tsystem.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "elf/dwarf2.h"
+#include "dwarf2.h"
 #include "unwind.h"
 #ifdef __USING_SJLJ_EXCEPTIONS__
 # define NO_SIZE_OF_ENCODED_VALUE
@@ -459,7 +459,7 @@ uw_advance_context (struct _Unwind_Context *context, _Unwind_FrameState *fs)
     }									   \
   while (0)
 
-static void
+static void __attribute__((noinline))
 uw_init_context_1 (struct _Unwind_Context *context, void *outer_cfa,
 		   void *outer_ra)
 {

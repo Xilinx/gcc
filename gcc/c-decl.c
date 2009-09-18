@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "c-common.h"
 #include "c-pragma.h"
+#include "c-lang.h"
 #include "langhooks.h"
 #include "tree-mudflap.h"
 #include "gimple.h"
@@ -90,9 +91,6 @@ tree pending_invalid_xref;
 
 /* File and line to appear in the eventual error message.  */
 location_t pending_invalid_xref_location;
-
-/* True means we've initialized exception handling.  */
-bool c_eh_initialized_p;
 
 /* The file and line that the prototype came from if this is an
    old-style definition; used for diagnostics in
@@ -578,7 +576,7 @@ c_print_identifier (FILE *file, tree node, int indent)
     {
       tree rid = ridpointers[C_RID_CODE (node)];
       indent_to (file, indent + 4);
-      fprintf (file, "rid %p \"%s\"",
+      fprintf (file, "rid " HOST_PTR_PRINTF " \"%s\"",
 	       (void *) rid, IDENTIFIER_POINTER (rid));
     }
 }
@@ -1327,7 +1325,6 @@ pop_file_scope (void)
   file_scope = 0;
 
   maybe_apply_pending_pragma_weaks ();
-  cgraph_finalize_compilation_unit ();
 }
 
 /* Adjust the bindings for the start of a statement expression.  */
@@ -1890,9 +1887,10 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 					DECL_ATTRIBUTES (olddecl)) != NULL;
 	  if (newa != olda)
 	    {
-	      error ("%<gnu_inline%> attribute present on %q+D",
-		     newa ? newdecl : olddecl);
-	      error ("%Jbut not here", newa ? olddecl : newdecl);
+	      error_at (input_location, "%<gnu_inline%> attribute present on %q+D",
+			newa ? newdecl : olddecl);
+	      error_at (DECL_SOURCE_LOCATION (newa ? olddecl : newdecl),
+			"but not here");
 	    }
 	}
     }
@@ -2364,7 +2362,8 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
     TREE_USED (olddecl) = 1;
 
   /* Copy most of the decl-specific fields of NEWDECL into OLDDECL.
-     But preserve OLDDECL's DECL_UID and DECL_CONTEXT.  */
+     But preserve OLDDECL's DECL_UID, DECL_CONTEXT and
+     DECL_ARGUMENTS (if appropriate).  */
   {
     unsigned olddecl_uid = DECL_UID (olddecl);
     tree olddecl_context = DECL_CONTEXT (olddecl);
@@ -2489,7 +2488,8 @@ warn_if_shadowing (tree new_decl)
 	  warning (OPT_Wshadow, "declaration of %q+D shadows a previous local",
 		   new_decl);
 
-	warning (OPT_Wshadow, "%Jshadowed declaration is here", old_decl);
+	warning_at (DECL_SOURCE_LOCATION (old_decl), OPT_Wshadow,
+		    "shadowed declaration is here");
 
 	break;
       }
@@ -2912,17 +2912,17 @@ undeclared_variable (location_t loc, tree id)
 
   if (current_function_decl == 0)
     {
-      error ("%H%qE undeclared here (not in a function)", &loc, id);
+      error_at (loc, "%qE undeclared here (not in a function)", id);
       scope = current_scope;
     }
   else
     {
-      error ("%H%qE undeclared (first use in this function)", &loc, id);
+      error_at (loc, "%qE undeclared (first use in this function)", id);
 
       if (!already)
 	{
-	  error ("%H(Each undeclared identifier is reported only once", &loc);
-	  error ("%Hfor each function it appears in.)", &loc);
+	  error_at (loc, "(Each undeclared identifier is reported only once");
+	  error_at (loc, "for each function it appears in.)");
 	  already = true;
 	}
 
@@ -3356,8 +3356,8 @@ void
 pending_xref_error (void)
 {
   if (pending_invalid_xref != 0)
-    error ("%H%qE defined as wrong kind of tag",
-	   &pending_invalid_xref_location, pending_invalid_xref);
+    error_at (pending_invalid_xref_location, "%qE defined as wrong kind of tag",
+	      pending_invalid_xref);
   pending_invalid_xref = 0;
 }
 
@@ -4041,23 +4041,6 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
   return tem;
 }
 
-/* Initialize EH if not initialized yet and exceptions are enabled.  */
-
-void
-c_maybe_initialize_eh (void)
-{
-  if (!flag_exceptions || c_eh_initialized_p)
-    return;
-
-  c_eh_initialized_p = true;
-  eh_personality_libfunc
-    = init_one_libfunc (USING_SJLJ_EXCEPTIONS
-			? "__gcc_personality_sj0"
-			: "__gcc_personality_v0");
-  default_init_unwind_resume_libfunc ();
-  using_eh_for_cleanups ();
-}
-
 /* Finish processing of a declaration;
    install its initial value.
    If ORIGTYPE is not NULL_TREE, it is the original type of INIT.
@@ -4357,9 +4340,6 @@ finish_decl (tree decl, location_t init_loc, tree init,
 	  /* Don't warn about decl unused; the cleanup uses it.  */
 	  TREE_USED (decl) = 1;
 	  TREE_USED (cleanup_decl) = 1;
-
-	  /* Initialize EH, if we've been told to do so.  */
-	  c_maybe_initialize_eh ();
 
 	  push_cleanup (decl, cleanup, false);
 	}
@@ -5222,10 +5202,10 @@ grokdeclarator (const struct c_declarator *declarator,
 		       - 1.  Do the calculation in index_type, so that
 		       if it is a variable the computations will be
 		       done in the proper mode.  */
-		    itype = fold_build2 (MINUS_EXPR, index_type,
-					 convert (index_type, size),
-					 convert (index_type,
-						  size_one_node));
+		    itype = fold_build2_loc (loc, MINUS_EXPR, index_type,
+					     convert (index_type, size),
+					     convert (index_type,
+						      size_one_node));
 
 		    /* If that overflowed, the array is too big.  ???
 		       While a size of INT_MAX+1 technically shouldn't
@@ -6002,11 +5982,13 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 	      if (funcdef_flag)
 		{
 		  if (DECL_NAME (parm))
-		    error ("parameter %u (%q+D) has incomplete type",
-			   parmno, parm);
+		    error_at (input_location,
+			      "parameter %u (%q+D) has incomplete type",
+			      parmno, parm);
 		  else
-		    error ("%Jparameter %u has incomplete type",
-			   parm, parmno);
+		    error_at (DECL_SOURCE_LOCATION (parm),
+			      "parameter %u has incomplete type",
+			      parmno);
 
 		  TREE_VALUE (typelt) = error_mark_node;
 		  TREE_TYPE (parm) = error_mark_node;
@@ -6014,11 +5996,13 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 	      else if (VOID_TYPE_P (type))
 		{
 		  if (DECL_NAME (parm))
-		    warning (0, "parameter %u (%q+D) has void type",
-			     parmno, parm);
+		    warning_at (input_location, 0,
+				"parameter %u (%q+D) has void type",
+				parmno, parm);
 		  else
-		    warning (0, "%Jparameter %u has void type",
-			     parm, parmno);
+		    warning_at (DECL_SOURCE_LOCATION (parm), 0,
+				"parameter %u has void type",
+				parmno);
 		}
 	    }
 
@@ -6722,28 +6706,27 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
 	  if (TREE_CODE (t) == UNION_TYPE)
 	    {
 	      error_at (DECL_SOURCE_LOCATION (x),
-			"%Jflexible array member in union", x);
+			"flexible array member in union");
 	      TREE_TYPE (x) = error_mark_node;
 	    }
 	  else if (TREE_CHAIN (x) != NULL_TREE)
 	    {
 	      error_at (DECL_SOURCE_LOCATION (x),
-			"%Jflexible array member not at end of struct", x);
+			"flexible array member not at end of struct");
 	      TREE_TYPE (x) = error_mark_node;
 	    }
 	  else if (!saw_named_field)
 	    {
 	      error_at (DECL_SOURCE_LOCATION (x),
-			"%Jflexible array member in otherwise empty struct",
-			x);
+			"flexible array member in otherwise empty struct");
 	      TREE_TYPE (x) = error_mark_node;
 	    }
 	}
 
-      if (pedantic && !in_system_header && TREE_CODE (t) == RECORD_TYPE
+      if (pedantic && TREE_CODE (t) == RECORD_TYPE
 	  && flexible_array_type_p (TREE_TYPE (x)))
-	pedwarn (loc, OPT_pedantic, 
-		 "%Jinvalid use of structure with flexible array member", x);
+	pedwarn (DECL_SOURCE_LOCATION (x), OPT_pedantic, 
+		 "invalid use of structure with flexible array member");
 
       if (DECL_NAME (x))
 	saw_named_field = 1;
@@ -6875,6 +6858,11 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
 	}
     }
   C_TYPE_INCOMPLETE_VARS (TYPE_MAIN_VARIANT (t)) = 0;
+
+  /* Update type location to the one of the definition, instead of e.g.
+     a forward declaration.  */
+  if (TYPE_STUB_DECL (t))
+    DECL_SOURCE_LOCATION (TYPE_STUB_DECL (t)) = loc;
 
   /* Finish debugging output for this type.  */
   rest_of_type_compilation (t, toplevel);
@@ -7465,8 +7453,9 @@ store_parm_decls_newstyle (tree fndecl, const struct c_arg_info *arg_info)
 
   if (current_scope->bindings)
     {
-      error ("%Jold-style parameter declarations in prototyped "
-	     "function definition", fndecl);
+      error_at (DECL_SOURCE_LOCATION (fndecl),
+		"old-style parameter declarations in prototyped "
+		"function definition");
 
       /* Get rid of the old-style declarations.  */
       pop_scope ();
@@ -7478,9 +7467,8 @@ store_parm_decls_newstyle (tree fndecl, const struct c_arg_info *arg_info)
      its parameter list).  */
   else if (!in_system_header && !current_function_scope
 	   && arg_info->types != error_mark_node)
-    warning (OPT_Wtraditional,
-	     "%Jtraditional C rejects ISO C style function definitions",
-	     fndecl);
+    warning_at (DECL_SOURCE_LOCATION (fndecl), OPT_Wtraditional,
+		"traditional C rejects ISO C style function definitions");
 
   /* Now make all the parameter declarations visible in the function body.
      We can bypass most of the grunt work of pushdecl.  */
@@ -7496,7 +7484,7 @@ store_parm_decls_newstyle (tree fndecl, const struct c_arg_info *arg_info)
 	    warn_if_shadowing (decl);
 	}
       else
-	error ("%Jparameter name omitted", decl);
+	error_at (DECL_SOURCE_LOCATION (decl), "parameter name omitted");
     }
 
   /* Record the parameter list in the function declaration.  */
@@ -7865,27 +7853,6 @@ store_parm_decls (void)
   cfun->dont_save_pending_sizes_p = 1;
 }
 
-/* Emit diagnostics that require gimple input for detection.  Operate on
-   FNDECL and all its nested functions.  */
-
-static void
-c_gimple_diagnostics_recursively (tree fndecl)
-{
-  struct cgraph_node *cgn;
-  gimple_seq body = gimple_body (fndecl);
-
-  /* Handle attribute((warn_unused_result)).  Relies on gimple input.  */
-  c_warn_unused_result (body);
-
-  /* Notice when OpenMP structured block constraints are violated.  */
-  if (flag_openmp)
-    diagnose_omp_structured_block_errors (fndecl);
-
-  /* Finalize all nested functions now.  */
-  cgn = cgraph_node (fndecl);
-  for (cgn = cgn->nested; cgn ; cgn = cgn->next_nested)
-    c_gimple_diagnostics_recursively (cgn->decl);
-}
 
 /* Finish up a function declaration and compile that function
    all the way to assembler language output.  The free the storage
@@ -7978,7 +7945,6 @@ finish_function (void)
       if (!decl_function_context (fndecl))
 	{
 	  c_genericize (fndecl);
-	  c_gimple_diagnostics_recursively (fndecl);
 
 	  /* ??? Objc emits functions after finalizing the compilation unit.
 	     This should be cleaned up later and this conditional removed.  */
@@ -8152,21 +8118,6 @@ c_pop_function_context (void)
   current_function_returns_null = p->returns_null;
   current_function_returns_abnormally = p->returns_abnormally;
   warn_about_return_type = p->warn_about_return_type;
-}
-
-/* Copy the DECL_LANG_SPECIFIC data associated with DECL.  */
-
-void
-c_dup_lang_specific_decl (tree decl)
-{
-  struct lang_decl *ld;
-
-  if (!DECL_LANG_SPECIFIC (decl))
-    return;
-
-  ld = GGC_NEW (struct lang_decl);
-  memcpy (ld, DECL_LANG_SPECIFIC (decl), sizeof (struct lang_decl));
-  DECL_LANG_SPECIFIC (decl) = ld;
 }
 
 /* The functions below are required for functionality of doing
@@ -9377,9 +9328,9 @@ c_write_global_declarations (void)
   if (pch_file)
     return;
 
-  /* Don't waste time on further processing if -fsyntax-only or we've
-     encountered errors.  */
-  if (flag_syntax_only || errorcount || sorrycount)
+  /* Don't waste time on further processing if -fsyntax-only.
+     Continue for warning and errors issued during lowering though.  */
+  if (flag_syntax_only)
     return;
 
   /* Close the external scope.  */
@@ -9407,7 +9358,7 @@ c_write_global_declarations (void)
 
   /* We're done parsing; proceed to optimize and emit assembly.
      FIXME: shouldn't be the front end's responsibility to call this.  */
-  cgraph_optimize ();
+  cgraph_finalize_compilation_unit ();
 
   /* After cgraph has had a chance to emit everything that's going to
      be emitted, output debug information for globals.  */

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1996-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -844,9 +844,11 @@ package Exp_Dbug is
 
       --  Specifically, if this name is x, then we produce a record type named
       --  x___XVS consisting of one field. The name of this field is that of
-      --  the actual type being encoded, which we'll call y (the type of this
-      --  single field is arbitrary). Both x and y may have corresponding
-      --  ___XVE types.
+      --  the actual type being encoded, which we'll call y. The type of this
+      --  single field can be either an arbitrary non-reference type, e.g. an
+      --  integer type, or a reference type; in the latter case, the referenced
+      --  type is also the actual type being encoded y. Both x and y may have
+      --  corresponding ___XVE types.
 
       --  The size of the objects typed as x should be obtained from the
       --  structure of x (and x___XVE, if applicable) as for ordinary types
@@ -1051,7 +1053,7 @@ package Exp_Dbug is
 
    --            Here f is the field name for the selection
 
-   --        For an explicit deference (.all), we have a single entry
+   --        For an explicit dereference (.all), we have a single entry
 
    --          XA
 
@@ -1092,8 +1094,8 @@ package Exp_Dbug is
    -- Packed Array Encoding --
    ---------------------------
 
-   --  For every packed array, two types are created, and both appear in
-   --  the debugging output.
+   --  For every constrained packed array, two types are created, and both
+   --  appear in the debugging output:
 
    --    The original declared array type is a perfectly normal array type,
    --    and its index bounds indicate the original bounds of the array.
@@ -1108,12 +1110,27 @@ package Exp_Dbug is
    --    ttt___XPnnn
 
    --  where
+
    --    ttt is the name of the original declared array
    --    nnn is the component size in bits (1-31)
 
-   --  When the debugger sees that an object is of a type that is encoded
-   --  in this manner, it can use the original type to determine the bounds,
-   --  and the component size to determine the packing details.
+   --  When the debugger sees that an object is of a type that is encoded in
+   --  this manner, it can use the original type to determine the bounds and
+   --  the component type, and the component size to determine the packing
+   --  details.
+
+   --  For an unconstrained packed array, the corresponding packed array type
+   --  is neither used in the generated code nor for debugging information,
+   --  only the original type is used. In order to convey the packing in the
+   --  debugging information, the compiler generates the associated fat- and
+   --  thin-pointer types (see the Pointers to Unconstrained Array section
+   --  below) using the name of the corresponding packed array type as the
+   --  base name, i.e. ttt___XPnnn___XUP and ttt___XPnnn___XUT respectively.
+
+   --  When the debugger sees that an object is of a type that is encoded in
+   --  this manner, it can use the type of the fields to determine the bounds
+   --  and the component type, and the component size to determine the packing
+   --  details.
 
    -------------------------------------------
    -- Packed Array Representation in Memory --
@@ -1255,6 +1272,7 @@ package Exp_Dbug is
    --      fat-pointer type whose name is "arr___XUP", where "arr" is the name
    --      of the array type, and use it to represent the array type itself in
    --      the debugging information.
+
    --      For each pointer to this unconstrained array type, the compiler will
    --      generate a typedef that points to the above "arr___XUP" fat-pointer
    --      type. As a consequence, when it comes to fat-pointer types:
@@ -1522,33 +1540,38 @@ package Exp_Dbug is
    --  to DWARF2/3 are generated, with the following variations from the above
    --  specification.
 
-   --   Change in the contents of the DW_AT_name attribute.
-   --    The operators are represented in their natural form. (Ie, the addition
-   --    operator is written as "+" instead of "Oadd").
-   --    The component separation string is "." instead of "__"
+   --   Change in the contents of the DW_AT_name attribute
 
-   --   Introduction of DW_AT_GNAT_encoding, encoded with value 0x2301.
-   --    Any debugging information entry representing a program entity, named
-   --    or implicit, may have a DW_AT_GNAT_encoding attribute. The value of
-   --    this attribute is a string representing the suffix internally added
-   --    by GNAT for various purposes, mainly for representing debug
-   --    information compatible with other formats.
+   --     The operators are represented in their natural form. (for example,
+   --     the addition operator is written as "+" instead of "Oadd"). The
+   --     component separator is "." instead of "__"
 
-   --    If a debugging information entry has multiple encodings, all of them
-   --    will be listed in DW_AT_GNAT_encoding. The separator for this list
-   --    is ':'.
+   --   Introduction of DW_AT_GNAT_encoding, encoded with value 0x2301
+
+   --     Any debugging information entry representing a program entity, named
+   --     or implicit, may have a DW_AT_GNAT_encoding attribute. The value of
+   --     this attribute is a string representing the suffix internally added
+   --     by GNAT for various purposes, mainly for representing debug
+   --     information compatible with other formats. In particular this is
+   --     useful for IDEs which need to filter out information internal to
+   --     GNAT from their graphical interfaces.
+
+   --     If a debugging information entry has multiple encodings, all of them
+   --     will be listed in DW_AT_GNAT_encoding using the list separator ':'.
 
    --   Introduction of DW_AT_GNAT_descriptive_type, encoded with value 0x2302
-   --    Any debugging information entry representing a type may have a
-   --    DW_AT_GNAT_descriptive_type attribute whose value is a reference,
-   --    pointing to a debugging information entry representing another type
-   --    associated to the type.
 
-   --   Modification of the contents of the DW_AT_producer string.
-   --    When emitting full GNAT Vendor extensions to DWARF2/3, "-gdwarf+"
-   --    is appended to the DW_AT_producer string.
+   --     Any debugging information entry representing a type may have a
+   --     DW_AT_GNAT_descriptive_type attribute whose value is a reference,
+   --     pointing to a debugging information entry representing another type
+   --     associated to the type.
+
+   --   Modification of the contents of the DW_AT_producer string
+
+   --     When emitting full GNAT Vendor extensions to DWARF2/3, "-gdwarf+"
+   --     is appended to the DW_AT_producer string.
    --
-   --    When emitting only DW_AT_GNAT_descriptive_type, "-gdwarf+-" is
-   --    appended to the DW_AT_producer string.
+   --     When emitting only DW_AT_GNAT_descriptive_type, "-gdwarf+-" is
+   --     appended to the DW_AT_producer string.
 
 end Exp_Dbug;

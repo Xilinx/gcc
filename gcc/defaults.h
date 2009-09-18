@@ -1138,13 +1138,13 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   LOCAL_ALIGNMENT (TREE_TYPE (DECL), DECL_ALIGN (DECL))
 #endif
 
+#ifndef MINIMUM_ALIGNMENT
+#define MINIMUM_ALIGNMENT(EXP,MODE,ALIGN) (ALIGN)
+#endif
+
 /* Alignment value for attribute ((aligned)).  */
 #ifndef ATTRIBUTE_ALIGNED_VALUE
 #define ATTRIBUTE_ALIGNED_VALUE BIGGEST_ALIGNMENT
-#endif
-
-#ifndef CAN_ELIMINATE
-#define CAN_ELIMINATE(FROM, TO) true
 #endif
 
 /* Many ports have no mode-dependent addresses (except possibly autoincrement

@@ -427,7 +427,7 @@ or with constant text in a single argument.
  %b     substitute the basename of the input file being processed.
 	This is the substring up to (and not including) the last period
 	and not including the directory unless -save-temps was specified
-	to put temporaries in a different location.	
+	to put temporaries in a different location.
  %B	same as %b, but include the file suffix (text after the last period).
  %gSUFFIX
 	substitute a file name that has suffix SUFFIX and is chosen
@@ -564,7 +564,7 @@ or with constant text in a single argument.
  %{!.S:X} substitutes X, if NOT processing a file with suffix S.
  %{,S:X}  substitutes X, if processing a file which will use spec S.
  %{!,S:X} substitutes X, if NOT processing a file which will use spec S.
-	  
+
  %{S|T:X} substitutes X if either -S or -T was given to GCC.  This may be
 	  combined with '!', '.', ',', and '*' as above binding stronger
 	  than the OR.
@@ -891,10 +891,10 @@ static const char *asm_options =
 
 static const char *invoke_as =
 #ifdef AS_NEEDS_DASH_FOR_PIPED_INPUT
-"%{fcompare-debug=*:%:compare-debug-dump-opt()}\
+"%{fcompare-debug=*|fdump-final-insns=*:%:compare-debug-dump-opt()}\
  %{!S:-o %|.s |\n as %(asm_options) %|.s %A }";
 #else
-"%{fcompare-debug=*:%:compare-debug-dump-opt()}\
+"%{fcompare-debug=*|fdump-final-insns=*:%:compare-debug-dump-opt()}\
  %{!S:-o %|.s |\n as %(asm_options) %m.s %A }";
 #endif
 
@@ -926,6 +926,7 @@ static const char *const multilib_defaults_raw[] = MULTILIB_DEFAULTS;
 #endif
 
 static const char *const driver_self_specs[] = {
+  "%{fdump-final-insns:-fdump-final-insns=.} %<fdump-final-insns",
   DRIVER_SELF_SPECS, GOMP_SELF_SPECS
 };
 
@@ -1180,6 +1181,7 @@ static const struct option_map option_map[] =
    {"--library-directory", "-L", "a"},
    {"--machine", "-m", "aj"},
    {"--machine-", "-m", "*j"},
+   {"--no-canonical-prefixes", "-no-canonical-prefixes", 0},
    {"--no-integrated-cpp", "-no-integrated-cpp", 0},
    {"--no-line-commands", "-P", 0},
    {"--no-precompiled-includes", "-noprecomp", 0},
@@ -1571,8 +1573,6 @@ static const char *const standard_startfile_prefix = STANDARD_STARTFILE_PREFIX;
 /* For native compilers, these are well-known paths containing
    components that may be provided by the system.  For cross
    compilers, these paths are not used.  */
-static const char *const standard_exec_prefix_1 = "/usr/libexec/gcc/";
-static const char *const standard_exec_prefix_2 = "/usr/lib/gcc/";
 static const char *md_exec_prefix = MD_EXEC_PREFIX;
 static const char *md_startfile_prefix = MD_STARTFILE_PREFIX;
 static const char *md_startfile_prefix_1 = MD_STARTFILE_PREFIX_1;
@@ -3370,6 +3370,9 @@ display_help (void)
   fputs (_("  -combine                 Pass multiple source files to compiler at once\n"), stdout);
   fputs (_("  -save-temps              Do not delete intermediate files\n"), stdout);
   fputs (_("  -save-temps=<arg>        Do not delete intermediate files\n"), stdout);
+  fputs (_("\
+  -no-canonical-prefixes   Do not canonicalize paths when building relative\n\
+                           prefixes to other gcc components\n"), stdout);
   fputs (_("  -pipe                    Use pipes rather than intermediate files\n"), stdout);
   fputs (_("  -time                    Time the execution of each subprocess\n"), stdout);
   fputs (_("  -specs=<file>            Override built-in specs with the contents of <file>\n"), stdout);
@@ -3440,7 +3443,7 @@ add_linker_option (const char *option, int len)
   if (! linker_options)
     linker_options = XNEWVEC (char *, n_linker_options);
   else
-    linker_options = XRESIZEVEC (char *, linker_options, n_linker_options);  
+    linker_options = XRESIZEVEC (char *, linker_options, n_linker_options);
 
   linker_options [n_linker_options - 1] = save_string (option, len);
 }
@@ -3462,6 +3465,8 @@ process_command (int argc, const char **argv)
   unsigned int j;
 #endif
   const char *tooldir_prefix;
+  char *(*get_relative_prefix) (const char *, const char *,
+				const char *) = NULL;
 
   GET_ENVIRONMENT (gcc_exec_prefix, "GCC_EXEC_PREFIX");
 
@@ -3557,6 +3562,32 @@ process_command (int argc, const char **argv)
       exit (status);
     }
 
+  /* Convert new-style -- options to old-style.  */
+  translate_options (&argc,
+		     CONST_CAST2 (const char *const **, const char ***,
+				  &argv));
+
+  /* Do language-specific adjustment/addition of flags.  */
+  lang_specific_driver (&argc,
+			CONST_CAST2 (const char *const **, const char ***,
+				     &argv),
+			&added_libraries);
+
+  /* Handle any -no-canonical-prefixes flag early, to assign the function
+     that builds relative prefixes.  This function creates default search
+     paths that are needed later in normal option handling.  */
+
+  for (i = 1; i < argc; i++)
+    {
+      if (! strcmp (argv[i], "-no-canonical-prefixes"))
+	{
+	  get_relative_prefix = make_relative_prefix_ignore_links;
+	  break;
+	}
+    }
+  if (! get_relative_prefix)
+    get_relative_prefix = make_relative_prefix;
+
   /* Set up the default search paths.  If there is no GCC_EXEC_PREFIX,
      see if we can create it from the pathname specified in argv[0].  */
 
@@ -3565,11 +3596,12 @@ process_command (int argc, const char **argv)
   /* FIXME: make_relative_prefix doesn't yet work for VMS.  */
   if (!gcc_exec_prefix)
     {
-      gcc_exec_prefix = make_relative_prefix (argv[0], standard_bindir_prefix,
-					      standard_exec_prefix);
-      gcc_libexec_prefix = make_relative_prefix (argv[0],
-						 standard_bindir_prefix,
-						 standard_libexec_prefix);
+      gcc_exec_prefix = get_relative_prefix (argv[0],
+					     standard_bindir_prefix,
+					     standard_exec_prefix);
+      gcc_libexec_prefix = get_relative_prefix (argv[0],
+					     standard_bindir_prefix,
+					     standard_libexec_prefix);
       if (gcc_exec_prefix)
 	xputenv (concat ("GCC_EXEC_PREFIX=", gcc_exec_prefix, NULL));
     }
@@ -3580,9 +3612,9 @@ process_command (int argc, const char **argv)
 	 / (which is ignored by make_relative_prefix), so append a
 	 program name.  */
       char *tmp_prefix = concat (gcc_exec_prefix, "gcc", NULL);
-      gcc_libexec_prefix = make_relative_prefix (tmp_prefix,
-						 standard_exec_prefix,
-						 standard_libexec_prefix);
+      gcc_libexec_prefix = get_relative_prefix (tmp_prefix,
+						standard_exec_prefix,
+						standard_libexec_prefix);
 
       /* The path is unrelocated, so fallback to the original setting.  */
       if (!gcc_libexec_prefix)
@@ -3719,17 +3751,6 @@ process_command (int argc, const char **argv)
 	    endp++;
 	}
     }
-
-  /* Convert new-style -- options to old-style.  */
-  translate_options (&argc,
-		     CONST_CAST2 (const char *const **, const char ***,
-				  &argv));
-
-  /* Do language-specific adjustment/addition of flags.  */
-  lang_specific_driver (&argc,
-			CONST_CAST2 (const char *const **, const char ***,
-				     &argv),
-			&added_libraries);
 
   /* Scan argv twice.  Here, the first time, just count how many switches
      there will be in their vector, and how many input files in theirs.
@@ -3958,6 +3979,9 @@ process_command (int argc, const char **argv)
 	  else
 	    fatal ("'%s' is an unknown -save-temps option", argv[i]);
 	}
+      else if (strcmp (argv[i], "-no-canonical-prefixes") == 0)
+	/* Already handled as a special case, so ignored here.  */
+	;
       else if (strcmp (argv[i], "-combine") == 0)
 	{
 	  combine_flag = 1;
@@ -4267,19 +4291,6 @@ process_command (int argc, const char **argv)
 		  PREFIX_PRIORITY_LAST, 1, 0);
     }
 
-  /* If not cross-compiling, search well-known system locations.  */
-  if (*cross_compile == '0')
-    {
-#ifndef OS2
-      add_prefix (&exec_prefixes, standard_exec_prefix_1, "BINUTILS",
-		  PREFIX_PRIORITY_LAST, 2, 0);
-      add_prefix (&exec_prefixes, standard_exec_prefix_2, "BINUTILS",
-		  PREFIX_PRIORITY_LAST, 2, 0);
-#endif
-      add_prefix (&startfile_prefixes, standard_exec_prefix_2, "BINUTILS",
-		  PREFIX_PRIORITY_LAST, 1, 0);
-    }
-
   gcc_assert (!IS_ABSOLUTE_PATH (tooldir_base_prefix));
   tooldir_prefix = concat (tooldir_base_prefix, spec_machine,
 			   dir_separator_str, NULL);
@@ -4305,9 +4316,9 @@ process_command (int argc, const char **argv)
      ``make_relative_prefix'' is not compiled for VMS, so don't call it.  */
   if (target_system_root && gcc_exec_prefix)
     {
-      char *tmp_prefix = make_relative_prefix (argv[0],
-					       standard_bindir_prefix,
-					       target_system_root);
+      char *tmp_prefix = get_relative_prefix (argv[0],
+					      standard_bindir_prefix,
+					      target_system_root);
       if (tmp_prefix && access_check (tmp_prefix, F_OK) == 0)
 	{
 	  target_system_root = tmp_prefix;
@@ -4348,6 +4359,8 @@ process_command (int argc, const char **argv)
       if (! strncmp (argv[i], "-Wa,", 4))
 	;
       else if (! strncmp (argv[i], "-Wp,", 4))
+	;
+      else if (! strcmp (argv[i], "-no-canonical-prefixes"))
 	;
       else if (! strcmp (argv[i], "-pass-exit-codes"))
 	;
@@ -4672,6 +4685,13 @@ static int this_is_output_file;
    search dirs for it.  */
 static int this_is_library_file;
 
+/* Nonzero means %T has been seen; the next arg to be terminated
+   is the name of a linker script and we should try all of the
+   standard search dirs for it.  If it is found insert a --script
+   command line switch and then substitute the full path in place,
+   otherwise generate an error message.  */
+static int this_is_linker_script;
+
 /* Nonzero means that the input of this command is coming from a pipe.  */
 static int input_from_pipe;
 
@@ -4692,6 +4712,19 @@ end_going_arg (void)
       string = XOBFINISH (&obstack, const char *);
       if (this_is_library_file)
 	string = find_file (string);
+      if (this_is_linker_script)
+	{
+	  char * full_script_path = find_a_file (&startfile_prefixes, string, R_OK, true);
+
+	  if (full_script_path == NULL)
+	    {
+	      error (_("unable to locate default linker script '%s' in the library search paths"), string);
+	      /* Script was not found on search path.  */
+	      return;
+	    }
+	  store_arg ("--script", false, false);
+	  string = full_script_path;
+	}
       store_arg (string, delete_this_arg, this_is_output_file);
       if (this_is_output_file)
 	outfiles[input_file_number] = string;
@@ -4781,6 +4814,7 @@ do_spec_2 (const char *spec)
   delete_this_arg = 0;
   this_is_output_file = 0;
   this_is_library_file = 0;
+  this_is_linker_script = 0;
   input_from_pipe = 0;
   suffix_subst = NULL;
 
@@ -5068,6 +5102,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	delete_this_arg = 0;
 	this_is_output_file = 0;
 	this_is_library_file = 0;
+	this_is_linker_script = 0;
 	input_from_pipe = 0;
 	break;
 
@@ -5087,6 +5122,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	delete_this_arg = 0;
 	this_is_output_file = 0;
 	this_is_library_file = 0;
+	this_is_linker_script = 0;
 	break;
 
       case '%':
@@ -5534,6 +5570,10 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	    this_is_library_file = 1;
 	    break;
 
+	  case 'T':
+	    this_is_linker_script = 1;
+	    break;
+
 	  case 'V':
 	    outfiles[input_file_number] = NULL;
 	    break;
@@ -5908,6 +5948,7 @@ eval_spec_function (const char *func, const char *args)
   int save_this_is_output_file;
   int save_this_is_library_file;
   int save_input_from_pipe;
+  int save_this_is_linker_script;
   const char *save_suffix_subst;
 
 
@@ -5924,6 +5965,7 @@ eval_spec_function (const char *func, const char *args)
   save_delete_this_arg = delete_this_arg;
   save_this_is_output_file = this_is_output_file;
   save_this_is_library_file = this_is_library_file;
+  save_this_is_linker_script = this_is_linker_script;
   save_input_from_pipe = input_from_pipe;
   save_suffix_subst = suffix_subst;
 
@@ -5949,6 +5991,7 @@ eval_spec_function (const char *func, const char *args)
   delete_this_arg = save_delete_this_arg;
   this_is_output_file = save_this_is_output_file;
   this_is_library_file = save_this_is_library_file;
+  this_is_linker_script = save_this_is_linker_script;
   input_from_pipe = save_input_from_pipe;
   suffix_subst = save_suffix_subst;
 
@@ -6193,7 +6236,7 @@ handle_braces (const char *p)
 	    {
 	      if ((a_is_suffix || a_is_spectype) && a_is_starred)
 		goto invalid;
-	      
+
 	      if (!a_is_starred)
 		disj_starred = false;
 
@@ -6207,7 +6250,7 @@ handle_braces (const char *p)
 		    a_matched = input_spec_matches (atom, end_atom);
 		  else
 		    a_matched = switch_matches (atom, end_atom, a_is_starred);
-		  
+
 		  if (a_matched != a_is_negated)
 		    {
 		      disj_matched = true;
@@ -8660,6 +8703,33 @@ print_asm_header_spec_function (int arg ATTRIBUTE_UNUSED,
   return NULL;
 }
 
+/* Compute a timestamp to initialize flag_random_seed.  */
+
+static unsigned
+get_local_tick (void)
+{
+  unsigned ret = 0;
+
+  /* Get some more or less random data.  */
+#ifdef HAVE_GETTIMEOFDAY
+  {
+    struct timeval tv;
+
+    gettimeofday (&tv, NULL);
+    ret = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+  }
+#else
+  {
+    time_t now = time (NULL);
+
+    if (now != (time_t)-1)
+      ret = (unsigned) now;
+  }
+#endif
+
+  return ret;
+}
+
 /* %:compare-debug-dump-opt spec function.  Save the last argument,
    expected to be the last -fdump-final-insns option, or generate a
    temporary.  */
@@ -8671,41 +8741,61 @@ compare_debug_dump_opt_spec_function (int arg,
   const char *ret;
   char *name;
   int which;
+  static char random_seed[HOST_BITS_PER_WIDE_INT / 4 + 3];
 
   if (arg != 0)
     fatal ("too many arguments to %%:compare-debug-dump-opt");
 
-  if (!compare_debug)
-    return NULL;
-
   do_spec_2 ("%{fdump-final-insns=*:%*}");
   do_spec_1 (" ", 0, NULL);
 
-  if (argbuf_index > 0)
+  if (argbuf_index > 0 && strcmp (argv[argbuf_index - 1], "."))
     {
+      if (!compare_debug)
+	return NULL;
+
       name = xstrdup (argv[argbuf_index - 1]);
       ret = NULL;
     }
   else
     {
-#define OPT "-fdump-final-insns="
-      ret = "-fdump-final-insns=%g.gkd";
+      const char *ext = NULL;
 
-      do_spec_2 (ret + sizeof (OPT) - 1);
+      if (argbuf_index > 0)
+	{
+	  do_spec_2 ("%{o*:%*}%{!o:%{!S:%b%O}%{S:%b.s}}");
+	  ext = ".gkd";
+	}
+      else if (!compare_debug)
+	return NULL;
+      else
+	do_spec_2 ("%g.gkd");
+
       do_spec_1 (" ", 0, NULL);
-#undef OPT
 
       gcc_assert (argbuf_index > 0);
 
-      name = xstrdup (argbuf[argbuf_index - 1]);
+      name = concat (argbuf[argbuf_index - 1], ext, NULL);
+
+      ret = concat ("-fdump-final-insns=", name, NULL);
     }
 
   which = compare_debug < 0;
   debug_check_temp_file[which] = name;
 
-#if 0
-  error ("compare-debug: [%i]=\"%s\", ret %s", which, name, ret);
-#endif
+  if (!which)
+    {
+      unsigned HOST_WIDE_INT value = get_local_tick () ^ getpid ();
+
+      sprintf (random_seed, HOST_WIDE_INT_PRINT_HEX, value);
+    }
+
+  if (*random_seed)
+    ret = concat ("%{!frandom-seed=*:-frandom-seed=", random_seed, "} ",
+		  ret, NULL);
+
+  if (which)
+    *random_seed = 0;
 
   return ret;
 }
@@ -8778,6 +8868,8 @@ compare_debug_auxbase_opt_spec_function (int arg,
   memcpy (name, OPT, sizeof (OPT) - 1);
   memcpy (name + sizeof (OPT) - 1, argv[0], len);
   name[sizeof (OPT) - 1 + len] = '\0';
+
+#undef OPT
 
   return name;
 }

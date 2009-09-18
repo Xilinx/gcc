@@ -33,14 +33,10 @@ along with GCC; see the file COPYING3.  If not see
   %{pg:gcrt2%O%s} \
   crtbegin.o%s"
 
-/* Use mingw/include for include.  */
-#undef STANDARD_INCLUDE_DIR
-#define STANDARD_INCLUDE_DIR "/mingw/include"
-
 /* Enable multilib.  */
 
 #undef ASM_SPEC
-#define ASM_SPEC "%{v:-V} %{n} %{T} %{Ym,*} %{Yd,*} \
+#define ASM_SPEC "%{v:-v} %{n} %{T} %{Ym,*} %{Yd,*} \
  %{Wa,*:%*} %{m32:--32} %{m64:--64}"
 
 #if TARGET_64BIT_DEFAULT
@@ -60,7 +56,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 #undef LINK_SPEC
-#define LINK_SPEC SUB_LINK_SPEC "%{mwindows:--subsystem windows} \
+#define LINK_SPEC SUB_LINK_SPEC " %{mwindows:--subsystem windows} \
   %{mconsole:--subsystem console} \
   %{shared: %{mdll: %eshared and mdll are not compatible}} \
   %{shared: --shared} %{mdll:--dll} \

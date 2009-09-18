@@ -1,7 +1,7 @@
 /* Process declarations and variables for the GNU compiler for the
    Java(TM) language.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007,
-   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -306,13 +306,13 @@ find_local_variable (int index, tree type, int pc ATTRIBUTE_UNUSED)
   return decl;
 }
 
-/* Called during gimplification for every variable.  If the variable
+/* Called during genericization for every variable.  If the variable
    is a temporary of pointer type, replace it with a common variable
    thath is used to hold all pointer types that are ever stored in
    that slot.  Set WANT_LVALUE if you want a variable that is to be
    written to.  */
 
-tree 
+static tree 
 java_replace_reference (tree var_decl, bool want_lvalue)
 {
   tree decl_type;
@@ -341,6 +341,43 @@ java_replace_reference (tree var_decl, bool want_lvalue)
   return var_decl;
 }
 
+/* Helper for java_genericize.  */
+
+tree
+java_replace_references (tree *tp, int *walk_subtrees,
+			 void *data ATTRIBUTE_UNUSED)
+{
+  if (TREE_CODE (*tp) == MODIFY_EXPR)
+    {
+      source_location loc = EXPR_LOCATION (*tp);
+      tree lhs = TREE_OPERAND (*tp, 0);
+      /* This is specific to the bytecode compiler.  If a variable has
+	 LOCAL_SLOT_P set, replace an assignment to it with an assignment
+	 to the corresponding variable that holds all its aliases.  */
+      if (TREE_CODE (lhs) == VAR_DECL
+	  && DECL_LANG_SPECIFIC (lhs)
+	  && LOCAL_SLOT_P (lhs)
+	  && TREE_CODE (TREE_TYPE (lhs)) == POINTER_TYPE)
+	{
+	  tree new_lhs = java_replace_reference (lhs, /* want_lvalue */ true);
+	  tree new_rhs = build1 (NOP_EXPR, TREE_TYPE (new_lhs),
+				 TREE_OPERAND (*tp, 1));
+	  tree tem = build2 (MODIFY_EXPR, TREE_TYPE (new_lhs),
+			     new_lhs, new_rhs);
+	  *tp = build1 (NOP_EXPR, TREE_TYPE (lhs), tem);
+	  SET_EXPR_LOCATION (tem, loc);
+	  SET_EXPR_LOCATION (new_rhs, loc);
+	  SET_EXPR_LOCATION (*tp, loc);
+	}
+    }
+  if (TREE_CODE (*tp) == VAR_DECL)
+    {
+      *tp = java_replace_reference (*tp, /* want_lvalue */ false);
+      *walk_subtrees = 0;
+    }
+
+  return NULL_TREE;
+}
 
 /* Same as find_local_index, except that INDEX is a stack index. */
 
@@ -385,6 +422,9 @@ struct GTY(())
 
     /* Binding depth at which this level began.  Used only for debugging.  */
     unsigned binding_depth;
+
+    /* The location at which this level began.  */
+    source_location loc;
   };
 
 #define NULL_BINDING_LEVEL (struct binding_level *) NULL
@@ -425,10 +465,11 @@ static const struct binding_level clear_binding_level
     NULL, /* stmts */
     NULL, /* exception_range */
     0, /* binding_depth */
+    0, /* loc */
   };
 
 tree java_global_trees[JTI_MAX];
-  
+
 /* Build (and pushdecl) a "promoted type" for all standard
    types shorter than int.  */
 
@@ -467,12 +508,6 @@ create_primitive_vtable (const char *name)
 		  VAR_DECL, get_identifier (buf), ptr_type_node);
   DECL_EXTERNAL (r) = 1;
   return r;
-}
-
-static tree
-do_nothing (tree t)
-{
-  return t;
 }
 
 /* Parse the version string and compute the ABI version number.  */
@@ -1153,18 +1188,8 @@ java_init_decl_processing (void)
 			    build_function_type (long_type_node, t),
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
 
-  /* Initialize variables for except.c.  */
-  eh_personality_libfunc = init_one_libfunc (USING_SJLJ_EXCEPTIONS
-                                             ? "__gcj_personality_sj0"
-                                             : "__gcj_personality_v0");
-  if (targetm.arm_eabi_unwinder)
-    unwind_resume_libfunc = init_one_libfunc ("__cxa_end_cleanup");
-  else
-    default_init_unwind_resume_libfunc ();
-
-  lang_eh_runtime_type = do_nothing;
-
   initialize_builtins ();
+
   soft_fmod_node = built_in_decls[BUILT_IN_FMOD];
 
   parse_version ();
@@ -1361,7 +1386,8 @@ pushlevel (int unused ATTRIBUTE_UNUSED)
 
   *newlevel = clear_binding_level;
   newlevel->level_chain = current_binding_level;
-  current_binding_level = newlevel;
+  newlevel->loc = input_location;
+  current_binding_level = newlevel;  
 #if defined(DEBUG_JAVA_BINDING_LEVELS)
   newlevel->binding_depth = binding_depth;
   indent ();
@@ -1475,6 +1501,8 @@ poplevel (int keep, int reverse, int functionbody)
 	  /* FIXME: gimplifier brain damage.  */
 	  if (BIND_EXPR_BODY (bind) == NULL)
 	    BIND_EXPR_BODY (bind) = build_java_empty_stmt ();
+
+	  SET_EXPR_LOCATION (bind, current_binding_level->loc);
 
 	  current_binding_level->stmts = NULL;
 	}
@@ -1843,6 +1871,7 @@ start_java_method (tree fndecl)
     type_map[i++] = NULL_TREE;
 
   build_result_decl (fndecl);
+  DECL_SOURCE_LOCATION (fndecl) = input_location;
 
   /* Push local variables.  */
   pushlevel (2);
@@ -1877,6 +1906,7 @@ end_java_method (void)
   finish_method (fndecl);
 
   current_function_decl = NULL_TREE;
+  base_decl_map = NULL_TREE;
 }
 
 /* Prepare a method for expansion.  */
@@ -2003,6 +2033,26 @@ add_stmt_to_compound (tree existing, tree type, tree stmt)
     return stmt;
 }
 
+/* If this node is an expr, mark its input location.  Called from
+   walk_tree().  */
+
+static tree
+set_input_location (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
+		    void *data ATTRIBUTE_UNUSED)
+{
+  tree t = *tp;
+
+  if (CAN_HAVE_LOCATION_P (t))
+    {
+      if (EXPR_HAS_LOCATION(t))
+	return t;  /* Don't walk any further into this expr.   */
+      else
+	SET_EXPR_LOCATION (t, input_location);
+    }
+
+  return NULL_TREE;  /* Continue walking this expr.   */
+}
+
 /* Add a statement to the statement_list currently being constructed.
    If the statement_list is null, we don't create a singleton list.
    This is necessary because poplevel() assumes that adding a
@@ -2015,8 +2065,8 @@ java_add_stmt (tree new_stmt)
   tree_stmt_iterator i;
 
   if (input_filename)
-    SET_EXPR_LOCATION (new_stmt, input_location);
-  
+    walk_tree (&new_stmt, set_input_location, NULL, NULL);
+
   if (stmts == NULL)
     return current_binding_level->stmts = new_stmt;
 

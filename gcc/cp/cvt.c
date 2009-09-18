@@ -539,7 +539,16 @@ force_rvalue (tree expr)
 
   return expr;
 }
+
 
+/* Fold away simple conversions, but make sure the result is an rvalue.  */
+
+tree
+cp_fold_convert (tree type, tree expr)
+{
+  return rvalue (fold_convert (type, expr));
+}
+
 /* C++ conversions, preference to static cast conversions.  */
 
 tree
@@ -936,10 +945,11 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 	      && !AGGR_INIT_VIA_CTOR_P (init))
 	    {
 	      tree fn = AGGR_INIT_EXPR_FN (init);
-	      expr = build_call_array (TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
-				       fn,
-				       aggr_init_expr_nargs (init),
-				       AGGR_INIT_EXPR_ARGP (init));
+	      expr = build_call_array_loc (input_location,
+					   TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
+					   fn,
+					   aggr_init_expr_nargs (init),
+					   AGGR_INIT_EXPR_ARGP (init));
 	    }
 	}
       break;

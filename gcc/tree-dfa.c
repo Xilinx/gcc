@@ -88,7 +88,12 @@ find_referenced_vars (void)
   FOR_EACH_BB (bb)
     {
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
-	find_referenced_vars_in (gsi_stmt (si));
+	{
+	  gimple stmt = gsi_stmt (si);
+	  if (is_gimple_debug (stmt))
+	    continue;
+	  find_referenced_vars_in (gsi_stmt (si));
+	}
 
       for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
 	find_referenced_vars_in (gsi_stmt (si));
@@ -157,6 +162,32 @@ renumber_gimple_stmt_uids (void)
     }
 }
 
+/* Like renumber_gimple_stmt_uids, but only do work on the basic blocks
+   in BLOCKS, of which there are N_BLOCKS.  Also renumbers PHIs.  */
+
+void 
+renumber_gimple_stmt_uids_in_blocks (basic_block *blocks, int n_blocks)
+{
+  int i;
+
+  set_gimple_stmt_max_uid (cfun, 0);
+  for (i = 0; i < n_blocks; i++)
+    {
+      basic_block bb = blocks[i];
+      gimple_stmt_iterator bsi;
+      for (bsi = gsi_start_phis (bb); !gsi_end_p (bsi); gsi_next (&bsi))
+	{
+	  gimple stmt = gsi_stmt (bsi);
+	  gimple_set_uid (stmt, inc_gimple_stmt_max_uid (cfun));
+	}
+      for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
+	{
+	  gimple stmt = gsi_stmt (bsi);
+	  gimple_set_uid (stmt, inc_gimple_stmt_max_uid (cfun));
+	}
+    }
+}
+
 /* Create a new annotation for a tree T.  */
 
 tree_ann_common_t
@@ -170,7 +201,6 @@ create_tree_common_ann (tree t)
   ann = GGC_CNEW (struct tree_ann_common_d);
 
   ann->type = TREE_ANN_COMMON;
-  ann->rn = -1;
   t->base.ann = (tree_ann_t) ann;
 
   return ann;
@@ -275,18 +305,24 @@ dump_variable (FILE *file, tree var)
   else if (is_call_used (var))
     fprintf (file, ", call used");
 
-  if (ann->noalias_state == NO_ALIAS)
+  if (ann && ann->noalias_state == NO_ALIAS)
     fprintf (file, ", NO_ALIAS (does not alias other NO_ALIAS symbols)");
-  else if (ann->noalias_state == NO_ALIAS_GLOBAL)
+  else if (ann && ann->noalias_state == NO_ALIAS_GLOBAL)
     fprintf (file, ", NO_ALIAS_GLOBAL (does not alias other NO_ALIAS symbols"
 	           " and global vars)");
-  else if (ann->noalias_state == NO_ALIAS_ANYTHING)
+  else if (ann && ann->noalias_state == NO_ALIAS_ANYTHING)
     fprintf (file, ", NO_ALIAS_ANYTHING (does not alias any other symbols)");
 
-  if (gimple_default_def (cfun, var))
+  if (cfun && gimple_default_def (cfun, var))
     {
       fprintf (file, ", default def: ");
       print_generic_expr (file, gimple_default_def (cfun, var), dump_flags);
+    }
+
+  if (DECL_INITIAL (var))
+    {
+      fprintf (file, ", initial: ");
+      print_generic_expr (file, DECL_INITIAL (var), dump_flags);
     }
 
   fprintf (file, "\n");
@@ -723,7 +759,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
     size_tree = DECL_SIZE (TREE_OPERAND (exp, 1));
   else if (TREE_CODE (exp) == BIT_FIELD_REF)
     size_tree = TREE_OPERAND (exp, 1);
-  else
+  else if (!VOID_TYPE_P (TREE_TYPE (exp)))
     {
       enum machine_mode mode = TYPE_MODE (TREE_TYPE (exp));
       if (mode == BLKmode)

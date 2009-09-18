@@ -221,16 +221,13 @@ struct gimple_opt_pass pass_lower_cf =
 
 /* Verify if the type of the argument matches that of the function
    declaration.  If we cannot verify this or there is a mismatch,
-   mark the call expression so it doesn't get inlined later.  */
+   return false.  */
 
-static void
-check_call_args (gimple stmt)
+bool
+gimple_check_call_args (gimple stmt)
 {
   tree fndecl, parms, p;
   unsigned int i, nargs;
-
-  if (gimple_call_cannot_inline_p (stmt))
-    return;
 
   nargs = gimple_call_num_args (stmt);
 
@@ -244,7 +241,7 @@ check_call_args (gimple stmt)
 
   /* Verify if the type of the argument matches that of the function
      declaration.  If we cannot verify this or there is a mismatch,
-     mark the call expression so it doesn't get inlined later.  */
+     return false.  */
   if (fndecl && DECL_ARGUMENTS (fndecl))
     {
       for (i = 0, p = DECL_ARGUMENTS (fndecl);
@@ -260,10 +257,7 @@ check_call_args (gimple stmt)
 	      || gimple_call_arg (stmt, i) == error_mark_node
 	      || !fold_convertible_p (DECL_ARG_TYPE (p),
 				      gimple_call_arg (stmt, i)))
-	    {
-	      gimple_call_set_cannot_inline (stmt, true);
-	      break;
-	    }
+            return false;
 	}
     }
   else if (parms)
@@ -279,17 +273,15 @@ check_call_args (gimple stmt)
 	      || TREE_CODE (TREE_VALUE (p)) == VOID_TYPE
 	      || !fold_convertible_p (TREE_VALUE (p),
 				      gimple_call_arg (stmt, i)))
-	    {
-	      gimple_call_set_cannot_inline (stmt, true);
-	      break;
-	    }
+            return false;
 	}
     }
   else
     {
       if (nargs != 0)
-	gimple_call_set_cannot_inline (stmt, true);
+        return false;
     }
+  return true;
 }
 
 
@@ -368,6 +360,7 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
     case GIMPLE_PREDICT:
     case GIMPLE_LABEL:
     case GIMPLE_SWITCH:
+    case GIMPLE_EH_MUST_NOT_THROW:
     case GIMPLE_OMP_FOR:
     case GIMPLE_OMP_SECTIONS:
     case GIMPLE_OMP_SECTIONS_SWITCH:
@@ -394,7 +387,6 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
 	    lower_builtin_setjmp (gsi);
 	    return;
 	  }
-	check_call_args (stmt);
       }
       break;
 
@@ -506,8 +498,8 @@ try_catch_may_fallthru (const_tree stmt)
     default:
       /* This case represents statements to be executed when an
 	 exception occurs.  Those statements are implicitly followed
-	 by a RESX_EXPR to resume execution after the exception.  So
-	 in this case the TRY_CATCH never falls through.  */
+	 by a RESX statement to resume execution after the exception.
+	 So in this case the TRY_CATCH never falls through.  */
       return false;
     }
 }
@@ -580,7 +572,6 @@ block_may_fallthru (const_tree block)
     {
     case GOTO_EXPR:
     case RETURN_EXPR:
-    case RESX_EXPR:
       /* Easy cases.  If the last statement of the block implies 
 	 control transfer, then we can't fall through.  */
       return false;
@@ -813,16 +804,16 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
   arg = build_addr (next_label, current_function_decl);
   t = implicit_built_in_decls[BUILT_IN_SETJMP_SETUP];
   g = gimple_build_call (t, 2, gimple_call_arg (stmt, 0), arg);
-  gimple_set_location (g, gimple_location (stmt));
+  gimple_set_location (g, loc);
   gimple_set_block (g, gimple_block (stmt));
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   /* Build 'DEST = 0' and insert.  */
   if (dest)
     {
-      g = gimple_build_assign (dest, fold_convert (TREE_TYPE (dest),
-						   integer_zero_node));
-      gimple_set_location (g, gimple_location (stmt));
+      g = gimple_build_assign (dest, fold_convert_loc (loc, TREE_TYPE (dest),
+						       integer_zero_node));
+      gimple_set_location (g, loc);
       gimple_set_block (g, gimple_block (stmt));
       gsi_insert_before (gsi, g, GSI_SAME_STMT);
     }
@@ -839,16 +830,16 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
   arg = build_addr (next_label, current_function_decl);
   t = implicit_built_in_decls[BUILT_IN_SETJMP_RECEIVER];
   g = gimple_build_call (t, 1, arg);
-  gimple_set_location (g, gimple_location (stmt));
+  gimple_set_location (g, loc);
   gimple_set_block (g, gimple_block (stmt));
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   /* Build 'DEST = 1' and insert.  */
   if (dest)
     {
-      g = gimple_build_assign (dest, fold_convert (TREE_TYPE (dest),
-						   integer_one_node));
-      gimple_set_location (g, gimple_location (stmt));
+      g = gimple_build_assign (dest, fold_convert_loc (loc, TREE_TYPE (dest),
+						       integer_one_node));
+      gimple_set_location (g, loc);
       gimple_set_block (g, gimple_block (stmt));
       gsi_insert_before (gsi, g, GSI_SAME_STMT);
     }

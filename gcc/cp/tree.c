@@ -44,7 +44,7 @@ static tree build_cplus_array_type_1 (tree, tree);
 static int list_hash_eq (const void *, const void *);
 static hashval_t list_hash_pieces (tree, tree, tree);
 static hashval_t list_hash (const void *);
-static cp_lvalue_kind lvalue_p_1 (const_tree, int);
+static cp_lvalue_kind lvalue_p_1 (const_tree);
 static tree build_target_expr (tree, tree);
 static tree count_trees_r (tree *, int *, void *);
 static tree verify_stmt_tree_r (tree *, int *, void *);
@@ -55,12 +55,10 @@ static tree handle_com_interface_attribute (tree *, tree, tree, int, bool *);
 static tree handle_init_priority_attribute (tree *, tree, tree, int, bool *);
 
 /* If REF is an lvalue, returns the kind of lvalue that REF is.
-   Otherwise, returns clk_none.  If TREAT_CLASS_RVALUES_AS_LVALUES is
-   nonzero, rvalues of class type are considered lvalues.  */
+   Otherwise, returns clk_none.  */
 
 static cp_lvalue_kind
-lvalue_p_1 (const_tree ref,
-	    int treat_class_rvalues_as_lvalues)
+lvalue_p_1 (const_tree ref)
 {
   cp_lvalue_kind op1_lvalue_kind = clk_none;
   cp_lvalue_kind op2_lvalue_kind = clk_none;
@@ -72,8 +70,7 @@ lvalue_p_1 (const_tree ref,
   if (TREE_CODE (ref) == INDIRECT_REF
       && TREE_CODE (TREE_TYPE (TREE_OPERAND (ref, 0)))
 	  == REFERENCE_TYPE)
-    return lvalue_p_1 (TREE_OPERAND (ref, 0),
-                       treat_class_rvalues_as_lvalues);
+    return lvalue_p_1 (TREE_OPERAND (ref, 0));
 
   if (TREE_CODE (TREE_TYPE (ref)) == REFERENCE_TYPE)
     {
@@ -82,12 +79,7 @@ lvalue_p_1 (const_tree ref,
 	  && TREE_CODE (ref) != PARM_DECL
 	  && TREE_CODE (ref) != VAR_DECL
 	  && TREE_CODE (ref) != COMPONENT_REF)
-	{
-	  if (CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (ref))))
-	    return treat_class_rvalues_as_lvalues ? clk_class : clk_none;
-	  else
-	    return clk_none;
-	}
+	return clk_rvalueref;
 
       /* lvalue references and named rvalue references are lvalues.  */
       return clk_ordinary;
@@ -108,12 +100,10 @@ lvalue_p_1 (const_tree ref,
     case WITH_CLEANUP_EXPR:
     case REALPART_EXPR:
     case IMAGPART_EXPR:
-      return lvalue_p_1 (TREE_OPERAND (ref, 0),
-			 treat_class_rvalues_as_lvalues);
+      return lvalue_p_1 (TREE_OPERAND (ref, 0));
 
     case COMPONENT_REF:
-      op1_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 0),
-				    treat_class_rvalues_as_lvalues);
+      op1_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 0));
       /* Look at the member designator.  */
       if (!op1_lvalue_kind)
 	;
@@ -142,6 +132,12 @@ lvalue_p_1 (const_tree ref,
       return clk_ordinary;
 
     case CONST_DECL:
+      /* CONST_DECL without TREE_STATIC are enumeration values and
+	 thus not lvalues.  With TREE_STATIC they are used by ObjC++
+	 in objc_build_string_object and need to be considered as
+	 lvalues.  */
+      if (! TREE_STATIC (ref))
+	return clk_none;
     case VAR_DECL:
       if (TREE_READONLY (ref) && ! TREE_STATIC (ref)
 	  && DECL_LANG_SPECIFIC (ref)
@@ -164,35 +160,28 @@ lvalue_p_1 (const_tree ref,
       if (TREE_SIDE_EFFECTS (TREE_OPERAND (ref, 0))
 	  || TREE_SIDE_EFFECTS (TREE_OPERAND (ref, 1)))
 	return clk_none;
-      op1_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 0),
-				    treat_class_rvalues_as_lvalues);
-      op2_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 1),
-				    treat_class_rvalues_as_lvalues);
+      op1_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 0));
+      op2_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 1));
       break;
 
     case COND_EXPR:
       op1_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 1)
 				    ? TREE_OPERAND (ref, 1)
-				    : TREE_OPERAND (ref, 0),
-				    treat_class_rvalues_as_lvalues);
-      op2_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 2),
-				    treat_class_rvalues_as_lvalues);
+				    : TREE_OPERAND (ref, 0));
+      op2_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 2));
       break;
 
     case MODIFY_EXPR:
       return clk_ordinary;
 
     case COMPOUND_EXPR:
-      return lvalue_p_1 (TREE_OPERAND (ref, 1),
-			 treat_class_rvalues_as_lvalues);
+      return lvalue_p_1 (TREE_OPERAND (ref, 1));
 
     case TARGET_EXPR:
-      return treat_class_rvalues_as_lvalues ? clk_class : clk_none;
+      return clk_class;
 
     case VA_ARG_EXPR:
-      return (treat_class_rvalues_as_lvalues
-	      && CLASS_TYPE_P (TREE_TYPE (ref))
-	      ? clk_class : clk_none);
+      return (CLASS_TYPE_P (TREE_TYPE (ref)) ? clk_class : clk_none);
 
     case CALL_EXPR:
       /* Any class-valued call would be wrapped in a TARGET_EXPR.  */
@@ -209,8 +198,7 @@ lvalue_p_1 (const_tree ref,
 	 with a BASELINK.  */
       /* This CONST_CAST is okay because BASELINK_FUNCTIONS returns
 	 its argument unmodified and we assign it to a const_tree.  */
-      return lvalue_p_1 (BASELINK_FUNCTIONS (CONST_CAST_TREE (ref)),
-			 treat_class_rvalues_as_lvalues);
+      return lvalue_p_1 (BASELINK_FUNCTIONS (CONST_CAST_TREE (ref)));
 
     case NON_DEPENDENT_EXPR:
       /* We must consider NON_DEPENDENT_EXPRs to be lvalues so that
@@ -232,10 +220,14 @@ lvalue_p_1 (const_tree ref,
   /* Otherwise, it's an lvalue, and it has all the odd properties
      contributed by either operand.  */
   op1_lvalue_kind = op1_lvalue_kind | op2_lvalue_kind;
-  /* It's not an ordinary lvalue if it involves either a bit-field or
-     a class rvalue.  */
+  /* It's not an ordinary lvalue if it involves any other kind.  */
   if ((op1_lvalue_kind & ~clk_ordinary) != clk_none)
     op1_lvalue_kind &= ~clk_ordinary;
+  /* It can't be both a pseudo-lvalue and a non-addressable lvalue.
+     A COND_EXPR of those should be wrapped in a TARGET_EXPR.  */
+  if ((op1_lvalue_kind & (clk_rvalueref|clk_class))
+      && (op1_lvalue_kind & (clk_bitfield|clk_packed)))
+    op1_lvalue_kind = clk_none;
   return op1_lvalue_kind;
 }
 
@@ -246,18 +238,33 @@ lvalue_p_1 (const_tree ref,
 cp_lvalue_kind
 real_lvalue_p (tree ref)
 {
-  return lvalue_p_1 (ref,
-		     /*treat_class_rvalues_as_lvalues=*/0);
+  cp_lvalue_kind kind = lvalue_p_1 (ref);
+  if (kind & (clk_rvalueref|clk_class))
+    return clk_none;
+  else
+    return kind;
 }
 
-/* This differs from real_lvalue_p in that class rvalues are
-   considered lvalues.  */
+/* This differs from real_lvalue_p in that class rvalues are considered
+   lvalues.  */
 
 bool
 lvalue_p (const_tree ref)
 {
-  return
-    (lvalue_p_1 (ref, /*class rvalue ok*/ 1) != clk_none);
+  return (lvalue_p_1 (ref) != clk_none);
+}
+
+/* This differs from real_lvalue_p in that rvalues formed by dereferencing
+   rvalue references are considered rvalues.  */
+
+bool
+lvalue_or_rvalue_with_address_p (const_tree ref)
+{
+  cp_lvalue_kind kind = lvalue_p_1 (ref);
+  if (kind & clk_class)
+    return false;
+  else
+    return (kind != clk_none);
 }
 
 /* Test whether DECL is a builtin that may appear in a
@@ -533,9 +540,11 @@ rvalue (tree expr)
      Non-class rvalues always have cv-unqualified types.  */
   type = TREE_TYPE (expr);
   if (!CLASS_TYPE_P (type) && cp_type_quals (type))
-    type = TYPE_MAIN_VARIANT (type);
+    type = cp_build_qualified_type (type, TYPE_UNQUALIFIED);
 
-  if (!processing_template_decl && real_lvalue_p (expr))
+  /* We need to do this for rvalue refs as well to get the right answer
+     from decltype; see c++/36628.  */
+  if (!processing_template_decl && lvalue_or_rvalue_with_address_p (expr))
     expr = build1 (NON_LVALUE_EXPR, type, expr);
   else if (type != TREE_TYPE (expr))
     expr = build_nop (type, expr);
@@ -697,12 +706,11 @@ cp_build_reference_type (tree to_type, bool rval)
     if (TYPE_REF_IS_RVALUE (t))
       return t;
 
-  t = copy_node (lvalue_ref);
+  t = build_distinct_type_copy (lvalue_ref);
 
   TYPE_REF_IS_RVALUE (t) = true;
   TYPE_NEXT_REF_TO (t) = TYPE_NEXT_REF_TO (lvalue_ref);
   TYPE_NEXT_REF_TO (lvalue_ref) = t;
-  TYPE_MAIN_VARIANT (t) = t;
 
   if (TYPE_STRUCTURAL_EQUALITY_P (to_type))
     SET_TYPE_STRUCTURAL_EQUALITY (t);
@@ -1596,7 +1604,8 @@ cxx_print_statistics (void)
 tree
 array_type_nelts_top (tree type)
 {
-  return fold_build2 (PLUS_EXPR, sizetype,
+  return fold_build2_loc (input_location,
+		      PLUS_EXPR, sizetype,
 		      array_type_nelts (type),
 		      size_one_node);
 }
@@ -1613,7 +1622,8 @@ array_type_nelts_total (tree type)
   while (TREE_CODE (type) == ARRAY_TYPE)
     {
       tree n = array_type_nelts_top (type);
-      sz = fold_build2 (MULT_EXPR, sizetype, sz, n);
+      sz = fold_build2_loc (input_location,
+			MULT_EXPR, sizetype, sz, n);
       type = TREE_TYPE (type);
     }
   return sz;
@@ -2239,36 +2249,108 @@ is_dummy_object (const_tree ob)
 	  && TREE_OPERAND (ob, 0) == void_zero_node);
 }
 
+/* Returns 1 iff type T is something we want to treat as a scalar type for
+   the purpose of deciding whether it is trivial/POD/standard-layout.  */
+
+static bool
+scalarish_type_p (const_tree t)
+{
+  if (t == error_mark_node)
+    return 1;
+
+  return (SCALAR_TYPE_P (t)
+	  || TREE_CODE (t) == VECTOR_TYPE);
+}
+
+/* Returns true iff T requires non-trivial default initialization.  */
+
+bool
+type_has_nontrivial_default_init (const_tree t)
+{
+  t = strip_array_types (CONST_CAST_TREE (t));
+
+  if (CLASS_TYPE_P (t))
+    return TYPE_HAS_COMPLEX_DFLT (t);
+  else
+    return 0;
+}
+
+/* Returns true iff copying an object of type T is non-trivial.  */
+
+bool
+type_has_nontrivial_copy_init (const_tree t)
+{
+  t = strip_array_types (CONST_CAST_TREE (t));
+
+  if (CLASS_TYPE_P (t))
+    return TYPE_HAS_COMPLEX_INIT_REF (t);
+  else
+    return 0;
+}
+
+/* Returns 1 iff type T is a trivial type, as defined in [basic.types].  */
+
+bool
+trivial_type_p (const_tree t)
+{
+  t = strip_array_types (CONST_CAST_TREE (t));
+
+  if (CLASS_TYPE_P (t))
+    return !(TYPE_HAS_COMPLEX_DFLT (t)
+	     || TYPE_HAS_COMPLEX_INIT_REF (t)
+	     || TYPE_HAS_COMPLEX_ASSIGN_REF (t)
+	     || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t));
+  else
+    return scalarish_type_p (t);
+}
+
 /* Returns 1 iff type T is a POD type, as defined in [basic.types].  */
 
-int
+bool
 pod_type_p (const_tree t)
 {
   /* This CONST_CAST is okay because strip_array_types returns its
      argument unmodified and we assign it to a const_tree.  */
   t = strip_array_types (CONST_CAST_TREE(t));
 
-  if (t == error_mark_node)
-    return 1;
-  if (INTEGRAL_OR_ENUMERATION_TYPE_P (t))
-    return 1;  /* integral, character or enumeral type */
-  if (FLOAT_TYPE_P (t))
-    return 1;
-  if (TYPE_PTR_P (t))
-    return 1; /* pointer to non-member */
-  if (TYPE_PTR_TO_MEMBER_P (t))
-    return 1; /* pointer to member */
+  if (CLASS_TYPE_P (t))
+    /* [class]/10: A POD struct is a class that is both a trivial class and a
+       standard-layout class, and has no non-static data members of type
+       non-POD struct, non-POD union (or array of such types).
 
-  if (TREE_CODE (t) == VECTOR_TYPE)
-    return 1; /* vectors are (small) arrays of scalars */
+       We don't need to check individual members because if a member is
+       non-std-layout or non-trivial, the class will be too.  */
+    return (std_layout_type_p (t) && trivial_type_p (t));
+  else
+    return scalarish_type_p (t);
+}
 
-  if (! RECORD_OR_UNION_CODE_P (TREE_CODE (t)))
-    return 0; /* other non-class type (reference or function) */
-  if (! CLASS_TYPE_P (t))
-    return 1; /* struct created by the back end */
-  if (CLASSTYPE_NON_POD_P (t))
-    return 0;
-  return 1;
+/* Returns true iff T is POD for the purpose of layout, as defined in the
+   C++ ABI.  */
+
+bool
+layout_pod_type_p (const_tree t)
+{
+  t = strip_array_types (CONST_CAST_TREE (t));
+
+  if (CLASS_TYPE_P (t))
+    return !CLASSTYPE_NON_LAYOUT_POD_P (t);
+  else
+    return scalarish_type_p (t);
+}
+
+/* Returns true iff T is a standard-layout type, as defined in
+   [basic.types].  */
+
+bool
+std_layout_type_p (const_tree t)
+{
+  t = strip_array_types (CONST_CAST_TREE (t));
+
+  if (CLASS_TYPE_P (t))
+    return !CLASSTYPE_NON_STD_LAYOUT (t);
+  else
+    return scalarish_type_p (t);
 }
 
 /* Nonzero iff type T is a class template implicit specialization.  */
@@ -2946,6 +3028,53 @@ cast_valid_in_integral_constant_expression_p (tree type)
   return (INTEGRAL_OR_ENUMERATION_TYPE_P (type)
 	  || dependent_type_p (type)
 	  || type == error_mark_node);
+}
+
+/* Return true if we need to fix linkage information of DECL.  */
+
+static bool
+cp_fix_function_decl_p (tree decl)
+{
+  /* Skip if DECL is not externally visible.  */
+  if (!TREE_PUBLIC (decl))
+    return false;
+
+  /* We need to fix DECL if it a appears to be exported but with no
+     function body.  Thunks do not have CFGs and we may need to
+     handle them specially later.   */
+  if (!gimple_has_body_p (decl)
+      && !DECL_THUNK_P (decl)
+      && !DECL_EXTERNAL (decl))
+    return true;
+
+  return false;
+}
+
+/* Clean the C++ specific parts of the tree T. */
+
+void
+cp_free_lang_data (tree t)
+{
+  if (TREE_CODE (t) == METHOD_TYPE
+      || TREE_CODE (t) == FUNCTION_TYPE)
+    {
+      /* Default args are not interesting anymore.  */
+      tree argtypes = TYPE_ARG_TYPES (t);
+      while (argtypes)
+        {
+	  TREE_PURPOSE (argtypes) = 0;
+	  argtypes = TREE_CHAIN (argtypes);
+	}
+    }
+  else if (TREE_CODE (t) == FUNCTION_DECL
+	   && cp_fix_function_decl_p (t))
+    {
+      /* If T is used in this translation unit at all,  the definition
+	 must exist somewhere else since we have decided to not emit it
+	 in this TU.  So make it an external reference.  */
+      DECL_EXTERNAL (t) = 1;
+      TREE_STATIC (t) = 0;
+    }
 }
 
 

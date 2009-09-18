@@ -122,6 +122,7 @@ const struct attribute_spec gnat_internal_attribute_table[] =
   { "type generic", 0, 0,  false, true, true, handle_type_generic_attribute },
 
   { "vector_size",  1, 1,  false, true, false,  handle_vector_size_attribute },
+  { "may_alias",    0, 0, false, true, false, NULL },
 
   /* ??? format and format_arg are heavy and not supported, which actually
      prevents support for stdio builtins, which we however declare as part
@@ -203,7 +204,6 @@ static GTY((deletable)) tree free_block_chain;
 static tree merge_sizes (tree, tree, tree, bool, bool);
 static tree compute_related_constant (tree, tree);
 static tree split_plus (tree, tree *);
-static void gnat_gimplify_function (tree);
 static tree float_type_for_precision (int, enum machine_mode);
 static tree convert_to_fat_pointer (tree, tree);
 static tree convert_to_thin_pointer (tree, tree);
@@ -495,8 +495,12 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
 	  TYPE_NAME (tt) = decl;
 	  TREE_USED (tt) = TREE_USED (t);
 	  TREE_TYPE (decl) = tt;
-	  DECL_ORIGINAL_TYPE (decl) = t;
+	  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
+	    DECL_ORIGINAL_TYPE (decl) = DECL_ORIGINAL_TYPE (TYPE_NAME (t));
+	  else
+	    DECL_ORIGINAL_TYPE (decl) = t;
 	  t = NULL_TREE;
+	  DECL_ARTIFICIAL (decl) = 0;
 	}
       else if (DECL_ARTIFICIAL (TYPE_NAME (t)) && !DECL_ARTIFICIAL (decl))
 	;
@@ -2069,12 +2073,10 @@ gnat_genericize (tree fndecl)
   pointer_set_destroy (p_set);
 }
 
-/* Finish the definition of the current subprogram BODY and compile it all the
-   way to assembler language output.  ELAB_P tells if this is called for an
-   elaboration routine, to be entirely discarded if empty.  */
+/* Finish the definition of the current subprogram BODY and finalize it.  */
 
 void
-end_subprog_body (tree body, bool elab_p)
+end_subprog_body (tree body)
 {
   tree fndecl = current_function_decl;
 
@@ -2107,42 +2109,16 @@ end_subprog_body (tree body, bool elab_p)
   /* Perform the required pre-gimplification transformations on the tree.  */
   gnat_genericize (fndecl);
 
-  /* We do different things for nested and non-nested functions.
-     ??? This should be in cgraph.  */
-  if (!DECL_CONTEXT (fndecl))
-    {
-      gnat_gimplify_function (fndecl);
+  /* Dump functions before gimplification.  */
+  dump_function (TDI_original, fndecl);
 
-      /* If this is an empty elaboration proc, just discard the node.
-	 Otherwise, compile further.  */
-      if (elab_p && empty_body_p (gimple_body (fndecl)))
-	cgraph_remove_node (cgraph_node (fndecl));
-      else
-	cgraph_finalize_function (fndecl, false);
-    }
+  /* ??? This special handling of nested functions is probably obsolete.  */
+  if (!DECL_CONTEXT (fndecl))
+    cgraph_finalize_function (fndecl, false);
   else
     /* Register this function with cgraph just far enough to get it
        added to our parent's nested function list.  */
     (void) cgraph_node (fndecl);
-}
-
-/* Convert FNDECL's code to GIMPLE and handle any nested functions.  */
-
-static void
-gnat_gimplify_function (tree fndecl)
-{
-  struct cgraph_node *cgn;
-
-  dump_function (TDI_original, fndecl);
-  gimplify_function_tree (fndecl);
-  dump_function (TDI_generic, fndecl);
-
-  /* Convert all nested functions to GIMPLE now.  We do things in this order
-     so that items like VLA sizes are expanded properly in the context of the
-     correct function.  */
-  cgn = cgraph_node (fndecl);
-  for (cgn = cgn->nested; cgn; cgn = cgn->next_nested)
-    gnat_gimplify_function (cgn->decl);
 }
 
 tree
@@ -3272,7 +3248,7 @@ convert_vms_descriptor64 (tree gnu_type, tree gnu_expr, Entity_Id gnat_subprog)
 			 tree_cons (TREE_CHAIN (TYPE_FIELDS (template_type)),
                                     ufield, NULL_TREE));
 	  template_tree = gnat_build_constructor (template_type, t);
-	  template_tree = build3 (COND_EXPR, p_bounds_type, u,
+	  template_tree = build3 (COND_EXPR, template_type, u,
 			    build_call_raise (CE_Length_Check_Failed, Empty,
 					      N_Raise_Constraint_Error),
 			    template_tree);
@@ -3393,7 +3369,7 @@ convert_vms_descriptor32 (tree gnu_type, tree gnu_expr, Entity_Id gnat_subprog)
 	  t = TREE_CHAIN (TREE_CHAIN (TREE_CHAIN (TREE_CHAIN (t))));
 	  template_tree
 	    = build3 (COMPONENT_REF, TREE_TYPE (t), desc, t, NULL_TREE);
-	  template_tree = build3 (COND_EXPR, p_bounds_type, u,
+	  template_tree = build3 (COND_EXPR, TREE_TYPE (t), u,
 			    build_call_raise (CE_Length_Check_Failed, Empty,
 					      N_Raise_Constraint_Error),
 			    template_tree);
@@ -3520,7 +3496,7 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
   gnat_poplevel ();
 
   allocate_struct_function (gnu_stub_decl, false);
-  end_subprog_body (gnu_body, false);
+  end_subprog_body (gnu_body);
 }
 
 /* Build a type to be used to represent an aliased object whose nominal
@@ -3693,6 +3669,18 @@ update_pointer_to (tree old_type, tree new_type)
       TYPE_POINTER_TO (new_type) = TYPE_REFERENCE_TO (new_type)
 	= TREE_TYPE (new_type) = ptr;
 
+      /* And show the original pointer NEW_PTR to the debugger.  This is the
+	 counterpart of the equivalent processing in gnat_pushdecl when the
+	 unconstrained array type is frozen after access types to it.  Note
+	 that update_pointer_to can be invoked multiple times on the same
+	 couple of types because of the type variants.  */
+      if (TYPE_NAME (ptr)
+	  && TREE_CODE (TYPE_NAME (ptr)) == TYPE_DECL
+	  && !DECL_ORIGINAL_TYPE (TYPE_NAME (ptr)))
+	{
+	  DECL_ORIGINAL_TYPE (TYPE_NAME (ptr)) = new_ptr;
+	  DECL_ARTIFICIAL (TYPE_NAME (ptr)) = 0;
+	}
       for (var = TYPE_MAIN_VARIANT (ptr); var; var = TYPE_NEXT_VARIANT (var))
 	SET_TYPE_UNCONSTRAINED_ARRAY (var, new_type);
 
@@ -3838,13 +3826,13 @@ convert (tree type, tree expr)
 		  == TYPE_NAME (TREE_TYPE (TYPE_FIELDS (etype)))))
     ;
 
-  /* If the output type has padding, convert to the inner type and
-     make a constructor to build the record.  */
+  /* If the output type has padding, convert to the inner type and make a
+     constructor to build the record, unless a variable size is involved.  */
   else if (code == RECORD_TYPE && TYPE_IS_PADDING_P (type))
     {
       /* If we previously converted from another type and our type is
 	 of variable size, remove the conversion to avoid the need for
-	 variable-size temporaries.  Likewise for a conversion between
+	 variable-sized temporaries.  Likewise for a conversion between
 	 original and packable version.  */
       if (TREE_CODE (expr) == VIEW_CONVERT_EXPR
 	  && (!TREE_CONSTANT (TYPE_SIZE (type))
@@ -3855,7 +3843,7 @@ convert (tree type, tree expr)
 
       /* If we are just removing the padding from expr, convert the original
 	 object if we have variable size in order to avoid the need for some
-	 variable-size temporaries.  Likewise if the padding is a mere variant
+	 variable-sized temporaries.  Likewise if the padding is a variant
 	 of the other, so we avoid a pointless unpad/repad sequence.  */
       if (TREE_CODE (expr) == COMPONENT_REF
 	  && TREE_CODE (TREE_TYPE (TREE_OPERAND (expr, 0))) == RECORD_TYPE
@@ -3869,20 +3857,32 @@ convert (tree type, tree expr)
 	return convert (type, TREE_OPERAND (expr, 0));
 
       /* If the result type is a padded type with a self-referentially-sized
-	 field and the expression type is a record, do this as an
-	 unchecked conversion.  */
-      else if (TREE_CODE (etype) == RECORD_TYPE
-	       && CONTAINS_PLACEHOLDER_P (DECL_SIZE (TYPE_FIELDS (type))))
+	 field and the expression type is a record, do this as an unchecked
+	 conversion.  */
+      if (TREE_CODE (etype) == RECORD_TYPE
+	  && CONTAINS_PLACEHOLDER_P (DECL_SIZE (TYPE_FIELDS (type))))
 	return unchecked_convert (type, expr, false);
 
-      else
-	return
-	  gnat_build_constructor (type,
-			     tree_cons (TYPE_FIELDS (type),
-					convert (TREE_TYPE
-						 (TYPE_FIELDS (type)),
-						 expr),
-					NULL_TREE));
+      /* If we are converting between array types with variable size, do the
+	 final conversion as an unchecked conversion, again to avoid the need
+	 for some variable-sized temporaries.  If valid, this conversion is
+	 very likely purely technical and without real effects.  */
+      if (TREE_CODE (etype) == ARRAY_TYPE
+	  && TREE_CODE (TREE_TYPE (TYPE_FIELDS (type))) == ARRAY_TYPE
+	  && !TREE_CONSTANT (TYPE_SIZE (etype))
+	  && !TREE_CONSTANT (TYPE_SIZE (type)))
+	return unchecked_convert (type,
+				  convert (TREE_TYPE (TYPE_FIELDS (type)),
+					   expr),
+				  false);
+
+      return
+	gnat_build_constructor (type,
+				tree_cons (TYPE_FIELDS (type),
+					   convert (TREE_TYPE
+						    (TYPE_FIELDS (type)),
+						    expr),
+					   NULL_TREE));
     }
 
   /* If the input type has padding, remove it and convert to the output type.
@@ -4693,7 +4693,7 @@ gnat_write_global_declarations (void)
 {
   /* Proceed to optimize and emit assembly.
      FIXME: shouldn't be the front end's responsibility to call this.  */
-  cgraph_optimize ();
+  cgraph_finalize_compilation_unit ();
 
   /* Emit debug info for all global declarations.  */
   emit_debug_global_declarations (VEC_address (tree, global_decls),
@@ -5455,7 +5455,7 @@ gnat_install_builtins (void)
      know about internal specificities and control attributes accordingly, for
      instance __builtin_alloca vs no-throw and -fstack-check.  We will ignore
      the generic definition from builtins.def.  */
-  build_common_builtin_nodes ();
+  build_common_builtin_nodes (false);
 
   /* Now, install the target specific builtins, such as the AltiVec family on
      ppc, and the common set as exposed by builtins.def.  */

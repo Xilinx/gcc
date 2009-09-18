@@ -583,15 +583,19 @@ package body Sem_Ch6 is
                Error_Msg_N ("must use anonymous access type", Subtype_Ind);
             end if;
 
-         --  Subtype indication case: check that the types are the same, and
-         --  statically match if appropriate. Also handle record types with
-         --  unknown discriminants for which we have built the underlying
-         --  record view.
+         --  Subtype indication case: check that the return object's type is
+         --  covered by the result type, and that the subtypes statically match
+         --  when the result subtype is constrained. Also handle record types
+         --  with unknown discriminants for which we have built the underlying
+         --  record view. Coverage is needed to allow specific-type return
+         --  objects when the result type is class-wide (see AI05-32).
 
-         elsif Base_Type (R_Stm_Type) = Base_Type (R_Type)
+         elsif Covers (Base_Type (R_Type), Base_Type (R_Stm_Type))
            or else (Is_Underlying_Record_View (Base_Type (R_Stm_Type))
-                      and then Underlying_Record_View (Base_Type (R_Stm_Type))
-                                 = Base_Type (R_Type))
+                     and then
+                       Covers
+                         (Base_Type (R_Type),
+                          Underlying_Record_View (Base_Type (R_Stm_Type))))
          then
             --  A null exclusion may be present on the return type, on the
             --  function specification, on the object declaration or on the
@@ -616,28 +620,8 @@ package body Sem_Ch6 is
                end if;
             end if;
 
-         --  If the function's result type doesn't match the return object
-         --  entity's type, then we check for the case where the result type
-         --  is class-wide, and allow the declaration if the type of the object
-         --  definition matches the class-wide type. This prevents rejection
-         --  in the case where the object declaration is initialized by a call
-         --  to a build-in-place function with a specific result type and the
-         --  object entity had its type changed to that specific type. This is
-         --  also allowed in the case where Obj_Decl does not come from source,
-         --  which can occur for an expansion of a simple return statement of
-         --  a build-in-place class-wide function when the result expression
-         --  has a specific type, because a return object with a specific type
-         --  is created. (Note that the ARG believes that return objects should
-         --  be allowed to have a type covered by a class-wide result type in
-         --  any case, so once that relaxation is made (see AI05-32), the above
-         --  check for type compatibility should be changed to test Covers
-         --  rather than equality, and the following special test will no
-         --  longer be needed. ???)
-
-         elsif Is_Class_Wide_Type (R_Type)
-           and then
-             (R_Type = Etype (Object_Definition (Original_Node (Obj_Decl)))
-               or else not Comes_From_Source (Obj_Decl))
+         elsif Etype (Base_Type (R_Type)) = R_Stm_Type
+           and then Is_Null_Extension (Base_Type (R_Type))
          then
             null;
 
@@ -697,6 +681,11 @@ package body Sem_Ch6 is
                end if;
             end if;
 
+            --  Mark the return object as referenced, since the return is an
+            --  implicit reference of the object.
+
+            Set_Referenced (Defining_Identifier (Obj_Decl));
+
             Check_References (Stm_Entity);
          end;
       end if;
@@ -744,12 +733,13 @@ package body Sem_Ch6 is
             end if;
          end if;
 
-         if (Is_Class_Wide_Type (Etype (Expr))
-              or else Is_Dynamically_Tagged (Expr))
-           and then not Is_Class_Wide_Type (R_Type)
-         then
-            Error_Msg_N
-              ("dynamically tagged expression not allowed!", Expr);
+         --  Check incorrect use of dynamically tagged expression
+
+         if Is_Tagged_Type (R_Type) then
+            Check_Dynamically_Tagged_Expression
+              (Expr => Expr,
+               Typ  => R_Type,
+               Related_Nod => N);
          end if;
 
          --  ??? A real run-time accessibility check is needed in cases
@@ -1322,9 +1312,39 @@ package body Sem_Ch6 is
             then
                Set_Etype  (Designator,
                  Create_Null_Excluding_Itype
-                   (T           => Typ,
-                    Related_Nod => N,
-                    Scope_Id    => Scope (Current_Scope)));
+                  (T           => Typ,
+                   Related_Nod => N,
+                   Scope_Id    => Scope (Current_Scope)));
+
+               --  The new subtype must be elaborated before use because
+               --  it is visible outside of the function. However its base
+               --  type may not be frozen yet, so the reference that will
+               --  force elaboration must be attached to the freezing of
+               --  the base type.
+
+               --  If the return specification appears on a proper body,
+               --  the subtype will have been created already on the spec.
+
+               if Is_Frozen (Typ) then
+                  if Nkind (Parent (N)) = N_Subprogram_Body
+                    and then Nkind (Parent (Parent (N))) = N_Subunit
+                  then
+                     null;
+                  else
+                     Build_Itype_Reference (Etype (Designator), Parent (N));
+                  end if;
+
+               else
+                  Ensure_Freeze_Node (Typ);
+
+                  declare
+                     IR : constant Node_Id := Make_Itype_Reference (Sloc (N));
+                  begin
+                     Set_Itype (IR, Etype (Designator));
+                     Append_Freeze_Actions (Typ, New_List (IR));
+                  end;
+               end if;
+
             else
                Set_Etype (Designator, Typ);
             end if;
@@ -2637,7 +2657,7 @@ package body Sem_Ch6 is
                Make_Handled_Sequence_Of_Statements (Loc,
                  Statements => New_List (Make_Null_Statement (Loc))));
 
-         --  Create new entities for body and formals.
+         --  Create new entities for body and formals
 
          Set_Defining_Unit_Name (Specification (Null_Body),
            Make_Defining_Identifier (Loc, Chars (Defining_Entity (N))));
@@ -4355,6 +4375,13 @@ package body Sem_Ch6 is
       elsif Ekind (Subp) = E_Entry then
          Decl := Parent (Subp);
 
+         --  No point in analyzing a malformed operator
+
+      elsif Nkind (Subp) = N_Defining_Operator_Symbol
+        and then Error_Posted (Subp)
+      then
+         return;
+
       else
          Decl := Unit_Declaration_Node (Subp);
       end if;
@@ -4456,7 +4483,8 @@ package body Sem_Ch6 is
             Style.Missing_Overriding (Decl, Subp);
          end if;
 
-      --  If Subp is an operator, it may override a predefined operation.
+      --  If Subp is an operator, it may override a predefined operation, if
+      --  it is defined in the same scope as the type to which it applies.
       --  In that case overridden_subp is empty because of our implicit
       --  representation for predefined operators. We have to check whether the
       --  signature of Subp matches that of a predefined operator. Note that
@@ -4467,54 +4495,65 @@ package body Sem_Ch6 is
       --  explicit overridden operation.
 
       elsif Nkind (Subp) = N_Defining_Operator_Symbol then
+         declare
+            Typ : constant Entity_Id :=
+              Base_Type (Etype (First_Formal (Subp)));
 
-         if Must_Not_Override (Spec) then
+            Can_Override : constant Boolean :=
+                             Operator_Matches_Spec (Subp, Subp)
+                               and then Scope (Subp) = Scope (Typ)
+                               and then not Is_Class_Wide_Type (Typ);
 
-            --  If this is not a primitive operation or protected subprogram,
-            --  then "not overriding" is illegal.
+         begin
+            if Must_Not_Override (Spec) then
 
-            if not Is_Primitive
-              and then Ekind (Scope (Subp)) /= E_Protected_Type
+               --  If this is not a primitive or a protected subprogram, then
+               --  "not overriding" is illegal.
+
+               if not Is_Primitive
+                 and then Ekind (Scope (Subp)) /= E_Protected_Type
+               then
+                  Error_Msg_N
+                    ("overriding indicator only allowed "
+                     & "if subprogram is primitive", Subp);
+
+               elsif Can_Override then
+                  Error_Msg_NE
+                    ("subprogram & overrides predefined operator ",
+                       Spec, Subp);
+               end if;
+
+            elsif Must_Override (Spec) then
+               if Is_Overriding_Operation (Subp) then
+                  Set_Is_Overriding_Operation (Subp);
+
+               elsif not Can_Override then
+                  Error_Msg_NE ("subprogram & is not overriding", Spec, Subp);
+               end if;
+
+            elsif not Error_Posted (Subp)
+              and then Style_Check
+              and then Can_Override
+              and then
+                not Is_Predefined_File_Name
+                      (Unit_File_Name (Get_Source_Unit (Subp)))
             then
-               Error_Msg_N
-                 ("overriding indicator only allowed "
-                    & "if subprogram is primitive", Subp);
-
-            elsif Operator_Matches_Spec (Subp, Subp) then
-               Error_Msg_NE
-                 ("subprogram & overrides predefined operator ", Spec, Subp);
-            end if;
-
-         elsif Must_Override (Spec) then
-            if Is_Overriding_Operation (Subp) then
                Set_Is_Overriding_Operation (Subp);
 
-            elsif not Operator_Matches_Spec (Subp, Subp) then
-               Error_Msg_NE ("subprogram & is not overriding", Spec, Subp);
+               --  If style checks are enabled, indicate that the indicator is
+               --  missing. However, at the point of declaration, the type of
+               --  which this is a primitive operation may be private, in which
+               --  case the indicator would be premature.
+
+               if Has_Private_Declaration (Etype (Subp))
+                 or else Has_Private_Declaration (Etype (First_Formal (Subp)))
+               then
+                  null;
+               else
+                  Style.Missing_Overriding (Decl, Subp);
+               end if;
             end if;
-
-         elsif not Error_Posted (Subp)
-           and then Style_Check
-           and then Operator_Matches_Spec (Subp, Subp)
-             and then
-               not Is_Predefined_File_Name
-                 (Unit_File_Name (Get_Source_Unit (Subp)))
-         then
-            Set_Is_Overriding_Operation (Subp);
-
-            --  If style checks are enabled, indicate that the indicator is
-            --  missing. However, at the point of declaration, the type of
-            --  which this is a primitive operation may be private, in which
-            --  case the indicator would be premature.
-
-            if Has_Private_Declaration (Etype (Subp))
-              or else Has_Private_Declaration (Etype (First_Formal (Subp)))
-            then
-               null;
-            else
-               Style.Missing_Overriding (Decl, Subp);
-            end if;
-         end if;
+         end;
 
       elsif Must_Override (Spec) then
          if Ekind (Subp) = E_Entry then
@@ -5426,7 +5465,7 @@ package body Sem_Ch6 is
       --  generated stream attributes do get passed through because extra
       --  build-in-place formals are needed in some cases (limited 'Input).
 
-      if Is_Predefined_Dispatching_Operation (E) then
+      if Is_Predefined_Internal_Operation (E) then
          goto Test_For_BIP_Extras;
       end if;
 
@@ -5496,16 +5535,8 @@ package body Sem_Ch6 is
              (No (P_Formal)
                or else Present (Extra_Accessibility (P_Formal)))
          then
-            --  Temporary kludge: for now we avoid creating the extra formal
-            --  for access parameters of protected operations because of
-            --  problem with the case of internal protected calls. ???
-
-            if Nkind (Parent (Parent (Parent (E)))) /= N_Protected_Definition
-              and then Nkind (Parent (Parent (Parent (E)))) /= N_Protected_Body
-            then
-               Set_Extra_Accessibility
-                 (Formal, Add_Extra_Formal (Formal, Standard_Natural, E, "F"));
-            end if;
+            Set_Extra_Accessibility
+              (Formal, Add_Extra_Formal (Formal, Standard_Natural, E, "F"));
          end if;
 
          --  This label is required when skipping extra formal generation for
@@ -6083,7 +6114,7 @@ package body Sem_Ch6 is
                    and then FCE (Left_Opnd  (E1), Left_Opnd  (E2))
                    and then FCE (Right_Opnd (E1), Right_Opnd (E2));
 
-            when N_And_Then | N_Or_Else | N_Membership_Test =>
+            when N_Short_Circuit | N_Membership_Test =>
                return
                  FCE (Left_Opnd  (E1), Left_Opnd  (E2))
                    and then
@@ -7183,6 +7214,7 @@ package body Sem_Ch6 is
                  or else not Is_Overloadable (Subp)
                  or else not Is_Primitive (Subp)
                  or else not Is_Dispatching_Operation (Subp)
+                 or else not Present (Find_Dispatching_Type (Subp))
                  or else not Is_Interface (Find_Dispatching_Type (Subp))
                then
                   null;
@@ -7665,10 +7697,22 @@ package body Sem_Ch6 is
                      Set_Is_Overriding_Operation (S);
                      Check_Overriding_Indicator (S, E, Is_Primitive => True);
 
-                     --  Indicate that S overrides the operation from which
-                     --  E is inherited.
+                     --  If S is a user-defined subprogram or a null procedure
+                     --  expanded to override an inherited null procedure, then
+                     --  indicate that E overrides the operation from which S
+                     --  is inherited. It seems odd that Overridden_Operation
+                     --  isn't set in all cases where Is_Overriding_Operation
+                     --  is true, but doing so causes infinite loops in the
+                     --  compiler for implicit overriding subprograms. ???
 
-                     if Comes_From_Source (S) then
+                     if Comes_From_Source (S)
+                       or else
+                         (Present (Parent (S))
+                           and then
+                             Nkind (Parent (S)) = N_Procedure_Specification
+                           and then
+                             Null_Present (Parent (S)))
+                     then
                         if Present (Alias (E)) then
                            Set_Overridden_Operation (S, Alias (E));
                         else
@@ -8062,6 +8106,15 @@ package body Sem_Ch6 is
             then
                Error_Msg_N
                  ("access to class-wide expression not allowed here", Default);
+            end if;
+
+            --  Check incorrect use of dynamically tagged expressions
+
+            if Is_Tagged_Type (Formal_Type) then
+               Check_Dynamically_Tagged_Expression
+                 (Expr        => Default,
+                  Typ         => Formal_Type,
+                  Related_Nod => Default);
             end if;
          end if;
 

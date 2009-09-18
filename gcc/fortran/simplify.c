@@ -735,12 +735,21 @@ gfc_simplify_acos (gfc_expr *x)
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpfr_cmp_si (x->value.real, 1) > 0
-      || mpfr_cmp_si (x->value.real, -1) < 0)
+  switch (x->ts.type)
     {
-      gfc_error ("Argument of ACOS at %L must be between -1 and 1",
-		 &x->where);
-      return &gfc_bad_expr;
+      case BT_REAL:
+	if (mpfr_cmp_si (x->value.real, 1) > 0
+	    || mpfr_cmp_si (x->value.real, -1) < 0)
+	  {
+	    gfc_error ("Argument of ACOS at %L must be between -1 and 1",
+		       &x->where);
+	    return &gfc_bad_expr;
+	  }
+	break;
+      case BT_COMPLEX:
+	return NULL;
+      default:
+	gfc_internal_error ("in gfc_simplify_cos(): Bad type");
     }
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
@@ -758,16 +767,24 @@ gfc_simplify_acosh (gfc_expr *x)
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpfr_cmp_si (x->value.real, 1) < 0)
+  switch (x->ts.type)
     {
-      gfc_error ("Argument of ACOSH at %L must not be less than 1",
-		 &x->where);
-      return &gfc_bad_expr;
+      case BT_REAL:
+	if (mpfr_cmp_si (x->value.real, 1) < 0)
+	  {
+	    gfc_error ("Argument of ACOSH at %L must not be less than 1",
+		       &x->where);
+	    return &gfc_bad_expr;
+	  }
+
+	result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+	mpfr_acosh (result->value.real, x->value.real, GFC_RND_MODE);
+	break;
+      case BT_COMPLEX:
+	return NULL;
+      default:
+	gfc_internal_error ("in gfc_simplify_cos(): Bad type");
     }
-
-  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
-
-  mpfr_acosh (result->value.real, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "ACOSH");
 }
@@ -1012,17 +1029,24 @@ gfc_simplify_asin (gfc_expr *x)
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpfr_cmp_si (x->value.real, 1) > 0
-      || mpfr_cmp_si (x->value.real, -1) < 0)
+  switch (x->ts.type)
     {
-      gfc_error ("Argument of ASIN at %L must be between -1 and 1",
-		 &x->where);
-      return &gfc_bad_expr;
+      case BT_REAL:
+	if (mpfr_cmp_si (x->value.real, 1) > 0
+	    || mpfr_cmp_si (x->value.real, -1) < 0)
+	  {
+	    gfc_error ("Argument of ASIN at %L must be between -1 and 1",
+		       &x->where);
+	    return &gfc_bad_expr;
+	  }
+	result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+	mpfr_asin (result->value.real, x->value.real, GFC_RND_MODE);
+	break;
+      case BT_COMPLEX:
+	return NULL;
+      default:
+	gfc_internal_error ("in gfc_simplify_cos(): Bad type");
     }
-
-  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
-
-  mpfr_asin (result->value.real, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "ASIN");
 }
@@ -1036,9 +1060,17 @@ gfc_simplify_asinh (gfc_expr *x)
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
-
-  mpfr_asinh (result->value.real, x->value.real, GFC_RND_MODE);
+  switch (x->ts.type)
+    {
+      case BT_REAL:
+	result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+	mpfr_asinh (result->value.real, x->value.real, GFC_RND_MODE);
+	break;
+      case BT_COMPLEX:
+	return NULL;
+      default:
+	gfc_internal_error ("in gfc_simplify_cos(): Bad type");
+    }
 
   return range_check (result, "ASINH");
 }
@@ -1052,9 +1084,17 @@ gfc_simplify_atan (gfc_expr *x)
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
     
-  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
-
-  mpfr_atan (result->value.real, x->value.real, GFC_RND_MODE);
+  switch (x->ts.type)
+    {
+      case BT_REAL:
+	result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+	mpfr_atan (result->value.real, x->value.real, GFC_RND_MODE);
+	break;
+      case BT_COMPLEX:
+	return NULL;
+      default:
+	gfc_internal_error ("in gfc_simplify_cos(): Bad type");
+    }
 
   return range_check (result, "ATAN");
 }
@@ -1068,17 +1108,25 @@ gfc_simplify_atanh (gfc_expr *x)
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpfr_cmp_si (x->value.real, 1) >= 0
-      || mpfr_cmp_si (x->value.real, -1) <= 0)
+  switch (x->ts.type)
     {
-      gfc_error ("Argument of ATANH at %L must be inside the range -1 to 1",
-		 &x->where);
-      return &gfc_bad_expr;
+      case BT_REAL:
+	if (mpfr_cmp_si (x->value.real, 1) >= 0
+	    || mpfr_cmp_si (x->value.real, -1) <= 0)
+	  {
+	    gfc_error ("Argument of ATANH at %L must be inside the range -1 "
+		       "to 1", &x->where);
+	    return &gfc_bad_expr;
+	  }
+
+	result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+	mpfr_atanh (result->value.real, x->value.real, GFC_RND_MODE);
+	break;
+      case BT_COMPLEX:
+	return NULL;
+      default:
+	gfc_internal_error ("in gfc_simplify_cos(): Bad type");
     }
-
-  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
-
-  mpfr_atanh (result->value.real, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "ATANH");
 }
@@ -1501,7 +1549,19 @@ gfc_simplify_cosh (gfc_expr *x)
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_cosh (result->value.real, x->value.real, GFC_RND_MODE);
+  if (x->ts.type == BT_REAL)
+    mpfr_cosh (result->value.real, x->value.real, GFC_RND_MODE);
+  else if (x->ts.type == BT_COMPLEX)
+    {
+#if HAVE_mpc
+      mpc_cosh (result->value.complex, x->value.complex, GFC_MPC_RND_MODE);
+#else
+      gfc_free_expr (result);
+      return NULL;
+#endif
+    }
+  else
+    gcc_unreachable ();
 
   return range_check (result, "COSH");
 }
@@ -3157,12 +3217,12 @@ gfc_simplify_len (gfc_expr *e, gfc_expr *kind)
 	}
     }
 
-  if (e->ts.cl != NULL && e->ts.cl->length != NULL
-      && e->ts.cl->length->expr_type == EXPR_CONSTANT
-      && e->ts.cl->length->ts.type == BT_INTEGER)
+  if (e->ts.u.cl != NULL && e->ts.u.cl->length != NULL
+      && e->ts.u.cl->length->expr_type == EXPR_CONSTANT
+      && e->ts.u.cl->length->ts.type == BT_INTEGER)
     {
       result = gfc_constant_result (BT_INTEGER, k, &e->where);
-      mpz_set (result->value.integer, e->ts.cl->length->value.integer);
+      mpz_set (result->value.integer, e->ts.u.cl->length->value.integer);
       if (gfc_range_check (result) == ARITH_OK)
 	return result;
       else
@@ -4042,7 +4102,7 @@ gfc_simplify_pack (gfc_expr *array, gfc_expr *mask, gfc_expr *vector)
   gfc_array_size (result, &result->shape[0]);
 
   if (array->ts.type == BT_CHARACTER)
-    result->ts.cl = array->ts.cl;
+    result->ts.u.cl = array->ts.u.cl;
 
   return result;
 }
@@ -4240,14 +4300,14 @@ gfc_simplify_repeat (gfc_expr *e, gfc_expr *n)
     }
 
   /* If we don't know the character length, we can do no more.  */
-  if (e->ts.cl && e->ts.cl->length
-	&& e->ts.cl->length->expr_type == EXPR_CONSTANT)
+  if (e->ts.u.cl && e->ts.u.cl->length
+	&& e->ts.u.cl->length->expr_type == EXPR_CONSTANT)
     {
-      len = mpz_get_si (e->ts.cl->length->value.integer);
+      len = mpz_get_si (e->ts.u.cl->length->value.integer);
       have_length = true;
     }
   else if (e->expr_type == EXPR_CONSTANT
-	     && (e->ts.cl == NULL || e->ts.cl->length == NULL))
+	     && (e->ts.u.cl == NULL || e->ts.u.cl->length == NULL))
     {
       len = e->value.character.length;
     }
@@ -4275,7 +4335,7 @@ gfc_simplify_repeat (gfc_expr *e, gfc_expr *n)
       if (have_length)
 	{
 	  mpz_tdiv_q (max, gfc_integer_kinds[i].huge,
-		      e->ts.cl->length->value.integer);
+		      e->ts.u.cl->length->value.integer);
 	}
       else
 	{
@@ -4304,8 +4364,8 @@ gfc_simplify_repeat (gfc_expr *e, gfc_expr *n)
     return NULL;
 
   if (len || 
-      (e->ts.cl->length && 
-       mpz_sgn (e->ts.cl->length->value.integer)) != 0)
+      (e->ts.u.cl->length && 
+       mpz_sgn (e->ts.u.cl->length->value.integer)) != 0)
     {
       const char *res = gfc_extract_int (n, &ncop);
       gcc_assert (res == NULL);
@@ -4957,16 +5017,15 @@ gfc_simplify_sign (gfc_expr *x, gfc_expr *y)
       mpz_abs (result->value.integer, x->value.integer);
       if (mpz_sgn (y->value.integer) < 0)
 	mpz_neg (result->value.integer, result->value.integer);
-
       break;
 
     case BT_REAL:
-      /* TODO: Handle -0.0 and +0.0 correctly on machines that support
-	 it.  */
-      mpfr_abs (result->value.real, x->value.real, GFC_RND_MODE);
-      if (mpfr_sgn (y->value.real) < 0)
-	mpfr_neg (result->value.real, result->value.real, GFC_RND_MODE);
-
+      if (gfc_option.flag_sign_zero)
+	mpfr_copysign (result->value.real, x->value.real, y->value.real,
+		       GFC_RND_MODE);
+      else
+	mpfr_setsign (result->value.real, x->value.real,
+		      mpfr_sgn (y->value.real) < 0 ? 1 : 0, GFC_RND_MODE);
       break;
 
     default:
@@ -5034,7 +5093,20 @@ gfc_simplify_sinh (gfc_expr *x)
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_sinh (result->value.real, x->value.real, GFC_RND_MODE);
+  if (x->ts.type == BT_REAL)
+    mpfr_sinh (result->value.real, x->value.real, GFC_RND_MODE);
+  else if (x->ts.type == BT_COMPLEX)
+    {
+#if HAVE_mpc
+      mpc_sinh (result->value.complex, x->value.complex, GFC_MPC_RND_MODE);
+#else
+      gfc_free_expr (result);
+      return NULL;
+#endif
+    }
+  else
+    gcc_unreachable ();
+
 
   return range_check (result, "SINH");
 }
@@ -5195,7 +5267,7 @@ gfc_simplify_spread (gfc_expr *source, gfc_expr *dim_expr, gfc_expr *ncopies_exp
     return NULL;
 
   if (source->ts.type == BT_CHARACTER)
-    result->ts.cl = source->ts.cl;
+    result->ts.u.cl = source->ts.u.cl;
 
   return result;
 }
@@ -5345,17 +5417,26 @@ gfc_simplify_sum (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
 gfc_expr *
 gfc_simplify_tan (gfc_expr *x)
 {
-  int i;
   gfc_expr *result;
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  i = gfc_validate_kind (BT_REAL, x->ts.kind, false);
-
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_tan (result->value.real, x->value.real, GFC_RND_MODE);
+  if (x->ts.type == BT_REAL)
+    mpfr_tan (result->value.real, x->value.real, GFC_RND_MODE);
+  else if (x->ts.type == BT_COMPLEX)
+    {
+#if HAVE_mpc
+      mpc_tan (result->value.complex, x->value.complex, GFC_MPC_RND_MODE);
+#else
+      gfc_free_expr (result);
+      return NULL;
+#endif
+    }
+  else
+    gcc_unreachable ();
 
   return range_check (result, "TAN");
 }
@@ -5371,7 +5452,19 @@ gfc_simplify_tanh (gfc_expr *x)
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_tanh (result->value.real, x->value.real, GFC_RND_MODE);
+  if (x->ts.type == BT_REAL)
+    mpfr_tanh (result->value.real, x->value.real, GFC_RND_MODE);
+  else if (x->ts.type == BT_COMPLEX)
+    {
+#if HAVE_mpc
+      mpc_tanh (result->value.complex, x->value.complex, GFC_MPC_RND_MODE);
+#else
+      gfc_free_expr (result);
+      return NULL;
+#endif
+    }
+  else
+    gcc_unreachable ();
 
   return range_check (result, "TANH");
 
@@ -5530,7 +5623,7 @@ gfc_simplify_transpose (gfc_expr *matrix)
   mpz_set (result->shape[1], matrix->shape[0]);
 
   if (matrix->ts.type == BT_CHARACTER)
-    result->ts.cl = matrix->ts.cl;
+    result->ts.u.cl = matrix->ts.u.cl;
 
   matrix_rows = mpz_get_si (matrix->shape[0]);
   matrix_ctor = matrix->value.constructor;
@@ -5613,7 +5706,7 @@ gfc_simplify_unpack (gfc_expr *vector, gfc_expr *mask, gfc_expr *field)
   result->shape = gfc_copy_shape (mask->shape, mask->rank);
 
   if (vector->ts.type == BT_CHARACTER)
-    result->ts.cl = vector->ts.cl;
+    result->ts.u.cl = vector->ts.u.cl;
 
   vector_ctor = vector->value.constructor;
   mask_ctor = mask->value.constructor;
@@ -5994,7 +6087,7 @@ gfc_convert_char_constant (gfc_expr *e, bt type ATTRIBUTE_UNUSED, int kind)
       result->shape = gfc_copy_shape (e->shape, e->rank);
       result->where = e->where;
       result->rank = e->rank;
-      result->ts.cl = e->ts.cl;
+      result->ts.u.cl = e->ts.u.cl;
 
       return result;
     }

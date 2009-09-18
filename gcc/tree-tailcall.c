@@ -395,7 +395,7 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
       stmt = gsi_stmt (gsi);
 
       /* Ignore labels.  */
-      if (gimple_code (stmt) == GIMPLE_LABEL)
+      if (gimple_code (stmt) == GIMPLE_LABEL || is_gimple_debug (stmt))
 	continue;
 
       /* Check for a call.  */
@@ -501,6 +501,9 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
       if (gimple_code (stmt) == GIMPLE_RETURN)
 	break;
 
+      if (is_gimple_debug (stmt))
+	continue;
+
       if (gimple_code (stmt) != GIMPLE_ASSIGN)
 	return;
 
@@ -548,7 +551,7 @@ add_successor_phi_arg (edge e, tree var, tree phi_arg)
       break;
 
   gcc_assert (!gsi_end_p (gsi));
-  add_phi_arg (gsi_stmt (gsi), phi_arg, e);
+  add_phi_arg (gsi_stmt (gsi), phi_arg, e, UNKNOWN_LOCATION);
 }
 
 /* Creates a GIMPLE statement which computes the operation specified by
@@ -567,6 +570,9 @@ adjust_return_value_with_ops (enum tree_code code, const char *label,
   gimple stmt = gimple_build_assign_with_ops (code, tmp, op0, op1);
   tree result;
 
+  if (TREE_CODE (ret_type) == COMPLEX_TYPE
+      || TREE_CODE (ret_type) == VECTOR_TYPE)
+    DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
   result = make_ssa_name (tmp, stmt);
   gimple_assign_set_lhs (stmt, result);
@@ -770,7 +776,7 @@ eliminate_tail_call (struct tailcall *t)
       phi = gsi_stmt (gsi);
       gcc_assert (param == SSA_NAME_VAR (PHI_RESULT (phi)));
 
-      add_phi_arg (phi, arg, e);
+      add_phi_arg (phi, arg, e, gimple_location (stmt));
       gsi_next (&gsi);
     }
 
@@ -861,10 +867,14 @@ create_tailcall_accumulator (const char *label, basic_block bb, tree init)
   tree tmp = create_tmp_var (ret_type, label);
   gimple phi;
 
+  if (TREE_CODE (ret_type) == COMPLEX_TYPE
+      || TREE_CODE (ret_type) == VECTOR_TYPE)
+    DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
   phi = create_phi_node (tmp, bb);
   /* RET_TYPE can be a float when -ffast-maths is enabled.  */
-  add_phi_arg (phi, fold_convert (ret_type, init), single_pred_edge (bb));
+  add_phi_arg (phi, fold_convert (ret_type, init), single_pred_edge (bb),
+	       UNKNOWN_LOCATION);
   return PHI_RESULT (phi);
 }
  
@@ -927,7 +937,8 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
 		set_default_def (param, new_name);
 		phi = create_phi_node (name, first);
 		SSA_NAME_DEF_STMT (name) = phi;
-		add_phi_arg (phi, new_name, single_pred_edge (first));
+		add_phi_arg (phi, new_name, single_pred_edge (first), 
+			     EXPR_LOCATION (param));
 	      }
 	  phis_constructed = true;
 	}

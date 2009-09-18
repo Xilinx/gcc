@@ -62,19 +62,14 @@ static GTY(()) tree anonymous_namespace_name;
 
 /* Initialize anonymous_namespace_name if necessary, and return it.  */
 
-static tree
-get_anonymous_namespace_name(void)
+tree
+get_anonymous_namespace_name (void)
 {
   if (!anonymous_namespace_name)
     {
       /* The anonymous namespace has to have a unique name
 	 if typeinfo objects are being compared by name.  */
-      if (! flag_weak || ! SUPPORTS_ONE_ONLY)
-	anonymous_namespace_name = get_file_function_name ("N");
-      else
-	/* The demangler expects anonymous namespaces to be called
-	   something starting with '_GLOBAL__N_'.  */
-	anonymous_namespace_name = get_identifier ("_GLOBAL__N_1");
+      anonymous_namespace_name = get_file_function_name ("N");
     }
   return anonymous_namespace_name;
 }
@@ -1044,8 +1039,10 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 
 	      if (warn_shadow && !err)
 		{
-		  warning (OPT_Wshadow, "declaration of %q#D shadows a parameter", x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldlocal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %q#D shadows a parameter", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	    }
 
@@ -1075,16 +1072,19 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	      else if (oldlocal != NULL_TREE
 		       && TREE_CODE (oldlocal) == VAR_DECL)
 		{
-		  warning (OPT_Wshadow, "declaration of %qD shadows a previous local", x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldlocal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %qD shadows a previous local", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	      else if (oldglobal != NULL_TREE
 		       && TREE_CODE (oldglobal) == VAR_DECL)
 		/* XXX shadow warnings in outer-more namespaces */
 		{
-		  warning (OPT_Wshadow, "declaration of %qD shadows a global declaration",
-			   x);
-		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldglobal);
+		  warning_at (input_location, OPT_Wshadow,
+			      "declaration of %qD shadows a global declaration", x);
+		  warning_at (DECL_SOURCE_LOCATION (oldglobal), OPT_Wshadow,
+			      "shadowed declaration is here");
 		}
 	    }
 	}
@@ -1257,7 +1257,6 @@ check_for_out_of_scope_variable (tree decl)
 static bool keep_next_level_flag;
 
 static int binding_depth = 0;
-static int is_class_level = 0;
 
 static void
 indent (int depth)
@@ -1339,7 +1338,6 @@ push_binding_level (struct cp_binding_level *scope)
       scope->binding_depth = binding_depth;
       indent (binding_depth);
       cxx_scope_debug (scope, input_line, "push");
-      is_class_level = 0;
       binding_depth++;
     }
 }
@@ -1427,12 +1425,6 @@ leave_scope (void)
     {
       indent (--binding_depth);
       cxx_scope_debug (scope, input_line, "leave");
-      if (is_class_level != (scope == class_binding_level))
-	{
-	  indent (binding_depth);
-	  verbatim ("XXX is_class_level != (current_scope == class_scope)\n");
-	}
-      is_class_level = 0;
     }
 
   /* Move one nesting level up.  */
@@ -1482,7 +1474,6 @@ resume_scope (struct cp_binding_level* b)
       b->binding_depth = binding_depth;
       indent (binding_depth);
       cxx_scope_debug (b, input_line, "resume");
-      is_class_level = 0;
       binding_depth++;
     }
 }
@@ -2562,9 +2553,6 @@ pop_inner_scope (tree outer, tree inner)
 void
 pushlevel_class (void)
 {
-  if (ENABLE_SCOPE_CHECKING)
-    is_class_level = 1;
-
   class_binding_level = begin_scope (sk_class, current_class_type);
 }
 
@@ -2602,9 +2590,7 @@ poplevel_class (void)
 
   /* Now, pop out of the binding level which we created up in the
      `pushlevel_class' routine.  */
-  if (ENABLE_SCOPE_CHECKING)
-    is_class_level = 1;
-
+  gcc_assert (current_binding_level == level);
   leave_scope ();
   timevar_pop (TV_NAME_LOOKUP);
 }
@@ -3924,6 +3910,7 @@ qualified_lookup_using_namespace (tree name, tree scope,
   /* ... and a list of namespace yet to see.  */
   tree todo = NULL_TREE;
   tree todo_maybe = NULL_TREE;
+  tree *todo_weak = &todo_maybe;
   tree usings;
   timevar_push (TV_NAME_LOOKUP);
   /* Look through namespace aliases.  */
@@ -3937,9 +3924,7 @@ qualified_lookup_using_namespace (tree name, tree scope,
 	ambiguous_decl (result, binding, flags);
 
       /* Consider strong using directives always, and non-strong ones
-	 if we haven't found a binding yet.  ??? Shouldn't we consider
-	 non-strong ones if the initial RESULT is non-NULL, but the
-	 binding in the given namespace is?  */
+	 if we haven't found a binding yet.  */
       for (usings = DECL_NAMESPACE_USING (scope); usings;
 	   usings = TREE_CHAIN (usings))
 	/* If this was a real directive, and we have not seen it.  */
@@ -3954,12 +3939,12 @@ qualified_lookup_using_namespace (tree name, tree scope,
 		&& !purpose_member (TREE_PURPOSE (usings), seen)
 		&& !purpose_member (TREE_PURPOSE (usings), todo))
 	      todo = tree_cons (TREE_PURPOSE (usings), NULL_TREE, todo);
-	    else if ((!result->value && !result->type)
+	    else if (!binding
 		     && !purpose_member (TREE_PURPOSE (usings), seen)
 		     && !purpose_member (TREE_PURPOSE (usings), todo)
 		     && !purpose_member (TREE_PURPOSE (usings), todo_maybe))
-	      todo_maybe = tree_cons (TREE_PURPOSE (usings), NULL_TREE,
-				      todo_maybe);
+	      *todo_weak = tree_cons (TREE_PURPOSE (usings), NULL_TREE,
+				      *todo_weak);
 	  }
       if (todo)
 	{
@@ -3972,6 +3957,7 @@ qualified_lookup_using_namespace (tree name, tree scope,
 	  scope = TREE_PURPOSE (todo_maybe);
 	  todo = TREE_CHAIN (todo_maybe);
 	  todo_maybe = NULL_TREE;
+	  todo_weak = &todo;
 	}
       else
 	scope = NULL_TREE; /* If there never was a todo list.  */
@@ -4390,6 +4376,34 @@ lookup_name_innermost_nonclass_level (tree name)
     }
 
   POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
+}
+
+/* Returns true iff DECL is a block-scope extern declaration of a function
+   or variable.  */
+
+bool
+is_local_extern (tree decl)
+{
+  cxx_binding *binding;
+
+  /* For functions, this is easy.  */
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    return DECL_LOCAL_FUNCTION_P (decl);
+
+  if (TREE_CODE (decl) != VAR_DECL)
+    return false;
+  if (!current_function_decl)
+    return false;
+
+  /* For variables, this is not easy.  We need to look at the binding stack
+     for the identifier to see whether the decl we have is a local.  */
+  for (binding = IDENTIFIER_BINDING (DECL_NAME (decl));
+       binding && binding->scope->kind != sk_namespace;
+       binding = binding->previous)
+    if (binding->value == decl)
+      return LOCAL_BINDING_P (binding);
+
+  return false;
 }
 
 /* Like lookup_name_innermost_nonclass_level, but for types.  */

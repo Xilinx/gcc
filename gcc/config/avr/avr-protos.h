@@ -24,6 +24,7 @@
 extern int function_arg_regno_p (int r);
 extern void avr_init_once (void);
 extern void avr_override_options (void);
+extern void avr_cpu_cpp_builtins (struct cpp_reader * pfile);
 extern void avr_optimization_options (int level, int size);
 extern char *avr_change_section (char *sect_name);
 extern int avr_ret_register (void);
@@ -33,7 +34,6 @@ extern enum reg_class avr_reg_class_from_letter (int c);
 extern void asm_globalize_label (FILE *file, const char *name);
 extern void avr_asm_declare_function_name (FILE *, const char *, tree);
 extern void order_regs_for_local_alloc (void);
-extern bool avr_can_eliminate (int, int);
 extern int avr_initial_elimination_offset (int from, int to);
 extern int avr_simple_epilogue (void);
 extern void gas_output_limited_string (FILE *file, const char *str);

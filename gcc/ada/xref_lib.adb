@@ -308,7 +308,7 @@ package body Xref_Lib is
          --  Case where we have an ALI file, accept it even though this is
          --  not official usage, since the intention is obvious
 
-         if Tail (File, 4) = ".ali" then
+         if Tail (File, 4) = "." & Osint.ALI_Suffix.all then
             File_Ref := Add_To_Xref_File
                           (File, Visited => False, Emit_Warning => True);
 
@@ -466,7 +466,9 @@ package body Xref_Lib is
                   return;
                end if;
 
-            elsif Last > 4 and then Dir_Ent (Last - 3 .. Last) = ".ali" then
+            elsif Last > 4
+              and then Dir_Ent (Last - 3 .. Last) = "." & Osint.ALI_Suffix.all
+            then
                File_Ref :=
                  Add_To_Xref_File (Dir_Ent (1 .. Last), Visited => False);
             end if;
@@ -1605,9 +1607,15 @@ package body Xref_Lib is
 
          Write_Str (Get_Symbol (Decl));
 
-         while Column < Type_Position loop
+         --  Put the declaration type in column Type_Position, but if the
+         --  declaration name is too long, put at least one space between its
+         --  name and its type.
+
+         while Column < Type_Position - 1 loop
             Write_Char (' ');
          end loop;
+
+         Write_Char (' ');
 
          Write_Line (Get_Full_Type (Decl));
 

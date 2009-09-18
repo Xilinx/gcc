@@ -1,4 +1,4 @@
-/* { dg-options "-std=gnu99 -O2" } */
+/* { dg-options "-O2 -w" } */
 
 /* N1150 5.1 Conversions from decimal float to integer.  */
 
@@ -6,6 +6,8 @@
    what will fit into the destination type.  This assumes 32-bit int and
    64-bit long long (there's a check for that below).  This version tests
    conversions during compilation.  */
+
+#include "dfp-dbg.h"
 
 extern void link_error (void);
 

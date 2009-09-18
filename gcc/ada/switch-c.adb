@@ -228,6 +228,12 @@ package body Switch.C is
                Ptr := Ptr + 1;
                Operating_Mode := Check_Semantics;
 
+            --  Processing for C switch
+
+            when 'C' =>
+               Ptr := Ptr + 1;
+               CodePeer_Mode := True;
+
             --  Processing for d switch
 
             when 'd' =>
@@ -303,6 +309,12 @@ package body Switch.C is
 
                case Switch_Chars (Ptr) is
 
+                  --  -gnatea (initial delimiter of explicit switches)
+
+                  --  All switches that come before -gnatea have been added by
+                  --  the GCC driver and are not stored in the ALI file.
+                  --  See also -gnatez below.
+
                   when 'a' =>
                      Store_Switch := False;
                      Enable_Switch_Storing;
@@ -357,6 +369,15 @@ package body Switch.C is
                      end;
 
                      return;
+
+                  --  -gnateC switch (CodePeer SCIL generation)
+
+                  --  Not enabled for now, keep it for later???
+                  --  use -gnatd.I only for now
+
+                  --  when 'C' =>
+                  --     Ptr := Ptr + 1;
+                  --     Generate_SCIL := True;
 
                   --  -gnateD switch (preprocessing symbol definition)
 
@@ -448,9 +469,25 @@ package body Switch.C is
 
                      Ptr := Max + 1;
 
+                  --  -gnatez (final delimiter of explicit switches)
+
+                  --  All switches that come after -gnatez have been added by
+                  --  the GCC driver and are not stored in the ALI file. See
+                  --  also -gnatea above.
+
                   when 'z' =>
                      Store_Switch := False;
                      Disable_Switch_Storing;
+                     Ptr := Ptr + 1;
+
+                  --  -gnateS (generate SCO information)
+
+                  --  Include Source Coverage Obligation information in ALI
+                  --  files for the benefit of source coverage analysis tools
+                  --  (xcov).
+
+                  when 'S' =>
+                     Generate_SCO := True;
                      Ptr := Ptr + 1;
 
                   --  All other -gnate? switches are unassigned
@@ -494,28 +531,9 @@ package body Switch.C is
                Ada_Version := Ada_05;
                Ada_Version_Explicit := Ada_Version;
 
-               --  Set default warnings for -gnatg
+               --  Set default warnings and style checks for -gnatg
 
-               Check_Unreferenced              := True;
-               Check_Unreferenced_Formals      := True;
-               Check_Withs                     := True;
-               Constant_Condition_Warnings     := True;
-               Implementation_Unit_Warnings    := True;
-               Ineffective_Inline_Warnings     := True;
-               Warn_On_Assertion_Failure       := True;
-               Warn_On_Assumed_Low_Bound       := True;
-               Warn_On_Bad_Fixed_Value         := True;
-               Warn_On_Constant                := True;
-               Warn_On_Export_Import           := True;
-               Warn_On_Modified_Unread         := True;
-               Warn_On_No_Value_Assigned       := True;
-               Warn_On_Non_Local_Exception     := False;
-               Warn_On_Obsolescent_Feature     := True;
-               Warn_On_Redundant_Constructs    := True;
-               Warn_On_Object_Renames_Function := True;
-               Warn_On_Unchecked_Conversion    := True;
-               Warn_On_Unrecognized_Pragma     := True;
-
+               Set_GNAT_Mode_Warnings;
                Set_GNAT_Style_Check_Options;
 
             --  Processing for G switch

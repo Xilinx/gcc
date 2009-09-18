@@ -24,6 +24,10 @@ extern void default_external_libcall (rtx);
 extern rtx default_legitimize_address (rtx, rtx, enum machine_mode);
 
 extern int default_unspec_may_trap_p (const_rtx, unsigned);
+extern enum machine_mode default_promote_function_mode (const_tree, enum machine_mode,
+							int *, const_tree, int);
+extern enum machine_mode default_promote_function_mode_always_promote
+			(const_tree, enum machine_mode, int *, const_tree, int);
 
 extern enum machine_mode default_cc_modes_compatible (enum machine_mode,
 						      enum machine_mode);
@@ -73,6 +77,10 @@ extern tree default_builtin_vectorized_conversion (unsigned int, tree);
 extern tree default_builtin_reciprocal (unsigned int, bool, bool);
 
 extern bool default_builtin_vector_alignment_reachable (const_tree, bool);
+extern bool
+default_builtin_support_vector_misalignment (enum machine_mode mode,
+					     const_tree,
+					     int, bool); 
 
 /* These are here, and not in hooks.[ch], because not all users of
    hooks.h include tm.h, and thus we don't have CUMULATIVE_ARGS.  */
@@ -90,6 +98,7 @@ extern const char *hook_invalid_arg_for_unprototyped_fn
   (const_tree, const_tree, const_tree);
 extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
 extern rtx default_function_value (const_tree, const_tree, bool);
+extern rtx default_libcall_value (enum machine_mode, rtx);
 extern rtx default_internal_arg_pointer (void);
 extern enum reg_class default_branch_target_register_class (void);
 #ifdef IRA_COVER_CLASSES
@@ -107,5 +116,5 @@ extern tree default_emutls_var_init (tree, tree, tree);
 extern bool default_hard_regno_scratch_ok (unsigned int);
 extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
 extern bool default_target_option_pragma_parse (tree, tree);
-extern bool default_target_option_can_inline_p (tree, tree);
+extern bool default_target_can_inline_p (tree, tree);
 extern unsigned int default_case_values_threshold (void);

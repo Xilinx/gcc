@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---      Copyright (C) 1992-2009  Free Software Foundation, Inc.             --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -196,8 +196,8 @@ package Types is
    --  which are one greater than the previous upper bound.
 
    subtype Big_Source_Buffer is Text_Buffer (0 .. Text_Ptr'Last);
-   --  This is a virtual type used as the designated type of the access
-   --  type Source_Buffer_Ptr, see Osint.Read_Source_File for details.
+   --  This is a virtual type used as the designated type of the access type
+   --  Source_Buffer_Ptr, see Osint.Read_Source_File for details.
 
    type Source_Buffer_Ptr is access all Big_Source_Buffer;
    for Source_Buffer_Ptr'Storage_Size use 0;
@@ -234,8 +234,8 @@ package Types is
    --  Used for all nodes in the presentation of package Standard.ASCII
 
    System_Location : constant Source_Ptr := -4;
-   --  Used to identify locations of pragmas scanned by Targparm, where we
-   --  know the location is in System, but we don't know exactly what line.
+   --  Used to identify locations of pragmas scanned by Targparm, where we know
+   --  the location is in System, but we don't know exactly what line.
 
    First_Source_Ptr : constant Source_Ptr := 0;
    --  Starting source pointer index value for first source program
@@ -384,10 +384,10 @@ package Types is
    --  Type used to identify nodes in the tree
 
    subtype Entity_Id is Node_Id;
-   --  A synonym for node types, used in the entity package to refer to
-   --  nodes that are entities (i.e. nodes with an Nkind of N_Defining_xxx)
-   --  All such nodes are extended nodes and these are the only extended
-   --  nodes, so that in practice entity and extended nodes are synonymous.
+   --  A synonym for node types, used in the entity package to refer to nodes
+   --  that are entities (i.e. nodes with an Nkind of N_Defining_xxx) All such
+   --  nodes are extended nodes and these are the only extended nodes, so that
+   --  in practice entity and extended nodes are synonymous.
 
    subtype Node_Or_Entity_Id is Node_Id;
    --  A synonym for node types, used in cases where a given value may be used

@@ -410,20 +410,20 @@ gfc_check_same_strlen (const gfc_expr *a, const gfc_expr *b, const char *name)
    long len_a, len_b;
    len_a = len_b = -1;
 
-   if (a->ts.cl && a->ts.cl->length
-       && a->ts.cl->length->expr_type == EXPR_CONSTANT)
-     len_a = mpz_get_si (a->ts.cl->length->value.integer);
+   if (a->ts.u.cl && a->ts.u.cl->length
+       && a->ts.u.cl->length->expr_type == EXPR_CONSTANT)
+     len_a = mpz_get_si (a->ts.u.cl->length->value.integer);
    else if (a->expr_type == EXPR_CONSTANT
-	    && (a->ts.cl == NULL || a->ts.cl->length == NULL))
+	    && (a->ts.u.cl == NULL || a->ts.u.cl->length == NULL))
      len_a = a->value.character.length;
    else
      return SUCCESS;
 
-   if (b->ts.cl && b->ts.cl->length
-       && b->ts.cl->length->expr_type == EXPR_CONSTANT)
-     len_b = mpz_get_si (b->ts.cl->length->value.integer);
+   if (b->ts.u.cl && b->ts.u.cl->length
+       && b->ts.u.cl->length->expr_type == EXPR_CONSTANT)
+     len_b = mpz_get_si (b->ts.u.cl->length->value.integer);
    else if (b->expr_type == EXPR_CONSTANT
-	    && (b->ts.cl == NULL || b->ts.cl->length == NULL))
+	    && (b->ts.u.cl == NULL || b->ts.u.cl->length == NULL))
      len_b = b->value.character.length;
    else
      return SUCCESS;
@@ -545,9 +545,6 @@ gfc_check_allocated (gfc_expr *array)
 		 &array->where);
       return FAILURE;
     }
-
-  if (array_check (array, 0) == FAILURE)
-    return FAILURE;
 
   return SUCCESS;
 }
@@ -672,6 +669,19 @@ null_arg:
 	     "of '%s' intrinsic function", where, gfc_current_intrinsic);
   return FAILURE;
 
+}
+
+
+gfc_try
+gfc_check_atan_2 (gfc_expr *y, gfc_expr *x)
+{
+  /* gfc_notify_std would be a wast of time as the return value
+     is seemingly used only for the generic resolution.  The error
+     will be: Too many arguments.  */
+  if ((gfc_option.allow_std & GFC_STD_F2008) == 0)
+    return FAILURE;
+
+  return gfc_check_atan2 (y, x);
 }
 
 
@@ -819,6 +829,15 @@ gfc_check_cmplx (gfc_expr *x, gfc_expr *y, gfc_expr *kind)
 		     gfc_current_intrinsic, &y->where);
 	  return FAILURE;
 	}
+
+      if (y->ts.type == BT_COMPLEX)
+	{
+	  gfc_error ("'%s' argument of '%s' intrinsic at %L must have a type "
+		     "of either REAL or INTEGER", gfc_current_intrinsic_arg[1],
+		     gfc_current_intrinsic, &y->where);
+	  return FAILURE;
+	}
+
     }
 
   if (kind_check (kind, 2, BT_COMPLEX) == FAILURE)
@@ -974,6 +993,14 @@ gfc_check_dcmplx (gfc_expr *x, gfc_expr *y)
 	{
 	  gfc_error ("'%s' argument of '%s' intrinsic at %L must not be "
 		     "present if 'x' is COMPLEX", gfc_current_intrinsic_arg[1],
+		     gfc_current_intrinsic, &y->where);
+	  return FAILURE;
+	}
+
+      if (y->ts.type == BT_COMPLEX)
+	{
+	  gfc_error ("'%s' argument of '%s' intrinsic at %L must have a type "
+		     "of either REAL or INTEGER", gfc_current_intrinsic_arg[1],
 		     gfc_current_intrinsic, &y->where);
 	  return FAILURE;
 	}
@@ -1212,6 +1239,23 @@ gfc_check_fn_rc (gfc_expr *a)
 
 
 gfc_try
+gfc_check_fn_rc2008 (gfc_expr *a)
+{
+  if (real_or_complex_check (a, 0) == FAILURE)
+    return FAILURE;
+
+  if (a->ts.type == BT_COMPLEX
+      && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: COMPLEX argument '%s' "
+			 "argument of '%s' intrinsic at %L",
+			 gfc_current_intrinsic_arg[0], gfc_current_intrinsic,
+			 &a->where) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+gfc_try
 gfc_check_fnum (gfc_expr *unit)
 {
   if (type_check (unit, 0, BT_INTEGER) == FAILURE)
@@ -1353,12 +1397,12 @@ gfc_check_ichar_iachar (gfc_expr *c, gfc_expr *kind)
 	{
 	  /* Check that the argument is length one.  Non-constant lengths
 	     can't be checked here, so assume they are ok.  */
-	  if (c->ts.cl && c->ts.cl->length)
+	  if (c->ts.u.cl && c->ts.u.cl->length)
 	    {
 	      /* If we already have a length for this expression then use it.  */
-	      if (c->ts.cl->length->expr_type != EXPR_CONSTANT)
+	      if (c->ts.u.cl->length->expr_type != EXPR_CONSTANT)
 		return SUCCESS;
-	      i = mpz_get_si (c->ts.cl->length->value.integer);
+	      i = mpz_get_si (c->ts.u.cl->length->value.integer);
 	    }
 	  else 
 	    return SUCCESS;

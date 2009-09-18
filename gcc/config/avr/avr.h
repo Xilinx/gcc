@@ -102,52 +102,7 @@ extern const struct mcu_type_s *avr_current_device;
 extern const struct mcu_type_s avr_mcu_types[];
 extern const struct base_arch_s avr_arch_types[];
 
-#define TARGET_CPU_CPP_BUILTINS()		\
-  do						\
-    {						\
-      builtin_define_std ("AVR");		\
-      if (avr_current_arch->macro)		\
-	builtin_define (avr_current_arch->macro);	\
-      if (avr_extra_arch_macro)			\
-	builtin_define (avr_extra_arch_macro);	\
-      if (avr_current_arch->have_elpm)		\
-	builtin_define ("__AVR_HAVE_RAMPZ__");	\
-      if (avr_current_arch->have_elpm)		\
-	builtin_define ("__AVR_HAVE_ELPM__");	\
-      if (avr_current_arch->have_elpmx)		\
-	builtin_define ("__AVR_HAVE_ELPMX__");	\
-      if (avr_current_arch->have_movw_lpmx)	\
-	{					\
-	  builtin_define ("__AVR_HAVE_MOVW__");	\
-	  builtin_define ("__AVR_HAVE_LPMX__");	\
-	}					\
-      if (avr_current_arch->asm_only)		\
-	builtin_define ("__AVR_ASM_ONLY__");	\
-      if (avr_current_arch->have_mul)		\
-	{					\
-	  builtin_define ("__AVR_ENHANCED__");	\
-	  builtin_define ("__AVR_HAVE_MUL__");	\
- 	}					\
-      if (avr_current_arch->have_jmp_call)	\
-	{					\
-	  builtin_define ("__AVR_MEGA__");	\
-	  builtin_define ("__AVR_HAVE_JMP_CALL__");	\
- 	}					\
-      if (avr_current_arch->have_eijmp_eicall)	\
-        {					\
-	  builtin_define ("__AVR_HAVE_EIJMP_EICALL__");	\
-	  builtin_define ("__AVR_3_BYTE_PC__");	\
-	}					\
-      else					\
-        {					\
-	  builtin_define ("__AVR_2_BYTE_PC__");	\
-	}					\
-      if (TARGET_NO_INTERRUPTS)			\
-	builtin_define ("__NO_INTERRUPTS__");	\
-    }						\
-  while (0)
-
-extern const char *avr_extra_arch_macro;
+#define TARGET_CPU_CPP_BUILTINS()	avr_cpu_cpp_builtins (pfile)
 
 #if !defined(IN_LIBGCC2) && !defined(IN_TARGET_LIBS)
 extern GTY(()) section *progmem_section;
@@ -159,6 +114,7 @@ extern GTY(()) section *progmem_section;
 #define AVR_HAVE_LPMX (avr_current_arch->have_movw_lpmx)
 #define AVR_HAVE_RAMPZ (avr_current_arch->have_elpm)
 #define AVR_HAVE_EIJMP_EICALL (avr_current_arch->have_eijmp_eicall)
+#define AVR_HAVE_8BIT_SP (avr_current_device->short_sp || TARGET_TINY_STACK)
 
 #define AVR_2_BYTE_PC (!AVR_HAVE_EIJMP_EICALL)
 #define AVR_3_BYTE_PC (AVR_HAVE_EIJMP_EICALL)
@@ -407,8 +363,6 @@ enum reg_class {
       {ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},		\
 	{FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}		\
        ,{FRAME_POINTER_REGNUM+1,STACK_POINTER_REGNUM+1}}
-
-#define CAN_ELIMINATE(FROM, TO)	avr_can_eliminate (FROM, TO)
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
   OFFSET = avr_initial_elimination_offset (FROM, TO)

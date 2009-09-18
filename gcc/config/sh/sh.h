@@ -91,6 +91,8 @@ do { \
     builtin_define ("__SH_FPU_DOUBLE__"); \
   if (TARGET_HITACHI) \
     builtin_define ("__HITACHI__"); \
+  if (TARGET_FMOVD) \
+    builtin_define ("__FMOVD_ENABLED__"); \
   builtin_define (TARGET_LITTLE_ENDIAN \
 		  ? "__LITTLE_ENDIAN__" : "__BIG_ENDIAN__"); \
 } while (0)

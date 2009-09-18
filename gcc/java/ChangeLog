@@ -1,3 +1,105 @@
+2009-09-14  Richard Henderson  <rth@redhat.com>
+
+	* builtins.c (initialize_builtins): Update call to
+	build_common_builtin_nodes.
+	* decl.c (java_init_decl_processing): Don't call
+	default_init_unwind_resume_libfunc.
+	* except.c: Include tree-iterator.h.
+	(build_exception_object_var): New.
+	(build_exception_object_ref): Use it.
+	(expand_end_java_handler): Initialize it from __builtin_eh_pointer.
+	Attach all CATCH_EXPRs to a single TRY_CATCH_EXPR.
+	* java-tree.h (DECL_FUNCTION_EXC_OBJ): New.
+
+2009-09-13  Richard Guenther  <rguenther@suse.de>
+	Rafael Avila de Espindola  <espindola@google.com>
+
+	* decl.c (do_nothing): Remove.
+	(java_init_decl_processing): Do not set lang_eh_runtime_type.
+	* Make-lang.in (lang.o): Add $(EXCEPT_H) dependency.
+	* lang.c (java_eh_personality): New.
+	(java_eh_personality_decl): Likewise.
+	(LANG_HOOKS_EH_PERSONALITY): Define.
+
+2009-09-03  Diego Novillo  <dnovillo@google.com>
+
+	* lang.c (lang_hooks): Remove const qualifier.
+
+2009-09-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* boehm.c (mark_reference_fields): Compute % in HOST_WIDE_INT
+	type.
+
+2009-09-01  Richard Guenther  <rguenther@suse.de>
+
+	* lang.c (LANG_HOOKS_MARK_ADDRESSABLE): Remove.
+	* java-tree.h (java_mark_addressable): Likewise.
+	* typeck.c (java_mark_addressable): Likewise.
+
+2009-08-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Make-lang.in (java.install-pdf): Install gcj.pdf in
+	$(pdfdir)/gcc, alongside the other manuals.
+
+2009-08-12  Andrew Haley  <aph@redhat.com>
+
+	* builtins.c (compareAndSwapInt_builtin): Use
+	flag_use_atomic_builtins.
+	(compareAndSwapLong_builtin): Likewise.
+	(compareAndSwapObject_builtin): Likewise.
+	* jvspec.c: Add flag_use_atomic_builtins.
+	* gcj.texi: Likewise.
+	* java-tree.h: Likewise.
+	* lang.opt: Likewise.
+
+2009-08-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/40990
+	* lang.c (put_decl_node): Outputs different level of information
+	depending on the verbosity level.
+
+2009-07-31  Andrew Haley  <aph@redhat.com>
+
+	PR java/40867
+	* decl.c (java_replace_references): Set EXPR_LOCATION on all
+	generated expressions.
+	(binding_level.loc): new field.
+	(clear_binding_level): Initialize loc.
+	(set_input_location): New function.
+	(pushlevel): Set new binding_level.loc.
+	(poplevel): Set EXPR_LOCATION on the new BIND_EXPR_BODY.
+	(start_java_method): Set DECL_SOURCE_LOCATION of this new method.
+	(java_add_stmt): Set the EXPR_LOCATION on all subtrees of new_stmt.
+
+2009-07-17  Richard Guenther  <rguenther@suse.de>
+
+	PR c/40401
+	* java-gimplify.c (java_genericize): Do not gimplify here.
+	But replace all local references.
+	(java_gimplify_expr): Do not replace local references here.
+	(java_gimplify_modify_expr): Likewise.
+	* jcf-parse.c (java_parse_file): Do not finalize the CU or
+	optimize the cgraph here.
+	* decl.c (java_replace_reference): Make static.
+	(java_replace_references): New function.
+	(end_java_method): Clear base_decl_map.
+	* java-tree.h (java_replace_references): Declare.
+	(java_replace_reference): Remove.
+
+2009-07-14  Taras Glek  <tglek@mozilla.com>
+	    Rafael Espindola  <espindola@google.com>
+
+	* Make-lang.in (java.install-plugin): New target for
+	installing plugin headers.
+
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* class.c: Replace %J by an explicit location. Update all calls.
+	
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* jcf-parse.c: Replace %H by an explicit location. Update all calls.
+
 2009-06-29  Andrew Haley  <aph@redhat.com>
 
 	PR java/40590

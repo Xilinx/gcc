@@ -1859,6 +1859,8 @@ static tree cp_parser_asm_operand_list
   (cp_parser *);
 static tree cp_parser_asm_clobber_list
   (cp_parser *);
+static tree cp_parser_asm_label_list
+  (cp_parser *);
 static tree cp_parser_attributes_opt
   (cp_parser *);
 static tree cp_parser_attribute_list
@@ -3399,6 +3401,8 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_IS_ENUM:
 	case RID_IS_POD:
 	case RID_IS_POLYMORPHIC:
+	case RID_IS_STD_LAYOUT:
+	case RID_IS_TRIVIAL:
 	case RID_IS_UNION:
 	  return cp_parser_trait_expr (parser, token->keyword);
 
@@ -6864,6 +6868,12 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
       break;
     case RID_IS_POLYMORPHIC:
       kind = CPTK_IS_POLYMORPHIC;
+      break;
+    case RID_IS_STD_LAYOUT:
+      kind = CPTK_IS_STD_LAYOUT;
+      break;
+    case RID_IS_TRIVIAL:
+      kind = CPTK_IS_TRIVIAL;
       break;
     case RID_IS_UNION:
       kind = CPTK_IS_UNION;
@@ -11591,6 +11601,7 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
   tree identifier;
   tree type = NULL_TREE;
   tree attributes = NULL_TREE;
+  tree globalscope;
   cp_token *token = NULL;
 
   /* See if we're looking at the `enum' keyword.  */
@@ -11622,9 +11633,6 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
       cp_lexer_consume_token (parser->lexer);
       /* Remember that it's a `typename' type.  */
       tag_type = typename_type;
-      /* The `typename' keyword is only allowed in templates.  */
-      if (!processing_template_decl)
-	permerror (input_location, "using %<typename%> outside of template");
     }
   /* Otherwise it must be a class-key.  */
   else
@@ -11637,10 +11645,10 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
     }
 
   /* Look for the `::' operator.  */
-  cp_parser_global_scope_opt (parser,
-			      /*current_scope_valid_p=*/false);
+  globalscope =  cp_parser_global_scope_opt (parser,
+					     /*current_scope_valid_p=*/false);
   /* Look for the nested-name-specifier.  */
-  if (tag_type == typename_type)
+  if (tag_type == typename_type && !globalscope)
     {
       if (!cp_parser_nested_name_specifier (parser,
 					   /*typename_keyword_p=*/true,
@@ -11961,10 +11969,18 @@ cp_parser_enum_specifier (cp_parser* parser)
   else
     identifier = make_anon_name ();
 
-  /* Check for the `:' that denotes a specified underlying type in C++0x.  */
+  /* Check for the `:' that denotes a specified underlying type in C++0x.
+     Note that a ':' could also indicate a bitfield width, however.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_COLON))
     {
       cp_decl_specifier_seq type_specifiers;
+
+      /* Consume the `:'.  */
+      cp_lexer_consume_token (parser->lexer);
+
+      /* Parse the type-specifier-seq.  */
+      cp_parser_type_specifier_seq (parser, /*is_condition=*/false,
+                                    &type_specifiers);
 
       /* At this point this is surely not elaborated type specifier.  */
       if (!cp_parser_parse_definitely (parser))
@@ -11973,14 +11989,7 @@ cp_parser_enum_specifier (cp_parser* parser)
       if (cxx_dialect == cxx98)
         maybe_warn_cpp0x ("scoped enums");
 
-      /* Consume the `:'.  */
-      cp_lexer_consume_token (parser->lexer);
-
       has_underlying_type = true;
-
-      /* Parse the type-specifier-seq.  */
-      cp_parser_type_specifier_seq (parser, /*is_condition=*/false,
-                                    &type_specifiers);
 
       /* If that didn't work, stop.  */
       if (type_specifiers.type != error_mark_node)
@@ -12524,7 +12533,10 @@ cp_parser_using_directive (cp_parser* parser)
 			  : asm-operand-list [opt] ) ;
      asm volatile [opt] ( string-literal : asm-operand-list [opt]
 			  : asm-operand-list [opt]
-			  : asm-operand-list [opt] ) ;  */
+			  : asm-clobber-list [opt] ) ;
+     asm volatile [opt] goto ( string-literal : : asm-operand-list [opt]
+			       : asm-clobber-list [opt]
+			       : asm-goto-list ) ;  */
 
 static void
 cp_parser_asm_definition (cp_parser* parser)
@@ -12533,11 +12545,14 @@ cp_parser_asm_definition (cp_parser* parser)
   tree outputs = NULL_TREE;
   tree inputs = NULL_TREE;
   tree clobbers = NULL_TREE;
+  tree labels = NULL_TREE;
   tree asm_stmt;
   bool volatile_p = false;
   bool extended_p = false;
   bool invalid_inputs_p = false;
   bool invalid_outputs_p = false;
+  bool goto_p = false;
+  const char *missing = NULL;
 
   /* Look for the `asm' keyword.  */
   cp_parser_require_keyword (parser, RID_ASM, "%<asm%>");
@@ -12547,6 +12562,15 @@ cp_parser_asm_definition (cp_parser* parser)
     {
       /* Remember that we saw the `volatile' keyword.  */
       volatile_p = true;
+      /* Consume the token.  */
+      cp_lexer_consume_token (parser->lexer);
+    }
+  if (cp_parser_allow_gnu_extensions_p (parser)
+      && parser->in_function_body
+      && cp_lexer_next_token_is_keyword (parser->lexer, RID_GOTO))
+    {
+      /* Remember that we saw the `goto' keyword.  */
+      goto_p = true;
       /* Consume the token.  */
       cp_lexer_consume_token (parser->lexer);
     }
@@ -12574,6 +12598,7 @@ cp_parser_asm_definition (cp_parser* parser)
     {
       bool inputs_p = false;
       bool clobbers_p = false;
+      bool labels_p = false;
 
       /* The extended syntax was used.  */
       extended_p = true;
@@ -12589,7 +12614,8 @@ cp_parser_asm_definition (cp_parser* parser)
 	      && cp_lexer_next_token_is_not (parser->lexer,
 					     CPP_SCOPE)
 	      && cp_lexer_next_token_is_not (parser->lexer,
-					     CPP_CLOSE_PAREN))
+					     CPP_CLOSE_PAREN)
+	      && !goto_p)
 	    outputs = cp_parser_asm_operand_list (parser);
 
 	    if (outputs == error_mark_node)
@@ -12611,6 +12637,8 @@ cp_parser_asm_definition (cp_parser* parser)
 	  if (cp_lexer_next_token_is_not (parser->lexer,
 					  CPP_COLON)
 	      && cp_lexer_next_token_is_not (parser->lexer,
+					     CPP_SCOPE)
+	      && cp_lexer_next_token_is_not (parser->lexer,
 					     CPP_CLOSE_PAREN))
 	    inputs = cp_parser_asm_operand_list (parser);
 
@@ -12625,16 +12653,41 @@ cp_parser_asm_definition (cp_parser* parser)
       if (clobbers_p
 	  || cp_lexer_next_token_is (parser->lexer, CPP_COLON))
 	{
+	  clobbers_p = true;
 	  /* Consume the `:' or `::'.  */
 	  cp_lexer_consume_token (parser->lexer);
 	  /* Parse the clobbers.  */
 	  if (cp_lexer_next_token_is_not (parser->lexer,
-					  CPP_CLOSE_PAREN))
+					  CPP_COLON)
+	      && cp_lexer_next_token_is_not (parser->lexer,
+					     CPP_CLOSE_PAREN))
 	    clobbers = cp_parser_asm_clobber_list (parser);
 	}
+      else if (goto_p
+	       && cp_lexer_next_token_is (parser->lexer, CPP_SCOPE))
+	/* The labels are coming next.  */
+	labels_p = true;
+
+      /* Look for labels.  */
+      if (labels_p
+	  || (goto_p && cp_lexer_next_token_is (parser->lexer, CPP_COLON)))
+	{
+	  labels_p = true;
+	  /* Consume the `:' or `::'.  */
+	  cp_lexer_consume_token (parser->lexer);
+	  /* Parse the labels.  */
+	  labels = cp_parser_asm_label_list (parser);
+	}
+
+      if (goto_p && !labels_p)
+	missing = clobbers_p ? "%<:%>" : "%<:%> or %<::%>";
     }
+  else if (goto_p)
+    missing = "%<:%> or %<::%>";
+
   /* Look for the closing `)'.  */
-  if (!cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>"))
+  if (!cp_parser_require (parser, missing ? CPP_COLON : CPP_CLOSE_PAREN,
+			  missing ? missing : "%<)%>"))
     cp_parser_skip_to_closing_parenthesis (parser, true, false,
 					   /*consume_paren=*/true);
   cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
@@ -12645,7 +12698,7 @@ cp_parser_asm_definition (cp_parser* parser)
       if (parser->in_function_body)
 	{
 	  asm_stmt = finish_asm_stmt (volatile_p, string, outputs,
-				      inputs, clobbers);
+				      inputs, clobbers, labels);
 	  /* If the extended syntax was not used, mark the ASM_EXPR.  */
 	  if (!extended_p)
 	    {
@@ -14609,12 +14662,6 @@ cp_parser_default_argument (cp_parser *parser, bool template_parm_p)
      appear in a default argument.  */
   saved_local_variables_forbidden_p = parser->local_variables_forbidden_p;
   parser->local_variables_forbidden_p = true;
-  /* The default argument expression may cause implicitly
-     defined member functions to be synthesized, which will
-     result in garbage collection.  We must treat this
-     situation as if we were within the body of function so as
-     to avoid collecting live data on the stack.  */
-  ++function_depth;
   /* Parse the assignment-expression.  */
   if (template_parm_p)
     push_deferring_access_checks (dk_no_deferred);
@@ -14622,8 +14669,6 @@ cp_parser_default_argument (cp_parser *parser, bool template_parm_p)
     = cp_parser_assignment_expression (parser, /*cast_p=*/false, NULL);
   if (template_parm_p)
     pop_deferring_access_checks ();
-  /* Restore saved state.  */
-  --function_depth;
   parser->greater_than_is_operator_p = saved_greater_than_is_operator_p;
   parser->local_variables_forbidden_p = saved_local_variables_forbidden_p;
 
@@ -16867,6 +16912,49 @@ cp_parser_asm_clobber_list (cp_parser* parser)
   return clobbers;
 }
 
+/* Parse an asm-label-list.
+
+   asm-label-list:
+     identifier
+     asm-label-list , identifier
+
+   Returns a TREE_LIST, indicating the labels in the order that they
+   appeared.  The TREE_VALUE of each node is a label.  */
+
+static tree
+cp_parser_asm_label_list (cp_parser* parser)
+{
+  tree labels = NULL_TREE;
+
+  while (true)
+    {
+      tree identifier, label, name;
+
+      /* Look for the identifier.  */
+      identifier = cp_parser_identifier (parser);
+      if (!error_operand_p (identifier))
+        {
+	  label = lookup_label (identifier);
+	  if (TREE_CODE (label) == LABEL_DECL)
+	    {
+	      TREE_USED (label) = 1;
+	      check_goto (label);
+	      name = build_string (IDENTIFIER_LENGTH (identifier),
+				   IDENTIFIER_POINTER (identifier));
+	      labels = tree_cons (name, label, labels);
+	    }
+	}
+      /* If the next token is not a `,', then the list is
+	 complete.  */
+      if (cp_lexer_next_token_is_not (parser->lexer, CPP_COMMA))
+	break;
+      /* Consume the `,' token.  */
+      cp_lexer_consume_token (parser->lexer);
+    }
+
+  return nreverse (labels);
+}
+
 /* Parse an (optional) series of attributes.
 
    attributes:
@@ -18173,8 +18261,8 @@ cp_parser_save_member_function_body (cp_parser* parser,
   cp_token *last;
   tree fn;
 
-  /* Create the function-declaration.  */
-  fn = start_method (decl_specifiers, declarator, attributes);
+  /* Create the FUNCTION_DECL.  */
+  fn = grokmethod (decl_specifiers, declarator, attributes);
   /* If something went badly wrong, bail out now.  */
   if (fn == error_mark_node)
     {
@@ -18221,9 +18309,6 @@ cp_parser_save_member_function_body (cp_parser* parser,
   /* We need to know that this was defined in the class, so that
      friend templates are handled correctly.  */
   DECL_INITIALIZED_IN_CLASS_P (fn) = 1;
-
-  /* We're done with the inline definition.  */
-  finish_method (fn);
 
   /* Add FN to the queue of functions to be parsed later.  */
   TREE_VALUE (parser->unparsed_functions_queues)

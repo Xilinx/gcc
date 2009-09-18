@@ -25,6 +25,8 @@
 
 --  General wrapper for the parsing of project files
 
+with Prj.Tree;
+
 package Prj.Pars is
 
    procedure Set_Verbosity (To : Verbosity);
@@ -35,35 +37,32 @@ package Prj.Pars is
       Project           : out Project_Id;
       Project_File_Name : String;
       Packages_To_Check : String_List_Access := All_Packages;
-      When_No_Sources   : Error_Warning := Error;
-      Report_Error      : Prj.Put_Line_Access := null;
+      Flags             : Processing_Flags;
       Reset_Tree        : Boolean := True;
-      Is_Config_File    : Boolean := False);
+      In_Node_Tree      : Prj.Tree.Project_Node_Tree_Ref := null);
    --  Parse and process a project files and all its imported project files, in
    --  the project tree In_Tree.
    --  All the project files are parsed (through Prj.Tree) to create a tree in
    --  memory. That tree is then processed (through Prj.Proc) to create a
-   --  expanded representation of the tree based on the current scenario
-   --  variables. This function is only a convenient wrapper over other
+   --  expanded representation of the tree based on the current external
+   --  references. This function is only a convenient wrapper over other
    --  services provided in the Prj.* package hierarchy.
    --
    --  If parsing is successful, Project is the project ID of the root project
    --  file; otherwise, Project_Id is set to No_Project. Project_Node_Tree is
    --  set to the tree (unprocessed) representation of the project file. This
    --  tree is permanently correct, whereas Project will need to be recomputed
-   --  if the scenario variables change.
+   --  if the external references change.
    --
    --  Packages_To_Check indicates the packages where any unknown attribute
    --  produces an error. For other packages, an unknown attribute produces a
    --  warning.
    --
-   --  When_No_Sources indicates what should be done when no sources are found
-   --  in a project for a specified or implied language.
-   --
    --  When Reset_Tree is True, all the project data are removed from the
    --  project table before processing.
    --
-   --  Is_Config_File should be set to True if the project represents a config
-   --  file (.cgpr) since some specific checks apply.
+   --  In_Node_Tree (if given) must have been Initialized. The main reason to
+   --  pass an existing tree, is to pass the external references that will then
+   --  be used to process the tree.
 
 end Prj.Pars;

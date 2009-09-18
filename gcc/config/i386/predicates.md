@@ -750,13 +750,12 @@
 {
   unsigned n_elts;
   op = maybe_get_pool_constant (op);
-  if (!op)
+
+  if (!(op && GET_CODE (op) == CONST_VECTOR))
     return 0;
-  if (GET_CODE (op) != CONST_VECTOR)
-    return 0;
-  n_elts =
-    (GET_MODE_SIZE (GET_MODE (op)) /
-     GET_MODE_SIZE (GET_MODE_INNER (GET_MODE (op))));
+
+  n_elts = CONST_VECTOR_NUNITS (op);
+
   for (n_elts--; n_elts > 0; n_elts--)
     {
       rtx elt = CONST_VECTOR_ELT (op, n_elts);
@@ -988,12 +987,6 @@
 ;; avx predicate generation instructions
 (define_predicate "avx_comparison_float_operator"
   (match_code "ne,eq,ge,gt,le,lt,unordered,ordered,uneq,unge,ungt,unle,unlt,ltgt"))
-
-;; Return 1 if OP is a comparison operator that can be issued by sse predicate
-;; generation instructions
-(define_predicate "sse5_comparison_float_operator"
-  (and (match_test "TARGET_SSE5")
-       (match_code "ne,eq,ge,gt,le,lt,unordered,ordered,uneq,unge,ungt,unle,unlt,ltgt")))
 
 (define_predicate "ix86_comparison_int_operator"
   (match_code "ne,eq,ge,gt,le,lt"))

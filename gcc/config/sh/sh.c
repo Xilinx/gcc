@@ -38,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "recog.h"
 #include "integrate.h"
-#include "elf/dwarf2.h"
+#include "dwarf2.h"
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
@@ -177,7 +177,7 @@ static rtx find_barrier (int, rtx, rtx);
 static int noncall_uses_reg (rtx, rtx, rtx *);
 static rtx gen_block_redirect (rtx, int, int);
 static void sh_reorg (void);
-static void output_stack_adjust (int, rtx, int, HARD_REG_SET *);
+static void output_stack_adjust (int, rtx, int, HARD_REG_SET *, bool);
 static rtx frame_insn (rtx);
 static rtx push (int);
 static void pop (int);
@@ -257,6 +257,11 @@ static bool sh_pretend_outgoing_varargs_named (CUMULATIVE_ARGS *);
 static tree sh_build_builtin_va_list (void);
 static void sh_va_start (tree, rtx);
 static tree sh_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
+static enum machine_mode sh_promote_function_mode (const_tree type,
+						   enum machine_mode,
+						   int *punsignedp,
+						   const_tree funtype,
+						   int for_return);
 static bool sh_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				  const_tree, bool);
 static bool sh_callee_copies (CUMULATIVE_ARGS *, enum machine_mode,
@@ -437,10 +442,8 @@ static const struct attribute_spec sh_attribute_table[] =
 
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES sh_promote_prototypes
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS sh_promote_prototypes
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN sh_promote_prototypes
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE sh_promote_function_mode
 
 #undef TARGET_STRUCT_VALUE_RTX
 #define TARGET_STRUCT_VALUE_RTX sh_struct_value_rtx
@@ -694,11 +697,7 @@ sh_override_options (void)
   if (TARGET_SH2E)
     sh_cpu = PROCESSOR_SH2E;
   if (TARGET_SH2A)
-    {
-      sh_cpu = PROCESSOR_SH2A;
-      if (TARGET_SH2A_DOUBLE)
-        target_flags |= MASK_FMOVD;
-    }
+    sh_cpu = PROCESSOR_SH2A;
   if (TARGET_SH3)
     sh_cpu = PROCESSOR_SH3;
   if (TARGET_SH3E)
@@ -873,6 +872,29 @@ sh_override_options (void)
 	}
       else if (flag_schedule_insns == 2)
 	flag_schedule_insns = 0;
+    }
+
+  /* Unwinding with -freorder-blocks-and-partition does not work on this
+     architecture, because it requires far jumps to label crossing between
+     hot/cold sections which are rejected on this architecture.  */
+  if (flag_reorder_blocks_and_partition)
+    {
+      if (flag_exceptions)
+	{
+	  inform (input_location, 
+		  "-freorder-blocks-and-partition does not work with "
+		  "exceptions on this architecture");
+	  flag_reorder_blocks_and_partition = 0;
+	  flag_reorder_blocks = 1;
+	}
+      else if (flag_unwind_tables)
+	{
+	  inform (input_location,
+		  "-freorder-blocks-and-partition does not support unwind "
+		  "info on this architecture");
+	  flag_reorder_blocks_and_partition = 0;
+	  flag_reorder_blocks = 1;
+	}
     }
 
   if (align_loops == 0)
@@ -4208,14 +4230,13 @@ broken_move (rtx insn)
 		&& GET_CODE (SET_SRC (pat)) == CONST_DOUBLE
 		&& (fp_zero_operand (SET_SRC (pat))
 		    || fp_one_operand (SET_SRC (pat)))
-		/* ??? If this is a -m4 or -m4-single compilation, in general
-		   we don't know the current setting of fpscr, so disable fldi.
+		/* In general we don't know the current setting of fpscr, so disable fldi.
 		   There is an exception if this was a register-register move
 		   before reload - and hence it was ascertained that we have
 		   single precision setting - and in a post-reload optimization
 		   we changed this to do a constant load.  In that case
 		   we don't have an r0 clobber, hence we must use fldi.  */
-		&& (! TARGET_SH4 || TARGET_FMOVD
+		&& (TARGET_FMOVD
 		    || (GET_CODE (XEXP (XVECEXP (PATTERN (insn), 0, 2), 0))
 			== SCRATCH))
 		&& REG_P (SET_DEST (pat))
@@ -5820,9 +5841,10 @@ split_branches (rtx first)
 
 	    next = next_active_insn (insn);
 
-	    if ((JUMP_P (next)
-		 || ((next = next_active_insn (next))
-		     && JUMP_P (next)))
+	    if (next
+		&& (JUMP_P (next)
+		    || ((next = next_active_insn (next))
+			&& JUMP_P (next)))
 		&& GET_CODE (PATTERN (next)) == SET
 		&& recog_memoized (next) == CODE_FOR_jump_compact
 		&& ((INSN_ADDRESSES
@@ -6015,9 +6037,9 @@ output_jump_label_table (void)
 
 static void
 output_stack_adjust (int size, rtx reg, int epilogue_p,
-		     HARD_REG_SET *live_regs_mask)
+		     HARD_REG_SET *live_regs_mask, bool frame_p)
 {
-  rtx (*emit_fn) (rtx) = epilogue_p ? &emit_insn : &frame_insn;
+  rtx (*emit_fn) (rtx) = frame_p ? &frame_insn : &emit_insn;
   if (size)
     {
       HOST_WIDE_INT align = STACK_BOUNDARY / BITS_PER_UNIT;
@@ -6679,9 +6701,10 @@ sh_expand_prologue (void)
       && (NPARM_REGS(SImode)
 	  > crtl->args.info.arg_count[(int) SH_ARG_INT]))
     pretend_args = 0;
+  /* Dwarf2 module doesn't expect frame related insns here.  */
   output_stack_adjust (-pretend_args
 		       - crtl->args.info.stack_regs * 8,
-		       stack_pointer_rtx, 0, NULL);
+		       stack_pointer_rtx, 0, NULL, false);
 
   if (TARGET_SHCOMPACT && flag_pic && crtl->args.info.call_cookie)
     /* We're going to use the PIC register to load the address of the
@@ -6748,13 +6771,19 @@ sh_expand_prologue (void)
   /* If we're supposed to switch stacks at function entry, do so now.  */
   if (sp_switch_attr)
     {
+      rtx lab, newsrc;
       /* The argument specifies a variable holding the address of the
 	 stack the interrupt function should switch to/from at entry/exit.  */
+      tree arg = TREE_VALUE ( TREE_VALUE (sp_switch_attr));
       const char *s
-	= ggc_strdup (TREE_STRING_POINTER (TREE_VALUE (sp_switch_attr)));
+	= ggc_strdup (TREE_STRING_POINTER (arg));
       rtx sp_switch = gen_rtx_SYMBOL_REF (Pmode, s);
 
-      emit_insn (gen_sp_switch_1 (sp_switch));
+      lab = add_constant (sp_switch, SImode, 0);
+      newsrc = gen_rtx_LABEL_REF (VOIDmode, lab);
+      newsrc = gen_const_mem (SImode, newsrc);
+
+      emit_insn (gen_sp_switch_1 (newsrc));
     }
 
   d = calc_live_regs (&live_regs_mask);
@@ -6806,7 +6835,7 @@ sh_expand_prologue (void)
       offset_base = d + d_rounding;
 
       output_stack_adjust (-(save_size + d_rounding), stack_pointer_rtx,
-			   0, NULL);
+			   0, NULL, true);
 
       sh5_schedule_saves (&live_regs_mask, &schedule, offset_base);
       tmp_pnt = schedule.temps;
@@ -6981,7 +7010,7 @@ sh_expand_prologue (void)
   target_flags = save_flags;
 
   output_stack_adjust (-rounded_frame_size (d) + d_rounding,
-		       stack_pointer_rtx, 0, NULL);
+		       stack_pointer_rtx, 0, NULL, true);
 
   if (frame_pointer_needed)
     frame_insn (GEN_MOV (hard_frame_pointer_rtx, stack_pointer_rtx));
@@ -7046,7 +7075,7 @@ sh_expand_epilogue (bool sibcall_p)
 	 See PR/18032 and PR/40313.  */
       emit_insn (gen_blockage ());
       output_stack_adjust (frame_size, hard_frame_pointer_rtx, e,
-			   &live_regs_mask);
+			   &live_regs_mask, false);
 
       /* We must avoid moving the stack pointer adjustment past code
 	 which reads from the local frame, else an interrupt could
@@ -7062,7 +7091,8 @@ sh_expand_epilogue (bool sibcall_p)
 	 occur after the SP adjustment and clobber data in the local
 	 frame.  */
       emit_insn (gen_blockage ());
-      output_stack_adjust (frame_size, stack_pointer_rtx, e, &live_regs_mask);
+      output_stack_adjust (frame_size, stack_pointer_rtx, e,
+			   &live_regs_mask, false);
     }
 
   if (SHMEDIA_REGS_STACK_ADJUST ())
@@ -7249,7 +7279,7 @@ sh_expand_epilogue (bool sibcall_p)
   output_stack_adjust (crtl->args.pretend_args_size
 		       + save_size + d_rounding
 		       + crtl->args.info.stack_regs * 8,
-		       stack_pointer_rtx, e, NULL);
+		       stack_pointer_rtx, e, NULL, false);
 
   if (crtl->calls_eh_return)
     emit_insn (GEN_ADD3 (stack_pointer_rtx, stack_pointer_rtx,
@@ -7862,7 +7892,7 @@ sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
   if (result)
     {
       gimplify_assign (result, tmp, pre_p);
-
+      result = build1 (NOP_EXPR, TREE_TYPE (result), result);
       tmp = build1 (LABEL_EXPR, void_type_node, unshare_expr (lab_over));
       gimplify_and_add (tmp, pre_p);
     }
@@ -7893,6 +7923,17 @@ sh_dwarf_register_span (rtx reg)
 					      DBX_REGISTER_NUMBER (regno+1)),
 				 gen_rtx_REG (SFmode,
 					      DBX_REGISTER_NUMBER (regno))));
+}
+
+static enum machine_mode
+sh_promote_function_mode (const_tree type, enum machine_mode mode,
+			  int *punsignedp, const_tree funtype,
+			  int for_return ATTRIBUTE_UNUSED)
+{
+  if (sh_promote_prototypes (funtype))
+    return promote_mode (type, mode, punsignedp);
+  else
+    return mode;
 }
 
 bool
@@ -8876,7 +8917,7 @@ fp_one_operand (rtx op)
   return REAL_VALUES_EQUAL (r, dconst1);
 }
 
-/* For -m4 and -m4-single-only, mode switching is used.  If we are
+/* In general mode switching is used.  If we are
    compiling without -mfmovd, movsf_ie isn't taken into account for
    mode switching.  We could check in machine_dependent_reorg for
    cases where we know we are in single precision mode, but there is
@@ -8886,7 +8927,7 @@ fp_one_operand (rtx op)
 int
 fldi_ok (void)
 {
-  return ! TARGET_SH4 || TARGET_FMOVD || reload_completed;
+  return 1;
 }
 
 int
@@ -11244,7 +11285,6 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   final_start_function (insns, file, 1);
   final (insns, file, 1);
   final_end_function ();
-  free_after_compilation (cfun);
 
   reload_completed = 0;
   epilogue_completed = 0;

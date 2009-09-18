@@ -64,6 +64,7 @@ with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Mech; use Sem_Mech;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
@@ -170,9 +171,9 @@ package body Exp_Ch6 is
    --
    --    A := TypeA (Temp);
    --
-   --  after the call. Here TypeA is the actual type of variable A.
-   --  For out parameters, the initial declaration has no expression.
-   --  If A is not an entity name, we generate instead:
+   --  after the call. Here TypeA is the actual type of variable A. For out
+   --  parameters, the initial declaration has no expression. If A is not an
+   --  entity name, we generate instead:
    --
    --    Var  : TypeA renames A;
    --    Temp : T := Var;       --  omitting expression for out parameter.
@@ -182,8 +183,8 @@ package body Exp_Ch6 is
    --  For other in-out parameters, we emit the required constraint checks
    --  before and/or after the call.
    --
-   --  For all parameter modes, actuals that denote components and slices
-   --  of packed arrays are expanded into suitable temporaries.
+   --  For all parameter modes, actuals that denote components and slices of
+   --  packed arrays are expanded into suitable temporaries.
    --
    --  For non-scalar objects that are possibly unaligned, add call by copy
    --  code (copy in for IN and IN OUT, copy out for OUT and IN OUT).
@@ -418,8 +419,8 @@ package body Exp_Ch6 is
 
       --  Create the actual which is a pointer to the appropriate finalization
       --  list. Acc_Type is present if and only if this call is the
-      --  initialization of an allocator. Use the Current_Scope or the Acc_Type
-      --  as appropriate.
+      --  initialization of an allocator. Use the Current_Scope or the
+      --  Acc_Type as appropriate.
 
       if Present (Acc_Type)
         and then (Ekind (Acc_Type) = E_Anonymous_Access_Type
@@ -495,6 +496,7 @@ package body Exp_Ch6 is
       declare
          Activation_Chain_Actual : Node_Id;
          Activation_Chain_Formal : Node_Id;
+
       begin
          --  Locate implicit activation chain parameter in the called function
 
@@ -1125,6 +1127,7 @@ package body Exp_Ch6 is
             --  created, since we just passed it as an OUT parameter.
 
             Kill_Current_Values (Temp);
+            Set_Is_Known_Valid (Temp, False);
 
             --  If type conversion, use reverse conversion on exit
 
@@ -1146,7 +1149,7 @@ package body Exp_Ch6 is
             --  resulting variable is a temporary which does not designate
             --  the proper out-parameter, which may not be addressable. In
             --  that case, generate an assignment to the original expression
-            --  (before expansion of the  packed reference) so that the proper
+            --  (before expansion of the packed reference) so that the proper
             --  expansion of assignment to a packed component can take place.
 
             declare
@@ -1589,6 +1592,30 @@ package body Exp_Ch6 is
               and then Has_Volatile_Components (Entity (Prefix (Actual)))
             then
                Add_Call_By_Copy_Code;
+
+            --  Add call-by-copy code for the case of scalar out parameters
+            --  when it is not known at compile time that the subtype of the
+            --  formal is a subrange of the subtype of the actual (or vice
+            --  versa for in out parameters), in order to get range checks
+            --  on such actuals. (Maybe this case should be handled earlier
+            --  in the if statement???)
+
+            elsif Is_Scalar_Type (E_Formal)
+              and then
+                (not In_Subrange_Of (E_Formal, Etype (Actual))
+                  or else
+                    (Ekind (Formal) = E_In_Out_Parameter
+                      and then not In_Subrange_Of (Etype (Actual), E_Formal)))
+            then
+               --  Perhaps the setting back to False should be done within
+               --  Add_Call_By_Copy_Code, since it could get set on other
+               --  cases occurring above???
+
+               if Do_Range_Check (Actual) then
+                  Set_Do_Range_Check (Actual, False);
+               end if;
+
+               Add_Call_By_Copy_Code;
             end if;
 
          --  Processing for IN parameters
@@ -1781,6 +1808,10 @@ package body Exp_Ch6 is
                Make_Identifier (Loc, Chars (EF))));
 
          Analyze_And_Resolve (Expr, Etype (EF));
+
+         if Nkind (N) = N_Function_Call then
+            Set_Is_Accessibility_Actual (Parent (Expr));
+         end if;
       end Add_Extra_Actual;
 
       ---------------------------
@@ -1810,8 +1841,8 @@ package body Exp_Ch6 is
 
          else
             Indic :=
-              (Subtype_Indication
-                (Type_Definition (Original_Node (Parent (S)))));
+              Subtype_Indication
+                (Type_Definition (Original_Node (Parent (S))));
 
             if Nkind (Indic) = N_Subtype_Indication then
                Par := Entity (Subtype_Mark (Indic));
@@ -1826,7 +1857,6 @@ package body Exp_Ch6 is
            or else not In_Open_Scopes (Scope (Par))
          then
             return Empty;
-
          else
             Gen_Par := Generic_Parent_Type (Parent (Par));
          end if;
@@ -1895,7 +1925,7 @@ package body Exp_Ch6 is
       Scop          : Entity_Id;
       Subp          : Entity_Id;
 
-      Prev_Orig     : Node_Id;
+      Prev_Orig : Node_Id;
       --  Original node for an actual, which may have been rewritten. If the
       --  actual is a function call that has been transformed from a selected
       --  component, the original node is unanalyzed. Otherwise, it carries
@@ -2014,27 +2044,29 @@ package body Exp_Ch6 is
          end;
       end if;
 
-      --  First step, compute extra actuals, corresponding to any
-      --  Extra_Formals present. Note that we do not access Extra_Formals
-      --  directly, instead we simply note the presence of the extra
-      --  formals as we process the regular formals and collect the
-      --  corresponding actuals in Extra_Actuals.
+      --  First step, compute extra actuals, corresponding to any Extra_Formals
+      --  present. Note that we do not access Extra_Formals directly, instead
+      --  we simply note the presence of the extra formals as we process the
+      --  regular formals collecting corresponding actuals in Extra_Actuals.
 
-      --  We also generate any required range checks for actuals as we go
-      --  through the loop, since this is a convenient place to do this.
+      --  We also generate any required range checks for actuals for in formals
+      --  as we go through the loop, since this is a convenient place to do it.
+      --  (Though it seems that this would be better done in Expand_Actuals???)
 
       Formal      := First_Formal (Subp);
       Actual      := First_Actual (N);
       Param_Count := 1;
       while Present (Formal) loop
 
-         --  Generate range check if required (not activated yet ???)
+         --  Generate range check if required
 
---         if Do_Range_Check (Actual) then
---            Set_Do_Range_Check (Actual, False);
---            Generate_Range_Check
---              (Actual, Etype (Formal), CE_Range_Check_Failed);
---         end if;
+         if Do_Range_Check (Actual)
+           and then Ekind (Formal) = E_In_Parameter
+         then
+            Set_Do_Range_Check (Actual, False);
+            Generate_Range_Check
+              (Actual, Etype (Formal), CE_Range_Check_Failed);
+         end if;
 
          --  Prepare to examine current entry
 
@@ -2260,9 +2292,10 @@ package body Exp_Ch6 is
                         when Attribute_Access =>
                            Add_Extra_Actual
                              (Make_Integer_Literal (Loc,
-                                Intval =>
-                                  Object_Access_Level (Prefix (Prev_Orig))),
-                              Extra_Accessibility (Formal));
+                               Intval =>
+                                 Object_Access_Level
+                                   (Prefix (Prev_Orig))),
+                                    Extra_Accessibility (Formal));
 
                         --  Treat the unchecked attributes as library-level
 
@@ -2301,7 +2334,6 @@ package body Exp_Ch6 is
                        (Make_Integer_Literal (Loc,
                           Intval => Type_Access_Level (Etype (Prev))),
                         Extra_Accessibility (Formal));
-
                end case;
             end if;
          end if;
@@ -2445,7 +2477,8 @@ package body Exp_Ch6 is
                --  For an OUT or IN OUT parameter that is an assignable entity,
                --  we do not want to clobber the Last_Assignment field, since
                --  if it is set, it was precisely because it is indeed an OUT
-               --  or IN OUT parameter!
+               --  or IN OUT parameter! We do reset the Is_Known_Valid flag
+               --  since the subprogram could have returned in invalid value.
 
                if (Ekind (Formal) = E_Out_Parameter
                      or else
@@ -2455,6 +2488,7 @@ package body Exp_Ch6 is
                   Sav := Last_Assignment (Ent);
                   Kill_Current_Values (Ent);
                   Set_Last_Assignment (Ent, Sav);
+                  Set_Is_Known_Valid (Ent, False);
 
                   --  For all other cases, just kill the current values
 
@@ -2585,12 +2619,14 @@ package body Exp_Ch6 is
 
             return;
 
-         --  Expansion of a dispatching call results in an indirect call, which
-         --  in turn causes current values to be killed (see Resolve_Call), so
-         --  on VM targets we do the call here to ensure consistent warnings
-         --  between VM and non-VM targets.
-
          else
+            Apply_Tag_Checks (N);
+
+            --  Expansion of a dispatching call results in an indirect call,
+            --  which in turn causes current values to be killed (see
+            --  Resolve_Call), so on VM targets we do the call here to ensure
+            --  consistent warnings between VM and non-VM targets.
+
             Kill_Current_Values;
          end if;
       end if;
@@ -2710,6 +2746,15 @@ package body Exp_Ch6 is
                   then
                      Convert (Actual, Parent_Typ);
                      Enable_Range_Check (Actual);
+
+                     --  If the actual has been marked as requiring a range
+                     --  check, then generate it here.
+
+                     if Do_Range_Check (Actual) then
+                        Set_Do_Range_Check (Actual, False);
+                        Generate_Range_Check
+                          (Actual, Etype (Formal), CE_Range_Check_Failed);
+                     end if;
 
                   --  For access types, the parent formal type and actual type
                   --  differ.
@@ -3061,10 +3106,17 @@ package body Exp_Ch6 is
 
       --  Functions returning controlled objects need special attention:
       --  if the return type is limited, the context is an initialization
-      --  and different processing applies.
+      --  and different processing applies. If the call is to a protected
+      --  function, the expansion above will call Expand_Call recusively.
+      --  To prevent a double attachment, check that the current call is
+      --  not a rewriting of a protected function call.
 
       if Needs_Finalization (Etype (Subp))
         and then not Is_Inherently_Limited_Type (Etype (Subp))
+        and then
+          (No (First_Formal (Subp))
+            or else
+              not Is_Concurrent_Record_Type (Etype (First_Formal (Subp))))
       then
          Expand_Ctrl_Function_Call (N);
       end if;
@@ -3200,6 +3252,7 @@ package body Exp_Ch6 is
                        (Passoc, Next_Named_Actual (Parent (Temp)));
                   end loop;
                end;
+
             end if;
          end;
       end if;
@@ -4616,13 +4669,21 @@ package body Exp_Ch6 is
 
       end if;
 
-      Analyze (N);
-
       --  If it is a function call it can appear in elaboration code and
       --  the called entity must be frozen here.
 
       if Ekind (Subp) = E_Function then
          Freeze_Expression (Name (N));
+      end if;
+
+      --  Analyze and resolve the new call. The actuals have already been
+      --  resolved, but expansion of a function call will add extra actuals
+      --  if needed. Analysis of a procedure call already includes resolution.
+
+      Analyze (N);
+
+      if Ekind (Subp) = E_Function then
+         Resolve (N, Etype (Subp));
       end if;
    end Expand_Protected_Subprogram_Call;
 
@@ -4917,10 +4978,13 @@ package body Exp_Ch6 is
                if Nkind (Orig_Bod) /= N_Subprogram_Body then
                   return False;
                else
+                  --  We must skip SCIL nodes because they are currently
+                  --  implemented as special N_Null_Statement nodes.
+
                   Stat :=
-                     First
+                     First_Non_SCIL_Node
                        (Statements (Handled_Statement_Sequence (Orig_Bod)));
-                  Stat2 := Next (Stat);
+                  Stat2 := Next_Non_SCIL_Node (Stat);
 
                   return
                      Is_Empty_List (Declarations (Orig_Bod))
@@ -5503,9 +5567,15 @@ package body Exp_Ch6 is
       --  If the function's result subtype is unconstrained and the object is
       --  a return object of an enclosing build-in-place function, then the
       --  implicit build-in-place parameters of the enclosing function must be
-      --  passed along to the called function.
+      --  passed along to the called function. (Unfortunately, this won't cover
+      --  the case of extension aggregates where the ancestor part is a build-
+      --  in-place unconstrained function call that should be passed along the
+      --  caller's parameters. Currently those get mishandled by reassigning
+      --  the result of the call to the aggregate return object, when the call
+      --  result should really be directly built in place in the aggregate and
+      --  not built in a temporary. ???)
 
-      elsif Nkind (Parent (Object_Decl)) = N_Extended_Return_Statement then
+      elsif Is_Return_Object (Defining_Identifier (Object_Decl)) then
          Pass_Caller_Acc := True;
 
          Enclosing_Func := Enclosing_Subprogram (Obj_Def_Id);

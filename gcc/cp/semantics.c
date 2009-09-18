@@ -1200,12 +1200,13 @@ finish_compound_stmt (tree stmt)
 }
 
 /* Finish an asm-statement, whose components are a STRING, some
-   OUTPUT_OPERANDS, some INPUT_OPERANDS, and some CLOBBERS.  Also note
-   whether the asm-statement should be considered volatile.  */
+   OUTPUT_OPERANDS, some INPUT_OPERANDS, some CLOBBERS and some
+   LABELS.  Also note whether the asm-statement should be
+   considered volatile.  */
 
 tree
 finish_asm_stmt (int volatile_p, tree string, tree output_operands,
-		 tree input_operands, tree clobbers)
+		 tree input_operands, tree clobbers, tree labels)
 {
   tree r;
   tree t;
@@ -1223,7 +1224,7 @@ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
       oconstraints = (const char **) alloca (noutputs * sizeof (char *));
 
       string = resolve_asm_operand_names (string, output_operands,
-					  input_operands);
+					  input_operands, labels);
 
       for (i = 0, t = output_operands; t; t = TREE_CHAIN (t), ++i)
 	{
@@ -1309,7 +1310,7 @@ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
 
   r = build_stmt (input_location, ASM_EXPR, string,
 		  output_operands, input_operands,
-		  clobbers);
+		  clobbers, labels);
   ASM_VOLATILE_P (r) = volatile_p || noutputs == 0;
   r = maybe_cleanup_point_expr_void (r);
   return add_stmt (r);
@@ -1827,9 +1828,12 @@ perform_koenig_lookup (tree fn, VEC(tree,gc) *args)
   tree identifier = NULL_TREE;
   tree functions = NULL_TREE;
   tree tmpl_args = NULL_TREE;
+  bool template_id = false;
 
   if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
     {
+      /* Use a separate flag to handle null args.  */
+      template_id = true;
       tmpl_args = TREE_OPERAND (fn, 1);
       fn = TREE_OPERAND (fn, 0);
     }
@@ -1861,8 +1865,8 @@ perform_koenig_lookup (tree fn, VEC(tree,gc) *args)
 	fn = unqualified_fn_lookup_error (identifier);
     }
 
-  if (fn && tmpl_args)
-    fn = build_nt (TEMPLATE_ID_EXPR, fn, tmpl_args);
+  if (fn && template_id)
+    fn = build2 (TEMPLATE_ID_EXPR, unknown_type_node, fn, tmpl_args);
   
   return fn;
 }
@@ -3126,10 +3130,11 @@ simplify_aggr_init_expr (tree *tp)
       style = arg;
     }
 
-  call_expr = build_call_array (TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
-				fn,
-				aggr_init_expr_nargs (aggr_init_expr),
-				AGGR_INIT_EXPR_ARGP (aggr_init_expr));
+  call_expr = build_call_array_loc (input_location,
+				    TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
+				    fn,
+				    aggr_init_expr_nargs (aggr_init_expr),
+				    AGGR_INIT_EXPR_ARGP (aggr_init_expr));
 
   if (style == ctor)
     {
@@ -3182,7 +3187,9 @@ emit_associated_thunks (tree fn)
      is so that you can know statically the entire set of thunks that
      will ever be needed for a given virtual function, thereby
      enabling you to output all the thunks with the function itself.  */
-  if (DECL_VIRTUAL_P (fn))
+  if (DECL_VIRTUAL_P (fn)
+      /* Do not emit thunks for extern template instantiations.  */
+      && ! DECL_REALLY_EXTERN (fn))
     {
       tree thunk;
 
@@ -3226,7 +3233,7 @@ expand_or_defer_fn (tree fn)
       return;
     }
 
-  gcc_assert (gimple_body (fn));
+  gcc_assert (DECL_SAVED_TREE (fn));
 
   /* If this is a constructor or destructor body, we have to clone
      it.  */
@@ -3235,6 +3242,7 @@ expand_or_defer_fn (tree fn)
       /* We don't want to process FN again, so pretend we've written
 	 it out, even though we haven't.  */
       TREE_ASM_WRITTEN (fn) = 1;
+      DECL_SAVED_TREE (fn) = NULL_TREE;
       return;
     }
 
@@ -3334,7 +3342,7 @@ finalize_nrv_r (tree* tp, int* walk_subtrees, void* data)
       else
 	init = build_empty_stmt (EXPR_LOCATION (*tp));
       DECL_INITIAL (dp->var) = NULL_TREE;
-      SET_EXPR_LOCUS (init, EXPR_LOCUS (*tp));
+      SET_EXPR_LOCATION (init, EXPR_LOCATION (*tp));
       *tp = init;
     }
   /* And replace all uses of the NRV with the RESULT_DECL.  */
@@ -4538,17 +4546,13 @@ describable_type (tree expr)
 {
   tree type = NULL_TREE;
 
-  /* processing_template_decl isn't set when we're called from the mangling
-     code, so bump it now.  */
-  ++processing_template_decl;
   if (! type_dependent_expression_p (expr)
       && ! type_unknown_p (expr))
     {
-      type = TREE_TYPE (expr);
+      type = unlowered_expr_type (expr);
       if (real_lvalue_p (expr))
 	type = build_reference_type (type);
     }
-  --processing_template_decl;
 
   if (type)
     return type;
@@ -4875,6 +4879,7 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
   switch (kind)
     {
     case CPTK_HAS_NOTHROW_ASSIGN:
+      type1 = strip_array_types (type1);
       return (!CP_TYPE_CONST_P (type1) && type_code1 != REFERENCE_TYPE
 	      && (trait_expr_value (CPTK_HAS_TRIVIAL_ASSIGN, type1, type2)
 		  || (CLASS_TYPE_P (type1)
@@ -4882,8 +4887,11 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
 								 true))));
 
     case CPTK_HAS_TRIVIAL_ASSIGN:
+      /* ??? The standard seems to be missing the "or array of such a class
+	 type" wording for this trait.  */
+      type1 = strip_array_types (type1);
       return (!CP_TYPE_CONST_P (type1) && type_code1 != REFERENCE_TYPE
-	      && (pod_type_p (type1)
+	      && (trivial_type_p (type1)
 		    || (CLASS_TYPE_P (type1)
 			&& TYPE_HAS_TRIVIAL_ASSIGN_REF (type1))));
 
@@ -4896,21 +4904,25 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
 
     case CPTK_HAS_TRIVIAL_CONSTRUCTOR:
       type1 = strip_array_types (type1);
-      return (pod_type_p (type1)
+      return (trivial_type_p (type1)
 	      || (CLASS_TYPE_P (type1) && TYPE_HAS_TRIVIAL_DFLT (type1)));
 
     case CPTK_HAS_NOTHROW_COPY:
+      type1 = strip_array_types (type1);
       return (trait_expr_value (CPTK_HAS_TRIVIAL_COPY, type1, type2)
 	      || (CLASS_TYPE_P (type1)
 		  && classtype_has_nothrow_assign_or_copy_p (type1, false)));
 
     case CPTK_HAS_TRIVIAL_COPY:
-      return (pod_type_p (type1) || type_code1 == REFERENCE_TYPE
+      /* ??? The standard seems to be missing the "or array of such a class
+	 type" wording for this trait.  */
+      type1 = strip_array_types (type1);
+      return (trivial_type_p (type1) || type_code1 == REFERENCE_TYPE
 	      || (CLASS_TYPE_P (type1) && TYPE_HAS_TRIVIAL_INIT_REF (type1)));
 
     case CPTK_HAS_TRIVIAL_DESTRUCTOR:
       type1 = strip_array_types (type1);
-      return (pod_type_p (type1) || type_code1 == REFERENCE_TYPE
+      return (trivial_type_p (type1) || type_code1 == REFERENCE_TYPE
 	      || (CLASS_TYPE_P (type1)
 		  && TYPE_HAS_TRIVIAL_DESTRUCTOR (type1)));
 
@@ -4943,6 +4955,12 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
 
     case CPTK_IS_POLYMORPHIC:
       return (CLASS_TYPE_P (type1) && TYPE_POLYMORPHIC_P (type1));
+
+    case CPTK_IS_STD_LAYOUT:
+      return (std_layout_type_p (type1));
+
+    case CPTK_IS_TRIVIAL:
+      return (trivial_type_p (type1));
 
     case CPTK_IS_UNION:
       return (type_code1 == UNION_TYPE);
@@ -4992,6 +5010,8 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
 	      || kind == CPTK_IS_ENUM
 	      || kind == CPTK_IS_POD
 	      || kind == CPTK_IS_POLYMORPHIC
+	      || kind == CPTK_IS_STD_LAYOUT
+	      || kind == CPTK_IS_TRIVIAL
 	      || kind == CPTK_IS_UNION);
 
   if (kind == CPTK_IS_CONVERTIBLE_TO)
@@ -5033,6 +5053,8 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
     case CPTK_IS_EMPTY:
     case CPTK_IS_POD:
     case CPTK_IS_POLYMORPHIC:
+    case CPTK_IS_STD_LAYOUT:
+    case CPTK_IS_TRIVIAL:
       if (!check_trait_type (type1))
 	{
 	  error ("incomplete type %qT not allowed", type1);

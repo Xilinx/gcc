@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1999-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -77,6 +77,10 @@ package Sem_Warn is
    --  the command line or .C in a string literal in pragma Warnings. Returns
    --  True for valid warning character C, False for invalid character.
 
+   procedure Set_GNAT_Mode_Warnings;
+   --  This is called in -gnatg mode to set the warnings for gnat mode. It is
+   --  also used to set the proper warning statuses for -gnatw.g.
+
    ------------------------------------------
    -- Routines to Handle Unused References --
    ------------------------------------------
@@ -134,7 +138,7 @@ package Sem_Warn is
    -- Output Routines --
    ---------------------
 
-   procedure Output_Non_Modifed_In_Out_Warnings;
+   procedure Output_Non_Modified_In_Out_Warnings;
    --  Warnings about IN OUT parameters that could be IN are collected till
    --  the end of the compilation process (see body of this routine for a
    --  discussion of why this is done). This procedure outputs the warnings.

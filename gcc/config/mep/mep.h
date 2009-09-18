@@ -43,8 +43,8 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef  CC1_SPEC
 #define CC1_SPEC "%{!mlibrary:%(config_cc_spec)} \
-%{!.cc:%{O2:%{!funroll*:--param max-completely-peeled-insns=10 \
-                        --param max-unrolled-insns=10 -funroll-loops}}}"
+%{!.cc:%{O2:%{!funroll*:--param max-completely-peeled-insns=6 \
+                        --param max-unrolled-insns=6 -funroll-loops}}}"
 
 #undef  CC1PLUS_SPEC
 #define CC1PLUS_SPEC "%{!mlibrary:%(config_cc_spec)}"
@@ -498,11 +498,6 @@ extern unsigned int mep_selected_isa;
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}			\
 }
 
-#define CAN_ELIMINATE(FROM, TO)					\
- ((FROM) == ARG_POINTER_REGNUM && (TO) == STACK_POINTER_REGNUM	\
-  ? ! frame_pointer_needed					\
-  : 1)
-
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
 	(OFFSET) = mep_elimination_offset (FROM, TO)
 
@@ -534,7 +529,11 @@ typedef struct
 #define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)		\
 	mep_arg_advance (& (CUM), MODE, TYPE, NAMED)
 
-#define FUNCTION_ARG_REGNO_P(REGNO) ((REGNO) >= 1 && (REGNO) <= 4)
+#define FUNCTION_ARG_REGNO_P(REGNO) \
+	(((REGNO) >= 1 && (REGNO) <= 4) \
+	 || ((REGNO) >= FIRST_CR_REGNO + 1 \
+	     && (REGNO) <= FIRST_CR_REGNO + 4 \
+	     && TARGET_COP))
 
 #define RETURN_VALUE_REGNUM	 0
 
@@ -600,7 +599,8 @@ typedef struct
 
 #define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
-#define LEGITIMATE_CONSTANT_P(X) 1
+#define LEGITIMATE_CONSTANT_P(X) \
+  mep_legitimate_constant_p(X)
 
 #define SELECT_CC_MODE(OP, X, Y)  CCmode
 
@@ -618,6 +618,10 @@ typedef struct
 #define TEXT_SECTION_ASM_OP "\t.text\n\t.core"
 #define DATA_SECTION_ASM_OP "\t.data"
 #define BSS_SECTION_ASM_OP  ".bss"
+
+#define USE_SELECT_SECTION_FOR_FUNCTIONS 1
+
+#define JUMP_TABLES_IN_TEXT_SECTION 1
 
 #define TARGET_ASM_FILE_END mep_file_cleanups
 

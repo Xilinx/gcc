@@ -2017,7 +2017,7 @@ build_class_member_access_expr (tree object, tree member,
 	 in various testsuite cases where a null object is passed where a
 	 vtable access is required.  */
       if (null_object_p && warn_invalid_offsetof
-	  && CLASSTYPE_NON_POD_P (object_type)
+	  && CLASSTYPE_NON_STD_LAYOUT (object_type)
 	  && !DECL_FIELD_IS_BASE (member)
 	  && cp_unevaluated_operand == 0
 	  && (complain & tf_warning))
@@ -2429,7 +2429,8 @@ build_ptrmemfunc_access_expr (tree ptrmem, tree member_name)
 			  /*want_type=*/false);
   member_type = cp_build_qualified_type (TREE_TYPE (member),
 					 cp_type_quals (ptrmem_type));
-  return fold_build3 (COMPONENT_REF, member_type,
+  return fold_build3_loc (input_location,
+		      COMPONENT_REF, member_type,
 		      ptrmem, member, NULL_TREE);
 }
 
@@ -2836,7 +2837,8 @@ get_member_function_from_ptrfunc (tree *instance_ptrptr, tree function)
       TREE_NO_WARNING (vtbl) = 1;
 
       /* Finally, extract the function pointer from the vtable.  */
-      e2 = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (vtbl), vtbl,
+      e2 = fold_build2_loc (input_location,
+			POINTER_PLUS_EXPR, TREE_TYPE (vtbl), vtbl,
 			fold_convert (sizetype, idx));
       e2 = cp_build_indirect_ref (e2, NULL, tf_warning_or_error);
       TREE_CONSTANT (e2) = 1;
@@ -3134,7 +3136,7 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
 	  if (fndecl && DECL_BUILT_IN (fndecl)
 	      && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_CONSTANT_P)
 	    /* Don't do ellipsis conversion for __built_in_constant_p
-	       as this will result in spurious warnings for non-POD
+	       as this will result in spurious errors for non-trivial
 	       types.  */
 	    val = require_complete_type (val);
 	  else
@@ -4095,7 +4097,7 @@ cp_pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
      pointer_int_sum() anyway.  */
   complete_type (TREE_TYPE (res_type));
 
-  return pointer_int_sum (resultcode, ptrop,
+  return pointer_int_sum (input_location, resultcode, ptrop,
 			  fold_if_not_in_template (intop));
 }
 
@@ -4268,27 +4270,37 @@ condition_conversion (tree expr)
   tree t;
   if (processing_template_decl)
     return expr;
-  t = perform_implicit_conversion (boolean_type_node, expr, 
-				   tf_warning_or_error);
+  t = perform_implicit_conversion_flags (boolean_type_node, expr,
+					 tf_warning_or_error, LOOKUP_NORMAL);
   t = fold_build_cleanup_point_expr (boolean_type_node, t);
   return t;
 }
 
-/* Return an ADDR_EXPR giving the address of T.  This function
-   attempts no optimizations or simplifications; it is a low-level
-   primitive.  */
+/* Returns the address of T.  This function will fold away
+   ADDR_EXPR of INDIRECT_REF.  */
 
 tree
 build_address (tree t)
 {
-  tree addr;
-
   if (error_operand_p (t) || !cxx_mark_addressable (t))
     return error_mark_node;
+  t = build_fold_addr_expr (t);
+  if (TREE_CODE (t) != ADDR_EXPR)
+    t = rvalue (t);
+  return t;
+}
 
-  addr = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (t)), t);
+/* Returns the address of T with type TYPE.  */
 
-  return addr;
+tree
+build_typed_address (tree t, tree type)
+{
+  if (error_operand_p (t) || !cxx_mark_addressable (t))
+    return error_mark_node;
+  t = build_fold_addr_expr_with_type (t, type);
+  if (TREE_CODE (t) != ADDR_EXPR)
+    t = rvalue (t);
+  return t;
 }
 
 /* Return a NOP_EXPR converting EXPR to TYPE.  */
@@ -4393,7 +4405,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
     case TRUTH_NOT_EXPR:
       arg = perform_implicit_conversion (boolean_type_node, arg,
 					 complain);
-      val = invert_truthvalue (arg);
+      val = invert_truthvalue_loc (input_location, arg);
       if (arg != error_mark_node)
 	return val;
       errstring = "in argument to unary !";
@@ -5201,7 +5213,8 @@ convert_ptrmem (tree type, tree expr, bool allow_inverse_p,
 				    PLUS_EXPR, op1, delta,
 				    tf_warning_or_error);
 
-	  expr = fold_build3 (COND_EXPR, ptrdiff_type_node, cond, op1, op2);
+	  expr = fold_build3_loc (input_location,
+			      COND_EXPR, ptrdiff_type_node, cond, op1, op2);
 			 
 	}
 
@@ -5284,7 +5297,7 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
   if (TREE_CODE (type) == REFERENCE_TYPE
       && CLASS_TYPE_P (TREE_TYPE (type))
       && CLASS_TYPE_P (intype)
-      && real_lvalue_p (expr)
+      && (TYPE_REF_IS_RVALUE (type) || real_lvalue_p (expr))
       && DERIVED_FROM_P (intype, TREE_TYPE (type))
       && can_convert (build_pointer_type (TYPE_MAIN_VARIANT (intype)),
 		      build_pointer_type (TYPE_MAIN_VARIANT
@@ -5310,7 +5323,19 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 			      base, /*nonnull=*/false);
       /* Convert the pointer to a reference -- but then remember that
 	 there are no expressions with reference type in C++.  */
-      return convert_from_reference (build_nop (type, expr));
+      return convert_from_reference (cp_fold_convert (type, expr));
+    }
+
+  /* "An lvalue of type cv1 T1 can be cast to type rvalue reference to
+     cv2 T2 if cv2 T2 is reference-compatible with cv1 T1 (8.5.3)."  */
+  if (TREE_CODE (type) == REFERENCE_TYPE
+      && TYPE_REF_IS_RVALUE (type)
+      && real_lvalue_p (expr)
+      && reference_related_p (TREE_TYPE (type), intype)
+      && (c_cast_p || at_least_as_qualified_p (TREE_TYPE (type), intype)))
+    {
+      expr = build_typed_address (expr, type);
+      return convert_from_reference (expr);
     }
 
   orig = expr;
@@ -6202,8 +6227,11 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
     {
       int from_array;
 
-      if (!same_or_base_type_p (TYPE_MAIN_VARIANT (lhstype),
-				TYPE_MAIN_VARIANT (TREE_TYPE (rhs))))
+      if (BRACE_ENCLOSED_INITIALIZER_P (rhs))
+	rhs = digest_init (lhstype, rhs);
+
+      else if (!same_or_base_type_p (TYPE_MAIN_VARIANT (lhstype),
+				     TYPE_MAIN_VARIANT (TREE_TYPE (rhs))))
 	{
 	  if (complain & tf_error)
 	    error ("incompatible types in assignment of %qT to %qT",
@@ -6212,7 +6240,8 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	}
 
       /* Allow array assignment in compiler-generated code.  */
-      if (!current_function_decl || !DECL_ARTIFICIAL (current_function_decl))
+      else if (!current_function_decl
+	       || !DECL_ARTIFICIAL (current_function_decl))
 	{
           /* This routine is used for both initialization and assignment.
              Make sure the diagnostic message differentiates the context.  */
@@ -6380,7 +6409,8 @@ get_delta_difference (tree from, tree to,
 	result = get_delta_difference_1 (to, from, c_cast_p);
 
 	if (result)
-	  result = size_diffop (size_zero_node, result);
+	  result = size_diffop_loc (input_location,
+				size_zero_node, result);
 	else
 	  {
 	    error_not_base_type (from, to);
@@ -6760,11 +6790,14 @@ convert_for_assignment (tree type, tree rhs,
       && type == boolean_type_node
       && TREE_CODE (rhs) == MODIFY_EXPR
       && !TREE_NO_WARNING (rhs)
-      && TREE_TYPE (rhs) != boolean_type_node
+      && TREE_CODE (TREE_TYPE (rhs)) != BOOLEAN_TYPE
       && (complain & tf_warning))
     {
-      warning (OPT_Wparentheses,
-	       "suggest parentheses around assignment used as truth value");
+      location_t loc = EXPR_HAS_LOCATION (rhs) 
+	? EXPR_LOCATION (rhs) : input_location;
+
+      warning_at (loc, OPT_Wparentheses,
+		  "suggest parentheses around assignment used as truth value");
       TREE_NO_WARNING (rhs) = 1;
     }
 

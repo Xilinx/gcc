@@ -53,6 +53,7 @@ with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch11; use Sem_Ch11;
 with Sem_Elab; use Sem_Elab;
+with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
@@ -834,8 +835,8 @@ package body Exp_Ch9 is
       end loop;
 
       --  If we are in a package body, the activation chain variable is
-      --  declared in the body, but the Activation_Chain_Entity is attached to
-      --  the spec.
+      --  declared in the body, but the Activation_Chain_Entity is attached
+      --  to the spec.
 
       if Nkind (P) = N_Package_Body then
          Decls := Declarations (P);
@@ -3193,6 +3194,18 @@ package body Exp_Ch9 is
          Params := New_List;
       end if;
 
+      --  If the type is an untagged derived type, convert to the root type,
+      --  which is the one on which the operations are defined.
+
+      if Nkind (Rec) = N_Unchecked_Type_Conversion
+        and then not Is_Tagged_Type (Etype (Rec))
+        and then Is_Derived_Type (Etype (Rec))
+      then
+         Set_Etype (Rec, Root_Type (Etype (Rec)));
+         Set_Subtype_Mark (Rec,
+           New_Occurrence_Of (Root_Type (Etype (Rec)), Sloc (N)));
+      end if;
+
       Prepend (Rec, Params);
 
       if Ekind (Sub) = E_Procedure then
@@ -4358,8 +4371,8 @@ package body Exp_Ch9 is
          return N;
       else
          return
-           Unchecked_Convert_To (Corresponding_Record_Type (Typ),
-             New_Copy_Tree (N));
+           Unchecked_Convert_To
+             (Corresponding_Record_Type (Typ), New_Copy_Tree (N));
       end if;
    end Convert_Concurrent;
 
@@ -7510,7 +7523,7 @@ package body Exp_Ch9 is
       Loc      : constant Source_Ptr := Sloc (N);
       Prot_Typ : constant Entity_Id  := Defining_Identifier (N);
 
-      Pdef     : constant Node_Id    := Protected_Definition (N);
+      Pdef : constant Node_Id := Protected_Definition (N);
       --  This contains two lists; one for visible and one for private decls
 
       Rec_Decl     : Node_Id;
@@ -7535,6 +7548,13 @@ package body Exp_Ch9 is
       --  to the internal body, for possible inlining later on. The source
       --  operation is invisible to the back-end and is never actually called.
 
+      function Static_Component_Size (Comp : Entity_Id) return Boolean;
+      --  When compiling under the Ravenscar profile, private components must
+      --  have a static size, or else a protected object  will require heap
+      --  allocation, violating the corresponding restriction. It is preferable
+      --  to make this check here, because it provides a better error message
+      --  than the back-end, which refers to the object as a whole.
+
       procedure Register_Handler;
       --  For a protected operation that is an interrupt handler, add the
       --  freeze action that will register it as such.
@@ -7550,6 +7570,40 @@ package body Exp_Ch9 is
             Set_Is_Inlined (Subp, False);
          end if;
       end Check_Inlining;
+
+      ---------------------------------
+      -- Check_Static_Component_Size --
+      ---------------------------------
+
+      function Static_Component_Size (Comp : Entity_Id) return Boolean is
+         Typ : constant Entity_Id := Etype (Comp);
+         C   : Entity_Id;
+
+      begin
+         if Is_Scalar_Type (Typ) then
+            return True;
+
+         elsif Is_Array_Type (Typ) then
+            return Compile_Time_Known_Bounds (Typ);
+
+         elsif Is_Record_Type (Typ) then
+            C := First_Component (Typ);
+            while Present (C) loop
+               if not Static_Component_Size (C) then
+                  return False;
+               end if;
+
+               Next_Component (C);
+            end loop;
+
+            return True;
+
+         --  Any other types will be checked by the back-end
+
+         else
+            return True;
+         end if;
+      end Static_Component_Size;
 
       ----------------------
       -- Register_Handler --
@@ -7742,6 +7796,24 @@ package body Exp_Ch9 is
          while Present (Priv) loop
 
             if Nkind (Priv) = N_Component_Declaration then
+               if not Static_Component_Size (Defining_Identifier (Priv)) then
+
+                  --  When compiling for a restricted profile, the private
+                  --  components must have a static size. If not, this is an
+                  --  error for a single protected declaration, and rates a
+                  --  warning on a protected type declaration.
+
+                  if not Comes_From_Source (Prot_Typ) then
+                     Check_Restriction (No_Implicit_Heap_Allocations, Priv);
+
+                  elsif Restriction_Active (No_Implicit_Heap_Allocations) then
+                     Error_Msg_N ("component has non-static size?", Priv);
+                     Error_Msg_NE
+                       ("\creation of protected object of type& will violate"
+                        & " restriction No_Implicit_Heap_Allocations?",
+                        Priv, Prot_Typ);
+                  end if;
+               end if;
 
                --  The component definition consists of a subtype indication,
                --  or (in Ada 2005) an access definition. Make a copy of the
@@ -10324,6 +10396,13 @@ package body Exp_Ch9 is
       S : Entity_Id;  --  Primitive operation slot
 
    begin
+      --  Under the Ravenscar profile, timed entry calls are excluded. An error
+      --  was already reported on spec, so do not attempt to expand the call.
+
+      if Restriction_Active (No_Select_Statements) then
+         return;
+      end if;
+
       --  The arguments in the call may require dynamic allocation, and the
       --  call statement may have been transformed into a block. The block
       --  may contain additional declarations for internal entities, and the

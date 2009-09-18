@@ -1252,6 +1252,12 @@ package body Exp_Aggr is
       function Gen_Loop (L, H : Node_Id; Expr : Node_Id) return List_Id is
          L_J : Node_Id;
 
+         L_L : Node_Id;
+         --  Index_Base'(L)
+
+         L_H : Node_Id;
+         --  Index_Base'(H)
+
          L_Range : Node_Id;
          --  Index_Base'(L) .. Index_Base'(H)
 
@@ -1330,19 +1336,32 @@ package body Exp_Aggr is
 
          L_J := Make_Defining_Identifier (Loc, New_Internal_Name ('J'));
 
-         --  Construct "L .. H"
+         --  Construct "L .. H" in Index_Base. We use a qualified expression
+         --  for the bound to convert to the index base, but we don't need
+         --  to do that if we already have the base type at hand.
+
+         if Etype (L) = Index_Base then
+            L_L := L;
+         else
+            L_L :=
+              Make_Qualified_Expression (Loc,
+                Subtype_Mark => Index_Base_Name,
+                Expression   => L);
+         end if;
+
+         if Etype (H) = Index_Base then
+            L_H := H;
+         else
+            L_H :=
+              Make_Qualified_Expression (Loc,
+                Subtype_Mark => Index_Base_Name,
+                Expression   => H);
+         end if;
 
          L_Range :=
-           Make_Range
-             (Loc,
-              Low_Bound  => Make_Qualified_Expression
-                              (Loc,
-                               Subtype_Mark => Index_Base_Name,
-                               Expression   => L),
-              High_Bound => Make_Qualified_Expression
-                              (Loc,
-                               Subtype_Mark => Index_Base_Name,
-                               Expression => H));
+           Make_Range (Loc,
+             Low_Bound => L_L,
+             High_Bound => L_H);
 
          --  Construct "for L_J in Index_Base range L .. H"
 
@@ -2379,10 +2398,33 @@ package body Exp_Aggr is
          end if;
       end Gen_Ctrl_Actions_For_Aggr;
 
+      function Rewrite_Discriminant (Expr : Node_Id) return Traverse_Result;
+      --  If default expression of a component mentions a discriminant of the
+      --  type, it must be rewritten as the discriminant of the target object.
+
       function Replace_Type (Expr : Node_Id) return Traverse_Result;
       --  If the aggregate contains a self-reference, traverse each expression
       --  to replace a possible self-reference with a reference to the proper
       --  component of the target of the assignment.
+
+      --------------------------
+      -- Rewrite_Discriminant --
+      --------------------------
+
+      function Rewrite_Discriminant (Expr : Node_Id) return Traverse_Result is
+      begin
+         if Nkind (Expr) = N_Identifier
+           and then Present (Entity (Expr))
+           and then Ekind (Entity (Expr)) = E_In_Parameter
+           and then Present (Discriminal_Link (Entity (Expr)))
+         then
+            Rewrite (Expr,
+              Make_Selected_Component (Loc,
+                Prefix        => New_Occurrence_Of (Obj, Loc),
+                Selector_Name => Make_Identifier (Loc, Chars (Expr))));
+         end if;
+         return OK;
+      end Rewrite_Discriminant;
 
       ------------------
       -- Replace_Type --
@@ -2429,6 +2471,9 @@ package body Exp_Aggr is
 
       procedure Replace_Self_Reference is
         new Traverse_Proc (Replace_Type);
+
+      procedure Replace_Discriminants is
+        new Traverse_Proc (Rewrite_Discriminant);
 
    --  Start of processing for Build_Record_Aggr_Code
 
@@ -2538,7 +2583,7 @@ package body Exp_Aggr is
             --  Handle calls to C++ constructors
 
             elsif Is_CPP_Constructor_Call (A) then
-               Init_Typ := Etype (Etype (A));
+               Init_Typ := Etype (A);
                Ref := Convert_To (Init_Typ, New_Copy_Tree (Target));
                Set_Assignment_OK (Ref);
 
@@ -2950,33 +2995,31 @@ package body Exp_Aggr is
                   declare
                      SubE : constant Entity_Id :=
                               Make_Defining_Identifier (Loc,
-                                New_Internal_Name ('T'));
+                                Chars => New_Internal_Name ('T'));
 
                      SubD : constant Node_Id :=
                               Make_Subtype_Declaration (Loc,
-                                Defining_Identifier =>
-                                  SubE,
+                                Defining_Identifier => SubE,
                                 Subtype_Indication  =>
                                   Make_Subtype_Indication (Loc,
-                                    Subtype_Mark => New_Reference_To (
-                                      Etype (Comp_Type), Loc),
+                                    Subtype_Mark =>
+                                      New_Reference_To
+                                        (Etype (Comp_Type), Loc),
                                     Constraint =>
-                                      Make_Index_Or_Discriminant_Constraint (
-                                        Loc, Constraints => New_List (
-                                          New_Copy_Tree (Aggregate_Bounds (
-                                            Expr_Q))))));
+                                      Make_Index_Or_Discriminant_Constraint
+                                        (Loc,
+                                         Constraints => New_List (
+                                          New_Copy_Tree
+                                            (Aggregate_Bounds (Expr_Q))))));
 
                      --  Create a temporary array of the above subtype which
                      --  will be used to capture the aggregate assignments.
 
-                     TmpE : constant Entity_Id :=
-                              Make_Defining_Identifier (Loc,
-                                New_Internal_Name ('A'));
+                     TmpE : constant Entity_Id := Make_Temporary (Loc, 'A', N);
 
                      TmpD : constant Node_Id :=
                               Make_Object_Declaration (Loc,
-                                Defining_Identifier =>
-                                  TmpE,
+                                Defining_Identifier => TmpE,
                                 Object_Definition   =>
                                   New_Reference_To (SubE, Loc));
 
@@ -3019,10 +3062,14 @@ package body Exp_Aggr is
             --  Expr_Q is not delayed aggregate
 
             else
+               if Has_Discriminants (Typ) then
+                  Replace_Discriminants (Expr_Q);
+               end if;
+
                Instr :=
                  Make_OK_Assignment_Statement (Loc,
                    Name       => Comp_Expr,
-                   Expression => Expression (Comp));
+                   Expression => Expr_Q);
 
                Set_No_Ctrl_Actions (Instr);
                Append_To (L, Instr);
@@ -3558,7 +3605,7 @@ package body Exp_Aggr is
          Rewrite (Parent (N), Make_Null_Statement (Loc));
 
       else
-         Temp := Make_Defining_Identifier (Loc, New_Internal_Name ('A'));
+         Temp := Make_Temporary (Loc, 'A', N);
 
          --  If the type inherits unknown discriminants, use the view with
          --  known discriminants if available.
@@ -5173,7 +5220,7 @@ package body Exp_Aggr is
 
       else
          Maybe_In_Place_OK := False;
-         Tmp := Make_Defining_Identifier (Loc, New_Internal_Name ('A'));
+         Tmp := Make_Temporary (Loc, 'A', N);
          Tmp_Decl :=
            Make_Object_Declaration
              (Loc,
@@ -5445,11 +5492,9 @@ package body Exp_Aggr is
       --  an atomic move for it.
 
       if Is_Atomic (Typ)
-        and then Nkind_In (Parent (N), N_Object_Declaration,
-                                       N_Assignment_Statement)
         and then Comes_From_Source (Parent (N))
+        and then Is_Atomic_Aggregate (N, Typ)
       then
-         Expand_Atomic_Aggregate (N, Typ);
          return;
 
       --  No special management required for aggregates used to initialize

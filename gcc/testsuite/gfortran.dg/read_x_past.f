@@ -6,12 +6,12 @@
       implicit none
       character(3) a(4)
       integer i
-      open (10)
+      open (10, status="scratch")
  10   format(A,$)  ! This is not pedantic
       write(10,10)' abc def ghi jkl'
       rewind(10)
       read(10,20)(a(i),i=1,4)
       if (a(4).ne."jkl") call abort()
  20   format(1x,a3,1x,a3,1x,a3,1x,a3,10x)
-      close(10, status="delete")
+      close(10)
       end

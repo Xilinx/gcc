@@ -87,6 +87,7 @@ struct GTY(()) machine_function
   int arg_regs_to_save;
   int regsave_filler;
   int frame_filler;
+  int frame_locked;
   
   /* Records __builtin_return address.  */
   rtx eh_stack_adjust;
@@ -129,6 +130,10 @@ static GTY(()) section * farbss_section;
 static GTY(()) section * frodata_section;
 static GTY(()) section * srodata_section;
 
+static GTY(()) section * vtext_section;
+static GTY(()) section * vftext_section;
+static GTY(()) section * ftext_section;
+
 static void mep_set_leaf_registers (int);
 static bool symbol_p (rtx);
 static bool symbolref_p (rtx);
@@ -170,6 +175,7 @@ static tree mep_validate_interrupt (tree *, tree, tree, int, bool *);
 static tree mep_validate_io_cb (tree *, tree, tree, int, bool *);
 static tree mep_validate_vliw (tree *, tree, tree, int, bool *);
 static bool mep_function_attribute_inlinable_p (const_tree);
+static bool mep_can_inline_p (tree, tree);
 static bool mep_lookup_pragma_disinterrupt (const char *);
 static int mep_multiple_address_regions (tree, bool);
 static int mep_attrlist_to_encoding (tree, tree);
@@ -222,6 +228,7 @@ static rtx mep_expand_builtin_saveregs (void);
 static tree mep_build_builtin_va_list (void);
 static void mep_expand_va_start (tree, rtx);
 static tree mep_gimplify_va_arg_expr (tree, tree, tree *, tree *);
+static bool mep_can_eliminate (const int, const int);
 
 /* Initialize the GCC target structure.  */
 
@@ -235,6 +242,8 @@ static tree mep_gimplify_va_arg_expr (tree, tree, tree *, tree *);
 #define TARGET_INSERT_ATTRIBUTES	mep_insert_attributes
 #undef  TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P
 #define TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P	mep_function_attribute_inlinable_p
+#undef  TARGET_CAN_INLINE_P
+#define TARGET_CAN_INLINE_P		mep_can_inline_p
 #undef  TARGET_SECTION_TYPE_FLAGS
 #define TARGET_SECTION_TYPE_FLAGS	mep_section_type_flags
 #undef  TARGET_ASM_NAMED_SECTION
@@ -291,6 +300,8 @@ static tree mep_gimplify_va_arg_expr (tree, tree, tree *, tree *);
 #define TARGET_EXPAND_BUILTIN_VA_START	mep_expand_va_start
 #undef	TARGET_GIMPLIFY_VA_ARG_EXPR
 #define	TARGET_GIMPLIFY_VA_ARG_EXPR	mep_gimplify_va_arg_expr
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE            mep_can_eliminate
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1179,12 +1190,40 @@ mep_vliw_mode_match (rtx tgt)
   return src_vliw == tgt_vliw;
 }
 
+/* Like the above, but also test for near/far mismatches.  */
+
+bool
+mep_vliw_jmp_match (rtx tgt)
+{
+  bool src_vliw = mep_vliw_function_p (cfun->decl);
+  bool tgt_vliw = INTVAL (tgt);
+
+  if (mep_section_tag (DECL_RTL (cfun->decl)) == 'f')
+    return false;
+
+  return src_vliw == tgt_vliw;
+}
+
 bool
 mep_multi_slot (rtx x)
 {
   return get_attr_slot (x) == SLOT_MULTI;
 }
 
+
+bool
+mep_legitimate_constant_p (rtx x)
+{
+  /* We can't convert symbol values to gp- or tp-rel values after
+     reload, as reload might have used $gp or $tp for other
+     purposes.  */
+  if (GET_CODE (x) == SYMBOL_REF && (reload_in_progress || reload_completed))
+    {
+      char e = mep_section_tag (x);
+      return (e != 't' && e != 'b');
+    }
+  return 1;
+}
 
 /* Be careful not to use macros that need to be compiled one way for
    strict, and another way for not-strict, like REG_OK_FOR_BASE_P.  */
@@ -1957,7 +1996,7 @@ mep_emit_cbranch (rtx *operands, int ne)
 {
   if (GET_CODE (operands[1]) == REG)
     return ne ? "bne\t%0, %1, %l2" : "beq\t%0, %1, %l2";
-  else if (INTVAL (operands[1]) == 0)
+  else if (INTVAL (operands[1]) == 0 && !mep_vliw_function_p(cfun->decl))
     return ne ? "bnez\t%0, %l2" : "beqz\t%0, %l2";
   else
     return ne ? "bnei\t%0, %1, %l2" : "beqi\t%0, %1, %l2";
@@ -2499,6 +2538,11 @@ mep_asm_without_operands_p (void)
    since they may get clobbered there too).  Here we check to see
    which call-used registers need saving.  */
 
+#define IVC2_ISAVED_REG(r) (TARGET_IVC2 \
+			   && (r == FIRST_CCR_REGNO + 1 \
+			       || (r >= FIRST_CCR_REGNO + 8 && r <= FIRST_CCR_REGNO + 11) \
+			       || (r >= FIRST_CCR_REGNO + 16 && r <= FIRST_CCR_REGNO + 31)))
+
 static bool
 mep_interrupt_saved_reg (int r)
 {
@@ -2509,11 +2553,12 @@ mep_interrupt_saved_reg (int r)
     return true;
   if (mep_asm_without_operands_p ()
       && (!fixed_regs[r]
-	  || (r == RPB_REGNO || r == RPE_REGNO || r == RPC_REGNO || r == LP_REGNO)))
+	  || (r == RPB_REGNO || r == RPE_REGNO || r == RPC_REGNO || r == LP_REGNO)
+	  || IVC2_ISAVED_REG (r)))
     return true;
   if (!current_function_is_leaf)
     /* Function calls mean we need to save $lp.  */
-    if (r == LP_REGNO)
+    if (r == LP_REGNO || IVC2_ISAVED_REG (r))
       return true;
   if (!current_function_is_leaf || cfun->machine->doloop_tags > 0)
     /* The interrupt handler might use these registers for repeat blocks,
@@ -2526,10 +2571,7 @@ mep_interrupt_saved_reg (int r)
   if (call_used_regs[r] && !fixed_regs[r])
     return true;
   /* Additional registers that need to be saved for IVC2.  */
-  if (TARGET_IVC2
-      && (r == FIRST_CCR_REGNO + 1
-	  || (r >= FIRST_CCR_REGNO + 8 && r <= FIRST_CCR_REGNO + 11)
-	  || (r >= FIRST_CCR_REGNO + 16 && r <= FIRST_CCR_REGNO + 31)))
+  if (IVC2_ISAVED_REG (r))
     return true;
 
   return false;
@@ -2538,7 +2580,7 @@ mep_interrupt_saved_reg (int r)
 static bool
 mep_call_saves_register (int r)
 {
-  /*  if (cfun->machine->reg_saved[r] == MEP_SAVES_UNKNOWN)*/
+  if (! cfun->machine->frame_locked)
     {
       int rv = MEP_SAVES_NO;
 
@@ -2585,6 +2627,16 @@ mep_reg_size (int regno)
   return 4;
 }
 
+/* Worker function for TARGET_CAN_ELIMINATE.  */
+
+bool
+mep_can_eliminate (const int from, const int to)
+{
+  return  (from == ARG_POINTER_REGNUM && to == STACK_POINTER_REGNUM
+           ? ! frame_pointer_needed
+           : true);
+}
+
 int
 mep_elimination_offset (int from, int to)
 {
@@ -2593,7 +2645,8 @@ mep_elimination_offset (int from, int to)
   int frame_size = get_frame_size () + crtl->outgoing_args_size;
   int total_size;
 
-  memset (cfun->machine->reg_saved, 0, sizeof (cfun->machine->reg_saved));
+  if (!cfun->machine->frame_locked)
+    memset (cfun->machine->reg_saved, 0, sizeof (cfun->machine->reg_saved));
 
   /* We don't count arg_regs_to_save in the arg pointer offset, because
      gcc thinks the arg pointer has moved along with the saved regs.
@@ -2753,31 +2806,17 @@ mep_reload_pointer (int regno, const char *symbol)
   emit_insn (gen_movsi_botsym_s (reg, reg, sym));
 }
 
-void
-mep_expand_prologue (void)
+/* Assign save slots for any register not already saved.  DImode
+   registers go at the end of the reg save area; the rest go at the
+   beginning.  This is for alignment purposes.  Returns true if a frame
+   is really needed.  */
+static bool
+mep_assign_save_slots (int reg_save_size)
 {
-  int i, rss, sp_offset = 0;
-  int reg_save_size;
-  int frame_size;
-  int really_need_stack_frame = frame_size;
+  bool really_need_stack_frame = false;
   int di_ofs = 0;
+  int i;
 
-  /* We must not allow register renaming in interrupt functions,
-     because that invalidates the correctness of the set of call-used
-     registers we're going to save/restore.  */
-  mep_set_leaf_registers (mep_interrupt_p () ? 0 : 1);
-
-  if (mep_disinterrupt_p ())
-    emit_insn (gen_mep_disable_int ());
-
-  cfun->machine->mep_frame_pointer_needed = frame_pointer_needed;
-
-  reg_save_size = mep_elimination_offset (ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM);
-  frame_size = mep_elimination_offset (FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM);
-
-  /* Assign save slots for any register not already saved.  DImode
-     registers go at the end of the reg save area; the rest go at the
-     beginning.  This is for alignment purposes.  */
   for (i=0; i<FIRST_PSEUDO_REGISTER; i++)
     if (mep_call_saves_register(i))
       {
@@ -2785,7 +2824,7 @@ mep_expand_prologue (void)
 
 	if ((i != TP_REGNO && i != GP_REGNO && i != LP_REGNO)
 	    || mep_reg_set_in_function (i))
-	  really_need_stack_frame = 1;
+	  really_need_stack_frame = true;
 
 	if (cfun->machine->reg_save_slot[i])
 	  continue;
@@ -2801,6 +2840,32 @@ mep_expand_prologue (void)
 	    di_ofs += 8;
 	  }
       }
+  cfun->machine->frame_locked = 1;
+  return really_need_stack_frame;
+}
+
+void
+mep_expand_prologue (void)
+{
+  int i, rss, sp_offset = 0;
+  int reg_save_size;
+  int frame_size;
+  int really_need_stack_frame = frame_size;
+
+  /* We must not allow register renaming in interrupt functions,
+     because that invalidates the correctness of the set of call-used
+     registers we're going to save/restore.  */
+  mep_set_leaf_registers (mep_interrupt_p () ? 0 : 1);
+
+  if (mep_disinterrupt_p ())
+    emit_insn (gen_mep_disable_int ());
+
+  cfun->machine->mep_frame_pointer_needed = frame_pointer_needed;
+
+  reg_save_size = mep_elimination_offset (ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM);
+  frame_size = mep_elimination_offset (FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM);
+
+  really_need_stack_frame |= mep_assign_save_slots (reg_save_size);
 
   sp_offset = reg_save_size;
   if (sp_offset + frame_size < 128)
@@ -2888,7 +2953,12 @@ mep_expand_prologue (void)
       }
   
   if (frame_pointer_needed)
-    add_constant (FP_REGNO, SP_REGNO, sp_offset - frame_size, 1);
+    {
+      /* We've already adjusted down by sp_offset.  Total $sp change
+	 is reg_save_size + frame_size.  We want a net change here of
+	 just reg_save_size.  */
+      add_constant (FP_REGNO, SP_REGNO, sp_offset - reg_save_size, 1);
+    }
 
   add_constant (SP_REGNO, SP_REGNO, sp_offset-(reg_save_size+frame_size), 1);
 
@@ -2963,7 +3033,12 @@ mep_start_function (FILE *file, HOST_WIDE_INT hwi_local)
       int r = slot_map[i];
       int rss = cfun->machine->reg_save_slot[r];
 
-      if (!rss)
+      if (!mep_call_saves_register (r))
+	continue;
+
+      if ((r == TP_REGNO || r == GP_REGNO || r == LP_REGNO)
+	  && (!mep_reg_set_in_function (r)
+	      && !mep_interrupt_p ()))
 	continue;
 
       rsize = mep_reg_size(r);
@@ -3012,14 +3087,7 @@ mep_expand_epilogue (void)
   reg_save_size = mep_elimination_offset (ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM);
   frame_size = mep_elimination_offset (FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM);
 
-  /* All save slots are set by mep_expand_prologue.  */
-  for (i=0; i<FIRST_PSEUDO_REGISTER; i++)
-    if (mep_call_saves_register(i))
-      {
-	if ((i != TP_REGNO && i != GP_REGNO && i != LP_REGNO)
-	    || mep_reg_set_in_function (i))
-	  really_need_stack_frame = 1;
-      }
+  really_need_stack_frame |= mep_assign_save_slots (reg_save_size);
 
   if (frame_pointer_needed)
     {
@@ -3243,6 +3311,7 @@ const conversions[] =
   { 0, "m+ri", "3(2)" },
   { 0, "mr", "(1)" },
   { 0, "ms", "(1)" },
+  { 0, "ml", "(1)" },
   { 0, "mLrs", "%lo(3)(2)" },
   { 0, "mLr+si", "%lo(4+5)(2)" },
   { 0, "m+ru2s", "%tpoff(5)(2)" },
@@ -3505,15 +3574,23 @@ mep_expand_builtin_saveregs (void)
   rtx regbuf;
 
   ns = cfun->machine->arg_regs_to_save;
-  bufsize = ns * (TARGET_IVC2 ? 12 : 4);
-  regbuf = assign_stack_local (SImode, bufsize, 32);
+  if (TARGET_IVC2)
+    {
+      bufsize = 8 * ((ns + 1) / 2) + 8 * ns;
+      regbuf = assign_stack_local (SImode, bufsize, 64);
+    }
+  else
+    {
+      bufsize = ns * 4;
+      regbuf = assign_stack_local (SImode, bufsize, 32);
+    }
 
   move_block_from_reg (5-ns, regbuf, ns);
 
   if (TARGET_IVC2)
     {
       rtx tmp = gen_rtx_MEM (DImode, XEXP (regbuf, 0));
-      int ofs = 4 * ns;
+      int ofs = 8 * ((ns+1)/2);
 
       for (i=0; i<ns; i++)
 	{
@@ -3602,7 +3679,9 @@ mep_expand_va_start (tree valist, rtx nextarg)
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
-  /* va_list.next_cop = va_list.next_gp_limit; */
+  u = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, u,
+		   size_int (8 * ((ns+1)/2)));
+  /* va_list.next_cop = ROUND_UP(va_list.next_gp_limit,8); */
   t = build2 (MODIFY_EXPR, ptr_type_node, next_cop, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -3767,9 +3846,19 @@ mep_pass_by_reference (CUMULATIVE_ARGS * cum ATTRIBUTE_UNUSED,
 		       bool              named ATTRIBUTE_UNUSED)
 {
   int size = bytesize (type, mode);
-  if (type && TARGET_IVC2 && cum->nregs < 4 && VECTOR_TYPE_P (type))
-    return size <= 0 || size > 8;
-  return size <= 0 || size > 4;
+
+  /* This is non-obvious, but yes, large values passed after we've run
+     out of registers are *still* passed by reference - we put the
+     address of the parameter on the stack, as well as putting the
+     parameter itself elsewhere on the stack.  */
+
+  if (size <= 0 || size > 8)
+    return true;
+  if (size <= 4)
+    return false;
+  if (TARGET_IVC2 && cum->nregs < 4 && type != NULL_TREE && VECTOR_TYPE_P (type))
+    return false;
+  return true;
 }
 
 void
@@ -3785,8 +3874,8 @@ mep_return_in_memory (const_tree type, const_tree decl ATTRIBUTE_UNUSED)
 {
   int size = bytesize (type, BLKmode);
   if (TARGET_IVC2 && VECTOR_TYPE_P (type))
-    return size >= 0 && size <= 8 ? 0 : 1;
-  return size >= 0 && size <= 4 ? 0 : 1;
+    return size > 0 && size <= 8 ? 0 : 1;
+  return size > 0 && size <= 4 ? 0 : 1;
 }
 
 static bool
@@ -4101,6 +4190,20 @@ mep_function_attribute_inlinable_p (const_tree callee)
   if (!attrs) attrs = DECL_ATTRIBUTES (callee);
   return (lookup_attribute ("disinterrupt", attrs) == 0
 	  && lookup_attribute ("interrupt", attrs) == 0);
+}
+
+static bool
+mep_can_inline_p (tree caller, tree callee)
+{
+  if (TREE_CODE (callee) == ADDR_EXPR)
+    callee = TREE_OPERAND (callee, 0);
+ 
+  if (!mep_vliw_function_p (caller)
+      && mep_vliw_function_p (callee))
+    {
+      return false;
+    }
+  return true;
 }
 
 #define FUNC_CALL		1
@@ -4475,6 +4578,8 @@ mep_encode_section_info (tree decl, rtx rtl, int first)
       idp = get_identifier (newname);
       XEXP (rtl, 0) =
 	gen_rtx_SYMBOL_REF (Pmode, IDENTIFIER_POINTER (idp));
+      SYMBOL_REF_WEAK (XEXP (rtl, 0)) = DECL_WEAK (decl);
+      SET_SYMBOL_REF_DECL (XEXP (rtl, 0), decl);
 
       switch (encoding)
 	{
@@ -4504,38 +4609,6 @@ mep_encode_section_info (tree decl, rtx rtl, int first)
 		   maxsize);
 	}
     }
-
-  /* Functions do not go through select_section, so we force it here
-     by using the DECL_SECTION_NAME as if the user specified the
-     .vtext or .ftext sections.  */
-  if (! DECL_SECTION_NAME (decl)
-      && TREE_CODE (decl) == FUNCTION_DECL)
-    {
-      tree secname;
-
-      if (lookup_attribute ("vliw", TYPE_ATTRIBUTES (TREE_TYPE (decl))))
-	{
-	  if (encoding == 'f')
-	    DECL_SECTION_NAME (decl) = build_string (7, ".vftext");
-	  else
-	    DECL_SECTION_NAME (decl) = build_string (6, ".vtext");
-	}
-      else if (encoding == 'f')
-	{
-	  if (flag_function_sections || DECL_ONE_ONLY (decl))
-	    mep_unique_section (decl, 0);
-	  else
-	    DECL_SECTION_NAME (decl) = build_string (6, ".ftext");
-	}
-
-      /* This is so we can control inlining.  It does not matter what
-         attribute we add, just that it has one.  */
-      secname = build_tree_list (get_identifier ("section"), DECL_SECTION_NAME (decl));
-      if (TYPE_P (decl))
-	TYPE_ATTRIBUTES (decl) = chainon (TYPE_ATTRIBUTES (decl), secname);
-      else
-	DECL_ATTRIBUTES (decl) = chainon (DECL_ATTRIBUTES (decl), secname);
-    }
 }
 
 const char *
@@ -4557,6 +4630,7 @@ mep_select_section (tree decl, int reloc ATTRIBUTE_UNUSED,
 		    unsigned HOST_WIDE_INT align ATTRIBUTE_UNUSED)
 {
   int readonly = 1;
+  int encoding;
 
   switch (TREE_CODE (decl))
     {
@@ -4575,6 +4649,30 @@ mep_select_section (tree decl, int reloc ATTRIBUTE_UNUSED,
 
     default:
       break;
+    }
+
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      const char *name = XSTR (XEXP (DECL_RTL (decl), 0), 0);
+
+      if (name[0] == '@' && name[2] == '.')
+	encoding = name[1];
+      else
+	encoding = 0;
+
+      if (flag_function_sections || DECL_ONE_ONLY (decl))
+	mep_unique_section (decl, 0);
+      else if (lookup_attribute ("vliw", TYPE_ATTRIBUTES (TREE_TYPE (decl))))
+	{
+	  if (encoding == 'f')
+	    return vftext_section;
+	  else
+	    return vtext_section;
+	}
+      else if (encoding == 'f')
+	return ftext_section;
+      else
+	return text_section;
     }
 
   if (TREE_CODE (decl) == VAR_DECL)
@@ -4601,13 +4699,13 @@ mep_select_section (tree decl, int reloc ATTRIBUTE_UNUSED,
 
 	  case 'i':
 	  case 'I':
-	    error ("%Hvariable %D of type %<io%> must be uninitialized",
-		   &DECL_SOURCE_LOCATION (decl), decl);
+	    error_at (DECL_SOURCE_LOCATION (decl),
+		      "variable %D of type %<io%> must be uninitialized", decl);
 	    return data_section;
 
 	  case 'c':
-	    error ("%Hvariable %D of type %<cb%> must be uninitialized",
-		   &DECL_SOURCE_LOCATION (decl), decl);
+	    error_at (DECL_SOURCE_LOCATION (decl),
+		      "variable %D of type %<cb%> must be uninitialized", decl);
 	    return data_section;
 	  }
     }
@@ -4631,7 +4729,9 @@ mep_unique_section (tree decl, int reloc)
     { ".far.",     ".gnu.linkonce.far." },
     { ".ftext.",   ".gnu.linkonce.ft." },
     { ".frodata.", ".gnu.linkonce.frd." },
-    { ".srodata.", ".gnu.linkonce.srd." }
+    { ".srodata.", ".gnu.linkonce.srd." },
+    { ".vtext.",   ".gnu.linkonce.v." },
+    { ".vftext.",   ".gnu.linkonce.vf." }
   };
   int sec = 2; /* .data */
   int len;
@@ -4643,7 +4743,12 @@ mep_unique_section (tree decl, int reloc)
     name = XSTR (XEXP (DECL_RTL (decl), 0), 0);
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
-    sec = 0; /* .text */
+    {
+      if (lookup_attribute ("vliw", TYPE_ATTRIBUTES (TREE_TYPE (decl))))
+	sec = 9; /* .vtext */
+      else
+	sec = 0; /* .text */
+    }
   else if (decl_readonly_section (decl, reloc))
     sec = 1; /* .rodata */
 
@@ -4663,6 +4768,8 @@ mep_unique_section (tree decl, int reloc)
 	case 'f':
 	  if (sec == 0)
 	    sec = 6; /* .ftext */
+	  else if (sec == 9)
+	    sec = 10; /* .vftext */
 	  else if (sec == 1)
 	    sec = 7; /* .frodata */
 	  else
@@ -5811,6 +5918,12 @@ static void
 mep_reorg (void)
 {
   rtx insns = get_insns ();
+
+  /* We require accurate REG_DEAD notes.  */
+  compute_bb_for_insn ();
+  df_note_add_problem ();
+  df_analyze ();
+
   mep_reorg_addcombine (insns);
 #if EXPERIMENTAL_REGMOVE_REORG
   /* VLIW packing has been done already, so we can't just delete things.  */
@@ -5829,6 +5942,8 @@ mep_reorg (void)
 
   /* This may delete *insns so make sure it's last.  */
   mep_reorg_noframe (insns);
+
+  df_finish_pass (false);
 }
 
 
@@ -6165,7 +6280,9 @@ mep_legitimize_arg (const struct insn_operand_data *operand, rtx arg,
   /* But not for control registers.  */
   if (operand->constraint[0] == '='
       && (! REG_P (arg)
-	  || ! (CCR_REGNO_P (REGNO (arg)) || CR_REGNO_P (REGNO (arg)))
+	  || ! (CONTROL_REGNO_P (REGNO (arg))
+		|| CCR_REGNO_P (REGNO (arg))
+		|| CR_REGNO_P (REGNO (arg)))
 	  ))
     return gen_reg_rtx (operand->mode);
 
@@ -7301,6 +7418,18 @@ mep_asm_init_sections (void)
   srodata_section
     = get_unnamed_section (0, output_section_asm_op,
 			   "\t.section .srodata,\"a\"");
+
+  vtext_section
+    = get_unnamed_section (SECTION_CODE | SECTION_MEP_VLIW, output_section_asm_op,
+			   "\t.section .vtext,\"axv\"\n\t.vliw");
+
+  vftext_section
+    = get_unnamed_section (SECTION_CODE | SECTION_MEP_VLIW, output_section_asm_op,
+			   "\t.section .vftext,\"axv\"\n\t.vliw");
+
+  ftext_section
+    = get_unnamed_section (SECTION_CODE, output_section_asm_op,
+			   "\t.section .ftext,\"ax\"\n\t.core");
 
 }
 

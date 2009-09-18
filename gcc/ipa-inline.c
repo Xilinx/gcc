@@ -1006,10 +1006,8 @@ cgraph_decide_inlining_of_small_functions (void)
 	    }
 	  continue;
 	}
-      if (!tree_can_inline_p (edge->caller->decl, edge->callee->decl))
+      if (!tree_can_inline_p (edge))
 	{
-	  gimple_call_set_cannot_inline (edge->call_stmt, true);
-	  edge->inline_failed = CIF_TARGET_OPTION_MISMATCH;
 	  if (dump_file)
 	    fprintf (dump_file, " inline_failed:%s.\n",
 		     cgraph_inline_failed_string (edge->inline_failed));
@@ -1184,11 +1182,8 @@ cgraph_decide_inlining (void)
 	      if (cgraph_recursive_inlining_p (e->caller, e->callee,
 					       &e->inline_failed))
 		continue;
-	      if (!tree_can_inline_p (e->caller->decl, e->callee->decl))
-		{
-		  gimple_call_set_cannot_inline (e->call_stmt, true);
-		  continue;
-		}
+	      if (!tree_can_inline_p (e))
+                continue;
 	      if (cgraph_mark_inline_edge (e, true, NULL))
 		redo_always_inline = true;
 	      if (dump_file)
@@ -1227,6 +1222,8 @@ cgraph_decide_inlining (void)
 	      && !node->needed
 	      && node->local.inlinable
 	      && node->callers->inline_failed
+	      && node->callers->caller != node
+	      && node->callers->caller->global.inlined_to != node
 	      && !gimple_call_cannot_inline_p (node->callers->call_stmt)
 	      && !DECL_EXTERNAL (node->decl)
 	      && !DECL_COMDAT (node->decl))
@@ -1438,14 +1435,14 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	      }
 	    continue;
 	  }
-	if (!tree_can_inline_p (node->decl, e->callee->decl))
+	if (!tree_can_inline_p (e))
 	  {
-	    gimple_call_set_cannot_inline (e->call_stmt, true);
 	    if (dump_file)
 	      {
 		indent_to (dump_file, depth);
 		fprintf (dump_file,
-			 "Not inlining: Target specific option mismatch.\n");
+			 "Not inlining: %s",
+                         cgraph_inline_failed_string (e->inline_failed));
 	      }
 	    continue;
 	  }
@@ -1551,14 +1548,14 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	      }
 	    continue;
 	  }
-	if (!tree_can_inline_p (node->decl, e->callee->decl))
+	if (!tree_can_inline_p (e))
 	  {
-	    gimple_call_set_cannot_inline (e->call_stmt, true);
 	    if (dump_file)
 	      {
 		indent_to (dump_file, depth);
 		fprintf (dump_file,
-			 "Not inlining: Target specific option mismatch.\n");
+			 "Not inlining: %s.",
+                         cgraph_inline_failed_string (e->inline_failed));
 	      }
 	    continue;
 	  }
@@ -1738,12 +1735,10 @@ estimate_function_body_sizes (struct cgraph_node *node)
   tree arg;
   int freq;
   tree funtype = TREE_TYPE (node->decl);
-  bitmap must_not_throw = must_not_throw_labels ();
 
   if (dump_file)
-    {
-      fprintf (dump_file, "Analyzing function body size: %s\n", cgraph_node_name (node));
-    }
+    fprintf (dump_file, "Analyzing function body size: %s\n",
+	     cgraph_node_name (node));
 
   gcc_assert (my_function && my_function->cfg);
   FOR_EACH_BB_FN (bb, my_function)
@@ -1751,39 +1746,24 @@ estimate_function_body_sizes (struct cgraph_node *node)
       freq = compute_call_stmt_bb_frequency (node->decl, bb);
       for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
 	{
-	  int this_size = estimate_num_insns (gsi_stmt (bsi), &eni_size_weights);
-	  int this_time = estimate_num_insns (gsi_stmt (bsi), &eni_time_weights);
+	  gimple stmt = gsi_stmt (bsi);
+	  int this_size = estimate_num_insns (stmt, &eni_size_weights);
+	  int this_time = estimate_num_insns (stmt, &eni_time_weights);
 
-	  /* MUST_NOT_THROW is usually handled by runtime calling terminate and stopping
-	     stacking unwinding.  However when there is local cleanup that can resume
-	     to MUST_NOT_THROW then we generate explicit handler containing
-	     std::terminate () call.
-	     
-	     Because inlining of function can introduce new cleanup region, prior
-	     inlining we keep std::terinate () calls for every MUST_NOT_THROW containing
-	     function call.  Wast majority of these will be eliminated after inlining
-	     and crossjumping will inify possible duplicated calls.  So ignore
-	     the handlers for function body estimates.  */
-	  if (gimple_code (gsi_stmt (bsi)) == GIMPLE_LABEL
-	      && bitmap_bit_p (must_not_throw, 
-	      		       LABEL_DECL_UID (gimple_label_label (gsi_stmt (bsi)))))
+	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {
-	      if (dump_file)
-	        fprintf (dump_file, "  MUST_NOT_THROW landing pad.  Ignoring whole BB.\n");
-	    }
-	  if (dump_file)
-	    {
-	      fprintf (dump_file, "  freq:%6i size:%3i time:%3i ", freq, this_size, this_time);
-	      print_gimple_stmt (dump_file, gsi_stmt (bsi), 0, 0);
+	      fprintf (dump_file, "  freq:%6i size:%3i time:%3i ",
+		       freq, this_size, this_time);
+	      print_gimple_stmt (dump_file, stmt, 0, 0);
 	    }
 	  this_time *= freq;
 	  time += this_time;
 	  size += this_size;
-	  if (likely_eliminated_by_inlining_p (gsi_stmt (bsi)))
+	  if (likely_eliminated_by_inlining_p (stmt))
 	    {
 	      size_inlining_benefit += this_size;
 	      time_inlining_benefit += this_time;
-	      if (dump_file)
+	      if (dump_file && (dump_flags & TDF_DETAILS))
 		fprintf (dump_file, "    Likely eliminated\n");
 	    }
 	  gcc_assert (time >= 0);
@@ -1794,11 +1774,9 @@ estimate_function_body_sizes (struct cgraph_node *node)
   time_inlining_benefit = ((time_inlining_benefit + CGRAPH_FREQ_BASE / 2)
   			   / CGRAPH_FREQ_BASE);
   if (dump_file)
-    {
-      fprintf (dump_file, "Overall function body time: %i-%i size: %i-%i\n",
-               (int)time, (int)time_inlining_benefit,
-      	       size, size_inlining_benefit);
-    }
+    fprintf (dump_file, "Overall function body time: %i-%i size: %i-%i\n",
+	     (int)time, (int)time_inlining_benefit,
+	     size, size_inlining_benefit);
   time_inlining_benefit += eni_time_weights.call_cost;
   size_inlining_benefit += eni_size_weights.call_cost;
   if (!VOID_TYPE_P (TREE_TYPE (funtype)))
@@ -1821,14 +1799,11 @@ estimate_function_body_sizes (struct cgraph_node *node)
   inline_summary (node)->self_time = time;
   inline_summary (node)->self_size = size;
   if (dump_file)
-    {
-      fprintf (dump_file, "With function call overhead time: %i-%i size: %i-%i\n",
-               (int)time, (int)time_inlining_benefit,
-      	       size, size_inlining_benefit);
-    }
+    fprintf (dump_file, "With function call overhead time: %i-%i size: %i-%i\n",
+	     (int)time, (int)time_inlining_benefit,
+	     size, size_inlining_benefit);
   inline_summary (node)->time_inlining_benefit = time_inlining_benefit;
   inline_summary (node)->size_inlining_benefit = size_inlining_benefit;
-  BITMAP_FREE (must_not_throw);
 }
 
 /* Compute parameters of functions used by inliner.  */

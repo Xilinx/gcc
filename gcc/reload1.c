@@ -318,8 +318,9 @@ struct elim_table
   int to;			/* Register number used as replacement.  */
   HOST_WIDE_INT initial_offset;	/* Initial difference between values.  */
   int can_eliminate;		/* Nonzero if this elimination can be done.  */
-  int can_eliminate_previous;	/* Value of CAN_ELIMINATE in previous scan over
-				   insns made by reload.  */
+  int can_eliminate_previous;	/* Value returned by TARGET_CAN_ELIMINATE
+				   target hook in previous scan over insns
+				   made by reload.  */
   HOST_WIDE_INT offset;		/* Current offset between the two regs.  */
   HOST_WIDE_INT previous_offset;/* Offset at end of previous insn.  */
   int ref_outside_mem;		/* "to" has been referenced outside a MEM.  */
@@ -446,7 +447,6 @@ static rtx inc_for_reload (rtx, rtx, rtx, int);
 #ifdef AUTO_INC_DEC
 static void add_auto_inc_notes (rtx, rtx);
 #endif
-static void copy_eh_notes (rtx, rtx);
 static void substitute (rtx *, const_rtx, rtx);
 static bool gen_reload_chain_without_interm_reg_p (int, int);
 static int reloads_conflict (int, int);
@@ -800,7 +800,7 @@ reload (rtx first, int global)
 	  && GET_MODE (insn) != VOIDmode)
 	PUT_MODE (insn, VOIDmode);
 
-      if (INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn))
 	scan_paradoxical_subregs (PATTERN (insn));
 
       if (set != 0 && REG_P (SET_DEST (set)))
@@ -1232,6 +1232,48 @@ reload (rtx first, int global)
 	    }
 	  else if (reg_equiv_mem[i])
 	    XEXP (reg_equiv_mem[i], 0) = addr;
+	}
+
+      /* We don't want complex addressing modes in debug insns
+	 if simpler ones will do, so delegitimize equivalences
+	 in debug insns.  */
+      if (MAY_HAVE_DEBUG_INSNS && reg_renumber[i] < 0)
+	{
+	  rtx reg = regno_reg_rtx[i];
+	  rtx equiv = 0;
+	  df_ref use;
+
+	  if (reg_equiv_constant[i])
+	    equiv = reg_equiv_constant[i];
+	  else if (reg_equiv_invariant[i])
+	    equiv = reg_equiv_invariant[i];
+	  else if (reg && MEM_P (reg))
+	    {
+	      equiv = targetm.delegitimize_address (reg);
+	      if (equiv == reg)
+		equiv = 0;
+	    }
+	  else if (reg && REG_P (reg) && (int)REGNO (reg) != i)
+	    equiv = reg;
+
+	  if (equiv)
+	    for (use = DF_REG_USE_CHAIN (i); use;
+		 use = DF_REF_NEXT_REG (use))
+	      if (DEBUG_INSN_P (DF_REF_INSN (use)))
+		{
+		  rtx *loc = DF_REF_LOC (use);
+		  rtx x = *loc;
+
+		  if (x == reg)
+		    *loc = copy_rtx (equiv);
+		  else if (GET_CODE (x) == SUBREG
+			   && SUBREG_REG (x) == reg)
+		    *loc = simplify_gen_subreg (GET_MODE (x), equiv,
+						GET_MODE (reg),
+						SUBREG_BYTE (x));
+		  else
+		    gcc_unreachable ();
+		}
 	}
     }
 
@@ -3150,7 +3192,8 @@ eliminate_regs_in_insn (rtx insn, int replace)
 		  || GET_CODE (PATTERN (insn)) == CLOBBER
 		  || GET_CODE (PATTERN (insn)) == ADDR_VEC
 		  || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC
-		  || GET_CODE (PATTERN (insn)) == ASM_INPUT);
+		  || GET_CODE (PATTERN (insn)) == ASM_INPUT
+		  || DEBUG_INSN_P (insn));
       return 0;
     }
 
@@ -3705,7 +3748,7 @@ update_eliminables (HARD_REG_SET *pset)
     if ((ep->from == HARD_FRAME_POINTER_REGNUM 
          && targetm.frame_pointer_required ())
 #ifdef ELIMINABLE_REGS
-	|| ! CAN_ELIMINATE (ep->from, ep->to)
+	|| ! targetm.can_eliminate (ep->from, ep->to)
 #endif
 	)
       ep->can_eliminate = 0;
@@ -3811,7 +3854,7 @@ init_elim_table (void)
       ep->from = ep1->from;
       ep->to = ep1->to;
       ep->can_eliminate = ep->can_eliminate_previous
-	= (CAN_ELIMINATE (ep->from, ep->to)
+	= (targetm.can_eliminate (ep->from, ep->to)
 	   && ! (ep->to == STACK_POINTER_REGNUM
 		 && frame_pointer_needed 
 		 && (! SUPPORTS_STACK_ALIGNMENT
@@ -4088,17 +4131,11 @@ static void
 fixup_eh_region_note (rtx insn, rtx prev, rtx next)
 {
   rtx note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
-  rtx i;
-
   if (note == NULL)
     return;
-
-  if (! may_trap_p (PATTERN (insn)))
+  if (!insn_could_throw_p (insn))
     remove_note (insn, note);
-
-  for (i = NEXT_INSN (prev); i != next; i = NEXT_INSN (i))
-    if (INSN_P (i) && i != insn && may_trap_p (PATTERN (i)))
-      add_reg_note (i, REG_EH_REGION, XEXP (note, 0));
+  copy_reg_eh_region_note_forward (note, NEXT_INSN (prev), next);
 }
 
 /* Reload pseudo-registers into hard regs around each insn as needed.
@@ -4304,31 +4341,30 @@ reload_as_needed (int live_known)
 			    continue;
 			  if (n == 1)
 			    {
-			      n = validate_replace_rtx (reload_reg,
-							gen_rtx_fmt_e (code,
-								       mode,
-								       reload_reg),
-							p);
+			      rtx replace_reg
+				= gen_rtx_fmt_e (code, mode, reload_reg);
+
+			      validate_replace_rtx_group (reload_reg,
+							  replace_reg, p);
+			      n = verify_changes (0);
 
 			      /* We must also verify that the constraints
-				 are met after the replacement.  */
-			      extract_insn (p);
+				 are met after the replacement.  Make sure
+				 extract_insn is only called for an insn
+				 where the replacements were found to be
+				 valid so far. */
 			      if (n)
-				n = constrain_operands (1);
-			      else
-				break;
-
-			      /* If the constraints were not met, then
-				 undo the replacement.  */
-			      if (!n)
 				{
-				  validate_replace_rtx (gen_rtx_fmt_e (code,
-								       mode,
-								       reload_reg),
-							reload_reg, p);
-				  break;
+				  extract_insn (p);
+				  n = constrain_operands (1);
 				}
 
+			      /* If the constraints were not met, then
+				 undo the replacement, else confirm it.  */
+			      if (!n)
+				cancel_changes (0);
+			      else
+				confirm_change_group ();
 			    }
 			  break;
 			}
@@ -6941,7 +6977,7 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 				rl->when_needed, old, rl->out, j, 0))
     {
       rtx temp = PREV_INSN (insn);
-      while (temp && NOTE_P (temp))
+      while (temp && (NOTE_P (temp) || DEBUG_INSN_P (temp)))
 	temp = PREV_INSN (temp);
       if (temp
 	  && NONJUMP_INSN_P (temp)
@@ -6984,6 +7020,13 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 		  alter_reg (REGNO (old), -1, false);
 		}
 	      special = 1;
+
+	      /* Adjust any debug insns between temp and insn.  */
+	      while ((temp = NEXT_INSN (temp)) != insn)
+		if (DEBUG_INSN_P (temp))
+		  replace_rtx (PATTERN (temp), old, reloadreg);
+		else
+		  gcc_assert (NOTE_P (temp));
 	    }
 	  else
 	    {
@@ -7244,7 +7287,7 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
     }
 
   if (flag_non_call_exceptions)
-    copy_eh_notes (insn, get_insns ());
+    copy_reg_eh_region_note_forward (insn, get_insns (), NULL);
 
   /* End this sequence.  */
   *where = get_insns ();
@@ -7464,7 +7507,7 @@ emit_output_reload_insns (struct insn_chain *chain, struct reload *rl,
     output_reload_insns[rl->opnum] = get_insns ();
 
   if (flag_non_call_exceptions)
-    copy_eh_notes (insn, get_insns ());
+    copy_reg_eh_region_note_forward (insn, get_insns (), NULL);
 
   end_sequence ();
 }
@@ -8839,21 +8882,6 @@ add_auto_inc_notes (rtx insn, rtx x)
     }
 }
 #endif
-
-/* Copy EH notes from an insn to its reloads.  */
-static void
-copy_eh_notes (rtx insn, rtx x)
-{
-  rtx eh_note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
-  if (eh_note)
-    {
-      for (; x != 0; x = NEXT_INSN (x))
-	{
-	  if (may_trap_p (PATTERN (x)))
-	    add_reg_note (x, REG_EH_REGION, XEXP (eh_note, 0));
-	}
-    }
-}
 
 /* This is used by reload pass, that does emit some instructions after
    abnormal calls moving basic block end, but in fact it wants to emit

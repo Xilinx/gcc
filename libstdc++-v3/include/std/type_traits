@@ -173,9 +173,16 @@ namespace std
   // Member introspection.
 
   /// is_pod
+  // Could use is_standard_layout && is_trivial instead of the builtin.
   template<typename _Tp>
     struct is_pod
     : public integral_constant<bool, __is_pod(_Tp)>
+    { };
+
+  /// is_standard_layout
+  template<typename _Tp>
+    struct is_standard_layout
+    : public integral_constant<bool, __is_standard_layout(_Tp)>
     { };
 
   /// has_trivial_default_constructor
@@ -200,6 +207,12 @@ namespace std
   template<typename _Tp>
     struct has_trivial_destructor
     : public integral_constant<bool, __has_trivial_destructor(_Tp)>
+    { };
+
+  /// is_trivial
+  template<typename _Tp>
+    struct is_trivial
+    : public integral_constant<bool, __is_trivial(_Tp)>
     { };
 
   /// has_nothrow_default_constructor
@@ -580,13 +593,8 @@ namespace std
       static _Tp&& __t();
       static _Up&& __u();
 
-      // HACK: Prevents optimization of ?: in the decltype
-      // expression when the condition is the literal, "true".
-      // See, PR36628.
-      static bool __true_or_false();
-
     public:
-      typedef decltype(__true_or_false() ? __t() : __u()) type;
+      typedef decltype(true ? __t() : __u()) type;
     };
 
   template<typename _Tp, typename _Up, typename... _Vp>

@@ -1,18 +1,8 @@
-/* { dg-options "--std=gnu99" } */
-
 /* Check that optimizations like (x * 1) to x, or (x * -1) to -x,
    do not apply to decimal float computations where trailing zeroes
    are significant.  */
 
-extern void abort (void);
-int failcnt;
-
-#ifdef DBG
-extern int printf (const char *, ...);
-#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
-#else
-#define FAILURE abort ();
-#endif
+#include "dfp-dbg.h"
 
 #define COMPARE32(A,B) \
   A.i == B.i
@@ -189,7 +179,7 @@ doit128 (void)
   if (COMPARE128 (a128, p128_2_0))
     FAILURE
 
-  a128.d = p128_2_0.d * 1.0DD;
+  a128.d = p128_2_0.d * 1.0DL;
   if (COMPARE128 (a128, p128_2_0))
     FAILURE
 
@@ -197,7 +187,7 @@ doit128 (void)
   if (COMPARE128 (a128, m128_2_0))
     FAILURE
 
-  a128.d = p128_2_0.d * -1.0DD;
+  a128.d = p128_2_0.d * -1.0DL;
   if (COMPARE128 (a128, m128_2_0))
     FAILURE
 
@@ -208,7 +198,7 @@ doit128 (void)
   if (! (COMPARE128 (a128, p128_2_0)))
     FAILURE
 
-  a128.d = p128_2_0.d * 1.DD;
+  a128.d = p128_2_0.d * 1.DL;
   if (! (COMPARE128 (a128, p128_2_0)))
     FAILURE
 
@@ -216,7 +206,7 @@ doit128 (void)
   if (! (COMPARE128 (a128, m128_2_0)))
     FAILURE
 
-  a128.d = p128_2_0.d * -1.DD;
+  a128.d = p128_2_0.d * -1.DL;
   if (! (COMPARE128 (a128, m128_2_0)))
     FAILURE
 }
@@ -232,8 +222,5 @@ main (void)
   doit64 ();
   doit128 ();
 
-  if (failcnt != 0)
-    abort ();
-
-  return 0;
+  FINISH
 }

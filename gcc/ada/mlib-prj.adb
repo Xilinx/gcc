@@ -1328,20 +1328,32 @@ package body MLib.Prj is
 
          In_Main_Object_Directory := True;
 
-         Foreign_Sources := Has_Foreign_Sources (For_Project);
-         Current_Proj := For_Project;
+         --  For gnatmake, when the project specifies more than just Ada as a
+         --  language (even if course we could not find any source file for
+         --  the other languages), we will take all object files found in the
+         --  object directories. Since we know the project supports at least
+         --  Ada, we just have to test whether it has at least two languages,
+         --  and not care about the sources.
 
+         Foreign_Sources := For_Project.Languages.Next /= null;
+         Current_Proj := For_Project;
          loop
             if Current_Proj.Object_Directory /= No_Path_Information then
+
+               --  The following code gets far too indented, I suggest some
+               --  procedural abstraction here. How about making this declare
+               --  block a named procedure???
+
                declare
                   Object_Dir_Path : constant String :=
                                       Get_Name_String
                                         (Current_Proj.Object_Directory
                                          .Display_Name);
-                  Object_Dir      : Dir_Type;
-                  Filename        : String (1 .. 255);
-                  Last            : Natural;
-                  Id              : Name_Id;
+
+                  Object_Dir : Dir_Type;
+                  Filename   : String (1 .. 255);
+                  Last       : Natural;
+                  Id         : Name_Id;
 
                begin
                   Open (Dir => Object_Dir, Dir_Name => Object_Dir_Path);
@@ -1357,11 +1369,12 @@ package body MLib.Prj is
 
                      if Is_Obj (Filename (1 .. Last)) then
                         declare
-                           Object_Path   : constant String :=
-                                             Normalize_Pathname
-                                               (Object_Dir_Path &
-                                                Directory_Separator &
-                                                Filename (1 .. Last));
+                           Object_Path  : constant String :=
+                                            Normalize_Pathname
+                                              (Object_Dir_Path
+                                               & Directory_Separator
+                                               & Filename (1 .. Last));
+
                            C_Object_Path : String := Object_Path;
                            C_Filename    : String := Filename (1 .. Last);
 
@@ -1388,21 +1401,27 @@ package body MLib.Prj is
                                                  Ext_To
                                                    (C_Filename
                                                       (1 .. Last), "ali");
+
                                     ALI_Path : constant String :=
                                                  Ext_To (C_Object_Path, "ali");
-                                    Add_It   : Boolean :=
-                                                 Foreign_Sources
-                                                 or else
-                                                   (Last > 5
-                                                    and then
-                                                    C_Filename
-                                                      (1 .. B_Start'Length) =
-                                                      B_Start.all);
-                                    Fname    : File_Name_Type;
-                                    Proj     : Project_Id;
-                                    Index    : Unit_Index;
+
+                                    Add_It : Boolean;
+                                    Fname  : File_Name_Type;
+                                    Proj   : Project_Id;
+                                    Index  : Unit_Index;
 
                                  begin
+                                    --  The following assignment could use
+                                    --  a comment ???
+
+                                    Add_It :=
+                                      Foreign_Sources
+                                        or else
+                                          (Last >= 5
+                                             and then
+                                               C_Filename (1 .. B_Start'Length)
+                                                 = B_Start.all);
+
                                     if Is_Regular_File (ALI_Path) then
 
                                        --  If there is an ALI file, check if
@@ -1412,8 +1431,9 @@ package body MLib.Prj is
                                        --  the library.
 
                                        if not Add_It then
-                                          Index := Units_Htable.Get_First
-                                            (In_Tree.Units_HT);
+                                          Index :=
+                                            Units_Htable.Get_First
+                                             (In_Tree.Units_HT);
                                           while Index /= null loop
                                              if Index.File_Names (Impl) /=
                                                null
@@ -1465,8 +1485,9 @@ package body MLib.Prj is
 
                                              exit when Add_It;
 
-                                             Index := Units_Htable.Get_Next
-                                               (In_Tree.Units_HT);
+                                             Index :=
+                                               Units_Htable.Get_Next
+                                                 (In_Tree.Units_HT);
                                           end loop;
                                        end if;
 
@@ -1805,13 +1826,13 @@ package body MLib.Prj is
                      Canonical_Case_File_Name (Name (1 .. Last));
                      Delete := False;
 
-                     if (The_Build_Mode = Static and then
-                           Name (1 .. Last) =  Archive_Name)
+                     if (The_Build_Mode = Static
+                          and then Name (1 .. Last) =  Archive_Name)
                        or else
-                         ((The_Build_Mode = Dynamic or else
-                             The_Build_Mode = Relocatable)
-                          and then
-                            Name (1 .. Last) = DLL_Name)
+                         ((The_Build_Mode = Dynamic
+                            or else
+                           The_Build_Mode = Relocatable)
+                          and then Name (1 .. Last) = DLL_Name)
                      then
                         Delete := True;
 
@@ -1828,17 +1849,19 @@ package body MLib.Prj is
                            while Unit /= No_Unit_Index loop
                               if Unit.File_Names (Impl) /= null
                                 and then Unit.File_Names (Impl).Project /=
-                                No_Project
+                                                                 No_Project
                               then
                                  if Ultimate_Extending_Project_Of
-                                   (Unit.File_Names (Impl).Project) =
-                                    For_Project
+                                      (Unit.File_Names (Impl).Project) =
+                                                                 For_Project
                                  then
                                     Get_Name_String
                                       (Unit.File_Names (Impl).File);
-                                    Name_Len := Name_Len -
-                                      File_Extension
-                                        (Name (1 .. Name_Len))'Length;
+                                    Name_Len :=
+                                      Name_Len -
+                                        File_Extension
+                                          (Name (1 .. Name_Len))'Length;
+
                                     if Name_Buffer (1 .. Name_Len) =
                                       Name (1 .. Last - 4)
                                     then
@@ -1849,18 +1872,16 @@ package body MLib.Prj is
 
                               elsif Unit.File_Names (Spec) /= null
                                 and then Ultimate_Extending_Project_Of
-                                  (Unit.File_Names (Spec).Project) =
-                                   For_Project
+                                           (Unit.File_Names (Spec).Project) =
+                                                                   For_Project
                               then
-                                 Get_Name_String
-                                   (Unit.File_Names (Spec).File);
+                                 Get_Name_String (Unit.File_Names (Spec).File);
                                  Name_Len :=
                                    Name_Len -
-                                   File_Extension
-                                     (Name (1 .. Name_Len))'Length;
+                                     File_Extension (Name (1 .. Last))'Length;
 
                                  if Name_Buffer (1 .. Name_Len) =
-                                   Name (1 .. Last - 4)
+                                      Name (1 .. Last - 4)
                                  then
                                     Delete := True;
                                     exit;
@@ -2152,19 +2173,11 @@ package body MLib.Prj is
       First_Unit  : ALI.Unit_Id;
       Second_Unit : ALI.Unit_Id;
 
-      Data : Unit_Index;
-
       Copy_Subunits : Boolean := False;
       --  When True, indicates that subunits, if any, need to be copied too
 
       procedure Copy (File_Name : File_Name_Type);
       --  Copy one source of the project to the target directory
-
-      function Is_Same_Or_Extension
-        (Extending : Project_Id;
-         Extended  : Project_Id) return Boolean;
-      --  Return True if project Extending is equal to or extends project
-      --  Extended.
 
       ----------
       -- Copy --
@@ -2174,55 +2187,25 @@ package body MLib.Prj is
          Success : Boolean;
          pragma Warnings (Off, Success);
 
+         Source : Standard.Prj.Source_Id;
       begin
-         Data := Units_Htable.Get_First (In_Tree.Units_HT);
+         Source := Find_Source
+           (In_Tree, For_Project,
+            In_Extended_Only => True,
+            Base_Name => File_Name);
 
-         Unit_Loop :
-         while Data /= No_Unit_Index loop
-            --  Find and copy the immediate or inherited source
-
-            for J in Data.File_Names'Range loop
-               if Data.File_Names (J) /= null
-                 and then Is_Same_Or_Extension
-                   (For_Project, Data.File_Names (J).Project)
-                 and then Data.File_Names (J).File = File_Name
-               then
-                  Copy_File
-                    (Get_Name_String (Data.File_Names (J).Path.Name),
-                     Target,
-                     Success,
-                     Mode => Overwrite,
-                     Preserve => Preserve);
-                  exit Unit_Loop;
-               end if;
-            end loop;
-
-            Data := Units_Htable.Get_Next (In_Tree.Units_HT);
-         end loop Unit_Loop;
+         if Source /= No_Source
+           and then not Source.Locally_Removed
+           and then Source.Replaced_By = No_Source
+         then
+            Copy_File
+              (Get_Name_String (Source.Path.Name),
+               Target,
+               Success,
+               Mode     => Overwrite,
+               Preserve => Preserve);
+         end if;
       end Copy;
-
-      --------------------------
-      -- Is_Same_Or_Extension --
-      --------------------------
-
-      function Is_Same_Or_Extension
-        (Extending : Project_Id;
-         Extended  : Project_Id) return Boolean
-      is
-         Ext : Project_Id;
-
-      begin
-         Ext := Extending;
-         while Ext /= No_Project loop
-            if Ext = Extended then
-               return True;
-            end if;
-
-            Ext := Ext.Extends;
-         end loop;
-
-         return False;
-      end Is_Same_Or_Extension;
 
    --  Start of processing for Copy_Interface_Sources
 

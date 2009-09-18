@@ -238,7 +238,7 @@ int epilogue_locator;
 /* Hold current location information and last location information, so the
    datastructures are built lazily only when some instructions in given
    place are needed.  */
-location_t curr_location, last_location;
+static location_t curr_location, last_location;
 static tree curr_block, last_block;
 static int curr_rtl_loc = -1;
 
@@ -290,12 +290,17 @@ set_curr_insn_source_location (location_t location)
      time locators are not initialized.  */
   if (curr_rtl_loc == -1)
     return;
-  if (location == last_location)
-    return;
   curr_location = location;
 }
 
-/* Set current scope block. */
+/* Get current location.  */
+location_t
+get_curr_insn_source_location (void)
+{
+  return curr_location;
+}
+
+/* Set current scope block.  */
 void
 set_curr_insn_block (tree b)
 {
@@ -305,6 +310,13 @@ set_curr_insn_block (tree b)
     return;
   if (b)
     curr_block = b;
+}
+
+/* Get current scope block.  */
+tree
+get_curr_insn_block (void)
+{
+  return curr_block;
 }
 
 /* Return current insn locator.  */
@@ -775,6 +787,17 @@ fixup_reorder_chain (void)
 	{
 	  if (any_condjump_p (bb_end_insn))
 	    {
+	      /* This might happen if the conditional jump has side
+		 effects and could therefore not be optimized away.
+		 Make the basic block to end with a barrier in order
+		 to prevent rtl_verify_flow_info from complaining.  */
+	      if (!e_fall)
+		{
+		  gcc_assert (!onlyjump_p (bb_end_insn));
+		  bb->il.rtl->footer = emit_barrier_after (bb_end_insn);
+		  continue;
+		}
+
 	      /* If the old fallthru is still next, nothing to do.  */
 	      if (bb->aux == e_fall->dest
 		  || e_fall->dest == EXIT_BLOCK_PTR)
@@ -835,6 +858,15 @@ fixup_reorder_chain (void)
 		  update_br_prob_note (bb);
 		  continue;
 		}
+	    }
+	  else if (extract_asm_operands (PATTERN (bb_end_insn)) != NULL)
+	    {
+	      /* If the old fallthru is still next, nothing to do.  */
+	      if (bb->aux == e_fall->dest
+		  || e_fall->dest == EXIT_BLOCK_PTR)
+		continue;
+
+	      /* Otherwise we'll have to use the fallthru fixup below.  */
 	    }
 	  else
 	    {
@@ -1120,6 +1152,7 @@ duplicate_insn_chain (rtx from, rtx to)
     {
       switch (GET_CODE (insn))
 	{
+	case DEBUG_INSN:
 	case INSN:
 	case CALL_INSN:
 	case JUMP_INSN:

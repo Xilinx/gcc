@@ -90,6 +90,7 @@ static rtx avr_builtin_setjmp_frame_value (void);
 static bool avr_hard_regno_scratch_ok (unsigned int);
 static unsigned int avr_case_values_threshold (void);
 static bool avr_frame_pointer_required_p (void);
+static bool avr_can_eliminate (const int, const int);
 
 /* Allocate registers from r25 to r8 for parameters for function calls.  */
 #define FIRST_CUM_REG 26
@@ -107,7 +108,7 @@ static const char *const avr_regnames[] = REGISTER_NAMES;
 static int last_insn_address = 0;
 
 /* Preprocessor macros to define depending on MCU type.  */
-const char *avr_extra_arch_macro;
+static const char *avr_extra_arch_macro;
 
 /* Current architecture.  */
 const struct base_arch_s *avr_current_arch;
@@ -191,6 +192,8 @@ static const struct attribute_spec avr_attribute_table[] =
 
 #undef TARGET_FRAME_POINTER_REQUIRED
 #define TARGET_FRAME_POINTER_REQUIRED avr_frame_pointer_required_p
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE avr_can_eliminate
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -213,13 +216,67 @@ avr_override_options (void)
 	fprintf (stderr,"   %s\n", t->name);
     }
 
-  avr_current_arch = &avr_arch_types[t->arch];
-  avr_extra_arch_macro = t->macro;
+  avr_current_device = t;
+  avr_current_arch = &avr_arch_types[avr_current_device->arch];
+  avr_extra_arch_macro = avr_current_device->macro;
 
   tmp_reg_rtx  = gen_rtx_REG (QImode, TMP_REGNO);
   zero_reg_rtx = gen_rtx_REG (QImode, ZERO_REGNO);
 
   init_machine_status = avr_init_machine_status;
+}
+
+/* Worker function for TARGET_CPU_CPP_BUILTINS.  */
+
+void
+avr_cpu_cpp_builtins (struct cpp_reader *pfile)
+{
+  builtin_define_std ("AVR");
+
+  if (avr_current_arch->macro)
+    cpp_define (pfile, avr_current_arch->macro);
+  if (avr_extra_arch_macro)
+    cpp_define (pfile, avr_extra_arch_macro);
+  if (avr_current_arch->have_elpm)
+    cpp_define (pfile, "__AVR_HAVE_RAMPZ__");
+  if (avr_current_arch->have_elpm)
+    cpp_define (pfile, "__AVR_HAVE_ELPM__");
+  if (avr_current_arch->have_elpmx)
+    cpp_define (pfile, "__AVR_HAVE_ELPMX__");
+  if (avr_current_arch->have_movw_lpmx)
+    {
+      cpp_define (pfile, "__AVR_HAVE_MOVW__");
+      cpp_define (pfile, "__AVR_HAVE_LPMX__");
+    }
+  if (avr_current_arch->asm_only)
+    cpp_define (pfile, "__AVR_ASM_ONLY__");
+  if (avr_current_arch->have_mul)
+    {
+      cpp_define (pfile, "__AVR_ENHANCED__");
+      cpp_define (pfile, "__AVR_HAVE_MUL__");
+    }
+  if (avr_current_arch->have_jmp_call)
+    {
+      cpp_define (pfile, "__AVR_MEGA__");
+      cpp_define (pfile, "__AVR_HAVE_JMP_CALL__");
+    }
+  if (avr_current_arch->have_eijmp_eicall)
+    {
+      cpp_define (pfile, "__AVR_HAVE_EIJMP_EICALL__");
+      cpp_define (pfile, "__AVR_3_BYTE_PC__");
+    }
+  else
+    {
+      cpp_define (pfile, "__AVR_2_BYTE_PC__");
+    }
+
+  if (avr_current_device->short_sp)
+    cpp_define (pfile, "__AVR_HAVE_8BIT_SP__");
+  else
+    cpp_define (pfile, "__AVR_HAVE_16BIT_SP__");
+
+  if (TARGET_NO_INTERRUPTS)
+    cpp_define (pfile, "__NO_INTERRUPTS__");
 }
 
 /*  return register class from register number.  */
@@ -374,7 +431,7 @@ avr_regs_to_save (HARD_REG_SET *set)
 /* Return true if register FROM can be eliminated via register TO.  */
 
 bool
-avr_can_eliminate (int from, int to)
+avr_can_eliminate (const int from, const int to)
 {
   return ((from == ARG_POINTER_REGNUM && to == FRAME_POINTER_REGNUM)
 	  || ((from == FRAME_POINTER_REGNUM 
@@ -625,7 +682,7 @@ expand_prologue (void)
 	      rtx fp_plus_insns; 
 	      rtx sp_plus_insns = NULL_RTX;
 
-              if (TARGET_TINY_STACK)
+              if (AVR_HAVE_8BIT_SP)
                 {
                   /* The high byte (r29) doesn't change - prefer 'subi' (1 cycle)
                      over 'sbiw' (2 cycles, same size).  */
@@ -651,7 +708,7 @@ expand_prologue (void)
               RTX_FRAME_RELATED_P (insn) = 1;
 
 	      /* Copy to stack pointer.  */
-	      if (TARGET_TINY_STACK)
+	      if (AVR_HAVE_8BIT_SP)
 		{
 		  insn = emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
 		  RTX_FRAME_RELATED_P (insn) = 1;
@@ -805,7 +862,7 @@ expand_epilogue (void)
 	      rtx fp_plus_insns;
 	      rtx sp_plus_insns = NULL_RTX;
 	      
-	      if (TARGET_TINY_STACK)
+	      if (AVR_HAVE_8BIT_SP)
                 {
                   /* The high byte (r29) doesn't change - prefer 'subi' 
                      (1 cycle) over 'sbiw' (2 cycles, same size).  */
@@ -821,12 +878,12 @@ expand_epilogue (void)
 	      start_sequence ();
 
 	      emit_move_insn (myfp,
-			      gen_rtx_PLUS (HImode, myfp,
+			      gen_rtx_PLUS (GET_MODE (myfp), myfp,
 					    gen_int_mode (size, 
 							  GET_MODE(myfp))));
 
 	      /* Copy to stack pointer.  */
-	      if (TARGET_TINY_STACK)
+	      if (AVR_HAVE_8BIT_SP)
 		{
 		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
 		}
@@ -1639,7 +1696,7 @@ output_movhi (rtx insn, rtx operands[], int *l)
 	{
 	  if (test_hard_reg_class (STACK_REG, dest))
 	    {
-	      if (TARGET_TINY_STACK)
+	      if (AVR_HAVE_8BIT_SP)
 		return *l = 1, AS2 (out,__SP_L__,%A1);
               /* Use simple load of stack pointer if no interrupts are 
 		 used.  */

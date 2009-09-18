@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-scalar-evolution.h"
 #include "params.h"
 #include "tree-inline.h"
+#include "langhooks.h"
 
 /* Creates an induction variable with value BASE + STEP * iteration in LOOP.
    It is expected that neither BASE nor STEP are shared with other expressions
@@ -124,8 +125,8 @@ create_iv (tree base, tree step, tree var, struct loop *loop,
 
   stmt = create_phi_node (vb, loop->header);
   SSA_NAME_DEF_STMT (vb) = stmt;
-  add_phi_arg (stmt, initial, loop_preheader_edge (loop));
-  add_phi_arg (stmt, va, loop_latch_edge (loop));
+  add_phi_arg (stmt, initial, loop_preheader_edge (loop), UNKNOWN_LOCATION);
+  add_phi_arg (stmt, va, loop_latch_edge (loop), UNKNOWN_LOCATION);
 }
 
 /* Add exit phis for the USE on EXIT.  */
@@ -155,7 +156,7 @@ add_exit_phis_edge (basic_block exit, tree use)
   create_new_def_for (gimple_phi_result (phi), phi,
 		      gimple_phi_result_ptr (phi));
   FOR_EACH_EDGE (e, ei, exit->preds)
-    add_phi_arg (phi, use, e);
+    add_phi_arg (phi, use, e, UNKNOWN_LOCATION);
 }
 
 /* Add exit phis for VAR that is used in LIVEIN.
@@ -277,6 +278,9 @@ find_uses_to_rename_stmt (gimple stmt, bitmap *use_blocks, bitmap need_phis)
   ssa_op_iter iter;
   tree var;
   basic_block bb = gimple_bb (stmt);
+
+  if (is_gimple_debug (stmt))
+    return;
 
   FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_ALL_USES)
     find_uses_to_rename_use (bb, var, use_blocks, need_phis);
@@ -428,6 +432,9 @@ check_loop_closed_ssa_stmt (basic_block bb, gimple stmt)
   ssa_op_iter iter;
   tree var;
 
+  if (is_gimple_debug (stmt))
+    return;
+
   FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_ALL_USES)
     check_loop_closed_ssa_use (bb, var);
 }
@@ -475,11 +482,13 @@ split_loop_exit_edge (edge exit)
   tree new_name, name;
   use_operand_p op_p;
   gimple_stmt_iterator psi;
+  source_location locus;
 
   for (psi = gsi_start_phis (dest); !gsi_end_p (psi); gsi_next (&psi))
     {
       phi = gsi_stmt (psi);
       op_p = PHI_ARG_DEF_PTR_FROM_EDGE (phi, single_succ_edge (bb));
+      locus = gimple_phi_arg_location_from_edge (phi, single_succ_edge (bb));
 
       name = USE_FROM_PTR (op_p);
 
@@ -493,7 +502,7 @@ split_loop_exit_edge (edge exit)
       new_name = duplicate_ssa_name (name, NULL);
       new_phi = create_phi_node (new_name, bb);
       SSA_NAME_DEF_STMT (new_name) = new_phi;
-      add_phi_arg (new_phi, name, exit);
+      add_phi_arg (new_phi, name, exit, locus);
       SET_USE (op_p, new_name);
     }
 
@@ -990,10 +999,19 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
       /* Prefer using original variable as a base for the new ssa name.
 	 This is necessary for virtual ops, and useful in order to avoid
 	 losing debug info for real ops.  */
-      if (TREE_CODE (next) == SSA_NAME)
+      if (TREE_CODE (next) == SSA_NAME
+	  && useless_type_conversion_p (TREE_TYPE (next),
+					TREE_TYPE (init)))
 	var = SSA_NAME_VAR (next);
-      else if (TREE_CODE (init) == SSA_NAME)
+      else if (TREE_CODE (init) == SSA_NAME
+	       && useless_type_conversion_p (TREE_TYPE (init),
+					     TREE_TYPE (next)))
 	var = SSA_NAME_VAR (init);
+      else if (useless_type_conversion_p (TREE_TYPE (next), TREE_TYPE (init)))
+	{
+	  var = create_tmp_var (TREE_TYPE (next), "unrinittmp");
+	  add_referenced_var (var);
+	}
       else
 	{
 	  var = create_tmp_var (TREE_TYPE (init), "unrinittmp");
@@ -1004,8 +1022,8 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
       phi_rest = create_phi_node (new_init, rest);
       SSA_NAME_DEF_STMT (new_init) = phi_rest;
 
-      add_phi_arg (phi_rest, init, precond_edge);
-      add_phi_arg (phi_rest, next, new_exit);
+      add_phi_arg (phi_rest, init, precond_edge, UNKNOWN_LOCATION);
+      add_phi_arg (phi_rest, next, new_exit, UNKNOWN_LOCATION);
       SET_USE (op, new_init);
     }
 
@@ -1090,4 +1108,133 @@ tree_unroll_loop (struct loop *loop, unsigned factor,
 {
   tree_transform_and_unroll_loop (loop, factor, exit, desc,
 				  NULL, NULL);
+}
+
+/* Rewrite the phi node at position PSI in function of the main
+   induction variable MAIN_IV and insert the generated code at GSI.  */
+
+static void
+rewrite_phi_with_iv (loop_p loop,
+		     gimple_stmt_iterator *psi,
+		     gimple_stmt_iterator *gsi,
+		     tree main_iv)
+{
+  affine_iv iv;
+  gimple stmt, phi = gsi_stmt (*psi);
+  tree atype, mtype, val, res = PHI_RESULT (phi);
+
+  if (!is_gimple_reg (res) || res == main_iv)
+    {
+      gsi_next (psi);
+      return;
+    }
+
+  if (!simple_iv (loop, loop, res, &iv, true))
+    {
+      gsi_next (psi);
+      return;
+    }
+
+  remove_phi_node (psi, false);
+
+  atype = TREE_TYPE (res);
+  mtype = POINTER_TYPE_P (atype) ? sizetype : atype;
+  val = fold_build2 (MULT_EXPR, mtype, unshare_expr (iv.step),
+		     fold_convert (mtype, main_iv));
+  val = fold_build2 (POINTER_TYPE_P (atype)
+		     ? POINTER_PLUS_EXPR : PLUS_EXPR,
+		     atype, unshare_expr (iv.base), val);
+  val = force_gimple_operand_gsi (gsi, val, false, NULL_TREE, true,
+				  GSI_SAME_STMT);
+  stmt = gimple_build_assign (res, val);
+  gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
+  SSA_NAME_DEF_STMT (res) = stmt;
+}
+
+/* Rewrite all the phi nodes of LOOP in function of the main induction
+   variable MAIN_IV.  */
+
+static void
+rewrite_all_phi_nodes_with_iv (loop_p loop, tree main_iv)
+{
+  unsigned i;
+  basic_block *bbs = get_loop_body_in_dom_order (loop);
+  gimple_stmt_iterator psi;
+
+  for (i = 0; i < loop->num_nodes; i++)
+    {
+      basic_block bb = bbs[i];
+      gimple_stmt_iterator gsi = gsi_after_labels (bb);
+
+      if (bb->loop_father != loop)
+	continue;
+
+      for (psi = gsi_start_phis (bb); !gsi_end_p (psi); )
+	rewrite_phi_with_iv (loop, &psi, &gsi, main_iv);
+    }
+
+  free (bbs);
+}
+
+/* Bases all the induction variables in LOOP on a single induction
+   variable (unsigned with base 0 and step 1), whose final value is
+   compared with *NIT.  When the IV type precision has to be larger
+   than *NIT type precision, *NIT is converted to the larger type, the
+   conversion code is inserted before the loop, and *NIT is updated to
+   the new definition.  The induction variable is incremented in the
+   loop latch.  Return the induction variable that was created.  */
+
+tree
+canonicalize_loop_ivs (struct loop *loop, tree *nit)
+{
+  unsigned precision = TYPE_PRECISION (TREE_TYPE (*nit));
+  unsigned original_precision = precision;
+  tree type, var_before;
+  gimple_stmt_iterator gsi, psi;
+  gimple stmt;
+  edge exit = single_dom_exit (loop);
+  gimple_seq stmts;
+
+  for (psi = gsi_start_phis (loop->header);
+       !gsi_end_p (psi); gsi_next (&psi))
+    {
+      gimple phi = gsi_stmt (psi);
+      tree res = PHI_RESULT (phi);
+
+      if (is_gimple_reg (res) && TYPE_PRECISION (TREE_TYPE (res)) > precision)
+	precision = TYPE_PRECISION (TREE_TYPE (res));
+    }
+
+  type = lang_hooks.types.type_for_size (precision, 1);
+
+  if (original_precision != precision)
+    {
+      *nit = fold_convert (type, *nit);
+      *nit = force_gimple_operand (*nit, &stmts, true, NULL_TREE);
+      if (stmts)
+	gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
+    }
+
+  gsi = gsi_last_bb (loop->latch);
+  create_iv (build_int_cst_type (type, 0), build_int_cst (type, 1), NULL_TREE,
+	     loop, &gsi, true, &var_before, NULL);
+
+  rewrite_all_phi_nodes_with_iv (loop, var_before);
+
+  stmt = last_stmt (exit->src);
+  /* Make the loop exit if the control condition is not satisfied.  */
+  if (exit->flags & EDGE_TRUE_VALUE)
+    {
+      edge te, fe;
+
+      extract_true_false_edges_from_block (exit->src, &te, &fe);
+      te->flags = EDGE_FALSE_VALUE;
+      fe->flags = EDGE_TRUE_VALUE;
+    }
+  gimple_cond_set_code (stmt, LT_EXPR);
+  gimple_cond_set_lhs (stmt, var_before);
+  gimple_cond_set_rhs (stmt, *nit);
+  update_stmt (stmt);
+
+  return var_before;
 }

@@ -163,7 +163,7 @@ format_hash_entry;
 typedef struct namelist_type
 {
   /* Object type, stored as GFC_DTYPE_xxxx.  */
-  bt type;
+  dtype type;
 
   /* Object name.  */
   char * var_name;
@@ -481,7 +481,9 @@ typedef struct st_parameter_dt
 	  unsigned at_eof : 1;
 	  /* Used for g0 floating point output.  */
 	  unsigned g0_no_blanks : 1;
-	  /* 15 unused bits.  */
+	  /* Used to signal use of free_format_data.  */
+	  unsigned format_not_saved : 1;
+	  /* 14 unused bits.  */
 
 	  char last_char;
 	  char nml_delim;
@@ -652,7 +654,7 @@ typedef enum
   FMT_LPAREN, FMT_RPAREN, FMT_X, FMT_S, FMT_SS, FMT_SP, FMT_STRING,
   FMT_BADSTRING, FMT_P, FMT_I, FMT_B, FMT_BN, FMT_BZ, FMT_O, FMT_Z, FMT_F,
   FMT_E, FMT_EN, FMT_ES, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END, FMT_DC,
-  FMT_DP
+  FMT_DP, FMT_STAR
 }
 format_token;
 
