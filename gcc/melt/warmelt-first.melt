@@ -535,8 +535,8 @@ it.}#
 (defclass class_src 
   :super class_located
   :fields ( 
-	   src_loc
-	   )
+	  src_loc
+	  )
   :doc #{The $class_src is the common super-class of source elements,
 i.e. of abstract syntax tree elements after macro-expansion.}#
   )
@@ -831,6 +831,11 @@ i.e. of abstract syntax tree elements after macro-expansion.}#
   "melt_checked_assignmsg((" val "),(" msg "))")
 (defprimitive debugcstring (:cstring msg str) :void
   "debugeprintf(\"debugcstring %s '%s'\", " msg ", " str ")")
+
+(defprimitive the_null_cstring () :cstring
+  :doc #{The null const cstring.}#
+  #{(char*)0}#
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; STRBUF primitives
@@ -1180,6 +1185,12 @@ Returns a boxed integer.}#
   #{/*$strsam test*/ ($str && $cstr && !strcmp($str, $cstr)) }#
   ;; no fill or operator
 )
+
+;; primitive to compute the length of a cstring
+(defprimitive cstring_length
+  (:cstring cstr) :long
+  :doc #{ compute safely the length a C-string $cstr. Gives 0 if null argument. }#
+  #{(($cstr)?strlen($cstr):0)}#)
 
 ;; cmatcher for a tuple of a given exact size
 (defcmatcher tuple_sized
@@ -2023,16 +2034,41 @@ Returns a boxed integer.}#
 
 (defun clone_symbol (symb)
   (let ( (mapstr (unsafe_get_field :container_value container_clonemapstring)) 
-	 (synam (cond
-		 ( (is_a symb class_named) 
-		   (unsafe_get_field :named_name symb))
-		 ( (is_string symb) 
-		   symb)
-		 (:else 
-		  (debug_msg symb "clone_symbol bad symb")
-		  (messageval_dbg "clone_symbol symn not named or string" symb)
-		  (assert_msg "invalid symbol in clone_symbol, not named or string" ())
-		  (the_null))))
+	 (synam
+	  (cond
+	   ( (is_string symb) 
+	     symb)
+	   ( (is_a symb class_named) 
+	     (unsafe_get_field :named_name symb))
+	   (:else 
+	    (let ( (discrinam (get_field :named_name (discrim symb)))
+		   )
+	      (warningmsg_strv "clone_symbol got invalid argument of discriminant" 
+			       discrinam)
+	      (shortbacktrace_dbg "clone_symbol error.." 15)
+	      (debug_msg symb "clone_symbol bad symb")
+	      (messageval_dbg "clone_symbol symn not named or string" symb)
+	      (compile_warning "clone_symbol does not stop on failure" ())
+					;(assert_msg "invalid symbol in clone_symbol, not named or string" ())
+					;(the_null)
+	      (let ( (:cstring namcstr (the_null_cstring)
+			       ) )
+		(code_chunk clonamstr
+		      #{
+		      static char clonambuf[100];
+		      const char *s = melt_string_str ($discrinam);
+		      if (s) s = strchr(s, '_');
+		      if (!s) s = "_What";
+		      memset (clonambuf, 0, sizeof(clonambuf));
+		      snprintf (clonambuf, 
+				sizeof(clonambuf)-1,
+				"Cloned_Melt%s", s);
+		      $namcstr = clonambuf;	    
+		      }#
+		      )
+		(make_stringconst discr_string namcstr)
+		)))
+	   ))
 	 (boxi (mapstring_getstr mapstr synam)) )
     (assert_msg "check synam" (is_string synam))
     (if (not (is_integerbox boxi))
@@ -4222,41 +4258,6 @@ Returns a boxed integer.}#
  )
 
 
-
-;;; I tried in many ways to remove entirely the src_loc field from the
-;;; class_src; it seems that the only proper way is to code something
-;;; to remove it and to run it. This is an HUGLY TRICK
-(compile_warning "temporary disgusting hack to remove src_loc" ())
-(defun shameful_hack_to_remove_src_loc ()
-  (let ( (:long srclocoff (get_int src_loc)) 
-	 (classsrcfields (get_field :class_fields class_src))
-	 )
-    (assert_msg "check srclocoff>0" (>i srclocoff 0))
-    (assert_msg "check classsrcfields length" 
-		(==i (multiple_length classsrcfields) (+i srclocoff 1)))
-    (assert_msg "check classsrcfields last"
-		(== (multiple_nth classsrcfields srclocoff) src_loc))
-    ;; we clear the field slot manually
-    (multiple_put_nth classsrcfields srclocoff ())
-    (code_chunk 
-     shameful 
-     ;; we shrink the tuple length by dirty unsafe C code.
-     #{
-     /* $shameful */
-     #warning unsafe ugly code to remove src_loc field
-     ((meltmultiple_ptr_t)$classsrcfields)->tabval[$srclocoff] = NULL ;
-     ((meltmultiple_ptr_t)$classsrcfields)->nbval = $srclocoff	  ;
-     warning (0, "ugly MELT removal of src_loc in shameful_hack_to_remove_src_loc") ;
-     }#
-     ))
-  )
-
-#|
-(compile_warning 
- "we run horrible code to remove the SRC_LOC field entirely!"
-(shameful_hack_to_remove_src_loc))
-|#
-
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
  class_any_binding
@@ -4539,6 +4540,7 @@ Returns a boxed integer.}#
  the_callcount
  the_framedepth
  the_null
+ the_null_cstring
  void
  warning_plain
  warning_strv
@@ -4619,6 +4621,7 @@ Returns a boxed integer.}#
  closure_every
  compare_named_alpha
  compare_obj_ranked
+ cstring_length
  cstring_same
  dbg_out				
  dbg_outobject	

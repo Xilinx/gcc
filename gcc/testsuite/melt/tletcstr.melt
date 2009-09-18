@@ -1,0 +1,14 @@
+; -*- lisp -*-
+;; file tletcstr.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-compile-script=./built-melt-cc-script \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tletcstr.melt -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun tletcstr (f x)
+  (let ( (:cstring cstr "abc") )
+    (f x cstr)))
+;; eof tletcstr.melt

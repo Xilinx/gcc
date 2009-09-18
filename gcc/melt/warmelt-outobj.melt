@@ -3196,7 +3196,16 @@
   (debug_msg moduldata "start translateinit_command moduldata")
   (debug_msg initial_environment "before read translateinit_command initial_environment")
   (let ( (rlist (make_list discr_list))
-	 (inarg (make_stringconst discr_string (melt_argument "arg")))
+	 (:cstring progarg (melt_argument "arg"))
+	 (:cstring progarglist (melt_argument "arglist"))
+	 (inarg (cond ( progarg 
+			(make_stringconst discr_string progarg))
+		      ( progarglist
+			 (split_string_comma discr_string progarglist)
+			)
+		      (:else
+		       (errormsg_plain "invalid arg or arglist to translateinit mode")
+		       (return))))
 	 (outarg (make_stringconst discr_string (melt_argument "output")))
 	 (basnam (cond
 		  ( (is_string outarg) outarg)

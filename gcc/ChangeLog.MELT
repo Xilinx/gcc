@@ -1,4 +1,18 @@
 
+2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	[To remove src_loc, we added the shameful ability to compile
+	translate all the MELT translator at once in a single monster
+	file. Let-s with constant cstrings don't work, so added
+	tletcstr.melt test case]
+	* melt-make.mk (warmeltbig-*, warmeltallbig): new targets, to have
+	the ability to translate all the MELT translator at once.
+	* melt/warmelt-first.melt: the clone_symbol function is now more
+	robust and can clone any thing with a warning. Added
+	the_null_cstring & cstring_length
+	primitives. shameful_hack_to_remove_src_loc is commented out.
+	* melt/warmelt-outobj.melt: re-added ability to translateinit a list
+	of files.
+
 2009-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	[The src_loc field should be removed, but removing a field from a
 	superclass inside warmelt-first.melt is a nightmare. We add some

@@ -77,6 +77,9 @@ warmelt-%-h2.d.so: warmelt-%-h2.c
 	$(melt_make_compile_script) -d $< $@
 warm%.n.so: warm%.c 
 	$(melt_make_compile_script) -n $< $@
+## warmeltbig*.c is so big that it can only be compiled with -O0
+warmeltbig-%.so: warmeltbig-%.c 
+	$(melt_make_compile_script) -O0 -d $< $@
 warm%.so: warm%.c 
 	$(melt_make_compile_script) $< $@
 
@@ -90,15 +93,15 @@ ana%.so: ana%.c
 	$(melt_make_compile_script)  $< $@
 
 ## the warmelt files - order is important!
-WARMELT_FILES= \
-	 warmelt-first.melt  \
+WARMELT_RESTFILES= \
 	 warmelt-macro.melt  \
 	 warmelt-normal.melt \
 	 warmelt-normatch.melt \
 	 warmelt-genobj.melt \
 	 warmelt-outobj.melt 
-
+WARMELT_FILES= 	 warmelt-first.melt $(WARMELT_RESTFILES)
 WARMELT_SRCFILES= $(patsubst %.melt, $(melt_make_source_dir)/%.melt, $(WARMELT_FILES))
+WARMELT_SRCRESTFILES= $(patsubst %.melt, $(melt_make_source_dir)/%.melt, $(WARMELT_RESTFILES))
 WARMELT_SRCARGLIST:=$(shell echo $(realpath $(WARMELT_SRCFILES))|sed 's: :,:g')
 WARMELT_BASE= $(basename $(WARMELT_FILES))
 WARMELT_BASELIST:=$(shell echo $(WARMELT_BASE)|sed 's: :,:g')
@@ -204,7 +207,7 @@ warmelt-first-h.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(
 warmelt-%-h.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_cc1) \
 	 $(WARMELT_BASE0DSO) warmelt-first-h.d.so  empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=$(patsubst warmelt-first-%.d,warmelt-first-h.d,$(WARMELT_BASE0DROW)) \
+	$(meltarg_init)=$(subst warmelt-first-0.d,warmelt-first-h.d,$(WARMELT_BASE0DROW)) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
@@ -228,6 +231,44 @@ warmelt-%-h2.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_cc1) \
 	$(meltarg_init)=$(WARMELT_BASEHDROW) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+## we add the ability to translate all the warmelt* files at once.
+## this could help some delicate changes, like removing a field from
+## an inner class of the translator. The generated file is huge, so we
+## don't want to do that often, and the generated C file should be
+## compiled without any optimisation, otherwise the C compiler suffers
+## too much..
+
+warmeltbig-1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c
+	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
+	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+warmeltbig-2.c: $(WARMELT_SRCFILES) warmeltbig-1.so $(melt_cc1) empty-file-for-melt.c
+	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-1 \
+	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-melt.c
+	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-2 \
+	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+
+
+.PHONY: warmeltallbig 
+
+warmeltallbig: warmeltbig-3.so
+	wc warmeltbig*.c
+	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-3 \
+	      $(meltarg_arg)=$(melt_make_source_dir)/warmelt-first.melt  \
+	      $(meltarg_output)=warmelt-first-3.c  empty-file-for-melt.c
+	for f in $(WARMELT_SRCRESTFILES); do \
+	   $(MELTCCFILE1) \
+	     $(meltarg_init)=warmeltbig-3 \
+	      $(meltarg_arg)=$$f \
+	      $(meltarg_output)=`basename $$f .melt`-3.c  empty-file-for-melt.c ; \
+	done
 
 
 warmelth2.modlis: $(WARMELT_BASEH2SO)
