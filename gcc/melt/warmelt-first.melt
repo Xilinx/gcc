@@ -531,11 +531,9 @@ it.}#
 ;;;; ================  source program elements
 
 ;; common superclass of source elements
-(compile_warning "the src_loc field is obsolete" ())
 (defclass class_src 
   :super class_located
   :fields ( 
-	  src_loc
 	  )
   :doc #{The $class_src is the common super-class of source elements,
 i.e. of abstract syntax tree elements after macro-expansion.}#

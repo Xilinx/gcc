@@ -1169,7 +1169,9 @@
 					;(debug_msg exval "normexp_primitive exval in sopexp")
 	      (multiple_put_nth expargs jx exval))
 	    ))
-	 (let ( (csym (clone_symbol  (unsafe_get_field :sdef_name soper))) 
+	 (debug_msg soper "normexp_primitive soper")
+	 (assert_msg "check soper is named" (is_a soper class_named))
+	 (let ( (csym (clone_symbol soper)) 
 		(cbind (instance class_normlet_binding
 				 :letbind_loc sloc
 				 :binder csym

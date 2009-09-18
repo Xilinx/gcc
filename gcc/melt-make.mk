@@ -258,6 +258,9 @@ warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-m
 
 .PHONY: warmeltallbig 
 
+### this is only useful rarely ... it regenerated the warmelt*2.c
+### files using the big monolithic version of the translator... to be
+### used carefully when desperate!
 warmeltallbig: warmeltbig-3.so
 	wc warmeltbig*.c
 	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-3 \
@@ -267,7 +270,7 @@ warmeltallbig: warmeltbig-3.so
 	   $(MELTCCFILE1) \
 	     $(meltarg_init)=warmeltbig-3 \
 	      $(meltarg_arg)=$$f \
-	      $(meltarg_output)=`basename $$f .melt`-3.c  empty-file-for-melt.c ; \
+	      $(meltarg_output)=`basename $$f .melt`-2.c  empty-file-for-melt.c ; \
 	done
 
 

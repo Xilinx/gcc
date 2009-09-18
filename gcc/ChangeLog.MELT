@@ -1,5 +1,21 @@
 
 2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	[entirely removed src_loc and corrected old bug in primitive
+	normalization - which cloned incorrectly the operator.]
+	* melt/warmelt-first.melt: removed src_loc.
+	* melt/warmelt-normal.melt: in normexp_primitive csym is the
+	cloned symbol from the operator!
+	* melt-make.mk: the warmeltallbig pseudotarget generates the
+	warmelt*2.c files using warmeltbig-3.so!
+	[regenerated several times]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	[quoted integers are of DISCR_CONSTINTEGER and cannot be written
 	into; tletcstr.melt test passes.]
 	* melt-runtime.h (melt_put_int) moved function and added test
