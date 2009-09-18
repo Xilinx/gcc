@@ -1,7 +1,9 @@
-/* { dg-options "-std=gnu99 -O2" } */
+/* { dg-options "-O2" } */
 
 /* C99 6.5.5: Multiplicative operators.
    C99 6.5.6: Additive operators.  */
+
+#include "dfp-dbg.h"
 
 extern void link_error (void);
 

@@ -1,3 +1,71 @@
+2009-09-17  Bob Duff  <duff@adacore.com>
+
+	* g-socket.ads: Document the fact that Close_Selector has no effect on
+	a closed selector.
+	* g-socket.adb: Raise an exception when a Selector that should be open
+	is closed.
+	(Check_Selector): Declare RSig as a constant rather than a renames,
+	less confusing.
+
+2009-09-17  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch9.adb, exp_ch5.adb, exp_ch4.adb, prj-conf.adb, prj-env.ads,
+	prj-ext.adb, prj-ext.ads, prj-pars.adb, prj-part.adb, prj-proc.adb,
+	prj-tree.ads: Minor reformatting
+
+2009-09-17  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-conf.adb, prj-env.adb, prj-env.ads (Create_Temp_File): Moved to
+	spec.
+	(Do_Autoconf): If the object directory does not exists, create auto.cgpr
+	in a temporary directory instead
+
+2009-09-17  Bob Duff  <duff@adacore.com>
+
+	* a-dynpri.adb (Set_Priority): Don't do anything if the task is already
+	terminated.
+	(Get_Priority): Correct message for "terminated" case -- it said "null".
+
+2009-09-17  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch6.adb: Minor reformatting
+
+2009-09-17  Emmanuel Briot  <briot@adacore.com>
+
+	* gnatcmd.adb, make.adb, prj-part.adb, prj-ext.adb, prj-ext.ads,
+	switch-m.adb, switch-m.ads, clean.adb, prj-tree.ads
+	(Project_Node_Tree_Data.Project_Path): New field.
+
+	* prj-conf.adb (Do_Autoconf): Remove "creating auto.cgpr" message
+
+2009-09-17  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-ext.adb, prj-ext.ads, makeutl.adb (Is_External_Assignment):
+	Remove duplicate code.
+	(Prj.Ext): Fix memory leak
+	(Check): Now allow the syntax "-Xfoo=" to set an empty value to the
+	variable. This was previously allowed in the code in
+	Is_External_Assignment, and some tests rely on it
+
+2009-09-17  Bob Duff  <duff@adacore.com>
+
+	* gnat_rm.texi, s-oscons-tmplt.c: Minor typo
+
+2009-09-17  Emmanuel Briot  <briot@adacore.com>
+
+	* gnatcmd.adb, prj-proc.adb, make.adb, prj-ext.adb, prj-ext.ads,
+	makeutl.adb, makeutl.ads, clean.adb, prj-pars.adb, prj-pars.ads,
+	prj-conf.adb, prj-conf.ads, prj-tree.adb, prj-tree.ads, prj-proc.ads,
+	prj-nmsc.ads (Add, Value_Of, Reset): new parameter Tree.
+	Scenario variables are now specific to each project tree loaded in
+	memory.
+	Code clean ups.
+
+2009-09-17  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp.adb (Make_DT): Remove wrong line of code that was
+	undocumented and probably added by mistake.
+
 2009-09-16  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/trans.c (Attribute_to_gnu) <Attr_Size>: Strip

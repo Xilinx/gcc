@@ -1,5 +1,9 @@
 /* { dg-do compile } */
-/* { dg-options "-std=gnu99 -O2" } */
+/* { dg-options "-O2" } */
+
+#ifdef __cplusplus
+typedef float _Decimal32 __attribute__((mode(SD)));
+#endif
 
 extern void foo (_Decimal32);
 _Decimal32 *p;
