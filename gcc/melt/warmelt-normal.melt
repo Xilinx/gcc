@@ -3153,7 +3153,7 @@
 	   ( (is_integerbox quoted)
 	     (let (
 		   (nintdata (instance class_nrep_databoxedinteger
-				       :ndata_discrx (normal_predef discr_integer ncx sloc "discr_integer") 
+				       :ndata_discrx (normal_predef discr_constinteger ncx sloc "discr_constinteger") 
 				       :nboxint_num quoted))
 		   )
 	       (add_nctx_data ncx nintdata)

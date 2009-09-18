@@ -1234,7 +1234,9 @@
 		     )
 		 (assert_msg "check others" (is_list others))
 		 (add2sbuf_strconst nambuf "loc_")
-		 (add2sbuf_cident nambuf  (unsafe_get_field :named_name ctyp))
+		 (add2sbuf_cident nambuf 
+				  (get_field :named_name 
+					     (get_field :ctype_keyword ctyp)))
 		 (add2sbuf_strconst nambuf "__o")
 		 (add2sbuf_longdec nambuf nbothers)
 		 (let ( (nloc (instance class_objlocv
@@ -2506,7 +2508,7 @@
 	 (typdesto (unsafe_get_field :obv_type desto)) 
 	 )
     (cond
-     ;; special case when reciver is void
+     ;; special case when reciever is void
      ( (== typrecv ctype_void)
        (if (== typdesto ctype_void)
 	   (return recv)
@@ -2587,6 +2589,32 @@
     obc
     ))
 (install_method discr_integer put_objdest putobjdest_integer)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; put obj destination inside a string
+;;; useful to compile (let ( (:cstring foo "abc") ) ...)
+(defun putobjdest_string (recv desto)
+  (assert_msg "check recv" (is_string recv))
+  (assert_msg "check desto" (is_a desto class_objlocv))
+  (debug_msg recv "putobjdest_string recv")
+  (debug_msg desto "putobjdest_string desto")
+  (let ( (destlis (make_list discr_list))
+	 (explis (make_list discr_list))
+	 (typdesto (unsafe_get_field :obv_type desto))
+	 (obc (instance class_objcompute
+			;; dont fill :obi_loc
+			:obdi_destlist destlis
+			:obcpt_expr explis
+			)) 
+	 )
+    (assert_msg "check typdesto" (== typdesto ctype_cstring))
+    (list_append destlis desto)
+    (list_append explis recv)
+    (debug_msg obc "putobjdest_string return obc")
+    obc
+    ))
+(install_method discr_string put_objdest putobjdest_string)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_null (recv desto)

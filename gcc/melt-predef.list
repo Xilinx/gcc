@@ -24,6 +24,8 @@
   DISCR_STRING
 # the initial discriminant of integer 
   DISCR_INTEGER
+# the initial discriminant of constant quoted integer 
+  DISCR_CONSTINTEGER
 # the initial discriminant of lists 
   DISCR_LIST
 # the initial discriminant of multiples 

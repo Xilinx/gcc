@@ -1537,29 +1537,6 @@ melt_get_int (melt_ptr_t v)
     }
 }
 
-static inline bool
-melt_put_int (melt_ptr_t v, long x)
-{
-  switch (melt_magic_discr (v))
-    {
-    case OBMAG_INT:
-      ((struct meltint_st *) (v))->val = x;
-      return TRUE;
-    case OBMAG_MIXINT:
-      ((struct meltmixint_st *) (v))->intval = x;
-      return TRUE;
-    case OBMAG_MIXLOC:
-      ((struct meltmixloc_st *) (v))->intval = x;
-      return TRUE;
-    case OBMAG_OBJECT:
-      if (((meltobject_ptr_t) (v))->obj_num != 0)
-	return FALSE;
-      ((meltobject_ptr_t) (v))->obj_num = (unsigned short) x;
-      return TRUE;
-    default:
-      return FALSE;
-    }
-}
 
 
 static inline long
@@ -2992,6 +2969,37 @@ melt_is_instance_of (melt_ptr_t inst_p, melt_ptr_t class_p)
   /* the instance is not an object but something else and it has the
      good magic */
   return TRUE;
+}
+
+
+
+/* since melt_put_int uses DISCR_CONSTINTEGER it should be here */
+static inline bool
+melt_put_int (melt_ptr_t v, long x)
+{
+  if (!v)
+    return FALSE;
+  switch (melt_magic_discr (v))
+    {
+    case OBMAG_INT:
+      if (v->u_discr == (meltobject_ptr_t)MELT_PREDEF(DISCR_CONSTINTEGER))
+	return FALSE;
+      ((struct meltint_st *) (v))->val = x;
+      return TRUE;
+    case OBMAG_MIXINT:
+      ((struct meltmixint_st *) (v))->intval = x;
+      return TRUE;
+    case OBMAG_MIXLOC:
+      ((struct meltmixloc_st *) (v))->intval = x;
+      return TRUE;
+    case OBMAG_OBJECT:
+      if (((meltobject_ptr_t) (v))->obj_num != 0)
+	return FALSE;
+      ((meltobject_ptr_t) (v))->obj_num = (unsigned short) x;
+      return TRUE;
+    default:
+      return FALSE;
+    }
 }
 
 /***

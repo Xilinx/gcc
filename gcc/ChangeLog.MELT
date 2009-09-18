@@ -1,5 +1,16 @@
 
 2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	[quoted integers are of DISCR_CONSTINTEGER and cannot be written
+	into; tletcstr.melt test passes.]
+	* melt-runtime.h (melt_put_int) moved function and added test
+	against discr_constinteger.
+	* melt-predef.list: added DISCR_CONSTINTEGER.
+	* melt/warmelt-first.melt: added dicr_constinteger.
+	* melt/warmelt-normal.melt: the quote of an  integer is boxed
+	constant integer of discr_constinteger.
+	* melt/warmelt-genobj.melt: added putobjdest_string.
+
+2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	[To remove src_loc, we added the shameful ability to compile
 	translate all the MELT translator at once in a single monster
 	file. Let-s with constant cstrings don't work, so added

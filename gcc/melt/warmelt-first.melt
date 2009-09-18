@@ -1554,6 +1554,16 @@ Returns a boxed integer.}#
   :disc_super discr_anyrecv
   :named_name '"DISCR_INTEGER")
 
+;;; the discriminant for constant integers, like '123
+(definstance discr_constinteger class_discr
+  :predef DISCR_CONSTINTEGER
+  :obj_num OBMAG_INT
+  :disc_super discr_integer
+  :named_name '"DISCR_CONSTINTEGER"
+  :doc #{The discriminant for constant integers, in particular those
+obtained by quoting an integer.}# 
+)
+
 ;;; the discriminant for lists
 (definstance discr_list class_discr
   :predef DISCR_LIST
@@ -4568,6 +4578,7 @@ Returns a boxed integer.}#
  discr_basicblock   
  discr_box 
  discr_charinteger                    
+ discr_constinteger
  discr_closure                        
  discr_edge
  discr_file
