@@ -147,7 +147,8 @@ update_src () {
 		log "SVN update"
 
 		OLD_REV=`cd ${SRC_DIR_CURRENT} && svn info | grep "Last Changed Rev:" | cut -d " " -f 4`
-		cd ${SRC_DIR_CURRENT} && svn update 2>&1 > ${LOG_DIR_CURRENT}/update.log 
+		OLD_REV_PLUS_ONE=`echo "${OLD_REV} + 1" | bc -l`
+		cd ${SRC_DIR_CURRENT} && svn update 2>&1 > ${LOG_DIR_CURRENT}/update.log
 
 		if [ -z "${FORCE_BUILD}" -a -z "`grep 'Updated to' ${LOG_DIR_CURRENT}/update.log`" ] ; then
 			rm -f ${LOG_DIR}/running
@@ -158,7 +159,7 @@ update_src () {
 		log "Updated to:"
 		CURRENT_REV=`cd ${SRC_DIR_CURRENT} && svn info | grep "Last Changed Rev:" | cut -d " " -f 4`
 		echo "http://gcc.gnu.org/viewcvs?root=gcc&view=rev&rev=${CURRENT_REV}" >> ${LOG_DIR_CURRENT}/info.log
-		cd ${SRC_DIR_CURRENT} && svn log -r${OLD_REV}:${CURRENT_REV} >> ${LOG_DIR_CURRENT}/info.log
+		cd ${SRC_DIR_CURRENT} && svn log -r${OLD_REV_PLUS_ONE}:${CURRENT_REV} >> ${LOG_DIR_CURRENT}/info.log
 		if cat ${LOG_DIR_CURRENT}/info.log | grep -q "Merge from mainline"; then
 		    UPDATE_CONTAINS_MERGE=yes
 		fi
