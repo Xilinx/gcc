@@ -5,8 +5,8 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* checksum of the gcc executable generating this file: */
 const unsigned char genchecksum_melt[16]=
- { 0xb1, 0x41, 0xa8, 0x42, 0x64, 0x29, 0x84, 0xe3,
-    0xa7, 0x9c, 0xf6, 0x1a, 0x8d, 0x2c, 0x32, 0x37};
+ { 0x60, 0x77, 0x7e, 0x8f, 0x96, 0x39, 0x81, 0xcd,
+    0x8e, 0x24, 0x97, 0xb9, 0xef, 0xf9, 0xfd, 0xd7};
 #endif
 
 #include "run-melt.h"
@@ -354,7 +354,7 @@ MELT_LOCATION("warmelt-normatch.melt:67:/ block");
  MELT_LOCATION("warmelt-normatch.melt:69:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:69:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:69:/ cond.then");
@@ -594,7 +594,7 @@ MELT_LOCATION("warmelt-normatch.melt:82:/ block");
  MELT_LOCATION("warmelt-normatch.melt:84:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_ANY*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_ANY*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:84:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:84:/ cond.then");
@@ -633,7 +633,7 @@ MELT_LOCATION("warmelt-normatch.melt:82:/ block");
  MELT_LOCATION("warmelt-normatch.melt:85:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:85:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:85:/ cond.then");
@@ -911,7 +911,7 @@ MELT_LOCATION("warmelt-normatch.melt:98:/ block");
  MELT_LOCATION("warmelt-normatch.melt:100:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:100:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:100:/ cond.then");
@@ -950,7 +950,7 @@ MELT_LOCATION("warmelt-normatch.melt:98:/ block");
  MELT_LOCATION("warmelt-normatch.melt:101:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_OR*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_OR*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:101:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:101:/ cond.then");
@@ -1211,7 +1211,7 @@ MELT_LOCATION("warmelt-normatch.melt:117:/ block");
  MELT_LOCATION("warmelt-normatch.melt:119:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:119:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:119:/ cond.then");
@@ -1250,7 +1250,7 @@ MELT_LOCATION("warmelt-normatch.melt:117:/ block");
  MELT_LOCATION("warmelt-normatch.melt:120:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_AND*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_AND*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:120:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:120:/ cond.then");
@@ -1511,7 +1511,7 @@ MELT_LOCATION("warmelt-normatch.melt:136:/ block");
  MELT_LOCATION("warmelt-normatch.melt:138:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:138:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:138:/ cond.then");
@@ -1550,7 +1550,7 @@ MELT_LOCATION("warmelt-normatch.melt:136:/ block");
  MELT_LOCATION("warmelt-normatch.melt:139:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_VARIABLE*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_VARIABLE*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:139:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:139:/ cond.then");
@@ -1884,7 +1884,7 @@ MELT_LOCATION("warmelt-normatch.melt:160:/ block");
  MELT_LOCATION("warmelt-normatch.melt:162:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:162:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:162:/ cond.then");
@@ -1923,7 +1923,7 @@ MELT_LOCATION("warmelt-normatch.melt:160:/ block");
  MELT_LOCATION("warmelt-normatch.melt:163:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_JOKERVAR*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_JOKERVAR*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:163:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:163:/ cond.then");
@@ -2141,7 +2141,7 @@ MELT_LOCATION("warmelt-normatch.melt:173:/ block");
  MELT_LOCATION("warmelt-normatch.melt:176:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:176:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:176:/ cond.then");
@@ -2180,7 +2180,7 @@ MELT_LOCATION("warmelt-normatch.melt:173:/ block");
  MELT_LOCATION("warmelt-normatch.melt:177:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_AS*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_AS*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:177:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:177:/ cond.then");
@@ -2473,7 +2473,7 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
  MELT_LOCATION("warmelt-normatch.melt:199:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:199:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:199:/ cond.then");
@@ -2512,7 +2512,7 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
  MELT_LOCATION("warmelt-normatch.melt:200:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_CONSTANT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_CONSTANT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:200:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:200:/ cond.then");
@@ -2564,7 +2564,7 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
    melt_object_get_field(slot,(melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 4, "PCTN_MAPATCST");/*_.MAPCST__V16*/ curfptr[15] = slot; };
   ;
   /*_#IS_OBJECT__L4*/ curfnum[0] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.SCONST__V13*/ curfptr[12])) == OBMAG_OBJECT);;
+   (melt_magic_discr((melt_ptr_t)(/*_.SCONST__V13*/ curfptr[12])) == OBMAG_OBJECT);;
   MELT_LOCATION("warmelt-normatch.melt:205:/ cond");
   /*cond*/ if (/*_#IS_OBJECT__L4*/ curfnum[0]) /*then*/ {
   MELT_LOCATION("warmelt-normatch.melt:205:/ cond.then");
@@ -2631,7 +2631,7 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
    #endif /*ENABLE_CHECKING*/
    ;
   /*_#IS_OBJECT__L6*/ curfnum[4] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.SCONST__V13*/ curfptr[12])) == OBMAG_OBJECT);;
+   (melt_magic_discr((melt_ptr_t)(/*_.SCONST__V13*/ curfptr[12])) == OBMAG_OBJECT);;
   /*_#NOT__L7*/ curfnum[6] = 
    (!(/*_#IS_OBJECT__L6*/ curfnum[4]));;
   MELT_LOCATION("warmelt-normatch.melt:212:/ cond");
@@ -2946,7 +2946,7 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
    MELT_LOCATION("warmelt-normatch.melt:231:/ block");
     /*block*/{
      /*_#IS_A__L14*/ curfnum[9] = 
-       melt_is_instance_of((melt_ptr_t)(/*_.RECTYP__V44*/ curfptr[33]), (melt_ptr_t)((/*!CLASS_CTYPE*/ curfrout->tabval[6])));;
+      melt_is_instance_of((melt_ptr_t)(/*_.RECTYP__V44*/ curfptr[33]), (melt_ptr_t)((/*!CLASS_CTYPE*/ curfrout->tabval[6])));;
      MELT_LOCATION("warmelt-normatch.melt:231:/ cond");
      /*cond*/ if (/*_#IS_A__L14*/ curfnum[9]) /*then*/ {
      MELT_LOCATION("warmelt-normatch.melt:231:/ cond.then");
@@ -3208,7 +3208,7 @@ MELT_LOCATION("warmelt-normatch.melt:244:/ block");
  MELT_LOCATION("warmelt-normatch.melt:246:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:246:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:246:/ cond.then");
@@ -3247,7 +3247,7 @@ MELT_LOCATION("warmelt-normatch.melt:244:/ block");
  MELT_LOCATION("warmelt-normatch.melt:247:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_OBJECT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_OBJECT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:247:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:247:/ cond.then");
@@ -3300,7 +3300,7 @@ MELT_LOCATION("warmelt-normatch.melt:244:/ block");
   MELT_LOCATION("warmelt-normatch.melt:252:/ block");
    /*block*/{
     /*_#IS_A__L4*/ curfnum[0] = 
-      melt_is_instance_of((melt_ptr_t)(/*_.SCLA__V14*/ curfptr[13]), (melt_ptr_t)((/*!CLASS_CLASS*/ curfrout->tabval[3])));;
+     melt_is_instance_of((melt_ptr_t)(/*_.SCLA__V14*/ curfptr[13]), (melt_ptr_t)((/*!CLASS_CLASS*/ curfrout->tabval[3])));;
     MELT_LOCATION("warmelt-normatch.melt:252:/ cond");
     /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
     MELT_LOCATION("warmelt-normatch.melt:252:/ cond.then");
@@ -3386,7 +3386,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
    MELT_LOCATION("warmelt-normatch.melt:257:/ block");
     /*block*/{
      /*_#IS_A__L7*/ curfnum[6] = 
-       melt_is_instance_of((melt_ptr_t)(/*_.FLDPA__V20*/ curfptr[18]), (melt_ptr_t)((/*!CLASS_SRCFIELDPATTERN*/ curfrout->tabval[4])));;
+      melt_is_instance_of((melt_ptr_t)(/*_.FLDPA__V20*/ curfptr[18]), (melt_ptr_t)((/*!CLASS_SRCFIELDPATTERN*/ curfrout->tabval[4])));;
      MELT_LOCATION("warmelt-normatch.melt:257:/ cond");
      /*cond*/ if (/*_#IS_A__L7*/ curfnum[6]) /*then*/ {
      MELT_LOCATION("warmelt-normatch.melt:257:/ cond.then");
@@ -3441,7 +3441,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
      MELT_LOCATION("warmelt-normatch.melt:259:/ block");
       /*block*/{
        /*_#IS_A__L8*/ curfnum[6] = 
-         melt_is_instance_of((melt_ptr_t)(/*_.F__V25*/ curfptr[24]), (melt_ptr_t)((/*!CLASS_FIELD*/ curfrout->tabval[5])));;
+        melt_is_instance_of((melt_ptr_t)(/*_.F__V25*/ curfptr[24]), (melt_ptr_t)((/*!CLASS_FIELD*/ curfrout->tabval[5])));;
        MELT_LOCATION("warmelt-normatch.melt:259:/ cond");
        /*cond*/ if (/*_#IS_A__L8*/ curfnum[6]) /*then*/ {
        MELT_LOCATION("warmelt-normatch.melt:259:/ cond.then");
@@ -3782,7 +3782,7 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
  MELT_LOCATION("warmelt-normatch.melt:283:/ block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[0])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[0])));;
    MELT_LOCATION("warmelt-normatch.melt:283:/ cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:283:/ cond.then");
@@ -3889,7 +3889,7 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
  MELT_LOCATION("warmelt-normatch.melt:286:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.CTYP__V4*/ curfptr[3]), (melt_ptr_t)((/*!CLASS_CTYPE*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.CTYP__V4*/ curfptr[3]), (melt_ptr_t)((/*!CLASS_CTYPE*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:286:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:286:/ cond.then");
@@ -3928,7 +3928,7 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
  MELT_LOCATION("warmelt-normatch.melt:287:/ block");
   /*block*/{
    /*_#IS_A__L5*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_COMPOSITE*/ curfrout->tabval[3])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_COMPOSITE*/ curfrout->tabval[3])));;
    MELT_LOCATION("warmelt-normatch.melt:287:/ cond");
    /*cond*/ if (/*_#IS_A__L5*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:287:/ cond.then");
@@ -4013,7 +4013,7 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
    MELT_LOCATION("warmelt-normatch.melt:291:/ block");
     /*block*/{
      /*_#IS_A__L7*/ curfnum[0] = 
-       melt_is_instance_of((melt_ptr_t)(/*_.SOP__V19*/ curfptr[18]), (melt_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[4])));;
+      melt_is_instance_of((melt_ptr_t)(/*_.SOP__V19*/ curfptr[18]), (melt_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[4])));;
      MELT_LOCATION("warmelt-normatch.melt:291:/ cond");
      /*cond*/ if (/*_#IS_A__L7*/ curfnum[0]) /*then*/ {
      MELT_LOCATION("warmelt-normatch.melt:291:/ cond.then");
@@ -4110,7 +4110,7 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
    MELT_LOCATION("warmelt-normatch.melt:297:/ block");
     /*block*/{
      /*_#IS_A__L9*/ curfnum[0] = 
-       melt_is_instance_of((melt_ptr_t)(/*_.MB__V28*/ curfptr[27]), (melt_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[5])));;
+      melt_is_instance_of((melt_ptr_t)(/*_.MB__V28*/ curfptr[27]), (melt_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[5])));;
      MELT_LOCATION("warmelt-normatch.melt:297:/ cond");
      /*cond*/ if (/*_#IS_A__L9*/ curfnum[0]) /*then*/ {
      MELT_LOCATION("warmelt-normatch.melt:297:/ cond.then");
@@ -4187,7 +4187,7 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
   MELT_LOCATION("warmelt-normatch.melt:307:/ block");
    /*block*/{
     /*_#IS_A__L10*/ curfnum[0] = 
-      melt_is_instance_of((melt_ptr_t)(/*_.MATCTYP__V37*/ curfptr[36]), (melt_ptr_t)((/*!CLASS_CTYPE*/ curfrout->tabval[2])));;
+     melt_is_instance_of((melt_ptr_t)(/*_.MATCTYP__V37*/ curfptr[36]), (melt_ptr_t)((/*!CLASS_CTYPE*/ curfrout->tabval[2])));;
     MELT_LOCATION("warmelt-normatch.melt:307:/ cond");
     /*cond*/ if (/*_#IS_A__L10*/ curfnum[0]) /*then*/ {
     MELT_LOCATION("warmelt-normatch.melt:307:/ cond.then");
@@ -4730,7 +4730,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
       MELT_LOCATION("warmelt-normatch.melt:337:/ block");
        /*block*/{
         /*_#IS_A__L23*/ curfnum[19] = 
-          melt_is_instance_of((melt_ptr_t)(/*_.CURCTYPE__V74*/ curfptr[73]), (melt_ptr_t)((/*!CLASS_CTYPE*/ curfrout->tabval[2])));;
+         melt_is_instance_of((melt_ptr_t)(/*_.CURCTYPE__V74*/ curfptr[73]), (melt_ptr_t)((/*!CLASS_CTYPE*/ curfrout->tabval[2])));;
         MELT_LOCATION("warmelt-normatch.melt:337:/ cond");
         /*cond*/ if (/*_#IS_A__L23*/ curfnum[19]) /*then*/ {
         MELT_LOCATION("warmelt-normatch.melt:337:/ cond.then");
@@ -5099,7 +5099,7 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
  MELT_LOCATION("warmelt-normatch.melt:434:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.NTEST__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.NTEST__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:434:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:434:/ cond.then");
@@ -5138,7 +5138,7 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
  MELT_LOCATION("warmelt-normatch.melt:435:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:435:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:435:/ cond.then");
@@ -5187,7 +5187,7 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
   MELT_LOCATION("warmelt-normatch.melt:439:/ block");
    /*block*/{
     /*_#IS_OBJECT__L5*/ curfnum[0] = 
-      (melt_magic_discr((melt_ptr_t)(/*_.NMATCHED__V13*/ curfptr[12])) == OBMAG_OBJECT);;
+     (melt_magic_discr((melt_ptr_t)(/*_.NMATCHED__V13*/ curfptr[12])) == OBMAG_OBJECT);;
     MELT_LOCATION("warmelt-normatch.melt:439:/ cond");
     /*cond*/ if (/*_#IS_OBJECT__L5*/ curfnum[0]) /*then*/ {
     MELT_LOCATION("warmelt-normatch.melt:439:/ cond.then");
@@ -5583,7 +5583,7 @@ MELT_LOCATION("warmelt-normatch.melt:462:/ block");
  MELT_LOCATION("warmelt-normatch.melt:465:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.CURTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.CURTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:465:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:465:/ cond.then");
@@ -5622,7 +5622,7 @@ MELT_LOCATION("warmelt-normatch.melt:462:/ block");
  MELT_LOCATION("warmelt-normatch.melt:466:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.THENTESTER__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.THENTESTER__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:466:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:466:/ cond.then");
@@ -5769,7 +5769,7 @@ MELT_LOCATION("warmelt-normatch.melt:462:/ block");
   /*epilog*/}
  ;
  /*_#IS_A__L7*/ curfnum[0] = 
-   melt_is_instance_of((melt_ptr_t)(/*_.CURTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_DISJUNCTION*/ curfrout->tabval[2])));;
+  melt_is_instance_of((melt_ptr_t)(/*_.CURTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_DISJUNCTION*/ curfrout->tabval[2])));;
  MELT_LOCATION("warmelt-normatch.melt:474:/ cond");
  /*cond*/ if (/*_#IS_A__L7*/ curfnum[0]) /*then*/ {
  MELT_LOCATION("warmelt-normatch.melt:474:/ cond.then");
@@ -6102,7 +6102,7 @@ MELT_LOCATION("warmelt-normatch.melt:488:/ block");
  MELT_LOCATION("warmelt-normatch.melt:492:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.NEWTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.NEWTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:492:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:492:/ cond.then");
@@ -6141,7 +6141,7 @@ MELT_LOCATION("warmelt-normatch.melt:488:/ block");
  MELT_LOCATION("warmelt-normatch.melt:493:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.TESTERCONT__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_CONTAINER*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.TESTERCONT__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_CONTAINER*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:493:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:493:/ cond.then");
@@ -6208,7 +6208,7 @@ MELT_LOCATION("warmelt-normatch.melt:488:/ block");
       }
      ;
      /*_#IS_A__L5*/ curfnum[0] = 
-       melt_is_instance_of((melt_ptr_t)(/*_.NEXTESTER__V17*/ curfptr[16]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
+      melt_is_instance_of((melt_ptr_t)(/*_.NEXTESTER__V17*/ curfptr[16]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
      MELT_LOCATION("warmelt-normatch.melt:499:/ cond");
      /*cond*/ if (/*_#IS_A__L5*/ curfnum[0]) /*then*/ {
      MELT_LOCATION("warmelt-normatch.melt:499:/ cond.then");
@@ -6576,7 +6576,7 @@ MELT_LOCATION("warmelt-normatch.melt:513:/ block");
  MELT_LOCATION("warmelt-normatch.melt:516:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.NEWTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.NEWTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:516:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:516:/ cond.then");
@@ -6615,7 +6615,7 @@ MELT_LOCATION("warmelt-normatch.melt:513:/ block");
  MELT_LOCATION("warmelt-normatch.melt:517:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PARTESTER__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PARTESTER__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:517:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:517:/ cond.then");
@@ -6700,7 +6700,7 @@ MELT_LOCATION("warmelt-normatch.melt:513:/ block");
     MELT_LOCATION("warmelt-normatch.melt:522:/ block");
     /*block*/{
      /*_#IS_A__L7*/ curfnum[6] = 
-       melt_is_instance_of((melt_ptr_t)(/*_.PARTESTER__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[2])));;
+      melt_is_instance_of((melt_ptr_t)(/*_.PARTESTER__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[2])));;
      MELT_LOCATION("warmelt-normatch.melt:524:/ cond");
      /*cond*/ if (/*_#IS_A__L7*/ curfnum[6]) /*then*/ {
      MELT_LOCATION("warmelt-normatch.melt:524:/ cond.then");
@@ -6833,7 +6833,7 @@ melt_magic_discr(/*_.CURPAIR__V24*/ curfptr[23]) == OBMAG_PAIR;
          }
         ;
         /*_#IS_A__L11*/ curfnum[10] = 
-          melt_is_instance_of((melt_ptr_t)(/*_.THTEST__V22*/ curfptr[21]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[2])));;
+         melt_is_instance_of((melt_ptr_t)(/*_.THTEST__V22*/ curfptr[21]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[2])));;
         MELT_LOCATION("warmelt-normatch.melt:544:/ cond");
         /*cond*/ if (/*_#IS_A__L11*/ curfnum[10]) /*then*/ {
         MELT_LOCATION("warmelt-normatch.melt:544:/ cond.then");
@@ -7259,7 +7259,7 @@ MELT_LOCATION("warmelt-normatch.melt:572:/ block");
  MELT_LOCATION("warmelt-normatch.melt:574:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:574:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:574:/ cond.then");
@@ -7527,7 +7527,7 @@ MELT_LOCATION("warmelt-normatch.melt:588:/ block");
  MELT_LOCATION("warmelt-normatch.melt:590:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:590:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:590:/ cond.then");
@@ -7566,7 +7566,7 @@ MELT_LOCATION("warmelt-normatch.melt:588:/ block");
  MELT_LOCATION("warmelt-normatch.melt:591:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_ANY*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_ANY*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:591:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:591:/ cond.then");
@@ -7870,7 +7870,7 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
  MELT_LOCATION("warmelt-normatch.melt:608:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_VARIABLE*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_VARIABLE*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:608:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:608:/ cond.then");
@@ -7909,7 +7909,7 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
  MELT_LOCATION("warmelt-normatch.melt:609:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:609:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:609:/ cond.then");
@@ -8173,7 +8173,7 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
      MELT_LOCATION("warmelt-normatch.melt:630:/ block");
       /*block*/{
        /*_#IS_A__L8*/ curfnum[0] = 
-         melt_is_instance_of((melt_ptr_t)(/*_.LOCOCC__V22*/ curfptr[21]), (melt_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[4])));;
+        melt_is_instance_of((melt_ptr_t)(/*_.LOCOCC__V22*/ curfptr[21]), (melt_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[4])));;
        MELT_LOCATION("warmelt-normatch.melt:630:/ cond");
        /*cond*/ if (/*_#IS_A__L8*/ curfnum[0]) /*then*/ {
        MELT_LOCATION("warmelt-normatch.melt:630:/ cond.then");
@@ -8288,7 +8288,7 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
         MELT_LOCATION("warmelt-normatch.melt:635:/ block");
         /*block*/{
          /*_#IS_A__L11*/ curfnum[10] = 
-           melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V21*/ curfptr[20]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[6])));;
+          melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V21*/ curfptr[20]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[6])));;
          MELT_LOCATION("warmelt-normatch.melt:639:/ cond");
          /*cond*/ if (/*_#IS_A__L11*/ curfnum[10]) /*then*/ {
          MELT_LOCATION("warmelt-normatch.melt:639:/ cond.then");
@@ -9177,7 +9177,7 @@ MELT_LOCATION("warmelt-normatch.melt:702:/ block");
  MELT_LOCATION("warmelt-normatch.melt:705:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_JOKERVAR*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_JOKERVAR*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:705:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:705:/ cond.then");
@@ -9216,7 +9216,7 @@ MELT_LOCATION("warmelt-normatch.melt:702:/ block");
  MELT_LOCATION("warmelt-normatch.melt:706:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:706:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:706:/ cond.then");
@@ -9461,7 +9461,7 @@ MELT_LOCATION("warmelt-normatch.melt:713:/ block");
  MELT_LOCATION("warmelt-normatch.melt:717:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_AS*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_AS*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:717:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:717:/ cond.then");
@@ -9500,7 +9500,7 @@ MELT_LOCATION("warmelt-normatch.melt:713:/ block");
  MELT_LOCATION("warmelt-normatch.melt:718:/ block");
   /*block*/{
    /*_#IS_A__L5*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:718:/ cond");
    /*cond*/ if (/*_#IS_A__L5*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:718:/ cond.then");
@@ -9630,7 +9630,7 @@ MELT_LOCATION("warmelt-normatch.melt:713:/ block");
   MELT_LOCATION("warmelt-normatch.melt:727:/ block");
    /*block*/{
     /*_#IS_A__L7*/ curfnum[0] = 
-      melt_is_instance_of((melt_ptr_t)(/*_.ASPAT__V18*/ curfptr[17]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_VARIABLE*/ curfrout->tabval[5])));;
+     melt_is_instance_of((melt_ptr_t)(/*_.ASPAT__V18*/ curfptr[17]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_VARIABLE*/ curfrout->tabval[5])));;
     MELT_LOCATION("warmelt-normatch.melt:727:/ cond");
     /*cond*/ if (/*_#IS_A__L7*/ curfnum[0]) /*then*/ {
     MELT_LOCATION("warmelt-normatch.melt:727:/ cond.then");
@@ -10759,7 +10759,7 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
  MELT_LOCATION("warmelt-normatch.melt:776:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:776:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:776:/ cond.then");
@@ -10798,7 +10798,7 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
  MELT_LOCATION("warmelt-normatch.melt:777:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_INSTANCE*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_INSTANCE*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:777:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:777:/ cond.then");
@@ -10957,7 +10957,7 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
   MELT_LOCATION("warmelt-normatch.melt:794:/ block");
    /*block*/{
     /*_#IS_A__L5*/ curfnum[0] = 
-      melt_is_instance_of((melt_ptr_t)(/*_.PATCLA__V19*/ curfptr[18]), (melt_ptr_t)((/*!CLASS_CLASS*/ curfrout->tabval[6])));;
+     melt_is_instance_of((melt_ptr_t)(/*_.PATCLA__V19*/ curfptr[18]), (melt_ptr_t)((/*!CLASS_CLASS*/ curfrout->tabval[6])));;
     MELT_LOCATION("warmelt-normatch.melt:794:/ cond");
     /*cond*/ if (/*_#IS_A__L5*/ curfnum[0]) /*then*/ {
     MELT_LOCATION("warmelt-normatch.melt:794:/ cond.then");
@@ -11072,7 +11072,7 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
      MELT_LOCATION("warmelt-normatch.melt:801:/ block");
      /*block*/{
       /*_#IS_A__L8*/ curfnum[7] = 
-        melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V24*/ curfptr[23]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[8])));;
+       melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V24*/ curfptr[23]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[8])));;
       MELT_LOCATION("warmelt-normatch.melt:805:/ cond");
       /*cond*/ if (/*_#IS_A__L8*/ curfnum[7]) /*then*/ {
       MELT_LOCATION("warmelt-normatch.melt:805:/ cond.then");
@@ -11677,7 +11677,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
     MELT_LOCATION("warmelt-normatch.melt:860:/ block");
      /*block*/{
       /*_#IS_A__L21*/ curfnum[9] = 
-        melt_is_instance_of((melt_ptr_t)(/*_.CURPATF__V73*/ curfptr[32]), (melt_ptr_t)((/*!CLASS_SRCFIELDPATTERN*/ curfrout->tabval[16])));;
+       melt_is_instance_of((melt_ptr_t)(/*_.CURPATF__V73*/ curfptr[32]), (melt_ptr_t)((/*!CLASS_SRCFIELDPATTERN*/ curfrout->tabval[16])));;
       MELT_LOCATION("warmelt-normatch.melt:860:/ cond");
       /*cond*/ if (/*_#IS_A__L21*/ curfnum[9]) /*then*/ {
       MELT_LOCATION("warmelt-normatch.melt:860:/ cond.then");
@@ -11948,7 +11948,7 @@ melt_magic_discr(/*_.TESTPAIR__V98*/ curfptr[96]) == OBMAG_PAIR;
        MELT_LOCATION("warmelt-normatch.melt:890:/ block");
         /*block*/{
          /*_#IS_A__L27*/ curfnum[7] = 
-           melt_is_instance_of((melt_ptr_t)(/*_.TESTLOCSY__V99*/ curfptr[98]), (melt_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[24])));;
+          melt_is_instance_of((melt_ptr_t)(/*_.TESTLOCSY__V99*/ curfptr[98]), (melt_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[24])));;
          MELT_LOCATION("warmelt-normatch.melt:890:/ cond");
          /*cond*/ if (/*_#IS_A__L27*/ curfnum[7]) /*then*/ {
          MELT_LOCATION("warmelt-normatch.melt:890:/ cond.then");
@@ -13020,7 +13020,7 @@ MELT_LOCATION("warmelt-normatch.melt:866:/ block");
   MELT_LOCATION("warmelt-normatch.melt:872:/ block");
    /*block*/{
     /*_#IS_A__L4*/ curfnum[0] = 
-      melt_is_instance_of((melt_ptr_t)(/*_.PREVTESTER__V8*/ curfptr[7]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[2])));;
+     melt_is_instance_of((melt_ptr_t)(/*_.PREVTESTER__V8*/ curfptr[7]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[2])));;
     MELT_LOCATION("warmelt-normatch.melt:872:/ cond");
     /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
     MELT_LOCATION("warmelt-normatch.melt:872:/ cond.then");
@@ -13319,7 +13319,7 @@ MELT_LOCATION("warmelt-normatch.melt:947:/ block");
  MELT_LOCATION("warmelt-normatch.melt:951:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:951:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:951:/ cond.then");
@@ -13358,7 +13358,7 @@ MELT_LOCATION("warmelt-normatch.melt:947:/ block");
  MELT_LOCATION("warmelt-normatch.melt:952:/ block");
   /*block*/{
    /*_#IS_A__L5*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_AND*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_AND*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:952:/ cond");
    /*cond*/ if (/*_#IS_A__L5*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:952:/ cond.then");
@@ -13838,7 +13838,7 @@ MELT_LOCATION("warmelt-normatch.melt:958:/ block");
    }
   ;
   /*_#IS_A__L3*/ curfnum[0] = 
-    melt_is_instance_of((melt_ptr_t)(/*_.PREVTESTER__V8*/ curfptr[7]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[2])));;
+   melt_is_instance_of((melt_ptr_t)(/*_.PREVTESTER__V8*/ curfptr[7]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[2])));;
   MELT_LOCATION("warmelt-normatch.melt:963:/ cond");
   /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
   MELT_LOCATION("warmelt-normatch.melt:963:/ cond.then");
@@ -14276,7 +14276,7 @@ MELT_LOCATION("warmelt-normatch.melt:995:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1000:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:1000:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1000:/ cond.then");
@@ -14315,7 +14315,7 @@ MELT_LOCATION("warmelt-normatch.melt:995:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1001:/ block");
   /*block*/{
    /*_#IS_A__L5*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_OR*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_OR*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:1001:/ cond");
    /*cond*/ if (/*_#IS_A__L5*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1001:/ cond.then");
@@ -15054,7 +15054,7 @@ MELT_LOCATION("warmelt-normatch.melt:1009:/ block");
    MELT_LOCATION("warmelt-normatch.melt:1015:/ block");
     /*block*/{
      /*_#IS_A__L3*/ curfnum[0] = 
-       melt_is_instance_of((melt_ptr_t)(/*_.NEWTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
+      melt_is_instance_of((melt_ptr_t)(/*_.NEWTESTER__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[1])));;
      MELT_LOCATION("warmelt-normatch.melt:1015:/ cond");
      /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
      MELT_LOCATION("warmelt-normatch.melt:1015:/ cond.then");
@@ -15116,7 +15116,7 @@ MELT_LOCATION("warmelt-normatch.melt:1009:/ block");
    }
   ;
   /*_#IS_A__L4*/ curfnum[0] = 
-    melt_is_instance_of((melt_ptr_t)(/*_.PREVTESTER__V10*/ curfptr[5]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[3])));;
+   melt_is_instance_of((melt_ptr_t)(/*_.PREVTESTER__V10*/ curfptr[5]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[3])));;
   MELT_LOCATION("warmelt-normatch.melt:1019:/ cond");
   /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
   MELT_LOCATION("warmelt-normatch.melt:1019:/ cond.then");
@@ -15527,7 +15527,7 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1076:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:1076:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1076:/ cond.then");
@@ -15566,7 +15566,7 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1077:/ block");
   /*block*/{
    /*_#IS_A__L5*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_ANYMATCH*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_ANYMATCH*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:1077:/ cond");
    /*cond*/ if (/*_#IS_A__L5*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1077:/ cond.then");
@@ -15715,7 +15715,7 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
   MELT_LOCATION("warmelt-normatch.melt:1093:/ block");
    /*block*/{
     /*_#IS_A__L6*/ curfnum[0] = 
-      melt_is_instance_of((melt_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (melt_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])));;
+     melt_is_instance_of((melt_ptr_t)(/*_.MAT__V17*/ curfptr[16]), (melt_ptr_t)((/*!CLASS_ANY_MATCHER*/ curfrout->tabval[6])));;
     MELT_LOCATION("warmelt-normatch.melt:1093:/ cond");
     /*cond*/ if (/*_#IS_A__L6*/ curfnum[0]) /*then*/ {
     MELT_LOCATION("warmelt-normatch.melt:1093:/ cond.then");
@@ -15754,7 +15754,7 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
   MELT_LOCATION("warmelt-normatch.melt:1094:/ block");
    /*block*/{
     /*_#IS_A__L7*/ curfnum[0] = 
-      melt_is_instance_of((melt_ptr_t)(/*_.MATOPBIND__V18*/ curfptr[17]), (melt_ptr_t)((/*!CLASS_ANY_BINDING*/ curfrout->tabval[7])));;
+     melt_is_instance_of((melt_ptr_t)(/*_.MATOPBIND__V18*/ curfptr[17]), (melt_ptr_t)((/*!CLASS_ANY_BINDING*/ curfrout->tabval[7])));;
     MELT_LOCATION("warmelt-normatch.melt:1094:/ cond");
     /*cond*/ if (/*_#IS_A__L7*/ curfnum[0]) /*then*/ {
     MELT_LOCATION("warmelt-normatch.melt:1094:/ cond.then");
@@ -16502,7 +16502,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
             MELT_LOCATION("warmelt-normatch.melt:1148:/ block");
              /*block*/{
               /*_#IS_A__L26*/ curfnum[23] = 
-                melt_is_instance_of((melt_ptr_t)(/*_.CURMATCH__V79*/ curfptr[78]), (melt_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[12])));;
+               melt_is_instance_of((melt_ptr_t)(/*_.CURMATCH__V79*/ curfptr[78]), (melt_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[12])));;
               MELT_LOCATION("warmelt-normatch.melt:1148:/ cond");
               /*cond*/ if (/*_#IS_A__L26*/ curfnum[23]) /*then*/ {
               MELT_LOCATION("warmelt-normatch.melt:1148:/ cond.then");
@@ -17034,7 +17034,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
            #endif /*ENABLE_CHECKING*/
            ;
           /*_#IS_A__L37*/ curfnum[29] = 
-            melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V111*/ curfptr[81]), (melt_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[17])));;
+           melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V111*/ curfptr[81]), (melt_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[17])));;
           MELT_LOCATION("warmelt-normatch.melt:1196:/ cond");
           /*cond*/ if (/*_#IS_A__L37*/ curfnum[29]) /*then*/ {
           MELT_LOCATION("warmelt-normatch.melt:1196:/ cond.then");
@@ -17311,7 +17311,7 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
            MELT_LOCATION("warmelt-normatch.melt:1196:/ block");
            /*block*/{
             /*_#IS_A__L47*/ curfnum[42] = 
-              melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V111*/ curfptr[81]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[18])));;
+             melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V111*/ curfptr[81]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[18])));;
             MELT_LOCATION("warmelt-normatch.melt:1226:/ cond");
             /*cond*/ if (/*_#IS_A__L47*/ curfnum[42]) /*then*/ {
             MELT_LOCATION("warmelt-normatch.melt:1226:/ cond.then");
@@ -17653,7 +17653,7 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
       MELT_LOCATION("warmelt-normatch.melt:1294:/ block");
        /*block*/{
         /*_#IS_A__L50*/ curfnum[21] = 
-          melt_is_instance_of((melt_ptr_t)(/*_.TESTER__V64*/ curfptr[63]), (melt_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[17])));;
+         melt_is_instance_of((melt_ptr_t)(/*_.TESTER__V64*/ curfptr[63]), (melt_ptr_t)((/*!CLASS_NORMTESTER_MATCHER*/ curfrout->tabval[17])));;
         MELT_LOCATION("warmelt-normatch.melt:1294:/ cond");
         /*cond*/ if (/*_#IS_A__L50*/ curfnum[21]) /*then*/ {
         MELT_LOCATION("warmelt-normatch.melt:1294:/ cond.then");
@@ -18635,7 +18635,7 @@ MELT_LOCATION("warmelt-normatch.melt:1241:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1243:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[1] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.CUROUTMATCH__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.CUROUTMATCH__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:1243:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[1]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1243:/ cond.then");
@@ -19131,7 +19131,7 @@ MELT_LOCATION("warmelt-normatch.melt:1339:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1343:/ block");
   /*block*/{
    /*_#IS_A__L4*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:1343:/ cond");
    /*cond*/ if (/*_#IS_A__L4*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1343:/ cond.then");
@@ -19170,7 +19170,7 @@ MELT_LOCATION("warmelt-normatch.melt:1339:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1344:/ block");
   /*block*/{
    /*_#IS_A__L5*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_CONSTANT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRCPATTERN_CONSTANT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:1344:/ cond");
    /*cond*/ if (/*_#IS_A__L5*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1344:/ cond.then");
@@ -19366,7 +19366,7 @@ MELT_LOCATION("warmelt-normatch.melt:1339:/ block");
    /*_.TESTER__V31*/ curfptr[30] = (/*nil*/NULL);;
    /*_.CURHDLER__V32*/ curfptr[31] = /*_.HDLER__V4*/ curfptr[3];;
    /*_#IS_OBJECT__L7*/ curfnum[0] = 
-     (melt_magic_discr((melt_ptr_t)(/*_.SCONST__V18*/ curfptr[17])) == OBMAG_OBJECT);;
+    (melt_magic_discr((melt_ptr_t)(/*_.SCONST__V18*/ curfptr[17])) == OBMAG_OBJECT);;
    MELT_LOCATION("warmelt-normatch.melt:1362:/ cond");
    /*cond*/ if (/*_#IS_OBJECT__L7*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1362:/ cond.then");
@@ -19500,7 +19500,7 @@ MELT_LOCATION("warmelt-normatch.melt:1339:/ block");
       MELT_LOCATION("warmelt-normatch.melt:1369:/ block");
       /*block*/{
        /*_#IS_A__L11*/ curfnum[10] = 
-         melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V23*/ curfptr[22]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[5])));;
+        melt_is_instance_of((melt_ptr_t)(/*_.TSTUFF__V23*/ curfptr[22]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[5])));;
        MELT_LOCATION("warmelt-normatch.melt:1372:/ cond");
        /*cond*/ if (/*_#IS_A__L11*/ curfnum[10]) /*then*/ {
        MELT_LOCATION("warmelt-normatch.melt:1372:/ cond.then");
@@ -20061,7 +20061,7 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1411:/ block");
   /*block*/{
    /*_#IS_A__L1*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRC_MATCH*/ curfrout->tabval[0])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]), (melt_ptr_t)((/*!CLASS_SRC_MATCH*/ curfrout->tabval[0])));;
    MELT_LOCATION("warmelt-normatch.melt:1411:/ cond");
    /*cond*/ if (/*_#IS_A__L1*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1411:/ cond.then");
@@ -20100,7 +20100,7 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1412:/ block");
   /*block*/{
    /*_#IS_A__L2*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.ENV__V3*/ curfptr[2]), (melt_ptr_t)((/*!CLASS_ENVIRONMENT*/ curfrout->tabval[1])));;
    MELT_LOCATION("warmelt-normatch.melt:1412:/ cond");
    /*cond*/ if (/*_#IS_A__L2*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1412:/ cond.then");
@@ -20139,7 +20139,7 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
  MELT_LOCATION("warmelt-normatch.melt:1413:/ block");
   /*block*/{
    /*_#IS_A__L3*/ curfnum[0] = 
-     melt_is_instance_of((melt_ptr_t)(/*_.NCX__V4*/ curfptr[3]), (melt_ptr_t)((/*!CLASS_NORMCONTEXT*/ curfrout->tabval[2])));;
+    melt_is_instance_of((melt_ptr_t)(/*_.NCX__V4*/ curfptr[3]), (melt_ptr_t)((/*!CLASS_NORMCONTEXT*/ curfrout->tabval[2])));;
    MELT_LOCATION("warmelt-normatch.melt:1413:/ cond");
    /*cond*/ if (/*_#IS_A__L3*/ curfnum[0]) /*then*/ {
    MELT_LOCATION("warmelt-normatch.melt:1413:/ cond.then");
@@ -20407,7 +20407,7 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
       #endif /*ENABLE_CHECKING*/
       ;
      /*_#IS_OBJECT__L12*/ curfnum[7] = 
-       (melt_magic_discr((melt_ptr_t)(/*_.NMATX__V29*/ curfptr[28])) == OBMAG_OBJECT);;
+      (melt_magic_discr((melt_ptr_t)(/*_.NMATX__V29*/ curfptr[28])) == OBMAG_OBJECT);;
      /*_#NOT__L13*/ curfnum[12] = 
       (!(/*_#IS_OBJECT__L12*/ curfnum[7]));;
      MELT_LOCATION("warmelt-normatch.melt:1441:/ cond");
@@ -20645,7 +20645,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
       MELT_LOCATION("warmelt-normatch.melt:1469:/ block");
        /*block*/{
         /*_#IS_A__L18*/ curfnum[16] = 
-          melt_is_instance_of((melt_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), (melt_ptr_t)((/*!CLASS_SRC_CASEMATCH*/ curfrout->tabval[14])));;
+         melt_is_instance_of((melt_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), (melt_ptr_t)((/*!CLASS_SRC_CASEMATCH*/ curfrout->tabval[14])));;
         MELT_LOCATION("warmelt-normatch.melt:1469:/ cond");
         /*cond*/ if (/*_#IS_A__L18*/ curfnum[16]) /*then*/ {
         MELT_LOCATION("warmelt-normatch.melt:1469:/ cond.then");
@@ -21403,7 +21403,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
           MELT_LOCATION("warmelt-normatch.melt:1554:/ block");
            /*block*/{
             /*_#IS_A__L35*/ curfnum[33] = 
-              melt_is_instance_of((melt_ptr_t)(/*_.CURTESTER__V90*/ curfptr[89]), (melt_ptr_t)((/*!CLASS_NORMTESTER_SUCCESS*/ curfrout->tabval[22])));;
+             melt_is_instance_of((melt_ptr_t)(/*_.CURTESTER__V90*/ curfptr[89]), (melt_ptr_t)((/*!CLASS_NORMTESTER_SUCCESS*/ curfrout->tabval[22])));;
             /*_#NOT__L36*/ curfnum[29] = 
              (!(/*_#IS_A__L35*/ curfnum[33]));;
             MELT_LOCATION("warmelt-normatch.melt:1554:/ cond");
@@ -21599,7 +21599,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         MELT_LOCATION("warmelt-normatch.melt:1566:/ block");
          /*block*/{
           /*_#IS_A__L40*/ curfnum[29] = 
-            melt_is_instance_of((melt_ptr_t)(/*_.CURTESTER__V90*/ curfptr[89]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[24])));;
+           melt_is_instance_of((melt_ptr_t)(/*_.CURTESTER__V90*/ curfptr[89]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[24])));;
           MELT_LOCATION("warmelt-normatch.melt:1566:/ cond");
           /*cond*/ if (/*_#IS_A__L40*/ curfnum[29]) /*then*/ {
           MELT_LOCATION("warmelt-normatch.melt:1566:/ cond.then");
@@ -21633,7 +21633,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
          #endif /*ENABLE_CHECKING*/
          ;
         /*_#IS_A__L41*/ curfnum[31] = 
-          melt_is_instance_of((melt_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[25])));;
+         melt_is_instance_of((melt_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANYTESTER*/ curfrout->tabval[25])));;
         MELT_LOCATION("warmelt-normatch.melt:1568:/ cond");
         /*cond*/ if (/*_#IS_A__L41*/ curfnum[31]) /*then*/ {
         MELT_LOCATION("warmelt-normatch.melt:1568:/ cond.then");
@@ -21942,7 +21942,7 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
            MELT_LOCATION("warmelt-normatch.melt:1591:/ block");
             /*block*/{
              /*_#IS_A__L51*/ curfnum[29] = 
-               melt_is_instance_of((melt_ptr_t)(/*_.SOCC__V148*/ curfptr[147]), (melt_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[12])));;
+              melt_is_instance_of((melt_ptr_t)(/*_.SOCC__V148*/ curfptr[147]), (melt_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ curfrout->tabval[12])));;
              MELT_LOCATION("warmelt-normatch.melt:1591:/ cond");
              /*cond*/ if (/*_#IS_A__L51*/ curfnum[29]) /*then*/ {
              MELT_LOCATION("warmelt-normatch.melt:1591:/ cond.then");
@@ -22220,7 +22220,7 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
            MELT_LOCATION("warmelt-normatch.melt:1607:/ block");
             /*block*/{
              /*_#IS_A__L58*/ curfnum[56] = 
-               melt_is_instance_of((melt_ptr_t)(/*_.CURSORTBIND__V166*/ curfptr[147]), (melt_ptr_t)((/*!CLASS_NORMLET_BINDING*/ curfrout->tabval[11])));;
+              melt_is_instance_of((melt_ptr_t)(/*_.CURSORTBIND__V166*/ curfptr[147]), (melt_ptr_t)((/*!CLASS_NORMLET_BINDING*/ curfrout->tabval[11])));;
              MELT_LOCATION("warmelt-normatch.melt:1607:/ cond");
              /*cond*/ if (/*_#IS_A__L58*/ curfnum[56]) /*then*/ {
              MELT_LOCATION("warmelt-normatch.melt:1607:/ cond.then");
@@ -23384,7 +23384,7 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
        MELT_LOCATION("warmelt-normatch.melt:1685:/ block");
         /*block*/{
          /*_#IS_A__L81*/ curfnum[56] = 
-           melt_is_instance_of((melt_ptr_t)(/*_.CURTEST__V232*/ curfptr[151]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[24])));;
+          melt_is_instance_of((melt_ptr_t)(/*_.CURTEST__V232*/ curfptr[151]), (melt_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[24])));;
          MELT_LOCATION("warmelt-normatch.melt:1685:/ cond");
          /*cond*/ if (/*_#IS_A__L81*/ curfnum[56]) /*then*/ {
          MELT_LOCATION("warmelt-normatch.melt:1685:/ cond.then");
@@ -24467,7 +24467,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_3__CLASS_ROOT));
   melt_assertmsg("iniobj checkdiscr dobj_5__CLASS_PATTERNCONTEXT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_hash = 458062483;
+  cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_hash = 72989450;
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_5__CLASS_PATTERNCONTEXT));
  
@@ -24503,7 +24503,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_9__PCTN_NORMCTXT));
   melt_assertmsg("iniobj checkdiscr dobj_11__PCTN_NORMCTXT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_11__PCTN_NORMCTXT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_11__PCTN_NORMCTXT.obj_num = 0;
-  cdat->dobj_11__PCTN_NORMCTXT.obj_hash = 278201082;
+  cdat->dobj_11__PCTN_NORMCTXT.obj_hash = 223387774;
   cdat->dobj_11__PCTN_NORMCTXT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_11__PCTN_NORMCTXT));
  
@@ -24531,7 +24531,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_13__PCTN_SRC));
   melt_assertmsg("iniobj checkdiscr dobj_15__PCTN_SRC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_15__PCTN_SRC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_15__PCTN_SRC.obj_num = 1;
-  cdat->dobj_15__PCTN_SRC.obj_hash = 871943553;
+  cdat->dobj_15__PCTN_SRC.obj_hash = 71234805;
   cdat->dobj_15__PCTN_SRC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_15__PCTN_SRC));
  
@@ -24559,7 +24559,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_17__PCTN_ENV));
   melt_assertmsg("iniobj checkdiscr dobj_19__PCTN_ENV", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_19__PCTN_ENV.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_19__PCTN_ENV.obj_num = 2;
-  cdat->dobj_19__PCTN_ENV.obj_hash = 715266925;
+  cdat->dobj_19__PCTN_ENV.obj_hash = 569571553;
   cdat->dobj_19__PCTN_ENV.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_19__PCTN_ENV));
  
@@ -24587,7 +24587,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_21__PCTN_MAPATVAR));
   melt_assertmsg("iniobj checkdiscr dobj_23__PCTN_MAPATVAR", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_23__PCTN_MAPATVAR.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_23__PCTN_MAPATVAR.obj_num = 3;
-  cdat->dobj_23__PCTN_MAPATVAR.obj_hash = 219843166;
+  cdat->dobj_23__PCTN_MAPATVAR.obj_hash = 710981427;
   cdat->dobj_23__PCTN_MAPATVAR.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_23__PCTN_MAPATVAR));
  
@@ -24615,7 +24615,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_25__PCTN_MAPATCST));
   melt_assertmsg("iniobj checkdiscr dobj_27__PCTN_MAPATCST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_27__PCTN_MAPATCST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_27__PCTN_MAPATCST.obj_num = 4;
-  cdat->dobj_27__PCTN_MAPATCST.obj_hash = 737073336;
+  cdat->dobj_27__PCTN_MAPATCST.obj_hash = 763634722;
   cdat->dobj_27__PCTN_MAPATCST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_27__PCTN_MAPATCST));
  
@@ -24643,7 +24643,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_29__PCTN_BINDLIST));
   melt_assertmsg("iniobj checkdiscr dobj_31__PCTN_BINDLIST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_31__PCTN_BINDLIST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_31__PCTN_BINDLIST.obj_num = 5;
-  cdat->dobj_31__PCTN_BINDLIST.obj_hash = 659791610;
+  cdat->dobj_31__PCTN_BINDLIST.obj_hash = 89207483;
   cdat->dobj_31__PCTN_BINDLIST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_31__PCTN_BINDLIST));
  
@@ -24671,7 +24671,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_33__PCTN_STUFFMAP));
   melt_assertmsg("iniobj checkdiscr dobj_35__PCTN_STUFFMAP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_35__PCTN_STUFFMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_35__PCTN_STUFFMAP.obj_num = 6;
-  cdat->dobj_35__PCTN_STUFFMAP.obj_hash = 538486332;
+  cdat->dobj_35__PCTN_STUFFMAP.obj_hash = 892509772;
   cdat->dobj_35__PCTN_STUFFMAP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_35__PCTN_STUFFMAP));
  
@@ -24699,7 +24699,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_37__PCTN_PVARLOCMAP));
   melt_assertmsg("iniobj checkdiscr dobj_39__PCTN_PVARLOCMAP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_num = 7;
-  cdat->dobj_39__PCTN_PVARLOCMAP.obj_hash = 1064208333;
+  cdat->dobj_39__PCTN_PVARLOCMAP.obj_hash = 382103460;
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_39__PCTN_PVARLOCMAP));
  
@@ -24727,7 +24727,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_41__PCTN_TESTS));
   melt_assertmsg("iniobj checkdiscr dobj_43__PCTN_TESTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_43__PCTN_TESTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_43__PCTN_TESTS.obj_num = 8;
-  cdat->dobj_43__PCTN_TESTS.obj_hash = 985071191;
+  cdat->dobj_43__PCTN_TESTS.obj_hash = 745756269;
   cdat->dobj_43__PCTN_TESTS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_43__PCTN_TESTS));
  
@@ -24767,7 +24767,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_47__CLASS_SELECTOR));
  if (!/*_.VALDATA___V111*/ curfptr[110]) /*_.VALDATA___V111*/ curfptr[110] = (void*)&cdat->dobj_49__SCAN_PATTERN;
   melt_assertmsg("iniobj checkdiscr dobj_49__SCAN_PATTERN", NULL != (void*)/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
   cdat->dobj_49__SCAN_PATTERN.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
-  cdat->dobj_49__SCAN_PATTERN.obj_hash = 495939830;
+  cdat->dobj_49__SCAN_PATTERN.obj_hash = 929690406;
   cdat->dobj_49__SCAN_PATTERN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_49__SCAN_PATTERN));
  
@@ -25226,7 +25226,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_119__NORMAL_PATTERN));
  if (!/*_.VALDATA___V183*/ curfptr[182]) /*_.VALDATA___V183*/ curfptr[182] = (void*)&cdat->dobj_121__NORMAL_PATTERN;
   melt_assertmsg("iniobj checkdiscr dobj_121__NORMAL_PATTERN", NULL != (void*)/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
   cdat->dobj_121__NORMAL_PATTERN.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
-  cdat->dobj_121__NORMAL_PATTERN.obj_hash = 876050838;
+  cdat->dobj_121__NORMAL_PATTERN.obj_hash = 978891964;
   cdat->dobj_121__NORMAL_PATTERN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_121__NORMAL_PATTERN));
  
@@ -25267,7 +25267,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_125__CLASS_NREP_EXPR));
   melt_assertmsg("iniobj checkdiscr dobj_127__CLASS_NORMTESTER_ANY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_hash = 157535339;
+  cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_hash = 561396964;
   cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_127__CLASS_NORMTESTER_ANY));
  
@@ -25303,7 +25303,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_131__NTEST_MATCHED));
   melt_assertmsg("iniobj checkdiscr dobj_133__NTEST_MATCHED", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_133__NTEST_MATCHED.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_133__NTEST_MATCHED.obj_num = 1;
-  cdat->dobj_133__NTEST_MATCHED.obj_hash = 933356210;
+  cdat->dobj_133__NTEST_MATCHED.obj_hash = 325215349;
   cdat->dobj_133__NTEST_MATCHED.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_133__NTEST_MATCHED));
  
@@ -25331,7 +25331,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_135__NTEST_THEN));
   melt_assertmsg("iniobj checkdiscr dobj_137__NTEST_THEN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_137__NTEST_THEN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_137__NTEST_THEN.obj_num = 2;
-  cdat->dobj_137__NTEST_THEN.obj_hash = 953293543;
+  cdat->dobj_137__NTEST_THEN.obj_hash = 689643704;
   cdat->dobj_137__NTEST_THEN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_137__NTEST_THEN));
  
@@ -25359,7 +25359,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_139__NTEST_ELSE));
   melt_assertmsg("iniobj checkdiscr dobj_141__NTEST_ELSE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_141__NTEST_ELSE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_141__NTEST_ELSE.obj_num = 3;
-  cdat->dobj_141__NTEST_ELSE.obj_hash = 141184128;
+  cdat->dobj_141__NTEST_ELSE.obj_hash = 146290863;
   cdat->dobj_141__NTEST_ELSE.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_141__NTEST_ELSE));
  
@@ -25387,7 +25387,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_143__NTEST_NORMATCH));
   melt_assertmsg("iniobj checkdiscr dobj_145__NTEST_NORMATCH", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_145__NTEST_NORMATCH.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_145__NTEST_NORMATCH.obj_num = 4;
-  cdat->dobj_145__NTEST_NORMATCH.obj_hash = 1007352879;
+  cdat->dobj_145__NTEST_NORMATCH.obj_hash = 908295690;
   cdat->dobj_145__NTEST_NORMATCH.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_145__NTEST_NORMATCH));
  
@@ -25415,7 +25415,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_147__NTEST_LOCCLIST));
   melt_assertmsg("iniobj checkdiscr dobj_149__NTEST_LOCCLIST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_149__NTEST_LOCCLIST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_149__NTEST_LOCCLIST.obj_num = 5;
-  cdat->dobj_149__NTEST_LOCCLIST.obj_hash = 125482932;
+  cdat->dobj_149__NTEST_LOCCLIST.obj_hash = 470394492;
   cdat->dobj_149__NTEST_LOCCLIST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_149__NTEST_LOCCLIST));
  
@@ -25443,7 +25443,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_151__NTEST_COMEFROM));
   melt_assertmsg("iniobj checkdiscr dobj_153__NTEST_COMEFROM", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_153__NTEST_COMEFROM.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_153__NTEST_COMEFROM.obj_num = 6;
-  cdat->dobj_153__NTEST_COMEFROM.obj_hash = 723723549;
+  cdat->dobj_153__NTEST_COMEFROM.obj_hash = 1020711389;
   cdat->dobj_153__NTEST_COMEFROM.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_153__NTEST_COMEFROM));
  
@@ -25471,7 +25471,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_155__CLASS_NORMTESTER_SUC
   melt_assertmsg("iniobj checkdiscr dobj_157__CLASS_NORMTESTER_SUCCESS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_hash = 858576985;
+  cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_hash = 858963750;
   cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_157__CLASS_NORMTESTER_SUCCESS));
  
@@ -25507,7 +25507,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_161__NTSUCCESS_DO));
   melt_assertmsg("iniobj checkdiscr dobj_163__NTSUCCESS_DO", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_163__NTSUCCESS_DO.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_163__NTSUCCESS_DO.obj_num = 7;
-  cdat->dobj_163__NTSUCCESS_DO.obj_hash = 76363668;
+  cdat->dobj_163__NTSUCCESS_DO.obj_hash = 540419677;
   cdat->dobj_163__NTSUCCESS_DO.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_163__NTSUCCESS_DO));
  
@@ -25535,7 +25535,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_165__CLASS_NORMTESTER_ANY
   melt_assertmsg("iniobj checkdiscr dobj_167__CLASS_NORMTESTER_ANYTESTER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_hash = 1043293145;
+  cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_hash = 256789325;
   cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER));
  
@@ -25571,7 +25571,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_171__CLASS_NORMTESTER_DIS
   melt_assertmsg("iniobj checkdiscr dobj_173__CLASS_NORMTESTER_DISJUNCTION", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_num = OBMAG_OBJECT;
-  cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_hash = 483591302;
+  cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_hash = 622005893;
   cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION));
  
@@ -25607,7 +25607,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_177__NTDISJUNCTS));
   melt_assertmsg("iniobj checkdiscr dobj_179__NTDISJUNCTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_179__NTDISJUNCTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_179__NTDISJUNCTS.obj_num = 7;
-  cdat->dobj_179__NTDISJUNCTS.obj_hash = 785749976;
+  cdat->dobj_179__NTDISJUNCTS.obj_hash = 588998769;
   cdat->dobj_179__NTDISJUNCTS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_179__NTDISJUNCTS));
  
@@ -25635,7 +25635,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_181__CLASS_NORMTESTER_SAM
   melt_assertmsg("iniobj checkdiscr dobj_183__CLASS_NORMTESTER_SAME", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_num = OBMAG_OBJECT;
-  cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_hash = 234178040;
+  cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_hash = 732277331;
   cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_183__CLASS_NORMTESTER_SAME));
  
@@ -25671,7 +25671,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_187__NTSAME_IDENTICAL));
   melt_assertmsg("iniobj checkdiscr dobj_189__NTSAME_IDENTICAL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_189__NTSAME_IDENTICAL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_189__NTSAME_IDENTICAL.obj_num = 7;
-  cdat->dobj_189__NTSAME_IDENTICAL.obj_hash = 645271787;
+  cdat->dobj_189__NTSAME_IDENTICAL.obj_hash = 140352871;
   cdat->dobj_189__NTSAME_IDENTICAL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_189__NTSAME_IDENTICAL));
  
@@ -25699,7 +25699,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_191__CLASS_NORMTESTER_MAT
   melt_assertmsg("iniobj checkdiscr dobj_193__CLASS_NORMTESTER_MATCHER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_hash = 638223715;
+  cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_hash = 885736554;
   cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_193__CLASS_NORMTESTER_MATCHER));
  
@@ -25735,7 +25735,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_197__NTMATCH_MATCHER));
   melt_assertmsg("iniobj checkdiscr dobj_199__NTMATCH_MATCHER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_199__NTMATCH_MATCHER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_199__NTMATCH_MATCHER.obj_num = 7;
-  cdat->dobj_199__NTMATCH_MATCHER.obj_hash = 205519258;
+  cdat->dobj_199__NTMATCH_MATCHER.obj_hash = 7136087;
   cdat->dobj_199__NTMATCH_MATCHER.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_199__NTMATCH_MATCHER));
  
@@ -25763,7 +25763,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_201__NTMATCH_MATNDATA));
   melt_assertmsg("iniobj checkdiscr dobj_203__NTMATCH_MATNDATA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_203__NTMATCH_MATNDATA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_203__NTMATCH_MATNDATA.obj_num = 8;
-  cdat->dobj_203__NTMATCH_MATNDATA.obj_hash = 872271377;
+  cdat->dobj_203__NTMATCH_MATNDATA.obj_hash = 947771884;
   cdat->dobj_203__NTMATCH_MATNDATA.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_203__NTMATCH_MATNDATA));
  
@@ -25791,7 +25791,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_205__NTMATCH_INARGS));
   melt_assertmsg("iniobj checkdiscr dobj_207__NTMATCH_INARGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_207__NTMATCH_INARGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_207__NTMATCH_INARGS.obj_num = 9;
-  cdat->dobj_207__NTMATCH_INARGS.obj_hash = 1065191831;
+  cdat->dobj_207__NTMATCH_INARGS.obj_hash = 841556467;
   cdat->dobj_207__NTMATCH_INARGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_207__NTMATCH_INARGS));
  
@@ -25819,7 +25819,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_209__NTMATCH_OUTLOCS));
   melt_assertmsg("iniobj checkdiscr dobj_211__NTMATCH_OUTLOCS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_211__NTMATCH_OUTLOCS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_211__NTMATCH_OUTLOCS.obj_num = 10;
-  cdat->dobj_211__NTMATCH_OUTLOCS.obj_hash = 359312446;
+  cdat->dobj_211__NTMATCH_OUTLOCS.obj_hash = 713961906;
   cdat->dobj_211__NTMATCH_OUTLOCS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_211__NTMATCH_OUTLOCS));
  
@@ -25847,7 +25847,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_213__CLASS_NORMTESTER_INS
   melt_assertmsg("iniobj checkdiscr dobj_215__CLASS_NORMTESTER_INSTANCE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_hash = 1073699607;
+  cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_hash = 670365893;
   cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_215__CLASS_NORMTESTER_INSTANCE));
  
@@ -25883,7 +25883,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_219__NTINST_CLASS));
   melt_assertmsg("iniobj checkdiscr dobj_221__NTINST_CLASS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_221__NTINST_CLASS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_221__NTINST_CLASS.obj_num = 7;
-  cdat->dobj_221__NTINST_CLASS.obj_hash = 499921488;
+  cdat->dobj_221__NTINST_CLASS.obj_hash = 1005607261;
   cdat->dobj_221__NTINST_CLASS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_221__NTINST_CLASS));
  
@@ -25911,7 +25911,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_223__NTINST_FIELDLOCS));
   melt_assertmsg("iniobj checkdiscr dobj_225__NTINST_FIELDLOCS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_225__NTINST_FIELDLOCS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_225__NTINST_FIELDLOCS.obj_num = 8;
-  cdat->dobj_225__NTINST_FIELDLOCS.obj_hash = 586529234;
+  cdat->dobj_225__NTINST_FIELDLOCS.obj_hash = 63370027;
   cdat->dobj_225__NTINST_FIELDLOCS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_225__NTINST_FIELDLOCS));
  
@@ -25952,7 +25952,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_229__CLASS_NREP_TYPEXPR))
   melt_assertmsg("iniobj checkdiscr dobj_231__CLASS_NREP_MATCH", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_231__CLASS_NREP_MATCH.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_231__CLASS_NREP_MATCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_231__CLASS_NREP_MATCH.obj_hash = 486596901;
+  cdat->dobj_231__CLASS_NREP_MATCH.obj_hash = 129219036;
   cdat->dobj_231__CLASS_NREP_MATCH.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_231__CLASS_NREP_MATCH));
  
@@ -25988,7 +25988,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_235__NMATCH_TESTS));
   melt_assertmsg("iniobj checkdiscr dobj_237__NMATCH_TESTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_237__NMATCH_TESTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_237__NMATCH_TESTS.obj_num = 2;
-  cdat->dobj_237__NMATCH_TESTS.obj_hash = 765614341;
+  cdat->dobj_237__NMATCH_TESTS.obj_hash = 486122083;
   cdat->dobj_237__NMATCH_TESTS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_237__NMATCH_TESTS));
  
@@ -26016,7 +26016,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_239__NMATCH_STUFFMAP));
   melt_assertmsg("iniobj checkdiscr dobj_241__NMATCH_STUFFMAP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_241__NMATCH_STUFFMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_241__NMATCH_STUFFMAP.obj_num = 3;
-  cdat->dobj_241__NMATCH_STUFFMAP.obj_hash = 570954216;
+  cdat->dobj_241__NMATCH_STUFFMAP.obj_hash = 637309499;
   cdat->dobj_241__NMATCH_STUFFMAP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_241__NMATCH_STUFFMAP));
  
@@ -26044,7 +26044,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_243__NMATCH_MATCHED));
   melt_assertmsg("iniobj checkdiscr dobj_245__NMATCH_MATCHED", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_245__NMATCH_MATCHED.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_245__NMATCH_MATCHED.obj_num = 4;
-  cdat->dobj_245__NMATCH_MATCHED.obj_hash = 455432423;
+  cdat->dobj_245__NMATCH_MATCHED.obj_hash = 621110287;
   cdat->dobj_245__NMATCH_MATCHED.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_245__NMATCH_MATCHED));
  

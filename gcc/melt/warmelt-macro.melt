@@ -136,6 +136,7 @@
   :super class_src
   :fields (sexpmac_mname
 	   sexpmac_mval
+	   sexpmac_doc
 	   ))
 
 ;; export one pattern - (export_patmacro <macroname> <patexpvalue> <macexpvalue>)
@@ -3892,7 +3893,7 @@
 	   )
       (setq curpair (pair_tail curpair))
       (if (notnull curpair)
-	  (error_plain loc "too many arguments in (COMPILE_WARNING <msg> <exp>)"_))
+	  (error_plain loc "too many arguments in (COMPILE_WARNING <msg> [<exp>])"_))
       (let ( (res (instance  class_src_compilewarning
 			     :loca_location loc
 			     :scwarn_msg xmsg
@@ -4082,7 +4083,7 @@
 (export_macro export_values mexpand_export_values)
 
 ;;;;
-;;; export_macro macro (export_macro <symbol> <expander>)
+;;; export_macro macro (export_macro <symbol> <expander> [:doc <documentation>])
 (defun mexpand_export_macro (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -4092,18 +4093,25 @@
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
 	(symb (macroexpand_1 (pair_head curpair) env mexpander))
+	(doc ())
 	)
     (if (is_not_a symb class_symbol)
 	(error_plain loc "(EXPORT_MACRO <sym> <expander>) expecting symbol"_))
     (setq curpair (pair_tail curpair))
     (let ( (expv (macroexpand_1 (pair_head curpair) env mexpander)) 
 	   )
+      (setq curpair (pair_tail curpair))
+      (if (== (pair_head curpair) ':doc)
+	  (progn
+	    (setq curpair (pair_tail curpair))
+	    (setq doc (pair_head curpair))))
       (if (null expv)
-	  (error_plain loc  "(EXPORT_MACRO <sym> <expander>) expecting expander"_))
+	  (error_plain loc  "(EXPORT_MACRO <sym> <expander> [:doc <docum>]) expecting expander"_))
       (let ( (res (instance class_src_export_macro
 			    :loca_location loc
 			    :sexpmac_mname symb
 			    :sexpmac_mval expv
+			    :sexpmac_doc doc
 			    ))
 	     )
 	(debug_msg res "mexpand_export_macro result res")
@@ -4113,7 +4121,7 @@
 (export_macro export_macro mexpand_export_macro)
 
 ;;;;
-;;; export_patmacro macro (export_patmacro <symbol> <patexpander> <macexpander>)
+;;; export_patmacro macro (export_patmacro <symbol> <patexpander> <macexpander> [:doc <docum>])
 (defun mexpand_export_patmacro (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -4125,22 +4133,31 @@
 	(symb (macroexpand_1 (pair_head curpair) env mexpander))
 	(patexpv ())		    ;set later to the pattern expander
 	(macexpv ())		    ;set later to the macro expander
+	(doc ())		    ;set later to the documentation if any
 	)
     (if (is_not_a symb class_symbol)
-	(error_plain loc "(EXPORT_PATMACRO <sym> <patexpander> <macexpander>) expecting symbol"_))
+	(error_plain loc "(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting symbol"_))
     (setq curpair (pair_tail curpair))
     (setq patexpv (macroexpand_1 (pair_head curpair) env mexpander))
     (if (null patexpv)
-	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander>) expecting patexpander"_))
+	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting patexpander"_))
     (setq curpair (pair_tail curpair))
     (setq macexpv (macroexpand_1 (pair_head curpair) env mexpander))
     (if (null macexpv)
-	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander>) expecting macexpander"_))
+	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting macexpander"_))
+    (setq curpair (pair_tail curpair))
+    (if (== (pair_head curpair) ':doc)
+	(progn
+	  (setq curpair (pair_tail curpair))
+	  (setq doc (pair_head curpair))
+	  ))
+    ;;
     (let ( (res (instance class_src_export_patmacro
 			  :loca_location loc
 			  :sexpmac_mname symb
 			  :sexppat_pval patexpv
 			  :sexpmac_mval macexpv
+			  :sexpmac_doc doc
 			  ))
 	   )
       (debug_msg res "mexpand_export_patmacro result res")
@@ -4195,8 +4212,6 @@
     (debug_msg res "mexpand_current_module_environment_container return res")
     (return res)
     ))
-					;(install_initial_macro 'current_module_environment_box mexpand_current_module_environment_container)
-					;(export_macro current_module_environment_box mexpand_current_module_environment_container)
 
 (install_initial_macro 'current_module_environment_container mexpand_current_module_environment_container)
 (export_macro current_module_environment_container mexpand_current_module_environment_container)
@@ -4243,9 +4258,6 @@
     (debug_msg res "mexpand_update_current_module_environment_container return res")
     (return res)
     ))
-					;(install_initial_macro 'update_current_module_environment_box mexpand_update_current_module_environment_container)
-					;(export_macro update_current_module_environment_box mexpand_update_current_module_environment_container)
-;;; to prepare the renaming
 
 (install_initial_macro 'update_current_module_environment_container mexpand_update_current_module_environment_container)
 (export_macro update_current_module_environment_container mexpand_update_current_module_environment_container)

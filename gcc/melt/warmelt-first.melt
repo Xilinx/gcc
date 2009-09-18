@@ -281,7 +281,8 @@ or data.}# )
   :doc #{The $CLASS_SYSTEM_DATA has a singleton instance, the
 $INITIAL_SYSTEM_DATA. It contains lots of fields, starting by
 SYSDATA_, for various system facilities.  It is very magical, and
-should be kept in sync with the MELT runtime.  Only for gurus!}#
+should be kept in sync with the MELT runtime.  Only for gurus! So
+don't instanciate this class!}#
   :fields (sysdata_command_dict			;stringmap for commands
 	   sysdata_cont_fresh_env			;closure to make a fresh environment
 	   sysdata_value_exporter		;closure to export a value
@@ -336,7 +337,8 @@ same object. The boxed maximal depth is $DBGI_MAXDEPTH.}# )
 is $ENV_BIND, the previous environment is $ENV_PREV, and the procedure
 if any of this environment is $ENV_PROC. It is heavily used within the
 MELT translator. Module initialization produces fresh instances of
-it.}#
+it. See the $CURRENT_MODULE_ENVIRONMENT_CONTAINER and
+$PARENT_MODULE_ENVIRONMENT macros.}#
   :fields (env_bind			;the map of bindings
 	   env_prev			;the previous environment
 	   env_proc			;the procedure of this environment
@@ -345,42 +347,54 @@ it.}#
 (defclass class_described_environment
   :super class_environment
   :fields (denv_descr
-	   ))
+	   )
+  :doc #{The $CLASS_DESCRIBED_ENVIRONMENT provides an extra descriptor.}#)
 
 ;; the (super-)class of any binding
 (defclass class_any_binding
   :super class_root
   :fields (binder)
-  )
+  :doc #{The $CLASS_ANY_BINDING is the super-class of every
+  binding. The $BINDER field is the bound name. Bindings are added by
+  module initializers. Don't create bindings by ins}# )
 
 ;;; superclass of exported bindings
 (defclass class_exported_binding
   :super class_any_binding
   :fields ( )
+  :doc #{The $CLASS_EXPORTED_BINDING is the super-class of exported bindings.}#
   )
 
 ;; macro binding
 (defclass class_macro_binding
   :super class_exported_binding
-  :fields (mbind_expanser))
+  :fields (mbind_expanser)
+  :doc #{The $CLASS_MACRO_BINDING is the class of exported macro
+bindings. See the $EXPORT_MACRO macro.}# )
 
 ;; pattern macro binding
 (defclass class_patmacro_binding
   :super class_macro_binding
-  :fields (patbind_expanser))
+  :fields (patbind_expanser)
+  :doc #{The $CLASS_PATMACRO_BINDING is the class of exported
+pattern-macro bindings. See the $EXPORT_PATMACRO macro.}# ) 
 
 ;; value binding - as exported 
 (defclass class_value_binding
   :super class_exported_binding
-  :fields (vbind_value
-	   ))
+  :fields (vbind_value)
+  :doc #{The $CLASS_PATMACRO_BINDING is the class of exported value bindings.
+See The $EXPORT_VALUES macro.}#
+)
 
 					; formal binding (used in generated defprimitive)
 (defclass class_formal_binding
   :super class_any_binding
   :fields (fbind_type)
   ;;the obj_num is the argument rank
-  :predef CLASS_FORMAL_BINDING)
+  :predef CLASS_FORMAL_BINDING
+  :doc #{The $CLASS_FORMAL_BINDING is the class of formal argument
+bindings. The $FBIND_TYPE gives the formal's c-type.}# )
 
 
 ;;; fixed bindings are defined in a compilation unit and can be
@@ -388,7 +402,10 @@ it.}#
 (defclass class_fixed_binding
   :super class_any_binding
   :fields (fixbind_data			;the common slot describing data
-	   ))
+	   )
+  :doc #{The internal $CLASS_FIXED_BINDING is a superclass of bindings
+  inside a compilation unit. The data description is inside
+  $FIXBIND_DATA. Fixed bindings are internal to the translator.}#)
 
 
 ;; selector binding
@@ -397,54 +414,80 @@ it.}#
   :fields (sbind_selectordef 		;the "source" defselector
 	   ;; maybe we need an selectorval for the actual value
 	   )
-  )
+  :doc #{The internal $CLASS_SELECTOR_BINDING is a fixed binding for
+  selectors. See $DEFSELECTOR macro. The $SBIND_SELECTORDEF gives the
+  definition.}# )
 
 ;; primitive binding
 (defclass class_primitive_binding
   :super class_fixed_binding
   :fields (pbind_primdef		;the source defprimitive
 	   pbind_primitive		;the primitive proper
-	   ))
+	   )
+  :doc #{The internal $CLASS_PRIMITIVE_BINDING is for primitive
+bindings. See $DEFPRIMITIVE macro. The $PBIND_PRIMDEF gives the
+definition, and the $PBIND_PRIMITIVE gives the primitive itself.}# )
 
 ;; citerator binding
 (defclass class_citerator_binding
   :super class_fixed_binding
   :fields (cbind_citerdef		;the source defciterator
 	   cbind_citerator		;the citerator proper
-	   ))
+	   )
+  :doc #{The internal $CLASS_CITERATOR_BINDING is for c-iterator
+  bindings. See the $DEFCITERATOR macro. The $CBIND_CITERDEF gives the
+  definition, and the $CBIND_CITERATOR provides the c-iterator itself.}#
+)
 
 
 ;; function binding
 (defclass class_function_binding
   :super class_fixed_binding
   :fields (fubind_defun ;the source definition
-	   ))
+	   )
+  :doc #{The internal $CLASS_FUNCTION_BINDING is for function
+bindings. See the $DEFUN macro. The $FUBIND_DEFUN provides the
+definition.}# 
+)
 
 ;; class binding
 (defclass class_class_binding
   :super class_fixed_binding
   :fields (cbind_defclass ;the source definition
 	   cbind_class			;the built class
-	   ))
+	   )
+  :doc #{The internal $CLASS_CLASS_BINDING is for class bindings. See
+the $DEFCLASS macro. The definition is provided by $CBIND_DEFCLASS,
+and the class itself is given by $CBIND_CLASS. A class definition also
+define fields.}#  )
 
 ;; field binding
 (defclass class_field_binding
   :super class_fixed_binding
   :fields (flbind_clabind		;the class binding
 	   flbind_field			;the field proper
-	   ))
+	   )
+  :doc #{The internal $CLASS_FIELD_BINDING is for field bindings. See
+the $DEFCLASS macro. The class binding is $FLBIND_CLABIND, and the
+defined field is $FLBIND_FIELD.}# )
 
 ;; instance binding
 (defclass class_instance_binding
   :super class_fixed_binding
   :fields ( ibind_iclass		;the instance's class
-	    ))
+	    )
+  :doc #{The internal $CLASS_INSTANCE_BINDING is for instance
+bindings. See the $DEFINSTANCE macro. The instance's class is in
+$IBIND_ICLASS.}#  )
 
 ;; cmatcher binding
 (defclass class_cmatcher_binding
   :super class_fixed_binding
   :fields (cmbind_matcher		;the cmatcher
-	   ))
+	   )
+  :doc #{The internal $CLASS_CMATCHER_BINDING is for c-matcher
+bindings. See the $DEFCMATCHER macro. The c-matcher is in
+$CMBIND_MATCHER.}# )
 
 
 ;; funmatcher binding
@@ -452,7 +495,10 @@ it.}#
   :super class_fixed_binding
   :fields (fmbind_funmatcher		;the funmatcher (of class_funmatcher)
 	   fmbind_defunmatcher		;the source definition
-	   ))
+	   )
+  :doc #{The internal $CLASS_FUNMATCHER_BINDING is for funmatcher
+bindings. See the $DEFUNMATCHER macro. The funmatcher is in
+$FMBIND_FUNMATCHER and its definition in $FMBIND_DEFUNMATCHER.}#)
 
 ;; let binding
 (defclass class_let_binding
@@ -460,13 +506,21 @@ it.}#
   :fields (letbind_type			;the ctype 
 	   letbind_expr			;the expression
 	   letbind_loc			;the optional src location
-	   ))
+	   )
+  :doc #{The internal $CLASS_LET_BINDING is for internal let
+  bindings. See The $LET macro. The c-type of the bound valus is
+  $LETBIND_TYPE, the expression is $LETNIND_EXPR, the source location
+  if any is $LEBIND_LOC.}#
+)
 
 ;; normalized let binding
 (defclass class_normlet_binding
   :super class_let_binding
-  :fields  ())				;no additional field, but
-					;letbind_expr is "normal"
+  :fields  ()
+  :doc #{The internal $CLASS_NORMLET_BINDING is for internal
+normalized bindings. The bound expression is in normal form. Very
+often the $BINDER is a cloned symbol.}# 
+) ;no additional field, but letbind_expr is "normal"
 
 ;; label binding
 (defclass class_label_binding
@@ -475,7 +529,11 @@ it.}#
 ;;; following fields are filled later in the compilation phase
 	   labind_clonsy		;unique cloned symbol
 	   labind_res			;result localvar
-	   ))
+	   )
+  :doc #{The internal $CLASS_LABEL_BINDING is for labels. See The
+$FOREVER and $EXIT macros. The label source location is $LABIND_LOC,
+the cloned symbol unique to the label is $LABIND_CLONSY. The local
+variables for the result is $LABIND_RES.}# )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -497,25 +555,41 @@ it.}#
 	   gccpass_properties_destroyed
 	   gccpass_todo_flags_start
 	   gccpass_todo_flags_finish
-	   ))
+	   )
+  :doc #{ The $CLASS_GCC_PASS is the super-class of GCC compiler
+passes descriptors, as provided in MELT. Once correctly instanciated,
+such a pass descriptor should be registered thru the
+$INSTALL_MELT_GCC_PASS primitive. Pass descriptors are named (be
+careful to give a unique unused name!). The $GCCPASS_GATE is the pass
+gate function. The $GCCPASS_EXEC is the pass execution function. The
+field $GCCPASS_DATA can be used for client data. The fields
+$GCCPASS_PROPERTIES_REQUIRED $GCCPASS_PROPERTIES_PROVIDED
+$GCCPASS_PROPERTIES_DESTROYED $GCCPASS_TODO_FLAGS_START
+$GCCPASS_TODO_FLAGS_FINISH are like their counterparts in C, and can
+be a boxed integer, a string or named [i.e. symbol], or a tuple or
+list of them.}# )
 
 (defclass class_gcc_gimple_pass
   :predef CLASS_GCC_GIMPLE_PASS
   :super class_gcc_pass
-  :fields (
-))
+  :fields ( )
+  :doc #{ The $CLASS_GCC_GIMPLE_PASS is for GCC gimple pass descriptors. }# 
+)
 
 (defclass class_gcc_rtl_pass
   :predef CLASS_GCC_RTL_PASS
   :super class_gcc_pass
-  :fields (
-))
+  :fields ( )
+  :doc #{ The $CLASS_GCC_RTL_PASS is for GCC RTL pass descriptors. }# 
+  
+)
 
 (defclass class_gcc_simple_ipa_pass
   :predef CLASS_GCC_SIMPLE_IPA_PASS
   :super class_gcc_pass
-  :fields (
-))
+  :fields ( )
+  :doc #{ The $CLASS_GCC_SIMPLE_IPA_PASS is for GCC simple IPA pass
+descriptors. }# )
 
 
 ;;;; commands 
@@ -525,7 +599,12 @@ it.}#
   :fields (meltcmd_help
 	   meltcmd_fun
 	   meltcmd_data
-	   ))
+	   )
+  :doc #{ The $CLASS_MELT_COMMAND describe commands, as given by the
+@code{-fmelt=} or @code{-fplugin-arg-melt-mode=} GCC program flag. The
+$MELTCMD_HELP is a help string. The $MELTCMD_FUN is the function to
+run the command, and the $MELTCMD_DATA gives additional client
+data. See the $INSTALL_MELT_COMMAND function. }# )
 	   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
@@ -535,22 +614,27 @@ it.}#
   :super class_located
   :fields ( 
 	  )
-  :doc #{The $class_src is the common super-class of source elements,
-i.e. of abstract syntax tree elements after macro-expansion.}#
-  )
+  :doc #{The $CLASS_SRC is the common super-class of source elements,
+i.e. of abstract syntax tree elements after macro-expansion. Its
+subclasses are produced by macro expanders.}# )
 
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; module compilation context
-(defclass class_modulcontext
+(defclass class_modulecontext
   :super class_root
   :fields (mocx_modulename		;the module name
 	   mocx_expfieldict		;dict of exported fields
 	   mocx_expclassdict		;dict of exported classes
 	   mocx_initialenv		;the initial environment
-	   ))
+	   )
+  :doc #{The internal $CLASS_MODULECONTEXT describes the whole module
+context of a translation. $MOCX_MODULENAME gives the module name,
+$MOCX_EXPFIELDICT gives the dictionnary of exported fields,
+$MOCX_EXPCLASSDICT gives the dictionnary of exported classes, and
+$MOCX_INITIALENV the initial environment. For gurus!}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalization context
@@ -619,29 +703,40 @@ i.e. of abstract syntax tree elements after macro-expansion.}#
 
 ;; primitive to ignore a value
 (defprimitive ignore (v) :void
-  "/*ignore*/(void)(" v ")")
+  :doc #{Ignore the value passed as argument. Useful to avoid translation warnings, or to force the type of a conditional. See $CTYPE_VOID.}#
+  #{/*ignore*/(void)($v)}#)  
 
 ;; primitive to return a void
-(defprimitive void () :void "/*void*/0")
+(defprimitive void () :void 
+  :doc #{Return a void value. See $IGNORE and $CTYPE_VOID.}#
+#{/*void*/0}#)
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
-  " meltgc_new_string((meltobject_ptr_t)(" discr "), (" strc "))")
+  :doc #{Convert a C-string constant $STRC into a string value of discriminant $DISCR. See also $QUOTE macro applied to a string.}#
+  #{meltgc_new_string((meltobject_ptr_t)($discr), ($strc))}#)
 
 
 ;; primitive for testing if an object is a (sub) instance of a class
 (defprimitive is_a (obj cla) :long
-  " melt_is_instance_of((melt_ptr_t)(" obj "), (melt_ptr_t)(" cla "))")
+  :doc #{Test if $OBJ is an instance of the $CLA class [or a
+ subclass]. Return 0 otherwise, e.g. when $OBJ is not an object. See
+ also $IS_NOT_A.}#
+ #{melt_is_instance_of((melt_ptr_t)($obj), (melt_ptr_t)($cla))}#)
 
 ;; primitive for testing if an object is NOT a (sub) instance of a class
 (defprimitive is_not_a (obj cla) :long
-  " !melt_is_instance_of((melt_ptr_t)(" obj "), (melt_ptr_t)(" cla "))")
+  :doc #{Test if $OBJ is @emph{not} an instance of the $CLA class [or a
+ subclass]. Negation of $IS_A.}#
+ #{!melt_is_instance_of((melt_ptr_t)($obj), (melt_ptr_t)($cla))}#)
 
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
-  " (melt_magic_discr((melt_ptr_t)(" obj ")) == OBMAG_OBJECT)")
+  :doc #{Test if $OBJ is indeed an object. See also $IS_NOT_OBJECT.}#
+  #{(melt_magic_discr((melt_ptr_t)($obj)) == OBMAG_OBJECT)}#)
 (defprimitive is_not_object (obj) :long
-  " (melt_magic_discr((melt_ptr_t)(" obj ")) != OBMAG_OBJECT)")
+  :doc #{Test if $OBJ is not an object. Negation of $IS_OBJECT.}#
+  #{(melt_magic_discr((melt_ptr_t)($obj)) != OBMAG_OBJECT)}#)
 
 ;; primitive returning OBMAG_OBJECT
 (defprimitive object_magic_object () :long "(OBMAG_OBJECT)")
@@ -4305,7 +4400,7 @@ obtained by quoting an integer.}#
  class_located
  class_macro_binding
  class_melt_command
- class_modulcontext
+ class_modulecontext
  class_named
  class_normcontext
  class_normlet_binding

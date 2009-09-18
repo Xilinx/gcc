@@ -258,7 +258,7 @@ warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-m
 
 .PHONY: warmeltallbig 
 
-### this is only useful rarely ... it regenerated the warmelt*2.c
+### this is only useful rarely ... it regenerated the warmelt*0.c
 ### files using the big monolithic version of the translator... to be
 ### used carefully when desperate!
 warmeltallbig: warmeltbig-3.so
@@ -270,7 +270,7 @@ warmeltallbig: warmeltbig-3.so
 	   $(MELTCCFILE1) \
 	     $(meltarg_init)=warmeltbig-3 \
 	      $(meltarg_arg)=$$f \
-	      $(meltarg_output)=`basename $$f .melt`-2.c  empty-file-for-melt.c ; \
+	      $(meltarg_output)=`basename $$f .melt`-0.c  empty-file-for-melt.c ; \
 	done
 
 
@@ -431,14 +431,14 @@ $(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
 	$(melt_make_move) $@-tmp $@
 
 ### generated melt documentation
-meltgendoc.texi: $(melt_default_modules_list).modlis $(WARMELT_SRCFILES) empty-file-for-melt.c
+meltgendoc.texi: $(melt_default_modules_list).modlis $(WARMELT_SRCFILES) $(ANAMELT_SRCFILES) empty-file-for-melt.c
 	$(melt_cc1) $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=makedoc  \
 	      $(meltarg_module_path)=.:$(melt_make_module_dir) \
 	      $(meltarg_source_path)=.:$(melt_make_source_dir):$(melt_source_dir) \
 	      $(meltarg_compile_script)=$(melt_make_compile_script) \
 	      $(meltarg_tempdir)=.  $(MELT_DEBUG) \
 	      $(meltarg_init)="@$(melt_default_modules_list)" \
-	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST)  \
+	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST),$(ANAMELT_SRCARGLIST)  \
 	      $(meltarg_output)=$@   empty-file-for-melt.c
 
 

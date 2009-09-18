@@ -2892,7 +2892,7 @@
 
 (defun output_exported_offsets (modctx declbuf implbuf)
   (debug_msg modctx "output_exported_offsets modctx")
-  (assert_msg "check modctx" (is_a modctx class_modulcontext))
+  (assert_msg "check modctx" (is_a modctx class_modulecontext))
   (let ( (sortedfields (sorted_named_dict_tuple
 			(unsafe_get_field :mocx_expfieldict modctx)))
 	 (sortedclasses (sorted_named_dict_tuple
@@ -2941,7 +2941,7 @@
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (is_a inienv class_environment))
   (let (
-	(modctx (instance class_modulcontext
+	(modctx (instance class_modulecontext
 			  :mocx_modulename modnamstr
 			  :mocx_expfieldict (make_mapstring discr_mapstrings 90)
 			  :mocx_expclassdict (make_mapstring discr_mapstrings 40)
@@ -3258,6 +3258,8 @@
 	   mkdoc_fields
 	   mkdoc_classes
 	   mkdoc_instances
+	   mkdoc_macros
+	   mkdoc_patmacros
 	   ;; map from formal symbols to lists of definitions containing them
 	   mkdoc_formaloccmap
 	   ;; map from predefined symbol to definition
@@ -3438,7 +3440,34 @@
 	   (curformb :long formix)
 	   (add_formal_occ curformb curexp) ) 
 	  )
-	     
+;;;;;;;
+;;; handle export_patmacro
+	(?(instance
+	   class_src_export_patmacro
+	   :loca_location ?loc
+	   :sexpmac_mname ?mname
+	   :sexpmac_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   )
+	  (add_docsym mname curexp)
+	  (list_append (get_field :mkdoc_patmacros mdinfo) curexp)
+	  )
+;;;;;;;
+;;; handle export_macro
+	(?(instance
+	   class_src_export_macro
+	   :loca_location ?loc
+	   :sexpmac_mname ?mname
+	   :sexpmac_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   )
+	  (add_docsym mname curexp)
+	  (list_append (get_field :mkdoc_macros mdinfo) curexp)
+	  )
 ;;;;;;;
 ;;; catchall with warning
 	(?(instance class_srcdef 
@@ -3655,13 +3684,55 @@
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
+;;;;; generate the macro documentation
+(defun makedoc_genmacro (mdinfo outb)
+  (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
+  (assert_msg "check outb" (is_strbuf outb))
+  (add2sbuf_strconst outb "@node MELT macros")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_strconst outb "@section MELT macros")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_indentnl outb 0)
+  (let ( (maclist (get_field :mkdoc_macros mdinfo))
+	 (unsortedmactuple (list_to_multiple maclist discr_multiple))
+	 )
+    (add2sbuf_strconst outb "There are ")
+    (add2sbuf_longdec outb (multiple_length unsortedmactuple))
+    (add2sbuf_strconst outb " documented macros.")
+    (add2sbuf_indentnl outb 0)	
+    (compile_warning "unimplemented makedoc_genmacro")
+    )
+  )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;;;; generate the pattern macro documentation
+(defun makedoc_genpatmacro (mdinfo outb)
+  (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
+  (assert_msg "check outb" (is_strbuf outb))
+  (add2sbuf_strconst outb "@node MELT patterns")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_strconst outb "@section MELT pattern macros")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_indentnl outb 0)
+  (let ( (patmaclist (get_field :mkdoc_patmacros mdinfo))
+	 (unsortedpatmactuple (list_to_multiple patmaclist discr_multiple))
+	 )
+    (add2sbuf_strconst outb "There are ")
+    (add2sbuf_longdec outb (multiple_length unsortedpatmactuple))
+    (add2sbuf_strconst outb " documented pattern-macros.")
+    (add2sbuf_indentnl outb 0)		    
+    (compile_warning "unimplemented makedoc_genpatmacro")  
+    )
+  )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
 ;;;;; generate the class documentation
 (defun makedoc_genclass (mdinfo outb)
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
   (assert_msg "check outb" (is_strbuf outb))
-  (add2sbuf_strconst outb "@node classes")
+  (add2sbuf_strconst outb "@node MELT classes")
   (add2sbuf_indentnl outb 0)
-  (add2sbuf_strconst outb "@section classes")
+  (add2sbuf_strconst outb "@section MELT classes")
   (add2sbuf_indentnl outb 0)
   (add2sbuf_indentnl outb 0)
   (let ( 
@@ -3813,9 +3884,9 @@
 (defun makedoc_genprimitive (mdinfo outb)
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
   (assert_msg "check outb" (is_strbuf outb))
-  (add2sbuf_strconst outb "@node primitives")
+  (add2sbuf_strconst outb "@node MELT primitives")
   (add2sbuf_indentnl outb 0)
-  (add2sbuf_strconst outb "@section primitives")
+  (add2sbuf_strconst outb "@section MELT primitives")
   (add2sbuf_indentnl outb 0)
   (add2sbuf_indentnl outb 0)
   (let ( (rawprimlist (get_field :mkdoc_primitives mdinfo))
@@ -3860,9 +3931,9 @@
 (defun makedoc_genfunction (mdinfo outb)
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
   (assert_msg "check outb" (is_strbuf outb))
-  (add2sbuf_strconst outb "@node functions")
+  (add2sbuf_strconst outb "@node MELT functions")
   (add2sbuf_indentnl outb 0)
-  (add2sbuf_strconst outb "@section functions")
+  (add2sbuf_strconst outb "@section MELT functions")
   (add2sbuf_indentnl outb 0)
   (add2sbuf_indentnl outb 0)
   (let ( (rawfunlist (get_field :mkdoc_functions mdinfo))
@@ -3904,14 +3975,22 @@
 	 (add2sbuf_indentnl outb 0)
 	 (add2sbuf_strconst outb "@menu")
 	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* classes:: The MELT classes.")
+	 (add2sbuf_strconst outb "* MELT macros:: The MELT macros.")
 	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* primitives:: The MELT primitives.")
+	 (add2sbuf_strconst outb "* MELT patterns:: The MELT pattern macros.")
 	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* functions:: The MELT functions.")
+	 (add2sbuf_strconst outb "* MELT classes:: The MELT classes.")
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "* MELT primitives:: The MELT primitives.")
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "* MELT functions:: The MELT functions.")
 	 (add2sbuf_indentnl outb 0)
 	 (add2sbuf_strconst outb "@end menu")
 	 (add2sbuf_indentnl outb 0)
+	 ;; generate macro related stuff
+	 (makedoc_genmacro mdinfo outb)
+	 ;; generate patmacro related stuff
+	 (makedoc_genpatmacro mdinfo outb)
 	 ;; generate class related stuff
 	 (makedoc_genclass mdinfo outb)
 	 ;; generate primitive related stuff
@@ -3947,6 +4026,8 @@
 		   :mkdoc_fields (make_list discr_list)
 		   :mkdoc_classes (make_list discr_list) 
 		   :mkdoc_instances (make_list discr_list)
+		   :mkdoc_macros (make_list discr_list)
+		   :mkdoc_patmacros (make_list discr_list)
 		   :mkdoc_formaloccmap (make_mapobject discr_mapobjects 1000)
 		   :mkdoc_predefmap (make_mapobject discr_mapobjects 200)
 		   :mkdoc_docsymap (make_mapobject discr_mapobjects 400)

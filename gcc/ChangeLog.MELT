@@ -1,5 +1,26 @@
 
 2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-make.mk: warmeltallbig generates warmelt*0.c files in the
+	build directory.
+	* melt/warmelt-first.melt: renamed class_modulcontext as
+	class_modulecontext. Added documention.
+	* melt/warmelt-macro.melt: added documentation field for
+	export_macro & export_patmacro.
+	* melt/warmelt-normal.melt: renamed class_modulcontext as
+	class_modulecontext.
+	* melt/warmelt-genobj.melt: renamed class_modulcontext as
+	class_modulecontext.
+	* melt/warmelt-outobj.melt: renamed class_modulcontext as
+	class_modulecontext. Stub for mkdoc for macros & patterns.
+	[regenerated since export_macro takes a :doc]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	[entirely removed src_loc and corrected old bug in primitive
 	normalization - which cloned incorrectly the operator.]
 	* melt/warmelt-first.melt: removed src_loc.

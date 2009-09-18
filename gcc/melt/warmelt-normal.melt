@@ -564,7 +564,7 @@
 	 (predefmap (make_mapobject discr_mapobjects (+i 19 (*i 2 maxpredefix))))
 	 (valmap (make_mapobject discr_mapobjects 350))
 	 )
-    (assert_msg "check modctx" (is_a modctx class_modulcontext))
+    (assert_msg "check modctx" (is_a modctx class_modulecontext))
     (forever predefloop
 	     (if (>=i ix maxpredefix) (exit predefloop))
 	     (let ( (curpredef (get_globpredef ix)) )
@@ -4496,7 +4496,7 @@
 			   :nrep_loc sloc))
 	(mocx (unsafe_get_field :nctx_modulcontext ncx))
 	)
-    (assert_msg "check mocx" (is_a mocx class_modulcontext))
+    (assert_msg "check mocx" (is_a mocx class_modulecontext))
     (multiple_every
      sxnames
      (lambda (xnam :long ix)
@@ -4872,7 +4872,7 @@
 	(curproc (unsafe_get_field :nctx_curproc ncx))
 	(iniproc (unsafe_get_field :nctx_initproc ncx))
 	(modctx (unsafe_get_field :nctx_modulcontext ncx))
-	(modnam (if (is_a modctx class_modulcontext) (unsafe_get_field :mocx_modulename modctx)))
+	(modnam (if (is_a modctx class_modulecontext) (unsafe_get_field :mocx_modulename modctx)))
 	)
     (if (!= curproc iniproc)
 	(progn
