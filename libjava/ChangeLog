@@ -1,3 +1,21 @@
+2009-09-16  Jonathan Yong  <jon_y@users.sourceforge.net>
+
+	* gnu/java/security/jce/prng/natVMSecureRandomWin32.cc: Correct
+	UnsupportedOperationException namespace. 
+
+2009-09-16  Andrew Haley  <aph@redhat.com>
+
+	* libgcj_bc.c (__data_start, data_start, _end): Add dummy usage.
+
+2009-09-11  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (libgij_la_LINK, libjvm_la_LINK): New.
+	* Makefile.in: Regenerate.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure: Rebuilt with modified libtool.m4.
+
 2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure.ac (AC_PREREQ): Bump to 2.64.

@@ -1,3 +1,17 @@
+2009-09-13  Kai Tietz  <kai.tietz@onevision.com>
+
+	* configure.ac: Set for i?86-w64-mingw*
+	need_64bit_hwint to yes.
+	* configure: Regenerated.
+
+2009-09-10  Jason Merrill  <jason@redhat.com>
+
+	* directives.c (cpp_define): constify.
+
+2009-09-02  Ian Lance Taylor  <iant@google.com>
+
+	* macro.c (stringify_arg): Escape CPP_WCHAR tokens.
+
 2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure.ac (AC_PREREQ): Bump to 2.64.

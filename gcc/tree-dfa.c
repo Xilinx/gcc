@@ -88,7 +88,12 @@ find_referenced_vars (void)
   FOR_EACH_BB (bb)
     {
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
-	find_referenced_vars_in (gsi_stmt (si));
+	{
+	  gimple stmt = gsi_stmt (si);
+	  if (is_gimple_debug (stmt))
+	    continue;
+	  find_referenced_vars_in (gsi_stmt (si));
+	}
 
       for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
 	find_referenced_vars_in (gsi_stmt (si));
@@ -196,7 +201,6 @@ create_tree_common_ann (tree t)
   ann = GGC_CNEW (struct tree_ann_common_d);
 
   ann->type = TREE_ANN_COMMON;
-  ann->rn = -1;
   t->base.ann = (tree_ann_t) ann;
 
   return ann;
