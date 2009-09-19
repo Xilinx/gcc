@@ -5479,14 +5479,15 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
 				 == CPLD_REFERENCE)));
       poplevel_class ();
 
-      initializer = build_min (COMPONENT_REF,
-                               TREE_TYPE (member),
-                               /* Have to get the old value of
-                                  current_class_ref.  */
-                               /*operand0=object=*/DECL_ARGUMENTS
-                                 (LAMBDA_EXPR_FUNCTION (lambda)),
-                               /*operand1=field=*/member,
-                               /*operand2=offset_opt=*/NULL_TREE);
+      {
+        /* Have to get the old value of current_class_ref.  */
+        tree object = cp_build_indirect_ref (DECL_ARGUMENTS
+                                               (LAMBDA_EXPR_FUNCTION (lambda)),
+                                             /*errorstring=*/"",
+                                             /*complain=*/tf_warning_or_error);
+        initializer = finish_non_static_data_member
+                        (member, object, /*qualifying_scope=*/NULL_TREE);
+      }
     }
 
   current_class_type = saved_class_type;
@@ -5550,6 +5551,8 @@ lambda_expr_this_capture (tree lambda)
     }
   else
     {
+      gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (current_class_ref)) == TREE_TYPE (lambda));
+
       result = finish_non_static_data_member (this_capture,
                                               current_class_ref,
                                               /*qualifying_scope=*/NULL_TREE);
