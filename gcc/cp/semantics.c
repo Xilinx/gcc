@@ -5431,10 +5431,7 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
   /* Make member variable.  */
   member = build_lang_decl (FIELD_DECL, id, type);
 
-  /* Add it to the appropriate closure class.
-     FIXME nested capture is broken because pushdecl_class_level always
-     pushes into class_binding_level.  */
-  current_class_type = TREE_TYPE (lambda);
+  /* Add it to the appropriate closure class.  */
   finish_member_declaration (member);
 
   LAMBDA_EXPR_CAPTURE_LIST (lambda)
@@ -5471,6 +5468,8 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
     {
       tree lambda = TREE_VALUE (node);
 
+      current_class_type = TREE_TYPE (lambda);
+      pushlevel_class();
       member = add_capture (lambda,
                             id,
                             initializer,
@@ -5478,8 +5477,16 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
 			    (!this_capture_p
 			     && (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda)
 				 == CPLD_REFERENCE)));
+      poplevel_class();
 
-      initializer = member;
+      initializer = build_min (COMPONENT_REF,
+                               TREE_TYPE (member),
+                               /* Have to get the old value of
+                                  current_class_ref.  */
+                               /*operand0=object=*/DECL_ARGUMENTS
+                                 (LAMBDA_EXPR_FUNCTION (lambda)),
+                               /*operand1=field=*/member,
+                               /*operand2=offset_opt=*/NULL_TREE);
     }
 
   current_class_type = saved_class_type;
