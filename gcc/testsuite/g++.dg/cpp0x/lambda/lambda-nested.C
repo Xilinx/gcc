@@ -31,6 +31,7 @@ int main() {
   assert(i == 4);
   i = 4;
 
+  /*
   [&] () -> void {
     [=] () mutable -> void {
       i = 5;
@@ -46,6 +47,7 @@ int main() {
   } ();
 
   assert(i == 4);
+  */
 
   return 0;
 }
