@@ -142,9 +142,8 @@ gfc_source_form;
 /* Basic types.  BT_VOID is used by ISO C Binding so funcs like c_f_pointer
    can take any arg with the pointer attribute as a param.  */
 typedef enum
-{ BT_UNKNOWN = 1, BT_INTEGER, BT_REAL, BT_COMPLEX,
-  BT_LOGICAL, BT_CHARACTER, BT_DERIVED, BT_PROCEDURE, BT_HOLLERITH,
-  BT_VOID
+{ BT_UNKNOWN = 1, BT_INTEGER, BT_REAL, BT_COMPLEX, BT_LOGICAL, BT_CHARACTER,
+  BT_DERIVED, BT_CLASS, BT_PROCEDURE, BT_HOLLERITH, BT_VOID
 }
 bt;
 
@@ -668,6 +667,7 @@ typedef struct
 
   unsigned is_bind_c:1;		/* say if is bound to C.  */
   unsigned extension:1;		/* extends a derived type.  */
+  unsigned is_class:1;		/* is a CLASS container.  */
 
   /* These flags are both in the typespec and attribute.  The attribute
      list is what gets read from/written to a module file.  The typespec
@@ -847,7 +847,6 @@ typedef struct
   u;
 
   struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
-  unsigned int is_class:1;
   int is_c_interop;
   int is_iso_c;
   bt f90_type; 
@@ -1131,6 +1130,11 @@ typedef struct gfc_symbol
   /* Defined only for Cray pointees; points to their pointer.  */
   struct gfc_symbol *cp_pointer;
 
+  int entry_id;			/* Used in resolve.c for entries.  */
+
+  /* CLASS vindex for declared and dynamic types in the class.  */
+  int vindex;
+
   struct gfc_symbol *common_next;	/* Links for COMMON syms */
 
   /* This is in fact a gfc_common_head but it is only used for pointer
@@ -1140,8 +1144,6 @@ typedef struct gfc_symbol
   /* Make sure setup code for dummy arguments is generated in the correct
      order.  */
   int dummy_order;
-
-  int entry_id;
 
   gfc_namelist *namelist, *namelist_tail;
 
@@ -2469,6 +2471,7 @@ gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 
 gfc_typebound_proc* gfc_get_typebound_proc (void);
 gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
+gfc_symbol* gfc_get_ultimate_derived_super_type (gfc_symbol*);
 bool gfc_type_compatible (gfc_typespec *, gfc_typespec *);
 gfc_symtree* gfc_find_typebound_proc (gfc_symbol*, gfc_try*,
 				      const char*, bool, locus*);
@@ -2544,6 +2547,7 @@ const char *gfc_extract_int (gfc_expr *, int *);
 gfc_expr *gfc_expr_to_initialize (gfc_expr *);
 bool is_subref_array (gfc_expr *);
 
+void gfc_add_component_ref (gfc_expr *, const char *);
 gfc_expr *gfc_build_conversion (gfc_expr *);
 void gfc_free_ref_list (gfc_ref *);
 void gfc_type_convert_binary (gfc_expr *);

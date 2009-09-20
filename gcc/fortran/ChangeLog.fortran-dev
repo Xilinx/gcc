@@ -1,0 +1,50 @@
+2009-09-20  Janus Weil  <janus@gcc.gnu.org>
+	    Paul Thomas <pault@gcc.gnu.org> 
+
+	* check.c (gfc_check_move_alloc): Arguments don't have to be arrays.
+	The second argument needs to be type-compatible with the first (not the
+	other way around, which makes a difference for CLASS entities).
+	* decl.c (encapsulate_class_symbol): New function.
+	(build_sym,build_struct): Handle BT_CLASS, call
+	'encapsulate_class_symbol'.
+	(gfc_match_decl_type_spec): Remove warning, use BT_CLASS.
+	(gfc_match_derived_decl): Set vindex;
+	* expr.c (gfc_add_component_ref): New function.
+	(gfc_copy_expr,gfc_check_pointer_assign,gfc_check_assign_symbol):
+	Handle BT_CLASS.
+	* dump-parse-tree.c (show_symbol): Print vindex.
+	* gfortran.h (bt): New basic type BT_CLASS.
+	(symbol_attribute): New field 'is_class'.
+	(gfc_typespec): Remove field 'is_class'.
+	(gfc_symbol): New field 'vindex'.
+	(gfc_get_ultimate_derived_super_type): New prototype.
+	(gfc_add_component_ref): Ditto.
+	* interface.c (gfc_compare_derived_types): Pointer equality check
+	moved here from gfc_compare_types.
+	(gfc_compare_types): Handle BT_CLASS and use
+	gfc_type_compatible.
+	* match.c (gfc_match_allocate,gfc_match_deallocate,gfc_match_call):
+	Handle BT_CLASS.
+	* misc.c (gfc_clear_ts): Removed is_class.
+	(gfc_basic_typename,gfc_typename): Handle BT_CLASS.
+	* module.c (bt_types,mio_typespec): Handle BT_CLASS.
+	(mio_symbol): Handle vindex.
+	* primary.c (gfc_match_varspec,gfc_variable_attr): Handle BT_CLASS.
+	* resolve.c (find_array_spec,check_typebound_baseobject):
+	Handle BT_CLASS.
+	(resolve_ppc_call,resolve_expr_ppc): Don't call 'gfc_is_proc_ptr_comp'
+	inside 'gcc_assert'.
+	(resolve_deallocate_expr,resolve_allocate_expr): Handle BT_CLASS.
+	(check_class_pointer_assign): New function.
+	(resolve_code): Handle BT_CLASS, call check_class_pointer_assign.
+	(resolve_fl_var_and_proc,type_is_extensible,resolve_fl_variable_derived,
+	resolve_fl_variable): Handle BT_CLASS.
+	(check_generic_tbp_ambiguity): Add special case.
+	(resolve_typebound_procedure,resolve_fl_derived): Handle BT_CLASS.
+	* symbol.c (gfc_get_ultimate_derived_super_type): New function.
+	(gfc_type_compatible): Handle BT_CLASS.
+	* trans-expr.c (conv_parent_component_references): Handle CLASS
+	containers.
+	(gfc_conv_initializer): Handle BT_CLASS.
+	* trans-types.c (gfc_typenode_for_spec,gfc_get_derived_type):
+	Handle BT_CLASS.

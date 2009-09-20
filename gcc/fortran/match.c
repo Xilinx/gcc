@@ -2405,6 +2405,7 @@ gfc_match_allocate (void)
   gfc_alloc *head, *tail;
   gfc_expr *stat, *errmsg, *tmp, *source;
   gfc_typespec ts;
+  gfc_symbol *sym;
   match m;
   locus old_locus;
   bool saw_stat, saw_errmsg, saw_source, b1, b2, b3;
@@ -2489,19 +2490,20 @@ gfc_match_allocate (void)
 	tail->expr->ts.u.derived = gfc_use_derived (tail->expr->ts.u.derived);
 
       /* FIXME: disable the checking on derived types and arrays.  */
+      sym = tail->expr->symtree->n.sym;
       b1 = !(tail->expr->ref
 	   && (tail->expr->ref->type == REF_COMPONENT
 		|| tail->expr->ref->type == REF_ARRAY));
-      b2 = tail->expr->symtree->n.sym
-	   && !(tail->expr->symtree->n.sym->attr.allocatable
-		|| tail->expr->symtree->n.sym->attr.pointer
-		|| tail->expr->symtree->n.sym->attr.proc_pointer);
-      b3 = tail->expr->symtree->n.sym
-	   && tail->expr->symtree->n.sym->ns
-	   && tail->expr->symtree->n.sym->ns->proc_name
-	   && (tail->expr->symtree->n.sym->ns->proc_name->attr.allocatable
-		|| tail->expr->symtree->n.sym->ns->proc_name->attr.pointer
-		|| tail->expr->symtree->n.sym->ns->proc_name->attr.proc_pointer);
+      if (sym && sym->ts.type == BT_CLASS)
+	b2 = !(sym->ts.u.derived->components->attr.allocatable
+	       || sym->ts.u.derived->components->attr.pointer);
+      else
+	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
+		      || sym->attr.proc_pointer);
+      b3 = sym && sym->ns && sym->ns->proc_name
+	   && (sym->ns->proc_name->attr.allocatable
+		|| sym->ns->proc_name->attr.pointer
+		|| sym->ns->proc_name->attr.proc_pointer);
       if (b1 && b2 && !b3)
 	{
 	  gfc_error ("Allocate-object at %C is not a nonprocedure pointer "
@@ -2730,8 +2732,9 @@ gfc_match_deallocate (void)
 {
   gfc_alloc *head, *tail;
   gfc_expr *stat, *errmsg, *tmp;
+  gfc_symbol *sym;
   match m;
-  bool saw_stat, saw_errmsg;
+  bool saw_stat, saw_errmsg, b1, b2;
 
   head = tail = NULL;
   stat = errmsg = tmp = NULL;
@@ -2759,20 +2762,25 @@ gfc_match_deallocate (void)
       if (gfc_check_do_variable (tail->expr->symtree))
 	goto cleanup;
 
-      if (gfc_pure (NULL) && gfc_impure_variable (tail->expr->symtree->n.sym))
+      sym = tail->expr->symtree->n.sym;
+
+      if (gfc_pure (NULL) && gfc_impure_variable (sym))
 	{
 	  gfc_error ("Illegal allocate-object at %C for a PURE procedure");
 	  goto cleanup;
 	}
 
       /* FIXME: disable the checking on derived types.  */
-      if (!(tail->expr->ref
+      b1 = !(tail->expr->ref
 	   && (tail->expr->ref->type == REF_COMPONENT
-	       || tail->expr->ref->type == REF_ARRAY)) 
-	  && tail->expr->symtree->n.sym
-	  && !(tail->expr->symtree->n.sym->attr.allocatable
-	       || tail->expr->symtree->n.sym->attr.pointer
-	       || tail->expr->symtree->n.sym->attr.proc_pointer))
+	       || tail->expr->ref->type == REF_ARRAY));
+      if (sym && sym->ts.type == BT_CLASS)
+	b2 = !(sym->ts.u.derived->components->attr.allocatable
+	       || sym->ts.u.derived->components->attr.pointer);
+      else
+	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
+		      || sym->attr.proc_pointer);
+      if (b1 && b2)
 	{
 	  gfc_error ("Allocate-object at %C is not a nonprocedure pointer "
 		     "or an allocatable variable");
@@ -2997,7 +3005,8 @@ gfc_match_call (void)
 
   /* If this is a variable of derived-type, it probably starts a type-bound
      procedure call.  */
-  if (sym->attr.flavor != FL_PROCEDURE && sym->ts.type == BT_DERIVED)
+  if (sym->attr.flavor != FL_PROCEDURE
+      && (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS))
     return match_typebound_call (st);
 
   /* If it does not seem to be callable (include functions so that the

@@ -510,8 +510,12 @@ conv_parent_component_references (gfc_se * se, gfc_ref * ref)
 
   if (dt->attr.extension && dt->components)
     {
+      if (dt->attr.is_class)
+	cmp = dt->components;
+      else
+	cmp = dt->components->next;
       /* Return if the component is not in the parent type.  */
-      for (cmp = dt->components->next; cmp; cmp = cmp->next)
+      for (; cmp; cmp = cmp->next)
 	if (strcmp (c->name, cmp->name) == 0)
 	  return;
 	
@@ -3607,6 +3611,7 @@ gfc_conv_initializer (gfc_expr * expr, gfc_typespec * ts, tree type,
       switch (ts->type)
 	{
 	case BT_DERIVED:
+	case BT_CLASS:
 	  gfc_init_se (&se, NULL);
 	  gfc_conv_structure (&se, expr, 1);
 	  return se.expr;

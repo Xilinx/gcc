@@ -825,7 +825,12 @@ show_symbol (gfc_symbol *sym)
     }
 
   if (sym->f2k_derived)
-    show_f2k_derived (sym->f2k_derived);
+    {
+      show_indent ();
+      if (sym->vindex)
+	fprintf (dumpfile, "vindex: %d", sym->vindex);
+      show_f2k_derived (sym->f2k_derived);
+    }
 
   if (sym->formal)
     {

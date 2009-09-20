@@ -4534,6 +4534,23 @@ gfc_get_derived_super_type (gfc_symbol* derived)
 }
 
 
+/* Get the ultimate super-type of a given derived type.  */
+
+gfc_symbol*
+gfc_get_ultimate_derived_super_type (gfc_symbol* derived)
+{
+  if (!derived->attr.extension)
+    return NULL;
+
+  derived = gfc_get_derived_super_type (derived);
+
+  if (derived->attr.extension)
+    return gfc_get_ultimate_derived_super_type (derived);
+  else
+    return derived;
+}
+
+
 /* Check if two typespecs are type compatible (F03:5.1.1.2):
    If ts1 is nonpolymorphic, ts2 must be the same type.
    If ts1 is polymorphic (CLASS), ts2 must be an extension of ts1.  */
@@ -4541,16 +4558,17 @@ gfc_get_derived_super_type (gfc_symbol* derived)
 bool
 gfc_type_compatible (gfc_typespec *ts1, gfc_typespec *ts2)
 {
-  if (ts1->type == BT_DERIVED && ts2->type == BT_DERIVED)
+  if ((ts1->type == BT_DERIVED || ts1->type == BT_CLASS)
+      && (ts2->type == BT_DERIVED || ts2->type == BT_CLASS))
     {
       gfc_symbol *t0, *t;
-      if (ts1->is_class)
+      if (ts1->type == BT_CLASS)
 	{
-	  t0 = ts1->u.derived;
+	  t0 = ts1->u.derived->components->ts.u.derived;
 	  t = ts2->u.derived;
-	  while (t0 != t && t->attr.extension)
+	  while (!gfc_compare_derived_types (t0, t) && t->attr.extension)
 	    t = gfc_get_derived_super_type (t);
-	  return (t0 == t);
+	  return gfc_compare_derived_types (t0, t);
 	}
       else
 	return (ts1->u.derived == ts2->u.derived);

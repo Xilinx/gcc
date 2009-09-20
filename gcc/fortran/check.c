@@ -2135,9 +2135,6 @@ gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
   if (variable_check (from, 0) == FAILURE)
     return FAILURE;
 
-  if (array_check (from, 0) == FAILURE)
-    return FAILURE;
-
   attr = gfc_variable_attr (from, NULL);
   if (!attr.allocatable)
     {
@@ -2150,9 +2147,6 @@ gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
   if (variable_check (to, 0) == FAILURE)
     return FAILURE;
 
-  if (array_check (to, 0) == FAILURE)
-    return FAILURE;
-
   attr = gfc_variable_attr (to, NULL);
   if (!attr.allocatable)
     {
@@ -2162,7 +2156,7 @@ gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
       return FAILURE;
     }
 
-  if (same_type_check (from, 0, to, 1) == FAILURE)
+  if (same_type_check (to, 1, from, 0) == FAILURE)
     return FAILURE;
 
   if (to->rank != from->rank)

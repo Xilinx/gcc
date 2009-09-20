@@ -1,0 +1,22 @@
+2009-09-20  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/allocate_derived_1.f90: Remove -w option.
+	* gfortran.dg/class_1.f03: Ditto.
+	* gfortran.dg/class_2.f03: Ditto.
+	* gfortran.dg/proc_ptr_comp_pass_1.f90: Ditto.
+	* gfortran.dg/proc_ptr_comp_pass_2.f90: Ditto.
+	* gfortran.dg/proc_ptr_comp_pass_3.f90: Ditto.
+	* gfortran.dg/typebound_call_10.f03: Ditto.
+	* gfortran.dg/typebound_call_2.f03: Ditto.
+	* gfortran.dg/typebound_call_3.f03: Ditto.
+	* gfortran.dg/typebound_call_4.f03: Ditto.
+	* gfortran.dg/typebound_call_9.f03: Ditto.
+	* gfortran.dg/typebound_generic_3.f03: Ditto.
+	* gfortran.dg/typebound_generic_4.f03: Ditto.
+	* gfortran.dg/typebound_operator_1.f03: Ditto.
+	* gfortran.dg/typebound_operator_2.f03: Ditto.
+	* gfortran.dg/typebound_operator_3.f03: Ditto.
+	* gfortran.dg/typebound_operator_4.f03: Ditto.
+	* gfortran.dg/typebound_proc_1.f08: Ditto.
+	* gfortran.dg/typebound_proc_5.f03: Ditto.
+	* gfortran.dg/typebound_proc_6.f03: Ditto.

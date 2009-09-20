@@ -2004,6 +2004,7 @@ static const mstring bt_types[] = {
     minit ("LOGICAL", BT_LOGICAL),
     minit ("CHARACTER", BT_CHARACTER),
     minit ("DERIVED", BT_DERIVED),
+    minit ("CLASS", BT_CLASS),
     minit ("PROCEDURE", BT_PROCEDURE),
     minit ("UNKNOWN", BT_UNKNOWN),
     minit ("VOID", BT_VOID),
@@ -2054,7 +2055,7 @@ mio_typespec (gfc_typespec *ts)
 
   ts->type = MIO_NAME (bt) (ts->type, bt_types);
 
-  if (ts->type != BT_DERIVED)
+  if (ts->type != BT_DERIVED && ts->type != BT_CLASS)
     mio_integer (&ts->kind);
   else
     mio_symbol_ref (&ts->u.derived);
@@ -3566,7 +3567,10 @@ mio_symbol (gfc_symbol *sym)
     }
   
   mio_integer (&(sym->intmod_sym_id));
-  
+
+  if (sym->attr.flavor == FL_DERIVED)
+    mio_integer (&(sym->vindex));
+
   mio_rparen ();
 }
 

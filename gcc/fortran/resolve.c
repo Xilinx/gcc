@@ -3912,7 +3912,10 @@ find_array_spec (gfc_expr *e)
   gfc_symbol *derived;
   gfc_ref *ref;
 
-  as = e->symtree->n.sym->as;
+  if (e->symtree->n.sym->ts.type == BT_CLASS)
+    as = e->symtree->n.sym->ts.u.derived->components->as;
+  else
+    as = e->symtree->n.sym->as;
   derived = NULL;
 
   for (ref = e->ref; ref; ref = ref->next)
@@ -4825,7 +4828,7 @@ check_typebound_baseobject (gfc_expr* e)
   if (!base)
     return FAILURE;
 
-  gcc_assert (base->ts.type == BT_DERIVED);
+  gcc_assert (base->ts.type == BT_DERIVED || base->ts.type == BT_CLASS);
   if (base->ts.u.derived->attr.abstract)
     {
       gfc_error ("Base object for type-bound procedure call at %L is of"
@@ -5032,7 +5035,10 @@ static gfc_try
 resolve_ppc_call (gfc_code* c)
 {
   gfc_component *comp;
-  gcc_assert (gfc_is_proc_ptr_comp (c->expr1, &comp));
+  bool b;
+
+  b = gfc_is_proc_ptr_comp (c->expr1, &comp);
+  gcc_assert (b);
 
   c->resolved_sym = c->expr1->symtree->n.sym;
   c->expr1->expr_type = EXPR_VARIABLE;
@@ -5064,7 +5070,10 @@ static gfc_try
 resolve_expr_ppc (gfc_expr* e)
 {
   gfc_component *comp;
-  gcc_assert (gfc_is_proc_ptr_comp (e, &comp));
+  bool b;
+
+  b = gfc_is_proc_ptr_comp (e, &comp);
+  gcc_assert (b);
 
   /* Convert to EXPR_FUNCTION.  */
   e->expr_type = EXPR_FUNCTION;
@@ -5496,6 +5505,12 @@ resolve_deallocate_expr (gfc_expr *e)
       return FAILURE;
     }
 
+  if (e->ts.type == BT_CLASS)
+    {
+      /* Only deallocate the DATA component.  */
+      gfc_add_component_ref (e, "data");
+    }
+
   return SUCCESS;
 }
 
@@ -5563,6 +5578,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   gfc_expr *init_e;
   gfc_symbol *sym;
   gfc_alloc *a;
+  gfc_component *c;
 
   /* Check INTENT(IN), unless the object is a sub-component of a pointer.  */
   check_intent_in = 1;
@@ -5574,6 +5590,8 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
      pointer, the next-to-last reference must be a pointer.  */
 
   ref2 = NULL;
+  if (e->symtree)
+    sym = e->symtree->n.sym;
 
   if (e->expr_type != EXPR_VARIABLE)
     {
@@ -5584,9 +5602,18 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
     }
   else
     {
-      allocatable = e->symtree->n.sym->attr.allocatable;
-      pointer = e->symtree->n.sym->attr.pointer;
-      dimension = e->symtree->n.sym->attr.dimension;
+      if (sym->ts.type == BT_CLASS)
+	{
+	  allocatable = sym->ts.u.derived->components->attr.allocatable;
+	  pointer = sym->ts.u.derived->components->attr.pointer;
+	  dimension = sym->ts.u.derived->components->attr.dimension;
+	}
+      else
+	{
+	  allocatable = sym->attr.allocatable;
+	  pointer = sym->attr.pointer;
+	  dimension = sym->attr.dimension;
+	}
 
       for (ref = e->ref; ref; ref2 = ref, ref = ref->next)
 	{
@@ -5601,11 +5628,19 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 		break;
 
 	      case REF_COMPONENT:
-		allocatable = (ref->u.c.component->as != NULL
-			       && ref->u.c.component->as->type == AS_DEFERRED);
-
-		pointer = ref->u.c.component->attr.pointer;
-		dimension = ref->u.c.component->attr.dimension;
+		c = ref->u.c.component;
+		if (c->ts.type == BT_CLASS)
+		  {
+		    allocatable = c->ts.u.derived->components->attr.allocatable;
+		    pointer = c->ts.u.derived->components->attr.pointer;
+		    dimension = c->ts.u.derived->components->attr.dimension;
+		  }
+		else
+		  {
+		    allocatable = c->attr.allocatable;
+		    pointer = c->attr.pointer;
+		    dimension = c->attr.dimension;
+		  }
 		break;
 
 	      case REF_SUBSTRING:
@@ -5623,12 +5658,28 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       return FAILURE;
     }
 
-  if (check_intent_in
-      && e->symtree->n.sym->attr.intent == INTENT_IN)
+  if (check_intent_in && sym->attr.intent == INTENT_IN)
     {
       gfc_error ("Cannot allocate INTENT(IN) variable '%s' at %L",
-		 e->symtree->n.sym->name, &e->where);
+		 sym->name, &e->where);
       return FAILURE;
+    }
+
+  if (e->ts.type == BT_CLASS)
+    {
+      /* Initialize VINDEX for CLASS objects.  */
+      int vindex = e->ts.u.derived->vindex;
+      init_st = gfc_get_code ();
+      init_st->loc = code->loc;
+      init_st->expr1 = expr_to_initialize (e);
+      init_st->op = EXEC_ASSIGN;
+      gfc_add_component_ref (init_st->expr1, "vindex");
+      init_st->expr2 = gfc_int_expr (vindex);
+      init_st->expr2->where = init_st->expr1->where = init_st->loc;
+      init_st->next = code->next;
+      code->next = init_st;
+      /* Only allocate the DATA component.  */
+      gfc_add_component_ref (e, "data");
     }
 
   /* Add default initializer for those derived types that need them.  */
@@ -7066,6 +7117,47 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
   return false;
 }
 
+
+/* Check a pointer assignment to a CLASS object.  */
+
+static void
+check_class_pointer_assign (gfc_code **code)
+{
+  gfc_code *assign_code = gfc_get_code ();
+
+  /* Insert an additional assignment which sets the vindex.  */
+  assign_code->next = (*code)->next;
+  (*code)->next = assign_code;
+  assign_code->op = EXEC_ASSIGN;
+  assign_code->expr1 = gfc_copy_expr ((*code)->expr1);
+  gfc_add_component_ref (assign_code->expr1, "vindex");
+  if ((*code)->expr2->ts.type == BT_DERIVED)
+    {
+      /* vindex is constant, determined at compile time.  */
+      int vindex = (*code)->expr2->ts.u.derived->vindex;
+      assign_code->expr2 = gfc_int_expr (vindex);
+    }
+  else if ((*code)->expr2->ts.type == BT_CLASS)
+    {
+      /* vindex must be determined at run time.  */
+      assign_code->expr2 = gfc_copy_expr ((*code)->expr2);
+      gfc_add_component_ref (assign_code->expr2, "vindex");
+    }
+  else
+    gcc_unreachable ();
+
+  /* Modify the actual pointer assignment.  */
+  gfc_add_component_ref ((*code)->expr1, "data");
+  if ((*code)->expr2->ts.type == BT_CLASS)
+    gfc_add_component_ref ((*code)->expr2, "data");
+
+  gfc_check_pointer_assign ((*code)->expr1, (*code)->expr2);
+
+  if ((*code)->expr1->ts.type == BT_CLASS)
+    (*code) = (*code)->next;
+}
+
+
 /* Given a block of code, recursively resolve everything pointed to by this
    code block.  */
 
@@ -7216,7 +7308,11 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  if (t == FAILURE)
 	    break;
 
-	  gfc_check_pointer_assign (code->expr1, code->expr2);
+	  if (code->expr1->ts.type == BT_CLASS)
+	    check_class_pointer_assign (&code);
+	  else
+	    gfc_check_pointer_assign (code->expr1, code->expr2);
+
 	  break;
 
 	case EXEC_ARITHMETIC_IF:
@@ -7983,8 +8079,8 @@ resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
     }
   else
     {
-      if (!mp_flag && !sym->attr.allocatable
-	  && !sym->attr.pointer && !sym->attr.dummy)
+      if (!mp_flag && !sym->attr.allocatable && !sym->attr.pointer
+	  && !sym->attr.dummy && sym->ts.type != BT_CLASS)
 	{
 	  gfc_error ("Array '%s' at %L cannot have a deferred shape",
 		     sym->name, &sym->declared_at);
@@ -8010,7 +8106,7 @@ type_is_extensible (gfc_symbol *sym)
 static gfc_try
 resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
 {
-  gcc_assert (sym->ts.type == BT_DERIVED);
+  gcc_assert (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS);
 
   /* Check to see if a derived type is blocked from being host
      associated by the presence of another class I symbol in the same
@@ -8052,10 +8148,10 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
       return FAILURE;
     }
 
-  if (sym->ts.is_class)
+  if (sym->ts.type == BT_CLASS)
     {
       /* C502.  */
-      if (!type_is_extensible (sym->ts.u.derived))
+      if (!type_is_extensible (sym->ts.u.derived->components->ts.u.derived))
 	{
 	  gfc_error ("Type '%s' of CLASS variable '%s' at %L is not extensible",
 		     sym->ts.u.derived->name, sym->name, &sym->declared_at);
@@ -8063,7 +8159,9 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
 	}
 
       /* C509.  */
-      if (!(sym->attr.dummy || sym->attr.allocatable || sym->attr.pointer))
+      if (!(sym->attr.dummy || sym->attr.allocatable || sym->attr.pointer
+	      || sym->ts.u.derived->components->attr.allocatable
+	      || sym->ts.u.derived->components->attr.pointer))
 	{
 	  gfc_error ("CLASS variable '%s' at %L must be dummy, allocatable "
 		     "or pointer", sym->name, &sym->declared_at);
@@ -8204,7 +8302,7 @@ resolve_fl_variable (gfc_symbol *sym, int mp_flag)
     }
 
 no_init_error:
-  if (sym->ts.type == BT_DERIVED)
+  if (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS)
     return resolve_fl_variable_derived (sym, no_init_flag);
 
   return SUCCESS;
@@ -8850,6 +8948,9 @@ check_generic_tbp_ambiguity (gfc_tbp_generic* t1, gfc_tbp_generic* t2,
   sym1 = t1->specific->u.specific->n.sym;
   sym2 = t2->specific->u.specific->n.sym;
 
+  if (sym1 == sym2)
+    return SUCCESS;
+
   /* Both must be SUBROUTINEs or both must be FUNCTIONs.  */
   if (sym1->attr.subroutine != sym2->attr.subroutine
       || sym1->attr.function != sym2->attr.function)
@@ -9243,8 +9344,15 @@ resolve_typebound_procedure (gfc_symtree* stree)
 
       /* Now check that the argument-type matches.  */
       gcc_assert (me_arg);
-      if (me_arg->ts.type != BT_DERIVED
-	  || me_arg->ts.u.derived != resolve_bindings_derived)
+      if (me_arg->ts.type != BT_CLASS)
+	{
+	  gfc_error ("Non-polymorphic passed-object dummy argument of '%s'"
+		     " at %L", proc->name, &where);
+	  goto error;
+	}
+
+      if (me_arg->ts.u.derived->components->ts.u.derived
+	  != resolve_bindings_derived)
 	{
 	  gfc_error ("Argument '%s' of '%s' with PASS(%s) at %L must be of"
 		     " the derived-type '%s'", me_arg->name, proc->name,
@@ -9252,12 +9360,6 @@ resolve_typebound_procedure (gfc_symtree* stree)
 	  goto error;
 	}
 
-      if (!me_arg->ts.is_class)
-	{
-	  gfc_error ("Non-polymorphic passed-object dummy argument of '%s'"
-		     " at %L", proc->name, &where);
-	  goto error;
-	}
     }
 
   /* If we are extending some type, check that we don't override a procedure
@@ -9571,8 +9673,10 @@ resolve_fl_derived (gfc_symbol *sym)
 
 	  /* Now check that the argument-type matches.  */
 	  gcc_assert (me_arg);
-	  if (me_arg->ts.type != BT_DERIVED
-	      || me_arg->ts.u.derived != sym)
+	  if ((me_arg->ts.type != BT_DERIVED && me_arg->ts.type != BT_CLASS)
+	      || (me_arg->ts.type == BT_DERIVED && me_arg->ts.u.derived != sym)
+	      || (me_arg->ts.type == BT_CLASS
+		  && me_arg->ts.u.derived->components->ts.u.derived != sym))
 	    {
 	      gfc_error ("Argument '%s' of '%s' with PASS(%s) at %L must be of"
 			 " the derived type '%s'", me_arg->name, c->name,
@@ -9609,9 +9713,9 @@ resolve_fl_derived (gfc_symbol *sym)
 	      return FAILURE;
 	    }
 
-	  if (type_is_extensible (sym) && !me_arg->ts.is_class)
+	  if (type_is_extensible (sym) && me_arg->ts.type != BT_CLASS)
 	    gfc_error ("Non-polymorphic passed-object dummy argument of '%s'"
-			 " at %L", c->name, &c->loc);
+		       " at %L", c->name, &c->loc);
 
 	}
 
@@ -9680,8 +9784,9 @@ resolve_fl_derived (gfc_symbol *sym)
 	}
 
       /* C437.  */
-      if (c->ts.type == BT_DERIVED && c->ts.is_class
-	  && !(c->attr.pointer || c->attr.allocatable))
+      if (c->ts.type == BT_CLASS
+	  && !(c->ts.u.derived->components->attr.pointer
+	       || c->ts.u.derived->components->attr.allocatable))
 	{
 	  gfc_error ("Component '%s' with CLASS at %L must be allocatable "
 		     "or pointer", c->name, &c->loc);
