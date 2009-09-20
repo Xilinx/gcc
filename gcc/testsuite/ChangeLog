@@ -1,3 +1,48 @@
+2009-09-20  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.c-tortue/compile/pr39886.c: New.
+
+2009-09-20  Chris Demetriou  <cgd@google.com>
+
+	PR preprocessor/28435:
+	* gcc.dg/cpp/missing-header-MD.c: Make output checking match
+	gcc.dg/cpp/missing-header-1.c, and add PR number to test comment.
+	* gcc.dg/cpp/missing-header-MMD.c: Likewise.
+	* gcc.dg/cpp/missing-sysheader-MD.c: Likewise.
+	* gcc.dg/cpp/missing-sysheader-MMD.c: Likewise.
+
+2009-09-19  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp: Add relax-pic-calls
+	under -mfoo/-mno-foo options.
+	(mips-dg-options): Make -mrelax-pic-calls imply -mno-plt, -mabicalls
+	and -mexplicit-relocs.
+	* gcc.target/mips/call-1.c: New test.
+	* gcc.target/mips/call-2.c: New test.
+	* gcc.target/mips/call-3.c: New test.
+	* gcc.target/mips/lazy-binding-1.c: Add MIPS-specific dg-options.
+	* gcc.dg/tree-ssa/loop-1.c: Likewise.
+
+2009-09-19  Chris Demetriou  <cgd@google.com>
+
+	PR preprocessor/28435:
+	* gcc.dg/cpp/missing-header-MD.c: New test.
+	* gcc.dg/cpp/missing-header-MMD.c: New test.
+	* gcc.dg/cpp/missing-sysheader-MD.c: New test.
+	* gcc.dg/cpp/missing-sysheader-MMD.c: New test.
+
+2009-09-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41328
+	* gfortran.dg/cr_lf.f90: Modify test to include check that no EOR with
+	EOF works.
+
+2009-09-18  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/nolinkage1{.C,.h,a.cc}: New.
+
+	* g++.dg/cpp0x/initlist-deduce.C: New.
+
 2009-09-18  Janis Johnson  <janis187@us.ibm.com>
 
 	* gcc.dg/dfp/dfp.exp: Also run tests in c-c++-common/dfp.
