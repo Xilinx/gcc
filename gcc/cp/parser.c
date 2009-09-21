@@ -7248,12 +7248,11 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 				       exception_spec,
                                        /*late_return_type=*/NULL_TREE);
 
-    fco = start_method (&return_type_specs,
+    fco = grokmethod (&return_type_specs,
                         declarator,
                         attributes);
     DECL_INITIALIZED_IN_CLASS_P (fco) = 1;
     DECL_ARTIFICIAL (fco) = 1;
-    finish_method (fco);
 
     finish_member_declaration (fco);
 
