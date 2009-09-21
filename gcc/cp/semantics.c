@@ -5469,7 +5469,6 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
       tree lambda = TREE_VALUE (node);
 
       current_class_type = TREE_TYPE (lambda);
-      pushlevel_class ();
       member = add_capture (lambda,
                             id,
                             initializer,
@@ -5477,7 +5476,6 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
 			    (!this_capture_p
 			     && (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda)
 				 == CPLD_REFERENCE)));
-      poplevel_class ();
 
       {
         /* Have to get the old value of current_class_ref.  */
