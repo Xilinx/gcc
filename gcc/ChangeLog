@@ -1,3 +1,177 @@
+2009-09-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/41395
+	* opts.c (decode_options): Don't turn on flag_ipa_sra for opt2.
+
+2009-09-20  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR middle-end/30789
+	* builtins.c (do_mpc_arg2): Accept DO_NONFINITE parameter.
+	(do_mpc_ckconv): Accept FORCE_CONVERT parameter.
+	(fold_builtin_2, do_mpc_arg1): Update accordingly.
+	* fold-const.c (const_binop): Likewise.
+	* real.h (do_mpc_arg2): Update prototype.
+
+2009-09-20  Jan Hubicka  <jh@suse.cz>
+
+	* dwarf2out.c (add_const_value_attribute): Return true if successful.
+	(add_location_or_const_value_attribute): Rewrite using loc_list_from_tree.
+	(tree_add_const_value_attribute): Return true if successful.
+	(tree_add_const_value_attribute_for_decl): Likewise.
+
+	* dwarf2out.c (address_of_int_loc_descriptor): Break out from ...
+	(loc_descriptor): ... here;
+	(loc_list_for_address_of_addr_expr_of_indirect_ref): New function.
+	(cst_pool_loc_descr): Break out from ...; do not reffer constant
+	pool items that was not marked for output.
+	(loc_list_from_tree): ... here; handle special cases of ADDR_EXPR;
+	(loc_list_for_address_of_addr_expr_of_indirect_ref): New function.
+	(loc_list_for_address_of_addr_expr_of_indirect_ref): New function.
+	handle ALIGN_INDIRECT_REF, MISALIGNED_INDIRECT_REF, REALPART_EXPR,
+	IMAGPART_EXPR; handle address of INTEGER_CST; improve handling of
+	CONSTRUCTOR; handle REAL_CST, STRING_CST, COMPLEX_CST; use
+	DW_OP_stack_value to get address of items that are not available
+	as addresses.
+	(dw_loc_list): Handle single element lists correctly.
+
+2009-09-20  Kai Tietz  <kai.tietz@onevision.com>
+	    Pascal Obry  <obry@adacore.com>
+
+	* unwind-dw2-fde.c (classify_object_over_fdes):
+	Cast the constant 1 to _Unwind_Ptr.
+	(add_fdes): Likewise.
+	(linear_search_fdes): Likewise.
+
+2009-09-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* stor-layout.c (set_sizetype): Avoid useless type copy.
+
+2009-09-20  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* configure.ac (gcc_cv_ld_mips_personality_relaxation): New
+	feature check.
+	(HAVE_LD_PERSONALITY_RELAXATION): New macro definition.
+	* configure, config.in: Regenerate.
+	* dwarf2asm.c (eh_data_format_name): Handle DW_EH_PE_indirect |
+	DW_EH_PE_absptr.
+	* config/mips/mips.h (TARGET_WRITABLE_EH_FRAME): New macro.
+	(ASM_PREFERRED_EH_DATA_FORMAT): Define.  Use MIPS_EH_INDIRECT
+	for global data if the output could be used in a shared library.
+	* config/mips/mips.c (mips_override_options): Set flag_dwarf2_cfi_asm
+	to 0 if TARGET_WRITABLE_EH_FRAME.
+
+2009-09-20  Paolo Bonzini <bonzini@gnu.org>
+
+	PR rtl-optimization/39886
+	* combine.c (update_cfg_for_uncondjump): Set EDGE_FALLTHRU
+	just when insn is equal to BB_END (bb).
+
+2009-09-19  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.opt (mrelax-pic-calls): New option.
+	* config/mips/mips.c (mips_strip_unspec_address): Move it up in
+	the file.
+	(mips_unspec_call): Change "unspec_call" expander into this.
+	(mips_strip_unspec_call): New function.
+	(mips_got_load): Call mips_unspec_call instead of
+	gen_unspec_call<mode>.
+	(mips16_build_call_stub): Fix comment for fp_code.  Adjust call to
+	MIPS_CALL.
+	(mips_cfg_in_reorg): New function.
+	(mips16_lay_out_constants): Use it to decide whether to call
+	CFG-aware insn splitting.
+	(r10k_insert_cache_barriers): Move CFG set-up code from here to
+	mips_reorg.  Move DF set-up code from here ...
+	(mips_df_reorg): ... to here.  Call r10k_insert_cache_barriers
+	from here.
+	(mips_reorg): Call mips_df_reorg instead of
+	r10k_insert_cache_barriers.  Move CFG set-up code here from
+	r10k_insert_cache_barriers.
+	(mips_call_expr_from_insn): New function.
+	(mips_pic_call_symbol_from_set): Likewise.
+	(mips_find_pic_call_symbol): Likewise.
+	(mips_annotate_pic_call_expr): Likewise.
+	(mips_get_pic_call_symbol): Likewise.
+	(mips_annotate_pic_calls): Likewise.
+	(mips_override_options): Disable -mrelax-pic-calls unless PIC
+	calls are used.
+	(mips_set_mips16_mode): Disable -mrelax-pic-calls for MIPS16.
+	* config/mips/mips-protos.h (mips_get_pic_call_symbol): Declare it.
+	* config/mips/mips.h (MIPS_CALL): Use it to print the .reloc
+	directive.
+	* config/mips/mips.md (UNSPEC_CALL_ATTR): New unspec.
+	(unspec_call<mode>): Remove it.
+	(sibcall_internal, sibcall_value_internal,
+	sibcall_value_multiple_internal, call_internal, call_split,
+	call_value_internal, call_value_split,
+	call_value_multiple_internal, call_value_multiple_split): Pass
+	SIZE_OPNO to MIPS_CALL.
+	(call_internal_direct, call_direct_split,
+	call_value_internal_direct, call_value_direct_split): Pass -1 as
+	SIZE_OPNO to MIPS_CALL.
+	* configure.ac <mips*-*-*>: Add test for .reloc R_MIPS_JALR.
+	* configure: Regenerate.
+	* doc/invoke.texi (Option Summary): Add -mrelax-pic-calls
+	and -mno-relax-pic-calls.
+	(MIPS Options): Document -mrelax-pic-calls
+	and -mno-relax-pic-calls.
+
+2009-09-19  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/35619
+	* Makefile.in (stmp-fixinc): Ensure `include-fixed' is created
+	in the directory this rule is called from, rather than the
+	toplevel 'gcc' directory, to fix in-tree build.
+
+2009-09-19  Chris Demetriou  <cgd@google.com>
+
+	PR preprocessor/28435:
+	* c-opts.c (c_common_handle_option): For -MD and -MMD, indicate
+	to cpplib that the preprocessor output is needed.
+
+2009-09-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/rs6000/rs6000.md (*save_gpregs_<mode>, *save_fpregs_<mode>,
+	*restore_gpregs_<mode>, *return_and_restore_gpregs_<mode>,
+	*return_and_restore_fpregs_<mode>,
+	*return_and_restore_fpregs_aix_<mode>): Remove 'z' operand modifier.
+
+	PR bootstrap/41397
+	* dwarf2out.c (mem_loc_descriptor) <case SUBREG>: Recurse
+	instead of assuming it has always a REG inside of it.
+
+2009-09-18  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* config/freebsd.h: Update comment on types.
+	(WINT_TYPE): Define.
+
+2009-09-18  Jason Merrill  <jason@redhat.com>
+
+	* c.opt: Add -fno-deduce-init-list.
+
+2009-09-18  Neil Vachharajani  <nvachhar@google.com>
+
+	* value-prof.c (interesting_stringop_to_profile_p): Added output
+	argument to indicate which parameter is the size parameter.
+	* value-prof.c (gimple_stringop_fixed_value): Use
+	INTERESTING_STRINGOP_TO_PROFILE_P to find size argument.
+	* value-prof.c (gimple_stringops_transform): Update call sites to
+	INTERESTING_STRINGOP_TO_PROFILE_P to reflect parameter change.
+	* testsuite/gcc.dg/tree-prof/val-prof-7.c: Added test case.
+
+2009-09-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/38288
+	From David Binderman <dcb314@hotmail.com>:
+	* gcc/config/i386/i386.c (ix86_function_regparm): Remove useless
+	local variable f.  Remove stale comments.
+	(ix86_compute_frame_layout): Remove useless local variable total_size.
+	Remove #if 0'd code.
+	(legitimate_address_p): Remove useless local variables
+	reason_rtx and reason.
+	(ix86_split_copysign_const): Remove useless local variable op1.
+	(scale_counter): Remove useless local variable piece_size_mask.
+
 2009-09-18  Jakub Jelinek  <jakub@redhat.com>
 
 	* stmt.c (expand_asm_operands): Set REG_ATTRS on the temporary from
@@ -126,7 +300,7 @@
 	(ipa_early_sra_gate): New function.
 	(pass_early_ipa_sra): New variable.
 	* Makefile.in (tree-sra.o): Add cgraph.h to dependencies.
-	
+
 2009-09-17  Michael Matz  <matz@suse.de>
 
 	PR middle-end/41347
@@ -203,7 +377,7 @@
 
 	* config/sh/sh.c (output_stack_adjust): Add new argument frame_p.
 	(sh_expand_prologue): Update calls to output_stack_adjust.
-	(sh_expand_epilogue): Likewise.	
+	(sh_expand_epilogue): Likewise.
 
 2009-09-15  Adam Nemet  <anemet@caviumnetworks.com>
 
@@ -272,8 +446,8 @@
 
 2009-09-15  Christian Bruel  <christian.bruel@st.com>
 
-        * regrename.c (do_replace): Update REG_DEAD notes. 
-	
+	* regrename.c (do_replace): Update REG_DEAD notes.
+
 2009-09-15  Revital Eres  <eres@il.ibm.com>
 
 	* doc/tm.texi (TARGET_SUPPORT_VECTOR_MISALIGNMENT): Document.
