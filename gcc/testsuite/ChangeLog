@@ -1,3 +1,62 @@
+2009-09-02  David Daney  <ddaney@caviumnetworks.com>
+
+	* gcc.c-torture/compile/builtin_unreachable-1.c: New testcase.
+
+2009-09-03  Diego Novillo  <dnovillo@google.com>
+
+	* gcc.dg/gomp/combined-1.c: Adjust expected pattern.
+	* g++.dg/tree-prof/inline_mismatch_args.C: Likewise.
+	* g++.dg/warn/unit-1.C: Likewise.
+	* g++.dg/ipa/iinline-1.C: Likewise.
+	* g++.dg/template/cond2.C: Adjust expected line location for the
+	error.
+	* g++.dg/template/pr35240.C: Likewise.
+
+2009-09-02  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/tree-ssa/inline-3.c: Add -fpie when pic.
+	* gcc.dg/tree-ssa/local-pure-const.c: Likewise.
+
+2009-09-02  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-8.c: New testcase.
+	* gcc.dg/memcpy-1.c: Add . to match pattern.
+	* gcc.dg/uninit-I.c: XFAIL warning test.
+	* g++.dg/warn/unit-1.C: XFAIL warning test.
+	
+2009-09-02  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/20090902-1.c: New test.
+
+2009-09-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/builtin-object-size-9.c: New test.
+
+2009-09-02  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/array7.ad[bs]: Add check for Signed_Integer_Type_Definition.
+	
+2009-09-02  Eric Botcazou  <ebotcazou@adacore.com>
+            Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/misaligned_param.adb: New test.
+	* gnat.dg/misaligned_param_pkg.ad[sb]: New helper.
+	* gnat.dg/slice7.adb: Add 1 more related case.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* gcc.dg/guality/guality.c: Expect to fail for now.
+	* gcc.dg/guality/example.c: Likewise.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* gcc.dg/guality/guality.c: New.
+	* gcc.dg/guality/guality.h: New.
+	* gcc.dg/guality/guality.exp: New.
+	* gcc.dg/guality/example.c: New.
+	* lib/gcc-dg.exp (cleanup-dump): Remove .gk files.
+	(cleanup-saved-temps): Likewise, .gkd files too.
+
 2009-09-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/39229

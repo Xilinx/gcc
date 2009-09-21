@@ -311,6 +311,7 @@ Objective-C and Objective-C++ Dialects}.
 -frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
 -fsel-sched-verbose -fsel-sched-dump-cfg -fsel-sched-pipelining-verbose @gol
 -ftest-coverage  -ftime-report -fvar-tracking @gol
+-fvar-tracking-assigments  -fvar-tracking-assignments-toggle @gol
 -g  -g@var{level}  -gtoggle  -gcoff  -gdwarf-@var{version} @gol
 -ggdb  -gstabs  -gstabs+  -gvms  -gxcoff  -gxcoff+ @gol
 -fno-merge-debug-strings -fno-dwarf2-cfi-asm @gol
@@ -364,12 +365,12 @@ Objective-C and Objective-C++ Dialects}.
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
 -frounding-math -fsched2-use-superblocks @gol
--fsched2-use-traces -fsched-spec-load -fsched-spec-load-dangerous @gol
+-fsched2-use-traces -fsched-pressure @gol
+-fsched-spec-load -fsched-spec-load-dangerous @gol
 -fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
 -fsched-group-heuristic -fsched-critical-path-heuristic @gol
--fsched-spec-insn-heuristic -fsched-reg-pressure-heuristic @gol
--fsched-rank-heuristic -fsched-last-insn-heuristic @gol
--fsched-dep-count-heuristic @gol
+-fsched-spec-insn-heuristic -fsched-rank-heuristic @gol
+-fsched-last-insn-heuristic -fsched-dep-count-heuristic @gol
 -fschedule-insns -fschedule-insns2 -fsection-anchors @gol
 -fselective-scheduling -fselective-scheduling2 @gol
 -fsel-sched-pipelining -fsel-sched-pipelining-outer-loops @gol
@@ -4397,10 +4398,13 @@ assembler (GAS) to fail with an error.
 @opindex gdwarf-@var{version}
 Produce debugging information in DWARF format (if that is
 supported).  This is the format used by DBX on IRIX 6.  The value
-of @var{version} may be either 2 or 3; the default version is 2.
+of @var{version} may be either 2, 3 or 4; the default version is 2.
 
 Note that with DWARF version 2 some ports require, and will always
 use, some non-conflicting DWARF 3 extensions in the unwind tables.
+
+Version 4 may require GDB 7.0 and @option{-fvar-tracking-assignments}
+for maximum benefit.
 
 @item -gvms
 @opindex gvms
@@ -4445,9 +4449,12 @@ other options are processed, and it does so only once, no matter how
 many times it is given.  This is mainly intended to be used with
 @option{-fcompare-debug}.
 
-@item -fdump-final-insns=@var{file}
-@opindex fdump-final-insns=
-Dump the final internal representation (RTL) to @var{file}.
+@item -fdump-final-insns@r{[}=@var{file}@r{]}
+@opindex fdump-final-insns
+Dump the final internal representation (RTL) to @var{file}.  If the
+optional argument is omitted (or if @var{file} is @code{.}), the name
+of the dump file will be determined by appending @code{.gkd} to the
+compilation output file name.
 
 @item -fcompare-debug@r{[}=@var{opts}@r{]}
 @opindex fcompare-debug
@@ -5446,6 +5453,23 @@ It is enabled by default when compiling with optimization (@option{-Os},
 @option{-O}, @option{-O2}, @dots{}), debugging information (@option{-g}) and
 the debug info format supports it.
 
+@item -fvar-tracking-assignments
+@opindex fvar-tracking-assignments
+@opindex fno-var-tracking-assignments
+Annotate assignments to user variables early in the compilation and
+attempt to carry the annotations over throughout the compilation all the
+way to the end, in an attempt to improve debug information while
+optimizing.  Use of @option{-gdwarf-4} is recommended along with it.
+
+It can be enabled even if var-tracking is disabled, in which case
+annotations will be created and maintained, but discarded at the end.
+
+@item -fvar-tracking-assignments-toggle
+@opindex fvar-tracking-assignments-toggle
+@opindex fno-var-tracking-assignments-toggle
+Toggle @option{-fvar-tracking-assignments}, in the same way that
+@option{-gtoggle} toggles @option{-g}.
+
 @item -print-file-name=@var{library}
 @opindex print-file-name
 Print the full absolute name of the library file @var{library} that
@@ -6202,6 +6226,16 @@ Don't allow speculative motion of non-load instructions.  This is normally
 enabled by default when scheduling before register allocation, i.e.@:
 with @option{-fschedule-insns} or at @option{-O2} or higher.
 
+@item -fsched-pressure
+@opindex fsched-pressure
+Enable register pressure sensitive insn scheduling before the register
+allocation.  This only makes sense when scheduling before register
+allocation is enabled, i.e.@: with @option{-fschedule-insns} or at
+@option{-O2} or higher.  Usage of this option can improve the
+generated code and decrease its size by preventing register pressure
+increase above the number of available hard registers and as a
+consequence register spills in the register allocation.
+
 @item -fsched-spec-load
 @opindex fsched-spec-load
 Allow speculative motion of some load instructions.  This only makes
@@ -6269,13 +6303,6 @@ heuristic favors speculative instructions with greater dependency weakness.
 This is enabled by default when scheduling is enabled, i.e.@: 
 with @option{-fschedule-insns} or @option{-fschedule-insns2} 
 or at @option{-O2} or higher.
-
-@item -fsched-reg-pressure-heuristic
-@opindex fsched-reg-pressure-heuristic
-Enable the register pressure heuristic in the scheduler.  This heuristic
-favors the instruction with smaller contribution to register pressure.  
-This only makes sense when scheduling before register allocation, i.e.@: 
-with @option{-fschedule-insns} or at @option{-O2} or higher.
 
 @item -fsched-rank-heuristic
 @opindex fsched-rank-heuristic
@@ -8093,6 +8120,12 @@ in amount of needed compile time memory, with very large loops.  Loops
 with more basic blocks than this parameter won't have loop invariant
 motion optimization performed on them.  The default value of the
 parameter is 1000 for -O1 and 10000 for -O2 and above.
+
+@item min-nondebug-insn-uid
+Use uids starting at this parameter for nondebug insns.  The range below
+the parameter is reserved exclusively for debug insns created by
+@option{-fvar-tracking-assignments}, but debug insns may get
+(non-overlapping) uids above it if the reserved range is exhausted.
 
 @end table
 @end table
