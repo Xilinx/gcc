@@ -7007,7 +7007,7 @@ check_return_expr (tree retval, bool *no_warning)
 
   /* As an extension, deduce lambda return type from a return statement
      anywhere in the body.  */
-  if (retval && current_class_type && LAMBDA_TYPE_P (current_class_type))
+  if (retval && LAMBDA_TYPE_P (CP_DECL_CONTEXT (current_function_decl)))
     {
       tree lambda = CLASSTYPE_LAMBDA_EXPR (current_class_type);
       if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE (lambda))
