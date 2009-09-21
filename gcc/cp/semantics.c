@@ -5551,6 +5551,7 @@ lambda_expr_this_capture (tree lambda)
     }
   else
     {
+      /* To make sure that current_class_ref is for the lambda.  */
       gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (current_class_ref)) == TREE_TYPE (lambda));
 
       result = finish_non_static_data_member (this_capture,
