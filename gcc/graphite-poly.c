@@ -238,8 +238,6 @@ apply_poly_transforms (scop_p scop)
 {
   bool transform_done = false;
 
-  gcc_assert (graphite_legal_transform (scop));
-
   /* Generate code even if we did not apply any real transformation.
      This also allows to check the performance for the identity
      transformation: GIMPLE -> GRAPHITE -> GIMPLE
@@ -263,6 +261,47 @@ apply_poly_transforms (scop_p scop)
   return transform_done;
 }
 
+/* Returns true when it PDR1 is a duplicate of PDR2: same PBB, and
+   their ACCESSES, TYPE, and NB_SUBSCRIPTS are the same.  */
+
+static inline bool
+can_collapse_pdrs (poly_dr_p pdr1, poly_dr_p pdr2)
+{
+  bool res;
+  ppl_Pointset_Powerset_C_Polyhedron_t af1, af2, diff;
+
+  if (PDR_PBB (pdr1) != PDR_PBB (pdr2)
+      || PDR_NB_SUBSCRIPTS (pdr1) != PDR_NB_SUBSCRIPTS (pdr2)
+      || PDR_TYPE (pdr1) != PDR_TYPE (pdr2))
+    return false;
+
+  af1 = PDR_ACCESSES (pdr1);
+  af2 = PDR_ACCESSES (pdr2);
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
+    (&diff, af1);
+  ppl_Pointset_Powerset_C_Polyhedron_difference_assign (diff, af2);
+
+  res = ppl_Pointset_Powerset_C_Polyhedron_is_empty (diff);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (diff);
+  return res;
+}
+
+/* Removes duplicated data references in PBB.  */
+
+void
+pbb_remove_duplicate_pdrs (poly_bb_p pbb)
+{
+  int i, j;
+  poly_dr_p pdr1, pdr2;
+  unsigned n = VEC_length (poly_dr_p, PBB_DRS (pbb));
+  VEC (poly_dr_p, heap) *collapsed = VEC_alloc (poly_dr_p, heap, n);
+
+  for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr1); i++)
+    for (j = 0; VEC_iterate (poly_dr_p, collapsed, j, pdr2); j++)
+      if (!can_collapse_pdrs (pdr1, pdr2))
+	VEC_quick_push (poly_dr_p, collapsed, pdr1);
+}
+
 /* Create a new polyhedral data reference and add it to PBB.  It is
    defined by its ACCESSES, its TYPE, and the number of subscripts
    NB_SUBSCRIPTS.  */
@@ -270,10 +309,13 @@ apply_poly_transforms (scop_p scop)
 void
 new_poly_dr (poly_bb_p pbb,
 	     ppl_Pointset_Powerset_C_Polyhedron_t accesses,
-	     enum POLY_DR_TYPE type, void *cdr, int nb_subscripts)
+	     enum poly_dr_type type, void *cdr, graphite_dim_t nb_subscripts)
 {
+  static int id = 0;
   poly_dr_p pdr = XNEW (struct poly_dr);
 
+  PDR_ID (pdr) = id++;
+  PDR_NB_REFS (pdr) = 1;
   PDR_PBB (pdr) = pbb;
   PDR_ACCESSES (pdr) = accesses;
   PDR_TYPE (pdr) = type;
@@ -361,7 +403,7 @@ print_pdr_access_layout (FILE *file, poly_dr_p pdr)
 void
 print_pdr (FILE *file, poly_dr_p pdr)
 {
-  fprintf (file, "pdr (");
+  fprintf (file, "pdr_%d (", PDR_ID (pdr));
 
   switch (PDR_TYPE (pdr))
     {
@@ -410,8 +452,8 @@ new_scop (void *region)
   SCOP_CONTEXT (scop) = NULL;
   scop_set_region (scop, region);
   SCOP_BBS (scop) = VEC_alloc (poly_bb_p, heap, 3);
-  SCOP_ORIGINAL_PDR_PAIRS (scop) = htab_create (10, hash_poly_dr_pair_p,
-                                                eq_poly_dr_pair_p, free);
+  SCOP_ORIGINAL_PDDRS (scop) = htab_create (10, hash_poly_ddr_p,
+					    eq_poly_ddr_p, free_poly_ddr);
   return scop;
 }
 
@@ -431,7 +473,7 @@ free_scop (scop_p scop)
   if (SCOP_CONTEXT (scop))
     ppl_delete_Pointset_Powerset_C_Polyhedron (SCOP_CONTEXT (scop));
 
-  htab_delete (SCOP_ORIGINAL_PDR_PAIRS (scop));
+  htab_delete (SCOP_ORIGINAL_PDDRS (scop));
   XDELETE (scop);
 }
 
@@ -718,8 +760,49 @@ pbb_number_of_iterations (poly_bb_p pbb,
   ppl_new_Linear_Expression_with_dimension (&le, dim);
   ppl_set_coef (le, pbb_iterator_dim (pbb, loop_depth), 1);
   value_set_si (niter, -1);
-  ppl_max_for_le (PBB_DOMAIN (pbb), le, niter);
+  ppl_max_for_le_pointset (PBB_DOMAIN (pbb), le, niter);
   ppl_delete_Linear_Expression (le);
+}
+
+/* Returns the number of iterations NITER of the loop around PBB at
+   time(scattering) dimension TIME_DEPTH.  */
+
+void
+pbb_number_of_iterations_at_time (poly_bb_p pbb,
+				  graphite_dim_t time_depth,
+				  Value niter)
+{
+  ppl_Pointset_Powerset_C_Polyhedron_t ext_domain, sctr;
+  ppl_Linear_Expression_t le;
+  ppl_dimension_type dim;
+
+  value_set_si (niter, -1);
+
+  /* Takes together domain and scattering polyhedrons, and composes
+     them into the bigger polyhedron that has the following format:
+     t0..t_{n-1} | l0..l_{nlcl-1} | i0..i_{niter-1} | g0..g_{nparm-1}.
+     t0..t_{n-1} are time dimensions (scattering dimensions)
+     l0..l_{nclc-1} are local variables in scatterin function
+     i0..i_{niter-1} are original iteration variables
+     g0..g_{nparam-1} are global parameters.  */
+
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
+    (&ext_domain, PBB_DOMAIN (pbb));
+  ppl_insert_dimensions_pointset (ext_domain, 0,
+                                  pbb_nb_scattering_transform (pbb)
+                                  + pbb_nb_local_vars (pbb));
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron (&sctr,
+      PBB_TRANSFORMED_SCATTERING (pbb));
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (sctr, ext_domain);
+
+  ppl_Pointset_Powerset_C_Polyhedron_space_dimension (sctr, &dim);
+  ppl_new_Linear_Expression_with_dimension (&le, dim);
+  ppl_set_coef (le, time_depth, 1);
+  ppl_max_for_le_pointset (sctr, le, niter);
+
+  ppl_delete_Linear_Expression (le);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (sctr);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (ext_domain);
 }
 
 #endif

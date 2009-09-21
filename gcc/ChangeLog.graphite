@@ -1,3 +1,148 @@
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (graphite_legal_transform_bb): Call
+	pbb_remove_duplicate_pdrs.
+	* graphite-poly.c (can_collapse_pdr): Removed.
+	(pdr_find_duplicate): Removed.
+	(can_collapse_pdrs): New.
+	(pbb_remove_duplicate_pdrs): New.
+	(new_poly_dr): Do not look for duplicates.
+	* graphite-poly.h (struct poly_bb): New field pdr_duplicates_removed.
+	(PBB_PDR_DUPLICATES_REMOVED): New.
+	(pbb_remove_duplicate_pdrs): Declared.
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-interchange.c (pbb_interchange_profitable_p): Adjust
+	the strides by multiplying by PDR_NB_REFS.
+	* graphite-poly.c (can_collapse_pdr): New.
+	(pdr_find_duplicate): New.
+	(new_poly_dr): Call pdr_find_duplicate.  Collapse duplicate PDRs.
+	Initialize PDR_NB_REFS.
+	* graphite-poly.h (struct poly_dr): Add field nb_refs.
+	(PDR_NB_REFS): New.
+	(new_poly_dr): Number of subscripts is a graphite_dim_t.
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Revert one of the previous commits:
+	* graphite-dependences.c (graphite_legal_transform_bb): Avoid
+	the computation of symmetric data dependence relations.
+	(dependency_between_pbbs_p): Same.
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/40965
+	* graphite-poly.c (apply_poly_transforms): Remove legality test before
+	any transform.
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (pddr_original_scattering): Return NULL
+	for read-read dependence relations.
+	* graphite-poly.h (enum poly_dr_type): Fix comment.
+	(pdr_read_p): New.
+	(pdr_write_p): New.
+	(pdr_may_write_p): New.
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.h (enum POLY_DR_TYPE): Renamed poly_dr_type.
+	(struct poly_dr): Same.
+	(new_poly_dr): Same.
+	* graphite-poly.c (new_poly_dr): Same.
+
+2009-08-25  Konrad Trifunovic  <konrad.trifunovic@gmail.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-blocking.c (pbb_strip_mine_loop_depth): Renamed
+	pbb_strip_mine_time_depth.  Changed the implementation so that
+	transformation is expressed as a transformation on
+	time (scatttering) dimensions.  Also, ensures that the 2d+1
+	scheduling format is preserved.
+	(pbb_strip_mine_profitable_p): Profitability is based on the
+	iteration number of a given time (scattering) dimension,
+	and not on a original loop depth dimension.
+	(pbb_strip_mine): Call pbb_number_of_iterations_at_time.
+	(pbb_do_strip_mine): Call psct_dynamic_dim.
+	* graphite-poly.c (pbb_number_of_iterations_at_time): New.
+	* graphite-poly.h (pbb_number_of_iterations_at_time): Declared.
+	(pbb_nb_dynamic_scattering_transform): New.
+	(psct_dynamic_dim): New.
+
+2009-08-25  Konrad Trifunovic  <konrad.trifunovic@gmail.com>
+
+	* graphite-ppl.c (ppl_max_for_le): Renamed ppl_max_for_le_pointset.
+	* graphite-ppl.h (ppl_max_for_le): Renamed ppl_max_for_le_pointset.
+	* graphite-poly.c (pbb_number_of_iterations): Rename ppl_max_for_le.
+	* graphite-interchange.c (build_linearized_memory_access): Same.
+	(memory_stride_in_loop): Same.
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (pddr_original_scattering): New.
+	(graphite_legal_transform_dr): Call pddr_original_scattering.
+	(dot_deps_1): New.
+	(dot_deps): New.
+	* graphite-dependences.h (dot_deps): Declared.
+	* graphite-poly.c (new_poly_dr): Initialize PDR_ID.
+	(print_pdr): Print PDR_ID.
+	* graphite-poly.h (struct poly_dr): Add field id.
+	(PDR_ID): New.
+	(pbb_index): New.
+	* graphite-scop-detection.c (dot_all_scops_1): Cleanup comment.
+
+2009-08-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (graphite_carried_dependence_level_k): Do
+	not delete the original dependence relation.
+
+2009-08-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (graphite_legal_transform_bb): Avoid
+	the computation of symmetric data dependence relations.
+	(dependency_between_pbbs_p): Same.
+
+2009-08-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (new_poly_dr_pair): Renamed new_poly_ddr.
+	(eq_poly_dr_pair_p): Renamed eq_poly_ddr_p.
+	(hash_poly_dr_pair_p): Renamed hash_poly_ddr_p.
+	(free_poly_ddr): New.
+	(pddr_is_empty): New.
+	(dependence_polyhedron_1): Now returns a poly_ddr_p.
+	(dependence_polyhedron): Same.  Remove useless gcc_assert.
+	Remove fprintfs.
+	(graphite_legal_transform_dr): Call pddr_is_empty and free_poly_ddr.
+	(graphite_carried_dependence_level_k): Call pddr_is_empty.
+	* graphite-dependences.h (enum poly_dependence_kind): New.
+	(poly_dr_pair): Renamed poly_ddr.  Added a field kind.
+	(PDRP_SOURCE): Renamed PDDR_SOURCE.
+	(PDRP_SINK): Renamed PDDR_SINK.
+	(PDRP_DDP): Renamed PDDR_DDP.
+	(PDDR_KIND): New.
+	(free_poly_ddr): Declared.
+	* graphite-poly.c (new_scop): Use the new hash function names.
+	* graphite-poly.h (struct scop): Renamed field original_pdr_pairs
+	into original_pddrs.
+	(SCOP_ORIGINAL_PDR_PAIRS): Renamed SCOP_ORIGINAL_PDDRS.
+
+2009-08-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (150764:150992).
+
+2009-08-18  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* cfgloopmanip.c (create_empty_loop_on_edge): Generate upper
+	bounds with LT_EXPR to make niter analysis more precise on code
+	generated by Graphite.
+
+2009-08-18  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (graphite_legal_transform_dr): Fix formatting.
+	(graphite_legal_transform_bb): Same.
+	(poly_drs_may_alias_p): Same.
+
 2009-08-15  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/40981

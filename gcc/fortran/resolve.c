@@ -1279,9 +1279,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
       if (gfc_is_proc_ptr_comp (e, &comp))
 	{
 	  e->ts = comp->ts;
-	  if (e->value.compcall.actual == NULL)
-	    e->expr_type = EXPR_VARIABLE;
-	  else
+	  if (e->expr_type == EXPR_PPC)
 	    {
 	      if (comp->as != NULL)
 		e->rank = comp->as->rank;
@@ -3510,8 +3508,14 @@ resolve_operator (gfc_expr *e)
 
 bad_op:
 
-  if (gfc_extend_expr (e) == SUCCESS)
-    return SUCCESS;
+  {
+    bool real_error;
+    if (gfc_extend_expr (e, &real_error) == SUCCESS)
+      return SUCCESS;
+
+    if (real_error)
+      return FAILURE;
+  }
 
   if (dual_locus_error)
     gfc_error (msg, &op1->where, &op2->where);
@@ -4687,10 +4691,15 @@ extract_compcall_passed_object (gfc_expr* e)
 
   gcc_assert (e->expr_type == EXPR_COMPCALL);
 
-  po = gfc_get_expr ();
-  po->expr_type = EXPR_VARIABLE;
-  po->symtree = e->symtree;
-  po->ref = gfc_copy_ref (e->ref);
+  if (e->value.compcall.base_object)
+    po = gfc_copy_expr (e->value.compcall.base_object);
+  else
+    {
+      po = gfc_get_expr ();
+      po->expr_type = EXPR_VARIABLE;
+      po->symtree = e->symtree;
+      po->ref = gfc_copy_ref (e->ref);
+    }
 
   if (gfc_resolve_expr (po) == FAILURE)
     return NULL;
@@ -4723,7 +4732,7 @@ update_compcall_arglist (gfc_expr* e)
       return FAILURE;
     }
 
-  if (tbp->nopass)
+  if (tbp->nopass || e->value.compcall.ignore_pass)
     {
       gfc_free_expr (po);
       return SUCCESS;
@@ -4959,7 +4968,7 @@ resolve_typebound_call (gfc_code* c)
 
   c->ext.actual = newactual;
   c->symtree = target;
-  c->op = EXEC_CALL;
+  c->op = (c->expr1->value.compcall.assign ? EXEC_ASSIGN_CALL : EXEC_CALL);
 
   gcc_assert (!c->expr1->ref && !c->expr1->value.compcall.actual);
   gfc_free_expr (c->expr1);
@@ -4984,6 +4993,9 @@ resolve_compcall (gfc_expr* e)
 		 e->value.compcall.name, &e->where);
       return FAILURE;
     }
+
+  /* These must not be assign-calls!  */
+  gcc_assert (!e->value.compcall.assign);
 
   if (check_typebound_baseobject (e) == FAILURE)
     return FAILURE;
@@ -5631,7 +5643,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       code->next = init_st;
     }
 
-  if (pointer && dimension == 0)
+  if (pointer || dimension == 0)
     return SUCCESS;
 
   /* Make sure the next-to-last reference node is an array specification.  */
@@ -5720,9 +5732,10 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 	gfc_error ("Illegal stat-variable at %L for a PURE procedure",
 		   &stat->where);
 
-      if (stat->ts.type != BT_INTEGER
-	  && !(stat->ref && (stat->ref->type == REF_ARRAY
-	       || stat->ref->type == REF_COMPONENT)))
+      if ((stat->ts.type != BT_INTEGER
+	   && !(stat->ref && (stat->ref->type == REF_ARRAY
+			      || stat->ref->type == REF_COMPONENT)))
+	  || stat->rank > 0)
 	gfc_error ("Stat-variable at %L must be a scalar INTEGER "
 		   "variable", &stat->where);
 
@@ -5747,10 +5760,11 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 	gfc_error ("Illegal errmsg-variable at %L for a PURE procedure",
 		   &errmsg->where);
 
-      if (errmsg->ts.type != BT_CHARACTER
-	  && !(errmsg->ref
-	       && (errmsg->ref->type == REF_ARRAY
-	  	   || errmsg->ref->type == REF_COMPONENT)))
+      if ((errmsg->ts.type != BT_CHARACTER
+	   && !(errmsg->ref
+		&& (errmsg->ref->type == REF_ARRAY
+		    || errmsg->ref->type == REF_COMPONENT)))
+	  || errmsg->rank > 0 )
 	gfc_error ("Errmsg-variable at %L must be a scalar CHARACTER "
 		   "variable", &errmsg->where);
 
@@ -6911,23 +6925,38 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 
   if (gfc_extend_assign (code, ns) == SUCCESS)
     {
-      lhs = code->ext.actual->expr;
-      rhs = code->ext.actual->next->expr;
-      if (gfc_pure (NULL) && !gfc_pure (code->symtree->n.sym))
+      gfc_symbol* assign_proc;
+      gfc_expr** rhsptr;
+
+      if (code->op == EXEC_ASSIGN_CALL)
 	{
-	  gfc_error ("Subroutine '%s' called instead of assignment at "
-		     "%L must be PURE", code->symtree->n.sym->name,
-		     &code->loc);
-	  return rval;
+	  lhs = code->ext.actual->expr;
+	  rhsptr = &code->ext.actual->next->expr;
+	  assign_proc = code->symtree->n.sym;
+	}
+      else
+	{
+	  gfc_actual_arglist* args;
+	  gfc_typebound_proc* tbp;
+
+	  gcc_assert (code->op == EXEC_COMPCALL);
+
+	  args = code->expr1->value.compcall.actual;
+	  lhs = args->expr;
+	  rhsptr = &args->next->expr;
+
+	  tbp = code->expr1->value.compcall.tbp;
+	  gcc_assert (!tbp->is_generic);
+	  assign_proc = tbp->u.specific->n.sym;
 	}
 
       /* Make a temporary rhs when there is a default initializer
 	 and rhs is the same symbol as the lhs.  */
-      if (rhs->expr_type == EXPR_VARIABLE
-	    && rhs->symtree->n.sym->ts.type == BT_DERIVED
-	    && has_default_initializer (rhs->symtree->n.sym->ts.u.derived)
-	    && (lhs->symtree->n.sym == rhs->symtree->n.sym))
-        code->ext.actual->next->expr = gfc_get_parentheses (rhs);
+      if ((*rhsptr)->expr_type == EXPR_VARIABLE
+	    && (*rhsptr)->symtree->n.sym->ts.type == BT_DERIVED
+	    && has_default_initializer ((*rhsptr)->symtree->n.sym->ts.u.derived)
+	    && (lhs->symtree->n.sym == (*rhsptr)->symtree->n.sym))
+	*rhsptr = gfc_get_parentheses (*rhsptr);
 
       return true;
     }
@@ -6937,8 +6966,8 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 
   if (rhs->is_boz
       && gfc_notify_std (GFC_STD_GNU, "Extension: BOZ literal at %L outside "
-                         "a DATA statement and outside INT/REAL/DBLE/CMPLX",
-                         &code->loc) == FAILURE)
+			 "a DATA statement and outside INT/REAL/DBLE/CMPLX",
+			 &code->loc) == FAILURE)
     return false;
 
   /* Handle the case of a BOZ literal on the RHS.  */
@@ -6983,7 +7012,7 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
  	rlen = rhs->value.character.length;
 
       else if (rhs->ts.u.cl != NULL
-	         && rhs->ts.u.cl->length != NULL
+		 && rhs->ts.u.cl->length != NULL
 		 && rhs->ts.u.cl->length->expr_type == EXPR_CONSTANT)
 	rlen = mpz_get_si (rhs->ts.u.cl->length->value.integer);
 
@@ -7117,6 +7146,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	case EXEC_EXIT:
 	case EXEC_CONTINUE:
 	case EXEC_DT_END:
+	case EXEC_ASSIGN_CALL:
 	  break;
 
 	case EXEC_ENTRY:
@@ -7159,7 +7189,12 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	    break;
 
 	  if (resolve_ordinary_assign (code, ns))
-	    goto call;
+	    {
+	      if (code->op == EXEC_COMPCALL)
+		goto compcall;
+	      else
+		goto call;
+	    }
 
 	  break;
 
@@ -7210,6 +7245,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  break;
 
 	case EXEC_COMPCALL:
+	compcall:
 	  resolve_typebound_call (code);
 	  break;
 
@@ -7926,11 +7962,14 @@ resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
       if (sym->attr.allocatable)
 	{
 	  if (sym->attr.dimension)
-	    gfc_error ("Allocatable array '%s' at %L must have "
-		       "a deferred shape", sym->name, &sym->declared_at);
-	  else
-	    gfc_error ("Scalar object '%s' at %L may not be ALLOCATABLE",
-		       sym->name, &sym->declared_at);
+	    {
+	      gfc_error ("Allocatable array '%s' at %L must have "
+			 "a deferred shape", sym->name, &sym->declared_at);
+	      return FAILURE;
+	    }
+	  else if (gfc_notify_std (GFC_STD_F2003, "Scalar object '%s' at %L "
+				   "may not be ALLOCATABLE", sym->name,
+				   &sym->declared_at) == FAILURE)
 	    return FAILURE;
 	}
 
@@ -8822,7 +8861,7 @@ check_generic_tbp_ambiguity (gfc_tbp_generic* t1, gfc_tbp_generic* t2,
     }
 
   /* Compare the interfaces.  */
-  if (gfc_compare_interfaces (sym1, sym2, 1, 0, NULL, 0))
+  if (gfc_compare_interfaces (sym1, sym2, NULL, 1, 0, NULL, 0))
     {
       gfc_error ("'%s' and '%s' for GENERIC '%s' at %L are ambiguous",
 		 sym1->name, sym2->name, generic_name, &where);
@@ -8872,8 +8911,8 @@ resolve_tb_generic_targets (gfc_symbol* super_type,
 	/* Look for an inherited specific binding.  */
 	if (super_type)
 	  {
-	    inherited = gfc_find_typebound_proc (super_type, NULL,
-						 target_name, true);
+	    inherited = gfc_find_typebound_proc (super_type, NULL, target_name,
+						 true, NULL);
 
 	    if (inherited)
 	      {
@@ -8954,7 +8993,8 @@ resolve_typebound_generic (gfc_symbol* derived, gfc_symtree* st)
   if (super_type)
     {
       gfc_symtree* overridden;
-      overridden = gfc_find_typebound_proc (super_type, NULL, st->name, true);
+      overridden = gfc_find_typebound_proc (super_type, NULL, st->name,
+					    true, NULL);
 
       if (overridden && overridden->n.tb)
 	st->n.tb->overridden = overridden->n.tb;
@@ -9008,7 +9048,7 @@ resolve_typebound_intrinsic_op (gfc_symbol* derived, gfc_intrinsic_op op,
   super_type = gfc_get_derived_super_type (derived);
   if (super_type && super_type->f2k_derived)
     p->overridden = gfc_find_typebound_intrinsic_op (super_type, NULL,
-						     op, true);
+						     op, true, NULL);
   else
     p->overridden = NULL;
 
@@ -9023,10 +9063,10 @@ resolve_typebound_intrinsic_op (gfc_symbol* derived, gfc_intrinsic_op op,
 
       target_proc = get_checked_tb_operator_target (target, p->where);
       if (!target_proc)
-	return FAILURE;
+	goto error;
 
       if (!gfc_check_operator_interface (target_proc, op, p->where))
-	return FAILURE;
+	goto error;
     }
 
   return SUCCESS;
@@ -9064,7 +9104,7 @@ resolve_typebound_user_op (gfc_symtree* stree)
     {
       gfc_symtree* overridden;
       overridden = gfc_find_typebound_user_op (super_type, NULL,
-					       stree->name, true);
+					       stree->name, true, NULL);
 
       if (overridden && overridden->n.tb)
 	stree->n.tb->overridden = overridden->n.tb;
@@ -9227,7 +9267,7 @@ resolve_typebound_procedure (gfc_symtree* stree)
     {
       gfc_symtree* overridden;
       overridden = gfc_find_typebound_proc (super_type, NULL,
-					    stree->name, true);
+					    stree->name, true, NULL);
 
       if (overridden && overridden->n.tb)
 	stree->n.tb->overridden = overridden->n.tb;
@@ -9267,7 +9307,6 @@ static gfc_try
 resolve_typebound_procedures (gfc_symbol* derived)
 {
   int op;
-  bool found_op;
 
   if (!derived->f2k_derived || !derived->f2k_derived->tb_sym_root)
     return SUCCESS;
@@ -9279,7 +9318,6 @@ resolve_typebound_procedures (gfc_symbol* derived)
     gfc_traverse_symtree (derived->f2k_derived->tb_sym_root,
 			  &resolve_typebound_procedure);
 
-  found_op = (derived->f2k_derived->tb_uop_root != NULL);
   if (derived->f2k_derived->tb_uop_root)
     gfc_traverse_symtree (derived->f2k_derived->tb_uop_root,
 			  &resolve_typebound_user_op);
@@ -9290,17 +9328,6 @@ resolve_typebound_procedures (gfc_symbol* derived)
       if (p && resolve_typebound_intrinsic_op (derived, (gfc_intrinsic_op) op,
 					       p) == FAILURE)
 	resolve_bindings_result = FAILURE;
-      if (p)
-	found_op = true;
-    }
-
-  /* FIXME: Remove this (and found_op) once calls are fully implemented.  */
-  if (found_op)
-    {
-      gfc_error ("Derived type '%s' at %L contains type-bound OPERATOR's,"
-		 " they are not yet implemented.",
-		 derived->name, &derived->declared_at);
-      resolve_bindings_result = FAILURE;
     }
 
   return resolve_bindings_result;
@@ -9345,7 +9372,7 @@ ensure_not_abstract_walker (gfc_symbol* sub, gfc_symtree* st)
   if (st->n.tb && st->n.tb->deferred)
     {
       gfc_symtree* overriding;
-      overriding = gfc_find_typebound_proc (sub, NULL, st->name, true);
+      overriding = gfc_find_typebound_proc (sub, NULL, st->name, true, NULL);
       gcc_assert (overriding && overriding->n.tb);
       if (overriding->n.tb->deferred)
 	{
@@ -9476,7 +9503,7 @@ resolve_fl_derived (gfc_symbol *sym)
 	      if (ifc->ts.type == BT_CHARACTER && ifc->ts.u.cl)
 		{
 		  c->ts.u.cl = gfc_new_charlen (sym->ns, ifc->ts.u.cl);
-		  /* TODO: gfc_expr_replace_symbols (c->ts.u.cl->length, c);*/
+		  gfc_expr_replace_comp (c->ts.u.cl->length, c);
 		}
 	    }
 	  else if (c->ts.interface->name[0] != '\0')
@@ -9596,7 +9623,7 @@ resolve_fl_derived (gfc_symbol *sym)
       /* If this type is an extension, see if this component has the same name
 	 as an inherited type-bound procedure.  */
       if (super_type
-	  && gfc_find_typebound_proc (super_type, NULL, c->name, true))
+	  && gfc_find_typebound_proc (super_type, NULL, c->name, true, NULL))
 	{
 	  gfc_error ("Component '%s' of '%s' at %L has the same name as an"
 		     " inherited type-bound procedure",
@@ -9604,7 +9631,7 @@ resolve_fl_derived (gfc_symbol *sym)
 	  return FAILURE;
 	}
 
-      if (c->ts.type == BT_CHARACTER)
+      if (c->ts.type == BT_CHARACTER && !c->attr.proc_pointer)
 	{
 	 if (c->ts.u.cl->length == NULL
 	     || (resolve_charlen (c->ts.u.cl) == FAILURE)
@@ -10280,7 +10307,7 @@ resolve_symbol (gfc_symbol *sym)
 
   /* Resolve formal namespaces.  */
   if (sym->formal_ns && sym->formal_ns != gfc_current_ns
-      && !sym->attr.contained)
+      && !sym->attr.contained && !sym->attr.intrinsic)
     gfc_resolve (sym->formal_ns);
 
   /* Make sure the formal namespace is present.  */

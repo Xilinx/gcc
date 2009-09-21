@@ -267,6 +267,17 @@ do {								\
 #define STACK_CHECK_MAX_VAR_SIZE (STACK_CHECK_MAX_FRAME_SIZE / 100)
 #endif
 
+/* This structure is used to pass around information about exploded
+   unary, binary and trinary expressions between expand_expr_real_1 and
+   friends.  */
+typedef struct separate_ops
+{
+  enum tree_code code;
+  tree type;
+  tree op0, op1, op2;
+  location_t location;
+} *sepops;
+
 /* Functions from optabs.c, commonly used, and without need for the optabs
    tables:  */
 
@@ -415,6 +426,7 @@ extern rtx emit_block_move (rtx, rtx, rtx, enum block_op_methods);
 extern rtx emit_block_move_via_libcall (rtx, rtx, rtx, bool);
 extern rtx emit_block_move_hints (rtx, rtx, rtx, enum block_op_methods,
 			          unsigned int, HOST_WIDE_INT);
+extern bool emit_storent_insn (rtx to, rtx from);
 
 /* Copy all or part of a value X into registers starting at REGNO.
    The number of registers to be filled is NREGS.  */
@@ -528,9 +540,13 @@ extern rtx store_expr (tree, rtx, int, bool);
    Useful after calling expand_expr with 1 as sum_ok.  */
 extern rtx force_operand (rtx, rtx);
 
-/* Work horse for expand_expr.  */
+/* Work horses for expand_expr.  */
 extern rtx expand_expr_real (tree, rtx, enum machine_mode, 
 			     enum expand_modifier, rtx *);
+extern rtx expand_expr_real_1 (tree, rtx, enum machine_mode,
+			       enum expand_modifier, rtx *);
+extern rtx expand_expr_real_2 (sepops, rtx, enum machine_mode,
+			       enum expand_modifier);
 
 /* Generate code for computing expression EXP.
    An rtx for the computed value is returned.  The value is never null.
@@ -568,13 +584,16 @@ extern tree string_constant (tree, tree *);
 
 /* Generate code to evaluate EXP and jump to LABEL if the value is zero.  */
 extern void jumpifnot (tree, rtx);
+extern void jumpifnot_1 (enum tree_code, tree, tree, rtx);
 
 /* Generate code to evaluate EXP and jump to LABEL if the value is nonzero.  */
 extern void jumpif (tree, rtx);
+extern void jumpif_1 (enum tree_code, tree, tree, rtx);
 
 /* Generate code to evaluate EXP and jump to IF_FALSE_LABEL if
    the result is zero, or IF_TRUE_LABEL if the result is one.  */
 extern void do_jump (tree, rtx, rtx);
+extern void do_jump_1 (enum tree_code, tree, tree, rtx, rtx);
 
 extern void do_compare_rtx_and_jump (rtx, rtx, enum rtx_code, int,
 				     enum machine_mode, rtx, rtx, rtx);
@@ -794,6 +813,12 @@ extern void init_all_optabs (void);
 /* Call this to initialize an optab function entry.  */
 extern rtx init_one_libfunc (const char *);
 extern rtx set_user_assembler_libfunc (const char *, const char *);
+
+/* Build a decl for a libfunc named NAME. */
+extern tree build_libfunc_function (const char *);
+
+/* Get the personality libfunc for a function decl.  */
+rtx get_personality_function (tree);
 
 extern int vector_mode_valid_p (enum machine_mode);
 

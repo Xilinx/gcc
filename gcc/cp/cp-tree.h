@@ -1655,8 +1655,9 @@ struct GTY(()) lang_decl_base {
   unsigned anticipated_p : 1;		   /* fn or type */
   unsigned friend_attr : 1;		   /* fn or type */
   unsigned template_conv_p : 1;		   /* template only? */
+  unsigned odr_used : 1;		   /* var or fn */
   unsigned u2sel : 1;
-  /* 2 spare bits */
+  /* 1 spare bit */
 };
 
 /* True for DECL codes which have template info and access.  */
@@ -1717,8 +1718,7 @@ struct GTY(()) lang_decl_fn {
   unsigned thunk_p : 1;
   unsigned this_thunk_p : 1;
   unsigned hidden_friend_p : 1;
-  unsigned deferred : 1;
-  /* No spare bits; consider adding to lang_decl_base instead.  */
+  /* 1 spare bit.  */
 
   /* For a non-thunk function decl, this is a tree list of
      friendly classes. For a thunk function decl, it is the
@@ -2058,6 +2058,12 @@ struct GTY(()) lang_decl {
   (DECL_LANG_SPECIFIC (VAR_OR_FUNCTION_DECL_CHECK (DECL)) \
    ->u.base.initialized_in_class)
 
+/* Nonzero if the DECL is used in the sense of 3.2 [basic.def.odr].
+   Only available for decls with DECL_LANG_SPECIFIC.  */
+#define DECL_ODR_USED(DECL) \
+  (DECL_LANG_SPECIFIC (VAR_OR_FUNCTION_DECL_CHECK (DECL)) \
+   ->u.base.odr_used)
+
 /* Nonzero for DECL means that this decl is just a friend declaration,
    and should not be added to the list of members for this class.  */
 #define DECL_FRIEND_P(NODE) (DECL_LANG_SPECIFIC (NODE)->u.base.friend_attr)
@@ -2199,6 +2205,9 @@ struct GTY(()) lang_decl {
   (!DECL_TEMPLATE_PARM_P (NODE)					\
    && TREE_CODE (CP_DECL_CONTEXT (NODE)) == NAMESPACE_DECL)
 
+#define TYPE_NAMESPACE_SCOPE_P(NODE) \
+  (TREE_CODE (CP_TYPE_CONTEXT (NODE)) == NAMESPACE_DECL)
+
 /* 1 iff NODE is a class member.  */
 #define DECL_CLASS_SCOPE_P(NODE) \
   (DECL_CONTEXT (NODE) && TYPE_P (DECL_CONTEXT (NODE)))
@@ -2303,10 +2312,6 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    and put them into a TREE_VEC.  */
 #define CLASSTYPE_SORTED_FIELDS(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->sorted_fields)
-
-/* True if on the deferred_fns (see decl2.c) list.  */
-#define DECL_DEFERRED_FN(DECL) \
-  (LANG_DECL_FN_CHECK (DECL)->deferred)
 
 /* If non-NULL for a VAR_DECL, FUNCTION_DECL, TYPE_DECL or
    TEMPLATE_DECL, the entity is either a template specialization (if
@@ -3365,7 +3370,7 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define CLASSTYPE_SPECIALIZATION_OF_PRIMARY_TEMPLATE_P(NODE)	\
   (CLASS_TYPE_P (NODE)						\
    && CLASSTYPE_USE_TEMPLATE (NODE)				\
-   && PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (arg)))  
+   && PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (NODE)))
 
 #define DECL_TEMPLATE_INSTANTIATION(NODE) (DECL_USE_TEMPLATE (NODE) & 1)
 #define CLASSTYPE_TEMPLATE_INSTANTIATION(NODE) \
@@ -3889,7 +3894,7 @@ extern int at_eof;
    TREE_PURPOSE slot.  */
 extern GTY(()) tree static_aggregates;
 
-enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
+enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 
 /* These are uses as bits in flags passed to various functions to
    control their behavior.  Despite the LOOKUP_ prefix, many of these
@@ -4072,7 +4077,9 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
    TFF_EXPR_IN_PARENS: parenthesize expressions.
    TFF_NO_FUNCTION_ARGUMENTS: don't show function arguments.
    TFF_UNQUALIFIED_NAME: do not print the qualifying scope of the
-       top-level entity.  */
+       top-level entity.
+   TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS: do not omit template arguments
+       identical to their defaults.  */
 
 #define TFF_PLAIN_IDENTIFIER			(0)
 #define TFF_SCOPE				(1)
@@ -4087,6 +4094,7 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
 #define TFF_EXPR_IN_PARENS			(1 << 9)
 #define TFF_NO_FUNCTION_ARGUMENTS		(1 << 10)
 #define TFF_UNQUALIFIED_NAME			(1 << 11)
+#define TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS	(1 << 12)
 
 /* Returns the TEMPLATE_DECL associated to a TEMPLATE_TEMPLATE_PARM
    node.  */
@@ -4501,8 +4509,7 @@ extern tree begin_function_body			(void);
 extern void finish_function_body		(tree);
 extern tree outer_curly_brace_block		(tree);
 extern tree finish_function			(int);
-extern tree start_method			(cp_decl_specifier_seq *, const cp_declarator *, tree);
-extern tree finish_method			(tree);
+extern tree grokmethod				(cp_decl_specifier_seq *, const cp_declarator *, tree);
 extern void maybe_register_incomplete_var	(tree);
 extern void maybe_commonize_var			(tree);
 extern void complete_vars			(tree);
@@ -4541,6 +4548,7 @@ extern bool check_java_method			(tree);
 extern tree build_memfn_type			(tree, tree, cp_cv_quals);
 extern void maybe_retrofit_in_chrg		(tree);
 extern void maybe_make_one_only			(tree);
+extern bool vague_linkage_fn_p			(tree);
 extern void grokclassfn				(tree, tree,
 						 enum overload_flags);
 extern tree grok_array_decl			(tree, tree);
@@ -4565,7 +4573,6 @@ extern tree build_cleanup			(tree);
 extern tree build_offset_ref_call_from_tree	(tree, VEC(tree,gc) **);
 extern void check_default_args			(tree);
 extern void mark_used				(tree);
-extern bool tree_used_ok			(tree);
 extern void finish_static_data_member_decl	(tree, tree, bool, tree, int);
 extern tree cp_build_parm_decl			(tree, tree);
 extern tree get_guard				(tree);
@@ -4606,6 +4613,7 @@ extern void choose_personality_routine		(enum languages);
 extern tree eh_type_info			(tree);
 extern tree begin_eh_spec_block			(void);
 extern void finish_eh_spec_block		(tree, tree);
+extern tree build_eh_type_type			(tree);
 
 /* in expr.c */
 extern tree cplus_expand_constant		(tree);
@@ -4725,11 +4733,12 @@ extern bool uses_parameter_packs                (tree);
 extern bool template_parameter_pack_p           (const_tree);
 extern tree make_pack_expansion                 (tree);
 extern bool check_for_bare_parameter_packs      (tree);
-extern tree get_template_info			(tree);
+extern tree get_template_info			(const_tree);
 extern tree get_types_needing_access_check	(tree);
 extern int template_class_depth			(tree);
 extern int is_specialization_of			(tree, tree);
 extern bool is_specialization_of_friend		(tree, tree);
+extern tree get_pattern_parm			(tree, tree);
 extern int comp_template_args			(tree, tree);
 extern tree maybe_process_partial_specialization (tree);
 extern tree most_specialized_instantiation	(tree);
@@ -4767,6 +4776,10 @@ extern bool explicit_class_specialization_p     (tree);
 extern struct tinst_level *outermost_tinst_level(void);
 extern bool parameter_of_template_p		(tree, tree);
 extern void init_template_processing		(void);
+bool template_template_parameter_p		(const_tree);
+extern tree get_primary_template_innermost_parameters	(const_tree);
+extern tree get_template_innermost_arguments	(const_tree);
+extern tree get_template_argument_pack_elems	(const_tree);
 
 /* in repo.c */
 extern void init_repo				(void);
@@ -4900,7 +4913,8 @@ enum {
 extern tree begin_compound_stmt			(unsigned int);
 
 extern void finish_compound_stmt		(tree);
-extern tree finish_asm_stmt			(int, tree, tree, tree, tree);
+extern tree finish_asm_stmt			(int, tree, tree, tree, tree,
+						 tree);
 extern tree finish_label_stmt			(tree);
 extern void finish_label_decl			(tree);
 extern tree finish_parenthesized_expr		(tree);
@@ -4980,6 +4994,7 @@ extern tree add_default_capture                 (tree, tree, tree);
 extern tree lambda_expr_this_capture            (tree);
 
 /* in tree.c */
+void cp_free_lang_data 				(tree t);
 extern tree force_target_expr			(tree, tree);
 extern tree build_target_expr_with_type		(tree, tree);
 extern void lang_check_failed			(const char *, int,

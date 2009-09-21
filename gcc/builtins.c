@@ -6235,7 +6235,8 @@ expand_builtin_lock_test_and_set (enum machine_mode mode, tree exp,
 static void
 expand_builtin_synchronize (void)
 {
-  tree x;
+  gimple x;
+  VEC (tree, gc) *v_clobbers;
 
 #ifdef HAVE_memory_barrier
   if (HAVE_memory_barrier)
@@ -6253,10 +6254,12 @@ expand_builtin_synchronize (void)
 
   /* If no explicit memory barrier instruction is available, create an
      empty asm stmt with a memory clobber.  */
-  x = build4 (ASM_EXPR, void_type_node, build_string (0, ""), NULL, NULL,
-	      tree_cons (NULL, build_string (6, "memory"), NULL));
-  ASM_VOLATILE_P (x) = 1;
-  expand_asm_expr (x);
+  v_clobbers = VEC_alloc (tree, gc, 1);
+  VEC_quick_push (tree, v_clobbers,
+		  tree_cons (NULL, build_string (6, "memory"), NULL));
+  x = gimple_build_asm_vec ("", NULL, NULL, v_clobbers, NULL);
+  gimple_asm_set_volatile (x, true);
+  expand_asm_stmt (x);
 }
 
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
@@ -6940,6 +6943,12 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 #endif
     case BUILT_IN_EXTEND_POINTER:
       return expand_builtin_extend_pointer (CALL_EXPR_ARG (exp, 0));
+    case BUILT_IN_EH_POINTER:
+      return expand_builtin_eh_pointer (exp);
+    case BUILT_IN_EH_FILTER:
+      return expand_builtin_eh_filter (exp);
+    case BUILT_IN_EH_COPY_VALUES:
+      return expand_builtin_eh_copy_values (exp);
 
     case BUILT_IN_VA_START:
       return expand_builtin_va_start (exp);
@@ -9136,7 +9145,7 @@ fold_builtin_memory_op (location_t loc, tree dest, tree src,
 	  srcvar = build_fold_indirect_ref_loc (loc, src);
 	  if (TREE_THIS_VOLATILE (srcvar))
 	    return NULL_TREE;
-	  else if (!tree_int_cst_equal (lang_hooks.expr_size (srcvar), len))
+	  else if (!tree_int_cst_equal (tree_expr_size (srcvar), len))
 	    srcvar = NULL_TREE;
 	  /* With memcpy, it is possible to bypass aliasing rules, so without
 	     this check i.e. execute/20060930-2.c would be misoptimized,
@@ -9154,7 +9163,7 @@ fold_builtin_memory_op (location_t loc, tree dest, tree src,
 	  destvar = build_fold_indirect_ref_loc (loc, dest);
 	  if (TREE_THIS_VOLATILE (destvar))
 	    return NULL_TREE;
-	  else if (!tree_int_cst_equal (lang_hooks.expr_size (destvar), len))
+	  else if (!tree_int_cst_equal (tree_expr_size (destvar), len))
 	    destvar = NULL_TREE;
 	  else if (!var_decl_component_p (destvar))
 	    destvar = NULL_TREE;
@@ -10732,7 +10741,7 @@ fold_builtin_2 (location_t loc, tree fndecl, tree arg0, tree arg1, bool ignore)
 	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE
 	  && validate_arg (arg1, COMPLEX_TYPE)
 	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg1))) == REAL_TYPE) 
-	return do_mpc_arg2 (arg0, arg1, type, mpc_pow);
+	return do_mpc_arg2 (arg0, arg1, type, /*do_nonfinite=*/ 0, mpc_pow);
     break;
 #endif
 
@@ -13338,17 +13347,19 @@ do_mpfr_ckconv (mpfr_srcptr m, tree type, int inexact)
    was not exactly calculated.  TYPE is the tree type for the result.
    This function assumes that you cleared the MPFR flags and then
    calculated M to see if anything subsequently set a flag prior to
-   entering this function.  Return NULL_TREE if any checks fail.  */
+   entering this function.  Return NULL_TREE if any checks fail, if
+   FORCE_CONVERT is true, then bypass the checks.  */
 
 static tree
-do_mpc_ckconv (mpc_srcptr m, tree type, int inexact)
+do_mpc_ckconv (mpc_srcptr m, tree type, int inexact, int force_convert)
 {
   /* Proceed iff we get a normal number, i.e. not NaN or Inf and no
      overflow/underflow occurred.  If -frounding-math, proceed iff the
      result of calling FUNC was exact.  */
-  if (mpfr_number_p (mpc_realref (m)) && mpfr_number_p (mpc_imagref (m))
-      && !mpfr_overflow_p () && !mpfr_underflow_p ()
-      && (!flag_rounding_math || !inexact))
+  if (force_convert
+      || (mpfr_number_p (mpc_realref (m)) && mpfr_number_p (mpc_imagref (m))
+	  && !mpfr_overflow_p () && !mpfr_underflow_p ()
+	  && (!flag_rounding_math || !inexact)))
     {
       REAL_VALUE_TYPE re, im;
 
@@ -13358,16 +13369,19 @@ do_mpc_ckconv (mpc_srcptr m, tree type, int inexact)
 	 check for overflow/underflow.  If the REAL_VALUE_TYPE is zero
 	 but the mpft_t is not, then we underflowed in the
 	 conversion.  */
-      if (real_isfinite (&re) && real_isfinite (&im)
-	  && (re.cl == rvc_zero) == (mpfr_zero_p (mpc_realref (m)) != 0)
-	  && (im.cl == rvc_zero) == (mpfr_zero_p (mpc_imagref (m)) != 0))
+      if (force_convert
+	  || (real_isfinite (&re) && real_isfinite (&im)
+	      && (re.cl == rvc_zero) == (mpfr_zero_p (mpc_realref (m)) != 0)
+	      && (im.cl == rvc_zero) == (mpfr_zero_p (mpc_imagref (m)) != 0)))
         {
 	  REAL_VALUE_TYPE re_mode, im_mode;
 
 	  real_convert (&re_mode, TYPE_MODE (TREE_TYPE (type)), &re);
 	  real_convert (&im_mode, TYPE_MODE (TREE_TYPE (type)), &im);
 	  /* Proceed iff the specified mode can hold the value.  */
-	  if (real_identical (&re_mode, &re) && real_identical (&im_mode, &im))
+	  if (force_convert
+	      || (real_identical (&re_mode, &re)
+		  && real_identical (&im_mode, &im)))
 	    return build_complex (type, build_real (TREE_TYPE (type), re_mode),
 				  build_real (TREE_TYPE (type), im_mode));
 	}
@@ -13810,7 +13824,7 @@ do_mpc_arg1 (tree arg, tree type, int (*func)(mpc_ptr, mpc_srcptr, mpc_rnd_t))
 	  mpfr_from_real (mpc_imagref(m), im, rnd);
 	  mpfr_clear_flags ();
 	  inexact = func (m, m, crnd);
-	  result = do_mpc_ckconv (m, type, inexact);
+	  result = do_mpc_ckconv (m, type, inexact, /*force_convert=*/ 0);
 	  mpc_clear (m);
 	}
     }
@@ -13822,11 +13836,13 @@ do_mpc_arg1 (tree arg, tree type, int (*func)(mpc_ptr, mpc_srcptr, mpc_rnd_t))
    mpc function FUNC on it and return the resulting value as a tree
    with type TYPE.  The mpfr precision is set to the precision of
    TYPE.  We assume that function FUNC returns zero if the result
-   could be calculated exactly within the requested precision.  */
+   could be calculated exactly within the requested precision.  If
+   DO_NONFINITE is true, then fold expressions containing Inf or NaN
+   in the arguments and/or results.  */
 
 #ifdef HAVE_mpc
 tree
-do_mpc_arg2 (tree arg0, tree arg1, tree type,
+do_mpc_arg2 (tree arg0, tree arg1, tree type, int do_nonfinite,
 	     int (*func)(mpc_ptr, mpc_srcptr, mpc_srcptr, mpc_rnd_t))
 {
   tree result = NULL_TREE;
@@ -13847,8 +13863,9 @@ do_mpc_arg2 (tree arg0, tree arg1, tree type,
       const REAL_VALUE_TYPE *const re1 = TREE_REAL_CST_PTR (TREE_REALPART (arg1));
       const REAL_VALUE_TYPE *const im1 = TREE_REAL_CST_PTR (TREE_IMAGPART (arg1));
 
-      if (real_isfinite (re0) && real_isfinite (im0)
-	  && real_isfinite (re1) && real_isfinite (im1))
+      if (do_nonfinite
+	  || (real_isfinite (re0) && real_isfinite (im0)
+	      && real_isfinite (re1) && real_isfinite (im1)))
         {
 	  const struct real_format *const fmt =
 	    REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (type)));
@@ -13866,7 +13883,7 @@ do_mpc_arg2 (tree arg0, tree arg1, tree type,
 	  mpfr_from_real (mpc_imagref(m1), im1, rnd);
 	  mpfr_clear_flags ();
 	  inexact = func (m0, m0, m1, crnd);
-	  result = do_mpc_ckconv (m0, type, inexact);
+	  result = do_mpc_ckconv (m0, type, inexact, do_nonfinite);
 	  mpc_clear (m0);
 	  mpc_clear (m1);
 	}

@@ -208,6 +208,14 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
   if (!pi)
     return true;
 
+  /* If the decl can be used as a restrict tag and we have a restrict
+     pointer and that pointers points-to set doesn't contain this decl
+     then they can't alias.  */
+  if (DECL_RESTRICTED_P (decl)
+      && TYPE_RESTRICT (TREE_TYPE (ptr))
+      && pi->pt.vars_contains_restrict)
+    return bitmap_bit_p (pi->pt.vars, DECL_UID (decl));
+
   return pt_solution_includes (&pi->pt, decl);
 }
 
@@ -300,14 +308,6 @@ ptr_deref_may_alias_ref_p_1 (tree ptr, ao_ref *ref)
     return ptr_deref_may_alias_decl_p (ptr, base);
 
   return true;
-}
-
-static bool
-ptr_deref_may_alias_ref_p (tree ptr, tree ref)
-{
-  ao_ref r;
-  ao_ref_init (&r, ref);
-  return ptr_deref_may_alias_ref_p_1 (ptr, &r);
 }
 
 
@@ -488,6 +488,34 @@ ao_ref_alias_set (ao_ref *ref)
     return ref->ref_alias_set;
   ref->ref_alias_set = get_alias_set (ref->ref);
   return ref->ref_alias_set;
+}
+
+/* Init an alias-oracle reference representation from a gimple pointer
+   PTR and a gimple size SIZE in bytes.  If SIZE is NULL_TREE the the
+   size is assumed to be unknown.  The access is assumed to be only
+   to or after of the pointer target, not before it.  */
+
+void
+ao_ref_init_from_ptr_and_size (ao_ref *ref, tree ptr, tree size)
+{
+  HOST_WIDE_INT t1, t2;
+  ref->ref = NULL_TREE;
+  if (TREE_CODE (ptr) == ADDR_EXPR)
+    ref->base = get_ref_base_and_extent (TREE_OPERAND (ptr, 0),
+					 &ref->offset, &t1, &t2);
+  else
+    {
+      ref->base = build1 (INDIRECT_REF, char_type_node, ptr);
+      ref->offset = 0;
+    }
+  if (size
+      && host_integerp (size, 0)
+      && TREE_INT_CST_LOW (size) * 8 / 8 == TREE_INT_CST_LOW (size))
+    ref->max_size = ref->size = TREE_INT_CST_LOW (size) * 8;
+  else
+    ref->max_size = ref->size = -1;
+  ref->ref_alias_set = 0;
+  ref->base_alias_set = 0;
 }
 
 /* Return 1 if TYPE1 and TYPE2 are to be considered equivalent for the
@@ -764,6 +792,12 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
       || is_gimple_min_invariant (base2))
     return false;
 
+  /* We can end up refering to code via function decls.  As we likely
+     do not properly track code aliases conservatively bail out.  */
+  if (TREE_CODE (base1) == FUNCTION_DECL
+      || TREE_CODE (base2) == FUNCTION_DECL)
+    return true;
+
   /* Defer to simple offset based disambiguation if we have
      references based on two decls.  Do this before defering to
      TBAA to handle must-alias cases in conformance with the
@@ -854,7 +888,7 @@ refs_output_dependent_p (tree store1, tree store2)
    otherwise return false.  */
 
 static bool
-ref_maybe_used_by_call_p_1 (gimple call, tree ref)
+ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 {
   tree base, callee;
   unsigned i;
@@ -865,7 +899,7 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
       && (flags & (ECF_CONST|ECF_NOVOPS)))
     goto process_args;
 
-  base = get_base_address (ref);
+  base = ao_ref_base (ref);
   if (!base)
     return true;
 
@@ -899,8 +933,14 @@ ref_maybe_used_by_call_p_1 (gimple call, tree ref)
 	case BUILT_IN_STRCAT:
 	case BUILT_IN_STRNCAT:
 	  {
-	    tree src = gimple_call_arg (call, 1);
-	    return ptr_deref_may_alias_ref_p (src, ref);
+	    ao_ref dref;
+	    tree size = NULL_TREE;
+	    if (gimple_call_num_args (call) == 3)
+	      size = gimple_call_arg (call, 2);
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 1),
+					   size);
+	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
 	/* The following builtins do not read from memory.  */
 	case BUILT_IN_FREE:
@@ -996,17 +1036,17 @@ process_args:
     {
       tree op = gimple_call_arg (call, i);
 
-      if (TREE_CODE (op) == EXC_PTR_EXPR
-	  || TREE_CODE (op) == FILTER_EXPR)
-	continue;
-
       if (TREE_CODE (op) == WITH_SIZE_EXPR)
 	op = TREE_OPERAND (op, 0);
 
       if (TREE_CODE (op) != SSA_NAME
-	  && !is_gimple_min_invariant (op)
-	  && refs_may_alias_p (op, ref))
-	return true;
+	  && !is_gimple_min_invariant (op))
+	{
+	  ao_ref r;
+	  ao_ref_init (&r, op);
+	  if (refs_may_alias_p_1 (&r, ref, true))
+	    return true;
+	}
     }
 
   return false;
@@ -1015,7 +1055,10 @@ process_args:
 static bool
 ref_maybe_used_by_call_p (gimple call, tree ref)
 {
-  bool res = ref_maybe_used_by_call_p_1 (call, ref);
+  ao_ref r;
+  bool res;
+  ao_ref_init (&r, ref);
+  res = ref_maybe_used_by_call_p_1 (call, &r);
   if (res)
     ++alias_stats.ref_maybe_used_by_call_p_may_alias;
   else
@@ -1106,15 +1149,21 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_STPNCPY:
 	case BUILT_IN_STRCAT:
 	case BUILT_IN_STRNCAT:
+	case BUILT_IN_MEMSET:
 	  {
-	    tree dest = gimple_call_arg (call, 0);
-	    return ptr_deref_may_alias_ref_p_1 (dest, ref);
+	    ao_ref dref;
+	    tree size = NULL_TREE;
+	    if (gimple_call_num_args (call) == 3)
+	      size = gimple_call_arg (call, 2);
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   size);
+	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
 	/* Freeing memory kills the pointed-to memory.  More importantly
 	   the call has to serve as a barrier for moving loads and stores
-	   across it.  Same is true for memset.  */
+	   across it.  */
 	case BUILT_IN_FREE:
-	case BUILT_IN_MEMSET:
 	  {
 	    tree ptr = gimple_call_arg (call, 0);
 	    return ptr_deref_may_alias_ref_p_1 (ptr, ref);

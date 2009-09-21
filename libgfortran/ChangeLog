@@ -1,3 +1,132 @@
+2009-09-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41328
+	* io/transfer.c (read_sf): Set at_eof flag on short read if any
+	characters were successfully read so that EOF condition with no EOR
+	marker succeeds.
+
+2009-09-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41328
+	* io/transfer.c (read_sf): Adjust fbuf position and do proper
+	fbuf reads to traverse CR, CR-LF, and LF style line ends.
+
+2009-09-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41219
+	* io/write.c (write_a_char4): Use correct type for crlf constant.
+
+2009-09-11  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (libgfortranbegin_la_LINK): New.
+	* Makefile.in: Regenerate.
+
+2009-09-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2009-09-08  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2009-09-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41192
+	* io/list_read.c (eat_line): Enable eat_line to function on
+	internal units.
+
+	PR libgfortran/41219
+	* io/list_read.c (nml_read_obj): Replace GFC_DTYPE_UNKNOWN with
+	BT_NULL to get rid of warning.
+	
+2009-09-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41219
+	* intrinsics/getlog.c: Define _POSIX for MINGW32.
+
+2009-09-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41219
+	* intrinsics/iso_c_binding.c (c_f_pointer_u0): Move variable
+	declaration out of the loop.
+
+2009-08-30  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* m4/pack.m4 (pack_'rtype_code`): Use count_0 for counting true
+	values in a logical array.  Mark bounds checking tests as
+	unlikely.
+	* intrinsics/pack_generic.c (pack_internal): Likewise.
+	* runtime/bounds.c (count_0):  Fix off-by-one error in detecting
+	empty arrays.
+	* generated/pack_c4.c: Regenerated.
+	* generated/pack_c8.c: Regenerated.
+	* generated/pack_c10.c: Regenerated.
+	* generated/pack_c16.c: Regenerated.
+	* generated/pack_i1.c: Regenerated.
+	* generated/pack_i16.c: Regenerated.
+	* generated/pack_i2.c: Regenerated.
+	* generated/pack_i4.c: Regenerated.
+	* generated/pack_i8.c: Regenerated.
+	* generated/pack_r4.c: Regenerated.
+	* generated/pack_r8.c: Regenerated.
+	* generated/pack_r10.c: Regenerated.
+	* generated/pack_r16.c: Regenerated.
+
+2009-08-25  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* runtime/bounds.c (count_0):  New function.
+	* intrinsics/unpack_generic (unpack_bounds):  New function.
+	(unpack_internal):  Remove zero stride checks.
+	(unpack1):  Use unpack_bounds.
+	(unpack1_char):  Likeweise.
+	(unpack1_char4):  Likewise
+	(unpack0):  Likewise.
+	(unpack0_char):  Likewise.
+	(unpack0_char4):  Likewise.
+
+2009-08-24  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/41157
+	* dtime.c (dtime_sub): Fix computing time increment.
+	* time_1.h: Add <sys/types.h> header.  Use RUSAGE_SELF macro instead
+	of a hardcoded 0.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-23  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* intrinsics/cshift0.c: Update license to GPL3+exception.
+	* runtime/fpu.c: Add a GPL3+exception statement.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (install-html, install-pdf): Remove.
+	* Makefile.in: Regenerate.
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (libgfortran_la_LINK): Add $(libgfortran_la_LDFLAGS).
+	* Makefile.in: Regenerate.
+
+2009-08-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/40962
+	* iso_c_binding.c (c_f_pointer_u0):  Multiply stride by
+	previous stride.
+
+2009-08-20  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.am (LTLDFLAGS): Add -bindir flag.
+	* Makefile.in: Regenerate.
+
 2009-08-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/41075

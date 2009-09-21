@@ -311,6 +311,7 @@ Objective-C and Objective-C++ Dialects}.
 -frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
 -fsel-sched-verbose -fsel-sched-dump-cfg -fsel-sched-pipelining-verbose @gol
 -ftest-coverage  -ftime-report -fvar-tracking @gol
+-fvar-tracking-assigments  -fvar-tracking-assignments-toggle @gol
 -g  -g@var{level}  -gtoggle  -gcoff  -gdwarf-@var{version} @gol
 -ggdb  -gstabs  -gstabs+  -gvms  -gxcoff  -gxcoff+ @gol
 -fno-merge-debug-strings -fno-dwarf2-cfi-asm @gol
@@ -334,7 +335,7 @@ Objective-C and Objective-C++ Dialects}.
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules -fcx-limited-range @gol
 -fdata-sections -fdce -fdce @gol
 -fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
--fearly-inlining -fexpensive-optimizations -ffast-math @gol
+-fearly-inlining -fipa-sra -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fexcess-precision=@var{style} @gol
 -fforward-propagate -ffunction-sections @gol
 -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
@@ -364,12 +365,12 @@ Objective-C and Objective-C++ Dialects}.
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
 -frounding-math -fsched2-use-superblocks @gol
--fsched2-use-traces -fsched-spec-load -fsched-spec-load-dangerous @gol
+-fsched2-use-traces -fsched-pressure @gol
+-fsched-spec-load -fsched-spec-load-dangerous @gol
 -fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
 -fsched-group-heuristic -fsched-critical-path-heuristic @gol
--fsched-spec-insn-heuristic -fsched-reg-pressure-heuristic @gol
--fsched-rank-heuristic -fsched-last-insn-heuristic @gol
--fsched-dep-count-heuristic @gol
+-fsched-spec-insn-heuristic -fsched-rank-heuristic @gol
+-fsched-last-insn-heuristic -fsched-dep-count-heuristic @gol
 -fschedule-insns -fschedule-insns2 -fsection-anchors @gol
 -fselective-scheduling -fselective-scheduling2 @gol
 -fsel-sched-pipelining -fsel-sched-pipelining-outer-loops @gol
@@ -469,7 +470,7 @@ Objective-C and Objective-C++ Dialects}.
 -mfix-cortex-m3-ldrd}
 
 @emph{AVR Options}
-@gccoptlist{-mmcu=@var{mcu}  -msize  -minit-stack=@var{n}  -mno-interrupts @gol
+@gccoptlist{-mmcu=@var{mcu}  -msize  -mno-interrupts @gol
 -mcall-prologues  -mtiny-stack  -mint8}
 
 @emph{Blackfin Options}
@@ -590,7 +591,7 @@ Objective-C and Objective-C++ Dialects}.
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul @gol
--msse4a -m3dnow -mpopcnt -mabm -msse5 @gol
+-msse4a -m3dnow -mpopcnt -mabm @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
@@ -599,7 +600,7 @@ Objective-C and Objective-C++ Dialects}.
 -momit-leaf-frame-pointer  -mno-red-zone -mno-tls-direct-seg-refs @gol
 -mcmodel=@var{code-model} -mabi=@var{name} @gol
 -m32  -m64 -mlarge-data-threshold=@var{num} @gol
--mfused-madd -mno-fused-madd -msse2avx}
+-msse2avx}
 
 @emph{IA-64 Options}
 @gccoptlist{-mbig-endian  -mlittle-endian  -mgnu-as  -mgnu-ld  -mno-pic @gol
@@ -704,7 +705,8 @@ Objective-C and Objective-C++ Dialects}.
 -mflush-func=@var{func}  -mno-flush-func @gol
 -mbranch-cost=@var{num}  -mbranch-likely  -mno-branch-likely @gol
 -mfp-exceptions -mno-fp-exceptions @gol
--mvr4130-align -mno-vr4130-align -msynci -mno-synci}
+-mvr4130-align -mno-vr4130-align -msynci -mno-synci @gol
+-mrelax-pic-calls -mno-relax-pic-calls}
 
 @emph{MMIX Options}
 @gccoptlist{-mlibfuncs  -mno-libfuncs  -mepsilon  -mno-epsilon  -mabi=gnu @gol
@@ -1784,6 +1786,27 @@ two definitions were merged.
 This option is no longer useful on most targets, now that support has
 been added for putting variables into BSS without making them common.
 
+@item -fno-deduce-init-list
+@opindex fno-deduce-init-list
+Disable deduction of a template type parameter as
+std::initializer_list from a brace-enclosed initializer list, i.e.
+
+@smallexample
+template <class T> auto forward(T t) -> decltype (realfn (t))
+@{
+  return realfn (t);
+@}
+
+void f()
+@{
+  forward(@{1,2@}); // call forward<std::initializer_list<int>>
+@}
+@end smallexample
+
+This option is present because this deduction is an extension to the
+current specification in the C++0x working draft, and there was
+some concern about potential overload resolution problems.
+
 @item -ffriend-injection
 @opindex ffriend-injection
 Inject friend functions into the enclosing namespace, so that they are
@@ -1924,7 +1947,8 @@ This information is generally only useful to the G++ development team.
 Set the maximum instantiation depth for template classes to @var{n}.
 A limit on the template instantiation depth is needed to detect
 endless recursions during template class instantiation.  ANSI/ISO C++
-conforming programs must not rely on a maximum depth greater than 17.
+conforming programs must not rely on a maximum depth greater than 17
+(changed to 1024 in C++0x).
 
 @item -fno-threadsafe-statics
 @opindex fno-threadsafe-statics
@@ -4396,10 +4420,13 @@ assembler (GAS) to fail with an error.
 @opindex gdwarf-@var{version}
 Produce debugging information in DWARF format (if that is
 supported).  This is the format used by DBX on IRIX 6.  The value
-of @var{version} may be either 2 or 3; the default version is 2.
+of @var{version} may be either 2, 3 or 4; the default version is 2.
 
 Note that with DWARF version 2 some ports require, and will always
 use, some non-conflicting DWARF 3 extensions in the unwind tables.
+
+Version 4 may require GDB 7.0 and @option{-fvar-tracking-assignments}
+for maximum benefit.
 
 @item -gvms
 @opindex gvms
@@ -4444,9 +4471,12 @@ other options are processed, and it does so only once, no matter how
 many times it is given.  This is mainly intended to be used with
 @option{-fcompare-debug}.
 
-@item -fdump-final-insns=@var{file}
-@opindex fdump-final-insns=
-Dump the final internal representation (RTL) to @var{file}.
+@item -fdump-final-insns@r{[}=@var{file}@r{]}
+@opindex fdump-final-insns
+Dump the final internal representation (RTL) to @var{file}.  If the
+optional argument is omitted (or if @var{file} is @code{.}), the name
+of the dump file will be determined by appending @code{.gkd} to the
+compilation output file name.
 
 @item -fcompare-debug@r{[}=@var{opts}@r{]}
 @opindex fcompare-debug
@@ -5445,6 +5475,23 @@ It is enabled by default when compiling with optimization (@option{-Os},
 @option{-O}, @option{-O2}, @dots{}), debugging information (@option{-g}) and
 the debug info format supports it.
 
+@item -fvar-tracking-assignments
+@opindex fvar-tracking-assignments
+@opindex fno-var-tracking-assignments
+Annotate assignments to user variables early in the compilation and
+attempt to carry the annotations over throughout the compilation all the
+way to the end, in an attempt to improve debug information while
+optimizing.  Use of @option{-gdwarf-4} is recommended along with it.
+
+It can be enabled even if var-tracking is disabled, in which case
+annotations will be created and maintained, but discarded at the end.
+
+@item -fvar-tracking-assignments-toggle
+@opindex fvar-tracking-assignments-toggle
+@opindex fno-var-tracking-assignments-toggle
+Toggle @option{-fvar-tracking-assignments}, in the same way that
+@option{-gtoggle} toggles @option{-g}.
+
 @item -print-file-name=@var{library}
 @opindex print-file-name
 Print the full absolute name of the library file @var{library} that
@@ -5592,7 +5639,6 @@ compilation time.
 -fguess-branch-probability @gol
 -fif-conversion2 @gol
 -fif-conversion @gol
--finline-small-functions @gol
 -fipa-pure-const @gol
 -fipa-reference @gol
 -fmerge-constants
@@ -5633,7 +5679,9 @@ also turns on the following optimization flags:
 -fdelete-null-pointer-checks @gol
 -fexpensive-optimizations @gol
 -fgcse  -fgcse-lm  @gol
+-finline-small-functions @gol
 -findirect-inlining @gol
+-fipa-sra @gol
 -foptimize-sibling-calls @gol
 -fpeephole2 @gol
 -fregmove @gol
@@ -5793,6 +5841,14 @@ makes profiling significantly cheaper and usually inlining faster on programs
 having large chains of nested wrapper functions.
 
 Enabled by default.
+
+@item -fipa-sra
+@opindex fipa-sra
+Perform interprocedural scalar replacement of aggregates, removal of
+unused parameters and replacement of parameters passed by reference
+by parameters passed by value.
+
+Enabled at levels @option{-O2}, @option{-O3} and @option{-Os}.
 
 @item -finline-limit=@var{n}
 @opindex finline-limit
@@ -6201,6 +6257,16 @@ Don't allow speculative motion of non-load instructions.  This is normally
 enabled by default when scheduling before register allocation, i.e.@:
 with @option{-fschedule-insns} or at @option{-O2} or higher.
 
+@item -fsched-pressure
+@opindex fsched-pressure
+Enable register pressure sensitive insn scheduling before the register
+allocation.  This only makes sense when scheduling before register
+allocation is enabled, i.e.@: with @option{-fschedule-insns} or at
+@option{-O2} or higher.  Usage of this option can improve the
+generated code and decrease its size by preventing register pressure
+increase above the number of available hard registers and as a
+consequence register spills in the register allocation.
+
 @item -fsched-spec-load
 @opindex fsched-spec-load
 Allow speculative motion of some load instructions.  This only makes
@@ -6268,13 +6334,6 @@ heuristic favors speculative instructions with greater dependency weakness.
 This is enabled by default when scheduling is enabled, i.e.@: 
 with @option{-fschedule-insns} or @option{-fschedule-insns2} 
 or at @option{-O2} or higher.
-
-@item -fsched-reg-pressure-heuristic
-@opindex fsched-reg-pressure-heuristic
-Enable the register pressure heuristic in the scheduler.  This heuristic
-favors the instruction with smaller contribution to register pressure.  
-This only makes sense when scheduling before register allocation, i.e.@: 
-with @option{-fschedule-insns} or at @option{-O2} or higher.
 
 @item -fsched-rank-heuristic
 @opindex fsched-rank-heuristic
@@ -6841,7 +6900,7 @@ Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fstrict-aliasing
 @opindex fstrict-aliasing
-Allows the compiler to assume the strictest aliasing rules applicable to
+Allow the compiler to assume the strictest aliasing rules applicable to
 the language being compiled.  For C (and C++), this activates
 optimizations based on the type of expressions.  In particular, an
 object of one type is assumed never to reside at the same address as an
@@ -6858,7 +6917,7 @@ union a_union @{
 @};
 
 int f() @{
-  a_union t;
+  union a_union t;
   t.d = 3.0;
   return t.i;
 @}
@@ -6871,7 +6930,7 @@ expected.  @xref{Structures unions enumerations and bit-fields
 implementation}.  However, this code might not:
 @smallexample
 int f() @{
-  a_union t;
+  union a_union t;
   int* ip;
   t.d = 3.0;
   ip = &t.i;
@@ -7606,7 +7665,7 @@ a lot of functions that would otherwise not be considered for inlining
 by the compiler will be investigated.  To those functions, a different
 (more restrictive) limit compared to functions declared inline can
 be applied.
-The default value is 60.
+The default value is 50.
 
 @item large-function-insns
 The limit specifying really large functions.  For functions larger than this
@@ -7686,7 +7745,7 @@ whose probability exceeds given threshold (in percents).  The default value is
 
 @item early-inlining-insns
 Specify growth that early inliner can make.  In effect it increases amount of
-inlining for code having large abstraction penalty.  The default value is 12.
+inlining for code having large abstraction penalty.  The default value is 8.
 
 @item max-early-inliner-iterations
 @itemx max-early-inliner-iterations
@@ -8092,6 +8151,18 @@ in amount of needed compile time memory, with very large loops.  Loops
 with more basic blocks than this parameter won't have loop invariant
 motion optimization performed on them.  The default value of the
 parameter is 1000 for -O1 and 10000 for -O2 and above.
+
+@item min-nondebug-insn-uid
+Use uids starting at this parameter for nondebug insns.  The range below
+the parameter is reserved exclusively for debug insns created by
+@option{-fvar-tracking-assignments}, but debug insns may get
+(non-overlapping) uids above it if the reserved range is exhausted.
+
+@item ipa-sra-ptr-growth-factor
+IPA-SRA will replace a pointer to an aggregate with one or more new
+parameters only when their cumulative size is less or equal to
+@option{ipa-sra-ptr-growth-factor} times the size of the original
+pointer parameter.
 
 @end table
 @end table
@@ -8806,7 +8877,16 @@ and @option{-imultilib} as necessary.
 @item %s
 Current argument is the name of a library or startup file of some sort.
 Search for that file in a standard list of directories and substitute
-the full name found.
+the full name found.  The current working directory is included in the
+list of directories scanned.
+
+@item %T
+Current argument is the name of a linker script.  Search for that file
+in the current list of directories to scan for libraries. If the file
+is located insert a @option{--script} option into the command line
+followed by the full path name found.  If the file is not found then
+generate an error message.  Note: the current working directory is not
+searched.
 
 @item %e@var{str}
 Print @var{str} as an error message.  @var{str} is terminated by a newline.
@@ -9619,11 +9699,6 @@ atmega64, atmega128, at43usb355, at94k).
 @opindex msize
 Output instruction sizes to the asm file.
 
-@item -minit-stack=@var{N}
-@opindex minit-stack
-Specify the initial stack address, which may be a symbol or numeric value,
-@samp{__stack} is the default.
-
 @item -mno-interrupts
 @opindex mno-interrupts
 Generated code is not compatible with hardware interrupts.
@@ -9660,6 +9735,7 @@ can be one of @samp{bf512}, @samp{bf514}, @samp{bf516}, @samp{bf518},
 @samp{bf527}, @samp{bf531}, @samp{bf532}, @samp{bf533},
 @samp{bf534}, @samp{bf536}, @samp{bf537}, @samp{bf538}, @samp{bf539},
 @samp{bf542}, @samp{bf544}, @samp{bf547}, @samp{bf548}, @samp{bf549},
+@samp{bf542m}, @samp{bf544m}, @samp{bf547m}, @samp{bf548m}, @samp{bf549m},
 @samp{bf561}.
 The optional @var{sirevision} specifies the silicon revision of the target
 Blackfin processor.  Any workarounds available for the targeted silicon revision
@@ -11640,8 +11716,6 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-pclmul
 @itemx -msse4a
 @itemx -mno-sse4a
-@itemx -msse5
-@itemx -mno-sse5
 @itemx -m3dnow
 @itemx -mno-3dnow
 @itemx -mpopcnt
@@ -11655,7 +11729,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, SSE5, ABM or
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, ABM or
 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
@@ -11832,14 +11906,6 @@ is legal depends on the operating system, and whether it maps the
 segment to cover the entire TLS area.
 
 For systems that use GNU libc, the default is on.
-
-@item -mfused-madd
-@itemx -mno-fused-madd
-@opindex mfused-madd
-Enable automatic generation of fused floating point multiply-add instructions
-if the ISA supports such instructions.  The -mfused-madd option is on by
-default.  The fused multiply-add instructions have a different
-rounding behavior compared to executing a multiply followed by an add.
 
 @item -msse2avx
 @itemx -mno-sse2avx
@@ -13841,6 +13907,20 @@ When compiling code for single processor systems, it is generally safe
 to use @code{synci}.  However, on many multi-core (SMP) systems, it
 will not invalidate the instruction caches on all cores and may lead
 to undefined behavior.
+
+@item -mrelax-pic-calls
+@itemx -mno-relax-pic-calls
+@opindex mrelax-pic-calls
+Try to turn PIC calls that are normally dispatched via register
+@code{$25} into direct calls.  This is only possible if the linker can
+resolve the destination at link-time and if the destination is within
+range for a direct call.
+
+@option{-mrelax-pic-calls} is the default if GCC was configured to use
+an assembler and a linker that supports the @code{.reloc} assembly
+directive and @code{-mexplicit-relocs} is in effect.  With
+@code{-mno-explicit-relocs}, this optimization can be performed by the
+assembler and the linker alone without help from the compiler.
 @end table
 
 @node MMIX Options

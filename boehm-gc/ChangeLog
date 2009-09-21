@@ -1,3 +1,40 @@
+2009-09-11  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (libgcjgc_la_LINK, gctest_LINK): New.
+	(gctest_LDADD): Depend on libgcjgc.la instead of ./libgcjgc.la,
+	so that library dependency resolution works with portable make.
+	* Makefile.in: Regenerate.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure: Rebuilt with modified libtool.m4.
+
+2009-09-03  Loren J. Rittle  <ljrittle@acm.org>
+
+	* dyn_load.c (HAVE_DL_ITERATE_PHDR): Break definition from use.
+	Define for FreeBSD 7.0+.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (install-html, install-pdf): Remove.
+	* Makefile.in: Regenerate.
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* include/gc_config.h.in: Regenerate.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (LTCOMPILE, LTLINK): Add $(AM_LIBTOOLFLAGS)
+	and $(LIBTOOLFLAGS).
+	* Makefile.in: Regenerate.
+
 2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure.ac (_AC_ARG_VAR_PRECIOUS): Use m4_rename_force.

@@ -191,6 +191,9 @@ static tree tsubst_decl (tree, tree, tsubst_flags_t);
 static void perform_typedefs_access_check (tree tmpl, tree targs);
 static void append_type_to_template_for_access_check_1 (tree, tree, tree);
 static hashval_t iterative_hash_template_arg (tree arg, hashval_t val);
+static bool primary_template_instantiation_p (const_tree);
+static tree listify (tree);
+static tree listify_autos (tree, tree);
 
 /* Make the current scope suitable for access checking when we are
    processing T.  T can be FUNCTION_DECL for instantiated function
@@ -287,7 +290,7 @@ finish_member_template_decl (tree decl)
 /* Return the template info node corresponding to T, whatever T is.  */
 
 tree
-get_template_info (tree t)
+get_template_info (const_tree t)
 {
   tree tinfo = NULL_TREE;
 
@@ -1296,7 +1299,7 @@ register_specialization (tree spec, tree tmpl, tree args, bool is_friend,
     {
       if (DECL_TEMPLATE_INSTANTIATION (fn))
 	{
-	  if (TREE_USED (fn)
+	  if (DECL_ODR_USED (fn)
 	      || DECL_EXPLICIT_INSTANTIATION (fn))
 	    {
 	      error ("specialization of %qD after instantiation",
@@ -2660,13 +2663,88 @@ static tree
 make_ith_pack_parameter_name (tree name, int i)
 {
   /* Munge the name to include the parameter index.  */
-  char numbuf[128];
+#define NUMBUF_LEN 128
+  char numbuf[NUMBUF_LEN];
   char* newname;
-  
-  sprintf(numbuf, "%i", i);
-  newname = (char*)alloca (IDENTIFIER_LENGTH (name) + strlen(numbuf) + 2);
-  sprintf(newname, "%s#%i", IDENTIFIER_POINTER (name), i);
+  int newname_len;
+
+  snprintf (numbuf, NUMBUF_LEN, "%i", i);
+  newname_len = IDENTIFIER_LENGTH (name)
+	        + strlen (numbuf) + 2;
+  newname = (char*)alloca (newname_len);
+  snprintf (newname, newname_len,
+	    "%s#%i", IDENTIFIER_POINTER (name), i);
   return get_identifier (newname);
+}
+
+/* Return true if T is a primary function
+   or class template instantiation.  */
+
+static bool
+primary_template_instantiation_p (const_tree t)
+{
+  if (!t)
+    return false;
+
+  if (TREE_CODE (t) == FUNCTION_DECL)
+    return DECL_LANG_SPECIFIC (t)
+	   && DECL_TEMPLATE_INSTANTIATION (t)
+	   && PRIMARY_TEMPLATE_P (DECL_TI_TEMPLATE (t));
+  else if (CLASS_TYPE_P (t))
+    return CLASSTYPE_TEMPLATE_INSTANTIATION (t)
+	   && PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (t));
+  return false;
+}
+
+/* Return true if PARM is a template template parameter.  */
+
+bool
+template_template_parameter_p (const_tree parm)
+{
+  return DECL_TEMPLATE_TEMPLATE_PARM_P (parm);
+}
+
+/* Return the template parameters of T if T is a
+   primary template instantiation, NULL otherwise.  */
+
+tree
+get_primary_template_innermost_parameters (const_tree t)
+{
+  tree parms = NULL, template_info = NULL;
+
+  if ((template_info = get_template_info (t))
+      && primary_template_instantiation_p (t))
+    parms = INNERMOST_TEMPLATE_PARMS
+	(DECL_TEMPLATE_PARMS (TI_TEMPLATE (template_info)));
+
+  return parms;
+}
+
+/* Returns the template arguments of T if T is a template instantiation,
+   NULL otherwise.  */
+
+tree
+get_template_innermost_arguments (const_tree t)
+{
+  tree args = NULL, template_info = NULL;
+
+  if ((template_info = get_template_info (t))
+      && TI_ARGS (template_info))
+    args = INNERMOST_TEMPLATE_ARGS (TI_ARGS (template_info));
+
+  return args;
+}
+
+/* Return the arguments pack of T if T is a template, NULL otherwise.  */
+
+tree
+get_template_argument_pack_elems (const_tree t)
+{
+  if (TREE_CODE (t) != TYPE_ARGUMENT_PACK
+      && TREE_CODE (t) != NONTYPE_ARGUMENT_PACK)
+    return NULL;
+
+  return ARGUMENT_PACK_ARGS (t);
 }
 
 /* Structure used to track the progress of find_parameter_packs_r.  */
@@ -7957,6 +8035,36 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
   return result;
 }
 
+/* Given PARM_DECL PARM, find the corresponding PARM_DECL in the template
+   TMPL.  We do this using DECL_PARM_INDEX, which should work even with
+   parameter packs; all parms generated from a function parameter pack will
+   have the same DECL_PARM_INDEX.  */
+
+tree
+get_pattern_parm (tree parm, tree tmpl)
+{
+  tree pattern = DECL_TEMPLATE_RESULT (tmpl);
+  tree patparm;
+
+  if (DECL_ARTIFICIAL (parm))
+    {
+      for (patparm = DECL_ARGUMENTS (pattern);
+	   patparm; patparm = TREE_CHAIN (patparm))
+	if (DECL_ARTIFICIAL (patparm)
+	    && DECL_NAME (parm) == DECL_NAME (patparm))
+	  break;
+    }
+  else
+    {
+      patparm = FUNCTION_FIRST_USER_PARM (DECL_TEMPLATE_RESULT (tmpl));
+      patparm = chain_index (DECL_PARM_INDEX (parm)-1, patparm);
+      gcc_assert (DECL_PARM_INDEX (patparm)
+		  == DECL_PARM_INDEX (parm));
+    }
+
+  return patparm;
+}
+
 /* Substitute ARGS into the vector or list of template arguments T.  */
 
 static tree
@@ -10762,7 +10870,7 @@ tsubst_copy_asm_operands (tree t, tree args, tsubst_flags_t complain,
   if (purpose)
     purpose = RECUR (purpose);
   value = TREE_VALUE (t);
-  if (value)
+  if (value && TREE_CODE (value) != LABEL_DECL)
     value = RECUR (value);
   chain = TREE_CHAIN (t);
   if (chain && chain != void_type_node)
@@ -11154,7 +11262,8 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 	 RECUR (ASM_STRING (t)),
 	 tsubst_copy_asm_operands (ASM_OUTPUTS (t), args, complain, in_decl),
 	 tsubst_copy_asm_operands (ASM_INPUTS (t), args, complain, in_decl),
-	 tsubst_copy_asm_operands (ASM_CLOBBERS (t), args, complain, in_decl));
+	 tsubst_copy_asm_operands (ASM_CLOBBERS (t), args, complain, in_decl),
+	 tsubst_copy_asm_operands (ASM_LABELS (t), args, complain, in_decl));
       {
 	tree asm_expr = tmp;
 	if (TREE_CODE (asm_expr) == CLEANUP_POINT_EXPR)
@@ -13699,6 +13808,12 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
     {
       tree elt, elttype;
       unsigned i;
+      tree orig_parm = parm;
+
+      /* Replace T with std::initializer_list<T> for deduction.  */
+      if (TREE_CODE (parm) == TEMPLATE_TYPE_PARM
+	  && flag_deduce_init_list)
+	parm = listify (parm);
 
       if (!is_std_init_list (parm))
 	/* We can only deduce from an initializer list argument if the
@@ -13723,6 +13838,16 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
 
 	  if (unify (tparms, targs, elttype, elt, elt_strict))
 	    return 1;
+	}
+
+      /* If the std::initializer_list<T> deduction worked, replace the
+	 deduced A with std::initializer_list<A>.  */
+      if (orig_parm != parm)
+	{
+	  idx = TEMPLATE_TYPE_IDX (orig_parm);
+	  targ = TREE_VEC_ELT (INNERMOST_TEMPLATE_ARGS (targs), idx);
+	  targ = listify (targ);
+	  TREE_VEC_ELT (INNERMOST_TEMPLATE_ARGS (targs), idx) = targ;
 	}
       return 0;
     }
@@ -17419,26 +17544,33 @@ make_auto (void)
   return au;
 }
 
+/* Given type ARG, return std::initializer_list<ARG>.  */
+
+static tree
+listify (tree arg)
+{
+  tree std_init_list = namespace_binding
+    (get_identifier ("initializer_list"), std_node);
+  tree argvec;
+  if (!std_init_list || !DECL_CLASS_TEMPLATE_P (std_init_list))
+    {    
+      error ("deducing from brace-enclosed initializer list requires "
+	     "#include <initializer_list>");
+      return error_mark_node;
+    }
+  argvec = make_tree_vec (1);
+  TREE_VEC_ELT (argvec, 0) = arg;
+  return lookup_template_class (std_init_list, argvec, NULL_TREE,
+				NULL_TREE, 0, tf_warning_or_error);
+}
+
 /* Replace auto in TYPE with std::initializer_list<auto>.  */
 
 static tree
 listify_autos (tree type, tree auto_node)
 {
-  tree std_init_list = namespace_binding
-    (get_identifier ("initializer_list"), std_node);
-  tree argvec;
-  tree init_auto;
-  if (!std_init_list || !DECL_CLASS_TEMPLATE_P (std_init_list))
-    {    
-      error ("deducing auto from brace-enclosed initializer list requires "
-	     "#include <initializer_list>");
-      return error_mark_node;
-    }
-  argvec = make_tree_vec (1);
-  TREE_VEC_ELT (argvec, 0) = auto_node;
-  init_auto = lookup_template_class (std_init_list, argvec, NULL_TREE,
-				     NULL_TREE, 0, tf_warning_or_error);
-
+  tree init_auto = listify (auto_node);
+  tree argvec = make_tree_vec (1);
   TREE_VEC_ELT (argvec, 0) = init_auto;
   if (processing_template_decl)
     argvec = add_to_template_args (current_template_args (), argvec);

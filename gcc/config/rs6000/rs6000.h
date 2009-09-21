@@ -743,14 +743,18 @@ extern unsigned rs6000_pointer_size;
 /* Make arrays of chars word-aligned for the same reasons.
    Align vectors to 128 bits.  Align SPE vectors and E500 v2 doubles to
    64 bits.  */
-#define DATA_ALIGNMENT(TYPE, ALIGN)		\
-  (TREE_CODE (TYPE) == VECTOR_TYPE ? ((TARGET_SPE_ABI \
-   || TARGET_PAIRED_FLOAT) ? 64 : 128)	\
-   : (TARGET_E500_DOUBLE			\
-      && TYPE_MODE (TYPE) == DFmode) ? 64 \
-   : TREE_CODE (TYPE) == ARRAY_TYPE		\
-   && TYPE_MODE (TREE_TYPE (TYPE)) == QImode	\
-   && (ALIGN) < BITS_PER_WORD ? BITS_PER_WORD : (ALIGN))
+#define DATA_ALIGNMENT(TYPE, ALIGN)					\
+  (TREE_CODE (TYPE) == VECTOR_TYPE					\
+   ? (((TARGET_SPE && SPE_VECTOR_MODE (TYPE_MODE (TYPE)))		\
+       || (TARGET_PAIRED_FLOAT && PAIRED_VECTOR_MODE (TYPE_MODE (TYPE)))) \
+      ? 64 : 128)							\
+   : ((TARGET_E500_DOUBLE						\
+       && TREE_CODE (TYPE) == REAL_TYPE					\
+       && TYPE_MODE (TYPE) == DFmode)					\
+      ? 64								\
+      : (TREE_CODE (TYPE) == ARRAY_TYPE					\
+	 && TYPE_MODE (TREE_TYPE (TYPE)) == QImode			\
+	 && (ALIGN) < BITS_PER_WORD) ? BITS_PER_WORD : (ALIGN)))
 
 /* Nonzero if move instructions will actually fail to work
    when given unaligned data.  */
@@ -1785,22 +1789,6 @@ typedef struct rs6000_args
  { ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},		\
  { ARG_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM},	\
  { RS6000_PIC_OFFSET_TABLE_REGNUM, RS6000_PIC_OFFSET_TABLE_REGNUM } }
-
-/* Given FROM and TO register numbers, say whether this elimination is allowed.
-   Frame pointer elimination is automatically handled.
-
-   For the RS/6000, if frame pointer elimination is being done, we would like
-   to convert ap into fp, not sp.
-
-   We need r30 if -mminimal-toc was specified, and there are constant pool
-   references.  */
-
-#define CAN_ELIMINATE(FROM, TO)						\
- ((FROM) == ARG_POINTER_REGNUM && (TO) == STACK_POINTER_REGNUM		\
-  ? ! frame_pointer_needed						\
-  : (FROM) == RS6000_PIC_OFFSET_TABLE_REGNUM 				\
-  ? ! TARGET_MINIMAL_TOC || TARGET_NO_TOC || get_pool_size () == 0	\
-  : 1)
 
 /* Define the offset between two registers, one to be eliminated, and the other
    its replacement, at the start of a routine.  */

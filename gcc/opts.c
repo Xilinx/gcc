@@ -1512,7 +1512,7 @@ common_handle_option (size_t scode, const char *arg, int value,
 	      { NULL, 0 }
 	    };
 	    unsigned int * pflags;
-	    char * comma;
+	    const char * comma;
 	    unsigned int lang_flag, specific_flag;
 	    unsigned int len;
 	    unsigned int i;
@@ -2054,7 +2054,7 @@ common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_gdwarf_:
-      if (value < 2 || value > 3)
+      if (value < 2 || value > 4)
 	error ("dwarf version %d is not supported", value);
       else
 	dwarf_version = value;

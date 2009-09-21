@@ -24,7 +24,8 @@ m4_include(config/override.m4)
 m4_include(config/proginstall.m4)
 
 AC_INIT(move-if-change)
-AC_PREREQ(2.59)
+AC_PREREQ(2.64)
+AC_DISABLE_OPTION_CHECKING
 
 progname=$0
 # if PWD already has a value, it is probably wrong.
@@ -78,6 +79,8 @@ m4_pattern_allow([^AS_FOR_BUILD$])dnl
 AC_PROG_INSTALL
 ACX_PROG_LN
 AC_PROG_LN_S
+AC_PROG_SED
+AC_PROG_AWK
 
 ### we might need to use some other shell than /bin/sh for running subshells
 ### If we are on Windows, search for the shell.  This will permit people
@@ -600,7 +603,8 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-libiberty target-libstdc++-v3 ${libgcj} target-libssp"
     ;;
   bfin-*-*)
-    noconfigdirs="$noconfigdirs gdb"
+    unsupported_languages="$unsupported_languages java"
+    noconfigdirs="$noconfigdirs target-boehm-gc gdb"
     if test x${is_cross_compiler} != xno ; then
       target_configdirs="${target_configdirs} target-bsp target-cygmon"
     fi
@@ -2407,12 +2411,13 @@ INSTALL_GDB_TK=`echo ${GDB_TK} | sed s/-all-/-install-/g`
 # configuration, so that the top-level Makefile reconfigures them,
 # like we used to do when configure itself was recursive.
 
-# Loop over modules.  $extrasub must be used with care, limiting as
-# much as possible the usage of range addresses.  That's because autoconf
-# splits the sed script to overcome limits in the number of commands,
-# and relying on carefully-timed sed passes may turn out to be very hard
-# to maintain later.  In this particular case, you just have to be careful
-# not to nest @if/@endif pairs, because configure will not warn you at all.
+# Loop over modules.  We used to use the "$extrasub" feature from Autoconf
+# but now we're fixing up the Makefile ourselves with the additional
+# commands passed to AC_CONFIG_FILES.  Use separate variables
+# extrasub-{build,host,target} not because there is any reason to split
+# the substitutions up that way, but only to remain below the limit of
+# 99 commands in a script, for HP-UX sed.
+# Do not nest @if/@endif pairs, because configure will not warn you at all.
 
 AC_ARG_ENABLE([bootstrap],
 [  --enable-bootstrap      enable bootstrapping @<:@yes if native build@:>@],,
@@ -2455,26 +2460,71 @@ case "$have_compiler:$host:$target:$enable_bootstrap" in
     ;;
 esac
 
-# Adjust the toplevel makefile according to whether bootstrap was selected.
-case "$enable_bootstrap" in
-  yes)
-    bootstrap_suffix=bootstrap ;;
-  no)
-    bootstrap_suffix=no-bootstrap ;;
+case ",$enable_languages,:$ENABLE_BUILD_WITH_CXX:$enable_bootstrap" in
+  *,c++,*:yes:yes) ;;
+  *:yes:yes)
+    AC_MSG_ERROR([bootstrapping with --enable-build-with-cxx requires c++ in --enable-languages])
+    ;;
 esac
 
+# Adjust the toplevel makefile according to whether bootstrap was selected.
+case $enable_bootstrap in
+  yes)
+    bootstrap_suffix=bootstrap
+    BUILD_CONFIG=bootstrap-debug
+    ;;
+  no)
+    bootstrap_suffix=no-bootstrap
+    BUILD_CONFIG=
+    ;;
+esac
+
+AC_MSG_CHECKING(for default BUILD_CONFIG)
+
+AC_ARG_WITH([build-config],
+  [--with-build-config='NAME NAME2...'
+                          Use config/NAME.mk build configuration],
+  [case $with_build_config in
+   yes) with_build_config= ;;
+   no) with_build_config= BUILD_CONFIG= ;;
+   esac])
+
+if test "x${with_build_config}" != x; then
+  BUILD_CONFIG=$with_build_config
+else
+  case $BUILD_CONFIG in
+  bootstrap-debug)
+    if echo "int f (void) { return 0; }" > conftest.c &&
+       ${CC} -c conftest.c &&
+       mv conftest.o conftest.o.g0 &&
+       ${CC} -c -g conftest.c &&
+       mv conftest.o conftest.o.g &&
+       ${srcdir}/contrib/compare-debug conftest.o.g0 conftest.o.g; then
+      :
+    else
+      BUILD_CONFIG=
+    fi
+    rm -f conftest.c conftest.o conftest.o.g0 conftest.o.g
+    ;;
+  esac
+fi
+AC_MSG_RESULT($BUILD_CONFIG)
+AC_SUBST(BUILD_CONFIG)
+
+extrasub_build=
 for module in ${build_configdirs} ; do
   if test -z "${no_recursion}" \
      && test -f ${build_subdir}/${module}/Makefile; then
     echo 1>&2 "*** removing ${build_subdir}/${module}/Makefile to force reconfigure"
     rm -f ${build_subdir}/${module}/Makefile
   fi
-  extrasub="$extrasub
+  extrasub_build="$extrasub_build
 /^@if build-$module\$/d
 /^@endif build-$module\$/d
 /^@if build-$module-$bootstrap_suffix\$/d
 /^@endif build-$module-$bootstrap_suffix\$/d"
 done
+extrasub_host=
 for module in ${configdirs} ; do
   if test -z "${no_recursion}"; then
     for file in stage*-${module}/Makefile prev-${module}/Makefile ${module}/Makefile; do
@@ -2484,12 +2534,13 @@ for module in ${configdirs} ; do
       fi
     done
   fi
-  extrasub="$extrasub
+  extrasub_host="$extrasub_host
 /^@if $module\$/d
 /^@endif $module\$/d
 /^@if $module-$bootstrap_suffix\$/d
 /^@endif $module-$bootstrap_suffix\$/d"
 done
+extrasub_target=
 for module in ${target_configdirs} ; do
   if test -z "${no_recursion}" \
      && test -f ${target_subdir}/${module}/Makefile; then
@@ -2503,14 +2554,15 @@ for module in ${target_configdirs} ; do
     *) target_bootstrap_suffix=no-bootstrap ;;
   esac
 
-  extrasub="$extrasub
+  extrasub_target="$extrasub_target
 /^@if target-$module\$/d
 /^@endif target-$module\$/d
 /^@if target-$module-$target_bootstrap_suffix\$/d
 /^@endif target-$module-$target_bootstrap_suffix\$/d"
 done
 
-extrasub="$extrasub
+# Do the final fixup along with target modules.
+extrasub_target="$extrasub_target
 /^@if /,/^@endif /d"
 
 # Create the serialization dependencies.  This uses a temporary file.
@@ -2662,6 +2714,7 @@ baseargs="$baseargs --program-transform-name='${gcc_transform_name}'"
 if test "$silent" = yes; then
   baseargs="$baseargs --silent"
 fi
+baseargs="$baseargs --disable-option-checking"
 
 # For the build-side libraries, we just need to pretend we're native,
 # and not use the same cache file.  Multilibs are neither needed nor
@@ -3118,32 +3171,6 @@ case ${enable_werror} in
 esac
 AC_SUBST(stage2_werror_flag)
 
-# Flags needed to enable html installing and building
-AC_ARG_WITH(datarootdir,
-[  --with-datarootdir      use datarootdir as the data root directory.],
-[datarootdir="\${prefix}/${withval}"],
-[datarootdir="\${prefix}/share"])
-
-AC_ARG_WITH(docdir,
-[  --with-docdir           install documentation in this directory.],
-[docdir="\${prefix}/${withval}"],
-[docdir="\${datarootdir}/doc"])
-
-AC_ARG_WITH(pdfdir,
-[  --with-pdfdir           install pdf in this directory.],
-[pdfdir="\${prefix}/${withval}"],
-[pdfdir="\${docdir}"])
-
-AC_ARG_WITH(htmldir,
-[  --with-htmldir          install html in this directory.],
-[htmldir="\${prefix}/${withval}"],
-[htmldir="\${docdir}"])
-
-AC_SUBST(datarootdir)
-AC_SUBST(docdir)
-AC_SUBST(pdfdir)
-AC_SUBST(htmldir)
-
 # Specify what files to not compare during bootstrap.
 
 compare_exclusions="gcc/cc*-checksum\$(objext) | gcc/ada/*tools/*"
@@ -3153,4 +3180,12 @@ case "$target" in
 esac
 AC_SUBST(compare_exclusions)
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile],
+  [sed "$extrasub_build" Makefile |
+   sed "$extrasub_host" |
+   sed "$extrasub_target" > mf$$
+   mv -f mf$$ Makefile],
+  [extrasub_build="$extrasub_build"
+   extrasub_host="$extrasub_host"
+   extrasub_target="$extrasub_target"])
+AC_OUTPUT

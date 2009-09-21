@@ -1849,7 +1849,8 @@ find_interesting_uses (struct ivopts_data *data)
       for (bsi = gsi_start_phis (bb); !gsi_end_p (bsi); gsi_next (&bsi))
 	find_interesting_uses_stmt (data, gsi_stmt (bsi));
       for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
-	find_interesting_uses_stmt (data, gsi_stmt (bsi));
+	if (!is_gimple_debug (gsi_stmt (bsi)))
+	  find_interesting_uses_stmt (data, gsi_stmt (bsi));
     }
 
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -5296,42 +5297,6 @@ create_new_ivs (struct ivopts_data *data, struct iv_ca *set)
     }
 }
 
-/* Returns the phi-node in BB with result RESULT.  */
-
-static gimple
-get_phi_with_result (basic_block bb, tree result)
-{
-  gimple_stmt_iterator i = gsi_start_phis (bb);
-
-  for (; !gsi_end_p (i); gsi_next (&i))
-    if (gimple_phi_result (gsi_stmt (i)) == result)
-      return gsi_stmt (i);
-
-  gcc_unreachable ();
-  return NULL;
-}
-
-
-/* Removes statement STMT (real or a phi node).  If INCLUDING_DEFINED_NAME
-   is true, remove also the ssa name defined by the statement.  */
-
-static void
-remove_statement (gimple stmt, bool including_defined_name)
-{
-  if (gimple_code (stmt) == GIMPLE_PHI)
-    {
-      gimple bb_phi = get_phi_with_result (gimple_bb (stmt), 
-					 gimple_phi_result (stmt));
-      gimple_stmt_iterator bsi = gsi_for_stmt (bb_phi);
-      remove_phi_node (&bsi, including_defined_name);
-    }
-  else
-    {
-      gimple_stmt_iterator bsi = gsi_for_stmt (stmt);
-      gsi_remove (&bsi, true);
-      release_defs (stmt); 
-    }
-}
 
 /* Rewrites USE (definition of iv used in a nonlinear expression)
    using candidate CAND.  */
@@ -5434,7 +5399,9 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
     {
       ass = gimple_build_assign (tgt, op);
       gsi_insert_before (&bsi, ass, GSI_SAME_STMT);
-      remove_statement (use->stmt, false);
+
+      bsi = gsi_for_stmt (use->stmt);
+      remove_phi_node (&bsi, false);
     }
   else
     {
@@ -5610,7 +5577,11 @@ remove_unused_ivs (struct ivopts_data *data)
 {
   unsigned j;
   bitmap_iterator bi;
+  bitmap toremove = BITMAP_ALLOC (NULL);
 
+  /* Figure out an order in which to release SSA DEFs so that we don't
+     release something that we'd have to propagate into a debug stmt
+     afterwards.  */
   EXECUTE_IF_SET_IN_BITMAP (data->relevant, 0, j, bi)
     {
       struct version_info *info;
@@ -5621,8 +5592,12 @@ remove_unused_ivs (struct ivopts_data *data)
 	  && !info->inv_id
 	  && !info->iv->have_use_for
 	  && !info->preserve_biv)
-	remove_statement (SSA_NAME_DEF_STMT (info->iv->ssa_name), true);
+	bitmap_set_bit (toremove, SSA_NAME_VERSION (info->iv->ssa_name));
     }
+
+  release_defs_bitset (toremove);
+
+  BITMAP_FREE (toremove);
 }
 
 /* Frees data allocated by the optimization of a single loop.  */

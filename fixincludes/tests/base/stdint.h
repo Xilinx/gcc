@@ -10,41 +10,41 @@
 
 
 #if defined( AIX_STDINT_1_CHECK )
-#define UINT8_MAX	(255U)
-#define UINT16_MAX	(65535U)
+#define UINT8_MAX	(255)
+#define UINT16_MAX	(65535)
 #endif  /* AIX_STDINT_1_CHECK */
 
 
 #if defined( AIX_STDINT_2_CHECK )
-#define INTPTR_MIN	INT64_MIN
-#define INTPTR_MAX	INT64_MAX
-#define UINTPTR_MAX	UINT64_MAX
+#define INTPTR_MIN	(-INTPTR_MAX-1)
+#define INTPTR_MAX	9223372036854775807L
+#define UINTPTR_MAX	18446744073709551615UL
 #else
-#define INTPTR_MIN	INT32_MIN
-#define INTPTR_MAX	INT32_MAX
-#define UINTPTR_MAX	UINT32_MAX
+#define INTPTR_MIN	(-INTPTR_MAX-1)
+#define INTPTR_MAX	2147483647L
+#define UINTPTR_MAX	4294967295UL
 #endif  /* AIX_STDINT_2_CHECK */
 
 
 #if defined( AIX_STDINT_3_CHECK )
-#define PTRDIFF_MIN	INT64_MIN
-#define PTRDIFF_MAX	INT64_MAX
+#define PTRDIFF_MIN (-PTRDIFF_MAX - 1)
+#define PTRDIFF_MAX __PTRDIFF_MAX__
 #else
-#define PTRDIFF_MIN     INT32_MIN
-#define PTRDIFF_MAX	INT32_MAX
+#define PTRDIFF_MIN (-PTRDIFF_MAX - 1)
+#define PTRDIFF_MAX __PTRDIFF_MAX__
 #endif  /* AIX_STDINT_3_CHECK */
 
 
 #if defined( AIX_STDINT_4_CHECK )
-#define SIZE_MAX	UINT64_MAX
+#define SIZE_MAX __SIZE_MAX__
 #else
-#define SIZE_MAX        UINT32_MAX
+#define SIZE_MAX __SIZE_MAX__
 #endif  /* AIX_STDINT_4_CHECK */
 
 
 #if defined( AIX_STDINT_5_CHECK )
-#define UINT8_C(c)	__CONCAT__(c,U)
-#define UINT16_C(c)	__CONCAT__(c,U)
+#define UINT8_C(c) __UINT8_C(c)
+#define UINT16_C(c) __UINT16_C(c)
 #endif  /* AIX_STDINT_5_CHECK */
 
 
@@ -145,26 +145,18 @@
 #endif  /* HPUX_C99_INTTYPES2_CHECK */
 
 
-#if defined( HPUX_STDINT_LEAST_CHECK )
+#if defined( HPUX_STDINT_LEAST_FAST_CHECK )
+#ifdef __LP64__
+#  define	UINT_FAST64_MAX	ULONG_MAX
+#else
+#  define       UINT_FAST64_MAX        ULLONG_MAX
+#endif
 #ifdef __LP64__
 #  define	UINT_LEAST64_MAX	ULONG_MAX
 #else
 #  define       UINT_LEAST64_MAX        ULLONG_MAX
 #endif
-
-
-#endif  /* HPUX_STDINT_LEAST_CHECK */
-
-
-#if defined( HPUX_STDINT_FAST_CHECK )
-#ifdef __LP64__
-#  define	UINT_FAST64_MAX		ULONG_MAX
-#else
-#  define       UINT_FAST64_MAX        ULLONG_MAX
-#endif
-
-
-#endif  /* HPUX_STDINT_FAST_CHECK */
+#endif  /* HPUX_STDINT_LEAST_FAST_CHECK */
 
 
 #if defined( IRIX_STDINT_C99_CHECK )

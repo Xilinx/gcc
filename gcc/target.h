@@ -481,6 +481,11 @@ struct gcc_target
 
     /* Target builtin that implements vector permute.  */
     tree (* builtin_vec_perm) (tree, tree*);
+    /* Return true if the target supports misaligned store/load of a
+       specific factor denoted in the third parameter.  The last parameter
+       is true if the access is defined in a packed struct.  */
+    bool (* builtin_support_vector_misalignment) (enum machine_mode, 
+                                                  const_tree, int, bool);
   } vectorize;
 
   /* The initial value of target_flags.  */
@@ -970,6 +975,10 @@ struct gcc_target
   
   /* Retutn true if a function must have and use a frame pointer.  */
   bool (* frame_pointer_required) (void);
+
+  /* Returns true if the compiler is allowed to try to replace register number
+     from-reg with register number to-reg.  */
+  bool (* can_eliminate) (const int, const int);
 
   /* Functions specific to the C family of frontends.  */
   struct c {

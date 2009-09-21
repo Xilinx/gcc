@@ -132,6 +132,12 @@ lvalue_p_1 (const_tree ref)
       return clk_ordinary;
 
     case CONST_DECL:
+      /* CONST_DECL without TREE_STATIC are enumeration values and
+	 thus not lvalues.  With TREE_STATIC they are used by ObjC++
+	 in objc_build_string_object and need to be considered as
+	 lvalues.  */
+      if (! TREE_STATIC (ref))
+	return clk_none;
     case VAR_DECL:
       if (TREE_READONLY (ref) && ! TREE_STATIC (ref)
 	  && DECL_LANG_SPECIFIC (ref)
@@ -1507,7 +1513,7 @@ verify_stmt_tree (tree t)
 
 /* Check if the type T depends on a type with no linkage and if so, return
    it.  If RELAXED_P then do not consider a class type declared within
-   a TREE_PUBLIC function to have no linkage.  */
+   a vague-linkage function to have no linkage.  */
 
 tree
 no_linkage_check (tree t, bool relaxed_p)
@@ -1521,8 +1527,6 @@ no_linkage_check (tree t, bool relaxed_p)
 
   switch (TREE_CODE (t))
     {
-      tree fn;
-
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (t))
 	goto ptrmem;
@@ -1530,13 +1534,42 @@ no_linkage_check (tree t, bool relaxed_p)
     case UNION_TYPE:
       if (!CLASS_TYPE_P (t))
 	return NULL_TREE;
+
+      /* Check template type-arguments.  I think that types with no linkage
+         can't occur in non-type arguments, though that might change with
+         constexpr.  */
+      r = CLASSTYPE_TEMPLATE_INFO (t);
+      if (r)
+	{
+	  tree args = INNERMOST_TEMPLATE_ARGS (TI_ARGS (r));
+	  int i;
+
+	  for (i = TREE_VEC_LENGTH (args); i-- > 0; )
+	    {
+	      tree elt = TREE_VEC_ELT (args, i);
+	      if (TYPE_P (elt)
+		  && (r = no_linkage_check (elt, relaxed_p), r))
+		return r;
+	    }
+	}
       /* Fall through.  */
     case ENUMERAL_TYPE:
-      if (TYPE_ANONYMOUS_P (t))
+      /* Only treat anonymous types as having no linkage if they're at
+	 namespace scope.  This doesn't have a core issue number yet.  */
+      if (TYPE_ANONYMOUS_P (t) && TYPE_NAMESPACE_SCOPE_P (t))
 	return t;
-      fn = decl_function_context (TYPE_MAIN_DECL (t));
-      if (fn && (!relaxed_p || !TREE_PUBLIC (fn)))
-	return t;
+
+      r = CP_TYPE_CONTEXT (t);
+      if (TYPE_P (r))
+	return no_linkage_check (TYPE_CONTEXT (t), relaxed_p);
+      else if (TREE_CODE (r) == FUNCTION_DECL)
+	{
+	  if (!relaxed_p || !TREE_PUBLIC (r) || !vague_linkage_fn_p (r))
+	    return t;
+	  else
+	    return no_linkage_check (CP_DECL_CONTEXT (r), relaxed_p);
+	}
+
       return NULL_TREE;
 
     case ARRAY_TYPE:
@@ -2290,10 +2323,10 @@ trivial_type_p (const_tree t)
   t = strip_array_types (CONST_CAST_TREE (t));
 
   if (CLASS_TYPE_P (t))
-    return !(TYPE_HAS_COMPLEX_DFLT (t)
-	     || TYPE_HAS_COMPLEX_INIT_REF (t)
-	     || TYPE_HAS_COMPLEX_ASSIGN_REF (t)
-	     || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t));
+    return (TYPE_HAS_TRIVIAL_DFLT (t)
+	    && TYPE_HAS_TRIVIAL_INIT_REF (t)
+	    && TYPE_HAS_TRIVIAL_ASSIGN_REF (t)
+	    && TYPE_HAS_TRIVIAL_DESTRUCTOR (t));
   else
     return scalarish_type_p (t);
 }
@@ -3022,6 +3055,53 @@ cast_valid_in_integral_constant_expression_p (tree type)
   return (INTEGRAL_OR_ENUMERATION_TYPE_P (type)
 	  || dependent_type_p (type)
 	  || type == error_mark_node);
+}
+
+/* Return true if we need to fix linkage information of DECL.  */
+
+static bool
+cp_fix_function_decl_p (tree decl)
+{
+  /* Skip if DECL is not externally visible.  */
+  if (!TREE_PUBLIC (decl))
+    return false;
+
+  /* We need to fix DECL if it a appears to be exported but with no
+     function body.  Thunks do not have CFGs and we may need to
+     handle them specially later.   */
+  if (!gimple_has_body_p (decl)
+      && !DECL_THUNK_P (decl)
+      && !DECL_EXTERNAL (decl))
+    return true;
+
+  return false;
+}
+
+/* Clean the C++ specific parts of the tree T. */
+
+void
+cp_free_lang_data (tree t)
+{
+  if (TREE_CODE (t) == METHOD_TYPE
+      || TREE_CODE (t) == FUNCTION_TYPE)
+    {
+      /* Default args are not interesting anymore.  */
+      tree argtypes = TYPE_ARG_TYPES (t);
+      while (argtypes)
+        {
+	  TREE_PURPOSE (argtypes) = 0;
+	  argtypes = TREE_CHAIN (argtypes);
+	}
+    }
+  else if (TREE_CODE (t) == FUNCTION_DECL
+	   && cp_fix_function_decl_p (t))
+    {
+      /* If T is used in this translation unit at all,  the definition
+	 must exist somewhere else since we have decided to not emit it
+	 in this TU.  So make it an external reference.  */
+      DECL_EXTERNAL (t) = 1;
+      TREE_STATIC (t) = 0;
+    }
 }
 
 

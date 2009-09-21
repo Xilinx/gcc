@@ -619,6 +619,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__typeof__",	RID_TYPEOF,	0 },
   { "__volatile",	RID_VOLATILE,	0 },
   { "__volatile__",	RID_VOLATILE,	0 },
+  { "alignof",		RID_ALIGNOF,	D_CXXONLY | D_CXX0X | D_CXXWARN },
   { "asm",		RID_ASM,	D_ASM },
   { "auto",		RID_AUTO,	0 },
   { "bool",		RID_BOOL,	D_CXXONLY | D_CXXWARN },
@@ -4573,7 +4574,7 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
 
   targetm.init_builtins ();
 
-  build_common_builtin_nodes ();
+  build_common_builtin_nodes (c_dialect_cxx ());
 
   if (flag_mudflap)
     mudflap_init ();

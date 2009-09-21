@@ -1026,14 +1026,14 @@ Pragma_to_gnu (Node_Id gnat_node)
 	  asm_constraint = build_string (strlen (comment), comment);
 	  free (comment);
 #endif
-	  gnu_expr = build4 (ASM_EXPR, void_type_node,
+	  gnu_expr = build5 (ASM_EXPR, void_type_node,
 			     asm_constraint,
 			     NULL_TREE,
 			     tree_cons
 			     (build_tree_list (NULL_TREE,
 					       build_string (1, "g")),
 			      gnu_expr, NULL_TREE),
-			     NULL_TREE);
+			     NULL_TREE, NULL_TREE);
 	  ASM_VOLATILE_P (gnu_expr) = 1;
 	  set_expr_location_from_node (gnu_expr, gnat_node);
 	  append_to_statement_list (gnu_expr, &gnu_result);
@@ -1279,9 +1279,16 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
     case Attr_Max_Size_In_Storage_Elements:
       gnu_expr = gnu_prefix;
 
-      /* Remove NOPs from GNU_EXPR and conversions from GNU_PREFIX.
-	 We only use GNU_EXPR to see if a COMPONENT_REF was involved.  */
-      while (TREE_CODE (gnu_expr) == NOP_EXPR)
+      /* Remove NOPs and conversions between original and packable version
+	 from GNU_EXPR, and conversions from GNU_PREFIX.  We use GNU_EXPR
+	 to see if a COMPONENT_REF was involved.  */
+      while (TREE_CODE (gnu_expr) == NOP_EXPR
+	     || (TREE_CODE (gnu_expr) == VIEW_CONVERT_EXPR
+		 && TREE_CODE (TREE_TYPE (gnu_expr)) == RECORD_TYPE
+		 && TREE_CODE (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))
+		    == RECORD_TYPE
+		 && TYPE_NAME (TREE_TYPE (gnu_expr))
+		    == TYPE_NAME (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))))
 	gnu_expr = TREE_OPERAND (gnu_expr, 0);
 
       gnu_prefix = remove_conversions (gnu_prefix, true);
@@ -2506,7 +2513,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  && (gnu_name_type = gnat_to_gnu_type (Etype (gnat_name)))
 	  && !addressable_p (gnu_name, gnu_name_type))
 	{
-	  tree gnu_copy = gnu_name, gnu_temp;
+	  tree gnu_copy = gnu_name;
 
 	  /* If the type is by_reference, a copy is not allowed.  */
 	  if (Is_By_Reference_Type (Etype (gnat_formal)))
@@ -2569,10 +2576,10 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  /* Set up to move the copy back to the original.  */
 	  if (Ekind (gnat_formal) != E_In_Parameter)
 	    {
-	      gnu_temp = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_copy,
-					  gnu_name);
-	      set_expr_location_from_node (gnu_temp, gnat_node);
-	      append_to_statement_list (gnu_temp, &gnu_after_list);
+	      tree stmt = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_copy,
+					   gnu_name);
+	      set_expr_location_from_node (stmt, gnat_node);
+	      append_to_statement_list (stmt, &gnu_after_list);
 	    }
 	}
 
@@ -3304,7 +3311,7 @@ Exception_Handler_to_gnu_zcx (Node_Id gnat_node)
      a new occurrence on top of the stack, which means that this top does not
      necessarily match the occurrence this handler was dealing with.
 
-     The EXC_PTR_EXPR object references the exception occurrence being
+     __builtin_eh_pointer references the exception occurrence being
      propagated. Upon handler entry, this is the exception for which the
      handler is triggered. This might not be the case upon handler exit,
      however, as we might have a new occurrence propagated by the handler's
@@ -3312,7 +3319,10 @@ Exception_Handler_to_gnu_zcx (Node_Id gnat_node)
 
      We use a local variable to retrieve the incoming value at handler entry
      time, and reuse it to feed the end_handler hook's argument at exit.  */
-  gnu_current_exc_ptr = build0 (EXC_PTR_EXPR, ptr_type_node);
+
+  gnu_current_exc_ptr
+    = build_call_expr (built_in_decls [BUILT_IN_EH_POINTER],
+		       1, integer_zero_node);
   gnu_incoming_exc_ptr = create_var_decl (get_identifier ("EXPTR"), NULL_TREE,
 					  ptr_type_node, gnu_current_exc_ptr,
 					  false, false, false, false, NULL,
@@ -3889,8 +3899,8 @@ gnat_to_gnu (Node_Id gnat_node)
 
     case N_Slice:
       {
-	tree gnu_type;
 	Node_Id gnat_range_node = Discrete_Range (gnat_node);
+	tree gnu_type;
 
 	gnu_result = gnat_to_gnu (Prefix (gnat_node));
 	gnu_result_type = get_unpadded_type (Etype (gnat_node));
@@ -3962,6 +3972,12 @@ gnat_to_gnu (Node_Id gnat_node)
 	else
 	  /* Simply return the naked low bound.  */
 	  gnu_expr = TYPE_MIN_VALUE (TYPE_DOMAIN (gnu_result_type));
+
+	/* If this is a slice with non-constant size of an array with constant
+	   size, set the maximum size for the allocation of temporaries.  */
+	if (!TREE_CONSTANT (TYPE_SIZE_UNIT (gnu_result_type))
+	    && TREE_CONSTANT (TYPE_SIZE_UNIT (gnu_type)))
+	  TYPE_ARRAY_MAX_SIZE (gnu_result_type) = TYPE_SIZE_UNIT (gnu_type);
 
 	gnu_result = build_binary_op (ARRAY_RANGE_REF, gnu_result_type,
 				      gnu_result, gnu_expr);
@@ -5079,9 +5095,9 @@ gnat_to_gnu (Node_Id gnat_node)
 	      TREE_VALUE (tail) = input;
 	    }
 
-	  gnu_result = build4 (ASM_EXPR,  void_type_node,
+	  gnu_result = build5 (ASM_EXPR,  void_type_node,
 			       gnu_template, gnu_outputs,
-			       gnu_inputs, gnu_clobbers);
+			       gnu_inputs, gnu_clobbers, NULL_TREE);
 	  ASM_VOLATILE_P (gnu_result) = Is_Asm_Volatile (gnat_node);
 	}
       else
@@ -5557,31 +5573,6 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
 	  mark_visited (&DECL_SIZE_UNIT (gnu_decl));
 	  mark_visited (&DECL_INITIAL (gnu_decl));
 	}
-
-      /* In any case, we have to deal with our own fields.  */
-      else if (TREE_CODE (gnu_decl) == TYPE_DECL)
-	switch (TREE_CODE (type))
-	  {
-	  case RECORD_TYPE:
-	  case UNION_TYPE:
-	  case QUAL_UNION_TYPE:
-	    if ((t = TYPE_ADA_SIZE (type)))
-	      mark_visited (&t);
-	    break;
-
-	  case INTEGER_TYPE:
-	  case ENUMERAL_TYPE:
-	  case BOOLEAN_TYPE:
-	  case REAL_TYPE:
-	    if ((t = TYPE_RM_MIN_VALUE (type)))
-	      mark_visited (&t);
-	    if ((t = TYPE_RM_MAX_VALUE (type)))
-	      mark_visited (&t);
-	    break;
-
-	  default:
-	    break;
-	  }
     }
   else
     add_stmt_with_node (gnu_stmt, gnat_entity);
@@ -5813,17 +5804,17 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
     case ADDR_EXPR:
       op = TREE_OPERAND (expr, 0);
 
-      /* If we're taking the address of a constant CONSTRUCTOR, force it to
+      /* If we are taking the address of a constant CONSTRUCTOR, force it to
 	 be put into static memory.  We know it's going to be readonly given
-	 the semantics we have and it's required to be static memory in
-	 the case when the reference is in an elaboration procedure.   */
+	 the semantics we have and it's required to be in static memory when
+	 the reference is in an elaboration procedure.  */
       if (TREE_CODE (op) == CONSTRUCTOR && TREE_CONSTANT (op))
 	{
 	  tree new_var = create_tmp_var (TREE_TYPE (op), "C");
+	  TREE_ADDRESSABLE (new_var) = 1;
 
 	  TREE_READONLY (new_var) = 1;
 	  TREE_STATIC (new_var) = 1;
-	  TREE_ADDRESSABLE (new_var) = 1;
 	  DECL_INITIAL (new_var) = op;
 
 	  TREE_OPERAND (expr, 0) = new_var;
@@ -5831,49 +5822,74 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
 	  return GS_ALL_DONE;
 	}
 
-      /* If we are taking the address of a SAVE_EXPR, we are typically
-	 processing a misaligned argument to be passed by reference in a
-	 procedure call.  We just mark the operand as addressable + not
-	 readonly here and let the common gimplifier code perform the
-	 temporary creation, initialization, and "instantiation" in place of
-	 the SAVE_EXPR in further operands, in particular in the copy back
-	 code inserted after the call.  */
-      else if (TREE_CODE (op) == SAVE_EXPR)
+      /* If we are taking the address of a SAVE_EXPR, we are typically dealing
+	 with a misaligned argument to be passed by reference in a subprogram
+	 call.  We cannot let the common gimplifier code perform the creation
+	 of the temporary and its initialization because, in order to ensure
+	 that the final copy operation is a store and since the temporary made
+	 for a SAVE_EXPR is not addressable, it may create another temporary,
+	 addressable this time, which would break the back copy mechanism for
+	 an IN OUT parameter.  */
+      if (TREE_CODE (op) == SAVE_EXPR && !SAVE_EXPR_RESOLVED_P (op))
 	{
-	  TREE_ADDRESSABLE (op) = 1;
-	  TREE_READONLY (op) = 0;
-	}
-
-      /* We let the gimplifier process &COND_EXPR and expect it to yield the
-	 address of the selected operand when it is addressable.  Besides, we
-	 also expect addressable_p to only let COND_EXPRs where both arms are
-	 addressable reach here.  */
-      else if (TREE_CODE (op) == COND_EXPR)
-	;
-
-      /* Otherwise, if we are taking the address of something that is neither
-	 reference, declaration, or constant, make a variable for the operand
-	 here and then take its address.  If we don't do it this way, we may
-	 confuse the gimplifier because it needs to know the variable is
-	 addressable at this point.  This duplicates code in
-	 internal_get_tmp_var, which is unfortunate.  */
-      else if (TREE_CODE_CLASS (TREE_CODE (op)) != tcc_reference
-	       && TREE_CODE_CLASS (TREE_CODE (op)) != tcc_declaration
-	       && TREE_CODE_CLASS (TREE_CODE (op)) != tcc_constant)
-	{
-	  tree new_var = create_tmp_var (TREE_TYPE (op), "A");
-	  gimple stmt;
-
+	  tree mod, val = TREE_OPERAND (op, 0);
+	  tree new_var = create_tmp_var (TREE_TYPE (op), "S");
 	  TREE_ADDRESSABLE (new_var) = 1;
 
-	  stmt = gimplify_assign (new_var, op, pre_p);
-	  if (EXPR_HAS_LOCATION (op))
-	    gimple_set_location (stmt, EXPR_LOCATION (op));
+	  mod = build2 (INIT_EXPR, TREE_TYPE (new_var), new_var, val);
+	  if (EXPR_HAS_LOCATION (val))
+	    SET_EXPR_LOCATION (mod, EXPR_LOCATION (val));
+	  gimplify_and_add (mod, pre_p);
+	  ggc_free (mod);
+
+	  TREE_OPERAND (op, 0) = new_var;
+	  SAVE_EXPR_RESOLVED_P (op) = 1;
 
 	  TREE_OPERAND (expr, 0) = new_var;
 	  recompute_tree_invariant_for_addr_expr (expr);
 	  return GS_ALL_DONE;
 	}
+
+      return GS_UNHANDLED;
+
+    case DECL_EXPR:
+      op = DECL_EXPR_DECL (expr);
+
+      /* The expressions for the RM bounds must be gimplified to ensure that
+	 they are properly elaborated.  See gimplify_decl_expr.  */
+      if ((TREE_CODE (op) == TYPE_DECL || TREE_CODE (op) == VAR_DECL)
+	  && !TYPE_SIZES_GIMPLIFIED (TREE_TYPE (op)))
+	switch (TREE_CODE (TREE_TYPE (op)))
+	  {
+	  case INTEGER_TYPE:
+	  case ENUMERAL_TYPE:
+	  case BOOLEAN_TYPE:
+	  case REAL_TYPE:
+	    {
+	      tree type = TYPE_MAIN_VARIANT (TREE_TYPE (op)), t, val;
+
+	      val = TYPE_RM_MIN_VALUE (type);
+	      if (val)
+		{
+		  gimplify_one_sizepos (&val, pre_p);
+		  for (t = type; t; t = TYPE_NEXT_VARIANT (t))
+		    SET_TYPE_RM_MIN_VALUE (t, val);
+		}
+
+	      val = TYPE_RM_MAX_VALUE (type);
+	      if (val)
+		{
+		  gimplify_one_sizepos (&val, pre_p);
+		  for (t = type; t; t = TYPE_NEXT_VARIANT (t))
+		    SET_TYPE_RM_MAX_VALUE (t, val);
+		}
+
+	    }
+	    break;
+
+	  default:
+	    break;
+	  }
 
       /* ... fall through ... */
 
@@ -6920,12 +6936,18 @@ addressable_p (tree gnu_expr, tree gnu_type)
 
     case UNCONSTRAINED_ARRAY_REF:
     case INDIRECT_REF:
+      return true;
+
     case CONSTRUCTOR:
     case STRING_CST:
     case INTEGER_CST:
     case NULL_EXPR:
     case SAVE_EXPR:
     case CALL_EXPR:
+    case PLUS_EXPR:
+    case MINUS_EXPR:
+      /* All rvalues are deemed addressable since taking their address will
+	 force a temporary to be created by the middle-end.  */
       return true;
 
     case COND_EXPR:

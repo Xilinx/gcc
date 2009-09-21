@@ -495,8 +495,12 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
 	  TYPE_NAME (tt) = decl;
 	  TREE_USED (tt) = TREE_USED (t);
 	  TREE_TYPE (decl) = tt;
-	  DECL_ORIGINAL_TYPE (decl) = t;
+	  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
+	    DECL_ORIGINAL_TYPE (decl) = DECL_ORIGINAL_TYPE (TYPE_NAME (t));
+	  else
+	    DECL_ORIGINAL_TYPE (decl) = t;
 	  t = NULL_TREE;
+	  DECL_ARTIFICIAL (decl) = 0;
 	}
       else if (DECL_ARTIFICIAL (TYPE_NAME (t)) && !DECL_ARTIFICIAL (decl))
 	;
@@ -3244,7 +3248,7 @@ convert_vms_descriptor64 (tree gnu_type, tree gnu_expr, Entity_Id gnat_subprog)
 			 tree_cons (TREE_CHAIN (TYPE_FIELDS (template_type)),
                                     ufield, NULL_TREE));
 	  template_tree = gnat_build_constructor (template_type, t);
-	  template_tree = build3 (COND_EXPR, p_bounds_type, u,
+	  template_tree = build3 (COND_EXPR, template_type, u,
 			    build_call_raise (CE_Length_Check_Failed, Empty,
 					      N_Raise_Constraint_Error),
 			    template_tree);
@@ -3365,7 +3369,7 @@ convert_vms_descriptor32 (tree gnu_type, tree gnu_expr, Entity_Id gnat_subprog)
 	  t = TREE_CHAIN (TREE_CHAIN (TREE_CHAIN (TREE_CHAIN (t))));
 	  template_tree
 	    = build3 (COMPONENT_REF, TREE_TYPE (t), desc, t, NULL_TREE);
-	  template_tree = build3 (COND_EXPR, p_bounds_type, u,
+	  template_tree = build3 (COND_EXPR, TREE_TYPE (t), u,
 			    build_call_raise (CE_Length_Check_Failed, Empty,
 					      N_Raise_Constraint_Error),
 			    template_tree);
@@ -3665,6 +3669,18 @@ update_pointer_to (tree old_type, tree new_type)
       TYPE_POINTER_TO (new_type) = TYPE_REFERENCE_TO (new_type)
 	= TREE_TYPE (new_type) = ptr;
 
+      /* And show the original pointer NEW_PTR to the debugger.  This is the
+	 counterpart of the equivalent processing in gnat_pushdecl when the
+	 unconstrained array type is frozen after access types to it.  Note
+	 that update_pointer_to can be invoked multiple times on the same
+	 couple of types because of the type variants.  */
+      if (TYPE_NAME (ptr)
+	  && TREE_CODE (TYPE_NAME (ptr)) == TYPE_DECL
+	  && !DECL_ORIGINAL_TYPE (TYPE_NAME (ptr)))
+	{
+	  DECL_ORIGINAL_TYPE (TYPE_NAME (ptr)) = new_ptr;
+	  DECL_ARTIFICIAL (TYPE_NAME (ptr)) = 0;
+	}
       for (var = TYPE_MAIN_VARIANT (ptr); var; var = TYPE_NEXT_VARIANT (var))
 	SET_TYPE_UNCONSTRAINED_ARRAY (var, new_type);
 
@@ -3810,13 +3826,13 @@ convert (tree type, tree expr)
 		  == TYPE_NAME (TREE_TYPE (TYPE_FIELDS (etype)))))
     ;
 
-  /* If the output type has padding, convert to the inner type and
-     make a constructor to build the record.  */
+  /* If the output type has padding, convert to the inner type and make a
+     constructor to build the record, unless a variable size is involved.  */
   else if (code == RECORD_TYPE && TYPE_IS_PADDING_P (type))
     {
       /* If we previously converted from another type and our type is
 	 of variable size, remove the conversion to avoid the need for
-	 variable-size temporaries.  Likewise for a conversion between
+	 variable-sized temporaries.  Likewise for a conversion between
 	 original and packable version.  */
       if (TREE_CODE (expr) == VIEW_CONVERT_EXPR
 	  && (!TREE_CONSTANT (TYPE_SIZE (type))
@@ -3827,7 +3843,7 @@ convert (tree type, tree expr)
 
       /* If we are just removing the padding from expr, convert the original
 	 object if we have variable size in order to avoid the need for some
-	 variable-size temporaries.  Likewise if the padding is a mere variant
+	 variable-sized temporaries.  Likewise if the padding is a variant
 	 of the other, so we avoid a pointless unpad/repad sequence.  */
       if (TREE_CODE (expr) == COMPONENT_REF
 	  && TREE_CODE (TREE_TYPE (TREE_OPERAND (expr, 0))) == RECORD_TYPE
@@ -3841,20 +3857,32 @@ convert (tree type, tree expr)
 	return convert (type, TREE_OPERAND (expr, 0));
 
       /* If the result type is a padded type with a self-referentially-sized
-	 field and the expression type is a record, do this as an
-	 unchecked conversion.  */
-      else if (TREE_CODE (etype) == RECORD_TYPE
-	       && CONTAINS_PLACEHOLDER_P (DECL_SIZE (TYPE_FIELDS (type))))
+	 field and the expression type is a record, do this as an unchecked
+	 conversion.  */
+      if (TREE_CODE (etype) == RECORD_TYPE
+	  && CONTAINS_PLACEHOLDER_P (DECL_SIZE (TYPE_FIELDS (type))))
 	return unchecked_convert (type, expr, false);
 
-      else
-	return
-	  gnat_build_constructor (type,
-			     tree_cons (TYPE_FIELDS (type),
-					convert (TREE_TYPE
-						 (TYPE_FIELDS (type)),
-						 expr),
-					NULL_TREE));
+      /* If we are converting between array types with variable size, do the
+	 final conversion as an unchecked conversion, again to avoid the need
+	 for some variable-sized temporaries.  If valid, this conversion is
+	 very likely purely technical and without real effects.  */
+      if (TREE_CODE (etype) == ARRAY_TYPE
+	  && TREE_CODE (TREE_TYPE (TYPE_FIELDS (type))) == ARRAY_TYPE
+	  && !TREE_CONSTANT (TYPE_SIZE (etype))
+	  && !TREE_CONSTANT (TYPE_SIZE (type)))
+	return unchecked_convert (type,
+				  convert (TREE_TYPE (TYPE_FIELDS (type)),
+					   expr),
+				  false);
+
+      return
+	gnat_build_constructor (type,
+				tree_cons (TYPE_FIELDS (type),
+					   convert (TREE_TYPE
+						    (TYPE_FIELDS (type)),
+						    expr),
+					   NULL_TREE));
     }
 
   /* If the input type has padding, remove it and convert to the output type.
@@ -5427,7 +5455,7 @@ gnat_install_builtins (void)
      know about internal specificities and control attributes accordingly, for
      instance __builtin_alloca vs no-throw and -fstack-check.  We will ignore
      the generic definition from builtins.def.  */
-  build_common_builtin_nodes ();
+  build_common_builtin_nodes (false);
 
   /* Now, install the target specific builtins, such as the AltiVec family on
      ppc, and the common set as exposed by builtins.def.  */

@@ -1201,12 +1201,13 @@ finish_compound_stmt (tree stmt)
 }
 
 /* Finish an asm-statement, whose components are a STRING, some
-   OUTPUT_OPERANDS, some INPUT_OPERANDS, and some CLOBBERS.  Also note
-   whether the asm-statement should be considered volatile.  */
+   OUTPUT_OPERANDS, some INPUT_OPERANDS, some CLOBBERS and some
+   LABELS.  Also note whether the asm-statement should be
+   considered volatile.  */
 
 tree
 finish_asm_stmt (int volatile_p, tree string, tree output_operands,
-		 tree input_operands, tree clobbers)
+		 tree input_operands, tree clobbers, tree labels)
 {
   tree r;
   tree t;
@@ -1224,7 +1225,7 @@ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
       oconstraints = (const char **) alloca (noutputs * sizeof (char *));
 
       string = resolve_asm_operand_names (string, output_operands,
-					  input_operands);
+					  input_operands, labels);
 
       for (i = 0, t = output_operands; t; t = TREE_CHAIN (t), ++i)
 	{
@@ -1310,7 +1311,7 @@ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
 
   r = build_stmt (input_location, ASM_EXPR, string,
 		  output_operands, input_operands,
-		  clobbers);
+		  clobbers, labels);
   ASM_VOLATILE_P (r) = volatile_p || noutputs == 0;
   r = maybe_cleanup_point_expr_void (r);
   return add_stmt (r);
@@ -3264,7 +3265,9 @@ emit_associated_thunks (tree fn)
      is so that you can know statically the entire set of thunks that
      will ever be needed for a given virtual function, thereby
      enabling you to output all the thunks with the function itself.  */
-  if (DECL_VIRTUAL_P (fn))
+  if (DECL_VIRTUAL_P (fn)
+      /* Do not emit thunks for extern template instantiations.  */
+      && ! DECL_REALLY_EXTERN (fn))
     {
       tree thunk;
 
@@ -3317,6 +3320,7 @@ expand_or_defer_fn (tree fn)
       /* We don't want to process FN again, so pretend we've written
 	 it out, even though we haven't.  */
       TREE_ASM_WRITTEN (fn) = 1;
+      DECL_SAVED_TREE (fn) = NULL_TREE;
       return;
     }
 
@@ -4620,17 +4624,13 @@ describable_type (tree expr)
 {
   tree type = NULL_TREE;
 
-  /* processing_template_decl isn't set when we're called from the mangling
-     code, so bump it now.  */
-  ++processing_template_decl;
   if (! type_dependent_expression_p (expr)
       && ! type_unknown_p (expr))
     {
-      type = TREE_TYPE (expr);
+      type = unlowered_expr_type (expr);
       if (real_lvalue_p (expr))
 	type = build_reference_type (type);
     }
-  --processing_template_decl;
 
   if (type)
     return type;

@@ -1017,8 +1017,8 @@ gfc_trans_do (gfc_code * code)
       tmp = fold_convert (utype, tmp);
       tmp = fold_build2 (TRUNC_DIV_EXPR, utype, tmp,
 			 fold_convert (utype, step));
-      tmp = build2 (MODIFY_EXPR, void_type_node, countm1, tmp);
-      pos = build2 (COMPOUND_EXPR, void_type_node, pos, tmp);
+      tmp = fold_build2 (MODIFY_EXPR, void_type_node, countm1, tmp);
+      pos = fold_build2 (COMPOUND_EXPR, void_type_node, pos, tmp);
 
       tmp = fold_build2 (GT_EXPR, boolean_type_node, to, from);
       neg = fold_build3 (COND_EXPR, void_type_node, tmp,
@@ -1029,8 +1029,8 @@ gfc_trans_do (gfc_code * code)
       tmp = fold_build2 (TRUNC_DIV_EXPR, utype, tmp,
 			 fold_convert (utype, fold_build1 (NEGATE_EXPR,
 							   type, step)));
-      tmp = build2 (MODIFY_EXPR, void_type_node, countm1, tmp);
-      neg = build2 (COMPOUND_EXPR, void_type_node, neg, tmp);
+      tmp = fold_build2 (MODIFY_EXPR, void_type_node, countm1, tmp);
+      neg = fold_build2 (COMPOUND_EXPR, void_type_node, neg, tmp);
 
       tmp = fold_build3 (COND_EXPR, void_type_node, pos_step, pos, neg);
       gfc_add_expr_to_block (&block, tmp);
@@ -4078,6 +4078,44 @@ gfc_trans_allocate (gfc_code * code)
 
       tmp = build3_v (COND_EXPR, tmp, dlen, build_empty_stmt (input_location));
 
+      gfc_add_expr_to_block (&block, tmp);
+    }
+
+  /* SOURCE block.  Note, by C631, we know that code->ext.alloc_list
+     has a single entity.  */
+  if (code->expr3)
+    {
+      gfc_ref *ref;
+      gfc_array_ref *ar;
+      int n;
+
+      /* If there is a terminating array reference, this is converted
+	 to a full array, so that gfc_trans_assignment can scalarize the
+	 expression for the source.  */
+      for (ref = code->ext.alloc_list->expr->ref; ref; ref = ref->next)
+	{
+	  if (ref->next == NULL)
+	    {
+	      if (ref->type != REF_ARRAY)
+		break;
+
+	      ref->u.ar.type = AR_FULL;
+	      ar = &ref->u.ar;
+	      ar->dimen = ar->as->rank;
+	      for (n = 0; n < ar->dimen; n++)
+		{
+		  ar->dimen_type[n] = DIMEN_RANGE;
+		  gfc_free_expr (ar->start[n]);
+		  gfc_free_expr (ar->end[n]);
+		  gfc_free_expr (ar->stride[n]);
+		  ar->start[n] = NULL;
+		  ar->end[n] = NULL;
+		  ar->stride[n] = NULL;
+		}
+	    }
+	}
+
+      tmp = gfc_trans_assignment (code->ext.alloc_list->expr, code->expr3, false);
       gfc_add_expr_to_block (&block, tmp);
     }
 

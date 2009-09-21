@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "c-common.h"
 #include "c-pragma.h"
+#include "c-lang.h"
 #include "langhooks.h"
 #include "tree-mudflap.h"
 #include "gimple.h"
@@ -90,9 +91,6 @@ tree pending_invalid_xref;
 
 /* File and line to appear in the eventual error message.  */
 location_t pending_invalid_xref_location;
-
-/* True means we've initialized exception handling.  */
-bool c_eh_initialized_p;
 
 /* The file and line that the prototype came from if this is an
    old-style definition; used for diagnostics in
@@ -578,7 +576,7 @@ c_print_identifier (FILE *file, tree node, int indent)
     {
       tree rid = ridpointers[C_RID_CODE (node)];
       indent_to (file, indent + 4);
-      fprintf (file, "rid %p \"%s\"",
+      fprintf (file, "rid " HOST_PTR_PRINTF " \"%s\"",
 	       (void *) rid, IDENTIFIER_POINTER (rid));
     }
 }
@@ -2364,7 +2362,8 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
     TREE_USED (olddecl) = 1;
 
   /* Copy most of the decl-specific fields of NEWDECL into OLDDECL.
-     But preserve OLDDECL's DECL_UID and DECL_CONTEXT.  */
+     But preserve OLDDECL's DECL_UID, DECL_CONTEXT and
+     DECL_ARGUMENTS (if appropriate).  */
   {
     unsigned olddecl_uid = DECL_UID (olddecl);
     tree olddecl_context = DECL_CONTEXT (olddecl);
@@ -4042,23 +4041,6 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
   return tem;
 }
 
-/* Initialize EH if not initialized yet and exceptions are enabled.  */
-
-void
-c_maybe_initialize_eh (void)
-{
-  if (!flag_exceptions || c_eh_initialized_p)
-    return;
-
-  c_eh_initialized_p = true;
-  eh_personality_libfunc
-    = init_one_libfunc (USING_SJLJ_EXCEPTIONS
-			? "__gcc_personality_sj0"
-			: "__gcc_personality_v0");
-  default_init_unwind_resume_libfunc ();
-  using_eh_for_cleanups ();
-}
-
 /* Finish processing of a declaration;
    install its initial value.
    If ORIGTYPE is not NULL_TREE, it is the original type of INIT.
@@ -4358,9 +4340,6 @@ finish_decl (tree decl, location_t init_loc, tree init,
 	  /* Don't warn about decl unused; the cleanup uses it.  */
 	  TREE_USED (decl) = 1;
 	  TREE_USED (cleanup_decl) = 1;
-
-	  /* Initialize EH, if we've been told to do so.  */
-	  c_maybe_initialize_eh ();
 
 	  push_cleanup (decl, cleanup, false);
 	}
@@ -6880,6 +6859,11 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
     }
   C_TYPE_INCOMPLETE_VARS (TYPE_MAIN_VARIANT (t)) = 0;
 
+  /* Update type location to the one of the definition, instead of e.g.
+     a forward declaration.  */
+  if (TYPE_STUB_DECL (t))
+    DECL_SOURCE_LOCATION (TYPE_STUB_DECL (t)) = loc;
+
   /* Finish debugging output for this type.  */
   rest_of_type_compilation (t, toplevel);
 
@@ -8134,21 +8118,6 @@ c_pop_function_context (void)
   current_function_returns_null = p->returns_null;
   current_function_returns_abnormally = p->returns_abnormally;
   warn_about_return_type = p->warn_about_return_type;
-}
-
-/* Copy the DECL_LANG_SPECIFIC data associated with DECL.  */
-
-void
-c_dup_lang_specific_decl (tree decl)
-{
-  struct lang_decl *ld;
-
-  if (!DECL_LANG_SPECIFIC (decl))
-    return;
-
-  ld = GGC_NEW (struct lang_decl);
-  memcpy (ld, DECL_LANG_SPECIFIC (decl), sizeof (struct lang_decl));
-  DECL_LANG_SPECIFIC (decl) = ld;
 }
 
 /* The functions below are required for functionality of doing

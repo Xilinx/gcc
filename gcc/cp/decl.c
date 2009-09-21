@@ -1890,6 +1890,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	}
       DECL_TEMPLATE_INSTANTIATED (newdecl)
 	|= DECL_TEMPLATE_INSTANTIATED (olddecl);
+      DECL_ODR_USED (newdecl) |= DECL_ODR_USED (olddecl);
 
       /* If the OLDDECL is an instantiation and/or specialization,
 	 then the NEWDECL must be too.  But, it may not yet be marked
@@ -1955,7 +1956,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	     should have exited above, returning 0.  */
 	  gcc_assert (DECL_TEMPLATE_SPECIALIZATION (newdecl));
 
-	  if (TREE_USED (olddecl))
+	  if (DECL_ODR_USED (olddecl))
 	    /* From [temp.expl.spec]:
 
 	       If a template, a member template or the member of a class
@@ -4414,6 +4415,9 @@ build_init_list_var_init (tree decl, tree type, tree init, tree *cleanup)
 {
   tree aggr_init, array, arrtype;
   init = perform_implicit_conversion (type, init, tf_warning_or_error);
+  if (error_operand_p (init))
+    return error_mark_node;
+
   aggr_init = TARGET_EXPR_INITIAL (init);
   init = build2 (INIT_EXPR, type, decl, init);
 
@@ -4611,13 +4615,7 @@ maybe_commonize_var (tree decl)
       /* Don't mess with __FUNCTION__.  */
       && ! DECL_ARTIFICIAL (decl)
       && DECL_FUNCTION_SCOPE_P (decl)
-      /* Unfortunately, import_export_decl has not always been called
-	 before the function is processed, so we cannot simply check
-	 DECL_COMDAT.  */
-      && (DECL_COMDAT (DECL_CONTEXT (decl))
-	  || ((DECL_DECLARED_INLINE_P (DECL_CONTEXT (decl))
-	       || DECL_TEMPLATE_INSTANTIATION (DECL_CONTEXT (decl)))
-	      && TREE_PUBLIC (DECL_CONTEXT (decl)))))
+      && vague_linkage_fn_p (DECL_CONTEXT (decl)))
     {
       if (flag_weak)
 	{
@@ -8841,6 +8839,10 @@ grokdeclarator (const cp_declarator *declarator,
 	    DECL_NAME (CLASSTYPE_TI_TEMPLATE (type))
 	      = TYPE_IDENTIFIER (type);
 
+	  /* Adjust linkage now that we aren't anonymous anymore.  */
+	  set_linkage_according_to_type (type, TYPE_MAIN_DECL (type));
+	  determine_visibility (TYPE_MAIN_DECL (type));
+
 	  /* FIXME remangle member functions; member functions of a
 	     type with external linkage have external linkage.  */
 	}
@@ -12443,8 +12445,8 @@ finish_function (int flags)
    CHANGES TO CODE IN `grokfield'.  */
 
 tree
-start_method (cp_decl_specifier_seq *declspecs,
-	      const cp_declarator *declarator, tree attrlist)
+grokmethod (cp_decl_specifier_seq *declspecs,
+	    const cp_declarator *declarator, tree attrlist)
 {
   tree fndecl = grokdeclarator (declarator, declspecs, MEMFUNCDEF, 0,
 				&attrlist);
@@ -12498,61 +12500,8 @@ start_method (cp_decl_specifier_seq *declspecs,
 
   cp_finish_decl (fndecl, NULL_TREE, false, NULL_TREE, 0);
 
-  /* Make a place for the parms.  */
-  begin_scope (sk_function_parms, fndecl);
-
   DECL_IN_AGGR_P (fndecl) = 1;
   return fndecl;
-}
-
-/* Go through the motions of finishing a function definition.
-   We don't compile this method until after the whole class has
-   been processed.
-
-   FINISH_METHOD must return something that looks as though it
-   came from GROKFIELD (since we are defining a method, after all).
-
-   This is called after parsing the body of the function definition.
-   STMTS is the chain of statements that makes up the function body.
-
-   DECL is the ..._DECL that `start_method' provided.  */
-
-tree
-finish_method (tree decl)
-{
-  tree fndecl = decl;
-  tree old_initial;
-
-  tree link;
-
-  if (decl == void_type_node)
-    return decl;
-
-  old_initial = DECL_INITIAL (fndecl);
-
-  /* Undo the level for the parms (from start_method).
-     This is like poplevel, but it causes nothing to be
-     saved.  Saving information here confuses symbol-table
-     output routines.  Besides, this information will
-     be correctly output when this method is actually
-     compiled.  */
-
-  /* Clear out the meanings of the local variables of this level;
-     also record in each decl which block it belongs to.  */
-
-  for (link = current_binding_level->names; link; link = TREE_CHAIN (link))
-    {
-      if (DECL_NAME (link) != NULL_TREE)
-	pop_binding (DECL_NAME (link), link);
-      gcc_assert (TREE_CODE (link) != FUNCTION_DECL);
-      DECL_CONTEXT (link) = NULL_TREE;
-    }
-
-  poplevel (0, 0, 0);
-
-  DECL_INITIAL (fndecl) = old_initial;
-
-  return decl;
 }
 
 

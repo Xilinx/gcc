@@ -1,3 +1,37 @@
+2009-09-17  Alexander Monakov  <amonakov@ispras.ru>
+
+	* testsuite/libgomp.graphite/bounds.c: New test.
+
+2009-09-11  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (libgomp_la_LINK): New.
+	* Makefile.in: Regenerate.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (install-html, install-pdf): Remove.
+	* Makefile.in: Regenerate.
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (LINK): Add $(AM_LIBTOOLFLAGS) and $(LIBTOOLFLAGS).
+	* Makefile.in: Regenerate.
+
+2009-08-20  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.am (libgomp_la_LDFLAGS): Add -bindir flag.
+	* Makefile.in: Regenerate.
+
 2009-08-19  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/41102

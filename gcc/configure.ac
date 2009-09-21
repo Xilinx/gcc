@@ -24,7 +24,7 @@
 # Initialization and sanity checks
 # --------------------------------
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.64)
 AC_INIT
 AC_CONFIG_SRCDIR(tree.c)
 AC_CONFIG_HEADER(auto-host.h:config.in)
@@ -311,6 +311,7 @@ AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_TYPES([long long], [AC_CHECK_SIZEOF(long long)])
 AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
+GCC_STDINT_TYPES
 
 # ---------------------
 # Warnings and checking
@@ -818,11 +819,6 @@ AC_ARG_ENABLE(languages,
 		;;
 esac],
 [enable_languages=c])
-
-# Used by documentation targets
-AC_SUBST(datarootdir)
-AC_SUBST(docdir)
-AC_SUBST(htmldir)
 
 AC_ARG_WITH(multilib-list,
 [  --with-multilib-list    Select multilibs (SH only)],
@@ -2398,7 +2394,13 @@ else
    [elf,2,16,0], [--fatal-warnings],
    [.section .text,"axG",%progbits,.foo,comdat])
 fi
-if test $in_tree_ld != yes && test x"$ld_vers" != x; then
+if test $in_tree_ld = yes ; then
+  comdat_group=no
+  if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 16 -o "$gcc_cv_gld_major_version" -gt 2 \
+     && test $in_tree_ld_is_elf = yes; then
+     comdat_group=yes
+  fi
+elif test x"$ld_vers" != x; then
   comdat_group=yes
   if test 0"$ld_date" -lt 20050308; then
     if test -n "$ld_date"; then
@@ -3277,6 +3279,87 @@ x:
 	.dtprelword x+0x8000],,
       [AC_DEFINE(HAVE_AS_DTPRELWORD, 1,
 	  [Define if your assembler supports .dtprelword.])])
+
+    AC_MSG_CHECKING(assembler and linker for explicit JALR relocation)
+    gcc_cv_as_ld_jalr_reloc=no
+    if test $gcc_cv_as_mips_explicit_relocs = yes; then
+      if test $in_tree_ld = yes ; then
+        if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 20 -o "$gcc_cv_gld_major_version" -gt 2 \
+           && test $in_tree_ld_is_elf = yes; then
+          gcc_cv_as_ld_jalr_reloc=yes
+        fi
+      elif test x$gcc_cv_as != x -a x$gcc_cv_ld != x -a x$gcc_cv_objdump != x; then
+        echo '	.ent x' > conftest.s
+        echo 'x:	ld $2,%got_disp(y)($3)' >> conftest.s
+        echo '	ld $25,%call16(y)($28)' >> conftest.s
+        echo '	.reloc	1f,R_MIPS_JALR,y' >> conftest.s
+        echo '1:	jalr $25' >> conftest.s
+        echo '	.reloc	1f,R_MIPS_JALR,x' >> conftest.s
+        echo '1:	jalr $25' >> conftest.s
+        echo '	.end x' >> conftest.s
+        if $gcc_cv_as -o conftest.o conftest.s >/dev/null 2>&AS_MESSAGE_LOG_FD \
+           && $gcc_cv_ld -shared -o conftest.so conftest.o >/dev/null 2>&AS_MESSAGE_LOG_FD; then
+	  if $gcc_cv_objdump -d conftest.so | grep -q jalr \
+	     && $gcc_cv_objdump -d conftest.so | grep -q "bal.*<x>"; then
+            gcc_cv_as_ld_jalr_reloc=yes
+	  fi
+        fi
+        rm -f conftest.*
+      fi
+    fi
+    if test $gcc_cv_as_ld_jalr_reloc = yes; then
+      if test x$target_cpu_default = x; then
+        target_cpu_default=MASK_RELAX_PIC_CALLS
+      else
+        target_cpu_default="($target_cpu_default)|MASK_RELAX_PIC_CALLS"
+      fi
+    fi
+    AC_MSG_RESULT($gcc_cv_as_ld_jalr_reloc)
+
+    AC_CACHE_CHECK([linker for .eh_frame personality relaxation],
+      [gcc_cv_ld_mips_personality_relaxation],
+      [gcc_cv_ld_mips_personality_relaxation=no
+       if test $in_tree_ld = yes ; then
+	 if test "$gcc_cv_gld_major_version" -eq 2 \
+		 -a "$gcc_cv_gld_minor_version" -ge 21 \
+		 -o "$gcc_cv_gld_major_version" -gt 2; then
+	   gcc_cv_ld_mips_personality_relaxation=yes
+	 fi
+       elif test x$gcc_cv_as != x \
+       	    	 -a x$gcc_cv_ld != x \
+		 -a x$gcc_cv_readelf != x ; then
+	 cat > conftest.s <<EOF
+	.cfi_startproc
+	.cfi_personality 0x80,indirect_ptr
+	.ent test
+test:
+	nop
+	.end test
+	.cfi_endproc
+
+	.section .data,"aw",@progbits
+indirect_ptr:
+	.dc.a personality
+EOF
+	 if $gcc_cv_as -KPIC -o conftest.o conftest.s > /dev/null 2>&1 \
+	    && $gcc_cv_ld -o conftest conftest.o -shared > /dev/null 2>&1; then
+	   if $gcc_cv_readelf -d conftest 2>&1 \
+	      | grep TEXTREL > /dev/null 2>&1; then
+	     :
+	   elif $gcc_cv_readelf --relocs conftest 2>&1 \
+	        | grep 'R_MIPS_REL32 *$' > /dev/null 2>&1; then
+	     :
+	   else
+	     gcc_cv_ld_mips_personality_relaxation=yes
+	   fi
+	 fi
+       fi
+       rm -f conftest.s conftest.o conftest])
+    if test x$gcc_cv_ld_mips_personality_relaxation = xyes; then
+	    AC_DEFINE(HAVE_LD_PERSONALITY_RELAXATION, 1,
+      [Define if your linker can relax absolute .eh_frame personality
+pointers into PC-relative form.])
+    fi
     ;;
 esac
 
@@ -3389,7 +3472,7 @@ Valid choices are 'yes' and 'no'.]) ;;
   esac],
  [gcc_GAS_CHECK_FEATURE([gnu_unique_object], gcc_cv_as_gnu_unique_object,
    [elf,2,19,52],,
-   [.type foo, @gnu_unique_object],
+   [.type foo, @gnu_unique_object],,
 # Also check for ld.so support, i.e. glibc 2.11 or higher.
    [if test x$host = x$build -a x$host = x$target &&
        glibcver=`ldd --version 2>/dev/null`; then
@@ -3397,10 +3480,9 @@ Valid choices are 'yes' and 'no'.]) ;;
       glibcminor=`expr "$glibcver" : "ldd (GNU libc) [[0-9]]*\.\([[0-9]]*\)"`
       glibcnum=`expr $glibcmajor \* 1000 + $glibcminor`
       if test "$glibcnum" -ge 2011 ; then
-        gcc_cv_as_gnu_unique_object=yes
+        enable_gnu_unique_object=yes
       fi
-    fi],
-   [enable_gnu_unique_object=yes])])
+    fi])])
 if test x$enable_gnu_unique_object = xyes; then
   AC_DEFINE(HAVE_GAS_GNU_UNIQUE_OBJECT, 1,
    [Define if your assembler supports @gnu_unique_object.])
@@ -3719,7 +3801,7 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
 	 # simply assert that glibc does provide this, which is true for all
 	 # realistically usable GNU/Hurd configurations.
 	 gcc_cv_libc_provides_ssp=yes;;
-       *-*-darwin*)
+       *-*-darwin* | *-*-freebsd*)
 	 AC_CHECK_FUNC(__stack_chk_fail,[gcc_cv_libc_provides_ssp=yes],
            [echo "no __stack_chk_fail on this target"])
         ;;
@@ -4023,24 +4105,6 @@ else
   slibdir='$(libdir)'
 fi)
 AC_SUBST(slibdir)
-
-AC_ARG_WITH(datarootdir,
-[  --with-datarootdir=DIR  Use DIR as the data root [[PREFIX/share]]],
-datarootdir="\${prefix}/$with_datarootdir",
-datarootdir='$(prefix)/share')
-AC_SUBST(datarootdir)
-
-AC_ARG_WITH(docdir,
-[  --with-docdir=DIR       Install documentation in DIR [[DATAROOTDIR]]],
-docdir="\${prefix}/$with_docdir",
-docdir='$(datarootdir)')
-AC_SUBST(docdir)
-
-AC_ARG_WITH(htmldir,
-[  --with-htmldir=DIR      html documentation in in DIR [[DOCDIR]]],
-htmldir="\${prefix}/$with_htmldir",
-htmldir='$(docdir)')
-AC_SUBST(htmldir)
 
 # Substitute configuration variables
 AC_SUBST(subdirs)

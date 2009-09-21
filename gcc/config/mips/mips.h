@@ -161,10 +161,13 @@ enum mips_code_readable_setting {
 
 /* True if the call patterns should be split into a jalr followed by
    an instruction to restore $gp.  It is only safe to split the load
-   from the call when every use of $gp is explicit.  */
+   from the call when every use of $gp is explicit.
+
+   See mips_must_initialize_gp_p for details about how we manage the
+   global pointer.  */
 
 #define TARGET_SPLIT_CALLS \
-  (TARGET_EXPLICIT_RELOCS && TARGET_CALL_CLOBBERED_GP)
+  (TARGET_EXPLICIT_RELOCS && TARGET_CALL_CLOBBERED_GP && epilogue_completed)
 
 /* True if we're generating a form of -mabicalls in which we can use
    operators like %hi and %lo to refer to locally-binding symbols.
@@ -202,6 +205,17 @@ enum mips_code_readable_setting {
 /* True if TARGET_USE_GOT and if $gp is a call-saved register.  */
 #define TARGET_CALL_SAVED_GP (TARGET_USE_GOT && !TARGET_CALL_CLOBBERED_GP)
 
+/* True if we should use .cprestore to store to the cprestore slot.
+
+   We continue to use .cprestore for explicit-reloc code so that JALs
+   inside inline asms will work correctly.  */
+#define TARGET_CPRESTORE_DIRECTIVE \
+  (TARGET_ABICALLS_PIC2 && !TARGET_MIPS16)
+
+/* True if we can use the J and JAL instructions.  */
+#define TARGET_ABSOLUTE_JUMPS \
+  (!flag_pic || TARGET_ABSOLUTE_ABICALLS)
+
 /* True if indirect calls must use register class PIC_FN_ADDR_REG.
    This is true for both the PIC and non-PIC VxWorks RTP modes.  */
 #define TARGET_USE_PIC_FN_ADDR_REG (TARGET_ABICALLS || TARGET_VXWORKS_RTP)
@@ -215,6 +229,14 @@ enum mips_code_readable_setting {
   (TARGET_ABICALLS				\
    && !TARGET_ABSOLUTE_ABICALLS			\
    && !(mips_abi == ABI_64 && TARGET_IRIX))
+
+/* True if the output must have a writable .eh_frame.
+   See ASM_PREFERRED_EH_DATA_FORMAT for details.  */
+#ifdef HAVE_LD_PERSONALITY_RELAXATION
+#define TARGET_WRITABLE_EH_FRAME 0
+#else
+#define TARGET_WRITABLE_EH_FRAME (flag_pic && TARGET_SHARED)
+#endif
 
 /* Generate mips16 code */
 #define TARGET_MIPS16		((target_flags & MASK_MIPS16) != 0)
@@ -1300,6 +1322,8 @@ enum mips_code_readable_setting {
 
 #define EH_RETURN_STACKADJ_RTX  gen_rtx_REG (Pmode, GP_REG_FIRST + 3)
 
+#define EH_USES(N) mips_eh_uses (N)
+
 /* Offsets recorded in opcodes are a multiple of this alignment factor.
    The default for this in 64-bit mode is 8, which causes problems with
    SFmode register saves.  */
@@ -1543,11 +1567,12 @@ enum mips_code_readable_setting {
    - 8 condition code registers
    - 2 accumulator registers (hi and lo)
    - 32 registers each for coprocessors 0, 2 and 3
-   - 3 fake registers:
+   - 4 fake registers:
 	- ARG_POINTER_REGNUM
 	- FRAME_POINTER_REGNUM
 	- GOT_VERSION_REGNUM (see the comment above load_call<mode> for details)
-   - 3 dummy entries that were used at various times in the past.
+	- CPRESTORE_SLOT_REGNUM
+   - 2 dummy entries that were used at various times in the past.
    - 6 DSP accumulator registers (3 hi-lo pairs) for MIPS DSP ASE
    - 6 DSP control registers  */
 
@@ -2166,11 +2191,6 @@ enum reg_class
  { FRAME_POINTER_REGNUM, GP_REG_FIRST + 30},				\
  { FRAME_POINTER_REGNUM, GP_REG_FIRST + 17}}
 
-/* Make sure that we're not trying to eliminate to the wrong hard frame
-   pointer.  */
-#define CAN_ELIMINATE(FROM, TO) \
-  ((TO) == HARD_FRAME_POINTER_REGNUM || (TO) == STACK_POINTER_REGNUM)
-
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
   (OFFSET) = mips_initial_elimination_offset ((FROM), (TO))
 
@@ -2666,25 +2686,35 @@ typedef struct mips_args {
 #define MIPS_BRANCH(OPCODE, OPERANDS) \
   "%*" OPCODE "%?\t" OPERANDS "%/"
 
+/* Return an asm string that forces INSN to be treated as an absolute
+   J or JAL instruction instead of an assembler macro.  */
+#define MIPS_ABSOLUTE_JUMP(INSN) \
+  (TARGET_ABICALLS_PIC2						\
+   ? ".option\tpic0\n\t" INSN "\n\t.option\tpic2"		\
+   : INSN)
+
 /* Return the asm template for a call.  INSN is the instruction's mnemonic
-   ("j" or "jal"), OPERANDS are its operands, and OPNO is the operand number
-   of the target.
+   ("j" or "jal"), OPERANDS are its operands, TARGET_OPNO is the operand
+   number of the target.  SIZE_OPNO is the operand number of the argument size
+   operand that can optionally hold the call attributes.  If SIZE_OPNO is not
+   -1 and the call is indirect, use the function symbol from the call
+   attributes to attach a R_MIPS_JALR relocation to the call.
 
    When generating GOT code without explicit relocation operators,
    all calls should use assembly macros.  Otherwise, all indirect
    calls should use "jr" or "jalr"; we will arrange to restore $gp
    afterwards if necessary.  Finally, we can only generate direct
    calls for -mabicalls by temporarily switching to non-PIC mode.  */
-#define MIPS_CALL(INSN, OPERANDS, OPNO)				\
+#define MIPS_CALL(INSN, OPERANDS, TARGET_OPNO, SIZE_OPNO)	\
   (TARGET_USE_GOT && !TARGET_EXPLICIT_RELOCS			\
-   ? "%*" INSN "\t%" #OPNO "%/"					\
-   : REG_P (OPERANDS[OPNO])					\
-   ? "%*" INSN "r\t%" #OPNO "%/"				\
-   : TARGET_ABICALLS_PIC2					\
-   ? (".option\tpic0\n\t"					\
-      "%*" INSN "\t%" #OPNO "%/\n\t"				\
-      ".option\tpic2")						\
-   : "%*" INSN "\t%" #OPNO "%/")
+   ? "%*" INSN "\t%" #TARGET_OPNO "%/"				\
+   : (REG_P (OPERANDS[TARGET_OPNO])				\
+      && mips_get_pic_call_symbol (OPERANDS, SIZE_OPNO))	\
+   ? ("%*.reloc\t1f,R_MIPS_JALR,%" #SIZE_OPNO "\n"		\
+      "1:\t" INSN "r\t%" #TARGET_OPNO "%/")			\
+   : REG_P (OPERANDS[TARGET_OPNO])				\
+   ? "%*" INSN "r\t%" #TARGET_OPNO "%/"				\
+   : MIPS_ABSOLUTE_JUMP ("%*" INSN "\t%" #TARGET_OPNO "%/"))
 
 /* Control the assembler format that we output.  */
 
@@ -2712,7 +2742,7 @@ typedef struct mips_args {
   "$f16", "$f17", "$f18", "$f19", "$f20", "$f21", "$f22", "$f23",	   \
   "$f24", "$f25", "$f26", "$f27", "$f28", "$f29", "$f30", "$f31",	   \
   "hi",   "lo",   "",     "$fcc0","$fcc1","$fcc2","$fcc3","$fcc4",	   \
-  "$fcc5","$fcc6","$fcc7","", "", "$arg", "$frame", "$fakec",		   \
+  "$fcc5","$fcc6","$fcc7","", "$cprestore", "$arg", "$frame", "$fakec",	   \
   "$c0r0", "$c0r1", "$c0r2", "$c0r3", "$c0r4", "$c0r5", "$c0r6", "$c0r7",  \
   "$c0r8", "$c0r9", "$c0r10","$c0r11","$c0r12","$c0r13","$c0r14","$c0r15", \
   "$c0r16","$c0r17","$c0r18","$c0r19","$c0r20","$c0r21","$c0r22","$c0r23", \
@@ -3118,270 +3148,6 @@ while (0)
 #define HAVE_AS_TLS 0
 #endif
 
-/* Return an asm string that atomically:
-
-     - Compares memory reference %1 to register %2 and, if they are
-       equal, changes %1 to %3.
-
-     - Sets register %0 to the old value of memory reference %1.
-
-   SUFFIX is the suffix that should be added to "ll" and "sc" instructions
-   and OP is the instruction that should be used to load %3 into a
-   register.  */
-#define MIPS_COMPARE_AND_SWAP(SUFFIX, OP)	\
-  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
-  "\tbne\t%0,%z2,2f\n"				\
-  "\t" OP "\t%@,%3\n"				\
-  "\tsc" SUFFIX "\t%@,%1\n"			\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)\n"				\
-  "2:\n"
-
-/* Return an asm string that atomically:
-
-     - Given that %2 contains a bit mask and %3 the inverted mask and
-       that %4 and %5 have already been ANDed with %2.
-
-     - Compares the bits in memory reference %1 selected by mask %2 to
-       register %4 and, if they are equal, changes the selected bits
-       in memory to %5.
-
-     - Sets register %0 to the old value of memory reference %1.
-
-    OPS are the instructions needed to OR %5 with %@.  */
-#define MIPS_COMPARE_AND_SWAP_12(OPS)		\
-  "%(%<%[%|1:\tll\t%0,%1\n"			\
-  "\tand\t%@,%0,%2\n"				\
-  "\tbne\t%@,%z4,2f\n"				\
-  "\tand\t%@,%0,%3\n"				\
-  OPS						\
-  "\tsc\t%@,%1\n"				\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)\n"				\
-  "2:\n"
-
-#define MIPS_COMPARE_AND_SWAP_12_ZERO_OP ""
-#define MIPS_COMPARE_AND_SWAP_12_NONZERO_OP "\tor\t%@,%@,%5\n"
-
-
-/* Return an asm string that atomically:
-
-     - Sets memory reference %0 to %0 INSN %1.
-
-   SUFFIX is the suffix that should be added to "ll" and "sc"
-   instructions.  */
-#define MIPS_SYNC_OP(SUFFIX, INSN)		\
-  "%(%<%[%|1:\tll" SUFFIX "\t%@,%0\n"		\
-  "\t" INSN "\t%@,%@,%1\n"			\
-  "\tsc" SUFFIX "\t%@,%0\n"			\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-/* Return an asm string that atomically:
-
-     - Given that %1 contains a bit mask and %2 the inverted mask and
-       that %3 has already been ANDed with %1.
-
-     - Sets the selected bits of memory reference %0 to %0 INSN %3.
-
-     - Uses scratch register %4.
-
-    AND_OP is an instruction done after INSN to mask INSN's result
-    with the mask.  For most operations, this is an AND with the
-    inclusive mask (%1).  For nand operations -- where the result of
-    INSN is already correctly masked -- it instead performs a bitwise
-    not.  */
-#define MIPS_SYNC_OP_12(INSN, AND_OP)		\
-  "%(%<%[%|1:\tll\t%4,%0\n"			\
-  "\tand\t%@,%4,%2\n"				\
-  "\t" INSN "\t%4,%4,%z3\n"			\
-  AND_OP					\
-  "\tor\t%@,%@,%4\n"				\
-  "\tsc\t%@,%0\n"				\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-#define MIPS_SYNC_OP_12_AND "\tand\t%4,%4,%1\n"
-#define MIPS_SYNC_OP_12_XOR "\txor\t%4,%4,%1\n"
-
-/* Return an asm string that atomically:
-
-     - Given that %2 contains a bit mask and %3 the inverted mask and
-       that %4 has already been ANDed with %2.
-
-     - Sets the selected bits of memory reference %1 to %1 INSN %4.
-
-     - Sets %0 to the original value of %1.
-
-     - Uses scratch register %5.
-
-    AND_OP is an instruction done after INSN to mask INSN's result
-    with the mask.  For most operations, this is an AND with the
-    inclusive mask (%1).  For nand operations -- where the result of
-    INSN is already correctly masked -- it instead performs a bitwise
-    not.  */
-#define MIPS_SYNC_OLD_OP_12(INSN, AND_OP)	\
-  "%(%<%[%|1:\tll\t%0,%1\n"			\
-  "\tand\t%@,%0,%3\n"				\
-  "\t" INSN "\t%5,%0,%z4\n"			\
-  AND_OP					\
-  "\tor\t%@,%@,%5\n"				\
-  "\tsc\t%@,%1\n"				\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-#define MIPS_SYNC_OLD_OP_12_AND "\tand\t%5,%5,%2\n"
-#define MIPS_SYNC_OLD_OP_12_XOR "\txor\t%5,%5,%2\n"
-
-/* Return an asm string that atomically:
-
-     - Given that %2 contains a bit mask and %3 the inverted mask and
-       that %4 has already been ANDed with %2.
-
-     - Sets the selected bits of memory reference %1 to %1 INSN %4.
-
-     - Sets %0 to the new value of %1.
-
-    AND_OP is an instruction done after INSN to mask INSN's result
-    with the mask.  For most operations, this is an AND with the
-    inclusive mask (%1).  For nand operations -- where the result of
-    INSN is already correctly masked -- it instead performs a bitwise
-    not.  */
-#define MIPS_SYNC_NEW_OP_12(INSN, AND_OP)	\
-  "%(%<%[%|1:\tll\t%0,%1\n"				\
-  "\tand\t%@,%0,%3\n"				\
-  "\t" INSN "\t%0,%0,%z4\n"			\
-  AND_OP					\
-  "\tor\t%@,%@,%0\n"				\
-  "\tsc\t%@,%1\n"				\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-#define MIPS_SYNC_NEW_OP_12_AND "\tand\t%0,%0,%2\n"
-#define MIPS_SYNC_NEW_OP_12_XOR "\txor\t%0,%0,%2\n"
-
-/* Return an asm string that atomically:
-
-     - Sets memory reference %1 to %1 INSN %2.
-
-     - Sets register %0 to the old value of memory reference %1.
-
-   SUFFIX is the suffix that should be added to "ll" and "sc"
-   instructions.  */
-#define MIPS_SYNC_OLD_OP(SUFFIX, INSN)		\
-  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
-  "\t" INSN "\t%@,%0,%2\n"			\
-  "\tsc" SUFFIX "\t%@,%1\n"			\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-/* Return an asm string that atomically:
-
-     - Sets memory reference %1 to %1 INSN %2.
-
-     - Sets register %0 to the new value of memory reference %1.
-
-   SUFFIX is the suffix that should be added to "ll" and "sc"
-   instructions.  */
-#define MIPS_SYNC_NEW_OP(SUFFIX, INSN)		\
-  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"		\
-  "\t" INSN "\t%@,%0,%2\n"			\
-  "\tsc" SUFFIX "\t%@,%1\n"			\
-  "\tbeq%?\t%@,%.,1b%~\n"			\
-  "\t" INSN "\t%0,%0,%2%-%]%>%)"
-
-/* Return an asm string that atomically:
-
-     - Sets memory reference %0 to ~(%0 AND %1).
-
-   SUFFIX is the suffix that should be added to "ll" and "sc"
-   instructions.  INSN is the and instruction needed to and a register
-   with %2.  */
-#define MIPS_SYNC_NAND(SUFFIX, INSN)		\
-  "%(%<%[%|1:\tll" SUFFIX "\t%@,%0\n"		\
-  "\t" INSN "\t%@,%@,%1\n"			\
-  "\tnor\t%@,%@,%.\n"				\
-  "\tsc" SUFFIX "\t%@,%0\n"			\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-/* Return an asm string that atomically:
-
-     - Sets memory reference %1 to ~(%1 AND %2).
-
-     - Sets register %0 to the old value of memory reference %1.
-
-   SUFFIX is the suffix that should be added to "ll" and "sc"
-   instructions.  INSN is the and instruction needed to and a register
-   with %2.  */
-#define MIPS_SYNC_OLD_NAND(SUFFIX, INSN)	\
-  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"			\
-  "\t" INSN "\t%@,%0,%2\n"			\
-  "\tnor\t%@,%@,%.\n"				\
-  "\tsc" SUFFIX "\t%@,%1\n"			\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-/* Return an asm string that atomically:
-
-     - Sets memory reference %1 to ~(%1 AND %2).
-
-     - Sets register %0 to the new value of memory reference %1.
-
-   SUFFIX is the suffix that should be added to "ll" and "sc"
-   instructions.  INSN is the and instruction needed to and a register
-   with %2.  */
-#define MIPS_SYNC_NEW_NAND(SUFFIX, INSN)	\
-  "%(%<%[%|1:\tll" SUFFIX "\t%0,%1\n"			\
-  "\t" INSN "\t%0,%0,%2\n"			\
-  "\tnor\t%@,%0,%.\n"				\
-  "\tsc" SUFFIX "\t%@,%1\n"			\
-  "\tbeq%?\t%@,%.,1b%~\n"			\
-  "\tnor\t%0,%0,%.%-%]%>%)"
-
-/* Return an asm string that atomically:
-
-     - Sets memory reference %1 to %2.
-
-     - Sets register %0 to the old value of memory reference %1.
-
-   SUFFIX is the suffix that should be added to "ll" and "sc"
-   instructions.  OP is the and instruction that should be used to
-   load %2 into a register.  */
-#define MIPS_SYNC_EXCHANGE(SUFFIX, OP)		\
-  "%(%<%[%|\n"					\
-  "1:\tll" SUFFIX "\t%0,%1\n"			\
-  "\t" OP "\t%@,%2\n"				\
-  "\tsc" SUFFIX "\t%@,%1\n"			\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-/* Return an asm string that atomically:
-
-     - Given that %2 contains an inclusive mask, %3 and exclusive mask
-       and %4 has already been ANDed with the inclusive mask.
-
-     - Sets bits selected by the inclusive mask of memory reference %1
-       to %4.
-
-     - Sets register %0 to the old value of memory reference %1.
-
-    OPS are the instructions needed to OR %4 with %@.
-
-    Operand %2 is unused, but needed as to give the test_and_set_12
-    insn the five operands expected by the expander.  */
-#define MIPS_SYNC_EXCHANGE_12(OPS)              \
-  "%(%<%[%|\n"					\
-  "1:\tll\t%0,%1\n"				\
-  "\tand\t%@,%0,%3\n"				\
-  OPS						\
-  "\tsc\t%@,%1\n"				\
-  "\tbeq%?\t%@,%.,1b\n"				\
-  "\tnop%-%]%>%)"
-
-#define MIPS_SYNC_EXCHANGE_12_ZERO_OP ""
-#define MIPS_SYNC_EXCHANGE_12_NONZERO_OP "\tor\t%@,%@,%4\n"
-
 #ifndef USED_FOR_TARGET
 /* Information about ".set noFOO; ...; .set FOO" blocks.  */
 struct mips_asm_switch {
@@ -3424,3 +3190,30 @@ extern enum mips_code_readable_setting mips_code_readable;
 /* This is necessary to avoid a warning about comparing different enum
    types.  */
 #define mips_tune_attr ((enum attr_cpu) mips_tune)
+
+/* As on most targets, we want the .eh_frame section to be read-only where
+   possible.  And as on most targets, this means two things:
+
+     (a) Non-locally-binding pointers must have an indirect encoding,
+	 so that the addresses in the .eh_frame section itself become
+	 locally-binding.
+
+     (b) A shared library's .eh_frame section must encode locally-binding
+	 pointers in a relative (relocation-free) form.
+
+   However, MIPS has traditionally not allowed directives like:
+
+	.long	x-.
+
+   in cases where "x" is in a different section, or is not defined in the
+   same assembly file.  We are therefore unable to emit the PC-relative
+   form required by (b) at assembly time.
+
+   Fortunately, the linker is able to convert absolute addresses into
+   PC-relative addresses on our behalf.  Unfortunately, only certain
+   versions of the linker know how to do this for indirect pointers,
+   and for personality data.  We must fall back on using writable
+   .eh_frame sections for shared libraries if the linker does not
+   support this feature.  */
+#define ASM_PREFERRED_EH_DATA_FORMAT(CODE,GLOBAL) \
+  (((GLOBAL) ? DW_EH_PE_indirect : 0) | DW_EH_PE_absptr)

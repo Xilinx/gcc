@@ -3095,6 +3095,25 @@ gimplify_cond_expr (tree *expr_p, gimple_seq *pre_p, fallback_t fallback)
   return ret;
 }
 
+/* Prepare the node pointed to by EXPR_P, an is_gimple_addressable expression,
+   to be marked addressable.
+
+   We cannot rely on such an expression being directly markable if a temporary
+   has been created by the gimplification.  In this case, we create another
+   temporary and initialize it with a copy, which will become a store after we
+   mark it addressable.  This can happen if the front-end passed us something
+   that it could not mark addressable yet, like a Fortran pass-by-reference
+   parameter (int) floatvar.  */
+
+static void
+prepare_gimple_addressable (tree *expr_p, gimple_seq *seq_p)
+{
+  while (handled_component_p (*expr_p))
+    expr_p = &TREE_OPERAND (*expr_p, 0);
+  if (is_gimple_reg (*expr_p))
+    *expr_p = get_initialized_tmp_var (*expr_p, seq_p, NULL);
+}
+
 /* A subroutine of gimplify_modify_expr.  Replace a MODIFY_EXPR with
    a call to __builtin_memcpy.  */
 
@@ -3108,6 +3127,10 @@ gimplify_modify_expr_to_memcpy (tree *expr_p, tree size, bool want_value,
 
   to = TREE_OPERAND (*expr_p, 0);
   from = TREE_OPERAND (*expr_p, 1);
+
+  /* Mark the RHS addressable.  Beware that it may not be possible to do so
+     directly if a temporary has been created by the gimplification.  */
+  prepare_gimple_addressable (&from, seq_p);
 
   mark_addressable (from);
   from_ptr = build_fold_addr_expr_loc (loc, from);
@@ -4685,22 +4708,15 @@ gimplify_addr_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	 gcc.dg/c99-array-lval-1.c.  The gimplifier will correctly make
 	 the implied temporary explicit.  */
 
-      /* Mark the RHS addressable.  */
+      /* Make the operand addressable.  */
       ret = gimplify_expr (&TREE_OPERAND (expr, 0), pre_p, post_p,
 			   is_gimple_addressable, fb_either);
       if (ret == GS_ERROR)
 	break;
 
-      /* We cannot rely on making the RHS addressable if it is
-	 a temporary created by gimplification.  In this case create a
-	 new temporary that is initialized by a copy (which will
-	 become a store after we mark it addressable).
-	 This mostly happens if the frontend passed us something that
-	 it could not mark addressable yet, like a fortran
-	 pass-by-reference parameter (int) floatvar.  */
-      if (is_gimple_reg (TREE_OPERAND (expr, 0)))
-	TREE_OPERAND (expr, 0)
-	  = get_initialized_tmp_var (TREE_OPERAND (expr, 0), pre_p, post_p);
+      /* Then mark it.  Beware that it may not be possible to do so directly
+	 if a temporary has been created by the gimplification.  */
+      prepare_gimple_addressable (&TREE_OPERAND (expr, 0), pre_p);
 
       op0 = TREE_OPERAND (expr, 0);
 
@@ -4709,10 +4725,22 @@ gimplify_addr_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       if (TREE_CODE (op0) == INDIRECT_REF)
 	goto do_indirect_ref;
 
-      /* Make sure TREE_CONSTANT and TREE_SIDE_EFFECTS are set properly.  */
-      recompute_tree_invariant_for_addr_expr (expr);
-
       mark_addressable (TREE_OPERAND (expr, 0));
+
+      /* The FEs may end up building ADDR_EXPRs early on a decl with
+	 an incomplete type.  Re-build ADDR_EXPRs in canonical form
+	 here.  */
+      if (!types_compatible_p (TREE_TYPE (op0), TREE_TYPE (TREE_TYPE (expr))))
+	*expr_p = build_fold_addr_expr (op0);
+
+      /* Make sure TREE_CONSTANT and TREE_SIDE_EFFECTS are set properly.  */
+      recompute_tree_invariant_for_addr_expr (*expr_p);
+
+      /* If we re-built the ADDR_EXPR add a conversion to the original type
+         if required.  */
+      if (!useless_type_conversion_p (TREE_TYPE (expr), TREE_TYPE (*expr_p)))
+	*expr_p = fold_convert (TREE_TYPE (expr), *expr_p);
+
       break;
     }
 
@@ -4737,13 +4765,14 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
   VEC(tree, gc) *inputs;
   VEC(tree, gc) *outputs;
   VEC(tree, gc) *clobbers;
+  VEC(tree, gc) *labels;
   tree link_next;
   
   expr = *expr_p;
   noutputs = list_length (ASM_OUTPUTS (expr));
   oconstraints = (const char **) alloca ((noutputs) * sizeof (const char *));
 
-  inputs = outputs = clobbers = NULL;
+  inputs = outputs = clobbers = labels = NULL;
 
   ret = GS_ALL_DONE;
   link_next = NULL_TREE;
@@ -4925,13 +4954,16 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
     }
   
   for (link = ASM_CLOBBERS (expr); link; ++i, link = TREE_CHAIN (link))
-      VEC_safe_push (tree, gc, clobbers, link);
+    VEC_safe_push (tree, gc, clobbers, link);
+
+  for (link = ASM_LABELS (expr); link; ++i, link = TREE_CHAIN (link))
+    VEC_safe_push (tree, gc, labels, link);
 
   /* Do not add ASMs with errors to the gimple IL stream.  */
   if (ret != GS_ERROR)
     {
       stmt = gimple_build_asm_vec (TREE_STRING_POINTER (ASM_STRING (expr)),
-				   inputs, outputs, clobbers);
+				   inputs, outputs, clobbers, labels);
 
       gimple_asm_set_volatile (stmt, ASM_VOLATILE_P (expr));
       gimple_asm_set_input (stmt, ASM_INPUT_P (expr));
@@ -6617,11 +6649,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = gimplify_decl_expr (expr_p, pre_p);
 	  break;
 
-	case EXC_PTR_EXPR:
-	  /* FIXME make this a decl.  */
-	  ret = GS_ALL_DONE;
-	  break;
-
 	case BIND_EXPR:
 	  ret = gimplify_bind_expr (expr_p, pre_p);
 	  break;
@@ -6813,8 +6840,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    gimplify_and_add (EH_FILTER_FAILURE (*expr_p), &failure);
 	    ehf = gimple_build_eh_filter (EH_FILTER_TYPES (*expr_p), failure);
 	    gimple_set_no_warning (ehf, TREE_NO_WARNING (*expr_p));
-	    gimple_eh_filter_set_must_not_throw
-	      (ehf, EH_FILTER_MUST_NOT_THROW (*expr_p));
 	    gimplify_seq_add_stmt (pre_p, ehf);
 	    ret = GS_ALL_DONE;
 	    break;
@@ -7150,7 +7175,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		  && code != GOTO_EXPR
 		  && code != LABEL_EXPR
 		  && code != LOOP_EXPR
-		  && code != RESX_EXPR
 		  && code != SWITCH_EXPR
 		  && code != TRY_FINALLY_EXPR
 		  && code != OMP_CRITICAL
