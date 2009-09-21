@@ -118,6 +118,7 @@ gfc_free_statement (gfc_code *p)
       break;
 
     case EXEC_SELECT:
+    case EXEC_SELECT_TYPE:
       if (p->ext.case_list)
 	gfc_free_case_list (p->ext.case_list);
       break;

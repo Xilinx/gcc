@@ -330,7 +330,8 @@ gfc_has_vector_index (gfc_expr *e)
 }
 
 
-/* Insert a reference to the component of the given name.  */
+/* Insert a reference to the component of the given name.
+   Only to be used with CLASS containers.  */
 
 void
 gfc_add_component_ref (gfc_expr *e, const char *name)
@@ -346,7 +347,7 @@ gfc_add_component_ref (gfc_expr *e, const char *name)
 	break;
       tail = &((*tail)->next);
     }
-  if (*tail != NULL && strcmp (name, "data") == 0)
+  if (*tail != NULL && strcmp (name, "$data") == 0)
     next = *tail;
   (*tail) = gfc_get_ref();
   (*tail)->next = next;

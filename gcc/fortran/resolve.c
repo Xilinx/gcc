@@ -5452,6 +5452,8 @@ resolve_deallocate_expr (gfc_expr *e)
   symbol_attribute attr;
   int allocatable, pointer, check_intent_in;
   gfc_ref *ref;
+  gfc_symbol *sym;
+  gfc_component *c;
 
   /* Check INTENT(IN), unless the object is a sub-component of a pointer.  */
   check_intent_in = 1;
@@ -5462,8 +5464,18 @@ resolve_deallocate_expr (gfc_expr *e)
   if (e->expr_type != EXPR_VARIABLE)
     goto bad;
 
-  allocatable = e->symtree->n.sym->attr.allocatable;
-  pointer = e->symtree->n.sym->attr.pointer;
+  sym = e->symtree->n.sym;
+
+  if (sym->ts.type == BT_CLASS)
+    {
+      allocatable = sym->ts.u.derived->components->attr.allocatable;
+      pointer = sym->ts.u.derived->components->attr.pointer;
+    }
+  else
+    {
+      allocatable = sym->attr.allocatable;
+      pointer = sym->attr.pointer;
+    }
   for (ref = e->ref; ref; ref = ref->next)
     {
       if (pointer)
@@ -5477,9 +5489,17 @@ resolve_deallocate_expr (gfc_expr *e)
 	  break;
 
 	case REF_COMPONENT:
-	  allocatable = (ref->u.c.component->as != NULL
-			 && ref->u.c.component->as->type == AS_DEFERRED);
-	  pointer = ref->u.c.component->attr.pointer;
+	  c = ref->u.c.component;
+	  if (c->ts.type == BT_CLASS)
+	    {
+	      allocatable = c->ts.u.derived->components->attr.allocatable;
+	      pointer = c->ts.u.derived->components->attr.pointer;
+	    }
+	  else
+	    {
+	      allocatable = c->attr.allocatable;
+	      pointer = c->attr.pointer;
+	    }
 	  break;
 
 	case REF_SUBSTRING:
@@ -5497,18 +5517,17 @@ resolve_deallocate_expr (gfc_expr *e)
 		 &e->where);
     }
 
-  if (check_intent_in
-      && e->symtree->n.sym->attr.intent == INTENT_IN)
+  if (check_intent_in && sym->attr.intent == INTENT_IN)
     {
       gfc_error ("Cannot deallocate INTENT(IN) variable '%s' at %L",
-		 e->symtree->n.sym->name, &e->where);
+		 sym->name, &e->where);
       return FAILURE;
     }
 
   if (e->ts.type == BT_CLASS)
     {
       /* Only deallocate the DATA component.  */
-      gfc_add_component_ref (e, "data");
+      gfc_add_component_ref (e, "$data");
     }
 
   return SUCCESS;
@@ -5673,13 +5692,13 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       init_st->loc = code->loc;
       init_st->expr1 = expr_to_initialize (e);
       init_st->op = EXEC_ASSIGN;
-      gfc_add_component_ref (init_st->expr1, "vindex");
+      gfc_add_component_ref (init_st->expr1, "$vindex");
       init_st->expr2 = gfc_int_expr (vindex);
       init_st->expr2->where = init_st->expr1->where = init_st->loc;
       init_st->next = code->next;
       code->next = init_st;
       /* Only allocate the DATA component.  */
-      gfc_add_component_ref (e, "data");
+      gfc_add_component_ref (e, "$data");
     }
 
   /* Add default initializer for those derived types that need them.  */
@@ -6378,6 +6397,71 @@ resolve_select (gfc_code *code)
 }
 
 
+/* Check if a derived type is extensible.  */
+
+static bool
+type_is_extensible (gfc_symbol *sym)
+{
+  return !(sym->attr.is_bind_c || sym->attr.sequence);
+}
+
+
+/* Resolve a SELECT TYPE statement.  */
+
+static void
+resolve_select_type (gfc_code *code)
+{
+  gfc_symbol *selector_type;
+  gfc_code *body;
+  gfc_case *c, *default_case;
+
+  selector_type = code->expr1->ts.u.derived->components->ts.u.derived;
+
+  /* Assume there is no DEFAULT case.  */
+  default_case = NULL;
+
+  /* Loop over TYPE IS / CLASS IS cases.  */
+  for (body = code->block; body; body = body->block)
+    {
+      c = body->ext.case_list;
+
+      /* Check F03:C815.  */
+      if ((c->ts.type == BT_DERIVED || c->ts.type == BT_CLASS)
+	  && !type_is_extensible (c->ts.u.derived))
+	{
+	  gfc_error ("Derived type '%s' at %L must be extensible",
+		     c->ts.u.derived->name, &c->where);
+	  continue;
+	}
+
+      /* Check F03:C816.  */
+      if ((c->ts.type == BT_DERIVED || c->ts.type == BT_CLASS)
+	  && !gfc_type_is_extension_of (selector_type, c->ts.u.derived))
+	{
+	  gfc_error ("Derived type '%s' at %L must be an extension of '%s'",
+		     c->ts.u.derived->name, &c->where, selector_type->name);
+	  continue;
+	}
+
+      /* Intercept the DEFAULT case.  */
+      if (c->ts.type == BT_UNKNOWN)
+	{
+	  /* Check F03:C818.  */
+	  if (default_case != NULL)
+	    gfc_error ("The DEFAULT CASE at %L cannot be followed "
+		       "by a second DEFAULT CASE at %L",
+		       &default_case->where, &c->where);
+	  else
+	    default_case = c;
+	  continue;
+	}
+    }
+
+  /* TODO: transform to EXEC_SELECT.  */
+
+}
+
+
 /* Resolve a transfer statement. This is making sure that:
    -- a derived type being transferred has only non-pointer components
    -- a derived type being transferred doesn't have private components, unless 
@@ -6927,6 +7011,7 @@ gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 	  break;
 
 	case EXEC_SELECT:
+	case EXEC_SELECT_TYPE:
 	case EXEC_FORALL:
 	case EXEC_DO:
 	case EXEC_DO_WHILE:
@@ -7130,7 +7215,7 @@ check_class_pointer_assign (gfc_code **code)
   (*code)->next = assign_code;
   assign_code->op = EXEC_ASSIGN;
   assign_code->expr1 = gfc_copy_expr ((*code)->expr1);
-  gfc_add_component_ref (assign_code->expr1, "vindex");
+  gfc_add_component_ref (assign_code->expr1, "$vindex");
   if ((*code)->expr2->ts.type == BT_DERIVED)
     {
       /* vindex is constant, determined at compile time.  */
@@ -7141,15 +7226,15 @@ check_class_pointer_assign (gfc_code **code)
     {
       /* vindex must be determined at run time.  */
       assign_code->expr2 = gfc_copy_expr ((*code)->expr2);
-      gfc_add_component_ref (assign_code->expr2, "vindex");
+      gfc_add_component_ref (assign_code->expr2, "$vindex");
     }
   else
     gcc_unreachable ();
 
   /* Modify the actual pointer assignment.  */
-  gfc_add_component_ref ((*code)->expr1, "data");
+  gfc_add_component_ref ((*code)->expr1, "$data");
   if ((*code)->expr2->ts.type == BT_CLASS)
-    gfc_add_component_ref ((*code)->expr2, "data");
+    gfc_add_component_ref ((*code)->expr2, "$data");
 
   gfc_check_pointer_assign ((*code)->expr1, (*code)->expr2);
 
@@ -7353,6 +7438,10 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  /* Select is complicated. Also, a SELECT construct could be
 	     a transformed computed GOTO.  */
 	  resolve_select (code);
+	  break;
+
+	case EXEC_SELECT_TYPE:
+	  resolve_select_type (code);
 	  break;
 
 	case EXEC_DO:
@@ -8088,15 +8177,6 @@ resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
 	 }
     }
   return SUCCESS;
-}
-
-
-/* Check if a derived type is extensible.  */
-
-static bool
-type_is_extensible (gfc_symbol *sym)
-{
-  return !(sym->attr.is_bind_c || sym->attr.sequence);
 }
 
 

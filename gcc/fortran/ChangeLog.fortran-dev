@@ -1,3 +1,44 @@
+2009-09-21  Janus Weil  <janus@gcc.gnu.org>
+
+	* decl.c (encapsulate_class_symbol): Modify names of class container
+	components by prefixing with '$'.
+	(gfc_match_end): Handle COMP_SELECT_TYPE.
+	* expr.c (gfc_add_component_ref): Modify names of class container
+	components by prefixing with '$'.
+	* gfortran.h (gfc_statement): Add ST_SELECT_TYPE, ST_TYPE_IS and
+	ST_CLASS_IS.
+	(gfc_case): New field 'ts'.
+	(gfc_exec_op): Add EXEC_SELECT_TYPE.
+	(gfc_type_is_extension_of): New prototype.
+	* match.h (gfc_match_select_type,gfc_match_type_is,gfc_match_class_is):
+	New prototypes.
+	* match.c (match_derived_type_spec): New function.
+	(match_type_spec): Use 'match_derived_type_spec'.
+	(match_case_eos): Modify error message.
+	(gfc_match_select_type): New function.
+	(gfc_match_case): Modify error message.
+	(gfc_match_type_is): New function.
+	(gfc_match_class_is): Ditto.
+	* parse.h (gfc_compile_state): Add COMP_SELECT_TYPE.
+	* parse.c (decode_statement): Handle SELECT TYPE, TYPE IS and CLASS IS
+	statements.
+	(next_statement): Handle ST_SELECT_TYPE.
+	(gfc_ascii_statement): Handle ST_SELECT_TYPE, ST_TYPE_IS, ST_CLASS_IS.
+	(parse_select_type_block): New function.
+	(parse_executable): Handle ST_SELECT_TYPE.
+	* resolve.c (resolve_deallocate_expr): Handle BT_CLASS. Modify names of
+	class container components by prefixing with '$'.
+	(resolve_allocate_expr): Ditto.
+	(resolve_select_type): New function.
+	(gfc_resolve_blocks): Handle EXEC_SELECT_TYPE.
+	(check_class_pointer_assign): Modify names of class container
+	components by prefixing with '$'.
+	(resolve_code): Ditto.
+	* st.c (gfc_free_statement): Ditto.
+	* symbol.c (gfc_type_is_extension_of): New function.
+	(gfc_type_compatible): Use 'gfc_type_is_extension_of', plus a bugfix.
+	* trans.c (gfc_trans_code): Handel EXEC_SELECT_TYPE.
+
 2009-09-20  Janus Weil  <janus@gcc.gnu.org>
 	    Paul Thomas <pault@gcc.gnu.org> 
 

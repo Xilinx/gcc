@@ -1,3 +1,9 @@
+2009-09-21  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/block_name_2.f90: Modified error message.
+	* gfortran.dg/select_6.f90: Ditto.
+	* gfortran.dg/select_type_1.f03: New test.
+
 2009-09-20  Janus Weil  <janus@gcc.gnu.org>
 
 	* gfortran.dg/allocate_derived_1.f90: Remove -w option.

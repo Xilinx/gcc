@@ -1027,8 +1027,8 @@ verify_c_interop_param (gfc_symbol *sym)
 
 /* Build a polymorphic CLASS entity, using the symbol that comes from build_sym.
    A CLASS entity is represented by an encapsulating type, which contains the
-   declared type as 'data' component, plus an integer component 'vindex' which
-   determines the dynamic type.  */
+   declared type as '$data' component, plus an integer component '$vindex'
+   which determines the dynamic type.  */
 
 static gfc_try
 encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
@@ -1066,8 +1066,8 @@ encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
 	  NULL, &gfc_current_locus) == FAILURE)
 	return FAILURE;
 
-      /* Add component 'data'.  */
-      if (gfc_add_component (fclass, "data", &c) == FAILURE)
+      /* Add component '$data'.  */
+      if (gfc_add_component (fclass, "$data", &c) == FAILURE)
    	return FAILURE;
       c->ts = *ts;
       c->ts.type = BT_DERIVED;
@@ -1078,8 +1078,8 @@ encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       c->attr.dimension = attr->dimension;
       c->as = (*as);
 
-      /* Add component 'vindex'.  */
-      if (gfc_add_component (fclass, "vindex", &c) == FAILURE)
+      /* Add component '$vindex'.  */
+      if (gfc_add_component (fclass, "$vindex", &c) == FAILURE)
    	return FAILURE;
       c->ts.type = BT_INTEGER;
       c->ts.kind = 4;
@@ -5503,6 +5503,7 @@ gfc_match_end (gfc_statement *st)
       break;
 
     case COMP_SELECT:
+    case COMP_SELECT_TYPE:
       *st = ST_END_SELECT;
       target = " select";
       eos_ok = 0;
