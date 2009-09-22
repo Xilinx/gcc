@@ -2135,7 +2135,8 @@ gfc_get_derived_type (gfc_symbol * derived)
 						    PACKED_STATIC,
 						    !c->attr.target);
 	}
-      else if (c->attr.pointer && !c->attr.proc_pointer)
+      else if ((c->attr.pointer || c->attr.allocatable)
+	       && !c->attr.proc_pointer)
 	field_type = build_pointer_type (field_type);
 
       field = gfc_add_field_to_struct (&fieldlist, typenode,

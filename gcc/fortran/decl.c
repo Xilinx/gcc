@@ -1544,15 +1544,7 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
   /* Check array components.  */
   if (!c->attr.dimension)
-    {
-      if (c->attr.allocatable)
-	{
-	  gfc_error ("Allocatable component at %C must be an array");
-	  return FAILURE;
-	}
-      else
-	return SUCCESS;
-    }
+    return SUCCESS;
 
   if (c->attr.pointer)
     {

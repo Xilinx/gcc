@@ -1868,6 +1868,19 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 	  if (m != MATCH_YES)
 	    return m;
 	}
+      else if (component->ts.type == BT_CLASS
+	       && component->ts.u.derived->components->as != NULL
+	       && !component->attr.proc_pointer)
+	{
+	  tail = extend_ref (primary, tail);
+	  tail->type = REF_ARRAY;
+
+	  m = gfc_match_array_ref (&tail->u.ar,
+				   component->ts.u.derived->components->as,
+				   equiv_flag);
+	  if (m != MATCH_YES)
+	    return m;
+	}
 
       if ((component->ts.type != BT_DERIVED && component->ts.type != BT_CLASS)
 	  || gfc_match_char ('%') != MATCH_YES)

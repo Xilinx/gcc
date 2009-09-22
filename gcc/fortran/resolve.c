@@ -6457,7 +6457,37 @@ resolve_select_type (gfc_code *code)
 	}
     }
 
-  /* TODO: transform to EXEC_SELECT.  */
+  /* Transform to EXEC_SELECT.  */
+  code->op = EXEC_SELECT;
+  gfc_add_component_ref (code->expr1, "$vindex");
+
+  /* Loop over TYPE IS / CLASS IS cases.  */
+  for (body = code->block; body; body = body->block)
+    {
+      c = body->ext.case_list;
+      if (c->ts.type == BT_DERIVED)
+	c->low = c->high = gfc_int_expr (c->ts.u.derived->vindex);
+      else if (c->ts.type == BT_CLASS)
+	/* Currently IS CLASS blocks are simply ignored.
+	   TODO: Implement IS CLASS.  */
+	c->unreachable = 1;
+    }
+
+  /* Eliminate dead blocks.  */
+  for (body = code; body && body->block; body = body->block)
+    {
+      if (body->block->ext.case_list->unreachable)
+	{
+	  /* Cut the unreachable block from the code chain.  */
+	  gfc_code *cd = body->block;
+	  body->block = cd->block;
+	  /* Kill the dead block, but not the blocks below it.  */
+	  cd->block = NULL;
+	  gfc_free_statements (cd);
+	}
+    }
+
+  resolve_select (code);
 
 }
 

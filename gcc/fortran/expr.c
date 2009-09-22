@@ -355,6 +355,8 @@ gfc_add_component_ref (gfc_expr *e, const char *name)
   (*tail)->u.c.sym = derived;
   (*tail)->u.c.component = gfc_find_component (derived, name, true, true);
   gcc_assert((*tail)->u.c.component);
+  if (!next)
+    e->ts = (*tail)->u.c.component->ts;
 }
 
 

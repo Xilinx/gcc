@@ -482,7 +482,8 @@ gfc_conv_component_ref (gfc_se * se, gfc_ref * ref)
       se->string_length = tmp;
     }
 
-  if ((c->attr.pointer && c->attr.dimension == 0 && c->ts.type != BT_CHARACTER)
+  if (((c->attr.pointer || c->attr.allocatable) && c->attr.dimension == 0
+       && c->ts.type != BT_CHARACTER)
       || c->attr.proc_pointer)
     se->expr = build_fold_indirect_ref_loc (input_location,
 					se->expr);

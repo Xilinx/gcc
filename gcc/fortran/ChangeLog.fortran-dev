@@ -1,3 +1,19 @@
+2009-09-22  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40996
+	* decl.c (build_struct): Handle allocatable scalar components.
+	* expr.c (gfc_add_component_ref): Correctly set typespec of expression,
+	after inserting component reference.
+	* match.c (gfc_match_type_is,gfc_match_class_is): Make sure that no
+	variables are being used uninitialized.
+	* primary.c (gfc_match_varspec): Handle CLASS array components.
+	* resolve.c (resolve_select_type): Transform EXEC_SELECT_TYPE to
+	EXEC_SELECT.
+	* trans-array.c (structure_alloc_comps,gfc_trans_deferred_array):
+	Handle allocatable scalar components.
+	* trans-expr.c (gfc_conv_component_ref): Ditto.
+	* trans-types.c (gfc_get_derived_type): Ditto.
+
 2009-09-21  Janus Weil  <janus@gcc.gnu.org>
 
 	* decl.c (encapsulate_class_symbol): Modify names of class container

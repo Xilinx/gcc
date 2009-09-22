@@ -4106,7 +4106,7 @@ cleanup:
 match
 gfc_match_type_is (void)
 {
-  gfc_case *c;
+  gfc_case *c = NULL;
   match m;
 
   if (gfc_current_state () != COMP_SELECT_TYPE)
@@ -4144,7 +4144,8 @@ syntax:
   gfc_error ("Syntax error in TYPE IS specification at %C");
 
 cleanup:
-  gfc_free_case_list (c);  /* new_st is cleaned up in parse.c.  */
+  if (c != NULL)
+    gfc_free_case_list (c);  /* new_st is cleaned up in parse.c.  */
   return MATCH_ERROR;
 }
 
@@ -4154,7 +4155,7 @@ cleanup:
 match
 gfc_match_class_is (void)
 {
-  gfc_case *c;
+  gfc_case *c = NULL;
   match m;
 
   if (gfc_current_state () != COMP_SELECT_TYPE)
@@ -4212,7 +4213,8 @@ syntax:
   gfc_error ("Syntax error in CLASS IS specification at %C");
 
 cleanup:
-  gfc_free_case_list (c);  /* new_st is cleaned up in parse.c.  */
+  if (c != NULL)
+    gfc_free_case_list (c);  /* new_st is cleaned up in parse.c.  */
   return MATCH_ERROR;
 }
 
