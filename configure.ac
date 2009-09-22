@@ -1789,10 +1789,13 @@ if test -d ${srcdir}/gcc; then
 	    new_enable_languages="${new_enable_languages}${language},"
             potential_languages="${potential_languages}${language},"
 	    missing_languages=`echo "$missing_languages" | sed "s/,$language,/,/"`
-	    case ${boot_language} in
-	      yes)
+	    case "${boot_language}:,$enable_stage1_languages," in
+	      yes:* | *:*,$language,* | *:*,yes, | *:*,all,)
 		# Add to (comma-separated) list of stage 1 languages.
-		stage1_languages="${stage1_languages}${language},"
+		case ",$stage1_languages," in
+		  *,$language,* | ,yes, | ,all,) ;;
+		  *) stage1_languages="${stage1_languages}${language}," ;;
+		esac
 		# We need to bootstrap any supporting libraries.
 		bootstrap_target_libs="${bootstrap_target_libs}${target_libs},"
 		;;
@@ -2483,6 +2486,20 @@ case "$have_compiler:$host:$target:$enable_bootstrap" in
   # Fail if wrong command line
   *)
     AC_MSG_ERROR([invalid option for --enable-bootstrap])
+    ;;
+esac
+
+case ",$enable_languages,:$ENABLE_BUILD_WITH_CXX:$enable_bootstrap" in
+  *,c++,*:yes:yes) ;;
+  *:yes:yes)
+    AC_MSG_ERROR([bootstrapping with --enable-build-with-cxx requires c++ in --enable-languages])
+    ;;
+esac
+
+case "$enable_bootstrap:$ENABLE_GOLD: $configdirs :,$stage1_languages," in
+  yes:yes:*\ gold\ *:*,c++,*) ;;
+  yes:yes:*\ gold\ *:*)
+    AC_MSG_ERROR([in a combined tree, bootstrapping with --enable-gold requires c++ in stage1_languages])
     ;;
 esac
 

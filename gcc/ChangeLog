@@ -1,3 +1,54 @@
+2009-09-22  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR middle-end/41260
+	* gcc/config.gcc: Use darwin9.h and darwin10.h on darwin10 and later.
+	* gcc/config/darwin10.h: Add file to pass -no_compact_unwind on
+	LIB_SPEC for darwin10 and later since it always uses the unwinder in
+	libSystem which is derived from the gcc 4.2.1 unwinder.
+
+2009-09-22  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR middle-end/41357
+	* varasm.c (default_encode_section_info): Copy TLS model into
+	sym_ref flags regardless of backend support for TLS, for all
+	model types except TLS_MODEL_EMULATED.
+
+2009-09-22  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR bootstrap/41404
+	* dwarf2out.c (mem_loc_descriptor): Punt on CONST_STRING until
+	we can handle it correctly.
+
+2009-09-21  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/install.texi (os2): Remove section.
+
+2009-09-21  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/standards.texi (Objective-C): Adjust two URLs.
+
+2009-09-21  Giuseppe Scrivano <gscrivano@gnu.org>
+
+	* tree-tailcall.c (process_assignment): Don't check if a multiplication
+	or an addition are already present.
+	(find_tail_calls): Combine multiple additions and multiplications.
+	(adjust_accumulator_values): Emit accumulators.
+
+2009-09-21  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (ix86_expand_epilogue): Adjust offset for
+	xmm register restore.
+
+2009-09-21  Jan Hubicka  <jh@suse.cz>
+
+	* dwarf2out.c (decl_loc_table_eq): Allow decl_loc_table to be NULL.
+	(dwarf2out_abstract_function): NULLify decl_loc_table at begginig and
+	restore at the end.
+
+2009-09-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* stor-layout.c (layout_type): Remove obsolete code.
+
 2009-09-20  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/41395

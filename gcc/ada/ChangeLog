@@ -1,3 +1,14 @@
+2009-09-21  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* s-osinte-rtems.ad[bs]: Get_Page_Size cannot return 0.
+	Bind to getpagesize() in RTEMS 4.10 and newer.
+
+2009-09-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* env.c [__alpha__ && __osf__] (_BSD): Define.
+	* init.c [__alpha__ && __osf__] (__gnat_error_handler): Cast msg
+	to const char *.
+
 2009-09-18  Pascal Obry  <obry@adacore.com>
 
 	* mingw32.h: Activate Unicode support for x86-64 Windows platform.
