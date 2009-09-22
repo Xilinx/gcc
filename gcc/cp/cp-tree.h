@@ -527,7 +527,8 @@ struct GTY (()) tree_trait_expr {
 
 /* Test if FUNCTION_DECL is a lambda function.  */
 #define LAMBDA_FUNCTION_P(FNDECL) \
-  (DECL_CONTEXT (FNDECL) && LAMBDA_TYPE_P (DECL_CONTEXT (FNDECL)))
+  (DECL_OVERLOADED_OPERATOR_P (FNDECL) == CALL_EXPR \
+   && LAMBDA_TYPE_P (CP_DECL_CONTEXT (FNDECL)))
 
 enum cp_lambda_default_capture_mode_type {
   CPLD_NONE,
