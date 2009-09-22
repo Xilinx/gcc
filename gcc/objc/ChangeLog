@@ -1,3 +1,128 @@
+2009-09-14  Richard Henderson  <rth@redhat.com>
+
+	* objc-act.c (objc_init_exceptions): Don't call
+	default_init_unwind_resume_libfunc.
+	(objc_build_exc_ptr): Use __builtin_eh_pointer.
+
+2009-09-13  Richard Guenther  <rguenther@suse.de>
+	Rafael Avila de Espindola  <espindola@google.com>
+
+	* objc-act.c (objc_eh_runtime_type): Export.
+	(objc_init_exceptions): Remove.  Move warning code ...
+	(objc_begin_try_stmt): ... here
+	(objc_build_throw_stmt): ... and here.
+	(objc_eh_personality_decl): New.
+	(objc_eh_personality): New function.
+	* objc-act.h (objc_eh_runtime_type): Declare.
+	(objc_eh_personality): Likewise.
+	* objc-lang.c (LANG_HOOKS_EH_RUNTIME_TYPE): Define.
+	(LANG_HOOKS_EH_PERSONALITY): Likewise.
+
+2009-09-03  Diego Novillo  <dnovillo@google.com>
+
+	* objc-lang.c (lang_hooks): Remove const qualifier.
+
+2009-08-20  Richard Guenther  <rguenther@suse.de>
+
+	* objc-act.c: Include c-lang.h
+	* Make-lang.in (objc/objc-act.o): Add c-lang.h dependency.
+
+2009-07-17  Aldy Hernandez  <aldyh@redhat.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40435 
+	* objc-act.c: Add location argument to all calls to
+	build_fold_addr_expr.
+	
+2009-07-14  Taras Glek  <tglek@mozilla.com>
+	    Rafael Espindola  <espindola@google.com>
+
+	* Make-lang.in (objc.install-plugin): New target for
+	installing plugin headers.
+
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* objc-act.c (next_sjlj_build_catch_list): Replace EXPR_LOCUS by
+	EXPR_LOCATION.
+	
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* objc-act.c: Replace %J by an explicit location. Update all
+	calls.
+	
+2009-07-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* objc-act.c: Replace %H by an explicit location. Update all
+	calls.
+	
+2009-06-22  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR objc/28050
+	* objc-act.c (objc_build_message_args): Return if ARGS is the
+	error_mark_node.
+	
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_in_struct, objc_struct_types): Remove.
+	(objc_struct_info): New static variable.
+	(objc_start_struct): Pass &objc_struct_info, not &objc_in_struct
+	and &objc_struct_types, to start_struct.
+	(objc_finish_struct): Likewise for finish_struct.
+
+2009-06-15  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_start_function): Don't set
+	label_context_stack_se or label_context_stack_vm.
+
+2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
+	
+	* objc-act.c (finish_var_decl): Pass location to finish_decl.
+	(objc_get_parm_info): Same.
+	(get_super_receiver): Same.
+	* objc-act.c (objc_build_component_ref): Pass location to
+	build_compound_ref.
+	(build_module_initializer_routine): Pass location to
+	c_end_compound_stmt.
+	(objc_generate_static_init_call): Pass location to build_stmt.
+	(build_typed_selector_reference): New location argument.
+	(build_selector_reference): Same.
+	(objc_substitute_decl): Pass location to build_array_ref.
+	(next_sjlj_build_try_catch_finally): Pass location to build_stmt.
+	(objc_begin_catch_clause): Same.
+	(objc_finish_try_stmt): Same.
+	(objc_finish_catch_clause): Pass location to c_end_compound_stmt.
+	(objc_build_throw_stmt): New argument.
+	(generate_shared_structures): Pass location to build_c_cast.
+	(objc_build_message_expr): Use local location.
+	(objc_finish_message_expr): Use input_location.
+	(build_objc_method_call): New argument.
+	(objc_build_selector_expr): Same.
+	(get_super_receiver): Pass location to build_c_cast,
+	build_modify_expr, build_compound_expr.
+	* objc-act.c: Add location to all calls to start_struct, build_decl,
+	finish_struct.
+	
+2009-06-09  Ian Lance Taylor  <iant@google.com>
+
+	* objc-act.c (objc_gimplify_expr): Change return type to int.
+	* objc-act.h: Update declaration.
+
+2009-06-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* objc-act.c (objc_init): Skip print_struct_values during
+	-fcompare-debug-second.
+
+2009-06-03  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (cc1obj-checksum.o): Depend upon $(CONFIG_H) and
+	$(SYSTEM_H).
+
+2009-05-27  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (cc1obj-dummy$(exeext)): Change $(COMPILER) to
+	$(LINKER).
+	(cc1obj$(exeext)): Likewise.
+
 2009-05-26  Ian Lance Taylor  <iant@google.com>
 
 	* Make-lang.in (cc1obj-dummy$(exeext)): Use $(COMPILER).

@@ -502,6 +502,11 @@ struct table_elt
 
 #define REGNO_QTY_VALID_P(N) (REG_QTY (N) >= 0)
 
+/* Compare table_elt X and Y and return true iff X is cheaper than Y.  */
+
+#define CHEAPER(X, Y) \
+ (preferable ((X)->cost, (X)->regcost, (Y)->cost, (Y)->regcost) < 0)
+
 static struct table_elt *table[HASH_SIZE];
 
 /* Chain of `struct table_elt's made so far for this function
@@ -563,6 +568,8 @@ static void remove_pseudo_from_table (rtx, unsigned);
 static struct table_elt *lookup (rtx, unsigned, enum machine_mode);
 static struct table_elt *lookup_for_remove (rtx, unsigned, enum machine_mode);
 static rtx lookup_as_function (rtx, enum rtx_code);
+static struct table_elt *insert_with_costs (rtx, struct table_elt *, unsigned,
+					    enum machine_mode, int, int);
 static struct table_elt *insert (rtx, struct table_elt *, unsigned,
 				 enum machine_mode);
 static void merge_equiv_classes (struct table_elt *, struct table_elt *);
@@ -636,7 +643,7 @@ fixed_base_plus_p (rtx x)
       return false;
 
     case PLUS:
-      if (GET_CODE (XEXP (x, 1)) != CONST_INT)
+      if (!CONST_INT_P (XEXP (x, 1)))
 	return false;
       return fixed_base_plus_p (XEXP (x, 0));
 
@@ -1213,6 +1220,174 @@ insert_regs (rtx x, struct table_elt *classp, int modified)
     return mention_regs (x);
 }
 
+
+/* Compute upper and lower anchors for CST.  Also compute the offset of CST
+   from these anchors/bases such that *_BASE + *_OFFS = CST.  Return false iff
+   CST is equal to an anchor.  */
+
+static bool
+compute_const_anchors (rtx cst,
+		       HOST_WIDE_INT *lower_base, HOST_WIDE_INT *lower_offs,
+		       HOST_WIDE_INT *upper_base, HOST_WIDE_INT *upper_offs)
+{
+  HOST_WIDE_INT n = INTVAL (cst);
+
+  *lower_base = n & ~(targetm.const_anchor - 1);
+  if (*lower_base == n)
+    return false;
+
+  *upper_base =
+    (n + (targetm.const_anchor - 1)) & ~(targetm.const_anchor - 1);
+  *upper_offs = n - *upper_base;
+  *lower_offs = n - *lower_base;
+  return true;
+}
+
+/* Insert the equivalence between ANCHOR and (REG + OFF) in mode MODE.  */
+
+static void
+insert_const_anchor (HOST_WIDE_INT anchor, rtx reg, HOST_WIDE_INT offs,
+		     enum machine_mode mode)
+{
+  struct table_elt *elt;
+  unsigned hash;
+  rtx anchor_exp;
+  rtx exp;
+
+  anchor_exp = GEN_INT (anchor);
+  hash = HASH (anchor_exp, mode);
+  elt = lookup (anchor_exp, hash, mode);
+  if (!elt)
+    elt = insert (anchor_exp, NULL, hash, mode);
+
+  exp = plus_constant (reg, offs);
+  /* REG has just been inserted and the hash codes recomputed.  */
+  mention_regs (exp);
+  hash = HASH (exp, mode);
+
+  /* Use the cost of the register rather than the whole expression.  When
+     looking up constant anchors we will further offset the corresponding
+     expression therefore it does not make sense to prefer REGs over
+     reg-immediate additions.  Prefer instead the oldest expression.  Also
+     don't prefer pseudos over hard regs so that we derive constants in
+     argument registers from other argument registers rather than from the
+     original pseudo that was used to synthesize the constant.  */
+  insert_with_costs (exp, elt, hash, mode, COST (reg), 1);
+}
+
+/* The constant CST is equivalent to the register REG.  Create
+   equivalences between the two anchors of CST and the corresponding
+   register-offset expressions using REG.  */
+
+static void
+insert_const_anchors (rtx reg, rtx cst, enum machine_mode mode)
+{
+  HOST_WIDE_INT lower_base, lower_offs, upper_base, upper_offs;
+
+  if (!compute_const_anchors (cst, &lower_base, &lower_offs,
+			      &upper_base, &upper_offs))
+      return;
+
+  /* Ignore anchors of value 0.  Constants accessible from zero are
+     simple.  */
+  if (lower_base != 0)
+    insert_const_anchor (lower_base, reg, -lower_offs, mode);
+
+  if (upper_base != 0)
+    insert_const_anchor (upper_base, reg, -upper_offs, mode);
+}
+
+/* We need to express ANCHOR_ELT->exp + OFFS.  Walk the equivalence list of
+   ANCHOR_ELT and see if offsetting any of the entries by OFFS would create a
+   valid expression.  Return the cheapest and oldest of such expressions.  In
+   *OLD, return how old the resulting expression is compared to the other
+   equivalent expressions.  */
+
+static rtx
+find_reg_offset_for_const (struct table_elt *anchor_elt, HOST_WIDE_INT offs,
+			   unsigned *old)
+{
+  struct table_elt *elt;
+  unsigned idx;
+  struct table_elt *match_elt;
+  rtx match;
+
+  /* Find the cheapest and *oldest* expression to maximize the chance of
+     reusing the same pseudo.  */
+
+  match_elt = NULL;
+  match = NULL_RTX;
+  for (elt = anchor_elt->first_same_value, idx = 0;
+       elt;
+       elt = elt->next_same_value, idx++)
+    {
+      if (match_elt && CHEAPER (match_elt, elt))
+	return match;
+
+      if (REG_P (elt->exp)
+	  || (GET_CODE (elt->exp) == PLUS
+	      && REG_P (XEXP (elt->exp, 0))
+	      && GET_CODE (XEXP (elt->exp, 1)) == CONST_INT))
+	{
+	  rtx x;
+
+	  /* Ignore expressions that are no longer valid.  */
+	  if (!REG_P (elt->exp) && !exp_equiv_p (elt->exp, elt->exp, 1, false))
+	    continue;
+
+	  x = plus_constant (elt->exp, offs);
+	  if (REG_P (x)
+	      || (GET_CODE (x) == PLUS
+		  && IN_RANGE (INTVAL (XEXP (x, 1)),
+			       -targetm.const_anchor,
+			       targetm.const_anchor - 1)))
+	    {
+	      match = x;
+	      match_elt = elt;
+	      *old = idx;
+	    }
+	}
+    }
+
+  return match;
+}
+
+/* Try to express the constant SRC_CONST using a register+offset expression
+   derived from a constant anchor.  Return it if successful or NULL_RTX,
+   otherwise.  */
+
+static rtx
+try_const_anchors (rtx src_const, enum machine_mode mode)
+{
+  struct table_elt *lower_elt, *upper_elt;
+  HOST_WIDE_INT lower_base, lower_offs, upper_base, upper_offs;
+  rtx lower_anchor_rtx, upper_anchor_rtx;
+  rtx lower_exp = NULL_RTX, upper_exp = NULL_RTX;
+  unsigned lower_old, upper_old;
+
+  if (!compute_const_anchors (src_const, &lower_base, &lower_offs,
+			      &upper_base, &upper_offs))
+    return NULL_RTX;
+
+  lower_anchor_rtx = GEN_INT (lower_base);
+  upper_anchor_rtx = GEN_INT (upper_base);
+  lower_elt = lookup (lower_anchor_rtx, HASH (lower_anchor_rtx, mode), mode);
+  upper_elt = lookup (upper_anchor_rtx, HASH (upper_anchor_rtx, mode), mode);
+
+  if (lower_elt)
+    lower_exp = find_reg_offset_for_const (lower_elt, lower_offs, &lower_old);
+  if (upper_elt)
+    upper_exp = find_reg_offset_for_const (upper_elt, upper_offs, &upper_old);
+
+  if (!lower_exp)
+    return upper_exp;
+  if (!upper_exp)
+    return lower_exp;
+
+  /* Return the older expression.  */
+  return (upper_old > lower_old ? upper_exp : lower_exp);
+}
+
 /* Look in or update the hash table.  */
 
 /* Remove table element ELT from use in the table.
@@ -1380,11 +1555,11 @@ lookup_as_function (rtx x, enum rtx_code code)
   return 0;
 }
 
-/* Insert X in the hash table, assuming HASH is its hash code
-   and CLASSP is an element of the class it should go in
-   (or 0 if a new class should be made).
-   It is inserted at the proper position to keep the class in
-   the order cheapest first.
+/* Insert X in the hash table, assuming HASH is its hash code and
+   CLASSP is an element of the class it should go in (or 0 if a new
+   class should be made).  COST is the code of X and reg_cost is the
+   cost of registers in X.  It is inserted at the proper position to
+   keep the class in the order cheapest first.
 
    MODE is the machine-mode of X, or if X is an integer constant
    with VOIDmode then MODE is the mode with which X will be used.
@@ -1404,11 +1579,9 @@ lookup_as_function (rtx x, enum rtx_code code)
 
    If necessary, update table showing constant values of quantities.  */
 
-#define CHEAPER(X, Y) \
- (preferable ((X)->cost, (X)->regcost, (Y)->cost, (Y)->regcost) < 0)
-
 static struct table_elt *
-insert (rtx x, struct table_elt *classp, unsigned int hash, enum machine_mode mode)
+insert_with_costs (rtx x, struct table_elt *classp, unsigned int hash,
+		   enum machine_mode mode, int cost, int reg_cost)
 {
   struct table_elt *elt;
 
@@ -1430,8 +1603,8 @@ insert (rtx x, struct table_elt *classp, unsigned int hash, enum machine_mode mo
 
   elt->exp = x;
   elt->canon_exp = NULL_RTX;
-  elt->cost = COST (x);
-  elt->regcost = approx_reg_cost (x);
+  elt->cost = cost;
+  elt->regcost = reg_cost;
   elt->next_same_value = 0;
   elt->prev_same_value = 0;
   elt->next_same_hash = table[hash];
@@ -1566,6 +1739,17 @@ insert (rtx x, struct table_elt *classp, unsigned int hash, enum machine_mode mo
 
   return elt;
 }
+
+/* Wrap insert_with_costs by passing the default costs.  */
+
+static struct table_elt *
+insert (rtx x, struct table_elt *classp, unsigned int hash,
+	enum machine_mode mode)
+{
+  return
+    insert_with_costs (x, classp, hash, mode, COST (x), approx_reg_cost (x));
+}
+
 
 /* Given two equivalence classes, CLASS1 and CLASS2, put all the entries from
    CLASS2 into CLASS1.  This is done when we have reached an insn which makes
@@ -2629,7 +2813,7 @@ cse_rtx_varies_p (const_rtx x, bool from_alias)
     }
 
   if (GET_CODE (x) == PLUS
-      && GET_CODE (XEXP (x, 1)) == CONST_INT
+      && CONST_INT_P (XEXP (x, 1))
       && REG_P (XEXP (x, 0))
       && REGNO_QTY_VALID_P (REGNO (XEXP (x, 0))))
     {
@@ -3341,7 +3525,7 @@ fold_rtx (rtx x, rtx insn)
 
 	  if (y != 0
 	      && (inner_const = equiv_constant (XEXP (y, 1))) != 0
-	      && GET_CODE (inner_const) == CONST_INT
+	      && CONST_INT_P (inner_const)
 	      && INTVAL (inner_const) != 0)
 	    folded_arg0 = gen_rtx_IOR (mode_arg0, XEXP (y, 0), inner_const);
 	}
@@ -3411,7 +3595,7 @@ fold_rtx (rtx x, rtx insn)
 	     the smallest negative number this would overflow: depending
 	     on the mode, this would either just be the same value (and
 	     hence not save anything) or be incorrect.  */
-	  if (const_arg1 != 0 && GET_CODE (const_arg1) == CONST_INT
+	  if (const_arg1 != 0 && CONST_INT_P (const_arg1)
 	      && INTVAL (const_arg1) < 0
 	      /* This used to test
 
@@ -3439,10 +3623,10 @@ fold_rtx (rtx x, rtx insn)
 	case MINUS:
 	  /* If we have (MINUS Y C), see if Y is known to be (PLUS Z C2).
 	     If so, produce (PLUS Z C2-C).  */
-	  if (const_arg1 != 0 && GET_CODE (const_arg1) == CONST_INT)
+	  if (const_arg1 != 0 && CONST_INT_P (const_arg1))
 	    {
 	      rtx y = lookup_as_function (XEXP (x, 0), PLUS);
-	      if (y && GET_CODE (XEXP (y, 1)) == CONST_INT)
+	      if (y && CONST_INT_P (XEXP (y, 1)))
 		return fold_rtx (plus_constant (copy_rtx (y),
 						-INTVAL (const_arg1)),
 				 NULL_RTX);
@@ -3463,7 +3647,7 @@ fold_rtx (rtx x, rtx insn)
 	     if the intermediate operation's result has only one reference.  */
 
 	  if (REG_P (folded_arg0)
-	      && const_arg1 && GET_CODE (const_arg1) == CONST_INT)
+	      && const_arg1 && CONST_INT_P (const_arg1))
 	    {
 	      int is_shift
 		= (code == ASHIFT || code == ASHIFTRT || code == LSHIFTRT);
@@ -3496,7 +3680,7 @@ fold_rtx (rtx x, rtx insn)
 		break;
 
 	      inner_const = equiv_constant (fold_rtx (XEXP (y, 1), 0));
-	      if (!inner_const || GET_CODE (inner_const) != CONST_INT)
+	      if (!inner_const || !CONST_INT_P (inner_const))
 		break;
 
 	      /* Don't associate these operations if they are a PLUS with the
@@ -3550,7 +3734,7 @@ fold_rtx (rtx x, rtx insn)
 		 of shifts.  */
 
 	      if (is_shift
-		  && GET_CODE (new_const) == CONST_INT
+		  && CONST_INT_P (new_const)
 		  && INTVAL (new_const) >= GET_MODE_BITSIZE (mode))
 		{
 		  /* As an exception, we can turn an ASHIFTRT of this
@@ -4174,6 +4358,8 @@ cse_insn (rtx insn)
       apply_change_group ();
       fold_rtx (x, insn);
     }
+  else if (DEBUG_INSN_P (insn))
+    canon_reg (PATTERN (insn), insn);
 
   /* Store the equivalent value in SRC_EQV, if different, or if the DEST
      is a STRICT_LOW_PART.  The latter condition is necessary because SRC_EQV
@@ -4253,6 +4439,7 @@ cse_insn (rtx insn)
       rtx src_eqv_here;
       rtx src_const = 0;
       rtx src_related = 0;
+      bool src_related_is_const_anchor = false;
       struct table_elt *src_const_elt = 0;
       int src_cost = MAX_COST;
       int src_eqv_cost = MAX_COST;
@@ -4321,8 +4508,8 @@ cse_insn (rtx insn)
 	{
 	  rtx width = XEXP (SET_DEST (sets[i].rtl), 1);
 
-	  if (GET_CODE (src) == CONST_INT
-	      && GET_CODE (width) == CONST_INT
+	  if (CONST_INT_P (src)
+	      && CONST_INT_P (width)
 	      && INTVAL (width) < HOST_BITS_PER_WIDE_INT
 	      && (INTVAL (src) & ((HOST_WIDE_INT) (-1) << INTVAL (width))))
 	    src_folded
@@ -4483,7 +4670,7 @@ cse_insn (rtx insn)
       /* See if we have a CONST_INT that is already in a register in a
 	 wider mode.  */
 
-      if (src_const && src_related == 0 && GET_CODE (src_const) == CONST_INT
+      if (src_const && src_related == 0 && CONST_INT_P (src_const)
 	  && GET_MODE_CLASS (mode) == MODE_INT
 	  && GET_MODE_BITSIZE (mode) < BITS_PER_WORD)
 	{
@@ -4518,7 +4705,7 @@ cse_insn (rtx insn)
 	 value.  */
 
       if (flag_expensive_optimizations && ! src_related
-	  && GET_CODE (src) == AND && GET_CODE (XEXP (src, 1)) == CONST_INT
+	  && GET_CODE (src) == AND && CONST_INT_P (XEXP (src, 1))
 	  && GET_MODE_SIZE (mode) < UNITS_PER_WORD)
 	{
 	  enum machine_mode tmode;
@@ -4601,6 +4788,19 @@ cse_insn (rtx insn)
 	    }
 	}
 #endif /* LOAD_EXTEND_OP */
+
+      /* Try to express the constant using a register+offset expression
+	 derived from a constant anchor.  */
+
+      if (targetm.const_anchor
+	  && !src_related
+	  && src_const
+	  && GET_CODE (src_const) == CONST_INT)
+	{
+	  src_related = try_const_anchors (src_const, mode);
+	  src_related_is_const_anchor = src_related != NULL_RTX;
+	}
+
 
       if (src == src_folded)
 	src_folded = 0;
@@ -4706,6 +4906,18 @@ cse_insn (rtx insn)
 	    {
 	      src_related_cost = COST (src_related);
 	      src_related_regcost = approx_reg_cost (src_related);
+
+	      /* If a const-anchor is used to synthesize a constant that
+		 normally requires multiple instructions then slightly prefer
+		 it over the original sequence.  These instructions are likely
+		 to become redundant now.  We can't compare against the cost
+		 of src_eqv_here because, on MIPS for example, multi-insn
+		 constants have zero cost; they are assumed to be hoisted from
+		 loops.  */
+	      if (src_related_is_const_anchor
+		  && src_related_cost == src_cost
+		  && src_eqv_here)
+		src_related_cost--;
 	    }
 	}
 
@@ -5016,8 +5228,8 @@ cse_insn (rtx insn)
 	{
 	  rtx width = XEXP (SET_DEST (sets[i].rtl), 1);
 
-	  if (src_const != 0 && GET_CODE (src_const) == CONST_INT
-	      && GET_CODE (width) == CONST_INT
+	  if (src_const != 0 && CONST_INT_P (src_const)
+	      && CONST_INT_P (width)
 	      && INTVAL (width) < HOST_BITS_PER_WIDE_INT
 	      && ! (INTVAL (src_const)
 		    & ((HOST_WIDE_INT) (-1) << INTVAL (width))))
@@ -5440,6 +5652,14 @@ cse_insn (rtx insn)
 	elt = insert (dest, sets[i].src_elt,
 		      sets[i].dest_hash, GET_MODE (dest));
 
+	/* If this is a constant, insert the constant anchors with the
+	   equivalent register-offset expressions using register DEST.  */
+	if (targetm.const_anchor
+	    && REG_P (dest)
+	    && SCALAR_INT_MODE_P (GET_MODE (dest))
+	    && GET_CODE (sets[i].src_elt->exp) == CONST_INT)
+	  insert_const_anchors (dest, sets[i].src_elt->exp, GET_MODE (dest));
+
 	elt->in_memory = (MEM_P (sets[i].inner_dest)
 			  && !MEM_READONLY_P (sets[i].inner_dest));
 
@@ -5570,7 +5790,7 @@ cse_insn (rtx insn)
 	    {
 	      prev = PREV_INSN (prev);
 	    }
-	  while (prev != bb_head && NOTE_P (prev));
+	  while (prev != bb_head && (NOTE_P (prev) || DEBUG_INSN_P (prev)));
 
 	  /* Do not swap the registers around if the previous instruction
 	     attaches a REG_EQUIV note to REG1.
@@ -6026,7 +6246,7 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
 
 	     FIXME: This is a real kludge and needs to be done some other
 		    way.  */
-	  if (INSN_P (insn)
+	  if (NONDEBUG_INSN_P (insn)
 	      && num_insns++ > PARAM_VALUE (PARAM_MAX_CSE_INSNS))
 	    {
 	      flush_hash_table ();
@@ -6318,12 +6538,15 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
 		       incr);
       return;
 
+    case DEBUG_INSN:
+      return;
+
     case CALL_INSN:
     case INSN:
     case JUMP_INSN:
-    /* We expect dest to be NULL_RTX here.  If the insn may trap, mark
-       this fact by setting DEST to pc_rtx.  */
-      if (flag_non_call_exceptions && may_trap_p (PATTERN (x)))
+      /* We expect dest to be NULL_RTX here.  If the insn may trap, mark
+         this fact by setting DEST to pc_rtx.  */
+      if (insn_could_throw_p (x))
 	dest = pc_rtx;
       if (code == CALL_INSN)
 	count_reg_usage (CALL_INSN_FUNCTION_USAGE (x), counts, dest, incr);
@@ -6390,6 +6613,19 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
     }
 }
 
+/* Return true if a register is dead.  Can be used in for_each_rtx.  */
+
+static int
+is_dead_reg (rtx *loc, void *data)
+{
+  rtx x = *loc;
+  int *counts = (int *)data;
+
+  return (REG_P (x)
+	  && REGNO (x) >= FIRST_PSEUDO_REGISTER
+	  && counts[REGNO (x)] == 0);
+}
+
 /* Return true if set is live.  */
 static bool
 set_live_p (rtx set, rtx insn ATTRIBUTE_UNUSED, /* Only used with HAVE_cc0.  */
@@ -6410,9 +6646,7 @@ set_live_p (rtx set, rtx insn ATTRIBUTE_UNUSED, /* Only used with HAVE_cc0.  */
 	       || !reg_referenced_p (cc0_rtx, PATTERN (tem))))
     return false;
 #endif
-  else if (!REG_P (SET_DEST (set))
-	   || REGNO (SET_DEST (set)) < FIRST_PSEUDO_REGISTER
-	   || counts[REGNO (SET_DEST (set))] != 0
+  else if (!is_dead_reg (&SET_DEST (set), counts)
 	   || side_effects_p (SET_SRC (set)))
     return true;
   return false;
@@ -6424,7 +6658,7 @@ static bool
 insn_live_p (rtx insn, int *counts)
 {
   int i;
-  if (flag_non_call_exceptions && may_trap_p (PATTERN (insn)))
+  if (insn_could_throw_p (insn))
     return true;
   else if (GET_CODE (PATTERN (insn)) == SET)
     return set_live_p (PATTERN (insn), insn, counts);
@@ -6443,6 +6677,29 @@ insn_live_p (rtx insn, int *counts)
 	    return true;
 	}
       return false;
+    }
+  else if (DEBUG_INSN_P (insn))
+    {
+      rtx next;
+
+      for (next = NEXT_INSN (insn); next; next = NEXT_INSN (next))
+	if (NOTE_P (next))
+	  continue;
+	else if (!DEBUG_INSN_P (next))
+	  return true;
+	else if (INSN_VAR_LOCATION_DECL (insn) == INSN_VAR_LOCATION_DECL (next))
+	  return false;
+
+      /* If this debug insn references a dead register, drop the
+	 location expression for now.  ??? We could try to find the
+	 def and see if propagation is possible.  */
+      if (for_each_rtx (&INSN_VAR_LOCATION_LOC (insn), is_dead_reg, counts))
+	{
+	  INSN_VAR_LOCATION_LOC (insn) = gen_rtx_UNKNOWN_VAR_LOC ();
+	  df_insn_rescan (insn);
+	}
+
+      return true;
     }
   else
     return true;

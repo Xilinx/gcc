@@ -1090,6 +1090,13 @@ GFORTRAN_1.1 {
     _gfortran_unpack1_char4;
 } GFORTRAN_1.0; 
 
+
+GFORTRAN_1.2 {
+  global:
+    _gfortran_clz128;
+    _gfortran_ctz128;
+} GFORTRAN_1.1; 
+
 F2C_1.0 {
   global:
     _gfortran_f2c_specific__abs_c4;
@@ -1221,3 +1228,32 @@ GFORTRAN_C99_1.0 {
     y1f;
     ynf;
 };
+
+GFORTRAN_C99_1.1 {
+  global:
+    cacos;
+    cacosf;
+    cacosh;
+    cacoshf;
+    cacoshl;
+    cacosl;
+    casin;
+    casinf;
+    casinh;
+    casinhf;
+    casinhl;
+    casinl;
+    catan;
+    catanf;
+    catanh;
+    catanhf;
+    catanhl;
+    catanl;
+    llround;
+    llroundf;
+    llroundl;
+    lround;
+    lroundf;
+    lroundl;
+    roundl;
+} GFORTRAN_C99_1.0;

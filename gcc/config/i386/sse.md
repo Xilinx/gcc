@@ -64,21 +64,21 @@
 (define_mode_iterator SSEMODE4S [V4SF V4SI])
 (define_mode_iterator SSEMODE2D [V2DF V2DI])
 
+;; Modes handled by integer vcond pattern
+(define_mode_iterator SSEMODE124C8 [V16QI V8HI V4SI
+				    (V2DI "TARGET_SSE4_2")])
+
 ;; Mapping from float mode to required SSE level
 (define_mode_attr sse [(SF "sse") (DF "sse2") (V4SF "sse") (V2DF "sse2")])
 
 ;; Mapping from integer vector mode to mnemonic suffix
 (define_mode_attr ssevecsize [(V16QI "b") (V8HI "w") (V4SI "d") (V2DI "q")])
 
-;; Mapping of the sse5 suffix
+;; Mapping of the avx suffix
 (define_mode_attr ssemodesuffixf4 [(SF "ss") (DF "sd")
 				   (V4SF "ps") (V2DF "pd")])
-(define_mode_attr ssemodesuffixf2s [(SF "ss") (DF "sd")
-				    (V4SF "ss") (V2DF "sd")])
-(define_mode_attr ssemodesuffixf2c [(V4SF "s") (V2DF "d")])
 
-;; Mapping of the max integer size for sse5 rotate immediate constraint
-(define_mode_attr sserotatemax [(V16QI "7") (V8HI "15") (V4SI "31") (V2DI "63")])
+(define_mode_attr ssemodesuffixf2c [(V4SF "s") (V2DF "d")])
 
 ;; Mapping of vector modes back to the scalar modes
 (define_mode_attr ssescalarmode [(V4SF "SF") (V2DF "DF")
@@ -437,6 +437,7 @@
   "TARGET_SSE2"
   "movnti\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_data16" "0")
    (set_attr "mode" "V2DF")])
 
 (define_insn "avx_lddqu<avxmodesuffix>"
@@ -459,6 +460,7 @@
   "lddqu\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssemov")
    (set_attr "movu" "1")
+   (set_attr "prefix_data16" "0")
    (set_attr "prefix_rep" "1")
    (set_attr "mode" "TI")])
 
@@ -1407,6 +1409,7 @@
   "TARGET_AVX"
   "vcmpp<avxmodesuffixf2c>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssecmp")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
@@ -1423,6 +1426,7 @@
   "TARGET_AVX"
   "vcmps<ssemodesuffixf2c>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssecmp")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<ssescalarmode>")])
 
@@ -1437,6 +1441,7 @@
   "vcmp%D3p<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "ssecmp")
    (set_attr "prefix" "vex")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "<avxvecmode>")])
 
 (define_insn "<sse>_maskcmp<mode>3"
@@ -1444,10 +1449,10 @@
 	(match_operator:SSEMODEF4 3 "sse_comparison_operator"
 		[(match_operand:SSEMODEF4 1 "register_operand" "0")
 		 (match_operand:SSEMODEF4 2 "nonimmediate_operand" "xm")]))]
-  "(SSE_FLOAT_MODE_P (<MODE>mode) || SSE_VEC_FLOAT_MODE_P (<MODE>mode))
-   && !TARGET_SSE5"
+  "(SSE_FLOAT_MODE_P (<MODE>mode) || SSE_VEC_FLOAT_MODE_P (<MODE>mode))"
   "cmp%D3<ssemodesuffixf4>\t{%2, %0|%0, %2}"
   [(set_attr "type" "ssecmp")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "<MODE>")])
 
 (define_insn "<sse>_vmmaskcmp<mode>3"
@@ -1458,9 +1463,10 @@
 		 (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "xm")])
 	 (match_dup 1)
 	 (const_int 1)))]
-  "SSE_VEC_FLOAT_MODE_P (<MODE>mode) && !TARGET_SSE5"
+  "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
   "cmp%D3s<ssemodesuffixf2c>\t{%2, %0|%0, %2}"
   [(set_attr "type" "ssecmp")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "<ssescalarmode>")])
 
 (define_insn "<sse>_comi"
@@ -1476,6 +1482,11 @@
   "%vcomis<ssemodefsuffix>\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssecomi")
    (set_attr "prefix" "maybe_vex")
+   (set_attr "prefix_rep" "0")
+   (set (attr "prefix_data16")
+	(if_then_else (eq_attr "mode" "DF")
+		      (const_string "1")
+		      (const_string "0")))
    (set_attr "mode" "<MODE>")])
 
 (define_insn "<sse>_ucomi"
@@ -1491,6 +1502,11 @@
   "%vucomis<ssemodefsuffix>\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssecomi")
    (set_attr "prefix" "maybe_vex")
+   (set_attr "prefix_rep" "0")
+   (set (attr "prefix_data16")
+	(if_then_else (eq_attr "mode" "DF")
+		      (const_string "1")
+		      (const_string "0")))
    (set_attr "mode" "<MODE>")])
 
 (define_expand "vcond<mode>"
@@ -1503,10 +1519,9 @@
           (match_operand:SSEMODEF2P 2 "general_operand" "")))]
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
 {
-  if (ix86_expand_fp_vcond (operands))
-    DONE;
-  else
-    FAIL;
+  bool ok = ix86_expand_fp_vcond (operands);
+  gcc_assert (ok);
+  DONE;
 })
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1577,6 +1592,24 @@
   [(set_attr "type" "sselog")
    (set_attr "mode" "<MODE>")])
 
+(define_expand "copysign<mode>3"
+  [(set (match_dup 4)
+	(and:SSEMODEF2P 
+	  (not:SSEMODEF2P (match_dup 3))
+	  (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "")))
+   (set (match_dup 5)
+	(and:SSEMODEF2P (match_dup 3)
+			(match_operand:SSEMODEF2P 2 "nonimmediate_operand" "")))
+   (set (match_operand:SSEMODEF2P 0 "register_operand" "")
+	(ior:SSEMODEF2P (match_dup 4) (match_dup 5)))]
+  "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
+{
+  operands[3] = ix86_build_signbit_mask (<ssescalarmode>mode, 1, 0);
+
+  operands[4] = gen_reg_rtx (<MODE>mode);
+  operands[5] = gen_reg_rtx (<MODE>mode);
+})
+
 ;; Also define scalar versions.  These are used for abs, neg, and
 ;; conditional move.  Using subregs into vector modes causes register
 ;; allocation lossage.  These patterns do not allow memory operands
@@ -1628,563 +1661,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; SSE5 floating point multiply/accumulate instructions This includes the
-;; scalar version of the instructions as well as the vector
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; In order to match (*a * *b) + *c, particularly when vectorizing, allow
-;; combine to generate a multiply/add with two memory references.  We then
-;; split this insn, into loading up the destination register with one of the
-;; memory operations.  If we don't manage to split the insn, reload will
-;; generate the appropriate moves.  The reason this is needed, is that combine
-;; has already folded one of the memory references into both the multiply and
-;; add insns, and it can't generate a new pseudo.  I.e.:
-;;	(set (reg1) (mem (addr1)))
-;;	(set (reg2) (mult (reg1) (mem (addr2))))
-;;	(set (reg3) (plus (reg2) (mem (addr3))))
-
-(define_insn "sse5_fmadd<mode>4"
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x,x,x")
-	(plus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "%0,0,x,xm")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,xm,xm,x"))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x,0,0")))]
-  "TARGET_SSE5 && TARGET_FUSED_MADD
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, true)"
-  "fmadd<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Split fmadd with two memory operands into a load and the fmadd.
-(define_split
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "")
-	(plus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_SSE5
-   && !ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_sse5_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_sse5_fmadd<mode>4 (operands[0], operands[1],
-				    operands[2], operands[3]));
-  DONE;
-})
-
-;; For the scalar operations, use operand1 for the upper words that aren't
-;; modified, so restrict the forms that are generated.
-;; Scalar version of fmadd
-(define_insn "sse5_vmfmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
-	(vec_merge:SSEMODEF2P
-	 (plus:SSEMODEF2P
-	  (mult:SSEMODEF2P
-	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,0")
-	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
-	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
-	 (match_dup 1)
-	 (const_int 1)))]
-  "TARGET_SSE5 && TARGET_FUSED_MADD
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)"
-  "fmadd<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Floating multiply and subtract
-;; Allow two memory operands the same as fmadd
-(define_insn "sse5_fmsub<mode>4"
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x,x,x")
-	(minus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "%0,0,x,xm")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,xm,xm,x"))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x,0,0")))]
-  "TARGET_SSE5 && TARGET_FUSED_MADD
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, true)"
-  "fmsub<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Split fmsub with two memory operands into a load and the fmsub.
-(define_split
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "")
-	(minus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_SSE5
-   && !ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_sse5_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_sse5_fmsub<mode>4 (operands[0], operands[1],
-				    operands[2], operands[3]));
-  DONE;
-})
-
-;; For the scalar operations, use operand1 for the upper words that aren't
-;; modified, so restrict the forms that are generated.
-;; Scalar version of fmsub
-(define_insn "sse5_vmfmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
-	(vec_merge:SSEMODEF2P
-	 (minus:SSEMODEF2P
-	  (mult:SSEMODEF2P
-	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,0")
-	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
-	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
-	 (match_dup 1)
-	 (const_int 1)))]
-  "TARGET_SSE5 && TARGET_FUSED_MADD
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "fmsub<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Floating point negative multiply and add
-;; Rewrite (- (a * b) + c) into the canonical form: c - (a * b)
-;; Note operands are out of order to simplify call to ix86_sse5_valid_p
-;; Allow two memory operands to help in optimizing.
-(define_insn "sse5_fnmadd<mode>4"
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x,x,x")
-	(minus:SSEMODEF4
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x,0,0")
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "%0,0,x,xm")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,xm,xm,x"))))]
-  "TARGET_SSE5 && TARGET_FUSED_MADD
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, true)"
-  "fnmadd<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Split fnmadd with two memory operands into a load and the fnmadd.
-(define_split
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "")
-	(minus:SSEMODEF4
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "")
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" ""))))]
-  "TARGET_SSE5
-   && !ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_sse5_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_sse5_fnmadd<mode>4 (operands[0], operands[1],
-				     operands[2], operands[3]));
-  DONE;
-})
-
-;; For the scalar operations, use operand1 for the upper words that aren't
-;; modified, so restrict the forms that are generated.
-;; Scalar version of fnmadd
-(define_insn "sse5_vmfnmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
-	(vec_merge:SSEMODEF2P
-	 (minus:SSEMODEF2P
-	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x")
-	  (mult:SSEMODEF2P
-	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,0")
-	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm")))
-	 (match_dup 1)
-	 (const_int 1)))]
-  "TARGET_SSE5 && TARGET_FUSED_MADD
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)"
-  "fnmadd<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Floating point negative multiply and subtract
-;; Rewrite (- (a * b) - c) into the canonical form: ((-a) * b) - c
-;; Allow 2 memory operands to help with optimization
-(define_insn "sse5_fnmsub<mode>4"
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x")
-	(minus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (neg:SSEMODEF4
-	   (match_operand:SSEMODEF4 1 "nonimmediate_operand" "0,0"))
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,xm"))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x")))]
-  "TARGET_SSE5 && TARGET_FUSED_MADD
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, false)"
-  "fnmsub<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Split fnmsub with two memory operands into a load and the fmsub.
-(define_split
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "")
-	(minus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (neg:SSEMODEF4
-	   (match_operand:SSEMODEF4 1 "nonimmediate_operand" ""))
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_SSE5
-   && !ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, false)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_sse5_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_sse5_fnmsub<mode>4 (operands[0], operands[1],
-				     operands[2], operands[3]));
-  DONE;
-})
-
-;; For the scalar operations, use operand1 for the upper words that aren't
-;; modified, so restrict the forms that are generated.
-;; Scalar version of fnmsub
-(define_insn "sse5_vmfnmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
-	(vec_merge:SSEMODEF2P
-	 (minus:SSEMODEF2P
-	  (mult:SSEMODEF2P
-	   (neg:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,0"))
-	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
-	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
-	 (match_dup 1)
-	 (const_int 1)))]
-  "TARGET_SSE5 && TARGET_FUSED_MADD
-   && ix86_sse5_valid_op_p (operands, insn, 4, true, 2, false)"
-  "fnmsub<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; The same instructions using an UNSPEC to allow the intrinsic to be used
-;; even if the user used -mno-fused-madd
-;; Parallel instructions.  During instruction generation, just default
-;; to registers, and let combine later build the appropriate instruction.
-(define_expand "sse5i_fmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(unspec:SSEMODEF2P
-	 [(plus:SSEMODEF2P
-	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "register_operand" "")
-	    (match_operand:SSEMODEF2P 2 "register_operand" ""))
-	   (match_operand:SSEMODEF2P 3 "register_operand" ""))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5"
-{
-  /* If we have -mfused-madd, emit the normal insn rather than the UNSPEC */
-  if (TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_sse5_fmadd<mode>4 (operands[0], operands[1],
-					operands[2], operands[3]));
-      DONE;
-    }
-})
-
-(define_insn "*sse5i_fmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x,x,x")
-	(unspec:SSEMODEF2P
-	 [(plus:SSEMODEF2P
-	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%0,0,x,xm")
-	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm,xm,x"))
-	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x,0,0"))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)"
-  "fmadd<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-(define_expand "sse5i_fmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(unspec:SSEMODEF2P
-	 [(minus:SSEMODEF2P
-	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "register_operand" "")
-	    (match_operand:SSEMODEF2P 2 "register_operand" ""))
-	   (match_operand:SSEMODEF2P 3 "register_operand" ""))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5"
-{
-  /* If we have -mfused-madd, emit the normal insn rather than the UNSPEC */
-  if (TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_sse5_fmsub<mode>4 (operands[0], operands[1],
-					operands[2], operands[3]));
-      DONE;
-    }
-})
-
-(define_insn "*sse5i_fmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x,x,x")
-	(unspec:SSEMODEF2P
-	 [(minus:SSEMODEF2P
-	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%0,0,x,xm")
-	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm,xm,x"))
-	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x,0,0"))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)"
-  "fmsub<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Rewrite (- (a * b) + c) into the canonical form: c - (a * b)
-;; Note operands are out of order to simplify call to ix86_sse5_valid_p
-(define_expand "sse5i_fnmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(unspec:SSEMODEF2P
-	 [(minus:SSEMODEF2P
-	   (match_operand:SSEMODEF2P 3 "register_operand" "")
-	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "register_operand" "")
-	    (match_operand:SSEMODEF2P 2 "register_operand" "")))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5"
-{
-  /* If we have -mfused-madd, emit the normal insn rather than the UNSPEC */
-  if (TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_sse5_fnmadd<mode>4 (operands[0], operands[1],
-					 operands[2], operands[3]));
-      DONE;
-    }
-})
-
-(define_insn "*sse5i_fnmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x,x,x")
-	(unspec:SSEMODEF2P
-	 [(minus:SSEMODEF2P
-	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x,0,0")
-	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%0,0,x,xm")
-	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm,xm,x")))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)"
-  "fnmadd<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Rewrite (- (a * b) - c) into the canonical form: ((-a) * b) - c
-(define_expand "sse5i_fnmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(unspec:SSEMODEF2P
-	 [(minus:SSEMODEF2P
-	   (mult:SSEMODEF2P
-	    (neg:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "register_operand" ""))
-	    (match_operand:SSEMODEF2P 2 "register_operand" ""))
-	   (match_operand:SSEMODEF2P 3 "register_operand" ""))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5"
-{
-  /* If we have -mfused-madd, emit the normal insn rather than the UNSPEC */
-  if (TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_sse5_fnmsub<mode>4 (operands[0], operands[1],
-					 operands[2], operands[3]));
-      DONE;
-    }
-})
-
-(define_insn "*sse5i_fnmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x,x,x")
-	(unspec:SSEMODEF2P
-	 [(minus:SSEMODEF2P
-	   (mult:SSEMODEF2P
-	    (neg:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,0,x,xm"))
-	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm,xm,x"))
-	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x,0,0"))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "fnmsub<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<MODE>")])
-
-;; Scalar instructions
-(define_expand "sse5i_vmfmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(unspec:SSEMODEF2P
-	 [(vec_merge:SSEMODEF2P
-	   (plus:SSEMODEF2P
-	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "register_operand" "")
-	     (match_operand:SSEMODEF2P 2 "register_operand" ""))
-	    (match_operand:SSEMODEF2P 3 "register_operand" ""))
-	   (match_dup 1)
-	   (const_int 0))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5"
-{
-  /* If we have -mfused-madd, emit the normal insn rather than the UNSPEC */
-  if (TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_sse5_vmfmadd<mode>4 (operands[0], operands[1],
-					  operands[2], operands[3]));
-      DONE;
-    }
-})
-
-;; For the scalar operations, use operand1 for the upper words that aren't
-;; modified, so restrict the forms that are accepted.
-(define_insn "*sse5i_vmfmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
-	(unspec:SSEMODEF2P
-	 [(vec_merge:SSEMODEF2P
-	   (plus:SSEMODEF2P
-	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "register_operand" "0,0")
-	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
-	    (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
-	   (match_dup 0)
-	   (const_int 0))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "fmadd<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<ssescalarmode>")])
-
-(define_expand "sse5i_vmfmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(unspec:SSEMODEF2P
-	 [(vec_merge:SSEMODEF2P
-	   (minus:SSEMODEF2P
-	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "register_operand" "")
-	     (match_operand:SSEMODEF2P 2 "register_operand" ""))
-	    (match_operand:SSEMODEF2P 3 "register_operand" ""))
-	   (match_dup 0)
-	   (const_int 1))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5"
-{
-  /* If we have -mfused-madd, emit the normal insn rather than the UNSPEC */
-  if (TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_sse5_vmfmsub<mode>4 (operands[0], operands[1],
-					  operands[2], operands[3]));
-      DONE;
-    }
-})
-
-(define_insn "*sse5i_vmfmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
-	(unspec:SSEMODEF2P
-	 [(vec_merge:SSEMODEF2P
-	   (minus:SSEMODEF2P
-	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "register_operand" "0,0")
-	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
-	    (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
-	   (match_dup 1)
-	   (const_int 1))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "fmsub<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<ssescalarmode>")])
-
-;; Note operands are out of order to simplify call to ix86_sse5_valid_p
-(define_expand "sse5i_vmfnmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(unspec:SSEMODEF2P
-	 [(vec_merge:SSEMODEF2P
-	   (minus:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 3 "register_operand" "")
-	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "register_operand" "")
-	     (match_operand:SSEMODEF2P 2 "register_operand" "")))
-	   (match_dup 1)
-	   (const_int 1))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5"
-{
-  /* If we have -mfused-madd, emit the normal insn rather than the UNSPEC */
-  if (TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_sse5_vmfnmadd<mode>4 (operands[0], operands[1],
-					   operands[2], operands[3]));
-      DONE;
-    }
-})
-
-(define_insn "*sse5i_vmfnmadd<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
-	(unspec:SSEMODEF2P
-	 [(vec_merge:SSEMODEF2P
-	   (minus:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x")
-	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%0,0")
-	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm")))
-	   (match_dup 1)
-	   (const_int 1))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, true)"
-  "fnmadd<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<ssescalarmode>")])
-
-(define_expand "sse5i_vmfnmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(unspec:SSEMODEF2P
-	 [(vec_merge:SSEMODEF2P
-	   (minus:SSEMODEF2P
-	    (mult:SSEMODEF2P
-	     (neg:SSEMODEF2P
-	      (match_operand:SSEMODEF2P 1 "register_operand" ""))
-	     (match_operand:SSEMODEF2P 2 "register_operand" ""))
-	    (match_operand:SSEMODEF2P 3 "register_operand" ""))
-	   (match_dup 1)
-	   (const_int 1))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5"
-{
-  /* If we have -mfused-madd, emit the normal insn rather than the UNSPEC */
-  if (TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_sse5_vmfnmsub<mode>4 (operands[0], operands[1],
-					   operands[2], operands[3]));
-      DONE;
-    }
-})
-
-(define_insn "*sse5i_vmfnmsub<mode>4"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
-	(unspec:SSEMODEF2P
-	 [(vec_merge:SSEMODEF2P
-	   (minus:SSEMODEF2P
-	    (mult:SSEMODEF2P
-	     (neg:SSEMODEF2P
-	      (match_operand:SSEMODEF2P 1 "register_operand" "0,0"))
-	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
-	    (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
-	   (match_dup 1)
-	   (const_int 1))]
-	 UNSPEC_SSE5_INTRINSIC))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "fnmsub<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "<ssescalarmode>")])
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
 ;; Parallel single-precision floating point conversion operations
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2222,6 +1698,7 @@
   "cvttps2pi\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssecvt")
    (set_attr "unit" "mmx")
+   (set_attr "prefix_rep" "0")
    (set_attr "mode" "SF")])
 
 (define_insn "*avx_cvtsi2ss"
@@ -2261,6 +1738,7 @@
   "TARGET_AVX && TARGET_64BIT"
   "vcvtsi2ssq\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseicvt")
+   (set_attr "length_vex" "4")
    (set_attr "prefix" "vex")
    (set_attr "mode" "SF")])
 
@@ -2274,6 +1752,7 @@
   "TARGET_SSE && TARGET_64BIT"
   "cvtsi2ssq\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseicvt")
+   (set_attr "prefix_rex" "1")
    (set_attr "athlon_decode" "vector,double")
    (set_attr "amdfam10_decode" "vector,double")
    (set_attr "mode" "SF")])
@@ -2382,6 +1861,31 @@
   [(set_attr "type" "ssecvt")
    (set_attr "mode" "V4SF")])
 
+(define_expand "sse2_cvtudq2ps"
+  [(set (match_dup 5)
+	(float:V4SF (match_operand:V4SI 1 "nonimmediate_operand" "")))
+   (set (match_dup 6)
+	(lt:V4SF (match_dup 5) (match_dup 3)))
+   (set (match_dup 7)
+	(and:V4SF (match_dup 6) (match_dup 4)))
+   (set (match_operand:V4SF 0 "register_operand" "")
+	(plus:V4SF (match_dup 5) (match_dup 7)))]
+  "TARGET_SSE2"
+{
+  REAL_VALUE_TYPE TWO32r;
+  rtx x;
+  int i;
+
+  real_ldexp (&TWO32r, &dconst1, 32);
+  x = const_double_from_real_value (TWO32r, SFmode);
+
+  operands[3] = force_reg (V4SFmode, CONST0_RTX (V4SFmode));
+  operands[4] = force_reg (V4SFmode, ix86_build_const_vector (SFmode, 1, x));
+
+  for (i = 5; i < 8; i++)
+    operands[i] = gen_reg_rtx (V4SFmode);
+})
+
 (define_insn "avx_cvtps2dq<avxmodesuffix>"
   [(set (match_operand:AVXMODEDCVTPS2DQ 0 "register_operand" "=x")
 	(unspec:AVXMODEDCVTPS2DQ
@@ -2420,6 +1924,7 @@
   "cvttps2dq\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssecvt")
    (set_attr "prefix_rep" "1")
+   (set_attr "prefix_data16" "0")
    (set_attr "mode" "TI")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2435,6 +1940,7 @@
   "cvtpi2pd\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssecvt")
    (set_attr "unit" "mmx,*")
+   (set_attr "prefix_data16" "1,*")
    (set_attr "mode" "V2DF")])
 
 (define_insn "sse2_cvtpd2pi"
@@ -2495,6 +2001,7 @@
   "TARGET_AVX && TARGET_64BIT"
   "vcvtsi2sdq\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseicvt")
+   (set_attr "length_vex" "4")
    (set_attr "prefix" "vex")
    (set_attr "mode" "DF")])
 
@@ -2508,6 +2015,7 @@
   "TARGET_SSE2 && TARGET_64BIT"
   "cvtsi2sdq\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseicvt")
+   (set_attr "prefix_rex" "1")
    (set_attr "mode" "DF")
    (set_attr "athlon_decode" "double,direct")
    (set_attr "amdfam10_decode" "vector,double")])
@@ -2649,6 +2157,7 @@
 		       : \"cvtpd2dq\t{%1, %0|%0, %1}\";"
   [(set_attr "type" "ssecvt")
    (set_attr "prefix_rep" "1")
+   (set_attr "prefix_data16" "0")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")
    (set_attr "amdfam10_decode" "double")])
@@ -2679,7 +2188,6 @@
   "* return TARGET_AVX ? \"vcvttpd2dq{x}\t{%1, %0|%0, %1}\"
 		       : \"cvttpd2dq\t{%1, %0|%0, %1}\";"
   [(set_attr "type" "ssecvt")
-   (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")
    (set_attr "amdfam10_decode" "double")])
@@ -2798,6 +2306,7 @@
   [(set_attr "type" "ssecvt")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "V2DF")
+   (set_attr "prefix_data16" "0")
    (set_attr "amdfam10_decode" "direct")])
 
 (define_expand "vec_unpacks_hi_v4sf"
@@ -2890,9 +2399,7 @@
 	  (match_dup 2)
 	    (parallel [(const_int 0) (const_int 1)]))))]
  "TARGET_SSE2"
-{
- operands[2] = gen_reg_rtx (V4SImode);
-})
+ "operands[2] = gen_reg_rtx (V4SImode);")
 
 (define_expand "vec_unpacks_float_lo_v4si"
   [(set (match_operand:V2DF 0 "register_operand" "")
@@ -2901,6 +2408,71 @@
 	    (match_operand:V4SI 1 "nonimmediate_operand" "")
 	    (parallel [(const_int 0) (const_int 1)]))))]
   "TARGET_SSE2")
+
+(define_expand "vec_unpacku_float_hi_v4si"
+  [(set (match_dup 5)
+	(vec_select:V4SI
+	  (match_operand:V4SI 1 "nonimmediate_operand" "")
+	  (parallel [(const_int 2)
+		     (const_int 3)
+		     (const_int 2)
+		     (const_int 3)])))
+   (set (match_dup 6)
+        (float:V2DF
+	  (vec_select:V2SI
+	  (match_dup 5)
+	    (parallel [(const_int 0) (const_int 1)]))))
+   (set (match_dup 7)
+	(lt:V2DF (match_dup 6) (match_dup 3)))
+   (set (match_dup 8)
+	(and:V2DF (match_dup 7) (match_dup 4)))
+   (set (match_operand:V2DF 0 "register_operand" "")
+	(plus:V2DF (match_dup 6) (match_dup 8)))]
+ "TARGET_SSE2"
+{
+  REAL_VALUE_TYPE TWO32r;
+  rtx x;
+  int i;
+
+  real_ldexp (&TWO32r, &dconst1, 32);
+  x = const_double_from_real_value (TWO32r, DFmode);
+
+  operands[3] = force_reg (V2DFmode, CONST0_RTX (V2DFmode));
+  operands[4] = force_reg (V2DFmode, ix86_build_const_vector (DFmode, 1, x));
+
+  operands[5] = gen_reg_rtx (V4SImode);
+ 
+  for (i = 6; i < 9; i++)
+    operands[i] = gen_reg_rtx (V2DFmode);
+})
+
+(define_expand "vec_unpacku_float_lo_v4si"
+  [(set (match_dup 5)
+	(float:V2DF
+	  (vec_select:V2SI
+	    (match_operand:V4SI 1 "nonimmediate_operand" "")
+	    (parallel [(const_int 0) (const_int 1)]))))
+   (set (match_dup 6)
+	(lt:V2DF (match_dup 5) (match_dup 3)))
+   (set (match_dup 7)
+	(and:V2DF (match_dup 6) (match_dup 4)))
+   (set (match_operand:V2DF 0 "register_operand" "")
+	(plus:V2DF (match_dup 5) (match_dup 7)))]
+  "TARGET_SSE2"
+{
+  REAL_VALUE_TYPE TWO32r;
+  rtx x;
+  int i;
+
+  real_ldexp (&TWO32r, &dconst1, 32);
+  x = const_double_from_real_value (TWO32r, DFmode);
+
+  operands[3] = force_reg (V2DFmode, CONST0_RTX (V2DFmode));
+  operands[4] = force_reg (V2DFmode, ix86_build_const_vector (DFmode, 1, x));
+
+  for (i = 5; i < 8; i++)
+    operands[i] = gen_reg_rtx (V2DFmode);
+})
 
 (define_expand "vec_pack_trunc_v2df"
   [(match_operand:V4SF 0 "register_operand" "")
@@ -3268,6 +2840,7 @@
   return "vshufps\t{%3, %2, %1, %0|%0, %1, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -3309,6 +2882,7 @@
   return "vshufps\t{%3, %2, %1, %0|%0, %1, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4SF")])
 
@@ -3334,6 +2908,7 @@
   return "shufps\t{%3, %2, %0|%0, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "V4SF")])
 
 (define_insn "sse_storehps"
@@ -3441,6 +3016,7 @@
    vmovlps\t{%2, %1, %0|%0, %1, %2}
    vmovlps\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog,ssemov,ssemov")
+   (set_attr "length_immediate" "1,*,*")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4SF,V2SF,V2SF")])
 
@@ -3457,6 +3033,7 @@
    movlps\t{%2, %0|%0, %2}
    movlps\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog,ssemov,ssemov")
+   (set_attr "length_immediate" "1,*,*")
    (set_attr "mode" "V4SF,V2SF,V2SF")])
 
 (define_insn "*avx_movss"
@@ -3489,6 +3066,7 @@
   "TARGET_AVX"
   "vshufps\t{$0, %1, %1, %0|%0, %1, %1, 0}"
   [(set_attr "type" "sselog1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4SF")])
 
@@ -3499,6 +3077,7 @@
   "TARGET_SSE"
   "shufps\t{$0, %0, %0|%0, %0, 0}"
   [(set_attr "type" "sselog1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "V4SF")])
 
 (define_insn "*vec_concatv2sf_avx"
@@ -3514,6 +3093,8 @@
    punpckldq\t{%2, %0|%0, %2}
    movd\t{%1, %0|%0, %1}"
   [(set_attr "type" "sselog,sselog,ssemov,mmxcvt,mmxmov")
+   (set_attr "length_immediate" "*,1,*,*,*")
+   (set_attr "prefix_extra" "*,1,*,*,*")
    (set (attr "prefix")
      (if_then_else (eq_attr "alternative" "3,4")
        (const_string "orig")
@@ -3535,7 +3116,9 @@
    punpckldq\t{%2, %0|%0, %2}
    movd\t{%1, %0|%0, %1}"
   [(set_attr "type" "sselog,sselog,ssemov,mmxcvt,mmxmov")
+   (set_attr "prefix_data16" "*,1,*,*,*")
    (set_attr "prefix_extra" "*,1,*,*,*")
+   (set_attr "length_immediate" "*,1,*,*,*")
    (set_attr "mode" "V4SF,V4SF,SF,DI,DI")])
 
 ;; ??? In theory we can match memory for the MMX alternative, but allowing
@@ -3636,6 +3219,8 @@
   return "vinsertps\t{%3, %2, %1, %0|%0, %1, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4SF")])
 
@@ -3652,7 +3237,9 @@
   return "insertps\t{%3, %2, %0|%0, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "V4SF")])
 
 (define_insn "*avx_insertps"
@@ -3665,6 +3252,8 @@
   "vinsertps\t{%3, %2, %1, %0|%0, %1, %2, %3}";
   [(set_attr "type" "sselog")
    (set_attr "prefix" "vex")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "V4SF")])
 
 (define_insn "sse4_1_insertps"
@@ -3676,7 +3265,9 @@
   "TARGET_SSE4_1"
   "insertps\t{%3, %2, %0|%0, %2, %3}";
   [(set_attr "type" "sselog")
+   (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "V4SF")])
 
 (define_split
@@ -3751,6 +3342,8 @@
   "TARGET_AVX"
   "vextractf128\t{$0x0, %1, %0|%0, %1, 0x0}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,store")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
@@ -3763,6 +3356,8 @@
   "TARGET_AVX"
   "vextractf128\t{$0x1, %1, %0|%0, %1, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,store")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
@@ -3776,6 +3371,8 @@
   "TARGET_AVX"
   "vextractf128\t{$0x1, %1, %0|%0, %1, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,store")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
@@ -3789,6 +3386,8 @@
   "TARGET_AVX"
   "vextractf128\t{$0x1, %1, %0|%0, %1, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,store")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
@@ -3804,6 +3403,8 @@
   "TARGET_AVX"
   "vextractf128\t{$0x1, %1, %0|%0, %1, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,store")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
@@ -3819,6 +3420,8 @@
   "TARGET_AVX"
   "vextractf128\t{$0x1, %1, %0|%0, %1, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,store")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
@@ -3838,6 +3441,8 @@
   "TARGET_AVX"
   "vextractf128\t{$0x1, %1, %0|%0, %1, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,store")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
@@ -3857,6 +3462,8 @@
   "TARGET_AVX"
   "vextractf128\t{$0x1, %1, %0|%0, %1, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,store")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
@@ -3869,7 +3476,9 @@
   "TARGET_SSE4_1"
   "%vextractps\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "V4SF")])
 
@@ -3962,6 +3571,7 @@
    movlpd\t{%H1, %0|%0, %H1}
    movhpd\t{%1, %0|%0, %1}"
   [(set_attr "type" "sselog,ssemov,ssemov")
+   (set_attr "prefix_data16" "*,1,1")
    (set_attr "mode" "V2DF,V1DF,V1DF")])
 
 (define_insn "avx_movddup256"
@@ -4082,6 +3692,7 @@
    movhpd\t{%2, %0|%0, %2}
    movlpd\t{%2, %H0|%H0, %2}"
   [(set_attr "type" "sselog,ssemov,ssemov")
+   (set_attr "prefix_data16" "*,1,1")
    (set_attr "mode" "V2DF,V1DF,V1DF")])
 
 (define_expand "avx_shufpd256"
@@ -4122,6 +3733,7 @@
   return "vshufpd\t{%3, %2, %1, %0|%0, %1, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4DF")])
 
@@ -4258,6 +3870,7 @@
   return "vshufpd\t{%3, %2, %1, %0|%0, %1, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V2DF")])
 
@@ -4279,6 +3892,7 @@
   return "shufpd\t{%3, %2, %0|%0, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "V2DF")])
 
 ;; Avoid combining registers from different units in a single alternative,
@@ -4312,6 +3926,7 @@
    #
    #"
   [(set_attr "type" "ssemov,sselog1,ssemov,fmov,imov")
+   (set_attr "prefix_data16" "1,*,*,*,*")
    (set_attr "mode" "V1DF,V2DF,DF,DF,DF")])
 
 (define_split
@@ -4340,6 +3955,7 @@
    #
    #"
   [(set_attr "type" "ssemov,ssemov,ssemov,fmov,imov")
+   (set_attr "prefix_data16" "1,*,*,*,*")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "V1DF,DF,DF,DF,DF")])
 
@@ -4406,6 +4022,8 @@
    #
    #"
   [(set_attr "type" "ssemov,sselog,sselog,ssemov,fmov,imov")
+   (set_attr "prefix_data16" "1,*,*,*,*,*")
+   (set_attr "length_immediate" "*,*,1,*,*,*")
    (set_attr "mode" "V1DF,V2DF,V2DF,DF,DF,DF")])
 
 (define_split
@@ -4469,6 +4087,8 @@
    #
    #"
   [(set_attr "type" "ssemov,ssemov,ssemov,sselog,ssemov,ssemov,fmov,imov")
+   (set_attr "prefix_data16" "*,1,*,*,1,*,*,*")
+   (set_attr "length_immediate" "*,*,*,1,*,*,*,*")
    (set_attr "mode" "DF,V1DF,V1DF,V2DF,V1DF,DF,DF,DF")])
 
 (define_split
@@ -4544,6 +4164,8 @@
    movhps\t{%H1, %0|%0, %H1}
    movhps\t{%1, %H0|%H0, %1}"
   [(set_attr "type" "ssemov,ssemov,ssemov,sselog,ssemov,ssemov")
+   (set_attr "prefix_data16" "*,1,1,*,*,*")
+   (set_attr "length_immediate" "*,*,*,1,*,*")
    (set_attr "mode" "DF,V1DF,V1DF,V2DF,V1DF,V1DF")])
 
 (define_insn "*vec_dupv2df_sse3"
@@ -4603,6 +4225,7 @@
    movlhps\t{%2, %0|%0, %2}
    movhps\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog,ssemov,ssemov,ssemov,ssemov")
+   (set_attr "prefix_data16" "*,1,*,*,*")
    (set_attr "mode" "V2DF,V1DF,DF,V4SF,V2SF")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4684,44 +4307,13 @@
 	(mult:V16QI (match_operand:V16QI 1 "register_operand" "")
 		    (match_operand:V16QI 2 "register_operand" "")))]
   "TARGET_SSE2
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
 {
-  rtx t[12], op0, op[3];
+  rtx t[12];
   int i;
-
-  if (TARGET_SSE5)
-    {
-      /* On SSE5, we can take advantage of the pperm instruction to pack and
-	 unpack the bytes.  Unpack data such that we've got a source byte in
-	 each low byte of each word.  We don't care what goes into the high
-	 byte, so put 0 there.  */
-      for (i = 0; i < 6; ++i)
-        t[i] = gen_reg_rtx (V8HImode);
-
-      for (i = 0; i < 2; i++)
-        {
-          op[0] = t[i];
-          op[1] = operands[i+1];
-          ix86_expand_sse5_unpack (op, true, true);		/* high bytes */
-
-          op[0] = t[i+2];
-          ix86_expand_sse5_unpack (op, true, false);		/* low bytes */
-        }
-
-      /* Multiply words.  */
-      emit_insn (gen_mulv8hi3 (t[4], t[0], t[1]));		/* high bytes */
-      emit_insn (gen_mulv8hi3 (t[5], t[2], t[3]));		/* low  bytes */
-
-      /* Pack the low byte of each word back into a single xmm */
-      op[0] = operands[0];
-      op[1] = t[5];
-      op[2] = t[4];
-      ix86_expand_sse5_pack (op);
-      DONE;
-    }
 
   for (i = 0; i < 12; ++i)
     t[i] = gen_reg_rtx (V16QImode);
@@ -4753,8 +4345,7 @@
   emit_insn (gen_sse2_punpckhbw (t[10], t[9], t[8]));	/* ........ACEGIKMO */
   emit_insn (gen_sse2_punpcklbw (t[11], t[9], t[8]));	/* ........BDFHJLNP */
 
-  op0 = operands[0];
-  emit_insn (gen_sse2_punpcklbw (op0, t[11], t[10]));	/* ABCDEFGHIJKLMNOP */
+  emit_insn (gen_sse2_punpcklbw (operands[0], t[11], t[10]));	/* ABCDEFGHIJKLMNOP */
   DONE;
 })
 
@@ -4951,6 +4542,7 @@
   "TARGET_AVX && ix86_binary_operator_ok (MULT, V4SImode, operands)"
   "vpmuldq\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseimul")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -5086,7 +4678,7 @@
 		   (match_operand:V4SI 2 "register_operand" "")))]
   "TARGET_SSE2"
 {
-  if (TARGET_SSE4_1 || TARGET_SSE5)
+  if (TARGET_SSE4_1)
     ix86_fixup_binary_operands_no_copy (MULT, V4SImode, operands);
 })
 
@@ -5097,6 +4689,7 @@
   "TARGET_AVX && ix86_binary_operator_ok (MULT, V4SImode, operands)"
   "vpmulld\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseimul")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -5110,37 +4703,12 @@
    (set_attr "prefix_extra" "1")
    (set_attr "mode" "TI")])
 
-;; We don't have a straight 32-bit parallel multiply on SSE5, so fake it with a
-;; multiply/add.  In general, we expect the define_split to occur before
-;; register allocation, so we have to handle the corner case where the target
-;; is the same as one of the inputs.
-(define_insn_and_split "*sse5_mulv4si3"
-  [(set (match_operand:V4SI 0 "register_operand" "=&x")
-	(mult:V4SI (match_operand:V4SI 1 "register_operand" "%x")
-		   (match_operand:V4SI 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE5"
-  "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
-  [(set (match_dup 0)
-	(match_dup 3))
-   (set (match_dup 0)
-	(plus:V4SI (mult:V4SI (match_dup 1)
-			      (match_dup 2))
-		   (match_dup 0)))]
-{
-  operands[3] = CONST0_RTX (V4SImode);
-}
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
 (define_insn_and_split "*sse2_mulv4si3"
   [(set (match_operand:V4SI 0 "register_operand" "")
 	(mult:V4SI (match_operand:V4SI 1 "register_operand" "")
 		   (match_operand:V4SI 2 "register_operand" "")))]
-  "TARGET_SSE2 && !TARGET_SSE4_1 && !TARGET_SSE5
-   && !(reload_completed || reload_in_progress)"
+  "TARGET_SSE2 && !TARGET_SSE4_1
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -5193,49 +4761,13 @@
 	(mult:V2DI (match_operand:V2DI 1 "register_operand" "")
 		   (match_operand:V2DI 2 "register_operand" "")))]
   "TARGET_SSE2
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
 {
   rtx t1, t2, t3, t4, t5, t6, thirtytwo;
   rtx op0, op1, op2;
-
-  if (TARGET_SSE5)
-    {
-      /* op1: A,B,C,D, op2: E,F,G,H */
-      op0 = operands[0];
-      op1 = gen_lowpart (V4SImode, operands[1]);
-      op2 = gen_lowpart (V4SImode, operands[2]);
-      t1 = gen_reg_rtx (V4SImode);
-      t2 = gen_reg_rtx (V4SImode);
-      t3 = gen_reg_rtx (V4SImode);
-      t4 = gen_reg_rtx (V2DImode);
-      t5 = gen_reg_rtx (V2DImode);
-
-      /* t1: B,A,D,C */
-      emit_insn (gen_sse2_pshufd_1 (t1, op1,
-				    GEN_INT (1),
-				    GEN_INT (0),
-				    GEN_INT (3),
-				    GEN_INT (2)));
-
-      /* t2: 0 */
-      emit_move_insn (t2, CONST0_RTX (V4SImode));
-
-      /* t3: (B*E),(A*F),(D*G),(C*H) */
-      emit_insn (gen_sse5_pmacsdd (t3, t1, op2, t2));
-
-      /* t4: (B*E)+(A*F), (D*G)+(C*H) */
-      emit_insn (gen_sse5_phadddq (t4, t3));
-
-      /* t5: ((B*E)+(A*F))<<32, ((D*G)+(C*H))<<32 */
-      emit_insn (gen_ashlv2di3 (t5, t4, GEN_INT (32)));
-
-      /* op0: (((B*E)+(A*F))<<32)+(B*F), (((D*G)+(C*H))<<32)+(D*H) */
-      emit_insn (gen_sse5_pmacsdql (op0, op1, op2, t5));
-      DONE;
-    }
 
   op0 = operands[0];
   op1 = operands[1];
@@ -5352,57 +4884,6 @@
   DONE;
 })
 
-(define_expand "vec_widen_smult_hi_v4si"
-  [(match_operand:V2DI 0 "register_operand" "")
-   (match_operand:V4SI 1 "register_operand" "")
-   (match_operand:V4SI 2 "register_operand" "")]
-  "TARGET_SSE5"
-{
-  rtx t1, t2;
-
-  t1 = gen_reg_rtx (V4SImode);
-  t2 = gen_reg_rtx (V4SImode);
-
-  emit_insn (gen_sse2_pshufd_1 (t1, operands[1],
-				GEN_INT (0),
-				GEN_INT (2),
-				GEN_INT (1),
-				GEN_INT (3)));
-  emit_insn (gen_sse2_pshufd_1 (t2, operands[2],
-				GEN_INT (0),
-				GEN_INT (2),
-				GEN_INT (1),
-				GEN_INT (3)));
-  emit_insn (gen_sse5_mulv2div2di3_high (operands[0], t1, t2));
-  DONE;
-})
-
-(define_expand "vec_widen_smult_lo_v4si"
-  [(match_operand:V2DI 0 "register_operand" "")
-   (match_operand:V4SI 1 "register_operand" "")
-   (match_operand:V4SI 2 "register_operand" "")]
-  "TARGET_SSE5"
-{
-  rtx t1, t2;
-
-  t1 = gen_reg_rtx (V4SImode);
-  t2 = gen_reg_rtx (V4SImode);
-
-  emit_insn (gen_sse2_pshufd_1 (t1, operands[1],
-				GEN_INT (0),
-				GEN_INT (2),
-				GEN_INT (1),
-				GEN_INT (3)));
-  emit_insn (gen_sse2_pshufd_1 (t2, operands[2],
-				GEN_INT (0),
-				GEN_INT (2),
-				GEN_INT (1),
-				GEN_INT (3)));
-  emit_insn (gen_sse5_mulv2div2di3_low (operands[0], t1, t2));
-  DONE;
-  DONE;
-})
-
 (define_expand "vec_widen_umult_hi_v4si"
   [(match_operand:V2DI 0 "register_operand" "")
    (match_operand:V4SI 1 "register_operand" "")
@@ -5492,6 +4973,10 @@
   "vpsra<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix" "vex")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "TI")])
 
 (define_insn "ashr<mode>3"
@@ -5503,6 +4988,10 @@
   "psra<ssevecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix_data16" "1")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "TI")])
 
 (define_insn "*avx_lshr<mode>3"
@@ -5514,6 +5003,10 @@
   "vpsrl<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix" "vex")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "TI")])
 
 (define_insn "lshr<mode>3"
@@ -5525,6 +5018,10 @@
   "psrl<ssevecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix_data16" "1")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "TI")])
 
 (define_insn "*avx_ashl<mode>3"
@@ -5536,6 +5033,10 @@
   "vpsll<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix" "vex")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "TI")])
 
 (define_insn "ashl<mode>3"
@@ -5547,6 +5048,10 @@
   "psll<ssevecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix_data16" "1")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "TI")])
 
 (define_expand "vec_shl_<mode>"
@@ -5577,6 +5082,12 @@
   "TARGET_AVX && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
   "vp<maxminiprefix><ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseiadd")
+   (set (attr "prefix_extra")
+     (if_then_else
+       (ne (symbol_ref "<MODE>mode != ((<CODE> == SMAX || <CODE> == SMIN) ? V8HImode : V16QImode)")
+	   (const_int 0))
+       (const_string "1")
+       (const_string "0")))
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -5770,7 +5281,7 @@
 	(eq:SSEMODE124
 	  (match_operand:SSEMODE124 1 "nonimmediate_operand" "")
 	  (match_operand:SSEMODE124 2 "nonimmediate_operand" "")))]
-  "TARGET_SSE2 && !TARGET_SSE5"
+  "TARGET_SSE2"
   "ix86_fixup_binary_operands_no_copy (EQ, <MODE>mode, operands);")
 
 (define_insn "*avx_eq<mode>3"
@@ -5781,6 +5292,10 @@
   "TARGET_AVX && ix86_binary_operator_ok (EQ, <MODE>mode, operands)"
   "vpcmpeq<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "ssecmp")
+   (set (attr "prefix_extra")
+     (if_then_else (match_operand:V2DI 0 "" "")
+       (const_string "1")
+       (const_string "*")))
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -5789,7 +5304,7 @@
 	(eq:SSEMODE124
 	  (match_operand:SSEMODE124 1 "nonimmediate_operand" "%0")
 	  (match_operand:SSEMODE124 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE2 && !TARGET_SSE5
+  "TARGET_SSE2
    && ix86_binary_operator_ok (EQ, <MODE>mode, operands)"
   "pcmpeq<ssevecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "ssecmp")
@@ -5823,6 +5338,10 @@
   "TARGET_AVX"
   "vpcmpgt<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "ssecmp")
+   (set (attr "prefix_extra")
+     (if_then_else (match_operand:V2DI 0 "" "")
+       (const_string "1")
+       (const_string "*")))
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -5831,7 +5350,7 @@
 	(gt:SSEMODE124
 	  (match_operand:SSEMODE124 1 "register_operand" "0")
 	  (match_operand:SSEMODE124 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE2 && !TARGET_SSE5"
+  "TARGET_SSE2"
   "pcmpgt<ssevecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "ssecmp")
    (set_attr "prefix_data16" "1")
@@ -5845,38 +5364,37 @@
   "TARGET_SSE4_2"
   "pcmpgtq\t{%2, %0|%0, %2}"
   [(set_attr "type" "ssecmp")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "TI")])
 
 (define_expand "vcond<mode>"
-  [(set (match_operand:SSEMODEI 0 "register_operand" "")
-        (if_then_else:SSEMODEI
+  [(set (match_operand:SSEMODE124C8 0 "register_operand" "")
+        (if_then_else:SSEMODE124C8
           (match_operator 3 ""
-            [(match_operand:SSEMODEI 4 "nonimmediate_operand" "")
-             (match_operand:SSEMODEI 5 "nonimmediate_operand" "")])
-          (match_operand:SSEMODEI 1 "general_operand" "")
-          (match_operand:SSEMODEI 2 "general_operand" "")))]
+            [(match_operand:SSEMODE124C8 4 "nonimmediate_operand" "")
+             (match_operand:SSEMODE124C8 5 "nonimmediate_operand" "")])
+          (match_operand:SSEMODE124C8 1 "general_operand" "")
+          (match_operand:SSEMODE124C8 2 "general_operand" "")))]
   "TARGET_SSE2"
 {
-  if (ix86_expand_int_vcond (operands))
-    DONE;
-  else
-    FAIL;
+  bool ok = ix86_expand_int_vcond (operands);
+  gcc_assert (ok);
+  DONE;
 })
 
 (define_expand "vcondu<mode>"
-  [(set (match_operand:SSEMODEI 0 "register_operand" "")
-        (if_then_else:SSEMODEI
+  [(set (match_operand:SSEMODE124C8 0 "register_operand" "")
+        (if_then_else:SSEMODE124C8
           (match_operator 3 ""
-            [(match_operand:SSEMODEI 4 "nonimmediate_operand" "")
-             (match_operand:SSEMODEI 5 "nonimmediate_operand" "")])
-          (match_operand:SSEMODEI 1 "general_operand" "")
-          (match_operand:SSEMODEI 2 "general_operand" "")))]
+            [(match_operand:SSEMODE124C8 4 "nonimmediate_operand" "")
+             (match_operand:SSEMODE124C8 5 "nonimmediate_operand" "")])
+          (match_operand:SSEMODE124C8 1 "general_operand" "")
+          (match_operand:SSEMODE124C8 2 "general_operand" "")))]
   "TARGET_SSE2"
 {
-  if (ix86_expand_int_vcond (operands))
-    DONE;
-  else
-    FAIL;
+  bool ok = ix86_expand_int_vcond (operands);
+  gcc_assert (ok);
+  DONE;
 })
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -6051,12 +5569,6 @@
 {
   rtx op1, op2, h1, l1, h2, l2, h3, l3;
 
-  if (TARGET_SSE5)
-    {
-      ix86_expand_sse5_pack (operands);
-      DONE;	
-    }	
- 
   op1 = gen_lowpart (V16QImode, operands[1]);
   op2 = gen_lowpart (V16QImode, operands[2]);
   h1 = gen_reg_rtx (V16QImode);
@@ -6092,12 +5604,6 @@
 {
   rtx op1, op2, h1, l1, h2, l2;
 
-  if (TARGET_SSE5)
-    {
-      ix86_expand_sse5_pack (operands);
-      DONE;	
-    }	
- 
   op1 = gen_lowpart (V8HImode, operands[1]);
   op2 = gen_lowpart (V8HImode, operands[2]);
   h1 = gen_reg_rtx (V8HImode);
@@ -6127,12 +5633,6 @@
 {
   rtx op1, op2, h1, l1;
 
-  if (TARGET_SSE5)
-    {
-      ix86_expand_sse5_pack (operands);
-      DONE;	
-    }	
- 
   op1 = gen_lowpart (V4SImode, operands[1]);
   op2 = gen_lowpart (V4SImode, operands[2]);
   h1 = gen_reg_rtx (V4SImode);
@@ -6603,6 +6103,11 @@
   return "vpinsr<ssevecsize>\t{%3, %k2, %1, %0|%0, %1, %k2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set (attr "prefix_extra")
+     (if_then_else (match_operand:V8HI 0 "register_operand" "")
+       (const_string "0")
+       (const_string "1")))
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -6620,6 +6125,7 @@
 }
   [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "*sse2_pinsrw"
@@ -6636,6 +6142,7 @@
 }
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 ;; It must come before sse2_loadld since it is preferred.
@@ -6653,6 +6160,7 @@
 }
   [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "*avx_pinsrq"
@@ -6668,6 +6176,8 @@
   return "vpinsrq\t{%3, %2, %1, %0|%0, %1, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -6684,7 +6194,9 @@
   return "pinsrq\t{%3, %2, %0|%0, %2, %3}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "prefix_rex" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "*sse4_1_pextrb"
@@ -6697,6 +6209,7 @@
   "%vpextrb\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -6709,6 +6222,7 @@
   "%vpextrb\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -6722,6 +6236,7 @@
   "%vpextrw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -6734,6 +6249,7 @@
   "%vpextrw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -6746,6 +6262,7 @@
   "%vpextrd\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -6758,7 +6275,9 @@
   "TARGET_SSE4_1 && TARGET_64BIT"
   "%vpextrq\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_rex" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -6798,7 +6317,8 @@
 }
   [(set_attr "type" "sselog1")
    (set_attr "prefix_data16" "1")
-   (set_attr "prefix" "vex")
+   (set_attr "prefix" "maybe_vex")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_expand "sse2_pshuflw"
@@ -6840,8 +6360,10 @@
   return "%vpshuflw\t{%2, %1, %0|%0, %1, %2}";
 }
   [(set_attr "type" "sselog")
+   (set_attr "prefix_data16" "0")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_expand "sse2_pshufhw"
@@ -6884,7 +6406,9 @@
 }
   [(set_attr "type" "sselog")
    (set_attr "prefix_rep" "1")
+   (set_attr "prefix_data16" "0")
    (set_attr "prefix" "maybe_vex")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_expand "sse2_loadd"
@@ -7020,6 +6544,7 @@
    vmovq\t{%H1, %0|%0, %H1}
    vmov{q}\t{%H1, %0|%0, %H1}"
   [(set_attr "type" "ssemov,sseishft,ssemov,imov")
+   (set_attr "length_immediate" "*,1,*,*")
    (set_attr "memory" "*,none,*,*")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V2SF,TI,TI,DI")])
@@ -7036,6 +6561,7 @@
    movq\t{%H1, %0|%0, %H1}
    mov{q}\t{%H1, %0|%0, %H1}"
   [(set_attr "type" "ssemov,sseishft,ssemov,imov")
+   (set_attr "length_immediate" "*,1,*,*")
    (set_attr "atom_unit" "*,sishuf,*,*")
    (set_attr "memory" "*,none,*,*")
    (set_attr "mode" "V2SF,TI,TI,DI")])
@@ -7053,6 +6579,7 @@
    vpsrldq\t{$8, %1, %0|%0, %1, 8}
    vmovq\t{%H1, %0|%0, %H1}"
   [(set_attr "type" "ssemov,sseishft,ssemov")
+   (set_attr "length_immediate" "*,1,*")
    (set_attr "memory" "*,none,*")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V2SF,TI,TI")])
@@ -7069,6 +6596,7 @@
    psrldq\t{$8, %0|%0, 8}
    movq\t{%H1, %0|%0, %H1}"
   [(set_attr "type" "ssemov,sseishft,ssemov")
+   (set_attr "length_immediate" "*,1,*")
    (set_attr "atom_unit" "*,sishuf,*")
    (set_attr "memory" "*,none,*")
    (set_attr "mode" "V2SF,TI,TI")])
@@ -7098,6 +6626,7 @@
    shufps\t{$0, %0, %0|%0, %0, 0}"
   [(set_attr "type" "sselog1")
    (set_attr "prefix" "maybe_vex,orig")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI,V4SF")])
 
 (define_insn "*vec_dupv2di_avx"
@@ -7134,6 +6663,8 @@
    punpckldq\t{%2, %0|%0, %2}
    movd\t{%1, %0|%0, %1}"
   [(set_attr "type" "sselog,sselog,ssemov,mmxcvt,mmxmov")
+   (set_attr "prefix_extra" "1,*,*,*,*")
+   (set_attr "length_immediate" "1,*,*,*,*")
    (set (attr "prefix")
      (if_then_else (eq_attr "alternative" "3,4")
        (const_string "orig")
@@ -7154,6 +6685,7 @@
    movd\t{%1, %0|%0, %1}"
   [(set_attr "type" "sselog,sselog,ssemov,mmxcvt,mmxmov")
    (set_attr "prefix_extra" "1,*,*,*,*")
+   (set_attr "length_immediate" "1,*,*,*,*")
    (set_attr "mode" "TI,TI,TI,DI,DI")])
 
 ;; ??? In theory we can match memory for the MMX alternative, but allowing
@@ -7260,6 +6792,8 @@
    vpunpcklqdq\t{%2, %1, %0|%0, %1, %2}
    vmovhps\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog,ssemov,ssemov,ssemov,sselog,ssemov")
+   (set_attr "prefix_extra" "1,*,*,*,*,*")
+   (set_attr "length_immediate" "1,*,*,*,*,*")
    (set (attr "prefix")
      (if_then_else (eq_attr "alternative" "3")
        (const_string "orig")
@@ -7281,7 +6815,9 @@
    movlhps\t{%2, %0|%0, %2}
    movhps\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog,ssemov,ssemov,ssemov,sselog,ssemov,ssemov")
+   (set_attr "prefix_rex" "1,*,1,*,*,*,*")
    (set_attr "prefix_extra" "1,*,*,*,*,*,*")
+   (set_attr "length_immediate" "1,*,*,*,*,*,*")
    (set_attr "mode" "TI,TI,TI,TI,TI,V4SF,V2SF")])
 
 (define_insn "*vec_concatv2di_rex64_sse"
@@ -7298,6 +6834,7 @@
    movlhps\t{%2, %0|%0, %2}
    movhps\t{%2, %0|%0, %2}"
   [(set_attr "type" "ssemov,ssemov,ssemov,sselog,ssemov,ssemov")
+   (set_attr "prefix_rex" "*,1,*,*,*,*")
    (set_attr "mode" "TI,TI,TI,TI,V4SF,V2SF")])
 
 (define_expand "vec_unpacku_hi_v16qi"
@@ -7307,8 +6844,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, true, true);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, true, true);
   else
     ix86_expand_sse_unpack (operands, true, true);
   DONE;
@@ -7321,8 +6856,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, false, true);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, false, true);
   else
     ix86_expand_sse_unpack (operands, false, true);
   DONE;
@@ -7335,8 +6868,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, true, false);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, true, false);
   else
     ix86_expand_sse_unpack (operands, true, false);
   DONE;
@@ -7349,8 +6880,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, false, false);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, false, false);
   else
     ix86_expand_sse_unpack (operands, false, false);
   DONE;
@@ -7363,8 +6892,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, true, true);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, true, true);
   else
     ix86_expand_sse_unpack (operands, true, true);
   DONE;
@@ -7377,8 +6904,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, false, true);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, false, true);
   else
     ix86_expand_sse_unpack (operands, false, true);
   DONE;
@@ -7391,8 +6916,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, true, false);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, true, false);
   else
     ix86_expand_sse_unpack (operands, true, false);
   DONE;
@@ -7405,8 +6928,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, false, false);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, false, false);
   else
     ix86_expand_sse_unpack (operands, false, false);
   DONE;
@@ -7419,8 +6940,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, true, true);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, true, true);
   else
     ix86_expand_sse_unpack (operands, true, true);
   DONE;
@@ -7433,8 +6952,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, false, true);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, false, true);
   else
     ix86_expand_sse_unpack (operands, false, true);
   DONE;
@@ -7447,8 +6964,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, true, false);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, true, false);
   else
     ix86_expand_sse_unpack (operands, true, false);
   DONE;
@@ -7461,8 +6976,6 @@
 {
   if (TARGET_SSE4_1)
     ix86_expand_sse4_unpack (operands, false, false);
-  else if (TARGET_SSE5)
-    ix86_expand_sse5_unpack (operands, false, false);
   else
     ix86_expand_sse_unpack (operands, false, false);
   DONE;
@@ -7684,6 +7197,8 @@
   "%vmaskmovdqu\t{%2, %1|%1, %2}"
   [(set_attr "type" "ssemov")
    (set_attr "prefix_data16" "1")
+   ;; The implicit %rdi operand confuses default length_vex computation.
+   (set_attr "length_vex" "3")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -7698,6 +7213,9 @@
   "%vmaskmovdqu\t{%2, %1|%1, %2}"
   [(set_attr "type" "ssemov")
    (set_attr "prefix_data16" "1")
+   ;; The implicit %rdi operand confuses default length_vex computation.
+   (set (attr "length_vex")
+     (symbol_ref ("REGNO (operands[2]) >= FIRST_REX_SSE_REG ? 3 + 1 : 2 + 1")))
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -7736,6 +7254,7 @@
   "TARGET_SSE || TARGET_3DNOW_A"
   "sfence"
   [(set_attr "type" "sse")
+   (set_attr "length_address" "0")
    (set_attr "atom_sse_attr" "fence")
    (set_attr "memory" "unknown")])
 
@@ -7763,6 +7282,7 @@
   "TARGET_64BIT || TARGET_SSE2"
   "mfence"
   [(set_attr "type" "sse")
+   (set_attr "length_address" "0")
    (set_attr "atom_sse_attr" "fence")
    (set_attr "memory" "unknown")])
 
@@ -7781,6 +7301,7 @@
   "TARGET_SSE2"
   "lfence"
   [(set_attr "type" "sse")
+   (set_attr "length_address" "0")
    (set_attr "atom_sse_attr" "lfence")
    (set_attr "memory" "unknown")])
 
@@ -7862,6 +7383,7 @@
   "TARGET_AVX"
   "vphaddw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseiadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -7936,6 +7458,7 @@
   [(set_attr "type" "sseiadd")
    (set_attr "atom_unit" "complex")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_phadddv4si3"
@@ -7962,6 +7485,7 @@
   "TARGET_AVX"
   "vphaddd\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseiadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8012,6 +7536,7 @@
   [(set_attr "type" "sseiadd")
    (set_attr "atom_unit" "complex")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_phaddswv8hi3"
@@ -8054,6 +7579,7 @@
   "TARGET_AVX"
   "vphaddsw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseiadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8128,6 +7654,7 @@
   [(set_attr "type" "sseiadd")
    (set_attr "atom_unit" "complex")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_phsubwv8hi3"
@@ -8170,6 +7697,7 @@
   "TARGET_AVX"
   "vphsubw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseiadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8244,6 +7772,7 @@
   [(set_attr "type" "sseiadd")
    (set_attr "atom_unit" "complex")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_phsubdv4si3"
@@ -8270,6 +7799,7 @@
   "TARGET_AVX"
   "vphsubd\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseiadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8320,6 +7850,7 @@
   [(set_attr "type" "sseiadd")
    (set_attr "atom_unit" "complex")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_phsubswv8hi3"
@@ -8362,6 +7893,7 @@
   "TARGET_AVX"
   "vphsubsw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseiadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8436,6 +7968,7 @@
   [(set_attr "type" "sseiadd")
    (set_attr "atom_unit" "complex")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_pmaddubsw128"
@@ -8488,6 +8021,7 @@
   "TARGET_AVX"
   "vpmaddubsw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseiadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8582,6 +8116,7 @@
   [(set_attr "type" "sseiadd")
    (set_attr "atom_unit" "simul")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_expand "ssse3_pmulhrswv8hi3"
@@ -8624,6 +8159,7 @@
   "TARGET_AVX && ix86_binary_operator_ok (MULT, V8HImode, operands)"
   "vpmulhrsw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseimul")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8688,6 +8224,7 @@
   "pmulhrsw\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseimul")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_pshufbv16qi3"
@@ -8698,6 +8235,7 @@
   "TARGET_AVX"
   "vpshufb\t{%2, %1, %0|%0, %1, %2}";
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8722,6 +8260,7 @@
   "pshufb\t{%2, %0|%0, %2}";
   [(set_attr "type" "sselog1")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_psign<mode>3"
@@ -8733,6 +8272,7 @@
   "TARGET_AVX"
   "vpsign<ssevecsize>\t{%2, %1, %0|%0, %1, %2}";
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8759,6 +8299,7 @@
   "psign<mmxvecsize>\t{%2, %0|%0, %2}";
   [(set_attr "type" "sselog1")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "*avx_palignrti"
@@ -8773,6 +8314,8 @@
   return "vpalignr\t{%3, %2, %1, %0|%0, %1, %2, %3}";
 }
   [(set_attr "type" "sseishft")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -8791,6 +8334,7 @@
    (set_attr "atom_unit" "sishuf")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "ssse3_palignrdi"
@@ -8807,6 +8351,8 @@
   [(set_attr "type" "sseishft")
    (set_attr "atom_unit" "sishuf")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 (define_insn "abs<mode>2"
@@ -8826,7 +8372,9 @@
   "TARGET_SSSE3"
   "pabs<mmxvecsize>\t{%1, %0|%0, %1}";
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_rep" "0")
    (set_attr "prefix_extra" "1")
+   (set (attr "prefix_rex") (symbol_ref "x86_extended_reg_mentioned_p (insn)"))
    (set_attr "mode" "DI")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8867,6 +8415,7 @@
   "extrq\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "sse")
    (set_attr "prefix_data16" "1")
+   (set_attr "length_immediate" "2")
    (set_attr "mode" "TI")])
 
 (define_insn "sse4a_extrq"
@@ -8890,7 +8439,9 @@
   "TARGET_SSE4A"
   "insertq\t{%4, %3, %2, %0|%0, %2, %3, %4}"
   [(set_attr "type" "sseins")
+   (set_attr "prefix_data16" "0")
    (set_attr "prefix_rep" "1")
+   (set_attr "length_immediate" "2")
    (set_attr "mode" "TI")])
 
 (define_insn "sse4a_insertq"
@@ -8901,6 +8452,7 @@
   "TARGET_SSE4A"
   "insertq\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseins")
+   (set_attr "prefix_data16" "0")
    (set_attr "prefix_rep" "1")
    (set_attr "mode" "TI")])
 
@@ -8919,6 +8471,8 @@
   "TARGET_AVX"
   "vblendp<avxmodesuffixf2c>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<avxvecmode>")])
 
@@ -8932,6 +8486,8 @@
   "TARGET_AVX"
   "vblendvp<avxmodesuffixf2c>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<avxvecmode>")])
 
@@ -8944,7 +8500,9 @@
   "TARGET_SSE4_1"
   "blendp<ssemodesuffixf2c>\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "<MODE>")])
 
 (define_insn "sse4_1_blendvp<ssemodesuffixf2c>"
@@ -8957,6 +8515,7 @@
   "TARGET_SSE4_1"
   "blendvp<ssemodesuffixf2c>\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
    (set_attr "mode" "<MODE>")])
 
@@ -8971,6 +8530,8 @@
   "vdpp<avxmodesuffixf2c>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemul")
    (set_attr "prefix" "vex")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "<avxvecmode>")])
 
 (define_insn "sse4_1_dpp<ssemodesuffixf2c>"
@@ -8983,7 +8544,9 @@
   "TARGET_SSE4_1"
   "dpp<ssemodesuffixf2c>\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "ssemul")
+   (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "<MODE>")])
 
 (define_insn "sse4_1_movntdqa"
@@ -9007,6 +8570,8 @@
   "vmpsadbw\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sselog1")
    (set_attr "prefix" "vex")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "sse4_1_mpsadbw"
@@ -9019,6 +8584,7 @@
   "mpsadbw\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "sselog1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "*avx_packusdw"
@@ -9031,6 +8597,7 @@
   "TARGET_AVX"
   "vpackusdw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -9056,6 +8623,8 @@
   "TARGET_AVX"
   "vpblendvb\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -9081,6 +8650,8 @@
   "vpblendw\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemov")
    (set_attr "prefix" "vex")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "sse4_1_pblendw"
@@ -9093,6 +8664,7 @@
   "pblendw\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "ssemov")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "sse4_1_phminposuw"
@@ -9504,6 +9076,7 @@
   "TARGET_AVX"
   "vtestp<avxmodesuffixf2c>\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssecomi")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
@@ -9517,6 +9090,7 @@
   "TARGET_AVX"
   "vptest\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssecomi")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "OI")])
 
@@ -9541,6 +9115,8 @@
   "TARGET_AVX"
   "vroundp<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "ssecvt")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
@@ -9553,7 +9129,9 @@
   "TARGET_ROUND"
   "%vroundp<ssemodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "ssecvt")
+   (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "<MODE>")])
 
@@ -9569,6 +9147,8 @@
   "TARGET_AVX"
   "vrounds<ssemodesuffixf2c>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssecvt")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
@@ -9584,7 +9164,9 @@
   "TARGET_ROUND"
   "rounds<ssemodesuffixf2c>\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "ssecvt")
+   (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "<MODE>")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -9619,7 +9201,7 @@
 	   (match_dup 6)]
 	  UNSPEC_PCMPESTR))]
   "TARGET_SSE4_2
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -9646,6 +9228,7 @@
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,load")
    (set_attr "mode" "TI")])
 
@@ -9672,6 +9255,7 @@
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
    (set_attr "prefix" "maybe_vex")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,load")
    (set_attr "mode" "TI")])
 
@@ -9697,6 +9281,7 @@
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "memory" "none,load")
    (set_attr "mode" "TI")])
@@ -9721,6 +9306,7 @@
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,load,none,load")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
@@ -9745,7 +9331,7 @@
 	   (match_dup 4)]
 	  UNSPEC_PCMPISTR))]
   "TARGET_SSE4_2
-   && !(reload_completed || reload_in_progress)"
+   && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -9769,6 +9355,7 @@
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,load")
    (set_attr "mode" "TI")])
 
@@ -9790,6 +9377,7 @@
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "memory" "none,load")
    (set_attr "mode" "TI")])
@@ -9812,6 +9400,7 @@
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "memory" "none,load")
    (set_attr "mode" "TI")])
@@ -9834,1604 +9423,9 @@
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "memory" "none,load,none,load")
    (set_attr "prefix" "maybe_vex")
-   (set_attr "mode" "TI")])
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; SSE5 instructions
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; SSE5 parallel integer multiply/add instructions.
-;; Note the instruction does not allow the value being added to be a memory
-;; operation.  However by pretending via the nonimmediate_operand predicate
-;; that it does and splitting it later allows the following to be recognized:
-;;	a[i] = b[i] * c[i] + d[i];
-(define_insn "sse5_pmacsww"
-  [(set (match_operand:V8HI 0 "register_operand" "=x,x,x")
-        (plus:V8HI
-	 (mult:V8HI
-	  (match_operand:V8HI 1 "nonimmediate_operand" "%x,x,xm")
-	  (match_operand:V8HI 2 "nonimmediate_operand" "x,xm,x"))
-	 (match_operand:V8HI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 2, true)"
-  "@
-   pmacsww\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsww\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsww\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-;; Split pmacsww with two memory operands into a load and the pmacsww.
-(define_split
-  [(set (match_operand:V8HI 0 "register_operand" "")
-	(plus:V8HI
-	 (mult:V8HI (match_operand:V8HI 1 "nonimmediate_operand" "")
-		    (match_operand:V8HI 2 "nonimmediate_operand" ""))
-	 (match_operand:V8HI 3 "nonimmediate_operand" "")))]
-  "TARGET_SSE5
-   && !ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)
-   && ix86_sse5_valid_op_p (operands, insn, 4, false, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_sse5_multiple_memory (operands, 4, V8HImode);
-  emit_insn (gen_sse5_pmacsww (operands[0], operands[1], operands[2],
-			       operands[3]));
-  DONE;
-})
-
-(define_insn "sse5_pmacssww"
-  [(set (match_operand:V8HI 0 "register_operand" "=x,x,x")
-        (ss_plus:V8HI
-	 (mult:V8HI (match_operand:V8HI 1 "nonimmediate_operand" "%x,x,m")
-		    (match_operand:V8HI 2 "nonimmediate_operand" "x,m,x"))
-	 (match_operand:V8HI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmacssww\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacssww\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacssww\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-;; Note the instruction does not allow the value being added to be a memory
-;; operation.  However by pretending via the nonimmediate_operand predicate
-;; that it does and splitting it later allows the following to be recognized:
-;;	a[i] = b[i] * c[i] + d[i];
-(define_insn "sse5_pmacsdd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x,x")
-        (plus:V4SI
-	 (mult:V4SI
-	  (match_operand:V4SI 1 "nonimmediate_operand" "%x,x,m")
-	  (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x"))
-	 (match_operand:V4SI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 2, true)"
-  "@
-   pmacsdd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsdd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsdd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-;; Split pmacsdd with two memory operands into a load and the pmacsdd.
-(define_split
-  [(set (match_operand:V4SI 0 "register_operand" "")
-	(plus:V4SI
-	 (mult:V4SI (match_operand:V4SI 1 "nonimmediate_operand" "")
-		    (match_operand:V4SI 2 "nonimmediate_operand" ""))
-	 (match_operand:V4SI 3 "nonimmediate_operand" "")))]
-  "TARGET_SSE5
-   && !ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)
-   && ix86_sse5_valid_op_p (operands, insn, 4, false, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_sse5_multiple_memory (operands, 4, V4SImode);
-  emit_insn (gen_sse5_pmacsdd (operands[0], operands[1], operands[2],
-			       operands[3]));
-  DONE;
-})
-
-(define_insn "sse5_pmacssdd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x,x")
-        (ss_plus:V4SI
-	 (mult:V4SI (match_operand:V4SI 1 "nonimmediate_operand" "%x,x,m")
-		    (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x"))
-	 (match_operand:V4SI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmacssdd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacssdd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacssdd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pmacssdql"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x,x")
-	(ss_plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,x,m")
-	    (parallel [(const_int 1)
-		       (const_int 3)])))
-	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x")
-	    (parallel [(const_int 1)
-		       (const_int 3)])))
-	 (match_operand:V2DI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmacssdql\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacssdql\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacssdql\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pmacssdqh"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x,x")
-	(ss_plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,x,m")
-	    (parallel [(const_int 0)
-		       (const_int 2)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x")
-	    (parallel [(const_int 0)
-		       (const_int 2)]))))
-	 (match_operand:V2DI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmacssdqh\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacssdqh\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacssdqh\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pmacsdql"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x,x")
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,x,m")
-	    (parallel [(const_int 1)
-		       (const_int 3)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x")
-	    (parallel [(const_int 1)
-		       (const_int 3)]))))
-	 (match_operand:V2DI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmacsdql\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsdql\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsdql\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn_and_split "*sse5_pmacsdql_mem"
-  [(set (match_operand:V2DI 0 "register_operand" "=&x,&x,&x")
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,x,m")
-	    (parallel [(const_int 1)
-		       (const_int 3)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x")
-	    (parallel [(const_int 1)
-		       (const_int 3)]))))
-	 (match_operand:V2DI 3 "memory_operand" "m,m,m")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, -1, true)"
-  "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
-  [(set (match_dup 0)
-	(match_dup 3))
-   (set (match_dup 0)
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 1)
-	    (parallel [(const_int 1)
-		       (const_int 3)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 2)
-	    (parallel [(const_int 1)
-		       (const_int 3)]))))
-	 (match_dup 0)))])
-
-;; We don't have a straight 32-bit parallel multiply and extend on SSE5, so
-;; fake it with a multiply/add.  In general, we expect the define_split to
-;; occur before register allocation, so we have to handle the corner case where
-;; the target is the same as operands 1/2
-(define_insn_and_split "sse5_mulv2div2di3_low"
-  [(set (match_operand:V2DI 0 "register_operand" "=&x")
-	(mult:V2DI
-	  (sign_extend:V2DI
-	    (vec_select:V2SI
-	      (match_operand:V4SI 1 "nonimmediate_operand" "%x")
-	      (parallel [(const_int 1)
-			 (const_int 3)])))
-	  (sign_extend:V2DI
-	    (vec_select:V2SI
-	      (match_operand:V4SI 2 "nonimmediate_operand" "xm")
-	      (parallel [(const_int 1)
-			 (const_int 3)])))))]
-  "TARGET_SSE5"
-  "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
-  [(set (match_dup 0)
-	(match_dup 3))
-   (set (match_dup 0)
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 1)
-	    (parallel [(const_int 1)
-		       (const_int 3)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 2)
-	    (parallel [(const_int 1)
-		       (const_int 3)]))))
-	 (match_dup 0)))]
-{
-  operands[3] = CONST0_RTX (V2DImode);
-}
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pmacsdqh"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x,x")
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,x,m")
-	    (parallel [(const_int 0)
-		       (const_int 2)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x")
-	    (parallel [(const_int 0)
-		       (const_int 2)]))))
-	 (match_operand:V2DI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmacsdqh\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsdqh\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsdqh\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn_and_split "*sse5_pmacsdqh_mem"
-  [(set (match_operand:V2DI 0 "register_operand" "=&x,&x,&x")
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,x,m")
-	    (parallel [(const_int 0)
-		       (const_int 2)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x")
-	    (parallel [(const_int 0)
-		       (const_int 2)]))))
-	 (match_operand:V2DI 3 "memory_operand" "m,m,m")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, -1, true)"
-  "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
-  [(set (match_dup 0)
-	(match_dup 3))
-   (set (match_dup 0)
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 1)
-	    (parallel [(const_int 0)
-		       (const_int 2)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 2)
-	    (parallel [(const_int 0)
-		       (const_int 2)]))))
-	 (match_dup 0)))])
-
-;; We don't have a straight 32-bit parallel multiply and extend on SSE5, so
-;; fake it with a multiply/add.  In general, we expect the define_split to
-;; occur before register allocation, so we have to handle the corner case where
-;; the target is the same as either operands[1] or operands[2]
-(define_insn_and_split "sse5_mulv2div2di3_high"
-  [(set (match_operand:V2DI 0 "register_operand" "=&x")
-	(mult:V2DI
-	  (sign_extend:V2DI
-	    (vec_select:V2SI
-	      (match_operand:V4SI 1 "nonimmediate_operand" "%x")
-	      (parallel [(const_int 0)
-			 (const_int 2)])))
-	  (sign_extend:V2DI
-	    (vec_select:V2SI
-	      (match_operand:V4SI 2 "nonimmediate_operand" "xm")
-	      (parallel [(const_int 0)
-			 (const_int 2)])))))]
-  "TARGET_SSE5"
-  "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
-  [(set (match_dup 0)
-	(match_dup 3))
-   (set (match_dup 0)
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 1)
-	    (parallel [(const_int 0)
-		       (const_int 2)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 2)
-	    (parallel [(const_int 0)
-		       (const_int 2)]))))
-	 (match_dup 0)))]
-{
-  operands[3] = CONST0_RTX (V2DImode);
-}
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-;; SSE5 parallel integer multiply/add instructions for the intrinisics
-(define_insn "sse5_pmacsswd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x,x")
-	(ss_plus:V4SI
-	 (mult:V4SI
-	  (sign_extend:V4SI
-	   (vec_select:V4HI
-	    (match_operand:V8HI 1 "nonimmediate_operand" "%x,x,m")
-	    (parallel [(const_int 1)
-		       (const_int 3)
-		       (const_int 5)
-		       (const_int 7)])))
-	  (sign_extend:V4SI
-	   (vec_select:V4HI
-	    (match_operand:V8HI 2 "nonimmediate_operand" "x,m,x")
-	    (parallel [(const_int 1)
-		       (const_int 3)
-		       (const_int 5)
-		       (const_int 7)]))))
-	 (match_operand:V4SI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmacsswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacsswd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pmacswd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x,x")
-	(plus:V4SI
-	 (mult:V4SI
-	  (sign_extend:V4SI
-	   (vec_select:V4HI
-	    (match_operand:V8HI 1 "nonimmediate_operand" "%x,x,m")
-	    (parallel [(const_int 1)
-		       (const_int 3)
-		       (const_int 5)
-		       (const_int 7)])))
-	  (sign_extend:V4SI
-	   (vec_select:V4HI
-	    (match_operand:V8HI 2 "nonimmediate_operand" "x,m,x")
-	    (parallel [(const_int 1)
-		       (const_int 3)
-		       (const_int 5)
-		       (const_int 7)]))))
-	 (match_operand:V4SI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmacswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmacswd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pmadcsswd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x,x")
-	(ss_plus:V4SI
-	 (plus:V4SI
-	  (mult:V4SI
-	   (sign_extend:V4SI
-	    (vec_select:V4HI
-	     (match_operand:V8HI 1 "nonimmediate_operand" "%x,x,m")
-	     (parallel [(const_int 0)
-			(const_int 2)
-			(const_int 4)
-			(const_int 6)])))
-	   (sign_extend:V4SI
-	    (vec_select:V4HI
-	     (match_operand:V8HI 2 "nonimmediate_operand" "x,m,x")
-	     (parallel [(const_int 0)
-			(const_int 2)
-			(const_int 4)
-			(const_int 6)]))))
-	  (mult:V4SI
-	   (sign_extend:V4SI
-	    (vec_select:V4HI
-	     (match_dup 1)
-	     (parallel [(const_int 1)
-			(const_int 3)
-			(const_int 5)
-			(const_int 7)])))
-	   (sign_extend:V4SI
-	    (vec_select:V4HI
-	     (match_dup 2)
-	     (parallel [(const_int 1)
-			(const_int 3)
-			(const_int 5)
-			(const_int 7)])))))
-	 (match_operand:V4SI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmadcsswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmadcsswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmadcsswd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pmadcswd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x,x")
-	(plus:V4SI
-	 (plus:V4SI
-	  (mult:V4SI
-	   (sign_extend:V4SI
-	    (vec_select:V4HI
-	     (match_operand:V8HI 1 "nonimmediate_operand" "%x,x,m")
-	     (parallel [(const_int 0)
-			(const_int 2)
-			(const_int 4)
-			(const_int 6)])))
-	   (sign_extend:V4SI
-	    (vec_select:V4HI
-	     (match_operand:V8HI 2 "nonimmediate_operand" "x,m,x")
-	     (parallel [(const_int 0)
-			(const_int 2)
-			(const_int 4)
-			(const_int 6)]))))
-	  (mult:V4SI
-	   (sign_extend:V4SI
-	    (vec_select:V4HI
-	     (match_dup 1)
-	     (parallel [(const_int 1)
-			(const_int 3)
-			(const_int 5)
-			(const_int 7)])))
-	   (sign_extend:V4SI
-	    (vec_select:V4HI
-	     (match_dup 2)
-	     (parallel [(const_int 1)
-			(const_int 3)
-			(const_int 5)
-			(const_int 7)])))))
-	 (match_operand:V4SI 3 "register_operand" "0,0,0")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   pmadcswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmadcswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pmadcswd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
-  [(set_attr "type" "ssemuladd")
-   (set_attr "mode" "TI")])
-
-;; SSE5 parallel XMM conditional moves
-(define_insn "sse5_pcmov_<mode>"
-  [(set (match_operand:SSEMODE 0 "register_operand" "=x,x,x,x")
-	(if_then_else:SSEMODE
-	  (match_operand:SSEMODE 3 "nonimmediate_operand" "0,0,xm,x")
-	  (match_operand:SSEMODE 1 "vector_move_operand" "x,xm,0,0")
-	  (match_operand:SSEMODE 2 "vector_move_operand" "xm,x,x,xm")))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "@
-   pcmov\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pcmov\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pcmov\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   pcmov\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "sse4arg")])
-
-;; SSE5 horizontal add/subtract instructions
-(define_insn "sse5_phaddbw"
-  [(set (match_operand:V8HI 0 "register_operand" "=x")
-	(plus:V8HI
-	 (sign_extend:V8HI
-	  (vec_select:V8QI
-	   (match_operand:V16QI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)
-		      (const_int 4)
-		      (const_int 6)
-		      (const_int 8)
-		      (const_int 10)
-		      (const_int 12)
-		      (const_int 14)])))
-	 (sign_extend:V8HI
-	  (vec_select:V8QI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)
-		      (const_int 5)
-		      (const_int 7)
-		      (const_int 9)
-		      (const_int 11)
-		      (const_int 13)
-		      (const_int 15)])))))]
-  "TARGET_SSE5"
-  "phaddbw\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phaddbd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x")
-	(plus:V4SI
-	 (plus:V4SI
-	  (sign_extend:V4SI
-	   (vec_select:V4QI
-	    (match_operand:V16QI 1 "nonimmediate_operand" "xm")
-	    (parallel [(const_int 0)
-		       (const_int 4)
-		       (const_int 8)
-		       (const_int 12)])))
-	  (sign_extend:V4SI
-	   (vec_select:V4QI
-	    (match_dup 1)
-	    (parallel [(const_int 1)
-		       (const_int 5)
-		       (const_int 9)
-		       (const_int 13)]))))
-	 (plus:V4SI
-	  (sign_extend:V4SI
-	   (vec_select:V4QI
-	    (match_dup 1)
-	    (parallel [(const_int 2)
-		       (const_int 6)
-		       (const_int 10)
-		       (const_int 14)])))
-	  (sign_extend:V4SI
-	   (vec_select:V4QI
-	    (match_dup 1)
-	    (parallel [(const_int 3)
-		       (const_int 7)
-		       (const_int 11)
-		       (const_int 15)]))))))]
-  "TARGET_SSE5"
-  "phaddbd\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phaddbq"
-  [(set (match_operand:V2DI 0 "register_operand" "=x")
-	(plus:V2DI
-	 (plus:V2DI
-	  (plus:V2DI
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_operand:V16QI 1 "nonimmediate_operand" "xm")
-	     (parallel [(const_int 0)
-			(const_int 4)])))
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 1)
-			(const_int 5)]))))
-	  (plus:V2DI
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 2)
-			(const_int 6)])))
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 3)
-			(const_int 7)])))))
-	 (plus:V2DI
-	  (plus:V2DI
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 8)
-			(const_int 12)])))
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 9)
-			(const_int 13)]))))
-	  (plus:V2DI
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 10)
-			(const_int 14)])))
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 11)
-			(const_int 15)])))))))]
-  "TARGET_SSE5"
-  "phaddbq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phaddwd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x")
-	(plus:V4SI
-	 (sign_extend:V4SI
-	  (vec_select:V4HI
-	   (match_operand:V8HI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)
-		      (const_int 4)
-		      (const_int 6)])))
-	 (sign_extend:V4SI
-	  (vec_select:V4HI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)
-		      (const_int 5)
-		      (const_int 7)])))))]
-  "TARGET_SSE5"
-  "phaddwd\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phaddwq"
-  [(set (match_operand:V2DI 0 "register_operand" "=x")
-	(plus:V2DI
-	 (plus:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2HI
-	    (match_operand:V8HI 1 "nonimmediate_operand" "xm")
-	    (parallel [(const_int 0)
-		       (const_int 4)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2HI
-	    (match_dup 1)
-	    (parallel [(const_int 1)
-		       (const_int 5)]))))
-	 (plus:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2HI
-	    (match_dup 1)
-	    (parallel [(const_int 2)
-		       (const_int 6)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2HI
-	    (match_dup 1)
-	    (parallel [(const_int 3)
-		       (const_int 7)]))))))]
-  "TARGET_SSE5"
-  "phaddwq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phadddq"
-  [(set (match_operand:V2DI 0 "register_operand" "=x")
-	(plus:V2DI
-	 (sign_extend:V2DI
-	  (vec_select:V2SI
-	   (match_operand:V4SI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)])))
-	 (sign_extend:V2DI
-	  (vec_select:V2SI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)])))))]
-  "TARGET_SSE5"
-  "phadddq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phaddubw"
-  [(set (match_operand:V8HI 0 "register_operand" "=x")
-	(plus:V8HI
-	 (zero_extend:V8HI
-	  (vec_select:V8QI
-	   (match_operand:V16QI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)
-		      (const_int 4)
-		      (const_int 6)
-		      (const_int 8)
-		      (const_int 10)
-		      (const_int 12)
-		      (const_int 14)])))
-	 (zero_extend:V8HI
-	  (vec_select:V8QI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)
-		      (const_int 5)
-		      (const_int 7)
-		      (const_int 9)
-		      (const_int 11)
-		      (const_int 13)
-		      (const_int 15)])))))]
-  "TARGET_SSE5"
-  "phaddubw\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phaddubd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x")
-	(plus:V4SI
-	 (plus:V4SI
-	  (zero_extend:V4SI
-	   (vec_select:V4QI
-	    (match_operand:V16QI 1 "nonimmediate_operand" "xm")
-	    (parallel [(const_int 0)
-		       (const_int 4)
-		       (const_int 8)
-		       (const_int 12)])))
-	  (zero_extend:V4SI
-	   (vec_select:V4QI
-	    (match_dup 1)
-	    (parallel [(const_int 1)
-		       (const_int 5)
-		       (const_int 9)
-		       (const_int 13)]))))
-	 (plus:V4SI
-	  (zero_extend:V4SI
-	   (vec_select:V4QI
-	    (match_dup 1)
-	    (parallel [(const_int 2)
-		       (const_int 6)
-		       (const_int 10)
-		       (const_int 14)])))
-	  (zero_extend:V4SI
-	   (vec_select:V4QI
-	    (match_dup 1)
-	    (parallel [(const_int 3)
-		       (const_int 7)
-		       (const_int 11)
-		       (const_int 15)]))))))]
-  "TARGET_SSE5"
-  "phaddubd\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phaddubq"
-  [(set (match_operand:V2DI 0 "register_operand" "=x")
-	(plus:V2DI
-	 (plus:V2DI
-	  (plus:V2DI
-	   (zero_extend:V2DI
-	    (vec_select:V2QI
-	     (match_operand:V16QI 1 "nonimmediate_operand" "xm")
-	     (parallel [(const_int 0)
-			(const_int 4)])))
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 1)
-			(const_int 5)]))))
-	  (plus:V2DI
-	   (zero_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 2)
-			(const_int 6)])))
-	   (zero_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 3)
-			(const_int 7)])))))
-	 (plus:V2DI
-	  (plus:V2DI
-	   (zero_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 8)
-			(const_int 12)])))
-	   (sign_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 9)
-			(const_int 13)]))))
-	  (plus:V2DI
-	   (zero_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 10)
-			(const_int 14)])))
-	   (zero_extend:V2DI
-	    (vec_select:V2QI
-	     (match_dup 1)
-	     (parallel [(const_int 11)
-			(const_int 15)])))))))]
-  "TARGET_SSE5"
-  "phaddubq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phadduwd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x")
-	(plus:V4SI
-	 (zero_extend:V4SI
-	  (vec_select:V4HI
-	   (match_operand:V8HI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)
-		      (const_int 4)
-		      (const_int 6)])))
-	 (zero_extend:V4SI
-	  (vec_select:V4HI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)
-		      (const_int 5)
-		      (const_int 7)])))))]
-  "TARGET_SSE5"
-  "phadduwd\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phadduwq"
-  [(set (match_operand:V2DI 0 "register_operand" "=x")
-	(plus:V2DI
-	 (plus:V2DI
-	  (zero_extend:V2DI
-	   (vec_select:V2HI
-	    (match_operand:V8HI 1 "nonimmediate_operand" "xm")
-	    (parallel [(const_int 0)
-		       (const_int 4)])))
-	  (zero_extend:V2DI
-	   (vec_select:V2HI
-	    (match_dup 1)
-	    (parallel [(const_int 1)
-		       (const_int 5)]))))
-	 (plus:V2DI
-	  (zero_extend:V2DI
-	   (vec_select:V2HI
-	    (match_dup 1)
-	    (parallel [(const_int 2)
-		       (const_int 6)])))
-	  (zero_extend:V2DI
-	   (vec_select:V2HI
-	    (match_dup 1)
-	    (parallel [(const_int 3)
-		       (const_int 7)]))))))]
-  "TARGET_SSE5"
-  "phadduwq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phaddudq"
-  [(set (match_operand:V2DI 0 "register_operand" "=x")
-	(plus:V2DI
-	 (zero_extend:V2DI
-	  (vec_select:V2SI
-	   (match_operand:V4SI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)])))
-	 (zero_extend:V2DI
-	  (vec_select:V2SI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)])))))]
-  "TARGET_SSE5"
-  "phaddudq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phsubbw"
-  [(set (match_operand:V8HI 0 "register_operand" "=x")
-	(minus:V8HI
-	 (sign_extend:V8HI
-	  (vec_select:V8QI
-	   (match_operand:V16QI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)
-		      (const_int 4)
-		      (const_int 6)
-		      (const_int 8)
-		      (const_int 10)
-		      (const_int 12)
-		      (const_int 14)])))
-	 (sign_extend:V8HI
-	  (vec_select:V8QI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)
-		      (const_int 5)
-		      (const_int 7)
-		      (const_int 9)
-		      (const_int 11)
-		      (const_int 13)
-		      (const_int 15)])))))]
-  "TARGET_SSE5"
-  "phsubbw\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phsubwd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x")
-	(minus:V4SI
-	 (sign_extend:V4SI
-	  (vec_select:V4HI
-	   (match_operand:V8HI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)
-		      (const_int 4)
-		      (const_int 6)])))
-	 (sign_extend:V4SI
-	  (vec_select:V4HI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)
-		      (const_int 5)
-		      (const_int 7)])))))]
-  "TARGET_SSE5"
-  "phsubwd\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-(define_insn "sse5_phsubdq"
-  [(set (match_operand:V2DI 0 "register_operand" "=x")
-	(minus:V2DI
-	 (sign_extend:V2DI
-	  (vec_select:V2SI
-	   (match_operand:V4SI 1 "nonimmediate_operand" "xm")
-	   (parallel [(const_int 0)
-		      (const_int 2)])))
-	 (sign_extend:V2DI
-	  (vec_select:V2SI
-	   (match_dup 1)
-	   (parallel [(const_int 1)
-		      (const_int 3)])))))]
-  "TARGET_SSE5"
-  "phsubdq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sseiadd1")])
-
-;; SSE5 permute instructions
-(define_insn "sse5_pperm"
-  [(set (match_operand:V16QI 0 "register_operand" "=x,x,x,x")
-	(unspec:V16QI
-	  [(match_operand:V16QI 1 "nonimmediate_operand" "0,0,x,xm")
-	   (match_operand:V16QI 2 "nonimmediate_operand" "x,xm,xm,x")
-	   (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0")]
-	  UNSPEC_SSE5_PERMUTE))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "pperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "sse4arg")
-   (set_attr "mode" "TI")])
-
-;; The following are for the various unpack insns which doesn't need the first
-;; source operand, so we can just use the output operand for the first operand.
-;; This allows either of the other two operands to be a memory operand.  We
-;; can't just use the first operand as an argument to the normal pperm because
-;; then an output only argument, suddenly becomes an input operand.
-(define_insn "sse5_pperm_zero_v16qi_v8hi"
-  [(set (match_operand:V8HI 0 "register_operand" "=x,x")
-	(zero_extend:V8HI
-	 (vec_select:V8QI
-	  (match_operand:V16QI 1 "nonimmediate_operand" "xm,x")
-	  (match_operand 2 "" ""))))	;; parallel with const_int's
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "x,xm"))]
-  "TARGET_SSE5
-   && (register_operand (operands[1], V16QImode)
-       || register_operand (operands[2], V16QImode))"
-  "pperm\t{%3, %1, %0, %0|%0, %0, %1, %3}"
-  [(set_attr "type" "sseadd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pperm_sign_v16qi_v8hi"
-  [(set (match_operand:V8HI 0 "register_operand" "=x,x")
-	(sign_extend:V8HI
-	 (vec_select:V8QI
-	  (match_operand:V16QI 1 "nonimmediate_operand" "xm,x")
-	  (match_operand 2 "" ""))))	;; parallel with const_int's
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "x,xm"))]
-  "TARGET_SSE5
-   && (register_operand (operands[1], V16QImode)
-       || register_operand (operands[2], V16QImode))"
-  "pperm\t{%3, %1, %0, %0|%0, %0, %1, %3}"
-  [(set_attr "type" "sseadd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pperm_zero_v8hi_v4si"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
-	(zero_extend:V4SI
-	 (vec_select:V4HI
-	  (match_operand:V8HI 1 "nonimmediate_operand" "xm,x")
-	  (match_operand 2 "" ""))))	;; parallel with const_int's
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "x,xm"))]
-  "TARGET_SSE5
-   && (register_operand (operands[1], V8HImode)
-       || register_operand (operands[2], V16QImode))"
-  "pperm\t{%3, %1, %0, %0|%0, %0, %1, %3}"
-  [(set_attr "type" "sseadd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pperm_sign_v8hi_v4si"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
-	(sign_extend:V4SI
-	 (vec_select:V4HI
-	  (match_operand:V8HI 1 "nonimmediate_operand" "xm,x")
-	  (match_operand 2 "" ""))))	;; parallel with const_int's
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "x,xm"))]
-  "TARGET_SSE5
-   && (register_operand (operands[1], V8HImode)
-       || register_operand (operands[2], V16QImode))"
-  "pperm\t{%3, %1, %0, %0|%0, %0, %1, %3}"
-  [(set_attr "type" "sseadd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pperm_zero_v4si_v2di"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x")
-	(zero_extend:V2DI
-	 (vec_select:V2SI
-	  (match_operand:V4SI 1 "nonimmediate_operand" "xm,x")
-	  (match_operand 2 "" ""))))	;; parallel with const_int's
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "x,xm"))]
-  "TARGET_SSE5
-   && (register_operand (operands[1], V4SImode)
-       || register_operand (operands[2], V16QImode))"
-  "pperm\t{%3, %1, %0, %0|%0, %0, %1, %3}"
-  [(set_attr "type" "sseadd")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pperm_sign_v4si_v2di"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x")
-	(sign_extend:V2DI
-	 (vec_select:V2SI
-	  (match_operand:V4SI 1 "nonimmediate_operand" "xm,x")
-	  (match_operand 2 "" ""))))	;; parallel with const_int's
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "x,xm"))]
-  "TARGET_SSE5
-   && (register_operand (operands[1], V4SImode)
-       || register_operand (operands[2], V16QImode))"
-  "pperm\t{%3, %1, %0, %0|%0, %0, %1, %3}"
-  [(set_attr "type" "sseadd")
-   (set_attr "mode" "TI")])
-
-;; SSE5 pack instructions that combine two vectors into a smaller vector
-(define_insn "sse5_pperm_pack_v2di_v4si"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x,x,x")
-	(vec_concat:V4SI
-	 (truncate:V2SI
-	  (match_operand:V2DI 1 "nonimmediate_operand" "0,0,x,xm"))
-	 (truncate:V2SI
-	  (match_operand:V2DI 2 "nonimmediate_operand" "x,xm,xm,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0"))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "pperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "sse4arg")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pperm_pack_v4si_v8hi"
-  [(set (match_operand:V8HI 0 "register_operand" "=x,x,x,x")
-	(vec_concat:V8HI
-	 (truncate:V4HI
-	  (match_operand:V4SI 1 "nonimmediate_operand" "0,0,x,xm"))
-	 (truncate:V4HI
-	  (match_operand:V4SI 2 "nonimmediate_operand" "x,xm,xm,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0"))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "pperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "sse4arg")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_pperm_pack_v8hi_v16qi"
-  [(set (match_operand:V16QI 0 "register_operand" "=x,x,x,x")
-	(vec_concat:V16QI
-	 (truncate:V8QI
-	  (match_operand:V8HI 1 "nonimmediate_operand" "0,0,x,xm"))
-	 (truncate:V8QI
-	  (match_operand:V8HI 2 "nonimmediate_operand" "x,xm,xm,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0"))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "pperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "sse4arg")
-   (set_attr "mode" "TI")])
-
-;; Floating point permutation (permps, permpd)
-(define_insn "sse5_perm<mode>"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x,x,x")
-	(unspec:SSEMODEF2P
-	 [(match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,0,x,xm")
-	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm,xm,x")
-	  (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0")]
-	 UNSPEC_SSE5_PERMUTE))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1, false)"
-  "perm<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
-  [(set_attr "type" "sse4arg")
-   (set_attr "mode" "<MODE>")])
-
-;; SSE5 packed rotate instructions
-(define_expand "rotl<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "")
-	(rotate:SSEMODE1248
-	 (match_operand:SSEMODE1248 1 "nonimmediate_operand" "")
-	 (match_operand:SI 2 "general_operand")))]
-  "TARGET_SSE5"
-{
-  /* If we were given a scalar, convert it to parallel */
-  if (! const_0_to_<sserotatemax>_operand (operands[2], SImode))
-    {
-      rtvec vs = rtvec_alloc (<ssescalarnum>);
-      rtx par = gen_rtx_PARALLEL (<MODE>mode, vs);
-      rtx reg = gen_reg_rtx (<MODE>mode);
-      rtx op2 = operands[2];
-      int i;
-
-      if (GET_MODE (op2) != <ssescalarmode>mode)
-        {
-	  op2 = gen_reg_rtx (<ssescalarmode>mode);
-	  convert_move (op2, operands[2], false);
-	}
-
-      for (i = 0; i < <ssescalarnum>; i++)
-	RTVEC_ELT (vs, i) = op2;
-
-      emit_insn (gen_vec_init<mode> (reg, par));
-      emit_insn (gen_sse5_vrotl<mode>3 (operands[0], operands[1], reg));
-      DONE;
-    }
-})
-
-(define_expand "rotr<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "")
-	(rotatert:SSEMODE1248
-	 (match_operand:SSEMODE1248 1 "nonimmediate_operand" "")
-	 (match_operand:SI 2 "general_operand")))]
-  "TARGET_SSE5"
-{
-  /* If we were given a scalar, convert it to parallel */
-  if (! const_0_to_<sserotatemax>_operand (operands[2], SImode))
-    {
-      rtvec vs = rtvec_alloc (<ssescalarnum>);
-      rtx par = gen_rtx_PARALLEL (<MODE>mode, vs);
-      rtx neg = gen_reg_rtx (<MODE>mode);
-      rtx reg = gen_reg_rtx (<MODE>mode);
-      rtx op2 = operands[2];
-      int i;
-
-      if (GET_MODE (op2) != <ssescalarmode>mode)
-        {
-	  op2 = gen_reg_rtx (<ssescalarmode>mode);
-	  convert_move (op2, operands[2], false);
-	}
-
-      for (i = 0; i < <ssescalarnum>; i++)
-	RTVEC_ELT (vs, i) = op2;
-
-      emit_insn (gen_vec_init<mode> (reg, par));
-      emit_insn (gen_neg<mode>2 (neg, reg));
-      emit_insn (gen_sse5_vrotl<mode>3 (operands[0], operands[1], neg));
-      DONE;
-    }
-})
-
-(define_insn "sse5_rotl<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x")
-	(rotate:SSEMODE1248
-	 (match_operand:SSEMODE1248 1 "nonimmediate_operand" "xm")
-	 (match_operand:SI 2 "const_0_to_<sserotatemax>_operand" "n")))]
-  "TARGET_SSE5"
-  "prot<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
-  [(set_attr "type" "sseishft")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_rotr<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x")
-	(rotatert:SSEMODE1248
-	 (match_operand:SSEMODE1248 1 "nonimmediate_operand" "xm")
-	 (match_operand:SI 2 "const_0_to_<sserotatemax>_operand" "n")))]
-  "TARGET_SSE5"
-{
-  operands[3] = GEN_INT ((<ssescalarnum> * 8) - INTVAL (operands[2]));
-  return \"prot<ssevecsize>\t{%3, %1, %0|%0, %1, %3}\";
-}
-  [(set_attr "type" "sseishft")
-   (set_attr "mode" "TI")])
-
-(define_expand "vrotr<mode>3"
-  [(match_operand:SSEMODE1248 0 "register_operand" "")
-   (match_operand:SSEMODE1248 1 "register_operand" "")
-   (match_operand:SSEMODE1248 2 "register_operand" "")]
-  "TARGET_SSE5"
-{
-  rtx reg = gen_reg_rtx (<MODE>mode);
-  emit_insn (gen_neg<mode>2 (reg, operands[2]));
-  emit_insn (gen_sse5_vrotl<mode>3 (operands[0], operands[1], reg));
-  DONE;
-})
-
-(define_expand "vrotl<mode>3"
-  [(match_operand:SSEMODE1248 0 "register_operand" "")
-   (match_operand:SSEMODE1248 1 "register_operand" "")
-   (match_operand:SSEMODE1248 2 "register_operand" "")]
-  "TARGET_SSE5"
-{
-  emit_insn (gen_sse5_vrotl<mode>3 (operands[0], operands[1], operands[2]));
-  DONE;
-})
-
-(define_insn "sse5_vrotl<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x,x")
-	(if_then_else:SSEMODE1248
-	 (ge:SSEMODE1248
-	  (match_operand:SSEMODE1248 2 "nonimmediate_operand" "xm,x")
-	  (const_int 0))
-	 (rotate:SSEMODE1248
-	  (match_operand:SSEMODE1248 1 "nonimmediate_operand" "x,xm")
-	  (match_dup 2))
-	 (rotatert:SSEMODE1248
-	  (match_dup 1)
-	  (neg:SSEMODE1248 (match_dup 2)))))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 3, true, 1, false)"
-  "prot<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
-  [(set_attr "type" "sseishft")
-   (set_attr "mode" "TI")])
-
-;; SSE5 packed shift instructions.
-;; FIXME: add V2DI back in
-(define_expand "vlshr<mode>3"
-  [(match_operand:SSEMODE124 0 "register_operand" "")
-   (match_operand:SSEMODE124 1 "register_operand" "")
-   (match_operand:SSEMODE124 2 "register_operand" "")]
-  "TARGET_SSE5"
-{
-  rtx neg = gen_reg_rtx (<MODE>mode);
-  emit_insn (gen_neg<mode>2 (neg, operands[2]));
-  emit_insn (gen_sse5_lshl<mode>3 (operands[0], operands[1], neg));
-  DONE;
-})
-
-(define_expand "vashr<mode>3"
-  [(match_operand:SSEMODE124 0 "register_operand" "")
-   (match_operand:SSEMODE124 1 "register_operand" "")
-   (match_operand:SSEMODE124 2 "register_operand" "")]
-  "TARGET_SSE5"
-{
-  rtx neg = gen_reg_rtx (<MODE>mode);
-  emit_insn (gen_neg<mode>2 (neg, operands[2]));
-  emit_insn (gen_sse5_ashl<mode>3 (operands[0], operands[1], neg));
-  DONE;
-})
-
-(define_expand "vashl<mode>3"
-  [(match_operand:SSEMODE124 0 "register_operand" "")
-   (match_operand:SSEMODE124 1 "register_operand" "")
-   (match_operand:SSEMODE124 2 "register_operand" "")]
-  "TARGET_SSE5"
-{
-  emit_insn (gen_sse5_ashl<mode>3 (operands[0], operands[1], operands[2]));
-  DONE;
-})
-
-(define_insn "sse5_ashl<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x,x")
-	(if_then_else:SSEMODE1248
-	 (ge:SSEMODE1248
-	  (match_operand:SSEMODE1248 2 "nonimmediate_operand" "xm,x")
-	  (const_int 0))
-	 (ashift:SSEMODE1248
-	  (match_operand:SSEMODE1248 1 "nonimmediate_operand" "x,xm")
-	  (match_dup 2))
-	 (ashiftrt:SSEMODE1248
-	  (match_dup 1)
-	  (neg:SSEMODE1248 (match_dup 2)))))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 3, true, 1, false)"
-  "psha<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
-  [(set_attr "type" "sseishft")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_lshl<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x,x")
-	(if_then_else:SSEMODE1248
-	 (ge:SSEMODE1248
-	  (match_operand:SSEMODE1248 2 "nonimmediate_operand" "xm,x")
-	  (const_int 0))
-	 (ashift:SSEMODE1248
-	  (match_operand:SSEMODE1248 1 "nonimmediate_operand" "x,xm")
-	  (match_dup 2))
-	 (lshiftrt:SSEMODE1248
-	  (match_dup 1)
-	  (neg:SSEMODE1248 (match_dup 2)))))]
-  "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 3, true, 1, false)"
-  "pshl<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
-  [(set_attr "type" "sseishft")
-   (set_attr "mode" "TI")])
-
-;; SSE2 doesn't have some shift varients, so define versions for SSE5
-(define_expand "ashlv16qi3"
-  [(match_operand:V16QI 0 "register_operand" "")
-   (match_operand:V16QI 1 "register_operand" "")
-   (match_operand:SI 2 "nonmemory_operand" "")]
-  "TARGET_SSE5"
-{
-  rtvec vs = rtvec_alloc (16);
-  rtx par = gen_rtx_PARALLEL (V16QImode, vs);
-  rtx reg = gen_reg_rtx (V16QImode);
-  int i;
-  for (i = 0; i < 16; i++)
-    RTVEC_ELT (vs, i) = operands[2];
-
-  emit_insn (gen_vec_initv16qi (reg, par));
-  emit_insn (gen_sse5_ashlv16qi3 (operands[0], operands[1], reg));
-  DONE;
-})
-
-(define_expand "lshlv16qi3"
-  [(match_operand:V16QI 0 "register_operand" "")
-   (match_operand:V16QI 1 "register_operand" "")
-   (match_operand:SI 2 "nonmemory_operand" "")]
-  "TARGET_SSE5"
-{
-  rtvec vs = rtvec_alloc (16);
-  rtx par = gen_rtx_PARALLEL (V16QImode, vs);
-  rtx reg = gen_reg_rtx (V16QImode);
-  int i;
-  for (i = 0; i < 16; i++)
-    RTVEC_ELT (vs, i) = operands[2];
-
-  emit_insn (gen_vec_initv16qi (reg, par));
-  emit_insn (gen_sse5_lshlv16qi3 (operands[0], operands[1], reg));
-  DONE;
-})
-
-(define_expand "ashrv16qi3"
-  [(match_operand:V16QI 0 "register_operand" "")
-   (match_operand:V16QI 1 "register_operand" "")
-   (match_operand:SI 2 "nonmemory_operand" "")]
-  "TARGET_SSE5"
-{
-  rtvec vs = rtvec_alloc (16);
-  rtx par = gen_rtx_PARALLEL (V16QImode, vs);
-  rtx reg = gen_reg_rtx (V16QImode);
-  int i;
-  rtx ele = ((CONST_INT_P (operands[2]))
-	     ? GEN_INT (- INTVAL (operands[2]))
-	     : operands[2]);
-
-  for (i = 0; i < 16; i++)
-    RTVEC_ELT (vs, i) = ele;
-
-  emit_insn (gen_vec_initv16qi (reg, par));
-
-  if (!CONST_INT_P (operands[2]))
-    {
-      rtx neg = gen_reg_rtx (V16QImode);
-      emit_insn (gen_negv16qi2 (neg, reg));
-      emit_insn (gen_sse5_ashlv16qi3 (operands[0], operands[1], neg));
-    }
-  else
-    emit_insn (gen_sse5_ashlv16qi3 (operands[0], operands[1], reg));
-
-  DONE;
-})
-
-(define_expand "ashrv2di3"
-  [(match_operand:V2DI 0 "register_operand" "")
-   (match_operand:V2DI 1 "register_operand" "")
-   (match_operand:DI 2 "nonmemory_operand" "")]
-  "TARGET_SSE5"
-{
-  rtvec vs = rtvec_alloc (2);
-  rtx par = gen_rtx_PARALLEL (V2DImode, vs);
-  rtx reg = gen_reg_rtx (V2DImode);
-  rtx ele;
-
-  if (CONST_INT_P (operands[2]))
-    ele = GEN_INT (- INTVAL (operands[2]));
-  else if (GET_MODE (operands[2]) != DImode)
-    {
-      rtx move = gen_reg_rtx (DImode);
-      ele = gen_reg_rtx (DImode);
-      convert_move (move, operands[2], false);
-      emit_insn (gen_negdi2 (ele, move));
-    }
-  else
-    {
-      ele = gen_reg_rtx (DImode);
-      emit_insn (gen_negdi2 (ele, operands[2]));
-    }
-
-  RTVEC_ELT (vs, 0) = ele;
-  RTVEC_ELT (vs, 1) = ele;
-  emit_insn (gen_vec_initv2di (reg, par));
-  emit_insn (gen_sse5_ashlv2di3 (operands[0], operands[1], reg));
-  DONE;
-})
-
-;; SSE5 FRCZ support
-;; parallel insns
-(define_insn "sse5_frcz<mode>2"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x")
-	(unspec:SSEMODEF2P
-	 [(match_operand:SSEMODEF2P 1 "nonimmediate_operand" "xm")]
-	 UNSPEC_FRCZ))]
-  "TARGET_SSE5"
-  "frcz<ssemodesuffixf4>\t{%1, %0|%0, %1}"
-  [(set_attr "type" "ssecvt1")
-   (set_attr "prefix_extra" "1")
-   (set_attr "mode" "<MODE>")])
-
-;; scalar insns
-(define_insn "sse5_vmfrcz<mode>2"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x")
-	(vec_merge:SSEMODEF2P
-	  (unspec:SSEMODEF2P
-	   [(match_operand:SSEMODEF2P 2 "nonimmediate_operand" "xm")]
-	   UNSPEC_FRCZ)
-	  (match_operand:SSEMODEF2P 1 "register_operand" "0")
-	  (const_int 1)))]
-  "TARGET_SSE5"
-  "frcz<ssemodesuffixf2s>\t{%2, %0|%0, %2}"
-  [(set_attr "type" "ssecvt1")
-   (set_attr "prefix_extra" "1")
-   (set_attr "mode" "<MODE>")])
-
-(define_insn "sse5_cvtph2ps"
-  [(set (match_operand:V4SF 0 "register_operand" "=x")
-	(unspec:V4SF [(match_operand:V4HI 1 "nonimmediate_operand" "xm")]
-		     UNSPEC_CVTPH2PS))]
-  "TARGET_SSE5"
-  "cvtph2ps\t{%1, %0|%0, %1}"
-  [(set_attr "type" "ssecvt")
-   (set_attr "mode" "V4SF")])
-
-(define_insn "sse5_cvtps2ph"
-  [(set (match_operand:V4HI 0 "nonimmediate_operand" "=xm")
-	(unspec:V4HI [(match_operand:V4SF 1 "register_operand" "x")]
-		     UNSPEC_CVTPS2PH))]
-  "TARGET_SSE5"
-  "cvtps2ph\t{%1, %0|%0, %1}"
-  [(set_attr "type" "ssecvt")
-   (set_attr "mode" "V4SF")])
-
-;; Scalar versions of the com instructions that use vector types that are
-;; called from the intrinsics.  Unlike the the other s{s,d} instructions, the
-;; com instructions fill in 0's in the upper bits instead of leaving them
-;; unmodified, so we use const_vector of 0 instead of match_dup.
-(define_expand "sse5_vmmaskcmp<mode>3"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(vec_merge:SSEMODEF2P
-	 (match_operator:SSEMODEF2P 1 "sse5_comparison_float_operator"
-	  [(match_operand:SSEMODEF2P 2 "register_operand" "")
-	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "")])
-	 (match_dup 4)
-	 (const_int 1)))]
-  "TARGET_SSE5"
-{
-  operands[4] = CONST0_RTX (<MODE>mode);
-})
-
-(define_insn "*sse5_vmmaskcmp<mode>3"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x")
-	(vec_merge:SSEMODEF2P
-	 (match_operator:SSEMODEF2P 1 "sse5_comparison_float_operator"
-	  [(match_operand:SSEMODEF2P 2 "register_operand" "x")
-	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm")])
-	  (match_operand:SSEMODEF2P 4 "")
-	  (const_int 1)))]
-  "TARGET_SSE5"
-  "com%Y1<ssemodesuffixf2s>\t{%3, %2, %0|%0, %2, %3}"
-  [(set_attr "type" "sse4arg")
-   (set_attr "mode" "<ssescalarmode>")])
-
-;; We don't have a comparison operator that always returns true/false, so
-;; handle comfalse and comtrue specially.
-(define_insn "sse5_com_tf<mode>3"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x")
-	(unspec:SSEMODEF2P
-	 [(match_operand:SSEMODEF2P 1 "register_operand" "x")
-	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "xm")
-	  (match_operand:SI 3 "const_int_operand" "n")]
-	 UNSPEC_SSE5_TRUEFALSE))]
-  "TARGET_SSE5"
-{
-  const char *ret = NULL;
-
-  switch (INTVAL (operands[3]))
-    {
-    case COM_FALSE_S:
-      ret = \"comfalses<ssemodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}\";
-      break;
-
-    case COM_FALSE_P:
-      ret = \"comfalsep<ssemodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}\";
-      break;
-
-    case COM_TRUE_S:
-      ret = \"comfalses<ssemodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}\";
-      break;
-
-    case COM_TRUE_P:
-      ret = \"comfalsep<ssemodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}\";
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  return ret;
-}
-  [(set_attr "type" "ssecmp")
-   (set_attr "mode" "<MODE>")])
-
-(define_insn "sse5_maskcmp<mode>3"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x")
-	(match_operator:SSEMODEF2P 1 "sse5_comparison_float_operator"
-	 [(match_operand:SSEMODEF2P 2 "register_operand" "x")
-	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm")]))]
-  "TARGET_SSE5"
-  "com%Y1<ssemodesuffixf4>\t{%3, %2, %0|%0, %2, %3}"
-  [(set_attr "type" "ssecmp")
-   (set_attr "mode" "<MODE>")])
-
-(define_insn "sse5_maskcmp<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x")
-	(match_operator:SSEMODE1248 1 "ix86_comparison_int_operator"
-	 [(match_operand:SSEMODE1248 2 "register_operand" "x")
-	  (match_operand:SSEMODE1248 3 "nonimmediate_operand" "xm")]))]
-  "TARGET_SSE5"
-  "pcom%Y1<ssevecsize>\t{%3, %2, %0|%0, %2, %3}"
-  [(set_attr "type" "sse4arg")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse5_maskcmp_uns<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x")
-	(match_operator:SSEMODE1248 1 "ix86_comparison_uns_operator"
-	 [(match_operand:SSEMODE1248 2 "register_operand" "x")
-	  (match_operand:SSEMODE1248 3 "nonimmediate_operand" "xm")]))]
-  "TARGET_SSE5"
-  "pcom%Y1u<ssevecsize>\t{%3, %2, %0|%0, %2, %3}"
-  [(set_attr "type" "ssecmp")
-   (set_attr "mode" "TI")])
-
-;; Version of pcom*u* that is called from the intrinsics that allows pcomequ*
-;; and pcomneu* not to be converted to the signed ones in case somebody needs
-;; the exact instruction generated for the intrinsic.
-(define_insn "sse5_maskcmp_uns2<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x")
-	(unspec:SSEMODE1248
-	 [(match_operator:SSEMODE1248 1 "ix86_comparison_uns_operator"
-	  [(match_operand:SSEMODE1248 2 "register_operand" "x")
-	   (match_operand:SSEMODE1248 3 "nonimmediate_operand" "xm")])]
-	 UNSPEC_SSE5_UNSIGNED_CMP))]
-  "TARGET_SSE5"
-  "pcom%Y1u<ssevecsize>\t{%3, %2, %0|%0, %2, %3}"
-  [(set_attr "type" "ssecmp")
-   (set_attr "mode" "TI")])
-
-;; Pcomtrue and pcomfalse support.  These are useless instructions, but are
-;; being added here to be complete.
-(define_insn "sse5_pcom_tf<mode>3"
-  [(set (match_operand:SSEMODE1248 0 "register_operand" "=x")
-	(unspec:SSEMODE1248
-	  [(match_operand:SSEMODE1248 1 "register_operand" "x")
-	   (match_operand:SSEMODE1248 2 "nonimmediate_operand" "xm")
-	   (match_operand:SI 3 "const_int_operand" "n")]
-	  UNSPEC_SSE5_TRUEFALSE))]
-  "TARGET_SSE5"
-{
-  return ((INTVAL (operands[3]) != 0)
-	  ? "pcomtrue<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
-	  : "pcomfalse<ssevecsize>\t{%2, %1, %0|%0, %1, %2}");
-}
-  [(set_attr "type" "ssecmp")
    (set_attr "mode" "TI")])
 
 (define_insn "*avx_aesenc"
@@ -11442,6 +9436,7 @@
   "TARGET_AES && TARGET_AVX"
   "vaesenc\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -11464,6 +9459,7 @@
   "TARGET_AES && TARGET_AVX"
   "vaesenclast\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -11486,6 +9482,7 @@
   "TARGET_AES && TARGET_AVX"
   "vaesdec\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -11508,6 +9505,7 @@
   "TARGET_AES && TARGET_AVX"
   "vaesdeclast\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -11542,6 +9540,7 @@
   "%vaeskeygenassist\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
@@ -11554,6 +9553,8 @@
   "TARGET_PCLMUL && TARGET_AVX"
   "vpclmulqdq\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
@@ -11567,6 +9568,7 @@
   "pclmulqdq\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "sselog1")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_expand "avx_vzeroall"
@@ -11597,6 +9599,7 @@
   "TARGET_AVX"
   "vzeroall"
   [(set_attr "type" "sse")
+   (set_attr "modrm" "0")
    (set_attr "memory" "none")
    (set_attr "prefix" "vex")
    (set_attr "mode" "OI")])
@@ -11615,6 +9618,7 @@
   "TARGET_AVX && !TARGET_64BIT"
   "vzeroupper"
   [(set_attr "type" "sse")
+   (set_attr "modrm" "0")
    (set_attr "memory" "none")
    (set_attr "prefix" "vex")
    (set_attr "mode" "OI")])
@@ -11640,6 +9644,7 @@
   "TARGET_AVX && TARGET_64BIT"
   "vzeroupper"
   [(set_attr "type" "sse")
+   (set_attr "modrm" "0")
    (set_attr "memory" "none")
    (set_attr "prefix" "vex")
    (set_attr "mode" "OI")])
@@ -11653,6 +9658,8 @@
   "TARGET_AVX"
   "vpermilp<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
@@ -11665,6 +9672,7 @@
   "TARGET_AVX"
   "vpermilp<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
@@ -11678,6 +9686,8 @@
   "TARGET_AVX"
   "vperm2f128\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11693,6 +9703,7 @@
   "TARGET_AVX"
   "vbroadcasts<avxmodesuffixf2c>\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<avxscalarmode>")])
 
@@ -11716,6 +9727,7 @@
   "TARGET_AVX"
   "vbroadcastss\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "SF")])
 
@@ -11727,6 +9739,7 @@
   "TARGET_AVX"
   "vbroadcastf128\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssemov")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4SF")])
 
@@ -11763,6 +9776,8 @@
   "TARGET_AVX"
   "vinsertf128\t{$0x0, %2, %1, %0|%0, %1, %2, 0x0}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11776,6 +9791,8 @@
   "TARGET_AVX"
   "vinsertf128\t{$0x1, %2, %1, %0|%0, %1, %2, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11790,6 +9807,8 @@
   "TARGET_AVX"
   "vinsertf128\t{$0x0, %2, %1, %0|%0, %1, %2, 0x0}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11804,6 +9823,8 @@
   "TARGET_AVX"
   "vinsertf128\t{$0x1, %2, %1, %0|%0, %1, %2, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11820,6 +9841,8 @@
   "TARGET_AVX"
   "vinsertf128\t{$0x0, %2, %1, %0|%0, %1, %2, 0x0}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11836,6 +9859,8 @@
   "TARGET_AVX"
   "vinsertf128\t{$0x1, %2, %1, %0|%0, %1, %2, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11856,6 +9881,8 @@
   "TARGET_AVX"
   "vinsertf128\t{$0x0, %2, %1, %0|%0, %1, %2, 0x0}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11876,6 +9903,8 @@
   "TARGET_AVX"
   "vinsertf128\t{$0x1, %2, %1, %0|%0, %1, %2, 0x1}"
   [(set_attr "type" "sselog")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
@@ -11889,6 +9918,7 @@
   "TARGET_AVX"
   "vmaskmovp<avxmodesuffixf2c>\t{%1, %2, %0|%0, %2, %1}"
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
@@ -11902,6 +9932,7 @@
   "TARGET_AVX"
   "vmaskmovp<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog1")
+   (set_attr "prefix_extra" "1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
@@ -12012,5 +10043,7 @@
     }
 }
   [(set_attr "type" "sselog,ssemov")
+   (set_attr "prefix_extra" "1,*")
+   (set_attr "length_immediate" "1,*")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<avxvecmode>")])

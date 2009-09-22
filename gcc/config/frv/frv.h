@@ -1,5 +1,5 @@
 /* Target macros for the FRV port of GCC.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Red Hat Inc.
 
@@ -1564,26 +1564,6 @@ typedef struct frv_stack {
 
 /* Eliminating the Frame Pointer and the Arg Pointer.  */
 
-/* A C expression which is nonzero if a function must have and use a frame
-   pointer.  This expression is evaluated in the reload pass.  If its value is
-   nonzero the function will have a frame pointer.
-
-   The expression can in principle examine the current function and decide
-   according to the facts, but on most machines the constant 0 or the constant
-   1 suffices.  Use 0 when the machine allows code to be generated with no
-   frame pointer, and doing so saves some time or space.  Use 1 when there is
-   no possible advantage to avoiding a frame pointer.
-
-   In certain cases, the compiler does not know how to produce valid code
-   without a frame pointer.  The compiler recognizes those cases and
-   automatically gives the function a frame pointer regardless of what
-   `FRAME_POINTER_REQUIRED' says.  You don't need to worry about them.
-
-   In a function that does not require a frame pointer, the frame pointer
-   register can be allocated for ordinary usage, unless you mark it as a fixed
-   register.  See `FIXED_REGISTERS' for more information.  */
-#define FRAME_POINTER_REQUIRED frv_frame_pointer_required ()
-
 /* If defined, this macro specifies a table of register pairs used to eliminate
    unneeded registers that point into the stack frame.  If it is not defined,
    the only elimination attempted by the compiler is to replace references to
@@ -1613,17 +1593,6 @@ typedef struct frv_stack {
   {ARG_POINTER_REGNUM,	 FRAME_POINTER_REGNUM},				\
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}				\
 }
-
-/* A C expression that returns nonzero if the compiler is allowed to try to
-   replace register number FROM with register number TO.  This macro need only
-   be defined if `ELIMINABLE_REGS' is defined, and will usually be the constant
-   1, since most of the cases preventing register elimination are things that
-   the compiler already knows about.  */
-
-#define CAN_ELIMINATE(FROM, TO)						\
-  ((FROM) == ARG_POINTER_REGNUM && (TO) == STACK_POINTER_REGNUM		\
-   ? ! frame_pointer_needed						\
-   : 1)
 
 /* This macro is similar to `INITIAL_FRAME_POINTER_OFFSET'.  It specifies the
    initial difference between the specified pair of registers.  This macro must
@@ -1783,10 +1752,6 @@ typedef struct frv_stack {
    represent that type.  On many machines, only the mode is relevant.
    (Actually, on most machines, scalar values are returned in the same place
    regardless of mode).
-
-   If `TARGET_PROMOTE_FUNCTION_RETURN' is defined to return true, you
-   must apply the same promotion rules specified in `PROMOTE_MODE' if
-   VALTYPE is a scalar type.
 
    If the precise function being called is known, FUNC is a tree node
    (`FUNCTION_DECL') for it; otherwise, FUNC is a null pointer.  This makes it

@@ -156,6 +156,10 @@ Glenn Chambers for help with the GCJ FAQ@.
 John-Marc Chandonia for various libgcj patches.
 
 @item
+Denis Chertykov for contributing and maintaining the AVR port, the first GCC port
+for an 8-bit architecture.
+
+@item
 Scott Christley for his Objective-C contributions.
 
 @item
@@ -211,7 +215,7 @@ Mo DeJong for GCJ and libgcj bug fixes.
 
 @item
 DJ Delorie for the DJGPP port, build and libiberty maintenance,
-various bug fixes, and the M32C port.
+various bug fixes, and the M32C and MeP ports.
 
 @item
 Arnaud Desitter for helping to debug GNU Fortran.
@@ -312,7 +316,8 @@ support, improved leaf function register allocation, and his direction
 via the steering committee.
 
 @item
-Anthony Green for his @option{-Os} contributions and Java front end work.
+Anthony Green for his @option{-Os} contributions, the moxie port, and
+Java front end work.
 
 @item
 Stu Grossman for gdb hacking, allowing GCJ developers to debug Java code.

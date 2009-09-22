@@ -114,7 +114,6 @@ static void output_constant_def_contents (rtx);
 static void output_addressed_constants (tree);
 static unsigned HOST_WIDE_INT array_size_for_constructor (tree);
 static unsigned min_align (unsigned, unsigned);
-static void output_constructor (tree, unsigned HOST_WIDE_INT, unsigned int);
 static void globalize_decl (tree);
 #ifdef BSS_SECTION_ASM_OP
 #ifdef ASM_OUTPUT_BSS
@@ -240,24 +239,28 @@ default_emutls_var_fields (tree type, tree *name ATTRIBUTE_UNUSED)
 {
   tree word_type_node, field, next_field;
   
-  field = build_decl (FIELD_DECL, get_identifier ("__templ"), ptr_type_node);
+  field = build_decl (UNKNOWN_LOCATION,
+		      FIELD_DECL, get_identifier ("__templ"), ptr_type_node);
   DECL_CONTEXT (field) = type;
   next_field = field;
     
-  field = build_decl (FIELD_DECL, get_identifier ("__offset"),
+  field = build_decl (UNKNOWN_LOCATION,
+		      FIELD_DECL, get_identifier ("__offset"),
 		      ptr_type_node);
   DECL_CONTEXT (field) = type;
   TREE_CHAIN (field) = next_field;
   next_field = field;
   
   word_type_node = lang_hooks.types.type_for_mode (word_mode, 1);
-  field = build_decl (FIELD_DECL, get_identifier ("__align"),
+  field = build_decl (UNKNOWN_LOCATION,
+		      FIELD_DECL, get_identifier ("__align"),
 		      word_type_node);
   DECL_CONTEXT (field) = type;
   TREE_CHAIN (field) = next_field;
   next_field = field;
   
-  field = build_decl (FIELD_DECL, get_identifier ("__size"), word_type_node);
+  field = build_decl (UNKNOWN_LOCATION,
+		      FIELD_DECL, get_identifier ("__size"), word_type_node);
   DECL_CONTEXT (field) = type;
   TREE_CHAIN (field) = next_field;
 
@@ -281,7 +284,8 @@ get_emutls_object_type (void)
   field = targetm.emutls.var_fields (type, &type_name);
   if (!type_name)
     type_name = get_identifier ("__emutls_object");
-  type_name = build_decl (TYPE_DECL, type_name, type);
+  type_name = build_decl (UNKNOWN_LOCATION,
+			  TYPE_DECL, type_name, type);
   TYPE_NAME (type) = type_name;
   TYPE_FIELDS (type) = field;
   layout_type (type);
@@ -310,7 +314,8 @@ get_emutls_init_templ_addr (tree decl)
       name = prefix_name (prefix, name);
     }
 
-  to = build_decl (VAR_DECL, name, TREE_TYPE (decl));
+  to = build_decl (DECL_SOURCE_LOCATION (decl),
+		   VAR_DECL, name, TREE_TYPE (decl));
   SET_DECL_ASSEMBLER_NAME (to, DECL_NAME (to));
   DECL_TLS_MODEL (to) = TLS_MODEL_EMULATED;
   DECL_ARTIFICIAL (to) = 1;
@@ -323,7 +328,7 @@ get_emutls_init_templ_addr (tree decl)
   DECL_WEAK (to) = DECL_WEAK (decl);
   if (DECL_ONE_ONLY (decl))
     {
-      make_decl_one_only (to);
+      make_decl_one_only (to, DECL_ASSEMBLER_NAME (to));
       TREE_STATIC (to) = TREE_STATIC (decl);
       TREE_PUBLIC (to) = TREE_PUBLIC (decl);
       DECL_VISIBILITY (to) = DECL_VISIBILITY (decl);
@@ -370,7 +375,8 @@ emutls_decl (tree decl)
     to = h->to;
   else
     {
-      to = build_decl (VAR_DECL, get_emutls_object_name (name),
+      to = build_decl (DECL_SOURCE_LOCATION (decl),
+		       VAR_DECL, get_emutls_object_name (name),
 		       get_emutls_object_type ());
 
       h = GGC_NEW (struct tree_map);
@@ -385,7 +391,7 @@ emutls_decl (tree decl)
       TREE_READONLY (to) = 0;
       SET_DECL_ASSEMBLER_NAME (to, DECL_NAME (to));
       if (DECL_ONE_ONLY (decl))
-	make_decl_one_only (to);
+	make_decl_one_only (to, DECL_ASSEMBLER_NAME (to));
       DECL_CONTEXT (to) = DECL_CONTEXT (decl);
       if (targetm.emutls.var_align_fixed)
 	/* If we're not allowed to change the proxy object's
@@ -439,7 +445,7 @@ emutls_common_1 (void **loc, void *xstmts)
   args = tree_cons (NULL, x, args);
 
   x = built_in_decls[BUILT_IN_EMUTLS_REGISTER_COMMON];
-  x = build_function_call_expr (x, args);
+  x = build_function_call_expr (UNKNOWN_LOCATION, x, args);
 
   append_to_statement_list (x, pstmts);
   return 1;
@@ -1743,7 +1749,8 @@ assemble_start_function (tree decl, const char *fnname)
   ASM_OUTPUT_FUNCTION_PREFIX (asm_out_file, fnname);
 #endif
 
-  (*debug_hooks->begin_function) (decl);
+  if (!DECL_IGNORED_P (decl))
+    (*debug_hooks->begin_function) (decl);
 
   /* Make function name accessible from other files, if appropriate.  */
 
@@ -2322,11 +2329,11 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
 	 for declarations that can be weak, it happens to be
 	 match.  */
       && !TREE_STATIC (decl)
-      && tree_find_value (weak_decls, decl) == NULL_TREE)
-      weak_decls = tree_cons (NULL, decl, weak_decls);
+      && value_member (decl, weak_decls) == NULL_TREE)
+    weak_decls = tree_cons (NULL, decl, weak_decls);
 
 #ifdef ASM_OUTPUT_EXTERNAL
-  if (tree_find_value (pending_assemble_externals, decl) == NULL_TREE)
+  if (value_member (decl, pending_assemble_externals) == NULL_TREE)
     pending_assemble_externals = tree_cons (NULL, decl,
 					    pending_assemble_externals);
 #endif
@@ -2776,28 +2783,20 @@ decode_addr_const (tree exp, struct addr_const *value)
   value->offset = offset;
 }
 
-/* Uniquize all constants that appear in memory.
-   Each constant in memory thus far output is recorded
-   in `const_desc_table'.  */
-
-struct GTY(()) constant_descriptor_tree {
-  /* A MEM for the constant.  */
-  rtx rtl;
-
-  /* The value of the constant.  */
-  tree value;
-
-  /* Hash of value.  Computing the hash from value each time
-     hashfn is called can't work properly, as that means recursive
-     use of the hash table during hash table expansion.  */
-  hashval_t hash;
-};
 
 static GTY((param_is (struct constant_descriptor_tree)))
      htab_t const_desc_htab;
 
 static struct constant_descriptor_tree * build_constant_desc (tree);
 static void maybe_output_constant_def_contents (struct constant_descriptor_tree *, int);
+
+/* Constant pool accessor function.  */
+
+htab_t 
+constant_pool_htab (void)
+{
+  return const_desc_htab;
+}
 
 /* Compute a hash code for a constant expression.  */
 
@@ -3202,6 +3201,10 @@ build_constant_desc (tree exp)
   set_mem_alias_set (rtl, 0);
   set_mem_alias_set (rtl, const_alias_set);
 
+  /* We cannot share RTX'es in pool entries.
+     Mark this piece of RTL as required for unsharing.  */
+  RTX_FLAG (rtl, used) = 1;
+
   /* Set flags or add text to the name to record information, such as
      that it is a local symbol.  If the name is changed, the macro
      ASM_OUTPUT_LABELREF will have to know how to strip this
@@ -3439,7 +3442,7 @@ const_rtx_hash_1 (rtx *xp, void *data)
       hwi = INTVAL (x);
     fold_hwi:
       {
-	const int shift = sizeof (hashval_t) * CHAR_BIT;
+	int shift = sizeof (hashval_t) * CHAR_BIT;
 	const int n = sizeof (HOST_WIDE_INT) / sizeof (hashval_t);
 	int i;
 
@@ -4366,6 +4369,55 @@ initializer_constant_valid_p (tree value, tree endtype)
   return 0;
 }
 
+/* Return true if VALUE is a valid constant-valued expression
+   for use in initializing a static bit-field; one that can be
+   an element of a "constant" initializer.  */
+
+bool
+initializer_constant_valid_for_bitfield_p (tree value)
+{
+  /* For bitfields we support integer constants or possibly nested aggregates
+     of such.  */
+  switch (TREE_CODE (value))
+    {
+    case CONSTRUCTOR:
+      {
+	unsigned HOST_WIDE_INT idx;
+	tree elt;
+
+	FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (value), idx, elt)
+	  if (!initializer_constant_valid_for_bitfield_p (elt))
+	    return false;
+	return true;
+      }
+
+    case INTEGER_CST:
+      return true;
+
+    case VIEW_CONVERT_EXPR:
+    case NON_LVALUE_EXPR:
+      return
+	initializer_constant_valid_for_bitfield_p (TREE_OPERAND (value, 0));
+
+    default:
+      break;
+    }
+
+  return false;
+}
+
+/* output_constructor outer state of relevance in recursive calls, typically
+   for nested aggregate bitfields.  */
+
+typedef struct {
+  unsigned int bit_offset;  /* current position in ...  */
+  int byte;                 /* ... the outer byte buffer.  */
+} oc_outer_state;
+
+static unsigned HOST_WIDE_INT
+  output_constructor (tree, unsigned HOST_WIDE_INT, unsigned int,
+		      oc_outer_state *);
+
 /* Output assembler code for constant EXP to FILE, with no label.
    This includes the pseudo-op such as ".int" or ".byte", and a newline.
    Assumes output_addressed_constants has been done on EXP already.
@@ -4504,7 +4556,7 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
       switch (TREE_CODE (exp))
 	{
 	case CONSTRUCTOR:
-	  output_constructor (exp, size, align);
+	    output_constructor (exp, size, align, NULL);
 	  return;
 	case STRING_CST:
 	  thissize = MIN ((unsigned HOST_WIDE_INT)TREE_STRING_LENGTH (exp),
@@ -4542,7 +4594,7 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
     case RECORD_TYPE:
     case UNION_TYPE:
       gcc_assert (TREE_CODE (exp) == CONSTRUCTOR);
-      output_constructor (exp, size, align);
+      output_constructor (exp, size, align, NULL);
       return;
 
     case ERROR_MARK:
@@ -4598,316 +4650,462 @@ array_size_for_constructor (tree val)
   return tree_low_cst (i, 1);
 }
 
-/* Subroutine of output_constant, used for CONSTRUCTORs (aggregate constants).
-   Generate at least SIZE bytes, padding if necessary.  */
+/* Other datastructures + helpers for output_constructor.  */
+
+/* output_constructor local state to support interaction with helpers.  */
+
+typedef struct {
+
+  /* Received arguments.  */
+  tree exp;                     /* Constructor expression.  */
+  unsigned HOST_WIDE_INT size;  /* # bytes to output - pad if necessary.  */
+  unsigned int align;           /* Known initial alignment.  */
+
+  /* Constructor expression data.  */
+  tree type;       /* Expression type.  */
+  tree field;      /* Current field decl in a record.  */
+  tree min_index;  /* Lower bound if specified for an array.  */
+
+  /* Output processing state.  */
+  HOST_WIDE_INT total_bytes;  /* # bytes output so far / current position.  */
+  bool byte_buffer_in_use;    /* Whether byte ...  */
+  int byte;                   /* ... contains part of a bitfield byte yet to
+			         be output.  */
+
+  int last_relative_index;    /* Implicit or explicit index of the last
+				 array element output within a bitfield.  */
+  /* Current element.  */
+  tree val;    /* Current element value.  */
+  tree index;  /* Current element index.  */
+
+} oc_local_state;
+
+/* Helper for output_constructor.  From the current LOCAL state, output a
+   RANGE_EXPR element.  */
 
 static void
-output_constructor (tree exp, unsigned HOST_WIDE_INT size,
-		    unsigned int align)
+output_constructor_array_range (oc_local_state *local)
 {
-  tree type = TREE_TYPE (exp);
-  tree field = 0;
-  tree min_index = 0;
-  /* Number of bytes output or skipped so far.
-     In other words, current position within the constructor.  */
-  HOST_WIDE_INT total_bytes = 0;
-  /* Nonzero means BYTE contains part of a byte, to be output.  */
-  int byte_buffer_in_use = 0;
-  int byte = 0;
+  unsigned HOST_WIDE_INT fieldsize
+    = int_size_in_bytes (TREE_TYPE (local->type));
+
+  HOST_WIDE_INT lo_index
+    = tree_low_cst (TREE_OPERAND (local->index, 0), 0);
+  HOST_WIDE_INT hi_index
+    = tree_low_cst (TREE_OPERAND (local->index, 1), 0);
+  HOST_WIDE_INT index;
+
+  unsigned int align2
+    = min_align (local->align, fieldsize * BITS_PER_UNIT);
+  
+  for (index = lo_index; index <= hi_index; index++)
+    {
+      /* Output the element's initial value.  */
+      if (local->val == NULL_TREE)
+	assemble_zeros (fieldsize);
+      else
+	output_constant (local->val, fieldsize, align2);
+      
+      /* Count its size.  */
+      local->total_bytes += fieldsize;
+    }
+}
+
+/* Helper for output_constructor.  From the current LOCAL state, output a
+   field element that is not true bitfield or part of an outer one.  */
+
+static void
+output_constructor_regular_field (oc_local_state *local)
+{
+  /* Field size and position.  Since this structure is static, we know the
+     positions are constant.  */
+  unsigned HOST_WIDE_INT fieldsize;
+  HOST_WIDE_INT fieldpos;
+
+  unsigned int align2;
+
+  if (local->index != NULL_TREE)
+    fieldpos = (tree_low_cst (TYPE_SIZE_UNIT (TREE_TYPE (local->val)), 1)
+		* ((tree_low_cst (local->index, 0) 
+		    - tree_low_cst (local->min_index, 0))));
+  else if (local->field != NULL_TREE) 
+    fieldpos = int_byte_position (local->field);
+  else
+    fieldpos = 0; 
+
+  /* Output any buffered-up bit-fields preceding this element.  */
+  if (local->byte_buffer_in_use)
+    {
+      assemble_integer (GEN_INT (local->byte), 1, BITS_PER_UNIT, 1);
+      local->total_bytes++;
+      local->byte_buffer_in_use = false;
+    }
+  
+  /* Advance to offset of this element.
+     Note no alignment needed in an array, since that is guaranteed
+     if each element has the proper size.  */
+  if ((local->field != NULL_TREE || local->index != NULL_TREE)
+      && fieldpos != local->total_bytes)
+    {
+      gcc_assert (fieldpos >= local->total_bytes);
+      assemble_zeros (fieldpos - local->total_bytes);
+      local->total_bytes = fieldpos;
+    }
+  
+  /* Find the alignment of this element.  */
+  align2 = min_align (local->align, BITS_PER_UNIT * fieldpos);
+
+  /* Determine size this element should occupy.  */
+  if (local->field)
+    {
+      fieldsize = 0;
+      
+      /* If this is an array with an unspecified upper bound,
+	 the initializer determines the size.  */
+      /* ??? This ought to only checked if DECL_SIZE_UNIT is NULL,
+	 but we cannot do this until the deprecated support for
+	 initializing zero-length array members is removed.  */
+      if (TREE_CODE (TREE_TYPE (local->field)) == ARRAY_TYPE
+	  && TYPE_DOMAIN (TREE_TYPE (local->field))
+	  && ! TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (local->field))))
+	{
+	  fieldsize = array_size_for_constructor (local->val);
+	  /* Given a non-empty initialization, this field had
+	     better be last.  */
+	  gcc_assert (!fieldsize || !TREE_CHAIN (local->field));
+	}
+      else if (DECL_SIZE_UNIT (local->field))
+	{
+	  /* ??? This can't be right.  If the decl size overflows
+	     a host integer we will silently emit no data.  */
+	  if (host_integerp (DECL_SIZE_UNIT (local->field), 1))
+	    fieldsize = tree_low_cst (DECL_SIZE_UNIT (local->field), 1);
+	}
+    }
+  else
+    fieldsize = int_size_in_bytes (TREE_TYPE (local->type));
+  
+  /* Output the element's initial value.  */
+  if (local->val == NULL_TREE)
+    assemble_zeros (fieldsize);
+  else
+    output_constant (local->val, fieldsize, align2);
+
+  /* Count its size.  */
+  local->total_bytes += fieldsize;
+}
+
+/* Helper for output_constructor.  From the current LOCAL and OUTER states,
+   output an element that is a true bitfield or part of an outer one.  */
+
+static void
+output_constructor_bitfield (oc_local_state *local, oc_outer_state *outer)
+{
+  /* Bit size of this element.  */
+  HOST_WIDE_INT ebitsize
+    = (local->field
+       ? tree_low_cst (DECL_SIZE (local->field), 1)
+       : tree_low_cst (TYPE_SIZE (TREE_TYPE (local->type)), 1));
+
+  /* Relative index of this element if this is an array component.  */
+  HOST_WIDE_INT relative_index
+    = (!local->field
+       ? (local->index
+	  ? (tree_low_cst (local->index, 0) 
+	     - tree_low_cst (local->min_index, 0))
+	  : local->last_relative_index + 1)
+       : 0);
+  
+  /* Bit position of this element from the start of the containing
+     constructor.  */
+  HOST_WIDE_INT constructor_relative_ebitpos
+      = (local->field
+	 ? int_bit_position (local->field) 
+	 : ebitsize * relative_index);
+  
+  /* Bit position of this element from the start of a possibly ongoing
+     outer byte buffer.  */
+  HOST_WIDE_INT byte_relative_ebitpos
+      = ((outer ? outer->bit_offset : 0) + constructor_relative_ebitpos);
+
+  /* From the start of a possibly ongoing outer byte buffer, offsets to 
+     the first bit of this element and to the first bit past the end of
+     this element.  */
+  HOST_WIDE_INT next_offset = byte_relative_ebitpos;
+  HOST_WIDE_INT end_offset = byte_relative_ebitpos + ebitsize;
+  
+  local->last_relative_index = relative_index;
+  
+  if (local->val == NULL_TREE)
+    local->val = integer_zero_node;
+  
+  while (TREE_CODE (local->val) == VIEW_CONVERT_EXPR
+	 || TREE_CODE (local->val) == NON_LVALUE_EXPR)
+    local->val = TREE_OPERAND (local->val, 0);
+    
+  if (TREE_CODE (local->val) != INTEGER_CST
+      && TREE_CODE (local->val) != CONSTRUCTOR)
+    {
+      error ("invalid initial value for member %qE", DECL_NAME (local->field));
+      return;
+    }
+
+  /* If this field does not start in this (or, next) byte,
+     skip some bytes.  */
+  if (next_offset / BITS_PER_UNIT != local->total_bytes)
+    {
+      /* Output remnant of any bit field in previous bytes.  */
+      if (local->byte_buffer_in_use)
+	{
+	  assemble_integer (GEN_INT (local->byte), 1, BITS_PER_UNIT, 1);
+	  local->total_bytes++;
+	  local->byte_buffer_in_use = false;
+	}
+      
+      /* If still not at proper byte, advance to there.  */
+      if (next_offset / BITS_PER_UNIT != local->total_bytes)
+	{
+	  gcc_assert (next_offset / BITS_PER_UNIT >= local->total_bytes);
+	  assemble_zeros (next_offset / BITS_PER_UNIT - local->total_bytes);
+	  local->total_bytes = next_offset / BITS_PER_UNIT;
+	}
+    }
+  
+  /* Set up the buffer if necessary.  */
+  if (!local->byte_buffer_in_use)
+    {
+      local->byte = 0;
+      if (ebitsize > 0)
+	local->byte_buffer_in_use = true;
+    }
+  
+  /* If this is nested constructor, recurse passing the bit offset and the
+     pending data, then retrieve the new pending data afterwards.  */
+  if (TREE_CODE (local->val) == CONSTRUCTOR)
+    {
+      oc_outer_state output_state;
+
+      output_state.bit_offset = next_offset % BITS_PER_UNIT;
+      output_state.byte = local->byte;
+      local->total_bytes
+	  += output_constructor (local->val, 0, 0, &output_state);
+      local->byte = output_state.byte;
+      return;
+    }
+  
+  /* Otherwise, we must split the element into pieces that fall within
+     separate bytes, and combine each byte with previous or following
+     bit-fields.  */  
+  while (next_offset < end_offset)
+    {
+      int this_time;
+      int shift;
+      HOST_WIDE_INT value;
+      HOST_WIDE_INT next_byte = next_offset / BITS_PER_UNIT;
+      HOST_WIDE_INT next_bit = next_offset % BITS_PER_UNIT;
+      
+      /* Advance from byte to byte
+	 within this element when necessary.  */
+      while (next_byte != local->total_bytes)
+	{
+	  assemble_integer (GEN_INT (local->byte), 1, BITS_PER_UNIT, 1);
+	  local->total_bytes++;
+	  local->byte = 0;
+	}
+      
+      /* Number of bits we can process at once
+	 (all part of the same byte).  */
+      this_time = MIN (end_offset - next_offset,
+		       BITS_PER_UNIT - next_bit);
+      if (BYTES_BIG_ENDIAN)
+	{
+	  /* On big-endian machine, take the most significant bits
+	     first (of the bits that are significant)
+	     and put them into bytes from the most significant end.  */
+	  shift = end_offset - next_offset - this_time;
+	  
+	  /* Don't try to take a bunch of bits that cross
+	     the word boundary in the INTEGER_CST. We can
+	     only select bits from the LOW or HIGH part
+	     not from both.  */
+	  if (shift < HOST_BITS_PER_WIDE_INT
+	      && shift + this_time > HOST_BITS_PER_WIDE_INT)
+	    {
+	      this_time = shift + this_time - HOST_BITS_PER_WIDE_INT;
+	      shift = HOST_BITS_PER_WIDE_INT;
+	    }
+	  
+	  /* Now get the bits from the appropriate constant word.  */
+	  if (shift < HOST_BITS_PER_WIDE_INT)
+	    value = TREE_INT_CST_LOW (local->val);
+	  else
+	    {
+	      gcc_assert (shift < 2 * HOST_BITS_PER_WIDE_INT);
+	      value = TREE_INT_CST_HIGH (local->val);
+	      shift -= HOST_BITS_PER_WIDE_INT;
+	    }
+	  
+	  /* Get the result. This works only when:
+	     1 <= this_time <= HOST_BITS_PER_WIDE_INT.  */
+	  local->byte |= (((value >> shift)
+			   & (((HOST_WIDE_INT) 2 << (this_time - 1)) - 1))
+			  << (BITS_PER_UNIT - this_time - next_bit));
+	}
+      else
+	{
+	  /* On little-endian machines,
+	     take first the least significant bits of the value
+	     and pack them starting at the least significant
+	     bits of the bytes.  */
+	  shift = next_offset - byte_relative_ebitpos;
+	  
+	  /* Don't try to take a bunch of bits that cross
+	     the word boundary in the INTEGER_CST. We can
+	     only select bits from the LOW or HIGH part
+	     not from both.  */
+	  if (shift < HOST_BITS_PER_WIDE_INT
+	      && shift + this_time > HOST_BITS_PER_WIDE_INT)
+	    this_time = (HOST_BITS_PER_WIDE_INT - shift);
+	  
+	  /* Now get the bits from the appropriate constant word.  */
+	  if (shift < HOST_BITS_PER_WIDE_INT)
+	    value = TREE_INT_CST_LOW (local->val);
+	  else
+	    {
+	      gcc_assert (shift < 2 * HOST_BITS_PER_WIDE_INT);
+	      value = TREE_INT_CST_HIGH (local->val);
+	      shift -= HOST_BITS_PER_WIDE_INT;
+	    }
+	  
+	  /* Get the result. This works only when:
+	     1 <= this_time <= HOST_BITS_PER_WIDE_INT.  */
+	  local->byte |= (((value >> shift)
+			   & (((HOST_WIDE_INT) 2 << (this_time - 1)) - 1))
+			  << next_bit);
+	}
+      
+      next_offset += this_time;
+      local->byte_buffer_in_use = true;
+    }
+}
+
+/* Subroutine of output_constant, used for CONSTRUCTORs (aggregate constants).
+   Generate at least SIZE bytes, padding if necessary.  OUTER designates the
+   caller output state of relevance in recursive invocations.  */
+
+static unsigned HOST_WIDE_INT
+output_constructor (tree exp, unsigned HOST_WIDE_INT size,
+		    unsigned int align, oc_outer_state * outer)
+{
   unsigned HOST_WIDE_INT cnt;
   constructor_elt *ce;
 
+  oc_local_state local;
+
+  /* Setup our local state to communicate with helpers.  */
+  local.exp = exp;
+  local.size = size;
+  local.align = align;
+
+  local.total_bytes = 0;
+  local.byte_buffer_in_use = outer != NULL;
+  local.byte = outer ? outer->byte : 0;
+
+  local.type = TREE_TYPE (exp);
+
+  local.last_relative_index = -1;
+
+  local.min_index = NULL_TREE;
+  if (TREE_CODE (local.type) == ARRAY_TYPE
+      && TYPE_DOMAIN (local.type) != NULL_TREE)
+    local.min_index = TYPE_MIN_VALUE (TYPE_DOMAIN (local.type));
+  
   gcc_assert (HOST_BITS_PER_WIDE_INT >= BITS_PER_UNIT);
 
-  if (TREE_CODE (type) == RECORD_TYPE)
-    field = TYPE_FIELDS (type);
-
-  if (TREE_CODE (type) == ARRAY_TYPE
-      && TYPE_DOMAIN (type) != 0)
-    min_index = TYPE_MIN_VALUE (TYPE_DOMAIN (type));
-
-  /* As LINK goes through the elements of the constant,
-     FIELD goes through the structure fields, if the constant is a structure.
-     if the constant is a union, then we override this,
-     by getting the field from the TREE_LIST element.
+  /* As CE goes through the elements of the constant, FIELD goes through the
+     structure fields if the constant is a structure.  If the constant is a
+     union, we override this by getting the field from the TREE_LIST element.
      But the constant could also be an array.  Then FIELD is zero.
 
      There is always a maximum of one element in the chain LINK for unions
      (even if the initializer in a source program incorrectly contains
      more one).  */
+
+  local.field = NULL_TREE;
+  if (TREE_CODE (local.type) == RECORD_TYPE)
+    local.field = TYPE_FIELDS (local.type);
+
   for (cnt = 0;
        VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (exp), cnt, ce);
-       cnt++, field = field ? TREE_CHAIN (field) : 0)
+       cnt++, local.field = local.field ? TREE_CHAIN (local.field) : 0)
     {
-      tree val = ce->value;
-      tree index = 0;
+      local.val = ce->value;
+      local.index = NULL_TREE;
 
       /* The element in a union constructor specifies the proper field
 	 or index.  */
-      if ((TREE_CODE (type) == RECORD_TYPE || TREE_CODE (type) == UNION_TYPE
-	   || TREE_CODE (type) == QUAL_UNION_TYPE)
-	  && ce->index != 0)
-	field = ce->index;
+      if ((TREE_CODE (local.type) == RECORD_TYPE
+	   || TREE_CODE (local.type) == UNION_TYPE
+	   || TREE_CODE (local.type) == QUAL_UNION_TYPE)
+	  && ce->index != NULL_TREE)
+	local.field = ce->index;
 
-      else if (TREE_CODE (type) == ARRAY_TYPE)
-	index = ce->index;
+      else if (TREE_CODE (local.type) == ARRAY_TYPE)
+	local.index = ce->index;
 
 #ifdef ASM_COMMENT_START
-      if (field && flag_verbose_asm)
+      if (local.field && flag_verbose_asm)
 	fprintf (asm_out_file, "%s %s:\n",
 		 ASM_COMMENT_START,
-		 DECL_NAME (field)
-		 ? IDENTIFIER_POINTER (DECL_NAME (field))
+		 DECL_NAME (local.field)
+		 ? IDENTIFIER_POINTER (DECL_NAME (local.field))
 		 : "<anonymous>");
 #endif
 
       /* Eliminate the marker that makes a cast not be an lvalue.  */
-      if (val != 0)
-	STRIP_NOPS (val);
+      if (local.val != NULL_TREE)
+	STRIP_NOPS (local.val);
 
-      if (index && TREE_CODE (index) == RANGE_EXPR)
-	{
-	  unsigned HOST_WIDE_INT fieldsize
-	    = int_size_in_bytes (TREE_TYPE (type));
-	  HOST_WIDE_INT lo_index = tree_low_cst (TREE_OPERAND (index, 0), 0);
-	  HOST_WIDE_INT hi_index = tree_low_cst (TREE_OPERAND (index, 1), 0);
-	  HOST_WIDE_INT index;
-	  unsigned int align2 = min_align (align, fieldsize * BITS_PER_UNIT);
+      /* Output the current element, using the appropriate helper ...  */
 
-	  for (index = lo_index; index <= hi_index; index++)
-	    {
-	      /* Output the element's initial value.  */
-	      if (val == 0)
-		assemble_zeros (fieldsize);
-	      else
-		output_constant (val, fieldsize, align2);
+      /* For an array slice not part of an outer bitfield.  */
+      if (!outer
+	  && local.index != NULL_TREE
+	  && TREE_CODE (local.index) == RANGE_EXPR)
+	output_constructor_array_range (&local);
 
-	      /* Count its size.  */
-	      total_bytes += fieldsize;
-	    }
-	}
-      else if (field == 0 || !DECL_BIT_FIELD (field))
-	{
-	  /* An element that is not a bit-field.  */
-
-	  unsigned HOST_WIDE_INT fieldsize;
-	  /* Since this structure is static,
-	     we know the positions are constant.  */
-	  HOST_WIDE_INT pos = field ? int_byte_position (field) : 0;
-	  unsigned int align2;
-
-	  if (index != 0)
-	    pos = (tree_low_cst (TYPE_SIZE_UNIT (TREE_TYPE (val)), 1)
-		   * (tree_low_cst (index, 0) - tree_low_cst (min_index, 0)));
-
-	  /* Output any buffered-up bit-fields preceding this element.  */
-	  if (byte_buffer_in_use)
-	    {
-	      assemble_integer (GEN_INT (byte), 1, BITS_PER_UNIT, 1);
-	      total_bytes++;
-	      byte_buffer_in_use = 0;
-	    }
-
-	  /* Advance to offset of this element.
-	     Note no alignment needed in an array, since that is guaranteed
-	     if each element has the proper size.  */
-	  if ((field != 0 || index != 0) && pos != total_bytes)
-	    {
-	      gcc_assert (pos >= total_bytes);
-	      assemble_zeros (pos - total_bytes);
-	      total_bytes = pos;
-	    }
-
-	  /* Find the alignment of this element.  */
-	  align2 = min_align (align, BITS_PER_UNIT * pos);
-
-	  /* Determine size this element should occupy.  */
-	  if (field)
-	    {
-	      fieldsize = 0;
-
-	      /* If this is an array with an unspecified upper bound,
-		 the initializer determines the size.  */
-	      /* ??? This ought to only checked if DECL_SIZE_UNIT is NULL,
-		 but we cannot do this until the deprecated support for
-		 initializing zero-length array members is removed.  */
-	      if (TREE_CODE (TREE_TYPE (field)) == ARRAY_TYPE
-		  && TYPE_DOMAIN (TREE_TYPE (field))
-		  && ! TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (field))))
-		{
-		  fieldsize = array_size_for_constructor (val);
-		  /* Given a non-empty initialization, this field had
-		     better be last.  */
-		  gcc_assert (!fieldsize || !TREE_CHAIN (field));
-		}
-	      else if (DECL_SIZE_UNIT (field))
-		{
-		  /* ??? This can't be right.  If the decl size overflows
-		     a host integer we will silently emit no data.  */
-		  if (host_integerp (DECL_SIZE_UNIT (field), 1))
-		    fieldsize = tree_low_cst (DECL_SIZE_UNIT (field), 1);
-		}
-	    }
-	  else
-	    fieldsize = int_size_in_bytes (TREE_TYPE (type));
-
-	  /* Output the element's initial value.  */
-	  if (val == 0)
-	    assemble_zeros (fieldsize);
-	  else
-	    output_constant (val, fieldsize, align2);
-
-	  /* Count its size.  */
-	  total_bytes += fieldsize;
-	}
-      else if (val != 0 && TREE_CODE (val) != INTEGER_CST)
-	error ("invalid initial value for member %qE",
-	       DECL_NAME (field));
+      /* For a field that is neither a true bitfield nor part of an outer one,
+	 known to be at least byte aligned and multiple-of-bytes long.  */
+      else if (!outer
+	       && (local.field == NULL_TREE
+		   || !CONSTRUCTOR_BITFIELD_P (local.field)))
+	output_constructor_regular_field (&local);
+      
+      /* For a true bitfield or part of an outer one.  */
       else
+	output_constructor_bitfield (&local, outer);
+    }
+
+  /* If we are not at toplevel, save the pending data for our caller.
+     Otherwise output the pending data and padding zeros as needed. */
+  if (outer)
+    outer->byte = local.byte;
+  else
+    {
+      if (local.byte_buffer_in_use)
 	{
-	  /* Element that is a bit-field.  */
+	  assemble_integer (GEN_INT (local.byte), 1, BITS_PER_UNIT, 1);
+	  local.total_bytes++;
+	}
 
-	  HOST_WIDE_INT next_offset = int_bit_position (field);
-	  HOST_WIDE_INT end_offset
-	    = (next_offset + tree_low_cst (DECL_SIZE (field), 1));
-
-	  if (val == 0)
-	    val = integer_zero_node;
-
-	  /* If this field does not start in this (or, next) byte,
-	     skip some bytes.  */
-	  if (next_offset / BITS_PER_UNIT != total_bytes)
-	    {
-	      /* Output remnant of any bit field in previous bytes.  */
-	      if (byte_buffer_in_use)
-		{
-		  assemble_integer (GEN_INT (byte), 1, BITS_PER_UNIT, 1);
-		  total_bytes++;
-		  byte_buffer_in_use = 0;
-		}
-
-	      /* If still not at proper byte, advance to there.  */
-	      if (next_offset / BITS_PER_UNIT != total_bytes)
-		{
-		  gcc_assert (next_offset / BITS_PER_UNIT >= total_bytes);
-		  assemble_zeros (next_offset / BITS_PER_UNIT - total_bytes);
-		  total_bytes = next_offset / BITS_PER_UNIT;
-		}
-	    }
-
-	  if (! byte_buffer_in_use)
-	    byte = 0;
-
-	  /* We must split the element into pieces that fall within
-	     separate bytes, and combine each byte with previous or
-	     following bit-fields.  */
-
-	  /* next_offset is the offset n fbits from the beginning of
-	     the structure to the next bit of this element to be processed.
-	     end_offset is the offset of the first bit past the end of
-	     this element.  */
-	  while (next_offset < end_offset)
-	    {
-	      int this_time;
-	      int shift;
-	      HOST_WIDE_INT value;
-	      HOST_WIDE_INT next_byte = next_offset / BITS_PER_UNIT;
-	      HOST_WIDE_INT next_bit = next_offset % BITS_PER_UNIT;
-
-	      /* Advance from byte to byte
-		 within this element when necessary.  */
-	      while (next_byte != total_bytes)
-		{
-		  assemble_integer (GEN_INT (byte), 1, BITS_PER_UNIT, 1);
-		  total_bytes++;
-		  byte = 0;
-		}
-
-	      /* Number of bits we can process at once
-		 (all part of the same byte).  */
-	      this_time = MIN (end_offset - next_offset,
-			       BITS_PER_UNIT - next_bit);
-	      if (BYTES_BIG_ENDIAN)
-		{
-		  /* On big-endian machine, take the most significant bits
-		     first (of the bits that are significant)
-		     and put them into bytes from the most significant end.  */
-		  shift = end_offset - next_offset - this_time;
-
-		  /* Don't try to take a bunch of bits that cross
-		     the word boundary in the INTEGER_CST. We can
-		     only select bits from the LOW or HIGH part
-		     not from both.  */
-		  if (shift < HOST_BITS_PER_WIDE_INT
-		      && shift + this_time > HOST_BITS_PER_WIDE_INT)
-		    {
-		      this_time = shift + this_time - HOST_BITS_PER_WIDE_INT;
-		      shift = HOST_BITS_PER_WIDE_INT;
-		    }
-
-		  /* Now get the bits from the appropriate constant word.  */
-		  if (shift < HOST_BITS_PER_WIDE_INT)
-		    value = TREE_INT_CST_LOW (val);
-		  else
-		    {
-		      gcc_assert (shift < 2 * HOST_BITS_PER_WIDE_INT);
-		      value = TREE_INT_CST_HIGH (val);
-		      shift -= HOST_BITS_PER_WIDE_INT;
-		    }
-
-		  /* Get the result. This works only when:
-		     1 <= this_time <= HOST_BITS_PER_WIDE_INT.  */
-		  byte |= (((value >> shift)
-			    & (((HOST_WIDE_INT) 2 << (this_time - 1)) - 1))
-			   << (BITS_PER_UNIT - this_time - next_bit));
-		}
-	      else
-		{
-		  /* On little-endian machines,
-		     take first the least significant bits of the value
-		     and pack them starting at the least significant
-		     bits of the bytes.  */
-		  shift = next_offset - int_bit_position (field);
-
-		  /* Don't try to take a bunch of bits that cross
-		     the word boundary in the INTEGER_CST. We can
-		     only select bits from the LOW or HIGH part
-		     not from both.  */
-		  if (shift < HOST_BITS_PER_WIDE_INT
-		      && shift + this_time > HOST_BITS_PER_WIDE_INT)
-		    this_time = (HOST_BITS_PER_WIDE_INT - shift);
-
-		  /* Now get the bits from the appropriate constant word.  */
-		  if (shift < HOST_BITS_PER_WIDE_INT)
-		    value = TREE_INT_CST_LOW (val);
-		  else
-		    {
-		      gcc_assert (shift < 2 * HOST_BITS_PER_WIDE_INT);
-		      value = TREE_INT_CST_HIGH (val);
-		      shift -= HOST_BITS_PER_WIDE_INT;
-		    }
-
-		  /* Get the result. This works only when:
-		     1 <= this_time <= HOST_BITS_PER_WIDE_INT.  */
-		  byte |= (((value >> shift)
-			    & (((HOST_WIDE_INT) 2 << (this_time - 1)) - 1))
-			   << next_bit);
-		}
-
-	      next_offset += this_time;
-	      byte_buffer_in_use = 1;
-	    }
+      if ((unsigned HOST_WIDE_INT)local.total_bytes < local.size)
+	{
+	  assemble_zeros (local.size - local.total_bytes);
+	  local.total_bytes = local.size;
 	}
     }
-
-  if (byte_buffer_in_use)
-    {
-      assemble_integer (GEN_INT (byte), 1, BITS_PER_UNIT, 1);
-      total_bytes++;
-    }
-
-  if ((unsigned HOST_WIDE_INT)total_bytes < size)
-    assemble_zeros (size - total_bytes);
+      
+  return local.total_bytes;
 }
 
 /* Mark DECL as weak.  */
@@ -5075,7 +5273,8 @@ weak_finish (void)
 
 	  if (! decl)
 	    {
-	      decl = build_decl (TREE_CODE (alias_decl), target,
+	      decl = build_decl (DECL_SOURCE_LOCATION (alias_decl),
+				 TREE_CODE (alias_decl), target,
 				 TREE_TYPE (alias_decl));
 
 	      DECL_EXTERNAL (decl) = 1;
@@ -5171,20 +5370,7 @@ globalize_decl (tree decl)
   targetm.asm_out.globalize_decl_name (asm_out_file, decl);
 }
 
-/* We have to be able to tell cgraph about the needed-ness of the target
-   of an alias.  This requires that the decl have been defined.  Aliases
-   that precede their definition have to be queued for later processing.  */
-
-typedef struct GTY(()) alias_pair {
-  tree decl;
-  tree target;
-} alias_pair;
-
-/* Define gc'd vector type.  */
-DEF_VEC_O(alias_pair);
-DEF_VEC_ALLOC_O(alias_pair,gc);
-
-static GTY(()) VEC(alias_pair,gc) *alias_pairs;
+VEC(alias_pair,gc) *alias_pairs;
 
 /* Given an assembly name, find the decl it is associated with.  At the
    same time, mark it needed for cgraph.  */
@@ -5210,13 +5396,7 @@ find_decl_and_mark_needed (tree decl, tree target)
 
   if (fnode)
     {
-      /* We can't mark function nodes as used after cgraph global info
-	 is finished.  This wouldn't generally be necessary, but C++
-	 virtual table thunks are introduced late in the game and
-	 might seem like they need marking, although in fact they
-	 don't.  */
-      if (! cgraph_global_info_ready)
-	cgraph_mark_needed_node (fnode);
+      cgraph_mark_needed_node (fnode);
       return fnode->decl;
     }
   else if (vnode)
@@ -5263,7 +5443,8 @@ do_assemble_alias (tree decl, tree target)
 #else
       if (!SUPPORTS_WEAK)
 	{
-	  error ("%Jweakref is not supported in this configuration", decl);
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "weakref is not supported in this configuration");
 	  return;
 	}
 #endif
@@ -5327,6 +5508,39 @@ do_assemble_alias (tree decl, tree target)
 #endif
 }
 
+
+/* Remove the alias pairing for functions that are no longer in the call
+   graph.  */
+
+void
+remove_unreachable_alias_pairs (void)
+{
+  unsigned i;
+  alias_pair *p;
+
+  if (alias_pairs == NULL)
+    return;
+
+  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); )
+    {
+      if (!DECL_EXTERNAL (p->decl))
+	{
+	  struct cgraph_node *fnode = NULL;
+	  struct varpool_node *vnode = NULL;
+	  fnode = cgraph_node_for_asm (p->target);
+	  vnode = (fnode == NULL) ? varpool_node_for_asm (p->target) : NULL;
+	  if (fnode == NULL && vnode == NULL)
+	    {
+	      VEC_unordered_remove (alias_pair, alias_pairs, i);
+	      continue;
+	    }
+	}
+
+      i++;
+    }
+}
+
+
 /* First pass of completing pending aliases.  Make sure that cgraph knows
    which symbols will be required.  */
 
@@ -5348,6 +5562,11 @@ finish_aliases_1 (void)
 		   p->decl, p->target);
 	}
       else if (DECL_EXTERNAL (target_decl)
+ 	       /* We use local aliases for C++ thunks to force the tailcall
+ 		  to bind locally.  Of course this is a hack - to keep it
+ 		  working do the following (which is not strictly correct).  */
+ 	       && (! TREE_CODE (target_decl) == FUNCTION_DECL
+ 		   || ! DECL_VIRTUAL_P (target_decl))
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
 	error ("%q+D aliased to external symbol %qE",
 	       p->decl, p->target);
@@ -5403,12 +5622,14 @@ assemble_alias (tree decl, tree target)
     {
 #if !defined (ASM_OUTPUT_DEF)
 # if !defined(ASM_OUTPUT_WEAK_ALIAS) && !defined (ASM_WEAKEN_DECL)
-      error ("%Jalias definitions not supported in this configuration", decl);
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"alias definitions not supported in this configuration");
       return;
 # else
       if (!DECL_WEAK (decl))
 	{
-	  error ("%Jonly weak aliases are supported in this configuration", decl);
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "only weak aliases are supported in this configuration");
 	  return;
 	}
 # endif
@@ -5506,7 +5727,7 @@ supports_one_only (void)
    translation units without generating a linker error.  */
 
 void
-make_decl_one_only (tree decl)
+make_decl_one_only (tree decl, tree comdat_group)
 {
   gcc_assert (TREE_CODE (decl) == VAR_DECL
 	      || TREE_CODE (decl) == FUNCTION_DECL);
@@ -5518,7 +5739,7 @@ make_decl_one_only (tree decl)
 #ifdef MAKE_DECL_ONE_ONLY
       MAKE_DECL_ONE_ONLY (decl);
 #endif
-      DECL_ONE_ONLY (decl) = 1;
+      DECL_COMDAT_GROUP (decl) = comdat_group;
     }
   else if (TREE_CODE (decl) == VAR_DECL
       && (DECL_INITIAL (decl) == 0 || DECL_INITIAL (decl) == error_mark_node))
@@ -5779,7 +6000,7 @@ default_elf_asm_named_section (const char *name, unsigned int flags,
 	fprintf (asm_out_file, ",%d", flags & SECTION_ENTSIZE);
       if (HAVE_COMDAT_GROUP && (flags & SECTION_LINKONCE))
 	fprintf (asm_out_file, ",%s,comdat",
-		 lang_hooks.decls.comdat_group (decl));
+		 IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
     }
 
   putc ('\n', asm_out_file);

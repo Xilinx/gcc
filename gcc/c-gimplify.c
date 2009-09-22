@@ -103,14 +103,7 @@ c_genericize (tree fndecl)
       dump_end (TDI_original, dump_orig);
     }
 
-  /* Go ahead and gimplify for now.  */
-  gimplify_function_tree (fndecl);
-
-  dump_function (TDI_generic, fndecl);
-
-  /* Genericize all nested functions now.  We do things in this order so
-     that items like VLA sizes are expanded properly in the context of
-     the correct function.  */
+  /* Dump all nested functions now.  */
   cgn = cgraph_node (fndecl);
   for (cgn = cgn->nested; cgn ; cgn = cgn->next_nested)
     c_genericize (cgn->decl);
@@ -140,7 +133,7 @@ add_block_to_enclosing (tree block)
      genericized.  */
 
 tree
-c_build_bind_expr (tree block, tree body)
+c_build_bind_expr (location_t loc, tree block, tree body)
 {
   tree decls, bind;
 
@@ -162,11 +155,12 @@ c_build_bind_expr (tree block, tree body)
     }
 
   if (!body)
-    body = build_empty_stmt ();
+    body = build_empty_stmt (loc);
   if (decls || block)
     {
       bind = build3 (BIND_EXPR, void_type_node, decls, body, block);
       TREE_SIDE_EFFECTS (bind) = 1;
+      SET_EXPR_LOCATION (bind, loc);
     }
   else
     bind = body;

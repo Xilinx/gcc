@@ -43,6 +43,7 @@
 #include "optabs.h"
 #include "toplev.h"
 #include "recog.h"
+#include "cgraph.h"
 #include "ggc.h"
 #include "except.h"
 #include "c-pragma.h"
@@ -53,12 +54,12 @@
 #include "debug.h"
 #include "langhooks.h"
 #include "df.h"
+#include "intl.h"
+#include "libfuncs.h"
 
 /* Forward definitions of types.  */
 typedef struct minipool_node    Mnode;
 typedef struct minipool_fixup   Mfix;
-
-const struct attribute_spec arm_attribute_table[];
 
 void (*arm_lang_output_object_attributes_hook)(void);
 
@@ -113,6 +114,7 @@ static unsigned long arm_compute_save_reg_mask (void);
 static unsigned long arm_isr_value (tree);
 static unsigned long arm_compute_func_type (void);
 static tree arm_handle_fndecl_attribute (tree *, tree, tree, int, bool *);
+static tree arm_handle_pcs_attribute (tree *, tree, tree, int, bool *);
 static tree arm_handle_isr_attribute (tree *, tree, tree, int, bool *);
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
 static tree arm_handle_notshared_attribute (tree *, tree, tree, int, bool *);
@@ -126,6 +128,13 @@ static int arm_adjust_cost (rtx, rtx, rtx, int);
 static int count_insns_for_constant (HOST_WIDE_INT, int);
 static int arm_get_strip_length (int);
 static bool arm_function_ok_for_sibcall (tree, tree);
+static enum machine_mode arm_promote_function_mode (const_tree,
+						    enum machine_mode, int *,
+						    const_tree, int);
+static bool arm_return_in_memory (const_tree, const_tree);
+static rtx arm_function_value (const_tree, const_tree, bool);
+static rtx arm_libcall_value (enum machine_mode, rtx);
+
 static void arm_internal_label (FILE *, const char *, unsigned long);
 static void arm_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT,
 				 tree);
@@ -151,6 +160,9 @@ static void emit_constant_insn (rtx cond, rtx pattern);
 static rtx emit_set_insn (rtx, rtx);
 static int arm_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				  tree, bool);
+static rtx aapcs_allocate_return_reg (enum machine_mode, const_tree,
+				      const_tree);
+static int aapcs_select_return_coproc (const_tree, const_tree);
 
 #ifdef OBJECT_FORMAT_ELF
 static void arm_elf_asm_constructor (rtx, int) ATTRIBUTE_UNUSED;
@@ -200,7 +212,52 @@ static bool arm_tls_symbol_p (rtx x);
 static int arm_issue_rate (void);
 static void arm_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static bool arm_allocate_stack_slots_for_args (void);
+static const char *arm_invalid_parameter_type (const_tree t);
+static const char *arm_invalid_return_type (const_tree t);
+static tree arm_promoted_type (const_tree t);
+static tree arm_convert_to_type (tree type, tree expr);
+static bool arm_scalar_mode_supported_p (enum machine_mode);
+static bool arm_frame_pointer_required (void);
+static bool arm_can_eliminate (const int, const int);
 
+
+/* Table of machine attributes.  */
+static const struct attribute_spec arm_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* Function calls made to this symbol must be done indirectly, because
+     it may lie outside of the 26 bit addressing range of a normal function
+     call.  */
+  { "long_call",    0, 0, false, true,  true,  NULL },
+  /* Whereas these functions are always known to reside within the 26 bit
+     addressing range.  */
+  { "short_call",   0, 0, false, true,  true,  NULL },
+  /* Specify the procedure call conventions for a function.  */
+  { "pcs",          1, 1, false, true,  true,  arm_handle_pcs_attribute },
+  /* Interrupt Service Routines have special prologue and epilogue requirements.  */
+  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute },
+  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute },
+  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute },
+#ifdef ARM_PE
+  /* ARM/PE has three new attributes:
+     interfacearm - ?
+     dllexport - for exporting a function/variable that will live in a dll
+     dllimport - for importing a function/variable from a dll
+
+     Microsoft allows multiple declspecs in one __declspec, separating
+     them with spaces.  We do NOT support this.  Instead, use __declspec
+     multiple times.
+  */
+  { "dllimport",    0, 0, true,  false, false, NULL },
+  { "dllexport",    0, 0, true,  false, false, NULL },
+  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute },
+#elif TARGET_DLLIMPORT_DECL_ATTRIBUTES
+  { "dllimport",    0, 0, false, false, false, handle_dll_attribute },
+  { "dllexport",    0, 0, false, false, false, handle_dll_attribute },
+  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute },
+#endif
+  { NULL,           0, 0, false, false, false, NULL }
+};
 
 /* Initialize the GCC target structure.  */
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
@@ -262,6 +319,12 @@ static bool arm_allocate_stack_slots_for_args (void);
 #undef  TARGET_FUNCTION_OK_FOR_SIBCALL
 #define TARGET_FUNCTION_OK_FOR_SIBCALL arm_function_ok_for_sibcall
 
+#undef  TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE arm_function_value
+
+#undef  TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE arm_libcall_value
+
 #undef  TARGET_ASM_OUTPUT_MI_THUNK
 #define TARGET_ASM_OUTPUT_MI_THUNK arm_output_mi_thunk
 #undef  TARGET_ASM_CAN_OUTPUT_MI_THUNK
@@ -288,10 +351,8 @@ static bool arm_allocate_stack_slots_for_args (void);
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS arm_init_libfuncs
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE arm_promote_function_mode
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES arm_promote_prototypes
 #undef TARGET_PASS_BY_REFERENCE
@@ -407,6 +468,27 @@ static bool arm_allocate_stack_slots_for_args (void);
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	arm_legitimate_address_p
 
+#undef TARGET_INVALID_PARAMETER_TYPE
+#define TARGET_INVALID_PARAMETER_TYPE arm_invalid_parameter_type
+
+#undef TARGET_INVALID_RETURN_TYPE
+#define TARGET_INVALID_RETURN_TYPE arm_invalid_return_type
+
+#undef TARGET_PROMOTED_TYPE
+#define TARGET_PROMOTED_TYPE arm_promoted_type
+
+#undef TARGET_CONVERT_TO_TYPE
+#define TARGET_CONVERT_TO_TYPE arm_convert_to_type
+
+#undef TARGET_SCALAR_MODE_SUPPORTED_P
+#define TARGET_SCALAR_MODE_SUPPORTED_P arm_scalar_mode_supported_p
+
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED arm_frame_pointer_required
+
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE arm_can_eliminate
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 /* Obstack for minipool constant handling.  */
@@ -439,6 +521,9 @@ enum fputype arm_fpu_tune;
 
 /* Whether to use floating point hardware.  */
 enum float_abi_type arm_float_abi;
+
+/* Which __fp16 format to use.  */
+enum arm_fp16_format_type arm_fp16_format;
 
 /* Which ABI to use.  */
 enum arm_abi_type arm_abi;
@@ -594,6 +679,8 @@ static int after_arm_reorg = 0;
 /* The maximum number of insns to be used when loading a constant.  */
 static int arm_constant_limit = 3;
 
+static enum arm_pcs arm_pcs_default;
+
 /* For an explanation of these variables, see final_prescan_insn below.  */
 int arm_ccfsm_state;
 /* arm_current_cc is also used for Thumb-2 cond_exec blocks.  */
@@ -719,15 +806,16 @@ struct fpu_desc
 
 static const struct fpu_desc all_fpus[] =
 {
-  {"fpa",	FPUTYPE_FPA},
-  {"fpe2",	FPUTYPE_FPA_EMU2},
-  {"fpe3",	FPUTYPE_FPA_EMU2},
-  {"maverick",	FPUTYPE_MAVERICK},
-  {"vfp",	FPUTYPE_VFP},
-  {"vfp3",	FPUTYPE_VFP3},
-  {"vfpv3",	FPUTYPE_VFP3},
-  {"vfpv3-d16",	FPUTYPE_VFP3D16},
-  {"neon",	FPUTYPE_NEON}
+  {"fpa",		FPUTYPE_FPA},
+  {"fpe2",		FPUTYPE_FPA_EMU2},
+  {"fpe3",		FPUTYPE_FPA_EMU2},
+  {"maverick",		FPUTYPE_MAVERICK},
+  {"vfp",		FPUTYPE_VFP},
+  {"vfp3",		FPUTYPE_VFP3},
+  {"vfpv3",		FPUTYPE_VFP3},
+  {"vfpv3-d16",		FPUTYPE_VFP3D16},
+  {"neon",		FPUTYPE_NEON},
+  {"neon-fp16",		FPUTYPE_NEON_FP16}
 };
 
 
@@ -745,7 +833,8 @@ static const enum arm_fp_model fp_model_for_fpu[] =
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP  */
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP3D16  */
   ARM_FP_MODEL_VFP,		/* FPUTYPE_VFP3  */
-  ARM_FP_MODEL_VFP		/* FPUTYPE_NEON  */
+  ARM_FP_MODEL_VFP,		/* FPUTYPE_NEON  */
+  ARM_FP_MODEL_VFP		/* FPUTYPE_NEON_FP16  */
 };
 
 
@@ -763,6 +852,23 @@ static const struct float_abi all_float_abis[] =
   {"soft",	ARM_FLOAT_ABI_SOFT},
   {"softfp",	ARM_FLOAT_ABI_SOFTFP},
   {"hard",	ARM_FLOAT_ABI_HARD}
+};
+
+
+struct fp16_format
+{
+  const char *name;
+  enum arm_fp16_format_type fp16_format_type;
+};
+
+
+/* Available values for -mfp16-format=.  */
+
+static const struct fp16_format all_fp16_formats[] =
+{
+  {"none",		ARM_FP16_FORMAT_NONE},
+  {"ieee",		ARM_FP16_FORMAT_IEEE},
+  {"alternative",	ARM_FP16_FORMAT_ALTERNATIVE}
 };
 
 
@@ -923,6 +1029,47 @@ arm_init_libfuncs (void)
   set_optab_libfunc (umod_optab, DImode, NULL);
   set_optab_libfunc (smod_optab, SImode, NULL);
   set_optab_libfunc (umod_optab, SImode, NULL);
+
+  /* Half-precision float operations.  The compiler handles all operations
+     with NULL libfuncs by converting the SFmode.  */
+  switch (arm_fp16_format)
+    {
+    case ARM_FP16_FORMAT_IEEE:
+    case ARM_FP16_FORMAT_ALTERNATIVE:
+
+      /* Conversions.  */
+      set_conv_libfunc (trunc_optab, HFmode, SFmode,
+			(arm_fp16_format == ARM_FP16_FORMAT_IEEE
+			 ? "__gnu_f2h_ieee"
+			 : "__gnu_f2h_alternative"));
+      set_conv_libfunc (sext_optab, SFmode, HFmode, 
+			(arm_fp16_format == ARM_FP16_FORMAT_IEEE
+			 ? "__gnu_h2f_ieee"
+			 : "__gnu_h2f_alternative"));
+      
+      /* Arithmetic.  */
+      set_optab_libfunc (add_optab, HFmode, NULL);
+      set_optab_libfunc (sdiv_optab, HFmode, NULL);
+      set_optab_libfunc (smul_optab, HFmode, NULL);
+      set_optab_libfunc (neg_optab, HFmode, NULL);
+      set_optab_libfunc (sub_optab, HFmode, NULL);
+
+      /* Comparisons.  */
+      set_optab_libfunc (eq_optab, HFmode, NULL);
+      set_optab_libfunc (ne_optab, HFmode, NULL);
+      set_optab_libfunc (lt_optab, HFmode, NULL);
+      set_optab_libfunc (le_optab, HFmode, NULL);
+      set_optab_libfunc (ge_optab, HFmode, NULL);
+      set_optab_libfunc (gt_optab, HFmode, NULL);
+      set_optab_libfunc (unord_optab, HFmode, NULL);
+      break;
+
+    default:
+      break;
+    }
+
+  if (TARGET_AAPCS_BASED)
+    synchronize_libfunc = init_one_libfunc ("__sync_synchronize");
 }
 
 /* On AAPCS systems, this is the "struct __va_list".  */
@@ -956,13 +1103,15 @@ arm_build_builtin_va_list (void)
   /* Create the type.  */
   va_list_type = lang_hooks.types.make_type (RECORD_TYPE);
   /* Give it the required name.  */
-  va_list_name = build_decl (TYPE_DECL,
+  va_list_name = build_decl (BUILTINS_LOCATION,
+			     TYPE_DECL,
 			     get_identifier ("__va_list"),
 			     va_list_type);
   DECL_ARTIFICIAL (va_list_name) = 1;
   TYPE_NAME (va_list_type) = va_list_name;
   /* Create the __ap field.  */
-  ap_field = build_decl (FIELD_DECL, 
+  ap_field = build_decl (BUILTINS_LOCATION,
+			 FIELD_DECL, 
 			 get_identifier ("__ap"),
 			 ptr_type_node);
   DECL_ARTIFICIAL (ap_field) = 1;
@@ -1292,6 +1441,23 @@ arm_override_options (void)
 
   tune_flags = all_cores[(int)arm_tune].flags;
 
+  if (target_fp16_format_name)
+    {
+      for (i = 0; i < ARRAY_SIZE (all_fp16_formats); i++)
+	{
+	  if (streq (all_fp16_formats[i].name, target_fp16_format_name))
+	    {
+	      arm_fp16_format = all_fp16_formats[i].fp16_format_type;
+	      break;
+	    }
+	}
+      if (i == ARRAY_SIZE (all_fp16_formats))
+	error ("invalid __fp16 format option: -mfp16-format=%s",
+	       target_fp16_format_name);
+    }
+  else
+    arm_fp16_format = ARM_FP16_FORMAT_NONE;
+
   if (target_abi_name)
     {
       for (i = 0; i < ARRAY_SIZE (arm_all_abis); i++)
@@ -1506,12 +1672,18 @@ arm_override_options (void)
   else
     arm_float_abi = TARGET_DEFAULT_FLOAT_ABI;
 
-  if (arm_float_abi == ARM_FLOAT_ABI_HARD && TARGET_VFP)
-    sorry ("-mfloat-abi=hard and VFP");
-
   if (TARGET_AAPCS_BASED
       && (arm_fp_model == ARM_FP_MODEL_FPA))
     error ("FPA is unsupported in the AAPCS");
+
+  if (TARGET_AAPCS_BASED)
+    {
+      if (TARGET_CALLER_INTERWORKING)
+	error ("AAPCS does not support -mcaller-super-interworking");
+      else
+	if (TARGET_CALLEE_INTERWORKING)
+	  error ("AAPCS does not support -mcallee-super-interworking");
+    }
 
   /* FPA and iWMMXt are incompatible because the insn encodings overlap.
      VFP and iWMMXt can theoretically coexist, but it's unlikely such silicon
@@ -1523,9 +1695,35 @@ arm_override_options (void)
   if (TARGET_THUMB2 && TARGET_IWMMXT)
     sorry ("Thumb-2 iWMMXt");
 
+  /* __fp16 support currently assumes the core has ldrh.  */
+  if (!arm_arch4 && arm_fp16_format != ARM_FP16_FORMAT_NONE)
+    sorry ("__fp16 and no ldrh");
+
   /* If soft-float is specified then don't use FPU.  */
   if (TARGET_SOFT_FLOAT)
     arm_fpu_arch = FPUTYPE_NONE;
+
+  if (TARGET_AAPCS_BASED)
+    {
+      if (arm_abi == ARM_ABI_IWMMXT)
+	arm_pcs_default = ARM_PCS_AAPCS_IWMMXT;
+      else if (arm_float_abi == ARM_FLOAT_ABI_HARD
+	       && TARGET_HARD_FLOAT
+	       && TARGET_VFP)
+	arm_pcs_default = ARM_PCS_AAPCS_VFP;
+      else
+	arm_pcs_default = ARM_PCS_AAPCS;
+    }
+  else
+    {
+      if (arm_float_abi == ARM_FLOAT_ABI_HARD && TARGET_VFP)
+	sorry ("-mfloat-abi=hard and VFP");
+
+      if (arm_abi == ARM_ABI_APCS)
+	arm_pcs_default = ARM_PCS_APCS;
+      else
+	arm_pcs_default = ARM_PCS_ATPCS;
+    }
 
   /* For arm2/3 there is no need to do any scheduling if there is only
      a floating point emulator, or we are doing software floating-point.  */
@@ -2920,17 +3118,22 @@ arm_canonicalize_comparison (enum rtx_code code, enum machine_mode mode,
 
 /* Define how to find the value returned by a function.  */
 
-rtx
-arm_function_value(const_tree type, const_tree func ATTRIBUTE_UNUSED)
+static rtx
+arm_function_value(const_tree type, const_tree func,
+		   bool outgoing ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode;
   int unsignedp ATTRIBUTE_UNUSED;
   rtx r ATTRIBUTE_UNUSED;
 
   mode = TYPE_MODE (type);
+
+  if (TARGET_AAPCS_BASED)
+    return aapcs_allocate_return_reg (mode, type, func);
+
   /* Promote integer types.  */
   if (INTEGRAL_TYPE_P (type))
-    PROMOTE_FUNCTION_MODE (mode, unsignedp, type);
+    mode = arm_promote_function_mode (type, mode, &unsignedp, func, 1);
 
   /* Promotes small structs returned in a register to full-word size
      for big-endian AAPCS.  */
@@ -2944,7 +3147,88 @@ arm_function_value(const_tree type, const_tree func ATTRIBUTE_UNUSED)
 	}
     }
 
-  return LIBCALL_VALUE(mode);
+  return LIBCALL_VALUE (mode);
+}
+
+static int
+libcall_eq (const void *p1, const void *p2)
+{
+  return rtx_equal_p ((const_rtx) p1, (const_rtx) p2);
+}
+
+static hashval_t
+libcall_hash (const void *p1)
+{
+  return hash_rtx ((const_rtx) p1, VOIDmode, NULL, NULL, FALSE);
+}
+
+static void
+add_libcall (htab_t htab, rtx libcall)
+{
+  *htab_find_slot (htab, libcall, INSERT) = libcall;
+}
+
+static bool
+arm_libcall_uses_aapcs_base (rtx libcall)
+{
+  static bool init_done = false;
+  static htab_t libcall_htab;
+
+  if (!init_done)
+    {
+      init_done = true;
+
+      libcall_htab = htab_create (31, libcall_hash, libcall_eq,
+				  NULL);
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (sfloat_optab, SFmode, SImode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (sfloat_optab, DFmode, SImode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (sfloat_optab, SFmode, DImode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (sfloat_optab, DFmode, DImode));
+      
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (ufloat_optab, SFmode, SImode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (ufloat_optab, DFmode, SImode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (ufloat_optab, SFmode, DImode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (ufloat_optab, DFmode, DImode));
+
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (sext_optab, SFmode, HFmode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (trunc_optab, HFmode, SFmode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (sfix_optab, DImode, DFmode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (ufix_optab, DImode, DFmode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (sfix_optab, DImode, SFmode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (ufix_optab, DImode, SFmode));
+    }
+
+  return libcall && htab_find (libcall_htab, libcall) != NULL;
+}
+
+rtx
+arm_libcall_value (enum machine_mode mode, rtx libcall)
+{
+  if (TARGET_AAPCS_BASED && arm_pcs_default != ARM_PCS_AAPCS
+      && GET_MODE_CLASS (mode) == MODE_FLOAT)
+    {
+      /* The following libcalls return their result in integer registers,
+	 even though they return a floating point value.  */
+      if (arm_libcall_uses_aapcs_base (libcall))
+	return gen_rtx_REG (mode, ARG_REGISTER(1));
+
+    }
+
+  return LIBCALL_VALUE (mode);
 }
 
 /* Determine the amount of memory needed to store the possible return
@@ -2954,10 +3238,12 @@ arm_apply_result_size (void)
 {
   int size = 16;
 
-  if (TARGET_ARM)
+  if (TARGET_32BIT)
     {
       if (TARGET_HARD_FLOAT_ABI)
 	{
+	  if (TARGET_VFP)
+	    size += 32;
 	  if (TARGET_FPA)
 	    size += 12;
 	  if (TARGET_MAVERICK)
@@ -2970,27 +3256,56 @@ arm_apply_result_size (void)
   return size;
 }
 
-/* Decide whether a type should be returned in memory (true)
-   or in a register (false).  This is called as the target hook
-   TARGET_RETURN_IN_MEMORY.  */
+/* Decide whether TYPE should be returned in memory (true)
+   or in a register (false).  FNTYPE is the type of the function making
+   the call.  */
 static bool
-arm_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
+arm_return_in_memory (const_tree type, const_tree fntype)
 {
   HOST_WIDE_INT size;
 
-  size = int_size_in_bytes (type);
+  size = int_size_in_bytes (type);  /* Negative if not fixed size.  */
 
-  /* Vector values should be returned using ARM registers, not memory (unless
-     they're over 16 bytes, which will break since we only have four
-     call-clobbered registers to play with).  */
+  if (TARGET_AAPCS_BASED)
+    {
+      /* Simple, non-aggregate types (ie not including vectors and
+	 complex) are always returned in a register (or registers).
+	 We don't care about which register here, so we can short-cut
+	 some of the detail.  */
+      if (!AGGREGATE_TYPE_P (type)
+	  && TREE_CODE (type) != VECTOR_TYPE
+	  && TREE_CODE (type) != COMPLEX_TYPE)
+	return false;
+
+      /* Any return value that is no larger than one word can be
+	 returned in r0.  */
+      if (((unsigned HOST_WIDE_INT) size) <= UNITS_PER_WORD)
+	return false;
+
+      /* Check any available co-processors to see if they accept the
+	 type as a register candidate (VFP, for example, can return
+	 some aggregates in consecutive registers).  These aren't
+	 available if the call is variadic.  */
+      if (aapcs_select_return_coproc (type, fntype) >= 0)
+	return false;
+
+      /* Vector values should be returned using ARM registers, not
+	 memory (unless they're over 16 bytes, which will break since
+	 we only have four call-clobbered registers to play with).  */
+      if (TREE_CODE (type) == VECTOR_TYPE)
+	return (size < 0 || size > (4 * UNITS_PER_WORD));
+
+      /* The rest go in memory.  */
+      return true;
+    }
+
   if (TREE_CODE (type) == VECTOR_TYPE)
     return (size < 0 || size > (4 * UNITS_PER_WORD));
 
   if (!AGGREGATE_TYPE_P (type) &&
-      !(TARGET_AAPCS_BASED && TREE_CODE (type) == COMPLEX_TYPE))
-    /* All simple types are returned in registers.
-       For AAPCS, complex types are treated the same as aggregates.  */
-    return 0;
+      (TREE_CODE (type) != VECTOR_TYPE))
+    /* All simple types are returned in registers.  */
+    return false;
 
   if (arm_abi != ARM_ABI_APCS)
     {
@@ -3007,7 +3322,7 @@ arm_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
      the aggregate is either huge or of variable size, and in either case
      we will want to return it via memory and not in a register.  */
   if (size < 0 || size > UNITS_PER_WORD)
-    return 1;
+    return true;
 
   if (TREE_CODE (type) == RECORD_TYPE)
     {
@@ -3027,18 +3342,18 @@ arm_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 	continue;
 
       if (field == NULL)
-	return 0; /* An empty structure.  Allowed by an extension to ANSI C.  */
+	return false; /* An empty structure.  Allowed by an extension to ANSI C.  */
 
       /* Check that the first field is valid for returning in a register.  */
 
       /* ... Floats are not allowed */
       if (FLOAT_TYPE_P (TREE_TYPE (field)))
-	return 1;
+	return true;
 
       /* ... Aggregates that are not themselves valid for returning in
 	 a register are not allowed.  */
       if (arm_return_in_memory (TREE_TYPE (field), NULL_TREE))
-	return 1;
+	return true;
 
       /* Now check the remaining fields, if any.  Only bitfields are allowed,
 	 since they are not addressable.  */
@@ -3050,10 +3365,10 @@ arm_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 	    continue;
 
 	  if (!DECL_BIT_FIELD_TYPE (field))
-	    return 1;
+	    return true;
 	}
 
-      return 0;
+      return false;
     }
 
   if (TREE_CODE (type) == UNION_TYPE)
@@ -3070,18 +3385,18 @@ arm_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 	    continue;
 
 	  if (FLOAT_TYPE_P (TREE_TYPE (field)))
-	    return 1;
+	    return true;
 
 	  if (arm_return_in_memory (TREE_TYPE (field), NULL_TREE))
-	    return 1;
+	    return true;
 	}
 
-      return 0;
+      return false;
     }
 #endif /* not ARM_WINCE */
 
   /* Return all other types in memory.  */
-  return 1;
+  return true;
 }
 
 /* Indicate whether or not words of a double are in big-endian order.  */
@@ -3106,14 +3421,753 @@ arm_float_words_big_endian (void)
   return 1;
 }
 
+const struct pcs_attribute_arg
+{
+  const char *arg;
+  enum arm_pcs value;
+} pcs_attribute_args[] =
+  {
+    {"aapcs", ARM_PCS_AAPCS},
+    {"aapcs-vfp", ARM_PCS_AAPCS_VFP},
+#if 0
+    /* We could recognize these, but changes would be needed elsewhere
+     * to implement them.  */
+    {"aapcs-iwmmxt", ARM_PCS_AAPCS_IWMMXT},
+    {"atpcs", ARM_PCS_ATPCS},
+    {"apcs", ARM_PCS_APCS},
+#endif
+    {NULL, ARM_PCS_UNKNOWN}
+  };
+
+static enum arm_pcs
+arm_pcs_from_attribute (tree attr)
+{
+  const struct pcs_attribute_arg *ptr;
+  const char *arg;
+
+  /* Get the value of the argument.  */
+  if (TREE_VALUE (attr) == NULL_TREE
+      || TREE_CODE (TREE_VALUE (attr)) != STRING_CST)
+    return ARM_PCS_UNKNOWN;
+
+  arg = TREE_STRING_POINTER (TREE_VALUE (attr));
+
+  /* Check it against the list of known arguments.  */
+  for (ptr = pcs_attribute_args; ptr->arg != NULL; ptr++)
+    if (streq (arg, ptr->arg))
+      return ptr->value;
+
+  /* An unrecognized interrupt type.  */
+  return ARM_PCS_UNKNOWN;
+}
+
+/* Get the PCS variant to use for this call.  TYPE is the function's type
+   specification, DECL is the specific declartion.  DECL may be null if
+   the call could be indirect or if this is a library call.  */
+static enum arm_pcs
+arm_get_pcs_model (const_tree type, const_tree decl)
+{
+  bool user_convention = false;
+  enum arm_pcs user_pcs = arm_pcs_default;
+  tree attr;
+
+  gcc_assert (type);
+
+  attr = lookup_attribute ("pcs", TYPE_ATTRIBUTES (type));
+  if (attr)
+    {
+      user_pcs = arm_pcs_from_attribute (TREE_VALUE (attr));
+      user_convention = true;
+    }
+
+  if (TARGET_AAPCS_BASED)
+    {
+      /* Detect varargs functions.  These always use the base rules
+	 (no argument is ever a candidate for a co-processor
+	 register).  */
+      bool base_rules = (TYPE_ARG_TYPES (type) != 0
+			 && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (type)))
+			     != void_type_node));
+      
+      if (user_convention)
+	{
+	  if (user_pcs > ARM_PCS_AAPCS_LOCAL)
+	    sorry ("Non-AAPCS derived PCS variant");
+	  else if (base_rules && user_pcs != ARM_PCS_AAPCS)
+	    error ("Variadic functions must use the base AAPCS variant");
+	}
+
+      if (base_rules)
+	return ARM_PCS_AAPCS;
+      else if (user_convention)
+	return user_pcs;
+      else if (decl && flag_unit_at_a_time)
+	{
+	  /* Local functions never leak outside this compilation unit,
+	     so we are free to use whatever conventions are
+	     appropriate.  */
+	  /* FIXME: remove CONST_CAST_TREE when cgraph is constified.  */
+	  struct cgraph_local_info *i = cgraph_local_info (CONST_CAST_TREE(decl));
+	  if (i && i->local)
+	    return ARM_PCS_AAPCS_LOCAL;
+	}
+    }
+  else if (user_convention && user_pcs != arm_pcs_default)
+    sorry ("PCS variant");
+
+  /* For everything else we use the target's default.  */
+  return arm_pcs_default;
+}
+
+
+static void
+aapcs_vfp_cum_init (CUMULATIVE_ARGS *pcum  ATTRIBUTE_UNUSED,
+		    const_tree fntype ATTRIBUTE_UNUSED,
+		    rtx libcall ATTRIBUTE_UNUSED, 
+		    const_tree fndecl ATTRIBUTE_UNUSED)
+{
+  /* Record the unallocated VFP registers.  */
+  pcum->aapcs_vfp_regs_free = (1 << NUM_VFP_ARG_REGS) - 1;
+  pcum->aapcs_vfp_reg_alloc = 0;
+}
+
+/* Walk down the type tree of TYPE counting consecutive base elements.
+   If *MODEP is VOIDmode, then set it to the first valid floating point
+   type.  If a non-floating point type is found, or if a floating point
+   type that doesn't match a non-VOIDmode *MODEP is found, then return -1,
+   otherwise return the count in the sub-tree.  */
+static int
+aapcs_vfp_sub_candidate (const_tree type, enum machine_mode *modep)
+{
+  enum machine_mode mode;
+  HOST_WIDE_INT size;
+
+  switch (TREE_CODE (type))
+    {
+    case REAL_TYPE:
+      mode = TYPE_MODE (type);
+      if (mode != DFmode && mode != SFmode)
+	return -1;
+
+      if (*modep == VOIDmode)
+	*modep = mode;
+
+      if (*modep == mode)
+	return 1;
+
+      break;
+
+    case COMPLEX_TYPE:
+      mode = TYPE_MODE (TREE_TYPE (type));
+      if (mode != DFmode && mode != SFmode)
+	return -1;
+
+      if (*modep == VOIDmode)
+	*modep = mode;
+
+      if (*modep == mode)
+	return 2;
+
+      break;
+
+    case VECTOR_TYPE:
+      /* Use V2SImode and V4SImode as representatives of all 64-bit
+	 and 128-bit vector types, whether or not those modes are
+	 supported with the present options.  */
+      size = int_size_in_bytes (type);
+      switch (size)
+	{
+	case 8:
+	  mode = V2SImode;
+	  break;
+	case 16:
+	  mode = V4SImode;
+	  break;
+	default:
+	  return -1;
+	}
+
+      if (*modep == VOIDmode)
+	*modep = mode;
+
+      /* Vector modes are considered to be opaque: two vectors are
+	 equivalent for the purposes of being homogeneous aggregates
+	 if they are the same size.  */
+      if (*modep == mode)
+	return 1;
+
+      break;
+
+    case ARRAY_TYPE:
+      {
+	int count;
+	tree index = TYPE_DOMAIN (type);
+
+	/* Can't handle incomplete types.  */
+	if (!COMPLETE_TYPE_P(type))
+	  return -1;
+
+	count = aapcs_vfp_sub_candidate (TREE_TYPE (type), modep);
+	if (count == -1
+	    || !index
+	    || !TYPE_MAX_VALUE (index)
+	    || !host_integerp (TYPE_MAX_VALUE (index), 1)
+	    || !TYPE_MIN_VALUE (index)
+	    || !host_integerp (TYPE_MIN_VALUE (index), 1)
+	    || count < 0)
+	  return -1;
+
+	count *= (1 + tree_low_cst (TYPE_MAX_VALUE (index), 1)
+		      - tree_low_cst (TYPE_MIN_VALUE (index), 1));
+
+	/* There must be no padding.  */
+	if (!host_integerp (TYPE_SIZE (type), 1)
+	    || (tree_low_cst (TYPE_SIZE (type), 1)
+		!= count * GET_MODE_BITSIZE (*modep)))
+	  return -1;
+
+	return count;
+      }
+      
+    case RECORD_TYPE:
+      {
+	int count = 0;
+	int sub_count;
+	tree field;
+
+	/* Can't handle incomplete types.  */
+	if (!COMPLETE_TYPE_P(type))
+	  return -1;
+
+	for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	  {
+	    if (TREE_CODE (field) != FIELD_DECL)
+	      continue;
+
+	    sub_count = aapcs_vfp_sub_candidate (TREE_TYPE (field), modep);
+	    if (sub_count < 0)
+	      return -1;
+	    count += sub_count;
+	  }
+
+	/* There must be no padding.  */
+	if (!host_integerp (TYPE_SIZE (type), 1)
+	    || (tree_low_cst (TYPE_SIZE (type), 1)
+		!= count * GET_MODE_BITSIZE (*modep)))
+	  return -1;
+
+	return count;
+      }
+
+    case UNION_TYPE:
+    case QUAL_UNION_TYPE:
+      {
+	/* These aren't very interesting except in a degenerate case.  */
+	int count = 0;
+	int sub_count;
+	tree field;
+
+	/* Can't handle incomplete types.  */
+	if (!COMPLETE_TYPE_P(type))
+	  return -1;
+
+	for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	  {
+	    if (TREE_CODE (field) != FIELD_DECL)
+	      continue;
+
+	    sub_count = aapcs_vfp_sub_candidate (TREE_TYPE (field), modep);
+	    if (sub_count < 0)
+	      return -1;
+	    count = count > sub_count ? count : sub_count;
+	  }
+
+	/* There must be no padding.  */
+	if (!host_integerp (TYPE_SIZE (type), 1)
+	    || (tree_low_cst (TYPE_SIZE (type), 1)
+		!= count * GET_MODE_BITSIZE (*modep)))
+	  return -1;
+
+	return count;
+      }
+
+    default:
+      break;
+    }
+
+  return -1;
+}
+
+static bool
+aapcs_vfp_is_call_or_return_candidate (enum machine_mode mode, const_tree type,
+				       enum machine_mode *base_mode,
+				       int *count)
+{
+  if (GET_MODE_CLASS (mode) == MODE_FLOAT
+      || GET_MODE_CLASS (mode) == MODE_VECTOR_INT
+      || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
+    {
+      *count = 1;
+      *base_mode = mode;
+      return true;
+    }
+  else if (GET_MODE_CLASS (mode) == MODE_COMPLEX_FLOAT)
+    {
+      *count = 2;
+      *base_mode = (mode == DCmode ? DFmode : SFmode);
+      return true;
+    }
+  else if (type && (mode == BLKmode || TREE_CODE (type) == VECTOR_TYPE))
+    {
+      enum machine_mode aggregate_mode = VOIDmode;
+      int ag_count = aapcs_vfp_sub_candidate (type, &aggregate_mode);
+
+      if (ag_count > 0 && ag_count <= 4)
+	{
+	  *count = ag_count;
+	  *base_mode = aggregate_mode;
+	  return true;
+	}
+    }
+  return false;
+}
+
+static bool
+aapcs_vfp_is_return_candidate (enum arm_pcs pcs_variant,
+			       enum machine_mode mode, const_tree type)
+{
+  int count ATTRIBUTE_UNUSED;
+  enum machine_mode ag_mode ATTRIBUTE_UNUSED;
+
+  if (!(pcs_variant == ARM_PCS_AAPCS_VFP
+	|| (pcs_variant == ARM_PCS_AAPCS_LOCAL
+	    && TARGET_32BIT && TARGET_VFP && TARGET_HARD_FLOAT)))
+    return false;
+  return aapcs_vfp_is_call_or_return_candidate (mode, type, &ag_mode, &count);
+}
+
+static bool
+aapcs_vfp_is_call_candidate (CUMULATIVE_ARGS *pcum, enum machine_mode mode, 
+			     const_tree type)
+{
+  if (!(pcum->pcs_variant == ARM_PCS_AAPCS_VFP
+	|| (pcum->pcs_variant == ARM_PCS_AAPCS_LOCAL
+	    && TARGET_32BIT && TARGET_VFP && TARGET_HARD_FLOAT)))
+    return false;
+  return aapcs_vfp_is_call_or_return_candidate (mode, type,
+						&pcum->aapcs_vfp_rmode,
+						&pcum->aapcs_vfp_rcount);
+}
+
+static bool
+aapcs_vfp_allocate (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+		    const_tree type  ATTRIBUTE_UNUSED)
+{
+  int shift = GET_MODE_SIZE (pcum->aapcs_vfp_rmode) / GET_MODE_SIZE (SFmode);
+  unsigned mask = (1 << (shift * pcum->aapcs_vfp_rcount)) - 1;
+  int regno;
+  
+  for (regno = 0; regno < NUM_VFP_ARG_REGS; regno += shift)
+    if (((pcum->aapcs_vfp_regs_free >> regno) & mask) == mask)
+      {
+	pcum->aapcs_vfp_reg_alloc = mask << regno;
+	if (mode == BLKmode || (mode == TImode && !TARGET_NEON))
+	  {
+	    int i;
+	    int rcount = pcum->aapcs_vfp_rcount;
+	    int rshift = shift;
+	    enum machine_mode rmode = pcum->aapcs_vfp_rmode;
+	    rtx par;
+	    if (!TARGET_NEON)
+	      {
+		/* Avoid using unsupported vector modes.  */
+		if (rmode == V2SImode)
+		  rmode = DImode;
+		else if (rmode == V4SImode)
+		  {
+		    rmode = DImode;
+		    rcount *= 2;
+		    rshift /= 2;
+		  }
+	      }
+	    par = gen_rtx_PARALLEL (mode, rtvec_alloc (rcount));
+	    for (i = 0; i < rcount; i++)
+	      {
+		rtx tmp = gen_rtx_REG (rmode, 
+				       FIRST_VFP_REGNUM + regno + i * rshift);
+		tmp = gen_rtx_EXPR_LIST
+		  (VOIDmode, tmp, 
+		   GEN_INT (i * GET_MODE_SIZE (rmode)));
+		XVECEXP (par, 0, i) = tmp;
+	      }
+
+	    pcum->aapcs_reg = par;
+	  }
+	else
+	  pcum->aapcs_reg = gen_rtx_REG (mode, FIRST_VFP_REGNUM + regno);
+	return true;
+      }
+  return false;
+}
+
+static rtx
+aapcs_vfp_allocate_return_reg (enum arm_pcs pcs_variant ATTRIBUTE_UNUSED,
+			       enum machine_mode mode,
+			       const_tree type ATTRIBUTE_UNUSED)
+{
+  if (!(pcs_variant == ARM_PCS_AAPCS_VFP
+	|| (pcs_variant == ARM_PCS_AAPCS_LOCAL
+	    && TARGET_32BIT && TARGET_VFP && TARGET_HARD_FLOAT)))
+    return false;
+  if (mode == BLKmode || (mode == TImode && !TARGET_NEON))
+    {
+      int count;
+      enum machine_mode ag_mode;
+      int i;
+      rtx par;
+      int shift;
+      
+      aapcs_vfp_is_call_or_return_candidate (mode, type, &ag_mode, &count);
+
+      if (!TARGET_NEON)
+	{
+	  if (ag_mode == V2SImode)
+	    ag_mode = DImode;
+	  else if (ag_mode == V4SImode)
+	    {
+	      ag_mode = DImode;
+	      count *= 2;
+	    }
+	}
+      shift = GET_MODE_SIZE(ag_mode) / GET_MODE_SIZE(SFmode);
+      par = gen_rtx_PARALLEL (mode, rtvec_alloc (count));
+      for (i = 0; i < count; i++)
+	{
+	  rtx tmp = gen_rtx_REG (ag_mode, FIRST_VFP_REGNUM + i * shift);
+	  tmp = gen_rtx_EXPR_LIST (VOIDmode, tmp, 
+				   GEN_INT (i * GET_MODE_SIZE (ag_mode)));
+	  XVECEXP (par, 0, i) = tmp;
+	}
+
+      return par;
+    }
+
+  return gen_rtx_REG (mode, FIRST_VFP_REGNUM);
+}
+
+static void
+aapcs_vfp_advance (CUMULATIVE_ARGS *pcum  ATTRIBUTE_UNUSED,
+		   enum machine_mode mode  ATTRIBUTE_UNUSED,
+		   const_tree type  ATTRIBUTE_UNUSED)
+{
+  pcum->aapcs_vfp_regs_free &= ~pcum->aapcs_vfp_reg_alloc;
+  pcum->aapcs_vfp_reg_alloc = 0;
+  return;
+}
+
+#define AAPCS_CP(X)				\
+  {						\
+    aapcs_ ## X ## _cum_init,			\
+    aapcs_ ## X ## _is_call_candidate,		\
+    aapcs_ ## X ## _allocate,			\
+    aapcs_ ## X ## _is_return_candidate,	\
+    aapcs_ ## X ## _allocate_return_reg,	\
+    aapcs_ ## X ## _advance			\
+  }
+
+/* Table of co-processors that can be used to pass arguments in
+   registers.  Idealy no arugment should be a candidate for more than
+   one co-processor table entry, but the table is processed in order
+   and stops after the first match.  If that entry then fails to put
+   the argument into a co-processor register, the argument will go on
+   the stack.  */
+static struct 
+{
+  /* Initialize co-processor related state in CUMULATIVE_ARGS structure.  */
+  void (*cum_init) (CUMULATIVE_ARGS *, const_tree, rtx, const_tree);
+
+  /* Return true if an argument of mode MODE (or type TYPE if MODE is
+     BLKmode) is a candidate for this co-processor's registers; this
+     function should ignore any position-dependent state in
+     CUMULATIVE_ARGS and only use call-type dependent information.  */
+  bool (*is_call_candidate) (CUMULATIVE_ARGS *, enum machine_mode, const_tree);
+
+  /* Return true if the argument does get a co-processor register; it
+     should set aapcs_reg to an RTX of the register allocated as is
+     required for a return from FUNCTION_ARG.  */
+  bool (*allocate) (CUMULATIVE_ARGS *, enum machine_mode, const_tree);
+
+  /* Return true if a result of mode MODE (or type TYPE if MODE is
+     BLKmode) is can be returned in this co-processor's registers.  */
+  bool (*is_return_candidate) (enum arm_pcs, enum machine_mode, const_tree);
+
+  /* Allocate and return an RTX element to hold the return type of a
+     call, this routine must not fail and will only be called if
+     is_return_candidate returned true with the same parameters.  */
+  rtx (*allocate_return_reg) (enum arm_pcs, enum machine_mode, const_tree);
+
+  /* Finish processing this argument and prepare to start processing
+     the next one.  */
+  void (*advance) (CUMULATIVE_ARGS *, enum machine_mode, const_tree);
+} aapcs_cp_arg_layout[ARM_NUM_COPROC_SLOTS] =
+  {
+    AAPCS_CP(vfp)
+  };
+
+#undef AAPCS_CP
+
+static int
+aapcs_select_call_coproc (CUMULATIVE_ARGS *pcum, enum machine_mode mode, 
+			  tree type)
+{
+  int i;
+
+  for (i = 0; i < ARM_NUM_COPROC_SLOTS; i++)
+    if (aapcs_cp_arg_layout[i].is_call_candidate (pcum, mode, type))
+      return i;
+
+  return -1;
+}
+
+static int
+aapcs_select_return_coproc (const_tree type, const_tree fntype)
+{
+  /* We aren't passed a decl, so we can't check that a call is local.
+     However, it isn't clear that that would be a win anyway, since it
+     might limit some tail-calling opportunities.  */
+  enum arm_pcs pcs_variant;
+
+  if (fntype)
+    {
+      const_tree fndecl = NULL_TREE;
+
+      if (TREE_CODE (fntype) == FUNCTION_DECL)
+	{
+	  fndecl = fntype;
+	  fntype = TREE_TYPE (fntype);
+	}
+
+      pcs_variant = arm_get_pcs_model (fntype, fndecl);
+    }
+  else
+    pcs_variant = arm_pcs_default;
+
+  if (pcs_variant != ARM_PCS_AAPCS)
+    {
+      int i;
+
+      for (i = 0; i < ARM_NUM_COPROC_SLOTS; i++)
+	if (aapcs_cp_arg_layout[i].is_return_candidate (pcs_variant, 
+							TYPE_MODE (type),
+							type))
+	  return i;
+    }
+  return -1;
+}
+
+static rtx
+aapcs_allocate_return_reg (enum machine_mode mode, const_tree type,
+			   const_tree fntype)
+{
+  /* We aren't passed a decl, so we can't check that a call is local.
+     However, it isn't clear that that would be a win anyway, since it
+     might limit some tail-calling opportunities.  */
+  enum arm_pcs pcs_variant;
+  int unsignedp ATTRIBUTE_UNUSED;
+
+  if (fntype)
+    {
+      const_tree fndecl = NULL_TREE;
+
+      if (TREE_CODE (fntype) == FUNCTION_DECL)
+	{
+	  fndecl = fntype;
+	  fntype = TREE_TYPE (fntype);
+	}
+
+      pcs_variant = arm_get_pcs_model (fntype, fndecl);
+    }
+  else
+    pcs_variant = arm_pcs_default;
+
+  /* Promote integer types.  */
+  if (type && INTEGRAL_TYPE_P (type))
+    mode = arm_promote_function_mode (type, mode, &unsignedp, fntype, 1);
+
+  if (pcs_variant != ARM_PCS_AAPCS)
+    {
+      int i;
+
+      for (i = 0; i < ARM_NUM_COPROC_SLOTS; i++)
+	if (aapcs_cp_arg_layout[i].is_return_candidate (pcs_variant, mode,
+							type))
+	  return aapcs_cp_arg_layout[i].allocate_return_reg (pcs_variant,
+							     mode, type);
+    }
+
+  /* Promotes small structs returned in a register to full-word size
+     for big-endian AAPCS.  */
+  if (type && arm_return_in_msb (type))
+    {
+      HOST_WIDE_INT size = int_size_in_bytes (type);
+      if (size % UNITS_PER_WORD != 0)
+	{
+	  size += UNITS_PER_WORD - size % UNITS_PER_WORD;
+	  mode = mode_for_size (size * BITS_PER_UNIT, MODE_INT, 0);
+	}
+    }
+
+  return gen_rtx_REG (mode, R0_REGNUM);
+}
+
+rtx
+aapcs_libcall_value (enum machine_mode mode)
+{
+  return aapcs_allocate_return_reg (mode, NULL_TREE, NULL_TREE);
+}
+
+/* Lay out a function argument using the AAPCS rules.  The rule
+   numbers referred to here are those in the AAPCS.  */
+static void
+aapcs_layout_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+		  tree type, int named)
+{
+  int nregs, nregs2;
+  int ncrn;
+
+  /* We only need to do this once per argument.  */
+  if (pcum->aapcs_arg_processed)
+    return;
+
+  pcum->aapcs_arg_processed = true;
+
+  /* Special case: if named is false then we are handling an incoming
+     anonymous argument which is on the stack.  */
+  if (!named)
+    return;
+  
+  /* Is this a potential co-processor register candidate?  */
+  if (pcum->pcs_variant != ARM_PCS_AAPCS)
+    {
+      int slot = aapcs_select_call_coproc (pcum, mode, type);
+      pcum->aapcs_cprc_slot = slot;
+
+      /* We don't have to apply any of the rules from part B of the
+	 preparation phase, these are handled elsewhere in the
+	 compiler.  */
+
+      if (slot >= 0)
+	{
+	  /* A Co-processor register candidate goes either in its own
+	     class of registers or on the stack.  */
+	  if (!pcum->aapcs_cprc_failed[slot])
+	    {
+	      /* C1.cp - Try to allocate the argument to co-processor
+		 registers.  */
+	      if (aapcs_cp_arg_layout[slot].allocate (pcum, mode, type))
+		return;
+
+	      /* C2.cp - Put the argument on the stack and note that we
+		 can't assign any more candidates in this slot.  We also
+		 need to note that we have allocated stack space, so that
+		 we won't later try to split a non-cprc candidate between
+		 core registers and the stack.  */
+	      pcum->aapcs_cprc_failed[slot] = true;
+	      pcum->can_split = false;
+	    }
+
+	  /* We didn't get a register, so this argument goes on the
+	     stack.  */
+	  gcc_assert (pcum->can_split == false);
+	  return;
+	}
+    }
+
+  /* C3 - For double-word aligned arguments, round the NCRN up to the
+     next even number.  */
+  ncrn = pcum->aapcs_ncrn;
+  if ((ncrn & 1) && arm_needs_doubleword_align (mode, type))
+    ncrn++;
+
+  nregs = ARM_NUM_REGS2(mode, type);
+
+  /* Sigh, this test should really assert that nregs > 0, but a GCC
+     extension allows empty structs and then gives them empty size; it
+     then allows such a structure to be passed by value.  For some of
+     the code below we have to pretend that such an argument has
+     non-zero size so that we 'locate' it correctly either in
+     registers or on the stack.  */
+  gcc_assert (nregs >= 0);
+
+  nregs2 = nregs ? nregs : 1;
+
+  /* C4 - Argument fits entirely in core registers.  */
+  if (ncrn + nregs2 <= NUM_ARG_REGS)
+    {
+      pcum->aapcs_reg = gen_rtx_REG (mode, ncrn);
+      pcum->aapcs_next_ncrn = ncrn + nregs;
+      return;
+    }
+
+  /* C5 - Some core registers left and there are no arguments already
+     on the stack: split this argument between the remaining core
+     registers and the stack.  */
+  if (ncrn < NUM_ARG_REGS && pcum->can_split)
+    {
+      pcum->aapcs_reg = gen_rtx_REG (mode, ncrn);
+      pcum->aapcs_next_ncrn = NUM_ARG_REGS;
+      pcum->aapcs_partial = (NUM_ARG_REGS - ncrn) * UNITS_PER_WORD;
+      return;
+    }
+
+  /* C6 - NCRN is set to 4.  */
+  pcum->aapcs_next_ncrn = NUM_ARG_REGS;
+
+  /* C7,C8 - arugment goes on the stack.  We have nothing to do here.  */
+  return;
+}
+
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
    for a call to a function whose data type is FNTYPE.
    For a library call, FNTYPE is NULL.  */
 void
 arm_init_cumulative_args (CUMULATIVE_ARGS *pcum, tree fntype,
-			  rtx libname  ATTRIBUTE_UNUSED,
+			  rtx libname,
 			  tree fndecl ATTRIBUTE_UNUSED)
 {
+  /* Long call handling.  */
+  if (fntype)
+    pcum->pcs_variant = arm_get_pcs_model (fntype, fndecl);
+  else
+    pcum->pcs_variant = arm_pcs_default;
+
+  if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
+    {
+      if (arm_libcall_uses_aapcs_base (libname))
+	pcum->pcs_variant = ARM_PCS_AAPCS;
+ 
+      pcum->aapcs_ncrn = pcum->aapcs_next_ncrn = 0;
+      pcum->aapcs_reg = NULL_RTX;
+      pcum->aapcs_partial = 0;
+      pcum->aapcs_arg_processed = false;
+      pcum->aapcs_cprc_slot = -1;
+      pcum->can_split = true;
+
+      if (pcum->pcs_variant != ARM_PCS_AAPCS)
+	{
+	  int i;
+
+	  for (i = 0; i < ARM_NUM_COPROC_SLOTS; i++)
+	    {
+	      pcum->aapcs_cprc_failed[i] = false;
+	      aapcs_cp_arg_layout[i].cum_init (pcum, fntype, libname, fndecl);
+	    }
+	}
+      return;
+    }
+
+  /* Legacy ABIs */
+
   /* On the ARM, the offset starts at 0.  */
   pcum->nregs = 0;
   pcum->iwmmxt_nregs = 0;
@@ -3167,6 +4221,17 @@ arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
 {
   int nregs;
 
+  /* Handle the special case quickly.  Pick an arbitrary value for op2 of
+     a call insn (op3 of a call_value insn).  */
+  if (mode == VOIDmode)
+    return const0_rtx;
+
+  if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
+    {
+      aapcs_layout_arg (pcum, mode, type, named);
+      return pcum->aapcs_reg;
+    }
+
   /* Varargs vectors are treated the same as long long.
      named_count avoids having to change the way arm handles 'named' */
   if (TARGET_IWMMXT_ABI
@@ -3208,9 +4273,15 @@ arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
 
 static int
 arm_arg_partial_bytes (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
-		       tree type, bool named ATTRIBUTE_UNUSED)
+		       tree type, bool named)
 {
   int nregs = pcum->nregs;
+
+  if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
+    {
+      aapcs_layout_arg (pcum, mode, type, named);
+      return pcum->aapcs_partial;
+    }
 
   if (TARGET_IWMMXT_ABI && arm_vector_mode_supported_p (mode))
     return 0;
@@ -3221,6 +4292,39 @@ arm_arg_partial_bytes (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
     return (NUM_ARG_REGS - nregs) * UNITS_PER_WORD;
 
   return 0;
+}
+
+void
+arm_function_arg_advance (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+			  tree type, bool named)
+{
+  if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
+    {
+      aapcs_layout_arg (pcum, mode, type, named);
+
+      if (pcum->aapcs_cprc_slot >= 0)
+	{
+	  aapcs_cp_arg_layout[pcum->aapcs_cprc_slot].advance (pcum, mode,
+							      type);
+	  pcum->aapcs_cprc_slot = -1;
+	}
+
+      /* Generic stuff.  */
+      pcum->aapcs_arg_processed = false;
+      pcum->aapcs_ncrn = pcum->aapcs_next_ncrn;
+      pcum->aapcs_reg = NULL_RTX;
+      pcum->aapcs_partial = 0;
+    }
+  else
+    {
+      pcum->nargs += 1;
+      if (arm_vector_mode_supported_p (mode)
+	  && pcum->named_count > pcum->nargs
+	  && TARGET_IWMMXT_ABI)
+	pcum->iwmmxt_nregs += 1;
+      else
+	pcum->nregs += ARM_NUM_REGS2 (mode, type);
+    }
 }
 
 /* Variable sized types are passed by reference.  This is a GCC
@@ -3262,42 +4366,6 @@ arm_pr_long_calls_off (struct cpp_reader * pfile ATTRIBUTE_UNUSED)
   arm_pragma_long_calls = OFF;
 }
 
-/* Table of machine attributes.  */
-const struct attribute_spec arm_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  /* Function calls made to this symbol must be done indirectly, because
-     it may lie outside of the 26 bit addressing range of a normal function
-     call.  */
-  { "long_call",    0, 0, false, true,  true,  NULL },
-  /* Whereas these functions are always known to reside within the 26 bit
-     addressing range.  */
-  { "short_call",   0, 0, false, true,  true,  NULL },
-  /* Interrupt Service Routines have special prologue and epilogue requirements.  */
-  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute },
-  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute },
-  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute },
-#ifdef ARM_PE
-  /* ARM/PE has three new attributes:
-     interfacearm - ?
-     dllexport - for exporting a function/variable that will live in a dll
-     dllimport - for importing a function/variable from a dll
-
-     Microsoft allows multiple declspecs in one __declspec, separating
-     them with spaces.  We do NOT support this.  Instead, use __declspec
-     multiple times.
-  */
-  { "dllimport",    0, 0, true,  false, false, NULL },
-  { "dllexport",    0, 0, true,  false, false, NULL },
-  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute },
-#elif TARGET_DLLIMPORT_DECL_ATTRIBUTES
-  { "dllimport",    0, 0, false, false, false, handle_dll_attribute },
-  { "dllexport",    0, 0, false, false, false, handle_dll_attribute },
-  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute },
-#endif
-  { NULL,           0, 0, false, false, false, NULL }
-};
-
 /* Handle an attribute requiring a FUNCTION_DECL;
    arguments as in struct attribute_spec.handler.  */
 static tree
@@ -3372,6 +4440,20 @@ arm_handle_isr_attribute (tree *node, tree name, tree args, int flags,
 	}
     }
 
+  return NULL_TREE;
+}
+
+/* Handle a "pcs" attribute; arguments as in struct
+   attribute_spec.handler.  */
+static tree
+arm_handle_pcs_attribute (tree *node ATTRIBUTE_UNUSED, tree name, tree args,
+			  int flags ATTRIBUTE_UNUSED, bool *no_add_attrs)
+{
+  if (arm_pcs_from_attribute (args) == ARM_PCS_UNKNOWN)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
   return NULL_TREE;
 }
 
@@ -3536,7 +4618,7 @@ arm_is_long_call_p (tree decl)
 
 /* Return nonzero if it is ok to make a tail-call to DECL.  */
 static bool
-arm_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
+arm_function_ok_for_sibcall (tree decl, tree exp)
 {
   unsigned long func_type;
 
@@ -3568,6 +4650,21 @@ arm_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
   /* Never tailcall from an ISR routine - it needs a special exit sequence.  */
   if (IS_INTERRUPT (func_type))
     return false;
+
+  if (!VOID_TYPE_P (TREE_TYPE (DECL_RESULT (cfun->decl))))
+    {
+      /* Check that the return value locations are the same.  For
+	 example that we aren't returning a value from the sibling in
+	 a VFP register but then need to transfer it to a core
+	 register.  */
+      rtx a, b;
+
+      a = arm_function_value (TREE_TYPE (exp), decl, false);
+      b = arm_function_value (TREE_TYPE (DECL_RESULT (cfun->decl)),
+			      cfun->decl, false);
+      if (!rtx_equal_p (a, b))
+	return false;
+    }
 
   /* Never tailcall if function may be called with a misaligned SP.  */
   if (IS_STACKALIGN (func_type))
@@ -4171,6 +5268,7 @@ arm_legitimate_index_p (enum machine_mode mode, rtx index, RTX_CODE outer,
   if (GET_MODE_SIZE (mode) <= 4
       && ! (arm_arch4
 	    && (mode == HImode
+		|| mode == HFmode
 		|| (mode == QImode && outer == SIGN_EXTEND))))
     {
       if (code == MULT)
@@ -4199,13 +5297,15 @@ arm_legitimate_index_p (enum machine_mode mode, rtx index, RTX_CODE outer,
      load.  */
   if (arm_arch4)
     {
-      if (mode == HImode || (outer == SIGN_EXTEND && mode == QImode))
+      if (mode == HImode
+	  || mode == HFmode
+	  || (outer == SIGN_EXTEND && mode == QImode))
 	range = 256;
       else
 	range = 4096;
     }
   else
-    range = (mode == HImode) ? 4095 : 4096;
+    range = (mode == HImode || mode == HFmode) ? 4095 : 4096;
 
   return (code == CONST_INT
 	  && INTVAL (index) < range
@@ -4266,15 +5366,17 @@ thumb2_legitimate_index_p (enum machine_mode mode, rtx index, int strict_p)
 
   if (mode == DImode || mode == DFmode)
     {
-      HOST_WIDE_INT val = INTVAL (index);
-      /* ??? Can we assume ldrd for thumb2?  */
-      /* Thumb-2 ldrd only has reg+const addressing modes.  */
-      if (code != CONST_INT)
+      if (code == CONST_INT)
+	{
+	  HOST_WIDE_INT val = INTVAL (index);
+	  /* ??? Can we assume ldrd for thumb2?  */
+	  /* Thumb-2 ldrd only has reg+const addressing modes.  */
+	  /* ldrd supports offsets of +-1020.
+	     However the ldr fallback does not.  */
+	  return val > -256 && val < 256 && (val & 3) == 0;
+	}
+      else
 	return 0;
-
-      /* ldrd supports offsets of +-1020.
-         However the ldr fallback does not.  */
-      return val > -256 && val < 256 && (val & 3) == 0;
     }
 
   if (code == MULT)
@@ -4376,7 +5478,8 @@ thumb1_legitimate_address_p (enum machine_mode mode, rtx x, int strict_p)
     return 1;
 
   /* This is PC relative data after arm_reorg runs.  */
-  else if (GET_MODE_SIZE (mode) >= 4 && reload_completed
+  else if ((GET_MODE_SIZE (mode) >= 4 || mode == HFmode)
+	   && reload_completed
 	   && (GET_CODE (x) == LABEL_REF
 	       || (GET_CODE (x) == CONST
 		   && GET_CODE (XEXP (x, 0)) == PLUS
@@ -6208,9 +7311,9 @@ arm_arm_address_cost (rtx x)
   if (c == MEM || c == LABEL_REF || c == SYMBOL_REF)
     return 10;
 
-  if (c == PLUS || c == MINUS)
+  if (c == PLUS)
     {
-      if (GET_CODE (XEXP (x, 0)) == CONST_INT)
+      if (GET_CODE (XEXP (x, 1)) == CONST_INT)
 	return 2;
 
       if (ARITHMETIC_P (XEXP (x, 0)) || ARITHMETIC_P (XEXP (x, 1)))
@@ -7117,6 +8220,13 @@ arm_eliminable_register (rtx x)
 enum reg_class
 coproc_secondary_reload_class (enum machine_mode mode, rtx x, bool wb)
 {
+  if (mode == HFmode)
+    {
+      if (s_register_operand (x, mode) || neon_vector_mem_operand (x, 2))
+	return NO_REGS;
+      return GENERAL_REGS;
+    }
+
   if (TARGET_NEON
       && (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
           || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
@@ -8398,7 +9508,8 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
 
   /* A compare with a shifted operand.  Because of canonicalization, the
      comparison will have to be swapped when we emit the assembler.  */
-  if (GET_MODE (y) == SImode && GET_CODE (y) == REG
+  if (GET_MODE (y) == SImode 
+      && (REG_P (y) || (GET_CODE (y) == SUBREG))
       && (GET_CODE (x) == ASHIFT || GET_CODE (x) == ASHIFTRT
 	  || GET_CODE (x) == LSHIFTRT || GET_CODE (x) == ROTATE
 	  || GET_CODE (x) == ROTATERT))
@@ -8406,7 +9517,8 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
 
   /* This operation is performed swapped, but since we only rely on the Z
      flag we don't need an additional mode.  */
-  if (GET_MODE (y) == SImode && REG_P (y)
+  if (GET_MODE (y) == SImode 
+      && (REG_P (y) || (GET_CODE (y) == SUBREG))
       && GET_CODE (x) == NEG
       && (op ==	EQ || op == NE))
     return CC_Zmode;
@@ -10452,14 +11564,23 @@ output_mov_long_double_arm_from_arm (rtx *operands)
   return "";
 }
 
-
-/* Emit a MOVW/MOVT pair.  */
-void arm_emit_movpair (rtx dest, rtx src)
-{
-  emit_set_insn (dest, gen_rtx_HIGH (SImode, src));
-  emit_set_insn (dest, gen_rtx_LO_SUM (SImode, dest, src));
-}
-
+void
+arm_emit_movpair (rtx dest, rtx src)
+ {
+  /* If the src is an immediate, simplify it.  */
+  if (CONST_INT_P (src))
+    {
+      HOST_WIDE_INT val = INTVAL (src);
+      emit_set_insn (dest, GEN_INT (val & 0x0000ffff));
+      if ((val >> 16) & 0x0000ffff)
+        emit_set_insn (gen_rtx_ZERO_EXTRACT (SImode, dest, GEN_INT (16),
+                                             GEN_INT (16)),
+                       GEN_INT ((val >> 16) & 0x0000ffff));
+      return;
+    }
+   emit_set_insn (dest, gen_rtx_HIGH (SImode, src));
+   emit_set_insn (dest, gen_rtx_LO_SUM (SImode, dest, src));
+ }
 
 /* Output a move from arm registers to an fpa registers.
    OPERANDS[0] is an fpa register.
@@ -11772,18 +12893,28 @@ output_return_instruction (rtx operand, int really_return, int reverse)
 	      gcc_assert (stack_adjust == 0 || stack_adjust == 4);
 
 	      if (stack_adjust && arm_arch5 && TARGET_ARM)
-		sprintf (instr, "ldm%sib\t%%|sp, {", conditional);
+		if (TARGET_UNIFIED_ASM)
+		  sprintf (instr, "ldmib%s\t%%|sp, {", conditional);
+		else
+		  sprintf (instr, "ldm%sib\t%%|sp, {", conditional);
 	      else
 		{
 		  /* If we can't use ldmib (SA110 bug),
 		     then try to pop r3 instead.  */
 		  if (stack_adjust)
 		    live_regs_mask |= 1 << 3;
-		  sprintf (instr, "ldm%sfd\t%%|sp, {", conditional);
+		  
+		  if (TARGET_UNIFIED_ASM)
+		    sprintf (instr, "ldmfd%s\t%%|sp, {", conditional);
+		  else
+		    sprintf (instr, "ldm%sfd\t%%|sp, {", conditional);
 		}
 	    }
 	  else
-	    sprintf (instr, "ldm%sfd\t%%|sp!, {", conditional);
+	    if (TARGET_UNIFIED_ASM)
+	      sprintf (instr, "pop%s\t{", conditional);
+	    else
+	      sprintf (instr, "ldm%sfd\t%%|sp!, {", conditional);
 
 	  p = instr + strlen (instr);
 
@@ -12822,22 +13953,23 @@ arm_get_frame_offsets (void)
 	{
 	  int reg = -1;
 
-	  for (i = 4; i <= (TARGET_THUMB1 ? LAST_LO_REGNUM : 11); i++)
+	  /* If it is safe to use r3, then do so.  This sometimes 
+	     generates better code on Thumb-2 by avoiding the need to
+	     use 32-bit push/pop instructions.  */
+	  if (!crtl->tail_call_emit
+	      && arm_size_return_regs () <= 12)
 	    {
-	      if ((offsets->saved_regs_mask & (1 << i)) == 0)
-		{
-		  reg = i;
-		  break;
-		}
-	    }
-
-	  if (reg == -1 && arm_size_return_regs () <= 12
-	      && !crtl->tail_call_emit)
-	    {
-	      /* Push/pop an argument register (r3) if all callee saved
-	         registers are already being pushed.  */
 	      reg = 3;
 	    }
+	  else
+	    for (i = 4; i <= (TARGET_THUMB1 ? LAST_LO_REGNUM : 11); i++)
+	      {
+		if ((offsets->saved_regs_mask & (1 << i)) == 0)
+		  {
+		    reg = i;
+		    break;
+		  }
+	      }
 
 	  if (reg != -1)
 	    {
@@ -12937,6 +14069,24 @@ arm_compute_initial_elimination_offset (unsigned int from, unsigned int to)
     }
 }
 
+/* Given FROM and TO register numbers, say whether this elimination is
+   allowed.  Frame pointer elimination is automatically handled.
+
+   All eliminations are permissible.  Note that ARG_POINTER_REGNUM and
+   HARD_FRAME_POINTER_REGNUM are in fact the same thing.  If we need a frame
+   pointer, we must eliminate FRAME_POINTER_REGNUM into
+   HARD_FRAME_POINTER_REGNUM and not into STACK_POINTER_REGNUM or
+   ARG_POINTER_REGNUM.  */
+
+bool
+arm_can_eliminate (const int from, const int to)
+{
+  return ((to == FRAME_POINTER_REGNUM && from == ARG_POINTER_REGNUM) ? false :
+          (to == STACK_POINTER_REGNUM && frame_pointer_needed) ? false :
+          (to == ARM_HARD_FRAME_POINTER_REGNUM && TARGET_THUMB) ? false :
+          (to == THUMB_HARD_FRAME_POINTER_REGNUM && TARGET_ARM) ? false :
+           true);
+}
 
 /* Emit RTL to save coprocessor registers on function entry.  Returns the
    number of bytes pushed.  */
@@ -13921,6 +15071,31 @@ arm_print_operand (FILE *stream, rtx x, int code)
       }
       return;
 
+    /* Register specifier for vld1.16/vst1.16.  Translate the S register
+       number into a D register number and element index.  */
+    case 'z':
+      {
+        int mode = GET_MODE (x);
+        int regno;
+
+        if (GET_MODE_SIZE (mode) != 2 || GET_CODE (x) != REG)
+          {
+	    output_operand_lossage ("invalid operand for code '%c'", code);
+	    return;
+          }
+
+        regno = REGNO (x);
+        if (!VFP_REGNO_OK_FOR_SINGLE (regno))
+          {
+	    output_operand_lossage ("invalid operand for code '%c'", code);
+	    return;
+          }
+
+	regno = regno - FIRST_VFP_REGNUM;
+	fprintf (stream, "d%d[%d]", regno/2, ((regno % 2) ? 2 : 0));
+      }
+      return;
+      
     default:
       if (x == 0)
 	{
@@ -13954,6 +15129,12 @@ arm_print_operand (FILE *stream, rtx x, int code)
 	default:
 	  gcc_assert (GET_CODE (x) != NEG);
 	  fputc ('#', stream);
+	  if (GET_CODE (x) == HIGH)
+	    {
+	      fputs (":lower16:", stream);
+	      x = XEXP (x, 0);
+	    }
+	    
 	  output_addr_const (stream, x);
 	  break;
 	}
@@ -14332,12 +15513,6 @@ arm_final_prescan_insn (rtx insn)
      reversed if it appears to fail.  */
   int reverse = 0;
 
-  /* JUMP_CLOBBERS will be one implies that the conditions if a branch is
-     taken are clobbered, even if the rtl suggests otherwise.  It also
-     means that we have to grub around within the jump expression to find
-     out what the conditions are when the jump isn't taken.  */
-  int jump_clobbers = 0;
-
   /* If we start with a return insn, we only succeed if we find another one.  */
   int seeking_return = 0;
 
@@ -14416,14 +15591,6 @@ arm_final_prescan_insn (rtx insn)
       int then_not_else = TRUE;
       rtx this_insn = start_insn, label = 0;
 
-      /* If the jump cannot be done with one instruction, we cannot
-	 conditionally execute the instruction in the inverse case.  */
-      if (get_attr_conds (insn) == CONDS_JUMP_CLOB)
-	{
-	  jump_clobbers = 1;
-	  return;
-	}
-
       /* Register the insn jumped to.  */
       if (reverse)
         {
@@ -14466,13 +15633,7 @@ arm_final_prescan_insn (rtx insn)
 		 control falls in from somewhere else.  */
 	      if (this_insn == label)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14487,13 +15648,7 @@ arm_final_prescan_insn (rtx insn)
 	      this_insn = next_nonnote_insn (this_insn);
 	      if (this_insn && this_insn == label)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14521,13 +15676,7 @@ arm_final_prescan_insn (rtx insn)
 	      if (this_insn && this_insn == label
 		  && insns_skipped < max_insns_skipped)
 		{
-		  if (jump_clobbers)
-		    {
-		      arm_ccfsm_state = 2;
-		      this_insn = next_nonnote_insn (this_insn);
-		    }
-		  else
-		    arm_ccfsm_state = 1;
+		  arm_ccfsm_state = 1;
 		  succeed = TRUE;
 		}
 	      else
@@ -14633,25 +15782,11 @@ arm_final_prescan_insn (rtx insn)
 	        }
 	      arm_target_insn = this_insn;
 	    }
-	  if (jump_clobbers)
-	    {
-	      gcc_assert (!reverse);
-	      arm_current_cc =
-		  get_arm_condition_code (XEXP (XEXP (XEXP (SET_SRC (body),
-							    0), 0), 1));
-	      if (GET_CODE (XEXP (XEXP (SET_SRC (body), 0), 0)) == AND)
-		arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);
-	      if (GET_CODE (XEXP (SET_SRC (body), 0)) == NE)
-		arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);
-	    }
-	  else
-	    {
-	      /* If REVERSE is true, ARM_CURRENT_CC needs to be inverted from
-		 what it was.  */
-	      if (!reverse)
-		arm_current_cc = get_arm_condition_code (XEXP (SET_SRC (body),
-							       0));
-	    }
+
+	  /* If REVERSE is true, ARM_CURRENT_CC needs to be inverted from
+	     what it was.  */
+	  if (!reverse)
+	    arm_current_cc = get_arm_condition_code (XEXP (SET_SRC (body), 0));
 
 	  if (reverse || then_not_else)
 	    arm_current_cc = ARM_INVERSE_CONDITION_CODE (arm_current_cc);
@@ -14718,6 +15853,12 @@ arm_hard_regno_mode_ok (unsigned int regno, enum machine_mode mode)
       if (mode == DFmode)
 	return VFP_REGNO_OK_FOR_DOUBLE (regno);
 
+      /* VFP registers can hold HFmode values, but there is no point in
+	 putting them there unless we have the NEON extensions for
+	 loading/storing them, too.  */
+      if (mode == HFmode)
+	return TARGET_NEON_FP16 && VFP_REGNO_OK_FOR_SINGLE (regno);
+
       if (TARGET_NEON)
         return (VALID_NEON_DREG_MODE (mode) && VFP_REGNO_OK_FOR_DOUBLE (regno))
                || (VALID_NEON_QREG_MODE (mode)
@@ -14740,13 +15881,13 @@ arm_hard_regno_mode_ok (unsigned int regno, enum machine_mode mode)
 	return VALID_IWMMXT_REG_MODE (mode);
     }
   
-  /* We allow any value to be stored in the general registers.
+  /* We allow almost any value to be stored in the general registers.
      Restrict doubleword quantities to even register pairs so that we can
-     use ldrd.  Do not allow Neon structure opaque modes in general registers;
-     they would use too many.  */
+     use ldrd.  Do not allow very large Neon structure opaque modes in
+     general registers; they would use too many.  */
   if (regno <= LAST_ARM_REGNUM)
     return !(TARGET_LDRD && GET_MODE_SIZE (mode) > 4 && (regno & 1) != 0)
-      && !VALID_NEON_STRUCT_MODE (mode);
+      && ARM_NUM_REGS (mode) <= 4;
 
   if (regno == FRAME_POINTER_REGNUM
       || regno == ARG_POINTER_REGNUM)
@@ -16204,6 +17345,15 @@ arm_init_neon_builtins (void)
 }
 
 static void
+arm_init_fp16_builtins (void)
+{
+  tree fp16_type = make_node (REAL_TYPE);
+  TYPE_PRECISION (fp16_type) = 16;
+  layout_type (fp16_type);
+  (*lang_hooks.types.register_builtin_type) (fp16_type, "__fp16");
+}
+
+static void
 arm_init_builtins (void)
 {
   arm_init_tls_builtins ();
@@ -16213,6 +17363,71 @@ arm_init_builtins (void)
 
   if (TARGET_NEON)
     arm_init_neon_builtins ();
+
+  if (arm_fp16_format)
+    arm_init_fp16_builtins ();
+}
+
+/* Implement TARGET_INVALID_PARAMETER_TYPE.  */
+
+static const char *
+arm_invalid_parameter_type (const_tree t)
+{
+  if (SCALAR_FLOAT_TYPE_P (t) && TYPE_PRECISION (t) == 16)
+    return N_("function parameters cannot have __fp16 type");
+  return NULL;
+}
+
+/* Implement TARGET_INVALID_PARAMETER_TYPE.  */
+
+static const char *
+arm_invalid_return_type (const_tree t)
+{
+  if (SCALAR_FLOAT_TYPE_P (t) && TYPE_PRECISION (t) == 16)
+    return N_("functions cannot return __fp16 type");
+  return NULL;
+}
+
+/* Implement TARGET_PROMOTED_TYPE.  */
+
+static tree
+arm_promoted_type (const_tree t)
+{
+  if (SCALAR_FLOAT_TYPE_P (t) && TYPE_PRECISION (t) == 16)
+    return float_type_node;
+  return NULL_TREE;
+}
+
+/* Implement TARGET_CONVERT_TO_TYPE.
+   Specifically, this hook implements the peculiarity of the ARM
+   half-precision floating-point C semantics that requires conversions between
+   __fp16 to or from double to do an intermediate conversion to float.  */
+
+static tree
+arm_convert_to_type (tree type, tree expr)
+{
+  tree fromtype = TREE_TYPE (expr);
+  if (!SCALAR_FLOAT_TYPE_P (fromtype) || !SCALAR_FLOAT_TYPE_P (type))
+    return NULL_TREE;
+  if ((TYPE_PRECISION (fromtype) == 16 && TYPE_PRECISION (type) > 32)
+      || (TYPE_PRECISION (type) == 16 && TYPE_PRECISION (fromtype) > 32))
+    return convert (type, convert (float_type_node, expr));
+  return NULL_TREE;
+}
+
+/* Implement TARGET_SCALAR_MODE_SUPPORTED_P.
+   This simply adds HFmode as a supported mode; even though we don't
+   implement arithmetic on this type directly, it's supported by
+   optabs conversions, much the way the double-word arithmetic is
+   special-cased in the default hook.  */
+
+static bool
+arm_scalar_mode_supported_p (enum machine_mode mode)
+{
+  if (mode == HFmode)
+    return (arm_fp16_format != ARM_FP16_FORMAT_NONE);
+  else
+    return default_scalar_mode_supported_p (mode);
 }
 
 /* Errors in the source file can cause expand_expr to return const0_rtx
@@ -16984,7 +18199,7 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
 
   if (push && pushed_words && dwarf2out_do_frame ())
     {
-      char *l = dwarf2out_cfi_label ();
+      char *l = dwarf2out_cfi_label (false);
       int pushed_mask = real_regs;
 
       *cfa_offset += pushed_words * 4;
@@ -17292,6 +18507,7 @@ thumb_shiftable_const (unsigned HOST_WIDE_INT val)
   unsigned HOST_WIDE_INT mask = 0xff;
   int i;
 
+  val = val & (unsigned HOST_WIDE_INT)0xffffffffu;
   if (val == 0) /* XXX */
     return 0;
 
@@ -17880,7 +19096,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 	 the stack pointer.  */
       if (dwarf2out_do_frame ())
 	{
-	  char *l = dwarf2out_cfi_label ();
+	  char *l = dwarf2out_cfi_label (false);
 
 	  cfa_offset = cfa_offset + crtl->args.pretend_args_size;
 	  dwarf2out_def_cfa (l, SP_REGNUM, cfa_offset);
@@ -17929,7 +19145,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 
       if (dwarf2out_do_frame ())
 	{
-	  char *l = dwarf2out_cfi_label ();
+	  char *l = dwarf2out_cfi_label (false);
 
 	  cfa_offset = cfa_offset + 16;
 	  dwarf2out_def_cfa (l, SP_REGNUM, cfa_offset);
@@ -18408,6 +19624,10 @@ arm_file_start (void)
 	      fpu_name = "neon";
 	      set_float_abi_attributes = 1;
 	      break;
+	    case FPUTYPE_NEON_FP16:
+	      fpu_name = "neon-fp16";
+	      set_float_abi_attributes = 1;
+	      break;
 	    default:
 	      abort();
 	    }
@@ -18460,6 +19680,11 @@ arm_file_start (void)
       else
 	val = 6;
       asm_fprintf (asm_out_file, "\t.eabi_attribute 30, %d\n", val);
+
+      /* Tag_ABI_FP_16bit_format.  */
+      if (arm_fp16_format)
+	asm_fprintf (asm_out_file, "\t.eabi_attribute 38, %d\n",
+		     (int)arm_fp16_format);
 
       if (arm_lang_output_object_attributes_hook)
 	arm_lang_output_object_attributes_hook();
@@ -18690,6 +19915,23 @@ arm_emit_vector_const (FILE *file, rtx x)
   return 1;
 }
 
+/* Emit a fp16 constant appropriately padded to occupy a 4-byte word.
+   HFmode constant pool entries are actually loaded with ldr.  */
+void
+arm_emit_fp16_const (rtx c)
+{
+  REAL_VALUE_TYPE r;
+  long bits;
+
+  REAL_VALUE_FROM_CONST_DOUBLE (r, c);
+  bits = real_to_target (NULL, &r, HFmode);
+  if (WORDS_BIG_ENDIAN)
+    assemble_zeros (2);
+  assemble_integer (GEN_INT (bits), 2, BITS_PER_WORD, 1);
+  if (!WORDS_BIG_ENDIAN)
+    assemble_zeros (2);
+}
+
 const char *
 arm_output_load_gr (rtx *operands)
 {
@@ -18727,19 +19969,24 @@ arm_output_load_gr (rtx *operands)
    that way.  */
 
 static void
-arm_setup_incoming_varargs (CUMULATIVE_ARGS *cum,
+arm_setup_incoming_varargs (CUMULATIVE_ARGS *pcum,
 			    enum machine_mode mode,
 			    tree type,
 			    int *pretend_size,
 			    int second_time ATTRIBUTE_UNUSED)
 {
-  int nregs = cum->nregs;
-  if (nregs & 1
-      && ARM_DOUBLEWORD_ALIGN
-      && arm_needs_doubleword_align (mode, type))
-    nregs++;
-
+  int nregs;
+  
   cfun->machine->uses_anonymous_args = 1;
+  if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
+    {
+      nregs = pcum->aapcs_ncrn;
+      if ((nregs & 1) && arm_needs_doubleword_align (mode, type))
+	nregs++;
+    }
+  else
+    nregs = pcum->nregs;
+  
   if (nregs < NUM_ARG_REGS)
     *pretend_size = (NUM_ARG_REGS - nregs) * UNITS_PER_WORD;
 }
@@ -18873,6 +20120,19 @@ arm_promote_prototypes (const_tree t ATTRIBUTE_UNUSED)
     return !TARGET_AAPCS_BASED;
 }
 
+static enum machine_mode
+arm_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+                           enum machine_mode mode,
+                           int *punsignedp ATTRIBUTE_UNUSED,
+                           const_tree fntype ATTRIBUTE_UNUSED,
+                           int for_return ATTRIBUTE_UNUSED)
+{
+  if (GET_MODE_CLASS (mode) == MODE_INT
+      && GET_MODE_SIZE (mode) < 4)
+    return SImode;
+
+  return mode;
+}
 
 /* AAPCS based ABIs use short enums by default.  */
 
@@ -19123,9 +20383,10 @@ arm_vector_mode_supported_p (enum machine_mode mode)
       || mode == V16QImode || mode == V4SFmode || mode == V2DImode))
     return true;
 
-  if ((mode == V2SImode)
-      || (mode == V4HImode)
-      || (mode == V8QImode))
+  if ((TARGET_NEON || TARGET_IWMMXT)
+      && ((mode == V2SImode)
+	  || (mode == V4HImode)
+	  || (mode == V8QImode)))
     return true;
 
   return false;
@@ -19610,6 +20871,32 @@ arm_output_shift(rtx * operands, int set_flags)
   return "";
 }
 
+/* Output a Thumb-1 casesi dispatch sequence.  */
+const char *
+thumb1_output_casesi (rtx *operands)
+{
+  rtx diff_vec = PATTERN (next_real_insn (operands[0]));
+  addr_diff_vec_flags flags;
+
+  gcc_assert (GET_CODE (diff_vec) == ADDR_DIFF_VEC);
+
+  flags = ADDR_DIFF_VEC_FLAGS (diff_vec);
+
+  switch (GET_MODE(diff_vec))
+    {
+    case QImode:
+      return (ADDR_DIFF_VEC_FLAGS (diff_vec).offset_unsigned ? 
+	      "bl\t%___gnu_thumb1_case_uqi" : "bl\t%___gnu_thumb1_case_sqi");
+    case HImode:
+      return (ADDR_DIFF_VEC_FLAGS (diff_vec).offset_unsigned ? 
+	      "bl\t%___gnu_thumb1_case_uhi" : "bl\t%___gnu_thumb1_case_shi");
+    case SImode:
+      return "bl\t%___gnu_thumb1_case_si";
+    default:
+      gcc_unreachable ();
+    }
+}
+
 /* Output a Thumb-2 casesi instruction.  */
 const char *
 thumb2_output_casesi (rtx *operands)
@@ -19719,6 +21006,10 @@ arm_mangle_type (const_tree type)
       return "St9__va_list";
     }
 
+  /* Half-precision float.  */
+  if (TREE_CODE (type) == REAL_TYPE && TYPE_PRECISION (type) == 16)
+    return "Dh";
+
   if (TREE_CODE (type) != VECTOR_TYPE)
     return NULL;
 
@@ -19775,6 +21066,16 @@ arm_optimization_options (int level, int size ATTRIBUTE_UNUSED)
      given on the command line.  */
   if (level > 0)
     flag_section_anchors = 2;
+}
+
+/* Implement TARGET_FRAME_POINTER_REQUIRED.  */
+
+bool
+arm_frame_pointer_required (void)
+{
+  return (cfun->has_nonlocal_label
+          || SUBTARGET_FRAME_POINTER_REQUIRED
+          || (TARGET_ARM && TARGET_APCS_FRAME && ! leaf_function_p ()));
 }
 
 #include "gt-arm.h"

@@ -617,10 +617,6 @@ valid_gimple_rhs_p (tree expr)
 	    return false;
 	  break;
 
-	case EXC_PTR_EXPR:
-	case FILTER_EXPR:
-	  break;
-
 	default:
 	  return false;
 	}
@@ -1170,7 +1166,8 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 
 	      /* Determine what needs to be done to update the SSA form.  */
 	      update_stmt (stmt);
-	      something_changed = true;
+	      if (!is_gimple_debug (stmt))
+		something_changed = true;
 	    }
 
 	  if (dump_file && (dump_flags & TDF_DETAILS))

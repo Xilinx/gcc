@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 
 static void push_eh_cleanup (tree);
 static tree prepare_eh_type (tree);
-static tree build_eh_type_type (tree);
 static tree do_begin_catch (void);
 static int dtor_nothrow (tree);
 static tree do_end_catch (tree);
@@ -54,7 +53,7 @@ static tree wrap_cleanups_r (tree *, int *, void *);
 static int complete_ptr_ref_or_void_ptr_p (tree, tree);
 static bool is_admissible_throw_operand (tree);
 static int can_convert_eh (tree, tree);
-static gimple cp_protect_cleanup_actions (void);
+static tree cp_protect_cleanup_actions (void);
 
 /* Sets up all the global eh stuff that needs to be initialized at the
    start of compilation.  */
@@ -78,29 +77,20 @@ init_exception_processing (void)
   call_unexpected_node
     = push_throw_library_fn (get_identifier ("__cxa_call_unexpected"), tmp);
 
-  eh_personality_libfunc = init_one_libfunc (USING_SJLJ_EXCEPTIONS
-					     ? "__gxx_personality_sj0"
-					     : "__gxx_personality_v0");
-  if (targetm.arm_eabi_unwinder)
-    unwind_resume_libfunc = init_one_libfunc ("__cxa_end_cleanup");
-  else
-    default_init_unwind_resume_libfunc ();
-
-  lang_eh_runtime_type = build_eh_type_type;
   lang_protect_cleanup_actions = &cp_protect_cleanup_actions;
 }
 
 /* Returns an expression to be executed if an unhandled exception is
    propagated out of a cleanup region.  */
 
-static gimple
+static tree
 cp_protect_cleanup_actions (void)
 {
   /* [except.terminate]
 
      When the destruction of an object during stack unwinding exits
      using an exception ... void terminate(); is called.  */
-  return gimple_build_call (terminate_node, 0);
+  return terminate_node;
 }
 
 static tree
@@ -143,7 +133,7 @@ eh_type_info (tree type)
 /* Build the address of a typeinfo decl for use in the runtime
    matching field of the exception model.  */
 
-static tree
+tree
 build_eh_type_type (tree type)
 {
   tree exp = eh_type_info (type);
@@ -159,7 +149,8 @@ build_eh_type_type (tree type)
 tree
 build_exc_ptr (void)
 {
-  return build0 (EXC_PTR_EXPR, ptr_type_node);
+  return build_call_n (built_in_decls [BUILT_IN_EH_POINTER],
+		       1, integer_zero_node);
 }
 
 /* Declare a function NAME, returning RETURN_TYPE, taking a single
@@ -313,7 +304,7 @@ decl_is_java_type (tree decl, int err)
 /* Select the personality routine to be used for exception handling,
    or issue an error if we need two different ones in the same
    translation unit.
-   ??? At present eh_personality_libfunc is set to
+   ??? At present eh_personality_decl is set to
    __gxx_personality_(sj|v)0 in init_exception_processing - should it
    be done here instead?  */
 void
@@ -354,9 +345,7 @@ choose_personality_routine (enum languages lang)
     case lang_java:
       state = chose_java;
       terminate_node = built_in_decls [BUILT_IN_ABORT];
-      eh_personality_libfunc = init_one_libfunc (USING_SJLJ_EXCEPTIONS
-						 ? "__gcj_personality_sj0"
-						 : "__gcj_personality_v0");
+      pragma_java_exceptions = true;
       break;
 
     default:
@@ -450,7 +439,8 @@ expand_start_catch_block (tree decl)
       exp = build_exc_ptr ();
       exp = build1 (NOP_EXPR, build_pointer_type (type), exp);
       exp = build2 (POINTER_PLUS_EXPR, TREE_TYPE (exp), exp,
-		    fold_build1 (NEGATE_EXPR, sizetype,
+		    fold_build1_loc (input_location,
+				 NEGATE_EXPR, sizetype,
 			 	 TYPE_SIZE_UNIT (TREE_TYPE (exp))));
       exp = cp_build_indirect_ref (exp, NULL, tf_warning_or_error);
       initialize_handler_parm (decl, exp);
@@ -521,7 +511,7 @@ expand_end_catch_block (void)
 tree
 begin_eh_spec_block (void)
 {
-  tree r = build_stmt (EH_SPEC_BLOCK, NULL_TREE, NULL_TREE);
+  tree r = build_stmt (input_location, EH_SPEC_BLOCK, NULL_TREE, NULL_TREE);
   add_stmt (r);
   EH_SPEC_STMTS (r) = push_stmt_list ();
   return r;
@@ -998,10 +988,11 @@ check_handlers_1 (tree master, tree_stmt_iterator i)
       tree handler = tsi_stmt (i);
       if (TREE_TYPE (handler) && can_convert_eh (type, TREE_TYPE (handler)))
 	{
-	  warning (0, "%Hexception of type %qT will be caught",
-		   EXPR_LOCUS (handler), TREE_TYPE (handler));
-	  warning (0, "%H   by earlier handler for %qT",
-		   EXPR_LOCUS (master), type);
+	  warning_at (EXPR_LOCATION (handler), 0,
+		      "exception of type %qT will be caught",
+		      TREE_TYPE (handler));
+	  warning_at (EXPR_LOCATION (master), 0,
+		      "   by earlier handler for %qT", type);
 	  break;
 	}
     }
@@ -1030,8 +1021,8 @@ check_handlers (tree handlers)
 	if (tsi_end_p (i))
 	  break;
 	if (TREE_TYPE (handler) == NULL_TREE)
-	  permerror (input_location, "%H%<...%> handler must be the last handler for"
-		     " its try block", EXPR_LOCUS (handler));
+	  permerror (EXPR_LOCATION (handler), "%<...%>"
+		     " handler must be the last handler for its try block");
 	else
 	  check_handlers_1 (handler, i);
       }

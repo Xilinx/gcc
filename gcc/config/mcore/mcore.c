@@ -59,7 +59,7 @@ long   mcore_current_compilation_timestamp = 0;
 
 /* Provides the class number of the smallest class containing
    reg number.  */
-const int regno_reg_class[FIRST_PSEUDO_REGISTER] =
+const enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER] =
 {
   GENERAL_REGS,	ONLYR1_REGS,  LRW_REGS,	    LRW_REGS,
   LRW_REGS,	LRW_REGS,     LRW_REGS,	    LRW_REGS,
@@ -127,7 +127,6 @@ static void       mcore_mark_dllexport          (tree);
 static void       mcore_mark_dllimport          (tree);
 static int        mcore_dllexport_p             (tree);
 static int        mcore_dllimport_p             (tree);
-const struct attribute_spec mcore_attribute_table[];
 static tree       mcore_handle_naked_attribute  (tree *, tree, tree, int, bool *);
 #ifdef OBJECT_FORMAT_ELF
 static void	  mcore_asm_named_section       (const char *,
@@ -146,6 +145,17 @@ static int        mcore_arg_partial_bytes       (CUMULATIVE_ARGS *,
 						 enum machine_mode,
 						 tree, bool);
 
+
+/* MCore specific attributes.  */
+
+static const struct attribute_spec mcore_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  { "dllexport", 0, 0, true,  false, false, NULL },
+  { "dllimport", 0, 0, true,  false, false, NULL },
+  { "naked",     0, 0, true,  false, false, mcore_handle_naked_attribute },
+  { NULL,        0, 0, false, false, false, NULL }
+};
 
 /* Initialize the GCC target structure.  */
 #undef  TARGET_ASM_EXTERNAL_LIBCALL
@@ -182,10 +192,8 @@ static int        mcore_arg_partial_bytes       (CUMULATIVE_ARGS *,
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG	mcore_reorg
 
-#undef  TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS	hook_bool_const_tree_true
-#undef  TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN	hook_bool_const_tree_true
+#undef  TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE	default_promote_function_mode_always_promote
 #undef  TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES	hook_bool_const_tree_true
 
@@ -481,7 +489,7 @@ mcore_rtx_costs (rtx x, int code, int outer_code, int * total,
   switch (code)
     {
     case CONST_INT:
-      *total = mcore_const_costs (x, outer_code);
+      *total = mcore_const_costs (x, (enum rtx_code) outer_code);
       return true;
     case CONST:
     case LABEL_REF:
@@ -2720,14 +2728,15 @@ handle_structs_in_regs (enum machine_mode mode, const_tree type, int reg)
 }
 
 rtx
-mcore_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
+mcore_function_value (const_tree valtype, const_tree func)
 {
   enum machine_mode mode;
   int unsigned_p;
   
   mode = TYPE_MODE (valtype);
 
-  mode = promote_mode (valtype, mode, &unsigned_p, 1);
+  /* Since we promote return types, we must promote the mode here too.  */
+  mode = promote_function_mode (valtype, mode, &unsignedp, func, 1);
   
   return handle_structs_in_regs (mode, valtype, FIRST_RET_REG);
 }
@@ -2990,15 +2999,6 @@ mcore_strip_name_encoding (const char * str)
    dllexport - for exporting a function/variable that will live in a dll
    dllimport - for importing a function/variable from a dll
    naked     - do not create a function prologue/epilogue.  */
-
-const struct attribute_spec mcore_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "dllexport", 0, 0, true,  false, false, NULL },
-  { "dllimport", 0, 0, true,  false, false, NULL },
-  { "naked",     0, 0, true,  false, false, mcore_handle_naked_attribute },
-  { NULL,        0, 0, false, false, false, NULL }
-};
 
 /* Handle a "naked" attribute; arguments as in
    struct attribute_spec.handler.  */

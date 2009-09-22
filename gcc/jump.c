@@ -68,6 +68,7 @@ along with GCC; see the file COPYING3.  If not see
 static void init_label_info (rtx);
 static void mark_all_labels (rtx);
 static void mark_jump_label_1 (rtx, rtx, bool, bool);
+static void mark_jump_label_asm (rtx, rtx);
 static void redirect_exp_1 (rtx *, rtx, rtx, rtx);
 static int invert_exp_1 (rtx, rtx);
 static int returnjump_p_1 (rtx *, void *);
@@ -113,6 +114,8 @@ cleanup_barriers (void)
       if (BARRIER_P (insn))
 	{
 	  prev = prev_nonnote_insn (insn);
+	  if (!prev)
+	    continue;
 	  if (BARRIER_P (prev))
 	    delete_insn (insn);
 	  else if (prev != PREV_INSN (insn))
@@ -389,7 +392,7 @@ reversed_comparison_code_parts (enum rtx_code code, const_rtx arg0,
 
   /* Test for an integer condition, or a floating-point comparison
      in which NaNs can be ignored.  */
-  if (GET_CODE (arg0) == CONST_INT
+  if (CONST_INT_P (arg0)
       || (GET_MODE (arg0) != VOIDmode
 	  && GET_MODE_CLASS (mode) != MODE_CC
 	  && !HONOR_NANS (mode)))
@@ -869,9 +872,24 @@ returnjump_p_1 (rtx *loc, void *data ATTRIBUTE_UNUSED)
 {
   rtx x = *loc;
 
-  return x && (GET_CODE (x) == RETURN
-	       || (GET_CODE (x) == SET && SET_IS_RETURN_P (x)));
+  if (x == NULL)
+    return false;
+
+  switch (GET_CODE (x))
+    {
+    case RETURN:
+    case EH_RETURN:
+      return true;
+
+    case SET:
+      return SET_IS_RETURN_P (x);
+
+    default:
+      return false;
+    }
 }
+
+/* Return TRUE if INSN is a return jump.  */
 
 int
 returnjump_p (rtx insn)
@@ -879,6 +897,22 @@ returnjump_p (rtx insn)
   if (!JUMP_P (insn))
     return 0;
   return for_each_rtx (&PATTERN (insn), returnjump_p_1, NULL);
+}
+
+/* Return true if INSN is a (possibly conditional) return insn.  */
+
+static int
+eh_returnjump_p_1 (rtx *loc, void *data ATTRIBUTE_UNUSED)
+{
+  return *loc && GET_CODE (*loc) == EH_RETURN;
+}
+
+int
+eh_returnjump_p (rtx insn)
+{
+  if (!JUMP_P (insn))
+    return 0;
+  return for_each_rtx (&PATTERN (insn), eh_returnjump_p_1, NULL);
 }
 
 /* Return true if INSN is a jump that only transfers control and
@@ -973,8 +1007,12 @@ sets_cc0_p (const_rtx x)
 void
 mark_jump_label (rtx x, rtx insn, int in_mem)
 {
-  mark_jump_label_1 (x, insn, in_mem != 0,
-		     (insn != NULL && x == PATTERN (insn) && JUMP_P (insn)));
+  rtx asmop = extract_asm_operands (x);
+  if (asmop)
+    mark_jump_label_asm (asmop, insn);
+  else
+    mark_jump_label_1 (x, insn, in_mem != 0,
+		       (insn != NULL && x == PATTERN (insn) && JUMP_P (insn)));
 }
 
 /* Worker function for mark_jump_label.  IN_MEM is TRUE when X occurs
@@ -1112,6 +1150,22 @@ mark_jump_label_1 (rtx x, rtx insn, bool in_mem, bool is_target)
     }
 }
 
+/* Worker function for mark_jump_label.  Handle asm insns specially.
+   In particular, output operands need not be considered so we can
+   avoid re-scanning the replicated asm_operand.  Also, the asm_labels
+   need to be considered targets.  */
+
+static void
+mark_jump_label_asm (rtx asmop, rtx insn)
+{
+  int i;
+
+  for (i = ASM_OPERANDS_INPUT_LENGTH (asmop) - 1; i >= 0; --i)
+    mark_jump_label_1 (ASM_OPERANDS_INPUT (asmop, i), insn, false, false);
+
+  for (i = ASM_OPERANDS_LABEL_LENGTH (asmop) - 1; i >= 0; --i)
+    mark_jump_label_1 (ASM_OPERANDS_LABEL (asmop, i), insn, false, true);
+}
 
 /* Delete insn INSN from the chain of insns and update label ref counts
    and delete insns now unreachable.
@@ -1167,9 +1221,7 @@ delete_related_insns (rtx insn)
 
   /* Likewise if we're deleting a dispatch table.  */
 
-  if (JUMP_P (insn)
-      && (GET_CODE (PATTERN (insn)) == ADDR_VEC
-	  || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC))
+  if (JUMP_TABLE_DATA_P (insn))
     {
       rtx pat = PATTERN (insn);
       int i, diff_vec_p = GET_CODE (pat) == ADDR_DIFF_VEC;
@@ -1203,9 +1255,7 @@ delete_related_insns (rtx insn)
 
   if (was_code_label
       && NEXT_INSN (insn) != 0
-      && JUMP_P (NEXT_INSN (insn))
-      && (GET_CODE (PATTERN (NEXT_INSN (insn))) == ADDR_VEC
-	  || GET_CODE (PATTERN (NEXT_INSN (insn))) == ADDR_DIFF_VEC))
+      && JUMP_TABLE_DATA_P (NEXT_INSN (insn)))
     next = delete_related_insns (NEXT_INSN (insn));
 
   /* If INSN was a label, delete insns following it if now unreachable.  */
@@ -1357,9 +1407,17 @@ int
 redirect_jump_1 (rtx jump, rtx nlabel)
 {
   int ochanges = num_validated_changes ();
-  rtx *loc;
+  rtx *loc, asmop;
 
-  if (GET_CODE (PATTERN (jump)) == PARALLEL)
+  asmop = extract_asm_operands (PATTERN (jump));
+  if (asmop)
+    {
+      if (nlabel == NULL)
+	return 0;
+      gcc_assert (ASM_OPERANDS_LABEL_LENGTH (asmop) == 1);
+      loc = &ASM_OPERANDS_LABEL (asmop, 0);
+    }
+  else if (GET_CODE (PATTERN (jump)) == PARALLEL)
     loc = &XVECEXP (PATTERN (jump), 0, 0);
   else
     loc = &PATTERN (jump);
@@ -1485,7 +1543,8 @@ invert_jump_1 (rtx jump, rtx nlabel)
   int ok;
 
   ochanges = num_validated_changes ();
-  gcc_assert (x);
+  if (x == NULL)
+    return 0;
   ok = invert_exp_1 (SET_SRC (x), jump);
   gcc_assert (ok);
   

@@ -79,6 +79,7 @@ static void gnat_parse_file		(int);
 static void internal_error_function	(const char *, va_list *);
 static tree gnat_type_max_size		(const_tree);
 static void gnat_get_subrange_bounds	(const_tree, tree *, tree *);
+static tree gnat_eh_personality		(void);
 
 /* Definitions for our language-specific hooks.  */
 
@@ -106,8 +107,6 @@ static void gnat_get_subrange_bounds	(const_tree, tree *, tree *);
 #define LANG_HOOKS_WRITE_GLOBALS	gnat_write_global_declarations
 #undef  LANG_HOOKS_GET_ALIAS_SET
 #define LANG_HOOKS_GET_ALIAS_SET	gnat_get_alias_set
-#undef  LANG_HOOKS_MARK_ADDRESSABLE
-#define LANG_HOOKS_MARK_ADDRESSABLE	gnat_mark_addressable
 #undef  LANG_HOOKS_PRINT_DECL
 #define LANG_HOOKS_PRINT_DECL		gnat_print_decl
 #undef  LANG_HOOKS_PRINT_TYPE
@@ -131,9 +130,11 @@ static void gnat_get_subrange_bounds	(const_tree, tree *, tree *);
 #undef  LANG_HOOKS_ATTRIBUTE_TABLE
 #define LANG_HOOKS_ATTRIBUTE_TABLE	gnat_internal_attribute_table
 #undef  LANG_HOOKS_BUILTIN_FUNCTION
-#define LANG_HOOKS_BUILTIN_FUNCTION        gnat_builtin_function
+#define LANG_HOOKS_BUILTIN_FUNCTION	gnat_builtin_function
+#undef  LANG_HOOKS_EH_PERSONALITY
+#define LANG_HOOKS_EH_PERSONALITY	gnat_eh_personality
 
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 /* How much we want of our DWARF extensions.  Some of our dwarf+ extensions
    are incompatible with regular GDB versions, so we must make sure to only
@@ -176,9 +177,6 @@ gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 
   /* Call the front end.  */
   _ada_gnat1drv ();
-
-  /* We always have a single compilation unit in Ada.  */
-  cgraph_finalize_compilation_unit ();
 }
 
 /* Decode all the language specific options that cannot be decoded by GCC.
@@ -272,8 +270,8 @@ gnat_handle_option (size_t scode, const char *arg, int value)
       gnat_argc++;
       break;
 
-    case OPT_gdwarf_:
-      gnat_dwarf_extensions ++;
+    case OPT_gdwarfplus:
+      gnat_dwarf_extensions = 1;
       break;
 
     default:
@@ -436,12 +434,7 @@ gnat_init_gcc_eh (void)
      right exception regions.  */
   using_eh_for_cleanups ();
 
-  eh_personality_libfunc = init_one_libfunc (USING_SJLJ_EXCEPTIONS
-					     ? "__gnat_eh_personality_sj"
-					     : "__gnat_eh_personality");
   lang_eh_type_covers = gnat_eh_type_covers;
-  lang_eh_runtime_type = gnat_return_tree;
-  default_init_unwind_resume_libfunc ();
 
   /* Turn on -fexceptions and -fnon-call-exceptions. The first one triggers
      the generation of the necessary exception runtime tables. The second one
@@ -470,17 +463,17 @@ gnat_print_decl (FILE *file, tree node, int indent)
   switch (TREE_CODE (node))
     {
     case CONST_DECL:
-      print_node (file, "const_corresponding_var",
+      print_node (file, "corresponding var",
 		  DECL_CONST_CORRESPONDING_VAR (node), indent + 4);
       break;
 
     case FIELD_DECL:
-      print_node (file, "original_field", DECL_ORIGINAL_FIELD (node),
+      print_node (file, "original field", DECL_ORIGINAL_FIELD (node),
 		  indent + 4);
       break;
 
     case VAR_DECL:
-      print_node (file, "renamed_object", DECL_RENAMED_OBJECT (node),
+      print_node (file, "renamed object", DECL_RENAMED_OBJECT (node),
 		  indent + 4);
       break;
 
@@ -497,7 +490,7 @@ gnat_print_type (FILE *file, tree node, int indent)
   switch (TREE_CODE (node))
     {
     case FUNCTION_TYPE:
-      print_node (file, "ci_co_list", TYPE_CI_CO_LIST (node), indent + 4);
+      print_node (file, "ci/co list", TYPE_CI_CO_LIST (node), indent + 4);
       break;
 
     case INTEGER_TYPE:
@@ -659,14 +652,8 @@ gnat_type_max_size (const_tree gnu_type)
 static void
 gnat_get_subrange_bounds (const_tree gnu_type, tree *lowval, tree *highval)
 {
-  tree min = TYPE_MIN_VALUE (gnu_type);
-  tree max = TYPE_MAX_VALUE (gnu_type);
-  /* If the bounds aren't constant, use non-representable constant values
-     to get the same effect on debug info without tree sharing issues.  */
-  *lowval
-    = TREE_CONSTANT (min) ? min : build_int_cstu (integer_type_node, -1);
-  *highval
-    = TREE_CONSTANT (max) ? max : build_int_cstu (integer_type_node, -1);
+  *lowval = TYPE_MIN_VALUE (gnu_type);
+  *highval = TYPE_MAX_VALUE (gnu_type);
 }
 
 /* GNU_TYPE is a type. Determine if it should be passed by reference by
@@ -729,10 +716,11 @@ must_pass_by_ref (tree gnu_type)
 void
 enumerate_modes (void (*f) (int, int, int, int, int, int, unsigned int))
 {
-  enum machine_mode i;
+  int iloop;
 
-  for (i = 0; i < NUM_MACHINE_MODES; i++)
+  for (iloop = 0; iloop < NUM_MACHINE_MODES; iloop++)
     {
+      enum machine_mode i = (enum machine_mode) iloop;
       enum machine_mode j;
       bool float_p = 0;
       bool complex_p = 0;
@@ -821,3 +809,19 @@ fp_size_to_prec (int size)
 
   gcc_unreachable ();
 }
+
+static GTY(()) tree gnat_eh_personality_decl;
+
+static tree
+gnat_eh_personality (void)
+{
+  if (!gnat_eh_personality_decl)
+    gnat_eh_personality_decl
+      = build_personality_function (USING_SJLJ_EXCEPTIONS
+				    ? "__gnat_eh_personality_sj"
+				    : "__gnat_eh_personality");
+
+  return gnat_eh_personality_decl;
+}
+
+#include "gt-ada-misc.h"

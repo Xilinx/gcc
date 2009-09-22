@@ -36,12 +36,12 @@ along with GCC; see the file COPYING3.  If not see
 
 static format_length_info ms_printf_length_specs[] =
 {
-  { "h", FMT_LEN_h, STD_C89, NULL, FMT_LEN_none, STD_C89 },
-  { "l", FMT_LEN_l, STD_C89, NULL, FMT_LEN_none, STD_C89 },
-  { "I32", FMT_LEN_l, STD_EXT, NULL, FMT_LEN_none, STD_C89 },
-  { "I64", FMT_LEN_ll, STD_EXT, NULL, FMT_LEN_none, STD_C89 },
-  { "I", FMT_LEN_L, STD_EXT, NULL, FMT_LEN_none, STD_C89 },
-  { NULL, FMT_LEN_none, STD_C89, NULL, FMT_LEN_none, STD_C89 }
+  { "h", FMT_LEN_h, STD_C89, NULL, FMT_LEN_none, STD_C89, 0 },
+  { "l", FMT_LEN_l, STD_C89, NULL, FMT_LEN_none, STD_C89, 0 },
+  { "I32", FMT_LEN_l, STD_EXT, NULL, FMT_LEN_none, STD_C89, 1 },
+  { "I64", FMT_LEN_ll, STD_EXT, NULL, FMT_LEN_none, STD_C89, 1 },
+  { "I", FMT_LEN_L, STD_EXT, NULL, FMT_LEN_none, STD_C89, 0 },
+  { NULL, FMT_LEN_none, STD_C89, NULL, FMT_LEN_none, STD_C89, 0 }
 };
 
 static const format_flag_spec ms_printf_flag_specs[] =
@@ -145,7 +145,7 @@ static const format_char_info ms_time_char_table[] =
   { NULL,		0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
-const format_kind_info mingw_format_attributes[3] =
+EXPORTED_CONST format_kind_info mingw_format_attributes[3] =
 {
   { "ms_printf",   ms_printf_length_specs,  ms_print_char_table, " +#0-'", NULL,
     ms_printf_flag_specs, ms_printf_flag_pairs,
@@ -167,7 +167,7 @@ const format_kind_info mingw_format_attributes[3] =
 };
 
 /* Default overrides for printf, scanf and strftime.  */
-const target_ovr_attr mingw_format_attribute_overrides[4] =
+EXPORTED_CONST target_ovr_attr mingw_format_attribute_overrides[4] =
 {
   { "ms_printf", "printf" },
   { "ms_scanf", "scanf" },

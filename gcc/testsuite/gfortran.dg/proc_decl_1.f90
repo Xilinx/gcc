@@ -1,4 +1,6 @@
 ! { dg-do compile }
+! { dg-options "-std=legacy" }
+!
 ! This tests various error messages for PROCEDURE declarations.
 ! Contributed by Janus Weil <jaydub66@gmail.com>
 
@@ -56,6 +58,8 @@ program prog
 
   procedure ( ) :: r 
   procedure ( up ) :: s  ! { dg-error "must be explicit" }
+
+  procedure(t) :: t  ! { dg-error "may not be used as its own interface" }
 
   call s
 

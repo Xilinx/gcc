@@ -363,7 +363,6 @@ gsi_split_seq_before (gimple_stmt_iterator *i)
 void
 gsi_replace (gimple_stmt_iterator *gsi, gimple stmt, bool update_eh_info)
 {
-  int eh_region;
   gimple orig_stmt = gsi_stmt (*gsi);
 
   if (stmt == orig_stmt)
@@ -375,14 +374,7 @@ gsi_replace (gimple_stmt_iterator *gsi, gimple stmt, bool update_eh_info)
   /* Preserve EH region information from the original statement, if
      requested by the caller.  */
   if (update_eh_info)
-    {
-      eh_region = lookup_stmt_eh_region (orig_stmt);
-      if (eh_region >= 0)
-	{
-	  remove_stmt_from_eh_region (orig_stmt);
-	  add_stmt_to_eh_region (stmt, eh_region);
-	}
-    }
+    maybe_clean_or_replace_eh_stmt (orig_stmt, stmt);
 
   gimple_duplicate_stmt_histograms (cfun, stmt, cfun, orig_stmt);
   gimple_remove_stmt_histograms (cfun, orig_stmt);
@@ -485,7 +477,7 @@ gsi_remove (gimple_stmt_iterator *i, bool remove_permanently)
 
   if (remove_permanently)
     {
-      remove_stmt_from_eh_region (stmt);
+      remove_stmt_from_eh_lp (stmt);
       gimple_remove_stmt_histograms (cfun, stmt);
     }
 
@@ -604,7 +596,7 @@ gsi_insert_seq_on_edge (edge e, gimple_seq seq)
 
    In all cases, the returned *GSI points to the correct location.  The
    return value is true if insertion should be done after the location,
-   or false if it should be done before the location.  If new basic block
+   or false if it should be done before the location.  If a new basic block
    has to be created, it is stored in *NEW_BB.  */
 
 static bool
@@ -623,9 +615,9 @@ gimple_find_edge_insert_loc (edge e, gimple_stmt_iterator *gsi,
      would have to examine the PHIs to prove that none of them used
      the value set by the statement we want to insert on E.  That
      hardly seems worth the effort.  */
-restart:
+ restart:
   if (single_pred_p (dest)
-      && ! phi_nodes (dest)
+      && gimple_seq_empty_p (phi_nodes (dest))
       && dest != EXIT_BLOCK_PTR)
     {
       *gsi = gsi_start_bb (dest);
@@ -667,10 +659,13 @@ restart:
       if (!stmt_ends_bb_p (tmp))
 	return true;
 
-      if (gimple_code (tmp) == GIMPLE_RETURN)
-        {
-	  gsi_prev (gsi);
-	  return true;
+      switch (gimple_code (tmp))
+	{
+	case GIMPLE_RETURN:
+	case GIMPLE_RESX:
+	  return false;
+	default:
+	  break;
         }
     }
 

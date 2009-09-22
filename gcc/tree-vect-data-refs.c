@@ -1138,11 +1138,10 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
   /* While cost model enhancements are expected in the future, the high level
      view of the code at this time is as follows:
 
-     A) If there is a misaligned write then see if peeling to align this write
-        can make all data references satisfy vect_supportable_dr_alignment.
-        If so, update data structures as needed and return true.  Note that
-        at this time vect_supportable_dr_alignment is known to return false
-        for a misaligned write.
+     A) If there is an unsupported misaligned access then see if peeling
+        to align this access can make all data references satisfy
+        vect_supportable_dr_alignment.  If so, update data structures
+        as needed and return true.
 
      B) If peeling wasn't possible and there is a data reference with an
         unknown misalignment that does not satisfy vect_supportable_dr_alignment
@@ -1169,8 +1168,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
        in code size).
 
      The scheme we use FORNOW: peel to force the alignment of the first
-     misaligned store in the loop.
-     Rationale: misaligned stores are not yet supported.
+     unsupported misaligned access in the loop.
 
      TODO: Use a cost model.  */
 
@@ -1178,6 +1176,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
     {
       stmt = DR_STMT (dr);
       stmt_info = vinfo_for_stmt (stmt);
+      supportable_dr_alignment = vect_supportable_dr_alignment (dr);
 
       /* For interleaving, only the alignment of the first access
          matters.  */
@@ -1185,7 +1184,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
           && DR_GROUP_FIRST_DR (stmt_info) != stmt)
         continue;
 
-      if (!DR_IS_READ (dr) && !aligned_access_p (dr))
+      if (!supportable_dr_alignment)
         {
 	  do_peeling = vector_alignment_reachable_p (dr);
 	  if (do_peeling)
@@ -1196,15 +1195,15 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 	}
     }
 
-  vect_versioning_for_alias_required =
-    (VEC_length (ddr_p, LOOP_VINFO_MAY_ALIAS_DDRS (loop_vinfo)) > 0);
+  vect_versioning_for_alias_required 
+    = LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo);
 
   /* Temporarily, if versioning for alias is required, we disable peeling
      until we support peeling and versioning.  Often peeling for alignment
      will require peeling for loop-bound, which in turn requires that we
      know how to adjust the loop ivs after the loop.  */
   if (vect_versioning_for_alias_required
-       || !vect_can_advance_ivs_p (loop_vinfo)
+      || !vect_can_advance_ivs_p (loop_vinfo)
       || !slpeel_can_duplicate_loop_p (loop, single_exit (loop)))
     do_peeling = false;
 
@@ -1366,7 +1365,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
         }
       
       /* Versioning requires at least one misaligned data reference.  */
-      if (VEC_length (gimple, LOOP_VINFO_MAY_MISALIGN_STMTS (loop_vinfo)) == 0)
+      if (!LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo))
         do_versioning = false;
       else if (!do_versioning)
         VEC_truncate (gimple, LOOP_VINFO_MAY_MISALIGN_STMTS (loop_vinfo), 0);
@@ -2356,10 +2355,9 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
       tree data_ref_base = base_name;
       fprintf (vect_dump, "create vector-pointer variable to type: ");
       print_generic_expr (vect_dump, vectype, TDF_SLIM);
-      if (TREE_CODE (data_ref_base) == VAR_DECL)
-        fprintf (vect_dump, "  vectorizing a one dimensional array ref: ");
-      else if (TREE_CODE (data_ref_base) == ARRAY_REF)
-        fprintf (vect_dump, "  vectorizing a multidimensional array ref: ");
+      if (TREE_CODE (data_ref_base) == VAR_DECL 
+          || TREE_CODE (data_ref_base) == ARRAY_REF)
+        fprintf (vect_dump, "  vectorizing an array ref: ");
       else if (TREE_CODE (data_ref_base) == COMPONENT_REF)
         fprintf (vect_dump, "  vectorizing a record based array ref: ");
       else if (TREE_CODE (data_ref_base) == SSA_NAME)
@@ -3051,7 +3049,7 @@ vect_setup_realignment (gimple stmt, gimple_stmt_iterator *gsi,
   msq = make_ssa_name (vec_dest, NULL);
   phi_stmt = create_phi_node (msq, containing_loop->header);
   SSA_NAME_DEF_STMT (msq) = phi_stmt;
-  add_phi_arg (phi_stmt, msq_init, pe);
+  add_phi_arg (phi_stmt, msq_init, pe, UNKNOWN_LOCATION);
 
   return msq;
 }
@@ -3457,6 +3455,9 @@ vect_supportable_dr_alignment (struct data_reference *dr)
 
   if (DR_IS_READ (dr))
     {
+      bool is_packed = false;
+      tree type = (TREE_TYPE (DR_REF (dr)));
+
       if (optab_handler (vec_realign_load_optab, mode)->insn_code != 
 						   	     CODE_FOR_nothing
 	  && (!targetm.vectorize.builtin_mask_for_load
@@ -3470,13 +3471,39 @@ vect_supportable_dr_alignment (struct data_reference *dr)
 	  else
 	    return dr_explicit_realign_optimized;
 	}
-
-      if (optab_handler (movmisalign_optab, mode)->insn_code != 
-							     CODE_FOR_nothing)
+      if (!known_alignment_for_access_p (dr))
+	{
+	  tree ba = DR_BASE_OBJECT (dr);
+	  
+	  if (ba)
+	    is_packed = contains_packed_reference (ba);
+	}
+     
+      if (targetm.vectorize.
+	  builtin_support_vector_misalignment (mode, type,
+					       DR_MISALIGNMENT (dr), is_packed))
 	/* Can't software pipeline the loads, but can at least do them.  */
 	return dr_unaligned_supported;
     }
+  else
+    {
+      bool is_packed = false;
+      tree type = (TREE_TYPE (DR_REF (dr)));
 
+      if (!known_alignment_for_access_p (dr))
+	{
+	  tree ba = DR_BASE_OBJECT (dr);
+	  
+	  if (ba)
+	    is_packed = contains_packed_reference (ba);
+	}
+     
+     if (targetm.vectorize.
+         builtin_support_vector_misalignment (mode, type, 
+					      DR_MISALIGNMENT (dr), is_packed))
+       return dr_unaligned_supported;
+    }
+  
   /* Unsupported.  */
   return dr_unaligned_unsupported;
 }

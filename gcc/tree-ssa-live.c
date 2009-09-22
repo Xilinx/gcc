@@ -435,6 +435,17 @@ remove_unused_scope_block_p (tree scope)
 	 will be output to file.  */
       if (TREE_CODE (*t) == FUNCTION_DECL)
 	unused = false;
+
+      /* If a decl has a value expr, we need to instantiate it
+	 regardless of debug info generation, to avoid codegen
+	 differences in memory overlap tests.  update_equiv_regs() may
+	 indirectly call validate_equiv_mem() to test whether a
+	 SET_DEST overlaps with others, and if the value expr changes
+	 by virtual register instantiation, we may get end up with
+	 different results.  */
+      else if (TREE_CODE (*t) == VAR_DECL && DECL_HAS_VALUE_EXPR_P (*t))
+	unused = false;
+
       /* Remove everything we don't generate debug info for.  */
       else if (DECL_IGNORED_P (*t))
 	{
@@ -525,7 +536,25 @@ remove_unused_scope_block_p (tree scope)
    /* For terse debug info we can eliminate info on unused variables.  */
    else if (debug_info_level == DINFO_LEVEL_NONE
 	    || debug_info_level == DINFO_LEVEL_TERSE)
-     ;
+     {
+       /* Even for -g0/-g1 don't prune outer scopes from artificial
+	  functions, otherwise diagnostics using tree_nonartificial_location
+	  will not be emitted properly.  */
+       if (inlined_function_outer_scope_p (scope))
+	 {
+	   tree ao = scope;
+
+	   while (ao
+		  && TREE_CODE (ao) == BLOCK
+		  && BLOCK_ABSTRACT_ORIGIN (ao) != ao)
+	     ao = BLOCK_ABSTRACT_ORIGIN (ao);
+	   if (ao
+	       && TREE_CODE (ao) == FUNCTION_DECL
+	       && DECL_DECLARED_INLINE_P (ao)
+	       && lookup_attribute ("artificial", DECL_ATTRIBUTES (ao)))
+	     unused = false;
+	 }
+     }
    else if (BLOCK_VARS (scope) || BLOCK_NUM_NONLOCALIZED_VARS (scope))
      unused = false;
    /* See if this block is important for representation of inlined function.
@@ -552,7 +581,9 @@ mark_all_vars_used (tree *expr_p, void *data)
   walk_tree (expr_p, mark_all_vars_used_1, data, NULL);
 }
 
-/* Dump scope blocks.  */
+
+/* Dump scope blocks starting at SCOPE to FILE.  INDENT is the
+   indentation level and FLAGS is as in print_generic_expr.  */
 
 static void
 dump_scope_block (FILE *file, int indent, tree scope, int flags)
@@ -606,10 +637,33 @@ dump_scope_block (FILE *file, int indent, tree scope, int flags)
   fprintf (file, "\n%*s}\n",indent, "");
 }
 
+/* Dump the tree of lexical scopes starting at SCOPE to stderr.  FLAGS
+   is as in print_generic_expr.  */
+
+void
+debug_scope_block (tree scope, int flags)
+{
+  dump_scope_block (stderr, 0, scope, flags);
+}
+
+
+/* Dump the tree of lexical scopes of current_function_decl to FILE.
+   FLAGS is as in print_generic_expr.  */
+
 void
 dump_scope_blocks (FILE *file, int flags)
 {
   dump_scope_block (file, 0, DECL_INITIAL (current_function_decl), flags);
+}
+
+
+/* Dump the tree of lexical scopes of current_function_decl to stderr.
+   FLAGS is as in print_generic_expr.  */
+
+void
+debug_scope_blocks (int flags)
+{
+  dump_scope_blocks (stderr, flags);
 }
 
 /* Remove local variables that are not referenced in the IL.  */
@@ -622,6 +676,12 @@ remove_unused_locals (void)
   referenced_var_iterator rvi;
   var_ann_t ann;
   bitmap global_unused_vars = NULL;
+
+  /* Removing declarations from lexical blocks when not optimizing is
+     not only a waste of time, it actually causes differences in stack
+     layout.  */
+  if (!optimize)
+    return;
 
   mark_scope_block_unused (DECL_INITIAL (current_function_decl));
 
@@ -642,6 +702,9 @@ remove_unused_locals (void)
 	{
 	  gimple stmt = gsi_stmt (gsi);
 	  tree b = gimple_block (stmt);
+
+	  if (is_gimple_debug (stmt))
+	    continue;
 
 	  if (b)
 	    TREE_USED (b) = true;
@@ -685,8 +748,7 @@ remove_unused_locals (void)
 
       if (TREE_CODE (var) != FUNCTION_DECL
 	  && (!(ann = var_ann (var))
-	      || !ann->used)
-	  && (optimize || DECL_ARTIFICIAL (var)))
+	      || !ann->used))
 	{
 	  if (is_global_var (var))
 	    {
@@ -745,8 +807,8 @@ remove_unused_locals (void)
 	&& TREE_CODE (t) != PARM_DECL
 	&& TREE_CODE (t) != RESULT_DECL
 	&& !(ann = var_ann (t))->used
-	&& !TREE_ADDRESSABLE (t)
-	&& (optimize || DECL_ARTIFICIAL (t)))
+	&& !ann->is_heapvar
+	&& !TREE_ADDRESSABLE (t))
       remove_referenced_var (t);
   remove_unused_scope_block_p (DECL_INITIAL (current_function_decl));
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -929,6 +991,8 @@ set_var_live_on_entry (tree ssa_name, tree_live_info_p live)
 		add_block = e->src;
 	    }
 	}
+      else if (is_gimple_debug (use_stmt))
+	continue;
       else
         {
 	  /* If its not defined in this block, its live on entry.  */

@@ -242,6 +242,8 @@ enum optab_index
   OTI_ldexp,
   /* Multiply floating-point number by integral power of radix */
   OTI_scalb,
+  /* Mantissa of a floating-point number */
+  OTI_significand,
   /* Radix-independent exponent */
   OTI_logb,
   OTI_ilogb,
@@ -462,6 +464,7 @@ extern struct optab_d optab_table[OTI_MAX];
 #define expm1_optab (&optab_table[OTI_expm1])
 #define ldexp_optab (&optab_table[OTI_ldexp])
 #define scalb_optab (&optab_table[OTI_scalb])
+#define significand_optab (&optab_table[OTI_significand])
 #define logb_optab (&optab_table[OTI_logb])
 #define ilogb_optab (&optab_table[OTI_ilogb])
 #define log_optab (&optab_table[OTI_log])
@@ -667,7 +670,7 @@ extern enum insn_code sync_lock_release[NUM_MACHINE_MODES];
 
 /* Define functions given in optabs.c.  */
 
-extern rtx expand_widen_pattern_expr (tree exp, rtx op0, rtx op1, rtx wide_op,
+extern rtx expand_widen_pattern_expr (sepops ops, rtx op0, rtx op1, rtx wide_op,
                                       rtx target, int unsignedp);
 
 extern rtx expand_ternary_op (enum machine_mode mode, optab ternary_optab,
@@ -769,16 +772,14 @@ extern bool expand_sfix_optab (rtx, rtx, convert_optab);
 bool expand_vec_cond_expr_p (tree, enum machine_mode);
 
 /* Generate code for VEC_COND_EXPR.  */
-extern rtx expand_vec_cond_expr (tree, rtx);
-
+extern rtx expand_vec_cond_expr (tree, tree, tree, tree, rtx);
 /* Generate code for VEC_LSHIFT_EXPR and VEC_RSHIFT_EXPR.  */
-extern rtx expand_vec_shift_expr (tree, rtx);
+extern rtx expand_vec_shift_expr (sepops, rtx);
 
 #define optab_handler(optab,mode) (&(optab)->handlers[(int) (mode)])
 #define convert_optab_handler(optab,mode,mode2) \
 	(&(optab)->handlers[(int) (mode)][(int) (mode2)])
 
-extern rtx optab_libfunc (optab optab, enum machine_mode mode);
 extern rtx optab_libfunc (optab optab, enum machine_mode mode);
 extern rtx convert_optab_libfunc (convert_optab optab, enum machine_mode mode1,
 			          enum machine_mode mode2);

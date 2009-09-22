@@ -232,6 +232,7 @@ c_common_init_options (unsigned int argc, const char **argv)
   flag_exceptions = c_dialect_cxx ();
   warn_pointer_arith = c_dialect_cxx ();
   warn_write_strings = c_dialect_cxx();
+  flag_warn_unused_result = true;
 
   /* By default, C99-like requirements for complex multiply and divide.  */
   flag_complex_method = 2;
@@ -342,6 +343,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     case OPT_MD:
     case OPT_MMD:
       cpp_opts->deps.style = (code == OPT_MD ? DEPS_SYSTEM: DEPS_USER);
+      cpp_opts->deps.need_preprocessor_output = true;
       deps_file = arg;
       break;
 
@@ -395,6 +397,8 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	warn_strict_overflow = value;
       warn_array_bounds = value;
       warn_volatile_register_var = value;
+      if (warn_jump_misses_init == -1)
+	warn_jump_misses_init = value;
 
       /* Only warn about unknown pragmas that are not in system
 	 headers.  */
@@ -445,6 +449,11 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	 implies -Wenum-compare.  */
       if (warn_enum_compare == -1 && value)
 	warn_enum_compare = value;
+      /* Because C++ always warns about a goto which misses an
+	 initialization, -Wc++-compat turns on -Wgoto-misses-init.  */
+      if (warn_jump_misses_init == -1 && value)
+	warn_jump_misses_init = value;
+      cpp_opts->warn_cxx_operator_names = value;
       break;
 
     case OPT_Wdeprecated:
@@ -1083,6 +1092,8 @@ c_common_post_options (const char **pfilename)
     warn_strict_aliasing = 0;
   if (warn_strict_overflow == -1)
     warn_strict_overflow = 0;
+  if (warn_jump_misses_init == -1)
+    warn_jump_misses_init = 0;
 
   /* -Woverlength-strings is off by default, but is enabled by -pedantic.
      It is never enabled in C++, as the minimum limit is not normative

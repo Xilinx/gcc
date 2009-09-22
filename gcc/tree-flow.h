@@ -63,6 +63,10 @@ struct GTY(()) gimple_df {
   /* The PTA solution for the CALLUSED artificial variable.  */
   struct pt_solution callused;
 
+  /* A map of decls to artificial ssa-names that point to the partition
+     of the decl.  */
+  struct pointer_map_t * GTY((skip(""))) decls_to_pointers;
+
   /* Free list of SSA_NAMEs.  */
   tree free_ssanames;
 
@@ -130,9 +134,9 @@ struct GTY(()) tree_ann_common_d {
   /* Annotation type.  */
   enum tree_ann_type type;
 
-  /* Record EH region number into a statement tree created during RTL
-     expansion (see gimple_to_tree).  */
-  int rn;
+  /* Record EH landing pad number into a statement tree created
+     during RTL expansion (see gimple_to_tree).  */
+  int lp_nr;
 
   /* Pointer to original GIMPLE statement.  Used during RTL expansion
      (see gimple_to_tree).  */
@@ -550,6 +554,7 @@ extern const char *op_symbol_code (enum tree_code);
 /* In tree-dfa.c  */
 extern var_ann_t create_var_ann (tree);
 extern void renumber_gimple_stmt_uids (void);
+extern void renumber_gimple_stmt_uids_in_blocks (basic_block *, int);
 extern tree_ann_common_t create_tree_common_ann (tree);
 extern void dump_dfa_stats (FILE *);
 extern void debug_dfa_stats (void);
@@ -575,7 +580,7 @@ extern void reserve_phi_args_for_new_edge (basic_block);
 extern void add_phi_node_to_bb (gimple phi, basic_block bb);
 extern gimple make_phi_node (tree var, int len);
 extern gimple create_phi_node (tree, basic_block);
-extern void add_phi_arg (gimple, tree, edge);
+extern void add_phi_arg (gimple, tree, edge, source_location);
 extern void remove_phi_args (edge);
 extern void remove_phi_node (gimple_stmt_iterator *, bool);
 extern void remove_phi_nodes (basic_block);
@@ -592,6 +597,7 @@ extern void record_vars (tree);
 extern bool block_may_fallthru (const_tree);
 extern bool gimple_seq_may_fallthru (gimple_seq);
 extern bool gimple_stmt_may_fallthru (gimple);
+extern bool gimple_check_call_args (gimple);
 
 
 /* In tree-ssa.c  */
@@ -600,6 +606,7 @@ extern bool gimple_stmt_may_fallthru (gimple);
 struct GTY(()) _edge_var_map {
   tree result;			/* PHI result.  */
   tree def;			/* PHI arg definition.  */
+  source_location locus;        /* PHI arg location.  */
 };
 typedef struct _edge_var_map edge_var_map;
 
@@ -610,7 +617,7 @@ DEF_VEC_ALLOC_O(edge_var_map, heap);
 typedef VEC(edge_var_map, heap) *edge_var_map_vector;
 
 extern void init_tree_ssa (struct function *);
-extern void redirect_edge_var_map_add (edge, tree, tree);
+extern void redirect_edge_var_map_add (edge, tree, tree, source_location);
 extern void redirect_edge_var_map_clear (edge);
 extern void redirect_edge_var_map_dup (edge, edge);
 extern edge_var_map_vector redirect_edge_var_map_vector (edge);
@@ -629,6 +636,11 @@ typedef bool (*walk_use_def_chains_fn) (tree, gimple, void *);
 
 extern void walk_use_def_chains (tree, walk_use_def_chains_fn, void *, bool);
 
+void propagate_defs_into_debug_stmts (gimple, basic_block,
+				      const gimple_stmt_iterator *);
+void propagate_var_def_into_debug_stmts (tree, basic_block,
+					 const gimple_stmt_iterator *);
+void release_defs_bitset (bitmap toremove);
 
 /* In tree-into-ssa.c  */
 void update_ssa (unsigned);
@@ -729,11 +741,6 @@ struct tree_niter_desc
   enum tree_code cmp;
 };
 
-/* In tree-vectorizer.c */
-unsigned vectorize_loops (void);
-extern bool vect_can_force_dr_alignment_p (const_tree, unsigned int);
-extern tree get_vectype_for_scalar_type (tree);
-
 /* In tree-ssa-phiopt.c */
 bool empty_block_p (basic_block);
 basic_block *blocks_in_phiopt_order (void);
@@ -745,10 +752,9 @@ unsigned int tree_ssa_unswitch_loops (void);
 unsigned int canonicalize_induction_variables (void);
 unsigned int tree_unroll_loops_completely (bool, bool);
 unsigned int tree_ssa_prefetch_arrays (void);
-unsigned int remove_empty_loops (void);
 void tree_ssa_iv_optimize (void);
 unsigned tree_predictive_commoning (void);
-tree canonicalize_loop_ivs (struct loop *, htab_t, tree *);
+tree canonicalize_loop_ivs (struct loop *, tree *);
 bool parallelize_loops (void);
 
 bool loop_only_exit_p (const struct loop *, const_edge);
@@ -801,6 +807,9 @@ bool contains_abnormal_ssa_name_p (tree);
 bool stmt_dominates_stmt_p (gimple, gimple);
 void mark_virtual_ops_for_renaming (gimple);
 
+/* In tree-ssa-dce.c */
+void mark_virtual_phi_result_for_renaming (gimple);
+
 /* In tree-ssa-threadedge.c */
 extern void threadedge_initialize_values (void);
 extern void threadedge_finalize_values (void);
@@ -836,6 +845,9 @@ static inline bool array_ref_contains_indirect_ref (const_tree);
 
 /* In tree-eh.c  */
 extern void make_eh_edges (gimple);
+extern bool make_eh_dispatch_edges (gimple);
+extern edge redirect_eh_edge (edge, basic_block);
+extern void redirect_eh_dispatch_edge (gimple, edge, basic_block);
 extern bool tree_could_trap_p (tree);
 extern bool operation_could_trap_helper_p (enum tree_code, bool, bool, bool,
 					   bool, tree, bool *);
@@ -844,38 +856,28 @@ extern bool stmt_could_throw_p (gimple);
 extern bool tree_could_throw_p (tree);
 extern bool stmt_can_throw_internal (gimple);
 extern bool stmt_can_throw_external (gimple);
-extern void add_stmt_to_eh_region (gimple, int);
-extern bool remove_stmt_from_eh_region (gimple);
+extern void add_stmt_to_eh_lp_fn (struct function *, gimple, int);
+extern void add_stmt_to_eh_lp (gimple, int);
+extern bool remove_stmt_from_eh_lp (gimple);
+extern bool remove_stmt_from_eh_lp_fn (struct function *, gimple);
+extern int lookup_stmt_eh_lp_fn (struct function *, gimple);
+extern int lookup_expr_eh_lp (tree);
+extern int lookup_stmt_eh_lp (gimple);
+extern bool maybe_clean_eh_stmt_fn (struct function *, gimple);
+extern bool maybe_clean_eh_stmt (gimple);
 extern bool maybe_clean_or_replace_eh_stmt (gimple, gimple);
-extern void add_stmt_to_eh_region_fn (struct function *, gimple, int);
-extern bool remove_stmt_from_eh_region_fn (struct function *, gimple);
-extern int lookup_stmt_eh_region_fn (struct function *, gimple);
-extern int lookup_expr_eh_region (tree);
-extern int lookup_stmt_eh_region (gimple);
+extern bool maybe_duplicate_eh_stmt_fn (struct function *, gimple,
+					struct function *, gimple,
+					struct pointer_map_t *, int);
+extern bool maybe_duplicate_eh_stmt (gimple, gimple);
 extern bool verify_eh_edges (gimple);
-
+extern bool verify_eh_dispatch_edge (gimple);
 
 /* In tree-ssa-pre.c  */
 struct pre_expr_d;
 void add_to_value (unsigned int, struct pre_expr_d *);
 void debug_value_expressions (unsigned int);
 void print_value_expressions (FILE *, unsigned int);
-
-
-/* In tree-vn.c  */
-tree make_value_handle (tree);
-void set_value_handle (tree, tree);
-bool expressions_equal_p (tree, tree);
-void sort_vuses (VEC (tree, gc) *);
-void sort_vuses_heap (VEC (tree, heap) *);
-tree vn_lookup_or_add (tree);
-tree vn_lookup_or_add_with_stmt (tree, gimple);
-tree vn_lookup_or_add_with_vuses (tree, VEC (tree, gc) *);
-void vn_add (tree, tree);
-void vn_add_with_vuses (tree, tree, VEC (tree, gc) *);
-tree vn_lookup_with_stmt (tree, gimple);
-tree vn_lookup (tree);
-tree vn_lookup_with_vuses (tree, VEC (tree, gc) *);
 
 /* In tree-ssa-sink.c  */
 bool is_hidden_global_store (gimple);
@@ -905,11 +907,12 @@ tree force_gimple_operand (tree, gimple_seq *, bool, tree);
 tree force_gimple_operand_gsi (gimple_stmt_iterator *, tree, bool, tree,
 			       bool, enum gsi_iterator_update);
 tree gimple_fold_indirect_ref (tree);
-void mark_addressable (tree);
 
 /* In tree-ssa-live.c */
 extern void remove_unused_locals (void);
 extern void dump_scope_blocks (FILE *, int);
+extern void debug_scope_blocks (int);
+extern void debug_scope_block (tree, int);
 
 /* In tree-ssa-address.c  */
 
@@ -935,6 +938,5 @@ unsigned int execute_fixup_cfg (void);
 void swap_tree_operands (gimple, tree *, tree *);
 
 int least_common_multiple (int, int);
-edge redirect_eh_edge (edge e, basic_block new_bb);
 
 #endif /* _TREE_FLOW_H  */

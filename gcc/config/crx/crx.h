@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for CRX.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -291,17 +291,12 @@ enum reg_class
 
 #define FIRST_PARM_OFFSET(FNDECL)  0
 
-#define FRAME_POINTER_REQUIRED (cfun->calls_alloca)
-
 #define ELIMINABLE_REGS \
   { \
     { ARG_POINTER_REGNUM,   STACK_POINTER_REGNUM}, \
     { ARG_POINTER_REGNUM,   FRAME_POINTER_REGNUM}, \
     { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}  \
   }
-
-#define CAN_ELIMINATE(FROM, TO) \
- ((TO) == STACK_POINTER_REGNUM ? ! frame_pointer_needed : 1)
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
   do {									\

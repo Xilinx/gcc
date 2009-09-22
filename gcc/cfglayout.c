@@ -112,9 +112,7 @@ skip_insns_after_block (basic_block bb)
 
 	case CODE_LABEL:
 	  if (NEXT_INSN (insn)
-	      && JUMP_P (NEXT_INSN (insn))
-	      && (GET_CODE (PATTERN (NEXT_INSN (insn))) == ADDR_VEC
-		  || GET_CODE (PATTERN (NEXT_INSN (insn))) == ADDR_DIFF_VEC))
+	      && JUMP_TABLE_DATA_P (NEXT_INSN (insn)))
 	    {
 	      insn = NEXT_INSN (insn);
 	      last_insn = insn;
@@ -240,7 +238,7 @@ int epilogue_locator;
 /* Hold current location information and last location information, so the
    datastructures are built lazily only when some instructions in given
    place are needed.  */
-location_t curr_location, last_location;
+static location_t curr_location, last_location;
 static tree curr_block, last_block;
 static int curr_rtl_loc = -1;
 
@@ -292,12 +290,17 @@ set_curr_insn_source_location (location_t location)
      time locators are not initialized.  */
   if (curr_rtl_loc == -1)
     return;
-  if (location == last_location)
-    return;
   curr_location = location;
 }
 
-/* Set current scope block. */
+/* Get current location.  */
+location_t
+get_curr_insn_source_location (void)
+{
+  return curr_location;
+}
+
+/* Set current scope block.  */
 void
 set_curr_insn_block (tree b)
 {
@@ -307,6 +310,13 @@ set_curr_insn_block (tree b)
     return;
   if (b)
     curr_block = b;
+}
+
+/* Get current scope block.  */
+tree
+get_curr_insn_block (void)
+{
+  return curr_block;
 }
 
 /* Return current insn locator.  */
@@ -585,9 +595,7 @@ reemit_insn_block_notes (void)
       tree this_block;
 
       /* Avoid putting scope notes between jump table and its label.  */
-      if (JUMP_P (insn)
-	  && (GET_CODE (PATTERN (insn)) == ADDR_VEC
-	      || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC))
+      if (JUMP_TABLE_DATA_P (insn))
 	continue;
 
       this_block = insn_scope (insn);
@@ -779,6 +787,17 @@ fixup_reorder_chain (void)
 	{
 	  if (any_condjump_p (bb_end_insn))
 	    {
+	      /* This might happen if the conditional jump has side
+		 effects and could therefore not be optimized away.
+		 Make the basic block to end with a barrier in order
+		 to prevent rtl_verify_flow_info from complaining.  */
+	      if (!e_fall)
+		{
+		  gcc_assert (!onlyjump_p (bb_end_insn));
+		  bb->il.rtl->footer = emit_barrier_after (bb_end_insn);
+		  continue;
+		}
+
 	      /* If the old fallthru is still next, nothing to do.  */
 	      if (bb->aux == e_fall->dest
 		  || e_fall->dest == EXIT_BLOCK_PTR)
@@ -839,6 +858,15 @@ fixup_reorder_chain (void)
 		  update_br_prob_note (bb);
 		  continue;
 		}
+	    }
+	  else if (extract_asm_operands (PATTERN (bb_end_insn)) != NULL)
+	    {
+	      /* If the old fallthru is still next, nothing to do.  */
+	      if (bb->aux == e_fall->dest
+		  || e_fall->dest == EXIT_BLOCK_PTR)
+		continue;
+
+	      /* Otherwise we'll have to use the fallthru fixup below.  */
 	    }
 	  else
 	    {
@@ -1112,7 +1140,7 @@ cfg_layout_can_duplicate_bb_p (const_basic_block bb)
 rtx
 duplicate_insn_chain (rtx from, rtx to)
 {
-  rtx insn, last;
+  rtx insn, last, copy;
 
   /* Avoid updating of boundaries of previous basic block.  The
      note will get removed from insn stream in fixup.  */
@@ -1124,6 +1152,7 @@ duplicate_insn_chain (rtx from, rtx to)
     {
       switch (GET_CODE (insn))
 	{
+	case DEBUG_INSN:
 	case INSN:
 	case CALL_INSN:
 	case JUMP_INSN:
@@ -1133,7 +1162,8 @@ duplicate_insn_chain (rtx from, rtx to)
 	  if (GET_CODE (PATTERN (insn)) == ADDR_VEC
 	      || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC)
 	    break;
-	  emit_copy_of_insn_after (insn, get_last_insn ());
+	  copy = emit_copy_of_insn_after (insn, get_last_insn ());
+          maybe_copy_epilogue_insn (insn, copy);
 	  break;
 
 	case CODE_LABEL:
@@ -1153,23 +1183,18 @@ duplicate_insn_chain (rtx from, rtx to)
 	    case NOTE_INSN_DELETED:
 	    case NOTE_INSN_DELETED_LABEL:
 	      /* No problem to strip these.  */
-	    case NOTE_INSN_EPILOGUE_BEG:
-	      /* Debug code expect these notes to exist just once.
-		 Keep them in the master copy.
-		 ??? It probably makes more sense to duplicate them for each
-		 epilogue copy.  */
 	    case NOTE_INSN_FUNCTION_BEG:
 	      /* There is always just single entry to function.  */
 	    case NOTE_INSN_BASIC_BLOCK:
 	      break;
 
+	    case NOTE_INSN_EPILOGUE_BEG:
 	    case NOTE_INSN_SWITCH_TEXT_SECTIONS:
 	      emit_note_copy (insn);
 	      break;
 
 	    default:
-	      /* All other notes should have already been eliminated.
-	       */
+	      /* All other notes should have already been eliminated.  */
 	      gcc_unreachable ();
 	    }
 	  break;

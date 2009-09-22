@@ -326,22 +326,11 @@ process_assignment (gimple stmt, gimple_stmt_iterator call, tree *m,
   switch (code)
     {
     case PLUS_EXPR:
-      /* There should be no previous addition.  TODO -- it should be fairly
-	 straightforward to lift this restriction -- just allow storing
-	 more complicated expressions in *A, and gimplify it in
-	 adjust_accumulator_values.  */
-      if (*a)
-	return false;
       *a = non_ass_var;
       *ass_var = dest;
       return true;
 
     case MULT_EXPR:
-      /* Similar remark applies here.  Handling multiplication after addition
-	 is just slightly more complicated -- we need to multiply both *A and
-	 *M.  */
-      if (*a || *m)
-	return false;
       *m = non_ass_var;
       *ass_var = dest;
       return true;
@@ -395,7 +384,7 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
       stmt = gsi_stmt (gsi);
 
       /* Ignore labels.  */
-      if (gimple_code (stmt) == GIMPLE_LABEL)
+      if (gimple_code (stmt) == GIMPLE_LABEL || is_gimple_debug (stmt))
 	continue;
 
       /* Check for a call.  */
@@ -484,6 +473,8 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
   agsi = gsi;
   while (1)
     {
+      tree tmp_a = NULL_TREE;
+      tree tmp_m = NULL_TREE;
       gsi_next (&agsi);
 
       while (gsi_end_p (agsi))
@@ -501,12 +492,33 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
       if (gimple_code (stmt) == GIMPLE_RETURN)
 	break;
 
+      if (is_gimple_debug (stmt))
+	continue;
+
       if (gimple_code (stmt) != GIMPLE_ASSIGN)
 	return;
 
       /* This is a gimple assign. */
-      if (! process_assignment (stmt, gsi, &m, &a, &ass_var))
+      if (! process_assignment (stmt, gsi, &tmp_m, &tmp_a, &ass_var))
 	return;
+
+      if (tmp_a)
+	{
+	  if (a)
+	    a = fold_build2 (PLUS_EXPR, TREE_TYPE (tmp_a), a, tmp_a);
+	  else
+	    a = tmp_a;
+	}
+      if (tmp_m)
+	{
+	  if (m)
+	    m = fold_build2 (MULT_EXPR, TREE_TYPE (tmp_m), m, tmp_m);
+	  else
+	    m = tmp_m;
+
+	  if (a)
+	    a = fold_build2 (MULT_EXPR, TREE_TYPE (tmp_m), a, tmp_m);
+	}
     }
 
   /* See if this is a tail call we can handle.  */
@@ -548,7 +560,7 @@ add_successor_phi_arg (edge e, tree var, tree phi_arg)
       break;
 
   gcc_assert (!gsi_end_p (gsi));
-  add_phi_arg (gsi_stmt (gsi), phi_arg, e);
+  add_phi_arg (gsi_stmt (gsi), phi_arg, e, UNKNOWN_LOCATION);
 }
 
 /* Creates a GIMPLE statement which computes the operation specified by
@@ -567,6 +579,9 @@ adjust_return_value_with_ops (enum tree_code code, const char *label,
   gimple stmt = gimple_build_assign_with_ops (code, tmp, op0, op1);
   tree result;
 
+  if (TREE_CODE (ret_type) == COMPLEX_TYPE
+      || TREE_CODE (ret_type) == VECTOR_TYPE)
+    DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
   result = make_ssa_name (tmp, stmt);
   gimple_assign_set_lhs (stmt, result);
@@ -599,8 +614,15 @@ update_accumulator_with_ops (enum tree_code code, tree acc, tree op1,
 static void
 adjust_accumulator_values (gimple_stmt_iterator gsi, tree m, tree a, edge back)
 {
-  tree var, a_acc_arg = a_acc, m_acc_arg = m_acc;
+  tree var, a_acc_arg, m_acc_arg;
 
+  if (m)
+    m = force_gimple_operand_gsi (&gsi, m, true, NULL, true, GSI_SAME_STMT);
+  if (a)
+    a = force_gimple_operand_gsi (&gsi, a, true, NULL, true, GSI_SAME_STMT);
+
+  a_acc_arg = a_acc;
+  m_acc_arg = m_acc;
   if (a)
     {
       if (m_acc)
@@ -770,7 +792,7 @@ eliminate_tail_call (struct tailcall *t)
       phi = gsi_stmt (gsi);
       gcc_assert (param == SSA_NAME_VAR (PHI_RESULT (phi)));
 
-      add_phi_arg (phi, arg, e);
+      add_phi_arg (phi, arg, e, gimple_location (stmt));
       gsi_next (&gsi);
     }
 
@@ -861,10 +883,14 @@ create_tailcall_accumulator (const char *label, basic_block bb, tree init)
   tree tmp = create_tmp_var (ret_type, label);
   gimple phi;
 
+  if (TREE_CODE (ret_type) == COMPLEX_TYPE
+      || TREE_CODE (ret_type) == VECTOR_TYPE)
+    DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
   phi = create_phi_node (tmp, bb);
   /* RET_TYPE can be a float when -ffast-maths is enabled.  */
-  add_phi_arg (phi, fold_convert (ret_type, init), single_pred_edge (bb));
+  add_phi_arg (phi, fold_convert (ret_type, init), single_pred_edge (bb),
+	       UNKNOWN_LOCATION);
   return PHI_RESULT (phi);
 }
  
@@ -927,7 +953,8 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
 		set_default_def (param, new_name);
 		phi = create_phi_node (name, first);
 		SSA_NAME_DEF_STMT (name) = phi;
-		add_phi_arg (phi, new_name, single_pred_edge (first));
+		add_phi_arg (phi, new_name, single_pred_edge (first), 
+			     EXPR_LOCATION (param));
 	      }
 	  phis_constructed = true;
 	}

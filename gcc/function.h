@@ -24,7 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "tree.h"
 #include "hashtab.h"
-#include "varray.h"
+#include "vecprim.h"
 
 /* Stack of pending (incomplete) sequences saved by `start_sequence'.
    Each element describes one pending sequence.
@@ -63,6 +63,10 @@ struct GTY(()) emit_status {
   /* INSN_UID for next insn emitted.
      Reset to 1 for each function compiled.  */
   int x_cur_insn_uid;
+
+  /* INSN_UID for next debug insn emitted.  Only used if
+     --param min-nondebug-insn-uid=<value> is given with nonzero value.  */
+  int x_cur_debug_insn_uid;
 
   /* Location the last line-number NOTE emitted.
      This is used to avoid generating duplicates.  */
@@ -140,11 +144,6 @@ DEF_VEC_ALLOC_P(call_site_record, gc);
 
 /* RTL representation of exception handling.  */
 struct GTY(()) rtl_eh {
-  rtx filter;
-  rtx exc_ptr;
-
-  int built_landing_pads;
-
   rtx ehr_stackadj;
   rtx ehr_handler;
   rtx ehr_label;
@@ -152,11 +151,9 @@ struct GTY(()) rtl_eh {
   rtx sjlj_fc;
   rtx sjlj_exit_after;
 
-  VEC(tree,gc) *ttype_data;
-  varray_type ehspec_data;
-  varray_type action_record_data;
+  VEC(uchar,gc) *action_record_data;
 
-  VEC(call_site_record,gc) *call_site_record;
+  VEC(call_site_record,gc) *call_site_record[2];
 };
 
 #define pending_stack_adjust (crtl->expr.x_pending_stack_adjust)
@@ -524,10 +521,16 @@ struct GTY(()) function {
   /* Properties used by the pass manager.  */
   unsigned int curr_properties;
   unsigned int last_verified;
+
   /* Interprocedural passes scheduled to have their transform functions
      applied next time we execute local pass on them.  We maintain it
      per-function in order to allow IPA passes to introduce new functions.  */
   VEC(ipa_opt_pass,heap) * GTY((skip)) ipa_transforms_to_apply;
+
+  /* Non-null if the function does something that would prevent it from
+     being copied; this applies to both versioning and inlining.  Set to
+     a string describing the reason for failure.  */
+  const char * GTY((skip)) cannot_be_copied_reason;
 
   /* Collected bit flags.  */
 
@@ -539,7 +542,6 @@ struct GTY(()) function {
   /* Number of units of floating point registers that need saving in stdarg
      function.  */
   unsigned int va_list_fpr_size : 8;
-
 
   /* How commonly executed the function is.  Initialized during branch
      probabilities pass.  */
@@ -555,6 +557,11 @@ struct GTY(()) function {
   /* Nonzero if function being compiled receives nonlocal gotos
      from nested functions.  */
   unsigned int has_nonlocal_label : 1;
+
+  /* Nonzero if we've set cannot_be_copied_reason.  I.e. if 
+     (cannot_be_copied_set && !cannot_be_copied_reason), the function
+     can in fact be copied.  */
+  unsigned int cannot_be_copied_set : 1;
 
   /* Nonzero if current function uses stdarg.h or equivalent.  */
   unsigned int stdarg : 1;

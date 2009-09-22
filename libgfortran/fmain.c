@@ -1,3 +1,6 @@
+/* Note that this file is not used as of GFortran 4.5, and exists here
+   only for backwards compatibility.  */
+
 #include "libgfortran.h"
 
 /* The main Fortran program actually is a function, called MAIN__.
@@ -10,7 +13,7 @@ int
 main (int argc, char *argv[])
 {
   /* Set up the runtime environment.  */
-  PREFIX(set_args) (argc, argv);
+  set_args (argc, argv);
 
   /* Call the Fortran main program.  Internally this is a function
      called MAIN__ */

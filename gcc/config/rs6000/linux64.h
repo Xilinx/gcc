@@ -119,7 +119,7 @@ extern int dot_symbols;
 	    error (INVALID_32BIT, "32");			\
 	  if (TARGET_PROFILE_KERNEL)				\
 	    {							\
-	      target_flags &= ~MASK_PROFILE_KERNEL;		\
+	      SET_PROFILE_KERNEL (0);				\
 	      error (INVALID_32BIT, "profile-kernel");		\
 	    }							\
 	}							\
@@ -437,11 +437,11 @@ extern int dot_symbols;
 #undef  SAVE_FP_PREFIX
 #define SAVE_FP_PREFIX (TARGET_64BIT ? "._savef" : "_savefpr_")
 #undef  SAVE_FP_SUFFIX
-#define SAVE_FP_SUFFIX (TARGET_64BIT ? "" : "_l")
+#define SAVE_FP_SUFFIX ""
 #undef  RESTORE_FP_PREFIX
 #define RESTORE_FP_PREFIX (TARGET_64BIT ? "._restf" : "_restfpr_")
 #undef  RESTORE_FP_SUFFIX
-#define RESTORE_FP_SUFFIX (TARGET_64BIT ? "" : "_l")
+#define RESTORE_FP_SUFFIX ""
 
 /* Dwarf2 debugging.  */
 #undef  PREFERRED_DEBUGGING_TYPE

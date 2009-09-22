@@ -86,8 +86,16 @@ static void rtl_make_forwarder_block (edge);
 static int
 can_delete_note_p (const_rtx note)
 {
-  return (NOTE_KIND (note) == NOTE_INSN_DELETED
-	  || NOTE_KIND (note) == NOTE_INSN_BASIC_BLOCK);
+  switch (NOTE_KIND (note))
+    {
+    case NOTE_INSN_DELETED:
+    case NOTE_INSN_BASIC_BLOCK:
+    case NOTE_INSN_EPILOGUE_BEG:
+      return true;
+
+    default:
+      return false;
+    }
 }
 
 /* True if a given label can be deleted.  */
@@ -162,9 +170,7 @@ delete_insn (rtx insn)
       remove_note (insn, note);
     }
 
-  if (JUMP_P (insn)
-      && (GET_CODE (PATTERN (insn)) == ADDR_VEC
-	  || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC))
+  if (JUMP_TABLE_DATA_P (insn))
     {
       rtx pat = PATTERN (insn);
       int diff_vec_p = GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC;
@@ -525,7 +531,26 @@ rtl_split_block (basic_block bb, void *insnp)
       insn = first_insn_after_basic_block_note (bb);
 
       if (insn)
-	insn = PREV_INSN (insn);
+	{
+	  rtx next = insn;
+
+	  insn = PREV_INSN (insn);
+
+	  /* If the block contains only debug insns, insn would have
+	     been NULL in a non-debug compilation, and then we'd end
+	     up emitting a DELETED note.  For -fcompare-debug
+	     stability, emit the note too.  */
+	  if (insn != BB_END (bb)
+	      && DEBUG_INSN_P (next)
+	      && DEBUG_INSN_P (BB_END (bb)))
+	    {
+	      while (next != BB_END (bb) && DEBUG_INSN_P (next))
+		next = NEXT_INSN (next);
+
+	      if (next == BB_END (bb))
+		emit_note_after (NOTE_INSN_DELETED, next);
+	    }
+	}
       else
 	insn = get_last_insn ();
     }
@@ -560,10 +585,14 @@ rtl_merge_blocks (basic_block a, basic_block b)
 {
   rtx b_head = BB_HEAD (b), b_end = BB_END (b), a_end = BB_END (a);
   rtx del_first = NULL_RTX, del_last = NULL_RTX;
+  rtx b_debug_start = b_end, b_debug_end = b_end;
   int b_empty = 0;
 
   if (dump_file)
     fprintf (dump_file, "merging block %d into block %d\n", b->index, a->index);
+
+  while (DEBUG_INSN_P (b_end))
+    b_end = PREV_INSN (b_debug_start = b_end);
 
   /* If there was a CODE_LABEL beginning B, delete it.  */
   if (LABEL_P (b_head))
@@ -630,9 +659,21 @@ rtl_merge_blocks (basic_block a, basic_block b)
   /* Reassociate the insns of B with A.  */
   if (!b_empty)
     {
-      update_bb_for_insn_chain (a_end, b_end, a);
+      update_bb_for_insn_chain (a_end, b_debug_end, a);
 
-      a_end = b_end;
+      a_end = b_debug_end;
+    }
+  else if (b_end != b_debug_end)
+    {
+      /* Move any deleted labels and other notes between the end of A
+	 and the debug insns that make up B after the debug insns,
+	 bringing the debug insns into A while keeping the notes after
+	 the end of A.  */
+      if (NEXT_INSN (a_end) != b_debug_start)
+	reorder_insns_nobb (NEXT_INSN (a_end), PREV_INSN (b_debug_start),
+			    b_debug_end);
+      update_bb_for_insn_chain (b_debug_start, b_debug_end, a);
+      a_end = b_debug_end;
     }
 
   df_bb_delete (b->index);
@@ -913,6 +954,45 @@ patch_jump_insn (rtx insn, rtx old_label, basic_block new_bb)
 						       new_label);
 	  --LABEL_NUSES (old_label);
 	  ++LABEL_NUSES (new_label);
+	}
+    }
+  else if ((tmp = extract_asm_operands (PATTERN (insn))) != NULL)
+    {
+      int i, n = ASM_OPERANDS_LABEL_LENGTH (tmp);
+      rtx new_label, note;
+
+      if (new_bb == EXIT_BLOCK_PTR)
+	return false;
+      new_label = block_label (new_bb);
+
+      for (i = 0; i < n; ++i)
+	{
+	  rtx old_ref = ASM_OPERANDS_LABEL (tmp, i);
+	  gcc_assert (GET_CODE (old_ref) == LABEL_REF);
+	  if (XEXP (old_ref, 0) == old_label)
+	    {
+	      ASM_OPERANDS_LABEL (tmp, i)
+		= gen_rtx_LABEL_REF (Pmode, new_label);
+	      --LABEL_NUSES (old_label);
+	      ++LABEL_NUSES (new_label);
+	    }
+	}
+
+      if (JUMP_LABEL (insn) == old_label)
+	{
+	  JUMP_LABEL (insn) = new_label;
+	  note = find_reg_note (insn, REG_LABEL_TARGET, new_label);
+	  if (note)
+	    remove_note (insn, note);
+	}
+      else
+	{
+	  note = find_reg_note (insn, REG_LABEL_TARGET, old_label);
+	  if (note)
+	    remove_note (insn, note);
+	  if (JUMP_LABEL (insn) != new_label
+	      && !find_reg_note (insn, REG_LABEL_TARGET, new_label))
+	    add_reg_note (insn, REG_LABEL_TARGET, new_label);
 	}
     }
   else
@@ -1706,11 +1786,11 @@ get_last_bb_insn (basic_block bb)
     end = tmp;
 
   /* Include any barriers that may follow the basic block.  */
-  tmp = next_nonnote_insn (end);
+  tmp = next_nonnote_insn_bb (end);
   while (tmp && BARRIER_P (tmp))
     {
       end = tmp;
-      tmp = next_nonnote_insn (end);
+      tmp = next_nonnote_insn_bb (end);
     }
 
   return end;
@@ -1832,10 +1912,14 @@ rtl_verify_flow_info_1 (void)
 	    n_abnormal++;
 	}
 
-      if (n_eh && GET_CODE (PATTERN (BB_END (bb))) != RESX
-	  && !find_reg_note (BB_END (bb), REG_EH_REGION, NULL_RTX))
+      if (n_eh && !find_reg_note (BB_END (bb), REG_EH_REGION, NULL_RTX))
 	{
 	  error ("missing REG_EH_REGION note in the end of bb %i", bb->index);
+	  err = 1;
+	}
+      if (n_eh > 1)
+	{
+	  error ("too many eh edges %i", bb->index);
 	  err = 1;
 	}
       if (n_branch
@@ -1853,7 +1937,8 @@ rtl_verify_flow_info_1 (void)
 	}
       if (n_branch != 1 && any_uncondjump_p (BB_END (bb)))
 	{
-	  error ("wrong amount of branch edges after unconditional jump %i", bb->index);
+	  error ("wrong number of branch edges after unconditional jump %i",
+		 bb->index);
 	  err = 1;
 	}
       if (n_branch != 1 && any_condjump_p (BB_END (bb))
@@ -2038,15 +2123,17 @@ rtl_verify_flow_info (void)
 	  rtx insn;
 
 	  /* Ensure existence of barrier in BB with no fallthru edges.  */
-	  for (insn = BB_END (bb); !insn || !BARRIER_P (insn);
-	       insn = NEXT_INSN (insn))
-	    if (!insn
-		|| NOTE_INSN_BASIC_BLOCK_P (insn))
+	  for (insn = NEXT_INSN (BB_END (bb)); ; insn = NEXT_INSN (insn))
+	    {
+	      if (!insn || NOTE_INSN_BASIC_BLOCK_P (insn))
 		{
 		  error ("missing barrier after block %i", bb->index);
 		  err = 1;
 		  break;
 		}
+	      if (BARRIER_P (insn))
+		break;
+	    }
 	}
       else if (e->src != ENTRY_BLOCK_PTR
 	       && e->dest != EXIT_BLOCK_PTR)
@@ -2114,9 +2201,7 @@ rtl_verify_flow_info (void)
 	    case CODE_LABEL:
 	      /* An addr_vec is placed outside any basic block.  */
 	      if (NEXT_INSN (x)
-		  && JUMP_P (NEXT_INSN (x))
-		  && (GET_CODE (PATTERN (NEXT_INSN (x))) == ADDR_DIFF_VEC
-		      || GET_CODE (PATTERN (NEXT_INSN (x))) == ADDR_VEC))
+		  && JUMP_TABLE_DATA_P (NEXT_INSN (x)))
 		x = NEXT_INSN (x);
 
 	      /* But in any case, non-deletable labels can appear anywhere.  */
@@ -2156,6 +2241,11 @@ purge_dead_edges (basic_block bb)
   bool found;
   edge_iterator ei;
 
+  if (DEBUG_INSN_P (insn) && insn != BB_HEAD (bb))
+    do
+      insn = PREV_INSN (insn);
+    while ((DEBUG_INSN_P (insn) || NOTE_P (insn)) && insn != BB_HEAD (bb));
+
   /* If this instruction cannot trap, remove REG_EH_REGION notes.  */
   if (NONJUMP_INSN_P (insn)
       && (note = find_reg_note (insn, REG_EH_REGION, NULL)))
@@ -2171,39 +2261,33 @@ purge_dead_edges (basic_block bb)
   /* Cleanup abnormal edges caused by exceptions or non-local gotos.  */
   for (ei = ei_start (bb->succs); (e = ei_safe_edge (ei)); )
     {
+      bool remove = false;
+
       /* There are three types of edges we need to handle correctly here: EH
 	 edges, abnormal call EH edges, and abnormal call non-EH edges.  The
 	 latter can appear when nonlocal gotos are used.  */
-      if (e->flags & EDGE_EH)
+      if (e->flags & EDGE_ABNORMAL_CALL)
 	{
-	  if (can_throw_internal (BB_END (bb))
-	      /* If this is a call edge, verify that this is a call insn.  */
-	      && (! (e->flags & EDGE_ABNORMAL_CALL)
-		  || CALL_P (BB_END (bb))))
-	    {
-	      ei_next (&ei);
-	      continue;
-	    }
+	  if (!CALL_P (insn))
+	    remove = true;
+	  else if (can_nonlocal_goto (insn))
+	    ;
+	  else if ((e->flags & EDGE_EH) && can_throw_internal (insn))
+	    ;
+	  else
+	    remove = true;
 	}
-      else if (e->flags & EDGE_ABNORMAL_CALL)
+      else if (e->flags & EDGE_EH)
+	remove = !can_throw_internal (insn);
+
+      if (remove)
 	{
-	  if (CALL_P (BB_END (bb))
-	      && (! (note = find_reg_note (insn, REG_EH_REGION, NULL))
-		  || INTVAL (XEXP (note, 0)) >= 0))
-	    {
-	      ei_next (&ei);
-	      continue;
-	    }
+	  remove_edge (e);
+	  df_set_bb_dirty (bb);
+	  purged = true;
 	}
       else
-	{
-	  ei_next (&ei);
-	  continue;
-	}
-
-      remove_edge (e);
-      df_set_bb_dirty (bb);
-      purged = true;
+	ei_next (&ei);
     }
 
   if (JUMP_P (insn))
@@ -2765,7 +2849,8 @@ rtl_block_ends_with_call_p (basic_block bb)
   while (!CALL_P (insn)
 	 && insn != BB_HEAD (bb)
 	 && (keep_with_call_p (insn)
-	     || NOTE_P (insn)))
+	     || NOTE_P (insn)
+	     || DEBUG_INSN_P (insn)))
     insn = PREV_INSN (insn);
   return (CALL_P (insn));
 }

@@ -52,17 +52,17 @@ OBJC_OBJS = objc/objc-lang.o objc/objc-act.o
 objc_OBJS = $(OBJC_OBJS) cc1obj-checksum.o
 
 cc1obj-dummy$(exeext): $(OBJC_OBJS) $(C_AND_OBJC_OBJS) dummy-checksum.o $(BACKEND) $(LIBDEPS)
-	$(COMPILER) $(ALL_COMPILERFLAGS) $(LDFLAGS) -o $@ \
+	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
 	      $(OBJC_OBJS) $(C_AND_OBJC_OBJS) dummy-checksum.o \
 	      $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
 cc1obj-checksum.c : cc1obj-dummy$(exeext) build/genchecksum$(build_exeext)
 	build/genchecksum$(build_exeext) cc1obj-dummy$(exeext) > $@
 
-cc1obj-checksum.o : cc1obj-checksum.c
+cc1obj-checksum.o : cc1obj-checksum.c $(CONFIG_H) $(SYSTEM_H)
 
 cc1obj$(exeext): $(OBJC_OBJS) $(C_AND_OBJC_OBJS) cc1obj-checksum.o $(BACKEND) $(LIBDEPS)
-	$(COMPILER) $(ALL_COMPILERFLAGS) $(LDFLAGS) -o $@ \
+	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
 	      $(OBJC_OBJS) $(C_AND_OBJC_OBJS) cc1obj-checksum.o \
 	      $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
@@ -79,7 +79,7 @@ objc/objc-act.o : objc/objc-act.c \
    $(EXPR_H) $(TARGET_H) $(C_TREE_H) $(DIAGNOSTIC_H) toplev.h $(FLAGS_H) \
    objc/objc-act.h input.h $(FUNCTION_H) output.h debug.h langhooks.h \
    $(LANGHOOKS_DEF_H) $(HASHTAB_H) $(C_PRAGMA_H) gt-objc-objc-act.h \
-   $(GIMPLE_H)
+   $(GIMPLE_H) c-lang.h
 
 objc.srcextra:
 
@@ -98,6 +98,7 @@ objc.html:
 objc.man:
 objc.srcinfo:
 objc.srcman:
+objc.install-plugin:
 
 objc.tags: force
 	cd $(srcdir)/objc; etags -o TAGS.sub *.c *.h; \

@@ -1,5 +1,5 @@
 /* Prototypes for Blackfin functions used in the md file & elsewhere.
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
 
    This file is part of GNU CC.
 
@@ -21,44 +21,6 @@
    complications.  */
 #ifndef GCC_BFIN_PROTOS_H
 #define GCC_BFIN_PROTOS_H
-
-/* CPU type.  */
-typedef enum bfin_cpu_type
-{
-  BFIN_CPU_UNKNOWN,
-  BFIN_CPU_BF512,
-  BFIN_CPU_BF514,
-  BFIN_CPU_BF516,
-  BFIN_CPU_BF518,
-  BFIN_CPU_BF522,
-  BFIN_CPU_BF523,
-  BFIN_CPU_BF524,
-  BFIN_CPU_BF525,
-  BFIN_CPU_BF526,
-  BFIN_CPU_BF527,
-  BFIN_CPU_BF531,
-  BFIN_CPU_BF532,
-  BFIN_CPU_BF533,
-  BFIN_CPU_BF534,
-  BFIN_CPU_BF536,
-  BFIN_CPU_BF537,
-  BFIN_CPU_BF538,
-  BFIN_CPU_BF539,
-  BFIN_CPU_BF542,
-  BFIN_CPU_BF544,
-  BFIN_CPU_BF547,
-  BFIN_CPU_BF548,
-  BFIN_CPU_BF549,
-  BFIN_CPU_BF561
-} bfin_cpu_t;
-
-/* Value of -mcpu= */
-extern bfin_cpu_t bfin_cpu_type;
-
-/* Value of -msi-revision= */
-extern int bfin_si_revision;
-
-extern unsigned int bfin_workarounds;
 
 /* For the anomaly 05-00-0245 */
 #define WA_SPECULATIVE_LOADS 0x00000001
@@ -97,6 +59,10 @@ extern unsigned int bfin_workarounds;
 #define ENABLE_WA_LOAD_LCREGS \
   (bfin_workarounds & WA_LOAD_LCREGS)
 
+#define WA_05000074 0x00000100
+#define ENABLE_WA_05000074 \
+  (bfin_workarounds & WA_05000074)
+
 #define Mmode enum machine_mode
 
 extern rtx function_arg (CUMULATIVE_ARGS *, Mmode, tree, int);
@@ -112,7 +78,6 @@ extern int log2constp (unsigned HOST_WIDE_INT);
 extern bool bfin_legitimate_constant_p (rtx);
 extern int hard_regno_mode_ok (int, Mmode);
 extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx);	  
-extern int bfin_frame_pointer_required (void);
 extern HOST_WIDE_INT bfin_initial_elimination_offset (int, int);
 
 extern int effective_address_32bit_p (rtx, Mmode);

@@ -481,7 +481,12 @@ struct gcc_target
 
     /* Target builtin that implements vector permute.  */
     tree (* builtin_vec_perm) (tree, tree*);
-} vectorize;
+    /* Return true if the target supports misaligned store/load of a
+       specific factor denoted in the third parameter.  The last parameter
+       is true if the access is defined in a packed struct.  */
+    bool (* builtin_support_vector_misalignment) (enum machine_mode, 
+                                                  const_tree, int, bool);
+  } vectorize;
 
   /* The initial value of target_flags.  */
   int default_target_flags;
@@ -564,7 +569,8 @@ struct gcc_target
      complete expression that implements the operation.  PARAMS really
      has type VEC(tree,gc)*, but we don't want to include tree.h
      here.  */
-  tree (*resolve_overloaded_builtin) (tree decl, void *params);
+  tree (*resolve_overloaded_builtin) (unsigned int /*location_t*/,
+      				      tree decl, void *params);
 
   /* Fold a target-specific builtin.  */
   tree (* fold_builtin) (tree fndecl, tree arglist, bool ignore);
@@ -825,10 +831,17 @@ struct gcc_target
      checks to  handle_dll_attribute ().  */
   bool (* valid_dllimport_attribute_p) (const_tree decl);
 
+  /* If non-zero, align constant anchors in CSE to a multiple of this
+     value.  */
+  unsigned HOST_WIDE_INT const_anchor;
+
   /* Functions relating to calls - argument passing, returns, etc.  */
   struct calls {
-    bool (*promote_function_args) (const_tree fntype);
-    bool (*promote_function_return) (const_tree fntype);
+    enum machine_mode (*promote_function_mode) (const_tree type,
+						enum machine_mode mode,
+						int *punsignedp,
+						const_tree fntype,
+						int for_return);
     bool (*promote_prototypes) (const_tree fntype);
     rtx (*struct_value_rtx) (tree fndecl, int incoming);
     bool (*return_in_memory) (const_tree type, const_tree fndecl);
@@ -883,6 +896,10 @@ struct gcc_target
        specified by FN_DECL_OR_TYPE with a return type of RET_TYPE.  */
     rtx (*function_value) (const_tree ret_type, const_tree fn_decl_or_type,
 			   bool outgoing);
+
+    /* Return the rtx for the result of a libcall of mode MODE,
+       calling the function FN_NAME.  */
+    rtx (*libcall_value) (enum machine_mode, rtx);
 
     /* Return an rtx for the argument pointer incoming to the
        current function.  */
@@ -955,6 +972,13 @@ struct gcc_target
   /* Return the smallest number of different values for which it is best to
      use a jump-table instead of a tree of conditional branches.  */
   unsigned int (* case_values_threshold) (void);
+  
+  /* Retutn true if a function must have and use a frame pointer.  */
+  bool (* frame_pointer_required) (void);
+
+  /* Returns true if the compiler is allowed to try to replace register number
+     from-reg with register number to-reg.  */
+  bool (* can_eliminate) (const int, const int);
 
   /* Functions specific to the C family of frontends.  */
   struct c {
@@ -1108,9 +1132,6 @@ struct gcc_target
   /* True if output_file_directive should be called for main_input_filename
      at the beginning of assembly output.  */
   bool file_start_file_directive;
-
-  /* True if #pragma redefine_extname is to be supported.  */
-  bool handle_pragma_redefine_extname;
 
   /* True if #pragma extern_prefix is to be supported.  */
   bool handle_pragma_extern_prefix;

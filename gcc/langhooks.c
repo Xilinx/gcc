@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "ggc.h"
 #include "diagnostic.h"
+#include "cgraph.h"
 
 /* Do nothing; in many cases the default hook.  */
 
@@ -50,6 +51,13 @@ lhd_do_nothing (void)
 void
 lhd_do_nothing_t (tree ARG_UNUSED (t))
 {
+}
+
+/* Pass through (tree).  */
+tree
+lhd_pass_through_t (tree t)
+{
+  return t;
 }
 
 /* Do nothing (int).  */
@@ -259,19 +267,6 @@ lhd_tree_dump_type_quals (const_tree t)
   return TYPE_QUALS (t);
 }
 
-/* lang_hooks.expr_size: Determine the size of the value of an expression T
-   in a language-specific way.  Returns a tree for the size in bytes.  */
-
-tree
-lhd_expr_size (const_tree exp)
-{
-  if (DECL_P (exp)
-      && DECL_SIZE_UNIT (exp) != 0)
-    return DECL_SIZE_UNIT (exp);
-  else
-    return size_in_bytes (TREE_TYPE (exp));
-}
-
 /* lang_hooks.gimplify_expr re-writes *EXPR_P into GIMPLE form.  */
 
 int
@@ -300,28 +295,25 @@ lhd_decl_ok_for_sibcall (const_tree decl ATTRIBUTE_UNUSED)
   return true;
 }
 
-/* Return the COMDAT group into which DECL should be placed.  */
-
-const char *
-lhd_comdat_group (tree decl)
-{
-  return IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-}
-
 /* lang_hooks.decls.final_write_globals: perform final processing on
    global variables.  */
 void
 write_global_declarations (void)
 {
+  tree globals, decl, *vec;
+  int len, i;
+
+  /* This lang hook is dual-purposed, and also finalizes the
+     compilation unit.  */
+  cgraph_finalize_compilation_unit ();
+
   /* Really define vars that have had only a tentative definition.
      Really output inline functions that must actually be callable
      and have not been output so far.  */
 
-  tree globals = lang_hooks.decls.getdecls ();
-  int len = list_length (globals);
-  tree *vec = XNEWVEC (tree, len);
-  int i;
-  tree decl;
+  globals = lang_hooks.decls.getdecls ();
+  len = list_length (globals);
+  vec = XNEWVEC (tree, len);
 
   /* Process the decls in reverse order--earliest first.
      Put them into VEC from back to front, then take out from front.  */
@@ -432,7 +424,7 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 		  pp_newline (context->printer);
 		  if (s.file != NULL)
 		    {
-		      if (flag_show_column && s.column != 0)
+		      if (flag_show_column)
 			pp_printf (context->printer,
 				   _("    inlined from %qs at %s:%d:%d"),
 				   identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)),
@@ -524,7 +516,7 @@ add_builtin_function_common (const char *name,
 			     tree (*hook) (tree))
 {
   tree   id = get_identifier (name);
-  tree decl = build_decl (FUNCTION_DECL, id, type);
+  tree decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL, id, type);
 
   TREE_PUBLIC (decl)         = 1;
   DECL_EXTERNAL (decl)       = 1;

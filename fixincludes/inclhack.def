@@ -356,6 +356,21 @@ fix = {
 
 
 /*
+ * complex.h on AIX 5 and AIX 6 define _Complex_I and I in terms of __I,
+ * which only is provided by AIX xlc C99.
+ */
+fix = {
+    hackname  = aix_complex;
+    mach      = "*-*-aix*";
+    files     = complex.h;
+    select    = "#define[ \t]_Complex_I[ \t]__I";
+    c_fix     = format;
+    c_fix_arg = "#define _Complex_I (__extension__ 1.0iF)";
+    test_text = "#define _Complex_I	__I\n";
+};
+
+
+/*
  *  pthread.h on AIX 4.3.3 tries to define a macro without whitspace
  *  which violates a requirement of ISO C.
  */
@@ -367,6 +382,106 @@ fix = {
     c_fix_arg = "%1 %2";
     test_text = "#define PTHREAD_MUTEX_INITIALIZER\\\\\n"
                 "{...init stuff...}";
+};
+
+
+/*
+ *  AIX stdint.h fixes.
+ */
+fix = {
+    hackname  = aix_stdint_1;
+    mach      = "*-*-aix*";
+    files     = stdint.h;
+    select    = "#define[ \t]UINT8_MAX[ \t]\\(255U\\)\n"
+		"#define[ \t]UINT16_MAX[ \t]\\(65535U\\)";
+    c_fix     = format;
+    c_fix_arg = "#define UINT8_MAX	(255)\n"
+		"#define UINT16_MAX	(65535)";
+    test_text = "#define UINT8_MAX	(255U)\n"
+		"#define UINT16_MAX	(65535U)";
+};
+
+
+fix = {
+    hackname  = aix_stdint_2;
+    mach      = "*-*-aix*";
+    files     = stdint.h;
+    select    = "#define[ \t]INTPTR_MIN[ \t]INT64_MIN\n"
+		"#define[ \t]INTPTR_MAX[ \t]INT64_MAX\n"
+		"#define[ \t]UINTPTR_MAX[ \t]UINT64_MAX\n"
+		"#else\n"
+		"#define[ \t]INTPTR_MIN[ \t]INT32_MIN\n"
+		"#define[ \t]INTPTR_MAX[ \t]INT32_MAX\n"
+		"#define[ \t]UINTPTR_MAX[ \t]UINT32_MAX";
+    c_fix     = format;
+    c_fix_arg = "#define INTPTR_MIN	(-INTPTR_MAX-1)\n"
+		"#define INTPTR_MAX	9223372036854775807L\n"
+		"#define UINTPTR_MAX	18446744073709551615UL\n"
+		"#else\n"
+		"#define INTPTR_MIN	(-INTPTR_MAX-1)\n"
+		"#define INTPTR_MAX	2147483647L\n"
+		"#define UINTPTR_MAX	4294967295UL";
+    test_text = "#define INTPTR_MIN	INT64_MIN\n"
+		"#define INTPTR_MAX	INT64_MAX\n"
+		"#define UINTPTR_MAX	UINT64_MAX\n"
+		"#else\n"
+		"#define INTPTR_MIN	INT32_MIN\n"
+		"#define INTPTR_MAX	INT32_MAX\n"
+		"#define UINTPTR_MAX	UINT32_MAX";
+};
+
+
+fix = {
+    hackname  = aix_stdint_3;
+    mach      = "*-*-aix*";
+    files     = stdint.h;
+    select    = "#define[ \t]PTRDIFF_MIN[ \t]INT64_MIN\n"
+		"#define[ \t]PTRDIFF_MAX[ \t]INT64_MAX\n"
+		"#else\n"
+		"#define[ \t]PTRDIFF_MIN[ \t]*INT32_MIN\n"
+		"#define[ \t]PTRDIFF_MAX[ \t]*INT32_MAX";
+    c_fix     = format;
+    c_fix_arg = "#define PTRDIFF_MIN	(-9223372036854775807L - 1)\n"
+		"#define PTRDIFF_MAX	9223372036854775807L\n"
+		"#else\n"
+		"#define PTRDIFF_MIN	(-2147483647L - 1)\n"
+		"#define PTRDIFF_MAX	2147483647L";
+    test_text = "#define PTRDIFF_MIN	INT64_MIN\n"
+		"#define PTRDIFF_MAX	INT64_MAX\n"
+		"#else\n"
+		"#define PTRDIFF_MIN     INT32_MIN\n"
+		"#define PTRDIFF_MAX	INT32_MAX";
+};
+
+
+fix = {
+    hackname  = aix_stdint_4;
+    mach      = "*-*-aix*";
+    files     = stdint.h;
+    select    = "#define[ \t]SIZE_MAX[ \t]UINT64_MAX\n"
+		"#else\n"
+		"#define[ \t]SIZE_MAX[ \t]*UINT32_MAX";
+    c_fix     = format;
+    c_fix_arg = "#define SIZE_MAX	18446744073709551615UL\n"
+		"#else\n"
+		"#define SIZE_MAX	4294967295UL";
+    test_text = "#define SIZE_MAX	UINT64_MAX\n"
+		"#else\n"
+		"#define SIZE_MAX        UINT32_MAX";
+};
+
+
+fix = {
+    hackname  = aix_stdint_5;
+    mach      = "*-*-aix*";
+    files     = stdint.h;
+    select    = "#define[ \t]UINT8_C\\(c\\)[ \t]__CONCAT__\\(c,U\\)\n"
+		"#define[ \t]UINT16_C\\(c\\)[ \t]__CONCAT__\\(c,U\\)";
+    c_fix     = format;
+    c_fix_arg = "#define UINT8_C(c)	c\n"
+		"#define UINT16_C(c)	c";
+    test_text = "#define UINT8_C(c)	__CONCAT__(c,U)\n"
+		"#define UINT16_C(c)	__CONCAT__(c,U)";
 };
 
 
@@ -1023,6 +1138,193 @@ fix = {
 
 
 /*
+ * Darwin headers have a stdint.h that defines UINT8_C and UINT16_C to
+ * unsigned constants.
+ */
+fix = {
+    hackname  = darwin_stdint_1;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#define UINT8_C(v)\tv\n#define UINT16_C(v)\tv";
+    select    = "#define UINT8_C\\(v\\)[ \t]+\\(v ## U\\)\n"
+		"#define UINT16_C\\(v\\)[ \t]+\\(v ## U\\)";
+    test_text = "#define UINT8_C(v)   (v ## U)\n"
+		"#define UINT16_C(v)  (v ## U)";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines INTPTR_MIN and INTPTR_MAX
+ * with wrong types.
+ */
+fix = {
+    hackname  = darwin_stdint_2;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define INTPTR_MAX 9223372036854775807L\n"
+		"#define INTPTR_MIN (-INTPTR_MAX-1)\n"
+		"#else\n"
+		"#define INTPTR_MAX 2147483647L\n"
+		"#define INTPTR_MIN (-INTPTR_MAX-1)\n"
+		"#endif";
+    select    = "#if __WORDSIZE == 64\n"
+		"#define INTPTR_MIN[ \t]+INT64_MIN\n"
+		"#define INTPTR_MAX[ \t]+INT64_MAX\n"
+		"#else\n"
+		"#define INTPTR_MIN[ \t]+INT32_MIN\n"
+		"#define INTPTR_MAX[ \t]+INT32_MAX\n"
+		"#endif";
+    test_text = "#if __WORDSIZE == 64\n"
+		"#define INTPTR_MIN        INT64_MIN\n"
+		"#define INTPTR_MAX        INT64_MAX\n"
+		"#else\n"
+		"#define INTPTR_MIN        INT32_MIN\n"
+		"#define INTPTR_MAX        INT32_MAX\n"
+		"#endif";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines UINTPTR_MAX with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_3;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define UINTPTR_MAX 18446744073709551615UL\n"
+		"#else\n"
+		"#define UINTPTR_MAX 4294967295UL\n"
+		"#endif";
+    select    = "#if __WORDSIZE == 64\n"
+		"#define UINTPTR_MAX[ \t]+UINT64_MAX\n"
+		"#else\n"
+		"#define UINTPTR_MAX[ \t]+UINT32_MAX\n"
+		"#endif";
+    test_text = "#if __WORDSIZE == 64\n"
+		"#define UINTPTR_MAX       UINT64_MAX\n"
+		"#else\n"
+		"#define UINTPTR_MAX       UINT32_MAX\n"
+		"#endif";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines SIZE_MAX with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_4;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define SIZE_MAX 18446744073709551615UL\n"
+		"#else\n"
+		"#define SIZE_MAX 4294967295UL\n"
+		"#endif";
+    select    = "#if __WORDSIZE == 64\n"
+		"#define SIZE_MAX[ \t]+UINT64_MAX\n"
+		"#else\n"
+		"#define SIZE_MAX[ \t]+UINT32_MAX\n"
+		"#endif";
+    test_text = "#if __WORDSIZE == 64\n"
+		"#define SIZE_MAX          UINT64_MAX\n"
+		"#else\n"
+		"#define SIZE_MAX          UINT32_MAX\n"
+		"#endif";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines {U,}INTMAX_{MIN,MAX}
+ * with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_5;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define INTMAX_MIN   (-9223372036854775807L - 1)\n"
+		"#define INTMAX_MAX   9223372036854775807L\n"
+		"#define UINTMAX_MAX  18446744073709551615UL\n"
+		"#else\n"
+		"#define INTMAX_MIN   (-9223372036854775807LL - 1)\n"
+		"#define INTMAX_MAX   9223372036854775807LL\n"
+		"#define UINTMAX_MAX  18446744073709551615ULL\n"
+		"#endif";
+    select    = "#define INTMAX_MIN[ \t]+INT64_MIN\n"
+		"#define INTMAX_MAX[ \t]+INT64_MAX\n"
+		"\n"
+		"#define UINTMAX_MAX[ \t]+UINT64_MAX";
+    test_text = "#define INTMAX_MIN        INT64_MIN\n"
+		"#define INTMAX_MAX        INT64_MAX\n"
+		"\n"
+		"#define UINTMAX_MAX       UINT64_MAX";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines {U,}INTMAX_C
+ * with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_6;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define PTRDIFF_MIN (-9223372036854775807L - 1)\n"
+		"#define PTRDIFF_MAX 9223372036854775807L\n"
+		"#else\n"
+		"#define PTRDIFF_MIN (-2147483647 - 1)\n"
+		"#define PTRDIFF_MAX 2147483647\n"
+		"#endif";
+    select    = "#if __WORDSIZE == 64\n"
+		"#define PTRDIFF_MIN[ \t]+INT64_MIN\n"
+		"#define PTRDIFF_MAX[ \t]+INT64_MAX\n"
+		"#else\n"
+		"#define PTRDIFF_MIN[ \t]+INT32_MIN\n"
+		"#define PTRDIFF_MAX[ \t]+INT32_MAX\n"
+		"#endif";
+    test_text = "#if __WORDSIZE == 64\n"
+		"#define PTRDIFF_MIN       INT64_MIN\n"
+		"#define PTRDIFF_MAX       INT64_MAX\n"
+		"#else\n"
+		"#define PTRDIFF_MIN       INT32_MIN\n"
+		"#define PTRDIFF_MAX       INT32_MAX\n"
+		"#endif";
+};
+
+
+/*
+ * Darwin headers have a stdint.h that defines {U,}INTMAX_C
+ * with a wrong type.
+ */
+fix = {
+    hackname  = darwin_stdint_7;
+    mach      = "*-*-darwin*";
+    files     = stdint.h;
+    c_fix     = format;
+    c_fix_arg = "#if __WORDSIZE == 64\n"
+		"#define INTMAX_C(v)  (v ## L)\n"
+		"#define UINTMAX_C(v) (v ## UL)\n"
+		"#else\n"
+		"#define INTMAX_C(v)  (v ## LL)\n"
+		"#define UINTMAX_C(v) (v ## ULL)\n"
+		"#endif";
+    select    = "#define INTMAX_C\\(v\\)[ \t]+\\(v ## LL\\)\n"
+		"#define UINTMAX_C\\(v\\)[ \t]+\\(v ## ULL\\)";
+    test_text = "#define INTMAX_C(v)  (v ## LL)\n"
+		"#define UINTMAX_C(v) (v ## ULL)";
+};
+
+
+/*
  *  Fix <c_asm.h> on Digital UNIX V4.0:
  *  It contains a prototype for a DEC C internal asm() function,
  *  clashing with gcc's asm keyword.  So protect this with __DECC.
@@ -1149,10 +1451,19 @@ fix = {
     hackname  = glibc_c99_inline_2;
     files     = sys/stat.h, '*/sys/stat.h';
     select    = "extern __inline__ int";
-    sed     = "s/extern int \\(stat\\|lstat\\|fstat\\|mknod\\)/"
+    sed     = "s/extern int \\(stat\\)/"
               "#ifdef __GNUC_GNU_INLINE__\\\nextern\\\n#endif\\\n"
               "__inline__ int \\1/";
-    sed     = "s/extern int __REDIRECT\\(_NTH\\|\\) (\\(stat\\|lstat\\|fstat\\)/"
+    sed     = "s/extern int \\([lf]stat\\)/"
+              "#ifdef __GNUC_GNU_INLINE__\\\nextern\\\n#endif\\\n"
+              "__inline__ int \\1/";
+    sed     = "s/extern int \\(mknod\\)/"
+              "#ifdef __GNUC_GNU_INLINE__\\\nextern\\\n#endif\\\n"
+              "__inline__ int \\1/";
+    sed     = "s/extern int __REDIRECT\\(_NTH\\)\\{0,1\\} (\\(stat\\)/"
+              "#ifdef __GNUC_GNU_INLINE__\\\nextern\\\n#endif\\\n"
+              "__inline__ int __REDIRECT\\1 (\\2/";
+    sed     = "s/extern int __REDIRECT\\(_NTH\\)\\{0,1\\} (\\([lf]stat\\)/"
               "#ifdef __GNUC_GNU_INLINE__\\\nextern\\\n#endif\\\n"
               "__inline__ int __REDIRECT\\1 (\\2/";
     sed     = "s/^extern __inline__ int/"
@@ -1207,25 +1518,33 @@ fix = {
     hackname = glibc_mutex_init;
     files    = pthread.h;
     select   = '\{ *\{ *0, *\} *\}';
-    sed      = "/define[ \t]\\+PTHREAD_MUTEX_INITIALIZER[ \t]*\\\\/{\n"
+    sed      = "/define[ \t]\\{1,\\}PTHREAD_MUTEX_INITIALIZER[ \t]*\\\\/{\n"
                "N\ns/{ { 0, } }/{ { 0, 0, 0, 0, 0, 0 } }/\n}";
     sed      = "s/{ \\(0, 0, 0, 0, PTHREAD_MUTEX_"
-               "\\(RECURSIVE\\|ERRORCHECK\\|ADAPTIVE\\)_NP\\) }/{ \\1, 0 }/";
+               "\\(RECURSIVE\\)_NP\\) }/{ \\1, 0 }/";
+    sed      = "s/{ \\(0, 0, 0, 0, PTHREAD_MUTEX_"
+               "\\(ERRORCHECK\\)_NP\\) }/{ \\1, 0 }/";
+    sed      = "s/{ \\(0, 0, 0, 0, PTHREAD_MUTEX_"
+               "\\(ADAPTIVE\\)_NP\\) }/{ \\1, 0 }/";
     sed      = "s/{ \\(0, 0, 0, PTHREAD_MUTEX_"
-               "\\(RECURSIVE\\|ERRORCHECK\\|ADAPTIVE\\)_NP\\) }/{ \\1, 0, 0 }/";
-    sed      = "/define[ \t]\\+PTHREAD_RWLOCK_INITIALIZER[ \t]*\\\\/"
+               "\\(RECURSIVE\\)_NP\\) }/{ \\1, 0, 0 }/";
+    sed      = "s/{ \\(0, 0, 0, PTHREAD_MUTEX_"
+               "\\(ERRORCHECK\\)_NP\\) }/{ \\1, 0, 0 }/";
+    sed      = "s/{ \\(0, 0, 0, PTHREAD_MUTEX_"
+               "\\(ADAPTIVE\\)_NP\\) }/{ \\1, 0, 0 }/";
+    sed      = "/define[ \t]\\{1,\\}PTHREAD_RWLOCK_INITIALIZER[ \t]*\\\\/"
                "N;s/^[ \t]*#[ \t]*"
-               "\\(define[ \t]\\+PTHREAD_RWLOCK_INITIALIZER[ \t]*\\\\\\)\\n"
-               "[ \t]*{ { 0, } }/# if __WORDSIZE == 64\\n"
-               "#  \\1\\n"
-               "  { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } }\\n"
-               "# else\\n"
-               "#  \\1\\n"
-               "  { { 0, 0, 0, 0, 0, 0, 0, 0 } }\\n"
+               "\\(define[ \t]\\{1,\\}PTHREAD_RWLOCK_INITIALIZER[ \t]*\\\\\\)\\n"
+               "[ \t]*{ { 0, } }/# if __WORDSIZE == 64\\\n"
+               "#  \\1\\\n"
+               "  { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } }\\\n"
+               "# else\\\n"
+               "#  \\1\\\n"
+               "  { { 0, 0, 0, 0, 0, 0, 0, 0 } }\\\n"
                "# endif/";
     sed      = "s/{ \\(0, 0, 0, 0, 0, 0, "
                "PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP\\) }/{ \\1, 0 }/";
-    sed      = "/define[ \t]\\+PTHREAD_COND_INITIALIZER/"
+    sed      = "/define[ \t]\\{1,\\}PTHREAD_COND_INITIALIZER/"
                "s/{ { 0, } }/{ { 0, 0, 0, 0, 0, (void *) 0, 0, 0 } }/";
 
     test_text = <<- _EOText_
@@ -1888,43 +2207,44 @@ fix = {
 };
 
 fix = {
-    hackname  = hpux_stdint_least;
+    hackname  = hpux_stdint_least_fast;
     mach      = "*-hp-hpux11.2*";
     files     = stdint.h;
-    select    = "^[ \t]*#[ \t]*define[ \t]*UINT_LEAST64_MAX[ \t]*ULLONG_MAX";
+    select    =
+        "^[ \t]*#[ \t]*define[ \t]+UINT_(LEAST|FAST)64_MAX[ \t]+ULLONG_MAX";
     c_fix     = format;
-    c_fix_arg = "#ifdef __LP64__\n#  define	UINT_LEAST64_MAX	ULONG_MAX\n#else\n%0\n#endif\n";
-    test_text ="#  define       UINT_LEAST64_MAX        ULLONG_MAX\n";
-};
-
-fix = {
-    hackname  = hpux_stdint_fast;
-    mach      = "*-hp-hpux11.2*";
-    files     = stdint.h;
-    select    = "^[ \t]*#[ \t]*define[ \t]*UINT_FAST64_MAX[ \t]*ULLONG_MAX";
-    c_fix     = format;
-    c_fix_arg = "#ifdef __LP64__\n#  define	UINT_FAST64_MAX		ULONG_MAX\n#else\n%0\n#endif\n";
-    test_text ="#  define       UINT_FAST64_MAX        ULLONG_MAX\n";
-};
-
-fix = {
-    hackname  = hpux_inttype_int_least8_t;
-    mach      = "*-hp-hpux11.*";
-    files     = sys/_inttypes.h;
-    select    = "^[ \t]*typedef[ \t]*char[ \t]*int_least8_t.*";
-    c_fix     = format;
-    c_fix_arg = "typedef signed char int_least8_t;";
-    test_text ="typedef char int_least8_t;\n";
+    c-fix-arg = <<- _EOFix_
+	#ifdef __LP64__
+	#  define	UINT_%164_MAX	ULONG_MAX
+	#else
+	%0
+	#endif
+	_EOFix_;
+    test-text = <<- _EOFix_
+	#  define       UINT_FAST64_MAX        ULLONG_MAX
+	#  define       UINT_LEAST64_MAX        ULLONG_MAX
+	_EOFix_;
 };
 
 fix = {
     hackname  = hpux_inttype_int8_t;
-    mach      = "*-hp-hpux11.*";
+    mach      = "*-hp-hpux1[01].*";
     files     = sys/_inttypes.h;
-    select    = "^[ \t]*typedef[ \t]*char[ \t]*int8_t.*";
+    select    = "^[ \t]*typedef[ \t]*char[ \t]*int(_least){0,1}8_t.*";
     c_fix     = format;
-    c_fix_arg = "typedef signed char int8_t;";
-    test_text ="typedef char int8_t;\n";
+    c_fix_arg = "typedef signed char int%18_t;";
+    test_text = "typedef char int_least8_t;\n"
+                "typedef char int8_t;\n";
+};
+
+fix = {
+    hackname  = hpux_imaginary_i;
+    mach      = "ia64-hp-hpux11.*";
+    files     = complex.h;
+    select    = "^[ \t]*#[ \t]*define[ \t]*_Complex_I.*";
+    c_fix     = format;
+    c_fix_arg = "#define _Complex_I (__extension__ 1.0iF)";
+    test_text = "#define _Complex_I (0.f+_Imaginary_I)\n";
 };
 
 /*
@@ -2134,6 +2454,29 @@ fix = {
 
 
 /*
+ * IRIX 6.5 complex.h defines _Complex_I and _Imaginary_I in terms of __I__,
+ * which is a MIPSpro compiler builtin.  Remove _Imaginary_I and imaginary
+ * definitions which are not supported by GCC. 
+ */
+fix = {
+    hackname  = irix_complex;
+    mach      = "mips-sgi-irix6.5";
+    files     = complex.h;
+    select    = "#define[ \t]_Complex_I[ \t]\\(\\(float[ \t]_Complex\\)[ \t]\\(__I__\\)\\)";
+    sed	      = "s/#define[ \t]_Complex_I[ \t]((float[ \t]_Complex)[ \t](__I__))/"
+		"#define _Complex_I (__extension__ 1.0iF)/";
+    sed	      = "/#define[ \t]imaginary[ \t]_Imaginary/d";
+    sed	      = "/#define[ \t]_Imaginary_I/d";
+    sed       = "s/#define[ \t]I[ \t]_Imaginary_I/#define I _Complex_I/";
+    test_text = "#define _Complex_I ((float _Complex) (__I__))\n"
+		"#define imaginary _Imaginary\n"
+		"// #define _Imaginary_I ((float _Imaginary) 1)\n"
+		"#define _Imaginary_I __I__\n"
+		"#define I _Imaginary_I";
+};
+
+
+/*
  *  Non-traditional "const" declaration in Irix's limits.h.
  */
 fix = {
@@ -2223,42 +2566,6 @@ fix = {
 		"extern size_t wcsftime(wchar_t *, "
 		"__SGI_LIBC_NAMESPACE_QUALIFIER size_t, const char *, "
 		"const struct tm *);";
-};
-
-/*
- * Fixing ISC fmod declaration
- */
-fix = {
-    hackname  = isc_fmod;
-    files     = math.h;
-    select    = 'fmod\(double\)';
-    c_fix     = format;
-    c_fix_arg = "fmod(double, double)";
-    test_text = "extern double	fmod(double);";
-};
-
-
-/*
- *  On Interactive Unix 2.2, certain traditional Unix definitions
- *  (notably getc and putc in stdio.h) are omitted if __STDC__ is
- *  defined, not just if _POSIX_SOURCE is defined.  This makes it
- *  impossible to compile any nontrivial program except with -posix.
- */
-fix = {
-    hackname = isc_omits_with_stdc;
-
-    files     = "stdio.h";
-    files     = "math.h";
-    files     = "ctype.h";
-    files     = "sys/limits.h";
-    files     = "sys/fcntl.h";
-    files     = "sys/dirent.h";
-
-    select    = '!defined\(__STDC__\) && !defined\(_POSIX_SOURCE\)';
-    c_fix     = format;
-    c_fix_arg = '!defined(_POSIX_SOURCE)';
-    test_text = "#if !defined(__STDC__) && !defined(_POSIX_SOURCE) /* ? ! */"
-                "\nint foo;\n#endif";
 };
 
 
@@ -2450,20 +2757,6 @@ fix = {
     c_fix     = format;
     c_fix_arg = "%1*/ /*";
     test_text = "/*#include <rpc/auth_des.h> /* skip this */";
-};
-
-
-/*
- * Fixing nested comments in ISC <sys/limits.h>
- */
-fix = {
-    hackname = nested_sys_limits;
-    files  = sys/limits.h;
-    select = CHILD_MAX;
-    sed    = "/CHILD_MAX/s,/\\* Max, Max,";
-    sed    = "/OPEN_MAX/s,/\\* Max, Max,";
-    test_text = "/*\n#define CHILD_MAX 20 /* Max, Max, ... */ /*\n"
-                "#define OPEN_MAX  20 /* Max, Max, ... */\n";
 };
 
 
@@ -2881,38 +3174,26 @@ fix = {
 
 
 /*
- *  On OpenServer and on UnixWare 7, <math.h> uses the native compiler
- *  __builtin_generic. We fix that usage to use the GCC equivalent.
- * It also has a plethora of inline functions that conflict with libstdc++.
+ * Solaris 10+ complex.h defines _Complex_I and _Imaginary_I in terms of
+ * themselves, which are Sun Studio compiler intrinsics.  Remove _Imaginary_I
+ * and imaginary definitions which are not supported by GCC.
  */
 fix = {
-    hackname = sco_math;
-    files    = math.h, '*/math.h';
-    select   = "inline double abs";
-    bypass   = "__GNUG__";
-    sed      = "/#define.*__fp_class(a) \\\\/i\\\n"
-	       "#ifndef __GNUC__\n";
-    sed      =
-"/.*__builtin_generic/a\\\n"
-"#else\\\n"
-"#define __fp_class(a) \\\\\\\n"
-"  __builtin_choose_expr(__builtin_types_compatible_p(typeof(a),long double),\\\\\\\n"
-"   __fpclassifyl(a), \\\\\\\n"
-"    __builtin_choose_expr(__builtin_types_compatible_p(typeof(a), float), \\\\\\\n"
-"      __fpclassifyf(a),__fpclassify(a)))\\\n"
-"#endif";
-
-    sed      = "/extern \"C\\+\\+\"/N;"
-	       "/inline double abs/i\\\n"
-               "#ifndef __GNUC__\n";
-    sed      = "/inline long double trunc/N;"
-	       "/inline long double trunc.*}.*extern \"C\\+\\+\"/a\\\n"
-	       "#endif /* ! __GNUC__ */";
-
-    test_text =
-    "#define __fp_class(a) \\\\\n"
-    " __builtin_generic(a,\"ld:__fplcassifyl;f:__fpclassifyf;:__fpclassify\")\n";
-
+    hackname  = solaris_complex;
+    mach      = "*-*-solaris2.*";
+    files     = complex.h;
+    select    = "#define[ \t]_Complex_I[ \t]_Complex_I";
+    sed	      = "s/#define[ \t]_Complex_I[ \t]_Complex_I/"
+		"#define\t_Complex_I\t(__extension__ 1.0iF)/";
+    sed	      = "/#define[ \t]_Imaginary_I[ \t]_Imaginary_I/d";
+    sed	      = "/#define[ \t]imaginary[ \t]_Imaginary/d";
+    sed       = "s/#define[ \t]I[ \t]\\{1,\\}_Imaginary_I/#define\tI\t\t_Complex_I/";
+    test_text = "#define	_Complex_I	_Complex_I\n"
+    		"#define	complex		_Complex\n"
+		"#define	_Imaginary_I	_Imaginary_I\n"
+		"#define	imaginary	_Imaginary\n"
+		"#undef	I\n"
+		"#define	I		_Imaginary_I";
 };
 
 
@@ -3167,7 +3448,91 @@ fix = {
 
 
 /*
- * Solaris 2.8 has what appears to be some gross workaround for 
+ * Sun Solaris 10 has a version of sys/int_const.h that defines
+ * UINT8_C and UINT16_C to unsigned constants.
+ */
+fix = {
+    hackname  = solaris_int_const;
+    select    = '@\(#\)int_const.h' "[ \t]+1.[0-9]+[ \t]+[0-9/]+ SMI";
+    files     = sys/int_const.h;
+    c_fix     = format;
+    c_fix_arg = "#define\tUINT8_C(c)\t(c)\n"
+                "%1\n"
+                "#define\tUINT16_C(c)\t(c)";
+    c_fix_arg = "^#define[ \t]+UINT8_C\\(c\\)[ \t]+__CONCAT__.*\n"
+                "(/\*.*\*/)\n"
+                "#define[ \t]+UINT16_C\\(c\\)[ \t]+__CONCAT__.*";
+    test_text =
+    '#pragma ident	"@(#)int_const.h	1.5	04/09/28 SMI"'"\n"
+    "#define	UINT8_C(c)	__CONCAT__(c,u)\n"
+    "/* CSTYLED */\n"
+    "#define	UINT16_C(c)	__CONCAT__(c,u)";
+};
+
+
+/*
+ * Sun Solaris 10 has a version of sys/int_limits.h that defines
+ * UINT8_MAX and UINT16_MAX to unsigned constants.
+ */
+fix = {
+    hackname  = solaris_int_limits_1;
+    select    = '@\(#\)int_limits.h' "[ \t]+1.[0-9]+[ \t]+[0-9/]+ SMI";
+    files     = sys/int_limits.h;
+    c_fix     = format;
+    c_fix_arg = "#define\tUINT8_MAX\t(255)\n"
+                "#define\tUINT16_MAX\t(65535)";
+    c_fix_arg = "^#define[ \t]+UINT8_MAX[ \t]+\\(255U\\)\n"
+                "#define[ \t]+UINT16_MAX[ \t]+\\(65535U\\)";
+    test_text =
+    '#pragma ident	"@(#)int_limits.h	1.9	04/09/28 SMI"'"\n"
+    "#define	UINT8_MAX	(255U)\n"
+    "#define	UINT16_MAX	(65535U)";
+};
+
+
+/*
+ * Sun Solaris 10 has a version of sys/int_limits.h that defines
+ * INT_FAST16 limits to wrong values for sys/int_types.h.
+ */
+fix = {
+    hackname  = solaris_int_limits_2;
+    select    = '@\(#\)int_limits.h' "[ \t]+1.[0-9]+[ \t]+[0-9/]+ SMI";
+    files     = sys/int_limits.h;
+    c_fix     = format;
+    c_fix_arg = "#define\t%1_FAST16_%2 %132_%2";
+    c_fix_arg = "^#define[ \t]+(INT|UINT)_FAST16_(MAX|MIN)[ \t](INT|UINT)16.*";
+    test_text =
+    '#pragma ident	"@(#)int_limits.h	1.9	04/09/28 SMI"'"\n"
+    "#define	INT_FAST16_MAX INT16_MAX\n"
+    "#define	UINT_FAST16_MAX UINT16_MAX\n"
+    "#define	INT_FAST16_MIN	INT16_MIN";
+};
+
+
+/*
+ * Sun Solaris up to 9 has a version of sys/int_types.h that forbids use
+ * of Standard C99 64-bit types in 32-bit mode.
+ */
+fix = {
+    hackname  = solaris_int_types;
+    select    = "__STDC__ - 0 == 0";
+    bypass    = "_LONGLONG_TYPE";
+    files     = sys/int_types.h;
+    c_fix     = format;
+    c_fix_arg =
+    "(defined(_STDC_C99) || !defined(_STRICT_STDC) || defined(__GNUC__))";
+    test_text =
+    "#if __STDC__ - 0 == 0 && !defined(_NO_LONGLONG)\n"
+    "typedef	long long		int64_t;\n"
+    "#endif\n\n"
+    "#if defined(_LP64) || (__STDC__ - 0 == 0 && !defined(_NO_LONGLONG))\n"
+    "typedef int64_t			intmax_t;\n"
+    "#endif";
+};
+
+
+/*
+ * Sun Solaris 8 has what appears to be some gross workaround for
  * some old version of their c++ compiler.  G++ doesn't want it
  * either, but doesn't want to be tied to SunPRO version numbers.
  */
@@ -4004,7 +4369,7 @@ fix = {
 
     sed      = "/Widget\told, new;/i\\\n"
                    "#ifdef __cplusplus\\\n"
-                   "\tWidget\told, c_new;\\\n"
+                   "\\\tWidget\told, c_new;\\\n"
                    "#else\n";
 
     sed      = "/Widget\told, new;/a\\\n"
@@ -4013,7 +4378,7 @@ fix = {
     sed      = "s/Widget new,/Widget c_new,/g";
     test_text =
     "struct wedge {\n"
-    "   Widget\told, new; /* fixinc check FAILS ON BSD */\n"
+    "   Widget\told, new;\n"
     "};\nextern Wedged( Widget new, Widget old );";
 };
 

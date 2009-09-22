@@ -26,6 +26,16 @@
 #ifndef GCC_ARM_H
 #define GCC_ARM_H
 
+/* We can't use enum machine_mode inside a generator file because it
+   hasn't been created yet; we shouldn't be using any code that
+   needs the real definition though, so this ought to be safe.  */
+#ifdef GENERATOR_FILE
+#define MACHMODE int
+#else
+#include "insn-modes.h"
+#define MACHMODE enum machine_mode
+#endif
+
 #include "config/vxworks-dummy.h"
 
 /* The architecture define.  */
@@ -215,12 +225,16 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 /* FPU is has the full VFPv3/NEON register file of 32 D registers.  */
 #define TARGET_VFPD32 (arm_fp_model == ARM_FP_MODEL_VFP \
 		       && (arm_fpu_arch == FPUTYPE_VFP3 \
-			   || arm_fpu_arch == FPUTYPE_NEON))
+			   || arm_fpu_arch == FPUTYPE_NEON \
+			   || arm_fpu_arch == FPUTYPE_NEON_FP16))
 
 /* FPU supports VFPv3 instructions.  */
 #define TARGET_VFP3 (arm_fp_model == ARM_FP_MODEL_VFP \
 		     && (arm_fpu_arch == FPUTYPE_VFP3D16 \
 			 || TARGET_VFPD32))
+
+/* FPU supports NEON/VFP half-precision floating-point.  */
+#define TARGET_NEON_FP16 (arm_fpu_arch == FPUTYPE_NEON_FP16)
 
 /* FPU supports Neon instructions.  The setting of this macro gets
    revealed via __ARM_NEON__ so we add extra guards upon TARGET_32BIT
@@ -228,7 +242,8 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
    available.  */
 #define TARGET_NEON (TARGET_32BIT && TARGET_HARD_FLOAT \
 		     && arm_fp_model == ARM_FP_MODEL_VFP \
-		     && arm_fpu_arch == FPUTYPE_NEON)
+		     && (arm_fpu_arch == FPUTYPE_NEON \
+			 || arm_fpu_arch == FPUTYPE_NEON_FP16))
 
 /* "DSP" multiply instructions, eg. SMULxy.  */
 #define TARGET_DSP_MULTIPLY \
@@ -308,7 +323,9 @@ enum fputype
   /* VFPv3.  */
   FPUTYPE_VFP3,
   /* Neon.  */
-  FPUTYPE_NEON
+  FPUTYPE_NEON,
+  /* Neon with half-precision float extensions.  */
+  FPUTYPE_NEON_FP16
 };
 
 /* Recast the floating point class to be the floating point attribute.  */
@@ -332,6 +349,21 @@ extern enum float_abi_type arm_float_abi;
 #ifndef TARGET_DEFAULT_FLOAT_ABI
 #define TARGET_DEFAULT_FLOAT_ABI ARM_FLOAT_ABI_SOFT
 #endif
+
+/* Which __fp16 format to use.
+   The enumeration values correspond to the numbering for the
+   Tag_ABI_FP_16bit_format attribute.
+ */
+enum arm_fp16_format_type
+{
+  ARM_FP16_FORMAT_NONE = 0,
+  ARM_FP16_FORMAT_IEEE = 1,
+  ARM_FP16_FORMAT_ALTERNATIVE = 2
+};
+
+extern enum arm_fp16_format_type arm_fp16_format;
+#define LARGEST_EXPONENT_IS_NORMAL(bits) \
+    ((bits) == 16 && arm_fp16_format == ARM_FP16_FORMAT_ALTERNATIVE)
 
 /* Which ABI to use.  */
 enum arm_abi_type
@@ -478,11 +510,6 @@ extern int arm_arch_hwdiv;
 	UNSIGNEDP = 1;				\
       (MODE) = SImode;				\
     }
-
-#define PROMOTE_FUNCTION_MODE(MODE, UNSIGNEDP, TYPE)	\
-  if (GET_MODE_CLASS (MODE) == MODE_INT			\
-      && GET_MODE_SIZE (MODE) < 4)                      \
-    (MODE) = SImode;
 
 /* Define this if most significant bit is lowest numbered
    in instructions that operate on numbered bit-fields.  */
@@ -876,6 +903,9 @@ extern int arm_structure_size_boundary;
 /* The number of (integer) argument register available.  */
 #define NUM_ARG_REGS		4
 
+/* And similarly for the VFP.  */
+#define NUM_VFP_ARG_REGS	16
+
 /* Return the register number of the N'th (integer) argument.  */
 #define ARG_REGISTER(N) 	(N - 1)
 
@@ -1021,11 +1051,6 @@ extern int arm_structure_size_boundary;
 #ifndef SUBTARGET_FRAME_POINTER_REQUIRED
 #define SUBTARGET_FRAME_POINTER_REQUIRED 0
 #endif
-
-#define FRAME_POINTER_REQUIRED					\
-  (cfun->has_nonlocal_label				\
-   || SUBTARGET_FRAME_POINTER_REQUIRED				\
-   || (TARGET_ARM && TARGET_APCS_FRAME && ! leaf_function_p ()))
 
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
@@ -1411,13 +1436,17 @@ do {									      \
 /* If defined, gives a class of registers that cannot be used as the
    operand of a SUBREG that changes the mode of the object illegally.  */
 
-/* Moves between FPA_REGS and GENERAL_REGS are two memory insns.  */
+/* Moves between FPA_REGS and GENERAL_REGS are two memory insns.
+   Moves between VFP_REGS and GENERAL_REGS are a single insn, but
+   it is typically more expensive than a single memory access.  We set
+   the cost to less than two memory accesses so that floating
+   point to integer conversion does not go through memory.  */
 #define REGISTER_MOVE_COST(MODE, FROM, TO)		\
   (TARGET_32BIT ?						\
    ((FROM) == FPA_REGS && (TO) != FPA_REGS ? 20 :	\
     (FROM) != FPA_REGS && (TO) == FPA_REGS ? 20 :	\
-    IS_VFP_CLASS (FROM) && !IS_VFP_CLASS (TO) ? 10 :	\
-    !IS_VFP_CLASS (FROM) && IS_VFP_CLASS (TO) ? 10 :	\
+    IS_VFP_CLASS (FROM) && !IS_VFP_CLASS (TO) ? 15 :	\
+    !IS_VFP_CLASS (FROM) && IS_VFP_CLASS (TO) ? 15 :	\
     (FROM) == IWMMXT_REGS && (TO) != IWMMXT_REGS ? 4 :  \
     (FROM) != IWMMXT_REGS && (TO) == IWMMXT_REGS ? 4 :  \
     (FROM) == IWMMXT_GR_REGS || (TO) == IWMMXT_GR_REGS ? 20 :  \
@@ -1486,9 +1515,10 @@ do {									      \
 
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
-#define LIBCALL_VALUE(MODE)  \
-  (TARGET_32BIT && TARGET_HARD_FLOAT_ABI && TARGET_FPA			\
-   && GET_MODE_CLASS (MODE) == MODE_FLOAT				\
+#define LIBCALL_VALUE(MODE)  						\
+  (TARGET_AAPCS_BASED ? aapcs_libcall_value (MODE)			\
+   : (TARGET_32BIT && TARGET_HARD_FLOAT_ABI && TARGET_FPA		\
+      && GET_MODE_CLASS (MODE) == MODE_FLOAT)				\
    ? gen_rtx_REG (MODE, FIRST_FPA_REGNUM)				\
    : TARGET_32BIT && TARGET_HARD_FLOAT_ABI && TARGET_MAVERICK		\
      && GET_MODE_CLASS (MODE) == MODE_FLOAT				\
@@ -1497,22 +1527,16 @@ do {									      \
    ? gen_rtx_REG (MODE, FIRST_IWMMXT_REGNUM) 				\
    : gen_rtx_REG (MODE, ARG_REGISTER (1)))
 
-/* Define how to find the value returned by a function.
-   VALTYPE is the data type of the value (as a tree).
-   If the precise function being called is known, FUNC is its FUNCTION_DECL;
-   otherwise, FUNC is 0.  */
-#define FUNCTION_VALUE(VALTYPE, FUNC) \
-  arm_function_value (VALTYPE, FUNC);
-
-/* 1 if N is a possible register number for a function value.
-   On the ARM, only r0 and f0 can return results.  */
-/* On a Cirrus chip, mvf0 can return results.  */
-#define FUNCTION_VALUE_REGNO_P(REGNO)  \
-  ((REGNO) == ARG_REGISTER (1) \
-   || (TARGET_32BIT && ((REGNO) == FIRST_CIRRUS_FP_REGNUM)		\
-       && TARGET_HARD_FLOAT_ABI && TARGET_MAVERICK)			\
-   || ((REGNO) == FIRST_IWMMXT_REGNUM && TARGET_IWMMXT_ABI) \
-   || (TARGET_32BIT && ((REGNO) == FIRST_FPA_REGNUM)			\
+/* 1 if REGNO is a possible register number for a function value.  */
+#define FUNCTION_VALUE_REGNO_P(REGNO)				\
+  ((REGNO) == ARG_REGISTER (1)					\
+   || (TARGET_AAPCS_BASED && TARGET_32BIT 			\
+       && TARGET_VFP && TARGET_HARD_FLOAT			\
+       && (REGNO) == FIRST_VFP_REGNUM)				\
+   || (TARGET_32BIT && ((REGNO) == FIRST_CIRRUS_FP_REGNUM)	\
+       && TARGET_HARD_FLOAT_ABI && TARGET_MAVERICK)		\
+   || ((REGNO) == FIRST_IWMMXT_REGNUM && TARGET_IWMMXT_ABI)	\
+   || (TARGET_32BIT && ((REGNO) == FIRST_FPA_REGNUM)		\
        && TARGET_HARD_FLOAT_ABI && TARGET_FPA))
 
 /* Amount of memory needed for an untyped call to save all possible return
@@ -1615,9 +1639,25 @@ machine_function;
    that is in text_section.  */
 extern GTY(()) rtx thumb_call_via_label[14];
 
+/* The number of potential ways of assigning to a co-processor.  */
+#define ARM_NUM_COPROC_SLOTS 1
+
+/* Enumeration of procedure calling standard variants.  We don't really 
+   support all of these yet.  */
+enum arm_pcs
+{
+  ARM_PCS_AAPCS,	/* Base standard AAPCS.  */
+  ARM_PCS_AAPCS_VFP,	/* Use VFP registers for floating point values.  */
+  ARM_PCS_AAPCS_IWMMXT, /* Use iWMMXT registers for vectors.  */
+  /* This must be the last AAPCS variant.  */
+  ARM_PCS_AAPCS_LOCAL,	/* Private call within this compilation unit.  */
+  ARM_PCS_ATPCS,	/* ATPCS.  */
+  ARM_PCS_APCS,		/* APCS (legacy Linux etc).  */
+  ARM_PCS_UNKNOWN
+};
+
 /* A C type for declaring a variable that is used as the first argument of
-   `FUNCTION_ARG' and other related values.  For some target machines, the
-   type `int' suffices and can hold the number of bytes of argument so far.  */
+   `FUNCTION_ARG' and other related values.  */
 typedef struct
 {
   /* This is the number of registers of arguments scanned so far.  */
@@ -1626,7 +1666,28 @@ typedef struct
   int iwmmxt_nregs;
   int named_count;
   int nargs;
-  int can_split;
+  /* Which procedure call variant to use for this call.  */
+  enum arm_pcs pcs_variant;
+
+  /* AAPCS related state tracking.  */
+  int aapcs_arg_processed;  /* No need to lay out this argument again.  */
+  int aapcs_cprc_slot;      /* Index of co-processor rules to handle
+			       this argument, or -1 if using core
+			       registers.  */
+  int aapcs_ncrn;
+  int aapcs_next_ncrn;
+  rtx aapcs_reg;	    /* Register assigned to this argument.  */
+  int aapcs_partial;	    /* How many bytes are passed in regs (if
+			       split between core regs and stack.
+			       Zero otherwise.  */
+  int aapcs_cprc_failed[ARM_NUM_COPROC_SLOTS];
+  int can_split;	    /* Argument can be split between core regs
+			       and the stack.  */
+  /* Private data for tracking VFP register allocation */
+  unsigned aapcs_vfp_regs_free;
+  unsigned aapcs_vfp_reg_alloc;
+  int aapcs_vfp_rcount;
+  MACHMODE aapcs_vfp_rmode;
 } CUMULATIVE_ARGS;
 
 /* Define where to put the arguments to a function.
@@ -1672,13 +1733,7 @@ typedef struct
    of mode MODE and data type TYPE.
    (TYPE is null for libcalls where that information may not be available.)  */
 #define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-  (CUM).nargs += 1;					\
-  if (arm_vector_mode_supported_p (MODE)		\
-      && (CUM).named_count > (CUM).nargs		\
-      && TARGET_IWMMXT_ABI)				\
-    (CUM).iwmmxt_nregs += 1;				\
-  else							\
-    (CUM).nregs += ARM_NUM_REGS2 (MODE, TYPE)
+  arm_function_arg_advance (&(CUM), (MODE), (TYPE), (NAMED))
 
 /* If defined, a C expression that gives the alignment boundary, in bits, of an
    argument with the specified mode and type.  If it is not defined,
@@ -1690,9 +1745,11 @@ typedef struct
 
 /* 1 if N is a possible register number for function argument passing.
    On the ARM, r0-r3 are used to pass args.  */
-#define FUNCTION_ARG_REGNO_P(REGNO)	\
-   (IN_RANGE ((REGNO), 0, 3)		\
-    || (TARGET_IWMMXT_ABI		\
+#define FUNCTION_ARG_REGNO_P(REGNO)					\
+   (IN_RANGE ((REGNO), 0, 3)						\
+    || (TARGET_AAPCS_BASED && TARGET_VFP && TARGET_HARD_FLOAT		\
+	&& IN_RANGE ((REGNO), FIRST_VFP_REGNUM, FIRST_VFP_REGNUM + 15))	\
+    || (TARGET_IWMMXT_ABI						\
 	&& IN_RANGE ((REGNO), FIRST_IWMMXT_REGNUM, FIRST_IWMMXT_REGNUM + 9)))
 
 
@@ -1788,21 +1845,6 @@ typedef struct
  { FRAME_POINTER_REGNUM,      STACK_POINTER_REGNUM            },\
  { FRAME_POINTER_REGNUM,      ARM_HARD_FRAME_POINTER_REGNUM   },\
  { FRAME_POINTER_REGNUM,      THUMB_HARD_FRAME_POINTER_REGNUM }}
-
-/* Given FROM and TO register numbers, say whether this elimination is
-   allowed.  Frame pointer elimination is automatically handled.
-
-   All eliminations are permissible.  Note that ARG_POINTER_REGNUM and
-   HARD_FRAME_POINTER_REGNUM are in fact the same thing.  If we need a frame
-   pointer, we must eliminate FRAME_POINTER_REGNUM into
-   HARD_FRAME_POINTER_REGNUM and not into STACK_POINTER_REGNUM or
-   ARG_POINTER_REGNUM.  */
-#define CAN_ELIMINATE(FROM, TO)						\
-  (((TO) == FRAME_POINTER_REGNUM && (FROM) == ARG_POINTER_REGNUM) ? 0 :	\
-   ((TO) == STACK_POINTER_REGNUM && frame_pointer_needed) ? 0 :		\
-   ((TO) == ARM_HARD_FRAME_POINTER_REGNUM && TARGET_THUMB) ? 0 :	\
-   ((TO) == THUMB_HARD_FRAME_POINTER_REGNUM && TARGET_ARM) ? 0 :	\
-   1)
 
 /* Define the offset between two registers, one to be eliminated, and the
    other its replacement, at the start of a routine.  */
@@ -2174,12 +2216,24 @@ typedef struct
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE Pmode
 
-#define CASE_VECTOR_PC_RELATIVE TARGET_THUMB2
+#define CASE_VECTOR_PC_RELATIVE (TARGET_THUMB2				\
+				 || (TARGET_THUMB			\
+				     && (optimize_size || flag_pic)))
 
-#define CASE_VECTOR_SHORTEN_MODE(min, max, body)		\
-   ((min < 0 || max >= 0x2000 || !TARGET_THUMB2) ? SImode	\
-   : (max >= 0x200) ? HImode					\
-   : QImode)
+#define CASE_VECTOR_SHORTEN_MODE(min, max, body)			\
+  (TARGET_THUMB								\
+   ? (min >= 0 && max < 512						\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 1, QImode)	\
+      : min >= -256 && max < 256					\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 0, QImode)	\
+      : min >= 0 && max < 8192						\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 1, HImode)	\
+      : min >= -4096 && max < 4096					\
+      ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 0, HImode)	\
+      : SImode)								\
+   : ((min < 0 || max >= 0x2000 || !TARGET_THUMB2) ? SImode		\
+      : (max >= 0x200) ? HImode						\
+      : QImode))
 
 /* signed 'char' is most compatible, but RISC OS wants it unsigned.
    unsigned is probably best, but may break some code.  */
@@ -2314,6 +2368,7 @@ extern int making_const_table;
 
 /* The arm5 clz instruction returns 32.  */
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = 32, 1)
+#define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = 32, 1)
 
 #undef  ASM_APP_OFF
 #define ASM_APP_OFF (TARGET_THUMB1 ? "\t.code\t16\n" : \

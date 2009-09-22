@@ -86,6 +86,7 @@ extern bool evolution_function_is_univariate_p (const_tree);
 extern unsigned nb_vars_in_chrec (tree);
 extern bool evolution_function_is_invariant_p (tree, int);
 extern bool scev_is_linear_expression (tree);
+extern bool evolution_function_right_is_integer_cst (const_tree);
 
 /* Determines whether CHREC is equal to zero.  */
 
@@ -132,7 +133,8 @@ build_polynomial_chrec (unsigned loop_num,
       || right == chrec_dont_know)
     return chrec_dont_know;
 
-  if (no_evolution_in_loop_p (left, loop_num, &val) && !val)
+  if (!no_evolution_in_loop_p (left, loop_num, &val)
+      || !val)
     return chrec_dont_know;
 
   /* Pointer types should occur only on the left hand side, i.e. in

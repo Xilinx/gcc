@@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-pass.h"
 #include "df.h"
+#include "params.h"
 
 /* Commonly used modes.  */
 
@@ -175,6 +176,7 @@ static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
 #define first_insn (crtl->emit.x_first_insn)
 #define last_insn (crtl->emit.x_last_insn)
 #define cur_insn_uid (crtl->emit.x_cur_insn_uid)
+#define cur_debug_insn_uid (crtl->emit.x_cur_debug_insn_uid)
 #define last_location (crtl->emit.x_last_location)
 #define first_label_num (crtl->emit.x_first_label_num)
 
@@ -197,7 +199,6 @@ static mem_attrs *get_mem_attrs (alias_set_type, tree, rtx, rtx, unsigned int,
 static hashval_t reg_attrs_htab_hash (const void *);
 static int reg_attrs_htab_eq (const void *, const void *);
 static reg_attrs *get_reg_attrs (tree, int);
-static tree component_ref_for_mem_expr (tree);
 static rtx gen_const_vector (enum machine_mode, int);
 static void copy_rtx_if_shared_1 (rtx *orig);
 
@@ -869,7 +870,11 @@ gen_reg_rtx (enum machine_mode mode)
   if (SUPPORTS_STACK_ALIGNMENT 
       && crtl->stack_alignment_estimated < align
       && !crtl->stack_realign_processed)
-    crtl->stack_alignment_estimated = align;
+    {
+      unsigned int min_align = MINIMUM_ALIGNMENT (NULL, mode, align);
+      if (crtl->stack_alignment_estimated < min_align)
+	crtl->stack_alignment_estimated = min_align;
+    }
 
   if (generating_concat_p
       && (GET_MODE_CLASS (mode) == MODE_COMPLEX_FLOAT
@@ -975,7 +980,7 @@ set_reg_attrs_from_value (rtx reg, rtx x)
   offset = byte_lowpart_offset (GET_MODE (reg), GET_MODE (x));
   if (MEM_P (x))
     {
-      if (MEM_OFFSET (x) && GET_CODE (MEM_OFFSET (x)) == CONST_INT)
+      if (MEM_OFFSET (x) && CONST_INT_P (MEM_OFFSET (x)))
 	REG_ATTRS (reg)
 	  = get_reg_attrs (MEM_EXPR (x), INTVAL (MEM_OFFSET (x)) + offset);
       if (MEM_POINTER (x))
@@ -1181,7 +1186,7 @@ gen_lowpart_common (enum machine_mode mode, rtx x)
   /* Unfortunately, this routine doesn't take a parameter for the mode of X,
      so we have to make one up.  Yuk.  */
   innermode = GET_MODE (x);
-  if (GET_CODE (x) == CONST_INT
+  if (CONST_INT_P (x)
       && msize * BITS_PER_UNIT <= HOST_BITS_PER_WIDE_INT)
     innermode = mode_for_size (HOST_BITS_PER_WIDE_INT, MODE_INT, 0);
   else if (innermode == VOIDmode)
@@ -1226,7 +1231,7 @@ gen_lowpart_common (enum machine_mode mode, rtx x)
     }
   else if (GET_CODE (x) == SUBREG || REG_P (x)
 	   || GET_CODE (x) == CONCAT || GET_CODE (x) == CONST_VECTOR
-	   || GET_CODE (x) == CONST_DOUBLE || GET_CODE (x) == CONST_INT)
+	   || GET_CODE (x) == CONST_DOUBLE || CONST_INT_P (x))
     return simplify_gen_subreg (mode, x, innermode, offset);
 
   /* Otherwise, we can't do this.  */
@@ -1425,40 +1430,6 @@ operand_subword_force (rtx op, unsigned int offset, enum machine_mode mode)
   return result;
 }
 
-/* Within a MEM_EXPR, we care about either (1) a component ref of a decl,
-   or (2) a component ref of something variable.  Represent the later with
-   a NULL expression.  */
-
-static tree
-component_ref_for_mem_expr (tree ref)
-{
-  tree inner = TREE_OPERAND (ref, 0);
-
-  if (TREE_CODE (inner) == COMPONENT_REF)
-    inner = component_ref_for_mem_expr (inner);
-  else
-    {
-      /* Now remove any conversions: they don't change what the underlying
-	 object is.  Likewise for SAVE_EXPR.  */
-      while (CONVERT_EXPR_P (inner)
-	     || TREE_CODE (inner) == VIEW_CONVERT_EXPR
-	     || TREE_CODE (inner) == SAVE_EXPR)
-	inner = TREE_OPERAND (inner, 0);
-
-      if (! DECL_P (inner))
-	inner = NULL_TREE;
-    }
-
-  if (inner == TREE_OPERAND (ref, 0)
-      /* Don't leak SSA-names in the third operand.  */
-      && (!TREE_OPERAND (ref, 2)
-	  || TREE_CODE (TREE_OPERAND (ref, 2)) != SSA_NAME))
-    return ref;
-  else
-    return build3 (COMPONENT_REF, TREE_TYPE (ref), inner,
-		   TREE_OPERAND (ref, 1), NULL_TREE);
-}
-
 /* Returns 1 if both MEM_EXPR can be considered equal
    and 0 otherwise.  */
 
@@ -1474,23 +1445,7 @@ mem_expr_equal_p (const_tree expr1, const_tree expr2)
   if (TREE_CODE (expr1) != TREE_CODE (expr2))
     return 0;
 
-  if (TREE_CODE (expr1) == COMPONENT_REF)
-    return 
-      mem_expr_equal_p (TREE_OPERAND (expr1, 0),
-			TREE_OPERAND (expr2, 0))
-      && mem_expr_equal_p (TREE_OPERAND (expr1, 1), /* field decl */
-			   TREE_OPERAND (expr2, 1));
-  
-  if (INDIRECT_REF_P (expr1))
-    return mem_expr_equal_p (TREE_OPERAND (expr1, 0),
-			     TREE_OPERAND (expr2, 0));
-
-  /* ARRAY_REFs, ARRAY_RANGE_REFs and BIT_FIELD_REFs should already
-	      have been resolved here.  */
-  gcc_assert (DECL_P (expr1));
-  
-  /* Decls with different pointers can't be equal.  */
-  return 0;
+  return operand_equal_p (expr1, expr2, 0);
 }
 
 /* Return OFFSET if XEXP (MEM, 0) - OFFSET is known to be ALIGN
@@ -1728,7 +1683,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
       else if (TREE_CODE (t) == COMPONENT_REF
 	       && ! DECL_BIT_FIELD (TREE_OPERAND (t, 1)))
 	{
-	  expr = component_ref_for_mem_expr (t);
+	  expr = t;
 	  offset = const0_rtx;
 	  apply_bitpos = bitpos;
 	  /* ??? Any reason the field size would be different than
@@ -1785,7 +1740,8 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	    }
 	  else if (TREE_CODE (t2) == COMPONENT_REF)
 	    {
-	      expr = component_ref_for_mem_expr (t2);
+	      expr = t2;
+	      offset = NULL;
 	      if (host_integerp (off_tree, 1))
 		{
 		  offset = GEN_INT (tree_low_cst (off_tree, 1));
@@ -2242,7 +2198,8 @@ get_spill_slot_decl (bool force_build_p)
   if (d || !force_build_p)
     return d;
 
-  d = build_decl (VAR_DECL, get_identifier ("%sfp"), void_type_node);
+  d = build_decl (DECL_SOURCE_LOCATION (current_function_decl),
+		  VAR_DECL, get_identifier ("%sfp"), void_type_node);
   DECL_ARTIFICIAL (d) = 1;
   DECL_IGNORED_P (d) = 1;
   TREE_USED (d) = 1;
@@ -2280,7 +2237,7 @@ set_mem_attrs_for_spill (rtx mem)
   addr = XEXP (mem, 0);
   offset = const0_rtx;
   if (GET_CODE (addr) == PLUS
-      && GET_CODE (XEXP (addr, 1)) == CONST_INT)
+      && CONST_INT_P (XEXP (addr, 1)))
     offset = XEXP (addr, 1);
 
   MEM_ATTRS (mem) = get_mem_attrs (alias, expr, offset,
@@ -2313,8 +2270,31 @@ set_new_first_and_last_insn (rtx first, rtx last)
   last_insn = last;
   cur_insn_uid = 0;
 
-  for (insn = first; insn; insn = NEXT_INSN (insn))
-    cur_insn_uid = MAX (cur_insn_uid, INSN_UID (insn));
+  if (MIN_NONDEBUG_INSN_UID || MAY_HAVE_DEBUG_INSNS)
+    {
+      int debug_count = 0;
+
+      cur_insn_uid = MIN_NONDEBUG_INSN_UID - 1;
+      cur_debug_insn_uid = 0;
+
+      for (insn = first; insn; insn = NEXT_INSN (insn))
+	if (INSN_UID (insn) < MIN_NONDEBUG_INSN_UID)
+	  cur_debug_insn_uid = MAX (cur_debug_insn_uid, INSN_UID (insn));
+	else
+	  {
+	    cur_insn_uid = MAX (cur_insn_uid, INSN_UID (insn));
+	    if (DEBUG_INSN_P (insn))
+	      debug_count++;
+	  }
+
+      if (debug_count)
+	cur_debug_insn_uid = MIN_NONDEBUG_INSN_UID + debug_count;
+      else
+	cur_debug_insn_uid++;
+    }
+  else
+    for (insn = first; insn; insn = NEXT_INSN (insn))
+      cur_insn_uid = MAX (cur_insn_uid, INSN_UID (insn));
 
   cur_insn_uid++;
 }
@@ -2637,6 +2617,7 @@ repeat:
 	return;
       break;
 
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -2743,6 +2724,7 @@ repeat:
     case CC0:
       return;
 
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -2813,6 +2795,7 @@ set_used_flags (rtx x)
     case CC0:
       return;
 
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -2992,6 +2975,27 @@ get_max_uid (void)
 {
   return cur_insn_uid;
 }
+
+/* Return the number of actual (non-debug) insns emitted in this
+   function.  */
+
+int
+get_max_insn_count (void)
+{
+  int n = cur_insn_uid;
+
+  /* The table size must be stable across -g, to avoid codegen
+     differences due to debug insns, and not be affected by
+     -fmin-insn-uid, to avoid excessive table size and to simplify
+     debugging of -fcompare-debug failures.  */
+  if (cur_debug_insn_uid > MIN_NONDEBUG_INSN_UID)
+    n -= cur_debug_insn_uid;
+  else
+    n -= MIN_NONDEBUG_INSN_UID;
+
+  return n;
+}
+
 
 /* Return the next insn.  If it is a SEQUENCE, return the first insn
    of the sequence.  */
@@ -3043,6 +3047,25 @@ next_nonnote_insn (rtx insn)
   return insn;
 }
 
+/* Return the next insn after INSN that is not a NOTE, but stop the
+   search before we enter another basic block.  This routine does not
+   look inside SEQUENCEs.  */
+
+rtx
+next_nonnote_insn_bb (rtx insn)
+{
+  while (insn)
+    {
+      insn = NEXT_INSN (insn);
+      if (insn == 0 || !NOTE_P (insn))
+	break;
+      if (NOTE_INSN_BASIC_BLOCK_P (insn))
+	return NULL_RTX;
+    }
+
+  return insn;
+}
+
 /* Return the previous insn before INSN that is not a NOTE.  This routine does
    not look inside SEQUENCEs.  */
 
@@ -3053,6 +3076,57 @@ prev_nonnote_insn (rtx insn)
     {
       insn = PREV_INSN (insn);
       if (insn == 0 || !NOTE_P (insn))
+	break;
+    }
+
+  return insn;
+}
+
+/* Return the previous insn before INSN that is not a NOTE, but stop
+   the search before we enter another basic block.  This routine does
+   not look inside SEQUENCEs.  */
+
+rtx
+prev_nonnote_insn_bb (rtx insn)
+{
+  while (insn)
+    {
+      insn = PREV_INSN (insn);
+      if (insn == 0 || !NOTE_P (insn))
+	break;
+      if (NOTE_INSN_BASIC_BLOCK_P (insn))
+	return NULL_RTX;
+    }
+
+  return insn;
+}
+
+/* Return the next insn after INSN that is not a DEBUG_INSN.  This
+   routine does not look inside SEQUENCEs.  */
+
+rtx
+next_nondebug_insn (rtx insn)
+{
+  while (insn)
+    {
+      insn = NEXT_INSN (insn);
+      if (insn == 0 || !DEBUG_INSN_P (insn))
+	break;
+    }
+
+  return insn;
+}
+
+/* Return the previous insn before INSN that is not a DEBUG_INSN.
+   This routine does not look inside SEQUENCEs.  */
+
+rtx
+prev_nondebug_insn (rtx insn)
+{
+  while (insn)
+    {
+      insn = PREV_INSN (insn);
+      if (insn == 0 || !DEBUG_INSN_P (insn))
 	break;
     }
 
@@ -3335,6 +3409,10 @@ try_split (rtx pat, rtx trial, int last)
   rtx insn_last, insn;
   int njumps = 0;
 
+  /* We're not good at redistributing frame information.  */
+  if (RTX_FRAME_RELATED_P (trial))
+    return trial;
+
   if (any_condjump_p (trial)
       && (note = find_reg_note (trial, REG_BR_PROB, 0)))
     split_branch_probability = INTVAL (XEXP (note, 0));
@@ -3414,13 +3492,7 @@ try_split (rtx pat, rtx trial, int last)
       switch (REG_NOTE_KIND (note))
 	{
 	case REG_EH_REGION:
-	  for (insn = insn_last; insn != NULL_RTX; insn = PREV_INSN (insn))
-	    {
-	      if (CALL_P (insn)
-		  || (flag_non_call_exceptions && INSN_P (insn)
-		      && may_trap_p (PATTERN (insn))))
-		add_reg_note (insn, REG_EH_REGION, XEXP (note, 0));
-	    }
+	  copy_reg_eh_region_note_backward (note, insn_last, NULL);
 	  break;
 
 	case REG_NORETURN:
@@ -3522,6 +3594,27 @@ make_insn_raw (rtx pattern)
       debug_rtx (insn);
     }
 #endif
+
+  return insn;
+}
+
+/* Like `make_insn_raw' but make a DEBUG_INSN instead of an insn.  */
+
+rtx
+make_debug_insn_raw (rtx pattern)
+{
+  rtx insn;
+
+  insn = rtx_alloc (DEBUG_INSN);
+  INSN_UID (insn) = cur_debug_insn_uid++;
+  if (cur_debug_insn_uid > MIN_NONDEBUG_INSN_UID)
+    INSN_UID (insn) = cur_insn_uid++;
+
+  PATTERN (insn) = pattern;
+  INSN_CODE (insn) = -1;
+  REG_NOTES (insn) = NULL;
+  INSN_LOCATOR (insn) = curr_insn_locator ();
+  BLOCK_FOR_INSN (insn) = NULL;
 
   return insn;
 }
@@ -3939,6 +4032,7 @@ emit_insn_before_noloc (rtx x, rtx before, basic_block bb)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -3982,6 +4076,7 @@ emit_jump_insn_before_noloc (rtx x, rtx before)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -4025,6 +4120,7 @@ emit_call_insn_before_noloc (rtx x, rtx before)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -4049,6 +4145,50 @@ emit_call_insn_before_noloc (rtx x, rtx before)
 
     default:
       last = make_call_insn_raw (x);
+      add_insn_before (last, before, NULL);
+      break;
+    }
+
+  return last;
+}
+
+/* Make an instruction with body X and code DEBUG_INSN
+   and output it before the instruction BEFORE.  */
+
+rtx
+emit_debug_insn_before_noloc (rtx x, rtx before)
+{
+  rtx last = NULL_RTX, insn;
+
+  gcc_assert (before);
+
+  switch (GET_CODE (x))
+    {
+    case DEBUG_INSN:
+    case INSN:
+    case JUMP_INSN:
+    case CALL_INSN:
+    case CODE_LABEL:
+    case BARRIER:
+    case NOTE:
+      insn = x;
+      while (insn)
+	{
+	  rtx next = NEXT_INSN (insn);
+	  add_insn_before (insn, before, NULL);
+	  last = insn;
+	  insn = next;
+	}
+      break;
+
+#ifdef ENABLE_RTL_CHECKING
+    case SEQUENCE:
+      gcc_unreachable ();
+      break;
+#endif
+
+    default:
+      last = make_debug_insn_raw (x);
       add_insn_before (last, before, NULL);
       break;
     }
@@ -4162,6 +4302,7 @@ emit_insn_after_noloc (rtx x, rtx after, basic_block bb)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -4199,6 +4340,7 @@ emit_jump_insn_after_noloc (rtx x, rtx after)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -4235,6 +4377,7 @@ emit_call_insn_after_noloc (rtx x, rtx after)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -4252,6 +4395,43 @@ emit_call_insn_after_noloc (rtx x, rtx after)
 
     default:
       last = make_call_insn_raw (x);
+      add_insn_after (last, after, NULL);
+      break;
+    }
+
+  return last;
+}
+
+/* Make an instruction with body X and code CALL_INSN
+   and output it after the instruction AFTER.  */
+
+rtx
+emit_debug_insn_after_noloc (rtx x, rtx after)
+{
+  rtx last;
+
+  gcc_assert (after);
+
+  switch (GET_CODE (x))
+    {
+    case DEBUG_INSN:
+    case INSN:
+    case JUMP_INSN:
+    case CALL_INSN:
+    case CODE_LABEL:
+    case BARRIER:
+    case NOTE:
+      last = emit_insn_after_1 (x, after, NULL);
+      break;
+
+#ifdef ENABLE_RTL_CHECKING
+    case SEQUENCE:
+      gcc_unreachable ();
+      break;
+#endif
+
+    default:
+      last = make_debug_insn_raw (x);
       add_insn_after (last, after, NULL);
       break;
     }
@@ -4329,8 +4509,13 @@ emit_insn_after_setloc (rtx pattern, rtx after, int loc)
 rtx
 emit_insn_after (rtx pattern, rtx after)
 {
-  if (INSN_P (after))
-    return emit_insn_after_setloc (pattern, after, INSN_LOCATOR (after));
+  rtx prev = after;
+
+  while (DEBUG_INSN_P (prev))
+    prev = PREV_INSN (prev);
+
+  if (INSN_P (prev))
+    return emit_insn_after_setloc (pattern, after, INSN_LOCATOR (prev));
   else
     return emit_insn_after_noloc (pattern, after, NULL);
 }
@@ -4360,8 +4545,13 @@ emit_jump_insn_after_setloc (rtx pattern, rtx after, int loc)
 rtx
 emit_jump_insn_after (rtx pattern, rtx after)
 {
-  if (INSN_P (after))
-    return emit_jump_insn_after_setloc (pattern, after, INSN_LOCATOR (after));
+  rtx prev = after;
+
+  while (DEBUG_INSN_P (prev))
+    prev = PREV_INSN (prev);
+
+  if (INSN_P (prev))
+    return emit_jump_insn_after_setloc (pattern, after, INSN_LOCATOR (prev));
   else
     return emit_jump_insn_after_noloc (pattern, after);
 }
@@ -4391,10 +4581,46 @@ emit_call_insn_after_setloc (rtx pattern, rtx after, int loc)
 rtx
 emit_call_insn_after (rtx pattern, rtx after)
 {
-  if (INSN_P (after))
-    return emit_call_insn_after_setloc (pattern, after, INSN_LOCATOR (after));
+  rtx prev = after;
+
+  while (DEBUG_INSN_P (prev))
+    prev = PREV_INSN (prev);
+
+  if (INSN_P (prev))
+    return emit_call_insn_after_setloc (pattern, after, INSN_LOCATOR (prev));
   else
     return emit_call_insn_after_noloc (pattern, after);
+}
+
+/* Like emit_debug_insn_after_noloc, but set INSN_LOCATOR according to SCOPE.  */
+rtx
+emit_debug_insn_after_setloc (rtx pattern, rtx after, int loc)
+{
+  rtx last = emit_debug_insn_after_noloc (pattern, after);
+
+  if (pattern == NULL_RTX || !loc)
+    return last;
+
+  after = NEXT_INSN (after);
+  while (1)
+    {
+      if (active_insn_p (after) && !INSN_LOCATOR (after))
+	INSN_LOCATOR (after) = loc;
+      if (after == last)
+	break;
+      after = NEXT_INSN (after);
+    }
+  return last;
+}
+
+/* Like emit_debug_insn_after_noloc, but set INSN_LOCATOR according to AFTER.  */
+rtx
+emit_debug_insn_after (rtx pattern, rtx after)
+{
+  if (INSN_P (after))
+    return emit_debug_insn_after_setloc (pattern, after, INSN_LOCATOR (after));
+  else
+    return emit_debug_insn_after_noloc (pattern, after);
 }
 
 /* Like emit_insn_before_noloc, but set INSN_LOCATOR according to SCOPE.  */
@@ -4426,8 +4652,13 @@ emit_insn_before_setloc (rtx pattern, rtx before, int loc)
 rtx
 emit_insn_before (rtx pattern, rtx before)
 {
-  if (INSN_P (before))
-    return emit_insn_before_setloc (pattern, before, INSN_LOCATOR (before));
+  rtx next = before;
+
+  while (DEBUG_INSN_P (next))
+    next = PREV_INSN (next);
+
+  if (INSN_P (next))
+    return emit_insn_before_setloc (pattern, before, INSN_LOCATOR (next));
   else
     return emit_insn_before_noloc (pattern, before, NULL);
 }
@@ -4458,8 +4689,13 @@ emit_jump_insn_before_setloc (rtx pattern, rtx before, int loc)
 rtx
 emit_jump_insn_before (rtx pattern, rtx before)
 {
-  if (INSN_P (before))
-    return emit_jump_insn_before_setloc (pattern, before, INSN_LOCATOR (before));
+  rtx next = before;
+
+  while (DEBUG_INSN_P (next))
+    next = PREV_INSN (next);
+
+  if (INSN_P (next))
+    return emit_jump_insn_before_setloc (pattern, before, INSN_LOCATOR (next));
   else
     return emit_jump_insn_before_noloc (pattern, before);
 }
@@ -4491,10 +4727,48 @@ emit_call_insn_before_setloc (rtx pattern, rtx before, int loc)
 rtx
 emit_call_insn_before (rtx pattern, rtx before)
 {
-  if (INSN_P (before))
-    return emit_call_insn_before_setloc (pattern, before, INSN_LOCATOR (before));
+  rtx next = before;
+
+  while (DEBUG_INSN_P (next))
+    next = PREV_INSN (next);
+
+  if (INSN_P (next))
+    return emit_call_insn_before_setloc (pattern, before, INSN_LOCATOR (next));
   else
     return emit_call_insn_before_noloc (pattern, before);
+}
+
+/* like emit_insn_before_noloc, but set insn_locator according to scope.  */
+rtx
+emit_debug_insn_before_setloc (rtx pattern, rtx before, int loc)
+{
+  rtx first = PREV_INSN (before);
+  rtx last = emit_debug_insn_before_noloc (pattern, before);
+
+  if (pattern == NULL_RTX)
+    return last;
+
+  first = NEXT_INSN (first);
+  while (1)
+    {
+      if (active_insn_p (first) && !INSN_LOCATOR (first))
+	INSN_LOCATOR (first) = loc;
+      if (first == last)
+	break;
+      first = NEXT_INSN (first);
+    }
+  return last;
+}
+
+/* like emit_debug_insn_before_noloc,
+   but set insn_locator according to before.  */
+rtx
+emit_debug_insn_before (rtx pattern, rtx before)
+{
+  if (INSN_P (before))
+    return emit_debug_insn_before_setloc (pattern, before, INSN_LOCATOR (before));
+  else
+    return emit_debug_insn_before_noloc (pattern, before);
 }
 
 /* Take X and emit it at the end of the doubly-linked
@@ -4513,6 +4787,7 @@ emit_insn (rtx x)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -4544,6 +4819,52 @@ emit_insn (rtx x)
   return last;
 }
 
+/* Make an insn of code DEBUG_INSN with pattern X
+   and add it to the end of the doubly-linked list.  */
+
+rtx
+emit_debug_insn (rtx x)
+{
+  rtx last = last_insn;
+  rtx insn;
+
+  if (x == NULL_RTX)
+    return last;
+
+  switch (GET_CODE (x))
+    {
+    case DEBUG_INSN:
+    case INSN:
+    case JUMP_INSN:
+    case CALL_INSN:
+    case CODE_LABEL:
+    case BARRIER:
+    case NOTE:
+      insn = x;
+      while (insn)
+	{
+	  rtx next = NEXT_INSN (insn);
+	  add_insn (insn);
+	  last = insn;
+	  insn = next;
+	}
+      break;
+
+#ifdef ENABLE_RTL_CHECKING
+    case SEQUENCE:
+      gcc_unreachable ();
+      break;
+#endif
+
+    default:
+      last = make_debug_insn_raw (x);
+      add_insn (last);
+      break;
+    }
+
+  return last;
+}
+
 /* Make an insn of code JUMP_INSN with pattern X
    and add it to the end of the doubly-linked list.  */
 
@@ -4554,6 +4875,7 @@ emit_jump_insn (rtx x)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -4595,6 +4917,7 @@ emit_call_insn (rtx x)
 
   switch (GET_CODE (x))
     {
+    case DEBUG_INSN:
     case INSN:
     case JUMP_INSN:
     case CALL_INSN:
@@ -4866,6 +5189,8 @@ emit (rtx x)
       }
     case CALL_INSN:
       return emit_call_insn (x);
+    case DEBUG_INSN:
+      return emit_debug_insn (x);
     default:
       gcc_unreachable ();
     }
@@ -5050,6 +5375,9 @@ copy_insn_1 (rtx orig)
   RTX_CODE code;
   const char *format_ptr;
 
+  if (orig == NULL)
+    return NULL;
+
   code = GET_CODE (orig);
 
   switch (code)
@@ -5187,7 +5515,11 @@ init_emit (void)
 {
   first_insn = NULL;
   last_insn = NULL;
-  cur_insn_uid = 1;
+  if (MIN_NONDEBUG_INSN_UID)
+    cur_insn_uid = MIN_NONDEBUG_INSN_UID;
+  else
+    cur_insn_uid = 1;
+  cur_debug_insn_uid = 1;
   reg_rtx_no = LAST_VIRTUAL_REGISTER + 1;
   last_location = UNKNOWN_LOCATION;
   first_label_num = label_num;
@@ -5642,6 +5974,10 @@ emit_copy_of_insn_after (rtx insn, rtx after)
 
     case JUMP_INSN:
       new_rtx = emit_jump_insn_after (copy_insn (PATTERN (insn)), after);
+      break;
+
+    case DEBUG_INSN:
+      new_rtx = emit_debug_insn_after (copy_insn (PATTERN (insn)), after);
       break;
 
     case CALL_INSN:

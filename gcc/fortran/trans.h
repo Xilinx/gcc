@@ -409,6 +409,10 @@ void gfc_shadow_sym (gfc_symbol *, tree, gfc_saved_var *);
 /* Restore the original variable.  */
 void gfc_restore_sym (gfc_symbol *, gfc_saved_var *);
 
+/* Setting a decl assembler name, mangling it according to target rules
+   (like Windows @NN decorations).  */
+void gfc_set_decl_assembler_name (tree, tree);
+
 /* Returns true if a variable of specified size should go on the stack.  */
 int gfc_can_put_var_on_stack (tree);
 
@@ -590,6 +594,8 @@ extern GTY(()) tree gfor_fndecl_convert_char4_to_char1;
 extern GTY(()) tree gfor_fndecl_size0;
 extern GTY(()) tree gfor_fndecl_size1;
 extern GTY(()) tree gfor_fndecl_iargc;
+extern GTY(()) tree gfor_fndecl_clz128;
+extern GTY(()) tree gfor_fndecl_ctz128;
 
 /* Implemented in Fortran.  */
 extern GTY(()) tree gfor_fndecl_sc_kind;
@@ -622,6 +628,7 @@ struct GTY(())	lang_type	 {
   tree dtype;
   tree dataptr_type;
   tree span;
+  tree base_decl[2];
 };
 
 struct GTY(()) lang_decl {
@@ -674,6 +681,8 @@ struct GTY(()) lang_decl {
 #define GFC_TYPE_ARRAY_DATAPTR_TYPE(node) \
   (TYPE_LANG_SPECIFIC(node)->dataptr_type)
 #define GFC_TYPE_ARRAY_SPAN(node) (TYPE_LANG_SPECIFIC(node)->span)
+#define GFC_TYPE_ARRAY_BASE_DECL(node, internal) \
+  (TYPE_LANG_SPECIFIC(node)->base_decl[(internal)])
 
 /* Build an expression with void type.  */
 #define build1_v(code, arg) fold_build1(code, void_type_node, arg)

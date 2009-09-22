@@ -126,7 +126,10 @@ namespace std
 
     template<typename _Callable>
       explicit thread(_Callable __f)
-      { _M_start_thread(_M_make_routine<_Callable>(__f)); }
+      {
+	_M_start_thread(_M_make_routine<_Callable>
+			(std::forward<_Callable>(__f)));
+      }
 
     template<typename _Callable, typename... _Args>
       thread(_Callable&& __f, _Args&&... __args)
@@ -135,7 +138,7 @@ namespace std
     ~thread()
     {
       if (joinable())
-	detach();
+	std::terminate();
     }
 
     thread& operator=(const thread&) = delete;
@@ -143,7 +146,7 @@ namespace std
     thread& operator=(thread&& __t)
     {
       if (joinable())
-	detach();
+	std::terminate();
       swap(__t);
       return *this;
     }

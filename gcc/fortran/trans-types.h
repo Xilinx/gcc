@@ -29,6 +29,7 @@ extern GTY(()) tree gfc_array_range_type;
 extern GTY(()) tree gfc_character1_type_node;
 extern GTY(()) tree ppvoid_type_node;
 extern GTY(()) tree pvoid_type_node;
+extern GTY(()) tree prvoid_type_node;
 extern GTY(()) tree pchar_type_node;
 
 /* This is the type used to hold the lengths of character variables.
@@ -68,11 +69,12 @@ tree gfc_get_function_type (gfc_symbol *);
 
 tree gfc_type_for_size (unsigned, int);
 tree gfc_type_for_mode (enum machine_mode, int);
+tree gfc_build_uint_type (int);
 
 tree gfc_get_element_type (tree);
 tree gfc_get_array_type_bounds (tree, int, tree *, tree *, int,
-				enum gfc_array_kind);
-tree gfc_get_nodesc_array_type (tree, gfc_array_spec *, gfc_packed);
+				enum gfc_array_kind, bool);
+tree gfc_get_nodesc_array_type (tree, gfc_array_spec *, gfc_packed, bool);
 
 /* Add a field of given name and type to a UNION_TYPE or RECORD_TYPE.  */
 tree gfc_add_field_to_struct (tree *, tree, tree, tree);

@@ -1,6 +1,7 @@
 /* Definitions of target machine for GNU compiler, for DEC Alpha.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   2000, 2001, 2002, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
 This file is part of GCC.
@@ -690,14 +691,6 @@ extern int alpha_memory_latency;
  { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM},	     \
  { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM}}
 
-/* Given FROM and TO register numbers, say whether this elimination is allowed.
-   Frame pointer elimination is automatically handled.
-
-   All eliminations are valid since the cases where FP can't be
-   eliminated are already handled.  */
-
-#define CAN_ELIMINATE(FROM, TO) 1
-
 /* Round up to a multiple of 16 bytes.  */
 #define ALPHA_ROUND(X) (((X) + 15) & ~ 15)
 
@@ -888,6 +881,12 @@ do {						\
    the COUNT-1 frame if RETURN_ADDR_IN_PREVIOUS_FRAME is defined.  */
 
 #define RETURN_ADDR_RTX  alpha_return_addr
+
+/* Provide a definition of DWARF_FRAME_REGNUM here so that fallback unwinders
+   can use DWARF_ALT_FRAME_RETURN_COLUMN defined below.  This is just the same
+   as the default definition in dwarf2out.c.  */
+#undef DWARF_FRAME_REGNUM
+#define DWARF_FRAME_REGNUM(REG) DBX_REGISTER_NUMBER (REG)
 
 /* Before the prologue, RA lives in $26.  */
 #define INCOMING_RETURN_ADDR_RTX  gen_rtx_REG (Pmode, 26)

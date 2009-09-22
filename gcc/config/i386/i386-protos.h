@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -22,13 +22,12 @@ along with GCC; see the file COPYING3.  If not see
 /* Functions in i386.c */
 extern void override_options (bool);
 extern void optimization_options (int, int);
+extern void ix86_conditional_register_usage (void);
 
 extern int ix86_can_use_return_insn_p (void);
-extern int ix86_frame_pointer_required (void);
 extern void ix86_setup_frame_addresses (void);
 
 extern void ix86_file_end (void);
-extern int ix86_can_eliminate (int, int);
 extern HOST_WIDE_INT ix86_initial_elimination_offset (int, int);
 extern void ix86_expand_prologue (void);
 extern void ix86_expand_epilogue (int);
@@ -89,12 +88,14 @@ extern bool ix86_agi_dependent (rtx set_insn, rtx use_insn);
 extern void ix86_expand_unary_operator (enum rtx_code, enum machine_mode,
 					rtx[]);
 extern rtx ix86_build_const_vector (enum machine_mode, bool, rtx);
+extern rtx ix86_build_signbit_mask (enum machine_mode, bool, bool);
 extern void ix86_split_convert_uns_si_sse (rtx[]);
 extern void ix86_expand_convert_uns_didf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sixf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sidf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sisf_sse (rtx, rtx);
 extern void ix86_expand_convert_sign_didf_sse (rtx, rtx);
+extern enum ix86_fpcmp_strategy ix86_fp_comparison_strategy (enum rtx_code);
 extern void ix86_expand_fp_absneg_operator (enum rtx_code, enum machine_mode,
 					    rtx[]);
 extern void ix86_expand_copysign (rtx []);
@@ -102,7 +103,7 @@ extern void ix86_split_copysign_const (rtx []);
 extern void ix86_split_copysign_var (rtx []);
 extern int ix86_unary_operator_ok (enum rtx_code, enum machine_mode, rtx[]);
 extern int ix86_match_ccmode (rtx, enum machine_mode);
-extern rtx ix86_expand_compare (enum rtx_code, rtx *, rtx *);
+extern rtx ix86_expand_compare (enum rtx_code);
 extern int ix86_use_fcomi_compare (enum rtx_code);
 extern void ix86_expand_branch (enum rtx_code, rtx);
 extern void ix86_expand_setcc (enum rtx_code, rtx);
@@ -112,8 +113,6 @@ extern bool ix86_expand_fp_vcond (rtx[]);
 extern bool ix86_expand_int_vcond (rtx[]);
 extern void ix86_expand_sse_unpack (rtx[], bool, bool);
 extern void ix86_expand_sse4_unpack (rtx[], bool, bool);
-extern void ix86_expand_sse5_unpack (rtx[], bool, bool);
-extern void ix86_expand_sse5_pack (rtx[]);
 extern int ix86_expand_int_addcc (rtx[]);
 extern void ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
 extern void x86_initialize_trampoline (rtx, rtx, rtx);
@@ -162,7 +161,6 @@ extern enum reg_class ix86_preferred_output_reload_class (rtx, enum reg_class);
 extern int ix86_memory_move_cost (enum machine_mode, enum reg_class, int);
 extern int ix86_mode_needed (int, rtx);
 extern void emit_i387_cw_initialization (int);
-extern bool ix86_fp_jump_nontrivial_p (enum rtx_code);
 extern void x86_order_regs_for_local_alloc (void);
 extern void x86_function_profiler (FILE *, int);
 extern void x86_emit_floatuns (rtx [2]);
@@ -199,6 +197,8 @@ extern int ix86_return_pops_args (tree, tree, int);
 extern int ix86_data_alignment (tree, int);
 extern unsigned int ix86_local_alignment (tree, enum machine_mode,
 					  unsigned int);
+extern unsigned int ix86_minimum_alignment (tree, enum machine_mode,
+					    unsigned int);
 extern int ix86_constant_alignment (tree, int);
 extern tree ix86_handle_shared_attribute (tree *, tree, tree, int, bool *);
 extern tree ix86_handle_selectany_attribute (tree *, tree, tree, int, bool *);
@@ -213,9 +213,6 @@ extern void ix86_expand_vector_init (bool, rtx, rtx);
 extern void ix86_expand_vector_set (bool, rtx, rtx, int);
 extern void ix86_expand_vector_extract (bool, rtx, rtx, int);
 extern void ix86_expand_reduc_v4sf (rtx (*)(rtx, rtx, rtx), rtx, rtx);
-
-extern bool ix86_sse5_valid_op_p (rtx [], rtx, int, bool, int, bool);
-extern void ix86_expand_sse5_multiple_memory (rtx [], int, enum machine_mode);
 
 /* In i386-c.c  */
 extern void ix86_target_macros (void);

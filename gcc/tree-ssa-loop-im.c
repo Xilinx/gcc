@@ -879,6 +879,7 @@ rewrite_bittest (gimple_stmt_iterator *bsi)
       gimple_cond_set_rhs (use_stmt, build_int_cst_type (TREE_TYPE (name), 0));
 
       gsi_insert_before (bsi, stmt1, GSI_SAME_STMT);
+      propagate_defs_into_debug_stmts (gsi_stmt (*bsi), NULL, NULL);
       gsi_replace (bsi, stmt2, true);
 
       return stmt1;
@@ -999,7 +1000,7 @@ determine_invariantness (void)
 
   memset (&walk_data, 0, sizeof (struct dom_walk_data));
   walk_data.dom_direction = CDI_DOMINATORS;
-  walk_data.before_dom_children_before_stmts = determine_invariantness_stmt;
+  walk_data.before_dom_children = determine_invariantness_stmt;
 
   init_walk_dominator_tree (&walk_data);
   walk_dominator_tree (&walk_data, ENTRY_BLOCK_PTR);
@@ -1059,6 +1060,7 @@ move_computations_stmt (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
 
       mark_virtual_ops_for_renaming (stmt);
       gsi_insert_on_edge (loop_preheader_edge (level), stmt);
+      propagate_defs_into_debug_stmts (gsi_stmt (bsi), NULL, NULL);
       gsi_remove (&bsi, false);
     }
 }
@@ -1073,7 +1075,7 @@ move_computations (void)
 
   memset (&walk_data, 0, sizeof (struct dom_walk_data));
   walk_data.dom_direction = CDI_DOMINATORS;
-  walk_data.before_dom_children_before_stmts = move_computations_stmt;
+  walk_data.before_dom_children = move_computations_stmt;
 
   init_walk_dominator_tree (&walk_data);
   walk_dominator_tree (&walk_data, ENTRY_BLOCK_PTR);

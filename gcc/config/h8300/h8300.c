@@ -1825,6 +1825,20 @@ h8300_expand_movsi (rtx operands[])
   return 0;
 }
 
+/* Given FROM and TO register numbers, say whether this elimination is allowed.
+   Frame pointer elimination is automatically handled.
+
+   For the h8300, if frame pointer elimination is being done, we would like to
+   convert ap and rp into sp, not fp.
+
+   All other eliminations are valid.  */
+
+static bool
+h8300_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
+{
+  return (to == STACK_POINTER_REGNUM ? ! frame_pointer_needed : true);
+}
+
 /* Function for INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET).
    Define the offset between two registers, one to be eliminated, and
    the other its replacement, at the start of a routine.  */
@@ -5263,7 +5277,7 @@ h8300_insert_attributes (tree node, tree *attributes)
    tiny_data: This variable lives in the tiny data area and can be
    referenced with 16-bit absolute memory references.  */
 
-const struct attribute_spec h8300_attribute_table[] =
+static const struct attribute_spec h8300_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
   { "interrupt_handler", 0, 0, true,  false, false, h8300_handle_fndecl_attribute },
@@ -5800,5 +5814,8 @@ h8300_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 
 #undef TARGET_DEFAULT_TARGET_FLAGS
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
+
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE h8300_can_eliminate
 
 struct gcc_target targetm = TARGET_INITIALIZER;

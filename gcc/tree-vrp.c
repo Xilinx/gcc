@@ -4651,6 +4651,9 @@ find_assert_locations_1 (basic_block bb, sbitmap live)
 
       stmt = gsi_stmt (si);
 
+      if (is_gimple_debug (stmt))
+	continue;
+
       /* See if we can derive an assertion for any of STMT's operands.  */
       FOR_EACH_SSA_TREE_OPERAND (op, stmt, i, SSA_OP_USE)
 	{
@@ -4971,7 +4974,7 @@ insert_range_assertions (void)
    IGNORE_OFF_BY_ONE is true if the ARRAY_REF is inside a ADDR_EXPR.  */
 
 static void
-check_array_ref (tree ref, location_t location, bool ignore_off_by_one)
+check_array_ref (location_t location, tree ref, bool ignore_off_by_one)
 {
   value_range_t* vr = NULL;
   tree low_sub, up_sub;
@@ -5067,7 +5070,7 @@ search_for_addr_array (tree t, location_t location)
   do 
     {
       if (TREE_CODE (t) == ARRAY_REF)
-	check_array_ref (t, location, true /*ignore_off_by_one*/);
+	check_array_ref (location, t, true /*ignore_off_by_one*/);
 
       t = TREE_OPERAND (t, 0);
     }
@@ -5085,16 +5088,24 @@ check_array_bounds (tree *tp, int *walk_subtree, void *data)
 {
   tree t = *tp;
   struct walk_stmt_info *wi = (struct walk_stmt_info *) data;
-  const location_t *location = (const location_t *) wi->info;
+  location_t location;
+
+  if (EXPR_HAS_LOCATION (t))
+    location = EXPR_LOCATION (t);
+  else
+    {
+      location_t *locp = (location_t *) wi->info;
+      location = *locp;
+    }
 
   *walk_subtree = TRUE;
 
   if (TREE_CODE (t) == ARRAY_REF)
-    check_array_ref (t, *location, false /*ignore_off_by_one*/);
+    check_array_ref (location, t, false /*ignore_off_by_one*/);
 
   if (TREE_CODE (t) == INDIRECT_REF
       || (TREE_CODE (t) == RETURN_EXPR && TREE_OPERAND (t, 0)))
-    search_for_addr_array (TREE_OPERAND (t, 0), *location);
+    search_for_addr_array (TREE_OPERAND (t, 0), location);
 
   if (TREE_CODE (t) == ADDR_EXPR)
     *walk_subtree = FALSE;
@@ -5309,7 +5320,12 @@ vrp_initialize (void)
         {
 	  gimple stmt = gsi_stmt (si);
 
-	  if (!stmt_interesting_for_vrp (stmt))
+ 	  /* If the statement is a control insn, then we do not
+ 	     want to avoid simulating the statement once.  Failure
+ 	     to do so means that those edges will never get added.  */
+	  if (stmt_ends_bb_p (stmt))
+	    prop_set_simulate_again (stmt, true);
+	  else if (!stmt_interesting_for_vrp (stmt))
 	    {
 	      ssa_op_iter i;
 	      tree def;
@@ -5318,9 +5334,7 @@ vrp_initialize (void)
 	      prop_set_simulate_again (stmt, false);
 	    }
 	  else
-	    {
-	      prop_set_simulate_again (stmt, true);
-	    }
+	    prop_set_simulate_again (stmt, true);
 	}
     }
 }
@@ -5671,6 +5685,14 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
   tree ret;
   bool only_ranges;
 
+  /* Some passes and foldings leak constants with overflow flag set
+     into the IL.  Avoid doing wrong things with these and bail out.  */
+  if ((TREE_CODE (op0) == INTEGER_CST
+       && TREE_OVERFLOW (op0))
+      || (TREE_CODE (op1) == INTEGER_CST
+	  && TREE_OVERFLOW (op1)))
+    return NULL_TREE;
+
   sop = false;
   ret = vrp_evaluate_conditional_warnv_with_ops (code, op0, op1, true, &sop,
   						 &only_ranges);
@@ -5701,7 +5723,7 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 	    location = input_location;
 	  else
 	    location = gimple_location (stmt);
-	  warning (OPT_Wstrict_overflow, "%H%s", &location, warnmsg);
+	  warning_at (location, OPT_Wstrict_overflow, "%s", warnmsg);
 	}
     }
 
@@ -5715,7 +5737,6 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 	 the natural range of OP0's type, then the predicate will
 	 always fold regardless of the value of OP0.  If -Wtype-limits
 	 was specified, emit a warning.  */
-      const char *warnmsg = NULL;
       tree type = TREE_TYPE (op0);
       value_range_t *vr0 = get_value_range (op0);
 
@@ -5725,16 +5746,6 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 	  && vrp_val_is_max (vr0->max)
 	  && is_gimple_min_invariant (op1))
 	{
-	  if (integer_zerop (ret))
-	    warnmsg = G_("comparison always false due to limited range of "
-		         "data type");
-	  else
-	    warnmsg = G_("comparison always true due to limited range of "
-			 "data type");
-	}
-
-      if (warnmsg)
-	{
 	  location_t location;
 
 	  if (!gimple_has_location (stmt))
@@ -5742,7 +5753,12 @@ vrp_evaluate_conditional (enum tree_code code, tree op0, tree op1, gimple stmt)
 	  else
 	    location = gimple_location (stmt);
 
-	  warning (OPT_Wtype_limits, "%H%s", &location, warnmsg);
+	  warning_at (location, OPT_Wtype_limits, 
+		      integer_zerop (ret)
+		      ? G_("comparison always false "
+                           "due to limited range of data type")
+		      : G_("comparison always true "
+                           "due to limited range of data type"));
 	}
     }
 
@@ -6077,7 +6093,9 @@ vrp_visit_stmt (gimple stmt, edge *taken_edge_p, tree *output_p)
       fprintf (dump_file, "\n");
     }
 
-  if (is_gimple_assign (stmt) || is_gimple_call (stmt))
+  if (!stmt_interesting_for_vrp (stmt))
+    gcc_assert (stmt_ends_bb_p (stmt));
+  else if (is_gimple_assign (stmt) || is_gimple_call (stmt))
     {
       /* In general, assignments with virtual operands are not useful
 	 for deriving ranges, with the obvious exception of calls to
@@ -6580,10 +6598,9 @@ simplify_div_or_mod_using_ranges (gimple stmt)
 	    location = input_location;
 	  else
 	    location = gimple_location (stmt);
-	  warning (OPT_Wstrict_overflow,
-		   ("%Hassuming signed overflow does not occur when "
-		    "simplifying / or %% to >> or &"),
-		   &location);
+	  warning_at (location, OPT_Wstrict_overflow,
+		      "assuming signed overflow does not occur when "
+		      "simplifying %</%> or %<%%%> to %<>>%> or %<&%>");
 	}
     }
 
@@ -6663,10 +6680,9 @@ simplify_abs_using_ranges (gimple stmt)
 		location = input_location;
 	      else
 		location = gimple_location (stmt);
-	      warning (OPT_Wstrict_overflow,
-		       ("%Hassuming signed overflow does not occur when "
-			"simplifying abs (X) to X or -X"),
-		       &location);
+	      warning_at (location, OPT_Wstrict_overflow,
+			  "assuming signed overflow does not occur when "
+			  "simplifying %<abs (X)%> to %<X%> or %<-X%>");
 	    }
 
 	  gimple_assign_set_rhs1 (stmt, op);

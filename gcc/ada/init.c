@@ -178,7 +178,7 @@ __gnat_get_specific_dispatching (int priority)
    file now sets the __gl_* variables directly.  */
 
 void
-__gnat_set_globals ()
+__gnat_set_globals (void)
 {
 }
 
@@ -217,7 +217,9 @@ nanosleep (struct timestruc_t *Rqtp, struct timestruc_t *Rmtp)
 static void __gnat_error_handler (int sig, siginfo_t * si, void * uc);
 
 static void
-__gnat_error_handler (int sig, siginfo_t * si, void * uc)
+__gnat_error_handler (int sig,
+		      siginfo_t * si ATTRIBUTE_UNUSED,
+		      void * uc ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   const char *msg;
@@ -441,7 +443,9 @@ __gnat_error_handler (int sig, siginfo_t *siginfo, void *ucontext);
 
 static void
 __gnat_error_handler
-  (int sig, siginfo_t *siginfo ATTRIBUTE_UNUSED, void *ucontext)
+  (int sig,
+   siginfo_t *siginfo ATTRIBUTE_UNUSED,
+   void *ucontext ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   const char *msg;
@@ -1002,7 +1006,7 @@ __gnat_install_handler(void)
 static void __gnat_error_handler (int, siginfo_t *, ucontext_t *);
 
 static void
-__gnat_error_handler (int sig, siginfo_t *sip, ucontext_t *uctx)
+__gnat_error_handler (int sig, siginfo_t *sip, ucontext_t *cx ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   static int recurse = 0;
@@ -1136,6 +1140,7 @@ extern char *__gnat_error_prehandler_stack;   /* Alternate signal stack */
 #define SS$_RESIGNAL        2328
 
 /* These codes are in standard message libraries.  */
+extern int C$_SIGKILL;
 extern int CMA$_EXIT_THREAD;
 extern int SS$_DEBUG;
 extern int SS$_INTDIV;
@@ -1312,6 +1317,7 @@ typedef int
 resignal_predicate (int code);
 
 const int *cond_resignal_table [] = {
+  &C$_SIGKILL,
   &CMA$_EXIT_THREAD,
   &SS$_DEBUG,
   &LIB$_KEYNOTFOU,
@@ -1928,8 +1934,18 @@ __gnat_init_float (void)
      overflow settings are an OS configuration issue.  The instructions
      below have no effect.  */
 #if defined (_ARCH_PPC) && !defined (_SOFT_FLOAT) && !defined (VTHREADS)
+#if defined (__SPE__)
+  {
+     const unsigned long spefscr_mask = 0xfffffff3;
+     unsigned long spefscr;
+     asm ("mfspr  %0, 512" : "=r" (spefscr));
+     spefscr = spefscr & spefscr_mask;
+     asm ("mtspr 512, %0\n\tisync" : : "r" (spefscr));
+  }
+#else
   asm ("mtfsb0 25");
   asm ("mtfsb0 26");
+#endif
 #endif
 
 #if (defined (__i386__) || defined (i386)) && !defined (VTHREADS)
@@ -2099,6 +2115,7 @@ __gnat_install_handler(void)
 
 #include <signal.h>
 #include <mach/mach_vm.h>
+#include <mach/mach_init.h>
 #include <mach/vm_statistics.h>
 
 /* This must be in keeping with System.OS_Interface.Alternate_Stack_Size.  */
@@ -2136,7 +2153,7 @@ __gnat_is_stack_guard (mach_vm_address_t addr)
 }
 
 static void
-__gnat_error_handler (int sig, siginfo_t * si, void * uc)
+__gnat_error_handler (int sig, siginfo_t * si, void * uc ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   const char *msg;

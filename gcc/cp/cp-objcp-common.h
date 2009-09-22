@@ -32,6 +32,8 @@ extern bool cp_function_decl_explicit_p (tree decl);
    specific to C++ or ObjC++ go in cp/cp-lang.c and objcp/objcp-lang.c,
    respectively.  */
 
+#undef LANG_HOOKS_FREE_LANG_DATA
+#define LANG_HOOKS_FREE_LANG_DATA cp_free_lang_data
 #undef LANG_HOOKS_TREE_SIZE
 #define LANG_HOOKS_TREE_SIZE cp_tree_size
 #undef LANG_HOOKS_FINISH
@@ -58,8 +60,6 @@ extern bool cp_function_decl_explicit_p (tree decl);
 #define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL cxx_dup_lang_specific_decl
 #undef LANG_HOOKS_SET_DECL_ASSEMBLER_NAME
 #define LANG_HOOKS_SET_DECL_ASSEMBLER_NAME mangle_decl
-#undef LANG_HOOKS_MARK_ADDRESSABLE
-#define LANG_HOOKS_MARK_ADDRESSABLE cxx_mark_addressable
 #undef LANG_HOOKS_PRINT_STATISTICS
 #define LANG_HOOKS_PRINT_STATISTICS cxx_print_statistics
 #undef LANG_HOOKS_PRINT_XNODE
@@ -78,8 +78,6 @@ extern bool cp_function_decl_explicit_p (tree decl);
 #define LANG_HOOKS_WARN_UNUSED_GLOBAL_DECL cxx_warn_unused_global_decl
 #undef LANG_HOOKS_WRITE_GLOBALS
 #define LANG_HOOKS_WRITE_GLOBALS cp_write_global_declarations
-#undef LANG_HOOKS_COMDAT_GROUP
-#define LANG_HOOKS_COMDAT_GROUP cxx_comdat_group
 #undef  LANG_HOOKS_BUILTIN_FUNCTION
 #define LANG_HOOKS_BUILTIN_FUNCTION cxx_builtin_function
 #undef  LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE
@@ -103,8 +101,6 @@ extern bool cp_function_decl_explicit_p (tree decl);
 #define LANG_HOOKS_TREE_DUMP_DUMP_TREE_FN cp_dump_tree
 #undef LANG_HOOKS_TREE_DUMP_TYPE_QUALS_FN
 #define LANG_HOOKS_TREE_DUMP_TYPE_QUALS_FN cp_type_quals
-#undef LANG_HOOKS_EXPR_SIZE
-#define LANG_HOOKS_EXPR_SIZE cp_expr_size
 
 #undef LANG_HOOKS_CALLGRAPH_ANALYZE_EXPR
 #define LANG_HOOKS_CALLGRAPH_ANALYZE_EXPR cxx_callgraph_analyze_expr

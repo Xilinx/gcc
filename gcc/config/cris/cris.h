@@ -1,6 +1,6 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
+   2009 Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
 This file is part of GCC.
@@ -352,23 +352,9 @@ extern int target_flags;
 
 #define UNITS_PER_WORD 4
 
-/* A combination of defining PROMOTE_FUNCTION_MODE,
-   TARGET_PROMOTE_FUNCTION_ARGS that always returns true
-   and *not* defining TARGET_PROMOTE_PROTOTYPES or PROMOTE_MODE gives the
-   best code size and speed for gcc, ipps and products in gcc-2.7.2.  */
 #define CRIS_PROMOTED_MODE(MODE, UNSIGNEDP, TYPE) \
  (GET_MODE_CLASS (MODE) == MODE_INT && GET_MODE_SIZE (MODE) < 4) \
   ? SImode : MODE
-
-#define PROMOTE_FUNCTION_MODE(MODE, UNSIGNEDP, TYPE)  \
-  (MODE) = CRIS_PROMOTED_MODE (MODE, UNSIGNEDP, TYPE)
-
-/* Defining PROMOTE_FUNCTION_RETURN in gcc-2.7.2 uncovers bug 981110 (even
-   if defining FUNCTION_VALUE with MODE as PROMOTED_MODE ;-)
-
-   FIXME: Report this when cris.h is part of GCC, so others can easily
-   see the problem.  Maybe check other systems that define
-   TARGET_PROMOTE_FUNCTION_RETURN that always returns true.  */
 
 /* We will be using prototype promotion, so they will be 32 bit.  */
 #define PARM_BOUNDARY 32
@@ -850,19 +836,10 @@ enum reg_class
 
 /* Node: Elimination */
 
-/* Really only needed if the stack frame has variable length (alloca
-   or variable sized local arguments (GNU C extension).  See PR39499 and
-   PR38609 for the reason this isn't just 0.  */
-#define FRAME_POINTER_REQUIRED (!current_function_sp_is_unchanging)
-
 #define ELIMINABLE_REGS				\
  {{ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},	\
   {ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},	\
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
-
-/* We need not worry about when the frame-pointer is required for other
-   reasons.  */
-#define CAN_ELIMINATE(FROM, TO) 1
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
  (OFFSET) = cris_initial_elimination_offset (FROM, TO)

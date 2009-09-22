@@ -255,6 +255,16 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 #endif
 
+/* This determines whether or not we support the discriminator
+   attribute in the .loc directive.  */
+#ifndef SUPPORTS_DISCRIMINATOR
+#ifdef HAVE_GAS_DISCRIMINATOR
+#define SUPPORTS_DISCRIMINATOR 1
+#else
+#define SUPPORTS_DISCRIMINATOR 0
+#endif
+#endif
+
 /* This determines whether or not we support link-once semantics.  */
 #ifndef SUPPORTS_ONE_ONLY
 #ifdef MAKE_DECL_ONE_ONLY
@@ -1128,6 +1138,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   LOCAL_ALIGNMENT (TREE_TYPE (DECL), DECL_ALIGN (DECL))
 #endif
 
+#ifndef MINIMUM_ALIGNMENT
+#define MINIMUM_ALIGNMENT(EXP,MODE,ALIGN) (ALIGN)
+#endif
+
 /* Alignment value for attribute ((aligned)).  */
 #ifndef ATTRIBUTE_ALIGNED_VALUE
 #define ATTRIBUTE_ALIGNED_VALUE BIGGEST_ALIGNMENT
@@ -1138,10 +1152,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    in recog.c).  */
 #ifndef GO_IF_MODE_DEPENDENT_ADDRESS
 #define GO_IF_MODE_DEPENDENT_ADDRESS(X, WIN)
-#endif
-
-#ifndef FRAME_POINTER_REQUIRED
-#define FRAME_POINTER_REQUIRED false
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

@@ -47,7 +47,9 @@ package body GNAT.Sockets.Thin is
 
    WSAData_Dummy : array (1 .. 512) of C.int;
 
-   WS_Version  : constant := 16#0202#;
+   WS_Version : constant := 16#0202#;
+   --  Winsock 2.2
+
    Initialized : Boolean := False;
 
    function Standard_Connect
@@ -246,6 +248,19 @@ package body GNAT.Sockets.Thin is
 
       return Res;
    end C_Connect;
+
+   ------------------
+   -- Socket_Ioctl --
+   ------------------
+
+   function Socket_Ioctl
+     (S   : C.int;
+      Req : C.int;
+      Arg : access C.int) return C.int
+   is
+   begin
+      return C_Ioctl (S, Req, Arg);
+   end Socket_Ioctl;
 
    ---------------
    -- C_Recvmsg --

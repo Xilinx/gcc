@@ -1,5 +1,5 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -84,6 +84,7 @@ The callgraph:
 #include "tree-dump.h"
 #include "tree-flow.h"
 #include "value-prof.h"
+#include "except.h"
 
 static void cgraph_node_remove_callers (struct cgraph_node *node);
 static inline void cgraph_edge_remove_caller (struct cgraph_edge *e);
@@ -404,6 +405,33 @@ hash_node (const void *p)
   return (hashval_t) DECL_UID (n->decl);
 }
 
+
+/* Return the cgraph node associated with function DECL.  If none
+   exists, return NULL.  */
+
+struct cgraph_node *
+cgraph_node_for_decl (tree decl)
+{
+  struct cgraph_node *node;
+  void **slot;
+
+  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
+
+  node = NULL;
+  if (cgraph_hash)
+    {
+      struct cgraph_node key;
+
+      key.decl = decl;
+      slot = htab_find_slot (cgraph_hash, &key, NO_INSERT);
+      if (slot && *slot)
+	node = (struct cgraph_node *) *slot;
+    }
+
+  return node;
+}
+
+
 /* Returns nonzero if P1 and P2 are equal.  */
 
 static int
@@ -490,6 +518,29 @@ cgraph_node (tree decl)
       if (*aslot == NULL)
 	*aslot = node;
     }
+  return node;
+}
+
+/* Returns the cgraph node assigned to DECL or NULL if no cgraph node
+   is assigned.  */
+
+struct cgraph_node *
+cgraph_get_node (tree decl)
+{
+  struct cgraph_node key, *node = NULL, **slot;
+
+  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
+
+  if (!cgraph_hash)
+    cgraph_hash = htab_create_ggc (10, hash_node, eq_node, NULL);
+
+  key.decl = decl;
+
+  slot = (struct cgraph_node **) htab_find_slot (cgraph_hash, &key,
+						 NO_INSERT);
+
+  if (slot && *slot)
+    node = *slot;
   return node;
 }
 
@@ -654,8 +705,8 @@ cgraph_set_call_stmt (struct cgraph_edge *e, gimple new_stmt)
     }
 }
 
-/* Like cgraph_set_call_stmt but walk the clone tree and update all clones sharing
-   same function body.  */
+/* Like cgraph_set_call_stmt but walk the clone tree and update all
+   clones sharing the same function body.  */
 
 void
 cgraph_set_call_stmt_including_clones (struct cgraph_node *orig,
@@ -666,8 +717,10 @@ cgraph_set_call_stmt_including_clones (struct cgraph_node *orig,
 
   if (edge)
     cgraph_set_call_stmt (edge, new_stmt);
-  if (orig->clones)
-    for (node = orig->clones; node != orig;)
+
+  node = orig->clones;
+  if (node)
+    while (node != orig)
       {
 	struct cgraph_edge *edge = cgraph_edge (node, old_stmt);
 	if (edge)
@@ -690,28 +743,36 @@ cgraph_set_call_stmt_including_clones (struct cgraph_node *orig,
    same function body.  
    
    TODO: COUNT and LOOP_DEPTH should be properly distributed based on relative
-   frequencies of the clones.
-   */
+   frequencies of the clones.  */
 
 void
-cgraph_create_edge_including_clones (struct cgraph_node *orig, struct cgraph_node *callee,
-				     gimple stmt, gcov_type count, int freq,
-				     int loop_depth,
+cgraph_create_edge_including_clones (struct cgraph_node *orig,
+				     struct cgraph_node *callee,
+				     gimple stmt, gcov_type count,
+				     int freq, int loop_depth,
 				     cgraph_inline_failed_t reason)
 {
   struct cgraph_node *node;
+  struct cgraph_edge *edge;
 
-  cgraph_create_edge (orig, callee, stmt, count, freq, loop_depth)->inline_failed =
-    reason;
+  if (!cgraph_edge (orig, stmt))
+    {
+      edge = cgraph_create_edge (orig, callee, stmt, count, freq, loop_depth);
+      edge->inline_failed = reason;
+    }
 
-  if (orig->clones)
-    for (node = orig->clones; node != orig;)
+  node = orig->clones;
+  if (node)
+    while (node != orig)
       {
         /* It is possible that we already constant propagated into the clone
 	   and turned indirect call into dirrect call.  */
         if (!cgraph_edge (node, stmt))
-	  cgraph_create_edge (node, callee, stmt, count, freq,
-			      loop_depth)->inline_failed = reason;
+	  {
+	    edge = cgraph_create_edge (node, callee, stmt, count,
+				       freq, loop_depth);
+	    edge->inline_failed = reason;
+	  }
 
 	if (node->clones)
 	  node = node->clones;
@@ -1377,8 +1438,9 @@ void
 dump_cgraph_node (FILE *f, struct cgraph_node *node)
 {
   struct cgraph_edge *edge;
-  fprintf (f, "%s/%i(%i) [%p]:", cgraph_node_name (node), node->uid,
-	   node->pid, (void *) node);
+  fprintf (f, "%s/%i(%i)", cgraph_node_name (node), node->uid,
+	   node->pid);
+  dump_addr (f, " @", (void *)node);
   if (node->global.inlined_to)
     fprintf (f, " (inline copy in %s/%i)",
 	     cgraph_node_name (node->global.inlined_to),
@@ -1708,12 +1770,37 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
      ??? We cannot use COMDAT linkage because there is no
      ABI support for this.  */
   DECL_EXTERNAL (new_node->decl) = 0;
-  DECL_ONE_ONLY (new_node->decl) = 0;
+  DECL_COMDAT_GROUP (new_node->decl) = 0;
   TREE_PUBLIC (new_node->decl) = 0;
   DECL_COMDAT (new_node->decl) = 0;
   DECL_WEAK (new_node->decl) = 0;
   new_node->clone.tree_map = tree_map;
   new_node->clone.args_to_skip = args_to_skip;
+  if (!args_to_skip)
+    new_node->clone.combined_args_to_skip = old_node->clone.combined_args_to_skip;
+  else if (old_node->clone.combined_args_to_skip)
+    {
+      int newi = 0, oldi = 0;
+      tree arg;
+      bitmap new_args_to_skip = BITMAP_GGC_ALLOC ();
+      struct cgraph_node *orig_node;
+      for (orig_node = old_node; orig_node->clone_of; orig_node = orig_node->clone_of)
+        ;
+      for (arg = DECL_ARGUMENTS (orig_node->decl); arg; arg = TREE_CHAIN (arg), oldi++)
+	{
+	  if (bitmap_bit_p (old_node->clone.combined_args_to_skip, oldi))
+	    {
+	      bitmap_set_bit (new_args_to_skip, oldi);
+	      continue;
+	    }
+	  if (bitmap_bit_p (args_to_skip, newi))
+	    bitmap_set_bit (new_args_to_skip, oldi);
+	  newi++;
+	}
+      new_node->clone.combined_args_to_skip = new_args_to_skip;
+    }
+  else
+    new_node->clone.combined_args_to_skip = args_to_skip;
   new_node->local.externally_visible = 0;
   new_node->local.local = 1;
   new_node->lowered = true;
@@ -1866,6 +1953,40 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	pop_cfun ();
 	current_function_decl = NULL;
 	break;
+    }
+
+  /* Set a personality if required and we already passed EH lowering.  */
+  if (lowered
+      && (function_needs_eh_personality (DECL_STRUCT_FUNCTION (fndecl))
+	  == eh_personality_lang))
+    DECL_FUNCTION_PERSONALITY (fndecl) = lang_hooks.eh_personality ();
+}
+
+/* Return true if NODE can be made local for API change.
+   Extern inline functions and C++ COMDAT functions can be made local
+   at the expense of possible code size growth if function is used in multiple
+   compilation units.  */
+bool
+cgraph_node_can_be_local_p (struct cgraph_node *node)
+{
+  return !node->needed;
+}
+
+/* Bring NODE local.  */
+void
+cgraph_make_node_local (struct cgraph_node *node)
+{
+  gcc_assert (cgraph_node_can_be_local_p (node));
+  if (DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl))
+    {
+      DECL_COMDAT (node->decl) = 0;
+      DECL_COMDAT_GROUP (node->decl) = 0;
+      TREE_PUBLIC (node->decl) = 0;
+      DECL_WEAK (node->decl) = 0;
+      DECL_EXTERNAL (node->decl) = 0;
+      node->local.externally_visible = false;
+      node->local.local = true;
+      gcc_assert (cgraph_function_body_availability (node) == AVAIL_LOCAL);
     }
 }
 

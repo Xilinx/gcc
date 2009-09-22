@@ -66,7 +66,7 @@ struct gimple_opt_pass pass_all_optimizations =
 {
  {
   GIMPLE_PASS,
-  NULL,					/* name */
+  "*all_optimizations",			/* name */
   gate_all_optimizations,		/* gate */
   NULL,					/* execute */
   NULL,					/* sub */
@@ -226,10 +226,6 @@ execute_free_datastructures (void)
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);
 
-  /* Remove the ssa structures.  */
-  if (cfun->gimple_df)
-    delete_tree_ssa ();
-
   /* And get rid of annotations we no longer need.  */
   delete_tree_cfg_annotations ();
 
@@ -273,8 +269,7 @@ execute_fixup_cfg (void)
 		  }
 	      }
 
-	    if (!stmt_could_throw_p (stmt) && lookup_stmt_eh_region (stmt))
-	      remove_stmt_from_eh_region (stmt);
+	    maybe_clean_eh_stmt (stmt);
 	  }
 
 	if (gimple_purge_dead_eh_edges (bb))

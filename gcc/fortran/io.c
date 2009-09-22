@@ -38,8 +38,8 @@ typedef struct
 io_tag;
 
 static const io_tag
-	tag_file	= { "FILE", " file =", " %e", BT_CHARACTER },
-	tag_status	= { "STATUS", " status =", " %e", BT_CHARACTER},
+	tag_file	= {"FILE", " file =", " %e", BT_CHARACTER },
+	tag_status	= {"STATUS", " status =", " %e", BT_CHARACTER},
 	tag_e_access	= {"ACCESS", " access =", " %e", BT_CHARACTER},
 	tag_e_form	= {"FORM", " form =", " %e", BT_CHARACTER},
 	tag_e_recl	= {"RECL", " recl =", " %e", BT_INTEGER},
@@ -94,7 +94,8 @@ static const io_tag
 	tag_end		= {"END", " end =", " %l", BT_UNKNOWN},
 	tag_eor		= {"EOR", " eor =", " %l", BT_UNKNOWN},
 	tag_id		= {"ID", " id =", " %v", BT_INTEGER},
-	tag_pending	= {"PENDING", " pending =", " %v", BT_LOGICAL};
+	tag_pending	= {"PENDING", " pending =", " %v", BT_LOGICAL},
+	tag_newunit	= {"NEWUNIT", " newunit =", " %v", BT_INTEGER};
 
 static gfc_dt *current_dt;
 
@@ -109,8 +110,8 @@ typedef enum
   FMT_NONE, FMT_UNKNOWN, FMT_SIGNED_INT, FMT_ZERO, FMT_POSINT, FMT_PERIOD,
   FMT_COMMA, FMT_COLON, FMT_SLASH, FMT_DOLLAR, FMT_LPAREN,
   FMT_RPAREN, FMT_X, FMT_SIGN, FMT_BLANK, FMT_CHAR, FMT_P, FMT_IBOZ, FMT_F,
-  FMT_E, FMT_EXT, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END, FMT_ERROR, FMT_DC,
-  FMT_DP, FMT_T, FMT_TR, FMT_TL
+  FMT_E, FMT_EN, FMT_ES, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END,
+  FMT_ERROR, FMT_DC, FMT_DP, FMT_T, FMT_TR, FMT_TL, FMT_STAR
 }
 format_token;
 
@@ -415,8 +416,10 @@ format_lex (void)
 
     case 'E':
       c = next_char_not_space (&error);
-      if (c == 'N' || c == 'S')
-	token = FMT_EXT;
+      if (c == 'N' )
+	token = FMT_EN;
+      else if (c == 'S')
+        token = FMT_ES;
       else
 	{
 	  token = FMT_E;
@@ -468,6 +471,10 @@ format_lex (void)
       token = FMT_END;
       break;
 
+    case '*':
+      token = FMT_STAR;
+      break;
+
     default:
       token = FMT_UNKNOWN;
       break;
@@ -479,6 +486,26 @@ format_lex (void)
   return token;
 }
 
+
+static const char *
+token_to_string (format_token t)
+{
+  switch (t)
+    {
+      case FMT_D:
+	return "D";
+      case FMT_G:
+	return "G";
+      case FMT_E:
+	return "E";
+      case FMT_EN:
+	return "EN";
+      case FMT_ES:
+	return "ES";
+      default:
+        return "";
+    }
+}
 
 /* Check a format statement.  The format string, either from a FORMAT
    statement or a constant in an I/O statement has already been parsed
@@ -532,6 +559,19 @@ format_item:
 format_item_1:
   switch (t)
     {
+    case FMT_STAR:
+      repeat = -1;
+      t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
+      if (t == FMT_LPAREN)
+	{
+	  level++;
+	  goto format_item;
+	}
+      error = _("Left parenthesis required after '*'");
+      goto syntax;
+
     case FMT_POSINT:
       repeat = value;
       t = format_lex ();
@@ -574,7 +614,7 @@ format_item_1:
     case FMT_X:
       /* X requires a prior number if we're being pedantic.  */
       if (gfc_notify_std (GFC_STD_GNU, "Extension: X descriptor "
-			  "requires leading space count at %C")
+			  "requires leading space count at %L", &format_locus)
 	  == FAILURE)
 	return FAILURE;
       goto between_desc;
@@ -597,12 +637,13 @@ format_item_1:
       if (t == FMT_ERROR)
 	goto fail;
 
-      if (gfc_notify_std (GFC_STD_GNU, "Extension: $ descriptor at %C")
-	  == FAILURE)
+      if (gfc_notify_std (GFC_STD_GNU, "Extension: $ descriptor at %L",
+	  &format_locus) == FAILURE)
 	return FAILURE;
       if (t != FMT_RPAREN || level > 0)
 	{
-	  gfc_warning ("$ should be the last specifier in format at %C");
+	  gfc_warning ("$ should be the last specifier in format at %L",
+		       &format_locus);
 	  goto optional_comma_1;
 	}
 
@@ -614,7 +655,8 @@ format_item_1:
     case FMT_IBOZ:
     case FMT_F:
     case FMT_E:
-    case FMT_EXT:
+    case FMT_EN:
+    case FMT_ES:
     case FMT_G:
     case FMT_L:
     case FMT_A:
@@ -644,20 +686,35 @@ data_desc:
       break;
 
     case FMT_P:
-      if (pedantic)
+      /* Comma after P is allowed only for F, E, EN, ES, D, or G.
+	 10.1.1 (1).  */
+      t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
+      if (gfc_option.allow_std < GFC_STD_F2003 && t != FMT_COMMA
+	  && t != FMT_F && t != FMT_E && t != FMT_EN && t != FMT_ES
+	  && t != FMT_D && t != FMT_G && t != FMT_RPAREN && t != FMT_SLASH)
 	{
-	  t = format_lex ();
-	  if (t == FMT_ERROR)
-	    goto fail;
+	  error = _("Comma required after P descriptor");
+	  goto syntax;
+	}
+      if (t != FMT_COMMA)
+	{
 	  if (t == FMT_POSINT)
 	    {
-	      error = _("Repeat count cannot follow P descriptor");
+	      t = format_lex ();
+	      if (t == FMT_ERROR)
+		goto fail;
+	    }
+          if (t != FMT_F && t != FMT_E && t != FMT_EN && t != FMT_ES && t != FMT_D
+	      && t != FMT_G && t != FMT_RPAREN && t != FMT_SLASH)
+	    {
+	      error = _("Comma required after P descriptor");
 	      goto syntax;
 	    }
-
-	  saved_token = t;
 	}
 
+      saved_token = t;
       goto optional_comma;
 
     case FMT_T:
@@ -681,8 +738,10 @@ data_desc:
       switch (gfc_notification_std (GFC_STD_GNU))
 	{
 	  case WARNING:
+	    if (mode != MODE_FORMAT)
+	      format_locus.nextc += format_string_pos;
 	    gfc_warning ("Extension: Missing positive width after L "
-			 "descriptor at %C");
+			 "descriptor at %L", &format_locus);
 	    saved_token = t;
 	    break;
 
@@ -715,7 +774,8 @@ data_desc:
     case FMT_D:
     case FMT_E:
     case FMT_G:
-    case FMT_EXT:
+    case FMT_EN:
+    case FMT_ES:
       u = format_lex ();
       if (t == FMT_G && u == FMT_ZERO)
 	{
@@ -725,7 +785,7 @@ data_desc:
 	      goto syntax;
 	    }
 	  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: 'G0' in "
-			      "format at %C") == FAILURE)
+			      "format at %L", &format_locus) == FAILURE)
 	    return FAILURE;
 	  u = format_lex ();
 	  if (u != FMT_PERIOD)
@@ -749,16 +809,38 @@ data_desc:
 	  break;
 	}
 
+      if (u != FMT_POSINT)
+	{
+	  format_locus.nextc += format_string_pos;
+	  gfc_error_now ("Positive width required in format "
+			 "specifier %s at %L", token_to_string (t),
+			 &format_locus);
+	  saved_token = u;
+	  goto finished;
+	}
+
       u = format_lex ();
       if (u == FMT_ERROR)
 	goto fail;
       if (u != FMT_PERIOD)
 	{
 	  /* Warn if -std=legacy, otherwise error.  */
+	  format_locus.nextc += format_string_pos;
 	  if (gfc_option.warn_std != 0)
-	    gfc_error_now ("Period required in format specifier at %C");
+	    {
+	      gfc_error_now ("Period required in format "
+			     "specifier %s at %L", token_to_string (t),
+			     &format_locus);
+	      saved_token = u;
+	      goto finished;
+	    }
 	  else
-	    gfc_warning ("Period required in format specifier at %C");
+	    gfc_warning ("Period required in format "
+			 "specifier %s at %L", token_to_string (t),
+			  &format_locus);
+	  /* If we go to finished, we need to unwind this
+	     before the next round.  */
+	  format_locus.nextc -= format_string_pos;
 	  saved_token = u;
 	  break;
 	}
@@ -819,9 +901,14 @@ data_desc:
 	{
 	  /* Warn if -std=legacy, otherwise error.  */
 	  if (gfc_option.warn_std != 0)
-	    gfc_error_now ("Period required in format specifier at %C");
-	  else
-	    gfc_warning ("Period required in format specifier at %C");
+	    {
+	      error = _("Period required in format specifier");
+	      goto syntax;
+	    }
+	  if (mode != MODE_FORMAT)
+	    format_locus.nextc += format_string_pos;
+	  gfc_warning ("Period required in format specifier at %L",
+		       &format_locus);
 	  saved_token = t;
 	  break;
 	}
@@ -839,8 +926,12 @@ data_desc:
 
     case FMT_H:
       if (!(gfc_option.allow_std & GFC_STD_GNU) && !inhibit_warnings)
-	gfc_warning ("The H format specifier at %C is"
-		     " a Fortran 95 deleted feature");
+	{
+	  if (mode != MODE_FORMAT)
+	    format_locus.nextc += format_string_pos;
+	  gfc_warning ("The H format specifier at %L is"
+		       " a Fortran 95 deleted feature", &format_locus);
+	}
 
       if (mode == MODE_STRING)
 	{
@@ -924,9 +1015,15 @@ between_desc:
       goto syntax;
 
     default:
-      if (gfc_notify_std (GFC_STD_GNU, "Extension: Missing comma at %C")
-	  == FAILURE)
+      if (mode != MODE_FORMAT)
+	format_locus.nextc += format_string_pos;
+      if (gfc_notify_std (GFC_STD_GNU, "Extension: Missing comma at %L",
+	  &format_locus) == FAILURE)
 	return FAILURE;
+      /* If we do not actually return a failure, we need to unwind this
+         before the next round.  */
+      if (mode != MODE_FORMAT)
+	format_locus.nextc -= format_string_pos;
       goto format_item_1;
     }
 
@@ -981,15 +1078,21 @@ extension_optional_comma:
       goto syntax;
 
     default:
-      if (gfc_notify_std (GFC_STD_GNU, "Extension: Missing comma at %C")
-	  == FAILURE)
+      if (mode != MODE_FORMAT)
+	format_locus.nextc += format_string_pos;
+      if (gfc_notify_std (GFC_STD_GNU, "Extension: Missing comma at %L",
+	  &format_locus) == FAILURE)
 	return FAILURE;
+      /* If we do not actually return a failure, we need to unwind this
+         before the next round.  */
+      if (mode != MODE_FORMAT)
+	format_locus.nextc -= format_string_pos;
       saved_token = t;
       break;
     }
 
   goto format_item;
-
+  
 syntax:
   if (mode != MODE_FORMAT)
     format_locus.nextc += format_string_pos;
@@ -1424,6 +1527,9 @@ match_open_element (gfc_open *open)
   m = match_etag (&tag_convert, &open->convert);
   if (m != MATCH_NO)
     return m;
+  m = match_out_tag (&tag_newunit, &open->newunit);
+  if (m != MATCH_NO)
+    return m;
 
   return MATCH_NO;
 }
@@ -1456,6 +1562,7 @@ gfc_free_open (gfc_open *open)
   gfc_free_expr (open->sign);
   gfc_free_expr (open->convert);
   gfc_free_expr (open->asynchronous);
+  gfc_free_expr (open->newunit);
   gfc_free (open);
 }
 
@@ -1485,6 +1592,7 @@ gfc_resolve_open (gfc_open *open)
   RESOLVE_TAG (&tag_e_round, open->round);
   RESOLVE_TAG (&tag_e_sign, open->sign);
   RESOLVE_TAG (&tag_convert, open->convert);
+  RESOLVE_TAG (&tag_newunit, open->newunit);
 
   if (gfc_reference_st_label (open->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
@@ -1645,6 +1753,26 @@ gfc_match_open (void)
     }
 
   warn = (open->err || open->iostat) ? true : false;
+
+  /* Checks on NEWUNIT specifier.  */
+  if (open->newunit)
+    {
+      if (open->unit)
+	{
+	  gfc_error ("UNIT specifier not allowed with NEWUNIT at %C");
+	  goto cleanup;
+	}
+
+      if (!(open->file || (open->status
+          && gfc_wide_strncasecmp (open->status->value.character.string,
+				   "scratch", 7) == 0)))
+	{
+	  gfc_error ("NEWUNIT specifier must have FILE= "
+		     "or STATUS='scratch' at %C");
+	  goto cleanup;
+	}
+    }
+
   /* Checks on the ACCESS specifier.  */
   if (open->access && open->access->expr_type == EXPR_CONSTANT)
     {
@@ -2072,6 +2200,14 @@ gfc_resolve_close (gfc_close *close)
   if (gfc_reference_st_label (close->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
 
+  if (close->unit->expr_type == EXPR_CONSTANT
+      && close->unit->ts.type == BT_INTEGER
+      && mpz_sgn (close->unit->value.integer) < 0)
+    {
+      gfc_error ("UNIT number in CLOSE statement at %L must be non-negative",
+		 &close->unit->where);
+    }
+
   return SUCCESS;
 }
 
@@ -2193,6 +2329,14 @@ gfc_resolve_filepos (gfc_filepos *fp)
   RESOLVE_TAG (&tag_iomsg, fp->iomsg);
   if (gfc_reference_st_label (fp->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
+
+  if (fp->unit->expr_type == EXPR_CONSTANT
+      && fp->unit->ts.type == BT_INTEGER
+      && mpz_sgn (fp->unit->value.integer) < 0)
+    {
+      gfc_error ("UNIT number in statement at %L must be non-negative",
+		 &fp->unit->where);
+    }
 
   return SUCCESS;
 }
@@ -2513,7 +2657,7 @@ gfc_free_dt (gfc_dt *dt)
 /* Resolve everything in a gfc_dt structure.  */
 
 gfc_try
-gfc_resolve_dt (gfc_dt *dt)
+gfc_resolve_dt (gfc_dt *dt, locus *loc)
 {
   gfc_expr *e;
 
@@ -2534,6 +2678,12 @@ gfc_resolve_dt (gfc_dt *dt)
   RESOLVE_TAG (&tag_e_async, dt->asynchronous);
 
   e = dt->io_unit;
+  if (e == NULL)
+    {
+      gfc_error ("UNIT not specified at %L", loc);
+      return FAILURE;
+    }
+
   if (gfc_resolve_expr (e) == SUCCESS
       && (e->ts.type != BT_INTEGER
 	  && (e->ts.type != BT_CHARACTER || e->expr_type != EXPR_VARIABLE)))
@@ -2586,6 +2736,13 @@ gfc_resolve_dt (gfc_dt *dt)
   if (e->rank && e->ts.type != BT_CHARACTER)
     {
       gfc_error ("External IO UNIT cannot be an array at %L", &e->where);
+      return FAILURE;
+    }
+
+  if (e->expr_type == EXPR_CONSTANT && e->ts.type == BT_INTEGER
+      && mpz_sgn (e->value.integer) < 0)
+    {
+      gfc_error ("UNIT number in statement at %L must be non-negative", &e->where);
       return FAILURE;
     }
 
@@ -2809,6 +2966,7 @@ match_io_element (io_kind k, gfc_code **cpp)
 
 	if (gfc_pure (NULL)
 	    && gfc_impure_variable (expr->symtree->n.sym)
+	    && current_dt->io_unit
 	    && current_dt->io_unit->ts.type == BT_CHARACTER)
 	  {
 	    gfc_error ("Cannot read to variable '%s' in PURE procedure at %C",
@@ -2822,7 +2980,8 @@ match_io_element (io_kind k, gfc_code **cpp)
 	break;
 
       case M_WRITE:
-	if (current_dt->io_unit->ts.type == BT_CHARACTER
+	if (current_dt->io_unit
+	    && current_dt->io_unit->ts.type == BT_CHARACTER
 	    && gfc_pure (NULL)
 	    && current_dt->io_unit->expr_type == EXPR_VARIABLE
 	    && gfc_impure_variable (current_dt->io_unit->symtree->n.sym))

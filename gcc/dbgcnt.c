@@ -82,7 +82,8 @@ dbg_cnt_set_limit_by_name (const char *name, int len, int value)
 {
   int i;
   for (i = debug_counter_number_of_counters - 1; i >= 0; i--)
-    if (!strncmp (map[i].name, name, len))
+    if (strncmp (map[i].name, name, len) == 0
+        && map[i].name[len] == '\0')
       break;
 
   if (i < 0)
@@ -100,7 +101,7 @@ dbg_cnt_set_limit_by_name (const char *name, int len, int value)
 static const char *
 dbg_cnt_process_single_pair (const char *arg)
 {
-   char *colon = strchr (arg, ':');
+   const char *colon = strchr (arg, ':');
    char *endptr = NULL;
    int value;
    

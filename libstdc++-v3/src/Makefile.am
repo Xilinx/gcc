@@ -144,10 +144,10 @@ sources = \
 	ctype.cc \
 	debug.cc \
 	functexcept.cc \
-	hash.cc \
+	hash_tr1.cc \
 	hash_c++0x.cc \
 	globals_io.cc \
-	hashtable.cc \
+	hashtable_tr1.cc \
 	hashtable_c++0x.cc \
 	ios.cc \
 	ios_failure.cc \
@@ -189,6 +189,7 @@ sources = \
 	condition_variable.cc \
 	chrono.cc \
 	thread.cc \
+	future.cc \
 	${host_sources} \
 	${host_sources_extra} 
 
@@ -207,6 +208,8 @@ libstdc___la_DEPENDENCIES = \
 
 libstdc___la_LDFLAGS = \
 	-version-info $(libtool_VERSION) ${version_arg} -lm 
+
+libstdc___la_LINK = $(CXXLINK) $(libstdc___la_LDFLAGS)
 
 # Use special rules for the deprecated source files so that they find
 # deprecated include files.
@@ -277,6 +280,11 @@ atomic.lo: atomic.cc
 atomic.o: atomic.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
+fstream-inst.lo: fstream-inst.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+fstream-inst.o: fstream-inst.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
 string-inst.lo: string-inst.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 string-inst.o: string-inst.cc
@@ -295,6 +303,11 @@ chrono.o: chrono.cc
 thread.lo: thread.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 thread.o: thread.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+future.lo: future.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+future.o: future.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 if GLIBCXX_LDBL_COMPAT
@@ -336,8 +349,8 @@ AM_CXXFLAGS = \
 # correct solution is to add `--tag CXX' to LTCXXCOMPILE and maybe
 # CXXLINK, just after $(LIBTOOL), so that libtool doesn't have to
 # attempt to infer which configuration to use
-LTCXXCOMPILE = $(LIBTOOL) --tag CXX --mode=compile $(CXX) $(INCLUDES) \
-	       $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) 
+LTCXXCOMPILE = $(LIBTOOL) --tag CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile \
+	       $(CXX) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 
 LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
 
@@ -347,8 +360,8 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
 # course is problematic at this point.  So, we get the top-level
 # directory to configure libstdc++-v3 to use gcc as the C++
 # compilation driver.
-CXXLINK = $(LIBTOOL) --tag CXX --mode=link $(CXX) \
-	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) -o $@
+CXXLINK = $(LIBTOOL) --tag CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
+	  $(CXX) $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) -o $@
 
 
 # Added bits to build debug library.

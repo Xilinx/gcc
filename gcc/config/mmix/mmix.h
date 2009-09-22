@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler, for MMIX.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Hans-Peter Nilsson (hp@bitrange.com)
 
@@ -181,23 +181,6 @@ extern int target_flags;
 #define WORDS_BIG_ENDIAN 1
 #define FLOAT_WORDS_BIG_ENDIAN 1
 #define UNITS_PER_WORD 8
-
-/* FIXME: Promotion of modes currently generates slow code, extending
-   before every operation.  */
-/* I'm a little bit undecided about this one.  It might be beneficial to
-   promote all operations.  */
-
-#define PROMOTE_FUNCTION_MODE(MODE, UNSIGNEDP, TYPE)	\
- do {						\
-  if (GET_MODE_CLASS (MODE) == MODE_INT		\
-      && GET_MODE_SIZE (MODE) < 8)		\
-   {						\
-     (MODE) = DImode;				\
-     /* Do the following some time later,	\
-	scrutinizing differences.  */		\
-     if (0) (UNSIGNEDP) = 0;			\
-   }						\
- } while (0)
 
 /* We need to align everything to 64 bits that can affect the alignment
    of other types.  Since address N is interpreted in MMIX as (N modulo
@@ -585,9 +568,6 @@ enum reg_class
 
 
 /* Node: Elimination */
-/* FIXME: Is this requirement built-in?  Anyway, we should try to get rid
-   of it; we can deduce the value.  */
-#define FRAME_POINTER_REQUIRED  cfun->has_nonlocal_label
 
 /* The frame-pointer is stored in a location that either counts to the
    offset of incoming parameters, or that counts to the offset of the
@@ -597,10 +577,6 @@ enum reg_class
  {{ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},	\
   {ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},	\
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
-
-/* We need not worry about when the frame-pointer is required for other
-   reasons; GCC takes care of those cases.  */
-#define CAN_ELIMINATE(FROM, TO) 1
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
  (OFFSET) = mmix_initial_elimination_offset (FROM, TO)

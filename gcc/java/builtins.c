@@ -318,7 +318,8 @@ compareAndSwapInt_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			   tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (int_type_node);
-  if (sync_compare_and_swap[mode] != CODE_FOR_nothing)
+  if (sync_compare_and_swap[mode] != CODE_FOR_nothing
+      || flag_use_atomic_builtins)
     {
       tree addr, stmt;
       UNMARSHAL5 (orig_call);
@@ -337,7 +338,12 @@ compareAndSwapLong_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			    tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (long_type_node);
-  if (sync_compare_and_swap[mode] != CODE_FOR_nothing)
+  if (sync_compare_and_swap[mode] != CODE_FOR_nothing
+      || (GET_MODE_SIZE (mode) <= GET_MODE_SIZE (word_mode)
+	  && flag_use_atomic_builtins))
+    /* We don't trust flag_use_atomic_builtins for multi-word
+       compareAndSwap.  Some machines such as ARM have atomic libfuncs
+       but not the multi-word versions.  */
     {
       tree addr, stmt;
       UNMARSHAL5 (orig_call);
@@ -355,7 +361,8 @@ compareAndSwapObject_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			      tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (ptr_type_node);
-  if (sync_compare_and_swap[mode] != CODE_FOR_nothing)
+  if (sync_compare_and_swap[mode] != CODE_FOR_nothing
+      || flag_use_atomic_builtins)
   {
     tree addr, stmt;
     int builtin;
@@ -411,7 +418,7 @@ getVolatile_builtin (tree method_return_type ATTRIBUTE_UNUSED,
   
   stmt = build_call_expr (built_in_decls[BUILT_IN_SYNCHRONIZE], 0);
   
-  tmp = build_decl (VAR_DECL, NULL, method_return_type);
+  tmp = build_decl (BUILTINS_LOCATION, VAR_DECL, NULL, method_return_type);
   DECL_IGNORED_P (tmp) = 1;
   DECL_ARTIFICIAL (tmp) = 1;
   pushdecl (tmp);
@@ -453,7 +460,8 @@ define_builtin (enum built_in_function val,
 {
   tree decl;
 
-  decl = build_decl (FUNCTION_DECL, get_identifier (name), type);
+  decl = build_decl (BUILTINS_LOCATION,
+		     FUNCTION_DECL, get_identifier (name), type);
   DECL_EXTERNAL (decl) = 1;
   TREE_PUBLIC (decl) = 1;
   SET_DECL_ASSEMBLER_NAME (decl, get_identifier (libname));
@@ -576,7 +584,7 @@ initialize_builtins (void)
 		  build_function_type_list (ptr_type_node, int_type_node, NULL_TREE),
 		  "__builtin_return_address", BUILTIN_NOTHROW);
 
-  build_common_builtin_nodes ();
+  build_common_builtin_nodes (true);
 }
 
 /* If the call matches a builtin, return the

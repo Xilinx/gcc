@@ -88,7 +88,12 @@ find_referenced_vars (void)
   FOR_EACH_BB (bb)
     {
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
-	find_referenced_vars_in (gsi_stmt (si));
+	{
+	  gimple stmt = gsi_stmt (si);
+	  if (is_gimple_debug (stmt))
+	    continue;
+	  find_referenced_vars_in (gsi_stmt (si));
+	}
 
       for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
 	find_referenced_vars_in (gsi_stmt (si));
@@ -157,6 +162,32 @@ renumber_gimple_stmt_uids (void)
     }
 }
 
+/* Like renumber_gimple_stmt_uids, but only do work on the basic blocks
+   in BLOCKS, of which there are N_BLOCKS.  Also renumbers PHIs.  */
+
+void 
+renumber_gimple_stmt_uids_in_blocks (basic_block *blocks, int n_blocks)
+{
+  int i;
+
+  set_gimple_stmt_max_uid (cfun, 0);
+  for (i = 0; i < n_blocks; i++)
+    {
+      basic_block bb = blocks[i];
+      gimple_stmt_iterator bsi;
+      for (bsi = gsi_start_phis (bb); !gsi_end_p (bsi); gsi_next (&bsi))
+	{
+	  gimple stmt = gsi_stmt (bsi);
+	  gimple_set_uid (stmt, inc_gimple_stmt_max_uid (cfun));
+	}
+      for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
+	{
+	  gimple stmt = gsi_stmt (bsi);
+	  gimple_set_uid (stmt, inc_gimple_stmt_max_uid (cfun));
+	}
+    }
+}
+
 /* Create a new annotation for a tree T.  */
 
 tree_ann_common_t
@@ -170,7 +201,6 @@ create_tree_common_ann (tree t)
   ann = GGC_CNEW (struct tree_ann_common_d);
 
   ann->type = TREE_ANN_COMMON;
-  ann->rn = -1;
   t->base.ann = (tree_ann_t) ann;
 
   return ann;
@@ -275,18 +305,24 @@ dump_variable (FILE *file, tree var)
   else if (is_call_used (var))
     fprintf (file, ", call used");
 
-  if (ann->noalias_state == NO_ALIAS)
+  if (ann && ann->noalias_state == NO_ALIAS)
     fprintf (file, ", NO_ALIAS (does not alias other NO_ALIAS symbols)");
-  else if (ann->noalias_state == NO_ALIAS_GLOBAL)
+  else if (ann && ann->noalias_state == NO_ALIAS_GLOBAL)
     fprintf (file, ", NO_ALIAS_GLOBAL (does not alias other NO_ALIAS symbols"
 	           " and global vars)");
-  else if (ann->noalias_state == NO_ALIAS_ANYTHING)
+  else if (ann && ann->noalias_state == NO_ALIAS_ANYTHING)
     fprintf (file, ", NO_ALIAS_ANYTHING (does not alias any other symbols)");
 
-  if (gimple_default_def (cfun, var))
+  if (cfun && gimple_default_def (cfun, var))
     {
       fprintf (file, ", default def: ");
       print_generic_expr (file, gimple_default_def (cfun, var), dump_flags);
+    }
+
+  if (DECL_INITIAL (var))
+    {
+      fprintf (file, ", initial: ");
+      print_generic_expr (file, DECL_INITIAL (var), dump_flags);
     }
 
   fprintf (file, "\n");
@@ -723,7 +759,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
     size_tree = DECL_SIZE (TREE_OPERAND (exp, 1));
   else if (TREE_CODE (exp) == BIT_FIELD_REF)
     size_tree = TREE_OPERAND (exp, 1);
-  else
+  else if (!VOID_TYPE_P (TREE_TYPE (exp)))
     {
       enum machine_mode mode = TYPE_MODE (TREE_TYPE (exp));
       if (mode == BLKmode)
@@ -750,7 +786,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
       switch (TREE_CODE (exp))
 	{
 	case BIT_FIELD_REF:
-	  bit_offset += tree_low_cst (TREE_OPERAND (exp, 2), 0);
+	  bit_offset += TREE_INT_CST_LOW (TREE_OPERAND (exp, 2));
 	  break;
 
 	case COMPONENT_REF:
@@ -761,13 +797,14 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	    if (TREE_CODE (TREE_TYPE (TREE_OPERAND (exp, 0))) == UNION_TYPE)
 	      seen_union = true;
 
-	    if (this_offset && TREE_CODE (this_offset) == INTEGER_CST)
+	    if (this_offset
+		&& TREE_CODE (this_offset) == INTEGER_CST
+		&& host_integerp (this_offset, 0))
 	      {
-		HOST_WIDE_INT hthis_offset = tree_low_cst (this_offset, 0);
-
+		HOST_WIDE_INT hthis_offset = TREE_INT_CST_LOW (this_offset);
 		hthis_offset *= BITS_PER_UNIT;
 		bit_offset += hthis_offset;
-		bit_offset += tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 0);
+		bit_offset += TREE_INT_CST_LOW (DECL_FIELD_BIT_OFFSET (field));
 	      }
 	    else
 	      {
@@ -787,18 +824,20 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	case ARRAY_RANGE_REF:
 	  {
 	    tree index = TREE_OPERAND (exp, 1);
-	    tree low_bound = array_ref_low_bound (exp);
-	    tree unit_size = array_ref_element_size (exp);
+	    tree low_bound, unit_size;
 
 	    /* If the resulting bit-offset is constant, track it.  */
-	    if (host_integerp (index, 0)
-		&& host_integerp (low_bound, 0)
-		&& host_integerp (unit_size, 1))
+	    if (TREE_CODE (index) == INTEGER_CST
+		&& host_integerp (index, 0)
+		&& (low_bound = array_ref_low_bound (exp),
+		    host_integerp (low_bound, 0))
+		&& (unit_size = array_ref_element_size (exp),
+		    host_integerp (unit_size, 1)))
 	      {
-		HOST_WIDE_INT hindex = tree_low_cst (index, 0);
+		HOST_WIDE_INT hindex = TREE_INT_CST_LOW (index);
 
-		hindex -= tree_low_cst (low_bound, 0);
-		hindex *= tree_low_cst (unit_size, 1);
+		hindex -= TREE_INT_CST_LOW (low_bound);
+		hindex *= TREE_INT_CST_LOW (unit_size);
 		hindex *= BITS_PER_UNIT;
 		bit_offset += hindex;
 

@@ -1,3 +1,42 @@
+2009-09-03  Diego Novillo  <dnovillo@google.com>
+
+	* objcp-lang.c (lang_hooks): Remove const qualifier.
+
+2009-07-14  Taras Glek  <tglek@mozilla.com>
+	    Rafael Espindola  <espindola@google.com>
+
+	* Make-lang.in (obj-c.install-plugin): New target for
+	installing plugin headers.
+
+2009-06-19  Ian Lance Taylor  <iant@google.com>
+
+	* objcp-decl.h (start_struct): Remove in_struct and struct_types
+	parameters.  Add struct_info parameter.
+	(finish_struct): Likewise.
+
+2009-06-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	* objcp-decl.h (start_struct): Add location argument.
+	(finish_struct): Same.
+	(finish_decl): New.
+
+2009-06-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* objcp-decl.h (c_end_compound_stmt): New argument.
+	* objcp-decl.c (objcp_start_struct): Add argument.
+	(objcp_finish_struct): Same.
+
+2009-06-03  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (cc1objplus-checksum.o): Depend upon $(CONFIG_H)
+	and $(SYSTEM_H).
+
+2009-05-27  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (cc1objplus-dummy$(exeext)): Change $(COMPILER) to
+	$(LINKER).
+	(cc1objplus$(exeext)): Likewise.
+
 2009-05-26  Ian Lance Taylor  <iant@google.com>
 
 	* Make-lang.in (cc1objplus-dummy$(exeext)): Use $(COMPILER).

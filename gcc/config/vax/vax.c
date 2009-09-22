@@ -98,6 +98,9 @@ static rtx vax_builtin_setjmp_frame_value (void);
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P vax_legitimate_address_p
 
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED hook_bool_void_true
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 /* Set global variables as needed for the options enabled.  */
@@ -133,7 +136,7 @@ vax_output_function_prologue (FILE * file, HOST_WIDE_INT size)
 
   if (dwarf2out_do_frame ())
     {
-      const char *label = dwarf2out_cfi_label ();
+      const char *label = dwarf2out_cfi_label (false);
       int offset = 0;
 
       for (regno = FIRST_PSEUDO_REGISTER-1; regno >= 0; --regno)
@@ -172,8 +175,11 @@ vax_file_start (void)
 static void
 vax_init_libfuncs (void)
 {
-  set_optab_libfunc (udiv_optab, SImode, TARGET_ELF ? "*__udiv" : "*udiv");
-  set_optab_libfunc (umod_optab, SImode, TARGET_ELF ? "*__urem" : "*urem");
+  if (TARGET_BSD_DIVMOD)
+    {
+      set_optab_libfunc (udiv_optab, SImode, TARGET_ELF ? "*__udiv" : "*udiv");
+      set_optab_libfunc (umod_optab, SImode, TARGET_ELF ? "*__urem" : "*urem");
+    }
 }
 
 /* This is like nonimmediate_operand with a restriction on the type of MEM.  */

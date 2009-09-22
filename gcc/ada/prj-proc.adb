@@ -31,15 +31,12 @@ with Prj.Attr; use Prj.Attr;
 with Prj.Err;  use Prj.Err;
 with Prj.Ext;  use Prj.Ext;
 with Prj.Nmsc; use Prj.Nmsc;
-with Sinput;   use Sinput;
 with Snames;
 
 with GNAT.Case_Util; use GNAT.Case_Util;
 with GNAT.HTable;
 
 package body Prj.Proc is
-
-   Error_Report : Put_Line_Access := null;
 
    package Processed_Projects is new GNAT.HTable.Simple_HTable
      (Header_Num => Header_Num,
@@ -79,15 +76,15 @@ package body Prj.Proc is
    --  the package or project with declarations Decl.
 
    procedure Check
-     (In_Tree         : Project_Tree_Ref;
-      Project         : Project_Id;
-      Current_Dir     : String;
-      When_No_Sources : Error_Warning;
-      Is_Config_File  : Boolean);
+     (In_Tree : Project_Tree_Ref;
+      Project : Project_Id;
+      Flags   : Processing_Flags);
    --  Set all projects to not checked, then call Recursive_Check for the
    --  main project Project. Project is set to No_Project if errors occurred.
    --  Current_Dir is for optimization purposes, avoiding extra system calls.
-   --  Is_Config_File should be True if Project is a config file (.cgpr).
+   --  If Allow_Duplicate_Basenames, then files with the same base names are
+   --  authorized within a project for source-based languages (never for unit
+   --  based languages)
 
    procedure Copy_Package_Declarations
      (From              : Declarations;
@@ -103,6 +100,7 @@ package body Prj.Proc is
    function Expression
      (Project                : Project_Id;
       In_Tree                : Project_Tree_Ref;
+      Flags                  : Processing_Flags;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Pkg                    : Package_Id;
@@ -125,6 +123,7 @@ package body Prj.Proc is
    procedure Process_Declarative_Items
      (Project                : Project_Id;
       In_Tree                : Project_Tree_Ref;
+      Flags                  : Processing_Flags;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Pkg                    : Package_Id;
@@ -136,6 +135,7 @@ package body Prj.Proc is
    procedure Recursive_Process
      (In_Tree                : Project_Tree_Ref;
       Project                : out Project_Id;
+      Flags                  : Processing_Flags;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Extended_By            : Project_Id);
@@ -146,20 +146,12 @@ package body Prj.Proc is
    --  extended project, if any. Then process the declarative items of the
    --  project.
 
-   type Recursive_Check_Data is record
-      In_Tree         : Project_Tree_Ref;
-      Current_Dir     : String_Access;
-      When_No_Sources : Error_Warning;
-      Proc_Data       : Processing_Data;
-      Is_Config_File  : Boolean;
-   end record;
-   --  Data passed to Recursive_Check
-   --  Current_Dir is for optimization purposes, avoiding extra system calls.
-
-   procedure Recursive_Check
-     (Project : Project_Id;
-      Data    : in out Recursive_Check_Data);
-   --  Check_Naming_Scheme for the project
+   function Get_Attribute_Index
+     (Tree  : Project_Node_Tree_Ref;
+      Attr  : Project_Node_Id;
+      Index : Name_Id) return Name_Id;
+   --  Copy the index of the attribute into Name_Buffer, converting to lower
+   --  case if the attribute is case-insensitive.
 
    ---------
    -- Add --
@@ -178,7 +170,6 @@ package body Prj.Proc is
       elsif Str /= No_Name and then Str /= Empty_String then
          declare
             S : constant String := Get_Name_String (Str);
-
          begin
             Get_Name_String (To_Exp);
             Add_Str_To_Name_Buffer (S);
@@ -279,27 +270,12 @@ package body Prj.Proc is
    -----------
 
    procedure Check
-     (In_Tree         : Project_Tree_Ref;
-      Project         : Project_Id;
-      Current_Dir     : String;
-      When_No_Sources : Error_Warning;
-      Is_Config_File  : Boolean)
+     (In_Tree : Project_Tree_Ref;
+      Project : Project_Id;
+      Flags   : Processing_Flags)
    is
-      Dir : aliased String := Current_Dir;
-
-      procedure Check_All_Projects is new
-        For_Every_Project_Imported (Recursive_Check_Data, Recursive_Check);
-
-      Data : Recursive_Check_Data;
-
    begin
-      Data.In_Tree         := In_Tree;
-      Data.Current_Dir     := Dir'Unchecked_Access;
-      Data.When_No_Sources := When_No_Sources;
-      Data.Is_Config_File  := Is_Config_File;
-      Initialize (Data.Proc_Data);
-
-      Check_All_Projects (Project, Data, Imported_First => True);
+      Process_Naming_Scheme (In_Tree, Project, Flags);
 
       --  Set the Other_Part field for the units
 
@@ -317,26 +293,20 @@ package body Prj.Proc is
             Source1 := Prj.Element (Iter);
             exit when Source1 = No_Source;
 
-            Name := Source1.Unit;
-
-            if Name /= No_Name then
+            if Source1.Unit /= No_Unit_Index then
+               Name := Source1.Unit.Name;
                Source2 := Unit_Htable.Get (Name);
 
                if Source2 = No_Source then
                   Unit_Htable.Set (K => Name, E => Source1);
-
                else
                   Unit_Htable.Remove (Name);
-                  Source1.Other_Part := Source2;
-                  Source2.Other_Part := Source1;
                end if;
             end if;
 
             Next (Iter);
          end loop;
       end;
-
-      Free (Data.Proc_Data);
    end Check;
 
    -------------------------------
@@ -390,7 +360,6 @@ package body Prj.Proc is
          if To.Attributes = No_Variable then
             To.Attributes :=
               Variable_Element_Table.Last (In_Tree.Variable_Elements);
-
          else
             In_Tree.Variable_Elements.Table (V2).Next :=
               Variable_Element_Table.Last (In_Tree.Variable_Elements);
@@ -423,7 +392,6 @@ package body Prj.Proc is
 
             if To.Arrays = No_Array then
                To.Arrays := Array_Table.Last (In_Tree.Arrays);
-
             else
                In_Tree.Arrays.Table (A2).Next :=
                  Array_Table.Last (In_Tree.Arrays);
@@ -474,6 +442,44 @@ package body Prj.Proc is
       end loop;
    end Copy_Package_Declarations;
 
+   -------------------------
+   -- Get_Attribute_Index --
+   -------------------------
+
+   function Get_Attribute_Index
+     (Tree  : Project_Node_Tree_Ref;
+      Attr  : Project_Node_Id;
+      Index : Name_Id) return Name_Id
+   is
+      Lower : Boolean;
+
+   begin
+      Get_Name_String (Index);
+      Lower := Case_Insensitive (Attr, Tree);
+
+      --  The index is always case insensitive if it does not include any dot.
+      --  ??? Why not use the properties from prj-attr, simply, maybe because
+      --  we don't know whether we have a file as an index?
+
+      if not Lower then
+         Lower := True;
+
+         for J in 1 .. Name_Len loop
+            if Name_Buffer (J) = '.' then
+               Lower := False;
+               exit;
+            end if;
+         end loop;
+      end if;
+
+      if Lower then
+         To_Lower (Name_Buffer (1 .. Name_Len));
+         return Name_Find;
+      else
+         return Index;
+      end if;
+   end Get_Attribute_Index;
+
    ----------------
    -- Expression --
    ----------------
@@ -481,13 +487,14 @@ package body Prj.Proc is
    function Expression
      (Project                : Project_Id;
       In_Tree                : Project_Tree_Ref;
+      Flags                  : Processing_Flags;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Pkg                    : Package_Id;
       First_Term             : Project_Node_Id;
       Kind                   : Variable_Kind) return Variable_Value
    is
-      The_Term : Project_Node_Id := First_Term;
+      The_Term : Project_Node_Id;
       --  The term in the expression list
 
       The_Current_Term : Project_Node_Id := Empty_Node;
@@ -505,6 +512,7 @@ package body Prj.Proc is
 
       --  Process each term of the expression, starting with First_Term
 
+      The_Term := First_Term;
       while Present (The_Term) loop
          The_Current_Term := Current_Term (The_Term, From_Project_Node_Tree);
 
@@ -584,6 +592,7 @@ package body Prj.Proc is
                      Value := Expression
                        (Project                => Project,
                         In_Tree                => In_Tree,
+                        Flags                  => Flags,
                         From_Project_Node      => From_Project_Node,
                         From_Project_Node_Tree => From_Project_Node_Tree,
                         Pkg                    => Pkg,
@@ -633,6 +642,7 @@ package body Prj.Proc is
                           Expression
                             (Project                => Project,
                              In_Tree                => In_Tree,
+                             Flags                  => Flags,
                              From_Project_Node      => From_Project_Node,
                              From_Project_Node_Tree => From_Project_Node_Tree,
                              Pkg                    => Pkg,
@@ -801,7 +811,6 @@ package body Prj.Proc is
                         The_Array   : Array_Id := No_Array;
                         The_Element : Array_Element_Id := No_Array_Element;
                         Array_Index : Name_Id := No_Name;
-                        Lower       : Boolean;
 
                      begin
                         if The_Package /= No_Package then
@@ -823,33 +832,11 @@ package body Prj.Proc is
                         if The_Array /= No_Array then
                            The_Element := In_Tree.Arrays.Table
                                             (The_Array).Value;
-
-                           Get_Name_String (Index);
-
-                           Lower :=
-                             Case_Insensitive
-                               (The_Current_Term, From_Project_Node_Tree);
-
-                           --  In multi-language mode (gprbuild), the index is
-                           --  always case insensitive if it does not include
-                           --  any dot.
-
-                           if Get_Mode = Multi_Language and then not Lower then
-                              Lower := True;
-
-                              for J in 1 .. Name_Len loop
-                                 if Name_Buffer (J) = '.' then
-                                    Lower := False;
-                                    exit;
-                                 end if;
-                              end loop;
-                           end if;
-
-                           if Lower then
-                              To_Lower (Name_Buffer (1 .. Name_Len));
-                           end if;
-
-                           Array_Index := Name_Find;
+                           Array_Index :=
+                             Get_Attribute_Index
+                               (From_Project_Node_Tree,
+                                The_Current_Term,
+                                Index);
 
                            while The_Element /= No_Array_Element
                              and then
@@ -1040,6 +1027,7 @@ package body Prj.Proc is
                      Def_Var := Expression
                        (Project                => Project,
                         In_Tree                => In_Tree,
+                        Flags                  => Flags,
                         From_Project_Node      => From_Project_Node,
                         From_Project_Node_Tree => From_Project_Node_Tree,
                         Pkg                    => Pkg,
@@ -1053,21 +1041,16 @@ package body Prj.Proc is
                      end if;
                   end if;
 
-                  Value := Prj.Ext.Value_Of (Name, Default);
+                  Value :=
+                    Prj.Ext.Value_Of (From_Project_Node_Tree, Name, Default);
 
                   if Value = No_Name then
                      if not Quiet_Output then
-                        if Error_Report = null then
-                           Error_Msg
-                             ("?undefined external reference",
-                              Location_Of
-                                (The_Current_Term, From_Project_Node_Tree));
-                        else
-                           Error_Report
-                             ("warning: """ & Get_Name_String (Name) &
-                              """ is an undefined external reference",
-                              Project, In_Tree);
-                        end if;
+                        Error_Msg
+                          (Flags, "?undefined external reference",
+                           Location_Of
+                             (The_Current_Term, From_Project_Node_Tree),
+                           Project);
                      end if;
 
                      Value := Empty_String;
@@ -1233,11 +1216,8 @@ package body Prj.Proc is
       Success                : out Boolean;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
-      Report_Error           : Put_Line_Access;
-      When_No_Sources        : Error_Warning := Error;
-      Reset_Tree             : Boolean       := True;
-      Current_Dir            : String        := "";
-      Is_Config_File         : Boolean)
+      Flags                  : Processing_Flags;
+      Reset_Tree             : Boolean       := True)
    is
    begin
       Process_Project_Tree_Phase_1
@@ -1246,20 +1226,19 @@ package body Prj.Proc is
          Success                => Success,
          From_Project_Node      => From_Project_Node,
          From_Project_Node_Tree => From_Project_Node_Tree,
-         Report_Error           => Report_Error,
+         Flags                  => Flags,
          Reset_Tree             => Reset_Tree);
 
-      if not Is_Config_File then
+      if Project_Qualifier_Of (From_Project_Node, From_Project_Node_Tree) /=
+        Configuration
+      then
          Process_Project_Tree_Phase_2
            (In_Tree                => In_Tree,
             Project                => Project,
             Success                => Success,
             From_Project_Node      => From_Project_Node,
             From_Project_Node_Tree => From_Project_Node_Tree,
-            Report_Error           => Report_Error,
-            When_No_Sources        => When_No_Sources,
-            Current_Dir            => Current_Dir,
-            Is_Config_File         => Is_Config_File);
+            Flags                  => Flags);
       end if;
    end Process;
 
@@ -1270,6 +1249,7 @@ package body Prj.Proc is
    procedure Process_Declarative_Items
      (Project                : Project_Id;
       In_Tree                : Project_Tree_Ref;
+      Flags                  : Processing_Flags;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Pkg                    : Package_Id;
@@ -1405,6 +1385,7 @@ package body Prj.Proc is
                         Process_Declarative_Items
                           (Project                => Project,
                            In_Tree                => In_Tree,
+                           Flags                  => Flags,
                            From_Project_Node      => From_Project_Node,
                            From_Project_Node_Tree => From_Project_Node_Tree,
                            Pkg                    => New_Pkg,
@@ -1593,16 +1574,11 @@ package body Prj.Proc is
                      end loop;
 
                      if Orig_Array = No_Array then
-                        if Error_Report = null then
-                           Error_Msg
-                             ("associative array value not found",
-                              Location_Of
-                                (Current_Item, From_Project_Node_Tree));
-                        else
-                           Error_Report
-                             ("associative array value not found",
-                              Project, In_Tree);
-                        end if;
+                        Error_Msg
+                          (Flags,
+                           "associative array value not found",
+                           Location_Of (Current_Item, From_Project_Node_Tree),
+                           Project);
 
                      else
                         Orig_Element :=
@@ -1705,6 +1681,7 @@ package body Prj.Proc is
                        Expression
                          (Project                => Project,
                           In_Tree                => In_Tree,
+                          Flags                  => Flags,
                           From_Project_Node      => From_Project_Node,
                           From_Project_Node_Tree => From_Project_Node_Tree,
                           Pkg                    => Pkg,
@@ -1741,18 +1718,12 @@ package body Prj.Proc is
                         if New_Value.Value = Empty_String then
                            Error_Msg_Name_1 :=
                              Name_Of (Current_Item, From_Project_Node_Tree);
-
-                           if Error_Report = null then
-                              Error_Msg
-                                ("no value defined for %%",
-                                 Location_Of
-                                   (Current_Item, From_Project_Node_Tree));
-                           else
-                              Error_Report
-                                ("no value defined for " &
-                                 Get_Name_String (Error_Msg_Name_1),
-                                 Project, In_Tree);
-                           end if;
+                           Error_Msg
+                             (Flags,
+                              "no value defined for %%",
+                              Location_Of
+                                (Current_Item, From_Project_Node_Tree),
+                              Project);
 
                         else
                            declare
@@ -1786,24 +1757,12 @@ package body Prj.Proc is
                                  Error_Msg_Name_2 :=
                                    Name_Of
                                      (Current_Item, From_Project_Node_Tree);
-
-                                 if Error_Report = null then
-                                    Error_Msg
-                                      ("value %% is illegal " &
-                                       "for typed string %%",
-                                       Location_Of
-                                         (Current_Item,
-                                          From_Project_Node_Tree));
-
-                                 else
-                                    Error_Report
-                                      ("value """ &
-                                       Get_Name_String (Error_Msg_Name_1) &
-                                       """ is illegal for typed string """ &
-                                       Get_Name_String (Error_Msg_Name_2) &
-                                       """",
-                                       Project, In_Tree);
-                                 end if;
+                                 Error_Msg
+                                   (Flags,
+                                    "value %% is illegal for typed string %%",
+                                    Location_Of
+                                      (Current_Item, From_Project_Node_Tree),
+                                    Project);
                               end if;
                            end;
                         end if;
@@ -1869,7 +1828,8 @@ package body Prj.Proc is
                            pragma Assert
                              (Kind_Of (Current_Item, From_Project_Node_Tree) /=
                                 N_Attribute_Declaration,
-                              "illegal attribute declaration");
+                              "illegal attribute declaration for "
+                              & Get_Name_String (Current_Item_Name));
 
                            Variable_Element_Table.Increment_Last
                              (In_Tree.Variable_Elements);
@@ -1911,47 +1871,17 @@ package body Prj.Proc is
                            Index_Name : Name_Id :=
                              Associative_Array_Index_Of
                                (Current_Item, From_Project_Node_Tree);
-                           Lower      : Boolean;
                            The_Array : Array_Id;
-
                            The_Array_Element : Array_Element_Id :=
                                                  No_Array_Element;
 
                         begin
                            if Index_Name /= All_Other_Names then
-                              --  Get the string index
-
-                              Get_Name_String
-                                (Associative_Array_Index_Of
+                              Index_Name := Get_Attribute_Index
+                                (From_Project_Node_Tree,
+                                 Current_Item,
+                                 Associative_Array_Index_Of
                                    (Current_Item, From_Project_Node_Tree));
-
-                              --  Put in lower case, if necessary
-
-                              Lower :=
-                                Case_Insensitive
-                                  (Current_Item, From_Project_Node_Tree);
-
-                              --  In multi-language mode (gprbuild), the index
-                              --  is always case insensitive if it does not
-                              --  include any dot.
-
-                              if Get_Mode = Multi_Language
-                                and then not Lower
-                              then
-                                 for J in 1 .. Name_Len loop
-                                    if Name_Buffer (J) = '.' then
-                                       Lower := False;
-                                       exit;
-                                    end if;
-                                 end loop;
-                              end if;
-
-                              if Lower then
-                                 GNAT.Case_Util.To_Lower
-                                   (Name_Buffer (1 .. Name_Len));
-                              end if;
-
-                              Index_Name := Name_Find;
                            end if;
 
                            --  Look for the array in the appropriate list
@@ -2239,6 +2169,7 @@ package body Prj.Proc is
                      Process_Declarative_Items
                        (Project                => Project,
                         In_Tree                => In_Tree,
+                        Flags                  => Flags,
                         From_Project_Node      => From_Project_Node,
                         From_Project_Node_Tree => From_Project_Node_Tree,
                         Pkg                    => Pkg,
@@ -2269,12 +2200,10 @@ package body Prj.Proc is
       Success                : out Boolean;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
-      Report_Error           : Put_Line_Access;
+      Flags                  : Processing_Flags;
       Reset_Tree             : Boolean := True)
    is
    begin
-      Error_Report := Report_Error;
-
       if Reset_Tree then
 
          --  Make sure there are no projects in the data structure
@@ -2290,6 +2219,7 @@ package body Prj.Proc is
       Recursive_Process
         (Project                => Project,
          In_Tree                => In_Tree,
+         Flags                  => Flags,
          From_Project_Node      => From_Project_Node,
          From_Project_Node_Tree => From_Project_Node_Tree,
          Extended_By            => No_Project);
@@ -2310,10 +2240,7 @@ package body Prj.Proc is
       Success                : out Boolean;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
-      Report_Error           : Put_Line_Access;
-      When_No_Sources        : Error_Warning := Error;
-      Current_Dir            : String;
-      Is_Config_File         : Boolean)
+      Flags                  : Processing_Flags)
    is
       Obj_Dir    : Path_Name_Type;
       Extending  : Project_Id;
@@ -2323,17 +2250,14 @@ package body Prj.Proc is
    --  Start of processing for Process_Project_Tree_Phase_2
 
    begin
-      Error_Report := Report_Error;
       Success := True;
 
       if Project /= No_Project then
-         Check (In_Tree, Project, Current_Dir, When_No_Sources,
-                Is_Config_File => Is_Config_File);
+         Check (In_Tree, Project, Flags);
       end if;
 
-      --  If main project is an extending all project, set the object
-      --  directory of all virtual extending projects to the object
-      --  directory of the main project.
+      --  If main project is an extending all project, set object directory of
+      --  all virtual extending projects to object directory of main project.
 
       if Project /= No_Project
         and then
@@ -2377,44 +2301,23 @@ package body Prj.Proc is
                   then
                      if Extending2.Virtual then
                         Error_Msg_Name_1 := Prj.Project.Display_Name;
-
-                        if Error_Report = null then
-                           Error_Msg
-                             ("project %% cannot be extended by a virtual" &
-                              " project with the same object directory",
-                              Prj.Project.Location);
-                        else
-                           Error_Report
-                             ("project """ &
-                              Get_Name_String (Error_Msg_Name_1) &
-                              """ cannot be extended by a virtual " &
-                              "project with the same object directory",
-                              Project, In_Tree);
-                        end if;
+                        Error_Msg
+                          (Flags,
+                           "project %% cannot be extended by a virtual" &
+                           " project with the same object directory",
+                           Prj.Project.Location, Project);
 
                      else
                         Error_Msg_Name_1 := Extending2.Display_Name;
                         Error_Msg_Name_2 := Prj.Project.Display_Name;
-
-                        if Error_Report = null then
-                           Error_Msg
-                             ("project %% cannot extend project %%",
-                              Extending2.Location);
-                           Error_Msg
-                             ("\they share the same object directory",
-                              Extending2.Location);
-
-                        else
-                           Error_Report
-                             ("project """ &
-                              Get_Name_String (Error_Msg_Name_1) &
-                              """ cannot extend project """ &
-                              Get_Name_String (Error_Msg_Name_2) & """",
-                              Project, In_Tree);
-                           Error_Report
-                             ("they share the same object directory",
-                              Project, In_Tree);
-                        end if;
+                        Error_Msg
+                          (Flags,
+                           "project %% cannot extend project %%",
+                           Extending2.Location, Project);
+                        Error_Msg
+                          (Flags,
+                           "\they share the same object directory",
+                           Extending2.Location, Project);
                      end if;
                   end if;
 
@@ -2434,27 +2337,6 @@ package body Prj.Proc is
             (Warning_Mode /= Treat_As_Error or else Warnings_Detected = 0);
    end Process_Project_Tree_Phase_2;
 
-   ---------------------
-   -- Recursive_Check --
-   ---------------------
-
-   procedure Recursive_Check
-     (Project : Project_Id;
-      Data    : in out Recursive_Check_Data)
-   is
-   begin
-      if Verbose_Mode then
-         Write_Str ("Checking project file """);
-         Write_Str (Get_Name_String (Project.Name));
-         Write_Line ("""");
-      end if;
-
-      Prj.Nmsc.Check
-        (Project, Data.In_Tree, Error_Report, Data.When_No_Sources,
-         Data.Current_Dir.all, Data.Proc_Data,
-         Is_Config_File => Data.Is_Config_File);
-   end Recursive_Check;
-
    -----------------------
    -- Recursive_Process --
    -----------------------
@@ -2462,6 +2344,7 @@ package body Prj.Proc is
    procedure Recursive_Process
      (In_Tree                : Project_Tree_Ref;
       Project                : out Project_Id;
+      Flags                  : Processing_Flags;
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Extended_By            : Project_Id)
@@ -2496,12 +2379,13 @@ package body Prj.Proc is
                 (With_Clause, From_Project_Node_Tree);
             New_Project := No_Project;
 
-            if (Limited_With and No (Proj_Node))
-              or (not Limited_With and Present (Proj_Node))
+            if (Limited_With and then No (Proj_Node))
+              or else (not Limited_With and then Present (Proj_Node))
             then
                Recursive_Process
                  (In_Tree                => In_Tree,
                   Project                => New_Project,
+                  Flags                  => Flags,
                   From_Project_Node      =>
                     Project_Node_Of
                       (With_Clause, From_Project_Node_Tree),
@@ -2540,13 +2424,13 @@ package body Prj.Proc is
          declare
             Imported         : Project_List;
             Declaration_Node : Project_Node_Id  := Empty_Node;
-            Tref             : Source_Buffer_Ptr;
-            Name             : constant Name_Id :=
-                                 Name_Of
-                                   (From_Project_Node, From_Project_Node_Tree);
-            Location         : Source_Ptr :=
-                                 Location_Of
-                                   (From_Project_Node, From_Project_Node_Tree);
+
+            Name : constant Name_Id :=
+                     Name_Of (From_Project_Node, From_Project_Node_Tree);
+
+            Name_Node : constant Tree_Private_Part.Project_Name_And_Node :=
+                          Tree_Private_Part.Projects_Htable.Get
+                            (From_Project_Node_Tree.Projects_HT, Name);
 
          begin
             Project := Processed_Projects.Get (Name);
@@ -2565,7 +2449,7 @@ package body Prj.Proc is
                return;
             end if;
 
-            Project := new Project_Data'(Empty_Project (In_Tree));
+            Project := new Project_Data'(Empty_Project);
             In_Tree.Projects := new Project_List_Element'
               (Project => Project,
                Next    => In_Tree.Projects);
@@ -2573,6 +2457,7 @@ package body Prj.Proc is
             Processed_Projects.Set (Name, Project);
 
             Project.Name := Name;
+            Project.Display_Name := Name_Node.Display_Name;
             Project.Qualifier :=
               Project_Qualifier_Of (From_Project_Node, From_Project_Node_Tree);
 
@@ -2586,26 +2471,7 @@ package body Prj.Proc is
                          Virtual_Prefix
             then
                Project.Virtual := True;
-               Project.Display_Name := Name;
 
-            --  If there is no file, for example when the project node tree is
-            --  built in memory by GPS, the Display_Name cannot be found in
-            --  the source, so its value is the same as Name.
-
-            elsif Location = No_Location then
-               Project.Display_Name := Name;
-
-            --  Get the spelling of the project name from the project file
-
-            else
-               Tref := Source_Text (Get_Source_File_Index (Location));
-
-               for J in 1 .. Name_Len loop
-                  Name_Buffer (J) := Tref (Location);
-                  Location := Location + 1;
-               end loop;
-
-               Project.Display_Name := Name_Find;
             end if;
 
             Project.Path.Display_Name :=
@@ -2643,6 +2509,7 @@ package body Prj.Proc is
             Recursive_Process
               (In_Tree                => In_Tree,
                Project                => Project.Extends,
+               Flags                  => Flags,
                From_Project_Node      => Extended_Project_Of
                                           (Declaration_Node,
                                            From_Project_Node_Tree),
@@ -2652,6 +2519,7 @@ package body Prj.Proc is
             Process_Declarative_Items
               (Project                => Project,
                In_Tree                => In_Tree,
+               Flags                  => Flags,
                From_Project_Node      => From_Project_Node,
                From_Project_Node_Tree => From_Project_Node_Tree,
                Pkg                    => No_Package,

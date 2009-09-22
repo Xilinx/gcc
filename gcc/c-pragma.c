@@ -455,7 +455,8 @@ maybe_apply_pending_pragma_weaks (void)
       if (TREE_VALUE (t) == NULL)
 	continue;
 
-      decl = build_decl (FUNCTION_DECL, alias_id, default_function_type);
+      decl = build_decl (UNKNOWN_LOCATION,
+			 FUNCTION_DECL, alias_id, default_function_type);
 
       DECL_ARTIFICIAL (decl) = 1;
       TREE_PUBLIC (decl) = 1;
@@ -559,14 +560,6 @@ handle_pragma_redefine_extname (cpp_reader * ARG_UNUSED (dummy))
   t = pragma_lex (&x);
   if (t != CPP_EOF)
     warning (OPT_Wpragmas, "junk at end of %<#pragma redefine_extname%>");
-
-  if (!flag_mudflap && !targetm.handle_pragma_redefine_extname)
-    {
-      if (warn_unknown_pragmas > in_system_header)
-	warning (OPT_Wunknown_pragmas,
-		 "#pragma redefine_extname not supported on this target");
-      return;
-    }
 
   decl = identifier_global_value (oldname);
   if (decl

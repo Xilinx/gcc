@@ -232,21 +232,28 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
 
       if (q == '\n' || q == '\r')
 	{
-	  /* Unexpected end of line.  */
+	  /* Unexpected end of line. Set the position.  */
+	  fbuf_seek (dtp->u.p.current_unit, n + 1 ,SEEK_CUR);
+	  dtp->u.p.sf_seen_eor = 1;
 
 	  /* If we see an EOR during non-advancing I/O, we need to skip
 	     the rest of the I/O statement.  Set the corresponding flag.  */
 	  if (dtp->u.p.advance_status == ADVANCE_NO || dtp->u.p.seen_dollar)
 	    dtp->u.p.eor_condition = 1;
-
+	    
 	  /* If we encounter a CR, it might be a CRLF.  */
 	  if (q == '\r') /* Probably a CRLF */
 	    {
-	      if (n < *length && *(p + 1) == '\n')
-		dtp->u.p.sf_seen_eor = 2;
+	      /* See if there is an LF. Use fbuf_read rather then fbuf_getc so
+		 the position is not advanced unless it really is an LF.  */
+	      int readlen = 1;
+	      p = fbuf_read (dtp->u.p.current_unit, &readlen);
+	      if (*p == '\n' && readlen == 1)
+	        {
+		  dtp->u.p.sf_seen_eor = 2;
+		  fbuf_seek (dtp->u.p.current_unit, 1 ,SEEK_CUR);
+		}
 	    }
-          else
-            dtp->u.p.sf_seen_eor = 1;
 
 	  /* Without padding, terminate the I/O statement without assigning
 	     the value.  With padding, the value still needs to be assigned,
@@ -260,7 +267,7 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
 	    }
 
 	  *length = n;
-	  break;
+	  goto done;
 	}
       /*  Short circuit the read if a comma is found during numeric input.
 	  The flag is set to zero during character reads so that commas in
@@ -274,19 +281,17 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
 	    *length = n;
 	    break;
 	  }
-
       n++;
       p++;
     } 
 
-  fbuf_seek (dtp->u.p.current_unit, n + dtp->u.p.sf_seen_eor + seen_comma, 
-             SEEK_CUR);
+  fbuf_seek (dtp->u.p.current_unit, n + seen_comma, SEEK_CUR);
 
   /* A short read implies we hit EOF, unless we hit EOR, a comma, or
      some other stuff. Set the relevant flags.  */
   if (lorig > *length && !dtp->u.p.sf_seen_eor && !seen_comma)
     {
-      if (no_error)
+      if (n > 0 || no_error)
         dtp->u.p.at_eof = 1;
       else
         {
@@ -1778,10 +1783,8 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      stride[n] = iotype == BT_CHARACTER ?
-		  desc->dim[n].stride * GFC_SIZE_OF_CHAR_KIND(kind) :
-		  desc->dim[n].stride;
-      extent[n] = desc->dim[n].ubound + 1 - desc->dim[n].lbound;
+      stride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(desc,n);
+      extent[n] = GFC_DESCRIPTOR_EXTENT(desc,n);
 
       /* If the extent of even one dimension is zero, then the entire
 	 array section contains zero elements, so we return after writing
@@ -1797,9 +1800,9 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
 
   stride0 = stride[0];
 
-  /* If the innermost dimension has stride 1, we can do the transfer
+  /* If the innermost dimension has a stride of 1, we can do the transfer
      in contiguous chunks.  */
-  if (stride0 == 1)
+  if (stride0 == size)
     tsize = extent[0];
   else
     tsize = 1;
@@ -1809,13 +1812,13 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   while (data)
     {
       dtp->u.p.transfer (dtp, iotype, data, kind, size, tsize);
-      data += stride0 * size * tsize;
+      data += stride0 * tsize;
       count[0] += tsize;
       n = 0;
       while (count[n] == extent[n])
 	{
 	  count[n] = 0;
-	  data -= stride[n] * extent[n] * size;
+	  data -= stride[n] * extent[n];
 	  n++;
 	  if (n == rank)
 	    {
@@ -1825,7 +1828,7 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
 	  else
 	    {
 	      count[n]++;
-	      data += stride[n] * size;
+	      data += stride[n];
 	    }
 	}
     }
@@ -2020,7 +2023,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 	close_unit (dtp->u.p.current_unit);
 	dtp->u.p.current_unit = NULL;
 	generate_error (&dtp->common, LIBERROR_BAD_OPTION,
-			"Bad unit number in OPEN statement");
+			"Bad unit number in statement");
 	return;
       }
     memset (&u_flags, '\0', sizeof (u_flags));
@@ -2490,23 +2493,24 @@ init_loop_spec (gfc_array_char *desc, array_loop_spec *ls,
 
   for (i=0; i<rank; i++)
     {
-      ls[i].idx = desc->dim[i].lbound;
-      ls[i].start = desc->dim[i].lbound;
-      ls[i].end = desc->dim[i].ubound;
-      ls[i].step = desc->dim[i].stride;
-      empty = empty || (desc->dim[i].ubound < desc->dim[i].lbound);
+      ls[i].idx = GFC_DESCRIPTOR_LBOUND(desc,i);
+      ls[i].start = GFC_DESCRIPTOR_LBOUND(desc,i);
+      ls[i].end = GFC_DESCRIPTOR_UBOUND(desc,i);
+      ls[i].step = GFC_DESCRIPTOR_STRIDE(desc,i);
+      empty = empty || (GFC_DESCRIPTOR_UBOUND(desc,i) 
+			< GFC_DESCRIPTOR_LBOUND(desc,i));
 
-      if (desc->dim[i].stride > 0)
+      if (GFC_DESCRIPTOR_STRIDE(desc,i) > 0)
 	{
-	  index += (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
+	  index += (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
 	}
       else
 	{
-	  index -= (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
-	  *start_record -= (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
+	  index -= (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
+	  *start_record -= (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
 	}
     }
 
@@ -2868,7 +2872,7 @@ sset (stream * s, int c, ssize_t nbyte)
     {
       trans = (bytes_left < WRITE_CHUNK) ? bytes_left : WRITE_CHUNK;
       trans = swrite (s, p, trans);
-      if (trans < 0)
+      if (trans <= 0)
 	return trans;
       bytes_left -= trans;
     }
@@ -3104,7 +3108,11 @@ finalize_transfer (st_parameter_dt *dtp)
     }
 
   if ((dtp->common.flags & IOPARM_LIBRETURN_MASK) != IOPARM_LIBRETURN_OK)
-    return;
+    {
+      if (dtp->u.p.current_unit && current_mode (dtp) == UNFORMATTED_SEQUENTIAL)
+	dtp->u.p.current_unit->current_record = 0;
+      return;
+    }
 
   if ((dtp->u.p.ionml != NULL)
       && (cf & IOPARM_DT_HAS_NAMELIST_NAME) != 0)
@@ -3252,7 +3260,7 @@ void
 st_read_done (st_parameter_dt *dtp)
 {
   finalize_transfer (dtp);
-  if (is_internal_unit (dtp))
+  if (is_internal_unit (dtp) || dtp->u.p.format_not_saved)
     free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
@@ -3304,7 +3312,7 @@ st_write_done (st_parameter_dt *dtp)
 	break;
       }
 
-  if (is_internal_unit (dtp))
+  if (is_internal_unit (dtp) || dtp->u.p.format_not_saved)
     free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
@@ -3400,9 +3408,7 @@ st_set_nml_var_dim (st_parameter_dt *dtp, GFC_INTEGER_4 n_dim,
 
   for (nml = dtp->u.p.ionml; nml->next; nml = nml->next);
 
-  nml->dim[n].stride = stride;
-  nml->dim[n].lbound = lbound;
-  nml->dim[n].ubound = ubound;
+  GFC_DIMENSION_SET(nml->dim[n],lbound,ubound,stride);
 }
 
 /* Reverse memcpy - used for byte swapping.  */

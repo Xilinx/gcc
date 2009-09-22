@@ -157,6 +157,9 @@ struct GTY ((chain_next ("%h.next"))) loop {
 
   /* Head of the cyclic list of the exits of the loop.  */
   struct loop_exit *exits;
+
+  /* True if the loop can be parallel.  */
+  bool can_be_parallel;
 };
 
 /* Flags for state of loop structure.  */
@@ -205,7 +208,7 @@ struct loop *alloc_loop (void);
 extern void flow_loop_free (struct loop *);
 int flow_loop_nodes_find (basic_block, struct loop *);
 void fix_loop_structure (bitmap changed_bbs);
-void mark_irreducible_loops (void);
+bool mark_irreducible_loops (void);
 void release_recorded_exits (void);
 void record_loop_exits (void);
 void rescan_loop_exit (edge, bool, bool);
@@ -283,7 +286,7 @@ extern bool can_duplicate_loop_p (const struct loop *loop);
 
 extern edge create_empty_if_region_on_edge (edge, tree);
 extern struct loop *create_empty_loop_on_edge (edge, tree, tree, tree, tree,
-					       tree *, struct loop *);
+					       tree *, tree *, struct loop *);
 extern struct loop * duplicate_loop (struct loop *, struct loop *);
 extern bool duplicate_loop_to_header_edge (struct loop *, edge, 
 					   unsigned, sbitmap, edge,

@@ -531,7 +531,7 @@ and formatted string representations.
 @code{ACOS(X)} computes the arccosine of @var{X} (inverse of @code{COS(X)}).
 
 @item @emph{Standard}:
-Fortran 77 and later
+Fortran 77 and later, for a complex argument Fortran 2008 or later
 
 @item @emph{Class}:
 Elemental function
@@ -541,14 +541,14 @@ Elemental function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{X} @tab The type shall be @code{REAL} with a magnitude that is
-less than or equal to one.
+@item @var{X} @tab The type shall either be @code{REAL} with a magnitude that is
+less than or equal to one - or the type shall be @code{COMPLEX}.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{REAL} and it lies in the
-range @math{ 0 \leq \acos(x) \leq \pi}. The return value if of the same
-kind as @var{X}.
+The return value is of the same type and kind as @var{X}.
+The real part of the result is in radians and lies in the range
+@math{0 \leq \Re \acos(x) \leq \pi}.
 
 @item @emph{Example}:
 @smallexample
@@ -600,7 +600,9 @@ Elemental function
 @end multitable
 
 @item @emph{Return value}:
-The return value has the same type and kind as @var{X}
+The return value has the same type and kind as @var{X}. If @var{X} is
+complex, the imaginary part of the result is in radians and lies between
+@math{ 0 \leq \Im \acosh(x) \leq \pi}.
 
 @item @emph{Example}:
 @smallexample
@@ -1170,7 +1172,7 @@ end program test_any
 @code{ASIN(X)} computes the arcsine of its @var{X} (inverse of @code{SIN(X)}).
 
 @item @emph{Standard}:
-Fortran 77 and later
+Fortran 77 and later, for a complex argument Fortran 2008 or later
 
 @item @emph{Class}:
 Elemental function
@@ -1180,14 +1182,14 @@ Elemental function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{X} @tab The type shall be @code{REAL}, and a magnitude that is
-less than or equal to one.
+@item @var{X} @tab The type shall be either @code{REAL} and a magnitude that is
+less than or equal to one - or be @code{COMPLEX}.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{REAL} and it lies in the
-range @math{-\pi / 2 \leq \asin (x) \leq \pi / 2}.  The kind type
-parameter is the same as @var{X}.
+The return value is of the same type and kind as @var{X}.
+The real part of the result is in radians and lies in the range
+@math{-\pi/2 \leq \Re \asin(x) \leq \pi/2}.
 
 @item @emph{Example}:
 @smallexample
@@ -1238,7 +1240,9 @@ Elemental function
 @end multitable
 
 @item @emph{Return value}:
-The return value is of the same type and kind as  @var{X}.
+The return value is of the same type and kind as  @var{X}. If @var{X} is
+complex, the imaginary part of the result is in radians and lies between
+@math{-\pi/2 \leq \Im \asinh(x) \leq \pi/2}.
 
 @item @emph{Example}:
 @smallexample
@@ -1349,22 +1353,29 @@ end program test_associated
 @code{ATAN(X)} computes the arctangent of @var{X}.
 
 @item @emph{Standard}:
-Fortran 77 and later
+Fortran 77 and later, for a complex argument and for two arguments
+Fortran 2008 or later
 
 @item @emph{Class}:
 Elemental function
 
 @item @emph{Syntax}:
 @code{RESULT = ATAN(X)}
+@code{RESULT = ATAN(Y, X)}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{X} @tab The type shall be @code{REAL}.
+@item @var{X} @tab The type shall be @code{REAL} or @code{COMPLEX};
+if @var{Y} is present, @var{X} shall be REAL.
+@item @var{Y} shall be of the same type and kind as @var{X}.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{REAL} and it lies in the
-range @math{ - \pi / 2 \leq \atan (x) \leq \pi / 2}.
+The return value is of the same type and kind as @var{X}.
+If @var{Y} is present, the result is identical to @code{ATAN2(Y,X)}.
+Otherwise, it the arcus tangent of @var{X}, where the real part of
+the result is in radians and lies in the range
+@math{-\pi/2 \leq \Re \atan(x) \leq \pi/2}.
 
 @item @emph{Example}:
 @smallexample
@@ -1396,8 +1407,10 @@ Inverse function: @ref{TAN}
 
 @table @asis
 @item @emph{Description}:
-@code{ATAN2(Y, X)} computes the arctangent of the complex number
-@math{X + i Y}.
+@code{ATAN2(Y, X)} computes the principal value of the argument
+function of the complex number @math{X + i Y}. This function can
+be used to transform from carthesian into polar coordinates and
+allows to determine the angle in the correct quadrant.
 
 @item @emph{Standard}:
 Fortran 77 and later
@@ -1470,7 +1483,9 @@ Elemental function
 @end multitable
 
 @item @emph{Return value}:
-The return value has same type and kind as @var{X}.
+The return value has same type and kind as @var{X}. If @var{X} is
+complex, the imaginary part of the result is in radians and lies between
+@math{-\pi/2 \leq \Im \atanh(x) \leq \pi/2}.
 
 @item @emph{Example}:
 @smallexample
@@ -2635,9 +2650,9 @@ Elemental function
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{REAL} and it lies in the
-range @math{ -1 \leq \cos (x) \leq 1}.  The kind type
-parameter is the same as @var{X}.
+The return value is of the same type and kind as @var{X}. The real part
+of the result is in radians. If @var{X} is of the type @code{REAL},
+the return value lies in the range @math{ -1 \leq \cos (x) \leq 1}.
 
 @item @emph{Example}:
 @smallexample
@@ -2676,7 +2691,7 @@ Inverse function: @ref{ACOS}
 @code{COSH(X)} computes the hyperbolic cosine of @var{X}.
 
 @item @emph{Standard}:
-Fortran 77 and later
+Fortran 77 and later, for a complex argument Fortran 2008 or later
 
 @item @emph{Class}:
 Elemental function
@@ -2686,14 +2701,14 @@ Elemental function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{X} @tab The type shall be @code{REAL}.
+@item @var{X} @tab The type shall be @code{REAL} or @code{COMPLEX}.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{REAL} and it is positive
-(@math{ \cosh (x) \geq 0 }).  For a @code{REAL} argument @var{X},
-@math{ \cosh (x) \geq 1 }.
-The return value is of the same kind as @var{X}.
+The return value has same type and kind as @var{X}. If @var{X} is
+complex, the imaginary part of the result is in radians. If @var{X}
+is @code{REAL}, the return value has a lower bound of one,
+@math{\cosh (x) \geq 1}.
 
 @item @emph{Example}:
 @smallexample
@@ -9820,7 +9835,7 @@ end program test_sin
 @code{SINH(X)} computes the hyperbolic sine of @var{X}.
 
 @item @emph{Standard}:
-Fortran 95 and later
+Fortran 95 and later, for a complex argument Fortran 2008 or later
 
 @item @emph{Class}:
 Elemental function
@@ -9830,11 +9845,11 @@ Elemental function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{X} @tab The type shall be @code{REAL}.
+@item @var{X} @tab The type shall be @code{REAL} or @code{COMPLEX}.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{REAL}.
+The return value has same type and kind as @var{X}.
 
 @item @emph{Example}:
 @smallexample
@@ -10508,7 +10523,7 @@ END PROGRAM
 @code{TAN(X)} computes the tangent of @var{X}.
 
 @item @emph{Standard}:
-Fortran 77 and later
+Fortran 77 and later, for a complex argument Fortran 2008 or later
 
 @item @emph{Class}:
 Elemental function
@@ -10518,12 +10533,11 @@ Elemental function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{X} @tab The type shall be @code{REAL}.
+@item @var{X} @tab The type shall be @code{REAL} or @code{COMPLEX}.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{REAL}.  The kind type parameter is
-the same as @var{X}.
+The return value has same type and kind as @var{X}.
 
 @item @emph{Example}:
 @smallexample
@@ -10558,7 +10572,7 @@ end program test_tan
 @code{TANH(X)} computes the hyperbolic tangent of @var{X}.
 
 @item @emph{Standard}:
-Fortran 77 and later
+Fortran 77 and later, for a complex argument Fortran 2008 or later
 
 @item @emph{Class}:
 Elemental function
@@ -10568,11 +10582,13 @@ Elemental function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{X} @tab The type shall be @code{REAL}.
+@item @var{X} @tab The type shall be @code{REAL} or @code{COMPLEX}.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{REAL} and lies in the range
+The return value has same type and kind as @var{X}. If @var{X} is
+complex, the imaginary part of the result is in radians. If @var{X}
+is @code{REAL}, the return value lies in the range
 @math{ - 1 \leq tanh(x) \leq 1 }.
 
 @item @emph{Example}:
@@ -11211,7 +11227,13 @@ Fortran 95 elemental function: @ref{IEOR}
 @chapter Intrinsic Modules
 @cindex intrinsic Modules
 
-@c @node ISO_FORTRAN_ENV
+@menu
+* ISO_FORTRAN_ENV::
+* ISO_C_BINDING::
+* OpenMP Modules OMP_LIB and OMP_LIB_KINDS::
+@end menu
+
+@node ISO_FORTRAN_ENV
 @section @code{ISO_FORTRAN_ENV}
 @table @asis
 @item @emph{Standard}:
@@ -11235,6 +11257,11 @@ Size in bits of the file-storage unit.
 Identifies the preconnected unit identified by the asterisk
 (@code{*}) in @code{READ} statement.
 
+@item @code{INT8}, @code{INT16}, @code{INT32}, @code{INT64}
+Kind type parameters to specify an INTEGER type with a storage
+size of 16, 32, and 64 bits. It is negative if a target platform
+does not support the particular kind.
+
 @item @code{IOSTAT_END}:
 The value assigned to the variable passed to the IOSTAT= specifier of
 an input/output statement if an end-of-file condition occurred.
@@ -11249,9 +11276,16 @@ The size in bits of the numeric storage unit.
 @item @code{OUTPUT_UNIT}:
 Identifies the preconnected unit identified by the asterisk
 (@code{*}) in @code{WRITE} statement.
+
+@item @code{REAL32}, @code{REAL64}, @code{REAL128}
+Kind type parameters to specify a REAL type with a storage
+size of 32, 64, and 128 bits. It is negative if a target platform
+does not support the particular kind.
 @end table
 
-@c @node ISO_C_BINDING
+
+
+@node ISO_C_BINDING
 @section @code{ISO_C_BINDING}
 @table @asis
 @item @emph{Standard}:
@@ -11272,12 +11306,8 @@ manual.
 @c TODO: Vertical spacing between C_FUNLOC and C_LOC wrong in PDF,
 @c don't really know why.
 
-The @code{ISO_C_BINDING} module provides the following named constants of the
-type integer, which can be used as KIND type parameter. Note that GNU
-Fortran currently does not support the @code{C_INT_FAST...} KIND type
-parameters (marked by an asterisk (@code{*}) in the list below).
-The @code{C_INT_FAST...} parameters have therefore the value @math{-2}
-and cannot be used as KIND type parameter of the @code{INTEGER} type.
+The @code{ISO_C_BINDING} module provides the following named constants of
+type default integer, which can be used as KIND type parameters.
 
 In addition to the integer named constants required by the Fortran 2003 
 standard, GNU Fortran provides as an extension named constants for the 
@@ -11296,17 +11326,17 @@ C_INT_LEAST128_T, C_INT_FAST128_T}.
 @item @code{INTEGER}@tab @code{C_INT16_T}       @tab @code{int16_t}
 @item @code{INTEGER}@tab @code{C_INT32_T}       @tab @code{int32_t}
 @item @code{INTEGER}@tab @code{C_INT64_T}       @tab @code{int64_t}
-@item @code{INTEGER}@tab @code{C_INT128_T}       @tab @code{int128_t}                      @tab Ext.
+@item @code{INTEGER}@tab @code{C_INT128_T}      @tab @code{int128_t}                      @tab Ext.
 @item @code{INTEGER}@tab @code{C_INT_LEAST8_T}  @tab @code{int_least8_t}
 @item @code{INTEGER}@tab @code{C_INT_LEAST16_T} @tab @code{int_least16_t}
 @item @code{INTEGER}@tab @code{C_INT_LEAST32_T} @tab @code{int_least32_t}
 @item @code{INTEGER}@tab @code{C_INT_LEAST64_T} @tab @code{int_least64_t}
-@item @code{INTEGER}@tab @code{C_INT_LEAST128_T} @tab @code{int_least128_t}                @tab Ext.
-@item @code{INTEGER}@tab @code{C_INT_FAST8_T}*  @tab @code{int_fast8_t}
-@item @code{INTEGER}@tab @code{C_INT_FAST16_T}* @tab @code{int_fast16_t}
-@item @code{INTEGER}@tab @code{C_INT_FAST32_T}* @tab @code{int_fast32_t}
-@item @code{INTEGER}@tab @code{C_INT_FAST64_T}* @tab @code{int_fast64_t}
-@item @code{INTEGER}@tab @code{C_INT_FAST128_T}* @tab @code{int_fast128_t}                 @tab Ext.
+@item @code{INTEGER}@tab @code{C_INT_LEAST128_T}@tab @code{int_least128_t}                @tab Ext.
+@item @code{INTEGER}@tab @code{C_INT_FAST8_T}   @tab @code{int_fast8_t}
+@item @code{INTEGER}@tab @code{C_INT_FAST16_T}  @tab @code{int_fast16_t}
+@item @code{INTEGER}@tab @code{C_INT_FAST32_T}  @tab @code{int_fast32_t}
+@item @code{INTEGER}@tab @code{C_INT_FAST64_T}  @tab @code{int_fast64_t}
+@item @code{INTEGER}@tab @code{C_INT_FAST128_T} @tab @code{int_fast128_t}                 @tab Ext.
 @item @code{INTEGER}@tab @code{C_INTMAX_T}      @tab @code{intmax_t}
 @item @code{INTEGER}@tab @code{C_INTPTR_T}      @tab @code{intptr_t}
 @item @code{REAL}   @tab @code{C_FLOAT}         @tab @code{float}
@@ -11334,7 +11364,7 @@ defined.
 @item @code{C_VERTICAL_TAB}    @tab vertical tab    @tab @code{'\v'}
 @end multitable
 
-@c @node OpenMP Modules OMP_LIB and OMP_LIB_KINDS
+@node OpenMP Modules OMP_LIB and OMP_LIB_KINDS
 @section OpenMP Modules @code{OMP_LIB} and @code{OMP_LIB_KINDS}
 @table @asis
 @item @emph{Standard}:

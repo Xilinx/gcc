@@ -81,9 +81,6 @@ static enum verbosity_levels user_vect_verbosity_level = MAX_VERBOSITY_LEVEL;
 /* Loop or bb location.  */
 LOC vect_location;
 
-/* Bitmap of virtual variables to be renamed.  */
-bitmap vect_memsyms_to_rename;
-
 /* Vector mapping GIMPLE stmt to stmt_vec_info. */
 VEC(vec_void_p,heap) *stmt_vec_info_vec;
 
@@ -206,10 +203,6 @@ vectorize_loops (void)
   /* Fix the verbosity level if not defined explicitly by the user.  */
   vect_set_dump_settings (false);
 
-  /* Allocate the bitmap that records which virtual variables  
-     need to be renamed.  */
-  vect_memsyms_to_rename = BITMAP_ALLOC (NULL);
-
   init_stmt_vec_info_vec ();
 
   /*  ----------- Analyze loops. -----------  */
@@ -244,7 +237,7 @@ vectorize_loops (void)
 
   /*  ----------- Finalize. -----------  */
 
-  BITMAP_FREE (vect_memsyms_to_rename);
+  mark_sym_for_renaming (gimple_vop (cfun));
 
   for (i = 1; i < vect_loops_num; i++)
     {
@@ -344,11 +337,13 @@ increase_alignment (void)
        vnode = vnode->next_needed)
     {
       tree vectype, decl = vnode->decl;
+      tree t;
       unsigned int alignment;
 
-      if (TREE_CODE (TREE_TYPE (decl)) != ARRAY_TYPE)
+      t = TREE_TYPE(decl);
+      if (TREE_CODE (t) != ARRAY_TYPE)
         continue;
-      vectype = get_vectype_for_scalar_type (TREE_TYPE (TREE_TYPE (decl)));
+      vectype = get_vectype_for_scalar_type (strip_array_types (t));
       if (!vectype)
         continue;
       alignment = TYPE_ALIGN (vectype);
@@ -363,6 +358,7 @@ increase_alignment (void)
             {
               fprintf (dump_file, "Increasing alignment of decl: ");
               print_generic_expr (dump_file, decl, TDF_SLIM);
+	      fprintf (dump_file, "\n");
             }
         }
     }

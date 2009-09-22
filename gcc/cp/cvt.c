@@ -508,7 +508,7 @@ convert_from_reference (tree val)
 {
   if (TREE_CODE (TREE_TYPE (val)) == REFERENCE_TYPE)
     {
-      tree t = canonical_type_variant (TREE_TYPE (TREE_TYPE (val)));
+      tree t = TREE_TYPE (TREE_TYPE (val));
       tree ref = build1 (INDIRECT_REF, t, val);
 
        /* We *must* set TREE_READONLY when dereferencing a pointer to const,
@@ -539,7 +539,16 @@ force_rvalue (tree expr)
 
   return expr;
 }
+
 
+/* Fold away simple conversions, but make sure the result is an rvalue.  */
+
+tree
+cp_fold_convert (tree type, tree expr)
+{
+  return rvalue (fold_convert (type, expr));
+}
+
 /* C++ conversions, preference to static cast conversions.  */
 
 tree
@@ -565,7 +574,9 @@ cp_convert_and_check (tree type, tree expr)
   
   result = cp_convert (type, expr);
 
-  if (!skip_evaluation && !TREE_OVERFLOW_P (expr) && result != error_mark_node)
+  if (c_inhibit_evaluation_warnings == 0
+      && !TREE_OVERFLOW_P (expr)
+      && result != error_mark_node)
     warnings_for_convert_and_check (type, expr, result);
 
   return result;
@@ -826,11 +837,12 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 	/* The two parts of a cond expr might be separate lvalues.  */
 	tree op1 = TREE_OPERAND (expr,1);
 	tree op2 = TREE_OPERAND (expr,2);
+	bool side_effects = TREE_SIDE_EFFECTS (op1) || TREE_SIDE_EFFECTS (op2);
 	tree new_op1 = convert_to_void
-	  (op1, (implicit && !TREE_SIDE_EFFECTS (op2)
+	  (op1, (implicit && !side_effects
 		 ? "second operand of conditional" : NULL), complain);
 	tree new_op2 = convert_to_void
-	  (op2, (implicit && !TREE_SIDE_EFFECTS (op1)
+	  (op2, (implicit && !side_effects
 		 ? "third operand of conditional" : NULL), complain);
 
 	expr = build3 (COND_EXPR, TREE_TYPE (new_op1),
@@ -933,10 +945,11 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 	      && !AGGR_INIT_VIA_CTOR_P (init))
 	    {
 	      tree fn = AGGR_INIT_EXPR_FN (init);
-	      expr = build_call_array (TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
-				       fn,
-				       aggr_init_expr_nargs (init),
-				       AGGR_INIT_EXPR_ARGP (init));
+	      expr = build_call_array_loc (input_location,
+					   TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
+					   fn,
+					   aggr_init_expr_nargs (init),
+					   AGGR_INIT_EXPR_ARGP (init));
 	    }
 	}
       break;
@@ -1274,7 +1287,7 @@ type_promotes_to (tree type)
 
   /* bool always promotes to int (not unsigned), even if it's the same
      size.  */
-  if (type == boolean_type_node)
+  if (TREE_CODE (type) == BOOLEAN_TYPE)
     type = integer_type_node;
 
   /* Normally convert enums to int, but convert wide enums to something

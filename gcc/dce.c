@@ -79,13 +79,7 @@ deletable_insn_p_1 (rtx body)
       return false;
 
     default:
-      if (volatile_refs_p (body))
-	return false;
-
-      if (flag_non_call_exceptions && may_trap_p (body))
-	return false;
-
-      return true;
+      return !volatile_refs_p (body);
     }
 }
 
@@ -98,6 +92,14 @@ deletable_insn_p (rtx insn, bool fast, bitmap arg_stores)
 {
   rtx body, x;
   int i;
+
+  /* Don't delete jumps, notes and the like.  */
+  if (!NONJUMP_INSN_P (insn))
+    return false;
+
+  /* Don't delete insns that can throw.  */
+  if (!insn_nothrow_p (insn))
+    return false;
 
   if (CALL_P (insn)
       /* We cannot delete calls inside of the recursive dce because
@@ -113,17 +115,11 @@ deletable_insn_p (rtx insn, bool fast, bitmap arg_stores)
 	  && !RTL_LOOPING_CONST_OR_PURE_CALL_P (insn)))
     return find_call_stack_args (insn, false, fast, arg_stores);
 
-  if (!NONJUMP_INSN_P (insn))
-    return false;
-
-  /* Similarly, we cannot delete other insns that can throw either.  */
-  if (df_in_progress && flag_non_call_exceptions && can_throw_internal (insn))
-    return false;
-
   body = PATTERN (insn);
   switch (GET_CODE (body))
     {
     case USE:
+    case VAR_LOCATION:
       return false;
 
     case CLOBBER:
@@ -354,8 +350,8 @@ find_call_stack_args (rtx call_insn, bool do_mark, bool fast,
 	  }
 	for (byte = off; byte < off + INTVAL (MEM_SIZE (mem)); byte++)
 	  {
-	    gcc_assert (!bitmap_bit_p (sp_bytes, byte - min_sp_off));
-	    bitmap_set_bit (sp_bytes, byte - min_sp_off);
+	    if (!bitmap_set_bit (sp_bytes, byte - min_sp_off))
+	      gcc_unreachable ();
 	  }
       }
 
@@ -442,9 +438,8 @@ find_call_stack_args (rtx call_insn, bool do_mark, bool fast,
 	{
 	  if (byte < min_sp_off
 	      || byte >= max_sp_off
-	      || !bitmap_bit_p (sp_bytes, byte - min_sp_off))
+	      || !bitmap_clear_bit (sp_bytes, byte - min_sp_off))
 	    break;
-	  bitmap_clear_bit (sp_bytes, byte - min_sp_off);
 	}
 
       if (!deletable_insn_p (insn, fast, NULL))
@@ -643,6 +638,9 @@ mark_reg_dependencies (rtx insn)
 {
   struct df_link *defs;
   df_ref *use_rec;
+
+  if (DEBUG_INSN_P (insn))
+    return;
 
   for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
     {

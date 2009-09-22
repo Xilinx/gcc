@@ -2740,6 +2740,40 @@
     DONE;
 }")
 
+;; Handle HImode input reloads requiring a general register as a
+;; scratch register.
+(define_expand "reload_inhi"
+  [(set (match_operand:HI 0 "register_operand" "=Z")
+	(match_operand:HI 1 "non_hard_reg_operand" ""))
+   (clobber (match_operand:HI 2 "register_operand" "=&r"))]
+  ""
+  "
+{
+  if (emit_move_sequence (operands, HImode, operands[2]))
+    DONE;
+
+  /* We don't want the clobber emitted, so handle this ourselves.  */
+  emit_insn (gen_rtx_SET (VOIDmode, operands[0], operands[1]));
+  DONE;
+}")
+
+;; Handle HImode output reloads requiring a general register as a
+;; scratch register.
+(define_expand "reload_outhi"
+  [(set (match_operand:HI 0 "non_hard_reg_operand" "")
+	(match_operand:HI 1  "register_operand" "Z"))
+   (clobber (match_operand:HI 2 "register_operand" "=&r"))]
+  ""
+  "
+{
+  if (emit_move_sequence (operands, HImode, operands[2]))
+    DONE;
+
+  /* We don't want the clobber emitted, so handle this ourselves.  */
+  emit_insn (gen_rtx_SET (VOIDmode, operands[0], operands[1]));
+  DONE;
+}")
+
 (define_insn ""
   [(set (match_operand:HI 0 "move_dest_operand"
 	 		  "=r,r,r,r,r,Q,!*q,!r")
@@ -2862,6 +2896,40 @@
 {
   if (emit_move_sequence (operands, QImode, 0))
     DONE;
+}")
+
+;; Handle QImode input reloads requiring a general register as a
+;; scratch register.
+(define_expand "reload_inqi"
+  [(set (match_operand:QI 0 "register_operand" "=Z")
+	(match_operand:QI 1 "non_hard_reg_operand" ""))
+   (clobber (match_operand:QI 2 "register_operand" "=&r"))]
+  ""
+  "
+{
+  if (emit_move_sequence (operands, QImode, operands[2]))
+    DONE;
+
+  /* We don't want the clobber emitted, so handle this ourselves.  */
+  emit_insn (gen_rtx_SET (VOIDmode, operands[0], operands[1]));
+  DONE;
+}")
+
+;; Handle QImode output reloads requiring a general register as a
+;; scratch register.
+(define_expand "reload_outqi"
+  [(set (match_operand:QI 0 "non_hard_reg_operand" "")
+	(match_operand:QI 1  "register_operand" "Z"))
+   (clobber (match_operand:QI 2 "register_operand" "=&r"))]
+  ""
+  "
+{
+  if (emit_move_sequence (operands, QImode, operands[2]))
+    DONE;
+
+  /* We don't want the clobber emitted, so handle this ourselves.  */
+  emit_insn (gen_rtx_SET (VOIDmode, operands[0], operands[1]));
+  DONE;
 }")
 
 (define_insn ""
@@ -7130,7 +7198,7 @@
    (clobber (match_scratch:SI 2 "=&r"))
    (clobber (match_scratch:SI 3 "=&r"))]
   "flag_pic"
-  "{bl .+8,%2\;depi 0,31,2,%2|mfia %2}\;ldo {16|20}(%2),%2\;\
+  "{bl .+8,%2\;depi 0,31,2,%2|mfia %2}\;ldo {%l1-.|%l1+4-.}(%2),%2\;\
 {ldwx|ldw},s %0(%2),%3\;{addl|add,l} %2,%3,%3\;bv,n %%r0(%3)"
   [(set_attr "type" "multi")
    (set (attr "length")
@@ -7148,7 +7216,7 @@
    (clobber (match_scratch:DI 2 "=&r"))
    (clobber (match_scratch:DI 3 "=&r"))]
   ""
-  "mfia %2\;ldo 24(%2),%2\;ldw,s %0(%2),%3\;extrd,s %3,63,32,%3\;\
+  "mfia %2\;ldo %l1+4-.(%2),%2\;ldw,s %0(%2),%3\;extrd,s %3,63,32,%3\;\
 add,l %2,%3,%3\;bv,n %%r0(%3)"
   [(set_attr "type" "multi")
    (set_attr "length" "24")])

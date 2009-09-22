@@ -48,12 +48,12 @@
    thing when no CPU is specified, which defaults to R8C.  */
 #undef  LIB_SPEC
 #define LIB_SPEC "-( -lc %{msim*:-lsim}%{!msim*:-lnosys} -) \
-%{msim*:%{!T*: %{mcpu=m32cm:-Tsim24.ld}%{mcpu=m32c:-Tsim24.ld} \
-	%{!mcpu=m32cm:%{!mcpu=m32c:-Tsim16.ld}}}} \
-%{!T*:%{!msim*: %{mcpu=m16c:-Tm16c.ld} \
-		%{mcpu=m32cm:-Tm32cm.ld} \
-		%{mcpu=m32c:-Tm32c.ld} \
-		%{!mcpu=m16c:%{!mcpu=m32cm:%{!mcpu=m32c:-Tr8c.ld}}}}} \
+%{msim*:%{!T*: %{mcpu=m32cm:%Tsim24.ld}%{mcpu=m32c:%Tsim24.ld} \
+	%{!mcpu=m32cm:%{!mcpu=m32c:%Tsim16.ld}}}} \
+%{!T*:%{!msim*: %{mcpu=m16c:%Tm16c.ld} \
+		%{mcpu=m32cm:%Tm32cm.ld} \
+		%{mcpu=m32c:%Tm32c.ld} \
+		%{!mcpu=m16c:%{!mcpu=m32cm:%{!mcpu=m32c:%Tr8c.ld}}}}} \
 "
 
 /* Run-time Target Specification */
@@ -488,17 +488,11 @@ enum reg_class
 
 /* Eliminating Frame Pointer and Arg Pointer */
 
-/* If the frame pointer isn't used, we detect it manually.  But the
-   stack pointer doesn't have as flexible addressing as the frame
-   pointer, so we always assume we have it.  */
-#define FRAME_POINTER_REQUIRED 1
-
 #define ELIMINABLE_REGS \
   {{AP_REGNO, SP_REGNO}, \
    {AP_REGNO, FB_REGNO}, \
    {FB_REGNO, SP_REGNO}}
 
-#define CAN_ELIMINATE(FROM,TO) 1
 #define INITIAL_ELIMINATION_OFFSET(FROM,TO,VAR) \
 	(VAR) = m32c_initial_elimination_offset(FROM,TO)
 

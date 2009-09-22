@@ -1909,11 +1909,26 @@ Any constant whose absolute value is no greater than 4-bits.
 @item b
 Address base register
 
+@item d
+Floating point register (containing 64-bit value)
+
 @item f
-Floating point register
+Floating point register (containing 32-bit value)
 
 @item v
-Vector register
+Altivec vector register
+
+@item wd
+VSX vector register to hold vector double data
+
+@item wf
+VSX vector register to hold vector float data
+
+@item ws
+VSX vector register to hold scalar float data
+
+@item wa
+Any VSX register
 
 @item h
 @samp{MQ}, @samp{CTR}, or @samp{LINK} register
@@ -1969,13 +1984,40 @@ instruction per word
 Integer/Floating point constant that can be loaded into a register using
 three instructions
 
+@item m
+Memory operand.  Note that on PowerPC targets, @code{m} can include
+addresses that update the base register.  It is therefore only safe
+to use @samp{m} in an @code{asm} statement if that @code{asm} statement
+accesses the operand exactly once.  The @code{asm} statement must also
+use @samp{%U@var{<opno>}} as a placeholder for the ``update'' flag in the
+corresponding load or store instruction.  For example:
+
+@smallexample
+asm ("st%U0 %1,%0" : "=m" (mem) : "r" (val));
+@end smallexample
+
+is correct but:
+
+@smallexample
+asm ("st %1,%0" : "=m" (mem) : "r" (val));
+@end smallexample
+
+is not.  Use @code{es} rather than @code{m} if you don't want the
+base register to be updated.
+
+@item es
+A ``stable'' memory operand; that is, one which does not include any
+automodification of the base register.  Unlike @samp{m}, this constraint
+can be used in @code{asm} statements that might access the operand
+several times, or that might not access it at all.
+
 @item Q
-Memory operand that is an offset from a register (@samp{m} is preferable
-for @code{asm} statements)
+Memory operand that is an offset from a register (it is usually better
+to use @samp{m} or @samp{es} in @code{asm} statements)
 
 @item Z
-Memory operand that is an indexed or indirect from a register (@samp{m} is
-preferable for @code{asm} statements)
+Memory operand that is an indexed or indirect from a register (it is
+usually better to use @samp{m} or @samp{es} in @code{asm} statements)
 
 @item R
 AIX TOC entry
@@ -1998,6 +2040,9 @@ AND masks that can be performed by two rldic@{l, r@} instructions
 
 @item W
 Vector constant that does not require memory
+
+@item j
+Vector constant that is all zeros.
 
 @end table
 
@@ -2517,6 +2562,109 @@ Memory addressed using the small base register ($sb).
 $r1h
 @end table
 
+@item MeP---@file{config/mep/constraints.md}
+@table @code
+
+@item a
+The $sp register.
+
+@item b
+The $tp register.
+
+@item c
+Any control register.
+
+@item d
+Either the $hi or the $lo register.
+
+@item em
+Coprocessor registers that can be directly loaded ($c0-$c15).
+
+@item ex
+Coprocessor registers that can be moved to each other.
+
+@item er
+Coprocessor registers that can be moved to core registers.
+
+@item h
+The $hi register.
+
+@item j
+The $rpc register.
+
+@item l
+The $lo register.
+
+@item t
+Registers which can be used in $tp-relative addressing.
+
+@item v
+The $gp register.
+
+@item x
+The coprocessor registers.
+
+@item y
+The coprocessor control registers.
+
+@item z
+The $0 register.
+
+@item A
+User-defined register set A.
+
+@item B
+User-defined register set B.
+
+@item C
+User-defined register set C.
+
+@item D
+User-defined register set D.
+
+@item I
+Offsets for $gp-rel addressing.
+
+@item J
+Constants that can be used directly with boolean insns.
+
+@item K
+Constants that can be moved directly to registers.
+
+@item L
+Small constants that can be added to registers.
+
+@item M
+Long shift counts.
+
+@item N
+Small constants that can be compared to registers.
+
+@item O
+Constants that can be loaded into the top half of registers.
+
+@item S
+Signed 8-bit immediates.
+
+@item T
+Symbols encoded for $tp-rel or $gp-rel addressing.
+
+@item U
+Non-constant addresses for loading/saving coprocessor registers.
+
+@item W
+The top half of a symbol's value.
+
+@item Y
+A register indirect address without offset.
+
+@item Z
+Symbolic references to the control bus.
+
+
+
+@end table
+
 @item MIPS---@file{config/mips/constraints.md}
 @table @code
 @item d
@@ -2727,6 +2875,25 @@ Constant integer 16
 
 @item P
 Constants in the range @minus{}8 to 2
+
+@end table
+
+@item Moxie---@file{config/moxie/constraints.md}
+@table @code
+@item A
+An absolute address
+
+@item B
+An offset address
+
+@item W
+A register indirect memory operand
+
+@item I
+A constant in the range of 0 to 255.
+
+@item N
+A constant in the range of 0 to -255.
 
 @end table
 
@@ -5458,7 +5625,7 @@ In combinations of @code{neg}, @code{mult}, @code{plus}, and
 @code{minus}, the @code{neg} operations (if any) will be moved inside
 the operations as far as possible.  For instance,
 @code{(neg (mult A B))} is canonicalized as @code{(mult (neg A) B)}, but
-@code{(plus (mult (neg A) B) C)} is canonicalized as
+@code{(plus (mult (neg B) C) A)} is canonicalized as
 @code{(minus A (mult B C))}.
 
 @cindex @code{compare}, canonicalization of

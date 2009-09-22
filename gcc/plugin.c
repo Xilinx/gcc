@@ -25,7 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* If plugin support is not enabled, do not try to execute any code
    that may reference libdl.  The generic code is still compiled in to
-   avoid including to many conditional compilation paths in the rest
+   avoid including too many conditional compilation paths in the rest
    of the compiler.  */
 #ifdef ENABLE_PLUGIN
 #include <dlfcn.h>
@@ -57,6 +57,7 @@ const char *plugin_event_name[] =
   "PLUGIN_GGC_MARKING",
   "PLUGIN_GGC_END",
   "PLUGIN_REGISTER_GGC_ROOTS",
+  "PLUGIN_START_UNIT", 
   "PLUGIN_EVENT_LAST"
 };
 
@@ -95,6 +96,10 @@ static struct pass_list_node *prev_added_pass_node;
 /* Each plugin should define an initialization function with exactly
    this name.  */
 static const char *str_plugin_init_func_name = "plugin_init";
+
+/* Each plugin should define this symbol to assert that it is
+   distributed under a GPL-compatible license.  */
+static const char *str_license = "plugin_is_GPL_compatible";
 #endif
 
 /* Helper function for the hash table that compares the base_name of the
@@ -336,6 +341,11 @@ position_pass (struct plugin_pass *plugin_pass_info,
               case PASS_POS_INSERT_AFTER:
                 new_pass->next = pass->next;
                 pass->next = new_pass;
+
+		/* Skip newly inserted pass to avoid repeated
+		   insertions in the case where the new pass and the
+		   existing one have the same name.  */
+                pass = new_pass; 
                 break;
               case PASS_POS_INSERT_BEFORE:
                 new_pass->next = pass;
@@ -490,6 +500,7 @@ register_callback (const char *plugin_name,
         ggc_register_root_tab ((const struct ggc_root_tab*) user_data);
 	break;
       case PLUGIN_FINISH_TYPE:
+      case PLUGIN_START_UNIT:
       case PLUGIN_FINISH_UNIT:
       case PLUGIN_CXX_CP_PRE_GENERICIZE:
       case PLUGIN_GGC_START:
@@ -535,6 +546,7 @@ invoke_plugin_callbacks (enum plugin_event event, void *gcc_data)
   switch (event)
     {
       case PLUGIN_FINISH_TYPE:
+      case PLUGIN_START_UNIT:
       case PLUGIN_FINISH_UNIT:
       case PLUGIN_CXX_CP_PRE_GENERICIZE:
       case PLUGIN_ATTRIBUTES:
@@ -580,7 +592,11 @@ try_init_one_plugin (struct plugin_name_args *plugin)
   char *err;
   PTR_UNION_TYPE (plugin_init_func) plugin_init_union;
 
-  dl_handle = dlopen (plugin->full_name, RTLD_NOW);
+  /* We use RTLD_NOW to accelerate binding and detect any mismatch
+     between the API expected by the plugin and the GCC API; we use
+     RTLD_GLOBAL which is useful to plugins which themselves call
+     dlopen.  */
+  dl_handle = dlopen (plugin->full_name, RTLD_NOW | RTLD_GLOBAL);
   if (!dl_handle)
     {
       error ("Cannot load plugin %s\n%s", plugin->full_name, dlerror ());
@@ -589,6 +605,11 @@ try_init_one_plugin (struct plugin_name_args *plugin)
 
   /* Clear any existing error.  */
   dlerror ();
+
+  /* Check the plugin license.  */
+  if (dlsym (dl_handle, str_license) == NULL)
+    fatal_error ("plugin %s is not licensed under a GPL-compatible license\n"
+		 "%s", plugin->full_name, dlerror ());
 
   PTR_UNION_AS_VOID_PTR (plugin_init_union) =
       dlsym (dl_handle, str_plugin_init_func_name);

@@ -34,7 +34,7 @@ const struct gcc_debug_hooks do_nothing_debug_hooks =
   debug_nothing_int_int,	         /* begin_block */
   debug_nothing_int_int,	         /* end_block */
   debug_true_const_tree,	         /* ignore_block */
-  debug_nothing_int_charstar,	         /* source_line */
+  debug_nothing_int_charstar_int_bool,	 /* source_line */
   debug_nothing_int_charstar,	         /* begin_prologue */
   debug_nothing_int_charstar,	         /* end_prologue */
   debug_nothing_int_charstar,	         /* end_epilogue */
@@ -100,6 +100,14 @@ debug_nothing_charstar (const char *main_filename ATTRIBUTE_UNUSED)
 void
 debug_nothing_int_charstar (unsigned int line ATTRIBUTE_UNUSED,
 			    const char *text ATTRIBUTE_UNUSED)
+{
+}
+
+void
+debug_nothing_int_charstar_int_bool (unsigned int line ATTRIBUTE_UNUSED,
+			             const char *text ATTRIBUTE_UNUSED,
+			             int discriminator ATTRIBUTE_UNUSED,
+			             bool is_stmt ATTRIBUTE_UNUSED)
 {
 }
 

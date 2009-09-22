@@ -169,6 +169,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "df.h"
 #include "dbgcnt.h"
+#include "target.h"
 
 /* Propagate flow information through back edges and thus enable PRE's
    moving loop invariant calculations out of loops.
@@ -464,7 +465,7 @@ static void record_last_reg_set_info (rtx, int);
 static void record_last_mem_set_info (rtx);
 static void record_last_set_info (rtx, const_rtx, void *);
 static void compute_hash_table (struct hash_table_d *);
-static void alloc_hash_table (int, struct hash_table_d *, int);
+static void alloc_hash_table (struct hash_table_d *, int);
 static void free_hash_table (struct hash_table_d *);
 static void compute_hash_table_work (struct hash_table_d *);
 static void dump_hash_table (FILE *, const char *, struct hash_table_d *);
@@ -805,6 +806,11 @@ static GTY(()) rtx test_insn;
 /* Return true if we can assign X to a pseudo register such that the
    resulting insn does not result in clobbering a hard register as a
    side-effect.
+
+   Additionally, if the target requires it, check that the resulting insn
+   can be copied.  If it cannot, this means that X is special and probably
+   has hidden side-effects we don't want to mess with.
+
    This function is typically used by code motion passes, to verify
    that it is safe to insert an insn without worrying about clobbering
    maybe live hard regs.  */
@@ -837,8 +843,18 @@ can_assign_to_reg_without_clobbers_p (rtx x)
      valid.  */
   PUT_MODE (SET_DEST (PATTERN (test_insn)), GET_MODE (x));
   SET_SRC (PATTERN (test_insn)) = x;
-  return ((icode = recog (PATTERN (test_insn), test_insn, &num_clobbers)) >= 0
-	  && (num_clobbers == 0 || ! added_clobbers_hard_reg_p (icode)));
+  
+  icode = recog (PATTERN (test_insn), test_insn, &num_clobbers);
+  if (icode < 0)
+    return false;
+  
+  if (num_clobbers > 0 && added_clobbers_hard_reg_p (icode))
+    return false;
+  
+  if (targetm.cannot_copy_insn_p && targetm.cannot_copy_insn_p (test_insn))
+    return false;
+  
+  return true;
 }
 
 /* Return nonzero if the operands of expression X are unchanged from the
@@ -1271,8 +1287,8 @@ gcse_constant_p (const_rtx x)
 {
   /* Consider a COMPARE of two integers constant.  */
   if (GET_CODE (x) == COMPARE
-      && GET_CODE (XEXP (x, 0)) == CONST_INT
-      && GET_CODE (XEXP (x, 1)) == CONST_INT)
+      && CONST_INT_P (XEXP (x, 0))
+      && CONST_INT_P (XEXP (x, 1)))
     return true;
 
   /* Consider a COMPARE of the same registers is a constant
@@ -1337,9 +1353,11 @@ hash_scan_set (rtx pat, rtx insn, struct hash_table_d *table)
 	  /* Don't GCSE something if we can't do a reg/reg copy.  */
 	  && can_copy_p (GET_MODE (dest))
 	  /* GCSE commonly inserts instruction after the insn.  We can't
-	     do that easily for EH_REGION notes so disable GCSE on these
-	     for now.  */
-	  && !find_reg_note (insn, REG_EH_REGION, NULL_RTX)
+	     do that easily for EH edges so disable GCSE on these for now.  */
+	  /* ??? We can now easily create new EH landing pads at the
+	     gimple level, for splitting edges; there's no reason we
+	     can't do the same thing at the rtl level.  */
+	  && !can_throw_internal (insn)
 	  /* Is SET_SRC something we want to gcse?  */
 	  && want_to_gcse_p (src)
 	  /* Don't CSE a nop.  */
@@ -1399,9 +1417,8 @@ hash_scan_set (rtx pat, rtx insn, struct hash_table_d *table)
 	   /* Don't GCSE something if we can't do a reg/reg copy.  */
 	   && can_copy_p (GET_MODE (src))
 	   /* GCSE commonly inserts instruction after the insn.  We can't
-	      do that easily for EH_REGION notes so disable GCSE on these
-	      for now.  */
-	   && ! find_reg_note (insn, REG_EH_REGION, NULL_RTX)
+	      do that easily for EH edges so disable GCSE on these for now.  */
+	   && !can_throw_internal (insn)
 	   /* Is SET_DEST something we want to gcse?  */
 	   && want_to_gcse_p (dest)
 	   /* Don't CSE a nop.  */
@@ -1700,17 +1717,18 @@ compute_hash_table_work (struct hash_table_d *table)
 }
 
 /* Allocate space for the set/expr hash TABLE.
-   N_INSNS is the number of instructions in the function.
    It is used to determine the number of buckets to use.
    SET_P determines whether set or expression table will
    be created.  */
 
 static void
-alloc_hash_table (int n_insns, struct hash_table_d *table, int set_p)
+alloc_hash_table (struct hash_table_d *table, int set_p)
 {
   int n;
 
-  table->size = n_insns / 4;
+  n = get_max_insn_count ();
+
+  table->size = n / 4;
   if (table->size < 11)
     table->size = 11;
 
@@ -2594,6 +2612,9 @@ cprop_insn (rtx insn)
 	}
     }
 
+  if (changed && DEBUG_INSN_P (insn))
+    return 0;
+
   return changed;
 }
 
@@ -3121,7 +3142,9 @@ bypass_conditional_jumps (void)
 	{
 	  setcc = NULL_RTX;
 	  FOR_BB_INSNS (bb, insn)
-	    if (NONJUMP_INSN_P (insn))
+	    if (DEBUG_INSN_P (insn))
+	      continue;
+	    else if (NONJUMP_INSN_P (insn))
 	      {
 		if (setcc)
 		  break;
@@ -3951,7 +3974,7 @@ one_pre_gcse_pass (void)
   gcc_obstack_init (&gcse_obstack);
   alloc_gcse_mem ();
 
-  alloc_hash_table (get_max_uid (), &expr_hash_table, 0);
+  alloc_hash_table (&expr_hash_table, 0);
   add_noreturn_fake_exit_edges ();
   if (flag_gcse_lm)
     compute_ld_motion_mems ();
@@ -4432,7 +4455,7 @@ one_code_hoisting_pass (void)
   gcc_obstack_init (&gcse_obstack);
   alloc_gcse_mem ();
 
-  alloc_hash_table (get_max_uid (), &expr_hash_table, 0);
+  alloc_hash_table (&expr_hash_table, 0);
   compute_hash_table (&expr_hash_table);
   if (dump_file)
     dump_hash_table (dump_file, "Code Hosting Expressions", &expr_hash_table);
@@ -4736,7 +4759,7 @@ compute_ld_motion_mems (void)
     {
       FOR_BB_INSNS (bb, insn)
 	{
-	  if (INSN_P (insn))
+	  if (NONDEBUG_INSN_P (insn))
 	    {
 	      if (GET_CODE (PATTERN (insn)) == SET)
 		{
@@ -4972,7 +4995,7 @@ one_cprop_pass (void)
   implicit_sets = XCNEWVEC (rtx, last_basic_block);
   find_implicit_sets ();
 
-  alloc_hash_table (get_max_uid (), &set_hash_table, 1);
+  alloc_hash_table (&set_hash_table, 1);
   compute_hash_table (&set_hash_table);
 
   /* Free implicit_sets before peak usage.  */

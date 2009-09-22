@@ -38,6 +38,7 @@ std_headers = \
 	${std_srcdir}/forward_list \
 	${std_srcdir}/fstream \
 	${std_srcdir}/functional \
+	${std_srcdir}/future \
 	${std_srcdir}/iomanip \
 	${std_srcdir}/ios \
 	${std_srcdir}/iosfwd \
@@ -1270,7 +1271,7 @@ install-headers:
 	  $(INSTALL_DATA) $${file} $(DESTDIR)${host_installdir}; done
 
 # By adding these files here, automake will remove them for 'make clean'
-CLEANFILES = ${pch_output} ${pch_output_anchors}
+CLEANFILES = ${pch_output} ${pch_output_anchors} stamp-host
 
 # To remove directories.
 clean-local:

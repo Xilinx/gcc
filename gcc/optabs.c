@@ -54,7 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 
    See expr.h for documentation of these optabs.  */
 
-#if GCC_VERSION >= 4000
+#if GCC_VERSION >= 4000 && HAVE_DESIGNATED_INITIALIZERS
 __extension__ struct optab_d optab_table[OTI_MAX]
   = { [0 ... OTI_MAX - 1].handlers[0 ... NUM_MACHINE_MODES - 1].insn_code
       = CODE_FOR_nothing };
@@ -66,7 +66,7 @@ struct optab_d optab_table[OTI_MAX];
 rtx libfunc_table[LTI_MAX];
 
 /* Tables of patterns for converting one mode to another.  */
-#if GCC_VERSION >= 4000
+#if GCC_VERSION >= 4000 && HAVE_DESIGNATED_INITIALIZERS
 __extension__ struct convert_optab_d convert_optab_table[COI_MAX]
   = { [0 ... COI_MAX - 1].handlers[0 ... NUM_MACHINE_MODES - 1]
 	[0 ... NUM_MACHINE_MODES - 1].insn_code
@@ -530,8 +530,8 @@ optab_for_tree_code (enum tree_code code, const_tree type,
    type-promotion (vec-unpack)  1       oprnd0  -       -  */
 
 rtx
-expand_widen_pattern_expr (tree exp, rtx op0, rtx op1, rtx wide_op, rtx target,
-                           int unsignedp)
+expand_widen_pattern_expr (sepops ops, rtx op0, rtx op1, rtx wide_op,
+			   rtx target, int unsignedp)
 {   
   tree oprnd0, oprnd1, oprnd2;
   enum machine_mode wmode = VOIDmode, tmode0, tmode1 = VOIDmode;
@@ -541,19 +541,19 @@ expand_widen_pattern_expr (tree exp, rtx op0, rtx op1, rtx wide_op, rtx target,
   rtx temp;
   rtx pat;
   rtx xop0, xop1, wxop;
-  int nops = TREE_OPERAND_LENGTH (exp);
+  int nops = TREE_CODE_LENGTH (ops->code);
 
-  oprnd0 = TREE_OPERAND (exp, 0);
+  oprnd0 = ops->op0;
   tmode0 = TYPE_MODE (TREE_TYPE (oprnd0));
   widen_pattern_optab =
-    optab_for_tree_code (TREE_CODE (exp), TREE_TYPE (oprnd0), optab_default);
+    optab_for_tree_code (ops->code, TREE_TYPE (oprnd0), optab_default);
   icode = (int) optab_handler (widen_pattern_optab, tmode0)->insn_code;
   gcc_assert (icode != CODE_FOR_nothing);
   xmode0 = insn_data[icode].operand[1].mode;
 
   if (nops >= 2)
     {
-      oprnd1 = TREE_OPERAND (exp, 1);
+      oprnd1 = ops->op1;
       tmode1 = TYPE_MODE (TREE_TYPE (oprnd1));
       xmode1 = insn_data[icode].operand[2].mode;
     }
@@ -568,7 +568,7 @@ expand_widen_pattern_expr (tree exp, rtx op0, rtx op1, rtx wide_op, rtx target,
     {
       gcc_assert (tmode1 == tmode0);
       gcc_assert (op1);
-      oprnd2 = TREE_OPERAND (exp, 2);
+      oprnd2 = ops->op2;
       wmode = TYPE_MODE (TREE_TYPE (oprnd2));
       wxmode = insn_data[icode].operand[3].mode;
     }
@@ -777,19 +777,19 @@ force_expand_binop (enum machine_mode mode, optab binoptab,
 /* Generate insns for VEC_LSHIFT_EXPR, VEC_RSHIFT_EXPR.  */
 
 rtx
-expand_vec_shift_expr (tree vec_shift_expr, rtx target)
+expand_vec_shift_expr (sepops ops, rtx target)
 {
   enum insn_code icode;
   rtx rtx_op1, rtx_op2;
   enum machine_mode mode1;
   enum machine_mode mode2;
-  enum machine_mode mode = TYPE_MODE (TREE_TYPE (vec_shift_expr));
-  tree vec_oprnd = TREE_OPERAND (vec_shift_expr, 0);
-  tree shift_oprnd = TREE_OPERAND (vec_shift_expr, 1);
+  enum machine_mode mode = TYPE_MODE (ops->type);
+  tree vec_oprnd = ops->op0;
+  tree shift_oprnd = ops->op1;
   optab shift_optab;
   rtx pat;
 
-  switch (TREE_CODE (vec_shift_expr))
+  switch (ops->code)
     {
       case VEC_RSHIFT_EXPR:
 	shift_optab = vec_shr_optab;
@@ -1093,7 +1093,7 @@ expand_doubleword_shift (enum machine_mode op1_mode, optab binoptab,
   /* If we can compute the condition at compile time, pick the
      appropriate subroutine.  */
   tmp = simplify_relational_operation (cmp_code, SImode, op1_mode, cmp1, cmp2);
-  if (tmp != 0 && GET_CODE (tmp) == CONST_INT)
+  if (tmp != 0 && CONST_INT_P (tmp))
     {
       if (tmp == const0_rtx)
 	return expand_superword_shift (binoptab, outof_input, superword_op1,
@@ -1395,7 +1395,7 @@ avoid_expensive_constant (enum machine_mode mode, optab binoptab,
       && rtx_cost (x, binoptab->code, optimize_insn_for_speed_p ())
                    > COSTS_N_INSNS (1))
     {
-      if (GET_CODE (x) == CONST_INT)
+      if (CONST_INT_P (x))
 	{
 	  HOST_WIDE_INT intval = trunc_int_for_mode (INTVAL (x), mode);
 	  if (intval != INTVAL (x))
@@ -1562,7 +1562,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
   /* If subtracting an integer constant, convert this into an addition of
      the negated constant.  */
 
-  if (binoptab == sub_optab && GET_CODE (op1) == CONST_INT)
+  if (binoptab == sub_optab && CONST_INT_P (op1))
     {
       op1 = negate_rtx (mode, op1);
       binoptab = add_optab;
@@ -1594,7 +1594,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
       rtx newop1;
       unsigned int bits = GET_MODE_BITSIZE (mode);
 
-      if (GET_CODE (op1) == CONST_INT)
+      if (CONST_INT_P (op1))
 	newop1 = GEN_INT (bits - INTVAL (op1));
       else if (targetm.shift_truncation_mask (mode) == bits - 1)
 	newop1 = negate_rtx (mode, op1);
@@ -1765,7 +1765,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
   if ((binoptab == lshr_optab || binoptab == ashl_optab
        || binoptab == ashr_optab)
       && mclass == MODE_INT
-      && (GET_CODE (op1) == CONST_INT || optimize_insn_for_speed_p ())
+      && (CONST_INT_P (op1) || optimize_insn_for_speed_p ())
       && GET_MODE_SIZE (mode) == 2 * UNITS_PER_WORD
       && optab_handler (binoptab, word_mode)->insn_code != CODE_FOR_nothing
       && optab_handler (ashl_optab, word_mode)->insn_code != CODE_FOR_nothing
@@ -1779,7 +1779,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
       op1_mode = GET_MODE (op1) != VOIDmode ? GET_MODE (op1) : word_mode;
 
       /* Apply the truncation to constant shifts.  */
-      if (double_shift_mask > 0 && GET_CODE (op1) == CONST_INT)
+      if (double_shift_mask > 0 && CONST_INT_P (op1))
 	op1 = GEN_INT (INTVAL (op1) & double_shift_mask);
 
       if (op1 == CONST0_RTX (op1_mode))
@@ -1835,7 +1835,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
   /* Synthesize double word rotates from single word shifts.  */
   if ((binoptab == rotl_optab || binoptab == rotr_optab)
       && mclass == MODE_INT
-      && GET_CODE (op1) == CONST_INT
+      && CONST_INT_P (op1)
       && GET_MODE_SIZE (mode) == 2 * UNITS_PER_WORD
       && optab_handler (ashl_optab, word_mode)->insn_code != CODE_FOR_nothing
       && optab_handler (lshr_optab, word_mode)->insn_code != CODE_FOR_nothing)
@@ -3278,7 +3278,8 @@ expand_unop (enum machine_mode mode, optab unoptab, rtx op0, rtx target,
       if (unoptab == ffs_optab || unoptab == clz_optab || unoptab == ctz_optab
 	  || unoptab == popcount_optab || unoptab == parity_optab)
 	outmode
-	    = GET_MODE (hard_libcall_value (TYPE_MODE (integer_type_node)));
+	  = GET_MODE (hard_libcall_value (TYPE_MODE (integer_type_node),
+					  optab_libfunc (unoptab, mode)));
 
       start_sequence ();
 
@@ -3857,32 +3858,31 @@ emit_libcall_block (rtx insns, rtx target, rtx result, rtx equiv)
 
   /* If we're using non-call exceptions, a libcall corresponding to an
      operation that may trap may also trap.  */
+  /* ??? See the comment in front of make_reg_eh_region_note.  */
   if (flag_non_call_exceptions && may_trap_p (equiv))
     {
       for (insn = insns; insn; insn = NEXT_INSN (insn))
 	if (CALL_P (insn))
 	  {
 	    rtx note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
-
-	    if (note != 0 && INTVAL (XEXP (note, 0)) <= 0)
-	      remove_note (insn, note);
+	    if (note)
+	      {
+		int lp_nr = INTVAL (XEXP (note, 0));
+		if (lp_nr == 0 || lp_nr == INT_MIN)
+		  remove_note (insn, note);
+	      }
 	  }
     }
   else
-  /* look for any CALL_INSNs in this sequence, and attach a REG_EH_REGION
-     reg note to indicate that this call cannot throw or execute a nonlocal
-     goto (unless there is already a REG_EH_REGION note, in which case
-     we update it).  */
-    for (insn = insns; insn; insn = NEXT_INSN (insn))
-      if (CALL_P (insn))
-	{
-	  rtx note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
-
-	  if (note != 0)
-	    XEXP (note, 0) = constm1_rtx;
-	  else
-	    add_reg_note (insn, REG_EH_REGION, constm1_rtx);
-	}
+    {
+      /* Look for any CALL_INSNs in this sequence, and attach a REG_EH_REGION
+	 reg note to indicate that this call cannot throw or execute a nonlocal
+	 goto (unless there is already a REG_EH_REGION note, in which case
+	 we update it).  */
+      for (insn = insns; insn; insn = NEXT_INSN (insn))
+	if (CALL_P (insn))
+	  make_reg_eh_region_note_nothrow_nononlocal (insn);
+    }
 
   /* First emit all insns that set pseudos.  Remove them from the list as
      we go.  Avoid insns that set pseudos which were referenced in previous
@@ -4068,7 +4068,7 @@ prepare_cmp_insn (rtx x, rtx y, enum rtx_code comparison, rtx size,
 	    continue;
 
 	  /* Must make sure the size fits the insn's mode.  */
-	  if ((GET_CODE (size) == CONST_INT
+	  if ((CONST_INT_P (size)
 	       && INTVAL (size) >= (1 << GET_MODE_BITSIZE (cmp_mode)))
 	      || (GET_MODE_BITSIZE (GET_MODE (size))
 		  > GET_MODE_BITSIZE (cmp_mode)))
@@ -4280,18 +4280,18 @@ emit_cmp_and_jump_insns (rtx x, rtx y, enum rtx_code comparison, rtx size,
   rtx test;
 
   /* Swap operands and condition to ensure canonical RTL.  */
-  if (swap_commutative_operands_p (x, y))
+  if (swap_commutative_operands_p (x, y)
+      && can_compare_p (swap_condition (comparison), mode, ccp_jump))
     {
       op0 = y, op1 = x;
       comparison = swap_condition (comparison);
     }
 
-#ifdef HAVE_cc0
-  /* If OP0 is still a constant, then both X and Y must be constants.
-     Force X into a register to create canonical RTL.  */
+  /* If OP0 is still a constant, then both X and Y must be constants
+     or the opposite comparison is not supported.  Force X into a register
+     to create canonical RTL.  */
   if (CONSTANT_P (op0))
     op0 = force_reg (mode, op0);
-#endif
 
   if (unsignedp)
     comparison = unsigned_condition (comparison);
@@ -6022,6 +6022,28 @@ libfunc_decl_eq (const void *entry1, const void *entry2)
   return DECL_NAME ((const_tree) entry1) == (const_tree) entry2;
 }
 
+/* Build a decl for a libfunc named NAME. */
+
+tree
+build_libfunc_function (const char *name)
+{
+  tree decl = build_decl (UNKNOWN_LOCATION, FUNCTION_DECL,
+			  get_identifier (name),
+                          build_function_type (integer_type_node, NULL_TREE));
+  /* ??? We don't have any type information except for this is
+     a function.  Pretend this is "int foo()".  */
+  DECL_ARTIFICIAL (decl) = 1;
+  DECL_EXTERNAL (decl) = 1;
+  TREE_PUBLIC (decl) = 1;
+  gcc_assert (DECL_ASSEMBLER_NAME (decl));
+
+  /* Zap the nonsensical SYMBOL_REF_DECL for this.  What we're left with
+     are the flags assigned by targetm.encode_section_info.  */
+  SET_SYMBOL_REF_DECL (XEXP (DECL_RTL (decl), 0), NULL);
+
+  return decl;
+}
+
 rtx
 init_one_libfunc (const char *name)
 {
@@ -6042,18 +6064,7 @@ init_one_libfunc (const char *name)
     {
       /* Create a new decl, so that it can be passed to
 	 targetm.encode_section_info.  */
-      /* ??? We don't have any type information except for this is
-	 a function.  Pretend this is "int foo()".  */
-      decl = build_decl (FUNCTION_DECL, get_identifier (name),
-			 build_function_type (integer_type_node, NULL_TREE));
-      DECL_ARTIFICIAL (decl) = 1;
-      DECL_EXTERNAL (decl) = 1;
-      TREE_PUBLIC (decl) = 1;
-
-      /* Zap the nonsensical SYMBOL_REF_DECL for this.  What we're left with
-	 are the flags assigned by targetm.encode_section_info.  */
-      SET_SYMBOL_REF_DECL (XEXP (DECL_RTL (decl), 0), NULL);
-
+      decl = build_libfunc_function (name);
       *slot = decl;
     }
   return XEXP (DECL_RTL (decl), 0);
@@ -6153,7 +6164,7 @@ init_optabs (void)
       vcondu_gen_code[i] = CODE_FOR_nothing;
     }
 
-#if GCC_VERSION >= 4000
+#if GCC_VERSION >= 4000 && HAVE_DESIGNATED_INITIALIZERS
   /* We statically initialize the insn_codes with CODE_FOR_nothing.  */
   if (reinit)
     init_insn_codes ();
@@ -6270,6 +6281,7 @@ init_optabs (void)
   init_optab (expm1_optab, UNKNOWN);
   init_optab (ldexp_optab, UNKNOWN);
   init_optab (scalb_optab, UNKNOWN);
+  init_optab (significand_optab, UNKNOWN);
   init_optab (logb_optab, UNKNOWN);
   init_optab (ilogb_optab, UNKNOWN);
   init_optab (log_optab, UNKNOWN);
@@ -6832,14 +6844,14 @@ vector_compare_rtx (tree cond, bool unsignedp, enum insn_code icode)
   return gen_rtx_fmt_ee (rcode, VOIDmode, rtx_op0, rtx_op1);
 }
 
-/* Return insn code for VEC_COND_EXPR EXPR.  */
+/* Return insn code for TYPE, the type of a VEC_COND_EXPR.  */
 
 static inline enum insn_code
-get_vcond_icode (tree expr, enum machine_mode mode)
+get_vcond_icode (tree type, enum machine_mode mode)
 {
   enum insn_code icode = CODE_FOR_nothing;
 
-  if (TYPE_UNSIGNED (TREE_TYPE (expr)))
+  if (TYPE_UNSIGNED (type))
     icode = vcondu_gen_code[mode];
   else
     icode = vcond_gen_code[mode];
@@ -6847,27 +6859,29 @@ get_vcond_icode (tree expr, enum machine_mode mode)
 }
 
 /* Return TRUE iff, appropriate vector insns are available
-   for vector cond expr expr in VMODE mode.  */
+   for vector cond expr with type TYPE in VMODE mode.  */
 
 bool
-expand_vec_cond_expr_p (tree expr, enum machine_mode vmode)
+expand_vec_cond_expr_p (tree type, enum machine_mode vmode)
 {
-  if (get_vcond_icode (expr, vmode) == CODE_FOR_nothing)
+  if (get_vcond_icode (type, vmode) == CODE_FOR_nothing)
     return false;
   return true;
 }
 
-/* Generate insns for VEC_COND_EXPR.  */
+/* Generate insns for a VEC_COND_EXPR, given its TYPE and its
+   three operands.  */
 
 rtx
-expand_vec_cond_expr (tree vec_cond_expr, rtx target)
+expand_vec_cond_expr (tree vec_cond_type, tree op0, tree op1, tree op2,
+		      rtx target)
 {
   enum insn_code icode;
   rtx comparison, rtx_op1, rtx_op2, cc_op0, cc_op1;
-  enum machine_mode mode = TYPE_MODE (TREE_TYPE (vec_cond_expr));
-  bool unsignedp = TYPE_UNSIGNED (TREE_TYPE (vec_cond_expr));
+  enum machine_mode mode = TYPE_MODE (vec_cond_type);
+  bool unsignedp = TYPE_UNSIGNED (vec_cond_type);
 
-  icode = get_vcond_icode (vec_cond_expr, mode);
+  icode = get_vcond_icode (vec_cond_type, mode);
   if (icode == CODE_FOR_nothing)
     return 0;
 
@@ -6875,17 +6889,17 @@ expand_vec_cond_expr (tree vec_cond_expr, rtx target)
     target = gen_reg_rtx (mode);
 
   /* Get comparison rtx.  First expand both cond expr operands.  */
-  comparison = vector_compare_rtx (TREE_OPERAND (vec_cond_expr, 0),
+  comparison = vector_compare_rtx (op0,
 				   unsignedp, icode);
   cc_op0 = XEXP (comparison, 0);
   cc_op1 = XEXP (comparison, 1);
   /* Expand both operands and force them in reg, if required.  */
-  rtx_op1 = expand_normal (TREE_OPERAND (vec_cond_expr, 1));
+  rtx_op1 = expand_normal (op1);
   if (!insn_data[icode].operand[1].predicate (rtx_op1, mode)
       && mode != VOIDmode)
     rtx_op1 = force_reg (mode, rtx_op1);
 
-  rtx_op2 = expand_normal (TREE_OPERAND (vec_cond_expr, 2));
+  rtx_op2 = expand_normal (op2);
   if (!insn_data[icode].operand[2].predicate (rtx_op2, mode)
       && mode != VOIDmode)
     rtx_op2 = force_reg (mode, rtx_op2);

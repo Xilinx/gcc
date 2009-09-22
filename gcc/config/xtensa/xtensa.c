@@ -1,5 +1,5 @@
 /* Subroutines for insn-output.c for Tensilica's Xtensa architecture.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
@@ -145,6 +145,7 @@ static void xtensa_init_builtins (void);
 static tree xtensa_fold_builtin (tree, tree, bool);
 static rtx xtensa_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 static void xtensa_va_start (tree, rtx);
+static bool xtensa_frame_pointer_required (void);
 
 static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
   REG_ALLOC_ORDER;
@@ -184,10 +185,8 @@ static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
 #undef TARGET_EXPAND_BUILTIN_VA_START
 #define TARGET_EXPAND_BUILTIN_VA_START xtensa_va_start
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode_always_promote
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
@@ -226,6 +225,9 @@ static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	xtensa_legitimate_address_p
+
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED xtensa_frame_pointer_required
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1534,7 +1536,7 @@ xtensa_expand_atomic (enum rtx_code code, rtx target, rtx mem, rtx val,
 void
 xtensa_setup_frame_addresses (void)
 {
-  /* Set flag to cause FRAME_POINTER_REQUIRED to be set.  */
+  /* Set flag to cause TARGET_FRAME_POINTER_REQUIRED to return true.  */
   cfun->machine->accesses_prev_frame = 1;
 
   emit_library_call
@@ -2495,7 +2497,7 @@ compute_frame_size (int size)
 }
 
 
-int
+bool
 xtensa_frame_pointer_required (void)
 {
   /* The code to expand builtin_frame_addr and builtin_return_addr
@@ -2504,9 +2506,9 @@ xtensa_frame_pointer_required (void)
      This function is derived from the i386 code.  */
 
   if (cfun->machine->accesses_prev_frame)
-    return 1;
+    return true;
 
-  return 0;
+  return false;
 }
 
 
@@ -2651,13 +2653,17 @@ xtensa_build_builtin_va_list (void)
   tree f_stk, f_reg, f_ndx, record, type_decl;
 
   record = (*lang_hooks.types.make_type) (RECORD_TYPE);
-  type_decl = build_decl (TYPE_DECL, get_identifier ("__va_list_tag"), record);
+  type_decl = build_decl (BUILTINS_LOCATION,
+			  TYPE_DECL, get_identifier ("__va_list_tag"), record);
 
-  f_stk = build_decl (FIELD_DECL, get_identifier ("__va_stk"),
+  f_stk = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, get_identifier ("__va_stk"),
 		      ptr_type_node);
-  f_reg = build_decl (FIELD_DECL, get_identifier ("__va_reg"),
+  f_reg = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, get_identifier ("__va_reg"),
 		      ptr_type_node);
-  f_ndx = build_decl (FIELD_DECL, get_identifier ("__va_ndx"),
+  f_ndx = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, get_identifier ("__va_ndx"),
 		      integer_type_node);
 
   DECL_FIELD_CONTEXT (f_stk) = record;
@@ -2848,8 +2854,8 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
   lab_over = NULL;
   if (!targetm.calls.must_pass_in_stack (TYPE_MODE (type), type))
     {
-      lab_false = create_artificial_label ();
-      lab_over = create_artificial_label ();
+      lab_false = create_artificial_label (UNKNOWN_LOCATION);
+      lab_over = create_artificial_label (UNKNOWN_LOCATION);
 
       t = build2 (GT_EXPR, boolean_type_node, unshare_expr (ndx),
 		  build_int_cst (integer_type_node,
@@ -2879,7 +2885,7 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 	 __array = (AP).__va_stk;
        } */
 
-  lab_false2 = create_artificial_label ();
+  lab_false2 = create_artificial_label (UNKNOWN_LOCATION);
 
   t = build2 (GT_EXPR, boolean_type_node, unshare_expr (orig_ndx),
 	      build_int_cst (integer_type_node,

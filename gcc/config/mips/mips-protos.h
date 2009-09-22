@@ -1,6 +1,6 @@
 /* Prototypes of target machine for GNU compiler.  MIPS version.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by A. Lichnewsky (lich@inria.inria.fr).
    Changed by Michael Meissner	(meissner@osf.org).
@@ -219,7 +219,10 @@ extern rtx mips_subword (rtx, bool);
 extern bool mips_split_64bit_move_p (rtx, rtx);
 extern void mips_split_doubleword_move (rtx, rtx);
 extern const char *mips_output_move (rtx, rtx);
-extern void mips_restore_gp (rtx);
+extern bool mips_cfun_has_cprestore_slot_p (void);
+extern bool mips_cprestore_address_p (rtx, bool);
+extern void mips_save_gp_to_cprestore_slot (rtx, rtx, rtx, rtx);
+extern void mips_restore_gp_from_cprestore_slot (rtx);
 #ifdef RTX_CODE
 extern void mips_expand_scc (rtx *);
 extern void mips_expand_conditional_branch (rtx *);
@@ -230,6 +233,7 @@ extern void mips_expand_conditional_trap (rtx);
 extern bool mips_use_pic_fn_addr_reg_p (const_rtx);
 extern rtx mips_expand_call (enum mips_call_type, rtx, rtx, rtx, rtx, bool);
 extern void mips_split_call (rtx, rtx);
+extern bool mips_get_pic_call_symbol (rtx *, int);
 extern void mips_expand_fcc_reload (rtx, rtx, rtx);
 extern void mips_set_return_address (rtx, rtx);
 extern bool mips_expand_block_move (rtx, rtx, rtx);
@@ -254,6 +258,8 @@ extern void mips_conditional_register_usage (void);
 extern void mips_order_regs_for_local_alloc (void);
 extern HOST_WIDE_INT mips_debugger_offset (rtx, HOST_WIDE_INT);
 
+extern void mips_push_asm_switch (struct mips_asm_switch *);
+extern void mips_pop_asm_switch (struct mips_asm_switch *);
 extern void mips_print_operand (FILE *, rtx, int);
 extern void mips_print_operand_address (FILE *, rtx);
 extern void mips_output_external (FILE *, tree, const char *);
@@ -272,15 +278,16 @@ extern void mips_finish_declare_object (FILE *, tree, int, int);
 
 extern bool mips_small_data_pattern_p (rtx);
 extern rtx mips_rewrite_small_data (rtx);
-extern bool mips_frame_pointer_required (void);
 extern HOST_WIDE_INT mips_initial_elimination_offset (int, int);
 extern rtx mips_return_addr (int, rtx);
+extern bool mips_must_initialize_gp_p (void);
 extern enum mips_loadgp_style mips_current_loadgp_style (void);
+extern void mips_emit_save_slot_move (rtx, rtx, rtx);
 extern void mips_expand_prologue (void);
 extern void mips_expand_before_return (void);
 extern void mips_expand_epilogue (bool);
 extern bool mips_can_use_return_insn (void);
-extern rtx mips_function_value (const_tree, enum machine_mode);
+extern rtx mips_function_value (const_tree, const_tree, enum machine_mode);
 
 extern bool mips_cannot_change_mode_class (enum machine_mode,
 					   enum machine_mode, enum reg_class);
@@ -295,11 +302,13 @@ extern int mips_register_move_cost (enum machine_mode, enum reg_class,
 				    enum reg_class);
 
 extern int mips_adjust_insn_length (rtx, int);
-extern const char *mips_output_load_label (void);
+extern void mips_output_load_label (rtx);
 extern const char *mips_output_conditional_branch (rtx, rtx *, const char *,
 						   const char *);
 extern const char *mips_output_order_conditional_branch (rtx, rtx *, bool);
-extern const char *mips_output_sync_loop (const char *);
+extern const char *mips_output_sync (void);
+extern const char *mips_output_sync_loop (rtx, rtx *);
+extern unsigned int mips_sync_loop_insns (rtx, rtx *);
 extern const char *mips_output_division (const char *, rtx *);
 extern unsigned int mips_hard_regno_nregs (int, enum machine_mode);
 extern bool mips_linked_madd_p (rtx, rtx);
@@ -317,6 +326,7 @@ extern bool mips16e_save_restore_pattern_p (rtx, HOST_WIDE_INT,
 
 extern bool mask_low_and_shift_p (enum machine_mode, rtx, rtx, int);
 extern int mask_low_and_shift_len (enum machine_mode, rtx, rtx);
+extern bool and_operands_ok (enum machine_mode, rtx, rtx);
 
 union mips_gen_fn_ptrs
 {
@@ -330,6 +340,7 @@ extern void mips_expand_atomic_qihi (union mips_gen_fn_ptrs,
 
 extern void mips_expand_vector_init (rtx, rtx);
 
+extern bool mips_eh_uses (unsigned int);
 extern bool mips_epilogue_uses (unsigned int);
 extern void mips_final_prescan_insn (rtx, rtx *, int);
 

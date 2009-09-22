@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -343,6 +343,14 @@ package Exp_Util is
    --  declarations and/or allocations when the type is indefinite (including
    --  class-wide).
 
+   function Find_Init_Call
+     (Var        : Entity_Id;
+      Rep_Clause : Node_Id) return Node_Id;
+   --  Look for init_proc call for variable Var, either among declarations
+   --  between that of Var and a subsequent Rep_Clause applying to Var, or
+   --  in the list of freeze actions associated with Var, and if found, return
+   --  that call node.
+
    function Find_Interface_ADT
      (T     : Entity_Id;
       Iface : Entity_Id) return Elmt_Id;
@@ -457,6 +465,15 @@ package Exp_Util is
    --  Return True if all the items of the list are N_Null_Statement nodes.
    --  False otherwise. True for an empty list. It is an error to call this
    --  routine with No_List as the argument.
+
+   function Is_Fully_Repped_Tagged_Type (T : Entity_Id) return Boolean;
+   --  Tests given type T, and returns True if T is a non-discriminated tagged
+   --  type which has a record representation clause that specifies the layout
+   --  of all the components, including recursively components in all parent
+   --  types. We exclude discriminated types for convenience, it is extremely
+   --  unlikely that the special processing associated with the use of this
+   --  routine is useful for the case of a discriminated type, and testing for
+   --  component overlap would be a pain.
 
    function Is_Library_Level_Tagged_Type (Typ : Entity_Id) return Boolean;
    --  Return True if Typ is a library level tagged type. Currently we use

@@ -72,6 +72,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "cfglayout.h"
 #include "tree-pass.h"
+#include "tree-flow.h"
 #include "timevar.h"
 #include "cgraph.h"
 #include "coverage.h"
@@ -129,6 +130,12 @@ rtx current_output_insn;
 
 /* Line number of last NOTE.  */
 static int last_linenum;
+
+/* Last discriminator written to assembly.  */
+static int last_discriminator;
+
+/* Discriminator of current block.  */
+static int discriminator;
 
 /* Highest line number in current block.  */
 static int high_block_linenum;
@@ -207,7 +214,7 @@ static int asm_insn_count (rtx);
 #endif
 static void profile_function (FILE *);
 static void profile_after_prologue (FILE *);
-static bool notice_source_line (rtx);
+static bool notice_source_line (rtx, bool *);
 static rtx walk_alter_subreg (rtx *, bool *);
 static void output_asm_name (void);
 static void output_alternate_entry_point (FILE *, rtx);
@@ -384,6 +391,7 @@ get_attr_length_1 (rtx insn ATTRIBUTE_UNUSED,
       case NOTE:
       case BARRIER:
       case CODE_LABEL:
+      case DEBUG_INSN:
 	return 0;
 
       case CALL_INSN:
@@ -1073,7 +1081,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
       INSN_ADDRESSES (uid) = insn_current_address + insn_lengths[uid];
 
       if (NOTE_P (insn) || BARRIER_P (insn)
-	  || LABEL_P (insn))
+	  || LABEL_P (insn) || DEBUG_INSN_P(insn))
 	continue;
       if (INSN_DELETED_P (insn))
 	continue;
@@ -1443,10 +1451,10 @@ add_debug_prefix_map (const char *arg)
       return;
     }
   map = XNEW (debug_prefix_map);
-  map->old_prefix = ggc_alloc_string (arg, p - arg);
+  map->old_prefix = xstrndup (arg, p - arg);
   map->old_len = p - arg;
   p++;
-  map->new_prefix = ggc_strdup (p);
+  map->new_prefix = xstrdup (p);
   map->new_len = strlen (p);
   map->next = debug_prefix_maps;
   debug_prefix_maps = map;
@@ -1476,6 +1484,20 @@ remap_debug_filename (const char *filename)
   return ggc_strdup (s);
 }
 
+/* Return true if DWARF2 debug info can be emitted for DECL.  */
+
+static bool
+dwarf2_debug_info_emitted_p (tree decl)
+{
+  if (write_symbols != DWARF2_DEBUG && write_symbols != VMS_AND_DWARF2_DEBUG)
+    return false;
+
+  if (DECL_IGNORED_P (decl))
+    return false;
+
+  return true;
+}
+
 /* Output assembler code for the start of a function,
    and initialize some of the variables in this file
    for the new function.  The label for the function and associated
@@ -1496,13 +1518,15 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
 
   last_filename = locator_file (prologue_locator);
   last_linenum = locator_line (prologue_locator);
+  last_discriminator = discriminator = 0;
 
   high_block_linenum = high_function_linenum = last_linenum;
 
-  (*debug_hooks->begin_prologue) (last_linenum, last_filename);
+  if (!DECL_IGNORED_P (current_function_decl))
+    debug_hooks->begin_prologue (last_linenum, last_filename);
 
 #if defined (DWARF2_UNWIND_INFO) || defined (TARGET_UNWIND_INFO)
-  if (write_symbols != DWARF2_DEBUG && write_symbols != VMS_AND_DWARF2_DEBUG)
+  if (!dwarf2_debug_info_emitted_p (current_function_decl))
     dwarf2out_begin_prologue (0, NULL);
 #endif
 
@@ -1639,17 +1663,19 @@ final_end_function (void)
 {
   app_disable ();
 
-  (*debug_hooks->end_function) (high_function_linenum);
+  if (!DECL_IGNORED_P (current_function_decl))
+    debug_hooks->end_function (high_function_linenum);
 
   /* Finally, output the function epilogue:
      code to restore the stack frame and return to the caller.  */
   targetm.asm_out.function_epilogue (asm_out_file, get_frame_size ());
 
   /* And debug output.  */
-  (*debug_hooks->end_epilogue) (last_linenum, last_filename);
+  if (!DECL_IGNORED_P (current_function_decl))
+    debug_hooks->end_epilogue (last_linenum, last_filename);
 
 #if defined (DWARF2_UNWIND_INFO)
-  if (write_symbols != DWARF2_DEBUG && write_symbols != VMS_AND_DWARF2_DEBUG
+  if (!dwarf2_debug_info_emitted_p (current_function_decl)
       && dwarf2out_do_frame ())
     dwarf2out_end_epilogue (last_linenum, last_filename);
 #endif
@@ -1830,7 +1856,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    dwarf2out_switch_text_section ();
 	  else
 #endif
-	    (*debug_hooks->switch_text_section) ();
+	  if (!DECL_IGNORED_P (current_function_decl))
+	    debug_hooks->switch_text_section ();
 
 	  switch_to_section (current_function_section ());
 	  break;
@@ -1851,6 +1878,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    }
 	  else
 	    *seen |= SEEN_BB;
+
+          discriminator = NOTE_BASIC_BLOCK (insn)->discriminator;
 
 	  break;
 
@@ -1879,12 +1908,23 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  break;
 
 	case NOTE_INSN_EPILOGUE_BEG:
+#if defined (DWARF2_UNWIND_INFO) && defined (HAVE_epilogue)
+	  if (dwarf2out_do_frame ())
+	    dwarf2out_begin_epilogue (insn);
+#endif
 	  targetm.asm_out.function_begin_epilogue (file);
+	  break;
+
+	case NOTE_INSN_CFA_RESTORE_STATE:
+#if defined (DWARF2_UNWIND_INFO)
+	  dwarf2out_frame_debug_restore_state ();
+#endif
 	  break;
 
 	case NOTE_INSN_FUNCTION_BEG:
 	  app_disable ();
-	  (*debug_hooks->end_prologue) (last_linenum, last_filename);
+	  if (!DECL_IGNORED_P (current_function_decl))
+	    debug_hooks->end_prologue (last_linenum, last_filename);
 
 	  if ((*seen & (SEEN_EMITTED | SEEN_NOTE)) == SEEN_NOTE)
 	    {
@@ -1910,7 +1950,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	      high_block_linenum = last_linenum;
 
 	      /* Output debugging info about the symbol-block beginning.  */
-	      (*debug_hooks->begin_block) (last_linenum, n);
+	      if (!DECL_IGNORED_P (current_function_decl))
+		debug_hooks->begin_block (last_linenum, n);
 
 	      /* Mark this block as output.  */
 	      TREE_ASM_WRITTEN (NOTE_BLOCK (insn)) = 1;
@@ -1944,7 +1985,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	      --block_depth;
 	      gcc_assert (block_depth >= 0);
 
-	      (*debug_hooks->end_block) (high_block_linenum, n);
+	      if (!DECL_IGNORED_P (current_function_decl))
+		debug_hooks->end_block (high_block_linenum, n);
 	    }
 	  if (write_symbols == DBX_DEBUG
 	      || write_symbols == SDB_DEBUG)
@@ -1974,7 +2016,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  break;
 
 	case NOTE_INSN_VAR_LOCATION:
-	  (*debug_hooks->var_location) (insn);
+	  if (!DECL_IGNORED_P (current_function_decl))
+	    debug_hooks->var_location (insn);
 	  break;
 
 	default:
@@ -2017,8 +2060,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
       CC_STATUS_INIT;
 #endif
 
-      if (LABEL_NAME (insn))
-	(*debug_hooks->label) (insn);
+      if (!DECL_IGNORED_P (current_function_decl) && LABEL_NAME (insn))
+	debug_hooks->label (insn);
 
       app_disable ();
 
@@ -2070,6 +2113,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	rtx body = PATTERN (insn);
 	int insn_code_number;
 	const char *templ;
+	bool is_stmt;
 
 #ifdef HAVE_conditional_execution
 	/* Reset this early so it is correct for ASM statements.  */
@@ -2171,10 +2215,10 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  }
 	/* Output this line note if it is the first or the last line
 	   note in a row.  */
-	if (notice_source_line (insn))
-	  {
-	    (*debug_hooks->source_line) (last_linenum, last_filename);
-	  }
+	if (!DECL_IGNORED_P (current_function_decl)
+	    && notice_source_line (insn, &is_stmt))
+	  (*debug_hooks->source_line) (last_linenum, last_filename,
+				       last_discriminator, is_stmt);
 
 	if (GET_CODE (body) == ASM_INPUT)
 	  {
@@ -2677,10 +2721,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
   return NEXT_INSN (insn);
 }
 
-/* Return whether a source line note needs to be emitted before INSN.  */
+/* Return whether a source line note needs to be emitted before INSN.
+   Sets IS_STMT to TRUE if the line should be marked as a possible
+   breakpoint location.  */
 
 static bool
-notice_source_line (rtx insn)
+notice_source_line (rtx insn, bool *is_stmt)
 {
   const char *filename;
   int linenum;
@@ -2696,18 +2742,33 @@ notice_source_line (rtx insn)
       linenum = insn_line (insn);
     }
 
-  if (filename
-      && (force_source_line
-	  || filename != last_filename
-	  || last_linenum != linenum))
+  if (filename == NULL)
+    return false;
+
+  if (force_source_line
+      || filename != last_filename
+      || last_linenum != linenum)
     {
       force_source_line = false;
       last_filename = filename;
       last_linenum = linenum;
+      last_discriminator = discriminator;
+      *is_stmt = true;
       high_block_linenum = MAX (last_linenum, high_block_linenum);
       high_function_linenum = MAX (last_linenum, high_function_linenum);
       return true;
     }
+
+  if (SUPPORTS_DISCRIMINATOR && last_discriminator != discriminator)
+    {
+      /* If the discriminator changed, but the line number did not,
+         output the line table entry with is_stmt false so the
+         debugger does not treat this as a breakpoint location.  */
+      last_discriminator = discriminator;
+      *is_stmt = false;
+      return true;
+    }
+
   return false;
 }
 
@@ -3087,7 +3148,7 @@ get_mem_expr_from_op (rtx op, int *paddressp)
 	   && (expr = get_mem_expr_from_op (XEXP (op, 1), &inner_addressp)))
     return expr;
 
-  while (GET_RTX_CLASS (GET_CODE (op)) == RTX_UNARY
+  while (UNARY_P (op)
 	 || GET_RTX_CLASS (GET_CODE (op)) == RTX_BIN_ARITH)
     op = XEXP (op, 0);
 
@@ -3290,7 +3351,7 @@ output_asm_insn (const char *templ, rtx *operands)
 	      }
 	    else if (letter == 'n')
 	      {
-		if (GET_CODE (operands[opnum]) == CONST_INT)
+		if (CONST_INT_P (operands[opnum]))
 		  fprintf (asm_out_file, HOST_WIDE_INT_PRINT_DEC,
 			   - INTVAL (operands[opnum]));
 		else
@@ -3522,7 +3583,7 @@ output_addr_const (FILE *file, rtx x)
 
     case PLUS:
       /* Some assemblers need integer constants to appear last (eg masm).  */
-      if (GET_CODE (XEXP (x, 0)) == CONST_INT)
+      if (CONST_INT_P (XEXP (x, 0)))
 	{
 	  output_addr_const (file, XEXP (x, 1));
 	  if (INTVAL (XEXP (x, 0)) >= 0)
@@ -3532,7 +3593,7 @@ output_addr_const (FILE *file, rtx x)
       else
 	{
 	  output_addr_const (file, XEXP (x, 0));
-	  if (GET_CODE (XEXP (x, 1)) != CONST_INT
+	  if (!CONST_INT_P (XEXP (x, 1))
 	      || INTVAL (XEXP (x, 1)) >= 0)
 	    fprintf (file, "+");
 	  output_addr_const (file, XEXP (x, 1));
@@ -3548,7 +3609,7 @@ output_addr_const (FILE *file, rtx x)
 
       output_addr_const (file, XEXP (x, 0));
       fprintf (file, "-");
-      if ((GET_CODE (XEXP (x, 1)) == CONST_INT && INTVAL (XEXP (x, 1)) >= 0)
+      if ((CONST_INT_P (XEXP (x, 1)) && INTVAL (XEXP (x, 1)) >= 0)
 	  || GET_CODE (XEXP (x, 1)) == PC
 	  || GET_CODE (XEXP (x, 1)) == SYMBOL_REF)
 	output_addr_const (file, XEXP (x, 1));
@@ -3756,7 +3817,7 @@ asm_fprintf (FILE *file, const char *p, ...)
 void
 split_double (rtx value, rtx *first, rtx *second)
 {
-  if (GET_CODE (value) == CONST_INT)
+  if (CONST_INT_P (value))
     {
       if (HOST_BITS_PER_WIDE_INT >= (2 * BITS_PER_WORD))
 	{
@@ -4219,7 +4280,8 @@ rest_of_handle_final (void)
      *will* be routed past here.  */
 
   timevar_push (TV_SYMOUT);
-  (*debug_hooks->function_decl) (current_function_decl);
+  if (!DECL_IGNORED_P (current_function_decl))
+    debug_hooks->function_decl (current_function_decl);
   timevar_pop (TV_SYMOUT);
 
   /* Release the blocks that are linked to DECL_INITIAL() to free the memory.  */
@@ -4242,7 +4304,7 @@ struct rtl_opt_pass pass_final =
 {
  {
   RTL_PASS,
-  NULL,                                 /* name */
+  "final",                              /* name */
   NULL,                                 /* gate */
   rest_of_handle_final,                 /* execute */
   NULL,                                 /* sub */
@@ -4290,6 +4352,41 @@ static unsigned int
 rest_of_clean_state (void)
 {
   rtx insn, next;
+  FILE *final_output = NULL;
+  int save_unnumbered = flag_dump_unnumbered;
+  int save_noaddr = flag_dump_noaddr;
+
+  if (flag_dump_final_insns)
+    {
+      final_output = fopen (flag_dump_final_insns, "a");
+      if (!final_output)
+	{
+	  error ("could not open final insn dump file %qs: %s",
+		 flag_dump_final_insns, strerror (errno));
+	  flag_dump_final_insns = NULL;
+	}
+      else
+	{
+	  const char *aname;
+
+	  aname = (IDENTIFIER_POINTER
+		   (DECL_ASSEMBLER_NAME (current_function_decl)));
+	  fprintf (final_output, "\n;; Function (%s) %s\n\n", aname,
+	     cfun->function_frequency == FUNCTION_FREQUENCY_HOT
+	     ? " (hot)"
+	     : cfun->function_frequency == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED
+	     ? " (unlikely executed)"
+	     : "");
+
+	  flag_dump_noaddr = flag_dump_unnumbered = 1;
+
+	  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+	    if (LABEL_P (insn))
+	      INSN_UID (insn) = CODE_LABEL_NUMBER (insn);
+	    else
+	      INSN_UID (insn) = 0;
+	}
+    }
 
   /* It is very important to decompose the RTL instruction chain here:
      debug information keeps pointing into CODE_LABEL insns inside the function
@@ -4300,6 +4397,28 @@ rest_of_clean_state (void)
       next = NEXT_INSN (insn);
       NEXT_INSN (insn) = NULL;
       PREV_INSN (insn) = NULL;
+
+      if (final_output
+	  && (!NOTE_P (insn) ||
+	      (NOTE_KIND (insn) != NOTE_INSN_VAR_LOCATION
+	       && NOTE_KIND (insn) != NOTE_INSN_BLOCK_BEG
+	       && NOTE_KIND (insn) != NOTE_INSN_BLOCK_END
+	       && NOTE_KIND (insn) != NOTE_INSN_CFA_RESTORE_STATE)))
+	print_rtl_single (final_output, insn);
+
+    }
+
+  if (final_output)
+    {
+      flag_dump_noaddr = save_noaddr;
+      flag_dump_unnumbered = save_unnumbered;
+
+      if (fclose (final_output))
+	{
+	  error ("could not close final insn dump file %qs: %s",
+		 flag_dump_final_insns, strerror (errno));
+	  flag_dump_final_insns = NULL;
+	}
     }
 
   /* In case the function was not output,
@@ -4325,6 +4444,8 @@ rest_of_clean_state (void)
   init_temp_slots ();
 
   free_bb_for_insn ();
+
+  delete_tree_ssa ();
 
   if (targetm.binds_local_p (current_function_decl))
     {
@@ -4355,7 +4476,7 @@ struct rtl_opt_pass pass_clean_state =
 {
  {
   RTL_PASS,
-  NULL,                                 /* name */
+  "*clean_state",                       /* name */
   NULL,                                 /* gate */
   rest_of_clean_state,                  /* execute */
   NULL,                                 /* sub */

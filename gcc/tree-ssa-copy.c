@@ -160,9 +160,9 @@ static void
 replace_exp_1 (use_operand_p op_p, tree val,
     	       bool for_propagation ATTRIBUTE_UNUSED)
 {
+#if defined ENABLE_CHECKING
   tree op = USE_FROM_PTR (op_p);
 
-#if defined ENABLE_CHECKING
   gcc_assert (!(for_propagation
 		&& TREE_CODE (op) == SSA_NAME
 		&& TREE_CODE (val) == SSA_NAME
@@ -515,6 +515,7 @@ static enum ssa_prop_result
 copy_prop_visit_cond_stmt (gimple stmt, edge *taken_edge_p)
 {
   enum ssa_prop_result retval = SSA_PROP_VARYING;
+  location_t loc = gimple_location (stmt);
 
   tree op0 = gimple_cond_lhs (stmt);
   tree op1 = gimple_cond_rhs (stmt);
@@ -538,7 +539,7 @@ copy_prop_visit_cond_stmt (gimple stmt, edge *taken_edge_p)
 	 the same SSA_NAME on both sides of a comparison operator.  */
       if (op0 == op1)
 	{
-	  tree folded_cond = fold_binary (gimple_cond_code (stmt),
+	  tree folded_cond = fold_binary_loc (loc, gimple_cond_code (stmt),
                                           boolean_type_node, op0, op1);
 	  if (folded_cond)
 	    {

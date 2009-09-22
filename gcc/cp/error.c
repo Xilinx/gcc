@@ -84,7 +84,7 @@ static void dump_template_bindings (tree, tree, VEC(tree,gc) *);
 static void dump_scope (tree, int);
 static void dump_template_parms (tree, int, int);
 
-static int count_non_default_template_args (tree, tree);
+static int count_non_default_template_args (tree, tree, int);
 
 static const char *function_category (tree);
 static void maybe_print_instantiation_context (diagnostic_context *);
@@ -163,12 +163,20 @@ dump_template_argument (tree arg, int flags)
    match the (optional) default template parameter in PARAMS  */
 
 static int
-count_non_default_template_args (tree args, tree params)
+count_non_default_template_args (tree args, tree params, int flags)
 {
-  int n = TREE_VEC_LENGTH (args);
+  tree inner_args = INNERMOST_TEMPLATE_ARGS (args);
+  int n = TREE_VEC_LENGTH (inner_args);
   int last;
 
-  if (params == NULL_TREE || !flag_pretty_templates)
+  if (params == NULL_TREE
+      /* We use this flag when generating debug information.  We don't
+	 want to expand templates at this point, for this may generate
+	 new decls, which gets decl counts out of sync, which may in
+	 turn cause codegen differences between compilations with and
+	 without -g.  */
+      || (flags & TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS) != 0
+      || !flag_pretty_templates)
     return n;
 
   for (last = n - 1; last >= 0; --last)
@@ -181,10 +189,13 @@ count_non_default_template_args (tree args, tree params)
       if (uses_template_parms (def))
 	{
 	  ++processing_template_decl;
-	  def = tsubst_copy_and_build (def, args, tf_none, NULL_TREE, false, true);
+	  /* This speculative substitution must not cause any classes to be
+	     instantiated that otherwise wouldn't be.  */
+	  def = tsubst_copy_and_build (def, args, tf_no_class_instantiations,
+				       NULL_TREE, false, true);
 	  --processing_template_decl;
 	}
-      if (!cp_tree_equal (TREE_VEC_ELT (args, last), def))
+      if (!cp_tree_equal (TREE_VEC_ELT (inner_args, last), def))
         break;
     }
 
@@ -197,7 +208,7 @@ count_non_default_template_args (tree args, tree params)
 static void
 dump_template_argument_list (tree args, tree parms, int flags)
 {
-  int n = count_non_default_template_args (args, parms);
+  int n = count_non_default_template_args (args, parms, flags);
   int need_comma = 0;
   int i;
 
@@ -322,7 +333,7 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
       t = tsubst (t, args, tf_none, NULL_TREE);
       /* Strip typedefs.  We can't just use TFF_CHASE_TYPEDEF because
 	 pp_simple_type_specifier doesn't know about it.  */
-      t = canonical_type_variant (t);
+      t = strip_typedefs (t);
       dump_type (t, TFF_PLAIN_IDENTIFIER);
     }
 }
@@ -769,7 +780,8 @@ dump_type_suffix (tree t, int flags)
 	    dump_expr (TREE_OPERAND (max, 0),
 		       flags & ~TFF_EXPR_IN_PARENS);
 	  else
-	    dump_expr (fold_build2 (PLUS_EXPR, dtype, max,
+	    dump_expr (fold_build2_loc (input_location,
+				    PLUS_EXPR, dtype, max,
 				    build_int_cst (dtype, 1)),
 		       flags & ~TFF_EXPR_IN_PARENS);
 	}
@@ -862,7 +874,7 @@ dump_decl (tree t, int flags)
     {
     case TYPE_DECL:
       /* Don't say 'typedef class A' */
-      if (DECL_ARTIFICIAL (t))
+      if (DECL_ARTIFICIAL (t) && !DECL_SELF_REFERENCE_P (t))
 	{
 	  if ((flags & TFF_DECL_SPECIFIERS)
 	      && TREE_CODE (TREE_TYPE (t)) == TEMPLATE_TYPE_PARM)
@@ -1147,7 +1159,8 @@ dump_template_decl (tree t, int flags)
 }
 
 /* find_typenames looks through the type of the function template T
-   and returns a VEC containing any typedefs or TYPENAME_TYPEs it finds.  */
+   and returns a VEC containing any typedefs, decltypes or TYPENAME_TYPEs
+   it finds.  */
 
 struct find_typenames_t
 {
@@ -1164,7 +1177,8 @@ find_typenames_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED, void *data)
   if (TYPE_P (*tp) && is_typedef_decl (TYPE_NAME (*tp)))
     /* Add the type of the typedef without any additional cv-quals.  */
     mv = TREE_TYPE (TYPE_NAME (*tp));
-  else if (TREE_CODE (*tp) == TYPENAME_TYPE)
+  else if (TREE_CODE (*tp) == TYPENAME_TYPE
+	   || TREE_CODE (*tp) == DECLTYPE_TYPE)
     /* Add the typename without any cv-qualifiers.  */
     mv = TYPE_MAIN_VARIANT (*tp);
 
@@ -1405,7 +1419,7 @@ dump_function_name (tree t, int flags)
       pp_cxx_ws_string (cxx_pp, "operator");
       dump_type (TREE_TYPE (TREE_TYPE (t)), flags);
     }
-  else if (IDENTIFIER_OPNAME_P (name))
+  else if (name && IDENTIFIER_OPNAME_P (name))
     pp_cxx_tree_identifier (cxx_pp, name);
   else
     dump_decl (name, flags);
@@ -1434,7 +1448,7 @@ dump_template_parms (tree info, int primary, int flags)
   pp_cxx_begin_template_argument_list (cxx_pp);
 
   /* Be careful only to print things when we have them, so as not
-	 to crash producing error messages.  */
+     to crash producing error messages.  */
   if (args && !primary)
     {
       int len, ix;
@@ -1443,11 +1457,9 @@ dump_template_parms (tree info, int primary, int flags)
 		     ? DECL_INNERMOST_TEMPLATE_PARMS (TI_TEMPLATE (info))
 		     : NULL_TREE);
 
-      if (TMPL_ARGS_HAVE_MULTIPLE_LEVELS (args))
-	args = TREE_VEC_ELT (args, TREE_VEC_LENGTH (args) - 1);
+      len = count_non_default_template_args (args, params, flags);
 
-      len = count_non_default_template_args (args, params);
-
+      args = INNERMOST_TEMPLATE_ARGS (args);
       for (ix = 0; ix != len; ix++)
 	{
 	  tree arg = TREE_VEC_ELT (args, ix);
@@ -2328,7 +2340,10 @@ lang_decl_name (tree decl, int v, bool translate)
 
   reinit_cxx_pp ();
   pp_translate_identifiers (cxx_pp) = translate;
-  if (v == 1 && DECL_CLASS_SCOPE_P (decl))
+  if (v == 1
+      && (DECL_CLASS_SCOPE_P (decl)
+	  || (DECL_NAMESPACE_SCOPE_P (decl)
+	      && CP_DECL_CONTEXT (decl) != global_namespace)))
     {
       dump_type (CP_DECL_CONTEXT (decl), TFF_PLAIN_IDENTIFIER);
       pp_cxx_colon_colon (cxx_pp);
@@ -2604,7 +2619,7 @@ cp_print_error_function (diagnostic_context *context,
 		  while (block && TREE_CODE (block) == BLOCK)
 		    block = BLOCK_SUPERCONTEXT (block);
 
-		  if (TREE_CODE (block) == FUNCTION_DECL)
+		  if (block && TREE_CODE (block) == FUNCTION_DECL)
 		    fndecl = block;
 		  abstract_origin = NULL;
 		}
@@ -2647,7 +2662,11 @@ cp_print_error_function (diagnostic_context *context,
 static const char *
 function_category (tree fn)
 {
-  if (DECL_FUNCTION_MEMBER_P (fn))
+  /* We can get called from the middle-end for diagnostics of function
+     clones.  Make sure we have language specific information before
+     dereferencing it.  */
+  if (DECL_LANG_SPECIFIC (STRIP_TEMPLATE (fn))
+      && DECL_FUNCTION_MEMBER_P (fn))
     {
       if (DECL_STATIC_FUNCTION_P (fn))
 	return _("In static member function %qs");
@@ -2705,19 +2724,30 @@ print_instantiation_partial_context (diagnostic_context *context,
 				     struct tinst_level *t, location_t loc)
 {
   expanded_location xloc;
+  const char *str;
   for (; ; t = t->next)
     {
       xloc = expand_location (loc);
       if (t == NULL)
 	break;
-      pp_verbatim (context->printer, _("%s:%d:   instantiated from %qs\n"),
-		   xloc.file, xloc.line,
-		   decl_as_string_translate (t->decl,
-					     TFF_DECL_SPECIFIERS | TFF_RETURN_TYPE));
+      str = decl_as_string_translate (t->decl,
+	  			      TFF_DECL_SPECIFIERS | TFF_RETURN_TYPE);
+      if (flag_show_column)
+	pp_verbatim (context->printer,
+		     _("%s:%d:%d:   instantiated from %qs\n"),
+		     xloc.file, xloc.line, xloc.column, str);
+      else
+	pp_verbatim (context->printer,
+		     _("%s:%d:   instantiated from %qs\n"),
+		     xloc.file, xloc.line, str);
       loc = t->locus;
     }
-  pp_verbatim (context->printer, _("%s:%d:   instantiated from here"),
-	       xloc.file, xloc.line);
+  if (flag_show_column)
+    pp_verbatim (context->printer, _("%s:%d:%d:   instantiated from here"),
+		 xloc.file, xloc.line, xloc.column);
+  else
+    pp_verbatim (context->printer, _("%s:%d:   instantiated from here"),
+		 xloc.file, xloc.line);
   pp_base_newline (context->printer);
 }
 
@@ -2761,8 +2791,8 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
   const char *result;
   tree t = NULL;
 #define next_tree    (t = va_arg (*text->args_ptr, tree))
-#define next_tcode   va_arg (*text->args_ptr, enum tree_code)
-#define next_lang    va_arg (*text->args_ptr, enum languages)
+#define next_tcode   ((enum tree_code) va_arg (*text->args_ptr, int))
+#define next_lang    ((enum languages) va_arg (*text->args_ptr, int))
 #define next_int     va_arg (*text->args_ptr, int)
 
   if (precision != 0 || wide)

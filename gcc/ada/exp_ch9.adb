@@ -53,6 +53,7 @@ with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch11; use Sem_Ch11;
 with Sem_Elab; use Sem_Elab;
+with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
@@ -834,8 +835,8 @@ package body Exp_Ch9 is
       end loop;
 
       --  If we are in a package body, the activation chain variable is
-      --  declared in the body, but the Activation_Chain_Entity is attached to
-      --  the spec.
+      --  declared in the body, but the Activation_Chain_Entity is attached
+      --  to the spec.
 
       if Nkind (P) = N_Package_Body then
          Decls := Declarations (P);
@@ -1611,7 +1612,7 @@ package body Exp_Ch9 is
          declare
             Actuals      : List_Id := No_List;
             Conv_Id      : Node_Id;
-            First_Formal : Node_Id;
+            First_Form   : Node_Id;
             Formal       : Node_Id;
             Nam          : Node_Id;
 
@@ -1619,9 +1620,9 @@ package body Exp_Ch9 is
             --  Map formals to actuals. Use the list built for the wrapper
             --  spec, skipping the object notation parameter.
 
-            First_Formal := First (Parameter_Specifications (Body_Spec));
+            First_Form := First (Parameter_Specifications (Body_Spec));
 
-            Formal := First_Formal;
+            Formal := First_Form;
             Next (Formal);
 
             if Present (Formal) then
@@ -1637,20 +1638,29 @@ package body Exp_Ch9 is
             end if;
 
             --  Special processing for primitives declared between a private
-            --  type and its completion.
+            --  type and its completion: the wrapper needs a properly typed
+            --  parameter if the wrapped operation has a controlling first
+            --  parameter. Note that this might not be the case for a function
+            --  with a controlling result.
 
             if Is_Private_Primitive_Subprogram (Subp_Id) then
                if No (Actuals) then
                   Actuals := New_List;
                end if;
 
-               Prepend_To (Actuals,
-                 Unchecked_Convert_To (
-                   Corresponding_Concurrent_Type (Obj_Typ),
-                   Make_Identifier (Loc, Name_uO)));
+               if Is_Controlling_Formal (First_Formal (Subp_Id)) then
+                  Prepend_To (Actuals,
+                    Unchecked_Convert_To (
+                      Corresponding_Concurrent_Type (Obj_Typ),
+                      Make_Identifier (Loc, Name_uO)));
+
+               else
+                  Prepend_To (Actuals,
+                    Make_Identifier (Loc, Chars =>
+                      Chars (Defining_Identifier (First_Form))));
+               end if;
 
                Nam := New_Reference_To (Subp_Id, Loc);
-
             else
                --  An access-to-variable object parameter requires an explicit
                --  dereference in the unchecked conversion. This case occurs
@@ -1659,7 +1669,7 @@ package body Exp_Ch9 is
 
                --     O.all.Subp_Id (Formal_1, ..., Formal_N)
 
-               if Nkind (Parameter_Type (First_Formal)) =
+               if Nkind (Parameter_Type (First_Form)) =
                     N_Access_Definition
                then
                   Conv_Id :=
@@ -1679,20 +1689,35 @@ package body Exp_Ch9 is
                      New_Reference_To (Subp_Id, Loc));
             end if;
 
-            --  Create the subprogram body
+            --  Create the subprogram body. For a function, the call to the
+            --  actual subprogram has to be converted to the corresponding
+            --  record if it is a controlling result.
 
             if Ekind (Subp_Id) = E_Function then
-               return
-                 Make_Subprogram_Body (Loc,
-                   Specification              => Body_Spec,
-                   Declarations               => Empty_List,
-                   Handled_Statement_Sequence =>
-                     Make_Handled_Sequence_Of_Statements (Loc,
-                       Statements => New_List (
-                         Make_Simple_Return_Statement (Loc,
-                           Make_Function_Call (Loc,
-                             Name                   => Nam,
-                             Parameter_Associations => Actuals)))));
+               declare
+                  Res : Node_Id;
+
+               begin
+                  Res :=
+                     Make_Function_Call (Loc,
+                       Name                   => Nam,
+                       Parameter_Associations => Actuals);
+
+                  if Has_Controlling_Result (Subp_Id) then
+                     Res :=
+                       Unchecked_Convert_To
+                         (Corresponding_Record_Type (Etype (Subp_Id)), Res);
+                  end if;
+
+                  return
+                    Make_Subprogram_Body (Loc,
+                      Specification              => Body_Spec,
+                      Declarations               => Empty_List,
+                      Handled_Statement_Sequence =>
+                        Make_Handled_Sequence_Of_Statements (Loc,
+                          Statements => New_List (
+                            Make_Simple_Return_Statement (Loc, Res))));
+               end;
 
             else
                return
@@ -1819,7 +1844,8 @@ package body Exp_Ch9 is
          --  Determine whether the parameters of the generated entry wrapper
          --  and those of a primitive operation are type conformant. During
          --  this check, the first parameter of the primitive operation is
-         --  always skipped.
+         --  skipped if it is a controlling argument: protected functions
+         --  may have a controlling result.
 
          --------------------------------
          -- Type_Conformant_Parameters --
@@ -1835,9 +1861,16 @@ package body Exp_Ch9 is
             Wrapper_Typ    : Entity_Id;
 
          begin
-            --  Skip the first parameter of the primitive operation
+            --  Skip the first (controlling) parameter of primitive operation
 
-            Iface_Op_Param := Next (First (Iface_Op_Params));
+            Iface_Op_Param := First (Iface_Op_Params);
+
+            if Present (First_Formal (Iface_Op))
+              and then Is_Controlling_Formal (First_Formal (Iface_Op))
+            then
+               Iface_Op_Param := Next (Iface_Op_Param);
+            end if;
+
             Wrapper_Param  := First (Wrapper_Params);
             while Present (Iface_Op_Param)
               and then Present (Wrapper_Param)
@@ -1917,7 +1950,9 @@ package body Exp_Ch9 is
          --  Skip the object parameter when dealing with primitives declared
          --  between two views.
 
-         if Is_Private_Primitive_Subprogram (Subp_Id) then
+         if Is_Private_Primitive_Subprogram (Subp_Id)
+           and then not Has_Controlling_Result (Subp_Id)
+         then
             Formal := Next (Formal);
          end if;
 
@@ -2046,11 +2081,21 @@ package body Exp_Ch9 is
 
          New_Formals := Replicate_Formals (Loc, Formals);
 
+         --  A function with a controlling result and no first controlling
+         --  formal needs no additional parameter.
+
+         if Has_Controlling_Result (Subp_Id)
+           and then
+             (No (First_Formal (Subp_Id))
+               or else not Is_Controlling_Formal (First_Formal (Subp_Id)))
+         then
+            null;
+
          --  Routine Subp_Id has been found to override an interface primitive.
          --  If the interface operation has an access parameter, create a copy
          --  of it, with the same null exclusion indicator if present.
 
-         if Present (First_Param) then
+         elsif Present (First_Param) then
             if Nkind (Parameter_Type (First_Param)) = N_Access_Definition then
                Obj_Param_Typ :=
                  Make_Access_Definition (Loc,
@@ -2072,30 +2117,49 @@ package body Exp_Ch9 is
                 Out_Present         => Out_Present (First_Param),
                 Parameter_Type      => Obj_Param_Typ);
 
-         --  If we are dealing with a primitive declared between two views,
-         --  create a default parameter.
+            Prepend_To (New_Formals, Obj_Param);
 
-         else pragma Assert (Is_Private_Primitive_Subprogram (Subp_Id));
+         --  If we are dealing with a primitive declared between two views,
+         --  implemented by a synchronized operation, we need to create
+         --  a default parameter. The mode of the parameter must match that
+         --  of the primitive operation.
+
+         else
+            pragma Assert (Is_Private_Primitive_Subprogram (Subp_Id));
             Obj_Param :=
               Make_Parameter_Specification (Loc,
                 Defining_Identifier =>
                   Make_Defining_Identifier (Loc, Name_uO),
-                In_Present => True,
+                In_Present  => In_Present (Parent (First_Entity (Subp_Id))),
                 Out_Present => Ekind (Subp_Id) /= E_Function,
                   Parameter_Type => New_Reference_To (Obj_Typ, Loc));
+            Prepend_To (New_Formals, Obj_Param);
          end if;
 
-         Prepend_To (New_Formals, Obj_Param);
-
-         --  Build the final spec
+         --  Build the final spec. If it is a function with a controlling
+         --  result, it is a primitive operation of the corresponding
+         --  record type, so mark the spec accordingly.
 
          if Ekind (Subp_Id) = E_Function then
-            return
-              Make_Function_Specification (Loc,
-                Defining_Unit_Name       => Wrapper_Id,
-                Parameter_Specifications => New_Formals,
-                Result_Definition        =>
-                  New_Copy (Result_Definition (Parent (Subp_Id))));
+
+            declare
+               Res_Def : Node_Id;
+
+            begin
+               if Has_Controlling_Result (Subp_Id) then
+                  Res_Def :=
+                    New_Occurrence_Of
+                      (Corresponding_Record_Type (Etype (Subp_Id)), Loc);
+               else
+                  Res_Def := New_Copy (Result_Definition (Parent (Subp_Id)));
+               end if;
+
+               return
+                 Make_Function_Specification (Loc,
+                   Defining_Unit_Name       => Wrapper_Id,
+                   Parameter_Specifications => New_Formals,
+                   Result_Definition        => Res_Def);
+            end;
          else
             return
               Make_Procedure_Specification (Loc,
@@ -3128,6 +3192,18 @@ package body Exp_Ch9 is
          Params := New_Copy_List_Tree (Parameter_Associations (N));
       else
          Params := New_List;
+      end if;
+
+      --  If the type is an untagged derived type, convert to the root type,
+      --  which is the one on which the operations are defined.
+
+      if Nkind (Rec) = N_Unchecked_Type_Conversion
+        and then not Is_Tagged_Type (Etype (Rec))
+        and then Is_Derived_Type (Etype (Rec))
+      then
+         Set_Etype (Rec, Root_Type (Etype (Rec)));
+         Set_Subtype_Mark (Rec,
+           New_Occurrence_Of (Root_Type (Etype (Rec)), Sloc (N)));
       end if;
 
       Prepend (Rec, Params);
@@ -4295,8 +4371,8 @@ package body Exp_Ch9 is
          return N;
       else
          return
-           Unchecked_Convert_To (Corresponding_Record_Type (Typ),
-             New_Copy_Tree (N));
+           Unchecked_Convert_To
+             (Corresponding_Record_Type (Typ), New_Copy_Tree (N));
       end if;
    end Convert_Concurrent;
 
@@ -7447,7 +7523,7 @@ package body Exp_Ch9 is
       Loc      : constant Source_Ptr := Sloc (N);
       Prot_Typ : constant Entity_Id  := Defining_Identifier (N);
 
-      Pdef     : constant Node_Id    := Protected_Definition (N);
+      Pdef : constant Node_Id := Protected_Definition (N);
       --  This contains two lists; one for visible and one for private decls
 
       Rec_Decl     : Node_Id;
@@ -7472,6 +7548,13 @@ package body Exp_Ch9 is
       --  to the internal body, for possible inlining later on. The source
       --  operation is invisible to the back-end and is never actually called.
 
+      function Static_Component_Size (Comp : Entity_Id) return Boolean;
+      --  When compiling under the Ravenscar profile, private components must
+      --  have a static size, or else a protected object  will require heap
+      --  allocation, violating the corresponding restriction. It is preferable
+      --  to make this check here, because it provides a better error message
+      --  than the back-end, which refers to the object as a whole.
+
       procedure Register_Handler;
       --  For a protected operation that is an interrupt handler, add the
       --  freeze action that will register it as such.
@@ -7487,6 +7570,40 @@ package body Exp_Ch9 is
             Set_Is_Inlined (Subp, False);
          end if;
       end Check_Inlining;
+
+      ---------------------------------
+      -- Check_Static_Component_Size --
+      ---------------------------------
+
+      function Static_Component_Size (Comp : Entity_Id) return Boolean is
+         Typ : constant Entity_Id := Etype (Comp);
+         C   : Entity_Id;
+
+      begin
+         if Is_Scalar_Type (Typ) then
+            return True;
+
+         elsif Is_Array_Type (Typ) then
+            return Compile_Time_Known_Bounds (Typ);
+
+         elsif Is_Record_Type (Typ) then
+            C := First_Component (Typ);
+            while Present (C) loop
+               if not Static_Component_Size (C) then
+                  return False;
+               end if;
+
+               Next_Component (C);
+            end loop;
+
+            return True;
+
+         --  Any other types will be checked by the back-end
+
+         else
+            return True;
+         end if;
+      end Static_Component_Size;
 
       ----------------------
       -- Register_Handler --
@@ -7679,6 +7796,24 @@ package body Exp_Ch9 is
          while Present (Priv) loop
 
             if Nkind (Priv) = N_Component_Declaration then
+               if not Static_Component_Size (Defining_Identifier (Priv)) then
+
+                  --  When compiling for a restricted profile, the private
+                  --  components must have a static size. If not, this is an
+                  --  error for a single protected declaration, and rates a
+                  --  warning on a protected type declaration.
+
+                  if not Comes_From_Source (Prot_Typ) then
+                     Check_Restriction (No_Implicit_Heap_Allocations, Priv);
+
+                  elsif Restriction_Active (No_Implicit_Heap_Allocations) then
+                     Error_Msg_N ("component has non-static size?", Priv);
+                     Error_Msg_NE
+                       ("\creation of protected object of type& will violate"
+                        & " restriction No_Implicit_Heap_Allocations?",
+                        Priv, Prot_Typ);
+                  end if;
+               end if;
 
                --  The component definition consists of a subtype indication,
                --  or (in Ada 2005) an access definition. Make a copy of the
@@ -10261,6 +10396,13 @@ package body Exp_Ch9 is
       S : Entity_Id;  --  Primitive operation slot
 
    begin
+      --  Under the Ravenscar profile, timed entry calls are excluded. An error
+      --  was already reported on spec, so do not attempt to expand the call.
+
+      if Restriction_Active (No_Select_Statements) then
+         return;
+      end if;
+
       --  The arguments in the call may require dynamic allocation, and the
       --  call statement may have been transformed into a block. The block
       --  may contain additional declarations for internal entities, and the

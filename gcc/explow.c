@@ -153,7 +153,7 @@ plus_constant (rtx x, HOST_WIDE_INT c)
 	 We may not immediately return from the recursive call here, lest
 	 all_constant gets lost.  */
 
-      if (GET_CODE (XEXP (x, 1)) == CONST_INT)
+      if (CONST_INT_P (XEXP (x, 1)))
 	{
 	  c += INTVAL (XEXP (x, 1));
 
@@ -211,10 +211,10 @@ eliminate_constant_term (rtx x, rtx *constptr)
     return x;
 
   /* First handle constants appearing at this level explicitly.  */
-  if (GET_CODE (XEXP (x, 1)) == CONST_INT
+  if (CONST_INT_P (XEXP (x, 1))
       && 0 != (tem = simplify_binary_operation (PLUS, GET_MODE (x), *constptr,
 						XEXP (x, 1)))
-      && GET_CODE (tem) == CONST_INT)
+      && CONST_INT_P (tem))
     {
       *constptr = tem;
       return eliminate_constant_term (XEXP (x, 0), constptr);
@@ -226,7 +226,7 @@ eliminate_constant_term (rtx x, rtx *constptr)
   if ((x1 != XEXP (x, 1) || x0 != XEXP (x, 0))
       && 0 != (tem = simplify_binary_operation (PLUS, GET_MODE (x),
 						*constptr, tem))
-      && GET_CODE (tem) == CONST_INT)
+      && CONST_INT_P (tem))
     {
       *constptr = tem;
       return gen_rtx_PLUS (GET_MODE (x), x0, x1);
@@ -246,7 +246,7 @@ expr_size (tree exp)
     size = TREE_OPERAND (exp, 1);
   else
     {
-      size = lang_hooks.expr_size (exp);
+      size = tree_expr_size (exp);
       gcc_assert (size);
       gcc_assert (size == SUBSTITUTE_PLACEHOLDER_IN_EXPR (size, exp));
     }
@@ -266,7 +266,7 @@ int_expr_size (tree exp)
     size = TREE_OPERAND (exp, 1);
   else
     {
-      size = lang_hooks.expr_size (exp);
+      size = tree_expr_size (exp);
       gcc_assert (size);
     }
 
@@ -388,7 +388,7 @@ convert_memory_address (enum machine_mode to_mode ATTRIBUTE_UNUSED,
 	 narrower.  */
       if (GET_MODE_SIZE (to_mode) < GET_MODE_SIZE (from_mode)
 	  || (GET_CODE (x) == PLUS
-	      && GET_CODE (XEXP (x, 1)) == CONST_INT
+	      && CONST_INT_P (XEXP (x, 1))
 	      && (XEXP (x, 1) == convert_memory_address (to_mode, XEXP (x, 1))
                  || POINTERS_EXTEND_UNSIGNED < 0)))
 	return gen_rtx_fmt_ee (GET_CODE (x), to_mode,
@@ -504,7 +504,7 @@ memory_address (enum machine_mode mode, rtx x)
     mark_reg_pointer (x, BITS_PER_UNIT);
   else if (GET_CODE (x) == PLUS
 	   && REG_P (XEXP (x, 0))
-	   && GET_CODE (XEXP (x, 1)) == CONST_INT)
+	   && CONST_INT_P (XEXP (x, 1)))
     mark_reg_pointer (XEXP (x, 0), BITS_PER_UNIT);
 
   /* OLDX may have been the address on a temporary.  Update the address
@@ -551,7 +551,7 @@ use_anchored_address (rtx x)
   offset = 0;
   if (GET_CODE (base) == CONST
       && GET_CODE (XEXP (base, 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (base, 0), 1)) == CONST_INT)
+      && CONST_INT_P (XEXP (XEXP (base, 0), 1)))
     {
       offset += INTVAL (XEXP (XEXP (base, 0), 1));
       base = XEXP (XEXP (base, 0), 0);
@@ -689,7 +689,7 @@ force_reg (enum machine_mode mode, rtx x)
     else if (GET_CODE (x) == CONST
 	     && GET_CODE (XEXP (x, 0)) == PLUS
 	     && GET_CODE (XEXP (XEXP (x, 0), 0)) == SYMBOL_REF
-	     && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT)
+	     && CONST_INT_P (XEXP (XEXP (x, 0), 1)))
       {
 	rtx s = XEXP (XEXP (x, 0), 0);
 	rtx c = XEXP (XEXP (x, 0), 1);
@@ -749,63 +749,94 @@ copy_to_suggested_reg (rtx x, rtx target, enum machine_mode mode)
   return temp;
 }
 
-/* Return the mode to use to store a scalar of TYPE and MODE.
+/* Return the mode to use to pass or return a scalar of TYPE and MODE.
    PUNSIGNEDP points to the signedness of the type and may be adjusted
    to show what signedness to use on extension operations.
 
-   FOR_CALL is nonzero if this call is promoting args for a call.  */
-
-#if defined(PROMOTE_MODE) && !defined(PROMOTE_FUNCTION_MODE)
-#define PROMOTE_FUNCTION_MODE PROMOTE_MODE
-#endif
+   FOR_RETURN is nonzero if the caller is promoting the return value
+   of FNDECL, else it is for promoting args.  */
 
 enum machine_mode
-promote_mode (const_tree type, enum machine_mode mode, int *punsignedp,
-	      int for_call ATTRIBUTE_UNUSED)
+promote_function_mode (const_tree type, enum machine_mode mode, int *punsignedp,
+		       const_tree funtype, int for_return)
 {
+  switch (TREE_CODE (type))
+    {
+    case INTEGER_TYPE:   case ENUMERAL_TYPE:   case BOOLEAN_TYPE:
+    case REAL_TYPE:      case OFFSET_TYPE:     case FIXED_POINT_TYPE:
+    case POINTER_TYPE:   case REFERENCE_TYPE:
+      return targetm.calls.promote_function_mode (type, mode, punsignedp, funtype,
+						  for_return);
+
+    default:
+      return mode;
+    }
+}
+/* Return the mode to use to store a scalar of TYPE and MODE.
+   PUNSIGNEDP points to the signedness of the type and may be adjusted
+   to show what signedness to use on extension operations.  */
+
+enum machine_mode
+promote_mode (const_tree type ATTRIBUTE_UNUSED, enum machine_mode mode,
+	      int *punsignedp ATTRIBUTE_UNUSED)
+{
+  /* FIXME: this is the same logic that was there until GCC 4.4, but we
+     probably want to test POINTERS_EXTEND_UNSIGNED even if PROMOTE_MODE
+     is not defined.  The affected targets are M32C, S390, SPARC.  */
+#ifdef PROMOTE_MODE
   const enum tree_code code = TREE_CODE (type);
   int unsignedp = *punsignedp;
 
-#ifndef PROMOTE_MODE
-  if (! for_call)
-    return mode;
-#endif
-
   switch (code)
     {
-#ifdef PROMOTE_FUNCTION_MODE
     case INTEGER_TYPE:   case ENUMERAL_TYPE:   case BOOLEAN_TYPE:
     case REAL_TYPE:      case OFFSET_TYPE:     case FIXED_POINT_TYPE:
-#ifdef PROMOTE_MODE
-      if (for_call)
-	{
-#endif
-	  PROMOTE_FUNCTION_MODE (mode, unsignedp, type);
-#ifdef PROMOTE_MODE
-	}
-      else
-	{
-	  PROMOTE_MODE (mode, unsignedp, type);
-	}
-#endif
+      PROMOTE_MODE (mode, unsignedp, type);
+      *punsignedp = unsignedp;
+      return mode;
       break;
-#endif
 
 #ifdef POINTERS_EXTEND_UNSIGNED
     case REFERENCE_TYPE:
     case POINTER_TYPE:
-      mode = Pmode;
-      unsignedp = POINTERS_EXTEND_UNSIGNED;
+      *punsignedp = POINTERS_EXTEND_UNSIGNED;
+      return Pmode;
       break;
 #endif
 
     default:
-      break;
+      return mode;
     }
-
-  *punsignedp = unsignedp;
+#else
   return mode;
+#endif
 }
+
+
+/* Use one of promote_mode or promote_function_mode to find the promoted
+   mode of DECL.  If PUNSIGNEDP is not NULL, store there the unsignedness
+   of DECL after promotion.  */
+
+enum machine_mode
+promote_decl_mode (const_tree decl, int *punsignedp)
+{
+  tree type = TREE_TYPE (decl);
+  int unsignedp = TYPE_UNSIGNED (type);
+  enum machine_mode mode = DECL_MODE (decl);
+  enum machine_mode pmode;
+
+  if (TREE_CODE (decl) == RESULT_DECL
+      || TREE_CODE (decl) == PARM_DECL)
+    pmode = promote_function_mode (type, mode, &unsignedp,
+                                   TREE_TYPE (current_function_decl), 2);
+  else
+    pmode = promote_mode (type, mode, &unsignedp);
+
+  if (punsignedp)
+    *punsignedp = unsignedp;
+  return pmode;
+}
+
 
 /* Adjust the stack pointer by ADJUST (an rtx for a number of bytes).
    This pops when ADJUST is positive.  ADJUST need not be constant.  */
@@ -820,7 +851,7 @@ adjust_stack (rtx adjust)
 
   /* We expect all variable sized adjustments to be multiple of
      PREFERRED_STACK_BOUNDARY.  */
-  if (GET_CODE (adjust) == CONST_INT)
+  if (CONST_INT_P (adjust))
     stack_pointer_delta -= INTVAL (adjust);
 
   temp = expand_binop (Pmode,
@@ -849,7 +880,7 @@ anti_adjust_stack (rtx adjust)
 
   /* We expect all variable sized adjustments to be multiple of
      PREFERRED_STACK_BOUNDARY.  */
-  if (GET_CODE (adjust) == CONST_INT)
+  if (CONST_INT_P (adjust))
     stack_pointer_delta += INTVAL (adjust);
 
   temp = expand_binop (Pmode,
@@ -876,7 +907,7 @@ round_push (rtx size)
   if (align == 1)
     return size;
 
-  if (GET_CODE (size) == CONST_INT)
+  if (CONST_INT_P (size))
     {
       HOST_WIDE_INT new_size = (INTVAL (size) + align - 1) / align * align;
 
@@ -1138,7 +1169,7 @@ allocate_dynamic_stack_space (rtx size, rtx target, int known_align)
 	 alignment.  This constraint may be too strong.  */
       gcc_assert (PREFERRED_STACK_BOUNDARY == BIGGEST_ALIGNMENT);
 
-      if (GET_CODE (size) == CONST_INT)
+      if (CONST_INT_P (size))
 	{
 	  HOST_WIDE_INT new_size = INTVAL (size) / align * align;
 
@@ -1376,7 +1407,7 @@ probe_stack_range (HOST_WIDE_INT first, rtx size)
 
   /* If we have to generate explicit probes, see if we have a constant
      small number of them to generate.  If so, that's the easy case.  */
-  else if (GET_CODE (size) == CONST_INT
+  else if (CONST_INT_P (size)
 	   && INTVAL (size) < 10 * STACK_CHECK_PROBE_INTERVAL)
     {
       HOST_WIDE_INT offset;
@@ -1496,9 +1527,9 @@ hard_function_value (const_tree valtype, const_tree func, const_tree fntype,
    in which a scalar value of mode MODE was returned by a library call.  */
 
 rtx
-hard_libcall_value (enum machine_mode mode)
+hard_libcall_value (enum machine_mode mode, rtx fun)
 {
-  return LIBCALL_VALUE (mode);
+  return targetm.calls.libcall_value (mode, fun);
 }
 
 /* Look up the tree code for a given rtx code

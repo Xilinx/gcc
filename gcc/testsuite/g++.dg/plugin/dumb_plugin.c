@@ -1,6 +1,7 @@
 /* A trivial (dumb) plugin example that shows how to use the GCC plugin
    mechanism.  */
 
+#include "gcc-plugin.h"
 #include <stdlib.h>
 #include "config.h"
 #include "system.h"
@@ -8,8 +9,8 @@
 #include "tree.h"
 #include "tree-pass.h"
 #include "intl.h"
-#include "gcc-plugin.h"
 
+int plugin_is_GPL_compatible;
 
 /* Callback function to invoke after GCC finishes parsing a struct.  */
 

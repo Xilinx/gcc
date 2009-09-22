@@ -244,7 +244,7 @@ struct store_info
 	{
 	  /* A bitmap with one bit per byte.  Cleared bit means the position
 	     is needed.  Used if IS_LARGE is false.  */
-	  bitmap bitmap;
+	  bitmap bmap;
 
 	  /* Number of set bits (i.e. unneeded bytes) in BITMAP.  If it is
 	     equal to END - BEGIN, the whole store is unused.  */
@@ -791,7 +791,7 @@ free_store_info (insn_info_t insn_info)
     {
       store_info_t next = store_info->next;
       if (store_info->is_large)
-	BITMAP_FREE (store_info->positions_needed.large.bitmap);
+	BITMAP_FREE (store_info->positions_needed.large.bmap);
       if (store_info->cse_base)
 	pool_free (cse_store_info_pool, store_info);
       else
@@ -1070,6 +1070,8 @@ canon_address (rtx mem,
 {
   rtx mem_address = XEXP (mem, 0);
   rtx expanded_address, address;
+  int expanded;
+
   /* Make sure that cselib is has initialized all of the operands of
      the address before asking it to do the subst.  */
 
@@ -1114,72 +1116,88 @@ canon_address (rtx mem,
       fprintf (dump_file, "\n");
     }
 
-  /* Use cselib to replace all of the reg references with the full
-     expression.  This will take care of the case where we have 
-
-     r_x = base + offset;
-     val = *r_x;
-   
-     by making it into 
-
-     val = *(base + offset);  
-  */
-
-  expanded_address = cselib_expand_value_rtx (mem_address, scratch, 5);
-
-  /* If this fails, just go with the mem_address.  */
-  if (!expanded_address)
-    expanded_address = mem_address;
-
-  /* Split the address into canonical BASE + OFFSET terms.  */
-  address = canon_rtx (expanded_address);
-
-  *offset = 0;
-
-  if (dump_file)
+  /* First see if just canon_rtx (mem_address) is const or frame,
+     if not, try cselib_expand_value_rtx and call canon_rtx on that.  */
+  address = NULL_RTX;
+  for (expanded = 0; expanded < 2; expanded++)
     {
-      fprintf (dump_file, "\n   after cselib_expand address: ");
-      print_inline_rtx (dump_file, expanded_address, 0);
-      fprintf (dump_file, "\n");
-
-      fprintf (dump_file, "\n   after canon_rtx address: ");
-      print_inline_rtx (dump_file, address, 0);
-      fprintf (dump_file, "\n");
-    }
-
-  if (GET_CODE (address) == CONST)
-    address = XEXP (address, 0);
-
-  if (GET_CODE (address) == PLUS && GET_CODE (XEXP (address, 1)) == CONST_INT)
-    {
-      *offset = INTVAL (XEXP (address, 1));
-      address = XEXP (address, 0);
-    }
-
-  if (const_or_frame_p (address))
-    {
-      group_info_t group = get_group_info (address);
-
-      if (dump_file)
-	fprintf (dump_file, "  gid=%d offset=%d \n", group->id, (int)*offset);
-      *base = NULL;
-      *group_id = group->id;
-    }
-  else
-    {
-      *base = cselib_lookup (address, Pmode, true);
-      *group_id = -1;
-
-      if (*base == NULL)
+      if (expanded)
 	{
-	  if (dump_file)
-	    fprintf (dump_file, " no cselib val - should be a wild read.\n");
-	  return false;
+	  /* Use cselib to replace all of the reg references with the full
+	     expression.  This will take care of the case where we have 
+
+	     r_x = base + offset;
+	     val = *r_x;
+   
+	     by making it into 
+
+	     val = *(base + offset);  */
+
+	  expanded_address = cselib_expand_value_rtx (mem_address,
+						      scratch, 5);
+
+	  /* If this fails, just go with the address from first
+	     iteration.  */
+	  if (!expanded_address)
+	    break;
 	}
+      else
+	expanded_address = mem_address;
+
+      /* Split the address into canonical BASE + OFFSET terms.  */
+      address = canon_rtx (expanded_address);
+
+      *offset = 0;
+
       if (dump_file)
-	fprintf (dump_file, "  varying cselib base=%d offset = %d\n", 
-		 (*base)->value, (int)*offset);
+	{
+	  if (expanded)
+	    {
+	      fprintf (dump_file, "\n   after cselib_expand address: ");
+	      print_inline_rtx (dump_file, expanded_address, 0);
+	      fprintf (dump_file, "\n");
+	    }
+
+	  fprintf (dump_file, "\n   after canon_rtx address: ");
+	  print_inline_rtx (dump_file, address, 0);
+	  fprintf (dump_file, "\n");
+	}
+
+      if (GET_CODE (address) == CONST)
+	address = XEXP (address, 0);
+
+      if (GET_CODE (address) == PLUS
+	  && CONST_INT_P (XEXP (address, 1)))
+	{
+	  *offset = INTVAL (XEXP (address, 1));
+	  address = XEXP (address, 0);
+	}
+
+      if (const_or_frame_p (address))
+	{
+	  group_info_t group = get_group_info (address);
+
+	  if (dump_file)
+	    fprintf (dump_file, "  gid=%d offset=%d \n",
+		     group->id, (int)*offset);
+	  *base = NULL;
+	  *group_id = group->id;
+	  return true;
+	}
     }
+
+  *base = cselib_lookup (address, Pmode, true);
+  *group_id = -1;
+
+  if (*base == NULL)
+    {
+      if (dump_file)
+	fprintf (dump_file, " no cselib val - should be a wild read.\n");
+      return false;
+    }
+  if (dump_file)
+    fprintf (dump_file, "  varying cselib base=%d offset = %d\n", 
+	     (*base)->value, (int)*offset);
   return true;
 }
 
@@ -1213,10 +1231,10 @@ set_position_unneeded (store_info_t s_info, int pos)
 {
   if (__builtin_expect (s_info->is_large, false))
     {
-      if (!bitmap_bit_p (s_info->positions_needed.large.bitmap, pos))
+      if (!bitmap_bit_p (s_info->positions_needed.large.bmap, pos))
 	{
 	  s_info->positions_needed.large.count++;
-	  bitmap_set_bit (s_info->positions_needed.large.bitmap, pos);
+	  bitmap_set_bit (s_info->positions_needed.large.bmap, pos);
 	}
     }
   else
@@ -1233,7 +1251,7 @@ set_all_positions_unneeded (store_info_t s_info)
     {
       int pos, end = s_info->end - s_info->begin;
       for (pos = 0; pos < end; pos++)
-	bitmap_set_bit (s_info->positions_needed.large.bitmap, pos);
+	bitmap_set_bit (s_info->positions_needed.large.bmap, pos);
       s_info->positions_needed.large.count = end;
     }
   else
@@ -1263,7 +1281,7 @@ all_positions_needed_p (store_info_t s_info, int start, int width)
     {
       int end = start + width;
       while (start < end)
-	if (bitmap_bit_p (s_info->positions_needed.large.bitmap, start++))
+	if (bitmap_bit_p (s_info->positions_needed.large.bmap, start++))
 	  return false;
       return true;
     }
@@ -1605,7 +1623,7 @@ record_store (rtx body, bb_info_t bb_info)
     {
       store_info->is_large = true;
       store_info->positions_needed.large.count = 0;
-      store_info->positions_needed.large.bitmap = BITMAP_ALLOC (NULL);
+      store_info->positions_needed.large.bmap = BITMAP_ALLOC (NULL);
     }
   else
     {
@@ -2369,6 +2387,11 @@ scan_insn (bb_info_t bb_info, rtx insn)
   insn_info->insn = insn;
   bb_info->last_insn = insn_info;
   
+  if (DEBUG_INSN_P (insn))
+    {
+      insn_info->cannot_delete = true;
+      return;
+    }
 
   /* Cselib clears the table for this case, so we have to essentially
      do the same.  */
@@ -2508,7 +2531,7 @@ scan_insn (bb_info_t bb_info, rtx insn)
      them.  */
   if ((GET_CODE (PATTERN (insn)) == CLOBBER)
       || volatile_refs_p (PATTERN (insn))
-      || (flag_non_call_exceptions && may_trap_p (PATTERN (insn)))
+      || insn_could_throw_p (insn)
       || (RTX_FRAME_RELATED_P (insn))
       || find_reg_note (insn, REG_FRAME_RELATED_EXPR, NULL_RTX))
     insn_info->cannot_delete = true;
@@ -2721,7 +2744,7 @@ dse_step1 (void)
 		  for (s_info = ptr->store_rec; s_info; s_info = s_info->next)
 		    if (s_info->is_large)
 		      {
-			BITMAP_FREE (s_info->positions_needed.large.bitmap);
+			BITMAP_FREE (s_info->positions_needed.large.bmap);
 			s_info->is_large = false;
 		      }
 		}

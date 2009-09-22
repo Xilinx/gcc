@@ -284,6 +284,10 @@ Winvalid-pch
 C ObjC C++ ObjC++ Warning
 Warn about PCH files that are found but not used
 
+Wjump-misses-init
+C Objc Var(warn_jump_misses_init) Init(-1) Warning
+Warn when a jump misses a variable initialization
+
 Wlogical-op
 C ObjC C++ ObjC++ Var(warn_logical_op) Init(0) Warning 
 Warn when a logical operator is suspiciously always evaluating to true or false
@@ -484,6 +488,10 @@ Wunused-macros
 C ObjC C++ ObjC++ Warning
 Warn about macros defined in the main file that are not used
 
+Wunused-result
+C ObjC C++ ObjC++ Var(warn_unused_result) Init(1) Warning
+Warn if a caller of a function, marked with attribute warn_unused_result, does not use its return value
+
 Wvariadic-macros
 C ObjC C++ ObjC++ Warning
 Do not warn about using variadic macros when -pedantic
@@ -549,6 +557,10 @@ Reduce the size of object files
 fconstant-string-class=
 ObjC ObjC++ Joined
 -fconst-string-class=<name>	Use class <name> for constant strings
+
+fdeduce-init-list
+C++ ObjC++ Var(flag_deduce_init_list) Init(1)
+-fno-deduce-init-list	disable deduction of std::initializer_list for a template type parameter from a brace-enclosed initializer-list
 
 fdefault-inline
 C++ ObjC++

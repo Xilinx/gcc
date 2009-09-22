@@ -46,12 +46,15 @@ describe_cache (struct cache_desc level1, struct cache_desc level2)
   /* At the moment, gcc does not use the information
      about the associativity of the cache.  */
 
-  sprintf (size, "--param l1-cache-size=%u", level1.sizekb);
-  sprintf (line, "--param l1-cache-line-size=%u", level1.line);
+  snprintf (size, sizeof (size),
+	    "--param l1-cache-size=%u ", level1.sizekb);
+  snprintf (line, sizeof (line),
+	    "--param l1-cache-line-size=%u ", level1.line);
 
-  sprintf (size2, "--param l2-cache-size=%u", level2.sizekb);
+  snprintf (size2, sizeof (size2),
+	    "--param l2-cache-size=%u ", level2.sizekb);
 
-  return concat (size, " ", line, " ", size2, " ", NULL);
+  return concat (size, line, size2, NULL);
 }
 
 /* Detect L2 cache parameters using CPUID extended function 0x80000006.  */
@@ -378,7 +381,9 @@ const char *host_detect_local_cpu (int argc, const char **argv)
   /* Extended features */
   unsigned int has_lahf_lm = 0, has_sse4a = 0;
   unsigned int has_longmode = 0, has_3dnowp = 0, has_3dnow = 0;
-  unsigned int has_movbe = 0;
+  unsigned int has_movbe = 0, has_sse4_1 = 0, has_sse4_2 = 0;
+  unsigned int has_popcnt = 0, has_aes = 0, has_avx = 0;
+  unsigned int has_pclmul = 0;
 
   bool arch;
 
@@ -415,8 +420,14 @@ const char *host_detect_local_cpu (int argc, const char **argv)
 
   has_sse3 = ecx & bit_SSE3;
   has_ssse3 = ecx & bit_SSSE3;
+  has_sse4_1 = ecx & bit_SSE4_1;
+  has_sse4_2 = ecx & bit_SSE4_2;
+  has_avx = ecx & bit_AVX;
   has_cmpxchg16b = ecx & bit_CMPXCHG16B;
   has_movbe = ecx & bit_MOVBE;
+  has_popcnt = ecx & bit_POPCNT;
+  has_aes = ecx & bit_AES;
+  has_pclmul = ecx & bit_PCLMUL;
 
   has_cmpxchg8b = edx & bit_CMPXCHG8B;
   has_cmov = edx & bit_CMOV;
@@ -600,43 +611,38 @@ const char *host_detect_local_cpu (int argc, const char **argv)
   if (arch)
     {
       if (has_cmpxchg16b)
-	options = concat (options, "-mcx16 ", NULL);
+	options = concat (options, " -mcx16", NULL);
       if (has_lahf_lm)
-	options = concat (options, "-msahf ", NULL);
+	options = concat (options, " -msahf", NULL);
       if (has_movbe)
-	options = concat (options, "-mmovbe", NULL);
+	options = concat (options, " -mmovbe", NULL);
+      if (has_aes)
+	options = concat (options, " -maes", NULL);
+      if (has_pclmul)
+	options = concat (options, " -mpclmul", NULL);
+      if (has_popcnt)
+	options = concat (options, " -mpopcnt", NULL);
+
+      if (has_avx)
+	options = concat (options, " -mavx", NULL);
+      else if (has_sse4_2)
+	options = concat (options, " -msse4.2", NULL);
+      else if (has_sse4_1)
+	options = concat (options, " -msse4.1", NULL);
     }
 
 done:
-  return concat (cache, "-m", argv[0], "=", cpu, " ", options, NULL);
+  return concat (cache, "-m", argv[0], "=", cpu, options, NULL);
 }
 #else
 
-/* If we aren't compiling with GCC we just provide a minimal
-   default value.  */
+/* If we aren't compiling with GCC then the driver will just ignore
+   -march and -mtune "native" target and will leave to the newly
+   built compiler to generate code for its default target.  */
 
-const char *host_detect_local_cpu (int argc, const char **argv)
+const char *host_detect_local_cpu (int argc ATTRIBUTE_UNUSED,
+				   const char **argv ATTRIBUTE_UNUSED)
 {
-  const char *cpu;
-  bool arch;
-
-  if (argc < 1)
-    return NULL;
-
-  arch = !strcmp (argv[0], "arch");
-
-  if (!arch && strcmp (argv[0], "tune"))
-    return NULL;
-  
-  if (arch)
-    {
-      /* FIXME: i386 is wrong for 64bit compiler.  How can we tell if
-	 we are generating 64bit or 32bit code?  */
-      cpu = "i386";
-    }
-  else
-    cpu = "generic";
-
-  return concat ("-m", argv[0], "=", cpu, NULL);
+  return NULL;
 }
 #endif /* __GNUC__ */

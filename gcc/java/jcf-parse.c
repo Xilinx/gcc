@@ -498,7 +498,7 @@ handle_long_constant (JCF *jcf, CPool *cpool, enum cpool_tag kind,
 static uint16
 handle_constant (JCF *jcf, int index, enum cpool_tag purpose)
 {
-  enum cpool_tag kind;
+  unsigned int kind;
   CPool *cpool = cpool_for_class (output_class);
   
   if (index == 0)
@@ -507,7 +507,7 @@ handle_constant (JCF *jcf, int index, enum cpool_tag purpose)
   if (! CPOOL_INDEX_IN_RANGE (&jcf->cpool, index))
     error ("<constant pool index %d not in range>", index);
   
-  kind = (enum cpool_tag) JPOOL_TAG (jcf, index);
+  kind = JPOOL_TAG (jcf, index);
 
   if ((kind & ~CONSTANT_ResolvedFlag) != purpose)
     {
@@ -555,12 +555,12 @@ handle_constant (JCF *jcf, int index, enum cpool_tag purpose)
       break;
 
     case CONSTANT_Long:
-      index = handle_long_constant (jcf, cpool, kind, index, 
+      index = handle_long_constant (jcf, cpool, CONSTANT_Long, index,
 				    WORDS_BIG_ENDIAN);
       break;
       
     case CONSTANT_Double:
-      index = handle_long_constant (jcf, cpool, kind, index, 
+      index = handle_long_constant (jcf, cpool, CONSTANT_Double, index,
 				    FLOAT_WORDS_BIG_ENDIAN);
       break;
 
@@ -1509,7 +1509,7 @@ duplicate_class_warning (const char *filename)
   location_t warn_loc;
   linemap_add (line_table, LC_RENAME, 0, filename, 0);
   warn_loc = linemap_line_start (line_table, 0, 1);
-  warning (0, "%Hduplicate class will only be compiled once", &warn_loc);
+  warning_at (warn_loc, 0, "duplicate class will only be compiled once");
 }
 
 static void
@@ -1703,10 +1703,11 @@ java_emit_static_constructor (void)
       tree name = get_identifier ("_Jv_global_static_constructor");
 
       tree decl 
-	= build_decl (FUNCTION_DECL, name,
+	= build_decl (input_location, FUNCTION_DECL, name,
 		      build_function_type (void_type_node, void_list_node));
 
-      tree resdecl = build_decl (RESULT_DECL, NULL_TREE, void_type_node);
+      tree resdecl = build_decl (input_location,
+				 RESULT_DECL, NULL_TREE, void_type_node);
       DECL_ARTIFICIAL (resdecl) = 1;
       DECL_RESULT (decl) = resdecl;
       current_function_decl = decl;
@@ -1835,7 +1836,8 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	    duplicate_class_warning (IDENTIFIER_POINTER (node));
 	  else
 	    {
-	      tree file_decl = build_decl (TRANSLATION_UNIT_DECL, node, NULL);
+	      tree file_decl = build_decl (input_location,
+					   TRANSLATION_UNIT_DECL, node, NULL);
 	      TREE_CHAIN (file_decl) = current_file_list;
 	      current_file_list = file_decl;
 	      IS_A_COMMAND_LINE_FILENAME_P (node) = 1;
@@ -1980,11 +1982,6 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
   /* Arrange for any necessary initialization to happen.  */
   java_emit_static_constructor ();
   gcc_assert (global_bindings_p ());
-
-  /* Only finalize the compilation unit after we've told cgraph which
-     functions have their addresses stored.  */
-  cgraph_finalize_compilation_unit ();
-  cgraph_optimize ();
 }
 
 

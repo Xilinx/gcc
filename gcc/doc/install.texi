@@ -360,13 +360,13 @@ together with GCC@.
 
 @heading Tools/packages necessary for modifying GCC
 @table @asis
-@item autoconf version 2.59
-@itemx GNU m4 version 1.4 (or later)
+@item autoconf version 2.64
+@itemx GNU m4 version 1.4.6 (or later)
 
 Necessary when modifying @file{configure.ac}, @file{aclocal.m4}, etc.@:
 to regenerate @file{configure} and @file{config.in} files.
 
-@item automake version 1.9.6
+@item automake version 1.11
 
 Necessary when modifying a @file{Makefile.am} file to regenerate its
 associated @file{Makefile.in}.
@@ -377,8 +377,8 @@ file.  Specifically this applies to the @file{gcc}, @file{intl},
 as any of their subdirectories.
 
 For directories that use automake, GCC requires the latest release in
-the 1.9.x series, which is currently 1.9.6.  When regenerating a directory
-to a newer version, please update all the directories using an older 1.9.x
+the 1.11 series, which is currently 1.11.  When regenerating a directory
+to a newer version, please update all the directories using an older 1.11
 to the latest released version.
 
 @item gettext version 0.14.5 (or later)
@@ -714,18 +714,34 @@ The default is @file{@var{exec-prefix}/libexec}.
 Specify the installation directory for the shared libgcc library.  The
 default is @file{@var{libdir}}.
 
+@item --datarootdir=@var{dirname}
+Specify the root of the directory tree for read-only architecture-independent
+data files referenced by GCC@.  The default is @file{@var{prefix}/share}.
+
 @item --infodir=@var{dirname}
 Specify the installation directory for documentation in info format.
-The default is @file{@var{prefix}/info}.
+The default is @file{@var{datarootdir}/info}.
 
 @item --datadir=@var{dirname}
 Specify the installation directory for some architecture-independent
-data files referenced by GCC@.  The default is @file{@var{prefix}/share}.
+data files referenced by GCC@.  The default is @file{@var{datarootdir}}.
+
+@item --docdir=@var{dirname}
+Specify the installation directory for documentation files (other
+than Info) for GCC@.  The default is @file{@var{datarootdir}/doc}.
+
+@item --htmldir=@var{dirname}
+Specify the installation directory for HTML documentation files.
+The default is @file{@var{docdir}}.
+
+@item --pdfdir=@var{dirname}
+Specify the installation directory for PDF documentation files.
+The default is @file{@var{docdir}}.
 
 @item --mandir=@var{dirname}
 Specify the installation directory for manual pages.  The default is
-@file{@var{prefix}/man}.  (Note that the manual pages are only extracts from
-the full GCC manuals, which are provided in Texinfo format.  The manpages
+@file{@var{datarootdir}/man}.  (Note that the manual pages are only extracts
+from the full GCC manuals, which are provided in Texinfo format.  The manpages
 are derived by an automatic conversion process from parts of the full
 manual.)
 
@@ -1170,6 +1186,14 @@ not provide them.
 On MIPS targets, make @option{-mno-llsc} the default when no
 @option{-mllsc} option is passed.
 
+@item --with-synci
+On MIPS targets, make @option{-msynci} the default when no
+@option{-mno-synci} option is passed.
+
+@item --without-synci 
+On MIPS targets, make @option{-mno-synci} the default when no
+@option{-msynci} option is passed.  This is the default.
+
 @item --with-mips-plt
 On MIPS targets, make use of copy relocations and PLTs.
 These features are extensions to the traditional
@@ -1203,6 +1227,10 @@ destructors.  Option @option{--disable-initfini-array} has the
 opposite effect.  If neither option is specified, the configure script
 will try to guess whether the @code{.init_array} and
 @code{.fini_array} sections are supported and, if they are, use them.
+
+@item --enable-build-with-cxx
+Build GCC using a C++ compiler rather than a C compiler.  This is an
+experimental option which may become the default in a later release.
 
 @item --enable-maintainer-mode
 The build rules that
@@ -1549,6 +1577,27 @@ linking with a shared copy of PPL, you probably do not need this
 option; shared library dependencies will cause the linker to search
 for the standard C++ library automatically.
 
+@item --with-stage1-ldflags=@var{flags}
+This option may be used to set linker flags to be used when linking
+stage 1 of GCC.  These are also used when linking GCC if configured with
+@option{--disable-bootstrap}.  By default no special flags are used.
+
+@item --with-stage1-libs=@var{libs}
+This option may be used to set libraries to be used when linking stage 1
+of GCC.  These are also used when linking GCC if configured with
+@option{--disable-bootstrap}.  The default is the argument to
+@option{--with-host-libstdcxx}, if specified.
+
+@item --with-boot-ldflags=@var{flags}
+This option may be used to set linker flags to be used when linking
+stage 2 and later when bootstrapping GCC.  By default no special flags
+are used.
+
+@item --with-boot-libs=@var{libs}
+This option may be used to set libraries to be used when linking stage 2
+and later when bootstrapping GCC.  The default is the argument to
+@option{--with-host-libstdcxx}, if specified.
+
 @item --with-debug-prefix-map=@var{map}
 Convert source directory names using @option{-fdebug-prefix-map} when
 building runtime libraries.  @samp{@var{map}} is a space-separated
@@ -1561,6 +1610,13 @@ option), if the linker supports it.  If you specify
 @option{--enable-linker-build-id}, but your linker does not
 support @option{--build-id} option, a warning is issued and the
 @option{--enable-linker-build-id} option is ignored.  The default is off.
+
+@item --enable-gnu-unique-object
+@itemx --disable-gnu-unique-object
+Tells GCC to use the gnu_unique_object relocation for C++ template
+static data members and inline function local statics.  Enabled by
+default for a native toolchain with an assembler that accepts it and
+GLIBC 2.11 or above, otherwise disabled.
 
 @end table
 
@@ -2024,11 +2080,13 @@ the one you are building on: for example, you could build a
 @code{powerpc64-unknown-linux-gnu} host.  In this case, pass
 @option{--enable-bootstrap} to the configure script.
 
-@code{BUILD_CONFIG} can be used to bring in additional customization to
-the build.  It can be set to a whitespace-separated list of names.  For
-each such @code{NAME}, top-level @file{config/@code{NAME}.mk} will be
-included by the top-level @file{Makefile}, bringing in any settings it
-contains.  Some examples are:
+@code{BUILD_CONFIG} can be used to bring in additional customization
+to the build.  It can be set to a whitespace-separated list of names.
+For each such @code{NAME}, top-level @file{config/@code{NAME}.mk} will
+be included by the top-level @file{Makefile}, bringing in any settings
+it contains.  The default @code{BUILD_CONFIG} can be set using the
+configure option @option{--with-build-config=@code{NAME}...}.  Some
+examples of supported build configurations are:
 
 @table @asis
 @item @samp{bootstrap-O1}
@@ -2040,8 +2098,56 @@ Removes any @option{-O}-started option from @code{BOOT_CFLAGS}, and adds
 Analogous to @code{bootstrap-O1}.
 
 @item @samp{bootstrap-debug}
-Builds stage2 without debug information, and uses
-@file{contrib/compare-debug} to compare object files.
+Verifies that the compiler generates the same executable code, whether
+or not it is asked to emit debug information.  To this end, this
+option builds stage2 host programs without debug information, and uses
+@file{contrib/compare-debug} to compare them with the stripped stage3
+object files.  If @code{BOOT_CFLAGS} is overridden so as to not enable
+debug information, stage2 will have it, and stage3 won't.  This option
+is enabled by default when GCC bootstrapping is enabled, if
+@code{strip} can turn object files compiled with and without debug
+info into identical object files.  In addition to better test
+coverage, this option makes default bootstraps faster and leaner.
+
+@item @samp{bootstrap-debug-big}
+Rather than comparing stripped object files, as in
+@code{bootstrap-debug}, this option saves internal compiler dumps
+during stage2 and stage3 and compares them as well, which helps catch
+additional potential problems, but at a great cost in terms of disk
+space.  It can be specified in addition to @samp{bootstrap-debug}.
+
+@item @samp{bootstrap-debug-lean}
+This option saves disk space compared with @code{bootstrap-debug-big},
+but at the expense of some recompilation.  Instead of saving the dumps
+of stage2 and stage3 until the final compare, it uses
+@option{-fcompare-debug} to generate, compare and remove the dumps
+during stage3, repeating the compilation that already took place in
+stage2, whose dumps were not saved.
+
+@item @samp{bootstrap-debug-lib}
+This option tests executable code invariance over debug information
+generation on target libraries, just like @code{bootstrap-debug-lean}
+tests it on host programs.  It builds stage3 libraries with
+@option{-fcompare-debug}, and it can be used along with any of the
+@code{bootstrap-debug} options above.
+
+There aren't @code{-lean} or @code{-big} counterparts to this option
+because most libraries are only build in stage3, so bootstrap compares
+would not get significant coverage.  Moreover, the few libraries built
+in stage2 are used in stage3 host programs, so we wouldn't want to
+compile stage2 libraries with different options for comparison purposes.
+
+@item @samp{bootstrap-debug-ckovw}
+Arranges for error messages to be issued if the compiler built on any
+stage is run without the option @option{-fcompare-debug}.  This is
+useful to verify the full @option{-fcompare-debug} testing coverage.  It
+must be used along with @code{bootstrap-debug-lean} and
+@code{bootstrap-debug-lib}.
+
+@item @samp{bootstrap-time}
+Arranges for the run time of each program started by the GCC driver,
+built in any stage, to be logged to @file{time.log}, in the top level of
+the build tree.
 
 @end table
 
@@ -2555,7 +2661,7 @@ printing with programs such as @command{dvips}.  Alternately, by using
 @samp{make pdf} in place of @samp{make dvi}, you can create documentation
 in the form of @file{.pdf} files; this requires @command{texi2pdf}, which
 is included with Texinfo version 4.8 and later.  You can also
-@uref{http://www.gnu.org/order/order.html,,buy printed manuals from the
+@uref{http://shop.fsf.org/,,buy printed manuals from the
 Free Software Foundation}, though such manuals may not be for the most
 recent version of GCC@.
 
@@ -2604,7 +2710,7 @@ AIX:
 @uref{http://pware.hvcc.edu,,Hudson Valley Community College Open Source Software for IBM System p};
 
 @item
-@uref{http://www.perzl.org/aix,,AIX 5L and 6 Open Source Packages}.
+@uref{http://www.perzl.org/aix/,,AIX 5L and 6 Open Source Packages}.
 @end itemize
 
 @item
@@ -2759,6 +2865,8 @@ information are.
 @uref{#m68k-x-x,,m68k-*-*}
 @item
 @uref{#m68k-uclinux,,m68k-uclinux}
+@item
+@uref{#mep-x-elf,,mep-*-elf}
 @item
 @uref{#mips-x-x,,mips-*-*}
 @item
@@ -2962,8 +3070,6 @@ can also be obtained from:
 @item
 @uref{http://www.nongnu.org/avr/,,http://www.nongnu.org/avr/}
 @item
-@uref{http://home.overta.ru/users/denisc/,,http://home.overta.ru/users/denisc/}
-@item
 @uref{http://www.amelek.gda.pl/avr/,,http://www.amelek.gda.pl/avr/}
 @end itemize
 
@@ -3071,48 +3177,30 @@ and includes all the necessary compilation tools and libraries.
 @end html
 @heading @anchor{x-x-freebsd}*-*-freebsd*
 
-The version of binutils installed in @file{/usr/bin} probably works with
-this release of GCC@.  However, on FreeBSD 4, bootstrapping against the
-latest FSF binutils is known to improve overall testsuite results; and,
-on FreeBSD/alpha, using binutils 2.14 or later is required to build libjava.
+Support for FreeBSD 1 was discontinued in GCC 3.2.  Support for
+FreeBSD 2 (and any mutant a.out variants of FreeBSD 3) was
+discontinued in GCC 4.0.
 
-Support for FreeBSD 1 was discontinued in GCC 3.2.
-
-Support for FreeBSD 2 will be discontinued after GCC 3.4.  The
-following was true for GCC 3.1 but the current status is unknown.
-For FreeBSD 2 or any mutant a.out versions of FreeBSD 3: All
-configuration support and files as shipped with GCC 2.95 are still in
-place.  FreeBSD 2.2.7 has been known to bootstrap completely; however,
-it is unknown which version of binutils was used (it is assumed that it
-was the system copy in @file{/usr/bin}) and C++ EH failures were noted.
-
-For FreeBSD using the ELF file format: DWARF 2 debugging is now the
-default for all CPU architectures.  It had been the default on
-FreeBSD/alpha since its inception.  You may use @option{-gstabs} instead
-of @option{-g}, if you really want the old debugging format.  There are
+We support FreeBSD using the ELF file format with DWARF 2 debugging
+for all CPU architectures.  You may use @option{-gstabs} instead of
+@option{-g}, if you really want the old debugging format.  There are
 no known issues with mixing object files and libraries with different
-debugging formats.  Otherwise, this release of GCC should now match more
-of the configuration used in the stock FreeBSD configuration of GCC@.  In
-particular, @option{--enable-threads} is now configured by default.
-However, as a general user, do not attempt to replace the system
-compiler with this release.  Known to bootstrap and check with good
-results on FreeBSD 4.9-STABLE and 5-CURRENT@.  In the past, known to
-bootstrap and check with good results on FreeBSD 3.0, 3.4, 4.0, 4.2,
-4.3, 4.4, 4.5, 4.8-STABLE@.
+debugging formats.  Otherwise, this release of GCC should now match
+more of the configuration used in the stock FreeBSD configuration of
+GCC@.  In particular, @option{--enable-threads} is now configured by
+default.  However, as a general user, do not attempt to replace the
+system compiler with this release.  Known to bootstrap and check with
+good results on FreeBSD 7.2-STABLE@.  In the past, known to bootstrap
+and check with good results on FreeBSD 3.0, 3.4, 4.0, 4.2, 4.3, 4.4,
+4.5, 4.8, 4.9 and 5-CURRENT@.
 
-In principle, @option{--enable-threads} is now compatible with
-@option{--enable-libgcj} on FreeBSD@.  However, it has only been built
-and tested on @samp{i386-*-freebsd[45]} and @samp{alpha-*-freebsd[45]}.
-The static
-library may be incorrectly built (symbols are missing at link time).
-There is a rare timing-based startup hang (probably involves an
-assumption about the thread library).  Multi-threaded boehm-gc (required for
-libjava) exposes severe threaded signal-handling bugs on FreeBSD before
-4.5-RELEASE@.  Other CPU architectures
-supported by FreeBSD will require additional configuration tuning in, at
-the very least, both boehm-gc and libffi.
-
-Shared @file{libgcc_s.so} is now built and installed by default.
+The version of binutils installed in @file{/usr/bin} probably works
+with this release of GCC@.  Bootstrapping against the latest GNU
+binutils and/or the version found in /usr/ports/devel/binutils has
+been known to enable additional features and improve overall testsuite
+results.  However, it is currently known that boehm-gc (which itself
+is required for java) may not configure properly on FreeBSD prior to
+the FreeBSD 7.0 release with GNU binutils after 2.16.1.
 
 @html
 <hr />
@@ -3397,6 +3485,20 @@ Support for AIX version 4.2 and older was discontinued in GCC 4.5.
 process resource limits (ulimit).  Hard limits are configured in the
 @file{/etc/security/limits} system configuration file.
 
+GCC can bootstrap with recent versions of IBM XLC, but bootstrapping
+with an earlier release of GCC is recommended.  Bootstrapping with XLC
+requires a larger data segment, which can be enabled through the
+@var{LDR_CNTRL} environment variable, e.g.,
+
+@smallexample
+   % LDR_CNTRL=MAXDATA=0x50000000
+   % export LDR_CNTRL
+@end smallexample
+
+One can start with a pre-compiled version of GCC to build from
+sources.  One may delete GCC's ``fixed'' header files when starting
+with a version of GCC built for an earlier release of AIX.
+
 To speed up the configuration phases of bootstrapping and installing GCC,
 one may use GNU Bash instead of AIX @command{/bin/sh}, e.g.,
 
@@ -3426,11 +3528,9 @@ If this error occurs during stage2 or later, then the problem most likely
 is the version of Make (see above).
 
 The native @command{as} and @command{ld} are recommended for bootstrapping
-on AIX 4 and required for bootstrapping on AIX 5L@.  The GNU Assembler
-reports that it supports WEAK symbols on AIX 4, which causes GCC to try to
-utilize weak symbol functionality although it is not supported.  The GNU
-Assembler and Linker do not support AIX 5L sufficiently to bootstrap GCC@.
-The native AIX tools do interoperate with GCC@.
+on AIX@.  The GNU Assembler, GNU Linker, and GNU Binutils version 2.20
+is required to bootstrap on AIX 5@.  The native AIX tools do
+interoperate with GCC@.
 
 Building @file{libstdc++.a} requires a fix for an AIX Assembler bug
 APAR IY26685 (AIX 4.3) or APAR IY25528 (AIX 5.1).  It also requires a
@@ -3586,6 +3686,14 @@ It also added improved support for C++ and flat shared libraries,
 both of which were ABI changes.  However, you can still use the
 original ABI by configuring for @samp{m68k-uclinuxoldabi} or
 @samp{m68k-@var{vendor}-uclinuxoldabi}.
+
+
+@html
+<hr />
+@end html
+@heading @anchor{mep-x-elf}mep-*-elf
+Toshiba Media embedded Processor.
+This configuration is intended for embedded systems.
 
 @html
 <hr />
@@ -3758,6 +3866,13 @@ and in order to build GCC for such targets you need to configure with
 
 See @uref{http://freeware.sgi.com/} for more
 information about using GCC on IRIX platforms.
+
+@html
+<hr />
+@end html
+@heading @anchor{moxie-x-elf}moxie-*-elf
+The moxie processor.  See @uref{http://moxielogic.org/} for more
+information about this processor.
 
 @html
 <hr />

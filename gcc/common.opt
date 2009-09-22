@@ -380,6 +380,14 @@ fcommon
 Common Report Var(flag_no_common,0) Optimization
 Do not put uninitialized globals in the common section
 
+fcompare-debug=
+Common JoinedOrMissing RejectNegative Var(flag_compare_debug_opt)
+-fcompare-debug[=<opts>] Compile with and without e.g. -gtoggle, and compare the final-insns dump
+
+fcompare-debug-second
+Common RejectNegative Var(flag_compare_debug)
+Run only the second compilation of -fcompare-debug
+
 fconserve-stack
 Common Var(flag_conserve_stack) Optimization
 Do not perform optimizations increasing noticeably stack usage
@@ -450,6 +458,10 @@ fdump-
 Common Joined RejectNegative
 -fdump-<type>	Dump various compiler internals to a file
 
+fdump-final-insns=
+Common RejectNegative Joined Var(flag_dump_final_insns)
+-fdump-final-insns=filename	Dump to filename the insns at the end of translation
+
 fdump-noaddr
 Common Report Var(flag_dump_noaddr)
 Suppress output of addresses in debugging dumps
@@ -457,6 +469,10 @@ Suppress output of addresses in debugging dumps
 fdump-unnumbered
 Common Report Var(flag_dump_unnumbered) VarExists
 Suppress output of instruction numbers, line number notes and addresses in debugging dumps
+
+fdump-unnumbered-links
+Common Report Var(flag_dump_unnumbered_links) VarExists
+Suppress output of previous and next insn numbers in debugging dumps
 
 fdwarf2-cfi-asm
 Common Report Var(flag_dwarf2_cfi_asm) Init(HAVE_GAS_CFI_DIRECTIVE)
@@ -469,6 +485,10 @@ Perform early inlining
 feliminate-dwarf2-dups
 Common Report Var(flag_eliminate_dwarf2_dups)
 Perform DWARF2 duplicate elimination
+
+fipa-sra
+Common Report Var(flag_ipa_sra) Init(0) Optimization
+Perform interprocedural reduction of aggregates
 
 feliminate-unused-debug-symbols
 Common Report Var(flag_debug_only_used_symbols)
@@ -555,6 +575,14 @@ fgraphite
 Common Report Var(flag_graphite)
 Enable in and out of Graphite representation
 
+fgraphite-identity
+Common Report Var(flag_graphite_identity) Optimization
+Enable Graphite Identity transformation
+
+floop-parallelize-all
+Common Report Var(flag_loop_parallelize_all) Optimization
+Mark all loops as parallel
+
 floop-strip-mine
 Common Report Var(flag_loop_strip_mine) Optimization
 Enable Loop Strip Mining transformation
@@ -566,11 +594,6 @@ Enable Loop Interchange transformation
 floop-block
 Common Report Var(flag_loop_block) Optimization
 Enable Loop Blocking transformation
-
-; This option is not documented as it does not perform any useful optimization.
-fgraphite-identity
-Common Report Var(flag_graphite_identity) Optimization
-Enable Graphite Identity transformation
 
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization
@@ -963,6 +986,10 @@ fsched-interblock
 Common Report Var(flag_schedule_interblock) Init(1) Optimization
 Enable scheduling across basic blocks
 
+fsched-pressure
+Common Report Var(flag_sched_pressure) Init(0) Optimization
+Enable register pressure sensitive insn scheduling
+
 fsched-spec
 Common Report Var(flag_schedule_speculative) Init(1) Optimization
 Allow speculative motion of non-loads
@@ -1040,17 +1067,41 @@ fsched-stalled-insns-dep=
 Common RejectNegative Joined UInteger
 -fsched-stalled-insns-dep=<number>	Set dependence distance checking in premature scheduling of queued insns
 
+fsched-group-heuristic
+Common Report Var(flag_sched_group_heuristic) Init(1) Optimization
+Enable the group heuristic in the scheduler
+
+fsched-critical-path-heuristic
+Common Report Var(flag_sched_critical_path_heuristic) Init(1) Optimization
+Enable the critical path heuristic in the scheduler
+
+fsched-spec-insn-heuristic
+Common Report Var(flag_sched_spec_insn_heuristic) Init(1) Optimization
+Enable the speculative instruction heuristic in the scheduler
+
+fsched-rank-heuristic
+Common Report Var(flag_sched_rank_heuristic) Init(1) Optimization
+Enable the rank heuristic in the scheduler
+
+fsched-last-insn-heuristic
+Common Report Var(flag_sched_last_insn_heuristic) Init(1) Optimization
+Enable the last instruction heuristic in the scheduler
+
+fsched-dep-count-heuristic
+Common Report Var(flag_sched_dep_count_heuristic) Init(1) Optimization
+Enable the dependent count heuristic in the scheduler
+
 fsection-anchors
 Common Report Var(flag_section_anchors) Optimization
 Access data in the same section from shared anchor points
 
 fsee
-Common Report Var(flag_see) Init(0)
-Eliminate redundant sign extensions using LCM.
+Common
+Does nothing.  Preserved for backward compatibility.
 
 fshow-column
-Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(0)
-Show column numbers in diagnostics, when available.  Default off
+Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(1)
+Show column numbers in diagnostics, when available.  Default on
 
 fsignaling-nans
 Common Report Var(flag_signaling_nans) Optimization
@@ -1322,6 +1373,14 @@ fvar-tracking
 Common Report Var(flag_var_tracking) VarExists Optimization
 Perform variable tracking
 
+fvar-tracking-assignments
+Common Report Var(flag_var_tracking_assignments) VarExists Optimization
+Perform variable tracking by annotating assignments
+
+fvar-tracking-assignments-toggle
+Common Report Var(flag_var_tracking_assignments_toggle) VarExists Optimization
+Toggle -fvar-tracking-assignments
+
 fvar-tracking-uninit
 Common Report Var(flag_var_tracking_uninit) Optimization
 Perform variable tracking and also tag variables that are uninitialized
@@ -1394,12 +1453,12 @@ Common JoinedOrMissing
 Generate debug information in default format
 
 gcoff
-Common JoinedOrMissing Negative(gdwarf-2)
+Common JoinedOrMissing Negative(gdwarf-)
 Generate debug information in COFF format
 
-gdwarf-2
-Common JoinedOrMissing Negative(gstabs)
-Generate debug information in DWARF v2 format
+gdwarf-
+Common Joined UInteger Var(dwarf_version) Init(2) Negative(gstabs)
+Generate debug information in DWARF v2 (or later) format
 
 ggdb
 Common JoinedOrMissing
@@ -1412,6 +1471,10 @@ Generate debug information in STABS format
 gstabs+
 Common JoinedOrMissing Negative(gvms)
 Generate debug information in extended STABS format
+
+gtoggle
+Common Report Var(flag_gtoggle)
+Toggle debug information generation
 
 gvms
 Common JoinedOrMissing Negative(gxcoff)

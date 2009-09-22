@@ -1,6 +1,6 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008  Free Software Foundation, Inc.
+   2008, 2009  Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
 This file is part of GCC.
@@ -85,6 +85,9 @@ static int in_code = 0;
 /* Fix for reg_overlap_mentioned_p.  */
 static int cris_reg_overlap_mentioned_p (rtx, rtx);
 
+static enum machine_mode cris_promote_function_mode (const_tree, enum machine_mode,
+						     int *, const_tree, int);
+
 static void cris_print_base (rtx, FILE *);
 
 static void cris_print_index (rtx, FILE *);
@@ -121,6 +124,8 @@ static int cris_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 static tree cris_md_asm_clobbers (tree, tree, tree);
 
 static bool cris_handle_option (size_t, const char *, int);
+
+static bool cris_frame_pointer_required (void);
 
 /* This is the parsed result of the "-max-stack-stackframe=" option.  If
    it (still) is zero, then there was no such option given.  */
@@ -164,8 +169,9 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST cris_address_cost
 
-#undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE cris_promote_function_mode
+
 #undef TARGET_STRUCT_VALUE_RTX
 #define TARGET_STRUCT_VALUE_RTX cris_struct_value_rtx
 #undef TARGET_SETUP_INCOMING_VARARGS
@@ -180,6 +186,8 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT | CRIS_SUBTARGET_DEFAULT)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION cris_handle_option
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED cris_frame_pointer_required
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -3749,6 +3757,25 @@ cris_pass_by_reference (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 	  || CRIS_FUNCTION_ARG_SIZE (mode, type) > 8);
 }
 
+/* A combination of defining TARGET_PROMOTE_FUNCTION_MODE, promoting arguments
+   and *not* defining TARGET_PROMOTE_PROTOTYPES or PROMOTE_MODE gives the
+   best code size and speed for gcc, ipps and products in gcc-2.7.2.  */
+
+enum machine_mode
+cris_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+                            enum machine_mode mode,
+                            int *punsignedp ATTRIBUTE_UNUSED,
+			    const_tree fntype ATTRIBUTE_UNUSED,
+                            int for_return)
+{
+  /* Defining PROMOTE_FUNCTION_RETURN in gcc-2.7.2 uncovered bug 981110 (even
+     when modifying FUNCTION_VALUE to return the promoted mode).  Maybe
+     pointless as of now, but let's keep the old behavior.  */
+  if (for_return == 1)
+    return mode;
+  return CRIS_PROMOTED_MODE (mode, *punsignedp, type);
+} 
+
 
 static int
 cris_arg_partial_bytes (CUMULATIVE_ARGS *ca, enum machine_mode mode,
@@ -3812,6 +3839,18 @@ cris_md_asm_clobbers (tree outputs, tree inputs, tree in_clobbers)
 		    build_string (strlen (reg_names[CRIS_MOF_REGNUM]),
 				  reg_names[CRIS_MOF_REGNUM]),
 		    clobbers);
+}
+
+/* Implement TARGET_FRAME_POINTER_REQUIRED.
+
+   Really only needed if the stack frame has variable length (alloca
+   or variable sized local arguments (GNU C extension).  See PR39499 and
+   PR38609 for the reason this isn't just 0.  */
+
+bool
+cris_frame_pointer_required (void)
+{
+  return !current_function_sp_is_unchanging;
 }
 
 #if 0

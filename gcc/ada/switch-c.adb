@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -228,10 +228,11 @@ package body Switch.C is
                Ptr := Ptr + 1;
                Operating_Mode := Check_Semantics;
 
-               if Tree_Output then
-                  ASIS_Mode := True;
-                  Inspector_Mode := False;
-               end if;
+            --  Processing for C switch
+
+            when 'C' =>
+               Ptr := Ptr + 1;
+               CodePeer_Mode := True;
 
             --  Processing for d switch
 
@@ -257,25 +258,6 @@ package body Switch.C is
                      if Dot then
                         Set_Dotted_Debug_Flag (C);
                         Store_Compilation_Switch ("-gnatd." & C);
-
-                        --  ??? Change this when we use a non debug flag to
-                        --  enable inspector mode.
-
-                        if C = 'I' then
-                           if ASIS_Mode then
-                              --  Do not enable inspector mode in ASIS mode,
-                              --  since the two switches are incompatible.
-
-                              Inspector_Mode := False;
-
-                           else
-                              --  In inspector mode, we need back-end rep info
-                              --  annotations and disable front-end inlining.
-
-                              Back_Annotate_Rep_Info := True;
-                              Front_End_Inlining := False;
-                           end if;
-                        end if;
                      else
                         Set_Debug_Flag (C);
                         Store_Compilation_Switch ("-gnatd" & C);
@@ -326,6 +308,12 @@ package body Switch.C is
                end if;
 
                case Switch_Chars (Ptr) is
+
+                  --  -gnatea (initial delimiter of explicit switches)
+
+                  --  All switches that come before -gnatea have been added by
+                  --  the GCC driver and are not stored in the ALI file.
+                  --  See also -gnatez below.
 
                   when 'a' =>
                      Store_Switch := False;
@@ -381,6 +369,15 @@ package body Switch.C is
                      end;
 
                      return;
+
+                  --  -gnateC switch (CodePeer SCIL generation)
+
+                  --  Not enabled for now, keep it for later???
+                  --  use -gnatd.I only for now
+
+                  --  when 'C' =>
+                  --     Ptr := Ptr + 1;
+                  --     Generate_SCIL := True;
 
                   --  -gnateD switch (preprocessing symbol definition)
 
@@ -472,9 +469,25 @@ package body Switch.C is
 
                      Ptr := Max + 1;
 
+                  --  -gnatez (final delimiter of explicit switches)
+
+                  --  All switches that come after -gnatez have been added by
+                  --  the GCC driver and are not stored in the ALI file. See
+                  --  also -gnatea above.
+
                   when 'z' =>
                      Store_Switch := False;
                      Disable_Switch_Storing;
+                     Ptr := Ptr + 1;
+
+                  --  -gnateS (generate SCO information)
+
+                  --  Include Source Coverage Obligation information in ALI
+                  --  files for the benefit of source coverage analysis tools
+                  --  (xcov).
+
+                  when 'S' =>
+                     Generate_SCO := True;
                      Ptr := Ptr + 1;
 
                   --  All other -gnate? switches are unassigned
@@ -518,28 +531,9 @@ package body Switch.C is
                Ada_Version := Ada_05;
                Ada_Version_Explicit := Ada_Version;
 
-               --  Set default warnings for -gnatg
+               --  Set default warnings and style checks for -gnatg
 
-               Check_Unreferenced              := True;
-               Check_Unreferenced_Formals      := True;
-               Check_Withs                     := True;
-               Constant_Condition_Warnings     := True;
-               Implementation_Unit_Warnings    := True;
-               Ineffective_Inline_Warnings     := True;
-               Warn_On_Assertion_Failure       := True;
-               Warn_On_Assumed_Low_Bound       := True;
-               Warn_On_Bad_Fixed_Value         := True;
-               Warn_On_Constant                := True;
-               Warn_On_Export_Import           := True;
-               Warn_On_Modified_Unread         := True;
-               Warn_On_No_Value_Assigned       := True;
-               Warn_On_Non_Local_Exception     := False;
-               Warn_On_Obsolescent_Feature     := True;
-               Warn_On_Redundant_Constructs    := True;
-               Warn_On_Object_Renames_Function := True;
-               Warn_On_Unchecked_Conversion    := True;
-               Warn_On_Unrecognized_Pragma     := True;
-
+               Set_GNAT_Mode_Warnings;
                Set_GNAT_Style_Check_Options;
 
             --  Processing for G switch
@@ -652,14 +646,7 @@ package body Switch.C is
             when 'N' =>
                Ptr := Ptr + 1;
                Inline_Active := True;
-
-               --  Do not enable front-end inlining in inspector mode, to
-               --  generate trees that can be converted to SCIL. We still
-               --  enable back-end inlining which is fine.
-
-               if not Inspector_Mode then
-                  Front_End_Inlining := True;
-               end if;
+               Front_End_Inlining := True;
 
             --  Processing for o switch
 
@@ -769,12 +756,6 @@ package body Switch.C is
             when 't' =>
                Ptr := Ptr + 1;
                Tree_Output := True;
-
-               if Operating_Mode = Check_Semantics then
-                  ASIS_Mode := True;
-                  Inspector_Mode := False;
-               end if;
-
                Back_Annotate_Rep_Info := True;
 
             --  Processing for T switch

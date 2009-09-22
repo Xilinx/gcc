@@ -636,16 +636,6 @@ extern struct sparc_cpu_select sparc_select[];
    if ptr_mode and Pmode are the same.  */
 #define POINTERS_EXTEND_UNSIGNED 1
 
-/* For TARGET_ARCH64 we need this, as we don't have instructions
-   for arithmetic operations which do zero/sign extension at the same time,
-   so without this we end up with a srl/sra after every assignment to an
-   user variable,  which means very very bad code.  */
-#define PROMOTE_FUNCTION_MODE(MODE, UNSIGNEDP, TYPE) \
-if (TARGET_ARCH64				\
-    && GET_MODE_CLASS (MODE) == MODE_INT	\
-    && GET_MODE_SIZE (MODE) < UNITS_PER_WORD)	\
-  (MODE) = word_mode;
-
 /* Allocation boundary (in *bits*) for storing arguments in argument list.  */
 #define PARM_BOUNDARY (TARGET_ARCH64 ? 64 : 32)
 
@@ -966,13 +956,6 @@ extern int sparc_mode_class[];
 	REGNO_POINTER_ALIGN (HARD_FRAME_POINTER_REGNUM) = BITS_PER_UNIT; \
       }									 \
   } while (0)
-
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   Used in flow.c, global.c, ra.c and reload1.c.  */
-#define FRAME_POINTER_REQUIRED	\
-  (! (leaf_function_p () && only_leaf_regs_used ()))
 
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM FRAME_POINTER_REGNUM
@@ -1385,13 +1368,6 @@ extern char leaf_reg_remap[];
 #define ELIMINABLE_REGS \
   {{ FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}, \
    { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM} }
-
-/* The way this is structured, we can't eliminate SFP in favor of SP
-   if the frame pointer is required: we want to use the SFP->HFP elimination
-   in that case.  But the test in update_eliminables doesn't know we are
-   assuming below that we only do the former elimination.  */
-#define CAN_ELIMINATE(FROM, TO) \
-  ((TO) == HARD_FRAME_POINTER_REGNUM || !FRAME_POINTER_REQUIRED)
 
 /* We always pretend that this is a leaf function because if it's not,
    there's no point in trying to eliminate the frame pointer.  If it

@@ -428,11 +428,11 @@ int flag_pretty_templates = 1;
 
 int warn_implicit = 1;
 
-/* Maximum template instantiation depth.  This limit is rather
-   arbitrary, but it exists to limit the time it takes to notice
-   infinite template instantiations.  */
+/* Maximum template instantiation depth.  This limit exists to limit the
+   time it takes to notice infinite template instantiations; the default
+   value of 1024 is likely to be in the next C++ standard.  */
 
-int max_tinst_depth = 500;
+int max_tinst_depth = 1024;
 
 
 
@@ -440,11 +440,11 @@ int max_tinst_depth = 500;
    type names and storage classes.  It is indexed by a RID_... value.  */
 tree *ridpointers;
 
-tree (*make_fname_decl) (tree, int);
+tree (*make_fname_decl) (location_t, tree, int);
 
-/* Nonzero means the expression being parsed will never be evaluated.
-   This is a count, since unevaluated expressions can nest.  */
-int skip_evaluation;
+/* Nonzero means don't warn about problems that occur when the code is
+   executed.  */
+int c_inhibit_evaluation_warnings;
 
 /* Whether lexing has been completed, so subsequent preprocessor
    errors should use the compiler's input_location.  */
@@ -482,6 +482,7 @@ static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
 static tree handle_hot_attribute (tree *, tree, tree, int, bool *);
 static tree handle_cold_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noinline_attribute (tree *, tree, tree, int, bool *);
+static tree handle_noclone_attribute (tree *, tree, tree, int, bool *);
 static tree handle_always_inline_attribute (tree *, tree, tree, int,
 					    bool *);
 static tree handle_gnu_inline_attribute (tree *, tree, tree, int, bool *);
@@ -598,6 +599,8 @@ const struct c_common_resword c_common_reswords[] =
   { "__is_enum",	RID_IS_ENUM,	D_CXXONLY },
   { "__is_pod",		RID_IS_POD,	D_CXXONLY },
   { "__is_polymorphic",	RID_IS_POLYMORPHIC, D_CXXONLY },
+  { "__is_standard_layout", RID_IS_STD_LAYOUT, D_CXXONLY },
+  { "__is_trivial",     RID_IS_TRIVIAL, D_CXXONLY },
   { "__is_union",	RID_IS_UNION,	D_CXXONLY },
   { "__imag",		RID_IMAGPART,	0 },
   { "__imag__",		RID_IMAGPART,	0 },
@@ -616,6 +619,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__typeof__",	RID_TYPEOF,	0 },
   { "__volatile",	RID_VOLATILE,	0 },
   { "__volatile__",	RID_VOLATILE,	0 },
+  { "alignof",		RID_ALIGNOF,	D_CXXONLY | D_CXX0X | D_CXXWARN },
   { "asm",		RID_ASM,	D_ASM },
   { "auto",		RID_AUTO,	0 },
   { "bool",		RID_BOOL,	D_CXXONLY | D_CXXWARN },
@@ -731,6 +735,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_noreturn_attribute },
   { "noinline",               0, 0, true,  false, false,
 			      handle_noinline_attribute },
+  { "noclone",                0, 0, true,  false, false,
+			      handle_noclone_attribute },
   { "always_inline",          0, 0, true,  false, false,
 			      handle_always_inline_attribute },
   { "gnu_inline",             0, 0, true,  false, false,
@@ -971,7 +977,7 @@ fname_decl (location_t loc, unsigned int rid, tree id)
       input_location = UNKNOWN_LOCATION;
 
       stmts = push_stmt_list ();
-      decl = (*make_fname_decl) (id, fname_vars[ix].pretty);
+      decl = (*make_fname_decl) (loc, id, fname_vars[ix].pretty);
       stmts = pop_stmt_list (stmts);
       if (!IS_EMPTY_STMT (stmts))
 	saved_function_name_decls
@@ -1084,6 +1090,7 @@ c_fully_fold (tree expr, bool in_init, bool *maybe_const)
   tree eptype = NULL_TREE;
   bool dummy = true;
   bool maybe_const_itself = true;
+  location_t loc = EXPR_LOCATION (expr);
 
   /* This function is not relevant to C++ because C++ folds while
      parsing, and may need changes to be correct for C++ when C++
@@ -1101,7 +1108,7 @@ c_fully_fold (tree expr, bool in_init, bool *maybe_const)
   ret = c_fully_fold_internal (expr, in_init, maybe_const,
 			       &maybe_const_itself);
   if (eptype)
-    ret = fold_convert (eptype, ret);
+    ret = fold_convert_loc (loc, eptype, ret);
   *maybe_const &= maybe_const_itself;
   return ret;
 }
@@ -1127,6 +1134,7 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
   bool op0_const = true, op1_const = true, op2_const = true;
   bool op0_const_self = true, op1_const_self = true, op2_const_self = true;
   bool nowarning = TREE_NO_WARNING (expr);
+  int unused_p;
 
   /* This function is not relevant to C++ because C++ folds while
      parsing, and may need changes to be correct for C++ when C++
@@ -1298,10 +1306,14 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
       op1 = decl_constant_value_for_optimization (op1);
       if (op0 != orig_op0 || op1 != orig_op1 || in_init)
 	ret = in_init
-	  ? fold_build2_initializer (code, TREE_TYPE (expr), op0, op1)
-	  : fold_build2 (code, TREE_TYPE (expr), op0, op1);
+	  ? fold_build2_initializer_loc (loc, code, TREE_TYPE (expr), op0, op1)
+	  : fold_build2_loc (loc, code, TREE_TYPE (expr), op0, op1);
       else
 	ret = fold (expr);
+      if (TREE_OVERFLOW_P (ret)
+	  && !TREE_OVERFLOW_P (op0)
+	  && !TREE_OVERFLOW_P (op1))
+	overflow_warning (EXPR_LOCATION (expr), ret);
       goto out;
 
     case INDIRECT_REF:
@@ -1324,8 +1336,8 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
 	op0 = decl_constant_value_for_optimization (op0);
       if (op0 != orig_op0 || in_init)
 	ret = in_init
-	  ? fold_build1_initializer (code, TREE_TYPE (expr), op0)
-	  : fold_build1 (code, TREE_TYPE (expr), op0);
+	  ? fold_build1_initializer_loc (loc, code, TREE_TYPE (expr), op0)
+	  : fold_build1_loc (loc, code, TREE_TYPE (expr), op0);
       else
 	ret = fold (expr);
       if (code == INDIRECT_REF
@@ -1336,6 +1348,20 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
 	  TREE_SIDE_EFFECTS (ret) = TREE_SIDE_EFFECTS (expr);
 	  TREE_THIS_VOLATILE (ret) = TREE_THIS_VOLATILE (expr);
 	}
+      switch (code)
+	{
+	case FIX_TRUNC_EXPR:
+	case FLOAT_EXPR:
+	CASE_CONVERT:
+	  /* Don't warn about explicit conversions.  We will already
+	     have warned about suspect implicit conversions.  */
+	  break;
+
+	default:
+	  if (TREE_OVERFLOW_P (ret) && !TREE_OVERFLOW_P (op0))
+	    overflow_warning (EXPR_LOCATION (expr), ret);
+	  break;
+	}
       goto out;
 
     case TRUTH_ANDIF_EXPR:
@@ -1345,11 +1371,18 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
       orig_op0 = op0 = TREE_OPERAND (expr, 0);
       orig_op1 = op1 = TREE_OPERAND (expr, 1);
       op0 = c_fully_fold_internal (op0, in_init, &op0_const, &op0_const_self);
+
+      unused_p = (op0 == (code == TRUTH_ANDIF_EXPR
+			  ? truthvalue_false_node
+			  : truthvalue_true_node));
+      c_inhibit_evaluation_warnings += unused_p;
       op1 = c_fully_fold_internal (op1, in_init, &op1_const, &op1_const_self);
+      c_inhibit_evaluation_warnings -= unused_p;
+
       if (op0 != orig_op0 || op1 != orig_op1 || in_init)
 	ret = in_init
-	  ? fold_build2_initializer (code, TREE_TYPE (expr), op0, op1)
-	  : fold_build2 (code, TREE_TYPE (expr), op0, op1);
+	  ? fold_build2_initializer_loc (loc, code, TREE_TYPE (expr), op0, op1)
+	  : fold_build2_loc (loc, code, TREE_TYPE (expr), op0, op1);
       else
 	ret = fold (expr);
       *maybe_const_operands &= op0_const;
@@ -1374,10 +1407,17 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
       orig_op1 = op1 = TREE_OPERAND (expr, 1);
       orig_op2 = op2 = TREE_OPERAND (expr, 2);
       op0 = c_fully_fold_internal (op0, in_init, &op0_const, &op0_const_self);
+
+      c_inhibit_evaluation_warnings += (op0 == truthvalue_false_node);
       op1 = c_fully_fold_internal (op1, in_init, &op1_const, &op1_const_self);
+      c_inhibit_evaluation_warnings -= (op0 == truthvalue_false_node);
+
+      c_inhibit_evaluation_warnings += (op0 == truthvalue_true_node);
       op2 = c_fully_fold_internal (op2, in_init, &op2_const, &op2_const_self);
+      c_inhibit_evaluation_warnings -= (op0 == truthvalue_true_node);
+
       if (op0 != orig_op0 || op1 != orig_op1 || op2 != orig_op2)
-	ret = fold_build3 (code, TREE_TYPE (expr), op0, op1, op2);
+	ret = fold_build3_loc (loc, code, TREE_TYPE (expr), op0, op1, op2);
       else
 	ret = fold (expr);
       *maybe_const_operands &= op0_const;
@@ -1505,33 +1545,37 @@ constant_expression_error (tree value)
    already overflowed.  */
 
 void
-overflow_warning (tree value)
+overflow_warning (location_t loc, tree value)
 {
-  if (skip_evaluation) return;
+  if (c_inhibit_evaluation_warnings != 0)
+    return;
 
   switch (TREE_CODE (value))
     {
     case INTEGER_CST:
-      warning (OPT_Woverflow, "integer overflow in expression");
+      warning_at (loc, OPT_Woverflow, "integer overflow in expression");
       break;
       
     case REAL_CST:
-      warning (OPT_Woverflow, "floating point overflow in expression");
+      warning_at (loc, OPT_Woverflow,
+		  "floating point overflow in expression");
       break;
       
     case FIXED_CST:
-      warning (OPT_Woverflow, "fixed-point overflow in expression");
+      warning_at (loc, OPT_Woverflow, "fixed-point overflow in expression");
       break;
 
     case VECTOR_CST:
-      warning (OPT_Woverflow, "vector overflow in expression");
+      warning_at (loc, OPT_Woverflow, "vector overflow in expression");
       break;
       
     case COMPLEX_CST:
       if (TREE_CODE (TREE_REALPART (value)) == INTEGER_CST)
-	warning (OPT_Woverflow, "complex integer overflow in expression");
+	warning_at (loc, OPT_Woverflow,
+		    "complex integer overflow in expression");
       else if (TREE_CODE (TREE_REALPART (value)) == REAL_CST)
-	warning (OPT_Woverflow, "complex floating point overflow in expression");
+	warning_at (loc, OPT_Woverflow,
+		    "complex floating point overflow in expression");
       break;
 
     default:
@@ -1614,7 +1658,8 @@ warn_logical_operator (location_t location, enum tree_code code, tree type,
   if (lhs && rhs && operand_equal_p (lhs, rhs, 0)
       && merge_ranges (&in_p, &low, &high, in0_p, low0, high0,
 		       in1_p, low1, high1)
-      && 0 != (tem = build_range_check (type, lhs, in_p, low, high)))
+      && 0 != (tem = build_range_check (UNKNOWN_LOCATION,
+					type, lhs, in_p, low, high)))
     {
       if (TREE_CODE (tem) != INTEGER_CST)
 	return;
@@ -2222,7 +2267,9 @@ convert_and_check (tree type, tree expr)
   
   result = convert (type, expr);
 
-  if (!skip_evaluation && !TREE_OVERFLOW_P (expr) && result != error_mark_node)
+  if (c_inhibit_evaluation_warnings == 0
+      && !TREE_OVERFLOW_P (expr)
+      && result != error_mark_node)
     warnings_for_convert_and_check (type, expr_for_warning, result);
 
   return result;
@@ -3224,7 +3271,8 @@ c_register_builtin_type (tree type, const char* name)
 {
   tree decl;
 
-  decl = build_decl (TYPE_DECL, get_identifier (name), type);
+  decl = build_decl (UNKNOWN_LOCATION,
+		     TYPE_DECL, get_identifier (name), type);
   DECL_ARTIFICIAL (decl) = 1;
   if (!TYPE_NAME (type))
     TYPE_NAME (type) = decl;
@@ -3649,7 +3697,8 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
    of pointer PTROP and integer INTOP.  */
 
 tree
-pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
+pointer_int_sum (location_t loc, enum tree_code resultcode,
+		 tree ptrop, tree intop)
 {
   tree size_exp, ret;
 
@@ -3658,19 +3707,19 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
 
   if (TREE_CODE (TREE_TYPE (result_type)) == VOID_TYPE)
     {
-      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer of type %<void *%> used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == FUNCTION_TYPE)
     {
-      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer to a function used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == METHOD_TYPE)
     {
-      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer to member function used in arithmetic");
       size_exp = integer_one_node;
     }
@@ -3725,15 +3774,15 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
      Do this multiplication as signed, then convert to the appropriate
      type for the pointer operation.  */
   intop = convert (sizetype,
-		   build_binary_op (EXPR_LOCATION (intop),
+		   build_binary_op (loc,
 				    MULT_EXPR, intop,
 				    convert (TREE_TYPE (intop), size_exp), 1));
 
   /* Create the sum or difference.  */
   if (resultcode == MINUS_EXPR)
-    intop = fold_build1 (NEGATE_EXPR, sizetype, intop);
+    intop = fold_build1_loc (loc, NEGATE_EXPR, sizetype, intop);
 
-  ret = fold_build2 (POINTER_PLUS_EXPR, result_type, ptrop, intop);
+  ret = fold_build2_loc (loc, POINTER_PLUS_EXPR, result_type, ptrop, intop);
 
   fold_undefer_and_ignore_overflow_warnings ();
 
@@ -3799,8 +3848,9 @@ c_common_truthvalue_conversion (location_t location, tree expr)
     case ORDERED_EXPR: case UNORDERED_EXPR:
       if (TREE_TYPE (expr) == truthvalue_type_node)
 	return expr;
-      return build2 (TREE_CODE (expr), truthvalue_type_node,
+      expr = build2 (TREE_CODE (expr), truthvalue_type_node,
 		     TREE_OPERAND (expr, 0), TREE_OPERAND (expr, 1));
+      goto ret;
 
     case TRUTH_ANDIF_EXPR:
     case TRUTH_ORIF_EXPR:
@@ -3809,18 +3859,20 @@ c_common_truthvalue_conversion (location_t location, tree expr)
     case TRUTH_XOR_EXPR:
       if (TREE_TYPE (expr) == truthvalue_type_node)
 	return expr;
-      return build2 (TREE_CODE (expr), truthvalue_type_node,
-		 c_common_truthvalue_conversion (location, 
-						 TREE_OPERAND (expr, 0)),
-		 c_common_truthvalue_conversion (location,
-						 TREE_OPERAND (expr, 1)));
+      expr = build2 (TREE_CODE (expr), truthvalue_type_node,
+		     c_common_truthvalue_conversion (location, 
+						     TREE_OPERAND (expr, 0)),
+		     c_common_truthvalue_conversion (location,
+						     TREE_OPERAND (expr, 1)));
+      goto ret;
 
     case TRUTH_NOT_EXPR:
       if (TREE_TYPE (expr) == truthvalue_type_node)
 	return expr;
-      return build1 (TREE_CODE (expr), truthvalue_type_node,
-		 c_common_truthvalue_conversion (location,
-						 TREE_OPERAND (expr, 0)));
+      expr = build1 (TREE_CODE (expr), truthvalue_type_node,
+		     c_common_truthvalue_conversion (location,
+						     TREE_OPERAND (expr, 0)));
+      goto ret;
 
     case ERROR_MARK:
       return expr;
@@ -3866,14 +3918,17 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 	  }
 
 	if (TREE_SIDE_EFFECTS (inner))
-	  return build2 (COMPOUND_EXPR, truthvalue_type_node,
-			 inner, truthvalue_true_node);
+	  {
+	    expr = build2 (COMPOUND_EXPR, truthvalue_type_node,
+			   inner, truthvalue_true_node);
+	    goto ret;
+	  }
 	else
 	  return truthvalue_true_node;
       }
 
     case COMPLEX_EXPR:
-      return build_binary_op (EXPR_LOCATION (expr),
+      expr = build_binary_op (EXPR_LOCATION (expr),
 			      (TREE_SIDE_EFFECTS (TREE_OPERAND (expr, 1))
 			       ? TRUTH_OR_EXPR : TRUTH_ORIF_EXPR),
 		c_common_truthvalue_conversion (location,
@@ -3881,6 +3936,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 		c_common_truthvalue_conversion (location,
 						TREE_OPERAND (expr, 1)),
 			      0);
+      goto ret;
 
     case NEGATE_EXPR:
     case ABS_EXPR:
@@ -3894,10 +3950,13 @@ c_common_truthvalue_conversion (location_t location, tree expr)
       /* These don't change whether an object is zero or nonzero, but
 	 we can't ignore them if their second arg has side-effects.  */
       if (TREE_SIDE_EFFECTS (TREE_OPERAND (expr, 1)))
-	return build2 (COMPOUND_EXPR, truthvalue_type_node,
-		       TREE_OPERAND (expr, 1),
-		       c_common_truthvalue_conversion 
-		        (location, TREE_OPERAND (expr, 0)));
+	{
+	  expr = build2 (COMPOUND_EXPR, truthvalue_type_node,
+			 TREE_OPERAND (expr, 1),
+			 c_common_truthvalue_conversion 
+			 (location, TREE_OPERAND (expr, 0)));
+	  goto ret;
+	}
       else
 	return c_common_truthvalue_conversion (location,
 					       TREE_OPERAND (expr, 0));
@@ -3905,22 +3964,28 @@ c_common_truthvalue_conversion (location_t location, tree expr)
     case COND_EXPR:
       /* Distribute the conversion into the arms of a COND_EXPR.  */
       if (c_dialect_cxx ())
-	return fold_build3 (COND_EXPR, truthvalue_type_node,
-			    TREE_OPERAND (expr, 0),
-			    c_common_truthvalue_conversion (location,
-							    TREE_OPERAND (expr,
-									  1)),
-			    c_common_truthvalue_conversion (location,
-							    TREE_OPERAND (expr,
-									  2)));
+	{
+	  expr = fold_build3_loc (location, COND_EXPR, truthvalue_type_node,
+			      TREE_OPERAND (expr, 0),
+			      c_common_truthvalue_conversion (location,
+							      TREE_OPERAND (expr,
+									    1)),
+			      c_common_truthvalue_conversion (location,
+							      TREE_OPERAND (expr,
+									    2)));
+	  goto ret;
+	}
       else
-	/* Folding will happen later for C.  */
-	return build3 (COND_EXPR, truthvalue_type_node,
-		       TREE_OPERAND (expr, 0),
-		       c_common_truthvalue_conversion (location,
-						       TREE_OPERAND (expr, 1)),
-		       c_common_truthvalue_conversion (location,
-						       TREE_OPERAND (expr, 2)));
+	{
+	  /* Folding will happen later for C.  */
+	  expr = build3 (COND_EXPR, truthvalue_type_node,
+			 TREE_OPERAND (expr, 0),
+			 c_common_truthvalue_conversion (location,
+							 TREE_OPERAND (expr, 1)),
+			 c_common_truthvalue_conversion (location,
+							 TREE_OPERAND (expr, 2)));
+	  goto ret;
+	}
 
     CASE_CONVERT:
       /* Don't cancel the effect of a CONVERT_EXPR from a REFERENCE_TYPE,
@@ -3952,7 +4017,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
   if (TREE_CODE (TREE_TYPE (expr)) == COMPLEX_TYPE)
     {
       tree t = c_save_expr (expr);
-      return (build_binary_op
+      expr = (build_binary_op
 	      (EXPR_LOCATION (expr),
 	       (TREE_SIDE_EFFECTS (expr)
 		? TRUTH_OR_EXPR : TRUTH_ORIF_EXPR),
@@ -3963,6 +4028,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 	       (location,
 		build_unary_op (location, IMAGPART_EXPR, t, 0)),
 	       0));
+      goto ret;
     }
 
   if (TREE_CODE (TREE_TYPE (expr)) == FIXED_POINT_TYPE)
@@ -3972,8 +4038,12 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 						   (TREE_TYPE (expr))));
       return build_binary_op (location, NE_EXPR, expr, fixed_zero_node, 1);
     }
+  else
+    return build_binary_op (location, NE_EXPR, expr, integer_zero_node, 1);
 
-  return build_binary_op (location, NE_EXPR, expr, integer_zero_node, 1);
+ ret:
+  protected_set_expr_location (expr, location);
+  return expr;
 }
 
 static void def_builtin_1  (enum built_in_function fncode,
@@ -4018,11 +4088,6 @@ c_apply_type_quals_to_decl (int type_quals, tree decl)
 	  || !POINTER_TYPE_P (type)
 	  || !C_TYPE_OBJECT_OR_INCOMPLETE_P (TREE_TYPE (type)))
 	error ("invalid use of %<restrict%>");
-      else if (flag_strict_aliasing && type == TREE_TYPE (decl))
-	/* Indicate we need to make a unique alias set for this pointer.
-	   We can't do it here because it might be pointing to an
-	   incomplete type.  */
-	DECL_POINTER_ALIAS_SET (decl) = -2;
     }
 }
 
@@ -4214,13 +4279,15 @@ c_common_get_alias_set (tree t)
   return -1;
 }
 
-/* Compute the value of 'sizeof (TYPE)' or '__alignof__ (TYPE)', where the
-   second parameter indicates which OPERATOR is being applied.  The COMPLAIN
-   flag controls whether we should diagnose possibly ill-formed
-   constructs or not.  */
+/* Compute the value of 'sizeof (TYPE)' or '__alignof__ (TYPE)', where
+   the second parameter indicates which OPERATOR is being applied.
+   The COMPLAIN flag controls whether we should diagnose possibly
+   ill-formed constructs or not.  LOC is the location of the SIZEOF or
+   TYPEOF operator.  */
 
 tree
-c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
+c_sizeof_or_alignof_type (location_t loc,
+			  tree type, bool is_sizeof, int complain)
 {
   const char *op_name;
   tree value = NULL;
@@ -4233,7 +4300,7 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
       if (is_sizeof)
 	{
 	  if (complain && (pedantic || warn_pointer_arith))
-	    pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	    pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 		     "invalid application of %<sizeof%> to a function type");
           else if (!complain)
             return error_mark_node;
@@ -4246,7 +4313,7 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
     {
       if (type_code == VOID_TYPE
 	  && complain && (pedantic || warn_pointer_arith))
-	pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 		 "invalid application of %qs to a void type", op_name);
       else if (!complain)
         return error_mark_node;
@@ -4255,17 +4322,17 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
   else if (!COMPLETE_TYPE_P (type))
     {
       if (complain)
-	error ("invalid application of %qs to incomplete type %qT ",
-	       op_name, type);
+	error_at (loc, "invalid application of %qs to incomplete type %qT ",
+		  op_name, type);
       value = size_zero_node;
     }
   else
     {
       if (is_sizeof)
 	/* Convert in case a char is more than one unit.  */
-	value = size_binop (CEIL_DIV_EXPR, TYPE_SIZE_UNIT (type),
-			    size_int (TYPE_PRECISION (char_type_node)
-				      / BITS_PER_UNIT));
+	value = size_binop_loc (loc, CEIL_DIV_EXPR, TYPE_SIZE_UNIT (type),
+				size_int (TYPE_PRECISION (char_type_node)
+					  / BITS_PER_UNIT));
       else
 	value = size_int (TYPE_ALIGN_UNIT (type));
     }
@@ -4274,7 +4341,7 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
      TYPE_IS_SIZETYPE means that certain things (like overflow) will
      never happen.  However, this node should really have type
      `size_t', which is just a typedef for an ordinary integer type.  */
-  value = fold_convert (size_type_node, value);
+  value = fold_convert_loc (loc, size_type_node, value);
   gcc_assert (!TYPE_IS_SIZETYPE (TREE_TYPE (value)));
 
   return value;
@@ -4283,10 +4350,11 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
 /* Implement the __alignof keyword: Return the minimum required
    alignment of EXPR, measured in bytes.  For VAR_DECLs,
    FUNCTION_DECLs and FIELD_DECLs return DECL_ALIGN (which can be set
-   from an "aligned" __attribute__ specification).  */
+   from an "aligned" __attribute__ specification).  LOC is the
+   location of the ALIGNOF operator.  */
 
 tree
-c_alignof_expr (tree expr)
+c_alignof_expr (location_t loc, tree expr)
 {
   tree t;
 
@@ -4296,7 +4364,7 @@ c_alignof_expr (tree expr)
   else if (TREE_CODE (expr) == COMPONENT_REF
 	   && DECL_C_BIT_FIELD (TREE_OPERAND (expr, 1)))
     {
-      error ("%<__alignof%> applied to a bit-field");
+      error_at (loc, "%<__alignof%> applied to a bit-field");
       t = size_one_node;
     }
   else if (TREE_CODE (expr) == COMPONENT_REF
@@ -4319,12 +4387,12 @@ c_alignof_expr (tree expr)
 	  if (thisalign > bestalign)
 	    best = t, bestalign = thisalign;
 	}
-      return c_alignof (TREE_TYPE (TREE_TYPE (best)));
+      return c_alignof (loc, TREE_TYPE (TREE_TYPE (best)));
     }
   else
-    return c_alignof (TREE_TYPE (expr));
+    return c_alignof (loc, TREE_TYPE (expr));
 
-  return fold_convert (size_type_node, t);
+  return fold_convert_loc (loc, size_type_node, t);
 }
 
 /* Handle C and C++ default attributes.  */
@@ -4506,7 +4574,7 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
 
   targetm.init_builtins ();
 
-  build_common_builtin_nodes ();
+  build_common_builtin_nodes (c_dialect_cxx ());
 
   if (flag_mudflap)
     mudflap_init ();
@@ -4570,31 +4638,41 @@ c_common_nodes_and_builtins (void)
 
   /* These are types that c_common_type_for_size and
      c_common_type_for_mode use.  */
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 intQI_type_node));
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 intHI_type_node));
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 intSI_type_node));
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 intDI_type_node));
 #if HOST_BITS_PER_WIDE_INT >= 64
   if (targetm.scalar_mode_supported_p (TImode))
-    lang_hooks.decls.pushdecl (build_decl (TYPE_DECL,
+    lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					   TYPE_DECL,
 					   get_identifier ("__int128_t"),
 					   intTI_type_node));
 #endif
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 unsigned_intQI_type_node));
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 unsigned_intHI_type_node));
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 unsigned_intSI_type_node));
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 unsigned_intDI_type_node));
 #if HOST_BITS_PER_WIDE_INT >= 64
   if (targetm.scalar_mode_supported_p (TImode))
-    lang_hooks.decls.pushdecl (build_decl (TYPE_DECL,
+    lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					   TYPE_DECL,
 					   get_identifier ("__uint128_t"),
 					   unsigned_intTI_type_node));
 #endif
@@ -4602,12 +4680,14 @@ c_common_nodes_and_builtins (void)
   /* Create the widest literal types.  */
   widest_integer_literal_type_node
     = make_signed_type (HOST_BITS_PER_WIDE_INT * 2);
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 widest_integer_literal_type_node));
 
   widest_unsigned_literal_type_node
     = make_unsigned_type (HOST_BITS_PER_WIDE_INT * 2);
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL, NULL_TREE,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL, NULL_TREE,
 					 widest_unsigned_literal_type_node));
 
   /* `unsigned long' is the standard type for sizeof.
@@ -4699,17 +4779,21 @@ c_common_nodes_and_builtins (void)
 
     }
 
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL,
 					 get_identifier ("complex int"),
 					 complex_integer_type_node));
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL,
 					 get_identifier ("complex float"),
 					 complex_float_type_node));
-  lang_hooks.decls.pushdecl (build_decl (TYPE_DECL,
+  lang_hooks.decls.pushdecl (build_decl (UNKNOWN_LOCATION,
+					 TYPE_DECL,
 					 get_identifier ("complex double"),
 					 complex_double_type_node));
   lang_hooks.decls.pushdecl
-    (build_decl (TYPE_DECL, get_identifier ("complex long double"),
+    (build_decl (UNKNOWN_LOCATION,
+		 TYPE_DECL, get_identifier ("complex long double"),
 		 complex_long_double_type_node));
 
   if (c_dialect_cxx ())
@@ -4903,7 +4987,8 @@ c_common_nodes_and_builtins (void)
   unsigned_ptrdiff_type_node = c_common_unsigned_type (ptrdiff_type_node);
 
   lang_hooks.decls.pushdecl
-    (build_decl (TYPE_DECL, get_identifier ("__builtin_va_list"),
+    (build_decl (UNKNOWN_LOCATION,
+		 TYPE_DECL, get_identifier ("__builtin_va_list"),
 		 va_list_type_node));
 #ifdef TARGET_ENUM_VA_LIST
   {
@@ -4913,7 +4998,8 @@ c_common_nodes_and_builtins (void)
     for (l = 0; TARGET_ENUM_VA_LIST (l, &pname, &ptype); ++l)
       {
 	lang_hooks.decls.pushdecl
-	  (build_decl (TYPE_DECL, get_identifier (pname),
+	  (build_decl (UNKNOWN_LOCATION,
+		       TYPE_DECL, get_identifier (pname),
 	  	       ptype));
 
       }
@@ -4999,9 +5085,11 @@ set_compound_literal_name (tree decl)
 }
 
 tree
-build_va_arg (tree expr, tree type)
+build_va_arg (location_t loc, tree expr, tree type)
 {
-  return build1 (VA_ARG_EXPR, type, expr);
+  expr = build1 (VA_ARG_EXPR, type, expr);
+  SET_EXPR_LOCATION (expr, loc);
+  return expr;
 }
 
 
@@ -5183,17 +5271,18 @@ case_compare (splay_tree_key k1, splay_tree_key k2)
   return tree_int_cst_compare ((tree) k1, (tree) k2);
 }
 
-/* Process a case label for the range LOW_VALUE ... HIGH_VALUE.  If
-   LOW_VALUE and HIGH_VALUE are both NULL_TREE then this case label is
-   actually a `default' label.  If only HIGH_VALUE is NULL_TREE, then
-   case label was declared using the usual C/C++ syntax, rather than
-   the GNU case range extension.  CASES is a tree containing all the
-   case ranges processed so far; COND is the condition for the
-   switch-statement itself.  Returns the CASE_LABEL_EXPR created, or
-   ERROR_MARK_NODE if no CASE_LABEL_EXPR is created.  */
+/* Process a case label, located at LOC, for the range LOW_VALUE
+   ... HIGH_VALUE.  If LOW_VALUE and HIGH_VALUE are both NULL_TREE
+   then this case label is actually a `default' label.  If only
+   HIGH_VALUE is NULL_TREE, then case label was declared using the
+   usual C/C++ syntax, rather than the GNU case range extension.
+   CASES is a tree containing all the case ranges processed so far;
+   COND is the condition for the switch-statement itself.  Returns the
+   CASE_LABEL_EXPR created, or ERROR_MARK_NODE if no CASE_LABEL_EXPR
+   is created.  */
 
 tree
-c_add_case_label (splay_tree cases, tree cond, tree orig_type,
+c_add_case_label (location_t loc, splay_tree cases, tree cond, tree orig_type,
 		  tree low_value, tree high_value)
 {
   tree type;
@@ -5202,7 +5291,7 @@ c_add_case_label (splay_tree cases, tree cond, tree orig_type,
   splay_tree_node node;
 
   /* Create the LABEL_DECL itself.  */
-  label = create_artificial_label ();
+  label = create_artificial_label (loc);
 
   /* If there was an error processing the switch condition, bail now
      before we get more confused.  */
@@ -5214,13 +5303,13 @@ c_add_case_label (splay_tree cases, tree cond, tree orig_type,
       || (high_value && TREE_TYPE (high_value)
 	  && POINTER_TYPE_P (TREE_TYPE (high_value))))
     {
-      error ("pointers are not permitted as case values");
+      error_at (loc, "pointers are not permitted as case values");
       goto error_out;
     }
 
   /* Case ranges are a GNU extension.  */
   if (high_value)
-    pedwarn (input_location, OPT_pedantic, 
+    pedwarn (loc, OPT_pedantic, 
 	     "range expressions in switch statements are non-standard");
 
   type = TREE_TYPE (cond);
@@ -5247,7 +5336,7 @@ c_add_case_label (splay_tree cases, tree cond, tree orig_type,
       if (tree_int_cst_equal (low_value, high_value))
 	high_value = NULL_TREE;
       else if (!tree_int_cst_lt (low_value, high_value))
-	warning (0, "empty range specified");
+	warning_at (loc, 0, "empty range specified");
     }
 
   /* See if the case is in range of the type of the original testing
@@ -5307,24 +5396,26 @@ c_add_case_label (splay_tree cases, tree cond, tree orig_type,
 
       if (high_value)
 	{
-	  error ("duplicate (or overlapping) case value");
-	  error ("%Jthis is the first entry overlapping that value", duplicate);
+	  error_at (loc, "duplicate (or overlapping) case value");
+	  error_at (DECL_SOURCE_LOCATION (duplicate),
+		    "this is the first entry overlapping that value");
 	}
       else if (low_value)
 	{
-	  error ("duplicate case value") ;
-	  error ("%Jpreviously used here", duplicate);
+	  error_at (loc, "duplicate case value") ;
+	  error_at (DECL_SOURCE_LOCATION (duplicate), "previously used here");
 	}
       else
 	{
-	  error ("multiple default labels in one switch");
-	  error ("%Jthis is the first default label", duplicate);
+	  error_at (loc, "multiple default labels in one switch");
+	  error_at (DECL_SOURCE_LOCATION (duplicate),
+		    "this is the first default label");
 	}
       goto error_out;
     }
 
   /* Add a CASE_LABEL to the statement-tree.  */
-  case_label = add_stmt (build_case_label (low_value, high_value, label));
+  case_label = add_stmt (build_case_label (loc, low_value, high_value, label));
   /* Register this case label in the splay tree.  */
   splay_tree_insert (cases,
 		     (splay_tree_key) low_value,
@@ -5338,8 +5429,8 @@ c_add_case_label (splay_tree cases, tree cond, tree orig_type,
      that just leads to duplicates and thence to failure later on.  */
   if (!cases->root)
     {
-      tree t = create_artificial_label ();
-      add_stmt (build_stmt (LABEL_EXPR, t));
+      tree t = create_artificial_label (loc);
+      add_stmt (build_stmt (loc, LABEL_EXPR, t));
     }
   return error_mark_node;
 }
@@ -5368,13 +5459,15 @@ match_case_to_enum_1 (tree key, tree type, tree label)
 	      (unsigned HOST_WIDE_INT) TREE_INT_CST_LOW (key));
 
   if (TYPE_NAME (type) == 0)
-    warning (warn_switch ? OPT_Wswitch : OPT_Wswitch_enum,
-	     "%Jcase value %qs not in enumerated type",
-	     CASE_LABEL (label), buf);
+    warning_at (DECL_SOURCE_LOCATION (CASE_LABEL (label)),
+		warn_switch ? OPT_Wswitch : OPT_Wswitch_enum,
+		"case value %qs not in enumerated type",
+		buf);
   else
-    warning (warn_switch ? OPT_Wswitch : OPT_Wswitch_enum,
-	     "%Jcase value %qs not in enumerated type %qT",
-	     CASE_LABEL (label), buf, type);
+    warning_at (DECL_SOURCE_LOCATION (CASE_LABEL (label)),
+		warn_switch ? OPT_Wswitch : OPT_Wswitch_enum,
+		"case value %qs not in enumerated type %qT",
+		buf, type);
 }
 
 /* Subroutine of c_do_switch_warnings, called via splay_tree_foreach.
@@ -5425,28 +5518,27 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
   splay_tree_node default_node;
   splay_tree_node node;
   tree chain;
-  int saved_warn_switch;
 
   if (!warn_switch && !warn_switch_enum && !warn_switch_default)
     return;
 
   default_node = splay_tree_lookup (cases, (splay_tree_key) NULL);
   if (!default_node)
-    warning (OPT_Wswitch_default, "%Hswitch missing default case",
-	     &switch_location);
+    warning_at (switch_location, OPT_Wswitch_default,
+		"switch missing default case");
 
   /* From here on, we only care about about enumerated types.  */
   if (!type || TREE_CODE (type) != ENUMERAL_TYPE)
     return;
 
-  /* If the switch expression was an enumerated type, check that
-     exactly all enumeration literals are covered by the cases.
-     The check is made when -Wswitch was specified and there is no
-     default case, or when -Wswitch-enum was specified.  */
-
-  if (!warn_switch_enum
-      && !(warn_switch && !default_node))
+  /* From here on, we only care about -Wswitch and -Wswitch-enum.  */
+  if (!warn_switch_enum && !warn_switch)
     return;
+
+  /* Check the cases.  Warn about case values which are not members of
+     the enumerated type.  For -Wswitch-enum, or for -Wswitch when
+     there is no default case, check that exactly all enumeration
+     literals are covered by the cases.  */
 
   /* Clearing COND if it is not an integer constant simplifies
      the tests inside the loop below.  */
@@ -5498,13 +5590,15 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
 	continue;
 
       /* If there is a default_node, the only relevant option is
-	 Wswitch-enum. Otherwise, if both are enabled then we prefer
+	 Wswitch-enum.  Otherwise, if both are enabled then we prefer
 	 to warn using -Wswitch because -Wswitch is enabled by -Wall
 	 while -Wswitch-enum is explicit.  */
-      warning ((default_node || !warn_switch) 
-	       ? OPT_Wswitch_enum : OPT_Wswitch,
-	       "%Henumeration value %qE not handled in switch",
-	       &switch_location, TREE_PURPOSE (chain));
+      warning_at (switch_location,
+		  (default_node || !warn_switch
+		   ? OPT_Wswitch_enum
+		   : OPT_Wswitch),
+		  "enumeration value %qE not handled in switch",
+		  TREE_PURPOSE (chain));
     }
 
   /* Warn if there are case expressions that don't correspond to
@@ -5516,16 +5610,7 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
      every disjoint case label, with CASE_LOW_SEEN and CASE_HIGH_SEEN
      above.  This scan also resets those fields.  */
 
-  /* If there is a default_node, the only relevant option is
-     Wswitch-enum. Otherwise, if both are enabled then we prefer
-     to warn using -Wswitch because -Wswitch is enabled by -Wall
-     while -Wswitch-enum is explicit.  */
-  saved_warn_switch = warn_switch;
-  if (default_node)
-    warn_switch = 0;
   splay_tree_foreach (cases, match_case_to_enum, type);
-  warn_switch = saved_warn_switch;
-
 }
 
 /* Finish an expression taking the address of LABEL (an
@@ -5583,11 +5668,11 @@ boolean_increment (enum tree_code code, tree arg)
       break;
     case PREDECREMENT_EXPR:
       val = build2 (MODIFY_EXPR, TREE_TYPE (arg), arg,
-		    invert_truthvalue (arg));
+		    invert_truthvalue_loc (input_location, arg));
       break;
     case POSTDECREMENT_EXPR:
       val = build2 (MODIFY_EXPR, TREE_TYPE (arg), arg,
-		    invert_truthvalue (arg));
+		    invert_truthvalue_loc (input_location, arg));
       arg = save_expr (arg);
       val = build2 (COMPOUND_EXPR, TREE_TYPE (arg), val, arg);
       val = build2 (COMPOUND_EXPR, TREE_TYPE (arg), arg, val);
@@ -5857,6 +5942,23 @@ handle_noinline_attribute (tree *node, tree name,
   if (TREE_CODE (*node) == FUNCTION_DECL)
     DECL_UNINLINABLE (*node) = 1;
   else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle a "noclone" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_noclone_attribute (tree *node, tree name,
+			  tree ARG_UNUSED (args),
+			  int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
       *no_add_attrs = true;
@@ -6452,8 +6554,9 @@ handle_section_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 	      && current_function_decl != NULL_TREE
 	      && !TREE_STATIC (decl))
 	    {
-	      error ("%Jsection attribute cannot be specified for "
-		     "local variables", decl);
+	      error_at (DECL_SOURCE_LOCATION (decl), 
+			"section attribute cannot be specified for "
+			"local variables");
 	      *no_add_attrs = true;
 	    }
 
@@ -6485,7 +6588,8 @@ handle_section_attribute (tree *node, tree ARG_UNUSED (name), tree args,
     }
   else
     {
-      error ("%Jsection attributes are not supported for this target", *node);
+      error_at (DECL_SOURCE_LOCATION (*node),
+		"section attributes are not supported for this target");
       *no_add_attrs = true;
     }
 
@@ -6704,8 +6808,8 @@ handle_weakref_attribute (tree *node, tree ARG_UNUSED (name), tree args,
   else
     {
       if (lookup_attribute ("alias", DECL_ATTRIBUTES (*node)))
-	error ("%Jweakref attribute must appear before alias attribute",
-	       *node);
+	error_at (DECL_SOURCE_LOCATION (*node),
+		  "weakref attribute must appear before alias attribute");
 
       /* Can't call declare_weak because it wants this to be TREE_PUBLIC,
 	 and that isn't supported; and because it wants to add it to
@@ -6915,12 +7019,14 @@ handle_no_instrument_function_attribute (tree *node, tree name,
 
   if (TREE_CODE (decl) != FUNCTION_DECL)
     {
-      error ("%J%qE attribute applies only to functions", decl, name);
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"%qE attribute applies only to functions", name);
       *no_add_attrs = true;
     }
   else if (DECL_INITIAL (decl))
     {
-      error ("%Jcan%'t set %qE attribute after definition", decl, name);
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"can%'t set %qE attribute after definition", name);
       *no_add_attrs = true;
     }
   else
@@ -7005,12 +7111,14 @@ handle_no_limit_stack_attribute (tree *node, tree name,
 
   if (TREE_CODE (decl) != FUNCTION_DECL)
     {
-      error ("%J%qE attribute applies only to functions", decl, name);
+      error_at (DECL_SOURCE_LOCATION (decl),
+	     "%qE attribute applies only to functions", name);
       *no_add_attrs = true;
     }
   else if (DECL_INITIAL (decl))
     {
-      error ("%Jcan%'t set %qE attribute after definition", decl, name);
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"can%'t set %qE attribute after definition", name);
       *no_add_attrs = true;
     }
   else
@@ -8172,68 +8280,6 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
   return ret;
 }
 
-/* Walk a gimplified function and warn for functions whose return value is
-   ignored and attribute((warn_unused_result)) is set.  This is done before
-   inlining, so we don't have to worry about that.  */
-
-void
-c_warn_unused_result (gimple_seq seq)
-{
-  tree fdecl, ftype;
-  gimple_stmt_iterator i;
-
-  for (i = gsi_start (seq); !gsi_end_p (i); gsi_next (&i))
-    {
-      gimple g = gsi_stmt (i);
-
-      switch (gimple_code (g))
-	{
-	case GIMPLE_BIND:
-	  c_warn_unused_result (gimple_bind_body (g));
-	  break;
-	case GIMPLE_TRY:
-	  c_warn_unused_result (gimple_try_eval (g));
-	  c_warn_unused_result (gimple_try_cleanup (g));
-	  break;
-	case GIMPLE_CATCH:
-	  c_warn_unused_result (gimple_catch_handler (g));
-	  break;
-	case GIMPLE_EH_FILTER:
-	  c_warn_unused_result (gimple_eh_filter_failure (g));
-	  break;
-
-	case GIMPLE_CALL:
-	  if (gimple_call_lhs (g))
-	    break;
-
-	  /* This is a naked call, as opposed to a GIMPLE_CALL with an
-	     LHS.  All calls whose value is ignored should be
-	     represented like this.  Look for the attribute.  */
-	  fdecl = gimple_call_fndecl (g);
-	  ftype = TREE_TYPE (TREE_TYPE (gimple_call_fn (g)));
-
-	  if (lookup_attribute ("warn_unused_result", TYPE_ATTRIBUTES (ftype)))
-	    {
-	      location_t loc = gimple_location (g);
-
-	      if (fdecl)
-		warning (0, "%Hignoring return value of %qD, "
-			 "declared with attribute warn_unused_result",
-			 &loc, fdecl);
-	      else
-		warning (0, "%Hignoring return value of function "
-			 "declared with attribute warn_unused_result",
-			 &loc);
-	    }
-	  break;
-
-	default:
-	  /* Not a container, not a call, or a call whose value is used.  */
-	  break;
-	}
-    }
-}
-
 /* Convert a character from the host to the target execution character
    set.  cpplib handles this, mostly.  */
 
@@ -8305,9 +8351,10 @@ fold_offsetof_1 (tree expr, tree stop_ref)
 		 "member %qD", t);
 	  return error_mark_node;
 	}
-      off = size_binop (PLUS_EXPR, DECL_FIELD_OFFSET (t),
-			size_int (tree_low_cst (DECL_FIELD_BIT_OFFSET (t), 1)
-				  / BITS_PER_UNIT));
+      off = size_binop_loc (input_location, PLUS_EXPR, DECL_FIELD_OFFSET (t),
+			    size_int (tree_low_cst (DECL_FIELD_BIT_OFFSET (t),
+						    1)
+				      / BITS_PER_UNIT));
       break;
 
     case ARRAY_REF:
@@ -8319,7 +8366,7 @@ fold_offsetof_1 (tree expr, tree stop_ref)
       if (TREE_CODE (t) == INTEGER_CST && tree_int_cst_sgn (t) < 0)
 	{
 	  code = MINUS_EXPR;
-	  t = fold_build1 (NEGATE_EXPR, TREE_TYPE (t), t);
+	  t = fold_build1_loc (input_location, NEGATE_EXPR, TREE_TYPE (t), t);
 	}
       t = convert (sizetype, t);
       off = size_binop (MULT_EXPR, TYPE_SIZE_UNIT (TREE_TYPE (expr)), t);
@@ -8412,9 +8459,9 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
 	      bool fold_p = false;
 
 	      if (VEC_index (constructor_elt, v, 0)->index)
-		maxindex = fold_convert (sizetype,
-					 VEC_index (constructor_elt,
-						    v, 0)->index);
+		maxindex = fold_convert_loc (input_location, sizetype,
+					     VEC_index (constructor_elt,
+							v, 0)->index);
 	      curindex = maxindex;
 
 	      for (cnt = 1;
@@ -8428,7 +8475,8 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
 		    {
 		      if (fold_p)
 		        curindex = fold_convert (sizetype, curindex);
-		      curindex = size_binop (PLUS_EXPR, curindex, size_one_node);
+		      curindex = size_binop (PLUS_EXPR, curindex,
+					     size_one_node);
 		    }
 		  if (tree_int_cst_lt (maxindex, curindex))
 		    maxindex = curindex, fold_p = curfold_p;
@@ -8623,13 +8671,15 @@ sync_resolve_return (tree first_param, tree result)
    function should be called immediately after parsing the call expression
    before surrounding code has committed to the type of the expression.
 
+   LOC is the location of the builtin call.
+
    FUNCTION is the DECL that has been invoked; it is known to be a builtin.
    PARAMS is the argument list for the call.  The return value is non-null
    when expansion is complete, and null if normal processing should
    continue.  */
 
 tree
-resolve_overloaded_builtin (tree function, VEC(tree,gc) *params)
+resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
 {
   enum built_in_function orig_code = DECL_FUNCTION_CODE (function);
   switch (DECL_BUILT_IN_CLASS (function))
@@ -8638,7 +8688,7 @@ resolve_overloaded_builtin (tree function, VEC(tree,gc) *params)
       break;
     case BUILT_IN_MD:
       if (targetm.resolve_overloaded_builtin)
-	return targetm.resolve_overloaded_builtin (function, params);
+	return targetm.resolve_overloaded_builtin (loc, function, params);
       else
 	return NULL_TREE;
     default:
@@ -8676,7 +8726,7 @@ resolve_overloaded_builtin (tree function, VEC(tree,gc) *params)
 	  return error_mark_node;
 
 	first_param = VEC_index (tree, params, 0);
-	result = build_function_call_vec (new_function, params, NULL);
+	result = build_function_call_vec (loc, new_function, params, NULL);
 	if (orig_code != BUILT_IN_BOOL_COMPARE_AND_SWAP_N
 	    && orig_code != BUILT_IN_LOCK_RELEASE_N)
 	  result = sync_resolve_return (first_param, result);
@@ -8907,7 +8957,7 @@ warn_for_div_by_zero (location_t loc, tree divisor)
      about division by zero.  Do not issue a warning if DIVISOR has a
      floating-point type, since we consider 0.0/0.0 a valid way of
      generating a NaN.  */
-  if (skip_evaluation == 0
+  if (c_inhibit_evaluation_warnings == 0
       && (integer_zerop (divisor) || fixed_zerop (divisor)))
     warning_at (loc, OPT_Wdiv_by_zero, "division by zero");
 }

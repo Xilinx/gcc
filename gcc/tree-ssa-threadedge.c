@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-dump.h"
 #include "tree-flow.h"
-#include "domwalk.h"
 #include "real.h"
 #include "tree-pass.h"
 #include "tree-ssa-propagate.h"
@@ -309,7 +308,9 @@ record_temporary_equivalences_from_stmts_at_dest (edge e,
       stmt = gsi_stmt (gsi);
 
       /* Ignore empty statements and labels.  */
-      if (gimple_code (stmt) == GIMPLE_NOP || gimple_code (stmt) == GIMPLE_LABEL)
+      if (gimple_code (stmt) == GIMPLE_NOP
+	  || gimple_code (stmt) == GIMPLE_LABEL
+	  || is_gimple_debug (stmt))
 	continue;
 
       /* If the statement has volatile operands, then we assume we
