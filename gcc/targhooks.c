@@ -628,6 +628,39 @@ default_internal_arg_pointer (void)
     return virtual_incoming_args_rtx;
 }
 
+rtx
+default_static_chain (const_tree fndecl, bool incoming_p)
+{
+  if (DECL_NO_STATIC_CHAIN (fndecl))
+    return NULL;
+
+  if (incoming_p)
+    {
+#ifdef STATIC_CHAIN_INCOMING
+      return STATIC_CHAIN_INCOMING;
+#endif
+#ifdef STATIC_CHAIN_INCOMING_REGNUM
+      return gen_rtx_REG (Pmode, STATIC_CHAIN_INCOMING_REGNUM);
+#endif
+    }
+
+#ifdef STATIC_CHAIN
+  return STATIC_CHAIN;
+#endif
+#ifdef STATIC_CHAIN_REGNUM
+  return gen_rtx_REG (Pmode, STATIC_CHAIN_REGNUM);
+#endif
+
+  gcc_unreachable ();
+}
+
+void
+default_trampoline_init (rtx ARG_UNUSED (m_tramp), tree ARG_UNUSED (t_func),
+			 rtx ARG_UNUSED (r_chain))
+{
+  sorry ("nested function trampolines not supported on this target");
+}
+
 enum reg_class
 default_branch_target_register_class (void)
 {

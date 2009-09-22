@@ -755,13 +755,17 @@ expand_builtin_setjmp_setup (rtx buf_addr, rtx receiver_label)
 void
 expand_builtin_setjmp_receiver (rtx receiver_label ATTRIBUTE_UNUSED)
 {
+  rtx chain;
+
   /* Clobber the FP when we get here, so we have to make sure it's
      marked as used by this function.  */
   emit_use (hard_frame_pointer_rtx);
 
   /* Mark the static chain as clobbered here so life information
      doesn't get messed up for it.  */
-  emit_clobber (static_chain_rtx);
+  chain = targetm.calls.static_chain (current_function_decl, true);
+  if (chain && REG_P (chain))
+    emit_clobber (chain);
 
   /* Now put in the code to restore the frame pointer, and argument
      pointer, if needed.  */
@@ -839,11 +843,8 @@ expand_builtin_longjmp (rtx buf_addr, rtx value)
 
   buf_addr = force_reg (Pmode, buf_addr);
 
-  /* We used to store value in static_chain_rtx, but that fails if pointers
-     are smaller than integers.  We instead require that the user must pass
-     a second argument of 1, because that is what builtin_setjmp will
-     return.  This also makes EH slightly more efficient, since we are no
-     longer copying around a value that we don't care about.  */
+  /* We require that the user must pass a second argument of 1, because
+     that is what builtin_setjmp will return.  */
   gcc_assert (value == const1_rtx);
 
   last = get_last_insn ();
@@ -1590,7 +1591,7 @@ expand_builtin_apply (rtx function, rtx arguments, rtx argsize)
     }
 
   /* All arguments and registers used for the call are set up by now!  */
-  function = prepare_call_address (function, NULL, &call_fusage, 0, 0);
+  function = prepare_call_address (NULL, function, NULL, &call_fusage, 0, 0);
 
   /* Ensure address is valid.  SYMBOL_REF is already valid, so no need,
      and we don't want to load it into a register as an optimization,
@@ -5815,10 +5816,7 @@ static rtx
 expand_builtin_init_trampoline (tree exp)
 {
   tree t_tramp, t_func, t_chain;
-  rtx r_tramp, r_func, r_chain;
-#ifdef TRAMPOLINE_TEMPLATE
-  rtx blktramp;
-#endif
+  rtx m_tramp, r_tramp, r_chain, tmp;
 
   if (!validate_arglist (exp, POINTER_TYPE, POINTER_TYPE,
 			 POINTER_TYPE, VOID_TYPE))
@@ -5829,20 +5827,36 @@ expand_builtin_init_trampoline (tree exp)
   t_chain = CALL_EXPR_ARG (exp, 2);
 
   r_tramp = expand_normal (t_tramp);
-  r_func = expand_normal (t_func);
+  m_tramp = gen_rtx_MEM (BLKmode, r_tramp);
+  MEM_NOTRAP_P (m_tramp) = 1;
+
+  /* The TRAMP argument should be the address of a field within the
+     local function's FRAME decl.  Let's see if we can fill in the
+     to fill in the MEM_ATTRs for this memory.  */
+  if (TREE_CODE (t_tramp) == ADDR_EXPR)
+    set_mem_attributes_minus_bitpos (m_tramp, TREE_OPERAND (t_tramp, 0),
+				     true, 0);
+
+  tmp = round_trampoline_addr (r_tramp);
+  if (tmp != r_tramp)
+    {
+      m_tramp = change_address (m_tramp, BLKmode, tmp);
+      set_mem_align (m_tramp, TRAMPOLINE_ALIGNMENT);
+      set_mem_size (m_tramp, GEN_INT (TRAMPOLINE_SIZE));
+    }
+
+  /* The FUNC argument should be the address of the nested function.
+     Extract the actual function decl to pass to the hook.  */
+  gcc_assert (TREE_CODE (t_func) == ADDR_EXPR);
+  t_func = TREE_OPERAND (t_func, 0);
+  gcc_assert (TREE_CODE (t_func) == FUNCTION_DECL);
+
   r_chain = expand_normal (t_chain);
 
   /* Generate insns to initialize the trampoline.  */
-  r_tramp = round_trampoline_addr (r_tramp);
-#ifdef TRAMPOLINE_TEMPLATE
-  blktramp = gen_rtx_MEM (BLKmode, r_tramp);
-  set_mem_align (blktramp, TRAMPOLINE_ALIGNMENT);
-  emit_block_move (blktramp, assemble_trampoline_template (),
-		   GEN_INT (TRAMPOLINE_SIZE), BLOCK_OP_NORMAL);
-#endif
-  trampolines_created = 1;
-  INITIALIZE_TRAMPOLINE (r_tramp, r_func, r_chain);
+  targetm.calls.trampoline_init (m_tramp, t_func, r_chain);
 
+  trampolines_created = 1;
   return const0_rtx;
 }
 
@@ -5856,9 +5870,8 @@ expand_builtin_adjust_trampoline (tree exp)
 
   tramp = expand_normal (CALL_EXPR_ARG (exp, 0));
   tramp = round_trampoline_addr (tramp);
-#ifdef TRAMPOLINE_ADJUST_ADDRESS
-  TRAMPOLINE_ADJUST_ADDRESS (tramp);
-#endif
+  if (targetm.calls.trampoline_adjust_address)
+    tramp = targetm.calls.trampoline_adjust_address (tramp);
 
   return tramp;
 }
@@ -10741,7 +10754,7 @@ fold_builtin_2 (location_t loc, tree fndecl, tree arg0, tree arg1, bool ignore)
 	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE
 	  && validate_arg (arg1, COMPLEX_TYPE)
 	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg1))) == REAL_TYPE) 
-	return do_mpc_arg2 (arg0, arg1, type, mpc_pow);
+	return do_mpc_arg2 (arg0, arg1, type, /*do_nonfinite=*/ 0, mpc_pow);
     break;
 #endif
 
@@ -13347,17 +13360,19 @@ do_mpfr_ckconv (mpfr_srcptr m, tree type, int inexact)
    was not exactly calculated.  TYPE is the tree type for the result.
    This function assumes that you cleared the MPFR flags and then
    calculated M to see if anything subsequently set a flag prior to
-   entering this function.  Return NULL_TREE if any checks fail.  */
+   entering this function.  Return NULL_TREE if any checks fail, if
+   FORCE_CONVERT is true, then bypass the checks.  */
 
 static tree
-do_mpc_ckconv (mpc_srcptr m, tree type, int inexact)
+do_mpc_ckconv (mpc_srcptr m, tree type, int inexact, int force_convert)
 {
   /* Proceed iff we get a normal number, i.e. not NaN or Inf and no
      overflow/underflow occurred.  If -frounding-math, proceed iff the
      result of calling FUNC was exact.  */
-  if (mpfr_number_p (mpc_realref (m)) && mpfr_number_p (mpc_imagref (m))
-      && !mpfr_overflow_p () && !mpfr_underflow_p ()
-      && (!flag_rounding_math || !inexact))
+  if (force_convert
+      || (mpfr_number_p (mpc_realref (m)) && mpfr_number_p (mpc_imagref (m))
+	  && !mpfr_overflow_p () && !mpfr_underflow_p ()
+	  && (!flag_rounding_math || !inexact)))
     {
       REAL_VALUE_TYPE re, im;
 
@@ -13367,16 +13382,19 @@ do_mpc_ckconv (mpc_srcptr m, tree type, int inexact)
 	 check for overflow/underflow.  If the REAL_VALUE_TYPE is zero
 	 but the mpft_t is not, then we underflowed in the
 	 conversion.  */
-      if (real_isfinite (&re) && real_isfinite (&im)
-	  && (re.cl == rvc_zero) == (mpfr_zero_p (mpc_realref (m)) != 0)
-	  && (im.cl == rvc_zero) == (mpfr_zero_p (mpc_imagref (m)) != 0))
+      if (force_convert
+	  || (real_isfinite (&re) && real_isfinite (&im)
+	      && (re.cl == rvc_zero) == (mpfr_zero_p (mpc_realref (m)) != 0)
+	      && (im.cl == rvc_zero) == (mpfr_zero_p (mpc_imagref (m)) != 0)))
         {
 	  REAL_VALUE_TYPE re_mode, im_mode;
 
 	  real_convert (&re_mode, TYPE_MODE (TREE_TYPE (type)), &re);
 	  real_convert (&im_mode, TYPE_MODE (TREE_TYPE (type)), &im);
 	  /* Proceed iff the specified mode can hold the value.  */
-	  if (real_identical (&re_mode, &re) && real_identical (&im_mode, &im))
+	  if (force_convert
+	      || (real_identical (&re_mode, &re)
+		  && real_identical (&im_mode, &im)))
 	    return build_complex (type, build_real (TREE_TYPE (type), re_mode),
 				  build_real (TREE_TYPE (type), im_mode));
 	}
@@ -13819,7 +13837,7 @@ do_mpc_arg1 (tree arg, tree type, int (*func)(mpc_ptr, mpc_srcptr, mpc_rnd_t))
 	  mpfr_from_real (mpc_imagref(m), im, rnd);
 	  mpfr_clear_flags ();
 	  inexact = func (m, m, crnd);
-	  result = do_mpc_ckconv (m, type, inexact);
+	  result = do_mpc_ckconv (m, type, inexact, /*force_convert=*/ 0);
 	  mpc_clear (m);
 	}
     }
@@ -13831,11 +13849,13 @@ do_mpc_arg1 (tree arg, tree type, int (*func)(mpc_ptr, mpc_srcptr, mpc_rnd_t))
    mpc function FUNC on it and return the resulting value as a tree
    with type TYPE.  The mpfr precision is set to the precision of
    TYPE.  We assume that function FUNC returns zero if the result
-   could be calculated exactly within the requested precision.  */
+   could be calculated exactly within the requested precision.  If
+   DO_NONFINITE is true, then fold expressions containing Inf or NaN
+   in the arguments and/or results.  */
 
 #ifdef HAVE_mpc
 tree
-do_mpc_arg2 (tree arg0, tree arg1, tree type,
+do_mpc_arg2 (tree arg0, tree arg1, tree type, int do_nonfinite,
 	     int (*func)(mpc_ptr, mpc_srcptr, mpc_srcptr, mpc_rnd_t))
 {
   tree result = NULL_TREE;
@@ -13856,8 +13876,9 @@ do_mpc_arg2 (tree arg0, tree arg1, tree type,
       const REAL_VALUE_TYPE *const re1 = TREE_REAL_CST_PTR (TREE_REALPART (arg1));
       const REAL_VALUE_TYPE *const im1 = TREE_REAL_CST_PTR (TREE_IMAGPART (arg1));
 
-      if (real_isfinite (re0) && real_isfinite (im0)
-	  && real_isfinite (re1) && real_isfinite (im1))
+      if (do_nonfinite
+	  || (real_isfinite (re0) && real_isfinite (im0)
+	      && real_isfinite (re1) && real_isfinite (im1)))
         {
 	  const struct real_format *const fmt =
 	    REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (type)));
@@ -13875,7 +13896,7 @@ do_mpc_arg2 (tree arg0, tree arg1, tree type,
 	  mpfr_from_real (mpc_imagref(m1), im1, rnd);
 	  mpfr_clear_flags ();
 	  inexact = func (m0, m0, m1, crnd);
-	  result = do_mpc_ckconv (m0, type, inexact);
+	  result = do_mpc_ckconv (m0, type, inexact, do_nonfinite);
 	  mpc_clear (m0);
 	  mpc_clear (m1);
 	}

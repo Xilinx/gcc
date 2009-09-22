@@ -1,3 +1,95 @@
+2009-09-22  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41295
+	* gcc.dg/pr41295.c: New.
+
+2009-09-22  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/code-readable-1.c: Change \. to \\. when
+	matching assembly.
+	* gcc.target/mips/code-readable-2.c: Likewise.
+	* gcc.target/mips/code-readable-3.c: Likewise.
+
+2009-09-22  Janis Johnson  <janis187@us.ibm.com>
+
+	* lib/target-supports.exp (check_effective_target_dfp_nocache):
+	Check support via mode instead of C type.
+	(check_effective_target_dfprt_nocache): Ditto.
+	(check_effective_target_hard_dfp): Ditto.
+
+2009-09-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41395
+	* gcc.c-torture/execute/pr41395-1.c: New testcase.
+	* gcc.c-torture/execute/pr41395-2.c: Likewise.
+
+2009-09-22  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/20090922-1.c: New test.
+
+	PR bootstrap/41405
+	* gfortran.dg/debug/pr37738.f: Add -gno-strict-dwarf to dg-options.
+	* gfortran.dg/debug/pr35154-dwarf2.f: Likewise.
+	* g++.dg/debug/dwarf2/explicit-constructor.C: Likewise.
+	* g++.dg/debug/dwarf2/imported-module-2.C: Likewise.
+	* g++.dg/debug/dwarf2/imported-module-3.C: Likewise.
+	* g++.dg/debug/dwarf2/imported-module-4.C: Likewise.
+	* g++.dg/debug/dwarf2/namespace-1.C: Likewise.
+	* objc.dg/dwarf-2.m: Likewise.
+
+2009-09-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41428
+	* g++.dg/tree-ssa/pr41428.C: New testcase.
+
+2009-09-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/41429
+	* g++.dg/gomp/pr41429.C: New test.
+
+2009-09-21  Giuseppe Scrivano <gscrivano@gnu.org>
+
+	* gcc.dg/tree-ssa/tailrecursion-6.c: New file.
+
+2009-09-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41421
+	* g++.dg/cpp0x/trivial1.C: Expand.
+
+2009-09-21  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/torture/calleesave-sse.c: New.
+
+2009-09-21  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/guality/inline-params.c: New testcase.
+
+2009-09-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.c-torture/execute/ieee/ieee.exp (additional_flags):
+	Add -fno-inline.
+	* gcc.c-torture/execute/ieee/pr36332.c (foo): Remove attributes.
+	* gcc.c-torture/execute/ieee/pr30704.c (f1): Ditto.
+	(f2): Ditto.
+
+2009-09-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/ipa/ipa-sra-1.c (dg-options): Add -fipa-sra.
+	* gcc.dg/ipa/ipa-sra-2.c (dg-options): Likewise.
+	* gcc.dg/ipa/ipa-sra-3.c (dg-options): Likewise.
+	* gcc.dg/ipa/ipa-sra-4.c (dg-options): Likewise.
+	* gcc.dg/ipa/ipa-sra-5.c (dg-options): Likewise.
+
+2009-09-20  Andrew Pinski  <pinskia@gcc.gnu.org>
+
+	PR middle-end/40642
+	* g++.dg/torture/pr40642.C: New testcase.
+
+2009-09-20  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-7.c: Update for testing Annex G
+	cases in static initializers.
+
 2009-09-20  Kai Tietz  <kai.tietz@onevision.com>
 
 	* gcc.c-tortue/compile/pr39886.c: New.
