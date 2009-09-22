@@ -6624,10 +6624,6 @@ readstring (struct reading_st *rd)
 static melt_ptr_t
 readmacrostringsequence (struct reading_st *rd) 
 {
-#if ENABLE_CHECKING
-  static long _herecallcount;
-  long callcount = ++_herecallcount;
-#endif
   int lineno = rd->rlineno;
   location_t loc = 0;
   MELT_ENTERFRAME (6, NULL);

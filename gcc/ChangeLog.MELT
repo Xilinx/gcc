@@ -1,5 +1,11 @@
 
 2009-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (readmacrostringsequence): removed useless
+	callcount.
+	* melt/melt-macro.melt: aadded more documentations.
+	* melt/melt-outobj.melt: implemented makedoc_genpatmacro.
+
+2009-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (readmacrostringsequence): removed debug output.
 	* melt/melt-macro.melt: added documentation for defprimitive.
 	* melt/melt-outobj.melt: implemented makedoc_genmacro.

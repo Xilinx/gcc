@@ -3539,12 +3539,14 @@
 	(add2sbuf_indentnl outb 0)
 	)))
 
+
 ;;;; output the :doc sexpr
 (defun makedoc_outdoc (outb doc :cstring prefstr)
   (assert_msg "check outb" (is_strbuf outb))
   (if (is_not_a doc class_sexpr) (return))
   (add2sbuf_indentnl outb 0)
   (add2sbuf_strconst outb prefstr)
+  ;; output the documentation
   (foreach_in_list
    ( (unsafe_get_field :sexp_contents doc) )
    (curpair curelem)
@@ -3555,6 +3557,19 @@
       (add2sbuf_strconst outb "@code{")
       (add2sbuf_string outb (unsafe_get_field :named_name curelem))
       (add2sbuf_strconst outb "}")
+      )
+    )
+   )
+  (add2sbuf_indentnl outb 0)
+  ;; output the vindex entries
+  (foreach_in_list
+   ( (unsafe_get_field :sexp_contents doc) )
+   (curpair curelem)
+   (cond 
+    ( (is_a curelem class_named)
+      (add2sbuf_strconst outb "@vindex ")
+      (add2sbuf_string outb (unsafe_get_field :named_name curelem))
+      (add2sbuf_indentnl outb 0)
       )
     )
    )
@@ -3669,6 +3684,8 @@
 	  (foreach_in_multiple
 	   (sortedsubclatup)
 	   (subcla :long sclix)
+	   (if (>i sclix 0) 
+	       (add2sbuf_strconst outb ","))
 	   (add2sbuf_strconst outb " @code{")
 	   (add2sbuf_string outb (get_field :named_name subcla))
 	   (add2sbuf_strconst outb "}")
@@ -3714,6 +3731,7 @@
 	    (mdoc (get_field :sexpmac_doc curmac))
 	    )
        (assert_msg "check mnam" (is_string mnam))
+       (add2sbuf_indentnl outb 0)
        (add2sbuf_strconst outb "@subsection @var{")
        (add2sbuf_string outb mnam)
        (add2sbuf_strconst outb "}")
@@ -3748,14 +3766,48 @@
   (add2sbuf_indentnl outb 0)
   (let ( (patmaclist (get_field :mkdoc_patmacros mdinfo))
 	 (unsortedpatmactuple (list_to_multiple patmaclist discr_multiple))
+	 (sortedpatmactuple (multiple_sort unsortedpatmactuple
+					   compare_named_alpha
+					   discr_multiple))
 	 )
     (add2sbuf_strconst outb "There are ")
-    (add2sbuf_longdec outb (multiple_length unsortedpatmactuple))
+    (add2sbuf_longdec outb (multiple_length sortedpatmactuple))
     (add2sbuf_strconst outb " documented pattern-macros.")
-    (add2sbuf_indentnl outb 0)		    
-    (compile_warning "unimplemented makedoc_genpatmacro")  
+    (add2sbuf_indentnl outb 0)		    	
+    (foreach_in_multiple
+     (sortedpatmactuple)
+     (patmac :long pmacix)
+     (debug_msg patmac "makedoc_genpatmacro patmac")
+     (assert_msg "check patmac" (is_a patmac class_src_export_patmacro))
+     (add2sbuf_indentnl outb 0)
+     (let ( (mnam (get_field :named_name (get_field :sexpmac_mname patmac)))
+	    (mloc (get_field :loca_location patmac))
+	    (mdoc (get_field :sexpmac_doc patmac))
+	    )
+       (assert_msg "check mnam" (is_string mnam))
+       (add2sbuf_indentnl outb 0)
+       (add2sbuf_strconst outb "@subsection @var{")
+       (add2sbuf_string outb mnam)
+       (add2sbuf_strconst outb "}")
+       (add2sbuf_indentnl outb 0)
+       (add2sbuf_strconst outb "@vindex ")
+       (add2sbuf_string outb mnam)
+       (add2sbuf_indentnl outb 0)
+       ;; don't use makedoc_outdefloc since this is not a definition!
+       (if mloc
+	   (progn
+	     (add2sbuf_strconst outb "Pattern macro defined at @file")
+	     (add2sbuf_short_mixloc outb mloc)
+	     (add2sbuf_strconst outb ".")
+	     (add2sbuf_indentnl outb 0)
+	     ))
+       (makedoc_outdoc outb mdoc "@strong{pattern macro description:} ")
+       (add2sbuf_indentnl outb 0) 
+       )
+     )
     )
   )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;;;; generate the class documentation
@@ -3845,6 +3897,7 @@
 	  cmpclassdef discr_multiple)
 	 )
 	(:long depthix -1)
+	(:long prevclaix -1)
 	)
     (add2sbuf_strconst outb "Table of classes sorted by inheritance depth.")
     (add2sbuf_indentnl outb 0)
@@ -3858,11 +3911,13 @@
        (if (<i depthix nbanc)
 	   (progn
 	     (setq depthix nbanc)
+	     (setq prevclaix claix)
 	     (add2sbuf_indentnl outb 0)
 	     (add2sbuf_strconst outb "@item ")
 	     (add2sbuf_longdec outb depthix)
 	     (add2sbuf_strconst outb ": ")
 	     (add2sbuf_indentnl outb 0))
+	 (add2sbuf_strconst outb ",")
 	 )
        (add2sbuf_strconst outb " @code{")
        (add2sbuf_string outb (get_field :named_name curcla))

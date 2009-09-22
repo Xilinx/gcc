@@ -1537,13 +1537,15 @@
 (install_initial_macro 'defprimitive mexpand_defprimitive)
 (export_macro defprimitive mexpand_defprimitive
 	      :doc #{The $DEFPRIMITIVE macro defines new primitive
-operations by their C expansion. Syntax is ($DEFPRIMITIVE name formals
-type [:doc documentation] expansion) which defines a primitive of
-given @var{name} with formal arguments @var{formals}, result c-type
-@var{type}, optional @var{documentation}, and given @var{expansion}. A
-macro of type @code{:void} is expanded into a C instruction, otherwise
-into a C expression. See also $CLASS_PRIMITIVE and
-$CLASS_PRIMITIVE_BINDING.}# )
+operations by their C expansion. Syntax is ($DEFPRIMITIVE @var{name}
+@var{formals} @var{type} [:doc @var{documentation}] @var{expansion})
+which defines a primitive of given @var{name} with formal arguments
+@var{formals}, result c-type @var{type}, optional @var{documentation},
+and given @var{expansion}. A macro is expanded into a C instruction if
+its c-type is @code{:void}, otherwise into a C expression.  Primitives
+have to be exported with $EXPORT_VALUES to be visible in other
+modules.  See also the classes $CLASS_PRIMITIVE, and
+$CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 
 
 
@@ -1633,8 +1635,7 @@ $CLASS_PRIMITIVE_BINDING.}# )
 		      discr_mapobjects
 		      (+i 7 (+i (*i 2 (multiple_length bstartup))
 				(*i 2 (multiple_length blocvtup))))))
-	   )
-      ;; fill the substmap
+	   )      ;; fill the substmap
       (debug_msg srcit "srcit citer")
       (mapobject_put substmap statsymb statsymb)
       (debug_msg bstartup "bstartup citer")
@@ -1660,7 +1661,14 @@ $CLASS_PRIMITIVE_BINDING.}# )
       (return srcit)
       )))
 (install_initial_macro 'defciterator mexpand_defciterator)
-(export_macro defciterator mexpand_defciterator)
+(export_macro defciterator mexpand_defciterator
+	      :doc #{The $DEFCITERATOR macro defines a c-iterator
+which itself implements iterative @code{for}-like loops. Syntax
+is ($DEFCITERATOR @var{name} @var{start-formals} @var{state-symbol}
+@var{variable-formals} [:doc @var{documentation}]
+@var{before-expansion} @var{after-expansion}). To be visible outside
+the module, the c-iterator should be exported using
+$EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the defcmatcher expander
@@ -2027,7 +2035,13 @@ $CLASS_PRIMITIVE_BINDING.}# )
 	sdefun
 	))))
 (install_initial_macro 'defun mexpand_defun)
-(export_macro defun mexpand_defun)
+(export_macro defun mexpand_defun
+	      :doc #{The $DEFUN macro defines a function. Syntax
+is ($DEFUN @var{funame} @var{formals} [:doc @var{documentation}]
+@var{body}...). The first formal argument, if any, is required to be
+of ctype @code{:value}. The expressions in the @var{body} are evaluated
+in sequence. The value of the last is returned. See also $RETURN and
+$LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VALUES to be visible outside its module.}#)
 
 
 ;;;;;;;;;;;;;;;; the defclass expander
@@ -2733,7 +2747,21 @@ $CLASS_PRIMITIVE_BINDING.}# )
 	))
     ))
 (install_initial_patmacro 'instance patexpand_instance mexpand_instance)
-(export_patmacro instance patexpand_instance mexpand_instance)
+(export_patmacro 
+instance patexpand_instance mexpand_instance
+:doc #{The $INSTANCE pattern macro matches an instance when used as a
+pattern, or creates an instance when used as an expression.  Pattern
+syntax is ?($INSTANCE @var{class-name} @var{:field1} @var{pattern1}
+@var{:field2} @var{pattern2}...) - there can be zero, one or more
+distinct fields. A value matches such a pattern if the value is an
+instance of @var{class-name} or a sub-class and if each specified
+field matches its [sub-]pattern. Expression syntax is ($INSTANCE
+@var{class-name} @var{:field1} @var{value1} @var{:field2}
+@var{value2}...). All the fields should be acceptable for the
+specified @var{class-name}. In expressions, missing fields are
+initialized to nil. In patterns missing fields are not matched. The
+given @var{class-name} is a fixed class (not a variable) possessing
+all the specified fields.}# )
 
 (defun patexpand_object (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -2812,7 +2840,15 @@ $CLASS_PRIMITIVE_BINDING.}# )
 ))
 
 (install_initial_patmacro 'object patexpand_object mexpand_object)
-(export_patmacro object patexpand_object mexpand_object)
+(export_patmacro object patexpand_object mexpand_object
+		 :doc #{The $OBJECT pattern macro matches an instance
+when used as a pattern.  Pattern syntax is ?($OBJECT @var{class-name}
+@var{:field1} @var{pattern1} @var{:field2} @var{pattern2}...) - there
+can be zero, one or more distinct fields. A value matches such a
+pattern if the value is an instance of @emph{exactly}
+@var{class-name} (not a sub-class) and if each specified field matches
+its [sub-]pattern.  The $OBJECT pattern macro should not be used in
+expression context.  See also $INSTANCE and $DEFCLASS.}# )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the codechunk expander
 (defun mexpand_code_chunk (sexpr env mexpander)
@@ -2829,7 +2865,7 @@ $CLASS_PRIMITIVE_BINDING.}# )
     (setq curel (pair_head curpair))
     (if (is_a curel class_symbol)
 	(setq gsym curel)
-      (error_plain sloc "missing symbol in (CODE_CHUNK <gensymbol> <chunk>)"))
+      (error_plain sloc "missing symbol in (CODE_CHUNK <state-symbol> <chunk>)"))
     (setq curpair (pair_tail curpair))
     (setq curchk (pair_head curpair))
     (if  (pair_tail curpair)
@@ -2860,7 +2896,9 @@ $CLASS_PRIMITIVE_BINDING.}# )
 	))))
 
 (install_initial_macro 'code_chunk mexpand_code_chunk)
-(export_macro code_chunk mexpand_code_chunk)
+(export_macro code_chunk mexpand_code_chunk
+	      :doc #{The $CODE_CHUNK macro is for low-level C code chunks. The syntax is ($CODE_CHUNK @var{state-symbol} @var{chunk}) where @var{chunk} is a macro-string. It generates a C block. Since it does not make any type verification, it should be usually avoided. See $DEFPRIMITIVE etc.
+}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; the unsafe_put_fields expander
