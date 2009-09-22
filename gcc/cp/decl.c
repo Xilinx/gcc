@@ -6617,6 +6617,7 @@ grokfndecl (tree ctype,
     {
     case sfk_constructor:
     case sfk_copy_constructor:
+    case sfk_move_constructor:
       DECL_CONSTRUCTOR_P (decl) = 1;
       break;
     case sfk_destructor:

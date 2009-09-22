@@ -2677,6 +2677,10 @@ add_implicitly_declared_members (tree t,
       CLASSTYPE_LAZY_COPY_CTOR (t) = 1;
     }
 
+  /* Currently only lambdas get a lazy move ctor.  */
+  if (LAMBDA_TYPE_P (t))
+    CLASSTYPE_LAZY_MOVE_CTOR (t) = 1;
+
   /* If there is no assignment operator, one will be created if and
      when it is needed.  For now, just record whether or not the type
      of the parameter to the assignment operator will be a const or

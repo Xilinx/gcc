@@ -1197,6 +1197,7 @@ struct GTY(()) lang_type_class {
   unsigned has_complex_dflt : 1;
   unsigned has_list_ctor : 1;
   unsigned non_std_layout : 1;
+  unsigned lazy_move_ctor : 1;
 
   /* When adding a flag here, consider whether or not it ought to
      apply to a template instance if it applies to the template.  If
@@ -1205,7 +1206,7 @@ struct GTY(()) lang_type_class {
   /* There are some bits left to fill out a 32-bit word.  Keep track
      of this by updating the size of this bitfield whenever you add or
      remove a flag.  */
-  unsigned dummy : 9;
+  unsigned dummy : 8;
 
   tree primary_base;
   VEC(tree_pair_s,gc) *vcall_indices;
@@ -1292,6 +1293,11 @@ struct GTY(()) lang_type {
    but that it has not yet been declared.  */
 #define CLASSTYPE_LAZY_COPY_CTOR(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->lazy_copy_ctor)
+
+/* Nonzero means that NODE (a class type) has a move constructor --
+   but that it has not yet been declared.  */
+#define CLASSTYPE_LAZY_MOVE_CTOR(NODE) \
+  (LANG_TYPE_CLASS_CHECK (NODE)->lazy_move_ctor)
 
 /* Nonzero means that NODE (a class type) has an assignment operator
    -- but that it has not yet been declared.  */
@@ -3654,6 +3660,7 @@ typedef enum special_function_kind {
 			      special_function_p.  */
   sfk_constructor,	   /* A constructor.  */
   sfk_copy_constructor,    /* A copy constructor.  */
+  sfk_move_constructor,    /* A move constructor.  */
   sfk_assignment_operator, /* An assignment operator.  */
   sfk_destructor,	   /* A destructor.  */
   sfk_complete_destructor, /* A destructor for complete objects.  */
@@ -5060,6 +5067,7 @@ extern const struct attribute_spec cxx_attribute_table[];
 extern tree make_ptrmem_cst			(tree, tree);
 extern tree cp_build_type_attribute_variant     (tree, tree);
 extern tree cp_build_reference_type		(tree, bool);
+extern tree move				(tree);
 extern tree cp_build_qualified_type_real	(tree, int, tsubst_flags_t);
 #define cp_build_qualified_type(TYPE, QUALS) \
   cp_build_qualified_type_real ((TYPE), (QUALS), tf_warning_or_error)

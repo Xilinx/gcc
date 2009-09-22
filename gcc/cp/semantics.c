@@ -4938,6 +4938,8 @@ classtype_has_nothrow_assign_or_copy_p (tree type, bool assign_p)
 	 it now.  */
       if (CLASSTYPE_LAZY_COPY_CTOR (type))
 	lazily_declare_fn (sfk_copy_constructor, type);
+      if (CLASSTYPE_LAZY_MOVE_CTOR (type))
+	lazily_declare_fn (sfk_move_constructor, type);
       fns = CLASSTYPE_CONSTRUCTORS (type);
     }
   else

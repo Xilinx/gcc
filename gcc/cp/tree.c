@@ -726,6 +726,17 @@ cp_build_reference_type (tree to_type, bool rval)
 
 }
 
+/* Returns EXPR cast to rvalue reference type, like std::move.  */
+
+tree
+move (tree expr)
+{
+  tree type = TREE_TYPE (expr);
+  gcc_assert (TREE_CODE (type) != REFERENCE_TYPE);
+  type = cp_build_reference_type (type, /*rval*/true);
+  return build_static_cast (type, expr, tf_warning_or_error);
+}
+
 /* Used by the C++ front end to build qualified array types.  However,
    the C version of this function does not properly maintain canonical
    types (which are not used in C).  */
@@ -2759,6 +2770,8 @@ special_function_p (const_tree decl)
      DECL_LANG_SPECIFIC.  */
   if (DECL_COPY_CONSTRUCTOR_P (decl))
     return sfk_copy_constructor;
+  if (DECL_MOVE_CONSTRUCTOR_P (decl))
+    return sfk_move_constructor;
   if (DECL_CONSTRUCTOR_P (decl))
     return sfk_constructor;
   if (DECL_OVERLOADED_OPERATOR_P (decl) == NOP_EXPR)
