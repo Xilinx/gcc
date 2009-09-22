@@ -4449,6 +4449,20 @@ check_bases_and_members (tree t)
 				   cant_have_const_ctor,
 				   no_const_asn_ref);
 
+  if (LAMBDA_TYPE_P (t))
+    {
+      /* "The closure type associated with a lambda-expression has a deleted
+	 default constructor and a deleted copy assignment operator."  */
+      TYPE_NEEDS_CONSTRUCTING (t) = 1;
+      TYPE_HAS_DEFAULT_CONSTRUCTOR (t) = 0;
+      CLASSTYPE_LAZY_DEFAULT_CTOR (t) = 0;
+      TYPE_HAS_ASSIGN_REF (t) = 0;
+      CLASSTYPE_LAZY_ASSIGNMENT_OP (t) = 0;
+
+      /* "This class type is not an aggregate."  */
+      CLASSTYPE_NON_AGGREGATE (t) = 1;
+    }
+
   /* Create the in-charge and not-in-charge variants of constructors
      and destructors.  */
   clone_constructors_and_destructors (t);

@@ -5225,7 +5225,7 @@ build_lambda_object (tree lambda_expr)
      - cp_parser_braced_list
      - cp_parser_functional_cast  */
   VEC(constructor_elt,gc) *elts = NULL;
-  tree node, expr;
+  tree node, expr, type;
 
   if (processing_template_decl)
     return lambda_expr;
@@ -5242,8 +5242,13 @@ build_lambda_object (tree lambda_expr)
   expr = build_constructor (init_list_type_node, elts);
   CONSTRUCTOR_IS_DIRECT_INIT (expr) = 1;
 
-  /* FIXME N2927: "[The closure] class type is not an aggregate."  */
-  return finish_compound_literal (TREE_TYPE (lambda_expr), expr);
+  /* N2927: "[The closure] class type is not an aggregate."
+     But we briefly treat it as an aggregate to make this simpler.  */
+  type = TREE_TYPE (lambda_expr);
+  CLASSTYPE_NON_AGGREGATE (type) = 0;
+  expr = finish_compound_literal (type, expr);
+  CLASSTYPE_NON_AGGREGATE (type) = 1;
+  return expr;
 }
 
 /* Return an initialized RECORD_TYPE for LAMBDA.

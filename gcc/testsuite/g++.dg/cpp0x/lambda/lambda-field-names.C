@@ -7,6 +7,7 @@
 template <class T>
 struct A: public T
 {
+  A(T t): T(t) { }
   int f() { return this->i; }	// { dg-error "" "no member named i" }
 };
 
@@ -15,6 +16,6 @@ int main()
   int i = 42;
   auto lam = [i]{ };
   lam.i = 24;			// { dg-error "" "no member named i" }
-  A<decltype(lam)> a;
+  A<decltype(lam)> a(lam);
   return a.f();
 }
