@@ -7163,6 +7163,10 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
                  capture_token->location);
 	}
 
+      if (TREE_CODE (capture_init_expr) == IDENTIFIER_NODE)
+	capture_init_expr
+	  = unqualified_name_lookup_error (capture_init_expr);
+
       add_capture (lambda_expr,
 		   capture_id,
 		   capture_init_expr,
