@@ -2758,6 +2758,7 @@ finish_id_expression (tree id_expression,
 	  tree context = DECL_CONTEXT (decl);
 	  tree containing_function = current_function_decl;
 	  tree lambda_stack = NULL_TREE;
+	  tree lambda_expr = NULL_TREE;
 
 	  /* Core issue 696: "[At the July 2009 meeting] the CWG expressed
 	     support for an approach in which a reference to a local
@@ -2776,7 +2777,7 @@ finish_id_expression (tree id_expression,
 	  while (context != containing_function
 		 && LAMBDA_FUNCTION_P (containing_function))
 	    {
-	      tree lambda_expr = CLASSTYPE_LAMBDA_EXPR
+	      lambda_expr = CLASSTYPE_LAMBDA_EXPR
 		(DECL_CONTEXT (containing_function));
 
 	      if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr)
@@ -2796,6 +2797,11 @@ finish_id_expression (tree id_expression,
 	      decl = add_default_capture (lambda_stack,
 					  /*id=*/DECL_NAME (decl),
 					  /*initializer=*/decl);
+	    }
+	  else if (lambda_expr)
+	    {
+	      error ("%qD is not captured", decl);
+	      return error_mark_node;
 	    }
 	  else
 	    {

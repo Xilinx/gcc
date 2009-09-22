@@ -1,7 +1,7 @@
 // { dg-options "-std=c++0x" }
 
 int main() {
-  int i;			// { dg-error "declared here" }
+  int i;
   const char* s;
   [i, s] () -> void { i; s; } ();
 
