@@ -6991,8 +6991,6 @@ cp_parser_lambda_expression (cp_parser* parser)
 
     cp_parser_lambda_body (parser, lambda_expr);
 
-    type = finish_struct (type, /*attributes=*/NULL_TREE);
-
     /* The capture list was built up in reverse order; fix that now.  */
     {
       tree newlist = NULL_TREE;
@@ -7019,6 +7017,8 @@ cp_parser_lambda_expression (cp_parser* parser)
 	}
       LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = newlist;
     }
+
+    type = finish_struct (type, /*attributes=*/NULL_TREE);
 
     parser->in_function_body = saved_in_function_body;
     parser->num_template_parameter_lists = saved_num_template_parameter_lists;
