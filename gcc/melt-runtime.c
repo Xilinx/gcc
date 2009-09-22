@@ -6647,17 +6647,12 @@ readmacrostringsequence (struct reading_st *rd)
     }
     if (rdeof()) 
       READ_ERROR("reached end of file in macrostring sequence started line %d", lineno);
-    debugeprintf ("macrostring startloop rdcur:%s", &rdcurc());
-    debugeprintf ("macrostring startloop sbuf@%pL%d:%s", sbufv, 
-		 melt_strbuf_usedlength((melt_ptr_t)sbufv),
-		 melt_strbuf_str((melt_ptr_t) sbufv));
     if (rdcurc()=='}' && rdfollowc(1)=='#') {
       rdnext(); 
       rdnext();
       if (sbufv && melt_strbuf_usedlength((melt_ptr_t)sbufv)>0) {
 	strv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 					melt_strbuf_str((melt_ptr_t) sbufv));
-	debugeprintf ("macrostring end appending str:%s", melt_string_str((melt_ptr_t)strv));
 	meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) strv);
 	sbufv = NULL;
 	strv = NULL;
@@ -6675,7 +6670,6 @@ readmacrostringsequence (struct reading_st *rd)
 	  strv = meltgc_new_stringdup((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 					 melt_strbuf_str((melt_ptr_t) sbufv));
 	  meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) strv);
-	  debugeprintf ("macrostring var appending str:%s", melt_string_str((melt_ptr_t)strv));
 	  sbufv = NULL;
 	  strv = NULL;
 	}
@@ -6685,7 +6679,6 @@ readmacrostringsequence (struct reading_st *rd)
 	  memset(tinybuf, 0, sizeof(tinybuf));
 	  memcpy(tinybuf, &rdfollowc(1), lnam-1);
 	  tinybuf[lnam] = (char)0;
-	  debugeprintf ("macrostring tinysymb lnam.%d <%s>", lnam, tinybuf);
 	  symbv = meltgc_named_symbol(tinybuf, MELT_CREATE);
 	}
 	else {
@@ -6693,7 +6686,6 @@ readmacrostringsequence (struct reading_st *rd)
 	  memcpy(nambuf, &rdfollowc(1), lnam-1);
 	  nambuf[lnam] = (char)0;
 	  symbv = meltgc_named_symbol(nambuf, MELT_CREATE);
-	  debugeprintf ("macrostring bigsymb <%s>", tinybuf);
 	  free(nambuf);
 	}
 	rd->rcol += lnam;
@@ -6746,9 +6738,7 @@ readmacrostringsequence (struct reading_st *rd)
       rdnext();
     }
   }
-  debugmsgval("readmacrostringsequence seqv", seqv, callcount);
   readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc);
-  debugmsgval("readmacrostringsequence readv", readv, callcount);
   MELT_EXITFRAME ();
   return (melt_ptr_t) readv;
 #undef readv

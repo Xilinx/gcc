@@ -3695,12 +3695,44 @@
   (add2sbuf_indentnl outb 0)
   (let ( (maclist (get_field :mkdoc_macros mdinfo))
 	 (unsortedmactuple (list_to_multiple maclist discr_multiple))
+	 (sortedmactuple (multiple_sort unsortedmactuple
+					compare_named_alpha
+					discr_multiple))
 	 )
     (add2sbuf_strconst outb "There are ")
-    (add2sbuf_longdec outb (multiple_length unsortedmactuple))
+    (add2sbuf_longdec outb (multiple_length sortedmactuple))
     (add2sbuf_strconst outb " documented macros.")
     (add2sbuf_indentnl outb 0)	
-    (compile_warning "unimplemented makedoc_genmacro")
+    (add2sbuf_indentnl outb 0)	
+    (foreach_in_multiple
+     (sortedmactuple)
+     (curmac :long macix)
+     (debug_msg curmac "makedoc_genmacro curmac")
+     (assert_msg "check curmac" (is_a curmac class_src_export_macro))
+     (let ( (mnam (get_field :named_name (get_field :sexpmac_mname curmac)))
+	    (mloc (get_field :loca_location curmac))
+	    (mdoc (get_field :sexpmac_doc curmac))
+	    )
+       (assert_msg "check mnam" (is_string mnam))
+       (add2sbuf_strconst outb "@subsection @var{")
+       (add2sbuf_string outb mnam)
+       (add2sbuf_strconst outb "}")
+       (add2sbuf_indentnl outb 0)
+       (add2sbuf_strconst outb "@vindex ")
+       (add2sbuf_string outb mnam)
+       (add2sbuf_indentnl outb 0)
+       ;; don't use makedoc_outdefloc since this is not a definition!
+       (if mloc
+	   (progn
+	     (add2sbuf_strconst outb "Macro defined at @file")
+	     (add2sbuf_short_mixloc outb mloc)
+	     (add2sbuf_strconst outb ".")
+	     (add2sbuf_indentnl outb 0)
+	     ))
+       (makedoc_outdoc outb mdoc "@strong{macro description:} ")
+       (add2sbuf_indentnl outb 0) 
+       )
+     )
     )
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4074,7 +4106,7 @@
  )
 ;;;;;;;;;;;;;;;;
 
-;(debug_msg initial_system_data "toplevel initial_system_data")
+
 
 
 ;;; eof warmelt-outobj.melt

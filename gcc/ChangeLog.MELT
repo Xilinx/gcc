@@ -1,4 +1,9 @@
 
+2009-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (readmacrostringsequence): removed debug output.
+	* melt/melt-macro.melt: added documentation for defprimitive.
+	* melt/melt-outobj.melt: implemented makedoc_genmacro.
+
 2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h: added include of "toplev.h".
 	* Makefile.in (run-melt.d, melt-run.o): added dependency.

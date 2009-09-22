@@ -1535,7 +1535,15 @@
 	    (return sdefpri)
 	    ))))))
 (install_initial_macro 'defprimitive mexpand_defprimitive)
-(export_macro defprimitive mexpand_defprimitive)
+(export_macro defprimitive mexpand_defprimitive
+	      :doc #{The $DEFPRIMITIVE macro defines new primitive
+operations by their C expansion. Syntax is ($DEFPRIMITIVE name formals
+type [:doc documentation] expansion) which defines a primitive of
+given @var{name} with formal arguments @var{formals}, result c-type
+@var{type}, optional @var{documentation}, and given @var{expansion}. A
+macro of type @code{:void} is expanded into a C instruction, otherwise
+into a C expression. See also $CLASS_PRIMITIVE and
+$CLASS_PRIMITIVE_BINDING.}# )
 
 
 
