@@ -7110,10 +7110,13 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
            delimiters, but I modified this to stop on unnested ']' as well.  It
            was already changed to stop on unnested '}', so the
            "closing_parenthesis" name is no more misleading with my change.  */
-	cp_parser_skip_to_closing_parenthesis (parser,
-					       /*recovering=*/true,
-					       /*or_comma=*/true,
-					       /*consume_paren=*/true);
+	{
+	  cp_parser_skip_to_closing_parenthesis (parser,
+						 /*recovering=*/true,
+						 /*or_comma=*/true,
+						 /*consume_paren=*/true);
+	  continue;
+	}
 
       /* Find the initializer for this capture.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
