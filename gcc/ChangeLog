@@ -1,3 +1,110 @@
+2009-09-23  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41353
+	* var-tracking.c (add_with_sets): Sort MO_VAL_LOC last among uses.
+
+2009-09-23  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41248
+	* cfgexpand.c (convert_debug_memory_address): New.
+	(expand_debug_expr): Convert base address and offset to the same
+	mode.  Use it to convert addresses to other modes.  Accept
+	ptr_mode addresses.
+
+2009-09-23  Richard Guenther  <rguenther@suse.de>
+
+	* alias.c (ao_ref_from_mem): Correct for negative MEM_OFFSET
+	produced for bigendian targets with promoted subregs.
+
+2009-09-23  Richard Guenther  <rguenther@suse.de>
+
+	* value-prof.c (gimple_ic): Purge old EH edges only after building
+	the new ones.
+
+2009-09-23  Nick Clifton  <nickc@redhat.com>
+
+	* config/arc/arc.c (arc_trampoline_init): Fix typo.
+
+2009-09-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/41405
+	* doc/invoke.texi: Document -gstrict-dwarf and -gno-strict-dwarf.
+
+	PR bootstrap/41436
+	* cgraphunit.c (cgraph_lower_function): Set DECL_NO_STATIC_CHAIN
+	on non-nested functions.
+
+2009-09-23  Jakub Jelinek  <jakub@redhat.com>
+	    Jan Hubicka  <jh@suse.cz>
+
+	* dwarf2out.c (loc_list_plus_const): Only define if
+	DWARF2_DEBUGGING_INFO.
+	(address_of_int_loc_descriptor): Likewise.
+
+	PR debug/41411
+	* dwarf2out.c (mem_loc_descriptor): Handle HIGH.
+
+2009-09-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR c/39779
+	* c-typeck.c (build_binary_op) <short_shift>: Check that integer
+	constant is more than zero.
+
+2009-09-23  Alan Modra  <amodra@bigpond.net.au>
+
+	PR target/40473
+	* config/rs6000/rs6000.c (rs6000_output_function_prologue): Don't
+	call final to emit non-scheduled prologue, instead insert at entry.
+
+2009-09-22  Loren J. Rittle  <ljrittle@acm.org>
+	    Joseph S. Myers  <joseph@codesourcery.com>
+
+	* doc/install.texi (*-*-freebsd*): Add proper format codes.
+
+2009-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Rafael Avila de Espindola  <espindola@google.com>
+
+	* gengtype.c (is_file_equal): New function.
+	(close_output_files): Use is_file_equal. Free of->buf.
+
+2009-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Rafael Avila de Espindola  <espindola@google.com>
+
+	* gengtype.c (write_types, write_local): Add the output_header
+	argument. Update all callers.
+
+2009-09-22  Dodji Seketeli  <dodji@redhat.com>
+
+	* dwarf2out.c (template_parameter_pack_die,
+	gen_formal_parameter_pack_die ): New functions.
+	(make_ith_pack_parameter_name): Remove this function.
+	(dwarf_tag_name): Support printing DW_TAG_template_parameter_pack and
+	DW_TAG_formal_parameter_pack.
+	(gen_generic_params_dies): Represent each template parameter pack
+	by a DW_TAG_template_parameter_pack DIE. Argument pack elements are
+	represented by usual DW_TAG_template_*_parameter DIEs that are
+	children of the DW_TAG_template_parameter_pack element DIE.
+	(generic_parameter_die): This doesn't deal with parameter pack
+	names anymore. Don't generate DW_AT_name for some DIEs, e.g. children
+	of parameter pack DIEs.
+	(gen_formal_parameter_die): Add a flag to not emit DW_AT_name
+	in certain cases, e.g. for pack elements.
+	(gen_formal_types_die, gen_decl_die): Adjust usage of
+	gen_formal_parameter_die.
+	(gen_subprogram_die): Represent each function parameter pack by a
+	DW_TAG_formal_parameter_pack DIE. Arguments of of the pack are
+	represented by usual DW_TAG_formal_parameter DIEs that are children
+	of the DW_TAG_formal_parameter_pack DIE. Remove references to
+	____builtin_va_alist decls as no part of the compiler uses those
+	anymore.
+	* langhooks.h (struct lang_hooks_for_decls): Add
+	function_parm_expanded_from_pack_p, get_generic_function_decl
+	and function_parameter_pack_p hooks.  Fix comment for
+	get_innermost_generic_parms hook.
+	* langhooks-def.h (LANG_HOOKS_FUNCTION_PARAMETER_PACK_P,
+	LANG_HOOKS_FUNCTION_PARM_EXPANDED_FROM_PACK_P ): Declare new hook
+	macros and use them to initialize lang_hook.
+
 2009-09-22  Richard Henderson  <rth@redhat.com>
 
 	* system.h (TRAMPOLINE_TEMPLATE, INITIALIZE_TRAMPOLINE): Poison.
@@ -115,7 +222,8 @@
 	(INITIALIZE_TRAMPOLINE): Move code to arm_trampoline_init;
 	adjust for target hook parameters.
 
-	* config/avr/avr.h (TRAMPOLINE_TEMPLATE, INITIALIZE_TRAMPOLINE): Remove.
+	* config/avr/avr.h (TRAMPOLINE_TEMPLATE, INITIALIZE_TRAMPOLINE):
+	Remove.
 
 	* config/bfin/bfin-protos.h (initialize_trampoline): Remove.
 	* config/bfin/bfin.c (bfin_asm_trampoline_template): New.
@@ -465,8 +573,8 @@
 
 2009-09-21  Giuseppe Scrivano <gscrivano@gnu.org>
 
-	* tree-tailcall.c (process_assignment): Don't check if a multiplication
-	or an addition are already present.
+	* tree-tailcall.c (process_assignment): Don't check if a
+	multiplication or an addition are already present.
 	(find_tail_calls): Combine multiple additions and multiplications.
 	(adjust_accumulator_values): Emit accumulators.
 
@@ -502,7 +610,8 @@
 2009-09-20  Jan Hubicka  <jh@suse.cz>
 
 	* dwarf2out.c (add_const_value_attribute): Return true if successful.
-	(add_location_or_const_value_attribute): Rewrite using loc_list_from_tree.
+	(add_location_or_const_value_attribute): Rewrite using
+	loc_list_from_tree.
 	(tree_add_const_value_attribute): Return true if successful.
 	(tree_add_const_value_attribute_for_decl): Likewise.
 
@@ -600,8 +709,7 @@
 	* configure: Regenerate.
 	* doc/invoke.texi (Option Summary): Add -mrelax-pic-calls
 	and -mno-relax-pic-calls.
-	(MIPS Options): Document -mrelax-pic-calls
-	and -mno-relax-pic-calls.
+	(MIPS Options): Document -mrelax-pic-calls and -mno-relax-pic-calls.
 
 2009-09-19  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 

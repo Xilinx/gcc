@@ -1794,6 +1794,32 @@ get_output_file_name (const char *input_file)
   return NULL;
 }
 
+/* Check if existing file is equal to the in memory buffer. */
+
+static bool
+is_file_equal (outf_p of)
+{
+  FILE *newfile = fopen (of->name, "r");
+  size_t i;
+  bool equal;
+  if (newfile == NULL)
+    return false;
+
+  equal = true;
+  for (i = 0; i < of->bufused; i++)
+    {
+      int ch;
+      ch = fgetc (newfile);
+      if (ch == EOF || ch != (unsigned char) of->buf[i])
+	{
+	  equal = false;
+	  break;
+	}
+    }
+  fclose (newfile);
+  return equal;
+}
+
 /* Copy the output to its final destination,
    but don't unnecessarily change modification times.  */
 
@@ -1804,35 +1830,20 @@ close_output_files (void)
 
   for (of = output_files; of; of = of->next)
     {
-      FILE * newfile;
 
-      newfile = fopen (of->name, "r");
-      if (newfile != NULL )
-	{
-	  int no_write_p;
-	  size_t i;
-
-	  for (i = 0; i < of->bufused; i++)
-	    {
-	      int ch;
-	      ch = fgetc (newfile);
-	      if (ch == EOF || ch != (unsigned char) of->buf[i])
-		break;
-	    }
-	  no_write_p = i == of->bufused && fgetc (newfile) == EOF;
-	  fclose (newfile);
-
-	  if (no_write_p)
-	    continue;
-	}
-
-      newfile = fopen (of->name, "w");
-      if (newfile == NULL)
-	fatal ("opening output file %s: %s", of->name, strerror (errno));
-      if (fwrite (of->buf, 1, of->bufused, newfile) != of->bufused)
-	fatal ("writing output file %s: %s", of->name, strerror (errno));
-      if (fclose (newfile) != 0)
-	fatal ("closing output file %s: %s", of->name, strerror (errno));
+      if (!is_file_equal(of))
+      {
+        FILE *newfile = fopen (of->name, "w");
+        if (newfile == NULL)
+          fatal ("opening output file %s: %s", of->name, strerror (errno));
+        if (fwrite (of->buf, 1, of->bufused, newfile) != of->bufused)
+          fatal ("writing output file %s: %s", of->name, strerror (errno));
+        if (fclose (newfile) != 0)
+          fatal ("closing output file %s: %s", of->name, strerror (errno));
+      }
+      free(of->buf);
+      of->buf = NULL;
+      of->bufused = of->buflength = 0;
     }
 }
 
@@ -1876,14 +1887,16 @@ static void write_func_for_structure
       const struct write_types_data *wtd);
 static void write_types_process_field
      (type_p f, const struct walk_type_data *d);
-static void write_types (type_p structures,
+static void write_types (outf_p output_header,
+                         type_p structures,
 			 type_p param_structs,
 			 const struct write_types_data *wtd);
 static void write_types_local_process_field
      (type_p f, const struct walk_type_data *d);
 static void write_local_func_for_structure
      (type_p orig_s, type_p s, type_p * param);
-static void write_local (type_p structures,
+static void write_local (outf_p output_header,
+                         type_p structures,
 			 type_p param_structs);
 static void write_enum_defn (type_p structures, type_p param_structs);
 static int contains_scalar_p (type_p t);
@@ -2698,12 +2711,12 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
 /* Write out marker routines for STRUCTURES and PARAM_STRUCTS.  */
 
 static void
-write_types (type_p structures, type_p param_structs,
+write_types (outf_p output_header, type_p structures, type_p param_structs,
 	     const struct write_types_data *wtd)
 {
   type_p s;
 
-  oprintf (header_file, "\n/* %s*/\n", wtd->comment);
+  oprintf (output_header, "\n/* %s*/\n", wtd->comment);
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
 	|| s->gc_used == GC_MAYBE_POINTED_TO)
@@ -2714,13 +2727,13 @@ write_types (type_p structures, type_p param_structs,
 	    && s->u.s.line.file == NULL)
 	  continue;
 
-	oprintf (header_file, "#define gt_%s_", wtd->prefix);
-	output_mangled_typename (header_file, s);
-	oprintf (header_file, "(X) do { \\\n");
-	oprintf (header_file,
+	oprintf (output_header, "#define gt_%s_", wtd->prefix);
+	output_mangled_typename (output_header, s);
+	oprintf (output_header, "(X) do { \\\n");
+	oprintf (output_header,
 		 "  if (X != NULL) gt_%sx_%s (X);\\\n", wtd->prefix,
 		 s->u.s.tag);
-	oprintf (header_file,
+	oprintf (output_header,
 		 "  } while (0)\n");
 
 	for (opt = s->u.s.opt; opt; opt = opt->next)
@@ -2730,7 +2743,7 @@ write_types (type_p structures, type_p param_structs,
 	      if (t->kind == TYPE_STRUCT
 		  || t->kind == TYPE_UNION
 		  || t->kind == TYPE_LANG_STRUCT)
-		oprintf (header_file,
+		oprintf (output_header,
 			 "#define gt_%sx_%s gt_%sx_%s\n",
 			 wtd->prefix, s->u.s.tag, wtd->prefix, t->u.s.tag);
 	      else
@@ -2742,7 +2755,7 @@ write_types (type_p structures, type_p param_structs,
 	  continue;
 
 	/* Declare the marker procedure only once.  */
-	oprintf (header_file,
+	oprintf (output_header,
 		 "extern void gt_%sx_%s (void *);\n",
 		 wtd->prefix, s->u.s.tag);
 
@@ -2770,9 +2783,9 @@ write_types (type_p structures, type_p param_structs,
 	type_p stru = s->u.param_struct.stru;
 
 	/* Declare the marker procedure.  */
-	oprintf (header_file, "extern void gt_%s_", wtd->prefix);
-	output_mangled_typename (header_file, s);
-	oprintf (header_file, " (void *);\n");
+	oprintf (output_header, "extern void gt_%s_", wtd->prefix);
+	output_mangled_typename (output_header, s);
+	oprintf (output_header, " (void *);\n");
 
 	if (stru->u.s.line.file == NULL)
 	  {
@@ -2887,13 +2900,13 @@ write_local_func_for_structure (type_p orig_s, type_p s, type_p *param)
 /* Write out local marker routines for STRUCTURES and PARAM_STRUCTS.  */
 
 static void
-write_local (type_p structures, type_p param_structs)
+write_local (outf_p output_header, type_p structures, type_p param_structs)
 {
   type_p s;
 
-  if (!header_file) 
+  if (!output_header) 
     return;
-  oprintf (header_file, "\n/* Local pointer-walking routines.  */\n");
+  oprintf (output_header, "\n/* Local pointer-walking routines.  */\n");
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
 	|| s->gc_used == GC_MAYBE_POINTED_TO)
@@ -2911,11 +2924,11 @@ write_local (type_p structures, type_p param_structs)
 		  || t->kind == TYPE_UNION
 		  || t->kind == TYPE_LANG_STRUCT)
 		{
-		  oprintf (header_file, "#define gt_pch_p_");
-		  output_mangled_typename (header_file, s);
-		  oprintf (header_file, " gt_pch_p_");
-		  output_mangled_typename (header_file, t);
-		  oprintf (header_file, "\n");
+		  oprintf (output_header, "#define gt_pch_p_");
+		  output_mangled_typename (output_header, s);
+		  oprintf (output_header, " gt_pch_p_");
+		  output_mangled_typename (output_header, t);
+		  oprintf (output_header, "\n");
 		}
 	      else
 		error_at_line (&s->u.s.line,
@@ -2926,9 +2939,9 @@ write_local (type_p structures, type_p param_structs)
 	  continue;
 
 	/* Declare the marker procedure only once.  */
-	oprintf (header_file, "extern void gt_pch_p_");
-	output_mangled_typename (header_file, s);
-	oprintf (header_file,
+	oprintf (output_header, "extern void gt_pch_p_");
+	output_mangled_typename (output_header, s);
+	oprintf (output_header,
 	 "\n    (void *, void *, gt_pointer_operator, void *);\n");
 
 	if (s->kind == TYPE_LANG_STRUCT)
@@ -2948,9 +2961,9 @@ write_local (type_p structures, type_p param_structs)
 	type_p stru = s->u.param_struct.stru;
 
 	/* Declare the marker procedure.  */
-	oprintf (header_file, "extern void gt_pch_p_");
-	output_mangled_typename (header_file, s);
-	oprintf (header_file,
+	oprintf (output_header, "extern void gt_pch_p_");
+	output_mangled_typename (output_header, s);
+	oprintf (output_header,
 	 "\n    (void *, void *, gt_pointer_operator, void *);\n");
 
 	if (stru->u.s.line.file == NULL)
@@ -3689,9 +3702,9 @@ main (int argc, char **argv)
 
   open_base_files ();
   write_enum_defn (structures, param_structs);
-  write_types (structures, param_structs, &ggc_wtd);
-  write_types (structures, param_structs, &pch_wtd);
-  write_local (structures, param_structs);
+  write_types (header_file, structures, param_structs, &ggc_wtd);
+  write_types (header_file, structures, param_structs, &pch_wtd);
+  write_local (header_file, structures, param_structs);
   write_roots (variables);
   write_rtx_next ();
   close_output_files ();
