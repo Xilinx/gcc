@@ -1,4 +1,9 @@
 
+2009-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	[merged partly some code from trunk's gengtype]
+	* gengtype.c (is_file_equal): added new function.
+	(close_output_files): use it.
+
 2009-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (readmacrostringsequence): removed useless
 	callcount.
