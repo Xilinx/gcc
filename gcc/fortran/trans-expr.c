@@ -2646,6 +2646,49 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		parmse.string_length = build_int_cst (gfc_charlen_type_node, 0);
 	    }
 	}
+      else if (fsym && fsym->ts.type == BT_CLASS
+		 && e->ts.type == BT_DERIVED)
+	{
+	  tree data;
+	  tree vindex;
+
+	  /* The derived type needs to be converted to a temporary
+	     CLASS object.  */
+          gfc_init_se (&parmse, se);
+	  type = gfc_typenode_for_spec (&fsym->ts);
+	  var = gfc_create_var (type, "class");
+
+	  /* Get the components.  */
+	  tmp = fsym->ts.u.derived->components->backend_decl;
+	  data = fold_build3 (COMPONENT_REF, TREE_TYPE (tmp),
+			      var, tmp, NULL_TREE);
+	  tmp = fsym->ts.u.derived->components->next->backend_decl;
+	  vindex = fold_build3 (COMPONENT_REF, TREE_TYPE (tmp),
+			      var, tmp, NULL_TREE);
+
+	  /* Set the vindex.  */
+	  tmp = build_int_cst (TREE_TYPE (vindex),
+			       e->ts.u.derived->vindex);
+	  gfc_add_modify (&parmse.pre, vindex, tmp);
+
+	  /* Now set the data field.  */
+	  argss = gfc_walk_expr (e);
+	  if (argss == gfc_ss_terminator)
+            {
+	      gfc_conv_expr_reference (&parmse, e);
+	      tmp = fold_convert (TREE_TYPE (data),
+				  parmse.expr);
+	      gfc_add_modify (&parmse.pre, data, tmp);
+	    }
+	  else
+	    {
+	      gfc_conv_expr (&parmse, e);
+	      gfc_add_modify (&parmse.pre, data, parmse.expr);
+	    }
+
+	  /* Pass the address of the class object.  */
+	  parmse.expr = gfc_build_addr_expr (NULL_TREE, var);
+	}
       else if (se->ss && se->ss->useflags)
 	{
 	  /* An elemental function inside a scalarized loop.  */

@@ -1,3 +1,9 @@
+2009-09-23  Paul Thomas  <pault@gcc.gnu.org>
+
+	* trans-expr.c (gfc_conv_procedure_call): Convert a derived
+	type actual to a class object if the formal argument is a
+	class.
+
 2009-09-22  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/40996
