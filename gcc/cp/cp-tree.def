@@ -81,6 +81,11 @@ DEFTREECODE (TYPE_EXPR, "type_expr", tcc_expression, 1)
    the remaining operands are the arguments to the initialization function.  */
 DEFTREECODE (AGGR_INIT_EXPR, "aggr_init_expr", tcc_vl_exp, 3)
 
+/* Initialization of an array from another array, expressed at a high level
+   so that it works with TARGET_EXPR.  Operand 0 is the target, operand 1
+   is the initializer.  */
+DEFTREECODE (VEC_INIT_EXPR, "vec_init_expr", tcc_expression, 2)
+
 /* A throw expression.  operand 0 is the expression, if there was one,
    else it is NULL_TREE.  */
 DEFTREECODE (THROW_EXPR, "throw_expr", tcc_expression, 1)

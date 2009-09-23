@@ -456,6 +456,21 @@ build_cplus_new (tree type, tree init)
   return rval;
 }
 
+/* Return a TARGET_EXPR which expresses the direct-initialization of one
+   array from another.  */
+
+tree
+build_array_copy (tree init)
+{
+  tree type = TREE_TYPE (init);
+  tree slot = build_local_temp (type);
+  init = build2 (VEC_INIT_EXPR, type, slot, init);
+  init = build_target_expr (slot, init);
+  TARGET_EXPR_IMPLICIT_P (init) = 1;
+
+  return init;
+}
+
 /* Build a TARGET_EXPR using INIT to initialize a new temporary of the
    indicated TYPE.  */
 

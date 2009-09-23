@@ -4925,7 +4925,8 @@ reshape_init_r (tree type, reshape_iter *d, bool first_initializer_p)
 	 looking through the outermost braces; A a2 = { a1 }; is not a
 	 valid aggregate initialization.  */
       && !first_initializer_p
-      && can_convert_arg (type, TREE_TYPE (init), init, LOOKUP_NORMAL))
+      && (same_type_ignoring_top_level_qualifiers_p (type, TREE_TYPE (init))
+	  || can_convert_arg (type, TREE_TYPE (init), init, LOOKUP_NORMAL)))
     {
       d->cur++;
       return init;

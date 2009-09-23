@@ -5236,9 +5236,15 @@ build_lambda_object (tree lambda_expr)
        node;
        node = TREE_CHAIN (node))
     {
-      CONSTRUCTOR_APPEND_ELT (elts,
-			      /*identifier=*/NULL_TREE,
-			      TREE_VALUE (node));
+      tree field = TREE_PURPOSE (node);
+      tree val = TREE_VALUE (node);
+
+      /* Mere mortals can't copy arrays with aggregate initialization, so
+	 do some magic to make it work here.  */
+      if (TREE_CODE (TREE_TYPE (field)) == ARRAY_TYPE)
+	val = build_array_copy (val);
+
+      CONSTRUCTOR_APPEND_ELT (elts, DECL_NAME (field), val);
     }
 
   expr = build_constructor (init_list_type_node, elts);
