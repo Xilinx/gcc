@@ -528,10 +528,16 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       break;
 
     case VEC_INIT_EXPR:
-      *expr_p = build_vec_init (VEC_INIT_EXPR_SLOT (*expr_p), NULL_TREE,
-				VEC_INIT_EXPR_INIT (*expr_p), false, 1,
-				tf_warning_or_error);
-      ret = GS_OK;
+      {
+	location_t loc = input_location;
+	gcc_assert (EXPR_HAS_LOCATION (*expr_p));
+	input_location = EXPR_LOCATION (*expr_p);
+	*expr_p = build_vec_init (VEC_INIT_EXPR_SLOT (*expr_p), NULL_TREE,
+				  VEC_INIT_EXPR_INIT (*expr_p), false, 1,
+				  tf_warning_or_error);
+	ret = GS_OK;
+	input_location = loc;
+      }
       break;
 
     case THROW_EXPR:

@@ -575,9 +575,14 @@ enum cp_lambda_default_capture_mode_type {
 #define LAMBDA_EXPR_FUNCTION(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->function)
 
+/* The source location of the lambda.  */
+#define LAMBDA_EXPR_LOCATION(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->locus)
+
 struct GTY (()) tree_lambda_expr
 {
   struct tree_common common;
+  location_t locus;
   enum cp_lambda_default_capture_mode_type default_capture_mode;
   tree capture_list;
   tree this_capture;

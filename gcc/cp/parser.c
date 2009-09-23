@@ -6966,6 +6966,9 @@ cp_parser_lambda_expression (cp_parser* parser)
   tree lambda_expr = build_lambda_expr ();
   tree type;
 
+  LAMBDA_EXPR_LOCATION (lambda_expr)
+    = cp_lexer_peek_token (parser->lexer)->location;
+
   /* We may be in the middle of deferred access check.  Disable
      it now.  */
   push_deferring_access_checks (dk_no_deferred);

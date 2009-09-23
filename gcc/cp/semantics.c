@@ -5228,9 +5228,14 @@ build_lambda_object (tree lambda_expr)
      - cp_parser_functional_cast  */
   VEC(constructor_elt,gc) *elts = NULL;
   tree node, expr, type;
+  location_t saved_loc;
 
   if (processing_template_decl)
     return lambda_expr;
+
+  /* Make sure any error messages refer to the lambda-introducer.  */
+  saved_loc = input_location;
+  input_location = LAMBDA_EXPR_LOCATION (lambda_expr);
 
   for (node = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
        node;
@@ -5256,6 +5261,8 @@ build_lambda_object (tree lambda_expr)
   CLASSTYPE_NON_AGGREGATE (type) = 0;
   expr = finish_compound_literal (type, expr);
   CLASSTYPE_NON_AGGREGATE (type) = 1;
+
+  input_location = saved_loc;
   return expr;
 }
 

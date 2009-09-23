@@ -465,6 +465,7 @@ build_array_copy (tree init)
   tree type = TREE_TYPE (init);
   tree slot = build_local_temp (type);
   init = build2 (VEC_INIT_EXPR, type, slot, init);
+  SET_EXPR_LOCATION (init, input_location);
   init = build_target_expr (slot, init);
   TARGET_EXPR_IMPLICIT_P (init) = 1;
 
