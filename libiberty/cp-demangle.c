@@ -410,9 +410,7 @@ static int d_discriminator (struct d_info *);
 
 static struct demangle_component *d_lambda (struct d_info *);
 
-#if 0
 static struct demangle_component *d_unnamed_type (struct d_info *);
-#endif
 
 static int
 d_add_substitution (struct d_info *, struct demangle_component *);
@@ -1173,21 +1171,9 @@ d_name (struct d_info *di)
       return d_local_name (di);
 
     case 'L':
+    case 'U':
       return d_unqualified_name (di);
 
-    case 'U':
-      switch (d_peek_next_char (di))
-	{
-	case 'l':
-	  return d_lambda (di);
-	case 't':
-#if 0
-	  return d_unnamed_type (di);
-#endif
-	default:
-	  return NULL;
-	}
-	
     case 'S':
       {
 	int subst;
@@ -1309,6 +1295,7 @@ d_prefix (struct d_info *di)
 	  || IS_LOWER (peek)
 	  || peek == 'C'
 	  || peek == 'D'
+	  || peek == 'U'
 	  || peek == 'L')
 	dc = d_unqualified_name (di);
       else if (peek == 'S')
@@ -1324,18 +1311,6 @@ d_prefix (struct d_info *di)
 	dc = d_template_param (di);
       else if (peek == 'E')
 	return ret;
-      else if (peek == 'U')
-	{
-	  char next = d_peek_next_char (di);
-	  if (next == 'l')
-	    dc = d_lambda (di);
-#if 0
-	  else if (next == 't')
-	    dc = d_unnamed_type (di);
-#endif
-	  else
-	    return NULL;
-	}
       else if (peek == 'M')
 	{
 	  /* Initializer scope for a lambda.  We don't need to represent
@@ -1401,6 +1376,18 @@ d_unqualified_name (struct d_info *di)
       if (! d_discriminator (di))
 	return NULL;
       return ret;
+    }
+  else if (peek == 'U')
+    {
+      switch (d_peek_next_char (di))
+	{
+	case 'l':
+	  return d_lambda (di);
+	case 't':
+	  return d_unnamed_type (di);
+	default:
+	  return NULL;
+	}
     }
   else
     return NULL;
@@ -2889,6 +2876,7 @@ d_local_name (struct d_info *di)
 	  {
 	    /* Lambdas and unnamed types have internal discriminators.  */
 	  case DEMANGLE_COMPONENT_LAMBDA:
+	  case DEMANGLE_COMPONENT_UNNAMED_TYPE:
 	    break;
 	  default:
 	    if (! d_discriminator (di))
@@ -2926,7 +2914,7 @@ d_lambda (struct d_info *di)
 {
   struct demangle_component *tl;
   struct demangle_component *ret;
-  long num;
+  int num;
 
   if (! d_check_char (di, 'U'))
     return NULL;
@@ -2950,6 +2938,36 @@ d_lambda (struct d_info *di)
       ret->type = DEMANGLE_COMPONENT_LAMBDA;
       ret->u.s_unary_num.sub = tl;
       ret->u.s_unary_num.num = num;
+    }
+
+  if (! d_add_substitution (di, ret))
+    return NULL;
+
+  return ret;
+}
+
+/* <unnamed-type-name> ::= Ut [ <nonnegative number> ] _ */
+
+static struct demangle_component *
+d_unnamed_type (struct d_info *di)
+{
+  struct demangle_component *ret;
+  long num;
+
+  if (! d_check_char (di, 'U'))
+    return NULL;
+  if (! d_check_char (di, 't'))
+    return NULL;
+
+  num = d_compact_number (di);
+  if (num < 0)
+    return NULL;
+
+  ret = d_make_empty (di);
+  if (ret)
+    {
+      ret->type = DEMANGLE_COMPONENT_UNNAMED_TYPE;
+      ret->u.s_number.number = num;
     }
 
   if (! d_add_substitution (di, ret))
@@ -4207,6 +4225,12 @@ d_print_comp (struct d_print_info *dpi,
       d_print_comp (dpi, dc->u.s_unary_num.sub);
       d_append_string (dpi, ")#");
       d_append_num (dpi, dc->u.s_unary_num.num + 1);
+      d_append_char (dpi, '}');
+      return;
+
+    case DEMANGLE_COMPONENT_UNNAMED_TYPE:
+      d_append_string (dpi, "{unnamed type#");
+      d_append_num (dpi, dc->u.s_number.number + 1);
       d_append_char (dpi, '}');
       return;
 

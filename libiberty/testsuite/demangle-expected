@@ -3923,3 +3923,6 @@ S::f(int, int)::{default arg#2}::{lambda()#2}::operator()() const
 --format=gnu-v3
 _ZNK1SIiE1xMUlvE1_clEv
 S<int>::x::{lambda()#3}::operator()() const
+--format=gnu-v3
+_Z1fN1SUt_E
+f(S::{unnamed type#1})

@@ -385,6 +385,8 @@ enum demangle_component_type
   DEMANGLE_COMPONENT_LAMBDA,
   /* A default argument scope.  */
   DEMANGLE_COMPONENT_DEFAULT_ARG,
+  /* An unnamed type.  */
+  DEMANGLE_COMPONENT_UNNAMED_TYPE,
   /* A pack expansion.  */
   DEMANGLE_COMPONENT_PACK_EXPANSION
 };
