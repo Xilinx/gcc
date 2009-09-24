@@ -383,6 +383,8 @@ enum demangle_component_type
   DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS,
   /* A lambda closure type.  */
   DEMANGLE_COMPONENT_LAMBDA,
+  /* A default argument scope.  */
+  DEMANGLE_COMPONENT_DEFAULT_ARG,
   /* A pack expansion.  */
   DEMANGLE_COMPONENT_PACK_EXPANSION
 };
@@ -498,11 +500,11 @@ struct demangle_component
 
     struct
     {
-      /* Parameter types.  */
-      struct demangle_component *parms;
-      /* Discriminator.  */
+      /* subtree.  */
+      struct demangle_component *sub;
+      /* integer.  */
       int num;
-    } s_lambda;
+    } s_unary_num;
 
   } u;
 };

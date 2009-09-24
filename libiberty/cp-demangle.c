@@ -928,6 +928,20 @@ d_make_extended_operator (struct d_info *di, int args,
   return p;
 }
 
+static struct demangle_component *
+d_make_default_arg (struct d_info *di, int num,
+		    struct demangle_component *sub)
+{
+  struct demangle_component *p = d_make_empty (di);
+  if (p)
+    {
+      p->type = DEMANGLE_COMPONENT_DEFAULT_ARG;
+      p->u.s_unary_num.num = num;
+      p->u.s_unary_num.sub = sub;
+    }
+  return p;
+}
+
 /* Add a new constructor component.  */
 
 static struct demangle_component *
@@ -2848,6 +2862,16 @@ d_local_name (struct d_info *di)
   else
     {
       struct demangle_component *name;
+      int num = -1;
+
+      if (d_peek_char (di) == 'd')
+	{
+	  /* Default argument scope: d <number> _.  */
+	  d_advance (di, 1);
+	  num = d_compact_number (di);
+	  if (num < 0)
+	    return NULL;
+	}
 
       name = d_name (di);
       if (name)
@@ -2860,6 +2884,8 @@ d_local_name (struct d_info *di)
 	    if (! d_discriminator (di))
 	      return NULL;
 	  }
+      if (num >= 0)
+	name = d_make_default_arg (di, num, name);
       return d_make_comp (di, DEMANGLE_COMPONENT_LOCAL_NAME, function, name);
     }
 }
@@ -2912,8 +2938,8 @@ d_lambda (struct d_info *di)
   if (ret)
     {
       ret->type = DEMANGLE_COMPONENT_LAMBDA;
-      ret->u.s_lambda.parms = tl;
-      ret->u.s_lambda.num = num;
+      ret->u.s_unary_num.sub = tl;
+      ret->u.s_unary_num.num = num;
     }
 
   if (! d_add_substitution (di, ret))
@@ -3499,6 +3525,8 @@ d_print_comp (struct d_print_info *dpi,
 	    struct demangle_component *local_name;
 
 	    local_name = d_right (typed_name);
+	    if (local_name->type == DEMANGLE_COMPONENT_DEFAULT_ARG)
+	      local_name = local_name->u.s_unary_num.sub;
 	    while (local_name->type == DEMANGLE_COMPONENT_RESTRICT_THIS
 		   || local_name->type == DEMANGLE_COMPONENT_VOLATILE_THIS
 		   || local_name->type == DEMANGLE_COMPONENT_CONST_THIS)
@@ -4165,9 +4193,9 @@ d_print_comp (struct d_print_info *dpi,
 
     case DEMANGLE_COMPONENT_LAMBDA:
       d_append_string (dpi, "{lambda(");
-      d_print_comp (dpi, dc->u.s_lambda.parms);
+      d_print_comp (dpi, dc->u.s_unary_num.sub);
       d_append_string (dpi, ")#");
-      d_append_num (dpi, dc->u.s_lambda.num + 1);
+      d_append_num (dpi, dc->u.s_unary_num.num + 1);
       d_append_char (dpi, '}');
       return;
 
@@ -4289,6 +4317,15 @@ d_print_mod_list (struct d_print_info *dpi,
 	d_append_char (dpi, '.');
 
       dc = d_right (mods->mod);
+
+      if (dc->type == DEMANGLE_COMPONENT_DEFAULT_ARG)
+	{
+	  d_append_string (dpi, "{default arg#");
+	  d_append_num (dpi, dc->u.s_unary_num.num + 1);
+	  d_append_string (dpi, "}::");
+	  dc = dc->u.s_unary_num.sub;
+	}
+
       while (dc->type == DEMANGLE_COMPONENT_RESTRICT_THIS
 	     || dc->type == DEMANGLE_COMPONENT_VOLATILE_THIS
 	     || dc->type == DEMANGLE_COMPONENT_CONST_THIS)
