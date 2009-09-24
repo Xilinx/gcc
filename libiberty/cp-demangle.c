@@ -4187,8 +4187,9 @@ d_print_comp (struct d_print_info *dpi,
       return;
 
     case DEMANGLE_COMPONENT_FUNCTION_PARAM:
-      d_append_string (dpi, "parm#");
+      d_append_string (dpi, "{parm#");
       d_append_num (dpi, dc->u.s_number.number + 1);
+      d_append_char (dpi, '}');
       return;
 
     case DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS:
