@@ -5556,8 +5556,8 @@ gfc_find_sym_in_expr (gfc_symbol *sym, gfc_expr *e)
    derived types with default initializers, and derived types with allocatable
    components that need nullification.)  */
 
-static gfc_expr *
-expr_to_initialize (gfc_expr *e)
+gfc_expr *
+gfc_expr_to_initialize (gfc_expr *e)
 {
   gfc_expr *result;
   gfc_ref *ref;
@@ -5594,7 +5594,6 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   gfc_ref *ref, *ref2;
   gfc_array_ref *ar;
   gfc_code *init_st;
-  gfc_expr *init_e;
   gfc_symbol *sym;
   gfc_alloc *a;
   gfc_component *c;
@@ -5687,30 +5686,36 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   if (e->ts.type == BT_CLASS)
     {
       /* Initialize VINDEX for CLASS objects.  */
-      int vindex = e->ts.u.derived->vindex;
       init_st = gfc_get_code ();
       init_st->loc = code->loc;
-      init_st->expr1 = expr_to_initialize (e);
+      init_st->expr1 = gfc_expr_to_initialize (e);
       init_st->op = EXEC_ASSIGN;
       gfc_add_component_ref (init_st->expr1, "$vindex");
-      init_st->expr2 = gfc_int_expr (vindex);
+      if (code->expr3 && code->expr3->ts.type == BT_CLASS)
+	{
+	  /* vindex must be determined at run time.  */
+	  init_st->expr2 = gfc_copy_expr (code->expr3);
+	  gfc_add_component_ref (init_st->expr2, "$vindex");
+	}
+      else
+	{
+	  /* vindex is fixed at compile time.  */
+	  int vindex;
+	  if (code->expr3)
+	    vindex = code->expr3->ts.u.derived->vindex;
+	  else if (code->ext.alloc.ts.type == BT_DERIVED)
+	    vindex = code->ext.alloc.ts.u.derived->vindex;
+	  else if (e->ts.type == BT_CLASS)
+	    vindex = e->ts.u.derived->components->ts.u.derived->vindex;
+	  else
+	    vindex = e->ts.u.derived->vindex;
+	  init_st->expr2 = gfc_int_expr (vindex);
+	}
       init_st->expr2->where = init_st->expr1->where = init_st->loc;
       init_st->next = code->next;
       code->next = init_st;
       /* Only allocate the DATA component.  */
       gfc_add_component_ref (e, "$data");
-    }
-
-  /* Add default initializer for those derived types that need them.  */
-  if (e->ts.type == BT_DERIVED && (init_e = gfc_default_initializer (&e->ts)))
-    {
-      init_st = gfc_get_code ();
-      init_st->loc = code->loc;
-      init_st->op = EXEC_INIT_ASSIGN;
-      init_st->expr1 = expr_to_initialize (e);
-      init_st->expr2 = init_e;
-      init_st->next = code->next;
-      code->next = init_st;
     }
 
   if (pointer || dimension == 0)
@@ -5757,7 +5762,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 
 check_symbols:
 
-      for (a = code->ext.alloc_list; a; a = a->next)
+      for (a = code->ext.alloc.list; a; a = a->next)
 	{
 	  sym = a->expr->symtree->n.sym;
 
@@ -5809,7 +5814,7 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 	gfc_error ("Stat-variable at %L must be a scalar INTEGER "
 		   "variable", &stat->where);
 
-      for (p = code->ext.alloc_list; p; p = p->next)
+      for (p = code->ext.alloc.list; p; p = p->next)
 	if (p->expr->symtree->n.sym->name == stat->symtree->n.sym->name)
 	  gfc_error ("Stat-variable at %L shall not be %sd within "
 		     "the same %s statement", &stat->where, fcn, fcn);
@@ -5838,7 +5843,7 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 	gfc_error ("Errmsg-variable at %L must be a scalar CHARACTER "
 		   "variable", &errmsg->where);
 
-      for (p = code->ext.alloc_list; p; p = p->next)
+      for (p = code->ext.alloc.list; p; p = p->next)
 	if (p->expr->symtree->n.sym->name == errmsg->symtree->n.sym->name)
 	  gfc_error ("Errmsg-variable at %L shall not be %sd within "
 		     "the same %s statement", &errmsg->where, fcn, fcn);
@@ -5846,7 +5851,7 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 
   /* Check that an allocate-object appears only once in the statement.  
      FIXME: Checking derived types is disabled.  */
-  for (p = code->ext.alloc_list; p; p = p->next)
+  for (p = code->ext.alloc.list; p; p = p->next)
     {
       pe = p->expr;
       if ((pe->ref && pe->ref->type != REF_COMPONENT)
@@ -5866,12 +5871,12 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 
   if (strcmp (fcn, "ALLOCATE") == 0)
     {
-      for (a = code->ext.alloc_list; a; a = a->next)
+      for (a = code->ext.alloc.list; a; a = a->next)
 	resolve_allocate_expr (a->expr, code);
     }
   else
     {
-      for (a = code->ext.alloc_list; a; a = a->next)
+      for (a = code->ext.alloc.list; a; a = a->next)
 	resolve_deallocate_expr (a->expr);
     }
 }
@@ -7233,43 +7238,38 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 }
 
 
-/* Check a pointer assignment to a CLASS object.  */
+/* Check an assignment to a CLASS object (pointer or ordinary assignment).  */
 
 static void
-check_class_pointer_assign (gfc_code **code)
+resolve_class_assign (gfc_code *code)
 {
   gfc_code *assign_code = gfc_get_code ();
 
   /* Insert an additional assignment which sets the vindex.  */
-  assign_code->next = (*code)->next;
-  (*code)->next = assign_code;
+  assign_code->next = code->next;
+  code->next = assign_code;
   assign_code->op = EXEC_ASSIGN;
-  assign_code->expr1 = gfc_copy_expr ((*code)->expr1);
+  assign_code->expr1 = gfc_copy_expr (code->expr1);
   gfc_add_component_ref (assign_code->expr1, "$vindex");
-  if ((*code)->expr2->ts.type == BT_DERIVED)
+  if (code->expr2->ts.type == BT_DERIVED)
     {
       /* vindex is constant, determined at compile time.  */
-      int vindex = (*code)->expr2->ts.u.derived->vindex;
+      int vindex = code->expr2->ts.u.derived->vindex;
       assign_code->expr2 = gfc_int_expr (vindex);
     }
-  else if ((*code)->expr2->ts.type == BT_CLASS)
+  else if (code->expr2->ts.type == BT_CLASS)
     {
       /* vindex must be determined at run time.  */
-      assign_code->expr2 = gfc_copy_expr ((*code)->expr2);
+      assign_code->expr2 = gfc_copy_expr (code->expr2);
       gfc_add_component_ref (assign_code->expr2, "$vindex");
     }
   else
     gcc_unreachable ();
 
   /* Modify the actual pointer assignment.  */
-  gfc_add_component_ref ((*code)->expr1, "$data");
-  if ((*code)->expr2->ts.type == BT_CLASS)
-    gfc_add_component_ref ((*code)->expr2, "$data");
-
-  gfc_check_pointer_assign ((*code)->expr1, (*code)->expr2);
-
-  if ((*code)->expr1->ts.type == BT_CLASS)
-    (*code) = (*code)->next;
+  gfc_add_component_ref (code->expr1, "$data");
+  if (code->expr2->ts.type == BT_CLASS)
+    gfc_add_component_ref (code->expr2, "$data");
 }
 
 
@@ -7395,6 +7395,9 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  if (t == FAILURE)
 	    break;
 
+	  if (code->expr1->ts.type == BT_CLASS)
+	    resolve_class_assign (code);
+
 	  if (resolve_ordinary_assign (code, ns))
 	    {
 	      if (code->op == EXEC_COMPCALL)
@@ -7424,9 +7427,9 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	    break;
 
 	  if (code->expr1->ts.type == BT_CLASS)
-	    check_class_pointer_assign (&code);
-	  else
-	    gfc_check_pointer_assign (code->expr1, code->expr2);
+	    resolve_class_assign (code);
+
+	  gfc_check_pointer_assign (code->expr1, code->expr2);
 
 	  break;
 

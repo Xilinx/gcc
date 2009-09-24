@@ -2610,7 +2610,7 @@ alloc_opt_list:
 
 	  gfc_resolve_expr (tmp);
 
-	  if (head->expr->ts.type != tmp->ts.type)
+	  if (!gfc_type_compatible (&head->expr->ts, &tmp->ts))
 	    {
 	      gfc_error ("Type of entity at %L is type incompatible with "
 			 "source-expr at %L", &head->expr->where, &tmp->where);
@@ -2651,7 +2651,8 @@ alloc_opt_list:
   new_st.expr1 = stat;
   new_st.expr2 = errmsg;
   new_st.expr3 = source;
-  new_st.ext.alloc_list = head;
+  new_st.ext.alloc.list = head;
+  new_st.ext.alloc.ts = ts;
 
   return MATCH_YES;
 
@@ -2865,7 +2866,7 @@ dealloc_opt_list:
   new_st.op = EXEC_DEALLOCATE;
   new_st.expr1 = stat;
   new_st.expr2 = errmsg;
-  new_st.ext.alloc_list = head;
+  new_st.ext.alloc.list = head;
 
   return MATCH_YES;
 

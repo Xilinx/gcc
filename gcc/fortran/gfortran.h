@@ -2005,7 +2005,14 @@ typedef struct gfc_code
     gfc_actual_arglist *actual;
     gfc_case *case_list;
     gfc_iterator *iterator;
-    gfc_alloc *alloc_list;
+
+    struct
+    {
+      gfc_typespec ts;
+      gfc_alloc *list;
+    }
+    alloc;
+
     gfc_open *open;
     gfc_close *close;
     gfc_filepos *filepos;
@@ -2548,7 +2555,6 @@ void gfc_resolve_omp_do_blocks (gfc_code *, gfc_namespace *);
 void gfc_free_actual_arglist (gfc_actual_arglist *);
 gfc_actual_arglist *gfc_copy_actual_arglist (gfc_actual_arglist *);
 const char *gfc_extract_int (gfc_expr *, int *);
-gfc_expr *gfc_expr_to_initialize (gfc_expr *);
 bool is_subref_array (gfc_expr *);
 
 void gfc_add_component_ref (gfc_expr *, const char *);
@@ -2615,6 +2621,7 @@ gfc_try gfc_resolve_dim_arg (gfc_expr *);
 int gfc_is_formal_arg (void);
 void gfc_resolve_substring_charlen (gfc_expr *);
 match gfc_iso_c_sub_interface(gfc_code *, gfc_symbol *);
+gfc_expr *gfc_expr_to_initialize (gfc_expr *);
 
 
 /* array.c */

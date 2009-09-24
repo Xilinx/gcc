@@ -1453,7 +1453,7 @@ show_code_node (int level, gfc_code *c)
 	  show_expr (c->expr2);
 	}
 
-      for (a = c->ext.alloc_list; a; a = a->next)
+      for (a = c->ext.alloc.list; a; a = a->next)
 	{
 	  fputc (' ', dumpfile);
 	  show_expr (a->expr);
@@ -1475,7 +1475,7 @@ show_code_node (int level, gfc_code *c)
 	  show_expr (c->expr2);
 	}
 
-      for (a = c->ext.alloc_list; a; a = a->next)
+      for (a = c->ext.alloc.list; a; a = a->next)
 	{
 	  fputc (' ', dumpfile);
 	  show_expr (a->expr);

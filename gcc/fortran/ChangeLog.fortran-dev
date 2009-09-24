@@ -1,3 +1,26 @@
+2009-09-24  Janus Weil  <janus@gcc.gnu.org>
+
+	* dump-parse-tree.c (show_code_node): Renamed 'alloc_list'.
+	* gfortran.h (gfc_code): Rename 'alloc_list'. Add member 'ts'.
+	(gfc_expr_to_initialize): New prototype.
+	* match.c (alloc_opt_list): Correctly check type compatibility.
+	Renamed 'alloc_list'.
+	(dealloc_opt_list): Renamed 'alloc_list'.
+	* resolve.c (expr_to_initialize): Rename to 'gfc_expr_to_initialize'
+	and make it non-static.
+	(resolve_allocate_expr): Set vindex for CLASS variables correctly.
+	Move initialization code to gfc_trans_allocate. Renamed 'alloc_list'.
+	(resolve_allocate_deallocate): Renamed 'alloc_list'.
+	(check_class_pointer_assign): Rename to 'resolve_class_assign'. Change
+	argument type. Adjust to work with ordinary assignments.
+	(resolve_code): Call 'resolve_class_assign' for ordinary assignments.
+	Renamed 'check_class_pointer_assign'.
+	* st.c (gfc_free_statement): Renamed 'alloc_list'.
+	* trans-stmt.c (gfc_trans_allocate): Renamed 'alloc_list'. Handle
+	size determination and initialization of CLASS variables. Bugfix for
+	ALLOCATE statements with default initialization and SOURCE block.
+	(gfc_trans_deallocate): Renamed 'alloc_list'.
+
 2009-09-23  Paul Thomas  <pault@gcc.gnu.org>
 
 	* trans-expr.c (gfc_conv_procedure_call): Convert a derived
