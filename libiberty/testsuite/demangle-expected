@@ -3920,3 +3920,6 @@ int algo<g(int)::{lambda()#2}>(g(int)::{lambda()#2})
 --format=gnu-v3
 _ZZN1S1fEiiEd0_NKUlvE0_clEv
 S::f(int, int)::{default arg#2}::{lambda()#2}::operator()() const
+--format=gnu-v3
+_ZNK1SIiE1xMUlvE1_clEv
+S<int>::x::{lambda()#3}::operator()() const

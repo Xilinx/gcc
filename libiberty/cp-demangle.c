@@ -1336,6 +1336,16 @@ d_prefix (struct d_info *di)
 	  else
 	    return NULL;
 	}
+      else if (peek == 'M')
+	{
+	  /* Initializer scope for a lambda.  We don't need to represent
+	     this; the normal code will just treat the variable as a type
+	     scope, which gives appropriate output.  */
+	  if (ret == NULL)
+	    return NULL;
+	  d_advance (di, 1);
+	  continue;
+	}
       else
 	return NULL;
 

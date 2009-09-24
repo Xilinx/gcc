@@ -500,7 +500,7 @@ struct demangle_component
 
     struct
     {
-      /* subtree.  */
+      /* subtree, same place as d_left.  */
       struct demangle_component *sub;
       /* integer.  */
       int num;
