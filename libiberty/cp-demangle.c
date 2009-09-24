@@ -408,6 +408,12 @@ static struct demangle_component *d_local_name (struct d_info *);
 
 static int d_discriminator (struct d_info *);
 
+static struct demangle_component *d_lambda (struct d_info *);
+
+#if 0
+static struct demangle_component *d_unnamed_type (struct d_info *);
+#endif
+
 static int
 d_add_substitution (struct d_info *, struct demangle_component *);
 
@@ -1154,6 +1160,19 @@ d_name (struct d_info *di)
 
     case 'L':
       return d_unqualified_name (di);
+
+    case 'U':
+      switch (d_peek_next_char (di))
+	{
+	case 'l':
+	  return d_lambda (di);
+	case 't':
+#if 0
+	  return d_unnamed_type (di);
+#endif
+	default:
+	  return NULL;
+	}
 	
     case 'S':
       {
@@ -1291,6 +1310,18 @@ d_prefix (struct d_info *di)
 	dc = d_template_param (di);
       else if (peek == 'E')
 	return ret;
+      else if (peek == 'U')
+	{
+	  char next = d_peek_next_char (di);
+	  if (next == 'l')
+	    dc = d_lambda (di);
+#if 0
+	  else if (next == 't')
+	    dc = d_unnamed_type (di);
+#endif
+	  else
+	    return NULL;
+	}
       else
 	return NULL;
 
@@ -2242,50 +2273,30 @@ d_function_type (struct d_info *di)
   return ret;
 }
 
-/* <bare-function-type> ::= [J]<type>+  */
+/* <type>+ */
 
 static struct demangle_component *
-d_bare_function_type (struct d_info *di, int has_return_type)
+d_parmlist (struct d_info *di)
 {
-  struct demangle_component *return_type;
   struct demangle_component *tl;
   struct demangle_component **ptl;
-  char peek;
 
-  /* Detect special qualifier indicating that the first argument
-     is the return type.  */
-  peek = d_peek_char (di);
-  if (peek == 'J')
-    {
-      d_advance (di, 1);
-      has_return_type = 1;
-    }
-
-  return_type = NULL;
   tl = NULL;
   ptl = &tl;
   while (1)
     {
       struct demangle_component *type;
 
-      peek = d_peek_char (di);
+      char peek = d_peek_char (di);
       if (peek == '\0' || peek == 'E')
 	break;
       type = cplus_demangle_type (di);
       if (type == NULL)
 	return NULL;
-      if (has_return_type)
-	{
-	  return_type = type;
-	  has_return_type = 0;
-	}
-      else
-	{
-	  *ptl = d_make_comp (di, DEMANGLE_COMPONENT_ARGLIST, type, NULL);
-	  if (*ptl == NULL)
-	    return NULL;
-	  ptl = &d_right (*ptl);
-	}
+      *ptl = d_make_comp (di, DEMANGLE_COMPONENT_ARGLIST, type, NULL);
+      if (*ptl == NULL)
+	return NULL;
+      ptl = &d_right (*ptl);
     }
 
   /* There should be at least one parameter type besides the optional
@@ -2300,10 +2311,45 @@ d_bare_function_type (struct d_info *di, int has_return_type)
       && d_left (tl)->u.s_builtin.type->print == D_PRINT_VOID)
     {
       di->expansion -= d_left (tl)->u.s_builtin.type->len;
-      tl = NULL;
+      d_left (tl) = NULL;
     }
 
-  return d_make_comp (di, DEMANGLE_COMPONENT_FUNCTION_TYPE, return_type, tl);
+  return tl;
+}
+
+/* <bare-function-type> ::= [J]<type>+  */
+
+static struct demangle_component *
+d_bare_function_type (struct d_info *di, int has_return_type)
+{
+  struct demangle_component *return_type;
+  struct demangle_component *tl;
+  char peek;
+
+  /* Detect special qualifier indicating that the first argument
+     is the return type.  */
+  peek = d_peek_char (di);
+  if (peek == 'J')
+    {
+      d_advance (di, 1);
+      has_return_type = 1;
+    }
+
+  if (has_return_type)
+    {
+      return_type = cplus_demangle_type (di);
+      if (return_type == NULL)
+	return NULL;
+    }
+  else
+    return_type = NULL;
+
+  tl = d_parmlist (di);
+  if (tl == NULL)
+    return NULL;
+
+  return d_make_comp (di, DEMANGLE_COMPONENT_FUNCTION_TYPE,
+		      return_type, tl);
 }
 
 /* <class-enum-type> ::= <name>  */
@@ -2405,6 +2451,24 @@ d_pointer_to_member_type (struct d_info *di)
   return d_make_comp (di, DEMANGLE_COMPONENT_PTRMEM_TYPE, cl, mem);
 }
 
+/* <non-negative number> _ */
+
+static long
+d_compact_number (struct d_info *di)
+{
+  long num;
+  if (d_peek_char (di) == '_')
+    num = 0;
+  else if (d_peek_char (di) == 'n')
+    return -1;
+  else
+    num = d_number (di) + 1;
+
+  if (! d_check_char (di, '_'))
+    return -1;
+  return num;
+}
+
 /* <template-param> ::= T_
                     ::= T <(parameter-2 non-negative) number> _
 */
@@ -2417,17 +2481,8 @@ d_template_param (struct d_info *di)
   if (! d_check_char (di, 'T'))
     return NULL;
 
-  if (d_peek_char (di) == '_')
-    param = 0;
-  else
-    {
-      param = d_number (di);
-      if (param < 0)
-	return NULL;
-      param += 1;
-    }
-
-  if (! d_check_char (di, '_'))
+  param = d_compact_number (di);
+  if (param < 0)
     return NULL;
 
   ++di->did_subs;
@@ -2599,17 +2654,8 @@ d_expression (struct d_info *di)
       /* Function parameter used in a late-specified return type.  */
       int index;
       d_advance (di, 2);
-      if (d_peek_char (di) == '_')
-	index = 1;
-      else
-	{
-	  index = d_number (di);
-	  if (index < 0)
-	    return NULL;
-	  index += 2;
-	}
-
-      if (! d_check_char (di, '_'))
+      index = d_compact_number (di);
+      if (index < 0)
 	return NULL;
 
       return d_make_function_param (di, index);
@@ -2804,8 +2850,16 @@ d_local_name (struct d_info *di)
       struct demangle_component *name;
 
       name = d_name (di);
-      if (! d_discriminator (di))
-	return NULL;
+      if (name)
+	switch (name->type)
+	  {
+	    /* Lambdas and unnamed types have internal discriminators.  */
+	  case DEMANGLE_COMPONENT_LAMBDA:
+	    break;
+	  default:
+	    if (! d_discriminator (di))
+	      return NULL;
+	  }
       return d_make_comp (di, DEMANGLE_COMPONENT_LOCAL_NAME, function, name);
     }
 }
@@ -2827,6 +2881,45 @@ d_discriminator (struct d_info *di)
   if (discrim < 0)
     return 0;
   return 1;
+}
+
+/* <closure-type-name> ::= Ul <lambda-sig> E [ <nonnegative number> ] _ */
+
+static struct demangle_component *
+d_lambda (struct d_info *di)
+{
+  struct demangle_component *tl;
+  struct demangle_component *ret;
+  long num;
+
+  if (! d_check_char (di, 'U'))
+    return NULL;
+  if (! d_check_char (di, 'l'))
+    return NULL;
+
+  tl = d_parmlist (di);
+  if (tl == NULL)
+    return NULL;
+
+  if (! d_check_char (di, 'E'))
+    return NULL;
+
+  num = d_compact_number (di);
+  if (num < 0)
+    return NULL;
+
+  ret = d_make_empty (di);
+  if (ret)
+    {
+      ret->type = DEMANGLE_COMPONENT_LAMBDA;
+      ret->u.s_lambda.parms = tl;
+      ret->u.s_lambda.num = num;
+    }
+
+  if (! d_add_substitution (di, ret))
+    return NULL;
+
+  return ret;
 }
 
 /* Add a new substitution.  */
@@ -3120,6 +3213,14 @@ static inline void
 d_append_string (struct d_print_info *dpi, const char *s)
 {
   d_append_buffer (dpi, s, strlen (s));
+}
+
+static inline void
+d_append_num (struct d_print_info *dpi, long l)
+{
+  char buf[25];
+  sprintf (buf,"%ld", l);
+  d_append_string (dpi, buf);
 }
 
 static inline char
@@ -4048,13 +4149,9 @@ d_print_comp (struct d_print_info *dpi,
       return;
 
     case DEMANGLE_COMPONENT_FUNCTION_PARAM:
-      {
-	char buf[25];
-	d_append_string (dpi, "parm#");
-	sprintf(buf,"%ld", dc->u.s_number.number);
-	d_append_string (dpi, buf);
-	return;
-      }
+      d_append_string (dpi, "parm#");
+      d_append_num (dpi, dc->u.s_number.number + 1);
+      return;
 
     case DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS:
       d_append_string (dpi, "global constructors keyed to ");
@@ -4064,6 +4161,14 @@ d_print_comp (struct d_print_info *dpi,
     case DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS:
       d_append_string (dpi, "global destructors keyed to ");
       d_print_comp (dpi, dc->u.s_binary.left);
+      return;
+
+    case DEMANGLE_COMPONENT_LAMBDA:
+      d_append_string (dpi, "{lambda(");
+      d_print_comp (dpi, dc->u.s_lambda.parms);
+      d_append_string (dpi, ")#");
+      d_append_num (dpi, dc->u.s_lambda.num + 1);
+      d_append_char (dpi, '}');
       return;
 
     default:
