@@ -3303,13 +3303,11 @@ cp_parser_primary_expression (cp_parser *parser,
       }
 
     case CPP_OPEN_SQUARE:
-      if (cxx_dialect == cxx0x)
-        return cp_parser_lambda_expression (parser);
-      else if (c_dialect_objc ())
+      if (c_dialect_objc ())
         /* We have an Objective-C++ message. */
         return cp_parser_objc_expression (parser);
-      cp_parser_error (parser, "expected primary-expression");
-      return error_mark_node;
+      maybe_warn_cpp0x ("lambda expressions");
+      return cp_parser_lambda_expression (parser);
 
     case CPP_OBJC_STRING:
       if (c_dialect_objc ())
