@@ -1,3 +1,10 @@
+2009-09-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* method.c (make_thunk, make_alias_for): Don't set
+	DECL_NO_STATIC_CHAIN.
+	* decl.c (builtin_function_1, grokfndecl): Likewise.
+	* lex.c (build_lang_decl): Likewise.
+
 2009-09-23  Dodji Seketeli  <dodji@redhat.com>
 
 	PR debug/41065
@@ -52,8 +59,10 @@
 2009-09-17  Andrew Pinski  <pinskia@gcc.gnu.org>
 
 	PR c++/39365
-	* g++.dg/expr/bool3.C: New test.
-	* g++.dg/expr/bool4.C: New test.
+	* typeck.c (cp_build_unary_op): Check TREE_CODE for bools instead of
+	using same_type_p.
+	(convert_for_assignment): Likewise.
+	* cvt.c (type_promotes_to): Likewise.
 
 2009-09-14  Richard Henderson  <rth@redhat.com>
             Jakub Jelinek  <jakub@redhat.com>

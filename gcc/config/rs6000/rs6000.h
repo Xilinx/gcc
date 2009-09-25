@@ -1518,13 +1518,6 @@ extern enum rs6000_abi rs6000_current_abi;	/* available for use by subtarget */
 
 #define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 
-/* Define how to find the value returned by a function.
-   VALTYPE is the data type of the value (as a tree).
-   If the precise function being called is known, FUNC is its FUNCTION_DECL;
-   otherwise, FUNC is 0.  */
-
-#define FUNCTION_VALUE(VALTYPE, FUNC) rs6000_function_value ((VALTYPE), (FUNC))
-
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
 
@@ -3166,18 +3159,12 @@ enum rs6000_builtins
   RS6000_BUILTIN_BSWAP_HI,
 
   /* VSX builtins.  */
-  VSX_BUILTIN_LXSDUX,
   VSX_BUILTIN_LXSDX,
-  VSX_BUILTIN_LXVD2UX,
   VSX_BUILTIN_LXVD2X,
   VSX_BUILTIN_LXVDSX,
-  VSX_BUILTIN_LXVW4UX,
   VSX_BUILTIN_LXVW4X,
-  VSX_BUILTIN_STXSDUX,
   VSX_BUILTIN_STXSDX,
-  VSX_BUILTIN_STXVD2UX,
   VSX_BUILTIN_STXVD2X,
-  VSX_BUILTIN_STXVW4UX,
   VSX_BUILTIN_STXVW4X,
   VSX_BUILTIN_XSABSDP,
   VSX_BUILTIN_XSADDDP,

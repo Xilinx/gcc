@@ -1,3 +1,176 @@
+2009-09-25  Ben Elliston  <bje@au.ibm.com>
+
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Add missing comma
+	after `power7'.
+
+2009-09-25  Alan Modra  <amodra@bigpond.net.au>
+
+	* config/rs6000/rs6000.md (load_toc_v4_PIC_3c): Correct POWER
+	form of instruction.
+
+2009-09-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR middle-end/41435
+	* fold-const.c (const_binop): Handle complex int division.
+	* tree-complex.c (expand_complex_div_straight,
+	expand_complex_div_wide): Update comments.
+
+2009-09-24  DJ Delorie  <dj@redhat.com>
+
+	PR target/41456
+	* config/m32c/m32c.h (REG_CLASS_CONTENTS): Add R13.
+	(reg_class): Likewise.
+	(REG_CLASS_NAMES): Likewise.
+	* config/m32c/m32c.c (m32c_reg_class_from_constraint): Likewise.
+	
+	* config/m32c/m32c.c (m32c_override_options): Disable -fivopts for
+	M32C.
+
+2009-09-24  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/predicates.md (indexed_or_indirect_operand):
+	Delete VSX load/store with update support.
+	* config/rs6000/rs6000.c (rs6000_legitimate_address_p): Ditto.
+	* config/rs6000/vsx.md (vsx_mov<mode>): Ditto.
+	(vsx_movti): Ditto.
+	(VSX_U): Delete.
+	(VSbit): Ditto.
+	(VStype_load_update): Ditto.
+	(VStype_store_update): Ditto.
+	(vsx_load<VSX_U:mode>_update_<P:mptrsize>): Ditto.
+	(vsx_store<VSX_U:mode>_update_<P:mptrsize>): Ditto.
+
+	* config/rs6000/rs6000.h (enum rs6000_builtins): Delete VSX
+	load/store with update builtins.
+
+2009-09-24  Kai Tietz  <kai.tietz@onevision.com>
+
+	* libgcc2.c (L_trampoline): Prototype for getpagesize
+	and mprotect in WINNT case.
+
+2009-09-24  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/rs6000/rs6000.h (FUNCTION_VALUE): Remove macro.
+	* config/rs6000/rs6000-protos.h (rs6000_function_value): Remove.
+	* config/rs6000/rs6000.c (rs6000_function_value): Make static, add
+	'outgoing' argument.
+	(TARGET_FUNCTION_VALUE): Define.
+
+2009-09-24  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	* config/darwin.h (DWARF2_DEBUGGING_INFO): Define as 1.
+
+2009-09-24  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR bootstrap/41405
+        * common.opt: Initialize dwarf_strict to -1.
+	* toplev.c (process_options): Catch unset dwarf_strict
+	and set to 0 for all targets not overriding.
+	* config/darwin.c (darwin_override_options): Catch unset
+	dwarf_strict and override to 1.
+
+2009-09-24  Jeff Law  <law@redhat.com>
+
+	* tree-into-ssa.c (rewrite_into_ssa): Free interesting_blocks. 
+
+2009-09-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36143
+	PR tree-optimization/38747
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Only
+	create VIEW_CONVERT_EXPRs for TBAA compatible accesses.
+
+2009-09-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/41457
+	* dwarf2out.c (add_const_value_attribute): For HIGH and CONST_FIXED,
+	return false instead of gcc_unreachable ().  For CONST return the
+	value returned by recursive call instead of always returning true.
+	(tree_add_const_value_attribute): Return the value returned by
+	add_const_value_attribute instead of always returning true if rtl
+	is non-NULL.
+
+2009-09-23  Justin Seyster  <jrseys@gmail.com>
+
+	* Makefile.in (PLUGIN_HEADERS): Include real.h.
+
+2009-09-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* cgraphunit.c (cgraph_lower_function): Revert last change.
+	* targhooks.c (default_static_chain): Use !DECL_STATIC_CHAIN
+	instead of DECL_NO_STATIC_CHAIN.
+	* tree-cfg.c (verify_gimple_call): Likewise.
+	* tree-nested.c (get_chain_decl, get_chain_field,
+	convert_tramp_reference_op, convert_gimple_call): Likewise.
+	(convert_all_function_calls): Likewise.  Always set or clear
+	DECL_STATIC_CHAIN initially, for !n->outer clear it.
+	(lower_nested_functions): Remove DECL_NO_STATIC_CHAIN checking code.
+	* c-parser.c (c_parser_declaration_or_fndef): Set DECL_STATIC_CHAIN
+	if nested.
+	* print-tree.c (print_node): Handle DECL_STATIC_CHAIN instead of
+	DECL_NO_STATIC_CHAIN.
+	* config/i386/i386.c (ix86_static_chain): Use !DECL_STATIC_CHAIN
+	instead of DECL_NO_STATIC_CHAIN.
+	(ix86_function_regparm, find_drap_reg): Likewise.  Don't test
+	decl_function_context.
+	* varasm.c (initializer_constant_valid_p): Likewise.
+	* tree.h (DECL_NO_STATIC_CHAIN): Renamed to ...
+	(DECL_STATIC_CHAIN): ... this.
+	* config/moxie/moxie.c (moxie_static_chain): Use !DECL_STATIC_CHAIN
+	instead of DECL_NO_STATIC_CHAIN.
+
+2009-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Rafael Avila de Espindola  <espindola@google.com>
+
+	* gengtype.c (nb_plugin_files): Make it unsigned to match
+	num_gt_files. Adjust other variables to avoid warnings.
+	(main): Allocate an all zero lang_bitmap before each plugin file name
+	to match regular file names.
+
+2009-09-23  Richard Henderson  <rth@redhat.com>
+
+	* doc/tm.texi (STATIC_CHAIN, STATIC_CHAIN_INCOMING): Remove.
+	(TARGET_STATIC_CHAIN): Mention that this hook must be used for
+	static chain passed in memory.
+	* system.h (STATIC_CHAIN, STATIC_CHAIN_INCOMING): Poison.
+	* targhooks.c (default_static_chain): Don't handle STATIC_CHAIN,
+	STATIC_CHAIN_INCOMING.  Issue a sorry if there's no
+	STATIC_CHAIN_REGNUM defined.
+
+	* config/picochip/picochip-protos.h: s/class/klass/.
+	* config/picochip/picochip.c (TARGET_STATIC_CHAIN): New.
+	(picochip_static_chain): New.
+	* config/picochip/picochip.h (STATIC_CHAIN): Remove.
+	(STATIC_CHAIN_INCOMING): Remove.
+
+	* config/xtensa/xtensa.c (TARGET_STATIC_CHAIN): New.
+	(xtensa_static_chain): New.
+	* config/xtensa/xtensa.h (STATIC_CHAIN, STATIC_CHAIN_INCOMING): Remove.
+
+2009-09-23  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/pa/pa.h (FUNCTION_VALUE): Remove macro.
+	* config/pa/pa-protos.h (function_value): Remove.
+	* config/pa/pa.c (pa_function_value): Rename from function_value.
+	Make static, add 'outgoing' argument.
+	(TARGET_FUNCTION_VALUE): Define.
+
+2009-09-23  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr.c (avr_regs_to_save): Use current_function_is_leaf
+	instead of cfun->machine->is_leaf.
+	* config/avr/avr.h (machine_function): Remove is_leaf field.
+
+2009-09-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/41439
+	* dwarf2out.c (address_of_int_loc_descriptor): Don't emit
+	DW_OP_piece after DW_OP_stack_value, adjust size calculations
+	for it, when DW_OP_stack_value and DW_OP_implicit_value has
+	the same size, prefer DW_OP_stack_value.
+	(loc_descriptor, loc_list_for_address_of_addr_expr_of_indirect_ref,
+	loc_list_from_tree): Don't emit DW_OP_piece after DW_OP_stack_value.
+
 2009-09-23  Alexandre Oliva  <aoliva@redhat.com>
 
 	PR debug/41353
@@ -129,10 +302,6 @@
 	PR debug/41295
 	* reload1.c (reload): Reset debug insns with pseudos without
 	equivalences.
-
-2009-09-22  Neil Vachharajani  <nvachhar@google.com>
-
-	* testsuite/gcc.dg/pr40209.c: Add test case.
 
 2009-09-22  Janis Johnson  <janis187@us.ibm.com>
 
@@ -752,7 +921,6 @@
 	INTERESTING_STRINGOP_TO_PROFILE_P to find size argument.
 	* value-prof.c (gimple_stringops_transform): Update call sites to
 	INTERESTING_STRINGOP_TO_PROFILE_P to reflect parameter change.
-	* testsuite/gcc.dg/tree-prof/val-prof-7.c: Added test case.
 
 2009-09-18  Uros Bizjak  <ubizjak@gmail.com>
 
@@ -5480,12 +5648,6 @@
 	copy of the dependence polyhedron.  Free the temporary objects.
 	(graphite_carried_dependence_level_k): Free unused objects before
 	returning.
-
-	* testsuite/gcc.dg/graphite/interchange-1.c: XFAILed.
-	* testsuite/gcc.dg/graphite/interchange-2.c: XFAILed.
-	* testsuite/gcc.dg/graphite/interchange-3.c: XFAILed.
-	* testsuite/gcc.dg/graphite/interchange-4.c: XFAILed.
-	* testsuite/gcc.dg/graphite/interchange-7.c: XFAILed.
 
 2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -12140,8 +12302,6 @@
 
 	* config/m68k/linux.h (HAVE_GAS_BALIGN_AND_P2ALIGN): Move to ...
 	* config/m68k/m68k.h: ... here.
-	* testsuite/gcc.dg/falign-labels.c (dg-options): Don't restrict for
-	m68k and fido.
 
 2009-06-03  Martin Jambor  <mjambor@suse.cz>
 
@@ -20795,8 +20955,6 @@
 
 	PR target/39501
 	* arm.md (movsfcc): Disable if not TARGET_HARD_FLOAT.
-	* testsuite/gcc.c-torture/execute/pr39501.c: New file.
-	* testsuite/gcc.c-torture/execute/pr39501.x: New file.
 
 2009-04-04  Richard Guenther  <rguenther@suse.de>
 
@@ -24856,7 +25014,6 @@
 	(struct scop): Remove bbs_b bitmap and loop2cloog_loop.
 	(loop_domain_dim, loop_iteration_vector_dim): Remove.
 	(SCOP_BBS_B, bb_in_scop_p, loop_in_scop_p): Removed.
-	* testsuite/gcc.dg/graphite/scop-19.c: New
 
 2009-02-04  Paolo Bonzini  <bonzini@gnu.org>
 	    Hans-Peter Nilsson  <hp@axis.com>
@@ -25893,7 +26050,6 @@
 	PR middlend/38385
 	* tree-loop-distribution.c (prop_phis): New function.
 	(generate_builtin): Call prop_phis.
-	* testsuite/gcc.dg/tree-ssa/pr38385.c: New file.
 
 2009-01-12  Jakub Jelinek  <jakub@redhat.com>
 
