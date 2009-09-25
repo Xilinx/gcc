@@ -1,4 +1,11 @@
 
+2009-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: added more documentation & the
+	add2sbuf_texi_mixloc primitive.
+	* melt/warmelt-macro.melt: added more documentation.
+	* melt/warmelt-outobj.melt: generating more documentation. The
+	iterators & cmatchers are still not documented correctly.
+
 2009-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[merged partly some code from trunk's gengtype]
 	* gengtype.c (is_file_equal): added new function.

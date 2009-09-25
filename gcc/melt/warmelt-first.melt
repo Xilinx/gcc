@@ -853,6 +853,11 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
   (:long imin imax)			;start formals
   eachlong				;state
   (:long ix)				;local formals
+  :doc #{The $FOREACH_LONG_UPTO c-iterator provides the usual
+ascending integer iterator. Start formals are $IMIN, the minimum start
+integer, and $IMAX, le maximal ending integer. Local formal is $IX,
+the current index. The body is executed for each integer value $IX
+from $IMIN to $IMAX included.}#
   ( 					;before expansion
    "/*start " eachlong "*/\n"
    " long " eachlong "_min = " imin ";"
@@ -958,10 +963,18 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
   " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"{%s:%d}\", "
   "LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl ")), "
   "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
+
 ;; primitive to add the short location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_short_mixloc (sbuf mixl) :void
   "/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
   " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"{%s:%d}\", "
+  "lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl "))), "
+  "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
+
+;; primitive to add the texi location info of a mixedloc into a strbuf
+(defprimitive add2sbuf_texi_mixloc (sbuf mixl) :void
+  "/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
+  " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"file @file{%s}, line %d\", "
   "lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl "))), "
   "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
 
@@ -1275,7 +1288,11 @@ Returns a boxed integer.}#
   (:cstring str cstr)
   ()
   strsam
-  #{/*$strsam test*/ ($str && $cstr && !strcmp($str, $cstr)) }#
+  :doc #{The $CSTRING_SAME c-matcher match a string $STR and test if
+  it equal to the constant string $CSTR. The match fails if $STR is a
+  null string or different from $CSTR.}# 
+
+#{/*$strsam test*/ ($str && $cstr && !strcmp($str, $cstr)) }#
   ;; no fill or operator
 )
 
@@ -1401,6 +1418,10 @@ Returns a boxed integer.}#
   (:value bx)
   (:long ict)
   iboxof
+  :doc #{The $INTEGERBOX_OF matches a boxed integer $BX. If indeed it
+  is a boxed integer, its integer content should match $ICT. The match
+  fails if $BX is not a boxed integer (e.g. is the null value or non
+  boxed-integer). See also $MAKE_INTEGERBOX $IS_INTEGERBOX.}#
   ;; test
   #{ /* $iboxof ?*/ $bx && melt_magic_discr($bx) == OBMAG_INT }#
   ;; fill
@@ -2735,6 +2756,10 @@ obtained by quoting an integer.}#
   (lis)					;start formals 
   eachlist				;state
   (curpair curcomp)			;local formals
+  :doc #{The $FOREACH_IN_LIST iterator goes within a list, given by
+the start formal $LIS. Local formals are $CURPAIR, bound to the
+current pair, and $CURCOMP, bound to the current component within the
+list.}#
   (					;before expansion
    "/* start " eachlist "*/\n"
    "for (" curpair " = melt_list_first(" lis ");\n"
@@ -4471,6 +4496,7 @@ obtained by quoting an integer.}#
  add2sbuf_routinedescr
  add2sbuf_sbuf
  add2sbuf_short_mixloc
+ add2sbuf_texi_mixloc
  add2sbuf_strconst
  add2sbuf_string
  andi

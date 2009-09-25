@@ -3494,7 +3494,7 @@
 	 )
     (if (null loc) (return))
     (add2sbuf_strconst outb prefstr)
-    (add2sbuf_short_mixloc outb loc)
+    (add2sbuf_texi_mixloc outb loc)
     (add2sbuf_strconst outb ".")
     (add2sbuf_indentnl outb 0)
     )
@@ -3598,7 +3598,7 @@
     (add2sbuf_strconst outb "@vindex ")
     (add2sbuf_string outb (get_field :named_name cla))
     (add2sbuf_indentnl outb 0)
-    (makedoc_outdefloc outb cladef "Class defined at @file")
+    (makedoc_outdefloc outb cladef "Class defined at ")
     ;; output the list of ancestors
     (if (>i nbclanc 0)
 	(progn
@@ -3641,7 +3641,7 @@
 	   (let ( (fldcla (get_field :fld_ownclass curfld)) )
 	     (if (== fldcla cla)
 		 (progn
-		   (add2sbuf_strconst outb "@tab @strong{")
+		   (add2sbuf_strconst outb " @tab @strong{")
 		   (add2sbuf_string outb (get_field :named_name curfld))
 		   (add2sbuf_strconst outb "} @tab @emph{@code{")
 		   (add2sbuf_string outb (get_field :named_name fldcla))
@@ -3652,7 +3652,7 @@
 		   (add2sbuf_indentnl outb 0)
 		   )
 	       (progn
-		 (add2sbuf_strconst outb "@tab @emph{")
+		 (add2sbuf_strconst outb " @tab @emph{")
 		 (add2sbuf_string outb (get_field :named_name curfld))
 		 (add2sbuf_strconst outb "}")
 		 (add2sbuf_indentnl outb 0)
@@ -3742,8 +3742,8 @@
        ;; don't use makedoc_outdefloc since this is not a definition!
        (if mloc
 	   (progn
-	     (add2sbuf_strconst outb "Macro defined at @file")
-	     (add2sbuf_short_mixloc outb mloc)
+	     (add2sbuf_strconst outb "Macro defined at ")
+	     (add2sbuf_texi_mixloc outb mloc)
 	     (add2sbuf_strconst outb ".")
 	     (add2sbuf_indentnl outb 0)
 	     ))
@@ -3796,8 +3796,8 @@
        ;; don't use makedoc_outdefloc since this is not a definition!
        (if mloc
 	   (progn
-	     (add2sbuf_strconst outb "Pattern macro defined at @file")
-	     (add2sbuf_short_mixloc outb mloc)
+	     (add2sbuf_strconst outb "Pattern macro defined at ")
+	     (add2sbuf_texi_mixloc outb mloc)
 	     (add2sbuf_strconst outb ".")
 	     (add2sbuf_indentnl outb 0)
 	     ))
@@ -3955,7 +3955,7 @@
     (add2sbuf_strconst outb "@vindex ")
     (add2sbuf_string outb (get_field :named_name pnam))
     (add2sbuf_indentnl outb 0)
-    (makedoc_outdefloc outb primdef "Primitive defined at @file")
+    (makedoc_outdefloc outb primdef "Primitive defined at ")
     (add2sbuf_indentnl outb 0)
     (add2sbuf_strconst outb "@strong{result type:} @code{")
     (add2sbuf_string outb (get_field :named_name (get_field :ctype_keyword type)))
@@ -3980,6 +3980,10 @@
 	 (rawprimtup (list_to_multiple rawprimlist discr_multiple))
 	 (sortedprimtup (multiple_sort rawprimtup compare_named_alpha discr_multiple))
 	 )
+  (add2sbuf_strconst outb "There are ")
+  (add2sbuf_longdec outb (multiple_length sortedprimtup))
+  (add2sbuf_strconst outb " primitives.")
+  (add2sbuf_indentnl outb 0)
     (foreach_in_multiple
      (sortedprimtup)
      (curprimdef :long primix)
@@ -3989,6 +3993,9 @@
      )
     )
   )
+
+
+;;;;;;;;;;;;;;;;
 ;;;;; output a function
 (defun makedoc_outfunctiondef (mdinfo outb fundef :long primix)
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
@@ -4006,7 +4013,7 @@
     (add2sbuf_strconst outb "@vindex ")
     (add2sbuf_string outb (get_field :named_name fnam))
     (add2sbuf_indentnl outb 0)
-    (makedoc_outdefloc outb fundef "Function defined at @file")
+    (makedoc_outdefloc outb fundef "Function defined at ")
     (add2sbuf_indentnl outb 0)
     (makedoc_outformals outb args "@strong{Function formals:}")
     ;;; output the function description
@@ -4027,6 +4034,10 @@
 	 (rawfuntup (list_to_multiple rawfunlist discr_multiple))
 	 (sortedfuntup (multiple_sort rawfuntup compare_named_alpha discr_multiple))
 	 )
+    (add2sbuf_strconst outb "There are ")
+    (add2sbuf_longdec outb (multiple_length sortedfuntup))
+    (add2sbuf_strconst outb " functions.")
+    (add2sbuf_indentnl outb 0)
     (foreach_in_multiple
      (sortedfuntup)
      (curfundef :long funix)
@@ -4036,6 +4047,127 @@
      )
     )
   )
+
+
+;;;;;;;;;;;;;;;;
+;;;;; generate the citerators documentation
+(defun makedoc_genciterator (mdinfo outb)
+  (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
+  (assert_msg "check outb" (is_strbuf outb))
+  (add2sbuf_strconst outb "@node MELT c-iterators")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_strconst outb "@section MELT c-iterators")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_indentnl outb 0)
+  (let ( (rawciterlist (get_field :mkdoc_citerators mdinfo))
+	 (rawcitertup (list_to_multiple rawciterlist discr_multiple))
+	 (sortedcitertup (multiple_sort rawcitertup compare_named_alpha discr_multiple))
+	 )
+    (add2sbuf_strconst outb "There are ")
+    (add2sbuf_longdec outb (multiple_length sortedcitertup))
+    (add2sbuf_strconst outb " c-iterators.")
+    (add2sbuf_indentnl outb 0)
+    (foreach_in_multiple
+     (sortedcitertup)
+     (curciterdef :long citix)
+     (debug_msg curciterdef "makedoc_genciterator curciter")
+     (assert_msg "check curciterdef" (is_a curciterdef class_src_defciterator))
+     (let ( (sloc (get_field :loca_location curciterdef) )
+	    (snam (get_field :sdef_name curciterdef))
+	    (sdoc (get_field :sdef_doc curciterdef))
+	    (citer (get_field :sciterdef_citerator curciterdef))
+	    )
+       (assert_msg "check citer" (is_a citer class_citerator))
+       (add2sbuf_indentnl outb 0)
+       (add2sbuf_strconst outb "@subsection @var{")
+       (add2sbuf_string outb (get_field :named_name snam))
+       (add2sbuf_strconst outb "}")
+       (add2sbuf_indentnl outb 0)
+       (add2sbuf_strconst outb "@vindex ")
+       (add2sbuf_string outb (get_field :named_name snam))
+       (add2sbuf_indentnl outb 0)
+       (makedoc_outdefloc outb curciterdef "C-iterator defined at ")
+       (add2sbuf_indentnl outb 0)
+       (makedoc_outformals outb (get_field :citer_start_formals citer) "@strong{c-iterator start formals:}")
+       (add2sbuf_indentnl outb 0)
+       (makedoc_outformals outb (get_field :citer_body_formals citer) "@strong{c-iterator body formals:}")
+;;; output the function description
+       (makedoc_outdoc outb sdoc "@strong{C-iterator description:} ")
+       (add2sbuf_indentnl outb 0) 
+       )
+     )
+    )
+  (compile_warning "makedoc_genciterator incomplete")
+  )
+
+
+;;;;;;;;;;;;;;;;
+;;;;; generate the cmatchers documentation
+(defun makedoc_gencmatcher (mdinfo outb)
+  (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
+  (assert_msg "check outb" (is_strbuf outb))
+  (add2sbuf_strconst outb "@node MELT c-matchers")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_strconst outb "@section MELT c-matchers")
+  (add2sbuf_indentnl outb 0)
+  (add2sbuf_indentnl outb 0)
+  (let ( (rawcmatchlist (get_field :mkdoc_cmatchers mdinfo))
+	 (rawcmatchtup (list_to_multiple rawcmatchlist discr_multiple))
+	 (sortedcmatchtup (multiple_sort rawcmatchtup compare_named_alpha discr_multiple))
+	 )
+    (add2sbuf_strconst outb "There are ")
+    (add2sbuf_longdec outb (multiple_length sortedcmatchtup))
+    (add2sbuf_strconst outb " c-matchers.")
+    (add2sbuf_indentnl outb 0)
+    (foreach_in_multiple
+     (sortedcmatchtup)
+     (curcmatchdef :long citix)
+     (debug_msg curcmatchdef "makedoc_gencmatcher curcmatch")
+     (assert_msg "check curcmatchdef" (is_a curcmatchdef class_src_defcmatcher))
+     (let (
+	   (snam (get_field :sdef_name curcmatchdef))
+	   (sdoc (get_field :sdef_doc curcmatchdef))
+	   (cmatch (get_field :scmatdef_cmatcher curcmatchdef)) 
+	   (cmin (get_field :amatch_in cmatch))
+	   (cmabind (get_field :amatch_matchbind cmatch))
+	   (cmout (get_field :amatch_out cmatch))
+	   )
+       (add2sbuf_indentnl outb 0)
+       (add2sbuf_strconst outb "@subsection @var{")
+       (add2sbuf_string outb (get_field :named_name snam))
+       (add2sbuf_strconst outb "}")
+       (add2sbuf_indentnl outb 0)
+       (add2sbuf_strconst outb "@vindex ")
+       (add2sbuf_string outb (get_field :named_name snam))
+       (add2sbuf_indentnl outb 0)
+       (makedoc_outdefloc outb curcmatchdef "C-matcher defined at ")
+       (add2sbuf_indentnl outb 0)
+       (add2sbuf_strconst outb "@strong{c-matcher matching formal:} @var{")
+       (let ( (manamb (get_field :binder cmabind)) )
+	 (add2sbuf_string outb (get_field :named_name manamb)) 
+	 (add2sbuf_strconst outb "} - @slanted{")
+	 (add2sbuf_string outb 
+			  (get_field :named_name 
+				     (get_field :ctype_keyword 
+						(get_field :fbind_type cmabind))))
+	 (add2sbuf_strconst outb "}")
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "@vindex ")
+	 (add2sbuf_string outb (get_field :named_name manamb)) 
+	 (add2sbuf_indentnl outb 0)
+	 )
+       (makedoc_outformals outb cmin "@strong{c-matcher input formals:}")
+       (add2sbuf_indentnl outb 0)
+       (makedoc_outformals outb cmout "@strong{c-matcher output formals:}")
+       (add2sbuf_indentnl outb 0)
+       (makedoc_outdoc outb sdoc "@strong{C-matcher description:} ")
+       (add2sbuf_indentnl outb 0)
+       )
+     )
+    )
+  )
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; makedoc - generate the output file
 
@@ -4072,6 +4204,10 @@
 	 (add2sbuf_indentnl outb 0)
 	 (add2sbuf_strconst outb "* MELT functions:: The MELT functions.")
 	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "* MELT c-iterators:: The MELT c-iterators.")
+	 (add2sbuf_indentnl outb 0)
+	 (add2sbuf_strconst outb "* MELT c-matchers:: The MELT c-matchers.")
+	 (add2sbuf_indentnl outb 0)
 	 (add2sbuf_strconst outb "@end menu")
 	 (add2sbuf_indentnl outb 0)
 	 ;; generate macro related stuff
@@ -4084,6 +4220,10 @@
 	 (makedoc_genprimitive mdinfo outb)
 	 ;; generate function related stuff
 	 (makedoc_genfunction mdinfo outb)
+	 ;; generate c-iterators related stuff
+	 (makedoc_genciterator mdinfo outb)
+	 ;; generate c-matchers related stuff
+	 (makedoc_gencmatcher mdinfo outb)
 	 (add2sbuf_indentnl outb 0)
 	 (add2sbuf_strconst outb "@c **** end of makedoc generated file ")
 	 (add2sbuf_string outb outarg)

@@ -152,13 +152,18 @@
   :super class_src
   :fields (sdef_name			;defined name
 	   sdef_doc			;documentation string or list
-	   ))
+	   )
+  :doc #{The common super-class for all source definitions is
+  $CLASS_SRCDEF. The field $SDEF_NAME is the defined name. The field
+  $SDEF_DOC gives the optional documentation.}#  )
 
 ;;; superclass for all definitions with formal arglist
 (defclass class_srcdeformal
   :super class_srcdef
   :fields (sformal_args			;formal arguments binding tuple
-	   ))
+	   )
+  :doc #{The $CLASS_SRCDEFORMAL is the super-class of all definitions
+with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;;;; define a function
 (defclass class_src_defun
