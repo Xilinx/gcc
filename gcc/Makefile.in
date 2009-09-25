@@ -2133,7 +2133,8 @@ gtype-desc.o: gtype-desc.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 
 trans-mem.o : trans-mem.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(TREE_H) $(GIMPLE_H) $(TREE_FLOW_H) tree-pass.h except.h \
-	$(DIAGNOSTIC_H) $(TOPLEV_H) $(FLAGS_H) $(DEMANGLE_H) $(TRANS_MEM_H)
+	$(DIAGNOSTIC_H) $(TOPLEV_H) $(FLAGS_H) $(DEMANGLE_H) $(TRANS_MEM_H) \
+	$(TREE_DUMP_H)
 
 ggc-common.o: ggc-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h		\
 	$(GGC_H) $(HASHTAB_H) $(TOPLEV_H) $(PARAMS_H) hosthooks.h	\

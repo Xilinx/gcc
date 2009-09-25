@@ -23,6 +23,7 @@
 #include "tm.h"
 #include "tree.h"
 #include "gimple.h"
+#include "tree-dump.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
 #include "tree-inline.h"
@@ -274,6 +275,64 @@ is_tm_ending_fndecl (tree fndecl)
       case BUILT_IN_TM_COMMIT_EH:
       case BUILT_IN_TM_ABORT:
       case BUILT_IN_TM_IRREVOCABLE:
+	return true;
+      default:
+	break;
+      }
+
+  return false;
+}
+
+/* Return true if STMT is a TM load.  */
+
+static bool
+is_tm_load (gimple stmt)
+{
+  tree fndecl;
+
+  if (gimple_code (stmt) != GIMPLE_CALL)
+    return false;
+
+  fndecl = gimple_call_fndecl (stmt);
+  if (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (fndecl))
+      {
+      case BUILT_IN_TM_LOAD_1:
+      case BUILT_IN_TM_LOAD_2:
+      case BUILT_IN_TM_LOAD_4:
+      case BUILT_IN_TM_LOAD_8:
+      case BUILT_IN_TM_LOAD_FLOAT:
+      case BUILT_IN_TM_LOAD_DOUBLE:
+      case BUILT_IN_TM_LOAD_LDOUBLE:
+	return true;
+      default:
+	break;
+      }
+
+  return false;
+}
+
+/* Return true if STMT is a TM store.  */
+
+static bool
+is_tm_store (gimple stmt)
+{
+  tree fndecl;
+
+  if (gimple_code (stmt) != GIMPLE_CALL)
+    return false;
+
+  fndecl = gimple_call_fndecl (stmt);
+  if (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (fndecl))
+      {
+      case BUILT_IN_TM_STORE_1:
+      case BUILT_IN_TM_STORE_2:
+      case BUILT_IN_TM_STORE_4:
+      case BUILT_IN_TM_STORE_8:
+      case BUILT_IN_TM_STORE_FLOAT:
+      case BUILT_IN_TM_STORE_DOUBLE:
+      case BUILT_IN_TM_STORE_LDOUBLE:
 	return true;
       default:
 	break;
@@ -1506,17 +1565,508 @@ struct gimple_opt_pass pass_tm_edges =
  }
 };
 
+/* A unique TM memory operation.  */
+typedef struct tm_memop
+{
+  /* Unique ID that all memory operations to the same location have.  */
+  unsigned int value_id;
+  /* Address of load/store.  */
+  tree addr;
+} *tm_memop_t;
+
+/* Sets for solving data flow equations in the memory optimization pass.  */
+struct tm_memopt_bitmaps
+{
+  /* Stores available to this BB upon entry.  Basically, stores that
+     dominate this BB.  */
+  bitmap store_avail_in;
+  /* Stores available at the end of this BB.  */
+  bitmap store_avail_out;
+  bitmap store_antic_in;
+  bitmap store_antic_out;
+  /* Reads available to this BB upon entry.  Basically, reads that
+     dominate this BB.  */
+  bitmap read_avail_in;
+  /* Reads available at the end of this BB.  */
+  bitmap read_avail_out;
+  /* Reads performed in this BB.  */
+  bitmap read_local;
+  /* Writes performed in this BB.  */
+  bitmap store_local;
+  /* Temporary storage for pass.  Is the current BB in the worklist.  */
+  bool avail_in_worklist_p;
+};
+
+/* Unique counter for TM loads and stores. Loads and stores of the
+   same address get the same ID.  */
+static unsigned int tm_memopt_value_id;
+static htab_t tm_memopt_value_numbers;
+
+#define STORE_AVAIL_IN(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->store_avail_in
+#define STORE_AVAIL_OUT(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->store_avail_out
+#define STORE_ANTIC_IN(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->store_antic_in
+#define STORE_ANTIC_OUT(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->store_antic_out
+#define READ_AVAIL_IN(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->read_avail_in
+#define READ_AVAIL_OUT(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->read_avail_out
+#define READ_LOCAL(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->read_local
+#define STORE_LOCAL(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->store_local
+#define AVAIL_IN_WORKLIST_P(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->avail_in_worklist_p
+
+/* Return the list of basic-blocks in REGION.  */
+
+static VEC (basic_block, heap) *
+get_tm_region_blocks (struct tm_region *region)
+{
+  VEC(basic_block, heap) *bbs = NULL;
+  unsigned i;
+  basic_block bb = region->entry_block;
+
+  i = 0;
+  VEC_safe_push (basic_block, heap, bbs, bb);
+
+  do
+    {
+      basic_block son;
+
+      bb = VEC_index (basic_block, bbs, i++);
+      if (!bitmap_bit_p (region->exit_blocks, bb->index))
+	for (son = first_dom_son (CDI_DOMINATORS, bb);
+	     son;
+	     son = next_dom_son (CDI_DOMINATORS, son))
+	  VEC_safe_push (basic_block, heap, bbs, son);
+    }
+  while (i < VEC_length (basic_block, bbs));
+
+  return bbs;
+}
+
+/* Htab support.  Return a hash value for a `tm_memop'.  */
+static hashval_t
+tm_memop_hash (const void *p)
+{
+  const struct tm_memop *mem = (const struct tm_memop *) p;
+  tree addr = mem->addr;
+  /* We drill down to the SSA_NAME/DECL for the hash, but equality is
+     actually done with operand_equal_p (see tm_memop_eq).  */
+  if (TREE_CODE (addr) == ADDR_EXPR)
+    addr = TREE_OPERAND (addr, 0);
+  return iterative_hash_expr (addr, 0);
+}
+
+/* Htab support.  Return true if two tm_memop's are the same.  */
+static int
+tm_memop_eq (const void *p1, const void *p2)
+{
+  const struct tm_memop *mem1 = (const struct tm_memop *) p1;
+  const struct tm_memop *mem2 = (const struct tm_memop *) p2;
+
+  return operand_equal_p (mem1->addr, mem2->addr, 0);
+}
+
+/* Given a TM load/store in STMT, return the value number for the address
+   it accesses.  */
+
+static unsigned int
+tm_memopt_value_number (gimple stmt, enum insert_option op)
+{
+  struct tm_memop tmpmem, *mem;
+  void **slot;
+
+  gcc_assert (is_tm_load (stmt) || is_tm_store (stmt));
+  tmpmem.addr = gimple_call_arg (stmt, 0);
+  slot = htab_find_slot (tm_memopt_value_numbers, &tmpmem, op);
+  if (*slot)
+    mem = (struct tm_memop *) *slot;
+  else if (op == INSERT)
+    {
+      mem = XNEW (struct tm_memop);
+      *slot = mem;
+      mem->value_id = tm_memopt_value_id++;
+      mem->addr = tmpmem.addr;
+    }
+  else
+    gcc_unreachable ();
+  return mem->value_id;
+}
+
+/* Accumulate TM memory operations in BB into STORE_LOCAL and READ_LOCAL.  */
+
+static void
+tm_memopt_accumulate_memops (basic_block bb)
+{
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      bitmap bits;
+      unsigned int loc;
+
+      if (is_tm_store (stmt))
+	bits = STORE_LOCAL (bb);
+      else if (is_tm_load (stmt))
+	bits = READ_LOCAL (bb);
+      else
+	continue;
+
+      loc = tm_memopt_value_number (stmt, INSERT);
+      bitmap_set_bit (bits, loc);
+      if (dump_file)
+	{
+	  fprintf (dump_file, "TM memopt (%s): value num=%d, BB=%d, addr=",
+		   is_tm_load (stmt) ? "LOAD" : "STORE", loc,
+		   gimple_bb (stmt)->index);
+	  print_generic_expr (dump_file, gimple_call_arg (stmt, 0), 0);
+	  fprintf (dump_file, "\n");
+	}
+    }
+}
+
+/* Inform about an upcoming load/store optimization.  STMT is the
+   statement about to be transformed.  PREFIX is the type of
+   optimization to be done.  */
+
+static void
+dump_tm_memopt_transform (const char *prefix, gimple stmt)
+{
+  if (dump_file)
+    {
+      fprintf (dump_file, "TM memopt: transforming into %s: ", prefix);
+      print_gimple_stmt (dump_file, stmt, 0, 0);
+      fprintf (dump_file, "\n");
+    }
+}
+
+/* Prettily dump one of the memopt sets.  BITS is the bitmap to dump.  */
+
+static void
+dump_tm_memopt_set (const char *set_name, bitmap bits)
+{
+  unsigned i;
+  bitmap_iterator bi;
+  const char *comma = "";
+
+  fprintf (dump_file, "TM memopt: %s: [", set_name);
+  EXECUTE_IF_SET_IN_BITMAP (bits, 0, i, bi)
+    {
+      htab_iterator hi;
+      struct tm_memop *mem;
+
+      /* Yeah, yeah, yeah.  Whatever.  This is just for debugging.  */
+      FOR_EACH_HTAB_ELEMENT (tm_memopt_value_numbers, mem, tm_memop_t, hi)
+	if (mem->value_id == i)
+	  break;
+      gcc_assert (mem->value_id == i);
+      fprintf (dump_file, "%s", comma);
+      comma = ", ";
+      print_generic_expr (dump_file, mem->addr, 0);
+    }
+  fprintf (dump_file, "]\n");
+}
+
+/* Prettily dump all of the memopt sets in BLOCKS.  */
+
+static void
+dump_tm_memopt_sets (VEC (basic_block, heap) *blocks)
+{
+  size_t i;
+  basic_block bb;
+
+  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
+    {
+      fprintf (dump_file, "------------BB %d---------\n", bb->index);
+      dump_tm_memopt_set ("STORE_LOCAL", STORE_LOCAL (bb));
+      dump_tm_memopt_set ("READ_LOCAL", READ_LOCAL (bb));
+      dump_tm_memopt_set ("STORE_AVAIL_IN", STORE_AVAIL_IN (bb));
+      dump_tm_memopt_set ("STORE_AVAIL_OUT", STORE_AVAIL_OUT (bb));
+      dump_tm_memopt_set ("READ_AVAIL_IN", READ_AVAIL_IN (bb));
+      dump_tm_memopt_set ("READ_AVAIL_OUT", READ_AVAIL_OUT (bb));
+    }
+}
+
+/* Compute {STORE,READ}_AVAIL_IN for the basic block BB in REGION.  */
+
+static void
+tm_memopt_compute_avin (struct tm_region *region, basic_block bb)
+{
+  edge e;
+  unsigned ix;
+
+  /* The entry block has an AVIN of NULL.  */
+  if (bb == region->entry_block)
+    return;
+
+  /* Seed with the AVOUT of any predecessor.  */
+  e = EDGE_PRED (bb, 0);
+  bitmap_copy (STORE_AVAIL_IN (bb), STORE_AVAIL_OUT (e->src));
+  bitmap_copy (READ_AVAIL_IN (bb), READ_AVAIL_OUT (e->src));
+
+  for (ix = 1; ix < EDGE_COUNT (bb->preds); ix++)
+    {
+      e = EDGE_PRED (bb, ix);
+      bitmap_and_into (STORE_AVAIL_IN (bb), STORE_AVAIL_OUT (e->src));
+      bitmap_and_into (READ_AVAIL_IN (bb), READ_AVAIL_OUT (e->src));
+    }
+}
+
+/* Compute the AVAIL sets for every basic block in BLOCKS.
+
+   We compute {STORE,READ}_AVAIL_{OUT,IN} as follows:
+
+     AVAIL_OUT[bb] = union (AVAIL_IN[bb], LOCAL[bb])
+     AVAIL_IN[bb]  = intersect (AVAIL_OUT[predecessors])
+
+   This is basically what we do in lcm's compute_available(), but here
+   we calculate two sets of sets (one for STOREs and one for READs),
+   and we work on a region instead of the entire CFG.
+
+   REGION is the TM region.
+   BLOCKS are the basic blocks in the region.  */
+
+static void
+tm_memopt_compute_available (struct tm_region *region,
+			     VEC (basic_block, heap) *blocks)
+{
+  edge e;
+  basic_block *worklist, *qin, *qout, *qend, bb;
+  unsigned int qlen, i;
+  edge_iterator ei;
+  bool changed;
+
+  /* Seed AVAIL_OUT with the LOCAL set.  */
+  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
+    {
+      bitmap_ior_into (STORE_AVAIL_OUT (bb), STORE_LOCAL (bb));
+      bitmap_ior_into (READ_AVAIL_OUT (bb), READ_LOCAL (bb));
+    }
+
+  /* Allocate a worklist array/queue.  Entries are only added to the
+     list if they were not already on the list.  So the size is
+     bounded by the number of basic blocks in the region.  */
+  qlen = VEC_length (basic_block, blocks);
+  qin = qout = worklist = 
+    XNEWVEC (basic_block, qlen);
+
+  /* Put every block in the region on the worklist.  */
+  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); i++)
+    {
+      *qin++ = bb;
+      AVAIL_IN_WORKLIST_P (bb) = true;
+    }
+
+  qin = worklist;
+  qend = &worklist[qlen];
+
+  /* Iterate until the worklist is empty.  */
+  while (qlen)
+    {
+      /* Take the first entry off the worklist.  */
+      bb = *qout++;
+      qlen--;
+
+      if (qout >= qend)
+	qout = worklist;
+
+      /* The entry block has nothing coming in.  */
+      if (bb == region->entry_block)
+	{
+	  /* Do not clear AVAIL_IN_WORKLIST_P, so we never add the
+	     entry block to the worklist again.  */
+	  bitmap_clear (STORE_AVAIL_IN (bb));
+	  bitmap_clear (READ_AVAIL_IN (bb));
+	}
+      else
+	{
+	  /* This block can be added to the worklist again if
+	     necessary.  */
+	  AVAIL_IN_WORKLIST_P (bb) = false;;
+	  tm_memopt_compute_avin (region, bb);
+	}
+
+      /* Note: We do not add the LOCAL sets here because we already
+	 seeded the AVAIL_OUT sets with them.  */
+      changed  = bitmap_ior_into (STORE_AVAIL_OUT (bb), STORE_AVAIL_IN (bb));
+      changed |= bitmap_ior_into (READ_AVAIL_OUT (bb), READ_AVAIL_IN (bb));
+      if (changed && !bitmap_bit_p (region->exit_blocks, bb->index))
+	/* If the out state of this block changed, then we need
+	   to add the successors of this block to the worklist
+	   if they are not already on the worklist.  */
+	FOR_EACH_EDGE (e, ei, bb->succs)
+	  if (!AVAIL_IN_WORKLIST_P (e->dest))
+	    {
+	      *qin++ = e->dest;
+	      AVAIL_IN_WORKLIST_P (e->dest) = true;
+	      qlen++;
+
+	      if (qin >= qend)
+		qin = worklist;
+	    }
+    }
+
+  free (worklist);
+
+  if (dump_file)
+    dump_tm_memopt_sets (blocks);
+}
+
+/* Perform the actual TM memory optimization transformations in the
+   basic blocks in BLOCKS.  */
+
+static void
+tm_memopt_transform_blocks (VEC (basic_block, heap) *blocks)
+{
+  size_t i;
+  basic_block bb;
+  gimple_stmt_iterator gsi;
+
+  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
+    {
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	{
+	  gimple stmt = gsi_stmt (gsi);
+	  bitmap read_avail = READ_AVAIL_IN (bb);
+	  bitmap store_avail = STORE_AVAIL_IN (bb);
+	  bitmap store_antic = STORE_ANTIC_OUT (bb);
+	  unsigned int loc;
+
+	  if (is_tm_load (stmt))
+	    {
+	      loc = tm_memopt_value_number (stmt, NO_INSERT);
+	      if (store_avail && bitmap_bit_p (store_avail, loc))
+		{
+		  dump_tm_memopt_transform ("RaW", stmt);
+		}
+	      else if (store_antic && bitmap_bit_p (store_antic, loc))
+		{
+		  dump_tm_memopt_transform ("RfW", stmt);
+		  bitmap_set_bit (store_avail, loc);
+		}
+	      else if (read_avail && bitmap_bit_p (read_avail, loc))
+		{
+		  dump_tm_memopt_transform ("RaR", stmt);
+		}
+	      else
+		{
+		  bitmap_set_bit (read_avail, loc);
+		}
+	    }
+	  else if (is_tm_store (stmt))
+	    {
+	      loc = tm_memopt_value_number (stmt, NO_INSERT);
+	      if (store_avail && bitmap_bit_p (store_avail, loc))
+		{
+		  dump_tm_memopt_transform ("WaW", stmt);
+		}
+	      else
+		{
+		  if (read_avail && bitmap_bit_p (read_avail, loc))
+		    {
+		      dump_tm_memopt_transform ("WaR", stmt);
+		    }
+		  bitmap_set_bit (store_avail, loc);
+		}
+	    }
+        }
+    }
+}
+
+/* Return a new set of bitmaps for a BB.  */
+
+static struct tm_memopt_bitmaps *
+tm_memopt_init_sets (void)
+{
+  struct tm_memopt_bitmaps *b = XCNEWVEC (struct tm_memopt_bitmaps, 1);
+  b->store_avail_in = BITMAP_ALLOC (NULL);
+  b->store_avail_out = BITMAP_ALLOC (NULL);
+  b->store_antic_in = BITMAP_ALLOC (NULL);
+  b->store_avail_out = BITMAP_ALLOC (NULL);
+  b->read_avail_in = BITMAP_ALLOC (NULL);
+  b->read_avail_out = BITMAP_ALLOC (NULL);
+  b->read_local = BITMAP_ALLOC (NULL);
+  b->store_local = BITMAP_ALLOC (NULL);
+  return b;
+}
+
+/* Free sets computed for each BB.  */
+
+static void
+tm_memopt_free_sets (VEC (basic_block, heap) *blocks)
+{
+  size_t i;
+  basic_block bb;
+
+  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
+    {
+      BITMAP_FREE (STORE_AVAIL_IN (bb));
+      BITMAP_FREE (STORE_AVAIL_OUT (bb));
+      BITMAP_FREE (STORE_ANTIC_IN (bb));
+      BITMAP_FREE (STORE_AVAIL_OUT (bb));
+      BITMAP_FREE (READ_AVAIL_IN (bb));
+      BITMAP_FREE (READ_AVAIL_OUT (bb));
+      BITMAP_FREE (READ_LOCAL (bb));
+      BITMAP_FREE (STORE_LOCAL (bb));
+      free (bb->aux);
+      bb->aux = NULL;
+    }
+}
+
+/* Replace TM load/stores with hints for the runtime.  We handle
+   things like read-after-write, write-after-read, read-after-read,
+   read-for-write, etc.  */
 
 static unsigned int
 execute_tm_memopt (void)
 {
+  struct tm_region *region;
+  VEC (basic_block, heap) *bbs;
+
+  tm_memopt_value_id = 0;
+  tm_memopt_value_numbers = htab_create (10, tm_memop_hash, tm_memop_eq, free);
+
+  for (region = all_tm_regions; region; region = region->next)
+   {
+     /* All the TM stores/loads in the current region.  */
+     size_t i;
+     basic_block bb;
+
+     /* Save all BBs for the current region.  */
+     bbs = get_tm_region_blocks (region);
+     /* Collect all the memory operations.  */
+     for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
+       {
+	 bb->aux = tm_memopt_init_sets ();
+	 tm_memopt_accumulate_memops (bb);
+       }
+     /* Solve data flow equations and transform each block accordingly.  */
+     tm_memopt_compute_available (region, bbs);
+     /* FIXME:
+	tm_memopt_compute_antic (region, bbs);
+	STORE_ANTIC_OUT[bb] = union(STORE_ANTIC_IN[bb], STORE_LOCAL[bb])
+	STORE_ANTIC_IN[bb]  = intersect(STORE_ANTIC_OUT[successors])
+     */
+     tm_memopt_transform_blocks(bbs);
+
+     tm_memopt_free_sets (bbs);
+     VEC_free (basic_block, heap, bbs);
+     htab_delete (tm_memopt_value_numbers);
+   }
+
   return 0;
 }
 
 static bool
 gate_tm_memopt (void)
 {
-  return 0 && optimize > 0;
+  return flag_tm && optimize > 0;
 }
 
 struct gimple_opt_pass pass_tm_memopt =

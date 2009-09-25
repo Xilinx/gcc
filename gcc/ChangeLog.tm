@@ -1,3 +1,25 @@
+2009-09-25  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c: Include tree-dump.h
+	(is_tm_load): New.
+	(is_tm_store): New.
+	(get_tm_region_blocks): New.
+	(tm_memop_hash): New.
+	(tm_memop_eq): New.
+	(tm_memopt_value_number): New.
+	(tm_memopt_accumulate_memops): New.
+	(dump_tm_memopt_transform): New.
+	(dump_tm_memopt_set): New.
+	(dump_tm_memopt_sets): New.
+	(tm_memopt_compute_avin): New.
+	(tm_memopt_compute_available): New.
+	(tm_memopt_transform_blocks): New.
+	(tm_memopt_init_sets): New.
+	(tm_memopt_free_sets): New.
+	(execute_tm_memopt): New.
+	(gate_tm_memopt): Activate.
+	* Makefile.in (trans-mem.o): Depend on TREE_DUMP_H.
+
 2009-09-10  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (record_tm_replacement): Set DECL_UNINLINABLE.
