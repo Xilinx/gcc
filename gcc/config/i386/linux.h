@@ -213,4 +213,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifdef TARGET_LIBC_PROVIDES_SSP
 /* i386 glibc provides __stack_chk_guard in %gs:0x14.  */
 #define TARGET_THREAD_SSP_OFFSET	0x14
+
+/* For now -fsplit-stack uses the same field.  */
+#define TARGET_THREAD_SPLIT_STACK_OFFSET TARGET_THREAD_SSP_OFFSET
 #endif

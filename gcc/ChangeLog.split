@@ -1,5 +1,26 @@
 2009-09-25  Ian Lance Taylor  <iant@google.com>
 
+	* config/i386/i386.c (ix86_supports_split_stack): New static
+	function.
+	(split_stack_fn): New static variable.
+	(ix86_expand_split_stack_prologue): New function.
+	(ix86_expand_call): Return the new call insn.
+	(TARGET_SUPPORTS_SPLIT_STACK): Define.
+	* config/i386/i386.md (UNSPEC_STACK_CHECK): Define constant.
+	(split_stack_prologue): New expander.
+	(split_stack_check_small): New expander.
+	(split_stack_compare_small_32): New insn.
+	(split_stack_compare_small_64): New insn.
+	(split_stack_check_large): New expander.
+	(split_stack_compare_large_32): New insn.
+	(split_stack_compare_large_64): New insn.
+	* config/i386/linux.h (TARGET_THREAD_SPLIT_STACK_OFFSET): Define.
+	* config/i386/linux64.h (TARGET_THREAD_SPLIT_STACK_OFFSET):
+	Define.
+	* config/i386/i386-protos.h (ix86_expand_split_stack_prologue):
+	Declare.
+	(ix86_ewxpand_call): Change return type in declaration.
+
 	* opts.c (decode_options): Set flag_split_stack.
 	* target.h (struct gcc_target): Add supports_split_stack field.
 	* target-def.h (TARGET_SUPPORTS_SPLIT_STACK): Define.
