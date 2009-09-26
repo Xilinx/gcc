@@ -1,3 +1,8 @@
+2009-09-26  Ian Lance Taylor  <iant@google.com>
+
+	* generic-morestack.c: Don't build anything if inhibit_libc is
+	defined.
+
 2009-09-25  Ian Lance Taylor  <iant@google.com>
 
 	* config/i386/morestack.S: New file.

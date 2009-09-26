@@ -28,8 +28,14 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "coretypes.h"
 #include "tm.h"
 
-/* FIXME: If inhibit_libc is defined, then we can't include these
-   header files.  But what should we do in that case?  */
+/* If inhibit_libc is defined, we can not compile this file.  The
+   effect is that people will not be able to use -fsplit-stack.  That
+   is much better than failing the build particularly since people
+   will want to define inhibit_libc while building a compiler which
+   can build glibc.  */
+
+#ifndef inhibit_libc
+
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
@@ -339,3 +345,5 @@ __generic_releasestack (void)
 
   return current->old_stack;
 }
+
+#endif /* !defined (inhibit_libc) */
