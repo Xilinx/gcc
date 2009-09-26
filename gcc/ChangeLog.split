@@ -1,0 +1,19 @@
+2009-09-25  Ian Lance Taylor  <iant@google.com>
+
+	* opts.c (decode_options): Set flag_split_stack.
+	* target.h (struct gcc_target): Add supports_split_stack field.
+	* target-def.h (TARGET_SUPPORTS_SPLIT_STACK): Define.
+	(TARGET_INITIALIZER): Add TARGET_SUPPORTS_SPLIT_STACK.
+	* function.c (thread_prologue_and_epilogue_insns): Support
+	flag_split_stack.
+	* cfgbuild.c (make_label_edge): Add insn parameter.  Change all
+	callers.
+	* c-common.c (c_common_attribute_table): Add "no_split_stack".
+	(handle_no_split_stack_attribute): New static function.
+
+
+Copyright (C) 2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

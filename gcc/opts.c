@@ -1114,6 +1114,19 @@ decode_options (unsigned int argc, const char **argv)
         PARAM_VALUE (PARAM_STACK_FRAME_GROWTH) = 40;
     }
 
+  /* We initialize flag_split_stack to -1 so that targets can set a
+     default value if they choose based on other options.  */
+  if (flag_split_stack == -1)
+    flag_split_stack = 0;
+  else
+    {
+      if (!targetm.supports_split_stack())
+	{
+	  error ("%<-fsplit-stack%> is not supported by "
+		 "this compiler configuration");
+	  flag_split_stack = 0;
+	}
+    }
 }
 
 #define LEFT_COLUMN	27
