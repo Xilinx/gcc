@@ -1,0 +1,15 @@
+2009-09-25  Ian Lance Taylor  <iant@google.com>
+
+	* config/i386/morestack.S: New file.
+	* config/i386/t-stack-i386: New file.
+	* generic-morestack.c: New file.
+	* config/t-stack: New file.
+	* config.host (cpu_type): Add t-stack and i386/t-stack-i386 for
+	x86-*-*gnu targets.
+
+
+Copyright (C) 2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
