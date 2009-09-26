@@ -1,5 +1,10 @@
 2009-09-25  Ian Lance Taylor  <iant@google.com>
 
+	* testsuite/gcc.dg/split-1.c: New test.
+	* testsuite/gcc.dg/split-2.c: New test.
+	* testsuite/lib/target-supports.exp
+	(check_effective_target_split_stack): New function.
+
 	* config/i386/i386.c (ix86_supports_split_stack): New static
 	function.
 	(split_stack_fn): New static variable.
