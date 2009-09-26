@@ -29,6 +29,10 @@ along with GCC; see the file COPYING3.  If not see
 int gfc_matching_procptr_assignment = 0;
 bool gfc_matching_prefix = false;
 
+/* Used for SELECT TYPE statements.  */
+gfc_symbol *type_selector;
+gfc_symtree *select_type_tmp;
+
 /* For debugging and diagnostic purposes.  Return the textual representation
    of the intrinsic operator OP.  */
 const char *
@@ -4005,26 +4009,44 @@ gfc_match_select_type (void)
   if (m == MATCH_ERROR)
     return m;
 
-  m = gfc_match (" select type ( %e )%t", &expr);
+  m = gfc_match (" select type ( %e ", &expr);
   if (m != MATCH_YES)
     return m;
 
-  /* TODO: Loosen this restriction once ASSOCIATE is implemented, cf. F03:C811.  */
-  if (expr->expr_type != EXPR_VARIABLE)
+  /* TODO: Implement ASSOCIATE.  */
+  m = gfc_match (" => ");
+  if (m == MATCH_YES)
     {
-      gfc_error ("Selector must be a named variable in SELECT TYPE statement at %C");
+      gfc_error ("Associate-name in SELECT TYPE statement at %C "
+		 "is not yet supported");
+      return MATCH_ERROR;
+    }
+
+  m = gfc_match (" )%t");
+  if (m != MATCH_YES)
+    return m;
+
+  /* Check for F03:C811.
+     TODO: Change error message once ASSOCIATE is implemented.  */
+  if (expr->expr_type != EXPR_VARIABLE || expr->ref != NULL)
+    {
+      gfc_error ("Selector must be a named variable in SELECT TYPE statement "
+		 "at %C");
       return MATCH_ERROR;
     }
 
   /* Check for F03:C813.  */
   if (expr->ts.type != BT_CLASS)
     {
-      gfc_error ("Selector shall be polymorphic in SELECT TYPE statement at %C");
+      gfc_error ("Selector shall be polymorphic in SELECT TYPE statement "
+		 "at %C");
       return MATCH_ERROR;
     }
 
   new_st.op = EXEC_SELECT_TYPE;
   new_st.expr1 = expr;
+
+  type_selector = expr->symtree->n.sym;
 
   return MATCH_YES;
 }
@@ -4109,6 +4131,7 @@ gfc_match_type_is (void)
 {
   gfc_case *c = NULL;
   match m;
+  char name[GFC_MAX_SYMBOL_LEN];
 
   if (gfc_current_state () != COMP_SELECT_TYPE)
     {
@@ -4138,6 +4161,13 @@ gfc_match_type_is (void)
 
   new_st.op = EXEC_SELECT_TYPE;
   new_st.ext.case_list = c;
+
+  /* Create temporary variable.  */
+  sprintf (name, "tmp$%s", c->ts.u.derived->name);
+  gfc_get_sym_tree (name, gfc_current_ns, &select_type_tmp, false);
+  select_type_tmp->n.sym->ts = c->ts;
+  select_type_tmp->n.sym->attr.referenced = 1;
+  select_type_tmp->n.sym->attr.pointer = 1;
 
   return MATCH_YES;
 

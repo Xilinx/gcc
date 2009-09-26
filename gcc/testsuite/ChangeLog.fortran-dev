@@ -1,3 +1,8 @@
+2009-09-26  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/select_type_1.f03: Extended.
+	* gfortran.dg/select_type_3.f03: New test.
+
 2009-09-24  Janus Weil  <janus@gcc.gnu.org>
 
 	* gfortran.dg/class_allocate_1.f03: New test.

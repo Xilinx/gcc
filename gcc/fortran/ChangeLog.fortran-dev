@@ -1,3 +1,18 @@
+2009-09-26  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.h (type_selector, select_type_tmp): New global variables.
+	* match.c (type_selector, select_type_tmp): New global variables,
+	used for SELECT TYPE statements.
+	(gfc_match_select_type): Better error handling. Remember selector.
+	(gfc_match_type_is): Create temporary variable.
+	* module.c (ab_attribute): New value 'AB_IS_CLASS'.
+	(attr_bits): New string.
+	(mio_symbol_attribute): Handle 'is_class'.
+	* resolve.c (resolve_select_type): Insert pointer assignment statement,
+	to assign temporary to selector.
+	* symbol.c (gfc_get_ha_sym_tree): Replace selector by a temporary
+	in SELECT TYPE statements.
+
 2009-09-24  Janus Weil  <janus@gcc.gnu.org>
 
 	* dump-parse-tree.c (show_code_node): Renamed 'alloc_list'.

@@ -6,6 +6,7 @@
 
   type :: t1
     integer :: i = 42
+    class(t1),pointer :: cp
   end type
 
   type, extends(t1) :: t2
@@ -30,6 +31,7 @@
   type is (t1)  ! { dg-error "Unexpected TYPE IS statement" }
 
   select type (3.5)  ! { dg-error "Selector must be a named variable" }
+  select type (a%cp) ! { dg-error "Selector must be a named variable" }
   select type (b)    ! { dg-error "Selector shall be polymorphic" }
 
   select type (a)
@@ -57,8 +59,10 @@
 label: select type (a)
   type is (t1) label
     print *,"a is TYPE(t1)"
-  type is (t2)
+  type is (t2)  ! { dg-error "overlaps with CASE label" }
     print *,"a is TYPE(t2)"
+  type is (t2)  ! { dg-error "overlaps with CASE label" }
+    print *,"a is still TYPE(t2)"
   class is (t1) labe   ! { dg-error "Expected block name" }
     print *,"a is CLASS(t1)"
   end select label

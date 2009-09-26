@@ -6417,8 +6417,10 @@ static void
 resolve_select_type (gfc_code *code)
 {
   gfc_symbol *selector_type;
-  gfc_code *body;
+  gfc_code *body, *new_st;
   gfc_case *c, *default_case;
+  gfc_symtree *st;
+  char name[GFC_MAX_SYMBOL_LEN];
 
   selector_type = code->expr1->ts.u.derived->components->ts.u.derived;
 
@@ -6476,6 +6478,19 @@ resolve_select_type (gfc_code *code)
 	/* Currently IS CLASS blocks are simply ignored.
 	   TODO: Implement IS CLASS.  */
 	c->unreachable = 1;
+
+      if (c->ts.type != BT_DERIVED)
+	continue;
+      /* Assign temporary to selector.  */
+      sprintf (name, "tmp$%s", c->ts.u.derived->name);
+      st = gfc_find_symtree (code->expr1->symtree->n.sym->ns->sym_root, name);
+      new_st = gfc_get_code ();
+      new_st->op = EXEC_POINTER_ASSIGN;
+      new_st->expr1 = gfc_get_variable_expr (st);
+      new_st->expr2 = gfc_get_variable_expr (code->expr1->symtree);
+      gfc_add_component_ref (new_st->expr2, "$data");
+      new_st->next = body->next;
+      body->next = new_st;
     }
 
   /* Eliminate dead blocks.  */
