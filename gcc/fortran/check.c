@@ -2641,6 +2641,46 @@ gfc_check_reshape (gfc_expr *source, gfc_expr *shape,
 
 
 gfc_try
+gfc_check_same_type_as (gfc_expr *a, gfc_expr *b)
+{
+
+  if (a->ts.type != BT_DERIVED && a->ts.type != BT_CLASS)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L "
+		 "must be of a derived type", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic, &a->where);
+      return FAILURE;
+    }
+
+  if (!gfc_type_is_extensible (a->ts.u.derived))
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L "
+		 "must be of an extensible type", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic, &a->where);
+      return FAILURE;
+    }
+
+  if (b->ts.type != BT_DERIVED && b->ts.type != BT_CLASS)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L "
+		 "must be of a derived type", gfc_current_intrinsic_arg[1],
+		 gfc_current_intrinsic, &b->where);
+      return FAILURE;
+    }
+
+  if (!gfc_type_is_extensible (b->ts.u.derived))
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L "
+		 "must be of an extensible type", gfc_current_intrinsic_arg[1],
+		 gfc_current_intrinsic, &b->where);
+      return FAILURE;
+    }
+
+  return SUCCESS;
+}
+
+
+gfc_try
 gfc_check_scale (gfc_expr *x, gfc_expr *i)
 {
   if (type_check (x, 0, BT_REAL) == FAILURE)

@@ -879,7 +879,10 @@ resolve_structure_cons (gfc_expr *expr)
 
       if (cons->expr->expr_type == EXPR_NULL
 	  && !(comp->attr.pointer || comp->attr.allocatable
-	       || comp->attr.proc_pointer))
+	       || comp->attr.proc_pointer
+	       || (comp->ts.type == BT_CLASS
+		   && (comp->ts.u.derived->components->attr.pointer
+		       || comp->ts.u.derived->components->attr.allocatable))))
 	{
 	  t = FAILURE;
 	  gfc_error ("The NULL in the derived type constructor at %L is "
@@ -6404,8 +6407,8 @@ resolve_select (gfc_code *code)
 
 /* Check if a derived type is extensible.  */
 
-static bool
-type_is_extensible (gfc_symbol *sym)
+bool
+gfc_type_is_extensible (gfc_symbol *sym)
 {
   return !(sym->attr.is_bind_c || sym->attr.sequence);
 }
@@ -6434,7 +6437,7 @@ resolve_select_type (gfc_code *code)
 
       /* Check F03:C815.  */
       if ((c->ts.type == BT_DERIVED || c->ts.type == BT_CLASS)
-	  && !type_is_extensible (c->ts.u.derived))
+	  && !gfc_type_is_extensible (c->ts.u.derived))
 	{
 	  gfc_error ("Derived type '%s' at %L must be extensible",
 		     c->ts.u.derived->name, &c->where);
@@ -7267,17 +7270,16 @@ resolve_class_assign (gfc_code *code)
   assign_code->expr1 = gfc_copy_expr (code->expr1);
   gfc_add_component_ref (assign_code->expr1, "$vindex");
   if (code->expr2->ts.type == BT_DERIVED)
-    {
-      /* vindex is constant, determined at compile time.  */
-      int vindex = code->expr2->ts.u.derived->vindex;
-      assign_code->expr2 = gfc_int_expr (vindex);
-    }
+    /* vindex is constant, determined at compile time.  */
+    assign_code->expr2 = gfc_int_expr (code->expr2->ts.u.derived->vindex);
   else if (code->expr2->ts.type == BT_CLASS)
     {
       /* vindex must be determined at run time.  */
       assign_code->expr2 = gfc_copy_expr (code->expr2);
       gfc_add_component_ref (assign_code->expr2, "$vindex");
     }
+  else if (code->expr2->expr_type == EXPR_NULL)
+    assign_code->expr2 = gfc_int_expr (0);
   else
     gcc_unreachable ();
 
@@ -8279,7 +8281,7 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
   if (sym->ts.type == BT_CLASS)
     {
       /* C502.  */
-      if (!type_is_extensible (sym->ts.u.derived->components->ts.u.derived))
+      if (!gfc_type_is_extensible (sym->ts.u.derived->components->ts.u.derived))
 	{
 	  gfc_error ("Type '%s' of CLASS variable '%s' at %L is not extensible",
 		     sym->ts.u.derived->name, sym->name, &sym->declared_at);
@@ -9665,7 +9667,7 @@ resolve_fl_derived (gfc_symbol *sym)
     return FAILURE;
 
   /* An ABSTRACT type must be extensible.  */
-  if (sym->attr.abstract && !type_is_extensible (sym))
+  if (sym->attr.abstract && !gfc_type_is_extensible (sym))
     {
       gfc_error ("Non-extensible derived-type '%s' at %L must not be ABSTRACT",
 		 sym->name, &sym->declared_at);
@@ -9841,7 +9843,7 @@ resolve_fl_derived (gfc_symbol *sym)
 	      return FAILURE;
 	    }
 
-	  if (type_is_extensible (sym) && me_arg->ts.type != BT_CLASS)
+	  if (gfc_type_is_extensible (sym) && me_arg->ts.type != BT_CLASS)
 	    gfc_error ("Non-polymorphic passed-object dummy argument of '%s'"
 		       " at %L", c->name, &c->loc);
 

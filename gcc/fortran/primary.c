@@ -2074,7 +2074,16 @@ gfc_expr_attr (gfc_expr *e)
       gfc_clear_attr (&attr);
 
       if (e->value.function.esym != NULL)
-	attr = e->value.function.esym->result->attr;
+	{
+	  gfc_symbol *sym = e->value.function.esym->result;
+	  attr = sym->attr;
+	  if (sym->ts.type == BT_CLASS)
+	    {
+	      attr.dimension = sym->ts.u.derived->components->attr.dimension;
+	      attr.pointer = sym->ts.u.derived->components->attr.pointer;
+	      attr.allocatable = sym->ts.u.derived->components->attr.allocatable;
+	    }
+	}
       else
 	attr = gfc_variable_attr (e, NULL);
 

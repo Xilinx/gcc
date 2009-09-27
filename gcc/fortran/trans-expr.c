@@ -3820,6 +3820,13 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
 	  gfc_add_block_to_block (&block, &se.post);
 	}
     }
+  else if (cm->ts.type == BT_CLASS && expr->expr_type == EXPR_NULL)
+    {
+      /* NULL initialization for CLASS components.  */
+      tmp = gfc_trans_structure_assign (dest,
+					gfc_default_initializer (&cm->ts));
+      gfc_add_expr_to_block (&block, tmp);
+    }
   else if (cm->attr.dimension)
     {
       if (cm->attr.allocatable && expr->expr_type == EXPR_NULL)
@@ -4015,12 +4022,26 @@ gfc_conv_structure (gfc_se * se, gfc_expr * expr, int init)
       if (!c->expr || cm->attr.allocatable)
         continue;
 
-      val = gfc_conv_initializer (c->expr, &cm->ts,
-	  TREE_TYPE (cm->backend_decl), cm->attr.dimension,
-	  cm->attr.pointer || cm->attr.proc_pointer);
+      if (cm->ts.type == BT_CLASS)
+	{
+	  val = gfc_conv_initializer (c->expr, &cm->ts,
+	      TREE_TYPE (cm->ts.u.derived->components->backend_decl),
+	      cm->ts.u.derived->components->attr.dimension,
+	      cm->ts.u.derived->components->attr.pointer);
 
-      /* Append it to the constructor list.  */
-      CONSTRUCTOR_APPEND_ELT (v, cm->backend_decl, val);
+	  /* Append it to the constructor list.  */
+	  CONSTRUCTOR_APPEND_ELT (v, cm->ts.u.derived->components->backend_decl,
+				  val);
+	}
+      else
+	{
+	  val = gfc_conv_initializer (c->expr, &cm->ts,
+	      TREE_TYPE (cm->backend_decl), cm->attr.dimension,
+	      cm->attr.pointer || cm->attr.proc_pointer);
+
+	  /* Append it to the constructor list.  */
+	  CONSTRUCTOR_APPEND_ELT (v, cm->backend_decl, val);
+	}
     }
   se->expr = build_constructor (type, v);
   if (init) 

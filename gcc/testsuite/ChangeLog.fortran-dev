@@ -1,3 +1,8 @@
+2009-09-27  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/same_type_as_1.f03: New test.
+	* gfortran.dg/same_type_as_2.f03: Ditto.
+
 2009-09-26  Janus Weil  <janus@gcc.gnu.org>
 
 	* gfortran.dg/select_type_1.f03: Extended.

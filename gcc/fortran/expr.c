@@ -3368,7 +3368,8 @@ gfc_check_assign_symbol (gfc_symbol *sym, gfc_expr *rvalue)
 
   if (sym->attr.pointer || sym->attr.proc_pointer
       || (sym->ts.type == BT_CLASS 
-	  && sym->ts.u.derived->components->attr.pointer))
+	  && sym->ts.u.derived->components->attr.pointer
+	  && rvalue->expr_type == EXPR_NULL))
     r = gfc_check_pointer_assign (&lvalue, rvalue);
   else
     r = gfc_check_assign (&lvalue, rvalue, 1);

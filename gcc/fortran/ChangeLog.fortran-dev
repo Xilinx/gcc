@@ -1,3 +1,36 @@
+2009-09-27  Janus Weil  <janus@gcc.gnu.org>
+
+	* check.c (gfc_check_same_type_as): New function for checking
+	SAME_TYPE_AS and EXTENDS_TYPE_OF.
+	* decl.c (encapsulate_class_symbol): Set ABSTRACT attribute for class
+	container, if the contained type has it. Add an initializer for the
+	class container.
+	(add_init_expr_to_sym): Handle BT_CLASS.
+	(vindex_counter): New counter for setting vindices.
+	(gfc_match_derived_decl): Set vindex for all derived types, not only
+	those which are being extended.
+	* expr.c (gfc_check_assign_symbol): Handle NULL initialization of class
+	pointers.
+	* gfortran.h (gfc_isym_id): New values GFC_ISYM_SAME_TYPE_AS and
+	GFC_ISYM_EXTENDS_TYPE_OF.
+	(gfc_type_is_extensible): New prototype.
+	* intrinsic.h (gfc_check_same_type_as): New prototype.
+	* intrinsic.c (add_functions): Add SAME_TYPE_AS and EXTENDS_TYPE_OF.
+	* primary.c (gfc_expr_attr): Handle CLASS-valued functions.
+	* resolve.c (resolve_structure_cons): Handle BT_CLASS.
+	(type_is_extensible): Make non-static and rename to
+	'gfc_type_is_extensible.
+	(resolve_select_type): Renamed type_is_extensible.
+	(resolve_class_assign): Handle NULL pointers.
+	(resolve_fl_variable_derived): Renamed type_is_extensible.
+	(resolve_fl_derived): Ditto.
+	* trans-expr.c (gfc_trans_subcomponent_assign): Handle NULL
+	initialization of class pointer components.
+	(gfc_conv_structure): Handle BT_CLASS.
+	* trans-intrinsic.c (gfc_conv_same_type_as,gfc_conv_extends_type_of):
+	New functions.
+	(gfc_conv_intrinsic_function): Handle SAME_TYPE_AS and EXTENDS_TYPE_OF.
+
 2009-09-26  Janus Weil  <janus@gcc.gnu.org>
 
 	* gfortran.h (type_selector, select_type_tmp): New global variables.

@@ -361,6 +361,7 @@ enum gfc_isym_id
   GFC_ISYM_EXIT,
   GFC_ISYM_EXP,
   GFC_ISYM_EXPONENT,
+  GFC_ISYM_EXTENDS_TYPE_OF,
   GFC_ISYM_FDATE,
   GFC_ISYM_FGET,
   GFC_ISYM_FGETC,
@@ -475,6 +476,7 @@ enum gfc_isym_id
   GFC_ISYM_RESHAPE,
   GFC_ISYM_RRSPACING,
   GFC_ISYM_RSHIFT,
+  GFC_ISYM_SAME_TYPE_AS,
   GFC_ISYM_SC_KIND,
   GFC_ISYM_SCALE,
   GFC_ISYM_SCAN,
@@ -2626,6 +2628,7 @@ int gfc_is_formal_arg (void);
 void gfc_resolve_substring_charlen (gfc_expr *);
 match gfc_iso_c_sub_interface(gfc_code *, gfc_symbol *);
 gfc_expr *gfc_expr_to_initialize (gfc_expr *);
+bool gfc_type_is_extensible (gfc_symbol *sym);
 
 
 /* array.c */

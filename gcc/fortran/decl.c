@@ -1060,6 +1060,7 @@ encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       fclass->refs++;
       fclass->ts.type = BT_UNKNOWN;
       fclass->vindex = ts->u.derived->vindex;
+      fclass->attr.abstract = ts->u.derived->attr.abstract;
       if (ts->u.derived->f2k_derived)
 	fclass->f2k_derived = gfc_get_namespace (NULL, 0);
       if (gfc_add_flavor (&fclass->attr, FL_DERIVED,
@@ -1077,6 +1078,8 @@ encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       c->attr.allocatable = attr->allocatable;
       c->attr.dimension = attr->dimension;
       c->as = (*as);
+      c->initializer = gfc_get_expr ();
+      c->initializer->expr_type = EXPR_NULL;
 
       /* Add component '$vindex'.  */
       if (gfc_add_component (fclass, "$vindex", &c) == FAILURE)
@@ -1084,6 +1087,7 @@ encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       c->ts.type = BT_INTEGER;
       c->ts.kind = 4;
       c->attr.access = ACCESS_PRIVATE;
+      c->initializer = gfc_int_expr (0);
     }
 
   fclass->attr.extension = 1;
@@ -1322,6 +1326,7 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
       /* Check if the assignment can happen. This has to be put off
 	 until later for a derived type variable.  */
       if (sym->ts.type != BT_DERIVED && init->ts.type != BT_DERIVED
+	  && sym->ts.type != BT_CLASS && init->ts.type != BT_CLASS
 	  && gfc_check_assign_symbol (sym, init) == FAILURE)
 	return FAILURE;
 
@@ -6738,6 +6743,10 @@ gfc_get_type_attr_spec (symbol_attribute *attr, char *name)
 }
 
 
+/* Counter for assigning a unique vindex number to each derived type.  */
+static int vindex_counter = 0;
+
+
 /* Match the beginning of a derived type declaration.  If a type name
    was the result of a function, then it is possible to have a symbol
    already to be known as a derived type yet have no components.  */
@@ -6840,7 +6849,6 @@ gfc_match_derived_decl (void)
     {
       gfc_component *p;
       gfc_symtree *st;
-      gfc_symbol *declared_type;
 
       /* Add the extended derived type as the first component.  */
       gfc_add_component (sym, parent, &p);
@@ -6857,15 +6865,11 @@ gfc_match_derived_decl (void)
 	extended->f2k_derived = gfc_get_namespace (NULL, 0);
       st = gfc_new_symtree (&extended->f2k_derived->sym_root, sym->name);
       st->n.sym = sym;
-
-      /* Increment the VINDEX of the top-level declared type and set
-	 the VINDEX for this one.  This is done so that the size of
-	 the VTABLE entries for the top-level derived type is VINDEX.  */
-      declared_type = gfc_get_ultimate_derived_super_type (sym);
-      if (declared_type->vindex == 0)
-	declared_type->vindex++; 
-      sym->vindex = declared_type->vindex++;
     }
+
+  if (!sym->vindex)
+    /* Set the vindex for this type and increment the counter.  */
+    sym->vindex = ++vindex_counter;
 
   /* Take over the ABSTRACT attribute.  */
   sym->attr.abstract = attr.abstract;
