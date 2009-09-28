@@ -1,3 +1,51 @@
+2009-09-27  Richard Henderson  <rth@redhat.com>
+
+	* gcc.c-torture/compile/pr41469.c: Add -fexceptions.
+	* testsuite/gcc.dg/tree-ssa/pr41469-1.c: New.
+
+2009-09-26  Andreas Schwab  <schwab@linux-m68k.org>
+
+	PR c/41476
+	* gcc.dg/cond-constqual-1.c: New test.
+
+2009-09-26  Michael Matz  <matz@suse.de>
+
+	PR lto/40758
+	PR middle-end/41470
+	* gcc.dg/pr41470.c: New test.
+
+2009-09-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/array9.adb: New test.
+
+2009-09-26  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/41454
+	* gcc.dg/pr41454.c: New test.
+
+2009-09-25  Dodji Seketeli  <dodji@redhat.com>
+
+	* g++.dg/debug/dwarf2/template-func-params-4.C: Adjust after renaming
+	DW_TAG_template_parameter_pack and DW_TAG_formal_parameter_pack
+	into DW_TAG_GNU_template_parameter_pack and
+	DW_TAG_GNU_formal_parameter_pack.
+	* g++.dg/debug/dwarf2/template-params-4.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-7.C: Likewise.
+
+2009-09-25  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.dg/vect/vect.exp: Append extra parameters as separate
+	parameters for alignment-sensitive -fsection-anchors tests.
+
+2009-09-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41463
+	* gcc.c-torture/execute/pr41463.c: New testcase.
+
+2009-09-25  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/sse_nolib.adb: New testcase.
+
 2009-09-25  Revital Eres  <ERES@il.ibm.com>
 
 	* gcc.target/powerpc/vsx-vectorize-8.c: New test.
@@ -17,7 +65,7 @@
 	PR fortran/41459
 	* gfortran.dg/empty_label.f: New test.
 	* gfortran.dg/empty_label.f90: Ditto.
-	* gfortran.dg/warnings_are_errors_1.f: Fix to emit a single warning. 
+	* gfortran.dg/warnings_are_errors_1.f: Fix to emit a single warning.
 
 2009-09-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 

@@ -4158,7 +4158,7 @@ enum dw_val_class
   dw_val_class_range_list,
   dw_val_class_const,
   dw_val_class_unsigned_const,
-  dw_val_class_long_long,
+  dw_val_class_const_double,
   dw_val_class_vec,
   dw_val_class_flag,
   dw_val_class_die_ref,
@@ -4192,7 +4192,7 @@ typedef struct GTY(()) dw_val_struct {
       dw_loc_descr_ref GTY ((tag ("dw_val_class_loc"))) val_loc;
       HOST_WIDE_INT GTY ((default)) val_int;
       unsigned HOST_WIDE_INT GTY ((tag ("dw_val_class_unsigned_const"))) val_unsigned;
-      rtx GTY ((tag ("dw_val_class_long_long"))) val_long_long;
+      double_int GTY ((tag ("dw_val_class_const_double"))) val_double;
       dw_vec_const GTY ((tag ("dw_val_class_vec"))) val_vec;
       struct dw_val_die_union
 	{
@@ -4877,22 +4877,22 @@ output_loc_operands (dw_loc_descr_ref loc)
 				   "fp or vector constant word %u", i);
 	  }
 	  break;
-	case dw_val_class_long_long:
+	case dw_val_class_const_double:
 	  {
 	    unsigned HOST_WIDE_INT first, second;
 
 	    if (WORDS_BIG_ENDIAN)
 	      {
-		first = CONST_DOUBLE_HIGH (val2->v.val_long_long);
-		second = CONST_DOUBLE_LOW (val2->v.val_long_long);
+		first = val2->v.val_double.high;
+		second = val2->v.val_double.low;
 	      }
 	    else
 	      {
-		first = CONST_DOUBLE_LOW (val2->v.val_long_long);
-		second = CONST_DOUBLE_HIGH (val2->v.val_long_long);
+		first = val2->v.val_double.low;
+		second = val2->v.val_double.high;
 	      }
 	    dw2_asm_output_data (HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR,
-				 first, "long long constant");
+				 first, NULL);
 	    dw2_asm_output_data (HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR,
 				 second, NULL);
 	  }
@@ -5818,7 +5818,8 @@ static void add_AT_int (dw_die_ref, enum dwarf_attribute, HOST_WIDE_INT);
 static inline HOST_WIDE_INT AT_int (dw_attr_ref);
 static void add_AT_unsigned (dw_die_ref, enum dwarf_attribute, unsigned HOST_WIDE_INT);
 static inline unsigned HOST_WIDE_INT AT_unsigned (dw_attr_ref);
-static void add_AT_long_long (dw_die_ref, enum dwarf_attribute, rtx);
+static void add_AT_double (dw_die_ref, enum dwarf_attribute,
+			   HOST_WIDE_INT, unsigned HOST_WIDE_INT);
 static inline void add_AT_vec (dw_die_ref, enum dwarf_attribute, unsigned int,
 			       unsigned int, unsigned char *);
 static hashval_t debug_str_do_hash (const void *);
@@ -6340,10 +6341,10 @@ dwarf_tag_name (unsigned int tag)
       return "DW_TAG_condition";
     case DW_TAG_shared_type:
       return "DW_TAG_shared_type";
-    case DW_TAG_template_parameter_pack:
-      return "DW_TAG_template_parameter_pack";
-    case DW_TAG_formal_parameter_pack:
-      return "DW_TAG_formal_parameter_pack";
+    case DW_TAG_GNU_template_parameter_pack:
+      return "DW_TAG_GNU_template_parameter_pack";
+    case DW_TAG_GNU_formal_parameter_pack:
+      return "DW_TAG_GNU_formal_parameter_pack";
     case DW_TAG_MIPS_loop:
       return "DW_TAG_MIPS_loop";
     case DW_TAG_format_label:
@@ -6754,14 +6755,15 @@ AT_unsigned (dw_attr_ref a)
 /* Add an unsigned double integer attribute value to a DIE.  */
 
 static inline void
-add_AT_long_long (dw_die_ref die, enum dwarf_attribute attr_kind,
-		  rtx val_const_double)
+add_AT_double (dw_die_ref die, enum dwarf_attribute attr_kind,
+	       HOST_WIDE_INT high, unsigned HOST_WIDE_INT low)
 {
   dw_attr_node attr;
 
   attr.dw_attr = attr_kind;
-  attr.dw_attr_val.val_class = dw_val_class_long_long;
-  attr.dw_attr_val.v.val_long_long = val_const_double;
+  attr.dw_attr_val.val_class = dw_val_class_const_double;
+  attr.dw_attr_val.v.val_double.high = high;
+  attr.dw_attr_val.v.val_double.low = low;
   add_dwarf_attr (die, &attr);
 }
 
@@ -7622,11 +7624,11 @@ print_die (dw_die_ref die, FILE *outfile)
 	case dw_val_class_unsigned_const:
 	  fprintf (outfile, HOST_WIDE_INT_PRINT_UNSIGNED, AT_unsigned (a));
 	  break;
-	case dw_val_class_long_long:
-	  fprintf (outfile, "constant (" HOST_WIDE_INT_PRINT_UNSIGNED
-			    "," HOST_WIDE_INT_PRINT_UNSIGNED ")",
-		   CONST_DOUBLE_HIGH (a->dw_attr_val.v.val_long_long),
-		   CONST_DOUBLE_LOW (a->dw_attr_val.v.val_long_long));
+	case dw_val_class_const_double:
+	  fprintf (outfile, "constant ("HOST_WIDE_INT_PRINT_DEC","\
+			    HOST_WIDE_INT_PRINT_UNSIGNED")",
+		   a->dw_attr_val.v.val_double.high,
+		   a->dw_attr_val.v.val_double.low);
 	  break;
 	case dw_val_class_vec:
 	  fprintf (outfile, "floating-point or vector constant");
@@ -7782,9 +7784,8 @@ attr_checksum (dw_attr_ref at, struct md5_ctx *ctx, int *mark)
     case dw_val_class_unsigned_const:
       CHECKSUM (at->dw_attr_val.v.val_unsigned);
       break;
-    case dw_val_class_long_long:
-      CHECKSUM (CONST_DOUBLE_HIGH (at->dw_attr_val.v.val_long_long));
-      CHECKSUM (CONST_DOUBLE_LOW (at->dw_attr_val.v.val_long_long));
+    case dw_val_class_const_double:
+      CHECKSUM (at->dw_attr_val.v.val_double);
       break;
     case dw_val_class_vec:
       CHECKSUM (at->dw_attr_val.v.val_vec);
@@ -7883,11 +7884,9 @@ same_dw_val_p (const dw_val_node *v1, const dw_val_node *v2, int *mark)
       return v1->v.val_int == v2->v.val_int;
     case dw_val_class_unsigned_const:
       return v1->v.val_unsigned == v2->v.val_unsigned;
-    case dw_val_class_long_long:
-      return CONST_DOUBLE_HIGH (v1->v.val_long_long)
-	     == CONST_DOUBLE_HIGH (v2->v.val_long_long)
-	     && CONST_DOUBLE_LOW (v1->v.val_long_long)
-		== CONST_DOUBLE_LOW (v2->v.val_long_long);
+    case dw_val_class_const_double:
+      return v1->v.val_double.high == v2->v.val_double.high
+	     && v1->v.val_double.low == v2->v.val_double.low;
     case dw_val_class_vec:
       if (v1->v.val_vec.length != v2->v.val_vec.length
 	  || v1->v.val_vec.elt_size != v2->v.val_vec.elt_size)
@@ -8495,8 +8494,10 @@ size_of_die (dw_die_ref die)
 	case dw_val_class_unsigned_const:
 	  size += constant_size (AT_unsigned (a));
 	  break;
-	case dw_val_class_long_long:
-	  size += 1 + 2*HOST_BITS_PER_WIDE_INT/HOST_BITS_PER_CHAR; /* block */
+	case dw_val_class_const_double:
+	  size += 2 * HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR;
+	  if (HOST_BITS_PER_WIDE_INT >= 64)
+	    size++; /* block */
 	  break;
 	case dw_val_class_vec:
 	  size += constant_size (a->dw_attr_val.v.val_vec.length
@@ -8700,8 +8701,19 @@ value_format (dw_attr_ref a)
 	default:
 	  gcc_unreachable ();
 	}
-    case dw_val_class_long_long:
-      return DW_FORM_block1;
+    case dw_val_class_const_double:
+      switch (HOST_BITS_PER_WIDE_INT)
+	{
+	case 8:
+	  return DW_FORM_data2;
+	case 16:
+	  return DW_FORM_data4;
+	case 32:
+	  return DW_FORM_data8;
+	case 64:
+	default:
+	  return DW_FORM_block1;
+	}
     case dw_val_class_vec:
       switch (constant_size (a->dw_attr_val.v.val_vec.length
 			     * a->dw_attr_val.v.val_vec.elt_size))
@@ -8973,28 +8985,29 @@ output_die (dw_die_ref die)
 			       AT_unsigned (a), "%s", name);
 	  break;
 
-	case dw_val_class_long_long:
+	case dw_val_class_const_double:
 	  {
 	    unsigned HOST_WIDE_INT first, second;
 
-	    dw2_asm_output_data (1,
-				 2 * HOST_BITS_PER_WIDE_INT
-				 / HOST_BITS_PER_CHAR,
-				 "%s", name);
+	    if (HOST_BITS_PER_WIDE_INT >= 64)
+	      dw2_asm_output_data (1,
+				   2 * HOST_BITS_PER_WIDE_INT
+				   / HOST_BITS_PER_CHAR,
+				   NULL);
 
 	    if (WORDS_BIG_ENDIAN)
 	      {
-		first = CONST_DOUBLE_HIGH (a->dw_attr_val.v.val_long_long);
-		second = CONST_DOUBLE_LOW (a->dw_attr_val.v.val_long_long);
+		first = a->dw_attr_val.v.val_double.high;
+		second = a->dw_attr_val.v.val_double.low;
 	      }
 	    else
 	      {
-		first = CONST_DOUBLE_LOW (a->dw_attr_val.v.val_long_long);
-		second = CONST_DOUBLE_HIGH (a->dw_attr_val.v.val_long_long);
+		first = a->dw_attr_val.v.val_double.low;
+		second = a->dw_attr_val.v.val_double.high;
 	      }
 
 	    dw2_asm_output_data (HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR,
-				 first, "long long constant");
+				 first, name);
 	    dw2_asm_output_data (HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR,
 				 second, NULL);
 	  }
@@ -10560,7 +10573,7 @@ gen_generic_params_dies (tree t)
       if (parm && TREE_VALUE (parm) && arg)
 	{
 	  /* If PARM represents a template parameter pack,
-	     emit a DW_TAG_template_parameter_pack DIE, followed
+	     emit a DW_TAG_GNU_template_parameter_pack DIE, followed
 	     by DW_TAG_template_*_parameter DIEs for the argument
 	     pack elements of ARG. Note that ARG would then be
 	     an argument pack.  */
@@ -10675,7 +10688,7 @@ generic_parameter_die (tree parm, tree arg,
   return tmpl_die;
 }
 
-/* Generate and return a  DW_TAG_template_parameter_pack DIE representing.
+/* Generate and return a  DW_TAG_GNU_template_parameter_pack DIE representing.
    PARM_PACK must be a template parameter pack. The returned DIE
    will be child DIE of PARENT_DIE.  */
 
@@ -10691,7 +10704,7 @@ template_parameter_pack_die (tree parm_pack,
 	      && parm_pack
 	      && DECL_NAME (parm_pack));
 
-  die = new_die (DW_TAG_template_parameter_pack, parent_die, parm_pack);
+  die = new_die (DW_TAG_GNU_template_parameter_pack, parent_die, parm_pack);
   add_AT_string (die, DW_AT_name, IDENTIFIER_POINTER (DECL_NAME (parm_pack)));
 
   for (j = 0; j < TREE_VEC_LENGTH (parm_pack_args); j++)
@@ -11061,7 +11074,7 @@ tls_mem_loc_descriptor (rtx mem)
       || !DECL_THREAD_LOCAL_P (base))
     return NULL;
 
-  loc_result = loc_descriptor_from_tree (MEM_EXPR (mem), 2);
+  loc_result = loc_descriptor_from_tree (MEM_EXPR (mem), 1);
   if (loc_result == NULL)
     return NULL;
 
@@ -11880,8 +11893,11 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	    }
 	  else
 	    {
-	      loc_result->dw_loc_oprnd2.val_class = dw_val_class_long_long;
-	      loc_result->dw_loc_oprnd2.v.val_long_long = rtl;
+	      loc_result->dw_loc_oprnd2.val_class = dw_val_class_const_double;
+	      loc_result->dw_loc_oprnd2.v.val_double.high
+		= CONST_DOUBLE_HIGH (rtl);
+	      loc_result->dw_loc_oprnd2.v.val_double.low
+		= CONST_DOUBLE_LOW (rtl);
 	    }
 	}
       break;
@@ -13354,7 +13370,7 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
       /* Note that a CONST_DOUBLE rtx could represent either an integer or a
 	 floating-point constant.  A CONST_DOUBLE is used whenever the
 	 constant requires more than one word in order to be adequately
-	 represented.  We output CONST_DOUBLEs as blocks.  */
+	 represented.  */
       {
 	enum machine_mode mode = GET_MODE (rtl);
 
@@ -13367,7 +13383,8 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
 	    add_AT_vec (die, DW_AT_const_value, length / 4, 4, array);
 	  }
 	else
-	  add_AT_long_long (die, DW_AT_const_value, rtl);
+	  add_AT_double (die, DW_AT_const_value,
+			 CONST_DOUBLE_HIGH (rtl), CONST_DOUBLE_LOW (rtl));
       }
       return true;
 
@@ -13912,7 +13929,7 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
 	  && add_const_value_attribute (die, rtl))
 	 return true;
     }
-  list = loc_list_from_tree (decl, 2);
+  list = loc_list_from_tree (decl, decl_by_reference_p (decl) ? 0 : 2);
   if (list)
     {
       add_AT_location_description (die, attr, list);
@@ -14313,14 +14330,33 @@ add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree b
 
     /* All fixed-bounds are represented by INTEGER_CST nodes.  */
     case INTEGER_CST:
-      if (! host_integerp (bound, 0)
-	  || (bound_attr == DW_AT_lower_bound
-	      && (((is_c_family () || is_java ()) &&  integer_zerop (bound))
-		  || (is_fortran () && integer_onep (bound)))))
-	/* Use the default.  */
-	;
-      else
-	add_AT_unsigned (subrange_die, bound_attr, tree_low_cst (bound, 0));
+      {
+	unsigned int prec = simple_type_size_in_bits (TREE_TYPE (bound));
+
+	/* Use the default if possible.  */
+	if (bound_attr == DW_AT_lower_bound
+	    && (((is_c_family () || is_java ()) && integer_zerop (bound))
+	        || (is_fortran () && integer_onep (bound))))
+	  ;
+
+	/* Otherwise represent the bound as an unsigned value with the
+	   precision of its type.  The precision and signedness of the
+	   type will be necessary to re-interpret it unambiguously.  */
+	else if (prec < HOST_BITS_PER_WIDE_INT)
+	  {
+	    unsigned HOST_WIDE_INT mask
+	      = ((unsigned HOST_WIDE_INT) 1 << prec) - 1;
+	    add_AT_unsigned (subrange_die, bound_attr,
+		  	     TREE_INT_CST_LOW (bound) & mask);
+	  }
+	else if (prec == HOST_BITS_PER_WIDE_INT
+		 || TREE_INT_CST_HIGH (bound) == 0)
+	  add_AT_unsigned (subrange_die, bound_attr,
+		  	   TREE_INT_CST_LOW (bound));
+	else
+	  add_AT_double (subrange_die, bound_attr, TREE_INT_CST_HIGH (bound),
+		         TREE_INT_CST_LOW (bound));
+      }
       break;
 
     CASE_CONVERT:
@@ -15425,7 +15461,7 @@ gen_formal_parameter_die (tree node, tree origin, bool emit_name_p,
   return parm_die;
 }
 
-/* Generate and return a DW_TAG_formal_parameter_pack. Also generate
+/* Generate and return a DW_TAG_GNU_formal_parameter_pack. Also generate
    children DW_TAG_formal_parameter DIEs representing the arguments of the
    parameter pack.
 
@@ -15450,7 +15486,7 @@ gen_formal_parameter_pack_die  (tree parm_pack,
 	      && DECL_NAME (parm_pack)
 	      && subr_die);
 
-  parm_pack_die = new_die (DW_TAG_formal_parameter_pack, subr_die, parm_pack);
+  parm_pack_die = new_die (DW_TAG_GNU_formal_parameter_pack, subr_die, parm_pack);
   add_AT_string (parm_pack_die, DW_AT_name,
 		 IDENTIFIER_POINTER (DECL_NAME (parm_pack)));
 
@@ -15988,10 +16024,10 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	 DECL itself. This is useful because we want to emit specific DIEs for
 	 function parameter packs and those are declared as part of the
 	 generic function declaration. In that particular case,
-	 the parameter pack yields a DW_TAG_formal_parameter_pack DIE.
+	 the parameter pack yields a DW_TAG_GNU_formal_parameter_pack DIE.
 	 That DIE has children DIEs representing the set of arguments
 	 of the pack. Note that the set of pack arguments can be empty.
-	 In that case, the DW_TAG_formal_parameter_pack DIE will not have any
+	 In that case, the DW_TAG_GNU_formal_parameter_pack DIE will not have any
 	 children DIE.
 	
 	 Otherwise, we just consider the parameters of DECL.  */

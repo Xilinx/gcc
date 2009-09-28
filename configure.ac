@@ -1358,7 +1358,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
     CFLAGS="$CFLAGS $mpcinc"
     AC_MSG_CHECKING([for the correct version of mpc.h])
     AC_TRY_COMPILE([#include <mpc.h>],[
-    #if MPC_VERSION < MPC_VERSION_NUM (0,6,0)
+    #if MPC_VERSION < MPC_VERSION_NUM (0,7,0)
     choke me
     #endif
     ], [AC_MSG_RESULT([yes]); have_mpc=maybe],
@@ -1404,6 +1404,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
     mpc_proj (n, n, MPC_RNDNN);
     mpc_neg (n, n, MPC_RNDNN);
     mpc_sqr (n, n, MPC_RNDNN);
+    mpc_pow (n, n, n, MPC_RNDNN);
     mpc_clear (n);
     ], [AC_MSG_RESULT([yes]); have_mpc=yes],
        [AC_MSG_RESULT([no]); have_mpc=no; mpclibs= ; mpcinc= ])
@@ -2632,9 +2633,11 @@ AC_SUBST_FILE(serialization_dependencies)
 
 # Base args.  Strip norecursion, cache-file, srcdir, host, build,
 # target, nonopt, and variable assignments.  These are the ones we
-# might not want to pass down to subconfigures.  Also strip
-# program-prefix, program-suffix, and program-transform-name, so that
-# we can pass down a consistent program-transform-name.
+# might not want to pass down to subconfigures.  The exception being
+# --cache-file=/dev/null, which is used to turn off the use of cache
+# files altogether, and which should be passed on to subconfigures.
+# Also strip program-prefix, program-suffix, and program-transform-name,
+# so that we can pass down a consistent program-transform-name.
 baseargs=
 keep_next=no
 skip_next=no
@@ -2673,6 +2676,13 @@ do
   esac
 
   case "$ac_arg" in
+    --cache-file=/dev/null | \
+    -cache-file=/dev/null )
+      # Handled here to avoid the test to skip args below.
+      baseargs="$baseargs '$ac_arg'"
+      # Assert: $separate_arg should always be no.
+      keep_next=$separate_arg
+      ;;
     --no*)
       continue
       ;;

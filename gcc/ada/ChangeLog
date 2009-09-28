@@ -1,3 +1,42 @@
+2009-09-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Type>: Filter out
+	negative size for the array dimensions like in the constrained case.
+	<E_Array_Subtype>: Do not create an artificially non-constant high
+	bound if the low bound is non-constant.  Minor tweaks.
+
+	* gcc-interface/trans.c (lvalue_required_p): Add CONSTANT parameter
+	and turn ALIASED into a boolean parameter.  Adjust calls to self.
+	<N_Attribute_Reference>: Return 1 for more attributes.
+	<N_Object_Renaming_Declaration>: Return 1 for non-constant objects.
+	<N_Assignment_Statement>: Return 1 for the LHS.
+	(Identifier_to_gnu): Adjust calls to lvalue_required_p.
+	(call_to_gnu): Be prepared for wrapped boolean rvalues.
+
+2009-09-25  Olivier Hainquqe  <hainque@adacore.com>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.h (TYPE_REPRESENTATIVE_ARRAY): New language
+	specific node.	Representative array type for VECTOR_TYPE entities.
+	* gcc-interface/utils.c (handle_vector_type_attribute): New handler.
+	Turn an ARRAY_TYPE entity into a VECTOR_TYPE.	
+	(gnat_types_compatible_p): Handle VECTOR_TYPEs.
+	(convert): Likewise.  Arrange to produce VECTOR_CST out of constant
+	array aggregates for VECTOR_TYPE entities.
+	(unchecked_convert): Likewise.
+	(maybe_vector_array): New function. If EXP has VECTOR_TYPE, return EXP
+	converted to the associated TYPE_REPRESENTATIVE_ARRAY.
+	(handle_pure_attribute, handle_sentinel_attribute,
+	handle_noreturn_attribute, handle_malloc_attribute,
+	handle_vector_size_attribute): Replace uses of qE format by qs.
+	Remove GCC_DIAG_STYLE definition.
+	* gcc-interface/trans.c (gnat_to_gnu) <N_Indexed_Component>: Convert
+	vector input to representative array type on entry.
+	<N_Op_Eq, etc>: Likewise.
+	* gcc-interface/gigi.h (maybe_vector_array): Declare.
+	(VECTOR_TYPE_P): New predicate.
+	* gcc-interface/misc.c (gnat_print_type): Handle VECTOR_TYPE.
+
 2009-09-24  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/ada.h: Fix outdated comment.
@@ -31,7 +70,7 @@
 	DECL_NO_STATIC_CHAIN, set DECL_STATIC_CHAIN for
 	nested functions.
 
-2009-09-21  Joel Sherrill <joel.sherrill@oarcorp.com>
+2009-09-21  Joel Sherrill  <joel.sherrill@oarcorp.com>
 
 	* s-osinte-rtems.ad[bs]: Get_Page_Size cannot return 0.
 	Bind to getpagesize() in RTEMS 4.10 and newer.

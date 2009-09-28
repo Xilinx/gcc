@@ -1,3 +1,161 @@
+2009-09-27  Richard Henderson  <rth@redhat.com>
+
+	* tree-ssa-ccp.c (optimize_stack_restore): Relax the conditions under
+	which we remove __builtin_stack_restore.
+
+2009-09-27  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* loop-iv.c (iv_analyze_op): Use function_invariant_p, not CONSTANT_P,
+	to test for GRD_INVARIANT.
+	(simple_rhs_p): Anything that's function_invariant_p is fine.
+
+2009-09-27  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gengtype.c (main): Use plunge_files instead of plugin_output.
+
+2009-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Rafael Avila de Espindola  <espindola@google.com>
+
+	* gengtype.c (write_root, write_roots): Add a emit_pch argument.
+	Don't print pch related info if it is false.
+	(main): Don't print pch info in plugin mode.
+
+2009-09-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (enum dw_val_class): Replace dw_val_class_long_long
+	with dw_val_class_const_double.
+	(struct dw_val_struct): Replace val_long_long with val_double and
+	adjust for above change.
+	(output_loc_operands): Likewise.
+	(add_AT_long_long): Rename into...
+	(add_AT_double): ...this.
+	(print_die): Replace dw_val_class_long_long with
+	dw_val_class_const_double and adjust.
+	(attr_checksum): Likewise.
+	(same_dw_val_p): Likewise.
+	(size_of_die): Likewise.
+	(value_format): Likewise.
+	(output_die): Likewise.
+	(loc_descriptor) <CONST_DOUBLE>: Likewise.
+	(add_const_value_attribute) <CONST_DOUBLE>: Call add_AT_double
+	instead of add_AT_long_long.
+	(add_bound_info) <INTEGER_CST>: Generate the bound as an unsigned
+	value with the precision of its type.
+
+2009-09-27  Andreas Schwab  <schwab@linux-m68k.org>
+
+	PR c/41476
+	* c-typeck.c (build_conditional_expr): Use the readonly and
+	volatile flags of the operand types, not of the operands itself.
+
+2009-09-27  Peter O'Gorman  <pogma@thewrittenword.com>
+
+	collect2.c (main): Look for -brtl before adding libraries.
+
+2009-09-27  Jonathan Gray  <jsg@openbsd.org>
+
+	* config.gcc: Update OpenBSD targets.
+	* config/openbsd-stdint.h: New file.
+	* config/openbsd-libpthread.h: New file.
+	* config/openbsd.h: Update and break out LIB_SPEC definition.
+	* config/alpha/openbsd.h: Overhaul to reflect ELF migration.
+	* config/i386/openbsdelf.h: Correct types.
+	* config/m68k/openbsd.h: Likewise.
+	* config/mips/openbsd.h: Likewise.
+	* config/vax/openbsd.h: Likewise.
+
+2009-09-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* fold-const.c (maybe_lvalue_p): Return false for M(IN|AX)_EXPR.
+	(extract_muldiv_1) <MINUS_EXPR>: Swap operands if necessary.
+	* stor-layout.c (layout_type) <ARRAY_TYPE>: Do not take the maximum
+	of the length and zero.
+
+2009-09-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (TOPLEV_H): Use $(INPUT_H) not input.h.
+	(FLAGS_H): Add options.h $(REAL_H).
+	(SEL_SCHED_IR_H): Add $(BITMAP_H) vecprim.h $(CFGLOOP_H).
+	(TREE_VECTORIZER_H): New.
+	(EBITMAP_H): Renamed from EBIMAP_H.
+	(c-decl.o, c-objc-common.o, c-pretty-print.o, attribs.o, c-omp.o)
+	(gtype-desc.o, ggc-common.o, ggc-page.o, ggc-zone.o, langhooks.o)
+	(tree.o, tree-ssa-structalias.o, tree-ssa-ter.o, tree-ssanames.o)
+	(tree-phinodes.o, tree-ssa-loop.o, tree-ssa-math-opts.o)
+	(gimple-low.o, omp-low.o, sese.o, graphite-blocking.o)
+	(graphite-clast-to-gimple.o, graphite-dependences.o)
+	(graphite-interchange.o, graphite-poly.o, graphite-scop-detection.o)
+	(graphite-sese-to-poly.o, tree-vect-loop.o, tree-vect-loop-manip.o)
+	(tree-vect-patterns.o, tree-vect-slp.o, tree-vect-stmts.o)
+	(tree-vect-data-refs.o, tree-vectorizer.o, gimple.o, tree-mudflap.o)
+	(targhooks.o, stmt.o, emit-rtl.o, ipa.o, matrix-reorg.o, ipa-inline.o)
+	(gcse.o, tree-ssa-ccp.o, df-byte-scan.o, vec.o, caller-save.o)
+	(ira-build.o, ira-costs.o, ira-color.o, ira-emit.o, ira.o)
+	(haifa-sched.o, sched-rgn.o, sel-sched.o, sel-sched-dump.o)
+	(sel-sched-ir.o, final.o, $(out_object_file)): Dependencies
+	updated and fixed as per above changes and per
+	check_makefile_deps.sh output.
+
+	PR bootstrap/40928
+	* configure.ac: Use $LIBS for '-ldl', not $LDFLAGS.
+	* configure: Regenerate.
+
+2009-09-26  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* doc/install.texi: Update minimum MPC version to 0.7.
+
+2009-09-26  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/install.texi (Binaries): Remove reference to the binary
+	distribution CD-ROM from the FSF.
+
+2009-09-26  Michael Matz  <matz@suse.de>
+
+	PR lto/40758
+	PR middle-end/41470
+	* tree-ssa-coalesce.c (coalesce_ssa_name): Add only SSA names
+	that are mentioned in the body.
+
+2009-09-26  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/41454
+	* tree-ssa-dom (stmts_to_rescan): Remove variable.
+	(tree_ssa_dominator_optimize): Don't allocate and free it.
+	(dom_opt_leave_block): Don't iterate over it.
+	(eliminate_redundant_computations): Don't return a value.
+	(cprop_operand, cprop_into_stmt): Ditto.
+	(optimize_stmt): Don't defer updating stmts.
+
+2009-09-25  Dodji Seketeli  <dodji@redhat.com>
+
+	* dwarf2out.c (dwarf_tag_name, gen_generic_params_dies,
+	generic_parameter_die, template_parameter_pack_die,
+	gen_formal_parameter_die, gen_subprogram_die): Adjust after renaming
+	DW_TAG_formal_parameter_pack and DW_TAG_template_parameter_pack into
+	DW_TAG_GNU_formal_parameter_pack and DW_TAG_GNU_template_parameter_pack.
+
+2009-09-25  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/v850/v850.h (FUNCTION_VALUE): Remove.
+	* config/v850/v850.c (v850_function_value): New function.
+	(TARGET_FUNCTION_VALUE): Define.
+
+2009-09-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-vect-stmts.c (vectorizable_call): Call
+	mark_symbols_for_renaming after vect_finish_stmt_generation.
+
+	* dwarf2out.c (tls_mem_loc_descriptor): Pass 1 instead of 2
+	to loc_descriptor_from_tree.
+	(add_location_or_const_value_attribute): Pass 0 instead of 2
+	for decl_by_reference_p decls.
+
+2009-09-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41463
+	* tree-dfa.c (get_ref_base_and_extent): Fix issue with trailing
+	arrays again.
+
 2009-09-25  Ben Elliston  <bje@au.ibm.com>
 
 	* doc/invoke.texi (RS/6000 and PowerPC Options): Add missing comma
@@ -22,7 +180,7 @@
 	(reg_class): Likewise.
 	(REG_CLASS_NAMES): Likewise.
 	* config/m32c/m32c.c (m32c_reg_class_from_constraint): Likewise.
-	
+
 	* config/m32c/m32c.c (m32c_override_options): Disable -fivopts for
 	M32C.
 
@@ -63,7 +221,7 @@
 2009-09-24  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
 
 	PR bootstrap/41405
-        * common.opt: Initialize dwarf_strict to -1.
+	* common.opt: Initialize dwarf_strict to -1.
 	* toplev.c (process_options): Catch unset dwarf_strict
 	and set to 0 for all targets not overriding.
 	* config/darwin.c (darwin_override_options): Catch unset
@@ -71,7 +229,7 @@
 
 2009-09-24  Jeff Law  <law@redhat.com>
 
-	* tree-into-ssa.c (rewrite_into_ssa): Free interesting_blocks. 
+	* tree-into-ssa.c (rewrite_into_ssa): Free interesting_blocks.
 
 2009-09-24  Richard Guenther  <rguenther@suse.de>
 
@@ -469,7 +627,7 @@
 	(TARGET_TRAMPOLINE_INIT): New.
 	(mcore_function_value): Fix typo.
 	(mcore_asm_trampoline_template, mcore_trampoline_init): New.
-	* config/mcore/mcore.h (TRAMPOLINE_TEMPLATE): Move code 
+	* config/mcore/mcore.h (TRAMPOLINE_TEMPLATE): Move code
 	to mcore_asm_trampoline_template.
 	(INITIALIZE_TRAMPOLINE): Move code to mcore_trampoline_init.
 
@@ -1890,7 +2048,7 @@
 	* doc/install.texi (avr): Remove obsolete reference site.
 
 2009-09-12  Gerald Pfeifer  <gerald@pfeifer.com>
-	
+
 	* doc/install.texi (Binaries): Adjust AIX link.
 
 2009-09-12  Akim Demaille  <demaille@gostai.com>
