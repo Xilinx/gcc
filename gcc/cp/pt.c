@@ -297,7 +297,7 @@ get_template_info (const_tree t)
   if (DECL_P (t) && DECL_LANG_SPECIFIC (t))
     tinfo = DECL_TEMPLATE_INFO (t);
 
-  if (!tinfo && TREE_CODE (t) == TYPE_DECL)
+  if (!tinfo && DECL_IMPLICIT_TYPEDEF_P (t))
     t = TREE_TYPE (t);
 
   if (TAGGED_TYPE_P (t))
@@ -4212,7 +4212,7 @@ push_template_decl_real (tree decl, bool is_friend)
 
   if (!ctx
       || TREE_CODE (ctx) == FUNCTION_DECL
-      || (CLASS_TYPE_P (ctx) && TYPE_BEING_DEFINED (ctx))
+      || (CLASS_TYPE_P (ctx) && !get_template_info (decl))
       || (is_friend && !DECL_TEMPLATE_INFO (decl)))
     {
       if (DECL_LANG_SPECIFIC (decl)
