@@ -207,7 +207,7 @@ $DEFUNMATCHER macro.}#
   :fields (sexp_contents		;list of contents
 	   )
   :doc #{The $CLASS_SEXPR is the class of source expressions, as parsed by
-the reader. The $SEXP_CONTENTS field is a list of contents.  }# )
+the reader. The $SEXP_CONTENTS field is a list of contents.}# )
 
 ;; class of message selectors
 (defclass class_selector
@@ -235,8 +235,9 @@ a formal argument list) and the $SEL_DATA is for additional data.}#
 	   )
   :doc #{The $CLASS_CLONEDSYMBOL is the sub-class of cloned symbols,
 e.g. like GENSYM-ed symbols is many Lisps.  Cloned symbols are
-internally generated inside the MELT translator. Their $CSYM_URANK
-field gives their unique rank as a boxed integer.}#)
+internally generated inside the MELT translator by the $CLONE_SYMBOL
+function. Their $CSYM_URANK field gives their unique rank as a boxed
+integer.}#)
 
 ;; class of keyword symbols
 (defclass class_keyword
@@ -356,7 +357,8 @@ $PARENT_MODULE_ENVIRONMENT macros.}#
   :fields (binder)
   :doc #{The $CLASS_ANY_BINDING is the super-class of every
   binding. The $BINDER field is the bound name. Bindings are added by
-  module initializers. Don't create bindings by ins}# )
+  module initializers. Don't create bindings by instanciating this
+  class in user code, they are created within the Melt translator.}# )
 
 ;;; superclass of exported bindings
 (defclass class_exported_binding
@@ -655,7 +657,22 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
 	   nctx_qdatcurmodenvbox ;quasi data for current_module_environment_container
 	   nctx_qdatparmodenv		;quasi data for parent_module_environment
 	   nctx_procurmodenvlist	;list of procedures using the current_module_environment_container construct
-	   ))
+	   )
+  :doc #{The internal $CLASS_NORMCONTEXT (for gurus only) is used for
+expression normalization by the translator. $NCTX_INITPROC gives the
+initial procedure. $NCTX_PROCLIST is the list of
+procedures. $NCTX_DATALIST is the list of data. $NCTX_VALUELIST gives
+the list of imported values. $NCTX_SYMBMAP and $NCTX_KEYWMAP are
+dictionnaries mapping symbol or keyword names to interned symbols or
+keywords. $NCTX_SYMBCACHEMAP is an object map to cache the occurrence
+of symbols. $NCTX_PREDEFMAP is a map from predefined to
+ranks. $NCTX_VALMAP is an object map from value to data, and
+$NCTX_VALBINDMAP is an object map from value binding to data. The
+Current procedure is $NCTX_CURPROC. The module compilation context is
+$NCTX_MODULCONTEXT. The quasidata for the current module environment
+container is $NCTX_QDATCURMODENVBOX. The quasi data for the parent
+module's environment is $NCTX_QDATPARMODENV. The list of procedures
+using the current module environment is in $NCTX_PROCURMODENVLIST.}# )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -675,7 +692,18 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
 	    gncx_modulcontext		;the module compilation context
 	    gncx_matchmap		;map keyed by normal matchers
 					;giving a unique label prefix
-	    ))
+	    )
+  :doc #{The internal $CLASS_GENERCONTEXT (for gurus) is the class of
+contexts for C code generation, while generating a single C
+routine. The containing object routine is $GNCX_OBJROUT. The object
+map from normal bindings to local is given in $GNCX_LOCMAP. The list
+of freed local value pointers is in $GNCX_FREEPTRLIST. The list of
+free longs is in $GNCX_FREELONGLIST. For other c-types, each c-type
+has its list, associated to it in $GNCX_FREEOTHERMAPS. The return
+location is in $GNCX_RETLOC. The cached map of procedures to compiled
+routines is in $GNCX_COMPICACHE. The module compilation context is in
+$GNCX_MODULCONTEXT. A map keyed by normal matchers to give a unique
+label prefix is in $GNCX_MATCHMAP.}# )
 
 
 ;; code generation context for initial routine
@@ -685,14 +713,24 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
 	   igncx_contenvloc	    ;local for the container of environment
 	   igncx_procurmodenvlist   ;list of routines using the current_module_environment_container
 	   igncx_importmap	    ;mapping of imported symbols to locvars
-	   ))
+	   )
+  :doc #{The internal $CLASS_INITGENERCONTEXT (for gurus) is used when
+generating the initial routine of a module, which builds the current
+environment and evaluates the module toplevel expressions. The
+$IGNCX_PREVENVLOC is the local for the parent environment. The
+$IGNCX_CONTENVLOC is the local for the container of the current
+module's environment. The list of routines using it is in
+$IGNCX_PROCURMODENVLIST. The mapping of imported symbolts to locals is
+$IGNCX_IMPORTMAP.}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; common superclass for objcode
 (defclass class_objcode
   :super class_root
   :fields (
-	   ))
+	   )
+  :doc #{The super-class $CLASS_OBJCODE is a common super-class for
+representing generated C abstract syntax trees.}#)
 
 
 ;; 
@@ -734,54 +772,63 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
 (defprimitive is_object (obj) :long
   :doc #{Test if $OBJ is indeed an object. See also $IS_NOT_OBJECT.}#
   #{(melt_magic_discr((melt_ptr_t)($obj)) == OBMAG_OBJECT)}#)
+
 (defprimitive is_not_object (obj) :long
   :doc #{Test if $OBJ is not an object. Negation of $IS_OBJECT.}#
   #{(melt_magic_discr((melt_ptr_t)($obj)) != OBMAG_OBJECT)}#)
 
-;; primitive returning OBMAG_OBJECT
-(defprimitive object_magic_object () :long "(OBMAG_OBJECT)")
-
-;; primitive to return the last predefined index
-(defprimitive last_globpredef_index () :long
-  "BGLOB__LASTGLOB")
 
 ;; primitive to safely return a global predef by its index
 (defprimitive get_globpredef (:long ix) :value
-  "(melt_globpredef((" ix ")))")
+  :doc #{Safely gives the predefined of index $IX or null.}#
+  #{(melt_globpredef($ix))}#)
 
 ;; primitive to get the discriminant of a value
 (defprimitive discrim (v) :value
-  "(melt_discr((melt_ptr_t)(" v ")))")
+  :doc #{Safely gives the discriminant of a value (even if it is null).}#
+  #{(melt_discr((melt_ptr_t)($v)))}#)
 
 ;; primitive to get the integer inside a boxed or mixed integer or objnum
 (defprimitive get_int (v) :long
-  "(melt_get_int((melt_ptr_t)(" v ")))")
+  :doc #{Safely gets the integer number inside $V, a boxed or mixed
+  integer, or an object.}#
+  #{(melt_get_int((melt_ptr_t)($v)))}#)
 ;; primitive to put the integer inside a boxed or mixed integer or objnum
 (defprimitive put_int (v :long i) :void
-  "melt_put_int((melt_ptr_t)(" v "), (" i "))")
+  :doc #{Safely puts the integer number $I inside $V, a boxed or mixed
+  integer, or an object.}#
+  #{melt_put_int((melt_ptr_t)($v), ($i))}#)
 
 ;; primitive to get the hashcode of an object (or 0)
 (defprimitive obj_hash (v) :long
-  "(melt_obj_hash((melt_ptr_t)(" v ")))")
+  :doc #{Safely gives the hashcode of object $V or else 0.}#
+  #{(melt_obj_hash((melt_ptr_t)($v)))}#)
 ;; primitive to get the length of an object (or 0)
 (defprimitive obj_len (v) :long
-  "(melt_obj_len((melt_ptr_t)(" v ")))")
+  :doc #{Safely gives the length of object $V or else 0.}#
+  #{(melt_obj_len((melt_ptr_t)($v)))}#)
 ;; primitive to get the number of an object (or 0)
 (defprimitive obj_num (v) :long
-  "(melt_obj_num((melt_ptr_t)(" v ")))")
+  :doc #{Safely gives the number of object $V or else 0.}#
+  #{(melt_obj_num((melt_ptr_t)($v)))}#)
 ;; primitive to get the serial of an object (or 0 when ENABLE_CHECKING is not set)
 (defprimitive obj_serial (v):long
-  "(melt_obj_serial((melt_ptr_t)(" v ")))")
+  :doc #{Safely gives the serial when ENABLE_CHECKING of object $V or else 0.}#
+  #{(melt_obj_serial((melt_ptr_t)($v)))}#)
+
 ;; primitive to compute a nonzero hash
 (defprimitive nonzero_hash () :long
+  :doc #{Gives a pseudo-random non-zero number suitable as an hash code.}# 
   "(melt_nonzerohash())")
 
 ;; primitive for identity and non-identity test
-(defprimitive == (a b) :long "((" a ") == (" b "))")
-(defprimitive != (a b) :long "((" a ") != (" b "))")
+(defprimitive == (a b) :long 
+  :doc #{Test identity of values $A and $B.}#
+  #{(($a) == ($b))}#)
+(defprimitive != (a b) :long 
+  :doc #{Test that values $A and $B are not identical.}#
+  #{(($a) != ($b))}#)
 
-;; primitive always returning nil
-(defprimitive the_null () :value "(NULL)")
 
 ;;; the call counter - do not redefine the name, it is used by expansion of debug_msg macro!
 (defprimitive the_callcount () :long "callcount")
@@ -794,59 +841,94 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
 
 ;; primitive to force garbage collection
 (defprimitive minor_garbcoll (:long siz) :void 
-  "melt_garbcoll((" siz "), MELT_MINOR_OR_FULL)")
+  :doc #{Force a minor MELT garbage collection. The $SIZ is the amount
+  of memory to reserve.}#
+  #{melt_garbcoll(($siz), MELT_MINOR_OR_FULL)}#)
+
 (defprimitive full_garbcoll (:long siz) :void
-  "melt_garbcoll((" siz "), MELT_NEED_FULL)")
+  :doc #{Force a full MELT garbage collection. The $SIZ is the amount
+  of memory to reserve.}#
+  #{melt_garbcoll(($siz), MELT_NEED_FULL)}#)
 
 ;; primitive to get or create a symbol from a string value
 (defprimitive get_symbolstr (strv) :value
-  "meltgc_named_symbol( melt_string_str((melt_ptr_t)(" strv ")), MELT_GET)")
+  :doc #{Get an existing symbol of given string value $STRV or null if not found.}#
+  #{meltgc_named_symbol( melt_string_str((melt_ptr_t)($strv)), MELT_GET)}#)
 (defprimitive create_symbolstr (strv) :value
-  "meltgc_named_symbol( melt_string_str((melt_ptr_t)(" strv ")), MELT_CREATE)")
+  :doc #{Retrieve an existing symbol of given string value $STRV or
+create it if not found.}# 
+  #{meltgc_named_symbol(melt_string_str((melt_ptr_t)($strv)), MELT_CREATE)}#)
 
 ;; primitive to get or create a keyword from a string value
 (defprimitive get_keywordstr (strv) :value
-  "meltgc_named_keyword( melt_string_str((melt_ptr_t)(" strv ")), MELT_GET)")
+  :doc #{Get an existing keyword of given string value $STRV or null if not found.}#
+  #{meltgc_named_keyword( melt_string_str((melt_ptr_t)($strv)), MELT_GET)}#)
 (defprimitive create_keywordstr (strv) :value
-  "meltgc_named_keyword( melt_string_str((melt_ptr_t)(" strv ")), MELT_CREATE)")
+  :doc #{Retrieve an existing keyword of given string value $STRV or
+create it if not found.}# 
+  #{meltgc_named_keyword( melt_string_str((melt_ptr_t)($strv)), MELT_CREATE)}#)
 
 
 ;; runtime assertion with message called by expansion of assert_msg
 ;;; @@ UGLY HACK TO ALWAYS HAVE A filename
 (defprimitive assert_failed (:cstring msg :cstring filename :long lineno) :void
-  "melt_assert_failed((" msg "),(" filename ")?(" filename "):__FILE__,"
-  "(" lineno ")?(" lineno "):__LINE__, __FUNCTION__)")
+  :doc #{Internally used by $ASSERT_MSG macro. Runtime assert failed with message $MSG in file $FILENAME at line $LINENO.}#
+  #{melt_assert_failed(($msg),($filename)?($filename):__FILE__,
+  ($lineno)?($lineno):__LINE__, __FUNCTION__);
+}#)
 
 ;; check explicitly the call stack  
 (defprimitive checkcallstack_msg (:cstring msg) :void
-  "melt_check_call_frames(MELT_ANYWHERE, (" msg "))")
+  :doc #{Low level costly primitive to check the entire call stack to
+help hunt memory or GC bugs. Displays the given $MSG if the check went
+wrong. Use it when desperate.}#
+  #{melt_check_call_frames(MELT_ANYWHERE, $msg);}#)
+
 ;; for breakpoint
 (defprimitive cbreak_msg (:cstring msg) :void
-  "melt_cbreak(" msg ")")
+  :doc #{Low level primitive for GDB breakpoints. Use it temporarily,
+given a string $MSG, with gdb when desperate.}#
+  #{melt_cbreak($msg)}#)
 
 ;;; less, lessorequal, greater, greaterorequal, equal, different number 
-(defprimitive <i (:long a b) :long "((" a ") < (" b "))")
-(defprimitive <=i (:long a b) :long "((" a ") <= (" b "))")
-(defprimitive ==i (:long a b) :long "((" a ") == (" b "))")
-(defprimitive >i (:long a b) :long "((" a ") > (" b "))")
-(defprimitive >=i (:long a b) :long "((" a ") >= (" b "))")
-(defprimitive !=i (:long a b) :long "((" a ") != (" b "))")
+(defprimitive <i (:long a b) :long :doc #{Integer test that $A less than $B.}#
+  #{(($a) < ($b))}#)
+(defprimitive <=i (:long a b) :long :doc #{Integer test that $A less or equal to $B.}#
+  #{(($a) <= ($b))}#)
+(defprimitive ==i (:long a b) :long  :doc #{Integer test that $A is equal to $B.}#
+  #{(($a) == ($b))}#)
+(defprimitive >i (:long a b) :long  :doc #{Integer test that $A greater than $B.}# 
+  #{(($a) > ($b))}#)
+(defprimitive >=i (:long a b) :long :doc #{Integer test that $A greater or equal to $B.}#
+  #{(($a) >= ($b))}#)
+(defprimitive !=i (:long a b) :long  :doc #{Integer test that $A is unequal to $B.}#
+  #{(($a) != ($b))}#)
 ;;; integer arithmetic
-(defprimitive +i (:long a b) :long "((" a ") + (" b "))")
-(defprimitive -i (:long a b) :long "((" a ") - (" b "))")
-(defprimitive *i (:long a b) :long "((" a ") * (" b "))")
-(defprimitive andi (:long a b) :long "((" a ") & (" b "))")
-(defprimitive ori (:long a b) :long "((" a ") | (" b "))")
-(defprimitive xori (:long a b) :long "((" a ") ^ (" b "))")
-(defprimitive negi (:long i) :long "(-(" i "))")
-(defprimitive noti (:long i) :long "(~(" i "))")
+(defprimitive +i (:long a b) :long  :doc #{Integer binary addition of $a and $b.}#
+  #{(($a) + ($b))}#)
+(defprimitive -i (:long a b) :long  :doc #{Integer binary substraction of $a and $b.}#
+  #{(($a) - ($b))}#)
+(defprimitive *i (:long a b) :long  :doc #{Integer binary product of $a and $b.}#
+  #{(($a) * ($b))}#)
+(defprimitive andi (:long a b) :long   :doc #{Integer binary bitwise and of $a and $b.}#
+  #{(($a) & ($b))}#)
+(defprimitive ori (:long a b) :long  :doc #{Integer binary bitwise or of $a and $b.}#
+  #{(($a) | ($b))}#)
+(defprimitive xori (:long a b) :long :doc #{Integer binary bitwise exclusive-or of $a and $b.}#  
+  #{(($a) ^ ($b))}#)
+(defprimitive negi (:long i) :long  :doc #{Integer unary negation of $i.}#
+  #{(-($i))}#)
+(defprimitive noti (:long i) :long :doc #{Integer unary bitwise complement of $i.}# 
+  #{(~($i))}#)
 
-(defprimitive /i (:long a b) :long "(melt_idiv((" a "), (" b ")))")
-(defprimitive %i (:long a b) :long "(melt_imod((" a "), (" b ")))")
-(defprimitive /iraw (:long a b)  :long "((" a ") / (" b "))")
-(defprimitive %iraw (:long a b)  :long "((" a ") % (" b "))")
+(defprimitive /i (:long a b) :long  :doc #{Integer binary division of $a and $b, robust to zero-divide.}#
+  #{(melt_idiv(($a), ($b)))}#)
+(defprimitive %i (:long a b) :long   :doc #{Integer binary modulus of $a and $b, robust to zero-divide.}#
+  #{(melt_imod(($a), ($b)))}#)
+(defprimitive /iraw (:long a b)  :long  :doc #{Integer raw division of $a and $b, crash on zero-divide.}# #{(($a) / ($b))}#)
+(defprimitive %iraw (:long a b)  :long  :doc #{Integer raw modulus of $a and $b, crash on zero-divide.}##{(($a) % ($b))}#)
 ;; boolean not
-(defprimitive not (:long i) :long "(!(" i "))")
+(defprimitive not (:long i) :long  :doc #{Integer unary logical negation of $i.}#  #{(!($i))}#)
 
 ;;; citerator on integers
 (defciterator foreach_long_upto
@@ -858,67 +940,78 @@ ascending integer iterator. Start formals are $IMIN, the minimum start
 integer, and $IMAX, le maximal ending integer. Local formal is $IX,
 the current index. The body is executed for each integer value $IX
 from $IMIN to $IMAX included.}#
-  ( 					;before expansion
-   "/*start " eachlong "*/\n"
-   " long " eachlong "_min = " imin ";"
-   " long " eachlong "_max = " imax ";"
-   " long " eachlong "_cur = 0;\n"
-   " for (" eachlong "_cur = " eachlong "_min; "
-            eachlong "_cur <= " eachlong "_max; "
-	    eachlong "_cur ++) {\n"
-	    ix " = " eachlong "_cur;\n"
-	    )
-  (					;after expansion
-   "} /*end " eachlong "*/\n"
-))
+  					;before expansion
+#{/*start $eachlong */
+    long $eachlong#_min =  $imin;
+    long $eachlong#_max = $imax;
+    long $eachlong#_cur = 0;
+    for ($eachlong#_cur = $eachlong#_min;
+         $eachlong#_cur <= $eachlong#_max;
+	 $eachlong#_cur ++) {
+	    $ix = $eachlong#_cur	    
+}#
+ 					;after expansion
+   #{ } /*end eachlong */}#
+)
    
 ;;; nullity test (for values)
-(defprimitive null (v) :long "((" v ") == NULL)")
-(defprimitive notnull (v) :long "((" v ") != NULL)")
+(defprimitive null (v) :long :doc #{Test that $V is the null value.}#
+  #{(($v) == NULL)}#)
+(defprimitive notnull (v) :long :doc #{Test that $V is not the null value.}#
+  #{(($v) != NULL)}#)
 ;;; zero test (for numbers)
-(defprimitive zerop (:long i) :long "((" i ") == OL)")
+(defprimitive zerop (:long i)  :long :doc #{Test that $I is zero.}# #{(($i) == OL)}#)
 ;; primitive for testing if debug
-(defprimitive need_dbg (:long depth) :long
-  "(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && (" depth ")>=0 && (" depth ") <= MELTDBG_MAXDEPTH)")
+(defprimitive need_dbg (:long depth) :long :doc #{Test if debug messages are needed for the given $DEPTH.}#
+  #{(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && ($depth)>=0 && ($depth) <= MELTDBG_MAXDEPTH)}#)
 
-(defprimitive need_dbglim (:long depth limit) :long
-  "(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && (" depth ")>=0 && (" depth ") < (" limit "))")
+(defprimitive need_dbglim (:long depth limit) :long :doc #{Test if debug messages are needed for the given $DEPTH and $LIMIT.}#
+  #{(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount
+		     && ($depth)>=0 && ($depth) < ($limit))}#)
 ;;; debug on dumpfile
-(defprimitive outcstring_dbg (:cstring s) :void
-  "melt_puts(dump_file,(" s "))")
+(defprimitive outcstring_dbg (:cstring s) :void :doc #{output a debug string $S.}#
+  #{melt_puts(dump_file,($s))}#)
 (defprimitive outnum_dbg (:cstring pref :long l :cstring suf) :void
-  "melt_putnum(dump_file,(" pref "), (" l "), (" suf "))")
-(defprimitive outstr_dbg (str) :void
-  "melt_putstr(dump_file,(melt_ptr_t)(" str "))")
-(defprimitive outstrbuf_dbg (sbuf) :void
-  "melt_putstrbuf(dump_file,(melt_ptr_t)(" sbuf "))")
-(defprimitive outnewline_dbg () :void
-  "melt_newlineflush(dump_file)")
+  :doc #{debug output an integer $L with prefix $PREF and suffix $SUF.}#
+  #{melt_putnum(dump_file,($pref), ($l), ($suf))}#)
+(defprimitive outstr_dbg (str) :void :doc #{output a debug string value $STR.}#
+  #{melt_putstr(dump_file,(melt_ptr_t)($str))}#)
+(defprimitive outstrbuf_dbg (sbuf) :void :doc #{output a debug stringbuffer value $SBUF.}#
+  #{melt_putstrbuf(dump_file,(melt_ptr_t)($sbuf))}#)
+(defprimitive outnewline_dbg () :void :doc #{output a debug newline.}#
+  #{melt_newlineflush(dump_file)}#)
 ;;; output on stderr
 (defprimitive outnum_err (:cstring pref :long l :cstring suf) :void
-  "melt_putnum(stderr,(" pref "), (" l "), (" suf "))")
+  :doc #{output on stderr the number $L with prefix $PREF and suffix $SUF.}#
+  #{melt_putnum(stderr,($pref), ($l), ($suf))}#)
 (defprimitive outcstring_err (:cstring s) :void
-  "melt_puts(stderr,(" s "))")
+  :doc #{Output on stderr the string $s.}#
+  #{melt_puts(stderr,($s))}#)
 (defprimitive outstrbuf_err (sbuf) :void
-  "melt_putstrbuf(stderr,(melt_ptr_t)(" sbuf "))")
+  :doc #{Output on stderr the stringbuffer value $sbuf.}#
+  #{melt_putstrbuf(stderr,(melt_ptr_t)($sbuf))}#)
 (defprimitive outnewline_err () :void
   "melt_newlineflush(stderr)")
 (defprimitive outstr_err (str) :void
-  "melt_putstr(stderr, (melt_ptr_t)(" str "))")
+  #{melt_putstr(stderr, (melt_ptr_t)($str))}#)
 
 (defprimitive output_cfile_decl_impl (uninam declbuf implbuf) :void
-  "melt_output_cfile_decl_impl((melt_ptr_t)(" uninam 
-  "), (melt_ptr_t)(" declbuf "), (melt_ptr_t)(" implbuf "))")
+  #{melt_output_cfile_decl_impl((melt_ptr_t)($uninam), (melt_ptr_t)($declbuf), 
+				(melt_ptr_t)($implbuf))}#)
 
-(defprimitive message_dbg (:cstring msg) :void
-  "debugeputs((" msg "))")
-(defprimitive messagenum_dbg (:cstring msg :long i) :void
-  "debugnum((" msg "), (" i "))")
+(defprimitive message_dbg (:cstring msg) :void :doc #{Debug message $msg}#
+  #{debugeputs(($msg))}#)
+(defprimitive messagenum_dbg (:cstring msg :long i) :void 
+  :doc #{Debug output with message $msg number $i}#
+  #{debugnum(($msg), ($i))}#)
 (defprimitive messageval_dbg (:cstring msg :value val) :void
-  "debugvalue((" msg "), ((void*)(" val ")))")
+  :doc #{Debug output with message $msg value $val}#
+  #{debugvalue(($msg), ((void*)($val)))}#)
 (defprimitive longbacktrace_dbg (:cstring msg :long maxdepth) :void
-  "debugbacktrace((" msg "), (int)(" maxdepth "))")
+  :doc #{Detailed debug backtrace with message $MSG up to $MAXDEPTH.}#
+  #{debugbacktrace(($msg), (int)(maxdepth))}#)
 (defprimitive shortbacktrace_dbg (:cstring msg :long maxdepth) :void
+  :doc #{Short debug backtrace with message $MSG up to $MAXDEPTH.}#
   #{ 
 #if ENABLE_CHECKING
   if (flag_melt_debug)
@@ -926,9 +1019,11 @@ from $IMIN to $IMAX included.}#
 #endif
 }#)
 (defprimitive checkval_dbg (val :cstring msg) :value
-  "melt_checked_assignmsg((" val "),(" msg "))")
+  :doc #{Low level costly check of value $VAL with message $MSG.}#
+  #{melt_checked_assignmsg(($val),($msg))}#)
 (defprimitive debugcstring (:cstring msg str) :void
-  "debugeprintf(\"debugcstring %s '%s'\", " msg ", " str ")")
+  :doc #{Debug cstring $MSG $STR.}#
+  #{debugeprintf("debugcstring %s '%s'", $msg, $str)}#)
 
 (defprimitive the_null_cstring () :cstring
   :doc #{The null const cstring.}#
@@ -939,157 +1034,190 @@ from $IMIN to $IMAX included.}#
 ;;;;;; STRBUF primitives
 ;; primitive to make a strbuf
 (defprimitive make_strbuf (discr) :value
-  "meltgc_new_strbuf((meltobject_ptr_t)(" discr "), (char*)0)")
+  :doc #{Make a new stringbuffer value of given $DISCR - or null if bad $DISCR.}#
+  #{meltgc_new_strbuf((meltobject_ptr_t)($discr), (char*)0)}#)
 (defprimitive strbuf_usedlength (sbuf) :long
-  "melt_strbuf_usedlength((melt_ptr_t)(" sbuf "))")
+  :doc #{Give the used length of given $SBUF string buffer or else 0.}#
+  #{melt_strbuf_usedlength((melt_ptr_t)($sbuf))}#)
 
 (defprimitive is_strbuf (v) :long
-  "(melt_magic_discr((melt_ptr_t)(" v ")) == OBMAG_STRBUF)")
+  :doc #{Test if value $V is a stringbuffer.}# 
+  #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_STRBUF)}#)
 
 
 ;; actually all the sbuf routines now take an outbuf argument, which can be either a string buffer of a file
 (defprimitive is_out (v) :long
+  :doc #{Test if value $V is a output value (a stringbuffer or a file).}# 
   #{ (melt_is_out ((melt_ptr_t) $v)) }#)
 
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
-  "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), (" str "))")
+  :doc #{Add into stringbuffer $SBUF the constant string $STR.}#
+  #{meltgc_add_strbuf((melt_ptr_t)($sbuf), ($str))}#)
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
-  "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), melt_string_str((melt_ptr_t)(" str ")))")
+  :doc #{Add into stringbuffer $SBUF the string value $STR.}#
+  #{meltgc_add_strbuf((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)))}#)
 ;; primitive to add the location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_mixloc (sbuf mixl) :void
-  "/*add2sbufmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
-  " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"{%s:%d}\", "
-  "LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl ")), "
-  "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
+  :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL.}#
+  #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC)
+  meltgc_strbuf_printf((melt_ptr_t)($sbuf), "{%s:%d}",
+		       LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl)),
+		       LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mixl))); }#)
 
 ;; primitive to add the short location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_short_mixloc (sbuf mixl) :void
-  "/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
-  " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"{%s:%d}\", "
-  "lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl "))), "
-  "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
+  :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL in short form.}#
+  #{/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC)
+  meltgc_strbuf_printf((melt_ptr_t)($sbuf), "{%s:%d}", 
+		       lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl))), 
+		       LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }#)
 
 ;; primitive to add the texi location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_texi_mixloc (sbuf mixl) :void
-  "/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
-  " meltgc_strbuf_printf((melt_ptr_t)(" sbuf "), \"file @file{%s}, line %d\", "
-  "lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl "))), "
-  "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
+  :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL in texinfo form.}#
+  #{/*add2sbufteximixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) 
+  meltgc_strbuf_printf((melt_ptr_t)($sbuf), "file @file{%s}, line %d", 
+		       lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl))), 
+		       LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mixl))); }#)
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
-  "meltgc_strbuf_add_indent((melt_ptr_t)(" sbuf "), (" depth "), 64)")
+  :doc #{Add into stringbuffer $SBUF an indentation of given $DEPTH or a space.}#
+  #{meltgc_strbuf_add_indent((melt_ptr_t)($sbuf), ($depth), 64)}#)
 
 
 ;; primitive to add an indented newline into a strbuf
 (defprimitive add2sbuf_indentnl (sbuf :long depth) :void
-  "meltgc_strbuf_add_indent((melt_ptr_t)(" sbuf "), (" depth "), 0)")
+  :doc #{Add into stringbuffer $SBUF an indented newline of given $DEPTH.}#
+  #{meltgc_strbuf_add_indent((melt_ptr_t)($sbuf), ($depth), 0)}#)
 
 
 ;; primitive to add a strbuf into a strbuf
 (defprimitive add2sbuf_sbuf (sbuf asbuf) :void 
-  "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), melt_strbuf_str(" asbuf "))")
+  :doc #{Add into stringbuffer $SBUF the content of stringbuffer $ASBUF.}#
+  #{meltgc_add_strbuf((melt_ptr_t)($sbuf), melt_strbuf_str($asbuf))}#)
 
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
-  "meltgc_add_strbuf_cstr((melt_ptr_t)(" sbuf "), melt_string_str((melt_ptr_t)(" str ")))")
+  :doc #{Add into stringbuffer $SBUF the content of string $STR with C encoding.}#
+  #{meltgc_add_strbuf_cstr((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)))}#)
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
-  "meltgc_add_strbuf_cstr((melt_ptr_t)(" sbuf "), melt_strbuf_str((melt_ptr_t)(" asbuf ")))")
+  :doc #{Add into stringbuffer $SBUF the content of stringbuffer $ASBUF with C encoding.}#
+  #{meltgc_add_strbuf_cstr((melt_ptr_t)($sbuf), melt_strbuf_str((melt_ptr_t)($asbuf)))}#)
 
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
-  "meltgc_add_strbuf_ccomment((melt_ptr_t)(" sbuf
-  "), melt_string_str((melt_ptr_t)(" str ")))")
+  :doc #{Add into stringbuffer $SBUF the content of string $STR with C-comment encoding, i.e. avoiding */.}#
+  #{meltgc_add_strbuf_ccomment((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)))}#)
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
-  "meltgc_add_strbuf_ccomment((melt_ptr_t)(" sbuf 
-  "), melt_strbuf_str((melt_ptr_t)(" asbuf ")))")
+  :doc #{Add into stringbuffer $SBUF the content of stringbuffer $ASBUF with C-comment encoding, i.e. avoiding */.}#
+  #{meltgc_add_strbuf_ccomment((melt_ptr_t)($sbuf), 
+			       melt_strbuf_str((melt_ptr_t)($asbuf)))}#)
 
 ;; primitive to add a cstring const, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomconst (sbuf :cstring cstr) :void 
-  "meltgc_add_strbuf_ccomment((" sbuf "), "  cstr ")")
+  :doc #{Add into stringbuffer $SBUF the constant string $CSTR with
+ C-comment encoding so no */.}# 
+ #{meltgc_add_strbuf_ccomment(($sbuf), $cstr)}#)
 
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
 ;; replaced by _)
 (defprimitive add2sbuf_cident (sbuf str) :void
-  "meltgc_add_strbuf_cident((melt_ptr_t)(" sbuf 
-  "), melt_string_str((melt_ptr_t)(" str ")))")
+  :doc #{Add into stringbuffer $SBUF the string $STR as a C identifier
+  so nonalphanum replaced by _.}#
+  #{meltgc_add_strbuf_cident((melt_ptr_t)($sbuf),
+  melt_string_str((melt_ptr_t)($str)))}#)
 
 ;; primitive to add into a strbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2sbuf_cidentprefix  (sbuf str :long preflen) :void
-  "meltgc_add_strbuf_cidentprefix((melt_ptr_t)(" sbuf "), melt_string_str((melt_ptr_t)(" str ")), (" preflen "))")
+  :doc #{Add into stringbuffer $SBUF the prefix string $STR as a C identifier
+  so nonalphanum replaced by _ limited by $PREFLEN.}#
+  #{meltgc_add_strbuf_cidentprefix((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)), ($preflen))}#)
 
 ;; primitive to add a long in decimal into a strbuf
 (defprimitive add2sbuf_longdec (sbuf :long num) :void
-  "meltgc_add_strbuf_dec((melt_ptr_t)(" sbuf "), (" num "))")
+  :doc #{Add into stringbuffer $SBUF the number $NUM in decimal.}#
+  #{meltgc_add_strbuf_dec((melt_ptr_t)($sbuf), ($num))}#)
 
 ;; primitive to add a long in hex into a strbuf
 (defprimitive add2sbuf_longhex (sbuf :long num) :void
-  "meltgc_add_strbuf_hex((melt_ptr_t)(" sbuf "), (" num "))")
+  :doc #{Add into stringbuffer $SBUF the number $NUM in hexa.}#
+  #{meltgc_add_strbuf_hex((melt_ptr_t)($sbuf), ($num))}#)
 
 ;; primitive to add a routine descr into a strbuf
 (defprimitive add2sbuf_routinedescr (sbuf rout) :void
-  "meltgc_add_strbuf((melt_ptr_t)(" sbuf "), melt_routine_descrstr((melt_ptr_t)(" rout ")))")
+  :doc #{Add into stringbuffer $SBUF the routine descriptor $ROUT.}#
+  #{meltgc_add_strbuf((melt_ptr_t)($sbuf), melt_routine_descrstr((melt_ptr_t)($rout)))}#)
 
 ;;; primitive to output a strbuf into a file named by a cstring
 (defprimitive output_sbuf_strconst (sbuf :cstring nam) :void
+  :doc #{Output into file named $NAM the content of strinbuffer $SBUF.}#
 #{ melt_output_strbuf_to_file(($sbuf), ($nam)) }#)
 ;;; primitive to output a strbuf into a file named by a stringval
 (defprimitive output_sbuf_strval (sbuf vnam) :void
+  :doc #{Output into file named by string value $VNAM the content of strinbuffer $SBUF.}#
 #{ melt_output_strbuf_to_file(($sbuf), melt_string_str($vnam)) }#)
 
 ;;;;;;;;;;;;;;;; variant for outbuf
 
 ;; primitive to add a string const into a outbuf
 (defprimitive add2out_strconst (out :cstring str) :void 
-  "meltgc_add_out((melt_ptr_t)(" out "), (" str "))")
+  :doc #{Add to output $OUT the cstring $STR.}#
+  #{meltgc_add_out((melt_ptr_t)($out), ($str))}#)
 ;; primitive to add a string value into a outbuf
 (defprimitive add2out_string (out str) :void 
-  "meltgc_add_out((melt_ptr_t)(" out "), melt_string_str((melt_ptr_t)(" str ")))")
+  :doc #{Add to output $OUT the string value $STR.}#
+  #{meltgc_add_out((melt_ptr_t)($out), melt_string_str((melt_ptr_t)($str)))}#)
 ;; primitive to add the location info of a mixedloc into a outbuf
 (defprimitive add2out_mixloc (out mixl) :void
-  "/*add2outmixloc*/ { if (melt_magic_discr((melt_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
-  " meltgc_out_printf((melt_ptr_t)(" out "), \"{%s:%d}\", "
-  "LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mixl ")), "
-  "LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }")
+  :doc #{Add to output $OUT the mixed location $MIXL.}#
+  #{/*add2outmixloc*/ { if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) 
+  meltgc_out_printf((melt_ptr_t)(" out "), "{%s:%d}", 
+  LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl)), 
+  LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mixl))); }#)
 
 ;; primitive to add an indentation or space into a outbuf
 (defprimitive add2out_indent (out :long depth) :void
-  "meltgc_out_add_indent((melt_ptr_t)(" out "), (" depth "), 64)")
+  :doc #{Add to output $OUT the indentation $DEPTH or a space.}#
+  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 64)}#)
 
 
 ;; primitive to add an indented newline into a outbuf
 (defprimitive add2out_indentnl (out :long depth) :void
-  "meltgc_out_add_indent((melt_ptr_t)(" out "), (" depth "), 0)")
+  :doc #{Add to output $OUT the indented newline of given $DEPTH.}#
+  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 0)}#)
 
 
 ;; primitive to add a strbuf into a outbuf
 (defprimitive add2out_sbuf (out asbuf) :void 
-  "meltgc_add_out((melt_ptr_t)(" out "), melt_out_str(" asbuf "))")
+  :doc #{Add to output $OUT the stringbuffer $ASBUF.}#
+  #{meltgc_add_out((melt_ptr_t)($out), melt_out_str($asbuf))}#)
 
 ;; primitive to add a string value, C encoded, into a outbuf
 (defprimitive add2out_cencstring (out str) :void 
-  "meltgc_add_out_cstr((melt_ptr_t)(" out "), melt_string_str((melt_ptr_t)(" str ")))")
+  :doc #{Add to output $OUT the C-encoded string value $STR.}#
+  #{meltgc_add_out_cstr((melt_ptr_t)($out), melt_string_str((melt_ptr_t)($str)))}#)
 
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_cencstrbuf (out asbuf) :void 
-  "meltgc_add_out_cstr((melt_ptr_t)(" out "), melt_out_str((melt_ptr_t)(" asbuf ")))")
+  :doc #{Add to output $OUT the C-encoded stringbuffer $ASBUF.}#
+  #{meltgc_add_out_cstr((melt_ptr_t)($out), melt_out_str((melt_ptr_t)($asbuf)))}#)
 
 ;; primitive to add a string value, Ccomment encoded, into a outbuf
 (defprimitive add2out_ccomstring (out str) :void 
-  "meltgc_add_out_ccomment((melt_ptr_t)(" out
-  "), melt_string_str((melt_ptr_t)(" str ")))")
+  :doc #{Add to output $OUT the C-comment encoded string value $STR.}#
+  #{meltgc_add_out_ccomment((melt_ptr_t)($out), melt_string_str((melt_ptr_t)($str)))}#)
 
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_ccomstrbuf (out asbuf) :void 
-  "meltgc_add_out_ccomment((melt_ptr_t)(" out 
-  "), melt_out_str((melt_ptr_t)(" asbuf ")))")
+  #{meltgc_add_out_ccomment((melt_ptr_t)($out), melt_out_str((melt_ptr_t)($asbuf)))}#)
 
 ;; primitive to add a cstring const, Ccomment encoded, into a outbuf
 (defprimitive add2out_ccomconst (out :cstring cstr) :void 
@@ -1157,13 +1285,14 @@ discriminant $DIS.}#
 
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
-  "(meltgc_new_stringdup((meltobject_ptr_t)(" dis 
-  "), melt_strbuf_str((melt_ptr_t)(" sbuf "))))")
+  :doc #{make a string value of discriminant $DIS from the stringbuffer $SBUF.}#
+  #{(meltgc_new_stringdup((meltobject_ptr_t)($dis), melt_strbuf_str((melt_ptr_t)($sbuf))))}#)
 
 
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
-  "(meltgc_new_string_nakedbasename((meltobject_ptr_t)(" dis "), melt_string_str((melt_ptr_t)(" str "))))")
+  :doc #{make a string value of discriminant $DIS from the naked basename from file path $STR.}#
+  #{(meltgc_new_string_nakedbasename((meltobject_ptr_t)($dis), melt_string_str((melt_ptr_t)($str))))}#)
 ;;; compute the naked temporary path for a basename with a suffix
 (defprimitive make_string_tempname_suffixed (dis str :cstring suff) :value
   #{(meltgc_new_string_tempname_suffixed((meltobject_ptr_t)($dis), 
@@ -1174,7 +1303,10 @@ discriminant $DIS.}#
 ;;;; path. Return value is the new environment provided by the loaded
 ;;;; module.
 (defprimitive load_melt_module (env str) :value
-  "(meltgc_load_melt_module((melt_ptr_t)(" env "), melt_string_str((melt_ptr_t)(" str "))))")
+  :doc #{load a MELT module by C compilation of file $STR with
+  environment $ENV. Gives the new environment after loading the module.}#
+  #{(meltgc_load_melt_module((melt_ptr_t)($env),
+  melt_string_str((melt_ptr_t)($str))))}#)
 
 ;; generate a loadable module from a MELT generated C source file; the
 ;;  out is the dynloaded module without any *.so suffix 
@@ -1185,67 +1317,85 @@ discriminant $DIS.}#
 ;;;;; OBJECT primitives
 ;; primitive to get an object length
 (defprimitive object_length (ob) :long 
-  "((long)melt_object_length((melt_ptr_t)(" ob ")))")
+  :doc #{Gives the length of object $OB.}#
+  #{((long)melt_object_length((melt_ptr_t)($ob)))}#)
 ;; primitive to get the nth field of an object
 (defprimitive object_nth_field (ob :long n) :value
-  "(melt_field_object((melt_ptr_t)(" ob "), (" n ")))")
+  :doc #{Safely retrieve from object $OB its $N-th field or else null.}#
+  #{(melt_field_object((melt_ptr_t)($ob), ($n)))}#)
 
 (defprimitive subclass_of (cl1 cl2) :long
-  "melt_is_subclass_of((meltobject_ptr_t)(" cl1 "), (meltobject_ptr_t)(" cl2 "))")
+  :doc #{Safely test if class $CL1 is a sub-class of class $CL2.}#
+  #{melt_is_subclass_of((meltobject_ptr_t)($cl1), (meltobject_ptr_t)($cl2))}#)
 (defprimitive subclass_or_eq (cl1 cl2) :long
-  "((" cl1 " == " cl2 ") || melt_is_subclass_of((meltobject_ptr_t)(" cl1 "), (meltobject_ptr_t)(" cl2 ")))")
+  :doc #{Safely test if class $CL1 is the same or a sub-class of class $CL2.}#
+  #{(($cl1 == $cl2) || melt_is_subclass_of((meltobject_ptr_t)($cl1), (meltobject_ptr_t)($cl2)))}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MULTIPLEs primitives
 ;;;; test
 (defprimitive is_multiple (mul) :long
-  "(melt_magic_discr((melt_ptr_t)(" mul  ")) == OBMAG_MULTIPLE)")
+  :doc #{Safely test if $MUL is a tuple.}#
+  #{(melt_magic_discr((melt_ptr_t)($mul)) == OBMAG_MULTIPLE)}#)
 (defprimitive is_multiple_or_null (mul) :long
-  "((" mul ") == NULL || (melt_magic_discr((melt_ptr_t)(" mul  ")) == OBMAG_MULTIPLE))")
+  :doc #{Safely test if $MUL is a tuple or null.}#
+  #{(($mul) == NULL || (melt_magic_discr((melt_ptr_t)($mul)) == OBMAG_MULTIPLE))}#)
 ;;; make
 (defprimitive make_multiple (discr :long ln) :value
-  "(meltgc_new_multiple((meltobject_ptr_t)(" discr "), (" ln ")))")
+  :doc #{Make a tuple of given discriminant $DISCR and length $LN - gives null otherwise.}#
+  #{(meltgc_new_multiple((meltobject_ptr_t)($discr), ($ln)))}#)
 (defprimitive make_tuple1 (discr v1) :value
-  "(meltgc_new_mult1((meltobject_ptr_t)(" discr
-  "), (melt_ptr_t)(" v1 ")))")
+  :doc #{Make a 1-tuple of discriminant $DISCR and content $V1.}#
+  #{(meltgc_new_mult1((meltobject_ptr_t)($discr), (melt_ptr_t)($v1)))}#)
 (defprimitive make_tuple2 (discr v1 v2) :value
-  "(meltgc_new_mult2((meltobject_ptr_t)(" discr
-  "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2 ")))")
+  :doc #{Make a 2-tuple of discriminant $DISCR and content $V1 $V2.}#
+  #{(meltgc_new_mult2((meltobject_ptr_t)($discr), (melt_ptr_t)($v1),  (melt_ptr_t)($v2)))}#)
 (defprimitive make_tuple3 (discr v1 v2 v3) :value
-  "(meltgc_new_mult3((meltobject_ptr_t)(" discr
-  "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2  "),  (melt_ptr_t)(" v3 ")))")
+  :doc #{Make a 3-tuple of discriminant $DISCR and content $V1 $V2 $V3.}#
+  #{(meltgc_new_mult3((meltobject_ptr_t)($discr), (melt_ptr_t)($v1),  (melt_ptr_t)($v2),  (melt_ptr_t)($v3)))}#)
 (defprimitive make_tuple4 (discr v1 v2 v3 v4) :value
-  "(meltgc_new_mult4((meltobject_ptr_t)(" discr
-  "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2  "),  (melt_ptr_t)(" v3  "),  (melt_ptr_t)(" v4 ")))")
+  :doc #{Make a 4-tuple of discriminant $DISCR and content $V1 $V2 $V3 $V4.}#
+  #{(meltgc_new_mult4((meltobject_ptr_t)($discr), (melt_ptr_t)($v1),  
+		      (melt_ptr_t)($v2),  (melt_ptr_t)($v3),  (melt_ptr_t)($v4)))}#)
 (defprimitive make_tuple5 (discr v1 v2 v3 v4 v5) :value
-  "(meltgc_new_mult5((meltobject_ptr_t)(" discr 
-  "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2 
-  "),  (melt_ptr_t)(" v3  "),  (melt_ptr_t)(" v4 
-  "),  (melt_ptr_t)(" v5 ")))")
+  :doc #{Make a 5-tuple of discriminant $DISCR and content $V1 $V2 $V3 $V4 $V5.}#
+  #{(meltgc_new_mult5((meltobject_ptr_t)($discr), (melt_ptr_t)($v1),  
+		      (melt_ptr_t)($v2),  (melt_ptr_t)($v3),  (melt_ptr_t)($v4),
+		      (melt_ptr_t)($v5)))}#)
 (defprimitive make_tuple6 (discr v1 v2 v3 v4 v5 v6) :value
-  "(meltgc_new_mult6((meltobject_ptr_t)(" discr "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2  "),  (melt_ptr_t)(" 
-  v3  "),  (melt_ptr_t)(" v4  "),  (melt_ptr_t)(" v5  "),  (melt_ptr_t)(" v6 ")))")
+  :doc #{Make a 6-tuple of discriminant $DISCR and content $V1 $V2 $V3 $V4 $V5 $V6.}#
+  #{(meltgc_new_mult6((meltobject_ptr_t)($discr), (melt_ptr_t)($v1),  
+		      (melt_ptr_t)($v2),  (melt_ptr_t)($v3),  (melt_ptr_t)($v4),
+		      (melt_ptr_t)($v5),  (melt_ptr_t)($v6)))}#)
 (defprimitive make_tuple7 (discr v1 v2 v3 v4 v5 v6 v7) :value
-  "(meltgc_new_mult7((meltobject_ptr_t)(" discr "), (melt_ptr_t)(" v1 "),  (melt_ptr_t)(" v2  "),  (melt_ptr_t)(" v3  "),  (melt_ptr_t)(" v4  
-  "),  (melt_ptr_t)(" v5  "),  (melt_ptr_t)(" v6  "),  (melt_ptr_t)(" v7 ")))")
+  :doc #{Make a 7-tuple of discriminant $DISCR and content $V1 $V2 $V3 $V4 $V5 $V6 $V7.}#
+  #{(meltgc_new_mult7((meltobject_ptr_t)($discr), (melt_ptr_t)($v1),  
+		      (melt_ptr_t)($v2),  (melt_ptr_t)($v3),  (melt_ptr_t)($v4),
+		      (melt_ptr_t)($v5),  (melt_ptr_t)($v6),  (melt_ptr_t)($v7)))}#)
 
 ;; primitive to build the subsequence of a multiple
 (defprimitive subseq_multiple (mul :long startix endix) :value
+  :doc #{Make a tuple from as subsequence of $MUL from indexes $STARTIX to $ENDIX.}#
  #{ meltgc_new_subseq_multiple((melt_ptr_t)($mul),
 				  (int)($startix), (int)($endix)) }#)
 
 ;; primitive to get the nth  in a multiple
 (defprimitive multiple_nth (mul :long n) :value
-  "(melt_multiple_nth((melt_ptr_t)(" mul "), (" n ")))")
+  :doc #{Safely retrieve from tuple $MUL its $N-th component or else null.}#
+  #{(melt_multiple_nth((melt_ptr_t)($mul), ($n)))}#)
 ;; primitive to get the length of a multiple
-(defprimitive multiple_length (v) :long
-  "(melt_multiple_length((melt_ptr_t)(" v ")))")
-;; be careful to avoid circularities
+(defprimitive multiple_length (mul) :long
+  :doc #{Gives the length of tuple $MUL.}#
+  #{(melt_multiple_length((melt_ptr_t)($mul)))}#)
+;; put into a multiple.
 (defprimitive multiple_put_nth (mul :long n :value v) :void
-  " meltgc_multiple_put_nth((melt_ptr_t)(" mul "), (" n "), (melt_ptr_t)(" v "))")
+  :doc #{Put into tuple $MUL at rank $N the component $V. Avoid circularities!}#
+  #{meltgc_multiple_put_nth((melt_ptr_t)($mul), ($n), (melt_ptr_t)($V))}#)
 ;; sort a multiple, the compare function should return a boxed integer
 (defprimitive multiple_sort (mul cmp discrm) :value
-  " meltgc_sort_multiple((melt_ptr_t)(" mul "), (melt_ptr_t)(" cmp "), (melt_ptr_t)( " discrm "))")
+  :doc #{Gives the sorted tuple from tuple $MUL using compare function
+  $CMP (returning a boxed integer) and discriminant $DISCRM.}#
+  #{meltgc_sort_multiple((melt_ptr_t)($mul), (melt_ptr_t)($cmp), (melt_ptr_t)($discrm))}#)
 
 ;; public comparator for named instances
 (defun compare_named_alpha (n1 n2)
@@ -1273,12 +1423,11 @@ Returns a boxed integer.}#
   (matchedtup :long matchedrk)				;match & ins
   (outcomp)				;out
   tupnth				;statesymb
-  (					;test expansion
-   "(melt_is_multiple_at_least(((melt_ptr_t)" matchedtup "), 1+ (int)(" matchedrk ")))"
-   )
-  (					;fill expansion
-   outcomp " = melt_multiple_nth((melt_ptr_t)(" matchedtup "),(int)(" matchedrk "));"
-   )
+  ;;test expansion
+   #{/*$TUPNTH ?*/ (melt_is_multiple_at_least(((melt_ptr_t)$matchedtup), 1+ (int)($matchedrk)))}#
+   ;;fill expansion
+  #{/*$TUPNTH !*/ $outcomp = melt_multiple_nth((melt_ptr_t)($matchedtup),(int)($matchedrk));
+   }#
   ;; no operator expansion 
 )
 
@@ -1307,9 +1456,8 @@ Returns a boxed integer.}#
   (tup :long ln)			;match & ins
   () 					;outs
   tupsiz				;statesymb
-  (					;test expansion
-   "(melt_is_multiple_of_length((melt_ptr_t)(" tup "), (int) (" ln ")))"
-   )
+  ;;test expansion
+   #{(melt_is_multiple_of_length((melt_ptr_t)($tup), (int) ($ln)))}#
   ;; no fill expansion
   ;; no operator expansion
 )
@@ -1318,31 +1466,72 @@ Returns a boxed integer.}#
 ;;;;;; MAPOBJECTs primitives
 ;;;; test
 (defprimitive is_mapobject (map) :long
-  "(melt_magic_discr((melt_ptr_t)(" map  ")) == OBMAG_MAPOBJECTS)")
+  :doc #{Test if given $MAP is an object map.}#
+  #{(melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPOBJECTS)}#)
 ;; primitive to get the allocated size of a mapobject
 (defprimitive mapobject_size (map) :long
-  "(melt_size_mapobjects((meltmapobjects_ptr_t)(" map ")))")
+  :doc #{Safely retrieve the allocated size of given object-map $MAP or else 0.}#
+  #{(melt_size_mapobjects((meltmapobjects_ptr_t)($map)))}#)
 ;; primitive to get the attribute count of a mapobject
 (defprimitive mapobject_count (map) :long
-  "(melt_count_mapobjects((meltmapobjects_ptr_t)(" map ")))")
+  :doc #{Safely retrieve the count of given object-map $MAP or else 0.}#
+  #{(melt_count_mapobjects((meltmapobjects_ptr_t)($map)))}#)
 ;; primitive to get the nth attribute of a mapobject
 (defprimitive mapobject_nth_attr (map :long n) :value
-  "(melt_nthattr_mapobjects((meltmapobjects_ptr_t)(" map "), (int)(" n ")))")
+  :doc #{Safely retrieve from given object-map $MAP its $N-th attribute or else null.}#
+  #{(melt_nthattr_mapobjects((meltmapobjects_ptr_t)($map), (int)($n)))}#)
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapobject_nth_val (map :long n) :value
-  "(melt_nthval_mapobjects((meltmapobjects_ptr_t)(" map "), (int)(" n ")))")
+  :doc #{Safely retrieve from given object-map $MAP its $N-th value or else null.}#
+  #{(melt_nthval_mapobjects((meltmapobjects_ptr_t)($map), (int)($n)))}#)
 ;; primitive to get the value of an attribute in a mapobject
 (defprimitive mapobject_get (map attr) :value
-  "(melt_get_mapobjects((meltmapobjects_ptr_t)(" map "), (meltobject_ptr_t)(" attr ")))")
+  :doc #{Safely get from given object-map $MAP the value associated to $ATTR or else null.}#
+  #{melt_get_mapobjects((meltmapobjects_ptr_t)($map), (meltobject_ptr_t)($attr))}#)
 ;; primitive for making a new map of objects
 (defprimitive make_mapobject (discr :long len) :value
-  " (meltgc_new_mapobjects( (meltobject_ptr_t) (" discr "), (" len ")))")
+  :doc #{Make an object-map of discriminant $DISCR and initial size $LEN or null.}#
+  #{(meltgc_new_mapobjects( (meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of objects
 (defprimitive mapobject_put (map key val) :void
-  " meltgc_put_mapobjects( (meltmapobjects_ptr_t) (" map "), (meltobject_ptr_t) (" key "), (melt_ptr_t)(" val "))")
+  :doc #{Safely put into object-map $MAP the given $KEY with $VAL.}#
+  #{meltgc_put_mapobjects( (meltmapobjects_ptr_t) ($map), 
+			   (meltobject_ptr_t) ($key), 
+			   (melt_ptr_t)($val))}#)
 ;; primitive for removing from a map of objects
 (defprimitive mapobject_remove (map key) :void
-  " meltgc_remove_mapobjects( (meltmapobjects_ptr_t) (" map "), (meltobject_ptr_t)(" key "))")
+  :doc #{Safely remove from object-map $MAP the given $KEY.}#
+  #{meltgc_remove_mapobjects( (meltmapobjects_ptr_t) ($map), 
+			      (meltobject_ptr_t)($key))}#)
+;;; iterator inside a map of object
+(defciterator foreach_in_mapobject
+  (:value objmap)
+  eachobmap
+  (:value curat curva)
+  :doc #{The $FOREACH_IN_MAPOBJECT c-iterator iterates inside the
+  given $OBJMAP and retrieves a $CURAT attribute and its $CURVA
+  value.}#
+  ;; before expansion
+  #{ /*$eachobmap :*/ int $eachobmap#_ix=0, $eachobmap#_siz=0;
+  for ($eachobmap#_ix=0; 
+     /* we retrieve in $eachobmap the size at each iteration since it could change. */
+       $eachobmap#_ix>=0 && ($eachobmap#_siz= melt_size_mapobjects($objmap))>0
+       && $eachobmap#_ix < $eachobmap#_siz;
+       $eachobmap#_ix++) {
+    $curat = NULL;
+    $curva = NULL;
+    $curat = ((meltmapobjects_ptr_t)objmap)->entab[$eachobmap#_ix].e_at;
+    if ($curat == HTAB_DELETED_ENTRY) { $curat = NULL; continue; };
+    if (!$curat) continue;
+    $curva = ((meltmapobjects_ptr_t)objmap)->entab[$eachobmap#_ix].e_va;
+    if (!$curva) continue; 
+}#
+;;; after expansion
+  #{ /* end $eachobmap */
+    $curat = NULL;  
+    $curva = NULL;  }
+}#
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPSTRINGs primitive
 ;; test
@@ -2172,9 +2361,6 @@ obtained by quoting an integer.}#
 	      (shortbacktrace_dbg "clone_symbol error.." 15)
 	      (debug_msg symb "clone_symbol bad symb")
 	      (messageval_dbg "clone_symbol symn not named or string" symb)
-	      (compile_warning "clone_symbol does not stop on failure" ())
-					;(assert_msg "invalid symbol in clone_symbol, not named or string" ())
-					;(the_null)
 	      (let ( (:cstring namcstr (the_null_cstring)
 			       ) )
 		(code_chunk clonamstr
@@ -2258,7 +2444,7 @@ obtained by quoting an integer.}#
 	    (symnam (unsafe_get_field :named_name sym))
 	    )
 	(cond 
-	 ( (null prevbind) (the_null) )
+	 ( (null prevbind) () )
 	 ( (and 
 	    (is_a prevbind class_selector_binding)
 	    (is_a val class_selector))
@@ -3559,7 +3745,7 @@ list.}#
 			       (:else 
 				;; this should not happen, two distinct cloned symbols with same name & rank
 				(assert_msg "corrupted same cloned symbols" ())
-				(return (the_null)))
+				(return ()))
 			       ))))
 		))
 	    ( (is_a x1 class_named)
@@ -4550,7 +4736,6 @@ list.}#
  is_strbuf
  is_string
  is_stringconst
- last_globpredef_index
  list_append
  list_first
  list_find
@@ -4624,7 +4809,6 @@ list.}#
  obj_num
  obj_serial
  object_length
- object_magic_object
  object_nth_field
  ori
  out_cplugin_compiled_timestamp_err
@@ -4668,7 +4852,6 @@ list.}#
  subseq_multiple
  the_callcount
  the_framedepth
- the_null
  the_null_cstring
  void
  warning_plain
@@ -4807,6 +4990,7 @@ list.}#
 ;; export the citerators & cmatchers defined above
 (export_values
  foreach_in_list
+ foreach_in_mapobject
  foreach_in_multiple
  foreach_long_upto
  integerbox_of 

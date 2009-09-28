@@ -5070,7 +5070,7 @@ install-melt-meltfiles: installdirs $(WARMELT_SRCFILES) $(ANAMELT_SRCFILES)
 #### this phony target is given manually to copy the generated
 #### warmelt*-3.c into the source directory it should be only
 #### explicitly given
-.PHONY: upgrade-warmelt
+.PHONY: upgrade-warmelt upgrade-bigmelt
 
 upgrade-warmelt: $(WARMELT_BASE3SO)
 	$(MAKE) Makefile
@@ -5082,6 +5082,19 @@ upgrade-warmelt: $(WARMELT_BASE3SO)
 	  grep -v '^#line' $$f-3.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:$$f-3:$$f-0:' > $$f-0.c-tmp ; \
 	  $(SHELL) $(srcdir)/../move-if-change $$f-0.c-tmp $(srcdir)/melt/$$f-0.c; \
 	done
+
+upgrade-bigmelt: warmeltallbig
+	$(MAKE) Makefile
+	$(MAKE)  $(WARMELT_BASE3SO)
+	@echo upgrade-bigmelt show diff of "warmelt-*2.c & warmelt-*3.c"
+	for f in $(WARMELT_BASE); do \
+	  diff $$f-2.c $$f-3.c || true; \
+	done
+	for f in $(WARMELT_BASE); do \
+	  grep -v '^#line' $$f-3.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:$$f-3:$$f-0:' > $$f-0.c-tmp ; \
+	  $(SHELL) $(srcdir)/../move-if-change $$f-0.c-tmp $(srcdir)/melt/$$f-0.c; \
+	done
+
 
 ## one of the intall-melt-headers-{tar,cpio,cp} targets below is
 ## triggered by install-melt-headers target above

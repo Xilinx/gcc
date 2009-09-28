@@ -556,6 +556,9 @@
 ;; the automatically generated warmelt-predef.melt file defines a fill_initial_predefmap function
 (load "warmelt-predef.melt")
 
+;; internal primitive to return the last predefined index
+(defprimitive last_globpredef_index () :long
+  "BGLOB__LASTGLOB")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; create a normalization context
 (defun create_normcontext (modctx)
@@ -818,7 +821,7 @@
        (progn
 	 (error_strv psloc "unbound symbol to normalize"
 		     (unsafe_get_field :named_name recv))
-	 (return (the_null))))
+	 (return ())))
    (if (null psloc)
        (shortbacktrace_dbg "normex_symbol null psloc" 10)
      )
@@ -1103,7 +1106,7 @@
 	   (progn
 	     (error_strv sloc "length mismatch between formals & actuals in primitive" 
 			 sopnamstr)
-	     (return (the_null)))
+	     (return ()))
 	 )
        (let ( (bmap (make_mapobject  discr_mapobjects (+i 5 (/iraw (*i 3 nbarg) 2))))
 	      (expargs (make_multiple discr_multiple nbexp))
@@ -1646,7 +1649,7 @@
 					  :nrep_loc sloc
 					  :nif_test ntest
 					  :nif_then wthen
-					  :nif_else (the_null)
+					  :nif_else ()
 					  :nexpr_ctyp ctypif
 					  ))) 
 	       )
@@ -1850,7 +1853,7 @@
 	(sdisj (unsafe_get_field :sor_disj recv))
 	(:long nbdisj (multiple_length sdisj))
 	(:long ix (-i nbdisj 1))
-	(norbox (make_box discr_box (the_null)))
+	(norbox (make_box discr_box ()))
 	(nbindorbox (make_box discr_box (make_list discr_list)))
 	(ctyporbox (make_box discr_box ctype_void))
 	(newenv (fresh_env env))
@@ -1870,7 +1873,7 @@
 	      (box_put nbindorbox nbind)
 	      (box_put norbox ncur) 
 	      (box_put ctyporbox (get_ctype ncur newenv))
-	      (the_null)
+	      ()
 	      )
 	  (let ( (ctypcur (get_ctype ncur newenv))
 		 )
@@ -1906,7 +1909,7 @@
 	      (list_append2list (box_content nbindorbox) nbind)
 	      (list_append (box_content nbindorbox) corbind)
 	      (box_put norbox corocc)
-	      (the_null)
+	      ()
 	      )
 	    )
 	  )
@@ -2433,7 +2436,7 @@
     (if (not (is_a cladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in make_instance" (unsafe_get_field :named_name sclass))
-	  (return (the_null))))
+	  (return ())))
     (let ( (nfields 
 	    (multiple_map 
 	     sfields 
@@ -2724,14 +2727,14 @@
 	 (nproc (instance class_nrep_routproc
 ;;; dont forget to put the nil fields at end
 			  :nrep_loc sloc
-			  :nproc_body (the_null) ;filled later
+			  :nproc_body () ;filled later
 			  :nrpro_name snam
 			  :nrpro_argb sformals
 			  :nrpro_closedb closblis
 			  :nrpro_const (make_list discr_list)
 			  :nrpro_thunklist (make_list discr_list)
-			  :nrpro_datarout (the_null) ; filled below
-			  :nrpro_dataclos (the_null) ; filled below
+			  :nrpro_datarout () ; filled below
+			  :nrpro_dataclos () ; filled below
 			  ))
 	 (ndatarout (instance class_nrep_dataroutine
 			      :ndata_name snam
@@ -2742,7 +2745,7 @@
 			      :ndata_name snam
 			      :ndata_discrx  (normal_predef discr_closure ncx sloc "discr_closure")
 			      :ndclo_proc nproc
-			      :ndclo_closv (the_null) ;filled below
+			      :ndclo_closv () ;filled below
 			      ))
 	 )
     (unsafe_put_fields ncx 
@@ -2822,13 +2825,13 @@
 	 (closedblist (make_list discr_list))
 	 (nproc (instance class_nrep_routproc
 			  :nrep_loc sloc
-			  :nproc_body (the_null) ;filled later
+			  :nproc_body () ;filled later
 			  :nrpro_name csym
 			  :nrpro_argb sargs
 			  :nrpro_closedb closedblist
 			  :nrpro_const (make_list discr_list)
-			  :nrpro_datarout (the_null) ; filled below
-			  :nrpro_dataclos (the_null) ; not filled
+			  :nrpro_datarout () ; filled below
+			  :nrpro_dataclos () ; not filled
 			  :nrpro_thunklist (make_list discr_list)
 			  ))
 	 (ndatarout (instance class_nrep_dataroutine
@@ -3015,7 +3018,7 @@
 	       )
 	     ( :else
 	       (error_plain sloc "multi-called expression neither apply nor send")
-	       (return (the_null))
+	       (return ())
 	       )
 	     ))))))))
 
@@ -3039,7 +3042,7 @@
 	    (debug_msg predefmap "normalpredef predefmap")
 	    (debug_msg pred "normalpredef pred")
 	    (error_strv sloc "not a predef:" msg)
-	    (the_null)
+	    ()
 	    )))))
 
 
@@ -3386,7 +3389,7 @@
 	(unsafe_put_fields sprimbind 
 			   :fixbind_data nprimdata 
 			   ))
-    (return (the_null))		     ;normalized defprimitive is empty
+    (return ())		     ;normalized defprimitive is empty
     ))
 (install_method class_src_defprimitive normal_exp normexp_defprimitive)
 
@@ -4167,14 +4170,14 @@
     (if (not (is_a icladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in definstance" (unsafe_get_field :named_name sname))
-	  (return (the_null))))
+	  (return ())))
     (cond
      ( (null spredef) () )
      ( (is_integerbox spredef) () )
      ( (is_a spredef class_symbol) () )
      (:else
       (error_strv sloc "bad predef in DEFINSTANCE"  (unsafe_get_field :named_name sname))
-      (return (the_null))))
+      (return ())))
     (assert_msg "check sinstclass" (is_a sinstclass class_class))
     (assert_msg "check sinstclasym" (is_a sinstclasym class_symbol))
     (let (
@@ -4261,11 +4264,11 @@
     (if (not (is_a icladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in defselector" (unsafe_get_field :named_name sname))
-	  (return (the_null))))
+	  (return ())))
     (if spredef
 	(if (not (or (is_integerbox spredef) (is_a spredef class_symbol)))
 	    (progn (error_strv sloc "bad predef in defselector"  (unsafe_get_field :named_name sname))
-		   (return (the_null)))))
+		   (return ()))))
     (assert_msg "check sinstclass" (is_a sinstclass class_class))
     (assert_msg "check sinstclasym" (is_a sinstclasym class_symbol))
     (assert_msg "check sname" (is_a sname class_symbol))

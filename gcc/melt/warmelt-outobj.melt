@@ -146,7 +146,7 @@
 	    (add2sbuf_indentnl sbuf 2)
 	    (add2sbuf_strconst sbuf "};")
 	    (add2sbuf_indentnl sbuf 1)
-	    (output_c_code olocvar (the_null) sbuf 1)
+	    (output_c_code olocvar () sbuf 1)
 	    (add2sbuf_strconst sbuf " = ")
 	    (output_predef oiopredef sbuf 1)
 	    (add2sbuf_strconst sbuf ";")
@@ -155,9 +155,9 @@
 	(progn
 	  ;; only set locvar if it was not set; hence already existing symbols are not recreated
 	  (add2sbuf_strconst sbuf "if (!")
-	  (output_c_code olocvar (the_null) sbuf 1)
+	  (output_c_code olocvar () sbuf 1)
 	  (add2sbuf_strconst sbuf ") ")
-	  (output_c_code olocvar (the_null) sbuf 2)
+	  (output_c_code olocvar () sbuf 2)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf oname)
 	  (add2sbuf_strconst sbuf ";")
@@ -167,13 +167,13 @@
       (add2sbuf_strconst sbuf " melt_assertmsg(\"iniobj checkdiscr ")
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf "\", NULL != (void*)")
-      (output_c_code odiscr (the_null) sbuf 1)
+      (output_c_code odiscr () sbuf 1)
       (add2sbuf_strconst sbuf ");")
       (add2sbuf_indentnl sbuf 1)
       (add2sbuf_strconst sbuf " cdat->")
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf ".obj_class = (meltobject_ptr_t)(")
-      (output_c_code odiscr (the_null) sbuf 1)
+      (output_c_code odiscr () sbuf 1)
       (add2sbuf_strconst sbuf ");")
       (add2sbuf_indentnl sbuf 1)
       (if odobnum
@@ -240,8 +240,8 @@
 	 )
     (assert_msg "check odata" (is_a odata class_nrep_datainstance))
     (debug_msg oiopredef "outcinitpredef_objinitobject oiopredef")
-    (if (null oiopredef) (return (the_null)))
-    (if (is_a oiopredef class_nrep_nil) (return (the_null)))
+    (if (null oiopredef) (return ()))
+    (if (is_a oiopredef class_nrep_nil) (return ()))
     (let ( (odloc (unsafe_get_field :nrep_loc odata))
 	   )
       (output_location odloc sbuf 1 "inipredef")
@@ -296,7 +296,7 @@
 	 (add2sbuf_indentnl sbuf 1)
 	 )
        ( (null oiopredef)
-	 (return (the_null)))
+	 (return ()))
        ( :else
 	 (debug_msg oiopredef "outcinitpredef_objinitobject unexpected oiopredef")
 	 (assert_msg "outcinitpredef_objinitobject unexpected oiopredef" ())
@@ -330,7 +330,7 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (output_c_code olocvar (the_null) sbuf 1)
+	  (output_c_code olocvar () sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
 	  (add2sbuf_strconst sbuf ";")
@@ -339,7 +339,7 @@
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
     (add2sbuf_strconst sbuf ".discr = (meltobject_ptr_t)(")
-    (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
+    (output_c_code (unsafe_get_field :oie_discr recv) () sbuf 1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " cdat->")
@@ -372,7 +372,7 @@
     (if olocvar
 	(progn
 					; (add2sbuf_strconst sbuf "/*inicloslocvar*/ ")
-	  (output_c_code olocvar (the_null) sbuf 1)
+	  (output_c_code olocvar () sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
 	  (add2sbuf_strconst sbuf ";")
@@ -381,7 +381,7 @@
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
     (add2sbuf_strconst sbuf ".discr = (meltobject_ptr_t)(")
-    (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
+    (output_c_code (unsafe_get_field :oie_discr recv) () sbuf 1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " cdat->")
@@ -419,7 +419,7 @@
     (if olocvar
 	(progn
 					; (add2sbuf_strconst sbuf "/*iniroutlocvar*/ ")
-	  (output_c_code olocvar (the_null) sbuf 1)
+	  (output_c_code olocvar () sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
 	  (add2sbuf_strconst sbuf ";")
@@ -428,7 +428,7 @@
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
     (add2sbuf_strconst sbuf ".discr = (meltobject_ptr_t)(")
-    (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
+    (output_c_code (unsafe_get_field :oie_discr recv) () sbuf 1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " strncpy(cdat->")
@@ -507,7 +507,7 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (output_c_code olocvar (the_null) sbuf 1)
+	  (output_c_code olocvar () sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
 	  (add2sbuf_strconst sbuf ";")
@@ -516,7 +516,7 @@
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
     (add2sbuf_strconst sbuf ".discr = (meltobject_ptr_t)(")
-    (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
+    (output_c_code (unsafe_get_field :oie_discr recv) () sbuf 1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " strncpy(cdat->")
@@ -553,7 +553,7 @@
     (add2sbuf_indentnl sbuf 1)
     (if olocvar
 	(progn
-	  (output_c_code olocvar (the_null) sbuf 1)
+	  (output_c_code olocvar () sbuf 1)
 	  (add2sbuf_strconst sbuf " = (void*)&cdat->")
 	  (add2sbuf_string sbuf cnam)
 	  (add2sbuf_strconst sbuf ";")
@@ -562,7 +562,7 @@
     (add2sbuf_strconst sbuf " cdat->")
     (add2sbuf_string sbuf cnam)
     (add2sbuf_strconst sbuf ".discr = (meltobject_ptr_t)(")
-    (output_c_code (unsafe_get_field :oie_discr recv) (the_null) sbuf 1)
+    (output_c_code (unsafe_get_field :oie_discr recv) () sbuf 1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf " cdat->")
@@ -1861,9 +1861,8 @@
 	   (lambda (curarg :long curank)
 	     (debug_msg curarg "outputcod_objapply curarg")
 	     (assert_msg "outputcod_objapply check curarg not objinstr" (not (is_a curarg class_objinstr)))
-					; (cbreak_msg "outputcod_objapply curarg")
 	     (if (>i curank 0)
-		 (let ( (curctyp (get_ctype curarg (the_null))) )
+		 (let ( (curctyp (get_ctype curarg ())) )
 		   (debug_msg curctyp "outputcod_objapply curctyp")
 		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location aloc implbuf (get_int boxdepthp1) "apply.arg")
@@ -1957,7 +1956,7 @@
 	   oargs
 	   (lambda (curarg :long curank)
 	     (debug_msg curarg "outputcod_objapply curarg")
-	     (let ( (curctyp (get_ctype curarg (the_null))) )
+	     (let ( (curctyp (get_ctype curarg ())) )
 	       (debug_msg curctyp "outputcod_objmsend curctyp")
 	       (assert_msg "check curctyp" (is_a curctyp class_ctype))
 	       (output_location oloc implbuf (get_int boxdepthp1) "ojbmsend.arg")
@@ -2065,7 +2064,7 @@
 	  (multiple_every 
 	   oxres
 	   (lambda (cures :long curank)
-	     (let ( (curctyp (get_ctype cures (the_null))) )
+	     (let ( (curctyp (get_ctype cures ())) )
 	       (list_append resdesclist (unsafe_get_field :ctype_parstring curctyp)))))))
     (if (>i nbarg 1)
 	(progn
@@ -2077,7 +2076,7 @@
 	   (lambda (curarg :long curank)
 	     (debug_msg curarg "outpucod_objmultiapply curarg")
 	     (if (>i curank 0)
-		 (let ( (curctyp (get_ctype curarg (the_null))) )
+		 (let ( (curctyp (get_ctype curarg ())) )
 		   (debug_msg curctyp "outpucod_objmultiapply curctyp")
 		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location aloc implbuf (get_int boxdepthp1) "multiapply.arg")
@@ -2107,7 +2106,7 @@
 	  (multiple_every
 	   oxres
 	   (lambda (cures :long curank)
-	     (let ( (curestyp (get_ctype cures (the_null))) )
+	     (let ( (curestyp (get_ctype cures ())) )
 	       (debug_msg curestyp "outpucod_objmultiapply curestyp")
 	       (assert_msg "check curestyp" (is_a curestyp class_ctype))
 	       (output_location aloc implbuf (get_int boxdepthp1) "multiapply.xres")
@@ -2216,7 +2215,7 @@
 	  (multiple_every 
 	   oxres
 	   (lambda (cures :long curank)
-	     (let ( (curestyp (get_ctype cures (the_null))) )
+	     (let ( (curestyp (get_ctype cures ())) )
 	       (list_append resdesclist (unsafe_get_field :ctype_parstring curestyp)))))
 	  ))
     (if (>i nbarg 0)
@@ -2235,7 +2234,7 @@
 	   oargs
 	   (lambda (curarg :long curank)
 	     (debug_msg curarg "outpucod_objmultimsend curarg")
-	     (let ( (curctyp (get_ctype curarg (the_null))) )
+	     (let ( (curctyp (get_ctype curarg ())) )
 	       (debug_msg curctyp "outpucod_objmultimsend curctyp")
 	       (assert_msg "check curctyp" (is_a curctyp class_ctype))
 	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.arg")
@@ -2265,7 +2264,7 @@
 	  (multiple_every
 	   oxres
 	   (lambda (cures :long curank)
-	     (let ( (curestyp (get_ctype cures (the_null))) )
+	     (let ( (curestyp (get_ctype cures ())) )
 	       (debug_msg curestyp "outpucod_objmultimsend curestyp")
 	       (assert_msg "check curestyp" (is_a curestyp class_ctype))
 	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.xres")
@@ -2758,7 +2757,7 @@
   (let (  (oloc (unsafe_get_field :obi_loc oputx))
 	  (orank (unsafe_get_field :obxres_rank oputx))
 	  (ovloc (unsafe_get_field :obxres_obloc oputx))
-	  (octyp (get_ctype ovloc (the_null)))
+	  (octyp (get_ctype ovloc ()))
 	  )
     (output_location oloc implbuf depth "putxtraresult")
     (assert_msg "check octyp" (is_a octyp class_ctype))
@@ -3441,6 +3440,42 @@
 	   (add_formal_occ curformb curexp) ) 
 	  )
 ;;;;;;;
+;;; handle defciterator
+	(?(instance
+	   class_src_defciterator
+	   :sdef_name ?dnam
+	   :sdef_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   :sformal_args ?formargs
+	   )
+	  (add_docsym dnam curexp)
+	  (list_append (get_field :mkdoc_citerators mdinfo) curexp)
+	  (foreach_in_multiple 
+	   (formargs)
+	   (curformb :long formix)
+	   (add_formal_occ curformb curexp) ) 
+	  )
+;;;;;;;
+;;; handle defcmatcher
+	(?(instance
+	   class_src_defcmatcher
+	   :sdef_name ?dnam
+	   :sdef_doc 
+	   ?(instance class_sexpr 
+		      :loca_location ?docloc
+		      :sexp_contents ?docont)
+	   :sformal_args ?formargs
+	   )
+	  (add_docsym dnam curexp)
+	  (list_append (get_field :mkdoc_cmatchers mdinfo) curexp)
+	  (foreach_in_multiple 
+	   (formargs)
+	   (curformb :long formix)
+	   (add_formal_occ curformb curexp) ) 
+	  )
+;;;;;;;
 ;;; handle export_patmacro
 	(?(instance
 	   class_src_export_patmacro
@@ -4063,6 +4098,8 @@
 	 (rawcitertup (list_to_multiple rawciterlist discr_multiple))
 	 (sortedcitertup (multiple_sort rawcitertup compare_named_alpha discr_multiple))
 	 )
+    (debug_msg rawciterlist "makedoc_genciterator rawciterlist")
+    (debug_msg sortedcitertup "makedoc_genciterator sortedcitertup")
     (add2sbuf_strconst outb "There are ")
     (add2sbuf_longdec outb (multiple_length sortedcitertup))
     (add2sbuf_strconst outb " c-iterators.")

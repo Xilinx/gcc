@@ -679,7 +679,7 @@
   (assert_msg "check compicache" (is_mapobject compicache))
   (assert_msg "check modctx" (is_a modctx class_modulecontext))
   (let ( (namsbuf (make_strbuf discr_strbuf)) 
-	 (routfunam (the_null))
+	 (routfunam ())
 	 )
     (add2sbuf_strconst namsbuf "rout_")
     (add2sbuf_longdec namsbuf num)
@@ -899,7 +899,7 @@
 	     ;; ocomputboxloc is this block
 	     (instance class_objcommentedblock
 		       :oblo_bodyl bodfel
-		       :oblo_epil (the_null)
+		       :oblo_epil ()
 		       :ocomblo_comment (make_stringconst discr_string "compute fresh module environment")))
 	   )
 	  ;; cond to test boxloc & compute it if null and if the initial_system_data is a valid object
@@ -915,7 +915,7 @@
 						   " || melt_object_length((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA))<FSYSDAT_BOX_FRESH_ENV"
 						   )
 				 ))
-		     :obcond_then (the_null)
+		     :obcond_then ()
 		     :obcond_else ocomputboxloc))
 	  ;;
 	  (limplocv
@@ -1204,7 +1204,7 @@
 	  (return (get_free_objlocptr gcx nam)))
 	;; return null for the void ctype
 	( (== ctyp ctype_void)
-	  (return (the_null)))
+	  (return ()))
 	(:else 
 	 (debug_msg nam "getfreeobjloctyped nam")
 	 (debug_msg ctyp "getfreeobjloctyped ctyp")

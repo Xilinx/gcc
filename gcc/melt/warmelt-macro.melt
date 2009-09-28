@@ -888,8 +888,8 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 		  (return resk)))
 	      ;; the empty list is expanded as nil
 	      ( (==i (list_length scont) 0)
-		(debug_msg (the_null) "macroexpand_1 result for null")
-		(return (the_null)))
+		(debug_msg () "macroexpand_1 result for null")
+		(return ()))
 	      (:else 
 	       (let ( (resca (expand_apply sexpr env mexpander)) )
 		 (debug_msg resca "macroexpand_1 result complex apply resca")
@@ -1469,7 +1469,7 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 	(error_plain loc "missing symbol for (DEFPRIMITIVE symb args type  [:doc documentation] expansion...)"_))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
-    (let ( (btup (lambda_arg_bindings (pair_head curpair) (the_null))) )
+    (let ( (btup (lambda_arg_bindings (pair_head curpair) ())) )
       (setq curpair (pair_tail curpair))
       ;; parse the type keyword
       (let ( (typkw  (pair_head curpair)) )
@@ -1481,14 +1481,14 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 		(debug_msg typkw "mexpand_defprimitive bad cty")
 		(error_strv loc "bad type keyword for "_
 			    (unsafe_get_field :named_name typkw))
-		(return (the_null))
+		(return ())
 		))
 	  (if (!= (unsafe_get_field :ctype_keyword cty) typkw)
 	      (progn
 		(debug_msg typkw "mexpand_defprimitive strange typkw")
 		(error_strv loc "invalid type keyword for DEFPRIMITIVE"_
 			    (unsafe_get_field :named_name typkw)) 
-		(return (the_null))   
+		(return ())   
 		))
 	  ;; parse the rest as to be expanded
 	  (setq curpair (pair_tail curpair))
@@ -2002,7 +2002,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 		  (:else
 		   (debug_msg curpairhead "mexpand_defun strange arglist curpairhead")
 		   (error_plain loc "missing or invalid arglist for DEFUN"_)
-		   (the_null)
+		   ()
 		   )))
 	   )
       (if (not (is_multiple btup))
@@ -2270,8 +2270,10 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	    ))))
      (unsafe_put_fields newclass
 			:class_fields fieldtup)
-     ;; we need to put the object magic to OBJMAG_OBJECT now
-     (put_int newclass (object_magic_object))
+     ;; we need to put the object magic to OBMAG_OBJECT now
+     (code_chunk setobjmagic
+		 #{((meltobject_ptr_t)$newclass)->obj_num = OBMAG_OBJECT;
+		 }#)
      (debug_msg newclass "mexp.defclass newclass" )
      (instance class_src_defclass
 	       :loca_location loc
@@ -2378,7 +2380,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	 (:else
 	  (error_strv loc "invalid class name for DEFINSTANCE"_
 		      (unsafe_get_field :named_name nam))
-	  (return (the_null))
+	  (return ())
 	  ))
 	(setq claname nam)
 	(assert_msg "check cla" (is_a cla class_class))
@@ -2481,7 +2483,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	 (:else
 	  (error_strv loc "invalid class name for DEFINSTANCE"_
 		      (unsafe_get_field :named_name nam))
-	  (return (the_null))
+	  (return ())
 	  ))
 	(setq claname nam)
 	(assert_msg "check cla" (is_a cla class_class))
@@ -2574,7 +2576,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
        (:else
 	(error_strv loc "invalid class name for INSTANCE"_
 		    (unsafe_get_field :named_name claname))
-	(return (the_null))
+	(return ())
 	))
       (debug_msg cla "mexpand_instance cla")
       (assert_msg "check cla" (is_a cla class_class))
@@ -2720,7 +2722,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
        (:else
 	(error_strv loc "invalid class name for INSTANCE"_
 		    (unsafe_get_field :named_name claname))
-	(return (the_null))
+	(return ())
 	))
       (assert_msg "check cla" (is_a cla class_class))
       (setq curpair (pair_tail curpair))
@@ -2801,7 +2803,7 @@ all the specified fields.}# )
        (:else
 	(error_strv loc "invalid class name for OBJECT pattern"_
 		    (unsafe_get_field :named_name claname))
-	(return (the_null))
+	(return ())
 	))
       (assert_msg "check cla" (is_a cla class_class))
       (setq curpair (pair_tail curpair))
@@ -2998,7 +3000,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (if (is_not_a curfkw class_keyword)
 	(progn
 	  (error_plain loc "field keyword expected in UNSAFE_GET_FIELD"_)
-	  (return (the_null))))
+	  (return ())))
     (setq curpair (pair_tail curpair))
     (let ( (curexp (pair_head curpair)) )
       (setq curpair (pair_tail curpair))
@@ -3009,7 +3011,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	(if (not (is_a flda class_src_fieldassign))
 	    (progn 
 	      (error_plain loc "bad field and expression in UNSAFE_GET_FIELD"_)
-	      (return (the_null))))
+	      (return ())))
 	(let ( (fld (unsafe_get_field :sfla_field flda))
 	       (exp (unsafe_get_field :sfla_expr flda)) )
 	  (instance class_src_unsafe_get_field
@@ -3032,7 +3034,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (if (is_not_a curfkw class_keyword)
 	(progn
 	  (error_plain loc "field keyword expected in GET_FIELD"_)
-	  (return (the_null))))
+	  (return ())))
     (setq curpair (pair_tail curpair))
     (let ( (curexp (pair_head curpair)) )
       (setq curpair (pair_tail curpair))
@@ -3043,7 +3045,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	(if (not (is_a flda class_src_fieldassign))
 	    (progn 
 	      (error_plain loc "bad field and expression in GET_FIELD"_)
-	      (return (the_null))))
+	      (return ())))
 	(let ( (fld (unsafe_get_field :sfla_field flda))
 	       (exp (unsafe_get_field :sfla_expr flda)) )
 	  (instance class_src_get_field
@@ -3067,7 +3069,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (if (is_not_a cursym class_symbol)
 	(progn
 	  (error_plain loc "var symbol name expected in SETQ"_)
-	  (return (the_null))))
+	  (return ())))
     (setq curpair (pair_tail curpair))
     (let ( (curexp (pair_head curpair)) )
       (setq curpair (pair_tail curpair))
@@ -3405,7 +3407,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (if (<i nbcomp 1)
 	(progn 
 	  (error_plain loc "OR without sons"_)
-	  (return (the_null)))
+	  (return ()))
       (let ( (res 
 	      (instance class_src_or
 			:loca_location loc
@@ -3865,7 +3867,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (if (is_not_a xlabnam class_symbol)
 	(progn
 	  (error_plain loc "missing label in FOREVER"_)
-	  (return (the_null))))
+	  (return ())))
     (setq curpair (pair_tail curpair))
     (let ( (labind (instance class_label_binding
 			     :binder xlabnam
@@ -3899,14 +3901,14 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (if (is_not_a xlabnam class_symbol)
 	(progn
 	  (error_plain loc "missing label in EXIT"_)
-	  (return (the_null))))
+	  (return ())))
     (setq curpair (pair_tail curpair))
     (let ( (labind (find_env env xlabnam)) )
       (if (is_not_a labind class_label_binding)
 	  (progn 
 	    (error_strv loc "bad label in EXIT"_
 			(unsafe_get_field :named_name xlabnam))
-	    (return (the_null))))
+	    (return ())))
       (let ( (bodytup (pairlist_to_multiple
 		       curpair
 		       discr_multiple
@@ -3937,7 +3939,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (if (not (is_string xmsg))
 	(progn
 	  (error_plain loc "missing message string in (COMPILE_WARNING <msg> <exp>)"_)
-	  (return (the_null))))
+	  (return ())))
     (setq curpair (pair_tail curpair))
     (let ( (sexp (pair_head curpair))
 	   (xexp (macroexpand_1 sexp env mexpander))

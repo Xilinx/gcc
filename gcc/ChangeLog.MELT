@@ -1,4 +1,21 @@
 
+2009-09-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: added upgrade-bigmelt target.
+	* melt/warmelt-first.melt: added lots of documentation, removed
+	useless primitive like the_null, added macro-strings, added
+	foreach_in_mapobject
+	* melt/warmelt-macro.melt: don't use the_null.
+	* melt/warmelt-normal.melt: ditto.
+	* melt/warmelt-genobj.melt: ditto.
+	* melt/warmelt-outobj.melt: ditto.
+	[regenerated several times]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
 2009-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added more documentation & the
 	add2sbuf_texi_mixloc primitive.

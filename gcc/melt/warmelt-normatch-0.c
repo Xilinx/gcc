@@ -1,12 +1,12 @@
 /* GCC MELT GENERATED FILE warmelt-normatch-3.c - DO NOT EDIT */
-/* generated on 2009 Sep 18 */
+/* generated on 2009 Sep 28 */
 
 
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* checksum of the gcc executable generating this file: */
 const unsigned char genchecksum_melt[16]=
- { 0x60, 0x77, 0x7e, 0x8f, 0x96, 0x39, 0x81, 0xcd,
-    0x8e, 0x24, 0x97, 0xb9, 0xef, 0xf9, 0xfd, 0xd7};
+ { 0x6e, 0x50, 0x17, 0x27, 0x74, 0x65, 0xc0, 0xcf,
+    0xab, 0xe0, 0xef, 0x33, 0xb5, 0x89, 0x56, 0xd1};
 #endif
 
 #include "run-melt.h"
@@ -367,7 +367,9 @@ MELT_LOCATION("warmelt-normatch.melt:67:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:69:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(69)?(69):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (69)?(69):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -425,7 +427,9 @@ MELT_LOCATION("warmelt-normatch.melt:67:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:74:/ locexp");
-       melt_assert_failed(( "catchall scan_pattern unimplemented for any reciever"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(74)?(74):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "catchall scan_pattern unimplemented for any reciever"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (74)?(74):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
@@ -607,7 +611,9 @@ MELT_LOCATION("warmelt-normatch.melt:82:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:84:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(84)?(84):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (84)?(84):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -646,7 +652,9 @@ MELT_LOCATION("warmelt-normatch.melt:82:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:85:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(85)?(85):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (85)?(85):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -738,7 +746,9 @@ MELT_LOCATION("warmelt-normatch.melt:82:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:91:/ locexp");
-       melt_assert_failed(( "catchall scan_pattern unimplemented for pattern"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(91)?(91):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "catchall scan_pattern unimplemented for pattern"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (91)?(91):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V18*/ curfptr[17] = 0 ;}
       ;
@@ -924,7 +934,9 @@ MELT_LOCATION("warmelt-normatch.melt:98:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:100:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(100)?(100):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (100)?(100):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -963,7 +975,9 @@ MELT_LOCATION("warmelt-normatch.melt:98:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:101:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(101)?(101):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (101)?(101):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -1224,7 +1238,9 @@ MELT_LOCATION("warmelt-normatch.melt:117:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:119:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(119)?(119):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (119)?(119):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -1263,7 +1279,9 @@ MELT_LOCATION("warmelt-normatch.melt:117:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:120:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(120)?(120):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (120)?(120):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -1524,7 +1542,9 @@ MELT_LOCATION("warmelt-normatch.melt:136:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:138:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(138)?(138):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (138)?(138):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -1563,7 +1583,9 @@ MELT_LOCATION("warmelt-normatch.melt:136:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:139:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(139)?(139):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (139)?(139):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -1598,7 +1620,7 @@ MELT_LOCATION("warmelt-normatch.melt:136:/ block");
    melt_object_get_field(slot,(melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 3, "PCTN_MAPATVAR");/*_.MAPVAR__V15*/ curfptr[14] = slot; };
   ;
   /*_.MVAR__V16*/ curfptr[15] = 
-   (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.MAPVAR__V15*/ curfptr[14]), (meltobject_ptr_t)(/*_.SVAR__V14*/ curfptr[13])));;
+   melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.MAPVAR__V15*/ curfptr[14]), (meltobject_ptr_t)(/*_.SVAR__V14*/ curfptr[13]));;
   /*_#NULL__L4*/ curfnum[0] = 
    ((/*_.MVAR__V16*/ curfptr[15]) == NULL);;
   MELT_LOCATION("warmelt-normatch.melt:145:/ cond");
@@ -1609,7 +1631,9 @@ MELT_LOCATION("warmelt-normatch.melt:136:/ block");
     
     {
     MELT_LOCATION("warmelt-normatch.melt:146:/ locexp");
-     meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.MAPVAR__V15*/ curfptr[14]), (meltobject_ptr_t) (/*_.SVAR__V14*/ curfptr[13]), (melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]));}
+    meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.MAPVAR__V15*/ curfptr[14]), 
+			   (meltobject_ptr_t) (/*_.SVAR__V14*/ curfptr[13]), 
+			   (melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]));}
     ;
     
     #if ENABLE_CHECKING
@@ -1897,7 +1921,9 @@ MELT_LOCATION("warmelt-normatch.melt:160:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:162:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(162)?(162):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (162)?(162):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -1936,7 +1962,9 @@ MELT_LOCATION("warmelt-normatch.melt:160:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:163:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(163)?(163):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (163)?(163):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -2154,7 +2182,9 @@ MELT_LOCATION("warmelt-normatch.melt:173:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:176:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(176)?(176):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (176)?(176):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -2193,7 +2223,9 @@ MELT_LOCATION("warmelt-normatch.melt:173:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:177:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(177)?(177):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (177)?(177):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -2232,7 +2264,7 @@ MELT_LOCATION("warmelt-normatch.melt:173:/ block");
    melt_object_get_field(slot,(melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), 3, "PCTN_MAPATVAR");/*_.MAPVAR__V18*/ curfptr[17] = slot; };
   ;
   /*_.MVAR__V19*/ curfptr[18] = 
-   (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.MAPVAR__V18*/ curfptr[17]), (meltobject_ptr_t)(/*_.ASVAR__V16*/ curfptr[15])));;
+   melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.MAPVAR__V18*/ curfptr[17]), (meltobject_ptr_t)(/*_.ASVAR__V16*/ curfptr[15]));;
   /*_#NULL__L5*/ curfnum[0] = 
    ((/*_.MVAR__V19*/ curfptr[18]) == NULL);;
   MELT_LOCATION("warmelt-normatch.melt:184:/ cond");
@@ -2243,7 +2275,9 @@ MELT_LOCATION("warmelt-normatch.melt:173:/ block");
     
     {
     MELT_LOCATION("warmelt-normatch.melt:186:/ locexp");
-     meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.MAPVAR__V18*/ curfptr[17]), (meltobject_ptr_t) (/*_.ASVAR__V16*/ curfptr[15]), (melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]));}
+    meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.MAPVAR__V18*/ curfptr[17]), 
+			   (meltobject_ptr_t) (/*_.ASVAR__V16*/ curfptr[15]), 
+			   (melt_ptr_t)(/*_.RECV__V2*/ curfptr[1]));}
     ;
     
     #if ENABLE_CHECKING
@@ -2486,7 +2520,9 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:199:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(199)?(199):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (199)?(199):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -2525,7 +2561,9 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:200:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(200)?(200):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (200)?(200):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -2571,7 +2609,7 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
   MELT_LOCATION("warmelt-normatch.melt:205:/ block");
    /*block*/{
     /*_.MAPOBJECT_GET__V18*/ curfptr[17] = 
-     (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.MAPCST__V16*/ curfptr[15]), (meltobject_ptr_t)(/*_.SCONST__V13*/ curfptr[12])));;
+     melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.MAPCST__V16*/ curfptr[15]), (meltobject_ptr_t)(/*_.SCONST__V13*/ curfptr[12]));;
     /*_.MCST__V17*/ curfptr[16] = /*_.MAPOBJECT_GET__V18*/ curfptr[17];;
     /*epilog*/
     MELT_LOCATION("warmelt-normatch.melt:205:/ clear");
@@ -2610,7 +2648,9 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:210:/ locexp");
-       melt_assert_failed(( "check bindlist"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(210)?(210):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check bindlist"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (210)?(210):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V23*/ curfptr[22] = 0 ;}
       ;
@@ -2755,7 +2795,9 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
         
         {
         MELT_LOCATION("warmelt-normatch.melt:221:/ locexp");
-         meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.MAPCST__V16*/ curfptr[15]), (meltobject_ptr_t) (/*_.SCONST__V13*/ curfptr[12]), (melt_ptr_t)(/*_.NCONST__V31*/ curfptr[27]));}
+        meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.MAPCST__V16*/ curfptr[15]), 
+			   (meltobject_ptr_t) (/*_.SCONST__V13*/ curfptr[12]), 
+			   (melt_ptr_t)(/*_.NCONST__V31*/ curfptr[27]));}
         ;
         MELT_LOCATION("warmelt-normatch.melt:222:/ cond");
         /*cond*/ if (/*_.NBINDCONST__V32*/ curfptr[31]) /*then*/ {
@@ -2959,7 +3001,9 @@ MELT_LOCATION("warmelt-normatch.melt:197:/ block");
         
         {
         MELT_LOCATION("warmelt-normatch.melt:231:/ locexp");
-        melt_assert_failed(( "check rectyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(231)?(231):__LINE__, __FUNCTION__);}
+        melt_assert_failed(( "check rectyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (231)?(231):__LINE__, __FUNCTION__);
+;}
         ;
         /*clear*/ /*_.IFELSE___V48*/ curfptr[31] = 0 ;}
        ;
@@ -3221,7 +3265,9 @@ MELT_LOCATION("warmelt-normatch.melt:244:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:246:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(246)?(246):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (246)?(246):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -3260,7 +3306,9 @@ MELT_LOCATION("warmelt-normatch.melt:244:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:247:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(247)?(247):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (247)?(247):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -3313,7 +3361,9 @@ MELT_LOCATION("warmelt-normatch.melt:244:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:252:/ locexp");
-       melt_assert_failed(( "check scla"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(252)?(252):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check scla"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (252)?(252):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
       ;
@@ -3352,7 +3402,9 @@ MELT_LOCATION("warmelt-normatch.melt:244:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:253:/ locexp");
-       melt_assert_failed(( "check sfields"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(253)?(253):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check sfields"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (253)?(253):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V19*/ curfptr[18] = 0 ;}
       ;
@@ -3399,7 +3451,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         
         {
         MELT_LOCATION("warmelt-normatch.melt:257:/ locexp");
-        melt_assert_failed(( "check fldp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(257)?(257):__LINE__, __FUNCTION__);}
+        melt_assert_failed(( "check fldp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (257)?(257):__LINE__, __FUNCTION__);
+;}
         ;
         /*clear*/ /*_.IFELSE___V22*/ curfptr[21] = 0 ;}
        ;
@@ -3454,7 +3508,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
           
           {
           MELT_LOCATION("warmelt-normatch.melt:259:/ locexp");
-          melt_assert_failed(( "check fld"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(259)?(259):__LINE__, __FUNCTION__);}
+          melt_assert_failed(( "check fld"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (259)?(259):__LINE__, __FUNCTION__);
+;}
           ;
           /*clear*/ /*_.IFELSE___V27*/ curfptr[26] = 0 ;}
          ;
@@ -3795,7 +3851,9 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:283:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(283)?(283):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (283)?(283):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
@@ -3902,7 +3960,9 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:286:/ locexp");
-      melt_assert_failed(( "check ctyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(286)?(286):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check ctyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (286)?(286):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -3941,7 +4001,9 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:287:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(287)?(287):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (287)?(287):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
@@ -4026,7 +4088,9 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
         
         {
         MELT_LOCATION("warmelt-normatch.melt:291:/ locexp");
-        melt_assert_failed(( "check soper"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(291)?(291):__LINE__, __FUNCTION__);}
+        melt_assert_failed(( "check soper"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (291)?(291):__LINE__, __FUNCTION__);
+;}
         ;
         /*clear*/ /*_.IFELSE___V23*/ curfptr[22] = 0 ;}
        ;
@@ -4123,7 +4187,9 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
         
         {
         MELT_LOCATION("warmelt-normatch.melt:297:/ locexp");
-        melt_assert_failed(( "check matmb"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(297)?(297):__LINE__, __FUNCTION__);}
+        melt_assert_failed(( "check matmb"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (297)?(297):__LINE__, __FUNCTION__);
+;}
         ;
         /*clear*/ /*_.IFELSE___V32*/ curfptr[31] = 0 ;}
        ;
@@ -4200,7 +4266,9 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:307:/ locexp");
-       melt_assert_failed(( "check matctyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(307)?(307):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check matctyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (307)?(307):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V42*/ curfptr[41] = 0 ;}
       ;
@@ -4398,7 +4466,9 @@ MELT_LOCATION("warmelt-normatch.melt:282:/ block");
          
          {
          MELT_LOCATION("warmelt-normatch.melt:318:/ locexp");
-         melt_assert_failed(( "temporary hack scanpat_srcpatcomposite mismatch crash here"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(318)?(318):__LINE__, __FUNCTION__);}
+         melt_assert_failed(( "temporary hack scanpat_srcpatcomposite mismatch crash here"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (318)?(318):__LINE__, __FUNCTION__);
+;}
          ;
          /*clear*/ /*_.IFELSE___V55*/ curfptr[54] = 0 ;}
         ;
@@ -4743,7 +4813,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
            
            {
            MELT_LOCATION("warmelt-normatch.melt:337:/ locexp");
-           melt_assert_failed(( "check curctype"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(337)?(337):__LINE__, __FUNCTION__);}
+           melt_assert_failed(( "check curctype"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (337)?(337):__LINE__, __FUNCTION__);
+;}
            ;
            /*clear*/ /*_.IFELSE___V80*/ curfptr[79] = 0 ;}
           ;
@@ -5112,7 +5184,9 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:434:/ locexp");
-      melt_assert_failed(( "check ntest"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(434)?(434):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check ntest"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (434)?(434):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -5151,7 +5225,9 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:435:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(435)?(435):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (435)?(435):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -5200,7 +5276,9 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:439:/ locexp");
-       melt_assert_failed(( "check nmatched"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(439)?(439):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check nmatched"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (439)?(439):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
@@ -5239,7 +5317,9 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:440:/ locexp");
-       melt_assert_failed(( "check stuffmap"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(440)?(440):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check stuffmap"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (440)?(440):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V18*/ curfptr[17] = 0 ;}
       ;
@@ -5264,7 +5344,7 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
    MELT_LOCATION("warmelt-normatch.melt:443:/ block");
    /*block*/{
     /*_.NTL__V21*/ curfptr[20] = 
-     (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V14*/ curfptr[13]), (meltobject_ptr_t)(/*_.NMATCHED__V13*/ curfptr[12])));;
+     melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V14*/ curfptr[13]), (meltobject_ptr_t)(/*_.NMATCHED__V13*/ curfptr[12]));;
     /*_#IS_LIST__L7*/ curfnum[0] = 
      (melt_magic_discr((melt_ptr_t)(/*_.NTL__V21*/ curfptr[20])) == OBMAG_LIST);;
     MELT_LOCATION("warmelt-normatch.melt:444:/ cond");
@@ -5282,7 +5362,9 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:447:/ locexp");
-        meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.STUFFMAP__V14*/ curfptr[13]), (meltobject_ptr_t) (/*_.NMATCHED__V13*/ curfptr[12]), (melt_ptr_t)(/*_.NEWNTL__V24*/ curfptr[23]));}
+       meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.STUFFMAP__V14*/ curfptr[13]), 
+			   (meltobject_ptr_t) (/*_.NMATCHED__V13*/ curfptr[12]), 
+			   (melt_ptr_t)(/*_.NEWNTL__V24*/ curfptr[23]));}
        ;
        /*_.LET___V23*/ curfptr[22] = /*_.NEWNTL__V24*/ curfptr[23];;
        /*epilog*/
@@ -5325,7 +5407,9 @@ MELT_LOCATION("warmelt-normatch.melt:431:/ block");
         
         {
         MELT_LOCATION("warmelt-normatch.melt:451:/ locexp");
-        melt_assert_failed(( "check ntlist"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(451)?(451):__LINE__, __FUNCTION__);}
+        melt_assert_failed(( "check ntlist"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (451)?(451):__LINE__, __FUNCTION__);
+;}
         ;
         /*clear*/ /*_.IFELSE___V27*/ curfptr[20] = 0 ;}
        ;
@@ -5596,7 +5680,9 @@ MELT_LOCATION("warmelt-normatch.melt:462:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:465:/ locexp");
-      melt_assert_failed(( "check curtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(465)?(465):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check curtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (465)?(465):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -5635,7 +5721,9 @@ MELT_LOCATION("warmelt-normatch.melt:462:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:466:/ locexp");
-      melt_assert_failed(( "check thentester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(466)?(466):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check thentester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (466)?(466):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -5678,7 +5766,9 @@ MELT_LOCATION("warmelt-normatch.melt:462:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:467:/ locexp");
-      melt_assert_failed(( "check curtester has no then"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(467)?(467):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check curtester has no then"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (467)?(467):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
      ;
@@ -5725,7 +5815,9 @@ MELT_LOCATION("warmelt-normatch.melt:462:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:470:/ locexp");
-       melt_assert_failed(( "check thencome"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(470)?(470):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check thencome"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (470)?(470):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
       ;
@@ -6115,7 +6207,9 @@ MELT_LOCATION("warmelt-normatch.melt:488:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:492:/ locexp");
-      melt_assert_failed(( "check newtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(492)?(492):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check newtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (492)?(492):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -6154,7 +6248,9 @@ MELT_LOCATION("warmelt-normatch.melt:488:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:493:/ locexp");
-      melt_assert_failed(( "check testercont"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(493)?(493):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check testercont"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (493)?(493):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -6310,7 +6406,9 @@ MELT_LOCATION("warmelt-normatch.melt:488:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:503:/ locexp");
-       melt_assert_failed(( "check curtester set_newtester_lastthen"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(503)?(503):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check curtester set_newtester_lastthen"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (503)?(503):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V23*/ curfptr[15] = 0 ;}
       ;
@@ -6589,7 +6687,9 @@ MELT_LOCATION("warmelt-normatch.melt:513:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:516:/ locexp");
-      melt_assert_failed(( "check newtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(516)?(516):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check newtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (516)?(516):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
      ;
@@ -6628,7 +6728,9 @@ MELT_LOCATION("warmelt-normatch.melt:513:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:517:/ locexp");
-      melt_assert_failed(( "check partester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(517)?(517):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check partester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (517)?(517):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
      ;
@@ -7272,7 +7374,9 @@ MELT_LOCATION("warmelt-normatch.melt:572:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:574:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(574)?(574):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (574)?(574):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -7354,7 +7458,9 @@ MELT_LOCATION("warmelt-normatch.melt:572:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:581:/ locexp");
-       melt_assert_failed(( "catchall normal_pattern unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(581)?(581):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "catchall normal_pattern unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (581)?(581):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
@@ -7540,7 +7646,9 @@ MELT_LOCATION("warmelt-normatch.melt:588:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:590:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(590)?(590):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (590)?(590):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -7579,7 +7687,9 @@ MELT_LOCATION("warmelt-normatch.melt:588:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:591:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(591)?(591):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (591)?(591):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -7661,7 +7771,9 @@ MELT_LOCATION("warmelt-normatch.melt:588:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:598:/ locexp");
-       melt_assert_failed(( "catchall normal_pattern unimplemented on pattern"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(598)?(598):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "catchall normal_pattern unimplemented on pattern"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (598)?(598):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V18*/ curfptr[17] = 0 ;}
       ;
@@ -7883,7 +7995,9 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:608:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(608)?(608):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (608)?(608):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -7922,7 +8036,9 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:609:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(609)?(609):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (609)?(609):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -8017,9 +8133,9 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
    }
   ;
   /*_.TSTUFF__V21*/ curfptr[20] = 
-   (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V15*/ curfptr[14]), (meltobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2])));;
+   melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V15*/ curfptr[14]), (meltobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2]));;
   /*_.LOCOCC__V22*/ curfptr[21] = 
-   (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.PVARMAP__V16*/ curfptr[15]), (meltobject_ptr_t)(/*_.PATVAR__V20*/ curfptr[19])));;
+   melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.PVARMAP__V16*/ curfptr[15]), (meltobject_ptr_t)(/*_.PATVAR__V20*/ curfptr[19]));;
   MELT_LOCATION("warmelt-normatch.melt:617:/ cond");
   /*cond*/ if (/*ifisa*/ melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[2])))) /*then*/ {
   MELT_LOCATION("warmelt-normatch.melt:617:/ cond.then");
@@ -8186,7 +8302,9 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
           
           {
           MELT_LOCATION("warmelt-normatch.melt:630:/ locexp");
-          melt_assert_failed(( "check lococc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(630)?(630):__LINE__, __FUNCTION__);}
+          melt_assert_failed(( "check lococc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (630)?(630):__LINE__, __FUNCTION__);
+;}
           ;
           /*clear*/ /*_.IFELSE___V37*/ curfptr[36] = 0 ;}
          ;
@@ -8677,12 +8795,16 @@ MELT_LOCATION("warmelt-normatch.melt:605:/ block");
      
      {
      MELT_LOCATION("warmelt-normatch.melt:687:/ locexp");
-      meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V70*/ curfptr[33]), (meltobject_ptr_t) (/*_.PATVAR__V20*/ curfptr[19]), (melt_ptr_t)(/*_.CLOCC__V64*/ curfptr[56]));}
+     meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V70*/ curfptr[33]), 
+			   (meltobject_ptr_t) (/*_.PATVAR__V20*/ curfptr[19]), 
+			   (melt_ptr_t)(/*_.CLOCC__V64*/ curfptr[56]));}
      ;
      
      {
      MELT_LOCATION("warmelt-normatch.melt:688:/ locexp");
-      meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.PVARMAP__V16*/ curfptr[15]), (meltobject_ptr_t) (/*_.PATVAR__V20*/ curfptr[19]), (melt_ptr_t)(/*_.CLOCC__V64*/ curfptr[56]));}
+     meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.PVARMAP__V16*/ curfptr[15]), 
+			   (meltobject_ptr_t) (/*_.PATVAR__V20*/ curfptr[19]), 
+			   (melt_ptr_t)(/*_.CLOCC__V64*/ curfptr[56]));}
      ;
      
      #if ENABLE_CHECKING
@@ -9190,7 +9312,9 @@ MELT_LOCATION("warmelt-normatch.melt:702:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:705:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(705)?(705):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (705)?(705):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -9229,7 +9353,9 @@ MELT_LOCATION("warmelt-normatch.melt:702:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:706:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(706)?(706):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (706)?(706):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -9474,7 +9600,9 @@ MELT_LOCATION("warmelt-normatch.melt:713:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:717:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(717)?(717):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (717)?(717):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -9513,7 +9641,9 @@ MELT_LOCATION("warmelt-normatch.melt:713:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:718:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(718)?(718):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (718)?(718):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
@@ -9643,7 +9773,9 @@ MELT_LOCATION("warmelt-normatch.melt:713:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:727:/ locexp");
-       melt_assert_failed(( "check aspat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(727)?(727):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check aspat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (727)?(727):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V25*/ curfptr[24] = 0 ;}
       ;
@@ -10772,7 +10904,9 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:776:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(776)?(776):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (776)?(776):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -10811,7 +10945,9 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:777:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(777)?(777):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (777)?(777):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -10923,7 +11059,7 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
    }
   ;
   /*_.TSTUFF__V24*/ curfptr[23] = 
-   (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V23*/ curfptr[22]), (meltobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2])));;
+   melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V23*/ curfptr[22]), (meltobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2]));;
   /*_.TESTER__V25*/ curfptr[24] = (/*nil*/NULL);;
   /*_.CURHDLER__V26*/ curfptr[25] = /*_.HDLER__V4*/ curfptr[3];;
   MELT_LOCATION("warmelt-normatch.melt:789:/ cond");
@@ -10970,7 +11106,9 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:794:/ locexp");
-       melt_assert_failed(( "check patcla"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(794)?(794):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check patcla"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (794)?(794):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V30*/ curfptr[29] = 0 ;}
       ;
@@ -11575,7 +11713,9 @@ MELT_LOCATION("warmelt-normatch.melt:773:/ block");
         
         {
         MELT_LOCATION("warmelt-normatch.melt:854:/ locexp");
-        melt_assert_failed(( "check testbindl"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(854)?(854):__LINE__, __FUNCTION__);}
+        melt_assert_failed(( "check testbindl"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (854)?(854):__LINE__, __FUNCTION__);
+;}
         ;
         /*clear*/ /*_.IFELSE___V72*/ curfptr[36] = 0 ;}
        ;
@@ -11690,7 +11830,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
          
          {
          MELT_LOCATION("warmelt-normatch.melt:860:/ locexp");
-         melt_assert_failed(( "check curpatf"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(860)?(860):__LINE__, __FUNCTION__);}
+         melt_assert_failed(( "check curpatf"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (860)?(860):__LINE__, __FUNCTION__);
+;}
          ;
          /*clear*/ /*_.IFELSE___V79*/ curfptr[55] = 0 ;}
         ;
@@ -11961,7 +12103,9 @@ melt_magic_discr(/*_.TESTPAIR__V98*/ curfptr[96]) == OBMAG_PAIR;
             
             {
             MELT_LOCATION("warmelt-normatch.melt:890:/ locexp");
-            melt_assert_failed(( "check testlocsy"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(890)?(890):__LINE__, __FUNCTION__);}
+            melt_assert_failed(( "check testlocsy"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (890)?(890):__LINE__, __FUNCTION__);
+;}
             ;
             /*clear*/ /*_.IFELSE___V101*/ curfptr[100] = 0 ;}
            ;
@@ -12226,7 +12370,7 @@ melt_magic_discr(/*_.TESTPAIR__V98*/ curfptr[96]) == OBMAG_PAIR;
          
          {
          MELT_LOCATION("warmelt-normatch.melt:918:/ locexp");
-          meltgc_multiple_put_nth((melt_ptr_t)(/*_.NTINST_FIELDLOCS__V121*/ curfptr[120]), (/*_#GET_INT__L31*/ curfnum[30]), (melt_ptr_t)(/*_.NEWLOCC__V119*/ curfptr[118]));}
+         meltgc_multiple_put_nth((melt_ptr_t)(/*_.NTINST_FIELDLOCS__V121*/ curfptr[120]), (/*_#GET_INT__L31*/ curfnum[30]), (melt_ptr_t)(/*_.NEWLOCC__V119*/ curfptr[118]));}
          ;
          MELT_LOCATION("warmelt-normatch.melt:923:/ cond");
          /*cond*/ if (/*ifisa*/ melt_is_instance_of((melt_ptr_t)(/*_.NCX__V22*/ curfptr[21]), (melt_ptr_t)((/*!CLASS_NORMCONTEXT*/ curfrout->tabval[31])))) /*then*/ {
@@ -12243,7 +12387,9 @@ melt_magic_discr(/*_.TESTPAIR__V98*/ curfptr[96]) == OBMAG_PAIR;
          
          {
          MELT_LOCATION("warmelt-normatch.melt:923:/ locexp");
-          meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V122*/ curfptr[121]), (meltobject_ptr_t) (/*_.NEWSYM__V114*/ curfptr[113]), (melt_ptr_t)(/*_.NEWLOCC__V119*/ curfptr[118]));}
+         meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V122*/ curfptr[121]), 
+			   (meltobject_ptr_t) (/*_.NEWSYM__V114*/ curfptr[113]), 
+			   (melt_ptr_t)(/*_.NEWLOCC__V119*/ curfptr[118]));}
          ;
          
          #if ENABLE_CHECKING
@@ -13033,7 +13179,9 @@ MELT_LOCATION("warmelt-normatch.melt:866:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:872:/ locexp");
-       melt_assert_failed(( "check prevtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(872)?(872):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check prevtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (872)?(872):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
       ;
@@ -13332,7 +13480,9 @@ MELT_LOCATION("warmelt-normatch.melt:947:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:951:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(951)?(951):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (951)?(951):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -13371,7 +13521,9 @@ MELT_LOCATION("warmelt-normatch.melt:947:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:952:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(952)?(952):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (952)?(952):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
@@ -14289,7 +14441,9 @@ MELT_LOCATION("warmelt-normatch.melt:995:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1000:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1000)?(1000):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1000)?(1000):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -14328,7 +14482,9 @@ MELT_LOCATION("warmelt-normatch.melt:995:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1001:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1001)?(1001):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1001)?(1001):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
@@ -15067,7 +15223,9 @@ MELT_LOCATION("warmelt-normatch.melt:1009:/ block");
         
         {
         MELT_LOCATION("warmelt-normatch.melt:1015:/ locexp");
-        melt_assert_failed(( "check newtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1015)?(1015):__LINE__, __FUNCTION__);}
+        melt_assert_failed(( "check newtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1015)?(1015):__LINE__, __FUNCTION__);
+;}
         ;
         /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
        ;
@@ -15540,7 +15698,9 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1076:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1076)?(1076):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1076)?(1076):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -15579,7 +15739,9 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1077:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1077)?(1077):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1077)?(1077):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
@@ -15728,7 +15890,9 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:1093:/ locexp");
-       melt_assert_failed(( "check mat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1093)?(1093):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check mat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1093)?(1093):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V29*/ curfptr[28] = 0 ;}
       ;
@@ -15767,7 +15931,9 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
        
        {
        MELT_LOCATION("warmelt-normatch.melt:1094:/ locexp");
-       melt_assert_failed(( "check matopbind"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1094)?(1094):__LINE__, __FUNCTION__);}
+       melt_assert_failed(( "check matopbind"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1094)?(1094):__LINE__, __FUNCTION__);
+;}
        ;
        /*clear*/ /*_.IFELSE___V31*/ curfptr[30] = 0 ;}
       ;
@@ -15967,7 +16133,9 @@ MELT_LOCATION("warmelt-normatch.melt:1072:/ block");
          
          {
          MELT_LOCATION("warmelt-normatch.melt:1101:/ locexp");
-         melt_assert_failed(( "check matvar\'s binding"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1101)?(1101):__LINE__, __FUNCTION__);}
+         melt_assert_failed(( "check matvar\'s binding"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1101)?(1101):__LINE__, __FUNCTION__);
+;}
          ;
          /*clear*/ /*_.IFELSE___V45*/ curfptr[44] = 0 ;}
         ;
@@ -16515,7 +16683,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
                  
                  {
                  MELT_LOCATION("warmelt-normatch.melt:1148:/ locexp");
-                 melt_assert_failed(( "check curmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1148)?(1148):__LINE__, __FUNCTION__);}
+                 melt_assert_failed(( "check curmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1148)?(1148):__LINE__, __FUNCTION__);
+;}
                  ;
                  /*clear*/ /*_.IFELSE___V85*/ curfptr[84] = 0 ;}
                 ;
@@ -16992,7 +17162,7 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
        MELT_LOCATION("warmelt-normatch.melt:1189:/ block");
        /*block*/{
         /*_.TSTUFF__V111*/ curfptr[81] = 
-         (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V25*/ curfptr[24]), (meltobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2])));;
+         melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V25*/ curfptr[24]), (meltobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2]));;
         /*_.CURHDLER__V112*/ curfptr[82] = /*_.HDLER__V4*/ curfptr[3];;
         MELT_LOCATION("warmelt-normatch.melt:1192:/ loop");
         /*loop*/{ labloop_LOOPSTUFF_3:;MELT_LOCATION("warmelt-normatch.melt:1192:/ loopbody");
@@ -17275,7 +17445,9 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
                  
                  {
                  MELT_LOCATION("warmelt-normatch.melt:1224:/ locexp");
-                 melt_assert_failed(( "normpat_anymatchpat incomplete found tstuff"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1224)?(1224):__LINE__, __FUNCTION__);}
+                 melt_assert_failed(( "normpat_anymatchpat incomplete found tstuff"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1224)?(1224):__LINE__, __FUNCTION__);
+;}
                  ;
                  /*clear*/ /*_.IFELSE___V134*/ curfptr[124] = 0 ;}
                 ;
@@ -17666,7 +17838,9 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
            
            {
            MELT_LOCATION("warmelt-normatch.melt:1294:/ locexp");
-           melt_assert_failed(( "check tester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1294)?(1294):__LINE__, __FUNCTION__);}
+           melt_assert_failed(( "check tester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1294)?(1294):__LINE__, __FUNCTION__);
+;}
            ;
            /*clear*/ /*_.IFELSE___V158*/ curfptr[90] = 0 ;}
           ;
@@ -18648,7 +18822,9 @@ MELT_LOCATION("warmelt-normatch.melt:1241:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1243:/ locexp");
-      melt_assert_failed(( "check curoutmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1243)?(1243):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check curoutmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1243)?(1243):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
@@ -18772,7 +18948,9 @@ MELT_LOCATION("warmelt-normatch.melt:1241:/ block");
   
   {
   MELT_LOCATION("warmelt-normatch.melt:1262:/ locexp");
-   meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V15*/ curfptr[14]), (meltobject_ptr_t) (/*_.CSYM__V9*/ curfptr[8]), (melt_ptr_t)(/*_.CLOCC__V13*/ curfptr[12]));}
+  meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V15*/ curfptr[14]), 
+			   (meltobject_ptr_t) (/*_.CSYM__V9*/ curfptr[8]), 
+			   (melt_ptr_t)(/*_.CLOCC__V13*/ curfptr[12]));}
   ;
   /*_.LET___V7*/ curfptr[5] = /*_.CLOCC__V13*/ curfptr[12];;
   /*epilog*/
@@ -19144,7 +19322,9 @@ MELT_LOCATION("warmelt-normatch.melt:1339:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1343:/ locexp");
-      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1343)?(1343):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1343)?(1343):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
@@ -19183,7 +19363,9 @@ MELT_LOCATION("warmelt-normatch.melt:1339:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1344:/ locexp");
-      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1344)?(1344):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1344)?(1344):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
@@ -19278,7 +19460,7 @@ MELT_LOCATION("warmelt-normatch.melt:1339:/ block");
    }
   ;
   /*_.TSTUFF__V23*/ curfptr[22] = 
-   (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V19*/ curfptr[18]), (meltobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2])));;
+   melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.STUFFMAP__V19*/ curfptr[18]), (meltobject_ptr_t)(/*_.NMATCH__V3*/ curfptr[2]));;
   MELT_LOCATION("warmelt-normatch.melt:1352:/ cond");
   /*cond*/ if (/*ifisa*/ melt_is_instance_of((melt_ptr_t)(/*_.PCN__V5*/ curfptr[4]), (melt_ptr_t)((/*!CLASS_PATTERNCONTEXT*/ curfrout->tabval[1])))) /*then*/ {
   MELT_LOCATION("warmelt-normatch.melt:1352:/ cond.then");
@@ -19373,7 +19555,7 @@ MELT_LOCATION("warmelt-normatch.melt:1339:/ block");
    MELT_LOCATION("warmelt-normatch.melt:1362:/ block");
     /*block*/{
      /*_.MAPOBJECT_GET__V34*/ curfptr[33] = 
-      (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.MAPCST__V27*/ curfptr[26]), (meltobject_ptr_t)(/*_.SCONST__V18*/ curfptr[17])));;
+      melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.MAPCST__V27*/ curfptr[26]), (meltobject_ptr_t)(/*_.SCONST__V18*/ curfptr[17]));;
      /*_.NCONST__V33*/ curfptr[32] = /*_.MAPOBJECT_GET__V34*/ curfptr[33];;
      /*epilog*/
      MELT_LOCATION("warmelt-normatch.melt:1362:/ clear");
@@ -20074,7 +20256,9 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1411:/ locexp");
-      melt_assert_failed(( "check match recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1411)?(1411):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check match recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1411)?(1411):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
@@ -20113,7 +20297,9 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1412:/ locexp");
-      melt_assert_failed(( "check env"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1412)?(1412):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check env"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1412)?(1412):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
@@ -20152,7 +20338,9 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1413:/ locexp");
-      melt_assert_failed(( "check nctxt"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1413)?(1413):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check nctxt"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1413)?(1413):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
@@ -20233,7 +20421,7 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
   /*_#I__L7*/ curfnum[6] = 
    ((20) + (/*_#I__L6*/ curfnum[5]));;
   /*_.STUFFMAP__V21*/ curfptr[20] = 
-    (meltgc_new_mapobjects( (meltobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (/*_#I__L7*/ curfnum[6])));;
+   (meltgc_new_mapobjects( (meltobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (/*_#I__L7*/ curfnum[6])));;
   /*_.BINDLIST__V22*/ curfptr[21] = 
    (meltgc_new_list((meltobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[6]))));;
   /*_.TESTLIST__V23*/ curfptr[22] = 
@@ -20499,7 +20687,9 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
              
              {
              MELT_LOCATION("warmelt-normatch.melt:1455:/ locexp");
-             melt_assert_failed(( "check no binding"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1455)?(1455):__LINE__, __FUNCTION__);}
+             melt_assert_failed(( "check no binding"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1455)?(1455):__LINE__, __FUNCTION__);
+;}
              ;
              /*clear*/ /*_.IFELSE___V47*/ curfptr[46] = 0 ;}
             ;
@@ -20534,7 +20724,9 @@ MELT_LOCATION("warmelt-normatch.melt:1410:/ block");
         
         {
         MELT_LOCATION("warmelt-normatch.melt:1457:/ locexp");
-         meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V48*/ curfptr[46]), (meltobject_ptr_t) (/*_.CSYM__V41*/ curfptr[40]), (melt_ptr_t)(/*_.CLOCC__V44*/ curfptr[43]));}
+        meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V48*/ curfptr[46]), 
+			   (meltobject_ptr_t) (/*_.CSYM__V41*/ curfptr[40]), 
+			   (melt_ptr_t)(/*_.CLOCC__V44*/ curfptr[43]));}
         ;
         MELT_LOCATION("warmelt-normatch.melt:1458:/ apply");
         /*apply*/{
@@ -20658,7 +20850,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
            
            {
            MELT_LOCATION("warmelt-normatch.melt:1469:/ locexp");
-           melt_assert_failed(( "check curcas"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1469)?(1469):__LINE__, __FUNCTION__);}
+           melt_assert_failed(( "check curcas"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1469)?(1469):__LINE__, __FUNCTION__);
+;}
            ;
            /*clear*/ /*_.IFELSE___V59*/ curfptr[50] = 0 ;}
           ;
@@ -20693,11 +20887,11 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCAS__V55*/ curfptr[45]), 3, "SCAM_BODY");/*_.CURBODY__V63*/ curfptr[48] = slot; };
        ;
        /*_.MAPVAR__V64*/ curfptr[50] = 
-         (meltgc_new_mapobjects( (meltobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (13)));;
+        (meltgc_new_mapobjects( (meltobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (13)));;
        /*_.MAPCST__V65*/ curfptr[64] = 
-         (meltgc_new_mapobjects( (meltobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (11)));;
+        (meltgc_new_mapobjects( (meltobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (11)));;
        /*_.PVARMAP__V66*/ curfptr[65] = 
-         (meltgc_new_mapobjects( (meltobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (23)));;
+        (meltgc_new_mapobjects( (meltobject_ptr_t) ((/*!DISCR_MAPOBJECTS*/ curfrout->tabval[5])), (23)));;
        MELT_LOCATION("warmelt-normatch.melt:1477:/ block");
        /*block*/{
         MELT_LOCATION("warmelt-normatch.melt:1477:/ rawallocobj");
@@ -20778,7 +20972,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
             
             {
             MELT_LOCATION("warmelt-normatch.melt:1492:/ locexp");
-            melt_assert_failed(( "normexp_match check curpat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1492)?(1492):__LINE__, __FUNCTION__);}
+            melt_assert_failed(( "normexp_match check curpat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1492)?(1492):__LINE__, __FUNCTION__);
+;}
             ;
             /*clear*/ /*_.IFELSE___V72*/ curfptr[71] = 0 ;}
            ;
@@ -20914,17 +21110,17 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
        
        {
        MELT_LOCATION("warmelt-normatch.melt:1497:/ locexp");
-        meltgc_multiple_put_nth((melt_ptr_t)(/*_.TUPVARMAP__V18*/ curfptr[17]), (/*_#IX__L16*/ curfnum[15]), (melt_ptr_t)(/*_.MAPVAR__V64*/ curfptr[50]));}
+       meltgc_multiple_put_nth((melt_ptr_t)(/*_.TUPVARMAP__V18*/ curfptr[17]), (/*_#IX__L16*/ curfnum[15]), (melt_ptr_t)(/*_.MAPVAR__V64*/ curfptr[50]));}
        ;
        
        {
        MELT_LOCATION("warmelt-normatch.melt:1498:/ locexp");
-        meltgc_multiple_put_nth((melt_ptr_t)(/*_.TUPCSTMAP__V19*/ curfptr[18]), (/*_#IX__L16*/ curfnum[15]), (melt_ptr_t)(/*_.MAPCST__V65*/ curfptr[64]));}
+       meltgc_multiple_put_nth((melt_ptr_t)(/*_.TUPCSTMAP__V19*/ curfptr[18]), (/*_#IX__L16*/ curfnum[15]), (melt_ptr_t)(/*_.MAPCST__V65*/ curfptr[64]));}
        ;
        
        {
        MELT_LOCATION("warmelt-normatch.melt:1499:/ locexp");
-        meltgc_multiple_put_nth((melt_ptr_t)(/*_.TUPBINDLIST__V20*/ curfptr[19]), (/*_#IX__L16*/ curfnum[15]), (melt_ptr_t)(/*_.BINDLIST__V22*/ curfptr[21]));}
+       meltgc_multiple_put_nth((melt_ptr_t)(/*_.TUPBINDLIST__V20*/ curfptr[19]), (/*_#IX__L16*/ curfnum[15]), (melt_ptr_t)(/*_.BINDLIST__V22*/ curfptr[21]));}
        ;
        
        #if ENABLE_CHECKING
@@ -21418,7 +21614,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
                
                {
                MELT_LOCATION("warmelt-normatch.melt:1554:/ locexp");
-               melt_assert_failed(( "check curtester not success"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1554)?(1554):__LINE__, __FUNCTION__);}
+               melt_assert_failed(( "check curtester not success"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1554)?(1554):__LINE__, __FUNCTION__);
+;}
                ;
                /*clear*/ /*_.IFELSE___V112*/ curfptr[105] = 0 ;}
               ;
@@ -21612,7 +21810,9 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
              
              {
              MELT_LOCATION("warmelt-normatch.melt:1566:/ locexp");
-             melt_assert_failed(( "check final curtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1566)?(1566):__LINE__, __FUNCTION__);}
+             melt_assert_failed(( "check final curtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1566)?(1566):__LINE__, __FUNCTION__);
+;}
              ;
              /*clear*/ /*_.IFELSE___V125*/ curfptr[118] = 0 ;}
             ;
@@ -21901,7 +22101,7 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
           MELT_LOCATION("warmelt-normatch.melt:1588:/ block");
           /*block*/{
            /*_.SOCC__V148*/ curfptr[147] = 
-            (melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.PVARLOCMAP__V89*/ curfptr[88]), (meltobject_ptr_t)(/*_.SVAR__V144*/ curfptr[142])));;
+            melt_get_mapobjects((meltmapobjects_ptr_t)(/*_.PVARLOCMAP__V89*/ curfptr[88]), (meltobject_ptr_t)(/*_.SVAR__V144*/ curfptr[142]));;
            
            #if ENABLE_CHECKING
             MELT_LOCATION("warmelt-normatch.melt:1590:/ cppif.then");
@@ -21955,7 +22155,9 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
                 
                 {
                 MELT_LOCATION("warmelt-normatch.melt:1591:/ locexp");
-                melt_assert_failed(( "check socc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1591)?(1591):__LINE__, __FUNCTION__);}
+                melt_assert_failed(( "check socc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1591)?(1591):__LINE__, __FUNCTION__);
+;}
                 ;
                 /*clear*/ /*_.IFELSE___V152*/ curfptr[151] = 0 ;}
                ;
@@ -22018,7 +22220,7 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
             
             {
             MELT_LOCATION("warmelt-normatch.melt:1594:/ locexp");
-             meltgc_multiple_put_nth((melt_ptr_t)(/*_.SORTEDBINDINGS__V140*/ curfptr[139]), (/*_#SVIX__L48*/ curfnum[32]), (melt_ptr_t)(/*_.SBIND__V154*/ curfptr[153]));}
+            meltgc_multiple_put_nth((melt_ptr_t)(/*_.SORTEDBINDINGS__V140*/ curfptr[139]), (/*_#SVIX__L48*/ curfnum[32]), (melt_ptr_t)(/*_.SBIND__V154*/ curfptr[153]));}
             ;
             MELT_LOCATION("warmelt-normatch.melt:1595:/ apply");
             /*apply*/{
@@ -22148,7 +22350,9 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
               
               {
               MELT_LOCATION("warmelt-normatch.melt:1600:/ locexp");
-              melt_assert_failed(( "check sortedbindings"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1600)?(1600):__LINE__, __FUNCTION__);}
+              melt_assert_failed(( "check sortedbindings"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1600)?(1600):__LINE__, __FUNCTION__);
+;}
               ;
               /*clear*/ /*_.IFELSE___V163*/ curfptr[149] = 0 ;}
              ;
@@ -22233,7 +22437,9 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
                 
                 {
                 MELT_LOCATION("warmelt-normatch.melt:1607:/ locexp");
-                melt_assert_failed(( "check cursortbind"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1607)?(1607):__LINE__, __FUNCTION__);}
+                melt_assert_failed(( "check cursortbind"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1607)?(1607):__LINE__, __FUNCTION__);
+;}
                 ;
                 /*clear*/ /*_.IFELSE___V170*/ curfptr[169] = 0 ;}
                ;
@@ -22378,7 +22584,9 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
                  
                  {
                  MELT_LOCATION("warmelt-normatch.melt:1616:/ locexp");
-                 melt_assert_failed(( "check bindsbody"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1616)?(1616):__LINE__, __FUNCTION__);}
+                 melt_assert_failed(( "check bindsbody"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1616)?(1616):__LINE__, __FUNCTION__);
+;}
                  ;
                  /*clear*/ /*_.IFELSE___V179*/ curfptr[178] = 0 ;}
                 ;
@@ -23334,7 +23542,9 @@ melt_magic_discr(/*_.BINDBODYPAIR__V180*/ curfptr[178]) == OBMAG_PAIR;
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1679:/ locexp");
-       meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V231*/ curfptr[148]), (meltobject_ptr_t) (/*_.CSYM__V222*/ curfptr[172]), (melt_ptr_t)(/*_.CLOCC__V223*/ curfptr[154]));}
+      meltgc_put_mapobjects( (meltmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V231*/ curfptr[148]), 
+			   (meltobject_ptr_t) (/*_.CSYM__V222*/ curfptr[172]), 
+			   (melt_ptr_t)(/*_.CLOCC__V223*/ curfptr[154]));}
       ;
       /*citerblock FOREACH_IN_MULTIPLE*/ {
       long cit5__EACHTUP_ln = melt_multiple_length((melt_ptr_t)/*_.TESTSTUPL__V219*/ curfptr[182]);
@@ -23397,7 +23607,9 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
             
             {
             MELT_LOCATION("warmelt-normatch.melt:1685:/ locexp");
-            melt_assert_failed(( "check curtest"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1685)?(1685):__LINE__, __FUNCTION__);}
+            melt_assert_failed(( "check curtest"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1685)?(1685):__LINE__, __FUNCTION__);
+;}
             ;
             /*clear*/ /*_.IFELSE___V236*/ curfptr[90] = 0 ;}
            ;
@@ -23436,7 +23648,9 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
             
             {
             MELT_LOCATION("warmelt-normatch.melt:1686:/ locexp");
-            melt_assert_failed(( "check tstix"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1686)?(1686):__LINE__, __FUNCTION__);}
+            melt_assert_failed(( "check tstix"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1686)?(1686):__LINE__, __FUNCTION__);
+;}
             ;
             /*clear*/ /*_.IFELSE___V238*/ curfptr[93] = 0 ;}
            ;
@@ -23598,7 +23812,9 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
            
            {
            MELT_LOCATION("warmelt-normatch.melt:1694:/ locexp");
-           melt_assert_failed(( "check nbindmatx"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1694)?(1694):__LINE__, __FUNCTION__);}
+           melt_assert_failed(( "check nbindmatx"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1694)?(1694):__LINE__, __FUNCTION__);
+;}
            ;
            /*clear*/ /*_.IFELSE___V244*/ curfptr[108] = 0 ;}
           ;
@@ -23999,7 +24215,9 @@ MELT_LOCATION("warmelt-normatch.melt:1504:/ block");
       
       {
       MELT_LOCATION("warmelt-normatch.melt:1507:/ locexp");
-      melt_assert_failed(( "check empty ntestcont"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1507)?(1507):__LINE__, __FUNCTION__);}
+      melt_assert_failed(( "check empty ntestcont"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,
+  (1507)?(1507):__LINE__, __FUNCTION__);
+;}
       ;
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
@@ -24467,7 +24685,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_3__CLASS_ROOT));
   melt_assertmsg("iniobj checkdiscr dobj_5__CLASS_PATTERNCONTEXT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_hash = 72989450;
+  cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_hash = 458062483;
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_5__CLASS_PATTERNCONTEXT));
  
@@ -24503,7 +24721,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_9__PCTN_NORMCTXT));
   melt_assertmsg("iniobj checkdiscr dobj_11__PCTN_NORMCTXT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_11__PCTN_NORMCTXT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_11__PCTN_NORMCTXT.obj_num = 0;
-  cdat->dobj_11__PCTN_NORMCTXT.obj_hash = 223387774;
+  cdat->dobj_11__PCTN_NORMCTXT.obj_hash = 278201082;
   cdat->dobj_11__PCTN_NORMCTXT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_11__PCTN_NORMCTXT));
  
@@ -24531,7 +24749,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_13__PCTN_SRC));
   melt_assertmsg("iniobj checkdiscr dobj_15__PCTN_SRC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_15__PCTN_SRC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_15__PCTN_SRC.obj_num = 1;
-  cdat->dobj_15__PCTN_SRC.obj_hash = 71234805;
+  cdat->dobj_15__PCTN_SRC.obj_hash = 871943553;
   cdat->dobj_15__PCTN_SRC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_15__PCTN_SRC));
  
@@ -24559,7 +24777,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_17__PCTN_ENV));
   melt_assertmsg("iniobj checkdiscr dobj_19__PCTN_ENV", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_19__PCTN_ENV.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_19__PCTN_ENV.obj_num = 2;
-  cdat->dobj_19__PCTN_ENV.obj_hash = 569571553;
+  cdat->dobj_19__PCTN_ENV.obj_hash = 715266925;
   cdat->dobj_19__PCTN_ENV.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_19__PCTN_ENV));
  
@@ -24587,7 +24805,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_21__PCTN_MAPATVAR));
   melt_assertmsg("iniobj checkdiscr dobj_23__PCTN_MAPATVAR", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_23__PCTN_MAPATVAR.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_23__PCTN_MAPATVAR.obj_num = 3;
-  cdat->dobj_23__PCTN_MAPATVAR.obj_hash = 710981427;
+  cdat->dobj_23__PCTN_MAPATVAR.obj_hash = 219843166;
   cdat->dobj_23__PCTN_MAPATVAR.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_23__PCTN_MAPATVAR));
  
@@ -24615,7 +24833,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_25__PCTN_MAPATCST));
   melt_assertmsg("iniobj checkdiscr dobj_27__PCTN_MAPATCST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_27__PCTN_MAPATCST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_27__PCTN_MAPATCST.obj_num = 4;
-  cdat->dobj_27__PCTN_MAPATCST.obj_hash = 763634722;
+  cdat->dobj_27__PCTN_MAPATCST.obj_hash = 737073336;
   cdat->dobj_27__PCTN_MAPATCST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_27__PCTN_MAPATCST));
  
@@ -24643,7 +24861,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_29__PCTN_BINDLIST));
   melt_assertmsg("iniobj checkdiscr dobj_31__PCTN_BINDLIST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_31__PCTN_BINDLIST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_31__PCTN_BINDLIST.obj_num = 5;
-  cdat->dobj_31__PCTN_BINDLIST.obj_hash = 89207483;
+  cdat->dobj_31__PCTN_BINDLIST.obj_hash = 659791610;
   cdat->dobj_31__PCTN_BINDLIST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_31__PCTN_BINDLIST));
  
@@ -24671,7 +24889,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_33__PCTN_STUFFMAP));
   melt_assertmsg("iniobj checkdiscr dobj_35__PCTN_STUFFMAP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_35__PCTN_STUFFMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_35__PCTN_STUFFMAP.obj_num = 6;
-  cdat->dobj_35__PCTN_STUFFMAP.obj_hash = 892509772;
+  cdat->dobj_35__PCTN_STUFFMAP.obj_hash = 538486332;
   cdat->dobj_35__PCTN_STUFFMAP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_35__PCTN_STUFFMAP));
  
@@ -24699,7 +24917,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_37__PCTN_PVARLOCMAP));
   melt_assertmsg("iniobj checkdiscr dobj_39__PCTN_PVARLOCMAP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_num = 7;
-  cdat->dobj_39__PCTN_PVARLOCMAP.obj_hash = 382103460;
+  cdat->dobj_39__PCTN_PVARLOCMAP.obj_hash = 1064208333;
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_39__PCTN_PVARLOCMAP));
  
@@ -24727,7 +24945,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_41__PCTN_TESTS));
   melt_assertmsg("iniobj checkdiscr dobj_43__PCTN_TESTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_43__PCTN_TESTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_43__PCTN_TESTS.obj_num = 8;
-  cdat->dobj_43__PCTN_TESTS.obj_hash = 745756269;
+  cdat->dobj_43__PCTN_TESTS.obj_hash = 985071191;
   cdat->dobj_43__PCTN_TESTS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_43__PCTN_TESTS));
  
@@ -24767,7 +24985,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_47__CLASS_SELECTOR));
  if (!/*_.VALDATA___V111*/ curfptr[110]) /*_.VALDATA___V111*/ curfptr[110] = (void*)&cdat->dobj_49__SCAN_PATTERN;
   melt_assertmsg("iniobj checkdiscr dobj_49__SCAN_PATTERN", NULL != (void*)/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
   cdat->dobj_49__SCAN_PATTERN.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
-  cdat->dobj_49__SCAN_PATTERN.obj_hash = 929690406;
+  cdat->dobj_49__SCAN_PATTERN.obj_hash = 495939830;
   cdat->dobj_49__SCAN_PATTERN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_49__SCAN_PATTERN));
  
@@ -25226,7 +25444,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_119__NORMAL_PATTERN));
  if (!/*_.VALDATA___V183*/ curfptr[182]) /*_.VALDATA___V183*/ curfptr[182] = (void*)&cdat->dobj_121__NORMAL_PATTERN;
   melt_assertmsg("iniobj checkdiscr dobj_121__NORMAL_PATTERN", NULL != (void*)/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
   cdat->dobj_121__NORMAL_PATTERN.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
-  cdat->dobj_121__NORMAL_PATTERN.obj_hash = 978891964;
+  cdat->dobj_121__NORMAL_PATTERN.obj_hash = 876050838;
   cdat->dobj_121__NORMAL_PATTERN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_121__NORMAL_PATTERN));
  
@@ -25267,7 +25485,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_125__CLASS_NREP_EXPR));
   melt_assertmsg("iniobj checkdiscr dobj_127__CLASS_NORMTESTER_ANY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_hash = 561396964;
+  cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_hash = 157535339;
   cdat->dobj_127__CLASS_NORMTESTER_ANY.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_127__CLASS_NORMTESTER_ANY));
  
@@ -25303,7 +25521,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_131__NTEST_MATCHED));
   melt_assertmsg("iniobj checkdiscr dobj_133__NTEST_MATCHED", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_133__NTEST_MATCHED.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_133__NTEST_MATCHED.obj_num = 1;
-  cdat->dobj_133__NTEST_MATCHED.obj_hash = 325215349;
+  cdat->dobj_133__NTEST_MATCHED.obj_hash = 933356210;
   cdat->dobj_133__NTEST_MATCHED.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_133__NTEST_MATCHED));
  
@@ -25331,7 +25549,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_135__NTEST_THEN));
   melt_assertmsg("iniobj checkdiscr dobj_137__NTEST_THEN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_137__NTEST_THEN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_137__NTEST_THEN.obj_num = 2;
-  cdat->dobj_137__NTEST_THEN.obj_hash = 689643704;
+  cdat->dobj_137__NTEST_THEN.obj_hash = 953293543;
   cdat->dobj_137__NTEST_THEN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_137__NTEST_THEN));
  
@@ -25359,7 +25577,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_139__NTEST_ELSE));
   melt_assertmsg("iniobj checkdiscr dobj_141__NTEST_ELSE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_141__NTEST_ELSE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_141__NTEST_ELSE.obj_num = 3;
-  cdat->dobj_141__NTEST_ELSE.obj_hash = 146290863;
+  cdat->dobj_141__NTEST_ELSE.obj_hash = 141184128;
   cdat->dobj_141__NTEST_ELSE.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_141__NTEST_ELSE));
  
@@ -25387,7 +25605,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_143__NTEST_NORMATCH));
   melt_assertmsg("iniobj checkdiscr dobj_145__NTEST_NORMATCH", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_145__NTEST_NORMATCH.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_145__NTEST_NORMATCH.obj_num = 4;
-  cdat->dobj_145__NTEST_NORMATCH.obj_hash = 908295690;
+  cdat->dobj_145__NTEST_NORMATCH.obj_hash = 1007352879;
   cdat->dobj_145__NTEST_NORMATCH.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_145__NTEST_NORMATCH));
  
@@ -25415,7 +25633,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_147__NTEST_LOCCLIST));
   melt_assertmsg("iniobj checkdiscr dobj_149__NTEST_LOCCLIST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_149__NTEST_LOCCLIST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_149__NTEST_LOCCLIST.obj_num = 5;
-  cdat->dobj_149__NTEST_LOCCLIST.obj_hash = 470394492;
+  cdat->dobj_149__NTEST_LOCCLIST.obj_hash = 125482932;
   cdat->dobj_149__NTEST_LOCCLIST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_149__NTEST_LOCCLIST));
  
@@ -25443,7 +25661,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_151__NTEST_COMEFROM));
   melt_assertmsg("iniobj checkdiscr dobj_153__NTEST_COMEFROM", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_153__NTEST_COMEFROM.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_153__NTEST_COMEFROM.obj_num = 6;
-  cdat->dobj_153__NTEST_COMEFROM.obj_hash = 1020711389;
+  cdat->dobj_153__NTEST_COMEFROM.obj_hash = 723723549;
   cdat->dobj_153__NTEST_COMEFROM.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_153__NTEST_COMEFROM));
  
@@ -25471,7 +25689,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_155__CLASS_NORMTESTER_SUC
   melt_assertmsg("iniobj checkdiscr dobj_157__CLASS_NORMTESTER_SUCCESS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_hash = 858963750;
+  cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_hash = 858576985;
   cdat->dobj_157__CLASS_NORMTESTER_SUCCESS.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_157__CLASS_NORMTESTER_SUCCESS));
  
@@ -25507,7 +25725,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_161__NTSUCCESS_DO));
   melt_assertmsg("iniobj checkdiscr dobj_163__NTSUCCESS_DO", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_163__NTSUCCESS_DO.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_163__NTSUCCESS_DO.obj_num = 7;
-  cdat->dobj_163__NTSUCCESS_DO.obj_hash = 540419677;
+  cdat->dobj_163__NTSUCCESS_DO.obj_hash = 76363668;
   cdat->dobj_163__NTSUCCESS_DO.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_163__NTSUCCESS_DO));
  
@@ -25535,7 +25753,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_165__CLASS_NORMTESTER_ANY
   melt_assertmsg("iniobj checkdiscr dobj_167__CLASS_NORMTESTER_ANYTESTER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_hash = 256789325;
+  cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_hash = 1043293145;
   cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_167__CLASS_NORMTESTER_ANYTESTER));
  
@@ -25571,7 +25789,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_171__CLASS_NORMTESTER_DIS
   melt_assertmsg("iniobj checkdiscr dobj_173__CLASS_NORMTESTER_DISJUNCTION", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_num = OBMAG_OBJECT;
-  cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_hash = 622005893;
+  cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_hash = 483591302;
   cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_173__CLASS_NORMTESTER_DISJUNCTION));
  
@@ -25607,7 +25825,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_177__NTDISJUNCTS));
   melt_assertmsg("iniobj checkdiscr dobj_179__NTDISJUNCTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_179__NTDISJUNCTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_179__NTDISJUNCTS.obj_num = 7;
-  cdat->dobj_179__NTDISJUNCTS.obj_hash = 588998769;
+  cdat->dobj_179__NTDISJUNCTS.obj_hash = 785749976;
   cdat->dobj_179__NTDISJUNCTS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_179__NTDISJUNCTS));
  
@@ -25635,7 +25853,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_181__CLASS_NORMTESTER_SAM
   melt_assertmsg("iniobj checkdiscr dobj_183__CLASS_NORMTESTER_SAME", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_num = OBMAG_OBJECT;
-  cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_hash = 732277331;
+  cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_hash = 234178040;
   cdat->dobj_183__CLASS_NORMTESTER_SAME.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_183__CLASS_NORMTESTER_SAME));
  
@@ -25671,7 +25889,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_187__NTSAME_IDENTICAL));
   melt_assertmsg("iniobj checkdiscr dobj_189__NTSAME_IDENTICAL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_189__NTSAME_IDENTICAL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_189__NTSAME_IDENTICAL.obj_num = 7;
-  cdat->dobj_189__NTSAME_IDENTICAL.obj_hash = 140352871;
+  cdat->dobj_189__NTSAME_IDENTICAL.obj_hash = 645271787;
   cdat->dobj_189__NTSAME_IDENTICAL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_189__NTSAME_IDENTICAL));
  
@@ -25699,7 +25917,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_191__CLASS_NORMTESTER_MAT
   melt_assertmsg("iniobj checkdiscr dobj_193__CLASS_NORMTESTER_MATCHER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_hash = 885736554;
+  cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_hash = 638223715;
   cdat->dobj_193__CLASS_NORMTESTER_MATCHER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_193__CLASS_NORMTESTER_MATCHER));
  
@@ -25735,7 +25953,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_197__NTMATCH_MATCHER));
   melt_assertmsg("iniobj checkdiscr dobj_199__NTMATCH_MATCHER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_199__NTMATCH_MATCHER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_199__NTMATCH_MATCHER.obj_num = 7;
-  cdat->dobj_199__NTMATCH_MATCHER.obj_hash = 7136087;
+  cdat->dobj_199__NTMATCH_MATCHER.obj_hash = 205519258;
   cdat->dobj_199__NTMATCH_MATCHER.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_199__NTMATCH_MATCHER));
  
@@ -25763,7 +25981,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_201__NTMATCH_MATNDATA));
   melt_assertmsg("iniobj checkdiscr dobj_203__NTMATCH_MATNDATA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_203__NTMATCH_MATNDATA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_203__NTMATCH_MATNDATA.obj_num = 8;
-  cdat->dobj_203__NTMATCH_MATNDATA.obj_hash = 947771884;
+  cdat->dobj_203__NTMATCH_MATNDATA.obj_hash = 872271377;
   cdat->dobj_203__NTMATCH_MATNDATA.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_203__NTMATCH_MATNDATA));
  
@@ -25791,7 +26009,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_205__NTMATCH_INARGS));
   melt_assertmsg("iniobj checkdiscr dobj_207__NTMATCH_INARGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_207__NTMATCH_INARGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_207__NTMATCH_INARGS.obj_num = 9;
-  cdat->dobj_207__NTMATCH_INARGS.obj_hash = 841556467;
+  cdat->dobj_207__NTMATCH_INARGS.obj_hash = 1065191831;
   cdat->dobj_207__NTMATCH_INARGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_207__NTMATCH_INARGS));
  
@@ -25819,7 +26037,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_209__NTMATCH_OUTLOCS));
   melt_assertmsg("iniobj checkdiscr dobj_211__NTMATCH_OUTLOCS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_211__NTMATCH_OUTLOCS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_211__NTMATCH_OUTLOCS.obj_num = 10;
-  cdat->dobj_211__NTMATCH_OUTLOCS.obj_hash = 713961906;
+  cdat->dobj_211__NTMATCH_OUTLOCS.obj_hash = 359312446;
   cdat->dobj_211__NTMATCH_OUTLOCS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_211__NTMATCH_OUTLOCS));
  
@@ -25847,7 +26065,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_213__CLASS_NORMTESTER_INS
   melt_assertmsg("iniobj checkdiscr dobj_215__CLASS_NORMTESTER_INSTANCE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_hash = 670365893;
+  cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_hash = 1073699607;
   cdat->dobj_215__CLASS_NORMTESTER_INSTANCE.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_215__CLASS_NORMTESTER_INSTANCE));
  
@@ -25883,7 +26101,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_219__NTINST_CLASS));
   melt_assertmsg("iniobj checkdiscr dobj_221__NTINST_CLASS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_221__NTINST_CLASS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_221__NTINST_CLASS.obj_num = 7;
-  cdat->dobj_221__NTINST_CLASS.obj_hash = 1005607261;
+  cdat->dobj_221__NTINST_CLASS.obj_hash = 499921488;
   cdat->dobj_221__NTINST_CLASS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_221__NTINST_CLASS));
  
@@ -25911,7 +26129,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_223__NTINST_FIELDLOCS));
   melt_assertmsg("iniobj checkdiscr dobj_225__NTINST_FIELDLOCS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_225__NTINST_FIELDLOCS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_225__NTINST_FIELDLOCS.obj_num = 8;
-  cdat->dobj_225__NTINST_FIELDLOCS.obj_hash = 63370027;
+  cdat->dobj_225__NTINST_FIELDLOCS.obj_hash = 586529234;
   cdat->dobj_225__NTINST_FIELDLOCS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_225__NTINST_FIELDLOCS));
  
@@ -25952,7 +26170,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_229__CLASS_NREP_TYPEXPR))
   melt_assertmsg("iniobj checkdiscr dobj_231__CLASS_NREP_MATCH", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_231__CLASS_NREP_MATCH.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_231__CLASS_NREP_MATCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_231__CLASS_NREP_MATCH.obj_hash = 129219036;
+  cdat->dobj_231__CLASS_NREP_MATCH.obj_hash = 486596901;
   cdat->dobj_231__CLASS_NREP_MATCH.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_231__CLASS_NREP_MATCH));
  
@@ -25988,7 +26206,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_235__NMATCH_TESTS));
   melt_assertmsg("iniobj checkdiscr dobj_237__NMATCH_TESTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_237__NMATCH_TESTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_237__NMATCH_TESTS.obj_num = 2;
-  cdat->dobj_237__NMATCH_TESTS.obj_hash = 486122083;
+  cdat->dobj_237__NMATCH_TESTS.obj_hash = 765614341;
   cdat->dobj_237__NMATCH_TESTS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_237__NMATCH_TESTS));
  
@@ -26016,7 +26234,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_239__NMATCH_STUFFMAP));
   melt_assertmsg("iniobj checkdiscr dobj_241__NMATCH_STUFFMAP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_241__NMATCH_STUFFMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_241__NMATCH_STUFFMAP.obj_num = 3;
-  cdat->dobj_241__NMATCH_STUFFMAP.obj_hash = 637309499;
+  cdat->dobj_241__NMATCH_STUFFMAP.obj_hash = 570954216;
   cdat->dobj_241__NMATCH_STUFFMAP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_241__NMATCH_STUFFMAP));
  
@@ -26044,7 +26262,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_243__NMATCH_MATCHED));
   melt_assertmsg("iniobj checkdiscr dobj_245__NMATCH_MATCHED", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_245__NMATCH_MATCHED.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_245__NMATCH_MATCHED.obj_num = 4;
-  cdat->dobj_245__NMATCH_MATCHED.obj_hash = 621110287;
+  cdat->dobj_245__NMATCH_MATCHED.obj_hash = 455432423;
   cdat->dobj_245__NMATCH_MATCHED.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_245__NMATCH_MATCHED));
  
