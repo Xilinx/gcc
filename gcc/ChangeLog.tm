@@ -1,3 +1,11 @@
+2009-09-28  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (tm_memopt_compute_available): Do not put entry
+	block in the worklist.
+	(tm_memopt_init_sets): Use obstack.
+	(tm_memopt_free_sets): Adapt for obstack.
+	(execute_tm_memopt): Same.
+
 2009-09-25  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c: Include tree-dump.h

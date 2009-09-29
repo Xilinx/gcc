@@ -1597,6 +1597,8 @@ struct tm_memopt_bitmaps
   bool avail_in_worklist_p;
 };
 
+static bitmap_obstack tm_memopt_obstack;
+
 /* Unique counter for TM loads and stores. Loads and stores of the
    same address get the same ID.  */
 static unsigned int tm_memopt_value_id;
@@ -1852,16 +1854,19 @@ tm_memopt_compute_available (struct tm_region *region,
   /* Allocate a worklist array/queue.  Entries are only added to the
      list if they were not already on the list.  So the size is
      bounded by the number of basic blocks in the region.  */
-  qlen = VEC_length (basic_block, blocks);
+  qlen = VEC_length (basic_block, blocks) - 1;
   qin = qout = worklist = 
     XNEWVEC (basic_block, qlen);
 
-  /* Put every block in the region on the worklist.  */
-  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); i++)
+  /* Put every block in the region on the worklist...  */
+  for (i = 1; VEC_iterate (basic_block, blocks, i, bb); i++)
     {
       *qin++ = bb;
       AVAIL_IN_WORKLIST_P (bb) = true;
     }
+  /* ...except the entry block which has an AVIN of null, and an AVOUT
+     that has already been seeded in.  */
+  AVAIL_IN_WORKLIST_P (region->entry_block) = true;
 
   qin = worklist;
   qend = &worklist[qlen];
@@ -1984,15 +1989,19 @@ tm_memopt_transform_blocks (VEC (basic_block, heap) *blocks)
 static struct tm_memopt_bitmaps *
 tm_memopt_init_sets (void)
 {
-  struct tm_memopt_bitmaps *b = XCNEWVEC (struct tm_memopt_bitmaps, 1);
-  b->store_avail_in = BITMAP_ALLOC (NULL);
-  b->store_avail_out = BITMAP_ALLOC (NULL);
-  b->store_antic_in = BITMAP_ALLOC (NULL);
-  b->store_avail_out = BITMAP_ALLOC (NULL);
-  b->read_avail_in = BITMAP_ALLOC (NULL);
-  b->read_avail_out = BITMAP_ALLOC (NULL);
-  b->read_local = BITMAP_ALLOC (NULL);
-  b->store_local = BITMAP_ALLOC (NULL);
+  struct tm_memopt_bitmaps *b
+    = (struct tm_memopt_bitmaps *) obstack_alloc (&tm_memopt_obstack.obstack,
+						  sizeof
+						  (struct tm_memopt_bitmaps));
+  b->store_avail_in = BITMAP_ALLOC (&tm_memopt_obstack);
+  b->store_avail_out = BITMAP_ALLOC (&tm_memopt_obstack);
+  b->store_antic_in = BITMAP_ALLOC (&tm_memopt_obstack);
+  b->store_antic_out = BITMAP_ALLOC (&tm_memopt_obstack);
+  b->store_avail_out = BITMAP_ALLOC (&tm_memopt_obstack);
+  b->read_avail_in = BITMAP_ALLOC (&tm_memopt_obstack);
+  b->read_avail_out = BITMAP_ALLOC (&tm_memopt_obstack);
+  b->read_local = BITMAP_ALLOC (&tm_memopt_obstack);
+  b->store_local = BITMAP_ALLOC (&tm_memopt_obstack);
   return b;
 }
 
@@ -2004,19 +2013,9 @@ tm_memopt_free_sets (VEC (basic_block, heap) *blocks)
   size_t i;
   basic_block bb;
 
+  bitmap_obstack_release (&tm_memopt_obstack);
   for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
-    {
-      BITMAP_FREE (STORE_AVAIL_IN (bb));
-      BITMAP_FREE (STORE_AVAIL_OUT (bb));
-      BITMAP_FREE (STORE_ANTIC_IN (bb));
-      BITMAP_FREE (STORE_AVAIL_OUT (bb));
-      BITMAP_FREE (READ_AVAIL_IN (bb));
-      BITMAP_FREE (READ_AVAIL_OUT (bb));
-      BITMAP_FREE (READ_LOCAL (bb));
-      BITMAP_FREE (STORE_LOCAL (bb));
-      free (bb->aux);
-      bb->aux = NULL;
-    }
+    bb->aux = NULL;
 }
 
 /* Replace TM load/stores with hints for the runtime.  We handle
@@ -2038,6 +2037,8 @@ execute_tm_memopt (void)
      size_t i;
      basic_block bb;
 
+     bitmap_obstack_initialize (&tm_memopt_obstack);
+
      /* Save all BBs for the current region.  */
      bbs = get_tm_region_blocks (region);
      /* Collect all the memory operations.  */
@@ -2053,7 +2054,7 @@ execute_tm_memopt (void)
 	STORE_ANTIC_OUT[bb] = union(STORE_ANTIC_IN[bb], STORE_LOCAL[bb])
 	STORE_ANTIC_IN[bb]  = intersect(STORE_ANTIC_OUT[successors])
      */
-     tm_memopt_transform_blocks(bbs);
+     tm_memopt_transform_blocks (bbs);
 
      tm_memopt_free_sets (bbs);
      VEC_free (basic_block, heap, bbs);
