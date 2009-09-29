@@ -1,3 +1,11 @@
+2009-09-29  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (tm_memopt_compute_antic): New.
+	(tm_memopt_compute_available): Merge seed and initialization
+	loops.  Remove entry_block check.
+	(tm_memopt_compute_antin): New.
+	(execute_tm_memopt): Call tm_memopt_compute_antic.
+
 2009-09-28  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_memopt_compute_available): Do not put entry

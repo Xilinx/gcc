@@ -1820,6 +1820,29 @@ tm_memopt_compute_avin (struct tm_region *region, basic_block bb)
     }
 }
 
+/* Compute the STORE_ANTIC_IN for the basic block BB in REGION.  */
+
+static void
+tm_memopt_compute_antin (struct tm_region *region, basic_block bb)
+{
+  edge e;
+  unsigned ix;
+
+  /* Exit blocks have an ANTIC_IN of NULL.  */
+  if (bitmap_bit_p (region->exit_blocks, bb->index))
+    return;
+
+  /* Seed with the ANTIC_OUT of any successor.  */
+  e = EDGE_SUCC (bb, 0);
+  bitmap_copy (STORE_ANTIC_IN (bb), STORE_ANTIC_OUT (e->dest));
+
+  for (ix = 1; ix < EDGE_COUNT (bb->succs); ix++)
+    {
+      e = EDGE_SUCC (bb, ix);
+      bitmap_and_into (STORE_ANTIC_IN (bb), STORE_ANTIC_OUT (e->dest));
+    }
+}
+
 /* Compute the AVAIL sets for every basic block in BLOCKS.
 
    We compute {STORE,READ}_AVAIL_{OUT,IN} as follows:
@@ -1844,13 +1867,6 @@ tm_memopt_compute_available (struct tm_region *region,
   edge_iterator ei;
   bool changed;
 
-  /* Seed AVAIL_OUT with the LOCAL set.  */
-  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
-    {
-      bitmap_ior_into (STORE_AVAIL_OUT (bb), STORE_LOCAL (bb));
-      bitmap_ior_into (READ_AVAIL_OUT (bb), READ_LOCAL (bb));
-    }
-
   /* Allocate a worklist array/queue.  Entries are only added to the
      list if they were not already on the list.  So the size is
      bounded by the number of basic blocks in the region.  */
@@ -1858,15 +1874,19 @@ tm_memopt_compute_available (struct tm_region *region,
   qin = qout = worklist = 
     XNEWVEC (basic_block, qlen);
 
-  /* Put every block in the region on the worklist...  */
-  for (i = 1; VEC_iterate (basic_block, blocks, i, bb); i++)
+  /* Put every block in the region on the worklist.  */
+  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
     {
-      *qin++ = bb;
+      /* Seed AVAIL_OUT with the LOCAL set.  */
+      bitmap_ior_into (STORE_AVAIL_OUT (bb), STORE_LOCAL (bb));
+      bitmap_ior_into (READ_AVAIL_OUT (bb), READ_LOCAL (bb));
+
       AVAIL_IN_WORKLIST_P (bb) = true;
+      /* No need to insert the entry block, since it has an AVIN of
+	 null, and an AVOUT that has already been seeded in.  */
+      if (bb != region->entry_block)
+	*qin++ = bb;
     }
-  /* ...except the entry block which has an AVIN of null, and an AVOUT
-     that has already been seeded in.  */
-  AVAIL_IN_WORKLIST_P (region->entry_block) = true;
 
   qin = worklist;
   qend = &worklist[qlen];
@@ -1881,35 +1901,107 @@ tm_memopt_compute_available (struct tm_region *region,
       if (qout >= qend)
 	qout = worklist;
 
-      /* The entry block has nothing coming in.  */
-      if (bb == region->entry_block)
-	{
-	  /* Do not clear AVAIL_IN_WORKLIST_P, so we never add the
-	     entry block to the worklist again.  */
-	  bitmap_clear (STORE_AVAIL_IN (bb));
-	  bitmap_clear (READ_AVAIL_IN (bb));
-	}
-      else
-	{
-	  /* This block can be added to the worklist again if
-	     necessary.  */
-	  AVAIL_IN_WORKLIST_P (bb) = false;;
-	  tm_memopt_compute_avin (region, bb);
-	}
+      /* This block can be added to the worklist again if necessary.  */
+      AVAIL_IN_WORKLIST_P (bb) = false;
+      tm_memopt_compute_avin (region, bb);
 
       /* Note: We do not add the LOCAL sets here because we already
 	 seeded the AVAIL_OUT sets with them.  */
       changed  = bitmap_ior_into (STORE_AVAIL_OUT (bb), STORE_AVAIL_IN (bb));
       changed |= bitmap_ior_into (READ_AVAIL_OUT (bb), READ_AVAIL_IN (bb));
       if (changed && !bitmap_bit_p (region->exit_blocks, bb->index))
-	/* If the out state of this block changed, then we need
-	   to add the successors of this block to the worklist
-	   if they are not already on the worklist.  */
+	/* If the out state of this block changed, then we need to add
+	   its successors to the worklist if they are not already in.  */
 	FOR_EACH_EDGE (e, ei, bb->succs)
 	  if (!AVAIL_IN_WORKLIST_P (e->dest))
 	    {
 	      *qin++ = e->dest;
 	      AVAIL_IN_WORKLIST_P (e->dest) = true;
+	      qlen++;
+
+	      if (qin >= qend)
+		qin = worklist;
+	    }
+    }
+
+  free (worklist);
+
+  if (dump_file)
+    dump_tm_memopt_sets (blocks);
+}
+
+/* Compute ANTIC sets for every basic block in BLOCKS.
+
+   We compute STORE_ANTIC_OUT as follows:
+
+	STORE_ANTIC_OUT[bb] = union(STORE_ANTIC_IN[bb], STORE_LOCAL[bb])
+	STORE_ANTIC_IN[bb]  = intersect(STORE_ANTIC_OUT[successors])
+
+   REGION is the TM region.
+   BLOCKS are the basic blocks in the region.  */
+
+static void
+tm_memopt_compute_antic (struct tm_region *region,
+			 VEC (basic_block, heap) *blocks)
+{
+  edge e;
+  basic_block *worklist, *qin, *qout, *qend, bb;
+  unsigned int qlen;
+  int i;
+  edge_iterator ei;
+
+  /* Allocate a worklist array/queue.  Entries are only added to the
+     list if they were not already on the list.  So the size is
+     bounded by the number of basic blocks in the region.  */
+  qin = qout = worklist = 
+    XNEWVEC (basic_block, VEC_length (basic_block, blocks));
+
+  for (qlen = 0, i = VEC_length (basic_block, blocks) - 1; i >= 0; --i)
+    {
+      bb = VEC_index (basic_block, blocks, i);
+
+      /* Seed ANTIC_OUT with the LOCAL set.  */
+      bitmap_ior_into (STORE_ANTIC_OUT (bb), STORE_LOCAL (bb));
+
+      /* Put every block in the region on the worklist.  */
+      AVAIL_IN_WORKLIST_P (bb) = true;
+      /* No need to insert exit blocks, since their ANTIC_IN is NULL,
+	 and their ANTIC_OUT has already been seeded in.  */
+      if (!bitmap_bit_p (region->exit_blocks, bb->index))
+	{
+	  qlen++;
+	  *qin++ = bb;
+	}
+    }
+
+  qin = worklist;
+  qend = &worklist[qlen];
+
+  /* Iterate until the worklist is empty.  */
+  while (qlen)
+    {
+      /* Take the first entry off the worklist.  */
+      bb = *qout++;
+      qlen--;
+
+      if (qout >= qend)
+	qout = worklist;
+
+      /* This block can be added to the worklist again if necessary.  */
+      AVAIL_IN_WORKLIST_P (bb) = false;
+      tm_memopt_compute_antin (region, bb);
+
+      /* Note: We do not add the LOCAL sets here because we already
+	 seeded the ANTIC_OUT sets with them.  */
+      if (bitmap_ior_into (STORE_ANTIC_OUT (bb), STORE_ANTIC_IN (bb))
+	  && bb != region->entry_block)
+	/* If the out state of this block changed, then we need to add
+	   its predecessors to the worklist if they are not already in.  */
+	FOR_EACH_EDGE (e, ei, bb->preds)
+	  if (!AVAIL_IN_WORKLIST_P (e->src))
+	    {
+	      *qin++ = e->src;
+	      AVAIL_IN_WORKLIST_P (e->src) = true;
 	      qlen++;
 
 	      if (qin >= qend)
@@ -2049,11 +2141,7 @@ execute_tm_memopt (void)
        }
      /* Solve data flow equations and transform each block accordingly.  */
      tm_memopt_compute_available (region, bbs);
-     /* FIXME:
-	tm_memopt_compute_antic (region, bbs);
-	STORE_ANTIC_OUT[bb] = union(STORE_ANTIC_IN[bb], STORE_LOCAL[bb])
-	STORE_ANTIC_IN[bb]  = intersect(STORE_ANTIC_OUT[successors])
-     */
+     tm_memopt_compute_antic (region, bbs);
      tm_memopt_transform_blocks (bbs);
 
      tm_memopt_free_sets (bbs);
