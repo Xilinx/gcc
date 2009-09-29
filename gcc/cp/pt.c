@@ -6181,6 +6181,17 @@ lookup_template_class (tree d1,
 				      complain))
 	POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 
+      if (!is_partial_instantiation
+	  && !PRIMARY_TEMPLATE_P (gen_tmpl)
+	  && !LAMBDA_TYPE_P (TREE_TYPE (gen_tmpl))
+	  && TREE_CODE (CP_DECL_CONTEXT (gen_tmpl)) == NAMESPACE_DECL)
+	{
+	  found = xref_tag_from_type (TREE_TYPE (gen_tmpl),
+				      DECL_NAME (gen_tmpl),
+				      /*tag_scope=*/ts_global);
+	  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, found);
+	}
+
       context = tsubst (DECL_CONTEXT (gen_tmpl), arglist,
 			complain, in_decl);
       if (!context)
