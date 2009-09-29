@@ -5141,7 +5141,8 @@ pushtag (tree name, tree type, tag_scope scope)
 	{
 	  tree cs = current_scope ();
 
-	  if (scope == ts_current)
+	  if (scope == ts_current
+	      || (cs && TREE_CODE (cs) == FUNCTION_DECL))
 	    context = cs;
 	  else if (cs != NULL_TREE && TYPE_P (cs))
 	    /* When declaring a friend class of a local class, we want

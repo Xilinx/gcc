@@ -4212,7 +4212,7 @@ push_template_decl_real (tree decl, bool is_friend)
 
   if (!ctx
       || TREE_CODE (ctx) == FUNCTION_DECL
-      || (CLASS_TYPE_P (ctx) && !get_template_info (decl))
+      || (CLASS_TYPE_P (ctx) && TYPE_BEING_DEFINED (ctx))
       || (is_friend && !DECL_TEMPLATE_INFO (decl)))
     {
       if (DECL_LANG_SPECIFIC (decl)
@@ -6180,16 +6180,6 @@ lookup_template_class (tree d1,
 				      INNERMOST_TEMPLATE_ARGS (arglist),
 				      complain))
 	POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
-
-      if (!is_partial_instantiation
-	  && !PRIMARY_TEMPLATE_P (gen_tmpl)
-	  && TREE_CODE (CP_DECL_CONTEXT (gen_tmpl)) == NAMESPACE_DECL)
-	{
-	  found = xref_tag_from_type (TREE_TYPE (gen_tmpl),
-				      DECL_NAME (gen_tmpl),
-				      /*tag_scope=*/ts_global);
-	  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, found);
-	}
 
       context = tsubst (DECL_CONTEXT (gen_tmpl), arglist,
 			complain, in_decl);
