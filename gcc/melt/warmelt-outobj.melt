@@ -4207,7 +4207,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; makedoc - generate the output file
-
+(compile_warning "should list selectors and document their formals if given")
 (defun makedoc_genoutput (mdinfo outarg)
   (debug_msg mdinfo "makedoc_genoutput mdinfo")
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))

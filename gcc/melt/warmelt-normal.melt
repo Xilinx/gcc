@@ -1496,6 +1496,8 @@
 	   (error_strv sloc "non value reciever for message send of selector"
 		       (unsafe_get_field :named_name selnam)))
        )
+     (compile_warning "in normexp_msend we should check the formals
+     inside the selector if they are available")
      (multicall
       (nargs nbindargs)
       (normalize_tuple msargs env ncx sloc)
@@ -3001,6 +3003,7 @@
 	       )
 	     ( (is_a scall class_src_msend)
 	       (debug_msg nrealcall "normexp_multicall multicall nrealcall")
+	       (compile_warning "in normexp_multicall we should check against the formal of the selector if available")
 	       (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
 	       (let ( (nres (instance class_nrep_multimsend
 				      :nrep_loc sloc
@@ -4252,6 +4255,7 @@
 	(sinstclasym (if (is_a sinstclabnd class_any_binding) (unsafe_get_field :binder sinstclabnd)))
 	(sinstobjnum (unsafe_get_field :sinst_objnum recv))
 	(sinstfields (unsafe_get_field :sinst_fields recv))
+	(sformals (unsafe_get_field :sdefsel_formals recv))
 	(nbindlist (make_list discr_list))
 	(nbindbox (make_box discr_box nbindlist))
 	(bindsel (find_env env sname))
@@ -4288,6 +4292,22 @@
 			     :ninst_slots slotup
 			     :ninst_objnum sinstobjnum
 			     )) 
+	  (formsymbmap (make_mapobject discr_mapobjects (+i 3 (*i (multiple_length sformals) 2))))
+	  (nformtup (if sformals
+			(let ( (:long nbformals (multiple_length sformals))
+			       (nformaltuple (make_multiple discr_multiple nbformals))
+			       (nformdata (instance 
+					   class_nrep_datatuple
+					   :nrep_loc sloc
+					   :ndata_name sname
+					   :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+					   :ntup_comp nformaltuple))
+			      )
+			  (fill_normal_formals sformals nformaltuple formsymbmap env ncx sloc)
+			  (add_nctx_data ncx nformdata)   
+			  (fill_data_slot insdata  sdefsel_formals nformdata)
+			  nformaltuple
+			  )))
 	  )
       (add_nctx_data ncx insdata)
       (add_nctx_data ncx namstrdata)

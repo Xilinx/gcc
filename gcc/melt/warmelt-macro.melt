@@ -238,6 +238,8 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 ;; define a selector 
 (defclass class_src_defselector
   :super class_src_definstance
+  :fields (sdefsel_formals		;the formal arguments as signature
+	   )
   )
 
 ;; a field assignment
@@ -2462,13 +2464,14 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	 (cla ())
 	 (docv ())
 	 (clabind ())
+	 (formals ())
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for DEFINSTANCE"_))
+	(error_plain loc "missing symbol for DEFSELECTOR"_))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
       (if (is_not_a nam class_symbol)
-	  (error_plain loc "missing class name for DEFINSTANCE"_))
+	  (error_plain loc "missing class name for DEFSELECTOR"_))
       (let ( (bnd (find_env env nam)) 
 	     (fldlist (make_list discr_list))
 	     )
@@ -2481,7 +2484,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	   (setq clabind bnd)
 	   (setq cla (unsafe_get_field :vbind_value bnd)))
 	 (:else
-	  (error_strv loc "invalid class name for DEFINSTANCE"_
+	  (error_strv loc "invalid class name for DEFSELECTOR"_
 		      (unsafe_get_field :named_name nam))
 	  (return ())
 	  ))
@@ -2492,27 +2495,40 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 		 (if (not (is_pair curpair)) (exit insloop))
 		 (let ( (curfkw (pair_head curpair)) )
 		   (if (is_not_a curfkw class_keyword)
-		       (error_plain loc "expecting keyword in DEFINSTANCE"_))
+		       (error_plain loc "expecting keyword in DEFSELECTOR"_))
 		   (setq curpair (pair_tail curpair))
 		   (let ( (curexp (pair_head curpair)) )
 		     (cond  ( (== curfkw ':obj_num)
-			      (if curexp (error_plain loc "duplicate :obj_num in DEFINSTANCE"_))
+			      (if curexp (error_plain loc "duplicate :obj_num in DEFSELECTOR"_))
 			      (setq objnum 
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
 			      )
 			    ( (== curfkw ':predef)
-			      (if curexp (error_plain loc "duplicate :predef in DEFINSTANCE"_))
+			      (if curexp (error_plain loc "duplicate :predef in DEFSELECTOR"_))
 			      (setq predef 
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
 			      )
 			    ( (== curfkw ':doc)
-			      (if docv (error_plain loc "duplicate :doc in DEFINSTANCE"))
+			      (if docv (error_plain loc "duplicate :doc in DEFSELECTOR"))
 			      (setq docv curexp)
 			      )
+			    ( (== curfkw ':formals)
+			      (if formals (error_plain loc "duplicate :formals in DEFSELECTOR"))
+			      ;; curfkw is non-null so we ask the
+			      ;; arguments to be checked by
+			      ;; lambda_arg_bindings
+			      (setq formals (lambda_arg_bindings curexp curfkw))
+			      (let ( (firstf (multiple_nth formals 0)) )
+				(cond
+				 ( (null firstf)
+				   (error_plain loc ":formals of DEFSELECTOR should have at least one value argument for the reciever"))
+				 ( (!= (get_field :fbind_type firstf) ctype_value)
+				   (error_plain loc "first :formals of DEFSELECTOR should be a :value"))
+			      )))
 			    (:else 
 			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
 			       (if flda 
@@ -2530,6 +2546,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 			      :sinst_clabind clabind
 			      :sinst_objnum objnum
 			      :sinst_fields fastup
+			      :sdefsel_formals formals
 			      ))
 	       (selbind (instance class_selector_binding
 				  :binder symb

@@ -1,5 +1,14 @@
 
 2009-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	[defselectors can give a signature]
+	* melt/warmelt-macro.melt: added :sdefsel_formals inside
+	class_src_defselector, and updated the defselector macro
+	accordingly.
+	* melt/warmelt-normal.melt: handling the formals inside
+	defselector [not yet tested].
+	* melt/warmelt-outobj.melt: should handle selectors.
+
+2009-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added more documentation. Corrected
 	foreach_in_mapobject. Added foreach_in_mapstring.
 
