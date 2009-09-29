@@ -1553,6 +1553,11 @@ discriminator_for_local_entity (tree entity)
 
       /* Scan the list of local classes.  */
       entity = TREE_TYPE (entity);
+
+      /* Lambdas and unnamed types have their own discriminators.  */
+      if (LAMBDA_TYPE_P (entity) || TYPE_ANONYMOUS_P (entity))
+	return 0;
+
       for (ix = 0; ; ix++)
 	{
 	  tree type = VEC_index (tree, local_classes, ix);
