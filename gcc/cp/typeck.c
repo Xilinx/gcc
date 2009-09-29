@@ -7010,7 +7010,7 @@ check_return_expr (tree retval, bool *no_warning)
   if (retval && LAMBDA_FUNCTION_P (current_function_decl))
     {
       tree lambda = CLASSTYPE_LAMBDA_EXPR (current_class_type);
-      if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE (lambda))
+      if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda))
 	{
 	  tree type = lambda_return_type (retval);
 	  tree oldtype = LAMBDA_EXPR_RETURN_TYPE (lambda);

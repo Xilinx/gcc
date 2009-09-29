@@ -7377,11 +7377,11 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
     if (!done)
       {
 	if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
-	  LAMBDA_EXPR_DEDUCE_RETURN_TYPE (lambda_expr) = true;
+	  LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda_expr) = true;
 	/* TODO: does begin_compound_stmt want BCS_FN_BODY?
 	   cp_parser_compound_stmt does not pass it.  */
 	cp_parser_function_body (parser);
-	LAMBDA_EXPR_DEDUCE_RETURN_TYPE (lambda_expr) = false;
+	LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda_expr) = false;
       }
 
     finish_function_body (body);
