@@ -597,7 +597,7 @@ dump_aggr_type (tree t, int flags)
       else
 	pp_printf (pp_base (cxx_pp), M_("<anonymous %s>"), variety);
     }
-  else if (LAMBDA_TYPE_P (t))
+  else if (LAMBDANAME_P (name))
     {
       /* A lambda's "type" is essentially its signature.  */
       pp_string (cxx_pp, M_("<lambda"));
