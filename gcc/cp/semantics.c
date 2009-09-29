@@ -5214,7 +5214,6 @@ build_lambda_expr (void)
   LAMBDA_EXPR_THIS_CAPTURE         (lambda) = NULL_TREE;
   LAMBDA_EXPR_RETURN_TYPE          (lambda) = NULL_TREE;
   LAMBDA_EXPR_MUTABLE_P            (lambda) = false;
-  LAMBDA_EXPR_FUNCTION             (lambda) = NULL_TREE;
   return lambda;
 }
 
@@ -5322,6 +5321,28 @@ lambda_return_type (tree expr)
   return type;
 }
 
+/* Given a LAMBDA_EXPR or closure type LAMBDA, return the op() of the
+   closure type.  */
+
+tree
+lambda_function (tree lambda)
+{
+  tree type;
+  if (TREE_CODE (lambda) == LAMBDA_EXPR)
+    type = TREE_TYPE (lambda);
+  else
+    type = lambda;
+  gcc_assert (LAMBDA_TYPE_P (type));
+  /* Don't let debug_tree cause instantiation.  */
+  if (CLASSTYPE_TEMPLATE_INSTANTIATION (type) && !COMPLETE_TYPE_P (type))
+    return NULL_TREE;
+  lambda = lookup_member (type, ansi_opname (CALL_EXPR),
+			  /*protect=*/0, /*want_type=*/false);
+  if (lambda)
+    lambda = BASELINK_FUNCTIONS (lambda);
+  return lambda;
+}
+
 /* Returns the type to use for the FIELD_DECL corresponding to the
    capture of EXPR.
    The caller should add REFERENCE_TYPE for capture by reference.  */
@@ -5348,7 +5369,7 @@ lambda_capture_field_type (tree expr)
 void
 apply_lambda_return_type (tree lambda, tree return_type)
 {
-  tree fco = LAMBDA_EXPR_FUNCTION (lambda);
+  tree fco = lambda_function (lambda);
   tree result;
 
   LAMBDA_EXPR_RETURN_TYPE (lambda) = return_type;
@@ -5506,7 +5527,7 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
       {
         /* Have to get the old value of current_class_ref.  */
         tree object = cp_build_indirect_ref (DECL_ARGUMENTS
-                                               (LAMBDA_EXPR_FUNCTION (lambda)),
+                                               (lambda_function (lambda)),
                                              /*errorstring=*/"",
                                              /*complain=*/tf_warning_or_error);
         initializer = finish_non_static_data_member

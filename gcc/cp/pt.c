@@ -12335,22 +12335,20 @@ tsubst_copy_and_build (tree t,
 	tree type = tsubst (TREE_TYPE (t), args, complain, NULL_TREE);
 	TREE_TYPE (r) = type;
 	CLASSTYPE_LAMBDA_EXPR (type) = r;
-	/* Instantiate the type here so we have a declaration of the op()
-	   before we recur into LAMBDA_EXPR_FUNCTION.  */
-	complete_type (type);
 
 	LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (r)
 	  = LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (t);
 	LAMBDA_EXPR_MUTABLE_P (r) = LAMBDA_EXPR_MUTABLE_P (t);
-	LAMBDA_EXPR_FUNCTION (r)
-	  = RECUR (LAMBDA_EXPR_FUNCTION (t));
 	LAMBDA_EXPR_CAPTURE_LIST (r)
 	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
 	LAMBDA_EXPR_THIS_CAPTURE (r)
 	  = RECUR (LAMBDA_EXPR_THIS_CAPTURE (t));
 
+	/* Now that we know visibility, instantiate the type so we have a
+	   declaration of the op() for later calls to lambda_function.  */
+	complete_type (type);
+
 	type = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
-	/* This needs to happen after we set LAMBDA_EXPR_FUNCTION.  */
 	if (type)
 	  apply_lambda_return_type (r, type);
 

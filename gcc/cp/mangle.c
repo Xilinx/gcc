@@ -1230,7 +1230,7 @@ write_unnamed_type_name (const tree type __attribute__ ((__unused__)))
 static void
 write_closure_type_name (const tree type)
 {
-  tree fn = LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (type));
+  tree fn = lambda_function (type);
   tree parms = TYPE_ARG_TYPES (TREE_TYPE (fn));
 
   MANGLE_TRACE_TREE ("closure-type-name", type);

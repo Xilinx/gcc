@@ -7288,8 +7288,6 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
     finish_member_declaration (fco);
 
     obstack_free (&declarator_obstack, p);
-
-    LAMBDA_EXPR_FUNCTION (lambda_expr) = fco;
   }
 }
 
@@ -7313,7 +7311,7 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
      + function_definition_after_declarator
      + ctor_initializer_opt_and_function_body  */
   {
-    tree fco = LAMBDA_EXPR_FUNCTION (lambda_expr);
+    tree fco = lambda_function (lambda_expr);
     tree body;
     bool done = false;
 
