@@ -5378,6 +5378,8 @@ apply_lambda_return_type (tree lambda, tree return_type)
      it would interfere with instantiating the closure type.  */
   if (dependent_type_p (return_type))
     return;
+  if (return_type == error_mark_node)
+    return;
 
   /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
      TREE_TYPE (METHOD_TYPE)   == return-type  */
