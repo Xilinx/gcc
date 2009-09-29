@@ -3580,10 +3580,6 @@ builtin_function_1 (tree decl, tree context, bool is_global)
 
   retrofit_lang_decl (decl);
 
-  /* All nesting of C++ functions is lexical; there is never a "static
-     chain" in the sense of GNU C nested functions.  */
-  DECL_NO_STATIC_CHAIN (decl) = 1;
-
   DECL_ARTIFICIAL (decl) = 1;
   SET_OVERLOADED_OPERATOR_CODE (decl, ERROR_MARK);
   SET_DECL_LANGUAGE (decl, lang_c);
@@ -5802,6 +5798,15 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	 type.  */
       else if (TREE_CODE (type) == ARRAY_TYPE)
 	layout_type (type);
+
+      if (!processing_template_decl
+	  && TREE_STATIC (decl)
+	  && !at_function_scope_p ()
+	  && current_function_decl == NULL)
+	/* So decl is a global variable or a static member of a
+	   non local class. Record the types it uses
+	   so that we can decide later to emit debug info for them.  */
+	record_types_used_by_current_var_decl (decl);
     }
   else if (TREE_CODE (decl) == FIELD_DECL
 	   && TYPE_FOR_JAVA (type) && MAYBE_CLASS_TYPE_P (type))
@@ -6771,9 +6776,6 @@ grokfndecl (tree ctype,
   if (IDENTIFIER_OPNAME_P (DECL_NAME (decl))
       && !grok_op_properties (decl, /*complain=*/true))
     return NULL_TREE;
-
-  if (ctype && decl_function_context (decl))
-    DECL_NO_STATIC_CHAIN (decl) = 1;
 
   if (funcdef_flag)
     /* Make the init_value nonzero so pushdecl knows this is not

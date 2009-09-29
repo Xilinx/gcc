@@ -3141,9 +3141,8 @@ struct GTY(())
 #define DECL_NO_LIMIT_STACK(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.no_limit_stack)
 
-/* In a FUNCTION_DECL with a nonzero DECL_CONTEXT, indicates that a
-   static chain is not needed.  */
-#define DECL_NO_STATIC_CHAIN(NODE) \
+/* In a FUNCTION_DECL indicates that a static chain is needed.  */
+#define DECL_STATIC_CHAIN(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.regdecl_flag)
 
 /* Nonzero for a decl that cgraph has decided should be inlined into
@@ -4950,7 +4949,7 @@ extern int real_minus_onep (const_tree);
 extern void init_ttree (void);
 extern void build_common_tree_nodes (bool, bool);
 extern void build_common_tree_nodes_2 (int);
-extern void build_common_builtin_nodes (bool);
+extern void build_common_builtin_nodes (void);
 extern tree build_nonstandard_integer_type (unsigned HOST_WIDE_INT, int);
 extern tree build_range_type (tree, tree, tree);
 extern bool subrange_type_for_debug_p (const_tree, tree *, tree *);
