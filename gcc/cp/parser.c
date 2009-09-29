@@ -6951,6 +6951,84 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
   return finish_trait_expr (kind, type1, type2);
 }
 
+/* Lambdas that appear in variable initializer or default argument scope
+   get that in their mangling, so we need to record it.  We might as well
+   use the count for function and namespace scopes as well.  */
+static tree lambda_scope;
+static int lambda_count;
+typedef struct GTY(()) tree_int
+{
+  tree t;
+  int i;
+} tree_int;
+DEF_VEC_O(tree_int);
+DEF_VEC_ALLOC_O(tree_int,gc);
+static GTY(()) VEC(tree_int,gc) *lambda_scope_stack;
+
+static void
+start_lambda_scope (tree decl)
+{
+  tree_int ti;
+  gcc_assert (decl);
+  /* Once we're inside a function, we ignore other scopes and just push
+     the function again so that popping works properly.  */
+  if (current_function_decl && TREE_CODE (decl) != FUNCTION_DECL)
+    decl = current_function_decl;
+  ti.t = lambda_scope;
+  ti.i = lambda_count;
+  VEC_safe_push (tree_int, gc, lambda_scope_stack, &ti);
+  if (lambda_scope != decl)
+    {
+      /* Don't reset the count if we're still in the same function.  */
+      lambda_scope = decl;
+      lambda_count = 0;
+    }
+}
+
+static void
+record_lambda_scope (tree lambda)
+{
+  LAMBDA_EXPR_EXTRA_SCOPE (lambda) = lambda_scope;
+  LAMBDA_EXPR_DISCRIMINATOR (lambda) = lambda_count++;
+}
+
+static void
+finish_lambda_scope (void)
+{
+  tree_int *p = VEC_last (tree_int, lambda_scope_stack);
+  if (lambda_scope != p->t)
+    {
+      lambda_scope = p->t;
+      lambda_count = p->i;
+    }
+  VEC_pop (tree_int, lambda_scope_stack);
+}
+
+/* We want to determine the linkage of a lambda type at pushtag time,
+   before CLASSTYPE_LAMBDA_EXPR has been set.  So this callback allows us
+   to find out whether the current lambda mangling scope will give us
+   linkage or not.  */
+
+bool
+no_linkage_lambda_type_p (tree type)
+{
+  tree lambda, scope;
+  if (!LAMBDA_TYPE_P (type))
+    return false;
+
+  lambda = CLASSTYPE_LAMBDA_EXPR (type);
+  if (lambda)
+    scope = LAMBDA_EXPR_EXTRA_SCOPE (lambda);
+  else if (CLASSTYPE_TEMPLATE_INSTANTIATION (type))
+    /* We can't use lambda_scope, and CLASSTYPE_TEMPLATE_INFO won't be set
+       yet either, so guess it's public for now.  */
+    return false;
+  else
+    scope = lambda_scope;
+
+  return (scope == NULL_TREE);
+}
+
 /* Parse a lambda expression.
 
    lambda-expression:
@@ -6972,6 +7050,8 @@ cp_parser_lambda_expression (cp_parser* parser)
   push_deferring_access_checks (dk_no_deferred);
 
   type = begin_lambda_type (lambda_expr);
+
+  record_lambda_scope (lambda_expr);
 
   {
     /* Inside the class, surrounding template-parameter-lists do not apply.  */
@@ -7317,6 +7397,7 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 			      NULL_TREE,
 			      SF_PRE_PARSED | SF_INCLASS_INLINE);
 
+    start_lambda_scope (fco);
     body = begin_function_body ();
 
     /* 5.1.1.4 of the standard says:
@@ -7379,6 +7460,7 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
       }
 
     finish_function_body (body);
+    finish_lambda_scope ();
 
     /* Finish the function and generate code for it if necessary.  */
     expand_or_defer_fn (finish_function (/*inline*/2));
@@ -7387,7 +7469,6 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
   if (nested)
     pop_function_context();
 }
-
 
 /* Statements [gram.stmt.stmt]  */
 
@@ -13497,9 +13578,21 @@ cp_parser_init_declarator (cp_parser* parser,
 	     }
 	}
       else
-	initializer = cp_parser_initializer (parser,
-					     &is_direct_init,
-					     &is_non_constant_init);
+	{
+	  /* We want to record the extra mangling scope for in-class
+	     initializers of class members and initializers of static data
+	     member templates.  The former is a C++0x feature which isn't
+	     implemented yet, and I expect it will involve deferring
+	     parsing of the initializer until end of class as with default
+	     arguments.  So right here we only handle the latter.  */
+	  if (!member_p && processing_template_decl)
+	    start_lambda_scope (decl);
+	  initializer = cp_parser_initializer (parser,
+					       &is_direct_init,
+					       &is_non_constant_init);
+	  if (!member_p && processing_template_decl)
+	    finish_lambda_scope ();
+	}
     }
 
   /* The old parser allows attributes to appear after a parenthesized
@@ -18306,7 +18399,7 @@ cp_parser_function_definition_from_specifiers_and_declarator
 
 /* Parse the part of a function-definition that follows the
    declarator.  INLINE_P is TRUE iff this function is an inline
-   function defined with a class-specifier.
+   function defined within a class-specifier.
 
    Returns the function defined.  */
 
@@ -18358,6 +18451,9 @@ cp_parser_function_definition_after_declarator (cp_parser* parser,
   saved_num_template_parameter_lists
     = parser->num_template_parameter_lists;
   parser->num_template_parameter_lists = 0;
+
+  start_lambda_scope (current_function_decl);
+
   /* If the next token is `try', then we are looking at a
      function-try-block.  */
   if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
@@ -18367,6 +18463,8 @@ cp_parser_function_definition_after_declarator (cp_parser* parser,
   else
     ctor_initializer_p
       = cp_parser_ctor_initializer_opt_and_function_body (parser);
+
+  finish_lambda_scope ();
 
   /* Finish the function.  */
   fn = finish_function ((ctor_initializer_p ? 1 : 0) |
@@ -18995,7 +19093,7 @@ static void
 cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
 {
   bool saved_local_variables_forbidden_p;
-  tree parm;
+  tree parm, parmdecl;
 
   /* While we're parsing the default args, we might (due to the
      statement expression extension) encounter more classes.  We want
@@ -19009,9 +19107,11 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
   saved_local_variables_forbidden_p = parser->local_variables_forbidden_p;
   parser->local_variables_forbidden_p = true;
 
-  for (parm = TYPE_ARG_TYPES (TREE_TYPE (fn));
-       parm;
-       parm = TREE_CHAIN (parm))
+  for (parm = TYPE_ARG_TYPES (TREE_TYPE (fn)),
+	 parmdecl = DECL_ARGUMENTS (fn);
+       parm && parm != void_list_node;
+       parm = TREE_CHAIN (parm),
+	 parmdecl = TREE_CHAIN (parmdecl))
     {
       cp_token_cache *tokens;
       tree default_arg = TREE_PURPOSE (parm);
@@ -19033,6 +19133,8 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
       tokens = DEFARG_TOKENS (default_arg);
       cp_parser_push_lexer_for_tokens (parser, tokens);
 
+      start_lambda_scope (parmdecl);
+
       /* Parse the assignment-expression.  */
       parsed_arg = cp_parser_assignment_expression (parser, /*cast_p=*/false, NULL);
       if (parsed_arg == error_mark_node)
@@ -19050,6 +19152,8 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
       for (insts = DEFARG_INSTANTIATIONS (default_arg), ix = 0;
 	   VEC_iterate (tree, insts, ix, copy); ix++)
 	TREE_PURPOSE (copy) = parsed_arg;
+
+      finish_lambda_scope ();
 
       /* If the token stream has not been completely used up, then
 	 there was extra junk after the end of the default

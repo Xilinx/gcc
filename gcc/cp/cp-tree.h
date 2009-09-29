@@ -576,6 +576,15 @@ enum cp_lambda_default_capture_mode_type {
 #define LAMBDA_EXPR_LOCATION(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->locus)
 
+/* The mangling scope for the lambda: FUNCTION_DECL, PARM_DECL, VAR_DECL,
+   FIELD_DECL or NULL_TREE.  If this is NULL_TREE, we have no linkage.  */
+#define LAMBDA_EXPR_EXTRA_SCOPE(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->extra_scope)
+
+/* If EXTRA_SCOPE, this is the number of the lambda within that scope.  */
+#define LAMBDA_EXPR_DISCRIMINATOR(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->discriminator)
+
 struct GTY (()) tree_lambda_expr
 {
   struct tree_common common;
@@ -584,6 +593,8 @@ struct GTY (()) tree_lambda_expr
   tree capture_list;
   tree this_capture;
   tree return_type;
+  tree extra_scope;
+  int discriminator;
 };
 
 enum cp_tree_node_structure_enum {
@@ -1509,6 +1520,9 @@ struct GTY(()) lang_type {
 /* The associated LAMBDA_EXPR that made this class.  */
 #define CLASSTYPE_LAMBDA_EXPR(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->lambda_expr)
+/* The extra mangling scope for this closure type.  */
+#define LAMBDA_TYPE_EXTRA_SCOPE(NODE) \
+  (LAMBDA_EXPR_EXTRA_SCOPE (CLASSTYPE_LAMBDA_EXPR (NODE)))
 
 /* Say whether this node was declared as a "class" or a "struct".  */
 #define CLASSTYPE_DECLARED_CLASS(NODE) \
@@ -5271,6 +5285,9 @@ extern tree cxx_omp_clause_assign_op		(tree, tree, tree);
 extern tree cxx_omp_clause_dtor			(tree, tree);
 extern void cxx_omp_finish_clause		(tree);
 extern bool cxx_omp_privatize_by_reference	(const_tree);
+
+/* in parser.c */
+extern bool no_linkage_lambda_type_p		(tree);
 
 /* -- end of C++ */
 

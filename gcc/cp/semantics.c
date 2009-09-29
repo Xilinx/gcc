@@ -3349,7 +3349,8 @@ expand_or_defer_fn (tree fn)
 	     linkage of all functions, and as that causes writes to
 	     the data mapped in from the PCH file, it's advantageous
 	     to mark the functions at this point.  */
-	  if (!DECL_IMPLICIT_INSTANTIATION (fn))
+	  if (!DECL_IMPLICIT_INSTANTIATION (fn)
+	      && !LAMBDA_FUNCTION_P (fn))
 	    {
 	      /* This function must have external linkage, as
 		 otherwise DECL_INTERFACE_KNOWN would have been

@@ -1585,6 +1585,8 @@ no_linkage_check (tree t, bool relaxed_p)
 	 namespace scope.  This doesn't have a core issue number yet.  */
       if (TYPE_ANONYMOUS_P (t) && TYPE_NAMESPACE_SCOPE_P (t))
 	return t;
+      if (no_linkage_lambda_type_p (t))
+	return t;
 
       r = CP_TYPE_CONTEXT (t);
       if (TYPE_P (r))
