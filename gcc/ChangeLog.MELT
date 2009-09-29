@@ -1,4 +1,8 @@
 
+2009-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: added more documentation. Corrected
+	foreach_in_mapobject. Added foreach_in_mapstring.
+
 2009-09-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added upgrade-bigmelt target.
 	* melt/warmelt-first.melt: added lots of documentation, removed

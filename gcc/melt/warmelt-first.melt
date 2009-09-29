@@ -1514,16 +1514,16 @@ Returns a boxed integer.}#
   ;; before expansion
   #{ /*$eachobmap :*/ int $eachobmap#_ix=0, $eachobmap#_siz=0;
   for ($eachobmap#_ix=0; 
-     /* we retrieve in $eachobmap the size at each iteration since it could change. */
+     /* we retrieve in $eachobmap#_siz the size at each iteration since it could change. */
        $eachobmap#_ix>=0 && ($eachobmap#_siz= melt_size_mapobjects($objmap))>0
        && $eachobmap#_ix < $eachobmap#_siz;
        $eachobmap#_ix++) {
     $curat = NULL;
     $curva = NULL;
-    $curat = ((meltmapobjects_ptr_t)objmap)->entab[$eachobmap#_ix].e_at;
+    $curat = ((meltmapobjects_ptr_t)$objmap)->entab[$eachobmap#_ix].e_at;
     if ($curat == HTAB_DELETED_ENTRY) { $curat = NULL; continue; };
     if (!$curat) continue;
-    $curva = ((meltmapobjects_ptr_t)objmap)->entab[$eachobmap#_ix].e_va;
+    $curva = ((meltmapobjects_ptr_t)$objmap)->entab[$eachobmap#_ix].e_va;
     if (!$curva) continue; 
 }#
 ;;; after expansion
@@ -1536,36 +1536,94 @@ Returns a boxed integer.}#
 ;;;;;; MAPSTRINGs primitive
 ;; test
 (defprimitive is_mapstring (map) :long
-  "(melt_magic_discr((melt_ptr_t)(" map ")) == OBMAG_MAPSTRINGS)")
+  :doc #{Safely test if $MAP is a string-map.}#
+  #{(melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPSTRINGS)}#)
 ;; primitive to get the allocated size of a mapstring
 (defprimitive mapstring_size (map) :long 
-  "(melt_size_mapstrings((struct meltmapstrings_st*)(" map ")))")
+  :doc #{Safely return the current allocated size of a string-map $MAP or else 0.}#
+  #{(melt_size_mapstrings((struct meltmapstrings_st*)($map)))}#)
 ;; primitive to get the attribute count of a mapstring
 (defprimitive mapstring_count (map) :long
-  "(melt_count_mapstrings((struct meltmapstrings_st*)(" map ")))")
+  :doc #{Safely return the current count of a string-map $MAP or else 0.}#
+  #{(melt_count_mapstrings((struct meltmapstrings_st*)($map)))}#)
 ;; get an entry in a mapstring from a C string
 (defprimitive mapstring_rawget (map :cstring cstr) :value
-  "(melt_get_mapstrings((struct meltmapstrings_st*)(" map "), (" cstr ")))")
+  :doc #{Safely get in a string-map $MAP the value associated with raw c-string $CSTR or else null.}#
+  #{(melt_get_mapstrings((struct meltmapstrings_st*)($map), ($cstr)))}#)
 ;; primitive for making a new map of strings
 (defprimitive make_mapstring (discr :long len) :value
-  " (meltgc_new_mapstrings( (meltobject_ptr_t) (" discr "), (" len ")))")
+  :doc #{Make a new string-map of discriminant $DISCR and initial length $LEN - or null if failed.}#
+  #{(meltgc_new_mapstrings( (meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of strings
 (defprimitive mapstring_rawput (map :cstring key :value val) :void
-  " meltgc_put_mapstrings( (struct meltmapstrings_st *) (" map "), (" key "), (melt_ptr_t) (" val "))")
+  :doc #{Safely put into a string-map $MAP the raw c-string $KEY associated to value $VAL.}#
+  #{meltgc_put_mapstrings( (struct meltmapstrings_st *) ($map), ($key), (melt_ptr_t) ($val))}#)
 (defprimitive mapstring_putstr (map keystr val) :void
-  " meltgc_put_mapstrings((struct meltmapstrings_st *) (" map "), melt_string_str((melt_ptr_t)(" keystr ")), (melt_ptr_t)(" val "))")
+  :doc #{Safely put into a string-map $MAP the string value $KEYSTR associated to value $VAL.}#
+  #{meltgc_put_mapstrings((struct meltmapstrings_st *) ($map), melt_string_str((melt_ptr_t)($keystr)), (melt_ptr_t)($val))}#)
 (defprimitive mapstring_getstr (map keystr) :value
-  "(melt_get_mapstrings((struct meltmapstrings_st*)(" map "), melt_string_str((melt_ptr_t)(" keystr "))))")
-;; primivite for removing from a map of strings
+  :doc #{Safely get in a string-map $MAP the value associated with a value string $KEYSTR or else null.}#
+  #{(melt_get_mapstrings((struct meltmapstrings_st*)($map), melt_string_str((melt_ptr_t)($keystr))))}#)
+;; primitives for removing from a map of strings
 (defprimitive mapstring_rawremove (map :cstring key) :void
-  " meltgc_remove_mapstrings( (struct meltmapstrings_st*) (" map "), (" key "))")
+  :doc #{Safely remove from a string-map $MAP the value associated with raw c-string $KEY.}#
+  #{meltgc_remove_mapstrings((struct meltmapstrings_st*) ($map), ($key))}#)
+(defprimitive mapstring_removestr (map keystr) :void
+  :doc #{Safely remove from a string-map $MAP the value associated with string value $KEYSTR.}#
+  #{meltgc_remove_mapstrings((struct meltmapstrings_st*) ($map), melt_string_str((melt_ptr_t)$keystr))}#)
 
 ;; primitive to make the nth stringattr of a mapobject
 (defprimitive mapstring_nth_attrstr (map sdicr :long n) :value
-  "(meltgc_new_stringdup((meltobject_ptr_t)(" sdicr "), melt_nthattrraw_mapstrings((struct meltmapstrings_st*)(" map "), (int)(" n "))))")
+  :doc #{Safely get from string-map $MAP the $N-th string and make a string value of 
+discriminant $SDICR from it.}#
+  #{(meltgc_new_stringdup((meltobject_ptr_t)($sdicr),  
+			  melt_nthattrraw_mapstrings((struct meltmapstrings_st*)($map), (int)($n))))}#)
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapstring_nth_val (map :long n) :value
-  "(melt_nthval_mapstrings((struct meltmapstrings_st*)(" map "), (int)(" n ")))")
+  :doc #{Safely retrieve from string-map $MAP its $N-th value or null.}#
+  #{(melt_nthval_mapstrings((struct meltmapstrings_st*)($map), (int)($n)))}#)
+;;; iterator inside a map of strings
+(defciterator foreach_in_mapstring
+  (:value strmap)
+  eachstrmap
+  (:value curat curva)
+  :doc #{The $FOREACH_IN_MAPSTRING c-iterator iterates inside the
+given $STRMAP and retrieves a $CURAT string attribute value and its
+$CURVA value. If $CURVA happens to be an instance of $CLASS_NAMED
+with a name equal to the string key, we use it as $CURAT otherwise we
+make a $CURAT string.}#
+  ;; before expansion
+  #{ /*$eachstrmap :*/ int $eachstrmap#_ix=0, $eachstrmap#_siz=0;
+  for ($eachstrmap#_ix=0; 
+     /* we retrieve in $eachstrmap#_siz the size at each iteration since it could change. */
+       $eachstrmap#_ix>=0 && ($eachstrmap#_siz= melt_size_mapstrings($strmap))>0
+       && $eachstrmap#_ix < $eachstrmap#_siz;
+       $eachstrmap#_ix++) {
+    const char* $eachstrmap#_str = NULL;
+    const char* $eachstrmap#_nam = NULL;
+    $curat = NULL;
+    $curva = NULL;
+    $eachstrmap#_str = ((meltmapstrings_ptr_t)strmap)->entab[$eachstrmap#_ix].e_at;
+    if ($eachstrmap#_str == HTAB_DELETED_ENTRY) { $curat = NULL; continue; };
+    if (!$eachstrmap#_str) continue;
+    $curva = ((meltmapstrings_ptr_t)strmap)->entab[$eachstrmap#_ix].e_va;
+    if (!$curva) continue; 
+    if (melt_is_instance_of($curva, MELT_PREDEF (CLASS_NAMED)) 
+	&& ($curat = melt_object_nth_field ((melt_ptr_t) $curva, FNAMED_NAME)) != NULL		   
+	&& ($eachstrmap#_nam = melt_string_str ((melt_ptr_t) $curat)) != (char*)0
+	&& !strcmp ($eachstrmap#_nam, $eachstrmap#_str))
+      $curat = $curat;
+    else {
+      $curat = NULL;
+      $curat =  meltgc_new_stringdup((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), $eachstrmap#_str);
+    }
+}#
+;;; after expansion
+  #{ /* end $eachstrmap */
+    $curat = NULL;  
+    $curva = NULL;  }
+}#
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; ROUTINEs primitives
 ;; test
@@ -4355,7 +4413,7 @@ list.}#
    )
   )
 
-					; find a binding inside an environment and also returns the reversed list of enclosing procedures
+;; find a binding inside an environment and also returns the reversed list of enclosing procedures
 (defun find_enclosing_env (env binder)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check binder" (is_object binder))
@@ -4557,7 +4615,7 @@ list.}#
  :sysdata_stderr (let ( (f ())
 			(d discr_rawfile) 
 			)
-		   (code_chunk makestdout 
+		   (code_chunk makestderr
 			       #{ $f = meltgc_new_file($d, stderr) ; }#
 			       )
 		   f)
@@ -4565,7 +4623,7 @@ list.}#
 			  (d discr_rawfile) 
 			  )
 		     ;; the FILE* of dumpfile is also set in pass executions.
-		     (code_chunk makestdout 
+		     (code_chunk makedump
 				 #{ $f = meltgc_new_file($d, dump_file)	; }#
 				 )
 		     f)
@@ -4781,6 +4839,7 @@ list.}#
  mapstring_rawget
  mapstring_rawput
  mapstring_rawremove
+ mapstring_removestr
  mapstring_size
  message_dbg
  messagenum_dbg
@@ -4991,6 +5050,7 @@ list.}#
 (export_values
  foreach_in_list
  foreach_in_mapobject
+ foreach_in_mapstring
  foreach_in_multiple
  foreach_long_upto
  integerbox_of 
