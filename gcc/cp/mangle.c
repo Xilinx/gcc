@@ -1038,7 +1038,8 @@ write_prefix (const tree node)
     {
       write_prefix (decl_mangling_context (decl));
       write_unqualified_name (decl);
-      if (TREE_CODE (decl) == VAR_DECL)
+      if (TREE_CODE (decl) == VAR_DECL
+	  || TREE_CODE (decl) == FIELD_DECL)
 	{
 	  /* <data-member-prefix> := <member source-name> M */
 	  write_char ('M');
@@ -1260,6 +1261,9 @@ write_unnamed_type_name (const tree type __attribute__ ((__unused__)))
   /* TODO: Implement discriminators for unnamed-types.  */
   write_char ('_');
 }
+
+/* <closure-type-name> ::= Ul <lambda-sig> E [ <nonnegative number> ] _
+   <lambda-sig> ::= <parameter type>+  # Parameter types or "v" if the lambda has no parameters */
 
 static void
 write_closure_type_name (const tree type)
@@ -1657,8 +1661,7 @@ write_local_name (tree function, const tree local_entity,
 	 from <local-name>, so it doesn't try to process the enclosing
 	 function scope again.  */
       write_name (entity, /*ignore_local_scope=*/1);
-      if (!parm)
-	write_discriminator (discriminator_for_local_entity (local_entity));
+      write_discriminator (discriminator_for_local_entity (local_entity));
     }
 }
 
