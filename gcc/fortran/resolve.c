@@ -1104,6 +1104,7 @@ is_illegal_recursion (gfc_symbol* sym, gfc_namespace* context)
 {
   gfc_symbol* proc_sym;
   gfc_symbol* context_proc;
+  gfc_namespace* real_context;
 
   gcc_assert (sym->attr.flavor == FL_PROCEDURE);
 
@@ -1117,11 +1118,29 @@ is_illegal_recursion (gfc_symbol* sym, gfc_namespace* context)
   if (proc_sym->attr.recursive || gfc_option.flag_recursive)
     return false;
 
-  /* Find the context procdure's "real" symbol if it has entries.  */
-  context_proc = (context->entries ? context->entries->sym
-				   : context->proc_name);
-  if (!context_proc)
-    return true;
+  /* Find the context procedure's "real" symbol if it has entries.
+     We look for a procedure symbol, so recurse on the parents if we don't
+     find one (like in case of a BLOCK construct).  */
+  for (real_context = context; ; real_context = real_context->parent)
+    {
+      /* We should find something, eventually!  */
+      gcc_assert (real_context);
+
+      context_proc = (real_context->entries ? real_context->entries->sym
+					    : real_context->proc_name);
+
+      /* In some special cases, there may not be a proc_name, like for this
+	 invalid code:
+	 real(bad_kind()) function foo () ...
+	 when checking the call to bad_kind ().
+	 In these cases, we simply return here and assume that the
+	 call is ok.  */
+      if (!context_proc)
+	return false;
+
+      if (context_proc->attr.flavor != FL_LABEL)
+	break;
+    }
 
   /* A call from sym's body to itself is recursion, of course.  */
   if (context_proc == proc_sym)
@@ -7026,7 +7045,19 @@ gfc_resolve_forall (gfc_code *code, gfc_namespace *ns, int forall_save)
 }
 
 
-/* Resolve lists of blocks found in IF, SELECT CASE, WHERE, FORALL ,GOTO and
+/* Resolve a BLOCK construct statement.  */
+
+static void
+resolve_block_construct (gfc_code* code)
+{
+  /* Eventually, we may want to do some checks here or handle special stuff.
+     But so far the only thing we can do is resolving the local namespace.  */
+
+  gfc_resolve (code->ext.ns);
+}
+
+
+/* Resolve lists of blocks found in IF, SELECT CASE, WHERE, FORALL, GOTO and
    DO code nodes.  */
 
 static void resolve_code (gfc_code *, gfc_namespace *);
@@ -7063,6 +7094,10 @@ gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 	  resolve_branch (b->label1, b);
 	  break;
 
+	case EXEC_BLOCK:
+	  resolve_block_construct (b);
+	  break;
+
 	case EXEC_SELECT:
 	case EXEC_SELECT_TYPE:
 	case EXEC_FORALL:
@@ -7091,7 +7126,7 @@ gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 	  break;
 
 	default:
-	  gfc_internal_error ("resolve_block(): Bad block type");
+	  gfc_internal_error ("gfc_resolve_blocks(): Bad block type");
 	}
 
       resolve_code (b->next, ns);
@@ -7481,7 +7516,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  break;
 
 	case EXEC_CALL_PPC:
-          resolve_ppc_call (code);
+	  resolve_ppc_call (code);
 	  break;
 
 	case EXEC_SELECT:
@@ -7492,6 +7527,10 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 
 	case EXEC_SELECT_TYPE:
 	  resolve_select_type (code);
+	  break;
+
+	case EXEC_BLOCK:
+	  gfc_resolve (code->ext.ns);
 	  break;
 
 	case EXEC_DO:
