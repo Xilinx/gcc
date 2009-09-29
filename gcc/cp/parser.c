@@ -6977,11 +6977,8 @@ cp_parser_lambda_expression (cp_parser* parser)
     /* Inside the class, surrounding template-parameter-lists do not apply.  */
     unsigned int saved_num_template_parameter_lists
         = parser->num_template_parameter_lists;
-    /* We are not in a function body.  */
-    bool saved_in_function_body = parser->in_function_body;
 
     parser->num_template_parameter_lists = 0;
-    parser->in_function_body = false;
 
     cp_parser_lambda_introducer (parser, lambda_expr);
 
@@ -7021,7 +7018,6 @@ cp_parser_lambda_expression (cp_parser* parser)
 
     type = finish_struct (type, /*attributes=*/NULL_TREE);
 
-    parser->in_function_body = saved_in_function_body;
     parser->num_template_parameter_lists = saved_num_template_parameter_lists;
   }
 
