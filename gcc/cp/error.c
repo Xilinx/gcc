@@ -600,11 +600,12 @@ dump_aggr_type (tree t, int flags)
   else if (LAMBDA_TYPE_P (t))
     {
       /* A lambda's "type" is essentially its signature.  */
-      pp_string (cxx_pp, M_("<lambda>"));
+      pp_string (cxx_pp, M_("<lambda"));
       if (LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (t)))
 	dump_parameters (FUNCTION_FIRST_USER_PARMTYPE
                          (LAMBDA_EXPR_FUNCTION (CLASSTYPE_LAMBDA_EXPR (t))),
 			 flags);
+      pp_character(cxx_pp, '>');
     }
   else
     pp_cxx_tree_identifier (cxx_pp, name);
@@ -1418,7 +1419,12 @@ dump_function_name (tree t, int flags)
   /* Don't let the user see __comp_ctor et al.  */
   if (DECL_CONSTRUCTOR_P (t)
       || DECL_DESTRUCTOR_P (t))
-    name = constructor_name (DECL_CONTEXT (t));
+    {
+      if (LAMBDA_TYPE_P (DECL_CONTEXT (t)))
+	name = get_identifier ("<lambda>");
+      else
+	name = constructor_name (DECL_CONTEXT (t));
+    }
 
   if (DECL_DESTRUCTOR_P (t))
     {
