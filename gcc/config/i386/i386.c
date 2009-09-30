@@ -9219,13 +9219,6 @@ ix86_expand_split_stack_prologue (void)
   call_fusage = NULL_RTX;
   if (!TARGET_64BIT)
     {
-      /* In order to give __morestack a scratch register, we save %ecx
-	 if necessary.  */
-      if (is_fastcall || regparm > 2)
-	{
-	  emit_insn (gen_push (gen_rtx_REG (Pmode, CX_REG)));
-	  args_size += UNITS_PER_WORD;
-	}
       emit_insn (gen_push (GEN_INT (args_size)));
       emit_insn (gen_push (allocate_rtx));
     }
@@ -9254,12 +9247,6 @@ ix86_expand_split_stack_prologue (void)
      instruction--we need control flow to continue at the subsequent
      label.  Therefore, we use an unspec.  */
   emit_insn (gen_split_stack_return ());
-
-  if (!TARGET_64BIT && (is_fastcall || regparm > 2))
-    {
-      /* Restore the scratch register we pushed earlier.  */
-      emit_insn (gen_popsi1 (gen_rtx_REG (Pmode, CX_REG)));
-    }
 
   emit_label (label);
   LABEL_NUSES (label) = 1;

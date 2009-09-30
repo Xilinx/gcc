@@ -96,11 +96,11 @@ __morestack:
 
 	# In 32-bit mode the registers %eax, %edx, and %ecx may be
 	# used for parameters, depending on the regparm and fastcall
-	# attributes.  However, we don't have to worry about %ecx, as
-	# the function will have saved it on the stack if necessary.
+	# attributes.
 
 	pushl	%eax
 	pushl	%edx
+	pushl	%ecx
 
 	pushl	12(%ebp)		# The size of the parameters.
 	leal	20(%ebp),%eax		# Address of caller's parameters.
@@ -122,14 +122,19 @@ __morestack:
 	# gcc/config/i386/linux.h.
 	movl	%eax,%gs:0x30		# Save the new stack boundary.
 
-	movl	-4(%ebp),%eax		# Restore registers.
-	movl	-8(%ebp),%edx
+	movl	-8(%ebp),%edx		# Restore registers.
+	movl	-12(%ebp),%ecx
 
-	movl	4(%ebp),%ecx		# Increment the return address
-	inc	%ecx			# to skip the ret instruction;
+	movl	4(%ebp),%eax		# Increment the return address
+	inc	%eax			# to skip the ret instruction;
 					# see above.
+	
+	movl	%eax,-8(%ebp)		# Store return address in an
+					# unused slot.
 
-	call	*%ecx			# Call our caller!
+	movl	-4(%ebp),%eax		# Restore the last register.
+
+	call	*-8(%ebp)		# Call our caller!
 
 	# The caller will return here, as predicted.
 

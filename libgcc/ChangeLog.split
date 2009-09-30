@@ -1,3 +1,10 @@
+2009-09-30  Ian Lance Taylor  <iant@google.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* config/i386/morestack.S (__morestack): In 32-bit case, use a
+	stack slot to hold the incremented return address rather than
+	trashing %ecx.
+
 2009-09-29  Ian Lance Taylor  <iant@google.com>
 	    Richard Henderson  <rth@redhat.com>
 
