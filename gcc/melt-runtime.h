@@ -283,7 +283,6 @@ enum obmag_en    {
   OBMAG_ROUTINE,
   OBMAG_LIST,
   OBMAG_PAIR,
-  OBMAG_TRIPLE,
   OBMAG_INT,
   OBMAG_MIXINT,
   OBMAG_MIXLOC,
@@ -538,16 +537,6 @@ meltpair_st
   struct meltpair_st *tl;
 };
 
-/* when OBMAG_TRIPLE */
-struct 
-GTY ((chain_next ("%h.tl")))
-melttriple_st
-{
-  meltobject_ptr_t discr;
-  melt_ptr_t hd;
-  melt_ptr_t mi;
-  struct melttriple_st *tl;
-};
 
 /* when OBMAG_LIST   */
 struct 
@@ -944,7 +933,6 @@ melt_un
   struct meltmixbigint_st GTY ((tag ("OBMAG_MIXBIGINT"))) u_mixbigint;
   struct meltreal_st GTY ((tag ("OBMAG_REAL"))) u_real;
   struct meltpair_st GTY ((tag ("OBMAG_PAIR"))) u_pair;
-  struct melttriple_st GTY ((tag ("OBMAG_TRIPLE"))) u_triple;
   struct meltspecial_st
     GTY ((tag ("OBMAG_SPEC_FILE"),
 	  tag ("OBMAG_SPEC_MPFR"),

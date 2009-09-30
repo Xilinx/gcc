@@ -43,24 +43,24 @@ along with GCC; see the file COPYING3.   If not see
 #include "filenames.h"
 #include "tree-pass.h"
 #include "tree-dump.h"
-#include "tree-flow.h" /*notpluginexported*/
-#include "tree-iterator.h" /*notpluginexported*/
+#include "tree-flow.h" 
+#include "tree-iterator.h" 
 #include "tree-inline.h" /*notpluginexported*/
 #include "basic-block.h"
 #include "timevar.h"
 
 
 #include "ggc.h"
-#include "cgraph.h" /*notpluginexported*/
+#include "cgraph.h" 
 #include "diagnostic.h" /*notpluginexported*/
 #include "flags.h" /*notpluginexported*/
 #include "toplev.h"
 #include "options.h"
 #include "params.h" /*notpluginexported*/
-#include "real.h" /*notpluginexported*/
+#include "real.h" 
 #include "prefix.h" /*notpluginexported*/
 #include "md5.h" /*notpluginexported*/
-#include "plugin.h" /*notpluginexported*/
+#include "plugin.h" 
 #include "cppdefault.h" /*notpluginexported*/
 
 /* executable_checksum is declared in c-common.h which we can't
@@ -445,7 +445,6 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     case OBMAG_ROUTINE:
     case OBMAG_LIST:
     case OBMAG_PAIR:
-    case OBMAG_TRIPLE:
     case OBMAG_INT:
     case OBMAG_MIXINT:
     case OBMAG_MIXLOC:
@@ -965,15 +964,6 @@ forwarded_copy (melt_ptr_t p)
 	n = (melt_ptr_t) dst;
 	break;
       }
-    case OBMAG_TRIPLE:
-      {
-	struct melttriple_st *src = (struct melttriple_st *) p;
-	struct melttriple_st *dst = (struct melttriple_st *)
-	  ggc_alloc_cleared (sizeof (struct melttriple_st));
-	*dst = *src;
-	n = (melt_ptr_t) dst;
-	break;
-      }
     case OBMAG_INT:
       {
 	struct meltint_st *src = (struct meltint_st *) p;
@@ -1379,14 +1369,6 @@ scanning (melt_ptr_t p)
       {
 	struct meltpair_st *src = (struct meltpair_st *) p;
 	FORWARDED (src->hd);
-	FORWARDED (src->tl);
-	break;
-      }
-    case OBMAG_TRIPLE:
-      {
-	struct melttriple_st *src = (struct melttriple_st *) p;
-	FORWARDED (src->hd);
-	FORWARDED (src->mi);
 	FORWARDED (src->tl);
 	break;
       }
@@ -6046,7 +6028,6 @@ readsimplelong (struct reading_st *rd)
       NUMNAM (OBMAG_ROUTINE);
       NUMNAM (OBMAG_LIST);
       NUMNAM (OBMAG_PAIR);
-      NUMNAM (OBMAG_TRIPLE);
       NUMNAM (OBMAG_INT);
       NUMNAM (OBMAG_MIXINT);
       NUMNAM (OBMAG_MIXLOC);
@@ -8537,7 +8518,6 @@ melt_debug_out (struct debugprint_melt_st *dp,
 	fputs ("]", dp->dfil);
 	break;
       }
-    case OBMAG_TRIPLE:
     case OBMAG_TREE:
     case OBMAG_GIMPLE:
     case OBMAG_GIMPLESEQ:
@@ -10733,8 +10713,5 @@ end:
 #undef atclov
 }
 
-
-
 #include "gt-melt-runtime.h"
-
 /* eof melt-runtime.c */
