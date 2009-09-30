@@ -118,6 +118,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    x86_64 glibc provides it in %fs:0x28.  */
 #define TARGET_THREAD_SSP_OFFSET	(TARGET_64BIT ? 0x28 : 0x14)
 
-/* For now -fsplit-stack uses the same field.  */
-#define TARGET_THREAD_SPLIT_STACK_OFFSET TARGET_THREAD_SSP_OFFSET
+/* We steal the last transactional memory word.  */
+#define TARGET_THREAD_SPLIT_STACK_OFFSET (TARGET_64BIT ? 0x70 : 0x30)
 #endif

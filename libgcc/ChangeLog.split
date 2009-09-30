@@ -1,3 +1,20 @@
+2009-09-29  Ian Lance Taylor  <iant@google.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* generic-morestack.c: #include <pthread.h>.
+	(__generic_morestack): Make hidden.
+	(__generic_releasestack): Likewise.
+	(allocate_segment): Only use sync_val_compare_and_swap if it is
+	available.
+	(struct pthread_create_args): Define.
+	(stack_split_initialize_thread): New static function.
+	(__wrap_pthread_create): New function.
+	* config/i386/morestack.S (__morestack): Add CFI pseudo-ops.  Use
+	a frame pointer.  Change call/return sequence.  Remove __PIC__
+	code.  Change TCB offsets.
+	(__stack_split_initialize): Rename from init.  Make global.
+	Change TCB offsets.
+
 2009-09-26  Ian Lance Taylor  <iant@google.com>
 
 	* generic-morestack.c: Don't build anything if inhibit_libc is

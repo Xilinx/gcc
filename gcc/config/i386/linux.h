@@ -214,6 +214,6 @@ along with GCC; see the file COPYING3.  If not see
 /* i386 glibc provides __stack_chk_guard in %gs:0x14.  */
 #define TARGET_THREAD_SSP_OFFSET	0x14
 
-/* For now -fsplit-stack uses the same field.  */
-#define TARGET_THREAD_SPLIT_STACK_OFFSET TARGET_THREAD_SSP_OFFSET
+/* We steal the last transactional memory word.  */
+#define TARGET_THREAD_SPLIT_STACK_OFFSET 0x30
 #endif

@@ -55,6 +55,21 @@
 # __generic_releasestack to retrieve the old stack pointer and
 # release the newly allocated stack.
 
+# We do a little dance so that the processor's call/return return
+# address prediction works out.  The compiler arranges for the caller
+# to look like this:
+#   call __generic_morestack
+#   ret
+#  L:
+#   // carry on with function
+# After we allocate more stack, we call L, which is in our caller.
+# When that returns (to the predicted instruction), we release the
+# stack segment and reset the stack pointer.  We then return to the
+# predicted instruction, namely the ret instruction immediately after
+# the call to __generic_morestack.  That then returns to the caller of
+# the original caller.
+
+
 # void *__generic_releasestack (void);
 
 	.global	__morestack
@@ -64,8 +79,16 @@
 #endif
 
 __morestack:
+	.cfi_startproc
 
 #ifndef __x86_64__
+
+	# Set up a normal backtrace.
+	pushl	%ebp
+	.cfi_def_cfa_offset 8
+	.cfi_offset %ebp, -8
+	movl	%esp, %ebp
+	.cfi_def_cfa_register %ebp
 
 	# In 32-bit mode the parameters are pushed on the stack.  The
 	# argument size is pushed then the new stack frame size is
@@ -79,35 +102,33 @@ __morestack:
 	pushl	%eax
 	pushl	%edx
 
-	pushl	16(%esp)		# The size of the parameters.
-	leal	28(%esp),%eax		# The caller's	parameters.
+	pushl	12(%ebp)		# The size of the parameters.
+	leal	20(%ebp),%eax		# Address of caller's parameters.
 	pushl	%eax
-	leal	20(%esp),%eax		# The address of the new frame size.
+	leal	8(%ebp),%eax		# The address of the new frame size.
 	pushl	%eax
 
-#ifdef __PIC__
-	call	__generic_morestack@PLT
-#else
+	# Note that %esp is exactly 32 bytes below the CFA -- perfect for
+	# a 16-byte aligned stack.  That said, we still ought to compile
+	# generic-morestack.c with -mpreferred-stack-boundary=2.  FIXME.
 	call	__generic_morestack
-#endif
 
-	movl	%eax,%ecx		# Copy the new stack pointer.
-	subl	24(%esp),%ecx		# The end of the stack space.
-	addl	$256,%ecx		# Back off 256 bytes.
+	movl	%eax,%esp		# Switch to the new stack.
+	subl	8(%ebp),%eax		# The end of the stack space.
+	addl	$256,%eax		# Back off 256 bytes.
 
 	# FIXME: The offset must match
 	# TARGET_THREAD_SPLIT_STACK_OFFSET in
 	# gcc/config/i386/linux.h.
-	movl	%ecx,%gs:0x14		# Save the new stack boundary.
+	movl	%eax,%gs:0x30		# Save the new stack boundary.
 
-	movl	16(%esp),%eax		# Restore registers.
-	movl	12(%esp),%edx
+	movl	-4(%ebp),%eax		# Restore registers.
+	movl	-8(%ebp),%edx
 
-	# We do a little dance here so that the processor's
-        # call/return prediction works out right.
+	movl	4(%ebp),%ecx		# Increment the return address
+	inc	%ecx			# to skip the ret instruction;
+					# see above.
 
-	movl	20(%esp),%ecx		# Where we are in the caller.
-	movl	%eax,%esp		# Switch to the new stack.
 	call	*%ecx			# Call our caller!
 
 	# The caller will return here, as predicted.
@@ -118,25 +139,32 @@ __morestack:
 	pushl	%eax
 	pushl	%edx
 
-#ifdef __PIC__
-	call	__generic_releasestack@PLT
-#else
 	call	__generic_releasestack
-#endif
-
-	movl	%eax,%ecx		# Hold onto old stack pointer.
 
 	popl	%edx			# Restore possible return value
 	popl	%eax
 
-	movl	%ecx,%esp		# Switch back to the old stack.
-
-	ret				# Return to caller's caller.
+	# Switch back to the old stack via copy back from %ebp.
+	leave
+	.cfi_restore %ebp
+	.cfi_def_cfa %esp, 4
+	ret	$8			# Return to caller, which will
+					# immediately return.  Pop
+					# arguments as we go.
 
 #else /* defined(__x86_64__) */
 
+	# Set up a normal backtrace.
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+
 	# In 64-bit mode the new stack frame size is passed in r10
         # and the argument size is passed in r11.
+
+	pushq	%r10			# Save new frame size.
 
 	# In 64-bit mode the registers %rdi, %rsi, %rdx, %rcx, %r8,
 	# and %r9 may be used for parameters.
@@ -148,39 +176,39 @@ __morestack:
 	pushq	%r8
 	pushq	%r9
 
-	pushq	%r10			# The new frame size.
-	leaq	0(%rsp),%rdi		# Its address.
-	leaq	64(%rsp),%rsi		# The caller's parameters.
+	# An extra push to maintain 16-byte stack alignment.  After this,
+	# we'll be 80 bytes below the (presumably aligned) CFA.
+	pushq	%rdi
+
+	leaq	-8(%rbp),%rdi		# Address of new frame size.
+	leaq	24(%rbp),%rsi		# The caller's parameters.
 	movq	%r11,%rdx		# The size of the parameters.
 
-#ifdef __PIC__
-	call	__generic_morestack@PLT
-#else
 	call	__generic_morestack
-#endif
 
-	movq	%rax,%rcx		# Copy the new stack pointer.
-	subq	0(%rsp),%rcx		# The end of the stack space.
-	addq	$256,%rcx		# Back off 256 bytes.
+	popq	%rdi			# Restore registers
+	popq	%r9
+	popq	%r8
+	popq	%rcx
+	popq	%rdx
+	popq	%rsi
+	popq	%rdi
+
+	popq	%r10			# Reload modified frame size
+	movq	%rax,%rsp		# Switch to the new stack.
+	subq	%r10,%rax		# The end of the stack space.
+	addq	$256,%rax		# Back off 256 bytes.
 
 	# FIXME: The offset must match
 	# TARGET_THREAD_SPLIT_STACK_OFFSET in
 	# gcc/config/i386/linux64.h.
-	movq	%rcx,%fs:0x28		# Save the new stack boundary.
+	movq	%rax,%fs:0x70		# Save the new stack boundary.
 
-	movq	48(%rsp),%rdi		# Restore registers.
-	movq	40(%rsp),%rsi
-	movq	32(%rsp),%rdx
-	movq	24(%rsp),%rcx
-	movq	16(%rsp),%r8
-	movq	8(%rsp),%r9
+	movq	8(%rbp),%r10		# Increment the return address
+	incq	%r10			# to skip the ret instruction;
+					# see above.
 
-	# We do a little dance here so that the processor's
-        # call/return prediction works out right.
-
-	movq	56(%rsp),%rcx		# Where we are in the caller.
-	movq	%rax,%rsp		# Switch to the new stack.
-	call	*%rcx			# Call our caller!
+	call	*%r10			# Call our caller!
 
 	# The caller will return here, as predicted.
 
@@ -190,53 +218,53 @@ __morestack:
 	pushq	%rax
 	pushq	%rdx
 
-#ifdef __PIC__
-	call	__generic_releasestack@PLT
-#else
 	call	__generic_releasestack
-#endif
-
-	movq	%rax,%rcx		# Hold onto old stack pointer.
 
 	popq	%rdx			# Restore possible return value
 	popq	%rax
 
-	movq	%rcx,%rsp		# Switch back to the old stack.
-
-	ret				# Return to caller's caller.
+	# Switch back to the old stack via copy back from %rbp.
+	leave
+	.cfi_restore %rbp
+	.cfi_def_cfa %rsp, 8
+	ret				# Return to caller, which will
+					# immediately return.
 
 #endif /* defined(__x86_64__) */
 
+	.cfi_endproc
 #ifdef __ELF__
 	.size	__morestack, . - __morestack
 #endif
 
-# Initialize the stack test value when the program starts.  We don't
-# know how large the main stack is, so we guess conservatively.  We
-# might be able to use getrlimit here.
+# Initialize the stack test value when the program starts or when a
+# new thread starts.  We don't know how large the main stack is, so we
+# guess conservatively.  We might be able to use getrlimit here.
+
+	.global	__stack_split_initialize
 
 #ifdef __ELF__
 	.type	init, @function
 #endif
 
-init:
+__stack_split_initialize:
 
 #ifndef __x86_64__
 
 	leal	-16000(%esp),%eax	# We should have at least 16K.
-	movl	%eax,%gs:0x14
+	movl	%eax,%gs:0x30
 	ret
 
 #else /* defined(__x86_64__) */
 
 	leaq	-16000(%rsp),%rax	# We should have at least 16K.
-	movq	%rax,%fs:0x28
+	movq	%rax,%fs:0x70
 	ret
 
 #endif /* defined(__x86_64__) */
 
 #ifdef __ELF__
-	.size	init, . - init
+	.size	__stack_split_initialize, . - __stack_split_initialize
 #endif
 
 # Make init a high priority constructor.  FIXME: This is ELF
@@ -246,10 +274,10 @@ init:
 
 #ifndef __x86_64__
 	.align	4
-	.long	init
+	.long	__stack_split_initialize
 #else
 	.align	8
-	.quad	init
+	.quad	__stack_split_initialize
 #endif
 
 #ifdef __ELF__

@@ -38,6 +38,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #include <assert.h>
 #include <errno.h>
+#include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -54,11 +55,11 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 extern void *
 __generic_morestack (size_t *frame_size, void *old_stack, size_t param_size)
-  __attribute__ ((no_split_stack, flatten));
+  __attribute__ ((no_split_stack, flatten, visibility ("hidden")));
 
 extern void *
 __generic_releasestack (void)
-  __attribute__ ((no_split_stack, flatten));
+  __attribute__ ((no_split_stack, flatten, visibility ("hidden")));
 
 /* When we allocate a stack segment we put this header at the
    start.  */
@@ -154,7 +155,15 @@ allocate_segment (size_t frame_size)
       unsigned int p;
 
       pagesize = getpagesize ();
+
+#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
       p = __sync_val_compare_and_swap (&static_pagesize, 0, pagesize);
+#else
+      /* Just hope this assignment is atomic.  */
+      static_pagesize = pagesize;
+      p = 0;
+#endif
+
       /* FIXME: I'm not sure this assert should be in the released
 	 code.  */
       assert (p == 0 || p == pagesize);
@@ -344,6 +353,64 @@ __generic_releasestack (void)
   current_segment = current->prev;
 
   return current->old_stack;
+}
+
+/* Pass information from the pthread_create wrapper to
+   stack_split_initialize_thread.  */
+
+struct pthread_create_args
+{
+  void *(*start_routine) (void *);
+  void *arg;
+};
+
+/* Initialize a thread.  This is called via pthread_create.  It calls
+   a target dependent function to set up any required stack guard.  */
+
+static void* stack_split_initialize_thread (void *)
+  __attribute__ ((no_split_stack));
+
+extern void __stack_split_initialize (void)
+  __attribute__ ((visibility ("hidden")));
+
+static void *
+stack_split_initialize_thread (void *varg)
+{
+  struct pthread_create_args *args = (struct pthread_create_args *) varg;
+  void *(*start_routine) (void *);
+  void *arg;
+
+  __stack_split_initialize ();
+  start_routine = args->start_routine;
+  arg = args->arg;
+  free (args);
+  return (*start_routine) (arg);
+}
+
+/* This function wraps calls to pthread_create to make sure that the
+   stack guard is initialized for new threads.  FIXME: This hack will
+   not be necessary if glibc supports -fsplit-stack directly.  */
+
+int __wrap_pthread_create (pthread_t *, const pthread_attr_t *,
+			   void *(*start_routine) (void *), void *)
+  __attribute__ ((visibility ("hidden")));
+
+extern int __real_pthread_create (pthread_t *, const pthread_attr_t *,
+				  void *(*start_routine) (void *), void *)
+  __attribute__ ((weak));
+
+int
+__wrap_pthread_create (pthread_t *tid, const pthread_attr_t *attr,
+		       void *(*start_routine) (void *), void *arg)
+{
+  struct pthread_create_args* args;
+
+  args = malloc (sizeof (struct pthread_create_args));
+  if (args == NULL)
+    return EAGAIN;
+  args->start_routine = start_routine;
+  args->arg = arg;
+  return __real_pthread_create (tid, attr, stack_split_initialize_thread, args);
 }
 
 #endif /* !defined (inhibit_libc) */

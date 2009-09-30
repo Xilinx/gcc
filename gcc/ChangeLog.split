@@ -1,3 +1,21 @@
+2009-09-29  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.c (STACK_SPLIT_SPEC): Define.
+	(LINK_COMMAND_SPEC): Use STACK_SPLIT_SPEC.
+	* config/i386/i386.c (ix86_supports_split_stack): Remove test of
+	flag_stack_protect.
+	(ix86_expand_split_stack_prologue): Set call insn function usage
+	to include register parameters.  Emit return instruction after
+	call to __morestack.
+	* config/i386/i386.md (split_stack_check_small): Use unsigned
+	comparison.
+	(split_stack_check_large): Likewise.
+	(split_stack_return): New insn.
+	* config/i386/linux.h (TARGET_THREAD_SPLIT_STACK_OFFSET): Change
+	value.
+	* config/i386/linux64.h (TARGET_THREAD_SPLIT_STACK_OFFSET):
+	Likewise.
+
 2009-09-25  Ian Lance Taylor  <iant@google.com>
 
 	* testsuite/gcc.dg/split-1.c: New test.
@@ -24,7 +42,7 @@
 	Define.
 	* config/i386/i386-protos.h (ix86_expand_split_stack_prologue):
 	Declare.
-	(ix86_ewxpand_call): Change return type in declaration.
+	(ix86_expand_call): Change return type in declaration.
 
 	* common.opt (fsplit-stack): New option.
 	* opts.c (decode_options): Set flag_split_stack.

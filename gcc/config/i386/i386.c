@@ -7799,12 +7799,6 @@ ix86_supports_split_stack (void)
 #ifndef TARGET_THREAD_SPLIT_STACK_OFFSET
   error ("%<-fsplit-stack%> currently only supported on GNU/Linux");
   ret = false;
-#else
-  if (flag_stack_protect)
-    {
-      error ("%<-fstack-protector%> is not compatible with %<-fsplit-stack%>");
-      ret = false;
-    }
 #endif
 
   return ret;
@@ -9139,7 +9133,7 @@ ix86_expand_split_stack_prologue (void)
   tree decl;
   bool is_fastcall;
   int regparm, args_size;
-  rtx label, jump_insn, allocate_rtx, call_insn;
+  rtx label, jump_insn, allocate_rtx, call_insn, call_fusage;
 
   gcc_assert (flag_split_stack && reload_completed);
 
@@ -9222,6 +9216,7 @@ ix86_expand_split_stack_prologue (void)
      r11.  */
   allocate_rtx = GEN_INT (allocate);
   args_size = crtl->args.size >= 0 ? crtl->args.size : 0;
+  call_fusage = NULL_RTX;
   if (!TARGET_64BIT)
     {
       /* In order to give __morestack a scratch register, we save %ecx
@@ -9236,14 +9231,29 @@ ix86_expand_split_stack_prologue (void)
     }
   else
     {
-      emit_move_insn (gen_rtx_REG (Pmode, R10_REG), allocate_rtx);
-      emit_move_insn (gen_rtx_REG (Pmode, R11_REG), GEN_INT (args_size));
+      rtx reg;
+
+      reg = gen_rtx_REG (Pmode, R10_REG);
+      emit_move_insn (reg, allocate_rtx);
+      use_reg (&call_fusage, reg);
+      reg = gen_rtx_REG (Pmode, R11_REG);
+      emit_move_insn (reg, GEN_INT (args_size));
+      use_reg (&call_fusage, reg);
     }
   if (split_stack_fn == NULL_RTX)
     split_stack_fn = gen_rtx_SYMBOL_REF (Pmode, "__morestack");
   call_insn = ix86_expand_call (NULL_RTX, gen_rtx_MEM (QImode, split_stack_fn),
 				GEN_INT (UNITS_PER_WORD), constm1_rtx,
 				NULL_RTX, 0);
+  add_function_usage_to (call_insn, call_fusage);
+
+  /* In order to make call/return prediction work right, we now need
+     to execute a return instruction.  See
+     libgcc/config/i386/morestack.S for the details on how this works.
+     However, for flow purposes gcc must not see this as a return
+     instruction--we need control flow to continue at the subsequent
+     label.  Therefore, we use an unspec.  */
+  emit_insn (gen_split_stack_return ());
 
   if (!TARGET_64BIT && (is_fastcall || regparm > 2))
     {
